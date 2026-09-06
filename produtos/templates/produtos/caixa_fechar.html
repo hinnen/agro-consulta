@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html lang="pt-br" class="h-full overflow-hidden">
+<html lang="pt-br">
 <head>
+  {% load static %}
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   {% include "produtos/_head_perf_mpa.html" %}
@@ -9,78 +10,1134 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
   {% include "produtos/_agro_consulta_ui.html" %}
   <style>
-    html, body { height: 100%; }
+    html, body { min-height: 100%; margin: 0; }
     body {
       font-family: 'Inter', sans-serif;
-      font-size: clamp(15px, 0.35vw + 14px, 18px);
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+    /* —— Escala única (toda a tela Fechar caixa) —— */
+    .cf-page {
+      container-type: inline-size;
+      --cf-fs-base: clamp(15px, 0.3vw + 14px, 17px);
+      --cf-fs-meta: clamp(0.84rem, 0.14vw + 0.8rem, 0.92rem);
+      --cf-fs-label: clamp(0.8rem, 0.12vw + 0.76rem, 0.88rem);
+      --cf-fs-body: clamp(0.96rem, 0.2vw + 0.9rem, 1.04rem);
+      --cf-fs-section: clamp(1.1rem, 0.38vw + 1rem, 1.28rem);
+      --cf-fs-page: clamp(1.35rem, 0.6vw + 1.18rem, 1.65rem);
+      --cf-fs-money: clamp(1.35rem, 0.5vw + 1.2rem, 1.75rem);
+      --cf-fs-input: clamp(1.5rem, 0.65vw + 1.25rem, 2rem);
+      --cf-fs-cedula: clamp(1.65rem, 1.1vw + 1.35rem, 2.35rem);
+      --cf-input-h: clamp(3.15rem, 9vh, 3.85rem);
+      --cf-lh-tight: 1.15;
+      --cf-lh-body: 1.38;
+      font-size: var(--cf-fs-base);
+      line-height: var(--cf-lh-body);
+      width: 100%;
       min-height: 100dvh;
-      max-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: visible;
+      background: #f8fafc;
+      color: #1e293b;
     }
-    .caixa-shell { width: 100%; max-width: min(96rem, 100%); margin-left: auto; margin-right: auto; }
-    .cf-list-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.75rem; align-items: center; }
-    @media (min-width: 768px) {
-      .cf-list-row {
-        grid-template-columns: minmax(6rem, 0.85fr) minmax(5.5rem, 0.65fr) minmax(9rem, 1.25fr) auto;
-        gap: 0.65rem 0.75rem;
-      }
-      .cf-list-head {
-        grid-template-columns: minmax(6rem, 0.85fr) minmax(5.5rem, 0.65fr) minmax(9rem, 1.25fr) auto;
-      }
+    .cf-t-page { font-size: var(--cf-fs-page) !important; font-weight: 900; line-height: var(--cf-lh-tight); }
+    .cf-t-sub { font-size: var(--cf-fs-body) !important; font-weight: 700; line-height: var(--cf-lh-body); }
+    .cf-t-body { font-size: var(--cf-fs-body) !important; font-weight: 700; line-height: var(--cf-lh-body); }
+    .cf-t-label { font-size: var(--cf-fs-label) !important; font-weight: 900; text-transform: uppercase; letter-spacing: 0.04em; line-height: var(--cf-lh-tight); }
+    .cf-t-section { font-size: var(--cf-fs-section) !important; font-weight: 900; line-height: var(--cf-lh-tight); }
+    .cf-t-forma { font-size: var(--cf-fs-body) !important; font-weight: 900; line-height: var(--cf-lh-tight); }
+    .cf-t-money { font-size: var(--cf-fs-money) !important; font-weight: 900; font-variant-numeric: tabular-nums; line-height: var(--cf-lh-tight); }
+    .cf-t-meta { font-size: var(--cf-fs-meta) !important; font-weight: 700; line-height: var(--cf-lh-body); }
+    .cf-t-input { font-size: var(--cf-fs-input) !important; font-weight: 900; font-variant-numeric: tabular-nums; line-height: var(--cf-lh-tight); }
+    .cf-t-btn { font-size: var(--cf-fs-label) !important; font-weight: 900; text-transform: uppercase; letter-spacing: 0.03em; line-height: var(--cf-lh-tight); }
+    /* Alinha utilitários Tailwind / _agro_consulta_ui à mesma escala */
+    .cf-page :is(.text-xs, .text-sm, .text-base, .text-\[8px\], .text-\[9px\], .text-\[10px\], .text-\[11px\], .text-\[12px\], .text-\[13px\], .text-\[14px\], .text-\[15px\]) {
+      font-size: var(--cf-fs-body) !important;
+      line-height: var(--cf-lh-body) !important;
     }
-    @media (min-width: 1280px) {
-      .cf-list-row, .cf-list-head {
-        grid-template-columns: minmax(7rem, 0.9fr) minmax(6rem, 0.7fr) minmax(10rem, 1.35fr) auto;
-      }
+    .cf-page .cf-t-label,
+    .cf-page .cf-t-btn,
+    .cf-page .cf-contado-label,
+    .cf-page .cf-cedulas-title,
+    .cf-page .cf-toolbar-btn { font-size: var(--cf-fs-label) !important; line-height: var(--cf-lh-tight) !important; }
+    .cf-page .cf-t-meta,
+    .cf-page .cf-cedula-sub,
+    .cf-page .cf-cedulas-sum,
+    .cf-page .caixa-diff:not(.cf-conf-variacao) { font-size: var(--cf-fs-meta) !important; line-height: var(--cf-lh-body) !important; }
+    .cf-page #cf-cedulas-total { font-size: var(--cf-fs-money) !important; line-height: var(--cf-lh-tight) !important; }
+    .cf-page .cf-t-money,
+    .cf-page .cf-pay-esperado { font-size: var(--cf-fs-money) !important; line-height: var(--cf-lh-tight) !important; }
+    .cf-page .cf-cedula-qty {
+      font-size: var(--cf-fs-cedula) !important;
+      line-height: var(--cf-lh-tight) !important;
+      min-height: var(--cf-input-h);
+    }
+    .cf-page .cf-cedula-label,
+    .cf-page .cf-cedula-denom-num { line-height: var(--cf-lh-tight) !important; }
+    .cf-page .cf-cedula-sub-wrap .cf-cedula-sub {
+      font-size: clamp(1.1rem, 0.72vw + 0.95rem, 1.6rem) !important;
+      line-height: var(--cf-lh-tight) !important;
+    }
+    .cf-page .cf-contado-input,
+    .cf-page .cf-input-num {
+      font-size: var(--cf-fs-input) !important;
+      line-height: var(--cf-lh-tight) !important;
+      min-height: var(--cf-input-h);
+    }
+    .cf-top {
+      flex-shrink: 0;
+      border-bottom: 1px solid #e2e8f0;
+      background: #fff;
+      padding: 0.35rem 0.65rem;
+    }
+    .cf-top-inner {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.45rem 0.75rem;
+      width: 100%;
+      max-width: 100%;
+      margin: 0 auto;
+      padding-inline: clamp(0.4rem, 1vw, 1rem);
+    }
+    .cf-main {
+      flex: 0 0 auto;
+      width: 100%;
+      max-width: 100%;
+      margin: 0;
+      padding: 0.35rem clamp(0.4rem, 1vw, 1rem) 0.45rem;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: clamp(0.45rem, 0.9vw, 0.75rem);
+      align-items: start;
+    }
+    @container (min-width: 36rem) {
+      .cf-main { grid-template-columns: minmax(0, 1fr) auto; }
+    }
+    .cf-main-span { grid-column: 1 / -1; }
+    .cf-form {
+      width: 100%;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: visible;
+      border-radius: 0.85rem;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    }
+    .cf-top-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .cf-help-top {
+      position: relative;
+    }
+    .cf-help-top summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .cf-help-top .cf-help-panel {
+      position: absolute;
+      z-index: 40;
+      top: calc(100% + 0.35rem);
+      right: 0;
+      width: min(22rem, calc(100vw - 2rem));
+      border-radius: 0.85rem;
+      border: 2px solid #64748b;
+      background: #fff;
+      padding: 0.85rem 1rem;
+      font-size: var(--cf-fs-meta);
+      font-weight: 700;
+      line-height: var(--cf-lh-body);
+      color: #1e293b;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+    }
+    .cf-toolbar {
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.35rem;
+      padding: 0.4rem 0.5rem;
+      border-bottom: 1px solid #f1f5f9;
+      background: #f8fafc;
+    }
+    @container (min-width: 34rem) {
+      .cf-toolbar { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     }
     .cf-toolbar-btn {
-      display: flex; align-items: center; justify-content: flex-start; gap: 0.5rem;
-      width: 100%; min-height: 48px; padding: 0.65rem 0.85rem;
-      border-radius: 0.85rem; border: 2px solid; font-size: 0.7rem; font-weight: 900;
-      text-transform: uppercase; letter-spacing: 0.03em; text-align: left; line-height: 1.2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: var(--cf-input-h);
+      padding: 0.35rem 0.5rem;
+      border-radius: 0.65rem;
+      border: 2px solid;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      text-align: center;
+      line-height: var(--cf-lh-tight);
+    }
+    .cf-toolbar-btn--retirada {
+      background: #fed7aa;
+      border-color: #c2410c;
+      color: #431407;
+    }
+    .cf-toolbar-btn--retirada:hover { background: #fdba74; }
+    .cf-toolbar-btn--reforco {
+      background: #a7f3d0;
+      border-color: #047857;
+      color: #064e3b;
+    }
+    .cf-toolbar-btn--reforco:hover { background: #6ee7b7; }
+    .cf-toolbar-btn--relatorio {
+      background: #e2e8f0;
+      border-color: #475569;
+      color: #0f172a;
+    }
+    .cf-toolbar-btn--relatorio:hover { background: #cbd5e1; }
+    .cf-toolbar-btn--conferencias {
+      background: #fde68a;
+      border-color: #b45309;
+      color: #451a03;
+    }
+    .cf-toolbar-btn--conferencias:hover { background: #fcd34d; }
+    .cf-body {
+      display: flex;
+      flex-direction: column;
+      overflow: visible;
+    }
+    .cf-scroll {
+      padding: 0.45rem 0.55rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+    .cf-conf-table {
+      border: 2px solid #64748b;
+      border-radius: 0.75rem;
+      overflow: hidden;
+      background: #fff;
+    }
+    .cf-conf-head,
+    .cf-conf-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.15fr) minmax(0, 0.8fr);
+      align-items: stretch;
+    }
+    .cf-conf-head {
+      border-bottom: 2px solid #475569;
+    }
+    .cf-conf-head-label {
+      font-size: clamp(1.05rem, 0.45vw + 0.95rem, 1.28rem) !important;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      line-height: 1.1;
+      color: #334155;
+      text-align: center;
+    }
+    .cf-conf-col--esperado {
+      background: #ecfdf5;
+      border-right: 2px solid #94a3b8;
+      padding: 0.7rem 0.9rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.45rem 0.85rem;
+      min-height: 3.75rem;
+    }
+    .cf-conf-col--contado {
+      background: #eff6ff;
+      border-right: 2px solid #94a3b8;
+      padding: 0.7rem 2.6rem 0.7rem 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      min-height: 3.75rem;
+    }
+    .cf-conf-col--contado > .cf-conf-contado-field {
+      width: min(100%, 16rem);
+      margin: 0 auto;
+    }
+    .cf-conf-col--contado > .cf-mini-help {
+      position: absolute;
+      right: 0.55rem;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    .cf-conf-col--variacao {
+      background: #f8fafc;
+      padding: 0.7rem 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      min-height: 3.75rem;
+    }
+    .cf-conf-variacao {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: var(--cf-fs-body) !important;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      line-height: var(--cf-lh-tight) !important;
+      letter-spacing: 0.01em;
+      margin: 0;
+      width: 100%;
+    }
+    .cf-conf-variacao.caixa-diff--vazio {
+      color: #94a3b8;
+    }
+    .cf-conf-variacao.caixa-diff--ok {
+      color: #047857;
+      font-size: var(--cf-fs-money) !important;
+      line-height: var(--cf-lh-tight) !important;
+    }
+    .cf-conf-variacao.caixa-diff--sobra {
+      color: #0369a1;
+      font-size: var(--cf-fs-money) !important;
+      line-height: var(--cf-lh-tight) !important;
+    }
+    .cf-conf-variacao.caixa-diff--falta {
+      color: #b91c1c;
+      font-size: var(--cf-fs-money) !important;
+      line-height: var(--cf-lh-tight) !important;
+    }
+    .cf-conf-row + .cf-conf-row {
+      border-top: 1px solid #cbd5e1;
+    }
+    .cf-conf-row--zero {
+      opacity: 0.72;
+    }
+    .cf-conf-head .cf-conf-col--esperado,
+    .cf-conf-head .cf-conf-col--contado,
+    .cf-conf-head .cf-conf-col--variacao {
+      min-height: auto;
+      padding: 0.6rem 0.9rem;
+      justify-content: center;
+      align-items: center;
+    }
+    .cf-conf-head .cf-conf-col--contado {
+      padding-right: 0.9rem;
+    }
+    .cf-conf-head .cf-conf-col--contado .cf-conf-head-label {
+      width: 100%;
+      text-align: center;
+    }
+    .cf-conf-row--dinheiro .cf-conf-col--contado {
+      align-items: center;
+    }
+    .cf-conf-sem-mov {
+      margin-top: 0.65rem;
+      border: 2px solid #cbd5e1;
+      border-radius: 0.75rem;
+      overflow: hidden;
+      background: #f8fafc;
+    }
+    .cf-conf-sem-mov > summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 0.65rem 0.9rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #475569;
+      background: #f1f5f9;
+    }
+    .cf-conf-sem-mov > summary::-webkit-details-marker { display: none; }
+    .cf-conf-table--sem-mov {
+      border: none;
+      border-radius: 0;
+      border-top: 1px solid #cbd5e1;
+    }
+    .cf-pay-forma {
+      font-weight: 900;
+      color: #0f172a;
+    }
+    .cf-pay-esperado {
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      color: #047857;
+    }
+    .cf-contado-inline-wrap {
+      display: flex;
+      align-items: stretch;
+      gap: 0.35rem;
+      min-width: 0;
+    }
+    .cf-cedulas-open-btn--inline {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: var(--cf-input-h);
+      padding: 0 0.55rem;
+      border-radius: 0.55rem;
+      border: 2px solid #059669;
+      background: linear-gradient(180deg, #ecfdf5, #d1fae5);
+      color: #065f46;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      line-height: var(--cf-lh-tight);
+      white-space: nowrap;
+    }
+    .cf-cedulas-open-btn--inline:hover { background: #d1fae5; }
+    .cf-cedulas-open-btn--inline:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.45);
+    }
+    .cf-contado-with-cedulas .cf-cedulas-open-resumo {
+      display: block;
+      margin-top: 0.12rem;
+      font-size: clamp(0.72rem, 0.32vw + 0.62rem, 0.86rem);
+      font-weight: 800;
+      color: #047857;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+    }
+    .cf-cedulas-wrap {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      width: 100%;
+      border: 2px solid #6ee7b7;
+      border-radius: 0.65rem;
+      background: #fff;
+      padding: 0.55rem 0.6rem;
+      overflow: hidden;
+    }
+    .cf-cedulas-title {
+      font-weight: 900;
+      text-transform: uppercase;
+      color: #065f46;
+      margin-bottom: 0.45rem;
+      letter-spacing: 0.04em;
+    }
+    .cf-cedulas-grid {
+      display: grid;
+      width: 100%;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-auto-rows: minmax(10.5rem, auto);
+      gap: 0.5rem;
+      flex: 0 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      align-content: start;
+    }
+    @container (min-width: 40rem) {
+      .cf-cedulas-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+    @container (min-width: 56rem) {
+      .cf-cedulas-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    }
+    /* Cartão: imagem (topo) · quantidade (meio) · subtotal verde (rodapé). */
+    .cf-cedula-item {
+      width: 100%;
+      min-width: 0;
+      height: 100%;
+      min-height: 10.5rem;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) clamp(1.35rem, 1.8vw, 1.65rem);
+      grid-template-rows: auto minmax(4.25rem, 1fr) auto;
+      padding: 0;
+      border-radius: 0.85rem;
+      border: 2px solid #0f172a;
+      background: #fff;
+      overflow: hidden;
+      isolation: isolate;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.1);
+    }
+    .cf-cedula-denom {
+      grid-column: 1 / -1;
+      grid-row: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: clamp(2.75rem, 11vh, 4.35rem);
+      background: #f8fafc;
+      border-bottom: 2px solid #0f172a;
+      padding: 0.3rem 0.4rem;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .cf-cedula-img {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-height: clamp(2.5rem, 10vh, 4rem);
+      object-fit: contain;
+      object-position: center;
+      user-select: none;
+      pointer-events: none;
+    }
+    .cf-cedula-item[data-valor="1"] .cf-cedula-img,
+    .cf-cedula-item[data-valor="0.50"] .cf-cedula-img,
+    .cf-cedula-item[data-valor="0.25"] .cf-cedula-img,
+    .cf-cedula-item[data-valor="0.10"] .cf-cedula-img,
+    .cf-cedula-item[data-valor="0.05"] .cf-cedula-img {
+      max-height: clamp(2.35rem, 9vh, 3.5rem);
+    }
+    .cf-cedula-qty-cell {
+      grid-column: 1;
+      grid-row: 2;
+      display: flex;
+      align-items: stretch;
+      justify-content: stretch;
+      min-height: 0;
+      border-bottom: 2px solid #0f172a;
+      border-right: none;
+      background: #fff;
+    }
+    .cf-cedula-qty {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      max-height: 100%;
+      box-sizing: border-box;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+      color: #0f172a;
+      padding: 0.15rem 0.2rem;
+      font-size: clamp(1.85rem, 3.2vh + 1rem, 3rem);
+    }
+    .cf-cedula-qty:focus {
+      outline: none;
+      background: #fff;
+      box-shadow: inset 0 0 0 3px rgba(16, 185, 129, 0.35);
+    }
+    .cf-cedula-qty-tag {
+      grid-column: 2;
+      grid-row: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.2rem 0.12rem;
+      font-size: clamp(0.58rem, 0.35vw + 0.5rem, 0.72rem);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 2px solid #0f172a;
+      border-left: 2px solid #0f172a;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      transform: rotate(180deg);
+      line-height: 1;
+      overflow: hidden;
+      word-break: break-all;
+    }
+    .cf-cedula-qty-tag--notas {
+      color: #065f46;
+      background: linear-gradient(180deg, #d1fae5, #a7f3d0);
+      border-bottom-color: #6ee7b7;
+    }
+    .cf-cedula-qty-tag--moedas {
+      color: #92400e;
+      background: linear-gradient(180deg, #fef3c7, #fde68a);
+      border-bottom-color: #fbbf24;
+    }
+    .cf-cedula-sub-wrap {
+      grid-column: 1 / -1;
+      grid-row: 3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.2rem 0.35rem;
+      padding: 0.45rem 0.5rem;
+      background: linear-gradient(180deg, #ecfdf5, #bbf7d0);
+      border-top: none;
+      min-height: clamp(2.5rem, 6.5vh, 3.15rem);
+    }
+    .cf-cedula-sub-prefix {
+      font-size: clamp(0.82rem, 0.4vw + 0.72rem, 1rem);
+      font-weight: 900;
+      color: #047857;
+      flex-shrink: 0;
+    }
+    .cf-cedula-sub {
+      font-size: clamp(1.15rem, 1.1vh + 0.95rem, 1.75rem);
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      color: #065f46;
+      line-height: 1;
+      min-width: 0;
+    }
+    .cf-dinheiro-footer {
+      display: none;
+    }
+    .cf-cedulas-sum {
+      font-weight: 800;
+      color: #334155;
+      padding: 0.4rem 0.5rem;
+      border-radius: 0.5rem;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+    }
+    .cf-cedulas-sum strong,
+    .cf-cedulas-sum #cf-cedulas-total {
+      font-size: var(--cf-fs-money);
+      color: #047857;
+    }
+    .cf-contado-box--total {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+    .cf-contado-box--total .cf-contado-input {
+      font-size: var(--cf-fs-input);
+      text-align: center;
+    }
+    .cf-contado-label {
+      font-weight: 900;
+      text-transform: uppercase;
+      color: #475569;
+      letter-spacing: 0.04em;
+    }
+    .cf-contado-input {
+      width: 100%;
+      border-radius: 0.65rem;
+      border: 2px solid #cbd5e1;
+      background: #fff;
+      padding: 0 0.65rem;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+    }
+    .cf-contado-input:focus { outline: none; border-color: #10b981; }
+    .cf-contado-auto[readonly] {
+      background: #ecfdf5;
+      border-color: #6ee7b7;
+      color: #065f46;
+      cursor: default;
+    }
+    .cf-conf-contado-field {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .cf-fiado-wizard.cf-modal-overlay {
+      padding: 0;
+      align-items: center;
+      justify-content: center;
+    }
+    .cf-fiado-wizard .cf-modal-panel.cf-fiado-wizard-panel {
+      width: 90vw !important;
+      height: 90vh !important;
+      height: 90dvh !important;
+      max-width: none !important;
+      max-height: none !important;
+      border: 1px solid #64748b !important;
+      border-radius: 0.85rem;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.28);
+      background: #fff;
+    }
+    .cf-fiado-wizard-head {
+      flex-shrink: 0;
+      border-bottom: 1px solid #94a3b8;
+      background: #e0f2fe;
+      padding: 0.85rem 1.15rem;
+    }
+    .cf-fiado-wizard-step {
+      font-size: clamp(0.8rem, 0.12vw + 0.76rem, 0.88rem) !important;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      line-height: 1.15;
+      color: #334155;
+      margin: 0;
+    }
+    .cf-fiado-wizard-title {
+      font-size: clamp(1.12rem, 0.42vw + 1rem, 1.35rem) !important;
+      font-weight: 900;
+      text-transform: uppercase;
+      line-height: 1.2;
+      color: #0f172a;
+      margin: 0.35rem 0 0;
+    }
+    .cf-fiado-wizard-intro {
+      font-size: clamp(1.05rem, 0.35vw + 0.98rem, 1.22rem) !important;
+      font-weight: 800;
+      line-height: 1.45;
+      color: #0f172a;
+      margin: 0 0 1rem;
+    }
+    .cf-fiado-wizard-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding: 1rem 1.15rem;
+      background: #f8fafc;
+    }
+    .cf-fiado-wizard-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .cf-fiado-wizard .cf-fiado-row {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 0.65rem 1rem;
+      align-items: center;
+      padding: 0.85rem 1rem;
+      border-radius: 0.75rem;
+      border: 1px solid #ca8a04;
+      background: #fef9c3;
+      transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      cursor: pointer;
+    }
+    .cf-fiado-wizard .cf-fiado-row:is(:has(input:checked), .is-conferido) {
+      border-color: #16a34a;
+      background: #ecfdf5;
+      box-shadow: inset 0 0 0 1px rgba(22, 163, 74, 0.25);
+    }
+    .cf-fiado-wizard .cf-fiado-row.is-pendente:not(.is-conferido),
+    .cf-fiado-wizard .cf-fiado-row:not(:has(input:checked)):not(.is-conferido) {
+      border-color: #ca8a04;
+      background: #fef9c3;
+    }
+    .cf-fiado-wizard .cf-fiado-check-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+      min-width: 5.5rem;
+      padding: 0.15rem 0.25rem;
+    }
+    .cf-fiado-wizard .cf-fiado-row input[type="checkbox"] {
+      width: 2.35rem;
+      height: 2.35rem;
+      margin: 0;
+      cursor: pointer;
+      accent-color: #16a34a;
+      flex-shrink: 0;
+    }
+    .cf-fiado-wizard .cf-fiado-check-hint {
+      font-size: clamp(0.72rem, 0.35vw + 0.66rem, 0.82rem) !important;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      line-height: 1.1;
+      text-align: center;
+      color: #0f172a;
+    }
+    .cf-fiado-wizard .cf-fiado-row:is(:has(input:checked), .is-conferido) .cf-fiado-check-hint--off { display: none; }
+    .cf-fiado-wizard .cf-fiado-row:is(:not(:has(input:checked)), .is-pendente) .cf-fiado-check-hint--on,
+    .cf-fiado-wizard .cf-fiado-row:not(.is-conferido) .cf-fiado-check-hint--on { display: none; }
+    .cf-fiado-wizard .cf-fiado-row:is(:has(input:checked), .is-conferido) .cf-fiado-check-hint--on { display: block; }
+    .cf-fiado-wizard .cf-fiado-cliente {
+      font-size: clamp(1.22rem, 0.55vw + 1.08rem, 1.55rem) !important;
+      font-weight: 900;
+      line-height: 1.2;
+      color: #0f172a;
+      min-width: 0;
+    }
+    .cf-fiado-wizard .cf-fiado-valor {
+      font-size: clamp(1.15rem, 0.45vw + 1rem, 1.45rem) !important;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      color: #0f172a;
+      flex-shrink: 0;
+    }
+    .cf-fiado-wizard-foot {
+      flex-shrink: 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.65rem;
+      padding: 0.85rem 1.15rem;
+      border-top: 1px solid #94a3b8;
+      background: #e0f2fe;
+    }
+    .cf-fiado-wizard-btn {
+      min-height: var(--cf-input-h);
+      padding: 0.45rem 1.15rem;
+      border-radius: 0.65rem;
+      font-size: clamp(0.8rem, 0.12vw + 0.76rem, 0.88rem) !important;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      line-height: 1.15;
+    }
+    .cf-fiado-wizard-btn--pular {
+      border: 1px solid #334155;
+      background: #fff;
+      color: #0f172a;
+    }
+    .cf-fiado-wizard-btn--pular:hover { background: #f1f5f9; }
+    .cf-fiado-wizard-btn--ok {
+      border: 1px solid #0f172a;
+      background: #0f172a;
+      color: #fff;
+    }
+    .cf-fiado-wizard-btn--ok:hover { background: #1e293b; }
+    .cf-foot {
+      flex-shrink: 0;
+      border-top: 1px solid #f1f5f9;
+      padding: 0.45rem 0.55rem;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0.4rem;
+      background: #fff;
+    }
+    @container (min-width: 40rem) {
+      .cf-foot {
+        grid-template-columns: minmax(0, 1fr) minmax(12rem, 22%);
+        align-items: end;
+      }
+    }
+    .cf-aside-wrap {
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      border-radius: 0.85rem;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+      overflow: visible;
+      width: 100%;
+      align-self: start;
+    }
+  @container (min-width: 36rem) {
+    .cf-aside-wrap {
+      width: 3rem;
+      min-width: 3rem;
+      max-width: 3rem;
+      transition: width 0.22s ease, min-width 0.22s ease, max-width 0.22s ease, box-shadow 0.22s ease;
+      z-index: 4;
+    }
+    .cf-aside-wrap:hover,
+    .cf-aside-wrap.is-open,
+    .cf-aside-wrap:focus-within {
+      width: min(18rem, 22vw);
+      min-width: min(18rem, 22vw);
+      max-width: min(18rem, 22vw);
+      box-shadow: -6px 0 20px rgba(15, 23, 42, 0.1);
+    }
+  }
+    .cf-aside-rail {
+      flex-shrink: 0;
+      width: 3rem;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      padding: 0.5rem 0.25rem;
+      background: linear-gradient(180deg, #f1f5f9, #e2e8f0);
+      border: none;
+      border-right: 1px solid #cbd5e1;
+      cursor: pointer;
+      user-select: none;
+      color: #334155;
+      font-family: inherit;
+    }
+  @container (min-width: 36rem) {
+    .cf-aside-rail { display: flex; }
+  }
+    .cf-aside-rail-icon {
+      font-size: 1.1rem;
+      font-weight: 900;
+      line-height: 1;
+      transition: transform 0.22s ease;
+    }
+    .cf-aside-wrap:hover .cf-aside-rail-icon,
+    .cf-aside-wrap.is-open .cf-aside-rail-icon { transform: rotate(180deg); }
+    .cf-aside-rail-label {
+      font-size: var(--cf-fs-meta) !important;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      line-height: var(--cf-lh-tight);
+    }
+    .cf-aside-rail-badge {
+      font-size: var(--cf-fs-meta) !important;
+      font-weight: 900;
+      background: #059669;
+      color: #fff;
+      border-radius: 999px;
+      min-width: 1.25rem;
+      min-height: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 0.2rem;
+    }
+    .cf-aside {
+      flex: 1 1 auto;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: visible;
+    }
+  @container (min-width: 36rem) {
+    .cf-aside {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+    }
+    .cf-aside-wrap:hover .cf-aside,
+    .cf-aside-wrap.is-open .cf-aside,
+    .cf-aside-wrap:focus-within .cf-aside {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+    .cf-aside-scroll {
+      padding: 0.4rem 0.5rem;
     }
     .cf-modal-overlay {
       position: fixed; inset: 0; z-index: 120; display: flex; align-items: center; justify-content: center;
-      padding: 2vh 10vw; background: rgba(15, 23, 42, 0.55);
+      padding: 2vh 4vw; background: rgba(15, 23, 42, 0.55);
     }
+    #cf-popup.cf-modal-overlay,
+    #cf-popup-nested.cf-modal-overlay {
+      z-index: 20045;
+      padding: 0;
+      align-items: stretch;
+      justify-content: stretch;
+      background: #0f172a;
+    }
+    #cf-popup-nested.cf-modal-overlay { z-index: 20060; }
+    #cf-popup .cf-modal-panel,
+    #cf-popup-nested .cf-modal-panel {
+      width: 100%;
+      height: 100%;
+      max-width: none;
+      max-height: none;
+      border-radius: 0;
+      border-width: 0;
+      border-top: 3px solid #10b981;
+    }
+    .cf-fiado-wizard { z-index: 20040; }
     .cf-modal-overlay.hidden { display: none !important; }
     .cf-modal-panel {
-      width: 80vw; max-width: 80rem; height: min(88dvh, 92vh);
+      width: min(92vw, 80rem); height: min(88dvh, 92vh);
       display: flex; flex-direction: column; border-radius: 1rem;
       border: 2px solid #10b981; background: #fff; box-shadow: 0 25px 50px rgba(15, 23, 42, 0.25);
       overflow: hidden;
     }
     .cf-modal-panel iframe { flex: 1 1 auto; min-height: 0; width: 100%; border: 0; }
+    .cf-cedulas-modal.cf-modal-overlay {
+      padding: 0;
+      align-items: center;
+      justify-content: center;
+      z-index: 20050;
+    }
+    .cf-cedulas-modal .cf-modal-panel.cf-cedulas-modal-panel {
+      width: 90vw !important;
+      height: 90vh !important;
+      height: 90dvh !important;
+      max-width: none !important;
+      max-height: none !important;
+      border: 1px solid #64748b !important;
+      border-radius: 0.85rem;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.28);
+    }
+    .cf-cedulas-modal-head {
+      flex-shrink: 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.65rem;
+      padding: 0.85rem 1.15rem;
+      border-bottom: 1px solid #94a3b8;
+      background: #e0f2fe;
+    }
+    .cf-cedulas-modal-head .cf-cedulas-modal-title {
+      font-size: clamp(1.12rem, 0.42vw + 1rem, 1.35rem) !important;
+      font-weight: 900;
+      text-transform: uppercase;
+      line-height: 1.2;
+      color: #0f172a;
+      margin: 0;
+    }
+    .cf-cedulas-modal .cf-cedulas-wrap {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      border: none;
+      border-radius: 0;
+      padding: 0.85rem 1.15rem 1rem;
+      background: #f8fafc;
+      overflow: hidden;
+    }
+    .cf-cedulas-modal .cf-cedulas-title {
+      flex-shrink: 0;
+      font-size: clamp(1rem, 0.32vw + 0.92rem, 1.15rem) !important;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #0f172a;
+      margin: 0 0 0.75rem;
+    }
+    .cf-cedulas-modal .cf-cedulas-grid {
+      flex: 1 1 auto;
+      min-height: 0;
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      grid-template-rows: repeat(2, minmax(0, 1fr));
+      gap: clamp(0.55rem, 1.1vh, 0.9rem);
+      align-content: stretch;
+      overflow: hidden;
+    }
+    @media (max-width: 960px) {
+      .cf-cedulas-modal .cf-cedulas-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-rows: repeat(3, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 640px) {
+      .cf-cedulas-modal .cf-cedulas-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-rows: repeat(4, minmax(0, 1fr));
+      }
+    }
+    .cf-cedulas-modal .cf-cedula-item {
+      min-height: 0;
+      height: 100%;
+      grid-template-columns: minmax(0, 1fr) clamp(1.15rem, 1.6vw, 1.45rem);
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      border-width: 2px;
+      border-radius: 0.85rem;
+    }
+    .cf-cedulas-modal .cf-cedula-denom {
+      min-height: clamp(2.85rem, 10vh, 4.5rem);
+      padding: 0.35rem 0.45rem;
+    }
+    .cf-cedulas-modal .cf-cedula-img {
+      max-height: clamp(2.65rem, 9.5vh, 4.15rem);
+    }
+    .cf-cedulas-modal .cf-cedula-qty {
+      font-size: clamp(2.1rem, 4.5vh + 1rem, 3.35rem) !important;
+      min-height: 3rem;
+    }
+    .cf-cedulas-modal .cf-cedula-qty-tag {
+      font-size: clamp(0.58rem, 0.35vw + 0.5rem, 0.72rem) !important;
+    }
+    .cf-cedulas-modal .cf-cedula-sub-wrap {
+      min-height: clamp(2.6rem, 8vh, 3.5rem);
+      padding: 0.45rem 0.5rem;
+    }
+    .cf-cedulas-modal .cf-cedula-sub-prefix {
+      font-size: clamp(0.9rem, 0.5vw + 0.78rem, 1.08rem) !important;
+    }
+    .cf-cedulas-modal .cf-cedula-sub {
+      font-size: clamp(1.2rem, 1.2vh + 0.95rem, 1.85rem) !important;
+    }
+    .cf-cedulas-modal-foot {
+      flex-shrink: 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.85rem 1.15rem;
+      border-top: 1px solid #94a3b8;
+      background: #e0f2fe;
+    }
+    .cf-cedulas-modal .cf-cedulas-sum {
+      font-size: clamp(1rem, 0.35vw + 0.92rem, 1.15rem) !important;
+      font-weight: 900;
+      color: #0f172a;
+      margin: 0;
+      padding: 0;
+    }
+    .cf-cedulas-modal #cf-cedulas-total {
+      font-size: clamp(1.35rem, 0.55vw + 1.15rem, 1.85rem) !important;
+      color: #047857;
+    }
+    .cf-cedulas-modal-ok {
+      min-height: var(--cf-input-h);
+      padding: 0.5rem 1.35rem;
+      border-radius: 0.65rem;
+      border: 1px solid #0f172a;
+      background: #0f172a;
+      color: #fff;
+      font-size: clamp(0.8rem, 0.12vw + 0.76rem, 0.88rem) !important;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .cf-cedulas-modal-ok:hover { background: #1e293b; }
     details.cf-help summary::-webkit-details-marker,
+    details.cf-help-top summary::-webkit-details-marker,
     details.cf-mini-help summary::-webkit-details-marker { display: none; }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+    }
   </style>
+  {% include "produtos/includes/caixa_viewport_shell.html" %}
+  {% include "produtos/includes/caixa_pdv_overlay_mode.html" %}
 </head>
-<body class="bg-slate-50 text-slate-800 flex flex-col overflow-hidden">
+<body>
+<div class="cf-page">
 {% include "produtos/_gm_loading_bar.html" %}
-  <header class="border-b border-slate-200 bg-white shadow-sm shrink-0">
-    <div class="caixa-shell px-3 sm:px-5 py-2 sm:py-2.5 flex flex-wrap justify-between items-center gap-2">
+  <header class="cf-top">
+    <div class="cf-top-inner">
       <div>
-        <h1 class="text-[clamp(1.15rem,0.9vw+1rem,1.6rem)] font-black uppercase text-slate-900 leading-tight">Fechar caixa</h1>
-        <p class="text-sm font-bold text-slate-500">
+        <h1 class="cf-t-page uppercase text-slate-900 leading-tight">Fechar caixa</h1>
+        <p class="cf-t-sub text-slate-500">
           Loja: {{ qtd_caixas_operacional }} aberto(s)
           {% if qtd_caixas_teste %} · Teste: {{ qtd_caixas_teste }} (fechar à direita){% endif %}
         </p>
       </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <a href="{% url 'caixa_painel' %}" class="inline-flex items-center min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-50">Painel</a>
-        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-50 shrink-0" %}
+      <div class="cf-top-actions">
+        <a href="{% url 'caixa_painel' %}" class="cf-t-btn inline-flex items-center min-h-[48px] px-4 py-2 rounded-xl border-2 border-slate-300 bg-white text-slate-800 font-black uppercase hover:bg-slate-50">← Menu</a>
+        <details class="cf-help cf-help-top shrink-0">
+          <summary class="cf-t-btn inline-flex items-center gap-2 min-h-[48px] px-3 py-2 rounded-xl border-2 border-slate-300 bg-white text-slate-800 font-black uppercase hover:bg-slate-50 select-none" title="Como conferir">
+            <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-white text-base font-black">?</span>
+            <span class="hidden sm:inline">Ajuda</span>
+          </summary>
+          <div class="cf-help-panel">
+            <p>Some o turno da loja <strong>{{ loja_fechar_label|default:"Centro" }}</strong> ({{ qtd_caixas_operacional }} caixa{% if qtd_caixas_operacional > 1 %}s{% endif %}), conte na gaveta e nas maquininhas e informe o <strong>total por forma</strong>.
+              {% if deposito_fechar == "vila" %}
+              Na <strong>Vila</strong>: PIX / débito / crédito somam Sicredi, MP Vila e Sicoob. Fiado, vale e cashback vão auto no bloco de baixo.
+              {% else %}
+              No <strong>Centro</strong>: PIX / débito / crédito somam Cielo, Sicredi, Sicoob e MP Renan. O <strong>Mercado Pago automático</strong> (pinpad) preenche sozinho no bloco de baixo.
+              {% endif %}
+            </p>
+            <p class="mt-2 text-slate-600">Em <strong>Dinheiro</strong>, o esperado inclui fundo de abertura + vendas + reforços − retiradas. Contagem salva sozinha (mesmo sem fechar).</p>
+            <p class="mt-2 text-slate-600">Devolução em <strong>dinheiro</strong> de venda no cartão/Pix: a maquininha continua com o valor; o esperado do dinheiro cai.</p>
+          </div>
+        </details>
       </div>
     </div>
   </header>
 
-  <main class="caixa-shell flex-1 min-h-0 w-full px-3 sm:px-5 py-2 sm:py-3 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_min(17rem,22vw)] xl:grid-cols-[minmax(0,1fr)_min(19rem,24vw)] gap-3 lg:gap-4">
+  <main class="cf-main">
     {% if fechar_bloqueado %}
-    <div class="lg:col-span-2 rounded-2xl border-2 border-orange-500 bg-orange-50 px-4 py-3 shadow-md">
+    <div class="cf-main-span rounded-xl border-2 border-orange-500 bg-orange-50 px-3 py-2.5 shadow-sm">
       <p class="text-sm font-black uppercase text-orange-900">Não é possível fechar o caixa</p>
       <p class="mt-1 text-sm font-semibold text-orange-950/90">
         Há {{ entregas_pendentes_fechar|length }} entrega(s) com <strong>pagamento na entrega</strong> ainda sem venda fechada no PDV.
         Finalize o pagamento em <strong>Entregas</strong> no PDV ou cancele a pendência.
       </p>
-      <ul class="mt-2 max-h-32 overflow-y-auto space-y-1 text-xs font-bold text-slate-800">
+      <ul class="mt-2 space-y-1 text-xs font-bold text-slate-800">
         {% for ent in entregas_pendentes_fechar %}
         <li class="rounded-lg border border-orange-200 bg-white px-2 py-1.5">
           {{ ent.cliente_nome|default:"—" }} · {{ ent.total_texto|default:"—" }}
@@ -88,11 +1145,11 @@
         </li>
         {% endfor %}
       </ul>
-      <a href="{{ pdv_url }}" class="mt-3 inline-flex min-h-[44px] items-center rounded-xl border-2 border-orange-400 bg-orange-500 px-4 text-xs font-black uppercase text-white hover:bg-orange-600">Abrir PDV · Entregas</a>
+      <a href="{{ pdv_url }}" class="mt-2 inline-flex min-h-[44px] items-center rounded-xl border-2 border-orange-400 bg-orange-500 px-4 text-xs font-black uppercase text-white hover:bg-orange-600">Abrir PDV · Entregas</a>
     </div>
     {% endif %}
     {% if not tem_caixa_operacional %}
-    <div class="min-h-0 flex flex-col rounded-2xl border-2 border-violet-300 bg-violet-50/40 p-4 sm:p-5 shadow-sm">
+    <div class="cf-main-span rounded-xl border-2 border-violet-300 bg-violet-50/40 p-4 shadow-sm">
       <p class="text-sm font-black uppercase text-violet-900">Sem caixa da loja aberto</p>
       <p class="mt-2 text-sm font-semibold text-violet-950/90">
         O fechamento em lote é só para <strong>Gaveta</strong> (notebooks no mesmo turno).
@@ -100,148 +1157,98 @@
       </p>
     </div>
     {% else %}
-    <form method="post" id="form-fechar-todos" class="min-h-0 flex flex-col rounded-2xl border-2 {% if fechar_bloqueado %}border-slate-300 opacity-60 pointer-events-none{% else %}border-emerald-500{% endif %} bg-white shadow-md overflow-hidden" onsubmit="if(window.gmLoadingBar)window.gmLoadingBar.show();"{% if fechar_bloqueado %} aria-disabled="true"{% endif %}{% if qtd_caixas_operacional > 1 or not sessao_local %} data-caixa-precisa-pin="1"{% endif %}>
+    <form method="post" id="form-fechar-todos" class="cf-form border-2 {% if fechar_bloqueado %}border-slate-300 opacity-60 pointer-events-none{% else %}border-emerald-500{% endif %}" onsubmit="if(window.gmLoadingBar)window.gmLoadingBar.show();"{% if fechar_bloqueado %} aria-disabled="true"{% endif %}{% if qtd_caixas_operacional > 1 or not sessao_local %} data-caixa-precisa-pin="1"{% endif %}>
       {% csrf_token %}
       <input type="hidden" name="acao" value="fechar_todos">
       <input type="hidden" name="pin" value="" class="caixa-pin-hidden">
+      <input type="hidden" name="fiado_vendas_pulado" id="fiado-vendas-pulado" value="0">
+      <input type="hidden" name="fiado_vendas_pulo_pin" id="fiado-vendas-pulo-pin" value="">
+      <input type="hidden" name="fiado_baixas_pulado" id="fiado-baixas-pulado" value="0">
+      <input type="hidden" name="fiado_baixas_pulo_pin" id="fiado-baixas-pulo-pin" value="">
 
-      <div class="relative shrink-0 bg-emerald-600 px-3 sm:px-5 py-2.5 sm:py-3 text-white flex flex-wrap items-center justify-between gap-2">
-        <div class="min-w-0 flex-1">
-          <p class="text-[11px] sm:text-xs font-black uppercase tracking-wide text-emerald-100">Fechamento do turno — principal</p>
-          <h2 class="text-[clamp(1rem,0.6vw+0.95rem,1.35rem)] font-black leading-snug">Conferência por forma de pagamento</h2>
-          <p class="text-xs sm:text-sm font-semibold text-emerald-50/95 hidden sm:block">Soma da gaveta (notebooks no mesmo turno). Teste não entra aqui.</p>
-        </div>
-        <details class="cf-help shrink-0 rounded-xl border-2 border-emerald-400/60 bg-emerald-700/40 text-left">
-          <summary class="cursor-pointer list-none flex items-center gap-2 px-2.5 py-2 min-h-[44px] text-xs font-black uppercase hover:bg-emerald-700/50 select-none" title="Como conferir">
-            <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-emerald-800 text-base font-black">?</span>
-            <span class="hidden sm:inline">Ajuda</span>
-          </summary>
-          <div class="absolute z-30 mt-1 right-3 sm:right-5 max-w-md rounded-xl border-2 border-emerald-500 bg-emerald-800 px-4 py-3 text-sm font-semibold leading-relaxed text-emerald-50 shadow-xl">
-            <p>Some o turno da <strong>loja</strong> ({{ qtd_caixas_operacional }} caixa gaveta{% if qtd_caixas_operacional > 1 %}s{% endif %}), conte na gaveta e nas maquininhas e informe o <strong>total por forma</strong>. Caixa Teste é fechado à parte.</p>
-            <p class="mt-2 text-emerald-100/90">Em <strong>Dinheiro</strong>, o esperado inclui fundo de abertura + vendas + reforços − retiradas.</p>
-          </div>
-        </details>
-      </div>
+      <nav class="cf-toolbar" aria-label="Consultas rápidas">
+        <button type="button" class="cf-toolbar-btn cf-toolbar-btn--retirada cf-popup-open" data-url="{{ caixa_popup_retirada }}" data-title="Retirada / saída" data-cf-refresh="1">Retirada / saída</button>
+        <button type="button" class="cf-toolbar-btn cf-toolbar-btn--reforco cf-popup-open" data-url="{{ caixa_popup_reforco }}" data-title="Reforço manual" data-cf-refresh="1">Reforço manual</button>
+        <button type="button" class="cf-toolbar-btn cf-toolbar-btn--relatorio cf-popup-open" data-url="{{ caixa_popup_relatorio }}" data-title="Relatório de caixa">Relatório de caixa</button>
+        <button type="button" class="cf-toolbar-btn cf-toolbar-btn--conferencias cf-popup-open" data-url="{{ caixa_popup_conferencias }}" data-title="Conferências · diferenças">Conferências · diferenças</button>
+      </nav>
 
-      <div class="flex-1 min-h-0 flex flex-col xl:flex-row overflow-hidden">
-        <nav class="shrink-0 xl:w-[11.5rem] border-b xl:border-b-0 xl:border-r border-slate-100 bg-slate-50/80 px-2 py-2 xl:py-3 flex flex-row xl:flex-col flex-wrap gap-1.5 xl:gap-2" aria-label="Consultas rápidas">
-          <button type="button" class="cf-toolbar-btn cf-popup-open border-orange-300 bg-orange-50 text-orange-950 hover:bg-orange-100" data-url="{{ caixa_popup_retirada }}" data-title="Retirada / saída" data-cf-refresh="1">Retirada / saída</button>
-          <button type="button" class="cf-toolbar-btn cf-popup-open border-emerald-400 bg-emerald-50 text-emerald-950 hover:bg-emerald-100" data-url="{{ caixa_popup_reforco }}" data-title="Reforço manual" data-cf-refresh="1">Reforço manual</button>
-          <button type="button" class="cf-toolbar-btn cf-popup-open border-slate-300 bg-white text-slate-800 hover:bg-slate-50" data-url="{{ caixa_popup_relatorio }}" data-title="Relatório de caixa">Relatório de caixa</button>
-          <button type="button" class="cf-toolbar-btn cf-popup-open border-amber-400 bg-amber-50 text-amber-950 hover:bg-amber-100" data-url="{{ caixa_popup_conferencias }}" data-title="Conferências · diferenças">Conferências · diferenças</button>
-        </nav>
-        <div class="flex-1 min-h-0 flex flex-col overflow-hidden">
-        <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 sm:px-4 py-2 sm:py-3 space-y-2">
-          <p id="cf-contagem-status" class="hidden text-[11px] font-black uppercase text-emerald-700" role="status" aria-live="polite"></p>
-          <p class="text-[11px] font-bold text-slate-500">Os valores em <strong>Contado</strong> são guardados automaticamente neste aparelho e no servidor.</p>
-          {% if linhas_com_movimento %}
-          <div class="cf-list-head hidden md:grid gap-3 px-2 pb-1 text-[11px] font-black uppercase text-slate-400 border-b border-slate-100 sticky top-0 bg-white z-10">
-            <span>Forma</span>
-            <span class="text-right">Esperado</span>
-            <span>Contado</span>
-            <span class="w-10" aria-hidden="true">&nbsp;</span>
-          </div>
-          <div class="space-y-1.5">
-            {% for L in linhas_com_movimento %}
-            <div class="cf-list-row relative rounded-xl border-2 border-emerald-200 bg-emerald-50/40 px-2.5 sm:px-3 py-2 sm:py-2.5">
-              <input type="hidden" name="forma_{{ L.idx }}" value="{{ L.forma }}">
-              <div class="min-w-0">
-                <span class="md:hidden text-[11px] font-black uppercase text-slate-500">Forma</span>
-                <span class="block text-base sm:text-lg font-black text-slate-900 leading-tight">{{ L.forma }}</span>
+      <div class="cf-body">
+        <div class="cf-scroll">
+          <p id="cf-contagem-status" class="cf-t-meta hidden font-black uppercase text-emerald-700" role="status" aria-live="polite"></p>
+          <p id="cf-aviso-reserva-vila" class="rounded-xl border-2 border-rose-600 bg-rose-50 px-3 py-2.5 text-sm sm:text-base font-black text-rose-950 leading-snug{% if not aviso_reserva_vila.tem %} hidden{% endif %}" role="alert">{{ aviso_reserva_vila.texto }}</p>
+          <p id="cf-aviso-devolucao-dinheiro" class="rounded-xl border-2 border-amber-500 bg-amber-50 px-3 py-2.5 text-sm sm:text-base font-black text-amber-950 leading-snug{% if not aviso_devolucao_dinheiro.tem %} hidden{% endif %}" role="status">{{ aviso_devolucao_dinheiro.texto }}</p>
+          {% if linhas_conferencia %}
+          <div class="cf-conf-table" role="table" aria-label="Conferência por forma de pagamento">
+            <div class="cf-conf-head" role="row">
+              <div class="cf-conf-col cf-conf-col--esperado" role="columnheader">
+                <span class="cf-conf-head-label">Esperado</span>
               </div>
-              <div class="md:text-right">
-                <span class="md:hidden text-[11px] font-black uppercase text-slate-500">Esperado</span>
-                <span class="cf-esperado-val text-lg sm:text-xl font-black tabular-nums text-emerald-700" data-forma="{{ L.forma }}">R$ {{ L.esperado }}</span>
+              <div class="cf-conf-col cf-conf-col--contado" role="columnheader">
+                <span class="cf-conf-head-label">Contado</span>
               </div>
-              <label class="block min-w-0">
-                <span class="md:hidden text-[11px] font-black uppercase text-slate-600">Contado</span>
-                <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado mt-0.5 md:mt-0 w-full min-h-[50px] rounded-xl border-2 border-slate-300 bg-white px-3 text-[clamp(1.1rem,0.45vw+1rem,1.35rem)] font-black tabular-nums focus:border-emerald-500 outline-none" placeholder="0,00" autocomplete="off" title="Valor contado — salvo automaticamente se sair da tela">
-                <p class="caixa-diff mt-0.5 text-xs font-bold hidden"></p>
-              </label>
-              <details class="cf-mini-help relative justify-self-end self-center">
-                <summary class="cursor-pointer list-none inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-slate-200 bg-white text-sm font-black text-slate-600 hover:border-emerald-400 hover:text-emerald-800 select-none" title="Detalhe">?</summary>
-                <div class="cf-detalhe absolute z-20 top-full mt-1 right-0 w-[min(17rem,calc(100vw-2rem))] rounded-xl border-2 border-slate-200 bg-white p-2.5 text-xs font-bold text-slate-700 shadow-lg" data-forma="{{ L.forma }}">
-                  <p class="cf-det-vendas">Vendas R$ {{ L.vendas }}</p>
-                  <p class="cf-det-reforcos mt-1">+ Reforços R$ {{ L.reforcos }}</p>
-                  <p class="cf-det-retiradas mt-1">− Retiradas R$ {{ L.retiradas }}</p>
-                  <p class="cf-det-abertura mt-1{% if L.forma != 'Dinheiro' or L.abertura_dinheiro == '0.00' %} hidden{% endif %}">Fundo abertura R$ {{ L.abertura_dinheiro }}</p>
-                </div>
-              </details>
+              <div class="cf-conf-col cf-conf-col--variacao" role="columnheader">
+                <span class="cf-conf-head-label">Variação</span>
+              </div>
             </div>
-            {% endfor %}
-          </div>
-          {% else %}
-          <p class="text-sm font-bold text-slate-500 py-4 text-center">Nenhuma forma com movimento — abra a gaveta abaixo se precisar.</p>
-          {% endif %}
-
-          {% for L in linhas_sem_movimento %}
-          <input type="hidden" name="forma_{{ L.idx }}" value="{{ L.forma }}">
+          {% for L in linhas_visiveis %}
+          {% include "produtos/includes/caixa_fechar_linha_conf.html" with L=L %}
           {% endfor %}
-
-          {% if linhas_sem_movimento %}
-          <details class="rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
-            <summary class="cursor-pointer list-none px-3 py-2.5 flex items-center gap-2 hover:bg-slate-100 select-none">
-              <span class="text-base text-slate-500">▸</span>
-              <span class="text-xs sm:text-sm font-black uppercase text-slate-600">Formas sem movimento ({{ linhas_sem_movimento|length }})</span>
+          </div>
+          {% if linhas_ocultas %}
+          <details class="cf-auto-bloco mt-2 rounded-xl border-2 border-slate-200 bg-slate-50 open:bg-white">
+            <summary class="cursor-pointer list-none select-none px-3 py-2.5 flex flex-wrap items-center justify-between gap-2 font-black uppercase text-xs tracking-wide text-slate-700 hover:bg-slate-100 rounded-xl">
+              <span>Auto · fiado / vale / cashback{% if deposito_fechar != "vila" %} / MP pinpad{% endif %}</span>
+              <span class="text-slate-500 font-bold normal-case tracking-normal">{{ linhas_ocultas|length }} linha{% if linhas_ocultas|length != 1 %}s{% endif %} · toque para ver</span>
             </summary>
-            <div class="px-3 pb-3 pt-1 space-y-1.5 border-t border-slate-200 bg-white max-h-[40vh] overflow-y-auto">
-              {% for L in linhas_sem_movimento %}
-              <div class="cf-list-row rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2">
-                <div class="min-w-0">
-                  <span class="block text-sm font-black text-slate-800">{{ L.forma }}</span>
-                </div>
-                <div class="md:text-right">
-                  <span class="cf-esperado-val text-base font-black tabular-nums text-slate-500" data-forma="{{ L.forma }}">R$ {{ L.esperado }}</span>
-                </div>
-                <label class="block min-w-0">
-                  <span class="md:hidden text-[10px] font-black uppercase text-slate-500">Contado</span>
-                  <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado w-full min-h-[44px] rounded-lg border-2 border-slate-200 bg-white px-3 text-base font-black tabular-nums" placeholder="0,00" autocomplete="off" title="Valor contado — salvo automaticamente">
-                  <p class="caixa-diff mt-0.5 text-xs font-bold hidden"></p>
-                </label>
-                <details class="cf-mini-help relative justify-self-end">
-                  <summary class="cursor-pointer list-none inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-xs font-black text-slate-500 select-none">?</summary>
-                  <div class="cf-detalhe absolute z-10 mt-1 right-0 w-44 rounded-lg border border-slate-200 bg-white p-2 text-[11px] font-bold text-slate-600 shadow-md" data-forma="{{ L.forma }}">
-                    <p class="cf-det-resumo">Vendas R$ {{ L.vendas }} · +Ref. R$ {{ L.reforcos }} · −Ret. R$ {{ L.retiradas }}</p>
-                  </div>
-                </details>
-              </div>
+            <div class="cf-conf-table border-t border-slate-200 px-1 pb-2" role="table" aria-label="Formas auto-preenchidas">
+              {% for L in linhas_ocultas %}
+              {% include "produtos/includes/caixa_fechar_linha_conf.html" with L=L %}
               {% endfor %}
             </div>
           </details>
           {% endif %}
+          {% else %}
+          <p class="text-sm font-bold text-slate-500 py-4 text-center">Nenhuma forma para conferir — abra o caixa se precisar.</p>
+          {% endif %}
         </div>
 
-        <div class="shrink-0 border-t border-slate-100 px-3 sm:px-4 py-2 sm:py-3 space-y-2 bg-white">
-          <label class="block">
-            <span class="text-xs font-black uppercase text-slate-600">Observação (todos os caixas)</span>
-            <textarea name="observacao_fechamento" rows="1" class="mt-1 w-full min-h-[44px] max-h-[4.5rem] rounded-xl border-2 border-slate-200 px-3 py-2 font-bold text-sm focus:border-emerald-500 outline-none resize-none"></textarea>
+        <div class="cf-foot">
+          <label class="block min-w-0">
+            <span class="cf-t-label text-slate-600">Observação (todos os caixas)</span>
+            <textarea name="observacao_fechamento" rows="1" class="cf-t-body mt-1 w-full min-h-[2.5rem] max-h-[3.25rem] rounded-lg border-2 border-slate-200 px-3 py-2 font-bold focus:border-emerald-500 outline-none resize-none"></textarea>
           </label>
-          <button type="submit" class="w-full min-h-[54px] py-2.5 rounded-xl bg-emerald-600 text-white font-black uppercase text-sm sm:text-base tracking-wide hover:bg-emerald-700 shadow-lg">
-            Confirmar fechamento da loja ({{ qtd_caixas_operacional }})
+          <button type="submit" class="cf-t-btn w-full min-h-[var(--cf-input-h)] rounded-lg bg-emerald-600 text-white tracking-wide hover:bg-emerald-700 shadow-md">
+            Confirmar fechamento — {{ loja_fechar_label|default:"Centro" }} ({{ qtd_caixas_operacional }})
           </button>
-        </div>
         </div>
       </div>
     </form>
     {% endif %}
 
-    <aside class="min-h-0 flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden max-h-[36vh] lg:max-h-none lg:flex-1{% if fechar_bloqueado %} opacity-50 pointer-events-none{% endif %}">
-      <div class="shrink-0 px-3 sm:px-4 py-2.5 border-b border-slate-100 bg-slate-50/80">
-        <h2 class="text-sm sm:text-base font-black uppercase text-slate-700">Caixas individuais</h2>
-        <p class="text-xs font-semibold text-slate-500">{{ qtd_caixas }} aberto(s) · loja e teste separados</p>
+    <div class="cf-aside-wrap{% if fechar_bloqueado %} opacity-50 pointer-events-none{% endif %}" id="cf-aside-wrap">
+      <button type="button" class="cf-aside-rail" id="cf-aside-rail" aria-expanded="false" aria-controls="cf-aside-panel" title="Passar o mouse ou tocar para ver caixas individuais">
+        <span class="cf-aside-rail-icon" aria-hidden="true">‹</span>
+        <span class="cf-aside-rail-label">Caixas</span>
+        <span class="cf-aside-rail-badge" aria-label="{{ qtd_caixas }} aberto(s)">{{ qtd_caixas }}</span>
+      </button>
+      <aside class="cf-aside" id="cf-aside-panel">
+      <div class="shrink-0 px-3 py-2 border-b border-slate-100 bg-slate-50/80">
+        <h2 class="cf-t-label text-slate-700">Caixas individuais</h2>
+        <p class="cf-t-meta text-slate-500">{{ qtd_caixas }} aberto(s) · loja e teste separados</p>
       </div>
-      <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 sm:px-4 py-2 space-y-2">
+      <div class="cf-aside-scroll space-y-2">
           {% for card in sessoes_abertas %}
           <details class="rounded-xl border {% if card.ponto_caixa == 'teste' %}border-violet-300 bg-violet-50/30{% elif sessao_local and sessao_local.pk == card.sessao.pk %}border-emerald-300 bg-emerald-50/30{% else %}border-slate-200 bg-slate-50/50{% endif %} overflow-hidden">
             <summary class="cursor-pointer list-none px-3 py-2 flex flex-wrap items-center justify-between gap-1 hover:bg-white/60 select-none">
               <div class="min-w-0">
-                <span class="text-sm font-black text-slate-900">{{ card.ponto_label|default:"Caixa" }} #{{ card.sessao.pk }}</span>
+                <span class="cf-t-forma text-slate-900">{{ card.ponto_label|default:"Caixa" }} #{{ card.sessao.pk }}</span>
                 {% if sessao_local and sessao_local.pk == card.sessao.pk %}
                 <span class="ml-1 text-[10px] font-black uppercase bg-emerald-200 text-emerald-900 px-1.5 py-0.5 rounded">Aqui</span>
                 {% endif %}
-                <p class="text-[11px] font-bold text-slate-600 truncate">{{ card.sessao.aberto_em|date:"d/m H:i" }} · {{ card.usuario }}</p>
+                <p class="cf-t-meta font-bold text-slate-600 truncate">{{ card.sessao.aberto_em|date:"d/m H:i" }} · {{ card.usuario }}</p>
               </div>
-              <span class="text-[11px] font-black tabular-nums shrink-0 text-right leading-tight">
+              <span class="cf-t-meta font-black tabular-nums shrink-0 text-right leading-tight">
                 {% if card.esperado_dinheiro != "0.00" %}
                 <span class="cf-card-esp-din block text-emerald-700" data-sessao-id="{{ card.sessao.pk }}">Esp. R$ {{ card.esperado_dinheiro }}</span>
                 {% endif %}
@@ -255,7 +1262,7 @@
             <div class="px-3 pb-3 border-t border-slate-200/80 bg-white">
               {% if card.linhas %}
               <div class="py-2 overflow-x-auto">
-                <table class="w-full text-left text-[11px] font-bold min-w-[14rem]">
+                <table class="w-full text-left cf-t-meta font-bold min-w-[14rem]">
                   <thead>
                     <tr class="text-[10px] uppercase text-slate-400 border-b border-slate-100">
                       <th class="pb-1 pr-2">Forma</th>
@@ -290,9 +1297,9 @@
                   {% for L in card.linhas %}
                   <input type="hidden" name="forma_{{ forloop.counter0 }}" value="{{ L.forma }}">
                   <label class="block">
-                    <span class="text-[10px] font-black uppercase text-slate-500">{{ L.forma }} · R$ {{ L.esperado }}</span>
-                    <input type="text" name="contado_{{ forloop.counter0 }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado mt-0.5 w-full min-h-[44px] rounded-lg border-2 border-slate-200 bg-white px-2.5 text-base font-black tabular-nums" placeholder="Contado" autocomplete="off" title="Salvo automaticamente">
-                    <p class="caixa-diff mt-0.5 text-[10px] font-bold hidden"></p>
+                    <span class="cf-t-label text-slate-500">{{ L.forma }} · R$ {{ L.esperado }}</span>
+                    <input type="text" name="contado_{{ forloop.counter0 }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado cf-contado-input cf-input-num mt-0.5 w-full rounded-lg border-2 border-slate-200 bg-white px-2.5" placeholder="Contado" autocomplete="off" title="Salvo automaticamente">
+                    <p class="caixa-diff cf-t-meta mt-0.5 font-bold hidden"></p>
                   </label>
                   {% empty %}
                   <p class="text-[10px] text-slate-500">Sem formas.</p>
@@ -305,11 +1312,51 @@
           </details>
           {% endfor %}
       </div>
-    </aside>
+      </aside>
+    </div>
   </main>
 
 {% include "produtos/_atalho_voltar_pdv.html" %}
 {% include "produtos/includes/caixa_pin_modal.html" %}
+{% if tem_caixa_operacional and fiado_vendas_wizard %}
+{% include "produtos/includes/caixa_fiado_wizard_modal.html" with modal_id="cf-fiado-modal-vendas" title_id="cf-fiado-vendas-title" passo_num=1 passo_total=fiado_baixas_wizard|yesno:"2,1" titulo="Vendas fiado — nota assinada na caixinha" intro="Confira se cada nota assinada está guardada na caixinha de fiados antes de fechar o caixa." fiado_items=fiado_vendas_wizard checkbox_name="fiado_assinado" checkbox_class="cf-fiado-check-assinado" btn_pular_id="cf-fiado-vendas-pular" btn_confirmar_id="cf-fiado-vendas-confirmar" %}
+{% endif %}
+{% if tem_caixa_operacional and fiado_baixas_wizard %}
+{% include "produtos/includes/caixa_fiado_wizard_modal.html" with modal_id="cf-fiado-modal-baixas" title_id="cf-fiado-baixas-title" passo_num=fiado_vendas_wizard|yesno:"2,1" passo_total=fiado_vendas_wizard|yesno:"2,1" titulo="Pagamentos fiado — nota devolvida ao cliente" intro="Confira se cada nota assinada foi retirada da caixinha e devolvida ao cliente após o pagamento." fiado_items=fiado_baixas_wizard checkbox_name="fiado_retirado" checkbox_class="cf-fiado-check-retirado" btn_pular_id="cf-fiado-baixas-pular" btn_confirmar_id="cf-fiado-baixas-confirmar" %}
+{% endif %}
+<div id="cf-cedulas-modal" data-agro-stack="auto" class="cf-modal-overlay cf-cedulas-modal hidden" role="dialog" aria-modal="true" aria-labelledby="cf-cedulas-modal-title">
+  <div class="cf-modal-panel cf-cedulas-modal-panel">
+    <div class="cf-cedulas-modal-head">
+      <h3 id="cf-cedulas-modal-title" class="cf-cedulas-modal-title">Cédulas e moedas</h3>
+      <button type="button" id="cf-cedulas-fechar-x" class="shrink-0 min-h-[var(--cf-input-h)] px-4 rounded-lg border border-slate-400 bg-white cf-t-label font-black uppercase text-slate-900 hover:bg-slate-50">Fechar · Esc</button>
+    </div>
+    <div id="cf-cedulas-wrap" class="cf-cedulas-wrap">
+      <p class="cf-cedulas-title cf-t-label">Informe a quantidade de cada denominação</p>
+      <div class="cf-cedulas-grid" aria-label="Quantidade por denominação">
+        {% for d in denominacoes_cedulas %}
+        <div class="cf-cedula-item" data-valor="{{ d.valor }}">
+          <div class="cf-cedula-denom" title="{{ d.label }}">
+            <img src="{% static d.img %}" alt="" class="cf-cedula-img" loading="lazy" decoding="async">
+            <span class="sr-only">{{ d.label }}</span>
+          </div>
+          <div class="cf-cedula-qty-cell">
+            <input type="number" min="0" step="1" inputmode="numeric" class="cf-cedula-qty" data-valor="{{ d.valor }}" placeholder="0" autocomplete="off" aria-label="Quantidade de {{ d.label }}" title="Quantidade de {{ d.label }}">
+          </div>
+          <span class="cf-cedula-qty-tag cf-cedula-qty-tag--{% if d.tipo == 'moeda' %}moedas{% else %}notas{% endif %}" aria-hidden="true">{% if d.tipo == 'moeda' %}Moedas{% else %}Notas{% endif %}</span>
+          <div class="cf-cedula-sub-wrap">
+            <span class="cf-cedula-sub-prefix">R$</span>
+            <span class="cf-cedula-sub tabular-nums">0,00</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="cf-cedulas-modal-foot">
+      <p class="cf-cedulas-sum cf-t-label mb-0">Soma: <span id="cf-cedulas-total" class="font-black tabular-nums">R$ 0,00</span></p>
+      <button type="button" id="cf-cedulas-fechar" class="cf-cedulas-modal-ok cf-t-label">Concluir contagem</button>
+    </div>
+  </div>
+</div>
 <div id="cf-popup" class="cf-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="cf-popup-title">
   <div class="cf-modal-panel">
     <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-3 sm:px-4 py-2 bg-slate-50">
@@ -319,7 +1366,18 @@
     <iframe id="cf-popup-frame" class="flex-1 min-h-0" title="Consulta de caixa"></iframe>
   </div>
 </div>
+<div id="cf-popup-nested" class="cf-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="cf-popup-nested-title">
+  <div class="cf-modal-panel">
+    <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-3 sm:px-4 py-2 bg-emerald-50">
+      <h3 id="cf-popup-nested-title" class="text-sm sm:text-base font-black uppercase text-slate-900 truncate min-w-0"></h3>
+      <button type="button" id="cf-popup-nested-fechar" class="shrink-0 min-h-[44px] px-4 rounded-xl border-2 border-emerald-600 bg-emerald-600 text-white text-xs font-black uppercase hover:bg-emerald-700">Fechar · Esc</button>
+    </div>
+    <iframe id="cf-popup-nested-frame" class="flex-1 min-h-0" title="Camada caixa"></iframe>
+  </div>
+</div>
 <script id="cf-contagem-salva-data" type="application/json">{{ rascunho_json }}</script>
+<script id="cf-cedulas-salva-data" type="application/json">{{ cedulas_json }}</script>
+<script id="cf-turno-data" type="application/json">{{ conferencia_turno_json }}</script>
 {% include "produtos/_agro_double_submit_guard.html" %}
 <script>
 (function () {
@@ -380,52 +1438,138 @@
   function fmtBr(n) {
     return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
-  document.querySelectorAll('.caixa-contado').forEach(function (inp) {
-    function upd() {
-      var esp = parseBr(inp.getAttribute('data-esperado'));
-      var cont = parseBr(inp.value);
-      var el = inp.parentElement.querySelector('.caixa-diff');
-      if (!el || esp === null || cont === null) {
-        if (el) el.classList.add('hidden');
-        return;
-      }
-      var d = Math.round((cont - esp) * 100) / 100;
-      el.classList.remove('hidden');
-      if (Math.abs(d) < 0.009) {
-        el.textContent = '✓ Confere';
-        el.className = 'caixa-diff mt-0.5 text-xs font-black text-emerald-700';
-      } else if (d > 0) {
-        el.textContent = 'Sobra R$ ' + fmtBr(d);
-        el.className = 'caixa-diff mt-0.5 text-xs font-black text-sky-800';
-      } else {
-        el.textContent = 'Falta R$ ' + fmtBr(Math.abs(d));
-        el.className = 'caixa-diff mt-0.5 text-xs font-black text-red-700';
-      }
+  function diffElForInput(inp) {
+    var row = inp.closest('.cf-conf-row');
+    if (row) return row.querySelector('.cf-conf-col--variacao .caixa-diff');
+    var wrap = inp.closest('label') || inp.parentElement;
+    return wrap ? wrap.querySelector('.caixa-diff') : null;
+  }
+  function atualizarVariacao(inp) {
+    var esp = parseBr(inp.getAttribute('data-esperado'));
+    var cont = parseBr(inp.value);
+    var el = diffElForInput(inp);
+    if (!el) return;
+    el.classList.remove('caixa-diff--vazio', 'caixa-diff--ok', 'caixa-diff--sobra', 'caixa-diff--falta', 'hidden');
+    if (esp === null || cont === null) {
+      el.textContent = '—';
+      el.classList.add('caixa-diff--vazio');
+      return;
     }
+    var d = Math.round((cont - esp) * 100) / 100;
+    if (Math.abs(d) < 0.009) {
+      el.textContent = '✓ Confere';
+      el.classList.add('caixa-diff--ok');
+    } else if (d > 0) {
+      el.textContent = 'Sobra R$ ' + fmtBr(d);
+      el.classList.add('caixa-diff--sobra');
+    } else {
+      el.textContent = 'Falta R$ ' + fmtBr(Math.abs(d));
+      el.classList.add('caixa-diff--falta');
+    }
+  }
+  document.querySelectorAll('.caixa-contado').forEach(function (inp) {
+    function upd() { atualizarVariacao(inp); }
     inp.addEventListener('input', upd);
     inp.addEventListener('change', upd);
   });
 
   var CONTAGEM_LS_KEY = 'agro_caixa_conferencia_contagem_v1';
   var CONTAGEM_LS_KEY_LEGADO = 'agro_caixa_conferencia_rascunho_v1';
+  var CEDULAS_LS_KEY = 'agro_caixa_conferencia_cedulas_v1';
+  var TURNO_LS_KEY = 'agro_caixa_conferencia_turno_v1';
+  function diaCalendarioLocal() {
+    var n = new Date();
+    var m = n.getMonth() + 1;
+    var d = n.getDate();
+    return (
+      n.getFullYear() +
+      '-' +
+      (m < 10 ? '0' : '') +
+      m +
+      '-' +
+      (d < 10 ? '0' : '') +
+      d
+    );
+  }
+  function turnoAtualPagina() {
+    try {
+      var elTurno = document.getElementById('cf-turno-data');
+      if (!elTurno || !elTurno.textContent) return '';
+      return String(JSON.parse(elTurno.textContent) || '');
+    } catch (eTurno) {
+      return '';
+    }
+  }
+  function chaveTurnoArmazenamento(turnoPk) {
+    return diaCalendarioLocal() + '::' + String(turnoPk || '');
+  }
+  function diaDoTurnoChave(chave) {
+    var s = String(chave || '');
+    var p = s.indexOf('::');
+    return p >= 0 ? s.slice(0, p) : s;
+  }
+  function turnoMesmoDiaCalendario(chaveA, chaveB) {
+    return diaDoTurnoChave(chaveA) === diaCalendarioLocal() && diaDoTurnoChave(chaveB) === diaCalendarioLocal();
+  }
+  function limparContagemLocalStorage() {
+    try {
+      localStorage.removeItem(CONTAGEM_LS_KEY);
+      localStorage.removeItem(CONTAGEM_LS_KEY_LEGADO);
+      localStorage.removeItem(CEDULAS_LS_KEY);
+      localStorage.removeItem(TURNO_LS_KEY);
+    } catch (e) { /* ignore */ }
+  }
+  window.agroCaixaLimparContagemLocalStorage = limparContagemLocalStorage;
+  var turnoPkPagina = turnoAtualPagina();
+  var turnoChave = chaveTurnoArmazenamento(turnoPkPagina);
+  try {
+    var turnoSalvo = localStorage.getItem(TURNO_LS_KEY);
+    if (turnoSalvo != null && !turnoMesmoDiaCalendario(turnoSalvo, turnoChave)) {
+      limparContagemLocalStorage();
+    }
+    localStorage.setItem(TURNO_LS_KEY, turnoChave);
+  } catch (eTurnoLs) { /* ignore */ }
   var contagemMap = {};
+  var cedulasMap = {};
   try {
     var elData = document.getElementById('cf-contagem-salva-data');
     if (elData && elData.textContent) contagemMap = JSON.parse(elData.textContent) || {};
   } catch (e) { contagemMap = {}; }
+  try {
+    var elCed = document.getElementById('cf-cedulas-salva-data');
+    if (elCed && elCed.textContent) cedulasMap = JSON.parse(elCed.textContent) || {};
+  } catch (e2) { cedulasMap = {}; }
   function mesclarContagemLocal(map) {
     try {
+      var turnoSalvo = localStorage.getItem(TURNO_LS_KEY);
+      if (turnoSalvo != null && !turnoMesmoDiaCalendario(turnoSalvo, turnoChave)) return;
       var lsRaw = localStorage.getItem(CONTAGEM_LS_KEY) || localStorage.getItem(CONTAGEM_LS_KEY_LEGADO);
       if (!lsRaw) return;
       var lsMap = JSON.parse(lsRaw) || {};
       Object.keys(lsMap).forEach(function (fn) {
-        if (map[fn] == null || map[fn] === '') map[fn] = lsMap[fn];
+        var v = lsMap[fn];
+        if (v != null && String(v).trim() !== '') map[fn] = v;
       });
-    } catch (e2) { /* ignore */ }
+    } catch (e3) { /* ignore */ }
+  }
+  function mesclarCedulasLocal(map) {
+    try {
+      var turnoSalvo = localStorage.getItem(TURNO_LS_KEY);
+      if (turnoSalvo != null && !turnoMesmoDiaCalendario(turnoSalvo, turnoChave)) return;
+      var lsRaw = localStorage.getItem(CEDULAS_LS_KEY);
+      if (!lsRaw) return;
+      var lsMap = JSON.parse(lsRaw) || {};
+      Object.keys(lsMap).forEach(function (k) {
+        var v = lsMap[k];
+        if (v != null && String(v).trim() !== '') map[k] = v;
+      });
+    } catch (e4) { /* ignore */ }
   }
   mesclarContagemLocal(contagemMap);
+  mesclarCedulasLocal(cedulasMap);
   function aplicarContagemNosCampos(map) {
     document.querySelectorAll('.caixa-contado[data-forma]').forEach(function (inp) {
+      if (inp.getAttribute('data-auto-contado') === '1') return;
       var fn = (inp.getAttribute('data-forma') || '').trim();
       if (fn && map[fn] != null && map[fn] !== '') {
         inp.value = String(map[fn]);
@@ -434,6 +1578,224 @@
     });
   }
   aplicarContagemNosCampos(contagemMap);
+  // Auto (fiado/vale/cashback/Point): sempre igual ao esperado — sem rascunho antigo nem variação.
+  function aplicarAutoContadoEsperado() {
+    var mudou = false;
+    document.querySelectorAll('.caixa-contado[data-auto-contado="1"]').forEach(function (inp) {
+      var esp = String(inp.getAttribute('data-esperado') || '').trim();
+      if (!esp) return;
+      var n = parseFloat(String(esp).replace(',', '.'));
+      if (!Number.isFinite(n)) return;
+      var novo = fmtBr(n);
+      if (String(inp.value || '').trim() === novo) return;
+      inp.value = novo;
+      mudou = true;
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    return mudou;
+  }
+  function aplicarAvisoDevolucaoDinheiro(av) {
+    var el = document.getElementById('cf-aviso-devolucao-dinheiro');
+    if (!el) return;
+    if (av && av.tem && av.texto) {
+      el.textContent = av.texto;
+      el.classList.remove('hidden');
+    } else {
+      el.textContent = '';
+      el.classList.add('hidden');
+    }
+  }
+  function aplicarAvisoReservaVila(av) {
+    var el = document.getElementById('cf-aviso-reserva-vila');
+    if (!el) return;
+    if (av && av.tem && av.texto) {
+      el.textContent = av.texto;
+      el.classList.remove('hidden');
+    } else {
+      el.textContent = '';
+      el.classList.add('hidden');
+    }
+  }
+
+  var dinheiroInp = document.querySelector('.caixa-contado[data-forma="Dinheiro"]');
+  var dinheiroDigitadoManual = false;
+  var skipDinheiroManualFlag = false;
+  var cedulasTotalEl = document.getElementById('cf-cedulas-total');
+  var cedulasResumoEl = document.getElementById('cf-cedulas-resumo');
+  var cedulaQtyNodes = document.querySelectorAll('.cf-cedula-qty');
+  function cedulasTemQuantidade() {
+    for (var i = 0; i < cedulaQtyNodes.length; i++) {
+      var qtd = parseInt(cedulaQtyNodes[i].value, 10);
+      if (Number.isFinite(qtd) && qtd > 0) return true;
+    }
+    return false;
+  }
+  function aplicarCedulasNosCampos(map) {
+    cedulaQtyNodes.forEach(function (inp) {
+      var k = String(inp.getAttribute('data-valor') || '').trim();
+      if (k && map[k] != null && map[k] !== '') inp.value = String(map[k]);
+    });
+    recalcularCedulas(false);
+  }
+  function sincronizarDinheiroDasCedulas() {
+    if (!dinheiroInp) return;
+    var total = 0;
+    var anyQty = cedulasTemQuantidade();
+    cedulaQtyNodes.forEach(function (inp) {
+      var denom = parseFloat(String(inp.getAttribute('data-valor') || '0').replace(',', '.'));
+      var qtd = parseInt(inp.value, 10);
+      if (!Number.isFinite(qtd) || qtd < 0) qtd = 0;
+      total += (Number.isFinite(denom) ? denom : 0) * qtd;
+    });
+    total = Math.round(total * 100) / 100;
+    if (anyQty) {
+      dinheiroInp.value = fmtBr(total);
+      dinheiroDigitadoManual = false;
+    }
+    skipDinheiroManualFlag = true;
+    dinheiroInp.dispatchEvent(new Event('input', { bubbles: true }));
+    skipDinheiroManualFlag = false;
+  }
+  function recalcularCedulas(updateDinheiro) {
+    var total = 0;
+    var anyQty = false;
+    cedulaQtyNodes.forEach(function (inp) {
+      var denom = parseFloat(String(inp.getAttribute('data-valor') || '0').replace(',', '.'));
+      var qtd = parseInt(inp.value, 10);
+      if (!Number.isFinite(qtd) || qtd < 0) qtd = 0;
+      if (qtd > 0) anyQty = true;
+      var sub = (Number.isFinite(denom) ? denom : 0) * qtd;
+      total += sub;
+      var subEl = inp.closest('.cf-cedula-item');
+      if (subEl) {
+        var s = subEl.querySelector('.cf-cedula-sub');
+        if (s) s.textContent = fmtBr(Math.round(sub * 100) / 100);
+      }
+    });
+    total = Math.round(total * 100) / 100;
+    if (cedulasTotalEl) cedulasTotalEl.textContent = 'R$ ' + fmtBr(total);
+    if (cedulasResumoEl) {
+      cedulasResumoEl.textContent = anyQty
+        ? ('Cédulas · R$ ' + fmtBr(total))
+        : 'Opcional: contar por cédulas';
+    }
+    if (dinheiroInp && updateDinheiro && anyQty) {
+      dinheiroInp.value = fmtBr(total);
+      dinheiroDigitadoManual = false;
+      skipDinheiroManualFlag = true;
+      dinheiroInp.dispatchEvent(new Event('input', { bubbles: true }));
+      skipDinheiroManualFlag = false;
+    }
+  }
+  function coletarCedulas() {
+    var out = {};
+    cedulaQtyNodes.forEach(function (inp) {
+      var k = String(inp.getAttribute('data-valor') || '').trim();
+      if (!k) return;
+      var q = String(inp.value || '').trim();
+      if (q) out[k] = q;
+    });
+    return out;
+  }
+  if (contagemMap.Dinheiro != null && String(contagemMap.Dinheiro).trim() !== '') {
+    dinheiroDigitadoManual = true;
+  }
+  aplicarCedulasNosCampos(cedulasMap);
+  if (!dinheiroDigitadoManual && cedulasTemQuantidade()) {
+    sincronizarDinheiroDasCedulas();
+  }
+  if (dinheiroInp) {
+    dinheiroInp.addEventListener('input', function () {
+      if (!skipDinheiroManualFlag) dinheiroDigitadoManual = true;
+    });
+    dinheiroInp.addEventListener('change', function () {
+      if (!skipDinheiroManualFlag) dinheiroDigitadoManual = true;
+    });
+  }
+  cedulaQtyNodes.forEach(function (inp) {
+    inp.addEventListener('input', function () {
+      recalcularCedulas(false);
+      agendarSalvarContagem();
+    });
+    inp.addEventListener('change', function () {
+      recalcularCedulas(false);
+      agendarSalvarContagem();
+    });
+  });
+  document.querySelectorAll('.caixa-contado').forEach(function (inp) {
+    atualizarVariacao(inp);
+  });
+
+  var cedulasModal = document.getElementById('cf-cedulas-modal');
+  var cedulasAbrir = document.getElementById('cf-cedulas-abrir');
+  var cedulasFechar = document.getElementById('cf-cedulas-fechar');
+  var cedulasFecharX = document.getElementById('cf-cedulas-fechar-x');
+  function syncCaixaModalPause() {
+    var elPopup = document.getElementById('cf-popup');
+    var elNested = document.getElementById('cf-popup-nested');
+    var popupAberto =
+      (elPopup && !elPopup.classList.contains('hidden')) ||
+      (elNested && !elNested.classList.contains('hidden'));
+    var outroModal = !!document.querySelector(
+      '.cf-modal-overlay:not(.hidden):not(#cf-popup):not(#cf-popup-nested), #modal-caixa-pin:not(.hidden)'
+    );
+    var open = popupAberto || outroModal;
+    try {
+      if (window.gmSspinSetPausado) window.gmSspinSetPausado('caixa-modal', open);
+    } catch (_) {}
+    try {
+      /* Token invisível em cima do #cf-popup travava todos os cliques. PIN/cédulas ainda usam token. */
+      if (window.AgroOverlayStack) {
+        window.AgroOverlayStack.setNested(outroModal && !popupAberto, 'caixa-modal');
+      }
+    } catch (_) {}
+    try {
+      if (window.top !== window.self) {
+        window.top.postMessage({ type: 'agro-caixa-modal-layer', open: open }, location.origin);
+        if (open) {
+          window.top.postMessage({ type: 'agro-pdv-overlay-meta', hideChrome: true }, location.origin);
+        }
+      }
+    } catch (_) {}
+  }
+
+  function fecharCedulasModal() {
+    if (!cedulasModal) return;
+    cedulasModal.classList.add('hidden');
+    if (cedulasTemQuantidade()) {
+      sincronizarDinheiroDasCedulas();
+    } else {
+      recalcularCedulas(false);
+    }
+    agendarSalvarContagem();
+    syncCaixaModalPause();
+    if (cedulasAbrir) cedulasAbrir.focus();
+  }
+  function abrirCedulasModal() {
+    if (!cedulasModal) return;
+    cedulasModal.classList.remove('hidden');
+    syncCaixaModalPause();
+    var first = cedulasModal.querySelector('.cf-cedula-qty');
+    window.setTimeout(function () {
+      if (first) first.focus();
+    }, 60);
+  }
+  if (cedulasAbrir) cedulasAbrir.addEventListener('click', abrirCedulasModal);
+  if (cedulasFechar) cedulasFechar.addEventListener('click', fecharCedulasModal);
+  if (cedulasFecharX) cedulasFecharX.addEventListener('click', fecharCedulasModal);
+  if (cedulasModal) {
+    cedulasModal.addEventListener('click', function (e) {
+      /* Fundo nao fecha — so X / FECHAR / Esc */
+    });
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if (cedulasModal && !cedulasModal.classList.contains('hidden')) {
+      e.preventDefault();
+      fecharCedulasModal();
+    }
+  });
+
   var contagemServidorVazia = true;
   try {
     var el0 = document.getElementById('cf-contagem-salva-data');
@@ -441,7 +1803,7 @@
     contagemServidorVazia = !parsed0 || !Object.keys(parsed0).length;
   } catch (e0) { contagemServidorVazia = true; }
   if (contagemServidorVazia && Object.keys(contagemMap).length) {
-    window.setTimeout(salvarContagem, 700);
+    window.setTimeout(salvarContagemServidor, 700);
   }
   function coletarContagem() {
     var out = {};
@@ -468,16 +1830,25 @@
     try {
       localStorage.setItem(CONTAGEM_LS_KEY, JSON.stringify(map || {}));
       localStorage.removeItem(CONTAGEM_LS_KEY_LEGADO);
+      localStorage.setItem(TURNO_LS_KEY, turnoChave);
     } catch (e) { /* ignore */ }
   }
-  function limparContagemLocal() {
+  function gravarCedulasLocal(map) {
     try {
-      localStorage.removeItem(CONTAGEM_LS_KEY);
-      localStorage.removeItem(CONTAGEM_LS_KEY_LEGADO);
+      localStorage.setItem(CEDULAS_LS_KEY, JSON.stringify(map || {}));
+      localStorage.setItem(TURNO_LS_KEY, turnoChave);
     } catch (e) { /* ignore */ }
+  }
+  function persistirContagemLocalAgora() {
+    gravarContagemLocal(coletarContagem());
+    gravarCedulasLocal(coletarCedulas());
+  }
+  function limparContagemLocal() {
+    limparContagemLocalStorage();
   }
   var saveTimer = null;
   var saveUrl = '{{ api_rascunho_salvar_url|escapejs }}';
+  var fiadoConfUrl = '{{ api_fiado_conferencia_url|escapejs }}';
   var statusEl = document.getElementById('cf-contagem-status');
   function mostrarStatusContagem(msg, ok) {
     if (!statusEl) return;
@@ -487,19 +1858,27 @@
     clearTimeout(statusEl._hideT);
     statusEl._hideT = setTimeout(function () { statusEl.classList.add('hidden'); }, ok ? 2200 : 4500);
   }
-  function salvarContagem() {
+  function salvarContagemServidor() {
     var payload = coletarContagem();
-    gravarContagemLocal(payload);
+    var cedulasPayload = coletarCedulas();
+    persistirContagemLocalAgora();
     var token = csrfToken();
     if (!token) {
       mostrarStatusContagem('Contagem só neste aparelho (sem sessão). Recarregue a página.', false);
       return;
     }
+    var depFechar = '{{ deposito_fechar|default:"centro"|escapejs }}';
+    var turnoKeyPg = '{{ contagem_turno_key|default:""|escapejs }}';
     fetch(saveUrl, {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': token },
-      body: JSON.stringify({ rascunho: payload })
+      body: JSON.stringify({
+        rascunho: payload,
+        cedulas: cedulasPayload,
+        deposito: depFechar,
+        turno_key: turnoKeyPg
+      })
     }).then(function (r) {
       return r.json().then(function (data) {
         return { httpOk: r.ok, data: data };
@@ -509,6 +1888,7 @@
     }).then(function (res) {
       if (res.httpOk && res.data && res.data.ok) {
         if (res.data.rascunho) gravarContagemLocal(res.data.rascunho);
+        if (res.data.cedulas) gravarCedulasLocal(res.data.cedulas);
         mostrarStatusContagem('Contagem salva', true);
         return;
       }
@@ -519,27 +1899,215 @@
     });
   }
   function agendarSalvarContagem() {
+    persistirContagemLocalAgora();
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(salvarContagem, 500);
+    saveTimer = setTimeout(salvarContagemServidor, 500);
   }
   document.querySelectorAll('.caixa-contado[data-forma]').forEach(function (inp) {
     inp.addEventListener('input', agendarSalvarContagem);
     inp.addEventListener('change', agendarSalvarContagem);
   });
+  if (aplicarAutoContadoEsperado()) {
+    agendarSalvarContagem();
+  }
   document.querySelectorAll('form.form-fechar-um, #form-fechar-todos').forEach(function (form) {
-    form.addEventListener('submit', limparContagemLocal);
+    form.addEventListener('submit', function (e) {
+      if (form.id === 'form-fechar-todos') {
+        if (window.cfFiadoWizard && !window.cfFiadoWizard.completo()) {
+          e.preventDefault();
+          if (window.gmLoadingBar) window.gmLoadingBar.hide();
+          alert('Conclua a conferência de fiado antes de fechar o caixa.');
+          window.cfFiadoWizard.reabrir();
+          return;
+        }
+      }
+      persistirContagemLocalAgora();
+    });
   });
-  window.addEventListener('pagehide', function () {
-    gravarContagemLocal(coletarContagem());
-  });
+
+  (function initFiadoWizard() {
+    var form = document.getElementById('form-fechar-todos');
+    var modalVendas = document.getElementById('cf-fiado-modal-vendas');
+    var modalBaixas = document.getElementById('cf-fiado-modal-baixas');
+    if (!form || form.classList.contains('pointer-events-none') || form.getAttribute('aria-disabled') === 'true') return;
+    var hasVendas = !!modalVendas;
+    var hasBaixas = !!modalBaixas;
+    var wizardOk = !hasVendas && !hasBaixas;
+    var puladoVendas = document.getElementById('fiado-vendas-pulado');
+    var puladoBaixas = document.getElementById('fiado-baixas-pulado');
+    var pinVendas = document.getElementById('fiado-vendas-pulo-pin');
+    var pinBaixas = document.getElementById('fiado-baixas-pulo-pin');
+
+    function abrir(el) {
+      if (!el) return;
+      el.classList.remove('hidden');
+      syncCaixaModalPause();
+    }
+    function fechar(el) {
+      if (!el) return;
+      el.classList.add('hidden');
+      syncCaixaModalPause();
+    }
+    function idsMarcados(sel) {
+      var out = [];
+      document.querySelectorAll(sel).forEach(function (cb) {
+        if (!cb.checked) return;
+        var n = parseInt(cb.getAttribute('data-fiado-id') || '0', 10);
+        if (n) out.push(n);
+      });
+      return out;
+    }
+    function gravarConferencia(payload) {
+      if (!fiadoConfUrl || !csrfToken()) {
+        return Promise.resolve({ ok: false, erro: 'Sem rota para gravar conferência.' });
+      }
+      return fetch(fiadoConfUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken()
+        },
+        body: JSON.stringify(payload)
+      }).then(function (r) { return r.json(); }).catch(function () {
+        return { ok: false, erro: 'Falha de rede ao gravar conferência.' };
+      });
+    }
+    function todosMarcados(sel) {
+      var boxes = document.querySelectorAll(sel);
+      if (!boxes.length) return true;
+      for (var i = 0; i < boxes.length; i++) {
+        if (!boxes[i].checked) return false;
+      }
+      return true;
+    }
+    function pedirPin(titulo, texto) {
+      if (!window.agroCaixaPedirPin) {
+        alert('PIN indisponível nesta tela.');
+        return Promise.resolve('');
+      }
+      return window.agroCaixaPedirPin({ titulo: titulo, texto: texto });
+    }
+    function aposVendas() {
+      fechar(modalVendas);
+      if (hasBaixas) abrir(modalBaixas);
+      else wizardOk = true;
+    }
+    function aposBaixas() {
+      fechar(modalBaixas);
+      wizardOk = true;
+    }
+    function iniciar() {
+      if (wizardOk) return;
+      if (hasVendas) abrir(modalVendas);
+      else if (hasBaixas) abrir(modalBaixas);
+    }
+
+    var btnConfV = document.getElementById('cf-fiado-vendas-confirmar');
+    var btnPulV = document.getElementById('cf-fiado-vendas-pular');
+    var btnConfB = document.getElementById('cf-fiado-baixas-confirmar');
+    var btnPulB = document.getElementById('cf-fiado-baixas-pular');
+
+    if (btnConfV) {
+      btnConfV.addEventListener('click', function () {
+        if (!todosMarcados('.cf-fiado-check-assinado')) {
+          alert('Marque todas as vendas fiado conferidas.');
+          return;
+        }
+        if (puladoVendas) puladoVendas.value = '0';
+        if (pinVendas) pinVendas.value = '';
+        gravarConferencia({ vendas: idsMarcados('.cf-fiado-check-assinado') }).then(function (res) {
+          if (!res || !res.ok) {
+            alert((res && res.erro) || 'Não gravou a conferência. Tente de novo.');
+            return;
+          }
+          aposVendas();
+        });
+      });
+    }
+    if (btnPulV) {
+      btnPulV.addEventListener('click', function () {
+        pedirPin('Pular conferência — vendas fiado', 'Informe o PIN do operador para pular a conferência de notas assinadas na caixinha.').then(function (pin) {
+          pin = String(pin || '').trim();
+          if (!pin) return;
+          if (puladoVendas) puladoVendas.value = '1';
+          if (pinVendas) pinVendas.value = pin;
+          document.querySelectorAll('.cf-fiado-check-assinado').forEach(function (cb) { cb.checked = false; });
+          aposVendas();
+        });
+      });
+    }
+    if (btnConfB) {
+      btnConfB.addEventListener('click', function () {
+        if (!todosMarcados('.cf-fiado-check-retirado')) {
+          alert('Marque todos os pagamentos fiado conferidos.');
+          return;
+        }
+        if (puladoBaixas) puladoBaixas.value = '0';
+        if (pinBaixas) pinBaixas.value = '';
+        gravarConferencia({ baixas: idsMarcados('.cf-fiado-check-retirado') }).then(function (res) {
+          if (!res || !res.ok) {
+            alert((res && res.erro) || 'Não gravou a conferência. Tente de novo.');
+            return;
+          }
+          aposBaixas();
+        });
+      });
+    }
+    if (btnPulB) {
+      btnPulB.addEventListener('click', function () {
+        pedirPin('Pular conferência — pagamentos fiado', 'Informe o PIN do operador para pular a conferência de notas devolvidas ao cliente.').then(function (pin) {
+          pin = String(pin || '').trim();
+          if (!pin) return;
+          if (puladoBaixas) puladoBaixas.value = '1';
+          if (pinBaixas) pinBaixas.value = pin;
+          document.querySelectorAll('.cf-fiado-check-retirado').forEach(function (cb) { cb.checked = false; });
+          aposBaixas();
+        });
+      });
+    }
+
+    [modalVendas, modalBaixas].forEach(function (modal) {
+      if (!modal) return;
+      modal.addEventListener('click', function (ev) {
+        if (ev.target === modal) ev.stopPropagation();
+      });
+    });
+
+    function syncFiadoRows() {
+      document.querySelectorAll('.cf-fiado-wizard .cf-fiado-row').forEach(function (row) {
+        var cb = row.querySelector('input[type="checkbox"]');
+        if (!cb) return;
+        row.classList.toggle('is-conferido', cb.checked);
+        row.classList.toggle('is-pendente', !cb.checked);
+      });
+    }
+    document.querySelectorAll('.cf-fiado-check-assinado, .cf-fiado-check-retirado').forEach(function (cb) {
+      cb.addEventListener('change', syncFiadoRows);
+    });
+    syncFiadoRows();
+
+    window.cfFiadoWizard = {
+      completo: function () { return wizardOk; },
+      reabrir: iniciar
+    };
+    iniciar();
+  })();
+  window.addEventListener('pagehide', persistirContagemLocalAgora);
+  window.addEventListener('beforeunload', persistirContagemLocalAgora);
 
   var popup = document.getElementById('cf-popup');
   var popupFrame = document.getElementById('cf-popup-frame');
   var popupTitle = document.getElementById('cf-popup-title');
   var popupFechar = document.getElementById('cf-popup-fechar');
+  var popupNested = document.getElementById('cf-popup-nested');
+  var popupNestedFrame = document.getElementById('cf-popup-nested-frame');
+  var popupNestedTitle = document.getElementById('cf-popup-nested-title');
+  var popupNestedFechar = document.getElementById('cf-popup-nested-fechar');
   var conferenciaEstadoUrl = '{{ api_conferencia_estado_url|escapejs }}';
   if (conferenciaEstadoUrl) {
-    conferenciaEstadoUrl += (conferenciaEstadoUrl.indexOf('?') >= 0 ? '&' : '?') + 'escopo=operacional';
+    conferenciaEstadoUrl += (conferenciaEstadoUrl.indexOf('?') >= 0 ? '&' : '?') + 'escopo=loja';
   }
   var popupRefreshOnClose = false;
   var conferenciaRefreshTimer = null;
@@ -558,6 +2126,10 @@
     });
     document.querySelectorAll('.caixa-contado[data-forma="' + forma + '"]').forEach(function (inp) {
       inp.setAttribute('data-esperado', L.esperado);
+      if (inp.getAttribute('data-auto-contado') === '1') {
+        var nEsp = parseFloat(String(L.esperado || '').replace(',', '.'));
+        if (Number.isFinite(nEsp)) inp.value = fmtBr(nEsp);
+      }
       inp.dispatchEvent(new Event('input', { bubbles: true }));
     });
     document.querySelectorAll('.cf-detalhe[data-forma="' + forma + '"]').forEach(function (box) {
@@ -605,6 +2177,9 @@
         if (!data || !data.ok) return;
         (data.linhas || []).forEach(aplicarLinhaConferencia);
         aplicarCardsConferencia(data.cards);
+        aplicarAvisoReservaVila(data.aviso_reserva_vila);
+        aplicarAvisoDevolucaoDinheiro(data.aviso_devolucao_dinheiro);
+        aplicarAutoContadoEsperado();
         if (statusEl) {
           statusEl.textContent = 'Valores esperados atualizados';
           statusEl.classList.remove('hidden');
@@ -620,23 +2195,69 @@
     conferenciaRefreshTimer = setTimeout(atualizarConferenciaCaixa, 120);
   }
 
+  function withEmbedParams(url) {
+    try {
+      var u = new URL(url, window.location.origin);
+      if (!u.searchParams.has('embed')) u.searchParams.set('embed', '1');
+      if (!u.searchParams.has('agro_pdv_overlay')) u.searchParams.set('agro_pdv_overlay', '1');
+      if (!u.searchParams.has('agro_inapp_embed')) u.searchParams.set('agro_inapp_embed', '1');
+      return u.pathname + u.search + u.hash;
+    } catch (_) {
+      return url;
+    }
+  }
+  function stackSet(el, open) {
+    try {
+      if (window.AgroOverlayStack && el) window.AgroOverlayStack.setOpen(el, !!open);
+    } catch (_) {}
+  }
   function abrirPopup(url, titulo, refreshOnClose) {
     if (!popup || !popupFrame) return;
     popupRefreshOnClose = !!refreshOnClose;
     if (popupTitle) popupTitle.textContent = titulo || '';
-    popupFrame.src = url;
+    popupFrame.src = withEmbedParams(url);
     popupFrame.title = titulo || 'Caixa';
     popup.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
+    stackSet(popup, true);
+    syncCaixaModalPause();
   }
   function fecharPopup() {
     if (!popup) return;
+    if (popupNested && !popupNested.classList.contains('hidden')) fecharPopupNested();
     var refresh = popupRefreshOnClose;
     popup.classList.add('hidden');
     if (popupFrame) popupFrame.src = 'about:blank';
     document.body.classList.remove('overflow-hidden');
     popupRefreshOnClose = false;
+    stackSet(popup, false);
+    syncCaixaModalPause();
     if (refresh) agendarAtualizarConferencia();
+  }
+  function abrirPopupNested(url, titulo) {
+    if (!popupNested || !popupNestedFrame) return;
+    try {
+      var path = String(new URL(url, window.location.origin).pathname || '').toLowerCase();
+      if (path.indexOf('/repasse-vila') >= 0) return;
+    } catch (_) {}
+    if (popup && popup.classList.contains('hidden')) {
+      abrirPopup(url, titulo, true);
+      return;
+    }
+    if (popupNestedTitle) popupNestedTitle.textContent = titulo || '';
+    popupNestedFrame.src = withEmbedParams(url);
+    popupNestedFrame.title = titulo || 'Caixa';
+    popupNested.classList.remove('hidden');
+    stackSet(popupNested, true);
+    syncCaixaModalPause();
+  }
+  function fecharPopupNested() {
+    if (!popupNested) return;
+    popupNested.classList.add('hidden');
+    if (popupNestedFrame) popupNestedFrame.src = 'about:blank';
+    stackSet(popupNested, false);
+    syncCaixaModalPause();
+    agendarAtualizarConferencia();
   }
   document.querySelectorAll('.cf-popup-open').forEach(function (btn) {
     btn.addEventListener('click', function () {
@@ -648,19 +2269,62 @@
     });
   });
   if (popupFechar) popupFechar.addEventListener('click', fecharPopup);
+  if (popupNestedFechar) popupNestedFechar.addEventListener('click', fecharPopupNested);
   if (popup) {
-    popup.addEventListener('click', function (e) {
-      if (e.target === popup) fecharPopup();
-    });
+    popup.addEventListener('click', function (e) { /* Fundo nao fecha */ });
+  }
+  if (popupNested) {
+    popupNested.addEventListener('click', function (e) { /* Fundo nao fecha */ });
   }
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && popup && !popup.classList.contains('hidden')) fecharPopup();
+    if (e.key !== 'Escape') return;
+    if (popupNested && !popupNested.classList.contains('hidden')) {
+      e.preventDefault();
+      fecharPopupNested();
+      return;
+    }
+    if (popup && !popup.classList.contains('hidden')) {
+      e.preventDefault();
+      fecharPopup();
+    }
   });
   window.addEventListener('message', function (e) {
     if (e.origin !== window.location.origin) return;
-    if (e.data && e.data.type === 'agro-caixa-fechar-atualizar') agendarAtualizarConferencia();
+    var d = e.data || {};
+    if (d.type === 'agro-caixa-fechar-atualizar') agendarAtualizarConferencia();
+    if (d.type === 'agro-caixa-popup-nested') {
+      abrirPopupNested(String(d.url || ''), String(d.title || 'Caixa'));
+    }
+    if (d.type === 'agro-caixa-popup-nested-close') fecharPopupNested();
   });
+
+  var asideWrap = document.getElementById('cf-aside-wrap');
+  var asideRail = document.getElementById('cf-aside-rail');
+  if (asideWrap && asideRail) {
+    asideRail.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var open = asideWrap.classList.toggle('is-open');
+      asideRail.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.addEventListener('click', function (e) {
+      if (!asideWrap.classList.contains('is-open')) return;
+      if (!asideWrap.contains(e.target)) {
+        asideWrap.classList.remove('is-open');
+        asideRail.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+  var pinModalEl = document.getElementById('modal-caixa-pin');
+  if (pinModalEl && window.MutationObserver) {
+    var pinObs = new MutationObserver(syncCaixaModalPause);
+    pinObs.observe(pinModalEl, { attributes: true, attributeFilter: ['class'] });
+  }
+  syncCaixaModalPause();
 })();
 </script>
+</div>
+{% if request.GET.agro_pdv_overlay != '1' %}
+{% include "produtos/_screensaver_pin.html" %}
+{% endif %}
 </body>
 </html>

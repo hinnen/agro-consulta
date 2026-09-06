@@ -1,0 +1,13 @@
+{# Modal transferência / avisos WhatsApp — sem alert/confirm/prompt do Chrome #}
+<div id="wa-dlg" class="wa-dlg" aria-hidden="true">
+  <div class="wa-dlg-card" role="dialog" aria-modal="true" aria-labelledby="wa-dlg-tit">
+    <h2 id="wa-dlg-tit" class="wa-dlg-tit">Atenção</h2>
+    <p id="wa-dlg-txt" class="wa-dlg-txt"></p>
+    <input id="wa-dlg-inp" class="wa-dlg-inp hidden" type="text" maxlength="400" autocomplete="off" placeholder="Nota interna (opcional)" />
+    <div class="wa-dlg-actions">
+      <button type="button" id="wa-dlg-cancel" class="wa-dlg-cancel">Cancelar</button>
+      <button type="button" id="wa-dlg-ok" class="wa-dlg-ok">OK</button>
+    </div>
+  </div>
+</div>
+<div id="wa-float-toast" class="wa-float-toast" role="status"></div>

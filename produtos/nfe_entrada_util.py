@@ -9,7 +9,7 @@ import gzip
 import logging
 import re
 import xml.etree.ElementTree as ET
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 
@@ -21,6 +21,12 @@ NS_NFE = "http://www.portalfiscal.inf.br/nfe"
 COL_ENTRADA_RASCUNHO = "AgroEntradaNotaRascunho"
 COL_ENTRADA_VINCULO = "AgroEntradaNfeVinculo"
 COL_DFE_CURSOR = "AgroNFeDistribuicaoCursor"
+
+
+def _entrada_nota_rascunho_store(db):
+    from produtos.entrada_nota_rascunho_pg_util import rascunho_entrada_col
+
+    return rascunho_entrada_col(db)
 
 # Fluxo na tela Entrada NF-e (persistido em ``status``; exibição pode corrigir inconsistências).
 ENTRADA_NFE_STATUS_COM_PENDENCIAS = "com_pendencias"
@@ -34,8 +40,8 @@ ENTRADA_NFE_STATUS_CONGELADOS = frozenset(
     {ENTRADA_NFE_STATUS_ENCERRADA, ENTRADA_NFE_STATUS_DESCARTADA, ENTRADA_NFE_STATUS_ESTOQUE_APLICADO}
 )
 
-# Lock anti-duplo POST em ``api_entrada_nota_estoque_agro`` (Mongo ``extra.estoque_agro_lock``).
-ESTOQUE_AGRO_LOCK_MAX_AGE = timedelta(minutes=15)
+# Lock anti-duplo POST em ``api_entrada_nota_estoque_agro`` (``extra.estoque_agro_lock`` no rascunho PG).
+ESTOQUE_AGRO_LOCK_MAX_AGE = timedelta(minutes=3)
 
 ENTRADA_NFE_STATUS_UI: dict[str, dict[str, str]] = {
     ENTRADA_NFE_STATUS_COM_PENDENCIAS: {"label": "Com pendências"},
@@ -121,7 +127,13 @@ def entrada_nfe_status_ui_por_codigo(codigo: str) -> dict[str, str]:
 def entrada_nfe_extra_financeiro_ok(extra: Any) -> bool:
     if not isinstance(extra, dict):
         return False
-    return bool(extra.get("financeiro_lancado"))
+    if extra.get("financeiro_lancado"):
+        return True
+    # Título já vinculado mesmo se a flag booleana sumiu (corrida autosave × marcar).
+    ids = extra.get("financeiro_ids")
+    if isinstance(ids, list) and any(str(x).strip() for x in ids):
+        return True
+    return False
 
 
 def _entrada_nfe_extra_wizard_data_ok(extra: Any) -> bool:
@@ -153,6 +165,13 @@ def _entrada_nfe_extra_correcao_sistemica(extra: Any) -> bool:
     if isinstance(v, str) and v.strip().lower() in ("1", "true", "sim", "yes"):
         return True
     return False
+
+
+def _entrada_nfe_extra_aviso_operacional(extra: Any) -> str:
+    """Texto livre visível na lista (aviso entre usuários da loja)."""
+    if not isinstance(extra, dict):
+        return ""
+    return str(extra.get("aviso_operacional") or "").strip()[:500]
 
 
 def entrada_nfe_fila_bucket_lista(d: dict[str, Any]) -> str:
@@ -191,11 +210,24 @@ def entrada_nfe_enriquecer_doc_serializado(d: dict[str, Any]) -> dict[str, Any]:
     eff = entrada_nfe_status_efetivo(d)
     ui = entrada_nfe_status_ui_por_codigo(eff)
     extra = d.get("extra") if isinstance(d.get("extra"), dict) else {}
+    linhas = d.get("linhas") if isinstance(d.get("linhas"), list) else []
+    vt_agg = d.pop("_valor_total_nota", None)
+    if linhas:
+        vt = _entrada_nfe_total_linhas_reais(linhas)
+    elif vt_agg is not None:
+        try:
+            vt = round(float(vt_agg), 2)
+        except (TypeError, ValueError):
+            vt = 0.0
+    else:
+        vt = 0.0
+    d["entrada_valor_total"] = vt
     d["entrada_status_efetivo"] = eff
     d["entrada_status_label"] = ui["label"]
     d["entrada_financeiro_lancado"] = entrada_nfe_extra_financeiro_ok(extra)
     d["entrada_lista_bucket"] = entrada_nfe_fila_bucket_lista(d)
     d["entrada_correcao_sistemica"] = _entrada_nfe_extra_correcao_sistemica(extra)
+    d["entrada_aviso_operacional"] = _entrada_nfe_extra_aviso_operacional(extra)
     return d
 
 
@@ -203,6 +235,52 @@ def _localname(tag: str) -> str:
     if not tag:
         return ""
     return tag.split("}", 1)[-1] if "}" in tag else tag
+
+
+# Tabela tPag NF-e 4.0 (forma de pagamento) — rótulos para sugestão na etapa Financeiro.
+_NFE_TPAG_FORMA_SUGERIDA: dict[str, str] = {
+    "01": "Dinheiro",
+    "02": "Cheque",
+    "03": "Cartão de crédito",
+    "04": "Cartão de débito",
+    "05": "Crédito loja",
+    "10": "Vale alimentação",
+    "11": "Vale refeição",
+    "12": "Vale presente",
+    "13": "Vale combustível",
+    "15": "Boleto Bancário CN",
+    "16": "Depósito bancário",
+    "17": "Pagamento instantâneo (PIX)",
+    "18": "Transferência bancária",
+    "19": "Programa fidelidade",
+    "90": "Sem pagamento",
+    "99": "Outros",
+}
+
+
+def _parse_data_xml_nfe(raw: Any) -> str:
+    """Normaliza dVenc / dPag do XML para ``YYYY-MM-DD``."""
+    s = str(raw or "").strip()
+    if not s:
+        return ""
+    if len(s) >= 10 and s[4] == "-" and s[7] == "-":
+        return s[:10]
+    m = re.match(r"^(\d{2})/(\d{2})/(\d{4})", s)
+    if m:
+        return f"{m.group(3)}-{m.group(2)}-{m.group(1)}"
+    return ""
+
+
+def _normalizar_tpag_nfe(raw: Any) -> str:
+    t = re.sub(r"\D", "", str(raw or "").strip())
+    if not t:
+        return ""
+    return t.zfill(2)[:2] if len(t) <= 2 else t[:4]
+
+
+def _forma_sugerida_tpag_nfe(t_pag: str) -> str:
+    code = _normalizar_tpag_nfe(t_pag)
+    return _NFE_TPAG_FORMA_SUGERIDA.get(code, "")
 
 
 def _text(el: ET.Element | None) -> str:
@@ -223,10 +301,220 @@ def _findall_local(parent: ET.Element, name: str) -> list[ET.Element]:
     return [el for el in list(parent) if _localname(el.tag) == name]
 
 
+# CNPJs GM Agropecuária — espelho de base/migrations/0004 (Centro + Vila Elias).
+_EMPRESAS_ESTOQUE_PADRAO: tuple[tuple[str, str, str, str], ...] = (
+    ("48900774000103", "Agro Mais Centro", "Centro", "centro"),
+    ("03230457000180", "Agro Mais Vila Elias", "Vila Elias", "vila"),
+)
+
+
+def _garantir_empresas_estoque_padrao() -> None:
+    """Cria empresas/lojas mínimas no Postgres quando o Admin ainda não foi populado."""
+    from base.models import Empresa, Loja
+
+    for cnpj, nome, loja_nome, cod in _EMPRESAS_ESTOQUE_PADRAO:
+        emp, created = Empresa.objects.get_or_create(
+            cnpj=cnpj,
+            defaults={"nome_fantasia": nome, "razao_social": nome, "ativo": True},
+        )
+        if not created and (not emp.ativo or emp.nome_fantasia != nome):
+            emp.ativo = True
+            emp.nome_fantasia = nome
+            emp.save(update_fields=["ativo", "nome_fantasia"])
+        Loja.objects.get_or_create(
+            empresa=emp,
+            codigo=cod,
+            defaults={"nome": loja_nome, "ativa": True},
+        )
+
+
+def listar_empresas_estoque_entrada_nfe() -> list[dict[str, Any]]:
+    """
+    Empresas do passo 5 (estoque) da entrada NF-e — Postgres ``base.Empresa``.
+    Staging vazio: tenta copiar da loja (snapshot) ou cria padrão GM.
+    """
+    from django.conf import settings
+
+    from base.models import Empresa
+
+    qs = Empresa.objects.filter(ativo=True).order_by("nome_fantasia")
+    if not qs.exists():
+        url_fonte = (getattr(settings, "AGRO_SNAPSHOT_FONTE_DATABASE_URL", "") or "").strip()
+        if url_fonte and getattr(settings, "AGRO_STAGING_READONLY", False):
+            try:
+                from produtos.snapshot_pdv_loja_util import sincronizar_empresas_lojas_snapshot
+
+                out = sincronizar_empresas_lojas_snapshot()
+                if not out.get("ok"):
+                    logger.warning(
+                        "listar_empresas_estoque_entrada_nfe snapshot: %s",
+                        out.get("erro"),
+                    )
+            except Exception:
+                logger.exception("listar_empresas_estoque_entrada_nfe sync loja")
+        qs = Empresa.objects.filter(ativo=True).order_by("nome_fantasia")
+    if not qs.exists():
+        try:
+            _garantir_empresas_estoque_padrao()
+        except Exception:
+            logger.exception("listar_empresas_estoque_entrada_nfe seed padrao")
+        qs = Empresa.objects.filter(ativo=True).order_by("nome_fantasia")
+    return [{"id": e.pk, "nome": e.nome_fantasia} for e in qs]
+
+
+def listar_empresas_financeiro_entrada_nfe(db) -> list[dict[str, str]]:
+    """
+    Lojas canônicas para etapa Financeiro da entrada NF-e (uma opção por unidade).
+    Resolve ``Empresa`` / ``EmpresaID`` do Mongo ou Postgres (último lançamento compatível).
+    """
+    from produtos.mongo_financeiro_util import COL_DTO_LANCAMENTO
+
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres
+
+    specs: tuple[tuple[str, str, str, list[dict[str, Any]]], ...] = (
+        (
+            "centro",
+            "Agro Mais Centro",
+            "Agro Mais Centro",
+            [
+                {"Empresa": {"$regex": r"^Agro Mais Centro$", "$options": "i"}},
+                {
+                    "$and": [
+                        {"Empresa": {"$regex": "agro", "$options": "i"}},
+                        {"Empresa": {"$regex": "centro", "$options": "i"}},
+                        {"Empresa": {"$not": {"$regex": "vila", "$options": "i"}}},
+                    ]
+                },
+            ],
+        ),
+        (
+            "vila",
+            "Agro Mais Vila",
+            "Agro Mais Vila Elias",
+            [
+                {"Empresa": {"$regex": r"^Agro Mais Vila Elias$", "$options": "i"}},
+                {"Empresa": {"$regex": r"^Agro Mais Vila$", "$options": "i"}},
+                {
+                    "$and": [
+                        {"Empresa": {"$regex": "agro", "$options": "i"}},
+                        {"Empresa": {"$regex": "vila", "$options": "i"}},
+                    ]
+                },
+            ],
+        ),
+    )
+    out: list[dict[str, str]] = []
+    for dep, label, nome_padrao, match_ors in specs:
+        nome = nome_padrao
+        eid = ""
+        if agro_financeiro_usa_postgres():
+            try:
+                from django.db.models import Q
+
+                from produtos.models import TituloFinanceiroAgro
+
+                q_pg = Q()
+                for m in match_ors:
+                    emp_rx = m.get("Empresa")
+                    if isinstance(emp_rx, dict) and "$regex" in emp_rx:
+                        pat = str(emp_rx.get("$regex") or "").strip("^$")
+                        if pat:
+                            q_pg |= Q(empresa__iregex=pat)
+                if q_pg:
+                    t = (
+                        TituloFinanceiroAgro.objects.filter(q_pg)
+                        .order_by("-data_vencimento")
+                        .first()
+                    )
+                    if t:
+                        raw = str(t.empresa or "").strip()
+                        if dep == "centro":
+                            nome = "Agro Mais Centro"
+                        elif raw:
+                            nome = raw
+                        snap = t.dados_snapshot_json or {}
+                        eid = str(snap.get("empresa_id") or snap.get("EmpresaID") or "").strip()
+            except Exception:
+                logger.debug("listar_empresas_financeiro_entrada_nfe pg dep=%s", dep, exc_info=True)
+        if not eid and db is not None:
+            try:
+                doc = db[COL_DTO_LANCAMENTO].find_one(
+                    {"$or": match_ors},
+                    sort=[("DataVencimento", -1)],
+                    projection={"Empresa": 1, "EmpresaID": 1},
+                )
+                if doc:
+                    eid = str(doc.get("EmpresaID") or "").strip()
+                    raw = str(doc.get("Empresa") or "").strip()
+                    if dep == "centro":
+                        nome = "Agro Mais Centro"
+                    elif raw:
+                        nome = raw
+            except Exception:
+                logger.debug("listar_empresas_financeiro_entrada_nfe dep=%s", dep, exc_info=True)
+        out.append({"deposito": dep, "label": label, "nome": nome, "id": eid})
+    return out
+
+
+def fornecedores_entrada_nfe_pg(
+    q: str | None = None,
+    *,
+    inicial: bool = False,
+    limit: int = 50,
+) -> list[dict[str, str]]:
+    """Fornecedores a partir de títulos CP Postgres + catálogo ``Produto.fornecedor_texto``."""
+    from django.db.models import Count
+
+    from produtos.models import Produto, TituloFinanceiroAgro
+
+    lim = min(max(int(limit or 50), 1), 100)
+    qq = (q or "").strip()
+    out: list[dict[str, str]] = []
+    seen: set[str] = set()
+
+    def _add(nome: str, pid: str, origem: str, documento: str = "") -> None:
+        nk = " ".join((nome or "").lower().split())
+        if not nk or nk in seen:
+            return
+        seen.add(nk)
+        out.append(
+            {
+                "id": (pid or "")[:64],
+                "nome": (nome or "")[:300],
+                "documento": (documento or "")[:20],
+                "origem": origem,
+            }
+        )
+
+    if qq:
+        for t in (
+            TituloFinanceiroAgro.objects.filter(despesa=True, cliente__icontains=qq)
+            .values("cliente", "cliente_id")
+            .distinct()[:30]
+        ):
+            _add(str(t.get("cliente") or ""), str(t.get("cliente_id") or ""), "titulo_pg")
+        for fn in (
+            Produto.objects.filter(ativo=True, fornecedor_texto__icontains=qq)
+            .values_list("fornecedor_texto", flat=True)
+            .distinct()[:20]
+        ):
+            _add(str(fn or ""), "", "catalogo_pg")
+    elif inicial:
+        for t in (
+            TituloFinanceiroAgro.objects.filter(despesa=True)
+            .exclude(cliente="")
+            .values("cliente", "cliente_id")
+            .annotate(c=Count("id"))
+            .order_by("-c")[:lim]
+        ):
+            _add(str(t.get("cliente") or ""), str(t.get("cliente_id") or ""), "titulo_pg")
+    return out[:lim]
+
+
 def parse_nfe_xml_bytes(data: bytes) -> dict[str, Any]:
     """
-    Extrai cabeçalho e itens de NF-e 3.x/4.x (nfeProc ou NFe).
-    Retorna dict com chave, emitente, destinatário, itens (cProd, ean, descrição, qtd, v_unit, cfop, ncm).
+    Extrai cabeçalho, itens e cobrança (duplicatas / pag) de NF-e 3.x/4.x (nfeProc ou NFe).
+    Retorna dict com chave, emitente, itens, duplicatas (vencimento/valor), pagamentos (tPag).
     """
     out: dict[str, Any] = {
         "ok": False,
@@ -241,6 +529,13 @@ def parse_nfe_xml_bytes(data: bytes) -> dict[str, Any]:
         "dest_cpf": "",
         "dest_nome": "",
         "valor_total": 0.0,
+        "valor_produtos": 0.0,
+        "acrescimos_custo": 0.0,
+        "totais_nf": {},
+        "duplicatas": [],
+        "pagamentos": [],
+        "fatura": {},
+        "forma_pagamento_sugerida": "",
         "itens": [],
     }
     try:
@@ -297,12 +592,125 @@ def parse_nfe_xml_bytes(data: bytes) -> dict[str, Any]:
     if total_el is not None:
         icms_tot = _find1(total_el, ["ICMSTot"])
         if icms_tot is not None:
+            totais_nf: dict[str, float] = {
+                "v_prod": 0.0,
+                "v_frete": 0.0,
+                "v_st": 0.0,
+                "v_seg": 0.0,
+                "v_outro": 0.0,
+                "v_ipi": 0.0,
+                "v_desc": 0.0,
+                "v_nf": 0.0,
+            }
+            mapa = {
+                "vProd": "v_prod",
+                "vFrete": "v_frete",
+                "vST": "v_st",
+                "vSeg": "v_seg",
+                "vOutro": "v_outro",
+                "vIPI": "v_ipi",
+                "vDesc": "v_desc",
+                "vNF": "v_nf",
+            }
             for child in icms_tot:
-                if _localname(child.tag) == "vNF":
+                ln = _localname(child.tag)
+                key = mapa.get(ln)
+                if not key:
+                    continue
+                try:
+                    totais_nf[key] = float(Decimal(_text(child).replace(",", ".") or "0"))
+                except Exception:
+                    totais_nf[key] = 0.0
+            out["totais_nf"] = totais_nf
+            out["valor_total"] = float(totais_nf.get("v_nf") or 0.0)
+            # Cesta de acréscimos para rateio no custo (frete + ST + seguro + outras + IPI − desconto).
+            acresc = (
+                float(totais_nf.get("v_frete") or 0)
+                + float(totais_nf.get("v_st") or 0)
+                + float(totais_nf.get("v_seg") or 0)
+                + float(totais_nf.get("v_outro") or 0)
+                + float(totais_nf.get("v_ipi") or 0)
+                - float(totais_nf.get("v_desc") or 0)
+            )
+            out["acrescimos_custo"] = round(acresc, 2) if acresc > 0 else 0.0
+            out["valor_produtos"] = float(totais_nf.get("v_prod") or 0.0)
+
+    cobr = _find1(inf, ["cobr"])
+    duplicatas: list[dict[str, Any]] = []
+    fatura: dict[str, Any] = {}
+    if cobr is not None:
+        fat_el = _find1(cobr, ["fat"])
+        if fat_el is not None:
+            for child in fat_el:
+                ln = _localname(child.tag)
+                if ln == "nFat":
+                    fatura["n_fat"] = _text(child)[:60]
+                elif ln == "vLiq":
                     try:
-                        out["valor_total"] = float(Decimal(_text(child) or "0"))
+                        fatura["v_liq"] = float(Decimal(_text(child) or "0"))
                     except Exception:
-                        out["valor_total"] = 0.0
+                        pass
+        for child in cobr:
+            if _localname(child.tag) != "dup":
+                continue
+            dup_item: dict[str, Any] = {"n_dup": "", "data_vencimento": "", "valor": 0.0}
+            for dc in child:
+                ln = _localname(dc.tag)
+                t = _text(dc)
+                if ln == "nDup":
+                    dup_item["n_dup"] = t[:60]
+                elif ln == "dVenc":
+                    dup_item["data_vencimento"] = _parse_data_xml_nfe(t)
+                elif ln == "vDup":
+                    try:
+                        dup_item["valor"] = float(Decimal(t.replace(",", ".") or "0"))
+                    except Exception:
+                        dup_item["valor"] = 0.0
+            if dup_item["data_vencimento"] or float(dup_item.get("valor") or 0) > 0:
+                duplicatas.append(dup_item)
+    duplicatas.sort(key=lambda x: (str(x.get("data_vencimento") or "9999-12-31"), str(x.get("n_dup") or "")))
+    out["duplicatas"] = duplicatas
+    if fatura:
+        out["fatura"] = fatura
+
+    pagamentos: list[dict[str, Any]] = []
+    pag_el = _find1(inf, ["pag"])
+    if pag_el is not None:
+        for ch in pag_el:
+            if _localname(ch.tag) != "detPag":
+                continue
+            pg: dict[str, Any] = {
+                "t_pag": "",
+                "v_pag": 0.0,
+                "data_pagamento": "",
+                "forma_sugerida": "",
+            }
+            for pc in ch:
+                ln = _localname(pc.tag)
+                t = _text(pc)
+                if ln == "tPag":
+                    pg["t_pag"] = _normalizar_tpag_nfe(t)
+                    pg["forma_sugerida"] = _forma_sugerida_tpag_nfe(pg["t_pag"])
+                elif ln == "vPag":
+                    try:
+                        pg["v_pag"] = float(Decimal(t.replace(",", ".") or "0"))
+                    except Exception:
+                        pg["v_pag"] = 0.0
+                elif ln in ("dPag", "dVenc"):
+                    pg["data_pagamento"] = _parse_data_xml_nfe(t)
+            if pg["t_pag"] or float(pg.get("v_pag") or 0) > 0:
+                pagamentos.append(pg)
+    out["pagamentos"] = pagamentos
+
+    forma_sug = ""
+    for pg in pagamentos:
+        fs = str(pg.get("forma_sugerida") or "").strip()
+        if fs:
+            forma_sug = fs
+            break
+    if not forma_sug and duplicatas:
+        forma_sug = "Boleto Bancário CN"
+    out["forma_pagamento_sugerida"] = forma_sug
 
     itens_out: list[dict[str, Any]] = []
     for det in inf.iter():
@@ -357,10 +765,24 @@ def parse_nfe_xml_bytes(data: bytes) -> dict[str, Any]:
             if ln == "cProd":
                 item["c_prod"] = t[:60]
             elif ln == "cEAN":
-                item["ean"] = re.sub(r"\D", "", t)[:14]
+                # Mantém o que veio no XML (mesmo curto, ex. «25») — na grade fica «em cima»;
+                # só EAN ≥8 é memorizado no cadastro como 2º código (embalagem).
+                raw_ean = (t or "").strip()
+                digits = re.sub(r"\D", "", raw_ean)[:14]
+                if digits:
+                    item["ean"] = digits
+                elif raw_ean and re.sub(r"[\s_-]+", "", raw_ean).upper() != "SEMGTIN":
+                    item["ean"] = raw_ean[:20]
+                else:
+                    item["ean"] = ""
             elif ln == "cEANTrib":
                 if not item["ean"]:
-                    item["ean"] = re.sub(r"\D", "", t)[:14]
+                    raw_ean = (t or "").strip()
+                    digits = re.sub(r"\D", "", raw_ean)[:14]
+                    if digits:
+                        item["ean"] = digits
+                    elif raw_ean and re.sub(r"[\s_-]+", "", raw_ean).upper() != "SEMGTIN":
+                        item["ean"] = raw_ean[:20]
             elif ln == "xProd":
                 item["x_prod"] = t[:500]
             elif ln == "NCM":
@@ -436,6 +858,74 @@ def _emit_cnpj_entrada_norm(emit_cnpj: Any) -> str:
     return re.sub(r"\D", "", str(emit_cnpj or ""))[:14]
 
 
+def _upsert_vinculo_entrada_nfe_pg(
+    *,
+    tipo: str,
+    chave: str,
+    produto_id: str,
+    nome_catalogo: str,
+    emit_cnpj: str = "",
+) -> bool:
+    """Grava vínculo no Postgres (fonte da verdade multi-PC)."""
+    chave = str(chave or "").strip()[:120]
+    produto_id = str(produto_id or "").strip()[:64]
+    if not chave or not produto_id or produto_id.lower().startswith("local:"):
+        return False
+    cnpj = _emit_cnpj_entrada_norm(emit_cnpj)
+    try:
+        from produtos.models import EntradaNfeVinculoAgro
+
+        obj, _created = EntradaNfeVinculoAgro.objects.update_or_create(
+            tipo=tipo[:16],
+            chave=chave,
+            emit_cnpj=cnpj,
+            defaults={
+                "produto_externo_id": produto_id,
+                "nome_catalogo": str(nome_catalogo or "")[:300],
+            },
+        )
+        return bool(obj and obj.pk)
+    except Exception as exc:
+        logger.warning("_upsert_vinculo_entrada_nfe_pg %s/%s: %s", tipo, chave, exc)
+        return False
+
+
+def _buscar_vinculo_entrada_nfe_pg(
+    *,
+    tipo: str,
+    chave: str,
+    emit_cnpj: str = "",
+) -> dict | None:
+    """Lê vínculo no Postgres (prioridade sobre Mongo)."""
+    chave = str(chave or "").strip()[:120]
+    if not chave:
+        return None
+    cnpj = _emit_cnpj_entrada_norm(emit_cnpj)
+    try:
+        from produtos.models import EntradaNfeVinculoAgro
+
+        qs = EntradaNfeVinculoAgro.objects.filter(tipo=tipo, chave=chave)
+        row = None
+        if cnpj:
+            row = qs.filter(emit_cnpj=cnpj).order_by("-atualizado_em").first()
+        if row is None:
+            row = qs.filter(emit_cnpj="").order_by("-atualizado_em").first()
+        if row is None and not cnpj:
+            row = qs.order_by("-atualizado_em").first()
+        if row is None:
+            return None
+        return {
+            "tipo": row.tipo,
+            "chave": row.chave,
+            "emit_cnpj": row.emit_cnpj,
+            "produto_id": row.produto_externo_id,
+            "nome_catalogo": row.nome_catalogo,
+        }
+    except Exception as exc:
+        logger.warning("_buscar_vinculo_entrada_nfe_pg: %s", exc)
+        return None
+
+
 def _upsert_vinculo_entrada_nfe(
     db,
     *,
@@ -445,8 +935,16 @@ def _upsert_vinculo_entrada_nfe(
     nome_catalogo: str,
     emit_cnpj: str = "",
 ) -> bool:
+    """Persiste vínculo: **sempre Postgres**; Mongo só espelho se ``db`` disponível."""
+    ok_pg = _upsert_vinculo_entrada_nfe_pg(
+        tipo=tipo,
+        chave=chave,
+        produto_id=produto_id,
+        nome_catalogo=nome_catalogo,
+        emit_cnpj=emit_cnpj,
+    )
     if db is None or not chave or not produto_id:
-        return False
+        return ok_pg
     cnpj = _emit_cnpj_entrada_norm(emit_cnpj)
     try:
         db[COL_ENTRADA_VINCULO].update_one(
@@ -460,13 +958,16 @@ def _upsert_vinculo_entrada_nfe(
             },
             upsert=True,
         )
-        return True
     except Exception as exc:
-        logger.warning("_upsert_vinculo_entrada_nfe %s/%s: %s", tipo, chave, exc)
-        return False
+        logger.warning("_upsert_vinculo_entrada_nfe mongo %s/%s: %s", tipo, chave, exc)
+    return ok_pg
 
 
 def _buscar_vinculo_entrada_nfe(db, *, tipo: str, chave: str, emit_cnpj: str = "") -> dict | None:
+    """Prioridade Postgres; fallback Mongo legado."""
+    doc_pg = _buscar_vinculo_entrada_nfe_pg(tipo=tipo, chave=chave, emit_cnpj=emit_cnpj)
+    if doc_pg:
+        return doc_pg
     if db is None or not chave:
         return None
     cnpj = _emit_cnpj_entrada_norm(emit_cnpj)
@@ -501,7 +1002,17 @@ def _produto_mongo_por_pid_entrada(db, col_p: str, pid: str) -> dict | None:
     try:
         doc = db[col_p].find_one(
             {"$or": ors},
-            {"Id": 1, "_id": 1, "Nome": 1, INDEX_CODIGOS_CAMPO: 1},
+            {
+                "Id": 1,
+                "_id": 1,
+                "Nome": 1,
+                "ValorVenda": 1,
+                "PrecoVenda": 1,
+                "CodigoNFe": 1,
+                "Codigo": 1,
+                "CodigoBarras": 1,
+                INDEX_CODIGOS_CAMPO: 1,
+            },
         )
     except Exception:
         return None
@@ -516,9 +1027,7 @@ def resolver_vinculo_historico_entrada_nfe(
     x_prod: str,
     emit_cnpj: str = "",
 ) -> tuple[dict | None, str | None]:
-    """Fallback: vínculos gravados em notas anteriores (cProd fornecedor ou descrição + CNPJ)."""
-    if db is None:
-        return None, None
+    """Fallback: vínculos gravados (Postgres primeiro; Mongo espelho) → doc Mongo ou dict PG."""
     from .mongo_index_codigos import normalizar_c_prod_nf_entrada
 
     cnpj = _emit_cnpj_entrada_norm(emit_cnpj)
@@ -530,9 +1039,13 @@ def resolver_vinculo_historico_entrada_nfe(
         ):
             if doc_v:
                 pid = str(doc_v.get("produto_id") or "").strip()
-                doc = _produto_mongo_por_pid_entrada(db, col_p, pid)
-                if doc:
-                    return doc, "vinculo_c_prod"
+                if db is not None:
+                    doc = _produto_mongo_por_pid_entrada(db, col_p, pid)
+                    if doc:
+                        return doc, "vinculo_c_prod"
+                synth = _produto_dict_pg_por_pid(pid)
+                if synth:
+                    return synth, "vinculo_c_prod"
     xp = normalizar_x_prod_entrada_nfe(x_prod)
     if xp:
         for doc_v in (
@@ -541,10 +1054,301 @@ def resolver_vinculo_historico_entrada_nfe(
         ):
             if doc_v:
                 pid = str(doc_v.get("produto_id") or "").strip()
-                doc = _produto_mongo_por_pid_entrada(db, col_p, pid)
-                if doc:
-                    return doc, "vinculo_desc"
+                if db is not None:
+                    doc = _produto_mongo_por_pid_entrada(db, col_p, pid)
+                    if doc:
+                        return doc, "vinculo_desc"
+                synth = _produto_dict_pg_por_pid(pid)
+                if synth:
+                    return synth, "vinculo_desc"
     return None, None
+
+
+def _produto_pg_por_pid(pid: str):
+    from produtos.models import Produto
+
+    pid = str(pid or "").strip()
+    if not pid or pid.lower().startswith("local:"):
+        return None
+    try:
+        p = Produto.objects.filter(produto_externo_id__iexact=pid).order_by("pk").first()
+        if p:
+            return p
+        if pid.isdigit():
+            return Produto.objects.filter(pk=int(pid)).order_by("pk").first()
+    except Exception as exc:
+        logger.warning("_produto_pg_por_pid %s: %s", pid, exc)
+    return None
+
+
+def _produto_dict_pg_por_pid(pid: str) -> dict | None:
+    """Formato compatível com casar_produtos_mongo (Id/Nome/preço)."""
+    p = _produto_pg_por_pid(pid)
+    if not p:
+        return None
+    pid_out = str(
+        (getattr(p, "produto_externo_id", None) or "").strip()
+        or (getattr(p, "erp_produto_id", None) or "").strip()
+        or p.pk
+    )
+    out: dict[str, Any] = {
+        "Id": pid_out,
+        "_id": pid_out,
+        "Nome": str(p.nome or "")[:300],
+        "CodigoNFe": str(p.codigo_nfe or p.codigo_interno or "")[:64],
+        "Codigo": str(p.codigo_interno or "")[:64],
+        "CodigoBarras": str(p.codigo_barras or "")[:20],
+    }
+    try:
+        if p.preco_venda is not None:
+            out["ValorVenda"] = float(p.preco_venda)
+    except (TypeError, ValueError):
+        pass
+    return out
+
+
+def _produto_pg_por_c_prod_overlay(c_prod: str):
+    from produtos.models import ProdutoGestaoOverlayAgro
+    from .mongo_index_codigos import (
+        _c_prods_nf_de_cadastro_extras,
+        normalizar_c_prod_nf_entrada,
+    )
+
+    cp = normalizar_c_prod_nf_entrada(c_prod)
+    if not cp:
+        return None, None
+    try:
+        ov = (
+            ProdutoGestaoOverlayAgro.objects.filter(
+                cadastro_extras__entrada_nfe_c_prods__contains=[cp]
+            )
+            .order_by("pk")
+            .first()
+        )
+        if ov and (ov.produto_externo_id or "").strip():
+            p = _produto_pg_por_pid(ov.produto_externo_id)
+            if p:
+                return p, "vinculo_c_prod_overlay"
+        for cand in (
+            ProdutoGestaoOverlayAgro.objects.filter(cadastro_extras__has_key="entrada_nfe_c_prods")
+            .only("produto_externo_id", "cadastro_extras")
+            .order_by("pk")[:400]
+        ):
+            if cp not in _c_prods_nf_de_cadastro_extras(cand.cadastro_extras):
+                continue
+            p = _produto_pg_por_pid(cand.produto_externo_id)
+            if p:
+                return p, "vinculo_c_prod_overlay"
+    except Exception as exc:
+        logger.warning("_produto_pg_por_c_prod_overlay: %s", exc)
+    return None, None
+
+
+def _produto_pg_por_c_prod_rascunho(c_prod: str, *, emit_cnpj: str = ""):
+    from .mongo_index_codigos import normalizar_c_prod_nf_entrada
+
+    cp = normalizar_c_prod_nf_entrada(c_prod)
+    if not cp:
+        return None, None
+    cnpj = _emit_cnpj_entrada_norm(emit_cnpj)
+    try:
+        from produtos.models import EntradaNotaRascunhoAgro
+    except Exception:
+        return None, None
+    try:
+        qs = (
+            EntradaNotaRascunhoAgro.objects.exclude(status=ENTRADA_NFE_STATUS_DESCARTADA)
+            .order_by("-atualizado_em", "-criado_em")
+            .only("cabecalho", "linhas")[:120]
+        )
+    except Exception as exc:
+        logger.warning("_produto_pg_por_c_prod_rascunho qs: %s", exc)
+        return None, None
+    for r in qs:
+        cab = r.cabecalho if isinstance(r.cabecalho, dict) else {}
+        if cnpj and _emit_cnpj_entrada_norm(cab.get("emit_cnpj")) != cnpj:
+            continue
+        for ln in (r.linhas if isinstance(r.linhas, list) else []):
+            if not isinstance(ln, dict):
+                continue
+            pid = str(ln.get("produto_id") or "").strip()
+            if not entrada_nfe_produto_id_valido(pid):
+                continue
+            cforn = codigo_fornecedor_linha_entrada_nfe(ln)
+            if normalizar_c_prod_nf_entrada(cforn) == cp or normalizar_c_prod_nf_entrada(
+                ln.get("c_prod")
+            ) == cp:
+                p = _produto_pg_por_pid(pid)
+                if p:
+                    return p, "vinculo_c_prod_rascunho"
+    return None, None
+
+
+def resolver_vinculo_historico_entrada_nfe_pg(
+    *,
+    c_prod: str,
+    x_prod: str = "",
+    emit_cnpj: str = "",
+    db=None,
+):
+    """Histórico no caminho Postgres: tabela PG → overlay → rascunhos."""
+    from .mongo_index_codigos import normalizar_c_prod_nf_entrada
+
+    cp = normalizar_c_prod_nf_entrada(c_prod)
+    if cp:
+        doc_v = _buscar_vinculo_entrada_nfe_pg(tipo="c_prod", chave=cp, emit_cnpj=emit_cnpj)
+        if not doc_v:
+            doc_v = _buscar_vinculo_entrada_nfe(db, tipo="c_prod", chave=cp, emit_cnpj=emit_cnpj)
+        if doc_v:
+            p = _produto_pg_por_pid(str(doc_v.get("produto_id") or ""))
+            if p:
+                return p, "vinculo_c_prod"
+        p, mtipo = _produto_pg_por_c_prod_overlay(cp)
+        if p:
+            return p, mtipo
+        p, mtipo = _produto_pg_por_c_prod_rascunho(cp, emit_cnpj=emit_cnpj)
+        if p:
+            return p, mtipo
+    xp = normalizar_x_prod_entrada_nfe(x_prod)
+    if xp:
+        doc_v = _buscar_vinculo_entrada_nfe_pg(tipo="x_prod", chave=xp, emit_cnpj=emit_cnpj)
+        if not doc_v:
+            doc_v = _buscar_vinculo_entrada_nfe(db, tipo="x_prod", chave=xp, emit_cnpj=emit_cnpj)
+        if doc_v:
+            p = _produto_pg_por_pid(str(doc_v.get("produto_id") or ""))
+            if p:
+                return p, "vinculo_desc"
+    return None, None
+
+
+def _enriquecer_item_casado_pg(it: dict, p, mtipo: str | None) -> None:
+    from produtos.models import ProdutoGestaoOverlayAgro
+
+    pid = str(
+        (getattr(p, "produto_externo_id", None) or "").strip()
+        or (getattr(p, "erp_produto_id", None) or "").strip()
+        or p.pk
+    )
+    it["produto_id"] = pid
+    it["nome_catalogo"] = str(p.nome or "")[:300]
+    it["match_tipo"] = mtipo or "pg"
+    try:
+        ov2 = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).first()
+    except Exception:
+        ov2 = None
+    gm = ""
+    if ov2 and (ov2.codigo_nfe or "").strip():
+        gm = str(ov2.codigo_nfe).strip()
+    elif (p.codigo_nfe or "").strip():
+        gm = str(p.codigo_nfe).strip()
+    elif (p.codigo_interno or "").strip():
+        gm = str(p.codigo_interno).strip()
+    if gm:
+        it["codigo_nfe"] = gm[:64]
+    ean_cat = ""
+    if ov2 and (getattr(ov2, "codigo_barras", None) or "").strip():
+        ean_cat = re.sub(r"\D", "", str(ov2.codigo_barras))[:14]
+    if not ean_cat and (getattr(p, "codigo_barras", None) or "").strip():
+        ean_cat = re.sub(r"\D", "", str(p.codigo_barras))[:14]
+    if len(ean_cat) >= 8:
+        it["codigo_barras_catalogo"] = ean_cat
+        it["ean_catalogo"] = ean_cat
+    pv = None
+    if ov2 and ov2.preco_venda is not None:
+        try:
+            pv = float(ov2.preco_venda)
+        except (TypeError, ValueError):
+            pv = None
+    if pv is None and p.preco_venda is not None:
+        try:
+            pv = float(p.preco_venda)
+        except (TypeError, ValueError):
+            pv = None
+    if pv is not None and pv > 0:
+        it["preco_venda"] = pv
+
+
+def _float_preco_doc_mongo(doc: dict | None) -> float | None:
+    if not isinstance(doc, dict):
+        return None
+    for k in ("ValorVenda", "PrecoVenda", "preco_venda", "valor_venda"):
+        raw = doc.get(k)
+        if raw is None or raw == "":
+            continue
+        try:
+            v = float(raw)
+        except (TypeError, ValueError):
+            continue
+        if v >= 0:
+            return v
+    return None
+
+
+def _codigo_gm_doc_mongo(doc: dict | None) -> str:
+    if not isinstance(doc, dict):
+        return ""
+    for k in ("CodigoNFe", "Codigo", "codigo_nfe", "codigo"):
+        s = str(doc.get(k) or "").strip()
+        if s:
+            return s[:64]
+    return ""
+
+
+def _overlay_preco_e_gm_por_pids(pids: list[str]) -> dict[str, dict[str, object]]:
+    """Lê overlay/Produto Postgres — preço e GM oficiais do SisVale."""
+    out: dict[str, dict[str, object]] = {}
+    ids = [str(p or "").strip()[:64] for p in pids if str(p or "").strip()]
+    if not ids:
+        return out
+    try:
+        from produtos.models import Produto, ProdutoGestaoOverlayAgro
+    except Exception:
+        return out
+    try:
+        ovs = {
+            str(o.produto_externo_id): o
+            for o in ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id__in=ids).only(
+                "produto_externo_id", "codigo_nfe", "preco_venda", "codigo_barras"
+            )
+        }
+        prods = {
+            str(p.produto_externo_id): p
+            for p in Produto.objects.filter(produto_externo_id__in=ids).only(
+                "produto_externo_id", "codigo_nfe", "codigo_interno", "preco_venda", "codigo_barras"
+            )
+        }
+    except Exception as exc:
+        logger.warning("overlay_preco_e_gm_por_pids: %s", exc)
+        return out
+    for pid in ids:
+        ov = ovs.get(pid)
+        pr = prods.get(pid)
+        gm = ""
+        if ov is not None:
+            gm = str(getattr(ov, "codigo_nfe", None) or "").strip()
+        if not gm and pr is not None:
+            gm = str(getattr(pr, "codigo_nfe", None) or getattr(pr, "codigo_interno", None) or "").strip()
+        pv = None
+        if ov is not None and getattr(ov, "preco_venda", None) is not None:
+            try:
+                pv = float(ov.preco_venda)
+            except (TypeError, ValueError):
+                pv = None
+        if (pv is None or pv <= 0) and pr is not None and getattr(pr, "preco_venda", None) is not None:
+            try:
+                pv = float(pr.preco_venda)
+            except (TypeError, ValueError):
+                pv = None
+        row: dict[str, object] = {}
+        if gm:
+            row["codigo_nfe"] = gm[:64]
+        # Só sobrescreve preço do Mongo quando overlay/PG traz valor útil (> 0).
+        # Zero no overlay não pode apagar ValorVenda do catálogo Mongo.
+        if pv is not None and pv > 0:
+            row["preco_venda"] = pv
+        if row:
+            out[pid] = row
+    return out
 
 
 def casar_produtos_mongo(
@@ -554,9 +1358,10 @@ def casar_produtos_mongo(
     *,
     emit_cnpj: str = "",
 ) -> list[dict]:
-    """Enriquece itens com produto_id / nome_catalogo quando encontra por EAN, código ou histórico."""
+    """Enriquece itens com produto_id / nome / preço / GM quando encontra por EAN, código ou histórico."""
     if db is None or not itens:
         return itens
+    matched_pids: list[str] = []
     for it in itens:
         it["produto_id"] = None
         it["nome_catalogo"] = None
@@ -583,7 +1388,164 @@ def casar_produtos_mongo(
             it["produto_id"] = pid
             it["nome_catalogo"] = str(doc.get("Nome") or "")[:300]
             it["match_tipo"] = mtipo
+            gm = _codigo_gm_doc_mongo(doc)
+            if gm:
+                it["codigo_nfe"] = gm
+            pv = _float_preco_doc_mongo(doc)
+            if pv is not None:
+                it["preco_venda"] = pv
+            if pid:
+                matched_pids.append(pid)
+    # Overlay Postgres (fonte GM/preço da loja) sobrescreve Mongo quando existir.
+    ov_map = _overlay_preco_e_gm_por_pids(matched_pids)
+    if ov_map:
+        for it in itens:
+            pid = str(it.get("produto_id") or "").strip()
+            row = ov_map.get(pid)
+            if not row:
+                continue
+            if row.get("codigo_nfe"):
+                it["codigo_nfe"] = str(row["codigo_nfe"])[:64]
+            if row.get("preco_venda") is not None:
+                try:
+                    pv_ov = float(row["preco_venda"])
+                except (TypeError, ValueError):
+                    pv_ov = 0.0
+                if pv_ov > 0:
+                    it["preco_venda"] = pv_ov
     return itens
+
+
+def casar_produtos_postgres(
+    itens: list[dict],
+    *,
+    emit_cnpj: str = "",
+    db=None,
+) -> list[dict]:
+    """Casa itens da NF no catálogo Postgres + histórico de vínculo (tabela PG)."""
+    if not itens:
+        return itens
+    from django.db.models import Q
+
+    from produtos.models import Produto, ProdutoGestaoOverlayAgro
+
+    for it in itens:
+        if not isinstance(it, dict):
+            continue
+        it["produto_id"] = None
+        it["nome_catalogo"] = None
+        it["match_tipo"] = None
+        ean = (it.get("ean") or "").strip()
+        cprod = (it.get("c_prod") or "").strip()
+        p = None
+        mtipo = None
+        try:
+            ean_dig = re.sub(r"\D", "", ean)
+            # EAN curto da NF (ex. «25») não casa produto — só GTIN ≥8.
+            if len(ean_dig) >= 8:
+                p = (
+                    Produto.objects.filter(codigo_barras__iexact=ean_dig)
+                    .order_by("pk")
+                    .first()
+                )
+                if p:
+                    mtipo = "ean_pg"
+                if not p:
+                    ov = (
+                        ProdutoGestaoOverlayAgro.objects.filter(codigo_barras__iexact=ean_dig)
+                        .order_by("pk")
+                        .first()
+                    )
+                    if ov and (ov.produto_externo_id or "").strip():
+                        p = (
+                            Produto.objects.filter(produto_externo_id=ov.produto_externo_id)
+                            .order_by("pk")
+                            .first()
+                        )
+                        if p:
+                            mtipo = "ean_overlay"
+            if not p and cprod:
+                p = (
+                    Produto.objects.filter(
+                        Q(codigo_interno__iexact=cprod)
+                        | Q(codigo_nfe__iexact=cprod)
+                        | Q(produto_externo_id__iexact=cprod)
+                    )
+                    .order_by("pk")
+                    .first()
+                )
+                if p:
+                    mtipo = "codigo_pg"
+                if not p:
+                    ov = (
+                        ProdutoGestaoOverlayAgro.objects.filter(codigo_nfe__iexact=cprod)
+                        .order_by("pk")
+                        .first()
+                    )
+                    if ov and (ov.produto_externo_id or "").strip():
+                        p = (
+                            Produto.objects.filter(produto_externo_id=ov.produto_externo_id)
+                            .order_by("pk")
+                            .first()
+                        )
+                        if p:
+                            mtipo = "codigo_overlay"
+            if not p:
+                p, mtipo = resolver_vinculo_historico_entrada_nfe_pg(
+                    c_prod=cprod,
+                    x_prod=str(it.get("x_prod") or ""),
+                    emit_cnpj=emit_cnpj,
+                    db=db,
+                )
+                # Cura/grava na tabela PG se veio de overlay/rascunho legado.
+                if p and mtipo in (
+                    "vinculo_c_prod_rascunho",
+                    "vinculo_c_prod_overlay",
+                    "vinculo_c_prod",
+                    "vinculo_desc",
+                ):
+                    try:
+                        pid_heal = str(
+                            (getattr(p, "produto_externo_id", None) or "").strip() or p.pk
+                        )
+                        persistir_vinculos_c_prod_entrada_nfe_linhas(
+                            db,
+                            "DtoProduto",
+                            [
+                                {
+                                    "produto_id": pid_heal,
+                                    "nome_catalogo": str(p.nome or ""),
+                                    "c_prod": cprod,
+                                    "c_prod_fornecedor": cprod,
+                                    "x_prod": str(it.get("x_prod") or ""),
+                                }
+                            ],
+                            emit_cnpj=emit_cnpj,
+                        )
+                    except Exception:
+                        pass
+        except Exception as exc:
+            logger.warning("casar_produtos_postgres: %s", exc)
+            continue
+        if not p:
+            continue
+        _enriquecer_item_casado_pg(it, p, mtipo)
+    return itens
+
+
+def casar_produtos_entrada_nfe(
+    itens: list[dict],
+    *,
+    emit_cnpj: str = "",
+    db=None,
+    col_p: str = "DtoProduto",
+) -> list[dict]:
+    """Preferência Postgres quando catálogo agro_pg / Mongo desligado; senão Mongo."""
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_mongo_erp_desligado
+
+    if agro_mongo_erp_desligado() or agro_catalogo_usa_postgres() or db is None:
+        return casar_produtos_postgres(itens, emit_cnpj=emit_cnpj, db=db)
+    return casar_produtos_mongo(db, col_p, itens, emit_cnpj=emit_cnpj)
 
 
 def persistir_vinculos_c_prod_entrada_nfe_linhas(
@@ -594,7 +1556,8 @@ def persistir_vinculos_c_prod_entrada_nfe_linhas(
     emit_cnpj: str = "",
 ) -> int:
     """
-    Grava vínculos cProd/descrição da NF (overlay + coleção histórica) para o próximo parse XML.
+    Grava vínculos cProd/descrição da NF no **Postgres** (``EntradaNfeVinculoAgro``)
+    + overlay; Mongo só espelho se ``db`` disponível. Multi-PC.
     """
     if not linhas:
         return 0
@@ -669,8 +1632,9 @@ def salvar_rascunho_entrada(
     extra: dict | None = None,
     col_pessoa: str | None = None,
 ) -> dict[str, Any]:
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível"}
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return {"ok": False, "erro": "Armazenamento de rascunho indisponível"}
     cab_norm = cabecalho
     if col_pessoa:
         cab_norm = normalizar_cabecalho_emit_fornecedor_entrada_nfe(db, col_pessoa, cabecalho)
@@ -686,7 +1650,7 @@ def salvar_rascunho_entrada(
         "extra": extra or {},
     }
     try:
-        ins = db[COL_ENTRADA_RASCUNHO].insert_one(doc)
+        ins = col.insert_one(doc)
         return {"ok": True, "id": str(ins.inserted_id)}
     except Exception as exc:
         logger.exception("salvar_rascunho_entrada")
@@ -737,7 +1701,120 @@ def _serialize_rascunho_leitura(doc: dict[str, Any]) -> dict[str, Any]:
             ser = _serialize_dt_mongo(d.get(k))
             if ser is not None:
                 d[k] = ser
+    linhas = d.get("linhas") if isinstance(d.get("linhas"), list) else None
+    if linhas:
+        d["linhas"] = _enriquecer_linhas_gm_ean_catalogo(linhas)
     return entrada_nfe_enriquecer_doc_serializado(d)
+
+
+def _rascunho_tem_estoque_agro_real(doc: dict[str, Any] | None) -> bool:
+    """True só se o estoque foi de fato aplicado (status / data / IDs de ajuste)."""
+    if not isinstance(doc, dict):
+        return False
+    st = str(doc.get("status") or "").strip().lower()
+    if st == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO:
+        return True
+    if doc.get("estoque_aplicado_em"):
+        return True
+    ex = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+    ids = ex.get("estoque_agro_ajuste_ids")
+    if isinstance(ids, list) and any(x is not None and str(x).strip() for x in ids):
+        return True
+    return False
+
+
+def sanear_carimbo_estoque_falso_rascunho(db, doc: dict[str, Any] | None) -> dict[str, Any] | None:
+    """
+    Remove ``estoque_agro_registrado_em`` / lock se o estoque NÃO foi aplicado de verdade.
+    Bug v11.69/70: o carimbo ia no POST antes de aplicar → UI «Estoque já registrado» sem ajuste.
+    """
+    if not isinstance(doc, dict):
+        return doc
+    if _rascunho_tem_estoque_agro_real(doc):
+        return doc
+    ex = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+    if not ex:
+        return doc
+    if "estoque_agro_registrado_em" not in ex and "estoque_agro_lock" not in ex:
+        return doc
+    ex2 = dict(ex)
+    ex2.pop("estoque_agro_registrado_em", None)
+    ex2.pop("estoque_agro_lock", None)
+    out = dict(doc)
+    out["extra"] = ex2
+    col = _entrada_nota_rascunho_store(db)
+    _id = out.get("_id")
+    if col is not None and _id is not None:
+        try:
+            col.update_one({"_id": _id}, {"$set": {"extra": ex2}})
+        except Exception:
+            logger.exception("sanear_carimbo_estoque_falso_rascunho")
+    return out
+
+
+def _enriquecer_linhas_gm_ean_catalogo(linhas: list) -> list:
+    """Preenche GM / EAN / nome SisVale nas linhas com produto_id (grade verde após F5)."""
+    if not linhas:
+        return linhas
+    from produtos.catalogo_agro import obter_produto_model
+    from produtos.models import ProdutoGestaoOverlayAgro
+
+    pids: list[str] = []
+    seen: set[str] = set()
+    for ln in linhas:
+        if not isinstance(ln, dict):
+            continue
+        pid = str(ln.get("produto_id") or "").strip()
+        if not pid or pid.lower().startswith("local:") or pid in seen:
+            continue
+        seen.add(pid)
+        pids.append(pid[:100])
+    if not pids:
+        return linhas
+    ov_map: dict[str, ProdutoGestaoOverlayAgro] = {}
+    try:
+        for ov in ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id__in=pids):
+            ov_map[str(ov.produto_externo_id)] = ov
+    except Exception:
+        logger.exception("_enriquecer_linhas_gm_ean_catalogo overlay")
+    out: list = []
+    for ln in linhas:
+        if not isinstance(ln, dict):
+            out.append(ln)
+            continue
+        row = dict(ln)
+        pid = str(row.get("produto_id") or "").strip()
+        if not pid or pid.lower().startswith("local:"):
+            out.append(row)
+            continue
+        ov = ov_map.get(pid)
+        p = None
+        try:
+            p = obter_produto_model(pid)
+        except Exception:
+            p = None
+        gm = str(row.get("codigo_nfe") or row.get("codigo_gm") or "").strip()
+        if not gm and ov is not None and str(ov.codigo_nfe or "").strip():
+            gm = str(ov.codigo_nfe).strip()
+        if not gm and p is not None:
+            gm = str(getattr(p, "codigo_nfe", None) or getattr(p, "codigo_interno", None) or "").strip()
+        if gm:
+            row["codigo_nfe"] = gm[:64]
+        ean = str(row.get("codigo_barras_catalogo") or row.get("ean_catalogo") or "").strip()
+        if not ean and ov is not None and str(ov.codigo_barras or "").strip():
+            ean = str(ov.codigo_barras).strip()
+        if not ean and p is not None and str(getattr(p, "codigo_barras", None) or "").strip():
+            ean = str(getattr(p, "codigo_barras", None) or "").strip()
+        if ean:
+            row["codigo_barras_catalogo"] = ean[:32]
+            row["ean_catalogo"] = ean[:32]
+        nome = str(row.get("nome_catalogo") or "").strip()
+        if (not nome or nome == str(row.get("x_prod") or "").strip()) and p is not None:
+            nm = str(getattr(p, "nome", None) or "").strip()
+            if nm:
+                row["nome_catalogo"] = nm[:300]
+        out.append(row)
+    return out
 
 
 def _entrada_nfe_tipo_entrada_extra(extra: dict | None) -> str:
@@ -758,7 +1835,7 @@ def _titulos_mongo_por_ids_entrada_nfe(db, ids: list[str]) -> list[dict[str, Any
         if not rid or rid in seen:
             continue
         seen.add(rid)
-        proj = {"Cliente": 1, "ClienteID": 1, "Descricao": 1, "Observacao": 1, "Despesa": 1}
+        proj = {"Cliente": 1, "ClienteID": 1, "Descricao": 1, "Observacao": 1, "NumeroDocumento": 1, "ValorBruto": 1, "DataVencimento": 1, "Parcela": 1, "Despesa": 1, "EntradaNfeRascunhoId": 1, "ChaveNFe": 1}
         doc = None
         try:
             from bson import ObjectId
@@ -791,21 +1868,149 @@ def _titulos_mongo_por_rastro_entrada_nfe(db, cab: dict) -> list[dict[str, Any]]
     col = db[COL_DTO_LANCAMENTO]
     ch = str(cab.get("chave") or "").strip()
     nf = str(cab.get("numero") or "").strip()
-    ors: list[dict[str, Any]] = [{"Observacao": {"$regex": re.escape("Entrada NF-e Agro"), "$options": "i"}}]
-    if ch and len(ch) >= 12:
-        ors.append({"Observacao": {"$regex": re.escape(ch[-24:])}})
+    # Com número de NF: filtrar por ele (não misturar com as 8 entradas mais novas da loja).
+    and_parts: list[dict[str, Any]] = [{"Despesa": True}]
     if nf and nf not in ("", "0", "000"):
-        ors.append({"Descricao": {"$regex": re.escape(nf), "$options": "i"}})
-        ors.append({"Observacao": {"$regex": re.escape(nf)}})
+        and_parts.append(
+            {
+                "$or": [
+                    {"Descricao": {"$regex": re.escape(nf), "$options": "i"}},
+                    {"Observacao": {"$regex": re.escape(nf)}},
+                ]
+            }
+        )
+    elif ch and len(ch) >= 12:
+        and_parts.append(
+            {
+                "$or": [
+                    {"Observacao": {"$regex": re.escape(ch[-24:])}},
+                    {"Observacao": {"$regex": re.escape(ch)}},
+                ]
+            }
+        )
+    else:
+        and_parts.append({"Observacao": {"$regex": re.escape("Entrada NF-e Agro"), "$options": "i"}})
     try:
         cur = col.find(
-            {"$and": [{"Despesa": True}, {"$or": ors}]},
-            {"Cliente": 1, "ClienteID": 1, "Descricao": 1, "Observacao": 1, "Despesa": 1},
-        ).limit(8).max_time_ms(4000)
+            {"$and": and_parts},
+            {
+                "_id": 1,
+                "Id": 1,
+                "Cliente": 1,
+                "ClienteID": 1,
+                "Descricao": 1,
+                "Observacao": 1,
+                "NumeroDocumento": 1,
+                "Despesa": 1,
+            },
+        ).limit(40).max_time_ms(4000)
         return [d for d in cur if isinstance(d, dict)]
     except Exception as exc:
         logger.warning("_titulos_mongo_por_rastro_entrada_nfe: %s", exc)
         return []
+
+
+def _titulo_pg_para_dict_entrada_nfe(t) -> dict[str, Any]:
+    """Formato compatível com helpers de auditoria (campos Mongo + PG)."""
+    return {
+        "_id": t.mongo_id,
+        "Id": t.mongo_id,
+        "Cliente": t.cliente or "",
+        "ClienteID": t.cliente_id or "",
+        "Descricao": t.descricao or "",
+        "Observacao": t.observacoes or "",
+        "NumeroDocumento": t.numero_documento or "",
+        "Despesa": bool(t.despesa),
+        "observacoes": t.observacoes or "",
+        "descricao": t.descricao or "",
+        "numero_documento": t.numero_documento or "",
+        "ValorBruto": t.valor_bruto,
+        "valor_bruto": t.valor_bruto,
+        "DataVencimento": t.data_vencimento,
+        "data_vencimento": t.data_vencimento,
+        "Parcela": t.parcela,
+        "parcela": t.parcela,
+        "dados_snapshot_json": t.dados_snapshot_json if isinstance(t.dados_snapshot_json, dict) else {},
+    }
+
+
+def _titulos_pg_por_ids_entrada_nfe(ids: list[str]) -> list[dict[str, Any]]:
+    from produtos.models import TituloFinanceiroAgro
+
+    if not ids:
+        return []
+    uniq = []
+    seen: set[str] = set()
+    for raw in ids[:80]:
+        rid = str(raw or "").strip()
+        if not rid or rid in seen:
+            continue
+        seen.add(rid)
+        uniq.append(rid)
+    if not uniq:
+        return []
+    by_id = {
+        t.mongo_id: t
+        for t in TituloFinanceiroAgro.objects.filter(despesa=True, mongo_id__in=uniq)
+    }
+    out: list[dict[str, Any]] = []
+    for rid in uniq:
+        t = by_id.get(rid)
+        if t:
+            out.append(_titulo_pg_para_dict_entrada_nfe(t))
+    return out
+
+
+def _titulos_pg_por_rastro_entrada_nfe(cab: dict) -> list[dict[str, Any]]:
+    """Busca títulos CP no Postgres por rastro NF/chave (espelho do Mongo)."""
+    from django.db.models import Q
+    from produtos.models import TituloFinanceiroAgro
+
+    if not isinstance(cab, dict):
+        return []
+    ch = str(cab.get("chave") or "").strip()
+    nf = str(cab.get("numero") or "").strip()
+    q = Q(despesa=True)
+    # Prioriza número/chave da NF — evita perder a nota no «top 8» genérico de Entrada NF.
+    if nf and nf not in ("", "0", "000"):
+        q &= Q(descricao__icontains=nf) | Q(observacoes__icontains=nf)
+    elif ch and len(ch) >= 12:
+        q &= Q(observacoes__icontains=ch[-24:]) | Q(observacoes__icontains=ch)
+    else:
+        q &= Q(observacoes__icontains="Entrada NF-e Agro")
+    try:
+        qs = TituloFinanceiroAgro.objects.filter(q).order_by("-atualizado_em")[:40]
+        return [_titulo_pg_para_dict_entrada_nfe(t) for t in qs]
+    except Exception as exc:
+        logger.warning("_titulos_pg_por_rastro_entrada_nfe: %s", exc)
+        return []
+
+
+def _entrada_nfe_financeiro_titulos_por_ids(
+    db,
+    ids: list[str],
+) -> list[dict[str, Any]]:
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres, agro_mongo_erp_desligado
+
+    # Insert CP já cai no PG com ERP off — leitura precisa seguir a mesma regra.
+    if agro_financeiro_usa_postgres() or agro_mongo_erp_desligado() or db is None:
+        pg = _titulos_pg_por_ids_entrada_nfe(ids)
+        if pg or db is None or agro_mongo_erp_desligado():
+            return pg
+    return _titulos_mongo_por_ids_entrada_nfe(db, ids)
+
+
+def _entrada_nfe_financeiro_titulos_por_rastro(
+    db,
+    cab: dict,
+) -> list[dict[str, Any]]:
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres, agro_mongo_erp_desligado
+
+    if agro_financeiro_usa_postgres() or agro_mongo_erp_desligado() or db is None:
+        pg = _titulos_pg_por_rastro_entrada_nfe(cab)
+        if pg or db is None or agro_mongo_erp_desligado():
+            return pg
+    return _titulos_mongo_por_rastro_entrada_nfe(db, cab)
 
 
 def auditar_financeiro_rascunho_entrada_nfe(
@@ -832,10 +2037,12 @@ def auditar_financeiro_rascunho_entrada_nfe(
     emit_nome = str(cab.get("emit_nome") or "").strip()
     emit_canon = emit_nome
 
-    titulos_ids = _titulos_mongo_por_ids_entrada_nfe(db, ids_list) if fin_flag and ids_list else []
+    titulos_ids = (
+        _entrada_nfe_financeiro_titulos_por_ids(db, ids_list) if fin_flag and ids_list else []
+    )
     titulos_rastro: list[dict[str, Any]] = []
     if not titulos_ids and permitir_rastro and fin_flag:
-        titulos_rastro = _titulos_mongo_por_rastro_entrada_nfe(db, cab)
+        titulos_rastro = _entrada_nfe_financeiro_titulos_por_rastro(db, cab)
     titulos = titulos_ids if titulos_ids else titulos_rastro
 
     n_titulos = len(titulos)
@@ -944,12 +2151,12 @@ def auditar_financeiro_rascunho_entrada_nfe(
     elif n_titulos and not cliente_ok:
         situacao = "cliente_divergente"
         detalhe = (
-            f"Título(s) existem, mas Cliente no Mongo ({', '.join(clientes_titulo[:2])}) "
+            f"Título(s) existem, mas Cliente no financeiro ({', '.join(clientes_titulo[:2])}) "
             f"não bate com «{emit_nome}». Pode não aparecer na busca de Lançamentos."
         )
     elif fin_flag and n_ids_pedidos and n_ids_achados == 0:
         situacao = "titulo_sumido"
-        detalhe = "Nota marcada com financeiro, mas os IDs do título não existem mais no Mongo."
+        detalhe = "Nota marcada com financeiro, mas os IDs do título não existem mais no financeiro."
     elif fin_flag and not n_ids_pedidos:
         situacao = "flag_sem_id"
         detalhe = "Nota marcada com financeiro lançado, mas sem IDs de título salvos."
@@ -979,7 +2186,11 @@ def auditar_financeiro_rascunho_entrada_nfe(
     }
 
 
-def _auditoria_entrada_nfe_mongo_query(filtro_lista: str | None) -> dict[str, Any]:
+def _auditoria_entrada_nfe_mongo_query(
+    filtro_lista: str | None,
+    *,
+    foco_suspeitas: bool = False,
+) -> dict[str, Any]:
     """Pré-filtro Mongo para a auditoria (evita varrer toda a coleção)."""
     f = (filtro_lista or "todas").strip().lower()
     legacy = {
@@ -993,6 +2204,11 @@ def _auditoria_entrada_nfe_mongo_query(filtro_lista: str | None) -> dict[str, An
     base: dict[str, Any] = {"status": {"$ne": ENTRADA_NFE_STATUS_DESCARTADA}}
     if ff == "concluida":
         base["extra.aprovacao_wizard_em"] = {"$exists": True, "$type": "string", "$regex": r"\S"}
+        if foco_suspeitas:
+            base["$or"] = [
+                {"extra.financeiro_lancado": {"$ne": True}},
+                {"extra.financeiro_lancado": {"$exists": False}},
+            ]
     elif ff == "encerrada" or ff == "encerrada_legacy":
         base["status"] = ENTRADA_NFE_STATUS_ENCERRADA
     elif ff == "descartada":
@@ -1016,6 +2232,70 @@ def _auditoria_entrada_nfe_mongo_query(filtro_lista: str | None) -> dict[str, An
     return base
 
 
+def _auditoria_entrada_nfe_docs_pg(
+    *,
+    filtro_lista: str | None,
+    scan_cap: int,
+    foco_suspeitas: bool,
+) -> list[dict[str, Any]]:
+    """Lista documentos para auditoria sem ``$exists`` no adaptador (evita full-scan)."""
+    from produtos.entrada_nota_rascunho_pg_util import row_to_doc
+    from produtos.models import EntradaNotaRascunhoAgro
+
+    f = (filtro_lista or "todas").strip().lower()
+    legacy = {
+        "abertas": "em_andamento",
+        "pendencias": "nota_aberta",
+        "prontas": "estoque",
+        "encerradas": "encerrada_legacy",
+        "descartadas": "descartada",
+    }
+    ff = legacy.get(f, f)
+    qs = EntradaNotaRascunhoAgro.objects.all().order_by("-atualizado_em")
+    if ff == "encerrada" or ff == "encerrada_legacy":
+        qs = qs.filter(status=ENTRADA_NFE_STATUS_ENCERRADA)
+    elif ff == "descartada":
+        qs = qs.filter(status=ENTRADA_NFE_STATUS_DESCARTADA)
+    elif ff == "estoque":
+        qs = qs.filter(status=ENTRADA_NFE_STATUS_PRONTA)
+    elif ff in ("financeiro", "finalizar"):
+        qs = qs.filter(status=ENTRADA_NFE_STATUS_ESTOQUE_APLICADO)
+    else:
+        qs = qs.exclude(status=ENTRADA_NFE_STATUS_DESCARTADA)
+
+    fetch_n = min(max(int(scan_cap) * 3, 120), 800)
+    proj = {
+        "_id": 1,
+        "status": 1,
+        "cabecalho": 1,
+        "modo": 1,
+        "extra": 1,
+        "criado_em": 1,
+        "atualizado_em": 1,
+    }
+    out: list[dict[str, Any]] = []
+    for row in qs[:fetch_n]:
+        doc = row_to_doc(row, projection=proj)
+        extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+        aprov = str(extra.get("aprovacao_wizard_em") or "").strip()
+        fin_ok = bool(extra.get("financeiro_lancado") is True)
+        if ff == "concluida":
+            if not aprov:
+                continue
+            if foco_suspeitas and fin_ok:
+                continue
+        elif ff == "financeiro":
+            if fin_ok:
+                continue
+        elif ff == "finalizar":
+            if not fin_ok or aprov:
+                continue
+        out.append(doc)
+        if len(out) >= scan_cap:
+            break
+    return out
+
+
 def auditar_entrada_nfe_financeiro_lote(
     db,
     *,
@@ -1024,13 +2304,15 @@ def auditar_entrada_nfe_financeiro_lote(
     limit: int = 300,
     busca: dict | None = None,
 ) -> dict[str, Any]:
-    """Auditoria em lote das notas salvas (Mongo)."""
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível", "itens": [], "resumo": {}}
+    """Auditoria em lote das notas salvas."""
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return {"ok": False, "erro": "Armazenamento de rascunho indisponível", "itens": [], "resumo": {}}
     lim = min(max(int(limit or 300), 1), 500)
     f = (filtro_lista or "todas").strip().lower()
     busca = busca if isinstance(busca, dict) else {}
     busca_ativa = any(str(busca.get(k) or "").strip() for k in busca)
+    foco_suspeitas = f == "concluida" and not busca_ativa
     proj_aud = {
         "_id": 1,
         "status": 1,
@@ -1040,19 +2322,32 @@ def auditar_entrada_nfe_financeiro_lote(
         "criado_em": 1,
         "atualizado_em": 1,
     }
-    mongo_q = _auditoria_entrada_nfe_mongo_query(f)
-    scan_cap = min(lim * 3, 400) if f != "todas" else min(lim * 2, 300)
-    if busca_ativa:
+    mongo_q = _auditoria_entrada_nfe_mongo_query(f, foco_suspeitas=foco_suspeitas)
+    if foco_suspeitas:
+        scan_cap = min(max(lim * 2, 80), 200)
+    elif busca_ativa:
         scan_cap = min(max(lim * 6, 80), 500)
+    elif f != "todas":
+        scan_cap = min(lim * 3, 400)
+    else:
+        scan_cap = min(lim * 2, 300)
     try:
-        cur = (
-            db[COL_ENTRADA_RASCUNHO]
-            .find(mongo_q, proj_aud)
-            .sort("atualizado_em", -1)
-            .limit(scan_cap)
-            .max_time_ms(25000)
-        )
-        docs = list(cur)
+        from produtos.agro_fonte_config import agro_entrada_nota_rascunho_postgres
+
+        if agro_entrada_nota_rascunho_postgres():
+            docs = _auditoria_entrada_nfe_docs_pg(
+                filtro_lista=f,
+                scan_cap=scan_cap,
+                foco_suspeitas=foco_suspeitas,
+            )
+        else:
+            cur = (
+                col.find(mongo_q, proj_aud)
+                .sort("atualizado_em", -1)
+                .limit(scan_cap)
+                .max_time_ms(25000)
+            )
+            docs = list(cur)
     except Exception as exc:
         logger.exception("auditar_entrada_nfe_financeiro_lote")
         return {"ok": False, "erro": str(exc)[:400], "itens": [], "resumo": {}}
@@ -1065,7 +2360,7 @@ def auditar_entrada_nfe_financeiro_lote(
     pulados_busca = 0
 
     for raw in docs:
-        if avaliados >= lim and len(alertas) >= lim:
+        if len(alertas) >= lim:
             break
         try:
             d = _serialize_rascunho_leitura(raw)
@@ -1132,20 +2427,26 @@ def auditar_entrada_nfe_financeiro_lote(
         nota_extra = f" {erros_item} nota(s) com erro interno na conferência."
     if pulados_busca:
         nota_extra += f" {pulados_busca} nota(s) ignorada(s) pela busca."
+    nota_base = (
+        "Concluída = PIN gravado na etapa 6; não garante sozinha que «Salvar + a pagar» foi feito. "
+        "Alertas listam notas sem título no financeiro ou com nome de fornecedor diferente do título."
+    )
+    if foco_suspeitas:
+        nota_base += (
+            " Sem busca na lista: só notas Concluídas sem financeiro gravado "
+            "(as que costumam faltar título). Com busca por fornecedor ou NF, a auditoria fica mais ampla."
+        )
     return {
         "ok": True,
         "filtro": f,
+        "foco_suspeitas": foco_suspeitas,
         "total_avaliado": total_avaliado,
         "erros_auditoria": erros_item,
         "total_ok_ou_bonificacao": ok_count,
         "total_alertas": len(alertas),
         "resumo": resumo,
         "alertas": alertas,
-        "nota": (
-            "Concluída = PIN gravado na etapa 6; não garante sozinha que «Salvar + a pagar» foi feito. "
-            "Alertas listam notas sem título no financeiro ou com nome de fornecedor diferente do título."
-            + nota_extra
-        ),
+        "nota": nota_base + nota_extra,
     }
 
 
@@ -1173,6 +2474,45 @@ def _entrada_nfe_parse_valor_busca(raw: str) -> float | None:
         return v if v >= 0 and v < 1e12 else None
     except (TypeError, ValueError):
         return None
+
+
+def _mongo_expr_entrada_nfe_valor_total_linhas() -> dict[str, Any]:
+    """Soma q × v.un. das linhas no aggregate (lista sem projetar ``linhas`` inteiras)."""
+    return {
+        "$sum": {
+            "$map": {
+                "input": {"$cond": [{"$isArray": "$linhas"}, "$linhas", []]},
+                "as": "ln",
+                "in": {
+                    "$let": {
+                        "vars": {
+                            "q": {
+                                "$toDouble": {
+                                    "$ifNull": [
+                                        "$$ln.q_estoque",
+                                        {"$ifNull": ["$$ln.q_com", 0]},
+                                    ]
+                                }
+                            },
+                            "vu": {"$toDouble": {"$ifNull": ["$$ln.v_un_com", 0]}},
+                        },
+                        "in": {
+                            "$cond": [
+                                {
+                                    "$and": [
+                                        {"$gt": ["$$q", 0]},
+                                        {"$gt": ["$$vu", 0]},
+                                    ]
+                                },
+                                {"$multiply": ["$$q", "$$vu"]},
+                                0,
+                            ]
+                        },
+                    }
+                },
+            }
+        }
+    }
 
 
 def _entrada_nfe_total_linhas_reais(linhas: list) -> float:
@@ -1420,6 +2760,62 @@ def entrada_nfe_busca_params_from_request(request) -> dict[str, str]:
     return out
 
 
+def _entrada_nfe_normalizar_filtro_lista(filtro: str | None) -> str:
+    f = (filtro or "todas").strip().lower()
+    legacy = {
+        "abertas": "em_andamento",
+        "pendencias": "nota_aberta",
+        "prontas": "estoque",
+        "encerradas": "encerrada_legacy",
+        "descartadas": "descartada",
+    }
+    return legacy.get(f, f)
+
+
+def _entrada_nfe_item_casa_filtro_lista(item: dict, filtro: str | None) -> bool:
+    """True se o item serializado entra no chip da lista (filtro pós-bucket)."""
+    f = _entrada_nfe_normalizar_filtro_lista(filtro)
+    if f in ("", "todas"):
+        return True
+    valid_extra = frozenset(
+        {
+            "nota_aberta",
+            "estoque",
+            "financeiro",
+            "finalizar",
+            "concluida",
+            "descartada",
+            "encerrada",
+            "em_andamento",
+            "correcao_sistemica",
+            "estoque_aplicado_legacy",
+            "financeiro_lancado_legacy",
+            "encerrada_legacy",
+        }
+    )
+    if f not in valid_extra:
+        return True
+    eff = str(item.get("entrada_status_efetivo") or "")
+    fin_ok = bool(item.get("entrada_financeiro_lancado"))
+    b = str(item.get("entrada_lista_bucket") or "")
+    if f == "em_andamento":
+        return b in ("nota_aberta", "estoque", "financeiro", "finalizar")
+    if f == "correcao_sistemica":
+        return bool(item.get("entrada_correcao_sistemica")) and b in (
+            "nota_aberta",
+            "estoque",
+            "financeiro",
+            "finalizar",
+        )
+    if f == "estoque_aplicado_legacy":
+        return eff == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO
+    if f == "financeiro_lancado_legacy":
+        return fin_ok
+    if f == "encerrada_legacy":
+        return eff == ENTRADA_NFE_STATUS_ENCERRADA
+    return f == b
+
+
 def listar_rascunhos_entrada(
     db,
     limit: int = 30,
@@ -1427,13 +2823,30 @@ def listar_rascunhos_entrada(
     filtro: str | None = None,
     busca: dict | None = None,
 ) -> list[dict]:
-    if db is None:
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
         return []
     try:
+        from produtos.agro_fonte_config import agro_entrada_nota_rascunho_postgres
+        from produtos.entrada_nota_rascunho_pg_util import ensure_rascunhos_entrada_nota_pg
+
+        if agro_entrada_nota_rascunho_postgres():
+            pg_ok = ensure_rascunhos_entrada_nota_pg(db)
+            if not pg_ok and db is not None:
+                col = db[COL_ENTRADA_RASCUNHO]
+
         lim = min(max(limit, 1), 100)
         busca = busca if isinstance(busca, dict) else {}
         busca_ativa = any(str(busca.get(k) or "").strip() for k in busca)
-        scan_lim = min(500, max(lim * 4, 120)) if busca_ativa else lim
+        f = _entrada_nfe_normalizar_filtro_lista(filtro)
+        # Sem busca + filtro de estágio: precisa varrer além do lim — senão as N
+        # mais novas (muitas «concluída») esvaziam «Em andamento» / Financeiro etc.
+        # e a nota só aparece quando o campo de busca amplia o scan.
+        precisa_scan_largo = busca_ativa or f not in ("", "todas")
+        if precisa_scan_largo:
+            scan_lim = min(800, max(lim * 20, 250))
+        else:
+            scan_lim = lim
         proj: dict[str, Any] = {
             "_id": 1,
             "status": 1,
@@ -1448,104 +2861,71 @@ def listar_rascunhos_entrada(
         }
         if busca_ativa:
             proj["linhas"] = {"$slice": ["$linhas", 150]}
-        cur = db[COL_ENTRADA_RASCUNHO].aggregate(
+        cur = col.aggregate(
             [
                 {"$sort": {"criado_em": -1}},
                 {"$limit": scan_lim},
-                {"$project": proj},
+                {
+                    "$addFields": {
+                        "_valor_total_nota": _mongo_expr_entrada_nfe_valor_total_linhas(),
+                    }
+                },
+                {"$project": {**proj, "_valor_total_nota": 1}},
             ]
         )
-        out = []
+        out: list[dict] = []
         for d in cur:
             if busca_ativa and not _entrada_nfe_rascunho_passa_busca(d, busca):
                 continue
-            out.append(_serialize_rascunho_leitura(d))
+            d = sanear_carimbo_estoque_falso_rascunho(db, d) or d
+            item = _serialize_rascunho_leitura(d)
+            if not _entrada_nfe_item_casa_filtro_lista(item, f):
+                continue
+            out.append(item)
             if len(out) >= lim:
                 break
-        f = (filtro or "todas").strip().lower()
-        if f == "todas":
-            return out
-        # Novos filtros (fila exclusiva). Aliases antigos da URL.
-        legacy = {
-            "abertas": "em_andamento",
-            "pendencias": "nota_aberta",
-            "prontas": "estoque",
-            "encerradas": "encerrada_legacy",
-            "descartadas": "descartada",
-        }
-        if f in legacy:
-            f = legacy[f]
-        valid_extra = frozenset(
-            {
-                "nota_aberta",
-                "estoque",
-                "financeiro",
-                "finalizar",
-                "concluida",
-                "descartada",
-                "encerrada",
-                "em_andamento",
-                "correcao_sistemica",
-                "estoque_aplicado_legacy",
-                "financeiro_lancado_legacy",
-                "encerrada_legacy",
-            }
-        )
-        if f not in valid_extra:
-            return out
-        filtrados: list[dict] = []
-        for item in out:
-            eff = str(item.get("entrada_status_efetivo") or "")
-            fin_ok = bool(item.get("entrada_financeiro_lancado"))
-            b = str(item.get("entrada_lista_bucket") or "")
-            if f == "em_andamento":
-                if b in ("nota_aberta", "estoque", "financeiro", "finalizar"):
-                    filtrados.append(item)
-            elif f == "correcao_sistemica":
-                if item.get("entrada_correcao_sistemica") and b in (
-                    "nota_aberta",
-                    "estoque",
-                    "financeiro",
-                    "finalizar",
-                ):
-                    filtrados.append(item)
-            elif f == "estoque_aplicado_legacy" and eff == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO:
-                filtrados.append(item)
-            elif f == "financeiro_lancado_legacy" and fin_ok:
-                filtrados.append(item)
-            elif f == "encerrada_legacy" and eff == ENTRADA_NFE_STATUS_ENCERRADA:
-                filtrados.append(item)
-            elif f == b:
-                filtrados.append(item)
-        return filtrados
+        return out
     except Exception as exc:
         logger.exception("listar_rascunhos_entrada: %s", exc)
         return []
 
 
 def _object_id_rascunho(oid: str):
+    """ObjectId no Mongo; string hex 24 no Postgres (``EntradaNotaRascunhoAgro``)."""
+    s = str(oid or "").strip()
     from bson.errors import InvalidId
     from bson.objectid import ObjectId
 
+    from produtos.agro_fonte_config import agro_entrada_nota_rascunho_postgres
+
+    use_pg = agro_entrada_nota_rascunho_postgres()
+    if re.fullmatch(r"[0-9a-fA-F]{24}", s):
+        return s.lower() if use_pg else ObjectId(s)
     try:
-        return ObjectId(str(oid).strip())
+        oid_obj = ObjectId(s)
     except (InvalidId, TypeError, ValueError):
         return None
+    return str(oid_obj).lower() if use_pg else oid_obj
 
 
 def claim_rascunho_para_estoque_agro(db, oid: str) -> dict[str, Any]:
     """
     Trava o rascunho para um único POST de estoque Agro (evita somar várias vezes no duplo clique).
     """
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível"}
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return {"ok": False, "erro": "Armazenamento de rascunho indisponível"}
     _id = _object_id_rascunho(oid)
     if _id is None:
         return {"ok": False, "erro": "ID de rascunho inválido."}
     agora = datetime.now(timezone.utc)
     stale = agora - ESTOQUE_AGRO_LOCK_MAX_AGE
     try:
-        doc = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+        doc = col.find_one({"_id": _id})
+        if not doc:
+            from produtos.entrada_nota_rascunho_pg_util import lazy_import_rascunho_mongo
+
+            doc = lazy_import_rascunho_mongo(db, str(_id))
         if not doc:
             return {"ok": False, "erro": "Rascunho não encontrado."}
         if str(doc.get("status") or "").strip().lower() == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO:
@@ -1553,7 +2933,7 @@ def claim_rascunho_para_estoque_agro(db, oid: str) -> dict[str, Any]:
                 "ok": False,
                 "erro": "Estoque Agro já foi registrado para este rascunho.",
             }
-        r = db[COL_ENTRADA_RASCUNHO].update_one(
+        r = col.update_one(
             {
                 "_id": _id,
                 "status": {"$nin": list(ENTRADA_NFE_STATUS_CONGELADOS)},
@@ -1563,11 +2943,11 @@ def claim_rascunho_para_estoque_agro(db, oid: str) -> dict[str, Any]:
                     {"extra.estoque_agro_lock": {"$lte": stale}},
                 ],
             },
-            {"$set": {"extra.estoque_agro_lock": agora}},
+            {"$set": {"extra.estoque_agro_lock": agora.isoformat()}},
         )
         if r.modified_count == 1:
             return {"ok": True}
-        doc2 = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id}) or {}
+        doc2 = col.find_one({"_id": _id}) or {}
         ex2 = doc2.get("extra") if isinstance(doc2.get("extra"), dict) else {}
         if ex2.get("estoque_agro_lock"):
             return {
@@ -1582,13 +2962,14 @@ def claim_rascunho_para_estoque_agro(db, oid: str) -> dict[str, Any]:
 
 def release_rascunho_estoque_agro_claim(db, oid: str) -> None:
     """Remove a trava de POST duplicado (falha antes de marcar estoque aplicado)."""
-    if db is None:
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
         return
     _id = _object_id_rascunho(oid)
     if _id is None:
         return
     try:
-        db[COL_ENTRADA_RASCUNHO].update_one(
+        col.update_one(
             {"_id": _id},
             {"$unset": {"extra.estoque_agro_lock": ""}},
         )
@@ -1596,16 +2977,279 @@ def release_rascunho_estoque_agro_claim(db, oid: str) -> None:
         logger.exception("release_rascunho_estoque_agro_claim")
 
 
-def obter_rascunho_entrada(db, oid: str) -> dict[str, Any] | None:
-    if db is None:
+def _mongo_lancamento_id_str(doc: dict[str, Any]) -> str:
+    if not isinstance(doc, dict):
+        return ""
+    try:
+        oid = doc.get("_id")
+        if oid is not None:
+            return str(oid)
+    except Exception:
+        pass
+    return str(doc.get("Id") or "").strip()
+
+
+def _entrada_nfe_digits(value: Any) -> str:
+    return re.sub(r"\D", "", str(value or ""))
+
+
+def _entrada_nfe_titulo_texto(titulo: dict[str, Any]) -> str:
+    partes = [titulo.get(k) for k in ("Descricao", "descricao", "Observacao", "observacoes", "NumeroDocumento", "numero_documento")]
+    snap = titulo.get("dados_snapshot_json")
+    if isinstance(snap, dict):
+        partes.extend(str(v) for v in snap.values() if isinstance(v, (str, int, float)))
+    return " ".join(str(x or "") for x in partes)
+
+
+def _entrada_nfe_data_iso(value: Any) -> str:
+    """Normaliza vencimento para AAAA-MM-DD (date, ISO ou dd/mm/aaaa)."""
+    if value is None:
+        return ""
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    s = str(value).strip()
+    if not s:
+        return ""
+    s10 = s[:10]
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", s10):
+        return s10
+    m = re.fullmatch(r"(\d{2})/(\d{2})/(\d{4})", s10)
+    if m:
+        return f"{m.group(3)}-{m.group(2)}-{m.group(1)}"
+    return s10
+
+
+def _entrada_nfe_assinatura_parcelas(doc: dict[str, Any]) -> list[tuple[str, Decimal]]:
+    extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+    fin = extra.get("financeiro_ui") if isinstance(extra.get("financeiro_ui"), dict) else {}
+    raw = fin.get("parcelas_manual") or fin.get("parcelas") or []
+    out = []
+    for item in raw if isinstance(raw, list) else []:
+        if not isinstance(item, dict):
+            continue
+        try:
+            valor = Decimal(str(item.get("valor") or "0").replace(",", ".")).quantize(Decimal("0.01"))
+        except Exception:
+            continue
+        if valor > 0:
+            out.append((_entrada_nfe_data_iso(item.get("data_vencimento") or item.get("vencimento")), valor))
+    return sorted(out)
+
+
+def _entrada_nfe_assinatura_titulos(titulos: list[dict[str, Any]]) -> list[tuple[str, Decimal]]:
+    out = []
+    for t in titulos:
+        try:
+            valor = Decimal(str(t.get("valor_bruto") or t.get("ValorBruto") or "0").replace(",", ".")).quantize(Decimal("0.01"))
+        except Exception:
+            continue
+        if valor > 0:
+            out.append((_entrada_nfe_data_iso(t.get("data_vencimento") or t.get("DataVencimento")), valor))
+    return sorted(out)
+
+
+def validar_vinculo_financeiro_entrada_nfe(doc: dict[str, Any], titulos: list[dict[str, Any]], ids_esperados: list[str]) -> dict[str, Any]:
+    """Comprova vínculo por rascunho/chave ou NF exata reforçada; nome isolado nunca basta."""
+    cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
+    extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+    rid = str(doc.get("_id") or doc.get("rascunho_id") or "").strip()
+    nf = _nf_numero_norm(cab.get("numero"))
+    chave = _entrada_nfe_digits(cab.get("chave") or doc.get("xml_chave"))
+    fornecedor_id = str(cab.get("emit_fornecedor_id") or "").strip()
+    emit_nome = str(cab.get("emit_nome") or "").strip()
+    cnpj = _entrada_nfe_digits(cab.get("emit_cnpj"))
+    lote = str(extra.get("financeiro_lote") or "").strip().upper()
+    encontrados = {_mongo_lancamento_id_str(t) for t in titulos}
+    faltantes = [x for x in ids_esperados if x not in encontrados]
+    if faltantes or not titulos:
+        return {"valido": False, "motivo": "id_inexistente", "ids_faltantes": faltantes}
+    esperado = _entrada_nfe_assinatura_parcelas(doc)
+    parcelas_ok = bool(esperado) and esperado == _entrada_nfe_assinatura_titulos(titulos)
+    evidencias = []
+    for t in titulos:
+        texto = _entrada_nfe_titulo_texto(t)
+        digits = _entrada_nfe_digits(texto)
+        nf_titulo = _nf_numero_norm(_extrair_nf_numero_lancamento(t))
+        cliente_id = str(t.get("ClienteID") or t.get("ClienteId") or t.get("cliente_id") or "").strip()
+        cliente_nome = str(t.get("Cliente") or t.get("cliente") or "").strip()
+        nome_ok = bool(emit_nome and cliente_nome and _entrada_nfe_nomes_fornecedor_batem(emit_nome, cliente_nome))
+        ev = {
+            "id": _mongo_lancamento_id_str(t),
+            "nf": nf_titulo,
+            "nf_ok": bool(nf and nf_titulo and nf == nf_titulo),
+            "rascunho_ok": bool(rid and rid in texto),
+            "chave_ok": bool(chave and len(chave) >= 40 and chave in digits),
+            "fornecedor_forte": bool(
+                (fornecedor_id and cliente_id == fornecedor_id)
+                or (cnpj and len(cnpj) >= 11 and cnpj in digits)
+                or nome_ok
+            ),
+            "lote_ok": bool(lote and _extrair_lote_agro_lancamento(t) == lote),
+        }
+        # NF exata + fornecedor (id/CNPJ/nome) basta — nota manual perde chave, lote e flag.
+        # Sem fornecedor, parcelas ou lote Agro ainda comprovam o mesmo número de NF.
+        ev["valido"] = (
+            ev["rascunho_ok"]
+            or ev["chave_ok"]
+            or (ev["nf_ok"] and ev["fornecedor_forte"])
+            or (ev["nf_ok"] and (parcelas_ok or ev["lote_ok"]))
+        )
+        evidencias.append(ev)
+    valido = bool(evidencias) and all(x["valido"] for x in evidencias)
+    return {"valido": valido, "motivo": "comprovado" if valido else "titulo_divergente", "parcelas_ok": parcelas_ok, "evidencias": evidencias}
+
+
+def sanear_carimbo_financeiro_falso_rascunho(db, doc: dict[str, Any], *, usuario: str = "") -> dict[str, Any]:
+    """Remove só quatro carimbos falsos; preserva títulos, financeiro_ui, nota e estoque."""
+    if not isinstance(doc, dict):
+        return doc
+    extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+    ids_raw = extra.get("financeiro_ids")
+    ids = [str(x).strip() for x in ids_raw if str(x).strip()] if isinstance(ids_raw, list) else []
+    if not (extra.get("financeiro_lancado") or ids):
+        return doc
+    validacao = validar_vinculo_financeiro_entrada_nfe(doc, _entrada_nfe_financeiro_titulos_por_ids(db, ids) if ids else [], ids)
+    if validacao.get("valido"):
+        return doc
+    col = _entrada_nota_rascunho_store(db)
+    _id = _object_id_rascunho(str(doc.get("_id") or ""))
+    if col is None or _id is None:
+        return doc
+    agora = datetime.now(timezone.utc)
+    historico = extra.get("financeiro_vinculo_saneado_auditoria")
+    hist = list(historico[-19:]) if isinstance(historico, list) else []
+    hist.append({"em": agora.isoformat(), "por": (usuario or "sistema_leitura")[:200], "motivo": validacao.get("motivo"), "ids_removidos": ids[:80], "lote_removido": str(extra.get("financeiro_lote") or "")[:32], "evidencias": validacao.get("evidencias") or []})
+    col.update_one({"_id": _id}, {"$unset": {"extra.financeiro_lancado": "", "extra.financeiro_ids": "", "extra.financeiro_lancado_em": "", "extra.financeiro_lote": ""}, "$set": {"extra.financeiro_vinculo_saneado_auditoria": hist, "atualizado_em": agora, "usuario_ultima_alteracao": (usuario or "sistema_leitura")[:200]}})
+    novo = col.find_one({"_id": _id})
+    return novo if isinstance(novo, dict) else doc
+
+def _titulos_entrada_nfe_ids_do_rascunho(db, doc: dict[str, Any], *, col_pessoa: str | None = None) -> list[str]:
+    """IDs comprovados desta nota; nunca aceita existência do ID ou substring da NF."""
+    if not isinstance(doc, dict): return []
+    extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+    cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
+    raw = extra.get("financeiro_ids")
+    gravados = [str(x).strip() for x in raw if str(x).strip()] if isinstance(raw, list) else []
+    if gravados:
+        encontrados = _entrada_nfe_financeiro_titulos_por_ids(db, gravados)
+        if validar_vinculo_financeiro_entrada_nfe(doc, encontrados, gravados).get("valido"):
+            return gravados[:80]
+    titulos = _entrada_nfe_financeiro_titulos_por_rastro(db, cab)
+    nf = _nf_numero_norm(cab.get("numero"))
+    candidatos = [t for t in titulos if _nf_numero_norm(_extrair_nf_numero_lancamento(t)) == nf] if nf else []
+    ids = list(dict.fromkeys(_mongo_lancamento_id_str(t) for t in candidatos if _mongo_lancamento_id_str(t)))[:80]
+    return ids if validar_vinculo_financeiro_entrada_nfe(doc, candidatos, ids).get("valido") else []
+
+def sincronizar_financeiro_rascunho_entrada_nfe(
+    db,
+    oid: str,
+    *,
+    usuario: str = "",
+    col_pessoa: str | None = None,
+) -> dict[str, Any]:
+    """
+    Quando o título a pagar já existe no Mongo mas o rascunho perdeu ``financeiro_lancado``
+    (corrida autosave, falha ao marcar, etc.), regrava o carimbo sem duplicar título.
+    """
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return {"ok": False, "erro": "Armazenamento de rascunho indisponível"}
+    _id = _object_id_rascunho(oid)
+    if _id is None:
+        return {"ok": False, "erro": "ID inválido."}
+    try:
+        doc = col.find_one({"_id": _id})
+        if not doc:
+            return {"ok": False, "erro": "Rascunho não encontrado."}
+        doc = sanear_carimbo_financeiro_falso_rascunho(db, doc, usuario=usuario) or doc
+        extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+        if _entrada_nfe_tipo_entrada_extra(extra) == "bonificacao":
+            return {"ok": False, "erro": "Bonificação não gera financeiro."}
+        if entrada_nfe_extra_financeiro_ok(extra):
+            ids_lim = _titulos_entrada_nfe_ids_do_rascunho(db, doc, col_pessoa=col_pessoa)
+            return {
+                "ok": True,
+                "id": str(_id),
+                "ids": ids_lim,
+                "sincronizado": False,
+                "ja_marcado": True,
+            }
+
+        titulo_ids = _titulos_entrada_nfe_ids_do_rascunho(db, doc, col_pessoa=col_pessoa)
+        if not titulo_ids:
+            return {"ok": False, "erro": "Nenhum título a pagar encontrado no financeiro para esta nota."}
+
+        lote: str | None = None
+        titulos_ref = _entrada_nfe_financeiro_titulos_por_ids(db, titulo_ids)
+        if not titulos_ref:
+            titulos_ref = _entrada_nfe_financeiro_titulos_por_rastro(
+                db, doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
+            )
+        for t in titulos_ref:
+            if not isinstance(t, dict):
+                continue
+            lote = _extrair_lote_agro_lancamento(t) or None
+            if lote:
+                break
+
+        mf = marcar_rascunho_financeiro_lancado(
+            db,
+            str(_id),
+            ids=titulo_ids,
+            usuario=usuario,
+            lote=lote,
+        )
+        if not mf.get("ok"):
+            return mf
+        return {
+            "ok": True,
+            "id": str(_id),
+            "ids": titulo_ids,
+            "sincronizado": True,
+            "ja_marcado": False,
+            "lote": lote,
+        }
+    except Exception as exc:
+        logger.exception("sincronizar_financeiro_rascunho_entrada_nfe")
+        return {"ok": False, "erro": str(exc)[:500]}
+
+
+def obter_rascunho_entrada(
+    db,
+    oid: str,
+    *,
+    col_pessoa: str | None = None,
+    sincronizar_financeiro: bool = True,
+) -> dict[str, Any] | None:
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
         return None
     _id = _object_id_rascunho(oid)
     if _id is None:
         return None
     try:
-        d = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+        d = col.find_one({"_id": _id})
+        if not d:
+            from produtos.entrada_nota_rascunho_pg_util import lazy_import_rascunho_mongo
+
+            d = lazy_import_rascunho_mongo(db, str(_id))
         if not d:
             return None
+        d = sanear_carimbo_estoque_falso_rascunho(db, d) or d
+        d = sanear_carimbo_financeiro_falso_rascunho(db, d) or d
+        ex0 = d.get("extra") if isinstance(d.get("extra"), dict) else {}
+        if sincronizar_financeiro and not entrada_nfe_extra_financeiro_ok(ex0):
+            sincronizar_financeiro_rascunho_entrada_nfe(
+                db,
+                str(_id),
+                col_pessoa=col_pessoa,
+            )
+            d = col.find_one({"_id": _id})
+            if not d:
+                return None
+            d = sanear_carimbo_estoque_falso_rascunho(db, d) or d
         return _serialize_rascunho_leitura(d)
     except Exception as exc:
         logger.exception("obter_rascunho_entrada: %s", exc)
@@ -1613,17 +3257,106 @@ def obter_rascunho_entrada(db, oid: str) -> dict[str, Any] | None:
 
 
 def excluir_rascunho_entrada(db, oid: str) -> dict[str, Any]:
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível"}
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return {"ok": False, "erro": "Armazenamento de rascunho indisponível"}
     _id = _object_id_rascunho(oid)
     if _id is None:
         return {"ok": False, "erro": "ID inválido."}
     try:
-        r = db[COL_ENTRADA_RASCUNHO].delete_one({"_id": _id})
-        return {"ok": r.deleted_count == 1}
+        r = col.delete_one({"_id": _id})
+        return {"ok": r.matched_count == 1}
     except Exception as exc:
         logger.exception("excluir_rascunho_entrada")
         return {"ok": False, "erro": str(exc)[:500]}
+
+
+def _entrada_nfe_num_linha(val: Any) -> float | None:
+    try:
+        s = str(val if val is not None else "").replace(",", ".").strip()
+        if not s:
+            return None
+        return float(s)
+    except (TypeError, ValueError):
+        return None
+
+
+def _entrada_nfe_qtd_estoque_linha(ln: dict) -> float | None:
+    """Quantidade que entra no estoque: «Qtd est.» ou Qtd NF × Un/emb."""
+    q_est = _entrada_nfe_num_linha(ln.get("q_estoque"))
+    if q_est is not None and q_est > 0:
+        return round(q_est, 3)
+    q_com = _entrada_nfe_num_linha(ln.get("q_com"))
+    if q_com is None:
+        return None
+    emb = _entrada_nfe_num_linha(ln.get("un_por_embalagem"))
+    if emb is None or emb <= 0:
+        emb = 1.0
+    return round(q_com * emb, 3)
+
+
+def _entrada_nfe_produto_ids_das_linhas(linhas: Any) -> list[str]:
+    out: list[str] = []
+    for ln in linhas if isinstance(linhas, list) else []:
+        if not isinstance(ln, dict):
+            continue
+        pid = str(ln.get("produto_id") or "").strip()
+        if not pid or pid.lower().startswith("local:"):
+            continue
+        out.append(pid)
+    return sorted(out)
+
+
+def _entrada_nfe_qtds_por_produto(linhas: Any) -> dict[str, float]:
+    out: dict[str, float] = {}
+    for ln in linhas if isinstance(linhas, list) else []:
+        if not isinstance(ln, dict):
+            continue
+        pid = str(ln.get("produto_id") or "").strip()
+        if not pid or pid.lower().startswith("local:"):
+            continue
+        q = _entrada_nfe_qtd_estoque_linha(ln)
+        if q is None:
+            continue
+        out[pid] = round(out.get(pid, 0.0) + q, 3)
+    return out
+
+
+def entrada_nfe_bloqueio_troca_produto_com_estoque(doc: dict[str, Any], linhas: Any) -> str:
+    """
+    Trava multi-PC: com estoque Agro já aplicado, trocar / incluir / remover produto — ou mudar a
+    quantidade que entrou — sem estornar deixaria o saldo errado. Retorna a mensagem de bloqueio,
+    ou string vazia se pode salvar.
+    """
+    if not isinstance(doc, dict):
+        return ""
+    ex = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+    st = str(doc.get("status") or "").strip().lower()
+    ajuste_ids = ex.get("estoque_agro_ajuste_ids")
+    tem_estoque = (
+        st == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO
+        or bool(doc.get("estoque_aplicado_em"))
+        or bool(str(ex.get("estoque_agro_registrado_em") or "").strip())
+        or (isinstance(ajuste_ids, list) and any(str(x).strip() for x in ajuste_ids))
+    )
+    if not tem_estoque:
+        return ""
+    msg = (
+        "Esta nota já teve entrada no estoque: trocar, incluir ou remover produto — ou mudar a "
+        "quantidade — exige estorno. Use «Reabrir nota» (etapa 5 ou 8): o saldo volta e você "
+        "registra o estoque de novo."
+    )
+    if _entrada_nfe_produto_ids_das_linhas(doc.get("linhas")) != _entrada_nfe_produto_ids_das_linhas(linhas):
+        return msg
+    qt_antes = _entrada_nfe_qtds_por_produto(doc.get("linhas"))
+    qt_depois = _entrada_nfe_qtds_por_produto(linhas)
+    for pid, q_antes in qt_antes.items():
+        q_depois = qt_depois.get(pid)
+        if q_depois is None:
+            continue
+        if abs(q_antes - q_depois) > 0.0005:
+            return msg
+    return ""
 
 
 def atualizar_rascunho_entrada(
@@ -1638,8 +3371,9 @@ def atualizar_rascunho_entrada(
     extra: dict | None = None,
     col_pessoa: str | None = None,
 ) -> dict[str, Any]:
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível"}
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return {"ok": False, "erro": "Armazenamento de rascunho indisponível"}
     _id = _object_id_rascunho(oid)
     if _id is None:
         return {"ok": False, "erro": "ID inválido."}
@@ -1647,9 +3381,16 @@ def atualizar_rascunho_entrada(
     if col_pessoa:
         cab_norm = normalizar_cabecalho_emit_fornecedor_entrada_nfe(db, col_pessoa, cabecalho)
     try:
-        atual = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+        atual = col.find_one({"_id": _id})
+        if not atual:
+            from produtos.entrada_nota_rascunho_pg_util import lazy_import_rascunho_mongo
+
+            atual = lazy_import_rascunho_mongo(db, str(_id))
         if not atual:
             return {"ok": False, "erro": "Rascunho não encontrado."}
+        bloqueio_troca = entrada_nfe_bloqueio_troca_produto_com_estoque(atual, linhas)
+        if bloqueio_troca:
+            return {"ok": False, "erro": bloqueio_troca, "requer_estorno": True}
         st_atual = str(atual.get("status") or "").strip().lower()
         novo_status: str | None = None
         if st_atual in (ENTRADA_NFE_STATUS_ENCERRADA, ENTRADA_NFE_STATUS_DESCARTADA, ENTRADA_NFE_STATUS_ESTOQUE_APLICADO):
@@ -1658,9 +3399,147 @@ def atualizar_rascunho_entrada(
             novo_status = entrada_nfe_status_derivado_linhas(linhas)
         prev_ex = atual.get("extra") if isinstance(atual.get("extra"), dict) else {}
         merged_extra = {**prev_ex, **(extra or {})}
-        # Evita corrida autosave/manual vs. ``marcar_rascunho_financeiro_lancado``: merge com snapshot
-        # antigo não pode reapagar nem reintroduzir sozinho o carimbo de financeiro.
-        fresh_mini = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id}, projection={"extra": 1}) or {}
+
+        def _entrada_nfe_mesclar_carimbo_financeiro(dst: dict[str, Any]) -> None:
+            """Fecha janela autosave × ``marcar_rascunho_financeiro_lancado`` (re-lê o DB)."""
+            fresh_mini = col.find_one({"_id": _id}, projection={"extra": 1}) or {}
+            fresh_ex = fresh_mini.get("extra") if isinstance(fresh_mini.get("extra"), dict) else {}
+            if entrada_nfe_extra_financeiro_ok(fresh_ex):
+                dst["financeiro_lancado"] = True
+                if "financeiro_ids" in fresh_ex:
+                    ids_f = fresh_ex["financeiro_ids"]
+                    dst["financeiro_ids"] = list(ids_f) if isinstance(ids_f, list) else ids_f
+                if "financeiro_lancado_em" in fresh_ex:
+                    dst["financeiro_lancado_em"] = fresh_ex["financeiro_lancado_em"]
+                if "financeiro_lote" in fresh_ex:
+                    dst["financeiro_lote"] = fresh_ex["financeiro_lote"]
+                return
+            if entrada_nfe_extra_financeiro_ok(prev_ex):
+                dst["financeiro_lancado"] = True
+                if "financeiro_ids" in prev_ex:
+                    ids_p = prev_ex["financeiro_ids"]
+                    dst["financeiro_ids"] = list(ids_p) if isinstance(ids_p, list) else ids_p
+                if "financeiro_lancado_em" in prev_ex:
+                    dst["financeiro_lancado_em"] = prev_ex["financeiro_lancado_em"]
+                return
+            dst.pop("financeiro_lancado", None)
+            dst.pop("financeiro_ids", None)
+            dst.pop("financeiro_lancado_em", None)
+
+        def _entrada_nfe_mesclar_carimbo_estoque(dst: dict[str, Any]) -> None:
+            """
+            Carimbos de estoque Agro só o servidor grava (marcar/reverter).
+            Autosave do browser não pode ressuscitar ``estoque_agro_*`` após «Reabrir nota»
+            (senão o botão fica em «Estoque já registrado» e o saldo não entra de novo).
+            """
+            fresh_mini = col.find_one({"_id": _id}, projection={"extra": 1, "status": 1}) or {}
+            fresh_ex = fresh_mini.get("extra") if isinstance(fresh_mini.get("extra"), dict) else {}
+            st_fresh = str(fresh_mini.get("status") or "").strip().lower()
+            src = fresh_ex if fresh_ex else prev_ex
+            st_src = st_fresh or str(atual.get("status") or "").strip().lower()
+            tem_stamp = bool(
+                st_src == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO
+                or str(src.get("estoque_agro_registrado_em") or "").strip()
+                or (
+                    isinstance(src.get("estoque_agro_ajuste_ids"), list)
+                    and any(str(x).strip() for x in (src.get("estoque_agro_ajuste_ids") or []))
+                )
+            )
+            for k in ("estoque_agro_ajuste_ids", "estoque_agro_registrado_em", "estoque_agro_lock"):
+                dst.pop(k, None)
+            if not tem_stamp:
+                return
+            if str(src.get("estoque_agro_registrado_em") or "").strip():
+                dst["estoque_agro_registrado_em"] = src["estoque_agro_registrado_em"]
+            ids_e = src.get("estoque_agro_ajuste_ids")
+            if isinstance(ids_e, list) and any(str(x).strip() for x in ids_e):
+                dst["estoque_agro_ajuste_ids"] = list(ids_e)
+            if src.get("estoque_agro_lock"):
+                dst["estoque_agro_lock"] = src["estoque_agro_lock"]
+
+        _entrada_nfe_mesclar_carimbo_financeiro(merged_extra)
+        _entrada_nfe_mesclar_carimbo_estoque(merged_extra)
+
+        modo_in = str(modo or "manual").strip()[:40] or "manual"
+        modo_prev = str(atual.get("modo") or "manual").strip()[:40] or "manual"
+        chave_dig = "".join(ch for ch in str(xml_chave or "") if ch.isdigit())
+        if modo_in.lower() == "manual" and modo_prev.lower() in ("xml", "sefaz"):
+            modo_in = modo_prev
+        elif modo_in.lower() == "manual" and len(chave_dig) >= 44:
+            modo_in = "xml"
+
+        set_doc: dict[str, Any] = {
+            "atualizado_em": datetime.now(timezone.utc),
+            "usuario_ultima_alteracao": (usuario or "")[:200],
+            "modo": modo_in,
+            "cabecalho": cab_norm,
+            "linhas": linhas,
+            "xml_chave": (xml_chave or "")[:44] or None,
+            "extra": merged_extra,
+        }
+        if novo_status is not None:
+            set_doc["status"] = novo_status
+        _entrada_nfe_mesclar_carimbo_financeiro(merged_extra)
+        _entrada_nfe_mesclar_carimbo_estoque(merged_extra)
+        set_doc["extra"] = merged_extra
+        col.update_one(
+            {"_id": _id},
+            {"$set": set_doc},
+        )
+        return {"ok": True, "id": str(_id)}
+    except Exception as exc:
+        logger.exception("atualizar_rascunho_entrada")
+        return {"ok": False, "erro": str(exc)[:500]}
+
+
+def _entrada_nfe_linha_propagacao_fingerprint(ln: dict) -> tuple:
+    if not isinstance(ln, dict):
+        return ()
+    try:
+        pv = round(float(ln.get("preco_venda") or 0), 2)
+    except (TypeError, ValueError):
+        pv = 0.0
+    return (
+        str(ln.get("produto_id") or "").strip(),
+        str(ln.get("c_prod") or "").strip(),
+        "".join(ch for ch in str(ln.get("ean") or "") if ch.isdigit()),
+        pv,
+    )
+
+
+def entrada_nfe_linhas_precos_catalogo_mudaram(prev: list | None, novas: list | None) -> bool:
+    """True se mudou algo que exige ``propagar_precos`` / vínculo cProd (ignora bip, lote, qtd, etc.)."""
+    a = prev if isinstance(prev, list) else []
+    b = novas if isinstance(novas, list) else []
+    if len(a) != len(b):
+        return True
+    for ln_a, ln_b in zip(a, b):
+        if _entrada_nfe_linha_propagacao_fingerprint(ln_a) != _entrada_nfe_linha_propagacao_fingerprint(ln_b):
+            return True
+    return False
+
+
+def patch_rascunho_entrada_extra(
+    db,
+    oid: str,
+    *,
+    usuario: str = "",
+    extra: dict | None = None,
+) -> dict[str, Any]:
+    """Atualiza só ``extra`` (wizard / financeiro em memória) sem regravar ``linhas`` nem propagar preços."""
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return {"ok": False, "erro": "Armazenamento de rascunho indisponível"}
+    _id = _object_id_rascunho(oid)
+    if _id is None:
+        return {"ok": False, "erro": "ID inválido."}
+    try:
+        atual = col.find_one({"_id": _id})
+        if not atual:
+            return {"ok": False, "erro": "Rascunho não encontrado."}
+        prev_ex = atual.get("extra") if isinstance(atual.get("extra"), dict) else {}
+        merged_extra = {**prev_ex, **(extra or {})}
+        fresh_mini = col.find_one({"_id": _id}, projection={"extra": 1}) or {}
         fresh_ex = fresh_mini.get("extra") if isinstance(fresh_mini.get("extra"), dict) else {}
         if entrada_nfe_extra_financeiro_ok(fresh_ex):
             merged_extra["financeiro_lancado"] = True
@@ -1669,28 +3548,39 @@ def atualizar_rascunho_entrada(
                 merged_extra["financeiro_ids"] = list(ids_f) if isinstance(ids_f, list) else ids_f
             if "financeiro_lancado_em" in fresh_ex:
                 merged_extra["financeiro_lancado_em"] = fresh_ex["financeiro_lancado_em"]
+        elif entrada_nfe_extra_financeiro_ok(prev_ex):
+            merged_extra["financeiro_lancado"] = True
+            if "financeiro_ids" in prev_ex:
+                ids_p = prev_ex["financeiro_ids"]
+                merged_extra["financeiro_ids"] = list(ids_p) if isinstance(ids_p, list) else ids_p
+            if "financeiro_lancado_em" in prev_ex:
+                merged_extra["financeiro_lancado_em"] = prev_ex["financeiro_lancado_em"]
         else:
             merged_extra.pop("financeiro_lancado", None)
             merged_extra.pop("financeiro_ids", None)
             merged_extra.pop("financeiro_lancado_em", None)
-        set_doc: dict[str, Any] = {
-            "atualizado_em": datetime.now(timezone.utc),
-            "usuario_ultima_alteracao": (usuario or "")[:200],
-            "modo": (modo or "manual")[:40],
-            "cabecalho": cab_norm,
-            "linhas": linhas,
-            "xml_chave": (xml_chave or "")[:44] or None,
-            "extra": merged_extra,
-        }
-        if novo_status is not None:
-            set_doc["status"] = novo_status
-        db[COL_ENTRADA_RASCUNHO].update_one(
+        fresh_mini2 = col.find_one({"_id": _id}, projection={"extra": 1}) or {}
+        fresh_ex2 = fresh_mini2.get("extra") if isinstance(fresh_mini2.get("extra"), dict) else {}
+        if entrada_nfe_extra_financeiro_ok(fresh_ex2):
+            merged_extra["financeiro_lancado"] = True
+            if "financeiro_ids" in fresh_ex2:
+                ids_f2 = fresh_ex2["financeiro_ids"]
+                merged_extra["financeiro_ids"] = list(ids_f2) if isinstance(ids_f2, list) else ids_f2
+            if "financeiro_lancado_em" in fresh_ex2:
+                merged_extra["financeiro_lancado_em"] = fresh_ex2["financeiro_lancado_em"]
+        col.update_one(
             {"_id": _id},
-            {"$set": set_doc},
+            {
+                "$set": {
+                    "atualizado_em": datetime.now(timezone.utc),
+                    "usuario_ultima_alteracao": (usuario or "")[:200],
+                    "extra": merged_extra,
+                }
+            },
         )
         return {"ok": True, "id": str(_id)}
     except Exception as exc:
-        logger.exception("atualizar_rascunho_entrada")
+        logger.exception("patch_rascunho_entrada_extra")
         return {"ok": False, "erro": str(exc)[:500]}
 
 
@@ -1701,21 +3591,24 @@ def marcar_rascunho_estoque_aplicado(
     usuario: str = "",
     patch_extra: dict | None = None,
 ) -> dict[str, Any]:
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível"}
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return {"ok": False, "erro": "Armazenamento de rascunho indisponível"}
     _id = _object_id_rascunho(oid)
     if _id is None:
         return {"ok": False, "erro": "ID inválido."}
     agora = datetime.now(timezone.utc)
     try:
-        doc = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+        doc = col.find_one({"_id": _id})
         if not doc:
             return {"ok": False, "erro": "Rascunho não encontrado."}
         ex = dict(doc.get("extra") or {})
         ex.pop("estoque_agro_lock", None)
+        ex.pop("estoque_pendente_liberado_em", None)
+        ex.pop("estoque_pendente_liberado_por", None)
         if patch_extra:
             ex.update(patch_extra)
-        r = db[COL_ENTRADA_RASCUNHO].update_one(
+        r = col.update_one(
             {"_id": _id},
             {
                 "$set": {
@@ -1735,36 +3628,213 @@ def marcar_rascunho_estoque_aplicado(
         return {"ok": False, "erro": str(exc)[:500]}
 
 
+def _dec_ajuste_estoque(v) -> Decimal:
+    try:
+        return Decimal(str(v or 0).replace(",", ".").strip()).quantize(Decimal("0.001"))
+    except Exception:
+        return Decimal("0.000")
+
+
+def _qtd_entrada_nf_do_ajuste(adj) -> Decimal:
+    """
+    Quantidade que a entrada NF somou no saldo (para estornar ao reabrir).
+    Prefere ``nf_qtd=`` na observação; senão Δ ledger/clássico vs ajuste anterior.
+    """
+    from django.db.models import Q
+
+    from estoque.models import AjusteRapidoEstoque
+
+    obs = str(getattr(adj, "observacao", "") or "")
+    m = re.search(r"nf_qtd=([0-9]+(?:[.,][0-9]+)?)", obs, re.I)
+    if m:
+        try:
+            q = _dec_ajuste_estoque(m.group(1))
+            if q > 0:
+                return q
+        except Exception:
+            pass
+
+    pid = str(getattr(adj, "produto_externo_id", "") or "").strip()[:100]
+    dep = str(getattr(adj, "deposito", "") or "centro").strip().lower()
+    if dep not in ("centro", "vila"):
+        dep = "centro"
+    prev = (
+        AjusteRapidoEstoque.objects.filter(produto_externo_id=pid, deposito=dep)
+        .filter(Q(criado_em__lt=adj.criado_em) | Q(criado_em=adj.criado_em, pk__lt=adj.pk))
+        .order_by("-criado_em", "-id")
+        .only("saldo_informado", "saldo_erp_referencia")
+        .first()
+    )
+    try:
+        from produtos.estoque_agro_util import agro_estoque_ledger_ativo
+
+        ledger = bool(agro_estoque_ledger_ativo())
+    except Exception:
+        ledger = False
+
+    informado = _dec_ajuste_estoque(adj.saldo_informado)
+    if ledger:
+        if prev is not None:
+            return (informado - _dec_ajuste_estoque(prev.saldo_informado)).quantize(Decimal("0.001"))
+        return max(
+            informado - _dec_ajuste_estoque(adj.saldo_erp_referencia),
+            Decimal("0.000"),
+        ).quantize(Decimal("0.001"))
+
+    camada = informado - _dec_ajuste_estoque(adj.saldo_erp_referencia)
+    if prev is not None:
+        camada_prev = _dec_ajuste_estoque(prev.saldo_informado) - _dec_ajuste_estoque(
+            prev.saldo_erp_referencia
+        )
+        return (camada - camada_prev).quantize(Decimal("0.001"))
+    return camada.quantize(Decimal("0.001"))
+
+
+def estornar_ajustes_entrada_nf_por_reabertura(
+    ajuste_ids: list[int],
+    *,
+    usuario_label: str = "",
+    usuario_django=None,
+) -> dict[str, Any]:
+    """
+    Ao reabrir nota: **não apaga** as entradas no kardex.
+    Cria saídas ``estorno_entrada_nf_agro`` (saldo volta; histórico fica rastreável).
+    """
+    from django.db import transaction
+
+    from estoque.models import AjusteRapidoEstoque, OrigemAjusteEstoque
+    from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
+
+    ids = [int(x) for x in (ajuste_ids or []) if x is not None]
+    if not ids:
+        return {"ok": True, "estornados": 0, "ajuste_ids_estorno": []}
+
+    op = (usuario_label or "Agro")[:80]
+    criados: list[int] = []
+    try:
+        with transaction.atomic():
+            qs = list(
+                AjusteRapidoEstoque.objects.filter(
+                    pk__in=ids,
+                    origem=OrigemAjusteEstoque.ENTRADA_NF_AGRO,
+                ).order_by("criado_em", "id")
+            )
+            for adj in qs:
+                pid = str(adj.produto_externo_id or "").strip()[:100]
+                if not pid:
+                    continue
+                dep = str(adj.deposito or "centro").strip().lower()
+                if dep not in ("centro", "vila"):
+                    dep = "centro"
+                qtd = _qtd_entrada_nf_do_ajuste(adj)
+                if qtd <= 0:
+                    continue
+                info = (mapa_saldos_operacionais_agro([pid], db=None, client=None) or {}).get(pid) or {}
+                if dep == "vila":
+                    saldo_antes = _dec_ajuste_estoque(info.get("saldo_vila", 0))
+                else:
+                    saldo_antes = _dec_ajuste_estoque(info.get("saldo_centro", 0))
+                saldo_depois = (saldo_antes - qtd).quantize(Decimal("0.001"))
+                erp_ref = _dec_ajuste_estoque(adj.saldo_erp_referencia)
+                ult = (
+                    AjusteRapidoEstoque.objects.filter(produto_externo_id=pid, deposito=dep)
+                    .order_by("-criado_em", "-id")
+                    .only("saldo_erp_referencia")
+                    .first()
+                )
+                if ult is not None:
+                    erp_ref = _dec_ajuste_estoque(ult.saldo_erp_referencia)
+                nome_base = str(adj.nome_produto or "").split("·")[0].strip() or pid
+                ref_txt = ""
+                mref = re.search(r"Entrada NF-e Agro\s*\(([^)]*)\)", str(adj.nome_produto or ""), re.I)
+                if mref:
+                    ref_txt = (mref.group(1) or "").strip()[:80]
+                rotulo = f"Estorno reabrir NF ({ref_txt})" if ref_txt else "Estorno reabrir entrada NF"
+                obs_bits = [
+                    f"estorno_entrada_nf_id={adj.pk}",
+                    f"nf_qtd={qtd}",
+                ]
+                if str(adj.observacao or "").strip():
+                    for part in str(adj.observacao).split("|"):
+                        p = part.strip()
+                        if p.lower().startswith("nf_forn=") or p.lower().startswith("nf_custo="):
+                            obs_bits.append(p)
+                novo = AjusteRapidoEstoque.objects.create(
+                    empresa=adj.empresa,
+                    loja=adj.loja,
+                    produto_externo_id=pid,
+                    codigo_interno=str(adj.codigo_interno or "")[:100],
+                    nome_produto=(f"{nome_base} · {rotulo} · {op}")[:255],
+                    deposito=dep,
+                    saldo_erp_referencia=erp_ref,
+                    saldo_informado=saldo_depois,
+                    origem=OrigemAjusteEstoque.ESTORNO_ENTRADA_NF_AGRO,
+                    observacao=(" | ".join(obs_bits))[:2000],
+                    usuario=usuario_django if usuario_django is not None else None,
+                )
+                criados.append(int(novo.pk))
+                # Espelho lote/validade (tela Validade) — só se a entrada gravou nf_lote/nf_val.
+                try:
+                    from produtos.models import (
+                        parse_data_validade_entrada_nf,
+                        reduzir_lote_validade_estorno_entrada_nf,
+                    )
+
+                    obs_orig = str(adj.observacao or "")
+                    m_lote = re.search(r"nf_lote=([^|]+)", obs_orig, re.I)
+                    m_val = re.search(r"nf_val=([0-9]{4}-[0-9]{2}-[0-9]{2})", obs_orig, re.I)
+                    if m_lote or m_val:
+                        reduzir_lote_validade_estorno_entrada_nf(
+                            pid,
+                            lote_codigo=(m_lote.group(1).strip() if m_lote else "")[:100],
+                            data_validade=(
+                                parse_data_validade_entrada_nf(m_val.group(1)) if m_val else None
+                            ),
+                            qtd=qtd,
+                        )
+                except Exception:
+                    logger.exception(
+                        "estorno entrada NF: reduzir lote/validade adj=%s", adj.pk
+                    )
+    except Exception as exc:
+        logger.exception("estornar_ajustes_entrada_nf_por_reabertura")
+        return {"ok": False, "erro": str(exc)[:500], "estornados": 0, "ajuste_ids_estorno": []}
+    return {"ok": True, "estornados": len(criados), "ajuste_ids_estorno": criados}
+
+
 def reverter_integracao_entrada_nota_para_reabertura(
     db,
     oid: str,
     *,
     usuario: str = "",
+    usuario_django=None,
 ) -> dict[str, Any]:
     """
     Remove carimbo ``aprovacao_wizard_*``, flags de etapa do assistente e estorna o que for rastreável:
 
-    - Títulos Mongo em ``extra.financeiro_ids`` (só se ``financeiro_lancado``), via
-      ``excluir_lancamento_mongo_agro`` (falha se quitado ou vínculo ERP).
-    - Ajustes ``AjusteRapidoEstoque`` em ``extra.estoque_agro_ajuste_ids`` (só se o status
-      do rascunho é ``estoque_aplicado``), origem ``entrada_nf_agro``.
+    - Títulos em ``extra.financeiro_ids`` (só se ``financeiro_lancado``), via
+      ``excluir_lancamento_dispatch`` (Postgres no teste; Mongo na loja legado).
+    - Ajustes ``AjusteRapidoEstoque`` de entrada NF: **cria saída** ``estorno_entrada_nf_agro``
+      (não apaga a entrada — kardex fica rastreável). Detecta estoque por status
+      ``estoque_aplicado``, carimbo ``estoque_aplicado_em`` / ``estoque_agro_registrado_em``,
+      ou lista ``estoque_agro_ajuste_ids``.
 
     Pode ser chamado **sem** PIN final na nota quando há só travas de etapa (``wizard_etapa1/2/3_confirmada_em``)
     ou integrações já lançadas — assim «Reabrir nota» desfaz duplicidade antes de novo envio.
 
     Falha sem alterar o documento se alguma exclusão financeira não for permitida.
     """
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível"}
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return {"ok": False, "erro": "Armazenamento de rascunho indisponível"}
     _id = _object_id_rascunho(oid)
     if _id is None:
         return {"ok": False, "erro": "ID inválido."}
-    from estoque.models import AjusteRapidoEstoque, OrigemAjusteEstoque
 
-    from produtos.mongo_financeiro_util import excluir_lancamento_mongo_agro
+    from produtos.lancamentos_financeiro_pg_write_util import excluir_lancamento_dispatch
 
     try:
-        doc = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+        doc = col.find_one({"_id": _id})
         if not doc:
             return {"ok": False, "erro": "Rascunho não encontrado."}
         ex = dict(doc.get("extra") or {})
@@ -1772,17 +3842,10 @@ def reverter_integracao_entrada_nota_para_reabertura(
         had_wiz1 = bool(str(ex.get("wizard_etapa1_confirmada_em") or "").strip())
         had_wiz2 = bool(str(ex.get("wizard_etapa2_confirmada_em") or "").strip())
         had_wiz3 = bool(str(ex.get("wizard_etapa3_confirmada_em") or "").strip())
+        had_wiz4 = bool(str(ex.get("wizard_etapa4_lote_confirmada_em") or "").strip())
+        had_lote_pul = bool(str(ex.get("wizard_lote_pular_em") or "").strip())
 
         st_doc = str(doc.get("status") or "").strip().lower()
-        had_estoque = st_doc == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO
-        had_fin = bool(ex.get("financeiro_lancado"))
-
-        if not (had_pin or had_wiz1 or had_wiz2 or had_wiz3 or had_estoque or had_fin):
-            return {
-                "ok": False,
-                "erro": "Nada para reabrir: assistente sem etapas confirmadas nem estoque/financeiro registrado.",
-            }
-
         raw_aj = ex.get("estoque_agro_ajuste_ids") or []
         ajuste_ids: list[int] = []
         for x in raw_aj:
@@ -1790,6 +3853,31 @@ def reverter_integracao_entrada_nota_para_reabertura(
                 ajuste_ids.append(int(x))
             except (TypeError, ValueError):
                 continue
+        # Estoque aplicado: status, carimbo top-level, flag em extra ou lista de ajustes.
+        had_estoque = (
+            st_doc == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO
+            or bool(doc.get("estoque_aplicado_em"))
+            or bool(str(ex.get("estoque_agro_registrado_em") or "").strip())
+            or bool(ajuste_ids)
+        )
+        had_fin = bool(ex.get("financeiro_lancado")) or bool(
+            [str(x).strip() for x in (ex.get("financeiro_ids") or []) if str(x).strip()]
+        )
+
+        if not (
+            had_pin
+            or had_wiz1
+            or had_wiz2
+            or had_wiz3
+            or had_wiz4
+            or had_lote_pul
+            or had_estoque
+            or had_fin
+        ):
+            return {
+                "ok": False,
+                "erro": "Nada para reabrir: assistente sem etapas confirmadas nem estoque/financeiro registrado.",
+            }
 
         fin_raw = ex.get("financeiro_ids") or []
         fin_ids = [str(x).strip() for x in fin_raw if str(x).strip()]
@@ -1813,7 +3901,7 @@ def reverter_integracao_entrada_nota_para_reabertura(
 
         fin_falhas: list[dict[str, str]] = []
         for fid in fin_ids:
-            r = excluir_lancamento_mongo_agro(db, fid, usuario or "")
+            r = excluir_lancamento_dispatch(db, fid, usuario or "", despesa=True)
             if not r.get("ok"):
                 msg = str(r.get("erro") or "exclusão não permitida")[:400]
                 fin_falhas.append({"id": fid, "erro": msg})
@@ -1830,17 +3918,19 @@ def reverter_integracao_entrada_nota_para_reabertura(
                 "financeiro_falhas": fin_falhas,
             }
 
-        n_estoque_del = 0
-        if had_estoque and ajuste_ids:
-            try:
-                qs = AjusteRapidoEstoque.objects.filter(
-                    pk__in=ajuste_ids,
-                    origem=OrigemAjusteEstoque.ENTRADA_NF_AGRO,
-                )
-                n_estoque_del, _ = qs.delete()
-            except Exception as exc:
-                logger.exception("reverter_integracao_entrada_nota_para_reabertura estoque")
-                return {"ok": False, "erro": f"Falha ao estornar ajustes de estoque: {exc}"[:500]}
+        n_estoque_est = 0
+        if ajuste_ids:
+            er = estornar_ajustes_entrada_nf_por_reabertura(
+                ajuste_ids,
+                usuario_label=usuario,
+                usuario_django=usuario_django,
+            )
+            if not er.get("ok"):
+                return {
+                    "ok": False,
+                    "erro": f"Falha ao estornar ajustes de estoque: {er.get('erro') or 'erro'}"[:500],
+                }
+            n_estoque_est = int(er.get("estornados") or 0)
 
         linhas = doc.get("linhas") if isinstance(doc.get("linhas"), list) else []
         novo_status = entrada_nfe_status_derivado_linhas(linhas)
@@ -1851,9 +3941,13 @@ def reverter_integracao_entrada_nota_para_reabertura(
             "wizard_etapa1_confirmada_em",
             "wizard_etapa2_confirmada_em",
             "wizard_etapa3_confirmada_em",
+            "wizard_etapa4_lote_confirmada_em",
+            "wizard_lote_pular_em",
+            "wizard_etapa6_etiquetas_em",
             "financeiro_lancado",
             "financeiro_ids",
             "financeiro_lancado_em",
+            "financeiro_ui",
             "estoque_agro_ajuste_ids",
             "estoque_agro_registrado_em",
         ):
@@ -1862,7 +3956,7 @@ def reverter_integracao_entrada_nota_para_reabertura(
 
         agora = datetime.now(timezone.utc)
         unset_doc: dict[str, str] = {}
-        if had_estoque:
+        if had_estoque or n_estoque_est:
             unset_doc["estoque_aplicado_em"] = ""
             unset_doc["usuario_estoque_aplicado"] = ""
 
@@ -1877,16 +3971,105 @@ def reverter_integracao_entrada_nota_para_reabertura(
         if unset_doc:
             upd["$unset"] = unset_doc
 
-        db[COL_ENTRADA_RASCUNHO].update_one({"_id": _id}, upd)
+        col.update_one({"_id": _id}, upd)
         return {
             "ok": True,
             "id": str(_id),
             "status": novo_status,
-            "estoque_ajustes_removidos": int(n_estoque_del),
+            # Compat UI antiga: «removidos» = quantidade de estornos criados (não apaga mais).
+            "estoque_ajustes_removidos": int(n_estoque_est),
+            "estoque_ajustes_estornados": int(n_estoque_est),
             "financeiro_titulos_removidos": len(fin_ids),
         }
     except Exception as exc:
         logger.exception("reverter_integracao_entrada_nota_para_reabertura")
+        return {"ok": False, "erro": str(exc)[:500]}
+
+
+def liberar_rascunho_entrada_para_estoque_pendente(
+    db,
+    oid: str,
+    *,
+    usuario: str = "",
+) -> dict[str, Any]:
+    """Libera somente a etapa de estoque de uma nota finalizada sem estoque.
+
+    Este caminho não chama a reversão completa e não percorre nem altera títulos financeiros.
+    Remove apenas o carimbo final do PIN, mantendo todos os dados e vínculos já gravados.
+    """
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return {"ok": False, "erro": "Armazenamento de rascunho indisponível"}
+    _id = _object_id_rascunho(oid)
+    if _id is None:
+        return {"ok": False, "erro": "ID inválido."}
+    try:
+        doc = col.find_one({"_id": _id})
+        if not doc:
+            return {"ok": False, "erro": "Rascunho não encontrado."}
+        status = str(doc.get("status") or "").strip().lower()
+        if status == ENTRADA_NFE_STATUS_DESCARTADA:
+            return {"ok": False, "erro": "Nota descartada não pode ser liberada para estoque."}
+        ok_rasc, err_rasc = rascunho_entrada_valido_para_aprovacao_wizard(doc)
+        if not ok_rasc:
+            return {"ok": False, "erro": err_rasc}
+        extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+        if not str(extra.get("aprovacao_wizard_em") or "").strip():
+            return {"ok": False, "erro": "A nota não está finalizada com PIN."}
+
+        ajuste_ids = extra.get("estoque_agro_ajuste_ids")
+        if isinstance(ajuste_ids, (list, tuple, set)):
+            tem_ajustes = any(str(x).strip() for x in ajuste_ids if x is not None)
+        else:
+            tem_ajustes = bool(str(ajuste_ids or "").strip())
+        tem_estoque = (
+            status in (ENTRADA_NFE_STATUS_ESTOQUE_APLICADO, ENTRADA_NFE_STATUS_ENCERRADA)
+            or bool(doc.get("estoque_aplicado_em"))
+            or bool(str(extra.get("estoque_aplicado_em") or "").strip())
+            or bool(str(extra.get("estoque_agro_registrado_em") or "").strip())
+            or tem_ajustes
+        )
+        if tem_estoque:
+            return {"ok": False, "erro": "O estoque desta nota já foi registrado."}
+        if extra.get("estoque_agro_lock"):
+            return {
+                "ok": False,
+                "erro": "Há um registro de estoque em andamento. Atualize a página e tente novamente.",
+            }
+
+        agora = datetime.now(timezone.utc)
+        result = col.update_one(
+            {"_id": _id, "status": {"$nin": list(ENTRADA_NFE_STATUS_CONGELADOS)}},
+            {
+                "$unset": {
+                    "extra.aprovacao_wizard_em": "",
+                    "extra.aprovacao_wizard_usuario": "",
+                },
+                "$set": {
+                    "extra.estoque_pendente_liberado_em": agora.isoformat(),
+                    "extra.estoque_pendente_liberado_por": (usuario or "")[:200],
+                    "atualizado_em": agora,
+                    "usuario_ultima_alteracao": (usuario or "")[:200],
+                },
+            },
+        )
+        if getattr(result, "matched_count", 0) == 0:
+            return {"ok": False, "erro": "Rascunho não encontrado."}
+        fin_ids = extra.get("financeiro_ids")
+        return {
+            "ok": True,
+            "id": str(_id),
+            "status": status,
+            "escopo": "estoque_pendente",
+            "financeiro_preservado": True,
+            "financeiro_titulos_preservados": len(fin_ids) if isinstance(fin_ids, list) else 0,
+            "mensagem": (
+                "Nota liberada somente para registrar o estoque. "
+                "O financeiro existente foi preservado."
+            ),
+        }
+    except Exception as exc:
+        logger.exception("liberar_rascunho_entrada_para_estoque_pendente")
         return {"ok": False, "erro": str(exc)[:500]}
 
 
@@ -1898,14 +4081,15 @@ def marcar_rascunho_financeiro_lancado(
     usuario: str = "",
     lote: str | None = None,
 ) -> dict[str, Any]:
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível"}
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return {"ok": False, "erro": "Armazenamento de rascunho indisponível"}
     _id = _object_id_rascunho(oid)
     if _id is None:
         return {"ok": False, "erro": "ID inválido."}
     agora = datetime.now(timezone.utc)
     try:
-        doc = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+        doc = col.find_one({"_id": _id})
         if not doc:
             return {"ok": False, "erro": "Rascunho não encontrado."}
         fin_ids_lim = [str(x) for x in (ids or [])][:80]
@@ -1919,7 +4103,7 @@ def marcar_rascunho_financeiro_lancado(
         lote_s = str(lote or "").strip().upper()
         if lote_s:
             sets["extra.financeiro_lote"] = lote_s[:32]
-        db[COL_ENTRADA_RASCUNHO].update_one(
+        col.update_one(
             {"_id": _id},
             {"$set": sets},
         )
@@ -1935,27 +4119,180 @@ _LOTE_AGRO_NUMDOC_RE = re.compile(r"^(AG[0-9A-F]{8})(?:-\d{2}(?:-p\d+)?)?$", re.
 
 def _extrair_lote_agro_lancamento(linha: dict[str, Any]) -> str:
     """Código do lote manual Agro (ex.: ``AG2C0C39E7`` em ``AG2C0C39E7-01`` ou observações)."""
-    nd = str(linha.get("numero_documento") or "").strip()
+    nd = str(linha.get("numero_documento") or linha.get("NumeroDocumento") or "").strip()
     m = _LOTE_AGRO_NUMDOC_RE.match(nd)
     if m:
         return m.group(1).upper()
     texto = " ".join(
         str(linha.get(k) or "")
-        for k in ("observacoes", "descricao", "numero_documento")
+        for k in (
+            "observacoes",
+            "descricao",
+            "numero_documento",
+            "Observacao",
+            "Descricao",
+            "NumeroDocumento",
+        )
     )
     m2 = _LOTE_AGRO_CODIGO_RE.search(texto)
     return m2.group(0).upper() if m2 else ""
 
 
 def _extrair_nf_numero_lancamento(linha: dict[str, Any]) -> str:
-    nd = str(linha.get("numero_documento") or "").strip()
+    """Número da NF do título — prioriza texto «NF 76468» na descrição (padrão ERP/CP)."""
+    for key in ("descricao", "Descricao", "observacoes", "Observacao"):
+        texto = str(linha.get(key) or "")
+        m = re.search(r"\bNF\s*[.:]?\s*(\d{1,12})\b", texto, re.I)
+        if m:
+            return m.group(1).strip()
+    nd = str(linha.get("numero_documento") or linha.get("NumeroDocumento") or "").strip()
     if nd and nd not in ("0", "000") and not _LOTE_AGRO_NUMDOC_RE.match(nd):
-        return nd
-    desc = str(linha.get("descricao") or "")
-    m = re.match(r"^NF\s+(\S+)", desc, re.I)
-    if m:
-        return m.group(1).strip("—- ").split()[0]
+        if re.fullmatch(r"\d{1,12}", nd):
+            return nd
+        m2 = re.search(r"\bNF\s*[.:]?\s*(\d{1,12})\b", nd, re.I)
+        if m2:
+            return m2.group(1).strip()
     return ""
+
+
+def _nf_numero_norm(nf: str) -> str:
+    s = str(nf or "").strip()
+    if not s:
+        return ""
+    if s.isdigit():
+        return s.lstrip("0") or "0"
+    return s
+
+
+def _nf_numero_variantes(nf: str) -> list[str]:
+    s = str(nf or "").strip()
+    if not s:
+        return []
+    out: set[str] = {s}
+    if s.isdigit():
+        bare = s.lstrip("0") or "0"
+        out.add(bare)
+        for width in (6, 7, 8, 9):
+            out.add(bare.zfill(width))
+            out.add(s.zfill(width))
+    return [x for x in out if x]
+
+
+def _map_lancamentos_entrada_nfe_rascunho_ids_pg(
+    linhas: list[dict[str, Any]]
+) -> dict[str, str]:
+    """Match confiável no Postgres (sem corte dos rascunhos mais novos)."""
+    from django.db.models import Q
+
+    from produtos.models import EntradaNotaRascunhoAgro
+
+    ids = [str(x.get("id") or "").strip() for x in linhas if x.get("id")]
+    ids = [x for x in ids if x]
+    if not ids:
+        return {}
+    id_set = set(ids)
+    out: dict[str, str] = {}
+
+    q_fin = Q()
+    for lid in ids[:150]:
+        q_fin |= Q(extra__financeiro_ids__contains=[lid])
+        q_fin |= Q(extra__financeiro_ids__contains=lid)
+    try:
+        if q_fin:
+            qs = (
+                EntradaNotaRascunhoAgro.objects.exclude(
+                    status=ENTRADA_NFE_STATUS_DESCARTADA
+                )
+                .filter(q_fin)
+                .order_by("-atualizado_em")[:400]
+            )
+            for row in qs:
+                ex = row.extra if isinstance(row.extra, dict) else {}
+                fin_list = ex.get("financeiro_ids")
+                if not isinstance(fin_list, list):
+                    continue
+                for raw in fin_list:
+                    sid = str(raw or "").strip()
+                    if sid in id_set and sid not in out:
+                        out[sid] = str(row.rascunho_id)
+    except Exception as exc:
+        logger.warning("map_lancamentos_entrada_nfe_rascunho_ids_pg financeiro: %s", exc)
+
+    missing = [ln for ln in linhas if str(ln.get("id") or "") not in out]
+    nf_por_norm: dict[str, list[str]] = {}
+    variantes: set[str] = set()
+    for ln in missing:
+        lid = str(ln.get("id") or "")
+        nf = _extrair_nf_numero_lancamento(ln)
+        if not nf or not lid:
+            continue
+        nkey = _nf_numero_norm(nf)
+        nf_por_norm.setdefault(nkey, []).append(lid)
+        variantes.update(_nf_numero_variantes(nf))
+    if variantes:
+        try:
+            q_nf = Q(cabecalho__numero__in=list(variantes))
+            for v in list(variantes):
+                if str(v).isdigit():
+                    try:
+                        q_nf |= Q(cabecalho__numero=int(v))
+                    except (TypeError, ValueError):
+                        pass
+            qs_nf = (
+                EntradaNotaRascunhoAgro.objects.exclude(
+                    status=ENTRADA_NFE_STATUS_DESCARTADA
+                )
+                .filter(q_nf)
+                .order_by("-atualizado_em")[:400]
+            )
+            for row in qs_nf:
+                cab = row.cabecalho if isinstance(row.cabecalho, dict) else {}
+                nkey = _nf_numero_norm(str(cab.get("numero") or ""))
+                if not nkey:
+                    continue
+                for lid in nf_por_norm.get(nkey, []):
+                    if lid not in out:
+                        out[lid] = str(row.rascunho_id)
+        except Exception as exc:
+            logger.warning("map_lancamentos_entrada_nfe_rascunho_ids_pg nf: %s", exc)
+
+    missing_lote = [ln for ln in linhas if str(ln.get("id") or "") not in out]
+    lote_por_lanc: dict[str, list[str]] = {}
+    for ln in missing_lote:
+        lid = str(ln.get("id") or "")
+        lt = _extrair_lote_agro_lancamento(ln)
+        if not lt or not lid:
+            continue
+        lote_por_lanc.setdefault(lt, []).append(lid)
+    for lote, lanc_ids in lote_por_lanc.items():
+        try:
+            row = (
+                EntradaNotaRascunhoAgro.objects.exclude(
+                    status=ENTRADA_NFE_STATUS_DESCARTADA
+                )
+                .filter(extra__financeiro_lote=lote)
+                .order_by("-atualizado_em")
+                .first()
+            )
+            if not row:
+                for cand in (
+                    EntradaNotaRascunhoAgro.objects.exclude(
+                        status=ENTRADA_NFE_STATUS_DESCARTADA
+                    )
+                    .order_by("-atualizado_em")[:800]
+                ):
+                    ex = cand.extra if isinstance(cand.extra, dict) else {}
+                    if str(ex.get("financeiro_lote") or "").strip().upper() == lote:
+                        row = cand
+                        break
+            if not row:
+                continue
+            for lid in lanc_ids:
+                if lid not in out:
+                    out[lid] = str(row.rascunho_id)
+        except Exception as exc:
+            logger.warning("map_lancamentos_entrada_nfe_rascunho_ids_pg lote: %s", exc)
+    return out
 
 
 def _ids_titulos_mongo_por_lote_agro(db, lote: str) -> list[str]:
@@ -1987,10 +4324,11 @@ def _ids_titulos_mongo_por_lote_agro(db, lote: str) -> list[str]:
 def _rascunho_entrada_por_ids_financeiro(
     db, titulo_ids: list[str]
 ) -> str | None:
-    if db is None or not titulo_ids:
+    col = _entrada_nota_rascunho_store(db)
+    if col is None or not titulo_ids:
         return None
     try:
-        doc = db[COL_ENTRADA_RASCUNHO].find_one(
+        doc = col.find_one(
             {
                 "extra.financeiro_ids": {"$in": titulo_ids},
                 "status": {"$ne": ENTRADA_NFE_STATUS_DESCARTADA},
@@ -2008,11 +4346,12 @@ def _rascunho_entrada_por_ids_financeiro(
 def _rascunho_entrada_por_lote_agro(
     db, lote: str, *, cliente: str = ""
 ) -> str | None:
-    if db is None or not lote:
+    col = _entrada_nota_rascunho_store(db)
+    if col is None or not lote:
         return None
     lote = str(lote).strip().upper()
     try:
-        doc = db[COL_ENTRADA_RASCUNHO].find_one(
+        doc = col.find_one(
             {
                 "extra.financeiro_lote": lote,
                 "status": {"$ne": ENTRADA_NFE_STATUS_DESCARTADA},
@@ -2034,7 +4373,7 @@ def _rascunho_entrada_por_lote_agro(
     if not cliente:
         return None
     try:
-        cur = db[COL_ENTRADA_RASCUNHO].find(
+        cur = col.find(
             {
                 "status": {"$ne": ENTRADA_NFE_STATUS_DESCARTADA},
                 "extra.financeiro_lancado": True,
@@ -2057,8 +4396,19 @@ def _rascunho_entrada_por_lote_agro(
 def map_lancamentos_entrada_nfe_rascunho_ids(
     db, linhas: list[dict[str, Any]]
 ) -> dict[str, str]:
-    """Mapeia ID do título Mongo → ID do rascunho Entrada NF-e (``financeiro_ids``, NF ou lote Agro)."""
-    if db is None or not linhas:
+    """Mapeia ID do título → ID do rascunho Entrada NF-e (``financeiro_ids``, NF ou lote Agro)."""
+    if not linhas:
+        return {}
+    try:
+        from produtos.agro_fonte_config import agro_entrada_nota_rascunho_postgres
+
+        if agro_entrada_nota_rascunho_postgres():
+            return _map_lancamentos_entrada_nfe_rascunho_ids_pg(linhas)
+    except Exception as exc:
+        logger.warning("map_lancamentos_entrada_nfe_rascunho_ids pg gate: %s", exc)
+
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
         return {}
     ids = [str(x.get("id") or "").strip() for x in linhas if x.get("id")]
     ids = [x for x in ids if x]
@@ -2066,7 +4416,7 @@ def map_lancamentos_entrada_nfe_rascunho_ids(
         return {}
     out: dict[str, str] = {}
     try:
-        cur = db[COL_ENTRADA_RASCUNHO].find(
+        cur = col.find(
             {
                 "extra.financeiro_ids": {"$in": ids},
                 "status": {"$ne": ENTRADA_NFE_STATUS_DESCARTADA},
@@ -2088,15 +4438,20 @@ def map_lancamentos_entrada_nfe_rascunho_ids(
 
     missing = [ln for ln in linhas if str(ln.get("id") or "") not in out]
     nf_por_lanc: dict[str, list[str]] = {}
+    nf_norm_index: dict[str, str] = {}
     for ln in missing:
         lid = str(ln.get("id") or "")
         nf = _extrair_nf_numero_lancamento(ln)
         if nf and lid:
             nf_por_lanc.setdefault(nf, []).append(lid)
+            nf_norm_index[_nf_numero_norm(nf)] = nf
     if nf_por_lanc:
         try:
-            ors = [{"cabecalho.numero": nf} for nf in nf_por_lanc]
-            cur2 = db[COL_ENTRADA_RASCUNHO].find(
+            variantes: list[str] = []
+            for nf in nf_por_lanc:
+                variantes.extend(_nf_numero_variantes(nf))
+            ors = [{"cabecalho.numero": v} for v in dict.fromkeys(variantes)]
+            cur2 = col.find(
                 {
                     "$and": [
                         {"$or": ors},
@@ -2104,12 +4459,16 @@ def map_lancamentos_entrada_nfe_rascunho_ids(
                     ]
                 },
                 {"cabecalho.numero": 1},
-            ).limit(120)
+            ).limit(200)
             for doc in cur2:
                 rid = str(doc.get("_id", ""))
                 cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
-                nf = str(cab.get("numero") or "").strip()
-                for lid in nf_por_lanc.get(nf, []):
+                nf_doc = str(cab.get("numero") or "").strip()
+                chave = nf_norm_index.get(_nf_numero_norm(nf_doc))
+                lids = nf_por_lanc.get(nf_doc) or (
+                    nf_por_lanc.get(chave) if chave else []
+                )
+                for lid in lids:
                     if lid not in out:
                         out[lid] = rid
         except Exception as exc:
@@ -2159,20 +4518,22 @@ def pipeline_acao_rascunho_entrada(
     acao: str,
     *,
     usuario: str = "",
+    texto: str = "",
 ) -> dict[str, Any]:
-    """descartar | reabrir | correcao_sistemica_on | correcao_sistemica_off.
+    """descartar | reabrir | correcao_sistemica_on | correcao_sistemica_off | aviso_operacional_salvar | aviso_operacional_limpar.
 
     ``encerrar`` está desativado: a lista trata **Concluída** só com estoque aplicado + financeiro.
     """
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível"}
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return {"ok": False, "erro": "Armazenamento de rascunho indisponível"}
     _id = _object_id_rascunho(oid)
     if _id is None:
         return {"ok": False, "erro": "ID inválido."}
     ac = (acao or "").strip().lower()
     agora = datetime.now(timezone.utc)
     try:
-        doc = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+        doc = col.find_one({"_id": _id})
         if not doc:
             return {"ok": False, "erro": "Rascunho não encontrado."}
         st = str(doc.get("status") or "").strip().lower()
@@ -2187,7 +4548,15 @@ def pipeline_acao_rascunho_entrada(
         elif ac == "reabrir":
             if st not in (ENTRADA_NFE_STATUS_ENCERRADA, ENTRADA_NFE_STATUS_DESCARTADA):
                 return {"ok": False, "erro": "Só é possível reabrir notas encerradas ou descartadas."}
-            novo = entrada_nfe_status_derivado_linhas(linhas)
+            # Não basta mudar o status: precisa estornar estoque/financeiro (igual «Reabrir nota» do assistente).
+            rr = reverter_integracao_entrada_nota_para_reabertura(db, str(_id), usuario=usuario)
+            if rr.get("ok"):
+                return rr
+            err_rr = str(rr.get("erro") or "")
+            if "Nada para reabrir" in err_rr:
+                novo = entrada_nfe_status_derivado_linhas(linhas)
+            else:
+                return rr
         elif ac in ("correcao_sistemica_on", "correcao_sistemica_off"):
             ex0 = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
             if str(ex0.get("aprovacao_wizard_em") or "").strip():
@@ -2198,7 +4567,7 @@ def pipeline_acao_rascunho_entrada(
             if st == ENTRADA_NFE_STATUS_DESCARTADA:
                 return {"ok": False, "erro": "Nota descartada."}
             if ac == "correcao_sistemica_on":
-                db[COL_ENTRADA_RASCUNHO].update_one(
+                col.update_one(
                     {"_id": _id},
                     {
                         "$set": {
@@ -2210,7 +4579,7 @@ def pipeline_acao_rascunho_entrada(
                     },
                 )
             else:
-                db[COL_ENTRADA_RASCUNHO].update_one(
+                col.update_one(
                     {"_id": _id},
                     {
                         "$unset": {
@@ -2224,9 +4593,46 @@ def pipeline_acao_rascunho_entrada(
                     },
                 )
             return {"ok": True, "id": str(_id), "correcao_sistemica": ac == "correcao_sistemica_on"}
+        elif ac in ("aviso_operacional_salvar", "aviso_operacional_limpar"):
+            if st == ENTRADA_NFE_STATUS_DESCARTADA:
+                return {"ok": False, "erro": "Nota descartada."}
+            if ac == "aviso_operacional_salvar":
+                txt = str(texto or "").strip()
+                if len(txt) < 1:
+                    return {"ok": False, "erro": "Digite o aviso para a nota."}
+                if len(txt) > 500:
+                    txt = txt[:500]
+                col.update_one(
+                    {"_id": _id},
+                    {
+                        "$set": {
+                            "extra.aviso_operacional": txt,
+                            "extra.aviso_operacional_em": agora.isoformat(),
+                            "extra.aviso_operacional_por": (usuario or "")[:200],
+                            "atualizado_em": agora,
+                            "usuario_ultima_alteracao": (usuario or "")[:200],
+                        }
+                    },
+                )
+                return {"ok": True, "id": str(_id), "aviso_operacional": txt}
+            col.update_one(
+                {"_id": _id},
+                {
+                    "$unset": {
+                        "extra.aviso_operacional": "",
+                        "extra.aviso_operacional_em": "",
+                        "extra.aviso_operacional_por": "",
+                    },
+                    "$set": {
+                        "atualizado_em": agora,
+                        "usuario_ultima_alteracao": (usuario or "")[:200],
+                    },
+                },
+            )
+            return {"ok": True, "id": str(_id), "aviso_operacional": ""}
         else:
             return {"ok": False, "erro": "Ação inválida."}
-        db[COL_ENTRADA_RASCUNHO].update_one(
+        col.update_one(
             {"_id": _id},
             {
                 "$set": {
@@ -2244,15 +4650,64 @@ def pipeline_acao_rascunho_entrada(
 
 def obter_ult_nsu(db, cnpj: str) -> str:
     cnpj = re.sub(r"\D", "", cnpj or "")[:14]
-    if not cnpj or db is None:
+    if not cnpj:
         return "0"
+    # 1) Postgres (fonte estável — local e loja sem Mongo)
     try:
-        row = db[COL_DFE_CURSOR].find_one({"cnpj": cnpj})
-        if row and row.get("ult_nsu"):
-            return str(row["ult_nsu"]).zfill(15)
+        from produtos.models import AgroNfeDistDfeCursor
+
+        row = AgroNfeDistDfeCursor.objects.filter(cnpj=cnpj).only("ult_nsu").first()
+        if row and (row.ult_nsu or "").strip():
+            return str(row.ult_nsu).zfill(15)[:15]
+    except Exception as exc:
+        logger.warning("obter_ult_nsu pg: %s", exc)
+    if db is not None:
+        try:
+            row = db[COL_DFE_CURSOR].find_one({"cnpj": cnpj})
+            if row and row.get("ult_nsu"):
+                return str(row["ult_nsu"]).zfill(15)
+        except Exception:
+            pass
+    try:
+        from django.core.cache import cache
+
+        v = cache.get(f"agro_dfe_ult_nsu:{cnpj}")
+        if v:
+            return str(v).zfill(15)[:15]
     except Exception:
         pass
     return "0"
+
+
+def gravar_ult_nsu(db, cnpj: str, ult_nsu: str) -> None:
+    cnpj = re.sub(r"\D", "", cnpj or "")[:14]
+    if not cnpj:
+        return
+    ult = str(ult_nsu or "0").zfill(15)[:15]
+    try:
+        from produtos.models import AgroNfeDistDfeCursor
+
+        AgroNfeDistDfeCursor.objects.update_or_create(
+            cnpj=cnpj,
+            defaults={"ult_nsu": ult},
+        )
+    except Exception as exc:
+        logger.warning("gravar_ult_nsu pg: %s", exc)
+    if db is not None:
+        try:
+            db[COL_DFE_CURSOR].update_one(
+                {"cnpj": cnpj},
+                {"$set": {"ult_nsu": ult, "atualizado_em": datetime.now(timezone.utc)}},
+                upsert=True,
+            )
+        except Exception as exc:
+            logger.warning("gravar_ult_nsu mongo: %s", exc)
+    try:
+        from django.core.cache import cache
+
+        cache.set(f"agro_dfe_ult_nsu:{cnpj}", ult, timeout=60 * 60 * 24 * 120)
+    except Exception as exc:
+        logger.warning("gravar_ult_nsu cache: %s", exc)
 
 
 def _entrada_nfe_chave_nome_fornecedor(nome) -> str:
@@ -2567,18 +5022,79 @@ def buscar_fornecedores_entrada_nfe(
     return out
 
 
-def gravar_ult_nsu(db, cnpj: str, ult_nsu: str) -> None:
-    cnpj = re.sub(r"\D", "", cnpj or "")[:14]
-    if not cnpj or db is None:
-        return
-    try:
-        db[COL_DFE_CURSOR].update_one(
-            {"cnpj": cnpj},
-            {"$set": {"ult_nsu": str(ult_nsu).zfill(15), "atualizado_em": datetime.now(timezone.utc)}},
-            upsert=True,
-        )
-    except Exception as exc:
-        logger.warning("gravar_ult_nsu: %s", exc)
+def propagar_fiscal_nf_catalogo_entrada_nota(linhas: list) -> dict[str, Any]:
+    """
+    Na Entrada NF: se a linha da nota trouxer NCM, grava no ``Produto`` + overlay fiscal
+    (substitui padrão genérico / NCM antigo). CFOP da NF de **compra** não vira CFOP padrão
+    de venda (NFC-e continua 5102 via merge).
+    """
+    from produtos.agro_produto_fiscal_defaults import (
+        merge_fiscal_padrao_cadastro_manual_sp_sn,
+        normalizar_ncm_somente_digitos,
+    )
+    from produtos.catalogo_agro import obter_produto_model
+    from produtos.models import ProdutoGestaoOverlayAgro
+
+    out: dict[str, Any] = {
+        "ok": True,
+        "atualizados_produto": 0,
+        "atualizados_overlay": 0,
+        "produto_ids": [],
+    }
+    if not linhas:
+        return out
+    ids_ok: set[str] = set()
+    for ln in linhas:
+        if not isinstance(ln, dict):
+            continue
+        pid = str(ln.get("produto_id") or "").strip()
+        if not pid or pid.lower().startswith("local:"):
+            continue
+        ncm = normalizar_ncm_somente_digitos(ln.get("ncm"))
+        if len(ncm) < 8:
+            continue
+        p = obter_produto_model(pid)
+        pid64 = ""
+        if p is not None:
+            pid64 = str(p.produto_externo_id or pid).strip()[:64]
+            try:
+                if str(p.ncm or "").strip() != ncm:
+                    p.ncm = ncm[:16]
+                    p.save(update_fields=["ncm"])
+                    out["atualizados_produto"] += 1
+            except Exception as exc:
+                logger.warning("propagar_fiscal produto %s: %s", pid, exc)
+        else:
+            pid64 = pid[:64]
+        if not pid64:
+            continue
+        try:
+            ov, _created = ProdutoGestaoOverlayAgro.objects.get_or_create(
+                produto_externo_id=pid64,
+                defaults={},
+            )
+            ex = dict(ov.cadastro_extras) if isinstance(ov.cadastro_extras, dict) else {}
+            fis_prev = dict(ex.get("fiscal") or {}) if isinstance(ex.get("fiscal"), dict) else {}
+            fis_prev["ncm"] = ncm[:14]
+            mf = merge_fiscal_padrao_cadastro_manual_sp_sn(fis_prev)
+            # NCM da NF prevalece sobre o padrão (merge já manteve se veio preenchido).
+            mf["ncm"] = ncm[:14]
+            ex["fiscal"] = {
+                "ncm": mf["ncm"][:14],
+                "cest": str(mf.get("cest") or "").strip()[:10],
+                "cfop": mf["cfop"][:7],
+                "csosn": mf["csosn"][:7],
+                "origem": mf["origem"][:4],
+                "cst_pis_cofins": str(mf.get("cst_pis_cofins") or "")[:8],
+            }
+            ov.cadastro_extras = ex
+            ov.save(update_fields=["cadastro_extras", "atualizado_em"])
+            out["atualizados_overlay"] += 1
+            ids_ok.add(pid64)
+        except Exception as exc:
+            logger.warning("propagar_fiscal overlay %s: %s", pid, exc)
+    out["produto_ids"] = sorted(ids_ok)
+    return out
 
 
 def propagar_precos_venda_catalogo_entrada_nota(
@@ -2589,12 +5105,14 @@ def propagar_precos_venda_catalogo_entrada_nota(
     _usuario_label: str = "",
 ) -> dict[str, Any]:
     """
-    Copia o P. venda das linhas da NF para o espelho Mongo (``DtoProduto``) e para o overlay SQLite,
+    Copia o P. venda das linhas da NF para o espelho Mongo (``DtoProduto``) e para o overlay,
     para o PDV e a busca refletirem o preço após salvar / atualizar rascunho ou fluxos ligados.
     Ignora linhas sem ``produto_id`` de catálogo ou com preço ≤ 0.
+    Com Mongo desligado: ainda atualiza overlay + ``Produto`` no Postgres.
     """
     from bson import ObjectId
 
+    from produtos.catalogo_agro import obter_produto_model
     from produtos.models import ProdutoGestaoOverlayAgro
 
     try:
@@ -2614,9 +5132,9 @@ def propagar_precos_venda_catalogo_entrada_nota(
         "atualizados_overlay": 0,
         "produto_ids": [],
     }
-    if db is None or client_m is None or not linhas:
+    if not linhas:
         return out
-    col = client_m.col_p
+    col = getattr(client_m, "col_p", None) if client_m is not None else None
     ids_erp: set[str] = set()
     for ln in linhas:
         if not isinstance(ln, dict):
@@ -2634,47 +5152,62 @@ def propagar_precos_venda_catalogo_entrada_nota(
         c_prod = str(ln.get("c_prod") or "").strip()
         ean_d = "".join(ch for ch in str(ln.get("ean") or "") if ch.isdigit())
         doc_ln = None
-        if _doc_entrada_ln:
-            doc_ln = _doc_entrada_ln(db, col, pid, codigo_catalogo=c_prod, ean=ean_d)
         id_u = pid
-        if isinstance(doc_ln, dict):
-            id_u = (
-                str(doc_ln.get("Id") or "").strip() or str(doc_ln.get("_id") or "").strip() or pid
-            )
-        if _filt_entrada_ln:
-            filt = _filt_entrada_ln(id_u)
-        else:
-            or_filt: list[dict[str, Any]] = [{"Id": pid}]
+        if db is not None and col and _doc_entrada_ln:
+            doc_ln = _doc_entrada_ln(db, col, pid, codigo_catalogo=c_prod, ean=ean_d)
+            if isinstance(doc_ln, dict):
+                id_u = (
+                    str(doc_ln.get("Id") or "").strip()
+                    or str(doc_ln.get("_id") or "").strip()
+                    or pid
+                )
+            if _filt_entrada_ln:
+                filt = _filt_entrada_ln(id_u)
+            else:
+                or_filt: list[dict[str, Any]] = [{"Id": pid}]
+                try:
+                    or_filt.append({"Id": int(pid)})
+                except (TypeError, ValueError):
+                    pass
+                try:
+                    or_filt.append({"_id": ObjectId(pid)})
+                except Exception:
+                    pass
+                filt = {"$or": or_filt}
             try:
-                or_filt.append({"Id": int(pid)})
-            except (TypeError, ValueError):
-                pass
-            try:
-                or_filt.append({"_id": ObjectId(pid)})
-            except Exception:
-                pass
-            filt = {"$or": or_filt}
+                r = db[col].update_one(filt, {"$set": {"ValorVenda": pv, "PrecoVenda": pv}})
+                if r.matched_count:
+                    out["atualizados_mongo"] += 1
+                    pid_erp = ""
+                    if isinstance(doc_ln, dict) and str(doc_ln.get("Id") or "").strip():
+                        pid_erp = str(doc_ln.get("Id")).strip()[:64]
+                    elif str(id_u or "").strip():
+                        pid_erp = str(id_u).strip()[:64]
+                    if pid_erp:
+                        ids_erp.add(pid_erp)
+            except Exception as exc:
+                logger.warning("propagar_precos mongo %s: %s", pid, exc)
         try:
-            r = db[col].update_one(filt, {"$set": {"ValorVenda": pv, "PrecoVenda": pv}})
-            if r.matched_count:
-                out["atualizados_mongo"] += 1
-                pid_erp = ""
-                if isinstance(doc_ln, dict) and str(doc_ln.get("Id") or "").strip():
-                    pid_erp = str(doc_ln.get("Id")).strip()[:64]
-                elif str(id_u or "").strip():
-                    pid_erp = str(id_u).strip()[:64]
-                if pid_erp:
-                    ids_erp.add(pid_erp)
-        except Exception as exc:
-            logger.warning("propagar_precos mongo %s: %s", pid, exc)
-        try:
-            ov_key = (_ov_id_entrada(db, col, id_u) if _ov_id_entrada else None) or id_u
+            ov_key = id_u
+            if db is not None and col and _ov_id_entrada:
+                ov_key = _ov_id_entrada(db, col, id_u) or id_u
+            p_mod = obter_produto_model(str(ov_key or pid))
+            if p_mod is not None:
+                ov_key = str(p_mod.produto_externo_id or ov_key or pid).strip()[:64]
+                try:
+                    from decimal import Decimal as _Dec
+
+                    p_mod.preco_venda = _Dec(str(pv))
+                    p_mod.save(update_fields=["preco_venda"])
+                except Exception:
+                    pass
             dec = Decimal(str(pv))
             ProdutoGestaoOverlayAgro.objects.update_or_create(
                 produto_externo_id=str(ov_key)[:64],
                 defaults={"preco_venda": dec},
             )
             out["atualizados_overlay"] += 1
+            ids_erp.add(str(ov_key)[:64])
         except Exception as exc:
             logger.warning("propagar_precos overlay %s: %s", pid, exc)
     if ids_erp:

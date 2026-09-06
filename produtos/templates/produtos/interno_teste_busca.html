@@ -1,0 +1,140 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Teste motor busca v2 — SisVale</title>
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>
+    .busca-teste-shell { max-width: 96rem; margin: 0 auto; padding: 1rem; min-height: 100dvh; }
+    .busca-teste-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; min-height: 0; }
+    @media (max-width: 900px) { .busca-teste-grid { grid-template-columns: 1fr; } }
+    .busca-teste-col { border: 1px solid #cbd5e1; border-radius: 0.75rem; background: #fff; min-height: 12rem; max-height: 70dvh; overflow: auto; }
+    .busca-teste-col h2 { position: sticky; top: 0; background: #f8fafc; padding: 0.6rem 0.75rem; font-weight: 800; font-size: 0.95rem; border-bottom: 1px solid #e2e8f0; z-index: 1; }
+    .busca-teste-item { padding: 0.55rem 0.75rem; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; line-height: 1.35; }
+    .busca-teste-item strong { color: #0f172a; }
+    .busca-teste-chip { display: inline-block; padding: 0.35rem 0.65rem; margin: 0.15rem; border-radius: 999px; background: #ecfdf5; color: #065f46; font-weight: 700; font-size: 0.8rem; cursor: pointer; border: 1px solid #a7f3d0; }
+    .busca-teste-input { width: 100%; font-size: 1.1rem; padding: 0.75rem 1rem; border: 2px solid #94a3b8; border-radius: 0.75rem; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900">
+<div class="busca-teste-shell">
+  <header class="mb-4">
+    <p class="text-xs font-bold text-emerald-700 uppercase tracking-wide">Interno · provisório</p>
+    <h1 class="text-2xl font-black text-slate-900">Motor de busca v2</h1>
+    <p class="text-sm text-slate-600 mt-1 max-w-3xl">
+      Compara <strong>legado</strong> e <strong>v2</strong> (devem ficar iguais após v2.92).
+      Referência: busca do <strong>PDV</strong> (filtro local + relevância). Atalhos abaixo.
+    </p>
+    <p class="mt-2">
+      <a href="{% url 'home' %}" class="text-sm font-bold text-orange-600 hover:underline">← Voltar ao BI</a>
+    </p>
+  </header>
+
+  <div class="mb-3 flex flex-wrap gap-1" id="busca-atalhos">
+    <button type="button" class="busca-teste-chip" data-q="gm9503">gm9503</button>
+    <button type="button" class="busca-teste-chip" data-q="GM9503">GM9503</button>
+    <button type="button" class="busca-teste-chip" data-q="gm0050">gm0050</button>
+    <button type="button" class="busca-teste-chip" data-q="ibiuna 25">ibiuna 25</button>
+    <button type="button" class="busca-teste-chip" data-q="akiles">akiles</button>
+    <button type="button" class="busca-teste-chip" data-q="milho">milho</button>
+  </div>
+
+  <input type="search" id="busca-termo" class="busca-teste-input mb-4" placeholder="Digite GM, nome ou código…" autocomplete="off" autofocus>
+
+  <p id="busca-status" class="text-sm font-bold text-slate-500 mb-3">Digite ao menos 2 caracteres.</p>
+
+  <div class="busca-teste-grid">
+    <section class="busca-teste-col">
+      <h2>Legado · <span id="cnt-legado">0</span> itens</h2>
+      <div id="lista-legado"></div>
+    </section>
+    <section class="busca-teste-col">
+      <h2>Motor v2 · <span id="cnt-v2">0</span> itens</h2>
+      <div id="lista-v2"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  const inp = document.getElementById('busca-termo');
+  const statusEl = document.getElementById('busca-status');
+  let timer = null;
+  let seq = 0;
+
+  function esc(s) {
+    return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  }
+
+  function renderItem(p) {
+    const cod = p.codigo_nfe || p.codigo || '—';
+    const gm = p.codigo_nfe || p.codigo || '';
+    return `<div class="busca-teste-item">
+      <strong>${esc(p.nome || 'Sem nome')}</strong><br>
+      <span class="text-slate-500">${esc(gm)} · id ${esc(p.id)}</span>
+      ${p.preco_venda != null ? `<br><span class="text-emerald-700 font-bold">R$ ${Number(p.preco_venda).toFixed(2)}</span>` : ''}
+    </div>`;
+  }
+
+  function renderLista(el, cntEl, produtos) {
+    const arr = Array.isArray(produtos) ? produtos : [];
+    cntEl.textContent = String(arr.length);
+    if (!arr.length) {
+      el.innerHTML = '<div class="busca-teste-item text-slate-400 font-bold">Nenhum resultado</div>';
+      return;
+    }
+    el.innerHTML = arr.slice(0, 40).map(renderItem).join('');
+    if (arr.length > 40) {
+      el.innerHTML += `<div class="busca-teste-item text-slate-400">+ ${arr.length - 40} ocultos</div>`;
+    }
+  }
+
+  async function buscar(termo) {
+    const t = String(termo || '').trim();
+    if (t.length < 2) {
+      statusEl.textContent = 'Digite ao menos 2 caracteres.';
+      renderLista(document.getElementById('lista-legado'), document.getElementById('cnt-legado'), []);
+      renderLista(document.getElementById('lista-v2'), document.getElementById('cnt-v2'), []);
+      return;
+    }
+    const mySeq = ++seq;
+    statusEl.textContent = 'Buscando…';
+    const q = encodeURIComponent(t);
+    try {
+      const [r1, r2] = await Promise.all([
+        fetch(`/api/buscar/?q=${q}&compras=1`).then((r) => r.json()),
+        fetch(`/api/buscar-v2/?q=${q}&compras=1`).then((r) => r.json()),
+      ]);
+      if (mySeq !== seq) return;
+      renderLista(document.getElementById('lista-legado'), document.getElementById('cnt-legado'), r1.produtos || []);
+      renderLista(document.getElementById('lista-v2'), document.getElementById('cnt-v2'), r2.produtos || []);
+      const n1 = (r1.produtos || []).length;
+      const n2 = (r2.produtos || []).length;
+      statusEl.textContent = n1 === n2
+        ? `Mesma quantidade (${n1}). Confira ordem e GM no topo.`
+        : `Legado ${n1} · v2 ${n2} — diferença esperada enquanto migramos.`;
+    } catch (e) {
+      if (mySeq !== seq) return;
+      statusEl.textContent = 'Erro na busca — veja console.';
+      console.error(e);
+    }
+  }
+
+  inp.addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => buscar(inp.value), 200);
+  });
+
+  document.getElementById('busca-atalhos').addEventListener('click', (ev) => {
+    const btn = ev.target.closest('[data-q]');
+    if (!btn) return;
+    inp.value = btn.getAttribute('data-q') || '';
+    buscar(inp.value);
+  });
+})();
+</script>
+</body>
+</html>

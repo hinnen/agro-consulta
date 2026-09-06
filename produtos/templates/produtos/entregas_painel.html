@@ -88,7 +88,7 @@
     </div>
   </div>
 
-  <div id="modal-imp-entrega" class="fixed inset-0 z-[80] hidden items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="modal-imp-titulo" onclick="if(event.target===this){var m=document.getElementById('modal-imp-entrega');m.classList.add('hidden');m.classList.remove('flex');}">
+  <div id="modal-imp-entrega" class="fixed inset-0 z-[80] hidden items-center justify-center p-4 bg-slate-950/70" role="dialog" aria-modal="true" aria-labelledby="modal-imp-titulo">
     <div class="bg-white w-full max-w-[min(28rem,96vw)] rounded-2xl shadow-xl border border-slate-200 overflow-hidden" onclick="event.stopPropagation()">
       <div class="px-4 py-3 border-b border-slate-100 bg-slate-50">
         <h2 id="modal-imp-titulo" class="text-base font-black uppercase text-slate-800">Imprimir</h2>
@@ -229,6 +229,7 @@
     </div>
   </div>
 
+  <script src="{% static 'produtos/js/venda_cupom_80mm.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
   <script>
 (function () {
   var ORIGENS = {{ origens_maps_json }};
@@ -1012,6 +1013,108 @@
     }
   }
 
+  /** Parse R$ BR / número (via entregador — troco). */
+  function parseMoneyBrEntrega(s) {
+    var t = String(s == null ? '' : s).replace(/[R$\s]/gi, '').trim();
+    if (!t) return NaN;
+    if (t.indexOf(',') >= 0) t = t.replace(/\./g, '').replace(',', '.');
+    var n = parseFloat(t);
+    return isFinite(n) ? n : NaN;
+  }
+
+  /** Troco a levar = «paga com» − total (obs / campos). */
+  function trocoLevarValorEntrega(e) {
+    var obs = String(e.observacoes || '');
+    var m = obs.match(/Troco:\s*([0-9.,]+)/i);
+    var pagaCom = m ? parseMoneyBrEntrega(m[1]) : NaN;
+    if (!isFinite(pagaCom) && e.troco_paga_com != null) pagaCom = parseMoneyBrEntrega(e.troco_paga_com);
+    if (!isFinite(pagaCom) || pagaCom < 0.009) return null;
+    var tot = NaN;
+    if (e.total_texto) tot = parseMoneyBrEntrega(String(e.total_texto).replace(/[^\d,.-]/g, ''));
+    if (!isFinite(tot) && e.total != null) tot = Number(e.total);
+    if (!isFinite(tot)) return null;
+    var diff = Math.round((pagaCom - tot) * 100) / 100;
+    return diff > 0.009 ? diff : null;
+  }
+
+  /**
+   * Faixas grandes na via do entregador (igual destaque do nome):
+   * PAGO · LEVAR TROCO · LEVAR MÁQUINA.
+   */
+  function htmlFaixaPagamentoEntregador(e) {
+    e = e || {};
+    var forma = String(e.forma_pagamento || '');
+    var formaL = forma.toLowerCase();
+    var obs = String(e.observacoes || '').toLowerCase();
+    var pag = e.pagamento_pdv || {};
+    var aguarda = e.aguarda_pagamento_pdv === true;
+    var pago = pag.pago === true;
+    if (!pago && /pago\s*na\s*loja|pagamento\s*na\s*loja/i.test(forma + ' ' + obs)) pago = true;
+    if (!pago && pag.label && /pago/i.test(String(pag.label)) && !/cobrar|n[aã]o\s*pago/i.test(String(pag.label))) {
+      pago = true;
+    }
+    var dinheiro = /dinheiro/i.test(forma + ' ' + obs) || (aguarda && /dinheiro/i.test(obs));
+    var blobCartao = (forma + ' ' + obs).replace(/maquininha\s*:\s*n[aã]o/gi, ' ');
+    var cartao =
+      /cart[aã]o|maquininha|pinpad|cr[eé]dito|d[eé]bito/i.test(blobCartao) ||
+      (aguarda && /cart[aã]o|maquininha/i.test(blobCartao));
+    if (dinheiro) cartao = false;
+    var trocoPrecisa = e.troco_precisa === true;
+    var trocoVal = trocoLevarValorEntrega(e);
+    if (trocoVal != null) trocoPrecisa = true;
+    if (e.troco_precisa === false && trocoVal == null) trocoPrecisa = false;
+    if (pago) {
+      trocoPrecisa = false;
+      cartao = false;
+      dinheiro = false;
+    }
+    var box =
+      'margin:10px 0 8px;padding:10px 6px;text-align:center;border:3px solid #000;' +
+      'border-radius:6px;-webkit-print-color-adjust:exact;print-color-adjust:exact;';
+    var parts = [];
+    if (pago) {
+      parts.push(
+        '<div style="' +
+          box +
+          'background:#000;color:#fff">' +
+          '<div style="font-size:28px;font-weight:900;letter-spacing:0.06em;line-height:1.05">PAGO</div>' +
+          '<div style="font-size:11px;font-weight:700;margin-top:4px;opacity:0.95">NÃO cobrar no local</div>' +
+          '</div>'
+      );
+    } else if (trocoPrecisa && (dinheiro || !cartao)) {
+      var linhaTroco =
+        trocoVal != null
+          ? 'Troco: ' + formatarMoedaPainel(trocoVal)
+          : 'Cliente precisa de troco';
+      parts.push(
+        '<div style="' +
+          box +
+          'background:#111;color:#fff">' +
+          '<div style="font-size:22px;font-weight:900;letter-spacing:0.04em;line-height:1.1">LEVAR TROCO</div>' +
+          '<div style="font-size:14px;font-weight:800;margin-top:4px">' +
+          esc(linhaTroco) +
+          '</div></div>'
+      );
+    } else if (cartao) {
+      parts.push(
+        '<div style="' +
+          box +
+          'background:#000;color:#fff">' +
+          '<div style="font-size:20px;font-weight:900;letter-spacing:0.03em;line-height:1.15">LEVAR MÁQUINA</div>' +
+          '<div style="font-size:12px;font-weight:700;margin-top:4px">Cartão no local</div></div>'
+      );
+    } else if (dinheiro) {
+      parts.push(
+        '<div style="' +
+          box +
+          'background:#000;color:#fff">' +
+          '<div style="font-size:20px;font-weight:900;letter-spacing:0.03em;line-height:1.15">COBRAR DINHEIRO</div>' +
+          '<div style="font-size:12px;font-weight:700;margin-top:4px">Sem troco — valor exato</div></div>'
+      );
+    }
+    return parts.join('');
+  }
+
   function codigoBarrasEntrega(e) {
     var c = String(e.retomar_codigo || '').trim();
     if (c) return c;
@@ -1074,6 +1177,7 @@
     h += '<div style="font-size:26px;font-weight:900;text-align:center;line-height:1;margin:10px 0 8px;letter-spacing:-0.02em;">' + esc(primeiro) + '</div>';
     h += '<div style="font-size:10px;">' + esc(dh) + '</div>';
     h += '<div style="margin-top:8px;line-height:1.3;"><b>Cliente</b> ' + esc(nomeCli) + '</div>';
+    h += htmlFaixaPagamentoEntregador(e);
     h += '<div style="border-top:1px dashed #000;margin:8px 0;"></div>';
     h += entItems;
     h += '<div style="margin-top:8px;"><b>Endereço</b></div>';
@@ -1126,16 +1230,31 @@
     if (opt.cup) parts.push(htmlPagCupom(e));
     if (!parts.length) return;
     var barcodeVal = codigoBarrasEntrega(e);
+    var packStyles =
+      '@page{margin:0;size:80mm 200mm}' +
+      'html,body{margin:0;padding:0}' +
+      'body{font-family:system-ui,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+      '.pg{width:72mm;margin:0 auto;padding:4mm 3mm;font-size:11px;line-height:1.35;box-sizing:border-box;page-break-after:always;break-after:page}' +
+      '.pg:last-child{page-break-after:auto;break-after:auto}';
+
+    if (typeof window.agroCupomPrintBodyInIframe === 'function') {
+      window.agroCupomPrintBodyInIframe({
+        iframeId: 'agro-print-iframe-entregas',
+        title: 'Entrega #' + String(e.id),
+        styles: packStyles,
+        bodyHtml: parts.join(''),
+        barcodeVal: opt.sep ? barcodeVal : '',
+        readyDelay: 80
+      });
+      return;
+    }
+
     var inner = parts.join('');
     var docHtml =
       '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Entrega #' +
       String(e.id) +
       '</title><style>' +
-      '@page{margin:0;size:80mm 200mm}' +
-      'html,body{margin:0;padding:0}' +
-      'body{font-family:system-ui,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
-      '.pg{width:72mm;margin:0 auto;padding:4mm 3mm;font-size:11px;line-height:1.35;box-sizing:border-box;page-break-after:always;break-after:page}' +
-      '.pg:last-child{page-break-after:auto;break-after:auto}' +
+      packStyles +
       '</style></head><body>' +
       inner +
       '</body></html>';
@@ -1158,9 +1277,8 @@
     var runPrint = function () {
       try {
         var svg = idoc.getElementById('barc-orc');
-        var iw = iframe.contentWindow;
-        if (svg && iw && typeof iw.JsBarcode !== 'undefined') {
-          iw.JsBarcode(svg, barcodeVal, {
+        if (svg && window.JsBarcode) {
+          window.JsBarcode(svg, barcodeVal, {
             format: 'CODE128',
             width: 1.35,
             height: 44,
@@ -1177,16 +1295,13 @@
           iframe.contentWindow.focus();
           iframe.contentWindow.print();
         } catch (e4) {}
-      }, 100);
+      }, 80);
     };
-    var old = idoc.querySelector('script[data-agro-jsbarcode]');
-    if (old) old.remove();
-    var s = idoc.createElement('script');
-    s.setAttribute('data-agro-jsbarcode', '1');
-    s.src = 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js';
-    s.onload = runPrint;
-    s.onerror = runPrint;
-    idoc.head.appendChild(s);
+    if (typeof window.agroCupomEnsureJsBarcode === 'function') {
+      window.agroCupomEnsureJsBarcode(runPrint);
+    } else {
+      runPrint();
+    }
   }
 
   function imprimirSequenciaRota80mm(origem, paradas, kmTotal) {
@@ -1207,13 +1322,13 @@
           '<div style="font-size:9px;color:#333;margin-top:3px;line-height:1.25;word-break:break-word;">' + esc(String(p.texto || '')) + '</div>' +
         '</div>';
     });
-    var html =
-      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Rota Entregas</title><style>' +
+    var rotaStyles =
       '@page{margin:0;size:80mm auto}' +
       'html,body{margin:0;padding:0}' +
       'body{font-family:system-ui,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
-      '.pg{width:72mm;margin:0 auto;padding:4mm 3mm;font-size:11px;line-height:1.35;box-sizing:border-box}' +
-      '</style></head><body><div class="pg">' +
+      '.pg{width:72mm;margin:0 auto;padding:4mm 3mm;font-size:11px;line-height:1.35;box-sizing:border-box}';
+    var bodyHtml =
+      '<div class="pg">' +
       '<div style="text-align:center;font-size:13px;font-weight:900;letter-spacing:.02em;">SEQUÊNCIA DE ENTREGA</div>' +
       '<div style="font-size:9px;margin-top:4px;text-align:center;">' + esc(when) + '</div>' +
       '<div style="border-top:2px solid #000;margin:8px 0 6px;"></div>' +
@@ -1223,7 +1338,25 @@
       '<div style="border-top:2px solid #000;margin:8px 0 4px;"></div>' +
       itensHtml +
       '<div style="border-top:1px dashed #000;margin-top:8px;padding-top:6px;text-align:center;font-size:9px;">SisVale · Entregas</div>' +
-      '</div></body></html>';
+      '</div>';
+
+    if (typeof window.agroCupomPrintBodyInIframe === 'function') {
+      window.agroCupomPrintBodyInIframe({
+        iframeId: 'agro-print-iframe-rota',
+        title: 'Rota Entregas',
+        styles: rotaStyles,
+        bodyHtml: bodyHtml,
+        readyDelay: 40
+      });
+      return;
+    }
+
+    var html =
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Rota Entregas</title><style>' +
+      rotaStyles +
+      '</style></head><body>' +
+      bodyHtml +
+      '</body></html>';
 
     var iframe = document.getElementById('agro-print-iframe-rota');
     if (!iframe) {
@@ -1252,6 +1385,42 @@
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
       body: JSON.stringify(payload),
     }).then(function (r) { return r.json(); });
+  }
+
+  /** Apaga lembrete do PDV quando entrega vira entregue/cancelado (mesmo PC). */
+  function limparLembreteCaixaEntrega(nomeCliente) {
+    if (typeof window.agroLimparLembretesEntregaCaixa === 'function') {
+      window.agroLimparLembretesEntregaCaixa(nomeCliente);
+      return;
+    }
+    var n = String(nomeCliente || '').trim().toLowerCase();
+    if (!n) return;
+    var lista;
+    try {
+      lista = JSON.parse(localStorage.getItem('gmLembretesCaixa') || '[]');
+    } catch (e0) {
+      lista = [];
+    }
+    if (!Array.isArray(lista) || !lista.length) return;
+    var filtrada = lista.filter(function (x) {
+      if (String(x.id || '').indexOf('pdv_wiz_ent_') !== 0) return true;
+      var cli = String(x.cliente || '').trim().toLowerCase();
+      if (cli) return cli !== n;
+      return String(x.texto || '').toLowerCase().indexOf(n) === -1;
+    });
+    if (filtrada.length !== lista.length) {
+      try {
+        localStorage.setItem('gmLembretesCaixa', JSON.stringify(filtrada));
+      } catch (e1) {}
+    }
+  }
+
+  function aposAtualizarEntregaStatus(payload, j, nomeCliente) {
+    if (!j || !j.ok) return;
+    var st = String((payload && payload.status) || '').trim();
+    if (st === 'entregue' || st === 'cancelado') {
+      limparLembreteCaixaEntrega(nomeCliente);
+    }
   }
 
   var cacheEntregas = [];
@@ -1400,6 +1569,7 @@
       '<td class="p-1.5 align-middle font-mono text-xs font-black text-slate-600">' + esc(e.id) + '</td>' +
       '<td class="p-1.5 align-middle min-w-[132px] max-w-[200px]">' +
         '<div class="font-black text-sm text-slate-900 leading-tight">' + esc(e.cliente_nome) + '</div>' +
+        (String(e.origem || '') === 'catalogo' ? '<span class="inline-block mt-0.5 text-[9px] font-black uppercase tracking-wide bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">Catálogo</span>' : '') +
         '<div class="text-xs font-mono font-semibold text-slate-600 mt-0.5">' + esc(e.telefone || '') + '</div>' +
         (e.operador ? '<div class="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-wide">Op. ' + esc(e.operador) + '</div>' : '') +
       '</td>' +
@@ -1487,12 +1657,20 @@
       postAtualizar({ id: e.id, hora_saida_now: true }).then(function (j) { if (j.ok) carregar(); });
     };
     tr.querySelector('.ent-btn-ent').onclick = function () {
-      postAtualizar({ id: e.id, hora_entrega_now: true, status: 'entregue' }).then(function (j) { if (j.ok) carregar(); });
+      var nome = String(e.cliente_nome || '').trim();
+      postAtualizar({ id: e.id, hora_entrega_now: true, status: 'entregue' }).then(function (j) {
+        aposAtualizarEntregaStatus({ status: 'entregue' }, j, nome);
+        if (j.ok) carregar();
+      });
     };
 
     tr.querySelector('.ent-status').onchange = function () {
       var v = this.value;
-      postAtualizar({ id: e.id, status: v }).then(function (j) { if (!j.ok) alert('Falha ao salvar status'); });
+      var nome = String(e.cliente_nome || '').trim();
+      postAtualizar({ id: e.id, status: v }).then(function (j) {
+        aposAtualizarEntregaStatus({ status: v }, j, nome);
+        if (!j.ok) alert('Falha ao salvar status');
+      });
     };
 
     tr.querySelector('.ent-btn-salvar-maps').onclick = function () {
@@ -2003,7 +2181,7 @@
   };
 
   document.getElementById('modal-rota-otimizada').addEventListener('click', function (ev) {
-    if (ev.target === this) fecharModalRotaOpt();
+    /* Fundo nao fecha — so X / FECHAR / Esc */
   });
   document.getElementById('rota-opt-close').onclick = fecharModalRotaOpt;
   document.getElementById('rota-opt-open-maps').onclick = function () {
@@ -2039,10 +2217,10 @@
   };
 
   document.getElementById('modal-add-cliente-rota').addEventListener('click', function (ev) {
-    if (ev.target === this) fecharModalAddClienteRota();
+    /* Fundo nao fecha — so X / FECHAR / Esc */
   });
   document.getElementById('modal-plus-sync').addEventListener('click', function (ev) {
-    if (ev.target === this) {
+    if (false && ev.target === this) { /* Fundo nao fecha — so X / FECHAR / Esc */
       var fn = plusSyncCtx.onCancel;
       fecharModalPlusSync();
       if (fn) fn();
@@ -2089,7 +2267,7 @@
   });
 
   document.getElementById('modal-edit-local').addEventListener('click', function (ev) {
-    if (ev.target === this) fecharModalEditLocal();
+    /* Fundo nao fecha — so X / FECHAR / Esc */
   });
   document.getElementById('edloc-cancel').onclick = fecharModalEditLocal;
   document.getElementById('edloc-save').onclick = function () {

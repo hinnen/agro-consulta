@@ -1,10 +1,10 @@
 {# Modo descanso + PIN. Incluir antes de </body>. Opcional: data-idle-min="3" no #sspin-root #}
-<div id="sspin-root" class="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-slate-950/88 backdrop-blur-md text-slate-100 p-4 transition-opacity duration-300 opacity-0 pointer-events-none" data-idle-min="3" aria-hidden="true">
+<div id="sspin-root" class="fixed inset-0 flex flex-col items-center justify-center bg-slate-950/94 text-slate-100 p-4 transition-opacity duration-300 opacity-0 pointer-events-none" style="z-index:2147483646" data-idle-min="3"{% if lancamentos_pin_entrada %} data-sspin-lancamentos="1"{% endif %}{% if lancamentos_pin_entrada %} data-sspin-hide-idle-hint="1"{% endif %}{% if sspin_pedir_pin_ao_abrir %} data-sspin-require-pin-on-load="1"{% endif %} aria-hidden="true">
   <div class="w-full max-w-sm rounded-2xl border border-slate-600/80 bg-slate-900 shadow-2xl overflow-hidden">
     <div class="px-5 pt-5 pb-2 text-center border-b border-slate-700/80">
       <p class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400/90">SisVale</p>
       <h2 id="sspin-title" class="mt-1 text-lg font-black text-white">Modo descanso</h2>
-      <p id="sspin-sub" class="text-xs text-slate-400 mt-1 font-semibold">Digite seu PIN para continuar</p>
+      <p id="sspin-sub" class="text-xs text-slate-400 mt-1 font-semibold">Digite seu PIN · 1ª vez? use <span class="text-amber-300">1234</span> para cadastrar</p>
     </div>
 
     <div id="sspin-panel-pin" class="p-5 space-y-4">
@@ -30,7 +30,7 @@
     </div>
 
     <div id="sspin-panel-setup" class="hidden p-5 space-y-4 max-h-[min(70vh,520px)] overflow-y-auto">
-      <p class="text-xs text-slate-300 font-semibold text-center leading-snug">PIN padrão (1234) — escolha seu nome e defina um <span class="text-emerald-400 font-black">PIN definitivo</span> (mín. 4 dígitos, não pode ser 1234).</p>
+      <p class="text-xs text-slate-300 font-semibold text-center leading-snug">Primeira vez — escolha seu nome e defina um <span class="text-emerald-400 font-black">PIN definitivo</span> (4 dígitos, não 1234). Salva no servidor e vale em <span class="text-emerald-400 font-black">todos os computadores</span>.</p>
       <div>
         <p class="text-[10px] font-black uppercase text-slate-500 mb-2">Quem está usando?</p>
         <div id="sspin-names" class="grid grid-cols-2 gap-2"></div>
@@ -50,23 +50,72 @@
 </div>
 <script>
 (function () {
-  var NAMES = ['Renan', 'Zuleide', 'Geraldo', 'Geraldinho', 'Isabela', 'Queila', 'Vitor', 'Nathan', 'Estanislau'];
-  var DEFAULT_PIN = '1234';
-  var LS_PINS = 'gm_sspin_pins';
+  /* Evita 2 teclados se a página incluir o partial mais de uma vez. */
+  try {
+    var dups = document.querySelectorAll('#sspin-root');
+    if (dups && dups.length > 1) {
+      for (var di = 1; di < dups.length; di++) {
+        try { dups[di].parentNode.removeChild(dups[di]); } catch (eDup) {}
+      }
+    }
+  } catch (eDupAll) {}
+  if (window.__GM_SSPIN_INIT__) return;
+  window.__GM_SSPIN_INIT__ = true;
+
+  var BOOTSTRAP_PIN = '1234';
   var LS_OPERADOR = 'gm_sspin_operador';
+  var LS_LANC_DESBLOQ = 'gm_lancamentos_desbloqueado';
+  var SS_PIN_SESSION = 'gm_sspin_pin_session_v1';
+  var LS_OPERADORES_SETUP = 'agro_pdv_operadores_setup_v1';
+  var API_VALIDAR_PIN = "{% url 'api_login_mobile' %}";
+  var API_OPERADOR = "{% url 'api_pdv_registrar_operador' %}";
+  var API_LISTAR_USU = "{% url 'api_listar_usuarios' %}";
+  var API_CAD_PIN = "{% url 'api_cadastrar_pin_bootstrap' %}";
   var root = document.getElementById('sspin-root');
   if (!root) return;
 
-  /** O blur do modo descanso aplica em filhos de `body`; se o PIN ficar dentro de `main`, o próprio modal fica borrado. */
-  if (root.parentElement !== document.body) {
+  try { localStorage.removeItem('gm_sspin_pins'); } catch (eDrop) {}
+
+  function garantirSspinNoBody() {
+    if (!document.body || root.parentElement === document.body) return;
+    try { document.body.appendChild(root); } catch (eReparent) {}
+  }
+  garantirSspinNoBody();
+
+  function forcarVisibilidadeLock() {
+    if (!root) return;
     try {
-      document.body.appendChild(root);
-    } catch (eReparent) {}
+      root.classList.remove('opacity-0', 'pointer-events-none', 'hidden', 'invisible');
+      root.style.opacity = '1';
+      root.style.pointerEvents = 'auto';
+      root.style.visibility = 'visible';
+      root.style.display = 'flex';
+      root.style.zIndex = '2147483646';
+      root.setAttribute('aria-hidden', 'false');
+    } catch (eVis) {}
   }
 
+  function limparVisibilidadeLock() {
+    if (!root) return;
+    try {
+      root.style.opacity = '';
+      root.style.pointerEvents = '';
+      root.style.visibility = '';
+      root.style.display = '';
+    } catch (eClr) {}
+  }
+
+  var lancamentosMode = root.getAttribute('data-sspin-lancamentos') === '1';
+  var entryOnly = root.getAttribute('data-sspin-entry-only') === '1';
+  var requirePinOnLoad = root.getAttribute('data-sspin-require-pin-on-load') === '1';
   var idleMin = parseFloat(root.getAttribute('data-idle-min') || '3', 10);
-  if (!Number.isFinite(idleMin) || idleMin < 0.5) idleMin = 3;
-  var IDLE_MS = Math.round(idleMin * 60 * 1000);
+  if (entryOnly) idleMin = 0;
+  else if (!Number.isFinite(idleMin) || idleMin < 0.5) idleMin = 3;
+  var IDLE_MS = idleMin > 0 ? Math.round(idleMin * 60 * 1000) : 0;
+  var idleHintEl = root.querySelector('p.mt-4');
+  if (root.getAttribute('data-sspin-hide-idle-hint') === '1' && idleHintEl) {
+    idleHintEl.classList.add('hidden');
+  }
 
   var input = document.getElementById('sspin-input');
   var msg = document.getElementById('sspin-msg');
@@ -81,58 +130,205 @@
   var btnSave = document.getElementById('sspin-btn-save');
   var btnBack = document.getElementById('sspin-btn-back');
   var numpadEl = document.getElementById('sspin-numpad');
-
   var idleTimer = null;
   var locked = false;
-  var selectedName = '';
+  var validando = false;
+  var sspinPauseFlags = { overlay: false, caixaModal: false, pdvModal: false };
 
-  function loadPins() {
-    try {
-      var o = JSON.parse(localStorage.getItem(LS_PINS) || '{}');
-      return o && typeof o === 'object' ? o : {};
-    } catch (e) {
-      return {};
+  function sspinPausado() {
+    return !!(sspinPauseFlags.overlay || sspinPauseFlags.caixaModal || sspinPauseFlags.pdvModal);
+  }
+
+  function applySspinPauseIdle() {
+    if (sspinPausado()) {
+      if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+    } else if (!locked) {
+      bumpIdle();
     }
   }
 
-  function savePins(p) {
+  function elOverlayVisivel(el) {
+    if (!el || el.id === 'sspin-root') return false;
     try {
-      localStorage.setItem(LS_PINS, JSON.stringify(p));
+      if (el.closest && el.closest('#sspin-root')) return false;
+    } catch (eCl) {}
+    if (el.classList && el.classList.contains('hidden')) return false;
+    if (el.getAttribute && el.getAttribute('aria-hidden') === 'true') return false;
+    if (el.hidden) return false;
+    try {
+      var st = window.getComputedStyle(el);
+      if (!st || st.display === 'none' || st.visibility === 'hidden') return false;
+      if (parseFloat(st.opacity || '1') < 0.02) return false;
+    } catch (eSt) {}
+    try {
+      var r = el.getBoundingClientRect();
+      if (!r || (r.width < 2 && r.height < 2)) return false;
+    } catch (eR) {}
+    return true;
+  }
+
+  function elemBloqueiaDescanso(el) {
+    if (!el || el.id === 'sspin-root') return false;
+    if (String(el.tagName || '').toUpperCase() === 'DIALOG') return !!el.open;
+    if (el.getAttribute && el.getAttribute('aria-modal') === 'true') return elOverlayVisivel(el);
+    return false;
+  }
+
+  function hasBlockingUiLayer() {
+    try {
+      if (document.body.classList.contains('modal-open')) return true;
+      if (document.querySelector('dialog[open]')) return true;
+      var modals = document.querySelectorAll('[aria-modal="true"]');
+      for (var i = 0; i < modals.length; i++) {
+        if (elemBloqueiaDescanso(modals[i])) return true;
+      }
+      var ew = document.getElementById('pdv-entrega-wizard');
+      if (ew && elOverlayVisivel(ew)) return true;
+    } catch (eUi) {}
+    return false;
+  }
+
+  function recomputeSspinPauseFromDom() {
+    sspinPauseFlags.overlay = document.documentElement.classList.contains('agro-pdv-overlay-open');
+    sspinPauseFlags.pdvModal = hasBlockingUiLayer();
+    applySspinPauseIdle();
+  }
+
+  window.gmSspinRecomputeFromDom = recomputeSspinPauseFromDom;
+
+  window.gmSspinSetPausado = function (motivo, ativo) {
+    if (motivo === 'caixa-modal') sspinPauseFlags.caixaModal = !!ativo;
+    else if (motivo === 'pdv-overlay') {
+      sspinPauseFlags.overlay = !!ativo;
+      applySspinPauseIdle();
+    } else if (motivo === 'pdv-modal') {
+      recomputeSspinPauseFromDom();
+    } else return;
+    if (motivo === 'caixa-modal') applySspinPauseIdle();
+  };
+
+  function dismissNativeDialogsBeforeLock() {
+    try {
+      document.querySelectorAll('dialog[open]').forEach(function (dlg) {
+        try {
+          if (typeof dlg.close === 'function') dlg.close();
+        } catch (eClose) {}
+      });
+    } catch (e) {}
+    try {
+      window.dispatchEvent(new CustomEvent('gm-sspin-before-lock'));
+    } catch (eEv) {}
+  }
+
+  function watchPdvOverlayClass() {
+    recomputeSspinPauseFromDom();
+    if (!window.MutationObserver) return;
+    var obs = new MutationObserver(function (mutations) {
+      for (var i = 0; i < mutations.length; i++) {
+        var t = mutations[i].target;
+        if (!t || t.nodeType !== 1) continue;
+        if (t === document.body || t === document.documentElement) {
+          recomputeSspinPauseFromDom();
+          return;
+        }
+        var tag = String(t.tagName || '').toUpperCase();
+        if (
+          tag === 'DIALOG' ||
+          t.id === 'pdv-entrega-wizard' ||
+          (t.getAttribute && t.getAttribute('aria-modal') === 'true')
+        ) {
+          recomputeSspinPauseFromDom();
+          return;
+        }
+      }
+    });
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    obs.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class', 'aria-hidden'],
+      subtree: true,
+    });
+    document.addEventListener('toggle', function (ev) {
+      if (ev.target && String(ev.target.tagName || '').toUpperCase() === 'DIALOG') {
+        recomputeSspinPauseFromDom();
+      }
+    }, true);
+  }
+
+  window.addEventListener('message', function (ev) {
+    try {
+      if (!ev || ev.origin !== location.origin) return;
+      var d = ev.data || {};
+      if (d.type === 'agro-caixa-modal-layer') {
+        window.gmSspinSetPausado('caixa-modal', !!d.open);
+      }
+    } catch (_) {}
+  });
+  var selectedPerfilId = '';
+  var selectedNome = '';
+
+  function hashPin(pin) {
+    var s = String(pin || '');
+    var h = 5381;
+    for (var i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
+    return String(h >>> 0);
+  }
+
+  function readPinSession(pin) {
+    try {
+      var raw = sessionStorage.getItem(SS_PIN_SESSION);
+      if (!raw) return '';
+      var d = JSON.parse(raw);
+      if (!d || Date.now() > Number(d.expires || 0)) return '';
+      if (d.hash !== hashPin(pin)) return '';
+      return (d.operador || '').trim();
+    } catch (e) { return ''; }
+  }
+
+  function savePinSession(pin, operador) {
+    try {
+      sessionStorage.setItem(SS_PIN_SESSION, JSON.stringify({
+        hash: hashPin(pin),
+        operador: (operador || '').trim(),
+        expires: Date.now() + (8 * 60 * 60 * 1000)
+      }));
     } catch (e) {}
   }
 
-  function syncOperadorServidor(nome) {
-    nome = (nome || '').trim();
-    if (!nome) return;
-    try {
-      var c = document.cookie.match(/csrftoken=([^;]+)/);
-      fetch('{% url "api_pdv_registrar_operador" %}', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': c ? c[1] : '' },
-        body: JSON.stringify({ operador: nome })
-      }).catch(function () {});
-    } catch (eSync) {}
+  function csrf() {
+    var c = document.cookie.match(/csrftoken=([^;]+)/);
+    return c ? c[1] : '';
+  }
+
+  function lancamentosDesbloqueado() {
+    if (!lancamentosMode) return false;
+    try { return sessionStorage.getItem(LS_LANC_DESBLOQ) === '1'; } catch (e) { return false; }
   }
 
   function setOperador(nome) {
+    nome = (nome || '').trim();
     try {
-      localStorage.setItem(LS_OPERADOR, nome);
+      if (nome) localStorage.setItem(LS_OPERADOR, nome);
+      else localStorage.removeItem(LS_OPERADOR);
     } catch (e) {}
-    syncOperadorServidor(nome);
     window.dispatchEvent(new CustomEvent('gm-sspin-operador', { detail: { nome: nome } }));
     refreshOperadorChip();
   }
 
-  /** Remove operador gravado no aparelho e volta à tela só de PIN (troca de turno). */
+  function limparOperadorServidor() {
+    return fetch(API_OPERADOR, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+      body: JSON.stringify({ operador: '' })
+    }).catch(function () {});
+  }
+
   function sairUsuarioEVoltarPedidoPin() {
-    try {
-      localStorage.removeItem(LS_OPERADOR);
-    } catch (e) {}
-    syncOperadorServidor('');
-    selectedName = '';
-    window.dispatchEvent(new CustomEvent('gm-sspin-operador', { detail: { nome: '' } }));
-    refreshOperadorChip();
+    setOperador('');
+    limparOperadorServidor();
+    selectedPerfilId = '';
+    selectedNome = '';
     clearMsg();
     showPinPanel();
   }
@@ -141,9 +337,7 @@
     var chip = document.getElementById('gm-sspin-operador-chip');
     if (!chip) return;
     var n = '';
-    try {
-      n = (localStorage.getItem(LS_OPERADOR) || '').trim();
-    } catch (e) {}
+    try { n = (localStorage.getItem(LS_OPERADOR) || '').trim(); } catch (e) {}
     if (n) {
       chip.textContent = n;
       chip.classList.remove('hidden');
@@ -169,13 +363,7 @@
 
   function focarCampoPin() {
     if (!input || !locked) return;
-    try {
-      input.focus({ preventScroll: true });
-    } catch (e) {
-      try {
-        input.focus();
-      } catch (e2) {}
-    }
+    try { input.focus({ preventScroll: true }); } catch (e) { try { input.focus(); } catch (e2) {} }
   }
 
   function agendarFocoPin() {
@@ -187,16 +375,18 @@
       tentativas += 1;
       if (tentativas < 6) setTimeout(tentar, tentativas === 1 ? 30 : 80);
     }
-    requestAnimationFrame(function () {
-      requestAnimationFrame(tentar);
-    });
+    requestAnimationFrame(function () { requestAnimationFrame(tentar); });
   }
 
   function showPinPanel() {
     if (panelPin) panelPin.classList.remove('hidden');
     if (panelSetup) panelSetup.classList.add('hidden');
-    if (titleEl) titleEl.textContent = 'Modo descanso';
-    if (subEl) subEl.textContent = 'Digite seu PIN para continuar';
+    if (lancamentosMode && !lancamentosDesbloqueado()) {
+      if (titleEl) titleEl.textContent = 'Lançamentos';
+    } else {
+      if (titleEl) titleEl.textContent = 'Modo descanso';
+    }
+    if (subEl) subEl.innerHTML = 'Digite seu PIN · 1ª vez? use <span class="text-amber-300">1234</span> para cadastrar';
     clearMsg();
     if (input) {
       input.value = '';
@@ -204,42 +394,23 @@
     }
   }
 
-  function showSetupPanel() {
-    if (input) input.blur();
-    if (panelPin) panelPin.classList.add('hidden');
-    if (panelSetup) panelSetup.classList.remove('hidden');
-    if (titleEl) titleEl.textContent = 'Identificação';
-    if (subEl) subEl.textContent = 'Defina seu PIN definitivo';
-    selectedName = '';
-    clearMsg();
-    if (new1) new1.value = '';
-    if (new2) new2.value = '';
-    renderNameButtons();
-    requestAnimationFrame(function () {
-      requestAnimationFrame(function () {
-        if (new1 && locked) {
-          try {
-            new1.focus({ preventScroll: true });
-          } catch (e) {
-            try {
-              new1.focus();
-            } catch (e2) {}
-          }
-        }
-      });
-    });
-  }
-
-  function renderNameButtons() {
+  function renderNameButtons(usuarios) {
     if (!namesBox) return;
     namesBox.innerHTML = '';
-    NAMES.forEach(function (nome) {
+    var lista = (usuarios || []).filter(function (u) { return u && !u.pin_personalizado; });
+    if (!lista.length) {
+      namesBox.innerHTML = '<p class="col-span-2 text-xs text-slate-400 font-semibold text-center py-2">Todos já têm PIN. Peça ao RH para alterar.</p>';
+      return;
+    }
+    lista.forEach(function (u) {
+      var nome = (u.nome_curto || u.nome || '').trim();
       var b = document.createElement('button');
       b.type = 'button';
       b.textContent = nome;
       b.className = 'py-2.5 px-2 rounded-xl border-2 text-xs font-black uppercase transition-colors border-slate-600 bg-slate-800 text-slate-200 hover:border-emerald-500/60';
       b.addEventListener('click', function () {
-        selectedName = nome;
+        selectedPerfilId = String(u.id);
+        selectedNome = nome;
         namesBox.querySelectorAll('button').forEach(function (x) {
           x.classList.remove('border-emerald-500', 'bg-emerald-950', 'text-emerald-200');
           x.classList.add('border-slate-600', 'bg-slate-800', 'text-slate-200');
@@ -251,73 +422,180 @@
     });
   }
 
-  function openLock() {
-    if (idleTimer) {
-      clearTimeout(idleTimer);
-      idleTimer = null;
+  function showSetupPanel() {
+    if (input) input.blur();
+    if (panelPin) panelPin.classList.add('hidden');
+    if (panelSetup) panelSetup.classList.remove('hidden');
+    if (titleEl) titleEl.textContent = 'Cadastrar PIN';
+    if (subEl) subEl.textContent = 'PIN definitivo — vale em todos os PCs';
+    selectedPerfilId = '';
+    selectedNome = '';
+    clearMsg();
+    if (new1) new1.value = '';
+    if (new2) new2.value = '';
+    if (namesBox) namesBox.innerHTML = '<p class="col-span-2 text-xs text-slate-400 font-semibold text-center py-2">Carregando…</p>';
+    var cacheOk = false;
+    if (window.AgroPdvOfflineCache) {
+      var cached = window.AgroPdvOfflineCache.readPayload(LS_OPERADORES_SETUP);
+      if (cached && cached.usuarios) {
+        renderNameButtons(cached.usuarios);
+        cacheOk = !window.AgroPdvOfflineCache.isStale(LS_OPERADORES_SETUP, window.AgroPdvOfflineCache.TTL.OPERADORES_MS);
+      }
     }
+    if (cacheOk) {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          if (new1 && locked) {
+            try { new1.focus({ preventScroll: true }); } catch (e) { try { new1.focus(); } catch (e2) {} }
+          }
+        });
+      });
+      return;
+    }
+    fetch(API_LISTAR_USU, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data && data.ok) {
+          renderNameButtons(data.usuarios || []);
+          if (window.AgroPdvOfflineCache) {
+            window.AgroPdvOfflineCache.writePayload(LS_OPERADORES_SETUP, { usuarios: data.usuarios || [] });
+          }
+        } else if (namesBox) namesBox.innerHTML = '<p class="col-span-2 text-xs text-red-400 font-semibold text-center py-2">Erro ao carregar operadores.</p>';
+      })
+      .catch(function () {
+        if (namesBox) namesBox.innerHTML = '<p class="col-span-2 text-xs text-red-400 font-semibold text-center py-2">Erro de rede.</p>';
+      });
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        if (new1 && locked) {
+          try { new1.focus({ preventScroll: true }); } catch (e) { try { new1.focus(); } catch (e2) {} }
+        }
+      });
+    });
+  }
+
+  function openLock(force) {
+    var forcado = !!force;
+    if (!forcado && sspinPausado()) {
+      bumpIdle();
+      return;
+    }
+    if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+    dismissNativeDialogsBeforeLock();
+    if (forcado) {
+      try { document.body.classList.remove('modal-open'); } catch (eMo) {}
+      sspinPauseFlags.pdvModal = false;
+      sspinPauseFlags.overlay = false;
+      sspinPauseFlags.caixaModal = false;
+    } else {
+      recomputeSspinPauseFromDom();
+      if (sspinPausado()) {
+        bumpIdle();
+        return;
+      }
+    }
+    garantirSspinNoBody();
     try {
       var ae = document.activeElement;
       if (ae && typeof ae.blur === 'function') ae.blur();
     } catch (e) {}
+    /* Limpa nome no Chrome; frescor no servidor expira sozinho (~45s) ou no próximo PIN.
+       Não limpar async aqui — corrida apagaria o PIN novo. */
+    setOperador('');
+    try { sessionStorage.removeItem(SS_PIN_SESSION); } catch (ePinSess) {}
     locked = true;
-    root.classList.remove('opacity-0', 'pointer-events-none');
-    root.setAttribute('aria-hidden', 'false');
+    root.classList.remove('opacity-0', 'pointer-events-none', 'hidden', 'invisible');
+    forcarVisibilidadeLock();
     showPinPanel();
     document.body.classList.add('sspin-locked');
+    /* Foco no campo — sem isso o teclado físico não digita e parece «sem linha». */
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        if (!locked || !input) return;
+        try { input.focus({ preventScroll: true }); } catch (eF) {
+          try { input.focus(); } catch (eF2) {}
+        }
+        try { input.select(); } catch (eS) {}
+      });
+    });
   }
 
   function closeLock() {
     locked = false;
+    limparVisibilidadeLock();
     root.classList.add('opacity-0', 'pointer-events-none');
     root.setAttribute('aria-hidden', 'true');
-    showPinPanel();
     document.body.classList.remove('sspin-locked');
+    if (lancamentosMode) {
+      try { sessionStorage.setItem(LS_LANC_DESBLOQ, '1'); } catch (eLanc) {}
+      try { window.dispatchEvent(new CustomEvent('gm-lancamentos-desbloqueado')); } catch (eEv) {}
+    }
     bumpIdle();
   }
 
   function bumpIdle() {
+    if (entryOnly || IDLE_MS <= 0) return;
+    if (sspinPausado()) return;
     if (idleTimer) clearTimeout(idleTimer);
-    idleTimer = setTimeout(function () {
-      openLock();
-    }, IDLE_MS);
-  }
-
-  function findOperadorByPin(pin) {
-    var pins = loadPins();
-    for (var i = 0; i < NAMES.length; i++) {
-      var n = NAMES[i];
-      if (pins[n] === pin) return n;
-    }
-    return null;
+    idleTimer = setTimeout(function () { openLock(); }, IDLE_MS);
   }
 
   function tryPin() {
+    if (validando) return;
     clearMsg();
     var pin = (input && input.value) ? String(input.value).replace(/\D/g, '') : '';
     if (pin.length < 4) {
       if (msg) msg.textContent = 'Informe ao menos 4 dígitos.';
       return;
     }
-    if (pin === DEFAULT_PIN) {
+    if (pin === BOOTSTRAP_PIN) {
       if (input) input.value = '';
       showSetupPanel();
       return;
     }
-    var op = findOperadorByPin(pin);
-    if (op) {
-      setOperador(op);
-      if (input) input.value = '';
-      closeLock();
-      return;
-    }
-    if (msg) msg.textContent = 'PIN incorreto.';
-    if (input) input.select();
+    /* Sempre online: 1 query no servidor — evita nome de outra pessoa na sessão. */
+    validando = true;
+    if (msg) msg.textContent = 'Validando…';
+    var fd = new FormData();
+    fd.append('pin', pin);
+    fetch(API_VALIDAR_PIN, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'X-CSRFToken': csrf() },
+      body: fd
+    })
+      .then(function (r) {
+        return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+      })
+      .then(function (res) {
+        validando = false;
+        if (res.ok && res.data && res.data.ok) {
+          var op = (res.data.operador || '').trim();
+          if (!op) {
+            if (msg) msg.textContent = 'PIN ok, mas sem nome no cadastro — confira RH.';
+            return;
+          }
+          setOperador(op);
+          savePinSession(pin, op);
+          if (input) input.value = '';
+          closeLock();
+          return;
+        }
+        if (msg) {
+          msg.textContent = (res.data && res.data.erro) || 'PIN incorreto. 1ª vez? digite 1234 para cadastrar.';
+        }
+        if (input) input.select();
+      })
+      .catch(function () {
+        validando = false;
+        if (msg) msg.textContent = 'Erro de rede. Tente de novo.';
+      });
   }
 
   function trySaveSetup() {
+    if (validando) return;
     clearMsg();
-    if (!selectedName) {
+    if (!selectedPerfilId) {
       if (setupMsg) setupMsg.textContent = 'Selecione seu nome na lista.';
       return;
     }
@@ -331,23 +609,39 @@
       if (setupMsg) setupMsg.textContent = 'A confirmação não confere.';
       return;
     }
-    if (a === DEFAULT_PIN) {
+    if (a === BOOTSTRAP_PIN) {
       if (setupMsg) setupMsg.textContent = 'Escolha um PIN diferente de 1234.';
       return;
     }
-    var pins = loadPins();
-    for (var nk in pins) {
-      if (!Object.prototype.hasOwnProperty.call(pins, nk)) continue;
-      if (nk === selectedName) continue;
-      if (String(pins[nk]) === a) {
-        if (setupMsg) setupMsg.textContent = 'Este PIN já está em uso por ' + nk + '. Escolha outro.';
-        return;
-      }
-    }
-    pins[selectedName] = a;
-    savePins(pins);
-    setOperador(selectedName);
-    closeLock();
+    validando = true;
+    if (setupMsg) setupMsg.textContent = 'Salvando…';
+    var form = new FormData();
+    form.append('bootstrap', BOOTSTRAP_PIN);
+    form.append('perfil_id', selectedPerfilId);
+    form.append('novo_pin', a);
+    fetch(API_CAD_PIN, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'X-CSRFToken': csrf() },
+      body: form
+    })
+      .then(function (r) {
+        return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+      })
+      .then(function (res) {
+        validando = false;
+        if (res.ok && res.data && res.data.ok) {
+          var op = (res.data.operador || selectedNome || '').trim();
+          setOperador(op);
+          closeLock();
+          return;
+        }
+        if (setupMsg) setupMsg.textContent = (res.data && res.data.erro) || 'Não foi possível salvar o PIN.';
+      })
+      .catch(function () {
+        validando = false;
+        if (setupMsg) setupMsg.textContent = 'Erro de rede. Tente de novo.';
+      });
   }
 
   if (btnBack) {
@@ -356,34 +650,6 @@
       showPinPanel();
     });
   }
-
-  if (numpadEl) numpadEl.addEventListener('click', function (e) {
-    var t = e.target.closest('.sspin-key');
-    if (!t) return;
-    var d = t.getAttribute('data-d');
-    if (!input || !locked) return;
-    if (d === 'clear') {
-      input.value = '';
-      return;
-    }
-    if (d === 'ok') {
-      tryPin();
-      return;
-    }
-    if (d && /^\d$/.test(d)) {
-      if (input.value.length < 12) input.value += d;
-    }
-  });
-
-  if (input) {
-    input.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        tryPin();
-      }
-    });
-  }
-
   if (btnSave) btnSave.addEventListener('click', trySaveSetup);
   if (new2) {
     new2.addEventListener('keydown', function (e) {
@@ -391,56 +657,229 @@
     });
   }
 
+  if (numpadEl) numpadEl.addEventListener('click', function (e) {
+    var t = e.target.closest('.sspin-key');
+    if (!t) return;
+    var d = t.getAttribute('data-d');
+    if (!input || !locked) return;
+    if (d === 'clear') { input.value = ''; return; }
+    if (d === 'ok') { tryPin(); return; }
+    if (d && /^\d$/.test(d) && input.value.length < 12) input.value += d;
+  });
+
+  if (input) {
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); tryPin(); }
+    });
+  }
+
   var wakeEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'wheel', 'click'];
   wakeEvents.forEach(function (ev) {
-    document.addEventListener(ev, function () {
-      if (!locked) bumpIdle();
-    }, { passive: true });
+    document.addEventListener(ev, function () { if (!locked) bumpIdle(); }, { passive: true });
   });
 
   document.addEventListener('keydown', function (e) {
     if (!locked) return;
-    if (e.key === 'Escape') {
-      e.preventDefault();
-    }
+    if (e.key === 'Escape') e.preventDefault();
   });
 
   var style = document.createElement('style');
-  /* Só forçar pointer-events no overlay quando realmente bloqueado. Uma regra global
-     #sspin-root { pointer-events: auto !important } anula o pointer-events-none do Tailwind
-     e deixa a camada invisível (z-10000) comendo todos os cliques do PDV. */
   style.textContent =
     'body.sspin-locked { overflow: hidden !important; } ' +
-    'body.sspin-locked > *:not(#sspin-root) { filter: blur(6px); user-select: none; } ' +
-    'body.sspin-locked #sspin-root { pointer-events: auto !important; filter: none !important; } ' +
-    '@media print { #sspin-root { display: none !important; } body.sspin-locked > * { filter: none !important; } }';
+    'body.sspin-locked > *:not(#sspin-root) { user-select: none; pointer-events: none; } ' +
+    'body.sspin-locked #sspin-root { ' +
+      'display: flex !important; opacity: 1 !important; visibility: visible !important; ' +
+      'pointer-events: auto !important; filter: none !important; backdrop-filter: none !important; ' +
+      '-webkit-backdrop-filter: none !important; isolation: isolate; z-index: 2147483646 !important; ' +
+    '} ' +
+    'body.sspin-locked #sspin-root > * { filter: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; transform: translateZ(0); } ' +
+    'body.sspin-locked #sspin-input, body.sspin-locked #sspin-numpad, body.sspin-locked #sspin-numpad * { ' +
+      'pointer-events: auto !important; visibility: visible !important; opacity: 1 !important; ' +
+    '} ' +
+    /* Entregas pendentes (dialog) pode abrir por cima do PIN — precisa receber clique. */
+    'body.sspin-locked dialog#pdv-entregas-pendentes-modal[open], ' +
+    'body.sspin-locked dialog#pdv-entregas-pendentes-modal[open] * { pointer-events: auto !important; } ' +
+    '@media print { #sspin-root { display: none !important; } body.sspin-locked > * { pointer-events: auto !important; } }';
   document.head.appendChild(style);
 
-  function initSspin() {
-    refreshOperadorChip();
-    var n = '';
+  /* Travou o body sem teclado visível → recupera (bug recorrente loja). */
+  setInterval(function () {
     try {
-      n = (localStorage.getItem(LS_OPERADOR) || '').trim();
-    } catch (eInit) {
-      n = '';
-    }
-    if (n) syncOperadorServidor(n);
-    bumpIdle();
+      if (!document.body || !document.body.classList.contains('sspin-locked')) return;
+      if (!locked) {
+        locked = true;
+      }
+      forcarVisibilidadeLock();
+      if (panelPin && panelPin.classList.contains('hidden') && panelSetup && panelSetup.classList.contains('hidden')) {
+        showPinPanel();
+      }
+    } catch (eWatch) {}
+  }, 1200);
+
+  function carregarOperadorSessao() {
+    fetch(API_OPERADOR, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data && data.ok && data.fresco && data.operador) {
+          setOperador(String(data.operador).trim());
+        } else {
+          setOperador('');
+          refreshOperadorChip();
+        }
+      })
+      .catch(function () { refreshOperadorChip(); });
   }
+
+  function initSspin() {
+    if (!lancamentosMode) {
+      try { sessionStorage.removeItem(LS_LANC_DESBLOQ); } catch (eClr) {}
+    }
+    /* PDV: consulta livre — PIN só na ação (garantirOperador) ou no descanso. */
+    if (requirePinOnLoad) {
+      setOperador('');
+      try { sessionStorage.removeItem(SS_PIN_SESSION); } catch (ePinSess) {}
+      openLock(true);
+      return;
+    }
+    carregarOperadorSessao();
+    if (lancamentosMode) {
+      try {
+        if (sessionStorage.getItem(LS_LANC_DESBLOQ) === '1') bumpIdle();
+      } catch (eLancIdle) {}
+    } else {
+      bumpIdle();
+    }
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initSspin);
+    document.addEventListener('DOMContentLoaded', function () {
+      watchPdvOverlayClass();
+      initSspin();
+    });
   } else {
+    watchPdvOverlayClass();
     initSspin();
   }
 
-  /** PDV/outras telas: limpa operador local e abre a tela de PIN imediatamente (troca de turno). */
   window.gmSspinSairEAbrirPin = function () {
     sairUsuarioEVoltarPedidoPin();
-    openLock();
+    openLock(true);
   };
 
-  /** Exige PIN na hora e executa callback ao validar sem trocar o operador ativo. */
+  window.gmSspinAbrirEntrada = function () {
+    openLock(true);
+  };
+
+  /** Detecta erro do servidor «precisa PIN / modo descanso» (toast sem teclado). */
+  window.gmSspinErroPedePin = function (erro) {
+    var t = String(erro == null ? '' : erro);
+    if (!t) return false;
+    if (/Identifique-se com o PIN/i.test(t)) return true;
+    if (/modo descanso/i.test(t) && /PIN/i.test(t)) return true;
+    if (/Entre com o PIN no PDV/i.test(t)) return true;
+    if (/precisa.?pin/i.test(t)) return true;
+    return false;
+  };
+
+  /**
+   * Se a mensagem for de PIN obrigatório, abre o teclado e chama onOk após digitar.
+   * Retorna true se abriu (chamador NÃO deve só mostrar toast).
+   */
+  window.gmSspinAbrirSeErroPin = function (erro, onOk, opts) {
+    if (!window.gmSspinErroPedePin(erro)) return false;
+    if (typeof window.gmSspinGarantirOperador === 'function') {
+      window.gmSspinGarantirOperador(typeof onOk === 'function' ? onOk : function () {}, opts || {
+        titulo: 'Identifique-se com o PIN'
+      });
+      return true;
+    }
+    openLock(true);
+    return true;
+  };
+
+  /**
+   * Garante operador fresco no servidor. Mouse NÃO renova.
+   * opts.maxFrescoS — janela curta (ex.: 10 no fechar venda). Default = TTL do servidor (~45s).
+   * Se fresco → renova TTL e chama onSuccess(nome). Senão abre PIN.
+   */
+  window.gmSspinGarantirOperador = function (onSuccess, opts) {
+    opts = opts || {};
+    if (typeof onSuccess !== 'function') return;
+    var tituloAcao = (opts.titulo || 'Identifique-se').trim();
+    var maxFrescoS = 0;
+    try {
+      maxFrescoS = parseInt(opts.maxFrescoS, 10) || 0;
+    } catch (eTtl) {
+      maxFrescoS = 0;
+    }
+    if (maxFrescoS < 0) maxFrescoS = 0;
+    var done = false;
+    function finish(nome) {
+      if (done) return;
+      done = true;
+      try { onSuccess(nome || ''); } catch (eCb) {}
+    }
+    function pedirPin() {
+      var callbackExecutado = false;
+      var originalCloseLock = closeLock;
+      var originalShow = showPinPanel;
+      showPinPanel = function () {
+        originalShow();
+        if (titleEl) titleEl.textContent = tituloAcao;
+        if (subEl) subEl.innerHTML = 'Digite seu PIN para gravar a ação';
+      };
+      closeLock = function () {
+        showPinPanel = originalShow;
+        originalCloseLock();
+        if (callbackExecutado) return;
+        callbackExecutado = true;
+        closeLock = originalCloseLock;
+        var nome = '';
+        try { nome = (localStorage.getItem(LS_OPERADOR) || '').trim(); } catch (eN) {}
+        if (!nome) {
+          /* PIN cancelado / falhou — não segue a ação */
+          return;
+        }
+        finish(nome);
+      };
+      openLock(true);
+    }
+    var urlGet = API_OPERADOR;
+    if (maxFrescoS > 0) {
+      urlGet += (urlGet.indexOf('?') >= 0 ? '&' : '?') + 'ttl_s=' + encodeURIComponent(String(maxFrescoS));
+    }
+    fetch(urlGet, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data && data.ok && data.fresco && data.operador) {
+          var bodyRen = { renovar: true };
+          if (maxFrescoS > 0) bodyRen.ttl_s = maxFrescoS;
+          return fetch(API_OPERADOR, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+            body: JSON.stringify(bodyRen)
+          })
+            .then(function (r2) { return r2.json().then(function (d2) { return { ok: r2.ok, data: d2 }; }); })
+            .then(function (res) {
+              if (res.ok && res.data && res.data.ok && res.data.operador) {
+                setOperador(String(res.data.operador).trim());
+                finish(String(res.data.operador).trim());
+                return;
+              }
+              pedirPin();
+            });
+        }
+        pedirPin();
+      })
+      .catch(function () { pedirPin(); });
+  };
+
   window.gmSspinProtegerAcao = function (onSuccess) {
+    if (typeof window.gmSspinGarantirOperador === 'function') {
+      window.gmSspinGarantirOperador(onSuccess);
+      return;
+    }
     if (typeof onSuccess !== 'function') return;
     var callbackExecutado = false;
     var originalCloseLock = closeLock;
@@ -451,7 +890,7 @@
       closeLock = originalCloseLock;
       onSuccess();
     };
-    openLock();
+    openLock(true);
   };
 })();
 </script>

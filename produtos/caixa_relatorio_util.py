@@ -11,15 +11,21 @@ from django.utils import timezone
 
 from produtos.caixa_util import (
     FORMAS_PAGAMENTO_CAIXA,
+    eh_movimento_retirada_devolucao,
     extrair_linhas_conferencia_sessao,
     formatar_opcao_sessao_caixa,
+    linha_diferenca_abertura_sessao,
     normalizar_forma_pagamento_caixa,
+    normalizar_ponto_caixa,
     pagamentos_por_forma_venda,
+    ponto_pai_de_deposito,
     rotulo_ponto_caixa,
     rotulo_sessao_caixa,
+    rotulo_usuarios_sessao_caixa,
     usuario_label_sessao_caixa,
 )
 from produtos.models import MovimentoCaixa, SessaoCaixa, VendaAgro
+from produtos.pdv_deposito_util import ROTULO_DEPOSITO, normalizar_deposito
 
 
 def _dec(val) -> Decimal:
@@ -38,6 +44,29 @@ def _dt_range(di: date, df: date) -> tuple[datetime, datetime]:
     return ini, fim
 
 
+def _filtro_loja_relatorio(deposito: str | None) -> str | None:
+    """``None`` = todas as lojas; ``centro`` / ``vila`` = só o turno pai da loja."""
+    d = str(deposito or "").strip().lower()
+    if d in ("", "todas", "todos", "all"):
+        return None
+    return normalizar_deposito(d)
+
+
+def _sessao_bate_loja(ponto_caixa, deposito_filtro: str | None) -> bool:
+    if deposito_filtro is None:
+        return True
+    return normalizar_ponto_caixa(ponto_caixa) == ponto_pai_de_deposito(deposito_filtro)
+
+
+def _venda_bate_loja(venda, deposito_filtro: str | None) -> bool:
+    if deposito_filtro is None:
+        return True
+    sess = getattr(venda, "sessao_caixa", None)
+    if sess is not None:
+        return _sessao_bate_loja(getattr(sess, "ponto_caixa", None), deposito_filtro)
+    return normalizar_deposito(getattr(venda, "deposito", None) or "centro") == deposito_filtro
+
+
 def rotulo_filtro_sessao_caixa(
     sessoes_opts: list[dict[str, Any]], sessao_id: int | None
 ) -> str:
@@ -52,20 +81,17 @@ def rotulo_filtro_sessao_caixa(
     return f"turno #{sessao_id}"
 
 
-def _sessoes_opts_enriquecidas(df: date, *, limite: int = 80) -> list[dict[str, Any]]:
-    rows = list(
-        SessaoCaixa.objects.filter(fechado_em__date__lte=df)
-        .order_by("-fechado_em")[:limite]
-        .values("pk", "aberto_em", "fechado_em", "ponto_caixa")
-    )
+def _sessoes_opts_enriquecidas(
+    df: date, *, limite: int = 80, deposito: str | None = None
+) -> list[dict[str, Any]]:
+    dep = _filtro_loja_relatorio(deposito)
+    qs = SessaoCaixa.objects.filter(fechado_em__date__lte=df).order_by("-fechado_em")
+    if dep is not None:
+        qs = qs.filter(ponto_caixa=ponto_pai_de_deposito(dep))
+    rows = list(qs[:limite].values("pk", "aberto_em", "fechado_em", "ponto_caixa"))
     for row in rows:
         row["rotulo_opcao"] = formatar_opcao_sessao_caixa(row)
     return rows
-
-
-def _eh_devolucao_mov(obs: str) -> bool:
-    o = (obs or "").strip().lower()
-    return o.startswith("devolução venda") or o.startswith("devolucao venda")
 
 
 def _eh_frete_mov(obs: str) -> bool:
@@ -83,8 +109,10 @@ def montar_relatorio_caixa(
     *,
     sessao_id: int | None = None,
     forma_pagamento: str | None = None,
+    deposito: str | None = None,
 ) -> dict[str, Any]:
     ini, fim = _dt_range(di, df)
+    dep_filtro = _filtro_loja_relatorio(deposito)
     filtro_forma = ""
     if forma_pagamento and str(forma_pagamento).strip():
         filtro_forma = normalizar_forma_pagamento_caixa(str(forma_pagamento).strip())
@@ -146,6 +174,8 @@ def montar_relatorio_caixa(
     for s in SessaoCaixa.objects.filter(aberto_em__gte=ini, aberto_em__lte=fim).order_by("aberto_em"):
         if not _sessao_ok(s.pk):
             continue
+        if not _sessao_bate_loja(s.ponto_caixa, dep_filtro):
+            continue
         fundo = _dec(s.valor_abertura)
         if fundo > 0 and _forma_ok("Dinheiro"):
             buckets["aberturas"].append(
@@ -161,9 +191,9 @@ def montar_relatorio_caixa(
                 )
             )
 
-    # Vendas (não devolvidas)
+    # Vendas no período (bruto por data da venda; devoluções abatem na seção «Devoluções»)
     vendas_qs = (
-        VendaAgro.objects.filter(criado_em__gte=ini, criado_em__lte=fim, devolvida_em__isnull=True)
+        VendaAgro.objects.filter(criado_em__gte=ini, criado_em__lte=fim)
         .select_related("sessao_caixa")
         .order_by("criado_em")
     )
@@ -172,6 +202,8 @@ def montar_relatorio_caixa(
         if sid and not _sessao_ok(sid):
             continue
         if not sid and sessao_id is not None:
+            continue
+        if not _venda_bate_loja(v, dep_filtro):
             continue
         pag = pagamentos_por_forma_venda(v)
         if not pag:
@@ -192,15 +224,75 @@ def montar_relatorio_caixa(
                 )
             )
 
-    # Devoluções (data da devolução)
-    dev_qs = VendaAgro.objects.filter(
-        devolvida_em__gte=ini, devolvida_em__lte=fim
-    ).order_by("devolvida_em")
-    for v in dev_qs:
+    # Devoluções (eventos parciais/totais + legado só devolvida_em)
+    from produtos.models import DevolucaoVendaAgro
+
+    dev_ev = DevolucaoVendaAgro.objects.filter(
+        criado_em__gte=ini, criado_em__lte=fim
+    ).select_related("venda", "venda__sessao_caixa").order_by("criado_em")
+    seen_venda_ev: set[int] = set()
+    for ev in dev_ev:
+        v = ev.venda
+        seen_venda_ev.add(v.pk)
         sid = v.sessao_caixa_id
         if sid and not _sessao_ok(sid):
             continue
         if not sid and sessao_id is not None:
+            continue
+        if not _venda_bate_loja(v, dep_filtro):
+            continue
+        pag = ev.pagamentos_json
+        if isinstance(pag, list) and pag:
+            for row in pag:
+                if not isinstance(row, dict):
+                    continue
+                val = _dec(row.get("valor"))
+                fn_dev = str(row.get("forma") or "")
+                if val <= 0 or not _forma_ok(fn_dev):
+                    continue
+                if fn_dev == "Fiado":
+                    continue  # abate dívida — não conta como saída de caixa no relatório
+                buckets["devolucoes"].append(
+                    _row(
+                        "devolucoes",
+                        quando=ev.criado_em,
+                        descricao=f"Devolução venda #{v.pk} · {(v.cliente_nome or '')[:35]}",
+                        forma=fn_dev,
+                        valor=val,
+                        sinal="-",
+                        sessao_pk=sid,
+                        ref=f"dev-ev:{ev.pk}",
+                    )
+                )
+        elif not filtro_forma:
+            buckets["devolucoes"].append(
+                _row(
+                    "devolucoes",
+                    quando=ev.criado_em,
+                    descricao=f"Devolução venda #{v.pk}",
+                    forma="",
+                    valor=_dec(ev.total),
+                    sinal="-",
+                    sessao_pk=sid,
+                    ref=f"dev-ev:{ev.pk}",
+                )
+            )
+
+    # Legado: total sem eventos
+    dev_qs = (
+        VendaAgro.objects.filter(devolvida_em__gte=ini, devolvida_em__lte=fim)
+        .select_related("sessao_caixa")
+        .order_by("devolvida_em")
+    )
+    for v in dev_qs:
+        if v.pk in seen_venda_ev:
+            continue
+        sid = v.sessao_caixa_id
+        if sid and not _sessao_ok(sid):
+            continue
+        if not sid and sessao_id is not None:
+            continue
+        if not _venda_bate_loja(v, dep_filtro):
             continue
         pag = v.devolucao_pagamentos_json
         if isinstance(pag, list) and pag:
@@ -244,6 +336,11 @@ def montar_relatorio_caixa(
     for m in mov_qs:
         if not _sessao_ok(m.sessao_caixa_id):
             continue
+        if not _sessao_bate_loja(
+            getattr(m.sessao_caixa, "ponto_caixa", None) if m.sessao_caixa_id else None,
+            dep_filtro,
+        ):
+            continue
         obs = m.observacao or ""
         val = _dec(m.valor)
         if val <= 0:
@@ -262,7 +359,7 @@ def montar_relatorio_caixa(
                 )
             )
         elif m.tipo == MovimentoCaixa.Tipo.RETIRADA:
-            if _eh_devolucao_mov(obs):
+            if eh_movimento_retirada_devolucao(obs):
                 continue
             if _eh_deposito_mov(obs) and _forma_ok(m.forma_pagamento):
                 buckets["depositos"].append(
@@ -343,7 +440,7 @@ def montar_relatorio_caixa(
 
     saldo = (tot_entrada - tot_saida).quantize(Decimal("0.01"))
 
-    sessoes_opts = _sessoes_opts_enriquecidas(df)
+    sessoes_opts = _sessoes_opts_enriquecidas(df, deposito=dep_filtro)
 
     return {
         "secoes": secoes,
@@ -354,6 +451,12 @@ def montar_relatorio_caixa(
         "tot_saida_num": float(tot_saida),
         "saldo_num": float(saldo),
         "sessoes_opts": sessoes_opts,
+        "filtro_loja": dep_filtro or "todas",
+        "filtro_loja_label": (
+            "Todas as lojas"
+            if dep_filtro is None
+            else ROTULO_DEPOSITO.get(dep_filtro, "Centro")
+        ),
     }
 
 
@@ -363,14 +466,18 @@ def montar_relatorio_conferencias_caixa(
     *,
     sessao_id: int | None = None,
     somente_com_diferenca: bool = False,
+    deposito: str | None = None,
 ) -> dict[str, Any]:
     """Lista fechamentos com esperado × contado × diferença por forma (e totais)."""
     ini, fim = _dt_range(di, df)
+    dep_filtro = _filtro_loja_relatorio(deposito)
     qs = SessaoCaixa.objects.filter(
         fechado_em__isnull=False, fechado_em__gte=ini, fechado_em__lte=fim
-    ).select_related("usuario")
+    ).select_related("usuario", "usuario_fechamento")
     if sessao_id is not None:
         qs = qs.filter(pk=sessao_id)
+    if dep_filtro is not None:
+        qs = qs.filter(ponto_caixa=ponto_pai_de_deposito(dep_filtro))
     qs = qs.order_by("-fechado_em")
 
     sessoes_rows: list[dict[str, Any]] = []
@@ -394,7 +501,10 @@ def montar_relatorio_conferencias_caixa(
 
     qtd_com_diff = 0
     for s in qs:
-        linhas_raw = extrair_linhas_conferencia_sessao(s)
+        linhas_raw = list(extrair_linhas_conferencia_sessao(s))
+        ab_line = linha_diferenca_abertura_sessao(s)
+        if ab_line:
+            linhas_raw.insert(0, ab_line)
         linhas_fmt: list[dict[str, Any]] = []
         sess_diff = False
         for L in linhas_raw:
@@ -419,6 +529,7 @@ def montar_relatorio_conferencias_caixa(
                     "tem_diff": dif is not None and abs(_dec(dif)) >= Decimal("0.01"),
                     "diff_positivo": dif is not None and _dec(dif) > 0,
                     "diff_negativo": dif is not None and _dec(dif) < 0,
+                    "eh_abertura": L["forma"].startswith("Abertura"),
                 }
             )
         if somente_com_diferenca and not linhas_fmt:
@@ -434,7 +545,7 @@ def montar_relatorio_conferencias_caixa(
                 "rotulo": rotulo_sessao_caixa(s),
                 "fechado_em": s.fechado_em,
                 "aberto_em": s.aberto_em,
-                "usuario": usuario_label_sessao_caixa(s),
+                "usuario": rotulo_usuarios_sessao_caixa(s),
                 "valor_fechamento": str(_dec(s.valor_fechamento))
                 if s.valor_fechamento is not None
                 else "",
@@ -470,7 +581,7 @@ def montar_relatorio_conferencias_caixa(
             }
         )
 
-    sessoes_opts = _sessoes_opts_enriquecidas(df)
+    sessoes_opts = _sessoes_opts_enriquecidas(df, deposito=dep_filtro)
 
     return {
         "sessoes": sessoes_rows,
@@ -481,4 +592,10 @@ def montar_relatorio_conferencias_caixa(
         "tot_contado": str(tot_cont.quantize(Decimal("0.01"))),
         "tot_diferenca": str(tot_dif.quantize(Decimal("0.01"))),
         "sessoes_opts": sessoes_opts,
+        "filtro_loja": dep_filtro or "todas",
+        "filtro_loja_label": (
+            "Todas as lojas"
+            if dep_filtro is None
+            else ROTULO_DEPOSITO.get(dep_filtro, "Centro")
+        ),
     }

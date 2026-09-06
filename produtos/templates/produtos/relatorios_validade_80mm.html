@@ -34,7 +34,7 @@
       <tr>
         <td>{{ p.nome|truncatechars:20 }}<br>
           <small>Lote: {{ p.lote|truncatechars:18 }}</small><br>
-          <small>{% if p.saldo_c_v is not None %}C+V {{ p.saldo_c_v|floatformat:1 }}{% if p.saldo_vencido is not None and p.saldo_vencido > 0 %} · Venc. {{ p.saldo_vencido|floatformat:1 }}{% endif %}{% else %}—{% endif %}</small>
+          <small>{% if p.saldo_centro is not None or p.saldo_vila is not None %}C {{ p.saldo_centro|default:0|floatformat:1 }} · V {{ p.saldo_vila|default:0|floatformat:1 }}{% if p.saldo_vencido is not None and p.saldo_vencido > 0 %} · Venc. {{ p.saldo_vencido|floatformat:1 }}{% endif %}{% elif p.saldo_c_v is not None %}C+V {{ p.saldo_c_v|floatformat:1 }}{% else %}—{% endif %}</small>
         </td>
         <td>{% if p.status == 'erro_importacao' %}INV.{% else %}{{ p.data_validade|date:"d/m/y" }}{% endif %}</td>
       </tr>

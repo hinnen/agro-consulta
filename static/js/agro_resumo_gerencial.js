@@ -23,11 +23,261 @@
     return (n * 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 }) + "%";
   }
 
+  function pctJa(s) {
+    var n = parseFloat(String(s).replace(",", "."));
+    if (isNaN(n)) return "—";
+    return n.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%";
+  }
+
+  function valCls(n) {
+    var v = num(n);
+    if (!isFinite(v) || Math.abs(v) < 0.005) return "rg-val--zero";
+    return v > 0 ? "rg-val--pos" : "rg-val--neg";
+  }
+
+  var CMV_KEY = "agro_dre_cmv_modo_v1";
+  var LOJA_KEY = "agro_dre_loja_v1";
+  var PLANO_KEY = "agro_dre_planos_gasto_v1";
+  var rgPlanosCatalogo = [];
+  var CMV_HINT = {
+    vendida: "Custo do cadastro × quantidade vendida (o que saiu da loja).",
+    paga: "Compras lançadas no período (o que você pagou / deve de mercadoria).",
+  };
+
+  function cmvModoSalvo() {
+    try {
+      var m = localStorage.getItem(CMV_KEY);
+      if (m === "paga" || m === "vendida") return m;
+    } catch (e) {}
+    return "vendida";
+  }
+
+  function salvarCmvModo(m) {
+    try {
+      localStorage.setItem(CMV_KEY, m);
+    } catch (e) {}
+  }
+
+  function aplicarCmvNoCore(c) {
+    if (!c || !c.cmv_modos) return c;
+    var m = cmvModoSalvo();
+    if (m === "vendida" && c.cmv_modos.ok_vendida === false) m = "paga";
+    var snap = c.cmv_modos[m];
+    if (!snap) return c;
+    return Object.assign({}, c, snap, { cmv_modo: m });
+  }
+
+  function coreDoPayload(data, modo) {
+    if (!data) return data;
+    if (modo === "grupo") return data.consolidado || data;
+    return data;
+  }
+
+  function lojaSalva() {
+    try {
+      var v = localStorage.getItem(LOJA_KEY) || "";
+      if (v === "centro" || v === "vila" || v === "todas") return v;
+    } catch (e) {}
+    return "todas";
+  }
+
+  function salvarLoja(v) {
+    try {
+      localStorage.setItem(LOJA_KEY, v === "centro" || v === "vila" ? v : "todas");
+    } catch (e2) {}
+  }
+
+  function planosGastoIncluirSalvos() {
+    try {
+      var raw = localStorage.getItem(PLANO_KEY);
+      if (!raw) return null;
+      var o = JSON.parse(raw);
+      if (!o || !Array.isArray(o.incluir) || !o.incluir.length) return null;
+      return o.incluir.slice();
+    } catch (e) {}
+    return null;
+  }
+
+  function salvarPlanosGastoIncluir(list) {
+    try {
+      if (!list || !list.length) {
+        localStorage.removeItem(PLANO_KEY);
+        return;
+      }
+      localStorage.setItem(PLANO_KEY, JSON.stringify({ v: 1, incluir: list }));
+    } catch (e2) {}
+  }
+
+  function planosGastoQueryParam() {
+    var incl = planosGastoIncluirSalvos();
+    if (!incl || !incl.length) return "";
+    return "&planos_gasto=" + encodeURIComponent(incl.join(","));
+  }
+
+  function sincronizarCatalogoPlanos(visual) {
+    var top =
+      visual && visual.despesas_categorias && visual.despesas_categorias.top
+        ? visual.despesas_categorias.top
+        : [];
+    var names = [];
+    var seen = {};
+    top.forEach(function (r) {
+      var p = String(r.plano || "").trim();
+      if (!p || seen[p]) return;
+      seen[p] = 1;
+      names.push(p);
+    });
+    if (names.length) rgPlanosCatalogo = names;
+    atualizarBadgePlanos();
+  }
+
+  function atualizarBadgePlanos() {
+    var btn = document.getElementById("btn-planos-gasto");
+    if (!btn) return;
+    var incl = planosGastoIncluirSalvos();
+    var n = rgPlanosCatalogo.length;
+    if (!n) {
+      btn.textContent = "Planos gasto";
+      return;
+    }
+    if (!incl || incl.length >= n) {
+      btn.textContent = "Planos gasto";
+      btn.title = "Todos os planos de despesa entram no DRE e no gráfico de saldo.";
+    } else {
+      btn.textContent = "Planos (" + incl.length + "/" + n + ")";
+      btn.title = "Só os planos marcados entram como gasto no DRE e no gráfico.";
+    }
+  }
+
+  function planoEstaIncluido(nome) {
+    var incl = planosGastoIncluirSalvos();
+    if (!incl) return true;
+    var n = String(nome || "").trim().toLowerCase();
+    for (var i = 0; i < incl.length; i++) {
+      if (String(incl[i] || "").trim().toLowerCase() === n) return true;
+    }
+    return false;
+  }
+
+  function montarModalPlanosGasto() {
+    var list = document.getElementById("rg-planos-lista");
+    if (!list) return;
+    var incl = planosGastoIncluirSalvos();
+    var planos = rgPlanosCatalogo.slice();
+    if (!planos.length) {
+      list.innerHTML =
+        '<p class="rg-planos-empty">Carregue o período (Atualizar) para listar os planos de despesa.</p>';
+      return;
+    }
+    list.innerHTML = planos
+      .map(function (p) {
+        var ck = !incl || incl.indexOf(p) >= 0 ? " checked" : "";
+        return (
+          '<label class="rg-planos-item"><input type="checkbox" value="' +
+          escapeHtml(p) +
+          '"' +
+          ck +
+          "> <span>" +
+          escapeHtml(p) +
+          "</span></label>"
+        );
+      })
+      .join("");
+  }
+
+  function abrirModalPlanosGasto() {
+    montarModalPlanosGasto();
+    var m = document.getElementById("modal-planos-gasto");
+    if (m) m.classList.remove("hidden");
+  }
+
+  function fecharModalPlanosGasto() {
+    var m = document.getElementById("modal-planos-gasto");
+    if (m) m.classList.add("hidden");
+  }
+
+  function aplicarModalPlanosGasto() {
+    var list = document.getElementById("rg-planos-lista");
+    if (!list) return;
+    var checks = list.querySelectorAll('input[type="checkbox"]');
+    var sel = [];
+    checks.forEach(function (c) {
+      if (c.checked) sel.push(c.value);
+    });
+    if (!sel.length) {
+      alert("Marque pelo menos um plano de despesa.");
+      return;
+    }
+    if (rgPlanosCatalogo.length && sel.length >= rgPlanosCatalogo.length) {
+      salvarPlanosGastoIncluir(null);
+    } else {
+      salvarPlanosGastoIncluir(sel);
+    }
+    fecharModalPlanosGasto();
+    atualizarBadgePlanos();
+    if (typeof atualizarPainel === "function") atualizarPainel();
+  }
+
+  /** YYYY-MM-DD no fuso local (evita virar dia anterior com toISOString). */
+  function isoLocal(d) {
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, "0");
+    var day = String(d.getDate()).padStart(2, "0");
+    return y + "-" + m + "-" + day;
+  }
+
+  /** Padrão de abertura: dia 1 do mês atual → hoje. */
+  function padraoPeriodoMesAtual() {
+    var hoje = new Date();
+    var ini = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    return { ini: isoLocal(ini), fim: isoLocal(hoje) };
+  }
+
+  function labelLoja(v) {
+    if (v === "centro") return "Centro";
+    if (v === "vila") return "Vila";
+    return "Centro + Vila";
+  }
+
   function escapeHtml(t) {
     if (t == null) return "";
     var d = document.createElement("div");
     d.textContent = String(t);
     return d.innerHTML;
+  }
+
+  function rgQ(html, aria) {
+    return (
+      '<details class="rg-q">' +
+      '<summary class="rg-q__btn" aria-label="' +
+      escapeHtml(aria || "Ajuda") +
+      '">?</summary>' +
+      '<div class="rg-q__box">' +
+      html +
+      "</div></details>"
+    );
+  }
+
+  /** Atributo data-rg-tip para balão no mouse (CSS). */
+  function rgTip(texto) {
+    if (!texto) return "";
+    return (
+      ' data-rg-tip="' +
+      escapeHtml(String(texto)).replace(/"/g, "&quot;") +
+      '"'
+    );
+  }
+
+  function miniRow(label, valorHtml, tip) {
+    return (
+      "<div" +
+      rgTip(tip) +
+      "><dt>" +
+      escapeHtml(label) +
+      "</dt><dd>" +
+      valorHtml +
+      "</dd></div>"
+    );
   }
 
   /**
@@ -123,6 +373,7 @@
         value: brl(c.receita_operacional),
         tone: "success",
         sign: nRec > 0 ? "pos" : nRec < 0 ? "neg" : "zero",
+        subtitle: c.receita_fonte === "pdv" ? "Vendas do caixa (PDV)" : null,
         trend: c._trend_receita_operacional || null,
       }),
       buildKpiCard({
@@ -130,6 +381,10 @@
         value: brl(c.lucro_bruto),
         tone: "success",
         sign: signFromNumber(nLucro),
+        subtitle:
+          c.markup_pct != null && c.margem_bruta_pct != null
+            ? "Markup " + pctJa(c.markup_pct) + " · margem " + pctJa(c.margem_bruta_pct)
+            : null,
         trend: c._trend_lucro_bruto || null,
       }),
       buildKpiCard({
@@ -228,6 +483,658 @@
     return html;
   }
 
+  function sparkSvg(vals) {
+    if (!vals || vals.length < 2) {
+      return '<p class="rg-muted">Sem série diária neste período.</p>';
+    }
+    var max = Math.max.apply(null, vals.concat([0.01]));
+    var w = 320;
+    var h = 72;
+    var p = 6;
+    var pts = vals
+      .map(function (v, i) {
+        var x = p + (i / (vals.length - 1)) * (w - 2 * p);
+        var y = h - p - (v / max) * (h - 2 * p);
+        return x.toFixed(1) + "," + y.toFixed(1);
+      })
+      .join(" ");
+    return (
+      '<svg viewBox="0 0 ' +
+      w +
+      " " +
+      h +
+      '" class="rg-spark" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke="#059669" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" points="' +
+      pts +
+      '"/></svg>'
+    );
+  }
+
+  function sparkVals(c) {
+    var fat = (c && c.faturamento_pdv) || {};
+    var por = fat.por_dia || {};
+    var keys = Object.keys(por).sort();
+    if (!keys.length) return [];
+    return keys.slice(-7).map(function (k) {
+      return num(por[k]);
+    });
+  }
+
+  function peChartSvg(c) {
+    var rec = num(c && c.receita_operacional);
+    var pe = num(c && c.faturamento_equilibrio);
+    var peOk = pe > 0 && rec >= pe;
+    var escala = Math.max(pe, rec, 1);
+    var fillPct = Math.min(100, (rec / escala) * 100);
+    var markPct = pe > 0 ? Math.min(100, (pe / escala) * 100) : 0;
+    var folga = pe > 0 ? rec - pe : 0;
+    var status = !pe
+      ? "Sem PE neste recorte"
+      : peOk
+        ? "Acima do equilíbrio"
+        : "Abaixo do equilíbrio";
+    var statusCls = !pe ? "" : peOk ? " is-good" : " is-bad";
+    var folgaLbl = !pe ? "—" : peOk ? "Folga" : "Falta";
+    var plain = !pe
+      ? "Neste recorte não dá para calcular o ponto de equilíbrio (falta margem de contribuição)."
+      : "Para empatar, a loja precisa vender " +
+        brl(pe) +
+        ". Já vendeu " +
+        brl(rec) +
+        ".";
+    return (
+      '<div class="rg-pe-chart rg-pe-modern rg-pe-thermo' +
+      statusCls +
+      '" role="img" aria-label="Ponto de equilíbrio">' +
+      '<div class="rg-pe-modern__status"' +
+      rgTip(
+        pe > 0
+          ? peOk
+            ? "Vendas já cobriram o mínimo para empatar (fixas + CMV + variáveis)."
+            : "Ainda falta vender para cobrir o mínimo e empatar."
+          : "Sem base de cálculo neste filtro."
+      ) +
+      ">" +
+      status +
+      "</div>" +
+      (pe > 0
+        ? '<div class="rg-pe-thermo__track"' +
+          rgTip("Barra verde = o que vendeu. Linha = quanto precisa vender para empatar.") +
+          '><b class="rg-pe-thermo__fill" style="width:' +
+          fillPct.toFixed(1) +
+          '%"></b><i class="rg-pe-thermo__mark" style="left:' +
+          markPct.toFixed(1) +
+          '%"></i></div>'
+        : "") +
+      '<div class="rg-pe-modern__nums rg-pe-thermo__nums">' +
+      "<div" +
+      rgTip("Quanto a loja vendeu (receita do PDV) no período filtrado.") +
+      '><span>Vendeu</span><strong class="' +
+      valCls(rec) +
+      '">' +
+      brl(rec) +
+      "</strong></div>" +
+      "<div" +
+      rgTip(
+        "Quanto precisa vender para empatar: cobre despesas fixas + CMV + variáveis."
+      ) +
+      "><span>Precisa vender (PE)</span><strong>" +
+      (pe > 0 ? brl(pe) : "—") +
+      "</strong></div>" +
+      "<div" +
+      rgTip(
+        peOk
+          ? "Quanto sobrou além do equilíbrio (lucro de contribuição)."
+          : "Quanto ainda falta vender para empatar."
+      ) +
+      "><span>" +
+      folgaLbl +
+      '</span><strong class="' +
+      (pe > 0 ? valCls(folga) : "") +
+      '">' +
+      (pe > 0 ? brl(Math.abs(folga)) : "—") +
+      "</strong></div></div>" +
+      '<p class="rg-pe-modern__delta rg-pe-thermo__plain">' +
+      plain +
+      "</p></div>"
+    );
+  }
+
+  var CAT_COLORS = ["#2563eb", "#f59e0b", "#10b981", "#8b5cf6", "#ef4444", "#06b6d4", "#64748b"];
+
+  function donutReceitaCategorias(pack, modo) {
+    if (modo === "grupo") {
+      return '<p class="rg-muted">Abra uma empresa para ver receita por categoria.</p>';
+    }
+    var fatias = pack && pack.ok ? pack.fatias || [] : [];
+    if (!fatias.length) {
+      return '<p class="rg-muted">Sem vendas por categoria neste recorte.</p>';
+    }
+    var total = 0;
+    var i;
+    for (i = 0; i < fatias.length; i++) total += num(fatias[i].valor);
+    if (total <= 0) {
+      return '<p class="rg-muted">Sem vendas por categoria neste recorte.</p>';
+    }
+    var acc = 0;
+    var stops = [];
+    var legend = "";
+    for (i = 0; i < fatias.length; i++) {
+      var f = fatias[i];
+      var p = (num(f.valor) / total) * 100;
+      var c = CAT_COLORS[i % CAT_COLORS.length];
+      stops.push(c + " " + acc.toFixed(2) + "% " + (acc + p).toFixed(2) + "%");
+      acc += p;
+      legend +=
+        "<li" +
+        rgTip("Vendas PDV da categoria «" + (f.nome || "—") + "» no período.") +
+        '><i class="rg-dot" style="background:' +
+        c +
+        '"></i>' +
+        escapeHtml(f.nome || "—") +
+        " <b>" +
+        brl(f.valor) +
+        "</b> <small>" +
+        pctJa(f.pct != null ? f.pct : p) +
+        "</small></li>";
+    }
+    return (
+      '<div class="rg-donut-row"><div class="rg-donut rg-donut--cat" style="background:conic-gradient(' +
+      stops.join(",") +
+      ')"></div><ul class="rg-legend">' +
+      legend +
+      "</ul></div>"
+    );
+  }
+
+  function catValor(r) {
+    return num(r && (r.valor != null ? r.valor : r.ultimo));
+  }
+
+  function renderCatRows(top) {
+    if (!top || !top.length) {
+      return '<p class="rg-muted">Sem despesas por categoria neste recorte.</p>';
+    }
+    var max = Math.max.apply(
+      null,
+      top.map(catValor).concat([0.01])
+    );
+    return top
+      .slice(0, 8)
+      .map(function (r) {
+        var val = catValor(r);
+        var pctW = Math.min(100, (val / max) * 100);
+        return (
+          '<div class="rg-cat"' +
+          rgTip("Despesa do plano «" + (r.plano || "—") + "» no mesmo recorte do filtro.") +
+          '><div class="rg-cat__meta"><span class="rg-cat__nome">' +
+          escapeHtml(r.plano) +
+          '</span><span class="rg-cat__val">' +
+          brl(val) +
+          "</span></div>" +
+          '<div class="rg-cat__track"><div class="rg-cat__bar" style="width:' +
+          pctW.toFixed(1) +
+          '%"></div></div></div>'
+        );
+      })
+      .join("");
+  }
+
+  function deltaRel(atual, ref) {
+    if (ref == null || !isFinite(ref) || Math.abs(ref) < 0.005) return null;
+    return ((num(atual) - num(ref)) / Math.abs(num(ref))) * 100;
+  }
+  function deltaPp(atual, ref) {
+    if (ref == null || !isFinite(ref)) return null;
+    return num(atual) - num(ref);
+  }
+  function fmtDelta(d, pp) {
+    if (d == null || !isFinite(d)) return "—";
+    if (Math.abs(d) < 0.05) return pp ? "0 pp" : "0%";
+    var sign = d > 0 ? "+" : "−";
+    var abs = Math.abs(d);
+    if (pp) return sign + abs.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " pp";
+    return sign + abs.toLocaleString("pt-BR", { maximumFractionDigits: 0 }) + "%";
+  }
+  function cmpTone(d, invert) {
+    if (d == null || !isFinite(d) || Math.abs(d) < 0.05) return "";
+    var good = d > 0;
+    if (invert) good = !good;
+    return good ? " is-good" : " is-bad";
+  }
+  function refKpis(visual, c) {
+    var pack = visual && visual.comparativo;
+    if (!pack || !pack.ok) return null;
+    function one(s) {
+      if (!s) return null;
+      var k = num(s.k) || 1;
+      var modo = (c && c.cmv_modo) || cmvModoSalvo();
+      if (modo === "vendida" && s.ok_vendida === false) modo = "paga";
+      var cm = (s.cmv_modos && s.cmv_modos[modo]) || {};
+      return {
+        desp: num(s.despesas) * k,
+        rec: num(s.receita) * k,
+        cmv: num(cm.cmv != null ? cm.cmv : s.cmv) * k,
+        margem: num(cm.margem_bruta_pct != null ? cm.margem_bruta_pct : s.margem_bruta_pct),
+        markup: num(cm.markup_pct != null ? cm.markup_pct : s.markup_pct),
+      };
+    }
+    return { mes: one(pack.mes), d90: one(pack.d90) };
+  }
+  function renderCmpRows(atual, mesVal, d90Val, invert, asPct) {
+    if (mesVal == null && d90Val == null) return "";
+    function row(label, ref, tip) {
+      if (ref == null) {
+        return (
+          '<div class="rg-cmp__row"' +
+          rgTip(tip) +
+          "><i>" +
+          label +
+          "</i><b>—</b><em>—</em></div>"
+        );
+      }
+      var d = asPct ? deltaPp(atual, ref) : deltaRel(atual, ref);
+      return (
+        '<div class="rg-cmp__row' +
+        cmpTone(d, invert) +
+        '"' +
+        rgTip(tip) +
+        "><i>" +
+        label +
+        "</i><b>" +
+        (asPct ? pctJa(ref) : brl(ref)) +
+        "</b><em>" +
+        fmtDelta(d, asPct) +
+        "</em></div>"
+      );
+    }
+    return (
+      '<div class="rg-cmp">' +
+      row(
+        "vs mês passado",
+        mesVal,
+        "Mesmo número de dias do mês calendário anterior (projetado). Passa o mouse nos cards de cima para o detalhe."
+      ) +
+      row(
+        "vs média 90d",
+        d90Val,
+        "Média diária dos 90 dias anteriores × dias do filtro atual."
+      ) +
+      "</div>"
+    );
+  }
+
+  function renderVisualBoard(c, visual, modo) {
+    var df = num(c.despesas_fixas);
+    var dv = num(c.despesas_variaveis);
+    var dfin = num(c.despesas_financeiras);
+    var desp = df + dv + dfin;
+    var rec = num(c.receita_operacional);
+    var cmv = num(c.cmv);
+    var lucro = num(c.lucro_bruto);
+    var margem = c.margem_bruta_pct != null ? num(c.margem_bruta_pct) : rec > 0 ? (lucro / rec) * 100 : null;
+    var markup = c.markup_pct != null ? num(c.markup_pct) : rec > 0 && cmv > 0 ? ((rec - cmv) / cmv) * 100 : null;
+    var pe = num(c.faturamento_equilibrio);
+    var peOk = pe > 0 && rec >= pe;
+    var peHint =
+      pe > 0
+        ? "PE " +
+          brl(pe) +
+          (c.margem_contribuicao_pct != null ? " · MC " + pct(c.margem_contribuicao_pct) : "")
+        : "Sem ponto de equilíbrio neste recorte";
+    var totDonut = desp || 1;
+    var p1 = (df / totDonut) * 100;
+    var p2 = p1 + (dv / totDonut) * 100;
+    var recCls = rec > 0.005 ? "" : " is-muted";
+    var lucroCls = margem == null || Math.abs(margem) < 0.05 ? "" : margem > 0 ? " is-good" : " is-bad";
+    var peCardCls = !pe ? "" : peOk ? " is-good" : " is-bad";
+    var emp = (visual && visual.emprestimos) || {};
+    var empOk = emp && emp.ok;
+    var jurosEmp = empOk
+      ? num(emp.juros_pago != null ? emp.juros_pago : emp.juros)
+      : 0;
+    var empPago = empOk
+      ? num(emp.emprestimo_pago != null ? emp.emprestimo_pago : emp.valor_pago)
+      : Math.max(0, num(c.amortizacao_emprestimos) - jurosEmp);
+    var entradaEmp =
+      empOk && num(emp.valor_emprestado) > 0.005
+        ? num(emp.valor_emprestado)
+        : num(c.emprestimos_entrada);
+    var aportesSoc = num(c.aportes_socios);
+    var retiradasSoc = num(c.retiradas_socios);
+    var liquidoTela = num(c.resultado_liquido_gerencial);
+    var saldoMini =
+      liquidoTela + entradaEmp + aportesSoc - jurosEmp - empPago - retiradasSoc;
+    var caixaPeriodo = saldoMini;
+    var refs = modo === "grupo" ? null : refKpis(visual, c);
+    var rMes = refs && refs.mes;
+    var r90 = refs && refs.d90;
+    var cmpDesp = renderCmpRows(desp, rMes && rMes.desp, r90 && r90.desp, true, false);
+    var cmpRec = renderCmpRows(rec, rMes && rMes.rec, r90 && r90.rec, false, false);
+    var cmpMarg = renderCmpRows(margem, rMes && rMes.margem, r90 && r90.margem, false, true);
+    var cmpCmv = renderCmpRows(cmv, rMes && rMes.cmv, r90 && r90.cmv, true, false);
+    var cmpMk = renderCmpRows(markup, rMes && rMes.markup, r90 && r90.markup, false, true);
+    var catPack =
+      visual && visual.despesas_categorias && visual.despesas_categorias.ok
+        ? visual.despesas_categorias
+        : null;
+    var varOk = visual && visual.ok && visual.variacao && visual.variacao.ok;
+    var catHtml =
+      modo === "grupo"
+        ? '<p class="rg-muted">Abra uma empresa para ver despesas por categoria.</p>'
+        : catPack
+          ? renderCatRows(catPack.top)
+          : varOk
+            ? renderCatRows(visual.variacao.top)
+            : '<p class="rg-muted">Despesas por categoria indisponível neste recorte.</p>';
+    var grupos = catPack
+      ? catPack.grupos || []
+      : varOk
+        ? visual.variacao.resumo_grupos || []
+        : [];
+    var gruposHtml = grupos
+      .map(function (g) {
+        var gval = g.total != null ? g.total : g.ultimo;
+        return (
+          '<div class="rg-gsum rg-gsum--' +
+          escapeHtml(g.key || "") +
+          '"><span>' +
+          escapeHtml(g.label || "") +
+          "</span><strong>" +
+          brl(gval) +
+          "</strong></div>"
+        );
+      })
+      .join("");
+    var empDev = empOk ? num(emp.emprestimo_devido != null ? emp.emprestimo_devido : emp.valor_devido) : 0;
+    var jurDev = empOk ? num(emp.juros_devido != null ? emp.juros_devido : emp.juros) : 0;
+    var totDev = empOk
+      ? num(emp.total_devido != null ? emp.total_devido : empDev + jurDev)
+      : 0;
+    var qCmp =
+      "Comparativo: <strong>vs mês passado</strong> = mesmos dias do mês calendário anterior. <strong>vs média 90d</strong> = média diária dos 90 dias anteriores × dias do filtro. Despesa e CMV: subir é ruim; receita, lucro e markup: subir é bom.";
+    var qDesp =
+      "Fixas " +
+      brl(df) +
+      " · variáveis " +
+      brl(dv) +
+      " · financeiras " +
+      brl(dfin) +
+      ". Fixas = aluguel, salário… Variáveis acompanham a venda. Financeiras = IOF, tarifa, ativo (sem juros/pagamento de empréstimo). " +
+      qCmp;
+    var qRec =
+      (c.receita_fonte === "pdv"
+        ? "Vendas do caixa (<strong>PDV</strong>) no período."
+        : "Receita dos <strong>lançamentos</strong> no período.") +
+      " " +
+      qCmp;
+    var qLucro = "Margem bruta = lucro bruto ÷ receita. Comparativo em pontos percentuais. " + qCmp;
+    var qCmvMk =
+      "<strong>CMV</strong> = custo da mercadoria (modo vendida ou paga no filtro de cima). <strong>Markup</strong> = lucro bruto ÷ CMV. " +
+      qCmp;
+    var qPe =
+      escapeHtml(peHint) +
+      ". Custo do equilíbrio = fixas + CMV + variáveis. <strong>Saldo Mini DRE:</strong> " +
+      brl(caixaPeriodo) +
+      " (líquido PDV ± empréstimos e sócios).";
+    var qMini =
+      "<strong>Saldo final</strong> = líquido (PDV) + entrada empréstimo + aporte sócio − juros − empréstimo (principal) − retirada sócio.";
+    var qEmp =
+      modo === "grupo"
+        ? "Abra uma empresa para ver empréstimos."
+        : "Devido = bruto no filtro da tela. <strong>Empréstimo devido</strong> + <strong>juros devido</strong> = <strong>total devido</strong>. <strong>Valor pago</strong> = pago desses títulos (mesmo meses anteriores). <strong>Valor emprestado</strong> = entrada no período pela competência.";
+    var tipDesp =
+      "Soma das despesas fixas + variáveis + financeiras no filtro (sem CMV e sem pagamento de empréstimo).";
+    var tipRec =
+      c.receita_fonte === "pdv"
+        ? "Vendas do caixa (PDV) no período e loja filtrados."
+        : "Receita dos lançamentos no período filtrado.";
+    var tipMarg =
+      "Margem bruta = lucro bruto ÷ receita. Quanto sobra de cada R$ 1,00 vendido depois do CMV.";
+    var tipCmv =
+      "Custo da mercadoria no modo escolhido em cima (vendida = cadastro × qtd; paga = compras lançadas).";
+    var tipMk =
+      "Markup = lucro bruto ÷ CMV. Quanto a loja ganha em cima do custo da mercadoria.";
+    var empHtml =
+      '<article class="rg-card rg-card--emp"><div class="rg-card__head"><h3>Empréstimos</h3>' +
+      rgQ(qEmp, "Ajuda empréstimos") +
+      '</div><dl class="rg-mini">' +
+      miniRow(
+        "Empréstimo devido",
+        '<span class="' +
+          (empOk && empDev > 0.005 ? "rg-val--warn" : "rg-val--zero") +
+          '">' +
+          (empOk ? brl(empDev) : "—") +
+          "</span>",
+        "Bruto dos títulos de pagamento de empréstimo com vencimento no filtro."
+      ) +
+      miniRow(
+        "Juros devido",
+        '<span class="' +
+          (empOk && jurDev > 0.005 ? "rg-val--cost" : "rg-val--zero") +
+          '">' +
+          (empOk ? brl(jurDev) : "—") +
+          "</span>",
+        "Bruto dos títulos de juros de empréstimo no mesmo filtro."
+      ) +
+      miniRow(
+        "Total devido",
+        '<span class="' +
+          (empOk && totDev > 0.005 ? "rg-val--warn" : "rg-val--zero") +
+          '">' +
+          (empOk ? brl(totDev) : "—") +
+          "</span>",
+        "Empréstimo devido + juros devido."
+      ) +
+      miniRow(
+        "Valor pago",
+        '<span class="' +
+          (empOk && num(emp.valor_pago) > 0.005 ? "rg-val--info" : "rg-val--zero") +
+          '">' +
+          (empOk ? brl(emp.valor_pago) : "—") +
+          "</span>",
+        "Já pago desses títulos (pode incluir baixas de meses anteriores)."
+      ) +
+      miniRow(
+        "Valor emprestado",
+        '<span class="' +
+          (empOk && num(emp.valor_emprestado) > 0.005 ? "rg-val--info" : "rg-val--zero") +
+          '">' +
+          (empOk ? brl(emp.valor_emprestado) : "—") +
+          "</span>",
+        "Entrada de empréstimo no período (sempre por competência)."
+      ) +
+      "</dl></article>";
+    return (
+      '<div class="rg-board">' +
+      '<div class="rg-flow">' +
+      '<article class="rg-flow__kpi rg-flow__kpi--desp"' +
+      rgTip(tipDesp) +
+      '><div class="rg-flow__kpi-main"><div class="rg-flow__kpi-label"><span>Despesas</span>' +
+      rgQ(qDesp, "Ajuda despesas") +
+      '</div><strong>' +
+      brl(desp) +
+      '</strong><small class="rg-flow__kpi-sub">Fixas + variáveis + financeiras</small></div>' +
+      cmpDesp +
+      "</article>" +
+      '<span class="rg-flow__arrow" aria-hidden="true">→</span>' +
+      '<article class="rg-flow__kpi rg-flow__kpi--rec' +
+      recCls +
+      '"' +
+      rgTip(tipRec) +
+      '><div class="rg-flow__kpi-main"><div class="rg-flow__kpi-label"><span>Receita</span>' +
+      rgQ(qRec, "Ajuda receita") +
+      '</div><strong>' +
+      brl(rec) +
+      '</strong><small class="rg-flow__kpi-sub">' +
+      (c.receita_fonte === "pdv" ? "Vendas do PDV" : "Lançamentos") +
+      "</small></div>" +
+      cmpRec +
+      "</article>" +
+      '<span class="rg-flow__arrow" aria-hidden="true">→</span>' +
+      '<article class="rg-flow__kpi rg-flow__kpi--lucro' +
+      lucroCls +
+      '"' +
+      rgTip(tipMarg) +
+      '><div class="rg-flow__kpi-main"><div class="rg-flow__kpi-label"><span>% Lucro</span>' +
+      rgQ(qLucro, "Ajuda lucro") +
+      '</div><strong>' +
+      (margem != null ? pctJa(margem) : "—") +
+      '</strong><small class="rg-flow__kpi-sub">Margem bruta</small></div>' +
+      cmpMarg +
+      "</article>" +
+      '<article class="rg-flow__side"><div class="rg-flow__side-head">' +
+      rgQ(qCmvMk, "Ajuda CMV e markup") +
+      '</div><div class="rg-flow__side-row"' +
+      rgTip(tipCmv) +
+      '><div><span>CMV</span><strong class="' +
+      (cmv > 0.005 ? "rg-val--cost" : "rg-val--zero") +
+      '">' +
+      brl(cmv) +
+      "</strong></div>" +
+      cmpCmv +
+      '</div><div class="rg-flow__side-row"' +
+      rgTip(tipMk) +
+      '><div><span>Markup</span><strong class="' +
+      (markup == null ? "" : valCls(markup)) +
+      '">' +
+      (markup != null ? pctJa(markup) : "—") +
+      "</strong></div>" +
+      cmpMk +
+      "</div></article></div>" +
+      '<div class="rg-col--charts"><div class="rg-charts-donuts"><article class="rg-card"><h3>Composição das despesas</h3><div class="rg-donut-row"><div class="rg-donut" style="--p1:' +
+      p1.toFixed(1) +
+      "%;--p2:" +
+      p2.toFixed(1) +
+      '%"></div><ul class="rg-legend"><li' +
+      rgTip("Aluguel, salário e outras que não mudam com a venda.") +
+      '><i class="rg-dot rg-dot--fixa"></i>Fixas <b>' +
+      brl(df) +
+      "</b></li><li" +
+      rgTip("Acompanham o volume de venda.") +
+      '><i class="rg-dot rg-dot--var"></i>Variáveis <b>' +
+      brl(dv) +
+      "</b></li><li" +
+      rgTip("IOF, tarifa, ativo — sem juros/pagamento de empréstimo.") +
+      '><i class="rg-dot rg-dot--fin"></i>Financeiras <b>' +
+      brl(dfin) +
+      "</b></li></ul></div></article>" +
+      '<article class="rg-card rg-card--rec-cat"><h3>Receita por categoria</h3>' +
+      donutReceitaCategorias(visual && visual.receita_categorias, modo) +
+      "</article></div>" +
+      '<article class="rg-card rg-card--pe' +
+      peCardCls +
+      '"><div class="rg-card__head"><h3>Ponto de equilíbrio</h3>' +
+      rgQ(qPe, "Ajuda ponto de equilíbrio") +
+      "</div>" +
+      peChartSvg(c) +
+      "</article></div>" +
+      '<div class="rg-col--cat"><article class="rg-card rg-card--cat"><h3>Despesas por categoria</h3>' +
+      (gruposHtml ? '<div class="rg-gsums">' + gruposHtml + "</div>" : "") +
+      '<div class="rg-cat-list">' +
+      catHtml +
+      "</div></article></div>" +
+      '<div class="rg-col--dre"><article class="rg-card rg-card--dre' +
+      (Math.abs(num(c.resultado_liquido_gerencial)) < 0.005
+        ? ""
+        : num(c.resultado_liquido_gerencial) > 0
+          ? " is-good"
+          : " is-bad") +
+      '"><div class="rg-card__head"><h3>Mini DRE</h3>' +
+      rgQ(qMini, "Ajuda Mini DRE") +
+      '</div><dl class="rg-mini">' +
+      miniRow(
+        "Receita",
+        '<span class="' + valCls(rec) + '">' + brl(rec) + "</span>",
+        tipRec
+      ) +
+      miniRow(
+        "CMV",
+        '<span class="' +
+          (cmv > 0.005 ? "rg-val--cost" : "rg-val--zero") +
+          '">' +
+          brl(cmv) +
+          "</span>",
+        tipCmv
+      ) +
+      miniRow(
+        "Lucro bruto",
+        '<span class="' + valCls(lucro) + '">' + brl(lucro) + "</span>",
+        "Receita − CMV."
+      ) +
+      miniRow(
+        "Resultado op.",
+        '<span class="' +
+          valCls(c.resultado_operacional) +
+          '">' +
+          brl(c.resultado_operacional) +
+          "</span>",
+        "Lucro bruto − despesas operacionais (fixas + variáveis)."
+      ) +
+      miniRow(
+        "Líquido",
+        '<span class="' +
+          valCls(c.resultado_liquido_gerencial) +
+          '">' +
+          brl(c.resultado_liquido_gerencial) +
+          "</span>",
+        "Resultado operacional − despesas financeiras (sem empréstimos/sócios)."
+      ) +
+      miniRow(
+        "Entrada empréstimo",
+        '<span class="' +
+          (entradaEmp > 0.005 ? "rg-val--info" : "rg-val--zero") +
+          '">' +
+          brl(entradaEmp) +
+          "</span>",
+        "Dinheiro que entrou de empréstimo no período."
+      ) +
+      miniRow(
+        "Aporte sócio",
+        '<span class="' +
+          (aportesSoc > 0.005 ? "rg-val--info" : "rg-val--zero") +
+          '">' +
+          brl(aportesSoc) +
+          "</span>",
+        "Aporte de sócio no período."
+      ) +
+      miniRow(
+        "Juros empréstimo",
+        '<span class="' +
+          (jurosEmp > 0.005 ? "rg-val--cost" : "rg-val--zero") +
+          '">' +
+          brl(jurosEmp) +
+          "</span>",
+        "Juros de empréstimo pagos no período."
+      ) +
+      miniRow(
+        "Empréstimo",
+        '<span class="' +
+          (empPago > 0.005 ? "rg-val--cost" : "rg-val--zero") +
+          '">' +
+          brl(empPago) +
+          "</span>",
+        "Principal de empréstimo pago no período."
+      ) +
+      miniRow(
+        "Retirada sócio",
+        '<span class="' +
+          (retiradasSoc > 0.005 ? "rg-val--cost" : "rg-val--zero") +
+          '">' +
+          brl(retiradasSoc) +
+          "</span>",
+        "Retirada de sócio no período."
+      ) +
+      miniRow(
+        "Saldo final",
+        '<span class="' + valCls(saldoMini) + '">' + brl(saldoMini) + "</span>",
+        "Soma da Mini DRE: líquido + entradas − juros − principal − retiradas."
+      ) +
+      "</dl></article>" +
+      empHtml +
+      "</div></div>"
+    );
+  }
+
   function mainZeros(c) {
     var keys = [
       "receita_operacional",
@@ -258,6 +1165,240 @@
     return p[2] + "/" + p[1] + "/" + p[0];
   }
 
+  var _rgSaldoChart = null;
+
+  function rgSaldoChartHeight() {
+    var host = document.getElementById("rg-saldo-chart");
+    if (!host) return 280;
+    var h = host.clientHeight || host.offsetHeight;
+    return h > 120 ? h : 280;
+  }
+
+  function rgSaldoSetLoading(on) {
+    var loadEl = document.getElementById("rg-saldo-loading");
+    var host = document.getElementById("rg-saldo-chart");
+    if (loadEl) loadEl.classList.toggle("hidden", !on);
+    if (host) host.style.visibility = on ? "hidden" : "visible";
+  }
+
+  function destroyRgSaldoChart() {
+    if (_rgSaldoChart && typeof _rgSaldoChart.destroy === "function") {
+      try {
+        _rgSaldoChart.destroy();
+      } catch (e) {}
+    }
+    _rgSaldoChart = null;
+  }
+
+  function renderRgSaldoDiario(payload) {
+    var sec = document.getElementById("sec-saldo-diario");
+    var host = document.getElementById("rg-saldo-chart");
+    var errEl = document.getElementById("rg-saldo-erro");
+    var totalEl = document.getElementById("rg-saldo-total");
+    var lojaEl = document.getElementById("rg-saldo-loja");
+    if (!sec || !host) return;
+
+    if (!payload || !payload.ok || !payload.dias || !payload.dias.length) {
+      sec.classList.remove("hidden");
+      destroyRgSaldoChart();
+      if (errEl) {
+        errEl.textContent =
+          (payload && payload.detail) || "Sem dados para o gráfico de lucro.";
+        errEl.classList.remove("hidden");
+      }
+      return;
+    }
+
+    sec.classList.remove("hidden");
+    if (errEl) {
+      errEl.textContent = "";
+      errEl.classList.add("hidden");
+    }
+
+    var dias = payload.dias;
+    var labels = dias.map(function (d) {
+      return d.label;
+    });
+    var barrasNums = dias.map(function (d) {
+      var v = d.lucro != null ? d.lucro : d.saldo;
+      return v != null ? Number(v) : null;
+    });
+    var previsto = dias.map(function (d) {
+      return d.previsto != null ? Number(d.previsto) : 0;
+    });
+
+    if (totalEl && payload.totais) {
+      var acum =
+        payload.totais.lucro_ate_hoje != null
+          ? payload.totais.lucro_ate_hoje
+          : payload.totais.saldo_real_ate_hoje;
+      var prev =
+        payload.totais.previsto_lucro_mes != null
+          ? payload.totais.previsto_lucro_mes
+          : payload.totais.previsto_mes;
+      totalEl.textContent =
+        "Lucro acum.: " + brl(acum) + " · Prev. mês: " + brl(prev);
+    }
+    if (lojaEl) {
+      lojaEl.textContent = payload.loja_label || "";
+    }
+
+    destroyRgSaldoChart();
+    if (typeof ApexCharts === "undefined") {
+      if (errEl) {
+        errEl.textContent = "Biblioteca de gráfico indisponível.";
+        errEl.classList.remove("hidden");
+      }
+      return;
+    }
+
+    var chartH = rgSaldoChartHeight();
+    var chartOpts = {
+      series: [
+        { name: "Lucro", type: "column", data: barrasNums },
+        { name: "Prev. lucro (90d)", type: "line", data: previsto },
+      ],
+      chart: {
+        type: "line",
+        height: chartH,
+        stacked: false,
+        toolbar: { show: false },
+        background: "transparent",
+        animations: { enabled: true, speed: 280 },
+      },
+      colors: ["#2563eb", "#16a34a"],
+      stroke: { width: [0, 3], curve: "smooth" },
+      plotOptions: {
+        bar: {
+          borderRadius: 3,
+          columnWidth: "68%",
+          borderRadiusApplication: "end",
+          colors: {
+            ranges: [
+              { from: -1e12, to: -0.005, color: "#dc2626" },
+              { from: 0.005, to: 1e12, color: "#2563eb" },
+            ],
+          },
+        },
+      },
+      dataLabels: { enabled: false },
+      legend: {
+        show: true,
+        position: "top",
+        horizontalAlign: "right",
+        fontSize: "10px",
+        fontWeight: 700,
+        markers: { width: 8, height: 8, radius: 2 },
+      },
+      grid: { borderColor: "#e2e8f0", strokeDashArray: 4 },
+      xaxis: {
+        categories: labels,
+        labels: {
+          rotate: -45,
+          rotateAlways: dias.length > 20,
+          hideOverlappingLabels: false,
+          style: { colors: "#475569", fontSize: "9px", fontWeight: 700 },
+          maxHeight: 64,
+        },
+        tickAmount: dias.length,
+      },
+      yaxis: {
+        labels: {
+          style: { colors: "#475569", fontSize: "10px" },
+          formatter: function (v) {
+            return Number(v || 0).toLocaleString("pt-BR", {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0,
+            });
+          },
+        },
+      },
+      tooltip: {
+        shared: true,
+        intersect: false,
+        y: {
+          formatter: function (val) {
+            if (val == null) return "—";
+            return brl(val);
+          },
+        },
+      },
+      markers: { size: [0, 0], hover: { size: 4 } },
+      theme: { mode: "light" },
+    };
+
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        try {
+          host.innerHTML = "";
+          _rgSaldoChart = new ApexCharts(host, chartOpts);
+          var p = _rgSaldoChart.render();
+          if (p && typeof p.then === "function") {
+            p.catch(function (err) {
+              if (errEl) {
+                errEl.textContent =
+                  "Não foi possível desenhar o gráfico." +
+                  (err && err.message ? " " + String(err.message).slice(0, 120) : "");
+                errEl.classList.remove("hidden");
+              }
+            });
+          }
+        } catch (errRender) {
+          if (errEl) {
+            errEl.textContent = "Erro ao montar gráfico de saldo.";
+            errEl.classList.remove("hidden");
+          }
+        }
+      });
+    });
+  }
+
+  async function fetchRgSaldoDiario(qBase) {
+    var sec = document.getElementById("sec-saldo-diario");
+    rgSaldoSetLoading(true);
+    if (sec) sec.classList.remove("hidden");
+    var ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var timer =
+      ctrl &&
+      setTimeout(function () {
+        try {
+          ctrl.abort();
+        } catch (e3) {}
+      }, 25000);
+    try {
+      var q = qBase + "&contas=resultado";
+      var r = await fetch("/api/financeiro/saldo-diario-mes?" + q, {
+        credentials: "same-origin",
+        signal: ctrl ? ctrl.signal : undefined,
+      });
+      if (!r.ok) {
+        var ej = {};
+        try {
+          ej = await r.json();
+        } catch (e2) {}
+        renderRgSaldoDiario({
+          ok: false,
+          detail: ej.detail || ej.erro || "Erro " + r.status,
+        });
+        return;
+      }
+      var data = await r.json();
+      renderRgSaldoDiario(data);
+    } catch (e) {
+      if (sec) sec.classList.remove("hidden");
+      var aborted = e && (e.name === "AbortError" || e.message === "The user aborted a request.");
+      renderRgSaldoDiario({
+        ok: false,
+        detail: aborted
+          ? "Gráfico demorou demais. Atualize (F5)."
+          : "Falha ao carregar gráfico de lucro.",
+      });
+    } finally {
+      if (timer) clearTimeout(timer);
+      rgSaldoSetLoading(false);
+    }
+  }
+
   /**
    * Inicialização do painel (DOM).
    */
@@ -271,85 +1412,66 @@
 
     function salvarCtx() {
       try {
+        var loja = el("f-loja") ? el("f-loja").value : "todas";
+        salvarLoja(loja);
         sessionStorage.setItem(
           CK,
           JSON.stringify({
-            modo: el("f-modo").value,
-            empresa_id: el("f-empresa").value,
-            grupo_id: el("f-grupo").value,
+            loja: loja,
             data_inicio: el("f-ini").value,
             data_fim: el("f-fim").value,
-            fonte: el("f-fonte").value,
             por: el("f-por").value,
             valor: el("f-valor").value,
-            contas: el("f-contas").value,
           })
         );
       } catch (e) {}
     }
 
     function carregarCtx() {
+      var tinhaSessao = false;
       try {
         var raw = sessionStorage.getItem(CK);
-        if (!raw) return;
-        var o = JSON.parse(raw);
-        if (o.modo) el("f-modo").value = o.modo;
-        if (o.empresa_id) el("f-empresa").value = o.empresa_id;
-        if (o.grupo_id) el("f-grupo").value = o.grupo_id;
-        if (o.data_inicio) el("f-ini").value = o.data_inicio;
-        if (o.data_fim) el("f-fim").value = o.data_fim;
-        if (o.fonte) el("f-fonte").value = o.fonte;
-        if (o.por) el("f-por").value = o.por;
-        if (o.valor) el("f-valor").value = o.valor;
-        if (o.contas !== undefined) el("f-contas").value = o.contas;
+        if (raw) {
+          tinhaSessao = true;
+          var o = JSON.parse(raw);
+          if (o.loja && el("f-loja")) el("f-loja").value = o.loja;
+          if (o.data_inicio) el("f-ini").value = o.data_inicio;
+          if (o.data_fim) el("f-fim").value = o.data_fim;
+          if (o.por) el("f-por").value = o.por;
+          if (o.valor) el("f-valor").value = o.valor;
+        }
       } catch (e) {}
-    }
-
-    function toggleModo() {
-      var m = el("f-modo").value;
-      el("wrap-empresa").classList.toggle("hidden", m !== "empresa");
-      el("wrap-grupo").classList.toggle("hidden", m !== "grupo");
-      el("bloco-grupo").classList.toggle("hidden", m !== "grupo");
-    }
-
-    function toggleFonte() {
-      var mongo = el("f-fonte").value === "mongo";
-      ["wrap-mongo-por", "wrap-mongo-valor", "wrap-mongo-contas"].forEach(function (id) {
-        el(id).classList.toggle("hidden", !mongo);
-      });
+      if (!tinhaSessao) {
+        if (el("f-loja")) el("f-loja").value = lojaSalva();
+        if (el("f-por")) el("f-por").value = "vencimento";
+        if (el("f-valor")) el("f-valor").value = "bruto";
+        var pad = padraoPeriodoMesAtual();
+        if (el("f-ini")) el("f-ini").value = pad.ini;
+        if (el("f-fim")) el("f-fim").value = pad.fim;
+      } else {
+        if (el("f-loja") && !el("f-loja").value) el("f-loja").value = lojaSalva();
+        if (el("f-por") && !el("f-por").value) el("f-por").value = "vencimento";
+        if (el("f-valor") && !el("f-valor").value) el("f-valor").value = "bruto";
+      }
     }
 
     function atualizarResumoFiltroVisivel() {
       var ini = el("f-ini").value;
       var fim = el("f-fim").value;
-      var modo = el("f-modo").value;
+      var loja = el("f-loja") ? el("f-loja").value : "todas";
       var periodo = "Período: " + formatDateBR(ini) + " a " + formatDateBR(fim);
-      var entidade = "";
-      if (modo === "empresa") {
-        var sel = el("f-empresa");
-        var oE = sel.options[sel.selectedIndex];
-        entidade = "Empresa: " + (oE ? oE.text : "—");
-      } else {
-        var sg = el("f-grupo");
-        var oG = sg.options[sg.selectedIndex];
-        entidade = "Grupo: " + (oG ? oG.text : "—");
-      }
-      var fonte = el("f-fonte").value === "mongo" ? "Mongo (DtoLancamento)" : "Postgres (Agro)";
       el("rg-filtro-ativo").innerHTML =
-        "<strong>" +
-        periodo +
-        "</strong> · <strong>" +
-        entidade +
-        "</strong> · Fonte: " +
-        fonte;
+        "<strong>" + periodo + "</strong> · <strong>Loja: " + labelLoja(loja) + "</strong>";
     }
 
     function setLoading(on) {
       var sk = el("rg-kpi-skeleton");
-      var grid = el("painel-cards");
+      var vis = el("painel-visual");
+      var mais = el("rg-mais-numeros");
       var btn = el("btn-atualizar");
       if (sk) sk.classList.toggle("is-visible", on);
-      if (grid) grid.classList.toggle("hidden", on);
+      if (vis) vis.classList.toggle("hidden", on);
+      if (mais) mais.classList.toggle("hidden", on);
       if (btn) {
         btn.disabled = on;
         btn.setAttribute("aria-busy", on ? "true" : "false");
@@ -362,10 +1484,46 @@
       e.classList.toggle("hidden", !msg);
     }
 
+    function syncCmvChips(c) {
+      var m = (c && c.cmv_modo) || cmvModoSalvo();
+      document.querySelectorAll("[data-dre-cmv]").forEach(function (btn) {
+        btn.classList.toggle("is-active", btn.getAttribute("data-dre-cmv") === m);
+      });
+      var hint = el("rg-cmv-hint");
+      if (hint) hint.textContent = CMV_HINT[m] || CMV_HINT.vendida;
+    }
+
+    function pintarEquilibrio(c) {
+      if (!c || c.faturamento_equilibrio == null) return false;
+      var sec = el("sec-equilibrio");
+      if (sec) {
+        sec.classList.remove("is-visible");
+        el("eq-margem").textContent = pct(c.margem_contribuicao_pct);
+        el("eq-fat").textContent = brl(c.faturamento_equilibrio);
+        el("eq-dia").textContent = brl(c.faturamento_diario_equilibrio);
+      }
+      return true;
+    }
+
+    var lastPayload = null;
+    var lastModoTela = "lojas";
+
     function renderResumo(data, modo) {
-      var c = modo === "grupo" ? data.consolidado : data;
+      lastPayload = data;
+      lastModoTela = modo;
+      var bruto = coreDoPayload(data, modo);
+      var c = aplicarCmvNoCore(bruto);
+      syncCmvChips(c);
+      var vis = el("painel-visual");
+      var mais = el("rg-mais-numeros");
+      if (vis) {
+        vis.innerHTML = renderVisualBoard(c, data.visual, modo);
+        vis.classList.remove("hidden");
+      }
+      sincronizarCatalogoPlanos(data.visual);
       el("painel-cards").innerHTML = renderKpiGrid(c);
       el("painel-cards").classList.remove("hidden");
+      if (mais) mais.classList.remove("hidden");
 
       var zero = el("rg-msg-zero");
       if (mainZeros(c)) {
@@ -374,8 +1532,9 @@
         zero.classList.add("hidden");
       }
 
-      var info = el("msg-mongo-info");
-      var obs = c.ajustes_eliminacao && c.ajustes_eliminacao.observacao_mongo;
+      var info = el("msg-info");
+      var aj = c.ajustes_eliminacao || {};
+      var obs = aj.observacao || aj.observacao_mongo;
       if (obs) {
         info.textContent = obs;
         info.classList.remove("hidden");
@@ -415,7 +1574,9 @@
       mostrarErro("");
       el("sec-equilibrio").classList.remove("is-visible");
       setLoading(true);
-      var modo = el("f-modo").value;
+      var loja = el("f-loja") ? el("f-loja").value : "todas";
+      if (loja !== "centro" && loja !== "vila") loja = "todas";
+      var modo = "lojas";
       var ini = el("f-ini").value;
       var fim = el("f-fim").value;
       if (!ini || !fim) {
@@ -423,39 +1584,21 @@
         mostrarErro("Informe início e fim.");
         return;
       }
-      var fonte = el("f-fonte").value;
       var q =
-        "modo=" +
-        encodeURIComponent(modo) +
+        "loja=" +
+        encodeURIComponent(loja) +
         "&data_inicio=" +
         encodeURIComponent(ini) +
         "&data_fim=" +
         encodeURIComponent(fim) +
-        "&fonte=" +
-        encodeURIComponent(fonte);
-      if (fonte === "mongo") {
-        q += "&por=" + encodeURIComponent(el("f-por").value);
-        q += "&valor=" + encodeURIComponent(el("f-valor").value);
-        var ct = el("f-contas").value;
-        if (ct) q += "&contas=" + encodeURIComponent(ct);
-      }
-      if (modo === "empresa") {
-        var eid = el("f-empresa").value;
-        if (!eid) {
-          setLoading(false);
-          mostrarErro("Selecione a empresa.");
-          return;
-        }
-        q += "&empresa_id=" + encodeURIComponent(eid);
-      } else {
-        var gid = el("f-grupo").value;
-        if (!gid) {
-          setLoading(false);
-          mostrarErro("Selecione o grupo ou cadastre um no admin.");
-          return;
-        }
-        q += "&grupo_id=" + encodeURIComponent(gid);
-      }
+        "&fonte=postgres" +
+        "&por=" +
+        encodeURIComponent(el("f-por").value) +
+        "&valor=" +
+        encodeURIComponent(el("f-valor").value) +
+        "&contas=resultado" +
+        "&incluir_visual=1" +
+        planosGastoQueryParam();
       try {
         var r = await fetch("/api/financeiro/resumo-operacional?" + q, {
           credentials: "same-origin",
@@ -483,16 +1626,38 @@
         }
         var data = await r.json();
         renderResumo(data, modo);
-        var dq = q + "&dias_periodo=" + diasNoPeriodo(ini, fim);
-        var re = await fetch("/api/financeiro/gap-equilibrio?" + dq, {
-          credentials: "same-origin",
-        });
-        if (re.ok) {
-          var eq = await re.json();
-          el("sec-equilibrio").classList.add("is-visible");
-          el("eq-margem").textContent = pct(eq.margem_contribuicao_pct);
-          el("eq-fat").textContent = brl(eq.faturamento_equilibrio);
-          el("eq-dia").textContent = brl(eq.faturamento_diario_equilibrio);
+        var cEq = aplicarCmvNoCore(coreDoPayload(data, modo));
+        var qSaldo =
+          "loja=" +
+          encodeURIComponent(loja) +
+          "&por=" +
+          encodeURIComponent(el("f-por").value) +
+          "&valor=" +
+          encodeURIComponent(el("f-valor").value) +
+          "&fonte=postgres";
+        setLoading(false);
+        fetchRgSaldoDiario(qSaldo);
+        if (!pintarEquilibrio(cEq)) {
+          var dq = q + "&dias_periodo=" + diasNoPeriodo(ini, fim);
+          fetch("/api/financeiro/gap-equilibrio?" + dq, {
+            credentials: "same-origin",
+          })
+            .then(function (re) {
+              if (!re.ok) return null;
+              return re.json();
+            })
+            .then(function (eq) {
+              if (!eq) return;
+              var brutoEq = coreDoPayload(lastPayload, modo);
+              if (brutoEq) {
+                brutoEq.faturamento_equilibrio = eq.faturamento_equilibrio;
+                brutoEq.margem_contribuicao_pct = eq.margem_contribuicao_pct;
+                brutoEq.faturamento_diario_equilibrio = eq.faturamento_diario_equilibrio;
+              }
+              renderResumo(lastPayload, modo);
+              pintarEquilibrio(aplicarCmvNoCore(coreDoPayload(lastPayload, modo)));
+            })
+            .catch(function () {});
         }
       } catch (e) {
         mostrarErro("Falha de rede.");
@@ -501,21 +1666,51 @@
       }
     }
 
-    el("f-modo").addEventListener("change", function () {
-      toggleModo();
-      salvarCtx();
-      atualizarResumoFiltroVisivel();
-    });
-    el("f-fonte").addEventListener("change", function () {
-      toggleFonte();
-      salvarCtx();
-      atualizarResumoFiltroVisivel();
-    });
+    if (el("f-loja")) {
+      el("f-loja").addEventListener("change", function () {
+        salvarLoja(el("f-loja").value);
+        salvarCtx();
+        atualizarResumoFiltroVisivel();
+        atualizar();
+      });
+    }
     el("btn-atualizar").addEventListener("click", atualizar);
-    ["f-empresa", "f-grupo", "f-ini", "f-fim", "f-por", "f-valor", "f-contas"].forEach(function (id) {
+    window.atualizarPainel = atualizar;
+    if (el("btn-planos-gasto")) {
+      el("btn-planos-gasto").addEventListener("click", abrirModalPlanosGasto);
+    }
+    if (el("btn-fechar-planos")) {
+      el("btn-fechar-planos").addEventListener("click", fecharModalPlanosGasto);
+    }
+    if (el("btn-aplicar-planos")) {
+      el("btn-aplicar-planos").addEventListener("click", aplicarModalPlanosGasto);
+    }
+    if (el("btn-planos-todos")) {
+      el("btn-planos-todos").addEventListener("click", function () {
+        var list = el("rg-planos-lista");
+        if (!list) return;
+        list.querySelectorAll('input[type="checkbox"]').forEach(function (c) {
+          c.checked = true;
+        });
+      });
+    }
+    if (el("modal-planos-gasto")) {
+      el("modal-planos-gasto").addEventListener("click", function (e) {
+        if (e.target.id === "modal-planos-gasto") fecharModalPlanosGasto();
+      });
+    }
+    document.querySelectorAll("[data-dre-cmv]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        salvarCmvModo(btn.getAttribute("data-dre-cmv"));
+        atualizar();
+      });
+    });
+    ["f-ini", "f-fim", "f-por", "f-valor"].forEach(function (id) {
+      if (!el(id)) return;
       el(id).addEventListener("change", function () {
         salvarCtx();
         atualizarResumoFiltroVisivel();
+        atualizar();
       });
     });
 
@@ -540,28 +1735,14 @@
     });
 
     carregarCtx();
-    toggleModo();
-    toggleFonte();
-    var hoje = new Date();
-    var iso = hoje.toISOString().slice(0, 10);
-    if (!el("f-fim").value) el("f-fim").value = iso;
-    if (!el("f-ini").value) {
-      var u = new Date(hoje);
-      u.setDate(u.getDate() - 29);
-      el("f-ini").value = u.toISOString().slice(0, 10);
-    }
+    var padFallback = padraoPeriodoMesAtual();
+    if (!el("f-fim").value) el("f-fim").value = padFallback.fim;
+    if (!el("f-ini").value) el("f-ini").value = padFallback.ini;
+    if (el("f-por") && !el("f-por").value) el("f-por").value = "vencimento";
+    if (el("f-valor") && !el("f-valor").value) el("f-valor").value = "bruto";
     atualizarResumoFiltroVisivel();
-    if (!window.AGRO_MANUAL_SYNC_ONLY) {
-      atualizar();
-    } else {
-      setLoading(false);
-      var info = el("msg-mongo-info");
-      if (info) {
-        info.textContent =
-          "Modo só cache: use Atualizar ou F5 (fora de campos) para buscar indicadores na API.";
-        info.classList.remove("hidden");
-      }
-    }
+    // DRE não usa cache de catálogo do PDV — sempre busca a API ao abrir.
+    atualizar();
 
     if (typeof AgroEstoqueSync !== "undefined" && AgroEstoqueSync.mount) {
       AgroEstoqueSync.mount({
@@ -575,10 +1756,14 @@
   window.AgroResumoGerencial = {
     buildKpiCard: buildKpiCard,
     renderKpiGrid: renderKpiGrid,
+    renderVisualBoard: renderVisualBoard,
+    peChartSvg: peChartSvg,
     mainZeros: mainZeros,
     brl: brl,
     pct: pct,
+    pctJa: pctJa,
     num: num,
+    aplicarCmvNoCore: aplicarCmvNoCore,
     initPainel: initPainel,
   };
 
@@ -587,4 +1772,3 @@
     if (root) initPainel(root);
   });
 })();
-

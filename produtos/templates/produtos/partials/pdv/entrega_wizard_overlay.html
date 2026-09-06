@@ -1,0 +1,59 @@
+<div id="pdv-entrega-wizard" class="pdv-ed-wizard-overlay fixed hidden" role="dialog" aria-modal="true" aria-labelledby="pdv-ed-titulo">
+  <div id="pdv-ed-shell" class="pdv-ed-wizard-panel rounded-[1.2rem] border-[3px] border-amber-400 bg-white shadow-2xl" data-pdv-ed-painel="pagamento_local" onclick="event.stopPropagation()">
+    <div id="pdv-ed-header" class="pdv-ed-header rounded-t-[1.05rem] border-b border-white/15 bg-gradient-to-r from-amber-600 to-orange-600">
+      <p id="pdv-ed-etapa" class="text-white/90">Etapa 2 · Entrega</p>
+      <h2 id="pdv-ed-titulo" class="text-white">Onde será o pagamento?</h2>
+      <p id="pdv-ed-subtitulo" class="text-white/90">Escolha uma opção para continuar.</p>
+    </div>
+    <div id="pdv-ed-body" class="rounded-b-[1.05rem] bg-white">
+      <div id="pdv-ed-pagamento-local-panel" class="grid grid-cols-2">
+        <button type="button" id="pdv-ef1-entrega" class="pdv-action-btn pdv-ed-choice-btn w-full rounded-2xl border-[3px] border-orange-400 bg-gradient-to-r from-orange-500 to-amber-500 px-3 py-3 font-black uppercase tracking-wide text-white shadow-md hover:brightness-105">Pagamento na entrega</button>
+        <button type="button" id="pdv-ef1-loja" class="pdv-action-btn pdv-ed-choice-btn w-full rounded-2xl border-[3px] border-emerald-300 bg-emerald-50 px-3 py-3 font-black uppercase tracking-wide text-emerald-950 shadow-sm hover:bg-emerald-100">Pagamento na loja</button>
+      </div>
+      <div id="pdv-ed-detalhes-panel" class="pdv-ed-detalhes-panel hidden">
+        <p class="pdv-ed-section-label">Frete</p>
+        <div class="pdv-ed-taxa-opcoes" role="radiogroup" aria-label="Taxa de entrega">
+          <label class="pdv-ed-opcao pdv-ed-opcao--verde has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50">
+            <input type="radio" name="pdv-entrega-taxa-modo" value="nao" class="h-4 w-4 shrink-0 accent-emerald-600">
+            <span>Sem frete</span>
+          </label>
+          <label class="pdv-ed-opcao has-[:checked]:border-slate-500 has-[:checked]:bg-slate-100">
+            <input type="radio" name="pdv-entrega-taxa-modo" value="depois" class="h-4 w-4 shrink-0 accent-slate-600">
+            <span>Decidir depois</span>
+          </label>
+          <label class="pdv-ed-opcao pdv-ed-opcao--laranja has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50">
+            <input type="radio" name="pdv-entrega-taxa-modo" value="sim" class="h-4 w-4 shrink-0 accent-orange-600">
+            <span>Cobrar frete</span>
+          </label>
+        </div>
+        <div id="pdv-ed-detalhes-campos" class="pdv-ed-detalhes-campos pdv-ed-detalhes-campos--so-horario">
+          <div id="pdv-entrega-taxa-valor-wrap" class="pdv-ed-field hidden">
+            <label id="pdv-ed-label-taxa-valor" class="pdv-ed-field-label" for="pdv-entrega-taxa-valor">Valor do frete (R$)</label>
+            <input id="pdv-entrega-taxa-valor" type="text" class="pdv-input pdv-ed-field-input" placeholder="10,00" inputmode="decimal" autocomplete="off" aria-labelledby="pdv-ed-label-taxa-valor">
+          </div>
+          <div class="pdv-ed-field">
+            <span id="pdv-ed-label-horario" class="pdv-ed-field-label">Horário</span>
+            <input id="pdv-entrega-horario" type="time" class="pdv-input pdv-ed-field-input" title="Lembretes 20 min antes e no horário" aria-labelledby="pdv-ed-label-horario">
+          </div>
+        </div>
+        <p class="pdv-ed-detalhes-hint">Use <strong>F7</strong> ou o botão verde do rodapé para confirmar.</p>
+      </div>
+      <div id="pdv-ed-meio-panel" class="hidden grid grid-cols-2">
+        <button type="button" id="pdv-ef2-dinheiro" class="pdv-action-btn pdv-ed-choice-btn w-full rounded-2xl border-[3px] border-slate-300 bg-slate-50 px-3 py-3 font-black uppercase tracking-wide text-slate-900 shadow-sm hover:bg-slate-100">Dinheiro</button>
+        <button type="button" id="pdv-ef2-cartao" class="pdv-action-btn pdv-ed-choice-btn w-full rounded-2xl border-[3px] border-indigo-300 bg-indigo-50 px-3 py-3 font-black uppercase tracking-wide text-indigo-950 shadow-sm hover:bg-indigo-100">Cartão</button>
+      </div>
+      <div id="pdv-ed-troco-panel" class="pdv-ed-troco-panel hidden">
+        <div class="pdv-ed-troco-total-card">
+          <p class="pdv-ed-section-label">Total na entrega</p>
+          <p id="pdv-ed-troco-total" class="pdv-ed-troco-total-valor">R$ 0,00</p>
+        </div>
+        <div class="pdv-ed-field">
+          <label id="pdv-ed-label-troco" class="pdv-ed-field-label" for="pdv-ef3-troco-input">Cliente paga com (R$)</label>
+          <input type="text" id="pdv-ef3-troco-input" class="pdv-input pdv-ed-field-input" placeholder="Ex.: 50,00 ou 0" inputmode="decimal" autocomplete="off" aria-labelledby="pdv-ed-label-troco">
+        </div>
+        <p class="pdv-ed-detalhes-hint">Confirme com <strong>F7</strong> · voltar com <strong>F1</strong>.</p>
+        <button type="button" id="pdv-ef3-ok" class="hidden" tabindex="-1" aria-hidden="true">Confirmar troco</button>
+      </div>
+    </div>
+  </div>
+</div>

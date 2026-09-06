@@ -43,7 +43,9 @@
         <div class="rounded-2xl border-2 border-slate-200 bg-white p-4 shadow-sm">
           <p class="text-[10px] font-black uppercase text-slate-500">Fechamentos abertos</p>
           <p class="text-2xl font-black text-slate-900">{{ n_fech_abertos }}</p>
-          <a href="{% url 'rh_fechamentos_lista' %}?status=ABERTO" class="text-xs font-bold text-emerald-700 underline mt-1 inline-block">Listar</a>
+          <a href="{% url 'rh_fechamentos_lista' %}" class="text-xs font-bold text-emerald-700 underline mt-1 inline-block">Ver todos</a>
+          <span class="text-xs text-slate-400 mx-1">·</span>
+          <a href="{% url 'rh_fechamentos_lista' %}?status=ABERTO" class="text-xs font-bold text-slate-600 underline mt-1 inline-block">Só abertos</a>
         </div>
       </div>
       {% if user.is_staff %}

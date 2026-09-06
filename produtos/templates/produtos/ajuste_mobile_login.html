@@ -1,32 +1,81 @@
 <!DOCTYPE html>
-<html lang="pt-br" class="min-h-[100dvh]">
+<html lang="pt-br" class="min-h-[100dvh]" data-agro-hide-pdv="1">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ajuste">
+    <meta name="theme-color" content="#10b981">
+    <link rel="manifest" href="{% url 'ajuste_mobile_manifest' %}">
+    <link rel="apple-touch-icon" href="/static/produtos/pwa/ajuste-mobile-192.png">
+    <title>SisVale | Ajuste Mobile</title>
+    <script>
+    (function () {
+      try {
+        if (window.top === window.self) return;
+        var u = new URL(window.location.href);
+        u.searchParams.delete('agro_inapp_embed');
+        u.searchParams.delete('embed');
+        window.top.location.replace(u.pathname + u.search + u.hash);
+      } catch (e) {
+        try { window.top.location.href = '/ajuste-mobile/'; } catch (_) {}
+      }
+    })();
+    </script>
     {% include "produtos/_head_perf_mpa.html" %}
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
   {% include "produtos/_agro_consulta_ui.html" %}
-    <style>body { font-family: 'Inter', sans-serif; }</style>
+    <style>
+      body { font-family: 'Inter', sans-serif; }
+      html { zoom: 1 !important; }
+      #agro-pdv-fab-wrap,
+      #agro-display-scale-fab,
+      #agro-display-scale-modal,
+      #agro-inapp-sidebar-rail,
+      #agro-inapp-pane-stack {
+        display: none !important;
+      }
+    </style>
 </head>
-<body class="bg-slate-900 flex items-center justify-center min-h-[100dvh] p-4 sm:p-6 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] touch-manipulation">
+<body class="bg-slate-900 flex items-center justify-center min-h-[100dvh] p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] touch-manipulation">
 {% include "produtos/_gm_loading_bar.html" %}
     <div class="w-full max-w-sm text-center">
-        <h1 class="text-white text-2xl sm:text-3xl font-black mb-8 sm:mb-10 italic uppercase">AGRO <span class="text-emerald-500">MAIS</span></h1>
-        <div class="bg-white p-6 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl">
-            <p class="text-slate-400 font-bold text-[10px] uppercase mb-5 sm:mb-6 tracking-widest">PIN DE ACESSO</p>
+        <p class="text-emerald-400 text-[0.72rem] font-black uppercase tracking-[0.16em] mb-1">Estoque</p>
+        <h1 class="text-white font-black mb-2 uppercase tracking-tight" style="font-size: clamp(1.55rem, 6vw + 0.4rem, 2rem); letter-spacing: -0.03em;">Ajuste <span class="text-emerald-400">Mobile</span></h1>
+        <p class="text-slate-400 text-sm font-bold uppercase tracking-widest mb-8">Contagem de estoque</p>
+        <div class="bg-white p-7 rounded-[2rem] shadow-2xl">
+            <p class="text-slate-400 font-black text-sm uppercase mb-5 tracking-widest">PIN</p>
             <input type="password" id="pin" inputmode="numeric" maxlength="4" placeholder="••••" enterkeyhint="go" autocomplete="one-time-code"
-                class="w-full text-center text-3xl sm:text-4xl font-black tracking-[0.75rem] sm:tracking-[1rem] p-4 bg-slate-50 rounded-2xl outline-none focus:ring-4 focus:ring-emerald-500/20">
-            <button type="button" onclick="entrar()" class="w-full mt-5 sm:mt-6 bg-emerald-500 text-white font-black py-4 sm:py-5 rounded-2xl uppercase italic text-sm sm:text-base active:scale-[0.99] transition-transform">Entrar</button>
+                class="w-full text-center font-black tracking-[0.55rem] p-4 min-h-[4.25rem] bg-slate-50 rounded-2xl outline-none focus:ring-4 focus:ring-emerald-500/20"
+                style="font-size: clamp(2.15rem, 8vw + 0.4rem, 2.75rem); letter-spacing: 0.35em;">
+            <button type="button" onclick="entrar()" class="w-full mt-5 min-h-[3.5rem] bg-emerald-500 text-white font-black py-4 rounded-2xl uppercase text-lg active:scale-[0.99] transition-transform">Entrar</button>
         </div>
     </div>
 <script>
 function entrar() {
-    const fd = new FormData(); fd.append('pin', document.getElementById('pin').value);
+    const fd = new FormData();
+    fd.append('pin', document.getElementById('pin').value);
+    fd.append('origem', 'ajuste_mobile');
     if (window.gmLoadingBar) window.gmLoadingBar.show();
     fetch("{% url 'api_login_mobile' %}", { method: 'POST', body: fd, headers: {'X-CSRFToken': '{{ csrf_token }}'} })
-    .then(res => res.ok ? location.reload() : alert("PIN ERRADO"))
+    .then(async (res) => {
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.ok) {
+        location.reload();
+        return;
+      }
+      alert(d.erro || 'PIN ERRADO');
+    })
     .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
+}
+document.getElementById('pin')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') entrar();
+});
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("{% url 'ajuste_mobile_sw' %}", { scope: "/ajuste-mobile/" }).catch(function () {});
 }
 </script>
 </body>

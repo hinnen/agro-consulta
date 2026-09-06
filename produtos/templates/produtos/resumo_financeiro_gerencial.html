@@ -1,19 +1,21 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="pt-br" class="h-full overflow-hidden">
+<html lang="pt-br" class="h-full" style="min-height:100dvh">
 <head>
   <meta charset="UTF-8">
-  <title>SisVale | Resumo financeiro gerencial</title>
+  <title>SisVale | DRE gerencial</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   {% include "produtos/_head_perf_mpa.html" %}
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'css/agro_resumo_gerencial.css' %}">
+  <link rel="stylesheet" href="{% static 'css/agro_resumo_gerencial.css' %}?v={{ agro_asset_v|default:'0' }}">
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
   {% include "produtos/_agro_consulta_ui.html" %}
   <style>
     /* Modal ajuda — mínimo; restante no CSS do painel */
     body.h-full { margin: 0; }
     .rg-modal-backdrop { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(15, 23, 42, 0.55); }
+    .rg-modal-backdrop.hidden { display: none !important; }
     .rg-modal { background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; max-width: min(34rem, 96vw); width: 100%; padding: 1.2rem; box-shadow: 0 20px 50px rgba(15, 23, 42, 0.15); }
     .rg-modal h3 { margin: 0 0 0.5rem; font-size: 1.125rem; font-weight: 900; color: #0f172a; line-height: 1.25; }
     .rg-modal ul { margin: 0; padding-left: 1.25rem; font-size: 0.9375rem; color: #334155; line-height: 1.5; }
@@ -22,7 +24,7 @@
     .rg-modal__btn:hover { filter: brightness(1.08); }
   </style>
 </head>
-<body id="agro-resumo-gerencial-root" data-storage-key="agro_resumo_fin_sess_v1" class="bg-slate-100 h-full overflow-hidden text-slate-800 flex flex-col">
+<body id="agro-resumo-gerencial-root" data-storage-key="agro_resumo_fin_sess_v2" class="bg-slate-100 overflow-y-auto overflow-x-hidden text-slate-800 flex flex-col" style="min-height:100dvh">
 {% include "produtos/_gm_loading_bar.html" %}
 
   <header class="rg-head shrink-0">
@@ -32,104 +34,74 @@
           <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="">
         </div>
         <div class="rg-head__titles">
-          <h1><span style="color:#059669">Sis</span><span style="color:#1e293b">Vale</span> · <span style="color:#ea580c">Resumo gerencial</span></h1>
-          <p>Operação · caixa · consolidação</p>
+          <h1><span style="color:#059669">Sis</span><span style="color:#1e293b">Vale</span> · <span style="color:#ea580c">DRE gerencial</span></h1>
         </div>
       </div>
+      <section class="rg-toolbar" aria-label="Filtros do painel">
+        <div class="rg-toolbar__row">
+          <div class="rg-field rg-field--loja">
+            <span class="rg-field__label">Loja</span>
+            <select id="f-loja" title="Vendas do PDV por loja. Despesas seguem a empresa cadastrada.">
+              <option value="todas" selected>Centro + Vila</option>
+              <option value="centro">Centro</option>
+              <option value="vila">Vila</option>
+            </select>
+          </div>
+          <div class="rg-field rg-field--date">
+            <span class="rg-field__label">Início</span>
+            <input type="date" id="f-ini">
+          </div>
+          <div class="rg-field rg-field--date">
+            <span class="rg-field__label">Fim</span>
+            <input type="date" id="f-fim">
+          </div>
+          <div class="rg-field rg-field--por">
+            <span class="rg-field__label">Data</span>
+            <select id="f-por" title="Data dos lançamentos">
+              <option value="competencia">Competência</option>
+              <option value="vencimento" selected>Vencimento</option>
+              <option value="pagamento">Pagamento</option>
+            </select>
+          </div>
+          <div class="rg-field rg-field--valor">
+            <span class="rg-field__label">Valor</span>
+            <select id="f-valor">
+              <option value="bruto" selected>Bruto</option>
+              <option value="realizado">Já pago</option>
+            </select>
+          </div>
+          <div class="rg-cmv" role="group" aria-label="Tipo de CMV">
+            <span class="rg-field__label">CMV</span>
+            <div class="rg-cmv__chips">
+              <button type="button" class="rg-chip is-active" data-dre-cmv="vendida" title="Custo do cadastro × quantidade vendida">Merc. vendida</button>
+              <button type="button" class="rg-chip" data-dre-cmv="paga" title="Compras lançadas no período">Merc. paga</button>
+            </div>
+            <p id="rg-cmv-hint" class="rg-cmv__hint visually-hidden">Custo do cadastro × quantidade vendida (o que saiu da loja).</p>
+          </div>
+          <button type="button" id="btn-planos-gasto" class="rg-btn-planos" title="Quais planos de conta entram como gasto no DRE e no gráfico de saldo">Planos gasto</button>
+          <button type="button" id="btn-atualizar" class="rg-btn-atualizar" title="Recarregar indicadores">
+            Atualizar
+            <kbd class="gm-kbd-rg">F5</kbd>
+          </button>
+        </div>
+        <div id="rg-filtro-ativo" class="rg-filtro-ativo visually-hidden" role="status" aria-live="polite"></div>
+      </section>
       <div class="rg-head__actions">
-        <a href="{% url 'lancamentos_financeiros' %}" class="rg-btn-ghost">Lançamentos</a>
-        <a href="{% url 'dashboard_financeiro_completo' %}" class="rg-btn-ghost" title="Margens, comparativo e fluxo (Postgres)">Indicadores</a>
         <button type="button" id="btn-ajuda" class="rg-btn-ghost rg-btn-icon" title="Ajuda">?</button>
-        {% include "produtos/_barra_estoque_global.html" %}
-        {% include "produtos/_pdv_voltar_link.html" with link_class="rg-btn-ghost inline-flex items-center justify-center gap-1.5 min-h-[44px]" %}
+        {% if agro_display_scale_habilitado %}
+        <button type="button" id="dash-link-display-scale" class="rg-btn-ghost rg-btn-icon agro-scale-trigger agro-scale-trigger--header" title="Ajustar tamanho da tela" aria-label="Ajustar tamanho da tela">Aa</button>
+        {% endif %}
+        {% include "produtos/_pdv_voltar_link.html" with link_class="rg-btn-ghost inline-flex items-center justify-center gap-1.5" %}
       </div>
     </div>
   </header>
 
   <main class="rg-main">
-    {# ——— Toolbar / filtros ——— #}
-    <section class="rg-toolbar" aria-label="Filtros do painel">
-      <div class="rg-toolbar__row">
-        <div class="rg-field rg-field--modo">
-          <span class="rg-field__label">Modo</span>
-          <select id="f-modo" title="Uma empresa ou grupo consolidado">
-            <option value="empresa">Uma empresa</option>
-            <option value="grupo">Grupo (consolidado)</option>
-          </select>
-        </div>
-        <div class="rg-field rg-field--empresa" id="wrap-empresa">
-          <span class="rg-field__label">Empresa</span>
-          <select id="f-empresa">
-            {% for e in empresas %}
-            <option value="{{ e.id }}">{{ e.nome_fantasia }}</option>
-            {% empty %}
-            <option value="">— cadastre empresa —</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="rg-field rg-field--grupo hidden" id="wrap-grupo">
-          <span class="rg-field__label">Grupo</span>
-          <select id="f-grupo">
-            {% for g in grupos %}
-            <option value="{{ g.id }}">{{ g.nome }}</option>
-            {% empty %}
-            <option value="">— cadastre grupo no admin —</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="rg-field rg-field--date">
-          <span class="rg-field__label">Início</span>
-          <input type="date" id="f-ini">
-        </div>
-        <div class="rg-field rg-field--date">
-          <span class="rg-field__label">Fim</span>
-          <input type="date" id="f-fim">
-        </div>
-        <button type="button" id="btn-atualizar" class="rg-btn-atualizar" title="Recarregar indicadores">
-          Atualizar
-          <kbd class="gm-kbd-rg">F5</kbd>
-        </button>
-      </div>
-      <div class="rg-toolbar__row rg-toolbar__row--secondary">
-        <div class="rg-field" style="width:11rem;min-width:9rem">
-          <span class="rg-field__label">Fonte dos dados</span>
-          <select id="f-fonte" title="Mongo = DtoLancamento (ERP). Postgres = Agro.">
-            <option value="mongo" selected>Mongo — DtoLancamento (ERP)</option>
-            <option value="postgres">Postgres — Agro</option>
-          </select>
-        </div>
-        <div class="rg-field" id="wrap-mongo-por" style="width:9.5rem">
-          <span class="rg-field__label">Data base</span>
-          <select id="f-por">
-            <option value="competencia">Competência</option>
-            <option value="vencimento">Vencimento</option>
-            <option value="pagamento">Pagamento</option>
-          </select>
-        </div>
-        <div class="rg-field" id="wrap-mongo-valor" style="width:9rem">
-          <span class="rg-field__label">Valor</span>
-          <select id="f-valor">
-            <option value="bruto">Bruto (título)</option>
-            <option value="realizado">Realizado</option>
-          </select>
-        </div>
-        <div class="rg-field" id="wrap-mongo-contas" style="flex:1;min-width:8rem">
-          <span class="rg-field__label">Filtro contas</span>
-          <select id="f-contas" title="Igual ao DRE simples">
-            <option value="">Padrão (.env)</option>
-            <option value="resultado">Resultado</option>
-            <option value="resultado_erp">Resultado ERP (PDF)</option>
-            <option value="todas">Todas</option>
-          </select>
-        </div>
-      </div>
-      <div id="rg-filtro-ativo" class="rg-filtro-ativo" role="status" aria-live="polite"></div>
-    </section>
 
     <p id="msg-erro" class="rg-msg rg-msg--error hidden" role="alert"></p>
-    <p id="msg-mongo-info" class="rg-msg rg-msg--info hidden"></p>
+    <p id="msg-info" class="rg-msg rg-msg--info hidden"></p>
     <p id="rg-msg-zero" class="rg-msg rg-msg--zero hidden">
-      Indicadores principais estão zerados neste período e filtros. Confira a fonte de dados, o nome da empresa (Mongo) e as datas — isso é esperado quando não há movimento.
+      Indicadores principais estão zerados neste período. Confira a loja, as datas e se há lançamentos no SisVale.
     </p>
 
     {# Skeleton carregando #}
@@ -148,8 +120,12 @@
       </div>
     </div>
 
-    {# Grid de KPIs (preenchido via JS — mesma API) #}
-    <div id="painel-cards" class="hidden"></div>
+    {# Prévia visual DRE (Indicadores financeiro permanece) #}
+    <div id="painel-visual" class="hidden"></div>
+    <details id="rg-mais-numeros" class="rg-mais hidden">
+      <summary>Números completos</summary>
+      <div id="painel-cards"></div>
+    </details>
 
     <details id="bloco-grupo" class="rg-grupo-detalhe hidden">
       <summary>Por empresa (grupo)</summary>
@@ -177,16 +153,55 @@
         </div>
       </div>
     </section>
+
+    <section id="sec-saldo-diario" class="rg-saldo-diario hidden" aria-label="Lucro líquido dia a dia do mês">
+      <div class="rg-saldo-diario__head">
+        <h2>
+          <span class="rg-saldo-diario__dot" aria-hidden="true"></span>
+          Lucro líquido · mês atual · dia a dia
+        </h2>
+        <div class="rg-saldo-diario__meta">
+          <span id="rg-saldo-total" class="rg-saldo-diario__badge">Total: —</span>
+          <span id="rg-saldo-loja" class="rg-saldo-diario__loja"></span>
+        </div>
+      </div>
+      <p id="rg-saldo-erro" class="rg-msg rg-msg--error hidden" role="alert"></p>
+      <p id="rg-saldo-loading" class="rg-saldo-diario__loading hidden" aria-live="polite">Carregando gráfico…</p>
+      <div id="rg-saldo-chart" class="rg-saldo-diario__chart"></div>
+    </section>
   </main>
+
+  <div id="modal-planos-gasto" class="rg-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="rg-planos-titulo">
+    <div class="rg-modal rg-modal--planos">
+      <h3 id="rg-planos-titulo">Planos de conta — gasto no DRE</h3>
+      <p class="rg-planos-lead">Marque quais planos entram como <strong>despesa</strong> nos cards, na lista «Despesas por categoria» e no gráfico de saldo. Padrão: todos. A escolha fica salva neste navegador.</p>
+      <div class="rg-planos-actions">
+        <button type="button" id="btn-planos-todos" class="rg-btn-ghost">Marcar todos</button>
+      </div>
+      <div id="rg-planos-lista" class="rg-planos-lista"></div>
+      <div class="rg-planos-foot">
+        <button type="button" id="btn-fechar-planos" class="rg-modal__btn rg-modal__btn--ghost">Cancelar</button>
+        <button type="button" id="btn-aplicar-planos" class="rg-modal__btn">Aplicar</button>
+      </div>
+    </div>
+  </div>
 
   <div id="modal-ajuda" class="rg-modal-backdrop hidden" role="dialog" aria-modal="true">
     <div class="rg-modal">
-      <h3>Resumo gerencial</h3>
+      <h3>DRE gerencial (prévia)</h3>
       <ul>
-        <li><strong>Fonte Mongo</strong> usa o <strong>DtoLancamento</strong> (ERP). O nome fantasia da empresa no Agro deve coincidir com o campo Empresa no Mongo.</li>
-        <li><strong>Fonte Postgres</strong> usa <strong>LancamentoFinanceiro</strong> no Agro.</li>
-        <li>Modo <strong>grupo</strong> no Postgres elimina internos com <code style="background:#f1f5f9;padding:0 4px;border-radius:4px;font-size:0.8em">eh_interno_grupo</code>. No Mongo, soma-se cada empresa (sem eliminação automática entre filiais).</li>
-        <li>Tendência “vs período anterior” aparecerá aqui quando a API enviar o campo (layout já reservado nos cards).</li>
+        <li>Números dos <strong>lançamentos financeiros do SisVale</strong> (contas a pagar e a receber) + receita do <strong>PDV</strong>.</li>
+        <li><strong>Loja:</strong> padrão <strong>Centro + Vila</strong> (as duas). Centro ou Vila filtra as <strong>vendas do PDV</strong> daquela loja. Despesas/empréstimos seguem a empresa cadastrada (se a Vila não tiver empresa própria, usam a do Centro).</li>
+        <li><strong>Abertura:</strong> já vem <strong>Centro + Vila</strong> · <strong>dia 1 do mês → hoje</strong> · <strong>Vencimento</strong> · <strong>Bruto</strong> · e o resultado carrega sozinho. Depois você muda o que quiser.</li>
+        <li><strong>CMV vendida</strong> = custo do cadastro × quantidade vendida. <strong>CMV paga</strong> = compras lançadas no período. Lucro, operacional, líquido e ponto de equilíbrio acompanham.</li>
+        <li><strong>Saldo final</strong> = soma da Mini DRE: líquido (PDV) + <strong>entrada empréstimo</strong> + <strong>aporte sócio</strong> − <strong>juros</strong> − <strong>empréstimo</strong> (principal) − <strong>retirada sócio</strong>, no recorte do filtro.</li>
+        <li><strong>Despesas por categoria</strong> = cadastro oficial de planos (grafia antiga vira o nome novo) · mesmos planos e datas do card Despesas.</li>
+        <li><strong>vs mês passado / vs média 90d:</strong> valor comparável aos <strong>mesmos dias</strong> do filtro (mês calendário anterior e média diária dos 90 dias anteriores × dias atuais) + variação %. Despesa e CMV: subir é ruim; receita, lucro e markup: subir é bom.</li>
+        <li><strong>Empréstimos:</strong> <strong>empréstimo devido</strong> e <strong>juros devido</strong> = bruto dos títulos no filtro da tela (vencimento/competência/pagamento). <strong>Total devido</strong> = soma. <strong>Valor pago</strong> = pago desses títulos (mesmo se pago em meses anteriores). <strong>Valor emprestado</strong> = entrada no período pela <strong>competência</strong>.</li>
+        <li><strong>Receita por categoria:</strong> vendas do <strong>PDV</strong> no período, agrupadas pela categoria do cadastro (top 6 + Outros).</li>
+        <li><strong>Planos gasto:</strong> botão na barra de filtros — escolhe quais planos de conta entram como despesa (padrão: todos). Vale para cards, categorias e gráfico de saldo. Fica salvo neste navegador.</li>
+        <li><strong>Lucro dia a dia (rodapé):</strong> mesma conta do card <strong>Lucro Líquido</strong> do BI (vencimento · CMV vendida). Barras = lucro de cada dia · linha verde = previsão (média 90d). <strong>Bruto/Já pago</strong> na barra de cima = igual ao BI.</li>
+        <li>A tela <strong>Indicadores · Financeiro gerencial</strong> continua no menu — esta é a prévia visual nova.</li>
         <li><kbd style="border:1px solid #cbd5e1;padding:1px 4px;border-radius:4px;font-size:10px">F1</kbd> fora de campos volta ao PDV.</li>
       </ul>
       <button type="button" id="btn-fechar-ajuda" class="rg-modal__btn">Fechar</button>
@@ -194,6 +209,6 @@
   </div>
 
   {% include "produtos/_atalho_voltar_pdv.html" %}
-  <script src="{% static 'js/agro_resumo_gerencial.js' %}"></script>
+  <script src="{% static 'js/agro_resumo_gerencial.js' %}?v={{ agro_asset_v|default:'0' }}"></script>
 </body>
 </html>

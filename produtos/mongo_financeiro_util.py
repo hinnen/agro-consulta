@@ -21,6 +21,33 @@ from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
+_MSG_MONGO_STAGING = "Ambiente de teste: gravação no Mongo bloqueada (somente leitura)."
+
+
+def _erro_mongo_staging_readonly(**extra: Any) -> dict[str, Any] | None:
+    from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
+
+    if agro_mongo_escrita_bloqueada():
+        out: dict[str, Any] = {"ok": False, "erro": _MSG_MONGO_STAGING}
+        out.update(extra)
+        return out
+    return None
+
+
+def simular_lancamentos_manual_lote_staging(*, linhas: list[dict] | None = None) -> dict[str, Any]:
+    """
+    Staging (``AGRO_STAGING_READONLY``): simula IDs de título sem gravar ``DtoLancamento``.
+    Permite concluir o assistente Entrada NF-e (rascunho Agro + PIN) sem afetar a loja.
+    """
+    import uuid
+
+    n = len([x for x in (linhas or []) if isinstance(x, dict)])
+    if n < 1:
+        n = 1
+    lote = f"DRY{uuid.uuid4().hex[:8].upper()}"
+    ids = [f"staging-dry:{uuid.uuid4().hex[:24]}" for _ in range(n)]
+    return {"ok": True, "ids": ids, "lote": lote, "erros": [], "dry_run": True}
+
 _SENTINEL = datetime(1, 1, 1, 0, 0)
 COL_DTO_LANCAMENTO = "DtoLancamento"
 COL_DTO_VENDA = "DtoVenda"
@@ -33,6 +60,11 @@ COL_AGRO_EMPRESTIMO_AUDITORIA = "AgroEmprestimoAuditoria"
 EMPRESTIMO_PLANO_ENTRADA_PADRAO = "Entrada de Empréstimo"
 EMPRESTIMO_PLANO_DIVIDA_PADRAO = "Pagamento de Empréstimos"
 EMPRESTIMO_PLANO_JUROS_PADRAO = "Juros de Empréstimos"
+EMPRESTIMO_PLANO_ENTRADA_INTERNO_PADRAO = "Entrada de Empréstimo interno"
+EMPRESTIMO_PLANO_DIVIDA_INTERNO_PADRAO = "Pagamento de Empréstimos interno"
+EMPRESTIMO_PLANO_JUROS_INTERNO_PADRAO = "Juros de Empréstimos interno"
+EMPRESTIMO_DUAL_LABEL = "Empréstimo (entrada + pagamento)"
+EMPRESTIMO_DUAL_PLANO_ID = "__AGRO_EMPRESTIMO_DUAL__"
 # Plano para titulo extra na Entrada NF-e (financeiro). Sobrescreva com AGRO_LANCAMENTOS_PLANO_IMPOSTOS_TAXAS_VARIAVEIS.
 LANCAMENTOS_PLANO_IMPOSTOS_TAXAS_VARIAVEIS_PADRAO = "Impostos e Taxas variaveis"
 
@@ -52,6 +84,39 @@ def emprestimo_plano_juros_resolvido() -> str:
     return v or EMPRESTIMO_PLANO_JUROS_PADRAO
 
 
+def emprestimo_plano_entrada_interno_resolvido() -> str:
+    v = (getattr(settings, "AGRO_EMPRESTIMO_PLANO_ENTRADA_INTERNO", None) or "").strip()
+    return v or EMPRESTIMO_PLANO_ENTRADA_INTERNO_PADRAO
+
+
+def emprestimo_plano_divida_interno_resolvido() -> str:
+    v = (getattr(settings, "AGRO_EMPRESTIMO_PLANO_DIVIDA_INTERNO", None) or "").strip()
+    return v or EMPRESTIMO_PLANO_DIVIDA_INTERNO_PADRAO
+
+
+def emprestimo_plano_juros_interno_resolvido() -> str:
+    v = (getattr(settings, "AGRO_EMPRESTIMO_PLANO_JUROS_INTERNO", None) or "").strip()
+    return v or EMPRESTIMO_PLANO_JUROS_INTERNO_PADRAO
+
+
+def garantir_planos_emprestimo_interno_cadastro() -> dict[str, Any]:
+    """Garante os 3 planos «interno» no cadastro Agro (idempotente)."""
+    try:
+        from produtos.plano_conta_agro_util import criar_plano_cadastro
+    except Exception as exc:
+        return {"ok": False, "erro": str(exc)[:200]}
+    criados: list[str] = []
+    for nome in (
+        emprestimo_plano_entrada_interno_resolvido(),
+        emprestimo_plano_divida_interno_resolvido(),
+        emprestimo_plano_juros_interno_resolvido(),
+    ):
+        r = criar_plano_cadastro(nome, tipo="outra", grupo="Empréstimos")
+        if r.get("ok") and r.get("created"):
+            criados.append(nome)
+    return {"ok": True, "criados": criados}
+
+
 def lancamentos_plano_impostos_taxas_variaveis_resolvido() -> str:
     v = (getattr(settings, "AGRO_LANCAMENTOS_PLANO_IMPOSTOS_TAXAS_VARIAVEIS", None) or "").strip()
     return v or LANCAMENTOS_PLANO_IMPOSTOS_TAXAS_VARIAVEIS_PADRAO
@@ -68,6 +133,48 @@ AGRO_BOLETO_CODIGO_BARRAS = "AgroBoletoCodigoBarras"
 AGRO_FONTE_VERDADE = "AgroFonteVerdade"
 AGRO_CONGELADO_EM = "AgroCongeladoEm"
 COL_AGRO_FINANCEIRO_CONTROLE = "AgroFinanceiroControle"
+
+# Projeção antes do dedup na lista — reduz RAM/CPU no aggregate (campos usados em dedup + ``lancamento_para_api``).
+_LANCAMENTOS_LISTA_MONGO_PROJECT: dict[str, int] = {
+    "_id": 1,
+    "Id": 1,
+    "LancamentoID": 1,
+    "Despesa": 1,
+    "Descricao": 1,
+    "Cliente": 1,
+    "ClienteID": 1,
+    "NumeroDocumento": 1,
+    "NumeroParcela": 1,
+    "PlanoDeConta": 1,
+    "PlanoDeContaID": 1,
+    "LancamentoGrupo": 1,
+    "FormaPagamento": 1,
+    "FormaPagamentoID": 1,
+    "Banco": 1,
+    "BancoID": 1,
+    "CentroDeCusto": 1,
+    "Empresa": 1,
+    "Observacoes": 1,
+    "Saida": 1,
+    "ValorPago": 1,
+    "Entrada": 1,
+    "Recebido": 1,
+    "Pago": 1,
+    "DataVencimento": 1,
+    "DataCompetencia": 1,
+    "DataFluxo": 1,
+    "DataPagamento": 1,
+    "ModificadoPor": 1,
+    "CriadoPor": 1,
+    "LastUpdate": 1,
+    "DataModificacao": 1,
+    AGRO_RECORRENTE: 1,
+    AGRO_RECORRENTE_INTERVALO_MESES: 1,
+    AGRO_RECORRENTE_SEMPRE: 1,
+    AGRO_BOLETO_CODIGO_BARRAS: 1,
+}
+
+_MONGO_AGG_LANCAMENTOS_LISTA_OPTS: dict[str, Any] = {"allowDiskUse": True, "maxTimeMS": 120_000}
 
 
 def normalizar_boleto_codigo_barras_mongo(raw: Any) -> str:
@@ -134,8 +241,53 @@ def emprestimo_defaults_para_ui() -> dict[str, Any]:
         "plano_entrada": emprestimo_plano_entrada_resolvido(),
         "plano_divida": emprestimo_plano_divida_resolvido(),
         "plano_juros": emprestimo_plano_juros_resolvido(),
+        "plano_entrada_interno": emprestimo_plano_entrada_interno_resolvido(),
+        "plano_divida_interno": emprestimo_plano_divida_interno_resolvido(),
+        "plano_juros_interno": emprestimo_plano_juros_interno_resolvido(),
         "credores_internos": list(EMPRESTIMO_CREDORES_INTERNOS_PADRAO),
+        "dual_label": EMPRESTIMO_DUAL_LABEL,
+        "dual_id": EMPRESTIMO_DUAL_PLANO_ID,
     }
+
+
+def emprestimo_dual_item_sugestao() -> dict[str, Any]:
+    return {
+        "id": EMPRESTIMO_DUAL_PLANO_ID,
+        "nome": EMPRESTIMO_DUAL_LABEL,
+        "emprestimo_dual": True,
+    }
+
+
+def _query_bate_emprestimo_dual(q: str | None) -> bool:
+    ql = (q or "").strip().lower()
+    if len(ql) < 2:
+        return False
+    label = EMPRESTIMO_DUAL_LABEL.casefold()
+    if "emprest" in ql or ql in label or label.find(ql) >= 0:
+        return True
+    for tok in ("entrada", "pagamento", "juros"):
+        if tok in ql and tok in label:
+            return True
+    return False
+
+
+def injetar_emprestimo_dual_sugestao_plano(
+    itens: list[dict[str, Any]] | None,
+    q: str | None,
+) -> list[dict[str, Any]]:
+    """Insere pseudo-plano no topo da lista de autocomplete de plano."""
+    out = [x for x in (itens or []) if isinstance(x, dict)]
+    if not _query_bate_emprestimo_dual(q):
+        return out
+    dual = emprestimo_dual_item_sugestao()
+    did = str(dual.get("id") or "").strip()
+    dnom = str(dual.get("nome") or "").strip().casefold()
+    for it in out:
+        iid = str(it.get("id") or "").strip()
+        inom = str(it.get("nome") or "").strip().casefold()
+        if iid == did or inom == dnom:
+            return out
+    return [dual, *out]
 
 
 def _mongo_query_planos_emprestimo_erp() -> dict[str, Any]:
@@ -154,6 +306,9 @@ def _mongo_query_planos_emprestimo_erp() -> dict[str, Any]:
         emprestimo_plano_entrada_resolvido(),
         emprestimo_plano_divida_resolvido(),
         emprestimo_plano_juros_resolvido(),
+        emprestimo_plano_entrada_interno_resolvido(),
+        emprestimo_plano_divida_interno_resolvido(),
+        emprestimo_plano_juros_interno_resolvido(),
     ):
         n = (nm or "").strip()
         if n:
@@ -178,13 +333,18 @@ def _normalizar_nome_credor_emprestimo(nome: str) -> str:
 
 def _classificar_lancamento_emprestimo_mongo(doc: dict[str, Any]) -> str:
     """
-    Externo: lançamentos criados pelo fluxo Agro de empréstimo externo (marca nas observações).
-    Interno: demais títulos de plano de empréstimo cujo Cliente bate com a lista de sócios/credores internos.
+    Externo: EMP-EXT- / Emprestimo EXT nas observações.
+    Interno: EMP-INT- / Emprestimo INT, ou Cliente na lista de sócios/credores internos.
     Caso contrário, assume externo (ex.: banco / fornecedor no ERP).
     """
     obs = str(doc.get("Observacoes") or "")
+    if re.search(r"Emprestimo\s+INT", obs, re.I) or "EMP-INT-" in obs:
+        return "interno"
     if re.search(r"Emprestimo\s+EXT", obs, re.I) or "EMP-EXT-" in obs:
         return "externo"
+    plano = str(doc.get("PlanoDeConta") or "").casefold()
+    if "interno" in plano and "empr" in plano:
+        return "interno"
     cli = _normalizar_nome_credor_emprestimo(str(doc.get("Cliente") or ""))
     if cli:
         for pad in EMPRESTIMO_CREDORES_INTERNOS_PADRAO:
@@ -1327,6 +1487,7 @@ def _lancamentos_busca_valor_literal_dot_2(tok: str) -> list[str] | None:
     """
     Retorna variantes de string para igualar a ``$toString($round($convert(...), 2))`` no Mongo
     (ex.: ``["833.33"]`` ou ``["100.00", "100"]`` se o arredondado vier sem decimais).
+    Inteiro curto (ex. ``1500``) também conta; CPF/CNPJ/boleto/NF longa não.
     """
     s = (tok or "").strip()
     if not s:
@@ -1337,9 +1498,11 @@ def _lancamentos_busca_valor_literal_dot_2(tok: str) -> list[str] | None:
         s = s[2:].lstrip().strip()
     if not s or not re.search(r"\d", s):
         return None
-    # Só dígitos: ambíguo (parcela, NF, ano)
+    dig = re.sub(r"\D+", "", s)
+    # Só dígitos longos: CPF/CNPJ/boleto/NF — não valor
     if re.fullmatch(r"\d+$", s):
-        return None
+        if len(dig) in (11, 14) or len(dig) >= 8 or len(dig) >= 40:
+            return None
     s = s.replace(" ", "")
     try:
         if "," in s:
@@ -1393,6 +1556,8 @@ def _lancamentos_um_token_busca_or(tok: str) -> dict[str, Any]:
     """Um termo: texto/ID (regex) ou valor monetário (bruto, pago, saldo em aberto, líquido)."""
     esc = re.escape(tok[:120])
     rx = re.compile(esc, re.IGNORECASE)
+    # Sem CriadoPor/ModificadoPor no texto livre — e-mail tipo renanhinnen@… fazia
+    # «Renan Hinnen» casar quase todos os títulos (mesmo bug do caminho PG).
     str_fields = (
         "Descricao",
         "Cliente",
@@ -1405,11 +1570,25 @@ def _lancamentos_um_token_busca_or(tok: str) -> dict[str, Any]:
         "Empresa",
         "CentroDeCusto",
         "CategoriaLancamento",
-        "CriadoPor",
-        "ModificadoPor",
         AGRO_BOLETO_CODIGO_BARRAS,
     )
     or_list: list[dict[str, Any]] = [{f: rx} for f in str_fields]
+    if "@" in (tok or ""):
+        or_list.append({"CriadoPor": rx})
+        or_list.append({"ModificadoPor": rx})
+    # Data digitada (venc. / competência / pagamento) — alinhado à busca PG
+    try:
+        from produtos.lancamentos_financeiro_pg_util import _parse_data_busca_pg
+
+        dt = _parse_data_busca_pg(tok)
+    except Exception:
+        dt = None
+    if dt is not None:
+        tz = timezone.get_current_timezone()
+        d0 = timezone.make_aware(datetime.combine(dt, dtime.min), tz)
+        d1 = timezone.make_aware(datetime.combine(dt, dtime.max), tz)
+        for fld in ("DataVencimento", "DataCompetencia", "DataPagamento"):
+            or_list.append({fld: {"$gte": d0, "$lte": d1}})
     id_like = (
         "Id",
         "ClienteID",
@@ -2030,11 +2209,228 @@ def _lancamento_tem_vinculo_erp(doc: dict) -> bool:
 
 
 def _lancamento_pode_excluir_agro(doc: dict, quitado: bool, valor_mov: float) -> bool:
-    if quitado or valor_mov > 0.02:
+    if _lancamento_tem_vinculo_erp(doc):
         return False
+    # Lote manual Agro (Nova saída, lote manual): pode excluir mesmo quitado.
     if _lancamento_e_manual_agro(doc):
         return True
-    return not _lancamento_tem_vinculo_erp(doc)
+    if quitado or valor_mov > 0.02:
+        return False
+    return True
+
+
+def _rotulo_usuario_de_campo_mongo(raw: str) -> str:
+    """Extrai rótulo legível de ``CriadoPor`` / prefixo de ``ModificadoPor``."""
+    s = str(raw or "").strip()
+    if not s:
+        return ""
+    if " — " in s:
+        return s.split(" — ", 1)[0].strip()[:120]
+    if " - " in s:
+        return s.split(" - ", 1)[0].strip()[:120]
+    return s[:120]
+
+
+def _usuario_lancou_de_doc(doc: dict) -> str:
+    criado = str(doc.get("CriadoPor") or "").strip()
+    if criado:
+        return _rotulo_usuario_de_campo_mongo(criado)
+    mod = str(doc.get("ModificadoPor") or "")
+    if "inclusão manual" in mod.lower() or "lote manual" in str(doc.get("Observacoes") or "").lower():
+        return _rotulo_usuario_de_campo_mongo(mod)
+    return ""
+
+
+def _usuario_quitou_de_doc(doc: dict, quitado: bool, mov_r: float) -> str:
+    mod = str(doc.get("ModificadoPor") or "").strip()
+    if not mod:
+        return ""
+    mod_l = mod.lower()
+    if quitado:
+        return _rotulo_usuario_de_campo_mongo(mod)
+    if mov_r > 0.02 and ("baixa" in mod_l or "parcial" in mod_l):
+        return _rotulo_usuario_de_campo_mongo(mod)
+    return ""
+
+
+def _horario_auditoria_de_doc(doc: dict, quitado: bool, mov_r: float) -> str | None:
+    if not quitado and mov_r <= 0.02:
+        return None
+    for key in ("LastUpdate", "DataModificacao", "DataPagamento"):
+        v = doc.get(key)
+        if _dt_efetiva(v):
+            return _serializar_dt(v)
+    return None
+
+
+def _tipo_evento_modificado_por(mod: str, quitado: bool) -> tuple[str, str]:
+    ml = mod.lower()
+    if quitado and "baixa" in ml:
+        if "parcial" in ml:
+            return "baixa_parcial", "Baixa parcial (última operação)"
+        return "baixa_total", "Quitação total"
+    if "edição" in ml or "edicao" in ml:
+        return "edicao", "Edição do lançamento"
+    if "recorrência" in ml or "recorrencia" in ml:
+        return "recorrencia", "Recorrência"
+    if "inclusão manual" in ml or "inclusao manual" in ml:
+        return "inclusao", "Inclusão manual"
+    if "juros" in ml:
+        return "juros", "Juros na quitação"
+    return "modificacao", "Alteração registrada"
+
+
+def lancamento_montar_log_auditoria(doc: dict) -> dict[str, Any]:
+    """Linha do tempo + dump JSON-safe de todos os campos do DtoLancamento."""
+    despesa = bool(doc.get("Despesa"))
+    quitado = _lancamento_quitado_totalmente(doc)
+    if despesa:
+        mov_r = round(float(_dec(doc.get("ValorPago"))), 2)
+        bruto = float(_dec(doc.get("Saida")))
+        restante = float(_restante_a_pagar(doc))
+    else:
+        mov_r = round(
+            float(
+                _valor_realizado_receita_dec(
+                    _dec(doc.get("Entrada")),
+                    _dec(doc.get("Recebido")),
+                    _dec(doc.get("ValorPago")),
+                )
+            ),
+            2,
+        )
+        bruto = float(_dec(doc.get("Entrada")))
+        restante = float(_restante_a_receber(doc))
+
+    eventos: list[dict[str, Any]] = []
+    criado_raw = str(doc.get("CriadoPor") or "").strip()
+    if criado_raw:
+        eventos.append(
+            {
+                "tipo": "criacao",
+                "rotulo": "Lançamento criado",
+                "usuario": _rotulo_usuario_de_campo_mongo(criado_raw),
+                "detalhe": criado_raw,
+                "quando": None,
+            }
+        )
+
+    obs = str(doc.get("Observacoes") or "")
+    for parte in [p.strip() for p in obs.split(" | ") if p.strip()]:
+        if parte.startswith("Agro parc."):
+            eventos.append(
+                {
+                    "tipo": "baixa_parcial_obs",
+                    "rotulo": "Parcela registrada (observações)",
+                    "usuario": "",
+                    "detalhe": parte,
+                    "quando": None,
+                }
+            )
+        elif "Lote manual Agro" in parte or "Título lançado como quitado" in parte:
+            eventos.append(
+                {
+                    "tipo": "lote_manual",
+                    "rotulo": "Lote manual / quitação na inclusão",
+                    "usuario": "",
+                    "detalhe": parte,
+                    "quando": None,
+                }
+            )
+        else:
+            eventos.append(
+                {
+                    "tipo": "observacao",
+                    "rotulo": "Observação",
+                    "usuario": "",
+                    "detalhe": parte,
+                    "quando": None,
+                }
+            )
+
+    mod = str(doc.get("ModificadoPor") or "").strip()
+    lu = _serializar_dt(doc.get("LastUpdate")) if _dt_efetiva(doc.get("LastUpdate")) else None
+    dm = _serializar_dt(doc.get("DataModificacao")) if _dt_efetiva(doc.get("DataModificacao")) else None
+    if mod:
+        tipo_ev, rotulo_ev = _tipo_evento_modificado_por(mod, quitado)
+        eventos.append(
+            {
+                "tipo": tipo_ev,
+                "rotulo": rotulo_ev,
+                "usuario": _rotulo_usuario_de_campo_mongo(mod),
+                "detalhe": mod,
+                "quando": lu or dm,
+            }
+        )
+
+    if quitado:
+        dp = _serializar_dt(doc.get("DataPagamento")) if _dt_efetiva(doc.get("DataPagamento")) else None
+        eventos.append(
+            {
+                "tipo": "estado_quitado",
+                "rotulo": "Estado atual: quitado",
+                "usuario": _usuario_quitou_de_doc(doc, True, mov_r),
+                "detalhe": (
+                    f"Valor pago/recebido: {mov_r:.2f} · "
+                    f"Forma: {doc.get('FormaPagamento') or '—'} · "
+                    f"Banco: {doc.get('Banco') or '—'}"
+                ),
+                "quando": dp or lu or dm,
+            }
+        )
+    elif mov_r > 0.02:
+        eventos.append(
+            {
+                "tipo": "estado_parcial",
+                "rotulo": "Pagamento parcial em aberto",
+                "usuario": _usuario_quitou_de_doc(doc, False, mov_r),
+                "detalhe": f"Movimentado: {mov_r:.2f} · Saldo: {restante:.2f}",
+                "quando": lu or dm,
+            }
+        )
+
+    campos: dict[str, Any] = {}
+    for k in sorted(doc.keys(), key=lambda x: str(x)):
+        campos[str(k)] = _json_safe_erp_value(doc[k])
+
+    return {
+        "id": str(doc.get("_id", "")),
+        "eventos": eventos,
+        "campos": campos,
+        "resumo": {
+            "cliente": doc.get("Cliente") or "",
+            "descricao": (doc.get("Descricao") or "")[:300],
+            "pago": quitado,
+            "valor_bruto": round(bruto, 2),
+            "valor_movimentado": mov_r,
+            "restante": round(float(restante), 2),
+            "usuario_lancou": _usuario_lancou_de_doc(doc),
+            "usuario_quitou": _usuario_quitou_de_doc(doc, quitado, mov_r),
+            "horario_quitacao": _horario_auditoria_de_doc(doc, quitado, mov_r),
+            "data_pagamento": _serializar_dt(doc.get("DataPagamento"))
+            if _dt_efetiva(doc.get("DataPagamento"))
+            else None,
+            "last_update": lu,
+            "data_modificacao": dm,
+            "modificado_por": mod[:500],
+            "criado_por": criado_raw[:500],
+            "observacoes": obs[:2000],
+        },
+    }
+
+
+def lancamento_log_auditoria(db, lancamento_id: str) -> dict[str, Any]:
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+    try:
+        oid = ObjectId(str(lancamento_id).strip())
+    except Exception:
+        return {"ok": False, "erro": "ID inválido"}
+    doc = db[COL_DTO_LANCAMENTO].find_one({"_id": oid})
+    if not doc:
+        return {"ok": False, "erro": "Lançamento não encontrado"}
+    payload = lancamento_montar_log_auditoria(doc)
+    return {"ok": True, **payload}
 
 
 def lancamento_para_api(doc: dict, despesa: bool) -> dict[str, Any]:
@@ -2096,6 +2492,17 @@ def lancamento_para_api(doc: dict, despesa: bool) -> dict[str, Any]:
         "recorrencia_intervalo_meses": ri,
         "agro_recorrente_sempre": _doc_recorrente_sempre(doc),
         "boleto_codigo_barras": str(doc.get(AGRO_BOLETO_CODIGO_BARRAS) or "").strip()[:54],
+        "usuario_lancou": _usuario_lancou_de_doc(doc),
+        "usuario_quitou": _usuario_quitou_de_doc(doc, quitado, mov_r),
+        "horario_quitacao": _horario_auditoria_de_doc(doc, quitado, mov_r),
+        "modificado_por": str(doc.get("ModificadoPor") or "")[:200],
+        "criado_por": str(doc.get("CriadoPor") or "")[:200],
+        "last_update": _serializar_dt(doc.get("LastUpdate"))
+        if _dt_efetiva(doc.get("LastUpdate"))
+        else None,
+        "data_modificacao": _serializar_dt(doc.get("DataModificacao"))
+        if _dt_efetiva(doc.get("DataModificacao"))
+        else None,
     }
 
 
@@ -2112,7 +2519,8 @@ def lancamentos_buscar_pagina(
     page_size: int = 50,
     ordenacao: str = "vencimento_asc",
     limite_max: int = 200,
-) -> tuple[list[dict], int, dict[str, float]]:
+    skip_totais: bool = False,
+) -> tuple[list[dict], int, dict[str, float] | None]:
     if db is None:
         return [], 0, {"quantidade": 0, "bruto": 0.0, "movimentado": 0.0, "saldo_aberto": 0.0}
 
@@ -2129,27 +2537,34 @@ def lancamentos_buscar_pagina(
         dedup = _lancamentos_mongo_stages_dedup_por_titulo_erp(
             sort_spec, pre_stages=pre_sort
         )
-        group_tot = _lancamentos_mongo_group_totais_stage(despesa)
-        facet_stage: dict[str, Any] = {
-            "$facet": {
-                "total_count": [{"$count": "n"}],
-                "page_slice": [{"$skip": skip}, {"$limit": page_size}],
-                "totais_agg": [group_tot],
-            }
+        facet_branches: dict[str, Any] = {
+            "total_count": [{"$count": "n"}],
+            "page_slice": [{"$skip": skip}, {"$limit": page_size}],
         }
-        pipe: list[dict[str, Any]] = [{"$match": query}, *dedup, facet_stage]
-        agg = list(col.aggregate(pipe))
+        if not skip_totais:
+            facet_branches["totais_agg"] = [
+                _lancamentos_mongo_group_totais_stage(despesa)
+            ]
+        facet_stage: dict[str, Any] = {"$facet": facet_branches}
+        pipe: list[dict[str, Any]] = [
+            {"$match": query},
+            {"$project": _LANCAMENTOS_LISTA_MONGO_PROJECT},
+            *dedup,
+            facet_stage,
+        ]
+        agg = list(col.aggregate(pipe, **_MONGO_AGG_LANCAMENTOS_LISTA_OPTS))
         total = 0
         page_docs: list[dict[str, Any]] = []
-        totais = {"quantidade": 0, "bruto": 0.0, "movimentado": 0.0, "saldo_aberto": 0.0}
+        totais: dict[str, float] | None = None
         if agg:
             facet = agg[0]
             tc = facet.get("total_count") or []
             if tc:
                 total = int(tc[0].get("n") or 0)
             page_docs = list(facet.get("page_slice") or [])
-            ta = facet.get("totais_agg") or []
-            totais = _lancamentos_totais_dict_from_group_doc(ta[0] if ta else None)
+            if not skip_totais:
+                ta = facet.get("totais_agg") or []
+                totais = _lancamentos_totais_dict_from_group_doc(ta[0] if ta else None)
         linhas = []
         for d in page_docs:
             d.pop("_dupKey", None)
@@ -2164,6 +2579,8 @@ def lancamentos_buscar_pagina(
 
 def contas_pagar_buscar_pagina(db, query: dict, **kwargs) -> tuple[list[dict], int, dict[str, float]]:
     linhas, total, totais = lancamentos_buscar_pagina(db, query, True, **kwargs)
+    if totais is None:
+        totais = {"quantidade": 0, "bruto": 0.0, "movimentado": 0.0, "saldo_aberto": 0.0}
     tot_legacy = {
         "quantidade": totais["quantidade"],
         "previsto": totais["bruto"],
@@ -2853,6 +3270,7 @@ def baixar_lancamento_parcial_mongo(
     data_movimento: datetime,
     parcelas: list[dict[str, Any]],
     usuario_label: str,
+    notificar_rh_baixa_cp: bool = True,
 ) -> dict[str, Any]:
     """
     Uma ou mais parcelas no mesmo título (várias formas/contas). Soma em ValorPago (a pagar)
@@ -3042,6 +3460,25 @@ def baixar_lancamento_parcial_mongo(
         doc_at = col.find_one({"_id": oid})
         if doc_at:
             criar_proximo_lancamento_recorrente_se_aplicavel(db, doc_at, usuario_label=usuario_label)
+
+    if despesa and soma_par > 0 and notificar_rh_baixa_cp:
+        try:
+            import secrets
+
+            from rh.models import PagamentoSalarioFuncionario
+            from rh.services.pagamento_salario import processar_baixa_cp_titulo_salario
+
+            dp = data_movimento.date() if hasattr(data_movimento, "date") else timezone.localdate()
+            processar_baixa_cp_titulo_salario(
+                mongo_id=str(oid),
+                valor_baixa=soma_par,
+                data=dp,
+                tipo_origem=PagamentoSalarioFuncionario.TipoOrigem.CP_PARCIAL,
+                referencia_externa_id=f"{oid}:parc:{secrets.token_hex(8)}",
+            )
+        except Exception:
+            logger.exception("RH: hook baixa parcial Mongo título salário mongo_id=%s", oid)
+
     return {"ok": True, "id": str(oid), "erro": None, "quitado": bool(quitado_final)}
 
 
@@ -3950,6 +4387,525 @@ def dashboard_despesas_plano_serie_mongo(
     )
 
 
+_GRAFICO_GASTOS_CORES = (
+    ("#059669", "rgba(5, 150, 105, 0.12)"),
+    ("#ea580c", "rgba(234, 88, 12, 0.12)"),
+    ("#2563eb", "rgba(37, 99, 235, 0.12)"),
+    ("#7c3aed", "rgba(124, 58, 237, 0.12)"),
+    ("#dc2626", "rgba(220, 38, 38, 0.12)"),
+    ("#0891b2", "rgba(8, 145, 178, 0.12)"),
+)
+
+_MESES_PT = (
+    "Jan",
+    "Fev",
+    "Mar",
+    "Abr",
+    "Mai",
+    "Jun",
+    "Jul",
+    "Ago",
+    "Set",
+    "Out",
+    "Nov",
+    "Dez",
+)
+
+
+def _grafico_gastos_status_para_lista_planos(
+    por: str,
+    valor: str,
+    *,
+    data_referencia: date | None = None,
+) -> str:
+    """Espelha filtros da lista CP (Contas a pagar) — gráfico e planos distintos."""
+    modo_por = (por or "vencimento").strip().lower()
+    modo_valor = (valor or "bruto").strip().lower()
+    if modo_por == "pagamento":
+        return "quitados" if (modo_valor == "pago" and not data_referencia) else "todos"
+    if data_referencia:
+        return "todos"
+    if modo_valor == "saldo":
+        return "abertos"
+    if modo_valor == "bruto" and modo_por in ("vencimento", "competencia"):
+        return "abertos"
+    return "todos"
+
+
+def grafico_gastos_planos_despesa_mongo(
+    db,
+    *,
+    por: str = "vencimento",
+    valor: str = "saldo",
+    data_de: date | None = None,
+    data_ate: date | None = None,
+    data_referencia: date | None = None,
+    limit: int = 500,
+) -> list[dict[str, str]]:
+    """
+    Planos distintos nos lançamentos do filtro — **mesma fonte que Contas a pagar**.
+    Não lista planos «pai» do cadastro sem título (ex. Despesas Dispensáveis).
+    """
+    if db is None:
+        return []
+    st = _grafico_gastos_status_para_lista_planos(por, valor, data_referencia=data_referencia)
+    modo_por = (por or "vencimento").strip().lower()
+    kwargs: dict[str, Any] = dict(despesa=True, status=st, limit=limit)
+    if modo_por == "competencia":
+        kwargs["competencia_de"] = data_de
+        kwargs["competencia_ate"] = data_ate
+    elif modo_por == "pagamento":
+        kwargs["pagamento_de"] = data_de
+        kwargs["pagamento_ate"] = data_ate
+    else:
+        kwargs["vencimento_de"] = data_de
+        kwargs["vencimento_ate"] = data_ate
+    raw = lancamentos_planos_distintos_no_filtro(db, **kwargs)
+    out: list[dict[str, str]] = []
+    for item in raw:
+        nome = str(item.get("nome") or "").strip()
+        if not nome or nome == "(sem plano)":
+            continue
+        out.append({"id": nome, "nome": nome})
+    return out
+
+
+def _grafico_gastos_filtro_planos_mongo(
+    db, plano_ids: list[str]
+) -> tuple[list[str], list[str], dict[str, str]]:
+    """Resolve IDs selecionados → (ids, nomes, mapa id→nome). Lookup em lote no cadastro."""
+    ids: list[str] = []
+    nomes: list[str] = []
+    id_nome: dict[str, str] = {}
+    seen: set[str] = set()
+    for raw in plano_ids:
+        pid = (raw or "").strip()
+        if not pid or pid in seen:
+            continue
+        seen.add(pid)
+        ids.append(pid)
+
+    if not ids:
+        return ids, nomes, id_nome
+
+    catalog: dict[str, str] = {}
+    try:
+        col = db[COL_DTO_PLANO_CONTA]
+        oid_vals: list[Any] = []
+        for pid in ids:
+            oid = _pedido_erp_oid_24(pid)
+            if oid is not None:
+                oid_vals.append(oid)
+        flt_or: list[dict[str, Any]] = []
+        if oid_vals:
+            flt_or.append({"_id": {"$in": oid_vals}})
+        flt_or.append({"PlanoDeContaID": {"$in": ids}})
+        for doc in col.find({"$or": flt_or}, {"Nome": 1, "_id": 1, "PlanoDeContaID": 1}):
+            pid = _financeiro_id_para_string(doc.get("_id")) or _financeiro_id_para_string(
+                doc.get("PlanoDeContaID")
+            )
+            nome = str(doc.get("Nome") or "").strip()
+            if pid and nome:
+                catalog[pid] = nome
+    except Exception as exc:
+        logger.warning("_grafico_gastos_filtro_planos_mongo catalog: %s", exc)
+
+    for pid in ids:
+        pn = catalog.get(pid)
+        if not pn and len(ids) <= 20:
+            pn, _ = buscar_plano_conta_mestre_por_id_mongo(db, pid)
+        if not pn:
+            pn = pid
+        id_nome[pid] = pn
+        if pn not in nomes:
+            nomes.append(pn)
+    return ids, nomes, id_nome
+
+
+def _grafico_gastos_bucket_key(dt: date, agrupamento: str) -> str:
+    agr = (agrupamento or "mes").strip().lower()
+    if agr == "dia":
+        return dt.isoformat()
+    if agr == "semana":
+        iso = dt.isocalendar()
+        return f"{iso.year}-W{iso.week:02d}"
+    if agr == "ano":
+        return str(dt.year)
+    return f"{dt.year}-{dt.month:02d}"
+
+
+def _grafico_gastos_bucket_intervalo(
+    bucket_key: str, agrupamento: str
+) -> tuple[date, date] | None:
+    """Intervalo [de, ate] do bucket — espelha ``bucketParaIntervalo`` do gráfico (JS)."""
+    agr = (agrupamento or "mes").strip().lower()
+    key = str(bucket_key or "").strip()
+    if not key:
+        return None
+    if agr == "dia":
+        try:
+            d = date.fromisoformat(key)
+        except ValueError:
+            return None
+        return d, d
+    if agr == "ano":
+        try:
+            y = int(key)
+        except ValueError:
+            return None
+        return date(y, 1, 1), date(y, 12, 31)
+    if agr == "semana":
+        m = re.match(r"^(\d{4})-W(\d{2})$", key)
+        if not m:
+            return None
+        try:
+            ini = date.fromisocalendar(int(m.group(1)), int(m.group(2)), 1)
+        except ValueError:
+            return None
+        return ini, ini + timedelta(days=6)
+    parts = key.split("-")
+    if len(parts) < 2:
+        return None
+    try:
+        y, mo = int(parts[0]), int(parts[1])
+    except ValueError:
+        return None
+    if mo < 1 or mo > 12:
+        return None
+    ini = date(y, mo, 1)
+    if mo == 12:
+        fim = date(y, 12, 31)
+    else:
+        fim = date(y, mo + 1, 1) - timedelta(days=1)
+    return ini, fim
+
+
+def _grafico_gastos_bucket_label(key: str, agrupamento: str) -> str:
+    agr = (agrupamento or "mes").strip().lower()
+    if agr == "dia":
+        try:
+            d = date.fromisoformat(key)
+            return d.strftime("%d/%m/%Y")
+        except ValueError:
+            return key
+    if agr == "semana":
+        if "-W" in key:
+            y, w = key.split("-W", 1)
+            return f"Sem {w}/{y}"
+        return key
+    if agr == "ano":
+        return key
+    try:
+        y, m = key.split("-", 1)
+        mi = int(m)
+        return f"{_MESES_PT[mi - 1]}/{y}"
+    except (ValueError, IndexError):
+        return key
+
+
+def _grafico_gastos_iter_bucket_keys(data_de: date, data_ate: date, agrupamento: str) -> list[str]:
+    agr = (agrupamento or "mes").strip().lower()
+    keys: list[str] = []
+    seen: set[str] = set()
+    cur = data_de
+    while cur <= data_ate:
+        k = _grafico_gastos_bucket_key(cur, agr)
+        if k not in seen:
+            seen.add(k)
+            keys.append(k)
+        if agr == "dia":
+            cur += timedelta(days=1)
+        elif agr == "semana":
+            cur += timedelta(days=7)
+        elif agr == "ano":
+            cur = date(cur.year + 1, 1, 1)
+        else:
+            if cur.month == 12:
+                cur = date(cur.year + 1, 1, 1)
+            else:
+                cur = date(cur.year, cur.month + 1, 1)
+    return keys
+
+
+def _grafico_gastos_match_planos(ids: list[str], nomes: list[str]) -> dict[str, Any] | None:
+    ors: list[dict[str, Any]] = []
+    if ids:
+        id_vals: list[Any] = list(dict.fromkeys(ids))
+        for pid in ids:
+            oid = _pedido_erp_oid_24(pid)
+            if oid is not None and oid not in id_vals:
+                id_vals.append(oid)
+        ors.append({"PlanoDeContaID": {"$in": id_vals}})
+    if nomes:
+        ors.append({"PlanoDeConta": {"$in": list(dict.fromkeys(nomes))}})
+    if not ors:
+        return None
+    if len(ors) == 1:
+        return ors[0]
+    return {"$or": ors}
+
+
+def _grafico_gastos_as_of_end_dt(d: date, tz) -> datetime:
+    return timezone.make_aware(datetime.combine(d, dtime.max), tz)
+
+
+def _grafico_gastos_objectid_max_ate(d: date) -> ObjectId:
+    """Limite superior de ``_id`` ≈ documentos existentes até o fim do dia (UTC)."""
+    tz = timezone.get_current_timezone()
+    end_utc = _grafico_gastos_as_of_end_dt(d, tz).astimezone(timezone.utc)
+    return ObjectId.from_datetime(end_utc.replace(tzinfo=None))
+
+
+def _grafico_gastos_expr_pagamento_ate(as_of: datetime) -> dict[str, Any]:
+    return {
+        "$and": [
+            {"$gt": ["$DataPagamento", _SENTINEL]},
+            {"$lte": ["$DataPagamento", as_of]},
+        ]
+    }
+
+
+def _grafico_gastos_vl_expr_as_of(modo_valor: str, as_of: datetime) -> dict[str, Any]:
+    """
+    Valor do ponto como era na data ``as_of`` (fim do dia local).
+    Pagamento depois dessa data → saldo = bruto do título; quitado até lá → 0.
+    """
+    pay_ate = _grafico_gastos_expr_pagamento_ate(as_of)
+    saida = {"$ifNull": ["$Saida", 0]}
+    vp = {"$ifNull": ["$ValorPago", 0]}
+    rest = _mongo_expr_restante_max0_inner(True)
+    if modo_valor == "bruto":
+        return saida
+    if modo_valor == "pago":
+        return {"$cond": [pay_ate, vp, 0]}
+    return {
+        "$cond": [
+            {"$and": [pay_ate, {"$eq": ["$Pago", True]}]},
+            0,
+            {"$cond": [pay_ate, rest, saida]},
+        ]
+    }
+
+
+def _grafico_gastos_bucket_expr(campo_data: str, agrupamento: str, tz) -> dict[str, Any]:
+    agr = (agrupamento or "mes").strip().lower()
+    ref = f"${campo_data}"
+    if agr == "dia":
+        fmt = "%Y-%m-%d"
+    elif agr == "semana":
+        fmt = "%G-W%V"
+    elif agr == "ano":
+        fmt = "%Y"
+    else:
+        fmt = "%Y-%m"
+    return {
+        "$dateToString": {
+            "format": fmt,
+            "date": ref,
+            "timezone": str(tz),
+        }
+    }
+
+
+def grafico_gastos_serie_mongo(
+    db,
+    *,
+    data_de: date,
+    data_ate: date,
+    agrupamento: str = "mes",
+    plano_ids: list[str] | None = None,
+    planos_excluir_nomes: list[str] | None = None,
+    todos_planos: bool = False,
+    individual: bool = False,
+    por: str = "vencimento",
+    valor: str = "bruto",
+    data_referencia: date | None = None,
+) -> dict[str, Any]:
+    """
+    Série temporal de despesas (DtoLancamento) para Chart.js.
+
+    Alinhado à lista de Lançamentos: dedup ``_lancamentos_mongo_stages_dedup_por_titulo_erp``.
+    Filtro de planos: **todos marcados** = sem filtro (igual CP); desmarcados = ``excluir_plano``.
+    """
+    vazio = {"ok": False, "erro": "Mongo indisponível", "labels": [], "bucket_keys": [], "datasets": []}
+    if db is None:
+        return vazio
+    if data_de > data_ate:
+        data_de, data_ate = data_ate, data_de
+
+    id_nome: dict[str, str] = {}
+    if plano_ids and individual:
+        _, _, id_nome = _grafico_gastos_filtro_planos_mongo(db, plano_ids)
+
+    modo_por = (por or "vencimento").strip().lower()
+    if modo_por not in ("vencimento", "competencia", "pagamento"):
+        modo_por = "vencimento"
+    modo_valor = (valor or "bruto").strip().lower()
+    if modo_valor not in ("bruto", "pago", "saldo"):
+        modo_valor = "bruto"
+
+    excl_nomes: list[str] | None = None
+    if not todos_planos:
+        raw_excl = [str(x).strip() for x in (planos_excluir_nomes or []) if str(x).strip()]
+        excl_nomes = raw_excl or None
+
+    as_of = data_referencia
+    if as_of and as_of > timezone.localdate():
+        as_of = timezone.localdate()
+
+    st = _grafico_gastos_status_para_lista_planos(
+        modo_por, modo_valor, data_referencia=as_of
+    )
+
+    if modo_por == "competencia":
+        campo_data = "DataCompetencia"
+        q_base = lancamentos_montar_query_mongo(
+            despesa=True,
+            status=st,
+            competencia_de=data_de,
+            competencia_ate=data_ate,
+            excluir_planos_nomes=excl_nomes,
+        )
+    elif modo_por == "pagamento":
+        campo_data = "DataPagamento"
+        q_base = lancamentos_montar_query_mongo(
+            despesa=True,
+            status=st,
+            pagamento_de=data_de,
+            pagamento_ate=data_ate,
+            excluir_planos_nomes=excl_nomes,
+        )
+    else:
+        campo_data = "DataVencimento"
+        q_base = lancamentos_montar_query_mongo(
+            despesa=True,
+            status=st,
+            vencimento_de=data_de,
+            vencimento_ate=data_ate,
+            excluir_planos_nomes=excl_nomes,
+        )
+
+    q_parts: list[dict[str, Any]] = [q_base]
+    if not todos_planos and not excl_nomes and plano_ids and individual:
+        match_plano = _grafico_gastos_match_planos(*_grafico_gastos_filtro_planos_mongo(db, plano_ids)[:2])
+        if match_plano:
+            q_parts.append(match_plano)
+    q: dict[str, Any] = {"$and": q_parts} if len(q_parts) > 1 else q_base
+
+    tz = timezone.get_current_timezone()
+    agr = (agrupamento or "mes").strip().lower()
+    bucket_expr = _grafico_gastos_bucket_expr(campo_data, agr, tz)
+
+    if as_of:
+        as_of_end = _grafico_gastos_as_of_end_dt(as_of, tz)
+        vl_expr = _grafico_gastos_vl_expr_as_of(modo_valor, as_of_end)
+    elif modo_valor == "pago":
+        vl_expr: dict[str, Any] = {"$ifNull": ["$ValorPago", 0]}
+    elif modo_valor == "saldo":
+        vl_expr = _mongo_expr_restante_max0_inner(True)
+    else:
+        vl_expr = {"$ifNull": ["$Saida", 0]}
+
+    sort_dedup = _lancamentos_sort_spec_list("vencimento_asc", True)
+    group_id: dict[str, Any] = {"bucket": "$gg_bucket"}
+    if individual:
+        group_id["plano"] = {"$ifNull": ["$PlanoDeConta", ""]}
+
+    dedup_stages = list(_lancamentos_mongo_stages_dedup_por_titulo_erp(sort_dedup))
+    if as_of:
+        try:
+            oid_max = _grafico_gastos_objectid_max_ate(as_of)
+            dedup_stages.append({"$match": {"_id": {"$lte": oid_max}}})
+        except Exception:
+            logger.warning("grafico_gastos as_of objectid", exc_info=True)
+
+    pipe: list[dict[str, Any]] = [
+        {"$match": q},
+        *dedup_stages,
+        {
+            "$addFields": {
+                "gg_bucket": bucket_expr,
+                "gg_vl": vl_expr,
+            }
+        },
+        {"$match": {"gg_vl": {"$gt": 0.02}}},
+        {"$group": {"_id": group_id, "soma": {"$sum": "$gg_vl"}}},
+    ]
+
+    col = db[COL_DTO_LANCAMENTO]
+    try:
+        agg = list(col.aggregate(pipe, maxTimeMS=120_000, allowDiskUse=True))
+    except Exception as exc:
+        logger.exception("grafico_gastos_serie_mongo: %s", exc)
+        out = dict(vazio)
+        out["erro"] = str(exc)[:300]
+        return out
+
+    bucket_keys = _grafico_gastos_iter_bucket_keys(data_de, data_ate, agr)
+    labels = [_grafico_gastos_bucket_label(k, agr) for k in bucket_keys]
+
+    if individual:
+        por_plano: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
+        for r in agg:
+            gid = r.get("_id") or {}
+            bkey = str(gid.get("bucket") or "")
+            plano = str(gid.get("plano") or "").strip() or "(sem plano)"
+            val = float(_dec(r.get("soma")).quantize(Decimal("0.01")))
+            if val <= 0:
+                continue
+            por_plano[plano][bkey] += val
+
+        datasets = []
+        for i, (plano, vals) in enumerate(sorted(por_plano.items(), key=lambda x: x[0].casefold())):
+            cor_borda, cor_fundo = _GRAFICO_GASTOS_CORES[i % len(_GRAFICO_GASTOS_CORES)]
+            datasets.append(
+                {
+                    "label": plano,
+                    "data": [round(vals.get(k, 0.0), 2) for k in bucket_keys],
+                    "borderColor": cor_borda,
+                    "backgroundColor": cor_fundo,
+                    "fill": True,
+                }
+            )
+    else:
+        totais: dict[str, float] = defaultdict(float)
+        for r in agg:
+            gid = r.get("_id") or {}
+            bkey = str(gid.get("bucket") or "") if isinstance(gid, dict) else str(gid or "")
+            val = float(_dec(r.get("soma")).quantize(Decimal("0.01")))
+            if val <= 0:
+                continue
+            totais[bkey] += val
+
+        label = "Total Selecionado"
+        if len(id_nome) == 1:
+            label = next(iter(id_nome.values()))
+        cor_borda, cor_fundo = _GRAFICO_GASTOS_CORES[0]
+        datasets = [
+            {
+                "label": label,
+                "data": [round(totais.get(k, 0.0), 2) for k in bucket_keys],
+                "borderColor": cor_borda,
+                "backgroundColor": cor_fundo,
+                "fill": True,
+            }
+        ]
+
+    out = {
+        "ok": True,
+        "erro": None,
+        "labels": labels,
+        "bucket_keys": bucket_keys,
+        "datasets": datasets,
+    }
+    if as_of:
+        out["modo_tempo"] = "historico"
+        out["data_referencia"] = as_of.isoformat()
+    else:
+        out["modo_tempo"] = "real"
+    return out
+
+
 # Campos usuais do DtoLancamento (WL / Venda ERP) enviados ao POST de integração — evita payload gigante.
 _ERP_DOC_KEYS_EXPORT = frozenset(
     {
@@ -4315,6 +5271,15 @@ def _banco_placeholder_para_select() -> dict[str, str]:
     return dict(_BANCO_ADICIONAR_ERP_FIXO)
 
 
+def _fin_banco_id_valido_quitado(banco_id: str | None) -> bool:
+    """Placeholder «ADICIONAR CONTA» tem ID no ERP mas não serve para baixa/quitado."""
+    bid = str(banco_id or "").strip()
+    if not bid:
+        return False
+    ph_id = str(_banco_placeholder_para_select().get("id") or "").strip()
+    return bid != ph_id
+
+
 def _bancos_lista_com_placeholder_inicio(bancos: list[dict]) -> list[dict]:
     ph = _banco_placeholder_para_select()
     pid = str(ph.get("id") or "").strip()
@@ -4633,6 +5598,301 @@ def _buscar_lancamento_duplicado_sem_vinculo_erp(col, doc: dict[str, Any]) -> di
     return cands[0]
 
 
+def _fin_ln_txt(ln: dict, key: str, fallback: str = "") -> str:
+    if not isinstance(ln, dict):
+        return (fallback or "").strip()
+    v = ln.get(key)
+    s = str(v).strip() if v is not None else ""
+    return s if s else (fallback or "").strip()
+
+
+def _fin_ln_campo(ln: dict, key: str, fallback: str = "") -> str:
+    """Valor da linha se a chave existir (mesmo vazio); senão fallback do cabeçalho."""
+    if isinstance(ln, dict) and key in ln:
+        v = ln.get(key)
+        return str(v).strip() if v is not None else ""
+    return _fin_ln_txt(ln, key, fallback)
+
+
+def _fin_ln_id_campo(ln: dict, key: str, fallback_id: str | None) -> str | None:
+    if isinstance(ln, dict) and key in ln:
+        raw = ln.get(key)
+        return _financeiro_id_para_string(raw) if raw not in (None, "") else None
+    raw = ln.get(key) if isinstance(ln, dict) else None
+    return _financeiro_id_para_string(raw or fallback_id)
+
+
+def _fin_ln_bool(ln: dict, key: str, fallback: bool = False) -> bool:
+    if not isinstance(ln, dict) or key not in ln:
+        return fallback
+    raw = ln.get(key)
+    if raw is True:
+        return True
+    if raw is False:
+        return False
+    return str(raw).strip().lower() in ("1", "true", "yes", "sim", "on")
+
+
+def _fin_ln_despesa(ln: dict, despesa_header: bool) -> bool:
+    """Tipo por linha (``despesa`` / ``tipo``) ou fallback do cabeçalho do lote."""
+    if not isinstance(ln, dict):
+        return bool(despesa_header)
+    if "despesa" in ln:
+        raw = ln.get("despesa")
+        if raw is True:
+            return True
+        if raw is False:
+            return False
+        s = str(raw).strip().lower()
+        if s in ("1", "true", "sim", "pagar", "yes", "on"):
+            return True
+        if s in ("0", "false", "nao", "não", "receber", "no", "off"):
+            return False
+    t = str(ln.get("tipo") or ln.get("tipo_linha") or "").strip().lower()
+    if t == "receber":
+        return False
+    if t == "pagar":
+        return True
+    return bool(despesa_header)
+
+
+def _linha_e_emprestimo_dual(ln: dict) -> bool:
+    if not isinstance(ln, dict):
+        return False
+    if _fin_ln_bool(ln, "emprestimo_dual", False):
+        return True
+    pid = str(ln.get("plano_conta_id") or ln.get("plano_id") or "").strip()
+    if pid == EMPRESTIMO_DUAL_PLANO_ID:
+        return True
+    pn = str(ln.get("plano_conta") or ln.get("plano_nome") or "").strip()
+    return pn == EMPRESTIMO_DUAL_LABEL
+
+
+def expandir_linhas_emprestimo_dual_lote(
+    linhas: list[dict[str, Any]],
+    *,
+    hoje: date | None = None,
+) -> list[dict[str, Any]]:
+    """
+    Pseudo-plano «Empréstimo (entrada + pagamento)» → receita quitada (hoje) + despesa(s).
+    Se valor saída > entrada, a diferença vira «Juros de Empréstimos» **em cada parcela**
+    (proporcional ao valor da parcela). Parcelas somam o valor de saída.
+    """
+    if hoje is None:
+        hoje = timezone.localdate()
+    hoje_s = hoje.isoformat()
+    plano_ent = emprestimo_plano_entrada_resolvido()
+    plano_pag = emprestimo_plano_divida_resolvido()
+    plano_juros = emprestimo_plano_juros_resolvido()
+    out: list[dict[str, Any]] = []
+
+    for ln in linhas:
+        if not isinstance(ln, dict) or not _linha_e_emprestimo_dual(ln):
+            out.append(ln)
+            continue
+
+        try:
+            ve = Decimal(str(_fin_parse_valor_entrada_manual(ln.get("valor_entrada"))))
+        except (ValueError, TypeError):
+            ve = Decimal("0")
+        try:
+            vs_raw = ln.get("valor_saida")
+            if vs_raw in (None, ""):
+                vs_raw = ln.get("valor")
+            vs = Decimal(str(_fin_parse_valor_entrada_manual(vs_raw)))
+        except (ValueError, TypeError):
+            vs = Decimal("0")
+
+        if ve <= 0 or vs <= 0:
+            out.append({**ln, "_emprestimo_dual_erro": "Informe valor de entrada e valor de saída maiores que zero."})
+            continue
+
+        base = {
+            k: v
+            for k, v in ln.items()
+            if k
+            not in (
+                "plano_conta",
+                "plano_conta_id",
+                "plano_id",
+                "valor",
+                "valor_entrada",
+                "valor_saida",
+                "emprestimo_dual",
+                "recorrente",
+                "recorrente_modo",
+                "recorrente_parcelas",
+                "parcelas_saida",
+                "parcelas_intervalo_dias",
+                "parcelas_manual_saida",
+                "forma_entrada_nome",
+                "forma_entrada_id",
+                "forma_saida_nome",
+                "forma_saida_id",
+                "forma_nome",
+                "forma_id",
+                "_num",
+            )
+        }
+        fe_nome = str(ln.get("forma_entrada_nome") or "").strip()
+        fe_id = ln.get("forma_entrada_id")
+        if not fe_nome:
+            out.append({**ln, "_emprestimo_dual_erro": "Informe forma de pagamento da entrada (obrigatória)."})
+            continue
+        fs_nome = str(ln.get("forma_saida_nome") or "").strip()
+        fs_id = ln.get("forma_saida_id")
+        dc_base_s = str(ln.get("data_competencia") or ln.get("data_vencimento") or hoje_s)[:10]
+        try:
+            dc_base = date.fromisoformat(dc_base_s)
+        except ValueError:
+            dc_base = hoje
+        pes = _fin_ln_txt(ln, "pessoa_nome", "")
+        desc_base = (ln.get("descricao") or "").strip()
+
+        out.append(
+            {
+                **base,
+                "tipo": "receber",
+                "despesa": False,
+                "plano_conta": plano_ent,
+                "plano_conta_id": None,
+                "valor": float(ve),
+                "data_competencia": hoje_s,
+                "data_vencimento": hoje_s,
+                "quitado": True,
+                "recorrente": False,
+                "banco_nome": "",
+                "banco_id": None,
+                "forma_nome": fe_nome[:200],
+                "forma_id": fe_id,
+                "descricao": (desc_base or f"Entrada empréstimo — {pes}")[:500],
+            }
+        )
+
+        if vs > ve:
+            juros_val = (vs - ve).quantize(Decimal("0.01"))
+        else:
+            juros_val = Decimal("0")
+
+        try:
+            n_parc = int(ln.get("parcelas_saida") or 1)
+        except (TypeError, ValueError):
+            n_parc = 1
+        n_parc = max(1, min(n_parc, 60))
+        try:
+            int_dias = int(ln.get("parcelas_intervalo_dias") or 30)
+        except (TypeError, ValueError):
+            int_dias = 30
+        int_dias = max(1, min(int_dias, 366))
+
+        dv_base_s = str(ln.get("data_vencimento") or hoje_s)[:10]
+        try:
+            dv_base = date.fromisoformat(dv_base_s)
+        except ValueError:
+            dv_base = hoje
+
+        parcelas_pag: list[tuple[Decimal, date, bool]] = []
+        quit_padrao = _fin_ln_bool(ln, "quitado", False)
+        pm_raw = ln.get("parcelas_manual_saida")
+        if n_parc > 1 and isinstance(pm_raw, list) and len(pm_raw) == n_parc:
+            for row in pm_raw:
+                if not isinstance(row, dict):
+                    continue
+                dv_s = str(row.get("data_vencimento") or "")[:10]
+                try:
+                    dv_i = date.fromisoformat(dv_s)
+                except ValueError:
+                    out.append({**ln, "_emprestimo_dual_erro": "Parcela com data de vencimento inválida."})
+                    parcelas_pag = []
+                    break
+                try:
+                    v_i = Decimal(str(_fin_parse_valor_entrada_manual(row.get("valor"))))
+                except (ValueError, TypeError):
+                    v_i = Decimal("0")
+                if v_i <= 0:
+                    out.append({**ln, "_emprestimo_dual_erro": "Parcela com valor inválido."})
+                    parcelas_pag = []
+                    break
+                q_i = _fin_ln_bool(row, "quitado", quit_padrao)
+                parcelas_pag.append((v_i, dv_i, q_i))
+            if parcelas_pag:
+                soma_p = sum(v for v, _, _ in parcelas_pag).quantize(Decimal("0.01"))
+                if abs(soma_p - vs) > Decimal("0.02"):
+                    out.append(
+                        {
+                            **ln,
+                            "_emprestimo_dual_erro": (
+                                f"Soma das parcelas ({soma_p}) difere do valor de saída ({vs})."
+                            ),
+                        }
+                    )
+                    parcelas_pag = []
+        elif n_parc > 1:
+            for i, v_i in enumerate(split_decimal_em_parcelas(vs, n_parc)):
+                parcelas_pag.append((v_i, _fin_vencimento_parcela(dv_base, i, int_dias), quit_padrao))
+        else:
+            parcelas_pag = [(vs, dv_base, quit_padrao)]
+
+        if not parcelas_pag:
+            continue
+
+        valores_parc = [v for v, _, _ in parcelas_pag]
+        juros_por_parc = (
+            split_decimal_proporcional(juros_val, valores_parc)
+            if juros_val > Decimal("0.009")
+            else [Decimal("0")] * len(parcelas_pag)
+        )
+
+        n_tot = len(parcelas_pag)
+        for i, (v_parc, dv_parc, q_parc) in enumerate(parcelas_pag):
+            juros_i = juros_por_parc[i].quantize(Decimal("0.01"))
+            principal_i = (v_parc - juros_i).quantize(Decimal("0.01"))
+            desc_pag = (desc_base or f"Pagamento empréstimo — {pes}")[:500]
+            desc_jur = (desc_base or f"Juros empréstimo — {pes}")[:500]
+            if n_tot > 1:
+                sufix = f" (parcela {i + 1}/{n_tot})"
+                desc_pag = f"{desc_pag}{sufix}"[:500]
+                desc_jur = f"{desc_jur}{sufix}"[:500]
+            if principal_i > Decimal("0.009"):
+                out.append(
+                    {
+                        **base,
+                        "tipo": "pagar",
+                        "despesa": True,
+                        "plano_conta": plano_pag,
+                        "plano_conta_id": None,
+                        "valor": float(principal_i),
+                        "data_competencia": dc_base.isoformat(),
+                        "data_vencimento": dv_parc.isoformat(),
+                        "quitado": bool(q_parc),
+                        "descricao": desc_pag,
+                        "recorrente": False,
+                        "forma_nome": fs_nome[:200] if fs_nome else "",
+                        "forma_id": fs_id if fs_nome else None,
+                    }
+                )
+            if juros_i > Decimal("0.009"):
+                out.append(
+                    {
+                        **base,
+                        "tipo": "pagar",
+                        "despesa": True,
+                        "plano_conta": plano_juros,
+                        "plano_conta_id": None,
+                        "valor": float(juros_i),
+                        "data_competencia": dc_base.isoformat(),
+                        "data_vencimento": dv_parc.isoformat(),
+                        "quitado": bool(q_parc),
+                        "descricao": desc_jur,
+                        "recorrente": False,
+                        "forma_nome": fs_nome[:200] if fs_nome else "",
+                        "forma_id": fs_id if fs_nome else None,
+                    }
+                )
+
+    return out
+
+
 def inserir_lancamentos_manual_lote(
     db,
     *,
@@ -4670,51 +5930,82 @@ def inserir_lancamentos_manual_lote(
     """
     if db is None:
         return {"ok": False, "ids": [], "erros": [{"erro": "Mongo indisponível"}]}
+    err_st = _erro_mongo_staging_readonly(ids=[], erros=[{"erro": _MSG_MONGO_STAGING}])
+    if err_st:
+        return err_st
     empresa_nome = (empresa_nome or "").strip()
     pessoa_nome = (pessoa_nome or "").strip()
     banco_nome = (banco_nome or "").strip()
     forma_nome = (forma_nome or "").strip()
-    if not empresa_nome or not pessoa_nome or not banco_nome:
-        return {
-            "ok": False,
-            "ids": [],
-            "erros": [{"erro": "Preencha empresa, cliente/fornecedor e conta bancária."}],
-        }
     linhas = [x for x in (linhas or []) if isinstance(x, dict)]
     if not linhas or len(linhas) > 60:
         return {"ok": False, "ids": [], "erros": [{"erro": "Informe de 1 a 60 linhas de detalhe."}]}
 
-    modo = (recorrente_modo or "sempre").strip().lower()
-    if modo not in ("sempre", "normal"):
-        modo = "sempre"
-    try:
-        N = int(recorrente_parcelas or 1)
-    except (TypeError, ValueError):
-        N = 1
-    N = max(1, min(N, 12))
-    if recorrente and modo == "normal" and len(linhas) * N > 60:
+    cab_ok = bool(empresa_nome and pessoa_nome and banco_nome)
+    if not cab_ok:
+        cab_ok = all(
+            _fin_ln_txt(ln, "empresa_nome", empresa_nome)
+            and _fin_ln_txt(ln, "pessoa_nome", pessoa_nome)
+            and (
+                not _fin_ln_despesa(ln, despesa)
+                or _fin_ln_txt(ln, "banco_nome", banco_nome)
+            )
+            for ln in linhas
+        )
+    if not cab_ok:
+        return {
+            "ok": False,
+            "ids": [],
+            "erros": [{"erro": "Preencha empresa, cliente/fornecedor e conta bancária (conta só nas despesas / saída)."}],
+        }
+
+    planned_pre = 0
+    for idx, ln in enumerate(linhas):
+        err_dual = str(ln.get("_emprestimo_dual_erro") or "").strip()
+        if err_dual:
+            return {"ok": False, "ids": [], "erros": [{"linha": idx + 1, "erro": err_dual}]}
+        ln_desp_pre = _fin_ln_despesa(ln, despesa)
+        ln_rec = _fin_ln_bool(ln, "recorrente", recorrente)
+        ln_mod = (str(ln.get("recorrente_modo") or recorrente_modo or "sempre")).strip().lower()
+        if ln_mod not in ("sempre", "normal"):
+            ln_mod = "sempre"
+        try:
+            ln_n = int(ln.get("recorrente_parcelas") or recorrente_parcelas or 1)
+        except (TypeError, ValueError):
+            ln_n = 1
+        ln_n = max(1, min(ln_n, 12))
+        n_cp = ln_n if (ln_rec and ln_mod == "normal") else 1
+        planned_pre += n_cp
+        ln_quit = _fin_ln_bool(ln, "quitado", marcar_quitado_pagar or marcar_quitado_receber)
+        ln_quit_pagar_pre = ln_quit and ln_desp_pre
+        ln_quit_receber_pre = ln_quit and not ln_desp_pre
+        if ln_rec and ln_mod == "normal" and (ln_quit_pagar_pre or ln_quit_receber_pre) and ln_n > 1:
+            return {
+                "ok": False,
+                "ids": [],
+                "erros": [
+                    {
+                        "linha": idx + 1,
+                        "erro": "Modo Normal com mais de um título não combina com «Lançar quitado». Desmarque quitado ou use quantidade 1.",
+                    }
+                ],
+            }
+    if planned_pre > 60:
         return {
             "ok": False,
             "ids": [],
             "erros": [{"erro": "Modo Normal: no máximo 60 títulos no lote (linhas × quantidade)."}],
         }
-    if recorrente and modo == "normal" and (marcar_quitado_pagar or marcar_quitado_receber) and N > 1:
-        return {
-            "ok": False,
-            "ids": [],
-            "erros": [
-                {
-                    "erro": "Modo Normal com mais de um título não combina com «Lançar quitado». Desmarque quitado ou use quantidade 1.",
-                }
-            ],
-        }
 
-    tpl = _obter_template_lancamento(db, despesa)
-    if not tpl:
-        return {"ok": False, "ids": [], "erros": [{"erro": "Não há lançamento modelo no Mongo para clonar."}]}
+    tpl_cache: dict[bool, dict] = {}
 
-    tpl.pop("_id", None)
-    tpl["PagamentoRemessa"] = {}
+    def _tpl_para(desp: bool) -> dict | None:
+        if desp not in tpl_cache:
+            t = _obter_template_lancamento(db, desp)
+            if not t:
+                return None
+            tpl_cache[desp] = t
+        return copy.deepcopy(tpl_cache[desp])
 
     now = timezone.now()
     lote = f"AG{secrets.token_hex(4).upper()}"
@@ -4749,11 +6040,54 @@ def inserir_lancamentos_manual_lote(
             erros.append({"linha": n, "erro": "Plano de conta obrigatório"})
             continue
 
-        n_copies = N if (recorrente and modo == "normal") else 1
+        ln_empresa = _fin_ln_txt(ln, "empresa_nome", empresa_nome)
+        ln_pessoa = _fin_ln_txt(ln, "pessoa_nome", pessoa_nome)
+        ln_banco = _fin_ln_campo(ln, "banco_nome", banco_nome)
+        ln_forma = _fin_ln_campo(ln, "forma_nome", forma_nome)
+        ln_despesa = _fin_ln_despesa(ln, despesa)
+        if not ln_empresa or not ln_pessoa:
+            erros.append({"linha": n, "erro": "Preencha loja e pessoa."})
+            continue
+        if ln_despesa and not ln_banco:
+            erros.append({"linha": n, "erro": "Preencha conta bancária (obrigatória na saída / pagamento)."})
+            continue
+        le_id = _financeiro_id_para_string(ln.get("empresa_id") or empresa_id)
+        lp_id = _financeiro_id_para_string(ln.get("pessoa_id") or pessoa_id)
+        lb_id = _fin_ln_id_campo(ln, "banco_id", banco_id)
+        lf_id = _fin_ln_id_campo(ln, "forma_id", forma_id)
+
+        ln_rec = _fin_ln_bool(ln, "recorrente", recorrente)
+        ln_mod = (str(ln.get("recorrente_modo") or recorrente_modo or "sempre")).strip().lower()
+        if ln_mod not in ("sempre", "normal"):
+            ln_mod = "sempre"
+        try:
+            ln_n = int(ln.get("recorrente_parcelas") or recorrente_parcelas or 1)
+        except (TypeError, ValueError):
+            ln_n = 1
+        ln_n = max(1, min(ln_n, 12))
+        n_copies = ln_n if (ln_rec and ln_mod == "normal") else 1
         planned_total += n_copies
+        ln_quit = _fin_ln_bool(ln, "quitado", marcar_quitado_pagar or marcar_quitado_receber)
+        ln_quit_pagar = ln_quit and ln_despesa
+        ln_quit_receber = ln_quit and not ln_despesa
+        if ln_quit_pagar and not _fin_banco_id_valido_quitado(lb_id):
+            erros.append(
+                {
+                    "linha": n,
+                    "erro": "Saída quitada: escolha conta real na lista (não use «ADICIONAR CONTA»).",
+                }
+            )
+            continue
         base_dc = _fin_ln_parse_date(ln.get("data_competencia"), data_competencia)
         base_dv = _fin_ln_parse_date(ln.get("data_vencimento"), data_vencimento)
         desc_base = (ln.get("descricao") or f"Lançamento manual {n}").strip()[:500]
+
+        tpl = _tpl_para(ln_despesa)
+        if not tpl:
+            erros.append({"linha": n, "erro": "Não há lançamento modelo no Mongo para clonar."})
+            continue
+        tpl.pop("_id", None)
+        tpl["PagamentoRemessa"] = {}
 
         for sub in range(n_copies):
             parcela_seq += 1
@@ -4767,15 +6101,15 @@ def inserir_lancamentos_manual_lote(
                     doc[k] = ""
             if "NumeroLancamento" in doc:
                 doc["NumeroLancamento"] = None
-            doc["Despesa"] = bool(despesa)
-            doc["Empresa"] = empresa_nome[:200]
-            doc["EmpresaID"] = eid
-            doc["Cliente"] = pessoa_nome[:300]
-            doc["ClienteID"] = pid
-            doc["Banco"] = banco_nome[:200]
-            doc["BancoID"] = bid
-            doc["FormaPagamento"] = forma_nome[:200]
-            doc["FormaPagamentoID"] = fid
+            doc["Despesa"] = bool(ln_despesa)
+            doc["Empresa"] = ln_empresa[:200]
+            doc["EmpresaID"] = le_id
+            doc["Cliente"] = ln_pessoa[:300]
+            doc["ClienteID"] = lp_id
+            doc["Banco"] = ln_banco[:200]
+            doc["BancoID"] = lb_id
+            doc["FormaPagamento"] = ln_forma[:200]
+            doc["FormaPagamentoID"] = lf_id
             if (grupo_nome or "").strip():
                 doc["LancamentoGrupo"] = grupo_nome.strip()[:200]
                 doc["LancamentoGrupoID"] = gid
@@ -4796,16 +6130,16 @@ def inserir_lancamentos_manual_lote(
             doc["Pago"] = False
 
             desc_suf = ""
-            if recorrente and modo == "normal" and n_copies > 1:
+            if ln_rec and ln_mod == "normal" and n_copies > 1:
                 desc_suf = f" ({sub + 1}/{n_copies})"
             doc["Descricao"] = (desc_base + desc_suf)[:500]
 
             obs_linha = (ln.get("observacao") or ln.get("observacoes") or "").strip()
             obs_antecipado = ""
-            if recorrente and modo == "normal" and n_copies > 1:
+            if ln_rec and ln_mod == "normal" and n_copies > 1:
                 obs_antecipado = f"Antecipado {sub + 1}/{n_copies} (modo Normal)"
             obs_quitado = ""
-            if marcar_quitado_pagar or marcar_quitado_receber:
+            if ln_quit_pagar or ln_quit_receber:
                 obs_quitado = "Título lançado como quitado via lote manual"
             doc["Observacoes"] = " | ".join(
                 p for p in (obs_linha, obs_antecipado, obs_quitado, f"Lote manual Agro {lote}") if p
@@ -4824,7 +6158,7 @@ def inserir_lancamentos_manual_lote(
             doc.pop(AGRO_RECORRENTE, None)
             doc.pop(AGRO_RECORRENTE_INTERVALO_MESES, None)
             doc.pop(AGRO_RECORRENTE_SEMPRE, None)
-            if recorrente and modo == "sempre":
+            if ln_rec and ln_mod == "sempre":
                 doc[AGRO_RECORRENTE] = True
                 doc[AGRO_RECORRENTE_INTERVALO_MESES] = 1
                 doc[AGRO_RECORRENTE_SEMPRE] = True
@@ -4832,15 +6166,15 @@ def inserir_lancamentos_manual_lote(
             bc = normalizar_boleto_codigo_barras_mongo(
                 ln.get("boleto_codigo_barras") or ln.get("codigo_barras_boleto")
             )
-            if bc and despesa:
+            if bc and ln_despesa:
                 doc[AGRO_BOLETO_CODIGO_BARRAS] = bc
 
-            if despesa:
+            if ln_despesa:
                 doc["Saida"] = valor
                 doc["Entrada"] = 0.0
                 doc["ValorPago"] = 0.0
                 doc["Recebido"] = 0.0
-                if marcar_quitado_pagar:
+                if ln_quit_pagar:
                     dpq = _dt_naive_meia_noite_erp(use_dv_d)
                     doc["Pago"] = True
                     doc["DataPagamento"] = dpq
@@ -4850,7 +6184,7 @@ def inserir_lancamentos_manual_lote(
                 doc["Saida"] = 0.0
                 doc["Recebido"] = 0.0
                 doc["ValorPago"] = 0.0
-                if marcar_quitado_receber:
+                if ln_quit_receber:
                     dpq = dv
                     doc["Pago"] = True
                     doc["DataPagamento"] = dpq
@@ -4872,7 +6206,7 @@ def inserir_lancamentos_manual_lote(
             try:
                 ins = col.insert_one(doc)
                 inserted.append(str(ins.inserted_id))
-                if doc.get(AGRO_RECORRENTE) and (marcar_quitado_pagar or marcar_quitado_receber):
+                if doc.get(AGRO_RECORRENTE) and (ln_quit_pagar or ln_quit_receber):
                     doc_r = col.find_one({"_id": ins.inserted_id})
                     if doc_r:
                         criar_proximo_lancamento_recorrente_se_aplicavel(db, doc_r, usuario_label=user)
@@ -4886,6 +6220,54 @@ def inserir_lancamentos_manual_lote(
         "ids": inserted,
         "erros": erros,
     }
+
+
+def split_decimal_proporcional(total: Decimal, pesos: list[Decimal]) -> list[Decimal]:
+    """Divide total entre pesos (centavos) sem perder a soma."""
+    total = total.quantize(Decimal("0.01"))
+    n = len(pesos)
+    if n == 0:
+        return []
+    soma_pesos = sum(pesos)
+    if soma_pesos <= 0:
+        return [Decimal("0")] * n
+    cents_total = int((total * 100).to_integral_value())
+    floors: list[int] = []
+    remainders: list[Decimal] = []
+    for p in pesos:
+        exact = Decimal(cents_total) * p / soma_pesos
+        fl = int(exact.to_integral_value())
+        floors.append(fl)
+        remainders.append(exact - Decimal(fl))
+    diff = cents_total - sum(floors)
+    if diff > 0:
+        for idx in sorted(range(n), key=lambda i: remainders[i], reverse=True)[:diff]:
+            floors[idx] += 1
+    return [Decimal(c) / Decimal(100) for c in floors]
+
+
+def _fin_add_meses_calendario(base: date, meses: int) -> date:
+    """Mesmo dia do mês (19/06 → 19/07); dia 31 vira último dia se o mês for curto."""
+    import calendar
+
+    m0 = base.month - 1 + int(meses)
+    y = base.year + m0 // 12
+    m = m0 % 12 + 1
+    dia = min(base.day, calendar.monthrange(y, m)[1])
+    return date(y, m, dia)
+
+
+def _fin_vencimento_parcela(dv_base: date, indice: int, int_dias: int) -> date:
+    """30/60/90 = calendário; demais intervalos = dias corridos."""
+    i = max(0, int(indice))
+    d = max(1, min(int(int_dias), 366))
+    if d == 30:
+        return _fin_add_meses_calendario(dv_base, i)
+    if d == 60:
+        return _fin_add_meses_calendario(dv_base, i * 2)
+    if d == 90:
+        return _fin_add_meses_calendario(dv_base, i * 3)
+    return dv_base + timedelta(days=i * d)
 
 
 def split_decimal_em_parcelas(total: Decimal, n: int) -> list[Decimal]:
@@ -4932,13 +6314,21 @@ def criar_emprestimo_externo_agro(
     valor_juros: Decimal | None = None,
     plano_juros_nome: str | None = None,
     plano_juros_id: str | None = None,
+    variante: str = "externo",
+    parcelas_manual: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """
-    Empréstimo externo: 1 título a receber (entrada do valor) + N contas a pagar (parcelas).
-    Os títulos a pagar aparecem no financeiro Agro como demais despesas.
+    Empréstimo (externo ou interno): 1 título a receber + N contas a pagar (parcelas).
+    Juros = max(0, total − recebido), rateado em cada parcela (como Nova saída dual).
+    Vencimentos: calendário (30/60/90 = mesmo dia do mês). ``parcelas_manual`` opcional.
+    ``variante=interno`` usa marca EMP-INT- e planos internos se os nomes vierem vazios.
+    Sem Mongo: grava títulos no Postgres (mesmo path da Nova saída).
     """
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível", "ref": None}
+    from produtos.lancamentos_financeiro_pg_write_util import inserir_lancamentos_manual_lote_dispatch
+
+    var = (variante or "externo").strip().lower()
+    if var not in ("externo", "interno"):
+        var = "externo"
     credor_nome = (credor_nome or "").strip()
     if not credor_nome:
         return {"ok": False, "erro": "Informe o credor (fornecedor/pessoa).", "ref": None}
@@ -4951,22 +6341,51 @@ def criar_emprestimo_externo_agro(
     plano_entrada_nome = (plano_entrada_nome or "").strip()
     plano_divida_nome = (plano_divida_nome or "").strip()
     if not plano_entrada_nome or not plano_divida_nome:
+        if var == "interno":
+            plano_entrada_nome = plano_entrada_nome or emprestimo_plano_entrada_interno_resolvido()
+            plano_divida_nome = plano_divida_nome or emprestimo_plano_divida_interno_resolvido()
+        else:
+            plano_entrada_nome = plano_entrada_nome or emprestimo_plano_entrada_resolvido()
+            plano_divida_nome = plano_divida_nome or emprestimo_plano_divida_resolvido()
+    if not plano_entrada_nome or not plano_divida_nome:
         return {"ok": False, "erro": "Planos de conta (entrada e dívida) são obrigatórios.", "ref": None}
 
-    v_juros = (valor_juros or Decimal("0")).quantize(Decimal("0.01"))
-    if v_juros > 0:
+    # Juros = diferença total − recebido (ignora valor_juros avulso antigo = título extra).
+    _ = valor_juros  # compat API; montante vem do spread
+    v_juros = max(Decimal("0"), (valor_total_devido - valor_recebido).quantize(Decimal("0.01")))
+    if v_juros > Decimal("0.009"):
         pj = (plano_juros_nome or "").strip()
+        if not pj:
+            plano_juros_nome = (
+                emprestimo_plano_juros_interno_resolvido()
+                if var == "interno"
+                else emprestimo_plano_juros_resolvido()
+            )
+            pj = (plano_juros_nome or "").strip()
         if not pj:
             return {
                 "ok": False,
-                "erro": "Informe o plano de juros ou deixe o valor de juros zerado.",
+                "erro": "Plano de juros não configurado (necessário quando total > recebido).",
                 "ref": None,
             }
 
-    ref = secrets.token_hex(4).upper()
-    obs_base = (f"Emprestimo EXT ref EMP-EXT-{ref}. " + (observacao or "").strip()).strip()[:900]
+    # Conta/forma opcionais na UI do CP: sem conta → ADICIONAR CONTA.
+    banco_nome = (banco_nome or "").strip()
+    if not banco_nome:
+        ph = _banco_placeholder_para_select()
+        banco_nome = str(ph.get("nome") or "ADICIONAR CONTA")
+        banco_id = ph.get("id")
+    forma_nome = (forma_nome or "").strip()
+    if not forma_nome:
+        forma_id = None
 
-    r_ent = inserir_lancamentos_manual_lote(
+    ref = secrets.token_hex(4).upper()
+    if var == "interno":
+        obs_base = (f"Emprestimo INT ref EMP-INT-{ref}. " + (observacao or "").strip()).strip()[:900]
+    else:
+        obs_base = (f"Emprestimo EXT ref EMP-EXT-{ref}. " + (observacao or "").strip()).strip()[:900]
+
+    r_ent = inserir_lancamentos_manual_lote_dispatch(
         db,
         despesa=False,
         empresa_nome=empresa_nome,
@@ -5002,54 +6421,91 @@ def criar_emprestimo_externo_agro(
             "parcelas": [],
         }
 
-    vals = split_decimal_em_parcelas(valor_total_devido, parcelas)
+    parcelas_pag: list[tuple[Decimal, date]] = []
+    pm_raw = parcelas_manual if isinstance(parcelas_manual, list) else None
+    if parcelas > 1 and pm_raw is not None and len(pm_raw) == parcelas:
+        for row in pm_raw:
+            if not isinstance(row, dict):
+                return {"ok": False, "erro": "Parcela manual inválida.", "ref": ref, "entrada": r_ent}
+            dv_s = str(row.get("data_vencimento") or "")[:10]
+            try:
+                dv_i = date.fromisoformat(dv_s)
+            except ValueError:
+                return {
+                    "ok": False,
+                    "erro": "Parcela com data de vencimento inválida.",
+                    "ref": ref,
+                    "entrada": r_ent,
+                }
+            try:
+                v_i = Decimal(str(_fin_parse_valor_entrada_manual(row.get("valor")))).quantize(Decimal("0.01"))
+            except (ValueError, TypeError):
+                v_i = Decimal("0")
+            if v_i <= 0:
+                return {"ok": False, "erro": "Parcela com valor inválido.", "ref": ref, "entrada": r_ent}
+            parcelas_pag.append((v_i, dv_i))
+        soma_p = sum(v for v, _ in parcelas_pag).quantize(Decimal("0.01"))
+        if abs(soma_p - valor_total_devido) > Decimal("0.02"):
+            return {
+                "ok": False,
+                "erro": f"Soma das parcelas ({soma_p}) difere do total a pagar ({valor_total_devido}).",
+                "ref": ref,
+                "entrada": r_ent,
+            }
+    elif parcelas > 1:
+        for i, v_i in enumerate(split_decimal_em_parcelas(valor_total_devido, parcelas)):
+            parcelas_pag.append((v_i, _fin_vencimento_parcela(primeiro_vencimento, i, intervalo_dias)))
+    else:
+        parcelas_pag = [(valor_total_devido.quantize(Decimal("0.01")), primeiro_vencimento)]
+
+    valores_parc = [v for v, _ in parcelas_pag]
+    juros_por_parc = (
+        split_decimal_proporcional(v_juros, valores_parc)
+        if v_juros > Decimal("0.009")
+        else [Decimal("0")] * len(parcelas_pag)
+    )
+
     parcelas_out: list[dict[str, Any]] = []
     all_ok = True
-    for i in range(parcelas):
-        dv = primeiro_vencimento + timedelta(days=intervalo_dias * i)
-        obs_p = f"{obs_base} Parc {i + 1}/{parcelas}."[:500]
-        r_p = inserir_lancamentos_manual_lote(
-            db,
-            despesa=True,
-            empresa_nome=empresa_nome,
-            empresa_id=empresa_id,
-            pessoa_nome=credor_nome,
-            pessoa_id=credor_id,
-            data_competencia=dv,
-            data_vencimento=dv,
-            banco_nome=banco_nome,
-            banco_id=banco_id,
-            forma_nome=forma_nome,
-            forma_id=forma_id,
-            grupo_nome=grupo_nome,
-            grupo_id=grupo_id,
-            usuario_label=usuario_label,
-            linhas=[
+    n_tot = len(parcelas_pag)
+    plano_j = (plano_juros_nome or "").strip()
+    for i, (v_parc, dv_parc) in enumerate(parcelas_pag):
+        juros_i = juros_por_parc[i].quantize(Decimal("0.01"))
+        principal_i = (v_parc - juros_i).quantize(Decimal("0.01"))
+        sufix = f" (parc {i + 1}/{n_tot})" if n_tot > 1 else ""
+        obs_p = f"{obs_base} Parc {i + 1}/{n_tot}."[:500]
+        linhas_p: list[dict[str, Any]] = []
+        if principal_i > Decimal("0.009"):
+            linhas_p.append(
                 {
-                    "valor": float(vals[i]),
-                    "descricao": f"Empréstimo — {credor_nome} (parc {i + 1}/{parcelas})"[:500],
+                    "valor": float(principal_i),
+                    "descricao": f"Empréstimo — {credor_nome}{sufix}"[:500],
                     "plano_conta": plano_divida_nome,
                     "plano_conta_id": plano_divida_id,
                     "observacao": obs_p,
                 }
-            ],
-        )
-        parcelas_out.append(r_p)
-        if not r_p.get("ok"):
-            all_ok = False
-
-    r_juros: dict[str, Any] | None = None
-    if v_juros > 0:
-        obs_j = f"{obs_base} Juros (1ª parcela)."[:500]
-        r_juros = inserir_lancamentos_manual_lote(
+            )
+        if juros_i > Decimal("0.009"):
+            linhas_p.append(
+                {
+                    "valor": float(juros_i),
+                    "descricao": f"Juros empréstimo — {credor_nome}{sufix}"[:500],
+                    "plano_conta": plano_j,
+                    "plano_conta_id": plano_juros_id,
+                    "observacao": f"{obs_base} Juros parc {i + 1}/{n_tot}."[:500],
+                }
+            )
+        if not linhas_p:
+            continue
+        r_p = inserir_lancamentos_manual_lote_dispatch(
             db,
             despesa=True,
             empresa_nome=empresa_nome,
             empresa_id=empresa_id,
             pessoa_nome=credor_nome,
             pessoa_id=credor_id,
-            data_competencia=primeiro_vencimento,
-            data_vencimento=primeiro_vencimento,
+            data_competencia=dv_parc,
+            data_vencimento=dv_parc,
             banco_nome=banco_nome,
             banco_id=banco_id,
             forma_nome=forma_nome,
@@ -5057,18 +6513,10 @@ def criar_emprestimo_externo_agro(
             grupo_nome=grupo_nome,
             grupo_id=grupo_id,
             usuario_label=usuario_label,
-            linhas=[
-                {
-                    "valor": float(v_juros),
-                    "descricao": f"Juros empréstimo — {credor_nome}"[:500],
-                    "plano_conta": (plano_juros_nome or "").strip(),
-                    "plano_conta_id": plano_juros_id,
-                    "observacao": obs_j,
-                }
-            ],
+            linhas=linhas_p,
         )
-        parcelas_out.append(r_juros)
-        if not r_juros.get("ok"):
+        parcelas_out.append(r_p)
+        if not r_p.get("ok"):
             all_ok = False
 
     ids_entrada = list(r_ent.get("ids") or [])
@@ -5081,7 +6529,8 @@ def criar_emprestimo_externo_agro(
 
     now = timezone.now()
     meta = {
-        "tipo": "externo",
+        "tipo": var,
+        "variante": var,
         "ref": ref,
         "empresa_nome": (empresa_nome or "")[:200],
         "empresa_id": _financeiro_id_para_string(empresa_id),
@@ -5103,13 +6552,15 @@ def criar_emprestimo_externo_agro(
         "created_at": now,
         "created_by": (usuario_label or "")[:200],
     }
-    try:
-        ins_m = db[COL_AGRO_EMPRESTIMO].insert_one(meta)
-        meta_id = str(ins_m.inserted_id)
-    except Exception as exc:
-        logger.exception("AgroEmprestimo insert meta externo")
-        meta_id = ""
-        all_ok = False
+    meta_id = ""
+    if db is not None:
+        try:
+            ins_m = db[COL_AGRO_EMPRESTIMO].insert_one(meta)
+            meta_id = str(ins_m.inserted_id)
+        except Exception:
+            logger.exception("AgroEmprestimo insert meta externo")
+            # Títulos já gravados (Mongo ou PG); meta é só rastreio.
+            meta_id = ""
 
     return {
         "ok": all_ok,
@@ -5117,9 +6568,10 @@ def criar_emprestimo_externo_agro(
         "meta_id": meta_id,
         "entrada": r_ent,
         "parcelas": parcelas_out,
-        "juros": r_juros,
+        "juros": None,
         "ids_entrada": ids_entrada,
         "ids_divida": ids_divida,
+        "valor_juros": float(v_juros) if v_juros > 0 else 0.0,
     }
 
 
@@ -5807,30 +7259,13 @@ def financeiro_calendario_contas_pagar_dias(
         db, vencimento_de=grid_ini, vencimento_ate=grid_fim
     )
 
-    meta_hist_cache: dict[tuple[date, date], dict] = {}
-
-    def _por_dia_meta_hist(fp: date, lp: date) -> dict:
-        key = (fp, lp)
-        if key not in meta_hist_cache:
-            from produtos.views import _dashboard_vendas_serie_meta_historico
-
-            meta_hist_cache[key] = (
-                _dashboard_vendas_serie_meta_historico(fp, lp).get("por_dia") or {}
-            )
-        return meta_hist_cache[key]
+    meta_hist_cache: dict = {}
 
     def previsao_vendas_dia(d: date) -> float:
-        from produtos.views import (
-            _dashboard_bounds_mes_anterior_para_dia,
-            _dashboard_vendas_meta_c_para_dia,
-        )
+        from produtos.views import _dashboard_vendas_meta_c_valor
 
-        fp1, lp1 = _dashboard_bounds_mes_anterior_para_dia(d)
-        fp2, lp2 = _dashboard_bounds_mes_anterior_para_dia(fp1)
-        val = _dashboard_vendas_meta_c_para_dia(
-            d, _por_dia_meta_hist(fp1, lp1), _por_dia_meta_hist(fp2, lp2)
-        )
-        return round(float(val), 2)
+        # Centro+Vila = soma das metas (mesma regra do BI).
+        return round(float(_dashboard_vendas_meta_c_valor(d, meta_hist_cache)), 2)
 
     dias_out: dict[str, dict[str, Any]] = {}
     cum = Decimal("0")
@@ -6110,6 +7545,9 @@ def excluir_lancamento_mongo_agro(db, lancamento_id: str, usuario_label: str) ->
     """Remove título no Mongo apenas quando permitido (manual Agro ou sem vínculo ERP, sem pagamento)."""
     if db is None:
         return {"ok": False, "erro": "Mongo indisponível"}
+    err_st = _erro_mongo_staging_readonly()
+    if err_st:
+        return err_st
     col = db[COL_DTO_LANCAMENTO]
     try:
         oid = ObjectId(str(lancamento_id).strip())
@@ -6129,10 +7567,13 @@ def excluir_lancamento_mongo_agro(db, lancamento_id: str, usuario_label: str) ->
             )
         )
     if not _lancamento_pode_excluir_agro(doc, quitado, round(mov, 2)):
-        return {
-            "ok": False,
-            "erro": "Exclusão não permitida: quitado, com movimento ou vinculado ao ERP (use o ERP para excluir).",
-        }
+        if _lancamento_tem_vinculo_erp(doc):
+            erro = "Exclusão não permitida: título vinculado ao ERP."
+        elif not _lancamento_e_manual_agro(doc) and (quitado or mov > 0.02):
+            erro = "Exclusão não permitida: quitado ou com movimento (exceto lançamento manual Agro)."
+        else:
+            erro = "Exclusão não permitida."
+        return {"ok": False, "erro": erro}
     col.delete_one({"_id": oid})
     logger.info(
         "excluir_lancamento_mongo_agro: _id=%s por=%s",
@@ -6151,6 +7592,9 @@ def atualizar_lancamento_mongo_agro(
     """Atualiza campos cadastrais de um título em aberto (Mongo)."""
     if db is None:
         return {"ok": False, "erro": "Mongo indisponível"}
+    err_st = _erro_mongo_staging_readonly()
+    if err_st:
+        return err_st
     col = db[COL_DTO_LANCAMENTO]
     try:
         oid = ObjectId(str(lancamento_id).strip())
@@ -6298,3 +7742,25 @@ def congelar_lancamentos_financeiro_agro(
         upsert=True,
     )
     return out
+
+
+def financeiro_congelamento_status(db) -> dict[str, Any]:
+    """Estado do checkpoint (congelamento) antes do corte ERP."""
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+    col = db[COL_DTO_LANCAMENTO]
+    total = int(col.estimated_document_count())
+    marcados = int(col.count_documents({AGRO_FONTE_VERDADE: True}))
+    ctrl = db[COL_AGRO_FINANCEIRO_CONTROLE].find_one({"_id": "financeiro_agro"}) or {}
+    congelado_em = ctrl.get("congelado_em")
+    from produtos.agro_fonte_config import agro_financeiro_mongo_congelado
+
+    return {
+        "ok": True,
+        "total_titulos_estimado": total,
+        "marcados_fonte_agro": marcados,
+        "todos_marcados": total > 0 and marcados >= total,
+        "congelado_em": _serializar_dt(congelado_em) if congelado_em else None,
+        "usuario_congelamento": (ctrl.get("usuario") or "")[:200],
+        "env_mongo_congelado": agro_financeiro_mongo_congelado(),
+    }

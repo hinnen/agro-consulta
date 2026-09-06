@@ -1,13 +1,9 @@
             <header class="shrink-0 flex flex-col border-b border-slate-200 {% if pdv_dedicado %}bg-slate-50/95{% else %}bg-white{% endif %}">
-                {% if not pdv_consulta_only and not caixa_aberto %}
-                <div id="pdv-caixa-fechado-aviso" class="flex flex-wrap items-center justify-center gap-2 px-2 py-2 sm:px-3 bg-amber-50 border-b-2 border-amber-400 text-amber-950" role="alert">
+                <div id="pdv-caixa-fechado-aviso" class="flex flex-wrap items-center justify-center gap-2 px-2 py-2 sm:px-3 bg-amber-50 border-b-2 border-amber-400 text-amber-950{% if pdv_consulta_only or caixa_aberto %} hidden{% endif %}" role="alert"{% if pdv_consulta_only or caixa_aberto %} aria-hidden="true"{% endif %}>
                     <span class="text-sm sm:text-base font-black uppercase tracking-wide">Caixa fechado</span>
                     <span class="text-xs sm:text-sm font-bold text-amber-900/90">Abra o caixa antes de registrar vendas.</span>
                     <a href="{% url 'caixa_painel' %}" class="inline-flex items-center min-h-[40px] px-3 py-1.5 rounded-xl border-2 border-amber-600 bg-white text-xs sm:text-sm font-black uppercase text-amber-950 hover:bg-amber-100 no-underline shrink-0">Abrir caixa</a>
                 </div>
-                {% else %}
-                <div id="pdv-caixa-fechado-aviso" class="hidden" role="alert" aria-hidden="true"></div>
-                {% endif %}
                 <div class="flex {% if pdv_dedicado %}flex-nowrap{% else %}flex-wrap{% endif %} items-center {% if pdv_dedicado %}gap-0.5 sm:gap-1{% else %}gap-1.5 sm:gap-2{% endif %} {% if pdv_dedicado %}px-1.5 sm:px-2{% else %}px-2 sm:px-3{% endif %} {% if pdv_dedicado %}py-0.5 sm:py-1{% else %}py-1.5{% endif %}">
                 <div class="flex items-center {% if pdv_dedicado %}gap-1{% else %}gap-1.5{% endif %} min-w-0" title="{% if pdv_consulta_only %}Consulta de produtos, preços e saldos; orçamentos e envio. F2 na busca. F1 abre o carrinho.{% else %}PDV — venda. F2 foca na busca. F1 abre o carrinho (faixa laranja à direita); em outras telas, F1 volta ao PDV.{% endif %}">
                     <div class="{% if pdv_dedicado %}h-7.5 w-7.5 sm:h-8 sm:w-8{% else %}h-8 w-8 sm:h-9 sm:w-9{% endif %} rounded-lg bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
@@ -20,19 +16,19 @@
                         {% elif pdv_dedicado %}
                         <div class="hidden sm:block text-[10px] font-bold uppercase tracking-wide text-slate-500">Modo PDV</div>
                         {% endif %}
+                        <div id="pdv-deposito-badge" class="mt-0.5 inline-flex items-center rounded-md border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide {% if pdv_deposito == 'vila' %}border-slate-400 bg-slate-100 text-slate-800{% else %}border-emerald-300 bg-emerald-50 text-emerald-900{% endif %}" title="Depósito que este PDV baixa no estoque. Troque na home (Loja).">{{ pdv_estoque_ativo_label|default:"Esto: Centro" }}</div>
                     </div>
                 </div>
                 <div class="flex-1 flex items-center justify-end min-w-0 {% if pdv_dedicado %}gap-0.5 sm:gap-1 flex-nowrap{% else %}flex-wrap gap-1.5 sm:gap-2{% endif %}">
                     {% if pdv_consulta_only %}
                     <div class="flex flex-nowrap items-center gap-0.5 sm:gap-1 shrink-0">
-                    <a href="{% url 'home' %}" class="inline-flex items-center justify-center min-h-[40px] px-2.5 py-1.5 rounded-xl border-2 border-slate-200 bg-white text-[10px] font-black uppercase text-slate-700 hover:bg-slate-50 hover:border-emerald-400 shrink-0" title="Resumo e indicadores (tela inicial)">Início</a>
-                    <a href="{% url 'consulta_produtos' %}?orcamentos=1" class="inline-flex items-center justify-center min-h-[40px] px-2.5 py-1.5 rounded-xl border-2 border-sky-200 bg-sky-50 text-[10px] font-black uppercase text-sky-900 hover:bg-sky-100 shrink-0" title="Orçamentos salvos neste aparelho">Orç. salvos</a>
+                    <a href="{% url 'home' %}" class="inline-flex items-center justify-center min-h-[40px] px-2.5 py-1.5 rounded-xl border-2 border-slate-200 bg-white text-[10px] font-black uppercase text-slate-700 hover:bg-slate-50 hover:border-emerald-400 shrink-0" title="Abre o aplicativo Gestão (BI) — igual ao botão PDV traz o balcão">Início</a>
                     <a href="{% url 'pdv_home' %}" class="inline-flex items-center justify-center min-h-[40px] px-2.5 py-1.5 rounded-xl border-2 border-emerald-200 bg-emerald-50 text-[10px] font-black uppercase text-emerald-900 hover:bg-emerald-100 shrink-0" title="PDV principal (venda)">PDV</a>
                     </div>
                     {% endif %}
                     <div class="flex flex-nowrap items-center {% if pdv_dedicado %}gap-0.5 sm:gap-1{% else %}flex-wrap gap-1.5 sm:gap-2{% endif %} shrink-0">
                     <a href="{% url 'caixa_painel' %}" id="pdv-topbar-caixa-link" class="inline-flex items-center px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase shrink-0 no-underline {% if caixa_aberto %}bg-emerald-100 text-emerald-900 border border-emerald-200 hover:bg-emerald-200/80{% else %}bg-amber-100 text-amber-950 border-2 border-amber-400 hover:bg-amber-200/80{% endif %}" title="{% if caixa_aberto %}Painel do caixa — turno aberto{% else %}Caixa fechado — abra o turno para vender{% endif %}">{% if caixa_aberto %}{{ caixa_rotulo|default:"Caixa aberto" }}{% else %}Caixa fechado{% endif %}</a>
-                    <a href="{% url 'vendas_lista' %}" class="inline-flex items-center px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase bg-slate-100 text-slate-800 border border-slate-200 hover:bg-slate-200/80 shrink-0" title="Consultar vendas — filtro por período e exportar CSV">Consultar vendas</a>
+                    <a href="{% url 'vendas_lista' %}" class="inline-flex items-center px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase bg-slate-100 text-slate-800 border border-slate-200 hover:bg-slate-200/80 shrink-0" title="Consultar vendas — filtro por período e exportar CSV">Vendas</a>
                     </div>
                     <div class="flex flex-nowrap items-center {% if pdv_dedicado %}gap-0.5 sm:gap-1 overflow-x-auto hide-scroll whitespace-nowrap min-w-0{% else %}flex-wrap gap-1.5 sm:gap-2{% endif %} shrink-0">
                     <span id="gm-sspin-operador-chip" class="hidden items-center px-2 py-1 rounded-lg text-[10px] font-black uppercase bg-slate-100 text-slate-700 border border-slate-200 shrink-0 max-w-[7rem] truncate" title="Operador (modo descanso)"></span>

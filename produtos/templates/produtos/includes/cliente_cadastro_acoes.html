@@ -1,0 +1,37 @@
+<style>
+  #agro-cli-acao-overlay {
+    z-index: 160;
+  }
+  #agro-cli-acao-overlay .agro-cli-acao-panel {
+    width: min(42rem, 96vw);
+    max-height: 92dvh;
+    overflow: auto;
+  }
+  #agro-cli-acao-overlay .agro-cli-acao-title {
+    font-size: clamp(1.15rem, 0.55vw + 1rem, 1.55rem);
+    line-height: 1.2;
+  }
+  #agro-cli-acao-overlay .agro-cli-acao-body {
+    font-size: clamp(1rem, 0.4vw + 0.9rem, 1.2rem);
+    line-height: 1.35;
+  }
+  #agro-cli-acao-overlay .agro-cli-acao-input,
+  #agro-cli-acao-overlay .agro-cli-acao-btn {
+    min-height: 3.25rem;
+    font-size: clamp(1rem, 0.4vw + 0.9rem, 1.15rem);
+    font-weight: 800;
+  }
+</style>
+<div id="agro-cli-acao-overlay" class="fixed inset-0 z-[160] hidden items-center justify-center bg-slate-950/60 p-3 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="agro-cli-acao-title">
+  <div class="agro-cli-acao-panel flex flex-col overflow-hidden rounded-2xl border-[3px] border-amber-400 bg-white shadow-2xl" role="document">
+    <header class="shrink-0 border-b-2 border-amber-100 bg-amber-50 px-4 py-3 sm:px-5">
+      <h2 id="agro-cli-acao-title" class="agro-cli-acao-title font-black text-slate-900">Atenção</h2>
+    </header>
+    <div class="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-5">
+      <p id="agro-cli-acao-body" class="agro-cli-acao-body font-semibold text-slate-800 whitespace-pre-line"></p>
+      <div id="agro-cli-acao-extra" class="mt-3 space-y-2"></div>
+      <p id="agro-cli-acao-erro" class="mt-3 hidden font-black text-red-700" role="alert"></p>
+    </div>
+    <footer id="agro-cli-acao-btns" class="flex shrink-0 flex-wrap gap-2 border-t-2 border-slate-200 bg-slate-50 px-4 py-3 sm:px-5"></footer>
+  </div>
+</div>

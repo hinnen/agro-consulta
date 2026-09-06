@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <title>Tabelas de preço % | SisVale</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>
+    html, body { height: 100%; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    body { min-height: 100dvh; max-height: 100dvh; }
+    .tpf-shell { width: 100%; max-width: min(96rem, 100%); margin-inline: auto; }
+    .tpf-chip {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      min-height: 2.25rem; padding: 0.25rem 0.65rem; border-radius: 0.65rem;
+      border: 2px solid #cbd5e1; background: #fff; font-size: 0.75rem; font-weight: 800;
+      cursor: pointer; user-select: none;
+    }
+    .tpf-chip.on { border-color: #059669; background: #ecfdf5; color: #065f46; }
+    .tpf-card { border: 2px solid #e2e8f0; border-radius: 1rem; background: #fff; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 flex flex-col overflow-hidden">
+{% include "produtos/_gm_loading_bar.html" %}
+<header class="border-b border-slate-200 bg-white shadow-sm shrink-0">
+  <div class="tpf-shell px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2">
+    <div>
+      <p class="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600">Cadastro</p>
+      <h1 class="text-[clamp(1.1rem,0.9vw+1rem,1.5rem)] font-black uppercase text-slate-900">Tabelas de preço %</h1>
+      <p class="text-xs font-semibold text-slate-500">Desconto/acréscimo por forma no PDV — não altera o preço base do produto.</p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <a href="{% url 'produtos_cadastro_erp' %}" class="inline-flex items-center min-h-[44px] px-3 py-2 rounded-xl border-2 border-slate-200 bg-white text-xs font-black uppercase">Cadastro</a>
+      <a href="{% url 'promocoes_lista' %}" class="inline-flex items-center min-h-[44px] px-3 py-2 rounded-xl border-2 border-slate-200 bg-white text-xs font-black uppercase">Promoções</a>
+      {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center min-h-[44px] px-3 py-2 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-900 text-xs font-black uppercase" %}
+    </div>
+  </div>
+</header>
+<main class="tpf-shell flex-1 min-h-0 flex flex-col px-3 sm:px-5 py-3 gap-3 overflow-hidden">
+  <p id="tpf-msg" class="hidden shrink-0 text-sm font-bold px-3 py-2 rounded-xl"></p>
+  <div class="shrink-0 flex flex-wrap gap-2 items-center">
+    <button type="button" id="tpf-salvar" class="min-h-[48px] px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase">Salvar tabelas</button>
+    <span class="text-[11px] font-semibold text-slate-500">Formas iguais nas duas tabelas são bloqueadas.</span>
+  </div>
+  <div id="tpf-grid" class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-3 overflow-y-auto"></div>
+</main>
+  <script id="tpf-formas-json" type="application/json">{{ formas_pagamento_json }}</script>
+<script>
+(function () {
+  var FORMAS = [];
+  try {
+    FORMAS = JSON.parse(document.getElementById('tpf-formas-json').textContent || '[]');
+  } catch (e) { FORMAS = []; }
+  if (!Array.isArray(FORMAS)) FORMAS = [];
+  var state = { tabelas: [], conflitos: {}, categorias: [] };
+  var msgEl = document.getElementById('tpf-msg');
+  var grid = document.getElementById('tpf-grid');
+
+  function showMsg(txt, ok) {
+    if (!msgEl) return;
+    msgEl.textContent = txt || '';
+    msgEl.classList.toggle('hidden', !txt);
+    msgEl.className = 'shrink-0 text-sm font-bold px-3 py-2 rounded-xl ' +
+      (ok ? 'bg-emerald-100 text-emerald-900' : 'bg-rose-100 text-rose-900');
+  }
+
+  function fmtPct(n) {
+    var x = Number(n);
+    if (!isFinite(x)) return '0';
+    return String(x).replace('.', ',');
+  }
+
+  function parsePct(s) {
+    var t = String(s || '').trim().replace(/\s/g, '').replace(',', '.');
+    var n = parseFloat(t);
+    return isFinite(n) ? n : 0;
+  }
+
+  function syncFromDom() {
+    state.tabelas.forEach(function (t) {
+      var root = document.getElementById('tpf-card-' + t.slot);
+      if (!root) return;
+      var nome = root.querySelector('[data-f=nome]');
+      var ativo = root.querySelector('[data-f=ativo]');
+      var pct = root.querySelector('[data-f=pct]');
+      var arr = root.querySelector('[data-f=arred]');
+      if (nome) t.nome = String(nome.value || '').trim() || ('Tabela ' + t.slot);
+      if (ativo) t.ativo = !!ativo.checked;
+      if (pct) t.percentual = parsePct(pct.value);
+      if (arr) t.arredondar_dezena_centavos = !!arr.checked;
+      t.formas = [];
+      root.querySelectorAll('[data-forma].on').forEach(function (btn) {
+        t.formas.push(btn.getAttribute('data-forma'));
+      });
+      t.categorias_vetadas = [];
+      root.querySelectorAll('[data-cat].on').forEach(function (btn) {
+        t.categorias_vetadas.push(btn.getAttribute('data-cat'));
+      });
+    });
+  }
+
+  function renderConflitos(slot) {
+    var box = document.getElementById('tpf-conflitos-' + slot);
+    if (!box) return;
+    var list = (state.conflitos[String(slot)] || []).slice();
+    if (!list.length) {
+      box.innerHTML = '<p class="text-xs font-semibold text-slate-500">Nenhum produto com preço individual nessas formas.</p>';
+      return;
+    }
+    var html = '<div class="flex flex-wrap gap-2 mb-2">' +
+      '<button type="button" class="tpf-massa min-h-[40px] px-3 rounded-lg bg-emerald-600 text-white text-[10px] font-black uppercase" data-slot="' + slot + '" data-massa="tabela">Todos → tabela %</button>' +
+      '<button type="button" class="tpf-massa min-h-[40px] px-3 rounded-lg bg-slate-700 text-white text-[10px] font-black uppercase" data-slot="' + slot + '" data-massa="individual">Todos → individual</button>' +
+      '</div><div class="max-h-40 overflow-y-auto space-y-1">';
+    list.forEach(function (c) {
+      var pref = c.preferencia === 'tabela' ? 'tabela' : 'individual';
+      html += '<div class="flex flex-wrap items-center gap-2 border border-slate-100 rounded-lg px-2 py-1.5 bg-slate-50">' +
+        '<span class="flex-1 min-w-[8rem] text-xs font-bold text-slate-800 truncate" title="' + (c.nome || '') + '">' + (c.nome || c.produto_id) + '</span>' +
+        '<label class="text-[10px] font-black uppercase"><input type="radio" name="res-' + slot + '-' + c.produto_id + '" value="tabela"' + (pref === 'tabela' ? ' checked' : '') + ' data-res-slot="' + slot + '" data-pid="' + c.produto_id + '"> tabela</label>' +
+        '<label class="text-[10px] font-black uppercase"><input type="radio" name="res-' + slot + '-' + c.produto_id + '" value="individual"' + (pref === 'individual' ? ' checked' : '') + ' data-res-slot="' + slot + '" data-pid="' + c.produto_id + '"> individual</label>' +
+        '</div>';
+    });
+    html += '</div>';
+    box.innerHTML = html;
+  }
+
+  function renderCard(t) {
+    var formasHtml = FORMAS.map(function (f) {
+      var on = (t.formas || []).indexOf(f) >= 0 ? ' on' : '';
+      return '<button type="button" class="tpf-chip' + on + '" data-forma="' + f + '">' + f + '</button>';
+    }).join('');
+    var catsHtml = (state.categorias || []).slice(0, 80).map(function (c) {
+      var on = (t.categorias_vetadas || []).some(function (x) { return String(x).toLowerCase() === String(c).toLowerCase(); }) ? ' on' : '';
+      return '<button type="button" class="tpf-chip' + on + '" data-cat="' + c.replace(/"/g, '&quot;') + '">' + c + '</button>';
+    }).join('') || '<span class="text-xs text-slate-400">Sem categorias no overlay.</span>';
+    var vetHtml = (t.produtos_vetados || []).map(function (id) {
+      return '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-50 border border-rose-200 text-[11px] font-bold" data-vet="' + id + '">' + id +
+        ' <button type="button" class="tpf-unvet text-rose-700" data-id="' + id + '">×</button></span>';
+    }).join('');
+    return (
+      '<section class="tpf-card p-3 sm:p-4 flex flex-col gap-3 min-h-0" id="tpf-card-' + t.slot + '" data-slot="' + t.slot + '">' +
+      '<div class="flex flex-wrap items-center gap-2 justify-between">' +
+      '<input data-f="nome" class="flex-1 min-w-[10rem] rounded-xl border-2 border-slate-200 px-3 py-2 font-black text-sm" value="' + (t.nome || ('Tabela ' + t.slot)).replace(/"/g, '&quot;') + '" />' +
+      '<label class="inline-flex items-center gap-2 text-xs font-black uppercase"><input type="checkbox" data-f="ativo"' + (t.ativo ? ' checked' : '') + '> Ativa no PDV</label>' +
+      '</div>' +
+      '<div class="grid grid-cols-2 gap-2">' +
+      '<label class="text-[10px] font-black uppercase text-slate-500">% (negativo = desconto)<input data-f="pct" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 font-bold tabular-nums" value="' + fmtPct(t.percentual) + '" /></label>' +
+      '<label class="text-[10px] font-black uppercase text-slate-500 flex items-end gap-2 pb-2"><input type="checkbox" data-f="arred"' + (t.arredondar_dezena_centavos ? ' checked' : '') + '> Arredondar 10 centavos</label>' +
+      '</div>' +
+      '<div><p class="text-[10px] font-black uppercase text-slate-500 mb-1">Formas desta tabela</p><div class="flex flex-wrap gap-1.5">' + formasHtml + '</div></div>' +
+      '<div><p class="text-[10px] font-black uppercase text-slate-500 mb-1">Vetar categorias</p><div class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">' + catsHtml + '</div></div>' +
+      '<div><p class="text-[10px] font-black uppercase text-slate-500 mb-1">Vetar produtos</p>' +
+      '<div class="flex gap-2"><input type="search" class="tpf-busca flex-1 rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Buscar produto…" data-slot="' + t.slot + '" /><div class="tpf-busca-res flex-1 text-xs" data-slot="' + t.slot + '"></div></div>' +
+      '<div class="tpf-vetados flex flex-wrap gap-1 mt-2" data-slot="' + t.slot + '">' + vetHtml + '</div></div>' +
+      '<div><p class="text-[10px] font-black uppercase text-orange-700 mb-1">Conflito com preço individual</p><div id="tpf-conflitos-' + t.slot + '"></div>' +
+      '<button type="button" class="tpf-salvar-res mt-2 min-h-[40px] px-3 rounded-lg border-2 border-orange-400 text-[10px] font-black uppercase" data-slot="' + t.slot + '">Salvar escolhas deste painel</button></div>' +
+      '</section>'
+    );
+  }
+
+  function render() {
+    grid.innerHTML = state.tabelas.map(renderCard).join('');
+    state.tabelas.forEach(function (t) { renderConflitos(t.slot); });
+  }
+
+  grid.addEventListener('click', function (ev) {
+    var chip = ev.target.closest('.tpf-chip');
+    if (chip) {
+      chip.classList.toggle('on');
+      return;
+    }
+    var unvet = ev.target.closest('.tpf-unvet');
+    if (unvet) {
+      var card = unvet.closest('[data-slot]');
+      var slot = Number(card && card.getAttribute('data-slot'));
+      var t = state.tabelas.find(function (x) { return x.slot === slot; });
+      var id = unvet.getAttribute('data-id');
+      if (t) t.produtos_vetados = (t.produtos_vetados || []).filter(function (x) { return String(x) !== String(id); });
+      render();
+      return;
+    }
+    var massa = ev.target.closest('.tpf-massa');
+    if (massa) {
+      var sl = Number(massa.getAttribute('data-slot'));
+      var m = massa.getAttribute('data-massa');
+      fetch('{% url "api_tabelas_preco_forma_resolucoes" %}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '' },
+        body: JSON.stringify({ slot: sl, massa: m })
+      }).then(function (r) { return r.json(); }).then(function (j) {
+        if (!j.ok) { showMsg(j.erro || 'Erro', false); return; }
+        state.conflitos[String(sl)] = j.conflitos || [];
+        renderConflitos(sl);
+        showMsg('Resoluções em massa gravadas.', true);
+      });
+      return;
+    }
+    var salRes = ev.target.closest('.tpf-salvar-res');
+    if (salRes) {
+      var slot2 = Number(salRes.getAttribute('data-slot'));
+      var itens = [];
+      document.querySelectorAll('input[data-res-slot="' + slot2 + '"]:checked').forEach(function (inp) {
+        itens.push({ produto_id: inp.getAttribute('data-pid'), preferencia: inp.value });
+      });
+      fetch('{% url "api_tabelas_preco_forma_resolucoes" %}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '' },
+        body: JSON.stringify({ slot: slot2, itens: itens })
+      }).then(function (r) { return r.json(); }).then(function (j) {
+        if (!j.ok) { showMsg(j.erro || 'Erro', false); return; }
+        state.conflitos[String(slot2)] = j.conflitos || [];
+        renderConflitos(slot2);
+        showMsg('Escolhas salvas.', true);
+      });
+    }
+  });
+
+  var buscaTimer = null;
+  grid.addEventListener('input', function (ev) {
+    var inp = ev.target.closest('.tpf-busca');
+    if (!inp) return;
+    clearTimeout(buscaTimer);
+    var slot = Number(inp.getAttribute('data-slot'));
+    var q = String(inp.value || '').trim();
+    var box = grid.querySelector('.tpf-busca-res[data-slot="' + slot + '"]');
+    if (q.length < 2) { if (box) box.innerHTML = ''; return; }
+    buscaTimer = setTimeout(function () {
+      fetch('{% url "api_tabelas_preco_forma_buscar_produto" %}?q=' + encodeURIComponent(q))
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!box || !j.ok) return;
+          box.innerHTML = (j.itens || []).map(function (it) {
+            return '<button type="button" class="tpf-add-vet block w-full text-left px-2 py-1 hover:bg-emerald-50 font-semibold" data-slot="' + slot + '" data-id="' + it.id + '">' +
+              (it.codigo ? it.codigo + ' · ' : '') + (it.nome || it.id) + '</button>';
+          }).join('') || '<span class="text-slate-400">Nada</span>';
+        });
+    }, 250);
+  });
+
+  grid.addEventListener('click', function (ev) {
+    var add = ev.target.closest('.tpf-add-vet');
+    if (!add) return;
+    var slot = Number(add.getAttribute('data-slot'));
+    var id = add.getAttribute('data-id');
+    var t = state.tabelas.find(function (x) { return x.slot === slot; });
+    if (!t) return;
+    t.produtos_vetados = t.produtos_vetados || [];
+    if (t.produtos_vetados.indexOf(id) < 0) t.produtos_vetados.push(id);
+    render();
+  });
+
+  document.getElementById('tpf-salvar').addEventListener('click', function () {
+    syncFromDom();
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
+    fetch('{% url "api_tabelas_preco_forma_salvar" %}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '' },
+      body: JSON.stringify({ tabelas: state.tabelas })
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (window.gmLoadingBar) window.gmLoadingBar.hide();
+      if (!j.ok) { showMsg(j.erro || 'Erro ao salvar', false); return; }
+      state.tabelas = j.tabelas || state.tabelas;
+      showMsg('Tabelas salvas. Ctrl+F5 nos PDVs.', true);
+      return fetch('{% url "api_tabelas_preco_forma_estado" %}').then(function (r2) { return r2.json(); });
+    }).then(function (j2) {
+      if (!j2 || !j2.ok) return;
+      state.conflitos = j2.conflitos || {};
+      render();
+    }).catch(function () {
+      if (window.gmLoadingBar) window.gmLoadingBar.hide();
+      showMsg('Falha de rede', false);
+    });
+  });
+
+  fetch('{% url "api_tabelas_preco_forma_estado" %}')
+    .then(function (r) { return r.json(); })
+    .then(function (j) {
+      if (!j.ok) { showMsg(j.erro || 'Erro ao carregar', false); return; }
+      state.tabelas = j.tabelas || [];
+      state.conflitos = j.conflitos || {};
+      state.categorias = j.categorias || [];
+      if (Array.isArray(j.formas_disponiveis) && j.formas_disponiveis.length) FORMAS = j.formas_disponiveis;
+      render();
+    });
+})();
+</script>
+</body>
+</html>

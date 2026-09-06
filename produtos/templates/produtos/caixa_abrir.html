@@ -18,12 +18,24 @@
     }
     .caixa-shell { width: 100%; max-width: min(96rem, 100%); margin-left: auto; margin-right: auto; }
     .caixa-ponto-card {
-      transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+      transition: border-color .15s ease, box-shadow .15s ease, background .15s ease, opacity .15s ease;
       min-height: clamp(5.5rem, 14vh, 7.5rem);
     }
-    .caixa-ponto-card.is-selected { box-shadow: 0 12px 32px rgba(16, 185, 129, 0.18); }
+    .caixa-ponto-card.is-selected {
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+      opacity: 1;
+    }
+    .caixa-ponto-card:not(.is-selected):not(.is-disabled) {
+      opacity: 0.72;
+    }
+    .caixa-ponto-card.is-disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
     .caixa-ponto-panel[hidden] { display: none !important; }
   </style>
+  {% include "produtos/includes/caixa_viewport_shell.html" %}
+  {% include "produtos/includes/caixa_pdv_overlay_mode.html" %}
 </head>
 <body class="bg-slate-100 text-slate-800 flex flex-col overflow-hidden">
 {% include "produtos/_gm_loading_bar.html" %}
@@ -35,12 +47,20 @@
         </div>
         <div class="min-w-0">
           <h1 class="text-[clamp(1.15rem,0.9vw+1rem,1.6rem)] font-black uppercase text-slate-900 leading-tight">Abrir caixa</h1>
-          <p class="text-[11px] font-bold text-slate-500">Monitores 16:9 · escolha o ponto e confirme</p>
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-2 shrink-0">
-        <a href="{% url 'caixa_painel' %}" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-50">Painel</a>
-        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-4 py-2 rounded-xl border-2 border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-50 shadow-sm shrink-0" %}
+        <details class="relative shrink-0">
+          <summary class="list-none inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 border-slate-300 bg-white text-base font-black text-slate-700 hover:bg-slate-50 hover:border-emerald-400 [&::-webkit-details-marker]:hidden" title="Ajuda" aria-label="Ajuda">?</summary>
+          <div class="absolute right-0 top-full z-40 mt-1 w-[min(92vw,22rem)] rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-lg font-semibold leading-snug space-y-2">
+            <p><strong>Gaveta Centro</strong> e <strong>Vila Elias</strong> são turnos separados — cada loja o seu.</p>
+            <p><strong>Notebook</strong> entra no turno da loja do BI. <strong>Teste</strong> é isolado.</p>
+            <p>Digite <strong>centro</strong> ou <strong>vila</strong> para confirmar a loja.</p>
+            <p>Use <strong>Cédulas</strong> para contar o troco. O card azul mostra o último fechamento — confira na gaveta.</p>
+            <p>Se o valor da abertura for diferente do último fechamento, a diferença aparece em <strong>Conferências · diferenças</strong> (com quem abriu e quem fechou).</p>
+          </div>
+        </details>
+        <a href="{% url 'caixa_painel' %}" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-50">← Menu</a>
       </div>
     </div>
   </header>
@@ -48,109 +68,135 @@
   <main class="caixa-shell flex-1 min-h-0 w-full px-3 sm:px-5 py-2 sm:py-3 grid grid-cols-1 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] gap-3 overflow-hidden">
     <section class="min-h-0 flex flex-col rounded-2xl border-2 border-slate-200 bg-white shadow-sm overflow-hidden">
       <div class="shrink-0 px-4 py-3 border-b border-slate-100 bg-slate-50/80">
-        <p class="text-[10px] font-black uppercase text-slate-500">Passo 1 — escolha o caixa</p>
-        <p class="mt-1 text-sm font-bold text-slate-800 leading-snug">
-          <strong>Gaveta</strong> e <strong>notebook</strong> são o mesmo turno da loja (gaveta abre primeiro).
-          O <strong>Caixa Teste</strong> é isolado — sem vínculo com gaveta ou notebook.
-        </p>
+        <p class="text-[10px] font-black uppercase text-slate-500">Escolha o caixa</p>
         <p class="mt-1 text-[11px] font-bold text-slate-500">
-          Abertos: loja {% if qtd_caixas_operacional %}sim{% else %}não{% endif %}
-          {% if gaveta_aberta %} · Gaveta #{{ gaveta_aberta.pk }}{% endif %}
-          · teste {% if qtd_caixas_teste %}sim{% else %}não{% endif %}
-          {% if teste_aberto %} · Teste #{{ teste_aberto.pk }}{% endif %}
+          <span class="uppercase text-emerald-800">{% if deposito_browser == 'vila' %}Vila Elias{% else %}Centro{% endif %}</span>
+          · Centro {% if gaveta_aberta %}aberto{% else %}fechado{% endif %}
+          · Vila {% if vila_aberta %}aberto{% else %}fechado{% endif %}
+          · teste {% if teste_aberto %}aberto{% else %}fechado{% endif %}
         </p>
       </div>
       <div class="flex-1 min-h-0 p-3 sm:p-4">
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 h-full" role="radiogroup" aria-label="Tipo de caixa">
-          <label class="caixa-ponto-card flex flex-col justify-center rounded-2xl border-2 px-3 py-3 cursor-pointer {% if pode_abrir_gaveta %}border-emerald-300 bg-emerald-50/50 hover:border-emerald-500{% else %}border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed{% endif %}">
-            <input type="radio" name="ponto_caixa_ui" value="gaveta" class="sr-only" {% if pode_abrir_gaveta %}checked{% endif %} {% if not pode_abrir_gaveta %}disabled{% endif %}>
-            <span class="block text-[clamp(1rem,0.5vw+0.9rem,1.2rem)] font-black text-slate-900">Caixa Gaveta</span>
-            <span class="block text-xs font-semibold text-slate-600 mt-1">Principal · fundo na gaveta</span>
+        <div class="grid grid-cols-2 gap-2 sm:gap-3 h-full" role="radiogroup" aria-label="Tipo de caixa">
+          <label class="caixa-ponto-card flex flex-col justify-center rounded-2xl border-2 border-slate-300 bg-white px-3 py-3 cursor-pointer {% if not pode_abrir_gaveta %}is-disabled{% endif %}" data-ponto="gaveta">
+            <input type="radio" name="ponto_caixa_ui" value="gaveta" class="sr-only" {% if pode_abrir_gaveta and deposito_browser != 'vila' %}checked{% endif %} {% if not pode_abrir_gaveta %}disabled{% endif %}>
+            <span class="caixa-ponto-sel hidden mb-1 text-[10px] font-black uppercase tracking-wide text-emerald-800">Selecionado</span>
+            <span class="block text-[clamp(1.35rem,1.1vw+1.1rem,1.85rem)] font-black text-slate-900">Gaveta Centro</span>
             {% if gaveta_aberta %}
-            <span class="mt-2 block text-[11px] font-black uppercase text-emerald-800">Aberto · #{{ gaveta_aberta.pk }}</span>
+            <span class="mt-2 block text-[11px] font-black uppercase text-emerald-800">Aberto</span>
             {% endif %}
           </label>
-          <label class="caixa-ponto-card flex flex-col justify-center rounded-2xl border-2 px-3 py-3 cursor-pointer {% if pode_abrir_notebook %}border-sky-300 bg-sky-50/50 hover:border-sky-500{% else %}border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed{% endif %}">
-            <input type="radio" name="ponto_caixa_ui" value="notebook" class="sr-only" {% if not pode_abrir_gaveta and pode_abrir_notebook %}checked{% endif %} {% if not pode_abrir_notebook %}disabled{% endif %}>
-            <span class="block text-[clamp(1rem,0.5vw+0.9rem,1.2rem)] font-black text-slate-900">Caixa Notebook</span>
-            <span class="block text-xs font-semibold text-slate-600 mt-1">Vincula este PC à gaveta (PIN)</span>
+          <label class="caixa-ponto-card flex flex-col justify-center rounded-2xl border-2 border-slate-300 bg-white px-3 py-3 cursor-pointer {% if not pode_abrir_vila %}is-disabled{% endif %}" data-ponto="vila">
+            <input type="radio" name="ponto_caixa_ui" value="vila" class="sr-only" {% if pode_abrir_vila and deposito_browser == 'vila' %}checked{% endif %} {% if not pode_abrir_vila %}disabled{% endif %}>
+            <span class="caixa-ponto-sel hidden mb-1 text-[10px] font-black uppercase tracking-wide text-slate-800">Selecionado</span>
+            <span class="block text-[clamp(1.35rem,1.1vw+1.1rem,1.85rem)] font-black text-slate-900">Vila Elias</span>
+            {% if vila_aberta %}
+            <span class="mt-2 block text-[11px] font-black uppercase text-slate-800">Aberto</span>
+            {% endif %}
+          </label>
+          <label class="caixa-ponto-card flex flex-col justify-center rounded-2xl border-2 border-slate-300 bg-white px-3 py-3 cursor-pointer {% if not pode_abrir_notebook %}is-disabled{% endif %}" data-ponto="notebook">
+            <input type="radio" name="ponto_caixa_ui" value="notebook" class="sr-only" {% if not pode_abrir_gaveta and not pode_abrir_vila and pode_abrir_notebook %}checked{% endif %} {% if not pode_abrir_notebook %}disabled{% endif %}>
+            <span class="caixa-ponto-sel hidden mb-1 text-[10px] font-black uppercase tracking-wide text-sky-800">Selecionado</span>
+            <span class="block text-[clamp(1.35rem,1.1vw+1.1rem,1.85rem)] font-black text-slate-900">Notebook</span>
             {% if not pode_abrir_notebook %}
-            <span class="mt-2 block text-[11px] font-black uppercase text-amber-800">Abra a gaveta antes</span>
+            <span class="mt-2 block text-[11px] font-black uppercase text-amber-800">Abra o caixa antes</span>
             {% endif %}
           </label>
-          <label class="caixa-ponto-card flex flex-col justify-center rounded-2xl border-2 px-3 py-3 cursor-pointer {% if pode_abrir_teste %}border-violet-300 bg-violet-50/50 hover:border-violet-500{% else %}border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed{% endif %}">
-            <input type="radio" name="ponto_caixa_ui" value="teste" class="sr-only" {% if not pode_abrir_gaveta and not pode_abrir_notebook and pode_abrir_teste %}checked{% endif %} {% if not pode_abrir_teste %}disabled{% endif %}>
-            <span class="block text-[clamp(1rem,0.5vw+0.9rem,1.2rem)] font-black text-slate-900">Caixa Teste</span>
-            <span class="block text-xs font-semibold text-slate-600 mt-1">Isolado · não soma com a loja</span>
+          <label class="caixa-ponto-card flex flex-col justify-center rounded-2xl border-2 border-slate-300 bg-white px-3 py-3 cursor-pointer {% if not pode_abrir_teste %}is-disabled{% endif %}" data-ponto="teste">
+            <input type="radio" name="ponto_caixa_ui" value="teste" class="sr-only" {% if not pode_abrir_gaveta and not pode_abrir_vila and not pode_abrir_notebook and pode_abrir_teste %}checked{% endif %} {% if not pode_abrir_teste %}disabled{% endif %}>
+            <span class="caixa-ponto-sel hidden mb-1 text-[10px] font-black uppercase tracking-wide text-violet-800">Selecionado</span>
+            <span class="block text-[clamp(1.35rem,1.1vw+1.1rem,1.85rem)] font-black text-slate-900">Teste</span>
             {% if teste_aberto %}
-            <span class="mt-2 block text-[11px] font-black uppercase text-violet-800">Aberto · #{{ teste_aberto.pk }}</span>
+            <span class="mt-2 block text-[11px] font-black uppercase text-violet-800">Aberto</span>
             {% endif %}
           </label>
         </div>
       </div>
     </section>
 
-    <div class="min-h-0 flex flex-col gap-3 overflow-y-auto overscroll-contain">
+    <div class="caixa-panel-scroll flex flex-col gap-3">
       {% if sugestao_fechamento %}
-      <section class="shrink-0 rounded-2xl border-2 border-sky-400 bg-gradient-to-br from-sky-50 to-white p-4 shadow-sm caixa-ponto-panel" data-ponto-panel="gaveta teste">
-        <p class="text-[10px] font-black uppercase text-sky-800">Sugestão do último fechamento</p>
-        <p class="mt-1 text-sm font-bold text-sky-950 leading-snug">
-          Caixa <strong>#{{ sugestao_fechamento.sessao_pk }}</strong>
-          · {{ sugestao_fechamento.fechado_em|date:"d/m/Y H:i" }}
-          {% if sugestao_fechamento.usuario %}· {{ sugestao_fechamento.usuario }}{% endif %}
+      <section class="shrink-0 rounded-2xl border-2 border-sky-400 bg-gradient-to-br from-sky-50 to-white px-4 py-3 shadow-sm caixa-ponto-panel" data-ponto-panel="gaveta teste">
+        <p class="text-[10px] font-black uppercase text-sky-800">Último fechamento · Centro</p>
+        <p class="mt-1 text-[clamp(1.35rem,1vw+1rem,1.75rem)] font-black text-sky-700 tabular-nums leading-none">
+          R$ {{ sugestao_fechamento.dinheiro_contado_br }}
         </p>
-        <p class="mt-2 text-[clamp(1.5rem,1.2vw+1rem,2rem)] font-black text-sky-700 tabular-nums leading-none">
-          Dinheiro contado: R$ {{ sugestao_fechamento.dinheiro_contado_br }}
-        </p>
-        <p class="mt-2 text-xs font-semibold text-sky-900/80">
-          O fundo de troco já vem preenchido — confira na gaveta e ajuste se precisar.
+      </section>
+      {% endif %}
+      {% if sugestao_fechamento_vila %}
+      <section class="shrink-0 rounded-2xl border-2 border-slate-400 bg-gradient-to-br from-slate-50 to-white px-4 py-3 shadow-sm caixa-ponto-panel" data-ponto-panel="vila">
+        <p class="text-[10px] font-black uppercase text-slate-700">Último fechamento · Vila</p>
+        <p class="mt-1 text-[clamp(1.35rem,1vw+1rem,1.75rem)] font-black text-slate-700 tabular-nums leading-none">
+          R$ {{ sugestao_fechamento_vila.dinheiro_contado_br }}
         </p>
       </section>
       {% endif %}
 
       <form method="post" id="form-caixa-notebook" class="caixa-ponto-panel flex-1 min-h-0 flex flex-col rounded-2xl border-2 border-sky-400 bg-gradient-to-br from-sky-50 to-white p-4 sm:p-5 shadow-md" data-ponto-panel="notebook"{% if not pode_abrir_notebook %} hidden{% endif %} onsubmit="if(window.gmLoadingBar)window.gmLoadingBar.show();">
         {% csrf_token %}
+        {% if request.GET.agro_pdv_overlay == '1' %}
+        <input type="hidden" name="agro_pdv_overlay" value="1">
+        <input type="hidden" name="agro_inapp_embed" value="1">
+        {% endif %}
         <input type="hidden" name="ponto_caixa" value="notebook">
-        <p class="text-[10px] font-black uppercase text-sky-800">Passo 2 — notebook</p>
-        {% if gaveta_aberta %}
-        <p class="mt-2 text-sm font-bold text-sky-950 leading-snug">
-          Este computador entra no turno da <strong>Gaveta #{{ gaveta_aberta.pk }}</strong>
-          {% if gaveta_usuario %}· {{ gaveta_usuario }}{% endif %}.
-        </p>
+        <input type="hidden" name="deposito_notebook" value="{{ deposito_browser|default:'centro' }}">
+        <p class="text-[10px] font-black uppercase text-sky-800">Notebook</p>
+        {% if deposito_browser == 'vila' and vila_aberta %}
         <label class="block mt-4">
-          <span class="text-[10px] font-black uppercase text-slate-600">PIN para vincular</span>
+          <span class="text-[10px] font-black uppercase text-slate-600">PIN</span>
           <input type="password" name="pin_vincular" inputmode="numeric" autocomplete="one-time-code" required class="mt-1 w-full min-h-[52px] rounded-xl border-2 border-sky-400 bg-white px-4 text-lg font-black tracking-widest" placeholder="••••">
         </label>
         <button type="submit" class="mt-4 w-full min-h-[56px] rounded-xl bg-sky-600 text-white font-black uppercase text-sm hover:bg-sky-700 shadow-lg">
-          Entrar no Caixa Notebook (gaveta #{{ gaveta_aberta.pk }})
+          Entrar no Notebook · Vila
+        </button>
+        {% elif gaveta_aberta %}
+        <label class="block mt-4">
+          <span class="text-[10px] font-black uppercase text-slate-600">PIN</span>
+          <input type="password" name="pin_vincular" inputmode="numeric" autocomplete="one-time-code" required class="mt-1 w-full min-h-[52px] rounded-xl border-2 border-sky-400 bg-white px-4 text-lg font-black tracking-widest" placeholder="••••">
+        </label>
+        <button type="submit" class="mt-4 w-full min-h-[56px] rounded-xl bg-sky-600 text-white font-black uppercase text-sm hover:bg-sky-700 shadow-lg">
+          Entrar no Notebook · Centro
         </button>
         {% else %}
-        <p class="mt-2 text-sm font-bold text-amber-900">Abra o Caixa Gaveta antes de vincular o notebook.</p>
+        <p class="mt-2 text-sm font-bold text-amber-900">Abra o caixa da loja antes.</p>
         {% endif %}
       </form>
 
-      <form method="post" id="form-caixa-abertura" class="caixa-ponto-panel flex-1 min-h-0 flex flex-col rounded-2xl border-2 border-emerald-500 bg-white p-4 sm:p-5 shadow-md" data-ponto-panel="gaveta teste" onsubmit="if(window.gmLoadingBar)window.gmLoadingBar.show();">
+      <form method="post" id="form-caixa-abertura" class="caixa-ponto-panel flex-1 min-h-0 flex flex-col rounded-2xl border-2 border-emerald-500 bg-white p-4 sm:p-5 shadow-md" data-ponto-panel="gaveta vila teste" onsubmit="if(window.gmLoadingBar)window.gmLoadingBar.show();">
         {% csrf_token %}
-        <input type="hidden" name="ponto_caixa" id="ponto_caixa_post" value="{% if pode_abrir_gaveta %}gaveta{% elif pode_abrir_teste %}teste{% else %}gaveta{% endif %}">
-        <p class="text-[10px] font-black uppercase text-slate-500" id="caixa-abertura-titulo">Passo 2 — abrir gaveta</p>
+        {% if request.GET.agro_pdv_overlay == '1' %}
+        <input type="hidden" name="agro_pdv_overlay" value="1">
+        <input type="hidden" name="agro_inapp_embed" value="1">
+        {% endif %}
+        <input type="hidden" name="ponto_caixa" id="ponto_caixa_post" value="{% if deposito_browser == 'vila' and pode_abrir_vila %}vila{% elif pode_abrir_gaveta %}gaveta{% elif pode_abrir_vila %}vila{% elif pode_abrir_teste %}teste{% else %}gaveta{% endif %}">
+        <p class="text-[10px] font-black uppercase text-slate-500" id="caixa-abertura-titulo">Abrir caixa</p>
         <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1 min-h-0">
-          <label class="block sm:col-span-2">
-            <span class="text-[10px] font-black uppercase text-slate-500">Valor em gaveta (fundo de troco)</span>
-            <input type="text" name="valor_abertura" id="valor_abertura" value="{% if sugestao_fechamento %}{{ sugestao_fechamento.dinheiro_contado_br }}{% else %}0{% endif %}" inputmode="decimal" class="mt-1 w-full min-h-[56px] rounded-xl border-2 border-emerald-300 bg-emerald-50/40 px-4 font-black text-[clamp(1.35rem,1vw+1.1rem,1.75rem)] tabular-nums" placeholder="0,00" autocomplete="off">
+          <div class="block sm:col-span-2">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <label for="valor_abertura" class="text-[10px] font-black uppercase text-slate-500">Valor em gaveta</label>
+              <button type="button" id="ca-cedulas-abrir" class="inline-flex items-center min-h-[36px] px-3 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-[10px] font-black uppercase text-emerald-900 hover:bg-emerald-100" aria-haspopup="dialog" aria-controls="ca-cedulas-modal" title="Cédulas">Cédulas</button>
+            </div>
+            <input type="text" name="valor_abertura" id="valor_abertura" value="" inputmode="decimal" class="mt-1 w-full min-h-[56px] rounded-xl border-2 border-emerald-300 bg-emerald-50/40 px-4 font-black text-[clamp(1.35rem,1vw+1.1rem,1.75rem)] tabular-nums" placeholder="0,00" autocomplete="off">
+          </div>
+          <label class="block sm:col-span-2" id="bloco-confirm-loja">
+            <span class="text-[10px] font-black uppercase text-amber-800">Digite <strong id="confirm-loja-palavra" class="text-emerald-800">centro</strong></span>
+            <input type="text" name="confirmacao_loja" id="confirmacao_loja" value="" autocomplete="off" autocapitalize="off" spellcheck="false" class="mt-1 w-full min-h-[56px] rounded-xl border-2 border-amber-400 bg-amber-50/50 px-4 font-black text-[clamp(1.1rem,0.8vw+0.9rem,1.4rem)] tracking-wide" placeholder="centro ou vila" inputmode="text">
+            <span class="mt-1 hidden block text-sm font-black text-red-700" id="confirm-loja-erro" role="alert">Palavra errada.</span>
+            <span class="mt-1 hidden block text-sm font-black text-emerald-700" id="confirm-loja-ok">Ok.</span>
           </label>
           <label class="block sm:col-span-2">
-            <span class="text-[10px] font-black uppercase text-slate-500">Observação (opcional)</span>
+            <span class="text-[10px] font-black uppercase text-slate-500">Observação</span>
             <textarea name="observacao_abertura" id="observacao_abertura" rows="2" class="mt-1 w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-sm"></textarea>
           </label>
         </div>
-        <p class="mt-2 text-[11px] font-bold text-slate-500" id="caixa-abertura-ajuda">Caixa principal da loja — abra antes dos notebooks.</p>
-        <button type="submit" id="btn-caixa-abrir" class="mt-4 w-full min-h-[58px] rounded-xl bg-emerald-600 text-white font-black uppercase text-sm sm:text-base tracking-wide hover:bg-emerald-700 shadow-lg">
-          Abrir Caixa Gaveta
+        <button type="submit" id="btn-caixa-abrir" class="mt-4 w-full min-h-[58px] rounded-xl bg-emerald-600 text-white font-black uppercase text-sm sm:text-base tracking-wide hover:bg-emerald-700 shadow-lg" disabled>
+          Abrir caixa
         </button>
       </form>
     </div>
   </main>
 {% include "produtos/_atalho_voltar_pdv.html" %}
+{% include "produtos/includes/caixa_cedulas_abertura_modal.html" %}
 {% include "produtos/_agro_double_submit_guard.html" %}
 <script>
 (function () {
@@ -161,57 +207,232 @@
   var formNotebook = document.getElementById('form-caixa-notebook');
   var titulo = document.getElementById('caixa-abertura-titulo');
   var btnAbrir = document.getElementById('btn-caixa-abrir');
-  var ajuda = document.getElementById('caixa-abertura-ajuda');
   var cards = document.querySelectorAll('.caixa-ponto-card');
+  var valorAbertura = document.getElementById('valor_abertura');
+  var blocoConfirm = document.getElementById('bloco-confirm-loja');
+  var confirmInput = document.getElementById('confirmacao_loja');
+  var confirmPalavra = document.getElementById('confirm-loja-palavra');
 
   var selClass = {
-    gaveta: ['border-emerald-500', 'bg-emerald-50'],
-    notebook: ['border-sky-500', 'bg-sky-50'],
-    teste: ['border-violet-500', 'bg-violet-50']
+    gaveta: ['border-emerald-600', 'bg-emerald-100', 'ring-4', 'ring-emerald-300'],
+    vila: ['border-slate-800', 'bg-slate-200', 'ring-4', 'ring-slate-400'],
+    notebook: ['border-sky-600', 'bg-sky-100', 'ring-4', 'ring-sky-300'],
+    teste: ['border-violet-600', 'bg-violet-100', 'ring-4', 'ring-violet-300']
   };
+  var allSelClasses = [
+    'border-emerald-600', 'bg-emerald-100', 'ring-4', 'ring-emerald-300',
+    'border-slate-800', 'bg-slate-200', 'ring-slate-400',
+    'border-sky-600', 'bg-sky-100', 'ring-sky-300',
+    'border-violet-600', 'bg-violet-100', 'ring-violet-300',
+    'border-slate-300', 'bg-white', 'border-emerald-300', 'bg-emerald-50', 'bg-emerald-50/50',
+    'border-slate-400', 'bg-slate-50', 'border-sky-300', 'bg-sky-50', 'bg-sky-50/50',
+    'border-violet-300', 'bg-violet-50', 'bg-violet-50/50'
+  ];
+
+  function normConfirm(t) {
+    return String(t || '').trim().toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ');
+  }
+  function confirmBate(texto, esperado) {
+    var n = normConfirm(texto);
+    if (esperado === 'vila') return n === 'vila' || n === 'vila elias' || n === 'vilas' || n === 'vilaelias';
+    return n === 'centro' || n === 'central' || n === 'loja centro';
+  }
 
   function pontoAtivo() {
     var r = document.querySelector('input[name="ponto_caixa_ui"]:checked');
     return r ? r.value : 'gaveta';
   }
 
+  function palavraEsperada(p) {
+    return p === 'vila' ? 'vila' : 'centro';
+  }
+
+  var confirmErro = document.getElementById('confirm-loja-erro');
+  var confirmOkHint = document.getElementById('confirm-loja-ok');
+  var CLS_CONF_IDLE = 'mt-1 w-full min-h-[56px] rounded-xl border-2 border-amber-400 bg-amber-50/50 px-4 font-black text-[clamp(1.1rem,0.8vw+0.9rem,1.4rem)] tracking-wide';
+  var CLS_CONF_OK = 'mt-1 w-full min-h-[56px] rounded-xl border-2 border-emerald-500 bg-emerald-50 px-4 font-black text-[clamp(1.1rem,0.8vw+0.9rem,1.4rem)] tracking-wide';
+  var CLS_CONF_ERR = 'mt-1 w-full min-h-[56px] rounded-xl border-2 border-red-500 bg-red-50 px-4 font-black text-[clamp(1.1rem,0.8vw+0.9rem,1.4rem)] tracking-wide';
+
+  function syncConfirm() {
+    var p = pontoAtivo();
+    var precisa = (p === 'gaveta' || p === 'vila');
+    var esp = palavraEsperada(p);
+    if (blocoConfirm) blocoConfirm.classList.toggle('hidden', !precisa);
+    if (confirmPalavra) confirmPalavra.textContent = esp;
+    if (confirmInput) {
+      confirmInput.required = precisa;
+      if (!precisa) confirmInput.value = '';
+      confirmInput.placeholder = esp;
+    }
+    var raw = confirmInput ? confirmInput.value : '';
+    var vazio = !String(raw || '').trim();
+    var certo = precisa && confirmBate(raw, esp);
+    if (btnAbrir) {
+      btnAbrir.disabled = precisa ? !certo : false;
+    }
+    if (!precisa || !confirmInput) {
+      if (confirmErro) confirmErro.classList.add('hidden');
+      if (confirmOkHint) confirmOkHint.classList.add('hidden');
+      return;
+    }
+    if (vazio) {
+      confirmInput.className = CLS_CONF_IDLE;
+      if (confirmErro) confirmErro.classList.add('hidden');
+      if (confirmOkHint) confirmOkHint.classList.add('hidden');
+      return;
+    }
+    if (certo) {
+      confirmInput.className = CLS_CONF_OK;
+      if (confirmErro) confirmErro.classList.add('hidden');
+      if (confirmOkHint) confirmOkHint.classList.remove('hidden');
+      return;
+    }
+    confirmInput.className = CLS_CONF_ERR;
+    if (confirmErro) {
+      confirmErro.textContent = 'Palavra errada.';
+      confirmErro.classList.remove('hidden');
+    }
+    if (confirmOkHint) confirmOkHint.classList.add('hidden');
+  }
+
+  function pintarCards(p) {
+    cards.forEach(function (card) {
+      var inp = card.querySelector('input[type="radio"]');
+      var val = inp ? inp.value : (card.getAttribute('data-ponto') || '');
+      var on = !!(inp && inp.checked && !inp.disabled);
+      var disabled = !!(inp && inp.disabled);
+      card.classList.toggle('is-selected', on);
+      card.classList.toggle('is-disabled', disabled);
+      allSelClasses.forEach(function (c) { card.classList.remove(c); });
+      var badge = card.querySelector('.caixa-ponto-sel');
+      if (badge) badge.classList.toggle('hidden', !on);
+      if (on) {
+        var extra = selClass[val] || selClass.gaveta;
+        extra.forEach(function (c) { card.classList.add(c); });
+      } else {
+        card.classList.add('border-slate-300', 'bg-white');
+      }
+    });
+  }
+
   function syncUi() {
     var p = pontoAtivo();
     if (postPonto) postPonto.value = p;
-    cards.forEach(function (card) {
-      var inp = card.querySelector('input[type="radio"]');
-      var on = !!(inp && inp.checked && !inp.disabled);
-      card.classList.toggle('is-selected', on);
-      var extra = selClass[inp && inp.value] || selClass.gaveta;
-      ['border-emerald-500', 'bg-emerald-50', 'border-sky-500', 'bg-sky-50', 'border-violet-500', 'bg-violet-50'].forEach(function (c) {
-        card.classList.remove(c);
-      });
-      if (on && extra) extra.forEach(function (c) { card.classList.add(c); });
-    });
+    pintarCards(p);
     panels.forEach(function (el) {
       var allowed = (el.getAttribute('data-ponto-panel') || '').split(/\s+/);
       el.hidden = allowed.indexOf(p) < 0;
     });
     if (formAbrir) formAbrir.hidden = p === 'notebook';
     if (formNotebook) formNotebook.hidden = p !== 'notebook';
-    if (p === 'teste') {
-      if (titulo) titulo.textContent = 'Passo 2 — abrir teste';
-      if (btnAbrir) btnAbrir.textContent = 'Abrir Caixa Teste';
-      if (ajuda) ajuda.textContent = 'Turno de teste separado da operação da loja.';
-      if (formAbrir) formAbrir.classList.remove('border-emerald-500');
-      if (formAbrir) formAbrir.classList.add('border-violet-500');
-    } else if (p === 'gaveta') {
-      if (titulo) titulo.textContent = 'Passo 2 — abrir gaveta';
-      if (btnAbrir) btnAbrir.textContent = 'Abrir Caixa Gaveta';
-      if (ajuda) ajuda.textContent = 'Caixa principal da loja — abra antes dos notebooks.';
-      if (formAbrir) formAbrir.classList.add('border-emerald-500');
-      if (formAbrir) formAbrir.classList.remove('border-violet-500');
+    if (formAbrir) {
+      formAbrir.classList.remove('border-emerald-500', 'border-violet-500', 'border-slate-500', 'border-slate-800');
     }
+    if (p === 'teste') {
+      if (titulo) titulo.textContent = 'Abrir teste';
+      if (btnAbrir) btnAbrir.textContent = 'Abrir Caixa Teste';
+      if (formAbrir) formAbrir.classList.add('border-violet-500');
+    } else if (p === 'vila') {
+      if (titulo) titulo.textContent = 'Abrir Vila Elias';
+      if (btnAbrir) btnAbrir.textContent = 'Abrir Caixa Vila Elias';
+      if (formAbrir) formAbrir.classList.add('border-slate-800');
+    } else if (p === 'gaveta') {
+      if (titulo) titulo.textContent = 'Abrir gaveta Centro';
+      if (btnAbrir) btnAbrir.textContent = 'Abrir Caixa Gaveta (Centro)';
+      if (formAbrir) formAbrir.classList.add('border-emerald-500');
+    }
+    if (valorAbertura) {
+      valorAbertura.value = '';
+      valorAbertura.placeholder = '0,00';
+    }
+    limparCedulas();
+    if (confirmInput) confirmInput.value = '';
+    syncConfirm();
+  }
+
+  function fmtBr(n) {
+    return Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  var cedulasModal = document.getElementById('ca-cedulas-modal');
+  var cedulasAbrirBtn = document.getElementById('ca-cedulas-abrir');
+  var cedulasFecharX = document.getElementById('ca-cedulas-fechar-x');
+  var cedulasConcluir = document.getElementById('ca-cedulas-concluir');
+  var cedulasTotalEl = document.getElementById('ca-cedulas-total');
+  var cedulaQtyNodes = document.querySelectorAll('.ca-cedula-qty');
+  function limparCedulas() {
+    cedulaQtyNodes.forEach(function (inp) { inp.value = ''; });
+    recalcularCedulas();
+  }
+  function recalcularCedulas() {
+    var total = 0;
+    cedulaQtyNodes.forEach(function (inp) {
+      var denom = parseFloat(String(inp.getAttribute('data-valor') || '0').replace(',', '.'));
+      var qtd = parseInt(inp.value, 10);
+      if (!Number.isFinite(qtd) || qtd < 0) qtd = 0;
+      var sub = (Number.isFinite(denom) ? denom : 0) * qtd;
+      total += sub;
+      var wrap = inp.closest('.ca-cedula-item');
+      if (wrap) {
+        var s = wrap.querySelector('[data-sub]');
+        if (s) s.textContent = 'R$ ' + fmtBr(Math.round(sub * 100) / 100);
+      }
+    });
+    total = Math.round(total * 100) / 100;
+    if (cedulasTotalEl) cedulasTotalEl.textContent = 'R$ ' + fmtBr(total);
+    return total;
+  }
+  function abrirCedulas() {
+    if (!cedulasModal) return;
+    cedulasModal.classList.remove('hidden');
+    var first = cedulaQtyNodes[0];
+    if (first) first.focus();
+  }
+  function fecharCedulas() {
+    if (cedulasModal) cedulasModal.classList.add('hidden');
+  }
+  if (cedulasAbrirBtn) cedulasAbrirBtn.addEventListener('click', abrirCedulas);
+  if (cedulasFecharX) cedulasFecharX.addEventListener('click', fecharCedulas);
+  if (cedulasConcluir) {
+    cedulasConcluir.addEventListener('click', function () {
+      var total = recalcularCedulas();
+      if (valorAbertura) valorAbertura.value = fmtBr(total);
+      fecharCedulas();
+    });
+  }
+  cedulaQtyNodes.forEach(function (inp) {
+    inp.addEventListener('input', recalcularCedulas);
+  });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape' && cedulasModal && !cedulasModal.classList.contains('hidden')) {
+      ev.preventDefault();
+      fecharCedulas();
+    }
+  });
+  if (cedulasModal) {
+    cedulasModal.addEventListener('click', function (ev) {
+      /* Fundo nao fecha — so X / FECHAR / Esc */
+    });
   }
 
   radios.forEach(function (r) {
     r.addEventListener('change', syncUi);
   });
+  if (confirmInput) {
+    confirmInput.addEventListener('input', syncConfirm);
+  }
+  if (formAbrir) {
+    formAbrir.addEventListener('submit', function (ev) {
+      var p = pontoAtivo();
+      if (p === 'gaveta' || p === 'vila') {
+        if (!confirmBate(confirmInput && confirmInput.value, palavraEsperada(p))) {
+          ev.preventDefault();
+          alert('Digite "' + palavraEsperada(p) + '" para abrir este caixa.');
+          if (confirmInput) confirmInput.focus();
+          return false;
+        }
+      }
+    });
+  }
   syncUi();
 })();
 </script>

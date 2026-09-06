@@ -1,0 +1,211 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Backup Postgres Agro — SisVale</title>
+  <style>
+    :root { font-family: system-ui, Segoe UI, sans-serif; font-size: 15px; color: #0f172a; }
+    body { margin: 0; padding: 1rem 1.25rem 2rem; background: #f8fafc; }
+    h1 { font-size: 1.35rem; margin: 0 0 0.25rem; }
+    .sub { color: #475569; margin-bottom: 1rem; font-size: 0.92rem; }
+    .card { background: #fff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 1rem; margin-bottom: 1rem; }
+    .warn { background: #fff7ed; border-color: #fdba74; color: #9a3412; font-size: 0.9rem; }
+    .ok { background: #ecfdf5; border-color: #6ee7b7; color: #065f46; }
+    .err { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th, td { border-bottom: 1px solid #e2e8f0; padding: 0.45rem 0.35rem; text-align: left; vertical-align: top; }
+    th { background: #f1f5f9; font-weight: 700; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    label.chk { display: flex; gap: 0.5rem; align-items: flex-start; cursor: pointer; }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1rem; }
+    button, .btn-link {
+      min-height: 2.75rem; padding: 0.5rem 1rem; border-radius: 8px; border: 2px solid transparent;
+      font-size: 0.95rem; font-weight: 700; cursor: pointer;
+    }
+    button.primary { background: #059669; color: #fff; border-color: #047857; }
+    button.danger { background: #ea580c; color: #fff; border-color: #c2410c; }
+    button.secondary { background: #fff; color: #0f172a; border-color: #94a3b8; }
+    .btn-link { display: inline-flex; align-items: center; text-decoration: none; background: #fff; border-color: #94a3b8; color: #0f172a; }
+    input[type="password"], input[type="file"], input[type="text"] {
+      width: 100%; max-width: 28rem; min-height: 2.5rem; padding: 0.35rem 0.5rem; border: 1px solid #94a3b8; border-radius: 6px;
+    }
+    .field { margin: 0.6rem 0; }
+    .field label { display: block; font-weight: 600; margin-bottom: 0.25rem; font-size: 0.88rem; }
+    .small { font-size: 0.8rem; color: #64748b; }
+    details.checklist { margin-top: 0.75rem; }
+    details.checklist summary { cursor: pointer; font-weight: 700; color: #0f172a; }
+    .tag { font-size: 0.72rem; background: #e2e8f0; padding: 0.1rem 0.35rem; border-radius: 4px; }
+    pre { background: #0f172a; color: #e2e8f0; padding: 0.75rem; border-radius: 8px; overflow: auto; font-size: 0.78rem; }
+  </style>
+</head>
+<body>
+  <p><a class="btn-link" href="{% url 'admin:index' %}">← Voltar ao Admin</a></p>
+  <h1>Backup Postgres Agro</h1>
+  <p class="sub">ZIP portável (JSONL + Excel + kit com env real e guias). <strong>Confidencial</strong> — contém senhas.</p>
+
+  <div class="card warn">
+    <p style="margin:0;"><strong>Rotina:</strong> marque todas → «Baixar ZIP» → guarde no PC/nuvem. <strong>Um ZIP basta</strong> — sem precisar do site depois. Pasta <code>kit/</code> traz guias + <code>render-env-atual.env</code> (Environment real do Render).</p>
+  </div>
+
+  <div class="card">
+    <details class="checklist" open>
+      <summary>Guia rápido — o que é cada coisa</summary>
+      <div class="small" style="margin-top:0.6rem;">
+        <p><strong>Rotina (só download)</strong></p>
+        <ol>
+          <li><strong>Backup completo</strong> — marque todas → «Baixar ZIP». Dados + pasta <code>kit/</code> (guias + <code>render-env-atual.env</code> com secrets reais).</li>
+          <li><strong>Backup parcial</strong> — desmarque categorias → ZIP menor (+ <code>kit/</code> igual).</li>
+          <li>Guarde cópias seguras. <strong>Não precisa</strong> exportar .env manual do Render — já vem no ZIP.</li>
+        </ol>
+        <p><strong>O que ainda não vem no ZIP</strong></p>
+        <ul>
+          <li>Código Git (deploy branch <code>producao</code>)</li>
+          <li>Dados <em>dentro</em> do Mongo ERP (credenciais Mongo vêm no .env)</li>
+        </ul>
+        <p><strong>Restore (precisa de servidor funcionando)</strong></p>
+        <ul>
+          <li><strong>Desastre:</strong> novo Render → deploy → colar <code>kit/render-env-atual.env</code> (trocar <code>DATABASE_URL</code>) → migrate → superuser → Restore ZIP.</li>
+          <li><strong>Rollback dados:</strong> loja fechada → Restore ZIP de ontem.</li>
+          <li><strong>Parcial por categoria:</strong> marque só a categoria → só ela é substituída.</li>
+        </ul>
+        {% if nightly_enabled %}
+        <p><strong>Backup automático (madrugada)</strong> — ativo neste servidor. Upload: modo <code>{{ upload_status.mode }}</code>{% if upload_status.configured %} (configurado){% else %} — configure <code>AGRO_PG_BACKUP_UPLOAD_MODE</code> no Render{% endif %}.</p>
+        {% else %}
+        <p class="small"><strong>Backup automático:</strong> desligado aqui. Na loja: <code>AGRO_PG_BACKUP_NIGHTLY_ENABLED=true</code> + webhook ou S3 no Render.</p>
+        {% endif %}
+      </div>
+    </details>
+  </div>
+
+  <div class="card warn">
+    <details class="checklist" open>
+      <summary>Checklist Render e disaster recovery (rev. {{ checklist_rev }})</summary>
+      <p class="small" style="margin:0.5rem 0;">Fonte no código: <code>pg_backup_render_checklist.py</code> — atualizar ao mudar env da loja.</p>
+      <p><strong>PG explodiu / servidor novo</strong></p>
+      <ol class="small">
+        {% for s in disaster_steps %}<li>{{ s.texto }}</li>{% endfor %}
+      </ol>
+      <p><strong>Deu ruim de noite (rollback dados)</strong></p>
+      <ol class="small">
+        {% for s in rollback_steps %}<li>{{ s.texto }}</li>{% endfor %}
+      </ol>
+      <ul class="small">{% for n in checklist_notas %}<li>{{ n }}</li>{% endfor %}</ul>
+      <table style="margin-top:0.75rem;">
+        <thead>
+          <tr><th>Variável</th><th>Loja</th><th>Teste</th><th>Novo servidor</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for row in render_env_rows %}
+          <tr>
+            <td><code>{{ row.key }}</code></td>
+            <td class="small">{{ row.loja }}</td>
+            <td class="small">{{ row.teste }}</td>
+            <td class="small">{{ row.novo_servidor }}</td>
+            <td><span class="tag">no kit/</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </details>
+  </div>
+
+  {% if flash_ok %}<div class="card ok">{{ flash_ok }}</div>{% endif %}
+  {% if flash_erro %}<div class="card err">{{ flash_erro }}</div>{% endif %}
+
+  <div class="card ok">
+    <h2 style="margin:0 0 0.5rem;font-size:1.05rem;">Kit sem dados (opcional)</h2>
+    <p class="small" style="margin:0 0 0.75rem;">Só guias + env — sem Postgres. O kit <strong>já vem</strong> na pasta <code>kit/</code> do backup completo.</p>
+    <div class="actions" style="margin-top:0;">
+      <button type="submit" name="action" value="kit" class="secondary" form="pg-backup-form">⬇ Baixar kit recuperação zero</button>
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" id="pg-backup-form">
+    {% csrf_token %}
+
+    <div class="card">
+      <p style="margin-top:0;"><strong>Selecione as categorias</strong> — marque todas para backup completo (1 ZIP).</p>
+      <p class="small">Inclui pasta <code>kit/</code> (guias + <code>render-env-atual.env</code>). Guarde em local seguro.</p>
+      <p class="actions" style="margin-top:0.5rem;">
+        <button type="button" class="secondary" id="btn-marcar-todas">Marcar todas</button>
+        <button type="button" class="secondary" id="btn-desmarcar">Desmarcar</button>
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:2.5rem;"></th>
+            <th>Categoria</th>
+            <th class="num">Registros</th>
+            <th>Aviso</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cat in categories %}
+          <tr>
+            <td>
+              <input type="checkbox" name="categorias" value="{{ cat.slug }}" class="cat-cb" checked>
+            </td>
+            <td><strong>{{ cat.label }}</strong><br><span class="small">{{ cat.slug }}</span></td>
+            <td class="num">{% if cat.total_rows != None %}{{ cat.total_rows }}{% else %}—{% endif %}</td>
+            <td class="small">{{ cat.warning }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2 style="margin:0 0 0.5rem;font-size:1.05rem;">Baixar backup</h2>
+      <p class="small">Só leitura — seguro na produção. O <strong>resumo.xlsx</strong> é amostra legível (aba <strong>Contagens</strong> = totais reais). Backup completo = <code>data/*.jsonl</code> no ZIP. Planilha só de produtos: Cadastro ERP → Excel ↓.</p>
+      <div class="actions">
+        <button type="submit" name="action" value="export" class="primary">⬇ Baixar ZIP selecionado</button>
+      </div>
+    </div>
+
+    <div class="card warn">
+      <h2 style="margin:0 0 0.5rem;font-size:1.05rem;">Restaurar backup</h2>
+      <p style="margin:0 0 0.75rem;">Substitui as categorias presentes no ZIP (apaga e recarrega). Exige senha do <strong>admin Django</strong>.</p>
+      <div class="field">
+        <label for="arquivo_zip">Arquivo ZIP</label>
+        <input type="file" name="arquivo_zip" id="arquivo_zip" accept=".zip,application/zip">
+      </div>
+      <div class="field">
+        <label for="confirmar_texto">Confirmação — digite exatamente</label>
+        <input type="text" name="confirmar_texto" id="confirmar_texto" autocomplete="off" placeholder="{{ restore_confirm_phrase }}">
+      </div>
+      <div class="field">
+        <label for="senha_admin">Senha do administrador</label>
+        <input type="password" name="senha_admin" id="senha_admin" autocomplete="current-password">
+      </div>
+      <p class="small">Se marcar categorias acima, só essas serão restauradas do ZIP (desde que existam no manifest).</p>
+      <div class="actions">
+        <button type="submit" name="action" value="restore" class="danger"
+          onclick="return confirm('Substituir dados selecionados? Esta ação não tem volta automática.');">
+          ⬆ Restaurar ZIP
+        </button>
+      </div>
+    </div>
+  </form>
+
+  {% if restore_result %}
+  <div class="card {% if restore_result.ok %}ok{% else %}err{% endif %}">
+    <h2 style="margin:0 0 0.5rem;font-size:1.05rem;">Resultado do restore</h2>
+    <pre>{% if restore_result_text %}{{ restore_result_text }}{% endif %}</pre>
+  </div>
+  {% endif %}
+
+  <script>
+    (function () {
+      var boxes = document.querySelectorAll('.cat-cb');
+      document.getElementById('btn-marcar-todas').addEventListener('click', function () {
+        boxes.forEach(function (b) { b.checked = true; });
+      });
+      document.getElementById('btn-desmarcar').addEventListener('click', function () {
+        boxes.forEach(function (b) { b.checked = false; });
+      });
+    })();
+  </script>
+</body>
+</html>

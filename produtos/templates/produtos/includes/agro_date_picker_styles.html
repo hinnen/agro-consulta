@@ -1,0 +1,74 @@
+<style>
+  .agro-ns-input-date,
+  input[type="date"].agro-date-picker {
+    font-size: clamp(1rem, 0.45vw + 0.88rem, 1.125rem);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    padding-right: 0.65rem;
+    cursor: pointer;
+    min-height: 2.75rem;
+  }
+  .agro-ns-input-date::-webkit-calendar-picker-indicator,
+  input[type="date"].agro-date-picker::-webkit-calendar-picker-indicator {
+    width: 2rem;
+    height: 2rem;
+    margin-left: 0.25rem;
+    cursor: pointer;
+    opacity: 0.85;
+  }
+  .agro-ns-cal-pop {
+    position: fixed;
+    z-index: 400;
+    width: min(22.5rem, calc(100vw - 1.5rem));
+    padding: 0.85rem 0.95rem 0.75rem;
+    border-radius: 1rem;
+    border: 2px solid #cbd5e1;
+    background: #fff;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.22);
+    font-size: clamp(1rem, 0.45vw + 0.88rem, 1.1875rem);
+  }
+  .agro-ns-cal-pop-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.65rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #f1f5f9;
+  }
+  .agro-ns-cal-pop-title { font-size: clamp(1.0625rem, 0.5vw + 0.92rem, 1.25rem); font-weight: 900; color: #0f172a; }
+  .agro-ns-cal-pop-nav {
+    min-width: 2.75rem; min-height: 2.75rem; border-radius: 0.75rem;
+    border: 2px solid #e2e8f0; background: #f8fafc; color: #334155;
+    font-size: 1.35rem; font-weight: 900; line-height: 1; cursor: pointer;
+  }
+  .agro-ns-cal-pop-nav:hover { border-color: var(--ns-accent, #059669); color: var(--ns-accent, #059669); background: var(--ns-accent-soft, #ecfdf5); }
+  .agro-ns-cal-pop-dow {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.2rem;
+    margin-bottom: 0.35rem; text-align: center;
+    font-size: clamp(0.75rem, 0.3vw + 0.65rem, 0.875rem); font-weight: 900;
+    text-transform: uppercase; color: #64748b;
+  }
+  .agro-ns-cal-pop-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.25rem; }
+  .agro-ns-cal-pop-day {
+    min-height: 2.85rem; border-radius: 0.65rem; border: 2px solid transparent;
+    background: #f8fafc; color: #0f172a; font-size: clamp(1.0625rem, 0.45vw + 0.92rem, 1.25rem);
+    font-weight: 800; cursor: pointer;
+  }
+  .agro-ns-cal-pop-day:hover { border-color: var(--ns-accent, #059669); background: var(--ns-accent-soft, #ecfdf5); }
+  .agro-ns-cal-pop-day.is-out { color: #94a3b8; background: #fff; }
+  .agro-ns-cal-pop-day.is-today { border-color: #86efac; background: #ecfdf5; color: #047857; }
+  .agro-ns-cal-pop-day.is-sel { background: var(--ns-accent, #059669); border-color: var(--ns-accent, #059669); color: #fff; }
+  .agro-ns-cal-pop-foot {
+    display: flex; justify-content: space-between; gap: 0.5rem; margin-top: 0.65rem;
+    padding-top: 0.55rem; border-top: 2px solid #f1f5f9;
+  }
+  .agro-ns-cal-pop-foot button {
+    min-height: 2.65rem; padding: 0 1rem; border-radius: 0.65rem; border: none; cursor: pointer;
+    font-size: clamp(0.875rem, 0.35vw + 0.78rem, 1rem); font-weight: 800;
+  }
+  .agro-ns-cal-pop-clear { background: transparent; color: #64748b; }
+  .agro-ns-cal-pop-clear:hover { color: #dc2626; background: #fef2f2; }
+  .agro-ns-cal-pop-today { background: var(--ns-accent-soft, #ecfdf5); color: var(--ns-accent, #059669); border: 2px solid var(--ns-accent, #059669) !important; }
+  .agro-ns-cal-pop-today:hover { background: var(--ns-accent, #059669); color: #fff; }
+</style>

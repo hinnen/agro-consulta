@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gestão · Catálogo delivery</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-dvh">
+<div class="max-w-xl mx-auto p-4 sm:p-6 space-y-5">
+  <div class="flex items-center justify-between gap-2">
+    <h1 class="text-xl font-black text-slate-900">Catálogo delivery</h1>
+    <a href="{% url 'catalogo_delivery' %}" class="text-sm font-bold text-emerald-700 underline" target="_blank">Ver vitrine</a>
+  </div>
+  <p class="text-sm text-slate-600 leading-relaxed">
+    Marque produtos na aba <strong>10. Delivery</strong> do cadastro.
+    Hoje: <strong>{{ qtd_produtos_marcados }}</strong> produto(s) ligados.
+  </p>
+  {% if msg %}<p class="text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">{{ msg }}</p>{% endif %}
+  {% if erro %}<p id="gestao-erro" class="text-sm font-bold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{{ erro }}</p>{% endif %}
+
+  <form method="post" enctype="multipart/form-data" class="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-sm">
+    {% csrf_token %}
+    <input type="hidden" name="acao" value="salvar_loja">
+    <h2 class="text-sm font-black uppercase text-slate-700">Loja e WhatsApp</h2>
+    <div class="p-3 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
+      <p class="text-xs font-black uppercase text-slate-500">Logotipo (topo do catálogo)</p>
+      <div class="flex items-center gap-3">
+        {% if config.logo_url %}
+        <img src="{{ config.logo_url }}" alt="" class="h-12 max-w-[11rem] rounded-xl object-contain bg-white border border-slate-200 p-1">
+        {% else %}
+        <div class="w-14 h-14 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-800 font-black text-lg">?</div>
+        {% endif %}
+        <div class="min-w-0 flex-1 space-y-1.5">
+          <input type="file" name="logo_loja" accept="image/*" class="w-full text-xs">
+          <p class="text-[0.65rem] text-slate-500 font-semibold">PNG/JPG · máx. ~1,2 MB · formato largo (paisagem)</p>
+          {% if config.logo_url %}
+          <label class="flex items-center gap-2 text-xs font-bold text-red-700">
+            <input type="checkbox" name="remover_logo" value="1" class="w-4 h-4"> Remover logo
+          </label>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <label class="block"><span class="text-xs font-black uppercase text-slate-500">Nome na vitrine</span>
+      <input name="nome_loja" value="{{ config.nome_loja }}" class="w-full mt-1 p-3 border-2 rounded-xl font-bold"></label>
+    <label class="block"><span class="text-xs font-black uppercase text-slate-500">WhatsApp (só números, com DDD)</span>
+      <input name="whatsapp_contato" value="{{ config.whatsapp_contato }}" inputmode="tel" class="w-full mt-1 p-3 border-2 rounded-xl" placeholder="5513999999999"></label>
+    <label class="block"><span class="text-xs font-black uppercase text-slate-500">Mensagem de boas-vindas</span>
+      <textarea name="mensagem_boas_vindas" rows="2" class="w-full mt-1 p-3 border-2 rounded-xl">{{ config.mensagem_boas_vindas }}</textarea></label>
+    <label class="block"><span class="text-xs font-black uppercase text-slate-500">Área de entrega</span>
+      <input name="area_entrega" value="{{ config.area_entrega }}" class="w-full mt-1 p-3 border-2 rounded-xl" placeholder="Jacupiranga e região"></label>
+
+    <div class="pt-2 border-t border-slate-100 space-y-2">
+      <p class="text-xs font-black uppercase text-slate-500">Loja 1</p>
+      <input name="rotulo_loja_1" value="{{ config.rotulo_loja_1 }}" class="w-full p-3 border-2 rounded-xl font-bold" placeholder="Ex.: Centro">
+      <input name="endereco_loja_1" value="{{ config.endereco_loja_1 }}" class="w-full p-3 border-2 rounded-xl" placeholder="Endereço completo">
+    </div>
+    <div class="pt-2 border-t border-slate-100 space-y-2">
+      <p class="text-xs font-black uppercase text-slate-500">Loja 2</p>
+      <input name="rotulo_loja_2" value="{{ config.rotulo_loja_2 }}" class="w-full p-3 border-2 rounded-xl font-bold" placeholder="Ex.: Vila Elias">
+      <input name="endereco_loja_2" value="{{ config.endereco_loja_2 }}" class="w-full p-3 border-2 rounded-xl" placeholder="Endereço completo">
+    </div>
+
+    <div class="grid grid-cols-2 gap-2">
+      <label class="block"><span class="text-xs font-black uppercase text-slate-500">Cor principal</span>
+        <input type="color" name="cor_primaria" value="{{ config.cor_primaria }}" class="w-full mt-1 h-12 rounded-xl border-2"></label>
+      <label class="block"><span class="text-xs font-black uppercase text-slate-500">Cor fundo</span>
+        <input type="color" name="cor_secundaria" value="{{ config.cor_secundaria }}" class="w-full mt-1 h-12 rounded-xl border-2"></label>
+    </div>
+    <label class="flex items-center gap-3 p-3 rounded-xl border-2 border-emerald-200 bg-emerald-50 cursor-pointer">
+      <input type="checkbox" name="publicado" value="1" class="w-6 h-6" {% if config.publicado %}checked{% endif %}>
+      <span class="font-bold text-emerald-900">Catálogo publicado</span>
+    </label>
+    <button type="submit" class="w-full bg-emerald-600 text-white font-black py-3.5 rounded-xl">Salvar loja</button>
+  </form>
+
+  <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-3">
+    <h2 class="text-sm font-black uppercase text-slate-700">Categorias do catálogo</h2>
+    <p class="text-xs text-slate-500 leading-relaxed">Até <strong>5 níveis</strong> (ex.: Cães → Adulto → Premium → Raça grande → Sênior). <strong>Capa e cor</strong> em cada nível (principal e subs): escolha o arquivo e toque em <strong>Salvar capa</strong> / <strong>Salvar cor</strong> — o botão «Salvar loja» de cima não grava isso. Também dá para editar na aba <strong>10. Delivery</strong> do cadastro. Para apagar: <strong>Excluir</strong> / <strong>X</strong> (apaga os níveis abaixo).</p>
+
+    <form method="post" class="space-y-2 p-3 rounded-xl bg-slate-50 border border-slate-100">
+      {% csrf_token %}
+      <input type="hidden" name="acao" value="nova_categoria">
+      <input name="cat_nome" required placeholder="Nome (ex.: Cães, Adulto ou Premium)" class="w-full p-3 border-2 rounded-xl font-bold">
+      <select name="cat_parent" class="w-full p-3 border-2 rounded-xl text-sm font-semibold">
+        <option value="">— Categoria principal —</option>
+        {% for o in categorias_pai_opts %}
+        <option value="{{ o.id }}">{{ o.label }}</option>
+        {% endfor %}
+      </select>
+      <input type="number" name="cat_ordem" value="0" class="w-full p-3 border-2 rounded-xl" placeholder="Ordem">
+      <button type="submit" class="w-full bg-slate-800 text-white font-black py-3 rounded-xl">+ Adicionar</button>
+    </form>
+
+    <ul class="divide-y divide-slate-100">
+      {% for c in categorias %}
+      <li class="py-3">
+        <div class="flex items-start justify-between gap-2">
+          <div class="flex gap-2 min-w-0 flex-1">
+            <div class="w-14 h-14 shrink-0 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center text-lg font-black" data-cat-thumb="{{ c.id }}" style="background: {{ c.cor|default:'#ecfdf5' }}; color: {{ c.cor|default:'#047857' }}">
+              {% if c.imagem %}
+              <img src="{{ c.imagem }}" alt="" class="w-full h-full object-cover">
+              {% else %}
+              <span class="js-cat-letter">{{ c.nome|slice:":1" }}</span>
+              {% endif %}
+            </div>
+            <div class="min-w-0">
+              <p class="font-black text-slate-900">{{ c.nome }}{% if not c.ativo %} <span class="text-red-600 text-xs">(off)</span>{% endif %} <span class="text-[0.6rem] font-bold text-slate-400">N1</span></p>
+              <p class="text-[0.65rem] font-mono text-slate-400">{{ c.slug }}</p>
+              {% include "produtos/catalogo/_gestao_cat_visual.html" with no=c %}
+              <p class="text-[0.6rem] text-slate-500 font-semibold mt-0.5">1) Escolher arquivo · 2) <strong>Salvar capa</strong> · 3) <strong>Salvar cor</strong> (não use «Salvar loja») · ideal 800×600</p>
+            </div>
+          </div>
+          <div class="flex gap-1 shrink-0">
+            <form method="post">{% csrf_token %}<input type="hidden" name="acao" value="toggle_categoria"><input type="hidden" name="cat_id" value="{{ c.id }}"><button class="text-xs font-bold px-2 py-1.5 rounded-lg border">On/Off</button></form>
+            <form method="post" onsubmit="return confirm('Excluir «{{ c.nome|escapejs }}»?\n\nSe tiver níveis abaixo, eles também serão apagados.\nProdutos ligados ficam sem essa categoria.');">{% csrf_token %}<input type="hidden" name="acao" value="excluir_categoria"><input type="hidden" name="cat_id" value="{{ c.id }}"><button type="submit" class="text-xs font-bold px-2 py-1.5 rounded-lg border border-red-300 text-red-700">Excluir</button></form>
+          </div>
+        </div>
+        {% if c.filhos %}
+        <ul class="mt-2 ml-3 space-y-1 border-l-2 border-emerald-200 pl-3">
+          {% for f in c.filhos %}
+          {% include "produtos/catalogo/_gestao_cat_filho.html" with no=f profundidade=2 %}
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </li>
+      {% empty %}
+      <li class="py-4 text-sm text-slate-500">Nenhuma categoria ainda.</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <p class="text-xs text-slate-500">Pedidos → <a class="underline font-bold" href="{% url 'entregas_painel' %}">/entregas/</a></p>
+</div>
+<script>
+(function () {
+  var API_FOTO = "{% url 'api_catalogo_categoria_foto' %}";
+  var err = document.getElementById('gestao-erro');
+  if (err) {
+    err.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    alert(err.textContent || 'Erro ao salvar.');
+  }
+
+  function csrfFrom(box) {
+    var el = box.querySelector('[name=csrfmiddlewaretoken]');
+    return el ? el.value : '';
+  }
+
+  function setStatus(box, text, ok) {
+    var s = box.querySelector('.js-foto-cat-status');
+    if (!s) return;
+    s.textContent = text || '';
+    s.className = 'text-[0.6rem] font-bold w-full js-foto-cat-status ' + (ok ? 'text-emerald-700' : 'text-red-700');
+  }
+
+  function setThumb(catId, dataUrl) {
+    var thumb = document.querySelector('[data-cat-thumb="' + catId + '"]');
+    if (!thumb) return;
+    thumb.innerHTML = '';
+    if (dataUrl) {
+      var img = document.createElement('img');
+      img.src = dataUrl;
+      img.alt = '';
+      img.className = 'w-full h-full object-cover';
+      thumb.appendChild(img);
+    } else {
+      thumb.textContent = '?';
+    }
+  }
+
+  function fileToJpegDataUrl(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onerror = function () { reject(new Error('Não leu o arquivo')); };
+      reader.onload = function () {
+        var img = new Image();
+        img.onerror = function () { reject(new Error('Imagem inválida')); };
+        img.onload = function () {
+          var max = 1000;
+          var w = img.width;
+          var h = img.height;
+          var scale = Math.min(1, max / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * scale));
+          var ch = Math.max(1, Math.round(h * scale));
+          var canvas = document.createElement('canvas');
+          canvas.width = cw;
+          canvas.height = ch;
+          var ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, cw, ch);
+          ctx.drawImage(img, 0, 0, cw, ch);
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function postFoto(payload) {
+    var res = await fetch(API_FOTO, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': payload.csrf,
+      },
+      body: JSON.stringify((function () {
+        var o = { id: payload.id, remover: !!payload.remover };
+        if (payload.dataUrl) {
+          o.imagem_base64 = payload.dataUrl;
+          o.imagem_mime = 'image/jpeg';
+        }
+        if (payload.cor !== undefined) o.cor = payload.cor;
+        return o;
+      })()),
+    });
+    var data = {};
+    try { data = await res.json(); } catch (e) { data = {}; }
+    if (!res.ok || !data.ok) {
+      throw new Error((data && data.erro) || ('HTTP ' + res.status));
+    }
+    return data;
+  }
+
+  document.querySelectorAll('.js-foto-cat-box').forEach(function (box) {
+    var catId = Number(box.getAttribute('data-cat-id') || 0);
+    var btn = box.querySelector('.js-foto-cat-btn');
+    var rem = box.querySelector('.js-foto-cat-rem');
+    var inp = box.querySelector('.js-foto-cat-input');
+
+    if (btn) {
+      btn.addEventListener('click', async function () {
+        var f = inp && inp.files && inp.files[0];
+        if (!f) {
+          alert('Escolha uma imagem antes de tocar em Salvar capa.');
+          return;
+        }
+        btn.disabled = true;
+        setStatus(box, 'Comprimindo e enviando…', true);
+        try {
+          var dataUrl = await fileToJpegDataUrl(f);
+          var data = await postFoto({ id: catId, dataUrl: dataUrl, csrf: csrfFrom(box) });
+          setThumb(catId, data.imagem || dataUrl);
+          setStatus(box, 'Salva! (' + (data.bytes || '?') + ' bytes)', true);
+          alert('Capa da categoria salva com sucesso.');
+        } catch (e) {
+          setStatus(box, 'Erro: ' + (e.message || e), false);
+          alert('Não salvou a foto:\n' + (e.message || e));
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    }
+
+    if (rem) {
+      rem.addEventListener('click', async function () {
+        if (!confirm('Remover capa desta categoria?')) return;
+        rem.disabled = true;
+        try {
+          await postFoto({ id: catId, remover: true, csrf: csrfFrom(box) });
+          setThumb(catId, '');
+          setStatus(box, 'Foto removida.', true);
+        } catch (e) {
+          alert('Erro ao remover: ' + (e.message || e));
+        } finally {
+          rem.disabled = false;
+        }
+      });
+    }
+
+    var corInp = box.querySelector('.js-cor-cat-input');
+    var corBtn = box.querySelector('.js-cor-cat-btn');
+    if (corBtn) {
+      corBtn.addEventListener('click', async function () {
+        corBtn.disabled = true;
+        setStatus(box, 'Salvando cor…', true);
+        try {
+          await postFoto({ id: catId, cor: corInp ? corInp.value : '', csrf: csrfFrom(box) });
+          var thumb = document.querySelector('[data-cat-thumb="' + catId + '"]');
+          if (thumb && corInp && !thumb.querySelector('img')) {
+            thumb.style.background = corInp.value || '#ecfdf5';
+            thumb.style.color = corInp.value || '#047857';
+          }
+          setStatus(box, 'Cor salva.', true);
+        } catch (e) {
+          setStatus(box, 'Erro: ' + (e.message || e), false);
+          alert('Não salvou a cor:\n' + (e.message || e));
+        } finally {
+          corBtn.disabled = false;
+        }
+      });
+    }
+  });
+})();
+</script>
+</body>
+</html>

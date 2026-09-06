@@ -1,0 +1,424 @@
+{% extends "layouts/base_pdv.html" %}
+
+{% block pdv_title %}{{ titulo }} | SisVale{% endblock %}
+{% block body_class %}min-h-screen bg-slate-950 text-slate-100{% endblock %}
+
+{% block head_extra %}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script>window.GM_LOADING_BAR_SHOW_DELAY_MS = 0;</script>
+  <style>
+    @page { size: A4; margin: 10mm; }
+    @media print {
+      .no-print { display: none !important; }
+      body, .print-root { background: #fff !important; color: #0f172a !important; }
+      .print-table { border: 1px solid #cbd5e1 !important; }
+      .print-table th, .print-table td { color: #0f172a !important; border-color: #e2e8f0 !important; }
+    }
+  </style>
+{% endblock %}
+
+{% block pdv_shell_class %}min-h-screen bg-slate-950{% endblock %}
+{% block pdv_section_class %}mx-auto w-full max-w-7xl 2xl:max-w-[min(100rem,calc(100vw-1.5rem))] px-3 py-4 sm:px-5 sm:py-6{% endblock %}
+
+{% block pdv_header %}
+<header class="no-print border-b border-slate-800 bg-slate-900/90 shadow-sm">
+  <div class="mx-auto flex max-w-7xl 2xl:max-w-[min(100rem,calc(100vw-1.5rem))] flex-wrap items-center justify-between gap-3 px-3 py-3 sm:px-5">
+    <div class="min-w-0">
+      <p class="text-[10px] font-black uppercase tracking-[0.24em] text-orange-500">{{ eyebrow }}</p>
+      <h1 class="mt-0.5 truncate text-2xl font-black tracking-tight text-white">{{ titulo }}</h1>
+      {% if subtitulo %}<p class="mt-1 text-sm font-medium text-slate-400">{{ subtitulo }}</p>{% endif %}
+    </div>
+    <div class="relative z-30 flex flex-wrap items-center justify-end gap-2">
+      {% if rel_help %}{% include "produtos/includes/relatorios_help_agents.html" %}{% endif %}
+      <button type="button" data-agro-rel-print
+        class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border-2 border-blue-500 bg-blue-600 px-4 py-2 text-xs font-black uppercase text-white hover:bg-blue-700">
+        <i class="fas fa-print" aria-hidden="true"></i>Imprimir A4
+      </button>
+      <a href="{{ export_qs }}"
+        class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border-2 border-emerald-500 bg-emerald-600 px-4 py-2 text-xs font-black uppercase text-white hover:bg-emerald-500">
+        <i class="fas fa-file-excel" aria-hidden="true"></i>Excel ↓
+      </a>
+      {% if link_extra %}
+      <a href="{% url link_extra.url_name %}"
+        class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-amber-500 bg-amber-500/20 px-4 py-2 text-xs font-black uppercase text-amber-300 hover:bg-amber-500/30">{{ link_extra.label }}</a>
+      {% endif %}
+      <a href="{% url 'relatorios_hub' %}"
+        class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-slate-600 bg-slate-800 px-4 py-2 text-xs font-black uppercase text-slate-200 hover:border-slate-500">Voltar</a>
+    </div>
+  </div>
+</header>
+{% endblock %}
+
+{% block pdv_content %}
+<div class="print-root min-w-0 p-1 sm:p-2">
+  <form method="get" id="form-relatorio-filtros" class="no-print mb-4 flex flex-wrap items-end gap-2 sm:gap-3 rounded-2xl border border-slate-700 bg-slate-800/90 p-3 sm:p-4">
+    {% if filtro_parcial != 'giro' and filtro_parcial != 'ruptura' and filtro_parcial != 'inventario' and filtro_parcial != 'estoque_min_max' and filtro_parcial != 'estoque_resumo' and filtro_parcial != 'estoque_sem_custo' and filtro_parcial != 'estoque_zerados' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Período</label>
+      <select name="periodo" id="filtro-periodo" class="min-h-[44px] min-w-[10rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white focus:border-orange-500 focus:outline-none" onchange="this.form.submit()">
+        <option value="hoje" {% if filtros.periodo == 'hoje' %}selected{% endif %}>Hoje</option>
+        <option value="7d" {% if filtros.periodo == '7d' %}selected{% endif %}>7 dias</option>
+        <option value="30d" {% if filtros.periodo == '30d' %}selected{% endif %}>30 dias</option>
+        <option value="mes_atual" {% if filtros.periodo == 'mes_atual' %}selected{% endif %}>Mês atual</option>
+        <option value="custom" {% if filtros.periodo == 'custom' %}selected{% endif %}>Personalizado</option>
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">De</label>
+      <input type="date" name="de" id="filtro-de" value="{{ filtros.de }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Até</label>
+      <input type="date" name="ate" id="filtro-ate" value="{{ filtros.ate }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
+    </div>
+    {% endif %}
+
+    {% if filtro_parcial == 'inventario' or filtro_parcial == 'estoque_min_max' or filtro_parcial == 'estoque_resumo' or filtro_parcial == 'estoque_sem_custo' or filtro_parcial == 'estoque_zerados' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Depósito</label>
+      <select name="deposito" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white" onchange="this.form.submit()">
+        <option value="ambos" {% if extra_filtros.deposito == 'ambos' %}selected{% endif %}>Centro + Vila</option>
+        <option value="centro" {% if extra_filtros.deposito == 'centro' %}selected{% endif %}>Só Centro</option>
+        <option value="vila" {% if extra_filtros.deposito == 'vila' %}selected{% endif %}>Só Vila</option>
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Categoria</label>
+      <select name="categoria" class="min-h-[44px] min-w-[10rem] max-w-[16rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white" onchange="this.form.submit()">
+        <option value="" {% if not extra_filtros.categoria %}selected{% endif %}>Todas</option>
+        {% for cat in extra_filtros.categorias %}
+        <option value="{{ cat }}" {% if extra_filtros.categoria == cat %}selected{% endif %}>{{ cat }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Marca</label>
+      <select name="marca" class="min-h-[44px] min-w-[10rem] max-w-[14rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white" onchange="this.form.submit()">
+        <option value="" {% if not extra_filtros.marca %}selected{% endif %}>Todas</option>
+        {% for m in extra_filtros.marcas %}
+        <option value="{{ m }}" {% if extra_filtros.marca == m %}selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Cadastro</label>
+      <select name="ativos" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white" onchange="this.form.submit()">
+        <option value="ativos" {% if extra_filtros.ativos == 'ativos' %}selected{% endif %}>Ativos</option>
+        <option value="inativos" {% if extra_filtros.ativos == 'inativos' %}selected{% endif %}>Inativos</option>
+        <option value="todos" {% if extra_filtros.ativos == 'todos' %}selected{% endif %}>Todos</option>
+      </select>
+    </div>
+    {% if filtro_parcial == 'inventario' or filtro_parcial == 'estoque_resumo' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Saldo</label>
+      <select name="so_saldo" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white" onchange="this.form.submit()">
+        <option value="1" {% if extra_filtros.so_saldo == '1' %}selected{% endif %}>Só com saldo</option>
+        <option value="0" {% if extra_filtros.so_saldo == '0' %}selected{% endif %}>Com e sem saldo</option>
+      </select>
+    </div>
+    {% endif %}
+    {% if filtro_parcial == 'estoque_min_max' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Modo</label>
+      <select name="modo" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white" onchange="this.form.submit()">
+        <option value="abaixo" {% if extra_filtros.modo == 'abaixo' %}selected{% endif %}>Abaixo do mínimo</option>
+        <option value="acima" {% if extra_filtros.modo == 'acima' %}selected{% endif %}>Acima do máximo</option>
+        <option value="ambos" {% if extra_filtros.modo == 'ambos' %}selected{% endif %}>Abaixo e acima</option>
+      </select>
+    </div>
+    {% endif %}
+    {% if filtro_parcial == 'estoque_resumo' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Agrupar</label>
+      <select name="agrupar" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white" onchange="this.form.submit()">
+        <option value="categoria" {% if extra_filtros.agrupar == 'categoria' %}selected{% endif %}>Categoria</option>
+        <option value="marca" {% if extra_filtros.agrupar == 'marca' %}selected{% endif %}>Marca</option>
+        <option value="unidade" {% if extra_filtros.agrupar == 'unidade' %}selected{% endif %}>Unidade</option>
+      </select>
+    </div>
+    {% endif %}
+    {% if filtro_parcial == 'estoque_zerados' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Lista</label>
+      <select name="modo" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white" onchange="this.form.submit()">
+        <option value="zerados" {% if extra_filtros.modo == 'zerados' %}selected{% endif %}>Zerados</option>
+        <option value="negativos" {% if extra_filtros.modo == 'negativos' %}selected{% endif %}>Negativos</option>
+        <option value="ambos" {% if extra_filtros.modo == 'ambos' %}selected{% endif %}>Zerados e negativos</option>
+      </select>
+    </div>
+    {% endif %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Busca</label>
+      <input type="search" name="q" value="{{ extra_filtros.q }}" placeholder="GM, nome…" class="min-h-[44px] min-w-[10rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white" />
+    </div>
+    {% endif %}
+
+    {% if filtro_parcial == 'mais_vendidos' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Ordenar</label>
+      <select name="ordenar" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white">
+        <option value="valor" {% if extra_filtros.ordenar == 'valor' %}selected{% endif %}>Preço total</option>
+        <option value="qtd" {% if extra_filtros.ordenar == 'qtd' %}selected{% endif %}>Quantidade</option>
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Sentido</label>
+      <select name="sentido" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white">
+        <option value="mais" {% if extra_filtros.sentido == 'mais' %}selected{% endif %}>Mais vendidos</option>
+        <option value="menos" {% if extra_filtros.sentido == 'menos' %}selected{% endif %}>Menos vendidos</option>
+      </select>
+    </div>
+    {% endif %}
+
+    {% if filtro_parcial == 'vendas_marca' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Ordenar</label>
+      <select name="ordenar" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white">
+        <option value="valor" {% if extra_filtros.ordenar == 'valor' %}selected{% endif %}>Valor total</option>
+        <option value="qtd" {% if extra_filtros.ordenar == 'qtd' %}selected{% endif %}>Quantidade</option>
+      </select>
+    </div>
+    {% endif %}
+
+    {% if filtro_parcial == 'vendas_grupo' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Agrupar por</label>
+      <select name="agrupar" class="min-h-[44px] min-w-[11rem] rounded-xl border-2 border-sky-500/60 bg-slate-900 px-3 text-sm font-bold text-white focus:border-sky-400 focus:outline-none" onchange="this.form.submit()" title="Soma por categoria ou por cada nível de subcategoria">
+        <option value="categoria" {% if extra_filtros.agrupar == 'categoria' or not extra_filtros.agrupar %}selected{% endif %}>Categoria</option>
+        <option value="subcategoria" {% if extra_filtros.agrupar == 'subcategoria' %}selected{% endif %}>Subcategoria</option>
+        <option value="subcategoria_2" {% if extra_filtros.agrupar == 'subcategoria_2' %}selected{% endif %}>Subcategoria 2</option>
+        <option value="subcategoria_3" {% if extra_filtros.agrupar == 'subcategoria_3' %}selected{% endif %}>Subcategoria 3</option>
+        <option value="subcategoria_4" {% if extra_filtros.agrupar == 'subcategoria_4' %}selected{% endif %}>Subcategoria 4</option>
+      </select>
+    </div>
+    {% endif %}
+
+    {% if filtro_parcial == 'mais_vendidos' or filtro_parcial == 'curva_abc' or filtro_parcial == 'margem' or filtro_parcial == 'vendas_grupo' %}
+    <p class="mb-1 w-full basis-full text-[11px] font-bold uppercase tracking-wide text-slate-500">Marque uma ou várias · depois clique em Atualizar</p>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Categoria</label>
+      <div class="max-h-[8.5rem] min-w-[11rem] max-w-[16rem] overflow-y-auto rounded-xl border-2 border-violet-500/60 bg-slate-900 px-2 py-1.5" title="Pode marcar várias categorias">
+        {% for cat in extra_filtros.categorias %}
+        <label class="flex min-h-[1.75rem] cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm font-bold text-white hover:bg-violet-500/20">
+          <input type="checkbox" name="categoria" value="{{ cat }}" class="h-4 w-4 shrink-0 accent-violet-500"
+            {% if cat in extra_filtros.categoria %}checked{% endif %} />
+          <span class="truncate">{{ cat }}</span>
+        </label>
+        {% empty %}
+        <span class="text-xs font-semibold text-slate-500">Nenhuma no período</span>
+        {% endfor %}
+      </div>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Subcategoria</label>
+      <div class="max-h-[8.5rem] min-w-[11rem] max-w-[16rem] overflow-y-auto rounded-xl border-2 border-emerald-500/60 bg-slate-900 px-2 py-1.5" title="Ex.: Gato + Cachorro ao mesmo tempo">
+        {% for sub in extra_filtros.subcategorias %}
+        <label class="flex min-h-[1.75rem] cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm font-bold text-white hover:bg-emerald-500/20">
+          <input type="checkbox" name="subcategoria" value="{{ sub }}" class="h-4 w-4 shrink-0 accent-emerald-500"
+            {% if sub in extra_filtros.subcategoria %}checked{% endif %} />
+          <span class="truncate">{{ sub }}</span>
+        </label>
+        {% empty %}
+        <span class="text-xs font-semibold text-slate-500">Nenhuma no período</span>
+        {% endfor %}
+      </div>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Subcategoria 2</label>
+      <div class="max-h-[8.5rem] min-w-[11rem] max-w-[16rem] overflow-y-auto rounded-xl border-2 border-emerald-500/50 bg-slate-900 px-2 py-1.5">
+        {% for sub in extra_filtros.subcategorias_2 %}
+        <label class="flex min-h-[1.75rem] cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm font-bold text-white hover:bg-emerald-500/20">
+          <input type="checkbox" name="subcategoria_2" value="{{ sub }}" class="h-4 w-4 shrink-0 accent-emerald-500"
+            {% if sub in extra_filtros.subcategoria_2 %}checked{% endif %} />
+          <span class="truncate">{{ sub }}</span>
+        </label>
+        {% empty %}
+        <span class="text-xs font-semibold text-slate-500">Nenhuma no período</span>
+        {% endfor %}
+      </div>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Subcategoria 3</label>
+      <div class="max-h-[8.5rem] min-w-[11rem] max-w-[16rem] overflow-y-auto rounded-xl border-2 border-emerald-500/40 bg-slate-900 px-2 py-1.5">
+        {% for sub in extra_filtros.subcategorias_3 %}
+        <label class="flex min-h-[1.75rem] cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm font-bold text-white hover:bg-emerald-500/20">
+          <input type="checkbox" name="subcategoria_3" value="{{ sub }}" class="h-4 w-4 shrink-0 accent-emerald-500"
+            {% if sub in extra_filtros.subcategoria_3 %}checked{% endif %} />
+          <span class="truncate">{{ sub }}</span>
+        </label>
+        {% empty %}
+        <span class="text-xs font-semibold text-slate-500">Nenhuma no período</span>
+        {% endfor %}
+      </div>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Subcategoria 4</label>
+      <div class="max-h-[8.5rem] min-w-[11rem] max-w-[16rem] overflow-y-auto rounded-xl border-2 border-emerald-500/30 bg-slate-900 px-2 py-1.5">
+        {% for sub in extra_filtros.subcategorias_4 %}
+        <label class="flex min-h-[1.75rem] cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm font-bold text-white hover:bg-emerald-500/20">
+          <input type="checkbox" name="subcategoria_4" value="{{ sub }}" class="h-4 w-4 shrink-0 accent-emerald-500"
+            {% if sub in extra_filtros.subcategoria_4 %}checked{% endif %} />
+          <span class="truncate">{{ sub }}</span>
+        </label>
+        {% empty %}
+        <span class="text-xs font-semibold text-slate-500">Nenhuma no período</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if filtro_parcial == 'margem' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Ordenar</label>
+      <select name="ordenar" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white">
+        <option value="margem_rs" {% if extra_filtros.ordenar == 'margem_rs' %}selected{% endif %}>Margem R$</option>
+        <option value="margem_pct" {% if extra_filtros.ordenar == 'margem_pct' %}selected{% endif %}>Margem %</option>
+      </select>
+    </div>
+    {% endif %}
+
+    {% if filtro_parcial == 'clientes' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Ordenar</label>
+      <select name="ordenar" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white">
+        <option value="valor" {% if extra_filtros.ordenar == 'valor' %}selected{% endif %}>Total R$</option>
+        <option value="qtd" {% if extra_filtros.ordenar == 'qtd' %}selected{% endif %}>Nº vendas</option>
+      </select>
+    </div>
+    {% endif %}
+
+    {% if filtro_parcial == 'comparativo' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Período B</label>
+      <select name="periodo_b" id="filtro-periodo-b" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white">
+        <option value="mes_passado" {% if extra_filtros.periodo_b == 'mes_passado' %}selected{% endif %}>Mês passado</option>
+        <option value="custom" {% if extra_filtros.periodo_b == 'custom' %}selected{% endif %}>Personalizado</option>
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">De (B)</label>
+      <input type="date" name="de_b" id="filtro-de-b" value="{{ extra_filtros.de_b }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Até (B)</label>
+      <input type="date" name="ate_b" id="filtro-ate-b" value="{{ extra_filtros.ate_b }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
+    </div>
+    {% endif %}
+
+    {% if filtro_parcial == 'giro' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Lista</label>
+      <select name="aba" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white" onchange="this.form.submit()">
+        <option value="parado" {% if extra_filtros.aba == 'parado' %}selected{% endif %}>Estoque parado (90d)</option>
+        <option value="giro" {% if extra_filtros.aba == 'giro' %}selected{% endif %}>Top giro (30d)</option>
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Ordenar</label>
+      <select name="ordenar" class="min-h-[44px] min-w-[12rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white" onchange="this.form.submit()">
+        {% if extra_filtros.aba == 'parado' %}
+        <option value="ultima_venda_asc" {% if extra_filtros.ordenar == 'ultima_venda_asc' %}selected{% endif %}>Mais antigo primeiro</option>
+        <option value="ultima_venda_desc" {% if extra_filtros.ordenar == 'ultima_venda_desc' %}selected{% endif %}>Mais recente primeiro</option>
+        {% else %}
+        <option value="ultima_venda_desc" {% if extra_filtros.ordenar == 'ultima_venda_desc' %}selected{% endif %}>Última venda mais recente</option>
+        <option value="ultima_venda_asc" {% if extra_filtros.ordenar == 'ultima_venda_asc' %}selected{% endif %}>Última venda mais antiga</option>
+        <option value="receita_desc" {% if extra_filtros.ordenar == 'receita_desc' %}selected{% endif %}>Receita 30d</option>
+        <option value="qtd_desc" {% if extra_filtros.ordenar == 'qtd_desc' %}selected{% endif %}>Quantidade 30d</option>
+        {% endif %}
+      </select>
+    </div>
+    {% endif %}
+
+    {% if filtro_parcial == 'ruptura' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Janela de venda</label>
+      <select name="dias" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white">
+        <option value="15" {% if extra_filtros.dias == '15' %}selected{% endif %}>15 dias</option>
+        <option value="30" {% if extra_filtros.dias == '30' %}selected{% endif %}>30 dias</option>
+        <option value="60" {% if extra_filtros.dias == '60' %}selected{% endif %}>60 dias</option>
+        <option value="90" {% if extra_filtros.dias == '90' %}selected{% endif %}>90 dias</option>
+      </select>
+    </div>
+    {% endif %}
+
+    <button type="submit" class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-orange-500 bg-orange-500 px-4 py-2 text-xs font-black uppercase text-slate-950 hover:bg-orange-400">
+      Atualizar
+    </button>
+  </form>
+
+  {% if filtros.label %}
+  <p class="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">Período: <span class="text-slate-300">{{ filtros.label }}</span>{% if filtro_parcial == 'curva_abc' and extra_filtros.categoria %} · Categoria: <span class="text-violet-300">{{ extra_filtros.categoria }}</span>{% endif %}</p>
+  {% endif %}
+
+  <div class="overflow-x-auto rounded-2xl border border-slate-700 bg-slate-900/80">
+    <table class="print-table min-w-full text-left text-sm">
+      <thead class="bg-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400">
+        <tr>
+          {% for h in headers %}
+          <th class="px-3 py-2.5 whitespace-nowrap">{{ h }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-800">
+        {% for row in rows %}
+        <tr class="hover:bg-slate-800/50">
+          {% for cell in row %}
+          <td class="px-3 py-2 font-semibold text-slate-200 {% if forloop.counter == 3 %}max-w-[18rem] truncate{% endif %}">{{ cell }}</td>
+          {% endfor %}
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="{{ headers|length }}" class="px-3 py-8 text-center text-slate-500 font-semibold">{{ vazio_msg|default:"Sem dados." }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if totais %}
+  <div class="mt-3 flex flex-wrap gap-3 text-sm font-black text-emerald-400">
+    {% for t in totais %}<span>{{ t }}</span>{% endfor %}
+  </div>
+  {% endif %}
+
+  {% if ver_mais %}
+  <div class="no-print mt-4 flex flex-wrap items-center gap-3">
+    {% if ver_mais.truncado %}
+    <a href="{{ ver_mais.ver_todos_qs }}"
+      class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border-2 border-violet-500 bg-violet-600 px-4 py-2 text-xs font-black uppercase text-white hover:bg-violet-500">
+      Ver todos ({{ ver_mais.n_total }} produtos)
+    </a>
+    <span class="text-xs font-semibold text-slate-500">Mostrando {{ ver_mais.n_tela }} · total do período já está no rodapé</span>
+    {% elif ver_mais.todos and ver_mais.n_total > 500 %}
+    <a href="{{ ver_mais.ver_menos_qs }}"
+      class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border-2 border-slate-600 bg-slate-800 px-4 py-2 text-xs font-black uppercase text-slate-200 hover:border-slate-500">
+      Mostrar só os 500 primeiros
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% include "produtos/_atalho_voltar_pdv.html" %}
+{% include "produtos/_gm_loading_bar.html" %}
+{% include "produtos/_relatorios_loading.html" %}
+<script>
+(function () {
+  function bindCustom(dateIds, selectId) {
+    var sel = document.getElementById(selectId);
+    if (!sel) return;
+    dateIds.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener("change", function () {
+        sel.value = "custom";
+      });
+      el.addEventListener("input", function () {
+        sel.value = "custom";
+      });
+    });
+  }
+  bindCustom(["filtro-de", "filtro-ate"], "filtro-periodo");
+  bindCustom(["filtro-de-b", "filtro-ate-b"], "filtro-periodo-b");
+})();
+</script>
+{% endblock %}

@@ -128,3 +128,13 @@ class ClienteAgroForm(forms.ModelForm):
             "ativo": forms.CheckboxInput(attrs={"class": "rounded border-slate-300 w-5 h-5"}),
         }
 
+    def clean_whatsapp(self):
+        from produtos.cliente_whatsapp_util import validar_whatsapp_unico_cliente
+
+        raw = self.cleaned_data.get("whatsapp") or ""
+        pk = self.instance.pk if self.instance and self.instance.pk else None
+        digits, err = validar_whatsapp_unico_cliente(raw, excluir_pk=pk, obrigatorio=False)
+        if err:
+            raise forms.ValidationError(err)
+        return digits
+

@@ -134,6 +134,42 @@ def recalcular_fechamento(f: FechamentoFolhaSimplificado) -> FechamentoFolhaSimp
             ordem=ordem,
         )
         ordem += 1
+    from rh.models import PagamentoSalarioFuncionario
+
+    from django.db.models import Q
+
+    for p in (
+        PagamentoSalarioFuncionario.objects.filter(
+            cancelado=False,
+        )
+        .filter(
+            Q(fechamento=f)
+            | Q(
+                fechamento__isnull=True,
+                funcionario=f.funcionario,
+                data__year=y,
+                data__month=m,
+            )
+        )
+        .order_by("data", "id")
+    ):
+        ItemFechamentoFolha.objects.create(
+            fechamento=f,
+            tipo=ItemFechamentoFolha.Tipo.PAGAMENTO_SALARIO,
+            descricao=(
+                f"Pagamento salário ({p.get_tipo_origem_display()}) — {p.data:%d/%m/%Y}"
+                + (
+                    f" — {p.observacao[:60]}…"
+                    if len(p.observacao) > 60
+                    else (f" — {p.observacao}" if p.observacao else "")
+                )
+            ),
+            valor=p.valor,
+            referencia_tipo="PagamentoSalarioFuncionario",
+            referencia_id=str(p.pk),
+            ordem=ordem,
+        )
+        ordem += 1
     if f.outros_proventos and f.outros_proventos != Decimal("0"):
         ItemFechamentoFolha.objects.create(
             fechamento=f,
@@ -151,6 +187,10 @@ def recalcular_fechamento(f: FechamentoFolhaSimplificado) -> FechamentoFolhaSimp
             valor=f.outros_descontos,
             ordem=ordem,
         )
+    from rh.services.pagamento_salario import total_pagamentos_salario_fechamento
+
+    f.valor_pago = total_pagamentos_salario_fechamento(f)
+    f.save(update_fields=["valor_pago", "atualizado_em"])
     return f
 
 
@@ -175,6 +215,19 @@ def garantir_fechamento_aberto(funcionario: Funcionario, competencia: date) -> F
     return f
 
 
+def garantir_fechamento_operacional(
+    funcionario: Funcionario,
+    competencia: date,
+    *,
+    reabrir_se_encerrado: bool = True,
+) -> FechamentoFolhaSimplificado:
+    """Cria a competência se faltar; opcionalmente reabre folha Fechado/Pago para vales e caixa."""
+    f = garantir_fechamento_aberto(funcionario, competencia)
+    if reabrir_se_encerrado and f.status != FechamentoFolhaSimplificado.Status.ABERTO:
+        f = reabrir_fechamento(f)
+    return f
+
+
 def recalcular_todos_abertos_funcionario(funcionario: Funcionario):
     from rh.services.salario_financeiro_mongo import sincronizar_valores_titulo_salario_mongo
 
@@ -192,21 +245,22 @@ def recalcular_todos_abertos_funcionario(funcionario: Funcionario):
 
 def reabrir_fechamento(f: FechamentoFolhaSimplificado) -> FechamentoFolhaSimplificado:
     """Volta status para Aberto (ex.: fechamento ou «pago» por engano). Recalcula a folha."""
+    from rh.services.pagamento_salario import restaurar_valor_pago_controle_fechamento
+
     if f.status == FechamentoFolhaSimplificado.Status.ABERTO:
         recalcular_fechamento(f)
         return f
-    needs_zero_pago = f.status in (
-        FechamentoFolhaSimplificado.Status.PAGO,
-        FechamentoFolhaSimplificado.Status.PAGO_PARCIAL,
-    )
+    era_pago_manual = f.status == FechamentoFolhaSimplificado.Status.PAGO
     f.status = FechamentoFolhaSimplificado.Status.ABERTO
     f.fechado_em = None
     update_fields = ["status", "fechado_em", "atualizado_em"]
-    if needs_zero_pago:
+    if era_pago_manual:
         f.valor_pago = Decimal("0")
         update_fields.append("valor_pago")
     f.save(update_fields=update_fields)
     recalcular_fechamento(f)
+    if not era_pago_manual:
+        restaurar_valor_pago_controle_fechamento(f)
     return f
 
 

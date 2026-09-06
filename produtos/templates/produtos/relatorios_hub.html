@@ -5,20 +5,22 @@
 
 {% block head_extra %}
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script>window.GM_LOADING_BAR_SHOW_DELAY_MS = 0;</script>
 {% endblock %}
 
 {% block pdv_shell_class %}min-h-screen bg-slate-950{% endblock %}
-{% block pdv_section_class %}mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8{% endblock %}
+{% block pdv_section_class %}mx-auto w-full max-w-[min(100rem,calc(100vw-1.25rem))] px-3 py-4 sm:px-5 sm:py-6{% endblock %}
 
 {% block pdv_header %}
 <header class="border-b border-slate-800 bg-slate-900/90 shadow-sm">
-  <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
+  <div class="mx-auto flex max-w-[min(100rem,calc(100vw-1.25rem))] flex-wrap items-center justify-between gap-4 px-3 py-4 sm:px-5">
     <div class="min-w-0">
       <p class="text-[10px] font-black uppercase tracking-[0.24em] text-orange-500">Relatórios</p>
       <h1 class="mt-0.5 truncate text-2xl font-black tracking-tight text-white">Central de Relatórios</h1>
       <p class="mt-1 text-sm font-medium text-slate-400">Gere análises e acompanhe os indicadores da SisVale.</p>
     </div>
-    <div class="flex shrink-0 items-center gap-2">
+    <div class="relative z-30 flex shrink-0 items-center gap-2 overflow-visible">
+      {% with rel_help="hub" %}{% include "produtos/includes/relatorios_help_agents.html" %}{% endwith %}
       {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border-2 border-slate-600 bg-slate-800 px-3 py-2 text-xs font-black uppercase text-slate-100 shadow-sm hover:border-orange-500 hover:text-white" %}
     </div>
   </div>
@@ -26,40 +28,317 @@
 {% endblock %}
 
 {% block pdv_content %}
-<div class="p-2 sm:p-4">
-  <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-    <a href="{% url 'relatorios_validade' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-6 transition-all hover:border-orange-500/50 hover:bg-slate-700/50">
-      <div class="mb-4 flex items-center gap-4">
-        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/20 text-orange-500 transition-transform group-hover:scale-110">
-          <i class="fas fa-calendar-alt text-2xl" aria-hidden="true"></i>
-        </div>
-        <div>
-          <h3 class="text-xl font-bold text-white">Validade e Lote</h3>
-          <span class="text-xs font-bold uppercase tracking-wider text-orange-500">Perecíveis</span>
-        </div>
-      </div>
-      <p class="text-sm leading-relaxed text-slate-400">
-        Lista de produtos com data de vencimento próxima ou vencidos. Ideal para gestão de perdas.
-      </p>
-      <div class="mt-6 flex items-center text-sm font-bold text-orange-500">
-        <span>GERAR RELATÓRIO</span>
-        <i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i>
-      </div>
-    </a>
+<div class="space-y-8 p-1 sm:p-2">
 
-    <div class="cursor-not-allowed rounded-2xl border border-slate-700 bg-slate-800/90 p-6 opacity-50">
-      <div class="mb-4 flex items-center gap-4">
-        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-500">
-          <i class="fas fa-chart-bar text-2xl" aria-hidden="true"></i>
-        </div>
-        <div>
-          <h3 class="text-xl font-bold text-white">Vendas por Grupo</h3>
-          <span class="text-xs font-bold uppercase tracking-wider text-emerald-500">Em breve</span>
-        </div>
-      </div>
-      <p class="text-sm text-slate-400">Análise detalhada de performance por categoria de produto.</p>
+  {# —— Vendas —— #}
+  <section>
+    <div class="mb-3 flex items-center gap-3">
+      <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-400">Vendas</h2>
+      <div class="h-px flex-1 bg-slate-700/80" aria-hidden="true"></div>
     </div>
-  </div>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <a href="{% url 'vendas_lojas_resumo' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-orange-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-500/20 text-orange-400 transition-transform group-hover:scale-110">
+            <i class="fas fa-store text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Vendas por loja</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-orange-400">Centro + Vila</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">Só o valor vendido nas duas lojas, com total. Padrão: hoje.</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-orange-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+
+      <a href="{% url 'relatorios_mais_vendidos' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-emerald-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 transition-transform group-hover:scale-110">
+            <i class="fas fa-trophy text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Produtos mais vendidos</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Ranking</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">Por preço total ou quantidade. Também os menos vendidos.</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-emerald-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+
+      <a href="{% url 'relatorios_curva_abc' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-violet-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-500/20 text-violet-400 transition-transform group-hover:scale-110">
+            <i class="fas fa-layer-group text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Curva ABC</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-violet-400">80 / 15 / 5</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">Classifica A, B e C pelo faturamento — ideal para loja nova.</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-violet-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+
+      <a href="{% url 'relatorios_vendas_grupo' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-sky-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-500/20 text-sky-400 transition-transform group-hover:scale-110">
+            <i class="fas fa-chart-bar text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Vendas por grupo</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-sky-400">Categoria</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">Performance por categoria do cadastro.</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-sky-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+
+      <a href="{% url 'relatorios_vendas_marca' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-fuchsia-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-fuchsia-500/20 text-fuchsia-400 transition-transform group-hover:scale-110">
+            <i class="fas fa-tags text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Vendas por marca</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-fuchsia-400">Marcas</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">Por valor total ou quantidade ??? ranking das marcas.</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-fuchsia-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+
+      <a href="{% url 'relatorios_margem' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-lime-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-lime-500/20 text-lime-400 transition-transform group-hover:scale-110">
+            <i class="fas fa-percent text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Margem por produto</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-lime-400">Lucro</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">Venda versus custo — margem em R$ e %.</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-lime-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+
+      <a href="{% url 'relatorios_comparativo' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-indigo-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-400 transition-transform group-hover:scale-110">
+            <i class="fas fa-exchange-alt text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Comparativo períodos</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-400">Tendência</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">Este período versus o anterior (variação %).</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-indigo-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+
+      <a href="{% url 'relatorios_formas_pagamento' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-teal-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-500/20 text-teal-400 transition-transform group-hover:scale-110">
+            <i class="fas fa-money-bill-wave text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Formas de pagamento</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-teal-400">Caixa</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">Dinheiro, cartão, fiado e demais formas.</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-teal-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+    </div>
+  </section>
+
+  {# —— Estoque —— #}
+  <section>
+    <div class="mb-3 flex items-center gap-3">
+      <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">Estoque</h2>
+      <div class="h-px flex-1 bg-slate-700/80" aria-hidden="true"></div>
+    </div>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <a href="{% url 'relatorios_validade' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-orange-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-500/20 text-orange-500 transition-transform group-hover:scale-110">
+            <i class="fas fa-calendar-alt text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Validade e Lote</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-orange-500">Perecíveis</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">Próximos do vencimento ou vencidos — perdas.</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-orange-500"><span>GERAR RELATÓRIO</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+
+      <a href="{% url 'relatorios_giro_estoque' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-amber-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400 transition-transform group-hover:scale-110">
+            <i class="fas fa-warehouse text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Giro e estoque parado</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400">Capital</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">O que gira rápido e o que está parado com saldo.</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-amber-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+
+      <a href="{% url 'relatorios_ruptura' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-red-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-500/20 text-red-400 transition-transform group-hover:scale-110">
+            <i class="fas fa-exclamation-triangle text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Ruptura de estoque</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-red-400">Falta</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">Vendeu recentemente e o estoque zerou.</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-red-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+
+      <a href="{% url 'relatorios_inventario' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-lime-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-lime-500/20 text-lime-400 transition-transform group-hover:scale-110">
+            <i class="fas fa-boxes-stacked text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Inventário valorizado</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-lime-400">Valor total</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">Cadastro + saldo C/V + valor no custo e no preço de venda.</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-lime-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+
+      <a href="{% url 'relatorios_estoque_resumo' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-sky-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-500/20 text-sky-400 transition-transform group-hover:scale-110">
+            <i class="fas fa-chart-pie text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Resumo do estoque</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-sky-400">Por grupo</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">Totais por categoria, marca ou unidade.</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-sky-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+
+      <a href="{% url 'relatorios_estoque_min_max' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-orange-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-500/20 text-orange-400 transition-transform group-hover:scale-110">
+            <i class="fas fa-sliders text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Mínimo / máximo</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-orange-400">Meta</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">Abaixo do mínimo ou acima do máximo cadastrado.</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-orange-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+
+      <a href="{% url 'relatorios_estoque_sem_custo' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-fuchsia-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-fuchsia-500/20 text-fuchsia-400 transition-transform group-hover:scale-110">
+            <i class="fas fa-circle-exclamation text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Sem custo</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-fuchsia-400">Buracos</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">Tem saldo e o custo do cadastro está zerado.</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-fuchsia-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+
+      <a href="{% url 'relatorios_estoque_zerados' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-rose-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-500/20 text-rose-400 transition-transform group-hover:scale-110">
+            <i class="fas fa-ban text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Zerados / negativos</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-rose-400">Conferência</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">Saldo C+V zerado ou negativo.</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-rose-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+
+      <a href="{% url 'produtos_etiquetas' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-emerald-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-500 transition-transform group-hover:scale-110">
+            <i class="fas fa-tags text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Etiquetas de preço</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-500">4×4 cm · térmica</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">Monte a fila e imprima na térmica.</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-emerald-500"><span>ABRIR IMPRESSÃO</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+    </div>
+  </section>
+
+  {# —— Equipe e clientes —— #}
+  <section>
+    <div class="mb-3 flex items-center gap-3">
+      <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-400">Equipe e clientes</h2>
+      <div class="h-px flex-1 bg-slate-700/80" aria-hidden="true"></div>
+    </div>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <a href="{% url 'relatorios_vendas_operador' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-cyan-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cyan-500/20 text-cyan-400 transition-transform group-hover:scale-110">
+            <i class="fas fa-user-tie text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Vendas por operador</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-cyan-400">Equipe</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">Totais por quem registrou a venda no PDV.</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-cyan-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+
+      <a href="{% url 'relatorios_ranking_clientes' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-pink-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-pink-500/20 text-pink-400 transition-transform group-hover:scale-110">
+            <i class="fas fa-users text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Ranking de clientes</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-pink-400">Relacionamento</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">Quem mais comprou no período.</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-pink-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+
+      <a href="{% url 'relatorios_comissao' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-yellow-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-yellow-500/20 text-yellow-400 transition-transform group-hover:scale-110">
+            <i class="fas fa-hand-holding-usd text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Comissão estimada</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-yellow-400">Sem meta</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">Estimativa com %/R$ do cadastro (quando existir).</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-yellow-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+    </div>
+  </section>
+
 </div>
+{% include "produtos/_gm_loading_bar.html" %}
+{% include "produtos/_relatorios_loading.html" %}
 {% include "produtos/_atalho_voltar_pdv.html" %}
 {% endblock %}

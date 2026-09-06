@@ -1,11 +1,4 @@
 <section id="pdv-step-pagamento-root" class="pdv-step-panel pdv-pay-step flex min-h-0 flex-1 flex-col gap-1 overflow-hidden" data-step-panel="pagamento" hidden>
-  <div class="pdv-wiz-step-bar pdv-wiz-step-bar--green">
-    <div class="min-w-0 flex-1">
-      <p class="pdv-wiz-step-etapa">Etapa 4</p>
-      <h2 class="pdv-wiz-step-title">Pagamento</h2>
-    </div>
-    <button type="button" class="pdv-wiz-help shrink-0" data-pdv-help="pagamento" title="Ajuda — pagamento">?</button>
-  </div>
   <div class="pdv-pay-main-grid grid min-h-0 flex-1 gap-1.5 overflow-hidden lg:grid-cols-[minmax(0,1fr)_minmax(14rem,20rem)]">
     <article class="pdv-pay-left-col pdv-wiz-panel flex min-h-0 flex-col overflow-hidden">
       <div class="pdv-pay-left-scroll min-h-0 flex-1 space-y-1.5 overflow-y-auto overflow-x-hidden p-0">
@@ -16,7 +9,7 @@
         <option value="PIX">PIX</option>
         <option value="Cartão de débito">Cartão de débito</option>
         <option value="Cartão de crédito">Cartão de crédito</option>
-        <option value="Crédito parcelado">Crédito parcelado</option>
+        <option value="Cartão de crédito parcelado">Cartão de crédito parcelado</option>
         <option value="Fiado">Fiado</option>
         <option value="Vale crédito">Vale crédito</option>
         <option value="Cashback">Cashback</option>
@@ -33,15 +26,39 @@
         <div class="flex flex-wrap items-center justify-between gap-2 px-3 pb-2.5 sm:gap-3 sm:px-3.5 sm:pb-3">
         <div class="min-w-0">
           <p id="pdv-payment-forma-label" class="text-base font-black text-slate-900 sm:text-lg">Nenhuma selecionada</p>
-          <p class="mt-0.5 text-[11px] font-bold text-slate-600 sm:text-xs">Pago: <span id="pdv-payment-pago-acum" class="tabular-nums text-emerald-800">R$ 0,00</span> · Restante: <span id="pdv-payment-restante-top" class="tabular-nums font-black text-orange-700">R$ 0,00</span></p>
+          <p id="pdv-payment-forma-resumo" class="mt-0.5 hidden text-[11px] font-bold text-slate-600 sm:text-xs"></p>
         </div>
         <button type="button" id="pdv-open-payment-forma" class="pdv-action-btn shrink-0 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2 text-xs text-white shadow-lg shadow-emerald-600/30 sm:rounded-2xl sm:px-5 sm:py-2.5 sm:text-sm">Escolher forma <kbd class="ml-1 hidden rounded bg-white/20 px-1.5 py-0.5 font-mono text-[10px] sm:inline">F3</kbd></button>
         </div>
       </div>
 
-      <div id="pdv-mp-point-wait-bar" class="hidden shrink-0 mx-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-orange-400 bg-orange-50 px-2.5 py-2 sm:mx-2.5 sm:rounded-xl" role="status" aria-live="polite">
-        <p class="min-w-0 text-xs font-black text-orange-950 sm:text-sm">Aguardando Point…</p>
-        <button type="button" id="pdv-mp-point-cancel-wait" class="pdv-action-btn shrink-0 rounded-lg border-2 border-orange-800 bg-white px-3 py-2 text-[10px] font-black uppercase text-orange-950 hover:bg-orange-100 sm:text-xs">Cancelar espera</button>
+      <div id="pdv-mp-point-wait-bar" class="hidden" aria-hidden="true"></div>
+
+      <div id="pdv-mp-point-wait-overlay" class="pdv-mp-point-wait-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pdv-mp-point-wait-title" aria-live="polite">
+        <div class="pdv-mp-point-wait-panel">
+          <div class="pdv-mp-point-wait-pulse" aria-hidden="true"></div>
+          <p class="pdv-mp-point-wait-kicker">Mercado Pago — maquininha</p>
+          <h3 id="pdv-mp-point-wait-title" class="pdv-mp-point-wait-title">Aguardando pagamento</h3>
+          <p id="pdv-mp-point-wait-amount" class="pdv-mp-point-wait-amount">R$ 0,00</p>
+          <p id="pdv-mp-point-wait-forma" class="pdv-mp-point-wait-forma"></p>
+          <p id="pdv-mp-point-wait-status" class="pdv-mp-point-wait-status">Enviando…</p>
+          <ol class="pdv-mp-point-wait-steps">
+            <li><span class="pdv-mp-step-num" aria-hidden="true">1</span> Olhe a <strong>maquininha</strong>.</li>
+            <li><span class="pdv-mp-step-num" aria-hidden="true">2</span> O valor aparece sozinho no visor.</li>
+            <li><span class="pdv-mp-step-num" aria-hidden="true">3</span> Cliente paga na forma do PDV (acima).</li>
+            <li><span class="pdv-mp-step-num" aria-hidden="true">4</span> Esta tela fecha ao confirmar.</li>
+          </ol>
+          <details class="pdv-mp-point-wait-help">
+            <summary>Travou ou não apareceu?</summary>
+            <ul>
+              <li>Só uma cobrança por vez — aguarde ou cancele na maquininha.</li>
+              <li>Parada? Desliga e liga a maquininha.</li>
+              <li>Confira internet e «vinculada ao caixa».</li>
+              <li>Use <strong>Cancelar espera</strong> e tente de novo.</li>
+            </ul>
+          </details>
+          <button type="button" id="pdv-mp-point-cancel-wait" class="pdv-mp-point-wait-cancel pdv-action-btn">Cancelar espera no PDV</button>
+        </div>
       </div>
 
       <div id="pdv-payment-no-forma-hint" class="shrink-0 mx-2 rounded-lg border border-emerald-200 bg-emerald-50/80 px-2 py-1.5 text-center sm:mx-2.5 sm:rounded-xl sm:py-2">
@@ -62,16 +79,32 @@
           <button type="button" id="pdv-pay-trocar-maquina" class="shrink-0 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase text-emerald-900">Trocar <kbd class="ml-0.5 rounded bg-white px-1 font-mono text-[9px] text-slate-700">M</kbd></button>
         </div>
 
-        <div id="pdv-pay-valor-tranche-bar" class="hidden shrink-0 border-b border-emerald-100 bg-amber-50/90 px-3 py-2">
+        <div id="pdv-flow-outro" class="pdv-payment-flow hidden shrink-0 space-y-3 border-b border-slate-200 bg-slate-50 px-3 py-3 sm:px-4 sm:py-3.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="text-sm font-black text-slate-800">Pagamento fora do padrão</p>
+            <button type="button" id="pdv-pay-open-outro-ajuda" class="rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-[10px] font-black uppercase text-slate-700">Como funciona?</button>
+          </div>
+          <button type="button" id="pdv-outro-validar-pin" class="w-full rounded-2xl border-2 border-orange-400 bg-gradient-to-r from-orange-200 to-amber-200 px-3 py-3.5 text-sm font-black uppercase text-orange-950 shadow-md">Validar PIN do operador</button>
+          <p id="pdv-outro-pin-msg" class="text-xs font-bold text-slate-600">1) PIN · 2) detalhe · 3) Lançar ou Confirmar</p>
           <label class="block">
-            <span class="mb-1 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase text-amber-950">
-              <span>Valor nesta forma</span>
-              <kbd class="rounded border border-amber-400 bg-white px-1.5 py-0.5 font-mono text-[9px]">Enter</kbd>
-              <span class="font-bold normal-case text-amber-900">restante: <span id="pdv-payment-valor-restante">R$ 0,00</span></span>
-              <span class="font-bold normal-case text-amber-900">total: <span id="pdv-payment-valor-total-ref">R$ 0,00</span></span>
-            </span>
-            <input id="pdv-pay-valor-tranche" type="text" inputmode="decimal" class="pdv-input text-lg font-black tabular-nums" placeholder="Ex.: 10,50" autocomplete="off">
+            <span class="mb-1.5 block text-[11px] font-black uppercase tracking-wide text-slate-600">Detalhes</span>
+            <textarea id="pdv-outro-detalhes" rows="3" class="pdv-input resize-y" placeholder="Ex.: permuta, depósito identificado… Depois toque em Lançar ou Confirmar"></textarea>
           </label>
+        </div>
+
+        <div id="pdv-pay-valor-tranche-bar" class="pdv-pay-valor-panel hidden shrink-0 border-b border-emerald-200 bg-white px-3 py-3 sm:px-4 sm:py-4">
+          <div class="pdv-pay-valor-panel-card rounded-2xl border-2 border-amber-300/90 bg-gradient-to-br from-amber-50 via-white to-emerald-50/50 p-3 shadow-md sm:p-4">
+            <p class="pdv-pay-valor-kicker">Agora</p>
+            <p class="pdv-pay-valor-falta">Falta <span id="pdv-payment-valor-restante" class="tabular-nums">R$ 0,00</span></p>
+            <label class="pdv-pay-valor-field mt-3 block">
+              <span class="pdv-pay-valor-input-label">Valor desta forma</span>
+              <input id="pdv-pay-valor-tranche" type="text" inputmode="decimal" class="pdv-pay-valor-input pdv-input w-full tabular-nums" placeholder="0,00" autocomplete="off">
+            </label>
+            <button type="button" id="pdv-pay-commit-tranche" class="pdv-pay-commit-tranche pdv-action-btn mt-3 w-full rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 py-4 text-base font-black uppercase tracking-wide text-white shadow-lg shadow-emerald-700/35 sm:text-lg">Lançar pagamento</button>
+            <div id="pdv-pay-step-chips" class="pdv-pay-step-chips mt-3" aria-label="Passos do pagamento"></div>
+            <p id="pdv-pay-commit-tranche-hint" class="sr-only"></p>
+          </div>
+          <span id="pdv-payment-valor-total-ref" class="sr-only" aria-hidden="true">R$ 0,00</span>
         </div>
 
         <div class="pdv-pay-flow-inner flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden overflow-x-hidden p-2 sm:gap-2 sm:p-2.5">
@@ -94,7 +127,7 @@
 
         <div id="pdv-flow-pix" class="pdv-payment-flow hidden min-h-0 flex-1 flex-col gap-2">
           <div id="pdv-pix-machine-gate" class="hidden flex flex-1 flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-sky-400 bg-sky-50/90 p-3 text-center sm:gap-3 sm:rounded-2xl sm:p-4">
-            <p class="text-xs font-black text-slate-800 sm:text-sm">Escolha a máquina antes do QR Pix</p>
+            <p class="text-xs font-black text-slate-800 sm:text-sm">Escolha a máquina Pix</p>
             <button type="button" id="pdv-pay-open-maquinas-pix" class="pdv-action-btn rounded-xl bg-gradient-to-r from-sky-600 to-cyan-600 px-5 py-2.5 text-xs text-white shadow-md sm:py-3 sm:text-sm">Selecionar máquina</button>
           </div>
           <div id="pdv-pix-steps-wrap" class="hidden min-h-0 flex-1 flex-col gap-2">
@@ -102,20 +135,30 @@
               <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-600 text-xs font-black text-white sm:h-9 sm:w-9 sm:text-sm">1</span>
               <div class="min-w-0 flex-1 rounded-xl border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-amber-100 p-2 shadow-sm sm:rounded-2xl sm:p-3">
                 <div class="flex flex-wrap items-center justify-between gap-1">
-                  <p class="text-xs font-black uppercase text-amber-950 sm:text-sm">Mercado Pago</p>
+                  <p class="text-xs font-black uppercase text-amber-950 sm:text-sm">Mercado Pago — Pix automático</p>
                   <button type="button" id="pdv-pay-open-qr-pix" class="rounded-md border-2 border-amber-600/40 bg-white px-2 py-0.5 text-[9px] font-black uppercase text-amber-900 sm:text-[10px]">Ampliar QR</button>
                 </div>
                 <div id="pdv-pix-mp-qr" class="mt-1 flex max-h-[min(18vh,9rem)] min-h-[56px] items-center justify-center overflow-hidden rounded-lg bg-white p-1 text-center text-[10px] font-bold text-slate-500 sm:min-h-[72px]">Carregando…</div>
               </div>
             </div>
+            <div id="pdv-pix-row-cielo" class="flex flex-wrap gap-1.5 sm:gap-2">
+              <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-700 text-xs font-black text-white sm:h-9 sm:w-9 sm:text-sm">2</span>
+              <div class="min-w-0 flex-1 rounded-xl border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-sky-100 p-2.5 shadow-sm sm:rounded-2xl sm:p-3">
+                <p class="text-xs font-black uppercase text-blue-950 sm:text-sm">Cielo — Pix manual</p>
+                <p id="pdv-pix-cielo-hint" class="mt-1 text-[11px] font-bold leading-snug text-slate-700 sm:text-xs">Gere o QR Pix na <strong>maquininha Cielo</strong>. Quando o cliente pagar, confirme a venda aqui no PDV.</p>
+              </div>
+            </div>
             <div id="pdv-pix-row-sicredi" class="flex flex-wrap gap-1.5 sm:gap-2">
-              <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-black text-white sm:h-9 sm:w-9 sm:text-sm">2</span>
-              <a id="pdv-pix-sicredi-link" href="#" target="_blank" rel="noopener noreferrer" class="flex min-h-[2.75rem] flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 px-3 text-center text-xs font-black uppercase text-white shadow-md sm:min-h-[3.25rem] sm:rounded-2xl sm:text-sm">Abrir QR Sicredi</a>
+              <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-black text-white sm:h-9 sm:w-9 sm:text-sm">3</span>
+              <div class="min-w-0 flex-1 rounded-xl border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-green-100 p-2.5 shadow-sm sm:rounded-2xl sm:p-3">
+                <p class="text-xs font-black uppercase text-emerald-950 sm:text-sm">Sicredi — Pix manual</p>
+                <p id="pdv-pix-sicredi-hint" class="mt-1 text-[11px] font-bold leading-snug text-slate-700 sm:text-xs">Gere o QR Pix na <strong>maquininha Sicredi</strong>. Quando o cliente pagar, confirme a venda aqui no PDV.</p>
+              </div>
             </div>
             <div id="pdv-pix-row-sicoob" class="flex flex-wrap gap-1.5 sm:gap-2">
-              <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-700 text-xs font-black text-white sm:h-9 sm:w-9 sm:text-sm">3</span>
+              <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-700 text-xs font-black text-white sm:h-9 sm:w-9 sm:text-sm">4</span>
               <div class="min-w-0 flex-1 rounded-xl border-2 border-slate-200 bg-white p-2 shadow-sm sm:rounded-2xl sm:p-3">
-                <p class="text-[10px] font-black uppercase text-slate-500 sm:text-[11px]">Chave Pix Sicoob</p>
+                <p class="text-[10px] font-black uppercase text-slate-500 sm:text-[11px]">Sicoob — chave Pix manual</p>
                 <p id="pdv-pix-sicob-key" class="mt-0.5 break-all text-xs font-bold text-slate-800 sm:text-sm"></p>
                 <button type="button" id="pdv-pix-copy-key" class="mt-1.5 w-full rounded-lg border-2 border-emerald-200 bg-emerald-50 py-1.5 text-[10px] font-black uppercase text-emerald-900 sm:rounded-xl sm:text-[11px]">Copiar chave</button>
               </div>
@@ -175,19 +218,6 @@
             <button type="button" id="pdv-pay-open-cashback-pop" class="rounded-xl border-2 border-rose-400 bg-white px-3 py-2 text-[10px] font-black uppercase text-rose-900">Ver em destaque</button>
           </div>
         </div>
-
-        <div id="pdv-flow-outro" class="pdv-payment-flow hidden space-y-4 rounded-2xl border-2 border-dashed border-slate-400 bg-slate-50 p-4">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <p class="text-sm font-black text-slate-800">Pagamento fora do padrão</p>
-            <button type="button" id="pdv-pay-open-outro-ajuda" class="rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-[10px] font-black uppercase text-slate-700">Como funciona?</button>
-          </div>
-          <button type="button" id="pdv-outro-validar-pin" class="w-full rounded-2xl border-2 border-orange-400 bg-gradient-to-r from-orange-200 to-amber-200 px-3 py-3.5 text-sm font-black uppercase text-orange-950 shadow-md">Validar PIN do operador</button>
-          <p id="pdv-outro-pin-msg" class="text-xs font-bold text-slate-600">PIN obrigatório antes de descrever o pagamento.</p>
-          <label class="block">
-            <span class="mb-1.5 block text-[11px] font-black uppercase tracking-wide text-slate-600">Detalhes</span>
-            <textarea id="pdv-outro-detalhes" rows="3" class="pdv-input resize-y" placeholder="Ex.: permuta, depósito identificado, link enviado…"></textarea>
-          </label>
-        </div>
         </div>
       </div>
       </div>
@@ -205,7 +235,7 @@
             <div class="absolute right-2 z-20 mt-2 max-w-[min(52vw,22rem)] space-y-3 overflow-y-auto rounded-xl border-2 border-emerald-200 bg-white p-3 text-[11px] font-semibold leading-snug text-slate-700 shadow-xl sm:text-xs">
               <section>
                 <p class="font-black text-slate-900">Mercado Pago — Balcão (Point)</p>
-                <p class="mt-1"><strong>Automático:</strong> só depois de confirmar a venda (Enter ou F9) o valor vai para a maquininha. <strong>Manual:</strong> você digita o valor no terminal.</p>
+                <p class="mt-1"><strong>Automático:</strong> Enter no valor envia à maquininha; «Confirmar» só fecha a venda. <strong>Manual:</strong> você digita o valor no terminal.</p>
                 <p class="mt-1">Na espera do Point: use <strong>Cancelar espera</strong> se precisar. Depois, em “Pagamentos já lançados”, <strong>Alterar</strong> (ex.: manual) ou <strong>Excluir</strong> e lance outra forma. Se o valor ficar aberto na máquina, cancele no próprio terminal.</p>
               </section>
               <section>
@@ -221,6 +251,10 @@
                 <p class="mt-1">O valor não pode passar do saldo. Use “Valor nesta forma” e Enter.</p>
               </section>
               <section>
+                <p class="font-black text-slate-900">Outro</p>
+                <p class="mt-1">1) Validar PIN · 2) escrever o detalhe · 3) <strong>Lançar pagamento</strong> (ou <strong>Confirmar</strong> se o valor já estiver certo). Só o detalhe não fecha a venda.</p>
+              </section>
+              <section>
                 <p class="font-black text-slate-900">Atalhos</p>
                 <p class="mt-1">F3 formas · 1–9 no painel · Enter / F9 confirmar · M máquina · T trocar forma no fluxo.</p>
               </section>
@@ -229,54 +263,31 @@
         </div>
         <p class="mt-0.5 text-[10px] font-black uppercase tracking-wide text-emerald-800/90">Fechamento</p>
       </div>
-      <div class="pdv-pay-right-scroll min-h-0 flex-1 space-y-2 overflow-y-auto p-2.5 sm:p-3">
-      <div class="space-y-1 rounded-xl border-2 border-emerald-200 bg-white p-2.5 sm:rounded-2xl sm:p-3">
-        <div class="flex items-center justify-between gap-2 text-xs font-bold text-slate-600 sm:text-sm"><span>Subtotal</span><span id="pdv-payment-subtotal">R$ 0,00</span></div>
-        <div class="flex items-center justify-between gap-2 text-xs font-bold text-slate-600 sm:text-sm"><span>Desconto</span><span id="pdv-payment-discount-view">R$ 0,00</span></div>
-        <div class="flex items-center justify-between gap-2 text-xs font-bold text-slate-600 sm:text-sm"><span>Frete</span><span id="pdv-payment-shipping-view">R$ 0,00</span></div>
-        <div class="border-t border-emerald-100 pt-2">
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-xs font-black uppercase tracking-wide text-slate-700 sm:text-sm">Total final</span>
-            <span id="pdv-payment-total" class="text-2xl font-black tracking-tight text-emerald-700 sm:text-3xl">R$ 0,00</span>
-          </div>
+      <div class="pdv-pay-right-scroll min-h-0 flex-1 space-y-1.5 overflow-y-auto p-2 sm:p-2.5">
+      <div id="pdv-payment-restante-hero" class="pdv-pay-restante-hero pdv-pay-restante-hero--pendente rounded-xl border-2 p-2.5 text-center sm:rounded-2xl sm:p-3">
+        <p id="pdv-payment-restante-hero-label" class="pdv-pay-hero-label">Resta pagar</p>
+        <p id="pdv-payment-restante-hero-val" class="pdv-pay-hero-val mt-1 tabular-nums leading-none">R$ 0,00</p>
+        <p id="pdv-payment-restante-hero-sub" class="pdv-pay-hero-sub mt-1.5">Total <span id="pdv-payment-total-inline" class="tabular-nums font-black">R$ 0,00</span></p>
+      </div>
+      <details id="pdv-payment-totais-detalhe" class="hidden rounded-xl border border-slate-200 bg-white px-2.5 py-2 sm:rounded-2xl sm:px-3">
+        <summary class="cursor-pointer text-[10px] font-black uppercase tracking-wide text-slate-500 sm:text-[11px]">Detalhes do total</summary>
+        <div class="mt-2 space-y-1 border-t border-slate-100 pt-2">
+          <div class="flex items-center justify-between gap-2 text-xs font-bold text-slate-600"><span>Subtotal</span><span id="pdv-payment-subtotal">R$ 0,00</span></div>
+          <div class="flex items-center justify-between gap-2 text-xs font-bold text-slate-600"><span>Desconto</span><span id="pdv-payment-discount-view">R$ 0,00</span></div>
+          <div class="flex items-center justify-between gap-2 text-xs font-bold text-slate-600"><span>Frete</span><span id="pdv-payment-shipping-view">R$ 0,00</span></div>
         </div>
+      </details>
+      <span id="pdv-payment-pago-acum" class="sr-only" aria-hidden="true">R$ 0,00</span>
+      <span id="pdv-payment-restante-top" class="sr-only" aria-hidden="true">R$ 0,00</span>
+      <span id="pdv-payment-total" class="sr-only" aria-hidden="true">R$ 0,00</span>
+      <div id="pdv-payment-lancamentos-box" class="hidden rounded-xl border border-emerald-200 bg-white p-1.5 sm:rounded-2xl sm:p-2">
+        <p class="px-1 text-[10px] font-black uppercase tracking-wide text-emerald-800 sm:text-[11px]">Pagamentos lançados</p>
+        <ul id="pdv-payment-lancamentos-list" class="mt-1 space-y-1.5"></ul>
       </div>
-      <div id="pdv-payment-lancamentos-box" class="hidden rounded-xl border border-emerald-200 bg-white p-2 sm:rounded-2xl sm:p-2.5">
-        <p class="text-[10px] font-black uppercase tracking-wide text-emerald-800 sm:text-[11px]">Pagamentos já lançados</p>
-        <ul id="pdv-payment-lancamentos-list" class="mt-1.5 space-y-2"></ul>
-      </div>
-      <div id="pdv-payment-feedback" class="min-h-[2.25rem] rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 sm:rounded-2xl sm:py-2 sm:text-sm"></div>
+      <div id="pdv-payment-feedback" class="min-h-0 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 empty:hidden sm:rounded-2xl sm:text-sm"></div>
       </div>
     </article>
   </div>
-
-  <footer id="pdv-pay-footer" class="shrink-0 border-t-2 border-slate-200 bg-white shadow-[0_-6px_20px_rgba(15,23,42,0.06)]">
-    <div class="grid gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 lg:grid-cols-[minmax(0,1fr)_minmax(14rem,20rem)] lg:items-end lg:gap-3">
-      <div class="min-w-0 space-y-1">
-        <div class="grid gap-1.5 sm:grid-cols-2 sm:gap-2">
-          <div class="block">
-            <span class="mb-0.5 block text-[10px] font-black uppercase tracking-wide text-slate-500 sm:text-[11px]">Desconto geral</span>
-            <div class="flex gap-1.5">
-              <input id="pdv-payment-discount" type="text" inputmode="decimal" class="pdv-input min-w-0 flex-1 py-1.5 text-sm tabular-nums sm:py-2" placeholder="Ex.: 5,00" autocomplete="off">
-              <button type="button" id="pdv-confirm-discount" class="pdv-action-btn shrink-0 rounded-xl border-2 border-orange-400 bg-orange-50 px-2.5 py-1.5 text-[10px] font-black uppercase leading-tight text-orange-950 hover:bg-orange-100 sm:px-3 sm:py-2 sm:text-[11px]" title="Aplica o desconto e abre as formas de pagamento">Confirmar</button>
-            </div>
-          </div>
-          <label class="block">
-            <span class="mb-0.5 block text-[10px] font-black uppercase tracking-wide text-slate-500 sm:text-[11px]">Frete</span>
-            <input id="pdv-payment-shipping" type="text" inputmode="decimal" class="pdv-input py-1.5 text-sm tabular-nums sm:py-2" placeholder="Ex.: 10,00" autocomplete="off">
-          </label>
-        </div>
-        <label class="block">
-          <span class="mb-0.5 block text-[10px] font-black uppercase tracking-wide text-slate-500 sm:text-[11px]">Observação final</span>
-          <textarea id="pdv-payment-note" rows="1" class="pdv-input min-h-[2rem] resize-y py-1.5 text-sm leading-snug sm:min-h-[2.25rem] sm:py-2"></textarea>
-        </label>
-      </div>
-      <div class="flex min-w-0 flex-col gap-1.5 lg:max-w-none">
-        <button type="button" id="pdv-confirm-sale-no-print" class="pdv-action-btn w-full border-2 border-emerald-500 bg-white px-3 py-2.5 text-xs font-black text-emerald-800 shadow-md hover:bg-emerald-50 sm:px-4 sm:py-3 sm:text-sm">Confirmar sem impressão <kbd class="ml-1 rounded border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px]">Enter</kbd></button>
-        <button type="button" id="pdv-confirm-sale-print" class="pdv-action-btn w-full bg-emerald-600 px-3 py-2.5 text-xs font-black text-white shadow-lg shadow-emerald-600/25 sm:px-4 sm:py-3 sm:text-sm">Confirmar com impressão <kbd class="ml-1 rounded bg-emerald-500 px-1.5 py-0.5 font-mono text-[10px] text-white">F9</kbd></button>
-      </div>
-    </div>
-  </footer>
 
   <dialog id="pdv-pay-pop-maquinas" class="pdv-pay-flow-pop z-[315] w-[min(96vw,440px)] shadow-2xl">
     <div class="rounded-3xl bg-white">
@@ -286,23 +297,6 @@
       </div>
       <div id="pdv-pay-maquinas-list" class="max-h-[min(52vh,340px)] overflow-y-auto p-4"></div>
       <p class="border-t border-slate-100 px-4 py-1.5 text-center text-[10px] font-semibold text-slate-400"><kbd class="rounded bg-slate-100 px-1 font-mono">Esc</kbd> fecha</p>
-    </div>
-  </dialog>
-
-  <dialog id="pdv-pay-pop-mp-balcao-modo" class="pdv-pay-flow-pop z-[325] w-[min(96vw,440px)] shadow-2xl">
-    <div class="rounded-3xl bg-white">
-      <div class="border-b border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 px-4 py-3">
-        <h3 class="text-lg font-black text-amber-950">Mercado Pago — Balcão</h3>
-      </div>
-      <div class="space-y-3 p-4">
-        <button type="button" id="pdv-mp-balcao-btn-point" class="pdv-action-btn w-full min-h-[3rem] rounded-2xl border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-yellow-100 px-4 py-3 text-left text-sm font-black text-amber-950 shadow-md hover:brightness-[1.02] sm:min-h-[3.25rem] sm:text-base">
-          Automático (Point ao fechar)
-        </button>
-        <button type="button" id="pdv-mp-balcao-btn-manual" class="pdv-action-btn w-full min-h-[3rem] rounded-2xl border-2 border-slate-300 bg-white px-4 py-3 text-left text-sm font-black text-slate-900 shadow-sm hover:bg-slate-50 sm:min-h-[3.25rem] sm:text-base">
-          Manual (digito no terminal)
-        </button>
-        <button type="button" id="pdv-mp-balcao-btn-cancel" class="pdv-action-btn w-full rounded-2xl border-2 border-slate-200 bg-slate-100 py-3 text-sm font-black uppercase text-slate-700 hover:bg-slate-200">Cancelar</button>
-      </div>
     </div>
   </dialog>
 
@@ -364,7 +358,7 @@
       <ul class="mt-4 list-inside list-decimal space-y-2 text-sm font-semibold text-slate-200">
         <li>Valide o PIN do operador (controle da loja).</li>
         <li>Descreva com clareza o combinado com o cliente.</li>
-        <li>Informe o valor em <strong>Valor nesta forma</strong> e confirme com Enter.</li>
+        <li>Informe o valor e toque em <strong>Lançar pagamento</strong> ou <strong>Confirmar</strong> (fecha a venda se o valor cobrir o restante).</li>
       </ul>
       <form method="dialog" class="mt-6"><button type="submit" class="pdv-action-btn w-full bg-white py-3.5 text-sm font-black text-slate-900">Fechar</button></form>
     </div>
@@ -417,9 +411,9 @@
               <span class="text-sm font-black leading-tight">Crédito</span>
               <kbd class="w-fit rounded bg-black/30 px-1.5 py-0.5 font-mono text-xs font-black">4</kbd>
             </button>
-            <button type="button" data-payment-modal-card="Crédito parcelado" class="pdv-pay-modal-btn flex min-h-[5.5rem] flex-col justify-between rounded-2xl border-2 border-fuchsia-400/40 bg-gradient-to-br from-purple-600 to-fuchsia-700 p-3 text-left text-white shadow-md transition hover:scale-[1.02] active:scale-[0.98]">
+            <button type="button" data-payment-modal-card="Cartão de crédito parcelado" class="pdv-pay-modal-btn flex min-h-[5.5rem] flex-col justify-between rounded-2xl border-2 border-fuchsia-400/40 bg-gradient-to-br from-purple-600 to-fuchsia-700 p-3 text-left text-white shadow-md transition hover:scale-[1.02] active:scale-[0.98]">
               <span class="text-xl" aria-hidden="true">📅</span>
-              <span class="text-sm font-black leading-tight">Parc.</span>
+              <span class="text-sm font-black leading-tight">Créd. parc.</span>
               <kbd class="w-fit rounded bg-black/30 px-1.5 py-0.5 font-mono text-xs font-black">5</kbd>
             </button>
           </div>

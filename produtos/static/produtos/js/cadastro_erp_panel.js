@@ -5,6 +5,7 @@
   var escapeHtml = U.escapeHtml;
   var fmtMoney = U.fmtMoney;
   var setLoading = U.setLoading;
+  var resetLoading = U.resetLoading;
   var C = window.AgroCadastroErpLista || {};
   var CADASTRO_ERP_MODO = C.CADASTRO_ERP_MODO || 'lista';
   var CADASTRO_ERP_PID = C.CADASTRO_ERP_PID || '';
@@ -13,13 +14,22 @@
   var API_DETALHE_TMPL = C.API_DETALHE_TMPL || '';
   var URL_CAD_ERP_PROD_TMPL = C.URL_CAD_ERP_PROD_TMPL || '';
   var URL_OVERLAY_SALVAR = C.URL_OVERLAY_SALVAR || '';
+  var URL_AJUSTE_ESTOQUE = C.URL_AJUSTE_ESTOQUE || '';
+  var URL_FACETAS = C.URL_FACETAS || '';
+  var URL_FACETA_NOVA = C.URL_FACETA_NOVA || '';
   var URL_ERP_PENDENTES = C.URL_ERP_PENDENTES || '';
   var URL_ERP_SYNC_PENDENTES = C.URL_ERP_SYNC_PENDENTES || '';
+  var URL_PENDENTES_PDV = C.URL_PENDENTES_PDV || '';
+  var URL_PENDENTES_PDV_CONFERIDO = C.URL_PENDENTES_PDV_CONFERIDO || '';
   var PODE_EDITAR_OVERLAY = !!C.PODE_EDITAR_OVERLAY;
+  var ERP_SYNC_HABILITADO = !!C.CADASTRO_ERP_SYNC_HABILITADO;
   var LOGIN_OVERLAY_HREF = C.LOGIN_OVERLAY_HREF || '';
   var btnErpPend = document.getElementById('cadastro-btn-erp-pendentes');
   var btnErpForcarTodos = document.getElementById('cadastro-btn-erp-forcar-todos');
   var lblErpPendN = document.getElementById('cadastro-erp-pend-n');
+  var btnPendentesPdv = document.getElementById('cadastro-card-pendentes-pdv');
+  var lblPendentesPdvN = document.getElementById('cadastro-pendentes-pdv-n');
+  var filtroPendentePdvAtivo = false;
 
   function csrfTokErp() {
     return (U && U.csrf) ? U.csrf() : ((document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '');
@@ -39,7 +49,7 @@
 
   function fetchPendentesBadgePromise(opt) {
     var sig = opt && opt.signal;
-    if (!URL_ERP_PENDENTES || !lblErpPendN || !btnErpPend) return Promise.resolve();
+    if (!ERP_SYNC_HABILITADO || !URL_ERP_PENDENTES || !lblErpPendN || !btnErpPend) return Promise.resolve();
     if (!PODE_EDITAR_OVERLAY) return Promise.resolve();
     return fetch(URL_ERP_PENDENTES, { credentials: 'same-origin', signal: sig })
       .then(function (r) { return r.json().catch(function () { return {}; }); })
@@ -51,6 +61,40 @@
     fetchPendentesBadgePromise();
   }
   window.agroCadastroErpRefreshPendentesBadge = refreshPendentesBadge;
+
+  function aplicarRespostaPendentesPdv(j) {
+    var n = (j && j.ok && typeof j.n === 'number') ? j.n : 0;
+    if (lblPendentesPdvN) lblPendentesPdvN.textContent = '(' + n + ')';
+    if (!btnPendentesPdv) return;
+    if (n > 0 || filtroPendentePdvAtivo) {
+      btnPendentesPdv.classList.remove('hidden');
+      if (n > 0) btnPendentesPdv.classList.add('animate-pulse');
+      else btnPendentesPdv.classList.remove('animate-pulse');
+    } else {
+      btnPendentesPdv.classList.add('hidden');
+    }
+    if (filtroPendentePdvAtivo) {
+      btnPendentesPdv.classList.add('ring-4', 'ring-orange-200');
+      btnPendentesPdv.title = 'Filtro ativo — clique de novo para limpar';
+    } else {
+      btnPendentesPdv.classList.remove('ring-4', 'ring-orange-200');
+      btnPendentesPdv.title = 'Produtos criados no PDV que precisam conferência';
+    }
+  }
+
+  function fetchPendentesPdvPromise(opt) {
+    var sig = opt && opt.signal;
+    if (!URL_PENDENTES_PDV || !btnPendentesPdv) return Promise.resolve();
+    return fetch(URL_PENDENTES_PDV, { credentials: 'same-origin', signal: sig })
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(aplicarRespostaPendentesPdv)
+      .catch(function () { /* ignore */ });
+  }
+
+  function refreshPendentesPdv() {
+    fetchPendentesPdvPromise();
+  }
+  window.agroCadastroErpRefreshPendentesPdv = refreshPendentesPdv;
 
   function jsonOuErroHumano(response) {
     return response.text().then(function (text) {
@@ -89,7 +133,67 @@
   var prevEl = document.getElementById('cadastro-prev');
   var nextEl = document.getElementById('cadastro-next');
   var pagWrap = document.getElementById('cadastro-paginacao');
+  var fMarcaEl = null;
+  var fCatEl = null;
+  var fFornEl = null;
+  var fSubEl = null;
+  var fSub2El = null;
+  var fSub3El = null;
+  var fSub4El = null;
+  var fUnidadeEl = null;
+  var fModeloEl = null;
+  var fEstoqueLojaEl = document.getElementById('cadastro-f-estoque-loja');
+  var fEstoqueSinalEl = document.getElementById('cadastro-f-estoque-sinal');
+  var fDataTipoEl = document.getElementById('cadastro-f-data-tipo');
+  var fDataDeEl = document.getElementById('cadastro-f-data-de');
+  var fDataAteEl = document.getElementById('cadastro-f-data-ate');
+  var fCustoMinEl = document.getElementById('cadastro-f-custo-min');
+  var fCustoMaxEl = document.getElementById('cadastro-f-custo-max');
+  var fVendaMinEl = document.getElementById('cadastro-f-venda-min');
+  var fVendaMaxEl = document.getElementById('cadastro-f-venda-max');
+  var fNcmEl = document.getElementById('cadastro-f-ncm');
+  var fSemMarcaEl = document.getElementById('cadastro-f-sem-marca');
+  var fSemCatEl = document.getElementById('cadastro-f-sem-cat');
+  var fSomenteAgroEl = document.getElementById('cadastro-f-somente-agro');
+  var fAplicarEl = document.getElementById('cadastro-f-aplicar');
+  var fLimparEl = document.getElementById('cadastro-f-limpar');
+  var fResumoEl = document.getElementById('cadastro-f-resumo');
+  var fChipsEl = document.getElementById('cadastro-f-chips');
 
+  var cadMsFacetas = {
+    marca: [],
+    categoria: [],
+    subcategoria: [],
+    subcategoria_2: [],
+    subcategoria_3: [],
+    subcategoria_4: [],
+    fornecedor: [],
+    unidade: [],
+    modelo: []
+  };
+  var cadMsSelected = {
+    marca: [],
+    categoria: [],
+    subcategoria: [],
+    subcategoria_2: [],
+    subcategoria_3: [],
+    subcategoria_4: [],
+    fornecedor: [],
+    unidade: [],
+    modelo: []
+  };
+  var cadMsLabels = {
+    marca: 'Marca',
+    categoria: 'Categoria',
+    subcategoria: 'Sub',
+    subcategoria_2: 'Sub 2',
+    subcategoria_3: 'Sub 3',
+    subcategoria_4: 'Sub 4',
+    fornecedor: 'Fornecedor',
+    unidade: 'Unidade',
+    modelo: 'Modelo'
+  };
+  var CADASTRO_LISTA_COLSPAN = 9;
   var pagina = 1;
   var porPagina = 72;
   var debounceTimer = null;
@@ -99,33 +203,21 @@
   var buscaMergeTimer = null;
   var PDV_CACHE_KEY = 'agro_pdv_catalog_cache_v2';
   var _cadastroCatLocal = null;
+  var _cadastroCatById = null;
   var _cadastroCatInited = false;
   var ultimos = [];
   var modoLista = true;
   var detalheReqSeq = 0;
   var ordenacaoAtual = { campo: null, direcao: 'asc' };
+  var expandAj = null;
+  var expandMm = null;
+  var facetasCarregadas = false;
 
-  function mostrarErro(msg, opcoes) {
+  function mostrarErro(msg) {
     if (!msg) {
       erroEl.classList.add('hidden');
       erroEl.textContent = '';
       erroEl.innerHTML = '';
-      return;
-    }
-    var hintMongo = opcoes && opcoes.hintMongo;
-    if (hintMongo) {
-      erroEl.innerHTML =
-        '<p class="font-bold">' + escapeHtml(msg) + '</p>' +
-        '<p class="mt-2 text-sm leading-snug">O espelho ERP precisa do Mongo configurado no servidor (<code class="text-xs bg-white/80 px-1 rounded">VENDA_ERP_MONGO_URL</code> e <code class="text-xs bg-white/80 px-1 rounded">VENDA_ERP_MONGO_DB</code> no arquivo <code class="text-xs">.env</code>). Copie os mesmos valores do ambiente onde o PDV já funciona.</p>' +
-        '<button type="button" id="cadastro-erro-ir-grupos" class="mt-3 min-h-[44px] px-4 rounded-xl text-sm font-black uppercase bg-orange-500 hover:bg-orange-600 text-white border-2 border-orange-700">Abrir aba Grupos (funciona sem Mongo)</button>';
-      erroEl.classList.remove('hidden');
-      var b = document.getElementById('cadastro-erro-ir-grupos');
-      if (b) {
-        b.addEventListener('click', function () {
-          var t = document.getElementById('tab-grupos');
-          if (t) t.click();
-        });
-      }
       return;
     }
     erroEl.innerHTML = '';
@@ -133,27 +225,273 @@
     erroEl.classList.remove('hidden');
   }
 
-  function urlFetch() {
-    if (!buscaEl) return API;
-    var q = (buscaEl.value || '').trim();
+  function cadastroMultiVals(keyOrSel) {
+    if (typeof keyOrSel === 'string') {
+      return (cadMsSelected[keyOrSel] || []).slice();
+    }
+    /* legado select — não usado mais */
+    if (!keyOrSel) return [];
+    var out = [];
+    Array.prototype.forEach.call(keyOrSel.selectedOptions || [], function (o) {
+      var v = String(o.value || '').trim();
+      if (v) out.push(v);
+    });
+    return out;
+  }
+
+  function cadastroMsNorm(s) {
+    return String(s || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+  }
+
+  function cadastroMsToggle(key, val, on) {
+    var list = cadMsSelected[key] || [];
+    var v = String(val || '').trim();
+    if (!v) return;
+    var i = list.indexOf(v);
+    if (on === true || (on == null && i < 0)) {
+      if (i < 0) list.push(v);
+    } else if (i >= 0) {
+      list.splice(i, 1);
+    }
+    cadMsSelected[key] = list;
+    cadastroMsRenderBtn(key);
+    cadastroMsRenderChips();
+    cadastroAtualizarResumoFiltros();
+  }
+
+  function cadastroMsClearKey(key) {
+    cadMsSelected[key] = [];
+    cadastroMsRenderBtn(key);
+  }
+
+  function cadastroMsRenderBtn(key) {
+    var root = document.querySelector('.cad-ms[data-ms="' + key + '"]');
+    if (!root) return;
+    var btn = root.querySelector('.cad-ms-btn');
+    if (!btn) return;
+    var n = (cadMsSelected[key] || []).length;
+    var label = cadMsLabels[key] || key;
+    btn.classList.toggle('is-on', n > 0);
+    btn.innerHTML = escapeHtml(label) + (n ? ' <span class="cad-ms-count">' + n + '</span>' : '');
+  }
+
+  function cadastroMsRenderChips() {
+    if (!fChipsEl) return;
+    var html = '';
+    Object.keys(cadMsSelected).forEach(function (key) {
+      (cadMsSelected[key] || []).forEach(function (v) {
+        html +=
+          '<span class="cad-f-chip" data-ms-key="' +
+          escapeHtml(key) +
+          '" data-ms-val="' +
+          escapeHtml(v) +
+          '"><span title="' +
+          escapeHtml((cadMsLabels[key] || key) + ': ' + v) +
+          '">' +
+          escapeHtml(cadMsLabels[key] || key) +
+          ': ' +
+          escapeHtml(v) +
+          '</span><button type="button" aria-label="Remover">×</button></span>';
+      });
+    });
+    fChipsEl.innerHTML = html;
+  }
+
+  function cadastroMsCloseAll(exceptRoot) {
+    document.querySelectorAll('.cad-ms-panel').forEach(function (p) {
+      if (exceptRoot && exceptRoot.contains(p)) return;
+      p.classList.add('hidden');
+    });
+  }
+
+  function cadastroMsFillPanel(root, q) {
+    var key = root.getAttribute('data-ms');
+    var panel = root.querySelector('.cad-ms-panel');
+    if (!panel || !key) return;
+    var selected = {};
+    (cadMsSelected[key] || []).forEach(function (v) { selected[v] = true; });
+    var nq = cadastroMsNorm(q);
+    var opts = (cadMsFacetas[key] || []).filter(function (x) {
+      if (!nq) return true;
+      return cadastroMsNorm(x).indexOf(nq) >= 0;
+    }).slice(0, 120);
+    var listHtml = opts.map(function (x) {
+      var checked = selected[x] ? ' checked' : '';
+      return (
+        '<label class="cad-ms-opt"><input type="checkbox" data-val="' +
+        escapeHtml(x) +
+        '"' +
+        checked +
+        '/><span>' +
+        escapeHtml(x) +
+        '</span></label>'
+      );
+    }).join('');
+    if (!listHtml) {
+      listHtml = '<p class="px-2 py-2 text-xs font-semibold text-slate-500">Nada encontrado.</p>';
+    }
+    var searchVal = panel.querySelector('input[type="search"]');
+    var keepQ = searchVal ? searchVal.value : (q || '');
+    panel.innerHTML =
+      '<input type="search" placeholder="Buscar…" value="' +
+      escapeHtml(keepQ) +
+      '" autocomplete="off" />' +
+      '<div class="cad-ms-list">' +
+      listHtml +
+      '</div>';
+    var inp = panel.querySelector('input[type="search"]');
+    if (inp) {
+      inp.addEventListener('input', function () {
+        cadastroMsFillPanel(root, inp.value);
+        var again = panel.querySelector('input[type="search"]');
+        if (again) {
+          again.focus();
+          try {
+            var len = again.value.length;
+            again.setSelectionRange(len, len);
+          } catch (e) {}
+        }
+      });
+    }
+    panel.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        cadastroMsToggle(key, cb.getAttribute('data-val'), cb.checked);
+      });
+    });
+  }
+
+  function cadastroMsWire() {
+    document.querySelectorAll('.cad-ms').forEach(function (root) {
+      var btn = root.querySelector('.cad-ms-btn');
+      var panel = root.querySelector('.cad-ms-panel');
+      if (!btn || !panel) return;
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var open = !panel.classList.contains('hidden');
+        cadastroMsCloseAll();
+        if (open) return;
+        panel.classList.remove('hidden');
+        cadastroMsFillPanel(root, '');
+        var inp = panel.querySelector('input[type="search"]');
+        if (inp) setTimeout(function () { inp.focus(); }, 30);
+      });
+    });
+    if (fChipsEl) {
+      fChipsEl.addEventListener('click', function (e) {
+        var btn = e.target.closest('button');
+        var chip = e.target.closest('.cad-f-chip');
+        if (!btn || !chip) return;
+        cadastroMsToggle(chip.getAttribute('data-ms-key'), chip.getAttribute('data-ms-val'), false);
+        cadastroMsRenderChips();
+      });
+    }
+    document.addEventListener('mousedown', function (e) {
+      if (e.target && e.target.closest && e.target.closest('.cad-ms')) return;
+      cadastroMsCloseAll();
+    });
+  }
+
+  function cadastroAppendMulti(params, key, vals) {
+    (vals || []).forEach(function (v) {
+      if (v) params.append(key, v);
+    });
+  }
+
+  function cadastroAtualizarResumoFiltros() {
+    if (!fResumoEl) return;
+    var n = 0;
+    Object.keys(cadMsSelected).forEach(function (k) {
+      if ((cadMsSelected[k] || []).length) n += 1;
+    });
+    if (fEstoqueSinalEl && fEstoqueSinalEl.value) n += 1;
+    if ((fDataDeEl && fDataDeEl.value) || (fDataAteEl && fDataAteEl.value)) n += 1;
+    if (fCustoMinEl && fCustoMinEl.value.trim()) n += 1;
+    if (fCustoMaxEl && fCustoMaxEl.value.trim()) n += 1;
+    if (fVendaMinEl && fVendaMinEl.value.trim()) n += 1;
+    if (fVendaMaxEl && fVendaMaxEl.value.trim()) n += 1;
+    if (fNcmEl && fNcmEl.value) n += 1;
+    if (fSemMarcaEl && fSemMarcaEl.checked) n += 1;
+    if (fSemCatEl && fSemCatEl.checked) n += 1;
+    if (fSomenteAgroEl && fSomenteAgroEl.checked) n += 1;
+    fResumoEl.textContent = n ? (n + ' ativo(s)') : '';
+  }
+
+  function cadastroQueryParams(opts) {
+    opts = opts || {};
     var params = new URLSearchParams();
+    params.set('incluir_saldo', '1');
     if (ativosEl && ativosEl.checked) {
       params.set('ativo', '1');
     } else if (ativosEl) {
       params.set('inativos', '1');
     }
+    var q = opts.q != null ? String(opts.q).trim() : ((buscaEl && buscaEl.value) ? buscaEl.value.trim() : '');
     if (q) {
       params.set('q', q);
-      params.set('limit', '80');
+      params.set('limit', String(opts.limit || 80));
     } else {
-      params.set('pagina', String(pagina));
-      params.set('por_pagina', String(porPagina));
+      params.set('pagina', String(opts.pagina != null ? opts.pagina : pagina));
+      params.set('por_pagina', String(opts.porPagina != null ? opts.porPagina : porPagina));
     }
     if (ordenacaoAtual.campo) {
       params.set('sort', ordenacaoAtual.campo);
       params.set('dir', ordenacaoAtual.direcao);
     }
-    return API + '?' + params.toString();
+
+    cadastroAppendMulti(params, 'marca', cadastroMultiVals('marca'));
+    cadastroAppendMulti(params, 'categoria', cadastroMultiVals('categoria'));
+    cadastroAppendMulti(params, 'fornecedor', cadastroMultiVals('fornecedor'));
+    cadastroAppendMulti(params, 'subcategoria', cadastroMultiVals('subcategoria'));
+    cadastroAppendMulti(params, 'subcategoria_2', cadastroMultiVals('subcategoria_2'));
+    cadastroAppendMulti(params, 'subcategoria_3', cadastroMultiVals('subcategoria_3'));
+    cadastroAppendMulti(params, 'subcategoria_4', cadastroMultiVals('subcategoria_4'));
+    cadastroAppendMulti(params, 'unidade', cadastroMultiVals('unidade'));
+    cadastroAppendMulti(params, 'modelo', cadastroMultiVals('modelo'));
+
+    if (fEstoqueLojaEl && fEstoqueLojaEl.value) params.set('estoque_loja', fEstoqueLojaEl.value);
+    if (fEstoqueSinalEl && fEstoqueSinalEl.value) params.set('estoque_sinal', fEstoqueSinalEl.value);
+    if ((fDataDeEl && fDataDeEl.value) || (fDataAteEl && fDataAteEl.value)) {
+      params.set('data_tipo', (fDataTipoEl && fDataTipoEl.value) || 'cadastro');
+      if (fDataDeEl && fDataDeEl.value) params.set('data_de', fDataDeEl.value);
+      if (fDataAteEl && fDataAteEl.value) params.set('data_ate', fDataAteEl.value);
+    }
+    if (fCustoMinEl && fCustoMinEl.value.trim()) params.set('custo_min', fCustoMinEl.value.trim());
+    if (fCustoMaxEl && fCustoMaxEl.value.trim()) params.set('custo_max', fCustoMaxEl.value.trim());
+    if (fVendaMinEl && fVendaMinEl.value.trim()) params.set('venda_min', fVendaMinEl.value.trim());
+    if (fVendaMaxEl && fVendaMaxEl.value.trim()) params.set('venda_max', fVendaMaxEl.value.trim());
+    if (fNcmEl && fNcmEl.value) params.set('ncm', fNcmEl.value);
+    if (fSemMarcaEl && fSemMarcaEl.checked) params.set('sem_marca', '1');
+    if (fSemCatEl && fSemCatEl.checked) params.set('sem_categoria', '1');
+    if (fSomenteAgroEl && fSomenteAgroEl.checked) params.set('somente_agro', '1');
+    if (filtroPendentePdvAtivo) params.set('pendente_pdv', '1');
+    return params;
+  }
+
+  /** Busca unificada: mesma rota do PDV com `contexto=cadastro` (+ custo e saldo). */
+  function cadastroQueryParamsBusca(opts) {
+    var base = cadastroQueryParams({
+      q: opts.q,
+      limit: opts.limit || cadastroLimiteBuscaPdv()
+    });
+    var params = new URLSearchParams();
+    params.set('contexto', 'cadastro');
+    params.set('compras', '1');
+    base.forEach(function (val, key) {
+      if (key === 'pagina' || key === 'por_pagina') return;
+      params.append(key, val);
+    });
+    if (!params.has('incluir_saldo')) params.set('incluir_saldo', '1');
+    return params;
+  }
+
+  function urlFetch() {
+    if (!buscaEl) return API;
+    return API + '?' + cadastroQueryParams().toString();
   }
 
   function dlRow(label, val) {
@@ -184,6 +522,54 @@
       minimumFractionDigits: dec != null ? dec : 2,
       maximumFractionDigits: dec != null ? dec : 4
     });
+  }
+
+  /** Quantidade de estoque: inteiro sem vírgula; senão até 2 casas (bater o olho). */
+  function fmtSaldoQtd(n) {
+    if (n === undefined || n === null || n === '') return '—';
+    var x = Number(n);
+    if (!isFinite(x)) return '—';
+    if (Math.abs(x - Math.round(x)) < 1e-9) {
+      return Math.round(x).toLocaleString('pt-BR');
+    }
+    return x.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  }
+
+  function cadastroSaldoTom(n) {
+    if (n === undefined || n === null || n === '' || !isFinite(Number(n))) return 'vazio';
+    var x = Number(n);
+    if (x > 1e-9) return 'pos';
+    if (x < -1e-9) return 'neg';
+    return 'zero';
+  }
+
+  function htmlCelulaSaldoLista(p) {
+    var sc = p.saldo_centro != null && isFinite(Number(p.saldo_centro)) ? Number(p.saldo_centro) : null;
+    var sv = p.saldo_vila != null && isFinite(Number(p.saldo_vila)) ? Number(p.saldo_vila) : null;
+    var st = p.saldo_total != null && isFinite(Number(p.saldo_total))
+      ? Number(p.saldo_total)
+      : (sc != null || sv != null ? (sc || 0) + (sv || 0) : null);
+    var tom = cadastroSaldoTom(st);
+    var totCls =
+      tom === 'pos' ? 'cad-saldo-tot is-pos' :
+      tom === 'neg' ? 'cad-saldo-tot is-neg' :
+      tom === 'zero' ? 'cad-saldo-tot is-zero' : 'cad-saldo-tot is-empty';
+    var pill = function (letra, val, titulo) {
+      var t = cadastroSaldoTom(val);
+      var cls =
+        t === 'pos' ? 'cad-saldo-pill is-pos' :
+        t === 'neg' ? 'cad-saldo-pill is-neg' :
+        t === 'zero' ? 'cad-saldo-pill is-zero' : 'cad-saldo-pill is-empty';
+      return '<span class="' + cls + '" title="' + escapeHtml(titulo) + '">' +
+        '<span class="cad-saldo-pill-l">' + letra + '</span>' +
+        '<span class="cad-saldo-pill-n">' + escapeHtml(fmtSaldoQtd(val)) + '</span></span>';
+    };
+    return '<div class="cad-saldo" title="Total = Centro + Vila">' +
+      '<div class="' + totCls + '">' + escapeHtml(fmtSaldoQtd(st)) + '</div>' +
+      '<div class="cad-saldo-lojas">' +
+      pill('C', sc, 'Centro') +
+      pill('V', sv, 'Vila Elias') +
+      '</div></div>';
   }
 
   function renderTabelaComposicao(itens) {
@@ -226,6 +612,32 @@
     return h;
   }
 
+  function pickFieldHtml(label, id, val, required, maisId, resId) {
+    return (
+      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">' +
+      label +
+      (required ? ' <span class="text-red-600 font-black">*</span>' : '') +
+      '</span>' +
+      '<div class="flex gap-1 relative">' +
+      '<input type="text" id="' +
+      id +
+      '" class="' +
+      icPick +
+      '" maxlength="200" value="' +
+      escapeHtml(val || '') +
+      '" autocomplete="off" placeholder="Buscar..." />' +
+      '<button type="button" id="' +
+      maisId +
+      '" class="w-11 h-11 shrink-0 rounded-xl border-2 border-emerald-400 bg-white text-lg font-black text-slate-700" title="Cadastrar novo">+</button>' +
+      '<div id="' +
+      resId +
+      '" class="hidden absolute top-full left-0 right-12 z-30 max-h-40 overflow-y-auto rounded-b-xl border border-slate-200 bg-white shadow-xl [scrollbar-width:thin]"></div>' +
+      '</div></label>'
+    );
+  }
+
+  var icPick = 'flex-1 min-h-[44px] px-3 rounded-xl border-2 border-emerald-400 text-base font-bold text-slate-900 bg-white';
+
   function buildOverlayFormHtml(p) {
     var pv = (p.preco_venda != null && isFinite(Number(p.preco_venda))) ? String(Number(p.preco_venda)).replace('.', ',') : '';
     var pc = (p.preco_custo != null && isFinite(Number(p.preco_custo))) ? String(Number(p.preco_custo)).replace('.', ',') : '';
@@ -236,38 +648,42 @@
     return (
       '<div class="mt-6 rounded-2xl border-2 border-emerald-600 bg-emerald-50/90 p-4 sm:p-5 shadow-sm">' +
       '<h4 class="text-sm font-black uppercase text-emerald-950 tracking-wide mb-1">Editar cadastro · Agro</h4>' +
-      '<p class="text-xs font-bold text-slate-800 mt-1 mb-3"><span class="text-red-600 font-black">*</span> Somente os campos com asterisco são obrigatórios para salvar ou enviar ao ERP.</p>' +
-      '<p class="text-xs text-slate-700 mb-4 leading-snug"><strong>Salvar no Agro</strong> atualiza só o Agro (PDV e buscas). <strong>Enviar ao ERP</strong> replica no ERP legado quando você quiser. Nos demais campos, vazio + salvar remove o override; em «Exibir como», «Seguir ERP» remove o forçamento de ativo/inativo.</p>' +
+      '<p class="text-xs font-bold text-slate-800 mt-1 mb-3"><span class="text-red-600 font-black">*</span> Somente os campos com asterisco são obrigatórios para salvar.</p>' +
+      '<p class="text-xs text-slate-700 mb-4 leading-snug"><strong>Salvar no Agro</strong> grava no SisVale (PDV e buscas).' +
+      (ERP_SYNC_HABILITADO
+        ? ' <strong>Enviar ao ERP</strong> replica no ERP legado quando você quiser.'
+        : ' Sincronização com a API do ERP está desligada neste ambiente.') +
+      ' Marca/categoria/etc.: escolha da lista ou + com PIN.</p>' +
       '<div class="grid gap-3 sm:grid-cols-2">' +
       '<label class="block sm:col-span-2"><span class="text-[10px] font-black uppercase text-slate-600">Nome <span class="text-red-600 font-black">*</span></span>' +
       '<input type="text" id="cad-ov-nome" class="' + ic + '" maxlength="300" value="' + escapeHtml(p.nome || '') + '" autocomplete="off" /></label>' +
-      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Marca <span class="text-red-600 font-black">*</span></span>' +
-      '<input type="text" id="cad-ov-marca" class="' + ic + '" maxlength="120" value="' + escapeHtml(p.marca || '') + '" autocomplete="off" /></label>' +
-      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Categoria <span class="text-red-600 font-black">*</span></span>' +
-      '<input type="text" id="cad-ov-cat" class="' + ic + '" maxlength="200" value="' + escapeHtml(p.categoria || '') + '" autocomplete="off" /></label>' +
-      '<label class="block sm:col-span-2"><span class="text-[10px] font-black uppercase text-slate-600">Fornecedor (texto)</span>' +
-      '<input type="text" id="cad-ov-forn" class="' + ic + '" maxlength="300" value="' + escapeHtml(p.fornecedor || '') + '" autocomplete="off" /></label>' +
+      pickFieldHtml('Marca', 'cad-ov-marca', p.marca, true, 'cad-ov-marca-mais', 'cad-ov-marca-res') +
+      pickFieldHtml('Categoria', 'cad-ov-cat', p.categoria, true, 'cad-ov-cat-mais', 'cad-ov-cat-res') +
+      pickFieldHtml('Fornecedor', 'cad-ov-forn', p.fornecedor, false, 'cad-ov-forn-mais', 'cad-ov-forn-res').replace(
+        'class="block"',
+        'class="block sm:col-span-2"'
+      ) +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Código NFe / GM</span>' +
       '<input type="text" id="cad-ov-codnfe" class="' + ic + ' font-mono text-sm" maxlength="64" value="' + escapeHtml(String(p.codigo_nfe || p.codigo || '')) + '" autocomplete="off" /></label>' +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Código de barras <span class="text-red-600 font-black">*</span></span>' +
       '<input type="text" id="cad-ov-cb" class="' + ic + ' font-mono text-sm" maxlength="80" value="' + escapeHtml(String(p.codigo_barras || '')) + '" inputmode="numeric" autocomplete="off" /></label>' +
-      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Subcategoria</span>' +
-      '<input type="text" id="cad-ov-sub" class="' + ic + '" maxlength="200" value="' + escapeHtml(p.subcategoria || '') + '" autocomplete="off" /></label>' +
+      pickFieldHtml('Subcategoria', 'cad-ov-sub', p.subcategoria, false, 'cad-ov-sub-mais', 'cad-ov-sub-res') +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Subcategoria 2</span>' +
       '<input type="text" id="cad-ov-sub2" class="' + ic + '" maxlength="200" value="' + escapeHtml(p.subcategoria_2 || '') + '" autocomplete="off" /></label>' +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Subcategoria 3</span>' +
       '<input type="text" id="cad-ov-sub3" class="' + ic + '" maxlength="200" value="' + escapeHtml(p.subcategoria_3 || '') + '" autocomplete="off" /></label>' +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Subcategoria 4</span>' +
       '<input type="text" id="cad-ov-sub4" class="' + ic + '" maxlength="200" value="' + escapeHtml(p.subcategoria_4 || '') + '" autocomplete="off" /></label>' +
-      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Unidade</span>' +
-      '<input type="text" id="cad-ov-un" class="' + ic + '" maxlength="20" value="' + escapeHtml(p.unidade || '') + '" autocomplete="off" /></label>' +
+      pickFieldHtml('Unidade', 'cad-ov-un', p.unidade, false, 'cad-ov-un-mais', 'cad-ov-un-res') +
+      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Peso (etiqueta)</span>' +
+      '<input type="text" id="cad-ov-peso" class="' + ic + '" maxlength="40" value="' + escapeHtml(p.peso_etiqueta || '') + '" placeholder="Ex.: 5 KG" autocomplete="off" /></label>' +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Custo unit. (R$) <span class="text-red-600 font-black">*</span></span>' +
       '<input type="text" id="cad-ov-custo" inputmode="decimal" class="' + ic + '" value="' + escapeHtml(pc) + '" autocomplete="off" /></label>' +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Preço venda (R$) <span class="text-red-600 font-black">*</span></span>' +
       '<input type="text" id="cad-ov-preco" inputmode="decimal" class="' + ic + '" value="' + escapeHtml(pv) + '" autocomplete="off" /></label>' +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Exibir como</span>' +
       '<select id="cad-ov-ativo" class="' + ic + '">' +
-      '<option value=""' + (av === '' ? ' selected' : '') + '>Seguir ERP</option>' +
+      '<option value=""' + (av === '' ? ' selected' : '') + '>Seguir catálogo</option>' +
       '<option value="1"' + (av === '1' ? ' selected' : '') + '>Ativo</option>' +
       '<option value="0"' + (av === '0' ? ' selected' : '') + '>Inativo</option>' +
       '</select></label>' +
@@ -276,11 +692,40 @@
       '<textarea id="cad-ov-desc" rows="3" class="w-full rounded-xl border-2 border-emerald-400 px-3 py-2 text-sm font-semibold text-slate-900 bg-white">' + escapeHtml(p.descricao || '') + '</textarea></label>' +
       '<div class="mt-4 flex flex-wrap gap-2">' +
       '<button type="button" id="cadastro-overlay-salvar" class="min-h-[48px] px-5 rounded-xl bg-orange-500 text-white font-black uppercase text-sm border-2 border-orange-600 hover:bg-orange-600 shadow-sm">Salvar no Agro</button>' +
-      '<button type="button" id="cadastro-overlay-sync-erp" class="min-h-[48px] px-5 rounded-xl bg-amber-600 text-white font-black uppercase text-sm border-2 border-amber-700 hover:bg-amber-700 shadow-sm" title="Produtos/Salvar no ERP legado">Enviar ao ERP</button>' +
+      (ERP_SYNC_HABILITADO
+        ? '<button type="button" id="cadastro-overlay-sync-erp" class="min-h-[48px] px-5 rounded-xl bg-amber-600 text-white font-black uppercase text-sm border-2 border-amber-700 hover:bg-amber-700 shadow-sm" title="Produtos/Salvar no ERP legado">Enviar ao ERP</button>'
+        : '') +
       '</div>' +
       '<p id="cadastro-overlay-msg" class="mt-2 text-sm font-bold hidden" role="status"></p>' +
       '</div>'
     );
+  }
+
+  function wireCadastroOverlayPicks() {
+    if (!window.AgroPickList) return;
+    var cfg = { urlNova: URL_FACETA_NOVA, csrf: csrfTokErp() };
+    [
+      ['cad-ov-marca', 'cad-ov-marca-res', 'cad-ov-marca-mais', 'marca', 'Nova marca'],
+      ['cad-ov-cat', 'cad-ov-cat-res', 'cad-ov-cat-mais', 'categoria', 'Nova categoria'],
+      ['cad-ov-forn', 'cad-ov-forn-res', 'cad-ov-forn-mais', 'fornecedor', 'Novo fornecedor'],
+      ['cad-ov-sub', 'cad-ov-sub-res', 'cad-ov-sub-mais', 'subcategoria', 'Nova subcategoria'],
+      ['cad-ov-un', 'cad-ov-un-res', 'cad-ov-un-mais', 'unidade', 'Nova unidade'],
+    ].forEach(function (row) {
+      var el = document.getElementById(row[0]);
+      if (el) el._agroPickWired = false;
+      window.AgroPickList.wire(
+        Object.assign(
+          {
+            input: row[0],
+            box: row[1],
+            plusBtn: row[2],
+            tipo: row[3],
+            tituloNovo: row[4],
+          },
+          cfg
+        )
+      );
+    });
   }
 
   function buildOverlayOuLoginHtml(p) {
@@ -290,7 +735,7 @@
     return (
       '<div class="mt-6 rounded-xl border-2 border-slate-200 bg-slate-100/80 p-4">' +
       '<p class="text-sm font-bold text-slate-800">Edição só no Agro (nome, preço, códigos…)</p>' +
-      '<p class="text-xs text-slate-600 mt-2 leading-snug">Entre com seu usuário do sistema para ver o formulário aqui. O cadastro mestre continua no ERP.</p>' +
+      '<p class="text-xs text-slate-600 mt-2 leading-snug">Entre com seu usuário do sistema para ver o formulário aqui.</p>' +
       '<a href="' + String(LOGIN_OVERLAY_HREF || '').replace(/"/g, '&quot;') + '" class="mt-3 inline-flex min-h-[44px] items-center px-4 rounded-xl bg-emerald-600 text-white font-black uppercase text-xs border-2 border-emerald-800 hover:bg-emerald-700">Entrar para editar</a>' +
       '</div>'
     );
@@ -314,6 +759,7 @@
         categoria: gv('cad-ov-cat'),
         fornecedor_texto: gv('cad-ov-forn'),
         unidade: gv('cad-ov-un'),
+        peso_etiqueta: gv('cad-ov-peso'),
         codigo_nfe: gv('cad-ov-codnfe'),
         codigo_barras: gv('cad-ov-cb'),
         subcategoria: gv('cad-ov-sub'),
@@ -332,7 +778,7 @@
     }
 
     function enviar(syncErp) {
-      syncErp = !!syncErp;
+      syncErp = !!syncErp && ERP_SYNC_HABILITADO;
       if (btn.disabled || (btnErp && btnErp.disabled)) return;
       var msg = document.getElementById('cadastro-overlay-msg');
       function showMsg(t, ok) {
@@ -369,6 +815,18 @@
       if (!gvLoc('cad-ov-cat')) {
         showMsg('Preencha a Categoria (obrigatório).', false);
         return;
+      }
+      if (window.AgroPickList) {
+        var errPick =
+          window.AgroPickList.assertField('cad-ov-marca', 'marcas', 'Marca', true) ||
+          window.AgroPickList.assertField('cad-ov-cat', 'categorias', 'Categoria', true) ||
+          window.AgroPickList.assertField('cad-ov-forn', 'fornecedores', 'Fornecedor', false) ||
+          window.AgroPickList.assertField('cad-ov-sub', 'subcategorias', 'Subcategoria', false) ||
+          window.AgroPickList.assertField('cad-ov-un', 'unidades', 'Unidade', false);
+        if (errPick) {
+          showMsg(errPick, false);
+          return;
+        }
       }
       if (!gvLoc('cad-ov-cb')) {
         showMsg('Preencha o Código de barras (obrigatório).', false);
@@ -410,9 +868,23 @@
       }).then(function (j) {
         if (!j.ok) throw new Error(j.erro || 'Falha ao salvar');
         if (syncErp) showMsg('Salvo no Agro e replicado no ERP legado.', true);
-        else if (j.somente_agro) showMsg('Salvo no Agro. Use «Enviar ao ERP» quando quiser replicar.', true);
-        else showMsg('Salvo no Agro.', true);
-        carregarDetalheProduto(String(p.id || ''));
+        else if (j.somente_agro) {
+          showMsg(
+            ERP_SYNC_HABILITADO
+              ? 'Salvo no Agro. Use «Enviar ao ERP» quando quiser replicar.'
+              : 'Salvo no SisVale.',
+            true
+          );
+        } else showMsg('Salvo no Agro.', true);
+        if (j.produto) {
+          if (typeof window.agroPdvPatchCatalogoCache === 'function') {
+            window.agroPdvPatchCatalogoCache(j.produto);
+          }
+          agroCadastroMergeProdutoCacheLocal(j.produto);
+          renderDetalheCompleto(j.produto);
+        } else {
+          carregarDetalheProduto(String(p.id || ''));
+        }
       }).catch(function (e) {
         showMsg(e.message || 'Erro ao salvar', false);
       }).finally(function () {
@@ -428,7 +900,7 @@
     btn.onclick = function () {
       enviar(false);
     };
-    if (btnErp) {
+    if (btnErp && ERP_SYNC_HABILITADO) {
       btnErp.onclick = function () {
         enviar(true);
       };
@@ -537,6 +1009,15 @@
       '</p>' +
       '</div>';
     bindCadastroOverlaySalvar(p);
+    if (PODE_EDITAR_OVERLAY && window.AgroPickList) {
+      if (URL_FACETAS) {
+        window.AgroPickList.loadFacetas(URL_FACETAS).then(function () {
+          wireCadastroOverlayPicks();
+        });
+      } else {
+        wireCadastroOverlayPicks();
+      }
+    }
   }
 
   function renderDetalheResumido(p) {
@@ -608,6 +1089,154 @@
     carregar();
   }
 
+  function mergeSaldoGestaoNaLinha(row, prod) {
+    if (!row || !prod) return row;
+    if (prod.saldo_centro != null) row.saldo_centro = prod.saldo_centro;
+    if (prod.saldo_vila != null) row.saldo_vila = prod.saldo_vila;
+    if (prod.saldo_total != null) row.saldo_total = prod.saldo_total;
+    if (prod.estoque_min_centro != null) row.estoque_min_centro = prod.estoque_min_centro;
+    if (prod.estoque_max_centro != null) row.estoque_max_centro = prod.estoque_max_centro;
+    if (prod.estoque_min_vila != null) row.estoque_min_vila = prod.estoque_min_vila;
+    if (prod.estoque_max_vila != null) row.estoque_max_vila = prod.estoque_max_vila;
+    return row;
+  }
+
+  function aplicarLinhaEstoqueAtualizada(prod) {
+    if (!prod) {
+      carregar();
+      return;
+    }
+    for (var i = 0; i < ultimos.length; i++) {
+      if (String(ultimos[i].id) === String(prod.id)) {
+        mergeSaldoGestaoNaLinha(ultimos[i], prod);
+        break;
+      }
+    }
+    renderLista(ultimos);
+  }
+
+  function bindCadastroEstoqueRow(mainTr, p) {
+    var pid = String(p.id);
+    function findExp(kind) {
+      var tbody = listaEl || document.getElementById('cadastro-lista');
+      if (!tbody) return null;
+      return Array.prototype.find.call(tbody.querySelectorAll('tr[data-expand="' + kind + '"]'), function (r) {
+        return r.getAttribute('data-pid') === pid;
+      });
+    }
+    var btnAj = mainTr.querySelector('[data-act="ajuste"]');
+    var btnMm = mainTr.querySelector('[data-act="mm"]');
+    if (btnAj) {
+      btnAj.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        expandMm = null;
+        expandAj = expandAj === p.id ? null : p.id;
+        renderLista(ultimos);
+      });
+    }
+    if (btnMm) {
+      btnMm.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        expandAj = null;
+        expandMm = expandMm === p.id ? null : p.id;
+        renderLista(ultimos);
+      });
+    }
+    var ajR = findExp('aj');
+    var mmR = findExp('mm');
+    if (ajR) {
+      ajR.querySelector('[data-can="aj"]').addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        expandAj = null;
+        renderLista(ultimos);
+      });
+      ajR.querySelector('[data-save="aj"]').addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!URL_AJUSTE_ESTOQUE) return;
+        var c = ajR.querySelector('[data-inp="c"]').value;
+        var v = ajR.querySelector('[data-inp="v"]').value;
+        fetch(URL_AJUSTE_ESTOQUE, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfTokErp() },
+          body: JSON.stringify({ produto_id: p.id, saldo_centro: c, saldo_vila: v })
+        }).then(function (r) { return jsonOuErroHumano(r); }).then(function (j) {
+          if (!j.ok) throw new Error(j.erro || 'erro');
+          expandAj = null;
+          aplicarLinhaEstoqueAtualizada(j.produto);
+        }).catch(function (err) {
+          mostrarErro(err.message || 'Falha ao salvar ajuste de estoque');
+        });
+      });
+    }
+    if (mmR) {
+      mmR.querySelector('[data-can="mm"]').addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        expandMm = null;
+        renderLista(ultimos);
+      });
+      mmR.querySelector('[data-save="mm"]').addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!URL_OVERLAY_SALVAR) return;
+        var body = {
+          produto_id: p.id,
+          estoque_min_centro: mmR.querySelector('[data-mm="minc"]').value || null,
+          estoque_max_centro: mmR.querySelector('[data-mm="maxc"]').value || null,
+          estoque_min_vila: mmR.querySelector('[data-mm="minv"]').value || null,
+          estoque_max_vila: mmR.querySelector('[data-mm="maxv"]').value || null
+        };
+        fetch(URL_OVERLAY_SALVAR, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfTokErp() },
+          body: JSON.stringify(body)
+        }).then(function (r) { return jsonOuErroHumano(r); }).then(function (j) {
+          if (!j.ok) throw new Error(j.erro || 'erro');
+          expandMm = expandAj = null;
+          aplicarLinhaEstoqueAtualizada(j.produto);
+        }).catch(function (err) {
+          mostrarErro(err.message || 'Falha ao salvar mín/máx');
+        });
+      });
+    }
+  }
+
+  function formatVendaListaHtml(p) {
+    var modo = String((p && p.precos_modo) || '').toLowerCase();
+    var g = p && p.precos_grupos;
+    if (modo === 'grupos' && g && typeof g === 'object') {
+      var a = Number(g.preco_a);
+      var b = Number(g.preco_b);
+      var chips = [];
+      if (isFinite(a) && a > 0) {
+        chips.push(
+          '<span class="inline-flex items-center gap-1 rounded-lg border-2 border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-emerald-800" title="Grupo A">' +
+            '<span class="inline-flex h-4 min-w-[1rem] items-center justify-center rounded bg-emerald-700 text-[10px] font-black text-white">A</span>' +
+            escapeHtml(fmtMoney(a)) +
+            '</span>'
+        );
+      }
+      if (isFinite(b) && b > 0) {
+        chips.push(
+          '<span class="inline-flex items-center gap-1 rounded-lg border-2 border-sky-300 bg-sky-50 px-1.5 py-0.5 text-sky-800" title="Grupo B">' +
+            '<span class="inline-flex h-4 min-w-[1rem] items-center justify-center rounded bg-sky-700 text-[10px] font-black text-white">B</span>' +
+            escapeHtml(fmtMoney(b)) +
+            '</span>'
+        );
+      }
+      if (chips.length) {
+        return '<div class="inline-flex flex-col items-end gap-1">' + chips.join('') + '</div>';
+      }
+    }
+    return escapeHtml(fmtMoney(p && p.preco_venda));
+  }
+
   function renderLista(produtos) {
     var tbody = listaEl || document.getElementById('cadastro-lista');
     if (!tbody) return;
@@ -615,36 +1244,98 @@
     tbody.innerHTML = '';
     if (!ultimos.length) {
       var trEmpty = document.createElement('tr');
-      trEmpty.innerHTML = '<td colspan="8" class="p-8 text-center text-slate-500 font-semibold">Nenhum produto encontrado.</td>';
+      trEmpty.innerHTML = '<td colspan="' + CADASTRO_LISTA_COLSPAN + '" class="p-8 text-center text-slate-500 font-semibold">Nenhum produto encontrado.</td>';
       tbody.appendChild(trEmpty);
       return;
     }
     ultimos.forEach(function (p) {
-      var tr = document.createElement('tr');
-      tr.setAttribute('data-prod-id', String(p.id));
-      tr.className = 'border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors';
+      var ajOpen = expandAj === p.id;
+      var mmOpen = expandMm === p.id;
+      var rowHi = (ajOpen || mmOpen) ? ' bg-emerald-50/60' : ' hover:bg-slate-50';
       var cod = p.codigo_nfe || p.codigo || '';
-      var custoTxt = p.preco_custo != null && isFinite(Number(p.preco_custo)) ? fmtMoney(Number(p.preco_custo)) : '—';
-      var vendaTxt = fmtMoney(p.preco_venda);
+      var custoListaNum =
+        (p.preco_custo != null && isFinite(Number(p.preco_custo)))
+          ? Number(p.preco_custo)
+          : ((p.preco_custo_com_acrescimos != null && isFinite(Number(p.preco_custo_com_acrescimos)))
+            ? Number(p.preco_custo_com_acrescimos)
+            : null);
+      var custoTxt = p._precoAguardando
+        ? '…'
+        : (custoListaNum != null ? fmtMoney(custoListaNum) : '—');
+      var vendaTxt = p._precoAguardando ? '…' : formatVendaListaHtml(p);
+      var tr = document.createElement('tr');
+      tr.setAttribute('data-main', '1');
+      tr.setAttribute('data-prod-id', String(p.id));
+      tr.className = 'border-b border-slate-100 cursor-pointer transition-colors' + rowHi;
       tr.innerHTML =
         '<td class="px-4 py-3">' +
-        '<div class="font-semibold text-slate-900">' + escapeHtml(p.nome || '—') + '</div>' +
+        '<div class="font-semibold text-slate-900">' + escapeHtml(p.nome || '—') +
+        (p.nome_quebrado
+          ? ' <span class="ml-1 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-amber-900" title="Nome no banco está quebrado — abra o lápis e corrija">Consertar nome</span>'
+          : '') +
+        '</div>' +
         (String(cod).trim() !== '' ? '<div class="text-xs text-slate-400"> ' + escapeHtml(String(cod)) + '</div>' : '') +
         '</td>' +
         '<td data-coluna="marca" class="px-4 py-3 text-slate-700">' + escapeHtml(p.marca || '-') + '</td>' +
         '<td data-coluna="unidade" class="px-4 py-3 text-slate-700">' + escapeHtml(p.unidade || '-') + '</td>' +
         '<td data-coluna="categoria" class="px-4 py-3 text-slate-700">' + escapeHtml(p.categoria || '-') + '</td>' +
         '<td data-coluna="subcategoria" class="px-4 py-3 text-slate-600">' +
-        escapeHtml((p.categoria_listagem != null && String(p.categoria_listagem).trim()) ? String(p.categoria_listagem).trim() : (p.subcategoria || '-')) +
+        escapeHtml(String(p.subcategoria || p.categoria_listagem || '').trim() || '-') +
         '</td>' +
         '<td data-coluna="preco_custo" class="px-4 py-3 text-slate-600 whitespace-nowrap">' + custoTxt + '</td>' +
         '<td class="px-4 py-3 font-semibold text-emerald-600 whitespace-nowrap">' + vendaTxt + '</td>' +
+        '<td data-coluna="estoque" class="px-3 py-2 text-right whitespace-nowrap align-middle">' +
+        htmlCelulaSaldoLista(p) +
+        '</td>' +
         '<td class="px-4 py-3 text-right cadastro-acoes">' +
-        '<span class="inline-flex items-center justify-end gap-2 text-lg">' +
+        '<span class="inline-flex items-center justify-end gap-1 text-lg">' +
         '<button type="button" class="cadastro-btn-edit-modal inline-flex h-9 min-w-[2.25rem] items-center justify-center rounded-lg border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer" title="Editar (modal)">✏️</button>' +
-        '<span class="inline-flex h-9 min-w-[2.25rem] items-center justify-center rounded-lg border border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed select-none opacity-80" title="Exclusão somente no ERP">🗑️</span>' +
+        '<button type="button" class="cadastro-btn-etiqueta inline-flex h-9 min-w-[2.25rem] items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 cursor-pointer" title="Imprimir etiqueta">🖨️</button>' +
+        '<button type="button" data-act="ajuste" class="inline-flex h-9 min-w-[2.25rem] items-center justify-center rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 cursor-pointer" title="Ajustar estoque">🔧</button>' +
+        '<button type="button" data-act="mm" class="inline-flex h-9 min-w-[2.25rem] items-center justify-center rounded-lg border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer" title="Mín / máx estoque">⚙️</button>' +
         '</span></td>';
       tbody.appendChild(tr);
+
+      if (ajOpen) {
+        var trAj = document.createElement('tr');
+        trAj.setAttribute('data-expand', 'aj');
+        trAj.setAttribute('data-pid', String(p.id));
+        trAj.className = 'bg-blue-50/40 border-b border-slate-100';
+        trAj.innerHTML =
+          '<td colspan="' + CADASTRO_LISTA_COLSPAN + '" class="px-4 py-3">' +
+          '<div class="flex flex-wrap gap-4 items-end max-w-xl">' +
+          '<label class="flex flex-col gap-1 min-w-[8rem]"><span class="text-[10px] font-black uppercase text-slate-500">Novo Centro</span>' +
+          '<input type="number" step="0.001" data-inp="c" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-bold" value="' + escapeHtml(String(p.saldo_centro != null ? p.saldo_centro : '')) + '" /></label>' +
+          '<label class="flex flex-col gap-1 min-w-[8rem]"><span class="text-[10px] font-black uppercase text-slate-500">Novo Vila</span>' +
+          '<input type="number" step="0.001" data-inp="v" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-bold" value="' + escapeHtml(String(p.saldo_vila != null ? p.saldo_vila : '')) + '" /></label>' +
+          '<button type="button" data-save="aj" class="min-h-[44px] px-4 rounded-lg bg-blue-600 text-white font-bold uppercase text-xs border border-blue-700 hover:bg-blue-700">Salvar</button>' +
+          '<button type="button" data-can="aj" class="min-h-[44px] px-4 rounded-lg border border-slate-300 bg-white font-bold uppercase text-xs">Cancelar</button>' +
+          '</div></td>';
+        tbody.appendChild(trAj);
+      }
+      if (mmOpen) {
+        var trMm = document.createElement('tr');
+        trMm.setAttribute('data-expand', 'mm');
+        trMm.setAttribute('data-pid', String(p.id));
+        trMm.className = 'bg-slate-50 border-b border-slate-100';
+        trMm.innerHTML =
+          '<td colspan="' + CADASTRO_LISTA_COLSPAN + '" class="px-4 py-3">' +
+          '<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl">' +
+          '<label class="flex flex-col gap-1"><span class="text-[10px] font-black uppercase text-slate-500">Mín Centro</span><input type="number" step="0.001" data-mm="minc" class="min-h-[40px] rounded-xl border-2 border-slate-200 px-2 font-bold" value="' +
+          (p.estoque_min_centro != null ? escapeHtml(String(p.estoque_min_centro)) : '') + '" /></label>' +
+          '<label class="flex flex-col gap-1"><span class="text-[10px] font-black uppercase text-slate-500">Máx Centro</span><input type="number" step="0.001" data-mm="maxc" class="min-h-[40px] rounded-xl border-2 border-slate-200 px-2 font-bold" value="' +
+          (p.estoque_max_centro != null ? escapeHtml(String(p.estoque_max_centro)) : '') + '" /></label>' +
+          '<label class="flex flex-col gap-1"><span class="text-[10px] font-black uppercase text-slate-500">Mín Vila</span><input type="number" step="0.001" data-mm="minv" class="min-h-[40px] rounded-xl border-2 border-slate-200 px-2 font-bold" value="' +
+          (p.estoque_min_vila != null ? escapeHtml(String(p.estoque_min_vila)) : '') + '" /></label>' +
+          '<label class="flex flex-col gap-1"><span class="text-[10px] font-black uppercase text-slate-500">Máx Vila</span><input type="number" step="0.001" data-mm="maxv" class="min-h-[40px] rounded-xl border-2 border-slate-200 px-2 font-bold" value="' +
+          (p.estoque_max_vila != null ? escapeHtml(String(p.estoque_max_vila)) : '') + '" /></label>' +
+          '</div><div class="flex gap-2 mt-3">' +
+          '<button type="button" data-save="mm" class="min-h-[44px] px-4 rounded-lg bg-blue-600 text-white font-bold uppercase text-xs border border-blue-700 hover:bg-blue-700">Salvar</button>' +
+          '<button type="button" data-can="mm" class="min-h-[44px] px-4 rounded-lg border border-slate-300 bg-white font-bold uppercase text-xs">Cancelar</button>' +
+          '</div></td>';
+        tbody.appendChild(trMm);
+      }
+
       var btnEditModal = tr.querySelector('.cadastro-btn-edit-modal');
       if (btnEditModal) {
         btnEditModal.addEventListener('click', function (e) {
@@ -655,9 +1346,19 @@
           }
         });
       }
+      var btnEtq = tr.querySelector('.cadastro-btn-etiqueta');
+      if (btnEtq) {
+        btnEtq.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          abrirModalEtiquetaCadastro(p);
+        });
+      }
+      bindCadastroEstoqueRow(tr, p);
       tr.addEventListener('click', function (e) {
         if (e.target.closest('a')) return;
         if (e.target.closest('.cadastro-acoes')) return;
+        if (e.target.closest('[data-expand]')) return;
         if (typeof window.abrirModalProduto === 'function') {
           window.abrirModalProduto(p);
         } else {
@@ -731,9 +1432,156 @@
     return (produtos || []).filter(function (r) { return keep[String(r.id)]; });
   }
 
-  function cadastroModoBuscaPdv(qRaw) {
-    var onlyDig = String(qRaw || '').replace(/\s/g, '');
-    if (/^\d{8,}$/.test(onlyDig) || pareceCodigoBusca(qRaw)) return 'scanner';
+  function cadastroFiltroDimensaoAtivo() {
+    return {
+      marcas: cadastroMultiVals('marca'),
+      categorias: cadastroMultiVals('categoria'),
+      fornecedores: cadastroMultiVals('fornecedor'),
+      subs: cadastroMultiVals('subcategoria'),
+      subs2: cadastroMultiVals('subcategoria_2'),
+      subs3: cadastroMultiVals('subcategoria_3'),
+      subs4: cadastroMultiVals('subcategoria_4'),
+      unidades: cadastroMultiVals('unidade'),
+      modelos: cadastroMultiVals('modelo'),
+      estoqueLoja: fEstoqueLojaEl ? fEstoqueLojaEl.value : 'total',
+      estoqueSinal: fEstoqueSinalEl ? fEstoqueSinalEl.value : '',
+      semMarca: !!(fSemMarcaEl && fSemMarcaEl.checked),
+      semCat: !!(fSemCatEl && fSemCatEl.checked),
+      somenteAgro: !!(fSomenteAgroEl && fSomenteAgroEl.checked),
+      ncm: fNcmEl ? fNcmEl.value : ''
+    };
+  }
+
+  function _cadastroValInList(val, lista) {
+    if (!lista || !lista.length) return true;
+    var v = String(val || '').trim().toLowerCase();
+    return lista.some(function (x) { return String(x).trim().toLowerCase() === v; });
+  }
+
+  function cadastroFiltrarDimensoesLista(rows) {
+    var dim = cadastroFiltroDimensaoAtivo();
+    var tem =
+      dim.marcas.length || dim.categorias.length || dim.fornecedores.length ||
+      dim.subs.length || dim.subs2.length || dim.subs3.length || dim.subs4.length ||
+      dim.unidades.length || dim.modelos.length || dim.estoqueSinal ||
+      dim.semMarca || dim.semCat || dim.somenteAgro || dim.ncm;
+    if (!tem) return rows || [];
+    return (rows || []).filter(function (r) {
+      if (!_cadastroValInList(r.marca, dim.marcas)) return false;
+      if (dim.semMarca && String(r.marca || '').trim()) return false;
+      if (!_cadastroValInList(r.categoria, dim.categorias)) return false;
+      if (dim.semCat && String(r.categoria || '').trim()) return false;
+      if (!_cadastroValInList(r.subcategoria, dim.subs)) return false;
+      if (!_cadastroValInList(r.subcategoria_2, dim.subs2)) return false;
+      if (!_cadastroValInList(r.subcategoria_3, dim.subs3)) return false;
+      if (!_cadastroValInList(r.subcategoria_4, dim.subs4)) return false;
+      if (!_cadastroValInList(r.unidade, dim.unidades)) return false;
+      if (!_cadastroValInList(r.modelo, dim.modelos)) return false;
+      if (dim.fornecedores.length) {
+        var fn = String(r.fornecedor || '').trim().toLowerCase();
+        if (!dim.fornecedores.some(function (f) { return fn.indexOf(String(f).trim().toLowerCase()) !== -1; })) return false;
+      }
+      if (dim.somenteAgro && !(r.cadastro_somente_agro || r.somente_agro)) return false;
+      if (dim.ncm === 'com' && !String(r.ncm || '').trim()) return false;
+      if (dim.ncm === 'sem' && String(r.ncm || '').trim()) return false;
+      if (dim.estoqueSinal) {
+        var sc = Number(r.saldo_centro || 0);
+        var sv = Number(r.saldo_vila || 0);
+        var saldo = dim.estoqueLoja === 'centro' ? sc : (dim.estoqueLoja === 'vila' ? sv : (sc + sv));
+        if (dim.estoqueSinal === 'positivo' && !(saldo > 0)) return false;
+        if (dim.estoqueSinal === 'negativo' && !(saldo < 0)) return false;
+        if (dim.estoqueSinal === 'zero' && Math.abs(saldo) >= 1e-9) return false;
+      }
+      return true;
+    });
+  }
+
+  /** Busca unificada — `/api/buscar/?contexto=cadastro` (mesmo motor do PDV). */
+  function cadastroMostrarProvaUnificada(prova) {
+    if (!prova || !prova.ok || !metaEl) return;
+    metaEl.textContent = 'Prova OK · ' + (prova.mensagem || (prova.api + ' · ' + prova.catalogo_banco));
+    metaEl.classList.add('text-emerald-800');
+  }
+
+  function fetchBuscaCadastroApi(qRaw, sig) {
+    var params = cadastroQueryParamsBusca({ q: qRaw, limit: cadastroLimiteBuscaPdv() });
+    /* Cadastro: SEMPRE servidor — lista local incompleta oscilava (2 vs 7). PDV mantém pacote. */
+    var fetchFn = typeof fetchAgroBuscaCatalogo === 'function'
+      ? fetchAgroBuscaCatalogo(qRaw, {
+          limit: cadastroLimiteBuscaPdv(),
+          contexto: 'cadastro',
+          skipLocal: true,
+          preferServer: true,
+          compras: true,
+          incluir_saldo: true,
+          ativo: params.get('ativo') ? true : undefined,
+          inativos: params.get('inativos') ? true : undefined,
+          extra: {
+            sort: params.get('sort') || '',
+            dir: params.get('dir') || '',
+            marca: params.getAll('marca'),
+            categoria: params.getAll('categoria'),
+            fornecedor: params.getAll('fornecedor'),
+            subcategoria: params.getAll('subcategoria'),
+            subcategoria_2: params.getAll('subcategoria_2'),
+            subcategoria_3: params.getAll('subcategoria_3'),
+            subcategoria_4: params.getAll('subcategoria_4'),
+            unidade: params.getAll('unidade'),
+            modelo: params.getAll('modelo'),
+            estoque_loja: params.get('estoque_loja') || '',
+            estoque_sinal: params.get('estoque_sinal') || '',
+            data_tipo: params.get('data_tipo') || '',
+            data_de: params.get('data_de') || '',
+            data_ate: params.get('data_ate') || '',
+            custo_min: params.get('custo_min') || '',
+            custo_max: params.get('custo_max') || '',
+            venda_min: params.get('venda_min') || '',
+            venda_max: params.get('venda_max') || '',
+            ncm: params.get('ncm') || '',
+            sem_marca: params.get('sem_marca') || '',
+            sem_categoria: params.get('sem_categoria') || '',
+            somente_agro: params.get('somente_agro') || ''
+          },
+          signal: sig,
+        })
+      : fetch(URL_BUSCAR_PDV + '?' + params.toString(), { credentials: 'same-origin', signal: sig }).then(function (r) { return jsonOuErroHumano(r); });
+    return Promise.resolve(fetchFn)
+      .then(function (j) {
+        if (j && j.prova_unificada) cadastroMostrarProvaUnificada(j.prova_unificada);
+        if (!j || j.ok === false) throw new Error((j && j.erro) || 'Falha na busca');
+        var rows = Array.isArray(j.produtos) ? j.produtos : [];
+        rows._pacote_fallback = false;
+        rows._pacote_level = (j && j.pacote_level) || '';
+        /* Ainda assim mescla no pacote p/ PDV, mas a grade do cadastro é a do servidor. */
+        return rows;
+      });
+  }
+
+  function finalizarBuscaPdvRows(apiRows, gen) {
+    if (gen !== carregarGen) return;
+    var linhas = (apiRows || []).map(apiProdutoParaLinhaCadastro);
+    linhas = cadastroFiltrarDimensoesLista(linhas);
+    linhas = cadastroFiltrarAtivosLocal(linhas);
+    if (ordenacaoAtual.campo) {
+      linhas = cadastroAplicarOrdenacaoCliente(linhas);
+    }
+    atualizarMeta({
+      modo: 'busca',
+      motor: 'pdv',
+      pacote_fallback: !!(apiRows && apiRows._pacote_fallback),
+      pacote_level: (apiRows && apiRows._pacote_level) || '',
+    }, linhas);
+    renderLista(linhas);
+  }
+
+  function carregarBuscaPdv(qRaw, gen, sig) {
+    return fetchBuscaCadastroApi(qRaw, sig).then(function (apiRows) {
+      finalizarBuscaPdvRows(apiRows, gen);
+    });
+  }
+
+  function cadastroModoBuscaPdv(/* qRaw */) {
+    /* Digitação na lista — modo normal (scanner só no PDV/leitor). */
     return 'normal';
   }
 
@@ -748,7 +1596,12 @@
     var q = (buscaEl.value || '').trim();
     if (data.modo === 'busca') {
       modoLista = false;
-      metaEl.textContent = 'Busca · ' + (produtos.length) + ' resultado(s)';
+      var base = (window.AGRO_BUSCA_CATALOGO && AGRO_BUSCA_CATALOGO.sigla ? AGRO_BUSCA_CATALOGO.sigla + ' · ' : 'BCA · ') + (produtos.length) + ' resultado(s)';
+      if (data.pacote_fallback) base += ' · lista local';
+      else if (data.motor === 'pdv' || data.modo === 'busca') base += ' · servidor';
+      else if (data.pacote_level === 'yellow') base += ' · lista antiga';
+      else if (data.pacote_level === 'green') base += ' · lista hoje';
+      metaEl.textContent = base;
       pagWrap.classList.add('hidden');
     } else {
       modoLista = true;
@@ -759,35 +1612,109 @@
     }
   }
 
+  function patchCadastroLinhaProduto(produto) {
+    if (!produto || produto.id == null) return null;
+    var patch = {
+      id: String(produto.id),
+      nome: produto.nome,
+      marca: produto.marca,
+      codigo_nfe: produto.codigo_gm || produto.codigo_nfe || produto.codigo,
+      codigo_barras: produto.codigo_barras,
+      preco_venda: produto.preco_venda,
+      preco_custo: produto.preco_custo,
+      preco_custo_com_acrescimos: produto.preco_custo_com_acrescimos,
+      precos_modo: produto.precos_modo,
+      precos_grupos: produto.precos_grupos,
+      precos_por_forma: produto.precos_por_forma,
+      categoria: produto.categoria,
+      subcategoria: produto.subcategoria,
+      subcategoria_2: produto.subcategoria_2,
+      subcategoria_3: produto.subcategoria_3,
+      subcategoria_4: produto.subcategoria_4,
+      fornecedor: produto.fornecedor,
+      unidade: produto.unidade,
+      descricao: produto.descricao,
+      inativo: !!produto.inativo
+    };
+    if (Object.prototype.hasOwnProperty.call(produto, 'modelo')) {
+      patch.modelo = String(produto.modelo || '').trim();
+    }
+    return patch;
+  }
+
   /** Catálogo local do PDV (mesmo cache da Consulta) — busca instantânea antes do Mongo. */
+  function agroCadastroMergeProdutoCacheLocal(produto) {
+    var patch = patchCadastroLinhaProduto(produto);
+    if (!patch) return;
+    cadastroCatalogoPdvCacheArray();
+    if (!Array.isArray(_cadastroCatLocal)) return;
+    var pid = String(produto.id);
+    var row = _cadastroCatById ? _cadastroCatById.get(pid) : null;
+    if (row) {
+      Object.assign(row, patch);
+      return;
+    }
+    for (var i = 0; i < _cadastroCatLocal.length; i++) {
+      if (String(_cadastroCatLocal[i].id) === pid) {
+        Object.assign(_cadastroCatLocal[i], patch);
+        if (_cadastroCatById) _cadastroCatById.set(pid, _cadastroCatLocal[i]);
+        return;
+      }
+    }
+  }
+
+  /** Atualiza a linha visível na lista após «Salvar no Agro» (evita reabrir com dados velhos). */
+  function agroCadastroMergeLinhaLista(produto) {
+    var patch = patchCadastroLinhaProduto(produto);
+    if (!patch) return;
+    var pid = String(produto.id);
+    for (var i = 0; i < ultimos.length; i++) {
+      if (String(ultimos[i].id) === pid) {
+        Object.assign(ultimos[i], patch);
+        try { renderLista(); } catch (eR) { /* ignore */ }
+        return;
+      }
+    }
+    /* Produto novo: aparece no topo da lista atual (antes sumia na paginação A–Z). */
+    ultimos.unshift(Object.assign({ id: produto.id }, patch));
+    try { renderLista(); } catch (eR2) { /* ignore */ }
+  }
+  window.agroCadastroMergeProdutoCacheLocal = agroCadastroMergeProdutoCacheLocal;
+  window.agroCadastroMergeLinhaLista = agroCadastroMergeLinhaLista;
+
   function cadastroCatalogoPdvCacheArray() {
     if (_cadastroCatInited) return _cadastroCatLocal || [];
     _cadastroCatInited = true;
     _cadastroCatLocal = [];
+    _cadastroCatById = new Map();
     try {
       var raw = localStorage.getItem(PDV_CACHE_KEY);
       if (!raw) return [];
       var p = JSON.parse(raw);
       if (p && Array.isArray(p.produtos) && p.produtos.length) {
         _cadastroCatLocal = p.produtos;
-        if (typeof buildBuscaProdutoIndex === 'function') buildBuscaProdutoIndex(_cadastroCatLocal);
+        _cadastroCatLocal.forEach(function (prod) {
+          if (prod && prod.id != null) _cadastroCatById.set(String(prod.id), prod);
+        });
       }
     } catch (e1) {
       _cadastroCatLocal = [];
+      _cadastroCatById = new Map();
     }
     return _cadastroCatLocal;
   }
 
-  function cadastroPdvParaLinhaLista(p, catalog) {
-    var id = String(p.id || '');
-    var loc = null;
-    if (Array.isArray(catalog) && id) {
-      for (var i = 0; i < catalog.length; i++) {
-        if (String(catalog[i].id) === id) { loc = catalog[i]; break; }
-      }
-    }
-    var src = loc ? Object.assign({}, loc, p) : p;
-    return {
+  function cadastroCatalogoPdvById() {
+    cadastroCatalogoPdvCacheArray();
+    return _cadastroCatById || new Map();
+  }
+
+  function cadastroPdvParaLinhaLista(p, catalogById) {
+    /* Lista cadastro = dados do servidor; cache PDV (espelho) só atrapalha preço/colunas. */
+    var src = p || {};
+    var sub = String(src.subcategoria || '').trim();
+    var catList = String(src.categoria_listagem || '').trim();
+    var row = {
       id: src.id,
       nome: src.nome,
       marca: src.marca,
@@ -796,10 +1723,15 @@
       codigo_barras: src.codigo_barras,
       preco_venda: src.preco_venda,
       preco_custo: src.preco_custo,
+      preco_custo_com_acrescimos: src.preco_custo_com_acrescimos,
+      precos_modo: src.precos_modo,
+      precos_grupos: src.precos_grupos,
+      precos_por_forma: src.precos_por_forma,
       categoria: src.categoria,
-      subcategoria: src.subcategoria,
-      categoria_listagem: src.categoria_listagem,
+      subcategoria: sub || catList || '',
+      categoria_listagem: catList || sub || '',
       prateleira: src.prateleira,
+      modelo: src.modelo,
       fornecedor: src.fornecedor,
       imagem: src.imagem,
       inativo: !!src.inativo,
@@ -808,6 +1740,44 @@
       busca_texto: src.busca_texto,
       index_codigos: src.index_codigos
     };
+    if (typeof window.agroAplicarPatchPdvNoProduto === 'function') {
+      row = window.agroAplicarPatchPdvNoProduto(row);
+    }
+    return row;
+  }
+
+  var buscaCodigoDebounceTimer = null;
+  var BUSCA_CODIGO_DEBOUNCE_MS = 420;
+
+  function pareceEtiquetaGm(q) {
+    q = String(q || '').trim();
+    if (!q || q.indexOf(' ') !== -1) return false;
+    if (/^gm[\d-]+/i.test(q)) return true;
+    if (/^\d{2,}-\d+$/i.test(q)) return true;
+    return false;
+  }
+
+  function pareceCodigoBusca(q) {
+    q = String(q || '').trim();
+    if (pareceEtiquetaGm(q)) return true;
+    var lim = q.replace(/\W/g, '');
+    if (!lim) return false;
+    if (/^\d+$/.test(lim)) return lim.length >= 8;
+    if (/^gm/i.test(lim)) return lim.length >= 5;
+    var temL = /[a-z]/i.test(lim);
+    var temN = /\d/.test(lim);
+    return temL && temN && lim.length >= 4 && q.indexOf(' ') === -1;
+  }
+
+  function buscaProntaParaCatalogo(q) {
+    q = String(q || '').trim();
+    if (!q) return false;
+    if (pareceEtiquetaGm(q)) return q.replace(/\W/g, '').length >= 4;
+    var lim = q.replace(/\W/g, '');
+    if (/^gm/i.test(lim) && lim.length < 5) return false;
+    if (/^\d+$/.test(lim) && lim.length < 8) return false;
+    if (pareceCodigoBusca(q)) return true;
+    return q.length >= 2;
   }
 
   function cadastroFiltrarAtivosLocal(arr) {
@@ -816,30 +1786,44 @@
     return arr.filter(function (p) { return !p.inativo; });
   }
 
+  function cadastroAplicarPatchLista(produtos) {
+    if (!Array.isArray(produtos) || typeof window.agroAplicarPatchPdvNoProduto !== 'function') {
+      return produtos || [];
+    }
+    return produtos.map(function (p) { return window.agroAplicarPatchPdvNoProduto(p); });
+  }
+
   /** Pipeline idêntico ao PDV: filtrar → ordenar por relevância (catálogo local). */
   function cadastroBuscarLocalComoPdv(qRaw) {
     var q = String(qRaw || '').trim();
     if (!q) return [];
-    if (q.length === 1 && !pareceCodigoBusca(q)) return [];
+    if (!buscaProntaParaCatalogo(q)) return [];
     var catalog = cadastroCatalogoPdvCacheArray();
+    var catalogById = cadastroCatalogoPdvById();
     if (!catalog.length || typeof filtrarProdutosBuscaInteligente !== 'function' || typeof normalizarBuscaLocal !== 'function') {
       return [];
     }
     var termoNorm = normalizarBuscaLocal(q);
-    if (!termoNorm || String(termoNorm).trim().length < 2) {
-      if (!pareceCodigoBusca(q)) return [];
-    }
+    if (!termoNorm) return [];
     var modo = cadastroModoBuscaPdv(q);
     var fil = filtrarProdutosBuscaInteligente(catalog, termoNorm, modo);
     fil = cadastroFiltrarAtivosLocal(fil);
     if (typeof ordenarSugestoesPdv === 'function') {
-      fil = ordenarSugestoesPdv(fil, termoNorm, catalog);
+      fil = ordenarSugestoesPdv(fil, termoNorm, catalogById);
     }
     return fil.slice(0, cadastroLimiteBuscaPdv());
   }
 
   function cadastroFinalizarLinhasBusca(pdvRows, catalog) {
     return (pdvRows || []).map(function (p) { return cadastroPdvParaLinhaLista(p, catalog); });
+  }
+
+  /** Preview local na busca: nomes/códigos já; preço só após o servidor (evita piscadinha). */
+  function cadastroLinhasPreviewBuscaLocal(locaisPdv, catalog) {
+    return cadastroFinalizarLinhasBusca(locaisPdv, catalog).map(function (row) {
+      row._precoAguardando = true;
+      return row;
+    });
   }
 
   function cadastroAplicarOrdenacaoCliente(rows) {
@@ -869,53 +1853,102 @@
   }
 
   function carregarListaPaginada(gen, sig) {
-    var pLista = fetch(urlFetch(), { credentials: 'same-origin', signal: sig })
-      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); });
-    return Promise.all([pLista, fetchPendentesBadgePromise(sig ? { signal: sig } : undefined)])
-      .then(function (pair) {
-        var x = pair[0];
+    var qBusca = (buscaEl && buscaEl.value) ? buscaEl.value.trim() : '';
+    var prefetch = null;
+    if (!qBusca && pagina === 1 && !ordenacaoAtual.campo && window.__agroCadastroListaPrefetch) {
+      prefetch = window.__agroCadastroListaPrefetch;
+      window.__agroCadastroListaPrefetch = null;
+    }
+    var pLista = prefetch
+      ? prefetch
+      : fetch(urlFetch(), { credentials: 'same-origin', signal: sig })
+          .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); });
+    fetchPendentesBadgePromise(sig ? { signal: sig } : undefined);
+    fetchPendentesPdvPromise(sig ? { signal: sig } : undefined);
+    return pLista
+      .then(function (x) {
         if (gen !== carregarGen) return;
-        if (!x.j || !x.j.ok) {
-          throw new Error((x.j && x.j.erro) || 'Falha ao carregar');
+        if (!x || !x.j || !x.j.ok) {
+          throw new Error((x && x.j && x.j.erro) || 'Falha ao carregar');
         }
         var produtos = x.j.produtos || [];
+        produtos = cadastroAplicarPatchLista(produtos);
         produtos = cadastroAplicarOrdenacaoCliente(produtos);
         atualizarMeta(x.j, produtos);
         renderLista(produtos);
       });
   }
 
-  function carregarBuscaApi(qRaw, gen, sig, localBaselinePdv) {
-    var catalog = cadastroCatalogoPdvCacheArray();
-    var termoNorm = (typeof normalizarBuscaLocal === 'function') ? normalizarBuscaLocal(qRaw) : String(qRaw || '').toLowerCase();
-    var urlBusca = URL_BUSCAR_PDV + '?q=' + encodeURIComponent(qRaw);
-    var pLista = fetch(urlBusca, { credentials: 'same-origin', signal: sig })
-      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); });
-    return Promise.all([pLista, fetchPendentesBadgePromise(sig ? { signal: sig } : undefined)])
-      .then(function (pair) {
-        var x = pair[0];
-        if (gen !== carregarGen) return;
-        if (!x.j || x.j.erro) {
-          throw new Error((x.j && x.j.erro) || 'Falha ao buscar');
+  function apiProdutoParaLinhaCadastro(p) {
+    if (!p || p.id == null) return p;
+    var sc = p.saldo_centro != null && isFinite(Number(p.saldo_centro)) ? Number(p.saldo_centro) : null;
+    var sv = p.saldo_vila != null && isFinite(Number(p.saldo_vila)) ? Number(p.saldo_vila) : null;
+    var st = p.saldo_total != null && isFinite(Number(p.saldo_total))
+      ? Number(p.saldo_total)
+      : (sc != null && sv != null ? sc + sv : null);
+    return {
+      id: p.id,
+      nome: p.nome,
+      marca: p.marca,
+      codigo: p.codigo,
+      codigo_nfe: p.codigo_nfe || p.codigo_gm || p.codigo,
+      codigo_barras: p.codigo_barras,
+      preco_venda: p.preco_venda,
+      preco_custo: p.preco_custo,
+      preco_custo_com_acrescimos: p.preco_custo_com_acrescimos,
+      categoria: p.categoria,
+      subcategoria: p.subcategoria,
+      categoria_listagem: p.categoria_listagem || p.subcategoria,
+      prateleira: p.prateleira,
+      modelo: p.modelo,
+      fornecedor: p.fornecedor,
+      imagem: p.imagem,
+      inativo: !!p.inativo,
+      unidade: p.unidade,
+      descricao: p.descricao,
+      busca_texto: p.busca_texto,
+      index_codigos: p.index_codigos,
+      saldo_centro: sc,
+      saldo_vila: sv,
+      saldo_total: st,
+      estoque_min_centro: p.estoque_min_centro,
+      estoque_max_centro: p.estoque_max_centro,
+      estoque_min_vila: p.estoque_min_vila,
+      estoque_max_vila: p.estoque_max_vila
+    };
+  }
+
+  /** GM / barras / texto — só `/api/buscar/` (igual PDV). */
+  function carregarBuscaCodigoDireto(qRaw, gen, sig) {
+    return carregarBuscaPdv(qRaw, gen, sig);
+  }
+
+  function carregarBuscaApi(qRaw, gen, sig) {
+    return carregarBuscaPdv(qRaw, gen, sig);
+  }
+
+  function carregarBuscaComErro(qBusca, g, sig) {
+    setLoading(true);
+    if (listaEl) {
+      listaEl.innerHTML = '<tr><td colspan="' + CADASTRO_LISTA_COLSPAN + '" class="p-6 text-center text-slate-500 font-semibold">Buscando…</td></tr>';
+    }
+    if (metaEl) metaEl.textContent = 'Buscando…';
+    return carregarBuscaPdv(qBusca, g, sig)
+      .catch(function (err) {
+        if (err && err.name === 'AbortError') return;
+        if (g !== carregarGen) return;
+        mostrarErro(err.message || 'Erro de rede');
+        if (listaEl) {
+          listaEl.innerHTML = '<tr><td colspan="' + CADASTRO_LISTA_COLSPAN + '" class="p-8 text-center text-slate-500 font-semibold">Nenhum produto encontrado.</td></tr>';
         }
-        var apiRows = Array.isArray(x.j.produtos) ? x.j.produtos : [];
-        var pdvRows = localBaselinePdv && localBaselinePdv.length ? localBaselinePdv : [];
-        if (typeof mesclarBuscaPdvLocalComApi === 'function') {
-          pdvRows = mesclarBuscaPdvLocalComApi(termoNorm, pdvRows, apiRows, catalog, cadastroLimiteBuscaPdv());
-        } else if (apiRows.length) {
-          pdvRows = apiRows.slice(0, cadastroLimiteBuscaPdv());
-        }
-        var produtos = cadastroFinalizarLinhasBusca(pdvRows, catalog);
-        if (ordenacaoAtual.campo) {
-          produtos = cadastroAplicarOrdenacaoCliente(produtos);
-        }
-        atualizarMeta({ modo: 'busca' }, produtos);
-        renderLista(produtos);
-      });
+        if (metaEl) metaEl.textContent = '—';
+      })
+      .finally(function () { setLoading(false); });
   }
 
   function carregar() {
     if (!listaEl) return;
+    if (typeof resetLoading === 'function') resetLoading();
     var g = ++carregarGen;
     if (carregarAbort) {
       try {
@@ -927,49 +1960,18 @@
     var sig = carregarAbort ? carregarAbort.signal : undefined;
     var qBusca = (buscaEl && buscaEl.value) ? buscaEl.value.trim() : '';
 
+    if (qBusca && !buscaProntaParaCatalogo(qBusca)) {
+      if (metaEl) metaEl.textContent = 'Mín. 2 letras, GM com 5+ caracteres ou barras 8+ dígitos.';
+      if (listaEl) {
+        listaEl.innerHTML = '<tr><td colspan="' + CADASTRO_LISTA_COLSPAN + '" class="p-6 text-center text-slate-500 font-semibold">Continue digitando para buscar no catálogo.</td></tr>';
+      }
+      return;
+    }
+
     if (qBusca) {
       clearTimeout(buscaMergeTimer);
-      var catalog = cadastroCatalogoPdvCacheArray();
-      var locaisPdv = cadastroBuscarLocalComoPdv(qBusca);
-      var linhasLocais = cadastroFinalizarLinhasBusca(locaisPdv, catalog);
-      if (ordenacaoAtual.campo) {
-        linhasLocais = cadastroAplicarOrdenacaoCliente(linhasLocais);
-      }
-      var hadLocal = linhasLocais.length > 0;
-      if (hadLocal) {
-        atualizarMeta({ modo: 'busca' }, linhasLocais);
-        renderLista(linhasLocais);
-        setLoading(false);
-      } else {
-        setLoading(true);
-      }
-      var mergeSeq = ++buscaMergeSeq;
-      var delayApi = hadLocal ? 0 : (pareceCodigoBusca(qBusca) ? 100 : 220);
-      buscaMergeTimer = setTimeout(function () {
-        if (mergeSeq !== buscaMergeSeq || g !== carregarGen) return;
-        carregarBuscaApi(qBusca, g, sig, locaisPdv)
-          .catch(function (err) {
-            if (err && err.name === 'AbortError') return;
-            if (g !== carregarGen) return;
-            if (hadLocal) return;
-            var m = err.message || 'Erro de rede';
-            var mongo = /mongo/i.test(m);
-            if (mongo) {
-              mostrarErro(m, { hintMongo: true });
-              if (listaEl) {
-                listaEl.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-600 font-semibold leading-relaxed">Lista do ERP indisponível sem Mongo. Use o botão «Estoque» no PDV para sincronizar o catálogo local ou configure o <code class="text-xs bg-slate-100 px-1 rounded">.env</code>.</td></tr>';
-              }
-            } else {
-              mostrarErro(m);
-              if (listaEl) listaEl.innerHTML = '';
-            }
-            if (metaEl) metaEl.textContent = '—';
-          })
-          .finally(function () {
-            if (g === carregarGen) setLoading(false);
-          });
-      }, delayApi);
-      if (hadLocal) fetchPendentesBadgePromise(sig ? { signal: sig } : undefined);
+      clearTimeout(buscaCodigoDebounceTimer);
+      carregarBuscaComErro(qBusca, g, sig);
       return;
     }
 
@@ -978,40 +1980,26 @@
       .catch(function (err) {
         if (err && err.name === 'AbortError') return;
         if (g !== carregarGen) return;
-        var m = err.message || 'Erro de rede';
-        var mongo = /mongo/i.test(m);
-        if (mongo) {
-          mostrarErro(m, { hintMongo: true });
-          if (listaEl) {
-            listaEl.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-600 font-semibold leading-relaxed">Lista do ERP indisponível sem Mongo. Use o botão acima para ir à aba <strong>Grupos</strong> ou configure o <code class="text-xs bg-slate-100 px-1 rounded">.env</code>.</td></tr>';
-          }
-        } else {
-          mostrarErro(m);
-          if (listaEl) listaEl.innerHTML = '';
-        }
+        mostrarErro(err.message || 'Erro de rede');
+        if (listaEl) listaEl.innerHTML = '';
         if (metaEl) metaEl.textContent = '—';
       })
       .finally(function () {
-        if (g === carregarGen) setLoading(false);
+        setLoading(false);
       });
   }
 
-  function pareceCodigoBusca(q) {
-    q = String(q || '').trim();
-    var lim = q.replace(/\W/g, '');
-    if (!lim) return false;
-    if (/^\d+$/.test(lim) && lim.length >= 6) return true;
-    if (/^gm/i.test(lim) && lim.length >= 3) return true;
-    var temL = /[a-z]/i.test(lim);
-    var temN = /\d/.test(lim);
-    return temL && temN && lim.length >= 3 && q.indexOf(' ') === -1;
-  }
-
-  function agendar() {
+  function agendar(forcar) {
     if (!buscaEl) return;
     clearTimeout(debounceTimer);
+    clearTimeout(buscaCodigoDebounceTimer);
     var q = (buscaEl.value || '').trim();
-    if (q.length === 1 && !pareceCodigoBusca(q)) {
+    if (!q) {
+      pagina = 1;
+      carregar();
+      return;
+    }
+    if (!buscaProntaParaCatalogo(q)) {
       if (carregarAbort) {
         try { carregarAbort.abort(); } catch (e1) { /* ignore */ }
         carregarAbort = null;
@@ -1019,24 +2007,50 @@
       carregarGen++;
       setLoading(false);
       mostrarErro('');
-      if (metaEl) metaEl.textContent = 'Mín. 2 letras ou código (6+ dígitos / GM…).';
+      if (metaEl) metaEl.textContent = 'Mín. 2 letras, GM com 5+ caracteres ou barras 8+ dígitos.';
       if (listaEl) {
-        listaEl.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-slate-500 font-semibold">Continue digitando para buscar no espelho ERP.</td></tr>';
+        listaEl.innerHTML = '<tr><td colspan="' + CADASTRO_LISTA_COLSPAN + '" class="p-6 text-center text-slate-500 font-semibold">Continue digitando para buscar no catálogo.</td></tr>';
       }
       return;
     }
-    var temCache = cadastroCatalogoPdvCacheArray().length > 0;
-    var ms = pareceCodigoBusca(q) ? 0 : (temCache ? 0 : 320);
+    mostrarErro('');
+    if (pareceCodigoBusca(q)) {
+      if (metaEl) metaEl.textContent = 'Buscando…';
+      var limCod = q.replace(/\W/g, '');
+      var msCod = forcar ? 0 : (/^\d{8,}$/.test(limCod) ? 100 : BUSCA_CODIGO_DEBOUNCE_MS);
+      buscaCodigoDebounceTimer = setTimeout(function () {
+        var q2 = (buscaEl.value || '').trim();
+        if (!q2 || !pareceCodigoBusca(q2)) return;
+        pagina = 1;
+        carregar();
+      }, msCod);
+      return;
+    }
+    if (metaEl) metaEl.textContent = 'Buscando…';
+    var ms = forcar ? 0 : (pareceCodigoBusca(q) ? 100 : 450);
     debounceTimer = setTimeout(function () {
       var q2 = (buscaEl.value || '').trim();
-      if (q2.length === 1 && !pareceCodigoBusca(q2)) return;
+      if (!q2) {
+        pagina = 1;
+        carregar();
+        return;
+      }
+      if (!buscaProntaParaCatalogo(q2)) return;
       pagina = 1;
       carregar();
     }, ms);
   }
 
   if (buscaEl) {
-    buscaEl.addEventListener('input', agendar);
+    buscaEl.addEventListener('input', function () { agendar(false); });
+    buscaEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        clearTimeout(debounceTimer);
+        pagina = 1;
+        agendar(true);
+      }
+    });
   }
   if (ativosEl) {
     ativosEl.addEventListener('change', function () {
@@ -1050,6 +2064,128 @@
       carregar();
     });
   }
+
+  function fillCadastroFacetSelects() {
+    if (facetasCarregadas || !URL_FACETAS) return;
+    facetasCarregadas = true;
+    fetch(URL_FACETAS + (URL_FACETAS.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now(), { credentials: 'same-origin' })
+      .then(function (r) { return jsonOuErroHumano(r); })
+      .then(function (j) {
+        if (!j.ok) {
+          facetasCarregadas = false;
+          return;
+        }
+        cadMsFacetas.marca = j.marcas || [];
+        cadMsFacetas.categoria = j.categorias || [];
+        cadMsFacetas.fornecedor = j.fornecedores || [];
+        cadMsFacetas.subcategoria = j.subcategorias || [];
+        cadMsFacetas.subcategoria_2 = j.subcategorias_2 || [];
+        cadMsFacetas.subcategoria_3 = j.subcategorias_3 || [];
+        cadMsFacetas.subcategoria_4 = j.subcategorias_4 || [];
+        cadMsFacetas.unidade = j.unidades || [];
+        cadMsFacetas.modelo = j.modelos || [];
+        Object.keys(cadMsFacetas).forEach(function (k) { cadastroMsRenderBtn(k); });
+        try {
+          if (!window._agroFacetas) window._agroFacetas = {};
+          var facKeys = [
+            ['marcas', j.marcas],
+            ['categorias', j.categorias],
+            ['fornecedores', j.fornecedores],
+            ['subcategorias', j.subcategorias],
+            ['subcategorias_2', j.subcategorias_2],
+            ['subcategorias_3', j.subcategorias_3],
+            ['subcategorias_4', j.subcategorias_4],
+            ['unidades', j.unidades],
+            ['modelos', j.modelos]
+          ];
+          function _normFac(s) {
+            return String(s || '')
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .toLowerCase()
+              .replace(/\s+/g, ' ')
+              .trim();
+          }
+          facKeys.forEach(function (pair) {
+            var k = pair[0];
+            var incoming = Array.isArray(pair[1]) ? pair[1] : [];
+            var prev = Array.isArray(window._agroFacetas[k]) ? window._agroFacetas[k] : [];
+            var merged = incoming.slice();
+            var seen = {};
+            merged.forEach(function (x) { seen[_normFac(x)] = true; });
+            prev.forEach(function (x) {
+              var s = String(x || '').trim();
+              if (!s || seen[_normFac(s)]) return;
+              seen[_normFac(s)] = true;
+              merged.push(s);
+            });
+            window._agroFacetas[k] = merged;
+          });
+          if (window.AgroPickList && window.AgroPickList.mergeFacetas) {
+            window.AgroPickList.mergeFacetas(j);
+          }
+        } catch (eFac) { /* ignore */ }
+        cadastroAtualizarResumoFiltros();
+      })
+      .catch(function () { facetasCarregadas = false; });
+  }
+
+  function cadastroLimparFiltrosAvancados() {
+    Object.keys(cadMsSelected).forEach(function (k) {
+      cadMsSelected[k] = [];
+      cadastroMsRenderBtn(k);
+    });
+    cadastroMsRenderChips();
+    if (fEstoqueLojaEl) fEstoqueLojaEl.value = 'total';
+    if (fEstoqueSinalEl) fEstoqueSinalEl.value = '';
+    if (fDataTipoEl) fDataTipoEl.value = 'cadastro';
+    if (fDataDeEl) fDataDeEl.value = '';
+    if (fDataAteEl) fDataAteEl.value = '';
+    if (fCustoMinEl) fCustoMinEl.value = '';
+    if (fCustoMaxEl) fCustoMaxEl.value = '';
+    if (fVendaMinEl) fVendaMinEl.value = '';
+    if (fVendaMaxEl) fVendaMaxEl.value = '';
+    if (fNcmEl) fNcmEl.value = '';
+    if (fSemMarcaEl) fSemMarcaEl.checked = false;
+    if (fSemCatEl) fSemCatEl.checked = false;
+    if (fSomenteAgroEl) fSomenteAgroEl.checked = false;
+    cadastroAtualizarResumoFiltros();
+  }
+
+  cadastroMsWire();
+
+  if (fAplicarEl) {
+    fAplicarEl.addEventListener('click', function () {
+      pagina = 1;
+      cadastroAtualizarResumoFiltros();
+      carregar();
+    });
+  }
+  if (fLimparEl) {
+    fLimparEl.addEventListener('click', function () {
+      cadastroLimparFiltrosAvancados();
+      pagina = 1;
+      carregar();
+    });
+  }
+
+  document.querySelectorAll('.cadastro-adv-filtros').forEach(function (det) {
+    det.addEventListener('toggle', function () {
+      if (det.open) fillCadastroFacetSelects();
+      var btnAdv = document.getElementById('cadastro-btn-filtros-adv');
+      if (btnAdv) btnAdv.setAttribute('aria-expanded', det.open ? 'true' : 'false');
+    });
+  });
+  (function () {
+    var btnAdv = document.getElementById('cadastro-btn-filtros-adv');
+    var detAdv = document.getElementById('cadastro-adv-filtros');
+    if (!btnAdv || !detAdv) return;
+    btnAdv.addEventListener('click', function () {
+      detAdv.open = !detAdv.open;
+    });
+  })();
+  fillCadastroFacetSelects();
+
   if (prevEl && nextEl) {
     prevEl.addEventListener('click', function () {
       if (pagina > 1) {
@@ -1120,7 +2256,7 @@
     return msg;
   }
 
-  if (btnErpPend && URL_ERP_SYNC_PENDENTES && PODE_EDITAR_OVERLAY) {
+  if (btnErpPend && URL_ERP_SYNC_PENDENTES && PODE_EDITAR_OVERLAY && ERP_SYNC_HABILITADO) {
     btnErpPend.addEventListener('click', function () {
       if (!window.confirm('Enviar ao ERP legado um lote de até 80 produtos pendentes desta sessão?')) return;
       btnErpPend.disabled = true;
@@ -1139,7 +2275,19 @@
     });
   }
 
-  if (btnErpForcarTodos && URL_ERP_SYNC_PENDENTES && PODE_EDITAR_OVERLAY) {
+  if (btnPendentesPdv) {
+    btnPendentesPdv.addEventListener('click', function () {
+      filtroPendentePdvAtivo = !filtroPendentePdvAtivo;
+      if (buscaEl && filtroPendentePdvAtivo) buscaEl.value = '';
+      pagina = 1;
+      cadastroAtualizarResumoFiltros();
+      refreshPendentesPdv();
+      carregar();
+    });
+  }
+  refreshPendentesPdv();
+
+  if (btnErpForcarTodos && URL_ERP_SYNC_PENDENTES && PODE_EDITAR_OVERLAY && ERP_SYNC_HABILITADO) {
     btnErpForcarTodos.addEventListener('click', function () {
       if (!window.confirm(
         'Enviar ao ERP legado todos os produtos pendentes desta sessão, em várias rodadas (até ~3200 por clique), até a fila esvaziar ou ocorrer falha. Continuar?'
@@ -1195,7 +2343,6 @@
   if (CADASTRO_ERP_MODO === 'detalhe' && CADASTRO_ERP_PID) {
     carregarDetalheProduto(CADASTRO_ERP_PID);
   } else {
-    cadastroCatalogoPdvCacheArray();
     carregar();
   }
 
@@ -1213,4 +2360,1396 @@
       }
     });
   }
+
+  var cadEtqProd = null;
+  var cadEtqUiReady = false;
+
+  function cadEtqEl(id) {
+    return document.getElementById(id);
+  }
+
+  function ensureCadEtqModalOnBody() {
+    var back = cadEtqEl('cad-etq-back');
+    var modal = cadEtqEl('cad-etq-modal');
+    if (back && back.parentElement !== document.body) document.body.appendChild(back);
+    if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
+  }
+
+  function fecharModalEtiquetaCadastro() {
+    cadEtqProd = null;
+    var cadEtqBack = cadEtqEl('cad-etq-back');
+    var cadEtqModal = cadEtqEl('cad-etq-modal');
+    var cadEtqStatus = cadEtqEl('cad-etq-status');
+    if (cadEtqBack) {
+      cadEtqBack.classList.add('hidden');
+      cadEtqBack.setAttribute('aria-hidden', 'true');
+    }
+    if (cadEtqModal) {
+      cadEtqModal.classList.add('hidden');
+      cadEtqModal.setAttribute('aria-hidden', 'true');
+    }
+    if (cadEtqStatus) cadEtqStatus.textContent = '';
+    document.body.classList.remove('modal-open');
+  }
+
+  function abrirModalEtiquetaCadastro(p) {
+    ensureCadEtqModalOnBody();
+    var Core = window.AgroEtiquetasCore;
+    if (!Core) {
+      mostrarErro('Módulo de etiquetas indisponível.');
+      return;
+    }
+    var cadEtqModal = cadEtqEl('cad-etq-modal');
+    if (!cadEtqModal) {
+      mostrarErro('Modal de etiqueta não encontrado. Recarregue a página (F5).');
+      return;
+    }
+    cadEtqProd = p;
+    var nomeEl = cadEtqEl('cad-etq-nome');
+    var gmEl = cadEtqEl('cad-etq-gm');
+    var cadEtqPreset = cadEtqEl('cad-etq-preset');
+    var cadEtqQtd = cadEtqEl('cad-etq-qtd');
+    var cadEtqBack = cadEtqEl('cad-etq-back');
+    if (nomeEl) nomeEl.textContent = p.nome || '—';
+    if (gmEl) {
+      var gm = String(p.codigo_nfe || p.codigo_gm || p.codigo || '—');
+      var pv = p.preco_venda != null && isFinite(Number(p.preco_venda))
+        ? Number(p.preco_venda).toFixed(2).replace('.', ',')
+        : '0,00';
+      gmEl.textContent = gm + ' · R$ ' + pv;
+    }
+    var barrasEl = cadEtqEl('cad-etq-barras');
+    if (barrasEl && Core.valorBarcodeProduto) {
+      var bc = Core.valorBarcodeProduto(Core.produtoParaItem(p, 1));
+      barrasEl.classList.remove('hidden', 'text-emerald-700', 'text-amber-900', 'bg-amber-50');
+      if (bc.formato === 'EAN13' || bc.formato === 'EAN8') {
+        var msg =
+          'Barras na etiqueta: ' +
+          bc.valor +
+          ' (' +
+          bc.formato +
+          ') — leitor bipa o número, não o GM.';
+        if (bc.ean_corrigido) {
+          msg +=
+            ' Aviso: dígito verificador ajustado automaticamente' +
+            (bc.valor_original ? ' (cadastro tinha ' + bc.valor_original + ')' : '') +
+            '. Confira o EAN real do produto.';
+          barrasEl.classList.add('text-amber-900', 'bg-amber-50', 'rounded-lg', 'px-2', 'py-1.5');
+        } else {
+          barrasEl.classList.add('text-emerald-700');
+        }
+        barrasEl.textContent = msg;
+      } else if (bc.codigo_loja || (Core.ehCodigoBarrasLojaInterno && Core.ehCodigoBarrasLojaInterno(bc.valor))) {
+        barrasEl.textContent =
+          'Barras interno loja: ' +
+          bc.valor +
+          ' (CODE128) — leitor bipa o número. Faixa 230… não é EAN de fábrica.';
+        barrasEl.classList.add('text-emerald-700');
+      } else {
+        barrasEl.textContent =
+          'Sem EAN no cadastro: a etiqueta sairá com código GM (' +
+          bc.valor +
+          '). Preencha «Código de barras» (aba Fiscal) e reimprima.';
+        barrasEl.classList.add('text-amber-900', 'bg-amber-50', 'rounded-lg', 'px-2', 'py-1.5');
+      }
+    }
+    if (cadEtqPreset) Core.fillPresetSelect(cadEtqPreset);
+    if (cadEtqQtd) {
+      cadEtqQtd.value = '1';
+      setTimeout(function () {
+        cadEtqQtd.focus();
+        cadEtqQtd.select();
+      }, 40);
+    }
+    if (cadEtqBack) {
+      cadEtqBack.classList.remove('hidden');
+      cadEtqBack.setAttribute('aria-hidden', 'false');
+    }
+    cadEtqModal.classList.remove('hidden');
+    cadEtqModal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+  }
+
+  function imprimirEtiquetaCadastro() {
+    var Core = window.AgroEtiquetasCore;
+    var cadEtqQtd = cadEtqEl('cad-etq-qtd');
+    var cadEtqPreset = cadEtqEl('cad-etq-preset');
+    var cadEtqStatus = cadEtqEl('cad-etq-status');
+    if (!cadEtqProd || !Core) return;
+    var qtd = parseInt(cadEtqQtd && cadEtqQtd.value, 10) || 1;
+    var presetId = cadEtqPreset && cadEtqPreset.value;
+    var st = Core.loadStorage();
+    if (presetId) {
+      st.preset_ativo = presetId;
+      Core.saveStorage(st);
+    }
+    var item = Core.produtoParaItem(cadEtqProd, qtd);
+    if (cadEtqStatus) cadEtqStatus.textContent = 'Enviando…';
+    Core.imprimirItens([item], {
+      presetId: presetId || st.preset_ativo,
+      textoRodape: st.texto_rodape_global || Core.getPresetAtivo(st).texto_rodape || '',
+      origem: 'cadastro',
+    }).then(function (res) {
+      if (res && res.ok) {
+        fecharModalEtiquetaCadastro();
+        return;
+      }
+      if (cadEtqStatus) {
+        cadEtqStatus.textContent = 'Falha: ' + (res && res.reason ? res.reason : 'erro');
+      }
+    });
+  }
+
+  function initCadEtqModalUi() {
+    if (cadEtqUiReady) return;
+    ensureCadEtqModalOnBody();
+    var cadEtqBtnImp = cadEtqEl('cad-etq-imprimir');
+    var cadEtqBtnCan = cadEtqEl('cad-etq-cancelar');
+    var cadEtqBack = cadEtqEl('cad-etq-back');
+    var cadEtqQtd = cadEtqEl('cad-etq-qtd');
+    if (!cadEtqBtnImp && !cadEtqBack) return;
+    cadEtqUiReady = true;
+    if (cadEtqBtnImp) cadEtqBtnImp.addEventListener('click', imprimirEtiquetaCadastro);
+    if (cadEtqBtnCan) cadEtqBtnCan.addEventListener('click', fecharModalEtiquetaCadastro);
+    if (cadEtqBack) cadEtqBack.addEventListener('click', function () {
+      /* Fundo nao fecha — so X / FECHAR / Esc */
+    });
+    if (cadEtqQtd) {
+      cadEtqQtd.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          imprimirEtiquetaCadastro();
+        }
+      });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCadEtqModalUi);
+  } else {
+    initCadEtqModalUi();
+  }
+
+  /** Excel export / import (fase 1) — só na lista. */
+  (function initCadastroPlanilha() {
+    if (CADASTRO_ERP_MODO === 'detalhe') return;
+    var btnExp = document.getElementById('cadastro-btn-export-xlsx');
+    var btnImp = document.getElementById('cadastro-btn-import-xlsx');
+    var modal = document.getElementById('cadastro-import-modal');
+    var back = document.getElementById('cadastro-import-back');
+    if (!btnExp && !btnImp) return;
+
+    function csrfTok() {
+      return (U && U.csrf) ? U.csrf() : '';
+    }
+
+    function abrirImport() {
+      if (!modal || !back) return;
+      modal.classList.remove('hidden');
+      back.classList.remove('hidden');
+    }
+    function fecharImport() {
+      if (!modal || !back) return;
+      modal.classList.add('hidden');
+      back.classList.add('hidden');
+    }
+
+    if (btnExp && C.URL_EXPORT_XLSX) {
+      var modalExp = document.getElementById('cadastro-export-modal');
+      var backExp = document.getElementById('cadastro-export-back');
+      var elCols = document.getElementById('cadastro-export-colunas');
+      var elCats = document.getElementById('cadastro-export-categorias');
+      var inpCatBusca = document.getElementById('cadastro-export-cat-busca');
+      var elCatStatus = document.getElementById('cadastro-export-cat-status');
+      var btnExpBaixar = document.getElementById('cadastro-export-baixar');
+      var btnExpFec = document.getElementById('cadastro-export-fechar');
+      var exportCatsCache = null;
+      var exportColsDef = [
+        { key: 'id', label: 'ID', fixa: true, bloqueada: true, oculta: true },
+        { key: 'codigo_gm', label: 'Código GM' },
+        { key: 'nome', label: 'Nome' },
+        { key: 'marca', label: 'Marca' },
+        { key: 'modelo', label: 'Modelo' },
+        { key: 'categoria', label: 'Categoria' },
+        { key: 'subcategoria', label: 'Subcategoria' },
+        { key: 'subcategoria_2', label: 'Subcategoria 2' },
+        { key: 'subcategoria_3', label: 'Subcategoria 3' },
+        { key: 'subcategoria_4', label: 'Subcategoria 4' },
+        { key: 'unidade', label: 'Unidade' },
+        { key: 'peso_etiqueta', label: 'Peso' },
+        { key: 'codigo_barras', label: 'Código barras' },
+        { key: 'preco_custo', label: 'Preço custo' },
+        { key: 'preco_venda', label: 'Preço venda' },
+        { key: 'delivery_ativo', label: 'Delivery ativo' },
+        { key: 'delivery_titulo', label: 'Delivery título' },
+        { key: 'delivery_descricao', label: 'Delivery descrição' },
+        { key: 'delivery_ordem', label: 'Delivery ordem' },
+        { key: 'delivery_destaque', label: 'Delivery destaque' },
+        { key: 'delivery_estoque_negativo', label: 'Delivery estoque neg.' },
+        { key: 'delivery_peso', label: 'Delivery peso' },
+        { key: 'delivery_categoria', label: 'Delivery categoria' },
+        { key: 'delivery_sub1', label: 'Delivery sub 1' },
+        { key: 'delivery_sub2', label: 'Delivery sub 2' },
+        { key: 'delivery_sub3', label: 'Delivery sub 3' },
+        { key: 'delivery_sub4', label: 'Delivery sub 4' },
+        { key: 'delivery_embalagens', label: 'Delivery embalagens' },
+        { key: 'fornecedor_compra_1', label: 'Últ. fornecedor' },
+        { key: 'fornecedor_compra_2', label: '2º fornecedor' },
+        { key: 'fornecedor_compra_3', label: '3º fornecedor' }
+      ];
+
+      function abrirExport() {
+        if (!modalExp || !backExp) return;
+        montarColunasExport();
+        carregarCategoriasExport();
+        modalExp.classList.remove('hidden');
+        backExp.classList.remove('hidden');
+      }
+      function fecharExport() {
+        if (!modalExp || !backExp) return;
+        modalExp.classList.add('hidden');
+        backExp.classList.add('hidden');
+      }
+
+      function montarColunasExport() {
+        if (!elCols) return;
+        elCols.innerHTML = exportColsDef.map(function (c) {
+          var chk = c.fixa ? ' checked disabled' : ' checked';
+          var hint = c.oculta
+            ? ' <span class="text-[10px] font-black uppercase text-slate-400">(oculta no Excel)</span>'
+            : (c.bloqueada ? ' <span class="text-[10px] font-black uppercase text-slate-400">(bloqueada no Excel)</span>' : '');
+          return '<label class="flex items-center gap-2 min-h-[40px] px-2 rounded-lg hover:bg-slate-50">' +
+            '<input type="checkbox" class="cadastro-export-col-cb w-5 h-5" data-key="' + escapeHtml(c.key) + '"' + chk + ' />' +
+            '<span>' + escapeHtml(c.label) + hint + '</span></label>';
+        }).join('');
+      }
+
+      function renderCategoriasExport(lista) {
+        if (!elCats) return;
+        var q = (inpCatBusca && inpCatBusca.value || '').trim().toLowerCase();
+        var filtrada = (lista || []).filter(function (c) {
+          return !q || String(c).toLowerCase().indexOf(q) >= 0;
+        });
+        if (!filtrada.length) {
+          elCats.innerHTML = '<p class="text-slate-500 p-2">Nenhuma categoria' + (q ? ' com esse filtro' : '') + '.</p>';
+        } else {
+          elCats.innerHTML = filtrada.map(function (cat) {
+            return '<label class="flex items-center gap-2 min-h-[40px] px-2 rounded-lg hover:bg-emerald-50/80">' +
+              '<input type="checkbox" class="cadastro-export-cat-cb w-5 h-5" value="' + escapeHtml(String(cat)) + '" />' +
+              '<span>' + escapeHtml(String(cat)) + '</span></label>';
+          }).join('');
+        }
+        if (elCatStatus) {
+          elCatStatus.textContent = filtrada.length + ' categoria(s) listada(s). Nenhuma marcada = todas.';
+        }
+      }
+
+      function carregarCategoriasExport() {
+        if (exportCatsCache) {
+          renderCategoriasExport(exportCatsCache);
+          return;
+        }
+        if (!C.URL_FACETAS) return;
+        if (elCatStatus) elCatStatus.textContent = 'Carregando categorias…';
+        fetch(C.URL_FACETAS, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            exportCatsCache = (j && j.ok && j.categorias) ? j.categorias : [];
+            renderCategoriasExport(exportCatsCache);
+          })
+          .catch(function () {
+            if (elCatStatus) elCatStatus.textContent = 'Não foi possível carregar categorias — exportará todas.';
+          });
+      }
+
+      if (inpCatBusca) {
+        inpCatBusca.addEventListener('input', function () {
+          renderCategoriasExport(exportCatsCache || []);
+        });
+      }
+
+      btnExp.addEventListener('click', abrirExport);
+      if (btnExpFec) btnExpFec.addEventListener('click', fecharExport);
+      if (backExp) backExp.addEventListener('click', function () {
+        /* Fundo nao fecha — so X / FECHAR / Esc */
+      });
+
+      if (btnExpBaixar) {
+        btnExpBaixar.addEventListener('click', function () {
+          var cols = [];
+          elCols.querySelectorAll('.cadastro-export-col-cb').forEach(function (cb) {
+            if (cb.checked || cb.disabled) cols.push(cb.getAttribute('data-key'));
+          });
+          if (!cols.length) cols.push('id');
+          var cats = [];
+          if (elCats) {
+            elCats.querySelectorAll('.cadastro-export-cat-cb:checked').forEach(function (cb) {
+              if (cb.value) cats.push(cb.value);
+            });
+          }
+          var params = new URLSearchParams();
+          if (ativosEl && !ativosEl.checked) params.set('inativos', '1');
+          params.set('cols', cols.join(','));
+          if (cats.length) params.set('categorias', cats.join('|'));
+          fecharExport();
+          window.location.href = C.URL_EXPORT_XLSX + '?' + params.toString();
+        });
+      }
+    }
+
+    var inpArq = document.getElementById('cadastro-import-arquivo');
+    var elResumo = document.getElementById('cadastro-import-resumo');
+    var elErros = document.getElementById('cadastro-import-erros');
+    var elPrev = document.getElementById('cadastro-import-preview');
+    var elNovos = document.getElementById('cadastro-import-novos');
+    var chkPermitirNovos = document.getElementById('cadastro-import-permitir-novos');
+    var btnPrev = document.getElementById('cadastro-import-previa');
+    var btnApl = document.getElementById('cadastro-import-aplicar');
+    var btnFec = document.getElementById('cadastro-import-fechar');
+    var elProgWrap = document.getElementById('cadastro-import-progress-wrap');
+    var elProgBar = document.getElementById('cadastro-import-progress-bar');
+    var elProgPct = document.getElementById('cadastro-import-progress-pct');
+    var elProgLabel = document.getElementById('cadastro-import-progress-label');
+    var elProgDetail = document.getElementById('cadastro-import-progress-detail');
+    var elProgTrack = elProgWrap ? elProgWrap.querySelector('[role="progressbar"]') : null;
+    var pollTimer = null;
+    var ultimaPreviaOk = false;
+    var ultimaPreviaDados = null;
+
+    function cancelPoll() {
+      if (pollTimer) {
+        clearTimeout(pollTimer);
+        pollTimer = null;
+      }
+    }
+
+    function setProgress(pct, label, detail) {
+      var n = Math.max(0, Math.min(100, Math.round(pct || 0)));
+      if (elProgWrap) elProgWrap.classList.remove('hidden');
+      if (elProgBar) elProgBar.style.width = n + '%';
+      if (elProgPct) elProgPct.textContent = n + '%';
+      if (elProgLabel && label) elProgLabel.textContent = label;
+      if (elProgDetail) elProgDetail.textContent = detail || '';
+      if (elProgTrack) elProgTrack.setAttribute('aria-valuenow', String(n));
+    }
+
+    function hideProgress() {
+      cancelPoll();
+      if (elProgWrap) elProgWrap.classList.add('hidden');
+      if (elProgBar) elProgBar.style.width = '0%';
+      if (elProgPct) elProgPct.textContent = '0%';
+      if (elProgDetail) elProgDetail.textContent = '';
+      if (elProgTrack) elProgTrack.setAttribute('aria-valuenow', '0');
+    }
+
+    function permitirNovosMarcado() {
+      return !!(chkPermitirNovos && chkPermitirNovos.checked);
+    }
+
+    function podeConfirmarImportacao(j) {
+      if (!j || !j.n_alteracoes) return false;
+      var bloqueadas = Number(j.n_bloqueadas_valor_novo || 0);
+      var okSemNovos = Number(j.n_alteracoes_ok != null ? j.n_alteracoes_ok : j.n_alteracoes) || 0;
+      if (okSemNovos > 0) return true;
+      return bloqueadas > 0 && permitirNovosMarcado();
+    }
+
+    function atualizarBtnAplicarImport(j) {
+      if (!btnApl) return;
+      btnApl.disabled = !podeConfirmarImportacao(j);
+    }
+
+    function limparImportUi() {
+      cancelPoll();
+      hideProgress();
+      ultimaPreviaOk = false;
+      ultimaPreviaDados = null;
+      if (btnApl) btnApl.disabled = true;
+      if (chkPermitirNovos) chkPermitirNovos.checked = false;
+      if (elNovos) { elNovos.classList.add('hidden'); elNovos.innerHTML = ''; }
+      if (elResumo) { elResumo.classList.add('hidden'); elResumo.textContent = ''; }
+      if (elErros) { elErros.classList.add('hidden'); elErros.innerHTML = ''; }
+      if (elPrev) { elPrev.classList.add('hidden'); elPrev.innerHTML = ''; }
+    }
+
+    function renderPrevia(j) {
+      if (elResumo) {
+        elResumo.className = 'text-sm font-semibold ' + (j.n_alteracoes > 0 ? 'text-emerald-800' : 'text-amber-800');
+        if (j.n_alteracoes > 0) {
+          var bloqueadas = Number(j.n_bloqueadas_valor_novo || 0);
+          var okSemNovos = Number(j.n_alteracoes_ok != null ? j.n_alteracoes_ok : j.n_alteracoes) || 0;
+          elResumo.textContent = j.n_alteracoes + ' alteração(ões) · ' + j.n_ignoradas + ' ignorada(s) · ' + j.n_erros + ' erro(s)';
+          if (bloqueadas > 0) {
+            elResumo.textContent += ' · ' + bloqueadas + ' com valor novo (marque «Permitir criar novos» para gravar).';
+          } else if (okSemNovos > 0) {
+            elResumo.textContent += ' — pode confirmar abaixo.';
+          }
+        } else {
+          elResumo.textContent = 'Nenhuma alteração detectada (' + j.n_ignoradas + ' ignorada(s), ' + j.n_erros + ' erro(s)). Edite alguma célula (vazio não altera) ou clique «Ver prévia» de novo após corrigir.';
+        }
+        elResumo.classList.remove('hidden');
+      }
+      if (elNovos) {
+        if (j.valores_novos && j.valores_novos.length) {
+          elNovos.innerHTML = '<div class="font-black uppercase text-xs mb-1">Valores novos na planilha</div>' +
+            j.valores_novos.slice(0, 20).map(function (v) {
+              var linhas = (v.linhas || []).join(', ');
+              return '<div>' + escapeHtml(String(v.rotulo || v.campo || '')) + ': «' + escapeHtml(String(v.valor || '')) + '»' +
+                (linhas ? ' (linhas ' + linhas + ')' : '') + '</div>';
+            }).join('');
+          elNovos.classList.remove('hidden');
+        } else {
+          elNovos.classList.add('hidden');
+          elNovos.innerHTML = '';
+        }
+      }
+      if (elErros && j.erros && j.erros.length) {
+        elErros.innerHTML = j.erros.slice(0, 40).map(function (e) {
+          return '<div>L' + (e.linha || '?') + ' · ' + escapeHtml(String(e.id || '')) + ': ' + escapeHtml(String(e.erro || '')) + '</div>';
+        }).join('');
+        elErros.classList.remove('hidden');
+      }
+      if (elPrev && j.alteracoes && j.alteracoes.length) {
+        var html = '<table class="w-full text-left"><thead class="bg-slate-50"><tr><th class="p-2">Linha</th><th class="p-2">Nome</th><th class="p-2">Campos</th></tr></thead><tbody>';
+        j.alteracoes.slice(0, 80).forEach(function (a) {
+          var campos = (a.campos || []).map(function (c) {
+            return escapeHtml(String(c.campo || '')) + ': ' + escapeHtml(String(c.de)) + ' → ' + escapeHtml(String(c.para));
+          }).join('; ');
+          html += '<tr class="border-t border-slate-100"><td class="p-2 font-mono">' + a.linha + '</td><td class="p-2">' + escapeHtml(String(a.nome || '')) + '</td><td class="p-2 text-slate-600">' + campos + '</td></tr>';
+        });
+        html += '</tbody></table>';
+        elPrev.innerHTML = html;
+        elPrev.classList.remove('hidden');
+      }
+      ultimaPreviaDados = j;
+      ultimaPreviaOk = podeConfirmarImportacao(j);
+      atualizarBtnAplicarImport(j);
+    }
+
+    function parseHttpJson(r) {
+      return r.text().then(function (text) {
+        var j = null;
+        try {
+          j = text ? JSON.parse(text) : null;
+        } catch (e) {
+          var msg = 'Resposta inválida do servidor';
+          if (r.status === 502 || r.status === 504) {
+            msg = 'Servidor demorou demais — aguarde ou tente de novo em instantes.';
+          } else if (r.status === 404) {
+            msg = 'Rota de prévia não encontrada — atualize a página (Ctrl+F5).';
+          } else if (r.status === 403 || r.status === 401) {
+            msg = 'Sessão expirada — faça login de novo.';
+          } else if (text && text.indexOf('<html') >= 0) {
+            msg = 'Erro no servidor (HTTP ' + r.status + '). Tente F5 ou login de novo.';
+          }
+          throw new Error(msg);
+        }
+        return { ok: r.ok, j: j };
+      });
+    }
+
+    function parseXhrJson(xhr) {
+      var text = xhr.responseText || '';
+      try {
+        return text ? JSON.parse(text) : null;
+      } catch (e) {
+        if (xhr.status === 502 || xhr.status === 504) {
+          throw new Error('Servidor demorou demais — a planilha grande leva mais tempo. Aguarde o deploy ou edite só as linhas alteradas.');
+        }
+        if (xhr.status === 403 || xhr.status === 401) {
+          throw new Error('Sessão expirada — faça login de novo.');
+        }
+        throw new Error('Resposta inválida do servidor (HTTP ' + xhr.status + '). Atualize a página (Ctrl+F5).');
+      }
+    }
+
+    function pollImportJob(jobId, onOk, onFail) {
+      if (!C.URL_IMPORT_PREVIEW_STATUS) {
+        if (typeof onFail === 'function') onFail(new Error('Importação indisponível — atualize a página (Ctrl+F5).'));
+        return;
+      }
+      fetch(C.URL_IMPORT_PREVIEW_STATUS + '?job=' + encodeURIComponent(jobId), {
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json' }
+      }).then(parseHttpJson).then(function (x) {
+        var j = x.j || {};
+        if (!x.ok || !j.ok) throw new Error((j && j.erro) || 'Falha na importação');
+        if (j.done) {
+          setProgress(100, 'Concluído', '');
+          setTimeout(hideProgress, 400);
+          if (typeof onOk === 'function') onOk(j.result || j);
+          return;
+        }
+        var srvPct = j.pct || 0;
+        var uiPct = 15 + Math.round(srvPct * 0.82);
+        var det = '';
+        if (j.total_linhas) det = j.total_linhas + ' linha(s) na planilha';
+        if (j.phase) det = j.phase;
+        setProgress(uiPct, j.phase || 'Gravando alterações…', det);
+        pollTimer = setTimeout(function () {
+          pollImportJob(jobId, onOk, onFail);
+        }, 400);
+      }).catch(function (e) {
+        hideProgress();
+        if (typeof onFail === 'function') onFail(e);
+      });
+    }
+
+    function pollPreviaStatus(jobId, totalLinhas, onOk, onFail) {
+      if (!C.URL_IMPORT_PREVIEW_STATUS) {
+        if (typeof onFail === 'function') onFail(new Error('Prévia indisponível — atualize a página (Ctrl+F5).'));
+        return;
+      }
+      fetch(C.URL_IMPORT_PREVIEW_STATUS + '?job=' + encodeURIComponent(jobId), {
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json' }
+      }).then(parseHttpJson).then(function (x) {
+        var j = x.j || {};
+        if (!x.ok || !j.ok) throw new Error((j && j.erro) || 'Falha na prévia');
+        if (j.done) {
+          setProgress(100, 'Concluído', '');
+          setTimeout(hideProgress, 400);
+          if (typeof onOk === 'function') onOk(j);
+          return;
+        }
+        var srvPct = j.pct || 0;
+        var uiPct = 30 + Math.round(srvPct * 0.68);
+        var det = '';
+        if (j.total_linhas) det = j.total_linhas + ' linha(s) na planilha';
+        if (j.phase && j.phase.indexOf('linha') >= 0) det = j.phase;
+        setProgress(uiPct, j.phase || 'Analisando planilha…', det);
+        pollTimer = setTimeout(function () {
+          pollPreviaStatus(jobId, totalLinhas, onOk, onFail);
+        }, 350);
+      }).catch(function (e) {
+        hideProgress();
+        if (typeof onFail === 'function') onFail(e);
+      });
+    }
+
+    function enviarPlanilhaPreview(onOk, onFail) {
+      if (!inpArq || !inpArq.files || !inpArq.files[0]) {
+        var msg = 'Selecione um arquivo .xlsx ou .csv.';
+        if (typeof alert !== 'undefined') alert(msg);
+        if (typeof onFail === 'function') onFail(new Error(msg));
+        return;
+      }
+      if (!C.URL_IMPORT_PREVIEW) {
+        if (typeof onFail === 'function') onFail(new Error('Prévia indisponível.'));
+        return;
+      }
+      cancelPoll();
+      var fd = new FormData();
+      var file = inpArq.files[0];
+      fd.append('arquivo', file);
+      if (btnPrev) btnPrev.disabled = true;
+      if (btnApl) btnApl.disabled = true;
+      setLoading(true);
+      setProgress(0, 'Enviando arquivo…', file.name || '');
+
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', C.URL_IMPORT_PREVIEW, true);
+      xhr.setRequestHeader('X-CSRFToken', csrfTok());
+      xhr.setRequestHeader('Accept', 'application/json');
+
+      xhr.upload.onprogress = function (ev) {
+        if (!ev.lengthComputable) return;
+        var upPct = Math.round((ev.loaded / ev.total) * 28);
+        var mb = (ev.loaded / 1048576).toFixed(1);
+        var mbTot = (ev.total / 1048576).toFixed(1);
+        setProgress(upPct, 'Enviando arquivo…', mb + ' / ' + mbTot + ' MB');
+      };
+
+      xhr.onload = function () {
+        var j = null;
+        try {
+          j = parseXhrJson(xhr);
+        } catch (e) {
+          hideProgress();
+          setLoading(false);
+          if (btnPrev) btnPrev.disabled = false;
+          if (typeof onFail === 'function') onFail(e);
+          else if (typeof alert !== 'undefined') alert(e.message);
+          return;
+        }
+        if (xhr.status < 200 || xhr.status >= 300 || !j || !j.ok) {
+          var err = (j && j.erro) || 'Falha ao enviar planilha';
+          hideProgress();
+          setLoading(false);
+          if (btnPrev) btnPrev.disabled = false;
+          if (typeof onFail === 'function') onFail(new Error(err));
+          else if (typeof alert !== 'undefined') alert(err);
+          return;
+        }
+        if (j.job_id) {
+          setProgress(30, 'Analisando planilha…', 'Aguarde…');
+          pollPreviaStatus(j.job_id, 0, function (result) {
+            setLoading(false);
+            if (btnPrev) btnPrev.disabled = false;
+            if (typeof onOk === 'function') onOk(result);
+          }, function (e) {
+            setLoading(false);
+            if (btnPrev) btnPrev.disabled = false;
+            if (typeof alert !== 'undefined') alert(e.message || 'Erro');
+            if (typeof onFail === 'function') onFail(e);
+          });
+          return;
+        }
+        setProgress(100, 'Concluído', '');
+        setTimeout(hideProgress, 400);
+        setLoading(false);
+        if (btnPrev) btnPrev.disabled = false;
+        if (typeof onOk === 'function') onOk(j);
+      };
+
+      xhr.onerror = function () {
+        hideProgress();
+        setLoading(false);
+        if (btnPrev) btnPrev.disabled = false;
+        var err = new Error('Falha de rede ao enviar planilha.');
+        if (typeof onFail === 'function') onFail(err);
+        else if (typeof alert !== 'undefined') alert(err.message);
+      };
+
+      xhr.send(fd);
+    }
+
+    function enviarPlanilhaAplicar(onOk, onFail) {
+      if (!inpArq || !inpArq.files || !inpArq.files[0]) {
+        var msg = 'Selecione um arquivo .xlsx ou .csv.';
+        if (typeof alert !== 'undefined') alert(msg);
+        if (typeof onFail === 'function') onFail(new Error(msg));
+        return;
+      }
+      if (!C.URL_IMPORT_APLICAR) {
+        if (typeof onFail === 'function') onFail(new Error('Gravação indisponível.'));
+        return;
+      }
+      cancelPoll();
+      var fd = new FormData();
+      var file = inpArq.files[0];
+      fd.append('arquivo', file);
+      fd.append('nome_arquivo', file.name || '');
+      if (permitirNovosMarcado()) fd.append('permitir_novos', '1');
+      if (btnPrev) btnPrev.disabled = true;
+      if (btnApl) btnApl.disabled = true;
+      setLoading(true);
+      setProgress(0, 'Enviando planilha…', file.name || '');
+
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', C.URL_IMPORT_APLICAR, true);
+      xhr.setRequestHeader('X-CSRFToken', csrfTok());
+      xhr.setRequestHeader('Accept', 'application/json');
+
+      xhr.upload.onprogress = function (ev) {
+        if (!ev.lengthComputable) return;
+        var upPct = Math.round((ev.loaded / ev.total) * 12);
+        setProgress(upPct, 'Enviando planilha…', file.name || '');
+      };
+
+      xhr.onload = function () {
+        var j = null;
+        try {
+          j = parseXhrJson(xhr);
+        } catch (e) {
+          hideProgress();
+          setLoading(false);
+          if (btnPrev) btnPrev.disabled = false;
+          if (btnApl) btnApl.disabled = !ultimaPreviaOk;
+          if (typeof onFail === 'function') onFail(e);
+          return;
+        }
+        if (xhr.status < 200 || xhr.status >= 300 || !j || !j.ok) {
+          hideProgress();
+          setLoading(false);
+          if (btnPrev) btnPrev.disabled = false;
+          if (btnApl) btnApl.disabled = !ultimaPreviaOk;
+          if (typeof onFail === 'function') onFail(new Error((j && j.erro) || 'Falha ao gravar'));
+          return;
+        }
+        if (j.job_id) {
+          setProgress(15, 'Gravando alterações…', 'Aguarde…');
+          pollImportJob(j.job_id, function (result) {
+            setLoading(false);
+            if (btnPrev) btnPrev.disabled = false;
+            if (typeof onOk === 'function') onOk(result);
+          }, function (e) {
+            setLoading(false);
+            if (btnPrev) btnPrev.disabled = false;
+            if (btnApl) btnApl.disabled = !ultimaPreviaOk;
+            if (typeof onFail === 'function') onFail(e);
+          });
+          return;
+        }
+        setProgress(100, 'Concluído', '');
+        setTimeout(hideProgress, 400);
+        setLoading(false);
+        if (btnPrev) btnPrev.disabled = false;
+        if (typeof onOk === 'function') onOk(j);
+      };
+
+      xhr.onerror = function () {
+        hideProgress();
+        setLoading(false);
+        if (btnPrev) btnPrev.disabled = false;
+        if (btnApl) btnApl.disabled = !ultimaPreviaOk;
+        if (typeof onFail === 'function') {
+          onFail(new Error('Conexão caiu ao gravar — apague linhas não editadas e tente de novo.'));
+        }
+      };
+
+      xhr.send(fd);
+    }
+
+    function enviarPlanilha(url, onOk) {
+      if (!inpArq || !inpArq.files || !inpArq.files[0]) {
+        if (typeof alert !== 'undefined') alert('Selecione um arquivo .xlsx ou .csv.');
+        return;
+      }
+      if (url === C.URL_IMPORT_PREVIEW) {
+        enviarPlanilhaPreview(onOk, function (e) {
+          if (typeof alert !== 'undefined') alert(e.message || 'Erro');
+        });
+        return;
+      }
+      if (url === C.URL_IMPORT_APLICAR) {
+        enviarPlanilhaAplicar(onOk, function (e) {
+          var msg = e.message || 'Erro';
+          if (msg === 'Failed to fetch') {
+            msg = 'Servidor demorou demais — apague linhas não editadas ou aguarde a barra de progresso.';
+          }
+          if (typeof alert !== 'undefined') alert(msg);
+        });
+        return;
+      }
+    }
+
+    if (chkPermitirNovos) {
+      chkPermitirNovos.addEventListener('change', function () {
+        if (ultimaPreviaDados) atualizarBtnAplicarImport(ultimaPreviaDados);
+      });
+    }
+
+    if (btnImp) btnImp.addEventListener('click', function () {
+      limparImportUi();
+      abrirImport();
+    });
+    if (btnFec) btnFec.addEventListener('click', fecharImport);
+    if (back) back.addEventListener('click', function () {
+      /* Fundo nao fecha — so X / FECHAR / Esc */
+    });
+    function rodarPrevia() {
+      if (!inpArq || !inpArq.files || !inpArq.files[0]) {
+        if (typeof alert !== 'undefined') alert('Selecione um arquivo .xlsx ou .csv.');
+        return;
+      }
+      enviarPlanilha(C.URL_IMPORT_PREVIEW, renderPrevia);
+    }
+
+    if (inpArq) {
+      inpArq.addEventListener('change', function () {
+        limparImportUi();
+        if (inpArq.files && inpArq.files[0]) rodarPrevia();
+      });
+    }
+    if (btnPrev && C.URL_IMPORT_PREVIEW) {
+      btnPrev.addEventListener('click', function () {
+        limparImportUi();
+        rodarPrevia();
+      });
+    }
+    if (btnApl && C.URL_IMPORT_APLICAR) {
+      btnApl.addEventListener('click', function () {
+        function confirmarGravacao() {
+          if (!window.confirm('Gravar alterações da planilha no SisVale?')) return;
+          enviarPlanilha(C.URL_IMPORT_APLICAR, function (j) {
+            fecharImport();
+            if (typeof alert !== 'undefined') {
+              var msg = 'Importação concluída: ' + (j.gravados || 0) + ' produto(s) atualizado(s).';
+              if (j.historico_id) msg += ' Backup salvo — use «Histórico» para desfazer se precisar.';
+              alert(msg);
+            }
+            if (typeof carregar === 'function') carregar();
+          });
+        }
+        if (ultimaPreviaOk) {
+          confirmarGravacao();
+          return;
+        }
+        enviarPlanilha(C.URL_IMPORT_PREVIEW, function (j) {
+          renderPrevia(j);
+          if (j.n_alteracoes > 0) confirmarGravacao();
+        });
+      });
+    }
+
+    var btnHist = document.getElementById('cadastro-btn-import-historico');
+    var modalHist = document.getElementById('cadastro-hist-modal');
+    var backHist = document.getElementById('cadastro-hist-back');
+    var elHistLista = document.getElementById('cadastro-hist-lista');
+    var btnHistFec = document.getElementById('cadastro-hist-fechar');
+    var rotuloCampoImport = {
+      nome: 'Nome',
+      marca: 'Marca',
+      modelo: 'Modelo',
+      unidade: 'Unidade',
+      peso_etiqueta: 'Peso',
+      categoria: 'Categoria',
+      subcategoria: 'Subcategoria',
+      subcategoria_2: 'Subcategoria 2',
+      subcategoria_3: 'Subcategoria 3',
+      subcategoria_4: 'Subcategoria 4',
+      codigo_barras: 'Código barras',
+      preco_custo: 'Preço custo',
+      preco_venda: 'Preço venda',
+      delivery_ativo: 'Delivery ativo',
+      delivery_titulo: 'Delivery título',
+      delivery_descricao: 'Delivery descrição',
+      delivery_ordem: 'Delivery ordem',
+      delivery_destaque: 'Delivery destaque',
+      delivery_estoque_negativo: 'Delivery estoque neg.',
+      delivery_peso: 'Delivery peso',
+      delivery_categoria: 'Delivery categoria',
+      delivery_sub1: 'Delivery sub 1',
+      delivery_sub2: 'Delivery sub 2',
+      delivery_sub3: 'Delivery sub 3',
+      delivery_sub4: 'Delivery sub 4',
+      delivery_embalagens: 'Delivery embalagens',
+      fornecedor_compra_1: 'Últ. fornecedor',
+      fornecedor_compra_2: '2º fornecedor',
+      fornecedor_compra_3: '3º fornecedor'
+    };
+
+    function fmtDataIso(iso) {
+      if (!iso) return '—';
+      try {
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return iso;
+        return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      } catch (e) { return iso; }
+    }
+
+    function abrirHistorico() {
+      if (!modalHist || !backHist) return;
+      modalHist.classList.remove('hidden');
+      backHist.classList.remove('hidden');
+      carregarHistoricoImport();
+    }
+    function fecharHistorico() {
+      if (!modalHist || !backHist) return;
+      modalHist.classList.add('hidden');
+      backHist.classList.add('hidden');
+    }
+
+    function carregarHistoricoImport() {
+      if (!elHistLista || !C.URL_IMPORT_HISTORICO) return;
+      elHistLista.innerHTML = '<p class="text-slate-500 font-semibold">Carregando…</p>';
+      fetch(C.URL_IMPORT_HISTORICO, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+        .then(parseHttpJson)
+        .then(function (x) {
+          var lista = (x.j && x.j.historico) ? x.j.historico : [];
+          renderHistoricoImport(lista);
+        })
+        .catch(function () {
+          elHistLista.innerHTML = '<p class="text-red-700 font-semibold">Não foi possível carregar o histórico.</p>';
+        });
+    }
+
+    function renderHistoricoImport(lista) {
+      if (!elHistLista) return;
+      if (!lista || !lista.length) {
+        elHistLista.innerHTML = '<p class="text-slate-600 font-semibold">Nenhuma importação registrada ainda.</p>';
+        return;
+      }
+      elHistLista.innerHTML = lista.map(function (h) {
+        var statusCls = h.status === 'revertido' ? 'text-slate-500' : 'text-emerald-800';
+        var statusTxt = h.status === 'revertido' ? 'Desfeita' : 'Aplicada';
+        var arq = h.nome_arquivo ? (' · ' + escapeHtml(h.nome_arquivo)) : '';
+        var resumoHtml = '';
+        (h.resumo || []).slice(0, 5).forEach(function (r) {
+          var linhas = (r.detalhes || []).map(function (d) {
+            var rot = rotuloCampoImport[d.campo] || d.campo;
+            return escapeHtml(rot) + ': ' + escapeHtml(String(d.de)) + ' → ' + escapeHtml(String(d.para));
+          }).join('; ');
+          resumoHtml += '<div class="text-xs text-slate-600 mt-1 pl-2 border-l-2 border-slate-200">' +
+            escapeHtml(String(r.nome || r.id || '')) + (linhas ? ' — ' + linhas : '') + '</div>';
+        });
+        var btnRev = h.pode_reverter
+          ? '<button type="button" class="cadastro-hist-reverter min-h-[44px] px-4 rounded-xl bg-amber-600 text-white font-black uppercase text-xs border-2 border-amber-800" data-id="' + h.id + '">Desfazer</button>'
+          : '<span class="text-xs font-semibold text-slate-400">Desfeita em ' + escapeHtml(fmtDataIso(h.revertido_em)) + '</span>';
+        return '<article class="rounded-xl border-2 border-slate-200 p-4 bg-white">' +
+          '<div class="flex flex-wrap items-start justify-between gap-2">' +
+          '<div><p class="font-black text-slate-900">' + escapeHtml(fmtDataIso(h.criado_em)) + arq + '</p>' +
+          '<p class="text-xs font-semibold ' + statusCls + '">' + statusTxt + ' · ' + (h.n_produtos || 0) + ' produto(s) · ' + (h.usuario || '—') + '</p></div>' +
+          btnRev + '</div>' + resumoHtml + '</article>';
+      }).join('');
+
+      elHistLista.querySelectorAll('.cadastro-hist-reverter').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var hid = btn.getAttribute('data-id');
+          if (!hid || !C.URL_IMPORT_REVERTER) return;
+          if (!window.confirm('Desfazer esta importação? Os produtos voltam aos valores anteriores.')) return;
+          btn.disabled = true;
+          fetch(C.URL_IMPORT_REVERTER, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfTok(), 'Accept': 'application/json' },
+            body: JSON.stringify({ historico_id: parseInt(hid, 10) })
+          }).then(parseHttpJson).then(function (x) {
+            if (!x.j || !x.j.ok) throw new Error((x.j && x.j.erro) || 'Falha ao desfazer');
+            if (typeof alert !== 'undefined') {
+              alert('Importação desfeita: ' + (x.j.revertidos || 0) + ' produto(s) restaurado(s).');
+            }
+            if (typeof carregar === 'function') carregar();
+            carregarHistoricoImport();
+          }).catch(function (e) {
+            btn.disabled = false;
+            if (typeof alert !== 'undefined') alert(e.message || 'Erro ao desfazer');
+          });
+        });
+      });
+    }
+
+    if (btnHist) btnHist.addEventListener('click', abrirHistorico);
+    if (btnHistFec) btnHistFec.addEventListener('click', fecharHistorico);
+    if (backHist) backHist.addEventListener('click', function () {
+      /* Fundo nao fecha — so X / FECHAR / Esc */
+    });
+  })();
+
+  /** Excel estoque — botões Estoque ↓ / ↑ / Hist. estoque */
+  (function initCadastroEstoquePlanilha() {
+    if (CADASTRO_ERP_MODO === 'detalhe') return;
+    var btnExp = document.getElementById('cadastro-btn-estoque-export');
+    var btnImp = document.getElementById('cadastro-btn-estoque-import');
+    var btnHist = document.getElementById('cadastro-btn-estoque-historico');
+    if (!btnExp && !btnImp && !btnHist) return;
+
+    function csrfTok() {
+      return (U && U.csrf) ? U.csrf() : '';
+    }
+
+    function parseHttpJson(r) {
+      return r.text().then(function (text) {
+        var j = null;
+        try {
+          j = text ? JSON.parse(text) : null;
+        } catch (e) {
+          var msg = 'Resposta inválida do servidor';
+          if (r.status === 502 || r.status === 504) {
+            msg = 'Servidor demorou demais — aguarde ou tente de novo em instantes.';
+          } else if (r.status === 404) {
+            msg = 'Rota não encontrada — atualize a página (Ctrl+F5).';
+          } else if (r.status === 403 || r.status === 401) {
+            msg = 'Sessão expirada — faça login de novo.';
+          } else if (text && text.indexOf('<html') >= 0) {
+            msg = 'Erro no servidor (HTTP ' + r.status + '). Tente F5 ou login de novo.';
+          }
+          throw new Error(msg);
+        }
+        return { ok: r.ok, j: j };
+      });
+    }
+
+    function resumoFiltrosAtivos() {
+      var bits = [];
+      var loja = fEstoqueLojaEl && fEstoqueLojaEl.value;
+      var sinal = fEstoqueSinalEl && fEstoqueSinalEl.value;
+      if (loja && loja !== 'total') bits.push('Loja: ' + (loja === 'centro' ? 'Centro' : 'Vila'));
+      if (sinal === 'positivo') bits.push('Estoque: positivo');
+      else if (sinal === 'negativo') bits.push('Estoque: negativo');
+      else if (sinal === 'zero') bits.push('Estoque: zerado');
+      ['marca', 'categoria', 'subcategoria', 'fornecedor', 'unidade', 'modelo'].forEach(function (k) {
+        var vals = typeof cadastroMultiVals === 'function' ? cadastroMultiVals(k) : [];
+        if (vals && vals.length) bits.push(k + ': ' + vals.slice(0, 3).join(', ') + (vals.length > 3 ? '…' : ''));
+      });
+      var q = (buscaEl && buscaEl.value) ? buscaEl.value.trim() : '';
+      if (q) bits.push('Busca: «' + q + '»');
+      if (ativosEl && !ativosEl.checked) bits.push('Inclui inativos');
+      return bits;
+    }
+
+    // --- Export ---
+    var modalExp = document.getElementById('cadastro-estoque-export-modal');
+    var backExp = document.getElementById('cadastro-estoque-export-back');
+    var elFiltros = document.getElementById('cadastro-estoque-export-filtros');
+    var btnBaixar = document.getElementById('cadastro-estoque-export-baixar');
+    var btnExpFec = document.getElementById('cadastro-estoque-export-fechar');
+
+    function abrirExportEstoque() {
+      if (!modalExp || !backExp) return;
+      var bits = resumoFiltrosAtivos();
+      if (elFiltros) {
+        if (!bits.length) {
+          elFiltros.innerHTML = '<p class="text-amber-800">Nenhum filtro ativo — vai baixar <strong>muitos</strong> produtos. Melhor filtrar na tela (ex.: estoque negativo) e Aplicar.</p>';
+        } else {
+          elFiltros.innerHTML = '<p class="font-black text-slate-900 mb-1">Filtros que vão na planilha:</p><ul class="list-disc pl-5 space-y-0.5">' +
+            bits.map(function (b) { return '<li>' + escapeHtml(b) + '</li>'; }).join('') + '</ul>';
+        }
+      }
+      modalExp.classList.remove('hidden');
+      backExp.classList.remove('hidden');
+    }
+    function fecharExportEstoque() {
+      if (!modalExp || !backExp) return;
+      modalExp.classList.add('hidden');
+      backExp.classList.add('hidden');
+    }
+
+    if (btnExp) btnExp.addEventListener('click', abrirExportEstoque);
+    if (btnExpFec) btnExpFec.addEventListener('click', fecharExportEstoque);
+    if (backExp) backExp.addEventListener('click', function () {
+      /* Fundo nao fecha — so X / FECHAR / Esc */
+    });
+    if (btnBaixar && C.URL_ESTOQUE_EXPORT_XLSX) {
+      btnBaixar.addEventListener('click', function () {
+        var params = typeof cadastroQueryParams === 'function'
+          ? cadastroQueryParams({ pagina: 1, porPagina: 1 })
+          : new URLSearchParams();
+        params.delete('pagina');
+        params.delete('por_pagina');
+        params.delete('limit');
+        params.set('incluir_saldo', '1');
+        var url = C.URL_ESTOQUE_EXPORT_XLSX + '?' + params.toString();
+        btnBaixar.disabled = true;
+        btnBaixar.textContent = 'Gerando…';
+        fetch(url, { credentials: 'same-origin' })
+          .then(function (r) {
+            if (!r.ok) {
+              return r.json().then(function (j) {
+                throw new Error((j && j.erro) || ('Erro ' + r.status));
+              }).catch(function (e) {
+                if (e && e.message && e.message.indexOf('Erro') === 0) throw e;
+                throw new Error('Falha ao gerar planilha (' + r.status + ').');
+              });
+            }
+            var trunc = r.headers.get('X-Agro-Export-Truncado') === '1';
+            var nRows = r.headers.get('X-Agro-Export-Rows') || '';
+            return r.blob().then(function (blob) {
+              return { blob: blob, trunc: trunc, nRows: nRows };
+            });
+          })
+          .then(function (x) {
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(x.blob);
+            a.download = 'Estoque_Produtos.xlsx';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+            fecharExportEstoque();
+            var msg = 'Planilha baixada';
+            if (x.nRows) msg += ' (' + x.nRows + ' produto(s))';
+            if (x.trunc) msg += '. Atenção: lista truncada no limite do servidor.';
+            if (typeof alert !== 'undefined') alert(msg + '.');
+          })
+          .catch(function (e) {
+            if (typeof alert !== 'undefined') alert(e.message || 'Falha no download');
+          })
+          .finally(function () {
+            btnBaixar.disabled = false;
+            btnBaixar.textContent = 'Baixar Estoque';
+          });
+      });
+    }
+
+    // --- Import ---
+    var modalImp = document.getElementById('cadastro-estoque-import-modal');
+    var backImp = document.getElementById('cadastro-estoque-import-back');
+    var inpArq = document.getElementById('cadastro-estoque-import-arquivo');
+    var elResumo = document.getElementById('cadastro-estoque-import-resumo');
+    var elErros = document.getElementById('cadastro-estoque-import-erros');
+    var elPrev = document.getElementById('cadastro-estoque-import-preview');
+    var btnPrev = document.getElementById('cadastro-estoque-import-previa');
+    var btnApl = document.getElementById('cadastro-estoque-import-aplicar');
+    var btnImpFec = document.getElementById('cadastro-estoque-import-fechar');
+    var elProgWrap = document.getElementById('cadastro-estoque-import-progress-wrap');
+    var elProgBar = document.getElementById('cadastro-estoque-import-progress-bar');
+    var elProgPct = document.getElementById('cadastro-estoque-import-progress-pct');
+    var elProgLabel = document.getElementById('cadastro-estoque-import-progress-label');
+    var elProgDetail = document.getElementById('cadastro-estoque-import-progress-detail');
+    var ultimaPreviaOk = false;
+    var arquivoAtual = null;
+
+    function abrirImportEstoque() {
+      if (!modalImp || !backImp) return;
+      modalImp.classList.remove('hidden');
+      backImp.classList.remove('hidden');
+    }
+    function fecharImportEstoque() {
+      if (!modalImp || !backImp) return;
+      modalImp.classList.add('hidden');
+      backImp.classList.add('hidden');
+    }
+
+    function limparImportUi() {
+      ultimaPreviaOk = false;
+      if (btnApl) btnApl.disabled = true;
+      if (elResumo) { elResumo.classList.add('hidden'); elResumo.innerHTML = ''; }
+      if (elErros) { elErros.classList.add('hidden'); elErros.innerHTML = ''; }
+      if (elPrev) { elPrev.classList.add('hidden'); elPrev.innerHTML = ''; }
+      if (elProgWrap) elProgWrap.classList.add('hidden');
+    }
+
+    function setProgress(pct, label, detail) {
+      if (elProgWrap) elProgWrap.classList.remove('hidden');
+      if (elProgBar) elProgBar.style.width = Math.max(0, Math.min(100, pct)) + '%';
+      if (elProgPct) elProgPct.textContent = Math.round(pct) + '%';
+      if (elProgLabel) elProgLabel.textContent = label || '';
+      if (elProgDetail) elProgDetail.textContent = detail || '';
+    }
+
+    function renderPrevia(j) {
+      ultimaPreviaOk = !!(j && j.n_alteracoes > 0);
+      if (btnApl) btnApl.disabled = !ultimaPreviaOk;
+      if (elResumo) {
+        elResumo.classList.remove('hidden');
+        elResumo.innerHTML =
+          '<strong>' + (j.n_alteracoes || 0) + '</strong> produto(s) com ajuste · ' +
+          '<strong>' + (j.n_ignoradas || 0) + '</strong> ignorado(s) · ' +
+          '<strong class="' + ((j.n_erros || 0) ? 'text-red-700' : '') + '">' + (j.n_erros || 0) + '</strong> erro(s)';
+      }
+      if (elErros) {
+        var errs = j.erros || [];
+        if (errs.length) {
+          elErros.classList.remove('hidden');
+          elErros.innerHTML = errs.slice(0, 40).map(function (e) {
+            return 'Linha ' + (e.linha || '?') + (e.id ? ' (' + escapeHtml(String(e.id)) + ')' : '') +
+              ': ' + escapeHtml(String(e.erro || ''));
+          }).join('<br>');
+        } else {
+          elErros.classList.add('hidden');
+          elErros.innerHTML = '';
+        }
+      }
+      if (elPrev) {
+        var alts = j.alteracoes || [];
+        if (alts.length) {
+          elPrev.classList.remove('hidden');
+          elPrev.innerHTML = '<table class="w-full text-left"><thead class="bg-slate-100 sticky top-0"><tr>' +
+            '<th class="p-2">Produto</th><th class="p-2">Depósito</th><th class="p-2">De</th><th class="p-2">Para</th><th class="p-2">Δ</th></tr></thead><tbody>' +
+            alts.slice(0, 80).map(function (a) {
+              return (a.campos || []).map(function (c) {
+                return '<tr class="border-t border-slate-100">' +
+                  '<td class="p-2 font-semibold">' + escapeHtml(String(a.nome || a.id || '')) + '</td>' +
+                  '<td class="p-2 uppercase">' + escapeHtml(String(c.campo || '')) + '</td>' +
+                  '<td class="p-2 tabular-nums">' + escapeHtml(String(c.de)) + '</td>' +
+                  '<td class="p-2 tabular-nums font-black">' + escapeHtml(String(c.para)) + '</td>' +
+                  '<td class="p-2 tabular-nums">' + escapeHtml(String(c.delta)) + '</td></tr>';
+              }).join('');
+            }).join('') + '</tbody></table>';
+        } else {
+          elPrev.classList.add('hidden');
+          elPrev.innerHTML = '';
+        }
+      }
+    }
+
+    function pollJob(jobId, onDone) {
+      var url = C.URL_IMPORT_PREVIEW_STATUS + '?job=' + encodeURIComponent(jobId);
+      var tries = 0;
+      function tick() {
+        tries += 1;
+        fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+          .then(parseHttpJson)
+          .then(function (x) {
+            var j = x.j || {};
+            if (!j.done) {
+              var pct = Number(j.pct || 0);
+              setProgress(30 + pct * 0.65, j.phase || 'Analisando…', j.total_linhas ? (j.total_linhas + ' linha(s)') : '');
+              if (tries > 400) throw new Error('Demorou demais — tente de novo.');
+              setTimeout(tick, 600);
+              return;
+            }
+            if (!j.ok) throw new Error(j.erro || 'Falha na prévia');
+            setProgress(100, 'Concluído', '');
+            onDone(j);
+          })
+          .catch(function (e) {
+            if (typeof alert !== 'undefined') alert(e.message || 'Erro');
+            limparImportUi();
+          });
+      }
+      tick();
+    }
+
+    function enviarPlanilha(url, onOk) {
+      if (!inpArq || !inpArq.files || !inpArq.files[0]) {
+        if (typeof alert !== 'undefined') alert('Escolha o arquivo da planilha.');
+        return;
+      }
+      arquivoAtual = inpArq.files[0];
+      var fd = new FormData();
+      fd.append('arquivo', arquivoAtual);
+      fd.append('nome_arquivo', arquivoAtual.name || '');
+      setProgress(5, 'Enviando planilha…', arquivoAtual.name || '');
+      fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'X-CSRFToken': csrfTok() },
+        body: fd
+      }).then(parseHttpJson).then(function (x) {
+        var j = x.j || {};
+        if (!x.ok || !j.ok) throw new Error((j && j.erro) || 'Falha');
+        if (j.async && j.job_id) {
+          setProgress(25, 'Processando no servidor…', '');
+          pollJob(j.job_id, onOk);
+          return;
+        }
+        setProgress(100, 'Concluído', '');
+        onOk(j);
+      }).catch(function (e) {
+        if (typeof alert !== 'undefined') alert(e.message || 'Erro');
+        limparImportUi();
+      });
+    }
+
+    function rodarPrevia() {
+      if (!C.URL_ESTOQUE_IMPORT_PREVIEW) return;
+      limparImportUi();
+      enviarPlanilha(C.URL_ESTOQUE_IMPORT_PREVIEW, renderPrevia);
+    }
+
+    if (btnImp) btnImp.addEventListener('click', function () {
+      limparImportUi();
+      abrirImportEstoque();
+    });
+    if (btnImpFec) btnImpFec.addEventListener('click', fecharImportEstoque);
+    if (backImp) backImp.addEventListener('click', function () {
+      /* Fundo nao fecha — so X / FECHAR / Esc */
+    });
+    if (inpArq) {
+      inpArq.addEventListener('change', function () {
+        limparImportUi();
+        if (inpArq.files && inpArq.files[0]) rodarPrevia();
+      });
+    }
+    if (btnPrev) btnPrev.addEventListener('click', function () {
+      limparImportUi();
+      rodarPrevia();
+    });
+    if (btnApl && C.URL_ESTOQUE_IMPORT_APLICAR) {
+      btnApl.addEventListener('click', function () {
+        function confirmar() {
+          if (!window.confirm('Gravar ajustes de estoque da planilha no SisVale?')) return;
+          enviarPlanilha(C.URL_ESTOQUE_IMPORT_APLICAR, function (j) {
+            fecharImportEstoque();
+            if (typeof alert !== 'undefined') {
+              var msg = 'Ajustes gravados: ' + (j.gravados || 0) + ' produto(s).';
+              if (j.historico_id) msg += ' Use «Hist. estoque» para desfazer se precisar.';
+              alert(msg);
+            }
+            if (typeof carregar === 'function') carregar();
+          });
+        }
+        if (ultimaPreviaOk) {
+          confirmar();
+          return;
+        }
+        enviarPlanilha(C.URL_ESTOQUE_IMPORT_PREVIEW, function (j) {
+          renderPrevia(j);
+          if (j.n_alteracoes > 0) confirmar();
+        });
+      });
+    }
+
+    // --- Histórico estoque ---
+    var modalHist = document.getElementById('cadastro-estoque-hist-modal');
+    var backHist = document.getElementById('cadastro-estoque-hist-back');
+    var elHistLista = document.getElementById('cadastro-estoque-hist-lista');
+    var btnHistFec = document.getElementById('cadastro-estoque-hist-fechar');
+
+    function fmtDataIso(iso) {
+      if (!iso) return '—';
+      try {
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return iso;
+        return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      } catch (e) { return iso; }
+    }
+
+    function abrirHist() {
+      if (!modalHist || !backHist) return;
+      modalHist.classList.remove('hidden');
+      backHist.classList.remove('hidden');
+      carregarHist();
+    }
+    function fecharHist() {
+      if (!modalHist || !backHist) return;
+      modalHist.classList.add('hidden');
+      backHist.classList.add('hidden');
+    }
+
+    function carregarHist() {
+      if (!elHistLista || !C.URL_ESTOQUE_IMPORT_HISTORICO) return;
+      elHistLista.innerHTML = '<p class="text-slate-500 font-semibold">Carregando…</p>';
+      fetch(C.URL_ESTOQUE_IMPORT_HISTORICO, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+        .then(parseHttpJson)
+        .then(function (x) {
+          renderHist((x.j && x.j.historico) ? x.j.historico : []);
+        })
+        .catch(function () {
+          elHistLista.innerHTML = '<p class="text-red-700 font-semibold">Não foi possível carregar o histórico.</p>';
+        });
+    }
+
+    function renderHist(lista) {
+      if (!elHistLista) return;
+      if (!lista || !lista.length) {
+        elHistLista.innerHTML = '<p class="text-slate-600 font-semibold">Nenhuma importação de estoque ainda.</p>';
+        return;
+      }
+      elHistLista.innerHTML = lista.map(function (h) {
+        var statusCls = h.status === 'revertido' ? 'text-slate-500' : 'text-blue-800';
+        var statusTxt = h.status === 'revertido' ? 'Desfeita' : 'Aplicada';
+        var arq = h.nome_arquivo ? (' · ' + escapeHtml(h.nome_arquivo)) : '';
+        var resumoHtml = '';
+        (h.resumo || []).slice(0, 5).forEach(function (r) {
+          var linhas = (r.detalhes || []).map(function (d) {
+            return escapeHtml(String(d.campo || '')) + ': ' + escapeHtml(String(d.de)) + ' → ' + escapeHtml(String(d.para));
+          }).join('; ');
+          resumoHtml += '<div class="text-xs text-slate-600 mt-1 pl-2 border-l-2 border-slate-200">' +
+            escapeHtml(String(r.nome || r.id || '')) + (linhas ? ' — ' + linhas : '') + '</div>';
+        });
+        var btnRev = h.pode_reverter
+          ? '<button type="button" class="cadastro-estoque-hist-reverter min-h-[44px] px-4 rounded-xl bg-amber-600 text-white font-black uppercase text-xs border-2 border-amber-800" data-id="' + h.id + '">Desfazer</button>'
+          : '<span class="text-xs font-semibold text-slate-400">Desfeita em ' + escapeHtml(fmtDataIso(h.revertido_em)) + '</span>';
+        return '<article class="rounded-xl border-2 border-slate-200 p-4 bg-white">' +
+          '<div class="flex flex-wrap items-start justify-between gap-2">' +
+          '<div><p class="font-black text-slate-900">' + escapeHtml(fmtDataIso(h.criado_em)) + arq + '</p>' +
+          '<p class="text-xs font-semibold ' + statusCls + '">' + statusTxt + ' · ' + (h.n_produtos || 0) + ' produto(s) · ' + (h.usuario || '—') + '</p></div>' +
+          btnRev + '</div>' + resumoHtml + '</article>';
+      }).join('');
+
+      elHistLista.querySelectorAll('.cadastro-estoque-hist-reverter').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var hid = btn.getAttribute('data-id');
+          if (!hid || !C.URL_ESTOQUE_IMPORT_REVERTER) return;
+          if (!window.confirm('Desfazer estes ajustes de estoque? O saldo volta ao valor anterior.')) return;
+          btn.disabled = true;
+          fetch(C.URL_ESTOQUE_IMPORT_REVERTER, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfTok(), 'Accept': 'application/json' },
+            body: JSON.stringify({ historico_id: parseInt(hid, 10) })
+          }).then(parseHttpJson).then(function (x) {
+            if (!x.j || !x.j.ok) throw new Error((x.j && x.j.erro) || 'Falha ao desfazer');
+            if (typeof alert !== 'undefined') {
+              alert('Ajustes desfeitos: ' + (x.j.revertidos || 0) + ' produto(s).');
+            }
+            if (typeof carregar === 'function') carregar();
+            carregarHist();
+          }).catch(function (e) {
+            btn.disabled = false;
+            if (typeof alert !== 'undefined') alert(e.message || 'Erro ao desfazer');
+          });
+        });
+      });
+    }
+
+    if (btnHist) btnHist.addEventListener('click', abrirHist);
+    if (btnHistFec) btnHistFec.addEventListener('click', fecharHist);
+    if (backHist) backHist.addEventListener('click', function () {
+      /* Fundo nao fecha — so X / FECHAR / Esc */
+    });
+  })();
 })();

@@ -1,0 +1,549 @@
+{% extends "layouts/base_pdv.html" %}
+
+{% load static %}
+
+
+
+{% block pdv_title %}Etiquetas de produto | SisVale{% endblock %}
+
+{% block body_class %}overflow-hidden bg-slate-950 text-slate-100{% endblock %}
+
+
+
+{% block head_extra %}
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <style>
+
+    html, body { height: 100%; overflow: hidden; }
+
+    .etq-shell { height: 100dvh; max-height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+
+    .etq-main { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; padding: 0.75rem 1rem 0.5rem; }
+
+    @media (max-width: 900px) { .etq-main { grid-template-columns: 1fr; } }
+
+    .etq-panel { min-height: 0; display: flex; flex-direction: column; border-radius: 1rem; border: 1px solid rgb(51 65 85); background: rgb(30 41 59 / 0.9); padding: 0.75rem; }
+
+    .etq-scroll { flex: 1; min-height: 0; overflow-y: auto; border-radius: 0.75rem; border: 1px solid rgb(51 65 85); background: rgb(15 23 42 / 0.6); }
+    #etq-modal-back { z-index: 9999; }
+    #etq-hist-back { z-index: 9998; }
+    body.modal-open { overflow: hidden; }
+    .etq-busca-item--sel { background: rgb(234 88 12 / 0.22); box-shadow: inset 0 0 0 2px rgb(249 115 22); }
+    .etq-lay-item {
+      position: absolute; box-sizing: border-box; border: 1.5px dashed rgba(249,115,22,.85);
+      background: rgba(249,115,22,.12); cursor: move; display: flex; align-items: center; justify-content: center;
+      min-width: 8%; min-height: 8%;
+    }
+    .etq-lay-item[data-lay="nome"] { background: rgba(26,77,46,.85); border-color: #86efac; }
+    .etq-lay-label { pointer-events: none; font-size: 10px; font-weight: 900; color: #fff; text-shadow: 0 1px 2px #000; letter-spacing: .04em; }
+    .etq-lay-item[data-lay="preco"] .etq-lay-label,
+    .etq-lay-item[data-lay="rs"] .etq-lay-label,
+    .etq-lay-item[data-lay="peso"] .etq-lay-label,
+    .etq-lay-item[data-lay="gm"] .etq-lay-label,
+    .etq-lay-item[data-lay="logo"] .etq-lay-label { color: #1a4d2e; text-shadow: none; }
+    .etq-lay-item.is-off { opacity: 0.28; }
+    .etq-lay-handle {
+      position: absolute; right: 0; bottom: 0; width: 12px; height: 12px;
+      background: #f97316; cursor: nwse-resize; border-radius: 2px 0 0 0;
+    }
+    .etq-field-gondola.hidden, .etq-field-termica.hidden { display: none !important; }
+
+    /* Filtros busca (mesmo espírito Folha saldo, tema escuro) */
+    .etq-filtros { flex-shrink: 0; margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .etq-filtros-row { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
+    .etq-filtros label.etq-chk {
+      display: inline-flex; align-items: center; gap: 0.35rem; min-height: 2rem;
+      padding: 0.25rem 0.55rem; border-radius: 0.55rem; border: 1px solid rgb(71 85 105);
+      background: rgb(15 23 42); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: #e2e8f0;
+    }
+    .etq-filtros label.etq-chk input { accent-color: #10b981; width: 0.95rem; height: 0.95rem; }
+    .etq-filtros .etq-f-field { display: flex; flex-direction: column; gap: 0.1rem; min-width: 6.5rem; }
+    .etq-filtros .etq-f-field > span { font-size: 0.6rem; font-weight: 800; text-transform: uppercase; color: #94a3b8; }
+    .etq-filtros select, .etq-filtros input[type="date"], .etq-filtros input[type="text"] {
+      min-height: 2rem; border-radius: 0.5rem; border: 1px solid rgb(71 85 105);
+      background: rgb(15 23 42); color: #f8fafc; font-size: 0.75rem; font-weight: 700; padding: 0 0.45rem;
+    }
+    .etq-filtros select:focus, .etq-filtros input:focus { border-color: #f97316; outline: none; }
+    .etq-ms-row { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .etq-ms { position: relative; min-width: 0; }
+    .etq-ms-btn {
+      min-height: 2rem; padding: 0.2rem 0.55rem; border-radius: 0.5rem; border: 1px solid rgb(71 85 105);
+      background: rgb(15 23 42); color: #e2e8f0; font-size: 0.65rem; font-weight: 900; text-transform: uppercase;
+    }
+    .etq-ms-btn.is-on { border-color: #10b981; background: rgb(6 78 59 / 0.45); color: #a7f3d0; }
+    .etq-ms-btn .etq-ms-count {
+      display: inline-block; margin-left: 0.2rem; padding: 0 0.3rem; border-radius: 999px;
+      background: #059669; color: #fff; font-size: 0.6rem;
+    }
+    .etq-ms-panel {
+      position: absolute; z-index: 40; left: 0; top: calc(100% + 0.2rem); width: min(16rem, 70vw);
+      max-height: 14rem; display: flex; flex-direction: column; border-radius: 0.65rem;
+      border: 1px solid rgb(71 85 105); background: rgb(15 23 42); box-shadow: 0 10px 30px rgb(0 0 0 / 0.45);
+    }
+    .etq-ms-panel.hidden { display: none; }
+    .etq-ms-panel input[type="search"] {
+      margin: 0.35rem; min-height: 1.85rem; border-radius: 0.4rem; border: 1px solid rgb(71 85 105);
+      background: rgb(30 41 59); color: #fff; font-size: 0.75rem; padding: 0 0.4rem;
+    }
+    .etq-ms-list { flex: 1; overflow-y: auto; padding: 0.15rem 0.35rem 0.4rem; scrollbar-width: thin; }
+    .etq-ms-opt {
+      display: flex; align-items: center; gap: 0.4rem; padding: 0.25rem 0.2rem;
+      font-size: 0.75rem; font-weight: 700; color: #e2e8f0; cursor: pointer;
+    }
+    .etq-ms-opt:hover { background: rgb(51 65 85 / 0.5); }
+    .etq-f-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+    .etq-f-chip {
+      display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.15rem 0.4rem;
+      border-radius: 999px; background: rgb(6 78 59 / 0.5); border: 1px solid #059669;
+      font-size: 0.65rem; font-weight: 800; color: #a7f3d0;
+    }
+    .etq-f-chip button { color: #fca5a5; font-weight: 900; }
+    .etq-filtros details > summary {
+      cursor: pointer; list-style: none; font-size: 0.65rem; font-weight: 900;
+      text-transform: uppercase; color: #94a3b8; padding: 0.2rem 0;
+    }
+    .etq-filtros details > summary::-webkit-details-marker { display: none; }
+    .etq-busca-meta { font-size: 0.65rem; font-weight: 700; color: #64748b; }
+
+
+  </style>
+
+{% endblock %}
+
+
+
+{% block pdv_shell_class %}etq-shell bg-slate-950{% endblock %}
+
+{% block pdv_section_class %}flex min-h-0 flex-1 flex-col overflow-hidden p-0{% endblock %}
+
+
+
+{% block pdv_header %}
+
+<header class="shrink-0 border-b border-slate-800 bg-slate-900/90">
+
+  <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-2 sm:px-5">
+
+    <h1 class="truncate text-xl font-black tracking-tight text-white sm:text-2xl">Etiquetas de preço</h1>
+
+    <div class="flex flex-wrap items-center gap-2">
+
+      <button type="button" id="etq-btn-preset"
+
+        class="inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-xl border-2 border-slate-500 bg-slate-800 px-3 py-1.5 text-xs font-black uppercase text-slate-100 hover:border-orange-500">
+
+        <i class="fas fa-sliders-h" aria-hidden="true"></i>Presets
+
+      </button>
+
+      <button type="button" id="etq-btn-historico"
+
+        class="inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-xl border-2 border-slate-500 bg-slate-800 px-3 py-1.5 text-xs font-black uppercase text-slate-100 hover:border-emerald-500"
+
+        title="Impressões dos últimos 30 dias">
+
+        <i class="fas fa-clock-rotate-left" aria-hidden="true"></i>Histórico
+
+      </button>
+
+      <a href="{% url 'produtos_etiquetas_lote' %}"
+
+        class="inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-xl border-2 border-orange-600/70 bg-slate-800 px-3 py-1.5 text-xs font-black uppercase text-orange-200 hover:border-orange-400"
+
+        title="Lote A4 gôndola — 18 por folha, com progresso salvo">
+
+        <i class="fas fa-layer-group" aria-hidden="true"></i>Lote A4
+
+      </a>
+
+      <a href="{% url 'produtos_cadastro_erp' %}"
+
+        class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-slate-600 bg-slate-800 px-3 py-1.5 text-xs font-black uppercase text-slate-200 hover:border-slate-500">Cadastro produtos</a>
+
+      {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-slate-600 bg-slate-800 px-3 py-1.5 text-xs font-black uppercase text-slate-100 hover:border-orange-500" %}
+
+    </div>
+
+  </div>
+
+</header>
+
+{% endblock %}
+
+
+
+{% block pdv_content %}
+
+<div class="etq-main">
+
+  <section class="etq-panel">
+    <div class="flex shrink-0 flex-wrap items-center justify-between gap-2">
+      <h2 class="text-xs font-black uppercase tracking-wide text-orange-400">Buscar produto</h2>
+      <div class="flex items-center gap-2">
+        <span id="etq-busca-meta" class="etq-busca-meta" aria-live="polite"></span>
+        <button type="button" id="etq-btn-add-todos" disabled
+          class="min-h-[32px] rounded-lg border border-emerald-600 bg-emerald-700/80 px-2.5 text-[10px] font-black uppercase text-white disabled:cursor-not-allowed disabled:opacity-40 hover:bg-emerald-600"
+          title="Manda todos os resultados da busca para a fila (usa a Qtd ao lado)">
+          Adicionar todos
+        </button>
+      </div>
+    </div>
+    <div class="mt-2 flex shrink-0 flex-wrap items-end gap-2">
+      <div class="min-w-0 flex-1">
+        <input id="etq-busca-input" type="search" autocomplete="off" placeholder="Nome, GM ou barras…"
+          class="w-full min-h-[40px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-semibold text-white placeholder:text-slate-500 focus:border-orange-500 focus:outline-none" />
+      </div>
+      <div class="w-16">
+        <label for="etq-add-qtd" class="sr-only">Quantidade</label>
+        <input id="etq-add-qtd" type="number" min="1" max="999" value="1" title="Quantidade ao adicionar"
+          class="w-full min-h-[40px] rounded-xl border-2 border-slate-600 bg-slate-900 px-1 text-center text-sm font-bold text-white focus:border-orange-500 focus:outline-none" />
+      </div>
+    </div>
+
+    <div class="etq-filtros" aria-label="Filtros da busca">
+      <div class="etq-filtros-row" aria-label="Estoque">
+        <label class="etq-chk"><input type="checkbox" id="etq-loja-centro" checked /> Centro</label>
+        <label class="etq-chk"><input type="checkbox" id="etq-loja-vila" checked /> Vila Elias</label>
+        <label class="etq-chk"><input type="checkbox" id="etq-omit-zero" /> Esconder zerados</label>
+        <label class="etq-chk"><input type="checkbox" id="etq-somente-ativos" checked /> Somente ativos</label>
+      </div>
+      <div class="etq-filtros-row">
+        <label class="etq-f-field">
+          <span>Estoque</span>
+          <select id="etq-f-estoque-sinal">
+            <option value="">Qualquer</option>
+            <option value="positivo">Positivo</option>
+            <option value="negativo">Negativo</option>
+            <option value="zero">Zerado</option>
+          </select>
+        </label>
+        <label class="etq-f-field min-w-[9rem] flex-1">
+          <span>Filtro salvo (loja)</span>
+          <select id="etq-preset-filtro-sel">
+            <option value="">— escolher —</option>
+          </select>
+        </label>
+        <button type="button" id="etq-preset-filtro-aplicar" class="min-h-[2rem] rounded-lg border border-emerald-600 bg-emerald-700/80 px-2 text-[10px] font-black uppercase text-white disabled:opacity-40" disabled>Aplicar</button>
+        <button type="button" id="etq-filtros-limpar" class="min-h-[2rem] rounded-lg border border-slate-600 bg-slate-900 px-2 text-[10px] font-black uppercase text-slate-400 hover:text-red-300">Limpar filtros</button>
+      </div>
+      <div id="etq-f-chips" class="etq-f-chips empty:hidden" aria-live="polite"></div>
+      <div class="etq-ms-row" id="etq-ms-row" aria-label="Filtrar produtos">
+        <div class="etq-ms" data-ms="marca" data-label="Marca"><button type="button" class="etq-ms-btn" aria-haspopup="listbox">Marca</button><div class="etq-ms-panel hidden" role="listbox"></div></div>
+        <div class="etq-ms" data-ms="categoria" data-label="Categoria"><button type="button" class="etq-ms-btn" aria-haspopup="listbox">Categoria</button><div class="etq-ms-panel hidden" role="listbox"></div></div>
+        <div class="etq-ms" data-ms="subcategoria" data-label="Sub"><button type="button" class="etq-ms-btn" aria-haspopup="listbox">Sub</button><div class="etq-ms-panel hidden" role="listbox"></div></div>
+        <div class="etq-ms" data-ms="fornecedor" data-label="Fornecedor"><button type="button" class="etq-ms-btn" aria-haspopup="listbox">Fornecedor</button><div class="etq-ms-panel hidden" role="listbox"></div></div>
+        <div class="etq-ms" data-ms="unidade" data-label="Unidade"><button type="button" class="etq-ms-btn" aria-haspopup="listbox">Unidade</button><div class="etq-ms-panel hidden" role="listbox"></div></div>
+        <div class="etq-ms" data-ms="modelo" data-label="Modelo"><button type="button" class="etq-ms-btn" aria-haspopup="listbox">Modelo</button><div class="etq-ms-panel hidden" role="listbox"></div></div>
+      </div>
+      <details id="etq-filtros-mais">
+        <summary>Mais opções · datas, preço, NCM</summary>
+        <div class="etq-filtros-row mt-1">
+          <label class="etq-f-field">
+            <span>Tipo de data</span>
+            <select id="etq-f-data-tipo">
+              <option value="cadastro">Cadastro</option>
+              <option value="primeira_nf">1ª Entrada NF</option>
+              <option value="ultima_nf">Última Entrada NF</option>
+            </select>
+          </label>
+          <label class="etq-f-field"><span>De</span><input type="date" id="etq-f-data-de" /></label>
+          <label class="etq-f-field"><span>Até</span><input type="date" id="etq-f-data-ate" /></label>
+          <div class="etq-ms" data-ms="subcategoria_2" data-label="Sub 2"><button type="button" class="etq-ms-btn" aria-haspopup="listbox">Sub 2</button><div class="etq-ms-panel hidden" role="listbox"></div></div>
+          <div class="etq-ms" data-ms="subcategoria_3" data-label="Sub 3"><button type="button" class="etq-ms-btn" aria-haspopup="listbox">Sub 3</button><div class="etq-ms-panel hidden" role="listbox"></div></div>
+          <div class="etq-ms" data-ms="subcategoria_4" data-label="Sub 4"><button type="button" class="etq-ms-btn" aria-haspopup="listbox">Sub 4</button><div class="etq-ms-panel hidden" role="listbox"></div></div>
+        </div>
+        <div class="etq-filtros-row mt-1">
+          <label class="etq-f-field"><span>Custo de</span><input type="text" id="etq-f-custo-min" inputmode="decimal" placeholder="0,00" /></label>
+          <label class="etq-f-field"><span>Custo até</span><input type="text" id="etq-f-custo-max" inputmode="decimal" placeholder="0,00" /></label>
+          <label class="etq-f-field"><span>Venda de</span><input type="text" id="etq-f-venda-min" inputmode="decimal" placeholder="0,00" /></label>
+          <label class="etq-f-field"><span>Venda até</span><input type="text" id="etq-f-venda-max" inputmode="decimal" placeholder="0,00" /></label>
+          <label class="etq-f-field">
+            <span>NCM</span>
+            <select id="etq-f-ncm">
+              <option value="">Qualquer</option>
+              <option value="com">Com NCM</option>
+              <option value="sem">Sem NCM</option>
+            </select>
+          </label>
+          <label class="etq-chk"><input type="checkbox" id="etq-f-sem-marca" /> Sem marca</label>
+          <label class="etq-chk"><input type="checkbox" id="etq-f-sem-cat" /> Sem categoria</label>
+          <label class="etq-chk"><input type="checkbox" id="etq-f-somente-agro" /> Só Agro</label>
+        </div>
+      </details>
+    </div>
+
+    <div id="etq-busca-resultados" class="etq-scroll mt-2" role="listbox" aria-label="Resultados da busca">
+      <p class="px-3 py-3 text-sm text-slate-500">Digite ao menos 2 caracteres ou use os filtros.</p>
+    </div>
+  </section>
+
+  <section class="etq-panel">
+
+    <div class="flex shrink-0 flex-wrap items-center justify-between gap-2">
+
+      <h2 class="text-xs font-black uppercase tracking-wide text-emerald-400">Fila de impressão</h2>
+
+      <span class="text-xs font-bold text-slate-400"><span id="etq-fila-total">0</span> etiqueta(s)</span>
+
+    </div>
+
+    <div class="mt-2 flex shrink-0 flex-wrap items-end gap-2">
+
+      <label class="min-w-[8rem] flex-1">
+
+        <span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Preset</span>
+
+        <select id="etq-fila-preset" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white"></select>
+
+      </label>
+
+      <label class="min-w-0 flex-[2]">
+
+        <span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Rodapé</span>
+
+        <input id="etq-texto-rodape-global" type="text" maxlength="80" placeholder="Texto livre"
+
+          class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white focus:border-orange-500 focus:outline-none" />
+
+      </label>
+
+    </div>
+
+    <div class="etq-scroll mt-2 overflow-x-auto">
+
+      <table class="min-w-full text-left text-sm">
+
+        <thead class="sticky top-0 bg-slate-900/95 text-[10px] font-black uppercase text-slate-400">
+
+          <tr>
+
+            <th class="px-2 py-1.5">Produto</th>
+
+            <th class="px-2 py-1.5">GM</th>
+
+            <th class="px-2 py-1.5">Preço</th>
+
+            <th class="px-2 py-1.5">Peso</th>
+
+            <th class="px-2 py-1.5">Qtd</th>
+
+            <th class="px-2 py-1.5"></th>
+
+          </tr>
+
+        </thead>
+
+        <tbody id="etq-fila-body"></tbody>
+
+      </table>
+
+    </div>
+
+    <div class="mt-2 flex shrink-0 flex-wrap gap-2">
+
+      <button type="button" id="etq-btn-imprimir"
+
+        class="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border-2 border-emerald-500 bg-emerald-600 px-3 text-sm font-black uppercase text-white hover:bg-emerald-500">
+
+        <i class="fas fa-print" aria-hidden="true"></i>Imprimir
+
+      </button>
+
+      <button type="button" id="etq-btn-limpar"
+
+        class="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-600 bg-slate-900 px-3 text-xs font-black uppercase text-slate-400 hover:text-red-300">
+
+        Limpar
+
+      </button>
+
+    </div>
+
+    <p id="etq-status" class="mt-1 shrink-0 text-xs font-semibold text-slate-500"></p>
+
+  </section>
+
+</div>
+
+
+
+<div id="etq-modal-back" class="fixed inset-0 z-[200] hidden bg-slate-950/70" aria-hidden="true">
+
+  <div class="flex h-full items-start justify-center overflow-y-auto p-4 pt-[4vh]">
+
+    <div class="w-full max-w-5xl rounded-2xl border border-slate-600 bg-slate-900 shadow-2xl" role="dialog" aria-labelledby="etq-modal-titulo">
+
+      <div class="flex items-center justify-between gap-2 border-b border-slate-700 px-4 py-3">
+
+        <h2 id="etq-modal-titulo" class="text-sm font-black uppercase text-white">Presets de layout</h2>
+
+        <button type="button" id="etq-modal-fechar" class="min-h-[36px] min-w-[36px] rounded-lg border border-slate-600 text-slate-300 hover:text-white" aria-label="Fechar">✕</button>
+
+      </div>
+
+      <div class="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
+
+        <div class="sm:col-span-2 lg:col-span-3 flex flex-wrap items-end gap-2">
+
+          <label class="min-w-[10rem] flex-1">
+
+            <span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Editar preset</span>
+
+            <select id="etq-preset-select" class="w-full min-h-[40px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm font-bold text-white"></select>
+
+          </label>
+
+          <button type="button" id="etq-btn-novo-preset" class="min-h-[40px] rounded-lg border border-slate-600 px-3 text-xs font-black uppercase text-slate-200">Novo</button>
+
+          <button type="button" id="etq-btn-excluir-preset" class="min-h-[40px] rounded-lg border border-red-800 px-3 text-xs font-black uppercase text-red-300">Excluir</button>
+
+          <button type="button" id="etq-btn-salvar-preset" class="min-h-[40px] rounded-lg border border-emerald-700 bg-emerald-900/40 px-3 text-xs font-black uppercase text-emerald-300">Salvar</button>
+
+        </div>
+
+        <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Nome</span><input id="etq-preset-nome" type="text" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
+
+        <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Estilo</span>
+          <select id="etq-preset-estilo" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white">
+            <option value="termica">Térmica (4×4 / barras)</option>
+            <option value="gondola">Gôndola (nome + preço + peso)</option>
+          </select>
+        </label>
+
+        <label class="block etq-field-gondola"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Folha</span>
+          <select id="etq-preset-folha" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white">
+            <option value="a4">A4 (210×297 · 2/3 colunas)</option>
+            <option value="a6">A6 (105×148 · 1 coluna)</option>
+          </select>
+        </label>
+
+        <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Impressora</span><select id="etq-preset-impressora" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white"><option value="">(Padrão)</option></select></label>
+
+        <label class="block etq-field-termica"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Rodapé padrão</span><input id="etq-preset-texto-rodape" type="text" maxlength="80" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
+
+        <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Largura mm</span><input id="etq-preset-largura" type="number" min="20" max="200" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
+
+        <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Altura mm</span><input id="etq-preset-altura" type="number" min="15" max="120" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
+
+        <label class="block etq-field-termica"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Fonte nome pt</span><input id="etq-preset-nome-pt" type="number" min="4" max="36" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
+
+        <label class="block etq-field-gondola"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Nome 1 linha pt</span><input id="etq-preset-nome-pt-1" type="number" min="4" max="36" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" title="Quando o nome cabe em 1 linha" /></label>
+
+        <label class="block etq-field-gondola"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Nome 2 linhas pt</span><input id="etq-preset-nome-pt-2" type="number" min="4" max="36" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" title="Quando o nome usa 2 linhas" /></label>
+
+        <label class="block etq-field-gondola"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Nome 3 linhas pt</span><input id="etq-preset-nome-pt-3" type="number" min="4" max="36" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" title="Máximo 3 linhas — corta o resto" /></label>
+
+        <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Fonte preço pt</span><input id="etq-preset-preco-pt" type="number" min="8" max="64" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
+
+        <label class="block etq-field-gondola"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Fonte R$ pt</span><input id="etq-preset-rs-pt" type="number" min="4" max="36" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
+
+        <label class="block etq-field-gondola"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Fonte peso pt</span><input id="etq-preset-peso-pt" type="number" min="4" max="24" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
+
+        <label class="block etq-field-gondola"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Fonte GM pt</span><input id="etq-preset-gm-pt" type="number" min="4" max="24" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" title="Ex.: GM0050-1 vira GM50 na etiqueta" /></label>
+
+        <label class="block etq-field-termica"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Fonte GM pt</span><input id="etq-preset-codigo-pt" type="number" min="4" max="20" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
+
+        <label class="block etq-field-termica"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Fonte rodapé pt</span><input id="etq-preset-rodape-pt" type="number" min="4" max="20" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
+
+        <label class="block etq-field-termica"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Altura barras px</span><input id="etq-preset-bar-h" type="number" min="10" max="80" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
+
+        <label class="block etq-field-termica"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Largura barras</span><input id="etq-preset-bar-w" type="number" min="0.5" max="3" step="0.05" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
+
+        <div class="sm:col-span-2 lg:col-span-3 etq-field-gondola grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Faixa</span><input id="etq-cor-faixa-bg" type="color" class="h-9 w-full cursor-pointer rounded border border-slate-600 bg-slate-950" /></label>
+          <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Texto faixa</span><input id="etq-cor-faixa-fg" type="color" class="h-9 w-full cursor-pointer rounded border border-slate-600 bg-slate-950" /></label>
+          <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Fundo</span><input id="etq-cor-fundo" type="color" class="h-9 w-full cursor-pointer rounded border border-slate-600 bg-slate-950" /></label>
+          <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Preço</span><input id="etq-cor-preco" type="color" class="h-9 w-full cursor-pointer rounded border border-slate-600 bg-slate-950" /></label>
+          <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">R$</span><input id="etq-cor-rs" type="color" class="h-9 w-full cursor-pointer rounded border border-slate-600 bg-slate-950" /></label>
+          <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Peso</span><input id="etq-cor-peso" type="color" class="h-9 w-full cursor-pointer rounded border border-slate-600 bg-slate-950" /></label>
+          <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">GM</span><input id="etq-cor-gm" type="color" class="h-9 w-full cursor-pointer rounded border border-slate-600 bg-slate-950" /></label>
+          <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Borda</span><input id="etq-cor-borda" type="color" class="h-9 w-full cursor-pointer rounded border border-slate-600 bg-slate-950" /></label>
+          <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Marca corte</span><input id="etq-cor-corte" type="color" class="h-9 w-full cursor-pointer rounded border border-slate-600 bg-slate-950" /></label>
+          <div class="col-span-2 sm:col-span-3 lg:col-span-6 flex flex-wrap gap-x-4 gap-y-2 rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2">
+            <span class="w-full text-[10px] font-black uppercase text-slate-500">Campos na etiqueta (liga/desliga)</span>
+            <label class="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-slate-300"><input id="etq-show-nome" type="checkbox" class="h-4 w-4 rounded border-slate-500" /> Nome</label>
+            <label class="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-slate-300"><input id="etq-show-rs" type="checkbox" class="h-4 w-4 rounded border-slate-500" /> R$</label>
+            <label class="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-slate-300"><input id="etq-show-preco" type="checkbox" class="h-4 w-4 rounded border-slate-500" /> Preço</label>
+            <label class="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-slate-300"><input id="etq-show-peso" type="checkbox" class="h-4 w-4 rounded border-slate-500" /> Peso</label>
+            <label class="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-slate-300"><input id="etq-preset-show-logo" type="checkbox" class="h-4 w-4 rounded border-slate-500" /> Logo</label>
+            <label class="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-emerald-300"><input id="etq-show-gm" type="checkbox" class="h-4 w-4 rounded border-slate-500" /> GM curto <span class="font-semibold normal-case text-slate-500">(GM0050-1 → GM50)</span></label>
+          </div>
+          <p id="etq-resumo-gondola" class="col-span-2 sm:col-span-3 lg:col-span-6 text-[11px] font-semibold text-slate-400"></p>
+        </div>
+
+        <div class="sm:col-span-2 lg:col-span-3 etq-field-gondola">
+          <div class="mb-1 flex flex-wrap items-center justify-between gap-2">
+            <span class="text-[10px] font-bold uppercase text-slate-500">Layout — arraste as caixas · canto = redimensionar</span>
+            <button type="button" id="etq-btn-reset-layout" class="min-h-[32px] rounded-lg border border-slate-600 px-2 text-[10px] font-black uppercase text-slate-300">Reset layout</button>
+          </div>
+          <div id="etq-layout-stage-wrap" class="overflow-auto rounded-xl border border-slate-700 bg-slate-950 p-3">
+            <div id="etq-layout-stage" class="relative mx-auto select-none overflow-hidden" style="width:360px;height:120px;background:#fff;border:2px solid #1a4d2e">
+              <div class="etq-lay-item" data-lay="nome" style="left:0%;top:0%;width:100%;height:32%"><span class="etq-lay-label">NOME</span><i class="etq-lay-handle" aria-hidden="true"></i></div>
+              <div class="etq-lay-item" data-lay="rs" style="left:10%;top:40%;width:16%;height:36%"><span class="etq-lay-label">R$</span><i class="etq-lay-handle" aria-hidden="true"></i></div>
+              <div class="etq-lay-item" data-lay="preco" style="left:26%;top:36%;width:58%;height:42%"><span class="etq-lay-label">PREÇO</span><i class="etq-lay-handle" aria-hidden="true"></i></div>
+              <div class="etq-lay-item" data-lay="logo" style="left:2%;top:74%;width:14%;height:22%"><span class="etq-lay-label">LOGO</span><i class="etq-lay-handle" aria-hidden="true"></i></div>
+              <div class="etq-lay-item" data-lay="peso" style="left:20%;top:78%;width:78%;height:18%"><span class="etq-lay-label">PESO</span><i class="etq-lay-handle" aria-hidden="true"></i></div>
+              <div class="etq-lay-item" data-lay="gm" style="left:2%;top:55%;width:18%;height:16%"><span class="etq-lay-label">GM</span><i class="etq-lay-handle" aria-hidden="true"></i></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<div id="etq-hist-back" class="fixed inset-0 z-[200] hidden bg-slate-950/75" aria-hidden="true">
+
+  <div class="flex h-full items-center justify-center p-4">
+
+    <div class="flex h-[70vh] w-[70vw] max-h-[70vh] max-w-[70vw] flex-col overflow-hidden rounded-2xl border border-slate-600 bg-slate-900 shadow-2xl" role="dialog" aria-labelledby="etq-hist-titulo">
+
+      <div class="flex shrink-0 items-center justify-between gap-2 border-b border-slate-700 px-4 py-3">
+
+        <div class="min-w-0">
+
+          <h2 id="etq-hist-titulo" class="text-sm font-black uppercase text-white">Histórico de impressões</h2>
+
+          <p id="etq-hist-meta" class="mt-0.5 text-[11px] font-semibold text-slate-400">Últimos 30 dias</p>
+
+        </div>
+
+        <button type="button" id="etq-hist-fechar" class="min-h-[36px] min-w-[36px] shrink-0 rounded-lg border border-slate-600 text-slate-300 hover:text-white" aria-label="Fechar">✕</button>
+
+      </div>
+
+      <div id="etq-hist-lista" class="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#475569_#0f172a]">
+
+        <p class="px-4 py-6 text-center text-sm text-slate-400">Abra para carregar…</p>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<script>
+window.AGRO_ETQ_CFG = {
+  facetasUrl: "{{ api_facetas_url|default:'/api/produtos/gestao/facetas/'|escapejs }}",
+  presetsUrl: "{{ api_presets_url|default:'/api/compras/folha-saldo-presets/'|escapejs }}",
+  etqPresetsUrl: "{{ api_etq_presets_url|default:'/api/produtos/etiquetas/presets/'|escapejs }}"
+};
+</script>
+<script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=16"></script>
+
+<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=16" defer></script>
+
+{% endblock %}
+

@@ -9,10 +9,20 @@
 {% block pdv_section_class %}flex min-h-0 flex-1 flex-col max-w-none overflow-hidden p-0{% endblock %}
 
 {% block head_extra %}
+<meta name="csrfmiddlewaretoken" content="{{ csrf_token }}">
 <style>
   .pdv-wizard-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
   .pdv-wizard-scroll::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.55); border-radius: 999px; }
-  .pdv-step-panel[hidden] { display: none !important; }
+  .pdv-step-panel[hidden] {
+    display: none !important;
+  }
+  /* Segurança: subpainéis da entrega nunca vazam para Produtos/Pagamento */
+  body:not([data-pdv-step="entrega"]) #pdv-entrega-partida-bar,
+  body:not([data-pdv-step="entrega"]) #pdv-entrega-main,
+  body:not([data-pdv-step="entrega"]) #pdv-entrega-resumo,
+  body:not([data-pdv-step="entrega"]) #pdv-entrega-wizard {
+    display: none !important;
+  }
   .pdv-step-badge-active { background: linear-gradient(135deg, #10b981, #059669); color: #fff; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.28); border-color: #059669; }
   .pdv-step-badge-done { background: #ecfdf5; color: #047857; border-color: #6ee7b7; }
   .pdv-product-card:hover { border-color: rgba(16, 185, 129, 0.35); box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08); }
@@ -45,12 +55,175 @@
   }
   .pdv-cart-row-tools {
     display: grid;
-    grid-template-columns: 7rem auto auto auto;
+    /* GM | promo | qty | A/B | total | ações (lixeira+lápis) — tudo fixo p/ alinhar entre linhas */
+    grid-template-columns: 7.25rem 5.75rem 8.6rem 14.5rem 9.5rem 2.75rem;
     align-items: center;
     justify-content: end;
-    gap: 0.45rem;
+    gap: 0.4rem;
+    width: max-content;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  .pdv-cart-row-tools > * {
     min-width: 0;
   }
+  .pdv-cart-promo-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    align-items: stretch;
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+    min-height: 4.15rem;
+    box-sizing: border-box;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .pdv-cart-promo-badge {
+    display: block;
+    padding: 0.14rem 0.35rem;
+    border-radius: 0.45rem;
+    font-size: 9px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    text-align: center;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pdv-cart-promo-badge--stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.06rem;
+    min-height: 2.65rem;
+    padding: 0.18rem 0.32rem;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+  .pdv-cart-promo-line {
+    display: block;
+    width: 100%;
+    line-height: 1.05;
+  }
+  .pdv-cart-promo-line-top {
+    font-size: 8px;
+    letter-spacing: 0.04em;
+  }
+  .pdv-cart-promo-line-sub {
+    font-size: 8px;
+    letter-spacing: 0.01em;
+  }
+  .pdv-cart-promo--pendente .pdv-cart-promo-badge {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+  }
+  .pdv-cart-promo--ativo .pdv-cart-promo-badge {
+    background: #d1fae5;
+    color: #047857;
+    border: 1px solid #6ee7b7;
+  }
+  .pdv-cart-promo--misto .pdv-cart-promo-badge:first-child {
+    background: #d1fae5;
+    color: #047857;
+    border: 1px solid #6ee7b7;
+  }
+  .pdv-cart-promo--misto .pdv-cart-promo-badge:last-child {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+  }
+  .pdv-cart-promo-badge--mix-linha {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.65rem;
+    padding: 0.22rem 0.35rem;
+    font-size: 9px;
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+    white-space: normal;
+  }
+  .pdv-cart-promo--misto .pdv-cart-promo-badge--mix-linha {
+    background: #ecfdf5;
+    color: #047857;
+    border-color: #a7f3d0;
+  }
+  .pdv-cart-promo--empty {
+    visibility: hidden;
+    pointer-events: none;
+    min-height: 4.15rem;
+  }
+  .pdv-cart-row--mix {
+    border-left-width: 4px !important;
+    border-left-style: solid !important;
+    border-right-width: 4px !important;
+    border-right-style: solid !important;
+  }
+  .pdv-cart-row--mix.pdv-cart-row--mix-pendente {
+    border-left-style: dashed !important;
+    border-right-style: dashed !important;
+  }
+  .pdv-cart-row--mix-0 {
+    border-left-color: #6366f1 !important;
+    border-right-color: #6366f1 !important;
+    background: linear-gradient(90deg, rgba(99, 102, 241, 0.09) 0%, #fff 36%, #fff 64%, rgba(99, 102, 241, 0.09) 100%);
+  }
+  .pdv-cart-row--mix-1 {
+    border-left-color: #0891b2 !important;
+    border-right-color: #0891b2 !important;
+    background: linear-gradient(90deg, rgba(8, 145, 178, 0.09) 0%, #fff 36%, #fff 64%, rgba(8, 145, 178, 0.09) 100%);
+  }
+  .pdv-cart-row--mix-2 {
+    border-left-color: #7c3aed !important;
+    border-right-color: #7c3aed !important;
+    background: linear-gradient(90deg, rgba(124, 58, 237, 0.09) 0%, #fff 36%, #fff 64%, rgba(124, 58, 237, 0.09) 100%);
+  }
+  .pdv-cart-row--mix-3 {
+    border-left-color: #db2777 !important;
+    border-right-color: #db2777 !important;
+    background: linear-gradient(90deg, rgba(219, 39, 119, 0.09) 0%, #fff 36%, #fff 64%, rgba(219, 39, 119, 0.09) 100%);
+  }
+  .pdv-cart-row--mix-4 {
+    border-left-color: #ea580c !important;
+    border-right-color: #ea580c !important;
+    background: linear-gradient(90deg, rgba(234, 88, 12, 0.09) 0%, #fff 36%, #fff 64%, rgba(234, 88, 12, 0.09) 100%);
+  }
+  .pdv-cart-row--mix-5 {
+    border-left-color: #059669 !important;
+    border-right-color: #059669 !important;
+    background: linear-gradient(90deg, rgba(5, 150, 105, 0.09) 0%, #fff 36%, #fff 64%, rgba(5, 150, 105, 0.09) 100%);
+  }
+  .pdv-cart-mix-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.28rem;
+    padding: 0.06rem 0.32rem;
+    border-radius: 0.35rem;
+    font-size: 8px;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    vertical-align: middle;
+    color: #4338ca;
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    line-height: 1.1;
+  }
+  .pdv-cart-row--mix-1 .pdv-cart-mix-tag { color: #0e7490; background: #ecfeff; border-color: #a5f3fc; }
+  .pdv-cart-row--mix-2 .pdv-cart-mix-tag { color: #6d28d9; background: #f5f3ff; border-color: #ddd6fe; }
+  .pdv-cart-row--mix-3 .pdv-cart-mix-tag { color: #be185d; background: #fdf2f8; border-color: #fbcfe8; }
+  .pdv-cart-row--mix-4 .pdv-cart-mix-tag { color: #c2410c; background: #fff7ed; border-color: #fed7aa; }
+  .pdv-cart-row--mix-5 .pdv-cart-mix-tag { color: #047857; background: #ecfdf5; border-color: #a7f3d0; }
   .pdv-cart-gm {
     display: inline-flex;
     align-items: center;
@@ -77,6 +250,8 @@
   }
   .pdv-cart-qty-wrap {
     display: inline-flex;
+    width: 100%;
+    min-width: 0;
     flex-shrink: 0;
     align-items: stretch;
     overflow: hidden;
@@ -84,10 +259,12 @@
     border: 2px solid #cbd5e1;
     background: #f8fafc;
     box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+    box-sizing: border-box;
   }
   .pdv-cart-qty-wrap button {
     display: flex;
-    min-width: 2.65rem;
+    flex: 0 0 auto;
+    min-width: 2.45rem;
     min-height: 2.65rem;
     align-items: center;
     justify-content: center;
@@ -98,11 +275,13 @@
   }
   .pdv-cart-qty-wrap button:active { background: #e2e8f0; }
   .pdv-cart-qty-input {
-    width: 3.25rem;
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
     min-height: 2.65rem;
     border: 0;
     background: #fff;
-    padding: 0 0.2rem;
+    padding: 0 0.15rem;
     text-align: center;
     font-size: 1.05rem;
     font-weight: 900;
@@ -116,37 +295,42 @@
   }
   .pdv-cart-price-wrap {
     display: flex;
-    flex-shrink: 0;
+    width: 100%;
+    min-width: 0;
     align-items: center;
     justify-content: flex-end;
-    min-width: 6.25rem;
   }
   .pdv-cart-price-box {
     display: inline-flex;
+    width: 100%;
     height: 3rem;
     align-items: center;
-    overflow: hidden;
+    overflow: visible;
     border-radius: 0.75rem;
     border: 2px solid #6ee7b7;
     background: #ecfdf5;
     box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+    box-sizing: border-box;
   }
   .pdv-cart-price-prefix {
-    padding-left: 0.5rem;
-    font-size: 14px;
+    flex: 0 0 auto;
+    padding-left: 0.4rem;
+    font-size: 13px;
     font-weight: 900;
     line-height: 1;
     color: #047857;
   }
   .pdv-cart-price-input {
-    width: 5rem;
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
     height: 100%;
     min-height: 0;
     border: 0;
     background: transparent;
-    padding: 0 0.4rem 0 0.15rem;
+    padding: 0 0.35rem 0 0.1rem;
     text-align: right;
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     font-weight: 900;
     font-variant-numeric: tabular-nums;
     color: #047857;
@@ -156,27 +340,245 @@
     background: #fff;
     box-shadow: inset 0 0 0 2px rgba(16, 185, 129, 0.35);
   }
-  .pdv-cart-remove {
+  .pdv-cart-actions {
     flex-shrink: 0;
-    padding: 0.15rem 0.25rem;
-    font-size: 9px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: 0.2rem;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  .pdv-cart-remove,
+  .pdv-cart-edit {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+    min-height: 1.35rem;
+    height: 1.35rem;
+    padding: 0;
+    border-radius: 0.45rem;
+    border: 1.5px solid #fecaca;
+    background: #fff1f2;
+    color: #b91c1c;
+  }
+  .pdv-cart-edit {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+    color: #334155;
+  }
+  .pdv-cart-remove svg,
+  .pdv-cart-edit svg {
+    width: 0.85rem;
+    height: 0.85rem;
+    pointer-events: none;
+  }
+  .pdv-cart-remove:active { background: #fee2e2; }
+  .pdv-cart-edit:active { background: #e2e8f0; }
+  #pdv-product-autocomplete {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    border: 2px solid #0ea5e9 !important;
+    background: #bfdbfe !important;
+    box-shadow: 0 20px 52px rgba(14, 116, 144, 0.28) !important;
+  }
+    #pdv-step1-search-wrap .pdv-step1-search-head {
+    gap: 0.55rem;
+    min-height: 5.25rem;
+    align-items: center;
+  }
+  #pdv-step1-search-wrap .pdv-step1-search-head .pdv-step1-block-meta {
+    margin-left: 0;
+    font-size: 0.875rem;
+  }
+  #pdv-step1-search-wrap #pdv-product-search-wrap {
+    flex: 1 1 auto;
+    min-width: 8rem;
+    max-width: none;
+  }
+  #pdv-step1-search-wrap #pdv-product-search {
+    border-color: #cbd5e1 !important;
+    background: #fff;
+    min-height: 5rem !important;
+    height: 5rem !important;
+    font-size: 1.85rem !important;
+    font-weight: 900 !important;
+    line-height: 1.15 !important;
+    padding-top: 0.9rem !important;
+    padding-bottom: 0.9rem !important;
+    box-shadow: none !important;
+  }
+  #pdv-step1-search-wrap #pdv-product-search::placeholder {
+    font-size: 1.55rem;
+    font-weight: 800;
+  }
+  #pdv-step1-search-wrap #pdv-product-search:focus {
+    border-color: #94a3b8 !important;
+    box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.25) !important;
+  }
+  #pdv-step1-search-wrap .pdv-btn-cadastro-rapido,
+  #pdv-step1-search-wrap .pdv-btn-racoes {
+    min-height: 5rem !important;
+    height: 5rem !important;
+  }
+  #pdv-step1-search-wrap .pdv-btn-racoes {
+    min-width: 5.25rem;
+    font-size: clamp(0.72rem, 0.28vw + 0.64rem, 0.92rem);
+    letter-spacing: 0.04em;
+  }
+
+  .pdv-racoes-panel {
+    max-height: min(94dvh, 40rem);
+    width: min(44rem, 96vw);
+  }
+  #pdv-racoes-overlay.is-lista .pdv-racoes-panel {
+    max-height: min(96dvh, 70rem);
+    width: min(96rem, 99vw);
+  }
+  #pdv-racoes-overlay.is-lista footer {
+    flex-wrap: nowrap;
+  }
+  #pdv-racoes-lista-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 1.02rem;
+  }
+  #pdv-racoes-lista-table th,
+  #pdv-racoes-lista-table td {
+    border: 2px solid #94a3b8;
+    padding: 0.28rem 0.55rem;
+    vertical-align: middle;
+    white-space: nowrap;
+    line-height: 1.15;
+  }
+  #pdv-racoes-lista-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #ecfdf5;
+    color: #064e3b;
+    font-size: 0.88rem;
+    font-weight: 900;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    text-align: left;
+  }
+  #pdv-racoes-lista-table tbody tr:nth-child(even) {
+    background: #f1f5f9;
+  }
+  #pdv-racoes-lista-table tbody tr.pdv-racoes-row-ok {
+    box-shadow: inset 5px 0 0 #059669;
+  }
+  #pdv-racoes-lista-table .pdv-racoes-thumb {
+    display: block;
+    width: 2.35rem;
+    height: 2.35rem;
+    padding: 0;
+    border-radius: 0.4rem;
+    border: 2px solid #94a3b8;
+    background: #fff;
+    overflow: hidden;
+    cursor: zoom-in;
+  }
+  #pdv-racoes-lista-table .pdv-racoes-thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  #pdv-racoes-lista-table .pdv-racoes-acao {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+  }
+  #pdv-racoes-lista-table .pdv-racoes-nome {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+  #pdv-racoes-lista-table .pdv-racoes-preco {
+    font-size: 1.2rem;
+    font-weight: 900;
+    color: #0f172a;
+    white-space: nowrap;
+    text-align: right;
+  }
+  #pdv-racoes-lista-table .pdv-racoes-add-btn {
+    min-height: 2.25rem;
+    min-width: max-content;
+    border-radius: 0.55rem;
+    border: 2px solid #059669;
+    background: #059669;
+    color: #fff;
+    font-size: 0.92rem;
     font-weight: 900;
     text-transform: uppercase;
-    color: #b91c1c;
-    text-decoration: underline;
-    text-decoration-color: #fca5a5;
+    white-space: nowrap;
+    padding: 0.22rem 0.7rem;
   }
-  #pdv-product-autocomplete {
-    padding: 0;
-    overflow: hidden;
-    border-color: #bae6fd !important;
-    background: linear-gradient(180deg, #f0f9ff 0%, #fff 18%) !important;
-    box-shadow: 0 18px 48px rgba(15, 23, 42, 0.16) !important;
+  #pdv-racoes-lista-table .pdv-racoes-add-btn:hover {
+    background: #047857;
+  }
+  #pdv-racoes-lista-table .pdv-racoes-add-btn.is-ok {
+    border-color: #047857;
+    background: #065f46;
+  }
+  #pdv-racoes-lista-table .pdv-racoes-qtd-ok {
+    display: inline-block;
+    border-radius: 0.35rem;
+    background: #065f46;
+    color: #ecfdf5;
+    font-size: 0.82rem;
+    font-weight: 900;
+    white-space: nowrap;
+    padding: 0.08rem 0.4rem;
+  }
+  #pdv-step1-search-wrap .pdv-step1-search-f2 {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.9rem;
+    padding: 0.35rem 0.6rem;
+  }
+  #pdv-cadastro-rapido-overlay details > summary {
+    list-style: none;
+  }
+  #pdv-cadastro-rapido-overlay details > summary::-webkit-details-marker {
+    display: none;
+  }
+
+/* ID+display:flex ganha do .hidden do Tailwind — sem isto a lista cobre o carrinho (FL-008). */
+  #pdv-product-autocomplete.hidden,
+  #pdv-step1-search-wrap #pdv-product-autocomplete.hidden {
+    display: none !important;
+    pointer-events: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    max-height: 0 !important;
+  }
+  #pdv-product-autocomplete .pdv-ac-scroll {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    background: #bfdbfe;
   }
   #pdv-product-autocomplete .pdv-ac-head,
   #pdv-product-autocomplete .pdv-ac-row {
     display: grid;
-    grid-template-columns: 3rem minmax(0, 1fr) 6.75rem 5.75rem 7rem;
+    /* foto | produto | marca | GM (mais à dir.) | 2 preços reservados */
+    grid-template-columns: 3rem minmax(0, 1fr) 5.5rem 7.25rem 15rem;
     align-items: center;
     column-gap: 0.45rem;
     padding-left: 0.55rem;
@@ -188,24 +590,25 @@
     z-index: 2;
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
-    border-bottom: 2px solid #bae6fd;
-    background: linear-gradient(180deg, #e0f2fe 0%, #f0f9ff 100%);
+    border-bottom: 2px solid #38bdf8;
+    background: #7dd3fc;
     font-size: 10px;
     font-weight: 900;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #0369a1;
+    color: #0c4a6e;
   }
   #pdv-product-autocomplete .pdv-ac-head span:nth-child(5) { text-align: right; }
   #pdv-product-autocomplete .pdv-ac-head span:nth-child(3),
   #pdv-product-autocomplete .pdv-ac-head span:nth-child(4) {
     padding-left: 0.15rem;
   }
+  #pdv-product-autocomplete .pdv-ac-head span:nth-child(4) { text-align: left; }
   #pdv-product-autocomplete .pdv-ac-row {
     width: 100%;
     border: 0;
-    border-bottom: 1px solid #e0f2fe;
-    background: rgba(255, 255, 255, 0.72);
+    border-bottom: 1px solid #93c5fd;
+    background: #bfdbfe;
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
     text-align: left;
@@ -213,9 +616,33 @@
     transition: background 0.1s ease;
   }
   #pdv-product-autocomplete .pdv-ac-row:last-child { border-bottom: none; }
+  #pdv-product-autocomplete .pdv-ac-load-more {
+    flex: 0 0 auto;
+    display: block;
+    width: 100%;
+    border: 0;
+    border-top: 2px dashed #0ea5e9;
+    background: #7dd3fc;
+    padding: 0.65rem 0.55rem;
+    text-align: center;
+    font-size: 0.95rem;
+    font-weight: 900;
+    color: #0c4a6e;
+    cursor: pointer;
+    transition: background 0.1s ease, color 0.1s ease;
+  }
+  #pdv-product-autocomplete .pdv-ac-load-more:disabled {
+    cursor: wait;
+    color: #475569;
+    background: #93c5fd;
+  }
+  #pdv-product-autocomplete .pdv-ac-load-more:hover:not(:disabled) {
+    background: #38bdf8;
+    color: #064e3b;
+  }
   #pdv-product-autocomplete .pdv-ac-row:hover,
   #pdv-product-autocomplete .pdv-ac-row.pdv-ac-row-selected {
-    background: #ecfdf5;
+    background: #93c5fd;
     box-shadow: inset 3px 0 0 #10b981;
   }
   #pdv-product-autocomplete .pdv-ac-thumb {
@@ -225,8 +652,8 @@
     height: 3rem;
     overflow: hidden;
     border-radius: 0.55rem;
-    border: 2px solid #bae6fd;
-    background: #fff;
+    border: 2px solid #38bdf8;
+    background: #e0f2fe;
     cursor: zoom-in;
   }
   #pdv-product-autocomplete .pdv-ac-thumb img {
@@ -254,8 +681,8 @@
     min-height: 2.65rem;
     padding: 0 0.35rem;
     border-radius: 0.65rem;
-    border: 2px solid #cbd5e1;
-    background: #fff;
+    border: 2px solid #38bdf8;
+    background: #e0f2fe;
     box-sizing: border-box;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -278,23 +705,137 @@
     letter-spacing: 0.02em;
   }
   #pdv-product-autocomplete .pdv-ac-preco {
-    justify-self: end;
+    justify-self: stretch;
     text-align: right;
+    min-width: 0;
+  }
+  #pdv-product-autocomplete .pdv-ac-preco-duo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: 0.35rem;
+    width: 100%;
+  }
+  #pdv-product-autocomplete .pdv-ac-preco-slot {
+    min-height: 2.65rem;
   }
   #pdv-product-autocomplete .pdv-ac-preco-box {
     display: inline-flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: center;
+    width: 100%;
     min-height: 2.65rem;
-    padding: 0 0.5rem;
+    padding: 0 0.35rem;
     border-radius: 0.65rem;
     border: 2px solid #6ee7b7;
     background: #ecfdf5;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: 900;
     font-variant-numeric: tabular-nums;
     color: #047857;
     white-space: nowrap;
+    box-sizing: border-box;
+  }
+  #pdv-product-autocomplete .pdv-ac-preco-box--grupo {
+    gap: 0.28rem;
+  }
+  #pdv-product-autocomplete .pdv-ac-preco-box--grupo-b {
+    border-color: #7dd3fc;
+    background: #f0f9ff;
+    color: #0369a1;
+  }
+  #pdv-product-autocomplete .pdv-ac-preco-grupo-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.15rem;
+    height: 1.15rem;
+    border-radius: 0.35rem;
+    background: #047857;
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+  #pdv-product-autocomplete .pdv-ac-preco-box--grupo-b .pdv-ac-preco-grupo-tag {
+    background: #0369a1;
+  }
+  .pdv-cart-grupos-hint {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: 0.28rem;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .pdv-cart-grupos-hint--empty {
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .pdv-cart-grupo-slot {
+    min-height: 2.45rem;
+    min-width: 0;
+  }
+  .pdv-cart-grupo-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    width: 100%;
+    min-width: 0;
+    min-height: 2.45rem;
+    padding: 0 0.25rem;
+    border-radius: 0.6rem;
+    border: 2px solid #6ee7b7;
+    background: #ecfdf5;
+    font-size: 0.95rem;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    color: #047857;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: box-shadow 0.12s ease, transform 0.1s ease, border-color 0.12s ease;
+  }
+  .pdv-cart-grupo-chip:hover {
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+  }
+  .pdv-cart-grupo-chip:active {
+    transform: translateY(1px);
+  }
+  .pdv-cart-grupo-chip.is-selected {
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.45);
+    border-width: 3px;
+  }
+  .pdv-cart-grupo-chip--b.is-selected {
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.45);
+  }
+  .pdv-cart-grupo-chip--b {
+    border-color: #7dd3fc;
+    background: #f0f9ff;
+    color: #0369a1;
+  }
+  .pdv-cart-grupo-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 0.3rem;
+    background: #047857;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+  .pdv-cart-grupo-chip--b .pdv-cart-grupo-tag {
+    background: #0369a1;
   }
   .pdv-product-results-grid { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
   .pdv-product-results-empty { display: flex; min-height: 12rem; align-items: center; justify-content: center; border: 1px dashed #cbd5e1; border-radius: 1.25rem; background: linear-gradient(180deg, #fff, #f8fafc); color: #64748b; font-size: .9rem; font-weight: 700; text-align: center; padding: 1rem; }
@@ -312,8 +853,52 @@
     flex: 0 0 auto;
     margin-top: auto;
     padding-top: 0.375rem;
+    position: relative;
+    z-index: 4;
     box-shadow: 0 -6px 16px rgba(15, 23, 42, 0.07);
     background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #fff 28%);
+  }
+  #pdv-step1-enviar-whatsapp.pdv-step1-enviar-whatsapp,
+  #pdv-step1-enviar-whatsapp-loja.pdv-step1-enviar-whatsapp-loja {
+    min-height: 2.65rem;
+  }
+  #pdv-step1-enviar-whatsapp .pdv-step1-enviar-whatsapp-icon,
+  #pdv-step1-enviar-whatsapp-loja .pdv-step1-enviar-whatsapp-icon {
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+  #pdv-step1-subtotal-dock .pdv-step1-side-actions .pdv-step1-side-action-btn {
+    touch-action: manipulation;
+    min-height: clamp(2.5rem, 7vh, 3rem);
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.45rem;
+    font-size: clamp(0.68rem, 0.45vw + 0.58rem, 0.78rem);
+    line-height: 1;
+    white-space: nowrap;
+  }
+  #pdv-step1-subtotal-dock .pdv-step1-side-action-label {
+    flex-shrink: 0;
+  }
+  #pdv-step1-subtotal-dock .pdv-step1-side-action-kbd {
+    flex-shrink: 0;
+    margin: 0;
+    display: inline-block;
+  }
+  #pdv-step1-subtotal-dock .pdv-step1-side-action-icon {
+    display: inline-flex;
+    width: 1.15rem;
+    height: 1.15rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+  }
+  #pdv-step1-subtotal-dock .pdv-step1-side-action-icon svg {
+    width: 100%;
+    height: 100%;
   }
   #pdv-step1-side .pdv-step1-side-card { min-width: 0; }
   #pdv-step1-side .pdv-side-money { white-space: nowrap; }
@@ -432,23 +1017,55 @@
     max-width: 98vw;
     max-height: 98vh;
   }
-  /* Pop-up edição: 16×9 dentro de ~90% da tela */
+  /* Pop-up edição cliente: cabe na tela sem scroll interno */
   .pdv-client-edit-panel {
-    width: min(90vw, calc(90vh * 16 / 9));
-    height: min(90vh, calc(90vw * 9 / 16));
-    max-width: 98vw;
-    max-height: 98vh;
+    width: min(96vw, 78rem);
+    max-height: min(96dvh, 100%);
+    height: auto;
+    margin: auto;
+    align-self: center;
+  }
+  /* Acima do CHAT (z 220); centro firme (zoom Agro + focus não empurra) */
+  #pdv-quick-client-edit-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 240;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  #pdv-quick-product-edit-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 241;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  html.pdv-client-edit-open #pdv-chat-loja-dock,
+  html.pdv-product-edit-open #pdv-chat-loja-dock {
+    visibility: hidden !important;
+    pointer-events: none !important;
   }
   #pdv-step1-client-bar {
     flex-wrap: nowrap;
+    align-items: center;
+    min-height: 3.55rem;
+    padding: 0.65rem 0.85rem !important;
+    gap: 0.55rem;
     border-color: #fdba74 !important;
+    border-bottom: 2px solid #fdba74 !important;
     background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%) !important;
     box-shadow: none !important;
+  }
+  #pdv-step1-main-panel > #pdv-step1-client-bar {
+    border-radius: 0;
   }
   #pdv-step1-client-bar #pdv-quick-client-hit {
     flex: 1 1 auto;
     min-width: 0;
     max-width: none;
+    gap: 0.55rem;
+    min-height: 3.3rem;
+    padding: 0.55rem 0.85rem;
   }
   #pdv-step1-client-bar .pdv-step1-client-etapa {
     font-size: 9px;
@@ -480,32 +1097,22 @@
     border-color: #fb923c;
     background: #fff7ed;
   }
-  #pdv-step1-client-bar .pdv-step1-client-badge {
-    border-radius: 0.45rem;
-    padding: 0.2rem 0.55rem;
-    font-size: 11.5px;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #fff;
-    background: #ea580c;
-  }
   #pdv-step1-client-bar #pdv-quick-client-name {
-    font-size: 16.1px !important;
+    font-size: 1.3rem !important;
     font-weight: 900;
-    line-height: 1.25;
+    line-height: 1.2;
     color: #0f172a;
   }
   #pdv-step1-client-bar .pdv-step1-client-edit-btn {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    min-height: 2.25rem;
-    padding: 0.35rem 0.65rem;
+    min-height: 2.65rem;
+    padding: 0.4rem 0.7rem;
     border-radius: 0.65rem;
     border: 2px solid #fb923c;
     background: #fff;
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.03em;
@@ -518,13 +1125,31 @@
     opacity: 0.55;
     cursor: not-allowed;
   }
-  #pdv-step1-client-bar .pdv-step1-client-edit-btn svg { width: 1rem; height: 1rem; flex-shrink: 0; }
+  #pdv-step1-client-bar .pdv-step1-client-edit-btn svg { width: 1.1rem; height: 1.1rem; flex-shrink: 0; }
   #pdv-step1-main-panel {
-    border: 2px solid #bae6fd;
+    border: 2px solid #e2e8f0;
     border-radius: 1.15rem;
-    background: transparent;
+    background: #fff;
     overflow: hidden;
   }
+  /* Ícone + título padrão (Cliente / Busca / Carrinho) */
+  #pdv-step1-main-panel .pdv-step1-head-icon {
+    width: 2.9rem !important;
+    height: 2.9rem !important;
+    border-radius: 0.65rem;
+  }
+  #pdv-step1-main-panel .pdv-step1-head-icon svg {
+    width: 1.6rem !important;
+    height: 1.6rem !important;
+  }
+  #pdv-step1-main-panel .pdv-step1-block-title {
+    font-size: 1.3rem !important;
+    font-weight: 900;
+    letter-spacing: 0.03em;
+    line-height: 1.1;
+  }
+  .pdv-step1-head-icon--client { background: #ea580c; color: #fff; }
+  .pdv-step1-block-title--client { color: #c2410c; }
   .pdv-step1-block-head {
     display: flex;
     align-items: center;
@@ -562,30 +1187,73 @@
     white-space: nowrap;
   }
   #pdv-step1-search-wrap {
-    padding: 0.65rem 0.75rem 0.75rem;
-    border-bottom: 2px solid #bae6fd;
-    background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%);
+    padding: 0.55rem 0.85rem 0.35rem;
+    border: 0 !important;
+    border-bottom: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    overflow: visible;
+    position: relative;
+    z-index: 20;
+  }
+  #pdv-step1-search-wrap::before,
+  #pdv-step1-search-wrap::after {
+    content: none !important;
+    display: none !important;
+  }
+  #pdv-step1-search-wrap .pdv-step1-search-head {
+    gap: 0.55rem;
+    min-height: 3.55rem;
+  }
+  #pdv-step1-search-wrap .pdv-step1-search-head .pdv-step1-block-meta {
+    margin-left: 0;
+    font-size: 0.875rem;
+  }
+  #pdv-step1-search-wrap #pdv-product-search-wrap {
+    flex: 1 1 auto;
+    min-width: 8rem;
+    max-width: none;
   }
   #pdv-step1-search-wrap #pdv-product-search {
-    border-color: #bae6fd;
+    border-color: #cbd5e1 !important;
     background: #fff;
+    min-height: 3.3rem !important;
+    height: 3.3rem !important;
+    font-size: 1.3rem !important;
+    font-weight: 900 !important;
+    line-height: 1.2 !important;
+    padding-top: 0.6rem !important;
+    padding-bottom: 0.6rem !important;
+    box-shadow: none !important;
   }
   #pdv-step1-search-wrap #pdv-product-search:focus {
-    border-color: #38bdf8;
-    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+    border-color: #94a3b8 !important;
+    box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.25) !important;
   }
   #pdv-step1-search-wrap .pdv-step1-search-f2 {
-    border-color: #bae6fd;
-    background: #f0f9ff;
-    color: #0369a1;
+    border-color: #cbd5e1;
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+  #pdv-step1-search-wrap #pdv-product-autocomplete {
+    background: #fff;
   }
   #pdv-step1-cart-wrap {
     display: flex;
     flex-direction: column;
     min-height: 0;
     flex: 1;
-    padding: 0.65rem 0.75rem 0.75rem;
+    padding: 0.5rem 0.85rem 0.75rem;
+    border-top: 0 !important;
+    box-shadow: none !important;
     background: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
+  }
+  #pdv-step1-cart-wrap .pdv-step1-cart-head {
+    gap: 0.55rem;
+    min-height: 3.55rem;
   }
   #pdv-step1-cart-wrap .pdv-step1-clear-btn {
     margin-left: auto;
@@ -827,6 +1495,535 @@
     align-items: center;
     gap: 0.5rem;
   }
+  .pdv-wiz-toolbar--oneline {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+  .pdv-wiz-toolbar--oneline > * {
+    flex-shrink: 0;
+  }
+  .pdv-wiz-toolbar--oneline select.pdv-input {
+    flex: 1 1 8rem;
+    min-width: 6rem;
+    max-width: none;
+  }
+  /* Pop-ups entrega — card só do tamanho do conteúdo; rodapé Voltar/F7 livre */
+  :root {
+    --pdv-footer-clearance: 4.35rem;
+  }
+  .pdv-ed-wizard-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: var(--pdv-footer-clearance);
+    z-index: 125;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0.65rem;
+    pointer-events: none;
+    overflow: visible;
+  }
+  .pdv-ed-wizard-overlay.hidden {
+    display: none !important;
+  }
+  .pdv-ed-wizard-overlay::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.44);
+    pointer-events: none;
+  }
+  #pdv-main-footer {
+    position: relative;
+    z-index: 140;
+  }
+  .pdv-ed-wizard-panel {
+    position: relative;
+    z-index: 1;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    width: min(94vw, 28rem);
+    height: auto;
+    max-height: calc(100dvh - var(--pdv-footer-clearance) - 1.25rem);
+    overflow: visible;
+    flex: none;
+  }
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="detalhes"] {
+    width: min(94vw, 34rem);
+  }
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="troco"] {
+    width: min(94vw, 34rem);
+  }
+  #pdv-ed-header {
+    padding: 0.9rem 1.15rem 1rem;
+  }
+  #pdv-ed-etapa {
+    font-size: clamp(0.72rem, 0.28vw + 0.66rem, 0.88rem);
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    line-height: 1.2;
+  }
+  #pdv-ed-titulo {
+    margin-top: 0.35rem;
+    font-size: clamp(1.28rem, 0.55vw + 1.08rem, 1.72rem);
+    font-weight: 900;
+    line-height: 1.15;
+  }
+  #pdv-ed-subtitulo {
+    margin-top: 0.35rem;
+    font-size: clamp(0.88rem, 0.32vw + 0.8rem, 1.05rem);
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="pagamento_local"],
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="meio"] {
+    width: min(94vw, 52rem);
+    min-height: min(46dvh, 24rem);
+  }
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="meio"] #pdv-ed-header,
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="pagamento_local"] #pdv-ed-header {
+    padding: 1.35rem 1.5rem 1.45rem;
+  }
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="meio"] #pdv-ed-etapa,
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="pagamento_local"] #pdv-ed-etapa {
+    font-size: clamp(0.95rem, 0.35vw + 0.85rem, 1.15rem);
+  }
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="meio"] #pdv-ed-titulo,
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="pagamento_local"] #pdv-ed-titulo {
+    font-size: clamp(1.75rem, 0.9vw + 1.35rem, 2.45rem);
+  }
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="meio"] #pdv-ed-subtitulo,
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="pagamento_local"] #pdv-ed-subtitulo {
+    font-size: clamp(1.05rem, 0.45vw + 0.95rem, 1.35rem);
+  }
+  #pdv-ed-body {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    flex: 1;
+    min-height: 0;
+  }
+  #pdv-ed-pagamento-local-panel:not(.hidden),
+  #pdv-ed-meio-panel:not(.hidden) {
+    display: grid;
+  }
+  #pdv-ed-detalhes-panel:not(.hidden) {
+    display: flex;
+    flex-direction: column;
+  }
+  #pdv-ed-troco-panel:not(.hidden) {
+    display: flex;
+    flex-direction: column;
+  }
+  .pdv-ed-troco-panel {
+    gap: 0.85rem;
+    padding: 1rem 1.15rem 1.1rem;
+  }
+  .pdv-ed-troco-total-card {
+    border-radius: 0.9rem;
+    border: 2px solid #6ee7b7;
+    background: #ecfdf5;
+    padding: 0.75rem 0.9rem;
+    text-align: center;
+  }
+  .pdv-ed-troco-total-valor {
+    margin: 0.25rem 0 0;
+    font-size: clamp(1.55rem, 0.7vw + 1.2rem, 2.2rem);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    color: #064e3b;
+    line-height: 1.05;
+  }
+  .pdv-ed-detalhes-panel {
+    gap: 0.8rem;
+    padding: 1rem 1.15rem 1.1rem;
+  }
+  .pdv-ed-section-label {
+    margin: 0;
+    font-size: clamp(0.72rem, 0.25vw + 0.66rem, 0.85rem);
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+  .pdv-ed-taxa-opcoes {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
+  }
+  .pdv-ed-opcao {
+    display: flex;
+    min-height: 3.15rem;
+    cursor: pointer;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    border-radius: 0.85rem;
+    border: 2px solid #cbd5e1;
+    background: #f8fafc;
+    padding: 0.5rem 0.4rem;
+    text-align: center;
+    font-size: clamp(0.68rem, 0.22vw + 0.62rem, 0.8rem);
+    font-weight: 900;
+    line-height: 1.2;
+    text-transform: uppercase;
+    color: #334155;
+    transition: border-color 0.12s ease, background 0.12s ease;
+  }
+  .pdv-ed-opcao--verde { border-color: #6ee7b7; background: #f0fdf4; }
+  .pdv-ed-opcao--laranja { border-color: #fdba74; background: #fff7ed; }
+  .pdv-ed-opcao:hover { filter: brightness(0.98); }
+  .pdv-ed-opcao input { margin: 0; }
+  .pdv-ed-detalhes-campos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+    align-items: end;
+  }
+  .pdv-ed-detalhes-campos--so-horario {
+    grid-template-columns: 1fr;
+  }
+  .pdv-ed-field-label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-size: clamp(0.72rem, 0.25vw + 0.66rem, 0.88rem);
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #475569;
+  }
+  .pdv-ed-field-input {
+    width: 100%;
+    min-height: 3.15rem;
+    font-size: clamp(1.05rem, 0.35vw + 0.95rem, 1.25rem);
+    font-weight: 700;
+  }
+  .pdv-ed-detalhes-hint {
+    margin: 0;
+    font-size: clamp(0.78rem, 0.28vw + 0.72rem, 0.92rem);
+    font-weight: 600;
+    color: #64748b;
+    text-align: center;
+  }
+  #pdv-ed-pagamento-local-panel,
+  #pdv-ed-meio-panel {
+    padding: 1.35rem 1.5rem 1.5rem;
+    gap: 1rem;
+    flex: 1;
+    align-content: center;
+    min-height: min(32dvh, 16rem);
+  }
+  #pdv-ed-pagamento-local-panel .pdv-action-btn,
+  #pdv-ed-meio-panel .pdv-action-btn,
+  .pdv-ed-choice-btn {
+    min-height: 3.35rem;
+    font-size: clamp(0.82rem, 0.28vw + 0.76rem, 1rem);
+    padding: 0.65rem 0.75rem;
+    justify-content: center;
+    text-align: center;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="pagamento_local"] #pdv-ed-pagamento-local-panel,
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="meio"] #pdv-ed-meio-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.15rem;
+    padding: 1.5rem 1.65rem 1.65rem;
+    min-height: min(34dvh, 17.5rem);
+  }
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="pagamento_local"] .pdv-ed-choice-btn,
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="meio"] .pdv-ed-choice-btn {
+    min-height: clamp(5.5rem, 20dvh, 9.5rem);
+    font-size: clamp(1.2rem, 0.55vw + 1.05rem, 1.85rem);
+    padding: 1.1rem 1rem;
+    border-width: 4px;
+    border-radius: 1.15rem;
+  }
+  .pdv-modal-panel-50 {
+    width: min(92vw, calc(85dvh * 16 / 9));
+    max-width: 96vw;
+    max-height: min(85dvh, calc(92vw * 9 / 16));
+    overflow: auto;
+  }
+  .pdv-modal-panel-70 {
+    width: min(92vw, calc(85dvh * 16 / 9));
+    max-width: min(56rem, 96vw);
+    max-height: min(85dvh, calc(96vw * 9 / 16));
+    overflow: auto;
+  }
+  .pdv-step-entrega-shell {
+    container-type: inline-size;
+    justify-content: flex-start;
+  }
+  .pdv-step-entrega-shell.pdv-step-entrega-shell--resumo {
+    gap: 0.5rem;
+    justify-content: flex-start;
+  }
+  #pdv-entrega-main.hidden,
+  #pdv-entrega-resumo.hidden {
+    display: none !important;
+  }
+  .pdv-entrega-resumo:not(.hidden) {
+    display: flex;
+    flex: 0 1 auto;
+    align-self: stretch;
+  }
+  .pdv-entrega-review-panel {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 0;
+  }
+  .pdv-entrega-main:not(.hidden) {
+    flex: 0 1 auto;
+  }
+  .pdv-entrega-endereco-form {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 0.65rem 0.75rem;
+    margin-top: 0.5rem;
+  }
+  .pdv-entrega-field {
+    display: block;
+    min-width: 0;
+  }
+  .pdv-entrega-field-label {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: clamp(0.72rem, 0.25vw + 0.66rem, 0.88rem);
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #475569;
+  }
+  .pdv-entrega-field-input {
+    width: 100%;
+    min-height: 2.85rem;
+    font-size: clamp(0.95rem, 0.3vw + 0.88rem, 1.12rem);
+  }
+  .pdv-entrega-field--nome { grid-column: span 5; }
+  .pdv-entrega-field--tel { grid-column: span 7; }
+  .pdv-entrega-field--log { grid-column: 1 / -1; }
+  .pdv-entrega-field--num { grid-column: span 3; }
+  .pdv-entrega-field--bai { grid-column: span 5; }
+  .pdv-entrega-field--plus { grid-column: span 4; }
+  .pdv-entrega-field--comp { grid-column: span 6; }
+  .pdv-entrega-field--ref { grid-column: span 6; }
+  .pdv-entrega-obs-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem 0.75rem;
+  }
+  @container (max-width: 52rem) {
+    .pdv-entrega-endereco-form {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .pdv-entrega-field--nome,
+    .pdv-entrega-field--tel,
+    .pdv-entrega-field--log,
+    .pdv-entrega-field--num,
+    .pdv-entrega-field--bai,
+    .pdv-entrega-field--plus,
+    .pdv-entrega-field--comp,
+    .pdv-entrega-field--ref {
+      grid-column: auto;
+    }
+    .pdv-entrega-field--log {
+      grid-column: 1 / -1;
+    }
+  }
+  @container (max-width: 36rem) {
+    .pdv-entrega-endereco-form,
+    .pdv-entrega-obs-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  /* Conferir entrega — grade 3 colunas, encosta no topo, tipografia loja */
+  .pdv-entrega-review-top {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.65rem 0.85rem;
+    padding: 0.7rem 0.9rem;
+    min-height: 0;
+  }
+  .pdv-entrega-review-top .pdv-wiz-block-title--green {
+    font-size: clamp(1.05rem, 0.4vw + 0.95rem, 1.35rem);
+  }
+  .pdv-entrega-review-body {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 0 1 auto;
+    overflow: hidden;
+    background: #fff;
+  }
+  .pdv-entrega-review-grid {
+    display: grid;
+    min-height: 0;
+    flex: 0 1 auto;
+    overflow: hidden;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+    align-content: start;
+  }
+  @container (max-width: 36rem) {
+    .pdv-entrega-review-grid {
+      grid-template-columns: 1fr;
+    }
+    .pdv-entrega-review-section {
+      border-right: none !important;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .pdv-entrega-review-section:last-child {
+      border-bottom: none;
+    }
+  }
+  .pdv-entrega-review-section {
+    min-height: 0;
+    overflow: hidden;
+    border-right: 2px solid #e2e8f0;
+    padding: 0.65rem 0.75rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+  }
+  .pdv-entrega-review-section:last-child {
+    border-right: none;
+  }
+  .pdv-entrega-review-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+    margin-bottom: 0.3rem;
+    flex-shrink: 0;
+  }
+  .pdv-entrega-review-section-title {
+    font-size: clamp(0.78rem, 0.25vw + 0.72rem, 0.95rem);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+  }
+  .pdv-entrega-review-edit {
+    min-height: 2.15rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 0.55rem;
+    border: 2px solid #cbd5e1;
+    background: #f8fafc;
+    font-size: clamp(0.68rem, 0.2vw + 0.62rem, 0.82rem);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #334155;
+  }
+  .pdv-entrega-review-edit:hover {
+    border-color: #10b981;
+    background: #ecfdf5;
+    color: #047857;
+  }
+  .pdv-entrega-review-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin: 0;
+    min-height: 0;
+    flex: 0 1 auto;
+  }
+  .pdv-entrega-review-row dt {
+    font-size: clamp(0.68rem, 0.2vw + 0.62rem, 0.82rem);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #94a3b8;
+    margin: 0;
+  }
+  .pdv-entrega-review-row dd {
+    margin: 0;
+    font-size: clamp(0.95rem, 0.28vw + 0.88rem, 1.12rem);
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.3;
+  }
+  .pdv-entrega-review-row dd.pdv-entrega-review-val--lg {
+    font-size: clamp(1.05rem, 0.35vw + 0.95rem, 1.28rem);
+    font-weight: 900;
+  }
+  .pdv-entrega-review-clamp {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .pdv-entrega-review-clamp-2 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    word-break: break-word;
+  }
+  .pdv-entrega-review-total-inline .pdv-entrega-review-total-box {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    padding: 0.35rem 0.55rem;
+    border-width: 2px;
+    border-radius: 0.65rem;
+    box-shadow: none;
+  }
+  .pdv-entrega-review-total-inline .pdv-entrega-review-total-label {
+    font-size: clamp(0.62rem, 0.18vw + 0.56rem, 0.75rem);
+    line-height: 1.1;
+  }
+  .pdv-entrega-review-total-inline .pdv-entrega-review-total-value {
+    margin-top: 0.1rem;
+    font-size: clamp(1.25rem, 0.55vw + 1.05rem, 1.65rem);
+    line-height: 1;
+  }
+  .pdv-entrega-review-total-label {
+    font-size: 0.625rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #047857;
+  }
+  .pdv-entrega-review-total-value {
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    color: #064e3b;
+  }
+  .pdv-entrega-review-obs {
+    flex-shrink: 0;
+    border-top: 2px solid #e2e8f0;
+    background: #f8fafc;
+    padding: 0.65rem 0.75rem 0.75rem;
+  }
+  .pdv-entrega-review-obs-grid {
+    display: grid;
+    gap: 0.55rem 0.75rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .pdv-entrega-review-obs-label {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-size: clamp(0.68rem, 0.2vw + 0.62rem, 0.82rem);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+  }
+  .pdv-entrega-review-obs-input {
+    min-height: 2.85rem !important;
+    padding: 0.55rem 0.7rem !important;
+    font-size: clamp(0.95rem, 0.28vw + 0.88rem, 1.1rem) !important;
+    font-weight: 600 !important;
+  }
   .pdv-wiz-toolbar label {
     font-size: 10px;
     font-weight: 900;
@@ -843,6 +2040,7 @@
   }
   #pdv-topbar-compact .pdv-wiz-topbar-btn,
   #pdv-topbar-compact #pdv-topbar-entregas-btn,
+  #pdv-topbar-compact #pdv-topbar-pedir-loja-btn,
   #pdv-topbar-compact .pdv-wiz-stepper .pdv-step-nav {
     font-family: 'Inter', system-ui, sans-serif !important;
     font-size: var(--pdv-topbar-fs) !important;
@@ -884,6 +2082,20 @@
     background: #fff !important;
     color: #475569 !important;
   }
+  #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--mais-destaque {
+    border-color: #c2410c !important;
+    background: #ea580c !important;
+    color: #fff !important;
+  }
+  #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--wa {
+    border-color: #128C7E !important;
+    background: #25D366 !important;
+    color: #fff !important;
+  }
+  #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--wa.is-off {
+    background: #b91c1c !important;
+    border-color: #7f1d1d !important;
+  }
   #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn:hover,
   #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--emerald:hover,
   #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--amber:hover,
@@ -892,6 +2104,16 @@
   #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--slate:hover {
     background: #f8fafc !important;
     color: #334155 !important;
+  }
+  #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--mais-destaque:hover {
+    background: #c2410c !important;
+    border-color: #9a3412 !important;
+    color: #fff !important;
+  }
+  #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--wa:hover {
+    background: #20bd5a !important;
+    border-color: #128C7E !important;
+    color: #fff !important;
   }
   #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--alert {
     border-color: #64748b !important;
@@ -902,6 +2124,45 @@
   #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--alert:hover {
     background: #e2e8f0 !important;
     color: #0f172a !important;
+  }
+  #pdv-topbar-compact #pdv-topbar-entregas-btn.pdv-wiz-topbar-btn--entregas-pendente {
+    border-color: #0ea5e9 !important;
+    background: linear-gradient(90deg, #0284c7, #0891b2) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 14px rgba(14, 165, 233, 0.32) !important;
+  }
+  #pdv-topbar-compact #pdv-topbar-entregas-btn.pdv-wiz-topbar-btn--entregas-pendente:hover {
+    border-color: #0284c7 !important;
+    background: linear-gradient(90deg, #0369a1, #0e7490) !important;
+    color: #fff !important;
+  }
+  #pdv-topbar-compact #pdv-topbar-entregas-btn.pdv-wiz-topbar-btn--entregas-catalogo {
+    border-color: #f59e0b !important;
+    background: linear-gradient(90deg, #d97706, #ea580c) !important;
+    color: #fff !important;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.45), 0 6px 18px rgba(234, 88, 12, 0.4) !important;
+    animation: pdv-entregas-catalogo-pulse 1.1s ease-in-out infinite;
+    font-size: 0.95em !important;
+    min-height: 2.6rem !important;
+    padding-left: 0.85rem !important;
+    padding-right: 0.85rem !important;
+  }
+  #pdv-topbar-compact #pdv-topbar-entregas-btn.pdv-wiz-topbar-btn--entregas-catalogo:hover {
+    border-color: #b45309 !important;
+    background: linear-gradient(90deg, #b45309, #c2410c) !important;
+    color: #fff !important;
+  }
+  #pdv-topbar-compact #pdv-topbar-entregas-btn.pdv-wiz-topbar-btn--entregas-catalogo .pdv-topbar-entregas-count {
+    background: #fff !important;
+    color: #c2410c !important;
+  }
+  @keyframes pdv-entregas-catalogo-pulse {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.06); filter: brightness(1.08); }
+  }
+  #pdv-topbar-compact #pdv-topbar-entregas-btn.pdv-wiz-topbar-btn--entregas-pendente .pdv-topbar-entregas-count {
+    background: #fff !important;
+    color: #0369a1 !important;
   }
   #pdv-topbar-compact .pdv-topbar-entregas-count {
     background: #475569 !important;
@@ -914,6 +2175,9 @@
     gap: 0.45rem;
     width: 100%;
     min-width: 0;
+    overflow: visible;
+    position: relative;
+    z-index: 55;
   }
   .pdv-wiz-topbar-stepper-wrap {
     display: flex;
@@ -931,6 +2195,23 @@
     border-radius: 0.95rem;
     background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%);
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  }
+  #pdv-topbar-help.pdv-topbar-help {
+    align-self: center;
+    min-height: 2.15rem;
+    min-width: 2.15rem;
+    border-radius: 0.75rem;
+    border: 2px solid #94a3b8;
+    background: #fff;
+    color: #334155;
+    font-size: 0.95rem;
+    font-weight: 900;
+    line-height: 1;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  }
+  #pdv-topbar-help.pdv-topbar-help:hover {
+    background: #f8fafc;
+    border-color: #64748b;
   }
   .pdv-wiz-topbar-brand {
     flex-shrink: 0;
@@ -1092,6 +2373,222 @@
     background: linear-gradient(135deg, #10b981, #059669) !important;
     color: #fff !important;
   }
+  .pdv-wiz-topbar-estoque-vila {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-width: 0;
+    position: relative;
+    z-index: 50;
+  }
+  #pdv-topbar-mais.pdv-topbar-mais {
+    position: relative;
+    z-index: 60;
+    flex-shrink: 0;
+  }
+  .pdv-topbar-mais-panel {
+    position: fixed;
+    z-index: 120;
+    min-width: min(16.5rem, calc(100vw - 1.25rem));
+    width: max-content;
+    max-width: min(20rem, calc(100vw - 1.25rem));
+    border-radius: 1rem;
+    border: 2px solid #cbd5e1;
+    background: #fff;
+    padding: 0.55rem;
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .pdv-topbar-mais-panel.hidden {
+    display: none !important;
+  }
+  .pdv-topbar-mais-panel .pdv-wiz-topbar-btn,
+  .pdv-topbar-mais-panel #pdv-estoque-vila-menu > summary {
+    width: 100%;
+    justify-content: center;
+  }
+  .pdv-topbar-mais-panel #pdv-estoque-vila-menu {
+    width: 100%;
+    position: relative;
+  }
+  .pdv-topbar-mais-panel .pdv-estoque-vila-panel {
+    position: static;
+    left: auto;
+    top: auto;
+    transform: none;
+    min-width: 0;
+    width: 100%;
+    max-width: none;
+    margin-top: 0.35rem;
+    box-shadow: none;
+  }
+  #pdv-estoque-vila-menu > summary {
+    list-style: none;
+  }
+  #pdv-estoque-vila-menu > summary::-webkit-details-marker {
+    display: none;
+  }
+  .pdv-wiz-topbar-btn--violet {
+    border-color: #a78bfa !important;
+    background: #7c3aed !important;
+    color: #fff !important;
+  }
+  .pdv-wiz-topbar-btn--violet:hover {
+    background: #6d28d9 !important;
+    border-color: #6d28d9 !important;
+  }
+  .pdv-wiz-topbar-btn--mais-destaque {
+    border-color: #c2410c !important;
+    background: #ea580c !important;
+    color: #fff !important;
+    font-weight: 900 !important;
+  }
+  .pdv-wiz-topbar-btn--mais-destaque:hover {
+    background: #c2410c !important;
+    border-color: #9a3412 !important;
+    color: #fff !important;
+  }
+  .pdv-wiz-topbar-btn--rose {
+    border-color: #fb7185 !important;
+    background: #e11d48 !important;
+    color: #fff !important;
+  }
+  .pdv-wiz-topbar-btn--rose:hover {
+    background: #be123c !important;
+    border-color: #be123c !important;
+    color: #fff !important;
+  }
+  .pdv-topbar-organizar-btn {
+    width: 100%;
+    justify-content: center;
+    border-style: dashed !important;
+  }
+  #pdv-topbar-organizar-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 140;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.5);
+  }
+  #pdv-topbar-organizar-overlay.is-open { display: flex; }
+  .pdv-topbar-organizar-box {
+    width: min(28rem, calc(100vw - 1.5rem));
+    max-height: min(85dvh, 36rem);
+    overflow: auto;
+    border-radius: 1rem;
+    border: 2px solid #cbd5e1;
+    background: #fff;
+    padding: 1rem;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.28);
+  }
+  .pdv-topbar-organizar-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding: 0.35rem 0.5rem;
+    border-radius: 0.75rem;
+    border: 2px solid #e2e8f0;
+    background: #f8fafc;
+    margin-bottom: 0.4rem;
+  }
+  .pdv-topbar-organizar-row span {
+    font-size: 0.8rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #334155;
+  }
+  .pdv-topbar-organizar-toggle {
+    display: inline-flex;
+    border-radius: 0.65rem;
+    border: 2px solid #cbd5e1;
+    overflow: hidden;
+  }
+  .pdv-topbar-organizar-toggle button {
+    min-height: 2.1rem;
+    min-width: 4.2rem;
+    padding: 0.25rem 0.55rem;
+    font-size: 0.65rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    border: 0;
+    background: #fff;
+    color: #64748b;
+    cursor: pointer;
+  }
+  .pdv-topbar-organizar-toggle button.is-on {
+    background: #ea580c;
+    color: #fff;
+  }
+  .pdv-topbar-organizar-toggle button[data-zona="frio"].is-on {
+    background: #475569;
+  }
+  .pdv-estoque-vila-panel {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 0.35rem);
+    transform: translateX(-50%);
+    min-width: min(18rem, calc(100vw - 1.5rem));
+    width: max-content;
+    max-width: min(20rem, calc(100vw - 1.5rem));
+    border-radius: 1rem;
+    border: 2px solid #e2e8f0;
+    background: #fff;
+    padding: 0.5rem;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .pdv-estoque-vila-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 2.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.75rem;
+    border: 2px solid;
+    font-size: 0.7rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    text-align: left;
+    line-height: 1.25;
+  }
+  .pdv-estoque-vila-link--fornecedor {
+    border-color: #c4b5fd;
+    background: #f5f3ff;
+    color: #2e1065;
+  }
+  .pdv-estoque-vila-link--ocr {
+    border-color: #fbbf24;
+    background: #fffbeb;
+    color: #78350f;
+  }
+  .pdv-estoque-vila-link--categoria {
+    border-color: #6ee7b7;
+    background: #ecfdf5;
+    color: #064e3b;
+  }
+  .pdv-estoque-vila-link--unidade {
+    border-color: #7dd3fc;
+    background: #f0f9ff;
+    color: #0c4a6e;
+  }
+  .pdv-estoque-vila-link--saldo {
+    border-color: #fdba74;
+    background: #fff7ed;
+    color: #7c2d12;
+  }
   .pdv-wiz-topbar-actions {
     display: flex;
     flex: 0 0 auto;
@@ -1101,7 +2598,7 @@
     gap: 0.35rem;
     margin-left: auto;
     max-width: 100%;
-    overflow-x: auto;
+    overflow: visible;
     padding: 0.3rem 0.4rem;
     border: 2px solid #e2e8f0;
     border-radius: 0.95rem;
@@ -1121,6 +2618,42 @@
     color: #047857 !important;
   }
   .pdv-wiz-topbar-btn--emerald:hover { background: #d1fae5 !important; }
+  .pdv-wiz-topbar-btn--wa {
+    min-width: 2.45rem !important;
+    padding: 0.3rem 0.45rem !important;
+    border-color: #128C7E !important;
+    background: #25D366 !important;
+    color: #fff !important;
+  }
+  .pdv-wiz-topbar-btn--wa:hover {
+    background: #20bd5a !important;
+    color: #fff !important;
+  }
+  .pdv-wiz-topbar-btn--wa svg {
+    display: block;
+    width: 1.35rem;
+    height: 1.35rem;
+  }
+  .pdv-wiz-topbar-btn--wa.is-off {
+    background: #b91c1c !important;
+    border-color: #7f1d1d !important;
+  }
+  .pdv-wiz-topbar-btn--wa .pdv-wa-flag {
+    position: absolute;
+    top: -0.2rem;
+    right: -0.25rem;
+    min-width: 1.15rem;
+    height: 1.15rem;
+    padding: 0 0.22rem;
+    border-radius: 999px;
+    background: #111827;
+    color: #fff;
+    font-size: 0.58rem;
+    font-weight: 900;
+    line-height: 1.15rem;
+    text-align: center;
+  }
+  .pdv-wiz-topbar-btn--wa { position: relative; }
   .pdv-wiz-topbar-btn--amber {
     border-color: #fbbf24 !important;
     background: #fef3c7 !important;
@@ -1145,7 +2678,6 @@
     color: #475569 !important;
   }
   .pdv-wiz-topbar-btn--slate:hover { background: #f8fafc !important; }
-  #pdv-step-pagamento-root > .pdv-wiz-step-bar { flex-shrink: 0; }
   #pdv-step-pagamento-root .pdv-pay-left-col.pdv-wiz-panel { border-color: #6ee7b7; }
   #pdv-step-pagamento-root .pdv-pay-right-panel.pdv-wiz-panel { border-color: #6ee7b7; }
   #pdv-step-pagamento-root #pdv-payment-forma-atual-wrap {
@@ -1153,9 +2685,109 @@
     border-bottom: 2px solid #e2e8f0;
     background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
   }
-  #pdv-step-pagamento-root #pdv-pay-footer {
-    border-top-color: #6ee7b7;
+  body[data-pdv-step="pagamento"] #pdv-main-footer {
+    border-top: 2px solid #6ee7b7;
     background: linear-gradient(180deg, #fff 0%, #ecfdf5 100%);
+    box-shadow: 0 -6px 20px rgba(15, 23, 42, 0.08);
+    padding-top: 0.65rem;
+    padding-bottom: 0.65rem;
+  }
+  body[data-pdv-step="pagamento"] #pdv-btn-prev {
+    min-height: 3rem;
+    padding: 0.55rem 0.95rem;
+    font-size: 0.82rem;
+    border-width: 2px;
+    border-color: #64748b;
+    color: #0f172a;
+    font-weight: 900;
+  }
+  #pdv-footer-pay-tools,
+  #pdv-footer-pay-actions {
+    display: none;
+  }
+  body[data-pdv-step="pagamento"] #pdv-step-hint {
+    display: none;
+  }
+  body[data-pdv-step="pagamento"] #pdv-btn-next {
+    display: none !important;
+  }
+  body[data-pdv-step="pagamento"] #pdv-footer-pay-tools,
+  body[data-pdv-step="pagamento"] #pdv-footer-pay-actions {
+    display: flex;
+  }
+  #pdv-footer-pay-tools .pdv-footer-pay-field {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+  }
+  #pdv-footer-pay-tools #pdv-footer-frete-field.hidden,
+  #pdv-footer-frete-field[hidden] {
+    display: none !important;
+  }
+  #pdv-footer-pay-tools .pdv-footer-pay-label {
+    flex-shrink: 0;
+    font-size: 0.875rem;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #0f172a;
+    white-space: nowrap;
+  }
+  #pdv-footer-pay-tools .pdv-input {
+    width: 7rem;
+    min-width: 6rem;
+    max-width: 8.5rem;
+    padding: 0.55rem 0.65rem;
+    font-size: 1.05rem;
+    font-weight: 800;
+    border: 2px solid #64748b;
+    background: #fff;
+    color: #0f172a;
+    border-radius: 0.65rem;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
+  }
+  #pdv-footer-pay-tools .pdv-input:focus {
+    border-color: #059669;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.22);
+  }
+  #pdv-confirm-discount {
+    min-height: 2.75rem;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.82rem;
+    line-height: 1.1;
+    border-width: 2px;
+  }
+  #pdv-footer-pay-actions .pdv-action-btn {
+    min-height: 3.15rem;
+    padding: 0.6rem 1.1rem;
+    font-size: 0.95rem;
+    line-height: 1.15;
+    white-space: nowrap;
+    border-width: 2px;
+  }
+  #pdv-footer-pay-actions .pdv-action-btn kbd {
+    font-size: 0.72rem;
+  }
+  @media (min-width: 1280px) {
+    #pdv-footer-pay-tools .pdv-input { width: 7.5rem; font-size: 1.1rem; }
+    #pdv-footer-pay-tools .pdv-footer-pay-label { font-size: 0.92rem; }
+    #pdv-footer-pay-actions .pdv-action-btn { font-size: 1.02rem; padding: 0.65rem 1.2rem; min-height: 3.35rem; }
+  }
+  #pdv-step-pagamento-root .pdv-input {
+    border: 2px solid #64748b;
+    background: #fff;
+    color: #0f172a;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.07);
+  }
+  #pdv-step-pagamento-root .pdv-input::placeholder {
+    color: #64748b;
+    font-weight: 700;
+    opacity: 1;
+  }
+  #pdv-step-pagamento-root .pdv-input:focus {
+    border-color: #059669;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
   }
   #pdv-step-pagamento-root .pdv-pay-right-panel .pdv-wiz-block-head { position: relative; }
   #pdv-step-pagamento-root .pdv-pay-right-panel details > div {
@@ -1165,6 +2797,188 @@
   #pdv-step-pagamento-root .pdv-pay-right-scroll {
     background: linear-gradient(180deg, rgba(236, 253, 245, 0.65) 0%, #fff 45%);
   }
+  #pdv-step-pagamento-root .pdv-pay-restante-hero {
+    text-align: center;
+  }
+  #pdv-step-pagamento-root .pdv-pay-hero-label {
+    font-size: 0.6875rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  #pdv-step-pagamento-root .pdv-pay-hero-val {
+    font-size: clamp(1.85rem, 4.2vw, 2.6rem);
+    font-weight: 900;
+  }
+  #pdv-step-pagamento-root .pdv-pay-hero-sub {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: #475569;
+  }
+  #pdv-step-pagamento-root .pdv-pay-restante-hero--pendente {
+    border-color: #f97316;
+    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 55%, #fff 100%);
+    box-shadow: 0 2px 10px rgba(234, 88, 12, 0.12);
+  }
+  #pdv-step-pagamento-root .pdv-pay-restante-hero--pendente .pdv-pay-hero-label,
+  #pdv-step-pagamento-root .pdv-pay-restante-hero--pendente .pdv-pay-hero-val {
+    color: #c2410c;
+  }
+  #pdv-step-pagamento-root .pdv-pay-restante-hero--quitado {
+    border-color: #10b981;
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 50%, #fff 100%);
+    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.14);
+  }
+  #pdv-step-pagamento-root .pdv-pay-restante-hero--quitado .pdv-pay-hero-label,
+  #pdv-step-pagamento-root .pdv-pay-restante-hero--quitado .pdv-pay-hero-val {
+    color: #047857;
+  }
+  #pdv-step-pagamento-root .pdv-pay-valor-kicker {
+    font-size: 0.6875rem;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #b45309;
+  }
+  #pdv-step-pagamento-root .pdv-pay-valor-falta {
+    margin-top: 0.15rem;
+    font-size: clamp(1.35rem, 3vw, 1.85rem);
+    font-weight: 900;
+    line-height: 1.1;
+    color: #9a3412;
+  }
+  #pdv-step-pagamento-root .pdv-pay-valor-input-label {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #334155;
+  }
+  #pdv-step-pagamento-root .pdv-pay-valor-input {
+    min-height: 3.75rem;
+    padding: 0.65rem 1rem !important;
+    font-size: clamp(2rem, 5vw, 2.85rem) !important;
+    font-weight: 900 !important;
+    line-height: 1.1 !important;
+    text-align: center;
+    border-width: 3px !important;
+    border-color: #059669 !important;
+    background: #fff !important;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
+  }
+  #pdv-step-pagamento-root .pdv-pay-commit-tranche {
+    min-height: 3.5rem;
+    letter-spacing: 0.05em;
+  }
+  #pdv-step-pagamento-root .pdv-pay-commit-tranche:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  #pdv-step-pagamento-root .pdv-pay-step-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    justify-content: center;
+  }
+  #pdv-step-pagamento-root .pdv-pay-step-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    border-radius: 9999px;
+    border: 2px solid #d1fae5;
+    background: #ecfdf5;
+    padding: 0.2rem 0.55rem;
+    font-size: 0.625rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #065f46;
+    white-space: nowrap;
+  }
+  #pdv-step-pagamento-root .pdv-pay-step-chip b {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 9999px;
+    background: #059669;
+    color: #fff;
+    font-size: 0.625rem;
+    line-height: 1;
+  }
+  #pdv-step-pagamento-root .pdv-pay-lanc-item {
+    border-radius: 0.75rem;
+    border-width: 2px;
+    padding: 0.5rem 0.6rem;
+    background: #fff;
+  }
+  #pdv-step-pagamento-root .pdv-pay-lanc-row1 {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  #pdv-step-pagamento-root .pdv-pay-lanc-forma {
+    min-width: 0;
+    flex: 1;
+    font-size: 0.875rem;
+    font-weight: 900;
+    line-height: 1.2;
+    color: #0f172a;
+  }
+  #pdv-step-pagamento-root .pdv-pay-lanc-valor {
+    flex-shrink: 0;
+    font-size: 1rem;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    color: #047857;
+  }
+  #pdv-step-pagamento-root .pdv-pay-lanc-row2 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+    margin-top: 0.35rem;
+  }
+  #pdv-step-pagamento-root .pdv-pay-lanc-meta {
+    min-width: 0;
+    flex: 1;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: #64748b;
+  }
+  #pdv-step-pagamento-root .pdv-pay-lanc-actions {
+    display: inline-flex;
+    flex-shrink: 0;
+    gap: 0.25rem;
+  }
+  #pdv-step-pagamento-root .pdv-pay-lanc-btn {
+    border-radius: 0.5rem;
+    border-width: 2px;
+    padding: 0.2rem 0.45rem;
+    font-size: 0.625rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  #pdv-step-pagamento-root .pdv-pay-lanc-btn--edit {
+    border-color: #e2e8f0;
+    background: #f8fafc;
+    color: #334155;
+  }
+  #pdv-step-pagamento-root .pdv-pay-lanc-btn--rm {
+    border-color: #fecaca;
+    background: #fff1f2;
+    color: #9f1239;
+  }
+  #pdv-step-pagamento-root .pdv-pay-lanc-item--mp-pago {
+    border-color: #34d399 !important;
+    background: linear-gradient(180deg, #fff 0%, #ecfdf5 100%);
+  }
   #pdv-step1-client-bar .pdv-step1-client-action-btn {
     font-family: 'Inter', system-ui, sans-serif !important;
     font-size: 0.9375rem !important;
@@ -1173,8 +2987,8 @@
     letter-spacing: 0.02em;
     text-transform: uppercase;
     flex-shrink: 0;
-    min-height: 2.25rem;
-    padding: 0.4rem 0.65rem;
+    min-height: 2.65rem;
+    padding: 0.45rem 0.7rem;
     border-radius: 0.65rem;
     border-width: 2px;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
@@ -1266,13 +3080,14 @@
     font-size: clamp(1.35rem, 0.7vw + 1.15rem, 1.85rem);
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-label {
-    font-size: clamp(0.95rem, 0.5vw + 0.85rem, 1.15rem);
-    margin-bottom: 0.25rem;
+    font-size: clamp(0.68rem, 0.25vw + 0.62rem, 0.82rem);
+    letter-spacing: 0.04em;
+    margin-bottom: 0.15rem;
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-input {
-    min-height: 4.75rem;
-    padding: 0.9rem 1.05rem;
-    font-size: clamp(1.55rem, 0.75vw + 1.35rem, 2rem);
+    min-height: 2.55rem;
+    padding: 0.4rem 0.7rem;
+    font-size: clamp(0.95rem, 0.35vw + 0.85rem, 1.1rem);
     font-weight: 800;
     width: 100%;
     box-sizing: border-box;
@@ -1304,18 +3119,18 @@
     padding: 0.7rem 0.9rem;
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-section-title {
-    font-size: clamp(1.05rem, 0.5vw + 0.95rem, 1.25rem);
-    margin: 0 0 0.35rem;
+    font-size: clamp(0.85rem, 0.3vw + 0.75rem, 1rem);
+    margin: 0.15rem 0 0;
     grid-column: 1 / -1;
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-body {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-height: 0;
-    overflow-y: auto;
+    overflow: hidden;
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-form {
     display: grid;
-    gap: 0.55rem 0.75rem;
+    gap: 0.35rem 0.55rem;
     grid-template-columns: 1fr;
     width: 100%;
   }
@@ -1326,10 +3141,11 @@
     #pdv-quick-client-edit-overlay .pdv-client-edit-f-nome { grid-column: 1 / 4; }
     #pdv-quick-client-edit-overlay .pdv-client-edit-f-ref { grid-column: 4 / 7; }
     #pdv-quick-client-edit-overlay .pdv-client-edit-f-wa { grid-column: 1 / 3; }
-    #pdv-quick-client-edit-overlay .pdv-client-edit-f-plus { grid-column: 3 / 7; }
-    #pdv-quick-client-edit-overlay .pdv-client-edit-f-log { grid-column: 1 / 7; }
-    #pdv-quick-client-edit-overlay .pdv-client-edit-f-num { grid-column: 1 / 2; }
-    #pdv-quick-client-edit-overlay .pdv-client-edit-f-bai { grid-column: 2 / 3; }
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-cpf { grid-column: 3 / 5; }
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-plus { grid-column: 5 / 7; }
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-log { grid-column: 1 / 5; }
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-num { grid-column: 5 / 7; }
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-bai { grid-column: 1 / 3; }
     #pdv-quick-client-edit-overlay .pdv-client-edit-f-cid { grid-column: 3 / 5; }
     #pdv-quick-client-edit-overlay .pdv-client-edit-f-uf { grid-column: 5 / 6; }
     #pdv-quick-client-edit-overlay .pdv-client-edit-f-cep { grid-column: 6 / 7; }
@@ -1343,8 +3159,8 @@
     }
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-footer-btn {
-    min-height: 4.25rem;
-    font-size: clamp(1.15rem, 0.55vw + 1rem, 1.4rem);
+    min-height: 3.4rem;
+    font-size: clamp(0.95rem, 0.4vw + 0.85rem, 1.15rem);
     font-weight: 900;
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-field {
@@ -1358,6 +3174,105 @@
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-field.pdv-client-edit-missing .pdv-client-edit-label {
     color: #b45309;
+  }
+  .pdv-product-edit-panel {
+    /* Mesmo tamanho das letras; caixa quase tela cheia — sem scroll interno */
+    --pdv-pe-zoom: 1.25;
+    width: min(calc(98vw / var(--pdv-pe-zoom)), calc(64rem / var(--pdv-pe-zoom)));
+    max-height: calc(98dvh / var(--pdv-pe-zoom));
+    height: auto;
+    zoom: var(--pdv-pe-zoom);
+  }
+  #pdv-quick-product-edit-overlay {
+    padding: 0.25rem !important;
+    align-items: center;
+  }
+  #pdv-quick-product-edit-overlay #pdv-quick-product-edit-title {
+    font-size: clamp(1.2rem, 0.55vw + 1.05rem, 1.6rem);
+    line-height: 1.15;
+  }
+  #pdv-quick-product-edit-overlay .pdv-product-edit-label {
+    font-size: clamp(0.78rem, 0.3vw + 0.68rem, 0.92rem);
+    letter-spacing: 0.04em;
+  }
+  #pdv-quick-product-edit-overlay .pdv-product-edit-input {
+    min-height: 2.85rem;
+    padding: 0.5rem 0.75rem;
+    font-size: clamp(1.05rem, 0.4vw + 0.92rem, 1.22rem);
+  }
+  #pdv-quick-product-edit-overlay .pdv-product-edit-section-title {
+    margin: 0.35rem 0 0.4rem;
+    font-size: clamp(0.82rem, 0.32vw + 0.72rem, 0.98rem);
+  }
+  #pdv-quick-product-edit-overlay .pdv-product-edit-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    /* Só rola se abrir Formas A/B em tela bem baixa; formulário padrão cabe sem barra */
+    overflow-y: auto;
+  }
+  #pdv-quick-product-edit-overlay .pdv-product-edit-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem 0.55rem;
+  }
+  @media (min-width: 640px) {
+    #pdv-quick-product-edit-overlay .pdv-product-edit-form {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+    #pdv-quick-product-edit-overlay .pdv-pe-f-nome { grid-column: 1 / -1; }
+    #pdv-quick-product-edit-overlay .pdv-pe-f-gm { grid-column: 1 / 3; }
+    #pdv-quick-product-edit-overlay .pdv-pe-f-cb { grid-column: 3 / 5; }
+    #pdv-quick-product-edit-overlay .pdv-pe-f-un { grid-column: 5 / 7; }
+    #pdv-quick-product-edit-overlay .pdv-pe-f-custo { grid-column: 1 / 4; }
+    #pdv-quick-product-edit-overlay .pdv-pe-f-venda { grid-column: 4 / 7; }
+  }
+  #pdv-quick-product-edit-overlay .pdv-product-edit-footer-btn {
+    min-height: 3.35rem;
+    font-size: clamp(1.05rem, 0.4vw + 0.92rem, 1.25rem);
+  }
+  /* Estoque: «agora» e «novo» com o mesmo tamanho de número */
+  #pdv-quick-product-edit-overlay .pdv-pe-estoque-card {
+    padding: 0.75rem 0.9rem;
+  }
+  #pdv-quick-product-edit-overlay .pdv-pe-estoque-tag {
+    font-size: clamp(0.75rem, 0.28vw + 0.68rem, 0.88rem);
+    letter-spacing: 0.06em;
+  }
+  #pdv-quick-product-edit-overlay .pdv-pe-estoque-lbl {
+    font-size: clamp(0.75rem, 0.28vw + 0.68rem, 0.88rem);
+    letter-spacing: 0.04em;
+    margin-bottom: 0.25rem;
+  }
+  #pdv-quick-product-edit-overlay .pdv-pe-estoque-num,
+  #pdv-quick-product-edit-overlay input.pdv-pe-estoque-num {
+    font-size: clamp(1.4rem, 0.75vw + 1.2rem, 1.85rem) !important;
+    font-weight: 900;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+    min-height: 3rem;
+  }
+  #pdv-quick-product-edit-overlay input.pdv-pe-estoque-num {
+    padding: 0.4rem 0.6rem;
+  }
+  #pdv-quick-product-edit-overlay header p {
+    font-size: clamp(0.82rem, 0.35vw + 0.72rem, 1rem) !important;
+  }
+  #pdv-quick-product-edit-overlay #pdv-quick-product-edit-fechar {
+    min-height: 3.6rem;
+    min-width: 3.6rem;
+    font-size: clamp(1.85rem, 0.95vw + 1.45rem, 2.35rem);
+  }
+  #pdv-quick-product-edit-overlay .pdv-pe-forma-sel {
+    min-height: 2.5rem;
+    border-radius: 0.65rem;
+    border: 2px solid #e2e8f0;
+    background: #fff;
+    font-weight: 900;
+    font-size: 0.9rem;
+  }
+  #pdv-quick-product-edit-overlay #pdv-quick-product-edit-formas-toggle {
+    min-height: 3rem;
+    font-size: clamp(0.9rem, 0.3vw + 0.8rem, 1.05rem);
   }
   #pdv-product-photo-pop::backdrop { background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(4px); }
   #pdv-step-pagamento-root .pdv-pay-flow-pop { padding: 0; border: none; border-radius: 1.5rem; max-height: 92vh; }
@@ -1374,6 +3289,14 @@
     box-shadow: 0 12px 28px rgba(202, 138, 4, 0.35);
   }
   #pdv-pay-pop-maquinas .pdv-pay-maquina-card-mp:hover { filter: brightness(1.03); }
+  #pdv-pay-pop-maquinas .pdv-pay-maquina-card-cielo {
+    border-color: #1e40af !important;
+    background: linear-gradient(145deg, #eff6ff 0%, #60a5fa 40%, #1d4ed8 100%) !important;
+    color: #0f172a !important;
+    min-height: 4.25rem;
+    box-shadow: 0 12px 28px rgba(29, 78, 216, 0.35);
+  }
+  #pdv-pay-pop-maquinas .pdv-pay-maquina-card-cielo:hover { filter: brightness(1.03); }
   #pdv-pay-pop-maquinas .pdv-pay-maquina-card-sicredi {
     border-color: #15803d !important;
     background: linear-gradient(145deg, #ecfdf5 0%, #4ade80 35%, #16a34a 100%) !important;
@@ -1395,6 +3318,208 @@
     background: linear-gradient(145deg, #f8fafc 0%, #e2e8f0 100%) !important;
     color: #0f172a !important;
     min-height: 4.25rem;
+  }
+  .pdv-mp-point-wait-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 420;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    background: rgba(15, 23, 42, 0.78);
+    backdrop-filter: blur(8px);
+  }
+  .pdv-mp-point-wait-overlay.hidden { display: none !important; }
+  .pdv-mp-point-wait-panel {
+    position: relative;
+    width: min(96vw, 42rem);
+    max-height: min(92dvh, 46rem);
+    overflow-x: hidden;
+    overflow-y: auto;
+    border-radius: 1.4rem;
+    border: 3px solid #10b981;
+    background: linear-gradient(165deg, #ecfdf5 0%, #f8fafc 55%, #fff 100%);
+    padding: 1.65rem 1.65rem 1.25rem;
+    box-shadow: 0 28px 64px rgba(5, 150, 105, 0.28);
+    text-align: center;
+  }
+  .pdv-mp-point-wait-pulse {
+    position: absolute;
+    top: -0.35rem;
+    right: -0.35rem;
+    width: 1.15rem;
+    height: 1.15rem;
+    border-radius: 9999px;
+    background: #059669;
+    box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.55);
+    animation: pdv-mp-point-pulse 1.4s ease-out infinite;
+  }
+  @keyframes pdv-mp-point-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.55); }
+    70% { box-shadow: 0 0 0 14px rgba(5, 150, 105, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
+  }
+  .pdv-mp-point-wait-kicker {
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #047857;
+  }
+  .pdv-mp-point-wait-title {
+    margin: 0.4rem 0 0;
+    font-size: clamp(1.35rem, 3.8vw, 1.7rem);
+    font-weight: 900;
+    color: #0f172a;
+  }
+  .pdv-mp-point-wait-amount {
+    margin: 0.55rem 0 0;
+    font-size: clamp(2.15rem, 6.5vw, 3rem);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    color: #047857;
+    line-height: 1.05;
+  }
+  .pdv-mp-point-wait-forma {
+    margin: 0.4rem 0 0;
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: #334155;
+  }
+  .pdv-mp-point-wait-status {
+    margin: 0.55rem 0 0;
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #047857;
+  }
+  .pdv-mp-point-wait-steps {
+    margin: 1.1rem 0 0;
+    padding: 0;
+    list-style: none;
+    text-align: left;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.4;
+  }
+  .pdv-mp-point-wait-steps li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    margin-top: 0.55rem;
+  }
+  .pdv-mp-point-wait-steps li:first-child { margin-top: 0; }
+  .pdv-mp-step-num {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.55rem;
+    height: 1.55rem;
+    border-radius: 9999px;
+    background: #059669;
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+  .pdv-mp-point-wait-help {
+    margin-top: 1rem;
+    text-align: left;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #475569;
+    border-top: 1px solid #a7f3d0;
+    padding-top: 0.7rem;
+  }
+  .pdv-mp-point-wait-help summary {
+    cursor: pointer;
+    font-weight: 900;
+    color: #047857;
+  }
+  .pdv-mp-point-wait-help ul {
+    margin: 0.35rem 0 0;
+    padding-left: 1rem;
+  }
+  .pdv-mp-point-wait-cancel {
+    margin-top: 1.15rem;
+    width: 100%;
+    min-height: 3.15rem;
+    border-radius: 0.85rem;
+    border: 2px solid #475569;
+    background: #fff;
+    font-size: 0.85rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #1e293b;
+  }
+  .pdv-mp-point-wait-cancel:hover { background: #f1f5f9; }
+  #pdv-sale-toast.pdv-sale-toast--prominent {
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background: rgba(15, 23, 42, 0.58);
+    backdrop-filter: blur(3px);
+    transform: none !important;
+    left: 0 !important;
+    top: 0 !important;
+  }
+  #pdv-sale-toast.pdv-sale-toast--prominent .pdv-sale-toast-panel {
+    width: min(44rem, calc(100vw - 2rem));
+    border-width: 4px;
+    padding: 2.4rem 2.5rem 2.5rem;
+    box-shadow: 0 32px 64px rgba(0, 0, 0, 0.35);
+  }
+  #pdv-sale-toast.pdv-sale-toast--prominent .pdv-sale-toast-prominent-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1rem;
+  }
+  #pdv-sale-toast.pdv-sale-toast--prominent .pdv-sale-toast-icon {
+    width: 5.5rem;
+    height: 5.5rem;
+    font-size: 2.75rem;
+    margin-bottom: 0.15rem;
+  }
+  #pdv-sale-toast.pdv-sale-toast--prominent .pdv-sale-toast-title {
+    font-size: clamp(2.05rem, 1.2vw + 1.7rem, 2.75rem) !important;
+    font-weight: 900;
+    line-height: 1.15;
+  }
+  #pdv-sale-toast.pdv-sale-toast--prominent .pdv-sale-toast-body {
+    font-size: clamp(1.55rem, 0.85vw + 1.3rem, 2.05rem) !important;
+    line-height: 1.45;
+    white-space: pre-line;
+    max-width: 36rem;
+    font-weight: 700;
+  }
+  #pdv-sale-toast.pdv-sale-toast--prominent .pdv-sale-toast-dismiss {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 4.25rem;
+    min-width: 14rem;
+    margin-top: 1.15rem;
+    padding: 1rem 2.25rem;
+    font-size: 1.35rem !important;
+    letter-spacing: 0.05em;
+    border-radius: 1rem;
+    border-width: 2px;
+  }
+  #pdv-sale-toast.hidden {
+    display: none !important;
+    pointer-events: none !important;
   }
   #pdv-pack-entrega-print { display: none !important; }
   @media print {
@@ -1442,13 +3567,16 @@
     #pdv-stepper .pdv-wiz-stepper-num { min-width: 1.25rem; }
     #pdv-step1-layout { grid-template-columns: minmax(0, 1fr) 13.25rem !important; gap: .35rem; }
     #pdv-step1-client-bar { padding: .4rem .6rem !important; }
-    #pdv-step1-search-wrap { padding: .45rem .6rem !important; }
-    #pdv-step1-search-wrap h3 { font-size: 12px !important; }
-    #pdv-product-search { height: 2.4rem !important; font-size: 13px !important; padding-top: .55rem !important; padding-bottom: .55rem !important; }
-    #pdv-product-autocomplete { max-height: 16rem !important; }
+    #pdv-step1-search-wrap { padding: .55rem .75rem !important; }
+    #pdv-step1-search-wrap .pdv-step1-search-head { min-height: 4.6rem !important; }
+    #pdv-step1-search-wrap .pdv-step1-block-title--search { font-size: 1.2rem !important; }
+    #pdv-step1-search-wrap #pdv-product-search { height: 4.4rem !important; min-height: 4.4rem !important; font-size: 1.65rem !important; font-weight: 900 !important; }
+    #pdv-step1-search-wrap .pdv-btn-cadastro-rapido,
+    #pdv-step1-search-wrap .pdv-btn-racoes { height: 4.4rem !important; min-height: 4.4rem !important; }
+    #pdv-product-autocomplete[data-pdv-ac-layout] { max-height: unset !important; }
     #pdv-product-autocomplete .pdv-ac-head,
     #pdv-product-autocomplete .pdv-ac-row {
-      grid-template-columns: 2.65rem minmax(0, 1fr) 6rem 5rem 6.25rem !important;
+      grid-template-columns: 2.65rem minmax(0, 1fr) 4.75rem 6.35rem 13.25rem !important;
       column-gap: 0.35rem !important;
       padding-left: 0.4rem !important;
       padding-right: 0.4rem !important;
@@ -1471,25 +3599,269 @@
     .pdv-cart-row > span:first-child { width: 2.75rem; height: 2.75rem; }
     .pdv-cart-row-tools {
       grid-column: 1 / -1;
-      grid-template-columns: 6.25rem auto auto auto;
+      grid-template-columns: 6.5rem 4.75rem 7.75rem 13rem 8.75rem 2.5rem;
       justify-content: end;
       row-gap: 0.35rem;
+      gap: 0.3rem;
     }
-    .pdv-cart-qty-wrap button { min-width: 2.35rem; min-height: 2.35rem; font-size: 1.1rem; }
-    .pdv-cart-qty-input { width: 2.85rem; min-height: 2.35rem; font-size: .85rem; }
+    .pdv-cart-promo-wrap {
+      min-height: 3.85rem;
+    }
+    .pdv-cart-promo--empty { min-height: 3.85rem; }
+    .pdv-cart-promo-badge { font-size: 8px; }
+    .pdv-cart-remove,
+    .pdv-cart-edit { min-height: 1.2rem; height: 1.2rem; border-radius: 0.4rem; }
+    .pdv-cart-remove svg,
+    .pdv-cart-edit svg { width: 0.78rem; height: 0.78rem; }
+    .pdv-cart-actions { gap: 0.15rem; }
+    .pdv-cart-qty-wrap button { min-width: 2.2rem; min-height: 2.35rem; font-size: 1.1rem; }
+    .pdv-cart-qty-input { min-height: 2.35rem; font-size: .85rem; }
     .pdv-cart-price-box { height: 2.75rem; }
-    .pdv-cart-price-input { width: 4.75rem; font-size: 1.15rem; }
-    .pdv-cart-price-wrap { min-width: 5.75rem; }
+    .pdv-cart-price-input { font-size: 1.1rem; }
+    .pdv-cart-grupo-chip { font-size: 0.88rem; min-height: 2.35rem; }
     .pdv-cart-empty { padding-top: 1rem !important; padding-bottom: 1rem !important; }
     #pdv-step1-side .pdv-step1-subtotal-value { font-size: 1.75rem !important; }
     #pdv-step1-side #pdv-step1-advance { padding-top: .55rem !important; padding-bottom: .55rem !important; }
     #pdv-step1-side #pdv-step1-payment { padding-top: .45rem !important; padding-bottom: .45rem !important; }
+  }
+  .pdv-relacionamento-shell {
+    display: flex;
+    flex-direction: column;
+    width: min(80rem, 99.5vw);
+    height: min(88dvh, 52rem);
+    min-height: min(88dvh, 52rem);
+    max-height: min(88dvh, 52rem);
+    overflow: hidden;
+  }
+  .pdv-relacionamento-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  #pdv-relacionamento-panel {
+    min-height: 100%;
+  }
+  .pdv-rel-tabs {
+    display: grid;
+    grid-template-columns: repeat(11, minmax(0, 1fr));
+    gap: 0.2rem;
+    overflow: hidden;
+  }
+  .pdv-rel-tabs .rel-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    min-height: 2.65rem;
+    font-size: clamp(0.5625rem, 0.72vw + 0.35rem, 0.6875rem);
+    white-space: normal;
+    word-break: break-word;
+    hyphens: auto;
+  }
+  .pdv-rel-tabs .rel-tab-label { display: block; max-width: 100%; text-align: center; }
+  .pdv-rel-tabs .rel-tab-extra {
+    display: block;
+    margin-top: 0.1rem;
+    font-size: clamp(0.5rem, 0.55vw + 0.28rem, 0.625rem);
+    font-weight: 900;
+    line-height: 1;
+    opacity: 0.95;
+  }
+  .rel-tab--fiado-alerta-on .rel-tab-extra { opacity: 1; }
+  .pdv-rel-historico { overflow-x: hidden; max-width: 100%; }
+  .pdv-rel-historico table { table-layout: fixed; width: 100%; }
+  .pdv-rel-historico td:first-child { word-break: break-word; }
+  .rel-add-gm {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.25rem;
+    white-space: nowrap; transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .rel-add-gm--busy { opacity: 0.65; pointer-events: none; }
+  .rel-add-gm-col .rel-add-gm { min-width: 4.5rem; }
+  .rel-resumo-cards {
+    display: grid;
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    gap: 0.35rem;
+    overflow: hidden;
+  }
+  .rel-resumo-card {
+    min-width: 0;
+    min-height: 3.75rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border: 2px solid #cbd5e1;
+    border-radius: 0.75rem;
+    background: #f8fafc;
+    padding: 0.35rem 0.4rem;
+  }
+  .rel-resumo-card-label {
+    margin: 0;
+    font-size: clamp(0.5rem, 0.55vw + 0.28rem, 0.625rem);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: #64748b;
+    line-height: 1.15;
+    text-align: center;
+  }
+  .rel-resumo-card-val {
+    margin-top: 0.2rem;
+    font-size: clamp(0.75rem, 0.85vw + 0.35rem, 0.9375rem);
+    font-weight: 900;
+    line-height: 1.15;
+    color: #0f172a;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .rel-resumo-card-val--cash { color: #047857; }
+  .rel-resumo-card-val--vale { color: #6d28d9; }
+  .rel-resumo-card-val--pets {
+    font-size: clamp(0.6875rem, 0.75vw + 0.3rem, 0.8125rem);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .rel-resumo-card-val--wa { margin-top: 0.1rem; }
+  .rel-resumo-wa {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    min-height: 1.65rem;
+    width: 100%;
+    padding: 0.15rem 0.25rem;
+    border-radius: 0.5rem;
+    border: 2px solid #10b981;
+    background: #ecfdf5;
+    font-size: clamp(0.5rem, 0.5vw + 0.25rem, 0.625rem);
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #064e3b;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .rel-resumo-wa:hover { background: #d1fae5; }
+  .rel-top-prod-titulo {
+    margin: 0 0 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #475569;
+  }
+  .rel-top-prod-titulo-sub {
+    font-weight: 700;
+    text-transform: none;
+    letter-spacing: 0;
+    color: #64748b;
+  }
+  .rel-top-prod-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border: 2px solid #94a3b8;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    background: #fff;
+  }
+  .rel-top-prod-head,
+  .rel-top-prod-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 5.75rem 5.75rem 5.5rem;
+    align-items: stretch;
+  }
+  .rel-top-prod-head {
+    background: #f1f5f9;
+    border-bottom: 3px solid #94a3b8;
+    font-size: 0.75rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #475569;
+  }
+  .rel-top-prod-head .rel-top-prod-col--stat,
+  .rel-top-prod-head .rel-top-prod-col--btn {
+    text-align: left;
+  }
+  .rel-top-prod-row + .rel-top-prod-row { border-top: 2px solid #cbd5e1; }
+  .rel-top-prod-col {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    padding: 0.55rem 0.65rem;
+  }
+  .rel-top-prod-col--stat,
+  .rel-top-prod-col--btn {
+    border-left: 2px solid #cbd5e1;
+    justify-content: flex-start;
+  }
+  .rel-top-prod-col--btn {
+    padding: 0.45rem 0.55rem;
+    justify-content: center;
+  }
+  .rel-top-prod-col--btn .rel-add-gm {
+    width: 100%;
+    min-height: 2.15rem;
+    font-size: 0.75rem;
+  }
+  .rel-top-prod-nome {
+    display: block;
+    width: 100%;
+    font-size: 0.9375rem;
+    font-weight: 900;
+    line-height: 1.25;
+    color: #0f172a;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .rel-top-prod-val {
+    display: block;
+    width: 100%;
+    font-size: 0.9375rem;
+    font-weight: 900;
+    line-height: 1.2;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+    text-align: left;
+  }
+  @media (min-width: 640px) {
+    .rel-top-prod-head,
+    .rel-top-prod-row {
+      grid-template-columns: minmax(0, 1fr) 6.5rem 6.5rem 6rem;
+    }
+    .rel-top-prod-head { font-size: 0.8125rem; }
+    .rel-top-prod-nome,
+    .rel-top-prod-val { font-size: 1rem; }
+    .rel-top-prod-col--btn .rel-add-gm { font-size: 0.8125rem; min-height: 2.25rem; }
+  }
+  .rel-add-gm--done {
+    border-color: #059669 !important; background: #ecfdf5 !important; color: #047857 !important;
+    cursor: default;
+  }
+  @keyframes rel-fiado-tab-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.55); }
+    50% { box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.15); }
+  }
+  @keyframes rel-fiado-tab-pulse-red {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.55); }
+    50% { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.12); }
+  }
+  .rel-tab--fiado-alerta:not(.rel-tab--fiado-alerta-on) {
+    animation: rel-fiado-tab-pulse 1.4s ease-in-out infinite;
+  }
+  .rel-tab--fiado-vencido:not(.rel-tab--fiado-alerta-on) {
+    animation: rel-fiado-tab-pulse-red 1.1s ease-in-out infinite;
   }
 </style>
 {% endblock %}
 
 {% block pdv_content %}
 {% include "produtos/_gm_loading_bar.html" %}
+{% include "produtos/includes/pdv_catalog_boot_splash.html" %}
 {{ pdv_bootstrap|json_script:"agro-pdv-wizard-bootstrap" }}
 {% if pdv_reabrir_from_consulta %}
 {{ pdv_reabrir_from_consulta|json_script:"pdv-wizard-reabrir-draft" }}
@@ -1498,46 +3870,70 @@
 <div class="flex min-h-0 flex-1 flex-col overflow-hidden px-1 py-1 sm:px-1.5 sm:py-1.5">
     <section class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
       <header class="shrink-0">
-        {% if not caixa_aberto %}
-        <div id="pdv-caixa-fechado-aviso" class="flex flex-wrap items-center justify-center gap-2 px-2 py-2 sm:px-3 bg-amber-50 border-b-2 border-amber-400 text-amber-950" role="alert">
+        <div id="pdv-caixa-fechado-aviso" class="flex flex-wrap items-center justify-center gap-2 px-2 py-2 sm:px-3 bg-amber-50 border-b-2 border-amber-400 text-amber-950{% if caixa_aberto %} hidden{% endif %}" role="alert"{% if caixa_aberto %} aria-hidden="true"{% endif %}>
           <span class="text-sm sm:text-base font-black uppercase tracking-wide">Caixa fechado</span>
           <span class="text-xs sm:text-sm font-bold text-amber-900/90">Abra o caixa antes de registrar vendas.</span>
           <a href="{% url 'caixa_painel' %}" class="inline-flex items-center min-h-[40px] px-3 py-1.5 rounded-xl border-2 border-amber-600 bg-white text-xs sm:text-sm font-black uppercase text-amber-950 hover:bg-amber-100 no-underline shrink-0">Abrir caixa</a>
         </div>
-        {% else %}
-        <div id="pdv-caixa-fechado-aviso" class="hidden" role="alert" aria-hidden="true"></div>
-        {% endif %}
+        <div id="pdv-campanha-faixa" class="hidden flex items-center justify-center gap-2 px-2 py-1 bg-orange-600 text-white text-xs sm:text-sm font-black uppercase tracking-wide border-b-2 border-orange-800" role="status" aria-live="polite"></div>
         <div id="pdv-topbar-compact" class="pdv-wiz-topbar">
           <div class="pdv-wiz-topbar-row">
             <div class="pdv-wiz-topbar-stepper-wrap pdv-wizard-scroll">
               <span class="pdv-wiz-topbar-brand">PDV</span>
+              <span id="pdv-deposito-badge" class="inline-flex items-center self-stretch rounded-md border px-1.5 text-[9px] font-black uppercase tracking-wide shrink-0 {% if caixa_aberto %}hidden {% endif %}{% if pdv_deposito == 'vila' %}border-slate-400 bg-slate-100 text-slate-800{% else %}border-emerald-300 bg-emerald-50 text-emerald-900{% endif %}" title="Depósito que este PDV baixa no estoque. Troque na home (Loja).">{{ pdv_estoque_ativo_label|default:"Esto: Centro" }}</span>
               <nav class="pdv-wiz-stepper" id="pdv-stepper" aria-label="Etapas da venda">
                 <button type="button" class="pdv-step-nav pdv-step-badge-active text-left" data-step-nav="produtos" title="Ir para etapa 1 · Alt+1" aria-current="step">
                   <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--sky">1</kbd><span class="pdv-step-label">Produtos</span>
                 </button>
-                <button type="button" class="pdv-step-nav pdv-step-nav-retracted text-left" data-step-nav="cliente" title="Ir para etapa 2 · Alt+2">
-                  <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--orange">2</kbd><span class="pdv-step-label">Cliente</span>
+                <button type="button" class="pdv-step-nav pdv-step-nav-retracted text-left" data-step-nav="entrega" title="Ir para etapa 2 · Alt+2">
+                  <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--amber">2</kbd><span class="pdv-step-label">Entrega</span>
                 </button>
-                <button type="button" class="pdv-step-nav pdv-step-nav-retracted text-left" data-step-nav="entrega" title="Ir para etapa 3 · Alt+3">
-                  <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--amber">3</kbd><span class="pdv-step-label">Entrega</span>
-                </button>
-                <button type="button" class="pdv-step-nav pdv-step-nav-retracted text-left" data-step-nav="pagamento" title="Ir para etapa 4 · Alt+4">
-                  <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--green">4</kbd><span class="pdv-step-label">Pagamento</span>
+                <button type="button" class="pdv-step-nav pdv-step-nav-retracted text-left" data-step-nav="pagamento" title="Ir para etapa 3 · Alt+3">
+                  <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--green">3</kbd><span class="pdv-step-label">Pagamento</span>
                 </button>
               </nav>
+              <button type="button" id="pdv-topbar-help" class="pdv-wiz-help pdv-topbar-help shrink-0" data-pdv-help="produtos" title="Ajuda — etapa atual">?</button>
             </div>
-            <div class="pdv-wiz-topbar-actions pdv-wizard-scroll">
-              <a href="{% url 'caixa_painel' %}" id="pdv-topbar-caixa-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" title="{% if caixa_aberto %}Painel do caixa — turno aberto{% else %}Caixa fechado — abra o turno para vender{% endif %}">{% if caixa_aberto %}{{ caixa_rotulo|default:"Caixa aberto" }}{% else %}Caixa fechado{% endif %}</a>
-              <a href="{% url 'vendas_lista' %}" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" title="Consultar vendas — filtro por período e exportar CSV">Consultar vendas</a>
-              <a href="{% url 'fiado_gestao' %}?from=pdv" id="pdv-topbar-fiado-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" title="Gestão crédito loja — saldos em aberto e baixa">Fiado</a>
-              <button type="button" id="pdv-topbar-entregas-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative" title="Entregas aguardando pagamento no PDV (cobrar na entrega)">
+            <div class="pdv-wiz-topbar-estoque-vila" id="pdv-topbar-quente" aria-label="Atalhos frequentes">
+              <button type="button" id="pdv-topbar-pedir-loja-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative" data-pdv-topbar-key="pedir_loja" data-pdv-topbar-node="pedir_loja" title="Pedir produto da outra loja (Centro ↔ Vila)">
+                Pedir loja
+                <span id="pdv-topbar-pedir-loja-count" class="pdv-topbar-pedir-loja-count hidden absolute -right-1 -top-1 min-w-[1.1rem] rounded-full bg-slate-600 px-1 text-[8px] font-black leading-tight text-white tabular-nums">0</span>
+              </button>
+              <a href="{% url 'vendas_lista' %}" id="pdv-topbar-vendas-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" data-pdv-topbar-key="vendas" data-pdv-topbar-node="vendas" title="Consultar vendas — filtro por período e exportar CSV">Vendas</a>
+              <button type="button" id="pdv-topbar-uso-loja-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate" data-pdv-topbar-key="uso_loja" data-pdv-topbar-node="uso_loja" title="Saída de produto para uso interno da loja">Uso loja</button>
+              <button type="button" id="pdv-topbar-entregas-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative" data-pdv-topbar-key="entregas" data-pdv-topbar-node="entregas" title="Entregas aguardando pagamento no PDV (cobrar na entrega)">
                 Entregas
                 <span id="pdv-topbar-entregas-count" class="pdv-topbar-entregas-count hidden absolute -right-1 -top-1 min-w-[1.1rem] rounded-full bg-slate-600 px-1 text-[8px] font-black leading-tight text-white tabular-nums">0</span>
               </button>
-              <a id="pdv-wizard-voltar-home" href="{% url 'home' %}?pin_tab=pdv" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate" title="Sair do wizard — volta ao dashboard com guia PDV fixa">Sair</a>
-              <a href="{% url 'consulta_produtos' %}?orcamentos=1" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" title="Orçamentos salvos neste aparelho">Orç. salvos</a>
-              <button type="button" id="pdv-open-budget-history" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate" title="Histórico de orçamentos · F6">Orçamento <kbd class="pointer-events-none ml-0.5 hidden rounded border border-slate-200 bg-slate-50 px-1 font-mono text-[8px] sm:inline">F6</kbd></button>
-              <button type="button" id="pdv-pin-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate" onclick="if (typeof window.gmSspinSairEAbrirPin === 'function') window.gmSspinSairEAbrirPin();">PIN</button>
+              <a href="{% url 'caixa_painel' %}" id="pdv-topbar-caixa-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" data-pdv-topbar-key="caixa" data-pdv-topbar-node="caixa" title="{% if caixa_aberto %}Painel do caixa — turno aberto{% else %}Caixa fechado — abra o turno para vender{% endif %}">{% if caixa_aberto %}{{ caixa_rotulo|default:"Caixa aberto" }}{% else %}Caixa fechado{% endif %}</a>
+              <a href="{% url 'fiado_gestao' %}?from=pdv" id="pdv-topbar-fiado-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" data-pdv-topbar-key="fiado" data-pdv-topbar-node="fiado" title="Gestão crédito loja — saldos em aberto e baixa">Fiado</a>
+            </div>
+            <div class="pdv-wiz-topbar-actions" id="pdv-topbar-actions">
+              <button type="button" id="pdv-topbar-whatsapp-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--wa" data-pdv-topbar-key="whatsapp" data-wa-chat-url="{% url 'atendimento_whatsapp' %}" title="WhatsApp das lojas — atendimento">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M17.5 14.4c-.3-.1-1.6-.8-1.8-.9-.2-.1-.4-.1-.6.1-.2.3-.7.9-.8 1-.2.1-.3.2-.6.1-.3-.1-1.2-.4-2.2-1.4-.8-.7-1.4-1.6-1.5-1.9-.2-.3 0-.4.1-.6l.4-.5c.1-.1.2-.3.2-.4 0-.2 0-.3 0-.4 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.6.3-.2.3-.8.8-.8 1.9 0 1.1.8 2.2.9 2.3.1.2 1.6 2.5 3.9 3.5.5.2 1 .4 1.3.5.6.2 1.1.2 1.5.1.5-.1 1.6-.6 1.8-1.3.2-.6.2-1.2.1-1.3-.1 0-.3-.1-.6-.2z"/><path fill="currentColor" d="M12.04 2C6.5 2 2 6.4 2 11.8c0 1.7.5 3.4 1.3 4.9L2 22l5.4-1.4c1.4.8 3 .1 4.6.8 5.5 0 10-4.4 10-9.8S17.5 2 12.04 2zm0 17.9c-1.5 0-2.9-.4-4.1-1.1l-.3-.2-3.2.8.9-3.1-.2-.3c-.8-1.3-1.3-2.7-1.3-4.2 0-4.5 3.7-8.1 8.2-8.1s8.2 3.6 8.2 8.1-3.7 8.1-8.2 8.1z"/></svg>
+                <span class="sr-only">WhatsApp</span>
+              </button>
+              <button type="button" id="pdv-topbar-nova-venda-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--amber" data-pdv-topbar-key="nova_venda" data-pdv-topbar-node="nova_venda" title="Descartar venda atual e começar outra · F12">Nova venda <kbd class="ml-0.5 rounded border border-amber-400 bg-white px-1 font-mono text-[9px]">F12</kbd></button>
+              <span id="gm-sspin-operador-chip" class="hidden items-center px-2 py-1 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-900 border border-emerald-300 shrink-0 max-w-[9rem] truncate" title="Operador com PIN neste computador"></span>
+              <div id="pdv-topbar-mais" class="pdv-topbar-mais">
+                <button type="button" id="pdv-topbar-mais-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--mais-destaque" data-pdv-topbar-key="mais" aria-expanded="false" aria-controls="pdv-topbar-mais-panel" title="Mais atalhos do PDV">Mais ⋯</button>
+                <div id="pdv-topbar-mais-panel" class="pdv-topbar-mais-panel hidden" role="menu" aria-label="Mais atalhos do PDV">
+                  <details id="pdv-estoque-vila-menu" class="relative" data-pdv-topbar-node="saldo_vila">
+                    <summary class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--violet cursor-pointer select-none" data-pdv-topbar-key="saldo_vila" title="Atalho Folha Compras — abre a folha no overlay do PDV">Saldo Vila ▾</summary>
+                    <div class="pdv-estoque-vila-panel" role="menu" aria-label="Folhas de estoque / compras">
+                      <a href="{% url 'compras_relatorio_planilha_fornecedor' %}?embed=1" class="pdv-estoque-vila-link pdv-estoque-vila-link--fornecedor" role="menuitem" data-pdv-folha-atalho="1" data-agro-pdv-native="1">Por fornecedor (A4 · A6)</a>
+                      <a href="{% url 'compras_view' %}?folha=ocr&folha_so=1" class="pdv-estoque-vila-link pdv-estoque-vila-link--ocr" role="menuitem" data-pdv-folha-atalho="1" data-agro-pdv-native="1">Ler foto da planilha</a>
+                      <a href="{% url 'compras_relatorio_planilha_categoria' %}?embed=1" class="pdv-estoque-vila-link pdv-estoque-vila-link--categoria" role="menuitem" data-pdv-folha-atalho="1" data-agro-pdv-native="1">Por categoria (A4 · A6)</a>
+                      <a href="{% url 'compras_relatorio_planilha_unidade' %}?embed=1" class="pdv-estoque-vila-link pdv-estoque-vila-link--unidade" role="menuitem" data-pdv-folha-atalho="1" data-agro-pdv-native="1">Por unidade (A4 · A6)</a>
+                      <a href="{% url 'compras_relatorio_saldo' %}?embed=1" class="pdv-estoque-vila-link pdv-estoque-vila-link--saldo" role="menuitem" data-pdv-folha-atalho="1" data-agro-pdv-native="1">Folha de saldo (A4 · A5 · 80mm)</a>
+                    </div>
+                  </details>
+                  <button type="button" id="pdv-topbar-repasse-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--orange" data-pdv-topbar-key="repasse" data-pdv-topbar-node="repasse" role="menuitem" title="Repasse de dinheiro Vila → Centro · não leve o cofrinho">Repasse</button>
+                  <button type="button" id="pdv-topbar-balanca-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--emerald" data-pdv-topbar-key="pesar" data-pdv-topbar-node="pesar" role="menuitem" title="Pesar ração a granel · F10">Pesar <kbd class="ml-0.5 rounded border border-emerald-400 bg-white px-1 font-mono text-[9px]">F10</kbd></button>
+                  <button type="button" id="pdv-pin-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate" data-pdv-topbar-key="pin" data-pdv-topbar-node="pin" role="menuitem" onclick="if (typeof window.gmSspinSairEAbrirPin === 'function') window.gmSspinSairEAbrirPin();">PIN</button>
+                  <button type="button" id="pdv-topbar-organizar-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate pdv-topbar-organizar-btn" title="Definir quais atalhos ficam no quente ou no Mais">Organizar atalhos</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1546,23 +3942,44 @@
       <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div class="min-h-0 flex flex-1 flex-col overflow-hidden px-1 py-1 sm:px-1.5 sm:py-1.5">
           {% include "produtos/partials/pdv/step_produtos.html" %}
-          {% include "produtos/partials/pdv/step_cliente.html" %}
           {% include "produtos/partials/pdv/step_entrega.html" %}
           {% include "produtos/partials/pdv/step_pagamento.html" %}
         </div>
 
-        <footer id="pdv-main-footer" class="shrink-0 border-t border-slate-200 bg-slate-50/90 px-3 py-2 sm:px-3.5">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <div class="text-[11px] font-bold text-slate-500" id="pdv-step-hint">Adicione itens para iniciar a venda.</div>
-            <div class="flex flex-wrap items-center gap-2">
-              <button type="button" id="pdv-btn-prev" class="pdv-action-btn border border-slate-300 bg-white px-3 py-1.5 text-[10px] text-slate-700" title="Etapa anterior">Voltar</button>
-              <button type="button" id="pdv-btn-next" class="pdv-action-btn bg-emerald-600 px-3 py-1.5 text-[10px] text-white shadow-lg shadow-emerald-600/20" title="Próxima etapa">Continuar</button>
+        <footer id="pdv-main-footer" class="shrink-0 border-t border-slate-200 bg-slate-50/90 px-2 py-1.5 sm:px-3 sm:py-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" id="pdv-btn-prev" class="pdv-action-btn shrink-0 border border-slate-300 bg-white px-3 py-1.5 text-[10px] text-slate-700" title="Etapa anterior">Voltar</button>
+            <div id="pdv-step-hint" class="min-w-0 flex-1 text-[11px] font-bold text-slate-500">Adicione itens para iniciar a venda.</div>
+            <div id="pdv-footer-pay-tools" class="min-w-0 flex-wrap items-center gap-2 sm:gap-2.5">
+              <div class="pdv-footer-pay-field">
+                <span class="pdv-footer-pay-label">Desconto</span>
+                <input id="pdv-payment-discount" type="text" inputmode="decimal" class="pdv-input tabular-nums" placeholder="0,00" autocomplete="off" title="Desconto geral na venda">
+                <button type="button" id="pdv-confirm-discount" class="pdv-action-btn shrink-0 rounded-lg border-2 border-orange-400 bg-orange-50 font-black uppercase text-orange-950 hover:bg-orange-100" title="Aplica o desconto e abre as formas de pagamento">OK</button>
+              </div>
+              <label id="pdv-footer-frete-field" class="pdv-footer-pay-field hidden">
+                <span class="pdv-footer-pay-label">Frete</span>
+                <input id="pdv-payment-shipping" type="text" inputmode="decimal" class="pdv-input tabular-nums" placeholder="0,00" autocomplete="off" title="Frete da entrega (definido na etapa Entrega)">
+              </label>
             </div>
+            <div id="pdv-footer-pay-actions" class="ml-auto shrink-0 flex-wrap items-center gap-1.5 sm:gap-2">
+              <button type="button" id="pdv-confirm-sale-no-print" class="pdv-action-btn border-2 border-emerald-500 bg-white font-black text-emerald-800 shadow-sm hover:bg-emerald-50">Sem impressão <kbd class="ml-0.5 rounded border border-emerald-300 bg-emerald-50 px-1 font-mono">Enter</kbd></button>
+              <button type="button" id="pdv-confirm-sale-print" class="pdv-action-btn bg-emerald-600 font-black text-white shadow-md shadow-emerald-600/20">Com impressão <kbd class="ml-0.5 rounded bg-emerald-500 px-1 font-mono text-white">F9</kbd></button>
+            </div>
+            <button type="button" id="pdv-btn-next" class="pdv-action-btn shrink-0 bg-emerald-600 px-3 py-1.5 text-[10px] text-white shadow-lg shadow-emerald-600/20" title="Próxima etapa">Continuar</button>
           </div>
         </footer>
       </div>
     </section>
 </div>
+
+{% include "produtos/partials/pdv/entrega_wizard_overlay.html" %}
+{% include "produtos/partials/pdv/uso_loja_overlay.html" %}
+{% include "produtos/partials/pdv/pedir_loja_escolha_overlay.html" %}
+{% include "produtos/partials/pdv/pedir_loja_overlay.html" %}
+{% include "produtos/partials/pdv/transf_forcada_overlay.html" %}
+{% include "produtos/partials/pdv/chat_loja_overlay.html" %}
+{% include "produtos/partials/pdv/repasse_vila_overlay.html" %}
+{% include "produtos/partials/pdv/balanca_overlay.html" %}
 
 <div id="pdv-quick-client-modal" class="fixed inset-0 z-[135] hidden items-center justify-center bg-slate-950/60 p-1 sm:p-2 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="pdv-quick-client-modal-title">
   <div id="pdv-quick-client-picker" class="pdv-client-picker-16x9 relative flex flex-col overflow-hidden rounded-2xl border-2 border-sky-400 bg-white shadow-2xl" role="document">
@@ -1590,7 +4007,7 @@
     </footer>
   </div>
 </div>
-<div id="pdv-quick-client-edit-overlay" class="fixed inset-0 z-[137] hidden items-center justify-center bg-slate-950/55 p-0.5 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="pdv-quick-client-edit-title">
+<div id="pdv-quick-client-edit-overlay" class="fixed inset-0 z-[240] hidden items-center justify-center bg-slate-950/55 p-0.5 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="pdv-quick-client-edit-title" style="position:fixed">
     <div class="pdv-client-edit-panel flex flex-col overflow-hidden rounded-2xl border-[3px] border-emerald-500 bg-white shadow-2xl" role="document">
       <header class="flex shrink-0 items-center justify-between gap-2 border-b-2 border-emerald-100 bg-emerald-50 px-4 py-2.5 sm:px-5 sm:py-3">
         <div class="min-w-0 flex-1">
@@ -1599,7 +4016,7 @@
         </div>
         <button type="button" id="pdv-quick-client-edit-fechar" class="inline-flex min-h-[3.5rem] min-w-[3.5rem] shrink-0 items-center justify-center rounded-xl border-2 border-slate-300 bg-white text-[clamp(1.75rem,0.9vw+1.4rem,2.25rem)] font-black leading-none text-slate-700 hover:border-red-300 hover:bg-red-50" title="Fechar · Esc" aria-label="Fechar edição">×</button>
       </header>
-      <div class="pdv-wizard-scroll pdv-client-edit-body px-3 py-2 sm:px-4 sm:py-2.5">
+      <div class="pdv-client-edit-body px-3 py-2 sm:px-4 sm:py-2.5">
         <div class="pdv-client-edit-form">
           <label class="pdv-client-edit-field pdv-client-edit-f-nome">
             <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Nome <span class="text-red-600">*</span></span>
@@ -1612,6 +4029,10 @@
           <label class="pdv-client-edit-field pdv-client-edit-f-wa">
             <span class="pdv-client-edit-label block font-black uppercase text-slate-500">WhatsApp / telefone <span class="text-red-600">*</span></span>
             <input id="pdv-quick-client-edit-whatsapp" type="tel" inputmode="tel" autocomplete="tel" class="pdv-input pdv-client-edit-input w-full" placeholder="DDD + número">
+          </label>
+          <label class="pdv-client-edit-field pdv-client-edit-f-cpf">
+            <span class="pdv-client-edit-label block font-black uppercase text-slate-500">CPF / CNPJ <span class="font-semibold normal-case text-slate-400">(opcional · cupom fiscal)</span></span>
+            <input id="pdv-quick-client-edit-cpf" type="text" inputmode="numeric" autocomplete="off" maxlength="18" class="pdv-input pdv-client-edit-input w-full" placeholder="CPF ou CNPJ">
           </label>
           <label class="pdv-client-edit-field pdv-client-edit-f-plus">
             <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Plus Code (Maps)</span>
@@ -1653,13 +4074,182 @@
           <p id="pdv-quick-client-edit-erro" class="hidden text-[clamp(1rem,0.45vw+0.9rem,1.2rem)] font-bold text-red-600" role="alert" style="grid-column:1/-1"></p>
         </div>
       </div>
-      <footer class="flex shrink-0 gap-2 border-t-2 border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4 sm:py-3">
+      <footer class="flex shrink-0 flex-wrap gap-2 border-t-2 border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4 sm:py-3">
+        <button type="button" id="pdv-quick-client-edit-excluir" class="pdv-action-btn pdv-client-edit-footer-btn border-2 border-red-300 bg-white text-red-700 hover:bg-red-50">Excluir</button>
+        <button type="button" id="pdv-quick-client-edit-vale" class="pdv-action-btn pdv-client-edit-footer-btn border-2 border-sky-300 bg-white text-sky-800 hover:bg-sky-50">Vale crédito</button>
+        <button type="button" id="pdv-quick-client-edit-hist" class="pdv-action-btn pdv-client-edit-footer-btn border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-100">Histórico</button>
         <button type="button" id="pdv-quick-client-edit-cancelar" class="pdv-action-btn pdv-client-edit-footer-btn flex-1 border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-100">Cancelar</button>
         <button type="button" id="pdv-quick-client-edit-salvar" class="pdv-action-btn pdv-client-edit-footer-btn flex-1 bg-emerald-600 uppercase text-white shadow-md hover:bg-emerald-700">Salvar</button>
       </footer>
     </div>
   </div>
+{% include "produtos/includes/cliente_cadastro_acoes.html" %}
 
+<div id="pdv-quick-product-edit-overlay" class="fixed inset-0 z-[241] hidden items-center justify-center bg-slate-950/55 p-0.5 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="pdv-quick-product-edit-title" style="position:fixed">
+  <div class="pdv-product-edit-panel flex flex-col overflow-hidden rounded-2xl border-[3px] border-orange-400 bg-white shadow-2xl" role="document">
+    <header class="flex shrink-0 items-center justify-between gap-2 border-b-2 border-orange-100 bg-orange-50 px-4 py-2.5 sm:px-5 sm:py-3">
+      <div class="min-w-0 flex-1">
+        <p class="text-[clamp(0.75rem,0.35vw+0.7rem,0.95rem)] font-black uppercase tracking-[0.12em] text-orange-800">Edição rápida</p>
+        <h3 id="pdv-quick-product-edit-title" class="min-w-0 truncate font-black text-slate-900">Produto</h3>
+      </div>
+      <button type="button" id="pdv-quick-product-edit-fechar" class="inline-flex min-h-[3.5rem] min-w-[3.5rem] shrink-0 items-center justify-center rounded-xl border-2 border-slate-300 bg-white text-[clamp(1.75rem,0.9vw+1.4rem,2.25rem)] font-black leading-none text-slate-700 hover:border-red-300 hover:bg-red-50" title="Fechar · Esc" aria-label="Fechar edição">×</button>
+    </header>
+    <div class="pdv-wizard-scroll pdv-product-edit-body px-3 py-2 sm:px-4 sm:py-2.5">
+      <div class="pdv-product-edit-form">
+        <label class="pdv-product-edit-field pdv-pe-f-nome">
+          <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Nome <span class="text-red-600">*</span></span>
+          <input id="pdv-quick-product-edit-nome" type="text" class="pdv-input pdv-product-edit-input w-full" autocomplete="off">
+        </label>
+        <label class="pdv-product-edit-field pdv-pe-f-gm">
+          <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Código GM</span>
+          <input id="pdv-quick-product-edit-gm" type="text" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off">
+        </label>
+        <label class="pdv-product-edit-field pdv-pe-f-cb">
+          <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Código de barras</span>
+          <input id="pdv-quick-product-edit-cb" type="text" inputmode="numeric" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off">
+        </label>
+        <div class="pdv-product-edit-field pdv-pe-f-un relative">
+          <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Unidade</span>
+          <input id="pdv-quick-product-edit-unidade" type="text" class="pdv-input pdv-product-edit-input w-full" placeholder="Buscar unidade…" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="pdv-quick-product-edit-unidade-lista" aria-expanded="false">
+          <div id="pdv-quick-product-edit-unidade-lista" class="pdv-quick-un-lista hidden absolute left-0 right-0 z-30 mt-0.5 max-h-40 overflow-y-auto rounded-xl border-2 border-slate-200 bg-white shadow-xl [scrollbar-width:thin]" role="listbox"></div>
+        </div>
+        <label class="pdv-product-edit-field pdv-pe-f-custo">
+          <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Preço de custo</span>
+          <input id="pdv-quick-product-edit-custo" type="text" inputmode="decimal" class="pdv-input pdv-product-edit-input w-full tabular-nums" autocomplete="off">
+        </label>
+        <label class="pdv-product-edit-field pdv-pe-f-venda">
+          <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Preço de venda</span>
+          <input id="pdv-quick-product-edit-venda" type="text" inputmode="decimal" class="pdv-input pdv-product-edit-input w-full tabular-nums" autocomplete="off">
+        </label>
+
+        <div id="pdv-quick-product-edit-grupos" class="pdv-pe-grupos" style="grid-column:1/-1">
+          <p class="pdv-product-edit-section-title font-black uppercase tracking-wide text-slate-600">Grupos de preço A / B</p>
+          <div class="grid grid-cols-2 gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+            <label class="pdv-product-edit-field">
+              <span class="pdv-product-edit-label block font-black uppercase text-emerald-700">Preço A</span>
+              <input id="pdv-quick-product-edit-preco-a" type="text" inputmode="decimal" class="pdv-input pdv-product-edit-input w-full tabular-nums border-emerald-200" autocomplete="off">
+            </label>
+            <label class="pdv-product-edit-field">
+              <span class="pdv-product-edit-label block font-black uppercase text-sky-700">Preço B</span>
+              <input id="pdv-quick-product-edit-preco-b" type="text" inputmode="decimal" class="pdv-input pdv-product-edit-input w-full tabular-nums border-sky-200" autocomplete="off">
+            </label>
+            <button type="button" id="pdv-quick-product-edit-formas-toggle" class="min-h-[2.65rem] rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-[11px] font-black uppercase tracking-wide text-slate-700 hover:border-orange-400 hover:bg-orange-50 hover:text-orange-900" aria-expanded="false" aria-controls="pdv-quick-product-edit-formas-wrap" title="Mostrar ou esconder quais formas vão no grupo A ou B">
+              Formas A/B ▾
+            </button>
+          </div>
+          <div id="pdv-quick-product-edit-formas-wrap" class="mt-2 hidden overflow-hidden rounded-xl border-2 border-slate-200" hidden>
+            <table class="w-full text-left">
+              <thead class="bg-slate-50">
+                <tr>
+                  <th class="px-2 py-1.5 text-[10px] font-black uppercase text-slate-500">Forma de pagamento</th>
+                  <th class="w-28 px-2 py-1.5 text-center text-[10px] font-black uppercase text-slate-500">Grupo</th>
+                </tr>
+              </thead>
+              <tbody id="pdv-quick-product-edit-formas-tbody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="pdv-pe-estoque" style="grid-column:1/-1">
+          <p class="pdv-product-edit-section-title font-black uppercase tracking-wide text-slate-600">Estoque (ajuste rápido)</p>
+          <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div class="pdv-pe-estoque-card rounded-xl border-2 border-emerald-200 bg-emerald-50/90 shadow-sm">
+              <p class="pdv-pe-estoque-tag mb-2 inline-flex rounded-lg bg-emerald-600 px-2.5 py-1 font-black uppercase text-white">Centro</p>
+              <div class="grid grid-cols-2 items-end gap-2.5">
+                <div class="min-w-0">
+                  <p class="pdv-pe-estoque-lbl font-black uppercase text-emerald-800">Agora</p>
+                  <p id="pdv-quick-product-edit-saldo-centro-atual" class="pdv-pe-estoque-num text-emerald-950">—</p>
+                </div>
+                <label class="pdv-product-edit-field min-w-0">
+                  <span class="pdv-pe-estoque-lbl block font-black uppercase text-emerald-800">Novo</span>
+                  <input id="pdv-quick-product-edit-saldo-centro" type="text" inputmode="decimal" class="pdv-input pdv-pe-estoque-num w-full border-emerald-300 bg-white text-emerald-950" autocomplete="off" placeholder="—">
+                </label>
+              </div>
+            </div>
+            <div class="pdv-pe-estoque-card rounded-xl border-2 border-sky-200 bg-sky-50/90 shadow-sm">
+              <p class="pdv-pe-estoque-tag mb-2 inline-flex rounded-lg bg-sky-600 px-2.5 py-1 font-black uppercase text-white">Vila</p>
+              <div class="grid grid-cols-2 items-end gap-2.5">
+                <div class="min-w-0">
+                  <p class="pdv-pe-estoque-lbl font-black uppercase text-sky-800">Agora</p>
+                  <p id="pdv-quick-product-edit-saldo-vila-atual" class="pdv-pe-estoque-num text-sky-950">—</p>
+                </div>
+                <label class="pdv-product-edit-field min-w-0">
+                  <span class="pdv-pe-estoque-lbl block font-black uppercase text-sky-800">Novo</span>
+                  <input id="pdv-quick-product-edit-saldo-vila" type="text" inputmode="decimal" class="pdv-input pdv-pe-estoque-num w-full border-sky-300 bg-white text-sky-950" autocomplete="off" placeholder="—">
+                </label>
+              </div>
+            </div>
+          </div>
+          <p class="mt-1 text-[11px] font-semibold text-slate-500">Deixe em branco o depósito que não quiser mudar.</p>
+        </div>
+
+        <p id="pdv-quick-product-edit-erro" class="hidden text-[clamp(1rem,0.45vw+0.9rem,1.2rem)] font-bold text-red-600" role="alert" style="grid-column:1/-1"></p>
+      </div>
+    </div>
+    <footer class="flex shrink-0 gap-2 border-t-2 border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4 sm:py-3">
+      <button type="button" id="pdv-quick-product-edit-cancelar" class="pdv-action-btn pdv-product-edit-footer-btn flex-1 border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-100">Cancelar</button>
+      <button type="button" id="pdv-quick-product-edit-salvar" class="pdv-action-btn pdv-product-edit-footer-btn flex-1 bg-orange-500 uppercase text-white shadow-md hover:bg-orange-600">Salvar</button>
+    </footer>
+  </div>
+</div>
+
+<div id="pdv-racoes-overlay" class="fixed inset-0 z-[140] hidden items-center justify-center bg-slate-950/55 p-2 backdrop-blur-[2px] sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-racoes-titulo">
+  <div class="pdv-racoes-panel flex w-full flex-col overflow-hidden rounded-2xl border-2 border-emerald-300 bg-white shadow-2xl" role="document" onclick="event.stopPropagation()">
+    <header class="flex shrink-0 items-start justify-between gap-2 border-b-2 border-emerald-100 bg-emerald-50 px-4 py-3 sm:px-5">
+      <div class="min-w-0 flex-1">
+        <p class="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-800">Rações</p>
+        <h2 id="pdv-racoes-titulo" class="mt-0.5 text-[clamp(1.15rem,0.5vw+1rem,1.55rem)] font-black leading-tight text-slate-900">Escolha o tipo</h2>
+        <p id="pdv-racoes-crumb" class="mt-1 hidden text-[13px] font-semibold leading-snug text-slate-600"></p>
+      </div>
+      <button type="button" id="pdv-racoes-fechar" class="inline-flex min-h-[3.25rem] min-w-[3.25rem] shrink-0 items-center justify-center rounded-xl border-2 border-slate-300 bg-white text-[2rem] font-black leading-none text-slate-700 hover:border-red-300 hover:bg-red-50" title="Fechar · Esc" aria-label="Fechar">×</button>
+    </header>
+    <div class="pdv-wizard-scroll min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-5 sm:py-4">
+      <p id="pdv-racoes-msg" class="mb-3 hidden rounded-xl border-2 border-amber-200 bg-amber-50 px-3 py-2 text-[14px] font-bold leading-snug text-amber-950" role="status"></p>
+      <div id="pdv-racoes-step-tipo" class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <button type="button" class="pdv-racoes-tipo-btn min-h-[4.25rem] rounded-xl border-2 border-violet-200 bg-violet-50 px-2 py-2 text-center text-[13px] font-black uppercase leading-tight text-violet-950 hover:border-violet-500 hover:bg-violet-100" data-tipo="gato_filhote">Gato filhote</button>
+        <button type="button" class="pdv-racoes-tipo-btn min-h-[4.25rem] rounded-xl border-2 border-violet-200 bg-violet-50 px-2 py-2 text-center text-[13px] font-black uppercase leading-tight text-violet-950 hover:border-violet-500 hover:bg-violet-100" data-tipo="gato_adulto">Gato adulto</button>
+        <button type="button" class="pdv-racoes-tipo-btn min-h-[4.25rem] rounded-xl border-2 border-violet-200 bg-violet-50 px-2 py-2 text-center text-[13px] font-black uppercase leading-tight text-violet-950 hover:border-violet-500 hover:bg-violet-100" data-tipo="gato_castrado">Gato castrado</button>
+        <button type="button" class="pdv-racoes-tipo-btn min-h-[4.25rem] rounded-xl border-2 border-orange-200 bg-orange-50 px-2 py-2 text-center text-[13px] font-black uppercase leading-tight text-orange-950 hover:border-orange-500 hover:bg-orange-100" data-tipo="cao_adulto_rp">Cão Adulto RP</button>
+        <button type="button" class="pdv-racoes-tipo-btn min-h-[4.25rem] rounded-xl border-2 border-orange-200 bg-orange-50 px-2 py-2 text-center text-[13px] font-black uppercase leading-tight text-orange-950 hover:border-orange-500 hover:bg-orange-100" data-tipo="cao_adulto">Cão adulto</button>
+        <button type="button" class="pdv-racoes-tipo-btn min-h-[4.25rem] rounded-xl border-2 border-orange-200 bg-orange-50 px-2 py-2 text-center text-[13px] font-black uppercase leading-tight text-orange-950 hover:border-orange-500 hover:bg-orange-100" data-tipo="cao_filhote_rp">Cão Filhote RP</button>
+        <button type="button" class="pdv-racoes-tipo-btn min-h-[4.25rem] rounded-xl border-2 border-orange-200 bg-orange-50 px-2 py-2 text-center text-[13px] font-black uppercase leading-tight text-orange-950 hover:border-orange-500 hover:bg-orange-100" data-tipo="cao_filhote">Cão Filhote</button>
+        <button type="button" class="pdv-racoes-tipo-btn min-h-[4.25rem] rounded-xl border-2 border-orange-200 bg-orange-50 px-2 py-2 text-center text-[13px] font-black uppercase leading-tight text-orange-950 hover:border-orange-500 hover:bg-orange-100" data-tipo="cao_senior">Cão Sênior</button>
+      </div>
+      <div id="pdv-racoes-step-marca" class="hidden space-y-2">
+        <button type="button" id="pdv-racoes-todas-marcas" class="w-full min-h-[3.25rem] rounded-xl border-2 border-emerald-500 bg-emerald-600 px-3 py-2 text-[14px] font-black uppercase tracking-wide text-white hover:bg-emerald-700">Todas as marcas</button>
+        <div id="pdv-racoes-marcas-grid" class="grid grid-cols-2 gap-2 sm:grid-cols-3"></div>
+      </div>
+      <div id="pdv-racoes-step-peso" class="hidden space-y-2">
+        <button type="button" id="pdv-racoes-todos-pesos" class="w-full min-h-[3.25rem] rounded-xl border-2 border-emerald-500 bg-emerald-600 px-3 py-2 text-[14px] font-black uppercase tracking-wide text-white hover:bg-emerald-700">Todos os tamanhos</button>
+        <div id="pdv-racoes-pesos-grid" class="grid grid-cols-2 gap-2 sm:grid-cols-3"></div>
+      </div>
+      <div id="pdv-racoes-step-lista" class="hidden min-h-0">
+        <div class="overflow-auto rounded-xl border-2 border-slate-400">
+          <table id="pdv-racoes-lista-table">
+            <thead>
+              <tr>
+                <th>Foto</th>
+                <th>GM</th>
+                <th>Produto</th>
+                <th>Marca</th>
+                <th>Tamanho</th>
+                <th class="text-right">Preço</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody id="pdv-racoes-lista-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <footer class="flex shrink-0 flex-wrap items-center gap-2 border-t-2 border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
+      <button type="button" id="pdv-racoes-voltar" class="hidden min-h-[3.25rem] flex-1 rounded-xl border-2 border-slate-300 bg-white px-3 text-[0.95rem] font-black uppercase text-slate-800 hover:bg-slate-100">Voltar</button>
+      <button type="button" id="pdv-racoes-add-todas" class="hidden min-h-[3.25rem] flex-[1.4] rounded-xl border-2 border-emerald-600 bg-emerald-600 px-3 text-[0.95rem] font-black uppercase text-white hover:bg-emerald-700">Adicionar todas</button>
+      <p id="pdv-racoes-lista-status" class="hidden min-w-[8rem] flex-1 text-center text-[0.95rem] font-black text-emerald-800"></p>
+      <button type="button" id="pdv-racoes-cancelar" class="min-h-[3.25rem] flex-1 rounded-xl border-2 border-slate-300 bg-white px-3 text-[0.95rem] font-black uppercase text-slate-700 hover:bg-slate-100">Cancelar</button>
+    </footer>
+  </div>
+</div>
 <div id="pdv-cliente-start-modal" class="fixed inset-0 z-[120] hidden items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
   <div class="w-full max-w-lg rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_28px_80px_rgba(15,23,42,0.25)]">
     <div class="mt-1 grid gap-3">
@@ -1679,8 +4269,8 @@
   <div class="flex max-h-[min(86vh,48rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_28px_80px_rgba(15,23,42,0.25)]">
     <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
       <div>
-        <h3 class="text-lg font-black text-slate-900">Orçamentos salvos / histórico</h3>
-        <p class="text-[11px] font-semibold text-slate-500">Local neste aparelho. Você pode reabrir a venda no wizard.</p>
+        <h3 class="text-lg font-black text-slate-900">Orçamentos anteriores</h3>
+        <p class="text-[11px] font-semibold text-slate-500">Orçamentos deste cliente em todos os PCs da loja. Reabra ou use o código GMORC na busca. F6 abre esta lista.</p>
       </div>
       <button type="button" id="pdv-budget-history-close" class="pdv-action-btn border border-slate-200 bg-white px-3 py-2 text-[11px] text-slate-700" title="Fechar · Esc">Fechar <kbd class="pointer-events-none ml-1 rounded border border-slate-200 px-1 font-mono text-[9px]">Esc</kbd></button>
     </div>
@@ -1702,6 +4292,10 @@
       <label class="block">
         <span class="mb-1.5 block text-[11px] font-black uppercase tracking-wide text-slate-500">Telefone</span>
         <input id="pdv-cliente-telefone" type="text" class="pdv-input" placeholder="Telefone / WhatsApp" autocomplete="tel">
+      </label>
+      <label class="block">
+        <span class="mb-1.5 block text-[11px] font-black uppercase tracking-wide text-slate-500">CPF / CNPJ <span class="font-semibold normal-case text-slate-400">(opcional · cupom fiscal)</span></span>
+        <input id="pdv-cliente-cpf" type="text" inputmode="numeric" autocomplete="off" maxlength="18" class="pdv-input" placeholder="CPF ou CNPJ">
       </label>
       <div class="grid gap-3 sm:grid-cols-2">
         <label class="block sm:col-span-2">
@@ -1728,55 +4322,24 @@
   </div>
 </div>
 
-<div id="modal-pdv-entrega-fluxo-1" class="fixed inset-0 z-[127] hidden items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-ef1-titulo">
-  <div class="w-full max-w-lg overflow-hidden rounded-[1.35rem] border-[3px] border-emerald-400 bg-white shadow-2xl" onclick="event.stopPropagation()">
-    <div class="border-b border-emerald-100 bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-5 sm:px-6 sm:py-6">
-      <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">Etapa 3 · Entrega</p>
-      <h2 id="pdv-ef1-titulo" class="mt-2 text-xl font-black leading-tight text-white sm:text-2xl">Onde será o pagamento?</h2>
-      <p class="mt-2 text-sm font-semibold text-white/90">Escolha uma opção para continuar.</p>
+<div id="modal-pdv-entrega-salvar-cliente" class="fixed inset-0 z-[130] hidden items-center justify-center bg-slate-950/65 p-2 backdrop-blur-sm sm:p-3" role="dialog" aria-modal="true" aria-labelledby="pdv-esc-titulo">
+  <div class="pdv-modal-panel-70 overflow-hidden rounded-[1.35rem] border-[3px] border-sky-400 bg-white shadow-2xl" onclick="event.stopPropagation()">
+    <div class="border-b border-sky-100 bg-gradient-to-r from-sky-600 to-teal-600 px-6 py-5 sm:px-8 sm:py-6">
+      <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">Dados do cliente</p>
+      <h2 id="pdv-esc-titulo" class="mt-2 text-[clamp(1.15rem,0.55vw+1rem,1.65rem)] font-black leading-tight text-white">Salvar alterações no cadastro?</h2>
+      <p class="mt-2 text-sm font-semibold text-white/90">Você mudou nome, telefone ou endereço. Escolha se atualiza o cadastro do cliente ou usa só nesta entrega.</p>
     </div>
-    <div class="flex flex-col gap-3 px-4 py-5 sm:px-6 sm:py-6">
-      <button type="button" id="pdv-ef1-entrega" class="pdv-action-btn min-h-[3.5rem] w-full rounded-2xl border-[3px] border-orange-400 bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-4 text-left text-base font-black uppercase tracking-wide text-white shadow-lg hover:brightness-105 sm:min-h-[4rem] sm:text-lg">Pagamento na entrega</button>
-      <button type="button" id="pdv-ef1-loja" class="pdv-action-btn min-h-[3.5rem] w-full rounded-2xl border-[3px] border-emerald-300 bg-emerald-50 px-4 py-4 text-left text-base font-black uppercase tracking-wide text-emerald-950 shadow-md hover:bg-emerald-100 sm:min-h-[4rem] sm:text-lg">Pagamento na loja</button>
-    </div>
-  </div>
-</div>
-
-<div id="modal-pdv-entrega-fluxo-2" class="fixed inset-0 z-[128] hidden items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-ef2-titulo">
-  <div class="w-full max-w-lg overflow-hidden rounded-[1.35rem] border-[3px] border-orange-400 bg-white shadow-2xl" onclick="event.stopPropagation()">
-    <div class="border-b border-orange-100 bg-gradient-to-r from-orange-600 to-amber-600 px-5 py-5 sm:px-6 sm:py-6">
-      <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">Pagamento na entrega</p>
-      <h2 id="pdv-ef2-titulo" class="mt-2 text-xl font-black leading-tight text-white sm:text-2xl">Como o cliente vai pagar?</h2>
-    </div>
-    <div class="flex flex-col gap-3 px-4 py-5 sm:px-6 sm:py-6">
-      <button type="button" id="pdv-ef2-dinheiro" class="pdv-action-btn min-h-[3.5rem] w-full rounded-2xl border-[3px] border-slate-300 bg-slate-50 px-4 py-4 text-left text-base font-black uppercase tracking-wide text-slate-900 shadow-md hover:bg-slate-100 sm:min-h-[4rem] sm:text-lg">Dinheiro</button>
-      <button type="button" id="pdv-ef2-cartao" class="pdv-action-btn min-h-[3.5rem] w-full rounded-2xl border-[3px] border-indigo-300 bg-indigo-50 px-4 py-4 text-left text-base font-black uppercase tracking-wide text-indigo-950 shadow-md hover:bg-indigo-100 sm:min-h-[4rem] sm:text-lg">Cartão</button>
+    <div class="flex flex-col gap-3 p-5 sm:gap-4 sm:p-7">
+      <button type="button" id="pdv-esc-salvar-cadastro" class="pdv-action-btn min-h-[3.5rem] w-full rounded-2xl border-[3px] border-emerald-400 bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3 text-left text-base font-black uppercase tracking-wide text-white shadow-lg hover:brightness-105">Salvar no cadastro do cliente</button>
+      <button type="button" id="pdv-esc-so-entrega" class="pdv-action-btn min-h-[3.5rem] w-full rounded-2xl border-[3px] border-slate-300 bg-slate-50 px-4 py-3 text-left text-base font-black uppercase tracking-wide text-slate-800 shadow-md hover:bg-slate-100">Usar só nesta entrega</button>
+      <button type="button" id="pdv-esc-cancelar" class="pdv-action-btn w-full rounded-xl border-2 border-slate-200 py-3 text-sm font-black uppercase text-slate-600 hover:bg-slate-50">Voltar e revisar</button>
     </div>
   </div>
 </div>
 
-<div id="modal-pdv-entrega-fluxo-3-troco" class="fixed inset-0 z-[129] hidden items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-ef3-titulo">
-  <div class="w-full max-w-md overflow-hidden rounded-[1.35rem] border-[3px] border-slate-300 bg-white shadow-2xl" onclick="event.stopPropagation()">
-    <div class="border-b border-slate-100 bg-slate-800 px-5 py-4 sm:px-6">
-      <h2 id="pdv-ef3-titulo" class="text-lg font-black text-white sm:text-xl">Troco para quanto?</h2>
-      <p class="mt-1 text-xs font-semibold text-slate-300">Informe o valor que o cliente vai pagar em dinheiro (para calcular o troco na entrega).</p>
-    </div>
-    <div class="space-y-4 px-4 py-5 sm:px-6 sm:py-6">
-      <label class="block">
-        <span class="mb-2 block text-[11px] font-black uppercase text-slate-600">Valor (troco)</span>
-        <input type="text" id="pdv-ef3-troco-input" class="pdv-input text-lg font-bold" placeholder="Ex.: 100,00" inputmode="decimal" autocomplete="off">
-      </label>
-      <div class="flex flex-col gap-2 sm:flex-row sm:gap-3">
-        <button type="button" id="pdv-ef3-cancelar" class="flex-1 rounded-2xl border-2 border-slate-200 py-3.5 text-sm font-black uppercase text-slate-700 hover:bg-slate-50">Voltar</button>
-        <button type="button" id="pdv-ef3-ok" class="flex-1 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 py-3.5 text-sm font-black uppercase text-white shadow-lg hover:brightness-105">Confirmar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div id="modal-pdv-entrega-impressao" class="fixed inset-0 z-[125] hidden items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="mei-titulo">
-  <div class="w-full max-w-[420px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl ring-1 ring-slate-900/5" onclick="event.stopPropagation()">
-    <div class="relative bg-gradient-to-br from-orange-500 via-orange-500 to-amber-600 px-5 pb-4 pt-5">
+<dialog id="modal-pdv-entrega-impressao" class="w-[min(96vw,420px)] rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-slate-950/70">
+  <div class="overflow-hidden rounded-2xl">
+    <div class="bg-orange-600 px-5 pb-4 pt-5">
       <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">Impressão</p>
       <h2 id="mei-titulo" class="mt-1 text-xl font-black tracking-tight text-white">O que imprimir?</h2>
     </div>
@@ -1787,10 +4350,10 @@
     </div>
     <div class="flex gap-3 px-5 pb-5 pt-0">
       <button type="button" id="mei-cancelar" class="flex-1 rounded-xl border-2 border-slate-200 bg-white py-3.5 text-sm font-black uppercase tracking-wide text-slate-700 hover:bg-slate-50">Cancelar</button>
-      <button type="button" id="mei-imprimir" class="flex-1 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 py-3.5 text-sm font-black uppercase tracking-wide text-white shadow-lg hover:brightness-105">Imprimir</button>
+      <button type="button" id="mei-imprimir" class="flex-1 rounded-xl bg-orange-600 py-3.5 text-sm font-black uppercase tracking-wide text-white shadow-md hover:bg-orange-700">Imprimir</button>
     </div>
   </div>
-</div>
+</dialog>
 <div id="pdv-pack-entrega-print" aria-hidden="true"></div>
 
 <div id="modal-pdv-wizard-ajuda" class="fixed inset-0 z-[130] hidden items-center justify-center bg-slate-900/50 p-3 backdrop-blur-sm sm:p-4" role="dialog" aria-modal="true" aria-labelledby="modal-pdv-wizard-ajuda-titulo">
@@ -1805,6 +4368,51 @@
     <div class="min-h-0 flex-1 overflow-y-auto p-4">
       <ul id="modal-pdv-wizard-ajuda-lista" class="list-disc space-y-2 pl-5 text-sm font-semibold leading-snug text-slate-700"></ul>
     </div>
+  </div>
+</div>
+
+<div id="modal-pdv-escolha-impressao" class="fixed inset-0 z-[134] hidden items-center justify-center bg-slate-900/70 p-3 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="modal-pdv-escolha-impressao-titulo">
+  <div class="flex w-full max-w-sm flex-col overflow-hidden rounded-2xl border-2 border-emerald-300 bg-white shadow-2xl" onclick="event.stopPropagation();">
+    <header class="border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-center">
+      <h2 id="modal-pdv-escolha-impressao-titulo" class="text-sm font-black uppercase tracking-tight text-emerald-950">Qual cupom imprimir?</h2>
+      <p class="mt-1 text-xs font-semibold text-slate-600">Escolha o tipo de impressão desta venda.</p>
+    </header>
+    <div class="grid grid-cols-2 gap-3 p-4">
+      <button type="button" id="pdv-escolha-impressao-nfce" class="pdv-action-btn flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-2xl border-[3px] border-emerald-600 bg-emerald-600 px-3 py-4 text-white shadow-lg hover:bg-emerald-700">
+        <span class="text-lg font-black uppercase tracking-wide">NFC</span>
+        <span class="text-[10px] font-bold uppercase leading-tight text-emerald-100">Cupom fiscal</span>
+      </button>
+      <button type="button" id="pdv-escolha-impressao-venda" class="pdv-action-btn flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-2xl border-[3px] border-sky-500 bg-sky-600 px-3 py-4 text-white shadow-lg hover:bg-sky-700">
+        <span class="text-lg font-black uppercase tracking-wide">Venda</span>
+        <span class="text-[10px] font-bold uppercase leading-tight text-sky-100">Comprovante loja</span>
+      </button>
+    </div>
+    <footer class="border-t border-slate-100 bg-slate-50 px-4 py-3">
+      <button type="button" id="pdv-escolha-impressao-cancelar" class="w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-xs font-black uppercase text-slate-700 hover:bg-slate-100">Cancelar <kbd class="ml-1 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px]">Esc</kbd></button>
+    </footer>
+  </div>
+</div>
+
+<div id="modal-pdv-nfce-cpf" class="fixed inset-0 z-[140] hidden items-center justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm sm:p-6" role="dialog" aria-modal="true" aria-labelledby="modal-pdv-nfce-cpf-titulo">
+  <div class="flex w-full max-w-[min(54rem,94vw)] flex-col overflow-hidden rounded-3xl border-[3px] border-emerald-400 bg-white shadow-2xl my-auto" onclick="event.stopPropagation();">
+    <header class="border-b-2 border-emerald-100 bg-gradient-to-r from-emerald-50 to-teal-50 px-6 py-5 text-center sm:px-10 sm:py-7">
+      <h2 id="modal-pdv-nfce-cpf-titulo" class="text-[clamp(1.35rem,1.1vw+1.1rem,2.1rem)] font-black uppercase leading-tight tracking-tight text-emerald-950">Cupom fiscal (NFC-e)</h2>
+      <p class="mt-3 text-[clamp(1rem,0.55vw+0.9rem,1.35rem)] font-semibold leading-snug text-slate-600">Sem documento no cadastro — escolha abaixo ou digite o CPF ou CNPJ.</p>
+    </header>
+    <div class="space-y-5 px-6 py-6 sm:space-y-6 sm:px-10 sm:py-8">
+      <button type="button" id="pdv-nfce-sem-id-rapido" class="pdv-action-btn flex w-full min-h-[clamp(5.5rem,12vh,7.5rem)] flex-col items-center justify-center gap-1 rounded-2xl border-[3px] border-emerald-600 bg-emerald-600 px-6 py-5 text-white shadow-lg hover:bg-emerald-700">
+        <span class="text-[clamp(1.25rem,0.9vw+1rem,1.85rem)] font-black uppercase tracking-wide">Sem CPF/CNPJ na nota</span>
+        <span class="text-[clamp(0.75rem,0.45vw+0.65rem,1rem)] font-bold uppercase leading-tight text-emerald-100">Consumidor não identificado</span>
+      </button>
+      <p class="text-center text-[clamp(0.85rem,0.4vw+0.75rem,1.05rem)] font-black uppercase tracking-wide text-slate-400">ou informe o documento</p>
+      <label class="block text-[clamp(0.85rem,0.4vw+0.75rem,1.05rem)] font-black uppercase text-slate-600" for="pdv-nfce-cpf-input">CPF ou CNPJ</label>
+      <input type="text" id="pdv-nfce-cpf-input" inputmode="numeric" autocomplete="off" maxlength="18" placeholder="CPF ou CNPJ" class="w-full min-h-[clamp(4rem,10vh,5.25rem)] rounded-2xl border-[3px] border-slate-300 px-5 py-3 text-center text-[clamp(1.5rem,1vw+1.2rem,2.25rem)] font-black tracking-[0.08em] text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-200">
+      <p id="pdv-nfce-cpf-erro" class="hidden rounded-xl border-2 border-red-200 bg-red-50 px-4 py-3 text-[clamp(0.9rem,0.4vw+0.8rem,1.1rem)] font-bold text-red-800"></p>
+    </div>
+    <footer class="grid grid-cols-2 gap-3 border-t-2 border-slate-100 bg-slate-50 px-6 py-5 sm:gap-4 sm:px-10 sm:py-6">
+      <button type="button" id="pdv-nfce-cpf-cancelar" class="min-h-[clamp(3.5rem,8vh,4.5rem)] rounded-2xl border-[3px] border-slate-300 bg-white px-4 text-[clamp(0.95rem,0.45vw+0.85rem,1.2rem)] font-black uppercase text-slate-800 hover:bg-slate-100">Cancelar</button>
+      <button type="button" id="pdv-nfce-cpf-confirmar" class="min-h-[clamp(3.5rem,8vh,4.5rem)] rounded-2xl border-[3px] border-emerald-700 bg-emerald-600 px-4 text-[clamp(0.95rem,0.45vw+0.85rem,1.2rem)] font-black uppercase text-white shadow-md hover:bg-emerald-700">Incluir na nota</button>
+    </footer>
   </div>
 </div>
 
@@ -1838,6 +4446,23 @@
   </div>
 </div>
 
+<div id="pdv-relacionamento-modal" class="fixed inset-0 z-[138] hidden items-center justify-center bg-slate-950/65 p-1.5 backdrop-blur-sm sm:p-2" role="dialog" aria-modal="true" aria-labelledby="pdv-relacionamento-titulo">
+  <div class="pdv-relacionamento-shell rounded-2xl border-[3px] border-emerald-500 bg-white shadow-2xl" onclick="event.stopPropagation();">
+    <header class="shrink-0 border-b-2 border-emerald-200 bg-gradient-to-r from-emerald-50 to-sky-50 px-4 py-3 sm:px-6 sm:py-4">
+      <p class="text-[11px] font-black uppercase tracking-wide text-emerald-800">Relacionamento · rascunho · <kbd class="rounded border border-emerald-300 bg-white px-1.5 font-mono text-[10px]">F8</kbd></p>
+      <h2 id="pdv-relacionamento-titulo" class="truncate text-xl font-black text-slate-900 sm:text-2xl">Cliente</h2>
+    </header>
+    <div id="pdv-relacionamento-tabs" class="pdv-rel-tabs shrink-0 border-b border-slate-200 bg-slate-50 px-2 py-2 sm:px-3"></div>
+    <div class="pdv-relacionamento-scroll relative px-3 py-3 sm:px-5 sm:py-4">
+      <p id="pdv-relacionamento-loading" class="hidden text-sm font-bold text-slate-600">Carregando histórico…</p>
+      <div id="pdv-relacionamento-panel"></div>
+    </div>
+    <footer class="shrink-0 border-t border-slate-200 bg-slate-50 px-4 py-3">
+      <button type="button" id="pdv-relacionamento-fechar" class="w-full min-h-[48px] rounded-xl bg-slate-900 text-xs font-black uppercase text-white hover:bg-slate-800">Fechar · Esc</button>
+    </footer>
+  </div>
+</div>
+
 <div id="alerta-lembrete" class="fixed bottom-4 right-4 z-[126] hidden max-w-[min(24rem,92vw)] rounded-2xl border-[3px] border-orange-500 bg-white p-4 shadow-2xl" role="alert" aria-live="assertive">
   <div class="flex items-start gap-3">
     <div class="text-2xl" aria-hidden="true">⏰</div>
@@ -1866,6 +4491,10 @@
       <div>
         <label for="pdv-wizard-cli-rapido-whatsapp" class="mb-1 block text-[10px] font-black uppercase text-slate-500">Telefone / WhatsApp <span class="text-red-600">*</span></label>
         <input id="pdv-wizard-cli-rapido-whatsapp" type="tel" inputmode="tel" autocomplete="tel" class="pdv-input text-sm" placeholder="DDD + número">
+      </div>
+      <div>
+        <label for="pdv-wizard-cli-rapido-cpf" class="mb-1 block text-[10px] font-black uppercase text-slate-500">CPF / CNPJ <span class="font-normal normal-case text-slate-400">(opcional · cupom fiscal)</span></label>
+        <input id="pdv-wizard-cli-rapido-cpf" type="text" inputmode="numeric" autocomplete="off" maxlength="18" class="pdv-input text-sm" placeholder="CPF ou CNPJ">
       </div>
       <details class="rounded-xl border-2 border-slate-200 bg-slate-50/80 px-3 py-2">
         <summary class="cursor-pointer select-none text-[11px] font-black uppercase tracking-wide text-slate-700">Endereço (opcional)</summary>
@@ -1915,36 +4544,29 @@
       itens: [
         'Campo amarelo: busque por nome, GM, EAN ou código; F2 foca na busca; setas ↑↓ escolhem e Enter confirma.',
         'Ao lado você vê cliente atual; F4 ou “Trocar” para buscar outro cliente sem sair dos produtos.',
-        'Histórico de compras no cliente usa F5.',
+        'Histórico do cliente: botão Hist. ou F8 (relacionamento). F5 recarrega a página.',
         'Painel direito mostra vale crédito, cashback e fiado quando existirem.',
         '“Orçamento” salva/recupera rascunho neste aparelho (F6 histórico).',
       ],
     },
-    cliente: {
-      titulo: 'Ajuda · Etapa 2 · Cliente',
-      resumo: 'Revise quem está comprando e como a venda segue.',
-      itens: [
-        'Veja nome, telefone e endereço resumidos; “Editar dados” ou tecla E abre o pop-up rápido de contato e endereço.',
-        '“Edição avançada” abre o cadastro completo do cliente em nova aba.',
-        'Escolha retirada na loja ou entrega conforme combinado.',
-        'Observações da venda seguem junto até o pagamento.',
-      ],
-    },
     entrega: {
-      titulo: 'Ajuda · Etapa 3 · Entrega',
-      resumo: 'Endereço, rota e regras de frete antes do pagamento.',
+      titulo: 'Ajuda · Etapa 2 · Entrega',
+      resumo: 'Cliente, endereço e regras antes do pagamento.',
       itens: [
-        'Escolha a loja de partida quando houver várias e use “Ver no Maps” para rota até o destino.',
-        'Painel ou WhatsApp de entregas abrem quando estiverem configurados.',
-        'Preencha logradouro, número e bairro; Plus Code complementa o endereço.',
-        'Horário pode gerar lembretes próximos do horário pedido.',
-        'Na primeira vez entrando aqui pedimos se o pagamento é na entrega ou na loja; depois aparece fluxo específico (dinheiro/cartão na entrega quando couber).',
-        'Frete: “Cobrar” usa R$ 10,00 como padrão; você pode mudar antes de fechar.',
-        '“Reiniciar escolha” zera apenas o assistente de pagamento na entrega para refazer.',
+        'Entregar (F3) abre direto a pergunta de pagamento na entrega ou na loja.',
+        'Depois preencha o endereço; em seguida popups de taxa, meio e troco.',
+        'Ao terminar, abre a tela Conferir entrega com resumo — edite qualquer bloco antes de enviar.',
+        'Se no futuro o endereço tiver frete grátis, esse popup nem aparece.',
+        'Pagamento na entrega: depois da taxa pergunta dinheiro ou cartão; em dinheiro mostra o total para informar ao cliente e pedir troco.',
+        'Partida e Maps ficam na faixa superior; escolha a loja de saída quando houver várias.',
+        'Nome e telefone editáveis ao lado do endereço; Plus Code preenche logradouro e bairro.',
+        'Ao continuar do endereço, se nome/telefone/endereço mudaram no cliente cadastrado, pergunta se salva no cadastro ou só nesta entrega.',
+        'Preencha logradouro, número e bairro; observações da venda e da entrega ficam no rodapé.',
+        '“Reiniciar pagamento” zera a escolha de pagamento, taxa e meio na entrega.',
       ],
     },
     pagamento: {
-      titulo: 'Ajuda · Etapa 4 · Pagamento',
+      titulo: 'Ajuda · Etapa 3 · Pagamento',
       resumo: 'Formas, valores e confirmação da venda.',
       itens: [
         'F3 ou “Escolher forma” abre formas disponíveis; teclas rápidas 1–9 quando o painel mostrar.',
@@ -1996,7 +4618,7 @@
     if (fecharBtn) fecharBtn.addEventListener('click', pdvWizardFecharAjuda);
     if (modal) {
       modal.addEventListener('click', function (ev) {
-        if (ev.target === modal) pdvWizardFecharAjuda();
+        /* Fundo nao fecha — so X / FECHAR / Esc */
       });
     }
     document.addEventListener('keydown', function (ev) {
@@ -2019,8 +4641,137 @@
 })();
 </script>
 <script src="{% static 'produtos/js/venda_cupom_80mm.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_offline_cache.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_campanha.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_promocoes.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/precos_forma_pagamento.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script>
+(function () {
+  if (window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.carregarTabelasGlobais) {
+    window.AgroPrecosFormaPagamento.carregarTabelasGlobais('{% url "api_tabelas_preco_forma_pdv" %}');
+  }
+})();
+</script>
 <script src="{% static 'produtos/js/pdv_state.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/cliente_cadastro_acoes.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_relacionamento.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/agro_picklist.js' %}?v=1"></script>
+<div id="pdv-cadastro-rapido-overlay" class="fixed inset-0 z-[139] hidden items-center justify-center bg-slate-950/55 p-1.5 backdrop-blur-[2px] sm:p-3" role="dialog" aria-modal="true" aria-labelledby="pdv-cadastro-rapido-title">
+  <div class="pdv-product-edit-panel pdv-cadastro-rapido-panel flex max-h-[min(94dvh,52rem)] w-full flex-col overflow-hidden rounded-2xl border-[3px] border-orange-400 bg-white shadow-2xl" role="document" style="max-width:min(44rem,98vw)">
+    <header class="flex shrink-0 items-center justify-between gap-2 border-b-2 border-orange-100 bg-orange-50 px-4 py-2.5 sm:px-5 sm:py-3">
+      <div class="min-w-0 flex-1">
+        <p class="text-[clamp(0.75rem,0.35vw+0.7rem,0.95rem)] font-black uppercase tracking-[0.12em] text-orange-800">Cadastro rápido</p>
+        <h3 id="pdv-cadastro-rapido-title" class="min-w-0 truncate font-black text-slate-900">Produto novo</h3>
+      </div>
+      <details class="relative shrink-0">
+        <summary class="inline-flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-full border-2 border-amber-600 bg-white text-base font-black text-amber-900" title="Ajuda" aria-label="Ajuda do cadastro rápido">?</summary>
+        <div class="absolute right-0 top-[calc(100%+0.35rem)] z-20 w-[min(20rem,88vw)] rounded-xl border-2 border-amber-200 bg-amber-50 p-3 text-left text-[12px] font-semibold leading-snug text-amber-950 shadow-lg">
+          <p class="mb-1.5 font-black uppercase tracking-wide text-amber-900">Como usar</p>
+          <ul class="list-disc space-y-1 pl-4">
+            <li>Bipe o código. Se achar na internet, preenche nome e NCM sozinho.</li>
+            <li>A foto (quando aparecer) é só pra conferir — <strong>não</strong> grava no sistema.</li>
+            <li>Estoque da prateleira é opcional: preencha só se souber a quantidade agora.</li>
+          </ul>
+        </div>
+      </details>
+      <button type="button" id="pdv-cadastro-rapido-fechar" class="inline-flex min-h-[3.5rem] min-w-[3.5rem] shrink-0 items-center justify-center rounded-xl border-2 border-slate-300 bg-white text-[clamp(1.75rem,0.9vw+1.4rem,2.25rem)] font-black leading-none text-slate-700 hover:border-red-300 hover:bg-red-50" title="Fechar · Esc" aria-label="Fechar cadastro rápido">×</button>
+    </header>
+    <div class="pdv-wizard-scroll min-h-0 flex-1 overflow-y-auto px-4 py-3.5 sm:px-5 sm:py-4">
+      <div id="pdv-cadastro-rapido-step-ean" class="grid gap-3">
+        <label class="block">
+          <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Código de barras</span>
+          <input id="pdv-cadastro-rapido-ean" type="text" inputmode="numeric" class="pdv-input w-full font-mono text-lg" autocomplete="off" placeholder="Bipar ou digitar…">
+        </label>
+        <p id="pdv-cadastro-rapido-ean-status" class="hidden text-sm font-bold" role="status"></p>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" id="pdv-cadastro-rapido-ean-ok" class="pdv-action-btn min-h-[3rem] flex-1 rounded-xl bg-orange-500 px-4 font-black uppercase text-white hover:bg-orange-600">Continuar</button>
+          <button type="button" id="pdv-cadastro-rapido-sem-ean" class="pdv-action-btn min-h-[3rem] flex-1 rounded-xl border-2 border-slate-300 bg-white px-4 font-black uppercase text-slate-700 hover:bg-slate-50">Sem barras</button>
+        </div>
+      </div>
+      <div id="pdv-cadastro-rapido-step-form" class="hidden grid gap-3">
+        <div id="pdv-cadastro-rapido-preview" class="hidden flex justify-center">
+          <div class="flex h-[7rem] w-[7rem] items-center justify-center overflow-hidden rounded-xl border-2 border-slate-200 bg-white shadow-sm">
+            <img id="pdv-cadastro-rapido-foto" src="" alt="Foto do produto" class="max-h-full max-w-full object-contain" hidden>
+          </div>
+        </div>
+        <input id="pdv-cadastro-rapido-ncm" type="hidden" value="">
+        <label class="block">
+          <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Nome <span class="text-red-600">*</span></span>
+          <input id="pdv-cadastro-rapido-nome" type="text" class="pdv-input w-full text-[1.15rem]" autocomplete="off">
+        </label>
+        <div class="grid grid-cols-2 gap-2.5">
+          <label class="block">
+            <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Código GM</span>
+            <input id="pdv-cadastro-rapido-gm" type="text" class="pdv-input w-full font-mono" autocomplete="off">
+          </label>
+          <label class="block">
+            <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Código de barras</span>
+            <input id="pdv-cadastro-rapido-cb" type="text" inputmode="numeric" class="pdv-input w-full font-mono" autocomplete="off">
+          </label>
+        </div>
+        <div class="grid grid-cols-2 gap-2.5">
+          <label class="block">
+            <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Preço de custo</span>
+            <input id="pdv-cadastro-rapido-custo" type="text" inputmode="decimal" class="pdv-input w-full tabular-nums text-[1.1rem]" autocomplete="off" placeholder="0,00">
+          </label>
+          <label class="block">
+            <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Preço de venda <span class="text-red-600">*</span></span>
+            <input id="pdv-cadastro-rapido-venda" type="text" inputmode="decimal" class="pdv-input w-full tabular-nums text-[1.1rem]" autocomplete="off" placeholder="0,00">
+          </label>
+        </div>
+        <div class="rounded-xl border-2 border-emerald-200 bg-emerald-50/90 p-3">
+          <p class="mb-1 text-[11px] font-black uppercase tracking-wide text-emerald-800">Estoque agora (<span id="pdv-cadastro-rapido-dep-lbl">Centro</span>) — opcional</p>
+          <input id="pdv-cadastro-rapido-estoque" type="text" inputmode="decimal" class="pdv-input w-full border-emerald-300 bg-white tabular-nums text-[1.1rem]" autocomplete="off" placeholder="0">
+        </div>
+        <p id="pdv-cadastro-rapido-sugestao" class="sr-only" aria-live="polite"></p>
+        <p id="pdv-cadastro-rapido-erro" class="hidden text-sm font-bold text-red-600" role="alert"></p>
+        <div class="flex gap-2.5 pt-1">
+          <button type="button" id="pdv-cadastro-rapido-voltar" class="pdv-action-btn min-h-[3.1rem] flex-1 rounded-xl border-2 border-slate-300 bg-white font-black uppercase text-slate-700">Voltar</button>
+          <button type="button" id="pdv-cadastro-rapido-salvar" class="pdv-action-btn min-h-[3.1rem] flex-1 rounded-xl bg-orange-500 font-black uppercase text-white hover:bg-orange-600">Salvar e vender</button>
+        </div>
+      </div>
+      <div id="pdv-cadastro-rapido-step-existe" class="hidden grid gap-3">
+        <p id="pdv-cadastro-rapido-existe-msg" class="text-base font-bold text-amber-900"></p>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" id="pdv-cadastro-rapido-usar-existente" class="pdv-action-btn min-h-[3rem] flex-1 rounded-xl bg-emerald-600 px-4 font-black uppercase text-white hover:bg-emerald-700">Usar no carrinho</button>
+          <button type="button" id="pdv-cadastro-rapido-existe-voltar" class="pdv-action-btn min-h-[3rem] flex-1 rounded-xl border-2 border-slate-300 bg-white px-4 font-black uppercase text-slate-700">Outro código</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="pdv-wa-em-breve" class="hidden fixed inset-0 z-[10050] flex items-center justify-center bg-slate-900/50 p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-wa-em-breve-titulo">
+  <div class="w-[min(22rem,calc(100vw-2rem))] rounded-2xl border-2 border-emerald-400 bg-white p-5 shadow-2xl">
+    <p id="pdv-wa-em-breve-titulo" class="text-xl font-black uppercase tracking-wide text-emerald-900">Em breve…</p>
+    <p class="mt-2 text-sm font-bold text-slate-600">O chat WhatsApp das lojas ainda não abre pelo PDV.</p>
+    <button type="button" id="pdv-wa-em-breve-ok" class="pdv-action-btn mt-4 min-h-[3rem] w-full rounded-xl bg-emerald-600 font-black uppercase text-white">Ok</button>
+  </div>
+</div>
+
+<div id="pdv-topbar-organizar-overlay" aria-hidden="true">
+  <div class="pdv-topbar-organizar-box" role="dialog" aria-modal="true" aria-labelledby="pdv-topbar-organizar-titulo">
+    <h2 id="pdv-topbar-organizar-titulo" class="mb-1 text-base font-black uppercase tracking-wide text-slate-800">Organizar atalhos</h2>
+    <p class="mb-3 text-xs font-bold text-slate-500">Toque em Quente ou Frio. Vale para todos os PCs da loja.</p>
+    <div id="pdv-topbar-organizar-lista"></div>
+    <p id="pdv-topbar-organizar-erro" class="mt-2 hidden text-sm font-bold text-red-600" role="alert"></p>
+    <div class="mt-3 flex gap-2">
+      <button type="button" id="pdv-topbar-organizar-cancelar" class="pdv-action-btn min-h-[2.75rem] flex-1 rounded-xl border-2 border-slate-300 bg-white font-black uppercase text-slate-700">Cancelar</button>
+      <button type="button" id="pdv-topbar-organizar-salvar" class="pdv-action-btn min-h-[2.75rem] flex-1 rounded-xl border-2 border-orange-600 bg-orange-500 font-black uppercase text-white hover:bg-orange-600">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <script src="{% static 'produtos/js/pdv_wizard.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_topbar_mais.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_topbar_whatsapp.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_topbar_layout.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_uso_loja.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_pedir_loja.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_transf_forcada.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_chat_loja.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_repasse_vila.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/use_p2.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_balanca.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 {% include "produtos/_screensaver_pin.html" %}
 {% endblock %}

@@ -1,0 +1,85 @@
+{% extends "tarefas/base.html" %}
+{% block title %}{{ tarefa.titulo }}{% endblock %}
+{% block body %}
+<div class="tf-top">
+  <div>
+    <p class="tf-kicker">Pendência</p>
+    <h1 class="tf-title" style="font-size:clamp(1.15rem,4.5vw + 0.25rem,1.45rem);">{{ tarefa.titulo }}</h1>
+  </div>
+  <div class="tf-ops">
+    <a class="tf-btn" href="{% url 'tarefas_lista' %}">Lista</a>
+  </div>
+</div>
+<p class="tf-who">Você: <strong>{{ operador }}</strong></p>
+<p style="margin:0 0 0.75rem;"><span class="badge-st {{ status_cor }}">{{ status_label }}</span></p>
+
+{% if tarefa.descricao %}
+<p style="margin:0 0 1rem;font-weight:700;line-height:1.4;white-space:pre-wrap;">{{ tarefa.descricao }}</p>
+{% endif %}
+
+<label class="tf-lab" for="status">Mudar status</label>
+<select class="tf-field" id="status">
+  {% for val, lab in status_choices %}
+  <option value="{{ val }}" {% if val == tarefa.status %}selected{% endif %}>{{ lab }}</option>
+  {% endfor %}
+</select>
+<button type="button" class="tf-btn tf-btn-emerald" id="btnStatus" style="width:100%;margin-bottom:1rem;">Aplicar status</button>
+
+<label class="tf-lab" for="comentario">Comentar</label>
+<textarea class="tf-field" id="comentario" placeholder="Escreva um comentário…"></textarea>
+<button type="button" class="tf-btn tf-btn-primary" id="btnComentar" style="width:100%;margin-bottom:1.25rem;">Enviar comentário</button>
+
+{% if comentarios %}
+<h2 class="tf-sec">Comentários</h2>
+<ul class="tf-timeline">
+  {% for c in comentarios %}
+  <li>
+    <div class="when">{{ c.criado_em|date:"d/m/Y H:i" }}</div>
+    <div class="who">{{ c.autor_nome }}</div>
+    <div class="det">{{ c.texto }}</div>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+<h2 class="tf-sec">Linha do tempo</h2>
+<ul class="tf-timeline">
+  {% for e in eventos %}
+  <li>
+    <div class="when">{{ e.criado_em|date:"d/m/Y H:i" }} · {{ e.get_tipo_display }}</div>
+    <div class="who">{{ e.autor_nome }}</div>
+    {% if e.detalhe %}<div class="det">{{ e.detalhe }}</div>{% endif %}
+  </li>
+  {% empty %}
+  <li><div class="det">Sem eventos ainda.</div></li>
+  {% endfor %}
+</ul>
+{% endblock %}
+{% block scripts %}
+<script>
+const statusUrl = "{% url 'api_tarefa_status' tarefa.pk %}";
+const comentarUrl = "{% url 'api_tarefa_comentar' tarefa.pk %}";
+document.getElementById("btnStatus").addEventListener("click", async function () {
+  const btn = this;
+  btn.disabled = true;
+  try {
+    await window.tfPost(statusUrl, { status: document.getElementById("status").value });
+    location.reload();
+  } catch (e) {
+    alert(e.message || "Erro");
+    btn.disabled = false;
+  }
+});
+document.getElementById("btnComentar").addEventListener("click", async function () {
+  const btn = this;
+  btn.disabled = true;
+  try {
+    await window.tfPost(comentarUrl, { texto: document.getElementById("comentario").value });
+    location.reload();
+  } catch (e) {
+    alert(e.message || "Erro");
+    btn.disabled = false;
+  }
+});
+</script>
+{% endblock %}

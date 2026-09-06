@@ -100,6 +100,8 @@ def sincronizar_clientes_fontes_para_agro(
             cpf_val = _doc_para_campo_cpf(str(doc))
             wa = _telefone_para_whatsapp(str(tel))
 
+            from produtos.cliente_whatsapp_util import cliente_agro_por_whatsapp
+
             try:
                 cli = ClienteAgro.objects.filter(externo_id=eid).first()
             except Exception:
@@ -110,6 +112,17 @@ def sincronizar_clientes_fontes_para_agro(
                 if cli.editado_local:
                     ignorados_editados += 1
                     continue
+                if wa:
+                    dup = cliente_agro_por_whatsapp(wa, excluir_pk=cli.pk)
+                    if dup:
+                        erros += 1
+                        logger.warning(
+                            "sync clientes: telefone %s já em uso (pk=%s), externo_id=%s",
+                            wa,
+                            dup.pk,
+                            eid[:40],
+                        )
+                        continue
                 cli.nome = nome[:200]
                 cli.cpf = cpf_val
                 cli.whatsapp = wa
@@ -147,6 +160,17 @@ def sincronizar_clientes_fontes_para_agro(
                     erros += 1
                     logger.exception("sync clientes update externo_id=%s", eid[:40])
             else:
+                if wa:
+                    dup = cliente_agro_por_whatsapp(wa)
+                    if dup:
+                        erros += 1
+                        logger.warning(
+                            "sync clientes: telefone %s já em uso (pk=%s), externo_id=%s",
+                            wa,
+                            dup.pk,
+                            eid[:40],
+                        )
+                        continue
                 try:
                     ClienteAgro.objects.create(
                         externo_id=eid,

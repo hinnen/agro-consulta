@@ -38,6 +38,31 @@
 
     .agro-shell { width: 100%; max-width: min(96rem, 100%); margin-left: auto; margin-right: auto; }
 
+    html.agro-venda-fiado-embed body {
+      font-size: clamp(15px, 0.4vw + 14px, 18px);
+      background: #fff;
+    }
+    html.agro-venda-fiado-embed .agro-shell {
+      max-width: 100%;
+    }
+    html.agro-venda-fiado-embed .venda-fiado-hide {
+      display: none !important;
+    }
+    html.agro-venda-fiado-embed .venda-itens-table {
+      table-layout: fixed;
+      width: 100%;
+      min-width: 0 !important;
+      font-size: clamp(0.98rem, 0.4vw + 0.9rem, 1.15rem);
+    }
+    html.agro-venda-fiado-embed .venda-itens-table col.venda-c-desc { width: auto; }
+    html.agro-venda-fiado-embed .venda-itens-table col.venda-c-qtd { width: 6.5rem; }
+    html.agro-venda-fiado-embed .venda-itens-table col.venda-c-unit { width: 8.5rem; }
+    html.agro-venda-fiado-embed .venda-itens-table col.venda-c-tot { width: 8.5rem; }
+    html.agro-venda-fiado-embed .venda-itens-table th,
+    html.agro-venda-fiado-embed .venda-itens-table td {
+      padding: 0.55rem 0.65rem !important;
+    }
+
   </style>
 
 </head>
@@ -58,28 +83,30 @@
 
       <div class="flex flex-wrap gap-2 shrink-0">
 
-        <a href="{% url 'vendas_lista' %}" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-orange-300">Lista</a>
+        <a href="{% url 'vendas_lista' %}{% if request.GET.agro_pdv_overlay %}?agro_pdv_overlay={{ request.GET.agro_pdv_overlay }}{% if request.GET.agro_inapp_embed %}&agro_inapp_embed={{ request.GET.agro_inapp_embed }}{% endif %}{% endif %}" class="venda-fiado-hide inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-orange-300">Lista</a>
 
         {% if cupom_80mm %}
         <button type="button" id="btn-imprimir-cupom-venda" class="inline-flex items-center min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-sky-500 bg-sky-600 text-white shadow-md hover:bg-sky-700" title="Cupom térmico 80mm (2ª via)">Imprimir cupom</button>
         {% endif %}
+        {% if nfce_painel.ativo and nfce_painel.autorizada %}
+        <button type="button" id="btn-imprimir-nfce-venda" class="inline-flex items-center min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-emerald-500 bg-emerald-600 text-white shadow-md hover:bg-emerald-700" title="DANFE NFC-e">Cupom fiscal</button>
+        {% if nfce_painel.pode_cancelar %}
+        <button type="button" id="btn-nfce-cancelar-venda" class="inline-flex items-center min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-rose-400 bg-rose-500 text-white shadow-md hover:bg-rose-600" title="Cancelar NFC-e na SEFAZ">Cancelar NFC-e</button>
+        {% endif %}
+        {% endif %}
+        {% if nfce_painel.ativo and nfce_painel.processando and not v.devolvida %}
+        <button type="button" id="btn-nfce-processando-venda" class="inline-flex items-center min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-sky-300 bg-sky-100 text-sky-900 shadow-sm cursor-wait">Emitindo NFC-e…</button>
+        {% elif nfce_painel.ativo and nfce_painel.pendente and not v.devolvida %}
+        <button type="button" id="btn-nfce-reemitir-venda" class="inline-flex items-center min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-amber-400 bg-amber-500 text-white shadow-md hover:bg-amber-600">Reemitir NFC-e</button>
+        {% endif %}
 
         {% if not v.devolvida %}
 
-        <button type="button" id="btn-devolver-venda" class="inline-flex items-center min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-rose-500 bg-rose-600 text-white shadow-md hover:bg-rose-700 ring-2 ring-rose-200">↩ Devolver venda</button>
-
-        {% if erp_painel.tem_fiado %}
-        {% if erp_painel.pode_enviar_erp %}
-        <button type="button" id="btn-erp-envio-manual" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-orange-400 bg-orange-500 text-white hover:bg-orange-600">Enviar ERP</button>
-        {% endif %}
-        {% if erp_painel.pode_reverter_erp %}
-        <button type="button" id="btn-erp-reverter" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-800 hover:bg-slate-50">Reverter ERP</button>
-        {% endif %}
-        {% endif %}
+        <button type="button" id="btn-devolver-venda" class="inline-flex items-center min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-rose-500 bg-rose-600 text-white shadow-md hover:bg-rose-700 ring-2 ring-rose-200">{% if v.tem_devolucao_parcial %}↩ Continuar devolução{% else %}↩ Devolver venda{% endif %}</button>
 
         {% endif %}
 
-        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-emerald-300 bg-emerald-50 text-emerald-900 shrink-0" %}
+        {% include "produtos/_pdv_voltar_link.html" with link_class="venda-fiado-hide inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-emerald-300 bg-emerald-50 text-emerald-900 shrink-0" %}
 
       </div>
 
@@ -95,7 +122,7 @@
 
     <div class="shrink-0 rounded-2xl border-2 border-rose-300 bg-rose-50 px-4 py-3">
 
-      <p class="text-sm font-black uppercase text-rose-900">Venda devolvida</p>
+      <p class="text-sm font-black uppercase text-rose-900">Venda devolvida (total)</p>
 
       <p class="text-xs font-bold text-rose-800 mt-1">{{ v.devolvida_em|date:"d/m/Y H:i" }}{% if v.devolucao_usuario %} · {{ v.devolucao_usuario }}{% endif %}</p>
 
@@ -121,33 +148,46 @@
 
     </div>
 
+    {% elif v.tem_devolucao_parcial %}
+
+    <div class="shrink-0 rounded-2xl border-2 border-amber-300 bg-amber-50 px-4 py-3">
+      <p class="text-sm font-black uppercase text-amber-950">Devolução parcial</p>
+      <p class="text-xs font-bold text-amber-900 mt-1">Ainda há itens (ou frete) nesta venda. Pode devolver o restante.</p>
+      {% if historico_devolucoes %}
+      <ul class="mt-2 space-y-1 text-xs font-semibold text-amber-950">
+        {% for h in historico_devolucoes %}
+        <li>R$ {{ h.total }} · {{ h.usuario|default:"—" }}{% if h.incluiu_frete %} · +frete{% endif %}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+
     {% endif %}
 
 
 
-    {% if erp_painel.tem_fiado %}
-    <div class="shrink-0 rounded-2xl border border-orange-200 bg-orange-50/50 p-4 sm:p-5">
-      <h2 class="text-sm font-black uppercase text-orange-950">Envio fiado ao ERP</h2>
-      <p class="text-xs font-bold text-orange-900 mt-1">Histórico local (reverter não cancela pedido no ERP).</p>
-      <details class="mt-2 rounded-xl border border-orange-200 bg-white px-3 py-2">
-        <summary class="text-xs font-black uppercase text-slate-700 cursor-pointer">Histórico · copiar para suporte</summary>
-        <ul class="mt-2 space-y-2 text-[11px] font-semibold text-slate-700 max-h-48 overflow-y-auto">
-          {% for lg in erp_painel.logs %}
-          <li>
-            <span class="font-black">{% if lg.ok %}✓{% else %}✗{% endif %} {{ lg.acao }}</span>
-            · {{ lg.ts|slice:":19"|default:"" }}
-            {% if lg.usuario %}· {{ lg.usuario }}{% endif %}
-            <div class="text-slate-600">{{ lg.mensagem }}</div>
-          </li>
-          {% empty %}
-          <li class="text-slate-500">Nenhum envio registrado.</li>
-          {% endfor %}
-        </ul>
-        <pre id="erp-log-json" class="mt-2 text-[10px] font-mono bg-slate-900 text-slate-100 p-2 rounded-lg max-h-32 overflow-auto">{{ erp_logs_json }}</pre>
-        <button type="button" id="btn-copiar-erp-log" class="mt-2 min-h-[40px] px-3 rounded-lg border border-slate-300 bg-white text-[10px] font-black uppercase">Copiar log JSON</button>
-      </details>
+    {% if nfce_painel.ativo and nfce_painel.processando and not v.devolvida %}
+    <div class="shrink-0 rounded-2xl border-2 border-sky-300 bg-sky-50 px-4 py-3">
+      <p class="text-sm font-black uppercase text-sky-950">Cupom fiscal sendo emitido</p>
+      <p class="text-xs font-bold text-sky-900 mt-1">Aguarde alguns segundos. Se não aparecer, atualize a página (F5).</p>
+    </div>
+    {% elif nfce_painel.ativo and nfce_painel.pendente and not v.devolvida %}
+    <div class="shrink-0 rounded-2xl border-2 border-amber-300 bg-amber-50 px-4 py-3">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="min-w-0">
+          <p class="text-sm font-black uppercase text-amber-950">Cupom fiscal não emitido</p>
+          <p class="text-xs font-bold text-amber-900 mt-1">A venda está registrada. Corrija o problema e reemitir a NFC-e.</p>
+        </div>
+        <button type="button" id="btn-nfce-ver-erro" class="shrink-0 min-h-[44px] px-4 rounded-xl border-2 border-amber-500 bg-white text-xs font-black uppercase text-amber-950 hover:bg-amber-100">Ver erro</button>
+      </div>
+    </div>
+    {% elif nfce_painel.ativo and nfce_painel.autorizada %}
+    <div class="shrink-0 rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-2.5">
+      <p class="text-xs font-black uppercase text-emerald-900">NFC-e autorizada{% if nfce_painel.numero %} · nº {{ nfce_painel.numero }}{% if nfce_painel.serie %} · série {{ nfce_painel.serie }}{% endif %}{% endif %}</p>
     </div>
     {% endif %}
+
+
 
     <div class="shrink-0 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
 
@@ -175,34 +215,14 @@
 
             <p class="text-[10px] font-black uppercase text-slate-400">Total</p>
 
-            <p class="text-xl sm:text-2xl font-black text-emerald-600 tabular-nums leading-tight mt-0.5">R$ {{ v.total|moeda_br }}</p>
-
-          </div>
-
-          <div>
-
-            <p class="text-[10px] font-black uppercase text-slate-400">ERP</p>
-
-            {% with s=v.erp_sync_efetivo %}
-
-            {% if s == 'aceito' %}
-
-            <span class="inline-flex mt-1 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">Aceito</span>
-
-            {% elif s == 'recusado_erp' %}
-
-            <span class="inline-flex mt-1 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-rose-100 text-rose-900">Recusado</span>
-
+            {% if v.devolvida %}
+            <p class="text-xl sm:text-2xl font-black text-rose-700 tabular-nums leading-tight mt-0.5">R$ 0,00</p>
+            <p class="text-xs font-bold text-slate-400 line-through">R$ {{ v.total|moeda_br }}</p>
+            {% elif mostra_total_restante %}
+            <p class="text-xl sm:text-2xl font-black text-emerald-600 tabular-nums leading-tight mt-0.5">R$ {{ total_restante|moeda_br }}</p>
+            <p class="text-xs font-bold text-slate-400 line-through">original R$ {{ v.total|moeda_br }}</p>
             {% else %}
-
-            <span class="inline-flex mt-1 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-amber-100 text-amber-900">Falha envio</span>
-
-            {% endif %}
-
-            {% endwith %}
-
-            {% if erp_painel.tem_fiado and erp_painel.fiado_aguarda_envio_erp %}
-            <p class="text-[10px] font-bold text-orange-800 mt-1">Aguardando envio manual</p>
+            <p class="text-xl sm:text-2xl font-black text-emerald-600 tabular-nums leading-tight mt-0.5">R$ {{ v.total|moeda_br }}</p>
             {% endif %}
 
           </div>
@@ -235,6 +255,19 @@
 
           </div>
 
+          {% if nfce_painel.ativo %}
+          <div>
+            <p class="text-[10px] font-black uppercase text-slate-400">Cupom fiscal</p>
+            {% if nfce_painel.autorizada %}
+            <span class="inline-flex mt-1 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">Autorizada</span>
+            {% elif nfce_painel.pendente %}
+            <span class="inline-flex mt-1 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-amber-100 text-amber-900">Pendente</span>
+            {% else %}
+            <span class="inline-flex mt-1 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-slate-100 text-slate-600">Interno</span>
+            {% endif %}
+          </div>
+          {% endif %}
+
         </div>
 
       </div>
@@ -249,7 +282,14 @@
 
       <div class="flex-1 min-h-0 overflow-auto overscroll-contain">
 
-        <table class="w-full text-sm min-w-[36rem]">
+        <table class="venda-itens-table w-full text-sm min-w-[36rem]">
+
+          <colgroup>
+            <col class="venda-c-desc">
+            <col class="venda-c-qtd">
+            <col class="venda-c-unit">
+            <col class="venda-c-tot">
+          </colgroup>
 
           <thead class="sticky top-0 z-10 bg-slate-50">
 
@@ -271,15 +311,29 @@
 
             {% for it in v.itens.all %}
 
-            <tr class="hover:bg-slate-50/80">
+            <tr class="hover:bg-slate-50/80 {% if it.quantidade_restante <= 0 %}bg-rose-50/40{% endif %}">
 
-              <td class="px-4 py-3 text-slate-900">{{ it.descricao|default:"—" }}</td>
+              <td class="px-4 py-3 text-slate-900">
+                <span class="{% if it.quantidade_restante <= 0 %}line-through text-slate-500{% endif %}">{{ it.descricao|default:"—" }}</span>
+                {% if it.quantidade_devolvida > 0 %}
+                <span class="ml-2 inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase {% if it.quantidade_restante <= 0 %}bg-rose-100 text-rose-800{% else %}bg-amber-100 text-amber-900{% endif %}">
+                  {% if it.quantidade_restante <= 0 %}Devolvido{% else %}Parc. devolvido {{ it.quantidade_devolvida|qtd_br }}{% endif %}
+                </span>
+                {% endif %}
+              </td>
 
-              <td class="px-4 py-3 text-right tabular-nums text-base">{{ it.quantidade|qtd_br }}</td>
+              <td class="px-4 py-3 text-right tabular-nums text-base {% if it.quantidade_restante <= 0 %}line-through text-slate-500{% endif %}">
+                {% if it.quantidade_devolvida > 0 and it.quantidade_restante > 0 %}
+                <span class="block text-slate-900">{{ it.quantidade_restante|qtd_br }}</span>
+                <span class="block text-xs font-bold text-slate-400 line-through">{{ it.quantidade|qtd_br }}</span>
+                {% else %}
+                {{ it.quantidade|qtd_br }}
+                {% endif %}
+              </td>
 
-              <td class="px-4 py-3 text-right tabular-nums">R$ {{ it.valor_unitario|moeda_br }}</td>
+              <td class="px-4 py-3 text-right tabular-nums {% if it.quantidade_restante <= 0 %}line-through text-slate-500{% endif %}">R$ {{ it.valor_unitario|moeda_br }}</td>
 
-              <td class="px-4 py-3 text-right tabular-nums font-black text-base">R$ {{ it.valor_total|moeda_br }}</td>
+              <td class="px-4 py-3 text-right tabular-nums font-black text-base {% if it.quantidade_restante <= 0 %}line-through text-slate-500{% endif %}">R$ {{ it.valor_total|moeda_br }}</td>
 
             </tr>
 
@@ -303,49 +357,83 @@
 
   {% if not v.devolvida %}
 
-  <div id="modal-devolucao" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70" role="dialog" aria-modal="true">
+  <div id="modal-devolucao" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/70" role="dialog" aria-modal="true">
 
-    <div class="bg-white rounded-2xl border-2 border-rose-200 shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+    <div class="bg-white rounded-2xl border-2 border-rose-200 shadow-2xl w-full max-w-[min(96vw,54rem)] max-h-[96dvh] flex flex-col overflow-hidden">
 
-      <div class="px-4 py-3 border-b border-rose-100 bg-rose-50/80">
+      <div class="px-5 py-4 border-b border-rose-100 bg-rose-50/80">
 
-        <h2 class="text-base font-black uppercase text-rose-900">Devolver venda #{{ v.id }}</h2>
-
-        <p class="text-xs font-semibold text-rose-800 mt-1">Repõe o estoque (se houve baixa) e registra <strong>saída no caixa aberto</strong> para devolver ao cliente.</p>
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <h2 class="text-2xl sm:text-[1.75rem] font-black uppercase text-rose-900 leading-tight">Devolver venda #{{ v.id }}</h2>
+          <details class="shrink-0 rounded-xl border-2 border-amber-300 bg-amber-50 px-3 py-1.5 text-slate-800 max-w-full sm:max-w-[22rem]">
+            <summary class="min-h-[44px] cursor-pointer select-none font-black uppercase text-amber-950 text-sm tracking-wide list-none flex items-center gap-2">
+              <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-amber-600 bg-white text-base" aria-hidden="true">?</span>
+              Ajuda
+            </summary>
+            <div class="mt-2 space-y-2 text-base font-semibold leading-snug border-t border-amber-200 pt-2 text-slate-800">
+              <p>Marque os <strong>itens</strong> (e a taxa de entrega, se quiser devolver o frete).</p>
+              <p>Forma <strong>Fiado</strong> só aparece se a venda foi no fiado — aí <strong>abate a dívida</strong>, sem tirar dinheiro do caixa.</p>
+              <p>Dinheiro, PIX, cartão etc. → <strong>saída no caixa aberto</strong>.</p>
+              <p>O valor das formas tem que ser <strong>igual</strong> aos itens marcados (não sobra nem falta centavo).</p>
+              <p>Devolução parcial: o cupom fiscal (NFC-e), se existir, <strong>não</strong> cancela.</p>
+              <p>Devolução <strong>total</strong> com NFC-e: na confirmação o sistema <strong>pergunta</strong> se cancela o cupom na SEFAZ (prazo ~30 min). Dá para devolver e <strong>manter</strong> o cupom.</p>
+            </div>
+          </details>
+        </div>
 
       </div>
 
-      <div class="p-4 space-y-3 overflow-y-auto flex-1">
+      <div class="p-5 sm:p-6 space-y-5 overflow-y-auto flex-1 min-h-0">
+
+        <div>
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <p class="text-base sm:text-lg font-black uppercase tracking-wide text-slate-700">Itens a devolver</p>
+            <button type="button" id="btn-devolver-tudo" class="min-h-[48px] px-3 text-lg font-black uppercase text-rose-700 underline">Marcar tudo</button>
+          </div>
+          <div id="devolucao-itens-list" class="space-y-3 max-h-[min(42vh,24rem)] overflow-y-auto"></div>
+          {% if frete_venda and frete_restante %}
+          <label class="mt-3 flex items-center gap-3 rounded-2xl border-2 border-slate-300 bg-slate-50 px-4 py-3.5 min-h-[60px] cursor-pointer">
+            <input type="checkbox" id="devolucao-frete-chk" class="w-8 h-8 accent-rose-600 shrink-0">
+            <span class="text-xl font-bold text-slate-900">Taxa de entrega — R$ <span id="devolucao-frete-val" class="tabular-nums">{{ frete_restante }}</span></span>
+          </label>
+          {% endif %}
+        </div>
 
         <label class="block">
 
-          <span class="text-[10px] font-black uppercase text-slate-500">Motivo (opcional)</span>
+          <span class="text-base sm:text-lg font-black uppercase tracking-wide text-slate-700">Motivo (opcional)</span>
 
-          <textarea id="devolucao-motivo" rows="2" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold" maxlength="500" placeholder="Ex.: produto com defeito, desistência…"></textarea>
+          <textarea id="devolucao-motivo" rows="2" class="mt-2 w-full rounded-2xl border-2 border-slate-300 px-4 py-3 text-lg font-semibold min-h-[5rem]" maxlength="500" placeholder="Ex.: produto com defeito, desistência…"></textarea>
 
         </label>
 
+        {% if nfce_painel.autorizada %}
+        <div class="rounded-2xl border-2 border-amber-400 bg-amber-50 px-4 py-3">
+          <p class="text-lg font-black uppercase text-amber-950">Esta venda tem NFC-e autorizada</p>
+          <p class="text-base font-semibold text-amber-900 mt-1">Na confirmação, se for devolução <strong>total</strong>, o sistema pergunta se cancela o cupom. Detalhes → <strong>?</strong> Ajuda.</p>
+        </div>
+        {% endif %}
+
         <div>
 
-          <p class="text-[10px] font-black uppercase text-slate-500 mb-2">Valor devolvido por forma</p>
+          <p class="text-base sm:text-lg font-black uppercase tracking-wide text-slate-700 mb-2">Valor devolvido por forma</p>
 
-          <p class="text-xs text-slate-500 mb-2">Padrão = pagamento da venda. Ajuste se devolver em outra forma.</p>
+          <div id="devolucao-pagamentos-list" class="space-y-3"></div>
 
-          <div id="devolucao-pagamentos-list" class="space-y-2"></div>
-
-          <button type="button" id="btn-add-forma-dev" class="mt-2 text-xs font-black uppercase text-emerald-700 underline">+ Adicionar forma</button>
+          <button type="button" id="btn-add-forma-dev" class="mt-3 min-h-[48px] text-lg font-black uppercase text-emerald-700 underline">+ Adicionar forma</button>
 
         </div>
 
-        <p class="text-sm font-black text-slate-800">Total a devolver: <span id="devolucao-total-label" class="tabular-nums text-emerald-700">R$ {{ v.total|moeda_br }}</span></p>
+        <p class="text-xl sm:text-2xl font-black text-slate-900">Total a devolver: <span id="devolucao-total-label" class="tabular-nums text-emerald-700">R$ 0,00</span></p>
+        <p id="devolucao-total-dica" class="hidden text-lg font-bold text-rose-700 leading-snug">Ajuste o valor da forma — tem que ser <strong>igual</strong> aos itens (não pode sobrar nem faltar centavo).</p>
 
       </div>
 
-      <div class="px-4 py-3 border-t border-slate-100 flex flex-wrap gap-2 justify-end bg-slate-50">
+      <div class="px-5 sm:px-6 py-4 border-t border-slate-200 flex flex-wrap gap-3 justify-end bg-slate-50">
 
-        <button type="button" id="btn-devolucao-cancelar" class="min-h-[48px] px-4 rounded-xl border-2 border-slate-200 font-black uppercase text-xs text-slate-700">Cancelar</button>
+        <button type="button" id="btn-devolucao-cancelar" class="min-h-[60px] px-7 rounded-2xl border-2 border-slate-300 font-black uppercase text-lg text-slate-800">Cancelar</button>
 
-        <button type="button" id="btn-devolucao-confirmar" class="min-h-[48px] px-5 rounded-xl bg-rose-600 text-white font-black uppercase text-xs hover:bg-rose-700">Confirmar devolução</button>
+        <button type="button" id="btn-devolucao-confirmar" class="min-h-[60px] px-9 rounded-2xl bg-rose-600 text-white font-black uppercase text-lg hover:bg-rose-700 shadow-md">Confirmar devolução</button>
 
       </div>
 
@@ -353,15 +441,105 @@
 
   </div>
 
+  <div id="modal-devolucao-ask" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/75" role="dialog" aria-modal="true">
+    <div class="bg-white rounded-2xl border-2 border-rose-300 shadow-2xl w-full max-w-[min(96vw,40rem)] overflow-hidden">
+      <div class="px-6 py-5 border-b border-rose-100 bg-rose-50">
+        <h3 class="text-xl sm:text-2xl font-black uppercase text-rose-900">Confirmar devolução?</h3>
+        <p id="devolucao-ask-texto" class="text-lg font-semibold text-rose-900 mt-3 leading-snug"></p>
+        <div id="devolucao-ask-nfce" class="hidden mt-4 rounded-2xl border-2 border-amber-400 bg-amber-50 px-4 py-3">
+          <p class="text-lg font-black uppercase text-amber-950">Cupom fiscal (NFC-e)</p>
+          <p class="text-base font-semibold text-amber-900 mt-1 leading-snug">Escolha abaixo. Cancelar na SEFAZ só vale ~30 min após a autorização do cupom.</p>
+        </div>
+      </div>
+      <div class="px-6 py-5 flex flex-wrap gap-3 justify-end bg-slate-50">
+        <button type="button" id="btn-devolucao-ask-nao" class="min-h-[56px] px-6 rounded-2xl border-2 border-slate-300 font-black uppercase text-base text-slate-800">Voltar</button>
+        <button type="button" id="btn-devolucao-ask-sim" class="min-h-[56px] px-8 rounded-2xl bg-rose-600 text-white font-black uppercase text-base hover:bg-rose-700 shadow-md">Sim, devolver</button>
+        <button type="button" id="btn-devolucao-ask-manter-cupom" class="hidden min-h-[56px] px-5 rounded-2xl border-2 border-amber-500 bg-white text-amber-950 font-black uppercase text-sm sm:text-base hover:bg-amber-50 shadow-sm">Devolver e manter cupom</button>
+        <button type="button" id="btn-devolucao-ask-cancelar-cupom" class="hidden min-h-[56px] px-5 rounded-2xl bg-rose-600 text-white font-black uppercase text-sm sm:text-base hover:bg-rose-700 shadow-md border-2 border-rose-700">Devolver e cancelar cupom</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-devolucao-aviso" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/75" role="dialog" aria-modal="true">
+    <div class="bg-white rounded-2xl border-2 border-amber-400 shadow-2xl w-full max-w-[min(96vw,36rem)] overflow-hidden">
+      <div class="px-6 py-5 bg-amber-50 border-b border-amber-200">
+        <h3 class="text-xl sm:text-2xl font-black uppercase text-amber-950">Atenção</h3>
+        <p id="devolucao-aviso-texto" class="text-lg font-semibold text-amber-950 mt-3 leading-snug whitespace-pre-wrap"></p>
+      </div>
+      <div class="px-6 py-5 flex justify-end bg-slate-50">
+        <button type="button" id="btn-devolucao-aviso-ok" class="min-h-[56px] px-8 rounded-2xl bg-amber-500 text-white font-black uppercase text-base hover:bg-amber-600 border-2 border-amber-600">Entendi</button>
+      </div>
+    </div>
+  </div>
+
+  {% endif %}
+
+  {% if nfce_painel.ativo %}
+  <div id="modal-nfce-detalhe" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70" role="dialog" aria-modal="true">
+    <div class="bg-white rounded-2xl border-2 border-amber-200 shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-4 py-3 border-b border-amber-100 bg-amber-50/80">
+        <h2 class="text-base font-black uppercase text-amber-950">Detalhe do erro fiscal</h2>
+        <p class="text-xs font-semibold text-amber-900 mt-1">Venda #{{ v.pk }}</p>
+      </div>
+      <div class="p-4 space-y-3 overflow-y-auto flex-1">
+        <div class="rounded-xl border-2 border-amber-200 bg-amber-50 px-3 py-3">
+          <p class="text-sm font-semibold text-amber-950 leading-snug whitespace-pre-wrap" id="nfce-detalhe-erro-text">{{ nfce_painel.erro|default:"Sem detalhe registrado." }}</p>
+        </div>
+        <label class="block">
+          <span class="text-[10px] font-black uppercase text-slate-500">CPF ou CNPJ do consumidor (opcional)</span>
+          <input type="text" inputmode="numeric" id="nfce-detalhe-cpf" maxlength="18" value="{{ nfce_painel.dest_cpf }}" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold tabular-nums min-h-[44px]">
+        </label>
+        <label class="flex items-center gap-2 min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 px-3 cursor-pointer">
+          <input type="checkbox" id="nfce-detalhe-sem-id" class="w-5 h-5 accent-amber-600" {% if nfce_painel.consumidor_sem_identificacao %}checked{% endif %}>
+          <span class="text-sm font-bold text-slate-800">Venda sem identificação</span>
+        </label>
+      </div>
+      <div class="px-4 py-3 border-t border-slate-100 flex flex-wrap gap-2 justify-end bg-slate-50">
+        <button type="button" id="nfce-detalhe-fechar" class="min-h-[48px] px-4 rounded-xl border-2 border-slate-200 font-black uppercase text-xs text-slate-700">Fechar</button>
+        {% if nfce_painel.pendente and not v.devolvida %}
+        <button type="button" id="nfce-detalhe-reemitir" class="min-h-[48px] px-5 rounded-xl bg-amber-500 text-white font-black uppercase text-xs hover:bg-amber-600 border-2 border-amber-600">Reemitir NFC-e</button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
   {% endif %}
 
 
 
-{% include "produtos/_atalho_voltar_pdv.html" %}
+  <script>
+  (function () {
+    try {
+      var q = new URLSearchParams(window.location.search || '');
+      if (q.get('agro_fiado_embed') !== '1') return;
+      document.documentElement.classList.add('agro-venda-fiado-embed');
+      function fecharNoFiado() {
+        try {
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: 'fiado-venda-overlay-close' }, window.location.origin);
+          }
+        } catch (_) {}
+      }
+      document.addEventListener(
+        'keydown',
+        function (e) {
+          var k = e.key || '';
+          if (k !== 'Escape' && k !== 'F1') return;
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          fecharNoFiado();
+        },
+        true
+      );
+    } catch (_) {}
+  })();
+  </script>
+  {% include "produtos/_atalho_voltar_pdv.html" %}
 
 {{ pagamentos_devolucao_default|json_script:"venda-pagamentos-default" }}
 
 {{ formas_pagamento_caixa|json_script:"venda-formas-caixa" }}
+
+{{ itens_devolucao_json|json_script:"venda-itens-devolucao" }}
 
 <script>
 
@@ -397,250 +575,199 @@
 
 
 
-  var btnErpEnv = document.getElementById('btn-erp-envio-manual');
-
-  if (btnErpEnv) {
-
-    btnErpEnv.addEventListener('click', function () {
-
-      if (!confirm('Conferiu cliente e valor? Enviar venda #{{ v.pk }} ao ERP?')) return;
-
-      if (!confirm('Última confirmação: enviar agora ao ERP?')) return;
-
-      btnErpEnv.disabled = true;
-
-      fetch('{% url "api_venda_agro_reenviar_erp" v.pk %}', {
-
-        method: 'POST',
-
-        credentials: 'same-origin',
-
-        headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json', 'Accept': 'application/json' },
-
-        body: JSON.stringify({ confirmar: true }),
-
-      })
-
-        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
-
-        .then(function (x) {
-
-          if (x.j && x.j.ok) { alert(x.j.mensagem || 'Enviado ao ERP.'); location.reload(); return; }
-
-          var det = (x.j && x.j.log_ultimo) ? '\n\nLog: ' + JSON.stringify(x.j.log_ultimo) : '';
-
-          alert(((x.j && (x.j.erro || x.j.mensagem)) || 'Falha.') + det);
-
-        })
-
-        .catch(function () { alert('Falha de rede.'); })
-
-        .finally(function () { btnErpEnv.disabled = false; });
-
-    });
-
-  }
-
-  var btnErpRev = document.getElementById('btn-erp-reverter');
-
-  if (btnErpRev) {
-
-    btnErpRev.addEventListener('click', function () {
-
-      if (!confirm('Reverter envio no Agro? O ERP não será cancelado automaticamente.')) return;
-
-      fetch('{% url "api_venda_agro_reverter_erp" v.pk %}', {
-
-        method: 'POST',
-
-        credentials: 'same-origin',
-
-        headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' },
-
-        body: JSON.stringify({ confirmar: true }),
-
-      })
-
-        .then(function (r) { return r.json(); })
-
-        .then(function (j) {
-
-          if (j.ok) { alert(j.mensagem || 'Revertido.'); location.reload(); return; }
-
-          alert(j.erro || 'Falha ao reverter.');
-
-        })
-
-        .catch(function () { alert('Falha de rede.'); });
-
-    });
-
-  }
-
-  var btnCopLog = document.getElementById('btn-copiar-erp-log');
-
-  if (btnCopLog) {
-
-    btnCopLog.addEventListener('click', function () {
-
-      var pre = document.getElementById('erp-log-json');
-
-      var txt = pre ? pre.textContent : '[]';
-
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-
-        navigator.clipboard.writeText(txt).then(function () { alert('Log copiado.'); });
-
-      } else {
-
-        alert('Copie o texto do bloco JSON abaixo.');
-
-      }
-
-    });
-
-  }
-
-
-
   var modal = document.getElementById('modal-devolucao');
 
   if (!modal) return;
 
-
-
-  var totalVenda = parseBr('{{ v.total }}');
-
   var formas = [];
-
   var defaultPag = [];
-
+  var itensDev = [];
+  var freteRestante = parseBr('{{ frete_restante|default:"0" }}');
   try { formas = JSON.parse(document.getElementById('venda-formas-caixa').textContent || '[]'); } catch (e) {}
-
   try { defaultPag = JSON.parse(document.getElementById('venda-pagamentos-default').textContent || '[]'); } catch (e) {}
-
-
+  try { itensDev = JSON.parse(document.getElementById('venda-itens-devolucao').textContent || '[]'); } catch (e) {}
 
   var listEl = document.getElementById('devolucao-pagamentos-list');
-
+  var itensEl = document.getElementById('devolucao-itens-list');
   var totalLabel = document.getElementById('devolucao-total-label');
+  var freteChk = document.getElementById('devolucao-frete-chk');
 
+  function totalSelecionado() {
+    var s = 0;
+    if (itensEl) {
+      itensEl.querySelectorAll('[data-item-id]').forEach(function (row) {
+        var chk = row.querySelector('.dev-item-chk');
+        var qInp = row.querySelector('.dev-item-qtd');
+        if (!chk || !chk.checked) return;
+        var max = parseFloat(row.getAttribute('data-restante') || '0') || 0;
+        var unitVal = parseFloat(row.getAttribute('data-valor-restante') || '0') || 0;
+        var qMax = parseFloat(row.getAttribute('data-qtd-restante') || '0') || 0;
+        var q = parseFloat(String(qInp && qInp.value || '0').replace(',', '.')) || 0;
+        if (q <= 0 || qMax <= 0) return;
+        if (q >= qMax) s += unitVal;
+        else s += unitVal * (q / qMax);
+      });
+    }
+    if (freteChk && freteChk.checked) s += freteRestante;
+    return Math.round(s * 100) / 100;
+  }
 
+  function syncPagamentosAoTotal() {
+    var t = totalSelecionado();
+    var forma0 = (defaultPag[0] && defaultPag[0].forma) || formas[0] || 'Dinheiro';
+    if (formas.indexOf(forma0) < 0) forma0 = formas[0] || 'Dinheiro';
+    renderRows([{ forma: forma0, valor: t }]);
+  }
+
+  function renderItens() {
+    if (!itensEl) return;
+    itensEl.innerHTML = '';
+    (itensDev || []).forEach(function (it) {
+      var rest = Number(it.quantidade_restante || 0);
+      if (rest <= 0) return;
+      var div = document.createElement('div');
+      div.className = 'flex flex-wrap items-center gap-3 rounded-2xl border-2 border-slate-300 bg-slate-50 px-4 py-3.5 min-h-[64px]';
+      div.setAttribute('data-item-id', String(it.id));
+      div.setAttribute('data-restante', String(it.valor_restante || 0));
+      div.setAttribute('data-valor-restante', String(it.valor_restante || 0));
+      div.setAttribute('data-qtd-restante', String(rest));
+      div.innerHTML =
+        '<label class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">' +
+        '<input type="checkbox" class="dev-item-chk w-8 h-8 accent-rose-600 shrink-0" checked>' +
+        '<span class="text-xl font-bold text-slate-900 truncate">' + String(it.descricao || 'Item').replace(/</g, '') + '</span>' +
+        '</label>' +
+        '<input type="text" inputmode="decimal" class="dev-item-qtd min-h-[56px] w-[6.5rem] rounded-xl border-2 border-slate-300 px-3 text-right text-xl font-black tabular-nums" value="' + String(rest).replace('.', ',') + '">' +
+        '<span class="text-xl font-black text-slate-800 tabular-nums min-w-[8rem] text-right">R$ ' + fmtBr(Number(it.valor_restante || 0)) + '</span>';
+      itensEl.appendChild(div);
+    });
+    if (itensEl) {
+      itensEl.querySelectorAll('.dev-item-chk, .dev-item-qtd').forEach(function (el) {
+        el.addEventListener('input', syncPagamentosAoTotal);
+        el.addEventListener('change', syncPagamentosAoTotal);
+      });
+    }
+    if (freteChk) {
+      freteChk.checked = false;
+      freteChk.addEventListener('change', syncPagamentosAoTotal);
+    }
+  }
+
+  function collectItensPayload() {
+    var out = [];
+    if (!itensEl) return out;
+    itensEl.querySelectorAll('[data-item-id]').forEach(function (row) {
+      var chk = row.querySelector('.dev-item-chk');
+      var qInp = row.querySelector('.dev-item-qtd');
+      if (!chk || !chk.checked) return;
+      var q = parseFloat(String(qInp && qInp.value || '0').replace(',', '.')) || 0;
+      if (q <= 0) return;
+      out.push({ item_id: parseInt(row.getAttribute('data-item-id'), 10), quantidade: q });
+    });
+    return out;
+  }
+
+  /** True se a seleção zera a venda (todos os itens restantes + frete, se houver). */
+  function selecaoTotaliza() {
+    var temLinha = false;
+    if (itensEl) {
+      var rows = itensEl.querySelectorAll('[data-item-id]');
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var qMax = parseFloat(row.getAttribute('data-qtd-restante') || '0') || 0;
+        if (qMax <= 0.0001) continue;
+        temLinha = true;
+        var chk = row.querySelector('.dev-item-chk');
+        var qInp = row.querySelector('.dev-item-qtd');
+        if (!chk || !chk.checked) return false;
+        var q = parseFloat(String(qInp && qInp.value || '0').replace(',', '.')) || 0;
+        if (q + 0.0001 < qMax) return false;
+      }
+    }
+    if (freteRestante > 0.009) {
+      temLinha = true;
+      if (!(freteChk && freteChk.checked)) return false;
+    }
+    return temLinha;
+  }
+
+  var temNfceAutorizada = {% if nfce_painel.autorizada %}true{% else %}false{% endif %};
 
   function renderRows(rows) {
-
     listEl.innerHTML = '';
-
     (rows || []).forEach(function (row, idx) {
-
       var div = document.createElement('div');
-
-      div.className = 'flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2';
-
-      var sel = '<select data-idx="' + idx + '" class="dev-forma flex-1 min-h-[44px] rounded-lg border-2 border-slate-200 px-2 text-sm font-bold">';
-
+      div.className = 'flex flex-wrap items-end gap-3 rounded-2xl border-2 border-slate-300 bg-slate-50 p-4';
+      var sel = '<select data-idx="' + idx + '" class="dev-forma flex-1 min-h-[60px] rounded-xl border-2 border-slate-300 px-3 text-xl font-bold">';
       formas.forEach(function (f) {
-
         sel += '<option value="' + f.replace(/"/g, '&quot;') + '"' + (f === row.forma ? ' selected' : '') + '>' + f + '</option>';
-
       });
-
       sel += '</select>';
-
       div.innerHTML =
-
         sel +
-
-        '<input type="text" inputmode="decimal" data-idx="' + idx + '" class="dev-valor min-h-[44px] w-[6.5rem] rounded-lg border-2 border-slate-200 px-2 text-right text-base font-black tabular-nums" value="' +
-
+        '<input type="text" inputmode="decimal" data-idx="' + idx + '" class="dev-valor min-h-[60px] w-[9rem] rounded-xl border-2 border-slate-300 px-3 text-right text-2xl font-black tabular-nums" value="' +
         fmtBr(Number(row.valor || 0)) +
-
         '">' +
-
-        '<button type="button" data-rm="' + idx + '" class="min-h-[44px] px-2 text-xs font-black uppercase text-red-700">Rem.</button>';
-
+        '<button type="button" data-rm="' + idx + '" class="min-h-[60px] px-4 text-lg font-black uppercase text-red-700">Rem.</button>';
       listEl.appendChild(div);
-
     });
-
     bindRowEvents();
-
     updTotal();
-
   }
-
-
 
   function collectRows() {
-
     var rows = [];
-
     listEl.querySelectorAll('.dev-forma').forEach(function (sel, i) {
-
       var valInp = listEl.querySelectorAll('.dev-valor')[i];
-
-      rows.push({
-
-        forma: sel.value,
-
-        valor: parseBr(valInp ? valInp.value : 0),
-
-      });
-
+      rows.push({ forma: sel.value, valor: parseBr(valInp ? valInp.value : 0) });
     });
-
     return rows;
-
   }
-
-
 
   function updTotal() {
-
+    var alvo = totalSelecionado();
     var s = collectRows().reduce(function (a, r) { return a + (r.valor || 0); }, 0);
-
-    totalLabel.textContent = 'R$ ' + fmtBr(s);
-
-    totalLabel.classList.toggle('text-rose-700', Math.abs(s - totalVenda) > 0.02);
-
-    totalLabel.classList.toggle('text-emerald-700', Math.abs(s - totalVenda) <= 0.02);
-
+    var ok = Math.abs(s - alvo) < 0.005;
+    totalLabel.textContent = 'R$ ' + fmtBr(s) + ' / R$ ' + fmtBr(alvo);
+    totalLabel.classList.toggle('text-rose-700', !ok);
+    totalLabel.classList.toggle('text-emerald-700', ok);
+    var dica = document.getElementById('devolucao-total-dica');
+    if (dica) dica.classList.toggle('hidden', ok || alvo <= 0);
   }
-
-
 
   function bindRowEvents() {
-
     listEl.querySelectorAll('.dev-forma, .dev-valor').forEach(function (el) {
-
       el.addEventListener('input', updTotal);
-
       el.addEventListener('change', updTotal);
-
     });
-
     listEl.querySelectorAll('[data-rm]').forEach(function (btn) {
-
       btn.addEventListener('click', function () {
-
         var idx = parseInt(btn.getAttribute('data-rm'), 10);
-
         var rows = collectRows();
-
         rows.splice(idx, 1);
-
         renderRows(rows);
-
       });
-
     });
-
   }
 
+  var askEl = document.getElementById('modal-devolucao-ask');
+  var avisoEl = document.getElementById('modal-devolucao-aviso');
+  var pendenteEnvio = null;
 
+  function mostrarAviso(msg) {
+    var el = document.getElementById('devolucao-aviso-texto');
+    if (el) el.textContent = msg;
+    if (avisoEl) avisoEl.classList.remove('hidden');
+  }
+  var btnAvisoOk = document.getElementById('btn-devolucao-aviso-ok');
+  if (btnAvisoOk) {
+    btnAvisoOk.addEventListener('click', function () {
+      if (avisoEl) avisoEl.classList.add('hidden');
+    });
+  }
 
   function abrirModalDevolucao() {
-    renderRows(defaultPag.length ? defaultPag.slice() : [{ forma: formas[0] || 'Dinheiro', valor: totalVenda }]);
+    renderItens();
+    syncPagamentosAoTotal();
     modal.classList.remove('hidden');
   }
   document.getElementById('btn-devolver-venda').addEventListener('click', abrirModalDevolucao);
@@ -650,107 +777,339 @@
     }
   } catch (e) {}
 
+  var btnTudo = document.getElementById('btn-devolver-tudo');
+  if (btnTudo) {
+    btnTudo.addEventListener('click', function () {
+      if (itensEl) {
+        itensEl.querySelectorAll('[data-item-id]').forEach(function (row) {
+          var chk = row.querySelector('.dev-item-chk');
+          var qInp = row.querySelector('.dev-item-qtd');
+          var qMax = row.getAttribute('data-qtd-restante') || '0';
+          if (chk) chk.checked = true;
+          if (qInp) qInp.value = String(qMax).replace('.', ',');
+        });
+      }
+      if (freteChk && freteRestante > 0) freteChk.checked = true;
+      syncPagamentosAoTotal();
+    });
+  }
+
   document.getElementById('btn-devolucao-cancelar').addEventListener('click', function () {
-
     modal.classList.add('hidden');
-
   });
 
   document.getElementById('btn-add-forma-dev').addEventListener('click', function () {
-
     var rows = collectRows();
-
     rows.push({ forma: formas[0] || 'Dinheiro', valor: 0 });
-
     renderRows(rows);
-
   });
+
+  function enviarDevolucao(payload) {
+    var btn = document.getElementById('btn-devolucao-confirmar');
+    btn.disabled = true;
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
+    fetch('{% url "api_venda_agro_devolver" v.pk %}', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken'),
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+      .then(function (r) {
+        return r.text().then(function (t) {
+          var j = null;
+          try {
+            j = t ? JSON.parse(t) : {};
+          } catch (e) {
+            var trecho = String(t || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+            return {
+              ok: false,
+              j: {
+                ok: false,
+                erro:
+                  'Servidor não respondeu JSON (HTTP ' +
+                  r.status +
+                  ').' +
+                  (trecho ? ' ' + trecho : ' Tente de novo; se repetir, anote o horário.'),
+              },
+            };
+          }
+          return { ok: r.ok, j: j || {} };
+        });
+      })
+      .then(function (x) {
+        if (x.j && x.j.ok) {
+          var msg = x.j.mensagem || 'Devolução registrada.';
+          if (x.j.avisos && x.j.avisos.length) msg += '\n\n' + x.j.avisos.join('\n');
+          mostrarAviso(msg);
+          setTimeout(function () { location.reload(); }, 700);
+          return;
+        }
+        mostrarAviso((x.j && x.j.erro) || 'Falha ao devolver.');
+      })
+      .catch(function (err) {
+        var m = (err && err.message) ? String(err.message) : '';
+        mostrarAviso(
+          m && m.indexOf('Failed to fetch') >= 0
+            ? 'Falha de rede ou tempo esgotado. Confira se a venda já foi devolvida e tente de novo.'
+            : (m || 'Falha de rede ou tempo esgotado. Tente de novo.')
+        );
+      })
+      .finally(function () {
+        btn.disabled = false;
+        if (window.gmLoadingBar) window.gmLoadingBar.hide();
+      });
+  }
 
   document.getElementById('btn-devolucao-confirmar').addEventListener('click', function () {
-
-    var rows = collectRows();
-
-    var soma = rows.reduce(function (a, r) { return a + (r.valor || 0); }, 0);
-
-    if (Math.abs(soma - totalVenda) > 0.02) {
-
-      alert('A soma das formas (R$ ' + fmtBr(soma) + ') deve ser igual ao total da venda (R$ ' + fmtBr(totalVenda) + ').');
-
+    var itens = collectItensPayload();
+    var devolverFrete = !!(freteChk && freteChk.checked);
+    var alvo = totalSelecionado();
+    if (alvo <= 0.009) {
+      mostrarAviso('Marque ao menos um item ou a taxa de entrega.');
       return;
-
     }
-
-    if (!confirm('Confirmar devolução? O estoque será reposto e o valor sairá do caixa aberto.')) return;
-
-    var btn = document.getElementById('btn-devolucao-confirmar');
-
-    btn.disabled = true;
-
-    if (window.gmLoadingBar) window.gmLoadingBar.show();
-
-    fetch('{% url "api_venda_agro_devolver" v.pk %}', {
-
-      method: 'POST',
-
-      credentials: 'same-origin',
-
-      headers: {
-
-        'Content-Type': 'application/json',
-
-        'X-CSRFToken': getCookie('csrftoken'),
-
-        'Accept': 'application/json',
-
-      },
-
-      body: JSON.stringify({
-
-        motivo: document.getElementById('devolucao-motivo').value || '',
-
-        pagamentos: rows,
-
-      }),
-
-    })
-
-      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
-
-      .then(function (x) {
-
-        if (x.j && x.j.ok) {
-
-          var msg = x.j.mensagem || 'Devolução registrada.';
-
-          if (x.j.avisos && x.j.avisos.length) msg += '\\n\\n' + x.j.avisos.join('\\n');
-
-          alert(msg);
-
-          location.reload();
-
-          return;
-
-        }
-
-        alert((x.j && x.j.erro) || 'Falha ao devolver.');
-
-      })
-
-      .catch(function () { alert('Falha de rede.'); })
-
-      .finally(function () {
-
-        btn.disabled = false;
-
-        if (window.gmLoadingBar) window.gmLoadingBar.hide();
-
-      });
-
+    var rows = collectRows();
+    var soma = rows.reduce(function (a, r) { return a + (r.valor || 0); }, 0);
+    if (Math.abs(soma - alvo) >= 0.005) {
+      mostrarAviso(
+        'O valor das formas (R$ ' + fmtBr(soma) + ') precisa ser igual ao dos itens (R$ ' + fmtBr(alvo) + ').\n\n' +
+        'Não sobra e não falta centavo — o sistema devolve só o que está marcado.'
+      );
+      return;
+    }
+    pendenteEnvio = {
+      motivo: document.getElementById('devolucao-motivo').value || '',
+      pagamentos: rows,
+      itens: itens,
+      devolver_frete: devolverFrete,
+    };
+    var askTxt = document.getElementById('devolucao-ask-texto');
+    if (askTxt) {
+      askTxt.textContent = 'Devolver R$ ' + fmtBr(alvo) + ' ao cliente? Estoque dos itens marcados volta e o valor sai na forma escolhida.';
+    }
+    var perguntarNfce = temNfceAutorizada && selecaoTotaliza();
+    var boxNfce = document.getElementById('devolucao-ask-nfce');
+    var btnSim = document.getElementById('btn-devolucao-ask-sim');
+    var btnManter = document.getElementById('btn-devolucao-ask-manter-cupom');
+    var btnCancelarCupom = document.getElementById('btn-devolucao-ask-cancelar-cupom');
+    if (boxNfce) boxNfce.classList.toggle('hidden', !perguntarNfce);
+    if (btnSim) btnSim.classList.toggle('hidden', perguntarNfce);
+    if (btnManter) btnManter.classList.toggle('hidden', !perguntarNfce);
+    if (btnCancelarCupom) btnCancelarCupom.classList.toggle('hidden', !perguntarNfce);
+    if (askEl) askEl.classList.remove('hidden');
   });
+
+  var btnAskNao = document.getElementById('btn-devolucao-ask-nao');
+  if (btnAskNao) {
+    btnAskNao.addEventListener('click', function () {
+      if (askEl) askEl.classList.add('hidden');
+      pendenteEnvio = null;
+    });
+  }
+
+  function confirmarAskComCancelarNfce(cancelarNfce) {
+    if (askEl) askEl.classList.add('hidden');
+    if (!pendenteEnvio) return;
+    var payload = pendenteEnvio;
+    pendenteEnvio = null;
+    if (typeof cancelarNfce === 'boolean') {
+      payload.cancelar_nfce = cancelarNfce;
+    }
+    enviarDevolucao(payload);
+  }
+
+  var btnAskSim = document.getElementById('btn-devolucao-ask-sim');
+  if (btnAskSim) {
+    btnAskSim.addEventListener('click', function () {
+      // Sem NFC-e na pergunta: não manda flag (backend mantém comportamento antigo).
+      confirmarAskComCancelarNfce(null);
+    });
+  }
+  var btnAskManter = document.getElementById('btn-devolucao-ask-manter-cupom');
+  if (btnAskManter) {
+    btnAskManter.addEventListener('click', function () {
+      confirmarAskComCancelarNfce(false);
+    });
+  }
+  var btnAskCancelarCupom = document.getElementById('btn-devolucao-ask-cancelar-cupom');
+  if (btnAskCancelarCupom) {
+    btnAskCancelarCupom.addEventListener('click', function () {
+      confirmarAskComCancelarNfce(true);
+    });
+  }
 
 })();
 
 </script>
+
+{% if nfce_painel.ativo %}
+<script>window.AGRO_CUPOM_LOGO_URL = "{% static 'produtos/img/logo_termica.png' %}";</script>
+<script src="{% static 'produtos/js/venda_cupom_80mm.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script>
+(function () {
+  function getCookie(name) {
+    var v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return v ? decodeURIComponent(v.pop()) : '';
+  }
+  var modal = document.getElementById('modal-nfce-detalhe');
+  function abrirModal() {
+    if (modal) modal.classList.remove('hidden');
+  }
+  function fecharModal() {
+    if (modal) modal.classList.add('hidden');
+  }
+  var btnProc = document.getElementById('btn-nfce-processando-venda');
+  if (btnProc) {
+    btnProc.addEventListener('click', function () {
+      alert('Cupom fiscal sendo emitido — aguarde alguns segundos e atualize a página (F5).');
+    });
+  }
+  var btnErro = document.getElementById('btn-nfce-ver-erro');
+  if (btnErro) btnErro.addEventListener('click', abrirModal);
+  var btnReHeader = document.getElementById('btn-nfce-reemitir-venda');
+  if (btnReHeader) btnReHeader.addEventListener('click', abrirModal);
+  var btnFechar = document.getElementById('nfce-detalhe-fechar');
+  if (btnFechar) btnFechar.addEventListener('click', fecharModal);
+  if (modal) {
+    modal.addEventListener('click', function (e) {
+      /* Fundo nao fecha — so X / FECHAR / Esc */
+    });
+  }
+  var btnRe = document.getElementById('nfce-detalhe-reemitir');
+  if (btnRe) {
+    btnRe.addEventListener('click', function () {
+      var cpf = (document.getElementById('nfce-detalhe-cpf').value || '').replace(/\D/g, '');
+      var semId = document.getElementById('nfce-detalhe-sem-id').checked;
+      if (!cpf && !semId) {
+        alert('Informe CPF ou CNPJ, ou marque venda sem identificação.');
+        return;
+      }
+      if (btnRe.dataset.busy === '1') return;
+      btnRe.dataset.busy = '1';
+      btnRe.disabled = true;
+      if (window.gmLoadingBar) window.gmLoadingBar.show();
+      var elMsg = document.getElementById('nfce-detalhe-erro-text');
+      if (elMsg) elMsg.textContent = 'Enviando à SEFAZ… (máx. 20s)';
+      var finished = false;
+      function terminar(msg) {
+        if (finished) return;
+        finished = true;
+        btnRe.dataset.busy = '0';
+        btnRe.disabled = false;
+        if (window.gmLoadingBar) {
+          window.gmLoadingBar.hide();
+          if (typeof window.gmLoadingBar.reset === 'function') window.gmLoadingBar.reset();
+        }
+        if (msg && elMsg) elMsg.textContent = msg;
+        if (msg) alert(msg);
+      }
+      var ctrlEmit = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      var hardTimer = setTimeout(function () {
+        try { if (ctrlEmit) ctrlEmit.abort(); } catch (eAb) {}
+        terminar('Não respondeu em 20s. F5 e confira se o erro mudou para «Tentativa…».');
+      }, 20000);
+      fetch('{% url "api_venda_agro_nfce_emitir" v.pk %}', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({ nfce_cpf: cpf, nfce_sem_identificacao: semId }),
+        signal: ctrlEmit ? ctrlEmit.signal : undefined,
+      })
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; }); })
+        .then(function (x) {
+          clearTimeout(hardTimer);
+          if (finished) return;
+          if (x.j && x.j.processando && x.status === 409) {
+            terminar(x.j.erro || 'Já está emitindo — aguarde e F5.');
+            return;
+          }
+          if (x.j && x.j.ok) {
+            finished = true;
+            btnRe.dataset.busy = '0';
+            if (window.gmLoadingBar) {
+              window.gmLoadingBar.hide();
+              if (typeof window.gmLoadingBar.reset === 'function') window.gmLoadingBar.reset();
+            }
+            fecharModal();
+            if (typeof agroEscolherImprimirCupomPosNfce === 'function') {
+              agroEscolherImprimirCupomPosNfce('{{ v.pk }}', {
+                onDone: function () { location.reload(); }
+              });
+            } else {
+              alert('NFC-e autorizada.');
+              location.reload();
+            }
+            return;
+          }
+          var err = (x.j && x.j.nfce && x.j.nfce.erro) || (x.j && x.j.erro) || 'Falha na reemissão.';
+          if (x.j && x.j.nfce_painel && x.j.nfce_painel.erro && elMsg) {
+            elMsg.textContent = x.j.nfce_painel.erro;
+          }
+          terminar(err);
+        })
+        .catch(function (err) {
+          clearTimeout(hardTimer);
+          if (finished) return;
+          var aborted = err && (err.name === 'AbortError' || /abort/i.test(String(err.message || '')));
+          terminar(
+            aborted
+              ? 'Não respondeu em 20s. F5 e confira se o erro mudou para «Tentativa…».'
+              : 'Falha de rede.'
+          );
+        });
+    });
+  }
+  var btnFiscal = document.getElementById('btn-imprimir-nfce-venda');
+  if (btnFiscal && typeof agroCarregarEImprimirCupomVenda === 'function') {
+    btnFiscal.addEventListener('click', function () {
+      agroCarregarEImprimirCupomVenda('{{ v.pk }}', { segunda_via: true }).catch(function (err) {
+        alert(err && err.message ? err.message : 'Não foi possível imprimir.');
+      });
+    });
+  }
+  var btnCancelNfce = document.getElementById('btn-nfce-cancelar-venda');
+  if (btnCancelNfce) {
+    btnCancelNfce.addEventListener('click', function () {
+      if (!confirm('Cancelar a NFC-e nº {{ nfce_painel.numero|default:"?" }} na SEFAZ?')) return;
+      btnCancelNfce.disabled = true;
+      if (window.gmLoadingBar) window.gmLoadingBar.show();
+      fetch('{% url "api_venda_agro_nfce_cancelar" v.pk %}', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+          Accept: 'application/json',
+        },
+        body: '{}',
+      })
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (x) {
+          if (x.j && x.j.ok) {
+            alert('NFC-e cancelada na SEFAZ.');
+            location.reload();
+            return;
+          }
+          alert((x.j && x.j.nfce && x.j.nfce.erro) || (x.j && x.j.erro) || 'Falha ao cancelar NFC-e.');
+        })
+        .catch(function () { alert('Falha de rede.'); })
+        .finally(function () {
+          btnCancelNfce.disabled = false;
+          if (window.gmLoadingBar) window.gmLoadingBar.hide();
+        });
+    });
+  }
+})();
+</script>
+{% endif %}
 
 {% if cupom_80mm %}
 {{ cupom_80mm|json_script:"venda-cupom-80mm-data" }}

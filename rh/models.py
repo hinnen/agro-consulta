@@ -35,6 +35,15 @@ class Funcionario(models.Model):
     cargo = models.CharField(max_length=120, blank=True)
     data_admissao = models.DateField(null=True, blank=True)
     ativo = models.BooleanField(default=True)
+    # Contas a pagar (salário): dia 1–28 (evita meses curtos); 0 = desligado.
+    dia_envio_cp_auto = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Dia do mês (1–28) em que o sistema gera o título no CP da competência anterior. 0 = não enviar automaticamente.",
+    )
+    dia_vencimento_salario = models.PositiveSmallIntegerField(
+        default=5,
+        help_text="Dia do mês (1–28) do vencimento do título de salário no CP (conta definida só no pagamento).",
+    )
     observacoes = models.TextField(blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
@@ -154,6 +163,77 @@ class ValeFuncionario(models.Model):
         return f"{self.funcionario} — {self.valor} em {self.data}"
 
 
+class PagamentoSalarioFuncionario(models.Model):
+    """Pagamento do salário (líquido) — não é vale/adiantamento."""
+
+    class TipoOrigem(models.TextChoices):
+        CP_TOTAL = "CP_TOTAL", "Contas a pagar (quitação)"
+        CP_PARCIAL = "CP_PARCIAL", "Contas a pagar (parcial)"
+        CAIXAS = "CAIXAS", "Caixa"
+
+    funcionario = models.ForeignKey(
+        Funcionario,
+        on_delete=models.CASCADE,
+        related_name="pagamentos_salario",
+    )
+    fechamento = models.ForeignKey(
+        "FechamentoFolhaSimplificado",
+        on_delete=models.CASCADE,
+        related_name="pagamentos_salario",
+        null=True,
+        blank=True,
+    )
+    empresa = models.ForeignKey(
+        "base.Empresa",
+        on_delete=models.CASCADE,
+        related_name="pagamentos_salario_funcionario",
+    )
+    loja = models.ForeignKey(
+        "base.Loja",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="pagamentos_salario_funcionario",
+    )
+    data = models.DateField()
+    valor = models.DecimalField(max_digits=12, decimal_places=2)
+    tipo_origem = models.CharField(max_length=20, choices=TipoOrigem.choices)
+    observacao = models.TextField(blank=True)
+    referencia_externa_tipo = models.CharField(max_length=80, blank=True)
+    referencia_externa_id = models.CharField(max_length=64, blank=True)
+    criado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="pagamentos_salario_rh_criados",
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    cancelado = models.BooleanField(default=False)
+    cancelado_em = models.DateTimeField(null=True, blank=True)
+    motivo_cancelamento = models.CharField(max_length=400, blank=True)
+
+    class Meta:
+        ordering = ["-data", "-id"]
+        verbose_name = "Pagamento de salário"
+        verbose_name_plural = "Pagamentos de salário"
+        indexes = [
+            models.Index(fields=["empresa", "data"]),
+            models.Index(fields=["funcionario", "data"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["referencia_externa_tipo", "referencia_externa_id"],
+                condition=models.Q(referencia_externa_id__gt=""),
+                name="rh_pagamento_salario_unico_ref_externa",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.funcionario} — pag. {self.valor} em {self.data}"
+
+
 class FechamentoFolhaSimplificado(models.Model):
     class Status(models.TextChoices):
         ABERTO = "ABERTO", "Aberto"
@@ -223,6 +303,7 @@ class ItemFechamentoFolha(models.Model):
     class Tipo(models.TextChoices):
         SALARIO_BASE = "SALARIO_BASE", "Salário base"
         VALE = "VALE", "Vale"
+        PAGAMENTO_SALARIO = "PAGAMENTO_SALARIO", "Pagamento salário"
         DESCONTO = "DESCONTO", "Desconto"
         ACRESCIMO = "ACRESCIMO", "Acréscimo"
         AJUSTE = "AJUSTE", "Ajuste"

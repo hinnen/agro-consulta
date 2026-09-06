@@ -1,21 +1,28 @@
 {# Saída financeira (plano de conta) + retirada no turno — layout widescreen (viewport cheio) #}
 <div class="caixa-painel-full caixa-saida-panel flex flex-col flex-1 min-h-0 w-full max-w-none rounded-2xl border-2 border-orange-200 bg-gradient-to-br from-white to-orange-50/40 shadow-sm overflow-hidden">
   <div class="shrink-0 px-4 sm:px-5 lg:px-6 pt-4 sm:pt-5 pb-2 border-b border-orange-100/80">
+    <div id="cx-sucesso-retirada" class="hidden mb-3 rounded-xl border-2 border-emerald-500 bg-emerald-50 px-4 py-3 flex items-center gap-3 shadow-sm cx-sucesso-pop" role="status" aria-live="polite">
+      <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white text-xl font-black" aria-hidden="true">✓</span>
+      <div>
+        <p id="cx-sucesso-retirada-texto" class="text-sm sm:text-base font-black uppercase text-emerald-900">Retirada concluída com sucesso!</p>
+        <p class="text-xs font-semibold text-emerald-800/80">Campos limpos — pode registrar outra saída.</p>
+      </div>
+    </div>
     <h2 class="text-base sm:text-lg font-black uppercase text-orange-900">Retirada / saída</h2>
-    <p id="cx-legenda-painel" class="mt-1 text-xs sm:text-sm font-semibold text-orange-900/75 leading-snug">Grava no financeiro (plano de conta) e, com caixa aberto, desconta do turno.</p>
+    <p id="cx-legenda-painel" class="mt-1 text-xs sm:text-sm font-semibold text-orange-900/75 leading-snug">Exige caixa aberto desta loja. Grava no financeiro (plano de conta) e desconta do turno.</p>
   </div>
 
-  <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 sm:px-5 lg:px-6 py-3 sm:py-4 space-y-4">
+  <div class="caixa-panel-scroll px-4 sm:px-5 lg:px-6 py-3 sm:py-4 space-y-4">
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
       <label class="block md:col-span-1">
         <span class="text-[11px] font-black uppercase text-slate-500">Valor (R$) *</span>
         <input type="text" id="cx-valor" inputmode="decimal" placeholder="0,00"
-          class="mt-1.5 w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-xl font-black tabular-nums focus:border-orange-500 outline-none">
+          class="cx-field cx-field-valor mt-1.5 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 font-black tabular-nums focus:border-orange-500 outline-none">
       </label>
 
       <label class="block md:col-span-1 xl:col-span-2">
         <span class="text-[11px] font-black uppercase text-slate-500">Plano de contas *</span>
-        <select id="cx-plano" class="mt-1.5 w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold focus:border-orange-500 outline-none">
+        <select id="cx-plano" class="cx-field mt-1.5 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold focus:border-orange-500 outline-none">
           <option value="">— Escolha —</option>
         </select>
       </label>
@@ -25,7 +32,7 @@
       <label class="block">
         <span id="lbl-motivo" class="text-[11px] font-black uppercase text-slate-500">Motivo <span id="motivo-opc" class="font-semibold text-slate-400 normal-case">(opcional)</span></span>
         <input type="text" id="cx-motivo" maxlength="200" placeholder="Detalhe quando fizer sentido…"
-          class="mt-1.5 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-semibold focus:border-orange-500 outline-none">
+          class="cx-field mt-1.5 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-semibold focus:border-orange-500 outline-none">
       </label>
       <p id="hint-outros" class="hidden text-xs font-bold text-amber-800">No plano <strong>Outros</strong>, o motivo é obrigatório (mínimo 15 caracteres).</p>
       <p id="hint-deposito" class="hidden text-xs font-bold text-sky-900 leading-snug">Transferência do caixa para o banco — <strong>não gera lançamento</strong> em Contas a pagar. Escolha a <strong>conta de destino</strong> em forma de pagamento.</p>
@@ -34,7 +41,7 @@
     <div id="wrap-quem-saida" class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
       <label class="block">
         <span class="text-[11px] font-black uppercase text-slate-500">Quem está levando *</span>
-        <select id="cx-quem" class="mt-1.5 w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold focus:border-orange-500 outline-none">
+        <select id="cx-quem" class="cx-field mt-1.5 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold focus:border-orange-500 outline-none">
           <option value="">— Carregando…</option>
         </select>
         <span class="block mt-1 text-[11px] font-semibold text-slate-500">Perfis RH ativos. Falta alguém? RH → ficha (ativo + ClienteAgro).</span>
@@ -44,7 +51,7 @@
         <label class="block">
           <span class="text-[11px] font-black uppercase text-slate-500">Nome da pessoa *</span>
           <input type="text" id="cx-quem-outro" maxlength="200" placeholder="Nome completo"
-            class="mt-1.5 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-semibold focus:border-orange-500 outline-none">
+            class="cx-field mt-1.5 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-semibold focus:border-orange-500 outline-none">
         </label>
       </div>
     </div>
@@ -62,37 +69,63 @@
         <p class="text-[11px] font-semibold text-slate-500 md:col-span-2">Na maioria das vezes fica <strong class="text-slate-700">Dinheiro · Caixa 1</strong>. Só abra se precisar mudar.</p>
         <label class="block">
           <span class="text-[11px] font-black uppercase text-slate-500">Forma de pagamento *</span>
-          <select id="cx-forma" class="mt-1.5 w-full min-h-[52px] rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-sm font-bold focus:border-orange-500 outline-none">
+          <select id="cx-forma" class="cx-field mt-1.5 w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-sm font-bold focus:border-orange-500 outline-none">
             <option value="">— Carregando…</option>
           </select>
         </label>
         <label class="block">
           <span class="text-[11px] font-black uppercase text-slate-500">Conta / banco *</span>
-          <select id="cx-banco" class="mt-1.5 w-full min-h-[52px] rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-sm font-bold focus:border-orange-500 outline-none">
+          <select id="cx-banco" class="cx-field mt-1.5 w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-sm font-bold focus:border-orange-500 outline-none">
             <option value="">— Carregando…</option>
           </select>
         </label>
         <label class="block">
           <span class="text-[11px] font-black uppercase text-slate-500">Competência</span>
-          <input type="date" id="cx-data" class="mt-1.5 w-full min-h-[48px] rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-sm font-bold focus:border-orange-500 outline-none">
+          <input type="date" id="cx-data" class="cx-field mt-1.5 w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-sm font-bold focus:border-orange-500 outline-none">
         </label>
         <label class="block">
           <span class="text-[11px] font-black uppercase text-slate-500">Empresa (lançamento)</span>
           <input type="text" id="cx-empresa" value="{{ empresa_padrao|escape }}" data-empresa-id="{{ empresa_padrao_id|default:'' }}"
-            class="mt-1.5 w-full min-h-[48px] rounded-xl border-2 border-slate-200 bg-white px-3 py-2 text-sm font-semibold focus:border-orange-500 outline-none">
+            readonly
+            title="Vem do caixa aberto (Centro ou Vila) — não digite."
+            class="cx-field mt-1.5 w-full rounded-xl border-2 border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800 outline-none cursor-default">
+          <span class="block text-[10px] font-semibold text-slate-400 mt-0.5">
+            Automático pelo caixa{% if empresa_deposito == 'vila' %} · <strong>Vila Elias</strong>{% elif empresa_deposito == 'centro' %} · <strong>Centro</strong>{% endif %}.
+          </span>
         </label>
       </div>
     </details>
   </div>
 
   <div class="shrink-0 px-4 sm:px-5 lg:px-6 py-3 sm:py-4 border-t border-orange-100 bg-white/90">
-    <button type="button" id="cx-salvar" class="w-full min-h-[56px] py-3 rounded-xl bg-orange-600 text-white font-black uppercase text-sm tracking-wide hover:bg-orange-700 shadow-md">
+    <button type="button" id="cx-salvar" class="w-full py-3 rounded-xl bg-orange-600 text-white font-black uppercase tracking-wide hover:bg-orange-700 shadow-md">
       Registrar retirada
     </button>
   </div>
 </div>
 <style>
   #cx-gaveta-pagamento summary::-webkit-details-marker { display: none; }
+  @keyframes cxSucessoPop {
+    0% { opacity: 0; transform: translateY(-0.35rem) scale(0.98); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .cx-sucesso-pop { animation: cxSucessoPop 0.35s ease-out; }
+  .caixa-saida-panel input,
+  .caixa-saida-panel select,
+  .caixa-saida-panel button#cx-salvar {
+    font-size: 1rem;
+  }
+  .caixa-saida-panel .cx-field {
+    min-height: 2.75rem;
+  }
+  .caixa-saida-panel .cx-field-valor {
+    min-height: 3.25rem;
+    font-size: 1.25rem;
+  }
+  .caixa-saida-panel #cx-salvar {
+    min-height: 3.5rem;
+    font-size: 0.9375rem;
+  }
 </style>
 <script type="application/json" id="planos-saida-json">{{ planos_json|safe }}</script>
 <script>
@@ -209,7 +242,12 @@
     var prev = selQuem.value;
     selQuem.innerHTML = '<option value="">— Carregando…</option>';
     try {
-      var r = await fetch(API_QUEM_LEVA, { credentials: 'same-origin' });
+      var q = '';
+      var en = (inpEmpresa.value || '').trim();
+      var eid = (inpEmpresa.dataset.empresaId || '').trim();
+      if (eid) q = '?empresa_id=' + encodeURIComponent(eid);
+      else if (en) q = '?empresa_nome=' + encodeURIComponent(en);
+      var r = await fetch(API_QUEM_LEVA + q, { credentials: 'same-origin' });
       var d = await r.json();
       selQuem.innerHTML = '<option value="">— Escolha —</option>';
       (d.pessoas || []).forEach(function (p) {
@@ -235,6 +273,55 @@
       if (String(list[i].nome || '').toUpperCase().indexOf(up) >= 0) return i;
     }
     return -1;
+  }
+  function aplicarDefaultsPagamento() {
+    var fs = document.getElementById('cx-forma');
+    var bs = document.getElementById('cx-banco');
+    if (!fs || !bs || fs.options.length < 2) return;
+    var ifs = -1;
+    var ibs = -1;
+    for (var i = 1; i < fs.options.length; i++) {
+      if ((fs.options[i].textContent || '').toUpperCase().indexOf('DINHEIRO') >= 0) { ifs = i; break; }
+    }
+    for (var j = 1; j < bs.options.length; j++) {
+      if ((bs.options[j].textContent || '').toUpperCase().indexOf('CAIXA 1') >= 0) { ibs = j; break; }
+    }
+    if (ifs >= 0) fs.selectedIndex = ifs;
+    if (ibs >= 0) bs.selectedIndex = ibs;
+    atualizarResumoPagamento();
+  }
+  function limparFormularioRetirada() {
+    document.getElementById('cx-valor').value = '';
+    document.getElementById('cx-motivo').value = '';
+    selPlano.selectedIndex = 0;
+    atualizarMotivoObrigatorio();
+    if (selQuem.options.length) selQuem.selectedIndex = 0;
+    wrapOutro.classList.add('hidden');
+    document.getElementById('cx-quem-outro').value = '';
+    document.getElementById('cx-data').value = hojeISO();
+    var gav = document.getElementById('cx-gaveta-pagamento');
+    if (gav) gav.open = false;
+    aplicarDefaultsPagamento();
+  }
+  function mostrarFeedbackSucesso(isDeposito) {
+    var el = document.getElementById('cx-sucesso-retirada');
+    var txt = document.getElementById('cx-sucesso-retirada-texto');
+    if (!el) return;
+    if (txt) {
+      txt.textContent = isDeposito
+        ? 'Depósito registrado no caixa!'
+        : 'Retirada concluída com sucesso!';
+    }
+    el.classList.remove('hidden');
+    clearTimeout(window.__cxSucessoTimer);
+    window.__cxSucessoTimer = setTimeout(function () {
+      el.classList.add('hidden');
+    }, 7000);
+    var inpValor = document.getElementById('cx-valor');
+    if (inpValor) {
+      try { inpValor.focus(); } catch (_) {}
+      try { inpValor.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (_) {}
+    }
   }
   async function carregarOpcoes() {
     if (window.gmLoadingBar) window.gmLoadingBar.show();
@@ -306,7 +393,23 @@
       alert('Escolha forma de pagamento e conta/banco.');
       return;
     }
+    var pin = '';
+    try {
+      if (typeof window.agroCaixaPedirPin !== 'function') {
+        alert('PIN indisponível nesta tela. Abra Retirada pelo painel do caixa.');
+        return;
+      }
+      pin = await window.agroCaixaPedirPin({
+        titulo: 'PIN do operador',
+        texto: 'Digite seu PIN (cadastro em RH → Operadores) para registrar quem fez a saída.'
+      });
+    } catch (_) {
+      return;
+    }
+    pin = String(pin || '').trim();
+    if (!pin) return;
     var body = {
+      pin: pin,
       valor: valor,
       plano_id: planoId,
       motivo: motivo || undefined,
@@ -331,13 +434,9 @@
       });
       var out = await r.json();
       if (out.ok && (out.deposito || out.movimento_caixa_id || (out.ids && out.ids.length))) {
-        if (CAIXA_EMBED) {
-          notifyParentFecharAtualizar();
-          document.getElementById('cx-valor').value = '';
-          document.getElementById('cx-motivo').value = '';
-        } else {
-          alert(out.deposito ? 'Depósito registrado no caixa.' : 'Saída registrada.');
-        }
+        limparFormularioRetirada();
+        mostrarFeedbackSucesso(!!out.deposito);
+        if (CAIXA_EMBED) notifyParentFecharAtualizar();
       } else {
         alert(out.erro || 'Não gravou.');
       }

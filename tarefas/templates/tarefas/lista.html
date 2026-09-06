@@ -1,0 +1,45 @@
+{% extends "tarefas/base.html" %}
+{% block title %}Tarefas{% endblock %}
+{% block body %}
+<div class="tf-top">
+  <div>
+    <p class="tf-kicker">Plano de ação</p>
+    <h1 class="tf-title">Pendências</h1>
+  </div>
+  <div class="tf-ops">
+    <a class="tf-btn" href="{{ hub_url }}">Início</a>
+    <form method="post" action="{% url 'tarefas_logout' %}" style="margin:0;">{% csrf_token %}
+      <button class="tf-btn" type="submit">Trocar PIN</button>
+    </form>
+  </div>
+</div>
+<p class="tf-who">Você: <strong>{{ operador }}</strong></p>
+
+{% for g in grupos %}
+  {% if g.qtd or g.sempre %}
+  <section class="tf-grupo {{ g.cor }}">
+    <div class="tf-grupo-hd">
+      <h2>{{ g.label }}</h2>
+      <span class="tf-qtd">{{ g.qtd }}</span>
+    </div>
+    <div class="tf-grupo-bd">
+      {% if g.itens %}
+        {% for t in g.itens %}
+        <a class="tf-card" href="{% url 'tarefas_detalhe' t.pk %}">
+          <span class="badge-st {{ g.cor }}">{{ g.label }}</span>
+          <h3>{{ t.titulo }}</h3>
+          {% if t.descricao %}<p>{{ t.descricao|truncatechars:140 }}</p>{% endif %}
+        </a>
+        {% endfor %}
+      {% else %}
+        <p class="tf-vazio">Nenhuma por enquanto.</p>
+      {% endif %}
+    </div>
+  </section>
+  {% endif %}
+{% endfor %}
+
+<div class="tf-fab">
+  <a href="{% url 'tarefas_nova' %}">+ Nova tarefa</a>
+</div>
+{% endblock %}

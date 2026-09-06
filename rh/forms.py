@@ -29,6 +29,8 @@ class FuncionarioForm(forms.ModelForm):
             "cargo",
             "data_admissao",
             "ativo",
+            "dia_envio_cp_auto",
+            "dia_vencimento_salario",
             "observacoes",
         )
         widgets = {
@@ -65,6 +67,17 @@ class FuncionarioForm(forms.ModelForm):
         self.fields["nome_cache"].help_text = (
             "Por padrão segue o nome da pessoa base; ajuste se precisar bater com textos antigos."
         )
+        self.fields["dia_envio_cp_auto"].label = "Dia envio automático → CP"
+        self.fields["dia_envio_cp_auto"].help_text = (
+            "1–28: nesse dia do mês o sistema lança/atualiza o título no Contas a pagar. "
+            "Com vencimento 1–14 e envio 28 = folha do mês do envio, vence no mês seguinte. "
+            "0 = não envia sozinho (só manual no passo 2)."
+        )
+        self.fields["dia_vencimento_salario"].label = "Dia vencimento salário (CP)"
+        self.fields["dia_vencimento_salario"].help_text = (
+            "1–28: dia do vencimento (ex.: 1, 7 ou 14). Conta/banco fica em branco "
+            "(ADICIONAR CONTA) até o pagamento."
+        )
 
     def clean(self):
         data = super().clean()
@@ -78,6 +91,26 @@ class FuncionarioForm(forms.ModelForm):
                 raise ValidationError(
                     "Já existe um perfil RH ativo para esta pessoa nesta empresa."
                 )
+        envio = data.get("dia_envio_cp_auto")
+        if envio is None:
+            envio = 0
+        try:
+            envio = int(envio)
+        except (TypeError, ValueError):
+            raise ValidationError({"dia_envio_cp_auto": "Informe um número (0 ou 1–28)."})
+        if envio < 0 or envio > 28:
+            raise ValidationError({"dia_envio_cp_auto": "Use 0 (desligado) ou dia 1–28."})
+        data["dia_envio_cp_auto"] = envio
+        venc = data.get("dia_vencimento_salario")
+        if venc is None:
+            venc = 5
+        try:
+            venc = int(venc)
+        except (TypeError, ValueError):
+            raise ValidationError({"dia_vencimento_salario": "Informe um dia 1–28."})
+        if venc < 1 or venc > 28:
+            raise ValidationError({"dia_vencimento_salario": "Use dia 1–28."})
+        data["dia_vencimento_salario"] = venc
         return data
 
 
@@ -198,14 +231,13 @@ class FechamentoTituloFinanceiroForm(forms.Form):
         fc = list(formas_choices or [])
         bc = list(bancos_choices or [])
         self.fields["forma_financeiro"].choices = [("", "— Em branco —")] + fc
-        self.fields["banco_financeiro"].choices = [("", "— Selecione —")] + bc
+        self.fields["banco_financeiro"].choices = [
+            ("", "— Em branco (ADICIONAR CONTA no pagamento) —")
+        ] + bc
 
     def clean(self):
         data = super().clean()
-        acao = (self.data.get("titulo_acao") or "").strip()
-        if acao == "publicar":
-            if not (data.get("banco_financeiro") or "").strip():
-                raise ValidationError("Escolha a conta / banco.")
+        # Banco opcional: vazio → placeholder no service ao publicar.
         return data
 
 

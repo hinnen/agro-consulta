@@ -1,0 +1,1515 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ecfdf5">
+  <title>SisVale | Folha de saldo</title>
+  {% include "produtos/_head_perf_mpa.html" %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .safe-pad {
+      padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+      padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+      padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+      padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-top-nav { display: none !important; }
+    html[data-agro-folha-embed="1"] body {
+      min-height: 100%;
+      height: 100%;
+      background: #fff;
+      overflow: hidden;
+      padding: 0 !important;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-shell {
+      max-width: 100%;
+      height: 100%;
+      min-height: 100%;
+      padding-left: 0;
+      padding-right: 0;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-main {
+      border-radius: 0;
+      border-width: 0;
+      box-shadow: none;
+      height: 100%;
+    }
+    /* Filtros ERP — chips + dropdown (igual cadastro) · tipografia maior no overlay */
+    .cad-ms { position: relative; min-width: 0; }
+    .cad-ms-btn {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      min-height: 2.75rem; max-width: 100%;
+      padding: 0.4rem 0.85rem; border-radius: 0.6rem;
+      border: 1.5px solid #cbd5e1; background: #fff;
+      font-size: 0.8125rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.02em; color: #334155; cursor: pointer;
+      white-space: nowrap;
+    }
+    .cad-ms-btn:hover { border-color: #34d399; background: #ecfdf5; color: #064e3b; }
+    .cad-ms-btn.is-on { border-color: #059669; background: #ecfdf5; color: #064e3b; }
+    .cad-ms-btn .cad-ms-count {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 1.35rem; height: 1.35rem; padding: 0 0.35rem;
+      border-radius: 999px; background: #059669; color: #fff;
+      font-size: 0.75rem; font-weight: 900;
+    }
+    .cad-ms-panel {
+      position: absolute; z-index: 50; top: calc(100% + 0.25rem); left: 0;
+      width: min(22rem, calc(100vw - 2rem));
+      max-height: min(18rem, 48dvh);
+      display: flex; flex-direction: column;
+      border: 1.5px solid #a7f3d0; border-radius: 0.85rem;
+      background: #fff; box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+    }
+    .cad-ms-panel.hidden { display: none; }
+    .cad-ms-panel input[type="search"] {
+      margin: 0.55rem; min-height: 2.5rem; padding: 0.4rem 0.7rem;
+      border: 1.5px solid #e2e8f0; border-radius: 0.55rem;
+      font-size: 1rem; font-weight: 600; outline: none;
+    }
+    .cad-ms-panel input[type="search"]:focus { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,.15); }
+    .cad-ms-list { flex: 1 1 auto; overflow-y: auto; padding: 0.15rem 0.35rem 0.5rem; scrollbar-width: thin; }
+    .cad-ms-opt {
+      display: flex; align-items: center; gap: 0.55rem;
+      width: 100%; padding: 0.5rem 0.55rem; border-radius: 0.45rem;
+      font-size: 0.9375rem; font-weight: 600; color: #1e293b;
+      cursor: pointer; text-align: left; background: transparent; border: 0;
+    }
+    .cad-ms-opt:hover { background: #f0fdf4; }
+    .cad-ms-opt input { width: 1.1rem; height: 1.1rem; accent-color: #059669; flex-shrink: 0; }
+    .cad-f-chip {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      max-width: 16rem; min-height: 2rem; padding: 0.2rem 0.5rem 0.2rem 0.65rem;
+      border-radius: 999px; border: 1px solid #a7f3d0; background: #ecfdf5;
+      font-size: 0.8125rem; font-weight: 700; color: #065f46;
+    }
+    .cad-f-chip button {
+      flex-shrink: 0; width: 1.25rem; height: 1.25rem; border-radius: 999px;
+      border: 0; background: #059669; color: #fff; font-size: 0.75rem; font-weight: 900;
+      line-height: 1; cursor: pointer;
+    }
+    .cad-f-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cad-filtros-bar {
+      display: flex; flex-wrap: wrap; align-items: end; gap: 0.65rem 0.85rem;
+    }
+    .cad-filtros-bar label > span {
+      display: block; font-size: 0.75rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.04em; color: #64748b; margin-bottom: 0.25rem;
+    }
+    .cad-filtros-bar select,
+    .cad-filtros-bar input[type="date"],
+    .cad-filtros-bar input[type="text"],
+    .cad-filtros-bar input[type="search"] {
+      min-height: 2.75rem; border-radius: 0.6rem; border: 1.5px solid #cbd5e1;
+      background: #fff; padding: 0.35rem 0.65rem; font-size: 0.9375rem; font-weight: 700; color: #0f172a;
+    }
+    .cad-filtros-bar select:focus,
+    .cad-filtros-bar input:focus {
+      outline: none; border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,.15);
+    }
+    .cad-ms-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+    .folha-saldo-loja label {
+      font-size: 0.9375rem !important;
+      min-height: 2.75rem !important;
+      padding-left: 0.85rem !important;
+      padding-right: 0.85rem !important;
+    }
+    .folha-saldo-loja input[type="checkbox"] {
+      width: 1.15rem; height: 1.15rem;
+    }
+    .folha-saldo-presets {
+      display: flex; flex-wrap: wrap; align-items: end; gap: 0.5rem 0.65rem;
+      padding: 0.65rem 0.75rem; border-radius: 0.75rem;
+      border: 1.5px solid #dbeafe; background: #eff6ff;
+    }
+    .folha-saldo-presets label > span {
+      display: block; font-size: 0.75rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.04em; color: #1e40af; margin-bottom: 0.25rem;
+    }
+    .folha-saldo-presets select {
+      min-height: 2.75rem; min-width: 12rem; border-radius: 0.6rem;
+      border: 1.5px solid #93c5fd; background: #fff;
+      padding: 0.35rem 0.65rem; font-size: 0.9375rem; font-weight: 700; color: #0f172a;
+    }
+    .folha-saldo-presets .btn-p {
+      min-height: 2.75rem; padding: 0.35rem 0.85rem; border-radius: 0.6rem;
+      font-size: 0.75rem; font-weight: 900; text-transform: uppercase;
+      border: 1.5px solid #cbd5e1; background: #fff; color: #334155; cursor: pointer;
+    }
+    .folha-saldo-presets .btn-p:hover { border-color: #3b82f6; background: #dbeafe; }
+    .folha-saldo-presets .btn-p.is-pri {
+      border-color: #1d4ed8; background: #2563eb; color: #fff;
+    }
+    .folha-saldo-presets .btn-p.is-pri:hover { background: #1d4ed8; }
+    .folha-saldo-presets .btn-p:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Embed / overlay PDV: layout amigável · cabe sem scroll no zoom 100% */
+    html[data-agro-folha-embed="1"] body {
+      overflow: hidden !important;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-shell {
+      overflow: hidden;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-main {
+      background: linear-gradient(180deg, #f0fdf4 0%, #fff 6rem);
+      overflow: hidden;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-titulo-bar {
+      display: none !important;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-embed-meta {
+      display: inline-flex !important;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-body {
+      padding: 0.55rem 0.85rem 0.45rem !important;
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem !important;
+      overflow: hidden !important;
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-body.space-y-4 > :not([hidden]) ~ :not([hidden]) {
+      margin-top: 0 !important;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-intro {
+      display: flex !important;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.35rem 0.75rem;
+      padding: 0;
+      flex-shrink: 0;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-intro-title {
+      font-size: 1.05rem;
+      font-weight: 900;
+      color: #064e3b;
+      letter-spacing: 0.02em;
+      line-height: 1.15;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-intro-sub {
+      display: block;
+      margin-top: 0.1rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #64748b;
+      line-height: 1.25;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-card {
+      border: 2px solid #d1fae5;
+      border-radius: 0.9rem;
+      background: #fff;
+      padding: 0.55rem 0.75rem 0.65rem;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      flex-shrink: 0;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-card-h {
+      display: flex;
+      align-items: baseline;
+      gap: 0.4rem;
+      margin-bottom: 0.45rem;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-card-num {
+      flex-shrink: 0;
+      width: 1.45rem;
+      height: 1.45rem;
+      border-radius: 999px;
+      background: #059669;
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 900;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-card-title {
+      font-size: 0.9rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #0f172a;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-card-hint {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #64748b;
+      margin-left: auto;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-card-presets {
+      border-color: #bfdbfe;
+      background: #f8fbff;
+      padding: 0.45rem 0.7rem 0.5rem;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-card-num-star {
+      background: #2563eb;
+      font-size: 0.72rem;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-card-presets .folha-saldo-presets {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      gap: 0.4rem 0.5rem;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-card-presets .folha-saldo-presets label > span {
+      display: none;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-presets select,
+    html[data-agro-folha-embed="1"] .folha-saldo-presets .btn-p,
+    html[data-agro-folha-embed="1"] .cad-filtros-bar select,
+    html[data-agro-folha-embed="1"] .cad-filtros-bar input[type="text"],
+    html[data-agro-folha-embed="1"] .cad-filtros-bar input[type="search"],
+    html[data-agro-folha-embed="1"] .cad-filtros-bar input[type="date"] {
+      min-height: 2.45rem;
+      font-size: 0.95rem;
+      border-radius: 0.65rem;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-presets .btn-p {
+      font-size: 0.72rem;
+      padding: 0.3rem 0.6rem;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-presets select {
+      min-width: 10rem;
+      flex: 1 1 10rem;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-row-main {
+      display: block;
+      width: 100%;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-row-main .cad-filtros-bar {
+      display: grid !important;
+      grid-template-columns: minmax(9.5rem, 11rem) minmax(10.5rem, 12.5rem) minmax(0, 1fr);
+      gap: 0.65rem 1rem;
+      align-items: end;
+      width: 100%;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-row-main .cad-filtros-bar > label {
+      min-width: 0 !important;
+      width: 100%;
+      max-width: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-row-main .cad-filtros-bar > label select,
+    html[data-agro-folha-embed="1"] .folha-saldo-row-main .cad-filtros-bar > label input {
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box;
+    }
+    @media (max-width: 640px) {
+      html[data-agro-folha-embed="1"] .folha-saldo-row-main .cad-filtros-bar {
+        grid-template-columns: 1fr 1fr;
+      }
+      html[data-agro-folha-embed="1"] .folha-saldo-row-main .cad-filtros-bar > label:last-child {
+        grid-column: 1 / -1;
+      }
+    }
+    html[data-agro-folha-embed="1"] .cad-filtros-bar label > span {
+      font-size: 0.72rem;
+      margin-bottom: 0.2rem;
+      color: #475569;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-loja {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.45rem;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-loja .folha-saldo-loja-extra {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-loja label {
+      font-size: 0.98rem !important;
+      min-height: 2.75rem !important;
+      padding: 0.45rem 0.7rem !important;
+      border-radius: 0.75rem !important;
+      justify-content: center;
+      gap: 0.45rem !important;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-loja input[type="checkbox"] {
+      width: 1.15rem;
+      height: 1.15rem;
+    }
+    html[data-agro-folha-embed="1"] .cad-ms-row {
+      display: grid !important;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.45rem !important;
+    }
+    @media (max-width: 520px) {
+      html[data-agro-folha-embed="1"] .cad-ms-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    html[data-agro-folha-embed="1"] .cad-ms {
+      width: 100%;
+    }
+    html[data-agro-folha-embed="1"] .cad-ms-btn {
+      width: 100%;
+      justify-content: center;
+      min-height: 2.75rem;
+      font-size: 0.88rem;
+      padding: 0.4rem 0.5rem;
+      border-radius: 0.75rem;
+      border-width: 2px;
+    }
+    html[data-agro-folha-embed="1"] #saldo-f-chips {
+      gap: 0.35rem !important;
+      min-height: 0;
+      margin-bottom: 0.35rem !important;
+    }
+    html[data-agro-folha-embed="1"] .cad-f-chip {
+      min-height: 2rem;
+      font-size: 0.85rem;
+      padding: 0.25rem 0.45rem 0.25rem 0.65rem;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-avancado {
+      display: none !important; /* no embed: usa o painel cheio abaixo */
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-toggle {
+      display: flex !important;
+      width: 100%;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      min-height: 2.75rem;
+      padding: 0.55rem 0.85rem;
+      border: 2px solid #e2e8f0;
+      border-radius: 0.85rem;
+      background: #f8fafc;
+      color: #334155;
+      font-size: 0.82rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-toggle.hidden {
+      display: none !important;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-toggle:hover {
+      border-color: #94a3b8;
+      background: #f1f5f9;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-panel {
+      display: none;
+      flex-direction: column;
+      flex: 1 1 auto;
+      min-height: 0;
+      border: 3px solid #059669;
+      border-radius: 1rem;
+      background: #fff;
+      overflow: hidden;
+      box-shadow: inset 0 0 0 1px #a7f3d0;
+    }
+    html[data-agro-folha-embed="1"].folha-mais-aberto .folha-saldo-intro,
+    html[data-agro-folha-embed="1"].folha-mais-aberto .folha-saldo-card,
+    html[data-agro-folha-embed="1"].folha-mais-aberto .folha-saldo-mais-toggle {
+      display: none !important;
+    }
+    html[data-agro-folha-embed="1"].folha-mais-aberto .folha-saldo-mais-panel {
+      display: flex !important;
+    }
+    html[data-agro-folha-embed="1"].folha-mais-aberto .folha-saldo-body {
+      overflow: hidden !important;
+      background: #ecfdf5;
+      padding: 0.45rem !important;
+      border-radius: 0.75rem;
+    }
+    html[data-agro-folha-embed="1"].folha-mais-aberto .folha-saldo-footer {
+      opacity: 0.55;
+      pointer-events: none;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-head {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.35rem;
+      flex-shrink: 0;
+      padding: 0.65rem 0.85rem 0.75rem;
+      border-bottom: 3px solid #059669;
+      background: linear-gradient(180deg, #059669 0%, #047857 100%);
+      color: #fff;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-eyebrow {
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      opacity: 0.9;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-head-row {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-voltar {
+      min-height: 3rem;
+      padding: 0.45rem 1.1rem;
+      border-radius: 0.85rem;
+      border: 2px solid #fff;
+      background: #fff;
+      color: #065f46;
+      font-size: 0.95rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+      flex-shrink: 0;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-voltar:hover {
+      background: #ecfdf5;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-title {
+      font-size: 1.15rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      color: #fff;
+      letter-spacing: 0.03em;
+      line-height: 1.15;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-hint {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #d1fae5;
+      line-height: 1.25;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-contain: contain;
+      padding: 0.75rem 0.85rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-body .cad-filtros-bar {
+      display: flex !important;
+      flex-wrap: wrap;
+      gap: 0.65rem 0.85rem;
+      align-items: end;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-body .cad-filtros-bar > label,
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-body .cad-filtros-bar > .cad-ms {
+      min-width: 8.5rem;
+    }
+    html:not([data-agro-folha-embed="1"]) .folha-saldo-mais-toggle,
+    html:not([data-agro-folha-embed="1"]) .folha-saldo-mais-panel {
+      display: none !important;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-footer {
+      padding: 0.55rem 0.85rem !important;
+      gap: 0.5rem !important;
+      background: #fff !important;
+      border-top: 2px solid #d1fae5 !important;
+      flex-shrink: 0;
+    }
+    html[data-agro-folha-embed="1"] #saldo-btn-imprimir {
+      min-height: 3.1rem !important;
+      font-size: 1.1rem !important;
+      border-radius: 0.9rem !important;
+    }
+    html[data-agro-folha-embed="1"] #saldo-btn-limpar {
+      min-height: 3.1rem !important;
+      font-size: 0.9rem !important;
+      border-radius: 0.9rem !important;
+      padding-left: 1.1rem !important;
+      padding-right: 1.1rem !important;
+    }
+    html[data-agro-folha-embed="1"] #saldo-status {
+      font-size: 0.92rem !important;
+      font-weight: 700 !important;
+      color: #334155 !important;
+      line-height: 1.2 !important;
+    }
+    html:not([data-agro-folha-embed="1"]) .folha-saldo-intro {
+      display: none !important;
+    }
+    html:not([data-agro-folha-embed="1"]) .folha-saldo-card {
+      border: 0;
+      padding: 0;
+      box-shadow: none;
+      background: transparent;
+      border-radius: 0;
+    }
+    html:not([data-agro-folha-embed="1"]) .folha-saldo-card-h {
+      display: none !important;
+    }
+    html:not([data-agro-folha-embed="1"]) .folha-saldo-card + .folha-saldo-card {
+      margin-top: 0.75rem;
+    }
+  </style>
+  <script>
+    (function () {
+      try {
+        var q = new URLSearchParams(location.search || '');
+        var embed =
+          q.get('embed') === '1' ||
+          q.get('agro_pdv_overlay') === '1' ||
+          q.get('agro_inapp_embed') === '1';
+        if (embed) {
+          document.documentElement.setAttribute('data-agro-folha-embed', '1');
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var avancado = document.getElementById('saldo-avancado');
+          var inner = document.getElementById('saldo-avancado-inner');
+          var slot = document.getElementById('saldo-mais-body');
+          var btnMais = document.getElementById('saldo-btn-mais');
+          var btnVoltar = document.getElementById('saldo-btn-mais-voltar');
+          var panel = document.getElementById('saldo-mais-panel');
+          if (!embed) {
+            if (avancado) avancado.setAttribute('open', '');
+            return;
+          }
+          if (btnMais) btnMais.classList.remove('hidden');
+          if (inner && slot) {
+            slot.appendChild(inner);
+            inner.classList.remove('px-3', 'pb-3', 'pt-2', 'border-t', 'border-slate-100');
+          }
+          if (avancado) avancado.setAttribute('hidden', '');
+          function setOverlayTitulo(titulo, sub) {
+            try {
+              if (window.parent && window.parent !== window) {
+                window.parent.postMessage(
+                  {
+                    type: 'agro-pdv-overlay-meta',
+                    title: titulo || 'Folha de saldo',
+                    subtitle: sub || '',
+                  },
+                  window.location.origin
+                );
+              }
+            } catch (_) {}
+          }
+          function abrirMais() {
+            document.documentElement.classList.add('folha-mais-aberto');
+            if (panel) panel.hidden = false;
+            if (btnMais) btnMais.setAttribute('aria-expanded', 'true');
+            setOverlayTitulo('Opções extras', 'Toque em Voltar à folha para imprimir');
+            try {
+              if (slot) slot.scrollTop = 0;
+            } catch (_) {}
+          }
+          function fecharMais() {
+            document.documentElement.classList.remove('folha-mais-aberto');
+            if (panel) panel.hidden = true;
+            if (btnMais) btnMais.setAttribute('aria-expanded', 'false');
+            setOverlayTitulo('Folha de saldo (A4 · A5 · 80mm)', '');
+          }
+          if (btnMais) btnMais.addEventListener('click', abrirMais);
+          if (btnVoltar) btnVoltar.addEventListener('click', fecharMais);
+        });
+      } catch (_) {}
+    })();
+  </script>
+</head>
+<body class="min-h-[100dvh] bg-gradient-to-b from-emerald-50/80 via-slate-50 to-slate-100 text-slate-800 safe-pad">
+{% include "produtos/_gm_loading_bar.html" %}
+
+  <div class="mx-auto w-full max-w-5xl flex min-h-[100dvh] min-h-0 flex-col folha-saldo-shell px-2 sm:px-3">
+    <header class="folha-saldo-top-nav shrink-0 flex flex-wrap items-start justify-between gap-3 pb-3">
+      <div class="min-w-0">
+        <p class="text-[10px] font-black uppercase tracking-widest text-emerald-800">SisVale · Compras</p>
+        <h1 class="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-900 leading-tight">Folha de saldo</h1>
+        <p class="mt-1 text-sm font-semibold text-slate-600 leading-snug">Só código GM, produto e saldo — para levar no papel.</p>
+      </div>
+      <div class="flex shrink-0 flex-col items-end gap-2">
+        <a href="{% url 'compras_view' %}" class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-slate-200 bg-white px-3 text-xs font-black uppercase text-slate-700 hover:border-orange-400 hover:text-orange-700">Voltar às Compras</a>
+        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-slate-200 bg-white px-3 text-xs font-black uppercase text-slate-600 hover:border-orange-400 hover:text-orange-600" %}
+      </div>
+    </header>
+
+    <main class="folha-saldo-main flex-1 min-h-0 flex flex-col rounded-2xl border-2 border-emerald-200/90 bg-white shadow-xl overflow-hidden">
+      <div class="folha-saldo-titulo-bar shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 bg-emerald-50/50">
+        <span class="text-sm font-black uppercase text-emerald-950 tracking-wide">Montar folha</span>
+        <div class="flex items-center gap-2">
+          <span id="saldo-facetas-status" class="text-xs font-semibold text-slate-500" role="status"></span>
+          <details class="relative folha-saldo-help">
+            <summary class="list-none inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 border-emerald-600 bg-white text-emerald-900 font-black text-base hover:bg-emerald-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda" title="Ajuda">?</summary>
+            <div class="absolute right-0 top-full z-30 mt-1.5 w-[min(24rem,calc(100vw-1.5rem))] max-h-[min(70dvh,26rem)] overflow-y-auto rounded-xl border border-emerald-200 bg-white p-3 text-sm font-semibold text-slate-700 shadow-xl space-y-2 leading-snug">
+              <p>Imprime no máximo <strong>2000</strong> produtos ativos (ou todos se desmarcar «somente ativos»).</p>
+              <p>Marque <strong>Centro</strong> e/ou <strong>Vila Elias</strong>. As duas = soma no saldo.</p>
+              <p>Filtros iguais ao cadastro: clique em Marca/Categoria… e marque na lista (com busca).</p>
+              <p><strong>Filtros salvos</strong> ficam no servidor — valem para todos os PCs da loja. Um pode ser o <strong>padrão</strong> (abre sozinho).</p>
+              <p><strong>A4</strong> e <strong>A5</strong> para folha; <strong>80 mm</strong> para impressora térmica.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <div class="folha-saldo-body flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
+        <div class="folha-saldo-intro hidden">
+          <div class="min-w-0">
+            <span class="folha-saldo-intro-title">Imprimir lista de estoque</span>
+            <span class="folha-saldo-intro-sub">Escolha a loja, o papel e (se quiser) os filtros. Depois toque em Imprimir.</span>
+          </div>
+          <div class="folha-saldo-embed-meta hidden items-center gap-2 shrink-0">
+            <span id="saldo-facetas-status-embed" class="text-sm font-semibold text-slate-600 tabular-nums" role="status"></span>
+            <details class="relative folha-saldo-help-embed">
+              <summary class="list-none inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 border-emerald-600 bg-white text-emerald-900 font-black text-lg hover:bg-emerald-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda" title="Ajuda">?</summary>
+              <div class="absolute right-0 top-full z-30 mt-1.5 w-[min(24rem,calc(100vw-1.5rem))] max-h-[min(70dvh,26rem)] overflow-y-auto rounded-xl border border-emerald-200 bg-white p-3 text-base font-semibold text-slate-700 shadow-xl space-y-2 leading-snug">
+                <p>Imprime no máximo <strong>2000</strong> produtos ativos (ou todos se desmarcar «somente ativos»).</p>
+                <p>Marque <strong>Centro</strong> e/ou <strong>Vila Elias</strong>. As duas = soma no saldo.</p>
+                <p>Filtros iguais ao cadastro: clique em Marca/Categoria… e marque na lista (com busca).</p>
+                <p><strong>Filtros salvos</strong> ficam no servidor — valem para todos os PCs da loja. Um pode ser o <strong>padrão</strong> (abre sozinho).</p>
+                <p><strong>A4</strong> e <strong>A5</strong> para folha; <strong>80 mm</strong> para impressora térmica.</p>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <section class="folha-saldo-card" aria-label="Qual estoque">
+          <div class="folha-saldo-card-h">
+            <span class="folha-saldo-card-num" aria-hidden="true">1</span>
+            <span class="folha-saldo-card-title">Qual estoque?</span>
+            <span class="folha-saldo-card-hint">pode marcar os dois</span>
+          </div>
+          <div class="folha-saldo-loja flex flex-wrap gap-2.5 items-center">
+            <label class="inline-flex items-center gap-2 rounded-lg border-2 border-emerald-300 bg-emerald-50 font-bold text-emerald-950">
+              <input type="checkbox" id="saldo-loja-centro" class="accent-emerald-600" checked /> Centro
+            </label>
+            <label class="inline-flex items-center gap-2 rounded-lg border-2 border-sky-300 bg-sky-50 font-bold text-sky-950">
+              <input type="checkbox" id="saldo-loja-vila" class="accent-sky-600" checked /> Vila Elias
+            </label>
+            <div class="folha-saldo-loja-extra flex flex-wrap gap-2.5 items-center">
+              <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white font-semibold text-slate-700">
+                <input type="checkbox" id="saldo-omit-zero" class="accent-emerald-600" /> Esconder zerados
+              </label>
+              <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white font-semibold text-slate-700">
+                <input type="checkbox" id="saldo-somente-ativos" class="accent-emerald-600" checked /> Somente ativos
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section class="folha-saldo-card" aria-label="Papel e busca">
+          <div class="folha-saldo-card-h">
+            <span class="folha-saldo-card-num" aria-hidden="true">2</span>
+            <span class="folha-saldo-card-title">Papel e busca</span>
+          </div>
+          <div class="folha-saldo-row-main">
+            <div class="cad-filtros-bar">
+              <label class="min-w-[7.5rem]">
+                <span>Papel</span>
+                <select id="saldo-papel">
+                  <option value="A4" selected>A4</option>
+                  <option value="A5">A5</option>
+                  <option value="80mm">Cupom 80 mm</option>
+                </select>
+              </label>
+              <label class="min-w-[8rem]">
+                <span>Estoque</span>
+                <select id="saldo-f-estoque-sinal">
+                  <option value="">Qualquer</option>
+                  <option value="positivo">Positivo</option>
+                  <option value="negativo">Negativo</option>
+                  <option value="zero">Zerado</option>
+                </select>
+              </label>
+              <label class="flex-1 min-w-[12rem]">
+                <span>Busca (opcional)</span>
+                <input type="search" id="saldo-q" autocomplete="off" placeholder="Nome, GM, código…" />
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section class="folha-saldo-card" aria-label="Filtrar produtos">
+          <div class="folha-saldo-card-h">
+            <span class="folha-saldo-card-num" aria-hidden="true">3</span>
+            <span class="folha-saldo-card-title">Filtrar produtos</span>
+            <span class="folha-saldo-card-hint">opcional</span>
+          </div>
+          <div id="saldo-f-chips" class="flex flex-wrap gap-1.5 empty:hidden mb-2" aria-live="polite"></div>
+          <div class="cad-ms-row" id="saldo-ms-row" aria-label="Classificação">
+            <div class="cad-ms" data-ms="marca" data-label="Marca"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Marca</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+            <div class="cad-ms" data-ms="categoria" data-label="Categoria"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Categoria</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+            <div class="cad-ms" data-ms="subcategoria" data-label="Sub"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Sub</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+            <div class="cad-ms" data-ms="fornecedor" data-label="Fornecedor"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Fornecedor</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+            <div class="cad-ms" data-ms="unidade" data-label="Unidade"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Unidade</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+            <div class="cad-ms" data-ms="modelo" data-label="Modelo"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Modelo</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+          </div>
+        </section>
+
+        <section class="folha-saldo-card folha-saldo-card-presets" aria-label="Filtro salvo">
+          <div class="folha-saldo-card-h">
+            <span class="folha-saldo-card-num folha-saldo-card-num-star" aria-hidden="true">★</span>
+            <span class="folha-saldo-card-title">Filtro salvo</span>
+            <span class="folha-saldo-card-hint">atalho da loja</span>
+          </div>
+          <div class="folha-saldo-presets" aria-label="Filtros salvos na loja">
+            <label class="min-w-0 flex-1">
+              <span>Filtro salvo (loja)</span>
+              <select id="saldo-preset-sel">
+                <option value="">— escolher —</option>
+              </select>
+            </label>
+            <button type="button" id="saldo-preset-aplicar" class="btn-p is-pri" disabled>Aplicar</button>
+            <button type="button" id="saldo-preset-salvar" class="btn-p">Salvar atual</button>
+            <button type="button" id="saldo-preset-padrao" class="btn-p" disabled title="Abre sozinho para todos">Padrão ★</button>
+            <button type="button" id="saldo-preset-excluir" class="btn-p" disabled>Excluir</button>
+          </div>
+        </section>
+
+        <button type="button" id="saldo-btn-mais" class="folha-saldo-mais-toggle hidden" aria-expanded="false">
+          <span>Mais opções · datas, preço, NCM</span>
+          <span aria-hidden="true">▾</span>
+        </button>
+        <div id="saldo-mais-panel" class="folha-saldo-mais-panel" hidden>
+          <div class="folha-saldo-mais-head">
+            <span class="folha-saldo-mais-eyebrow">Você saiu da montagem da folha</span>
+            <div class="folha-saldo-mais-head-row">
+              <button type="button" id="saldo-btn-mais-voltar" class="folha-saldo-mais-voltar">← Voltar à folha</button>
+              <div class="min-w-0">
+                <div class="folha-saldo-mais-title">Opções extras</div>
+                <div class="folha-saldo-mais-hint">Datas, preço e NCM. Toque em Voltar para imprimir.</div>
+              </div>
+            </div>
+          </div>
+          <div class="folha-saldo-mais-body" id="saldo-mais-body"></div>
+        </div>
+
+        <details class="folha-saldo-avancado rounded-lg border border-slate-200 bg-slate-50/80" id="saldo-avancado">
+          <summary class="cursor-pointer list-none px-3 py-2.5 text-xs font-black uppercase tracking-wide text-slate-500 hover:text-emerald-800 [&::-webkit-details-marker]:hidden flex items-center justify-between gap-2">
+            <span>Mais opções · datas, preço, NCM</span>
+            <span class="text-slate-400 font-black" aria-hidden="true">▾</span>
+          </summary>
+          <div class="px-3 pb-3 pt-2 border-t border-slate-100 space-y-3" id="saldo-avancado-inner">
+            <div class="cad-filtros-bar">
+              <label class="min-w-[9rem]">
+                <span>Tipo de data</span>
+                <select id="saldo-f-data-tipo">
+                  <option value="cadastro">Cadastro</option>
+                  <option value="primeira_nf">1ª Entrada NF</option>
+                  <option value="ultima_nf">Última Entrada NF</option>
+                </select>
+              </label>
+              <label class="min-w-[8rem]"><span>De</span><input type="date" id="saldo-f-data-de" /></label>
+              <label class="min-w-[8rem]"><span>Até</span><input type="date" id="saldo-f-data-ate" /></label>
+              <div class="cad-ms" data-ms="subcategoria_2" data-label="Sub 2"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Sub 2</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+              <div class="cad-ms" data-ms="subcategoria_3" data-label="Sub 3"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Sub 3</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+              <div class="cad-ms" data-ms="subcategoria_4" data-label="Sub 4"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Sub 4</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+              <label class="min-w-[6rem]"><span>Custo de</span><input type="text" id="saldo-f-custo-min" inputmode="decimal" placeholder="0,00" /></label>
+              <label class="min-w-[6rem]"><span>Custo até</span><input type="text" id="saldo-f-custo-max" inputmode="decimal" placeholder="0,00" /></label>
+              <label class="min-w-[6rem]"><span>Venda de</span><input type="text" id="saldo-f-venda-min" inputmode="decimal" placeholder="0,00" /></label>
+              <label class="min-w-[6rem]"><span>Venda até</span><input type="text" id="saldo-f-venda-max" inputmode="decimal" placeholder="0,00" /></label>
+              <label class="min-w-[7rem]">
+                <span>NCM</span>
+                <select id="saldo-f-ncm">
+                  <option value="">Qualquer</option>
+                  <option value="com">Com NCM</option>
+                  <option value="sem">Sem NCM</option>
+                </select>
+              </label>
+              <label class="inline-flex items-center gap-2 min-h-[2.75rem] px-2.5 rounded-lg border border-slate-200 bg-white text-sm font-bold text-slate-700 self-end">
+                <input type="checkbox" id="saldo-f-sem-marca" class="w-4 h-4 accent-emerald-600" /> Sem marca
+              </label>
+              <label class="inline-flex items-center gap-2 min-h-[2.75rem] px-2.5 rounded-lg border border-slate-200 bg-white text-sm font-bold text-slate-700 self-end">
+                <input type="checkbox" id="saldo-f-sem-cat" class="w-4 h-4 accent-emerald-600" /> Sem categoria
+              </label>
+              <label class="inline-flex items-center gap-2 min-h-[2.75rem] px-2.5 rounded-lg border border-slate-200 bg-white text-sm font-bold text-slate-700 self-end">
+                <input type="checkbox" id="saldo-f-somente-agro" class="w-4 h-4 accent-emerald-600" /> Só Agro
+              </label>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="folha-saldo-footer shrink-0 border-t border-slate-100 bg-slate-50/90 px-4 py-3.5 flex flex-wrap items-center gap-2.5">
+        <button type="button" id="saldo-btn-imprimir" class="flex-1 min-w-[12rem] min-h-[52px] rounded-xl border-2 border-emerald-700 bg-emerald-600 text-white font-black uppercase text-base hover:bg-emerald-700 shadow-sm">Imprimir saldo</button>
+        <button type="button" id="saldo-btn-limpar" class="min-h-[52px] px-5 rounded-xl border-2 border-slate-300 bg-white text-slate-700 font-bold uppercase text-sm hover:bg-slate-50">Limpar</button>
+        <p id="saldo-status" class="w-full text-sm font-semibold text-slate-500" role="status"></p>
+      </div>
+    </main>
+  </div>
+
+{{ facetas|json_script:"saldo-facetas-boot" }}
+<script>
+(function () {
+  var API = "{{ api_relatorio_url|escapejs }}";
+  var FACETAS_URL = "{{ api_facetas_url|escapejs }}";
+  var PRESETS_URL = "{{ api_presets_url|escapejs }}";
+
+  var msFacetas = {
+    marca: [], categoria: [], subcategoria: [],
+    subcategoria_2: [], subcategoria_3: [], subcategoria_4: [],
+    fornecedor: [], unidade: [], modelo: []
+  };
+  var msSelected = {
+    marca: [], categoria: [], subcategoria: [],
+    subcategoria_2: [], subcategoria_3: [], subcategoria_4: [],
+    fornecedor: [], unidade: [], modelo: []
+  };
+  var msLabels = {
+    marca: 'Marca', categoria: 'Categoria', subcategoria: 'Sub',
+    subcategoria_2: 'Sub 2', subcategoria_3: 'Sub 3', subcategoria_4: 'Sub 4',
+    fornecedor: 'Fornecedor', unidade: 'Unidade', modelo: 'Modelo'
+  };
+  var presetsCache = [];
+
+  function el(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function csrfToken() {
+    var m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+  function presetDetailUrl(id) {
+    var base = PRESETS_URL || '';
+    if (!base) return '';
+    return base.replace(/\/?$/, '/') + String(id) + '/';
+  }
+  function norm(s) {
+    return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  }
+  function setStatus(msg, isErr) {
+    var s = el('saldo-status');
+    if (!s) return;
+    s.textContent = msg || '';
+    s.className = 'w-full text-xs font-semibold ' + (isErr ? 'text-red-700' : 'text-slate-500');
+  }
+  function setFacStatus(msg, isErr) {
+    var cls = 'text-xs font-semibold ' + (isErr ? 'text-red-600' : 'text-slate-500');
+    var clsEmbed = 'text-sm font-semibold tabular-nums ' + (isErr ? 'text-red-600' : 'text-slate-600');
+    var s = el('saldo-facetas-status');
+    if (s) {
+      s.textContent = msg || '';
+      s.className = cls;
+    }
+    var s2 = el('saldo-facetas-status-embed');
+    if (s2) {
+      s2.textContent = msg || '';
+      s2.className = clsEmbed;
+    }
+  }
+
+  function applyFacetasPayload(j) {
+    if (!j) return 0;
+    msFacetas.marca = j.marcas || [];
+    msFacetas.categoria = j.categorias || [];
+    msFacetas.subcategoria = j.subcategorias || [];
+    msFacetas.subcategoria_2 = j.subcategorias_2 || [];
+    msFacetas.subcategoria_3 = j.subcategorias_3 || [];
+    msFacetas.subcategoria_4 = j.subcategorias_4 || [];
+    msFacetas.fornecedor = j.fornecedores || [];
+    msFacetas.unidade = j.unidades || [];
+    msFacetas.modelo = j.modelos || [];
+    var n = 0;
+    Object.keys(msFacetas).forEach(function (k) { n += (msFacetas[k] || []).length; });
+    Object.keys(msFacetas).forEach(function (k) { msRenderBtn(k); });
+    return n;
+  }
+
+  function msToggle(key, val, on) {
+    var list = msSelected[key] || [];
+    var v = String(val || '').trim();
+    if (!v) return;
+    var i = list.indexOf(v);
+    if (on === true || (on == null && i < 0)) {
+      if (i < 0) list.push(v);
+    } else if (i >= 0) {
+      list.splice(i, 1);
+    }
+    msSelected[key] = list;
+    msRenderBtn(key);
+    msRenderChips();
+  }
+
+  function msRenderBtn(key) {
+    var root = document.querySelector('.cad-ms[data-ms="' + key + '"]');
+    if (!root) return;
+    var btn = root.querySelector('.cad-ms-btn');
+    if (!btn) return;
+    var n = (msSelected[key] || []).length;
+    var label = msLabels[key] || key;
+    btn.classList.toggle('is-on', n > 0);
+    btn.innerHTML = esc(label) + (n ? ' <span class="cad-ms-count">' + n + '</span>' : '');
+  }
+
+  function msRenderChips() {
+    var box = el('saldo-f-chips');
+    if (!box) return;
+    var html = '';
+    Object.keys(msSelected).forEach(function (key) {
+      (msSelected[key] || []).forEach(function (v) {
+        html +=
+          '<span class="cad-f-chip" data-ms-key="' + esc(key) + '" data-ms-val="' + esc(v) + '"><span title="' +
+          esc((msLabels[key] || key) + ': ' + v) + '">' + esc(msLabels[key] || key) + ': ' + esc(v) +
+          '</span><button type="button" aria-label="Remover">×</button></span>';
+      });
+    });
+    box.innerHTML = html;
+  }
+
+  function msCloseAll(exceptRoot) {
+    document.querySelectorAll('.cad-ms-panel').forEach(function (p) {
+      if (exceptRoot && exceptRoot.contains(p)) return;
+      p.classList.add('hidden');
+    });
+  }
+
+  function msFillPanel(root, q) {
+    var key = root.getAttribute('data-ms');
+    var panel = root.querySelector('.cad-ms-panel');
+    if (!panel || !key) return;
+    var selected = {};
+    (msSelected[key] || []).forEach(function (v) { selected[v] = true; });
+    var nq = norm(q);
+    var opts = (msFacetas[key] || []).filter(function (x) {
+      if (!nq) return true;
+      return norm(x).indexOf(nq) >= 0;
+    }).slice(0, 120);
+    var listHtml = opts.map(function (x) {
+      return (
+        '<label class="cad-ms-opt"><input type="checkbox" data-val="' + esc(x) + '"' +
+        (selected[x] ? ' checked' : '') + '/><span>' + esc(x) + '</span></label>'
+      );
+    }).join('');
+    if (!listHtml) {
+      listHtml = '<p class="px-2 py-2 text-xs font-semibold text-slate-500">' +
+        ((msFacetas[key] || []).length ? 'Nada encontrado.' : 'Lista vazia — aguarde carregar ou confira o cadastro.') +
+        '</p>';
+    }
+    var searchVal = panel.querySelector('input[type="search"]');
+    var keepQ = searchVal ? searchVal.value : (q || '');
+    panel.innerHTML =
+      '<input type="search" placeholder="Buscar…" value="' + esc(keepQ) + '" autocomplete="off" />' +
+      '<div class="cad-ms-list">' + listHtml + '</div>';
+    var inp = panel.querySelector('input[type="search"]');
+    if (inp) {
+      inp.addEventListener('input', function () {
+        msFillPanel(root, inp.value);
+        var again = panel.querySelector('input[type="search"]');
+        if (again) {
+          again.focus();
+          try { var len = again.value.length; again.setSelectionRange(len, len); } catch (_) {}
+        }
+      });
+    }
+    panel.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        msToggle(key, cb.getAttribute('data-val'), cb.checked);
+      });
+    });
+  }
+
+  function msWire() {
+    document.querySelectorAll('.cad-ms').forEach(function (root) {
+      var btn = root.querySelector('.cad-ms-btn');
+      var panel = root.querySelector('.cad-ms-panel');
+      if (!btn || !panel) return;
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var open = !panel.classList.contains('hidden');
+        msCloseAll();
+        if (open) return;
+        panel.classList.remove('hidden');
+        msFillPanel(root, '');
+        var inp = panel.querySelector('input[type="search"]');
+        if (inp) setTimeout(function () { inp.focus(); }, 30);
+      });
+    });
+    var chips = el('saldo-f-chips');
+    if (chips) {
+      chips.addEventListener('click', function (e) {
+        var btn = e.target.closest('button');
+        var chip = e.target.closest('.cad-f-chip');
+        if (!btn || !chip) return;
+        msToggle(chip.getAttribute('data-ms-key'), chip.getAttribute('data-ms-val'), false);
+      });
+    }
+    document.addEventListener('mousedown', function (e) {
+      if (e.target && e.target.closest && e.target.closest('.cad-ms')) return;
+      msCloseAll();
+    });
+  }
+
+  function appendMulti(params, key, vals) {
+    (vals || []).forEach(function (v) { if (v) params.append(key, v); });
+  }
+
+  function buildParams() {
+    var p = new URLSearchParams();
+    if (el('saldo-loja-centro') && el('saldo-loja-centro').checked) p.set('loja_centro', '1');
+    if (el('saldo-loja-vila') && el('saldo-loja-vila').checked) p.set('loja_vila', '1');
+    if (el('saldo-omit-zero') && el('saldo-omit-zero').checked) p.set('omit_zero', '1');
+    if (!(el('saldo-somente-ativos') && el('saldo-somente-ativos').checked)) p.set('inativos', '1');
+    var q = el('saldo-q') ? el('saldo-q').value.trim() : '';
+    if (q) p.set('q', q);
+    if (el('saldo-f-estoque-sinal') && el('saldo-f-estoque-sinal').value) {
+      p.set('estoque_sinal', el('saldo-f-estoque-sinal').value);
+    }
+    if ((el('saldo-f-data-de') && el('saldo-f-data-de').value) || (el('saldo-f-data-ate') && el('saldo-f-data-ate').value)) {
+      p.set('data_tipo', (el('saldo-f-data-tipo') && el('saldo-f-data-tipo').value) || 'cadastro');
+      if (el('saldo-f-data-de') && el('saldo-f-data-de').value) p.set('data_de', el('saldo-f-data-de').value);
+      if (el('saldo-f-data-ate') && el('saldo-f-data-ate').value) p.set('data_ate', el('saldo-f-data-ate').value);
+    }
+    appendMulti(p, 'marca', msSelected.marca);
+    appendMulti(p, 'categoria', msSelected.categoria);
+    appendMulti(p, 'subcategoria', msSelected.subcategoria);
+    appendMulti(p, 'subcategoria_2', msSelected.subcategoria_2);
+    appendMulti(p, 'subcategoria_3', msSelected.subcategoria_3);
+    appendMulti(p, 'subcategoria_4', msSelected.subcategoria_4);
+    appendMulti(p, 'fornecedor', msSelected.fornecedor);
+    appendMulti(p, 'unidade', msSelected.unidade);
+    appendMulti(p, 'modelo', msSelected.modelo);
+    if (el('saldo-f-custo-min') && el('saldo-f-custo-min').value.trim()) p.set('custo_min', el('saldo-f-custo-min').value.trim());
+    if (el('saldo-f-custo-max') && el('saldo-f-custo-max').value.trim()) p.set('custo_max', el('saldo-f-custo-max').value.trim());
+    if (el('saldo-f-venda-min') && el('saldo-f-venda-min').value.trim()) p.set('venda_min', el('saldo-f-venda-min').value.trim());
+    if (el('saldo-f-venda-max') && el('saldo-f-venda-max').value.trim()) p.set('venda_max', el('saldo-f-venda-max').value.trim());
+    if (el('saldo-f-ncm') && el('saldo-f-ncm').value) p.set('ncm', el('saldo-f-ncm').value);
+    if (el('saldo-f-sem-marca') && el('saldo-f-sem-marca').checked) p.set('sem_marca', '1');
+    if (el('saldo-f-sem-cat') && el('saldo-f-sem-cat').checked) p.set('sem_categoria', '1');
+    if (el('saldo-f-somente-agro') && el('saldo-f-somente-agro').checked) p.set('somente_agro', '1');
+    return p;
+  }
+
+  function limparFiltros() {
+    Object.keys(msSelected).forEach(function (k) {
+      msSelected[k] = [];
+      msRenderBtn(k);
+    });
+    msRenderChips();
+    if (el('saldo-f-estoque-sinal')) el('saldo-f-estoque-sinal').value = '';
+    if (el('saldo-f-data-tipo')) el('saldo-f-data-tipo').value = 'cadastro';
+    if (el('saldo-f-data-de')) el('saldo-f-data-de').value = '';
+    if (el('saldo-f-data-ate')) el('saldo-f-data-ate').value = '';
+    ['saldo-f-custo-min','saldo-f-custo-max','saldo-f-venda-min','saldo-f-venda-max','saldo-q'].forEach(function (id) {
+      if (el(id)) el(id).value = '';
+    });
+    if (el('saldo-f-ncm')) el('saldo-f-ncm').value = '';
+    if (el('saldo-f-sem-marca')) el('saldo-f-sem-marca').checked = false;
+    if (el('saldo-f-sem-cat')) el('saldo-f-sem-cat').checked = false;
+    if (el('saldo-f-somente-agro')) el('saldo-f-somente-agro').checked = false;
+    setStatus('');
+  }
+
+  function capturePayload() {
+    var out = {
+      papel: (el('saldo-papel') && el('saldo-papel').value) || 'A4',
+      loja_centro: !!(el('saldo-loja-centro') && el('saldo-loja-centro').checked),
+      loja_vila: !!(el('saldo-loja-vila') && el('saldo-loja-vila').checked),
+      omit_zero: !!(el('saldo-omit-zero') && el('saldo-omit-zero').checked),
+      somente_ativos: !!(el('saldo-somente-ativos') && el('saldo-somente-ativos').checked),
+      q: el('saldo-q') ? el('saldo-q').value.trim() : '',
+      estoque_sinal: (el('saldo-f-estoque-sinal') && el('saldo-f-estoque-sinal').value) || '',
+      data_tipo: (el('saldo-f-data-tipo') && el('saldo-f-data-tipo').value) || 'cadastro',
+      data_de: (el('saldo-f-data-de') && el('saldo-f-data-de').value) || '',
+      data_ate: (el('saldo-f-data-ate') && el('saldo-f-data-ate').value) || '',
+      custo_min: (el('saldo-f-custo-min') && el('saldo-f-custo-min').value.trim()) || '',
+      custo_max: (el('saldo-f-custo-max') && el('saldo-f-custo-max').value.trim()) || '',
+      venda_min: (el('saldo-f-venda-min') && el('saldo-f-venda-min').value.trim()) || '',
+      venda_max: (el('saldo-f-venda-max') && el('saldo-f-venda-max').value.trim()) || '',
+      ncm: (el('saldo-f-ncm') && el('saldo-f-ncm').value) || '',
+      sem_marca: !!(el('saldo-f-sem-marca') && el('saldo-f-sem-marca').checked),
+      sem_categoria: !!(el('saldo-f-sem-cat') && el('saldo-f-sem-cat').checked),
+      somente_agro: !!(el('saldo-f-somente-agro') && el('saldo-f-somente-agro').checked)
+    };
+    Object.keys(msSelected).forEach(function (k) {
+      out[k] = (msSelected[k] || []).slice();
+    });
+    return out;
+  }
+
+  function applyPayload(p) {
+    if (!p || typeof p !== 'object') return;
+    limparFiltros();
+    if (el('saldo-papel') && p.papel) el('saldo-papel').value = p.papel;
+    if (el('saldo-loja-centro')) el('saldo-loja-centro').checked = typeof p.loja_centro === 'boolean' ? p.loja_centro : true;
+    if (el('saldo-loja-vila')) el('saldo-loja-vila').checked = typeof p.loja_vila === 'boolean' ? p.loja_vila : true;
+    if (el('saldo-omit-zero')) el('saldo-omit-zero').checked = !!p.omit_zero;
+    if (el('saldo-somente-ativos')) el('saldo-somente-ativos').checked = p.somente_ativos !== false;
+    if (el('saldo-q')) el('saldo-q').value = p.q || '';
+    if (el('saldo-f-estoque-sinal')) el('saldo-f-estoque-sinal').value = p.estoque_sinal || '';
+    if (el('saldo-f-data-tipo')) el('saldo-f-data-tipo').value = p.data_tipo || 'cadastro';
+    if (el('saldo-f-data-de')) el('saldo-f-data-de').value = p.data_de || '';
+    if (el('saldo-f-data-ate')) el('saldo-f-data-ate').value = p.data_ate || '';
+    if (el('saldo-f-custo-min')) el('saldo-f-custo-min').value = p.custo_min || '';
+    if (el('saldo-f-custo-max')) el('saldo-f-custo-max').value = p.custo_max || '';
+    if (el('saldo-f-venda-min')) el('saldo-f-venda-min').value = p.venda_min || '';
+    if (el('saldo-f-venda-max')) el('saldo-f-venda-max').value = p.venda_max || '';
+    if (el('saldo-f-ncm')) el('saldo-f-ncm').value = p.ncm || '';
+    if (el('saldo-f-sem-marca')) el('saldo-f-sem-marca').checked = !!p.sem_marca;
+    if (el('saldo-f-sem-cat')) el('saldo-f-sem-cat').checked = !!p.sem_categoria;
+    if (el('saldo-f-somente-agro')) el('saldo-f-somente-agro').checked = !!p.somente_agro;
+    Object.keys(msSelected).forEach(function (k) {
+      msSelected[k] = Array.isArray(p[k]) ? p[k].map(String).filter(Boolean) : [];
+      msRenderBtn(k);
+    });
+    msRenderChips();
+  }
+
+  function syncPresetButtons() {
+    var sel = el('saldo-preset-sel');
+    var id = sel && sel.value ? String(sel.value) : '';
+    var has = !!id;
+    if (el('saldo-preset-aplicar')) el('saldo-preset-aplicar').disabled = !has;
+    if (el('saldo-preset-padrao')) el('saldo-preset-padrao').disabled = !has;
+    if (el('saldo-preset-excluir')) el('saldo-preset-excluir').disabled = !has;
+  }
+
+  function renderPresetSelect(selectedId, padraoId) {
+    var sel = el('saldo-preset-sel');
+    if (!sel) return;
+    var cur = selectedId != null ? String(selectedId) : (sel.value || '');
+    var html = '<option value="">— escolher —</option>';
+    (presetsCache || []).forEach(function (pr) {
+      var mark = pr.is_padrao || String(pr.id) === String(padraoId) ? ' ★' : '';
+      html += '<option value="' + esc(String(pr.id)) + '">' + esc(pr.nome) + mark + '</option>';
+    });
+    sel.innerHTML = html;
+    if (cur) sel.value = cur;
+    syncPresetButtons();
+  }
+
+  function carregarPresets(opts) {
+    opts = opts || {};
+    if (!PRESETS_URL) return Promise.resolve();
+    return fetch(PRESETS_URL + (PRESETS_URL.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now(), {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+      cache: 'no-store'
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (j) {
+        if (!j || !j.ok) throw new Error((j && j.erro) || 'Falha ao listar filtros');
+        presetsCache = j.presets || [];
+        var padraoId = j.padrao_id;
+        renderPresetSelect(opts.keepId, padraoId);
+        if (opts.applyPadrao && padraoId) {
+          var pr = presetsCache.find(function (x) { return String(x.id) === String(padraoId); });
+          if (pr) {
+            applyPayload(pr.payload || {});
+            if (el('saldo-preset-sel')) el('saldo-preset-sel').value = String(pr.id);
+            syncPresetButtons();
+            setStatus('Filtro padrão aplicado: ' + (pr.nome || ''));
+          }
+        }
+      })
+      .catch(function (err) {
+        setStatus((err && err.message) || 'Não deu para carregar filtros salvos', true);
+      });
+  }
+
+  function salvarPresetAtual() {
+    var nome = window.prompt('Nome deste filtro (aparece em todos os PCs da loja):');
+    if (nome == null) return;
+    nome = String(nome).trim().slice(0, 80);
+    if (!nome) {
+      setStatus('Informe um nome.', true);
+      return;
+    }
+    var tornar = window.confirm('Definir este filtro como padrão? (abre sozinho para todos)');
+    fetch(PRESETS_URL, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken()
+      },
+      body: JSON.stringify({ nome: nome, payload: capturePayload(), tornar_padrao: tornar })
+    })
+      .then(function (r) { return r.json().then(function (j) { return { okHttp: r.ok, j: j }; }); })
+      .then(function (x) {
+        if (!x.j || !x.j.ok) throw new Error((x.j && x.j.erro) || 'Falha ao salvar');
+        setStatus('Filtro salvo' + (tornar ? ' e marcado como padrão' : '') + '.');
+        return carregarPresets({ keepId: x.j.preset && x.j.preset.id });
+      })
+      .catch(function (err) {
+        setStatus((err && err.message) || 'Erro ao salvar filtro', true);
+      });
+  }
+
+  function aplicarPresetSelecionado() {
+    var sel = el('saldo-preset-sel');
+    var id = sel && sel.value;
+    if (!id) return;
+    var pr = presetsCache.find(function (x) { return String(x.id) === String(id); });
+    if (!pr) {
+      setStatus('Filtro não encontrado — recarregue a lista.', true);
+      return;
+    }
+    applyPayload(pr.payload || {});
+    setStatus('Filtro aplicado: ' + (pr.nome || ''));
+  }
+
+  function tornarPadraoSelecionado() {
+    var sel = el('saldo-preset-sel');
+    var id = sel && sel.value;
+    if (!id) return;
+    var url = presetDetailUrl(id);
+    fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken()
+      },
+      body: JSON.stringify({ tornar_padrao: true })
+    })
+      .then(function (r) { return r.json().then(function (j) { return { okHttp: r.ok, j: j }; }); })
+      .then(function (x) {
+        if (!x.j || !x.j.ok) throw new Error((x.j && x.j.erro) || 'Falha');
+        setStatus('Padrão definido para toda a loja.');
+        return carregarPresets({ keepId: id });
+      })
+      .catch(function (err) {
+        setStatus((err && err.message) || 'Erro ao definir padrão', true);
+      });
+  }
+
+  function excluirPresetSelecionado() {
+    var sel = el('saldo-preset-sel');
+    var id = sel && sel.value;
+    if (!id) return;
+    var pr = presetsCache.find(function (x) { return String(x.id) === String(id); });
+    if (!window.confirm('Excluir o filtro «' + ((pr && pr.nome) || id) + '»? Vale para todos os PCs.')) return;
+    fetch(presetDetailUrl(id), {
+      method: 'DELETE',
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json', 'X-CSRFToken': csrfToken() }
+    })
+      .then(function (r) { return r.json().then(function (j) { return { okHttp: r.ok, j: j }; }); })
+      .then(function (x) {
+        if (!x.j || !x.j.ok) throw new Error((x.j && x.j.erro) || 'Falha');
+        setStatus('Filtro excluído.');
+        return carregarPresets();
+      })
+      .catch(function (err) {
+        setStatus((err && err.message) || 'Erro ao excluir', true);
+      });
+  }
+
+  function fmtSaldo(n) {
+    var x = Number(n);
+    if (!isFinite(x)) return '—';
+    return x.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
+  }
+
+  /** Largura fixa estilo GM0000-00 (9 chars) — alinha nome na coluna */
+  function fmtGm(code) {
+    var s = String(code == null ? '' : code).trim();
+    var W = 9;
+    if (s.length >= W) return s;
+    return s + Array(W - s.length + 1).join(' ');
+  }
+
+  function resumoFiltrosUsados() {
+    var parts = [];
+    var sinalMap = { positivo: 'estoque +', negativo: 'estoque −', zero: 'zerados' };
+    var sinal = el('saldo-f-estoque-sinal') && el('saldo-f-estoque-sinal').value;
+    if (sinal && sinalMap[sinal]) parts.push(sinalMap[sinal]);
+    if (el('saldo-omit-zero') && el('saldo-omit-zero').checked) parts.push('esconder zerados');
+    if (!(el('saldo-somente-ativos') && el('saldo-somente-ativos').checked)) parts.push('inclui inativos');
+    var q = el('saldo-q') ? el('saldo-q').value.trim() : '';
+    if (q) parts.push('busca «' + q + '»');
+    Object.keys(msSelected).forEach(function (key) {
+      var vals = msSelected[key] || [];
+      if (!vals.length) return;
+      var label = msLabels[key] || key;
+      parts.push(label + ': ' + vals.join(', '));
+    });
+    var de = el('saldo-f-data-de') && el('saldo-f-data-de').value;
+    var ate = el('saldo-f-data-ate') && el('saldo-f-data-ate').value;
+    if (de || ate) {
+      var tipoMap = { cadastro: 'cadastro', primeira_nf: '1ª NF', ultima_nf: 'últ. NF' };
+      var tipo = (el('saldo-f-data-tipo') && el('saldo-f-data-tipo').value) || 'cadastro';
+      parts.push('data ' + (tipoMap[tipo] || tipo) + ' ' + (de || '…') + '→' + (ate || '…'));
+    }
+    var cmin = el('saldo-f-custo-min') && el('saldo-f-custo-min').value.trim();
+    var cmax = el('saldo-f-custo-max') && el('saldo-f-custo-max').value.trim();
+    if (cmin || cmax) parts.push('custo ' + (cmin || '…') + '–' + (cmax || '…'));
+    var vmin = el('saldo-f-venda-min') && el('saldo-f-venda-min').value.trim();
+    var vmax = el('saldo-f-venda-max') && el('saldo-f-venda-max').value.trim();
+    if (vmin || vmax) parts.push('venda ' + (vmin || '…') + '–' + (vmax || '…'));
+    var ncm = el('saldo-f-ncm') && el('saldo-f-ncm').value;
+    if (ncm === 'com') parts.push('com NCM');
+    if (ncm === 'sem') parts.push('sem NCM');
+    if (el('saldo-f-sem-marca') && el('saldo-f-sem-marca').checked) parts.push('sem marca');
+    if (el('saldo-f-sem-cat') && el('saldo-f-sem-cat').checked) parts.push('sem categoria');
+    if (el('saldo-f-somente-agro') && el('saldo-f-somente-agro').checked) parts.push('só Agro');
+    var sel = el('saldo-preset-sel');
+    if (sel && sel.value) {
+      var opt = sel.options[sel.selectedIndex];
+      var nomePr = opt && opt.textContent ? String(opt.textContent).replace(/\s*★\s*$/, '').trim() : '';
+      if (nomePr && nomePr.indexOf('escolher') < 0) parts.push('filtro salvo: ' + nomePr);
+    }
+    return parts.length ? parts.join(' · ') : 'Sem filtro extra';
+  }
+
+  function cssPapel(papel) {
+    if (papel === '80mm') {
+      /* Epson TM-T20X: 100%/90% ainda raspam saldo — 82% + saldo reservado */
+      return '@page{margin:0;size:80mm auto}html,body{margin:0;padding:0;width:80mm;font-family:system-ui,sans-serif;font-size:10.5px;color:#000}' +
+        '.wrap{width:82%;max-width:66mm;box-sizing:border-box;margin:0 auto;padding:1.5mm 0}' +
+        '.tit{font-weight:900;font-size:12px;text-align:center;text-transform:uppercase;margin:0 0 3px}' +
+        '.meta{font-size:9px;text-align:center;margin:0 0 2px;font-weight:600}' +
+        '.filtros{font-size:8px;text-align:center;margin:0 0 5px;font-weight:600;line-height:1.25;word-break:break-word}' +
+        '.row{display:flex;align-items:flex-start;gap:3px;border-bottom:1px dashed #999;padding:2px 0;page-break-inside:avoid}' +
+        '.gm{font-weight:800;font-family:ui-monospace,Consolas,monospace;flex:0 0 9ch;width:9ch;white-space:pre;overflow:hidden}' +
+        '.nome{flex:1 1 auto;min-width:0;font-weight:700;line-height:1.12;overflow-wrap:anywhere}' +
+        '.saldo{font-weight:900;flex:0 0 2.55em;width:2.55em;max-width:2.55em;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}';
+    }
+    if (papel === 'A5') {
+      return '@page{size:A5;margin:8mm}html,body{margin:0;font-family:system-ui,sans-serif;font-size:11px;color:#111}' +
+        '.wrap{width:100%}.tit{font-weight:900;font-size:16px;text-transform:uppercase;margin:0 0 4px}.meta{font-size:10px;margin:0 0 3px;font-weight:600}' +
+        '.filtros{font-size:9px;margin:0 0 8px;font-weight:600;line-height:1.3;color:#334155}' +
+        'table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #cbd5e1;padding:4px 5px;text-align:left;vertical-align:top}' +
+        'th{font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:#475569}' +
+        'td.gm{font-family:ui-monospace,Consolas,monospace;font-weight:800;white-space:pre;width:9ch;min-width:9ch}' +
+        'td.saldo{text-align:right;font-weight:900;white-space:nowrap;width:10%;font-variant-numeric:tabular-nums}';
+    }
+    return '@page{size:A4;margin:10mm}html,body{margin:0;font-family:system-ui,sans-serif;font-size:12px;color:#111}' +
+      '.wrap{width:100%}.tit{font-weight:900;font-size:18px;text-transform:uppercase;margin:0 0 4px}.meta{font-size:11px;margin:0 0 3px;font-weight:600}' +
+      '.filtros{font-size:10px;margin:0 0 10px;font-weight:600;line-height:1.35;color:#334155}' +
+      'table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #cbd5e1;padding:5px 6px;text-align:left;vertical-align:top}' +
+      'th{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:#475569}' +
+      'td.gm{font-family:ui-monospace,Consolas,monospace;font-weight:800;white-space:pre;width:9ch;min-width:9ch}' +
+      'td.saldo{text-align:right;font-weight:900;white-space:nowrap;width:9%;font-variant-numeric:tabular-nums}';
+  }
+
+  function montarHtml(j, papel) {
+    var linhas = j.linhas || [];
+    var meta = 'SisVale · ' + (j.loja_rotulo || 'Saldo') + ' · ' + (j.gerado_em || '') + ' · ' + linhas.length + ' itens' + (j.truncado ? ' (lista limitada)' : '');
+    var filtros = resumoFiltrosUsados();
+    var body;
+    if (papel === '80mm') {
+      body = linhas.map(function (ln) {
+        return '<div class="row"><span class="gm">' + esc(fmtGm(ln.codigo_gm)) + '</span><span class="nome">' + esc(ln.nome) + '</span><span class="saldo">' + esc(fmtSaldo(ln.saldo)) + '</span></div>';
+      }).join('');
+    } else {
+      body = '<table><thead><tr><th>Código GM</th><th>Produto</th><th>Saldo</th></tr></thead><tbody>' +
+        linhas.map(function (ln) {
+          return '<tr><td class="gm">' + esc(fmtGm(ln.codigo_gm)) + '</td><td>' + esc(ln.nome) + '</td><td class="saldo">' + esc(fmtSaldo(ln.saldo)) + '</td></tr>';
+        }).join('') + '</tbody></table>';
+    }
+    return '<!DOCTYPE html><html lang="pt-br"><head><meta charset="utf-8"><title>Folha de saldo</title><style>' +
+      cssPapel(papel) + '</style></head><body><div class="wrap"><p class="tit">Folha de saldo</p><p class="meta">' +
+      esc(meta) + '</p><p class="filtros">Filtro: ' + esc(filtros) + '</p>' + body + '</div></body></html>';
+  }
+
+  function entregarPrint(html) {
+    var preferWin = false;
+    try {
+      if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) preferWin = true;
+    } catch (_) {}
+    if (preferWin) {
+      var w = null;
+      try { w = window.open('', '_blank'); } catch (_) { w = null; }
+      if (w && w.document) {
+        try {
+          w.document.open();
+          w.document.write(html);
+          w.document.close();
+          setTimeout(function () { try { w.focus(); w.print(); } catch (_) {} }, 350);
+          return;
+        } catch (_) {}
+      }
+    }
+    var ifr = document.createElement('iframe');
+    ifr.setAttribute('style', 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden');
+    document.body.appendChild(ifr);
+    var doc = ifr.contentWindow || ifr.contentDocument;
+    doc = doc.document || doc;
+    doc.open();
+    doc.write(html);
+    doc.close();
+    setTimeout(function () {
+      try { ifr.contentWindow.focus(); ifr.contentWindow.print(); } catch (_) {}
+      setTimeout(function () { try { ifr.remove(); } catch (_) {} }, 1500);
+    }, 300);
+  }
+
+  function carregarFacetasApi() {
+    if (!FACETAS_URL) return;
+    setFacStatus('Atualizando listas…');
+    fetch(FACETAS_URL + (FACETAS_URL.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now(), {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+      cache: 'no-store'
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (j) {
+        if (!j || !j.ok) throw new Error((j && j.erro) || 'Facetas indisponíveis');
+        var n = applyFacetasPayload(j);
+        setFacStatus(n ? (n + ' opções') : 'Listas vazias no cadastro', !n);
+      })
+      .catch(function (err) {
+        setFacStatus((err && err.message) || 'Falha ao carregar filtros', true);
+      });
+  }
+
+  /* Boot: listas já no HTML (evita iframe vazio) */
+  try {
+    var bootEl = document.getElementById('saldo-facetas-boot');
+    var boot = bootEl ? JSON.parse(bootEl.textContent || '{}') : {};
+    var n0 = applyFacetasPayload(boot);
+    if (n0) setFacStatus(n0 + ' opções');
+    else setFacStatus('Carregando listas…');
+  } catch (_) {
+    setFacStatus('Carregando listas…');
+  }
+  msWire();
+  carregarFacetasApi();
+  carregarPresets({ applyPadrao: true });
+
+  el('saldo-preset-sel') && el('saldo-preset-sel').addEventListener('change', syncPresetButtons);
+  el('saldo-preset-aplicar') && el('saldo-preset-aplicar').addEventListener('click', aplicarPresetSelecionado);
+  el('saldo-preset-salvar') && el('saldo-preset-salvar').addEventListener('click', salvarPresetAtual);
+  el('saldo-preset-padrao') && el('saldo-preset-padrao').addEventListener('click', tornarPadraoSelecionado);
+  el('saldo-preset-excluir') && el('saldo-preset-excluir').addEventListener('click', excluirPresetSelecionado);
+
+  el('saldo-btn-limpar') && el('saldo-btn-limpar').addEventListener('click', limparFiltros);
+  el('saldo-btn-imprimir') && el('saldo-btn-imprimir').addEventListener('click', function () {
+    var centro = el('saldo-loja-centro') && el('saldo-loja-centro').checked;
+    var vila = el('saldo-loja-vila') && el('saldo-loja-vila').checked;
+    if (!centro && !vila) {
+      setStatus('Marque Centro e/ou Vila Elias.', true);
+      return;
+    }
+    var papel = (el('saldo-papel') && el('saldo-papel').value) || 'A4';
+    var btn = el('saldo-btn-imprimir');
+    if (btn) { btn.disabled = true; btn.textContent = 'Montando…'; }
+    setStatus('Buscando produtos…');
+    fetch(API + '?' + buildParams().toString(), { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j || !j.ok) throw new Error((j && j.erro) || 'Falha ao montar lista');
+        if (!(j.linhas || []).length) {
+          setStatus('Nenhum produto com esses filtros.', true);
+          return;
+        }
+        setStatus((j.total || 0) + ' produto(s)' + (j.truncado ? ' · lista limitada a ' + (j.limite || 2000) : '') + ' · ' + (j.loja_rotulo || ''));
+        entregarPrint(montarHtml(j, papel));
+      })
+      .catch(function (err) {
+        setStatus((err && err.message) || 'Erro ao imprimir', true);
+      })
+      .finally(function () {
+        if (btn) { btn.disabled = false; btn.textContent = 'Imprimir saldo'; }
+      });
+  });
+})();
+</script>
+</body>
+</html>
