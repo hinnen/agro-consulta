@@ -8690,7 +8690,6 @@ def _dashboard_serie_meta_c_vendas(
     out: list[float] = []
     for i in range(dias):
         d = data_ini + timedelta(days=i)
-<<<<<<< HEAD
         out.append(
             _dashboard_vendas_meta_c_para_dia(
                 d,
@@ -8698,11 +8697,7 @@ def _dashboard_serie_meta_c_vendas(
                 data_min=data_min,
             )
         )
-    cache.set(ck, out, timeout=120)
-=======
-        out.append(_dashboard_vendas_meta_c_valor(d, hist_cache, deposito=dep_key))
     cache.set(ck, out, timeout=600)
->>>>>>> 338abb7 (perf(vendas-lojas): abrir tela so com totais; extras async.)
     return out
 
 
