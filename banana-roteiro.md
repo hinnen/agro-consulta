@@ -402,3 +402,13 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 **Rollback:** tag `rollback/pre-lote-checklist-0509h-v21.92` @ `041e1b5` · branch `producao-backup-pre-v2193-lote-checklist-20260905` · `docs/ROLLBACK-LOTE-CHECKLIST-0509h.md` · **só** frase+senha.  
 **Smoke:** Ctrl+F5 · badge **v21.93** · PDV F7 · Lançamentos PIN velho → teclado · Zap balcão 1 barra.  
 **Não subiu:** merge `teste` · Excel · resto ponte foto/agenda.
+
+---
+
+## 23. Checklist único — VL-HUB-TAREFAS (alvo loja · tip **v23.16+**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **VL-HUB-TAREFAS** | 🟢 **pronto para envio à produção** | **SIM** `tarefas.0001` + `0002` |
+
+**Prova:** `verify_vl_hub_tarefas_path.py` **55/55**. **Só** frase+senha. Loja ainda em **v23.07** (WA-PONTE-LEVE).

@@ -1277,18 +1277,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### WIP — Hub Vendas + Tarefas / pendências (06/09 · tip teste)
+### ✅ CHECKLIST ÚNICO — pronto envio (06/09 · tip **v23.17+**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `VL-HUB-TAREFAS` | 🟢 **pronto para envio à produção** | **SIM** (`tarefas.0001` + `0002` seed) |
+
+**Loja agora:** Live **v23.07** (WA-PONTE-LEVE). Este pacote **ainda não** subiu.
+
+### 📦 PACOTE PRONTO — Hub Vendas + Tarefas (`VL-HUB-TAREFAS` · **v23.16+** · 06/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | PWA `/vendas/lojas/` abre **hub** com 2 botões: **Vendas** (`/painel/`) e **Tarefas** (`/tarefas/` + PIN) |
-| **App** | `tarefas/` — Postgres · status Decidir / Em andamento / Aguardando / Concluídos / Adiados · comentário · timeline · seed Agro Mais |
-| **PIN** | Mesmo PIN da loja; nome em toda alteração |
-| **Migrate** | **SIM** `tarefas.0001` + `0002` (seed) |
-| **Prova** | `verify_tarefas_pendencias_path.py` **15/15** · `verify_vendas_lojas_resumo_path.py` **184/184** |
-| **Tip** | `teste` **v23.16** @ `fa3d0a4` |
-| **Você** | PC local → migrate → `/vendas/lojas/` → Tarefas → PIN → conferir lista seed |
-| **Status** | no `teste` — **não** loja sem frase+senha |
+| **O quê** | App Vendas (`/vendas/lojas/`) abre hub **Vendas** / **Tarefas**. Tarefas: PIN loja, status, comentário, timeline, seed Agro Mais |
+| **Onde** | `tarefas/` · hub `vendas_lojas_hub.html` · painel em `/vendas/lojas/painel/` |
+| **Migrate** | **SIM** `tarefas.0001` + `0002` |
+| **Prova** | `verify_vl_hub_tarefas_path.py` **55/55** (PIN 9973 → Renan) · vendas-lojas **184/184** |
+| **Tip** | `teste` desde **v23.16** @ `fa3d0a4` (+ prova detalhada neste commit) |
+| **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
+| **Você** | Ctrl+F5 no app Vendas → 2 botões → Tarefas → PIN |
 
 ### Conferência bugs #11–#16 pós-loja (06/09 · Live **v21.91+** / tip loja **v21.93**)
 
