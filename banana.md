@@ -1290,24 +1290,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 **Smoke loja:** healthz **ok** · `pdv_wizard.js` produção com fix #14.
 
-### 📦 PACOTE PRONTO — Ponte leve (`WA-PONTE-LEVE` · tip **v23.12** · 06/09)
+### ✅ Deploy loja — WA-PONTE-LEVE (`deploy/prep-wa-ponte-leve-0609` · **v23.07**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Agenda+fotos **1×/dia** (Bot → Tempo, padrão **00:00**) · de dia **não** reenvia · poll saída **2–15s** no Bot · msgs do cliente na hora |
-| **Onde** | `atendimento_whatsapp_bot_config` · Bot Tempo · `bridge/saida` · `whatsapp_atendimento/index.js` |
+| **Status** | ✅ **enviado / Live v23.07** — cherry só este pacote (**não** merge `teste`) |
+| **Antes** | `origin/producao` @ **v23.06** / `c39d7a2` |
+| **Agora** | `producao` @ **`f5d65d0`** |
+| **Pacote** | `WA-PONTE-LEVE` |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_wa_ponte_leve_path.py` **VERIFY_OK 74/74** (PIN **9973**) |
-| **Status** | 🟢 **pronto para envio à produção** |
-| **Ops** | Fechar/abrir `iniciar.bat` · Bot → Tempo · Salvar · PC ligado à meia-noite |
+| **Prova** | `verify_wa_ponte_leve_path.py` **74/74** |
+| **Rollback** | tag `rollback/pre-wa-ponte-leve-v23.06` · `docs/ROLLBACK-WA-PONTE-LEVE-0609.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.07** · fechar/abrir `iniciar.bat` · Bot → Tempo → Salvar |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (06/09 · tip **v23.12**)
+### ✅ CHECKLIST ÚNICO — 06/09b · **Live v23.07**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `WA-PONTE-LEVE` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 1 | `WA-PONTE-LEVE` | ✅ **Live v23.07** | **NÃO** |
 
-**Live agora:** **v23.06** (`VL-PREV-MES`). Falta só o Zap leve acima.
+**Loja agora:** Live **v23.07**. Excel / resto do `teste` **fora**.
+
+### ~~📦 PACOTE PRONTO — Ponte leve~~ (`WA-PONTE-LEVE` · **Live v23.07**)
 
 ### ✅ Deploy loja — VL-PREV-MES (`deploy/prep-vl-prev-mes-0609` · **v23.06**) · **Live**
 
