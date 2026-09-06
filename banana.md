@@ -1283,7 +1283,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Problema** | Zap ligado → PDV lento em todas as lojas (Renan desligou de novo) |
 | **Decisão** | Contatos + fotos **salvos no PG** · sync em massa **só 00:00** (madrugada) · de dia **não** reenvia lote |
-| **Msgs** | Cliente → loja: **na hora** (socket) · loja → cliente: poll curto (não espaçar demais) |
+| **Msgs** | Cliente → loja: **na hora** (socket) · loja → cliente: poll configurável nas **configurações do Bot** (default curto; Renan 06/09) |
 | **Ops** | PC da ponte precisa estar **ligado à meia-noite**; se off, roda no 1º ligar após 00:00 (ou próximo dia) |
 | **Status** | 🟡 **combinado** — aguarda implementação / PREP |
 
