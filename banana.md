@@ -1270,6 +1270,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Status** | ✅ **enviado / Live v23.18** — cherry só este pacote (**não** merge `teste`) |
 | **Antes** | `origin/producao` @ **v23.07** / `4c59e54` |
+| **Agora** | `producao` @ **`5387e4a`** |
 | **Pacote** | `VL-HUB-TAREFAS` — hub Vendas/Tarefas no PWA · PIN · seed Agro Mais |
 | **Migrate** | **SIM** `tarefas.0001` + `0002` |
 | **Prova** | `verify_vl_hub_tarefas_path.py` **55/55** |
