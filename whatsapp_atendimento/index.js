@@ -930,8 +930,10 @@ async function ligar() {
       enviarLidMap();
       setTimeout(() => {
         varrerStore();
-        // WA-PONTE-LEVE: não despeja agenda/fotos no connect — só sync 1×/dia
-        rodarSyncAgendaFotos().catch(() => {});
+        // WA-PONTE-LEVE: sync 1×/dia — espera 45s após connect (sessão estabilizar)
+        setTimeout(() => {
+          rodarSyncAgendaFotos().catch(() => {});
+        }, 45000);
       }, 4000);
       if (!syncCheckTimer) {
         syncCheckTimer = setInterval(() => {
@@ -1503,7 +1505,15 @@ async function puxarSaida() {
         saidaEmVoo.delete(idItem);
       }
     }
-    for (const p of (j && j.pedidos) || []) {
+    // Msgs da loja primeiro; agenda/busca no máximo 1 por poll (senão engasga e não envia).
+    const pedidos = (j && j.pedidos) || [];
+    const temSaida = lista.length > 0;
+    let fezContatos = false;
+    for (const p of pedidos) {
+      if (p && p.tipo === "contatos") {
+        if (temSaida || fezContatos) continue;
+        fezContatos = true;
+      }
       await executarPedido(p);
     }
     for (const f of (j && j.fotos) || []) {
