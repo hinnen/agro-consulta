@@ -1,4 +1,4 @@
-# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
+﻿# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** â€” teste Render, produÃ§Ã£o, pacotes, operaÃ§Ã£o diÃ¡ria. O **produto SisVale** no geral estÃ¡ em **`SISTVALE.md`**; a instÃ¢ncia **delivery em branco** estÃ¡ em **`FOOD.md`**.
 
@@ -1276,6 +1276,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### WIP — Hub Vendas + Tarefas / pendências (06/09 · tip teste)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | PWA `/vendas/lojas/` abre **hub** com 2 botões: **Vendas** (`/painel/`) e **Tarefas** (`/tarefas/` + PIN) |
+| **App** | `tarefas/` — Postgres · status Decidir / Em andamento / Aguardando / Concluídos / Adiados · comentário · timeline · seed Agro Mais |
+| **PIN** | Mesmo PIN da loja; nome em toda alteração |
+| **Migrate** | **SIM** `tarefas.0001` + `0002` (seed) |
+| **Prova** | `verify_tarefas_pendencias_path.py` **15/15** · `verify_vendas_lojas_resumo_path.py` **184/184** |
+| **Você** | PC local → `/vendas/lojas/` → Tarefas → PIN → conferir lista seed |
+| **Status** | no `teste` — **não** loja sem frase+senha |
 
 ### Conferência bugs #11–#16 pós-loja (06/09 · Live **v21.91+** / tip loja **v21.93**)
 

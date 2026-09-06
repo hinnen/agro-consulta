@@ -165,6 +165,7 @@ INSTALLED_APPS = [
     'transferencias',
     'relatorios',
     'integracoes',
+    'tarefas.apps.TarefasConfig',
 ]
 
 # Abas internas SisVale (iframes mesma origem). O défaut DENY bloquearia qualquer frame.

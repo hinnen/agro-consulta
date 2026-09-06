@@ -8067,7 +8067,7 @@ def _home_admin_navegacao():
         },
         {
             "title": "Vendas das lojas",
-            "href": reverse("vendas_lojas_resumo"),
+            "href": reverse("vendas_lojas_hub"),
             "icon": "store",
             "shortcut": "S",
             "shortcut_key": "s",
@@ -11399,6 +11399,13 @@ def _vendas_lojas_prev_ctx(bloco: dict) -> dict:
 
 
 @never_cache
+@require_GET
+def vendas_lojas_hub(request):
+    """Entrada do PWA instalado: Vendas ou Tarefas (sem login)."""
+    return render(request, "produtos/vendas_lojas_hub.html")
+
+
+@never_cache
 @login_required(login_url="/entrar/")
 @require_GET
 def vendas_lojas_resumo(request):
@@ -11469,6 +11476,7 @@ def vendas_lojas_resumo(request):
             "prev_vila_fonte": "media",
             "prev_aviso_cedo": False,
             "extras_url": reverse("api_vendas_lojas_extras"),
+            "hub_url": reverse("vendas_lojas_hub"),
         },
     )
 
@@ -11577,9 +11585,9 @@ def vendas_lojas_manifest(request):
     icon_512 = request.build_absolute_uri("/static/produtos/pwa/vendas-lojas-512.png")
     payload = {
         "id": "/vendas/lojas/",
-        "name": "Vendas das lojas",
+        "name": "GM Lojas",
         "short_name": "Vendas",
-        "description": "Faturamento Centro e Vila Elias",
+        "description": "Vendas das lojas e pendências / tarefas",
         "start_url": "/vendas/lojas/",
         "scope": "/vendas/lojas/",
         "display": "standalone",

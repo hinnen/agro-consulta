@@ -55,9 +55,12 @@ def test_arquivos() -> None:
     util = _read("produtos/vendas_lojas_util.py")
     view_fn = _fn_src("produtos/views.py", "vendas_lojas_resumo")
 
-    check("url_rota", "path('vendas/lojas/', views.vendas_lojas_resumo" in urls)
+    check("url_rota", "path('vendas/lojas/painel/', views.vendas_lojas_resumo" in urls)
+    check("url_hub", "vendas_lojas_hub" in urls and "path('vendas/lojas/', views.vendas_lojas_hub" in urls)
+    check("url_tarefas", "vendas/lojas/tarefas/" in urls)
     check("url_antes_lista", urls.find("vendas/lojas/") < urls.find("path('vendas/', views.vendas_lista"))
     check("view_def", "def vendas_lojas_resumo" in views)
+    check("view_hub", "def vendas_lojas_hub" in views)
     check("view_login", "@login_required" in views.split("def vendas_lojas_resumo")[0][-400:])
     check("view_get", "@require_GET" in views.split("def vendas_lojas_resumo")[0][-400:])
     check("view_nocache", "@never_cache" in views.split("def vendas_lojas_resumo")[0][-400:])
@@ -94,7 +97,7 @@ def test_arquivos() -> None:
     check("view_manifest", "def vendas_lojas_manifest" in views)
     check("view_sw", "def vendas_lojas_sw" in views)
     check("view_pass_data", 'request.GET.get("data")' in views)
-    check("tpl_voltar", "vl-voltar" in tpl and "relatorios_hub" in tpl)
+    check("tpl_voltar", "vl-voltar" in tpl and "vendas_lojas_hub" in tpl)
     check("tpl_mobile_viewport", "viewport-fit=cover" in tpl)
     check("tpl_mobile_dvh", "100dvh" in tpl)
     check("tpl_mobile_safe", "safe-area-inset" in tpl)
@@ -466,14 +469,18 @@ def test_http() -> None:
     with override_settings(ALLOWED_HOSTS=["testserver", "127.0.0.1", "localhost", "*"]):
         c = Client()
         c.force_login(user)
-        r = c.get("/vendas/lojas/", follow=True)
+        r_hub = c.get("/vendas/lojas/", follow=True)
+        b_hub = r_hub.content.decode("utf-8", "replace")
+        check("http_hub_200", r_hub.status_code == 200, str(r_hub.status_code))
+        check("http_hub_botoes", "Vendas" in b_hub and "Tarefas" in b_hub)
+        r = c.get("/vendas/lojas/painel/", follow=True)
         body = r.content.decode("utf-8", "replace")
         check("http_lojas_200", r.status_code == 200, str(r.status_code))
         check("http_fiado_tag", "vl-fiado-tag" in body)
         check("http_label_quit", "c/ fiado quitado" in body)
         check("http_intervalo_form", "vl-goto-intervalo" in body)
         r2 = c.get(
-            "/vendas/lojas/?periodo=intervalo&data=2026-08-01&data_fim=2026-08-15",
+            "/vendas/lojas/painel/?periodo=intervalo&data=2026-08-01&data_fim=2026-08-15",
             follow=True,
         )
         b2 = r2.content.decode("utf-8", "replace")

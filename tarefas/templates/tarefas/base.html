@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#ea580c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Vendas">
+  <title>{% block title %}Tarefas{% endblock %} | GM</title>
+  <link rel="manifest" href="{% url 'vendas_lojas_manifest' %}">
+  <link rel="apple-touch-icon" href="/static/produtos/pwa/vendas-lojas-192.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --safe-t: env(safe-area-inset-top, 0px);
+      --safe-b: env(safe-area-inset-bottom, 0px);
+      --safe-l: env(safe-area-inset-left, 0px);
+      --safe-r: env(safe-area-inset-right, 0px);
+      --vermelho: #dc2626;
+      --amarelo: #ca8a04;
+      --laranja: #ea580c;
+      --verde: #059669;
+      --azul: #2563eb;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100dvh;
+      background: #f8fafc;
+      color: var(--ink);
+      font-family: Inter, system-ui, sans-serif;
+      -webkit-text-size-adjust: 100%;
+    }
+    .tf-shell {
+      min-height: 100dvh;
+      max-width: 28rem;
+      margin: 0 auto;
+      padding: max(0.7rem, var(--safe-t)) max(0.9rem, var(--safe-r)) max(0.9rem, var(--safe-b)) max(0.9rem, var(--safe-l));
+      display: flex;
+      flex-direction: column;
+    }
+    .tf-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.85rem;
+    }
+    .tf-kicker {
+      margin: 0;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #ea580c;
+    }
+    .tf-title {
+      margin: 0.1rem 0 0;
+      font-size: clamp(1.35rem, 5.5vw + 0.3rem, 1.75rem);
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+    }
+    .tf-ops {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      justify-content: flex-end;
+    }
+    .tf-btn {
+      min-height: 2.75rem;
+      padding: 0.45rem 0.8rem;
+      border-radius: 0.85rem;
+      border: 2px solid var(--line);
+      background: #fff;
+      color: #334155;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .tf-btn-primary {
+      background: #ea580c;
+      border-color: #ea580c;
+      color: #fff;
+    }
+    .tf-btn-emerald {
+      background: #059669;
+      border-color: #059669;
+      color: #fff;
+    }
+    .tf-who {
+      margin: 0 0 0.75rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+    .tf-who strong { color: var(--ink); }
+    .badge-st {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.45rem;
+      border-radius: 999px;
+      color: #fff;
+    }
+    .badge-st.vermelho { background: var(--vermelho); }
+    .badge-st.amarelo { background: var(--amarelo); }
+    .badge-st.laranja { background: var(--laranja); }
+    .badge-st.verde { background: var(--verde); }
+    .badge-st.azul { background: var(--azul); }
+    .tf-card {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      background: #fff;
+      border: 2px solid var(--line);
+      border-radius: 1rem;
+      padding: 0.85rem 0.95rem;
+      margin-bottom: 0.55rem;
+    }
+    .tf-card h3 {
+      margin: 0.35rem 0 0.25rem;
+      font-size: 1.02rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      line-height: 1.25;
+    }
+    .tf-card p {
+      margin: 0;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+    .tf-sec {
+      margin: 1rem 0 0.45rem;
+      font-size: 0.78rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .tf-sec.vermelho { color: var(--vermelho); }
+    .tf-sec.amarelo { color: var(--amarelo); }
+    .tf-sec.laranja { color: var(--laranja); }
+    .tf-sec.verde { color: var(--verde); }
+    .tf-sec.azul { color: var(--azul); }
+    .tf-field {
+      width: 100%;
+      margin-bottom: 0.7rem;
+      font: inherit;
+      font-weight: 700;
+      border: 2px solid var(--line);
+      border-radius: 0.9rem;
+      padding: 0.75rem 0.85rem;
+      background: #fff;
+    }
+    label.tf-lab {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin: 0 0 0.35rem;
+    }
+    textarea.tf-field { min-height: 6rem; resize: vertical; }
+    .tf-timeline {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .tf-timeline li {
+      border-left: 3px solid var(--line);
+      padding: 0 0 0.85rem 0.75rem;
+      margin-left: 0.35rem;
+    }
+    .tf-timeline .when {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+    .tf-timeline .who {
+      font-size: 0.78rem;
+      font-weight: 900;
+    }
+    .tf-timeline .det {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #334155;
+      margin-top: 0.15rem;
+      white-space: pre-wrap;
+    }
+    .tf-err {
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 2px solid #fecaca;
+      border-radius: 0.85rem;
+      padding: 0.7rem 0.85rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+    .tf-fab {
+      position: sticky;
+      bottom: max(0.75rem, var(--safe-b));
+      margin-top: auto;
+      padding-top: 0.75rem;
+    }
+    .tf-fab a, .tf-fab button {
+      width: 100%;
+      min-height: 3.4rem;
+      border-radius: 1rem;
+      border: none;
+      background: #ea580c;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <div class="tf-shell">
+    {% block body %}{% endblock %}
+  </div>
+  <script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("{% url 'vendas_lojas_sw' %}", { scope: "/vendas/lojas/" }).catch(function () {});
+  }
+  window.tfCsrf = "{{ csrf_token }}";
+  window.tfPost = async function (url, data) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": window.tfCsrf,
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      body: JSON.stringify(data || {}),
+    });
+    const j = await res.json().catch(() => ({}));
+    if (j.precisa_pin) {
+      location.href = "{% url 'tarefas_pin' %}?trocar=1";
+      return j;
+    }
+    if (!res.ok || j.ok === false) {
+      throw new Error(j.erro || "Falha ao salvar.");
+    }
+    return j;
+  };
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
