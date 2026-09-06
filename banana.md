@@ -1264,6 +1264,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ Deploy loja — TAREFAS-UI-STATUS (`deploy/prep-tarefas-ui-status-0609` · **v23.19**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v23.19** — cherry só este pacote (**não** merge `teste`) |
+| **Antes** | `origin/producao` @ **v23.18** / `3ba41db` |
+| **Pacote** | `TAREFAS-UI-STATUS` — UI blocos · Adiado permanente · Cancelados |
+| **Migrate** | **SIM** `tarefas.0003` (AlterField leve — só choices/tamanho) |
+| **Prova** | `verify_vl_hub_tarefas_path.py` **68/68** |
+| **Risco loja aberta** | **Baixo** — só `/vendas/lojas/tarefas/` · **não** mexe PDV/caixa/venda |
+| **Rollback** | tag `rollback/pre-tarefas-ui-status-v23.18` · branch `producao-backup-pre-v2319-tarefas-ui-20260906` · `docs/ROLLBACK-TAREFAS-UI-STATUS-0609.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.19** · Tarefas → blocos + novos status |
+
+### ✅ CHECKLIST ÚNICO — 06/09d · **Live v23.19**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `TAREFAS-UI-STATUS` | ✅ **Live v23.19** | **SIM** `0003` |
+
+**Loja agora:** Live **v23.19**. Excel / WA extra / resto do `teste` **fora**.
+
 ### ✅ Deploy loja — VL-HUB-TAREFAS (`deploy/prep-vl-hub-tarefas-0609` · **v23.18**) · **Live**
 
 | Campo | Valor |
@@ -1282,8 +1303,6 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | `VL-HUB-TAREFAS` | ✅ **Live v23.18** | **SIM** `tarefas.0001`+`0002` |
-
-**Loja agora:** Live **v23.18**. Excel / resto do `teste` **fora**.
 
 ### ✅ Deploy loja — WA-PONTE-LEVE (`deploy/prep-wa-ponte-leve-0609` · **v23.07**) · **Live**
 

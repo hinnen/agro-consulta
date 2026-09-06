@@ -9,6 +9,8 @@ class TarefaAgro(models.Model):
         AGUARDANDO = "aguardando", "Aguardando terceiros"
         CONCLUIDO = "concluido", "Concluídos"
         ADIADO = "adiado", "Adiados"
+        ADIADO_PERM = "adiado_permanente", "Adiado permanente"
+        CANCELADO = "cancelado", "Cancelados"
 
     class Loja(models.TextChoices):
         GERAL = "geral", "Geral"
@@ -19,7 +21,7 @@ class TarefaAgro(models.Model):
     titulo = models.CharField(max_length=200)
     descricao = models.TextField(blank=True, default="")
     status = models.CharField(
-        max_length=20,
+        max_length=24,
         choices=Status.choices,
         default=Status.DECIDIR,
         db_index=True,
