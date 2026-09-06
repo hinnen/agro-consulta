@@ -8832,7 +8832,7 @@ def _dashboard_serie_meta_c_vendas(
         out = [
             round(float(a or 0.0) + float(b or 0.0), 2) for a, b in zip(sc, sv)
         ]
-        cache.set(ck, out, timeout=120)
+        cache.set(ck, out, timeout=600)
         return out
 
     dep_key = deposito
@@ -8845,7 +8845,7 @@ def _dashboard_serie_meta_c_vendas(
     for i in range(dias):
         d = data_ini + timedelta(days=i)
         out.append(_dashboard_vendas_meta_c_valor(d, hist_cache, deposito=dep_key))
-    cache.set(ck, out, timeout=120)
+    cache.set(ck, out, timeout=600)
     return out
 
 
@@ -11402,62 +11402,12 @@ def _vendas_lojas_prev_ctx(bloco: dict) -> dict:
 @login_required(login_url="/entrar/")
 @require_GET
 def vendas_lojas_resumo(request):
-    """Tela simples: faturamento Centro × Vila Elias + total das duas."""
-    from produtos.vendas_lojas_util import (
-        vendas_lojas_meta_c_modos,
-        vendas_lojas_previsao_mes_lojas,
-        vendas_lojas_sem_fiado_mais_quitacoes_totais,
-        vendas_lojas_sem_fiado_totais,
-        vendas_lojas_totais,
-    )
+    """Tela simples: totais na hora; média / previsão / fiado vêm no extras (async)."""
+    from produtos.vendas_lojas_util import vendas_lojas_totais
 
     data_ini, data_fim, periodo_label, periodo_key = _vendas_lojas_periodo_from_request(request)
     centro, vila, total = vendas_lojas_totais(data_ini, data_fim)
-    _, _, sem_fiado = vendas_lojas_sem_fiado_totais(data_ini, data_fim)
-    _, _, sem_fiado_quit = vendas_lojas_sem_fiado_mais_quitacoes_totais(data_ini, data_fim)
     hoje = timezone.localdate()
-    agora = timezone.localtime()
-    try:
-        dia_c, agora_c, toggle_c = vendas_lojas_meta_c_modos(
-            data_ini, data_fim, "centro", hoje=hoje, agora=agora
-        )
-        dia_v, agora_v, toggle_v = vendas_lojas_meta_c_modos(
-            data_ini, data_fim, "vila", hoje=hoje, agora=agora
-        )
-        dia_t, agora_t, toggle_t = vendas_lojas_meta_c_modos(
-            data_ini, data_fim, None, hoje=hoje, agora=agora
-        )
-    except Exception:
-        logging.getLogger(__name__).exception("vendas_lojas_resumo meta C")
-        dia_c = agora_c = dia_v = agora_v = dia_t = agora_t = Decimal("0.00")
-        toggle_c = toggle_v = toggle_t = False
-    cmp_c = _vendas_lojas_cmp_ctx(centro, agora_c, esperado_dia=dia_c)
-    cmp_v = _vendas_lojas_cmp_ctx(vila, agora_v, esperado_dia=dia_v)
-    cmp_t = _vendas_lojas_cmp_ctx(total, agora_t, esperado_dia=dia_t)
-    cmp_c_dia = _vendas_lojas_cmp_ctx(centro, dia_c)
-    cmp_v_dia = _vendas_lojas_cmp_ctx(vila, dia_v)
-    cmp_t_dia = _vendas_lojas_cmp_ctx(total, dia_t)
-    mostra_toggle = bool(toggle_c or toggle_v or toggle_t)
-    try:
-        prev = vendas_lojas_previsao_mes_lojas(hoje=hoje, agora=agora)
-        prev_c = _vendas_lojas_prev_ctx(prev["centro"])
-        prev_v = _vendas_lojas_prev_ctx(prev["vila"])
-        prev_t = _vendas_lojas_prev_ctx(prev["total"])
-        mes_lbl = hoje.strftime("%m/%Y")
-        prev_aviso_cedo = bool(prev.get("aviso_cedo"))
-    except Exception:
-        logging.getLogger(__name__).exception("vendas_lojas_resumo previsao mes")
-        z = {
-            "previsao_fmt": "0,00",
-            "vendido_fmt": "0,00",
-            "meta_fmt": "0,00",
-            "meta_agora_fmt": "0,00",
-            "ritmo_pct_fmt": "",
-            "fonte": "sem_meta",
-        }
-        prev_c = prev_v = prev_t = z
-        mes_lbl = hoje.strftime("%m/%Y")
-        prev_aviso_cedo = True
     return render(
         request,
         "produtos/vendas_lojas_resumo.html",
@@ -11469,56 +11419,155 @@ def vendas_lojas_resumo(request):
             "centro_fmt": _format_moeda_br(centro),
             "vila_fmt": _format_moeda_br(vila),
             "total_fmt": _format_moeda_br(total),
-            "sem_fiado_fmt": _format_moeda_br(sem_fiado),
-            "sem_fiado_quit_fmt": _format_moeda_br(sem_fiado_quit),
+            "sem_fiado_fmt": "…",
+            "sem_fiado_quit_fmt": "…",
             "centro_val": centro,
             "vila_val": vila,
             "total_val": total,
-            "centro_esp_fmt": cmp_c["esperado_fmt"],
-            "vila_esp_fmt": cmp_v["esperado_fmt"],
-            "total_esp_fmt": cmp_t["esperado_fmt"],
-            "centro_diff_fmt": cmp_c["diff_fmt"],
-            "vila_diff_fmt": cmp_v["diff_fmt"],
-            "total_diff_fmt": cmp_t["diff_fmt"],
-            "centro_pct_fmt": cmp_c["pct_fmt"],
-            "vila_pct_fmt": cmp_v["pct_fmt"],
-            "total_pct_fmt": cmp_t["pct_fmt"],
-            "centro_sentido": cmp_c["sentido"],
-            "vila_sentido": cmp_v["sentido"],
-            "total_sentido": cmp_t["sentido"],
-            "centro_esp_dia_fmt": cmp_c_dia["esperado_fmt"],
-            "vila_esp_dia_fmt": cmp_v_dia["esperado_fmt"],
-            "total_esp_dia_fmt": cmp_t_dia["esperado_fmt"],
-            "centro_diff_dia_fmt": cmp_c_dia["diff_fmt"],
-            "vila_diff_dia_fmt": cmp_v_dia["diff_fmt"],
-            "total_diff_dia_fmt": cmp_t_dia["diff_fmt"],
-            "centro_pct_dia_fmt": cmp_c_dia["pct_fmt"],
-            "vila_pct_dia_fmt": cmp_v_dia["pct_fmt"],
-            "total_pct_dia_fmt": cmp_t_dia["pct_fmt"],
-            "centro_sentido_dia": cmp_c_dia["sentido"],
-            "vila_sentido_dia": cmp_v_dia["sentido"],
-            "total_sentido_dia": cmp_t_dia["sentido"],
-            "mostra_toggle_media": mostra_toggle,
+            "centro_esp_fmt": "",
+            "vila_esp_fmt": "",
+            "total_esp_fmt": "",
+            "centro_diff_fmt": "",
+            "vila_diff_fmt": "",
+            "total_diff_fmt": "",
+            "centro_pct_fmt": "",
+            "vila_pct_fmt": "",
+            "total_pct_fmt": "",
+            "centro_sentido": "sem",
+            "vila_sentido": "sem",
+            "total_sentido": "sem",
+            "centro_esp_dia_fmt": "",
+            "vila_esp_dia_fmt": "",
+            "total_esp_dia_fmt": "",
+            "centro_diff_dia_fmt": "",
+            "vila_diff_dia_fmt": "",
+            "total_diff_dia_fmt": "",
+            "centro_pct_dia_fmt": "",
+            "vila_pct_dia_fmt": "",
+            "total_pct_dia_fmt": "",
+            "centro_sentido_dia": "sem",
+            "vila_sentido_dia": "sem",
+            "total_sentido_dia": "sem",
+            "mostra_toggle_media": False,
             "hoje_iso": hoje.isoformat(),
             "data_iso": data_ini.isoformat(),
             "data_fim_iso": data_fim.isoformat(),
-            "prev_mes_lbl": mes_lbl,
-            "prev_total_fmt": prev_t["previsao_fmt"],
-            "prev_centro_fmt": prev_c["previsao_fmt"],
-            "prev_vila_fmt": prev_v["previsao_fmt"],
-            "prev_total_vendido_fmt": prev_t["vendido_fmt"],
-            "prev_total_meta_fmt": prev_t["meta_fmt"],
-            "prev_total_meta_agora_fmt": prev_t["meta_agora_fmt"],
-            "prev_total_ritmo_fmt": prev_t["ritmo_pct_fmt"],
-            "prev_total_fonte": prev_t["fonte"],
-            "prev_centro_vendido_fmt": prev_c["vendido_fmt"],
-            "prev_vila_vendido_fmt": prev_v["vendido_fmt"],
-            "prev_centro_ritmo_fmt": prev_c["ritmo_pct_fmt"],
-            "prev_vila_ritmo_fmt": prev_v["ritmo_pct_fmt"],
-            "prev_centro_fonte": prev_c["fonte"],
-            "prev_vila_fonte": prev_v["fonte"],
-            "prev_aviso_cedo": prev_aviso_cedo,
+            "prev_mes_lbl": hoje.strftime("%m/%Y"),
+            "prev_total_fmt": "…",
+            "prev_centro_fmt": "…",
+            "prev_vila_fmt": "…",
+            "prev_total_vendido_fmt": "",
+            "prev_total_meta_fmt": "",
+            "prev_total_meta_agora_fmt": "",
+            "prev_total_ritmo_fmt": "",
+            "prev_total_fonte": "media",
+            "prev_centro_vendido_fmt": "",
+            "prev_vila_vendido_fmt": "",
+            "prev_centro_ritmo_fmt": "",
+            "prev_vila_ritmo_fmt": "",
+            "prev_centro_fonte": "media",
+            "prev_vila_fonte": "media",
+            "prev_aviso_cedo": False,
+            "extras_url": reverse("api_vendas_lojas_extras"),
         },
+    )
+
+
+def _vendas_lojas_media_bloco(vendido, dia_todo, ate_agora) -> dict:
+    cmp_a = _vendas_lojas_cmp_ctx(vendido, ate_agora, esperado_dia=dia_todo)
+    cmp_d = _vendas_lojas_cmp_ctx(vendido, dia_todo)
+    return {
+        "esp": cmp_a["esperado_fmt"],
+        "diff": cmp_a["diff_fmt"],
+        "pct": cmp_a["pct_fmt"],
+        "sentido": cmp_a["sentido"],
+        "esp_dia": cmp_d["esperado_fmt"],
+        "diff_dia": cmp_d["diff_fmt"],
+        "pct_dia": cmp_d["pct_fmt"],
+        "sentido_dia": cmp_d["sentido"],
+    }
+
+
+@never_cache
+@login_required(login_url="/entrar/")
+@require_GET
+def api_vendas_lojas_extras(request):
+    """Média Meta C + previsão do mês + fiado — pesado; tela carrega depois."""
+    from produtos.vendas_lojas_util import (
+        vendas_lojas_meta_c_modos,
+        vendas_lojas_previsao_mes_lojas,
+        vendas_lojas_sem_fiado_mais_quitacoes_totais,
+        vendas_lojas_sem_fiado_totais,
+        vendas_lojas_totais,
+    )
+
+    data_ini, data_fim, _label, _key = _vendas_lojas_periodo_from_request(request)
+    centro, vila, total = vendas_lojas_totais(data_ini, data_fim)
+    hoje = timezone.localdate()
+    agora = timezone.localtime()
+    try:
+        dia_c, agora_c, toggle_c = vendas_lojas_meta_c_modos(
+            data_ini, data_fim, "centro", hoje=hoje, agora=agora
+        )
+        dia_v, agora_v, toggle_v = vendas_lojas_meta_c_modos(
+            data_ini, data_fim, "vila", hoje=hoje, agora=agora
+        )
+        # Total = soma das lojas (não recalcula Meta C misturada).
+        dia_t = (dia_c + dia_v).quantize(Decimal("0.01"))
+        agora_t = (agora_c + agora_v).quantize(Decimal("0.01"))
+        toggle_t = bool(toggle_c or toggle_v)
+    except Exception:
+        logging.getLogger(__name__).exception("api_vendas_lojas_extras meta C")
+        dia_c = agora_c = dia_v = agora_v = dia_t = agora_t = Decimal("0.00")
+        toggle_c = toggle_v = toggle_t = False
+    media = {
+        "centro": _vendas_lojas_media_bloco(centro, dia_c, agora_c),
+        "vila": _vendas_lojas_media_bloco(vila, dia_v, agora_v),
+        "total": _vendas_lojas_media_bloco(total, dia_t, agora_t),
+        "mostra_toggle": bool(toggle_c or toggle_v or toggle_t),
+    }
+    try:
+        _, _, sem_fiado = vendas_lojas_sem_fiado_totais(data_ini, data_fim)
+        _, _, sem_fiado_quit = vendas_lojas_sem_fiado_mais_quitacoes_totais(
+            data_ini, data_fim
+        )
+    except Exception:
+        logging.getLogger(__name__).exception("api_vendas_lojas_extras fiado")
+        sem_fiado = sem_fiado_quit = Decimal("0.00")
+    try:
+        prev = vendas_lojas_previsao_mes_lojas(hoje=hoje, agora=agora)
+        prev_c = _vendas_lojas_prev_ctx(prev["centro"])
+        prev_v = _vendas_lojas_prev_ctx(prev["vila"])
+        prev_t = _vendas_lojas_prev_ctx(prev["total"])
+        prev_aviso = bool(prev.get("aviso_cedo"))
+    except Exception:
+        logging.getLogger(__name__).exception("api_vendas_lojas_extras previsao")
+        z = {
+            "previsao_fmt": "0,00",
+            "vendido_fmt": "0,00",
+            "meta_fmt": "0,00",
+            "meta_agora_fmt": "0,00",
+            "ritmo_pct_fmt": "",
+            "fonte": "sem_meta",
+        }
+        prev_c = prev_v = prev_t = z
+        prev_aviso = True
+    return JsonResponse(
+        {
+            "ok": True,
+            "media": media,
+            "fiado": {
+                "sem_fiado_fmt": _format_moeda_br(sem_fiado),
+                "sem_fiado_quit_fmt": _format_moeda_br(sem_fiado_quit),
+            },
+            "prev": {
+                "mes_lbl": hoje.strftime("%m/%Y"),
+                "aviso_cedo": prev_aviso,
+                "total": prev_t,
+                "centro": prev_c,
+                "vila": prev_v,
+            },
+        }
     )
 
 

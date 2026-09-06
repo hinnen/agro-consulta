@@ -619,6 +619,7 @@ urlpatterns = [
     path('vendas/exportar-csv/', views.vendas_exportar_csv, name='vendas_exportar_csv'),
     path('vendas/lojas/manifest.webmanifest', views.vendas_lojas_manifest, name='vendas_lojas_manifest'),
     path('vendas/lojas/sw.js', views.vendas_lojas_sw, name='vendas_lojas_sw'),
+    path('api/vendas/lojas/extras/', views.api_vendas_lojas_extras, name='api_vendas_lojas_extras'),
     path('vendas/lojas/', views.vendas_lojas_resumo, name='vendas_lojas_resumo'),
     path('vendas/', views.vendas_lista, name='vendas_lista'),
     path('fiado/', fiado_views.fiado_gestao, name='fiado_gestao'),
