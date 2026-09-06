@@ -32,6 +32,8 @@ STATUS_ORDEM = [
     TarefaAgro.Status.AGUARDANDO,
     TarefaAgro.Status.CONCLUIDO,
     TarefaAgro.Status.ADIADO,
+    TarefaAgro.Status.ADIADO_PERM,
+    TarefaAgro.Status.CANCELADO,
 ]
 
 STATUS_COR = {
@@ -40,6 +42,17 @@ STATUS_COR = {
     TarefaAgro.Status.AGUARDANDO: "laranja",
     TarefaAgro.Status.CONCLUIDO: "verde",
     TarefaAgro.Status.ADIADO: "azul",
+    TarefaAgro.Status.ADIADO_PERM: "slate",
+    TarefaAgro.Status.CANCELADO: "cinza",
+}
+
+# Sempre listar estes (mesmo vazios); demais só se tiverem item.
+STATUS_SEMPRE = {
+    TarefaAgro.Status.DECIDIR,
+    TarefaAgro.Status.EM_ANDAMENTO,
+    TarefaAgro.Status.AGUARDANDO,
+    TarefaAgro.Status.ADIADO_PERM,
+    TarefaAgro.Status.CANCELADO,
 }
 
 
@@ -100,6 +113,7 @@ def tarefas_lista(request):
                 "cor": STATUS_COR.get(st, ""),
                 "itens": itens,
                 "qtd": len(itens),
+                "sempre": st in STATUS_SEMPRE,
             }
         )
     return render(

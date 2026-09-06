@@ -63,6 +63,12 @@ def main() -> int:
     check("detalhe_status_comentario", "btnStatus" in det_tpl and "btnComentar" in det_tpl)
     check("migrate_models", "TarefaAgro" in man and "TarefaComentarioAgro" in man and "TarefaEventoAgro" in man)
     check("migrate_seed", "equipe-centro-vila" in seed_m and "guabi-precos" in seed_m)
+    models_py = (ROOT / "tarefas/models.py").read_text(encoding="utf-8")
+    check("status_adiado_perm", "adiado_permanente" in models_py)
+    check("status_cancelado", 'CANCELADO = "cancelado"' in models_py)
+    views_py = (ROOT / "tarefas/views.py").read_text(encoding="utf-8")
+    check("ordem_penultimo_perm", "ADIADO_PERM" in views_py and views_py.find("ADIADO_PERM") < views_py.find("CANCELADO"))
+    check("lista_grupos_ui", "tf-grupo" in lista_tpl)
     check("seed_count_db", TarefaAgro.objects.filter(seed_key__gt="").count() >= 8)
 
     print("== HTTP + PIN ==")

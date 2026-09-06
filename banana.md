@@ -1277,25 +1277,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto envio (06/09 · tip **v23.18**)
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | `VL-HUB-TAREFAS` | 🟢 **pronto para envio à produção** | **SIM** (`tarefas.0001` + `0002` seed) |
-
-**Loja agora:** Live **v23.07** (WA-PONTE-LEVE). Este pacote **ainda não** subiu.
-
-### 📦 PACOTE PRONTO — Hub Vendas + Tarefas (`VL-HUB-TAREFAS` · **v23.16+** · 06/09)
+### 📦 PACOTE PRONTO — Tarefas UI + 2 status (`TAREFAS-UI-STATUS` · tip teste · 06/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | App Vendas (`/vendas/lojas/`) abre hub **Vendas** / **Tarefas**. Tarefas: PIN loja, status, comentário, timeline, seed Agro Mais |
-| **Onde** | `tarefas/` · hub `vendas_lojas_hub.html` · painel em `/vendas/lojas/painel/` |
-| **Migrate** | **SIM** `tarefas.0001` + `0002` |
-| **Prova** | `verify_vl_hub_tarefas_path.py` **55/55** (PIN 9973 → Renan) · vendas-lojas **184/184** |
-| **Tip** | `teste` **v23.18** @ `30ff008` (feature desde **v23.16**) |
+| **O quê** | Lista maior / moderna · blocos por status · **Adiado permanente** (penúltimo) · **Cancelados** (último) |
+| **Migrate** | **SIM** `tarefas.0003` |
+| **Prova** | `verify_vl_hub_tarefas_path.py` **59/59** |
 | **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
-| **Você** | Ctrl+F5 no app Vendas → 2 botões → Tarefas → PIN |
+| **Você** | Ctrl+F5 → Tarefas → conferir blocos e novos status no detalhe |
+
+### ✅ Deploy loja — VL-HUB-TAREFAS · **Live v23.18**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live v23.18** @ `3ba41db` |
+| **Migrate** | **SIM** `0001`+`0002` (já na loja) |
 
 ### Conferência bugs #11–#16 pós-loja (06/09 · Live **v21.91+** / tip loja **v21.93**)
 
