@@ -1290,6 +1290,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 **Smoke loja:** healthz **ok** · `pdv_wizard.js` produção com fix #14.
 
+### WIP — Zap sem msg (06/09 · após WA-PONTE-LEVE)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Causa** | Sessão Zap corrompida (`Bad MAC`) — ponte **conectado**, agenda ok, mas **0 msgs** no banco |
+| **Você** | **Trocar Zap** → QR uma vez → fechar/abrir `iniciar.bat` → teste celular↔loja |
+| **Código** | `teste` **v23.14** — ponte não engasga com busca; sync 45s após connect |
+| **Status** | aguarda Renan religar QR |
+
 ### ✅ Deploy loja — WA-PONTE-LEVE (`deploy/prep-wa-ponte-leve-0609` · **v23.07**) · **Live**
 
 | Campo | Valor |
