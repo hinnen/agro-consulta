@@ -1290,16 +1290,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 **Smoke loja:** healthz **ok** · `pdv_wizard.js` produção com fix #14.
 
-### ✅ PACOTE PRONTO — Ponte leve (`WA-PONTE-LEVE` · tip **v23.09** · 06/09)
+### 📦 PACOTE PRONTO — Ponte leve (`WA-PONTE-LEVE` · tip **v23.12** · 06/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Agenda+fotos **1×/dia** (hora no Bot, padrão **00:00**) · de dia **não** reenvia · poll saída **2–15s** no Bot → Tempo · msgs do cliente na hora |
+| **O quê** | Agenda+fotos **1×/dia** (Bot → Tempo, padrão **00:00**) · de dia **não** reenvia · poll saída **2–15s** no Bot · msgs do cliente na hora |
 | **Onde** | `atendimento_whatsapp_bot_config` · Bot Tempo · `bridge/saida` · `whatsapp_atendimento/index.js` |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_wa_ponte_leve_path.py` **VERIFY_OK 74/74** (static · clamp · PIN **9973** · bot API · bridge saida fotos opt-in) |
-| **Status** | 🟢 **pronto para envio à produção** (ainda **só teste**) |
+| **Prova** | `scripts/verify_wa_ponte_leve_path.py` **VERIFY_OK 74/74** (PIN **9973**) |
+| **Status** | 🟢 **pronto para envio à produção** |
 | **Ops** | Fechar/abrir `iniciar.bat` · Bot → Tempo · Salvar · PC ligado à meia-noite |
+
+### ✅ CHECKLIST ÚNICO — pronto envio (06/09 · tip **v23.12**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `WA-PONTE-LEVE` | 🟢 **pronto para envio à produção** | **NÃO** |
+
+**Live agora:** **v23.06** (`VL-PREV-MES`). Falta só o Zap leve acima.
 
 ### ✅ Deploy loja — VL-PREV-MES (`deploy/prep-vl-prev-mes-0609` · **v23.06**) · **Live**
 
@@ -1314,14 +1322,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | tag `rollback/pre-vl-prev-mes-v21.93` @ `8884c9c` · branch `producao-backup-pre-v2306-vl-prev-mes-20260906` · `docs/ROLLBACK-VL-PREV-MES-0609.md` · **só** frase+senha |
 | **Você** | **Ctrl+F5** · badge **v23.06** · `/vendas/lojas/` · totais na hora · previsão em seguida |
 
-### ✅ CHECKLIST ÚNICO — 06/09 · **Live v23.06** (+ WA ainda no teste)
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | `VL-PREV-MES` (previsão + aviso + fonte + async) | ✅ **Live v23.06** | **NÃO** |
-| 2 | `WA-PONTE-LEVE` (sync 00:00 + poll no Bot) | 🟢 **pronto envio** (só teste) | **NÃO** |
-
-**Loja agora:** Live **v23.06**. WhatsApp leve **ainda fora**.
+### ~~✅ CHECKLIST ÚNICO — 06/09 · Live v23.06 (+ WA no teste)~~ · **ver checklist tip v23.12 acima**
 
 ### ~~📦 PACOTE PRONTO — Vendas lojas previsão mês~~ (`VL-PREV-MES` · **Live v23.06**)
 
