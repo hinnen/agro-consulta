@@ -17,6 +17,7 @@ config/build_stamp.json
 whatsapp_atendimento/auth/
 whatsapp_atendimento/contatos_agenda.json
 whatsapp_atendimento/lid_map.json
+whatsapp_atendimento/last_agenda_foto_sync.txt
 whatsapp_atendimento/.ponte.lock
 whatsapp_atendimento/node_modules/
 whatsapp_atendimento/.env
