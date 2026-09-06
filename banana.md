@@ -1262,13 +1262,55 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
-## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+## CHECKPOINT DE ATUALIZAÇÃO
 
-﻿### 🚀 PREP deploy loja — lote checklist 0509h (`deploy/prep-checklist-0509h` · **v21.93**) · aguarda senha
+### ✅ Deploy loja — VL-PREV-MES (`deploy/prep-vl-prev-mes-0609` · **v23.06**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ⏳ **PREP pronto** — **não** enviado · tip aguarda frase+senha |
+| **Status** | ✅ **enviado / Live v23.06** — cherry só este pacote (**não** merge `teste`) |
+| **Antes** | `origin/producao` @ **v21.93** / `8884c9c` |
+| **Agora** | `producao` tip PREP **v23.06** |
+| **Pacote** | `VL-PREV-MES` (previsão mês + aviso + fonte + async) |
+| **Fora** | `WA-PONTE-LEVE` · resto do `teste` |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-vl-prev-mes-v21.93` @ `8884c9c` · branch `producao-backup-pre-v2306-vl-prev-mes-20260906` · `docs/ROLLBACK-VL-PREV-MES-0609.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.06** · `/vendas/lojas/` · totais na hora · previsão em seguida |
+
+### ✅ CHECKLIST ÚNICO — 06/09 · **Live v23.06**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `VL-PREV-MES` | ✅ **Live v23.06** | **NÃO** |
+
+**Ainda fora:** `WA-PONTE-LEVE` · Excel / resto do `teste`.
+
+### ✅ Deploy loja — VL-PREV-MES (`deploy/prep-vl-prev-mes-0609` · **v23.06**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v23.06** — cherry só este pacote (**não** merge `teste`) |
+| **Antes** | `origin/producao` @ **v21.93** / `8884c9c` |
+| **Agora** | `producao` tip PREP **v23.06** |
+| **Pacote** | `VL-PREV-MES` (previsão mês + aviso + fonte + async) |
+| **Fora** | `WA-PONTE-LEVE` · resto do `teste` |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-vl-prev-mes-v21.93` @ `8884c9c` · branch `producao-backup-pre-v2306-vl-prev-mes-20260906` · `docs/ROLLBACK-VL-PREV-MES-0609.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.06** · `/vendas/lojas/` · totais na hora · previsão em seguida |
+
+### ✅ CHECKLIST ÚNICO — 06/09 · **Live v23.06**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `VL-PREV-MES` | ✅ **Live v23.06** | **NÃO** |
+
+**Ainda fora:** `WA-PONTE-LEVE` · Excel / resto do `teste`.
+
+### ~~🚀 PREP deploy loja — lote checklist 0509h~~ · **Live v21.93** (base deste deploy)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live v21.93** @ `8884c9c` — base antes de VL-PREV-MES |
 | **Base loja** | Live **v21.92** @ `041e1b5` |
 | **Branch PREP** | `deploy/prep-checklist-0509h` |
 | **Rollback** | tag `rollback/pre-lote-checklist-0509h-v21.92` · branch `producao-backup-pre-v2193-lote-checklist-20260905` · `docs/ROLLBACK-LOTE-CHECKLIST-0509h.md` |
