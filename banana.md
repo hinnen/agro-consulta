@@ -1,4 +1,4 @@
-﻿# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
+# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** â€” teste Render, produÃ§Ã£o, pacotes, operaÃ§Ã£o diÃ¡ria. O **produto SisVale** no geral estÃ¡ em **`SISTVALE.md`**; a instÃ¢ncia **delivery em branco** estÃ¡ em **`FOOD.md`**.
 
@@ -1289,6 +1289,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **16** | `PDV-VALE-USADO` | ✅ **v21.91** | **38/38** | **Sim** |
 
 **Smoke loja:** healthz **ok** · `pdv_wizard.js` produção com fix #14.
+
+### WIP — Zap teste no celular Renan (06/09 noite)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Decisao** | Fora da loja: testar ponte no Zap **pessoal 1403** (nao o 3389 da loja) |
+| **Voce** | `iniciar.bat` → QR com o celular **1403** → na preta tem que mostrar esse numero → teste msg **para o 1403** |
+| **Depois** | Na loja: Trocar Zap de volta pro **3389** |
+| **Status** | auth limpa; aguarda QR do 1403 |
 
 ### WIP — Zap sem msg (06/09 · após WA-PONTE-LEVE)
 
