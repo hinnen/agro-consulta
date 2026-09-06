@@ -242,6 +242,18 @@
       font-variant-numeric: tabular-nums;
       line-height: 1.15;
     }
+    .vl-prev-aviso {
+      margin: 0.5rem 0 0;
+      padding: 0.4rem 0.5rem;
+      border-radius: 0.65rem;
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      font-size: 0.68rem;
+      font-weight: 800;
+      color: #92400e;
+      line-height: 1.3;
+      text-align: center;
+    }
     .vl-rs {
       display: block;
       font-size: 0.8rem;
@@ -631,6 +643,9 @@
             <strong>R$ {{ prev_vila_fmt }}</strong>
           </div>
         </div>
+        {% if prev_aviso_cedo %}
+        <p class="vl-prev-aviso">Ainda é cedo — o número pode mudar ao longo do dia</p>
+        {% endif %}
       </button>
       <button type="button" class="vl-fiado-tag" id="vl-abrir-fiado" aria-label="Ver o que é sem fiado e c/ fiado quitado">
         <span class="vl-fiado-part">
@@ -694,6 +709,9 @@
     <div class="vl-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="vl-prev-titulo">
       <div class="vl-sheet-handle"></div>
       <h3 id="vl-prev-titulo">Previsão do mês · {{ prev_mes_lbl }}</h3>
+      {% if prev_aviso_cedo %}
+      <p class="vl-prev-aviso">Ainda é cedo — o número pode mudar ao longo do dia</p>
+      {% endif %}
       <p class="vl-media-k">Se continuar neste ritmo</p>
       <p class="vl-media-v"><span class="vl-rs">R$</span>{{ prev_total_fmt }}</p>
       <div class="vl-fiado-explica">

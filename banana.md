@@ -1283,8 +1283,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | `/vendas/lojas/`: card verde **Previsão mês** (total + Centro/Vila) · toque abre detalhe do ritmo |
 | **Cálculo** | vendido no mês ÷ Meta C até agora × Meta C do mês · cedo demais (<2%) = meta · mês fechado = vendido |
+| **Aviso** | faixa amarela «Ainda é cedo…» de manhã / início do mês (`VL-PREV-AVISO` · tip) |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_vendas_lojas_resumo_path.py` **159/159** |
+| **Prova** | `verify_vendas_lojas_resumo_path.py` |
 | **Status** | 🟡 **teste** · aguarda prova local |
 | **Você** | celular `/vendas/lojas/` · **Ctrl+F5** · ver card verde · toque |
 
