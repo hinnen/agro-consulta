@@ -1277,25 +1277,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto envio (06/09e · tip **v23.20**)
+### ✅ CHECKLIST ÚNICO — 06/09e · **Live v23.20**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `TAREFAS-PRIORIDADE` | 🟢 **pronto para envio à produção** | **SIM** `tarefas.0004` |
+| 1 | `TAREFAS-PRIORIDADE` | ✅ **Live v23.20** | **SIM** `0004` |
 
-**Já Live:** `VL-HUB-TAREFAS` **v23.18** · `TAREFAS-UI-STATUS` **v23.19**.
+**Já Live:** `VL-HUB-TAREFAS` **v23.18** · `TAREFAS-UI-STATUS` **v23.19** · `TAREFAS-PRIORIDADE` **v23.20**.
 
-### 📦 PACOTE PRONTO — Prioridade nas tarefas (`TAREFAS-PRIORIDADE` · **v23.20** · 06/09)
+### ✅ Deploy loja — TAREFAS-PRIORIDADE (`deploy/prep-tarefas-prioridade-0609` · **v23.20**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Prioridade **alta / média / baixa** · badge na lista · criar/editar · ordena alta→baixa dentro do status |
-| **Migrate** | **SIM** `tarefas.0004` (campo novo, default média — seguro) |
-| **Prova** | `verify_vl_hub_tarefas_path.py` **74/74** (PIN 9973 → Renan) |
-| **Tip** | `teste` **v23.20** |
+| **Status** | ✅ **enviado / Live v23.20** — cherry só este pacote (**não** merge `teste`) |
+| **Antes** | `origin/producao` @ **v23.19** / `a3a22ff` |
+| **Agora** | `producao` @ **`1e88a32`** |
+| **Pacote** | `TAREFAS-PRIORIDADE` — alta/média/baixa · badge · criar/editar · ordem na lista |
+| **Migrate** | **SIM** `tarefas.0004` (AddField default média) |
+| **Prova** | `verify_vl_hub_tarefas_path.py` **74/74** |
 | **Risco loja aberta** | **Baixo** — só `/vendas/lojas/tarefas/` · **não** mexe PDV/caixa/venda |
-| **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
-| **Você** | Ctrl+F5 → Tarefas → prioridade |
+| **Rollback** | tag `rollback/pre-tarefas-prioridade-v23.19` · branch `producao-backup-pre-v2320-tarefas-prio-20260906` · `docs/ROLLBACK-TAREFAS-PRIORIDADE-0609.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.20** · Tarefas → prioridade |
 
 ### ✅ Deploy loja — TAREFAS-UI-STATUS · **Live v23.19**
 
