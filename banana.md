@@ -1317,7 +1317,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **Diagnóstico** | Ponte **conectado** no **1403** · 24h: **2 in / 1 bot / 0 out** · **zero** `POST /enviar/` no Render · Bot **poll=2s** (engasga PDV) · UI puxava **status ~40kb a cada 5s** |
-| **Código (`teste`)** | Status poll **30s** · poll saída mínimo **3s** · ponte não trava msg vazia/mídia vazia sem `saida-ok` · alerta se enviar sem chat aberto |
+| **Código (`teste`)** | **v23.17** @ `09fbb4d` — Status poll **30s** · poll saída mínimo **3s** · ponte não trava msg vazia/mídia vazia sem `saida-ok` · alerta se enviar sem chat aberto |
 | **Você agora (sem deploy)** | Bot → Tempo → **Checar saída = 5** → Salvar · fechar/abrir `iniciar.bat` · **Ctrl+F5** no Zap · abrir chat → digitar → Enviar · se aparecer alerta, me manda o texto |
 | **Loja** | Correção UI/ponte ainda **só no teste** — sobe loja só com frase+senha |
 | **Status** | aguarda teste Renan + se quer subir pacote |
