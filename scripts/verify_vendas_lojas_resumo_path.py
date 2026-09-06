@@ -68,6 +68,9 @@ def test_arquivos() -> None:
     check("tpl_centro", "Centro" in tpl and "centro_fmt" in tpl)
     check("tpl_vila", "Vila Elias" in tpl and "vila_fmt" in tpl)
     check("tpl_total", "Total das duas lojas" in tpl and "total_fmt" in tpl)
+    check("tpl_prev_card", "vl-abrir-prev" in tpl and "Previsão mês" in tpl)
+    check("tpl_prev_sheet", "vl-sheet-prev" in tpl and "prev_total_fmt" in tpl)
+    check("tpl_prev_lojas", "prev_centro_fmt" in tpl and "prev_vila_fmt" in tpl)
     check("tpl_filtro_dia", 'value="hoje"' in tpl)
     check("tpl_filtro_semana", 'value="semana"' in tpl)
     check("tpl_filtro_mes", 'value="mes"' in tpl)
@@ -112,6 +115,8 @@ def test_arquivos() -> None:
     check("tpl_fiado_sheet", "vl-sheet-fiado" in tpl)
     check("tpl_intervalo_form", "vl-goto-intervalo" in tpl and "data_fim" in tpl)
     check("view_usa_meta", "vendas_lojas_meta_c_modos" in view_fn)
+    check("view_usa_prev", "vendas_lojas_previsao_mes_lojas" in view_fn)
+    check("view_pass_prev", "prev_total_fmt" in view_fn and "prev_mes_lbl" in view_fn)
     check("view_meta_centro", '"centro"' in view_fn or "'centro'" in view_fn)
     check("view_meta_vila", '"vila"' in view_fn or "'vila'" in view_fn)
     check("view_pass_sentido", "centro_sentido" in view_fn and "vila_sentido" in view_fn)
@@ -129,6 +134,9 @@ def test_arquivos() -> None:
     check("util_cmp_agora", "def vendas_lojas_cmp_meta_agora" in util)
     check("util_meta_soma", "def vendas_lojas_meta_c_soma" in util)
     check("util_meta_modos", "def vendas_lojas_meta_c_modos" in util)
+    check("util_prev_mes", "def vendas_lojas_previsao_mes" in util)
+    check("util_prev_lojas", "def vendas_lojas_previsao_mes_lojas" in util)
+    check("util_ultimo_dia", "def vendas_lojas_ultimo_dia_mes" in util)
     check("util_fracao", "def vendas_lojas_fracao_expediente" in util)
     check("util_expediente", "VL_EXPEDIENTE_INI" in util and "VL_EXPEDIENTE_FIM" in util)
     check("util_meta_bi", "_dashboard_serie_meta_c_vendas" in util)
@@ -286,6 +294,76 @@ def test_fracao_expediente() -> None:
     check("manha_nao_e_dia_todo", ate < dia)
 
 
+def test_previsao_mes() -> None:
+    print("== Previsão do mês (tempo real) ==")
+    from datetime import date, datetime
+    from decimal import Decimal
+    from unittest.mock import patch
+
+    from produtos.vendas_lojas_util import (
+        vendas_lojas_previsao_mes,
+        vendas_lojas_previsao_mes_lojas,
+        vendas_lojas_ultimo_dia_mes,
+    )
+
+    check("ultimo_jan", vendas_lojas_ultimo_dia_mes(date(2026, 1, 15)) == date(2026, 1, 31))
+    check("ultimo_fev", vendas_lojas_ultimo_dia_mes(date(2026, 2, 1)) == date(2026, 2, 28))
+    check("ultimo_dez", vendas_lojas_ultimo_dia_mes(date(2026, 12, 10)) == date(2026, 12, 31))
+
+    hoje = date(2026, 9, 6)
+    agora = datetime(2026, 9, 6, 13, 0)
+
+    def _fake_total(ini, fim, deposito=None):
+        return Decimal("50000.00") if deposito != "vila" else Decimal("20000.00")
+
+    def _fake_meta_soma(ini, fim, deposito=None):
+        return Decimal("300000.00") if deposito != "vila" else Decimal("120000.00")
+
+    def _fake_modos(ini, fim, deposito, *, hoje, agora):
+        base = Decimal("100000.00") if deposito != "vila" else Decimal("40000.00")
+        return base, base, True
+
+    with (
+        patch("produtos.vendas_lojas_util.vendas_lojas_total_deposito", side_effect=_fake_total),
+        patch("produtos.vendas_lojas_util.vendas_lojas_meta_c_soma", side_effect=_fake_meta_soma),
+        patch("produtos.vendas_lojas_util.vendas_lojas_meta_c_modos", side_effect=_fake_modos),
+    ):
+        c = vendas_lojas_previsao_mes(hoje=hoje, agora=agora, deposito="centro")
+        check("prev_fonte_ritmo", c["fonte"] == "ritmo")
+        check("prev_ritmo_50", c["ritmo"] == Decimal("0.5000"), str(c["ritmo"]))
+        check("prev_valor", c["previsao"] == Decimal("150000.00"), str(c["previsao"]))
+        lojas = vendas_lojas_previsao_mes_lojas(hoje=hoje, agora=agora)
+        check(
+            "prev_total_soma",
+            lojas["total"]["previsao"] == Decimal("210000.00"),
+            str(lojas["total"]["previsao"]),
+        )
+
+    def _fake_modos_cedo(ini, fim, deposito, *, hoje, agora):
+        return Decimal("300000.00"), Decimal("1000.00"), True
+
+    with (
+        patch("produtos.vendas_lojas_util.vendas_lojas_total_deposito", return_value=Decimal("800.00")),
+        patch("produtos.vendas_lojas_util.vendas_lojas_meta_c_soma", return_value=Decimal("300000.00")),
+        patch("produtos.vendas_lojas_util.vendas_lojas_meta_c_modos", side_effect=_fake_modos_cedo),
+    ):
+        cedo = vendas_lojas_previsao_mes(hoje=hoje, agora=agora, deposito="centro")
+        check("prev_cedo_media", cedo["fonte"] == "media" and cedo["previsao"] == Decimal("300000.00"))
+
+    def _fake_modos_fim(ini, fim, deposito, *, hoje, agora):
+        return Decimal("300000.00"), Decimal("300000.00"), False
+
+    with (
+        patch("produtos.vendas_lojas_util.vendas_lojas_total_deposito", return_value=Decimal("280000.00")),
+        patch("produtos.vendas_lojas_util.vendas_lojas_meta_c_soma", return_value=Decimal("300000.00")),
+        patch("produtos.vendas_lojas_util.vendas_lojas_meta_c_modos", side_effect=_fake_modos_fim),
+    ):
+        fim = vendas_lojas_previsao_mes(
+            hoje=date(2026, 9, 30), agora=datetime(2026, 9, 30, 19, 0), deposito="centro"
+        )
+        check("prev_mes_fechado", fim["fonte"] == "fechado" and fim["previsao"] == Decimal("280000.00"))
+
+
 def test_fiado_math() -> None:
     print("== Fiado (DB local) ==")
     import os
@@ -363,6 +441,8 @@ def test_http() -> None:
         b2 = r2.content.decode("utf-8", "replace")
         check("http_intervalo_200", r2.status_code == 200, str(r2.status_code))
         check("http_intervalo_label", "01/08/2026" in b2 and "15/08/2026" in b2)
+        check("http_prev_card", "vl-abrir-prev" in body and "Previsão mês" in body)
+        check("http_prev_sheet", "vl-sheet-prev" in body)
         hub = c.get(reverse("relatorios_hub"), follow=True)
         check("http_hub_link", "/vendas/lojas/" in hub.content.decode("utf-8", "replace"))
 
@@ -380,6 +460,7 @@ def main() -> int:
     test_totais_mock()
     test_cmp_meta()
     test_fracao_expediente()
+    test_previsao_mes()
     test_fiado_math()
     test_http()
     test_versao()

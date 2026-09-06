@@ -200,6 +200,48 @@
       font-size: clamp(2.75rem, 12.5vw + 0.3rem, 3.85rem);
       color: var(--orange);
     }
+    .vl-card.prev {
+      border-color: #6ee7b7;
+      background: #ecfdf5;
+    }
+    .vl-card.prev:active { background: #d1fae5; }
+    .vl-card.prev h2 { color: var(--green); }
+    .vl-card.prev .vl-valor {
+      font-size: clamp(2.35rem, 10.5vw + 0.25rem, 3.25rem);
+      color: #047857;
+    }
+    .vl-card.prev .vl-rs { color: #059669; }
+    .vl-prev-lojas {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.35rem;
+      margin-top: 0.55rem;
+    }
+    .vl-prev-loja {
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid #a7f3d0;
+      border-radius: 0.75rem;
+      padding: 0.35rem 0.45rem 0.4rem;
+      text-align: center;
+    }
+    .vl-prev-loja span {
+      display: block;
+      font-size: 0.58rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #64748b;
+    }
+    .vl-prev-loja strong {
+      display: block;
+      margin-top: 0.08rem;
+      font-size: clamp(0.92rem, 3.8vw + 0.15rem, 1.08rem);
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+      line-height: 1.15;
+    }
     .vl-rs {
       display: block;
       font-size: 0.8rem;
@@ -575,6 +617,21 @@
         <h2>Total das duas lojas</h2>
         <p class="vl-valor"><span class="vl-rs">R$</span>{{ total_fmt }}</p>
       </button>
+      <button type="button" class="vl-card prev" id="vl-abrir-prev"
+        aria-label="Previsão do mês das duas lojas">
+        <h2>Previsão mês · {{ prev_mes_lbl }}</h2>
+        <p class="vl-valor"><span class="vl-rs">R$</span>{{ prev_total_fmt }}</p>
+        <div class="vl-prev-lojas">
+          <div class="vl-prev-loja">
+            <span>Centro</span>
+            <strong>R$ {{ prev_centro_fmt }}</strong>
+          </div>
+          <div class="vl-prev-loja">
+            <span>Vila</span>
+            <strong>R$ {{ prev_vila_fmt }}</strong>
+          </div>
+        </div>
+      </button>
       <button type="button" class="vl-fiado-tag" id="vl-abrir-fiado" aria-label="Ver o que é sem fiado e c/ fiado quitado">
         <span class="vl-fiado-part">
           <span class="vl-fiado-k">Sem fiado</span>
@@ -629,6 +686,40 @@
         </p>
       </div>
       <button type="button" class="vl-cal-hoje" data-fechar-fiado>Fechar</button>
+    </div>
+  </div>
+
+  <div id="vl-sheet-prev" class="vl-sheet" hidden>
+    <div class="vl-sheet-bg" data-fechar-prev></div>
+    <div class="vl-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="vl-prev-titulo">
+      <div class="vl-sheet-handle"></div>
+      <h3 id="vl-prev-titulo">Previsão do mês · {{ prev_mes_lbl }}</h3>
+      <p class="vl-media-k">Se continuar neste ritmo</p>
+      <p class="vl-media-v"><span class="vl-rs">R$</span>{{ prev_total_fmt }}</p>
+      <div class="vl-fiado-explica">
+        <h4>Centro — R$ {{ prev_centro_fmt }}</h4>
+        <p>
+          Já vendeu R$ {{ prev_centro_vendido_fmt }} neste mês.
+          {% if prev_centro_ritmo_fmt %}Ritmo {{ prev_centro_ritmo_fmt }}% da média.{% elif prev_centro_fonte == "media" %}Ainda cedo — usa a média do mês.{% elif prev_centro_fonte == "fechado" %}Mês fechado = o que vendeu.{% else %}Sem média ainda.{% endif %}
+        </p>
+      </div>
+      <div class="vl-fiado-explica">
+        <h4>Vila — R$ {{ prev_vila_fmt }}</h4>
+        <p>
+          Já vendeu R$ {{ prev_vila_vendido_fmt }} neste mês.
+          {% if prev_vila_ritmo_fmt %}Ritmo {{ prev_vila_ritmo_fmt }}% da média.{% elif prev_vila_fonte == "media" %}Ainda cedo — usa a média do mês.{% elif prev_vila_fonte == "fechado" %}Mês fechado = o que vendeu.{% else %}Sem média ainda.{% endif %}
+        </p>
+      </div>
+      <div class="vl-fiado-explica">
+        <h4>Como calcula</h4>
+        <p>
+          Vendido no mês (R$ {{ prev_total_vendido_fmt }}) ÷ o que já deveria ter saído até agora
+          (R$ {{ prev_total_meta_agora_fmt }}) × média do mês inteiro (R$ {{ prev_total_meta_fmt }}).
+          {% if prev_total_ritmo_fmt %} Ritmo agora: <strong>{{ prev_total_ritmo_fmt }}%</strong> da média.{% endif %}
+          Mesma Meta C do BI · atualiza sozinho a cada venda.
+        </p>
+      </div>
+      <button type="button" class="vl-cal-hoje" data-fechar-prev>Fechar</button>
     </div>
   </div>
 
@@ -869,6 +960,19 @@
     document.getElementById("vl-abrir-fiado").addEventListener("click", abrirFiado);
     sheetFiado.querySelectorAll("[data-fechar-fiado]").forEach(function (el) {
       el.addEventListener("click", fecharFiado);
+    });
+    var sheetPrev = document.getElementById("vl-sheet-prev");
+    function abrirPrev() {
+      sheetPrev.hidden = false;
+      sheetPrev.classList.add("aberto");
+    }
+    function fecharPrev() {
+      sheetPrev.classList.remove("aberto");
+      sheetPrev.hidden = true;
+    }
+    document.getElementById("vl-abrir-prev").addEventListener("click", abrirPrev);
+    sheetPrev.querySelectorAll("[data-fechar-prev]").forEach(function (el) {
+      el.addEventListener("click", fecharPrev);
     });
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("{% url 'vendas_lojas_sw' %}", { scope: "/vendas/lojas/" }).catch(function () {});

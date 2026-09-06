@@ -1277,6 +1277,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Previsão do mês em Vendas lojas (`VL-PREV-MES` · **v23.03** · 06/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `/vendas/lojas/`: card verde **Previsão mês** (total + Centro/Vila) · toque abre detalhe do ritmo |
+| **Cálculo** | vendido no mês ÷ Meta C até agora × Meta C do mês · cedo demais (<2%) = meta · mês fechado = vendido |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_vendas_lojas_resumo_path.py` **159/159** |
+| **Status** | 🟡 **teste** · aguarda prova local |
+| **Você** | celular `/vendas/lojas/` · **Ctrl+F5** · ver card verde · toque |
+
 ### ✅ Deploy loja — lote checklist 0509h (`deploy/prep-checklist-0509h` · **v21.93**) · **Live**
 
 | Campo | Valor |

@@ -11385,6 +11385,19 @@ def _vendas_lojas_cmp_ctx(vendido, esperado, *, esperado_dia=None) -> dict:
     return out
 
 
+def _vendas_lojas_prev_ctx(bloco: dict) -> dict:
+    """Formata um bloco de previsão do mês para o template."""
+    ritmo_pct = bloco.get("ritmo_pct")
+    return {
+        "previsao_fmt": _format_moeda_br(bloco["previsao"]),
+        "vendido_fmt": _format_moeda_br(bloco["vendido"]),
+        "meta_fmt": _format_moeda_br(bloco["meta_mes"]),
+        "meta_agora_fmt": _format_moeda_br(bloco["meta_ate_agora"]),
+        "ritmo_pct_fmt": _vendas_lojas_pct_br(ritmo_pct) if ritmo_pct is not None else "",
+        "fonte": bloco.get("fonte") or "media",
+    }
+
+
 @never_cache
 @login_required(login_url="/entrar/")
 @require_GET
@@ -11392,6 +11405,7 @@ def vendas_lojas_resumo(request):
     """Tela simples: faturamento Centro × Vila Elias + total das duas."""
     from produtos.vendas_lojas_util import (
         vendas_lojas_meta_c_modos,
+        vendas_lojas_previsao_mes_lojas,
         vendas_lojas_sem_fiado_mais_quitacoes_totais,
         vendas_lojas_sem_fiado_totais,
         vendas_lojas_totais,
@@ -11424,6 +11438,24 @@ def vendas_lojas_resumo(request):
     cmp_v_dia = _vendas_lojas_cmp_ctx(vila, dia_v)
     cmp_t_dia = _vendas_lojas_cmp_ctx(total, dia_t)
     mostra_toggle = bool(toggle_c or toggle_v or toggle_t)
+    try:
+        prev = vendas_lojas_previsao_mes_lojas(hoje=hoje, agora=agora)
+        prev_c = _vendas_lojas_prev_ctx(prev["centro"])
+        prev_v = _vendas_lojas_prev_ctx(prev["vila"])
+        prev_t = _vendas_lojas_prev_ctx(prev["total"])
+        mes_lbl = hoje.strftime("%m/%Y")
+    except Exception:
+        logging.getLogger(__name__).exception("vendas_lojas_resumo previsao mes")
+        z = {
+            "previsao_fmt": "0,00",
+            "vendido_fmt": "0,00",
+            "meta_fmt": "0,00",
+            "meta_agora_fmt": "0,00",
+            "ritmo_pct_fmt": "",
+            "fonte": "sem_meta",
+        }
+        prev_c = prev_v = prev_t = z
+        mes_lbl = hoje.strftime("%m/%Y")
     return render(
         request,
         "produtos/vendas_lojas_resumo.html",
@@ -11468,6 +11500,21 @@ def vendas_lojas_resumo(request):
             "hoje_iso": hoje.isoformat(),
             "data_iso": data_ini.isoformat(),
             "data_fim_iso": data_fim.isoformat(),
+            "prev_mes_lbl": mes_lbl,
+            "prev_total_fmt": prev_t["previsao_fmt"],
+            "prev_centro_fmt": prev_c["previsao_fmt"],
+            "prev_vila_fmt": prev_v["previsao_fmt"],
+            "prev_total_vendido_fmt": prev_t["vendido_fmt"],
+            "prev_total_meta_fmt": prev_t["meta_fmt"],
+            "prev_total_meta_agora_fmt": prev_t["meta_agora_fmt"],
+            "prev_total_ritmo_fmt": prev_t["ritmo_pct_fmt"],
+            "prev_total_fonte": prev_t["fonte"],
+            "prev_centro_vendido_fmt": prev_c["vendido_fmt"],
+            "prev_vila_vendido_fmt": prev_v["vendido_fmt"],
+            "prev_centro_ritmo_fmt": prev_c["ritmo_pct_fmt"],
+            "prev_vila_ritmo_fmt": prev_v["ritmo_pct_fmt"],
+            "prev_centro_fonte": prev_c["fonte"],
+            "prev_vila_fonte": prev_v["fonte"],
         },
     )
 

@@ -349,3 +349,117 @@ def vendas_lojas_cmp_meta_agora(vendido, esperado_agora, esperado_dia) -> dict:
         "pct_signed": None,
         "sentido": "acima",
     }
+
+
+def vendas_lojas_ultimo_dia_mes(d: date) -> date:
+    """Último dia civil do mês de ``d``."""
+    if d.month == 12:
+        return date(d.year, 12, 31)
+    return date(d.year, d.month + 1, 1) - timedelta(days=1)
+
+
+def vendas_lojas_previsao_mes(
+    *,
+    hoje: date,
+    agora: datetime,
+    deposito: str | None = None,
+) -> dict:
+    """
+    Previsão do mês civil em tempo real (Centro, Vila ou as duas).
+
+    ritmo = vendido_mês ÷ média esperada até agora (Meta C + expediente).
+    previsão = vendido + (meta_mês − meta_até_agora) × ritmo
+             = vendido × meta_mês ÷ meta_até_agora.
+
+    Cedo demais (< 2 % da meta do mês) → usa a meta do mês (sem ritmo).
+    Mês já fechado (último dia após expediente) → previsão = vendido.
+    """
+    mes_ini = hoje.replace(day=1)
+    mes_fim = vendas_lojas_ultimo_dia_mes(hoje)
+    vendido = _q2(vendas_lojas_total_deposito(mes_ini, hoje, deposito))
+    meta_mes = _q2(vendas_lojas_meta_c_soma(mes_ini, mes_fim, deposito))
+    _dia_hoje, meta_ate_agora, _ = vendas_lojas_meta_c_modos(
+        mes_ini, hoje, deposito, hoje=hoje, agora=agora
+    )
+    meta_ate_agora = _q2(meta_ate_agora)
+
+    mes_fechado = hoje >= mes_fim and vendas_lojas_fracao_expediente(agora) >= Decimal("1")
+    if mes_fechado or meta_mes <= 0:
+        return {
+            "vendido": vendido,
+            "meta_mes": meta_mes,
+            "meta_ate_agora": meta_ate_agora,
+            "previsao": vendido,
+            "ritmo": None,
+            "ritmo_pct": None,
+            "fonte": "fechado" if mes_fechado else "sem_meta",
+            "mes_ini": mes_ini,
+            "mes_fim": mes_fim,
+        }
+
+    limiar = (meta_mes * Decimal("0.02")).quantize(Decimal("0.01"))
+    if meta_ate_agora <= 0 or meta_ate_agora < limiar:
+        return {
+            "vendido": vendido,
+            "meta_mes": meta_mes,
+            "meta_ate_agora": meta_ate_agora,
+            "previsao": meta_mes,
+            "ritmo": None,
+            "ritmo_pct": None,
+            "fonte": "media",
+            "mes_ini": mes_ini,
+            "mes_fim": mes_fim,
+        }
+
+    ritmo = (vendido / meta_ate_agora).quantize(Decimal("0.0001"))
+    previsao = (vendido * meta_mes / meta_ate_agora).quantize(Decimal("0.01"))
+    ritmo_pct = (ritmo * Decimal("100")).quantize(Decimal("0.1"))
+    return {
+        "vendido": vendido,
+        "meta_mes": meta_mes,
+        "meta_ate_agora": meta_ate_agora,
+        "previsao": previsao,
+        "ritmo": ritmo,
+        "ritmo_pct": ritmo_pct,
+        "fonte": "ritmo",
+        "mes_ini": mes_ini,
+        "mes_fim": mes_fim,
+    }
+
+
+def vendas_lojas_previsao_mes_lojas(*, hoje: date, agora: datetime) -> dict:
+    """Previsão do mês: Centro, Vila e total (soma das duas previsões)."""
+    c = vendas_lojas_previsao_mes(hoje=hoje, agora=agora, deposito="centro")
+    v = vendas_lojas_previsao_mes(hoje=hoje, agora=agora, deposito="vila")
+    total_prev = _q2(c["previsao"] + v["previsao"])
+    total_vend = _q2(c["vendido"] + v["vendido"])
+    total_meta = _q2(c["meta_mes"] + v["meta_mes"])
+    total_agora = _q2(c["meta_ate_agora"] + v["meta_ate_agora"])
+    if total_agora > 0 and c["fonte"] == "ritmo" and v["fonte"] == "ritmo":
+        ritmo = (total_vend / total_agora).quantize(Decimal("0.0001"))
+        ritmo_pct = (ritmo * Decimal("100")).quantize(Decimal("0.1"))
+        fonte = "ritmo"
+    elif c["fonte"] == "fechado" and v["fonte"] == "fechado":
+        ritmo = ritmo_pct = None
+        fonte = "fechado"
+    elif c["fonte"] == "sem_meta" and v["fonte"] == "sem_meta":
+        ritmo = ritmo_pct = None
+        fonte = "sem_meta"
+    else:
+        ritmo = ritmo_pct = None
+        fonte = "misto"
+    return {
+        "centro": c,
+        "vila": v,
+        "total": {
+            "vendido": total_vend,
+            "meta_mes": total_meta,
+            "meta_ate_agora": total_agora,
+            "previsao": total_prev,
+            "ritmo": ritmo,
+            "ritmo_pct": ritmo_pct,
+            "fonte": fonte,
+            "mes_ini": c["mes_ini"],
+            "mes_fim": c["mes_fim"],
+        },
+    }
