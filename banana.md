@@ -1279,26 +1279,39 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — 07/09 · pronto envio (tip **v23.37** @ `d3394dd`)
+### 🟡 PREP PRONTO — Checklist 07/09 → loja **v23.38** (`deploy/prep-checklist-0709` · **aguarda senha**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 **PREP no GitHub** — **não** subiu `producao` · próximo chat: lojas pausam + frase + senha |
+| **Antes (loja)** | **v23.34** @ `95b10c3` |
+| **PREP tip** | **v23.38** @ `f13fb1e` |
+| **Pacotes** | `WA-PC-ICON` · `EXTRAVIO-CONFERENCIA-AUTO` · `DRE-NO-DASH-OVERLAY` |
+| **Migrate** | **NÃO** |
+| **Prova** | DRE **9+33** · Extravio **23/23** · Zap ícone **11/11** · `check` OK · PIN 9973 ok |
+| **Risco PDV** | **Baixo** — não mexe finalizar venda |
+| **Rollback** | `rollback/pre-checklist-0709-v23.34` · `producao-backup-pre-v2338-checklist-20260907` · `docs/ROLLBACK-CHECKLIST-0709.md` |
+
+### ✅ CHECKLIST ÚNICO — 07/09 · **PREP v23.38** (aguarda senha)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `WA-PC-ICON` | 🟢 **pronto para envio à produção** | **NÃO** |
-| 2 | `EXTRAVIO-CONFERENCIA-AUTO` | 🟢 **pronto para envio à produção** | **NÃO** |
-| 3 | `DRE-NO-DASH-OVERLAY` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 1 | `WA-PC-ICON` | 🟡 **PREP** — aguarda senha | **NÃO** |
+| 2 | `EXTRAVIO-CONFERENCIA-AUTO` | 🟡 **PREP** — aguarda senha | **NÃO** |
+| 3 | `DRE-NO-DASH-OVERLAY` | 🟡 **PREP** — aguarda senha | **NÃO** |
 
-**Loja agora:** **v23.34**. Subir **só** com frase + senha (cherry por pacote — **não** merge `teste`).
+**Loja agora:** **v23.34**. **Não** merge `teste`.
 
 ### 📦 PACOTE PRONTO — DRE não em cima do Dashboard (`DRE-NO-DASH-OVERLAY` · 07/09)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | DRE/Resumo **só em aba**; Dashboard não vira DRE. |
-| **Prova** | path **9/9** · deep **33/33** (login Django + PIN 9973 ok) · HTTP static OK · `check` OK |
-| **Tip** | `teste` **v23.37** @ `b8bb0f2` |
+| **Prova** | path **9/9** · deep **33/33** · HTTP static OK · `check` OK |
+| **Tip** | no PREP **v23.38** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
-| **Você** | Ctrl+F5 Gestão · F8 / card Lucro → **1 aba** |
+| **Status** | 🟡 **PREP** — aguarda senha |
+| **Você** | no deploy: Ctrl+F5 · F8 → **1 aba** |
 
 ### 📦 PACOTE PRONTO — Ícone Zap S (`WA-PC-ICON` · 07/09)
 
@@ -1306,9 +1319,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | Ícone Zap (bolha **S**) no PWA PC/celular |
 | **Prova** | `verify_wa_pc_icon_path.py` **11/11** |
-| **Tip** | `teste` **v23.36** @ `a4b0bd3` |
+| **Tip** | no PREP **v23.38** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
+| **Status** | 🟡 **PREP** — aguarda senha |
 | **Você** | Reinstalar app Zap no Chrome |
 
 ### 📦 PACOTE PRONTO — Conferência depósito × BANCO (`EXTRAVIO-CONFERENCIA-AUTO` · 07/09)
@@ -1317,9 +1330,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | CP baixa só **BANCO/DINHEIRO** · Mini DRE Extravio = depósito − BANCO |
 | **Prova** | `verify_extravio_conferencia_auto_path.py` **23/23** |
-| **Tip** | `teste` **v23.35** @ `cbc72a1` |
+| **Tip** | no PREP **v23.38** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
+| **Status** | 🟡 **PREP** — aguarda senha |
 | **Você** | Ctrl+F5 · CP baixa · Resumo Extravio |
 
 ### ✅ Deploy loja — WA-PC-PWA-FIX (`deploy/prep-wa-pc-pwa-fix-0709` · **v23.34**) · **Live**
