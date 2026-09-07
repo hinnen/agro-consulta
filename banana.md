@@ -1286,18 +1286,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | `WA-PC-ICON` | ✅ **Live v23.38** | **NÃO** | 11/11 |
 | 2 | `EXTRAVIO-CONFERENCIA-AUTO` | ✅ **Live v23.38** | **NÃO** | 23/23 |
 | 3 | `DRE-NO-DASH-OVERLAY` | ✅ **Live v23.38** | **NÃO** | 9+33 |
-| 4 | `WA-UI-POLL-LEVE` | 🟢 **pronto para envio** (v23.39) | **NÃO** | **48/48** |
+| 4 | `WA-UI-POLL-LEVE` | 🟢 **pronto para envio** (v23.40) | **NÃO** | **48/48** |
 
-**Loja:** **v23.38**. **Falta subir:** só `#4`. Tip `teste` **v23.39**. Cherry só este + frase + senha — **não** merge `teste`.
+**Loja:** **v23.38**. **Falta subir:** só `#4`. Tip `teste` **v23.40**. Cherry só este + frase + senha — **não** merge `teste`.
 
-### 📦 PACOTE PRONTO — Poll Zap leve (`WA-UI-POLL-LEVE` · 07/09 · **v23.39**)
+### 📦 PACOTE PRONTO — Poll Zap leve (`WA-UI-POLL-LEVE` · 07/09 · **v23.40**)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Zap não engasga PDV (poll leve; PDV na frente = ainda mais leve) |
 | **Prova** | `verify_wa_ui_poll_leve_path.py` **48/48** (path · sim 60s · PIN 9973 · HTTP static) |
 | **Carga 60s** | antigo ~50 → foco 25 → PDV na frente **7** |
-| **Tip** | **v23.39** (`b398f35` + prova deep) |
+| **Tip** | **v23.40** @ `14d4f68` |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** |
 | **Você** | Ctrl+F5 Zap · Zap aberto + vender · Bot poll **5** |
