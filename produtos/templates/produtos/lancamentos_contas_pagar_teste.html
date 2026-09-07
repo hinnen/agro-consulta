@@ -1672,7 +1672,10 @@
     fs.innerHTML = '<option value="">— Selecione —</option>';
     bs.innerHTML = '<option value="">— Selecione —</option>';
     try {
-      const r = await fetch(API_OPCOES + '?modo=erp&apenas_cadastro_erp=1', { credentials: 'same-origin' });
+      const r = await fetch(
+        API_OPCOES + '?modo=erp&apenas_cadastro_erp=1&somente_dinheiro_banco=1',
+        { credentials: 'same-origin' }
+      );
       const d = await r.json();
       (d.formas || []).forEach((x) => {
         const o = document.createElement('option');

@@ -20137,6 +20137,12 @@ def api_lancamentos_opcoes_baixa(request):
         bancos, det_b = _mesclar_opcoes_baixa_com_extras(
             bancos, extras_q.filter(tipo=OpcaoBaixaFinanceiroExtra.Tipo.BANCO)
         )
+    raw_cp = (request.GET.get("somente_dinheiro_banco") or "").strip().lower()
+    somente_dinheiro_banco = raw_cp in ("1", "true", "yes", "sim", "on")
+    if somente_dinheiro_banco:
+        from produtos.extravio_deposito_util import filtrar_formas_baixa_cp
+
+        formas = filtrar_formas_baixa_cp(formas)
     formas.sort(key=lambda x: (x.get("nome") or "").lower())
     bancos.sort(key=lambda x: (x.get("nome") or "").lower())
     return JsonResponse(
@@ -20146,6 +20152,7 @@ def api_lancamentos_opcoes_baixa(request):
             "modo": modo,
             "extras": det_f + det_b,
             "fonte": fonte,
+            "somente_dinheiro_banco": somente_dinheiro_banco,
         }
     )
 
@@ -20233,6 +20240,15 @@ def api_lancamentos_baixa(request):
         dmov = date.fromisoformat(data_str) if data_str else timezone.localdate()
     except ValueError:
         return JsonResponse({"ok": False, "erro": "Data inválida (use AAAA-MM-DD)."}, status=400)
+
+    if despesa and not _forma_pagamento_permitida_baixa_cp(forma_nome):
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Contas a pagar: use só forma BANCO ou DINHEIRO.",
+            },
+            status=400,
+        )
 
     valor_juros_dec: Decimal | None = None
     vj_raw = payload.get("valor_juros")
@@ -20438,6 +20454,20 @@ def api_lancamentos_baixa_parcial(request):
     parcelas = payload.get("parcelas")
     if not isinstance(parcelas, list) or not parcelas:
         return JsonResponse({"ok": False, "erro": "Informe ao menos uma parcela (valor, forma, banco)."}, status=400)
+
+    if despesa:
+        for p in parcelas:
+            if not isinstance(p, dict):
+                continue
+            fn = str(p.get("forma_pagamento") or p.get("forma") or "").strip()
+            if fn and not _forma_pagamento_permitida_baixa_cp(fn):
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "erro": "Contas a pagar: use só forma BANCO ou DINHEIRO em cada parcela.",
+                    },
+                    status=400,
+                )
 
     data_str = str(payload.get("data_movimento") or "").strip()[:10]
     try:
@@ -20720,6 +20750,12 @@ def _forma_pagamento_eh_dinheiro(nome: str) -> bool:
     from produtos.extravio_deposito_util import forma_eh_dinheiro
 
     return forma_eh_dinheiro(nome)
+
+
+def _forma_pagamento_permitida_baixa_cp(nome: str) -> bool:
+    from produtos.extravio_deposito_util import forma_permitida_baixa_cp
+
+    return forma_permitida_baixa_cp(nome)
 
 
 def _anexar_retirada_caixa_apos_baixa_cp(

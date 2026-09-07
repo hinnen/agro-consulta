@@ -416,6 +416,22 @@ def consolidar_empresa_mongo(
         }
 
     core = agregar_linhas_dre_em_resumo(raw.get("linhas") or [])
+    try:
+        from produtos.conferencia_deposito_extravio_util import aplicar_extravio_auto_no_resumo
+        from financeiro.services.receita_pdv_util import resolver_deposito_pdv
+
+        dep_cx = resolver_deposito_pdv(None, nome)
+        if dep_cx not in ("centro", "vila"):
+            dep_cx = None
+        aplicar_extravio_auto_no_resumo(
+            core,
+            data_inicio,
+            data_fim,
+            deposito=dep_cx,
+            empresa_nome=nome,
+        )
+    except Exception:
+        pass
     if diagnostico:
         linhas = raw.get("linhas") or []
         _log_diag.info(
