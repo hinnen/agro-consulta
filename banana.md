@@ -1279,6 +1279,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Zap PC fora da Gestão (`WA-PC-PWA-FIX` · 07/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Instalar Zap PC abria **dentro** do SisVale Gestão. Agora abre janela própria (`SistValeZap`) e sai do iframe. |
+| **Onde** | `agro_dual_window.js` · template Zap web |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_wa_pc_pwa_path.py` |
+| **Status** | 🟢 `teste` — precisa frase + senha pra loja |
+| **Você** | Ctrl+F5 Gestão · abrir WhatsApp computador → deve abrir **outra janela** · aí Instalar |
+
 ### ✅ Deploy loja — WA-PC-PWA (`deploy/prep-wa-pc-pwa-0709` · **v23.33**) · **Live**
 
 | Campo | Valor |
