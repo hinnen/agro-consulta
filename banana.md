@@ -1278,7 +1278,37 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | tag `rollback/pre-tarefas-prioridade-v23.19` · branch `producao-backup-pre-v2320-tarefas-prio-20260906` · `docs/ROLLBACK-TAREFAS-PRIORIDADE-0609.md` · **só** frase+senha |
 | **Você** | **Ctrl+F5** · badge **v23.20** · Tarefas → prioridade |
 
+### ✅ Deploy loja — WA-ENVIO-FROMME (`deploy/prep-wa-envio-fromme-0609` · **v23.23**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v23.23** — cherry só este pacote (**não** merge `teste`) |
+| **Antes** | `origin/producao` @ **v23.20** / `1e88a32` |
+| **Agora** | `producao` @ tip PREP **v23.23** |
+| **Pacote** | `WA-ENVIO-FROMME` — eco celular · seta sem travar · lid+telefone · poll mín. 3 · status leve |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_wa_envio_fromme_path.py` **35/35** |
+| **Risco loja aberta** | **Baixo** — só Zap + ponte PC · **não** mexe PDV/caixa/venda |
+| **Rollback** | tag `rollback/pre-wa-envio-fromme-v23.20` · branch `producao-backup-pre-v2323-wa-envio-20260906` · `docs/ROLLBACK-WA-ENVIO-FROMME-0609.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.23** · fechar/abrir `iniciar.bat` · teste seta |
+
+### ✅ CHECKLIST ÚNICO — 06/09f · **Live v23.23**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `WA-ENVIO-FROMME` | ✅ **Live v23.23** | **NÃO** |
+
+**Loja agora:** Live **v23.23**. Excel / resto do `teste` **fora**.
+
 ### ✅ CHECKLIST ÚNICO — 06/09e · **Live v23.20**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `TAREFAS-PRIORIDADE` | ✅ **Live v23.20** | **SIM** `0004` |
+
+**Já Live:** `VL-HUB-TAREFAS` **v23.18** · `TAREFAS-UI-STATUS` **v23.19** · `TAREFAS-PRIORIDADE` **v23.20** · `WA-ENVIO-FROMME` **v23.23**.
+
+### ~~✅ CHECKLIST ÚNICO — 06/09e · **Live v23.20**~~ · **ver 06/09f**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |

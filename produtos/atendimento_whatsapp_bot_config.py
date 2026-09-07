@@ -178,7 +178,7 @@ def salvar_bot(dados: dict, *, chave: str = CHAVE_DEFAULT, usuario: str = "") ->
     except (TypeError, ValueError):
         limpo["atraso_entre_msgs_seg"] = 1
     try:
-        limpo["poll_saida_seg"] = max(2, min(15, int(limpo.get("poll_saida_seg") or 5)))
+        limpo["poll_saida_seg"] = max(3, min(15, int(limpo.get("poll_saida_seg") or 5)))
     except (TypeError, ValueError):
         limpo["poll_saida_seg"] = 5
     sh = str(limpo.get("sync_agenda_fotos_hora") or "00:00").strip()

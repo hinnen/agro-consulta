@@ -160,12 +160,7 @@ def api_atendimento_whatsapp_bot_salvar(request):
     data = _json_body(request)
     if data is None:
         return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
-    autor = ""
-    try:
-        if request.user.is_authenticated:
-            autor = (request.user.get_full_name() or request.user.get_username() or "")[:120]
-    except Exception:
-        autor = ""
+    autor = _autor_wa(request, data)
     if data.get("reset"):
         bot = resetar_bot(usuario=autor)
         return JsonResponse({"ok": True, "bot": bot, "avisos": avisos_bot(bot)})
@@ -236,12 +231,7 @@ def api_atendimento_whatsapp_enviar(request):
     data = _json_body(request)
     if data is None:
         return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
-    autor = ""
-    try:
-        if request.user.is_authenticated:
-            autor = (request.user.get_full_name() or request.user.get_username() or "")[:120]
-    except Exception:
-        autor = ""
+    autor = _autor_wa(request, data)
     try:
         cid = int(data.get("conversa_id") or 0)
     except (TypeError, ValueError):
@@ -296,12 +286,7 @@ def api_atendimento_whatsapp_transferir(request):
     data = _json_body(request)
     if data is None:
         return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
-    autor = ""
-    try:
-        if request.user.is_authenticated:
-            autor = (request.user.get_full_name() or request.user.get_username() or "")[:120]
-    except Exception:
-        autor = ""
+    autor = _autor_wa(request, data)
     try:
         cid = int(data.get("conversa_id") or 0)
     except (TypeError, ValueError):
@@ -390,12 +375,7 @@ def api_atendimento_whatsapp_novo(request):
     data = _json_body(request)
     if data is None:
         return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
-    autor = ""
-    try:
-        if request.user.is_authenticated:
-            autor = (request.user.get_full_name() or request.user.get_username() or "")[:120]
-    except Exception:
-        autor = ""
+    autor = _autor_wa(request, data)
     tel = str(data.get("telefone") or data.get("jid") or "")
     m, err = abrir_conversa_saida(
         telefone=tel,
@@ -716,7 +696,7 @@ def api_atendimento_whatsapp_bridge_saida(request):
 
     cfg = carregar_bot()
     try:
-        poll_seg = max(2, min(15, int(cfg.get("poll_saida_seg") or 5)))
+        poll_seg = max(3, min(15, int(cfg.get("poll_saida_seg") or 5)))
     except (TypeError, ValueError):
         poll_seg = 5
     sync_hora = str(cfg.get("sync_agenda_fotos_hora") or "00:00").strip()[:5] or "00:00"

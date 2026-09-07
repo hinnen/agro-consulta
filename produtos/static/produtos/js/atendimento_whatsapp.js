@@ -13,7 +13,6 @@
   } catch (e) {}
   var convId = 0;
   var convLoja = '';
-  var convAbreSeq = 0;
   var afterId = 0;
   var lastSeenIn = 0;
   var lastUnread = -1;
@@ -107,11 +106,58 @@
   }
 
   function fetchJson(url, opt) {
-    return fetch(url, opt).then(function (r) {
-      return r.json().catch(function () {
-        return { ok: false, erro: 'Falha de rede' };
+    var o = opt || {};
+    if (!o.credentials) o.credentials = 'same-origin';
+    var ctrl = o.signal ? null : new AbortController();
+    if (ctrl && !o.signal) {
+      o.signal = ctrl.signal;
+      o._agroAbort = ctrl;
+    }
+    var ms = typeof o.timeoutMs === 'number' ? o.timeoutMs : 0;
+    var timer = null;
+    if (ms > 0 && ctrl) {
+      timer = window.setTimeout(function () {
+        try {
+          ctrl.abort();
+        } catch (_) {}
+      }, ms);
+    }
+    delete o.timeoutMs;
+    return fetch(url, o)
+      .then(function (r) {
+        return r
+          .json()
+          .catch(function () {
+            return {
+              ok: false,
+              erro:
+                r.status === 403
+                  ? 'Sessão/CSRF — dê F5 e entre de novo.'
+                  : r.redirected || (r.url && r.url.indexOf('/entrar') >= 0)
+                    ? 'Sessão expirada — dê F5 e entre de novo.'
+                    : 'Falha de rede (' + r.status + ')',
+            };
+          })
+          .then(function (j) {
+            if (r.status === 403 && (!j || !j.ok)) {
+              return { ok: false, erro: (j && j.erro) || 'Sessão/CSRF — dê F5 e entre de novo.' };
+            }
+            if (r.status >= 400 && j && j.ok == null) {
+              return { ok: false, erro: (j && j.erro) || 'Erro ' + r.status };
+            }
+            return j;
+          });
+      })
+      .catch(function (err) {
+        var nome = err && err.name;
+        if (nome === 'AbortError') {
+          return { ok: false, erro: 'Demorou demais — tente de novo.' };
+        }
+        return { ok: false, erro: 'Falha de rede ao enviar.' };
+      })
+      .finally(function () {
+        if (timer) window.clearTimeout(timer);
       });
-    });
   }
 
   function waToast(msg, ok) {
@@ -582,14 +628,32 @@
       .map(function (m) {
         var cls = m.direcao === 'out' ? 'out' : m.direcao === 'bot' ? 'bot' : 'in';
         if (m.apagada) cls += ' is-apagada';
-        var who =
-          m.direcao === 'out' ? m.autor || 'Loja' : m.direcao === 'bot' ? 'Bot' : 'Cliente';
+        // Opacidade só no rascunho local (tmp-*); pendente_envio no servidor não deixa cinza.
+        if (m.pendente && !m.apagada && String(m.id || '').indexOf('tmp-') === 0) cls += ' is-enviando';
+        var metaHtml = '';
+        if (m.direcao === 'out') {
+          metaHtml =
+            '<div class="wa-meta">' +
+            escapeHtml(m.autor || 'Loja') +
+            (m.hora ? ' · ' + escapeHtml(m.hora) : '') +
+            '</div>';
+        } else if (m.direcao === 'bot') {
+          metaHtml =
+            '<div class="wa-meta">Bot' + (m.hora ? ' · ' + escapeHtml(m.hora) : '') + '</div>';
+        } else if (m.hora) {
+          metaHtml = '<div class="wa-meta is-hora-so">' + escapeHtml(m.hora) + '</div>';
+        }
         var corpoTxt = m.texto || '';
         if (!m.apagada && (corpoTxt === '[imagem]' || corpoTxt === '[áudio]')) corpoTxt = '';
         var corpo = escapeHtml(corpoTxt);
         var midia = '';
         if (!m.apagada && m.midia_url && (m.tipo_midia === 'image' || m.tipo_midia === 'sticker')) {
-          midia = '<img class="wa-pic" alt="" src="' + escapeHtml(m.midia_url) + '" />';
+          midia =
+            '<img class="wa-pic" alt="" src="' +
+            escapeHtml(m.midia_url) +
+            '" data-wa-pic-full="' +
+            escapeHtml(m.midia_url) +
+            '" />';
         } else if (!m.apagada && m.midia_url && m.tipo_midia === 'audio') {
           midia = '<audio class="wa-aud" controls src="' + escapeHtml(m.midia_url) + '"></audio>';
         } else if (!m.apagada && (m.tipo_midia === 'image' || m.tipo_midia === 'sticker')) {
@@ -609,11 +673,8 @@
           cls +
           '" data-msg-id="' +
           escapeHtml(String(m.id)) +
-          '"><div class="text-[10px] font-black uppercase opacity-70">' +
-          escapeHtml(who) +
-          ' · ' +
-          escapeHtml(m.hora || '') +
-          '</div>' +
+          '">' +
+          metaHtml +
           midia +
           (m.apagada ? '<em class="wa-apagada-txt">' + corpo + '</em>' : corpo) +
           delBtn +
@@ -966,6 +1027,8 @@
     });
   }
 
+  var convAbreSeq = 0;
+
   function zerarBadgeItemLista(id) {
     var btn = document.querySelector('#wa-lista .wa-item[data-id="' + String(id) + '"]');
     if (!btn) return;
@@ -1104,10 +1167,65 @@
   var recChunks = [];
   var recObj = null;
 
+  function horaAgoraWa() {
+    var d = new Date();
+    var h = d.getHours();
+    var m = d.getMinutes();
+    return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+  }
+
+  var enviandoMsg = false;
+  var enviandoTimer = 0;
+
+  function liberarEnvioUi() {
+    enviandoMsg = false;
+    if (enviandoTimer) {
+      window.clearTimeout(enviandoTimer);
+      enviandoTimer = 0;
+    }
+    var btn = $('wa-send');
+    if (btn) btn.disabled = false;
+    atualizarBarra();
+  }
+
+  function avisarEnvio(msg) {
+    if (typeof waToast === 'function') waToast(msg, false);
+    else window.alert(msg);
+  }
+
   function enviarPayload(payload, textoVolta) {
     var btn = $('wa-send');
-    if (!convId || (btn && btn.disabled)) return;
+    if (!convId) {
+      avisarEnvio('Abra uma conversa na lista antes de enviar.');
+      return;
+    }
+    if (enviandoMsg) {
+      avisarEnvio('Ainda enviando… aguarde 1 instante.');
+      return;
+    }
+    var tok = csrf();
+    if (!tok) {
+      avisarEnvio('Sessão sem token — Ctrl+F5 e entre de novo.');
+      return;
+    }
+    enviandoMsg = true;
     if (btn) btn.disabled = true;
+    // Limpa o campo só com o envio travado (evita seta morta + texto sumido)
+    if (textoVolta && $('wa-input')) {
+      $('wa-input').value = '';
+      atualizarBarra();
+    }
+    // Trava máxima: se a rede engasgar, a seta NÃO fica morta
+    enviandoTimer = window.setTimeout(function () {
+      if (!enviandoMsg) return;
+      liberarEnvioUi();
+      avisarEnvio('Envio travou — texto restaurado. Tente de novo.');
+      if (textoVolta && $('wa-input') && !$('wa-input').value) {
+        $('wa-input').value = textoVolta;
+        atualizarBarra();
+      }
+    }, 15000);
+
     // Bolha na hora (sensação de enviado) — o Zap do cliente ainda passa pela ponte.
     var tempId = 'tmp-' + Date.now();
     var tipo = String(payload.tipo_midia || '');
@@ -1138,25 +1256,40 @@
 
     fetchJson('/api/atendimento-whatsapp/enviar/', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': tok },
       body: JSON.stringify(payload),
+      timeoutMs: 12000,
     })
       .then(function (j) {
+        var tmp = document.querySelector('[data-msg-id="' + tempId + '"]');
+        if (tmp) tmp.remove();
         if (!j || !j.ok) {
-          window.alert((j && j.erro) || 'Não enviou.');
-          if (textoVolta && $('wa-input')) $('wa-input').value = textoVolta;
+          avisarEnvio((j && j.erro) || 'Não enviou.');
+          if (textoVolta && $('wa-input')) {
+            $('wa-input').value = textoVolta;
+            atualizarBarra();
+          }
           return;
         }
-        pollMsgs();
+        if (j.mensagem) {
+          pintarMsgs([j.mensagem], true);
+          afterId = Math.max(afterId, j.mensagem.id || 0);
+        } else {
+          pollMsgs();
+        }
         carregarLista();
       })
       .catch(function () {
-        window.alert('Falha de rede ao enviar.');
-        if (textoVolta && $('wa-input')) $('wa-input').value = textoVolta;
+        var tmp = document.querySelector('[data-msg-id="' + tempId + '"]');
+        if (tmp) tmp.remove();
+        avisarEnvio('Falha de rede ao enviar.');
+        if (textoVolta && $('wa-input')) {
+          $('wa-input').value = textoVolta;
+          atualizarBarra();
+        }
       })
       .finally(function () {
-        if (btn) btn.disabled = false;
-        atualizarBarra();
+        liberarEnvioUi();
       });
   }
 
@@ -1379,14 +1512,47 @@
     });
   }
 
+  function dispararTextoComposer() {
+    var inp = $('wa-input');
+    var t = ((inp && inp.value) || '').trim();
+    if (!convId) {
+      avisarEnvio('Abra uma conversa na lista antes de enviar.');
+      return;
+    }
+    if (!t) return;
+    if (enviandoMsg) {
+      avisarEnvio('Ainda enviando… aguarde.');
+      return;
+    }
+    // enviarPayload limpa o campo só depois de travar o envio
+    enviarPayload({ conversa_id: convId, texto: t }, t);
+  }
+
   $('wa-form').addEventListener('submit', function (ev) {
     ev.preventDefault();
-    var inp = $('wa-input');
-    var t = (inp.value || '').trim();
-    if (!t || !convId) return;
-    inp.value = '';
-    enviarPayload({ conversa_id: convId, texto: t }, t);
+    dispararTextoComposer();
   });
+
+  var sendBtn = $('wa-send');
+  if (sendBtn) {
+    // type=button evita click+submit duplo (1º some o texto, 2º seta morta)
+    try {
+      sendBtn.type = 'button';
+    } catch (_) {}
+    sendBtn.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      dispararTextoComposer();
+    });
+  }
+  if (inpBarra) {
+    inpBarra.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Enter') return;
+      if (ev.shiftKey) return;
+      ev.preventDefault();
+      dispararTextoComposer();
+    });
+  }
 
   document.querySelectorAll('[data-xfer]').forEach(function (b) {
     b.addEventListener('click', function () {
@@ -2127,10 +2293,13 @@
     tickPoll += 1;
     // Mensagens do chat aberto: a cada 2,5s
     pollMsgs();
-    // Estado/lista/status: a cada 5s (antes tudo junto a 2,5s — pesava o Render)
+    // Lista/estado: a cada 5s
     if (tickPoll % 2 === 0) {
       carregarEstado();
       carregarLista();
+    }
+    // Status (stories) é pesado (~40kb) — a cada 30s, nao a cada 5s
+    if (tickPoll % 12 === 0) {
       carregarStatus();
     }
   }, 2500);

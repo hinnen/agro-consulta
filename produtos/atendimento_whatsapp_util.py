@@ -1554,9 +1554,14 @@ def abrir_conversa_busca(*, telefone: str, nome: str = "", jid: str = "") -> tup
         conv.nome = nome[:120]
     if not conv.telefone:
         conv.telefone = jid_para_telefone(jid_n)
+    # Busca/Chamar = abertura pela loja (não misturar com fila «cliente ainda não escolheu»).
+    if conv.origem_abertura != "loja":
+        conv.origem_abertura = "loja"
+    if not conv.menu_enviado:
+        conv.menu_enviado = True
     aplicar_nome_cadastro(conv)
     aplicar_nome_agenda(conv)
-    conv.save(update_fields=["nome", "telefone"])
+    conv.save(update_fields=["nome", "telefone", "origem_abertura", "menu_enviado"])
     return conv, ""
 
 
@@ -2321,14 +2326,14 @@ def serializar_status_item(s: WhatsAppStatusAgro) -> dict:
     }
 
 
-def listar_status(*, limit_autores: int = 40) -> list[dict]:
+def listar_status(*, limit_autores: int = 20) -> list[dict]:
     """Agrupa status ativos por contato (mais recente primeiro)."""
     _limpar_status_expirados()
     agora = timezone.now()
-    lim = max(1, min(int(limit_autores or 40), 80))
+    lim = max(1, min(int(limit_autores or 20), 40))
     rows = list(
         WhatsAppStatusAgro.objects.filter(expira_em__gte=agora)
-        .order_by("-criado_em", "-id")[:400]
+        .order_by("-criado_em", "-id")[:120]
     )
     por_autor: dict[str, dict] = {}
     ordem: list[str] = []

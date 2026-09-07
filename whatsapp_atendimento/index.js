@@ -515,7 +515,7 @@ function precisaSyncAgendaFotos() {
 }
 
 function ajustarPollSaida(seg) {
-  const n = Math.max(2, Math.min(15, Number(seg) || 5));
+  const n = Math.max(3, Math.min(15, Number(seg) || 5));
   if (pollTimer && n === pollSegAtual) return;
   pollSegAtual = n;
   if (pollTimer) clearInterval(pollTimer);
@@ -762,47 +762,91 @@ async function enviarEntrada(m, extra) {
   }
 }
 
-const fotoTentada = new Map();
-const FOTO_TTL_MS = 6 * 60 * 60 * 1000;
+const fotoProximaTentativa = new Map();
+const FOTO_TTL_OK_MS = 6 * 60 * 60 * 1000;
+const FOTO_TTL_FAIL_MS = 15 * 60 * 1000;
 let fotoFila = Promise.resolve();
 
 function agendarFotoPerfil(jid, extra) {
   const j = String(jid || "");
-  if (!ehChatPrivado(j)) return;
-  const last = fotoTentada.get(j) || 0;
-  if (Date.now() - last < FOTO_TTL_MS) return;
-  fotoTentada.set(j, Date.now());
+  const lid = String((extra && extra.jid_lid) || "");
+  if (!ehChatPrivado(j) && !lid.endsWith("@lid")) return;
+  const chave = j || lid;
+  const prox = fotoProximaTentativa.get(chave) || 0;
+  if (Date.now() < prox) return;
+  // trava curta enquanto baixa (anti-spam do poll)
+  fotoProximaTentativa.set(chave, Date.now() + 60 * 1000);
   fotoFila = fotoFila
-    .then(() => enviarFotoPerfil(j, extra || {}))
-    .catch((e) => console.error("foto perfil:", e.message || e));
+    .then(async () => {
+      const ok = await enviarFotoPerfil(j, extra || {});
+      fotoProximaTentativa.set(chave, Date.now() + (ok ? FOTO_TTL_OK_MS : FOTO_TTL_FAIL_MS));
+    })
+    .catch((e) => {
+      console.error("foto perfil:", e.message || e);
+      fotoProximaTentativa.set(chave, Date.now() + FOTO_TTL_FAIL_MS);
+    });
+}
+
+function candidatosFotoPerfil(jid, extra) {
+  const out = [];
+  const seen = new Set();
+  const push = (v) => {
+    const s = String(v || "").trim();
+    if (!s || seen.has(s)) return;
+    if (!ehChatPrivado(s) && !s.endsWith("@lid")) return;
+    seen.add(s);
+    out.push(s);
+  };
+  const tel = (extra && extra.telefone) || telefoneDeJid(jid) || "";
+  const phone = jidPhoneDeValor(tel) || jidPhoneDeValor(jid);
+  if (phone) push(phone);
+  push(jid);
+  const lidExtra = (extra && extra.jid_lid) || (String(jid || "").endsWith("@lid") ? jid : "");
+  if (lidExtra) {
+    push(lidExtra);
+    const pn = pnDeLid(lidExtra);
+    if (pn) push(pn);
+  }
+  return out;
 }
 
 async function enviarFotoPerfil(jid, extra) {
-  if (!sock || typeof sock.profilePictureUrl !== "function") return;
+  if (!sock || typeof sock.profilePictureUrl !== "function") return false;
   let url = "";
-  try {
-    url = await sock.profilePictureUrl(jid, "image");
-  } catch {
-    return;
+  let jidUsado = "";
+  for (const cand of candidatosFotoPerfil(jid, extra)) {
+    try {
+      url = await sock.profilePictureUrl(cand, "image");
+      if (url) {
+        jidUsado = cand;
+        break;
+      }
+    } catch {
+      /* LID costuma falhar; número @s.whatsapp.net costuma ir */
+    }
   }
-  if (!url) return;
+  if (!url) return false;
   let buf = null;
   try {
     const r = await fetch(url);
-    if (!r.ok) return;
+    if (!r.ok) return false;
     buf = Buffer.from(await r.arrayBuffer());
   } catch {
-    return;
+    return false;
   }
-  if (!buf || !buf.length || buf.length > 2500000) return;
+  if (!buf || !buf.length || buf.length > 2500000) return false;
   const mime = String((url.split("?")[0] || "").endsWith(".png") ? "image/png" : "image/jpeg");
+  const tel = (extra && extra.telefone) || telefoneDeJid(jidUsado) || telefoneDeJid(jid) || "";
+  const lid = (extra && extra.jid_lid) || (String(jid || "").endsWith("@lid") ? jid : "");
   await post("/api/atendimento-whatsapp/bridge/foto/", {
-    jid,
-    telefone: (extra && extra.telefone) || telefoneDeJid(jid),
-    jid_lid: (extra && extra.jid_lid) || "",
+    jid: jidPhoneDeValor(jidUsado) || jidPhoneDeValor(jid) || jidUsado || jid,
+    telefone: tel,
+    jid_lid: lid,
     midia_b64: buf.toString("base64"),
     mime,
+    forcar: true,
   });
+  return true;
 }
 
 function semearFotosPerfil() {
@@ -886,8 +930,10 @@ async function ligar() {
       enviarLidMap();
       setTimeout(() => {
         varrerStore();
-        // WA-PONTE-LEVE: não despeja agenda/fotos no connect — só sync 1×/dia
-        rodarSyncAgendaFotos().catch(() => {});
+        // WA-PONTE-LEVE: sync 1×/dia — espera 45s após connect (sessão estabilizar)
+        setTimeout(() => {
+          rodarSyncAgendaFotos().catch(() => {});
+        }, 45000);
       }, 4000);
       if (!syncCheckTimer) {
         syncCheckTimer = setInterval(() => {
@@ -997,19 +1043,21 @@ async function ligar() {
         }
         if (ehStatusOuGrupo(raw)) continue;
         const jid = jidDaMensagem(m);
-        if (m.key && m.key.fromMe && !histJanelaAberta()) continue;
-        // Ao vivo: só notify (append = sync; mandava a mesma msg de novo).
-        if (type === "notify" && !(m.key && m.key.fromMe)) {
+        const fromMe = !!(m.key && m.key.fromMe);
+        // Ao vivo: cliente E eco do celular (fromMe). Sem isso a tela só “recebe”.
+        if (type === "notify") {
           const quando = tsMs(m);
           const idade = quando ? Date.now() - quando : 0;
           if (emQuarentena && idade > 60000) {
             console.log("Quarentena: descartada notify antiga de", jid, idade);
             continue;
           }
-          console.log("Entrada ao vivo:", jid, textoDe(m).slice(0, 40));
+          console.log(fromMe ? "Eco celular:" : "Entrada ao vivo:", jid, textoDe(m).slice(0, 40));
           await enviarEntrada(m, { historico: false });
           continue;
         }
+        // append = sync histórico (só janela pedida)
+        if (fromMe && !histJanelaAberta()) continue;
         if (!historicoPermitido(jid) && !historicoPermitido(raw)) continue;
         const quando = tsMs(m);
         if (Date.now() - quando > HIST_MS) continue;
@@ -1249,6 +1297,24 @@ function jidParaEnvio(item) {
   return lidDePhone(raw) || raw;
 }
 
+/** Lista de destinos: tenta @lid e telefone (Bad MAC / sessão torta às vezes só em um). */
+function destinosEnvio(item) {
+  const raw = String((item && item.jid) || "");
+  const lidItem = String((item && item.jid_lid) || "");
+  const phone = jidPhoneDeValor(raw) || (raw.endsWith("@s.whatsapp.net") ? raw : "");
+  const lid = (lidItem.endsWith("@lid") ? lidItem : "") || (raw.endsWith("@lid") ? raw : "") || lidDePhone(phone || raw);
+  const out = [];
+  const push = (j) => {
+    const s = String(j || "").trim();
+    if (!s || out.includes(s)) return;
+    out.push(s);
+  };
+  push(lid);
+  push(phone);
+  push(raw);
+  return out.length ? out : [jidParaEnvio(item)].filter(Boolean);
+}
+
 async function audioParaZap(buf, mime) {
   const m = String(mime || "").toLowerCase();
   const bin = typeof ffmpegStatic === "string" && ffmpegStatic ? ffmpegStatic : "ffmpeg";
@@ -1338,17 +1404,26 @@ async function audioParaZap(buf, mime) {
   }
 }
 
-async function enviarComRetry(jid, content) {
+async function enviarComRetry(jidOrList, content) {
+  const destinos = Array.isArray(jidOrList)
+    ? jidOrList.filter(Boolean)
+    : [jidOrList].filter(Boolean);
+  if (!destinos.length) throw new Error("sem destino jid");
   let last = null;
-  for (let i = 0; i < 3; i++) {
-    try {
-      return await sock.sendMessage(jid, content);
-    } catch (e) {
-      last = e;
-      await new Promise((r) => setTimeout(r, 400 * (i + 1)));
+  for (const jid of destinos) {
+    for (let i = 0; i < 2; i++) {
+      try {
+        const sent = await sock.sendMessage(jid, content);
+        if (destinos.length > 1) console.log("envio ok via", jid);
+        return sent;
+      } catch (e) {
+        last = e;
+        console.error("envio falhou ->", jid, String(e.message || e).slice(0, 120));
+        await new Promise((r) => setTimeout(r, 350 * (i + 1)));
+      }
     }
   }
-  throw last;
+  throw last || new Error("envio falhou");
 }
 
 async function enviarAudioZap(dest, aud) {
@@ -1383,6 +1458,13 @@ async function puxarSaida() {
     if (j && j.poll_seg != null) ajustarPollSaida(j.poll_seg);
     if (j && j.sync_agenda_fotos_hora) syncHoraCfg = String(j.sync_agenda_fotos_hora);
     const lista = (j && j.saida) || [];
+    if (lista.length) {
+      console.log(
+        "Saida pendente:",
+        lista.length,
+        lista.map((x) => x && x.id).filter(Boolean).join(",")
+      );
+    }
     for (const item of lista) {
       const idItem = Number(item && item.id) || 0;
       if (!idItem || saidaEmVoo.has(idItem)) continue;
@@ -1396,7 +1478,13 @@ async function puxarSaida() {
         if (tipo === "image" || tipo === "audio") {
           let buf = await baixarSaidaArquivo(item.id);
           if (!buf && b64) buf = Buffer.from(b64, "base64");
-          if (!buf || !buf.length) continue;
+          if (!buf || !buf.length) {
+            await post("/api/atendimento-whatsapp/bridge/saida-ok/", {
+              ids: [item.id],
+              erro: "arquivo midia vazio",
+            });
+            continue;
+          }
           if (tipo === "image") {
             content = { image: buf, caption, mimetype: String(item.mime || "image/jpeg") };
           } else {
@@ -1404,8 +1492,8 @@ async function puxarSaida() {
             if (!aud.ok) {
               throw new Error("Conversão de áudio falhou: " + (aud.erro || "ffmpeg"));
             }
-            const dest = jidParaEnvio(item);
-            console.log("enviando audio ->", dest, "bytes", aud.buf.length, "s", aud.seconds);
+            const dest = destinosEnvio(item);
+            console.log("enviando audio ->", dest.join("|"), "bytes", aud.buf.length, "s", aud.seconds);
             const sent = await enviarAudioZap(dest, aud);
             const waId = sent && sent.key && sent.key.id;
             await post("/api/atendimento-whatsapp/bridge/saida-ok/", {
@@ -1416,7 +1504,13 @@ async function puxarSaida() {
           }
         } else if (tipo === "pix_copy") {
           /* legado: botão cta_copy quebrava no celular — manda texto limpo */
-          if (!txt.trim()) continue;
+          if (!txt.trim()) {
+            await post("/api/atendimento-whatsapp/bridge/saida-ok/", {
+              ids: [item.id],
+              erro: "pix vazio",
+            });
+            continue;
+          }
           const sep = "|||PIX|||";
           let intro = txt;
           let chave = "";
@@ -1428,7 +1522,7 @@ async function puxarSaida() {
             chave = txt.trim();
             intro = "Chave Pix";
           }
-          const dest = jidParaEnvio(item);
+          const dest = destinosEnvio(item);
           const corpo =
             (intro || "Chave Pix") +
             (chave ? "\n\n" + chave : "");
@@ -1440,11 +1534,19 @@ async function puxarSaida() {
           });
           continue;
         } else {
-          if (!txt.trim()) continue;
+          if (!txt.trim()) {
+            await post("/api/atendimento-whatsapp/bridge/saida-ok/", {
+              ids: [item.id],
+              erro: "texto vazio",
+            });
+            continue;
+          }
           content = { text: txt };
         }
-        const sent = await enviarComRetry(jidParaEnvio(item), content);
+        const dest = destinosEnvio(item);
+        const sent = await enviarComRetry(dest, content);
         const waId = sent && sent.key && sent.key.id;
+        console.log("Enviado ok:", item.id, "->", dest.join("|"), waId || "");
         await post("/api/atendimento-whatsapp/bridge/saida-ok/", {
           ids: [item.id],
           wa_id: waId || "",
@@ -1459,7 +1561,15 @@ async function puxarSaida() {
         saidaEmVoo.delete(idItem);
       }
     }
-    for (const p of (j && j.pedidos) || []) {
+    // Msgs da loja primeiro; agenda/busca no máximo 1 por poll (senão engasga e não envia).
+    const pedidos = (j && j.pedidos) || [];
+    const temSaida = lista.length > 0;
+    let fezContatos = false;
+    for (const p of pedidos) {
+      if (p && p.tipo === "contatos") {
+        if (temSaida || fezContatos) continue;
+        fezContatos = true;
+      }
       await executarPedido(p);
     }
     for (const f of (j && j.fotos) || []) {
