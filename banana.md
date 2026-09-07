@@ -1298,7 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Status** | ✅ **enviado / Live v23.34** — cherry **só** este pacote (**não** merge `teste`) |
 | **Antes** | `origin/producao` @ **v23.33** / `c4e931c` |
-| **Agora** | `producao` @ tip PREP **v23.34** (hash após push) |
+| **Agora** | `producao` @ **`3af6516`** |
 | **Pacote** | `WA-PC-PWA-FIX` — Zap PC fora da Gestão (janela `SistValeZap`) |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_wa_pc_pwa_path.py` **24/24** · fachona **9/9** · Bot **12/12** PIN 9973 |
