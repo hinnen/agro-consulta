@@ -1418,7 +1418,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **Envio** | ✅ fechado (Renan + PG: `out` com `wa_id`) |
-| **Código anti-lentidão** | ✅ já na loja **v23.23** (poll min 3 · status ~30s · ponte leve) |
+| **Código anti-lentidão** | ✅ loja **v23.23** (poll min 3 · status ~30s · ponte leve) · **`WA-UI-POLL-LEVE` v23.39** no `teste` (UI Zap + hasFocus) |
 | **Bot PG loja agora** | `poll_saida_seg` = **2** (API já sobe pra 3) · sync fotos `00:00` |
 | **Bug Salvar Bot** | ✅ **Live v23.25** — causa: poll=2 + `min=3` → Chrome bloqueava submit |
 | **Você (após Ctrl+F5)** | Bot → Tempo → **Checar saída = 5** → **Salvar** |
