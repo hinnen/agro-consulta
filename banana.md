@@ -1279,53 +1279,50 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🟡 PREP PRONTO — Checklist 07/09b → loja **v23.45** (`deploy/prep-checklist-0709b` · **aguarda senha**)
+### ✅ Deploy loja — Checklist 07/09b (`deploy/prep-checklist-0709b` · **v23.45**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **PREP no GitHub** — **não** subiu `producao` · próximo chat: lojas pausam + frase + senha |
-| **Antes (loja)** | **v23.38** @ `f13fb1e` |
-| **PREP tip** | **v23.45** @ `1b942c4` |
+| **Status** | ✅ **enviado / Live v23.45** — cherry **só** 2 pacotes (**não** merge `teste`) |
+| **Antes** | **v23.38** @ `f13fb1e` |
+| **Agora** | `producao` @ **`1b942c4`** · Render `dep-dafgdh15efls73argh90` **live** |
 | **Pacotes** | `WA-UI-POLL-LEVE` · `CP-FORMAS-EXTRAVIO-SINAL` |
 | **Migrate** | **NÃO** |
-| **Prova** | WA poll **44/44** · CP formas **ALL OK** (+ API 2 formas / PIN 9973 no `teste`) · `check` OK · PREP static OK · **revalidado 07/09 15:45** |
-| **Risco PDV** | **Baixo** — Zap só poll; CP só formas/Mini DRE — **não** mexe finalizar venda |
-| **Rollback** | `rollback/pre-checklist-0709b-v23.38` · `producao-backup-pre-v2345-checklist-20260907` · `docs/ROLLBACK-CHECKLIST-0709b.md` |
-| **Fora do PREP** | outros WIP do `teste` **não** entram |
+| **Prova pré** | WA **44/44** · CP **ALL OK** · `check` OK |
+| **Smoke** | healthz **200** · VERSION **23.45** |
+| **Risco PDV** | **Baixo** |
+| **Rollback** | `rollback/pre-checklist-0709b-v23.38` · `producao-backup-pre-v2345-checklist-20260907` · `docs/ROLLBACK-CHECKLIST-0709b.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 · badge **v23.45** · Zap + vender · CP: DINHEIRO/BANCO · Extravio ± |
 
-### ✅ CHECKLIST ÚNICO — 07/09b · **PREP v23.45** (aguarda senha)
+### ✅ CHECKLIST ÚNICO — 07/09b · **Live v23.45**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
 | 1 | `WA-PC-ICON` | ✅ **Live v23.38** | **NÃO** | 11/11 |
 | 2 | `EXTRAVIO-CONFERENCIA-AUTO` | ✅ **Live v23.38** | **NÃO** | — |
 | 3 | `DRE-NO-DASH-OVERLAY` | ✅ **Live v23.38** | **NÃO** | 9+33 |
-| 4 | `WA-UI-POLL-LEVE` | 🟡 **PREP** — aguarda senha | **NÃO** | **44/44** |
-| 5 | `CP-FORMAS-EXTRAVIO-SINAL` | 🟡 **PREP** — aguarda senha | **NÃO** | **ALL OK** |
+| 4 | `WA-UI-POLL-LEVE` | ✅ **enviado / Live v23.45** | **NÃO** | **44/44** |
+| 5 | `CP-FORMAS-EXTRAVIO-SINAL` | ✅ **enviado / Live v23.45** | **NÃO** | **ALL OK** |
 
-**Loja:** **v23.38**. **Falta subir:** `#4` + `#5` via PREP. **Não** merge `teste`.
+**Loja agora:** **v23.45**. **Não** merge `teste`.
 
-### 📦 PACOTE PRONTO — Poll Zap leve (`WA-UI-POLL-LEVE` · 07/09) · no PREP
+### ✅ PACOTE — Poll Zap leve (`WA-UI-POLL-LEVE`) · **Live v23.45**
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Zap não engasga PDV (poll leve) |
-| **Prova** | **44/44** |
-| **Tip** | PREP **v23.45** |
+| **Tip** | Live **v23.45** @ `1b942c4` |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 **PREP** — aguarda senha |
-| **Risco** | Baixo |
+| **Status** | ✅ **enviado / Live v23.45** |
 
-### 📦 PACOTE PRONTO — CP formas + Extravio ± (`CP-FORMAS-EXTRAVIO-SINAL` · 07/09) · no PREP
+### ✅ PACOTE — CP formas + Extravio ± (`CP-FORMAS-EXTRAVIO-SINAL`) · **Live v23.45**
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Baixa CP só **DINHEIRO** + **BANCO** · checkbox caixa · Extravio dep − BANCO **(±)** |
-| **Prova** | ALL OK · API 2 formas · PIN 9973 |
-| **Tip** | PREP **v23.45** |
+| **O quê** | Baixa CP só **DINHEIRO** + **BANCO** · checkbox caixa · Extravio (±) |
+| **Tip** | Live **v23.45** @ `1b942c4` |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 **PREP** — aguarda senha |
-| **Risco** | Baixo — não mexe finalizar venda |
+| **Status** | ✅ **enviado / Live v23.45** |
 
 ### ✅ Deploy loja — Checklist 07/09 (`deploy/prep-checklist-0709` · **v23.38**) · **Live**
 
