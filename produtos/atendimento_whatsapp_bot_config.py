@@ -22,6 +22,16 @@ BOT_DEFAULT: dict = {
     "horario_ini": "08:00",
     "horario_fim": "18:00",
     "horario_dias": [1, 2, 3, 4, 5, 6],
+    # 0=Dom … 6=Sáb (JS getDay). Domingo fechado; seg–sáb 08–18.
+    "horario_por_dia": {
+        "0": {"ativo": False, "ini": "08:00", "fim": "18:00"},
+        "1": {"ativo": True, "ini": "08:00", "fim": "18:00"},
+        "2": {"ativo": True, "ini": "08:00", "fim": "18:00"},
+        "3": {"ativo": True, "ini": "08:00", "fim": "18:00"},
+        "4": {"ativo": True, "ini": "08:00", "fim": "18:00"},
+        "5": {"ativo": True, "ini": "08:00", "fim": "18:00"},
+        "6": {"ativo": True, "ini": "08:00", "fim": "18:00"},
+    },
     "msg_fora_horario": (
         "Olá! Agora estamos *fora do horário* (seg–sáb 8h–18h).\n"
         "Deixe sua mensagem que a loja responde no próximo expediente."
@@ -147,14 +157,101 @@ def cfg_flag(cfg: dict | None, key: str, default: bool | None = None) -> bool:
     return _as_bool(cfg.get(key), default)
 
 
+def _parse_hm_str(s, default: str = "08:00") -> str:
+    raw = str(s or default).strip()
+    parts = raw.split(":")
+    try:
+        hh = max(0, min(23, int(parts[0])))
+        mm = max(0, min(59, int(parts[1] if len(parts) > 1 else 0)))
+        return f"{hh:02d}:{mm:02d}"
+    except (TypeError, ValueError):
+        return default
+
+
+def _hm_time(s: str) -> time:
+    parts = str(s or "08:00").strip().split(":")
+    try:
+        return time(int(parts[0]), int(parts[1] if len(parts) > 1 else 0))
+    except (TypeError, ValueError):
+        return time(8, 0)
+
+
+def normalizar_horario_por_dia(cfg: dict | None) -> dict:
+    """Mapa 0–6 → {ativo, ini, fim}. Monta a partir do legado se faltar."""
+    c = cfg if isinstance(cfg, dict) else {}
+    padrao = BOT_DEFAULT.get("horario_por_dia") or {}
+    raw = c.get("horario_por_dia")
+    if not isinstance(raw, dict) or not raw:
+        ini = _parse_hm_str(c.get("horario_ini"), "08:00")
+        fim = _parse_hm_str(c.get("horario_fim"), "18:00")
+        dias = c.get("horario_dias") or []
+        if not isinstance(dias, list):
+            dias = []
+        dias_set = {int(d) for d in dias if str(d).isdigit() and 0 <= int(d) <= 6}
+        out: dict = {}
+        for d in range(7):
+            out[str(d)] = {"ativo": d in dias_set, "ini": ini, "fim": fim}
+        return out
+    out = {}
+    for d in range(7):
+        k = str(d)
+        base = padrao.get(k) or {"ativo": d != 0, "ini": "08:00", "fim": "18:00"}
+        item = raw.get(k)
+        if item is None:
+            item = raw.get(d)
+        if not isinstance(item, dict):
+            item = {}
+        out[k] = {
+            "ativo": _as_bool(item.get("ativo"), bool(base.get("ativo"))),
+            "ini": _parse_hm_str(item.get("ini"), str(base.get("ini") or "08:00")),
+            "fim": _parse_hm_str(item.get("fim"), str(base.get("fim") or "18:00")),
+        }
+    return out
+
+
+def _espelhar_horario_legado(limpo: dict) -> None:
+    """Mantém horario_ini/fim/dias alinhados (compatível com código antigo)."""
+    hpd = limpo.get("horario_por_dia") or {}
+    if not isinstance(hpd, dict):
+        hpd = {}
+    ativos: list[int] = []
+    for d in range(7):
+        item = hpd.get(str(d)) or {}
+        if isinstance(item, dict) and item.get("ativo"):
+            ativos.append(d)
+    limpo["horario_dias"] = ativos
+    if ativos:
+        first = hpd.get(str(ativos[0])) or {}
+        limpo["horario_ini"] = _parse_hm_str(first.get("ini"), "08:00")
+        limpo["horario_fim"] = _parse_hm_str(first.get("fim"), "18:00")
+    else:
+        limpo["horario_ini"] = "08:00"
+        limpo["horario_fim"] = "18:00"
+
+
 def _merge(base: dict, extra: dict | None) -> dict:
     out = copy.deepcopy(base)
+    extra_hpd = None
     if extra and isinstance(extra, dict):
+        extra_hpd = extra.get("horario_por_dia")
         for k, v in extra.items():
             if k in out:
                 out[k] = v
     for k in BOOL_KEYS:
         out[k] = _as_bool(out.get(k), bool(BOT_DEFAULT.get(k, False)))
+    if isinstance(extra_hpd, dict) and extra_hpd:
+        out["horario_por_dia"] = normalizar_horario_por_dia(out)
+    else:
+        # Config antiga: só ini/fim/dias → monta por dia
+        out["horario_por_dia"] = normalizar_horario_por_dia(
+            {
+                "horario_ini": out.get("horario_ini"),
+                "horario_fim": out.get("horario_fim"),
+                "horario_dias": out.get("horario_dias"),
+                "horario_por_dia": None,
+            }
+        )
+    _espelhar_horario_legado(out)
     return out
 
 
@@ -215,6 +312,8 @@ def salvar_bot(dados: dict, *, chave: str = CHAVE_DEFAULT, usuario: str = "") ->
     if not isinstance(dias, list):
         dias = []
     limpo["horario_dias"] = sorted({int(d) for d in dias if str(d).isdigit() and 0 <= int(d) <= 6})
+    limpo["horario_por_dia"] = normalizar_horario_por_dia(limpo)
+    _espelhar_horario_legado(limpo)
     fontes = []
     for p in str(limpo.get("nome_fontes") or "").replace(";", ",").split(","):
         k = p.strip().lower()
@@ -289,22 +388,15 @@ def fora_do_horario(cfg: dict, agora: datetime | None = None) -> bool:
     if not cfg_flag(cfg, "horario_ativo"):
         return False
     agora = agora or timezone.localtime()
-    wd = int(agora.weekday())  # 0=seg … 6=dom — JS/ISO: 0=dom no nosso form
+    wd = int(agora.weekday())  # 0=seg … 6=dom
     # Form usa 0=dom, 1=seg … 6=sáb (igual JS getDay)
     js_day = (wd + 1) % 7
-    dias = cfg.get("horario_dias") or []
-    if js_day not in {int(d) for d in dias}:
+    hpd = normalizar_horario_por_dia(cfg)
+    dia = hpd.get(str(js_day)) or {}
+    if not dia.get("ativo"):
         return True
-
-    def _hm(s: str) -> time:
-        parts = str(s or "08:00").strip().split(":")
-        try:
-            return time(int(parts[0]), int(parts[1] if len(parts) > 1 else 0))
-        except (TypeError, ValueError):
-            return time(8, 0)
-
-    ini = _hm(cfg.get("horario_ini") or "08:00")
-    fim = _hm(cfg.get("horario_fim") or "18:00")
+    ini = _hm_time(str(dia.get("ini") or "08:00"))
+    fim = _hm_time(str(dia.get("fim") or "18:00"))
     hh = agora.time().replace(second=0, microsecond=0)
     if ini <= fim:
         return not (ini <= hh <= fim)

@@ -1277,6 +1277,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Horário WA por dia (`WA-HORARIO-DIA` · 06/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Bot → Horário: **7 linhas** (Dom–Sáb) com ligado + Abre + Fecha. Fim de semana pode fechar mais cedo. Aviso fora do horário continua **um texto só**. |
+| **Tip** | `teste` (após push desta entrega) |
+| **Migrate** | **NÃO** — só JSON `horario_por_dia` no bot |
+| **Prova** | `python scripts/verify_wa_horario_por_dia_path.py` |
+| **Risco** | Baixo — só Bot WhatsApp / `fora_do_horario` · **não** mexe PDV/caixa |
+| **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
+| **Você** | Local: Bot → Horário → ex. Sáb Fecha 12:00 → Salvar → teste msg sábado/semana |
+
+### ✅ CHECKLIST ÚNICO — 06/09f · pronto envio
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `WA-HORARIO-DIA` | 🟢 **pronto para envio à produção** | **NÃO** |
+
 ### ✅ CHECKLIST ÚNICO — 06/09e · **Live v23.20**
 
 | # | Pacote | Status | Migrate |

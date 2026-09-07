@@ -93,21 +93,12 @@
         <button type="button" class="wa-q" title="0 = em toda mensagem. 60 = no máximo 1 aviso por hora neste chat.">?</button>
       </label>
       <input type="number" min="0" max="1440" name="aviso_fora_minutos" />
-      <div class="wa-row wa-row-2">
-        <div>
-          <label class="wa-lab">Abre</label>
-          <input type="time" name="horario_ini" />
-        </div>
-        <div>
-          <label class="wa-lab">Fecha</label>
-          <input type="time" name="horario_fim" />
-        </div>
-      </div>
-      <p class="wa-lab" style="margin-top:.75rem">Dias</p>
-      <div id="wa-bot-dias" class="flex flex-wrap gap-1.5"></div>
+      <p class="wa-lab" style="margin-top:.75rem">Horário por dia</p>
+      <p class="wa-hint" style="margin-top:0">Cada dia tem Abre / Fecha. Desmarque o dia para ficar fechado o dia todo (ex.: domingo).</p>
+      <div id="wa-bot-horario-dias" class="wa-horario-dias"></div>
       <label class="wa-lab" style="margin-top:.75rem">Aviso fora do horário</label>
       <textarea name="msg_fora_horario" rows="3"></textarea>
-      <p class="wa-hint">Códigos: <b>{empresa}</b> · <b>{cliente}</b> / <b>{nome}</b> (ordem do nome na aba Menu).</p>
+      <p class="wa-hint">Códigos: <b>{empresa}</b> · <b>{cliente}</b> / <b>{nome}</b> (ordem do nome na aba Menu). Um texto só para todos os dias.</p>
     </section>
 
     <section data-panel="saudacao" class="wa-panel wa-card">
