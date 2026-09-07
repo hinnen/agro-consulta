@@ -31,6 +31,16 @@ urlpatterns = [
     path("", views.dashboard_gerencial_view, name="home"),
     path("atalhos/", views.home, name="home_atalhos"),
     path(
+        "atendimento-whatsapp/manifest.webmanifest",
+        views_atendimento_whatsapp.atendimento_whatsapp_pc_manifest,
+        name="atendimento_whatsapp_pc_manifest",
+    ),
+    path(
+        "atendimento-whatsapp/sw.js",
+        views_atendimento_whatsapp.atendimento_whatsapp_pc_sw,
+        name="atendimento_whatsapp_pc_sw",
+    ),
+    path(
         "atendimento-whatsapp/",
         views_atendimento_whatsapp.atendimento_whatsapp_view,
         name="atendimento_whatsapp",

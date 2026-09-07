@@ -1278,6 +1278,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Zap PC instalável Chrome (`WA-PC-PWA` · 07/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Versão **web** do WhatsApp lojas vira app Chrome no PC (ícone separado, janela sozinha) — igual ao celular. |
+| **Onde** | `/atendimento-whatsapp/` · botão **Instalar no PC** · ou Chrome ⋮ → Instalar |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_wa_pc_pwa_path.py` **17/17** |
+| **Risco** | Baixo — só tela Zap PC · celular PWA intacto |
+| **Status** | 🟢 **pronto para envio** — só frase + senha |
+| **Você** | Local → abrir Zap web → Ctrl+F5 → instalar no Chrome |
+
 ### ✅ Deploy loja — EXTRAVIO + OUTROS (`deploy/prep-extravio-0709` · **v23.32**) · **Live**
 
 | Campo | Valor |

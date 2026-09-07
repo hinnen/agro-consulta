@@ -91,10 +91,61 @@ def atendimento_whatsapp_view(request):
     return render(request, "produtos/atendimento_whatsapp.html", {})
 
 
-def atendimento_whatsapp_celular_manifest(request):
-    """Manifest PWA do Zap loja (público — Chrome baixa sem login)."""
+def _wa_pwa_icons(request):
     icon_192 = request.build_absolute_uri("/static/produtos/pwa/zap-loja-192.png")
     icon_512 = request.build_absolute_uri("/static/produtos/pwa/zap-loja-512.png")
+    return [
+        {"src": icon_192, "sizes": "192x192", "type": "image/png", "purpose": "any"},
+        {"src": icon_512, "sizes": "512x512", "type": "image/png", "purpose": "any"},
+        {"src": icon_512, "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+    ]
+
+
+def _wa_pwa_sw_js() -> str:
+    return (
+        "self.addEventListener('install',function(e){self.skipWaiting();});\n"
+        "self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});\n"
+        "self.addEventListener('fetch',function(e){"
+        "var u=String(e.request.url||'');"
+        "if(u.indexOf('/api/')!==-1){e.respondWith(fetch(e.request));return;}"
+        "e.respondWith(fetch(e.request));"
+        "});\n"
+    )
+
+
+def atendimento_whatsapp_pc_manifest(request):
+    """Manifest PWA do Zap no PC (versão web — Chrome «Instalar app»)."""
+    payload = {
+        "id": "/atendimento-whatsapp/",
+        "name": "WhatsApp lojas",
+        "short_name": "Zap PC",
+        "description": "SisVale WhatsApp — atendimento Centro e Vila (computador)",
+        "start_url": "/atendimento-whatsapp/",
+        "scope": "/atendimento-whatsapp/",
+        "display": "standalone",
+        "display_override": ["standalone", "minimal-ui", "browser"],
+        "orientation": "any",
+        "lang": "pt-BR",
+        "dir": "ltr",
+        "background_color": "#0f172a",
+        "theme_color": "#075E54",
+        "icons": _wa_pwa_icons(request),
+    }
+    resp = JsonResponse(payload)
+    resp["Content-Type"] = "application/manifest+json"
+    return resp
+
+
+def atendimento_whatsapp_pc_sw(request):
+    """SW mínimo — instala no PC. Rede nas APIs; não guarda conversa."""
+    resp = HttpResponse(_wa_pwa_sw_js(), content_type="text/javascript; charset=utf-8")
+    resp["Service-Worker-Allowed"] = "/atendimento-whatsapp/"
+    resp["Cache-Control"] = "no-cache"
+    return resp
+
+
+def atendimento_whatsapp_celular_manifest(request):
+    """Manifest PWA do Zap loja (público — Chrome baixa sem login)."""
     payload = {
         "id": "/atendimento-whatsapp/celular/",
         "name": "Zap loja",
@@ -109,11 +160,7 @@ def atendimento_whatsapp_celular_manifest(request):
         "dir": "ltr",
         "background_color": "#075E54",
         "theme_color": "#128C7E",
-        "icons": [
-            {"src": icon_192, "sizes": "192x192", "type": "image/png", "purpose": "any"},
-            {"src": icon_512, "sizes": "512x512", "type": "image/png", "purpose": "any"},
-            {"src": icon_512, "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
-        ],
+        "icons": _wa_pwa_icons(request),
     }
     resp = JsonResponse(payload)
     resp["Content-Type"] = "application/manifest+json"
@@ -122,16 +169,7 @@ def atendimento_whatsapp_celular_manifest(request):
 
 def atendimento_whatsapp_celular_sw(request):
     """SW mínimo — instala no celular. Rede nas APIs; não guarda conversa."""
-    js = (
-        "self.addEventListener('install',function(e){self.skipWaiting();});\n"
-        "self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});\n"
-        "self.addEventListener('fetch',function(e){"
-        "var u=String(e.request.url||'');"
-        "if(u.indexOf('/api/')!==-1){e.respondWith(fetch(e.request));return;}"
-        "e.respondWith(fetch(e.request));"
-        "});\n"
-    )
-    resp = HttpResponse(js, content_type="text/javascript; charset=utf-8")
+    resp = HttpResponse(_wa_pwa_sw_js(), content_type="text/javascript; charset=utf-8")
     resp["Service-Worker-Allowed"] = "/atendimento-whatsapp/celular/"
     resp["Cache-Control"] = "no-cache"
     return resp
