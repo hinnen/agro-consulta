@@ -1270,7 +1270,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Status** | ✅ **enviado / Live v23.33** — cherry **só** este pacote (**não** merge `teste`) |
 | **Antes** | `origin/producao` @ **v23.32** / `2f5206f` |
-| **Agora** | `producao` @ tip PREP **v23.33** (hash após push) |
+| **Agora** | `producao` @ **`aed0349`** |
 | **Pacote** | `WA-PC-PWA` — Zap web instalável no Chrome («Zap PC») |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_wa_pc_pwa_path.py` **17/17** · Django manifest/SW **200** · página auth com botão |
