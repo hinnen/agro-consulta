@@ -1279,29 +1279,41 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — 07/09
+### ✅ CHECKLIST ÚNICO — 07/09 · pronto envio
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
 | 1 | `WA-PC-ICON` | ✅ **Live v23.38** | **NÃO** | 11/11 |
-| 2 | `EXTRAVIO-CONFERENCIA-AUTO` | ✅ **Live v23.38** | **NÃO** | 23/23 |
+| 2 | `EXTRAVIO-CONFERENCIA-AUTO` | ✅ **Live v23.38** | **NÃO** | — |
 | 3 | `DRE-NO-DASH-OVERLAY` | ✅ **Live v23.38** | **NÃO** | 9+33 |
-| 4 | `WA-UI-POLL-LEVE` | 🟢 **pronto para envio** (v23.42) | **NÃO** | **48/48** |
+| 4 | `WA-UI-POLL-LEVE` | 🟢 **pronto para envio** | **NÃO** | **48/48** |
+| 5 | `CP-FORMAS-EXTRAVIO-SINAL` | 🟢 **pronto para envio** | **NÃO** | **42/42** |
 
-**Loja:** **v23.38**. **Falta subir:** só `#4`. Tip `teste` **v23.42**. Cherry só este + frase + senha — **não** merge `teste`.
+**Loja:** **v23.38**. **Falta subir:** `#4` + `#5`. Tip `teste` **v23.43**. Cherry só estes + frase + senha — **não** merge `teste`.
 
 ### 📦 PACOTE PRONTO — Poll Zap leve (`WA-UI-POLL-LEVE` · 07/09 · **v23.42**)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Zap não engasga PDV (poll leve; PDV na frente = ainda mais leve) |
-| **Prova** | `verify_wa_ui_poll_leve_path.py` **48/48** (path · sim 60s · PIN 9973 · HTTP static) |
-| **Carga 60s** | antigo ~50 → foco 25 → PDV na frente **7** |
-| **Tip** | **v23.42** (poll `b398f35` · prova `14d4f68`) |
+| **Prova** | `verify_wa_ui_poll_leve_path.py` **48/48** |
+| **Tip** | **v23.42** |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** |
-| **Você** | Ctrl+F5 Zap · Zap aberto + vender · Bot poll **5** |
-| **Risco** | Baixo — só frequência API · se ainda lento → mudança total |
+| **Você** | Ctrl+F5 Zap · Zap + vender · Bot poll **5** |
+| **Risco** | Baixo |
+
+### 📦 PACOTE PRONTO — CP formas + Extravio ± (`CP-FORMAS-EXTRAVIO-SINAL` · 07/09 · **v23.43**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Baixa CP só **DINHEIRO** + **BANCO** · checkbox saída caixa no DINHEIRO · Extravio = dep − BANCO **(±)** |
+| **Prova** | `verify_extravio_conferencia_auto_path.py` · API opcoes **2 formas** · PIN 9973 · `check` OK |
+| **Tip** | **v23.43** @ `64fbaff` |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 · CP baixar → 2 formas · Resumo Extravio ± |
+| **Risco** | Baixo — não mexe finalizar venda |
 
 ### ✅ Deploy loja — Checklist 07/09 (`deploy/prep-checklist-0709` · **v23.38**) · **Live**
 
@@ -1315,7 +1327,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova pré** | DRE **9+33** · Extravio **23/23** · Zap ícone **11/11** · `check` OK |
 | **Risco PDV** | **Baixo** — não mexe finalizar venda |
 | **Rollback** | `rollback/pre-checklist-0709-v23.34` · `producao-backup-pre-v2338-checklist-20260907` · `docs/ROLLBACK-CHECKLIST-0709.md` · **só** frase+senha |
-| **Fora deste lote** | `WA-UI-POLL-LEVE` (ainda **pronto para envio**, tip v23.42) |
+| **Fora deste lote** | `WA-UI-POLL-LEVE` + `CP-FORMAS-EXTRAVIO-SINAL` (pronto envio no tip) |
 | **Você** | Ctrl+F5 · badge **v23.38** · F8 = 1 aba DRE · CP baixa só BANCO/DINHEIRO · Extravio no Resumo · Zap: reinstalar ícone se preciso |
 
 ### ✅ PACOTE — DRE não em cima do Dashboard (`DRE-NO-DASH-OVERLAY` · 07/09) · **Live v23.38**
@@ -1340,17 +1352,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | ✅ **enviado / Live v23.38** |
 | **Você** | Reinstalar app Zap no Chrome se o ícone antigo ficar |
 
-### 📦 PACOTE PRONTO — CP formas canônicas + Extravio com sinal (`CP-FORMAS-EXTRAVIO-SINAL` · 07/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Baixa CP: só **DINHEIRO** + **BANCO** (some «À vista - Dinheiro») · BANCO injeta se faltar · Extravio = dep − BANCO **com sinal** (±) · checkbox caixa no DINHEIRO |
-| **Prova** | `verify_extravio_conferencia_auto_path.py` **ALL OK** |
-| **Migrate** | **NÃO** |
-| **Tip** | **v23.43** @ `64fbaff` (`teste`) |
-| **Status** | ✅ no `teste` · **não** loja (aguarda frase+senha) |
-| **Você** | Ctrl+F5 · Contas a pagar → baixar → 2 formas · marcar checkbox se sair da gaveta · Resumo Extravio ± |
-| **Risco PDV** | Baixo — só lista/forma CP + Mini DRE |
+### ~~📦 PACOTE PRONTO — CP formas~~ → ver tip checklist **#5** `CP-FORMAS-EXTRAVIO-SINAL`
 
 ### ✅ PACOTE — Conferência depósito × BANCO (`EXTRAVIO-CONFERENCIA-AUTO` · 07/09) · **Live v23.38** · *superado no teste pelo sinal ±*
 

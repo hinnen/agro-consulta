@@ -160,11 +160,18 @@ def main() -> None:
     views = (ROOT / "produtos" / "views.py").read_text(encoding="utf-8")
     check("views_reject", "_forma_pagamento_permitida_baixa_cp" in views)
     check("views_filter_qs", "somente_dinheiro_banco" in views)
+    check("views_filtrar_call", "filtrar_formas_baixa_cp" in views)
+
+    conf_src = (
+        ROOT / "produtos" / "conferencia_deposito_extravio_util.py"
+    ).read_text(encoding="utf-8")
+    check("sem_max0", "if auto < 0" not in conf_src)
 
     html_cp = (
         ROOT / "produtos" / "templates" / "produtos" / "lancamentos_contas_pagar_teste.html"
     ).read_text(encoding="utf-8")
     check("cp_param", "somente_dinheiro_banco=1" in html_cp)
+    check("cp_checkbox_dia", "caixa do dia" in html_cp.lower())
 
     html_cl = (
         ROOT / "produtos" / "templates" / "produtos" / "lancamentos_financeiros.html"
@@ -176,6 +183,7 @@ def main() -> None:
         "js_auto_hint",
         "depósitos do caixa" in js or "depositos do caixa" in js.lower() or "baixas CP" in js,
     )
+    check("js_sinal_abs", "Math.abs(extravioDep)" in js)
 
     pg = (
         ROOT / "financeiro" / "services" / "resumo_operacional_pg.py"
@@ -187,7 +195,39 @@ def main() -> None:
     pack = extravio_auto_periodo(date(2026, 8, 1), date(2026, 8, 31), deposito="centro")
     check("smoke_keys", "extravio_auto" in pack and "depositos_caixa" in pack)
 
+    # PIN loja + API real (RequestFactory)
+    from base.models import PerfilUsuario
+    from django.contrib.auth import get_user_model
+    from django.test import RequestFactory
+    from produtos import views as vviews
+
+    check("pin_9973", PerfilUsuario.objects.filter(senha_rapida="9973").exists())
+    user = get_user_model().objects.filter(is_superuser=True).first()
+    if user is None:
+        user = get_user_model().objects.first()
+    check("user_db", user is not None)
+    rf = RequestFactory()
+    req = rf.get(
+        "/api/lancamentos/opcoes-baixa/",
+        {"modo": "erp", "apenas_cadastro_erp": "1", "somente_dinheiro_banco": "1"},
+    )
+    req.user = user
+    resp = vviews.api_lancamentos_opcoes_baixa(req)
+    check("api_200", resp.status_code == 200, str(resp.status_code))
+    import json
+
+    data = json.loads(resp.content.decode())
+    nomes_api = [x.get("nome") for x in data.get("formas") or []]
+    check("api_so_2", len(nomes_api) == 2, str(nomes_api))
+    check(
+        "api_nomes",
+        set(nomes_api) == {FORMA_CP_DINHEIRO, FORMA_CP_BANCO},
+        str(nomes_api),
+    )
+    check("api_flag", data.get("somente_dinheiro_banco") is True)
+
     print("ALL OK")
+
 
 
 if __name__ == "__main__":
