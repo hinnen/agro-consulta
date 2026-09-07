@@ -1279,28 +1279,38 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Conferência depósito × BANCO (`EXTRAVIO-CONFERENCIA-AUTO` · 07/09)
+### ✅ CHECKLIST ÚNICO — 07/09 · pronto envio (tip **v23.36**)
 
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Baixa CP: formas **só BANCO / DINHEIRO** (UI + servidor). Mini DRE **Extravio** = **depósitos caixa − baixas CP forma BANCO** (auto no período; + título manual legado se houver). |
-| **Onde** | `extravio_deposito_util` · `conferencia_deposito_extravio_util` · `resumo_operacional_pg/mongo` · `views` baixa/opções · templates CP · `agro_resumo_gerencial.js` |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_extravio_conferencia_auto_path.py` **23/23** · `verify_extravio_apos_deposito_path` **20/20** · `check` OK |
-| **Tip** | `teste` **v23.35** @ `cbc72a1` |
-| **Risco** | Baixo no lucro · Extravio sobe se houver depósitos sem baixa BANCO · forma ERP tem que se chamar **BANCO** (não Pix/cartão) |
-| **Status** | 🟢 **pronto no `teste`** — loja só com frase + senha |
-| **Você** | Ctrl+F5 · CP baixa → só 2 formas · Resumo Mini DRE Extravio (tooltip dep. − BANCO) · depósito no caixa com plano Depósito |
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `WA-PC-ICON` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 2 | `EXTRAVIO-CONFERENCIA-AUTO` | 🟢 **pronto para envio à produção** | **NÃO** |
 
-### 📦 PACOTE PRONTO — Ícone Zap S (WA-PC-ICON · 07/09)
+**Loja agora:** **v23.34**. Subir **só** com frase + senha (cherry por pacote — **não** merge `teste`).
+
+### 📦 PACOTE PRONTO — Ícone Zap S (`WA-PC-ICON` · 07/09)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Ícone do app Zap (bolha verde com **S**) no Chrome PWA PC e celular |
-| **Arquivos** | static/produtos/pwa/zap-loja-192.png · zap-loja-512.png |
+| **Arquivos** | `static/produtos/pwa/zap-loja-192.png` · `zap-loja-512.png` |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 	este |
+| **Prova** | `verify_wa_pc_icon_path.py` · PWA path **24/24** |
+| **Tip** | `teste` **v23.36** @ `a4b0bd3` |
+| **Risco** | Nenhum no PDV — só ícone do app |
+| **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
 | **Você** | Desinstalar o app Zap no Chrome e instalar de novo (ícone antigo fica em cache) |
+
+### 📦 PACOTE PRONTO — Conferência depósito × BANCO (`EXTRAVIO-CONFERENCIA-AUTO` · 07/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Baixa CP: formas **só BANCO / DINHEIRO**. Mini DRE **Extravio** = depósitos caixa − baixas CP forma BANCO. |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_extravio_conferencia_auto_path.py` **23/23** |
+| **Tip** | `teste` **v23.35** @ `cbc72a1` |
+| **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
+| **Você** | Ctrl+F5 · CP baixa → só 2 formas · Resumo Mini DRE Extravio |
 
 ### ✅ Deploy loja — WA-PC-PWA-FIX (`deploy/prep-wa-pc-pwa-fix-0709` · **v23.34**) · **Live**
 
