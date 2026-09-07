@@ -1277,6 +1277,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### WIP — Amanhã loja aberta · Zap envio + lentidão (pós Live **v23.23**) · 06/09 noite
+
+| Campo | Valor |
+| ----- | ----- |
+| **Envio** | ✅ fechado (Renan + PG: `out` com `wa_id`) |
+| **Código anti-lentidão** | ✅ já na loja **v23.23** (poll min 3 · status ~30s · ponte leve) |
+| **Bot PG loja agora** | `poll_saida_seg` = **2** (API já sobe pra 3) · sync fotos `00:00` |
+| **Você amanhã (sem deploy)** | Bot → Tempo → **Checar saída = 5** → **Salvar** |
+| **Checklist 10 min** | 1) badge **v23.23** + Ctrl+F5 · 2) `iniciar.bat` **1×** · 3) poll **5** · 4) PDV+Zap: 1 venda + 1 «teste» · 5) engasgou? só PDV / só Zap / os dois · 6) preta: `Saida pendente` / `Enviado ok` · 7) quantos PCs com Zap? |
+| **OK lentidão** | PDV normal com Zap+ponte ON |
+| **Falha** | PDV trava → fecha bat e vê se alivia |
+| **Horário por dia** | ✅ pacote `WA-HORARIO-DIA` no `teste` (não é desta lentidão; loja só com frase+senha) |
+| **Rollback WA-ENVIO** | tag `rollback/pre-wa-envio-fromme-v23.20` · `docs/ROLLBACK-WA-ENVIO-FROMME-0609.md` · só frase+senha |
+
 ### 📦 PACOTE PRONTO — Horário WA por dia (`WA-HORARIO-DIA` · 06/09)
 
 | Campo | Valor |
