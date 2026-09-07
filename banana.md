@@ -1264,6 +1264,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ Deploy loja — WA-PC-PWA-FIX (`deploy/prep-wa-pc-pwa-fix-0709` · **v23.34**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v23.34** — cherry **só** este pacote (**não** merge `teste`) |
+| **Antes** | `origin/producao` @ **v23.33** / `c4e931c` |
+| **Agora** | `producao` @ tip PREP **v23.34** (hash após push) |
+| **Pacote** | `WA-PC-PWA-FIX` — Zap PC fora da Gestão (janela `SistValeZap`) |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_wa_pc_pwa_path.py` **24/24** · fachona **9/9** · Bot **12/12** PIN 9973 |
+| **Risco loja aberta** | **Baixo** — só roteamento Zap ↔ Gestão · **não** mexe PDV/caixa/venda |
+| **Rollback** | tag `rollback/pre-wa-pc-pwa-fix-v23.33` · branch `producao-backup-pre-v2334-wa-pc-pwa-fix-20260907` · `docs/ROLLBACK-WA-PC-PWA-FIX-0709.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.34** · WhatsApp computador → **outra janela** → Instalar |
+
 ### ✅ Deploy loja — WA-PC-PWA (`deploy/prep-wa-pc-pwa-0709` · **v23.33**) · **Live**
 
 | Campo | Valor |
