@@ -1284,13 +1284,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Status** | ✅ **enviado / Live v23.23** — cherry só este pacote (**não** merge `teste`) |
 | **Antes** | `origin/producao` @ **v23.20** / `1e88a32` |
-| **Agora** | `producao` @ **`7ce182e`** |
+| **Agora** | `producao` @ **`288c556`** (código útil `7ce182e`) |
 | **Pacote** | `WA-ENVIO-FROMME` — eco celular · seta sem travar · lid+telefone · poll mín. 3 · status leve |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_wa_envio_fromme_path.py` **35/35** |
 | **Risco loja aberta** | **Baixo** — só Zap + ponte PC · **não** mexe PDV/caixa/venda |
 | **Rollback** | tag `rollback/pre-wa-envio-fromme-v23.20` · branch `producao-backup-pre-v2323-wa-envio-20260906` · `docs/ROLLBACK-WA-ENVIO-FROMME-0609.md` · **só** frase+senha |
 | **Você** | **Ctrl+F5** · badge **v23.23** · fechar/abrir `iniciar.bat` · teste seta |
+| **Renan 06/09 23h** | ✅ **enviar OK** (PC). Lentidão → testa **amanhã loja aberta** |
 
 ### ✅ CHECKLIST ÚNICO — 06/09f · **Live v23.23**
 
