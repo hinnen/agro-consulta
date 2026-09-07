@@ -1279,17 +1279,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ CHECKLIST ÚNICO — 07/09
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `WA-PC-ICON` | ✅ **Live v23.38** | **NÃO** | 11/11 |
+| 2 | `EXTRAVIO-CONFERENCIA-AUTO` | ✅ **Live v23.38** | **NÃO** | 23/23 |
+| 3 | `DRE-NO-DASH-OVERLAY` | ✅ **Live v23.38** | **NÃO** | 9+33 |
+| 4 | `WA-UI-POLL-LEVE` | 🟢 **pronto para envio** (v23.39) | **NÃO** | **48/48** |
+
+**Loja:** **v23.38**. **Falta subir:** só `#4`. Tip `teste` **v23.39**. Cherry só este + frase + senha — **não** merge `teste`.
+
 ### 📦 PACOTE PRONTO — Poll Zap leve (`WA-UI-POLL-LEVE` · 07/09 · **v23.39**)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Zap não engasga PDV: poll mais lento; com PDV na frente (sem foco) ainda mais leve |
-| **Prova** | `verify_wa_ui_poll_leve_path.py` **12/12** |
-| **Tip** | **v23.39** (branch `teste`) |
+| **O quê** | Zap não engasga PDV (poll leve; PDV na frente = ainda mais leve) |
+| **Prova** | `verify_wa_ui_poll_leve_path.py` **48/48** (path · sim 60s · PIN 9973 · HTTP static) |
+| **Carga 60s** | antigo ~50 → foco 25 → PDV na frente **7** |
+| **Tip** | **v23.39** (`b398f35` + prova deep) |
 | **Migrate** | **NÃO** |
-| **Status** | ✅ no `teste` · **não** loja (aguarda frase+senha) |
-| **Você** | Ctrl+F5 no Zap · abrir Zap + vender no PDV · Bot poll **5** |
-| **Risco** | Baixo — só frequência de API do Zap |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 Zap · Zap aberto + vender · Bot poll **5** |
+| **Risco** | Baixo — só frequência API · se ainda lento → mudança total |
 
 ### ✅ Deploy loja — Checklist 07/09 (`deploy/prep-checklist-0709` · **v23.38**) · **Live**
 
@@ -1303,18 +1315,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova pré** | DRE **9+33** · Extravio **23/23** · Zap ícone **11/11** · `check` OK |
 | **Risco PDV** | **Baixo** — não mexe finalizar venda |
 | **Rollback** | `rollback/pre-checklist-0709-v23.34` · `producao-backup-pre-v2338-checklist-20260907` · `docs/ROLLBACK-CHECKLIST-0709.md` · **só** frase+senha |
-| **Fora deste lote** | `WA-UI-POLL-LEVE` e tip `teste` **não** na loja |
+| **Fora deste lote** | `WA-UI-POLL-LEVE` (ainda **pronto para envio**, tip v23.39) |
 | **Você** | Ctrl+F5 · badge **v23.38** · F8 = 1 aba DRE · CP baixa só BANCO/DINHEIRO · Extravio no Resumo · Zap: reinstalar ícone se preciso |
-
-### ✅ CHECKLIST ÚNICO — 07/09 · **Live v23.38**
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | `WA-PC-ICON` | ✅ **enviado / Live v23.38** | **NÃO** |
-| 2 | `EXTRAVIO-CONFERENCIA-AUTO` | ✅ **enviado / Live v23.38** | **NÃO** |
-| 3 | `DRE-NO-DASH-OVERLAY` | ✅ **enviado / Live v23.38** | **NÃO** |
-
-**Loja agora:** **v23.38**. **Não** merge `teste`.
 
 ### ✅ PACOTE — DRE não em cima do Dashboard (`DRE-NO-DASH-OVERLAY` · 07/09) · **Live v23.38**
 
