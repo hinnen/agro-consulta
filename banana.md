@@ -1296,7 +1296,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Status** | ✅ **enviado / Live v23.25** — cherry **só** este pacote (**não** merge `teste`) |
 | **Antes** | `origin/producao` @ **v23.24** / `82d2ac2` |
-| **Agora** | `producao` @ tip PREP **v23.25** (hash após push) |
+| **Agora** | `producao` @ **`677d22e`** |
 | **Pacote** | `WA-BOT-SALVAR` — Salvar Bot destravado (`novalidate` · `type=button` · clamp poll) |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_wa_bot_salvar_path.py` **12/12** · horário **22/22** · PIN 9973 |
@@ -1313,9 +1313,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Envio** | ✅ fechado (Renan + PG: `out` com `wa_id`) |
 | **Código anti-lentidão** | ✅ já na loja **v23.23** (poll min 3 · status ~30s · ponte leve) |
 | **Bot PG loja agora** | `poll_saida_seg` = **2** (API já sobe pra 3) · sync fotos `00:00` |
-| **Bug Salvar Bot** | ✅ causa: poll=2 + `min=3` → Chrome bloqueava submit (painel Tempo oculto). Fix no `teste`: `novalidate` + Salvar `type=button` + clamp |
-| **Você amanhã (sem deploy)** | Bot → Tempo → **Checar saída = 5** → **Salvar** (depois do fix Live) |
-| **Checklist 10 min** | 1) badge **v23.24** + Ctrl+F5 · 2) `iniciar.bat` **1×** · 3) poll **5** · 4) PDV+Zap: 1 venda + 1 «teste» · 5) engasgou? só PDV / só Zap / os dois · 6) preta: `Saida pendente` / `Enviado ok` · 7) quantos PCs com Zap? |
+| **Bug Salvar Bot** | ✅ **Live v23.25** — causa: poll=2 + `min=3` → Chrome bloqueava submit |
+| **Você (após Ctrl+F5)** | Bot → Tempo → **Checar saída = 5** → **Salvar** |
+| **Checklist 10 min** | 1) badge **v23.25** + Ctrl+F5 · 2) `iniciar.bat` **1×** · 3) poll **5** · 4) PDV+Zap: 1 venda + 1 «teste» · 5) engasgou? só PDV / só Zap / os dois · 6) preta: `Saida pendente` / `Enviado ok` · 7) quantos PCs com Zap? |
 | **OK lentidão** | PDV normal com Zap+ponte ON |
 | **Falha** | PDV trava → fecha bat e vê se alivia |
 | **Horário por dia** | ✅ **Live v23.24** (`WA-HORARIO-DIA`) |
