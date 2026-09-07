@@ -730,7 +730,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 
 - Uso próprio · **QR no celular** (não API Meta) · 1 número · bot pergunta **Centro ou Vila** · duas filas no Agro.
 - Ponte Node: `whatsapp_atendimento/iniciar.bat` (PC ligado). Postgres = conversas.
-- **05/09 Renan:** desligou a ponte — deixava o **PDV de todas as lojas lento** (carga no Render). **`WA-PONTE-LEVE` (06/09 · v23.09):** agenda+fotos sync **1×/dia** (Bot → Tempo, padrão 00:00) · poll saída configurável **3–15s** (mín. 3; 2 engasga) · msgs cliente na hora · de dia sem reenvio. **06/09 noite:** status stories a cada **30s** (antes 5s ~40kb).
+- **05/09 Renan:** desligou a ponte — deixava o **PDV de todas as lojas lento** (carga no Render). **`WA-PONTE-LEVE` (06/09 · v23.09):** agenda+fotos sync **1×/dia** (Bot → Tempo, padrão 00:00) · poll saída configurável **3–15s** (mín. 3; 2 engasga) · msgs cliente na hora · de dia sem reenvio. **06/09 noite:** status stories a cada **30s** (antes 5s ~40kb). **`WA-UI-POLL-LEVE` (07/09 · v23.39):** UI do Zap — foco msgs 5s / lista 10s / status 60s; sem foco (PDV na frente) msgs 15s / lista 60s / status 120s (`hasFocus`).
 - Sem disparo em massa. **Entrada loja:** menu/gestão → **WhatsApp computador (Z)**. **PDV** = ícone **Em breve…** (`PDV-WA-TOPBAR-BREVE`) — **não** abre o chat (combinado Renan 03/09). Ponte no PC (`iniciar.bat`).
 - Token `.env`: `AGRO_WA_BRIDGE_TOKEN`. Migrate `0108`+`0109`+**`0111`**+**`0112`**+**`0113`**. Pacote `WA-ATEND-QR`.
 - **Consulta fiado (`WA-FIADO-MSG`):** cliente escreve *fiado* (ou *quanto eu devo*) no mesmo Zap da loja; o bot responde o aberto pelo número do cadastro. Sem migrate extra. **Ainda fora da loja** (junto do chat QR).
@@ -1278,6 +1278,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE PRONTO — Poll Zap leve (`WA-UI-POLL-LEVE` · 07/09 · **v23.39**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Zap não engasga PDV: poll mais lento; com PDV na frente (sem foco) ainda mais leve |
+| **Prova** | `verify_wa_ui_poll_leve_path.py` **12/12** |
+| **Tip** | **v23.39** (branch `teste`) |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ no `teste` · **não** loja (aguarda frase+senha) |
+| **Você** | Ctrl+F5 no Zap · abrir Zap + vender no PDV · Bot poll **5** |
+| **Risco** | Baixo — só frequência de API do Zap |
 
 ### 🟡 PREP PRONTO — Checklist 07/09 → loja **v23.38** (`deploy/prep-checklist-0709` · **aguarda senha**)
 

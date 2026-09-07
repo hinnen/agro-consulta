@@ -2289,18 +2289,45 @@
   carregarLista();
   carregarStatus();
   var tickPoll = 0;
+  function waJanelaAtiva() {
+    try {
+      if (document.hidden) return false;
+      if (document.visibilityState && document.visibilityState !== 'visible') return false;
+      // Janela Zap ao lado do PDV: sem foco = poll fundo (senão engasga a loja)
+      if (typeof document.hasFocus === 'function' && !document.hasFocus()) return false;
+    } catch (e) {}
+    return true;
+  }
+  /**
+   * Poll leve — o Zap aberto disputava o mesmo Render do PDV.
+   * Foco no Zap: msgs 5s · lista/estado 10s · status 60s
+   * PDV na frente / aba escondida: msgs 15s · estado 30s · lista 60s · status 120s
+   */
   setInterval(function () {
     tickPoll += 1;
-    // Mensagens do chat aberto: a cada 2,5s
-    pollMsgs();
-    // Lista/estado: a cada 5s
-    if (tickPoll % 2 === 0) {
+    var ativa = waJanelaAtiva();
+    var msgsEvery = ativa ? 2 : 6;
+    var estadoEvery = ativa ? 4 : 12;
+    var listaEvery = ativa ? 4 : 24;
+    var statusEvery = ativa ? 24 : 48;
+    if (convId && tickPoll % msgsEvery === 0) {
+      pollMsgs();
+    }
+    if (tickPoll % estadoEvery === 0) {
       carregarEstado();
+    }
+    if (tickPoll % listaEvery === 0) {
       carregarLista();
     }
-    // Status (stories) é pesado (~40kb) — a cada 30s, nao a cada 5s
-    if (tickPoll % 12 === 0) {
+    if (tickPoll % statusEvery === 0) {
       carregarStatus();
     }
   }, 2500);
+  function waRefreshSeAtiva() {
+    if (!waJanelaAtiva()) return;
+    carregarEstado();
+    if (convId) pollMsgs();
+  }
+  document.addEventListener('visibilitychange', waRefreshSeAtiva);
+  window.addEventListener('focus', waRefreshSeAtiva);
 })();
