@@ -1292,16 +1292,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto no `teste`** — loja só com frase + senha |
 | **Você** | Ctrl+F5 · CP baixa → só 2 formas · Resumo Mini DRE Extravio (tooltip dep. − BANCO) · depósito no caixa com plano Depósito |
 
-### 📦 PACOTE PRONTO — Zap PC fora da Gestão (`WA-PC-PWA-FIX` · 07/09)
+### ✅ Deploy loja — WA-PC-PWA-FIX (`deploy/prep-wa-pc-pwa-fix-0709` · **v23.34**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Instalar Zap PC abria **dentro** do SisVale Gestão. Agora abre janela própria (`SistValeZap`) e sai do iframe. |
-| **Onde** | `agro_dual_window.js` · template Zap web |
+| **Status** | ✅ **enviado / Live v23.34** — cherry **só** este pacote (**não** merge `teste`) |
+| **Antes** | `origin/producao` @ **v23.33** / `c4e931c` |
+| **Agora** | `producao` @ tip PREP **v23.34** (hash após push) |
+| **Pacote** | `WA-PC-PWA-FIX` — Zap PC fora da Gestão (janela `SistValeZap`) |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_wa_pc_pwa_path.py` |
-| **Status** | 🟢 `teste` — precisa frase + senha pra loja |
-| **Você** | Ctrl+F5 Gestão · abrir WhatsApp computador → deve abrir **outra janela** · aí Instalar |
+| **Prova** | `verify_wa_pc_pwa_path.py` **24/24** · fachona **9/9** · Bot **12/12** PIN 9973 |
+| **Risco loja aberta** | **Baixo** — só roteamento Zap ↔ Gestão · **não** mexe PDV/caixa/venda |
+| **Rollback** | tag `rollback/pre-wa-pc-pwa-fix-v23.33` · branch `producao-backup-pre-v2334-wa-pc-pwa-fix-20260907` · `docs/ROLLBACK-WA-PC-PWA-FIX-0709.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.34** · WhatsApp computador → **outra janela** → Instalar |
+
+### ~~📦 PACOTE PRONTO — Zap PC fora da Gestão~~ (`WA-PC-PWA-FIX` · **Live v23.34**)
 
 ### ✅ Deploy loja — WA-PC-PWA (`deploy/prep-wa-pc-pwa-0709` · **v23.33**) · **Live**
 
