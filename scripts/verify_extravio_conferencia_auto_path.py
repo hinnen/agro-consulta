@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Prova: CP só BANCO/DINHEIRO + extravio auto = depósito − baixas BANCO."""
+"""Prova: CP só DINHEIRO/BANCO canônicos + extravio = depósito − BANCO (com sinal)."""
 from __future__ import annotations
 
 import os
@@ -20,6 +20,8 @@ from produtos.conferencia_deposito_extravio_util import (
     extravio_auto_periodo,
 )
 from produtos.extravio_deposito_util import (
+    FORMA_CP_BANCO,
+    FORMA_CP_DINHEIRO,
     filtrar_formas_baixa_cp,
     forma_eh_banco,
     forma_eh_dinheiro,
@@ -36,24 +38,38 @@ def check(name: str, cond: bool, detail: str = "") -> None:
 def main() -> None:
     check("banco_ok", forma_eh_banco("BANCO"))
     check("banco_ok2", forma_eh_banco("Banco"))
+    check("deposito_ok", forma_eh_banco("DEPÓSITO"))
+    check("deposito_ok2", forma_eh_banco("Deposito"))
     check("banco_nao_pix", not forma_eh_banco("Pix"))
     check("banco_nao_cartao", not forma_eh_banco("Cartão crédito"))
     check("banco_nao_adicionar", not forma_eh_banco("ADICIONAR BANCO"))
     check("dinheiro_ok", forma_eh_dinheiro("Dinheiro"))
     check("perm_banco", forma_permitida_baixa_cp("BANCO"))
+    check("perm_dep", forma_permitida_baixa_cp("DEPÓSITO"))
     check("perm_din", forma_permitida_baixa_cp("Dinheiro"))
     check("perm_nao_pix", not forma_permitida_baixa_cp("Pix"))
 
     formas = [
         {"id": "1", "nome": "Dinheiro"},
+        {"id": "1b", "nome": "À vista - Dinheiro"},
         {"id": "2", "nome": "BANCO"},
         {"id": "3", "nome": "Pix"},
         {"id": "4", "nome": "Cartão"},
     ]
     f2 = filtrar_formas_baixa_cp(formas)
     check("filtro_2", len(f2) == 2, str(f2))
-    nomes = {x["nome"] for x in f2}
-    check("filtro_nomes", nomes == {"Dinheiro", "BANCO"})
+    nomes = [x["nome"] for x in f2]
+    check("filtro_nomes", nomes == [FORMA_CP_DINHEIRO, FORMA_CP_BANCO], str(nomes))
+    check("filtro_id_din", f2[0].get("id") == "1", str(f2[0]))
+    check("filtro_id_ban", f2[1].get("id") == "2", str(f2[1]))
+
+    # Sem BANCO no ERP → injeta
+    f3 = filtrar_formas_baixa_cp(
+        [{"id": "9", "nome": "À vista - Dinheiro"}, {"id": "3", "nome": "Pix"}]
+    )
+    check("injeta_2", len(f3) == 2, str(f3))
+    check("injeta_din", f3[0]["nome"] == FORMA_CP_DINHEIRO)
+    check("injeta_ban", f3[1]["nome"] == FORMA_CP_BANCO and f3[1].get("id") == "")
 
     # fórmula: depósito 1000 − BANCO 700 = 300
     core = {
@@ -62,7 +78,6 @@ def main() -> None:
         "retiradas_socios": Decimal("0"),
     }
 
-    # mock applying with known pack via monkeypatch of calc
     from produtos import conferencia_deposito_extravio_util as u
 
     orig = u.extravio_auto_periodo
@@ -112,6 +127,36 @@ def main() -> None:
         Decimal(core2["extravio_apos_deposito"]) == Decimal("350.00"),
     )
 
+    # extravio negativo (BANCO > depósito)
+    def fake_neg(*_a, **_k):
+        return {
+            "depositos_caixa": Decimal("100.00"),
+            "baixas_banco": Decimal("250.00"),
+            "extravio_auto": Decimal("-150.00"),
+        }
+
+    core3 = {
+        "extravio_apos_deposito": Decimal("0"),
+        "geracao_caixa": Decimal("1000.00"),
+    }
+    u.extravio_auto_periodo = fake_neg  # type: ignore
+    try:
+        from datetime import date
+
+        aplicar_extravio_auto_no_resumo(core3, date(2026, 8, 1), date(2026, 8, 31))
+    finally:
+        u.extravio_auto_periodo = orig  # type: ignore
+    check(
+        "auto_neg",
+        Decimal(core3["extravio_apos_deposito"]) == Decimal("-150.00"),
+        str(core3["extravio_apos_deposito"]),
+    )
+    check(
+        "geracao_sobe_neg",
+        Decimal(core3["geracao_caixa"]) == Decimal("1150.00"),
+        str(core3["geracao_caixa"]),
+    )
+
     views = (ROOT / "produtos" / "views.py").read_text(encoding="utf-8")
     check("views_reject", "_forma_pagamento_permitida_baixa_cp" in views)
     check("views_filter_qs", "somente_dinheiro_banco" in views)
@@ -127,14 +172,16 @@ def main() -> None:
     check("cl_param", "somente_dinheiro_banco" in html_cl)
 
     js = (ROOT / "static" / "js" / "agro_resumo_gerencial.js").read_text(encoding="utf-8")
-    check("js_auto_hint", "depósitos do caixa" in js or "depositos do caixa" in js.lower() or "baixas CP" in js)
+    check(
+        "js_auto_hint",
+        "depósitos do caixa" in js or "depositos do caixa" in js.lower() or "baixas CP" in js,
+    )
 
     pg = (
         ROOT / "financeiro" / "services" / "resumo_operacional_pg.py"
     ).read_text(encoding="utf-8")
     check("pg_hook", "aplicar_extravio_auto_no_resumo" in pg)
 
-    # smoke: função real não explode
     from datetime import date
 
     pack = extravio_auto_periodo(date(2026, 8, 1), date(2026, 8, 31), deposito="centro")

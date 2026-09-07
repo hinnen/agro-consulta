@@ -1,7 +1,8 @@
 """Conferência mensal: depósitos (caixa) × baixas CP forma BANCO → Extravio.
 
-Extravio no Mini DRE = max(0, depósitos − baixas BANCO) + títulos manuais do plano
-(legado). Não corta lucro operacional — só Saldo final / geração de caixa.
+Extravio no Mini DRE = (depósitos − baixas BANCO/DEPÓSITO) com sinal
+(+ ou −) + títulos manuais do plano (legado). Não corta lucro operacional —
+só Saldo final / geração de caixa.
 """
 from __future__ import annotations
 
@@ -101,8 +102,6 @@ def extravio_auto_periodo(
         data_inicio, data_fim, empresa_nome=empresa_nome
     )
     auto = (dep - ban).quantize(Decimal("0.01"))
-    if auto < 0:
-        auto = Decimal("0.00")
     return {
         "depositos_caixa": dep,
         "baixas_banco": ban,

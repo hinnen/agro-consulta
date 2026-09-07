@@ -1315,7 +1315,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova pré** | DRE **9+33** · Extravio **23/23** · Zap ícone **11/11** · `check` OK |
 | **Risco PDV** | **Baixo** — não mexe finalizar venda |
 | **Rollback** | `rollback/pre-checklist-0709-v23.34` · `producao-backup-pre-v2338-checklist-20260907` · `docs/ROLLBACK-CHECKLIST-0709.md` · **só** frase+senha |
-| **Fora deste lote** | `WA-UI-POLL-LEVE` (ainda **pronto para envio**, tip v23.40) |
+| **Fora deste lote** | `WA-UI-POLL-LEVE` (ainda **pronto para envio**, tip v23.42) |
 | **Você** | Ctrl+F5 · badge **v23.38** · F8 = 1 aba DRE · CP baixa só BANCO/DINHEIRO · Extravio no Resumo · Zap: reinstalar ícone se preciso |
 
 ### ✅ PACOTE — DRE não em cima do Dashboard (`DRE-NO-DASH-OVERLAY` · 07/09) · **Live v23.38**
@@ -1340,7 +1340,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | ✅ **enviado / Live v23.38** |
 | **Você** | Reinstalar app Zap no Chrome se o ícone antigo ficar |
 
-### ✅ PACOTE — Conferência depósito × BANCO (`EXTRAVIO-CONFERENCIA-AUTO` · 07/09) · **Live v23.38**
+### 📦 PACOTE PRONTO — CP formas canônicas + Extravio com sinal (`CP-FORMAS-EXTRAVIO-SINAL` · 07/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Baixa CP: só **DINHEIRO** + **BANCO** (some «À vista - Dinheiro») · BANCO injeta se faltar · Extravio = dep − BANCO **com sinal** (±) · checkbox caixa no DINHEIRO |
+| **Prova** | `verify_extravio_conferencia_auto_path.py` **ALL OK** |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ no `teste` · **não** loja (aguarda frase+senha) |
+| **Você** | Ctrl+F5 · Contas a pagar → baixar → 2 formas · marcar checkbox se sair da gaveta · Resumo Extravio ± |
+| **Risco PDV** | Baixo — só lista/forma CP + Mini DRE |
+
+### ✅ PACOTE — Conferência depósito × BANCO (`EXTRAVIO-CONFERENCIA-AUTO` · 07/09) · **Live v23.38** · *superado no teste pelo sinal ±*
 
 | Campo | Valor |
 | ----- | ----- |
