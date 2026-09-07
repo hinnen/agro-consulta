@@ -413,7 +413,7 @@
         trend: c._trend_despesas_variaveis || null,
       }),
       buildKpiCard({
-        title: "Despesas financeiras",
+        title: "OUTROS",
         value: brl(c.despesas_financeiras),
         tone: "warning",
         valueClass: "rg-kpi__value--expense",
@@ -857,9 +857,9 @@
       brl(df) +
       " · variáveis " +
       brl(dv) +
-      " · financeiras " +
+      " · OUTROS " +
       brl(dfin) +
-      ". Fixas = aluguel, salário… Variáveis acompanham a venda. Financeiras = IOF, tarifa, ativo (sem juros/pagamento de empréstimo). " +
+      ". Fixas = aluguel, salário… Variáveis acompanham a venda. OUTROS = IOF, tarifa, ativo, planos «a conferir» (sem juros/pagamento de empréstimo). " +
       qCmp;
     var qRec =
       (c.receita_fonte === "pdv"
@@ -883,7 +883,7 @@
         ? "Abra uma empresa para ver empréstimos."
         : "Devido = bruto no filtro da tela. <strong>Empréstimo devido</strong> + <strong>juros devido</strong> = <strong>total devido</strong>. <strong>Valor pago</strong> = pago desses títulos (mesmo meses anteriores). <strong>Valor emprestado</strong> = entrada no período pela competência.";
     var tipDesp =
-      "Soma das despesas fixas + variáveis + financeiras no filtro (sem CMV e sem pagamento de empréstimo).";
+      "Soma das despesas fixas + variáveis + OUTROS no filtro (sem CMV e sem pagamento de empréstimo).";
     var tipRec =
       c.receita_fonte === "pdv"
         ? "Vendas do caixa (PDV) no período e loja filtrados."
@@ -953,7 +953,7 @@
       rgQ(qDesp, "Ajuda despesas") +
       '</div><strong>' +
       brl(desp) +
-      '</strong><small class="rg-flow__kpi-sub">Fixas + variáveis + financeiras</small></div>' +
+      '</strong><small class="rg-flow__kpi-sub">Fixas + variáveis + OUTROS</small></div>' +
       cmpDesp +
       "</article>" +
       '<span class="rg-flow__arrow" aria-hidden="true">→</span>' +
@@ -1014,8 +1014,8 @@
       '><i class="rg-dot rg-dot--var"></i>Variáveis <b>' +
       brl(dv) +
       "</b></li><li" +
-      rgTip("IOF, tarifa, ativo — sem juros/pagamento de empréstimo.") +
-      '><i class="rg-dot rg-dot--fin"></i>Financeiras <b>' +
+      rgTip("IOF, tarifa, ativo, Outros (verificar) — sem juros/pagamento de empréstimo.") +
+      '><i class="rg-dot rg-dot--fin"></i>OUTROS <b>' +
       brl(dfin) +
       "</b></li></ul></div></article>" +
       '<article class="rg-card rg-card--rec-cat"><h3>Receita por categoria</h3>' +
@@ -1077,7 +1077,7 @@
           '">' +
           brl(c.resultado_liquido_gerencial) +
           "</span>",
-        "Resultado operacional − despesas financeiras (sem empréstimos/sócios)."
+        "Resultado operacional − OUTROS (sem empréstimos/sócios)."
       ) +
       miniRow(
         "Entrada empréstimo",

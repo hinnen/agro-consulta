@@ -1277,6 +1277,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — BI rótulo OUTROS (`BI-ROTULO-OUTROS` · 07/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | No Resumo gerencial, o fatia que era «Financeiras / Despesas financeiras» passa a chamar **OUTROS** (mesmo cálculo: ativo, tarifa, «Outros verificar» — sem juro/pagamento de empréstimo). |
+| **Tip** | `teste` (após push) |
+| **Migrate** | **NÃO** |
+| **Arquivos** | `static/js/agro_resumo_gerencial.js` · `financeiro/services/dre_visual_util.py` |
+| **Risco** | Nenhum no número — só nome na tela |
+| **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
+| **Você** | Local → Resumo → Ctrl+F5 → legenda do donut = **OUTROS** |
+
 ### 📦 PACOTE PRONTO — Bot Salvar destravado (`WA-BOT-SALVAR` · 07/09)
 
 | Campo | Valor |

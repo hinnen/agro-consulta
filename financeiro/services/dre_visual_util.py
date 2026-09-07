@@ -59,7 +59,7 @@ def despesas_categorias_dre_pg(
     grupos = {
         "fixa": {"key": "fixa", "label": "Despesas fixas", "total": 0.0},
         "variavel": {"key": "variavel", "label": "Despesas variáveis", "total": 0.0},
-        "financeira": {"key": "financeira", "label": "Despesas financeiras", "total": 0.0},
+        "financeira": {"key": "financeira", "label": "OUTROS", "total": 0.0},
     }
     agg: dict[str, dict[str, Any]] = {}
     for row in linhas_raw:
