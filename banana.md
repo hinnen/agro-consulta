@@ -1279,17 +1279,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Zap PC instalável Chrome (`WA-PC-PWA` · 07/09)
+### ✅ Deploy loja — WA-PC-PWA (`deploy/prep-wa-pc-pwa-0709` · **v23.33**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Versão **web** do WhatsApp lojas vira app Chrome no PC (ícone separado, janela sozinha) — igual ao celular. |
-| **Onde** | `/atendimento-whatsapp/` · botão **Instalar no PC** · ou Chrome ⋮ → Instalar |
+| **Status** | ✅ **enviado / Live v23.33** — cherry **só** este pacote (**não** merge `teste`) |
+| **Antes** | `origin/producao` @ **v23.32** / `2f5206f` |
+| **Agora** | `producao` @ **`aed0349`** |
+| **Pacote** | `WA-PC-PWA` — Zap web instalável no Chrome («Zap PC») |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_wa_pc_pwa_path.py` **17/17** |
-| **Risco** | Baixo — só tela Zap PC · celular PWA intacto |
-| **Status** | 🟢 **pronto para envio** — só frase + senha |
-| **Você** | Local → abrir Zap web → Ctrl+F5 → instalar no Chrome |
+| **Prova** | `verify_wa_pc_pwa_path.py` **17/17** · Django manifest/SW **200** · página auth com botão |
+| **Risco loja aberta** | **Baixo** — só WhatsApp PC · **não** mexe PDV/caixa/venda |
+| **Rollback** | tag `rollback/pre-wa-pc-pwa-v23.32` · branch `producao-backup-pre-v2333-wa-pc-pwa-20260907` · `docs/ROLLBACK-WA-PC-PWA-0709.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.33** · Chrome ⋮ → Instalar · ou botão **Instalar no PC** |
+
+### ~~📦 PACOTE PRONTO — Zap PC instalável Chrome~~ (`WA-PC-PWA` · **Live v23.33**)
 
 ### ✅ Deploy loja — EXTRAVIO + OUTROS (`deploy/prep-extravio-0709` · **v23.32**) · **Live**
 
