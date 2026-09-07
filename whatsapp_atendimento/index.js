@@ -1043,19 +1043,21 @@ async function ligar() {
         }
         if (ehStatusOuGrupo(raw)) continue;
         const jid = jidDaMensagem(m);
-        if (m.key && m.key.fromMe && !histJanelaAberta()) continue;
-        // Ao vivo: só notify (append = sync; mandava a mesma msg de novo).
-        if (type === "notify" && !(m.key && m.key.fromMe)) {
+        const fromMe = !!(m.key && m.key.fromMe);
+        // Ao vivo: cliente E eco do celular (fromMe). Sem isso a tela só “recebe”.
+        if (type === "notify") {
           const quando = tsMs(m);
           const idade = quando ? Date.now() - quando : 0;
           if (emQuarentena && idade > 60000) {
             console.log("Quarentena: descartada notify antiga de", jid, idade);
             continue;
           }
-          console.log("Entrada ao vivo:", jid, textoDe(m).slice(0, 40));
+          console.log(fromMe ? "Eco celular:" : "Entrada ao vivo:", jid, textoDe(m).slice(0, 40));
           await enviarEntrada(m, { historico: false });
           continue;
         }
+        // append = sync histórico (só janela pedida)
+        if (fromMe && !histJanelaAberta()) continue;
         if (!historicoPermitido(jid) && !historicoPermitido(raw)) continue;
         const quando = tsMs(m);
         if (Date.now() - quando > HIST_MS) continue;
@@ -1429,6 +1431,13 @@ async function puxarSaida() {
     if (j && j.poll_seg != null) ajustarPollSaida(j.poll_seg);
     if (j && j.sync_agenda_fotos_hora) syncHoraCfg = String(j.sync_agenda_fotos_hora);
     const lista = (j && j.saida) || [];
+    if (lista.length) {
+      console.log(
+        "Saida pendente:",
+        lista.length,
+        lista.map((x) => x && x.id).filter(Boolean).join(",")
+      );
+    }
     for (const item of lista) {
       const idItem = Number(item && item.id) || 0;
       if (!idItem || saidaEmVoo.has(idItem)) continue;
@@ -1509,6 +1518,7 @@ async function puxarSaida() {
         }
         const sent = await enviarComRetry(jidParaEnvio(item), content);
         const waId = sent && sent.key && sent.key.id;
+        console.log("Enviado ok:", item.id, "->", jidParaEnvio(item), waId || "");
         await post("/api/atendimento-whatsapp/bridge/saida-ok/", {
           ids: [item.id],
           wa_id: waId || "",

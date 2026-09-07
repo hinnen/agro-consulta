@@ -106,10 +106,20 @@
   }
 
   function fetchJson(url, opt) {
-    return fetch(url, opt).then(function (r) {
-      return r.json().catch(function () {
-        return { ok: false, erro: 'Falha de rede' };
-      });
+    var o = opt || {};
+    if (!o.credentials) o.credentials = 'same-origin';
+    return fetch(url, o).then(function (r) {
+      return r
+        .json()
+        .catch(function () {
+          return { ok: false, erro: r.status === 403 ? 'Sessão/CSRF — dê F5 e entre de novo.' : 'Falha de rede (' + r.status + ')' };
+        })
+        .then(function (j) {
+          if (r.status === 403 && (!j || !j.ok)) {
+            return { ok: false, erro: (j && j.erro) || 'Sessão/CSRF — dê F5 e entre de novo.' };
+          }
+          return j;
+        });
     });
   }
 
@@ -1420,20 +1430,40 @@
     });
   }
 
-  $('wa-form').addEventListener('submit', function (ev) {
-    ev.preventDefault();
+  function dispararTextoComposer() {
     var inp = $('wa-input');
-    var t = (inp.value || '').trim();
+    var t = ((inp && inp.value) || '').trim();
     if (!convId) {
       window.alert('Abra uma conversa na lista antes de enviar.');
       return;
     }
     if (!t) return;
     if (enviandoMsg) return;
-    inp.value = '';
+    if (inp) inp.value = '';
     atualizarBarra();
     enviarPayload({ conversa_id: convId, texto: t }, t);
+  }
+
+  $('wa-form').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    dispararTextoComposer();
   });
+
+  var sendBtn = $('wa-send');
+  if (sendBtn) {
+    sendBtn.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      dispararTextoComposer();
+    });
+  }
+  if (inpBarra) {
+    inpBarra.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Enter') return;
+      if (ev.shiftKey) return;
+      ev.preventDefault();
+      dispararTextoComposer();
+    });
+  }
 
   document.querySelectorAll('[data-xfer]').forEach(function (b) {
     b.addEventListener('click', function () {
