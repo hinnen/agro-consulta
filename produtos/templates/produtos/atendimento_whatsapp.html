@@ -10,6 +10,23 @@
   <link rel="manifest" href="{% url 'atendimento_whatsapp_pc_manifest' %}">
   <link rel="apple-touch-icon" href="{% static 'produtos/pwa/zap-loja-192.png' %}">
   <link rel="icon" type="image/png" sizes="192x192" href="{% static 'produtos/pwa/zap-loja-192.png' %}">
+  <script>
+  (function () {
+    /* Sai do iframe/aba embutida da Gestão — senão o Chrome instala dentro do app Gestão. */
+    try {
+      if (window.top !== window.self) {
+        var u = new URL(window.location.href);
+        u.searchParams.delete("agro_inapp_embed");
+        u.searchParams.delete("embed");
+        u.searchParams.delete("agro_pdv_overlay");
+        window.top.location.replace(u.pathname + u.search + u.hash);
+        return;
+      }
+    } catch (e) {
+      try { window.top.location.href = "/atendimento-whatsapp/"; } catch (_) {}
+    }
+  })();
+  </script>
 {% endblock %}
 {% block body_class %}bg-slate-100 text-slate-900 overflow-hidden wa-skin{% endblock %}
 {% block pdv_shell_class %}h-[100dvh] min-h-0 bg-slate-100 flex flex-col overflow-hidden{% endblock %}
@@ -48,7 +65,7 @@
 {% csrf_token %}
 <p id="wa-pwa-dica">
   <button type="button" id="wa-pwa-dica-ok" aria-label="Fechar">×</button>
-  No Chrome: menu <strong>⋮</strong> → <strong>Instalar WhatsApp lojas…</strong> (ou o botão <strong>Instalar no PC</strong> quando aparecer). Depois abre como app separado, sem as outras abas do sistema.
+  No Chrome (janela <strong>própria</strong> do Zap, <strong>não</strong> dentro da Gestão): menu <strong>⋮</strong> → <strong>Instalar WhatsApp lojas…</strong> (ou o botão <strong>Instalar no PC</strong>). Se abriu como aba da Gestão, feche e abra de novo pelo menu — tem que ser janela separada.
 </p>
 <div id="wa-app" class="flex min-h-0 flex-1 flex-col gap-2">
   <div id="wa-qr-box" class="wa-qr hidden shrink-0">
