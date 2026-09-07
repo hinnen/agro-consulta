@@ -161,12 +161,15 @@ def api_atendimento_whatsapp_bot_salvar(request):
     if data is None:
         return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
     autor = _autor_wa(request, data)
-    if data.get("reset"):
-        bot = resetar_bot(usuario=autor)
+    try:
+        if data.get("reset"):
+            bot = resetar_bot(usuario=autor)
+            return JsonResponse({"ok": True, "bot": bot, "avisos": avisos_bot(bot)})
+        payload = data.get("bot") if isinstance(data.get("bot"), dict) else data
+        bot = salvar_bot(payload, usuario=autor)
         return JsonResponse({"ok": True, "bot": bot, "avisos": avisos_bot(bot)})
-    payload = data.get("bot") if isinstance(data.get("bot"), dict) else data
-    bot = salvar_bot(payload, usuario=autor)
-    return JsonResponse({"ok": True, "bot": bot, "avisos": avisos_bot(bot)})
+    except Exception as exc:
+        return JsonResponse({"ok": False, "erro": f"Não salvou: {exc}"}, status=500)
 
 
 @login_required(login_url="/entrar/")

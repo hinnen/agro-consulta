@@ -11,7 +11,7 @@
     { v: 3, n: 'Qua' },
     { v: 4, n: 'Qui' },
     { v: 5, n: 'Sex' },
-    { v: 6, n: 'Sáb' },
+    { v: 6, n: 'Sab' },
   ];
 
   var CHECKS = [
@@ -295,6 +295,12 @@
       var el = f.querySelector('[name="' + k + '"]');
       if (el && bot[k] != null) el.value = bot[k];
     });
+    // poll antigo (<3) deixa o input inválido e o Chrome bloqueava o Salvar
+    var pollEl = f.querySelector('[name="poll_saida_seg"]');
+    if (pollEl) {
+      var pv = parseInt(pollEl.value || '5', 10);
+      if (!(pv >= 3 && pv <= 15)) pollEl.value = '5';
+    }
     montarHorarioPorDia(bot.horario_por_dia || {});
     montarFontes(bot.nome_fontes || '');
   }
@@ -322,7 +328,7 @@
   }
 
   function carregar() {
-    return fetch('/api/atendimento-whatsapp/bot/').then(function (r) {
+    return fetch('/api/atendimento-whatsapp/bot/', { credentials: 'same-origin' }).then(function (r) {
       return r.json();
     }).then(function (j) {
       if (!j || !j.ok) throw new Error((j && j.erro) || 'Falha');
@@ -336,29 +342,52 @@
   function salvar(payload) {
     return fetch('/api/atendimento-whatsapp/bot/salvar/', {
       method: 'POST',
+      credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
       body: JSON.stringify(payload),
     }).then(function (r) {
-      return r.json();
+      return r.text().then(function (txt) {
+        var j = null;
+        try {
+          j = txt ? JSON.parse(txt) : null;
+        } catch (e) {
+          j = null;
+        }
+        if (!r.ok) {
+          var msg =
+            (j && j.erro) ||
+            (r.status === 403
+              ? 'Sessão/CSRF expirada — recarregue (Ctrl+F5) e tente de novo.'
+              : 'Não salvou (HTTP ' + r.status + ').');
+          throw new Error(msg);
+        }
+        return j || { ok: false, erro: 'Resposta inválida' };
+      });
     });
   }
 
-  var f = form();
-  if (!f) return;
-  montarRecursos();
-  montarHorarioPorDia({});
-  carregar();
-  f.addEventListener('submit', function (ev) {
-    ev.preventDefault();
+  function liberarSaveUi(btn) {
+    if (!btn) return;
+    btn.disabled = false;
+    btn.textContent = 'Salvar';
+  }
+
+  function dispararSalvar() {
     var btn = $('wa-bot-save');
     if (btn && btn.disabled) return;
-    var dados = coletar();
+    var dados;
+    try {
+      dados = coletar();
+    } catch (eColeta) {
+      aviso(false, 'Não leu o formulário — recarregue a página.');
+      return;
+    }
     if (dados.feat_fiado_pix && !(String(dados.pix_chave || '').trim())) {
       aviso(false, 'Cole a Chave Pix na caixa verde (Recursos) antes de salvar.');
-      var nav = $('wa-bot-nav');
+      var navPix = $('wa-bot-nav');
       var box = $('wa-pix-box');
-      if (nav) {
-        var bRec = nav.querySelector('button[data-panel="recursos"]');
+      if (navPix) {
+        var bRec = navPix.querySelector('button[data-panel="recursos"]');
         if (bRec) bRec.click();
       }
       if (box) {
@@ -374,6 +403,13 @@
       }
       return;
     }
+    // Clamp visual: poll antigo < 3 não pode travar o Salvar (min do input)
+    try {
+      var poll = parseInt(dados.poll_saida_seg || 5, 10);
+      if (!(poll >= 3 && poll <= 15)) dados.poll_saida_seg = 5;
+    } catch (ePoll) {
+      dados.poll_saida_seg = 5;
+    }
     if (btn) {
       btn.disabled = true;
       btn.textContent = 'Salvando…';
@@ -388,30 +424,54 @@
         if (j.avisos && j.avisos.length) aviso(false, j.avisos[0]);
         else aviso(true, 'Salvo');
       })
-      .catch(function () {
-        aviso(false, 'Não salvou');
+      .catch(function (err) {
+        aviso(false, (err && err.message) || 'Não salvou');
       })
-      .finally(function () {
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = 'Salvar';
-        }
+      .then(function () {
+        liberarSaveUi(btn);
       });
+  }
+
+  var f = form();
+  if (!f) return;
+  // Handlers primeiro — se montar UI falhar, Salvar ainda funciona
+  f.addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    dispararSalvar();
   });
+  var btnSave = $('wa-bot-save');
+  if (btnSave) {
+    btnSave.type = 'button';
+    btnSave.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      dispararSalvar();
+    });
+  }
   var rst = $('wa-bot-reset');
   if (rst) {
     rst.addEventListener('click', function () {
       if (!window.confirm('Voltar ao padrão?')) return;
-      salvar({ reset: true }).then(function (j) {
-        if (!j || !j.ok) {
-          aviso(false, (j && j.erro) || 'Não resetou');
-          return;
-        }
-        preencher(j.bot);
-        aviso(true, 'Padrão');
-      });
+      salvar({ reset: true })
+        .then(function (j) {
+          if (!j || !j.ok) {
+            aviso(false, (j && j.erro) || 'Não resetou');
+            return;
+          }
+          preencher(j.bot);
+          aviso(true, 'Padrão');
+        })
+        .catch(function (err) {
+          aviso(false, (err && err.message) || 'Não resetou');
+        });
     });
   }
+  try {
+    montarRecursos();
+    montarHorarioPorDia({});
+  } catch (eUi) {
+    aviso(false, 'Tela do Bot com falha parcial — Salvar ainda deve funcionar.');
+  }
+  carregar();
   var nav = $('wa-bot-nav');
   if (nav) {
     nav.addEventListener('click', function (ev) {

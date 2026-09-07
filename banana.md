@@ -1264,6 +1264,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ Deploy loja — WA-BOT-SALVAR (`deploy/prep-wa-bot-salvar-0709` · **v23.25**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v23.25** — cherry **só** este pacote (**não** merge `teste`) |
+| **Antes** | `origin/producao` @ **v23.24** / `82d2ac2` |
+| **Agora** | `producao` @ tip PREP **v23.25** (hash após push) |
+| **Pacote** | `WA-BOT-SALVAR` — Salvar Bot destravado (`novalidate` · `type=button` · clamp poll) |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_wa_bot_salvar_path.py` **12/12** (repo `teste`) · estático PREP OK · horário intacto |
+| **Risco loja aberta** | **Baixo** — só Bot WhatsApp · **não** mexe PDV/caixa/venda |
+| **Rollback** | tag `rollback/pre-wa-bot-salvar-v23.24` · branch `producao-backup-pre-v2325-wa-bot-salvar-20260907` · `docs/ROLLBACK-WA-BOT-SALVAR-0709.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.25** · Bot → **Salvar** → «Salvo» · Tempo → poll **5** → Salvar |
+
 ### ✅ Deploy loja — TAREFAS-PRIORIDADE (`deploy/prep-tarefas-prioridade-0609` · **v23.20**) · **Live**
 
 | Campo | Valor |
