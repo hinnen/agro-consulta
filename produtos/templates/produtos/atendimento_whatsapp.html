@@ -2,24 +2,54 @@
 {% load static %}
 
 {% block pdv_title %}WhatsApp lojas | SisVale{% endblock %}
+{% block head_extra %}
+  <meta name="theme-color" content="#075E54">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Zap PC">
+  <link rel="manifest" href="{% url 'atendimento_whatsapp_pc_manifest' %}">
+  <link rel="apple-touch-icon" href="{% static 'produtos/pwa/zap-loja-192.png' %}">
+  <link rel="icon" type="image/png" sizes="192x192" href="{% static 'produtos/pwa/zap-loja-192.png' %}">
+{% endblock %}
 {% block body_class %}bg-slate-100 text-slate-900 overflow-hidden wa-skin{% endblock %}
 {% block pdv_shell_class %}h-[100dvh] min-h-0 bg-slate-100 flex flex-col overflow-hidden{% endblock %}
 {% block pdv_section_class %}flex min-h-0 flex-1 flex-col px-3 py-2 sm:px-4{% endblock %}
 
 {% block pdv_header %}
 {% include "produtos/_wa_skin.html" %}
+<style>
+  #wa-pwa-instalar {
+    display: none; min-height: 2.2rem; padding: 0 .7rem; border-radius: 999px;
+    border: 1px solid #a7f3d0; background: #ecfdf5; color: #065f46;
+    font-size: .72rem; font-weight: 800; white-space: nowrap; align-items: center;
+  }
+  #wa-pwa-dica {
+    display: none; margin: 0 0 .5rem; padding: .55rem .75rem;
+    border-radius: .85rem; background: #ecfdf5; border: 1px solid #a7f3d0;
+    color: #064e3b; font-size: .8rem; font-weight: 700; line-height: 1.35;
+  }
+  #wa-pwa-dica button { float: right; border: 0; background: transparent; color: #065f46; font-weight: 900; font-size: 1rem; padding: 0 .2rem; }
+  html[data-wa-standalone="1"] #wa-voltar-pdv,
+  html[data-wa-standalone="1"] #wa-pwa-instalar,
+  html[data-wa-standalone="1"] #wa-pwa-dica { display: none !important; }
+</style>
 <header class="wa-top">
   <span id="wa-dot" class="wa-dot off" aria-hidden="true"></span>
   <h1 class="wa-title min-w-0 flex-1 truncate">WhatsApp</h1>
   <div id="wa-status" class="wa-pill">…</div>
+  <button type="button" id="wa-pwa-instalar" title="Instalar como app no Chrome">Instalar no PC</button>
   <button type="button" id="wa-trocar" class="wa-ico hidden" title="Desligar este Zap e ligar outro (QR ou código)">Trocar Zap</button>
   <a href="{% url 'atendimento_whatsapp_bot' %}" class="wa-ico pri" title="Configurar bot">Bot</a>
-  {% include "produtos/_pdv_voltar_link.html" with link_class="wa-ico" %}
+  <span id="wa-voltar-pdv">{% include "produtos/_pdv_voltar_link.html" with link_class="wa-ico" %}</span>
 </header>
 {% endblock %}
 
 {% block pdv_content %}
 {% csrf_token %}
+<p id="wa-pwa-dica">
+  <button type="button" id="wa-pwa-dica-ok" aria-label="Fechar">×</button>
+  No Chrome: menu <strong>⋮</strong> → <strong>Instalar WhatsApp lojas…</strong> (ou o botão <strong>Instalar no PC</strong> quando aparecer). Depois abre como app separado, sem as outras abas do sistema.
+</p>
 <div id="wa-app" class="flex min-h-0 flex-1 flex-col gap-2">
   <div id="wa-qr-box" class="wa-qr hidden shrink-0">
     <p class="text-sm font-extrabold text-amber-950">Ligar o Zap da loja</p>
@@ -69,4 +99,60 @@
 {% include "produtos/_wa_dlg.html" %}
 {% include "produtos/_screensaver_pin.html" %}
 <script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
+<script>
+(function () {
+  var DICA_KEY = "agro_wa_pc_pwa_dica_v1";
+  var deferred;
+  var btn = document.getElementById("wa-pwa-instalar");
+  var dica = document.getElementById("wa-pwa-dica");
+  var dicaOk = document.getElementById("wa-pwa-dica-ok");
+  function ehStandalone() {
+    try {
+      if (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) return true;
+      if (window.matchMedia && window.matchMedia("(display-mode: window-controls-overlay)").matches) return true;
+    } catch (_) {}
+    return false;
+  }
+  if (ehStandalone()) {
+    try { document.documentElement.setAttribute("data-wa-standalone", "1"); } catch (_) {}
+  }
+  if (btn) {
+    window.addEventListener("beforeinstallprompt", function (e) {
+      e.preventDefault();
+      deferred = e;
+      btn.style.display = "inline-flex";
+      if (dica) dica.style.display = "none";
+    });
+    btn.addEventListener("click", function () {
+      if (!deferred) return;
+      deferred.prompt();
+      deferred.userChoice.finally(function () {
+        deferred = null;
+        btn.style.display = "none";
+      });
+    });
+  }
+  window.addEventListener("appinstalled", function () {
+    if (btn) btn.style.display = "none";
+    if (dica) dica.style.display = "none";
+    try { localStorage.setItem(DICA_KEY, "1"); } catch (_) {}
+  });
+  if (dica && !ehStandalone()) {
+    try {
+      if (localStorage.getItem(DICA_KEY) !== "1") dica.style.display = "block";
+    } catch (_) {
+      dica.style.display = "block";
+    }
+  }
+  if (dicaOk) {
+    dicaOk.addEventListener("click", function () {
+      if (dica) dica.style.display = "none";
+      try { localStorage.setItem(DICA_KEY, "1"); } catch (_) {}
+    });
+  }
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("{% url 'atendimento_whatsapp_pc_sw' %}", { scope: "/atendimento-whatsapp/" }).catch(function () {});
+  }
+})();
+</script>
 {% endblock %}

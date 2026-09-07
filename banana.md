@@ -1264,6 +1264,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ Deploy loja — WA-PC-PWA (`deploy/prep-wa-pc-pwa-0709` · **v23.33**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v23.33** — cherry **só** este pacote (**não** merge `teste`) |
+| **Antes** | `origin/producao` @ **v23.32** / `2f5206f` |
+| **Agora** | `producao` @ tip PREP **v23.33** (hash após push) |
+| **Pacote** | `WA-PC-PWA` — Zap web instalável no Chrome («Zap PC») |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_wa_pc_pwa_path.py` **17/17** · Django manifest/SW **200** · página auth com botão |
+| **Risco loja aberta** | **Baixo** — só WhatsApp PC · **não** mexe PDV/caixa/venda |
+| **Rollback** | tag `rollback/pre-wa-pc-pwa-v23.32` · branch `producao-backup-pre-v2333-wa-pc-pwa-20260907` · `docs/ROLLBACK-WA-PC-PWA-0709.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.33** · Chrome ⋮ → Instalar · ou botão **Instalar no PC** |
+
+
 ### ✅ Deploy loja — WA-BOT-SALVAR (`deploy/prep-wa-bot-salvar-0709` · **v23.25**) · **Live**
 
 | Campo | Valor |
