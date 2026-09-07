@@ -1287,7 +1287,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 2 | `EXTRAVIO-CONFERENCIA-AUTO` | ✅ **Live v23.38** | **NÃO** | — |
 | 3 | `DRE-NO-DASH-OVERLAY` | ✅ **Live v23.38** | **NÃO** | 9+33 |
 | 4 | `WA-UI-POLL-LEVE` | 🟢 **pronto para envio** | **NÃO** | **48/48** |
-| 5 | `CP-FORMAS-EXTRAVIO-SINAL` | 🟢 **pronto para envio** | **NÃO** | **42/42** |
+| 5 | `CP-FORMAS-EXTRAVIO-SINAL` | 🟢 **pronto para envio** | **NÃO** | **43/43** |
 
 **Loja:** **v23.38**. **Falta subir:** `#4` + `#5`. Tip `teste` **v23.43**. Cherry só estes + frase + senha — **não** merge `teste`.
 
@@ -1308,7 +1308,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Baixa CP só **DINHEIRO** + **BANCO** · checkbox saída caixa no DINHEIRO · Extravio = dep − BANCO **(±)** |
-| **Prova** | `verify_extravio_conferencia_auto_path.py` · API opcoes **2 formas** · PIN 9973 · `check` OK |
+| **Prova** | `verify_extravio_conferencia_auto_path.py` **43/43** (API 2 formas · PIN 9973 · sinal ±) |
 | **Tip** | **v23.43** @ `64fbaff` |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** |
