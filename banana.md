@@ -1270,7 +1270,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Status** | ✅ **enviado / Live v23.25** — cherry **só** este pacote (**não** merge `teste`) |
 | **Antes** | `origin/producao` @ **v23.24** / `82d2ac2` |
-| **Agora** | `producao` @ tip PREP **v23.25** (hash após push) |
+| **Agora** | `producao` @ **`677d22e`** |
 | **Pacote** | `WA-BOT-SALVAR` — Salvar Bot destravado (`novalidate` · `type=button` · clamp poll) |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_wa_bot_salvar_path.py` **12/12** (repo `teste`) · estático PREP OK · horário intacto |
