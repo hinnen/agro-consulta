@@ -1335,7 +1335,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Depois** | Na loja: Trocar Zap de volta pro **3389** |
 | **Status** | auth limpa; aguarda QR do 1403 |
 
-### 📦 PACOTE PRONTO — Zap envia (eco celular + UI) (`WA-ENVIO-FROMME` · **v23.18** · 06/09)
+### 📦 PACOTE PRONTO — Zap envia (eco celular + UI) (`WA-ENVIO-FROMME` · **v23.21** · 06/09)
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1343,7 +1343,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `whatsapp_atendimento/index.js` · `atendimento_whatsapp.js` |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_wa_envio_fromme_path.py` **29/29** (PIN 9973) |
-| **Tip** | `teste` **v23.18** |
+| **Tip** | `teste` **v23.21** @ `7752dec` |
 | **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
 | **Você agora** | **1)** Fechar/abrir `iniciar.bat` (ponte local já pega o fix). **2)** Ctrl+F5 no Zap do site. **3)** Responder **na tela verde do Agro** (seta) **ou** no celular — preta deve mostrar `Eco celular` / `Enviado ok`. |
 
