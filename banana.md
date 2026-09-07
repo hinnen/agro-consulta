@@ -1339,12 +1339,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Ponte **parava** msg mandada do celular (`fromMe`) → tela só recebia. Agora eco do celular entra. UI: Enviar por clique/Enter + CSRF legível. Log na preta: `Eco celular` / `Saida pendente` / `Enviado ok`. |
-| **Onde** | `whatsapp_atendimento/index.js` · `atendimento_whatsapp.js` |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_wa_envio_fromme_path.py` **29/29** (PIN 9973) |
-| **Tip** | `teste` **v23.21** @ `7752dec` |
-| **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
+| **O quê** | Ponte **parava** msg do celular (`fromMe`). UI: seta travava (1º some texto, 2º morta) — timeout 12s + type=button + toast. Envio tenta lid+telefone. |
+| **Tip** | `teste` **v23.23+** |
+| **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha · **sem isso o PDV da loja continua com a seta velha** |
 | **Você agora** | **1)** Fechar/abrir `iniciar.bat` (ponte local já pega o fix). **2)** Ctrl+F5 no Zap do site. **3)** Responder **na tela verde do Agro** (seta) **ou** no celular — preta deve mostrar `Eco celular` / `Enviado ok`. |
 
 ### ✅ CHECKLIST ÚNICO — 06/09c · pronto envio

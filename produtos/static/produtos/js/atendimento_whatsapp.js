@@ -108,19 +108,56 @@
   function fetchJson(url, opt) {
     var o = opt || {};
     if (!o.credentials) o.credentials = 'same-origin';
-    return fetch(url, o).then(function (r) {
-      return r
-        .json()
-        .catch(function () {
-          return { ok: false, erro: r.status === 403 ? 'Sessão/CSRF — dê F5 e entre de novo.' : 'Falha de rede (' + r.status + ')' };
-        })
-        .then(function (j) {
-          if (r.status === 403 && (!j || !j.ok)) {
-            return { ok: false, erro: (j && j.erro) || 'Sessão/CSRF — dê F5 e entre de novo.' };
-          }
-          return j;
-        });
-    });
+    var ctrl = o.signal ? null : new AbortController();
+    if (ctrl && !o.signal) {
+      o.signal = ctrl.signal;
+      o._agroAbort = ctrl;
+    }
+    var ms = typeof o.timeoutMs === 'number' ? o.timeoutMs : 0;
+    var timer = null;
+    if (ms > 0 && ctrl) {
+      timer = window.setTimeout(function () {
+        try {
+          ctrl.abort();
+        } catch (_) {}
+      }, ms);
+    }
+    delete o.timeoutMs;
+    return fetch(url, o)
+      .then(function (r) {
+        return r
+          .json()
+          .catch(function () {
+            return {
+              ok: false,
+              erro:
+                r.status === 403
+                  ? 'Sessão/CSRF — dê F5 e entre de novo.'
+                  : r.redirected || (r.url && r.url.indexOf('/entrar') >= 0)
+                    ? 'Sessão expirada — dê F5 e entre de novo.'
+                    : 'Falha de rede (' + r.status + ')',
+            };
+          })
+          .then(function (j) {
+            if (r.status === 403 && (!j || !j.ok)) {
+              return { ok: false, erro: (j && j.erro) || 'Sessão/CSRF — dê F5 e entre de novo.' };
+            }
+            if (r.status >= 400 && j && j.ok == null) {
+              return { ok: false, erro: (j && j.erro) || 'Erro ' + r.status };
+            }
+            return j;
+          });
+      })
+      .catch(function (err) {
+        var nome = err && err.name;
+        if (nome === 'AbortError') {
+          return { ok: false, erro: 'Demorou demais — tente de novo.' };
+        }
+        return { ok: false, erro: 'Falha de rede ao enviar.' };
+      })
+      .finally(function () {
+        if (timer) window.clearTimeout(timer);
+      });
   }
 
   function waToast(msg, ok) {
@@ -1138,16 +1175,56 @@
   }
 
   var enviandoMsg = false;
+  var enviandoTimer = 0;
+
+  function liberarEnvioUi() {
+    enviandoMsg = false;
+    if (enviandoTimer) {
+      window.clearTimeout(enviandoTimer);
+      enviandoTimer = 0;
+    }
+    var btn = $('wa-send');
+    if (btn) btn.disabled = false;
+    atualizarBarra();
+  }
+
+  function avisarEnvio(msg) {
+    if (typeof waToast === 'function') waToast(msg, false);
+    else window.alert(msg);
+  }
 
   function enviarPayload(payload, textoVolta) {
     var btn = $('wa-send');
-    if (!convId) return;
+    if (!convId) {
+      avisarEnvio('Abra uma conversa na lista antes de enviar.');
+      return;
+    }
     if (enviandoMsg) {
-      if (textoVolta && $('wa-input') && !$('wa-input').value) $('wa-input').value = textoVolta;
+      avisarEnvio('Ainda enviando… aguarde 1 instante.');
+      return;
+    }
+    var tok = csrf();
+    if (!tok) {
+      avisarEnvio('Sessão sem token — Ctrl+F5 e entre de novo.');
       return;
     }
     enviandoMsg = true;
     if (btn) btn.disabled = true;
+    // Limpa o campo só com o envio travado (evita seta morta + texto sumido)
+    if (textoVolta && $('wa-input')) {
+      $('wa-input').value = '';
+      atualizarBarra();
+    }
+    // Trava máxima: se a rede engasgar, a seta NÃO fica morta
+    enviandoTimer = window.setTimeout(function () {
+      if (!enviandoMsg) return;
+      liberarEnvioUi();
+      avisarEnvio('Envio travou — texto restaurado. Tente de novo.');
+      if (textoVolta && $('wa-input') && !$('wa-input').value) {
+        $('wa-input').value = textoVolta;
+        atualizarBarra();
+      }
+    }, 15000);
 
     // Bolha na hora (sensação de enviado) — o Zap do cliente ainda passa pela ponte.
     var tempId = 'tmp-' + Date.now();
@@ -1179,15 +1256,19 @@
 
     fetchJson('/api/atendimento-whatsapp/enviar/', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': tok },
       body: JSON.stringify(payload),
+      timeoutMs: 12000,
     })
       .then(function (j) {
         var tmp = document.querySelector('[data-msg-id="' + tempId + '"]');
         if (tmp) tmp.remove();
         if (!j || !j.ok) {
-          window.alert((j && j.erro) || 'Não enviou.');
-          if (textoVolta && $('wa-input')) $('wa-input').value = textoVolta;
+          avisarEnvio((j && j.erro) || 'Não enviou.');
+          if (textoVolta && $('wa-input')) {
+            $('wa-input').value = textoVolta;
+            atualizarBarra();
+          }
           return;
         }
         if (j.mensagem) {
@@ -1201,13 +1282,14 @@
       .catch(function () {
         var tmp = document.querySelector('[data-msg-id="' + tempId + '"]');
         if (tmp) tmp.remove();
-        window.alert('Falha de rede ao enviar.');
-        if (textoVolta && $('wa-input')) $('wa-input').value = textoVolta;
+        avisarEnvio('Falha de rede ao enviar.');
+        if (textoVolta && $('wa-input')) {
+          $('wa-input').value = textoVolta;
+          atualizarBarra();
+        }
       })
       .finally(function () {
-        enviandoMsg = false;
-        if (btn) btn.disabled = false;
-        atualizarBarra();
+        liberarEnvioUi();
       });
   }
 
@@ -1434,13 +1516,15 @@
     var inp = $('wa-input');
     var t = ((inp && inp.value) || '').trim();
     if (!convId) {
-      window.alert('Abra uma conversa na lista antes de enviar.');
+      avisarEnvio('Abra uma conversa na lista antes de enviar.');
       return;
     }
     if (!t) return;
-    if (enviandoMsg) return;
-    if (inp) inp.value = '';
-    atualizarBarra();
+    if (enviandoMsg) {
+      avisarEnvio('Ainda enviando… aguarde.');
+      return;
+    }
+    // enviarPayload limpa o campo só depois de travar o envio
     enviarPayload({ conversa_id: convId, texto: t }, t);
   }
 
@@ -1451,8 +1535,13 @@
 
   var sendBtn = $('wa-send');
   if (sendBtn) {
+    // type=button evita click+submit duplo (1º some o texto, 2º seta morta)
+    try {
+      sendBtn.type = 'button';
+    } catch (_) {}
     sendBtn.addEventListener('click', function (ev) {
       ev.preventDefault();
+      ev.stopPropagation();
       dispararTextoComposer();
     });
   }
