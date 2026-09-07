@@ -1277,6 +1277,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Bot Salvar destravado (`WA-BOT-SALVAR` · 07/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Salvar do Bot não fazia nada: poll gravado **2** + campo `min=3` → Chrome bloqueava o submit (aba Tempo escondida). Agora: `novalidate` · botão `type=button` · clamp poll · toast de erro CSRF/HTTP. |
+| **Tip** | `teste` (após push) |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_wa_bot_salvar_path.py` **12/12** |
+| **Risco** | Baixo — só tela Bot |
+| **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
+| **Você** | Ctrl+F5 no Bot → Salvar → deve aparecer «Salvo» |
+
 ### WIP — Amanhã loja aberta · Zap envio + lentidão (pós Live **v23.23**) · 06/09 noite
 
 | Campo | Valor |
@@ -1284,7 +1296,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Envio** | ✅ fechado (Renan + PG: `out` com `wa_id`) |
 | **Código anti-lentidão** | ✅ já na loja **v23.23** (poll min 3 · status ~30s · ponte leve) |
 | **Bot PG loja agora** | `poll_saida_seg` = **2** (API já sobe pra 3) · sync fotos `00:00` |
-| **Você amanhã (sem deploy)** | Bot → Tempo → **Checar saída = 5** → **Salvar** |
+| **Bug Salvar Bot** | ✅ causa: poll=2 + `min=3` → Chrome bloqueava submit (painel Tempo oculto). Fix no `teste`: `novalidate` + Salvar `type=button` + clamp |
+| **Você amanhã (sem deploy)** | Bot → Tempo → **Checar saída = 5** → **Salvar** (depois do fix Live) |
 | **Checklist 10 min** | 1) badge **v23.24** + Ctrl+F5 · 2) `iniciar.bat` **1×** · 3) poll **5** · 4) PDV+Zap: 1 venda + 1 «teste» · 5) engasgou? só PDV / só Zap / os dois · 6) preta: `Saida pendente` / `Enviado ok` · 7) quantos PCs com Zap? |
 | **OK lentidão** | PDV normal com Zap+ponte ON |
 | **Falha** | PDV trava → fecha bat e vê se alivia |
