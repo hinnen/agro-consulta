@@ -1282,7 +1282,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Bot → Horário: **7 linhas** (Dom–Sáb) com ligado + Abre + Fecha. Fim de semana pode fechar mais cedo. Aviso fora do horário continua **um texto só**. |
-| **Tip** | `teste` **v23.24** / `c51fe30` |
+| **Tip** | `teste` **v23.25** / `00855a5` (código `c51fe30`) |
 | **Migrate** | **NÃO** — só JSON `horario_por_dia` no bot |
 | **Prova** | `python scripts/verify_wa_horario_por_dia_path.py` |
 | **Risco** | Baixo — só Bot WhatsApp / `fora_do_horario` · **não** mexe PDV/caixa |
