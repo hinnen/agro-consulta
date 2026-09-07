@@ -1285,29 +1285,33 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Código anti-lentidão** | ✅ já na loja **v23.23** (poll min 3 · status ~30s · ponte leve) |
 | **Bot PG loja agora** | `poll_saida_seg` = **2** (API já sobe pra 3) · sync fotos `00:00` |
 | **Você amanhã (sem deploy)** | Bot → Tempo → **Checar saída = 5** → **Salvar** |
-| **Checklist 10 min** | 1) badge **v23.23** + Ctrl+F5 · 2) `iniciar.bat` **1×** · 3) poll **5** · 4) PDV+Zap: 1 venda + 1 «teste» · 5) engasgou? só PDV / só Zap / os dois · 6) preta: `Saida pendente` / `Enviado ok` · 7) quantos PCs com Zap? |
+| **Checklist 10 min** | 1) badge **v23.24** + Ctrl+F5 · 2) `iniciar.bat` **1×** · 3) poll **5** · 4) PDV+Zap: 1 venda + 1 «teste» · 5) engasgou? só PDV / só Zap / os dois · 6) preta: `Saida pendente` / `Enviado ok` · 7) quantos PCs com Zap? |
 | **OK lentidão** | PDV normal com Zap+ponte ON |
 | **Falha** | PDV trava → fecha bat e vê se alivia |
-| **Horário por dia** | ✅ pacote `WA-HORARIO-DIA` no `teste` (não é desta lentidão; loja só com frase+senha) |
+| **Horário por dia** | ✅ **Live v23.24** (`WA-HORARIO-DIA`) |
 | **Rollback WA-ENVIO** | tag `rollback/pre-wa-envio-fromme-v23.20` · `docs/ROLLBACK-WA-ENVIO-FROMME-0609.md` · só frase+senha |
 
-### 📦 PACOTE PRONTO — Horário WA por dia (`WA-HORARIO-DIA` · 06/09)
+### ✅ Deploy loja — WA-HORARIO-DIA (`deploy/prep-wa-horario-dia-0609` · **v23.24**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Bot → Horário: **7 linhas** (Dom–Sáb) com ligado + Abre + Fecha. Fim de semana pode fechar mais cedo. Aviso fora do horário continua **um texto só**. |
-| **Tip** | `teste` **v23.25** / `00855a5` (código `c51fe30`) |
-| **Migrate** | **NÃO** — só JSON `horario_por_dia` no bot |
-| **Prova** | `python scripts/verify_wa_horario_por_dia_path.py` |
-| **Risco** | Baixo — só Bot WhatsApp / `fora_do_horario` · **não** mexe PDV/caixa |
-| **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
-| **Você** | Local: Bot → Horário → ex. Sáb Fecha 12:00 → Salvar → teste msg sábado/semana |
+| **Status** | ✅ **enviado / Live v23.24** — cherry **só** este pacote (**não** merge `teste`) |
+| **Antes** | `origin/producao` @ **v23.23** / `1b25379` |
+| **Agora** | `producao` @ **`82d2ac2`** |
+| **Pacote** | `WA-HORARIO-DIA` — Bot Horário 7 dias · `horario_por_dia` · `fora_do_horario` por dia |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_wa_horario_por_dia_path.py` **22/22** · SimpleTest **3/3** · API GET/POST bot OK (PIN 9973) |
+| **Risco loja aberta** | **Baixo** — só Bot WhatsApp · **não** mexe PDV/caixa/venda |
+| **Rollback** | tag `rollback/pre-wa-horario-dia-v23.23` · branch `producao-backup-pre-v2324-wa-horario-20260906` · `docs/ROLLBACK-WA-HORARIO-DIA-0609.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.24** · Bot → Horário → 7 linhas · Salvar · (lentidão) Tempo → poll **5** |
 
-### ✅ CHECKLIST ÚNICO — 06/09f · pronto envio
+### ~~📦 PACOTE PRONTO — Horário WA por dia~~ (`WA-HORARIO-DIA` · **Live v23.24**)
+
+### ✅ CHECKLIST ÚNICO — 06/09f · **Live v23.24**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `WA-HORARIO-DIA` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 1 | `WA-HORARIO-DIA` | ✅ **Live v23.24** | **NÃO** |
 
 ### ✅ CHECKLIST ÚNICO — 06/09e · **Live v23.20**
 
