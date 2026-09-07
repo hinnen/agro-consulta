@@ -1278,6 +1278,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Extravio após Depósito (`EXTRAVIO-APOS-DEPOSITO` · 07/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Plano **Extravio após Depósito** (tipo Outra · grupo Sócio) · Mini DRE linha própria · desconta **só no Saldo final** (igual retirada sócio, **não** corta líquido). Baixa CP com forma **Dinheiro**: checkbox **Retirar do caixa PDV** (padrão **off**) — só `MovimentoCaixa`, sem 2º título. Saída caixa no plano Extravio: **não** retira gaveta de novo (já saiu no depósito), salvo marcar a opção. |
+| **Tip** | `teste` (após push) |
+| **Migrate** | **SIM** `produtos.0127` |
+| **Prova** | `verify_extravio_apos_deposito_path.py` **20/20** |
+| **Risco** | Baixo no lucro operacional · cuidado: não marcar retirada PDV se o dinheiro já saiu no depósito |
+| **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
+| **Você** | `migrate` · CP → baixa Dinheiro (checkbox off) · Caixa → plano Extravio · Resumo Mini DRE · Ctrl+F5 |
+
 ### 📦 PACOTE PRONTO — BI rótulo OUTROS (`BI-ROTULO-OUTROS` · 07/09)
 
 | Campo | Valor |

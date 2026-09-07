@@ -36,6 +36,11 @@
       </label>
       <p id="hint-outros" class="hidden text-xs font-bold text-amber-800">No plano <strong>Outros</strong>, o motivo é obrigatório (mínimo 15 caracteres).</p>
       <p id="hint-deposito" class="hidden text-xs font-bold text-sky-900 leading-snug">Transferência do caixa para o banco — <strong>não gera lançamento</strong> em Contas a pagar. Escolha a <strong>conta de destino</strong> em forma de pagamento.</p>
+      <p id="hint-extravio" class="hidden text-xs font-bold text-rose-900 leading-snug">Extravio: dinheiro <strong>já saiu no depósito</strong>. Grava no Mini DRE (como retirada de sócio) e <strong>não</strong> tira de novo da gaveta, salvo se marcar a opção abaixo.</p>
+      <label id="wrap-extravio-retirar" class="hidden flex items-start gap-3 rounded-xl border-2 border-amber-200 bg-amber-50/80 px-3 py-3 cursor-pointer mt-2">
+        <input type="checkbox" id="cx-retirar-caixa-extravio" class="mt-1 rounded border-slate-300" autocomplete="off">
+        <span class="text-xs font-bold text-amber-950 leading-snug">Também retirar do caixa PDV <span class="block text-[10px] font-semibold text-amber-800/90 mt-0.5">Padrão desligado — só use se o dinheiro ainda estiver na gaveta.</span></span>
+      </label>
     </div>
 
     <div id="wrap-quem-saida" class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
@@ -182,11 +187,16 @@
     o.textContent = p.label;
     o.dataset.outros = p.outros ? '1' : '';
     o.dataset.somenteCaixa = p.somente_caixa ? '1' : '';
+    o.dataset.extravio = p.extravio ? '1' : '';
     selPlano.appendChild(o);
   });
   function planoEhDeposito() {
     var opt = selPlano.options[selPlano.selectedIndex];
     return opt && opt.dataset && opt.dataset.somenteCaixa === '1';
+  }
+  function planoEhExtravio() {
+    var opt = selPlano.options[selPlano.selectedIndex];
+    return opt && opt.dataset && opt.dataset.extravio === '1';
   }
   function preferirBancoDestinoDeposito() {
     var bs = document.getElementById('cx-banco');
@@ -202,21 +212,30 @@
   }
   function atualizarUiPlano() {
     var dep = planoEhDeposito();
+    var ext = !dep && planoEhExtravio();
     var opt = selPlano.options[selPlano.selectedIndex];
     var outros = opt && opt.dataset && opt.dataset.outros === '1';
     var hintOutros = document.getElementById('hint-outros');
     var hintDep = document.getElementById('hint-deposito');
+    var hintExt = document.getElementById('hint-extravio');
+    var wrapExtRet = document.getElementById('wrap-extravio-retirar');
+    var chkExtRet = document.getElementById('cx-retirar-caixa-extravio');
     var opc = document.getElementById('motivo-opc');
     var leg = document.getElementById('cx-legenda-painel');
     if (wrapQuem) wrapQuem.classList.toggle('hidden', dep);
     if (hintDep) hintDep.classList.toggle('hidden', !dep);
-    if (hintOutros) hintOutros.classList.toggle('hidden', !outros || dep);
+    if (hintExt) hintExt.classList.toggle('hidden', !ext);
+    if (wrapExtRet) wrapExtRet.classList.toggle('hidden', !ext);
+    if (chkExtRet && !ext) chkExtRet.checked = false;
+    if (hintOutros) hintOutros.classList.toggle('hidden', !outros || dep || ext);
     if (leg) {
       leg.textContent = dep
         ? 'Só desconta do turno do caixa (dinheiro). Não entra em Lançamentos — é depósito no banco.'
-        : 'Grava no financeiro (plano de conta) e, com caixa aberto, desconta do turno.';
+        : ext
+          ? 'Extravio: grava no financeiro (Mini DRE) sem tirar de novo da gaveta (já saiu no depósito).'
+          : 'Grava no financeiro (plano de conta) e, com caixa aberto, desconta do turno.';
     }
-    if (btnSalvar) btnSalvar.textContent = dep ? 'Registrar depósito' : 'Registrar retirada';
+    if (btnSalvar) btnSalvar.textContent = dep ? 'Registrar depósito' : (ext ? 'Registrar extravio' : 'Registrar retirada');
     if (outros && !dep) {
       opc.textContent = '(obrigatório · min. 15 caracteres)';
     } else {
@@ -424,6 +443,9 @@
       forma_nome: fn,
       forma_id: fid || undefined
     };
+    if (planoEhExtravio() && document.getElementById('cx-retirar-caixa-extravio') && document.getElementById('cx-retirar-caixa-extravio').checked) {
+      body.retirar_caixa_pdv = true;
+    }
     if (window.gmLoadingBar) window.gmLoadingBar.show();
     try {
       var r = await fetch(API_SAIDA, {
@@ -433,9 +455,12 @@
         body: JSON.stringify(body)
       });
       var out = await r.json();
-      if (out.ok && (out.deposito || out.movimento_caixa_id || (out.ids && out.ids.length))) {
+      if (out.ok && (out.deposito || out.movimento_caixa_id || out.sem_retirada_caixa || (out.ids && out.ids.length))) {
         limparFormularioRetirada();
         mostrarFeedbackSucesso(!!out.deposito);
+        if (out.aviso_caixa) {
+          try { alert(out.aviso_caixa); } catch (_) {}
+        }
         if (CAIXA_EMBED) notifyParentFecharAtualizar();
       } else {
         alert(out.erro || 'Não gravou.');

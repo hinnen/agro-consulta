@@ -20399,6 +20399,34 @@ def api_lancamentos_baixa(request):
     if err_resp:
         return err_resp
 
+    querer_ret_caixa = bool(payload.get("retirar_caixa_pdv"))
+    if querer_ret_caixa and despesa and _forma_pagamento_eh_dinheiro(forma_nome):
+        if not obter_sessao_caixa_aberta_request(request):
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": (
+                        "Marcou «Retirar do caixa PDV»: abra o caixa desta loja neste "
+                        "aparelho antes de confirmar a baixa."
+                    ),
+                },
+                status=400,
+            )
+        v_ret = payload.get("valor_retirada_caixa")
+        try:
+            v_chk = (
+                Decimal(str(v_ret).replace(",", ".")).quantize(Decimal("0.01"))
+                if v_ret not in (None, "")
+                else None
+            )
+        except Exception:
+            v_chk = None
+        if v_chk is None or v_chk <= 0:
+            return JsonResponse(
+                {"ok": False, "erro": "Informe o valor da retirada do caixa (saldo baixado)."},
+                status=400,
+            )
+
     from produtos.lancamentos_financeiro_pg_write_util import (
         baixar_lancamentos_pg,
         financeiro_grava_postgres,
@@ -20517,6 +20545,26 @@ def api_lancamentos_baixa(request):
         out_j["juros_id"] = juros_id
     if aviso_juros:
         out_j["aviso_juros"] = aviso_juros
+
+    # Checkbox opcional: forma Dinheiro → só MovimentoCaixa (sem 2º título no DRE).
+    querer_ret = bool(payload.get("retirar_caixa_pdv"))
+    if querer_ret and despesa and atual and _forma_pagamento_eh_dinheiro(forma_nome):
+        v_ret = payload.get("valor_retirada_caixa")
+        try:
+            v_dec = Decimal(str(v_ret).replace(",", ".")).quantize(Decimal("0.01")) if v_ret not in (None, "") else None
+        except Exception:
+            v_dec = None
+        if v_dec is not None and v_dec > 0:
+            _anexar_retirada_caixa_apos_baixa_cp(
+                request,
+                out_j,
+                despesa=True,
+                forma_nome=forma_nome,
+                valor=v_dec,
+                ids_ref=atual,
+                obs_prefix="Baixa CP total",
+            )
+
     return JsonResponse(out_j, status=http_st)
 
 
@@ -20551,6 +20599,41 @@ def api_lancamentos_baixa_parcial(request):
     usuario, err_resp = _lancamentos_operador_label(request, payload)
     if err_resp:
         return err_resp
+
+    querer_ret_parcial = bool(payload.get("retirar_caixa_pdv"))
+    valor_dinheiro_parcial = Decimal("0")
+    if querer_ret_parcial and despesa:
+        for p in parcelas:
+            if not isinstance(p, dict):
+                continue
+            fn = str(p.get("forma_pagamento") or p.get("forma") or "").strip()
+            if not _forma_pagamento_eh_dinheiro(fn):
+                continue
+            try:
+                valor_dinheiro_parcial += Decimal(str(p.get("valor") or "0").replace(",", ".")).quantize(
+                    Decimal("0.01")
+                )
+            except Exception:
+                pass
+        if valor_dinheiro_parcial <= 0:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": "Marcou retirada PDV, mas nenhuma parcela está em Dinheiro.",
+                },
+                status=400,
+            )
+        if not obter_sessao_caixa_aberta_request(request):
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": (
+                        "Marcou «Retirar do caixa PDV»: abra o caixa desta loja neste "
+                        "aparelho antes de confirmar."
+                    ),
+                },
+                status=400,
+            )
 
     from produtos.lancamentos_financeiro_pg_write_util import (
         baixar_lancamento_parcial_pg,
@@ -20632,6 +20715,25 @@ def api_lancamentos_baixa_parcial(request):
             )
         except Exception:
             logger.exception("api_lancamentos_baixa_parcial: reaplicar DataPagamento após ERP")
+
+    if querer_ret_parcial and despesa and valor_dinheiro_parcial > 0 and resultado.get("id"):
+        forma_din = "Dinheiro"
+        for p in parcelas:
+            if isinstance(p, dict) and _forma_pagamento_eh_dinheiro(
+                str(p.get("forma_pagamento") or p.get("forma") or "")
+            ):
+                forma_din = str(p.get("forma_pagamento") or p.get("forma") or "Dinheiro").strip() or "Dinheiro"
+                break
+        _anexar_retirada_caixa_apos_baixa_cp(
+            request,
+            out_j,
+            despesa=True,
+            forma_nome=forma_din,
+            valor=valor_dinheiro_parcial,
+            ids_ref=[resultado.get("id")],
+            obs_prefix="Baixa CP parcial",
+        )
+
     return JsonResponse(out_j, status=200)
 
 
@@ -20760,6 +20862,58 @@ def _anexar_retirada_turno_caixa_saida(
     except Exception:
         logger.exception("Caixa: retirada no turno após saída financeira")
         return False
+
+
+def _forma_pagamento_eh_dinheiro(nome: str) -> bool:
+    from produtos.extravio_deposito_util import forma_eh_dinheiro
+
+    return forma_eh_dinheiro(nome)
+
+
+def _anexar_retirada_caixa_apos_baixa_cp(
+    request,
+    out: dict,
+    *,
+    despesa: bool,
+    forma_nome: str,
+    valor,
+    ids_ref: list,
+    obs_prefix: str = "Baixa CP",
+) -> None:
+    """Só MovimentoCaixa — não cria segundo título (evita double-count no DRE)."""
+    if not despesa:
+        return
+    if not _forma_pagamento_eh_dinheiro(forma_nome):
+        out["aviso_caixa"] = "Retirada PDV só vale para forma Dinheiro."
+        return
+    try:
+        v = Decimal(str(valor)).quantize(Decimal("0.01"))
+    except Exception:
+        out["aviso_caixa"] = "Valor inválido para retirada do caixa."
+        return
+    if v <= 0:
+        return
+    ids_txt = ",".join(str(i) for i in (ids_ref or [])[:12])
+    obs = f"{obs_prefix} · Dinheiro · ids={ids_txt}"[:500]
+    try:
+        mov = registrar_retirada_turno_caixa(
+            request,
+            valor=v,
+            forma_nome=forma_nome or "Dinheiro",
+            observacao=obs,
+        )
+    except Exception:
+        logger.exception("Caixa: retirada após baixa CP")
+        mov = None
+    if mov:
+        out["movimento_caixa_id"] = mov.pk
+        out["retirada_caixa_ok"] = True
+    else:
+        out["retirada_caixa_ok"] = False
+        out["aviso_caixa"] = (
+            "Baixa ok no financeiro, mas não houve caixa aberto neste aparelho "
+            "para a retirada PDV. Abra o caixa e confira a gaveta."
+        )
 
 
 @login_required(login_url="/entrar/")
@@ -21140,17 +21294,31 @@ def api_lancamentos_saida_caixa(request):
         except Exception:
             logger.exception("RH: vale automático pós-saída caixa")
     if ids:
-        _anexar_retirada_turno_caixa_saida(
-            request,
-            out,
-            valor=valor,
-            forma_nome=forma_nome,
-            plano_id_req=plano_id_req,
-            plan_map=plan_map,
-            plano=plano,
-            motivo=motivo,
-            desc_linha=desc_linha,
+        from produtos.extravio_deposito_util import plano_eh_extravio_apos_deposito
+
+        # Extravio: dinheiro já saiu no depósito — não retira de novo na gaveta,
+        # salvo se o operador marcar explicitamente retirar_caixa_pdv.
+        pular_retirada = plano_eh_extravio_apos_deposito(plano) and not bool(
+            payload.get("retirar_caixa_pdv")
         )
+        if not pular_retirada:
+            _anexar_retirada_turno_caixa_saida(
+                request,
+                out,
+                valor=valor,
+                forma_nome=forma_nome,
+                plano_id_req=plano_id_req,
+                plan_map=plan_map,
+                plano=plano,
+                motivo=motivo,
+                desc_linha=desc_linha,
+            )
+        else:
+            out["sem_retirada_caixa"] = True
+            out["aviso_caixa"] = (
+                "Extravio após Depósito: lançado no financeiro (Mini DRE), "
+                "sem nova retirada na gaveta (o dinheiro já saiu no depósito)."
+            )
     return JsonResponse(out, status=st)
 
 

@@ -360,10 +360,12 @@
     var nRecNaoOp = num(c.receita_nao_operacional);
     var nAportes = num(c.aportes_socios);
     var nRet = num(c.retiradas_socios);
+    var nExt = num(c.extravio_apos_deposito);
 
     var subEntradas = [];
     if (nAportes !== 0) subEntradas.push("Aportes: " + brl(c.aportes_socios));
     if (nRet !== 0) subEntradas.push("Retiradas: " + brl(c.retiradas_socios));
+    if (nExt !== 0) subEntradas.push("Extravio: " + brl(c.extravio_apos_deposito));
 
     var rows = [];
 
@@ -801,9 +803,16 @@
         : num(c.emprestimos_entrada);
     var aportesSoc = num(c.aportes_socios);
     var retiradasSoc = num(c.retiradas_socios);
+    var extravioDep = num(c.extravio_apos_deposito);
     var liquidoTela = num(c.resultado_liquido_gerencial);
     var saldoMini =
-      liquidoTela + entradaEmp + aportesSoc - jurosEmp - empPago - retiradasSoc;
+      liquidoTela +
+      entradaEmp +
+      aportesSoc -
+      jurosEmp -
+      empPago -
+      retiradasSoc -
+      extravioDep;
     var caixaPeriodo = saldoMini;
     var refs = modo === "grupo" ? null : refKpis(visual, c);
     var rMes = refs && refs.mes;
@@ -877,7 +886,7 @@
       brl(caixaPeriodo) +
       " (líquido PDV ± empréstimos e sócios).";
     var qMini =
-      "<strong>Saldo final</strong> = líquido (PDV) + entrada empréstimo + aporte sócio − juros − empréstimo (principal) − retirada sócio.";
+      "<strong>Saldo final</strong> = líquido (PDV) + entrada empréstimo + aporte sócio − juros − empréstimo (principal) − retirada sócio − extravio após depósito.";
     var qEmp =
       modo === "grupo"
         ? "Abra uma empresa para ver empréstimos."
@@ -1125,9 +1134,18 @@
         "Retirada de sócio no período."
       ) +
       miniRow(
+        "Extravio após Depósito",
+        '<span class="' +
+          (extravioDep > 0.005 ? "rg-val--cost" : "rg-val--zero") +
+          '">' +
+          brl(extravioDep) +
+          "</span>",
+        "Dinheiro do depósito que não foi ao boleto/banco. Mesma regra da retirada de sócio: não corta o lucro líquido — só o saldo final."
+      ) +
+      miniRow(
         "Saldo final",
         '<span class="' + valCls(saldoMini) + '">' + brl(saldoMini) + "</span>",
-        "Soma da Mini DRE: líquido + entradas − juros − principal − retiradas."
+        "Soma da Mini DRE: líquido + entradas − juros − principal − retiradas − extravio."
       ) +
       "</dl></article>" +
       empHtml +

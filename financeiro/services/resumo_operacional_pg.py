@@ -158,6 +158,7 @@ def consolidar_grupo_pg(
         "amortizacao_emprestimos",
         "aportes_socios",
         "retiradas_socios",
+        "extravio_apos_deposito",
         "geracao_caixa",
         "receita_lancamentos",
         "receita_fonte",

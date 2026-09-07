@@ -327,6 +327,7 @@ _KEYS_SOMA_DRE = (
     "amortizacao_emprestimos",
     "aportes_socios",
     "retiradas_socios",
+    "extravio_apos_deposito",
     "geracao_caixa",
     "receita_lancamentos",
 )

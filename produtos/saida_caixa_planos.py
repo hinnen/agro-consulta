@@ -22,6 +22,7 @@ _SPECIAL_ID_BY_NOME: dict[str, str] = {
 _LABEL_BY_NOME: dict[str, str] = {
     "Salários": "Salários (pagamento folha)",
     "Outros (verificar)": "Outros",
+    "Extravio após Depósito": "Extravio após Depósito",
     "Combustível Demais Carros": "Combustível demais carros",
     "Compra Mercadoria SN": "Compra mercadoria SN",
     "Material de Limpeza e Conservação": "Material de limpeza e conservação",
@@ -140,5 +141,10 @@ def listar_planos_saida_caixa() -> list[dict[str, Any]]:
         }
         if sid == PLANO_OUTROS_ID:
             entry["outros"] = True
+        from produtos.extravio_deposito_util import plano_eh_extravio_apos_deposito
+
+        if plano_eh_extravio_apos_deposito(nome):
+            entry["extravio"] = True
+            entry["sem_retirada_caixa_padrao"] = True
         out.append(entry)
     return out

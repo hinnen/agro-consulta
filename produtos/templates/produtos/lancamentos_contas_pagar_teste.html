@@ -618,6 +618,10 @@
     <label><span>Data do pagamento</span><input type="date" id="sv-bx-data"></label>
     <label style="display:block;margin-top:14px;"><span>Forma de pagamento</span><select id="sv-bx-forma"></select></label>
     <label style="display:block;margin-top:14px;"><span>Conta / banco</span><select id="sv-bx-banco"></select></label>
+    <label id="sv-bx-retirar-wrap" style="display:none;margin-top:12px;align-items:flex-start;gap:10px;padding:10px;border:2px solid #fcd34d;border-radius:12px;background:#fffbeb;cursor:pointer;">
+      <input type="checkbox" id="sv-bx-retirar-caixa" style="margin-top:3px;" autocomplete="off">
+      <span style="font-size:12px;font-weight:700;color:#78350f;line-height:1.35;">Retirar do caixa PDV (gaveta)<br><span style="font-size:10px;font-weight:600;opacity:.9;">Só Dinheiro. Padrão desligado.</span></span>
+    </label>
     <label style="display:block;margin-top:14px;" id="sv-bx-juros-wrap">
       <span>Juros nesta quitação (opcional, R$)</span>
       <input type="text" id="sv-bx-juros" placeholder="0,00" inputmode="decimal">
@@ -1685,6 +1689,18 @@
         bs.appendChild(o);
       });
     } catch (_) {}
+    syncSvBxRetirar();
+  }
+
+  function syncSvBxRetirar() {
+    const wrap = document.getElementById('sv-bx-retirar-wrap');
+    const chk = document.getElementById('sv-bx-retirar-caixa');
+    const fs = document.getElementById('sv-bx-forma');
+    if (!wrap || !chk || !fs) return;
+    const f = parseOptSplit(fs.value);
+    const show = String(f.nome || '').toLowerCase().indexOf('dinheiro') >= 0;
+    wrap.style.display = show ? 'flex' : 'none';
+    if (!show) chk.checked = false;
   }
 
   function parseOptSplit(val) {
@@ -1743,7 +1759,10 @@
     }
     document.getElementById('sv-bx-data').value = hojeYmd();
     document.getElementById('sv-bx-juros').value = '';
+    const svRet = document.getElementById('sv-bx-retirar-caixa');
+    if (svRet) svRet.checked = false;
     await carregarOpcoesBaixa();
+    syncSvBxRetirar();
     abrirModal('sv-modal-baixa');
   }
 
@@ -2605,6 +2624,8 @@
     m.addEventListener('click', (e) => { /* Fundo nao fecha — so X / FECHAR / Esc */ void e; });
   });
 
+  document.getElementById('sv-bx-forma')?.addEventListener('change', syncSvBxRetirar);
+
   document.getElementById('sv-bx-ok').addEventListener('click', async () => {
     const f = parseOptSplit(document.getElementById('sv-bx-forma').value);
     const b = parseOptSplit(document.getElementById('sv-bx-banco').value);
@@ -2621,6 +2642,18 @@
       banco: b.nome,
       banco_id: b.id,
     });
+    const svRet = document.getElementById('sv-bx-retirar-caixa');
+    if (svRet && svRet.checked) {
+      const fn = String(f.nome || '').toLowerCase();
+      if (fn.indexOf('dinheiro') >= 0) {
+        let somaRet = 0;
+        (bxIdsAtual || []).forEach((id) => {
+          try { somaRet += Number(getRow(id).restante) || 0; } catch (_) {}
+        });
+        body.retirar_caixa_pdv = true;
+        body.valor_retirada_caixa = somaRet;
+      }
+    }
     const jt = (document.getElementById('sv-bx-juros').value || '').trim();
     if (jt) {
       const jn = parseValorPt(jt);
