@@ -26,6 +26,35 @@ class BotConfigPadraoTests(SimpleTestCase):
         segunda = timezone.make_aware(datetime(2026, 9, 7, 10, 0, 0))
         self.assertFalse(fora_do_horario(BOT_DEFAULT, segunda))
 
+    def test_horario_por_dia_sabado_diferente(self):
+        import copy
+
+        cfg = copy.deepcopy(BOT_DEFAULT)
+        cfg["horario_por_dia"]["6"] = {"ativo": True, "ini": "08:00", "fim": "12:00"}
+        # 2026-09-05 = sábado
+        sab_11 = timezone.make_aware(datetime(2026, 9, 5, 11, 0, 0))
+        sab_13 = timezone.make_aware(datetime(2026, 9, 5, 13, 0, 0))
+        seg_13 = timezone.make_aware(datetime(2026, 9, 7, 13, 0, 0))
+        self.assertFalse(fora_do_horario(cfg, sab_11))
+        self.assertTrue(fora_do_horario(cfg, sab_13))
+        self.assertFalse(fora_do_horario(cfg, seg_13))
+
+    def test_horario_legado_vira_por_dia(self):
+        from produtos.atendimento_whatsapp_bot_config import _merge
+
+        legado = {
+            "horario_ini": "09:00",
+            "horario_fim": "17:00",
+            "horario_dias": [1, 2, 3, 4, 5],
+        }
+        m = _merge(BOT_DEFAULT, legado)
+        self.assertFalse(m["horario_por_dia"]["0"]["ativo"])
+        self.assertFalse(m["horario_por_dia"]["6"]["ativo"])
+        self.assertTrue(m["horario_por_dia"]["1"]["ativo"])
+        self.assertEqual(m["horario_por_dia"]["1"]["ini"], "09:00")
+        self.assertEqual(m["horario_por_dia"]["1"]["fim"], "17:00")
+        self.assertEqual(m["horario_dias"], [1, 2, 3, 4, 5])
+
 
 class InterpretarLojaTests(SimpleTestCase):
     def test_centro_e_vila(self):

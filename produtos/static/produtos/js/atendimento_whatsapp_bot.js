@@ -5,13 +5,13 @@
   'use strict';
 
   var DIAS = [
+    { v: 0, n: 'Dom' },
     { v: 1, n: 'Seg' },
     { v: 2, n: 'Ter' },
     { v: 3, n: 'Qua' },
     { v: 4, n: 'Qui' },
     { v: 5, n: 'Sex' },
     { v: 6, n: 'Sáb' },
-    { v: 0, n: 'Dom' },
   ];
 
   var CHECKS = [
@@ -123,37 +123,86 @@
     box.className = 'wa-toast show ' + (ok ? 'ok' : 'bad');
   }
 
-  function montarDias(sel) {
-    var box = $('wa-bot-dias');
+  function montarHorarioPorDia(mapa) {
+    var box = $('wa-bot-horario-dias');
     if (!box) return;
     box.innerHTML = '';
-    var set = {};
-    (sel || []).forEach(function (d) {
-      set[Number(d)] = true;
-    });
+    var src = mapa && typeof mapa === 'object' ? mapa : {};
+    var temMapa = Object.keys(src).length > 0;
     DIAS.forEach(function (d) {
-      var on = !!set[d.v];
-      var lab = document.createElement('label');
-      lab.className = 'wa-chip' + (on ? ' is-on' : '');
-      lab.innerHTML =
-        '<input type="checkbox" data-dia="' +
-        d.v +
-        '"' +
-        (on ? ' checked' : '') +
+      var item = src[String(d.v)] || src[d.v] || {};
+      var temDia = !!(src[String(d.v)] || src[d.v]);
+      var ativo;
+      if (temDia && Object.prototype.hasOwnProperty.call(item, 'ativo')) {
+        ativo = !!(item.ativo === true || item.ativo === 1 || item.ativo === '1' || item.ativo === 'true');
+      } else if (temMapa) {
+        ativo = false;
+      } else {
+        ativo = d.v !== 0;
+      }
+      var ini = item.ini || '08:00';
+      var fim = item.fim || '18:00';
+      var row = document.createElement('div');
+      row.className = 'wa-horario-dia' + (ativo ? '' : ' is-off');
+      row.setAttribute('data-dia', String(d.v));
+      row.innerHTML =
+        '<label class="wa-horario-dia-nome">' +
+        '<input type="checkbox" data-hpd-ativo="1"' +
+        (ativo ? ' checked' : '') +
         ' />' +
-        d.n;
-      lab.addEventListener('change', function () {
-        var inp = lab.querySelector('input');
-        lab.classList.toggle('is-on', !!(inp && inp.checked));
-      });
-      box.appendChild(lab);
+        d.n +
+        '</label>' +
+        '<label class="wa-mini">Abre<input type="time" data-hpd-ini="1" value="' +
+        String(ini).replace(/"/g, '') +
+        '"' +
+        (ativo ? '' : ' disabled') +
+        ' /></label>' +
+        '<label class="wa-mini">Fecha<input type="time" data-hpd-fim="1" value="' +
+        String(fim).replace(/"/g, '') +
+        '"' +
+        (ativo ? '' : ' disabled') +
+        ' /></label>';
+      var chk = row.querySelector('[data-hpd-ativo]');
+      var sync = function () {
+        var on = !!(chk && chk.checked);
+        row.classList.toggle('is-off', !on);
+        row.querySelectorAll('[data-hpd-ini],[data-hpd-fim]').forEach(function (inp) {
+          inp.disabled = !on;
+        });
+      };
+      if (chk) chk.addEventListener('change', sync);
+      box.appendChild(row);
     });
+  }
+
+  function lerHorarioPorDia() {
+    var out = {};
+    document.querySelectorAll('#wa-bot-horario-dias .wa-horario-dia').forEach(function (row) {
+      var d = row.getAttribute('data-dia');
+      if (d == null) return;
+      var chk = row.querySelector('[data-hpd-ativo]');
+      var ini = row.querySelector('[data-hpd-ini]');
+      var fim = row.querySelector('[data-hpd-fim]');
+      out[String(d)] = {
+        ativo: !!(chk && chk.checked),
+        ini: (ini && ini.value) || '08:00',
+        fim: (fim && fim.value) || '18:00',
+      };
+    });
+    return out;
+  }
+
+  function montarDias(sel) {
+    /* legado: mantido vazio — dias vêm de horario_por_dia */
+    var box = $('wa-bot-dias');
+    if (box) box.innerHTML = '';
   }
 
   function lerDias() {
     var out = [];
-    document.querySelectorAll('#wa-bot-dias [data-dia]').forEach(function (el) {
-      if (el.checked) out.push(parseInt(el.getAttribute('data-dia'), 10));
+    var mapa = lerHorarioPorDia();
+    Object.keys(mapa).forEach(function (k) {
+      if (mapa[k] && mapa[k].ativo) out.push(parseInt(k, 10));
     });
     return out;
   }
@@ -208,8 +257,6 @@
       'saudacao_midia_url',
       'arquivo_auto_horas_silencio',
       'arquivo_auto_apos_ok_horas',
-      'horario_ini',
-      'horario_fim',
       'ordem',
       'msg_boas_vindas',
       'msg_menu',
@@ -248,7 +295,7 @@
       var el = f.querySelector('[name="' + k + '"]');
       if (el && bot[k] != null) el.value = bot[k];
     });
-    montarDias(bot.horario_dias || []);
+    montarHorarioPorDia(bot.horario_por_dia || {});
     montarFontes(bot.nome_fontes || '');
   }
 
@@ -266,6 +313,7 @@
       if (el.type === 'number') o[n] = parseInt(el.value || '0', 10);
       else o[n] = el.value;
     });
+    o.horario_por_dia = lerHorarioPorDia();
     o.horario_dias = lerDias();
     o.nome_fontes = lerFontes();
     o.loja1_id = 'centro';
@@ -298,7 +346,7 @@
   var f = form();
   if (!f) return;
   montarRecursos();
-  montarDias([1, 2, 3, 4, 5, 6]);
+  montarHorarioPorDia({});
   carregar();
   f.addEventListener('submit', function (ev) {
     ev.preventDefault();
