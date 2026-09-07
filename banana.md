@@ -396,7 +396,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - VersÃ£o do commit no Render (nÃ£o hardcoded).
 - Card **Validade** destaca vermelho se produto vencido.
 - Card **Lucro LÃ­quido** (no lugar de Novos Clientes): vencimento Â· bruto + pago Â· mesmo DRE do Resumo.
-- **Resumo — fatia OUTROS (07/09):** no donut/KPIs, o bucket interno \despesas_financeiras\ aparece como **OUTROS** (não «Financeiras») — ativo / tarifa / «a conferir»; juro e pagamento de empréstimo ficam fora.
+- **Resumo — fatia OUTROS (07/09):** no donut/KPIs, o bucket interno `despesas_financeiras` aparece como **OUTROS** (não «Financeiras») — ativo / tarifa / «a conferir»; juro e pagamento de empréstimo ficam fora.
 - **Filtro Números** (10/08): **Centro + Vila** (padrão) · Centro · Vila — independente do seletor PDV (Centro/Vila do caixa).
 - **Meta C / média base (29/08):** mesma fórmula do Centro (3 meses + dia da semana + ocorrência). **Vila** ignora dias antes de **20/07/2026**. **Centro + Vila** = **soma** das metas. BI passa filtro Números na série compare. Prova: `scripts/verify_meta_c_vila_abertura.py`.
 - **Card Validade BI (18/08):** vencidos / no mês / conferir **iguais** nas 3 opções do filtro Números (contagem empresa); clique **Conferir vencidos** abre relatório **Todas + vencidos**. Baixa por loja = passo 2 pendente.
