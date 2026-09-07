@@ -70,7 +70,7 @@
       </div>
     </div>
     {% elif kpi.variant == "lucro_liquido_duplo" %}
-    <a href="{% url 'resumo_financeiro_gerencial' %}" class="block focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 rounded-lg -m-1 p-1 hover:opacity-95 min-w-0" title="Abrir Resumo gerencial">
+    <button type="button" onclick="dashLaunchpadAbrir('Resumo gerencial', '{% url 'resumo_financeiro_gerencial' %}', 'pie-chart')" class="block w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 rounded-lg -m-1 p-1 hover:opacity-95 min-w-0 cursor-pointer" title="Abrir Resumo gerencial">
       <div class="rounded-lg border border-slate-200 bg-white/80 p-2 min-w-0">
         <div class="dash-kpi-ticket-grid dash-kpi-liq-grid">
           <div class="dash-kpi-ticket-row">
@@ -83,7 +83,7 @@
           </div>
         </div>
       </div>
-    </a>
+    </button>
     {% elif kpi.variant == "validade_duplo" %}
     <a href="{{ relatorios_validade_url }}" class="block cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg -m-1 p-1 hover:opacity-95 min-w-0" title="{% if kpi.vencidos > 0 %}Há produto(s) vencido(s) com saldo — clique para conferir{% elif kpi.vencidos_conferir > 0 %}Há vencido(s) sem saldo no sistema — conferir na prateleira{% else %}Abrir relatório de validade{% endif %}">
       <div class="grid grid-cols-2 gap-1.5 min-w-0">

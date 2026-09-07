@@ -1239,7 +1239,8 @@ function dashLaunchpadAbrir(titulo, url, icone) {
     }
 }
 
-(function wireLancamentosInAppFromBi() {
+(function wireDashLinksToInAppTabs() {
+    /** Qualquer link saindo do Dashboard no iframe → aba lateral (nunca navegar o iframe do BI). */
     function openInShellTab(href) {
         try {
             if (window.parent !== window) {
@@ -1252,15 +1253,26 @@ function dashLaunchpadAbrir(titulo, url, icone) {
         } catch (_) {}
         return false;
     }
+    function pathIsDashboard(p) {
+        var s = String(p || "").toLowerCase().replace(/\/+$/, "") || "/";
+        if (s === "/" || s === "/atalhos") return true;
+        if (s === "/dashboard/gerencial" || s.indexOf("/dashboard/gerencial/") === 0) return true;
+        return false;
+    }
     document.addEventListener("click", function (e) {
         var a = e.target && e.target.closest && e.target.closest("a[href]");
         if (!a) return;
+        if (a.hasAttribute("download")) return;
+        var tgt = String(a.getAttribute("target") || "").toLowerCase();
+        if (tgt === "_blank" || tgt === "_top") return;
         try {
             var u = new URL(a.href, window.location.origin);
             if (u.origin !== window.location.origin) return;
-            if (u.pathname.indexOf("/lancamentos/contas-pagar") !== 0) return;
-            if (!openInShellTab(u.pathname + u.search)) return;
+            if (u.protocol !== "http:" && u.protocol !== "https:") return;
+            if (pathIsDashboard(u.pathname)) return;
+            if (!openInShellTab(u.pathname + u.search + u.hash)) return;
             e.preventDefault();
+            e.stopPropagation();
         } catch (_) {}
     }, true);
 })();
