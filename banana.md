@@ -1278,29 +1278,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Extravio após Depósito (`EXTRAVIO-APOS-DEPOSITO` · 07/09)
+### ✅ Deploy loja — EXTRAVIO + OUTROS (`deploy/prep-extravio-0709` · **v23.32**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Plano **Extravio após Depósito** (tipo Outra · grupo Sócio) · Mini DRE linha própria · desconta **só no Saldo final** (igual retirada sócio, **não** corta líquido). Baixa CP com forma **Dinheiro**: checkbox **Retirar do caixa PDV** (padrão **off**) — só `MovimentoCaixa`, sem 2º título. Saída caixa no plano Extravio: **não** retira gaveta de novo (já saiu no depósito), salvo marcar a opção. |
-| **Tip** | `teste` **v23.32** @ `152fdd4` |
-| **Migrate** | **SIM** `produtos.0127` |
-| **Prova** | `verify_extravio_apos_deposito_path.py` **20/20** |
-| **Risco** | Baixo no lucro operacional · cuidado: não marcar retirada PDV se o dinheiro já saiu no depósito |
-| **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
-| **Você** | `migrate` · CP → baixa Dinheiro (checkbox off) · Caixa → plano Extravio · Resumo Mini DRE · Ctrl+F5 |
+| **Status** | ✅ **enviado / Live v23.32** — cherry **só** `BI-ROTULO-OUTROS` + `EXTRAVIO-APOS-DEPOSITO` (**não** merge `teste`) |
+| **Antes** | `origin/producao` @ **v23.25** / `849f9e0` |
+| **Agora** | `producao` @ **`2f5206f`** |
+| **Pacotes** | rótulo **OUTROS** · plano **Extravio após Depósito** · Mini DRE · checkbox Dinheiro (default off) · saída Extravio sem 2ª retirada |
+| **Migrate** | **SIM** `produtos.0127` (build Render) |
+| **Prova** | path **20/20** · deep **42/42** · check OK · loja JS OUTROS+Extravio · healthz **200** |
+| **Risco loja aberta** | **Baixo** — não mexe finalizar venda · extravio não corta lucro operacional |
+| **Rollback** | tag `rollback/pre-extravio-outros-v23.25` · branch `producao-backup-pre-v2332-extravio-20260907` · `docs/ROLLBACK-EXTRAVIO-OUTROS-0709.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.32** · Resumo OUTROS + Mini DRE Extravio · CP Dinheiro checkbox off · Caixa plano Extravio |
 
-### 📦 PACOTE PRONTO — BI rótulo OUTROS (`BI-ROTULO-OUTROS` · 07/09)
+### ~~📦 PACOTE PRONTO — Extravio após Depósito~~ (`EXTRAVIO-APOS-DEPOSITO` · **Live v23.32**)
 
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | No Resumo gerencial, o fatia que era «Financeiras / Despesas financeiras» passa a chamar **OUTROS** (mesmo cálculo: ativo, tarifa, «Outros verificar» — sem juro/pagamento de empréstimo). |
-| **Tip** | `teste` **v23.31** @ `b0ae830` |
-| **Migrate** | **NÃO** |
-| **Arquivos** | `static/js/agro_resumo_gerencial.js` · `financeiro/services/dre_visual_util.py` |
-| **Risco** | Nenhum no número — só nome na tela |
-| **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
-| **Você** | Local → Resumo → Ctrl+F5 → legenda do donut = **OUTROS** |
+### ~~📦 PACOTE PRONTO — BI rótulo OUTROS~~ (`BI-ROTULO-OUTROS` · **Live v23.32**)
 
 ### ✅ Deploy loja — WA-BOT-SALVAR (`deploy/prep-wa-bot-salvar-0709` · **v23.25**) · **Live**
 
