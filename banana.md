@@ -1286,18 +1286,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | `WA-PC-ICON` | ✅ **Live v23.38** | **NÃO** | 11/11 |
 | 2 | `EXTRAVIO-CONFERENCIA-AUTO` | ✅ **Live v23.38** | **NÃO** | 23/23 |
 | 3 | `DRE-NO-DASH-OVERLAY` | ✅ **Live v23.38** | **NÃO** | 9+33 |
-| 4 | `WA-UI-POLL-LEVE` | 🟢 **pronto para envio** (v23.40) | **NÃO** | **48/48** |
+| 4 | `WA-UI-POLL-LEVE` | 🟢 **pronto para envio** (v23.42) | **NÃO** | **48/48** |
 
-**Loja:** **v23.38**. **Falta subir:** só `#4`. Tip `teste` **v23.40**. Cherry só este + frase + senha — **não** merge `teste`.
+**Loja:** **v23.38**. **Falta subir:** só `#4`. Tip `teste` **v23.42**. Cherry só este + frase + senha — **não** merge `teste`.
 
-### 📦 PACOTE PRONTO — Poll Zap leve (`WA-UI-POLL-LEVE` · 07/09 · **v23.40**)
+### 📦 PACOTE PRONTO — Poll Zap leve (`WA-UI-POLL-LEVE` · 07/09 · **v23.42**)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Zap não engasga PDV (poll leve; PDV na frente = ainda mais leve) |
 | **Prova** | `verify_wa_ui_poll_leve_path.py` **48/48** (path · sim 60s · PIN 9973 · HTTP static) |
 | **Carga 60s** | antigo ~50 → foco 25 → PDV na frente **7** |
-| **Tip** | **v23.40** @ `14d4f68` |
+| **Tip** | **v23.42** (poll `b398f35` · prova `14d4f68`) |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** |
 | **Você** | Ctrl+F5 Zap · Zap aberto + vender · Bot poll **5** |
@@ -1315,7 +1315,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova pré** | DRE **9+33** · Extravio **23/23** · Zap ícone **11/11** · `check` OK |
 | **Risco PDV** | **Baixo** — não mexe finalizar venda |
 | **Rollback** | `rollback/pre-checklist-0709-v23.34` · `producao-backup-pre-v2338-checklist-20260907` · `docs/ROLLBACK-CHECKLIST-0709.md` · **só** frase+senha |
-| **Fora deste lote** | `WA-UI-POLL-LEVE` (ainda **pronto para envio**, tip v23.39) |
+| **Fora deste lote** | `WA-UI-POLL-LEVE` (ainda **pronto para envio**, tip v23.40) |
 | **Você** | Ctrl+F5 · badge **v23.38** · F8 = 1 aba DRE · CP baixa só BANCO/DINHEIRO · Extravio no Resumo · Zap: reinstalar ícone se preciso |
 
 ### ✅ PACOTE — DRE não em cima do Dashboard (`DRE-NO-DASH-OVERLAY` · 07/09) · **Live v23.38**
