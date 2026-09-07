@@ -1279,14 +1279,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — 07/09 · pronto envio (tip **v23.36**)
+### ✅ CHECKLIST ÚNICO — 07/09 · pronto envio (tip **v23.37**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | `WA-PC-ICON` | 🟢 **pronto para envio à produção** | **NÃO** |
 | 2 | `EXTRAVIO-CONFERENCIA-AUTO` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 3 | `DRE-NO-DASH-OVERLAY` | 🟢 **pronto para envio à produção** | **NÃO** |
 
 **Loja agora:** **v23.34**. Subir **só** com frase + senha (cherry por pacote — **não** merge `teste`).
+
+### 📦 PACOTE PRONTO — DRE não em cima do Dashboard (`DRE-NO-DASH-OVERLAY` · 07/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Abrir DRE/Resumo **só em aba**. Link do card Lucro e links do BI **não** navegam o iframe do Dashboard. `openGestao` não troca a URL da janela Gestão pelo DRE. |
+| **Onde** | `agro_dual_window.js` · `dashboard_gerencial.html` · `dashboard_gerencial_body.html` |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_dre_nao_sobre_dashboard_path.py` **9/9** |
+| **Tip** | `teste` **v23.37** @ `b8bb0f2` |
+| **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
+| **Você** | Ctrl+F5 Gestão · F8 / card Lucro → **1 aba** · Dashboard continua Dashboard |
 
 ### 📦 PACOTE PRONTO — Ícone Zap S (`WA-PC-ICON` · 07/09)
 
