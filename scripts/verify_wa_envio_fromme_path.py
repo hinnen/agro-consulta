@@ -64,6 +64,8 @@ def prova_estatico() -> None:
     check("enviarEntrada(m, { historico: false })" in trecho, "notify chama enviarEntrada")
     check("Saida pendente:" in bridge, "bridge log saida pendente")
     check("Enviado ok:" in bridge, "bridge log enviado ok")
+    check("function destinosEnvio" in bridge, "bridge destinosEnvio lid+phone")
+    check("envio falhou ->" in bridge, "bridge log falha destino")
 
     js = read("produtos/static/produtos/js/atendimento_whatsapp.js")
     check("function dispararTextoComposer" in js, "JS dispararTextoComposer")

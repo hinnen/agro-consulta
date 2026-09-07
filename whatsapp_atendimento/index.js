@@ -1297,6 +1297,24 @@ function jidParaEnvio(item) {
   return lidDePhone(raw) || raw;
 }
 
+/** Lista de destinos: tenta @lid e telefone (Bad MAC / sessão torta às vezes só em um). */
+function destinosEnvio(item) {
+  const raw = String((item && item.jid) || "");
+  const lidItem = String((item && item.jid_lid) || "");
+  const phone = jidPhoneDeValor(raw) || (raw.endsWith("@s.whatsapp.net") ? raw : "");
+  const lid = (lidItem.endsWith("@lid") ? lidItem : "") || (raw.endsWith("@lid") ? raw : "") || lidDePhone(phone || raw);
+  const out = [];
+  const push = (j) => {
+    const s = String(j || "").trim();
+    if (!s || out.includes(s)) return;
+    out.push(s);
+  };
+  push(lid);
+  push(phone);
+  push(raw);
+  return out.length ? out : [jidParaEnvio(item)].filter(Boolean);
+}
+
 async function audioParaZap(buf, mime) {
   const m = String(mime || "").toLowerCase();
   const bin = typeof ffmpegStatic === "string" && ffmpegStatic ? ffmpegStatic : "ffmpeg";
@@ -1386,17 +1404,26 @@ async function audioParaZap(buf, mime) {
   }
 }
 
-async function enviarComRetry(jid, content) {
+async function enviarComRetry(jidOrList, content) {
+  const destinos = Array.isArray(jidOrList)
+    ? jidOrList.filter(Boolean)
+    : [jidOrList].filter(Boolean);
+  if (!destinos.length) throw new Error("sem destino jid");
   let last = null;
-  for (let i = 0; i < 3; i++) {
-    try {
-      return await sock.sendMessage(jid, content);
-    } catch (e) {
-      last = e;
-      await new Promise((r) => setTimeout(r, 400 * (i + 1)));
+  for (const jid of destinos) {
+    for (let i = 0; i < 2; i++) {
+      try {
+        const sent = await sock.sendMessage(jid, content);
+        if (destinos.length > 1) console.log("envio ok via", jid);
+        return sent;
+      } catch (e) {
+        last = e;
+        console.error("envio falhou ->", jid, String(e.message || e).slice(0, 120));
+        await new Promise((r) => setTimeout(r, 350 * (i + 1)));
+      }
     }
   }
-  throw last;
+  throw last || new Error("envio falhou");
 }
 
 async function enviarAudioZap(dest, aud) {
@@ -1465,8 +1492,8 @@ async function puxarSaida() {
             if (!aud.ok) {
               throw new Error("Conversão de áudio falhou: " + (aud.erro || "ffmpeg"));
             }
-            const dest = jidParaEnvio(item);
-            console.log("enviando audio ->", dest, "bytes", aud.buf.length, "s", aud.seconds);
+            const dest = destinosEnvio(item);
+            console.log("enviando audio ->", dest.join("|"), "bytes", aud.buf.length, "s", aud.seconds);
             const sent = await enviarAudioZap(dest, aud);
             const waId = sent && sent.key && sent.key.id;
             await post("/api/atendimento-whatsapp/bridge/saida-ok/", {
@@ -1495,7 +1522,7 @@ async function puxarSaida() {
             chave = txt.trim();
             intro = "Chave Pix";
           }
-          const dest = jidParaEnvio(item);
+          const dest = destinosEnvio(item);
           const corpo =
             (intro || "Chave Pix") +
             (chave ? "\n\n" + chave : "");
@@ -1516,9 +1543,10 @@ async function puxarSaida() {
           }
           content = { text: txt };
         }
-        const sent = await enviarComRetry(jidParaEnvio(item), content);
+        const dest = destinosEnvio(item);
+        const sent = await enviarComRetry(dest, content);
         const waId = sent && sent.key && sent.key.id;
-        console.log("Enviado ok:", item.id, "->", jidParaEnvio(item), waId || "");
+        console.log("Enviado ok:", item.id, "->", dest.join("|"), waId || "");
         await post("/api/atendimento-whatsapp/bridge/saida-ok/", {
           ids: [item.id],
           wa_id: waId || "",
