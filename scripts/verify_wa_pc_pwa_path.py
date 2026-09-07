@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""WA-PC-PWA — prova: Zap web instalável no Chrome (PC)."""
+"""WA-PC-PWA — prova: Zap web instalável no Chrome (PC) fora da Gestão."""
 from __future__ import annotations
 
 import os
@@ -40,6 +40,7 @@ def main() -> int:
     urls = read("produtos/urls.py")
     views = read("produtos/views_atendimento_whatsapp.py")
     html = read("produtos/templates/produtos/atendimento_whatsapp.html")
+    dual = read("produtos/static/produtos/js/agro_dual_window.js")
 
     check("atendimento_whatsapp_pc_manifest" in urls, "url manifest PC")
     check("atendimento-whatsapp/manifest.webmanifest" in urls, "path manifest PC")
@@ -54,11 +55,21 @@ def main() -> int:
     check("wa-pwa-instalar" in html, "botao Instalar no PC")
     check("beforeinstallprompt" in html, "beforeinstallprompt")
     check("atendimento_whatsapp_pc_sw" in html, "html register SW")
+    check("window.top !== window.self" in html, "html sai do iframe Gestao")
+    check("dentro da Gestão" in html or "aba da Gestão" in html, "dica fora da Gestao")
     check((ROOT / "produtos/static/produtos/pwa/zap-loja-192.png").is_file(), "icon 192")
     check((ROOT / "produtos/static/produtos/pwa/zap-loja-512.png").is_file(), "icon 512")
-    # celular continua intacto
     check("atendimento_whatsapp_celular_manifest" in urls, "celular manifest ainda existe")
     check("atendimento_whatsapp_celular_sw" in views, "celular sw ainda existe")
+    check("isWhatsAppPcPath" in dual, "dual isWhatsAppPcPath")
+    check("isWhatsAppStandalonePath" in dual, "dual isWhatsAppStandalonePath")
+    check("openWhatsAppPcStandalone" in dual, "dual openWhatsAppPcStandalone")
+    check("SistValeZap" in dual, "dual janela SistValeZap")
+    check(
+        "if (isWhatsAppStandalonePath()) return false;" in dual
+        or "if (isWhatsAppStandalonePath()) {\n    return false;" in dual,
+        "dual isGestaoHost ignora Zap",
+    )
 
     print("---")
     print(f"OK={OKS} FAIL={len(FAILS)}")

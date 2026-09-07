@@ -41,6 +41,18 @@
     return p === '/atendimento-whatsapp/celular' || p.indexOf('/atendimento-whatsapp/celular/') === 0;
   }
 
+  /** Zap web no PC (não celular, não Bot). */
+  function isWhatsAppPcPath(p) {
+    p = pathnameNorm(p);
+    if (isWhatsAppCelularPath(p)) return false;
+    if (p === '/atendimento-whatsapp/bot' || p.indexOf('/atendimento-whatsapp/bot/') === 0) return false;
+    return p === '/atendimento-whatsapp' || p.indexOf('/atendimento-whatsapp/') === 0;
+  }
+
+  function isWhatsAppStandalonePath(p) {
+    return isWhatsAppCelularPath(p) || isWhatsAppPcPath(p);
+  }
+
   function openWhatsAppCelularStandalone(href) {
     var url = absUrl(href);
     try {
@@ -48,6 +60,60 @@
     } catch (_) {
       window.location.assign(url);
     }
+  }
+
+  /**
+   * Zap PC: janela própria (não aba da Gestão).
+   * Sem isso, «Instalar app» cai dentro do SisVale Gestão já instalado.
+   */
+  function openWhatsAppPcStandalone(href) {
+    var url = absUrl(href);
+    if (inEmbed()) {
+      try {
+        (window.top || window).location.assign(url);
+      } catch (_) {
+        window.location.assign(url);
+      }
+      return;
+    }
+    if (isWhatsAppPcPath() && window.top === window.self) {
+      try {
+        var cur = String(location.href || '').split('#')[0];
+        var want = String(url || '').split('#')[0];
+        if (cur !== want) window.location.assign(url);
+      } catch (_) {}
+      return;
+    }
+    var w = null;
+    try {
+      w = window.open(url, 'SistValeZap');
+    } catch (_) {
+      w = null;
+    }
+    if (w && !w.closed) {
+      try {
+        w.focus();
+      } catch (_) {}
+      return;
+    }
+    try {
+      window.location.assign(url);
+    } catch (_) {}
+  }
+
+  function openWhatsAppStandalone(href) {
+    var url = absUrl(href);
+    var p = '';
+    try {
+      p = pathnameNorm(new URL(url, window.location.origin).pathname);
+    } catch (_) {
+      p = '';
+    }
+    if (isWhatsAppCelularPath(p)) {
+      openWhatsAppCelularStandalone(url);
+      return;
+    }
+    openWhatsAppPcStandalone(url);
   }
 
   function isGestaoShellPath(p) {
@@ -121,6 +187,10 @@
     var role = '';
     try {
       var q = new URLSearchParams(window.location.search || '');
+      if (isWhatsAppStandalonePath()) {
+        // Zap (PC/celular) não herda papel Gestão — senão o app instalado vira aba da Gestão.
+        return '';
+      }
       if (inPdvOverlayFrame() || (inEmbed() && q.get('agro_pdv_overlay') === '1')) {
         // Consultas no overlay do balcão — sempre extensão do PDV (não herdar gestão do localStorage).
         role = 'pdv';
@@ -280,8 +350,8 @@
     } catch (_) {
       navPath = '';
     }
-    if (isWhatsAppCelularPath(navPath)) {
-      openWhatsAppCelularStandalone(url);
+    if (isWhatsAppStandalonePath(navPath)) {
+      openWhatsAppStandalone(url);
       return;
     }
     if (inEmbed()) {
@@ -396,13 +466,15 @@
   }
 
   function isGestaoHost() {
+    if (isWhatsAppStandalonePath()) return false;
     if (window.name === GESTAO_NAME) return true;
     if (readAppRole() === 'gestao' && !inEmbed()) return true;
-    return dualFlagOn() && !isPdvPath() && !inEmbed();
+    return dualFlagOn() && !isPdvPath() && !inEmbed() && !isWhatsAppStandalonePath();
   }
 
   /** Gestão (atalho ou shell) — inclui BI dentro do iframe com agro_inapp_embed. */
   function isGestaoContext() {
+    if (isWhatsAppStandalonePath()) return false;
     if (isPdvHost()) return false;
     if (inPdvOverlayFrame()) return false;
     if (readAppRole() === 'gestao') return true;
@@ -430,7 +502,7 @@
   function shouldOpenInPdvOverlay(pathname) {
     if (!shouldRoutePdvLinkToGestao(pathname)) return false;
     if (isGestaoShellPath(pathname)) return false;
-    if (isWhatsAppCelularPath(pathname)) return false;
+    if (isWhatsAppStandalonePath(pathname)) return false;
     return true;
   }
 
@@ -470,6 +542,16 @@
       window.focus();
     } catch (_) {}
     if (data.url) {
+      var focusPath = '';
+      try {
+        focusPath = pathnameNorm(new URL(data.url, window.location.origin).pathname);
+      } catch (_) {
+        focusPath = '';
+      }
+      if (isWhatsAppStandalonePath(focusPath)) {
+        openWhatsAppStandalone(data.url);
+        return;
+      }
       if (typeof window.__agroInAppAddTab === 'function') {
         window.__agroInAppAddTab(data.url);
       } else {
@@ -530,8 +612,8 @@
           var u = new URL(a.href, window.location.origin);
           if (u.origin !== location.origin) return;
           e.preventDefault();
-          if (isWhatsAppCelularPath(u.pathname)) {
-            openWhatsAppCelularStandalone(u.href);
+          if (isWhatsAppStandalonePath(u.pathname)) {
+            openWhatsAppStandalone(u.href);
             return;
           }
           if (isPdvPath(u.pathname)) {
@@ -561,8 +643,8 @@
       } catch (_) {
         p = '';
       }
-      if (isWhatsAppCelularPath(p)) {
-        openWhatsAppCelularStandalone(u);
+      if (isWhatsAppStandalonePath(p)) {
+        openWhatsAppStandalone(u);
         return;
       }
       if (inEmbed()) {
@@ -617,10 +699,10 @@
         try {
           var u = new URL(a.href, window.location.origin);
           if (u.origin !== location.origin) return;
-          if (isWhatsAppCelularPath(u.pathname)) {
+          if (isWhatsAppStandalonePath(u.pathname)) {
             e.preventDefault();
             e.stopPropagation();
-            openWhatsAppCelularStandalone(u.href);
+            openWhatsAppStandalone(u.href);
             return;
           }
           if (!shouldRoutePdvLinkToGestao(u.pathname)) return;
@@ -654,8 +736,8 @@
             } catch (_) {
               msgPath = '';
             }
-            if (isWhatsAppCelularPath(msgPath)) {
-              openWhatsAppCelularStandalone(d.href);
+            if (isWhatsAppStandalonePath(msgPath)) {
+              openWhatsAppStandalone(d.href);
               return;
             }
             if (window.AgroPdvOverlay && window.AgroPdvOverlay.isOpen && window.AgroPdvOverlay.isOpen()) {
@@ -685,7 +767,30 @@
     if (!isStandaloneApp() && readAppRole() !== 'pdv') return;
     if (!isPdvHost()) return;
     if (isPdvPath()) return;
-    if (isWhatsAppCelularPath()) return;
+    if (isWhatsAppStandalonePath()) {
+      var zapHere = '';
+      try {
+        zapHere = String(location.href || '').split('#')[0] || absUrl('/atendimento-whatsapp/');
+      } catch (_) {
+        zapHere = absUrl('/atendimento-whatsapp/');
+      }
+      try {
+        var zw = window.open(zapHere, 'SistValeZap');
+        if (zw && !zw.closed) {
+          try {
+            zw.focus();
+          } catch (_) {}
+        }
+      } catch (_) {}
+      try {
+        location.replace(pdvUrl('/pdv/?agro_dual=1&agro_app_role=pdv'));
+      } catch (_) {
+        try {
+          location.href = pdvUrl('/pdv/?agro_dual=1&agro_app_role=pdv');
+        } catch (_) {}
+      }
+      return;
+    }
     var here = '';
     try {
       here = String(location.href || '').split('#')[0];
@@ -727,6 +832,9 @@
     isGestaoHost: isGestaoHost,
     isGestaoContext: isGestaoContext,
     isPdvPath: isPdvPath,
+    isWhatsAppPcPath: isWhatsAppPcPath,
+    isWhatsAppStandalonePath: isWhatsAppStandalonePath,
+    openWhatsAppStandalone: openWhatsAppStandalone,
     inEmbed: inEmbed,
     isStandaloneApp: isStandaloneApp,
     openPdv: openPdv,
