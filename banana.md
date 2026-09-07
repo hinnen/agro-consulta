@@ -1298,23 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- |
 | 1 | `WA-ENVIO-FROMME` | ✅ **Live v23.23** | **NÃO** |
 
-**Loja agora:** Live **v23.23**. Excel / resto do `teste` **fora**.
-
-### ✅ CHECKLIST ÚNICO — 06/09e · **Live v23.20**
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | `TAREFAS-PRIORIDADE` | ✅ **Live v23.20** | **SIM** `0004` |
-
-**Já Live:** `VL-HUB-TAREFAS` **v23.18** · `TAREFAS-UI-STATUS` **v23.19** · `TAREFAS-PRIORIDADE` **v23.20** · `WA-ENVIO-FROMME` **v23.23**.
-
-### ~~✅ CHECKLIST ÚNICO — 06/09e · **Live v23.20**~~ · **ver 06/09f**
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | `TAREFAS-PRIORIDADE` | ✅ **Live v23.20** | **SIM** `0004` |
-
-**Loja agora:** Live **v23.20**. Excel / WA extra / resto do `teste` **fora**.
+**Loja agora:** Live **v23.23**. Já Live antes: Tarefas **v23.18–v23.20**. Excel / resto do `teste` **fora**.
 
 ### ✅ Deploy loja — TAREFAS-UI-STATUS (`deploy/prep-tarefas-ui-status-0609` · **v23.19**) · **Live**
 
