@@ -316,13 +316,32 @@
 
   function openGestao(url) {
     var href = url ? absUrl(url) : gestaoUrl();
+    var deepPath = '';
+    try {
+      deepPath = pathnameNorm(new URL(href, window.location.origin).pathname);
+    } catch (_) {
+      deepPath = '';
+    }
+    // Nunca navegar a janela Gestão para DRE/CP/etc. — só shell + aba interna.
+    var shellHref = gestaoUrl();
+    var deepHref = href;
+    if (!deepPath || isGestaoShellPath(deepPath)) {
+      deepHref = '';
+    }
     if (isGestaoHost()) {
       try {
         window.focus();
       } catch (_) {}
+      if (deepHref && typeof window.__agroInAppAddTab === 'function') {
+        window.__agroInAppAddTab(deepHref);
+      }
       return null;
     }
-    pulseGestaoFocus(href);
+    if (deepHref) {
+      pulseGestaoFocus(deepHref);
+    } else {
+      pulseGestaoFocus(shellHref);
+    }
     if (appShortcutMode()) {
       window.setTimeout(function () {
         if (!peerRecentlyAlive(HEARTBEAT_GESTAO_KEY)) {
@@ -335,9 +354,13 @@
       }, 450);
       return null;
     }
-    var w = openNamed(GESTAO_NAME, href);
+    // Focar janela existente sem trocar a URL (evita DRE “em cima” do BI).
+    var w = openNamed(GESTAO_NAME, '');
+    if (!w || w.closed) {
+      w = openNamed(GESTAO_NAME, shellHref);
+    }
     if ((!w || w.closed) && !isPdvHost()) {
-      window.location.href = href;
+      window.location.href = shellHref;
     }
     return w;
   }
@@ -810,6 +833,19 @@
     }
   }
 
+  function bootGestaoPendingFocus() {
+    if (inEmbed()) return;
+    if (readAppRole() !== 'gestao' && !isGestaoHost()) return;
+    try {
+      var raw = localStorage.getItem(FOCUS_GESTAO_KEY);
+      if (!raw) return;
+      var data = JSON.parse(raw);
+      window.setTimeout(function () {
+        applyGestaoFocus(data);
+      }, 400);
+    } catch (_) {}
+  }
+
   readAppRole();
   assignWindowName();
   installCrossAppFocusListeners();
@@ -820,6 +856,9 @@
   installGestaoAppGuard();
   try {
     healPdvAppOutOfScope();
+  } catch (_) {}
+  try {
+    bootGestaoPendingFocus();
   } catch (_) {}
 
   window.AgroDualWindow = {
