@@ -1335,15 +1335,34 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Depois** | Na loja: Trocar Zap de volta pro **3389** |
 | **Status** | auth limpa; aguarda QR do 1403 |
 
-### WIP — Zap recebe / não envia + lento (06/09 noite)
+### 📦 PACOTE PRONTO — Zap envia (eco celular + UI) (`WA-ENVIO-FROMME` · **v23.18** · 06/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Diagnóstico** | Ponte **conectado** no **1403** · 24h: **2 in / 1 bot / 0 out** · **zero** `POST /enviar/` no Render · Bot **poll=2s** (engasga PDV) · UI puxava **status ~40kb a cada 5s** |
-| **Código (`teste`)** | **v23.17** @ `09fbb4d` — Status poll **30s** · poll saída mínimo **3s** · ponte não trava msg vazia/mídia vazia sem `saida-ok` · alerta se enviar sem chat aberto |
-| **Você agora (sem deploy)** | Bot → Tempo → **Checar saída = 5** → Salvar · fechar/abrir `iniciar.bat` · **Ctrl+F5** no Zap · abrir chat → digitar → Enviar · se aparecer alerta, me manda o texto |
-| **Loja** | Correção UI/ponte ainda **só no teste** — sobe loja só com frase+senha |
-| **Status** | aguarda teste Renan + se quer subir pacote |
+| **O quê** | Ponte **parava** msg mandada do celular (`fromMe`) → tela só recebia. Agora eco do celular entra. UI: Enviar por clique/Enter + CSRF legível. Log na preta: `Eco celular` / `Saida pendente` / `Enviado ok`. |
+| **Onde** | `whatsapp_atendimento/index.js` · `atendimento_whatsapp.js` |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_wa_envio_fromme_path.py` **29/29** (PIN 9973) |
+| **Tip** | `teste` **v23.18** |
+| **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
+| **Você agora** | **1)** Fechar/abrir `iniciar.bat` (ponte local já pega o fix). **2)** Ctrl+F5 no Zap do site. **3)** Responder **na tela verde do Agro** (seta) **ou** no celular — preta deve mostrar `Eco celular` / `Enviado ok`. |
+
+### ✅ CHECKLIST ÚNICO — 06/09c · pronto envio
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `WA-ENVIO-FROMME` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 2 | `VL-HUB-TAREFAS` | 🟢 **pronto para envio à produção** (migrate SIM) | **SIM** `tarefas.0001+0002` |
+
+**Live agora:** **v23.07** (WA-PONTE-LEVE). Estes dois **ainda não** subiram.
+
+### WIP — Zap recebe / não envia (06/09 noite) · **causa achada**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Causa real** | Ponte **ignorava** `fromMe` (resposta no celular não ia pro Agro). Banco: só `in`/`bot`, **0** `out` humano. Fix lag (poll) **não** era o envio. |
+| **Pacote** | `WA-ENVIO-FROMME` — ver PACOTE PRONTO acima |
+| **Status** | código no `teste` · aguarda Renan religar bat + frase/senha loja |
 
 ### WIP — Zap sem msg (06/09 · após WA-PONTE-LEVE)
 
