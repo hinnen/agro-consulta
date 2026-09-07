@@ -1136,11 +1136,11 @@
       miniRow(
         "Extravio após Depósito",
         '<span class="' +
-          (extravioDep > 0.005 ? "rg-val--cost" : "rg-val--zero") +
+          (Math.abs(extravioDep) > 0.005 ? "rg-val--cost" : "rg-val--zero") +
           '">' +
           brl(extravioDep) +
           "</span>",
-        "Automático: depósitos do caixa − baixas CP em forma BANCO" +
+        "Automático: depósitos do caixa − baixas CP em forma BANCO (pode ser + ou −)" +
           (num(c.depositos_caixa) || num(c.baixas_banco)
             ? " (dep. " +
               brl(c.depositos_caixa) +
