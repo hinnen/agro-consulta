@@ -1292,6 +1292,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto no `teste`** — loja só com frase + senha |
 | **Você** | Ctrl+F5 · CP baixa → só 2 formas · Resumo Mini DRE Extravio (tooltip dep. − BANCO) · depósito no caixa com plano Depósito |
 
+### 📦 PACOTE PRONTO — Ícone Zap S (WA-PC-ICON · 07/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Ícone do app Zap (bolha verde com **S**) no Chrome PWA PC e celular |
+| **Arquivos** | static/produtos/pwa/zap-loja-192.png · zap-loja-512.png |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 	este |
+| **Você** | Desinstalar o app Zap no Chrome e instalar de novo (ícone antigo fica em cache) |
+
 ### ✅ Deploy loja — WA-PC-PWA-FIX (`deploy/prep-wa-pc-pwa-fix-0709` · **v23.34**) · **Live**
 
 | Campo | Valor |
