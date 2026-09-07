@@ -1284,7 +1284,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Status** | ✅ **enviado / Live v23.23** — cherry só este pacote (**não** merge `teste`) |
 | **Antes** | `origin/producao` @ **v23.20** / `1e88a32` |
-| **Agora** | `producao` @ tip PREP **v23.23** |
+| **Agora** | `producao` @ **`7ce182e`** |
 | **Pacote** | `WA-ENVIO-FROMME` — eco celular · seta sem travar · lid+telefone · poll mín. 3 · status leve |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_wa_envio_fromme_path.py` **35/35** |
