@@ -1279,40 +1279,52 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — 07/09 · pronto envio
+### 🟡 PREP PRONTO — Checklist 07/09b → loja **v23.45** (`deploy/prep-checklist-0709b` · **aguarda senha**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 **PREP no GitHub** — **não** subiu `producao` · próximo chat: lojas pausam + frase + senha |
+| **Antes (loja)** | **v23.38** @ `f13fb1e` |
+| **PREP tip** | **v23.45** @ `1b942c4` |
+| **Pacotes** | `WA-UI-POLL-LEVE` · `CP-FORMAS-EXTRAVIO-SINAL` |
+| **Migrate** | **NÃO** |
+| **Prova** | WA poll **44/44** · CP formas **ALL OK** (+ API 2 formas / PIN 9973 no `teste`) · `check` OK · PREP static OK · **revalidado 07/09 15:45** |
+| **Risco PDV** | **Baixo** — Zap só poll; CP só formas/Mini DRE — **não** mexe finalizar venda |
+| **Rollback** | `rollback/pre-checklist-0709b-v23.38` · `producao-backup-pre-v2345-checklist-20260907` · `docs/ROLLBACK-CHECKLIST-0709b.md` |
+| **Fora do PREP** | outros WIP do `teste` **não** entram |
+
+### ✅ CHECKLIST ÚNICO — 07/09b · **PREP v23.45** (aguarda senha)
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
 | 1 | `WA-PC-ICON` | ✅ **Live v23.38** | **NÃO** | 11/11 |
 | 2 | `EXTRAVIO-CONFERENCIA-AUTO` | ✅ **Live v23.38** | **NÃO** | — |
 | 3 | `DRE-NO-DASH-OVERLAY` | ✅ **Live v23.38** | **NÃO** | 9+33 |
-| 4 | `WA-UI-POLL-LEVE` | 🟢 **pronto para envio** | **NÃO** | **48/48** |
-| 5 | `CP-FORMAS-EXTRAVIO-SINAL` | 🟢 **pronto para envio** | **NÃO** | **43/43** |
+| 4 | `WA-UI-POLL-LEVE` | 🟡 **PREP** — aguarda senha | **NÃO** | **44/44** |
+| 5 | `CP-FORMAS-EXTRAVIO-SINAL` | 🟡 **PREP** — aguarda senha | **NÃO** | **ALL OK** |
 
-**Loja:** **v23.38**. **Falta subir:** `#4` + `#5`. Tip `teste` **v23.43**. Cherry só estes + frase + senha — **não** merge `teste`.
+**Loja:** **v23.38**. **Falta subir:** `#4` + `#5` via PREP. **Não** merge `teste`.
 
-### 📦 PACOTE PRONTO — Poll Zap leve (`WA-UI-POLL-LEVE` · 07/09 · **v23.42**)
+### 📦 PACOTE PRONTO — Poll Zap leve (`WA-UI-POLL-LEVE` · 07/09) · no PREP
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Zap não engasga PDV (poll leve; PDV na frente = ainda mais leve) |
-| **Prova** | `verify_wa_ui_poll_leve_path.py` **48/48** |
-| **Tip** | **v23.42** |
+| **O quê** | Zap não engasga PDV (poll leve) |
+| **Prova** | **44/44** |
+| **Tip** | PREP **v23.45** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** |
-| **Você** | Ctrl+F5 Zap · Zap + vender · Bot poll **5** |
+| **Status** | 🟡 **PREP** — aguarda senha |
 | **Risco** | Baixo |
 
-### 📦 PACOTE PRONTO — CP formas + Extravio ± (`CP-FORMAS-EXTRAVIO-SINAL` · 07/09 · **v23.43**)
+### 📦 PACOTE PRONTO — CP formas + Extravio ± (`CP-FORMAS-EXTRAVIO-SINAL` · 07/09) · no PREP
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Baixa CP só **DINHEIRO** + **BANCO** · checkbox saída caixa no DINHEIRO · Extravio = dep − BANCO **(±)** |
-| **Prova** | `verify_extravio_conferencia_auto_path.py` **43/43** (API 2 formas · PIN 9973 · sinal ±) |
-| **Tip** | **v23.43** @ `64fbaff` |
+| **O quê** | Baixa CP só **DINHEIRO** + **BANCO** · checkbox caixa · Extravio dep − BANCO **(±)** |
+| **Prova** | ALL OK · API 2 formas · PIN 9973 |
+| **Tip** | PREP **v23.45** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** |
-| **Você** | Ctrl+F5 · CP baixar → 2 formas · Resumo Extravio ± |
+| **Status** | 🟡 **PREP** — aguarda senha |
 | **Risco** | Baixo — não mexe finalizar venda |
 
 ### ✅ Deploy loja — Checklist 07/09 (`deploy/prep-checklist-0709` · **v23.38**) · **Live**
