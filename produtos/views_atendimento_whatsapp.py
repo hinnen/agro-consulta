@@ -172,6 +172,7 @@ def api_atendimento_whatsapp_bot_salvar(request):
         return JsonResponse({"ok": False, "erro": f"Não salvou: {exc}"}, status=500)
 
 
+
 @login_required(login_url="/entrar/")
 @require_GET
 def api_atendimento_whatsapp_estado(request):

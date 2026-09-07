@@ -1290,17 +1290,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
 | **Você** | Local → Resumo → Ctrl+F5 → legenda do donut = **OUTROS** |
 
-### 📦 PACOTE PRONTO — Bot Salvar destravado (`WA-BOT-SALVAR` · 07/09)
+### ✅ Deploy loja — WA-BOT-SALVAR (`deploy/prep-wa-bot-salvar-0709` · **v23.25**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Salvar do Bot não fazia nada: poll gravado **2** + campo `min=3` → Chrome bloqueava o submit (aba Tempo escondida). Agora: `novalidate` · botão `type=button` · clamp poll · toast de erro CSRF/HTTP. |
-| **Tip** | `teste` (após push) |
+| **Status** | ✅ **enviado / Live v23.25** — cherry **só** este pacote (**não** merge `teste`) |
+| **Antes** | `origin/producao` @ **v23.24** / `82d2ac2` |
+| **Agora** | `producao` @ tip PREP **v23.25** (hash após push) |
+| **Pacote** | `WA-BOT-SALVAR` — Salvar Bot destravado (`novalidate` · `type=button` · clamp poll) |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_wa_bot_salvar_path.py` **12/12** |
-| **Risco** | Baixo — só tela Bot |
-| **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
-| **Você** | Ctrl+F5 no Bot → Salvar → deve aparecer «Salvo» |
+| **Prova** | `verify_wa_bot_salvar_path.py` **12/12** · horário **22/22** · PIN 9973 |
+| **Risco loja aberta** | **Baixo** — só Bot WhatsApp · **não** mexe PDV/caixa/venda |
+| **Rollback** | tag `rollback/pre-wa-bot-salvar-v23.24` · branch `producao-backup-pre-v2325-wa-bot-salvar-20260907` · `docs/ROLLBACK-WA-BOT-SALVAR-0709.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.25** · Bot → **Salvar** → «Salvo» · (lentidão) Tempo → poll **5** → Salvar |
+
+### ~~📦 PACOTE PRONTO — Bot Salvar destravado~~ (`WA-BOT-SALVAR` · **Live v23.25**)
 
 ### WIP — Amanhã loja aberta · Zap envio + lentidão (pós Live **v23.23**) · 06/09 noite
 
