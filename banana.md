@@ -1339,7 +1339,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova pré** | DRE **9+33** · Extravio **23/23** · Zap ícone **11/11** · `check` OK |
 | **Risco PDV** | **Baixo** — não mexe finalizar venda |
 | **Rollback** | `rollback/pre-checklist-0709-v23.34` · `producao-backup-pre-v2338-checklist-20260907` · `docs/ROLLBACK-CHECKLIST-0709.md` · **só** frase+senha |
-| **Fora deste lote** | `WA-UI-POLL-LEVE` + `CP-FORMAS-EXTRAVIO-SINAL` (pronto envio no tip) |
+| **Fora deste lote** | ver PREP **07/09b** (`WA-UI-POLL-LEVE` + `CP-FORMAS-EXTRAVIO-SINAL`) |
 | **Você** | Ctrl+F5 · badge **v23.38** · F8 = 1 aba DRE · CP baixa só BANCO/DINHEIRO · Extravio no Resumo · Zap: reinstalar ícone se preciso |
 
 ### ✅ PACOTE — DRE não em cima do Dashboard (`DRE-NO-DASH-OVERLAY` · 07/09) · **Live v23.38**
