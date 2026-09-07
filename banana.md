@@ -1347,6 +1347,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Baixa CP: só **DINHEIRO** + **BANCO** (some «À vista - Dinheiro») · BANCO injeta se faltar · Extravio = dep − BANCO **com sinal** (±) · checkbox caixa no DINHEIRO |
 | **Prova** | `verify_extravio_conferencia_auto_path.py` **ALL OK** |
 | **Migrate** | **NÃO** |
+| **Tip** | **v23.43** @ `64fbaff` (`teste`) |
 | **Status** | ✅ no `teste` · **não** loja (aguarda frase+senha) |
 | **Você** | Ctrl+F5 · Contas a pagar → baixar → 2 formas · marcar checkbox se sair da gaveta · Resumo Extravio ± |
 | **Risco PDV** | Baixo — só lista/forma CP + Mini DRE |
