@@ -1283,7 +1283,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | No Resumo gerencial, o fatia que era «Financeiras / Despesas financeiras» passa a chamar **OUTROS** (mesmo cálculo: ativo, tarifa, «Outros verificar» — sem juro/pagamento de empréstimo). |
-| **Tip** | `teste` (após push) |
+| **Tip** | `teste` **v23.31** @ `b0ae830` |
 | **Migrate** | **NÃO** |
 | **Arquivos** | `static/js/agro_resumo_gerencial.js` · `financeiro/services/dre_visual_util.py` |
 | **Risco** | Nenhum no número — só nome na tela |
