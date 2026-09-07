@@ -1140,7 +1140,15 @@
           '">' +
           brl(extravioDep) +
           "</span>",
-        "Dinheiro do depósito que não foi ao boleto/banco. Mesma regra da retirada de sócio: não corta o lucro líquido — só o saldo final."
+        "Automático: depósitos do caixa − baixas CP em forma BANCO" +
+          (num(c.depositos_caixa) || num(c.baixas_banco)
+            ? " (dep. " +
+              brl(c.depositos_caixa) +
+              " − BANCO " +
+              brl(c.baixas_banco) +
+              ")"
+            : "") +
+          ". Não corta o lucro líquido — só o saldo final."
       ) +
       miniRow(
         "Saldo final",

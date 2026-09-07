@@ -91,6 +91,25 @@ def consolidar_empresa_pg(
 
     linhas = filtrar_linhas_dre_planos(raw.get("linhas") or [], planos_incluir)
     core = agregar_linhas_dre_em_resumo(linhas)
+    from produtos.conferencia_deposito_extravio_util import aplicar_extravio_auto_no_resumo
+
+    dep_cx = deposito if deposito in ("centro", "vila") else None
+    if dep_cx is None:
+        try:
+            from financeiro.services.receita_pdv_util import resolver_deposito_pdv
+
+            dep_cx = resolver_deposito_pdv(None, nome)
+            if dep_cx not in ("centro", "vila"):
+                dep_cx = None
+        except Exception:
+            dep_cx = None
+    aplicar_extravio_auto_no_resumo(
+        core,
+        data_inicio,
+        data_fim,
+        deposito=dep_cx,
+        empresa_nome=nome,
+    )
     core["fonte"] = "postgres"
     core["empresa_id"] = empresa_id
     core["empresa_nome_filtro"] = nome
@@ -159,6 +178,9 @@ def consolidar_grupo_pg(
         "aportes_socios",
         "retiradas_socios",
         "extravio_apos_deposito",
+        "depositos_caixa",
+        "baixas_banco",
+        "extravio_auto",
         "geracao_caixa",
         "receita_lancamentos",
         "receita_fonte",

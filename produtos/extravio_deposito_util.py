@@ -30,6 +30,36 @@ def forma_eh_dinheiro(nome_forma: str) -> bool:
     return "dinheiro" in f
 
 
+def forma_eh_banco(nome_forma: str) -> bool:
+    """Forma de pagamento «BANCO» (baixa CP) — não confundir com conta/banco destino."""
+    f = _fold(nome_forma)
+    if not f:
+        return False
+    if "adicionar" in f:
+        return False
+    if f == "banco":
+        return True
+    parts = f.split()
+    return parts[0] == "banco" or ("banco" in parts and len(parts) <= 2)
+
+
+def forma_permitida_baixa_cp(nome_forma: str) -> bool:
+    """Contas a pagar: só Dinheiro ou Banco."""
+    return forma_eh_dinheiro(nome_forma) or forma_eh_banco(nome_forma)
+
+
+def filtrar_formas_baixa_cp(formas: list) -> list:
+    """Mantém só opções Dinheiro / Banco na lista da baixa CP."""
+    out = []
+    for x in formas or []:
+        if not isinstance(x, dict):
+            continue
+        nome = str(x.get("nome") or "")
+        if forma_permitida_baixa_cp(nome):
+            out.append(x)
+    return out
+
+
 def garantir_plano_extravio_apos_deposito() -> tuple[object | None, bool]:
     """Cria o plano oficial se faltar. Retorna (obj, created)."""
     from produtos.models import PlanoContaAgro

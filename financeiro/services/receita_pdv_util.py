@@ -328,6 +328,9 @@ _KEYS_SOMA_DRE = (
     "aportes_socios",
     "retiradas_socios",
     "extravio_apos_deposito",
+    "depositos_caixa",
+    "baixas_banco",
+    "extravio_auto",
     "geracao_caixa",
     "receita_lancamentos",
 )

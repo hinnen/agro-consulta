@@ -1279,6 +1279,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Conferência depósito × BANCO (`EXTRAVIO-CONFERENCIA-AUTO` · 07/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Baixa CP: formas **só BANCO / DINHEIRO** (UI + servidor). Mini DRE **Extravio** = **depósitos caixa − baixas CP forma BANCO** (auto no período; + título manual legado se houver). |
+| **Onde** | `extravio_deposito_util` · `conferencia_deposito_extravio_util` · `resumo_operacional_pg/mongo` · `views` baixa/opções · templates CP · `agro_resumo_gerencial.js` |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_extravio_conferencia_auto_path.py` **23/23** · `verify_extravio_apos_deposito_path` **20/20** · `check` OK |
+| **Risco** | Baixo no lucro · Extravio sobe se houver depósitos sem baixa BANCO · forma ERP tem que se chamar **BANCO** (não Pix/cartão) |
+| **Status** | 🟢 **pronto no `teste`** — loja só com frase + senha |
+| **Você** | Ctrl+F5 · CP baixa → só 2 formas · Resumo Mini DRE Extravio (tooltip dep. − BANCO) · depósito no caixa com plano Depósito |
+
 ### 📦 PACOTE PRONTO — Zap PC fora da Gestão (`WA-PC-PWA-FIX` · 07/09)
 
 | Campo | Valor |

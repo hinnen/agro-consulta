@@ -1601,7 +1601,8 @@
 
     async function carregarOpcoesBaixa() {
       try {
-        const url = `${API_OPCOES}?modo=erp&apenas_cadastro_erp=1`;
+        const soCp = tipoAtual === 'pagar' ? '&somente_dinheiro_banco=1' : '';
+        const url = `${API_OPCOES}?modo=erp&apenas_cadastro_erp=1${soCp}`;
         const r = await fetch(url, { credentials: 'same-origin' });
         const d = await r.json();
         const fs = document.getElementById('bx-forma-sel');
