@@ -1279,7 +1279,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — 07/09 · pronto envio (tip **v23.37**)
+### ✅ CHECKLIST ÚNICO — 07/09 · pronto envio (tip **v23.37** @ `d3394dd`)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -1293,37 +1293,34 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Abrir DRE/Resumo **só em aba**. Link do card Lucro e links do BI **não** navegam o iframe do Dashboard. `openGestao` não troca a URL da janela Gestão pelo DRE. |
-| **Onde** | `agro_dual_window.js` · `dashboard_gerencial.html` · `dashboard_gerencial_body.html` |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_dre_nao_sobre_dashboard_path.py` **9/9** |
+| **O quê** | DRE/Resumo **só em aba**; Dashboard não vira DRE. |
+| **Prova** | path **9/9** · deep **33/33** (login Django + PIN 9973 ok) · HTTP static OK · `check` OK |
 | **Tip** | `teste` **v23.37** @ `b8bb0f2` |
+| **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
-| **Você** | Ctrl+F5 Gestão · F8 / card Lucro → **1 aba** · Dashboard continua Dashboard |
+| **Você** | Ctrl+F5 Gestão · F8 / card Lucro → **1 aba** |
 
 ### 📦 PACOTE PRONTO — Ícone Zap S (`WA-PC-ICON` · 07/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Ícone do app Zap (bolha verde com **S**) no Chrome PWA PC e celular |
-| **Arquivos** | `static/produtos/pwa/zap-loja-192.png` · `zap-loja-512.png` |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_wa_pc_icon_path.py` · PWA path **24/24** |
+| **O quê** | Ícone Zap (bolha **S**) no PWA PC/celular |
+| **Prova** | `verify_wa_pc_icon_path.py` **11/11** |
 | **Tip** | `teste` **v23.36** @ `a4b0bd3` |
-| **Risco** | Nenhum no PDV — só ícone do app |
+| **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
-| **Você** | Desinstalar o app Zap no Chrome e instalar de novo (ícone antigo fica em cache) |
+| **Você** | Reinstalar app Zap no Chrome |
 
 ### 📦 PACOTE PRONTO — Conferência depósito × BANCO (`EXTRAVIO-CONFERENCIA-AUTO` · 07/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Baixa CP: formas **só BANCO / DINHEIRO**. Mini DRE **Extravio** = depósitos caixa − baixas CP forma BANCO. |
-| **Migrate** | **NÃO** |
+| **O quê** | CP baixa só **BANCO/DINHEIRO** · Mini DRE Extravio = depósito − BANCO |
 | **Prova** | `verify_extravio_conferencia_auto_path.py` **23/23** |
 | **Tip** | `teste` **v23.35** @ `cbc72a1` |
+| **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
-| **Você** | Ctrl+F5 · CP baixa → só 2 formas · Resumo Mini DRE Extravio |
+| **Você** | Ctrl+F5 · CP baixa · Resumo Extravio |
 
 ### ✅ Deploy loja — WA-PC-PWA-FIX (`deploy/prep-wa-pc-pwa-fix-0709` · **v23.34**) · **Live**
 
