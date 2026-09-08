@@ -1279,14 +1279,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — PIN alert vira teclado global (PIN-ALERT-TECLADO · **v23.47** · 08/09)
+### 📦 PACOTE PRONTO — PIN alert vira teclado global (`PIN-ALERT-TECLADO` · **v23.47** · 08/09)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Alert «modo descanso» em gestão/PDV/lançamentos → **teclado PIN**. Não confia no fresco mentiroso. Bridge no UI global + sspin em mais telas. |
 | **Onde** | _screensaver_pin · _agro_open_external · fiado/vendas/clientes/caixa/histórico |
 | **Migrate** | **NÃO** |
-| **Prova** | erify_pin_alert_teclado_path.py **49/49** · erify_lanc_pin_teclado_path.py **70/70** · PIN **9973** Renan |
+| **Prova** | `verify_pin_alert_teclado_path.py` **49/49** · `verify_lanc_pin_teclado_path.py` **70/70** · PIN **9973** Renan |
 | **Status** | 🟢 **pronto para envio à produção** (teste **v23.47**) |
 | **Você** | Ctrl+F5 · Finalizar/baixa/gestão/PDV com PIN velho → teclado (sem alert preto) |
 
@@ -1294,7 +1294,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | PIN-ALERT-TECLADO | 🟢 **pronto para envio à produção** | **NÃO** |
+| 1 | `PIN-ALERT-TECLADO` | 🟢 **pronto para envio à produção** | **NÃO** |
 
 ### 📦 PACOTE — Quem já comprou (`REL-QUEM-COMPROU` · 08/09 · **v23.46**) · teste
 
