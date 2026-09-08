@@ -1279,18 +1279,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — PIN alert vira teclado global (`PIN-ALERT-TECLADO` · **v23.48** · 08/09)
+### 📦 PACOTE PRONTO — PIN alert vira teclado global (`PIN-ALERT-TECLADO` · **v23.50** · 08/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Alert «modo descanso» em gestão/PDV/lançamentos → **teclado PIN**. Não confia no fresco mentiroso. Bridge no UI global + sspin em mais telas. |
-| **Onde** | _screensaver_pin · _agro_open_external · fiado/vendas/clientes/caixa/histórico |
+| **O quê** | Alert «modo descanso» em gestão/PDV/lançamentos → **teclado PIN**. Não confia no fresco. Bridge UI + sspin em mais telas. |
+| **Onde** | `_screensaver_pin` · `_agro_open_external` · fiado/vendas/clientes/caixa/histórico |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_pin_alert_teclado_path.py` **49/49** · `verify_lanc_pin_teclado_path.py` **70/70** · PIN **9973** Renan |
-| **Status** | 🟢 **pronto para envio à produção** (teste **v23.48**) |
+| **Prova** | `verify_pin_alert_teclado_path.py` **VERIFY_OK 117/117** · `verify_lanc_pin_teclado_path.py` **70/70** · PIN **9973** Renan |
+| **Status** | 🟢 **pronto para envio à produção** (teste **v23.50**) |
 | **Você** | Ctrl+F5 · Finalizar/baixa/gestão/PDV com PIN velho → teclado (sem alert preto) |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (08/09 · tip **v23.48**)
+### ✅ CHECKLIST ÚNICO — pronto envio (08/09 · tip **v23.50**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
