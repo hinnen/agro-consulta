@@ -403,7 +403,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - **Topo BI compacto (10/08):** sem «Gestão Estratégica» · sem botão Orç. (F2 no teclado/Menu) · **Trava** embaixo de Loja.
 - Gastos por plano de conta: oculto por padrÃ£o (`AGRO_DASHBOARD_GASTOS_PLANO=true` no `.env`).
 - Template: `produtos/templates/produtos/dashboard_gerencial.html`.
-- **Central de Relatórios** (`/relatorios/`): mais vendidos · por grupo · ABC · margem · validade · etc. Filtros cat/sub 1–4 (OR no campo, AND entre campos) · agrupar · Excel. Contrato: `vendas_por_grupo_relatorio()` (Central) vs `vendas_por_grupo()` lista (DRE/BI). **500 cat/sub (ago/26) → Live v18.26.1** — Renan OK 28/08 · CHECKPOINT `relatórios`.
+- **Central de Relatórios** (`/relatorios/`): mais vendidos · por grupo · ABC · margem · validade · **quem já comprou** (produto/categoria → clientes + Zap) · etc. Filtros cat/sub 1–4 (OR no campo, AND entre campos) · agrupar · Excel. Contrato: `vendas_por_grupo_relatorio()` (Central) vs `vendas_por_grupo()` lista (DRE/BI). **500 cat/sub (ago/26) → Live v18.26.1** — Renan OK 28/08 · CHECKPOINT `relatórios` · `REL-QUEM-COMPROU` (08/09).
 
 ### 4.2 PDV â€” ponto de venda
 
