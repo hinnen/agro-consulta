@@ -1413,32 +1413,32 @@ def _enrich_clientes_whatsapp(rows: list[dict]) -> None:
     by_erp: dict[str, Any] = {}
     by_pk: dict[int, Any] = {}
     by_doc: dict[str, Any] = {}
+
+    def _index_cli(cli: Any) -> None:
+        eid = (cli.externo_id or "").strip()
+        if eid and eid not in by_erp:
+            by_erp[eid] = cli
+        by_pk[cli.pk] = cli
+        d = (cli.cpf or "").strip()
+        if d and d not in by_doc:
+            by_doc[d] = cli
+
     if erp_ids:
         for cli in ClienteAgro.objects.filter(externo_id__in=list(set(erp_ids))).only(
-            "pk", "externo_id", "documento", "whatsapp", "nome"
+            "pk", "externo_id", "cpf", "whatsapp", "nome"
         ):
-            eid = (cli.externo_id or "").strip()
-            if eid:
-                by_erp[eid] = cli
-            d = (cli.documento or "").strip()
-            if d and d not in by_doc:
-                by_doc[d] = cli
+            _index_cli(cli)
     if local_pks:
         for cli in ClienteAgro.objects.filter(pk__in=list(set(local_pks))).only(
-            "pk", "externo_id", "documento", "whatsapp", "nome"
+            "pk", "externo_id", "cpf", "whatsapp", "nome"
         ):
-            by_pk[cli.pk] = cli
-            d = (cli.documento or "").strip()
-            if d and d not in by_doc:
-                by_doc[d] = cli
+            _index_cli(cli)
     missing_docs = [d for d in set(docs) if d not in by_doc]
     if missing_docs:
-        for cli in ClienteAgro.objects.filter(documento__in=missing_docs).only(
-            "pk", "externo_id", "documento", "whatsapp", "nome"
+        for cli in ClienteAgro.objects.filter(cpf__in=missing_docs).only(
+            "pk", "externo_id", "cpf", "whatsapp", "nome"
         ):
-            d = (cli.documento or "").strip()
-            if d and d not in by_doc:
-                by_doc[d] = cli
+            _index_cli(cli)
 
     for r in rows:
         cli = None

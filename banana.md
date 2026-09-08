@@ -1295,18 +1295,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | `PIN-ALERT-TECLADO` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 2 | `REL-QUEM-COMPROU` | 🟢 **pronto para envio à produção** | **NÃO** |
 
-### 📦 PACOTE — Quem já comprou (`REL-QUEM-COMPROU` · 08/09 · **v23.46**) · teste
+### 📦 PACOTE PRONTO — Quem já comprou (`REL-QUEM-COMPROU` · 08/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Central `/relatorios/quem-comprou/`: produto ou categoria → clientes que compraram + Zap 1 a 1 (mensagem modelo) · Excel · expandir últimas compras |
-| **Arquivos** | `relatorios_vendas_util.py` · `relatorios_central_views.py` · `relatorios_quem_comprou.html` · hub + ajuda |
-| **Fonte** | Só `VendaAgro` (sem histórico ERP) · venda sem cliente não entra |
-| **Tip** | `teste` @ `68c3596` · **v23.46** |
+| **O quê** | `/relatorios/quem-comprou/`: produto ou categoria → clientes + Zap 1 a 1 · mensagem modelo · Excel · expandir compras |
+| **Fix na prova** | Join telefone via `ClienteAgro.cpf` (campo certo; não `documento`) |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 no `teste` — validar **PC local** · loja **só** frase+senha |
-| **Você** | Relatórios → **Quem já comprou** · busca produto ou marca categoria · Atualizar · Zap |
+| **Prova** | `verify_rel_quem_comprou_path.py` **67/67** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Relatórios → **Quem já comprou** · produto/categoria · Atualizar · Zap |
 
 ### ✅ Deploy loja — Checklist 07/09b (`deploy/prep-checklist-0709b` · **v23.45**) · **Live**
 
