@@ -59,6 +59,8 @@
       }
     }
   } catch (eDupAll) {}
+  var root = document.getElementById('sspin-root');
+  if (!root) return;
   if (window.__GM_SSPIN_INIT__) return;
   window.__GM_SSPIN_INIT__ = true;
 
@@ -71,8 +73,6 @@
   var API_OPERADOR = "{% url 'api_pdv_registrar_operador' %}";
   var API_LISTAR_USU = "{% url 'api_listar_usuarios' %}";
   var API_CAD_PIN = "{% url 'api_cadastrar_pin_bootstrap' %}";
-  var root = document.getElementById('sspin-root');
-  if (!root) return;
 
   try { localStorage.removeItem('gm_sspin_pins'); } catch (eDrop) {}
 
@@ -783,19 +783,52 @@
 
   /**
    * Se a mensagem for de PIN obrigatório, abre o teclado e chama onOk após digitar.
-   * Retorna true se abriu (chamador NÃO deve só mostrar toast).
+   * Retorna true se abriu (chamador NÃO deve só mostrar toast/alert).
+   * Importante: NÃO confiar em «fresco» do GET — o servidor já recusou a ação.
    */
   window.gmSspinAbrirSeErroPin = function (erro, onOk, opts) {
     if (!window.gmSspinErroPedePin(erro)) return false;
-    if (typeof window.gmSspinGarantirOperador === 'function') {
-      window.gmSspinGarantirOperador(typeof onOk === 'function' ? onOk : function () {}, opts || {
-        titulo: 'Identifique-se com o PIN'
-      });
-      return true;
-    }
+    opts = opts || {};
+    var tituloAcao = (opts.titulo || 'Identifique-se com o PIN').trim();
+    var cb = typeof onOk === 'function' ? onOk : function () {};
+    var callbackExecutado = false;
+    var originalCloseLock = closeLock;
+    var originalShow = showPinPanel;
+    showPinPanel = function () {
+      originalShow();
+      if (titleEl) titleEl.textContent = tituloAcao;
+      if (subEl) subEl.innerHTML = 'Digite seu PIN para gravar a ação';
+    };
+    closeLock = function () {
+      showPinPanel = originalShow;
+      originalCloseLock();
+      if (callbackExecutado) return;
+      callbackExecutado = true;
+      closeLock = originalCloseLock;
+      var nome = '';
+      try { nome = (localStorage.getItem(LS_OPERADOR) || '').trim(); } catch (eN) {}
+      if (!nome) return;
+      try { cb(nome); } catch (eCb) {}
+    };
     openLock(true);
     return true;
   };
+
+  /** alert() nativo com msg de PIN → teclado (gestão/PDV/lançamentos). */
+  if (!window.__GM_SSPIN_ALERT_PATCH__) {
+    window.__GM_SSPIN_ALERT_PATCH__ = true;
+    var _agroNativeAlert = window.alert.bind(window);
+    window.alert = function (msg) {
+      var t = String(msg == null ? '' : msg);
+      if (window.gmSspinErroPedePin(t)) {
+        try {
+          window.gmSspinAbrirSeErroPin(t, function () {}, { titulo: 'Identifique-se com o PIN' });
+          return;
+        } catch (eAl) {}
+      }
+      return _agroNativeAlert(t);
+    };
+  }
 
   /**
    * Garante operador fresco no servidor. Mouse NÃO renova.
