@@ -1287,9 +1287,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Overlay Entregas: aba **A pagar** + **Pagas na loja** (24 h). Botão da topbar conta as duas. Reimprimir, Maps e rota. **Não** trava fechar caixa. Depois de 24 h some da lista. Só venda já cobrada no caixa. |
 | **Onde** | overlay PDV · `entrega_pdv_pendente_util.py` · `api_pdv_entregas_pendentes` · migrate `0129` |
 | **Migrate** | **SIM** `produtos.0129` |
-| **Prova** | `scripts/verify_pdv_entrega_pagas_loja_path.py` **17/17** |
-| **Status** | 🧪 **teste** — Ctrl+F5 · **não** loja |
-| **Você** | Venda Entrega + pagamento na loja → fechar → botão Entregas · aba Pagas · Imprimir / Maps · Fechar caixa **não** pede essa venda |
+| **Prova** | `scripts/verify_pdv_entrega_pagas_loja_path.py` **64/64** (PIN **9973**=Renan · HTTP · caixa não trava · 24 h · Vila isolada) |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 · venda Entrega paga na loja → Entregas → aba Pagas · Imprimir/Maps · Fechar caixa **não** pede essa venda |
 
 ### 📦 PACOTE PRONTO — Entrega: de qual loja sai (`PDV-ENTREGA-LOJA-SAIDA` · **v23.67** · 09/09)
 
@@ -1299,8 +1299,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | overlay entrega · `pdv_wizard.js` · `api_entrega_registrar` · `resolver_sessao_caixa_entrega_pdv` |
 | **Migrate** | **NÃO** |
 | **Prova** | `scripts/verify_pdv_entrega_loja_saida_path.py` **12/12** |
-| **Status** | 🧪 **teste** — Ctrl+F5 · **não** loja |
-| **Você** | PDV → Entrega → depois de pagamento na entrega/loja → conferir tela da loja · F7 na mesma · outra loja + Sim |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | PDV → Entrega → tela da loja · F7 na mesma · outra loja + Sim |
 
 ### 📦 PACOTE PRONTO — Entrega: retomar + adiar 1 dia (`CAIXA-ENTREGA-ADIAR` · **v23.64** · 09/09)
 
@@ -1310,8 +1310,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `entrega_pdv_pendente_util.py` · Fechar caixa · PDV Entregas · migrate `0128` |
 | **Migrate** | **SIM** `produtos.0128` |
 | **Prova** | `scripts/verify_caixa_entrega_adiar_path.py` **26/26** |
-| **Status** | 🧪 **teste** — Ctrl+F5 · **não** loja |
-| **Você** | Fechar caixa com entrega pendente: Retomar · Adiar 1 dia + PIN · no outro dia o caixa trava de novo |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Fechar caixa com entrega pendente: Retomar · Adiar 1 dia + PIN |
 
 ### 📦 PACOTE PRONTO — Tarefa: título + um botão (`TAREFAS-DETALHE-LOTE` · **v23.66** · 09/09)
 
@@ -1346,15 +1346,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** (vai junto com `REPASSE-COFRE-PLANO`) |
 | **Você** | Ver pacote plano acima. |
 
-### ✅ CHECKLIST ÚNICO — 09/09 · pronto envio (tip **v23.66**)
+### ✅ CHECKLIST ÚNICO — 09/09 · pronto envio (tip **v23.69**)
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `TAREFAS-DETALHE-LOTE` | 🟢 **pronto para envio à produção** | **NÃO** | **90/90** |
-| 2 | `REPASSE-COFRE-PLANO` | 🟢 **pronto para envio à produção** | **NÃO** | **62/62** |
-| 3 | `REPASSE-GESTAO-SIMPLES` | 🟢 **pronto para envio à produção** | **NÃO** | **64/64** |
+| 1 | `PDV-ENTREGA-PAGAS-24H` | 🟢 **pronto para envio à produção** | **SIM** `0129` | **64/64** |
+| 2 | `PDV-ENTREGA-LOJA-SAIDA` | 🟢 **pronto para envio à produção** | **NÃO** | **12/12** |
+| 3 | `CAIXA-ENTREGA-ADIAR` | 🟢 **pronto para envio à produção** | **SIM** `0128` | **26/26** |
+| 4 | `TAREFAS-DETALHE-LOTE` | 🟢 **pronto para envio à produção** | **NÃO** | **90/90** |
+| 5 | `REPASSE-COFRE-PLANO` | 🟢 **pronto para envio à produção** | **NÃO** | **62/62** |
+| 6 | `REPASSE-GESTAO-SIMPLES` | 🟢 **pronto para envio à produção** | **NÃO** | **64/64** |
 
-**Loja agora:** **v23.58**. **Só** frase+senha. **Não** merge `teste`.
+**Loja agora:** **v23.58**. **Só** frase+senha. **Não** merge `teste`. Entregas: migrate **0128+0129**.
 
 ### ✅ Deploy loja — Checklist 08/09 (`deploy/prep-checklist-0809` · **v23.58**) · **Live**
 
