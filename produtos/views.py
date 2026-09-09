@@ -155,6 +155,7 @@ from .venda_erp_envio_util import (
 )
 from .entrega_pdv_pendente_util import (
     _sessao_caixa_label_entrega,
+    adiar_entrega_caixa_um_dia,
     assumir_entrega_loja,
     cancelar_entrega_pendente_pdv,
     filtrar_qs_por_loja,
@@ -32686,6 +32687,34 @@ def api_pdv_entrega_pendente_cancelar(request, pk):
     if not ent:
         return JsonResponse({"ok": False, "erro": "Entrega pendente não encontrada."}, status=404)
     return JsonResponse({"ok": True, "id": ent.pk})
+
+
+@login_required(login_url="/entrar/")
+@require_POST
+def api_pdv_entrega_pendente_adiar_caixa(request, pk):
+    """Solta o caixa de hoje; amanhã a entrega trava de novo até fechar a venda."""
+    try:
+        body = json.loads(request.body.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        body = {}
+    loja = normalizar_loja_entrega(body.get("loja"))
+    pin = str(body.get("pin") or "").strip()
+    quem = operador_label_request(request)
+    ent, erro = adiar_entrega_caixa_um_dia(pk, loja=loja, pin=pin, quem=quem)
+    if erro:
+        status = 403 if "PIN" in erro else 400
+        if "não encontrada" in erro.lower():
+            status = 404
+        return JsonResponse({"ok": False, "erro": erro}, status=status)
+    row = serializar_entrega_pendente_pdv(ent)
+    row["sessao_caixa_label"] = _sessao_caixa_label_entrega(ent)
+    return JsonResponse(
+        {
+            "ok": True,
+            "entrega": row,
+            "caixa_adiada_para": row.get("caixa_adiada_para") or "",
+        }
+    )
 
 
 @require_GET

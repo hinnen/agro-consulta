@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 from django.db.models import Q
 from django.utils import timezone
 
+from produtos.caixa_util import PONTO_CAIXA_VILA, rotulo_operador_pin, validar_pin_operador
 from produtos.models import PedidoEntrega, SessaoCaixa
 
 LOJAS_ENTREGA = frozenset({"centro", "vila"})
@@ -31,11 +34,16 @@ def queryset_entregas_bloqueando_fechamento_caixa():
 
 
 def filtrar_qs_por_loja(qs, loja: str | None):
-    """Sem dono (vazio) OU dono = loja do PDV."""
+    """Sem dono, dono = loja do PDV, ou caixa daquela loja (mesmo se outra assumiu)."""
     loja_n = normalizar_loja_entrega(loja)
     if not loja_n:
         return qs
-    return qs.filter(Q(loja_entrega="") | Q(loja_entrega=loja_n))
+    q = Q(loja_entrega="") | Q(loja_entrega=loja_n)
+    if loja_n == "vila":
+        q |= Q(sessao_caixa__ponto_caixa=PONTO_CAIXA_VILA)
+    else:
+        q |= Q(sessao_caixa_id__isnull=False) & ~Q(sessao_caixa__ponto_caixa=PONTO_CAIXA_VILA)
+    return qs.filter(q)
 
 
 def _sessao_caixa_label_entrega(ent: PedidoEntrega) -> str:
@@ -111,6 +119,11 @@ def serializar_entrega_pendente_pdv(ent: PedidoEntrega, *, incluir_estado: bool 
         "loja_entrega": loja,
         "loja_assumida_em": ent.loja_assumida_em.isoformat() if ent.loja_assumida_em else "",
         "loja_assumida_por": (ent.loja_assumida_por or "").strip(),
+        "caixa_adiada_para": ent.caixa_adiada_para.isoformat()
+        if getattr(ent, "caixa_adiada_para", None)
+        else "",
+        "caixa_adiada_por": (getattr(ent, "caixa_adiada_por", None) or "").strip(),
+        "pode_adiar": True,
         "endereco_linha": (ent.endereco_linha or "").strip(),
         "plus_code": (ent.plus_code or "").strip(),
         "referencia_rural": (ent.referencia_rural or "").strip(),
@@ -175,6 +188,7 @@ def listar_entregas_bloqueando_fechamento_caixa(
         if loja_n:
             q |= Q(sessao_caixa_id__isnull=True, loja_entrega=loja_n)
         qs = queryset_entregas_bloqueando_fechamento_caixa().filter(q)
+        qs = qs_excluindo_adiadas_futuras(qs)
         qs = qs.select_related("sessao_caixa", "sessao_caixa__usuario").order_by(
             "criado_em"
         )
@@ -185,6 +199,65 @@ def listar_entregas_bloqueando_fechamento_caixa(
             out.append(row)
         return out
     return listar_entregas_pendentes_pdv(limite=limite, apenas_caixas_abertos=True)
+
+
+def data_hoje_loja():
+    return timezone.localdate()
+
+
+def qs_excluindo_adiadas_futuras(qs, hoje=None):
+    """Adiada para data futura não trava o caixa de hoje."""
+    dia = hoje or data_hoje_loja()
+    return qs.filter(Q(caixa_adiada_para__isnull=True) | Q(caixa_adiada_para__lte=dia))
+
+
+def adiar_entrega_caixa_um_dia(
+    entrega_id: int,
+    *,
+    loja: str,
+    pin: str = "",
+    quem: str = "",
+) -> tuple[PedidoEntrega | None, str | None]:
+    """
+    Solta o caixa de hoje. Amanhã a mesma entrega trava de novo.
+    Pagamento, quando fechar a venda, entra no caixa aberto naquele dia.
+    """
+    loja_n = normalizar_loja_entrega(loja)
+    if not loja_n:
+        return None, "Informe a loja (centro ou vila)."
+    rotulo = (quem or "").strip()
+    pin_n = (pin or "").strip()
+    if pin_n:
+        ok_pin, err_pin = validar_pin_operador(pin_n)
+        if not ok_pin:
+            return None, err_pin
+        rotulo = rotulo_operador_pin(pin_n) or rotulo
+    if not rotulo:
+        return None, "Informe o PIN."
+    ent = (
+        PedidoEntrega.objects.filter(pk=entrega_id, aguarda_pagamento_pdv=True)
+        .exclude(status=PedidoEntrega.Status.CANCELADO)
+        .first()
+    )
+    if not ent:
+        return None, "Entrega pendente não encontrada."
+    hoje = data_hoje_loja()
+    ent.sessao_caixa = None
+    ent.loja_entrega = loja_n
+    ent.caixa_adiada_para = hoje + timedelta(days=1)
+    ent.caixa_adiada_em = timezone.now()
+    ent.caixa_adiada_por = rotulo[:120]
+    ent.save(
+        update_fields=[
+            "sessao_caixa",
+            "loja_entrega",
+            "caixa_adiada_para",
+            "caixa_adiada_em",
+            "caixa_adiada_por",
+            "atualizado_em",
+        ]
+    )
+    return ent, None
 
 
 def assumir_entrega_loja(
@@ -252,6 +325,9 @@ def marcar_entrega_pendente_fechada(
     ent.aguarda_pagamento_pdv = False
     ent.pdv_wizard_state = {}
     ent.status = PedidoEntrega.Status.ENTREGUE
+    ent.caixa_adiada_para = None
+    ent.caixa_adiada_em = None
+    ent.caixa_adiada_por = ""
     if not ent.hora_entrega:
         ent.hora_entrega = timezone.now()
     update_fields = [
@@ -259,6 +335,9 @@ def marcar_entrega_pendente_fechada(
         "pdv_wizard_state",
         "status",
         "hora_entrega",
+        "caixa_adiada_para",
+        "caixa_adiada_em",
+        "caixa_adiada_por",
         "atualizado_em",
     ]
     if venda_agro_id:

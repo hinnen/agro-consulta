@@ -4544,6 +4544,13 @@
                         );
                     }
                 }
+                if (row.caixa_adiada_para) {
+                    badges.push(
+                        '<span class="rounded-md bg-amber-700 px-1.5 py-0.5 text-[9px] font-black uppercase text-white">Adiada · volta ' +
+                            escapeHtml(String(row.caixa_adiada_para).slice(8, 10) + '/' + String(row.caixa_adiada_para).slice(5, 7)) +
+                            '</span>'
+                    );
+                }
                 var borderCls = row.eh_catalogo && row.pode_assumir
                     ? 'border-amber-400 bg-amber-50/70 ring-2 ring-amber-300'
                     : 'border-orange-200 bg-orange-50/40';
@@ -4565,6 +4572,12 @@
                         '<button type="button" class="pdv-entrega-retomar rounded-lg bg-emerald-600 px-3 py-2 text-[10px] font-black uppercase text-white" data-entrega-id="' +
                         id +
                         '">Retomar pagamento</button>';
+                }
+                if (row.pode_adiar) {
+                    btns +=
+                        '<button type="button" class="pdv-entrega-adiar rounded-lg border-2 border-amber-500 bg-amber-50 px-3 py-2 text-[10px] font-black uppercase text-amber-950" data-entrega-id="' +
+                        id +
+                        '">Adiar 1 dia</button>';
                 }
                 btns +=
                     '<button type="button" class="pdv-entrega-cancelar rounded-lg border-2 border-red-300 bg-white px-3 py-2 text-[10px] font-black uppercase text-red-800" data-entrega-id="' +
@@ -4618,6 +4631,12 @@
             btn.addEventListener('click', function () {
                 var pk = btn.getAttribute('data-entrega-id');
                 if (pk) retomarEntregaPendente(pk);
+            });
+        });
+        el.querySelectorAll('.pdv-entrega-adiar').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var pk = btn.getAttribute('data-entrega-id');
+                if (pk) adiarEntregaPendenteCaixa(pk);
             });
         });
         el.querySelectorAll('.pdv-entrega-cancelar').forEach(function (btn) {
@@ -4838,6 +4857,56 @@
             .finally(function () {
                 if (window.gmLoadingBar) window.gmLoadingBar.hide();
             });
+    }
+
+    function adiarEntregaPendenteCaixa(pk) {
+        var url = entregaPendenteApiUrl(urls.apiPdvEntregaPendenteAdiarCaixa, pk);
+        if (!url) return;
+        var loja = typeof depositoPdvAtivo === 'function' ? depositoPdvAtivo() : '';
+        if (loja !== 'centro' && loja !== 'vila') {
+            showSaleDoneFeedback('Defina o depósito do PDV (Centro ou Vila) antes de adiar.', 'warn');
+            return;
+        }
+        var run = function () {
+            if (window.gmLoadingBar) window.gmLoadingBar.show();
+            jsonPost(url, { loja: loja })
+                .then(function (res) {
+                    if (!res.ok || !res.data || !res.data.ok) {
+                        throw new Error(
+                            (res.data && (res.data.erro || res.data.mensagem)) ||
+                                'Não foi possível adiar.'
+                        );
+                    }
+                    var para = (res.data.caixa_adiada_para || '').slice(0, 10);
+                    showSaleDoneFeedback(
+                        'Entrega #' +
+                            pk +
+                            ' adiada. Este caixa pode fechar. Volta a travar em ' +
+                            (para ? para.split('-').reverse().join('/') : 'amanhã') +
+                            '.',
+                        'ok'
+                    );
+                    invalidateEntregasPendentesCache();
+                    return refreshEntregasPendentesUi(false, true);
+                })
+                .then(function () {
+                    renderEntregasPendentesList();
+                })
+                .catch(function (err) {
+                    showSaleDoneFeedback(
+                        err && err.message ? err.message : 'Falha ao adiar entrega.',
+                        'warn'
+                    );
+                })
+                .finally(function () {
+                    if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                });
+        };
+        if (typeof window.gmSspinGarantirOperador === 'function') {
+            window.gmSspinGarantirOperador(run, { titulo: 'PIN para adiar 1 dia' });
+            return;
+        }
+        run();
     }
 
     function openEntregasPendentesModal() {
@@ -16026,9 +16095,15 @@
     function maybeOpenEntregasFromQuery() {
         try {
             var p = new URLSearchParams(window.location.search || '');
-            if (p.get('entregas') !== '1' && p.get('abrir_entregas') !== '1') return;
+            var retomar = String(p.get('retomar') || '').trim();
+            if (p.get('entregas') !== '1' && p.get('abrir_entregas') !== '1' && !retomar) return;
             setTimeout(function () {
                 openEntregasPendentesModal();
+                if (retomar) {
+                    setTimeout(function () {
+                        retomarEntregaPendente(retomar);
+                    }, 500);
+                }
             }, 800);
         } catch (_) {}
     }

@@ -1369,6 +1369,14 @@ class PedidoEntrega(models.Model):
         on_delete=models.SET_NULL,
         related_name="entregas_pdv_pendentes",
     )
+    caixa_adiada_para = models.DateField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Até esta data (exclusive) não trava o caixa; no dia, trava de novo.",
+    )
+    caixa_adiada_em = models.DateTimeField(null=True, blank=True)
+    caixa_adiada_por = models.CharField(max_length=120, blank=True, default="")
     venda_agro = models.ForeignKey(
         "VendaAgro",
         null=True,

@@ -1135,13 +1135,17 @@
       <p class="text-sm font-black uppercase text-orange-900">Não é possível fechar o caixa</p>
       <p class="mt-1 text-sm font-semibold text-orange-950/90">
         Há {{ entregas_pendentes_fechar|length }} entrega(s) com <strong>pagamento na entrega</strong> ainda sem venda fechada no PDV.
-        Finalize o pagamento em <strong>Entregas</strong> no PDV ou cancele a pendência.
+        <strong>Retomar</strong> fecha a venda agora. <strong>Adiar 1 dia</strong> (PIN) libera este caixa — amanhã trava de novo até alguém fechar a venda ou adiar outra vez. O dinheiro entra no caixa do dia em que fechar.
       </p>
-      <ul class="mt-2 space-y-1 text-xs font-bold text-slate-800">
+      <ul class="mt-2 space-y-1.5 text-xs font-bold text-slate-800" id="cf-entregas-bloq-lista" data-loja="{{ deposito_fechar }}">
         {% for ent in entregas_pendentes_fechar %}
         <li class="rounded-lg border border-orange-200 bg-white px-2 py-1.5">
-          {{ ent.cliente_nome|default:"—" }} · {{ ent.total_texto|default:"—" }}
-          <span class="text-slate-500">· {{ ent.sessao_caixa_label }}</span>
+          <div>{{ ent.cliente_nome|default:"—" }} · {{ ent.total_texto|default:"—" }}
+          <span class="text-slate-500">· {{ ent.sessao_caixa_label }}</span></div>
+          <div class="mt-1.5 flex flex-wrap gap-2">
+            <a href="{{ pdv_url }}&amp;retomar={{ ent.id }}" class="inline-flex min-h-[40px] items-center rounded-lg border-2 border-emerald-600 bg-emerald-600 px-3 text-[10px] font-black uppercase text-white hover:bg-emerald-700">Retomar pagamento</a>
+            <button type="button" class="btn-cf-adiar-entrega inline-flex min-h-[40px] items-center rounded-lg border-2 border-amber-500 bg-amber-50 px-3 text-[10px] font-black uppercase text-amber-950 hover:bg-amber-100" data-entrega-id="{{ ent.id }}" data-url="{% url 'api_pdv_entrega_pendente_adiar_caixa' ent.id %}">Adiar 1 dia</button>
+          </div>
         </li>
         {% endfor %}
       </ul>
@@ -1826,6 +1830,52 @@
     var m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
     return m ? decodeURIComponent(m[1].trim()) : '';
   }
+  (function bindAdiarEntregaCaixa() {
+    var lista = document.getElementById('cf-entregas-bloq-lista');
+    if (!lista) return;
+    lista.addEventListener('click', function (ev) {
+      var btn = ev.target && ev.target.closest ? ev.target.closest('.btn-cf-adiar-entrega') : null;
+      if (!btn) return;
+      var url = btn.getAttribute('data-url') || '';
+      if (!url) return;
+      var loja = (lista.getAttribute('data-loja') || '').trim().toLowerCase();
+      var pedir = window.agroCaixaPedirPin
+        ? window.agroCaixaPedirPin({
+            titulo: 'Adiar entrega 1 dia',
+            texto: 'PIN para soltar este caixa. Amanhã esta entrega trava de novo até fechar a venda.'
+          })
+        : Promise.resolve('');
+      pedir.then(function (pin) {
+        pin = String(pin || '').trim();
+        if (!pin) return;
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
+        fetch(url, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+          body: JSON.stringify({ pin: pin, loja: loja })
+        })
+          .then(function (res) {
+            return res.json().then(function (data) {
+              return { ok: res.ok && data && data.ok, data: data };
+            });
+          })
+          .then(function (r) {
+            if (!r.ok) {
+              alert((r.data && r.data.erro) || 'Não foi possível adiar.');
+              return;
+            }
+            window.location.reload();
+          })
+          .catch(function () {
+            alert('Falha ao adiar a entrega.');
+          })
+          .finally(function () {
+            if (window.gmLoadingBar) window.gmLoadingBar.hide();
+          });
+      });
+    });
+  })();
   function gravarContagemLocal(map) {
     try {
       localStorage.setItem(CONTAGEM_LS_KEY, JSON.stringify(map || {}));
