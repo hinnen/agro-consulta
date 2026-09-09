@@ -1958,5 +1958,41 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountShell, { once: true });
   else mountShell();
 })();
+
+/* Ponte global: alert «modo descanso / PIN» → teclado (quando sspin existir na página). */
+(function agroPinAlertBridge() {
+  if (window.__GM_SSPIN_ALERT_BRIDGE__) return;
+  window.__GM_SSPIN_ALERT_BRIDGE__ = true;
+  var nativeAlert = window.alert.bind(window);
+  function isPinMsg(t) {
+    t = String(t || '');
+    if (!t) return false;
+    if (/Identifique-se com o PIN/i.test(t)) return true;
+    if (/modo descanso/i.test(t) && /PIN/i.test(t)) return true;
+    if (/Entre com o PIN no PDV/i.test(t)) return true;
+    return false;
+  }
+  function tryOpen(t) {
+    if (typeof window.gmSspinAbrirSeErroPin === 'function') {
+      try {
+        return !!window.gmSspinAbrirSeErroPin(t, function () {}, { titulo: 'Identifique-se com o PIN' });
+      } catch (e1) {}
+    }
+    return false;
+  }
+  window.alert = function (msg) {
+    var t = String(msg == null ? '' : msg);
+    if (!isPinMsg(t)) return nativeAlert(t);
+    if (tryOpen(t)) return;
+    var n = 0;
+    var iv = setInterval(function () {
+      n += 1;
+      if (tryOpen(t) || n >= 50) {
+        clearInterval(iv);
+        if (n >= 50) nativeAlert(t);
+      }
+    }, 40);
+  };
+})();
 </script>
 {% include "produtos/_agro_pdv_fab.html" %}
