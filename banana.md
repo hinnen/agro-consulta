@@ -1301,12 +1301,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** (teste **v23.50**) |
 | **Você** | Ctrl+F5 · Finalizar/baixa/gestão/PDV com PIN velho → teclado (sem alert preto) |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (08/09 · tip **v23.51**)
+### ✅ CHECKLIST ÚNICO — pronto envio (08/09 · tip **v23.52**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | `PIN-ALERT-TECLADO` | 🟢 **pronto para envio à produção** | **NÃO** |
 | 2 | `REL-QUEM-COMPROU` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 3 | `ETQ-COLAR-MV` | 🟢 **pronto para envio à produção** | **NÃO** |
 
 ### 📦 PACOTE PRONTO — Quem já comprou (`REL-QUEM-COMPROU` · **v23.51** · 08/09)
 
