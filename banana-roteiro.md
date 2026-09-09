@@ -426,3 +426,22 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 **Status: enviado / Live v23.58.** `producao` @ `0e0c419`.  
 **Rollback:** tag `rollback/pre-checklist-0809-v23.45` @ `1b942c4` · branch `producao-backup-pre-v2358-checklist-20260908` · `docs/ROLLBACK-CHECKLIST-0809.md` · **só** frase+senha.  
 **Smoke:** healthz · badge **v23.58** · Ctrl+F5 · PIN teclado · Quem já comprou · Etiquetas colar/ranking.
+
+---
+
+## 25. Checklist único — lote 09/09 (`deploy/prep-checklist-0909` · alvo loja **v23.70**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-ENTREGA-PAGAS-24H** | 🟡 PREP / aguarda senha · **64/64** | **SIM** `0129` |
+| 2 | **PDV-ENTREGA-LOJA-SAIDA** | 🟡 PREP / aguarda senha · **12/12** | **NÃO** |
+| 3 | **CAIXA-ENTREGA-ADIAR** | 🟡 PREP / aguarda senha · **26/26** | **SIM** `0128` |
+| 4 | **TAREFAS-DETALHE-LOTE** | 🟡 PREP / aguarda senha · **90/90** | **NÃO** |
+| 5 | **REPASSE-COFRE-PLANO** | 🟡 PREP / aguarda senha · **62/62** | **NÃO** |
+| 6 | **REPASSE-GESTAO-SIMPLES** | 🟡 PREP / aguarda senha · **64/64** | **NÃO** |
+
+**Status: PREP pronto — aguarda frase + senha.** Branch `deploy/prep-checklist-0909` · tip **v23.70**.  
+**Antes loja:** Live **v23.58** @ `0e0c419`. **Não** merge `teste`.  
+**Rollback:** `docs/ROLLBACK-CHECKLIST-0909.md` · tag `rollback/pre-checklist-0909-v23.58` (criar no deploy).  
+**Risco:** médio em entrega/caixa — **pausar vendas** no deploy.  
+**Smoke pós:** badge **v23.70** · migrate 0128+0129 · Entregas abas · loja sai · Adiar · Tarefas Salvar · repasse cofre plano.
