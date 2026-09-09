@@ -1301,7 +1301,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** (teste **v23.50**) |
 | **Você** | Ctrl+F5 · Finalizar/baixa/gestão/PDV com PIN velho → teclado (sem alert preto) |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (08/09 · tip **v23.53**)
+### ✅ CHECKLIST ÚNICO — pronto envio (08/09 · tip **v23.54**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
