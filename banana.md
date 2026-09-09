@@ -1358,8 +1358,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `repasse_vila.html` · `views_repasse_vila.py` · `repasse_vila_util.py` · `saida_caixa_planos.py` · `scripts/verify_repasse_cofre_plano_path.py` |
 | **Migrate** | **NÃO** |
 | **Prova** | cofre-plano **62/62** (título PG Vila · quitado · estorno apaga · API+PIN 9973 · sem gaveta) · cofre **38/38** · gestao **64/64** · `check` OK |
-| **Status** | ✅ **Live v23.70** |
-| **Você** | Ctrl+F5 `/repasse-vila/` · Retirada → plano → Registrar · conferir Lançamentos (empresa Vila) |
+| **Status** | ✅ **Live v23.70** · hotfix estorno motivo no `teste` (modal) — **não** loja ainda |
+| **Você** | Ctrl+F5 `/repasse-vila/` · Retirada → plano → Registrar · **Estornar** pede motivo na caixa · conferir Lançamentos (empresa Vila) |
+
+### 🩹 HOTFIX — Estorno cofre pede motivo sem campo (`REPASSE-COFRE-ESTORNO-MOTIVO` · 09/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Bug** | Após plano na retirada, **Estornar** lia o «Detalhe (opcional)» e avisava «Informe o motivo» sem caixa clara |
+| **Fix** | Modal **Motivo do estorno** ao clicar Estornar (`rv-estorno-modal`) |
+| **Onde** | `repasse_vila.html` |
+| **Status** | 🟡 **no teste** — sobe loja só com frase+senha |
+| **Você** | Ctrl+F5 Gestão → Estornar → digitar motivo → Confirmar |
 
 ### ✅ PACOTE — Gestão repasse no padrão PDV (`REPASSE-GESTAO-SIMPLES` · **v23.62** · 09/09) · **Live**
 

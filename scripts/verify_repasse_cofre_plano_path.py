@@ -70,6 +70,9 @@ def prova_fonte() -> None:
         "rv-planos-cofre-boot",
         "body.plano_id",
         "Escolha o plano de conta.",
+        "rv-estorno-modal",
+        "pedirMotivoEstorno",
+        "Motivo do estorno",
     )
     needle(
         "produtos/views_repasse_vila.py",
