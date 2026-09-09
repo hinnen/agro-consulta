@@ -83,6 +83,8 @@ def _parse_date(raw) -> date | None:
 
 @login_required(login_url="/entrar/")
 def repasse_vila_view(request):
+    from produtos.saida_caixa_planos import listar_planos_cofre_vila
+
     cfg = obter_config()
     hoje = timezone.localdate()
     calc = calcular_disponivel(hoje, _skip_acumulado=True)
@@ -97,6 +99,7 @@ def repasse_vila_view(request):
             "fundo_troco_vila": fundo_troco_vila_config(cfg),
             "reserva_desde": reserva_vila_desde_config(cfg),
             "planos_repasse": listar_planos_repasse_config(cfg),
+            "planos_cofre": listar_planos_cofre_vila(),
             "calc": calc,
             "hist": hist,
             "url_pdv_repasse": url_pdv,
@@ -412,13 +415,19 @@ def api_repasse_vila_cofrinho_movimento(request):
             data_ref=_parse_date(payload.get("data_ref")),
             idempotencia_chave=chave,
             cofre=cofre,
+            plano_id=str(payload.get("plano_id") or "").strip(),
+            plano_nome=str(payload.get("plano_nome") or payload.get("plano_conta") or "").strip(),
         )
     if err:
         return JsonResponse({"ok": False, "erro": err}, status=400)
+    aviso = ""
+    if mov and isinstance(getattr(mov, "detalhe", None), dict):
+        aviso = str((mov.detalhe or {}).get("aviso") or "")
     return JsonResponse({
         "ok": True,
         "criado": criado,
         "movimento_id": mov.pk if mov else None,
+        "aviso": aviso,
         "cofrinho": resumo_cofrinho_vila(cofre=cofre),
         "cofre_vila_elias": resumo_cofrinho_vila(cofre="vila_elias"),
     })
@@ -446,10 +455,14 @@ def api_repasse_vila_cofrinho_estornar(request):
     if err:
         return JsonResponse({"ok": False, "erro": err}, status=400)
     cofre = getattr(mov, "cofre", None) if mov else "salario"
+    aviso = ""
+    if mov and isinstance(getattr(mov, "detalhe", None), dict):
+        aviso = str((mov.detalhe or {}).get("aviso") or "")
     return JsonResponse({
         "ok": True,
         "criado": criado,
         "movimento_id": mov.pk if mov else None,
+        "aviso": aviso,
         "cofrinho": resumo_cofrinho_vila(cofre=cofre or "salario"),
         "cofre_vila_elias": resumo_cofrinho_vila(cofre="vila_elias"),
     })

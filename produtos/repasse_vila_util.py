@@ -491,6 +491,7 @@ def resumo_cofrinho_vila(
         .order_by("-criado_em", "-pk")[: max(1, min(int(limit or 60), 200))]
     )
     for mov in qs:
+        det = mov.detalhe if isinstance(mov.detalhe, dict) else {}
         movimentos.append(
             {
                 "id": mov.pk,
@@ -506,6 +507,10 @@ def resumo_cofrinho_vila(
                 "saldo_posterior": float(_dec(mov.saldo_posterior)),
                 "operador": mov.operador,
                 "observacao": mov.observacao,
+                "plano_id": det.get("plano_id") or "",
+                "plano_nome": det.get("plano_nome") or "",
+                "titulo_ids": list(det.get("titulo_ids") or []),
+                "empresa_nome": det.get("empresa_nome") or "",
                 "sessao_caixa_id": mov.sessao_caixa_id,
                 "repasse_id": mov.repasse_id,
                 "movimento_caixa_id": mov.movimento_caixa_id,
@@ -746,6 +751,8 @@ def registrar_uso_ou_ajuste_cofrinho(
     idempotencia_chave: str = "",
     origem: str | None = None,
     cofre: str = COFRE_SALARIO,
+    plano_id: str = "",
+    plano_nome: str = "",
 ) -> tuple[RepasseVilaReservaMovimentoAgro | None, bool, str]:
     cofre_n = _norm_cofre(cofre)
     v = _dec(valor)
@@ -761,6 +768,34 @@ def registrar_uso_ou_ajuste_cofrinho(
         return None, False, "Origem de movimento inválida."
     if origem_mov == RepasseVilaReservaMovimentoAgro.Origem.SALDO_INICIAL and v <= 0:
         return None, False, "Saldo inicial precisa ser um valor positivo."
+
+    detalhe: dict[str, Any] = {
+        "saldo_inicial": origem_mov == RepasseVilaReservaMovimentoAgro.Origem.SALDO_INICIAL,
+        "cofre": cofre_n,
+    }
+    obs = str(observacao or "").strip()
+    plano_entry = None
+    if tipo == RepasseVilaReservaMovimentoAgro.Tipo.RETIRADA:
+        from produtos.saida_caixa_planos import resolver_plano_cofre_vila
+
+        plano_entry, err_pl = resolver_plano_cofre_vila(plano_id, plano_nome)
+        if err_pl or not plano_entry:
+            return None, False, err_pl or "Escolha o plano de conta."
+        if plano_entry.get("outros") and len(obs) < 15:
+            return None, False, "No plano Outros, o detalhe é obrigatório (mínimo 15 caracteres)."
+        plano_oficial = str(plano_entry.get("plano") or "").strip()
+        detalhe.update(
+            {
+                "plano_id": str(plano_entry.get("id") or ""),
+                "plano_nome": plano_oficial,
+                "plano_pk": plano_entry.get("pk"),
+                "empresa": "vila",
+            }
+        )
+        nome_cofre = "Cofre Vila Elias" if cofre_n == COFRE_VILA_ELIAS else "Cofre Salário"
+        base_obs = f"{nome_cofre} · {plano_oficial}"
+        obs = f"{base_obs} · {obs}" if obs else base_obs
+
     chave = idempotencia_chave or (
         f"reserva-vila:{cofre_n}:{tipo}:{timezone.now().strftime('%Y%m%d%H%M%S%f')}"
     )
@@ -770,43 +805,212 @@ def registrar_uso_ou_ajuste_cofrinho(
         valor=v,
         data_ref=data_ref or timezone.localdate(),
         operador=operador,
-        observacao=observacao,
+        observacao=obs,
         idempotencia_chave=chave,
         usuario=usuario,
         cofre=cofre_n,
-        detalhe={
-            "saldo_inicial": origem_mov == RepasseVilaReservaMovimentoAgro.Origem.SALDO_INICIAL,
-            "cofre": cofre_n,
-        },
+        detalhe=detalhe,
     )
+    if err or not mov:
+        return mov, criado, err
+
+    # Idempotente: não cria segundo lançamento financeiro.
+    if criado and tipo == RepasseVilaReservaMovimentoAgro.Tipo.RETIRADA and plano_entry:
+        fin_ok, fin_err, fin_meta = _gravar_despesa_retirada_cofre(
+            mov,
+            plano_entry=plano_entry,
+            operador=operador,
+            obs_extra=str(observacao or "").strip(),
+        )
+        if not fin_ok:
+            # Rollback do ledger: estorna o movimento recém-criado.
+            _reverter_movimento_cofrinho_falha_fin(mov, operador=operador, motivo=fin_err)
+            return None, False, fin_err or "Não foi possível gravar o gasto no financeiro (Vila)."
+        det = dict(mov.detalhe or {})
+        det.update(fin_meta or {})
+        mov.detalhe = det
+        mov.save(update_fields=["detalhe"])
     return mov, criado, err
 
 
-def registrar_saldo_inicial_cofrinho(
+def _resolver_forma_banco_cofre() -> tuple[str, str | None, str, str | None]:
+    """Forma Dinheiro + conta Caixa 1 com IDs reais (quitado exige banco_id válido)."""
+    forma_nome, forma_id = "Dinheiro", None
+    banco_nome, banco_id = "Caixa 1", None
+    try:
+        from produtos.lancamentos_financeiro_pg_util import listar_formas_e_bancos_distintos_pg
+        from produtos.mongo_financeiro_util import _fin_banco_id_valido_quitado
+
+        formas, bancos = listar_formas_e_bancos_distintos_pg(200)
+        for f in formas:
+            n = str(f.get("nome") or "").strip()
+            if n.upper() == "DINHEIRO":
+                forma_nome, forma_id = n, str(f.get("id") or "") or None
+                break
+        for b in bancos:
+            n = str(b.get("nome") or "").strip()
+            bid = str(b.get("id") or "").strip() or None
+            if n.upper().replace(" ", "") in ("CAIXA1", "CAIXA01") or n.upper() == "CAIXA 1":
+                if _fin_banco_id_valido_quitado(bid):
+                    banco_nome, banco_id = n, bid
+                    break
+        if not banco_id:
+            for b in bancos:
+                bid = str(b.get("id") or "").strip() or None
+                n = str(b.get("nome") or "").strip()
+                if _fin_banco_id_valido_quitado(bid) and n:
+                    banco_nome, banco_id = n, bid
+                    break
+    except Exception:
+        pass
+    return forma_nome, forma_id, banco_nome, banco_id
+
+
+def _gravar_despesa_retirada_cofre(
+    mov: RepasseVilaReservaMovimentoAgro,
     *,
-    valor,
-    observacao: str,
+    plano_entry: dict[str, Any],
     operador: str,
-    usuario=None,
-    idempotencia_chave: str = "",
-    cofre: str = COFRE_SALARIO,
-) -> tuple[RepasseVilaReservaMovimentoAgro | None, bool, str]:
-    """Uma vez: sobe o saldo físico e já conta como crédito da obrigação acumulada."""
-    cofre_n = _norm_cofre(cofre)
-    nome = "Cofre Vila Elias" if cofre_n == COFRE_VILA_ELIAS else "cofrinho Salário"
-    obs = str(observacao or "").strip() or f"Saldo inicial do {nome} (já separado fisicamente)"
-    return registrar_uso_ou_ajuste_cofrinho(
-        tipo=RepasseVilaReservaMovimentoAgro.Tipo.AJUSTE,
-        valor=valor,
-        observacao=obs,
-        operador=operador,
-        usuario=usuario,
-        data_ref=timezone.localdate(),
-        idempotencia_chave=idempotencia_chave
-        or f"reserva-vila:{cofre_n}:saldo-inicial:{timezone.now().strftime('%Y%m%d%H%M%S%f')}",
-        origem=RepasseVilaReservaMovimentoAgro.Origem.SALDO_INICIAL,
-        cofre=cofre_n,
+    obs_extra: str = "",
+) -> tuple[bool, str, dict[str, Any]]:
+    """Despesa quitada na empresa Vila (DRE/Lançamentos) — sem mexer na gaveta."""
+    from produtos.caixa_util import empresa_nome_saida_caixa
+    from produtos.lancamentos_financeiro_pg_write_util import inserir_lancamentos_manual_lote_dispatch
+
+    try:
+        from produtos.views import obter_conexao_mongo
+    except Exception:
+        obter_conexao_mongo = None  # type: ignore
+
+    empresa = empresa_nome_saida_caixa("vila")
+    plano = str(plano_entry.get("plano") or "").strip()
+    cofre_n = _norm_cofre(getattr(mov, "cofre", COFRE_SALARIO))
+    nome_cofre = "Cofre Vila Elias" if cofre_n == COFRE_VILA_ELIAS else "Cofre Salário"
+    valor = abs(_dec(mov.valor))
+    dia = mov.data_ref or timezone.localdate()
+    desc = f"{nome_cofre} — {plano}"
+    if obs_extra:
+        desc = f"{desc} · {obs_extra}"[:500]
+    linhas = [
+        {
+            "plano_conta": plano,
+            "plano_conta_id": str(plano_entry.get("pk") or "") or None,
+            "valor": float(valor),
+            "descricao": desc[:500],
+            "observacao": (obs_extra or "")[:500],
+        }
+    ]
+    db = None
+    if obter_conexao_mongo:
+        try:
+            _, db = obter_conexao_mongo()
+        except Exception:
+            db = None
+    forma_nome, forma_id, banco_nome, banco_id = _resolver_forma_banco_cofre()
+    if not banco_id:
+        return False, "Não achei conta bancária válida para gravar o gasto (Caixa 1).", {}
+    resultado = inserir_lancamentos_manual_lote_dispatch(
+        db,
+        despesa=True,
+        empresa_nome=empresa,
+        empresa_id=None,
+        pessoa_nome=(operador or "Cofre Vila")[:300],
+        pessoa_id=None,
+        data_competencia=dia,
+        data_vencimento=dia,
+        banco_nome=banco_nome,
+        banco_id=banco_id,
+        forma_nome=forma_nome,
+        forma_id=forma_id,
+        grupo_nome=None,
+        grupo_id=None,
+        usuario_label=(operador or "Cofre")[:120],
+        linhas=linhas,
+        marcar_quitado_pagar=True,
     )
+    if not resultado.get("ok"):
+        erros = resultado.get("erros") or []
+        msg = ""
+        if erros:
+            msg = str(erros[0].get("erro") if isinstance(erros[0], dict) else erros[0])[:240]
+        return False, msg or "Falha ao gravar lançamento financeiro.", {}
+    ids = [str(x) for x in (resultado.get("ids") or []) if x]
+    return True, "", {
+        "titulo_ids": ids,
+        "lote_financeiro": str(resultado.get("lote") or ""),
+        "empresa_nome": empresa,
+        "forma_nome": forma_nome,
+        "forma_id": forma_id or "",
+        "banco_nome": banco_nome,
+        "banco_id": banco_id or "",
+    }
+
+
+def _reverter_movimento_cofrinho_falha_fin(
+    mov: RepasseVilaReservaMovimentoAgro,
+    *,
+    operador: str,
+    motivo: str = "",
+) -> None:
+    """Desfaz o movimento do ledger se o financeiro falhou (sem título vinculado)."""
+    try:
+        cofre_n = _norm_cofre(getattr(mov, "cofre", COFRE_SALARIO))
+        cfg = RepasseVilaConfigAgro.objects.select_for_update().get(pk=obter_config().pk)
+        antes = saldo_cofrinho_vila(cfg, cofre=cofre_n)
+        # mov.valor é negativo na retirada; somar de volta
+        depois = (antes - _dec(mov.valor)).quantize(Decimal("0.01"))
+        if cofre_n == COFRE_VILA_ELIAS:
+            cfg.saldo_cofre_vila_elias = depois
+            field = "saldo_cofre_vila_elias"
+        else:
+            cfg.saldo_reserva_vila = depois
+            field = "saldo_reserva_vila"
+        cfg.atualizado_por = (operador or "")[:120]
+        cfg.save(update_fields=[field, "atualizado_em", "atualizado_por"])
+        mov.detalhe = {
+            **(mov.detalhe or {}),
+            "rollback_fin": True,
+            "rollback_motivo": (motivo or "")[:240],
+        }
+        mov.delete()
+    except Exception:
+        pass
+
+
+def _excluir_titulos_retirada_cofre(
+    detalhe: dict | None,
+    *,
+    operador: str,
+) -> tuple[bool, str]:
+    """Tenta excluir títulos vinculados à retirada. Falha não bloqueia estorno do cofre."""
+    det = detalhe if isinstance(detalhe, dict) else {}
+    ids = [str(x) for x in (det.get("titulo_ids") or []) if x]
+    if not ids:
+        tid = det.get("titulo_id")
+        if tid:
+            ids = [str(tid)]
+    if not ids:
+        return True, ""
+    from produtos.lancamentos_financeiro_pg_write_util import excluir_lancamento_dispatch
+
+    db = None
+    try:
+        from produtos.views import obter_conexao_mongo
+
+        _, db = obter_conexao_mongo()
+    except Exception:
+        db = None
+    falhas = []
+    for mid in ids:
+        try:
+            r = excluir_lancamento_dispatch(db, mid, operador or "Cofre", despesa=True)
+            if not r.get("ok"):
+                falhas.append(str(r.get("erro") or mid)[:120])
+        except Exception as exc:
+            falhas.append(str(exc)[:120])
+    if falhas:
+        return False, "; ".join(falhas)[:240]
+    return True, ""
 
 
 @transaction.atomic
@@ -840,6 +1044,12 @@ def estornar_movimento_cofrinho(
             observacao=(f"Estorno reserva cofrinho #{original.pk} · {observacao}")[:500],
             usuario=usuario,
         )
+    fin_ok, fin_err = True, ""
+    if original.tipo == RepasseVilaReservaMovimentoAgro.Tipo.RETIRADA:
+        fin_ok, fin_err = _excluir_titulos_retirada_cofre(
+            original.detalhe if isinstance(original.detalhe, dict) else {},
+            operador=operador,
+        )
     mov, criado, err = _registrar_movimento_cofrinho(
         tipo=RepasseVilaReservaMovimentoAgro.Tipo.ESTORNO,
         origem=RepasseVilaReservaMovimentoAgro.Origem.ESTORNO,
@@ -854,11 +1064,57 @@ def estornar_movimento_cofrinho(
         repasse=original.repasse,
         estornado_de=original,
         cofre=cofre_n,
-        detalhe={"movimento_original_id": original.pk, "cofre": cofre_n},
+        detalhe={
+            "movimento_original_id": original.pk,
+            "cofre": cofre_n,
+            "fin_excluiu_ok": fin_ok,
+            "fin_excluiu_erro": (fin_err or "")[:240],
+            "titulo_ids_origem": list(
+                (original.detalhe or {}).get("titulo_ids") or []
+            )
+            if isinstance(original.detalhe, dict)
+            else [],
+        },
     )
     if (err or not criado) and mov_caixa_estorno:
         mov_caixa_estorno.delete()
+    if mov and criado and not fin_ok:
+        # Cofre estornado; aviso no detalhe (API pode expor).
+        det = dict(mov.detalhe or {})
+        det["aviso"] = (
+            "Cofre estornado, mas o lançamento no financeiro não foi removido: "
+            + (fin_err or "erro")
+        )[:400]
+        mov.detalhe = det
+        mov.save(update_fields=["detalhe"])
     return mov, criado, err
+
+
+def registrar_saldo_inicial_cofrinho(
+    *,
+    valor,
+    observacao: str,
+    operador: str,
+    usuario=None,
+    idempotencia_chave: str = "",
+    cofre: str = COFRE_SALARIO,
+) -> tuple[RepasseVilaReservaMovimentoAgro | None, bool, str]:
+    """Uma vez: sobe o saldo físico e já conta como crédito da obrigação acumulada."""
+    cofre_n = _norm_cofre(cofre)
+    nome = "Cofre Vila Elias" if cofre_n == COFRE_VILA_ELIAS else "cofrinho Salário"
+    obs = str(observacao or "").strip() or f"Saldo inicial do {nome} (já separado fisicamente)"
+    return registrar_uso_ou_ajuste_cofrinho(
+        tipo=RepasseVilaReservaMovimentoAgro.Tipo.AJUSTE,
+        valor=valor,
+        observacao=obs,
+        operador=operador,
+        usuario=usuario,
+        data_ref=timezone.localdate(),
+        idempotencia_chave=idempotencia_chave
+        or f"reserva-vila:{cofre_n}:saldo-inicial:{timezone.now().strftime('%Y%m%d%H%M%S%f')}",
+        origem=RepasseVilaReservaMovimentoAgro.Origem.SALDO_INICIAL,
+        cofre=cofre_n,
+    )
 
 
 def resumo_reserva_fechamento_vila(sessoes) -> dict[str, Any]:

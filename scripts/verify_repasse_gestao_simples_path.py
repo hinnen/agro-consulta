@@ -69,6 +69,10 @@ def prova_fonte() -> None:
         "rv-saida--ve",
         'id="rv-cofre-tipo"',
         'id="rv-cofre-ve-tipo"',
+        'id="rv-cofre-plano"',
+        'id="rv-cofre-ve-plano"',
+        "Plano de conta",
+        "rv-planos-cofre-boot",
         'value="retirada"',
         "Retirada / uso",
         'id="rv-cofre-movimentar"',
@@ -118,7 +122,7 @@ def prova_pin() -> None:
 
 
 def cleanup_movs() -> None:
-    from produtos.models import RepasseVilaReservaMovimentoAgro
+    from produtos.models import RepasseVilaReservaMovimentoAgro, TituloFinanceiroAgro
 
     qs = RepasseVilaReservaMovimentoAgro.objects.filter(
         observacao__contains=PREFIX
@@ -126,12 +130,12 @@ def cleanup_movs() -> None:
         idempotencia_chave__startswith=PREFIX
     )
     ids = list(qs.values_list("id", flat=True))
-    if not ids:
-        return
-    # Estornos primeiro (FK protegida)
-    RepasseVilaReservaMovimentoAgro.objects.filter(estornado_de_id__in=ids).delete()
-    RepasseVilaReservaMovimentoAgro.objects.filter(id__in=ids).delete()
-
+    if ids:
+        # Estornos primeiro (FK protegida)
+        RepasseVilaReservaMovimentoAgro.objects.filter(estornado_de_id__in=ids).delete()
+        RepasseVilaReservaMovimentoAgro.objects.filter(id__in=ids).delete()
+    TituloFinanceiroAgro.objects.filter(descricao__icontains=PREFIX).delete()
+    TituloFinanceiroAgro.objects.filter(observacoes__icontains=PREFIX).delete()
 
 def prova_django_dois_cofres() -> None:
     print("=== Django retirada 2 cofres ===")
@@ -171,6 +175,12 @@ def prova_django_dois_cofres() -> None:
     chave_out_ve = f"{PREFIX}-out-ve"
     valor = Decimal("12.34")
 
+    from produtos.saida_caixa_planos import listar_planos_cofre_vila
+
+    planos_cf = listar_planos_cofre_vila()
+    check(bool(planos_cf), "planos cofre listados")
+    plano_id = str((planos_cf[0] or {}).get("id") or "")
+
     mov_in_s, ok_s, err_s = registrar_uso_ou_ajuste_cofrinho(
         tipo="ajuste",
         valor=valor,
@@ -190,8 +200,9 @@ def prova_django_dois_cofres() -> None:
         data_ref=dia,
         idempotencia_chave=chave_out_sal,
         cofre=COFRE_SALARIO,
+        plano_id=plano_id,
     )
-    check(ok_os and mov_out_s and not err_os, "retirada salário ok")
+    check(ok_os and mov_out_s and not err_os, f"retirada salário ok ({err_os})")
     check(
         abs(saldo_cofrinho_vila(cofre=COFRE_SALARIO) - sal_antes) < Decimal("0.01"),
         "salário volta ao saldo anterior após entrada+retirada",
@@ -216,8 +227,9 @@ def prova_django_dois_cofres() -> None:
         data_ref=dia,
         idempotencia_chave=chave_out_ve,
         cofre=COFRE_VILA_ELIAS,
+        plano_id=plano_id,
     )
-    check(ok_ov and mov_out_v and not err_ov, "retirada Vila Elias ok")
+    check(ok_ov and mov_out_v and not err_ov, f"retirada Vila Elias ok ({err_ov})")
     check(
         abs(saldo_cofrinho_vila(cofre=COFRE_VILA_ELIAS) - ve_antes) < Decimal("0.01"),
         "Vila Elias volta ao saldo anterior após entrada+retirada",
@@ -232,6 +244,7 @@ def prova_django_dois_cofres() -> None:
         data_ref=dia,
         idempotencia_chave=f"{PREFIX}-neg-ve",
         cofre=COFRE_VILA_ELIAS,
+        plano_id=plano_id,
     )
     check(not ok_neg and mov_neg is None and err_neg, "bloqueia retirada maior que saldo VE")
 
@@ -244,6 +257,7 @@ def prova_django_dois_cofres() -> None:
         data_ref=dia,
         idempotencia_chave=chave_out_ve,
         cofre=COFRE_VILA_ELIAS,
+        plano_id=plano_id,
     )
     check(
         mov_dup is not None and mov_dup.pk == mov_out_v.pk and criado_dup is False and not err_dup,
