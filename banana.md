@@ -1279,30 +1279,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PREP — Checklist 08/09 (`deploy/prep-checklist-0809` · alvo **v23.58**) · ⏳ aguarda senha
+### ✅ Deploy loja — Checklist 08/09 (`deploy/prep-checklist-0809` · **v23.58**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **PREP pronto** — **não** enviado · **aguarda frase + senha** |
-| **Antes (loja)** | **Live v23.45** @ `1b942c4` |
-| **Branch PREP** | `deploy/prep-checklist-0809` @ **`0e0c419`** · tip **v23.58** |
+| **Status** | ✅ **enviado / Live v23.58** — cherry **só** 3 pacotes (**não** merge `teste`) |
+| **Antes** | **v23.45** @ `1b942c4` |
+| **Agora** | `producao` @ **`0e0c419`** · Render `dep-daga8npsrm7s73a5ngl0` (build→live) |
 | **Pacotes** | `PIN-ALERT-TECLADO` · `REL-QUEM-COMPROU` · `ETQ-COLAR-MV` |
-| **NÃO sobe** | merge `teste` · WhatsApp extra · Excel cadastro · outros WIP |
 | **Migrate** | **NÃO** |
-| **Provas** | PIN **117/117** · LANC **70/70** · REL **67/67** · ETQ **82/82** · `check` OK · revalidados no PREP |
-| **Risco loja aberta** | **Baixo** — PIN = teclado (não muda venda) · relatório novo · só etiquetas |
-| **Rollback** | `docs/ROLLBACK-CHECKLIST-0809.md` · tag `rollback/pre-checklist-0809-v23.45` (criar no deploy) |
-| **Próximo chat** | 1) pausar vendas 2) *pode subir checklist 08/09 / produção* + **99738595** 3) FF PREP → `producao` · Ctrl+F5 · badge **v23.58** |
+| **Prova pré** | PIN **117/117** · LANC **70/70** · REL **67/67** · ETQ **82/82** · `check` OK |
+| **Risco PDV** | **Baixo** |
+| **Rollback** | tag `rollback/pre-checklist-0809-v23.45` · branch `producao-backup-pre-v2358-checklist-20260908` · `docs/ROLLBACK-CHECKLIST-0809.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 · badge **v23.58** · PIN velho → teclado · Quem já comprou · Etiquetas colar/ranking |
 
-### ✅ CHECKLIST ÚNICO — PREP 08/09 (alvo loja **v23.58**) · ⏳ aguarda senha
+### ✅ CHECKLIST ÚNICO — 08/09 · **Live v23.58**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `PIN-ALERT-TECLADO` | 🟡 PREP / aguarda senha | **NÃO** | **117/117** |
-| 2 | `REL-QUEM-COMPROU` | 🟡 PREP / aguarda senha | **NÃO** | **67/67** |
-| 3 | `ETQ-COLAR-MV` | 🟡 PREP / aguarda senha | **NÃO** | **82/82** |
+| 1 | `PIN-ALERT-TECLADO` | ✅ **enviado / Live v23.58** | **NÃO** | **117/117** |
+| 2 | `REL-QUEM-COMPROU` | ✅ **enviado / Live v23.58** | **NÃO** | **67/67** |
+| 3 | `ETQ-COLAR-MV` | ✅ **enviado / Live v23.58** | **NÃO** | **82/82** |
 
-### 📦 PACOTE PRONTO — Etiquetas colar códigos + mais vendidos (`ETQ-COLAR-MV` · **v23.52** · 08/09)
+**Loja agora:** **v23.58**. **Não** merge `teste`.
+
+### 📦 PACOTE — Etiquetas colar códigos + mais vendidos (`ETQ-COLAR-MV` · **v23.52**) · **Live v23.58**
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1310,10 +1311,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `etiquetas_fila_util.py` · `views`/`urls` · `produtos_etiquetas.html` · `produtos_etiquetas.js` |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_etq_colar_mv_path.py` **VERIFY_OK 82/82** (arquivos · tokens · resolver GM/overlay · ranking qtd/cat/limite · HTTP auth/página/APIs · PIN 9973=Renan) |
-| **Status** | 🟡 no PREP 08/09 · aguarda senha (teste **v23.52**) |
+| **Status** | ✅ **enviado / Live v23.58** |
 | **Você** | Ctrl+F5 etiquetas · Colar códigos (lista GM) · ou Carregar ranking → Adicionar todos |
 
-### 📦 PACOTE PRONTO — PIN alert vira teclado global (`PIN-ALERT-TECLADO` · **v23.50** · 08/09)
+### 📦 PACOTE — PIN alert vira teclado global (`PIN-ALERT-TECLADO` · **v23.50**) · **Live v23.58**
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1321,10 +1322,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `_screensaver_pin` · `_agro_open_external` · fiado/vendas/clientes/caixa/histórico |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_pin_alert_teclado_path.py` **VERIFY_OK 117/117** · `verify_lanc_pin_teclado_path.py` **70/70** · PIN **9973** Renan |
-| **Status** | 🟡 no PREP 08/09 · aguarda senha (teste **v23.50**) |
+| **Status** | ✅ **enviado / Live v23.58** |
 | **Você** | Ctrl+F5 · Finalizar/baixa/gestão/PDV com PIN velho → teclado (sem alert preto) |
 
-### 📦 PACOTE PRONTO — Quem já comprou (`REL-QUEM-COMPROU` · **v23.51** · 08/09)
+### 📦 PACOTE — Quem já comprou (`REL-QUEM-COMPROU` · **v23.51**) · **Live v23.58**
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1332,7 +1333,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix na prova** | Join telefone via `ClienteAgro.cpf` (campo certo; não `documento`) |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_rel_quem_comprou_path.py` **67/67** |
-| **Status** | 🟢 **pronto para envio à produção** |
+| **Status** | ✅ **enviado / Live v23.58** |
 | **Você** | Relatórios → **Quem já comprou** · produto/categoria · Atualizar · Zap |
 
 ### ✅ Deploy loja — Checklist 07/09b (`deploy/prep-checklist-0709b` · **v23.45**) · **Live**

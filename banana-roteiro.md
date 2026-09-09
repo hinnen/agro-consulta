@@ -415,14 +415,14 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 ---
 
-## 24. Checklist único — lote 08/09 (`deploy/prep-checklist-0809` · alvo loja **v23.58**)
+## 24. Checklist único — lote 08/09 (`deploy/prep-checklist-0809` · loja **v23.58**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PIN-ALERT-TECLADO** | 🟡 **PREP / aguarda senha** · prova **117/117** | **NÃO** |
-| 2 | **REL-QUEM-COMPROU** | 🟡 **PREP / aguarda senha** · prova **67/67** | **NÃO** |
-| 3 | **ETQ-COLAR-MV** | 🟡 **PREP / aguarda senha** · prova **82/82** | **NÃO** |
+| 1 | **PIN-ALERT-TECLADO** | ✅ **Live v23.58** · prova **117/117** | **NÃO** |
+| 2 | **REL-QUEM-COMPROU** | ✅ **Live v23.58** · prova **67/67** | **NÃO** |
+| 3 | **ETQ-COLAR-MV** | ✅ **Live v23.58** · prova **82/82** | **NÃO** |
 
-**Status: PREP pronto / aguarda frase+senha.** Branch `deploy/prep-checklist-0809` @ tip **v23.58**. Loja hoje **v23.45**.  
-**Rollback:** `docs/ROLLBACK-CHECKLIST-0809.md` · tag `rollback/pre-checklist-0809-v23.45` (criar no deploy) · **só** frase+senha.  
-**NÃO sobe:** merge `teste`. **Risco loja aberta: baixo** (PIN teclado · relatório novo · só etiquetas).
+**Status: enviado / Live v23.58.** `producao` @ `0e0c419`.  
+**Rollback:** tag `rollback/pre-checklist-0809-v23.45` @ `1b942c4` · branch `producao-backup-pre-v2358-checklist-20260908` · `docs/ROLLBACK-CHECKLIST-0809.md` · **só** frase+senha.  
+**Smoke:** healthz · badge **v23.58** · Ctrl+F5 · PIN teclado · Quem já comprou · Etiquetas colar/ranking.
