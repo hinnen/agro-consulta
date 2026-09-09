@@ -1357,6 +1357,12 @@ class PedidoEntrega(models.Model):
         verbose_name="Aguarda pagamento no PDV",
         help_text="Venda do PDV pendente até fechar pagamento após a entrega.",
     )
+    paga_na_loja = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name="Paga na loja",
+        help_text="Venda já cobrada no caixa ao lançar a entrega. Overlay PDV 24h; não trava fechar caixa.",
+    )
     pdv_wizard_state = models.JSONField(
         default=dict,
         blank=True,
