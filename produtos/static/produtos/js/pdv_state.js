@@ -114,6 +114,9 @@
                 localPagamento: '',
                 meioNaEntrega: '',
                 pedidoEntregaPendenteId: null,
+                /** centro | vila — loja do estoque e do caixa desta entrega */
+                lojaSaida: '',
+                lojaSaidaConfirmada: false,
                 /** true só após etapa Entrega (loja) ou retomar entrega pendente */
                 entregaFreteLiberadoPagamento: false
             },
@@ -967,6 +970,8 @@
         state.entrega.taxaEntregaModo = '';
         state.entrega.localPagamento = '';
         state.entrega.meioNaEntrega = '';
+        state.entrega.lojaSaida = '';
+        state.entrega.lojaSaidaConfirmada = false;
         state.entrega.pedidoEntregaPendenteId = null;
         var fp = String(draft.forma_pagamento || '').trim();
         var allowed = [

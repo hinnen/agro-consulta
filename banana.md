@@ -1280,6 +1280,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Entrega: de qual loja sai (`PDV-ENTREGA-LOJA-SAIDA` · **v23.67** · 09/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | No fluxo Entrega: tela **De qual loja sai?** (Centro / Vila). Padrão = loja deste PDV. Trocar = popup. Estoque e caixa da loja escolhida. Outra loja: manda pro painel dela **sem Assumir**. |
+| **Onde** | overlay entrega · `pdv_wizard.js` · `api_entrega_registrar` · `resolver_sessao_caixa_entrega_pdv` |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_pdv_entrega_loja_saida_path.py` **12/12** |
+| **Status** | 🧪 **teste** — Ctrl+F5 · **não** loja |
+| **Você** | PDV → Entrega → depois de pagamento na entrega/loja → conferir tela da loja · F7 na mesma · outra loja + Sim |
+
 ### 📦 PACOTE PRONTO — Entrega: retomar + adiar 1 dia (`CAIXA-ENTREGA-ADIAR` · **v23.64** · 09/09)
 
 | Campo | Valor |

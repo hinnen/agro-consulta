@@ -10,6 +10,13 @@
         <button type="button" id="pdv-ef1-entrega" class="pdv-action-btn pdv-ed-choice-btn w-full rounded-2xl border-[3px] border-orange-400 bg-gradient-to-r from-orange-500 to-amber-500 px-3 py-3 font-black uppercase tracking-wide text-white shadow-md hover:brightness-105">Pagamento na entrega</button>
         <button type="button" id="pdv-ef1-loja" class="pdv-action-btn pdv-ed-choice-btn w-full rounded-2xl border-[3px] border-emerald-300 bg-emerald-50 px-3 py-3 font-black uppercase tracking-wide text-emerald-950 shadow-sm hover:bg-emerald-100">Pagamento na loja</button>
       </div>
+      <div id="pdv-ed-loja-panel" class="hidden">
+        <div class="grid grid-cols-2">
+          <button type="button" id="pdv-ed-loja-centro" class="pdv-action-btn pdv-ed-choice-btn w-full rounded-2xl border-[3px] border-sky-400 bg-sky-50 px-3 py-3 font-black uppercase tracking-wide text-sky-950 shadow-sm hover:bg-sky-100">Centro</button>
+          <button type="button" id="pdv-ed-loja-vila" class="pdv-action-btn pdv-ed-choice-btn w-full rounded-2xl border-[3px] border-violet-400 bg-violet-50 px-3 py-3 font-black uppercase tracking-wide text-violet-950 shadow-sm hover:bg-violet-100">Vila Elias</button>
+        </div>
+        <p class="pdv-ed-detalhes-hint mt-2 px-1">Padrão = esta loja. <strong>1</strong> Centro · <strong>2</strong> Vila · <strong>F7</strong> confirma. Trocar pede confirmação.</p>
+      </div>
       <div id="pdv-ed-detalhes-panel" class="pdv-ed-detalhes-panel hidden">
         <p class="pdv-ed-section-label">Frete</p>
         <div class="pdv-ed-taxa-opcoes" role="radiogroup" aria-label="Taxa de entrega">

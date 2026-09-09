@@ -32690,6 +32690,13 @@ def api_entrega_registrar(request):
     if not isinstance(pdv_state, dict):
         pdv_state = {}
     sessao_cx = resolver_sessao_caixa_entrega_pdv(request, body)
+    loja_dest = normalizar_loja_entrega(body.get("loja_entrega") or body.get("loja"))
+    origem_ped = str(body.get("origem") or "").strip()[:24]
+    if not origem_ped:
+        origem_ped = "pdv"
+    if loja_dest:
+        campos["loja_entrega"] = loja_dest
+    campos["origem"] = origem_ped
 
     venda_link = None
     venda_raw = body.get("venda_id")
