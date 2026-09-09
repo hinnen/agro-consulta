@@ -696,6 +696,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Fundo troco gaveta (`REPASSE-FUNDO-TROCO` · 31/08):** alvo configurável (padrão R$ 500) em % lucro/opções; sugestão Salário→VE→Centro; falta corta Centro→VE→Salário; só aviso. Migrate `0106`.
 - **Dois cofrinhos (`REPASSE-DOIS-COFRES` · v18.81):** Salário (config) + Vila Elias (fatia que fica); fórmula sem cortar salário antes do %; migrate `0103`.
 - **Overlay PDV limpo (`REPASSE-PDV-OVERLAY-LIMPO` → hotfix `REPASSE-PDV-OVERLAY-POPUP` · v18.68):** quem/PIN só no popup · forma oculta (= Dinheiro) · sem chips · hero enxuto.
+- **Gestão `/repasse-vila/` (`REPASSE-GESTAO-SIMPLES` · v23.61):** botão **Gestão** no overlay. Tirar dinheiro do cofre = **Retirada / uso** + Registrar. Envelope do dia = overlay do PDV (não esta tela).
 - **Confirmação cofrinho (`REPASSE-COFRE-CONFIRM` · v18.78):** modal rosa ~80% da tela no lugar do `confirm` do browser.
 - **Hero totais (`REPASSE-HERO-TOTAIS` · v18.80):** Enviado no mês + Total geral no card «Levar ao Centro».
 - **Planos no lucro do envio (17/08):** botão **Planos** na tela de repasse — marca o que desconta do dinheiro enviado ao Centro (ex. Alimentação); o restante das saídas de caixa da Vila desconta do card **Lucro ficou na Vila**. Grava no Postgres (`RepasseVilaConfigAgro.planos_desconto_centro`). Migrate `0091`.
@@ -1278,6 +1279,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE — Gestão do repasse no padrão PDV (`REPASSE-GESTAO-SIMPLES` · **v23.61** · 09/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `/repasse-vila/` (botão **Gestão** do overlay) enxuto: cofres no topo, **Lançar saída** em destaque (laranja), detalhes do dia recolhidos. **Não** é o envelope do PDV. |
+| **Saída do cofre** | Sim — **Retirada / uso** + valor + motivo + **Registrar**. Também ajuste e saldo inicial. Envelope do dia = overlay do PDV. |
+| **Onde** | `repasse_vila.html` |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 no `teste` · **não** loja |
+| **Você** | Ctrl+F5 `/repasse-vila/` · tirar do cofre: movimento **Retirada / uso** → valor → motivo → Registrar |
 
 ### ✅ Deploy loja — Checklist 08/09 (`deploy/prep-checklist-0809` · **v23.58**) · **Live**
 
