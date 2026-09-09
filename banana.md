@@ -1291,6 +1291,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🧪 **teste** — Ctrl+F5 · **não** loja |
 | **Você** | Fechar caixa com entrega pendente: Retomar · Adiar 1 dia + PIN · no outro dia o caixa trava de novo |
 
+### 📦 PACOTE PRONTO — Tarefa: título + um botão (`TAREFAS-DETALHE-LOTE` · **v23.65** · 09/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Detalhe da pendência: **título editável** · status + prioridade juntos · **um** botão **Salvar alterações**. Comentário continua separado. |
+| **Onde** | `tarefas/templates/tarefas/detalhe.html` · prova `verify_vl_hub_tarefas_path.py` |
+| **Migrate** | **NÃO** |
+| **Prova** | **78/78** |
+| **Status** | 🟢 **pronto para envio** (ainda **não** loja) |
+| **Você** | **Ctrl+F5** · abrir a tarefa · mudar título/status/prioridade · um toque em Salvar |
+
 ### 📦 PACOTE PRONTO — Retirada cofre com plano (Vila) (`REPASSE-COFRE-PLANO` · **v23.63** · 09/09)
 
 | Campo | Valor |
