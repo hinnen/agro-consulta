@@ -4,7 +4,7 @@
 <div class="tf-top">
   <div>
     <p class="tf-kicker">Pendência</p>
-    <h1 class="tf-title" style="font-size:clamp(1.15rem,4.5vw + 0.25rem,1.45rem);">{{ tarefa.titulo }}</h1>
+    <h1 class="tf-title" style="font-size:clamp(1.15rem,4.5vw + 0.25rem,1.45rem);">Editar</h1>
   </div>
   <div class="tf-ops">
     <a class="tf-btn" href="{% url 'tarefas_lista' %}">Lista</a>
@@ -20,13 +20,15 @@
 <p style="margin:0 0 1rem;font-weight:700;line-height:1.4;white-space:pre-wrap;">{{ tarefa.descricao }}</p>
 {% endif %}
 
-<label class="tf-lab" for="status">Mudar status</label>
+<label class="tf-lab" for="titulo">Título</label>
+<input class="tf-field" id="titulo" maxlength="200" value="{{ tarefa.titulo }}">
+
+<label class="tf-lab" for="status">Status</label>
 <select class="tf-field" id="status">
   {% for val, lab in status_choices %}
   <option value="{{ val }}" {% if val == tarefa.status %}selected{% endif %}>{{ lab }}</option>
   {% endfor %}
 </select>
-<button type="button" class="tf-btn tf-btn-emerald" id="btnStatus" style="width:100%;margin-bottom:1rem;">Aplicar status</button>
 
 <label class="tf-lab" for="prioridade">Prioridade</label>
 <select class="tf-field" id="prioridade">
@@ -34,7 +36,7 @@
   <option value="{{ val }}" {% if val == tarefa.prioridade %}selected{% endif %}>{{ lab }}</option>
   {% endfor %}
 </select>
-<button type="button" class="tf-btn tf-btn-primary" id="btnPrioridade" style="width:100%;margin-bottom:1rem;">Aplicar prioridade</button>
+<button type="button" class="tf-btn tf-btn-emerald" id="btnSalvar" style="width:100%;margin-bottom:1rem;">Salvar alterações</button>
 
 <label class="tf-lab" for="comentario">Comentar</label>
 <textarea class="tf-field" id="comentario" placeholder="Escreva um comentário…"></textarea>
@@ -68,25 +70,22 @@
 {% endblock %}
 {% block scripts %}
 <script>
-const statusUrl = "{% url 'api_tarefa_status' tarefa.pk %}";
 const atualizarUrl = "{% url 'api_tarefa_atualizar' tarefa.pk %}";
 const comentarUrl = "{% url 'api_tarefa_comentar' tarefa.pk %}";
-document.getElementById("btnStatus").addEventListener("click", async function () {
+document.getElementById("btnSalvar").addEventListener("click", async function () {
   const btn = this;
-  btn.disabled = true;
-  try {
-    await window.tfPost(statusUrl, { status: document.getElementById("status").value });
-    location.reload();
-  } catch (e) {
-    alert(e.message || "Erro");
-    btn.disabled = false;
+  const titulo = (document.getElementById("titulo").value || "").trim();
+  if (!titulo) {
+    alert("Informe o título.");
+    return;
   }
-});
-document.getElementById("btnPrioridade").addEventListener("click", async function () {
-  const btn = this;
   btn.disabled = true;
   try {
-    await window.tfPost(atualizarUrl, { prioridade: document.getElementById("prioridade").value });
+    await window.tfPost(atualizarUrl, {
+      titulo: titulo,
+      status: document.getElementById("status").value,
+      prioridade: document.getElementById("prioridade").value,
+    });
     location.reload();
   } catch (e) {
     alert(e.message || "Erro");

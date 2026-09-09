@@ -60,8 +60,10 @@ def main() -> int:
     check("pwa_scope_hub", 'scope: "/vendas/lojas/"' in hub_tpl)
     check("pin_ui", "PIN" in pin_tpl and "tarefas_pin" in pin_tpl)
     check("lista_trocar_pin", "Trocar PIN" in lista_tpl and "tarefas_logout" in lista_tpl)
-    check("detalhe_status_comentario", "btnStatus" in det_tpl and "btnComentar" in det_tpl)
-    check("detalhe_prioridade", "btnPrioridade" in det_tpl and "prioridade" in det_tpl)
+    check("detalhe_salvar_unico", "btnSalvar" in det_tpl and "btnComentar" in det_tpl)
+    check("detalhe_titulo_editavel", 'id="titulo"' in det_tpl and "Salvar alterações" in det_tpl)
+    check("detalhe_sem_botoes_avulsos", "btnStatus" not in det_tpl and "btnPrioridade" not in det_tpl)
+    check("detalhe_prioridade", "prioridade" in det_tpl)
     check("migrate_models", "TarefaAgro" in man and "TarefaComentarioAgro" in man and "TarefaEventoAgro" in man)
     check("migrate_seed", "equipe-centro-vila" in seed_m and "guabi-precos" in seed_m)
     models_py = (ROOT / "tarefas/models.py").read_text(encoding="utf-8")
@@ -169,6 +171,25 @@ def main() -> int:
         check("criar_por_nome", bool(t and t.criado_por_nome == operador), getattr(t, "criado_por_nome", ""))
         ev_criada = TarefaEventoAgro.objects.filter(tarefa_id=tid, tipo="criada").first() if tid else None
         check("evento_criada", ev_criada is not None and ev_criada.autor_nome == operador)
+
+        csrf = _csrf(c) or csrf
+        titulo_edit = titulo + " editado"
+        lote = c.post(
+            f"/vendas/lojas/tarefas/api/{tid}/atualizar/",
+            data=json.dumps({"titulo": titulo_edit, "status": "aguardando", "prioridade": "baixa"}),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=csrf,
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        j_lote = json.loads(lote.content.decode("utf-8", "replace"))
+        check("lote_ok", lote.status_code == 200 and j_lote.get("ok") is True, str(j_lote))
+        t.refresh_from_db()
+        check(
+            "lote_db",
+            bool(t and t.titulo == titulo_edit and t.status == "aguardando" and t.prioridade == "baixa"),
+            f"{getattr(t, 'titulo', '')}|{getattr(t, 'status', '')}|{getattr(t, 'prioridade', '')}",
+        )
+        titulo = titulo_edit
 
         csrf = _csrf(c) or csrf
         pr = c.post(
