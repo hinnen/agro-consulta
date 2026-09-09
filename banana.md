@@ -1291,15 +1291,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🧪 **teste** — Ctrl+F5 · **não** loja |
 | **Você** | Fechar caixa com entrega pendente: Retomar · Adiar 1 dia + PIN · no outro dia o caixa trava de novo |
 
-### 📦 PACOTE PRONTO — Tarefa: título + um botão (`TAREFAS-DETALHE-LOTE` · **v23.65** · 09/09)
+### 📦 PACOTE PRONTO — Tarefa: título + um botão (`TAREFAS-DETALHE-LOTE` · **v23.66** · 09/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Detalhe da pendência: **título editável** · status + prioridade juntos · **um** botão **Salvar alterações**. Comentário continua separado. |
-| **Onde** | `tarefas/templates/tarefas/detalhe.html` · prova `verify_vl_hub_tarefas_path.py` |
+| **O quê** | Detalhe: **título editável** · status + prioridade juntos · **um** botão **Salvar alterações**. Comentário separado. |
+| **Onde** | `tarefas/templates/tarefas/detalhe.html` · `scripts/verify_vl_hub_tarefas_path.py` |
 | **Migrate** | **NÃO** |
-| **Prova** | **78/78** |
-| **Status** | 🟢 **pronto para envio** (ainda **não** loja) |
+| **Prova** | **90/90** (PIN **9973**=Renan · lote título+status+prioridade · título vazio recusa · lista atualiza · Chrome OK) |
+| **Status** | 🟢 **pronto para envio à produção** |
 | **Você** | **Ctrl+F5** · abrir a tarefa · mudar título/status/prioridade · um toque em Salvar |
 
 ### 📦 PACOTE PRONTO — Retirada cofre com plano (Vila) (`REPASSE-COFRE-PLANO` · **v23.63** · 09/09)
@@ -1324,14 +1324,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** (vai junto com `REPASSE-COFRE-PLANO`) |
 | **Você** | Ver pacote plano acima. |
 
-### ✅ CHECKLIST ÚNICO — 09/09 · pronto envio (tip **v23.63**)
+### ✅ CHECKLIST ÚNICO — 09/09 · pronto envio (tip **v23.66**)
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `REPASSE-COFRE-PLANO` | 🟢 **pronto para envio à produção** | **NÃO** | **62/62** |
-| 2 | `REPASSE-GESTAO-SIMPLES` | 🟢 **pronto para envio à produção** | **NÃO** | **64/64** |
+| 1 | `TAREFAS-DETALHE-LOTE` | 🟢 **pronto para envio à produção** | **NÃO** | **90/90** |
+| 2 | `REPASSE-COFRE-PLANO` | 🟢 **pronto para envio à produção** | **NÃO** | **62/62** |
+| 3 | `REPASSE-GESTAO-SIMPLES` | 🟢 **pronto para envio à produção** | **NÃO** | **64/64** |
 
-**Loja agora:** **v23.58**. **Só** frase+senha.
+**Loja agora:** **v23.58**. **Só** frase+senha. **Não** merge `teste`.
 
 ### ✅ Deploy loja — Checklist 08/09 (`deploy/prep-checklist-0809` · **v23.58**) · **Live**
 
