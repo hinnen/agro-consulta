@@ -429,19 +429,18 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 ---
 
-## 25. Checklist único — lote 09/09 (`deploy/prep-checklist-0909` · alvo loja **v23.70**)
+## 25. Checklist único — lote 09/09 · ✅ **Live v23.70**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PDV-ENTREGA-PAGAS-24H** | 🟡 PREP / aguarda senha · **64/64** | **SIM** `0129` |
-| 2 | **PDV-ENTREGA-LOJA-SAIDA** | 🟡 PREP / aguarda senha · **12/12** | **NÃO** |
-| 3 | **CAIXA-ENTREGA-ADIAR** | 🟡 PREP / aguarda senha · **26/26** | **SIM** `0128` |
-| 4 | **TAREFAS-DETALHE-LOTE** | 🟡 PREP / aguarda senha · **90/90** | **NÃO** |
-| 5 | **REPASSE-COFRE-PLANO** | 🟡 PREP / aguarda senha · **62/62** | **NÃO** |
-| 6 | **REPASSE-GESTAO-SIMPLES** | 🟡 PREP / aguarda senha · **64/64** | **NÃO** |
+| 1 | **PDV-ENTREGA-PAGAS-24H** | ✅ Live · **64/64** | **SIM** `0129` |
+| 2 | **PDV-ENTREGA-LOJA-SAIDA** | ✅ Live · **12/12** | **NÃO** |
+| 3 | **CAIXA-ENTREGA-ADIAR** | ✅ Live · **26/26** | **SIM** `0128` |
+| 4 | **TAREFAS-DETALHE-LOTE** | ✅ Live · **90/90** | **NÃO** |
+| 5 | **REPASSE-COFRE-PLANO** | ✅ Live · **62/62** | **NÃO** |
+| 6 | **REPASSE-GESTAO-SIMPLES** | ✅ Live · **64/64** | **NÃO** |
 
-**Status: PREP pronto — aguarda frase + senha.** Branch `deploy/prep-checklist-0909` · tip **v23.70**.  
-**Antes loja:** Live **v23.58** @ `0e0c419`. **Não** merge `teste`.  
-**Rollback:** `docs/ROLLBACK-CHECKLIST-0909.md` · tag `rollback/pre-checklist-0909-v23.58` (criar no deploy).  
-**Risco:** médio em entrega/caixa — **pausar vendas** no deploy.  
-**Smoke pós:** badge **v23.70** · migrate 0128+0129 · Entregas abas · loja sai · Adiar · Tarefas Salvar · repasse cofre plano.
+**Status: ✅ Live v23.70** — `producao` @ `71a169a` · Render `dep-dagsqovlk1mc73a5t8cg`.  
+**Antes:** Live **v23.58** @ `0e0c419`. Migrate **0128+0129** OK. **Não** merge `teste`.  
+**Rollback:** tag `rollback/pre-checklist-0909-v23.58` · `docs/ROLLBACK-CHECKLIST-0909.md`.  
+**Smoke:** Ctrl+F5 · badge **v23.70** · Entregas · Adiar · Tarefas · repasse.

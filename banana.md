@@ -1280,35 +1280,33 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PREP — Checklist 09/09 (`deploy/prep-checklist-0909` · alvo **v23.70**) · ⏳ aguarda senha
+### ✅ Deploy loja — Checklist 09/09 (`deploy/prep-checklist-0909` · **v23.70**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **PREP pronto** — **não** enviado · **aguarda frase + senha** |
-| **Antes (loja)** | **Live v23.58** @ `0e0c419` |
-| **Branch PREP** | `deploy/prep-checklist-0909` @ tip **v23.70** |
+| **Status** | ✅ **enviado / Live v23.70** — cherry **só** 6 pacotes (**não** merge `teste`) |
+| **Antes** | **Live v23.58** @ `0e0c419` |
+| **Agora** | `producao` @ **`71a169a`** · Render `dep-dagsqovlk1mc73a5t8cg` **live** |
 | **Pacotes** | `PDV-ENTREGA-PAGAS-24H` · `PDV-ENTREGA-LOJA-SAIDA` · `CAIXA-ENTREGA-ADIAR` · `TAREFAS-DETALHE-LOTE` · `REPASSE-COFRE-PLANO` · `REPASSE-GESTAO-SIMPLES` |
-| **NÃO sobe** | merge `teste` · WhatsApp · Excel · DRE WIP · outros |
-| **Migrate** | **SIM** `produtos.0128` + `0129` |
-| **Provas** | pagas **64/64** · loja-saída **12/12** · adiar **26/26** · tarefas **90/90** · cofre **62/62** · gestão **64/64** · `check` OK |
-| **Risco loja aberta** | **Médio** nos 3 paths de entrega/caixa · **baixo** tarefas/repasse — **pausar vendas** no deploy |
-| **Rollback** | `docs/ROLLBACK-CHECKLIST-0909.md` · tag `rollback/pre-checklist-0909-v23.58` (criar no deploy) |
-| **Próximo chat** | 1) pausar vendas 2) *pode subir checklist 09/09 / produção* + **99738595** 3) FF PREP → `producao` · migrate · Ctrl+F5 · badge **v23.70** |
+| **Migrate** | ✅ `produtos.0128` + `0129` OK no build |
+| **Prova pré** | pagas **64/64** · loja-saída **12/12** · adiar **26/26** · tarefas **90/90** · cofre **62/62** · gestão **64/64** · `check` OK |
+| **Rollback** | tag `rollback/pre-checklist-0909-v23.58` · branch `producao-backup-pre-v2370-checklist-20260909` · `docs/ROLLBACK-CHECKLIST-0909.md` |
+| **Smoke** | healthz **ok** · badge **v23.70** · Ctrl+F5 |
 
-### ✅ CHECKLIST ÚNICO — 09/09 · PREP aguarda senha (tip **v23.70**)
+### ✅ CHECKLIST ÚNICO — 09/09 · **Live v23.70**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `PDV-ENTREGA-PAGAS-24H` | 🟡 **PREP / aguarda senha** | **SIM** `0129` | **64/64** |
-| 2 | `PDV-ENTREGA-LOJA-SAIDA` | 🟡 **PREP / aguarda senha** | **NÃO** | **12/12** |
-| 3 | `CAIXA-ENTREGA-ADIAR` | 🟡 **PREP / aguarda senha** | **SIM** `0128` | **26/26** |
-| 4 | `TAREFAS-DETALHE-LOTE` | 🟡 **PREP / aguarda senha** | **NÃO** | **90/90** |
-| 5 | `REPASSE-COFRE-PLANO` | 🟡 **PREP / aguarda senha** | **NÃO** | **62/62** |
-| 6 | `REPASSE-GESTAO-SIMPLES` | 🟡 **PREP / aguarda senha** | **NÃO** | **64/64** |
+| 1 | `PDV-ENTREGA-PAGAS-24H` | ✅ **Live v23.70** | **SIM** `0129` | **64/64** |
+| 2 | `PDV-ENTREGA-LOJA-SAIDA` | ✅ **Live v23.70** | **NÃO** | **12/12** |
+| 3 | `CAIXA-ENTREGA-ADIAR` | ✅ **Live v23.70** | **SIM** `0128` | **26/26** |
+| 4 | `TAREFAS-DETALHE-LOTE` | ✅ **Live v23.70** | **NÃO** | **90/90** |
+| 5 | `REPASSE-COFRE-PLANO` | ✅ **Live v23.70** | **NÃO** | **62/62** |
+| 6 | `REPASSE-GESTAO-SIMPLES` | ✅ **Live v23.70** | **NÃO** | **64/64** |
 
-**Loja agora:** **v23.58**. **Só** frase+senha. **Não** merge `teste`. Entregas: migrate **0128+0129**.
+**Loja agora:** **v23.70**. **Não** merge `teste`.
 
-### 📦 PACOTE PRONTO — Entregas pagas na loja 24h (`PDV-ENTREGA-PAGAS-24H` · **v23.68** · 09/09)
+### ✅ PACOTE — Entregas pagas na loja 24h (`PDV-ENTREGA-PAGAS-24H` · **v23.68** · 09/09) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1316,10 +1314,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | overlay PDV · `entrega_pdv_pendente_util.py` · `api_pdv_entregas_pendentes` · migrate `0129` |
 | **Migrate** | **SIM** `produtos.0129` |
 | **Prova** | `scripts/verify_pdv_entrega_pagas_loja_path.py` **64/64** (PIN **9973**=Renan · HTTP · caixa não trava · 24 h · Vila isolada) |
-| **Status** | 🟡 **PREP / aguarda senha** (`deploy/prep-checklist-0909` · v23.70) |
+| **Status** | ✅ **Live v23.70** |
 | **Você** | Ctrl+F5 · venda Entrega paga na loja → Entregas → aba Pagas · Imprimir/Maps · Fechar caixa **não** pede essa venda |
 
-### 📦 PACOTE PRONTO — Entrega: de qual loja sai (`PDV-ENTREGA-LOJA-SAIDA` · **v23.67** · 09/09)
+### ✅ PACOTE — Entrega: de qual loja sai (`PDV-ENTREGA-LOJA-SAIDA` · **v23.67** · 09/09) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1327,10 +1325,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | overlay entrega · `pdv_wizard.js` · `api_entrega_registrar` · `resolver_sessao_caixa_entrega_pdv` |
 | **Migrate** | **NÃO** |
 | **Prova** | `scripts/verify_pdv_entrega_loja_saida_path.py` **12/12** |
-| **Status** | 🟡 **PREP / aguarda senha** (`deploy/prep-checklist-0909` · v23.70) |
+| **Status** | ✅ **Live v23.70** |
 | **Você** | PDV → Entrega → tela da loja · F7 na mesma · outra loja + Sim |
 
-### 📦 PACOTE PRONTO — Entrega: retomar + adiar 1 dia (`CAIXA-ENTREGA-ADIAR` · **v23.64** · 09/09)
+### ✅ PACOTE — Entrega: retomar + adiar 1 dia (`CAIXA-ENTREGA-ADIAR` · **v23.64** · 09/09) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1338,10 +1336,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `entrega_pdv_pendente_util.py` · Fechar caixa · PDV Entregas · migrate `0128` |
 | **Migrate** | **SIM** `produtos.0128` |
 | **Prova** | `scripts/verify_caixa_entrega_adiar_path.py` **26/26** |
-| **Status** | 🟡 **PREP / aguarda senha** (`deploy/prep-checklist-0909` · v23.70) |
+| **Status** | ✅ **Live v23.70** |
 | **Você** | Fechar caixa com entrega pendente: Retomar · Adiar 1 dia + PIN |
 
-### 📦 PACOTE PRONTO — Tarefa: título + um botão (`TAREFAS-DETALHE-LOTE` · **v23.66** · 09/09)
+### ✅ PACOTE — Tarefa: título + um botão (`TAREFAS-DETALHE-LOTE` · **v23.66** · 09/09) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1349,10 +1347,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `tarefas/templates/tarefas/detalhe.html` · `scripts/verify_vl_hub_tarefas_path.py` |
 | **Migrate** | **NÃO** |
 | **Prova** | **90/90** (PIN **9973**=Renan · lote título+status+prioridade · título vazio recusa · lista atualiza · Chrome OK) |
-| **Status** | 🟡 **PREP / aguarda senha** (`deploy/prep-checklist-0909` · v23.70) |
+| **Status** | ✅ **Live v23.70** |
 | **Você** | **Ctrl+F5** · abrir a tarefa · mudar título/status/prioridade · um toque em Salvar |
 
-### 📦 PACOTE PRONTO — Retirada cofre com plano (Vila) (`REPASSE-COFRE-PLANO` · **v23.63** · 09/09)
+### ✅ PACOTE — Retirada cofre com plano (Vila) (`REPASSE-COFRE-PLANO` · **v23.63** · 09/09) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1360,10 +1358,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `repasse_vila.html` · `views_repasse_vila.py` · `repasse_vila_util.py` · `saida_caixa_planos.py` · `scripts/verify_repasse_cofre_plano_path.py` |
 | **Migrate** | **NÃO** |
 | **Prova** | cofre-plano **62/62** (título PG Vila · quitado · estorno apaga · API+PIN 9973 · sem gaveta) · cofre **38/38** · gestao **64/64** · `check` OK |
-| **Status** | 🟡 **PREP / aguarda senha** (`deploy/prep-checklist-0909` · v23.70) |
+| **Status** | ✅ **Live v23.70** |
 | **Você** | Ctrl+F5 `/repasse-vila/` · Retirada → plano → Registrar · conferir Lançamentos (empresa Vila) |
 
-### 📦 PACOTE PRONTO — Gestão repasse no padrão PDV (`REPASSE-GESTAO-SIMPLES` · **v23.62** · 09/09)
+### ✅ PACOTE — Gestão repasse no padrão PDV (`REPASSE-GESTAO-SIMPLES` · **v23.62** · 09/09) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1371,21 +1369,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `repasse_vila.html` · `scripts/verify_repasse_gestao_simples_path.py` |
 | **Migrate** | **NÃO** |
 | **Prova** | gestao **64/64** · cofre **38/38** |
-| **Status** | 🟡 **PREP / aguarda senha** (`deploy/prep-checklist-0909` · v23.70) |
+| **Status** | ✅ **Live v23.70** |
 | **Você** | Ver pacote plano acima. |
 
-### ~~✅ CHECKLIST ÚNICO — 09/09 · pronto envio (tip **v23.69**)~~ · **ver PREP tip v23.70 acima**
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | `PDV-ENTREGA-PAGAS-24H` | 🟡 PREP · ver topo | **SIM** `0129` | **64/64** |
-| 2 | `PDV-ENTREGA-LOJA-SAIDA` | 🟡 PREP · ver topo | **NÃO** | **12/12** |
-| 3 | `CAIXA-ENTREGA-ADIAR` | 🟡 PREP · ver topo | **SIM** `0128` | **26/26** |
-| 4 | `TAREFAS-DETALHE-LOTE` | 🟡 PREP · ver topo | **NÃO** | **90/90** |
-| 5 | `REPASSE-COFRE-PLANO` | 🟡 PREP · ver topo | **NÃO** | **62/62** |
-| 6 | `REPASSE-GESTAO-SIMPLES` | 🟡 PREP · ver topo | **NÃO** | **64/64** |
-
-**Loja agora:** **v23.58**. **Só** frase+senha. **Não** merge `teste`. Entregas: migrate **0128+0129**.
+### ~~✅ CHECKLIST ÚNICO — 09/09 · pronto envio (tip **v23.69**)~~ · **Live v23.70 acima**
 
 ### ✅ Deploy loja — Checklist 08/09 (`deploy/prep-checklist-0809` · **v23.58**) · **Live**
 
