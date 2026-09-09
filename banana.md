@@ -1285,7 +1285,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Status** | ✅ **enviado / Live v23.58** — cherry **só** 3 pacotes (**não** merge `teste`) |
 | **Antes** | **v23.45** @ `1b942c4` |
-| **Agora** | `producao` @ **`0e0c419`** · Render `dep-daga8npsrm7s73a5ngl0` (build→live) |
+| **Agora** | `producao` @ **`0e0c419`** · Render `dep-daga8npsrm7s73a5ngl0` **live** |
 | **Pacotes** | `PIN-ALERT-TECLADO` · `REL-QUEM-COMPROU` · `ETQ-COLAR-MV` |
 | **Migrate** | **NÃO** |
 | **Prova pré** | PIN **117/117** · LANC **70/70** · REL **67/67** · ETQ **82/82** · `check` OK |
