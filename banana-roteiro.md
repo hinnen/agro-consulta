@@ -412,3 +412,17 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 | 1 | **VL-HUB-TAREFAS** | 🟢 **pronto para envio à produção** | **SIM** `tarefas.0001` + `0002` |
 
 **Prova:** `verify_vl_hub_tarefas_path.py` **55/55**. **Só** frase+senha. Loja ainda em **v23.07** (WA-PONTE-LEVE).
+
+---
+
+## 24. Checklist único — lote 08/09 (`deploy/prep-checklist-0809` · alvo loja **v23.58**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PIN-ALERT-TECLADO** | 🟡 **PREP / aguarda senha** · prova **117/117** | **NÃO** |
+| 2 | **REL-QUEM-COMPROU** | 🟡 **PREP / aguarda senha** · prova **67/67** | **NÃO** |
+| 3 | **ETQ-COLAR-MV** | 🟡 **PREP / aguarda senha** · prova **82/82** | **NÃO** |
+
+**Status: PREP pronto / aguarda frase+senha.** Branch `deploy/prep-checklist-0809` @ tip **v23.58**. Loja hoje **v23.45**.  
+**Rollback:** `docs/ROLLBACK-CHECKLIST-0809.md` · tag `rollback/pre-checklist-0809-v23.45` (criar no deploy) · **só** frase+senha.  
+**NÃO sobe:** merge `teste`. **Risco loja aberta: baixo** (PIN teclado · relatório novo · só etiquetas).
