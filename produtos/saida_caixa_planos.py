@@ -148,3 +148,33 @@ def listar_planos_saida_caixa() -> list[dict[str, Any]]:
             entry["sem_retirada_caixa_padrao"] = True
         out.append(entry)
     return out
+
+
+def listar_planos_cofre_vila() -> list[dict[str, Any]]:
+    """Planos para retirada dos cofres (sem Depósito / só-caixa / vale / folha)."""
+    skip = {PLANO_DEPOSITO_ID, PLANO_ADIANT_VALE_ID, PLANO_SALARIO_FOLHA_ID}
+    return [
+        p
+        for p in listar_planos_saida_caixa()
+        if (p.get("plano") or "").strip()
+        and not p.get("somente_caixa")
+        and str(p.get("id") or "") not in skip
+    ]
+
+
+def resolver_plano_cofre_vila(plano_id: str = "", plano_nome: str = "") -> tuple[dict[str, Any] | None, str]:
+    """Resolve plano_id/nome na lista do cofre. Retorna (entry, erro)."""
+    pid = str(plano_id or "").strip()
+    pnome = str(plano_nome or "").strip()
+    planos = listar_planos_cofre_vila()
+    if pid:
+        for p in planos:
+            if str(p.get("id") or "") == pid:
+                return p, ""
+        return None, "Plano de conta inválido."
+    if pnome:
+        for p in planos:
+            if str(p.get("plano") or "").strip().casefold() == pnome.casefold():
+                return p, ""
+        return None, "Plano de conta inválido."
+    return None, "Escolha o plano de conta."

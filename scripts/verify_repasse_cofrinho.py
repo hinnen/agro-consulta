@@ -156,11 +156,16 @@ def main():
             usuario=user, data_ref=dia, idempotencia_chave=PREFIX + ":ajuste"
         )
         check(not err and criado and _dec(aj.saldo_posterior) == Decimal("100.00"), "ajuste positivo rastreado")
-        _sem_obs, _criado_sem_obs, err_sem_obs = registrar_uso_ou_ajuste_cofrinho(
+        from produtos.saida_caixa_planos import listar_planos_cofre_vila
+
+        planos_cf = listar_planos_cofre_vila()
+        check(bool(planos_cf), "lista planos cofre disponível")
+        plano_id = str((planos_cf[0] or {}).get("id") or "")
+        _sem_pl, _criado_sem_pl, err_sem_pl = registrar_uso_ou_ajuste_cofrinho(
             tipo="retirada", valor="1", observacao="", operador="Bot Cofre",
-            usuario=user, data_ref=dia, idempotencia_chave=PREFIX + ":sem-obs"
+            usuario=user, data_ref=dia, idempotencia_chave=PREFIX + ":sem-plano"
         )
-        check("observação" in err_sem_obs, "retirada bloqueada sem motivo")
+        check("plano" in (err_sem_pl or "").lower(), "retirada bloqueada sem plano")
         _sem_op, _criado_sem_op, err_sem_op = registrar_uso_ou_ajuste_cofrinho(
             tipo="ajuste", valor="1", observacao="Acerto", operador="",
             usuario=user, data_ref=dia, idempotencia_chave=PREFIX + ":sem-op"
@@ -168,12 +173,16 @@ def main():
         check("operador" in err_sem_op.lower(), "ajuste bloqueado sem operador")
         uso, criado, err = registrar_uso_ou_ajuste_cofrinho(
             tipo="retirada", valor="30", observacao="Compra urgente", operador="Bot Cofre",
-            usuario=user, data_ref=dia, idempotencia_chave=PREFIX + ":uso"
+            usuario=user, data_ref=dia, idempotencia_chave=PREFIX + ":uso",
+            plano_id=plano_id,
         )
-        check(not err and criado and _dec(uso.valor) == Decimal("-30.00"), "retirada/uso exige motivo e reduz saldo")
+        check(not err and criado and _dec(uso.valor) == Decimal("-30.00"), "retirada/uso com plano reduz saldo")
+        check((uso.detalhe or {}).get("plano_nome"), "detalhe guarda plano_nome")
+        check((uso.detalhe or {}).get("empresa_nome") or (uso.detalhe or {}).get("titulo_ids") is not None, "financeiro/empresa no detalhe")
         uso2, criado2, err2 = registrar_uso_ou_ajuste_cofrinho(
             tipo="retirada", valor="30", observacao="Compra urgente", operador="Bot Cofre",
-            usuario=user, data_ref=dia, idempotencia_chave=PREFIX + ":uso"
+            usuario=user, data_ref=dia, idempotencia_chave=PREFIX + ":uso",
+            plano_id=plano_id,
         )
         check(not err2 and not criado2 and uso2.pk == uso.pk, "retry de retirada idempotente")
         est, criado, err = estornar_movimento_cofrinho(

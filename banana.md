@@ -696,7 +696,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Fundo troco gaveta (`REPASSE-FUNDO-TROCO` · 31/08):** alvo configurável (padrão R$ 500) em % lucro/opções; sugestão Salário→VE→Centro; falta corta Centro→VE→Salário; só aviso. Migrate `0106`.
 - **Dois cofrinhos (`REPASSE-DOIS-COFRES` · v18.81):** Salário (config) + Vila Elias (fatia que fica); fórmula sem cortar salário antes do %; migrate `0103`.
 - **Overlay PDV limpo (`REPASSE-PDV-OVERLAY-LIMPO` → hotfix `REPASSE-PDV-OVERLAY-POPUP` · v18.68):** quem/PIN só no popup · forma oculta (= Dinheiro) · sem chips · hero enxuto.
-- **Gestão `/repasse-vila/` (`REPASSE-GESTAO-SIMPLES` · v23.61):** botão **Gestão** no overlay. Tirar dinheiro do cofre = **Retirada / uso** + Registrar. Envelope do dia = overlay do PDV (não esta tela).
+- **Gestão `/repasse-vila/` (`REPASSE-GESTAO-SIMPLES` + `REPASSE-COFRE-PLANO` · v23.63):** botão **Gestão** no overlay. **Retirada / uso** = **plano de conta** (gasto empresa **Agro Mais Vila Elias** → DRE/Lançamentos). Ajuste / saldo inicial = motivo livre. Envelope do dia = overlay PDV.
 - **Confirmação cofrinho (`REPASSE-COFRE-CONFIRM` · v18.78):** modal rosa ~80% da tela no lugar do `confirm` do browser.
 - **Hero totais (`REPASSE-HERO-TOTAIS` · v18.80):** Enviado no mês + Total geral no card «Levar ao Centro».
 - **Planos no lucro do envio (17/08):** botão **Planos** na tela de repasse — marca o que desconta do dinheiro enviado ao Centro (ex. Alimentação); o restante das saídas de caixa da Vila desconta do card **Lucro ficou na Vila**. Grava no Postgres (`RepasseVilaConfigAgro.planos_desconto_centro`). Migrate `0091`.
@@ -1280,22 +1280,44 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ⏳ PENDENTE — Entrega PDV assumida na loja errada (09/09 · Renan)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Venda **Centro** (pagamento na entrega). Outra loja clicou **Assumir** no popup Entregas do PDV. Centro **não achou** mais a venda para fechar · **não fechou o caixa**. |
+| **Causa** | Entrega do PDV nasce **sem dono** (igual catálogo). As duas lojas veem. Assumir muda o dono e **some** na outra. O caixa do Centro **continua travado** (venda ainda daquele turno). Botão laranja do Fechar caixa abre o PDV, mas a lista **não mostra** o que já foi assumido fora. |
+| **Ainda não** | Código. Renan **gostou da 5** (Fechar caixa sempre mostra + Retomar). |
+| **Catálogo** | Continua nas duas lojas até alguém assumir — isso é o desenho certo. O bug é **venda do caixa** aparecer como «sem dono». |
+| **Opinião 09/09** | **5 sim.** «Adiar 1 dia» não: amanhã trava de novo; venda pode cair no caixa errado. Melhor: **Liberar deste caixa** (PIN) — fica na lista; pagamento entra no caixa aberto na hora de fechar a venda. |
+
+### 📦 PACOTE PRONTO — Retirada cofre com plano (Vila) (`REPASSE-COFRE-PLANO` · **v23.63** · 09/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Retirada dos **2 cofres**: select **plano de conta** (não motivo livre). Cria despesa quitada empresa **Agro Mais Vila Elias**. Histórico mostra plano; estorno apaga o título. Ajuste / saldo inicial = motivo livre. |
+| **Onde** | `repasse_vila.html` · `views_repasse_vila.py` · `repasse_vila_util.py` · `saida_caixa_planos.py` · `scripts/verify_repasse_cofre_plano_path.py` |
+| **Migrate** | **NÃO** |
+| **Prova** | cofre-plano **62/62** (título PG Vila · quitado · estorno apaga · API+PIN 9973 · sem gaveta) · cofre **38/38** · gestao **64/64** · `check` OK |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 `/repasse-vila/` · Retirada → plano → Registrar · conferir Lançamentos (empresa Vila) |
+
 ### 📦 PACOTE PRONTO — Gestão repasse no padrão PDV (`REPASSE-GESTAO-SIMPLES` · **v23.62** · 09/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | `/repasse-vila/` (Gestão): cofres no topo, **Lançar saída** laranja nos **2 cofres** (Salário + Vila Elias). Detalhes do dia recolhidos. Envelope do dia = overlay PDV. |
+| **O quê** | `/repasse-vila/` (Gestão): cofres no topo, **Lançar saída** laranja nos **2 cofres**. Detalhes do dia recolhidos. Envelope = overlay PDV. |
 | **Onde** | `repasse_vila.html` · `scripts/verify_repasse_gestao_simples_path.py` |
 | **Migrate** | **NÃO** |
-| **Prova** | gestao **59/59** · cofre **35/35** · path **262** · overlay **190** · arredonda **41** · fundo troco **56** · PIN **9973**=Renan · `check` OK |
-| **Status** | 🟢 **pronto para envio à produção** |
-| **Você** | Ctrl+F5 `/repasse-vila/` · Retirada / uso nos dois cofres · motivo → Registrar |
+| **Prova** | gestao **64/64** · cofre **38/38** |
+| **Status** | 🟢 **pronto para envio à produção** (vai junto com `REPASSE-COFRE-PLANO`) |
+| **Você** | Ver pacote plano acima. |
 
-### ✅ CHECKLIST ÚNICO — 09/09 · pronto envio (tip **v23.62**)
+### ✅ CHECKLIST ÚNICO — 09/09 · pronto envio (tip **v23.63**)
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `REPASSE-GESTAO-SIMPLES` | 🟢 **pronto para envio à produção** | **NÃO** | **59/59** |
+| 1 | `REPASSE-COFRE-PLANO` | 🟢 **pronto para envio à produção** | **NÃO** | **62/62** |
+| 2 | `REPASSE-GESTAO-SIMPLES` | 🟢 **pronto para envio à produção** | **NÃO** | **64/64** |
 
 **Loja agora:** **v23.58**. **Só** frase+senha.
 

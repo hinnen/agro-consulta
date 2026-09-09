@@ -233,7 +233,8 @@
         <label><span class="rv-lbl text-rose-900">Movimento</span><select id="rv-cofre-tipo" class="mt-1 w-full border-2 border-rose-700 px-3 font-black"><option value="retirada">Retirada / uso</option><option value="ajuste_mais">Ajuste · entrada</option><option value="ajuste_menos">Ajuste · saída</option><option value="saldo_inicial">Saldo inicial</option></select></label>
         <label><span class="rv-lbl text-rose-900">Valor</span><input id="rv-cofre-valor" type="text" inputmode="decimal" class="rv-saida-valor mt-1 w-full border-2 border-rose-700 px-3 tabular-nums" placeholder="0,00"></label>
       </div>
-      <label class="block"><span class="rv-lbl text-rose-900">Motivo / observação</span><input id="rv-cofre-obs" type="text" maxlength="500" class="mt-1 min-h-[2.75rem] w-full rounded-xl border-2 border-rose-700 bg-white px-3 font-bold" placeholder="Explique para que foi usado ou por que ajustou"></label>
+      <label class="block rv-cofre-plano-wrap"><span class="rv-lbl text-rose-900">Plano de conta</span><select id="rv-cofre-plano" class="mt-1 min-h-[3.25rem] w-full rounded-xl border-2 border-rose-700 bg-white px-3 text-base font-black"><option value="">Escolha o plano…</option></select></label>
+      <label class="block"><span class="rv-lbl text-rose-900" id="rv-cofre-obs-lbl">Detalhe (opcional)</span><input id="rv-cofre-obs" type="text" maxlength="500" class="mt-1 min-h-[2.75rem] w-full rounded-xl border-2 border-rose-700 bg-white px-3 font-bold" placeholder="Só se precisar complementar"></label>
       <button type="button" id="rv-cofre-movimentar" class="min-h-[3rem] w-full rounded-xl bg-orange-500 px-4 text-sm font-black uppercase text-white shadow hover:bg-orange-600">Registrar</button>
     </div>
     <div class="grid grid-cols-2 gap-2">
@@ -271,7 +272,8 @@
         <label><span class="rv-lbl text-indigo-900">Movimento</span><select id="rv-cofre-ve-tipo" class="mt-1 w-full border-2 border-indigo-800 px-3 font-black"><option value="retirada">Retirada / uso</option><option value="ajuste_mais">Ajuste · entrada</option><option value="ajuste_menos">Ajuste · saída</option><option value="saldo_inicial">Saldo inicial</option></select></label>
         <label><span class="rv-lbl text-indigo-900">Valor</span><input id="rv-cofre-ve-valor" type="text" inputmode="decimal" class="rv-saida-valor mt-1 w-full border-2 border-indigo-800 px-3 tabular-nums" placeholder="0,00"></label>
       </div>
-      <label class="block"><span class="rv-lbl text-indigo-900">Motivo / observação</span><input id="rv-cofre-ve-obs" type="text" maxlength="500" class="mt-1 min-h-[2.75rem] w-full rounded-xl border-2 border-indigo-800 bg-white px-3 font-bold" placeholder="Explique para que foi usado ou por que ajustou"></label>
+      <label class="block rv-cofre-ve-plano-wrap"><span class="rv-lbl text-indigo-900">Plano de conta</span><select id="rv-cofre-ve-plano" class="mt-1 min-h-[3.25rem] w-full rounded-xl border-2 border-indigo-800 bg-white px-3 text-base font-black"><option value="">Escolha o plano…</option></select></label>
+      <label class="block"><span class="rv-lbl text-indigo-900" id="rv-cofre-ve-obs-lbl">Detalhe (opcional)</span><input id="rv-cofre-ve-obs" type="text" maxlength="500" class="mt-1 min-h-[2.75rem] w-full rounded-xl border-2 border-indigo-800 bg-white px-3 font-bold" placeholder="Só se precisar complementar"></label>
       <button type="button" id="rv-cofre-ve-movimentar" class="min-h-[3rem] w-full rounded-xl bg-orange-500 px-4 text-sm font-black uppercase text-white shadow hover:bg-orange-600">Registrar</button>
     </div>
     <div class="grid grid-cols-2 gap-2">
@@ -524,6 +526,7 @@
 {{ calc|json_script:"rv-calc-boot" }}
 {{ hist|json_script:"rv-hist-boot" }}
 {{ planos_repasse|json_script:"rv-planos-boot" }}
+{{ planos_cofre|json_script:"rv-planos-cofre-boot" }}
 
 <script>
 (function () {
@@ -1147,7 +1150,9 @@
     }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
       .then(function (p) {
         if (!p.ok || !p.j.ok) { setCofreStatus(p.j.erro || 'Não foi possível registrar.', cofre); return; }
-        setCofreStatus(p.j.criado === false ? 'Já estava registrado — nenhuma duplicação.' : 'Movimento registrado.', cofre);
+        var msg = p.j.criado === false ? 'Já estava registrado — nenhuma duplicação.' : 'Movimento registrado.';
+        if (p.j.aviso) msg = msg + ' · ' + String(p.j.aviso);
+        setCofreStatus(msg, cofre);
         if (p.j.cofrinho) renderCofrinho(p.j.cofrinho, p.j.cofrinho.cofre || cofre);
         if (p.j.cofre_vila_elias) renderCofrinho(p.j.cofre_vila_elias, 'vila_elias');
         fetchCalc();
@@ -1192,9 +1197,10 @@
     box.innerHTML = rows.map(function (m) {
       var valor = Number(m.valor || 0);
       var podeEstornar = m.tipo !== 'estorno' && !m.estornado;
+      var planoTxt = m.plano_nome ? (' · Plano ' + cofreEsc(m.plano_nome)) : '';
       return '<div class="px-3 py-2 grid gap-1 sm:grid-cols-[minmax(0,1fr)_auto]">' +
         '<div><div class="flex flex-wrap gap-x-2"><strong class="uppercase ' + cor + '">' + cofreEsc(m.tipo_label) + '</strong><span>' + cofreEsc(m.origem_label) + '</span><span class="text-slate-500">' + cofreEsc(m.criado_em) + '</span></div>' +
-        '<div class="text-slate-700">Ref. ' + cofreEsc(m.data_ref) + ' · ' + cofreEsc(m.operador) + (m.observacao ? ' · ' + cofreEsc(m.observacao) : '') + '</div>' +
+        '<div class="text-slate-700">Ref. ' + cofreEsc(m.data_ref) + ' · ' + cofreEsc(m.operador) + planoTxt + (m.observacao ? ' · ' + cofreEsc(m.observacao) : '') + '</div>' +
         '<div class="text-slate-500">Saldo ' + money(m.saldo_anterior) + ' → ' + money(m.saldo_posterior) + '</div></div>' +
         '<div class="flex items-center gap-2"><strong class="tabular-nums ' + (valor >= 0 ? 'text-emerald-800' : 'text-orange-800') + '">' + (valor >= 0 ? '+' : '−') + money(Math.abs(valor)) + '</strong>' +
         (podeEstornar ? '<button type="button" class="' + clsEst + ' min-h-[2.2rem] rounded-lg border-2 border-slate-400 px-2 text-[0.65rem] font-black uppercase" data-id="' + m.id + '">Estornar</button>' : '') + '</div></div>';
@@ -1221,6 +1227,7 @@
     btnSaldoIni.addEventListener('click', function () {
       var tipoEl = document.getElementById('rv-cofre-tipo');
       if (tipoEl) tipoEl.value = 'saldo_inicial';
+      syncCofreTipoUi('rv-cofre-');
       var valorEl = document.getElementById('rv-cofre-valor');
       if (valorEl) valorEl.focus();
       setCofreStatus('Digite o valor já separado e clique em Registrar.', 'salario');
@@ -1231,11 +1238,54 @@
     btnSaldoIniVe.addEventListener('click', function () {
       var tipoEl = document.getElementById('rv-cofre-ve-tipo');
       if (tipoEl) tipoEl.value = 'saldo_inicial';
+      syncCofreTipoUi('rv-cofre-ve-');
       var valorEl = document.getElementById('rv-cofre-ve-valor');
       if (valorEl) valorEl.focus();
       setCofreStatus('Digite o valor já separado e clique em Registrar.', 'vila_elias');
     });
   }
+
+  var PLANOS_COFRE = [];
+  try {
+    var elPc = document.getElementById('rv-planos-cofre-boot');
+    if (elPc) PLANOS_COFRE = JSON.parse(elPc.textContent || '[]') || [];
+  } catch (e) { PLANOS_COFRE = []; }
+
+  function fillPlanosSelect(selId) {
+    var sel = document.getElementById(selId);
+    if (!sel) return;
+    var cur = sel.value;
+    sel.innerHTML = '<option value=\"\">Escolha o plano…</option>';
+    PLANOS_COFRE.forEach(function (p) {
+      var opt = document.createElement('option');
+      opt.value = String(p.id || '');
+      opt.textContent = String(p.label || p.plano || '');
+      if (p.outros) opt.dataset.outros = '1';
+      sel.appendChild(opt);
+    });
+    if (cur) sel.value = cur;
+  }
+  fillPlanosSelect('rv-cofre-plano');
+  fillPlanosSelect('rv-cofre-ve-plano');
+
+  function syncCofreTipoUi(prefix) {
+    var tipo = String((document.getElementById(prefix + 'tipo') || {}).value || 'retirada');
+    var isRet = tipo === 'retirada';
+    var wrap = document.querySelector('.' + prefix.replace(/-$/, '') + '-plano-wrap')
+      || document.querySelector(prefix === 'rv-cofre-ve-' ? '.rv-cofre-ve-plano-wrap' : '.rv-cofre-plano-wrap');
+    if (wrap) wrap.classList.toggle('hidden', !isRet);
+    var lbl = document.getElementById(prefix + 'obs-lbl');
+    var obs = document.getElementById(prefix + 'obs');
+    if (lbl) lbl.textContent = isRet ? 'Detalhe (opcional)' : 'Motivo / observação';
+    if (obs) obs.placeholder = isRet ? 'Só se precisar complementar' : 'Explique para que foi usado ou por que ajustou';
+  }
+  syncCofreTipoUi('rv-cofre-');
+  syncCofreTipoUi('rv-cofre-ve-');
+  var tipoSal = document.getElementById('rv-cofre-tipo');
+  if (tipoSal) tipoSal.addEventListener('change', function () { syncCofreTipoUi('rv-cofre-'); });
+  var tipoVe = document.getElementById('rv-cofre-ve-tipo');
+  if (tipoVe) tipoVe.addEventListener('change', function () { syncCofreTipoUi('rv-cofre-ve-'); });
+
   function wireMov(prefix, cofre) {
     var btn = document.getElementById(prefix + 'movimentar');
     if (!btn) return;
@@ -1244,13 +1294,26 @@
       var valor = parseMoneyBR(document.getElementById(prefix + 'valor').value);
       var obs = String(document.getElementById(prefix + 'obs').value || '').trim();
       if (valor <= 0) { setCofreStatus('Informe um valor maior que zero.', cofre); return; }
-      if (obs.length < 3) { setCofreStatus('Informe o motivo/observação.', cofre); return; }
       var tipo = 'ajuste';
       if (tipoUi === 'retirada') tipo = 'retirada';
       else if (tipoUi === 'saldo_inicial') tipo = 'saldo_inicial';
       else if (tipoUi === 'ajuste_menos') valor = -valor;
-      var chave = 'cofre-ui:' + cofre + ':' + Date.now() + ':' + Math.random().toString(36).slice(2);
-      postCofre('/api/repasse-vila/cofrinho/movimento/', { tipo: tipo, valor: valor, observacao: obs, data_ref: dataRef(), idempotencia_chave: chave }, cofre);
+      var body = { tipo: tipo, valor: valor, observacao: obs, data_ref: dataRef(), idempotencia_chave: 'cofre-ui:' + cofre + ':' + Date.now() + ':' + Math.random().toString(36).slice(2) };
+      if (tipo === 'retirada') {
+        var planoEl = document.getElementById(prefix + 'plano');
+        var planoId = planoEl ? String(planoEl.value || '').trim() : '';
+        if (!planoId) { setCofreStatus('Escolha o plano de conta.', cofre); return; }
+        var opt = planoEl.options[planoEl.selectedIndex];
+        if (opt && opt.dataset.outros === '1' && obs.length < 15) {
+          setCofreStatus('No plano Outros, o detalhe é obrigatório (mín. 15 caracteres).', cofre);
+          return;
+        }
+        body.plano_id = planoId;
+      } else if (obs.length < 3) {
+        setCofreStatus('Informe o motivo/observação.', cofre);
+        return;
+      }
+      postCofre('/api/repasse-vila/cofrinho/movimento/', body, cofre);
     });
   }
   wireMov('rv-cofre-', 'salario');
