@@ -1335,3 +1335,372 @@ def fmt_data_curta(v: datetime | date | None) -> str:
             pass
         v = v.date()
     return v.strftime("%d/%m/%Y")
+
+
+def _wa_url_digits(raw: str | None) -> tuple[str, str]:
+    """Retorna (digitos_exibicao, url wa.me) ou ('', '')."""
+    from produtos.cliente_whatsapp_util import extrair_whatsapp_digits
+
+    d = extrair_whatsapp_digits(raw)
+    if len(d) < 10:
+        return "", ""
+    if d.startswith("55") and len(d) >= 12:
+        return d, f"https://wa.me/{d}"
+    return d, f"https://wa.me/55{d}"
+
+
+def _chave_cliente_venda(cid: str, doc: str, nome: str) -> str:
+    cid = (cid or "").strip()
+    doc = (doc or "").strip()
+    nome = (nome or "").strip()
+    if cid:
+        return f"id:{cid}"
+    if doc:
+        return f"doc:{doc}"
+    return f"nome:{(nome or '(sem nome)').casefold()}"
+
+
+def _pids_filtrados_catalogo(
+    pids: list[str],
+    *,
+    categoria: object = None,
+    subcategoria: object = None,
+    subcategoria_2: object = None,
+    subcategoria_3: object = None,
+    subcategoria_4: object = None,
+) -> set[str]:
+    filtros = _norm_filtros_kwargs(
+        categoria=categoria,
+        subcategoria=subcategoria,
+        subcategoria_2=subcategoria_2,
+        subcategoria_3=subcategoria_3,
+        subcategoria_4=subcategoria_4,
+    )
+    if not any(filtros.values()):
+        return {str(p).strip() for p in pids if str(p).strip()}
+    meta = mapa_produtos_meta(pids)
+    ok: set[str] = set()
+    for pid in pids:
+        pid_s = str(pid or "").strip()
+        if not pid_s:
+            continue
+        dims = _meta_dims(meta.get(pid_s) or {})
+        if _passa_filtros(dims, filtros):
+            ok.add(pid_s)
+    return ok
+
+
+def _enrich_clientes_whatsapp(rows: list[dict]) -> None:
+    """Preenche whatsapp / whatsapp_url / cliente_agro_pk nas linhas (in-place)."""
+    from produtos.models import ClienteAgro
+
+    erp_ids: list[str] = []
+    local_pks: list[int] = []
+    docs: list[str] = []
+    for r in rows:
+        cid = str(r.get("cliente_id_erp") or "").strip()
+        doc = str(r.get("documento") or "").strip()
+        if cid.startswith("local:") or cid.startswith("agro:"):
+            try:
+                local_pks.append(int(cid.split(":", 1)[1]))
+            except (TypeError, ValueError):
+                pass
+        elif cid:
+            erp_ids.append(cid)
+        if doc:
+            docs.append(doc)
+
+    by_erp: dict[str, Any] = {}
+    by_pk: dict[int, Any] = {}
+    by_doc: dict[str, Any] = {}
+    if erp_ids:
+        for cli in ClienteAgro.objects.filter(externo_id__in=list(set(erp_ids))).only(
+            "pk", "externo_id", "documento", "whatsapp", "nome"
+        ):
+            eid = (cli.externo_id or "").strip()
+            if eid:
+                by_erp[eid] = cli
+            d = (cli.documento or "").strip()
+            if d and d not in by_doc:
+                by_doc[d] = cli
+    if local_pks:
+        for cli in ClienteAgro.objects.filter(pk__in=list(set(local_pks))).only(
+            "pk", "externo_id", "documento", "whatsapp", "nome"
+        ):
+            by_pk[cli.pk] = cli
+            d = (cli.documento or "").strip()
+            if d and d not in by_doc:
+                by_doc[d] = cli
+    missing_docs = [d for d in set(docs) if d not in by_doc]
+    if missing_docs:
+        for cli in ClienteAgro.objects.filter(documento__in=missing_docs).only(
+            "pk", "externo_id", "documento", "whatsapp", "nome"
+        ):
+            d = (cli.documento or "").strip()
+            if d and d not in by_doc:
+                by_doc[d] = cli
+
+    for r in rows:
+        cli = None
+        cid = str(r.get("cliente_id_erp") or "").strip()
+        if cid.startswith("local:") or cid.startswith("agro:"):
+            try:
+                cli = by_pk.get(int(cid.split(":", 1)[1]))
+            except (TypeError, ValueError):
+                cli = None
+        elif cid:
+            cli = by_erp.get(cid)
+        if cli is None:
+            doc = str(r.get("documento") or "").strip()
+            if doc:
+                cli = by_doc.get(doc)
+        digits, url = ("", "")
+        pk = None
+        if cli is not None:
+            digits, url = _wa_url_digits(cli.whatsapp)
+            pk = cli.pk
+            if not (r.get("cliente") or "").strip() or r.get("cliente") == "(sem nome)":
+                nome_cli = (cli.nome or "").strip()
+                if nome_cli:
+                    r["cliente"] = nome_cli
+        r["whatsapp"] = digits
+        r["whatsapp_url"] = url
+        r["cliente_agro_pk"] = pk
+        r["tem_whatsapp"] = bool(url)
+
+
+def clientes_quem_comprou(
+    desde: datetime,
+    ate: datetime,
+    *,
+    produto_id: str | None = None,
+    categoria: object = None,
+    subcategoria: object = None,
+    subcategoria_2: object = None,
+    subcategoria_3: object = None,
+    subcategoria_4: object = None,
+    so_whatsapp: bool = False,
+    ordenar: str = "ultima",
+    limite: int = 500,
+    historico_por_cliente: int = 8,
+) -> dict[str, Any]:
+    """
+    Clientes que compraram produto e/ou categoria no período (VendaAgro).
+    Uma linha por cliente; histórico recente do filtro em cada linha.
+    """
+    pid = str(produto_id or "").strip()
+    filtros = _norm_filtros_kwargs(
+        categoria=categoria,
+        subcategoria=subcategoria,
+        subcategoria_2=subcategoria_2,
+        subcategoria_3=subcategoria_3,
+        subcategoria_4=subcategoria_4,
+    )
+    tem_cat = any(bool(v) for v in filtros.values())
+    if not pid and not tem_cat:
+        return {
+            "filtro_ok": False,
+            "rows": [],
+            "resumo": {
+                "clientes": 0,
+                "com_whatsapp": 0,
+                "qtd": 0.0,
+                "total": 0.0,
+            },
+            "produto_label": "",
+            "pids": [],
+        }
+
+    qs = (
+        _qs_itens(desde, ate)
+        .exclude(
+            Q(venda__cliente_nome="")
+            & Q(venda__cliente_documento="")
+            & Q(venda__cliente_id_erp="")
+        )
+        .select_related("venda")
+    )
+    if pid:
+        qs = qs.filter(produto_id_externo=pid)
+
+    if tem_cat:
+        if pid:
+            pids_cand = [pid]
+        else:
+            pids_cand = [
+                str(x).strip()
+                for x in qs.values_list("produto_id_externo", flat=True).distinct()[:8000]
+                if str(x or "").strip()
+            ]
+        pids_ok = _pids_filtrados_catalogo(
+            pids_cand,
+            categoria=categoria,
+            subcategoria=subcategoria,
+            subcategoria_2=subcategoria_2,
+            subcategoria_3=subcategoria_3,
+            subcategoria_4=subcategoria_4,
+        )
+        if not pids_ok:
+            return {
+                "filtro_ok": True,
+                "rows": [],
+                "resumo": {
+                    "clientes": 0,
+                    "com_whatsapp": 0,
+                    "qtd": 0.0,
+                    "total": 0.0,
+                },
+                "produto_label": "",
+                "pids": [],
+            }
+        qs = qs.filter(produto_id_externo__in=list(pids_ok))
+        pids_usados = sorted(pids_ok)
+    else:
+        pids_usados = [pid]
+
+    meta = mapa_produtos_meta(pids_usados)
+    if pid and pid in meta:
+        produto_label = str(meta[pid].get("nome") or pid)
+    elif tem_cat:
+        partes: list[str] = []
+        for campo, _lista, _vazio in _DIMS_CATALOGO:
+            vals = filtros.get(campo)
+            if vals:
+                partes.append(" + ".join(vals))
+        produto_label = " · ".join(partes) if partes else "Categoria"
+    else:
+        produto_label = pid or ""
+
+    hist_lim = max(1, min(20, int(historico_por_cliente or 8)))
+    buckets: dict[str, dict[str, Any]] = {}
+    hoje = timezone.localdate()
+
+    for item in qs.iterator(chunk_size=800):
+        venda = item.venda
+        if venda is None:
+            continue
+        cid = (venda.cliente_id_erp or "").strip()
+        doc = (venda.cliente_documento or "").strip()
+        nome = (venda.cliente_nome or "").strip() or "(sem nome)"
+        chave = _chave_cliente_venda(cid, doc, nome)
+        try:
+            qtd = float(item.quantidade or 0)
+            valor = float(item.valor_total or 0)
+        except (TypeError, ValueError):
+            continue
+        if qtd <= 0 and valor <= 0:
+            continue
+        dt = venda.criado_em
+        pid_item = str(item.produto_id_externo or "").strip()
+        nome_prod = (meta.get(pid_item) or {}).get("nome") or (item.descricao or pid_item)
+        b = buckets.get(chave)
+        if b is None:
+            b = {
+                "chave": chave,
+                "cliente": nome,
+                "documento": doc,
+                "cliente_id_erp": cid,
+                "qtd": 0.0,
+                "total": 0.0,
+                "vendas": 0,
+                "venda_ids": set(),
+                "ultima_em": None,
+                "compras": [],
+            }
+            buckets[chave] = b
+        b["qtd"] += qtd
+        b["total"] += valor
+        if venda.pk not in b["venda_ids"]:
+            b["venda_ids"].add(venda.pk)
+            b["vendas"] += 1
+        if b["ultima_em"] is None or (dt and dt > b["ultima_em"]):
+            b["ultima_em"] = dt
+            if nome and nome != "(sem nome)":
+                b["cliente"] = nome
+            if doc:
+                b["documento"] = doc
+            if cid:
+                b["cliente_id_erp"] = cid
+        if len(b["compras"]) < hist_lim * 3:
+            b["compras"].append(
+                {
+                    "em": dt,
+                    "qtd": round(qtd, 3),
+                    "valor": round(valor, 2),
+                    "produto": nome_prod,
+                    "produto_id": pid_item,
+                }
+            )
+
+    rows: list[dict] = []
+    for b in buckets.values():
+        compras = sorted(
+            b["compras"],
+            key=lambda x: x["em"] or datetime.min.replace(tzinfo=timezone.utc),
+            reverse=True,
+        )[:hist_lim]
+        for c in compras:
+            c["em_fmt"] = fmt_data_curta(c.get("em"))
+            c["valor_fmt"] = fmt_brl(c.get("valor"))
+        ultima = b["ultima_em"]
+        dias = None
+        if ultima is not None:
+            try:
+                d_ult = timezone.localtime(ultima).date() if isinstance(ultima, datetime) else ultima
+                dias = max(0, (hoje - d_ult).days)
+            except Exception:
+                dias = None
+        rows.append(
+            {
+                "cliente": b["cliente"],
+                "documento": b["documento"],
+                "cliente_id_erp": b["cliente_id_erp"],
+                "qtd": round(float(b["qtd"]), 3),
+                "total": round(float(b["total"]), 2),
+                "vendas": int(b["vendas"]),
+                "ultima_em": ultima,
+                "ultima_fmt": fmt_data_curta(ultima),
+                "dias_desde": dias,
+                "compras": compras,
+                "whatsapp": "",
+                "whatsapp_url": "",
+                "tem_whatsapp": False,
+                "cliente_agro_pk": None,
+                "total_fmt": fmt_brl(b["total"]),
+            }
+        )
+
+    _enrich_clientes_whatsapp(rows)
+
+    if so_whatsapp:
+        rows = [r for r in rows if r.get("tem_whatsapp")]
+
+    ordenar = (ordenar or "ultima").strip().lower()
+    if ordenar == "qtd":
+        rows.sort(key=lambda r: float(r.get("qtd") or 0), reverse=True)
+    elif ordenar == "valor":
+        rows.sort(key=lambda r: float(r.get("total") or 0), reverse=True)
+    else:
+        rows.sort(
+            key=lambda r: r.get("ultima_em") or datetime.min.replace(tzinfo=timezone.utc),
+            reverse=True,
+        )
+
+    lim = max(1, min(2000, int(limite or 500)))
+    rows = rows[:lim]
+    for i, r in enumerate(rows, start=1):
+        r["pos"] = i
+
+    com_wa = sum(1 for r in rows if r.get("tem_whatsapp"))
+    return {
+        "filtro_ok": True,
+        "rows": rows,
+        "resumo": {
+            "clientes": len(rows),
+            "com_whatsapp": com_wa,
+            "qtd": round(sum(float(r.get("qtd") or 0) for r in rows), 3),
+            "total": round(sum(float(r.get("total") or 0) for r in rows), 2),
+        },
+        "produto_label": produto_label,
+        "pids": pids_usados,
+    }

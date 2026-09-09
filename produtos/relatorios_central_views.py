@@ -1397,3 +1397,130 @@ def relatorios_estoque_zerados(request):
             "ver_mais": ver_mais,
         },
     )
+
+
+@require_GET
+def relatorios_quem_comprou(request):
+    """Clientes que compraram um produto ou categoria — oferta com WhatsApp 1 a 1."""
+    f = _periodo_filtros(request, padrao="30d")
+    produto_id = (request.GET.get("produto_id") or "").strip()
+    produto_q = (request.GET.get("produto_q") or "").strip()
+    ordenar = (request.GET.get("ordenar") or "ultima").strip().lower()
+    if ordenar not in ("ultima", "valor", "qtd"):
+        ordenar = "ultima"
+    so_whatsapp = (request.GET.get("so_whatsapp") or "").strip() in ("1", "true", "on", "sim")
+    msg_modelo = (request.GET.get("msg") or "").strip()
+    if not msg_modelo:
+        msg_modelo = (
+            "Oi {nome}! Aqui é da GM Agro. Temos {produto} na loja — "
+            "quer que eu separe o seu?"
+        )
+
+    cat_req = ru.filtros_catalogo_request(request)
+    tem_filtro = bool(produto_id) or any(cat_req.values())
+
+    facetas, _rows_fac = ru.facetas_categoria_sub(
+        f["desde"],
+        f["ate_dt"],
+        ordenar="valor",
+        sentido="mais",
+        **cat_req,
+    )
+
+    dados = {
+        "filtro_ok": False,
+        "rows": [],
+        "resumo": {"clientes": 0, "com_whatsapp": 0, "qtd": 0.0, "total": 0.0},
+        "produto_label": "",
+        "pids": [],
+    }
+    if tem_filtro:
+        dados = ru.clientes_quem_comprou(
+            f["desde"],
+            f["ate_dt"],
+            produto_id=produto_id or None,
+            so_whatsapp=so_whatsapp,
+            ordenar=ordenar,
+            **_kw_filtros_catalogo(facetas),
+        )
+
+    produto_label = dados.get("produto_label") or produto_q or produto_id or ""
+    sub_periodo = _subtitulo_catalogo(f["label"], facetas)
+    if produto_label:
+        sub_periodo = f"{sub_periodo} · {produto_label}"
+
+    resumo = dados.get("resumo") or {}
+    resumo_fmt = {
+        "clientes": int(resumo.get("clientes") or 0),
+        "com_whatsapp": int(resumo.get("com_whatsapp") or 0),
+        "qtd": resumo.get("qtd") or 0,
+        "total": float(resumo.get("total") or 0),
+        "total_fmt": ru.fmt_brl(resumo.get("total")),
+    }
+
+    headers = [
+        "#",
+        "Cliente",
+        "Documento",
+        "WhatsApp",
+        "Última compra",
+        "Dias",
+        "Vendas",
+        "Qtd",
+        "Total R$",
+    ]
+    if request.GET.get("export") == "xlsx":
+        if not dados.get("filtro_ok"):
+            data = []
+        else:
+            data = [
+                [
+                    r["pos"],
+                    r["cliente"],
+                    r.get("documento") or "",
+                    r.get("whatsapp") or "",
+                    r.get("ultima_fmt") or "",
+                    r.get("dias_desde") if r.get("dias_desde") is not None else "",
+                    r.get("vendas") or 0,
+                    r.get("qtd") or 0,
+                    r.get("total") or 0,
+                ]
+                for r in dados.get("rows") or []
+            ]
+        return ru.xlsx_http_response(
+            "quem-comprou.xlsx",
+            ru.montar_xlsx(
+                "Quem já comprou",
+                headers,
+                data,
+                subtitulo=sub_periodo or f["label"],
+            ),
+        )
+
+    return render(
+        request,
+        "produtos/relatorios_quem_comprou.html",
+        {
+            "titulo": "Quem já comprou",
+            "eyebrow": "Oferta · Relacionamento",
+            "subtitulo": "Clientes que levaram o produto ou a categoria — Zap um a um.",
+            "filtros": f,
+            "rel_help": "quem_comprou",
+            "extra_filtros": _extra_filtros_catalogo(
+                facetas,
+                ordenar=ordenar,
+                so_whatsapp=so_whatsapp,
+                produto_id=produto_id,
+                produto_q=produto_q,
+                msg_modelo=msg_modelo,
+            ),
+            "dados": dados,
+            "produto_label": produto_label,
+            "resumo": resumo_fmt,
+            "rows": dados.get("rows") or [],
+            "filtro_ok": bool(dados.get("filtro_ok")),
+            "tem_filtro": tem_filtro,
+            "export_qs": _qs_export(request) if tem_filtro else "",
+            "periodo_label": sub_periodo or f["label"],
+        },
+    )

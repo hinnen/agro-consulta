@@ -26,7 +26,7 @@
     <div class="space-y-2 text-[12px] font-semibold leading-snug">
       <div class="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-emerald-100"><span class="font-black text-emerald-300">Vendas</span> — o que mais saiu, curva ABC, grupos, marcas, margem, comparativo e formas de pagamento.</div>
       <div class="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-amber-100"><span class="font-black text-amber-300">Estoque</span> — validade, giro/parado, ruptura, inventário valorizado, resumo, mín/máx, sem custo, zerados e etiquetas.</div>
-      <div class="rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-cyan-100"><span class="font-black text-cyan-300">Equipe e clientes</span> — operador, ranking de clientes e comissão estimada.</div>
+      <div class="rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-cyan-100"><span class="font-black text-cyan-300">Equipe e clientes</span> — operador, ranking de clientes, <span class="text-emerald-300">quem já comprou</span> (oferta + Zap) e comissão estimada.</div>
     </div>
 
     {% elif rel_help == "curva_abc" %}
@@ -147,6 +147,16 @@
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-violet-500/30 px-1.5 py-0.5 text-[10px] font-black text-violet-200">VENDAS</span><span>Quantas compras no período.</span></li>
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-amber-500/30 px-1.5 py-0.5 text-[10px] font-black text-amber-200">TICKET</span><span>Valor médio por compra.</span></li>
       <li class="flex gap-2 rounded-lg border border-lime-500/40 bg-lime-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-lime-500/40 px-1.5 py-0.5 text-[10px] font-black text-lime-100">TOTAL R$</span><span>Quanto esse cliente gastou no período.</span></li>
+    </ul>
+
+    {% elif rel_help == "quem_comprou" %}
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Lista quem <span class="text-emerald-300">já comprou</span> um produto ou categoria — para oferecer de novo pelo WhatsApp (um a um).</p>
+    <ul class="space-y-2 text-[12px] font-semibold leading-snug text-slate-200">
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-emerald-500/30 px-1.5 py-0.5 text-[10px] font-black text-emerald-200">PRODUTO / CATEGORIA</span><span>Escolha pelo menos um dos dois e clique Atualizar.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-sky-500/30 px-1.5 py-0.5 text-[10px] font-black text-sky-200">ÚLTIMA / HÁ X DIAS</span><span>Quando foi a última vez que esse cliente levou o item.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-amber-500/30 px-1.5 py-0.5 text-[10px] font-black text-amber-200">QTD / TOTAL</span><span>Quanto levou no período (só desse filtro).</span></li>
+      <li class="flex gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-emerald-500/40 px-1.5 py-0.5 text-[10px] font-black text-emerald-100">ZAP</span><span>Abre o WhatsApp com a mensagem modelo ({nome} e {produto}). Sem disparo em massa.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-violet-500/30 px-1.5 py-0.5 text-[10px] font-black text-violet-200">NOME ▼</span><span>Toque no nome para ver as últimas compras desse filtro.</span></li>
     </ul>
 
     {% elif rel_help == "comissao" %}

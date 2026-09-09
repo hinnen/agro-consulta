@@ -1,0 +1,511 @@
+{% extends "layouts/base_pdv.html" %}
+{% load static %}
+
+{% block pdv_title %}{{ titulo }} | SisVale{% endblock %}
+{% block body_class %}min-h-screen bg-slate-950 text-slate-100{% endblock %}
+
+{% block head_extra %}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script>window.GM_LOADING_BAR_SHOW_DELAY_MS = 0;</script>
+  <style>
+    @page { size: A4; margin: 10mm; }
+    @media print {
+      .no-print { display: none !important; }
+      body, .print-root { background: #fff !important; color: #0f172a !important; }
+      .print-table th, .print-table td { color: #0f172a !important; border-color: #e2e8f0 !important; }
+    }
+    .qc-busca-drop { max-height: 16rem; }
+    .qc-busca-item.qc-busca-on { background: rgba(16, 185, 129, 0.18); }
+  </style>
+{% endblock %}
+
+{% block pdv_shell_class %}min-h-screen bg-slate-950{% endblock %}
+{% block pdv_section_class %}mx-auto w-full max-w-7xl 2xl:max-w-[min(100rem,calc(100vw-1.5rem))] px-3 py-4 sm:px-5 sm:py-6{% endblock %}
+
+{% block pdv_header %}
+<header class="no-print border-b border-slate-800 bg-slate-900/90 shadow-sm">
+  <div class="mx-auto flex max-w-7xl 2xl:max-w-[min(100rem,calc(100vw-1.5rem))] flex-wrap items-center justify-between gap-3 px-3 py-3 sm:px-5">
+    <div class="min-w-0">
+      <p class="text-[10px] font-black uppercase tracking-[0.24em] text-orange-500">{{ eyebrow }}</p>
+      <h1 class="mt-0.5 truncate text-2xl font-black tracking-tight text-white">{{ titulo }}</h1>
+      {% if subtitulo %}<p class="mt-1 text-sm font-medium text-slate-400">{{ subtitulo }}</p>{% endif %}
+    </div>
+    <div class="relative z-30 flex flex-wrap items-center justify-end gap-2">
+      {% if rel_help %}{% include "produtos/includes/relatorios_help_agents.html" %}{% endif %}
+      <button type="button" data-agro-rel-print
+        class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border-2 border-blue-500 bg-blue-600 px-4 py-2 text-xs font-black uppercase text-white hover:bg-blue-700">
+        <i class="fas fa-print" aria-hidden="true"></i>Imprimir A4
+      </button>
+      {% if export_qs %}
+      <a href="{{ export_qs }}"
+        class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border-2 border-emerald-500 bg-emerald-600 px-4 py-2 text-xs font-black uppercase text-white hover:bg-emerald-500">
+        <i class="fas fa-file-excel" aria-hidden="true"></i>Excel ↓
+      </a>
+      {% endif %}
+      <a href="{% url 'relatorios_hub' %}"
+        class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-slate-600 bg-slate-800 px-4 py-2 text-xs font-black uppercase text-slate-200 hover:border-slate-500">Voltar</a>
+    </div>
+  </div>
+</header>
+{% endblock %}
+
+{% block pdv_content %}
+<div class="print-root min-w-0 p-1 sm:p-2" id="qc-root"
+  data-produto-label="{{ produto_label|default:''|escape }}">
+  <form method="get" id="form-quem-comprou" class="no-print mb-4 space-y-3 rounded-2xl border border-slate-700 bg-slate-800/90 p-3 sm:p-4">
+    <div class="flex flex-wrap items-end gap-2 sm:gap-3">
+      <div>
+        <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Período</label>
+        <select name="periodo" id="filtro-periodo" class="min-h-[44px] min-w-[10rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white focus:border-orange-500 focus:outline-none">
+          <option value="hoje" {% if filtros.periodo == 'hoje' %}selected{% endif %}>Hoje</option>
+          <option value="7d" {% if filtros.periodo == '7d' %}selected{% endif %}>7 dias</option>
+          <option value="30d" {% if filtros.periodo == '30d' %}selected{% endif %}>30 dias</option>
+          <option value="mes_atual" {% if filtros.periodo == 'mes_atual' %}selected{% endif %}>Mês atual</option>
+          <option value="custom" {% if filtros.periodo == 'custom' %}selected{% endif %}>Personalizado</option>
+        </select>
+      </div>
+      <div>
+        <label class="mb-1 block text-xs font-bold uppercase text-slate-500">De</label>
+        <input type="date" name="de" id="filtro-de" value="{{ filtros.de }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
+      </div>
+      <div>
+        <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Até</label>
+        <input type="date" name="ate" id="filtro-ate" value="{{ filtros.ate }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
+      </div>
+      <div class="relative min-w-[16rem] flex-1">
+        <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Produto (busca)</label>
+        <input type="hidden" name="produto_id" id="qc-produto-id" value="{{ extra_filtros.produto_id|default:'' }}" />
+        <input type="text" name="produto_q" id="qc-produto-q" value="{{ extra_filtros.produto_q|default:'' }}"
+          autocomplete="off" placeholder="Nome ou código…"
+          class="min-h-[44px] w-full rounded-xl border-2 border-emerald-500/60 bg-slate-900 px-3 text-sm font-bold text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none" />
+        <div id="qc-busca-drop" class="qc-busca-drop absolute left-0 right-0 z-40 mt-1 hidden overflow-y-auto rounded-xl border-2 border-slate-600 bg-slate-900 shadow-2xl" role="listbox"></div>
+      </div>
+      <div>
+        <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Ordenar</label>
+        <select name="ordenar" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white">
+          <option value="ultima" {% if extra_filtros.ordenar == 'ultima' %}selected{% endif %}>Última compra</option>
+          <option value="valor" {% if extra_filtros.ordenar == 'valor' %}selected{% endif %}>Maior valor</option>
+          <option value="qtd" {% if extra_filtros.ordenar == 'qtd' %}selected{% endif %}>Maior qtd</option>
+        </select>
+      </div>
+      <label class="flex min-h-[44px] cursor-pointer items-center gap-2 rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white">
+        <input type="checkbox" name="so_whatsapp" value="1" class="h-4 w-4 accent-emerald-500"
+          {% if extra_filtros.so_whatsapp %}checked{% endif %} />
+        Só com Zap
+      </label>
+      <button type="submit"
+        class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border-2 border-orange-500 bg-orange-500 px-5 text-sm font-black uppercase text-slate-950 hover:bg-orange-400">
+        <i class="fas fa-sync-alt" aria-hidden="true"></i>Atualizar
+      </button>
+      {% if extra_filtros.produto_id %}
+      <button type="button" id="qc-limpar-produto"
+        class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-xs font-black uppercase text-slate-300 hover:border-red-400 hover:text-red-300">
+        Limpar produto
+      </button>
+      {% endif %}
+    </div>
+
+    <p class="text-[11px] font-bold uppercase tracking-wide text-slate-500">Categoria (opcional · marque e clique Atualizar) — precisa de produto <em>ou</em> categoria</p>
+    <div class="flex flex-wrap gap-2 sm:gap-3">
+      <div>
+        <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Categoria</label>
+        <div class="max-h-[8.5rem] min-w-[11rem] max-w-[16rem] overflow-y-auto rounded-xl border-2 border-violet-500/60 bg-slate-900 px-2 py-1.5">
+          {% for cat in extra_filtros.categorias %}
+          <label class="flex min-h-[1.75rem] cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm font-bold text-white hover:bg-violet-500/20">
+            <input type="checkbox" name="categoria" value="{{ cat }}" class="h-4 w-4 shrink-0 accent-violet-500"
+              {% if cat in extra_filtros.categoria %}checked{% endif %} />
+            <span class="truncate">{{ cat }}</span>
+          </label>
+          {% empty %}
+          <span class="text-xs font-semibold text-slate-500">Nenhuma no período</span>
+          {% endfor %}
+        </div>
+      </div>
+      <div>
+        <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Subcategoria</label>
+        <div class="max-h-[8.5rem] min-w-[11rem] max-w-[16rem] overflow-y-auto rounded-xl border-2 border-emerald-500/60 bg-slate-900 px-2 py-1.5">
+          {% for sub in extra_filtros.subcategorias %}
+          <label class="flex min-h-[1.75rem] cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm font-bold text-white hover:bg-emerald-500/20">
+            <input type="checkbox" name="subcategoria" value="{{ sub }}" class="h-4 w-4 shrink-0 accent-emerald-500"
+              {% if sub in extra_filtros.subcategoria %}checked{% endif %} />
+            <span class="truncate">{{ sub }}</span>
+          </label>
+          {% empty %}
+          <span class="text-xs font-semibold text-slate-500">Nenhuma no período</span>
+          {% endfor %}
+        </div>
+      </div>
+      <div>
+        <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Sub 2</label>
+        <div class="max-h-[8.5rem] min-w-[10rem] max-w-[14rem] overflow-y-auto rounded-xl border-2 border-emerald-500/50 bg-slate-900 px-2 py-1.5">
+          {% for sub in extra_filtros.subcategorias_2 %}
+          <label class="flex min-h-[1.75rem] cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm font-bold text-white hover:bg-emerald-500/20">
+            <input type="checkbox" name="subcategoria_2" value="{{ sub }}" class="h-4 w-4 shrink-0 accent-emerald-500"
+              {% if sub in extra_filtros.subcategoria_2 %}checked{% endif %} />
+            <span class="truncate">{{ sub }}</span>
+          </label>
+          {% empty %}
+          <span class="text-xs font-semibold text-slate-500">—</span>
+          {% endfor %}
+        </div>
+      </div>
+      <div>
+        <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Sub 3</label>
+        <div class="max-h-[8.5rem] min-w-[10rem] max-w-[14rem] overflow-y-auto rounded-xl border-2 border-emerald-500/40 bg-slate-900 px-2 py-1.5">
+          {% for sub in extra_filtros.subcategorias_3 %}
+          <label class="flex min-h-[1.75rem] cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm font-bold text-white hover:bg-emerald-500/20">
+            <input type="checkbox" name="subcategoria_3" value="{{ sub }}" class="h-4 w-4 shrink-0 accent-emerald-500"
+              {% if sub in extra_filtros.subcategoria_3 %}checked{% endif %} />
+            <span class="truncate">{{ sub }}</span>
+          </label>
+          {% empty %}
+          <span class="text-xs font-semibold text-slate-500">—</span>
+          {% endfor %}
+        </div>
+      </div>
+      <div>
+        <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Sub 4</label>
+        <div class="max-h-[8.5rem] min-w-[10rem] max-w-[14rem] overflow-y-auto rounded-xl border-2 border-emerald-500/30 bg-slate-900 px-2 py-1.5">
+          {% for sub in extra_filtros.subcategorias_4 %}
+          <label class="flex min-h-[1.75rem] cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm font-bold text-white hover:bg-emerald-500/20">
+            <input type="checkbox" name="subcategoria_4" value="{{ sub }}" class="h-4 w-4 shrink-0 accent-emerald-500"
+              {% if sub in extra_filtros.subcategoria_4 %}checked{% endif %} />
+            <span class="truncate">{{ sub }}</span>
+          </label>
+          {% empty %}
+          <span class="text-xs font-semibold text-slate-500">—</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Mensagem do Zap <span class="font-semibold normal-case text-slate-500">({nome} · {produto})</span></label>
+      <textarea name="msg" id="qc-msg" rows="2"
+        class="w-full rounded-xl border-2 border-slate-600 bg-slate-900 px-3 py-2 text-sm font-semibold text-white focus:border-emerald-400 focus:outline-none">{{ extra_filtros.msg_modelo }}</textarea>
+    </div>
+  </form>
+
+  <p class="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">
+    Período: <span class="text-slate-300">{{ periodo_label }}</span>
+  </p>
+
+  {% if tem_filtro and filtro_ok %}
+  <div class="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <div class="rounded-2xl border border-slate-700 bg-slate-800/80 px-4 py-3">
+      <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">Clientes</p>
+      <p class="mt-0.5 text-2xl font-black text-white">{{ resumo.clientes }}</p>
+    </div>
+    <div class="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3">
+      <p class="text-[10px] font-black uppercase tracking-wider text-emerald-400">Com Zap</p>
+      <p class="mt-0.5 text-2xl font-black text-emerald-300">{{ resumo.com_whatsapp }}</p>
+    </div>
+    <div class="rounded-2xl border border-slate-700 bg-slate-800/80 px-4 py-3">
+      <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">Qtd vendida</p>
+      <p class="mt-0.5 text-2xl font-black text-amber-300">{{ resumo.qtd }}</p>
+    </div>
+    <div class="rounded-2xl border border-lime-500/40 bg-lime-500/10 px-4 py-3">
+      <p class="text-[10px] font-black uppercase tracking-wider text-lime-400">Total R$</p>
+      <p class="mt-0.5 text-2xl font-black text-lime-300">{{ resumo.total_fmt }}</p>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if not tem_filtro %}
+  <div class="rounded-2xl border-2 border-dashed border-slate-600 bg-slate-900/60 px-6 py-12 text-center">
+    <p class="text-lg font-black text-white">Escolha um produto ou uma categoria</p>
+    <p class="mt-2 text-sm font-semibold text-slate-400">Busque o item em cima ou marque a categoria, depois <span class="text-orange-300">Atualizar</span>.</p>
+  </div>
+  {% elif not rows %}
+  <div class="rounded-2xl border border-slate-700 bg-slate-800/60 px-6 py-10 text-center">
+    <p class="text-base font-black text-slate-200">Nenhum cliente com compra nesse filtro</p>
+    <p class="mt-1 text-sm font-semibold text-slate-500">Tente outro período, produto ou desmarque «Só com Zap».</p>
+  </div>
+  {% else %}
+  <div class="overflow-x-auto rounded-2xl border border-slate-700">
+    <table class="print-table min-w-full divide-y divide-slate-700 text-left text-sm">
+      <thead class="bg-slate-900/90 text-[11px] font-black uppercase tracking-wide text-slate-400">
+        <tr>
+          <th class="px-3 py-3">#</th>
+          <th class="px-3 py-3">Cliente</th>
+          <th class="px-3 py-3">Última</th>
+          <th class="px-3 py-3 text-right">Qtd</th>
+          <th class="px-3 py-3 text-right">Total</th>
+          <th class="no-print px-3 py-3 text-center">Zap</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-800 bg-slate-900/40">
+        {% for r in rows %}
+        <tr class="qc-row group {% if not r.tem_whatsapp %}opacity-70{% endif %}" data-nome="{{ r.cliente|escape }}" data-wa="{{ r.whatsapp_url|default:''|escape }}">
+          <td class="px-3 py-2.5 font-bold text-slate-500">{{ r.pos }}</td>
+          <td class="px-3 py-2.5">
+            <button type="button" class="qc-expand text-left font-bold text-white hover:text-emerald-300" aria-expanded="false">
+              <i class="fas fa-chevron-right mr-1 text-[10px] text-slate-500 transition-transform qc-chev" aria-hidden="true"></i>
+              {{ r.cliente }}
+            </button>
+            {% if r.documento %}<p class="mt-0.5 text-[11px] font-semibold text-slate-500">{{ r.documento }}</p>{% endif %}
+            {% if not r.tem_whatsapp %}<p class="mt-0.5 text-[10px] font-black uppercase text-amber-500/90">Sem telefone</p>{% endif %}
+          </td>
+          <td class="px-3 py-2.5">
+            <span class="font-bold text-slate-200">{{ r.ultima_fmt }}</span>
+            {% if r.dias_desde is not None %}
+            <span class="mt-0.5 block text-[11px] font-semibold text-slate-500">há {{ r.dias_desde }} dia{{ r.dias_desde|pluralize }}</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-2.5 text-right font-bold text-amber-200">{{ r.qtd }}</td>
+          <td class="px-3 py-2.5 text-right font-black text-lime-300">{{ r.total_fmt }}</td>
+          <td class="no-print px-3 py-2.5 text-center">
+            {% if r.tem_whatsapp %}
+            <button type="button" class="qc-wa inline-flex min-h-[40px] min-w-[40px] items-center justify-center gap-1.5 rounded-xl border-2 border-emerald-500 bg-emerald-600 px-3 text-xs font-black uppercase text-white hover:bg-emerald-500"
+              title="Abrir WhatsApp">
+              <i class="fab fa-whatsapp text-base" aria-hidden="true"></i>Zap
+            </button>
+            {% else %}
+            <span class="text-[11px] font-bold text-slate-600">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        <tr class="qc-hist hidden bg-slate-950/80">
+          <td colspan="6" class="px-4 py-3">
+            <p class="mb-2 text-[10px] font-black uppercase tracking-wider text-slate-500">Últimas compras deste filtro</p>
+            {% if r.compras %}
+            <ul class="space-y-1.5">
+              {% for c in r.compras %}
+              <li class="flex flex-wrap items-baseline justify-between gap-2 rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-1.5 text-xs">
+                <span class="font-bold text-slate-300">{{ c.em_fmt }} · {{ c.produto }}</span>
+                <span class="font-semibold text-slate-400">{{ c.qtd }} · {{ c.valor_fmt }}</span>
+              </li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-xs font-semibold text-slate-500">Sem detalhe.</p>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="no-print mt-3 text-[11px] font-semibold text-slate-500">Zap abre um a um (sem disparo em massa). Ajuste a mensagem em cima antes de clicar.</p>
+  {% endif %}
+</div>
+{% include "produtos/_gm_loading_bar.html" %}
+{% include "produtos/_relatorios_loading.html" %}
+{% include "produtos/_atalho_voltar_pdv.html" %}
+
+<script src="{% static 'produtos/js/agro_busca_catalogo.js' %}?v=1"></script>
+<script>
+(function () {
+  var form = document.getElementById('form-quem-comprou');
+  var root = document.getElementById('qc-root');
+  var inp = document.getElementById('qc-produto-q');
+  var hid = document.getElementById('qc-produto-id');
+  var drop = document.getElementById('qc-busca-drop');
+  var msgEl = document.getElementById('qc-msg');
+  var lastRows = [];
+  var hitIdx = -1;
+  var buscaSeq = 0;
+  var tBusca = null;
+
+  function produtoLabel() {
+    return (root && root.getAttribute('data-produto-label')) || (inp && inp.value) || 'produto';
+  }
+
+  function montarTexto(nome) {
+    var tpl = (msgEl && msgEl.value) || '';
+    return tpl
+      .replace(/\{nome\}/gi, nome || 'cliente')
+      .replace(/\{produto\}/gi, produtoLabel());
+  }
+
+  function abrirWa(baseUrl, nome) {
+    if (!baseUrl) return;
+    var texto = montarTexto(nome);
+    var url = baseUrl;
+    if (texto) {
+      var sep = baseUrl.indexOf('?') >= 0 ? '&' : '?';
+      url = baseUrl + sep + 'text=' + encodeURIComponent(texto);
+    }
+    if (typeof window.agroAbrirUrlExterna === 'function') {
+      window.agroAbrirUrlExterna(url);
+    } else {
+      window.open(url, '_blank', 'noopener');
+    }
+  }
+
+  document.querySelectorAll('.qc-wa').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var tr = btn.closest('.qc-row');
+      if (!tr) return;
+      abrirWa(tr.getAttribute('data-wa') || '', tr.getAttribute('data-nome') || '');
+    });
+  });
+
+  document.querySelectorAll('.qc-expand').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var tr = btn.closest('.qc-row');
+      if (!tr) return;
+      var hist = tr.nextElementSibling;
+      if (!hist || !hist.classList.contains('qc-hist')) return;
+      var open = !hist.classList.contains('hidden');
+      hist.classList.toggle('hidden', open);
+      btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+      var chev = btn.querySelector('.qc-chev');
+      if (chev) chev.style.transform = open ? '' : 'rotate(90deg)';
+    });
+  });
+
+  var limparBtn = document.getElementById('qc-limpar-produto');
+  if (limparBtn) {
+    limparBtn.addEventListener('click', function () {
+      if (hid) hid.value = '';
+      if (inp) inp.value = '';
+      if (form) form.submit();
+    });
+  }
+
+  function mapProd(p) {
+    if (!p || typeof p !== 'object') return null;
+    var id = String(p.produto_id || p.id || p._id || '').trim();
+    if (!id) return null;
+    return {
+      produto_id: id,
+      nome: String(p.nome || p.Nome || '').trim(),
+      codigo: String(p.codigo_interno || p.codigo || p.Codigo || p.codigo_nfe || '').trim(),
+      ean: String(p.codigo_barras || p.ean || p.EAN || '').trim(),
+    };
+  }
+
+  function renderDrop(lista) {
+    if (!drop) return;
+    lastRows = lista || [];
+    hitIdx = lastRows.length ? 0 : -1;
+    if (!lastRows.length) {
+      drop.innerHTML = '<div class="px-3 py-4 text-center text-sm font-bold text-slate-500">Nenhum produto</div>';
+      drop.classList.remove('hidden');
+      return;
+    }
+    drop.innerHTML = lastRows
+      .map(function (p, i) {
+        var sub = [p.codigo, p.ean].filter(Boolean).join(' · ');
+        return (
+          '<button type="button" class="qc-busca-item block w-full border-b border-slate-800 px-3 py-2.5 text-left' +
+          (i === 0 ? ' qc-busca-on' : '') +
+          '" data-i="' + i + '" role="option">' +
+          '<span class="block text-sm font-bold text-white leading-snug">' +
+          (p.nome || p.produto_id).replace(/</g, '&lt;') +
+          '</span>' +
+          (sub
+            ? '<span class="mt-0.5 block text-[11px] font-semibold text-slate-400">' +
+              sub.replace(/</g, '&lt;') +
+              '</span>'
+            : '') +
+          '</button>'
+        );
+      })
+      .join('');
+    drop.classList.remove('hidden');
+  }
+
+  function escolher(i) {
+    var p = lastRows[i];
+    if (!p) return;
+    if (inp) inp.value = p.nome || p.codigo || p.produto_id;
+    if (hid) hid.value = p.produto_id;
+    if (root) root.setAttribute('data-produto-label', p.nome || p.produto_id);
+    if (drop) {
+      drop.classList.add('hidden');
+      drop.innerHTML = '';
+    }
+    if (form) form.submit();
+  }
+
+  function executarBusca(termo) {
+    var q = String(termo || '').trim();
+    if (!q) {
+      if (drop) {
+        drop.classList.add('hidden');
+        drop.innerHTML = '';
+      }
+      return;
+    }
+    var seq = ++buscaSeq;
+    var fetchFn =
+      typeof fetchAgroBuscaCatalogo === 'function'
+        ? fetchAgroBuscaCatalogo(q, { limit: 24, contexto: 'quem_comprou' })
+        : fetch('/api/buscar/?q=' + encodeURIComponent(q) + '&limit=24', {
+            credentials: 'same-origin',
+          }).then(function (r) {
+            return r.json();
+          });
+    fetchFn
+      .then(function (data) {
+        if (seq !== buscaSeq) return;
+        var lista = (data && (data.produtos || data.results || data.items)) || data || [];
+        if (!Array.isArray(lista)) lista = [];
+        renderDrop(
+          lista
+            .map(mapProd)
+            .filter(Boolean)
+            .slice(0, 24)
+        );
+      })
+      .catch(function () {
+        if (seq !== buscaSeq) return;
+        renderDrop([]);
+      });
+  }
+
+  if (inp) {
+    inp.addEventListener('input', function () {
+      if (hid && hid.value && inp.value.trim() === '') hid.value = '';
+      clearTimeout(tBusca);
+      tBusca = setTimeout(function () {
+        executarBusca(inp.value);
+      }, 220);
+    });
+    inp.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown' && lastRows.length) {
+        e.preventDefault();
+        hitIdx = Math.min(lastRows.length - 1, hitIdx + 1);
+        drop.querySelectorAll('.qc-busca-item').forEach(function (el, i) {
+          el.classList.toggle('qc-busca-on', i === hitIdx);
+        });
+      } else if (e.key === 'ArrowUp' && lastRows.length) {
+        e.preventDefault();
+        hitIdx = Math.max(0, hitIdx - 1);
+        drop.querySelectorAll('.qc-busca-item').forEach(function (el, i) {
+          el.classList.toggle('qc-busca-on', i === hitIdx);
+        });
+      } else if (e.key === 'Enter' && lastRows.length && hitIdx >= 0 && drop && !drop.classList.contains('hidden')) {
+        e.preventDefault();
+        escolher(hitIdx);
+      } else if (e.key === 'Escape' && drop) {
+        drop.classList.add('hidden');
+      }
+    });
+  }
+  if (drop) {
+    drop.addEventListener('click', function (e) {
+      var btn = e.target.closest('.qc-busca-item');
+      if (!btn) return;
+      escolher(parseInt(btn.getAttribute('data-i'), 10));
+    });
+  }
+  document.addEventListener('click', function (e) {
+    if (!drop || drop.classList.contains('hidden')) return;
+    if (inp && (inp === e.target || inp.contains(e.target))) return;
+    if (drop.contains(e.target)) return;
+    drop.classList.add('hidden');
+  });
+
+  document.querySelectorAll('[data-agro-rel-print]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      window.print();
+    });
+  });
+})();
+</script>
+{% endblock %}
