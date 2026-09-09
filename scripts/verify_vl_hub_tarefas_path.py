@@ -63,6 +63,8 @@ def main() -> int:
     check("detalhe_salvar_unico", "btnSalvar" in det_tpl and "btnComentar" in det_tpl)
     check("detalhe_titulo_editavel", 'id="titulo"' in det_tpl and "Salvar alterações" in det_tpl)
     check("detalhe_sem_botoes_avulsos", "btnStatus" not in det_tpl and "btnPrioridade" not in det_tpl)
+    check("detalhe_sem_aplicar_avulso", "Aplicar status" not in det_tpl and "Aplicar prioridade" not in det_tpl)
+    check("js_salva_lote", "titulo:" in det_tpl and "status:" in det_tpl and "prioridade:" in det_tpl)
     check("detalhe_prioridade", "prioridade" in det_tpl)
     check("migrate_models", "TarefaAgro" in man and "TarefaComentarioAgro" in man and "TarefaEventoAgro" in man)
     check("migrate_seed", "equipe-centro-vila" in seed_m and "guabi-precos" in seed_m)
@@ -125,6 +127,7 @@ def main() -> int:
         check("pin_ok_flag", j_pin.get("ok") is True, str(j_pin))
         operador = str(j_pin.get("operador") or "").strip()
         check("pin_operador_nome", bool(operador), operador or "(vazio)")
+        check("pin_9973_renan", PIN == "9973" and "Renan" in operador, f"PIN={PIN} operador={operador}")
         check("sessao_operador", bool(c.session.get(SESSION_OPERADOR)), str(c.session.get(SESSION_OPERADOR)))
 
         r_lista = c.get("/vendas/lojas/tarefas/")
@@ -189,6 +192,39 @@ def main() -> int:
             bool(t and t.titulo == titulo_edit and t.status == "aguardando" and t.prioridade == "baixa"),
             f"{getattr(t, 'titulo', '')}|{getattr(t, 'status', '')}|{getattr(t, 'prioridade', '')}",
         )
+        check(
+            "evento_lote_titulo",
+            TarefaEventoAgro.objects.filter(tarefa_id=tid, tipo="editada", detalhe__icontains="título").exists(),
+        )
+        check(
+            "evento_lote_status",
+            TarefaEventoAgro.objects.filter(tarefa_id=tid, tipo="status", detalhe__icontains="Aguardando").exists(),
+        )
+        r_lista_lote = c.get("/vendas/lojas/tarefas/")
+        check("lista_titulo_lote", titulo_edit in r_lista_lote.content.decode("utf-8", "replace"))
+
+        csrf = _csrf(c) or csrf
+        vazio = c.post(
+            f"/vendas/lojas/tarefas/api/{tid}/atualizar/",
+            data=json.dumps({"titulo": "   ", "status": "aguardando", "prioridade": "baixa"}),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=csrf,
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        j_vazio = json.loads(vazio.content.decode("utf-8", "replace"))
+        check("titulo_vazio_400", vazio.status_code == 400 and j_vazio.get("ok") is False, str(j_vazio))
+        t.refresh_from_db()
+        check("titulo_vazio_nao_grava", t.titulo == titulo_edit)
+
+        csrf = _csrf(c) or csrf
+        cm_vazio = c.post(
+            f"/vendas/lojas/tarefas/api/{tid}/comentar/",
+            data=json.dumps({"texto": "  "}),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=csrf,
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        check("comentario_vazio_400", cm_vazio.status_code == 400)
         titulo = titulo_edit
 
         csrf = _csrf(c) or csrf
@@ -239,11 +275,15 @@ def main() -> int:
             "evento_comentario",
             TarefaEventoAgro.objects.filter(tarefa_id=tid, tipo="comentario", autor_nome=operador).exists(),
         )
+        t.refresh_from_db()
+        check("comentario_nao_muda_titulo", t.titulo == titulo)
 
         r_det = c.get(f"/vendas/lojas/tarefas/{tid}/")
         bd = r_det.content.decode("utf-8", "replace")
         check("detalhe_200", r_det.status_code == 200)
         check("detalhe_titulo", titulo in bd)
+        check("detalhe_html_input", 'id="titulo"' in bd and "Salvar alterações" in bd)
+        check("detalhe_html_sem_avulsos", "Aplicar status" not in bd and "Aplicar prioridade" not in bd)
         check("detalhe_comentario", "Comentário de prova" in bd)
         check("detalhe_timeline", "Linha do tempo" in bd)
         check("detalhe_tem_adiado_perm", "Adiado permanente" in bd or "adiado_permanente" in bd)
