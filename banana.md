@@ -1286,7 +1286,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | `/produtos/etiquetas/`: **Colar códigos** (lista/Excel → fila) · filtro **Mais vendidos** (período/top/ordenar + cat/sub) → lista → Adicionar todos |
 | **Onde** | `etiquetas_fila_util.py` · `views`/`urls` · `produtos_etiquetas.html` · `produtos_etiquetas.js` |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_etq_colar_mv_path.py` **VERIFY_OK 20/20** |
+| **Prova** | `verify_etq_colar_mv_path.py` **VERIFY_OK 82/82** (arquivos · tokens · resolver GM/overlay · ranking qtd/cat/limite · HTTP auth/página/APIs · PIN 9973=Renan) |
 | **Status** | 🟢 **pronto para envio à produção** (teste **v23.52**) |
 | **Você** | Ctrl+F5 etiquetas · Colar códigos (lista GM) · ou Carregar ranking → Adicionar todos |
 
