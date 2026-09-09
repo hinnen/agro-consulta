@@ -1279,6 +1279,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Etiquetas colar códigos + mais vendidos (`ETQ-COLAR-MV` · **v23.52** · 08/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `/produtos/etiquetas/`: **Colar códigos** (lista/Excel → fila) · filtro **Mais vendidos** (período/top/ordenar + cat/sub) → lista → Adicionar todos |
+| **Onde** | `etiquetas_fila_util.py` · `views`/`urls` · `produtos_etiquetas.html` · `produtos_etiquetas.js` |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_etq_colar_mv_path.py` **VERIFY_OK 20/20** |
+| **Status** | 🟢 **pronto para envio à produção** (teste **v23.52**) |
+| **Você** | Ctrl+F5 etiquetas · Colar códigos (lista GM) · ou Carregar ranking → Adicionar todos |
+
 ### 📦 PACOTE PRONTO — PIN alert vira teclado global (`PIN-ALERT-TECLADO` · **v23.50** · 08/09)
 
 | Campo | Valor |

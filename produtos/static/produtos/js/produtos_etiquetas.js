@@ -9,6 +9,8 @@
   var URL_FACETAS = CFG.facetasUrl || '/api/produtos/gestao/facetas/';
   var URL_PRESETS = CFG.presetsUrl || '/api/compras/folha-saldo-presets/';
   var URL_HISTORICO = '/api/produtos/etiquetas/historico/';
+  var URL_RESOLVER = CFG.resolverUrl || '/api/produtos/etiquetas/resolver-codigos/';
+  var URL_MAIS_VENDIDOS = CFG.maisVendidosUrl || '/api/produtos/etiquetas/mais-vendidos/';
   var HISTORICO_DIAS = 30;
 
   var msFacetas = {
@@ -625,10 +627,12 @@
     if (inp) inp.focus();
   }
 
-  function renderBusca(produtos) {
+  function renderBusca(produtos, opts) {
+    opts = opts || {};
     var box = $('etq-busca-resultados');
     if (!box) return;
-    state.buscaProdutos = (produtos || []).slice(0, 80);
+    var lim = opts.limit || 80;
+    state.buscaProdutos = (produtos || []).slice(0, lim);
     state.buscaSelIdx = -1;
     syncBtnAddTodos();
     if (!state.buscaProdutos.length) {
@@ -638,6 +642,7 @@
     box.innerHTML = state.buscaProdutos
       .map(function (p, idx) {
         var gm = String(p.codigo_nfe || p.codigo_gm || p.codigo || '').trim();
+        var rank = p.rank_pos != null ? ('#' + p.rank_pos + ' · ') : '';
         return (
           '<button type="button" role="option" aria-selected="false" class="etq-busca-item flex w-full items-center justify-between gap-2 border-b border-slate-700/70 px-3 py-2 text-left hover:bg-slate-700/40" data-prod-id="' +
           Core.esc(p.id) +
@@ -648,7 +653,7 @@
           Core.esc(p.nome || '—') +
           '</span>' +
           '<span class="shrink-0 text-xs text-slate-400">' +
-          Core.esc(gm) +
+          Core.esc(rank + gm) +
           ' · ' +
           Core.esc(Core.fmtPreco(p.preco_venda)) +
           '</span>' +
@@ -668,6 +673,191 @@
         adicionarProdutoFila(prod);
       });
     });
+  }
+
+  function csrfToken() {
+    var m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  function abrirModalColar() {
+    var back = $('etq-colar-back');
+    if (!back) return;
+    back.classList.remove('hidden');
+    back.setAttribute('aria-hidden', 'false');
+    var ta = $('etq-colar-texto');
+    var res = $('etq-colar-resumo');
+    if (res) {
+      res.classList.add('hidden');
+      res.textContent = '';
+    }
+    if (ta) {
+      ta.focus();
+      try { ta.select(); } catch (e) {}
+    }
+  }
+
+  function fecharModalColar() {
+    var back = $('etq-colar-back');
+    if (!back) return;
+    back.classList.add('hidden');
+    back.setAttribute('aria-hidden', 'true');
+  }
+
+  function adicionarProdutosNaFila(prods) {
+    var qtdInp = $('etq-add-qtd');
+    var qtd = parseInt(qtdInp && qtdInp.value, 10) || 1;
+    if (qtd < 1) qtd = 1;
+    var n = 0;
+    (prods || []).forEach(function (p) {
+      if (!p || !p.id) return;
+      var it = produtoParaFilaItem(p);
+      it.qtd = qtd;
+      state.fila.push(it);
+      n += 1;
+    });
+    if (n) renderFila();
+    return n;
+  }
+
+  function confirmarColarCodigos() {
+    var ta = $('etq-colar-texto');
+    var texto = ta ? String(ta.value || '').trim() : '';
+    var resumo = $('etq-colar-resumo');
+    var btn = $('etq-colar-adicionar');
+    if (!texto) {
+      setStatus('Cole ao menos um código GM.', true);
+      return;
+    }
+    if (btn) btn.disabled = true;
+    if (resumo) {
+      resumo.classList.remove('hidden');
+      resumo.textContent = 'Resolvendo códigos…';
+    }
+    fetch(URL_RESOLVER, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken(),
+      },
+      body: JSON.stringify({
+        texto: texto,
+        inativos: !($('etq-somente-ativos') && $('etq-somente-ativos').checked),
+      }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (btn) btn.disabled = false;
+        if (!data || data.ok === false) {
+          if (resumo) resumo.textContent = (data && data.erro) || 'Falha ao resolver.';
+          setStatus((data && data.erro) || 'Falha ao resolver códigos.', true);
+          return;
+        }
+        var prods = data.produtos || [];
+        var n = adicionarProdutosNaFila(prods);
+        var miss = data.nao_encontrados || [];
+        var msg =
+          n + ' na fila' +
+          (data.pedidos ? ' de ' + data.pedidos + ' código(s)' : '') +
+          (miss.length ? ' · ' + miss.length + ' não achado(s)' : '');
+        if (resumo) {
+          resumo.textContent = msg + (miss.length ? ': ' + miss.slice(0, 12).join(', ') + (miss.length > 12 ? '…' : '') : '');
+        }
+        setStatus(msg + '.');
+        if (n && !miss.length) fecharModalColar();
+      })
+      .catch(function () {
+        if (btn) btn.disabled = false;
+        if (resumo) resumo.textContent = 'Erro de rede.';
+        setStatus('Erro ao resolver códigos.', true);
+      });
+  }
+
+  function syncMvDatasFromPeriodo() {
+    var sel = $('etq-mv-periodo');
+    var de = $('etq-mv-de');
+    var ate = $('etq-mv-ate');
+    if (!sel || !de || !ate) return;
+    var periodo = sel.value || '30d';
+    if (periodo === 'custom') return;
+    var hoje = new Date();
+    function iso(d) {
+      var y = d.getFullYear();
+      var m = String(d.getMonth() + 1).padStart(2, '0');
+      var day = String(d.getDate()).padStart(2, '0');
+      return y + '-' + m + '-' + day;
+    }
+    var d1 = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+    var d0 = new Date(d1);
+    if (periodo === 'hoje') {
+      /* same day */
+    } else if (periodo === '7d') {
+      d0.setDate(d0.getDate() - 6);
+    } else if (periodo === 'mes_atual') {
+      d0 = new Date(d1.getFullYear(), d1.getMonth(), 1);
+    } else {
+      d0.setDate(d0.getDate() - 29);
+    }
+    de.value = iso(d0);
+    ate.value = iso(d1);
+  }
+
+  function carregarMaisVendidos() {
+    var box = $('etq-busca-resultados');
+    var meta = $('etq-busca-meta');
+    var btn = $('etq-mv-carregar');
+    if (btn) btn.disabled = true;
+    if (box) box.innerHTML = '<p class="px-3 py-3 text-sm text-slate-400">Carregando ranking…</p>';
+    var params = new URLSearchParams();
+    var periodo = ($('etq-mv-periodo') && $('etq-mv-periodo').value) || '30d';
+    params.set('periodo', periodo);
+    if ($('etq-mv-de') && $('etq-mv-de').value) params.set('de', $('etq-mv-de').value);
+    if ($('etq-mv-ate') && $('etq-mv-ate').value) params.set('ate', $('etq-mv-ate').value);
+    params.set('limite', ($('etq-mv-limite') && $('etq-mv-limite').value) || '100');
+    params.set('ordenar', ($('etq-mv-ordenar') && $('etq-mv-ordenar').value) || 'valor');
+    params.set('sentido', ($('etq-mv-sentido') && $('etq-mv-sentido').value) || 'mais');
+    if (!($('etq-somente-ativos') && $('etq-somente-ativos').checked)) params.set('inativos', '1');
+    function appendMultiLocal(key, arr) {
+      (arr || []).forEach(function (v) {
+        if (v) params.append(key, v);
+      });
+    }
+    appendMultiLocal('categoria', msSelected.categoria);
+    appendMultiLocal('subcategoria', msSelected.subcategoria);
+    appendMultiLocal('subcategoria_2', msSelected.subcategoria_2);
+    appendMultiLocal('subcategoria_3', msSelected.subcategoria_3);
+    appendMultiLocal('subcategoria_4', msSelected.subcategoria_4);
+    fetch(URL_MAIS_VENDIDOS + '?' + params.toString(), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (btn) btn.disabled = false;
+        if (!data || data.ok === false) {
+          state.buscaProdutos = [];
+          syncBtnAddTodos();
+          if (box) box.innerHTML = '<p class="px-3 py-3 text-sm text-red-400">' + Core.esc((data && data.erro) || 'Erro no ranking.') + '</p>';
+          if (meta) meta.textContent = '';
+          setStatus((data && data.erro) || 'Erro ao carregar mais vendidos.', true);
+          return;
+        }
+        var prods = filtrarOmitZero(data.produtos || []);
+        renderBusca(prods, { limit: 200 });
+        if (meta) {
+          meta.textContent = prods.length
+            ? (prods.length + ' no ranking' + (data.label ? ' · ' + data.label : ''))
+            : '0 no período';
+        }
+        setStatus(
+          prods.length
+            ? (prods.length + ' mais vendidos carregados — Adicionar todos.')
+            : 'Nenhuma venda no período.'
+        );
+      })
+      .catch(function () {
+        if (btn) btn.disabled = false;
+        if (box) box.innerHTML = '<p class="px-3 py-3 text-sm text-red-400">Erro de rede.</p>';
+        setStatus('Erro ao carregar mais vendidos.', true);
+      });
   }
 
 
@@ -1410,6 +1600,28 @@
 
     $('etq-btn-add-todos') &&
       $('etq-btn-add-todos').addEventListener('click', adicionarTodosBusca);
+    $('etq-btn-colar-codigos') &&
+      $('etq-btn-colar-codigos').addEventListener('click', abrirModalColar);
+    $('etq-colar-fechar') && $('etq-colar-fechar').addEventListener('click', fecharModalColar);
+    $('etq-colar-cancelar') && $('etq-colar-cancelar').addEventListener('click', fecharModalColar);
+    $('etq-colar-adicionar') &&
+      $('etq-colar-adicionar').addEventListener('click', confirmarColarCodigos);
+    $('etq-colar-back') &&
+      $('etq-colar-back').addEventListener('click', function (e) {
+        if (e.target === $('etq-colar-back')) fecharModalColar();
+      });
+    syncMvDatasFromPeriodo();
+    $('etq-mv-periodo') &&
+      $('etq-mv-periodo').addEventListener('change', function () {
+        if ($('etq-mv-periodo').value !== 'custom') syncMvDatasFromPeriodo();
+      });
+    function markMvCustom() {
+      if ($('etq-mv-periodo')) $('etq-mv-periodo').value = 'custom';
+    }
+    $('etq-mv-de') && $('etq-mv-de').addEventListener('change', markMvCustom);
+    $('etq-mv-ate') && $('etq-mv-ate').addEventListener('change', markMvCustom);
+    $('etq-mv-carregar') &&
+      $('etq-mv-carregar').addEventListener('click', carregarMaisVendidos);
     $('etq-btn-imprimir') && $('etq-btn-imprimir').addEventListener('click', imprimirFila);
     $('etq-btn-limpar') &&
       $('etq-btn-limpar').addEventListener('click', function () {
