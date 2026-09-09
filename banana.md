@@ -1264,28 +1264,33 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PREP — Checklist 08/09 (`deploy/prep-checklist-0809` · alvo **v23.58**) · ⏳ aguarda senha
+### 📦 PREP — Checklist 09/09 (`deploy/prep-checklist-0909` · alvo **v23.70**) · ⏳ aguarda senha
 
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟡 **PREP pronto** — **não** enviado · **aguarda frase + senha** |
-| **Antes (loja)** | **Live v23.45** @ `1b942c4` |
-| **Branch PREP** | `deploy/prep-checklist-0809` @ tip **v23.58** |
-| **Pacotes** | `PIN-ALERT-TECLADO` · `REL-QUEM-COMPROU` · `ETQ-COLAR-MV` |
-| **NÃO sobe** | merge `teste` · WhatsApp extra · Excel cadastro · outros WIP |
-| **Migrate** | **NÃO** |
-| **Provas** | PIN **117/117** · LANC **70/70** · REL **67/67** · ETQ **82/82** · `check` OK |
-| **Risco loja aberta** | **Baixo** — PIN = teclado (não muda venda) · relatório novo · só etiquetas |
-| **Rollback** | `docs/ROLLBACK-CHECKLIST-0809.md` · tag `rollback/pre-checklist-0809-v23.45` (criar no deploy) |
-| **Próximo chat** | 1) pausar vendas 2) *pode subir checklist 08/09 / produção* + **99738595** 3) FF PREP → `producao` · Ctrl+F5 · badge **v23.58** |
+| **Antes (loja)** | **Live v23.58** @ `0e0c419` |
+| **Branch PREP** | `deploy/prep-checklist-0909` @ tip **v23.70** |
+| **Pacotes** | `PDV-ENTREGA-PAGAS-24H` · `PDV-ENTREGA-LOJA-SAIDA` · `CAIXA-ENTREGA-ADIAR` · `TAREFAS-DETALHE-LOTE` · `REPASSE-COFRE-PLANO` · `REPASSE-GESTAO-SIMPLES` |
+| **NÃO sobe** | merge `teste` · WhatsApp · Excel · DRE WIP · outros |
+| **Migrate** | **SIM** `produtos.0128` + `0129` |
+| **Provas** | pagas **64/64** · loja-saída **12/12** · adiar **26/26** · tarefas **90/90** · cofre **62/62** · gestão **64/64** · `check` OK |
+| **Risco loja aberta** | **Médio** nos 3 paths de entrega/caixa · **baixo** tarefas/repasse — **pausar vendas** no deploy |
+| **Rollback** | `docs/ROLLBACK-CHECKLIST-0909.md` · tag `rollback/pre-checklist-0909-v23.58` (criar no deploy) |
+| **Próximo chat** | 1) pausar vendas 2) *pode subir checklist 09/09 / produção* + **99738595** 3) FF PREP → `producao` · migrate · Ctrl+F5 · badge **v23.70** |
 
-### ✅ CHECKLIST ÚNICO — PREP 08/09 (alvo loja **v23.58**)
+### ✅ CHECKLIST ÚNICO — PREP 09/09 (alvo loja **v23.70**)
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `PIN-ALERT-TECLADO` | 🟡 PREP / aguarda senha | **NÃO** | **117/117** |
-| 2 | `REL-QUEM-COMPROU` | 🟡 PREP / aguarda senha | **NÃO** | **67/67** |
-| 3 | `ETQ-COLAR-MV` | 🟡 PREP / aguarda senha | **NÃO** | **82/82** |
+| 1 | `PDV-ENTREGA-PAGAS-24H` | 🟡 PREP / aguarda senha | **SIM** `0129` | **64/64** |
+| 2 | `PDV-ENTREGA-LOJA-SAIDA` | 🟡 PREP / aguarda senha | **NÃO** | **12/12** |
+| 3 | `CAIXA-ENTREGA-ADIAR` | 🟡 PREP / aguarda senha | **SIM** `0128` | **26/26** |
+| 4 | `TAREFAS-DETALHE-LOTE` | 🟡 PREP / aguarda senha | **NÃO** | **90/90** |
+| 5 | `REPASSE-COFRE-PLANO` | 🟡 PREP / aguarda senha | **NÃO** | **62/62** |
+| 6 | `REPASSE-GESTAO-SIMPLES` | 🟡 PREP / aguarda senha | **NÃO** | **64/64** |
+
+**Loja agora:** **v23.58**. **Não** merge `teste`.
 
 ### 📦 PACOTE PRONTO — Ícone Zap S (WA-PC-ICON · 07/09)
 

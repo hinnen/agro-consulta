@@ -394,3 +394,35 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 **Status: enviado / Live v23.18.** Prova `verify_vl_hub_tarefas_path.py` **55/55**.  
 **Rollback:** tag `rollback/pre-vl-hub-tarefas-v23.07` · `docs/ROLLBACK-VL-HUB-TAREFAS-0609.md` · **só** frase+senha.
+
+---
+
+## 24. Checklist único — lote 08/09 (`deploy/prep-checklist-0809` · loja **v23.58**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PIN-ALERT-TECLADO** | ✅ **Live v23.58** · prova **117/117** | **NÃO** |
+| 2 | **REL-QUEM-COMPROU** | ✅ **Live v23.58** · prova **67/67** | **NÃO** |
+| 3 | **ETQ-COLAR-MV** | ✅ **Live v23.58** · prova **82/82** | **NÃO** |
+
+**Status: enviado / Live v23.58.** `producao` @ `0e0c419`.  
+**Rollback:** `docs/ROLLBACK-CHECKLIST-0809.md` · **só** frase+senha.
+
+---
+
+## 25. Checklist único — lote 09/09 (`deploy/prep-checklist-0909` · alvo loja **v23.70**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-ENTREGA-PAGAS-24H** | 🟡 PREP / aguarda senha · **64/64** | **SIM** `0129` |
+| 2 | **PDV-ENTREGA-LOJA-SAIDA** | 🟡 PREP / aguarda senha · **12/12** | **NÃO** |
+| 3 | **CAIXA-ENTREGA-ADIAR** | 🟡 PREP / aguarda senha · **26/26** | **SIM** `0128` |
+| 4 | **TAREFAS-DETALHE-LOTE** | 🟡 PREP / aguarda senha · **90/90** | **NÃO** |
+| 5 | **REPASSE-COFRE-PLANO** | 🟡 PREP / aguarda senha · **62/62** | **NÃO** |
+| 6 | **REPASSE-GESTAO-SIMPLES** | 🟡 PREP / aguarda senha · **64/64** | **NÃO** |
+
+**Status: PREP pronto — aguarda frase + senha.** Branch `deploy/prep-checklist-0909` · tip **v23.70**.  
+**Antes loja:** Live **v23.58** @ `0e0c419`. **Não** merge `teste`.  
+**Rollback:** `docs/ROLLBACK-CHECKLIST-0909.md` · tag `rollback/pre-checklist-0909-v23.58` (criar no deploy).  
+**Risco:** médio em entrega/caixa — **pausar vendas** no deploy.  
+**Smoke pós:** badge **v23.70** · migrate 0128+0129 · Entregas abas · loja sai · Adiar · Tarefas Salvar · repasse cofre plano.
