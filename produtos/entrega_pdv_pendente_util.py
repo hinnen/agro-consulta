@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from urllib.parse import quote
 
 from django.db.models import Q
 from django.utils import timezone
@@ -11,6 +12,7 @@ from produtos.caixa_util import PONTO_CAIXA_VILA, rotulo_operador_pin, validar_p
 from produtos.models import PedidoEntrega, SessaoCaixa
 
 LOJAS_ENTREGA = frozenset({"centro", "vila"})
+HORAS_PAGAS_LOJA_PDV = 24
 
 
 def normalizar_loja_entrega(raw) -> str:
@@ -24,6 +26,37 @@ def queryset_entregas_aguardando_pagamento_pdv():
     return PedidoEntrega.objects.filter(aguarda_pagamento_pdv=True).exclude(
         status=PedidoEntrega.Status.CANCELADO
     )
+
+
+def corte_pagas_loja_pdv():
+    return timezone.now() - timedelta(hours=HORAS_PAGAS_LOJA_PDV)
+
+
+def queryset_entregas_pagas_loja_pdv():
+    """Pagas no caixa ao lançar — overlay 24h, não trava fechar caixa."""
+    return PedidoEntrega.objects.filter(
+        paga_na_loja=True,
+        criado_em__gte=corte_pagas_loja_pdv(),
+    ).exclude(status=PedidoEntrega.Status.CANCELADO)
+
+
+def maps_query_entrega(ent: PedidoEntrega) -> str:
+    manual = (getattr(ent, "maps_url_manual", None) or "").strip()
+    if manual:
+        return manual
+    plus = (getattr(ent, "plus_code", None) or "").strip()
+    if plus:
+        return plus
+    return (getattr(ent, "endereco_linha", None) or "").strip()
+
+
+def maps_url_entrega(ent: PedidoEntrega) -> str:
+    q = maps_query_entrega(ent)
+    if not q:
+        return ""
+    if q.lower().startswith("http://") or q.lower().startswith("https://"):
+        return q
+    return "https://www.google.com/maps/search/?api=1&query=" + quote(q)
 
 
 def queryset_entregas_bloqueando_fechamento_caixa():
@@ -123,17 +156,24 @@ def serializar_entrega_pendente_pdv(ent: PedidoEntrega, *, incluir_estado: bool 
         if getattr(ent, "caixa_adiada_para", None)
         else "",
         "caixa_adiada_por": (getattr(ent, "caixa_adiada_por", None) or "").strip(),
-        "pode_adiar": True,
+        "pode_adiar": bool(ent.aguarda_pagamento_pdv),
         "endereco_linha": (ent.endereco_linha or "").strip(),
         "plus_code": (ent.plus_code or "").strip(),
         "referencia_rural": (ent.referencia_rural or "").strip(),
         "maps_url_manual": (ent.maps_url_manual or "").strip(),
+        "maps_query": maps_query_entrega(ent),
+        "maps_url": maps_url_entrega(ent),
+        "observacoes": (ent.observacoes or "").strip(),
         "troco_precisa": bool(getattr(ent, "troco_precisa", False)),
         "itens": itens,
         "pode_assumir": not loja,
         "pode_imprimir": bool(itens),
         "pode_retomar": tem_estado,
+        "pode_cancelar": bool(ent.aguarda_pagamento_pdv),
         "eh_catalogo": origem == "catalogo",
+        "paga_na_loja": bool(getattr(ent, "paga_na_loja", False)),
+        "venda_agro_id": ent.venda_agro_id,
+        "aguarda_pagamento_pdv": bool(ent.aguarda_pagamento_pdv),
     }
     if incluir_estado:
         row["pdv_wizard_state"] = ent.pdv_wizard_state if isinstance(ent.pdv_wizard_state, dict) else {}
@@ -157,6 +197,27 @@ def listar_entregas_pendentes_pdv(
     for ent in qs[:limite]:
         row = serializar_entrega_pendente_pdv(ent)
         row["sessao_caixa_label"] = _sessao_caixa_label_entrega(ent)
+        out.append(row)
+    return out
+
+
+def listar_entregas_pagas_loja_pdv(
+    *,
+    limite: int = 80,
+    loja: str | None = None,
+) -> list[dict]:
+    qs = queryset_entregas_pagas_loja_pdv()
+    qs = filtrar_qs_por_loja(qs, loja)
+    qs = qs.select_related("sessao_caixa", "sessao_caixa__usuario").order_by("-criado_em")
+    out = []
+    for ent in qs[:limite]:
+        row = serializar_entrega_pendente_pdv(ent)
+        row["sessao_caixa_label"] = _sessao_caixa_label_entrega(ent)
+        row["pode_adiar"] = False
+        row["pode_retomar"] = False
+        row["pode_assumir"] = False
+        row["pode_cancelar"] = False
+        row["paga_na_loja"] = True
         out.append(row)
     return out
 

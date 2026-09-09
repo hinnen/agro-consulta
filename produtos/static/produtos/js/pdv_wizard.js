@@ -205,10 +205,12 @@
     function invalidateEntregasPendentesCache() {
         entregasPendentesCache.total = 0;
         entregasPendentesCache.itens = [];
+        entregasPendentesCache.itensPagas = [];
         if (window.AgroPdvOfflineCache && window.AgroPdvOfflineCache.writePayload) {
             window.AgroPdvOfflineCache.writePayload(ENTREGAS_PENDENTES_LS_KEY, {
                 total: 0,
                 itens: [],
+                itensPagas: [],
             });
         }
         applyEntregasPendentesButton();
@@ -862,7 +864,8 @@
     var wizardStoragePatchTimer = null;
     var prevStepCache = '';
     var entregasPendentesPollTimer = null;
-    var entregasPendentesCache = { total: 0, itens: [] };
+        var entregasPendentesCache = { total: 0, itens: [], itensPagas: [] };
+        var entregasPendentesAba = 'pagar';
     var entregasPendentesOpening = false;
     var entregasPendentesAbrirAposUnlock = false;
 
@@ -4464,7 +4467,10 @@
 
     function applyEntregasPendentesButton() {
         var itens = entregasPendentesCache.itens || [];
-        var n = itens.length;
+        var pagas = entregasPendentesCache.itensPagas || [];
+        var nPagar = itens.length;
+        var nPagas = pagas.length;
+        var n = nPagar + nPagas;
         entregasPendentesCache.total = n;
         var apiOk = !!String(urls.apiPdvEntregasPendentes || '').trim();
         var discreteTop =
@@ -4476,6 +4482,8 @@
         });
         if (catalogoSemDono) {
             alertTop += ' pdv-wiz-topbar-btn--entregas-catalogo';
+        } else if (nPagar === 0 && nPagas > 0) {
+            alertTop += ' pdv-wiz-topbar-btn--entregas-pagas';
         }
 
         if (dom.topbarEntregasBtn) {
@@ -4483,10 +4491,13 @@
             dom.topbarEntregasBtn.className = n > 0 ? alertTop : discreteTop;
             if (catalogoSemDono) {
                 dom.topbarEntregasBtn.title = 'Catálogo sem loja — Assumir entrega';
-            } else if (n > 0) {
-                dom.topbarEntregasBtn.title = 'Pagamento na entrega — pendências';
+            } else if (nPagar > 0) {
+                dom.topbarEntregasBtn.title =
+                    'A pagar: ' + nPagar + (nPagas ? ' · Pagas na loja: ' + nPagas : '');
+            } else if (nPagas > 0) {
+                dom.topbarEntregasBtn.title = 'Pagas na loja (24 h): ' + nPagas;
             } else {
-                dom.topbarEntregasBtn.title = 'Entregas pendentes';
+                dom.topbarEntregasBtn.title = 'Entregas';
             }
         }
         if (dom.topbarEntregasCount) {
@@ -4497,6 +4508,10 @@
                 dom.topbarEntregasCount.classList.add('hidden');
             }
         }
+        var nPagarEl = document.getElementById('pdv-entregas-tab-pagar-n');
+        var nPagasEl = document.getElementById('pdv-entregas-tab-pagas-n');
+        if (nPagarEl) nPagarEl.textContent = String(nPagar);
+        if (nPagasEl) nPagasEl.textContent = String(nPagas);
     }
 
     function lojaEntregaLabelUi(loja) {
@@ -4506,13 +4521,42 @@
         return '';
     }
 
+    function syncEntregasOverlayAbas() {
+        var tabPagar = document.getElementById('pdv-entregas-tab-pagar');
+        var tabPagas = document.getElementById('pdv-entregas-tab-pagas');
+        var btnRota = document.getElementById('pdv-entregas-rota-pagas');
+        var pagarOn = entregasPendentesAba !== 'pagas';
+        if (tabPagar) {
+            tabPagar.className = pagarOn
+                ? 'rounded-t-lg border-2 border-b-0 border-orange-300 bg-orange-50 px-3 py-1.5 text-[10px] font-black uppercase text-orange-950'
+                : 'rounded-t-lg border-2 border-b-0 border-transparent bg-transparent px-3 py-1.5 text-[10px] font-black uppercase text-slate-600';
+        }
+        if (tabPagas) {
+            tabPagas.className = !pagarOn
+                ? 'rounded-t-lg border-2 border-b-0 border-emerald-300 bg-emerald-50 px-3 py-1.5 text-[10px] font-black uppercase text-emerald-950'
+                : 'rounded-t-lg border-2 border-b-0 border-transparent bg-transparent px-3 py-1.5 text-[10px] font-black uppercase text-slate-600';
+        }
+        if (btnRota) {
+            btnRota.classList.toggle('hidden', pagarOn);
+        }
+    }
+
     function renderEntregasPendentesList() {
         var el = dom.entregasPendentesList;
         if (!el) return;
-        var itens = entregasPendentesCache.itens || [];
+        syncEntregasOverlayAbas();
+        applyEntregasPendentesButton();
+        var pagasAba = entregasPendentesAba === 'pagas';
+        var itens = pagasAba
+            ? entregasPendentesCache.itensPagas || []
+            : entregasPendentesCache.itens || [];
         if (!itens.length) {
             el.innerHTML =
-                '<p class="py-8 text-center text-sm font-bold text-slate-500">Nenhuma pendência agora.</p>';
+                '<p class="py-8 text-center text-sm font-bold text-slate-500">' +
+                (pagasAba
+                    ? 'Nenhuma paga na loja nas últimas 24 h.'
+                    : 'Nenhuma pendência de pagamento agora.') +
+                '</p>';
             return;
         }
         el.innerHTML = itens
@@ -4525,6 +4569,11 @@
                 var caixaLbl = escapeHtml(row.sessao_caixa_label || '');
                 var end = escapeHtml(row.endereco_linha || '');
                 var badges = [];
+                if (pagasAba) {
+                    badges.push(
+                        '<span class="rounded-md bg-emerald-600 px-1.5 py-0.5 text-[9px] font-black uppercase text-white">Paga na loja</span>'
+                    );
+                }
                 if (row.eh_catalogo) {
                     badges.push(
                         '<span class="rounded-md bg-violet-600 px-1.5 py-0.5 text-[9px] font-black uppercase text-white">Catálogo</span>'
@@ -4551,10 +4600,19 @@
                             '</span>'
                     );
                 }
-                var borderCls = row.eh_catalogo && row.pode_assumir
+                var borderCls = pagasAba
+                    ? 'border-emerald-200 bg-emerald-50/50'
+                    : row.eh_catalogo && row.pode_assumir
                     ? 'border-amber-400 bg-amber-50/70 ring-2 ring-amber-300'
                     : 'border-orange-200 bg-orange-50/40';
                 var btns = '';
+                if (pagasAba) {
+                    btns +=
+                        '<label class="inline-flex items-center gap-1 rounded-lg border-2 border-emerald-200 bg-white px-2 py-2 text-[10px] font-black uppercase text-emerald-950">' +
+                        '<input type="checkbox" class="pdv-entrega-paga-chk h-4 w-4 accent-emerald-600" data-entrega-id="' +
+                        id +
+                        '"> Incluir</label>';
+                }
                 if (row.pode_assumir) {
                     btns +=
                         '<button type="button" class="pdv-entrega-assumir rounded-lg bg-amber-600 px-3 py-2 text-[10px] font-black uppercase text-white shadow" data-entrega-id="' +
@@ -4566,6 +4624,12 @@
                         '<button type="button" class="pdv-entrega-imprimir rounded-lg border-2 border-slate-300 bg-white px-3 py-2 text-[10px] font-black uppercase text-slate-800" data-entrega-id="' +
                         id +
                         '">Imprimir</button>';
+                }
+                if (row.maps_url) {
+                    btns +=
+                        '<button type="button" class="pdv-entrega-maps rounded-lg border-2 border-sky-400 bg-sky-50 px-3 py-2 text-[10px] font-black uppercase text-sky-950" data-entrega-id="' +
+                        id +
+                        '">Maps</button>';
                 }
                 if (row.pode_retomar) {
                     btns +=
@@ -4579,10 +4643,12 @@
                         id +
                         '">Adiar 1 dia</button>';
                 }
-                btns +=
-                    '<button type="button" class="pdv-entrega-cancelar rounded-lg border-2 border-red-300 bg-white px-3 py-2 text-[10px] font-black uppercase text-red-800" data-entrega-id="' +
-                    id +
-                    '">Cancelar</button>';
+                if (row.pode_cancelar) {
+                    btns +=
+                        '<button type="button" class="pdv-entrega-cancelar rounded-lg border-2 border-red-300 bg-white px-3 py-2 text-[10px] font-black uppercase text-red-800" data-entrega-id="' +
+                        id +
+                        '">Cancelar</button>';
+                }
                 return (
                     '<article class="mb-2 rounded-xl border-2 p-3 ' +
                     borderCls +
@@ -4627,6 +4693,12 @@
                 if (pk) imprimirEntregaPendentePorId(pk);
             });
         });
+        el.querySelectorAll('.pdv-entrega-maps').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var pk = btn.getAttribute('data-entrega-id');
+                if (pk) abrirMapsEntregaPendente(pk);
+            });
+        });
         el.querySelectorAll('.pdv-entrega-retomar').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 var pk = btn.getAttribute('data-entrega-id');
@@ -4649,11 +4721,92 @@
 
     function findEntregaPendenteCache(pk) {
         var id = String(pk || '');
-        var itens = entregasPendentesCache.itens || [];
-        for (var i = 0; i < itens.length; i++) {
-            if (String(itens[i].id) === id) return itens[i];
+        var listas = [entregasPendentesCache.itens || [], entregasPendentesCache.itensPagas || []];
+        for (var L = 0; L < listas.length; L++) {
+            var itens = listas[L];
+            for (var i = 0; i < itens.length; i++) {
+                if (String(itens[i].id) === id) return itens[i];
+            }
         }
         return null;
+    }
+
+    function origemMapsPdvAtual() {
+        var sel = document.getElementById('pdv-entrega-origem-maps');
+        if (sel && sel.selectedIndex >= 0 && sel.options[sel.selectedIndex]) {
+            var t = String(sel.options[sel.selectedIndex].text || '').trim();
+            if (t) return t;
+        }
+        return depositoPdvAtivo() === 'vila'
+            ? 'GM Agro Vila Elias Jacupiranga'
+            : 'GM Agro Centro Jacupiranga';
+    }
+
+    function mapsQueryEntregaRow(row) {
+        if (!row) return '';
+        var m = String(row.maps_query || row.maps_url_manual || '').trim();
+        if (m && !/^https?:\/\//i.test(m)) return m;
+        var plus = String(row.plus_code || '').trim();
+        if (plus) return plus;
+        return String(row.endereco_linha || '').trim();
+    }
+
+    function abrirUrlExternaPdv(url) {
+        if (!url) return;
+        if (typeof window.agroAbrirUrlExterna === 'function') {
+            window.agroAbrirUrlExterna(url);
+            return;
+        }
+        window.open(url, '_blank', 'noopener');
+    }
+
+    function abrirMapsEntregaPendente(pk) {
+        var row = findEntregaPendenteCache(pk);
+        var url = row && String(row.maps_url || '').trim();
+        if (!url) {
+            var q = mapsQueryEntregaRow(row);
+            if (q) url = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q);
+        }
+        if (!url) {
+            showSaleDoneFeedback('Sem endereço ou Plus Code para abrir o Maps.', 'warn');
+            return;
+        }
+        abrirUrlExternaPdv(url);
+    }
+
+    function abrirRotaEntregasPagas() {
+        var el = dom.entregasPendentesList;
+        var ids = [];
+        if (el) {
+            el.querySelectorAll('.pdv-entrega-paga-chk:checked').forEach(function (chk) {
+                var pk = chk.getAttribute('data-entrega-id');
+                if (pk) ids.push(String(pk));
+            });
+        }
+        var rows = entregasPendentesCache.itensPagas || [];
+        if (!ids.length) {
+            rows.forEach(function (r) {
+                if (r && r.id != null) ids.push(String(r.id));
+            });
+        }
+        var paradas = [];
+        ids.forEach(function (id) {
+            var row = findEntregaPendenteCache(id);
+            var q = mapsQueryEntregaRow(row);
+            if (q) paradas.push(q);
+        });
+        if (!paradas.length) {
+            showSaleDoneFeedback('Marque as entregas (ou cadastre endereço) para montar a rota.', 'warn');
+            return;
+        }
+        var origem = origemMapsPdvAtual();
+        var parts = [origem].concat(paradas);
+        var url =
+            'https://www.google.com/maps/dir/' +
+            parts.map(function (x) {
+                return encodeURIComponent(x);
+            }).join('/');
+        abrirUrlExternaPdv(url);
     }
 
     function maybeAlertNewCatalogoEntregas(itens) {
@@ -4924,6 +5077,10 @@
         refreshEntregasPendentesUi(false, true)
             .then(function () {
                 if (!dom.entregasPendentesModal) return;
+                var nPagar = (entregasPendentesCache.itens || []).length;
+                var nPagas = (entregasPendentesCache.itensPagas || []).length;
+                if (nPagar === 0 && nPagas > 0) entregasPendentesAba = 'pagas';
+                else entregasPendentesAba = 'pagar';
                 renderEntregasPendentesList();
                 if (typeof dom.entregasPendentesModal.showModal === 'function') {
                     if (!dom.entregasPendentesModal.open) {
@@ -4961,7 +5118,11 @@
             var cached = window.AgroPdvOfflineCache.readPayload(ENTREGAS_PENDENTES_LS_KEY);
             if (cached && Array.isArray(cached.itens)) {
                 entregasPendentesCache.itens = cached.itens;
-                entregasPendentesCache.total = cached.itens.length;
+                entregasPendentesCache.itensPagas = Array.isArray(cached.itensPagas)
+                    ? cached.itensPagas
+                    : [];
+                entregasPendentesCache.total =
+                    entregasPendentesCache.itens.length + entregasPendentesCache.itensPagas.length;
                 applyEntregasPendentesButton();
                 if (
                     !silent &&
@@ -4979,11 +5140,14 @@
             .then(function (res) {
                 if (!res.ok || !res.data || !res.data.ok) return;
                 entregasPendentesCache.itens = res.data.itens || [];
-                entregasPendentesCache.total = entregasPendentesCache.itens.length;
+                entregasPendentesCache.itensPagas = res.data.itens_pagas || [];
+                entregasPendentesCache.total =
+                    entregasPendentesCache.itens.length + entregasPendentesCache.itensPagas.length;
                 if (window.AgroPdvOfflineCache) {
                     window.AgroPdvOfflineCache.writePayload(ENTREGAS_PENDENTES_LS_KEY, {
                         total: entregasPendentesCache.total,
                         itens: entregasPendentesCache.itens,
+                        itensPagas: entregasPendentesCache.itensPagas,
                     });
                 }
                 applyEntregasPendentesButton();
@@ -15184,6 +15348,24 @@
         }
         if (dom.entregasPendentesClose) {
             dom.entregasPendentesClose.addEventListener('click', closeEntregasPendentesModal);
+        }
+        var tabPagar = document.getElementById('pdv-entregas-tab-pagar');
+        var tabPagas = document.getElementById('pdv-entregas-tab-pagas');
+        var btnRotaPagas = document.getElementById('pdv-entregas-rota-pagas');
+        if (tabPagar) {
+            tabPagar.addEventListener('click', function () {
+                entregasPendentesAba = 'pagar';
+                renderEntregasPendentesList();
+            });
+        }
+        if (tabPagas) {
+            tabPagas.addEventListener('click', function () {
+                entregasPendentesAba = 'pagas';
+                renderEntregasPendentesList();
+            });
+        }
+        if (btnRotaPagas) {
+            btnRotaPagas.addEventListener('click', abrirRotaEntregasPagas);
         }
         if (dom.entregasPendentesModal) {
             dom.entregasPendentesModal.addEventListener('click', function (ev) {

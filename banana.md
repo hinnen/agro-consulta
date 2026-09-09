@@ -1280,6 +1280,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Entregas pagas na loja 24h (`PDV-ENTREGA-PAGAS-24H` · **v23.68** · 09/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Overlay Entregas: aba **A pagar** + **Pagas na loja** (24 h). Botão da topbar conta as duas. Reimprimir, Maps e rota. **Não** trava fechar caixa. Depois de 24 h some da lista. Só venda já cobrada no caixa. |
+| **Onde** | overlay PDV · `entrega_pdv_pendente_util.py` · `api_pdv_entregas_pendentes` · migrate `0129` |
+| **Migrate** | **SIM** `produtos.0129` |
+| **Prova** | `scripts/verify_pdv_entrega_pagas_loja_path.py` **17/17** |
+| **Status** | 🧪 **teste** — Ctrl+F5 · **não** loja |
+| **Você** | Venda Entrega + pagamento na loja → fechar → botão Entregas · aba Pagas · Imprimir / Maps · Fechar caixa **não** pede essa venda |
+
 ### 📦 PACOTE PRONTO — Entrega: de qual loja sai (`PDV-ENTREGA-LOJA-SAIDA` · **v23.67** · 09/09)
 
 | Campo | Valor |

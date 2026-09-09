@@ -161,6 +161,7 @@ from .entrega_pdv_pendente_util import (
     filtrar_qs_por_loja,
     finalizar_entregas_pagas_pendentes_ao_fechar_caixa,
     listar_entregas_bloqueando_fechamento_caixa,
+    listar_entregas_pagas_loja_pdv,
     listar_entregas_pendentes_pdv,
     marcar_entrega_pendente_fechada,
     normalizar_loja_entrega,
@@ -32714,6 +32715,7 @@ def api_entrega_registrar(request):
             "aguarda_pagamento_pdv": False,
             "pdv_wizard_state": {},
             "venda_agro": venda_link,
+            "paga_na_loja": True,
         }
         if sessao_cx:
             extra_pdv["sessao_caixa"] = sessao_cx
@@ -32766,11 +32768,14 @@ def api_entrega_registrar(request):
 def api_pdv_entregas_pendentes(request):
     loja = normalizar_loja_entrega(request.GET.get("loja"))
     itens = listar_entregas_pendentes_pdv(loja=loja or None)
+    itens_pagas = listar_entregas_pagas_loja_pdv(loja=loja or None)
     return JsonResponse(
         {
             "ok": True,
             "total": len(itens),
             "itens": itens,
+            "total_pagas": len(itens_pagas),
+            "itens_pagas": itens_pagas,
             "loja": loja or "",
         }
     )
