@@ -1280,15 +1280,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ⏳ PENDENTE — Entrega PDV assumida na loja errada (09/09 · Renan)
+### 📦 PACOTE PRONTO — Entrega: retomar + adiar 1 dia (`CAIXA-ENTREGA-ADIAR` · **v23.64** · 09/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Venda **Centro** (pagamento na entrega). Outra loja clicou **Assumir** no popup Entregas do PDV. Centro **não achou** mais a venda para fechar · **não fechou o caixa**. |
-| **Causa** | Entrega do PDV nasce **sem dono** (igual catálogo). As duas lojas veem. Assumir muda o dono e **some** na outra. O caixa do Centro **continua travado** (venda ainda daquele turno). Botão laranja do Fechar caixa abre o PDV, mas a lista **não mostra** o que já foi assumido fora. |
-| **Ainda não** | Código. Renan **gostou da 5** (Fechar caixa sempre mostra + Retomar). |
-| **Catálogo** | Continua nas duas lojas até alguém assumir — isso é o desenho certo. O bug é **venda do caixa** aparecer como «sem dono». |
-| **Opinião 09/09** | **5 sim.** «Adiar 1 dia» não: amanhã trava de novo; venda pode cair no caixa errado. Melhor: **Liberar deste caixa** (PIN) — fica na lista; pagamento entra no caixa aberto na hora de fechar a venda. |
+| **O quê** | Fechar caixa: **Retomar** mesmo se outra loja assumiu. **Adiar 1 dia** (PIN) solta o caixa de hoje; **amanhã trava de novo** até fechar a venda ou adiar outra vez. Pagamento entra no caixa do dia em que fechar. Sem fiado falso no cliente. |
+| **Onde** | `entrega_pdv_pendente_util.py` · Fechar caixa · PDV Entregas · migrate `0128` |
+| **Migrate** | **SIM** `produtos.0128` |
+| **Prova** | `scripts/verify_caixa_entrega_adiar_path.py` **26/26** |
+| **Status** | 🧪 **teste** — Ctrl+F5 · **não** loja |
+| **Você** | Fechar caixa com entrega pendente: Retomar · Adiar 1 dia + PIN · no outro dia o caixa trava de novo |
 
 ### 📦 PACOTE PRONTO — Retirada cofre com plano (Vila) (`REPASSE-COFRE-PLANO` · **v23.63** · 09/09)
 
