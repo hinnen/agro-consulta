@@ -5766,16 +5766,17 @@
         if (abrirFluxoPagamentoEntregaSePendente()) return;
         var state = State.getState();
         var lp = String((state.entrega && state.entrega.localPagamento) || '');
-        if (lp === 'loja') {
-            wizardIrParaPagamentoComImpressao();
+        if (entregaVaiParaOutraLoja(state) || lp === 'entrega') {
+            wizardEnviarEntregaPainel();
             return;
         }
-        if (lp === 'entrega') {
-            wizardEnviarEntregaPainel();
+        if (lp === 'loja') {
+            wizardIrParaPagamentoComImpressao();
         }
     }
 
     function prepararEntregaAoSairDeProdutos() {
+        var loja = depositoPdvAtivo();
         State.setEntregaPatch({
             modoRetiradaEntrega: 'entrega',
             ativa: true,
@@ -5785,7 +5786,9 @@
             taxaEntregaModo: '',
             detalhesEntregaRespondidos: false,
             enderecoPassoConcluido: false,
-            entregaFreteLiberadoPagamento: false
+            entregaFreteLiberadoPagamento: false,
+            lojaSaida: loja === 'vila' ? 'vila' : 'centro',
+            lojaSaidaConfirmada: false
         });
         State.setPagamentoField('frete', 0);
         syncEntregaEnderecoFromCliente();
@@ -5816,6 +5819,10 @@
         var fase = entregaFaseAtual(state);
         if (fase === 'pagamento_local' || fase === 'meio') {
             abrirFluxoPagamentoEntregaSePendente();
+            return;
+        }
+        if (fase === 'loja') {
+            confirmarLojaSaidaEntrega(lojaSaidaEntregaAtual(state));
             return;
         }
         if (fase === 'detalhes') {
@@ -6059,7 +6066,12 @@
                 );
             })
             .join('');
-        if (origens.length) sel.value = String(origens[0].id || '');
+        if (origens.length) {
+            var dep0 = depositoPdvAtivo();
+            sel.value = origens.some(function (o) { return String(o.id) === dep0; })
+                ? dep0
+                : String(origens[0].id || '');
+        }
         sel.setAttribute('data-pdv-inited', '1');
         sel.addEventListener('change', function () {
             syncEntregaToolbarLinks(State.getState());
@@ -6494,6 +6506,7 @@
         var e = state.entrega || {};
         var lp = String(e.localPagamento || '').trim();
         if (!lp) return 'pagamento_local';
+        if (!e.lojaSaidaConfirmada) return 'loja';
         if (!e.enderecoPassoConcluido || !enderecoEntregaMinimoOk(state)) return 'endereco';
         if (!entregaTaxaConsideradaOk(state)) return 'detalhes';
         if (lp === 'loja') return 'done';
@@ -6531,7 +6544,7 @@
         if (state.currentStep !== 'entrega') return false;
         if (entregaModoEfetivo(state) !== 'entrega') return false;
         var fase = entregaFaseAtual(state);
-        return fase === 'pagamento_local' || fase === 'detalhes' || fase === 'meio' || fase === 'troco';
+        return fase === 'pagamento_local' || fase === 'loja' || fase === 'detalhes' || fase === 'meio' || fase === 'troco';
     }
 
     function atualizarEntregaWizardVisibilidade(state) {
@@ -6605,7 +6618,7 @@
 
     function entregaWizardPainelAtual(state) {
         var fase = entregaFaseAtual(state);
-        if (fase === 'pagamento_local' || fase === 'detalhes' || fase === 'meio' || fase === 'troco') {
+        if (fase === 'pagamento_local' || fase === 'loja' || fase === 'detalhes' || fase === 'meio' || fase === 'troco') {
             return fase;
         }
         return 'done';
@@ -6625,6 +6638,13 @@
                 etapa: 'Pagamento da entrega',
                 titulo: 'Onde será o pagamento?',
                 sub: 'Escolha uma opção para continuar.'
+            },
+            loja: {
+                border: 'border-sky-400',
+                header: 'bg-gradient-to-r from-sky-600 to-indigo-600 text-white',
+                etapa: 'Loja da entrega',
+                titulo: 'De qual loja sai?',
+                sub: 'Padrão: esta loja. Trocar manda estoque e caixa para a outra.'
             },
             detalhes: {
                 border: 'border-amber-400',
@@ -6676,6 +6696,78 @@
         if (elTotal) elTotal.textContent = formatMoney(Number(comp.total || 0));
     }
 
+    function lojaSaidaEntregaAtual(state) {
+        var e = (state && state.entrega) || {};
+        var v = String(e.lojaSaida || '').trim().toLowerCase();
+        if (v === 'centro' || v === 'vila') return v;
+        return depositoPdvAtivo();
+    }
+
+    function entregaVaiParaOutraLoja(state) {
+        return lojaSaidaEntregaAtual(state) !== depositoPdvAtivo();
+    }
+
+    function renderEntregaLojaPainelUi() {
+        var loja = lojaSaidaEntregaAtual(State.getState());
+        var bC = document.getElementById('pdv-ed-loja-centro');
+        var bV = document.getElementById('pdv-ed-loja-vila');
+        if (bC) {
+            bC.classList.toggle('ring-4', loja === 'centro');
+            bC.classList.toggle('ring-sky-300', loja === 'centro');
+        }
+        if (bV) {
+            bV.classList.toggle('ring-4', loja === 'vila');
+            bV.classList.toggle('ring-violet-300', loja === 'vila');
+        }
+    }
+
+    function syncPartidaMapsComLojaSaida(loja) {
+        var sel = document.getElementById('pdv-entrega-origem-maps');
+        if (!sel) return;
+        var v = loja === 'vila' ? 'vila' : 'centro';
+        if (sel.querySelector('option[value="' + v + '"]')) {
+            sel.value = v;
+            syncEntregaToolbarLinks(State.getState());
+        }
+    }
+
+    function confirmarLojaSaidaEntrega(loja) {
+        loja = loja === 'vila' ? 'vila' : 'centro';
+        var atual = depositoPdvAtivo();
+        var aplicar = function () {
+            State.setEntregaPatch({ lojaSaida: loja, lojaSaidaConfirmada: true });
+            syncPartidaMapsComLojaSaida(loja);
+            syncEntregaDetalhesModalUi();
+            scrollEntregaWizardIntoView();
+        };
+        if (loja === atual) {
+            aplicar();
+            return;
+        }
+        var nome = loja === 'vila' ? 'Vila Elias' : 'Centro';
+        var aqui = atual === 'vila' ? 'Vila Elias' : 'Centro';
+        var p = showPdvConfirmacao
+            ? showPdvConfirmacao(
+                  'Estoque e o caixa desta venda ficam na ' +
+                      nome +
+                      '.\n\nNão fecha aqui no ' +
+                      aqui +
+                      '. A ' +
+                      nome +
+                      ' retoma o pagamento — sem Assumir.',
+                  {
+                      title: 'Mandar para ' + nome + '?',
+                      confirmLabel: 'Sim, ' + nome,
+                      cancelLabel: 'Ficar no ' + aqui,
+                      tone: 'warn'
+                  }
+              )
+            : Promise.resolve(window.confirm('Mandar estoque e caixa para a ' + nome + '?'));
+        p.then(function (ok) {
+            if (ok) aplicar();
+        });
+    }
+
     function confirmarEntregaDetalhesModal() {
         var taxaChecked = document.querySelector('input[name="pdv-entrega-taxa-modo"]:checked');
         if (!taxaChecked) {
@@ -6725,6 +6817,7 @@
         if (entregaWizardAguardandoTroco) painel = 'troco';
         var map = {
             pagamento_local: document.getElementById('pdv-ed-pagamento-local-panel'),
+            loja: document.getElementById('pdv-ed-loja-panel'),
             detalhes: document.getElementById('pdv-ed-detalhes-panel'),
             meio: document.getElementById('pdv-ed-meio-panel'),
             troco: document.getElementById('pdv-ed-troco-panel')
@@ -6741,6 +6834,7 @@
             }
         }
         if (painel === 'troco') renderEntregaTrocoPainelUi();
+        if (painel === 'loja') renderEntregaLojaPainelUi();
         aplicarEntregaWizardHeader(painel);
         atualizarEntregaWizardVisibilidade(st);
     }
@@ -6799,11 +6893,15 @@
             '';
         var linha = buildLinhaEnderecoEntrega({ entrega: e, cliente: c });
         var elLocal = document.getElementById('pdv-resumo-pagamento-local');
+        var elLojaSai = document.getElementById('pdv-resumo-loja-saida');
         var elMeio = document.getElementById('pdv-resumo-pagamento-meio');
         var elTroco = document.getElementById('pdv-resumo-pagamento-troco');
         if (elLocal) {
             elLocal.textContent =
                 lp === 'entrega' ? 'Pagamento na entrega' : lp === 'loja' ? 'Pagamento na loja' : '—';
+        }
+        if (elLojaSai) {
+            elLojaSai.textContent = lojaEntregaLabelUi(lojaSaidaEntregaAtual(state)) || '—';
         }
         if (elMeio) {
             var meioRow = elMeio.closest('.pdv-entrega-review-row');
@@ -6902,6 +7000,12 @@
                 enderecoPassoConcluido: false
             });
             State.setPagamentoField('frete', 0);
+            syncEntregaDetalhesModalUi();
+            scrollEntregaWizardIntoView();
+            return;
+        }
+        if (destino === 'loja') {
+            State.setEntregaPatch({ lojaSaidaConfirmada: false });
             syncEntregaDetalhesModalUi();
             scrollEntregaWizardIntoView();
             return;
@@ -7051,6 +7155,15 @@
             syncEntregaDetalhesModalUi();
             return true;
         }
+        if (fase === 'loja') {
+            State.setEntregaPatch({
+                localPagamento: '',
+                lojaSaidaConfirmada: false
+            });
+            syncEntregaDetalhesModalUi();
+            scrollEntregaWizardIntoView();
+            return true;
+        }
         if (fase === 'endereco') {
             entregaWizardAguardandoTroco = false;
             resetEntregaClienteSnapshot();
@@ -7061,7 +7174,8 @@
                 taxaEntregaRespondida: false,
                 taxaEntregaModo: '',
                 detalhesEntregaRespondidos: false,
-                enderecoPassoConcluido: false
+                enderecoPassoConcluido: false,
+                lojaSaidaConfirmada: false
             });
             State.setPagamentoField('frete', 0);
             syncEntregaDetalhesModalUi();
@@ -8041,6 +8155,9 @@
 
     function isEntregaFluxo1Open() {
         return isEntregaDetalhesModalOpen() && entregaWizardPainelAtual() === 'pagamento_local';
+    }
+    function isEntregaFluxoLojaOpen() {
+        return isEntregaDetalhesModalOpen() && entregaWizardPainelAtual() === 'loja';
     }
     function isEntregaFluxo2Open() {
         return isEntregaDetalhesModalOpen() && entregaWizardPainelAtual() === 'meio';
@@ -10282,7 +10399,13 @@
 
     function injetarDepositoNoPayload(payload) {
         if (!payload) return payload;
-        payload.deposito = depositoPdvAtivo();
+        var lojaE = '';
+        try {
+            lojaE = lojaSaidaEntregaAtual(State.getState());
+        } catch (eDep) {
+            lojaE = '';
+        }
+        payload.deposito = lojaE === 'vila' || lojaE === 'centro' ? lojaE : depositoPdvAtivo();
         return payload;
     }
 
@@ -10386,7 +10509,9 @@
             troco_paga_com: flags.troco_paga_com,
             aguarda_pagamento_pdv: flags.aguarda_pagamento_pdv,
             pagamento_pdv: flags.pagamento_pdv,
-            observacoes: observacoes
+            observacoes: observacoes,
+            origem: 'pdv',
+            loja_entrega: lojaSaidaEntregaAtual(state)
         };
         if (extras.orc_local_id != null && String(extras.orc_local_id).trim() !== '') {
             out.orc_local_id = parseInt(extras.orc_local_id, 10);
@@ -13222,6 +13347,10 @@
             alert('Esta ação é para pagamento na loja. Escolha essa opção no pop-up da etapa Entrega.');
             return;
         }
+        if (entregaVaiParaOutraLoja(state)) {
+            wizardEnviarEntregaPainel();
+            return;
+        }
         fecharModaisEntregaAntesImpressao();
         wizardModalEscolhaImpressaoEntrega().then(function (opt) {
             if (!opt) return;
@@ -13243,7 +13372,8 @@
             taxaEntregaModo: '',
             detalhesEntregaRespondidos: false,
             enderecoPassoConcluido: false,
-            entregaFreteLiberadoPagamento: false
+            entregaFreteLiberadoPagamento: false,
+            lojaSaidaConfirmada: false
         });
         State.setPagamentoField('frete', 0);
         State.setEntregaField('maquininha', '');
@@ -15645,7 +15775,8 @@
                     taxaEntregaRespondida: false,
                     taxaEntregaModo: '',
                     detalhesEntregaRespondidos: false,
-                    enderecoPassoConcluido: false
+                    enderecoPassoConcluido: false,
+                    lojaSaidaConfirmada: false
                 });
                 State.setPagamentoField('frete', 0);
                 syncEntregaDetalhesModalUi();
@@ -15663,11 +15794,24 @@
                     taxaEntregaRespondida: false,
                     taxaEntregaModo: '',
                     detalhesEntregaRespondidos: false,
-                    enderecoPassoConcluido: false
+                    enderecoPassoConcluido: false,
+                    lojaSaidaConfirmada: false
                 });
                 State.setPagamentoField('frete', 0);
                 State.setEntregaField('maquininha', '');
                 syncEntregaDetalhesModalUi();
+            });
+        }
+        var btnLojaCentro = document.getElementById('pdv-ed-loja-centro');
+        if (btnLojaCentro) {
+            btnLojaCentro.addEventListener('click', function () {
+                confirmarLojaSaidaEntrega('centro');
+            });
+        }
+        var btnLojaVila = document.getElementById('pdv-ed-loja-vila');
+        if (btnLojaVila) {
+            btnLojaVila.addEventListener('click', function () {
+                confirmarLojaSaidaEntrega('vila');
             });
         }
         var btnEf2Din = document.getElementById('pdv-ef2-dinheiro');
@@ -15909,6 +16053,20 @@
                         event.preventDefault();
                         var bLoja = document.getElementById('pdv-ef1-loja');
                         if (bLoja) bLoja.click();
+                        return;
+                    }
+                }
+                if (!inField && isEntregaFluxoLojaOpen()) {
+                    var d1l = event.code === 'Digit1' || event.code === 'Numpad1';
+                    var d2l = event.code === 'Digit2' || event.code === 'Numpad2';
+                    if (d1l) {
+                        event.preventDefault();
+                        confirmarLojaSaidaEntrega('centro');
+                        return;
+                    }
+                    if (d2l) {
+                        event.preventDefault();
+                        confirmarLojaSaidaEntrega('vila');
                         return;
                     }
                 }

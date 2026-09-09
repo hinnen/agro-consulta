@@ -300,11 +300,23 @@ def assumir_entrega_loja(
 def resolver_sessao_caixa_entrega_pdv(request, body: dict | None = None) -> SessaoCaixa | None:
     from produtos.caixa_util import (
         adotar_sessao_caixa_unica_aberta,
+        deposito_caixa_browser,
+        obter_caixa_pai_aberto,
         obter_sessao_caixa_aberta_request,
         sessao_caixa_compativel_loja_browser,
     )
 
-    # Só o turno deste aparelho/loja — ignora sessao_caixa_id de outra loja no body.
+    body = body if isinstance(body, dict) else {}
+    loja_dest = normalizar_loja_entrega(body.get("loja_entrega") or body.get("loja"))
+    loja_nav = ""
+    if request is not None:
+        loja_nav = normalizar_loja_entrega(deposito_caixa_browser(request))
+    if loja_dest and loja_dest != loja_nav:
+        s_dest = obter_caixa_pai_aberto(loja_dest)
+        if s_dest and getattr(s_dest, "fechado_em", None) is None:
+            return s_dest
+        return None
+
     if request is not None:
         s = obter_sessao_caixa_aberta_request(request) or adotar_sessao_caixa_unica_aberta(
             request
