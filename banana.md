@@ -1280,16 +1280,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE — Gestão do repasse no padrão PDV (`REPASSE-GESTAO-SIMPLES` · **v23.61** · 09/09)
+### 📦 PACOTE PRONTO — Gestão repasse no padrão PDV (`REPASSE-GESTAO-SIMPLES` · **v23.62** · 09/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | `/repasse-vila/` (botão **Gestão** do overlay) enxuto: cofres no topo, **Lançar saída** em destaque (laranja), detalhes do dia recolhidos. **Não** é o envelope do PDV. |
-| **Saída do cofre** | Sim — **Retirada / uso** + valor + motivo + **Registrar**. Também ajuste e saldo inicial. Envelope do dia = overlay do PDV. |
-| **Onde** | `repasse_vila.html` |
+| **O quê** | `/repasse-vila/` (Gestão): cofres no topo, **Lançar saída** laranja nos **2 cofres** (Salário + Vila Elias). Detalhes do dia recolhidos. Envelope do dia = overlay PDV. |
+| **Onde** | `repasse_vila.html` · `scripts/verify_repasse_gestao_simples_path.py` |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 no `teste` · **não** loja |
-| **Você** | Ctrl+F5 `/repasse-vila/` · tirar do cofre: movimento **Retirada / uso** → valor → motivo → Registrar |
+| **Prova** | gestao **59/59** · cofre **35/35** · path **262** · overlay **190** · arredonda **41** · fundo troco **56** · PIN **9973**=Renan · `check` OK |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 `/repasse-vila/` · Retirada / uso nos dois cofres · motivo → Registrar |
+
+### ✅ CHECKLIST ÚNICO — 09/09 · pronto envio (tip **v23.62**)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `REPASSE-GESTAO-SIMPLES` | 🟢 **pronto para envio à produção** | **NÃO** | **59/59** |
+
+**Loja agora:** **v23.58**. **Só** frase+senha.
 
 ### ✅ Deploy loja — Checklist 08/09 (`deploy/prep-checklist-0809` · **v23.58**) · **Live**
 
