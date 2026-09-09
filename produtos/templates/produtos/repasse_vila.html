@@ -3,7 +3,7 @@
 
 {% block admin_title %}SisVale | Repasse Vila → Centro{% endblock %}
 {% block admin_header_title %}Repasse Vila → Centro{% endblock %}
-{% block admin_header_meta %}Dinheiro da Vila Elias para o Centro{% endblock %}
+{% block admin_header_meta %}Cofres e config · envelope do dia fica no PDV{% endblock %}
 
 {% block admin_shell_class %}min-h-screen bg-slate-100 flex flex-col{% endblock %}
 {% block admin_header_inner_class %}w-full max-w-none px-4 sm:px-6 lg:px-8 py-3 sm:py-4{% endblock %}
@@ -26,9 +26,44 @@
     min-height: 0;
   }
   @media (min-width: 1100px) {
-    .rv-shell { grid-template-columns: minmax(22rem, 0.92fr) minmax(26rem, 1.08fr); gap: 1rem; }
+    .rv-shell { grid-template-columns: 1fr 1fr; gap: 1rem; }
   }
+  .rv-span { grid-column: 1 / -1; }
   .rv-log-card { grid-column: 1 / -1; }
+  .rv-hero-mute { border-width: 3px; }
+  .rv-saida {
+    border: 4px solid #be123c;
+    border-radius: 1rem;
+    background: #fecdd3;
+    padding: 0.75rem 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+  .rv-saida--ve {
+    border-color: #3730a3;
+    background: #c7d2fe;
+  }
+  .rv-saida-title {
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .rv-saida input[type="text"],
+  .rv-saida select {
+    min-height: 3.25rem;
+    font-size: 1.35rem;
+    font-weight: 900;
+    border-width: 3px;
+    border-radius: 0.85rem;
+    background: #fff;
+  }
+  .rv-saida .rv-saida-valor {
+    min-height: 4.25rem;
+    font-size: 2.15rem;
+    line-height: 1.05;
+  }
   .rv-card {
     border: 2px solid #cbd5e1;
     border-radius: 1rem;
@@ -174,8 +209,84 @@
 </style>
 
 <div class="rv-shell">
+  <section class="rv-card rv-hero-mute space-y-2.5 border-rose-400 bg-rose-50/40" id="rv-cofrinho-card" data-cofre="salario">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <h2 class="text-base sm:text-lg font-black uppercase text-rose-950">Cofrinho Salário funcionário</h2>
+        <p class="text-xs font-bold text-slate-600">Fica na Vila · fora da gaveta e do envelope.</p>
+      </div>
+      <button type="button" id="rv-cofre-refresh" class="min-h-[2.35rem] rounded-lg border-2 border-rose-500 bg-white px-3 text-xs font-black uppercase text-rose-950">Atualizar</button>
+    </div>
+    <div class="rounded-xl border-2 border-rose-400 bg-white px-3 py-2">
+      <div class="rv-lbl text-rose-800">Total no cofre</div>
+      <div class="text-3xl sm:text-4xl font-black tabular-nums text-rose-950 leading-none" id="rv-cofre-saldo">R$ {{ cofrinho.saldo|default:0|floatformat:2 }}</div>
+    </div>
+    <div class="grid grid-cols-3 gap-2">
+      <div class="rv-metric"><div class="rv-lbl">Prevista no dia</div><div class="rv-val" id="rv-cofre-prevista">R$ {{ cofrinho.prevista_dia|default:0|floatformat:2 }}</div></div>
+      <div class="rv-metric"><div class="rv-lbl">Realizada no dia</div><div class="rv-val text-emerald-800" id="rv-cofre-realizada">R$ {{ cofrinho.realizada_dia|default:0|floatformat:2 }}</div></div>
+      <div class="rv-metric"><div class="rv-lbl">Ainda separar</div><div class="rv-val text-orange-800" id="rv-cofre-pendente">R$ {{ cofrinho.pendente_dia|default:0|floatformat:2 }}</div></div>
+    </div>
+    <p id="rv-cofre-acum-hint" class="text-xs font-bold text-slate-600 leading-tight">Não separar hoje soma amanhã · separar a mais abate os próximos dias.</p>
+    <div class="rv-saida">
+      <div class="rv-saida-title text-rose-950">Lançar saída do cofre</div>
+      <div class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] gap-2">
+        <label><span class="rv-lbl text-rose-900">Movimento</span><select id="rv-cofre-tipo" class="mt-1 w-full border-2 border-rose-700 px-3 font-black"><option value="retirada">Retirada / uso</option><option value="ajuste_mais">Ajuste · entrada</option><option value="ajuste_menos">Ajuste · saída</option><option value="saldo_inicial">Saldo inicial</option></select></label>
+        <label><span class="rv-lbl text-rose-900">Valor</span><input id="rv-cofre-valor" type="text" inputmode="decimal" class="rv-saida-valor mt-1 w-full border-2 border-rose-700 px-3 tabular-nums" placeholder="0,00"></label>
+      </div>
+      <label class="block"><span class="rv-lbl text-rose-900">Motivo / observação</span><input id="rv-cofre-obs" type="text" maxlength="500" class="mt-1 min-h-[2.75rem] w-full rounded-xl border-2 border-rose-700 bg-white px-3 font-bold" placeholder="Explique para que foi usado ou por que ajustou"></label>
+      <button type="button" id="rv-cofre-movimentar" class="min-h-[3rem] w-full rounded-xl bg-orange-500 px-4 text-sm font-black uppercase text-white shadow hover:bg-orange-600">Registrar</button>
+    </div>
+    <div class="grid grid-cols-2 gap-2">
+      <button type="button" id="rv-cofre-separar" class="min-h-[2.75rem] rounded-xl bg-rose-600 px-4 text-xs font-black uppercase text-white">Separar</button>
+      <button type="button" id="rv-cofre-saldo-inicial" class="min-h-[2.75rem] rounded-xl border-2 border-rose-700 bg-white px-4 text-xs font-black uppercase text-rose-950">Saldo inicial</button>
+    </div>
+    <p id="rv-cofre-status" class="min-h-[1rem] text-xs font-black text-slate-700"></p>
+    <details class="rv-fold">
+      <summary><span>Histórico do cofre</span></summary>
+      <div class="rv-fold-body"><div id="rv-cofre-historico" class="max-h-[16rem] overflow-y-auto rounded-xl border-2 border-rose-200 bg-white divide-y divide-slate-200 text-xs font-bold"></div></div>
+    </details>
+  </section>
+
+  <section class="rv-card rv-hero-mute space-y-2.5 border-indigo-400 bg-indigo-50/40" id="rv-cofre-ve-card" data-cofre="vila_elias">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <h2 class="text-base sm:text-lg font-black uppercase text-indigo-950">Cofre Vila Elias</h2>
+        <p class="text-xs font-bold text-slate-600">Fatia do lucro que não vai ao Centro · fora da gaveta.</p>
+      </div>
+      <button type="button" id="rv-cofre-ve-refresh" class="min-h-[2.35rem] rounded-lg border-2 border-indigo-500 bg-white px-3 text-xs font-black uppercase text-indigo-950">Atualizar</button>
+    </div>
+    <div class="rounded-xl border-2 border-indigo-400 bg-white px-3 py-2">
+      <div class="rv-lbl text-indigo-800">Total no cofre</div>
+      <div class="text-3xl sm:text-4xl font-black tabular-nums text-indigo-950 leading-none" id="rv-cofre-ve-saldo">R$ {{ cofre_vila_elias.saldo|default:0|floatformat:2 }}</div>
+    </div>
+    <div class="grid grid-cols-3 gap-2">
+      <div class="rv-metric"><div class="rv-lbl">Prevista no dia</div><div class="rv-val" id="rv-cofre-ve-prevista">R$ {{ cofre_vila_elias.prevista_dia|default:0|floatformat:2 }}</div></div>
+      <div class="rv-metric"><div class="rv-lbl">Realizada no dia</div><div class="rv-val text-emerald-800" id="rv-cofre-ve-realizada">R$ {{ cofre_vila_elias.realizada_dia|default:0|floatformat:2 }}</div></div>
+      <div class="rv-metric"><div class="rv-lbl">Ainda separar</div><div class="rv-val text-orange-800" id="rv-cofre-ve-pendente">R$ {{ cofre_vila_elias.pendente_dia|default:0|floatformat:2 }}</div></div>
+    </div>
+    <p id="rv-cofre-ve-acum-hint" class="text-xs font-bold text-slate-600 leading-tight">Ex.: lucro R$ 200 · 50% → R$ 100 neste cofre · salário R$ 100 · lucro ao Centro R$ 0.</p>
+    <div class="rv-saida rv-saida--ve">
+      <div class="rv-saida-title text-indigo-950">Lançar saída do cofre</div>
+      <div class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] gap-2">
+        <label><span class="rv-lbl text-indigo-900">Movimento</span><select id="rv-cofre-ve-tipo" class="mt-1 w-full border-2 border-indigo-800 px-3 font-black"><option value="retirada">Retirada / uso</option><option value="ajuste_mais">Ajuste · entrada</option><option value="ajuste_menos">Ajuste · saída</option><option value="saldo_inicial">Saldo inicial</option></select></label>
+        <label><span class="rv-lbl text-indigo-900">Valor</span><input id="rv-cofre-ve-valor" type="text" inputmode="decimal" class="rv-saida-valor mt-1 w-full border-2 border-indigo-800 px-3 tabular-nums" placeholder="0,00"></label>
+      </div>
+      <label class="block"><span class="rv-lbl text-indigo-900">Motivo / observação</span><input id="rv-cofre-ve-obs" type="text" maxlength="500" class="mt-1 min-h-[2.75rem] w-full rounded-xl border-2 border-indigo-800 bg-white px-3 font-bold" placeholder="Explique para que foi usado ou por que ajustou"></label>
+      <button type="button" id="rv-cofre-ve-movimentar" class="min-h-[3rem] w-full rounded-xl bg-orange-500 px-4 text-sm font-black uppercase text-white shadow hover:bg-orange-600">Registrar</button>
+    </div>
+    <div class="grid grid-cols-2 gap-2">
+      <button type="button" id="rv-cofre-ve-separar" class="min-h-[2.75rem] rounded-xl bg-indigo-600 px-4 text-xs font-black uppercase text-white">Separar</button>
+      <button type="button" id="rv-cofre-ve-saldo-inicial" class="min-h-[2.75rem] rounded-xl border-2 border-indigo-700 bg-white px-4 text-xs font-black uppercase text-indigo-950">Saldo inicial</button>
+    </div>
+    <p id="rv-cofre-ve-status" class="min-h-[1rem] text-xs font-black text-slate-700"></p>
+    <details class="rv-fold">
+      <summary><span>Histórico do cofre</span></summary>
+      <div class="rv-fold-body"><div id="rv-cofre-ve-historico" class="max-h-[16rem] overflow-y-auto rounded-xl border-2 border-indigo-200 bg-white divide-y divide-slate-200 text-xs font-bold"></div></div>
+    </details>
+  </section>
+
   {# —— Config + preview —— #}
-  <section class="rv-card space-y-2.5">
+  <section class="rv-card rv-span space-y-2.5">
     <div class="flex items-center justify-between gap-2">
       <h2 class="text-base sm:text-lg font-black uppercase text-slate-900 leading-tight">Configurar envio <span class="text-slate-500 font-bold normal-case text-xs sm:text-sm">· Vila → Centro</span></h2>
       <div class="flex items-center gap-1 shrink-0">
@@ -184,38 +295,6 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
-      <div class="rv-metric">
-        <div class="rv-lbl">Receita (sem fiado)</div>
-        <div class="rv-val text-emerald-800" id="rv-receita">—</div>
-      </div>
-      <div class="rv-metric">
-        <div class="rv-lbl">CMV do dia</div>
-        <div class="rv-val text-slate-800" id="rv-cmv-dia">—</div>
-      </div>
-      <div class="rv-metric">
-        <div class="rv-lbl">Lucro bruto</div>
-        <div class="rv-val text-sky-800" id="rv-lucro-dia">—</div>
-      </div>
-      <div class="rv-metric">
-        <div class="rv-lbl">Fiado pago</div>
-        <div class="rv-val text-orange-800" id="rv-fiado-dia">—</div>
-      </div>
-    </div>
-    <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
-      <div class="rv-metric border-sky-200 bg-sky-50">
-        <div class="rv-lbl text-sky-700">Já no Centro (cartão/PIX)</div>
-        <div class="rv-val text-sky-900" id="rv-elet">R$ 0,00</div>
-      </div>
-      <div class="rv-metric">
-        <div class="rv-lbl">Já enviado (dinheiro)</div>
-        <div class="rv-val text-slate-800" id="rv-ja-din">R$ 0,00</div>
-      </div>
-      <div class="rv-metric border-emerald-300 bg-emerald-50">
-        <div class="rv-lbl text-emerald-800">Falta em dinheiro</div>
-        <div class="rv-val text-emerald-900" id="rv-falta">R$ 0,00</div>
-      </div>
-    </div>
     <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4 items-end">
       <div class="rv-metric border-amber-200 bg-amber-50">
         <div class="rv-lbl text-amber-800 flex items-center gap-1">Acumulado (dias anteriores) {% with repasse_help="acumulado" %}{% include "produtos/includes/repasse_help_agents.html" %}{% endwith %}</div>
@@ -245,6 +324,44 @@
       </div>
       <button type="button" id="rv-btn-acum" class="min-h-[2.75rem] rounded-xl border-2 border-amber-600 bg-amber-50 px-4 text-xs font-black uppercase text-amber-950 hover:bg-amber-100">Ver acumulado</button>
     </div>
+
+    <details class="rv-fold">
+      <summary><span>Detalhes do dia</span></summary>
+      <div class="rv-fold-body">
+        <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div class="rv-metric">
+            <div class="rv-lbl">Receita (sem fiado)</div>
+            <div class="rv-val text-emerald-800" id="rv-receita">—</div>
+          </div>
+          <div class="rv-metric">
+            <div class="rv-lbl">CMV do dia</div>
+            <div class="rv-val text-slate-800" id="rv-cmv-dia">—</div>
+          </div>
+          <div class="rv-metric">
+            <div class="rv-lbl">Lucro bruto</div>
+            <div class="rv-val text-sky-800" id="rv-lucro-dia">—</div>
+          </div>
+          <div class="rv-metric">
+            <div class="rv-lbl">Fiado pago</div>
+            <div class="rv-val text-orange-800" id="rv-fiado-dia">—</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div class="rv-metric border-sky-200 bg-sky-50">
+            <div class="rv-lbl text-sky-700">Já no Centro (cartão/PIX)</div>
+            <div class="rv-val text-sky-900" id="rv-elet">R$ 0,00</div>
+          </div>
+          <div class="rv-metric">
+            <div class="rv-lbl">Já enviado (dinheiro)</div>
+            <div class="rv-val text-slate-800" id="rv-ja-din">R$ 0,00</div>
+          </div>
+          <div class="rv-metric border-emerald-300 bg-emerald-50">
+            <div class="rv-lbl text-emerald-800">Falta em dinheiro</div>
+            <div class="rv-val text-emerald-900" id="rv-falta">R$ 0,00</div>
+          </div>
+        </div>
+      </div>
+    </details>
 
     <details class="rv-fold">
       <summary>
@@ -316,62 +433,8 @@
     <p id="rv-status" class="text-xs font-bold text-slate-600 min-h-[1rem]"></p>
   </section>
 
-  <section class="rv-card space-y-2.5 border-rose-300 bg-rose-50/30" id="rv-cofrinho-card" data-cofre="salario">
-    <div class="flex flex-wrap items-center justify-between gap-2">
-      <div>
-        <h2 class="text-base sm:text-lg font-black uppercase text-rose-950">Cofrinho Salário funcionário</h2>
-        <p class="text-xs font-bold text-slate-600">Valor diário configurável · fica na Vila · fora da gaveta e do envelope.</p>
-      </div>
-      <button type="button" id="rv-cofre-refresh" class="min-h-[2.35rem] rounded-lg border-2 border-rose-500 bg-white px-3 text-xs font-black uppercase text-rose-950">Atualizar</button>
-    </div>
-    <div class="grid grid-cols-2 gap-2 lg:grid-cols-4">
-      <div class="rv-sum border-rose-500 bg-white"><div class="rv-lbl text-rose-800">Saldo</div><div class="rv-val-lg text-rose-950" id="rv-cofre-saldo">R$ {{ cofrinho.saldo|default:0|floatformat:2 }}</div></div>
-      <div class="rv-metric"><div class="rv-lbl">Prevista no dia</div><div class="rv-val" id="rv-cofre-prevista">R$ {{ cofrinho.prevista_dia|default:0|floatformat:2 }}</div></div>
-      <div class="rv-metric"><div class="rv-lbl">Realizada no dia</div><div class="rv-val text-emerald-800" id="rv-cofre-realizada">R$ {{ cofrinho.realizada_dia|default:0|floatformat:2 }}</div></div>
-      <div class="rv-metric"><div class="rv-lbl">Ainda separar</div><div class="rv-val text-orange-800" id="rv-cofre-pendente">R$ {{ cofrinho.pendente_dia|default:0|floatformat:2 }}</div></div>
-    </div>
-    <p id="rv-cofre-acum-hint" class="text-xs font-bold text-slate-600 leading-tight">Não separar hoje soma amanhã · separar a mais abate os próximos dias.</p>
-    <div class="grid grid-cols-1 gap-2 lg:grid-cols-[auto_auto_minmax(0,1fr)_minmax(0,1fr)_auto] items-end">
-      <button type="button" id="rv-cofre-separar" class="min-h-[2.75rem] rounded-xl bg-rose-600 px-4 text-xs font-black uppercase text-white">Separar</button>
-      <button type="button" id="rv-cofre-saldo-inicial" class="min-h-[2.75rem] rounded-xl border-2 border-rose-700 bg-white px-4 text-xs font-black uppercase text-rose-950">Saldo inicial</button>
-      <label><span class="rv-lbl">Movimento</span><select id="rv-cofre-tipo" class="mt-1 min-h-[2.75rem] w-full rounded-xl border-2 border-slate-300 bg-white px-3 font-black"><option value="retirada">Retirada / uso</option><option value="ajuste_mais">Ajuste · entrada</option><option value="ajuste_menos">Ajuste · saída</option><option value="saldo_inicial">Saldo inicial</option></select></label>
-      <label><span class="rv-lbl">Valor</span><input id="rv-cofre-valor" type="text" inputmode="decimal" class="mt-1 min-h-[2.75rem] w-full rounded-xl border-2 border-slate-300 bg-white px-3 text-lg font-black" placeholder="0,00"></label>
-      <button type="button" id="rv-cofre-movimentar" class="min-h-[2.75rem] rounded-xl border-2 border-slate-700 bg-slate-800 px-4 text-xs font-black uppercase text-white">Registrar</button>
-    </div>
-    <label class="block"><span class="rv-lbl">Motivo / observação</span><input id="rv-cofre-obs" type="text" maxlength="500" class="mt-1 min-h-[2.75rem] w-full rounded-xl border-2 border-slate-300 bg-white px-3 font-bold" placeholder="Explique para que foi usado ou por que ajustou"></label>
-    <p id="rv-cofre-status" class="min-h-[1rem] text-xs font-black text-slate-700"></p>
-    <div id="rv-cofre-historico" class="max-h-[16rem] overflow-y-auto rounded-xl border-2 border-rose-200 bg-white divide-y divide-slate-200 text-xs font-bold"></div>
-  </section>
-
-  <section class="rv-card space-y-2.5 border-indigo-300 bg-indigo-50/30" id="rv-cofre-ve-card" data-cofre="vila_elias">
-    <div class="flex flex-wrap items-center justify-between gap-2">
-      <div>
-        <h2 class="text-base sm:text-lg font-black uppercase text-indigo-950">Cofre Vila Elias</h2>
-        <p class="text-xs font-bold text-slate-600">Fatia do lucro que não vai ao Centro · automático conforme o % · fora da gaveta.</p>
-      </div>
-      <button type="button" id="rv-cofre-ve-refresh" class="min-h-[2.35rem] rounded-lg border-2 border-indigo-500 bg-white px-3 text-xs font-black uppercase text-indigo-950">Atualizar</button>
-    </div>
-    <div class="grid grid-cols-2 gap-2 lg:grid-cols-4">
-      <div class="rv-sum border-indigo-500 bg-white"><div class="rv-lbl text-indigo-800">Saldo</div><div class="rv-val-lg text-indigo-950" id="rv-cofre-ve-saldo">R$ {{ cofre_vila_elias.saldo|default:0|floatformat:2 }}</div></div>
-      <div class="rv-metric"><div class="rv-lbl">Prevista no dia</div><div class="rv-val" id="rv-cofre-ve-prevista">R$ {{ cofre_vila_elias.prevista_dia|default:0|floatformat:2 }}</div></div>
-      <div class="rv-metric"><div class="rv-lbl">Realizada no dia</div><div class="rv-val text-emerald-800" id="rv-cofre-ve-realizada">R$ {{ cofre_vila_elias.realizada_dia|default:0|floatformat:2 }}</div></div>
-      <div class="rv-metric"><div class="rv-lbl">Ainda separar</div><div class="rv-val text-orange-800" id="rv-cofre-ve-pendente">R$ {{ cofre_vila_elias.pendente_dia|default:0|floatformat:2 }}</div></div>
-    </div>
-    <p id="rv-cofre-ve-acum-hint" class="text-xs font-bold text-slate-600 leading-tight">Ex.: lucro R$ 200 · 50% → R$ 100 neste cofre · salário R$ 100 · lucro ao Centro R$ 0.</p>
-    <div class="grid grid-cols-1 gap-2 lg:grid-cols-[auto_auto_minmax(0,1fr)_minmax(0,1fr)_auto] items-end">
-      <button type="button" id="rv-cofre-ve-separar" class="min-h-[2.75rem] rounded-xl bg-indigo-600 px-4 text-xs font-black uppercase text-white">Separar</button>
-      <button type="button" id="rv-cofre-ve-saldo-inicial" class="min-h-[2.75rem] rounded-xl border-2 border-indigo-700 bg-white px-4 text-xs font-black uppercase text-indigo-950">Saldo inicial</button>
-      <label><span class="rv-lbl">Movimento</span><select id="rv-cofre-ve-tipo" class="mt-1 min-h-[2.75rem] w-full rounded-xl border-2 border-slate-300 bg-white px-3 font-black"><option value="retirada">Retirada / uso</option><option value="ajuste_mais">Ajuste · entrada</option><option value="ajuste_menos">Ajuste · saída</option><option value="saldo_inicial">Saldo inicial</option></select></label>
-      <label><span class="rv-lbl">Valor</span><input id="rv-cofre-ve-valor" type="text" inputmode="decimal" class="mt-1 min-h-[2.75rem] w-full rounded-xl border-2 border-slate-300 bg-white px-3 text-lg font-black" placeholder="0,00"></label>
-      <button type="button" id="rv-cofre-ve-movimentar" class="min-h-[2.75rem] rounded-xl border-2 border-slate-700 bg-slate-800 px-4 text-xs font-black uppercase text-white">Registrar</button>
-    </div>
-    <label class="block"><span class="rv-lbl">Motivo / observação</span><input id="rv-cofre-ve-obs" type="text" maxlength="500" class="mt-1 min-h-[2.75rem] w-full rounded-xl border-2 border-slate-300 bg-white px-3 font-bold" placeholder="Explique para que foi usado ou por que ajustou"></label>
-    <p id="rv-cofre-ve-status" class="min-h-[1rem] text-xs font-black text-slate-700"></p>
-    <div id="rv-cofre-ve-historico" class="max-h-[16rem] overflow-y-auto rounded-xl border-2 border-indigo-200 bg-white divide-y divide-slate-200 text-xs font-bold"></div>
-  </section>
-
   {# —— Histórico —— #}
-  <section class="rv-card flex flex-col min-h-0 gap-2.5">
+  <section class="rv-card rv-span flex flex-col min-h-0 gap-2.5">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <h2 class="text-base sm:text-lg font-black uppercase text-slate-900 leading-tight">Histórico do mês</h2>
       <div class="flex items-center gap-1.5">
