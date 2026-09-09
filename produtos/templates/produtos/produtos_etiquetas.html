@@ -183,6 +183,11 @@
       <h2 class="text-xs font-black uppercase tracking-wide text-orange-400">Buscar produto</h2>
       <div class="flex items-center gap-2">
         <span id="etq-busca-meta" class="etq-busca-meta" aria-live="polite"></span>
+        <button type="button" id="etq-btn-colar-codigos"
+          class="min-h-[32px] rounded-lg border border-sky-600 bg-sky-800/80 px-2.5 text-[10px] font-black uppercase text-white hover:bg-sky-700"
+          title="Cola lista de GM (ou Excel) e manda pra fila">
+          Colar códigos
+        </button>
         <button type="button" id="etq-btn-add-todos" disabled
           class="min-h-[32px] rounded-lg border border-emerald-600 bg-emerald-700/80 px-2.5 text-[10px] font-black uppercase text-white disabled:cursor-not-allowed disabled:opacity-40 hover:bg-emerald-600"
           title="Manda todos os resultados da busca para a fila (usa a Qtd ao lado)">
@@ -227,6 +232,48 @@
         </label>
         <button type="button" id="etq-preset-filtro-aplicar" class="min-h-[2rem] rounded-lg border border-emerald-600 bg-emerald-700/80 px-2 text-[10px] font-black uppercase text-white disabled:opacity-40" disabled>Aplicar</button>
         <button type="button" id="etq-filtros-limpar" class="min-h-[2rem] rounded-lg border border-slate-600 bg-slate-900 px-2 text-[10px] font-black uppercase text-slate-400 hover:text-red-300">Limpar filtros</button>
+      </div>
+      <div class="etq-filtros-row" aria-label="Mais vendidos no período">
+        <label class="etq-f-field">
+          <span>Mais vendidos</span>
+          <select id="etq-mv-periodo">
+            <option value="hoje">Hoje</option>
+            <option value="7d">7 dias</option>
+            <option value="30d" selected>30 dias</option>
+            <option value="mes_atual">Mês atual</option>
+            <option value="custom">Personalizado</option>
+          </select>
+        </label>
+        <label class="etq-f-field"><span>De</span><input type="date" id="etq-mv-de" /></label>
+        <label class="etq-f-field"><span>Até</span><input type="date" id="etq-mv-ate" /></label>
+        <label class="etq-f-field">
+          <span>Top</span>
+          <select id="etq-mv-limite">
+            <option value="50">50</option>
+            <option value="100" selected>100</option>
+            <option value="150">150</option>
+            <option value="200">200</option>
+          </select>
+        </label>
+        <label class="etq-f-field">
+          <span>Ordenar</span>
+          <select id="etq-mv-ordenar">
+            <option value="valor">R$</option>
+            <option value="qtd">Qtd</option>
+          </select>
+        </label>
+        <label class="etq-f-field">
+          <span>Sentido</span>
+          <select id="etq-mv-sentido">
+            <option value="mais">Mais</option>
+            <option value="menos">Menos</option>
+          </select>
+        </label>
+        <button type="button" id="etq-mv-carregar"
+          class="min-h-[2rem] rounded-lg border border-orange-600 bg-orange-700/80 px-2.5 text-[10px] font-black uppercase text-white hover:bg-orange-600"
+          title="Usa categoria/sub já marcadas + período. Lista à esquerda; depois Adicionar todos.">
+          Carregar ranking
+        </button>
       </div>
       <div id="etq-f-chips" class="etq-f-chips empty:hidden" aria-live="polite"></div>
       <div class="etq-ms-row" id="etq-ms-row" aria-label="Filtrar produtos">
@@ -500,6 +547,38 @@
 
 
 
+<div id="etq-colar-back" class="fixed inset-0 z-[210] hidden bg-slate-950/75" aria-hidden="true">
+  <div class="flex h-full items-center justify-center p-4">
+    <div class="flex max-h-[85vh] w-[min(96vw,36rem)] flex-col overflow-hidden rounded-2xl border-2 border-sky-600 bg-slate-900 shadow-2xl" role="dialog" aria-labelledby="etq-colar-titulo">
+      <div class="flex shrink-0 items-center justify-between gap-2 border-b border-slate-700 px-4 py-3">
+        <div class="min-w-0">
+          <h2 id="etq-colar-titulo" class="text-sm font-black uppercase text-white">Colar códigos</h2>
+          <p class="mt-0.5 text-[11px] font-semibold text-slate-400">Cola GM (ou Excel: código na 1ª coluna). Manda direto pra fila.</p>
+        </div>
+        <button type="button" id="etq-colar-fechar" class="min-h-[36px] min-w-[36px] shrink-0 rounded-lg border border-slate-600 text-slate-300 hover:text-white" aria-label="Fechar">✕</button>
+      </div>
+      <div class="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+        <label class="block text-xs font-bold uppercase text-slate-400">
+          Lista
+          <textarea id="etq-colar-texto" rows="12" placeholder="GM1140&#10;GM1195&#10;GM5296&#10;…"
+            class="mt-1 w-full rounded-xl border-2 border-slate-600 bg-slate-950 px-3 py-2 font-mono text-sm font-semibold text-white placeholder:text-slate-600 focus:border-sky-500 focus:outline-none"></textarea>
+        </label>
+        <p id="etq-colar-resumo" class="hidden text-sm font-semibold text-slate-300"></p>
+      </div>
+      <div class="flex shrink-0 flex-wrap gap-2 border-t border-slate-700 bg-slate-950/50 px-4 py-3">
+        <button type="button" id="etq-colar-adicionar"
+          class="min-h-[44px] flex-1 rounded-xl border-2 border-sky-500 bg-sky-600 px-3 text-sm font-black uppercase text-white hover:bg-sky-500">
+          Adicionar à fila
+        </button>
+        <button type="button" id="etq-colar-cancelar"
+          class="min-h-[44px] rounded-xl border-2 border-slate-600 px-3 text-sm font-black uppercase text-slate-300">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="etq-hist-back" class="fixed inset-0 z-[200] hidden bg-slate-950/75" aria-hidden="true">
 
   <div class="flex h-full items-center justify-center p-4">
@@ -538,12 +617,14 @@
 window.AGRO_ETQ_CFG = {
   facetasUrl: "{{ api_facetas_url|default:'/api/produtos/gestao/facetas/'|escapejs }}",
   presetsUrl: "{{ api_presets_url|default:'/api/compras/folha-saldo-presets/'|escapejs }}",
-  etqPresetsUrl: "{{ api_etq_presets_url|default:'/api/produtos/etiquetas/presets/'|escapejs }}"
+  etqPresetsUrl: "{{ api_etq_presets_url|default:'/api/produtos/etiquetas/presets/'|escapejs }}",
+  resolverUrl: "{{ api_etq_resolver_url|default:'/api/produtos/etiquetas/resolver-codigos/'|escapejs }}",
+  maisVendidosUrl: "{{ api_etq_mais_vendidos_url|default:'/api/produtos/etiquetas/mais-vendidos/'|escapejs }}"
 };
 </script>
-<script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=16"></script>
+<script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=17"></script>
 
-<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=16" defer></script>
+<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=17" defer></script>
 
 {% endblock %}
 

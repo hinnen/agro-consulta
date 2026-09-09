@@ -14128,7 +14128,79 @@ def produtos_etiquetas_view(request):
             "api_facetas_url": reverse("api_produtos_gestao_facetas"),
             "api_presets_url": reverse("api_compras_folha_saldo_presets"),
             "api_etq_presets_url": reverse("api_etiquetas_presets"),
+            "api_etq_resolver_url": reverse("api_etiquetas_resolver_codigos"),
+            "api_etq_mais_vendidos_url": reverse("api_etiquetas_mais_vendidos"),
         },
+    )
+
+
+@login_required(login_url="/entrar/")
+@require_http_methods(["POST"])
+def api_etiquetas_resolver_codigos(request):
+    """Resolve lista colada (GM / barras) → produtos para a fila de etiquetas."""
+    from produtos.etiquetas_fila_util import resolver_produtos_por_codigos
+
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        body = {}
+    texto = body.get("texto")
+    if texto is None and isinstance(body.get("codigos"), list):
+        texto = body.get("codigos")
+    if texto is None:
+        texto = str(request.POST.get("texto") or "")
+    inativos = body.get("inativos") in (True, 1, "1", "true", "yes")
+    if request.POST.get("inativos") in ("1", "true", "yes"):
+        inativos = True
+    try:
+        data = resolver_produtos_por_codigos(texto, inativos=inativos)
+    except Exception as exc:
+        logger.exception("api_etiquetas_resolver_codigos")
+        return JsonResponse({"ok": False, "erro": str(exc)[:200]}, status=500)
+    return JsonResponse({"ok": True, **data})
+
+
+@login_required(login_url="/entrar/")
+@require_GET
+def api_etiquetas_mais_vendidos(request):
+    """Ranking do período (mesmo motor do relatório) → produtos p/ etiquetas."""
+    from produtos import relatorios_vendas_util as ru
+    from produtos.etiquetas_fila_util import produtos_mais_vendidos_para_etiquetas
+
+    f = ru.parse_periodo_request(request, padrao="30d")
+    try:
+        limite = int(request.GET.get("limite") or 100)
+    except (TypeError, ValueError):
+        limite = 100
+    ordenar = (request.GET.get("ordenar") or "valor").strip().lower()
+    sentido = (request.GET.get("sentido") or "mais").strip().lower()
+    inativos = request.GET.get("inativos") in ("1", "true", "yes")
+    filtros = ru.filtros_catalogo_request(request)
+    try:
+        data = produtos_mais_vendidos_para_etiquetas(
+            f["desde"],
+            f["ate_dt"],
+            limite=limite,
+            ordenar=ordenar,
+            sentido=sentido,
+            inativos=inativos,
+            **filtros,
+        )
+    except Exception as exc:
+        logger.exception("api_etiquetas_mais_vendidos")
+        return JsonResponse({"ok": False, "erro": str(exc)[:200]}, status=500)
+    return JsonResponse(
+        {
+            "ok": True,
+            "periodo": f.get("periodo"),
+            "de": f.get("de"),
+            "ate": f.get("ate"),
+            "label": f.get("label"),
+            "ordenar": ordenar,
+            "sentido": sentido,
+            "limite": max(1, min(200, limite)),
+            **data,
+        }
     )
 
 

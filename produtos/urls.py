@@ -330,6 +330,16 @@ urlpatterns = [
         name='produtos_etiquetas_lote',
     ),
     path(
+        'api/produtos/etiquetas/resolver-codigos/',
+        views.api_etiquetas_resolver_codigos,
+        name='api_etiquetas_resolver_codigos',
+    ),
+    path(
+        'api/produtos/etiquetas/mais-vendidos/',
+        views.api_etiquetas_mais_vendidos,
+        name='api_etiquetas_mais_vendidos',
+    ),
+    path(
         'api/produtos/etiquetas/presets/',
         views.api_etiquetas_presets,
         name='api_etiquetas_presets',
