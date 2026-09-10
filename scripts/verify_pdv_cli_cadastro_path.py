@@ -63,6 +63,12 @@ def test_arquivos() -> None:
     check("html_excluir_btn", "pdv-quick-client-edit-excluir" in html)
     check("html_vale_btn", "pdv-quick-client-edit-vale" in html)
     check("html_overlay", "cliente_cadastro_acoes.html" in html)
+    acoes_html = _read("produtos/templates/produtos/includes/cliente_cadastro_acoes.html")
+    check(
+        "acao_z_acima_edit",
+        "z-index: 250" in acoes_html and "z-[250]" in acoes_html,
+        "telefone duplicado acima do EDITAR (240)",
+    )
     check("js_acoes", "AgroClienteCadastroAcoes" in js and "showDuplicado" in js)
     check("js_wizard_dup", "whatsapp_duplicado" in wizard or "duplicado" in wizard)
     check("js_wizard_vale", "hydrateFromCompraValeCredito" in wizard)

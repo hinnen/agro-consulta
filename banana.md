@@ -547,7 +547,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 - Sync ERP/Mongo â†’ Agro: `produtos/services_clientes_sync.py`, botÃ£o na lista, comando `sincronizar_clientes_agro`.
 - `**editado_local=True` nÃ£o Ã© sobrescrito** na sync.
 - PDV lista/busca clientes **sÃ³ no Agro** (`api/listar-clientes/`, `api/buscar-clientes/`).
-- **Editar cadastro (PDV):** modal sem scroll; telefone duplicado = popup no meio (abrir o outro ou **limpar o número** dali, com PIN). **Excluir** (bloqueia fiado em aberto e vínculo RH) + transferir cashback/vale. **Vale crédito:** clicar no saldo ou no cadastro — pagar (entra no caixa) ou manual (sem caixa). Log em `ClienteAgroEventoAgro`. Mesmas ações em `/clientes/…/editar/` — layout largo alinhado ao PDV (`CLI-FORM-PDV-LAYOUT`).
+- **Editar cadastro (PDV):** modal sem scroll; telefone duplicado = popup no meio (abrir o outro ou **limpar o número** dali, com PIN) — overlay acao **z 250** acima do EDITAR **240** (`CLI-DUP-TEL-Z` · 10/09). **Excluir** (bloqueia fiado em aberto e vínculo RH) + transferir cashback/vale. **Vale crédito:** clicar no saldo ou no cadastro — pagar (entra no caixa) ou manual (sem caixa). Log em `ClienteAgroEventoAgro`. Mesmas ações em `/clientes/…/editar/` — layout largo alinhado ao PDV (`CLI-FORM-PDV-LAYOUT`).
 - IDs Mongo no JSON viram `local:{pk}` para nÃ£o mandar ObjectId ao ERP.
 - Contexto antigo detalhado: `docs/CONTEXTO_SESSAO_CLIENTES_PDV.md`.
 - **Fiado limite (`FIADO-LIMITE-LINHA`):** na lista `/fiado/`, clique no valor da coluna **Limite** para editar (sem botão Limite cliente).
@@ -1279,6 +1279,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 🟡 PACOTE — Telefone duplicado por cima do EDITAR (`CLI-DUP-TEL-Z` · 10/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | No PDV, Salvar cadastro com WhatsApp já de outro cliente: o popup «Telefone já cadastrado» abria **por baixo** do EDITAR (tela opaca; só via Esc). Causa: acao `z 160` × EDITAR `z 240`. |
+| **Fix** | `#agro-cli-acao-overlay` → **z 250** (também Excluir / Vale / Histórico). |
+| **Onde** | `cliente_cadastro_acoes.html` · prova `verify_pdv_cli_cadastro_path` |
+| **Migrate** | **NÃO** |
+| **Prova** | **55/55** |
+| **Status** | 🟡 no `teste` — Ctrl+F5 local · **não** loja |
+| **Você** | PDV → EDITAR → telefone de outro → Salvar → popup no meio |
 
 ### ✅ Deploy loja — Hotfixes Repasse (`deploy/prep-repasse-hotfix-0909` · **v23.76**) · **Live**
 
