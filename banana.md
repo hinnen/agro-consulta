@@ -668,6 +668,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Novo empréstimo no CP (`CP-NOVO-EMPRESTIMO` / `CP-NE-BUSCA-EMPRESA` · v17.93 → v18.54):** Externo/Interno · parcelas auto · Outros · contorno · **busca Empresa/Credor** · empresa padrão pela loja · composição na linha da data.
 - **Lista CP — destaque empréstimo (`CP-EMP-ROW-TINT` · v18.77):** fundo laranja leve nas linhas Pagamento/Juros de Empréstimos (externo e interno).
 - **Nova saÃ­da** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **Â«EmprÃ©stimo (entrada + pagamento)Â»** â€” gera receita quitada (hoje) + despesa(s); se saÃ­da > entrada, diferenÃ§a em **Juros de EmprÃ©stimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
+- **Nova saÃ­da no BI — PIN (`PIN-NS-BI` · v23.78):** Finalizar no Dashboard abre teclado (não alert «modo descanso»); sspin no home + tratamento no `lancamento_nova_saida.js`.
 - **Nova saÃ­da â€” escolha 1Âº passo (`NS-ESCOLHA-EMP` Â· v18.67):** ao abrir, 2 cards grandes (**Novo LanÃ§amento** Ã— **EmprÃ©stimo**) no padrÃ£o Externo/Interno; EmprÃ©stimo abre o modal CP (BI tambÃ©m inclui o modal).
 - **GrÃ¡fico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` â€” **100dvh sem scroll**; toolbar perÃ­odo simÃ©trica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrÃ£o ðŸ“Œ); modos tempo real / histÃ³rico / comparar; drill-down CP popup. **Entrada BI:** botÃ£o laranja no card **Contas a Pagar** (`/`). Teste **v3.54+**; loja **v3.39**.
 - **DRE Indicadores + Resumo — CMV (09/08, `DRE-CMV-TOGGLE` + `RG-CMV-TOGGLE`):** botão **Mercadoria vendida** (custo cadastro × qtd) × **Mercadoria paga** (lançamentos). Lucro bruto / margem / líquido / PE acompanham. Caixa não muda. Padrão = vendida. Mesma chave `agro_dre_cmv_modo_v1`.
@@ -1279,6 +1280,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE PRONTO — Novo lançamento no BI: PIN vira teclado (`PIN-NS-BI` · **v23.78** · 10/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Dashboard → **Novo lançamento** → Finalizar com PIN velho: alert preto «modo descanso» em vez do teclado. |
+| **Causa** | BI não tinha `#sspin-root`; JS da Nova saída só fazia `alert(erro)`. |
+| **Fix** | sspin no `dashboard_gerencial` · `lancamento_nova_saida.js` trata PIN + retry após digitar |
+| **Onde** | `dashboard_gerencial.html` · `lancamento_nova_saida.js` · prova `verify_pin_alert_teclado_path.py` |
+| **Migrate** | **NÃO** |
+| **Prova** | PIN-ALERT **VERIFY_OK 130/130** · PIN **9973** = Renan · home com teclado |
+| **Commit** | (este tip) · `teste` **v23.78** |
+| **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
+| **Você** | Ctrl+F5 no `/` → Novo lançamento → Finalizar com PIN velho → **teclado** (sem alert preto) |
+
+### ✅ CHECKLIST ÚNICO — 10/09 · pronto envio (`PIN-NS-BI` + `CLI-DUP-TEL-Z`)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `PIN-NS-BI` | 🟢 **pronto para envio à produção** | **NÃO** | **130/130** |
+| 2 | `CLI-DUP-TEL-Z` | 🟢 **pronto para envio à produção** | **NÃO** | path **60/60** · deep **24/24** |
+
+**Live agora:** **v23.76**. Estes pacotes **ainda não** subiram. **Não** merge `teste`.
 
 ### 📦 PACOTE PRONTO — Telefone duplicado por cima do EDITAR (`CLI-DUP-TEL-Z` · **v23.77** · 10/09)
 

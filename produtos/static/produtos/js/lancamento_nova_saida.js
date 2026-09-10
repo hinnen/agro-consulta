@@ -24,6 +24,40 @@
     return m ? decodeURIComponent(m[2]) : '';
   }
 
+  /** Erro «Identifique-se com o PIN…» → teclado (nunca alert preto). */
+  function tratarErroPin(msg, onOk) {
+    const t = String(msg == null ? '' : msg);
+    if (!t) return false;
+    if (typeof window.gmLancamentosTratarErroPin === 'function') {
+      try {
+        if (window.gmLancamentosTratarErroPin(t, onOk)) return true;
+      } catch (_) { /* fallthrough */ }
+    }
+    if (typeof window.gmSspinAbrirSeErroPin === 'function') {
+      try {
+        return !!window.gmSspinAbrirSeErroPin(t, typeof onOk === 'function' ? onOk : function () {}, {
+          titulo: 'Identifique-se com o PIN',
+        });
+      } catch (_) {
+        return false;
+      }
+    }
+    return false;
+  }
+
+  function comOperador(fn) {
+    if (typeof fn !== 'function') return;
+    if (typeof window.gmLancamentosComOperador === 'function') {
+      window.gmLancamentosComOperador(fn, { titulo: 'Identifique-se com o PIN' });
+      return;
+    }
+    if (typeof window.gmSspinGarantirOperador === 'function') {
+      window.gmSspinGarantirOperador(fn, { titulo: 'Identifique-se com o PIN' });
+      return;
+    }
+    fn();
+  }
+
   function todayISO() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -1393,48 +1427,55 @@
       idempotency_key: loteIdempotencyKey,
     };
 
-    const btn = $('agro-ns-submit');
-    if (btn) { btn.disabled = true; btn.setAttribute('aria-busy', 'true'); }
-    try {
-      const r = await fetch(cfg().apiCriar, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify(payload),
-      });
-      const raw = await r.text();
-      let j = {};
-      try { j = raw ? JSON.parse(raw) : {}; } catch (_) {
-        const snippet = String(raw || '').replace(/\s+/g, ' ').trim().slice(0, 220);
-        alert(
-          'Resposta inválida do servidor (HTTP ' + r.status + ').'
-          + (snippet ? '\n\n' + snippet : '')
-          + '\n\nSe a sessão expirou, faça login e tente de novo.'
-        );
-        return;
+    const doPost = async () => {
+      const btn = $('agro-ns-submit');
+      if (btn) { btn.disabled = true; btn.setAttribute('aria-busy', 'true'); }
+      try {
+        const r = await fetch(cfg().apiCriar, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+          body: JSON.stringify(payload),
+        });
+        const raw = await r.text();
+        let j = {};
+        try { j = raw ? JSON.parse(raw) : {}; } catch (_) {
+          const snippet = String(raw || '').replace(/\s+/g, ' ').trim().slice(0, 220);
+          const invalidMsg =
+            'Resposta inválida do servidor (HTTP ' + r.status + ').'
+            + (snippet ? '\n\n' + snippet : '')
+            + '\n\nSe a sessão expirou, faça login e tente de novo.';
+          if (tratarErroPin(snippet, () => { submitForm(ev); })) return;
+          alert(invalidMsg);
+          return;
+        }
+        const ids = Array.isArray(j.ids) ? j.ids : [];
+        const erros = Array.isArray(j.erros) ? j.erros : [];
+        const msgs = erros.map((e) => (e && (e.erro || e.mensagem)) ? String(e.erro || e.mensagem) : '').filter(Boolean);
+        const dupBloq = Number(j.duplicidades_bloqueadas || 0);
+        if (!j.ok && !ids.length) {
+          const pinCand = msgs[0] || j.erro || '';
+          if (tratarErroPin(pinCand, () => { submitForm(ev); })) return;
+          alert((pinCand || 'Falha ao gravar.') + (dupBloq ? `\n\nDuplicidade bloqueada: ${dupBloq}.` : ''));
+          return;
+        }
+        const parcial = !j.ok && ids.length > 0;
+        let detalhe = '';
+        if (parcial && msgs.length) detalhe = msgs.slice(0, 3).join(' · ');
+        if (dupBloq) detalhe = (detalhe ? detalhe + ' · ' : '') + `Duplicidade bloqueada: ${dupBloq}.`;
+        sucessoPendente = {
+          tipo, quitado: quitadoLote, dc, dvMin, dvMax,
+          idMongo: ids[0] || '',
+        };
+        mostrarSucessoPainel({ parcial, qtd: ids.length, detalhe });
+      } catch (_) {
+        alert('Erro de rede. Confira em Lançamentos se já gravou antes de repetir.');
+      } finally {
+        if (btn) { btn.disabled = false; btn.removeAttribute('aria-busy'); }
       }
-      const ids = Array.isArray(j.ids) ? j.ids : [];
-      const erros = Array.isArray(j.erros) ? j.erros : [];
-      const msgs = erros.map((e) => (e && (e.erro || e.mensagem)) ? String(e.erro || e.mensagem) : '').filter(Boolean);
-      const dupBloq = Number(j.duplicidades_bloqueadas || 0);
-      if (!j.ok && !ids.length) {
-        alert((msgs[0] || j.erro || 'Falha ao gravar.') + (dupBloq ? `\n\nDuplicidade bloqueada: ${dupBloq}.` : ''));
-        return;
-      }
-      const parcial = !j.ok && ids.length > 0;
-      let detalhe = '';
-      if (parcial && msgs.length) detalhe = msgs.slice(0, 3).join(' · ');
-      if (dupBloq) detalhe = (detalhe ? detalhe + ' · ' : '') + `Duplicidade bloqueada: ${dupBloq}.`;
-      sucessoPendente = {
-        tipo, quitado: quitadoLote, dc, dvMin, dvMax,
-        idMongo: ids[0] || '',
-      };
-      mostrarSucessoPainel({ parcial, qtd: ids.length, detalhe });
-    } catch (_) {
-      alert('Erro de rede. Confira em Lançamentos se já gravou antes de repetir.');
-    } finally {
-      if (btn) { btn.disabled = false; btn.removeAttribute('aria-busy'); }
-    }
+    };
+
+    comOperador(doPost);
   }
 
   function dispararSucesso(tipo, quitado, dc, dvMin, dvMax, idMongo) {
