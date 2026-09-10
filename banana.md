@@ -1292,7 +1292,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `nfe_entrada_util.py` · `views.py` · teste vínculo · `verify_nf_fin_nao_tem_path.py` |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_nf_fin_nao_tem_path.py` **VERIFY_OK 15/15** · django vínculo **15/15** · API religa sem insert |
-| **Commit** | (tip `teste`) |
+| **Commit** | `de93a35` · fix `072522c` · `teste` **v23.88** |
 | **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
 | **Você** | Ctrl+F5 · abrir a nota · etapa 7 → **Salvar + a pagar** → «já gerada» · etapa 8 ok |
 
