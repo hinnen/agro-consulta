@@ -823,8 +823,8 @@
       if (window.gmSspinErroPedePin(t)) {
         try {
           window.gmSspinAbrirSeErroPin(t, function () {}, { titulo: 'Identifique-se com o PIN' });
-          return;
         } catch (eAl) {}
+        return; /* nunca alert nativo de PIN */
       }
       return _agroNativeAlert(t);
     };

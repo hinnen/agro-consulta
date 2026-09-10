@@ -210,5 +210,8 @@
 
   {% include "produtos/_atalho_voltar_pdv.html" %}
   <script src="{% static 'js/agro_resumo_gerencial.js' %}?v={{ agro_asset_v|default:'0' }}"></script>
+
+{# Teclado PIN global (evita alert modo descanso). #}
+{% include "produtos/_screensaver_pin.html" %}
 </body>
 </html>

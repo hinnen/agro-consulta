@@ -1987,9 +1987,18 @@
     var n = 0;
     var iv = setInterval(function () {
       n += 1;
-      if (tryOpen(t) || n >= 50) {
+      if (tryOpen(t)) {
         clearInterval(iv);
-        if (n >= 50) nativeAlert(t);
+        return;
+      }
+      /* Nunca alert nativo de PIN — caixa preta do Chrome. Espera teclado (~6s). */
+      if (n >= 150) {
+        clearInterval(iv);
+        try {
+          if (typeof window.gmToast === 'function') {
+            window.gmToast('Precisa do PIN — recarregue a página (Ctrl+F5) se o teclado não abrir.');
+          }
+        } catch (eToast) {}
       }
     }, 40);
   };
