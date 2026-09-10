@@ -75,6 +75,7 @@ Escolha o ramo que mais se aproxima. Leia **na ordem**; pare quando tiver contex
 | **Entregas** — `/entregas/`, rota terça, painel | CHECKPOINT: `entrega`, `entregas`, `FL-006`, `FL-031` | Fluxo loja: PDV → retorno entregador → baixa PDV |
 | **WhatsApp lojas** — `/atendimento-whatsapp/`, QR, filas Centro/Vila | `### 4.16` | CHECKPOINT: `WhatsApp`, `WA-ATEND-QR` |
 | **Tarefas / pendências** — hub `/vendas/lojas/` → Tarefas | CHECKPOINT: `Tarefas`, `pendências`, `Vendas lojas` | PIN + timeline em `tarefas/` |
+| **Fotos produto** — hub `/vendas/lojas/` → Fotos | CHECKPOINT: `Fotos`, `FOTOS-PRODUTO` | Busca+bip+até 4 fotos · `views_fotos_produto` |
 
 ### 2.2 Tipo de mudança (somar ao ramo acima)
 
@@ -104,7 +105,7 @@ Tarefa
 
 Usar **Grep** em `banana.md`, seção `## CHECKPOINT`, com 1–3 termos:
 
-`PDV` · `cadastro` · `gestão` · `gestao` · `caixa` · `fiado` · `F8` · `RH` · `folha` · `Lançamentos` · `CP` · `NF` · `entrada` · `compras` · `estoque` · `relatórios` · `relatorio` · `deploy` · `loja` · `teste` · `v6` · `Mongo` · `overlay` · `Chrome` · `WhatsApp` · `WA-ATEND` · `Tarefas` · `pendências` · `Vendas lojas`
+`PDV` · `cadastro` · `gestão` · `gestao` · `caixa` · `fiado` · `F8` · `RH` · `folha` · `Lançamentos` · `CP` · `NF` · `entrada` · `compras` · `estoque` · `relatórios` · `relatorio` · `deploy` · `loja` · `teste` · `v6` · `Mongo` · `overlay` · `Chrome` · `WhatsApp` · `WA-ATEND` · `Tarefas` · `pendências` · `Vendas lojas` · `Fotos` · `FOTOS-PRODUTO`
 
 Ler no máximo **5** subseções `###` que baterem + a linha **Versão app**.
 

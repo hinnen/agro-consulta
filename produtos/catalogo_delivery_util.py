@@ -371,26 +371,75 @@ def _comprimir_imagem_base64_delivery(b64: str, mime: str) -> tuple[str, str]:
     return "", "image/jpeg"
 
 
+def normalizar_imagens_extras_delivery(raw: Any, *, processar: bool = False) -> list[dict]:
+    """Até 3 fotos extras ``{imagem_base64, imagem_mime}`` (slots podem ficar vazios)."""
+    out: list[dict] = []
+    items = raw if isinstance(raw, list) else []
+    for item in items[:3]:
+        if not isinstance(item, dict):
+            out.append({"imagem_base64": "", "imagem_mime": "image/jpeg"})
+            continue
+        b64_in = str(item.get("imagem_base64") or "").strip()
+        b64, mime_guess = _strip_data_url(b64_in)
+        mime = (
+            str(item.get("imagem_mime") or mime_guess or "image/jpeg").strip()[:40]
+            or "image/jpeg"
+        )
+        if processar and b64:
+            b64, mime = _comprimir_imagem_base64_delivery(b64, mime)
+        out.append({"imagem_base64": b64, "imagem_mime": mime})
+    while len(out) < 3:
+        out.append({"imagem_base64": "", "imagem_mime": "image/jpeg"})
+    return out[:3]
+
+
 def data_url_imagem_delivery_de_overlay(ov) -> str:
-    """URL data: da foto Delivery no overlay (PDV / catálogo / APIs)."""
+    """URL data: da foto Delivery no overlay (legado / fallback)."""
     if ov is None:
         return ""
     return _imagem_data_url(delivery_de_extras(getattr(ov, "cadastro_extras", None) or {}))
 
 
 def aplicar_imagem_delivery_no_row(row: dict, ov) -> None:
-    """Se o overlay tiver foto Delivery, usa no campo ``imagem`` do produto."""
-    if not isinstance(row, dict):
+    """Se o overlay tiver foto, usa URL HTTP da principal (lista leve — sem base64)."""
+    if not isinstance(row, dict) or ov is None:
         return
-    url = data_url_imagem_delivery_de_overlay(ov)
-    if url:
-        row["imagem"] = url
+    d = delivery_de_extras(getattr(ov, "cadastro_extras", None) or {})
+    if not str(d.get("imagem_base64") or "").strip():
+        return
+    pid = str(
+        row.get("id")
+        or row.get("produto_externo_id")
+        or getattr(ov, "produto_externo_id", "")
+        or ""
+    ).strip()[:64]
+    if not pid:
+        url = _imagem_data_url(d)
+        if url:
+            row["imagem"] = url
+        return
+    try:
+        from produtos.fotos_produto_util import url_foto_produto, versao_galeria
+
+        v = versao_galeria(d, getattr(ov, "atualizado_em", None))
+        row["imagem"] = url_foto_produto(pid, 0, v=v)
+        n_extra = 0
+        extras = d.get("imagens_extras") if isinstance(d.get("imagens_extras"), list) else []
+        for item in extras[:3]:
+            if isinstance(item, dict) and str(item.get("imagem_base64") or "").strip():
+                n_extra += 1
+        row["fotos_n"] = 1 + n_extra
+    except Exception:
+        url = _imagem_data_url(d)
+        if url:
+            row["imagem"] = url
 
 
 def normalizar_delivery(raw: Any, *, processar_imagem: bool = False) -> dict:
     """Sanitiza delivery do overlay.
 
     ``processar_imagem=True`` só no save (comprime). Na leitura não apaga foto grande.
+    Inclui ``imagens_extras`` (até 3) — galeria além da principal.
     """
     d = raw if isinstance(raw, dict) else {}
     titulo = str(d.get("titulo") or "").strip()[:200]
@@ -412,7 +461,13 @@ def normalizar_delivery(raw: Any, *, processar_imagem: bool = False) -> dict:
     sub3_id = _int_id(d, "subcategoria3_id")
     sub4_id = _int_id(d, "subcategoria4_id")
     embalagens = normalizar_embalagens(d.get("embalagens"))
-    return {
+    # Extras: no save do cadastro sem a chave, quem chama deve preservar (views overlay).
+    imagens_extras: list = []
+    if "imagens_extras" in d:
+        imagens_extras = normalizar_imagens_extras_delivery(
+            d.get("imagens_extras"), processar=processar_imagem
+        )
+    out = {
         "ativo": _bool(d.get("ativo")),
         "titulo": titulo,
         "descricao": descricao,
@@ -429,6 +484,9 @@ def normalizar_delivery(raw: Any, *, processar_imagem: bool = False) -> dict:
         "subcategoria4_id": sub4_id,
         "embalagens": embalagens,
     }
+    if "imagens_extras" in d:
+        out["imagens_extras"] = imagens_extras
+    return out
 
 
 def delivery_de_extras(cadastro_extras: Any) -> dict:
@@ -452,6 +510,23 @@ def _imagem_data_url(d: dict) -> str:
         return ""
     mime = (d.get("imagem_mime") or "image/jpeg").strip() or "image/jpeg"
     return f"data:{mime};base64,{b64}"
+
+
+def _url_imagem_produto_leve(pid: str, d: dict, ov=None) -> str:
+    """URL HTTP da principal (catálogo/lista) — sem embutir base64 no JSON."""
+    if not str(d.get("imagem_base64") or "").strip():
+        return ""
+    pid = str(pid or "").strip()[:64]
+    if not pid:
+        return _imagem_data_url(d)
+    try:
+        from produtos.fotos_produto_util import url_foto_produto, versao_galeria
+
+        return url_foto_produto(
+            pid, 0, v=versao_galeria(d, getattr(ov, "atualizado_em", None) if ov else None)
+        )
+    except Exception:
+        return _imagem_data_url(d)
 
 
 def listar_itens_catalogo(*, incluir_ocultos_estoque: bool = False) -> list[dict]:
@@ -647,7 +722,7 @@ def listar_itens_catalogo(*, incluir_ocultos_estoque: bool = False) -> list[dict
             "saldo_centro": round(float((saldos.get(pid) or {}).get("centro") or 0), 3),
             "saldo_vila": round(float((saldos.get(pid) or {}).get("vila") or 0), 3),
             "permitir_estoque_negativo": forcar,
-            "imagem": _imagem_data_url(d),
+            "imagem": _url_imagem_produto_leve(pid, d, ov),
             "unidade": unidade,
             "embalagens": embalagens,
         }

@@ -94,6 +94,9 @@
     .vl-hub-tarefas {
       background: linear-gradient(145deg, #0f766e 0%, #115e59 100%);
     }
+    .vl-hub-fotos {
+      background: linear-gradient(145deg, #7c3aed 0%, #5b21b6 100%);
+    }
     .vl-hub a strong {
       font-size: clamp(1.55rem, 6vw + 0.35rem, 1.95rem);
       font-weight: 900;
@@ -113,7 +116,7 @@
   <div class="vl-shell">
     <p class="vl-kicker">GM Agro</p>
     <h1 class="vl-title">O que você quer?</h1>
-    <p class="vl-sub">Mesmo app do celular — escolha Vendas ou Tarefas.</p>
+    <p class="vl-sub">Mesmo app do celular — Vendas, Tarefas ou Fotos.</p>
     <div class="vl-hub">
       <a class="vl-hub-vendas" href="{% url 'vendas_lojas_resumo' %}">
         <strong>Vendas</strong>
@@ -122,6 +125,10 @@
       <a class="vl-hub-tarefas" href="{% url 'tarefas_lista' %}">
         <strong>Tarefas</strong>
         <span>Pendências, status, comentários e linha do tempo</span>
+      </a>
+      <a class="vl-hub-fotos" href="{% url 'fotos_produto_app' %}">
+        <strong>Fotos</strong>
+        <span>Buscar ou bipar e tirar foto do produto</span>
       </a>
     </div>
   </div>
