@@ -2922,11 +2922,22 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         from produtos.catalogo_delivery_util import normalizar_delivery
 
         d_del = normalizar_delivery(payload.get("delivery"), processar_imagem=True)
+        # Cadastro antigo não manda galeria — não apagar extras já gravados no celular.
+        raw_del = payload.get("delivery") if isinstance(payload.get("delivery"), dict) else {}
+        if "imagens_extras" not in raw_del:
+            prev_del = ex.get("delivery") if isinstance(ex.get("delivery"), dict) else {}
+            if isinstance(prev_del.get("imagens_extras"), list) and prev_del.get("imagens_extras"):
+                d_del["imagens_extras"] = prev_del["imagens_extras"]
         if d_del.get("ativo") or any(
             (
                 d_del.get("titulo"),
                 d_del.get("descricao"),
                 d_del.get("imagem_base64"),
+                d_del.get("imagens_extras")
+                and any(
+                    isinstance(x, dict) and str(x.get("imagem_base64") or "").strip()
+                    for x in (d_del.get("imagens_extras") or [])
+                ),
                 d_del.get("peso_texto"),
                 d_del.get("permitir_estoque_negativo"),
                 d_del.get("destaque"),

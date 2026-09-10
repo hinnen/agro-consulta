@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#7c3aed">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Vendas">
+  <title>Fotos produto | GM</title>
+  <link rel="manifest" href="{% url 'vendas_lojas_manifest' %}">
+  <link rel="apple-touch-icon" href="/static/produtos/pwa/vendas-lojas-192.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    :root {
+      --ink: #0f172a; --muted: #64748b; --accent: #7c3aed; --line: #e2e8f0; --bg: #f8fafc;
+      --safe-t: env(safe-area-inset-top, 0px);
+      --safe-b: env(safe-area-inset-bottom, 0px);
+      --safe-l: env(safe-area-inset-left, 0px);
+      --safe-r: env(safe-area-inset-right, 0px);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100dvh; background: var(--bg); color: var(--ink); font-family: Inter, system-ui, sans-serif; -webkit-text-size-adjust: 100%; }
+    .shell {
+      min-height: 100dvh; max-width: 28rem; margin: 0 auto;
+      padding: max(0.75rem, var(--safe-t)) max(0.85rem, var(--safe-r)) max(0.85rem, var(--safe-b)) max(0.85rem, var(--safe-l));
+      display: flex; flex-direction: column; gap: 0.65rem;
+    }
+    .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
+    .kicker { margin: 0; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+    .title { margin: 0.15rem 0 0; font-size: clamp(1.4rem, 5.5vw + 0.3rem, 1.85rem); font-weight: 900; letter-spacing: -0.04em; }
+    .ops { display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: flex-end; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; min-height: 2.55rem; padding: 0 0.85rem;
+      border-radius: 0.8rem; border: 2px solid var(--line); background: #fff; color: var(--ink);
+      font-weight: 800; font-size: 0.75rem; text-decoration: none; text-transform: uppercase; cursor: pointer;
+    }
+    .btn-accent { background: linear-gradient(145deg, #7c3aed, #5b21b6); border-color: transparent; color: #fff; }
+    .btn-scan { background: #0f172a; border-color: #0f172a; color: #fff; }
+    .who { margin: 0; font-size: 0.82rem; font-weight: 700; color: var(--muted); }
+    .who strong { color: var(--ink); }
+    .busca-row { display: flex; gap: 0.45rem; }
+    #busca {
+      flex: 1; min-height: 3.1rem; border: 2px solid var(--line); border-radius: 1rem; padding: 0 0.95rem;
+      font-size: 1rem; font-weight: 700; outline: none; background: #fff;
+    }
+    #busca:focus { border-color: var(--accent); }
+    #lista { flex: 1; overflow: auto; display: flex; flex-direction: column; gap: 0.45rem; min-height: 0; }
+    .card-p {
+      display: block; width: 100%; text-align: left; border: 2px solid var(--line); border-radius: 1rem;
+      background: #fff; padding: 0.85rem 0.95rem; cursor: pointer;
+    }
+    .card-p:active { transform: scale(0.99); }
+    .card-p strong { display: block; font-size: 0.98rem; font-weight: 900; line-height: 1.25; }
+    .card-p span { display: block; margin-top: 0.25rem; font-size: 0.78rem; font-weight: 700; color: var(--muted); }
+    .hint { margin: 0; font-size: 0.8rem; font-weight: 700; color: var(--muted); text-align: center; padding: 1rem 0.5rem; }
+    #reader { position: fixed; inset: 0; z-index: 80; background: #000; display: none; }
+    #reader.on { display: block; }
+    #reader-box { position: absolute; inset: 0; }
+    .scan-bar {
+      position: absolute; top: 0; left: 0; right: 0; z-index: 2;
+      padding: max(0.6rem, var(--safe-t)) 0.75rem 0.75rem;
+      display: flex; justify-content: space-between; align-items: center;
+      background: linear-gradient(to bottom, rgba(0,0,0,.75), transparent);
+      color: #fff; font-weight: 900; font-size: 0.75rem; text-transform: uppercase;
+    }
+    #painel { display: none; flex-direction: column; gap: 0.65rem; }
+    #painel.on { display: flex; }
+    #busca-wrap.on-hide { display: none; }
+    #lista.on-hide { display: none; }
+    .prod-nome { margin: 0; font-size: 1.05rem; font-weight: 900; line-height: 1.25; }
+    .prod-meta { margin: 0.2rem 0 0; font-size: 0.78rem; font-weight: 700; color: var(--muted); }
+    .slots { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
+    .slot {
+      border: 2px dashed #c4b5fd; border-radius: 1rem; background: #fff; min-height: 9.5rem;
+      display: flex; flex-direction: column; overflow: hidden; position: relative;
+    }
+    .slot.tem { border-style: solid; border-color: #7c3aed; }
+    .slot img { width: 100%; height: 7.2rem; object-fit: cover; background: #ede9fe; }
+    .slot-empty {
+      height: 7.2rem; display: flex; align-items: center; justify-content: center;
+      font-size: 0.78rem; font-weight: 800; color: #7c3aed; text-align: center; padding: 0.5rem;
+    }
+    .slot-foot { padding: 0.4rem 0.45rem 0.5rem; display: flex; flex-direction: column; gap: 0.3rem; }
+    .slot-lab { font-size: 0.68rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.04em; }
+    .slot-acts { display: flex; gap: 0.3rem; }
+    .slot-acts button {
+      flex: 1; min-height: 2.2rem; border: 0; border-radius: 0.55rem; font-weight: 800; font-size: 0.68rem;
+      text-transform: uppercase; cursor: pointer;
+    }
+    .slot-acts .tirar { background: #7c3aed; color: #fff; }
+    .slot-acts .apagar { background: #fee2e2; color: #b91c1c; }
+    .status { margin: 0; min-height: 1.2rem; font-size: 0.78rem; font-weight: 800; color: var(--accent); }
+    .status.err { color: #b91c1c; }
+    #filePick { display: none; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="top">
+      <div>
+        <p class="kicker">GM Agro</p>
+        <h1 class="title">Fotos</h1>
+      </div>
+      <div class="ops">
+        <button type="button" class="btn btn-scan" id="btnScan">Bipar</button>
+        <a class="btn" href="{{ url_hub }}">Início</a>
+        <a class="btn" href="{{ url_sair }}">Sair</a>
+      </div>
+    </div>
+    <p class="who">Operador: <strong>{{ operador }}</strong></p>
+
+    <div id="busca-wrap">
+      <div class="busca-row">
+        <input type="search" id="busca" placeholder="Nome, GM ou código…" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+    </div>
+    <div id="lista"><p class="hint">Carregando catálogo…</p></div>
+
+    <div id="painel">
+      <button type="button" class="btn" id="btnVoltar" style="align-self:flex-start;">← Voltar</button>
+      <p class="prod-nome" id="prodNome">—</p>
+      <p class="prod-meta" id="prodMeta"></p>
+      <p class="status" id="statusMsg"></p>
+      <div class="slots" id="slots"></div>
+    </div>
+  </div>
+
+  <div id="reader" aria-hidden="true">
+    <div id="reader-box"></div>
+    <div class="scan-bar">
+      <span>Scan ativo</span>
+      <button type="button" class="btn" id="btnFechaScan" style="color:#fff;background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.35);">Fechar</button>
+    </div>
+  </div>
+  <input type="file" id="filePick" accept="image/*" capture="environment">
+
+  {% include "produtos/_js_busca_produto_inteligente.html" %}
+  <script>
+  (function () {
+    var URL_SLIM = "{{ url_catalogo_slim }}";
+    var URL_DET = "{{ url_api_produto }}";
+    var URL_SLOT = "{{ url_api_foto }}";
+    var PIN_URL = "{{ url_pin }}";
+    var baseProdutos = [];
+    var produtoAtual = null;
+    var slotAlvo = 0;
+    var scanner = null;
+    var scanningActive = false;
+
+    function csrf() {
+      var m = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+      return m ? decodeURIComponent(m[1]) : "";
+    }
+    function apiUrl(tpl, id) {
+      return String(tpl || "").replace("__ID__", encodeURIComponent(id));
+    }
+    function setStatus(msg, isErr) {
+      var el = document.getElementById("statusMsg");
+      el.textContent = msg || "";
+      el.className = "status" + (isErr ? " err" : "");
+    }
+    function mostrarLista() {
+      document.getElementById("painel").classList.remove("on");
+      document.getElementById("busca-wrap").classList.remove("on-hide");
+      document.getElementById("lista").classList.remove("on-hide");
+      produtoAtual = null;
+    }
+    function mostrarPainel() {
+      document.getElementById("painel").classList.add("on");
+      document.getElementById("busca-wrap").classList.add("on-hide");
+      document.getElementById("lista").classList.add("on-hide");
+    }
+
+    function renderLista(rows) {
+      var box = document.getElementById("lista");
+      if (!rows || !rows.length) {
+        box.innerHTML = '<p class="hint">Nenhum produto. Digite ou bipar.</p>';
+        return;
+      }
+      var html = "";
+      rows.slice(0, 40).forEach(function (p) {
+        var id = String(p.id || "");
+        var nome = String(p.nome || "Sem nome");
+        var meta = [p.codigo || p.codigo_nfe || "", p.codigo_barras || ""].filter(Boolean).join(" · ");
+        html += '<button type="button" class="card-p" data-id="' + id.replace(/"/g, "") + '">' +
+          "<strong>" + nome.replace(/</g, "&lt;") + "</strong>" +
+          "<span>" + meta.replace(/</g, "&lt;") + "</span></button>";
+      });
+      box.innerHTML = html;
+      box.querySelectorAll(".card-p").forEach(function (btn) {
+        btn.addEventListener("click", function () { abrirProduto(btn.getAttribute("data-id")); });
+      });
+    }
+
+    function buscar(termo) {
+      var t = String(termo || "").trim();
+      if (t.length < 2) {
+        document.getElementById("lista").innerHTML = '<p class="hint">Digite pelo menos 2 letras ou bipar o código.</p>';
+        return;
+      }
+      var termoN = (typeof normalizarBuscaLocal === "function") ? normalizarBuscaLocal(t) : t.toLowerCase();
+      var rows = (typeof filtrarProdutosBuscaInteligente === "function")
+        ? filtrarProdutosBuscaInteligente(baseProdutos, termoN, "normal")
+        : baseProdutos.filter(function (p) {
+            return String(p.busca_texto || p.nome || "").toLowerCase().indexOf(t.toLowerCase()) >= 0;
+          });
+      renderLista(rows);
+    }
+
+    function matchCodigoExato(codigo) {
+      var c = String(codigo || "").replace(/\D/g, "") || String(codigo || "").trim();
+      if (!c) return [];
+      return baseProdutos.filter(function (p) {
+        var bag = []
+          .concat(p.codigo_barras || "", p.codigo || "", p.codigo_nfe || "")
+          .concat(Array.isArray(p.index_codigos) ? p.index_codigos : []);
+        return bag.some(function (x) {
+          var s = String(x || "").trim();
+          return s === c || s.replace(/\D/g, "") === c;
+        });
+      });
+    }
+
+    async function carregarCatalogo() {
+      try {
+        var res = await fetch(URL_SLIM, { credentials: "same-origin" });
+        var j = await res.json();
+        baseProdutos = (j && j.produtos) || [];
+        document.getElementById("lista").innerHTML = '<p class="hint">Busque ou toque em Bipar.</p>';
+      } catch (e) {
+        document.getElementById("lista").innerHTML = '<p class="hint">Falha ao carregar catálogo.</p>';
+      }
+    }
+
+    function renderSlots(data) {
+      var slots = (data && data.slots) || [];
+      var box = document.getElementById("slots");
+      var html = "";
+      slots.forEach(function (s) {
+        var img = s.tem_foto
+          ? '<img src="' + String(s.url || "").replace(/"/g, "") + '" alt="">'
+          : '<div class="slot-empty">Toque em Tirar</div>';
+        html += '<div class="slot' + (s.tem_foto ? " tem" : "") + '" data-i="' + s.indice + '">' +
+          img +
+          '<div class="slot-foot"><div class="slot-lab">' + (s.rotulo || ("Slot " + s.indice)) + "</div>" +
+          '<div class="slot-acts">' +
+          '<button type="button" class="tirar" data-i="' + s.indice + '">Tirar</button>' +
+          (s.tem_foto ? '<button type="button" class="apagar" data-i="' + s.indice + '">Apagar</button>' : "") +
+          "</div></div></div>";
+      });
+      box.innerHTML = html;
+      box.querySelectorAll(".tirar").forEach(function (b) {
+        b.addEventListener("click", function () {
+          slotAlvo = parseInt(b.getAttribute("data-i") || "0", 10) || 0;
+          document.getElementById("filePick").click();
+        });
+      });
+      box.querySelectorAll(".apagar").forEach(function (b) {
+        b.addEventListener("click", function () {
+          if (!confirm("Apagar esta foto?")) return;
+          apagarSlot(parseInt(b.getAttribute("data-i") || "0", 10) || 0);
+        });
+      });
+    }
+
+    async function abrirProduto(id) {
+      if (!id) return;
+      setStatus("Abrindo…");
+      mostrarPainel();
+      try {
+        var res = await fetch(apiUrl(URL_DET, id), { credentials: "same-origin" });
+        var j = await res.json().catch(function () { return {}; });
+        if (res.status === 401 && j.precisa_pin) {
+          location.href = PIN_URL;
+          return;
+        }
+        if (!res.ok || !j.ok) {
+          setStatus(j.erro || "Não abriu o produto.", true);
+          return;
+        }
+        produtoAtual = j;
+        document.getElementById("prodNome").textContent = j.nome || id;
+        document.getElementById("prodMeta").textContent = (j.n_fotos || 0) + " foto(s) · id " + id;
+        renderSlots(j);
+        setStatus("");
+      } catch (e) {
+        setStatus("Erro de rede.", true);
+      }
+    }
+
+    function comprimirJpeg(file) {
+      return new Promise(function (resolve, reject) {
+        var img = new Image();
+        var url = URL.createObjectURL(file);
+        img.onload = function () {
+          try {
+            var max = 900;
+            var w = img.naturalWidth || img.width;
+            var h = img.naturalHeight || img.height;
+            var scale = Math.min(1, max / Math.max(w, h));
+            var cw = Math.max(1, Math.round(w * scale));
+            var ch = Math.max(1, Math.round(h * scale));
+            var canvas = document.createElement("canvas");
+            canvas.width = cw; canvas.height = ch;
+            var ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, cw, ch);
+            var dataUrl = canvas.toDataURL("image/jpeg", 0.78);
+            URL.revokeObjectURL(url);
+            resolve(dataUrl);
+          } catch (err) {
+            URL.revokeObjectURL(url);
+            reject(err);
+          }
+        };
+        img.onerror = function () {
+          URL.revokeObjectURL(url);
+          reject(new Error("imagem"));
+        };
+        img.src = url;
+      });
+    }
+
+    async function salvarSlot(indice, dataUrl) {
+      if (!produtoAtual || !produtoAtual.produto_id) return;
+      setStatus("Salvando foto…");
+      try {
+        var res = await fetch(apiUrl(URL_SLOT, produtoAtual.produto_id), {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrf(),
+            "X-Requested-With": "XMLHttpRequest",
+          },
+          body: JSON.stringify({
+            indice: indice,
+            imagem_base64: dataUrl,
+            imagem_mime: "image/jpeg",
+          }),
+        });
+        var j = await res.json().catch(function () { return {}; });
+        if (res.status === 401 && j.precisa_pin) {
+          location.href = PIN_URL;
+          return;
+        }
+        if (!res.ok || !j.ok) {
+          setStatus(j.erro || "Não salvou.", true);
+          return;
+        }
+        produtoAtual = j;
+        document.getElementById("prodMeta").textContent = (j.n_fotos || 0) + " foto(s) · id " + j.produto_id;
+        renderSlots(j);
+        setStatus(indice === 0 ? "Principal salva." : "Foto extra salva.");
+      } catch (e) {
+        setStatus("Erro ao salvar.", true);
+      }
+    }
+
+    async function apagarSlot(indice) {
+      if (!produtoAtual || !produtoAtual.produto_id) return;
+      setStatus("Apagando…");
+      try {
+        var res = await fetch(apiUrl(URL_SLOT, produtoAtual.produto_id), {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrf(),
+            "X-Requested-With": "XMLHttpRequest",
+          },
+          body: JSON.stringify({ indice: indice, acao: "apagar" }),
+        });
+        var j = await res.json().catch(function () { return {}; });
+        if (!res.ok || !j.ok) {
+          setStatus(j.erro || "Não apagou.", true);
+          return;
+        }
+        produtoAtual = j;
+        document.getElementById("prodMeta").textContent = (j.n_fotos || 0) + " foto(s) · id " + j.produto_id;
+        renderSlots(j);
+        setStatus("Foto apagada.");
+      } catch (e) {
+        setStatus("Erro ao apagar.", true);
+      }
+    }
+
+    function stopScan() {
+      scanningActive = false;
+      document.getElementById("reader").classList.remove("on");
+      document.getElementById("reader").setAttribute("aria-hidden", "true");
+      if (scanner) {
+        try {
+          return scanner.stop().then(function () { scanner = null; }).catch(function () { scanner = null; });
+        } catch (e) { scanner = null; }
+      }
+      return Promise.resolve();
+    }
+
+    function startScan() {
+      if (typeof Html5Qrcode === "undefined") {
+        alert("Leitor não carregou. Tente de novo.");
+        return;
+      }
+      stopScan().then(function () {
+        document.getElementById("reader").classList.add("on");
+        document.getElementById("reader").setAttribute("aria-hidden", "false");
+        scanningActive = true;
+        scanner = new Html5Qrcode("reader-box");
+        var formats = [];
+        try {
+          var F = Html5QrcodeSupportedFormats;
+          formats = [F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E, F.CODE_128, F.CODE_39, F.ITF, F.QR_CODE];
+        } catch (e) {}
+        scanner.start(
+          { facingMode: "environment" },
+          {
+            fps: 12,
+            qrbox: function (viewW, viewH) {
+              var w = Math.floor(Math.min(viewW * 0.88, 360));
+              var h = Math.floor(Math.min(viewH * 0.28, 140));
+              return { width: w, height: h };
+            },
+            formatsToSupport: formats.length ? formats : undefined,
+            experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+          },
+          function (txt) {
+            if (!scanningActive) return;
+            scanningActive = false;
+            var codigo = String(txt || "").trim();
+            stopScan().then(function () {
+              if (!codigo) return;
+              var hits = matchCodigoExato(codigo);
+              if (hits.length === 1) {
+                abrirProduto(String(hits[0].id || ""));
+                return;
+              }
+              document.getElementById("busca").value = codigo;
+              buscar(codigo);
+              mostrarLista();
+            });
+          }
+        ).catch(function () {
+          alert("Não abriu a câmera. Permita o acesso.");
+          stopScan();
+        });
+      });
+    }
+
+    document.getElementById("busca").addEventListener("input", function () {
+      buscar(this.value);
+    });
+    document.getElementById("btnScan").addEventListener("click", startScan);
+    document.getElementById("btnFechaScan").addEventListener("click", function () { stopScan(); });
+    document.getElementById("btnVoltar").addEventListener("click", function () {
+      mostrarLista();
+      buscar(document.getElementById("busca").value);
+    });
+    document.getElementById("filePick").addEventListener("change", function () {
+      var f = this.files && this.files[0];
+      this.value = "";
+      if (!f) return;
+      comprimirJpeg(f).then(function (dataUrl) {
+        return salvarSlot(slotAlvo, dataUrl);
+      }).catch(function () {
+        setStatus("Não leu a foto.", true);
+      });
+    });
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("{% url 'vendas_lojas_sw' %}", { scope: "/vendas/lojas/" }).catch(function () {});
+    }
+    carregarCatalogo();
+  })();
+  </script>
+</body>
+</html>

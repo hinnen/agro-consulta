@@ -23,6 +23,7 @@ from . import bug_report_views
 from . import ajuste_codigo_pendente_views
 from . import views_planos_conta
 from . import contagem_ciclica_views
+from . import views_fotos_produto
 
 urlpatterns = [
     # --- PÁGINAS ---
@@ -648,6 +649,24 @@ urlpatterns = [
     path('api/vendas/lojas/extras/', views.api_vendas_lojas_extras, name='api_vendas_lojas_extras'),
     path('vendas/lojas/painel/', views.vendas_lojas_resumo, name='vendas_lojas_resumo'),
     path('vendas/lojas/tarefas/', include('tarefas.urls')),
+    path('vendas/lojas/fotos/pin/', views_fotos_produto.fotos_produto_pin, name='fotos_produto_pin'),
+    path('vendas/lojas/fotos/sair/', views_fotos_produto.fotos_produto_logout, name='fotos_produto_logout'),
+    path('vendas/lojas/fotos/', views_fotos_produto.fotos_produto_app, name='fotos_produto_app'),
+    path(
+        'vendas/lojas/fotos/api/<str:produto_id>/',
+        views_fotos_produto.api_fotos_produto_detalhe,
+        name='api_fotos_produto_detalhe',
+    ),
+    path(
+        'vendas/lojas/fotos/api/<str:produto_id>/slot/',
+        views_fotos_produto.api_fotos_produto_slot,
+        name='api_fotos_produto_slot',
+    ),
+    path(
+        'api/produtos/foto/<str:produto_id>/',
+        views_fotos_produto.produto_foto_bytes,
+        name='produto_foto_bytes',
+    ),
     path('vendas/lojas/', views.vendas_lojas_hub, name='vendas_lojas_hub'),
     path('vendas/', views.vendas_lista, name='vendas_lista'),
     path('fiado/', fiado_views.fiado_gestao, name='fiado_gestao'),
