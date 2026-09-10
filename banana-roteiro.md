@@ -427,3 +427,19 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 **Rollback:** `docs/ROLLBACK-CHECKLIST-0909.md` · tag `rollback/pre-checklist-0909-v23.58` (criar no deploy).  
 **Risco:** médio em entrega/caixa — **pausar vendas** no deploy.  
 **Smoke pós:** badge **v23.70** · migrate 0128+0129 · Entregas abas · loja sai · Adiar · Tarefas Salvar · repasse cofre plano.
+
+## 27. Checklist único — lote 10/09 (`deploy/prep-checklist-1009` · alvo loja **v23.91**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PIN-SSPIN-GLOBAL** | 🟡 **PREP** · aguarda senha | **NÃO** |
+| 2 | **FOTOS-PRODUTO-MOBILE** | 🟡 **PREP** · aguarda senha | **NÃO** |
+| 3 | **PIN-NS-BI** | 🟡 **PREP** · aguarda senha | **NÃO** |
+| 4 | **CLI-DUP-TEL-Z** | 🟡 **PREP** · aguarda senha | **NÃO** |
+| 5 | **NF-FIN-NAO-TEM** | 🟡 **PREP** · aguarda senha | **NÃO** |
+| 6 | **NF-AGUARDA-PRODUTO** | 🟡 **PREP** · aguarda senha | **NÃO** |
+
+**Status: PREP pronto / aguarda senha.** Branch `deploy/prep-checklist-1009`. Live ainda **v23.76**.  
+**Prova:** SSPIN **197/197** · Fotos **59/59** · PIN-ALERT **130/130** · CLI **60/60**+deep **24/24** · NF-FIN **15/15** · NF-AGUARDA **6/6**.  
+**Rollback:** `docs/ROLLBACK-CHECKLIST-1009.md` · tag `rollback/pre-checklist-1009-v23.76`. **Só** frase+senha. **Não** merge `teste`.
+

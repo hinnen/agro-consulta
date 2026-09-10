@@ -1264,6 +1264,34 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🚀 PREP deploy loja — checklist 10/09 (`deploy/prep-checklist-1009` · **v23.91**) · aguarda senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 **PREP pronto** — **só** frase + senha na próxima mensagem · **não** subiu ainda |
+| **Live agora** | **v23.76** @ `056e9a7` |
+| **Branch PREP** | `deploy/prep-checklist-1009` · tip **v23.91** |
+| **Pacotes** | `CLI-DUP-TEL-Z` · `PIN-NS-BI` · `FOTOS-PRODUTO-MOBILE` · `PIN-SSPIN-GLOBAL` · `NF-FIN-NAO-TEM` · `NF-AGUARDA-PRODUTO` |
+| **Migrate** | **NÃO** |
+| **Prova pré** | CLI path **60/60** · deep **24/24** · PIN-ALERT **130/130** · SSPIN **197/197** · Fotos **59/59** · NF-FIN **15/15** · NF-AGUARDA **6/6** · `check` OK |
+| **Rollback** | tag `rollback/pre-checklist-1009-v23.76` · branch `producao-backup-pre-v2391-checklist-20260910` · `docs/ROLLBACK-CHECKLIST-1009.md` |
+| **O quê NÃO sobe** | merge `teste` · WhatsApp · Excel · DRE WIP |
+| **Risco loja aberta** | PIN global = médio (Ctrl+F5) · resto não mexe finalizar venda |
+| **Você no deploy** | Pausar vendas → frase+senha → Live → Ctrl+F5 · badge **v23.91** |
+
+### ✅ CHECKLIST ÚNICO — 10/09 · PREP aguarda senha
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `PIN-SSPIN-GLOBAL` | 🟡 **PREP** · aguarda senha | **NÃO** | **197/197** |
+| 2 | `FOTOS-PRODUTO-MOBILE` | 🟡 **PREP** · aguarda senha | **NÃO** | **59/59** |
+| 3 | `PIN-NS-BI` | 🟡 **PREP** · aguarda senha | **NÃO** | **130/130** |
+| 4 | `CLI-DUP-TEL-Z` | 🟡 **PREP** · aguarda senha | **NÃO** | **60/60** |
+| 5 | `NF-FIN-NAO-TEM` | 🟡 **PREP** · aguarda senha | **NÃO** | **15/15** |
+| 6 | `NF-AGUARDA-PRODUTO` | 🟡 **PREP** · aguarda senha | **NÃO** | **6/6** |
+
+**Live agora:** **v23.76**. PREP cherry **só** estes 6 · **não** merge `teste`.
+
 ### ✅ Deploy loja — Hotfixes Repasse (`deploy/prep-repasse-hotfix-0909` · **v23.76**) · **Live**
 
 | Campo | Valor |
