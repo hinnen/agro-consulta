@@ -1291,7 +1291,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `dashboard_gerencial.html` · `lancamento_nova_saida.js` · prova `verify_pin_alert_teclado_path.py` |
 | **Migrate** | **NÃO** |
 | **Prova** | PIN-ALERT **VERIFY_OK 130/130** · PIN **9973** = Renan · home com teclado |
-| **Commit** | (este tip) · `teste` **v23.78** |
+| **Commit** | `081914b` · `teste` **v23.78** |
 | **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
 | **Você** | Ctrl+F5 no `/` → Novo lançamento → Finalizar com PIN velho → **teclado** (sem alert preto) |
 
