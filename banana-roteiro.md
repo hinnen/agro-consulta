@@ -468,3 +468,13 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 | 1 | **CLI-DUP-TEL-Z** | 🟢 **pronto para envio à produção** | **NÃO** |
 
 **Prova:** path **60/60** · deep **24/24** · browser local z 250>240. **Só** frase+senha. Live ainda **v23.76**.
+
+---
+
+## 28. Checklist único — FOTOS-PRODUTO-MOBILE (alvo loja · tip **v23.83**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **FOTOS-PRODUTO-MOBILE** | 🟢 **pronto para envio à produção** | **NÃO** |
+
+**Prova:** `verify_fotos_produto_mobile_path.py` **59/59** (PIN 9973). **Só** frase+senha.

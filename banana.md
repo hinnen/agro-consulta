@@ -1281,19 +1281,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — App Fotos produto no hub GM Lojas (`FOTOS-PRODUTO-MOBILE` · **v23.82** · 10/09)
+### 📦 PACOTE PRONTO — App Fotos produto no hub GM Lojas (`FOTOS-PRODUTO-MOBILE` · **v23.83** · 10/09)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Botão **Fotos** no hub `/vendas/lojas/` (junto Vendas/Tarefas). Celular: PIN → busca (motor) ou bip câmera → até **4 fotos** (1 principal + 3 extras). |
-| **Peso PDV** | Lista/slim **sem** galeria. Principal via URL `/api/produtos/foto/<id>/?i=0` (não base64 no JSON). Extras só no app / sob demanda. |
+| **Peso PDV** | Lista/slim **sem** galeria. Principal via URL `/api/produtos/foto/<id>/?i=0`. Extras só no app / sob demanda. |
 | **Onde** | hub · `views_fotos_produto.py` · `fotos_produto_util.py` · templates `fotos_produto/` · `catalogo_delivery_util` (`imagens_extras`) |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_fotos_produto_mobile_path.py` **34/34** |
-| **Commit** | `98cb9c9` · `teste` **v23.82** |
-| **Status** | 🟢 **pronto no teste** — validar no celular local; loja **só** frase+senha |
-| **Você** | Celular → `/vendas/lojas/` → **Fotos** → PIN → buscar/bipar → Tirar (principal + extras) |
+| **Prova** | `verify_fotos_produto_mobile_path.py` **59/59** (PIN **9973**=Renan · 401 · apagar · URL leve · slim sem imagem) |
+| **Commit** | feat `98cb9c9` · tip **v23.83** (prova reforçada + checklist) |
+| **Status** | 🟢 **pronto para envio à produção** — loja **só** frase+senha |
+| **Você** | Celular → `/vendas/lojas/` → **Fotos** → PIN → buscar/bipar → Tirar |
 | **Depois** | Setinha galeria no PDV · flags no cadastro |
+| **Checklist** | `banana-roteiro.md` §28 |
 
 ### 📦 PACOTE PRONTO — Novo lançamento no BI: PIN vira teclado (`PIN-NS-BI` · **v23.79** · 10/09)
 
