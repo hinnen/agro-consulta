@@ -669,6 +669,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Lista CP — destaque empréstimo (`CP-EMP-ROW-TINT` · v18.77):** fundo laranja leve nas linhas Pagamento/Juros de Empréstimos (externo e interno).
 - **Nova saÃ­da** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **Â«EmprÃ©stimo (entrada + pagamento)Â»** â€” gera receita quitada (hoje) + despesa(s); se saÃ­da > entrada, diferenÃ§a em **Juros de EmprÃ©stimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 - **Nova saÃ­da no BI — PIN (`PIN-NS-BI` · v23.80):** Finalizar no Dashboard abre teclado (não alert «modo descanso»); sspin no home + tratamento no `lancamento_nova_saida.js`.
+- **PIN global loja (`PIN-SSPIN-GLOBAL` · v23.84):** teclado em `base.html` + telas standalone (RH, caixa, promo…); alert nativo de PIN **proibido** na bridge; login/catálogo público fora.
 - **Nova saÃ­da â€” escolha 1Âº passo (`NS-ESCOLHA-EMP` Â· v18.67):** ao abrir, 2 cards grandes (**Novo LanÃ§amento** Ã— **EmprÃ©stimo**) no padrÃ£o Externo/Interno; EmprÃ©stimo abre o modal CP (BI tambÃ©m inclui o modal).
 - **GrÃ¡fico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` â€” **100dvh sem scroll**; toolbar perÃ­odo simÃ©trica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrÃ£o ðŸ“Œ); modos tempo real / histÃ³rico / comparar; drill-down CP popup. **Entrada BI:** botÃ£o laranja no card **Contas a Pagar** (`/`). Teste **v3.54+**; loja **v3.39**.
 - **DRE Indicadores + Resumo — CMV (09/08, `DRE-CMV-TOGGLE` + `RG-CMV-TOGGLE`):** botão **Mercadoria vendida** (custo cadastro × qtd) × **Mercadoria paga** (lançamentos). Lucro bruto / margem / líquido / PE acompanham. Caixa não muda. Padrão = vendida. Mesma chave `agro_dre_cmv_modo_v1`.
@@ -1280,6 +1281,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE PRONTO — Teclado PIN em todas as telas de loja (`PIN-SSPIN-GLOBAL` · **v23.84** · 10/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Acabar de caçar tela a tela o alert preto «modo descanso». Teclado PIN **global** nas telas autenticadas. |
+| **Fix** | `base.html` inclui sspin · RH/caixa/promo/checkout/etc. · bridge **nunca** abre alert nativo de PIN · login/catálogo público **sem** teclado |
+| **Onde** | `base/templates/base.html` · `_agro_open_external` · `_screensaver_pin` · dezenas de templates standalone |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_sspin_cobertura_path.py` **53/53** · PIN-ALERT **130/130** · PIN **9973**=Renan |
+| **Commit** | (este tip) · `teste` **v23.84** |
+| **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
+| **Você** | Ctrl+F5 · em **qualquer** tela de loja, ação que pediria PIN → **teclado** (não caixa preta) |
+
+### ✅ CHECKLIST ÚNICO — 10/09 · pronto envio (PIN global + fotos + …)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `PIN-SSPIN-GLOBAL` | 🟢 **pronto para envio à produção** | **NÃO** | **53/53** |
+| 2 | `FOTOS-PRODUTO-MOBILE` | 🟢 **pronto para envio à produção** | **NÃO** | **59/59** |
+| 3 | `PIN-NS-BI` | 🟢 **pronto para envio à produção** | **NÃO** | **130/130** |
+| 4 | `CLI-DUP-TEL-Z` | 🟢 **pronto para envio à produção** | **NÃO** | **60/60** |
+
+**Live agora:** **v23.76**. Estes pacotes **ainda não** subiram. **Não** merge `teste`.
 
 ### 📦 PACOTE PRONTO — App Fotos produto no hub GM Lojas (`FOTOS-PRODUTO-MOBILE` · **v23.83** · 10/09)
 

@@ -3579,5 +3579,8 @@ try {
     navigator.serviceWorker.register("{% url 'ajuste_mobile_sw' %}", { scope: "/ajuste-mobile/" }).catch(function () {});
   }
 </script>
+
+{# Teclado PIN global (evita alert modo descanso). #}
+{% include "produtos/_screensaver_pin.html" %}
 </body>
 </html>

@@ -137,5 +137,8 @@
     navigator.serviceWorker.register("{% url 'vendas_lojas_sw' %}", { scope: "/vendas/lojas/" }).catch(function () {});
   }
   </script>
+
+{# Teclado PIN global (evita alert modo descanso). #}
+{% include "produtos/_screensaver_pin.html" %}
 </body>
 </html>
