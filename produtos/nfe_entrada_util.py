@@ -167,6 +167,24 @@ def _entrada_nfe_extra_correcao_sistemica(extra: Any) -> bool:
     return False
 
 
+def _entrada_nfe_extra_aguardando_produto(extra: Any) -> bool:
+    """Marca manual: fornecedor ainda deve produto — fica em Em andamento mesmo com PIN."""
+    if not isinstance(extra, dict):
+        return False
+    v = extra.get("aguardando_produto")
+    if v is True:
+        return True
+    if isinstance(v, str) and v.strip().lower() in ("1", "true", "sim", "yes"):
+        return True
+    return False
+
+
+def _entrada_nfe_extra_aguardando_produto_txt(extra: Any) -> str:
+    if not isinstance(extra, dict):
+        return ""
+    return str(extra.get("aguardando_produto_txt") or "").strip()[:500]
+
+
 def _entrada_nfe_extra_aviso_operacional(extra: Any) -> str:
     """Texto livre visível na lista (aviso entre usuários da loja)."""
     if not isinstance(extra, dict):
@@ -182,6 +200,7 @@ def entrada_nfe_fila_bucket_lista(d: dict[str, Any]) -> str:
     **Concluída** só com finalização do assistente (``extra.aprovacao_wizard_em`` / PIN etapa 6),
     alinhado ao chip verde do passo 6. Estoque + financeiro sem PIN ficam em **finalizar**.
     Status ``encerrada`` (legado, antes só por botão) fica em fila própria, não em Concluída.
+    **Aguardando produto** (fornecedor deve) fica em Em andamento mesmo com PIN.
     """
     eff = str(d.get("entrada_status_efetivo") or "")
     fin_ok = bool(d.get("entrada_financeiro_lancado"))
@@ -192,6 +211,9 @@ def entrada_nfe_fila_bucket_lista(d: dict[str, Any]) -> str:
         return "descartada"
     if eff == ENTRADA_NFE_STATUS_ENCERRADA:
         return "encerrada"
+    # Fornecedor deve produto: permanece na fila Em andamento (lembrete) mesmo com PIN.
+    if _entrada_nfe_extra_aguardando_produto(ex):
+        return "aguardando_produto"
     if final_ok:
         return "concluida"
     if eff == ENTRADA_NFE_STATUS_COM_PENDENCIAS:
@@ -228,6 +250,8 @@ def entrada_nfe_enriquecer_doc_serializado(d: dict[str, Any]) -> dict[str, Any]:
     d["entrada_lista_bucket"] = entrada_nfe_fila_bucket_lista(d)
     d["entrada_correcao_sistemica"] = _entrada_nfe_extra_correcao_sistemica(extra)
     d["entrada_aviso_operacional"] = _entrada_nfe_extra_aviso_operacional(extra)
+    d["entrada_aguardando_produto"] = _entrada_nfe_extra_aguardando_produto(extra)
+    d["entrada_aguardando_produto_txt"] = _entrada_nfe_extra_aguardando_produto_txt(extra)
     return d
 
 
@@ -2390,7 +2414,16 @@ def auditar_entrada_nfe_financeiro_lote(
             ff = legacy.get(f, f)
             b = str(d.get("entrada_lista_bucket") or "")
             if ff == "em_andamento":
-                if b not in ("nota_aberta", "estoque", "financeiro", "finalizar"):
+                if b not in (
+                    "nota_aberta",
+                    "estoque",
+                    "financeiro",
+                    "finalizar",
+                    "aguardando_produto",
+                ):
+                    continue
+            elif ff == "aguardando_produto":
+                if b != "aguardando_produto":
                     continue
             elif ff != b:
                 continue
@@ -2796,6 +2829,7 @@ def _entrada_nfe_item_casa_filtro_lista(item: dict, filtro: str | None) -> bool:
             "encerrada",
             "em_andamento",
             "correcao_sistemica",
+            "aguardando_produto",
             "estoque_aplicado_legacy",
             "financeiro_lancado_legacy",
             "encerrada_legacy",
@@ -2807,14 +2841,23 @@ def _entrada_nfe_item_casa_filtro_lista(item: dict, filtro: str | None) -> bool:
     fin_ok = bool(item.get("entrada_financeiro_lancado"))
     b = str(item.get("entrada_lista_bucket") or "")
     if f == "em_andamento":
-        return b in ("nota_aberta", "estoque", "financeiro", "finalizar")
+        return b in (
+            "nota_aberta",
+            "estoque",
+            "financeiro",
+            "finalizar",
+            "aguardando_produto",
+        )
     if f == "correcao_sistemica":
         return bool(item.get("entrada_correcao_sistemica")) and b in (
             "nota_aberta",
             "estoque",
             "financeiro",
             "finalizar",
+            "aguardando_produto",
         )
+    if f == "aguardando_produto":
+        return b == "aguardando_produto" or bool(item.get("entrada_aguardando_produto"))
     if f == "estoque_aplicado_legacy":
         return eff == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO
     if f == "financeiro_lancado_legacy":
@@ -4606,7 +4649,7 @@ def pipeline_acao_rascunho_entrada(
     usuario: str = "",
     texto: str = "",
 ) -> dict[str, Any]:
-    """descartar | reabrir | correcao_sistemica_on | correcao_sistemica_off | aviso_operacional_salvar | aviso_operacional_limpar.
+    """descartar | reabrir | correcao_sistemica_* | aguardando_produto_* | aviso_operacional_*.
 
     ``encerrar`` está desativado: a lista trata **Concluída** só com estoque aplicado + financeiro.
     """
@@ -4679,6 +4722,48 @@ def pipeline_acao_rascunho_entrada(
                     },
                 )
             return {"ok": True, "id": str(_id), "correcao_sistemica": ac == "correcao_sistemica_on"}
+        elif ac in ("aguardando_produto_on", "aguardando_produto_off"):
+            # Permitido com PIN já gravado — é o lembrete «fornecedor deve produto».
+            if st == ENTRADA_NFE_STATUS_DESCARTADA:
+                return {"ok": False, "erro": "Nota descartada."}
+            if ac == "aguardando_produto_on":
+                txt = str(texto or "").strip()
+                if len(txt) > 500:
+                    txt = txt[:500]
+                sets: dict[str, Any] = {
+                    "extra.aguardando_produto": True,
+                    "extra.aguardando_produto_em": agora.isoformat(),
+                    "extra.aguardando_produto_por": (usuario or "")[:200],
+                    "atualizado_em": agora,
+                    "usuario_ultima_alteracao": (usuario or "")[:200],
+                }
+                if txt:
+                    sets["extra.aguardando_produto_txt"] = txt
+                else:
+                    # Mantém texto antigo se só reativar sem digitar de novo
+                    pass
+                col.update_one({"_id": _id}, {"$set": sets})
+            else:
+                col.update_one(
+                    {"_id": _id},
+                    {
+                        "$unset": {
+                            "extra.aguardando_produto": "",
+                            "extra.aguardando_produto_em": "",
+                            "extra.aguardando_produto_por": "",
+                            "extra.aguardando_produto_txt": "",
+                        },
+                        "$set": {
+                            "atualizado_em": agora,
+                            "usuario_ultima_alteracao": (usuario or "")[:200],
+                        },
+                    },
+                )
+            return {
+                "ok": True,
+                "id": str(_id),
+                "aguardando_produto": ac == "aguardando_produto_on",
+            }
         elif ac in ("aviso_operacional_salvar", "aviso_operacional_limpar"):
             if st == ENTRADA_NFE_STATUS_DESCARTADA:
                 return {"ok": False, "erro": "Nota descartada."}

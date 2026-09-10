@@ -619,6 +619,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Vínculo XML (30/07 · v12.10):** tabela Postgres `EntradaNfeVinculoAgro` = fonte da verdade multi-PC; «Ler XML» reaproveita cProd (R0151…). Migrate `0069` · backfill `agro_backfill_c_prod_nf_entrada`.
 - **Financeiro desync (2026-06-19 / reforço 29/07 / **04/09** `NF-FIN-MANUAL-RELIGA` / **10/09** `NF-FIN-NAO-TEM`):** título já no CP mas etapa 7 laranja + «Salvar + a pagar». Nota **manual** (sem chave XML) não casava; «**NF não tem**» também falhava (extrator só lia dígitos). Abrir a nota / Salvar religa; **não** gerar de novo se os títulos já existem.
 - **Lista Em andamento vazia (04/09 · `NF-LISTA-ANDAMENTO`):** chip filtrava só as ~25 notas mais novas — nota antiga em Financeiro/Estoque sumia até digitar na busca. Fix: scan fundo + preencher lim com quem casa no filtro.
+- **Fornecedor deve produto (10/09 · `NF-AGUARDA-PRODUTO`):** marca na lista — nota com PIN/CP/estoque ok **continua em Em andamento** até **Chegou**. Chip **Deve produto**.
 - **Reabrir → estoque de novo (03/08):** ao reabrir, estornar se houver status/`estoque_aplicado_em`/carimbo/`ajuste_ids` (não só `estoque_aplicado`). Autosave não ressuscita carimbo. Lista «reabrir» encerrada chama o mesmo estorno.
 - **PIN etapa 5 (02/09 · `PIN-ET5-CAMPO`):** linha de PIN **sempre visível** acima do botão azul «Registrar estoque»; o POST manda `pin`. Overlay escuro **não** é o caminho desta etapa. Loja **v20.86** ainda **não** tem isso.
 - **Kardex ao reabrir (03/08):** reabrir **não apaga** a Entrada NF — grava saída `estorno_entrada_nf_agro` («Estorno NF (reabrir)»); ao concluir de novo, nova Entrada NF. `nf_qtd=` no ajuste para qtd confiável.
@@ -1282,7 +1283,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — NF «não tem» religa CP pago (`NF-FIN-NAO-TEM` · **v23.88** · 10/09)
+### 📦 PACOTE PRONTO — NF fornecedor deve produto (`NF-AGUARDA-PRODUTO` · **v23.90** · 10/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Nota toda lançada (estoque/CP/PIN) fica em **Em andamento** se o fornecedor ainda deve produto |
+| **Uso** | Lista → **Deve produto** (texto opcional) · chip **Deve produto** · **Chegou** tira o lembrete |
+| **Onde** | `nfe_entrada_util.py` · `entrada_nota.html` · `verify_nf_aguarda_produto_path.py` |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_nf_aguarda_produto_path.py` **VERIFY_OK 6/6** |
+| **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
+| **Você** | Ctrl+F5 Entrada NF → Em andamento → **Deve produto** → depois **Chegou** |
+
+### 📦 PACOTE PRONTO — NF «não tem» religa CP pago (`NF-FIN-NAO-TEM` · **v23.89** · 10/09)
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1292,7 +1305,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `nfe_entrada_util.py` · `views.py` · teste vínculo · `verify_nf_fin_nao_tem_path.py` |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_nf_fin_nao_tem_path.py` **VERIFY_OK 15/15** · django vínculo **15/15** · API religa sem insert |
-| **Commit** | `de93a35` · fix `072522c` · `teste` **v23.88** |
+| **Commit** | `de93a35` · fix `072522c` · `teste` **v23.89** |
 | **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
 | **Você** | Ctrl+F5 · abrir a nota · etapa 7 → **Salvar + a pagar** → «já gerada» · etapa 8 ok |
 
@@ -1349,6 +1362,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 3 | `PIN-NS-BI` | 🟢 **pronto para envio à produção** | **NÃO** | **130/130** |
 | 4 | `CLI-DUP-TEL-Z` | 🟢 **pronto para envio à produção** | **NÃO** | **60/60** |
 | 5 | `NF-FIN-NAO-TEM` | 🟢 **pronto para envio à produção** | **NÃO** | **15/15** |
+| 6 | `NF-AGUARDA-PRODUTO` | 🟢 **pronto para envio à produção** | **NÃO** | **6/6** |
 
 **Live agora:** **v23.76**. Estes pacotes **ainda não** subiram. **Não** merge `teste`.
 
