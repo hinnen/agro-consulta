@@ -1283,6 +1283,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ Prova reforçada — NF-AGUARDA-PRODUTO (`verify` **13/13** · unit **4/4** · 10/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ já **Live v23.91** — path revalidado (fonte · bucket · filtros · API on/off · PG ok) |
+| **Prova** | `verify_nf_aguarda_produto_path.py` **13/13** · `tests_entrada_nf_aguarda_produto` **4/4** |
+| **Falta subir** | **nada** deste pacote (já na loja) |
+
 ### ✅ Deploy loja — Checklist 10/09 (`deploy/prep-checklist-1009` · **v23.91**) · **Live**
 
 | Campo | Valor |
@@ -1292,7 +1300,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Agora** | `producao` @ **`22186fb`** · Render `dep-dahg41navr4c738vno40` **live** |
 | **Pacotes** | `CLI-DUP-TEL-Z` · `PIN-NS-BI` · `FOTOS-PRODUTO-MOBILE` · `PIN-SSPIN-GLOBAL` · `NF-FIN-NAO-TEM` · `NF-AGUARDA-PRODUTO` |
 | **Migrate** | **NÃO** |
-| **Prova pré** | CLI **60/60**+deep **24/24** · PIN-ALERT **130/130** · SSPIN **197/197** · Fotos **59/59** · NF-FIN **15/15** · NF-AGUARDA **6/6** · `check` OK |
+| **Prova pré** | CLI **60/60**+deep **24/24** · PIN-ALERT **130/130** · SSPIN **197/197** · Fotos **59/59** · NF-FIN **15/15** · NF-AGUARDA **13/13**+unit **4/4** · `check` OK |
 | **Rollback** | tag `rollback/pre-checklist-1009-v23.76` · branch `producao-backup-pre-v2391-checklist-20260910` · `docs/ROLLBACK-CHECKLIST-1009.md` · **só** frase+senha |
 | **Smoke** | healthz **ok** · consulta **301** · Ctrl+F5 · badge **v23.91** |
 | **Você** | **Ctrl+F5** · teclado PIN · EDITAR telefone · Hub Fotos · Entrada NF |
@@ -1306,7 +1314,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 3 | `PIN-NS-BI` | ✅ **Live v23.91** | **NÃO** | **130/130** |
 | 4 | `CLI-DUP-TEL-Z` | ✅ **Live v23.91** | **NÃO** | **60/60** |
 | 5 | `NF-FIN-NAO-TEM` | ✅ **Live v23.91** | **NÃO** | **15/15** |
-| 6 | `NF-AGUARDA-PRODUTO` | ✅ **Live v23.91** | **NÃO** | **6/6** |
+| 6 | `NF-AGUARDA-PRODUTO` | ✅ **Live v23.91** | **NÃO** | **13/13** · unit **4/4** |
 
 
 ### ✅ Deploy loja — Hotfixes Repasse (`deploy/prep-repasse-hotfix-0909` · **v23.76**) · **Live**
