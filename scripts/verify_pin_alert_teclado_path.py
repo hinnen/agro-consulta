@@ -109,9 +109,22 @@ def check_static() -> None:
         ("produtos/templates/produtos/compras.html", "compras"),
         ("produtos/templates/produtos/lancamentos_contas_pagar_teste.html", "CP"),
         ("produtos/templates/produtos/lancamentos_financeiros.html", "CR"),
+        ("produtos/templates/produtos/dashboard_gerencial.html", "dashboard BI"),
     ):
         html = read(rel)
         check("_screensaver_pin.html" in html or "lancamentos_pin_entrada.html" in html, f"{label} inclui sspin")
+
+    ns_js = read("produtos/static/produtos/js/lancamento_nova_saida.js")
+    check("function tratarErroPin" in ns_js, "nova saida tratarErroPin")
+    check("gmSspinAbrirSeErroPin" in ns_js, "nova saida chama AbrirSeErroPin")
+    check("function comOperador" in ns_js, "nova saida comOperador")
+    check("comOperador(doPost)" in ns_js, "nova saida Finalizar via comOperador")
+    idx_fail = ns_js.find("if (!j.ok && !ids.length)")
+    chunk_fail = ns_js[idx_fail : idx_fail + 450] if idx_fail >= 0 else ""
+    check("tratarErroPin" in chunk_fail, "nova saida erro gravacao trata PIN")
+    i_pin = chunk_fail.find("tratarErroPin")
+    i_alert = chunk_fail.find("alert(")
+    check(i_pin >= 0 and (i_alert < 0 or i_pin < i_alert), "nova saida PIN antes do alert")
 
 
 def check_runtime() -> None:
@@ -153,6 +166,7 @@ def check_runtime() -> None:
             ("caixa", "caixa_painel"),
             ("clientes", "clientes_lista"),
             ("historico", "historico_ajustes"),
+            ("home", "home"),
         ]
         for label, name in pages:
             try:
