@@ -1280,18 +1280,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Point não desiste no 502 (`MP-POINT-POLL-RETRY` · bug #7423 · **v23.73** · 09/09)
+### ✅ Deploy loja — Point não desiste no 502 (`MP-POINT-POLL-RETRY` · bug #7423 · **v23.73**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
+| **Status** | ✅ **enviado / Live v23.73** — cherry **só** este pacote (**não** merge `teste`) |
+| **Antes** | **Live v23.70** @ `71a169a` |
+| **Agora** | `producao` @ **`c7e6fd2`** · Render `dep-dah01b95efls739b0u30` |
 | **Relato** | Máquina MP cobrou · PDV «não aconteceu nada» · fecharam na Cielo. Caso: venda **#7423** R$ 239 (Ademir) · Geraldinho · 09/09 ~18:09 |
 | **Causa** | Poll do status: **um 502** da API Mercado Pago **matava** a espera (`throw`). Point já tinha cobrado (`tinha_pago` no forçar liberar). |
 | **O quê** | Erro transitório (502/5xx/429/rede) → continua aguardando + aviso «Conexão instável…». Só cancel/recusa/erro definitivo aborta. |
 | **Onde** | `pdv_wizard.js` (`pollMpPointUntilPaid`) |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_mp_point_poll_retry_path.py` **13/13** |
-| **Status** | 🟢 **pronto para envio** (tip `teste` **v23.73**) — loja ainda **v23.70** |
-| **Você** | Ctrl+F5 PDV · Point · se a internet oscilar, a tela **continua** «aguardando» (não some o pagamento) |
+| **Prova** | poll-retry **13/13** · final-pin **41/41** · `tests_mp_point_pin_forcar` **16/16** · PIN **9973** · lógica 502 **10/10** |
+| **Rollback** | tag `rollback/pre-mp-point-poll-retry-v23.70` · branch `producao-backup-pre-v2373-mp-point-poll-retry-20260909` · `docs/ROLLBACK-MP-POINT-POLL-RETRY.md` |
+| **Você** | **Ctrl+F5** PDV · badge **v23.73** · Point: se a rede oscilar, continua «aguardando» |
 | **Risco caixa** | #7423 gravada como **Cielo**; Point órfão R$239 foi forçado abandon — conferir se cliente pagou 1× ou 2× |
 
 ### ✅ Deploy loja — Checklist 09/09 (`deploy/prep-checklist-0909` · **v23.70**) · **Live**

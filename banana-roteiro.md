@@ -444,3 +444,16 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 **Antes:** Live **v23.58** @ `0e0c419`. Migrate **0128+0129** OK. **Não** merge `teste`.  
 **Rollback:** tag `rollback/pre-checklist-0909-v23.58` · `docs/ROLLBACK-CHECKLIST-0909.md`.  
 **Smoke:** Ctrl+F5 · badge **v23.70** · Entregas · Adiar · Tarefas · repasse.
+
+---
+
+## 26. Checklist único — MP-POINT-POLL-RETRY · ✅ **Live v23.73**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **MP-POINT-POLL-RETRY** | ✅ Live · poll **13/13** · PIN **41/41** · tests **16/16** | **NÃO** |
+
+**Status: ✅ Live v23.73** — `producao` @ `c7e6fd2` · Render `dep-dah01b95efls739b0u30`.  
+**Antes:** Live **v23.70** @ `71a169a`. Bug **#7423** (502 matava espera Point). **Não** merge `teste`.  
+**Rollback:** tag `rollback/pre-mp-point-poll-retry-v23.70` · `docs/ROLLBACK-MP-POINT-POLL-RETRY.md`.  
+**Smoke:** Ctrl+F5 · badge **v23.73** · Point: oscilação de rede continua aguardando.
