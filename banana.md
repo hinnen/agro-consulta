@@ -1282,18 +1282,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — NF «não tem» religa CP pago (`NF-FIN-NAO-TEM` · **v23.87** · 10/09)
+### 📦 PACOTE PRONTO — NF «não tem» religa CP pago (`NF-FIN-NAO-TEM` · **v23.88** · 10/09)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Nota manual demorou (faltava produto), CP já pago → «duplicidade» + etapa 8 sem financeiro |
-| **Causa** | Extrator só lia **número** na descrição; «NF não tem» não casava → tentava criar de novo |
-| **Fix** | Extrai «não tem» · estreita por fornecedor+parcelas · se insert bater duplicata, religa |
-| **Onde** | `nfe_entrada_util.py` · `views.py` (financeiro) · teste vínculo |
+| **Causa** | Extrator só lia **número**; «NF não tem» não casava → tentava criar de novo |
+| **Fix** | Extrai «não tem» · estreita fornecedor+parcelas · duplicata no insert → religa |
+| **Onde** | `nfe_entrada_util.py` · `views.py` · teste vínculo · `verify_nf_fin_nao_tem_path.py` |
 | **Migrate** | **NÃO** |
-| **Prova** | vínculo **14/14** · `verify_nf_fin_manual_religa_path.py` **6/6** |
-| **Status** | 🟡 `teste` **v23.87** — valida local · loja **só** frase+senha |
-| **Você** | Ctrl+F5 · abrir a nota · etapa 7 → **Salvar + a pagar** (deve virar «já gerada», sem 2º lote) → etapa 8 ok |
+| **Prova** | `verify_nf_fin_nao_tem_path.py` **VERIFY_OK 15/15** · django vínculo **15/15** · API religa sem insert |
+| **Commit** | (tip `teste`) |
+| **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
+| **Você** | Ctrl+F5 · abrir a nota · etapa 7 → **Salvar + a pagar** → «já gerada» · etapa 8 ok |
 
 ### 📦 PACOTE PRONTO — Teclado PIN em todas as telas de loja (`PIN-SSPIN-GLOBAL` · **v23.86** · 10/09)
 
@@ -1347,7 +1348,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 2 | `FOTOS-PRODUTO-MOBILE` | 🟢 **pronto para envio à produção** | **NÃO** | **59/59** |
 | 3 | `PIN-NS-BI` | 🟢 **pronto para envio à produção** | **NÃO** | **130/130** |
 | 4 | `CLI-DUP-TEL-Z` | 🟢 **pronto para envio à produção** | **NÃO** | **60/60** |
-| 5 | `NF-FIN-NAO-TEM` | 🟡 **teste v23.87** | **NÃO** | **14/14** + **6/6** |
+| 5 | `NF-FIN-NAO-TEM` | 🟢 **pronto para envio à produção** | **NÃO** | **15/15** |
 
 **Live agora:** **v23.76**. Estes pacotes **ainda não** subiram. **Não** merge `teste`.
 

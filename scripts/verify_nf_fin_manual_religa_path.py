@@ -80,8 +80,8 @@ def prova_unitaria() -> None:
         fail(f"django test falhou:\n{r.stdout}\n{r.stderr}")
     m = re.search(r"Ran (\d+) test", r.stdout + r.stderr)
     n = int(m.group(1)) if m else 0
-    if n < 12:
-        fail(f"esperava >=12 testes, veio {n}")
+    if n < 14:
+        fail(f"esperava >=14 testes, veio {n}")
     ok(f"django vínculo + anti-duplicata flag {n}/{n}")
 
 

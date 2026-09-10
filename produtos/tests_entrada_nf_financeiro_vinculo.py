@@ -327,6 +327,108 @@ class EntradaNfFinanceiroVinculoTests(SimpleTestCase):
         self.assertEqual(body["financeiro"]["ids"], ids)
         inserir.assert_not_called()
 
+    def test_api_financeiro_nf_nao_tem_religa_sem_insert(self):
+        """Caso loja: NF «não tem», 3 parcelas já no CP — API 200 e não chama insert."""
+        d = _doc(
+            {
+                "financeiro_ui": {
+                    "parcelas_manual": [
+                        {"data_vencimento": "2026-08-10", "valor": "564.07"},
+                        {"data_vencimento": "2026-08-17", "valor": "564.07"},
+                        {"data_vencimento": "2026-08-24", "valor": "564.06"},
+                    ]
+                },
+                "aprovacao_wizard_em": "2026-08-03T18:00:00+00:00",
+            },
+            status="encerrada",
+        )
+        for k in ("financeiro_lancado", "financeiro_ids", "financeiro_lote"):
+            d["extra"].pop(k, None)
+        d["cabecalho"].update(
+            {
+                "numero": "não tem",
+                "serie": "",
+                "emit_nome": "Sn - Ms Comercio E Representacao",
+                "emit_fornecedor_id": "",
+                "emit_cnpj": "",
+                "chave": "",
+            }
+        )
+        ids = ["6a72360fc2f235d15de39c42", "pg-nao-tem-2", "pg-nao-tem-3"]
+        titulos = [
+            {
+                "_id": ids[0],
+                "Cliente": "Sn - Ms Comercio E Representacao",
+                "ClienteID": "",
+                "Descricao": "NF não tem — Sn - Ms Comercio E Representacao (parcela 1/3)",
+                "Observacao": "Entrada NF-e Agro",
+                "ValorBruto": "564.07",
+                "DataVencimento": date(2026, 8, 10),
+                "Despesa": True,
+            },
+            {
+                "_id": ids[1],
+                "Cliente": "Sn - Ms Comercio E Representacao",
+                "ClienteID": "",
+                "Descricao": "NF não tem — Sn - Ms Comercio E Representacao (parcela 2/3)",
+                "Observacao": "Entrada NF-e Agro",
+                "ValorBruto": "564.07",
+                "DataVencimento": date(2026, 8, 17),
+                "Despesa": True,
+            },
+            {
+                "_id": ids[2],
+                "Cliente": "Sn - Ms Comercio E Representacao",
+                "ClienteID": "",
+                "Descricao": "NF não tem — Sn - Ms Comercio E Representacao (parcela 3/3)",
+                "Observacao": "Entrada NF-e Agro",
+                "ValorBruto": "564.06",
+                "DataVencimento": date(2026, 8, 24),
+                "Despesa": True,
+            },
+        ]
+        col = FakeCollection(d)
+        factory = RequestFactory()
+        request = factory.post(
+            "/api/entrada-nota/financeiro/",
+            data=json.dumps(
+                {
+                    "rascunho_id": RID,
+                    "cabecalho": d["cabecalho"],
+                    "linhas": d["linhas"],
+                    "financeiro": {
+                        "data_competencia": "2026-08-03",
+                        "data_vencimento": "2026-08-10",
+                        "parcelas_manual": d["extra"]["financeiro_ui"]["parcelas_manual"],
+                    },
+                }
+            ),
+            content_type="application/json",
+        )
+        request.user = SimpleNamespace(
+            is_authenticated=True, email="teste@local", pk=1, get_username=lambda: "teste"
+        )
+        with (
+            patch("produtos.views._entrada_nfe_conexao", return_value=(SimpleNamespace(col_c="DtoPessoa"), object())),
+            patch("produtos.views._entrada_nfe_rascunho_db_ok", return_value=True),
+            patch("produtos.views._entrada_nota_rascunho_store", return_value=col),
+            patch("produtos.views._object_id_rascunho", return_value=RID),
+            patch("produtos.views.normalizar_cabecalho_emit_fornecedor_entrada_nfe", side_effect=lambda db, colp, cab: cab),
+            patch("produtos.nfe_entrada_util._entrada_nota_rascunho_store", return_value=col),
+            patch("produtos.nfe_entrada_util._object_id_rascunho", return_value=RID),
+            patch("produtos.nfe_entrada_util._entrada_nfe_financeiro_titulos_por_ids", return_value=[]),
+            patch("produtos.nfe_entrada_util._entrada_nfe_financeiro_titulos_por_rastro", return_value=titulos),
+            patch("produtos.lancamentos_financeiro_pg_write_util.inserir_lancamentos_manual_lote_dispatch") as inserir,
+        ):
+            response = api_entrada_nota_financeiro(request)
+        self.assertEqual(response.status_code, 200, response.content)
+        body = json.loads(response.content)
+        self.assertTrue(body["ok"], body)
+        self.assertTrue(body["financeiro"]["ok"])
+        self.assertEqual(body["financeiro"]["ids"], ids)
+        inserir.assert_not_called()
+        self.assertTrue(col.doc["extra"].get("financeiro_lancado"))
+
     def test_api_financeiro_sem_titulo_continua_403(self):
         d, _titulos, _ids = self._nota_manual()
         col = FakeCollection(d)
