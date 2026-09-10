@@ -1283,7 +1283,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — NF fornecedor deve produto (`NF-AGUARDA-PRODUTO` · **v23.90** · 10/09)
+### 🚀 PREP deploy loja — checklist 10/09 (`deploy/prep-checklist-1009` · **v23.91**) · aguarda senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 **PREP pronto** — **só** frase + senha · **não** subiu ainda |
+| **Live agora** | **v23.76** @ `056e9a7` |
+| **Branch PREP** | `deploy/prep-checklist-1009` @ tip **v23.91** |
+| **Pacotes** | `CLI-DUP-TEL-Z` · `PIN-NS-BI` · `FOTOS-PRODUTO-MOBILE` · `PIN-SSPIN-GLOBAL` · `NF-FIN-NAO-TEM` · `NF-AGUARDA-PRODUTO` |
+| **Migrate** | **NÃO** |
+| **Prova pré** | CLI **60/60**+deep **24/24** · PIN-ALERT **130/130** · SSPIN **197/197** · Fotos **59/59** · NF-FIN **15/15** · NF-AGUARDA **6/6** · `check` OK |
+| **Rollback** | tag `rollback/pre-checklist-1009-v23.76` · branch `producao-backup-pre-v2391-checklist-20260910` · `docs/ROLLBACK-CHECKLIST-1009.md` |
+| **O quê NÃO sobe** | merge `teste` · WhatsApp · Excel · DRE WIP |
+| **Risco loja aberta** | PIN global = médio (Ctrl+F5) · resto não mexe finalizar venda |
+| **Você no deploy** | Pausar vendas → frase+senha → Live → Ctrl+F5 · badge **v23.91** |
+
+### 📦 PACOTE PRONTO — NF fornecedor deve produto (`NF-AGUARDA-PRODUTO` · **v23.91** · 10/09)
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1292,8 +1307,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `nfe_entrada_util.py` · `entrada_nota.html` · `verify_nf_aguarda_produto_path.py` |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_nf_aguarda_produto_path.py` **VERIFY_OK 6/6** |
-| **Commit** | `6c04b0d` · `teste` **v23.90** |
-| **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
+| **Commit** | `6c04b0d` · `teste` **v23.91** |
+| **Status** | 🟡 **PREP** · aguarda frase + senha (`deploy/prep-checklist-1009`) |
 | **Você** | Ctrl+F5 Entrada NF → Em andamento → **Deve produto** → depois **Chegou** |
 
 ### 📦 PACOTE PRONTO — NF «não tem» religa CP pago (`NF-FIN-NAO-TEM` · **v23.89** · 10/09)
@@ -1307,7 +1322,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_nf_fin_nao_tem_path.py` **VERIFY_OK 15/15** · django vínculo **15/15** · API religa sem insert |
 | **Commit** | `de93a35` · fix `072522c` · `teste` **v23.89** |
-| **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
+| **Status** | 🟡 **PREP** · aguarda frase + senha (`deploy/prep-checklist-1009`) |
 | **Você** | Ctrl+F5 · abrir a nota · etapa 7 → **Salvar + a pagar** → «já gerada» · etapa 8 ok |
 
 ### 📦 PACOTE PRONTO — Teclado PIN em todas as telas de loja (`PIN-SSPIN-GLOBAL` · **v23.86** · 10/09)
@@ -1320,7 +1335,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_sspin_cobertura_path.py` **VERIFY_OK 197/197** · PIN-ALERT **130/130** · LANC-PIN **70/70** · PIN **9973**=Renan · `check` OK · 24 telas com teclado · API 403→login→fresco |
 | **Commit** | `8a752f0` (+ prova tip) · `teste` **v23.86** |
-| **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
+| **Status** | 🟡 **PREP** · aguarda frase + senha (`deploy/prep-checklist-1009`) |
 | **Você** | Ctrl+F5 · qualquer tela de loja → ação que pediria PIN → **teclado** (sem caixa preta) |
 
 ### 📦 PACOTE PRONTO — App Fotos produto no hub GM Lojas (`FOTOS-PRODUTO-MOBILE` · **v23.83** · 10/09)
@@ -1331,7 +1346,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_fotos_produto_mobile_path.py` **59/59** · PIN **9973**=Renan |
 | **Commit** | `98cb9c9` · tip **v23.83** |
-| **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
+| **Status** | 🟡 **PREP** · aguarda frase + senha (`deploy/prep-checklist-1009`) |
 | **Você** | Celular → `/vendas/lojas/` → **Fotos** → PIN → Tirar |
 
 ### 📦 PACOTE PRONTO — Novo lançamento no BI: PIN vira teclado (`PIN-NS-BI` · **v23.80** · 10/09)
@@ -1342,7 +1357,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Prova** | PIN-ALERT **130/130** · cobertura **197/197** |
 | **Commit** | `081914b` |
-| **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
+| **Status** | 🟡 **PREP** · aguarda frase + senha (`deploy/prep-checklist-1009`) |
 
 ### 📦 PACOTE PRONTO — Telefone duplicado por cima do EDITAR (`CLI-DUP-TEL-Z` · **v23.77** · 10/09)
 
@@ -1352,20 +1367,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Prova** | path **60/60** · deep **24/24** |
 | **Commit** | `d1f6467` |
-| **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
+| **Status** | 🟡 **PREP** · aguarda frase + senha (`deploy/prep-checklist-1009`) |
 
-### ✅ CHECKLIST ÚNICO — 10/09 · pronto envio
+### ✅ CHECKLIST ÚNICO — 10/09 · PREP aguarda senha
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `PIN-SSPIN-GLOBAL` | 🟢 **pronto para envio à produção** | **NÃO** | **197/197** |
-| 2 | `FOTOS-PRODUTO-MOBILE` | 🟢 **pronto para envio à produção** | **NÃO** | **59/59** |
-| 3 | `PIN-NS-BI` | 🟢 **pronto para envio à produção** | **NÃO** | **130/130** |
-| 4 | `CLI-DUP-TEL-Z` | 🟢 **pronto para envio à produção** | **NÃO** | **60/60** |
-| 5 | `NF-FIN-NAO-TEM` | 🟢 **pronto para envio à produção** | **NÃO** | **15/15** |
-| 6 | `NF-AGUARDA-PRODUTO` | 🟢 **pronto para envio à produção** | **NÃO** | **6/6** |
+| 1 | `PIN-SSPIN-GLOBAL` | 🟡 **PREP** · aguarda senha | **NÃO** | **197/197** |
+| 2 | `FOTOS-PRODUTO-MOBILE` | 🟡 **PREP** · aguarda senha | **NÃO** | **59/59** |
+| 3 | `PIN-NS-BI` | 🟡 **PREP** · aguarda senha | **NÃO** | **130/130** |
+| 4 | `CLI-DUP-TEL-Z` | 🟡 **PREP** · aguarda senha | **NÃO** | **60/60** |
+| 5 | `NF-FIN-NAO-TEM` | 🟡 **PREP** · aguarda senha | **NÃO** | **15/15** |
+| 6 | `NF-AGUARDA-PRODUTO` | 🟡 **PREP** · aguarda senha | **NÃO** | **6/6** |
 
-**Live agora:** **v23.76**. Estes pacotes **ainda não** subiram. **Não** merge `teste`.
+**Live agora:** **v23.76**. PREP cherry **só** estes 6 · branch `deploy/prep-checklist-1009` · **não** merge `teste`.
 
 ### ✅ Deploy loja — Hotfixes Repasse (`deploy/prep-repasse-hotfix-0909` · **v23.76**) · **Live**
 

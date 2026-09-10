@@ -406,13 +406,13 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 ---
 
-## 23. Checklist único — VL-HUB-TAREFAS (alvo loja · tip **v23.16+**)
+## 23. Checklist único — VL-HUB-TAREFAS · ✅ **Live v23.18+**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **VL-HUB-TAREFAS** | 🟢 **pronto para envio à produção** | **SIM** `tarefas.0001` + `0002` |
+| 1 | **VL-HUB-TAREFAS** | ✅ **Live v23.18+** | **SIM** `tarefas.0001` + `0002` |
 
-**Prova:** `verify_vl_hub_tarefas_path.py` **55/55**. **Só** frase+senha. Loja ainda em **v23.07** (WA-PONTE-LEVE).
+**Status: enviado / Live.** Ver CHECKPOINT banana.
 
 ---
 
@@ -461,20 +461,18 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 ---
 
-## 27. Checklist único — CLI-DUP-TEL-Z (alvo loja · tip **v23.77**)
+## 27. Checklist único — lote 10/09 (`deploy/prep-checklist-1009` · alvo loja **v23.91**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CLI-DUP-TEL-Z** | 🟢 **pronto para envio à produção** | **NÃO** |
+| 1 | **PIN-SSPIN-GLOBAL** | 🟡 **PREP** · aguarda senha | **NÃO** |
+| 2 | **FOTOS-PRODUTO-MOBILE** | 🟡 **PREP** · aguarda senha | **NÃO** |
+| 3 | **PIN-NS-BI** | 🟡 **PREP** · aguarda senha | **NÃO** |
+| 4 | **CLI-DUP-TEL-Z** | 🟡 **PREP** · aguarda senha | **NÃO** |
+| 5 | **NF-FIN-NAO-TEM** | 🟡 **PREP** · aguarda senha | **NÃO** |
+| 6 | **NF-AGUARDA-PRODUTO** | 🟡 **PREP** · aguarda senha | **NÃO** |
 
-**Prova:** path **60/60** · deep **24/24** · browser local z 250>240. **Só** frase+senha. Live ainda **v23.76**.
+**Status: PREP pronto / aguarda senha.** Branch `deploy/prep-checklist-1009`. Live ainda **v23.76**.  
+**Prova:** SSPIN **197/197** · Fotos **59/59** · PIN-ALERT **130/130** · CLI **60/60**+deep **24/24** · NF-FIN **15/15** · NF-AGUARDA **6/6**.  
+**Rollback:** `docs/ROLLBACK-CHECKLIST-1009.md` · tag `rollback/pre-checklist-1009-v23.76`. **Só** frase+senha. **Não** merge `teste`.
 
----
-
-## 28. Checklist único — FOTOS-PRODUTO-MOBILE (alvo loja · tip **v23.83**)
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **FOTOS-PRODUTO-MOBILE** | 🟢 **pronto para envio à produção** | **NÃO** |
-
-**Prova:** `verify_fotos_produto_mobile_path.py` **59/59** (PIN 9973). **Só** frase+senha.
