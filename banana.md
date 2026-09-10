@@ -1385,6 +1385,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 **no teste** — sobe loja só com frase+senha |
 | **Você** | Ctrl+F5 Gestão → Estornar → digitar motivo → Confirmar |
 
+### 🩹 HOTFIX — Repasse: fundo troco também com caixa fechado (`REPASSE-FUNDO-FECHADO` · 09/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Bug** | Caixa Vila fechado → tela mostrava «Levar» cheio (ex. R$ 401) sem aplicar alvo R$ 500 / prioridade cofres |
+| **Fix** | Sempre `sugerirFundoTroco` · fechado usa dinheiro do **último fechamento** |
+| **Onde** | `pdv_repasse_vila.js` · `saldo_dinheiro_caixa_vila` |
+| **Status** | 🟡 **no teste** |
+| **Você** | Ctrl+F5 overlay Repasse com caixa **fechado** · Levar coerente com troco · ainda precisa **abrir** pra confirmar |
+
 ### ✅ PACOTE — Gestão repasse no padrão PDV (`REPASSE-GESTAO-SIMPLES` · **v23.62** · 09/09) · **Live**
 
 | Campo | Valor |
