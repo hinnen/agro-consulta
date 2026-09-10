@@ -617,7 +617,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Nova nota (21/07):** botÃ£o Â«NovaÂ» zera XML/cabeÃ§alho/financeiro/rateio â€” nÃ£o herda a nota anterior (autosave tambÃ©m).
 - **HistÃ³rico C1â€“C3 + NF (18/07):** C1â€“C3 = sÃ³ compras **anteriores**; a NF aberta **nÃ£o** entra (evitava parecer 2 notas: data entrada vs emissÃ£o).
 - **Vínculo XML (30/07 · v12.10):** tabela Postgres `EntradaNfeVinculoAgro` = fonte da verdade multi-PC; «Ler XML» reaproveita cProd (R0151…). Migrate `0069` · backfill `agro_backfill_c_prod_nf_entrada`.
-- **Financeiro desync (2026-06-19 / reforço 29/07 / **04/09** `NF-FIN-MANUAL-RELIGA`):** título já no CP mas etapa 7 laranja + «Salvar + a pagar». Nota **manual** (sem chave XML) não casava. Abrir a nota religa; **não** gerar de novo se os títulos já existem.
+- **Financeiro desync (2026-06-19 / reforço 29/07 / **04/09** `NF-FIN-MANUAL-RELIGA` / **10/09** `NF-FIN-NAO-TEM`):** título já no CP mas etapa 7 laranja + «Salvar + a pagar». Nota **manual** (sem chave XML) não casava; «**NF não tem**» também falhava (extrator só lia dígitos). Abrir a nota / Salvar religa; **não** gerar de novo se os títulos já existem.
 - **Lista Em andamento vazia (04/09 · `NF-LISTA-ANDAMENTO`):** chip filtrava só as ~25 notas mais novas — nota antiga em Financeiro/Estoque sumia até digitar na busca. Fix: scan fundo + preencher lim com quem casa no filtro.
 - **Reabrir → estoque de novo (03/08):** ao reabrir, estornar se houver status/`estoque_aplicado_em`/carimbo/`ajuste_ids` (não só `estoque_aplicado`). Autosave não ressuscita carimbo. Lista «reabrir» encerrada chama o mesmo estorno.
 - **PIN etapa 5 (02/09 · `PIN-ET5-CAMPO`):** linha de PIN **sempre visível** acima do botão azul «Registrar estoque»; o POST manda `pin`. Overlay escuro **não** é o caminho desta etapa. Loja **v20.86** ainda **não** tem isso.
@@ -1282,6 +1282,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — NF «não tem» religa CP pago (`NF-FIN-NAO-TEM` · **v23.87** · 10/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Nota manual demorou (faltava produto), CP já pago → «duplicidade» + etapa 8 sem financeiro |
+| **Causa** | Extrator só lia **número** na descrição; «NF não tem» não casava → tentava criar de novo |
+| **Fix** | Extrai «não tem» · estreita por fornecedor+parcelas · se insert bater duplicata, religa |
+| **Onde** | `nfe_entrada_util.py` · `views.py` (financeiro) · teste vínculo |
+| **Migrate** | **NÃO** |
+| **Prova** | vínculo **14/14** · `verify_nf_fin_manual_religa_path.py` **6/6** |
+| **Status** | 🟡 `teste` **v23.87** — valida local · loja **só** frase+senha |
+| **Você** | Ctrl+F5 · abrir a nota · etapa 7 → **Salvar + a pagar** (deve virar «já gerada», sem 2º lote) → etapa 8 ok |
+
 ### 📦 PACOTE PRONTO — Teclado PIN em todas as telas de loja (`PIN-SSPIN-GLOBAL` · **v23.86** · 10/09)
 
 | Campo | Valor |
@@ -1334,6 +1347,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 2 | `FOTOS-PRODUTO-MOBILE` | 🟢 **pronto para envio à produção** | **NÃO** | **59/59** |
 | 3 | `PIN-NS-BI` | 🟢 **pronto para envio à produção** | **NÃO** | **130/130** |
 | 4 | `CLI-DUP-TEL-Z` | 🟢 **pronto para envio à produção** | **NÃO** | **60/60** |
+| 5 | `NF-FIN-NAO-TEM` | 🟡 **teste v23.87** | **NÃO** | **14/14** + **6/6** |
 
 **Live agora:** **v23.76**. Estes pacotes **ainda não** subiram. **Não** merge `teste`.
 
