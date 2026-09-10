@@ -1283,104 +1283,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚀 PREP deploy loja — checklist 10/09 (`deploy/prep-checklist-1009` · **v23.91**) · aguarda senha
+### ✅ Deploy loja — Checklist 10/09 (`deploy/prep-checklist-1009` · **v23.91**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **PREP pronto** — **só** frase + senha · **não** subiu ainda |
-| **Live agora** | **v23.76** @ `056e9a7` |
-| **Branch PREP** | `deploy/prep-checklist-1009` @ tip **v23.91** |
+| **Status** | ✅ **enviado / Live v23.91** — cherry **só** 6 pacotes (**não** merge `teste`) |
+| **Antes** | **Live v23.76** @ `056e9a7` |
+| **Agora** | `producao` @ **`22186fb`** · Render `dep-dahg41navr4c738vno40` **live** |
 | **Pacotes** | `CLI-DUP-TEL-Z` · `PIN-NS-BI` · `FOTOS-PRODUTO-MOBILE` · `PIN-SSPIN-GLOBAL` · `NF-FIN-NAO-TEM` · `NF-AGUARDA-PRODUTO` |
 | **Migrate** | **NÃO** |
 | **Prova pré** | CLI **60/60**+deep **24/24** · PIN-ALERT **130/130** · SSPIN **197/197** · Fotos **59/59** · NF-FIN **15/15** · NF-AGUARDA **6/6** · `check` OK |
-| **Rollback** | tag `rollback/pre-checklist-1009-v23.76` · branch `producao-backup-pre-v2391-checklist-20260910` · `docs/ROLLBACK-CHECKLIST-1009.md` |
-| **O quê NÃO sobe** | merge `teste` · WhatsApp · Excel · DRE WIP |
-| **Risco loja aberta** | PIN global = médio (Ctrl+F5) · resto não mexe finalizar venda |
-| **Você no deploy** | Pausar vendas → frase+senha → Live → Ctrl+F5 · badge **v23.91** |
+| **Rollback** | tag `rollback/pre-checklist-1009-v23.76` · branch `producao-backup-pre-v2391-checklist-20260910` · `docs/ROLLBACK-CHECKLIST-1009.md` · **só** frase+senha |
+| **Smoke** | healthz **ok** · consulta **301** · Ctrl+F5 · badge **v23.91** |
+| **Você** | **Ctrl+F5** · teclado PIN · EDITAR telefone · Hub Fotos · Entrada NF |
 
-### 📦 PACOTE PRONTO — NF fornecedor deve produto (`NF-AGUARDA-PRODUTO` · **v23.91** · 10/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Nota toda lançada (estoque/CP/PIN) fica em **Em andamento** se o fornecedor ainda deve produto |
-| **Uso** | Lista → **Deve produto** (texto opcional) · chip **Deve produto** · **Chegou** tira o lembrete |
-| **Onde** | `nfe_entrada_util.py` · `entrada_nota.html` · `verify_nf_aguarda_produto_path.py` |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_nf_aguarda_produto_path.py` **VERIFY_OK 6/6** |
-| **Commit** | `6c04b0d` · `teste` **v23.91** |
-| **Status** | 🟡 **PREP** · aguarda frase + senha (`deploy/prep-checklist-1009`) |
-| **Você** | Ctrl+F5 Entrada NF → Em andamento → **Deve produto** → depois **Chegou** |
-
-### 📦 PACOTE PRONTO — NF «não tem» religa CP pago (`NF-FIN-NAO-TEM` · **v23.89** · 10/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Nota manual demorou (faltava produto), CP já pago → «duplicidade» + etapa 8 sem financeiro |
-| **Causa** | Extrator só lia **número**; «NF não tem» não casava → tentava criar de novo |
-| **Fix** | Extrai «não tem» · estreita fornecedor+parcelas · duplicata no insert → religa |
-| **Onde** | `nfe_entrada_util.py` · `views.py` · teste vínculo · `verify_nf_fin_nao_tem_path.py` |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_nf_fin_nao_tem_path.py` **VERIFY_OK 15/15** · django vínculo **15/15** · API religa sem insert |
-| **Commit** | `de93a35` · fix `072522c` · `teste` **v23.89** |
-| **Status** | 🟡 **PREP** · aguarda frase + senha (`deploy/prep-checklist-1009`) |
-| **Você** | Ctrl+F5 · abrir a nota · etapa 7 → **Salvar + a pagar** → «já gerada» · etapa 8 ok |
-
-### 📦 PACOTE PRONTO — Teclado PIN em todas as telas de loja (`PIN-SSPIN-GLOBAL` · **v23.86** · 10/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Acabar de caçar tela a tela o alert preto «modo descanso». Teclado PIN **global** em telas autenticadas. |
-| **Fix** | `base.html` inclui sspin · RH/caixa/promo/hub/etc. · bridge **nunca** abre alert nativo de PIN · login/catálogo público **fora** · Nova saída no BI trata PIN |
-| **Onde** | `base/templates/base.html` · `_agro_open_external` · `_screensaver_pin` · templates standalone · `lancamento_nova_saida.js` |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_sspin_cobertura_path.py` **VERIFY_OK 197/197** · PIN-ALERT **130/130** · LANC-PIN **70/70** · PIN **9973**=Renan · `check` OK · 24 telas com teclado · API 403→login→fresco |
-| **Commit** | `8a752f0` (+ prova tip) · `teste` **v23.86** |
-| **Status** | 🟡 **PREP** · aguarda frase + senha (`deploy/prep-checklist-1009`) |
-| **Você** | Ctrl+F5 · qualquer tela de loja → ação que pediria PIN → **teclado** (sem caixa preta) |
-
-### 📦 PACOTE PRONTO — App Fotos produto no hub GM Lojas (`FOTOS-PRODUTO-MOBILE` · **v23.83** · 10/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Botão **Fotos** no hub `/vendas/lojas/`. Celular: PIN → busca/bip → até **4 fotos**. |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_fotos_produto_mobile_path.py` **59/59** · PIN **9973**=Renan |
-| **Commit** | `98cb9c9` · tip **v23.83** |
-| **Status** | 🟡 **PREP** · aguarda frase + senha (`deploy/prep-checklist-1009`) |
-| **Você** | Celular → `/vendas/lojas/` → **Fotos** → PIN → Tirar |
-
-### 📦 PACOTE PRONTO — Novo lançamento no BI: PIN vira teclado (`PIN-NS-BI` · **v23.80** · 10/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Dashboard → Novo lançamento → Finalizar com PIN velho abre **teclado** (não alert). Incluso no global. |
-| **Migrate** | **NÃO** |
-| **Prova** | PIN-ALERT **130/130** · cobertura **197/197** |
-| **Commit** | `081914b` |
-| **Status** | 🟡 **PREP** · aguarda frase + senha (`deploy/prep-checklist-1009`) |
-
-### 📦 PACOTE PRONTO — Telefone duplicado por cima do EDITAR (`CLI-DUP-TEL-Z` · **v23.77** · 10/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Popup «Telefone já cadastrado» acima do EDITAR (z 250). |
-| **Migrate** | **NÃO** |
-| **Prova** | path **60/60** · deep **24/24** |
-| **Commit** | `d1f6467` |
-| **Status** | 🟡 **PREP** · aguarda frase + senha (`deploy/prep-checklist-1009`) |
-
-### ✅ CHECKLIST ÚNICO — 10/09 · PREP aguarda senha
+### ✅ CHECKLIST ÚNICO — 10/09 · **Live v23.91**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `PIN-SSPIN-GLOBAL` | 🟡 **PREP** · aguarda senha | **NÃO** | **197/197** |
-| 2 | `FOTOS-PRODUTO-MOBILE` | 🟡 **PREP** · aguarda senha | **NÃO** | **59/59** |
-| 3 | `PIN-NS-BI` | 🟡 **PREP** · aguarda senha | **NÃO** | **130/130** |
-| 4 | `CLI-DUP-TEL-Z` | 🟡 **PREP** · aguarda senha | **NÃO** | **60/60** |
-| 5 | `NF-FIN-NAO-TEM` | 🟡 **PREP** · aguarda senha | **NÃO** | **15/15** |
-| 6 | `NF-AGUARDA-PRODUTO` | 🟡 **PREP** · aguarda senha | **NÃO** | **6/6** |
+| 1 | `PIN-SSPIN-GLOBAL` | ✅ **Live v23.91** | **NÃO** | **197/197** |
+| 2 | `FOTOS-PRODUTO-MOBILE` | ✅ **Live v23.91** | **NÃO** | **59/59** |
+| 3 | `PIN-NS-BI` | ✅ **Live v23.91** | **NÃO** | **130/130** |
+| 4 | `CLI-DUP-TEL-Z` | ✅ **Live v23.91** | **NÃO** | **60/60** |
+| 5 | `NF-FIN-NAO-TEM` | ✅ **Live v23.91** | **NÃO** | **15/15** |
+| 6 | `NF-AGUARDA-PRODUTO` | ✅ **Live v23.91** | **NÃO** | **6/6** |
 
-**Live agora:** **v23.76**. PREP cherry **só** estes 6 · branch `deploy/prep-checklist-1009` · **não** merge `teste`.
 
 ### ✅ Deploy loja — Hotfixes Repasse (`deploy/prep-repasse-hotfix-0909` · **v23.76**) · **Live**
 

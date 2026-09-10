@@ -461,18 +461,19 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 ---
 
-## 27. Checklist único — lote 10/09 (`deploy/prep-checklist-1009` · alvo loja **v23.91**)
+## 27. Checklist único — lote 10/09 · ✅ **Live v23.91**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PIN-SSPIN-GLOBAL** | 🟡 **PREP** · aguarda senha | **NÃO** |
-| 2 | **FOTOS-PRODUTO-MOBILE** | 🟡 **PREP** · aguarda senha | **NÃO** |
-| 3 | **PIN-NS-BI** | 🟡 **PREP** · aguarda senha | **NÃO** |
-| 4 | **CLI-DUP-TEL-Z** | 🟡 **PREP** · aguarda senha | **NÃO** |
-| 5 | **NF-FIN-NAO-TEM** | 🟡 **PREP** · aguarda senha | **NÃO** |
-| 6 | **NF-AGUARDA-PRODUTO** | 🟡 **PREP** · aguarda senha | **NÃO** |
+| 1 | **PIN-SSPIN-GLOBAL** | ✅ Live · **197/197** | **NÃO** |
+| 2 | **FOTOS-PRODUTO-MOBILE** | ✅ Live · **59/59** | **NÃO** |
+| 3 | **PIN-NS-BI** | ✅ Live · **130/130** | **NÃO** |
+| 4 | **CLI-DUP-TEL-Z** | ✅ Live · **60/60** | **NÃO** |
+| 5 | **NF-FIN-NAO-TEM** | ✅ Live · **15/15** | **NÃO** |
+| 6 | **NF-AGUARDA-PRODUTO** | ✅ Live · **6/6** | **NÃO** |
 
-**Status: PREP pronto / aguarda senha.** Branch `deploy/prep-checklist-1009`. Live ainda **v23.76**.  
-**Prova:** SSPIN **197/197** · Fotos **59/59** · PIN-ALERT **130/130** · CLI **60/60**+deep **24/24** · NF-FIN **15/15** · NF-AGUARDA **6/6**.  
-**Rollback:** `docs/ROLLBACK-CHECKLIST-1009.md` · tag `rollback/pre-checklist-1009-v23.76`. **Só** frase+senha. **Não** merge `teste`.
+**Status: ✅ Live v23.91** — `producao` @ `22186fb` · Render `dep-dahg41navr4c738vno40`.  
+**Antes:** Live **v23.76** @ `056e9a7`. **Não** merge `teste`. Sem migrate.  
+**Rollback:** tag `rollback/pre-checklist-1009-v23.76` · `docs/ROLLBACK-CHECKLIST-1009.md`.  
+**Smoke:** healthz ok · Ctrl+F5 · badge **v23.91**.
 
