@@ -1280,82 +1280,62 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
-## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — Teclado PIN em todas as telas de loja (`PIN-SSPIN-GLOBAL` · **v23.84** · 10/09)
+### 📦 PACOTE PRONTO — Teclado PIN em todas as telas de loja (`PIN-SSPIN-GLOBAL` · **v23.86** · 10/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Acabar de caçar tela a tela o alert preto «modo descanso». Teclado PIN **global** nas telas autenticadas. |
-| **Fix** | `base.html` inclui sspin · RH/caixa/promo/checkout/etc. · bridge **nunca** abre alert nativo de PIN · login/catálogo público **sem** teclado |
-| **Onde** | `base/templates/base.html` · `_agro_open_external` · `_screensaver_pin` · dezenas de templates standalone |
+| **O quê** | Acabar de caçar tela a tela o alert preto «modo descanso». Teclado PIN **global** em telas autenticadas. |
+| **Fix** | `base.html` inclui sspin · RH/caixa/promo/hub/etc. · bridge **nunca** abre alert nativo de PIN · login/catálogo público **fora** · Nova saída no BI trata PIN |
+| **Onde** | `base/templates/base.html` · `_agro_open_external` · `_screensaver_pin` · templates standalone · `lancamento_nova_saida.js` |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_sspin_cobertura_path.py` **53/53** · PIN-ALERT **130/130** · PIN **9973**=Renan |
-| **Commit** | (este tip) · `teste` **v23.84** |
+| **Prova** | `verify_sspin_cobertura_path.py` **VERIFY_OK 197/197** · PIN-ALERT **130/130** · LANC-PIN **70/70** · PIN **9973**=Renan · `check` OK · 24 telas com teclado · API 403→login→fresco |
+| **Commit** | `8a752f0` (+ prova tip) · `teste` **v23.86** |
 | **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
-| **Você** | Ctrl+F5 · em **qualquer** tela de loja, ação que pediria PIN → **teclado** (não caixa preta) |
-
-### ✅ CHECKLIST ÚNICO — 10/09 · pronto envio (PIN global + fotos + …)
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | `PIN-SSPIN-GLOBAL` | 🟢 **pronto para envio à produção** | **NÃO** | **53/53** |
-| 2 | `FOTOS-PRODUTO-MOBILE` | 🟢 **pronto para envio à produção** | **NÃO** | **59/59** |
-| 3 | `PIN-NS-BI` | 🟢 **pronto para envio à produção** | **NÃO** | **130/130** |
-| 4 | `CLI-DUP-TEL-Z` | 🟢 **pronto para envio à produção** | **NÃO** | **60/60** |
-
-**Live agora:** **v23.76**. Estes pacotes **ainda não** subiram. **Não** merge `teste`.
+| **Você** | Ctrl+F5 · qualquer tela de loja → ação que pediria PIN → **teclado** (sem caixa preta) |
 
 ### 📦 PACOTE PRONTO — App Fotos produto no hub GM Lojas (`FOTOS-PRODUTO-MOBILE` · **v23.83** · 10/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Botão **Fotos** no hub `/vendas/lojas/` (junto Vendas/Tarefas). Celular: PIN → busca (motor) ou bip câmera → até **4 fotos** (1 principal + 3 extras). |
-| **Peso PDV** | Lista/slim **sem** galeria. Principal via URL `/api/produtos/foto/<id>/?i=0`. Extras só no app / sob demanda. |
-| **Onde** | hub · `views_fotos_produto.py` · `fotos_produto_util.py` · templates `fotos_produto/` · `catalogo_delivery_util` (`imagens_extras`) |
+| **O quê** | Botão **Fotos** no hub `/vendas/lojas/`. Celular: PIN → busca/bip → até **4 fotos**. |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_fotos_produto_mobile_path.py` **59/59** (PIN **9973**=Renan · 401 · apagar · URL leve · slim sem imagem) |
-| **Commit** | feat `98cb9c9` · tip **v23.83** (prova reforçada + checklist) |
-| **Status** | 🟢 **pronto para envio à produção** — loja **só** frase+senha |
-| **Você** | Celular → `/vendas/lojas/` → **Fotos** → PIN → buscar/bipar → Tirar |
-| **Depois** | Setinha galeria no PDV · flags no cadastro |
-| **Checklist** | `banana-roteiro.md` §28 |
+| **Prova** | `verify_fotos_produto_mobile_path.py` **59/59** · PIN **9973**=Renan |
+| **Commit** | `98cb9c9` · tip **v23.83** |
+| **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
+| **Você** | Celular → `/vendas/lojas/` → **Fotos** → PIN → Tirar |
 
-### 📦 PACOTE PRONTO — Novo lançamento no BI: PIN vira teclado (`PIN-NS-BI` · **v23.79** · 10/09)
+### 📦 PACOTE PRONTO — Novo lançamento no BI: PIN vira teclado (`PIN-NS-BI` · **v23.80** · 10/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Dashboard → **Novo lançamento** → Finalizar com PIN velho: alert preto «modo descanso» em vez do teclado. |
-| **Causa** | BI não tinha `#sspin-root`; JS da Nova saída só fazia `alert(erro)`. |
-| **Fix** | sspin no `dashboard_gerencial` · `lancamento_nova_saida.js` trata PIN + retry após digitar |
-| **Onde** | `dashboard_gerencial.html` · `lancamento_nova_saida.js` · prova `verify_pin_alert_teclado_path.py` |
+| **O quê** | Dashboard → Novo lançamento → Finalizar com PIN velho abre **teclado** (não alert). Incluso no global. |
 | **Migrate** | **NÃO** |
-| **Prova** | PIN-ALERT **VERIFY_OK 130/130** · PIN **9973** = Renan · home com teclado |
-| **Commit** | `081914b` (+ docs `9fea22b`) · `teste` **v23.79** |
+| **Prova** | PIN-ALERT **130/130** · cobertura **197/197** |
+| **Commit** | `081914b` |
 | **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
-| **Você** | Ctrl+F5 no `/` → Novo lançamento → Finalizar com PIN velho → **teclado** (sem alert preto) |
 
 ### 📦 PACOTE PRONTO — Telefone duplicado por cima do EDITAR (`CLI-DUP-TEL-Z` · **v23.77** · 10/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | PDV: Salvar cadastro com WhatsApp já de outro → popup «Telefone já cadastrado» abria **por baixo** do EDITAR (tela opaca; só via Esc). |
-| **Causa** | acao `z 160` × EDITAR `z 240` |
-| **Fix** | `#agro-cli-acao-overlay` → **z 250** (também Excluir / Vale / Histórico) |
-| **Onde** | `cliente_cadastro_acoes.html` |
+| **O quê** | Popup «Telefone já cadastrado» acima do EDITAR (z 250). |
 | **Migrate** | **NÃO** |
-| **Prova** | path **60/60** · deep **24/24** · PIN **9973** OK · browser local: z 250>240 + clique no popup |
-| **Commit** | `d1f6467` (+ prova reforçada neste tip) · `teste` **v23.77** |
+| **Prova** | path **60/60** · deep **24/24** |
+| **Commit** | `d1f6467` |
 | **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
-| **Você** | Ctrl+F5 local → EDITAR → telefone de outro → Salvar → popup no meio |
 
-### ✅ CHECKLIST ÚNICO — 10/09 · pronto envio (`CLI-DUP-TEL-Z`)
+### ✅ CHECKLIST ÚNICO — 10/09 · pronto envio
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `CLI-DUP-TEL-Z` | 🟢 **pronto para envio à produção** | **NÃO** | path **60/60** · deep **24/24** · browser OK |
+| 1 | `PIN-SSPIN-GLOBAL` | 🟢 **pronto para envio à produção** | **NÃO** | **197/197** |
+| 2 | `FOTOS-PRODUTO-MOBILE` | 🟢 **pronto para envio à produção** | **NÃO** | **59/59** |
+| 3 | `PIN-NS-BI` | 🟢 **pronto para envio à produção** | **NÃO** | **130/130** |
+| 4 | `CLI-DUP-TEL-Z` | 🟢 **pronto para envio à produção** | **NÃO** | **60/60** |
 
-**Live agora:** **v23.76**. Este pacote **ainda não** subiu. **Não** merge `teste`.
+**Live agora:** **v23.76**. Estes pacotes **ainda não** subiram. **Não** merge `teste`.
 
 ### ✅ Deploy loja — Hotfixes Repasse (`deploy/prep-repasse-hotfix-0909` · **v23.76**) · **Live**
 
