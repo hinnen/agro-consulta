@@ -1280,18 +1280,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🟡 PACOTE — Telefone duplicado por cima do EDITAR (`CLI-DUP-TEL-Z` · **v23.77** · 10/09)
+### 📦 PACOTE PRONTO — Telefone duplicado por cima do EDITAR (`CLI-DUP-TEL-Z` · **v23.77** · 10/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | No PDV, Salvar cadastro com WhatsApp já de outro cliente: o popup «Telefone já cadastrado» abria **por baixo** do EDITAR (tela opaca; só via Esc). Causa: acao `z 160` × EDITAR `z 240`. |
-| **Fix** | `#agro-cli-acao-overlay` → **z 250** (também Excluir / Vale / Histórico). |
-| **Onde** | `cliente_cadastro_acoes.html` · prova `verify_pdv_cli_cadastro_path` |
+| **O quê** | PDV: Salvar cadastro com WhatsApp já de outro → popup «Telefone já cadastrado» abria **por baixo** do EDITAR (tela opaca; só via Esc). |
+| **Causa** | acao `z 160` × EDITAR `z 240` |
+| **Fix** | `#agro-cli-acao-overlay` → **z 250** (também Excluir / Vale / Histórico) |
+| **Onde** | `cliente_cadastro_acoes.html` |
 | **Migrate** | **NÃO** |
-| **Prova** | **55/55** |
-| **Commit** | `d1f6467` · `teste` **v23.77** |
-| **Status** | 🟡 no `teste` — Ctrl+F5 local · **não** loja |
-| **Você** | PDV → EDITAR → telefone de outro → Salvar → popup no meio |
+| **Prova** | path **60/60** · deep **24/24** · PIN **9973** OK · browser local: z 250>240 + clique no popup |
+| **Commit** | `d1f6467` (+ prova reforçada neste tip) · `teste` **v23.77** |
+| **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
+| **Você** | Ctrl+F5 local → EDITAR → telefone de outro → Salvar → popup no meio |
+
+### ✅ CHECKLIST ÚNICO — 10/09 · pronto envio (`CLI-DUP-TEL-Z`)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `CLI-DUP-TEL-Z` | 🟢 **pronto para envio à produção** | **NÃO** | path **60/60** · deep **24/24** · browser OK |
+
+**Live agora:** **v23.76**. Este pacote **ainda não** subiu. **Não** merge `teste`.
 
 ### ✅ Deploy loja — Hotfixes Repasse (`deploy/prep-repasse-hotfix-0909` · **v23.76**) · **Live**
 

@@ -69,6 +69,34 @@ def test_arquivos() -> None:
         "z-index: 250" in acoes_html and "z-[250]" in acoes_html,
         "telefone duplicado acima do EDITAR (240)",
     )
+    check(
+        "edit_z_240",
+        "z-index: 240" in html and 'id="pdv-quick-client-edit-overlay"' in html and "z-[240]" in html,
+        "EDITAR CADASTRO ainda em 240",
+    )
+    check(
+        "acao_nao_160",
+        "z-index: 160" not in acoes_html and "z-[160]" not in acoes_html,
+        "regressão z 160 removida",
+    )
+    check(
+        "stack_acao_open",
+        "AgroOverlayStack.setOpen(root, true)" in js and "showDuplicado" in js,
+        "stack empilha o popup de ação",
+    )
+    check(
+        "stack_edit_open",
+        "AgroOverlayStack.setOpen(dom.quickClientEditOverlay, true)" in wizard,
+        "stack empilha o EDITAR",
+    )
+    check(
+        "include_acao_apos_edit",
+        html.find('id="pdv-quick-client-edit-overlay"')
+        < html.find("cliente_cadastro_acoes.html")
+        if "cliente_cadastro_acoes.html" in html
+        else False,
+        "include do popup depois do EDITAR no HTML",
+    )
     check("js_acoes", "AgroClienteCadastroAcoes" in js and "showDuplicado" in js)
     check("js_wizard_dup", "whatsapp_duplicado" in wizard or "duplicado" in wizard)
     check("js_wizard_vale", "hydrateFromCompraValeCredito" in wizard)

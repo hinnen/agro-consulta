@@ -457,3 +457,13 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 **Antes:** Live **v23.70** @ `71a169a`. Bug **#7423** (502 matava espera Point). **Não** merge `teste`.  
 **Rollback:** tag `rollback/pre-mp-point-poll-retry-v23.70` · `docs/ROLLBACK-MP-POINT-POLL-RETRY.md`.  
 **Smoke:** Ctrl+F5 · badge **v23.73** · Point: oscilação de rede continua aguardando.
+
+---
+
+## 27. Checklist único — CLI-DUP-TEL-Z (alvo loja · tip **v23.77**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CLI-DUP-TEL-Z** | 🟢 **pronto para envio à produção** | **NÃO** |
+
+**Prova:** path **60/60** · deep **24/24** · browser local z 250>240. **Só** frase+senha. Live ainda **v23.76**.
