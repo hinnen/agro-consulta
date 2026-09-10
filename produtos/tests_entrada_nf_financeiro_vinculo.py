@@ -176,6 +176,78 @@ class EntradaNfFinanceiroVinculoTests(SimpleTestCase):
         ):
             self.assertEqual(_titulos_entrada_nfe_ids_do_rascunho(None, d), ids)
 
+    def test_nota_manual_nf_nao_tem_religa_cp_pago(self):
+        """Bug loja 10/09: NF «não tem», CP já pago — extrator antigo só lia dígitos."""
+        from produtos.nfe_entrada_util import _extrair_nf_numero_lancamento, _nf_numero_norm
+
+        d = _doc(
+            {
+                "financeiro_ui": {
+                    "parcelas_manual": [
+                        {"data_vencimento": "2026-08-10", "valor": "564.07"},
+                        {"data_vencimento": "2026-08-17", "valor": "564.07"},
+                        {"data_vencimento": "2026-08-24", "valor": "564.06"},
+                    ]
+                },
+            },
+            status="encerrada",
+        )
+        d["extra"].pop("financeiro_lancado", None)
+        d["extra"].pop("financeiro_ids", None)
+        d["extra"].pop("financeiro_lote", None)
+        d["cabecalho"].update(
+            {
+                "numero": "não tem",
+                "serie": "",
+                "emit_nome": "Sn - Ms Comercio E Representacao",
+                "emit_fornecedor_id": "",
+                "emit_cnpj": "",
+                "chave": "",
+            }
+        )
+        titulos = [
+            {
+                "_id": "6a72360fc2f235d15de39c42",
+                "Cliente": "Sn - Ms Comercio E Representacao",
+                "ClienteID": "",
+                "Descricao": "NF não tem — Sn - Ms Comercio E Representacao (parcela 1/3)",
+                "Observacao": "Entrada NF-e Agro · chave —",
+                "ValorBruto": "564.07",
+                "DataVencimento": date(2026, 8, 10),
+                "Despesa": True,
+            },
+            {
+                "_id": "pg-nao-tem-2",
+                "Cliente": "Sn - Ms Comercio E Representacao",
+                "ClienteID": "",
+                "Descricao": "NF não tem — Sn - Ms Comercio E Representacao (parcela 2/3)",
+                "Observacao": "Entrada NF-e Agro · chave —",
+                "ValorBruto": "564.07",
+                "DataVencimento": date(2026, 8, 17),
+                "Despesa": True,
+            },
+            {
+                "_id": "pg-nao-tem-3",
+                "Cliente": "Sn - Ms Comercio E Representacao",
+                "ClienteID": "",
+                "Descricao": "NF não tem — Sn - Ms Comercio E Representacao (parcela 3/3)",
+                "Observacao": "Entrada NF-e Agro · chave —",
+                "ValorBruto": "564.06",
+                "DataVencimento": date(2026, 8, 24),
+                "Despesa": True,
+            },
+        ]
+        self.assertEqual(_nf_numero_norm(_extrair_nf_numero_lancamento(titulos[0])), "nao tem")
+        self.assertEqual(_nf_numero_norm(d["cabecalho"]["numero"]), "nao tem")
+        ids = ["6a72360fc2f235d15de39c42", "pg-nao-tem-2", "pg-nao-tem-3"]
+        out = validar_vinculo_financeiro_entrada_nfe(d, titulos, ids)
+        self.assertTrue(out["valido"], out)
+        with (
+            patch("produtos.nfe_entrada_util._entrada_nfe_financeiro_titulos_por_ids", return_value=[]),
+            patch("produtos.nfe_entrada_util._entrada_nfe_financeiro_titulos_por_rastro", return_value=titulos),
+        ):
+            self.assertEqual(_titulos_entrada_nfe_ids_do_rascunho(None, d), ids)
+
     def test_sincronizar_religa_flag_sem_duplicar(self):
         d, titulos, ids = self._nota_manual()
         col = FakeCollection(d)

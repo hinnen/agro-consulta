@@ -19226,6 +19226,37 @@ def api_entrada_nota_financeiro(request):
         msg_e = str(e.get("erro") or e.get("mensagem") or "").lower()
         if "duplicidade bloqueada" in msg_e:
             dup_bloq += 1
+    # CP já existia (ex.: nota «não tem» paga antes de concluir): religa em vez de erro.
+    if (
+        not ids
+        and dup_bloq
+        and rid_up
+        and not resultado.get("dry_run")
+    ):
+        sync_dup = sincronizar_financeiro_rascunho_entrada_nfe(
+            db,
+            rid_up,
+            usuario=usuario,
+            col_pessoa=col_pessoa,
+        )
+        if sync_dup.get("ok") and (
+            sync_dup.get("sincronizado") or sync_dup.get("ja_marcado")
+        ):
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "rascunho": r_rasc if isinstance(r_rasc, dict) else {"ok": True, "id": rid_up},
+                    "financeiro": {
+                        "ok": True,
+                        "ids": sync_dup.get("ids") or [],
+                        "recuperado": True,
+                        "ja_existia": True,
+                        "lote": sync_dup.get("lote"),
+                        "quitar_ao_salvar": quitar_ao_salvar,
+                    },
+                },
+                status=200,
+            )
     aviso_api_erp = None
     erp_lanc_ok = None
     erp_baixa_ok = None

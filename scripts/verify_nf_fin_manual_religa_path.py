@@ -43,6 +43,12 @@ def prova_fonte() -> None:
     if "or (ev[\"nf_ok\"] and ev[\"fornecedor_forte\"])" not in util:
         fail("validador não religa por NF exata + fornecedor")
     ok("validador aceita NF exata + fornecedor")
+    if "n[aã]o\\s+tem" not in util and "nao tem" not in util:
+        fail("extrator NF não cobre placeholder «não tem»")
+    ok("extrator cobre NF «não tem»")
+    if "_estreitar_candidatos_nf_placeholder" not in util:
+        fail("sem estreitar candidatos de NF placeholder")
+    ok("estreita «não tem» por fornecedor+parcelas")
     if "entradaNfeFinanceiroTituloJaGerado" not in html:
         fail("JS sem entradaNfeFinanceiroTituloJaGerado")
     if "Conta a pagar já gerada" not in html:

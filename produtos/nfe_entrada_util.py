@@ -1868,6 +1868,7 @@ def _titulos_mongo_por_rastro_entrada_nfe(db, cab: dict) -> list[dict[str, Any]]
     col = db[COL_DTO_LANCAMENTO]
     ch = str(cab.get("chave") or "").strip()
     nf = str(cab.get("numero") or "").strip()
+    emit = str(cab.get("emit_nome") or "").strip()
     # Com número de NF: filtrar por ele (não misturar com as 8 entradas mais novas da loja).
     and_parts: list[dict[str, Any]] = [{"Despesa": True}]
     if nf and nf not in ("", "0", "000"):
@@ -1879,6 +1880,9 @@ def _titulos_mongo_por_rastro_entrada_nfe(db, cab: dict) -> list[dict[str, Any]]
                 ]
             }
         )
+        # «NF não tem» (e similares) se repetem — estreita pelo fornecedor.
+        if not nf.isdigit() and emit:
+            and_parts.append({"Cliente": {"$regex": re.escape(emit[:80]), "$options": "i"}})
     elif ch and len(ch) >= 12:
         and_parts.append(
             {
@@ -1970,10 +1974,14 @@ def _titulos_pg_por_rastro_entrada_nfe(cab: dict) -> list[dict[str, Any]]:
         return []
     ch = str(cab.get("chave") or "").strip()
     nf = str(cab.get("numero") or "").strip()
+    emit = str(cab.get("emit_nome") or "").strip()
     q = Q(despesa=True)
     # Prioriza número/chave da NF — evita perder a nota no «top 8» genérico de Entrada NF.
     if nf and nf not in ("", "0", "000"):
         q &= Q(descricao__icontains=nf) | Q(observacoes__icontains=nf)
+        # «NF não tem» se repete — estreita pelo fornecedor da nota.
+        if not nf.isdigit() and emit:
+            q &= Q(cliente__icontains=emit[:80])
     elif ch and len(ch) >= 12:
         q &= Q(observacoes__icontains=ch[-24:]) | Q(observacoes__icontains=ch)
     else:
@@ -3125,6 +3133,66 @@ def sanear_carimbo_financeiro_falso_rascunho(db, doc: dict[str, Any], *, usuario
     novo = col.find_one({"_id": _id})
     return novo if isinstance(novo, dict) else doc
 
+def _titulo_entrada_nfe_fornecedor_forte(doc: dict[str, Any], titulo: dict[str, Any]) -> bool:
+    """Mesma regra de «fornecedor_forte» do validador (id / CNPJ / nome)."""
+    if not isinstance(doc, dict) or not isinstance(titulo, dict):
+        return False
+    cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
+    fornecedor_id = str(cab.get("emit_fornecedor_id") or "").strip()
+    emit_nome = str(cab.get("emit_nome") or "").strip()
+    cnpj = _entrada_nfe_digits(cab.get("emit_cnpj"))
+    cliente_id = str(
+        titulo.get("ClienteID") or titulo.get("ClienteId") or titulo.get("cliente_id") or ""
+    ).strip()
+    cliente_nome = str(titulo.get("Cliente") or titulo.get("cliente") or "").strip()
+    nome_ok = bool(
+        emit_nome and cliente_nome and _entrada_nfe_nomes_fornecedor_batem(emit_nome, cliente_nome)
+    )
+    texto = _entrada_nfe_titulo_texto(titulo)
+    digits = _entrada_nfe_digits(texto)
+    return bool(
+        (fornecedor_id and cliente_id == fornecedor_id)
+        or (cnpj and len(cnpj) >= 11 and cnpj in digits)
+        or nome_ok
+    )
+
+
+def _estreitar_candidatos_nf_placeholder(
+    doc: dict[str, Any], candidatos: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Com «NF não tem», várias notas compartilham o rótulo — filtra fornecedor + parcelas."""
+    if not candidatos:
+        return []
+    com_forn = [t for t in candidatos if _titulo_entrada_nfe_fornecedor_forte(doc, t)]
+    if com_forn:
+        candidatos = com_forn
+    esp = _entrada_nfe_assinatura_parcelas(doc)
+    if not esp:
+        return candidatos
+    if _entrada_nfe_assinatura_titulos(candidatos) == esp:
+        return candidatos
+    esp_set = set(esp)
+    filtrados: list[dict[str, Any]] = []
+    for t in candidatos:
+        try:
+            valor = Decimal(
+                str(t.get("valor_bruto") or t.get("ValorBruto") or "0").replace(",", ".")
+            ).quantize(Decimal("0.01"))
+        except Exception:
+            continue
+        if valor <= 0:
+            continue
+        key = (
+            _entrada_nfe_data_iso(t.get("data_vencimento") or t.get("DataVencimento")),
+            valor,
+        )
+        if key in esp_set:
+            filtrados.append(t)
+    if filtrados and _entrada_nfe_assinatura_titulos(filtrados) == esp:
+        return filtrados
+    return filtrados or candidatos
+
+
 def _titulos_entrada_nfe_ids_do_rascunho(db, doc: dict[str, Any], *, col_pessoa: str | None = None) -> list[str]:
     """IDs comprovados desta nota; nunca aceita existência do ID ou substring da NF."""
     if not isinstance(doc, dict): return []
@@ -3139,6 +3207,9 @@ def _titulos_entrada_nfe_ids_do_rascunho(db, doc: dict[str, Any], *, col_pessoa:
     titulos = _entrada_nfe_financeiro_titulos_por_rastro(db, cab)
     nf = _nf_numero_norm(cab.get("numero"))
     candidatos = [t for t in titulos if _nf_numero_norm(_extrair_nf_numero_lancamento(t)) == nf] if nf else []
+    nf_raw = str(cab.get("numero") or "").strip()
+    if candidatos and nf_raw and not nf_raw.isdigit():
+        candidatos = _estreitar_candidatos_nf_placeholder(doc, candidatos)
     ids = list(dict.fromkeys(_mongo_lancamento_id_str(t) for t in candidatos if _mongo_lancamento_id_str(t)))[:80]
     return ids if validar_vinculo_financeiro_entrada_nfe(doc, candidatos, ids).get("valido") else []
 
@@ -4138,30 +4209,45 @@ def _extrair_lote_agro_lancamento(linha: dict[str, Any]) -> str:
     return m2.group(0).upper() if m2 else ""
 
 
+_NF_PLACEHOLDER_RE = re.compile(r"\bNF\s*[.:]?\s*(n[aã]o\s+tem)\b", re.I)
+_NF_DIGITS_RE = re.compile(r"\bNF\s*[.:]?\s*(\d{1,12})\b", re.I)
+
+
 def _extrair_nf_numero_lancamento(linha: dict[str, Any]) -> str:
-    """Número da NF do título — prioriza texto «NF 76468» na descrição (padrão ERP/CP)."""
+    """Número da NF do título — «NF 76468» ou placeholder «NF não tem» (nota manual)."""
     for key in ("descricao", "Descricao", "observacoes", "Observacao"):
         texto = str(linha.get(key) or "")
-        m = re.search(r"\bNF\s*[.:]?\s*(\d{1,12})\b", texto, re.I)
+        m = _NF_DIGITS_RE.search(texto)
         if m:
             return m.group(1).strip()
+        m_ph = _NF_PLACEHOLDER_RE.search(texto)
+        if m_ph:
+            return m_ph.group(1).strip()
     nd = str(linha.get("numero_documento") or linha.get("NumeroDocumento") or "").strip()
     if nd and nd not in ("0", "000") and not _LOTE_AGRO_NUMDOC_RE.match(nd):
         if re.fullmatch(r"\d{1,12}", nd):
             return nd
-        m2 = re.search(r"\bNF\s*[.:]?\s*(\d{1,12})\b", nd, re.I)
+        m2 = _NF_DIGITS_RE.search(nd)
         if m2:
             return m2.group(1).strip()
+        m2_ph = _NF_PLACEHOLDER_RE.search(nd)
+        if m2_ph:
+            return m2_ph.group(1).strip()
     return ""
 
 
 def _nf_numero_norm(nf: str) -> str:
+    import unicodedata
+
     s = str(nf or "").strip()
     if not s:
         return ""
     if s.isdigit():
         return s.lstrip("0") or "0"
-    return s
+    # «Não Tem» / «nao  tem» → mesmo rótulo (nota manual sem número).
+    s = unicodedata.normalize("NFKD", s)
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    return re.sub(r"\s+", " ", s.casefold()).strip()
 
 
 def _nf_numero_variantes(nf: str) -> list[str]:
