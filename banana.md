@@ -1280,7 +1280,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🟡 PACOTE — Telefone duplicado por cima do EDITAR (`CLI-DUP-TEL-Z` · 10/09)
+### 🟡 PACOTE — Telefone duplicado por cima do EDITAR (`CLI-DUP-TEL-Z` · **v23.77** · 10/09)
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1289,6 +1289,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `cliente_cadastro_acoes.html` · prova `verify_pdv_cli_cadastro_path` |
 | **Migrate** | **NÃO** |
 | **Prova** | **55/55** |
+| **Commit** | `d1f6467` · `teste` **v23.77** |
 | **Status** | 🟡 no `teste` — Ctrl+F5 local · **não** loja |
 | **Você** | PDV → EDITAR → telefone de outro → Salvar → popup no meio |
 
