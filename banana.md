@@ -1290,7 +1290,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | hub · `views_fotos_produto.py` · `fotos_produto_util.py` · templates `fotos_produto/` · `catalogo_delivery_util` (`imagens_extras`) |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_fotos_produto_mobile_path.py` **34/34** |
-| **Commit** | (este) · `teste` **v23.82** |
+| **Commit** | `98cb9c9` · `teste` **v23.82** |
 | **Status** | 🟢 **pronto no teste** — validar no celular local; loja **só** frase+senha |
 | **Você** | Celular → `/vendas/lojas/` → **Fotos** → PIN → buscar/bipar → Tirar (principal + extras) |
 | **Depois** | Setinha galeria no PDV · flags no cadastro |
