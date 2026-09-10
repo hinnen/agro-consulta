@@ -1280,6 +1280,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ Deploy loja — Hotfixes Repasse (`deploy/prep-repasse-hotfix-0909` · **v23.76**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v23.76** — cherry **só** 2 hotfixes (**não** merge `teste`) |
+| **Antes** | **Live v23.73** @ `c7e6fd2` |
+| **Agora** | `producao` @ **`056e9a7`** · Render `dep-dah1ih9t0dsc73djodbg` |
+| **Pacotes** | `REPASSE-COFRE-ESTORNO-MOTIVO` · `REPASSE-FUNDO-FECHADO` |
+| **Migrate** | **NÃO** |
+| **Prova** | fundo **61/61** · cofre-plano **65/65** · gestão **64/64** · vila-path **262** · deep PIN/API OK · `check` OK |
+| **Rollback** | tag `rollback/pre-repasse-hotfix-0909-v23.73` · branch `producao-backup-pre-v2376-repasse-hotfix-20260909` · `docs/ROLLBACK-REPASSE-HOTFIX-0909.md` |
+| **Você** | **Ctrl+F5** · badge **v23.76** · Repasse fechado: Levar coerente · Estornar pede motivo |
+
 ### ✅ Deploy loja — Point não desiste no 502 (`MP-POINT-POLL-RETRY` · bug #7423 · **v23.73**) · **Live**
 
 | Campo | Valor |
@@ -1375,7 +1388,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `repasse_vila.html` · `views_repasse_vila.py` · `repasse_vila_util.py` · `saida_caixa_planos.py` · `scripts/verify_repasse_cofre_plano_path.py` |
 | **Migrate** | **NÃO** |
 | **Prova** | cofre-plano **62/62** (título PG Vila · quitado · estorno apaga · API+PIN 9973 · sem gaveta) · cofre **38/38** · gestao **64/64** · `check` OK |
-| **Status** | ✅ **Live v23.70** · hotfix estorno motivo no `teste` (modal) — **não** loja ainda |
+| **Status** | ✅ **Live v23.76** (modal estorno + fundo fechado) |
 | **Você** | Ctrl+F5 `/repasse-vila/` · Retirada → plano → Registrar · **Estornar** pede motivo na caixa · conferir Lançamentos (empresa Vila) |
 
 ### 🩹 HOTFIX — Estorno cofre pede motivo sem campo (`REPASSE-COFRE-ESTORNO-MOTIVO` · 09/09)
@@ -1385,17 +1398,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Bug** | Após plano na retirada, **Estornar** lia o «Detalhe (opcional)» e avisava «Informe o motivo» sem caixa clara |
 | **Fix** | Modal **Motivo do estorno** ao clicar Estornar (`rv-estorno-modal`) |
 | **Onde** | `repasse_vila.html` |
-| **Status** | 🟡 **no teste** — sobe loja só com frase+senha |
+| **Status** | ✅ **Live v23.76** |
 | **Você** | Ctrl+F5 Gestão → Estornar → digitar motivo → Confirmar |
 
-### 🩹 HOTFIX — Repasse: fundo troco também com caixa fechado (`REPASSE-FUNDO-FECHADO` · 09/09)
+### 🩹 HOTFIX — Repasse: fundo troco também com caixa fechado (`REPASSE-FUNDO-FECHADO` · 09/09) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
 | **Bug** | Caixa Vila fechado → tela mostrava «Levar» cheio (ex. R$ 401) sem aplicar alvo R$ 500 / prioridade cofres |
 | **Fix** | Sempre `sugerirFundoTroco` · fechado usa dinheiro do **último fechamento** |
 | **Onde** | `pdv_repasse_vila.js` · `saldo_dinheiro_caixa_vila` |
-| **Status** | 🟡 **no teste** |
+| **Status** | ✅ **Live v23.76** |
 | **Você** | Ctrl+F5 overlay Repasse com caixa **fechado** · Levar coerente com troco · ainda precisa **abrir** pra confirmar |
 
 ### ✅ PACOTE — Gestão repasse no padrão PDV (`REPASSE-GESTAO-SIMPLES` · **v23.62** · 09/09) · **Live**
