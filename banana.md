@@ -1280,6 +1280,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Point não desiste no 502 (`MP-POINT-POLL-RETRY` · bug #7423 · **v23.73** · 09/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Relato** | Máquina MP cobrou · PDV «não aconteceu nada» · fecharam na Cielo. Caso: venda **#7423** R$ 239 (Ademir) · Geraldinho · 09/09 ~18:09 |
+| **Causa** | Poll do status: **um 502** da API Mercado Pago **matava** a espera (`throw`). Point já tinha cobrado (`tinha_pago` no forçar liberar). |
+| **O quê** | Erro transitório (502/5xx/429/rede) → continua aguardando + aviso «Conexão instável…». Só cancel/recusa/erro definitivo aborta. |
+| **Onde** | `pdv_wizard.js` (`pollMpPointUntilPaid`) |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_mp_point_poll_retry_path.py` **13/13** |
+| **Status** | 🟢 **pronto para envio** (tip `teste` **v23.73**) — loja ainda **v23.70** |
+| **Você** | Ctrl+F5 PDV · Point · se a internet oscilar, a tela **continua** «aguardando» (não some o pagamento) |
+| **Risco caixa** | #7423 gravada como **Cielo**; Point órfão R$239 foi forçado abandon — conferir se cliente pagou 1× ou 2× |
+
 ### ✅ Deploy loja — Checklist 09/09 (`deploy/prep-checklist-0909` · **v23.70**) · **Live**
 
 | Campo | Valor |

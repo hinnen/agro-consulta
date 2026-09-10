@@ -10300,6 +10300,27 @@
             e.mpPointUserAbort = true;
             return e;
         }
+        function fatalMpPollError(msg) {
+            var e = new Error(msg || 'Falha ao consultar Point.');
+            e.mpPointFatal = true;
+            return e;
+        }
+        /** 502/rede/MP instável — loja #7423: um 502 matava a espera com a máquina já cobrada. */
+        function mpPointStatusTransientFailure(stRes) {
+            if (!stRes) return true;
+            var code = Number(stRes.status) || 0;
+            if (code >= 500 || code === 429 || code === 0) return true;
+            var hs = stRes.data && Number(stRes.data.http_status);
+            if (hs >= 500 || hs === 429) return true;
+            return false;
+        }
+        function schedulePollStep(n) {
+            return new Promise(function (resolve) {
+                setTimeout(function () {
+                    resolve(step(n + 1));
+                }, MP_POINT_POLL_MS);
+            });
+        }
         function abandonOnTimeoutThenResolveOrReject() {
             var timeoutMsg =
                 'A maquininha não respondeu a tempo (~' +
@@ -10307,7 +10328,7 @@
                 ' s).';
             if (!abandonUrl) {
                 return Promise.reject(
-                    new Error(
+                    fatalMpPollError(
                         timeoutMsg +
                             ' Cancele na maquininha se o valor ainda estiver lá e tente de novo.'
                     )
@@ -10330,7 +10351,7 @@
                     extra =
                         '\n\nCancele na maquininha se o valor ainda estiver lá e tente de novo.';
                 }
-                return Promise.reject(new Error(timeoutMsg + extra));
+                return Promise.reject(fatalMpPollError(timeoutMsg + extra));
             });
         }
         function step(n) {
@@ -10349,50 +10370,67 @@
                 return abandonOnTimeoutThenResolveOrReject();
             }
             var sep = statusBase.indexOf('?') >= 0 ? '&' : '?';
-            return jsonGet(statusBase + sep + 'order_id=' + encodeURIComponent(orderId)).then(function (stRes) {
-                if (mpPointWaitControl.cancelRequested) {
-                    return Promise.reject(userAbortError());
-                }
-                if (mpPointWaitControl.forcePaid) {
-                    return { jaFinalizado: false, order_id: orderId };
-                }
-                if (!stRes.ok) {
-                    throw new Error((stRes.data && (stRes.data.erro || stRes.data.message)) || 'Falha ao consultar Point.');
-                }
-                if (!stRes.data.ok) {
-                    throw new Error((stRes.data && stRes.data.erro) || 'Falha ao consultar Point.');
-                }
-                if (stRes.data.abandoned) {
-                    return Promise.reject(userAbortError());
-                }
-                if (stRes.data.canceled) {
-                    return Promise.reject({
-                        mpPointUi: true,
-                        message:
-                            'Pagamento cancelado na maquininha.\n\nEm «Pagamentos lançados», altere ou exclua e tente de novo.'
-                    });
-                }
-                if (stRes.data.failed) {
-                    var fmsg =
-                        (stRes.data.failed_msg && String(stRes.data.failed_msg).trim()) ||
-                        'Pagamento recusado ou não concluído na maquininha.';
-                    return Promise.reject({
-                        mpPointUi: true,
-                        message: fmsg + '\n\nEm «Pagamentos lançados», altere ou exclua e tente de novo.'
-                    });
-                }
-                if (stRes.data.finalized && stRes.data.venda_id) {
-                    return { jaFinalizado: true, venda_id: stRes.data.venda_id };
-                }
-                if (stRes.data.paid) {
-                    return { jaFinalizado: false, order_id: orderId };
-                }
-                return new Promise(function (resolve) {
-                    setTimeout(function () {
-                        resolve(step(n + 1));
-                    }, MP_POINT_POLL_MS);
+            return jsonGet(statusBase + sep + 'order_id=' + encodeURIComponent(orderId))
+                .then(function (stRes) {
+                    if (mpPointWaitControl.cancelRequested) {
+                        return Promise.reject(userAbortError());
+                    }
+                    if (mpPointWaitControl.forcePaid) {
+                        return { jaFinalizado: false, order_id: orderId };
+                    }
+                    if (!stRes.ok || !stRes.data || !stRes.data.ok) {
+                        if (mpPointStatusTransientFailure(stRes)) {
+                            setMpPointWaitStatus(
+                                'Conexão instável com Mercado Pago… ainda aguardando (' + secs + 's)'
+                            );
+                            return schedulePollStep(n);
+                        }
+                        throw fatalMpPollError(
+                            (stRes.data && (stRes.data.erro || stRes.data.message)) ||
+                                'Falha ao consultar Point.'
+                        );
+                    }
+                    if (stRes.data.abandoned) {
+                        return Promise.reject(userAbortError());
+                    }
+                    if (stRes.data.canceled) {
+                        return Promise.reject({
+                            mpPointUi: true,
+                            message:
+                                'Pagamento cancelado na maquininha.\n\nEm «Pagamentos lançados», altere ou exclua e tente de novo.'
+                        });
+                    }
+                    if (stRes.data.failed) {
+                        var fmsg =
+                            (stRes.data.failed_msg && String(stRes.data.failed_msg).trim()) ||
+                            'Pagamento recusado ou não concluído na maquininha.';
+                        return Promise.reject({
+                            mpPointUi: true,
+                            message:
+                                fmsg +
+                                '\n\nEm «Pagamentos lançados», altere ou exclua e tente de novo.'
+                        });
+                    }
+                    if (stRes.data.finalized && stRes.data.venda_id) {
+                        return { jaFinalizado: true, venda_id: stRes.data.venda_id };
+                    }
+                    if (stRes.data.paid) {
+                        return { jaFinalizado: false, order_id: orderId };
+                    }
+                    return schedulePollStep(n);
+                })
+                .catch(function (err) {
+                    if (mpPointWaitControl.cancelRequested) {
+                        return Promise.reject(userAbortError());
+                    }
+                    if (err && (err.mpPointUserAbort || err.mpPointUi || err.mpPointFatal)) {
+                        return Promise.reject(err);
+                    }
+                    setMpPointWaitStatus(
+                        'Conexão instável com Mercado Pago… ainda aguardando (' + secs + 's)'
+                    );
+                    return schedulePollStep(n);
                 });
-            });
         }
         return step(0);
     }
