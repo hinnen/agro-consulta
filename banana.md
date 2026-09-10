@@ -1264,6 +1264,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ Deploy loja — Hotfixes Repasse (`deploy/prep-repasse-hotfix-0909` · **v23.76**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v23.76** — cherry **só** 2 hotfixes (**não** merge `teste`) |
+| **Antes** | **Live v23.73** @ `c7e6fd2` |
+| **Pacotes** | `REPASSE-COFRE-ESTORNO-MOTIVO` · `REPASSE-FUNDO-FECHADO` |
+| **Migrate** | **NÃO** |
+| **Prova** | fundo **61/61** · cofre-plano **65/65** · gestão **64/64** · vila-path **262** · deep PIN/API OK · `check` OK |
+| **Rollback** | tag `rollback/pre-repasse-hotfix-0909-v23.73` · `docs/ROLLBACK-REPASSE-HOTFIX-0909.md` |
+| **Você** | **Ctrl+F5** · badge **v23.76** · Repasse com caixa fechado: Levar coerente · Estornar pede motivo na caixa |
+
 ### ✅ Deploy loja — Point não desiste no 502 (`MP-POINT-POLL-RETRY` · bug #7423 · **v23.73**) · **Live**
 
 | Campo | Valor |

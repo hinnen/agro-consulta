@@ -523,6 +523,27 @@
   </div>
 </div>
 
+{# Motivo do estorno — não reaproveita o «Detalhe» do lançamento #}
+<div id="rv-estorno-modal" class="fixed inset-0 z-[80] hidden items-center justify-center bg-slate-950/60 p-3" role="dialog" aria-modal="true" aria-labelledby="rv-estorno-title">
+  <div class="w-full max-w-md rounded-2xl border-4 border-rose-700 bg-white shadow-2xl overflow-hidden">
+    <header class="border-b-2 border-rose-200 bg-rose-50 px-4 py-3">
+      <h3 id="rv-estorno-title" class="text-base font-black uppercase text-rose-950">Motivo do estorno</h3>
+      <p class="mt-0.5 text-xs font-bold text-slate-600">Obrigatório · mínimo 3 letras</p>
+    </header>
+    <div class="px-4 py-3 space-y-3">
+      <label class="block">
+        <span class="rv-lbl text-rose-900">Por que está estornando?</span>
+        <input id="rv-estorno-motivo" type="text" maxlength="500" class="mt-1 min-h-[3rem] w-full rounded-xl border-2 border-rose-700 bg-white px-3 text-base font-bold" placeholder="Ex.: lançou plano errado" autocomplete="off">
+      </label>
+      <p id="rv-estorno-status" class="min-h-[1rem] text-xs font-black text-orange-800"></p>
+      <div class="flex flex-wrap gap-2 justify-end">
+        <button type="button" id="rv-estorno-cancelar" class="min-h-[2.75rem] rounded-xl border-2 border-slate-400 bg-white px-4 text-sm font-black uppercase text-slate-800">Cancelar</button>
+        <button type="button" id="rv-estorno-ok" class="min-h-[2.75rem] rounded-xl bg-rose-600 px-5 text-sm font-black uppercase text-white hover:bg-rose-700">Confirmar estorno</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {{ calc|json_script:"rv-calc-boot" }}
 {{ hist|json_script:"rv-hist-boot" }}
 {{ planos_repasse|json_script:"rv-planos-boot" }}
@@ -1207,13 +1228,70 @@
     }).join('');
     box.querySelectorAll('.' + clsEst).forEach(function (btn) {
       btn.addEventListener('click', function () {
-        var obsId = cofre === 'vila_elias' ? 'rv-cofre-ve-obs' : 'rv-cofre-obs';
-        var obs = String((document.getElementById(obsId) || {}).value || '').trim();
-        if (obs.length < 3) { setCofreStatus('Informe o motivo do estorno.', cofre); return; }
-        postCofre('/api/repasse-vila/cofrinho/estornar/', { movimento_id: btn.dataset.id, observacao: obs }, cofre);
+        pedirMotivoEstorno(btn.dataset.id, cofre);
       });
     });
   }
+  var _estornoPend = null;
+  function fecharEstornoModal() {
+    _estornoPend = null;
+    var modal = document.getElementById('rv-estorno-modal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+    var st = document.getElementById('rv-estorno-status');
+    if (st) st.textContent = '';
+    var inp = document.getElementById('rv-estorno-motivo');
+    if (inp) inp.value = '';
+  }
+  function pedirMotivoEstorno(movimentoId, cofre) {
+    _estornoPend = { id: String(movimentoId || ''), cofre: cofre || 'salario' };
+    var modal = document.getElementById('rv-estorno-modal');
+    var inp = document.getElementById('rv-estorno-motivo');
+    var st = document.getElementById('rv-estorno-status');
+    if (!modal || !inp) {
+      setCofreStatus('Não foi possível abrir o pedido de motivo.', cofre);
+      return;
+    }
+    if (st) st.textContent = '';
+    inp.value = '';
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(function () { try { inp.focus(); } catch (e) {} }, 30);
+  }
+  (function wireEstornoModal() {
+    var cancelar = document.getElementById('rv-estorno-cancelar');
+    var ok = document.getElementById('rv-estorno-ok');
+    var inp = document.getElementById('rv-estorno-motivo');
+    var modal = document.getElementById('rv-estorno-modal');
+    if (cancelar) cancelar.addEventListener('click', fecharEstornoModal);
+    if (modal) {
+      modal.addEventListener('click', function (ev) {
+        if (ev.target === modal) fecharEstornoModal();
+      });
+    }
+    function confirmar() {
+      if (!_estornoPend) return;
+      var obs = String((inp && inp.value) || '').trim();
+      var st = document.getElementById('rv-estorno-status');
+      if (obs.length < 3) {
+        if (st) st.textContent = 'Digite o motivo (mín. 3 letras).';
+        if (inp) inp.focus();
+        return;
+      }
+      var pend = _estornoPend;
+      fecharEstornoModal();
+      postCofre('/api/repasse-vila/cofrinho/estornar/', { movimento_id: pend.id, observacao: obs }, pend.cofre);
+    }
+    if (ok) ok.addEventListener('click', confirmar);
+    if (inp) {
+      inp.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter') { ev.preventDefault(); confirmar(); }
+        if (ev.key === 'Escape') { ev.preventDefault(); fecharEstornoModal(); }
+      });
+    }
+  })();
   var btnCofreSep = document.getElementById('rv-cofre-separar');
   if (btnCofreSep) btnCofreSep.addEventListener('click', function () {
     postCofre('/api/repasse-vila/cofrinho/separar/', { data_ref: dataRef(), observacao: 'Separação isolada pela tela de repasse' }, 'salario');

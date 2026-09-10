@@ -36,21 +36,45 @@ COFRE_VILA_ELIAS = "vila_elias"
 
 
 def saldo_dinheiro_caixa_vila() -> dict[str, Any]:
-    """Esperado em Dinheiro no caixa principal da Vila agora (abertura + vendas − retiradas)."""
-    from produtos.caixa_util import obter_caixa_vila_aberto, resumo_esperado_por_forma
+    """Dinheiro na gaveta da Vila para sugestão do Repasse (fundo troco).
+
+    Aberto → esperado atual (abertura + vendas − retiradas).
+    Fechado → último fechamento contado (mesma lógica de sugestão de abertura),
+    para a tela não inventar «levar tudo» sem aplicar o alvo de troco.
+    """
+    from produtos.caixa_util import (
+        PONTO_CAIXA_VILA,
+        obter_caixa_vila_aberto,
+        resumo_esperado_por_forma,
+        ultimo_fechamento_sugestao_abertura,
+    )
 
     vila = obter_caixa_vila_aberto()
-    if not vila:
+    if vila:
+        din = _dec(resumo_esperado_por_forma(vila).get("Dinheiro"))
+        return {
+            "aberto": True,
+            "saldo_dinheiro": float(din),
+            "sessao_id": int(vila.pk),
+            "fonte": "aberto",
+        }
+    sug = ultimo_fechamento_sugestao_abertura(ponto=PONTO_CAIXA_VILA)
+    if sug and sug.get("dinheiro_contado") is not None:
+        try:
+            din_f = float(_dec(sug["dinheiro_contado"]))
+        except Exception:
+            din_f = 0.0
         return {
             "aberto": False,
-            "saldo_dinheiro": 0.0,
-            "sessao_id": None,
+            "saldo_dinheiro": din_f,
+            "sessao_id": int(sug["sessao_pk"]) if sug.get("sessao_pk") else None,
+            "fonte": "ultimo_fechamento",
         }
-    din = _dec(resumo_esperado_por_forma(vila).get("Dinheiro"))
     return {
-        "aberto": True,
-        "saldo_dinheiro": float(din),
-        "sessao_id": int(vila.pk),
+        "aberto": False,
+        "saldo_dinheiro": 0.0,
+        "sessao_id": None,
+        "fonte": "nenhum",
     }
 
 

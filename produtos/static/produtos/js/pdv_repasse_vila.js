@@ -414,17 +414,12 @@
     var pendSal = sepJunto ? Number(cofre.pendente_dia || 0) : 0;
     var pendVe = sepJunto ? Number(cofreVe.pendente_dia || 0) : 0;
     var cx = c.caixa_vila || {};
-    var gaveta = cx.aberto ? Number(cx.saldo_dinheiro || 0) : 0;
+    var gaveta = Number(cx.saldo_dinheiro || 0);
+    if (!isFinite(gaveta) || gaveta < 0) gaveta = 0;
     var alvoTroco = fundoTrocoAtual();
-    var aloc = cx.aberto
-      ? sugerirFundoTroco(gaveta, alvoTroco, pendSal, pendVe, totAuto)
-      : {
-          sep_salario: pendSal,
-          sep_vila_elias: pendVe,
-          levar_centro: totAuto,
-          sobra_gaveta: 0,
-          aviso: '',
-        };
+    // Mesma regra aberto ou fechado: fundo troco + prioridade Salário → VE → Centro.
+    // Fechado usa saldo do último fechamento (API) — não mostra «levar 400» no papel.
+    var aloc = sugerirFundoTroco(gaveta, alvoTroco, pendSal, pendVe, totAuto);
     totAuto = aloc.levar_centro;
     pendSal = aloc.sep_salario;
     pendVe = aloc.sep_vila_elias;
@@ -468,7 +463,20 @@
       } else {
         cxEl.textContent = 'Fechado';
         cxEl.className = 'text-3xl sm:text-4xl font-black tabular-nums text-red-800 leading-none';
-        if (cxHint) cxHint.textContent = 'Abra o caixa da Vila para ver o saldo';
+        if (cxHint) {
+          var fonte = String(cx.fonte || '');
+          if (fonte === 'ultimo_fechamento' && gaveta > 0.009) {
+            cxHint.textContent =
+              'Último fechamento ' +
+              money(gaveta) +
+              ' · sugestão com troco ' +
+              money(alvoTroco) +
+              ' · abra o caixa para transferir';
+          } else {
+            cxHint.textContent =
+              'Sem saldo do último fechamento · sugestão com gaveta 0 · abra o caixa da Vila';
+          }
+        }
       }
     }
 

@@ -102,6 +102,15 @@ def main():
         "pdv-rp-fundo-troco",
         "Cortamos Centro → Vila Elias → Salário",
         "Ajuste fundo troco",
+        "ultimo_fechamento",
+    )
+    # Fechado NÃO pode pular o fundo troco (bug: mostrava levar cheio no papel)
+    forbid_file(JS, "levar_centro: totAuto")
+    check_file(
+        "produtos/repasse_vila_util.py",
+        "ultimo_fechamento_sugestao_abertura",
+        'fonte": "ultimo_fechamento"',
+        'fonte": "aberto"',
     )
     check_file(
         "produtos/templates/produtos/repasse_vila.html",
