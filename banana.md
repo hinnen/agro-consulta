@@ -1292,6 +1292,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `nfe_entrada_util.py` · `entrada_nota.html` · `verify_nf_aguarda_produto_path.py` |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_nf_aguarda_produto_path.py` **VERIFY_OK 6/6** |
+| **Commit** | `6c04b0d` · `teste` **v23.90** |
 | **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
 | **Você** | Ctrl+F5 Entrada NF → Em andamento → **Deve produto** → depois **Chegou** |
 
