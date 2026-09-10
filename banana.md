@@ -1264,33 +1264,45 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PREP — Checklist 09/09 (`deploy/prep-checklist-0909` · alvo **v23.70**) · ⏳ aguarda senha
+### ✅ Deploy loja — Point não desiste no 502 (`MP-POINT-POLL-RETRY` · bug #7423 · **v23.73**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **PREP pronto** — **não** enviado · **aguarda frase + senha** |
-| **Antes (loja)** | **Live v23.58** @ `0e0c419` |
-| **Branch PREP** | `deploy/prep-checklist-0909` @ tip **v23.70** |
-| **Pacotes** | `PDV-ENTREGA-PAGAS-24H` · `PDV-ENTREGA-LOJA-SAIDA` · `CAIXA-ENTREGA-ADIAR` · `TAREFAS-DETALHE-LOTE` · `REPASSE-COFRE-PLANO` · `REPASSE-GESTAO-SIMPLES` |
-| **NÃO sobe** | merge `teste` · WhatsApp · Excel · DRE WIP · outros |
-| **Migrate** | **SIM** `produtos.0128` + `0129` |
-| **Provas** | pagas **64/64** · loja-saída **12/12** · adiar **26/26** · tarefas **90/90** · cofre **62/62** · gestão **64/64** · `check` OK |
-| **Risco loja aberta** | **Médio** nos 3 paths de entrega/caixa · **baixo** tarefas/repasse — **pausar vendas** no deploy |
-| **Rollback** | `docs/ROLLBACK-CHECKLIST-0909.md` · tag `rollback/pre-checklist-0909-v23.58` (criar no deploy) |
-| **Próximo chat** | 1) pausar vendas 2) *pode subir checklist 09/09 / produção* + **99738595** 3) FF PREP → `producao` · migrate · Ctrl+F5 · badge **v23.70** |
+| **Status** | ✅ **enviado / Live v23.73** — cherry **só** este pacote (**não** merge `teste`) |
+| **Antes** | **Live v23.70** @ `71a169a` |
+| **Relato** | Máquina MP cobrou · PDV «não aconteceu nada» · fecharam na Cielo. Caso: venda **#7423** R$ 239 (Ademir) · Geraldinho · 09/09 ~18:09 |
+| **Causa** | Poll do status: **um 502** da API Mercado Pago **matava** a espera (`throw`). Point já tinha cobrado (`tinha_pago` no forçar liberar). |
+| **O quê** | Erro transitório (502/5xx/429/rede) → continua aguardando + aviso «Conexão instável…». Só cancel/recusa/erro definitivo aborta. |
+| **Onde** | `pdv_wizard.js` (`pollMpPointUntilPaid`) |
+| **Migrate** | **NÃO** |
+| **Prova** | poll-retry **13/13** · final-pin **41/41** · `tests_mp_point_pin_forcar` **16/16** · PIN **9973** · lógica 502 **10/10** |
+| **Rollback** | tag `rollback/pre-mp-point-poll-retry-v23.70` · `docs/ROLLBACK-MP-POINT-POLL-RETRY.md` |
+| **Você** | **Ctrl+F5** PDV · badge **v23.73** · Point: se a rede oscilar, continua «aguardando» |
+| **Risco caixa** | #7423 gravada como **Cielo**; Point órfão R$239 foi forçado abandon — conferir se cliente pagou 1× ou 2× |
 
-### ✅ CHECKLIST ÚNICO — PREP 09/09 (alvo loja **v23.70**)
+### ✅ Deploy loja — Checklist 09/09 (`deploy/prep-checklist-0909` · **v23.70**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v23.70** — cherry **só** 6 pacotes (**não** merge `teste`) |
+| **Antes** | **Live v23.58** @ `0e0c419` |
+| **Agora** | `producao` @ **`71a169a`** (antes deste Point) |
+| **Pacotes** | `PDV-ENTREGA-PAGAS-24H` · `PDV-ENTREGA-LOJA-SAIDA` · `CAIXA-ENTREGA-ADIAR` · `TAREFAS-DETALHE-LOTE` · `REPASSE-COFRE-PLANO` · `REPASSE-GESTAO-SIMPLES` |
+| **Migrate** | ✅ `produtos.0128` + `0129` |
+| **Rollback** | tag `rollback/pre-checklist-0909-v23.58` · `docs/ROLLBACK-CHECKLIST-0909.md` |
+
+### ✅ CHECKLIST ÚNICO — 09/09 · **Live v23.70**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `PDV-ENTREGA-PAGAS-24H` | 🟡 PREP / aguarda senha | **SIM** `0129` | **64/64** |
-| 2 | `PDV-ENTREGA-LOJA-SAIDA` | 🟡 PREP / aguarda senha | **NÃO** | **12/12** |
-| 3 | `CAIXA-ENTREGA-ADIAR` | 🟡 PREP / aguarda senha | **SIM** `0128` | **26/26** |
-| 4 | `TAREFAS-DETALHE-LOTE` | 🟡 PREP / aguarda senha | **NÃO** | **90/90** |
-| 5 | `REPASSE-COFRE-PLANO` | 🟡 PREP / aguarda senha | **NÃO** | **62/62** |
-| 6 | `REPASSE-GESTAO-SIMPLES` | 🟡 PREP / aguarda senha | **NÃO** | **64/64** |
+| 1 | `PDV-ENTREGA-PAGAS-24H` | ✅ **Live v23.70** | **SIM** `0129` | **64/64** |
+| 2 | `PDV-ENTREGA-LOJA-SAIDA` | ✅ **Live v23.70** | **NÃO** | **12/12** |
+| 3 | `CAIXA-ENTREGA-ADIAR` | ✅ **Live v23.70** | **SIM** `0128` | **26/26** |
+| 4 | `TAREFAS-DETALHE-LOTE` | ✅ **Live v23.70** | **NÃO** | **90/90** |
+| 5 | `REPASSE-COFRE-PLANO` | ✅ **Live v23.70** | **NÃO** | **62/62** |
+| 6 | `REPASSE-GESTAO-SIMPLES` | ✅ **Live v23.70** | **NÃO** | **64/64** |
 
-**Loja agora:** **v23.58**. **Não** merge `teste`.
+**Loja agora:** **v23.73** (Point poll-retry). **Não** merge `teste`.
 
 ### 📦 PACOTE PRONTO — Ícone Zap S (WA-PC-ICON · 07/09)
 
