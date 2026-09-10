@@ -1335,15 +1335,6 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
 | **Você** | Ctrl+F5 no `/` → Novo lançamento → Finalizar com PIN velho → **teclado** (sem alert preto) |
 
-### ✅ CHECKLIST ÚNICO — 10/09 · pronto envio (`PIN-NS-BI` + `CLI-DUP-TEL-Z`)
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | `PIN-NS-BI` | 🟢 **pronto para envio à produção** | **NÃO** | **130/130** |
-| 2 | `CLI-DUP-TEL-Z` | 🟢 **pronto para envio à produção** | **NÃO** | path **60/60** · deep **24/24** |
-
-**Live agora:** **v23.76**. Estes pacotes **ainda não** subiram. **Não** merge `teste`.
-
 ### 📦 PACOTE PRONTO — Telefone duplicado por cima do EDITAR (`CLI-DUP-TEL-Z` · **v23.77** · 10/09)
 
 | Campo | Valor |
