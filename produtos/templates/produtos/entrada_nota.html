@@ -1339,12 +1339,13 @@
       </div>
       <div class="px-2 sm:px-3 py-1.5 flex flex-wrap gap-1 border-b border-slate-100 bg-slate-50/60 shrink-0" id="entrada-nfe-filtros-wrap" role="toolbar" aria-label="Fila da nota (cada nota aparece em um estágio)">
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="todas" title="Todas as notas salvas.">Todas</button>
-        <button type="button" class="filtro-nfe-chip filtro-nfe-chip-on min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="em_andamento" title="Nota aberta, estoque, financeiro ou finalização PIN (ainda em trabalho).">Em andamento</button>
+        <button type="button" class="filtro-nfe-chip filtro-nfe-chip-on min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="em_andamento" title="Nota aberta, estoque, financeiro, finalização PIN ou fornecedor ainda deve produto.">Em andamento</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="nota_aberta" title="Falta casar produto do catálogo na grade (botão Mudar ou linha de busca).">Nota aberta</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="estoque" title="Grade ok; falta registrar entrada no estoque Agro.">Estoque</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="financeiro" title="Estoque já feito; falta gerar a pagar (Salvar + a pagar), se for o caso.">Financeiro</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="finalizar" title="Estoque + financeiro ok; falta gravar a finalização com PIN (etapa 8 do assistente).">Finalizar</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="correcao_sistemica" title="Notas em andamento marcadas manualmente como CORREÇÃO SISTEMICA (aguardando ajuste no sistema).">Correção sistemica</button>
+        <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="aguardando_produto" title="Nota já lançada, mas o fornecedor ainda deve produto — fica em Em andamento até marcar «produto chegou».">Deve produto</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="concluida" title="PIN da etapa 8 gravado. Não garante sozinho «Salvar + a pagar» — use «Auditar financeiro».">Concluída</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="encerrada" title="Entradas antigas marcadas como encerradas (antes do fluxo só estoque + financeiro).">Encerr. legado</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="descartada" title="Marcada como descartada.">Descartada</button>
@@ -2161,6 +2162,26 @@
     </div>
   </div>
 
+  <div id="modal-entrada-nfe-deve-produto" class="hidden fixed inset-0 z-[73] flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="modal-entrada-nfe-deve-produto-titulo">
+    <div class="w-full max-w-lg max-h-[min(88vh,32rem)] flex flex-col rounded-2xl border-2 border-orange-400 bg-white shadow-xl overflow-hidden">
+      <div class="shrink-0 px-4 py-3 border-b border-orange-100 bg-orange-50/90 flex items-center justify-between gap-2">
+        <h2 id="modal-entrada-nfe-deve-produto-titulo" class="text-base font-black uppercase text-orange-950">Fornecedor deve produto</h2>
+        <button type="button" id="btn-fechar-modal-entrada-nfe-deve" class="min-h-[40px] min-w-[40px] rounded-xl border-2 border-slate-200 bg-white text-sm font-black text-slate-700 hover:bg-slate-50" aria-label="Fechar">×</button>
+      </div>
+      <div class="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 text-sm">
+        <p id="modal-entrada-nfe-deve-produto-sub" class="text-[11px] font-semibold text-slate-600 leading-snug">A nota continua em <strong>Em andamento</strong> (mesmo com estoque/CP/PIN ok) até alguém marcar que o produto chegou.</p>
+        <label class="block">
+          <span class="text-[11px] font-black uppercase text-slate-600">O que falta (opcional)</span>
+          <textarea id="entrada-nfe-deve-produto-texto" rows="4" maxlength="500" class="mt-1 w-full min-h-[6rem] px-3 py-2.5 rounded-xl border-2 border-orange-200 bg-orange-50/40 font-bold text-slate-900 placeholder:text-slate-400 focus:border-orange-400 focus:bg-white focus:outline-none" placeholder="Ex.: 1 cx ração 15 kg — falta entregar."></textarea>
+        </label>
+      </div>
+      <div class="shrink-0 flex flex-wrap gap-2 justify-end border-t border-slate-100 px-4 py-3 bg-slate-50/80">
+        <button type="button" id="btn-fechar-modal-entrada-nfe-deve-2" class="min-h-[44px] px-4 rounded-xl border border-slate-200 bg-white text-[11px] font-black uppercase text-slate-700">Cancelar</button>
+        <button type="button" id="btn-entrada-nfe-deve-produto-salvar" class="min-h-[44px] px-5 rounded-xl bg-orange-500 text-white text-[11px] font-black uppercase border border-orange-600 hover:bg-orange-600">Marcar deve produto</button>
+      </div>
+    </div>
+  </div>
+
   <div id="modal-entrada-nfe-auditoria-fin" class="hidden fixed inset-0 z-[72] flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="modal-entrada-nfe-auditoria-titulo">
     <div class="w-full max-w-2xl max-h-[min(88vh,40rem)] flex flex-col rounded-2xl border-2 border-violet-200 bg-white shadow-xl overflow-hidden">
       <div class="shrink-0 px-4 py-3 border-b border-violet-100 bg-violet-50/80 flex items-center justify-between gap-2">
@@ -2193,7 +2214,8 @@
         <div class="border-l-4 border-sky-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Filas da lista (uma nota = um estágio)</p>
           <ul class="list-disc pl-4 space-y-1 text-[13px] text-slate-700">
-            <li><strong>Em andamento</strong> — atalho: Nota aberta + Estoque + Financeiro + Finalizar (PIN) juntos.</li>
+            <li><strong>Em andamento</strong> — atalho: Nota aberta + Estoque + Financeiro + Finalizar (PIN) + <strong>Deve produto</strong> (fornecedor ainda deve mercadoria).</li>
+            <li><strong>Deve produto</strong> — nota pode estar toda lançada (estoque/CP/PIN), mas fica na lista até alguém marcar que o produto chegou.</li>
             <li><strong>Nota aberta</strong> — falta produto do catálogo na linha (use <strong>Mudar</strong> ou a busca rápida).</li>
             <li><strong>Estoque</strong> — grade ok (produtos casados); falta registrar entrada no estoque Agro. Na lista aparece só o chip da <strong>fila</strong>, para não confundir com “pronta” de outro sentido.</li>
             <li><strong>Financeiro</strong> — estoque já feito; falta gerar a pagar, se você for usar essa etapa.</li>
@@ -2910,6 +2932,9 @@
     if (b === 'nota_aberta') {
       return 'nfe-lista-chip-fila text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-950 border border-amber-300 shrink-0 leading-tight';
     }
+    if (b === 'aguardando_produto') {
+      return 'nfe-lista-chip-fila text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-orange-100 text-orange-950 border border-orange-500 shrink-0 leading-tight';
+    }
     return 'nfe-lista-chip-fila text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-900 border border-slate-200 shrink-0 leading-tight';
   }
 
@@ -3061,6 +3086,8 @@
         else if (acao === 'reabrir') msg = 'Nota reaberta.';
         else if (acao === 'correcao_sistemica_on') msg = 'Marcada como CORREÇÃO SISTEMICA.';
         else if (acao === 'correcao_sistemica_off') msg = 'Marca CORREÇÃO SISTEMICA removida.';
+        else if (acao === 'aguardando_produto_on') msg = 'Marcada: fornecedor deve produto (fica em Em andamento).';
+        else if (acao === 'aguardando_produto_off') msg = 'Produto chegou — saiu do lembrete.';
         else if (acao === 'aviso_operacional_salvar') msg = 'Aviso salvo na nota.';
         else if (acao === 'aviso_operacional_limpar') msg = 'Aviso removido.';
         showMsg(msg, true);
@@ -3072,6 +3099,57 @@
     } catch (_) {
       showMsg('Erro de rede.', false);
     }
+  }
+
+  async function entradaNfeRascunhoAcaoComTexto(id, acao, texto) {
+    try {
+      const r = await fetch(URL_RASC_ACAO, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({ id, acao, texto: String(texto || '') }),
+      });
+      const j = await r.json();
+      if (j.ok) {
+        let msg = 'Atualizado.';
+        if (acao === 'aguardando_produto_on') msg = 'Marcada: fornecedor deve produto (fica em Em andamento).';
+        showMsg(msg, true);
+        carregarRascunhos();
+        return true;
+      }
+      showMsg(j.erro || 'Não foi possível alterar.', false);
+      return false;
+    } catch (_) {
+      showMsg('Erro de rede.', false);
+      return false;
+    }
+  }
+
+  let entradaNfeDeveProdutoRid = '';
+  let entradaNfeDeveProdutoForn = '';
+
+  function entradaNfeFecharModalDeveProduto() {
+    document.getElementById('modal-entrada-nfe-deve-produto')?.classList.add('hidden');
+    entradaNfeDeveProdutoRid = '';
+    entradaNfeDeveProdutoForn = '';
+  }
+
+  function entradaNfeAbrirModalDeveProduto(rid, textoAtual, fornecedorNome) {
+    entradaNfeDeveProdutoRid = String(rid || '');
+    entradaNfeDeveProdutoForn = String(fornecedorNome || '').trim();
+    const sub = document.getElementById('modal-entrada-nfe-deve-produto-sub');
+    if (sub) {
+      sub.innerHTML = entradaNfeDeveProdutoForn
+        ? `Nota: <strong>${entradaNfeDeveProdutoForn}</strong>. Continua em <strong>Em andamento</strong> até marcar que o produto chegou.`
+        : 'A nota continua em <strong>Em andamento</strong> (mesmo com estoque/CP/PIN ok) até alguém marcar que o produto chegou.';
+    }
+    const ta = document.getElementById('entrada-nfe-deve-produto-texto');
+    if (ta) ta.value = String(textoAtual || '');
+    document.getElementById('modal-entrada-nfe-deve-produto')?.classList.remove('hidden');
+    ta?.focus();
   }
 
   let entradaNfeAvisoModalRid = '';
@@ -12025,6 +12103,7 @@
           estoque: 'Estoque',
           financeiro: 'Financeiro',
           finalizar: 'PIN etapa 8',
+          aguardando_produto: 'Deve produto',
           concluida: 'Concluída',
           descartada: 'Descartada',
           encerrada: 'Encerr. legado',
@@ -12034,6 +12113,8 @@
           estoque: 'Fila: estoque — grade ok; falta registrar entrada no estoque Agro.',
           financeiro: 'Fila: financeiro — estoque ok; falta gerar a pagar, se for o caso.',
           finalizar: 'Fila: finalizar — falta gravar finalização com PIN (etapa 8).',
+          aguardando_produto:
+            'Fornecedor ainda deve produto — lembrete em Em andamento até marcar «produto chegou».',
           concluida: 'Fila: concluída — PIN gravado no Agro.',
           descartada: 'Fila: descartada.',
           encerrada: 'Fila: encerrada (legado).',
@@ -12074,6 +12155,16 @@
             'Marcado pelo usuário: aguardando ajuste no sistema. A nota continua na mesma fila operacional até concluir o fluxo.';
           chipRow.appendChild(cx);
         }
+        const deveProd = !!(it.entrada_aguardando_produto || bk === 'aguardando_produto');
+        const deveTxt = String(it.entrada_aguardando_produto_txt || '').trim();
+        if (deveProd && bk !== 'aguardando_produto') {
+          const ap = document.createElement('span');
+          ap.className =
+            'nfe-lista-chip-fila text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md bg-orange-50 text-orange-950 border border-orange-400 shrink-0 leading-tight';
+          ap.textContent = 'Deve produto';
+          ap.title = deveTxt || 'Fornecedor ainda deve produto.';
+          chipRow.appendChild(ap);
+        }
         const avisoTxt = String(it.entrada_aviso_operacional || exLista.aviso_operacional || '').trim();
         const textBlock = document.createElement('div');
         textBlock.className = 'nfe-lista-text min-w-0';
@@ -12096,6 +12187,14 @@
         metaWrap.appendChild(entradaNfeListaMetaItem('Atualizado', at || '—', at || '', 'nfe-lista-meta-val--dt'));
         textBlock.appendChild(nomeForn);
         textBlock.appendChild(metaWrap);
+        if (deveProd && deveTxt) {
+          const tip = document.createElement('div');
+          tip.className =
+            'mt-1 text-[11px] font-bold text-orange-900 bg-orange-50 border border-orange-200 rounded-lg px-2 py-1 leading-snug';
+          tip.textContent = `Falta: ${deveTxt}`;
+          tip.title = deveTxt;
+          textBlock.appendChild(tip);
+        }
         const actions = document.createElement('div');
         actions.className = 'nfe-lista-actions';
         const mkBtn = (label, variant, titleOpt, onClick) => {
@@ -12115,6 +12214,37 @@
             () => carregarRascunhoNaTela(rid),
           ),
         );
+        if (eff !== 'descartada') {
+          if (deveProd) {
+            actions.appendChild(
+              mkBtn(
+                'Chegou',
+                'ok',
+                'Produto chegou — tira o lembrete e a nota sai de Em andamento (vai para Concluída se o PIN já foi gravado).',
+                () => {
+                  if (
+                    window.confirm(
+                      'Produto chegou? A nota sai do lembrete «Deve produto».',
+                    )
+                  ) {
+                    void entradaNfeRascunhoAcao(rid, 'aguardando_produto_off');
+                  }
+                },
+              ),
+            );
+          } else {
+            actions.appendChild(
+              mkBtn(
+                'Deve produto',
+                'warn',
+                'Marcar que o fornecedor ainda deve produto — nota fica em Em andamento.',
+                () => {
+                  entradaNfeAbrirModalDeveProduto(rid, '', cab.emit_nome || '');
+                },
+              ),
+            );
+          }
+        }
         if (eff !== 'descartada' && eff !== 'encerrada') {
           const btnAviso = document.createElement('button');
           btnAviso.type = 'button';
@@ -12348,6 +12478,19 @@
     if (!rid) return;
     if (!window.confirm('Remover o aviso desta nota?')) return;
     void entradaNfeRascunhoAvisoOperacional(rid, 'aviso_operacional_limpar');
+  });
+
+  document.getElementById('btn-fechar-modal-entrada-nfe-deve')?.addEventListener('click', entradaNfeFecharModalDeveProduto);
+  document.getElementById('btn-fechar-modal-entrada-nfe-deve-2')?.addEventListener('click', entradaNfeFecharModalDeveProduto);
+  document.getElementById('btn-entrada-nfe-deve-produto-salvar')?.addEventListener('click', async () => {
+    const rid = entradaNfeDeveProdutoRid;
+    if (!rid) return;
+    const txt = String(document.getElementById('entrada-nfe-deve-produto-texto')?.value || '').trim();
+    const ok = await entradaNfeRascunhoAcaoComTexto(rid, 'aguardando_produto_on', txt);
+    if (ok) entradaNfeFecharModalDeveProduto();
+  });
+  document.getElementById('modal-entrada-nfe-deve-produto')?.addEventListener('click', (ev) => {
+    if (ev.target === ev.currentTarget) entradaNfeFecharModalDeveProduto();
   });
 
   let entradaNfeListaLayoutTimer = null;
