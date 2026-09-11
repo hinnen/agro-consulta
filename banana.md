@@ -1283,17 +1283,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — % lucro 0% no PDV (`REPASSE-PCT-ZERO` · **v24.01** · 11/09)
+### 📦 PACOTE PRONTO — % lucro 0% no PDV (`REPASSE-PCT-ZERO` · **v24.02** · 11/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Gestão em **0%** gravava certo; PDV Repasse forçava **50%** (`0 \|\| 50` no JS + input `value="50"`). |
-| **Fix** | `pctPadraoDeMeta` / `pctAtual` · overlay sem 50 fixo · save padrao aceita 0 |
-| **Onde** | `pdv_repasse_vila.js` · overlay · `views_repasse_vila.py` · `repasse_vila.html` |
-| **Prova** | `verify_repasse_pct_zero_path` **10/10** · vila **271** · arredonda **41** |
+| **O quê** | Gestão em **0%** gravava certo; PDV forçava **50%** (`0 \|\| 50`). Gestão calc/URL tinha o mesmo `\|\| '50'`. |
+| **Fix** | `pctPadraoDeMeta` / `pctAtual` (PDV + Gestão) · overlay sem 50 fixo · save aceita 0 |
+| **Onde** | `pdv_repasse_vila.js` · overlay · `repasse_vila.html` · `views_repasse_vila.py` |
+| **Prova** | path **20/20** · PIN **9973** · meta/config/calc API · vila **271** · deep **103** · acum **18+29** · arredonda **41** · `check` OK |
 | **Migrate** | **NÃO** |
-| **Status** | ✅ **só no teste** (`teste` v24.01) — **não** loja |
-| **Você** | PC local · Ctrl+F5 · Repasse PDV deve abrir em **0%** (igual Gestão) |
+| **Status** | ✅ **só no teste** (`teste` v24.02) — loja sobe cherry **v23.93** |
+| **Você** | Ctrl+F5 · Repasse PDV e Gestão em **0%** |
 
 ### ✅ Deploy loja — Checklist 11/09 (`deploy/prep-checklist-1109` · **v23.92**) · **Live**
 

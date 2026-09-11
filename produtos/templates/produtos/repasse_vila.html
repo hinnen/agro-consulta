@@ -601,6 +601,13 @@
   var chkAcum = document.getElementById('rv-chk-acumulado');
   var statusEl = document.getElementById('rv-status');
 
+  function pctAtual() {
+    if (!pctEl) return '0';
+    var v = String(pctEl.value == null ? '' : pctEl.value).trim();
+    if (v === '') return '0';
+    return v;
+  }
+
   function hojeIso() {
     var hoje = new Date();
     return hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0') + '-' + String(hoje.getDate()).padStart(2,'0');
@@ -755,7 +762,7 @@
   }
 
   function fetchCalc() {
-    var pct = pctEl.value || '50';
+    var pct = pctAtual();
     var cheio = chkCheio.checked ? '1' : '0';
     statusEl.textContent = 'Atualizando…';
     fetch('/api/repasse-vila/calc/?pct=' + encodeURIComponent(pct) + '&dia_cheio=' + cheio + '&data=' + encodeURIComponent(dataRef()), { credentials: 'same-origin' })
@@ -1082,7 +1089,7 @@
     if (!a) return;
     var q = new URLSearchParams();
     q.set('repasse', '1');
-    q.set('pct', pctEl.value || '50');
+    q.set('pct', pctAtual());
     q.set('cmv', chkCmv.checked ? '1' : '0');
     q.set('lucro', chkLucro.checked ? '1' : '0');
     q.set('fiado', chkFiado.checked ? '1' : '0');

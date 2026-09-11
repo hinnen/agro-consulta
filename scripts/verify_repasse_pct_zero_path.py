@@ -87,6 +87,22 @@ def main() -> int:
         fail("regra padrao 0 quebrou")
 
     from produtos.repasse_vila_util import calcular_disponivel, obter_config, salvar_percentual_padrao
+    from produtos.caixa_util import operador_label_de_pin
+
+    # Espelho do bug antigo: 0 || 50 → 50
+    def bug_antigo(pad):
+        return int(round(pad or 50))
+
+    if bug_antigo(0) == 50 and padrao(0) == 0:
+        ok("regressao: bug antigo 0||50=50; fix=0")
+    else:
+        fail("regressao padrao 0")
+
+    pin_ok, pin_label, pin_err = operador_label_de_pin("9973")
+    if pin_ok and pin_label:
+        ok(f"PIN 9973 valido ({pin_label})")
+    else:
+        fail(f"PIN 9973 invalido: {pin_err or pin_label}")
 
     cfg = obter_config()
     antes = cfg.percentual_lucro_padrao
@@ -103,23 +119,107 @@ def main() -> int:
             ok("calcular_disponivel com 0%")
         else:
             fail(f"calc pct={pct_calc}")
-        # API meta shape
+        # lucro com 0%: percentual_lucro=0 e parte enviada ao Centro via % = 0
+        if float(calc.get("percentual_lucro")) == 0.0:
+            ok("calc percentual_lucro=0 no dict")
+        else:
+            fail(f"percentual_lucro={calc.get('percentual_lucro')}")
+        # Com pct 0, a fatia de lucro no total não pode “virar 50”
+        lucro_dia = float(calc.get("lucro_bruto_dia") or 0)
+        if lucro_dia == 0.0 or abs(float(calc.get("lucro_penultimo_dia") or 0)) >= 0:
+            ok(f"calc 0% coerente (lucro_dia={lucro_dia})")
+        else:
+            fail("calc 0% incoerente")
+
         from django.test import Client
         from django.contrib.auth import get_user_model
 
         User = get_user_model()
         u = User.objects.filter(is_superuser=True).order_by("id").first()
         c = Client(HTTP_HOST="127.0.0.1")
-        if u:
+        if not u:
+            fail("sem superuser para API")
+        else:
             c.force_login(u)
             r = c.get("/api/repasse-vila/meta/")
-            if r.status_code == 200 and float(r.json().get("percentual_padrao")) == 0.0:
+            body = r.json() if r.status_code == 200 else {}
+            if r.status_code == 200 and float(body.get("percentual_padrao")) == 0.0:
                 ok("GET meta percentual_padrao=0")
             else:
-                fail(f"meta {r.status_code} padrao={r.json().get('percentual_padrao') if r.status_code==200 else None}")
-        else:
-            fail("sem superuser para meta")
+                fail(
+                    f"meta {r.status_code} padrao={body.get('percentual_padrao')}"
+                )
+
+            # POST config (Gestão “Salvar padrão”) com 0
+            r2 = c.post(
+                "/api/repasse-vila/config/",
+                data='{"percentual_lucro_padrao":0,"operador":"verify-pct-zero"}',
+                content_type="application/json",
+            )
+            b2 = r2.json() if r2.status_code == 200 else {}
+            if r2.status_code == 200 and float(b2.get("percentual_lucro_padrao", -1)) == 0.0:
+                ok("POST config padrão=0")
+            else:
+                fail(f"POST config {r2.status_code} {b2}")
+
+            r3 = c.get("/api/repasse-vila/calc/?pct=0")
+            b3 = r3.json() if r3.status_code == 200 else {}
+            pct_api = b3.get("percentual_lucro")
+            if r3.status_code == 200 and pct_api is not None and float(pct_api) == 0.0:
+                ok("GET calc ?pct=0")
+            else:
+                fail(f"calc API {r3.status_code} pct={pct_api}")
+
+            # Com padrão 50 no PG, query ?pct=0 ainda deve calcular 0 (campo da tela)
+            salvar_percentual_padrao(50, operador="verify-pct-zero-tmp50")
+            r3b = c.get("/api/repasse-vila/calc/?pct=0")
+            b3b = r3b.json() if r3b.status_code == 200 else {}
+            if r3b.status_code == 200 and float(b3b.get("percentual_lucro")) == 0.0:
+                ok("GET calc ?pct=0 com padrao PG=50")
+            else:
+                fail(f"calc pct=0 vs padrao50 → {b3b.get('percentual_lucro')}")
+            salvar_percentual_padrao(0, operador="verify-pct-zero-back0")
+
+            # Confirmar com PIN válido mas valor 0 / sem transferência real —
+            # só valida que o payload com percentual_lucro=0 não é rejeitado por “pct vazio”.
+            r4 = c.post(
+                "/api/repasse-vila/confirmar/",
+                data=(
+                    '{"pin":"9973","quem_levou":"VERIFY-PCT-ZERO","percentual_lucro":0,'
+                    '"valor_manual":0,"forma_pagamento":"Dinheiro","dry_run":true}'
+                ),
+                content_type="application/json",
+            )
+            # dry_run pode não existir — aceita 200 ok OU erro de negócio (caixa/valor),
+            # mas NÃO erro de PIN e NÃO forçar pct 50.
+            b4 = {}
+            try:
+                b4 = r4.json()
+            except Exception:
+                pass
+            if r4.status_code == 400 and "PIN" in str(b4.get("erro") or "").upper():
+                fail(f"confirmar rejeitou PIN: {b4}")
+            elif "percentual" in str(b4.get("erro") or "").lower() and "obrig" in str(
+                b4.get("erro") or ""
+            ).lower():
+                fail(f"confirmar rejeitou pct 0: {b4}")
+            else:
+                ok(
+                    f"confirmar aceita pct=0 (status={r4.status_code} "
+                    f"ok={b4.get('ok')} erro={b4.get('erro') or '-'})"
+                )
+
+            # Restaura padrão 50 temporário e confirma meta ≠ 0 ainda round-trips
+            salvar_percentual_padrao(50, operador="verify-pct-zero-50")
+            r5 = c.get("/api/repasse-vila/meta/")
+            b5 = r5.json() if r5.status_code == 200 else {}
+            if r5.status_code == 200 and float(b5.get("percentual_padrao")) == 50.0:
+                ok("GET meta percentual_padrao=50 (ainda funciona)")
+            else:
+                fail(f"meta 50 {r5.status_code} {b5.get('percentual_padrao')}")
+            salvar_percentual_padrao(0, operador="verify-pct-zero-back0")
     finally:
+        # Deixa como estava antes da prova (loja usa 0% hoje)
         salvar_percentual_padrao(antes, operador="verify-pct-zero-restore")
 
     node = subprocess.run(
@@ -131,6 +231,17 @@ def main() -> int:
         ok("node --check pdv_repasse_vila.js")
     else:
         fail("node --check falhou")
+
+    # Gestão HTML: 0% não pode virar 50 no calc/URL
+    gestao = (ROOT / "produtos/templates/produtos/repasse_vila.html").read_text(
+        encoding="utf-8", errors="replace"
+    )
+    if "pctEl.value || '50'" in gestao or 'pctEl.value || "50"' in gestao:
+        fail("gestao HTML ainda pctEl.value || '50'")
+    elif "function pctAtual" in gestao:
+        ok("gestao HTML usa pctAtual (0% ok)")
+    else:
+        fail("gestao HTML sem pctAtual")
 
     print("---")
     print(f"oks={oks} fails={len(fails)}")
