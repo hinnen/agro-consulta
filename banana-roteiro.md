@@ -503,3 +503,19 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 **Rollback:** tag `rollback/pre-checklist-1109b-v23.92` · `docs/ROLLBACK-CHECKLIST-1109b.md`.  
 **Smoke:** Ctrl+F5 · badge **v23.93** · Repasse PDV **0%**.
 
+---
+
+## 30. Checklist único — lote 11/09d (`deploy/prep-checklist-1109d` · alvo loja **v23.94**) · 🟡 aguarda senha
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **NF-LOTE-XML** | 🟡 PREP · path **48/48** · PIN **9973** | **NÃO** |
+| 2 | **REPASSE-HIST-OVERLAY** | 🟡 PREP · hist **19/19** | **NÃO** |
+| 3 | **REPASSE-STATUS-FLASH** | 🟡 PREP · **43/43** · PIN **9973** | **NÃO** |
+
+**Status: 🟡 PREP pronto / aguarda frase+senha.** Branch `deploy/prep-checklist-1109d` @ `c3e0b1c` · tip **v23.94**.  
+**Base:** Live **v23.93** @ `fc34325`. **Não** merge `teste`. Sem migrate.  
+**Rollback:** tag `rollback/pre-checklist-1109d-v23.93` · branch `producao-backup-pre-v2394-checklist-20260911d` · `docs/ROLLBACK-CHECKLIST-1109d.md`.  
+**Risco loja aberta:** não mexe venda/caixa (só Entrada NF etapa 4 + Repasse UI).  
+**Próximo chat:** pausar vendas → autorizar com senha → FF `producao` ← PREP.
+

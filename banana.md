@@ -1284,44 +1284,51 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — Status central no Repasse PDV (`REPASSE-STATUS-FLASH` · **v24.17** · 11/09)
+### 🟡 PREP LOJA — Checklist 11/09d (`deploy/prep-checklist-1109d` · **v23.94**) · aguarda senha
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | **TRANSFERINDO…** / Salvando / OK no **meio da tela**. Aviso de erro maior. Não fecha ×/Esc no meio da transferência. |
-| **Prova** | status-flash **43/43** · PIN **9973** · hist **19/19** · stack **35/35** · vila **280** · pct-zero **20/20** · `check` OK · node OK |
+| **Status** | 🟡 **PREP pronto** — **não** subiu · aguarda frase + senha no próximo chat |
+| **Branch PREP** | `deploy/prep-checklist-1109d` @ **`c3e0b1c`** · tip **v23.94** |
+| **Base loja** | Live **v23.93** @ `fc34325` |
+| **Pacotes** | `NF-LOTE-XML` · `REPASSE-HIST-OVERLAY` · `REPASSE-STATUS-FLASH` |
+| **Cherry** | **11** commits código · **não** merge `teste` |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** |
-| **Você** | Ctrl+F5 · Confirmar → painel central · Loja: frase + senha |
+| **Prova** | NF **48/48** · hist **19/19** · status-flash **43/43** · vila **280** · pct-zero **20/20** · PIN **9973** · `check` OK |
+| **Rollback** | tag `rollback/pre-checklist-1109d-v23.93` · branch `producao-backup-pre-v2394-checklist-20260911d` · `docs/ROLLBACK-CHECKLIST-1109d.md` |
+| **Risco loja aberta** | **Não** mexe venda/caixa — só Entrada NF etapa 4 + UI Repasse |
+| **Próximo chat** | Pausar vendas → frase + senha `99738595` → assistente faz fast-forward `producao` ← PREP |
 
-### 📦 PACOTE PRONTO — Histórico 3 cofres no Repasse PDV (`REPASSE-HIST-OVERLAY` · **v24.07+** · 11/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | **Histórico** sob Acumulado / Enviado / Total → lista · Voltar · Imprimir 80mm/A4. |
-| **Prova** | hist **19/19** · vila **280** · stack **35/35** |
-| **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** |
-| **Você** | Ctrl+F5 · Histórico · Imprimir · Loja: frase + senha |
-
-### 📦 PACOTE PRONTO — Lote/validade do XML (`NF-LOTE-XML` · **v24.05**)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Etapa 4 puxa lote/validade do XML (`prod/rastro`). |
-| **Status** | 🟢 **pronto para envio à produção** |
-| **Migrate** | **NÃO** |
-| **Prova** | path **48/48** · unit **10/10** · PIN **9973** |
-
-### ✅ CHECKLIST ÚNICO — 11/09d · pronto envio
+### ✅ CHECKLIST ÚNICO — 11/09d · PREP v23.94 aguarda senha
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `REPASSE-STATUS-FLASH` | 🟢 **pronto para envio à produção** | **NÃO** | **43/43** · PIN **9973** |
-| 2 | `REPASSE-HIST-OVERLAY` | 🟢 **pronto para envio à produção** | **NÃO** | **19/19** |
-| 3 | `NF-LOTE-XML` | 🟢 **pronto para envio à produção** | **NÃO** | **48/48** · PIN **9973** |
+| 1 | `NF-LOTE-XML` | 🟡 **PREP / aguarda senha** | **NÃO** | **48/48** · PIN **9973** |
+| 2 | `REPASSE-HIST-OVERLAY` | 🟡 **PREP / aguarda senha** | **NÃO** | **19/19** |
+| 3 | `REPASSE-STATUS-FLASH` | 🟡 **PREP / aguarda senha** | **NÃO** | **43/43** · PIN **9973** |
 
-**Live agora:** **v23.93**. Estes pacotes **ainda não** subiram (cherry — **não** merge `teste`).
+**Live agora:** **v23.93**. Alvo pós-deploy: **v23.94**.
+
+### 📦 PACOTE — Status central Repasse (`REPASSE-STATUS-FLASH`) · no PREP 11/09d
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | TRANSFERINDO / avisos no meio da tela · bloqueia fechar no meio |
+| **Status** | 🟡 no PREP **v23.94** · aguarda senha |
+
+### 📦 PACOTE — Histórico 3 cofres (`REPASSE-HIST-OVERLAY`) · no PREP 11/09d
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Histórico + impressão 80mm/A4 no Repasse PDV |
+| **Status** | 🟡 no PREP **v23.94** · aguarda senha |
+
+### 📦 PACOTE — Lote/validade XML (`NF-LOTE-XML`) · no PREP 11/09d
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Etapa 4 puxa lote/validade do XML |
+| **Status** | 🟡 no PREP **v23.94** · aguarda senha |
 
 ### ✅ Deploy loja — Checklist 11/09b (`deploy/prep-checklist-1109b` · **v23.93**) · **Live**
 
