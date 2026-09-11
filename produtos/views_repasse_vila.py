@@ -43,6 +43,7 @@ from produtos.repasse_vila_util import (
     salvar_planos_desconto_centro,
     salvar_reserva_vila,
     serializar_repasse,
+    listar_envios_periodo,
     validar_data_ref_repasse,
 )
 
@@ -336,7 +337,27 @@ def _operador_payload(request, payload: dict) -> tuple[str, object | None, str]:
 def api_repasse_vila_cofrinho(request):
     dia = _parse_date(request.GET.get("data")) or timezone.localdate()
     cofre = str(request.GET.get("cofre") or "salario").strip().lower()
-    return JsonResponse(resumo_cofrinho_vila(dia, cofre=cofre))
+    de = _parse_date(request.GET.get("de"))
+    ate = _parse_date(request.GET.get("ate"))
+    try:
+        limit = int(request.GET.get("limit") or 90)
+    except Exception:
+        limit = 90
+    return JsonResponse(
+        resumo_cofrinho_vila(dia, cofre=cofre, de=de, ate=ate, limit=limit)
+    )
+
+
+@login_required(login_url="/entrar/")
+@require_GET
+def api_repasse_vila_envios(request):
+    de = _parse_date(request.GET.get("de"))
+    ate = _parse_date(request.GET.get("ate"))
+    try:
+        limit = int(request.GET.get("limit") or 200)
+    except Exception:
+        limit = 200
+    return JsonResponse(listar_envios_periodo(de, ate, limit=limit))
 
 
 @login_required(login_url="/entrar/")

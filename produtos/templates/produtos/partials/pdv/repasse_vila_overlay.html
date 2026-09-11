@@ -140,6 +140,32 @@
   #pdv-repasse-overlay .rp-popup {
     position: absolute; inset: 0; z-index: 50;
   }
+  #pdv-repasse-overlay .rp-hist-shell {
+    width: min(98rem, 99vw);
+    height: min(96dvh, 56rem);
+    max-height: 96dvh;
+  }
+  #pdv-repasse-overlay .rp-hist-row {
+    border: 2px solid #e2e8f0;
+    border-radius: 0.75rem;
+    background: #fff;
+    cursor: pointer;
+  }
+  #pdv-repasse-overlay .rp-hist-row:hover { border-color: #94a3b8; }
+  #pdv-repasse-overlay .rp-hist-row.is-open { border-color: #0f766e; background: #f0fdfa; }
+  #pdv-repasse-overlay .rp-hist-det {
+    display: none;
+    border-top: 1px solid #e2e8f0;
+    padding: 0.55rem 0.75rem 0.7rem;
+    font-size: 0.8rem;
+    color: #334155;
+  }
+  #pdv-repasse-overlay .rp-hist-row.is-open .rp-hist-det { display: block; }
+  #pdv-repasse-overlay .rp-hist-print-panel {
+    border: 3px solid #ea580c;
+    border-radius: 1rem;
+    background: #fff7ed;
+  }
   #pdv-repasse-overlay #pdv-rp-quem-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
@@ -330,17 +356,26 @@
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-4 gap-2 items-stretch" id="pdv-rp-totais-linha">
-        <div class="rp-hero-totais-item flex items-baseline justify-between gap-2 min-w-0">
-          <span class="rp-tot-lbl text-amber-800">Acumulado</span>
-          <span class="rp-tot-val text-amber-950 text-right" id="pdv-rp-acum">R$ 0,00</span>
+        <div class="rp-hero-totais-item flex flex-col gap-1.5 min-w-0">
+          <div class="flex items-baseline justify-between gap-2 min-w-0">
+            <span class="rp-tot-lbl text-amber-800">Acumulado</span>
+            <span class="rp-tot-val text-amber-950 text-right" id="pdv-rp-acum">R$ 0,00</span>
+          </div>
+          <button type="button" id="pdv-rp-hist-sal" class="rp-hist-btn min-h-[2.35rem] w-full rounded-lg border-2 border-rose-600 bg-rose-50 px-2 text-[0.7rem] font-black uppercase tracking-wide text-rose-950 hover:bg-rose-100" title="Histórico do cofrinho Salário">Histórico</button>
         </div>
-        <div class="rp-hero-totais-item flex items-baseline justify-between gap-2 min-w-0" title="Dinheiro levado + cartão/PIX/fiado já no Centro">
-          <span class="rp-tot-lbl text-sky-800">Enviado no mês</span>
-          <span class="rp-tot-val text-sky-950 text-right" id="pdv-rp-hero-mes">R$ 0,00</span>
+        <div class="rp-hero-totais-item flex flex-col gap-1.5 min-w-0" title="Dinheiro levado + cartão/PIX/fiado já no Centro">
+          <div class="flex items-baseline justify-between gap-2 min-w-0">
+            <span class="rp-tot-lbl text-sky-800">Enviado no mês</span>
+            <span class="rp-tot-val text-sky-950 text-right" id="pdv-rp-hero-mes">R$ 0,00</span>
+          </div>
+          <button type="button" id="pdv-rp-hist-ve" class="rp-hist-btn min-h-[2.35rem] w-full rounded-lg border-2 border-indigo-600 bg-indigo-50 px-2 text-[0.7rem] font-black uppercase tracking-wide text-indigo-950 hover:bg-indigo-100" title="Histórico do cofre Vila Elias">Histórico</button>
         </div>
-        <div class="rp-hero-totais-item flex items-baseline justify-between gap-2 min-w-0" title="Tudo enviado ao Centro (dinheiro + cartão/PIX)">
-          <span class="rp-tot-lbl text-slate-600">Total geral</span>
-          <span class="rp-tot-val text-slate-900 text-right" id="pdv-rp-hero-geral">R$ 0,00</span>
+        <div class="rp-hero-totais-item flex flex-col gap-1.5 min-w-0" title="Tudo enviado ao Centro (dinheiro + cartão/PIX)">
+          <div class="flex items-baseline justify-between gap-2 min-w-0">
+            <span class="rp-tot-lbl text-slate-600">Total geral</span>
+            <span class="rp-tot-val text-slate-900 text-right" id="pdv-rp-hero-geral">R$ 0,00</span>
+          </div>
+          <button type="button" id="pdv-rp-hist-centro" class="rp-hist-btn min-h-[2.35rem] w-full rounded-lg border-2 border-emerald-700 bg-emerald-50 px-2 text-[0.7rem] font-black uppercase tracking-wide text-emerald-950 hover:bg-emerald-100" title="Histórico dos envios ao Centro">Histórico</button>
         </div>
         <div class="hidden xl:block" aria-hidden="true"></div>
       </div>
@@ -606,4 +641,36 @@
     </footer>
   </div>
   </div>
+
+  {# Histórico Salário / Vila Elias / Levar — mesmo tamanho do shell #}
+  <div id="pdv-rp-hist-modal" class="rp-popup hidden items-center justify-center bg-slate-900/60 p-1 sm:p-2" role="dialog" aria-modal="true" aria-labelledby="pdv-rp-hist-title">
+    <div class="rp-hist-shell flex flex-col overflow-hidden rounded-2xl border-4 border-slate-800 bg-white shadow-2xl">
+      <header class="shrink-0 flex flex-wrap items-center gap-2 border-b-4 border-slate-200 bg-slate-50 px-3 py-2.5">
+        <button type="button" id="pdv-rp-hist-voltar" class="min-h-[3rem] min-w-[8.5rem] rounded-xl border-4 border-slate-700 bg-white px-4 text-sm font-black uppercase text-slate-900 hover:bg-slate-100">← Voltar</button>
+        <h3 id="pdv-rp-hist-title" class="flex-1 text-center text-base sm:text-lg font-black uppercase tracking-wide text-slate-950">Histórico</h3>
+        <button type="button" id="pdv-rp-hist-imprimir" class="min-h-[3rem] rounded-xl border-4 border-orange-600 bg-orange-500 px-4 text-sm font-black uppercase text-white hover:bg-orange-600">Imprimir</button>
+      </header>
+      <div id="pdv-rp-hist-print-panel" class="hidden shrink-0 border-b-2 border-orange-200 px-3 py-3 rp-hist-print-panel mx-2 mt-2">
+        <p class="text-xs font-black uppercase text-orange-950 mb-2">Período da impressão</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2" id="pdv-rp-hist-print-dates">
+          <label class="block text-xs font-bold text-slate-700">
+            De
+            <input type="date" id="pdv-rp-hist-de" class="agro-date-picker rp-field mt-0.5 w-full min-h-[2.75rem]" />
+          </label>
+          <label class="block text-xs font-bold text-slate-700">
+            Até
+            <input type="date" id="pdv-rp-hist-ate" class="agro-date-picker rp-field mt-0.5 w-full min-h-[2.75rem]" />
+          </label>
+        </div>
+        <div class="flex flex-wrap gap-2 justify-end">
+          <button type="button" id="pdv-rp-hist-print-cancel" class="min-h-[2.75rem] rounded-xl border-2 border-slate-400 bg-white px-4 text-xs font-black uppercase text-slate-800">Cancelar</button>
+          <button type="button" id="pdv-rp-hist-print-80" class="min-h-[2.75rem] rounded-xl border-2 border-sky-700 bg-sky-600 px-4 text-xs font-black uppercase text-white">80mm</button>
+          <button type="button" id="pdv-rp-hist-print-a4" class="min-h-[2.75rem] rounded-xl border-2 border-emerald-800 bg-emerald-700 px-4 text-xs font-black uppercase text-white">A4</button>
+        </div>
+      </div>
+      <p id="pdv-rp-hist-status" class="shrink-0 px-3 pt-2 text-xs font-bold text-slate-600 min-h-[1.1rem]"></p>
+      <div id="pdv-rp-hist-lista" class="flex-1 min-h-0 overflow-y-auto px-3 pb-3 space-y-2"></div>
+    </div>
+  </div>
 </div>
+{% include "produtos/includes/agro_date_picker_styles.html" %}

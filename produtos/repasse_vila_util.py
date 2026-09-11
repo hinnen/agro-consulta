@@ -500,6 +500,8 @@ def resumo_cofrinho_vila(
     *,
     limit: int = 60,
     cofre: str = COFRE_SALARIO,
+    de: date | None = None,
+    ate: date | None = None,
 ) -> dict[str, Any]:
     dia = dia or timezone.localdate()
     cfg = obter_config()
@@ -509,10 +511,15 @@ def resumo_cofrinho_vila(
     realizada = separacao_realizada_no_dia(dia, cofre=cofre_n)
     acum = pendente_reserva_cofrinho_ate(dia, cfg, cofre=cofre_n)
     movimentos = []
+    lim = max(1, min(int(limit or 60), 500))
+    qs = RepasseVilaReservaMovimentoAgro.objects.filter(cofre=cofre_n)
+    if de is not None:
+        qs = qs.filter(data_ref__gte=de)
+    if ate is not None:
+        qs = qs.filter(data_ref__lte=ate)
     qs = (
-        RepasseVilaReservaMovimentoAgro.objects.filter(cofre=cofre_n)
-        .select_related("sessao_caixa", "repasse", "estornado_de")
-        .order_by("-criado_em", "-pk")[: max(1, min(int(limit or 60), 200))]
+        qs.select_related("sessao_caixa", "repasse", "estornado_de")
+        .order_by("-criado_em", "-pk")[:lim]
     )
     for mov in qs:
         det = mov.detalhe if isinstance(mov.detalhe, dict) else {}
@@ -558,6 +565,8 @@ def resumo_cofrinho_vila(
             else "Cofrinho Salário funcionário"
         ),
         "data_ref": dia.isoformat(),
+        "de": de.isoformat() if de else None,
+        "ate": ate.isoformat() if ate else None,
         "saldo": float(saldo_cofrinho_vila(cfg, cofre=cofre_n)),
         "prevista_dia": float(prevista),
         "realizada_dia": float(realizada),
@@ -2583,6 +2592,7 @@ def texto_aviso_abertura(repasses: list[RepasseVilaCentroAgro]) -> str:
 
 
 def serializar_repasse(rep: RepasseVilaCentroAgro) -> dict[str, Any]:
+    criado_local = timezone.localtime(rep.criado_em) if rep.criado_em else None
     return {
         "id": rep.pk,
         "data_ref": rep.data_ref.isoformat(),
@@ -2597,5 +2607,42 @@ def serializar_repasse(rep: RepasseVilaCentroAgro) -> dict[str, Any]:
         "quem_levou": rep.quem_levou,
         "status_centro": rep.status_centro,
         "modo_dia_cheio": bool(rep.modo_dia_cheio),
-        "criado_em": timezone.localtime(rep.criado_em).isoformat() if rep.criado_em else "",
+        "criado_em": criado_local.isoformat() if criado_local else "",
+        "criado_em_label": (
+            criado_local.strftime("%d/%m/%Y %H:%M:%S") if criado_local else ""
+        ),
+        "tipo": "envio",
+        "tipo_label": "Envio ao Centro",
+        "valor": float(_dec(rep.valor_total)),
+        "operador": rep.quem_levou or "",
+    }
+
+
+def listar_envios_periodo(
+    de: date | None = None,
+    ate: date | None = None,
+    *,
+    limit: int = 200,
+) -> dict[str, Any]:
+    """Lista flat de envelopes Vila→Centro no período (histórico / impressão)."""
+    hoje = timezone.localdate()
+    if ate is None:
+        ate = hoje
+    if de is None:
+        de = ate - timedelta(days=90)
+    if de > ate:
+        de, ate = ate, de
+    lim = max(1, min(int(limit or 200), 500))
+    qs = (
+        RepasseVilaCentroAgro.objects.filter(data_ref__gte=de, data_ref__lte=ate)
+        .order_by("-criado_em", "-pk")[:lim]
+    )
+    itens = [serializar_repasse(r) for r in qs]
+    return {
+        "ok": True,
+        "de": de.isoformat(),
+        "ate": ate.isoformat(),
+        "total": len(itens),
+        "envios": itens,
+        "movimentos": itens,  # alias p/ UI única
     }

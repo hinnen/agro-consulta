@@ -1599,4 +1599,253 @@
       }
     });
   });
+
+  /* —— Histórico Salário / Vila Elias / Centro —— */
+  var histModal = document.getElementById('pdv-rp-hist-modal');
+  var histLista = document.getElementById('pdv-rp-hist-lista');
+  var histStatus = document.getElementById('pdv-rp-hist-status');
+  var histTitle = document.getElementById('pdv-rp-hist-title');
+  var histPrintPanel = document.getElementById('pdv-rp-hist-print-panel');
+  var histKind = 'salario';
+  var histItems = [];
+  var histPickerBound = false;
+
+  var HIST_TITLES = {
+    salario: 'Histórico · Cofrinho Salário',
+    vila_elias: 'Histórico · Cofre Vila Elias',
+    centro: 'Histórico · Levar ao Centro',
+  };
+
+  function isoToday() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function isoDaysAgo(n) {
+    var d = new Date();
+    d.setDate(d.getDate() - n);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function escHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function bindHistPicker() {
+    if (histPickerBound) return;
+    histPickerBound = true;
+    try {
+      if (window.AgroDatePicker) {
+        window.AgroDatePicker.bind(document.getElementById('pdv-rp-hist-print-dates'), {
+          accent: '#ea580c',
+          accentSoft: '#fff7ed',
+        });
+      }
+    } catch (_) {}
+  }
+
+  function closeHistModal() {
+    if (histPrintPanel) histPrintPanel.classList.add('hidden');
+    hideModal(histModal);
+  }
+
+  function openHistModal(kind) {
+    histKind = kind || 'salario';
+    if (histTitle) histTitle.textContent = HIST_TITLES[histKind] || 'Histórico';
+    if (histPrintPanel) histPrintPanel.classList.add('hidden');
+    if (histStatus) histStatus.textContent = 'Carregando…';
+    if (histLista) histLista.innerHTML = '';
+    showModal(histModal);
+    loadHistList();
+  }
+
+  function histUrl(de, ate) {
+    var q = new URLSearchParams();
+    q.set('limit', '200');
+    if (de) q.set('de', de);
+    if (ate) q.set('ate', ate);
+    if (histKind === 'centro') {
+      return '/api/repasse-vila/envios/?' + q.toString();
+    }
+    q.set('cofre', histKind === 'vila_elias' ? 'vila_elias' : 'salario');
+    q.set('data', dataRef());
+    return '/api/repasse-vila/cofrinho/?' + q.toString();
+  }
+
+  function loadHistList(de, ate) {
+    if (!de) de = isoDaysAgo(90);
+    if (!ate) ate = isoToday();
+    if (histStatus) histStatus.textContent = 'Carregando…';
+    fetch(histUrl(de, ate), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j || !j.ok) {
+          histItems = [];
+          if (histStatus) histStatus.textContent = (j && j.erro) || 'Falha ao carregar';
+          if (histLista) histLista.innerHTML = '';
+          return;
+        }
+        histItems = j.movimentos || j.envios || [];
+        renderHistList(histItems);
+        if (histStatus) {
+          histStatus.textContent = histItems.length
+            ? histItems.length + ' movimento(s) · últimos 90 dias'
+            : 'Nenhum movimento neste período';
+        }
+      })
+      .catch(function () {
+        histItems = [];
+        if (histStatus) histStatus.textContent = 'Falha de rede';
+      });
+  }
+
+  function renderHistList(items) {
+    if (!histLista) return;
+    histLista.innerHTML = '';
+    if (!items || !items.length) {
+      histLista.innerHTML = '<p class="text-sm font-bold text-slate-500 py-6 text-center">Sem movimentações.</p>';
+      return;
+    }
+    items.forEach(function (it) {
+      var row = document.createElement('div');
+      row.className = 'rp-hist-row';
+      var quando = it.criado_em || it.criado_em_label || it.data_ref || '—';
+      var tipo = it.tipo_label || it.tipo || 'Movimento';
+      var quem = it.operador || it.quem_levou || '—';
+      var valor = money(it.valor != null ? it.valor : it.valor_total);
+      var detParts = [];
+      if (it.origem_label) detParts.push('<div><b>Origem:</b> ' + escHtml(it.origem_label) + '</div>');
+      if (it.saldo_anterior != null && it.saldo_posterior != null) {
+        detParts.push(
+          '<div><b>Saldo:</b> ' + money(it.saldo_anterior) + ' → ' + money(it.saldo_posterior) + '</div>'
+        );
+      }
+      if (it.valor_cmv != null) detParts.push('<div><b>CMV:</b> ' + money(it.valor_cmv) + '</div>');
+      if (it.valor_lucro != null) detParts.push('<div><b>Lucro enviado:</b> ' + money(it.valor_lucro) + '</div>');
+      if (it.valor_fiado != null) detParts.push('<div><b>Fiado:</b> ' + money(it.valor_fiado) + '</div>');
+      if (it.percentual_lucro != null) detParts.push('<div><b>% lucro:</b> ' + escHtml(it.percentual_lucro) + '%</div>');
+      if (it.status_centro) detParts.push('<div><b>Status:</b> ' + escHtml(it.status_centro) + '</div>');
+      if (it.plano_nome) detParts.push('<div><b>Plano:</b> ' + escHtml(it.plano_nome) + '</div>');
+      if (it.observacao) detParts.push('<div><b>Obs:</b> ' + escHtml(it.observacao) + '</div>');
+      if (it.estornado) detParts.push('<div class="font-black text-rose-700">Já estornado</div>');
+      if (it.repasse_id) detParts.push('<div><b>Repasse #</b>' + escHtml(it.repasse_id) + '</div>');
+      if (!detParts.length) detParts.push('<div class="text-slate-500">Sem detalhes extras.</div>');
+      row.innerHTML =
+        '<div class="flex items-center gap-2 px-3 py-2.5">' +
+        '<div class="flex-1 min-w-0">' +
+        '<div class="text-[0.7rem] font-bold uppercase text-slate-500">' + escHtml(quando) + '</div>' +
+        '<div class="text-sm font-black text-slate-900 truncate">' + escHtml(tipo) + ' · ' + escHtml(quem) + '</div>' +
+        '</div>' +
+        '<div class="text-base font-black tabular-nums text-slate-950 shrink-0">' + valor + '</div>' +
+        '</div>' +
+        '<div class="rp-hist-det space-y-0.5">' + detParts.join('') + '</div>';
+      row.addEventListener('click', function () {
+        row.classList.toggle('is-open');
+      });
+      histLista.appendChild(row);
+    });
+  }
+
+  function openHistPrintPanel() {
+    var deEl = document.getElementById('pdv-rp-hist-de');
+    var ateEl = document.getElementById('pdv-rp-hist-ate');
+    if (deEl && !deEl.value) deEl.value = isoDaysAgo(30);
+    if (ateEl && !ateEl.value) ateEl.value = isoToday();
+    if (histPrintPanel) histPrintPanel.classList.remove('hidden');
+    bindHistPicker();
+  }
+
+  function printHist(formato) {
+    var deEl = document.getElementById('pdv-rp-hist-de');
+    var ateEl = document.getElementById('pdv-rp-hist-ate');
+    var de = (deEl && deEl.value) || isoDaysAgo(30);
+    var ate = (ateEl && ateEl.value) || isoToday();
+    if (histStatus) histStatus.textContent = 'Montando impressão…';
+    fetch(histUrl(de, ate), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        var itens = (j && j.ok) ? (j.movimentos || j.envios || []) : [];
+        if (!itens.length) {
+          if (histStatus) histStatus.textContent = 'Nada para imprimir neste período';
+          return;
+        }
+        var titulo = HIST_TITLES[histKind] || 'Histórico';
+        var rows = itens.map(function (it) {
+          var quando = it.criado_em || it.criado_em_label || it.data_ref || '';
+          var tipo = it.tipo_label || it.tipo || '';
+          var quem = it.operador || it.quem_levou || '';
+          var valor = money(it.valor != null ? it.valor : it.valor_total);
+          var extra = [];
+          if (it.origem_label) extra.push(it.origem_label);
+          if (it.observacao) extra.push(it.observacao);
+          if (it.valor_cmv != null) extra.push('CMV ' + money(it.valor_cmv));
+          if (it.percentual_lucro != null) extra.push(it.percentual_lucro + '%');
+          return (
+            '<tr><td>' + escHtml(quando) + '</td><td>' + escHtml(tipo) +
+            '<div class="sub">' + escHtml(quem) + (extra.length ? ' · ' + escHtml(extra.join(' · ')) : '') +
+            '</div></td><td class="v">' + valor + '</td></tr>'
+          );
+        }).join('');
+        var pageCss =
+          formato === '80mm'
+            ? '@page{margin:0;size:80mm auto}body{width:80mm;margin:0;padding:4mm;font:11px/1.3 system-ui,sans-serif}'
+            : '@page{margin:12mm}body{font:12px/1.35 system-ui,sans-serif;margin:0;padding:0}';
+        var html =
+          '<!doctype html><html><head><meta charset="utf-8"><title>' + escHtml(titulo) + '</title>' +
+          '<style>' + pageCss +
+          'h1{font-size:14px;margin:0 0 6px;text-transform:uppercase}' +
+          '.meta{font-size:11px;margin-bottom:10px;color:#334155}' +
+          'table{width:100%;border-collapse:collapse}' +
+          'td{padding:4px 2px;border-bottom:1px solid #e2e8f0;vertical-align:top}' +
+          'td.v{text-align:right;font-weight:800;white-space:nowrap}' +
+          '.sub{font-size:10px;color:#64748b;font-weight:600}' +
+          '</style></head><body>' +
+          '<h1>' + escHtml(titulo) + '</h1>' +
+          '<div class="meta">De ' + escHtml(de.split('-').reverse().join('/')) +
+          ' até ' + escHtml(ate.split('-').reverse().join('/')) +
+          ' · ' + itens.length + ' item(ns)</div>' +
+          '<table><tbody>' + rows + '</tbody></table>' +
+          '<script>window.onload=function(){window.focus();window.print();}<\/script>' +
+          '</body></html>';
+        var w = window.open('', '_blank', 'noopener,noreferrer,width=480,height=720');
+        if (!w) {
+          if (histStatus) histStatus.textContent = 'Permita pop-up para imprimir';
+          return;
+        }
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+        if (histStatus) histStatus.textContent = 'Impressão aberta · ' + itens.length + ' item(ns)';
+        if (histPrintPanel) histPrintPanel.classList.add('hidden');
+      })
+      .catch(function () {
+        if (histStatus) histStatus.textContent = 'Falha de rede na impressão';
+      });
+  }
+
+  var btnHistSal = document.getElementById('pdv-rp-hist-sal');
+  var btnHistVe = document.getElementById('pdv-rp-hist-ve');
+  var btnHistCentro = document.getElementById('pdv-rp-hist-centro');
+  if (btnHistSal) btnHistSal.addEventListener('click', function () { openHistModal('salario'); });
+  if (btnHistVe) btnHistVe.addEventListener('click', function () { openHistModal('vila_elias'); });
+  if (btnHistCentro) btnHistCentro.addEventListener('click', function () { openHistModal('centro'); });
+
+  var histVoltar = document.getElementById('pdv-rp-hist-voltar');
+  if (histVoltar) histVoltar.addEventListener('click', closeHistModal);
+  var histImprimir = document.getElementById('pdv-rp-hist-imprimir');
+  if (histImprimir) histImprimir.addEventListener('click', openHistPrintPanel);
+  var histPrintCancel = document.getElementById('pdv-rp-hist-print-cancel');
+  if (histPrintCancel) {
+    histPrintCancel.addEventListener('click', function () {
+      if (histPrintPanel) histPrintPanel.classList.add('hidden');
+    });
+  }
+  var histPrint80 = document.getElementById('pdv-rp-hist-print-80');
+  var histPrintA4 = document.getElementById('pdv-rp-hist-print-a4');
+  if (histPrint80) histPrint80.addEventListener('click', function () { printHist('80mm'); });
+  if (histPrintA4) histPrintA4.addEventListener('click', function () { printHist('a4'); });
 })();
