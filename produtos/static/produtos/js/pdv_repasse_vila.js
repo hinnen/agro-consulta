@@ -1849,6 +1849,48 @@
     return iframe;
   }
 
+  function histStyles80mm() {
+    return (
+      '@page{margin:0;size:80mm auto}' +
+      'html,body{margin:0;padding:0}' +
+      'body{font-family:system-ui,Segoe UI,sans-serif;width:80mm;max-width:80mm;margin:0 auto;' +
+      '-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#000;background:#fff}' +
+      '.pg{width:80mm;max-width:80mm;margin:0 auto;padding:2mm 3mm 0;box-sizing:border-box;' +
+      'font-size:12px;line-height:1.25;overflow:visible}' +
+      '.tit{text-align:center;font-size:13px;font-weight:900;text-transform:uppercase;' +
+      'letter-spacing:.04em;border:2px solid #000;padding:5px 4px;margin:0 0 6px}' +
+      '.meta{text-align:center;font-size:11px;font-weight:700;margin:0 0 8px}' +
+      '.item{border-top:1px dashed #000;padding:5px 0 4px;page-break-inside:avoid;break-inside:avoid}' +
+      '.item:first-of-type{border-top:2px solid #000}' +
+      '.linha{display:flex;justify-content:space-between;align-items:baseline;gap:4px}' +
+      '.data{font-size:11px;font-weight:800}' +
+      '.valor{font-size:16px;font-weight:900;white-space:nowrap;font-variant-numeric:tabular-nums}' +
+      '.tipo{font-size:12px;font-weight:900;margin-top:1px}' +
+      '.quem{font-size:11px;font-weight:700}' +
+      '.sub{font-size:10px;font-weight:600;margin-top:1px}' +
+      '.tot{border-top:2px solid #000;margin-top:6px;padding-top:5px;font-weight:900;' +
+      'display:flex;justify-content:space-between;font-size:13px}' +
+      '.corte{display:block;height:14mm;min-height:14mm;line-height:14mm;font-size:1px;' +
+      'color:transparent;overflow:hidden;margin:0;padding:0}' +
+      '@media print{.item{page-break-inside:avoid;break-inside:avoid}.corte{display:block;height:14mm;min-height:14mm}}'
+    );
+  }
+
+  function histStylesA4() {
+    return (
+      '@page{margin:12mm}' +
+      'body{font:12px/1.35 system-ui,sans-serif;margin:0;padding:8mm;box-sizing:border-box;color:#000}' +
+      'h1{font-size:14px;margin:0 0 6px;text-transform:uppercase}' +
+      '.meta{font-size:11px;margin-bottom:10px}' +
+      'table{width:100%;border-collapse:collapse;table-layout:fixed}' +
+      'th{text-align:left;font-size:10px;text-transform:uppercase;border-bottom:2px solid #000;padding:3px 2px}' +
+      'td{padding:4px 2px;border-bottom:1px solid #ccc;vertical-align:top}' +
+      'td.v{text-align:right;font-weight:900;white-space:nowrap;font-size:13px;font-variant-numeric:tabular-nums}' +
+      '.sub{font-size:10px;font-weight:600}' +
+      '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}'
+    );
+  }
+
   function printHist(formato) {
     var deEl = document.getElementById('pdv-rp-hist-de');
     var ateEl = document.getElementById('pdv-rp-hist-ate');
@@ -1864,49 +1906,72 @@
           return;
         }
         var titulo = HIST_TITLES[histKind] || 'Histórico';
-        var rows = itens.map(function (it) {
-          var quando = fmtHistQuando(it);
-          var tipo = it.tipo_label || it.tipo || '';
-          var quem = it.operador || it.quem_levou || '';
-          var rawVal = it.valor != null ? it.valor : it.valor_total;
-          var dir = histDirecao(it);
-          var arrow = dir === 'out' ? '↓' : '↑';
-          var valor = arrow + ' ' + money(Math.abs(Number(rawVal || 0)));
-          var extra = [];
-          if (it.origem_label) extra.push(it.origem_label);
-          if (it.observacao) extra.push(it.observacao);
-          if (it.valor_cmv != null) extra.push('CMV ' + money(it.valor_cmv));
-          if (it.percentual_lucro != null) extra.push(it.percentual_lucro + '%');
-          return (
-            '<tr><td>' + escHtml(quando) + '</td><td>' + escHtml(tipo) +
-            '</td><td>' + escHtml(quem) +
-            (extra.length ? '<div class="sub">' + escHtml(extra.join(' · ')) + '</div>' : '') +
-            '</td><td class="v ' + (dir === 'out' ? 'out' : 'in') + '">' + valor + '</td></tr>'
-          );
-        }).join('');
-        var pageCss =
-          formato === '80mm'
-            ? '@page{margin:0;size:80mm auto}body{width:80mm;max-width:80mm;margin:0 auto;padding:4mm;font:11px/1.3 system-ui,sans-serif;box-sizing:border-box}'
-            : '@page{margin:12mm}body{font:12px/1.35 system-ui,sans-serif;margin:0;padding:8mm;box-sizing:border-box}';
-        var styles =
-          pageCss +
-          'h1{font-size:14px;margin:0 0 6px;text-transform:uppercase}' +
-          '.meta{font-size:11px;margin-bottom:10px;color:#334155}' +
-          'table{width:100%;border-collapse:collapse;table-layout:fixed}' +
-          'th{text-align:left;font-size:10px;text-transform:uppercase;border-bottom:2px solid #cbd5e1;padding:3px 2px;color:#64748b}' +
-          'td{padding:4px 2px;border-bottom:1px solid #e2e8f0;vertical-align:top}' +
-          'td.v{text-align:right;font-weight:900;white-space:nowrap;font-size:13px}' +
-          'td.v.out{color:#be123c}td.v.in{color:#047857}' +
-          '.sub{font-size:10px;color:#64748b;font-weight:600}' +
-          '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}';
-        var bodyHtml =
-          '<h1>' + escHtml(titulo) + '</h1>' +
-          '<div class="meta">De ' + escHtml(de.split('-').reverse().join('/')) +
-          ' até ' + escHtml(ate.split('-').reverse().join('/')) +
-          ' · ' + itens.length + ' item(ns)</div>' +
-          '<table><thead><tr><th>Data</th><th>Tipo</th><th>Quem</th><th>Valor</th></tr></thead><tbody>' +
-          rows +
-          '</tbody></table>';
+        var deLbl = de.split('-').reverse().join('/');
+        var ateLbl = ate.split('-').reverse().join('/');
+        var styles;
+        var bodyHtml;
+        if (formato === '80mm') {
+          styles = histStyles80mm();
+          var soma = 0;
+          var blocos = itens.map(function (it) {
+            var quando = fmtHistQuando(it);
+            var tipo = it.tipo_label || it.tipo || '';
+            var quem = it.operador || it.quem_levou || '';
+            var rawVal = Number(it.valor != null ? it.valor : it.valor_total) || 0;
+            var dir = histDirecao(it);
+            var arrow = dir === 'out' ? '-' : '+';
+            var abs = Math.abs(rawVal);
+            soma += dir === 'out' ? -abs : abs;
+            var extras = [];
+            if (it.origem_label) extras.push(it.origem_label);
+            if (it.observacao) extras.push(it.observacao);
+            return (
+              '<div class="item">' +
+              '<div class="linha"><span class="data">' + escHtml(quando) +
+              '</span><span class="valor">' + arrow + ' ' + money(abs) + '</span></div>' +
+              '<div class="tipo">' + escHtml(tipo) + '</div>' +
+              '<div class="quem">' + escHtml(quem) + '</div>' +
+              (extras.length ? '<div class="sub">' + escHtml(extras.join(' · ')) + '</div>' : '') +
+              '</div>'
+            );
+          }).join('');
+          bodyHtml =
+            '<div class="pg">' +
+            '<div class="tit">' + escHtml(titulo) + '</div>' +
+            '<div class="meta">De ' + escHtml(deLbl) + ' ate ' + escHtml(ateLbl) +
+            '<br>' + itens.length + ' movimento(s)</div>' +
+            blocos +
+            '<div class="tot"><span>Liquido</span><span>' + money(soma) + '</span></div>' +
+            '<div class="corte" aria-hidden="true">&nbsp;</div>' +
+            '</div>';
+        } else {
+          styles = histStylesA4();
+          var rows = itens.map(function (it) {
+            var quando = fmtHistQuando(it);
+            var tipo = it.tipo_label || it.tipo || '';
+            var quem = it.operador || it.quem_levou || '';
+            var rawVal = it.valor != null ? it.valor : it.valor_total;
+            var dir = histDirecao(it);
+            var arrow = dir === 'out' ? '-' : '+';
+            var valor = arrow + ' ' + money(Math.abs(Number(rawVal || 0)));
+            var extra = [];
+            if (it.origem_label) extra.push(it.origem_label);
+            if (it.observacao) extra.push(it.observacao);
+            return (
+              '<tr><td>' + escHtml(quando) + '</td><td>' + escHtml(tipo) +
+              '</td><td>' + escHtml(quem) +
+              (extra.length ? '<div class="sub">' + escHtml(extra.join(' · ')) + '</div>' : '') +
+              '</td><td class="v">' + valor + '</td></tr>'
+            );
+          }).join('');
+          bodyHtml =
+            '<h1>' + escHtml(titulo) + '</h1>' +
+            '<div class="meta">De ' + escHtml(deLbl) + ' até ' + escHtml(ateLbl) +
+            ' · ' + itens.length + ' item(ns)</div>' +
+            '<table><thead><tr><th>Data</th><th>Tipo</th><th>Quem</th><th>Valor</th></tr></thead><tbody>' +
+            rows +
+            '</tbody></table>';
+        }
         var iframe = ensureHistPrintIframe();
         var idoc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
         if (!idoc) {

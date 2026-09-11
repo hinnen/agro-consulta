@@ -90,12 +90,15 @@ def main() -> int:
     else:
         fail("sem colunas/setas hist")
 
-    if "pdv-rp-hist-print-iframe" in js and "window.open(" not in js.split("printHist")[1][:2500]:
-        ok("impressao via iframe (sem window.open)")
-    elif "ensureHistPrintIframe" in js and "contentWindow.print" in js:
-        ok("impressao via iframe (sem window.open)")
+    if "ensureHistPrintIframe" in js and "contentWindow.print" in js:
+        ok("impressao via iframe")
     else:
-        fail("print ainda usa window.open ou sem iframe")
+        fail("print sem iframe")
+
+    if "histStyles80mm" in js and "size:80mm auto" in js and "14mm" in js:
+        ok("80mm termica (bobina + avance corte)")
+    else:
+        fail("80mm sem layout termico")
 
     if "api/repasse-vila/envios/" in urls:
         ok("rota envios")
