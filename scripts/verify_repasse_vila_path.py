@@ -68,7 +68,7 @@ check("produtos/templates/produtos/includes/repasse_aviso_abertura.html", "Repas
 check("produtos/views.py", "aplicar_repasses_pendentes_centro", "repasse_aviso_abertura")
 check("scripts/verify_repasse_vila_deep.py", "VERIFY_DEEP_OK", "confirmar_repasse", "forma PIX", "confirmar ontem", "envio extra zera acum do dia")
 check("scripts/verify_repasse_planos_path.py", "VERIFY_PLANOS_OK", "planos_desconto_centro")
-check("scripts/verify_repasse_acum_net.py", "VERIFY_ACUM_NET_OK", "print 18/08", "abater_extras_do_acumulado")
+check("scripts/verify_repasse_acum_net.py", "VERIFY_ACUM_NET_OK", "print 18/08", "abater_extras_do_acumulado", "overpay+PIX")
 check("scripts/verify_repasse_reserva.py", "VERIFY_RESERVA_OK", "salvar_reserva_vila", "lucro_penultimo", "listar_log_reserva", "reserva_aplicada_no_dia")
 check("scripts/verify_caixa_fechar_repasse_path.py", "VERIFY_FECHAR_REPASSE_OK", "escopo=loja", "notifyParentFecharAtualizar")
 check("scripts/verify_repasse_cofrinho.py", "VERIFY_REPASSE_COFRINHO_OK", "registrar_saldo_inicial_cofrinho", "hoje acumula ontem+hoje = 200", "adiantar/separar a mais abate próximo dia", "fórmula lucro 200 → sal 100 · VE 50 · Centro 50")

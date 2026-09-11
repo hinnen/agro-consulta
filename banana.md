@@ -1283,6 +1283,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🔴 PENDENTE — Repasse acumulado não baixa direito no mesmo dia (`REPASSE-ACUM-EXTRA-BUG` · 11/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Sintoma** | Levou R$ 500 (Geraldinho); acumulado era **522,40** → tela ficou **445,02** (devia cair bem mais). |
+| **Causa** | Depois de enviar a mais, o abate do excedente no **mesmo dia** usa alvo sem cartão/PIX → baixa pouco o acumulado na tela. |
+| **Histórico** | Dias já fechados no cache (ex. 01/09 −46,85; 11/09 −434) **registram** o a mais. Bug principal = **tela no dia**. Recálculo de 180 dias após envio também **mexe** o bruto (522→688). |
+| **Snapshot ANTES do fix** | `scripts/data/snapshot_repasse_acumulado_pre_fix_20260911.json` — envios · deltas · ajustes · cofres · contas tela. **Não mexer** sem comparar. |
+| **Números-chave agora** | Tela **445,02** · no envio **522,40** · bruto até ontem **688,54** · cache hoje alvo **65,97** / env **500** / delta **−434,03** · esperado com abate certo ~**254,51** · cofres **1212,01** / **1352,94** |
+| **Ação** | Corrigir abate + conferir/acertar saldo com Renan. **Ainda não codado.** |
+
 ### ✅ Prova reforçada — NF-AGUARDA-PRODUTO (`verify` **13/13** · unit **4/4** · 10/09)
 
 | Campo | Valor |

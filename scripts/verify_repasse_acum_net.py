@@ -50,12 +50,15 @@ def fail(msg: str) -> None:
     print(f"FAIL {msg}")
 
 
-def _calc(enviado, cmv=0, lucro=0, fiado=0, elet=0) -> dict:
-    return {
+def _calc(enviado, cmv=0, lucro=0, fiado=0, elet=0, *, ja_eletronico=None) -> dict:
+    out = {
         "alvos": {"cmv": cmv, "lucro": lucro, "fiado": fiado},
         "ja_eletronico_aplicado": elet,
         "ja_enviado": {"total": enviado},
     }
+    if ja_eletronico is not None:
+        out["ja_eletronico"] = ja_eletronico
+    return out
 
 
 def main() -> int:
@@ -161,6 +164,22 @@ def main() -> int:
     else:
         fail(f"elet extra={extra_e}")
 
+    # Regressão 11/09: após overpay, elet_aplicado=0 mas cartão/PIX do dia existe.
+    # Mini antigo sem ja_eletronico → alvo inchado → acumulado quase não caía.
+    c_bug = _calc(
+        "500",
+        cmv="252.27",
+        lucro="4.21",
+        elet=0,
+        ja_eletronico="190.51",
+    )
+    extra_bug = _extra_do_calc(c_bug)
+    liq_bug = abater_extras_do_acumulado(hoje, Decimal("688.54"), c_bug)
+    if extra_bug == Decimal("434.03") and liq_bug == Decimal("254.51"):
+        ok("overpay+PIX: extra 434,03 e acum 254,51 (não 445)")
+    else:
+        fail(f"overpay+PIX extra={extra_bug} liq={liq_bug}")
+
     # --- extra depois de um dia passado = soma dos deltas negativos ---
     if _extra_enviado_apos(hoje) == ZERO:
         ok("extra depois de hoje = 0")
@@ -214,10 +233,10 @@ def main() -> int:
         ok("hoje: liquido = bruto - extra do dia")
     else:
         fail(f"hoje liq {liq} != {esp_liq}")
-    if sug == (falta + liq).quantize(Decimal("0.01")):
-        ok("hoje: sugerido = falta + líquido")
+    if sug == max(ZERO, (falta + liq).quantize(Decimal("0.01"))):
+        ok("hoje: sugerido = max(0, falta + líquido)")
     else:
-        fail(f"hoje sug {sug} != falta+liq")
+        fail(f"hoje sug {sug} != max(0,falta+liq)")
     if extra_hoje >= bruto and bruto > 0:
         if liq <= 0 and sug <= falta:
             ok("hoje: extra cobre o bruto -> nao pede acum de novo")
