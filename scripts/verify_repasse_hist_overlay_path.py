@@ -85,10 +85,10 @@ def main() -> int:
     else:
         fail("JS hist incompleto")
 
-    if "fmtHistQuando" in js and "rp-hist-col-data" in js:
-        ok("colunas Data/Tipo/Quem/Valor")
+    if "fmtHistQuando" in js and "rp-hist-col-data" in js and "histDirecao" in js:
+        ok("colunas + setas entrada/saida")
     else:
-        fail("sem colunas hist")
+        fail("sem colunas/setas hist")
 
     if "pdv-rp-hist-print-iframe" in js and "window.open(" not in js.split("printHist")[1][:2500]:
         ok("impressao via iframe (sem window.open)")
