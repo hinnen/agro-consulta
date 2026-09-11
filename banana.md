@@ -1284,7 +1284,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — Status central no Repasse PDV (`REPASSE-STATUS-FLASH` · **v24.16** · 11/09)
+### 📦 PACOTE PRONTO — Status central no Repasse PDV (`REPASSE-STATUS-FLASH` · **v24.17** · 11/09)
 
 | Campo | Valor |
 | ----- | ----- |
