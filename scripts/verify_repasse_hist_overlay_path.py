@@ -90,10 +90,10 @@ def main() -> int:
     else:
         fail("sem colunas/setas hist")
 
-    if "ensureHistPrintIframe" in js and "contentWindow.print" in js:
-        ok("impressao via iframe")
+    if "showNestedPopup" in js and "closeHistModal" in js:
+        ok("hist nested sem AgroOverlayStack")
     else:
-        fail("print sem iframe")
+        fail("hist ainda empilha no stack (clique)")
 
     if "histStyles80mm" in js and "size:80mm auto" in js and "14mm" in js:
         ok("80mm termica (bobina + avance corte)")

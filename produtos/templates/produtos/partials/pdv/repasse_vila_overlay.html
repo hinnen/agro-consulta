@@ -140,6 +140,20 @@
   #pdv-repasse-overlay .rp-popup {
     position: absolute; inset: 0; z-index: 50;
   }
+  #pdv-repasse-overlay #pdv-rp-hist-modal {
+    z-index: 120;
+    pointer-events: auto;
+  }
+  #pdv-repasse-overlay #pdv-rp-hist-modal .rp-hist-shell {
+    pointer-events: auto;
+    position: relative;
+    z-index: 1;
+  }
+  #pdv-repasse-overlay #pdv-rp-hist-modal button,
+  #pdv-repasse-overlay #pdv-rp-hist-modal input,
+  #pdv-repasse-overlay #pdv-rp-hist-modal a {
+    pointer-events: auto;
+  }
   #pdv-repasse-overlay .rp-hist-shell {
     width: min(98rem, 99vw);
     height: min(96dvh, 56rem);

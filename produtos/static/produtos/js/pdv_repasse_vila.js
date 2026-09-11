@@ -299,6 +299,13 @@
     } catch (_) {}
   }
 
+  /** Popup filho interno — NÃO empilhar no AgroOverlayStack (senão o pai congela o clique). */
+  function showNestedPopup(el) {
+    if (!el) return;
+    el.classList.remove('hidden');
+    el.classList.add('flex');
+  }
+
   function hideModal(el) {
     if (!el) return;
     el.classList.add('hidden');
@@ -306,6 +313,12 @@
     try {
       if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(el, false);
     } catch (_) {}
+  }
+
+  function hideNestedPopup(el) {
+    if (!el) return;
+    el.classList.add('hidden');
+    el.classList.remove('flex');
   }
 
   function focusSoon(el) {
@@ -867,6 +880,7 @@
     hideModal(pinModal);
     hideModal(cofreConfirmModal);
     hideModal(acumModal);
+    closeHistModal();
     overlay.classList.add('hidden');
     overlay.classList.remove('flex');
     document.body.classList.remove('modal-open');
@@ -1650,7 +1664,11 @@
 
   function closeHistModal() {
     if (histPrintPanel) histPrintPanel.classList.add('hidden');
-    hideModal(histModal);
+    try {
+      var cal = document.getElementById('agro-cal-pop-shared');
+      if (cal) cal.classList.add('hidden');
+    } catch (_) {}
+    hideNestedPopup(histModal);
   }
 
   function openHistModal(kind) {
@@ -1659,7 +1677,7 @@
     if (histPrintPanel) histPrintPanel.classList.add('hidden');
     if (histStatus) histStatus.textContent = 'Carregando…';
     if (histLista) histLista.innerHTML = '';
-    showModal(histModal);
+    showNestedPopup(histModal);
     loadHistList();
   }
 
