@@ -321,6 +321,75 @@
     el.classList.remove('flex');
   }
 
+  var statusFlash = document.getElementById('pdv-rp-status-flash');
+  var statusFlashPanel = document.getElementById('pdv-rp-status-flash-panel');
+  var statusFlashTitle = document.getElementById('pdv-rp-status-flash-title');
+  var statusFlashMsg = document.getElementById('pdv-rp-status-flash-msg');
+  var statusFlashOk = document.getElementById('pdv-rp-status-flash-ok');
+  var statusFlashKind = '';
+
+  function paintStatusLine(msg) {
+    if (!dom.status) return;
+    var t = String(msg || '').trim();
+    dom.status.textContent = t;
+    if (t) {
+      dom.status.classList.remove('hidden');
+      dom.status.classList.add('has-msg');
+    } else {
+      dom.status.classList.add('hidden');
+      dom.status.classList.remove('has-msg');
+    }
+  }
+
+  function hideStatusFlash() {
+    statusFlashKind = '';
+    hideNestedPopup(statusFlash);
+    if (statusFlashOk) statusFlashOk.classList.add('hidden');
+  }
+
+  /**
+   * Status visível no meio da tela.
+   * kind: busy | ok | error | line (só faixa) | '' (limpa)
+   */
+  function setStatus(msg, kind) {
+    var t = String(msg || '').trim();
+    var k = kind || (t ? 'line' : '');
+    if (!t || k === '') {
+      paintStatusLine('');
+      hideStatusFlash();
+      return;
+    }
+    paintStatusLine(t);
+    if (k === 'line') {
+      hideStatusFlash();
+      return;
+    }
+    statusFlashKind = k;
+    if (statusFlashTitle) {
+      if (k === 'busy') statusFlashTitle.textContent = t.indexOf('Salv') === 0 ? 'Salvando…' : 'Transferindo…';
+      else if (k === 'ok') statusFlashTitle.textContent = 'Pronto';
+      else statusFlashTitle.textContent = 'Atenção';
+    }
+    if (statusFlashMsg) {
+      statusFlashMsg.textContent = k === 'busy' ? 'Aguarde — não feche esta tela.' : t;
+    }
+    if (statusFlashPanel) {
+      statusFlashPanel.classList.remove('is-busy', 'is-ok', 'is-err');
+      statusFlashPanel.classList.add(
+        k === 'busy' ? 'is-busy' : k === 'ok' ? 'is-ok' : 'is-err'
+      );
+    }
+    if (statusFlashOk) {
+      if (k === 'error') {
+        statusFlashOk.classList.remove('hidden');
+      } else {
+        statusFlashOk.classList.add('hidden');
+      }
+    }
+    showNestedPopup(statusFlash);
+    if (k === 'error' && statusFlashOk) focusSoon(statusFlashOk);
+  }
+
   function focusSoon(el) {
     if (!el) return;
     setTimeout(function () {
@@ -691,12 +760,12 @@
         return r.json();
       })
       .then(function (j) {
-        if (j && j.ok) {
+          if (j && j.ok) {
           calc = j;
           renderCalc();
-          if (dom.status) dom.status.textContent = '';
-        } else if (dom.status) {
-          dom.status.textContent = (j && j.erro) || 'Falha ao calcular';
+          setStatus('');
+        } else {
+          setStatus((j && j.erro) || 'Falha ao calcular', 'error');
         }
       });
   }
@@ -708,12 +777,12 @@
       dom.quemOutros.value = '';
     }
     hideModal(quemModal);
-    if (dom.status) dom.status.textContent = '';
+    setStatus('');
     if (pendingConfirmar) tryConfirmarFlow();
   }
 
   function openQuemModal() {
-    if (dom.status) dom.status.textContent = '';
+    setStatus('');
     showModal(quemModal);
     renderQuem();
     if (dom.quemOutros && !dom.quemOutros.classList.contains('hidden')) {
@@ -736,7 +805,7 @@
   }
 
   function openPinModal() {
-    if (dom.status) dom.status.textContent = '';
+    setStatus('');
     showModal(pinModal);
     focusSoon(dom.pin);
   }
@@ -797,14 +866,14 @@
     }
     sanitizeManualField();
     updateDataHint();
-    if (dom.status) dom.status.textContent = 'Carregando…';
+    setStatus('Carregando…', 'line');
     fetch('/api/repasse-vila/meta/', { credentials: 'same-origin' })
       .then(function (r) {
         return r.json();
       })
       .then(function (j) {
         if (!j || !j.ok) {
-          if (dom.status) dom.status.textContent = 'Falha ao carregar';
+          setStatus('Falha ao carregar', 'error');
           return;
         }
         funcionarios = j.funcionarios || [];
@@ -863,18 +932,30 @@
       .then(function () {
         sanitizeManualField();
         renderCalc();
-        if (dom.status && dom.status.textContent === 'Carregando…') dom.status.textContent = '';
+        if (statusFlashKind !== 'error') setStatus('');
         focusSoon(dom.manual);
       })
       .catch(function () {
-        if (dom.status) dom.status.textContent = 'Falha de rede';
+        setStatus('Falha de rede', 'error');
       });
+  }
+
+  function requestCloseOverlay() {
+    if (busy || statusFlashKind === 'busy') {
+      setStatus('Aguarde — transferência em andamento. Não feche agora.', 'busy');
+      return;
+    }
+    closeOverlay();
   }
 
   function closeOverlay() {
     pendingConfirmar = false;
     pctFromPadraoApplied = false;
+    busy = false;
+    hideStatusFlash();
+    paintStatusLine('');
     closeForcarManualModal();
+    closeAvisoModal();
     hideModal(quemModal);
     hideModal(formaModal);
     hideModal(pinModal);
@@ -1023,16 +1104,18 @@
   }
 
   function closeAvisoModal() {
-    hideModal(avisoModal);
+    hideNestedPopup(avisoModal);
   }
 
   function openAvisoModal(msg) {
     var el = document.getElementById('pdv-rp-aviso-msg');
-    if (el) el.textContent = msg || 'Não foi possível transferir';
-    if (dom.status) dom.status.textContent = msg || '';
+    var texto = msg || 'Não foi possível transferir';
+    if (el) el.textContent = texto;
+    paintStatusLine(texto);
+    hideStatusFlash();
     // Atrasa um pouco p/ não fechar no mesmo clique do OK anterior
     setTimeout(function () {
-      showModal(avisoModal);
+      showNestedPopup(avisoModal);
       focusSoon(document.getElementById('pdv-rp-aviso-ok'));
     }, 120);
   }
@@ -1111,11 +1194,11 @@
     var vVe = parseMoneyInput(dom.inputCofreVe);
     var vLev = parseMoneyInput(dom.manual);
     if (!isFinite(vSal) || !isFinite(vVe) || !isFinite(vLev) || vSal < 0 || vVe < 0 || vLev < 0) {
-      if (dom.status) dom.status.textContent = 'Confira os 3 valores (número ≥ 0).';
+      openAvisoModal('Confira os 3 valores (número ≥ 0).');
       return;
     }
     if (vLev < 0.009 && vSal < 0.009 && vVe < 0.009) {
-      if (dom.status) dom.status.textContent = 'Informe ao menos um valor maior que zero.';
+      openAvisoModal('Informe ao menos um valor maior que zero.');
       return;
     }
     var body = {
@@ -1144,7 +1227,7 @@
   function enviarConfirmacao(body) {
     if (busy) return;
     busy = true;
-    if (dom.status) dom.status.textContent = 'Transferindo…';
+    setStatus('Transferindo…', 'busy');
     fetch('/api/repasse-vila/confirmar/', {
       method: 'POST',
       credentials: 'same-origin',
@@ -1163,6 +1246,7 @@
         busy = false;
         var j = pack.j || {};
         if (!j.ok) {
+          hideStatusFlash();
           if (j.precisa_forcar_manual && !body.forcar_manual_zerado) {
             openForcarManualModal(j.erro, body);
             return;
@@ -1173,15 +1257,10 @@
         var tot = (j.repasse && j.repasse.valor_total) || 0;
         var saldoCofre = j.cofrinho ? money(j.cofrinho.saldo) : '—';
         var saldoVe = j.cofre_vila_elias ? money(j.cofre_vila_elias.saldo) : '—';
-        if (dom.status) {
-          if (j.somente_cofres) {
-            dom.status.textContent =
-              'OK — só cofres · Salário ' + saldoCofre + ' · Vila Elias ' + saldoVe;
-          } else {
-            dom.status.textContent =
-              'OK — enviado ' + money(tot) + ' · Salário ' + saldoCofre + ' · Vila Elias ' + saldoVe;
-          }
-        }
+        var okMsg = j.somente_cofres
+          ? 'OK — só cofres · Salário ' + saldoCofre + ' · Vila Elias ' + saldoVe
+          : 'OK — enviado ' + money(tot) + ' · Salário ' + saldoCofre + ' · Vila Elias ' + saldoVe;
+        setStatus(okMsg, 'ok');
         if (dom.pin) dom.pin.value = '';
         if (dom.manual) dom.manual.value = '';
         manualDirty = false;
@@ -1189,10 +1268,11 @@
         notifyParentFecharAtualizar();
         fetchHistoricoMes();
         fetchCalc();
-        setTimeout(closeOverlay, 900);
+        setTimeout(closeOverlay, 1100);
       })
       .catch(function () {
         busy = false;
+        hideStatusFlash();
         openAvisoModal('Falha de rede');
       });
   }
@@ -1201,8 +1281,8 @@
     document.getElementById('pdv-topbar-repasse-btn') ||
     document.getElementById('crh-btn-repasse');
   if (btnOpen) btnOpen.addEventListener('click', openOverlay);
-  if (dom.fechar) dom.fechar.addEventListener('click', closeOverlay);
-  if (dom.cancelar) dom.cancelar.addEventListener('click', closeOverlay);
+  if (dom.fechar) dom.fechar.addEventListener('click', requestCloseOverlay);
+  if (dom.cancelar) dom.cancelar.addEventListener('click', requestCloseOverlay);
   if (dom.confirmar) {
     dom.confirmar.addEventListener('click', function () {
       pendingConfirmar = true;
@@ -1323,7 +1403,7 @@
   }
   if (dom.salvarReserva) {
     dom.salvarReserva.addEventListener('click', function () {
-      if (dom.status) dom.status.textContent = 'Salvando…';
+      setStatus('Salvando…', 'busy');
       fetch('/api/repasse-vila/config/', {
         method: 'POST',
         credentials: 'same-origin',
@@ -1337,13 +1417,19 @@
           return r.json();
         })
         .then(function (j) {
-          if (dom.status) {
-            dom.status.textContent = j.ok
-              ? 'Salvo · reserva ' +
+          if (j.ok) {
+            setStatus(
+              'Salvo · reserva ' +
                 money(j.reserva_vila) +
                 ' · fundo troco ' +
-                money(j.fundo_troco_vila)
-              : j.erro || 'Erro';
+                money(j.fundo_troco_vila),
+              'ok'
+            );
+            setTimeout(function () {
+              if (statusFlashKind === 'ok') setStatus('');
+            }, 1200);
+          } else {
+            openAvisoModal(j.erro || 'Erro ao salvar');
           }
           if (j && j.ok) {
             if (dom.fundoTroco && j.fundo_troco_vila != null) {
@@ -1356,7 +1442,8 @@
           }
         })
         .catch(function () {
-          if (dom.status) dom.status.textContent = 'Falha ao salvar';
+          hideStatusFlash();
+          openAvisoModal('Falha ao salvar');
         });
     });
   }
@@ -1408,6 +1495,14 @@
 
   document.addEventListener('keydown', function (ev) {
     if (ev.key !== 'Escape') return;
+    if (busy || statusFlashKind === 'busy') {
+      setStatus('Aguarde — transferência em andamento. Não feche agora.', 'busy');
+      return;
+    }
+    if (statusFlash && !statusFlash.classList.contains('hidden') && statusFlashKind === 'error') {
+      hideStatusFlash();
+      return;
+    }
     if (forcarManualModal && !forcarManualModal.classList.contains('hidden')) {
       closeForcarManualModal();
       return;
@@ -1436,8 +1531,14 @@
       closeAcumModal();
       return;
     }
-    if (overlay && !overlay.classList.contains('hidden')) closeOverlay();
+    if (overlay && !overlay.classList.contains('hidden')) requestCloseOverlay();
   });
+
+  if (statusFlashOk) {
+    statusFlashOk.addEventListener('click', function () {
+      hideStatusFlash();
+    });
+  }
 
   if (qs().get('repasse') === '1') {
     setTimeout(openOverlay, 200);
