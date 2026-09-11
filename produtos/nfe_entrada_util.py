@@ -325,6 +325,85 @@ def _findall_local(parent: ET.Element, name: str) -> list[ET.Element]:
     return [el for el in list(parent) if _localname(el.tag) == name]
 
 
+_RE_LOTE_INFAD = re.compile(
+    r"(?:n[ºo]?\s*)?(?:lote|lt)\s*[:.\-]?\s*([A-Za-z0-9][A-Za-z0-9.\-\/]{0,39})",
+    re.IGNORECASE,
+)
+_RE_VAL_INFAD = re.compile(
+    r"(?:val(?:idade)?|venc(?:imento)?)\s*[:.\-]?\s*(\d{2}/\d{2}/\d{4}|\d{4}-\d{2}-\d{2})",
+    re.IGNORECASE,
+)
+_RE_FAB_INFAD = re.compile(
+    r"(?:fab(?:rica[cç][aã]o)?)\s*[:.\-]?\s*(\d{2}/\d{2}/\d{4}|\d{4}-\d{2}-\d{2})",
+    re.IGNORECASE,
+)
+
+
+def _nfe_aplicar_el_lote(item: dict[str, Any], el: ET.Element) -> None:
+    """Copia nLote / dFab / dVal de ``<rastro>`` (NF-e 4.00) ou ``<med>`` legado."""
+    rastro: dict[str, str] = {}
+    for rc in el:
+        rl = _localname(rc.tag)
+        rt = _text(rc)
+        if not rt:
+            continue
+        if rl == "nLote":
+            rastro["n_lote"] = rt[:60]
+        elif rl == "dFab":
+            rastro["d_fab"] = _parse_data_xml_nfe(rt) or rt[:10]
+        elif rl == "dVal":
+            rastro["d_val"] = _parse_data_xml_nfe(rt) or rt[:10]
+    if not rastro:
+        return
+    if rastro.get("n_lote"):
+        item["lote_numero"] = rastro["n_lote"][:60]
+    if rastro.get("d_fab"):
+        item["lote_fabricacao"] = rastro["d_fab"][:10]
+    if rastro.get("d_val"):
+        item["lote_validade"] = rastro["d_val"][:10]
+    item["lote_xml"] = bool(
+        item.get("lote_numero") or item.get("lote_fabricacao") or item.get("lote_validade")
+    )
+
+
+def _nfe_aplicar_infadprod_lote(item: dict[str, Any], texto: str) -> None:
+    """Fallback: lote/validade em ``infAdProd`` quando a nota não usa ``<rastro>``."""
+    if item.get("lote_xml"):
+        return
+    t = str(texto or "").strip()
+    if not t:
+        return
+    m_lote = _RE_LOTE_INFAD.search(t)
+    m_val = _RE_VAL_INFAD.search(t)
+    m_fab = _RE_FAB_INFAD.search(t)
+    if m_lote and not item.get("lote_numero"):
+        item["lote_numero"] = m_lote.group(1)[:60]
+    if m_fab and not item.get("lote_fabricacao"):
+        item["lote_fabricacao"] = (_parse_data_xml_nfe(m_fab.group(1)) or "")[:10]
+    if m_val and not item.get("lote_validade"):
+        item["lote_validade"] = (_parse_data_xml_nfe(m_val.group(1)) or "")[:10]
+    item["lote_xml"] = bool(
+        item.get("lote_numero") or item.get("lote_fabricacao") or item.get("lote_validade")
+    )
+
+
+def _nfe_preencher_lote_item(item: dict[str, Any], det: ET.Element, prod: ET.Element | None) -> None:
+    """Lote/validade: ``prod/rastro`` (schema oficial), ``det/rastro``, ``med`` e ``infAdProd``."""
+    for parent in (prod, det):
+        if parent is None:
+            continue
+        for child in parent:
+            ln = _localname(child.tag)
+            if ln in ("rastro", "med"):
+                _nfe_aplicar_el_lote(item, child)
+    if item.get("lote_xml"):
+        return
+    for child in det:
+        if _localname(child.tag) == "infAdProd":
+            _nfe_aplicar_infadprod_lote(item, _text(child))
+            break
+
+
 # CNPJs GM Agropecuária — espelho de base/migrations/0004 (Centro + Vila Elias).
 _EMPRESAS_ESTOQUE_PADRAO: tuple[tuple[str, str, str, str], ...] = (
     ("48900774000103", "Agro Mais Centro", "Centro", "centro"),
@@ -763,26 +842,6 @@ def parse_nfe_xml_bytes(data: bytes) -> dict[str, Any]:
             "lote_validade": "",
             "lote_xml": False,
         }
-        for child in det:
-            if _localname(child.tag) != "rastro":
-                continue
-            rastro: dict[str, str] = {}
-            for rc in child:
-                rl = _localname(rc.tag)
-                rt = _text(rc)
-                if rl == "nLote":
-                    rastro["n_lote"] = rt[:60]
-                elif rl == "dFab":
-                    rastro["d_fab"] = rt[:10]
-                elif rl == "dVal":
-                    rastro["d_val"] = rt[:10]
-            if rastro:
-                item["lote_numero"] = str(rastro.get("n_lote") or "")[:60]
-                item["lote_fabricacao"] = str(rastro.get("d_fab") or "")[:10]
-                item["lote_validade"] = str(rastro.get("d_val") or "")[:10]
-                item["lote_xml"] = bool(
-                    item["lote_numero"] or item["lote_fabricacao"] or item["lote_validade"]
-                )
         for child in prod:
             ln = _localname(child.tag)
             t = _text(child)
@@ -830,6 +889,7 @@ def parse_nfe_xml_bytes(data: bytes) -> dict[str, Any]:
                     item["v_prod"] = float(Decimal(t.replace(",", ".") or "0"))
                 except Exception:
                     item["v_prod"] = 0.0
+        _nfe_preencher_lote_item(item, det, prod)
         itens_out.append(item)
 
     out["itens"] = itens_out
