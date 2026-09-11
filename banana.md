@@ -1284,47 +1284,44 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — Status central no Repasse PDV (`REPASSE-STATUS-FLASH` · **v24.14** · 11/09)
+### 📦 PACOTE PRONTO — Status central no Repasse PDV (`REPASSE-STATUS-FLASH` · **v24.15** · 11/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | **TRANSFERINDO…** / Salvando / OK no **meio da tela** (painel grande). Aviso de erro (gaveta etc.) maior. Faixa vermelha de backup. **Não fecha** ×/Cancelar/Esc no meio da transferência. |
-| **Arquivos** | `repasse_vila_overlay.html` · `pdv_repasse_vila.js` |
-| **Prova** | status-flash path **8/8** |
+| **O quê** | **TRANSFERINDO…** / Salvando / OK no **meio da tela**. Aviso de erro maior. Não fecha ×/Esc no meio da transferência. |
+| **Prova** | status-flash **43/43** · PIN **9973** · hist **19/19** · stack **35/35** · vila **280** · pct-zero **20/20** · `check` OK · node OK |
 | **Migrate** | **NÃO** |
-| **Status** | ✅ **só no teste** — confira no runserver local |
-| **Você** | Ctrl+F5 · Confirmar com valor inválido → aviso grande · Confirmar OK → **TRANSFERINDO** no centro |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 · Confirmar → painel central · Loja: frase + senha |
 
-### 📦 PACOTE PRONTO — Histórico 3 cofres no Repasse PDV (`REPASSE-HIST-OVERLAY` · **v24.07** · 11/09)
+### 📦 PACOTE PRONTO — Histórico 3 cofres no Repasse PDV (`REPASSE-HIST-OVERLAY` · **v24.07+** · 11/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Botão **Histórico** sob Acumulado / Enviado / Total → overlay lista expansível · Voltar · Imprimir 80mm/A4 com de/até (AgroDatePicker). |
-| **API** | cofrinho `de`/`ate`/`limit` · `GET /api/repasse-vila/envios/` |
-| **Fix impressão** | iframe oculto (não `window.open` — abria branco) |
-| **Prova** | hist path **17/17** · vila **280** · `check` OK |
+| **O quê** | **Histórico** sob Acumulado / Enviado / Total → lista · Voltar · Imprimir 80mm/A4. |
+| **Prova** | hist **19/19** · vila **280** · stack **35/35** |
 | **Migrate** | **NÃO** |
-| **Status** | ✅ **só no teste** — confira no runserver local |
-| **Você** | Ctrl+F5 · Histórico · Imprimir → deve abrir diálogo da impressora com a lista |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 · Histórico · Imprimir · Loja: frase + senha |
 
 ### 📦 PACOTE PRONTO — Lote/validade do XML (`NF-LOTE-XML` · **v24.05**)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Etapa 4 puxa lote/validade do XML (`prod/rastro`). Tela mostra as datas. |
-| **Caso** | NF **269263** · 32 itens Pend. com data na nota |
+| **O quê** | Etapa 4 puxa lote/validade do XML (`prod/rastro`). |
 | **Status** | 🟢 **pronto para envio à produção** |
 | **Migrate** | **NÃO** |
 | **Prova** | path **48/48** · unit **10/10** · PIN **9973** |
-| **Você** | Ctrl+F5 no PC · **Ler XML de novo** nesta nota · Loja: frase + senha |
 
-### ✅ CHECKLIST ÚNICO — 11/09c · pronto envio
+### ✅ CHECKLIST ÚNICO — 11/09d · pronto envio
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `NF-LOTE-XML` | 🟢 **pronto para envio à produção** | **NÃO** | **48/48** · unit **10/10** · PIN **9973** |
+| 1 | `REPASSE-STATUS-FLASH` | 🟢 **pronto para envio à produção** | **NÃO** | **43/43** · PIN **9973** |
+| 2 | `REPASSE-HIST-OVERLAY` | 🟢 **pronto para envio à produção** | **NÃO** | **19/19** |
+| 3 | `NF-LOTE-XML` | 🟢 **pronto para envio à produção** | **NÃO** | **48/48** · PIN **9973** |
 
-**Live agora:** **v23.93**. Este pacote **ainda não** subiu.
+**Live agora:** **v23.93**. Estes pacotes **ainda não** subiram (cherry — **não** merge `teste`).
 
 ### ✅ Deploy loja — Checklist 11/09b (`deploy/prep-checklist-1109b` · **v23.93**) · **Live**
 
