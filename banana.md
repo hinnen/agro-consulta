@@ -625,7 +625,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Kardex ao reabrir (03/08):** reabrir **não apaga** a Entrada NF — grava saída `estorno_entrada_nf_agro` («Estorno NF (reabrir)»); ao concluir de novo, nova Entrada NF. `nf_qtd=` no ajuste para qtd confiável.
 - **Trocar/remover produto com estoque lançado (05/08 · v14.48):** exige **estorno** antes — modal «Estornar e trocar» (PIN) chama a rotina de reabrir e joga o usuário de volta à etapa 2; backend recusa salvar linhas com `produto_id` diferente enquanto houver carimbo de estoque (`requer_estorno`).
 - **Custo do cadastro na etapa 2 (03/08 · v13.71):** V. unit puxa custo do Cadastro (overlay/PG) — JS ignora `preco_custo_final=0` do Mongo; overlay sincroniza final/acréscimo; `buscar-produto-id` fallback `Produto.custo`. Linha com custo da NF (`preservar`) continua sem sobrescrever.
-- **Lote/validade do XML (11/09 · `NF-LOTE-XML`):** lê `prod/rastro` (schema NF-e) + `infAdProd` se a nota escrever lote/validade no texto. Antes o parse olhava `rastro` no lugar errado → etapa 4 toda **Pend.** mesmo com data na nota (ex. NF 269263). Nota já aberta: **Ler XML de novo**.
+- **Lote/validade do XML (11/09 · `NF-LOTE-XML`):** lê `prod/rastro` + `infAdProd`. Etapa 4 já abre com as datas. Nota já aberta: **Ler XML de novo**.
 - **Validade → tela Validade (06/08):** ao **lançar estoque**, se a linha tiver `lote_validade` (etapa 4), grava/soma `EstoqueLote` (antes só ficava no rascunho). Reabrir reduz o lote se a entrada tinha `nf_lote`/`nf_val`. Notas **já** lançadas antes do fix **não** voltam sozinhas.
 - **Etapa 3 cód. barras (12/08 · v16.06 `NF-BIP-ET3`):** bip casa com EAN da linha **e** barras do cadastro/overlay dos itens da NF; casado por EAN/bip na etapa 2 → Ok verde; prova `verify_nf_bip_et3_path.py`.
 - **Etapa 3 PEND após bip etapa 2 (17/08 · `NF-BIP-ET2` · **Live v17.09**):** leitor no **Mudar**/busca (8+ dígitos) vale como Ok; XML `ean_pg`/`ean_overlay` também. Código do fornecedor (sem bip) continua PEND. Prova `verify_nf_bip_et2_path.py`.
@@ -1284,15 +1284,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — Lote/validade do XML (`NF-LOTE-XML` · 11/09)
+### 📦 PACOTE PRONTO — Lote/validade do XML (`NF-LOTE-XML` · **v24.05**)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Etapa 4 puxa lote/validade do XML (`prod/rastro` — lugar certo da NF-e). Antes olhava só em `det` e a tela ficava **Pend.** |
-| **Caso** | NF **269263** (32 itens) — datas na nota, etapa Lote vazia |
-| **Status** | 🟡 `teste` **v24.04** · prova **15/15** + unit **4/4** · **não** loja |
-| **Prova** | `verify_nf_lote_xml_path.py` · `tests_entrada_nf_lote_xml` |
-| **Você** | No PC: Ctrl+F5 · nesta nota, **Ler XML de novo** e Confirmar na grade — as datas devem aparecer. Loja só com frase + senha |
+| **O quê** | Etapa 4 puxa lote/validade do XML (`prod/rastro`). Tela mostra as datas. |
+| **Caso** | NF **269263** · 32 itens Pend. com data na nota |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Migrate** | **NÃO** |
+| **Prova** | path **48/48** · unit **10/10** · PIN **9973** |
+| **Você** | Ctrl+F5 no PC · **Ler XML de novo** nesta nota · Loja: frase + senha |
+
+### ✅ CHECKLIST ÚNICO — 11/09c · pronto envio
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `NF-LOTE-XML` | 🟢 **pronto para envio à produção** | **NÃO** | **48/48** · unit **10/10** · PIN **9973** |
+
+**Live agora:** **v23.93**. Este pacote **ainda não** subiu.
 
 ### ✅ Deploy loja — Checklist 11/09b (`deploy/prep-checklist-1109b` · **v23.93**) · **Live**
 
