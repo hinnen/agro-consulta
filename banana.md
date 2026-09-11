@@ -1283,18 +1283,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### ✅ PACOTE — Repasse acumulado abate excedente no mesmo dia (`REPASSE-ACUM-EXTRA-BUG` · **v23.95** · 11/09)
+### 📦 PACOTE PRONTO — Repasse acumulado abate excedente (`REPASSE-ACUM-EXTRA-BUG` · **v23.96+** · 11/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Depois de levar a mais no dia, o acumulado usa cartão/PIX do dia no alvo físico (não zera o eletrônico). |
-| **Caso loja** | 11/09: era **522,40** → levou **500** → tela **445,02** (errado); com fix → ~**254,51** (bruto 688,54 − extra 434,03). |
-| **Onde** | `repasse_vila_util.py` (`_alvo_fisico_de_calc` + mini com `ja_eletronico`) · `verify_repasse_acum_net.py` |
-| **Snapshot antes** | `scripts/data/snapshot_repasse_acumulado_pre_fix_20260911.json` |
-| **Prova** | acum-net **29/29** · vila-path **263** |
+| **O quê** | Depois de levar a mais no dia, acumulado conta cartão/PIX no alvo — não fica inchado na tela. |
+| **Caso loja** | 11/09: **522,40** → levou **500** → tela **445** (bug) → com fix ~**254,51**. |
+| **Onde** | `repasse_vila_util.py` · `verify_repasse_acum_extra_bug_path.py` · snapshot `scripts/data/snapshot_repasse_acumulado_pre_fix_20260911.json` |
+| **Prova** | path **18/18** · acum-net **29/29** · vila **263+** · deep **103** · arredonda **41** · fundo **61** · zero-ok **33** · `check` OK · PIN **9973** OK |
 | **Migrate** | **NÃO** |
-| **Status** | ✅ no `teste` **v23.95** · loja **ainda não** (falta frase+senha) |
-| **Você** | Validar no PC: abrir Repasse hoje → acumulado deve cair perto de **254** (não 445). Depois acertar saldo se quiser número redondo. |
+| **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
+| **Você** | Após loja: Ctrl+F5 Repasse → acumulado ~**254** (não 445). Snapshot guarda o antes. |
+
+### ✅ CHECKLIST ÚNICO — 11/09 · pronto envio
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `REPASSE-ACUM-EXTRA-BUG` | 🟢 **pronto para envio à produção** | **NÃO** | path **18/18** · acum-net **29/29** |
+
+**Live agora:** **v23.91**. Este pacote **ainda não** subiu.
 
 ### ✅ Prova reforçada — NF-AGUARDA-PRODUTO (`verify` **13/13** · unit **4/4** · 10/09)
 
