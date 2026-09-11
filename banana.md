@@ -1283,6 +1283,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — % lucro 0% no PDV (`REPASSE-PCT-ZERO` · **v24.01** · 11/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Gestão em **0%** gravava certo; PDV Repasse forçava **50%** (`0 \|\| 50` no JS + input `value="50"`). |
+| **Fix** | `pctPadraoDeMeta` / `pctAtual` · overlay sem 50 fixo · save padrao aceita 0 |
+| **Onde** | `pdv_repasse_vila.js` · overlay · `views_repasse_vila.py` · `repasse_vila.html` |
+| **Prova** | `verify_repasse_pct_zero_path` **10/10** · vila **271** · arredonda **41** |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ **só no teste** (`teste` v24.01) — **não** loja |
+| **Você** | PC local · Ctrl+F5 · Repasse PDV deve abrir em **0%** (igual Gestão) |
+
 ### ✅ Deploy loja — Checklist 11/09 (`deploy/prep-checklist-1109` · **v23.92**) · **Live**
 
 | Campo | Valor |

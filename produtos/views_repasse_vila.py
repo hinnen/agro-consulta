@@ -260,7 +260,7 @@ def api_repasse_vila_config(request):
     cfg = obter_config()
     if "percentual_lucro_padrao" in payload and payload.get("percentual_lucro_padrao") not in (None, ""):
         try:
-            pct = Decimal(str(payload.get("percentual_lucro_padrao") or "50").replace(",", "."))
+            pct = Decimal(str(payload.get("percentual_lucro_padrao")).replace(",", "."))
         except Exception:
             return JsonResponse({"ok": False, "erro": "Porcentagem inválida"}, status=400)
         cfg = salvar_percentual_padrao(pct, operador=op)

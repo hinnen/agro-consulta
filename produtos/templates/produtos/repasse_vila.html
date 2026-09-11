@@ -628,7 +628,7 @@
     var foldHint = document.getElementById('rv-opcoes-hint');
     if (foldHint) {
       var parts = d.split('-');
-      foldHint.textContent = (parts[2] || '') + '/' + (parts[1] || '') + ' · ' + (pctEl && pctEl.value ? pctEl.value : '50') + '%';
+      foldHint.textContent = (parts[2] || '') + '/' + (parts[1] || '') + ' · ' + (pctEl && String(pctEl.value).trim() !== '' ? pctEl.value : '0') + '%';
     }
   }
   if (dataEl) {
