@@ -1283,16 +1283,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🔴 PENDENTE — Repasse acumulado não baixa direito no mesmo dia (`REPASSE-ACUM-EXTRA-BUG` · 11/09)
+### ✅ PACOTE — Repasse acumulado abate excedente no mesmo dia (`REPASSE-ACUM-EXTRA-BUG` · **v23.95** · 11/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Sintoma** | Levou R$ 500 (Geraldinho); acumulado era **522,40** → tela ficou **445,02** (devia cair bem mais). |
-| **Causa** | Depois de enviar a mais, o abate do excedente no **mesmo dia** usa alvo sem cartão/PIX → baixa pouco o acumulado na tela. |
-| **Histórico** | Dias já fechados no cache (ex. 01/09 −46,85; 11/09 −434) **registram** o a mais. Bug principal = **tela no dia**. Recálculo de 180 dias após envio também **mexe** o bruto (522→688). |
-| **Snapshot ANTES do fix** | `scripts/data/snapshot_repasse_acumulado_pre_fix_20260911.json` — envios · deltas · ajustes · cofres · contas tela. **Não mexer** sem comparar. |
-| **Números-chave agora** | Tela **445,02** · no envio **522,40** · bruto até ontem **688,54** · cache hoje alvo **65,97** / env **500** / delta **−434,03** · esperado com abate certo ~**254,51** · cofres **1212,01** / **1352,94** |
-| **Ação** | Corrigir abate + conferir/acertar saldo com Renan. **Ainda não codado.** |
+| **O quê** | Depois de levar a mais no dia, o acumulado usa cartão/PIX do dia no alvo físico (não zera o eletrônico). |
+| **Caso loja** | 11/09: era **522,40** → levou **500** → tela **445,02** (errado); com fix → ~**254,51** (bruto 688,54 − extra 434,03). |
+| **Onde** | `repasse_vila_util.py` (`_alvo_fisico_de_calc` + mini com `ja_eletronico`) · `verify_repasse_acum_net.py` |
+| **Snapshot antes** | `scripts/data/snapshot_repasse_acumulado_pre_fix_20260911.json` |
+| **Prova** | acum-net **29/29** · vila-path **263** |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ no `teste` **v23.95** · loja **ainda não** (falta frase+senha) |
+| **Você** | Validar no PC: abrir Repasse hoje → acumulado deve cair perto de **254** (não 445). Depois acertar saldo se quiser número redondo. |
 
 ### ✅ Prova reforçada — NF-AGUARDA-PRODUTO (`verify` **13/13** · unit **4/4** · 10/09)
 
