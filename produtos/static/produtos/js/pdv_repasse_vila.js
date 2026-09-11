@@ -16,6 +16,24 @@
   var formaPag = 'Dinheiro';
   var busy = false;
   var pendingConfirmar = false;
+  var pctFromPadraoApplied = false;
+
+  function pctAtual() {
+    if (!dom.pct) return '0';
+    var v = String(dom.pct.value == null ? '' : dom.pct.value).trim();
+    if (v === '') return '0';
+    return v;
+  }
+
+  function pctPadraoDeMeta(j) {
+    var pad = j && j.percentual_padrao;
+    if (pad === null || pad === undefined || pad === '') return 50;
+    var n = Number(pad);
+    if (!isFinite(n)) return 50;
+    if (n < 0) n = 0;
+    if (n > 100) n = 100;
+    return Math.round(n);
+  }
 
   var dom = {
     fechar: document.getElementById('pdv-repasse-fechar'),
@@ -507,7 +525,7 @@
     }
 
     var hintOp = document.getElementById('pdv-rp-opcoes-hint');
-    if (hintOp && dom.pct) hintOp.textContent = (dom.pct.value || '50') + '%';
+    if (hintOp && dom.pct) hintOp.textContent = pctAtual() + '%';
 
     function renderCofreHero(resumo, ids, avisoTxt, valorSep) {
       var pendente = Number(resumo.pendente_dia || 0);
@@ -644,7 +662,7 @@
   }
 
   function fetchCalc() {
-    var pct = (dom.pct && dom.pct.value) || '50';
+    var pct = pctAtual();
     var cheio = dom.cheio && dom.cheio.checked ? '1' : '0';
     var data = dataRef();
     return fetch(
@@ -780,8 +798,10 @@
         if (Array.isArray(j.formas_pagamento) && j.formas_pagamento.length) {
           formasPagamento = j.formas_pagamento;
         }
-        if (dom.pct && (!dom.pct.value || dom.pct.value === '50')) {
-          dom.pct.value = String(Math.round(j.percentual_padrao || 50));
+        if (dom.pct && !pctFromPadraoApplied && !qs().get('pct')) {
+          // 0% é válido — não usar `|| 50` (zero falsy voltava sempre pra 50).
+          dom.pct.value = String(pctPadraoDeMeta(j));
+          pctFromPadraoApplied = true;
         }
         if (dom.reserva && (j.reserva_vila != null || (j.calc && j.calc.reserva_vila != null))) {
           var rv = j.reserva_vila != null ? j.reserva_vila : j.calc.reserva_vila;
@@ -840,6 +860,7 @@
 
   function closeOverlay() {
     pendingConfirmar = false;
+    pctFromPadraoApplied = false;
     closeForcarManualModal();
     hideModal(quemModal);
     hideModal(formaModal);
@@ -1086,7 +1107,7 @@
     var body = {
       quem_levou: q,
       pin: pin,
-      percentual_lucro: (dom.pct && dom.pct.value) || '50',
+      percentual_lucro: pctAtual(),
       incluir_cmv: !!(dom.cmv && dom.cmv.checked),
       incluir_lucro: !!(dom.lucro && dom.lucro.checked),
       incluir_fiado: !!(dom.fiado && dom.fiado.checked),

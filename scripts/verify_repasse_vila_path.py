@@ -68,6 +68,7 @@ check("produtos/templates/produtos/includes/repasse_aviso_abertura.html", "Repas
 check("produtos/views.py", "aplicar_repasses_pendentes_centro", "repasse_aviso_abertura")
 check("scripts/verify_repasse_vila_deep.py", "VERIFY_DEEP_OK", "confirmar_repasse", "forma PIX", "confirmar ontem", "envio extra zera acum do dia")
 check("scripts/verify_repasse_planos_path.py", "VERIFY_PLANOS_OK", "planos_desconto_centro")
+check("scripts/verify_repasse_pct_zero_path.py", "VERIFY_REPASSE_PCT_ZERO_PATH_OK", "pctPadraoDeMeta", "percentual_padrao || 50")
 check("scripts/verify_repasse_acum_extra_bug_path.py", "VERIFY_REPASSE_ACUM_EXTRA_BUG_PATH_OK", "overpay", "254.51", "445.02", "ja_eletronico")
 check("scripts/verify_repasse_acum_net.py", "VERIFY_ACUM_NET_OK", "print 18/08", "abater_extras_do_acumulado", "overpay+PIX")
 check("scripts/verify_repasse_reserva.py", "VERIFY_RESERVA_OK", "salvar_reserva_vila", "lucro_penultimo", "listar_log_reserva", "reserva_aplicada_no_dia")
