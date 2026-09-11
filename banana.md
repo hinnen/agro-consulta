@@ -1283,7 +1283,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — Repasse acumulado abate excedente (`REPASSE-ACUM-EXTRA-BUG` · **v23.96+** · 11/09)
+### 📦 PACOTE PRONTO — Repasse acumulado abate excedente (`REPASSE-ACUM-EXTRA-BUG` · **v23.97** · 11/09)
 
 | Campo | Valor |
 | ----- | ----- |
