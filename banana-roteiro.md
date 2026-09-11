@@ -479,15 +479,14 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 ---
 
-## 28. Checklist único — lote 11/09 · 🟢 pronto envio (alvo loja **v23.92**)
+## 28. Checklist único — lote 11/09 · ✅ **Live v23.92**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **REPASSE-ACUM-EXTRA-BUG** | 🟢 pronto envio · path **18/18** | **NÃO** |
+| 1 | **REPASSE-ACUM-EXTRA-BUG** | ✅ Live · path **18/18** | **NÃO** |
 
-**Status: PREP pronto** — `deploy/prep-checklist-1109` @ `78098c3` · **não** merge `teste`.  
-**Antes:** Live **v23.91** @ `22186fb`.  
+**Status: ✅ Live v23.92** — `producao` @ `78098c3` · Render `dep-dai2a3uk1f9s73ep6kvg`.  
+**Antes:** Live **v23.91** @ `22186fb`. **Não** merge `teste`. Sem migrate.  
 **Rollback:** tag `rollback/pre-checklist-1109-v23.91` · `docs/ROLLBACK-CHECKLIST-1109.md`.  
-**Risco loja aberta:** baixo (só acumulado do Repasse; não mexe venda).  
-**Smoke após senha:** Ctrl+F5 · badge **v23.92** · Repasse acumulado ~**254** (não 445).
+**Smoke:** Ctrl+F5 · badge **v23.92** · Repasse acumulado ~**254**.
 

@@ -1283,39 +1283,32 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚀 PREP deploy loja — Checklist 11/09 (`deploy/prep-checklist-1109` · **v23.92**) · aguarda senha
+### ✅ Deploy loja — Checklist 11/09 (`deploy/prep-checklist-1109` · **v23.92**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP pronto** — **não** subiu · **só** frase + senha no próximo chat |
-| **Branch PREP** | `deploy/prep-checklist-1109` @ **`78098c3`** · tip **v23.92** |
-| **Base loja** | Live **v23.91** @ `22186fb` |
-| **Pacote** | **só** `REPASSE-ACUM-EXTRA-BUG` (**não** merge `teste`) |
+| **Status** | ✅ **enviado / Live v23.92** — cherry **só** `REPASSE-ACUM-EXTRA-BUG` (**não** merge `teste`) |
+| **Antes** | **Live v23.91** @ `22186fb` |
+| **Agora** | `producao` @ **`78098c3`** · Render `dep-dai2a3uk1f9s73ep6kvg` |
 | **Migrate** | **NÃO** |
-| **Prova** | path **18/18** · acum-net **29/29** · vila **268** · deep **103** · arredonda **41** · `check` OK · PIN **9973** |
-| **Rollback** | tag `rollback/pre-checklist-1109-v23.91` · branch no deploy `producao-backup-pre-v2392-checklist-20260911` · `docs/ROLLBACK-CHECKLIST-1109.md` |
-| **Risco loja aberta** | **Baixo** — não mexe venda/caixa/estoque; só número do acumulado no Repasse (hoje inchado → passa a ~254) |
-| **Você no deploy** | Pausar vendas → autorizar → Ctrl+F5 · badge **v23.92** · Repasse acumulado ~**254** |
+| **Prova pré** | path **18/18** · acum-net **29/29** · vila **268** · deep **103** · arredonda **41** · `check` OK |
+| **Rollback** | tag `rollback/pre-checklist-1109-v23.91` · branch `producao-backup-pre-v2392-checklist-20260911` · `docs/ROLLBACK-CHECKLIST-1109.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.92** · Repasse → acumulado ~**254** (não 445) |
 
-### 📦 PACOTE PRONTO — Repasse acumulado abate excedente (`REPASSE-ACUM-EXTRA-BUG` · **v23.92** prep · 11/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Depois de levar a mais no dia, acumulado conta cartão/PIX no alvo — não fica inchado na tela. |
-| **Caso loja** | 11/09: **522,40** → levou **500** → tela **445** (bug) → com fix ~**254,51**. |
-| **Onde** | `repasse_vila_util.py` · path `verify_repasse_acum_extra_bug_path.py` · snapshot pré-fix |
-| **Prova** | path **18/18** · acum-net **29/29** · vila **268** · deep **103** · arredonda **41** · `check` OK |
-| **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** — PREP `deploy/prep-checklist-1109` @ `78098c3` · **só** frase + senha |
-| **Você** | Próximo chat: pausar vendas + autorizar. Após Live: Ctrl+F5 · acumulado ~**254**. |
-
-### ✅ CHECKLIST ÚNICO — 11/09 · pronto envio (PREP **v23.92**)
+### ✅ CHECKLIST ÚNICO — 11/09 · **Live v23.92**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `REPASSE-ACUM-EXTRA-BUG` | 🟢 **pronto para envio à produção** | **NÃO** | path **18/18** · acum-net **29/29** |
+| 1 | `REPASSE-ACUM-EXTRA-BUG` | ✅ **Live v23.92** | **NÃO** | path **18/18** · acum-net **29/29** |
 
-**Live agora:** **v23.91**. PREP: `deploy/prep-checklist-1109` @ `78098c3`. **Não** merge `teste`.
+### ✅ PACOTE — Repasse acumulado abate excedente (`REPASSE-ACUM-EXTRA-BUG` · **Live v23.92**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Depois de levar a mais no dia, acumulado conta cartão/PIX no alvo. |
+| **Caso loja** | 11/09: **522,40** → **500** → tela bug **445** → Live ~**254**. |
+| **Status** | ✅ **enviado / Live v23.92** |
+| **Rollback** | `docs/ROLLBACK-CHECKLIST-1109.md` |
 
 ### ✅ Prova reforçada — NF-AGUARDA-PRODUTO (`verify` **13/13** · unit **4/4** · 10/09)
 
