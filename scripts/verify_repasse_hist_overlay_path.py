@@ -85,6 +85,13 @@ def main() -> int:
     else:
         fail("JS hist incompleto")
 
+    if "pdv-rp-hist-print-iframe" in js and "window.open(" not in js.split("printHist")[1][:2500]:
+        ok("impressao via iframe (sem window.open)")
+    elif "ensureHistPrintIframe" in js and "contentWindow.print" in js:
+        ok("impressao via iframe (sem window.open)")
+    else:
+        fail("print ainda usa window.open ou sem iframe")
+
     if "api/repasse-vila/envios/" in urls:
         ok("rota envios")
     else:
