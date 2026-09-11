@@ -1759,6 +1759,21 @@
     bindHistPicker();
   }
 
+  function ensureHistPrintIframe() {
+    var id = 'pdv-rp-hist-print-iframe';
+    var iframe = document.getElementById(id);
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = id;
+      iframe.title = 'Impressão histórico repasse';
+      iframe.setAttribute('aria-hidden', 'true');
+      iframe.style.cssText =
+        'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none;';
+      document.body.appendChild(iframe);
+    }
+    return iframe;
+  }
+
   function printHist(formato) {
     var deEl = document.getElementById('pdv-rp-hist-de');
     var ateEl = document.getElementById('pdv-rp-hist-ate');
@@ -1792,35 +1807,50 @@
         }).join('');
         var pageCss =
           formato === '80mm'
-            ? '@page{margin:0;size:80mm auto}body{width:80mm;margin:0;padding:4mm;font:11px/1.3 system-ui,sans-serif}'
-            : '@page{margin:12mm}body{font:12px/1.35 system-ui,sans-serif;margin:0;padding:0}';
-        var html =
-          '<!doctype html><html><head><meta charset="utf-8"><title>' + escHtml(titulo) + '</title>' +
-          '<style>' + pageCss +
+            ? '@page{margin:0;size:80mm auto}body{width:80mm;max-width:80mm;margin:0 auto;padding:4mm;font:11px/1.3 system-ui,sans-serif;box-sizing:border-box}'
+            : '@page{margin:12mm}body{font:12px/1.35 system-ui,sans-serif;margin:0;padding:8mm;box-sizing:border-box}';
+        var styles =
+          pageCss +
           'h1{font-size:14px;margin:0 0 6px;text-transform:uppercase}' +
           '.meta{font-size:11px;margin-bottom:10px;color:#334155}' +
           'table{width:100%;border-collapse:collapse}' +
           'td{padding:4px 2px;border-bottom:1px solid #e2e8f0;vertical-align:top}' +
           'td.v{text-align:right;font-weight:800;white-space:nowrap}' +
           '.sub{font-size:10px;color:#64748b;font-weight:600}' +
-          '</style></head><body>' +
+          '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}';
+        var bodyHtml =
           '<h1>' + escHtml(titulo) + '</h1>' +
           '<div class="meta">De ' + escHtml(de.split('-').reverse().join('/')) +
           ' até ' + escHtml(ate.split('-').reverse().join('/')) +
           ' · ' + itens.length + ' item(ns)</div>' +
-          '<table><tbody>' + rows + '</tbody></table>' +
-          '<script>window.onload=function(){window.focus();window.print();}<\/script>' +
-          '</body></html>';
-        var w = window.open('', '_blank', 'noopener,noreferrer,width=480,height=720');
-        if (!w) {
-          if (histStatus) histStatus.textContent = 'Permita pop-up para imprimir';
+          '<table><tbody>' + rows + '</tbody></table>';
+        var iframe = ensureHistPrintIframe();
+        var idoc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
+        if (!idoc) {
+          if (histStatus) histStatus.textContent = 'Não foi possível preparar a impressão';
           return;
         }
-        w.document.open();
-        w.document.write(html);
-        w.document.close();
-        if (histStatus) histStatus.textContent = 'Impressão aberta · ' + itens.length + ' item(ns)';
-        if (histPrintPanel) histPrintPanel.classList.add('hidden');
+        idoc.open();
+        idoc.write(
+          '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' +
+            escHtml(titulo) +
+            '</title><style>' +
+            styles +
+            '</style></head><body>' +
+            bodyHtml +
+            '</body></html>'
+        );
+        idoc.close();
+        setTimeout(function () {
+          try {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+            if (histStatus) histStatus.textContent = 'Impressão · ' + itens.length + ' item(ns)';
+            if (histPrintPanel) histPrintPanel.classList.add('hidden');
+          } catch (ePr) {
+            if (histStatus) histStatus.textContent = 'Falha ao abrir a impressora';
+          }
+        }, 120);
       })
       .catch(function () {
         if (histStatus) histStatus.textContent = 'Falha de rede na impressão';
