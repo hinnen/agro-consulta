@@ -1284,6 +1284,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — Status central no Repasse PDV (`REPASSE-STATUS-FLASH` · **v24.14** · 11/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | **TRANSFERINDO…** / Salvando / OK no **meio da tela** (painel grande). Aviso de erro (gaveta etc.) maior. Faixa vermelha de backup. **Não fecha** ×/Cancelar/Esc no meio da transferência. |
+| **Arquivos** | `repasse_vila_overlay.html` · `pdv_repasse_vila.js` |
+| **Prova** | status-flash path **8/8** |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ **só no teste** — confira no runserver local |
+| **Você** | Ctrl+F5 · Confirmar com valor inválido → aviso grande · Confirmar OK → **TRANSFERINDO** no centro |
+
 ### 📦 PACOTE PRONTO — Histórico 3 cofres no Repasse PDV (`REPASSE-HIST-OVERLAY` · **v24.07** · 11/09)
 
 | Campo | Valor |
