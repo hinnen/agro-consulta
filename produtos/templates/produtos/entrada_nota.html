@@ -4696,11 +4696,13 @@
       });
     }
     if (step === 4) {
+      entradaNfeLoteSemearDraftsDasLinhas();
       entradaNfeLoteRebuildSelect();
-      entradaNfeLoteAplicarDraftLinhaAtual();
+      entradaNfeLoteSelecionarLinha(entradaNfeLoteLinhaIdx);
       requestAnimationFrame(() => {
+        entradaNfeLoteSemearDraftsDasLinhas();
         entradaNfeLoteRebuildSelect();
-        entradaNfeLoteAplicarDraftLinhaAtual();
+        entradaNfeLoteSelecionarLinha(entradaNfeLoteLinhaIdx);
       });
       entradaNfeAtualizarUiBotaoConfirmarLote();
     }
@@ -6132,6 +6134,22 @@
       val: document.getElementById('nfe-lote-val')?.value || '',
       ignorar: !!document.getElementById('nfe-lote-ignorar-linha')?.checked,
     };
+  }
+
+  function entradaNfeLoteSemearDraftsDasLinhas() {
+    const rows = entradaNfeBipLinhasConferencia();
+    rows.forEach((tr, i) => {
+      const key = String(i);
+      const d = entradaNfeLoteDraftPorLinha[key];
+      const vazio = !d || (!(d.num || d.fab || d.val) && !d.ignorar);
+      if (!vazio) return;
+      entradaNfeLoteDraftPorLinha[key] = {
+        num: tr.dataset.loteNumero || '',
+        fab: tr.dataset.loteFab || '',
+        val: tr.dataset.loteVal || '',
+        ignorar: entradaNfeLoteEstadoLinha(tr) === 'dispensado',
+      };
+    });
   }
 
   function entradaNfeLoteAplicarDraftIx(ix) {
