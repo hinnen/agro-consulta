@@ -490,3 +490,16 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 **Rollback:** tag `rollback/pre-checklist-1109-v23.91` · `docs/ROLLBACK-CHECKLIST-1109.md`.  
 **Smoke:** Ctrl+F5 · badge **v23.92** · Repasse acumulado ~**254**.
 
+---
+
+## 29. Checklist único — lote 11/09b · ✅ **Live v23.93**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **REPASSE-PCT-ZERO** | ✅ Live · path **20/20** · PIN **9973** | **NÃO** |
+
+**Status: ✅ Live v23.93** — `producao` @ `fc34325` · Render `dep-dai36tks728c73c9snm0`.  
+**Antes:** Live **v23.92** @ `78098c3`. **Não** merge `teste`. Sem migrate.  
+**Rollback:** tag `rollback/pre-checklist-1109b-v23.92` · `docs/ROLLBACK-CHECKLIST-1109b.md`.  
+**Smoke:** Ctrl+F5 · badge **v23.93** · Repasse PDV **0%**.
+

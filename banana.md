@@ -1283,17 +1283,32 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — % lucro 0% no PDV (`REPASSE-PCT-ZERO` · **v24.02** · 11/09)
+### ✅ Deploy loja — Checklist 11/09b (`deploy/prep-checklist-1109b` · **v23.93**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Gestão em **0%** gravava certo; PDV forçava **50%** (`0 \|\| 50`). Gestão calc/URL tinha o mesmo `\|\| '50'`. |
-| **Fix** | `pctPadraoDeMeta` / `pctAtual` (PDV + Gestão) · overlay sem 50 fixo · save aceita 0 |
-| **Onde** | `pdv_repasse_vila.js` · overlay · `repasse_vila.html` · `views_repasse_vila.py` |
-| **Prova** | path **20/20** · PIN **9973** · meta/config/calc API · vila **271** · deep **103** · acum **18+29** · arredonda **41** · `check` OK |
+| **Status** | ✅ **enviado / Live v23.93** — cherry **só** `REPASSE-PCT-ZERO` (**não** merge `teste`) |
+| **Antes** | **Live v23.92** @ `78098c3` |
+| **Agora** | `producao` @ **`fc34325`** · Render `dep-dai36tks728c73c9snm0` |
 | **Migrate** | **NÃO** |
-| **Status** | ✅ **só no teste** (`teste` v24.02) — loja sobe cherry **v23.93** |
-| **Você** | Ctrl+F5 · Repasse PDV e Gestão em **0%** |
+| **Prova pré** | path **20/20** · PIN **9973** · meta/config/calc · vila **271** · deep **103** · acum **18+29** · arredonda **41** · `check` OK |
+| **Rollback** | tag `rollback/pre-checklist-1109b-v23.92` · branch `producao-backup-pre-v2393-checklist-20260911b` · `docs/ROLLBACK-CHECKLIST-1109b.md` · **só** frase+senha |
+| **Smoke** | healthz **200** · home **200** |
+| **Você** | **Ctrl+F5** · badge **v23.93** · Repasse PDV **0%** (igual Gestão) |
+
+### ✅ CHECKLIST ÚNICO — 11/09b · **Live v23.93**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `REPASSE-PCT-ZERO` | ✅ **Live v23.93** | **NÃO** | path **20/20** · PIN **9973** |
+
+### ✅ PACOTE — % lucro 0% no PDV (`REPASSE-PCT-ZERO` · **Live v23.93**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | PDV (e calc Gestão) honram **0%**; não forçam 50. |
+| **Status** | ✅ **enviado / Live v23.93** |
+| **Rollback** | `docs/ROLLBACK-CHECKLIST-1109b.md` |
 
 ### ✅ Deploy loja — Checklist 11/09 (`deploy/prep-checklist-1109` · **v23.92**) · **Live**
 
