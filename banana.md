@@ -1284,6 +1284,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — Histórico 3 cofres no Repasse PDV (`REPASSE-HIST-OVERLAY` · **v24.06** · 11/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Botão **Histórico** sob Acumulado / Enviado / Total → overlay lista expansível · Voltar · Imprimir 80mm/A4 com de/até (AgroDatePicker). |
+| **API** | cofrinho `de`/`ate`/`limit` · `GET /api/repasse-vila/envios/` |
+| **Prova** | hist path **16/16** · vila **280** · `check` OK |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ **só no teste** — confira no runserver local |
+| **Você** | PDV → Repasse → **Histórico** · Voltar · Imprimir |
+
 ### 📦 PACOTE PRONTO — Lote/validade do XML (`NF-LOTE-XML` · **v24.05**)
 
 | Campo | Valor |

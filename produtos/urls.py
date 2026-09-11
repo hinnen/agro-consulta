@@ -582,6 +582,11 @@ urlpatterns = [
         name='api_repasse_vila_cofrinho',
     ),
     path(
+        'api/repasse-vila/envios/',
+        views_repasse_vila.api_repasse_vila_envios,
+        name='api_repasse_vila_envios',
+    ),
+    path(
         'api/repasse-vila/cofrinho/separar/',
         views_repasse_vila.api_repasse_vila_cofrinho_separar,
         name='api_repasse_vila_cofrinho_separar',
