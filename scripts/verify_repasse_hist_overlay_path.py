@@ -80,10 +80,15 @@ def main() -> int:
     else:
         fail("sem calendário de/ate")
 
-    if "openHistModal" in js and "printHist" in js and "rp-hist-row" in js:
-        ok("JS openHist + print + expand")
+    if "openHistModal" in js and "printHist" in js and "rp-hist-table" in js:
+        ok("JS openHist + print + tabela colunas")
     else:
         fail("JS hist incompleto")
+
+    if "fmtHistQuando" in js and "rp-hist-col-data" in js:
+        ok("colunas Data/Tipo/Quem/Valor")
+    else:
+        fail("sem colunas hist")
 
     if "pdv-rp-hist-print-iframe" in js and "window.open(" not in js.split("printHist")[1][:2500]:
         ok("impressao via iframe (sem window.open)")

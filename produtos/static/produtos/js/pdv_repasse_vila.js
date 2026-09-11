@@ -1703,6 +1703,29 @@
       });
   }
 
+  function fmtHistQuando(it) {
+    if (it && it.criado_em_label) return String(it.criado_em_label);
+    var raw = it && (it.criado_em || it.data_ref);
+    if (!raw) return '—';
+    var s = String(raw).trim();
+    // já dd/mm/yyyy …
+    if (/^\d{2}\/\d{2}\/\d{4}/.test(s)) return s.length > 16 ? s.slice(0, 16) : s;
+    // ISO 2026-08-29T09:30:31…
+    var m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))/);
+    if (m) return m[3] + '/' + m[2] + '/' + m[1].slice(2) + ' ' + m[4] + ':' + m[5];
+    var d = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (d) return d[3] + '/' + d[2] + '/' + d[1].slice(2);
+    return s;
+  }
+
+  function moneyParts(n) {
+    var t = Number(n || 0).toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    return { sym: 'R$', val: t };
+  }
+
   function renderHistList(items) {
     if (!histLista) return;
     histLista.innerHTML = '';
@@ -1710,13 +1733,21 @@
       histLista.innerHTML = '<p class="text-sm font-bold text-slate-500 py-6 text-center">Sem movimentações.</p>';
       return;
     }
+    var table = document.createElement('table');
+    table.className = 'rp-hist-table';
+    table.innerHTML =
+      '<thead><tr>' +
+      '<th class="rp-hist-col-data">Data</th>' +
+      '<th class="rp-hist-col-tipo">Tipo</th>' +
+      '<th class="rp-hist-col-quem">Quem</th>' +
+      '<th class="rp-hist-col-valor">Valor</th>' +
+      '</tr></thead>';
+    var tbody = document.createElement('tbody');
     items.forEach(function (it) {
-      var row = document.createElement('div');
-      row.className = 'rp-hist-row';
-      var quando = it.criado_em || it.criado_em_label || it.data_ref || '—';
+      var quando = fmtHistQuando(it);
       var tipo = it.tipo_label || it.tipo || 'Movimento';
       var quem = it.operador || it.quem_levou || '—';
-      var valor = money(it.valor != null ? it.valor : it.valor_total);
+      var mp = moneyParts(it.valor != null ? it.valor : it.valor_total);
       var detParts = [];
       if (it.origem_label) detParts.push('<div><b>Origem:</b> ' + escHtml(it.origem_label) + '</div>');
       if (it.saldo_anterior != null && it.saldo_posterior != null) {
@@ -1733,21 +1764,37 @@
       if (it.observacao) detParts.push('<div><b>Obs:</b> ' + escHtml(it.observacao) + '</div>');
       if (it.estornado) detParts.push('<div class="font-black text-rose-700">Já estornado</div>');
       if (it.repasse_id) detParts.push('<div><b>Repasse #</b>' + escHtml(it.repasse_id) + '</div>');
+      if (it.id && histKind === 'centro') detParts.push('<div><b>Envio #</b>' + escHtml(it.id) + '</div>');
       if (!detParts.length) detParts.push('<div class="text-slate-500">Sem detalhes extras.</div>');
-      row.innerHTML =
-        '<div class="flex items-center gap-2 px-3 py-2.5">' +
-        '<div class="flex-1 min-w-0">' +
-        '<div class="text-[0.7rem] font-bold uppercase text-slate-500">' + escHtml(quando) + '</div>' +
-        '<div class="text-sm font-black text-slate-900 truncate">' + escHtml(tipo) + ' · ' + escHtml(quem) + '</div>' +
-        '</div>' +
-        '<div class="text-base font-black tabular-nums text-slate-950 shrink-0">' + valor + '</div>' +
-        '</div>' +
-        '<div class="rp-hist-det space-y-0.5">' + detParts.join('') + '</div>';
-      row.addEventListener('click', function () {
-        row.classList.toggle('is-open');
+
+      var tr = document.createElement('tr');
+      tr.className = 'rp-hist-tr';
+      tr.innerHTML =
+        '<td class="rp-hist-col-data">' + escHtml(quando) + '</td>' +
+        '<td class="rp-hist-col-tipo truncate" title="' + escHtml(tipo) + '">' + escHtml(tipo) + '</td>' +
+        '<td class="rp-hist-col-quem truncate" title="' + escHtml(quem) + '">' + escHtml(quem) + '</td>' +
+        '<td class="rp-hist-col-valor"><span class="rp-hist-moeda"><span class="rp-hist-moeda-sym">' +
+        mp.sym +
+        '</span><span class="rp-hist-moeda-val">' +
+        escHtml(mp.val) +
+        '</span></span></td>';
+
+      var trDet = document.createElement('tr');
+      trDet.className = 'rp-hist-det-tr';
+      trDet.innerHTML =
+        '<td colspan="4"><div class="rp-hist-det space-y-0.5">' + detParts.join('') + '</div></td>';
+
+      tr.addEventListener('click', function () {
+        var open = !tr.classList.contains('is-open');
+        tr.classList.toggle('is-open', open);
+        trDet.classList.toggle('is-open', open);
       });
-      histLista.appendChild(row);
+
+      tbody.appendChild(tr);
+      tbody.appendChild(trDet);
     });
+    table.appendChild(tbody);
+    histLista.appendChild(table);
   }
 
   function openHistPrintPanel() {
@@ -1790,7 +1837,7 @@
         }
         var titulo = HIST_TITLES[histKind] || 'Histórico';
         var rows = itens.map(function (it) {
-          var quando = it.criado_em || it.criado_em_label || it.data_ref || '';
+          var quando = fmtHistQuando(it);
           var tipo = it.tipo_label || it.tipo || '';
           var quem = it.operador || it.quem_levou || '';
           var valor = money(it.valor != null ? it.valor : it.valor_total);
@@ -1801,8 +1848,9 @@
           if (it.percentual_lucro != null) extra.push(it.percentual_lucro + '%');
           return (
             '<tr><td>' + escHtml(quando) + '</td><td>' + escHtml(tipo) +
-            '<div class="sub">' + escHtml(quem) + (extra.length ? ' · ' + escHtml(extra.join(' · ')) : '') +
-            '</div></td><td class="v">' + valor + '</td></tr>'
+            '</td><td>' + escHtml(quem) +
+            (extra.length ? '<div class="sub">' + escHtml(extra.join(' · ')) + '</div>' : '') +
+            '</td><td class="v">' + valor + '</td></tr>'
           );
         }).join('');
         var pageCss =
@@ -1813,7 +1861,8 @@
           pageCss +
           'h1{font-size:14px;margin:0 0 6px;text-transform:uppercase}' +
           '.meta{font-size:11px;margin-bottom:10px;color:#334155}' +
-          'table{width:100%;border-collapse:collapse}' +
+          'table{width:100%;border-collapse:collapse;table-layout:fixed}' +
+          'th{text-align:left;font-size:10px;text-transform:uppercase;border-bottom:2px solid #cbd5e1;padding:3px 2px;color:#64748b}' +
           'td{padding:4px 2px;border-bottom:1px solid #e2e8f0;vertical-align:top}' +
           'td.v{text-align:right;font-weight:800;white-space:nowrap}' +
           '.sub{font-size:10px;color:#64748b;font-weight:600}' +
@@ -1823,7 +1872,9 @@
           '<div class="meta">De ' + escHtml(de.split('-').reverse().join('/')) +
           ' até ' + escHtml(ate.split('-').reverse().join('/')) +
           ' · ' + itens.length + ' item(ns)</div>' +
-          '<table><tbody>' + rows + '</tbody></table>';
+          '<table><thead><tr><th>Data</th><th>Tipo</th><th>Quem</th><th>Valor</th></tr></thead><tbody>' +
+          rows +
+          '</tbody></table>';
         var iframe = ensureHistPrintIframe();
         var idoc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
         if (!idoc) {

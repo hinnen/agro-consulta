@@ -161,6 +161,73 @@
     color: #334155;
   }
   #pdv-repasse-overlay .rp-hist-row.is-open .rp-hist-det { display: block; }
+  #pdv-repasse-overlay .rp-hist-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  #pdv-repasse-overlay .rp-hist-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #f8fafc;
+    border-bottom: 2px solid #cbd5e1;
+    padding: 0.45rem 0.55rem;
+    text-align: left;
+    font-size: 0.65rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #64748b;
+  }
+  #pdv-repasse-overlay .rp-hist-table th:not(:last-child),
+  #pdv-repasse-overlay .rp-hist-table td:not(:last-child) {
+    border-right: 1px solid #e2e8f0;
+  }
+  #pdv-repasse-overlay .rp-hist-table tbody tr.rp-hist-tr {
+    cursor: pointer;
+  }
+  #pdv-repasse-overlay .rp-hist-table tbody tr.rp-hist-tr:hover td {
+    background: #f8fafc;
+  }
+  #pdv-repasse-overlay .rp-hist-table tbody tr.rp-hist-tr.is-open td {
+    background: #f0fdfa;
+  }
+  #pdv-repasse-overlay .rp-hist-table td {
+    padding: 0.55rem 0.55rem;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: middle;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  #pdv-repasse-overlay .rp-hist-col-data { width: 8.5rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  #pdv-repasse-overlay .rp-hist-col-tipo { width: 28%; }
+  #pdv-repasse-overlay .rp-hist-col-quem { width: 32%; }
+  #pdv-repasse-overlay .rp-hist-col-valor { width: 7.5rem; text-align: right; font-variant-numeric: tabular-nums; font-weight: 900; }
+  #pdv-repasse-overlay .rp-hist-moeda {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.2rem;
+    justify-content: flex-end;
+    width: 100%;
+  }
+  #pdv-repasse-overlay .rp-hist-moeda-sym { font-size: 0.7rem; font-weight: 800; color: #64748b; }
+  #pdv-repasse-overlay .rp-hist-moeda-val { font-size: 1rem; font-weight: 900; }
+  #pdv-repasse-overlay .rp-hist-det-tr td {
+    padding: 0;
+    border-bottom: 1px solid #cbd5e1;
+    background: #f8fafc;
+  }
+  #pdv-repasse-overlay .rp-hist-det-tr .rp-hist-det {
+    display: none;
+    padding: 0.55rem 0.75rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #334155;
+  }
+  #pdv-repasse-overlay .rp-hist-det-tr.is-open .rp-hist-det { display: block; }
   #pdv-repasse-overlay .rp-hist-print-panel {
     border: 3px solid #ea580c;
     border-radius: 1rem;
