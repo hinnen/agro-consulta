@@ -1572,7 +1572,14 @@ def _alvo_fisico_de_calc(calc: dict[str, Any]) -> Decimal:
     """Quanto deveria ir em dinheiro (alvo − cartão/PIX já no Centro)."""
     alvos = calc.get("alvos") or {}
     alvo = _dec(alvos.get("cmv")) + _dec(alvos.get("lucro")) + _dec(alvos.get("fiado"))
-    elet = _dec(calc.get("ja_eletronico_aplicado") or calc.get("ja_eletronico"))
+    # Preferir o eletrônico TOTAL do dia. `ja_eletronico_aplicado` zera quando o
+    # dinheiro já cobriu CMV/lucro/fiado — o `or` antigo (0 falsy) ou o mini sem
+    # `ja_eletronico` ignorava cartão/PIX e o excedente abatia pouco o acumulado
+    # (bug loja 11/09 · R$ 500 → tela 445 em vez de ~254).
+    if "ja_eletronico" in calc and calc.get("ja_eletronico") is not None:
+        elet = _dec(calc.get("ja_eletronico"))
+    else:
+        elet = _dec(calc.get("ja_eletronico_aplicado"))
     return max(ZERO, (alvo - elet).quantize(Decimal("0.01")))
 
 
@@ -1964,6 +1971,7 @@ def calcular_disponivel(
         acum_bruto = acumulado_anterior(dia)
         mini = {
             "alvos": {"cmv": cmv_alvo, "lucro": lucro_alvo, "fiado": fiado_alvo},
+            "ja_eletronico": ja_elet,
             "ja_eletronico_aplicado": elet_aplicado,
             "ja_enviado": ja,
         }

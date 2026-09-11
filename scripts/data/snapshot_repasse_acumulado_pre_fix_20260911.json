@@ -1,0 +1,658 @@
+{
+  "meta": {
+    "id": "repasse-acum-pre-fix-20260911",
+    "capturado_em_utc": "2026-09-11T14:54:03.788821+00:00",
+    "capturado_em_brt_approx": "2026-09-11 ~11:52 BRT",
+    "fonte": "Postgres loja agro-db (Render) via MCP query_render_postgres",
+    "postgres": "dpg-d70n26h5pdvs739beahg-a / agro_db_o9rr",
+    "motivo": "Antes de corrigir REPASSE-ACUM-EXTRA-BUG — comparar/reverter",
+    "tela_observada_renan": {
+      "data_ref": "2026-09-11",
+      "acumulado_dias_anteriores_tela": 445.02,
+      "levado_ao_centro_hoje": 500.0,
+      "total_a_levar_hint": 0.0,
+      "cofrinho_salario_total": 1212.01,
+      "cofre_vila_elias_total": 1352.94,
+      "caixa_vila_dinheiro": 214.9,
+      "fundo_troco_alvo": 300.0
+    },
+    "no_momento_do_envio_id19": {
+      "acumulado_anterior_snapshot": 522.4,
+      "disponivel_dia_total": 70.18,
+      "valor_manual": 500.0,
+      "quem": "Geraldinho",
+      "criado_em": "2026-09-11T13:37:48.510584Z"
+    },
+    "contas_derivadas_agora": {
+      "sum_deltas_ate_2026_09_10": 3264.96,
+      "sum_ajustes_manuais": -2576.42,
+      "acumulado_bruto_ate_ontem": 688.54,
+      "delta_hoje_cache": -434.03,
+      "alvo_hoje_cache": 65.97,
+      "enviado_hoje_cache": 500.0,
+      "extra_hoje_correto_se_alvo_cache": 434.03,
+      "acumulado_tela_esperada_com_abate_correto": 254.51,
+      "acumulado_tela_errada_observada": 445.02,
+      "subabate_estimado": 190.51,
+      "nota": "Tela 445,02 = bruto 688,54 - extra subcontado (~243,52) porque alvo do abate ignora cartao/PIX apos overpay. Cache do dia 11 ja tem delta -434,03 certo."
+    }
+  },
+  "config": {
+    "id": 1,
+    "percentual_lucro_padrao": 0,
+    "reserva_vila": 100.0,
+    "reserva_vila_desde": "2026-08-18",
+    "saldo_reserva_vila": 1212.01,
+    "saldo_cofre_vila_elias": 1352.94,
+    "fundo_troco_vila": 300.0,
+    "atualizado_em": "2026-09-10T19:28:59.31697Z",
+    "atualizado_por": "Renan Hinnen"
+  },
+  "ajustes_acumulado": [
+    {
+      "id": 1,
+      "valor": 147.1,
+      "observacao": "teste",
+      "operador": "Renan Hinnen",
+      "data_ref": null,
+      "repasse_id": null,
+      "criado_em": "2026-08-25T21:29:12.715103Z"
+    },
+    {
+      "id": 2,
+      "valor": -294.2,
+      "observacao": "Transferido antes da ferramenta / zerado manualmente",
+      "operador": "Renan Hinnen",
+      "data_ref": "2026-08-25",
+      "repasse_id": null,
+      "criado_em": "2026-08-25T21:30:17.404831Z"
+    },
+    {
+      "id": 3,
+      "valor": 1.0,
+      "observacao": "khfutfkuhvb",
+      "operador": "Nathan",
+      "data_ref": null,
+      "repasse_id": null,
+      "criado_em": "2026-08-27T22:54:48.150175Z"
+    },
+    {
+      "id": 4,
+      "valor": 20.0,
+      "observacao": "kgyghgjhbh",
+      "operador": "Nathan",
+      "data_ref": null,
+      "repasse_id": null,
+      "criado_em": "2026-08-27T23:02:45.9507Z"
+    },
+    {
+      "id": 5,
+      "valor": 20.0,
+      "observacao": "kgyghgjhbh",
+      "operador": "Nathan",
+      "data_ref": null,
+      "repasse_id": null,
+      "criado_em": "2026-08-27T23:02:52.795212Z"
+    },
+    {
+      "id": 6,
+      "valor": -32.05,
+      "observacao": "Transferido antes da ferramenta / zerado manualmente",
+      "operador": "Renan Hinnen",
+      "data_ref": "2026-08-29",
+      "repasse_id": null,
+      "criado_em": "2026-08-29T15:57:16.766729Z"
+    },
+    {
+      "id": 7,
+      "valor": -2438.27,
+      "observacao": "Transferido antes da ferramenta / zerado manualmente",
+      "operador": "Renan Hinnen",
+      "data_ref": "2026-09-02",
+      "repasse_id": null,
+      "criado_em": "2026-09-02T21:47:00.354812Z"
+    }
+  ],
+  "envios_repasse": [
+    {
+      "id": 1,
+      "data_ref": "2026-08-14",
+      "valor_total": 200.0,
+      "valor_cmv": 151.86,
+      "valor_lucro": 48.14,
+      "valor_fiado": 0,
+      "quem_levou": "Geraldinho",
+      "operador": "Renan Hinnen",
+      "pct": 50,
+      "reserva_aplicada": 0,
+      "criado_em": "2026-08-14T21:23:24.330124Z"
+    },
+    {
+      "id": 2,
+      "data_ref": "2026-08-15",
+      "valor_total": 512.87,
+      "valor_cmv": 332.6,
+      "valor_lucro": 70.82,
+      "valor_fiado": 109.45,
+      "quem_levou": "Geraldinho",
+      "operador": "Renan Hinnen",
+      "pct": 50,
+      "reserva_aplicada": 0,
+      "criado_em": "2026-08-16T15:44:29.914806Z"
+    },
+    {
+      "id": 3,
+      "data_ref": "2026-08-15",
+      "valor_total": 87.13,
+      "valor_cmv": 56.51,
+      "valor_lucro": 12.03,
+      "valor_fiado": 18.59,
+      "quem_levou": "Geraldinho",
+      "operador": "Renan Hinnen",
+      "pct": 50,
+      "reserva_aplicada": 0,
+      "criado_em": "2026-08-16T16:16:24.271773Z"
+    },
+    {
+      "id": 4,
+      "data_ref": "2026-08-18",
+      "valor_total": 1878.47,
+      "valor_cmv": 1695.83,
+      "valor_lucro": 7.37,
+      "valor_fiado": 175.27,
+      "quem_levou": "Renan Hinnen",
+      "operador": "Renan Hinnen",
+      "pct": 50,
+      "reserva_aplicada": 0,
+      "criado_em": "2026-08-18T19:33:36.11596Z"
+    },
+    {
+      "id": 5,
+      "data_ref": "2026-08-20",
+      "valor_total": 801.36,
+      "valor_cmv": 693.05,
+      "valor_lucro": 108.31,
+      "valor_fiado": 0,
+      "quem_levou": "Geraldinho",
+      "operador": "Nathan",
+      "pct": 50,
+      "reserva_aplicada": 0,
+      "criado_em": "2026-08-20T21:26:42.499514Z"
+    },
+    {
+      "id": 6,
+      "data_ref": "2026-08-21",
+      "valor_total": 100.0,
+      "valor_cmv": 92.98,
+      "valor_lucro": 7.02,
+      "valor_fiado": 0,
+      "quem_levou": "Geraldinho",
+      "operador": "Nathan",
+      "pct": 50,
+      "reserva_aplicada": 100,
+      "criado_em": "2026-08-21T21:30:28.739516Z"
+    },
+    {
+      "id": 7,
+      "data_ref": "2026-08-22",
+      "valor_total": 250.0,
+      "valor_cmv": 213.93,
+      "valor_lucro": 36.07,
+      "valor_fiado": 0,
+      "quem_levou": "Geraldinho",
+      "operador": "Vitor",
+      "pct": 50,
+      "reserva_aplicada": 100,
+      "criado_em": "2026-08-22T20:33:06.497184Z"
+    },
+    {
+      "id": 8,
+      "data_ref": "2026-08-25",
+      "valor_total": 100.0,
+      "valor_cmv": 91.05,
+      "valor_lucro": 8.95,
+      "valor_fiado": 0,
+      "quem_levou": "Renan Hinnen",
+      "operador": "Renan Hinnen",
+      "pct": 50,
+      "reserva_aplicada": 100,
+      "criado_em": "2026-08-25T18:01:24.432093Z"
+    },
+    {
+      "id": 9,
+      "data_ref": "2026-08-25",
+      "valor_total": 300.0,
+      "valor_cmv": 300.0,
+      "valor_lucro": 0,
+      "valor_fiado": 0,
+      "quem_levou": "Renan Hinnen",
+      "operador": "Renan Hinnen",
+      "pct": 50,
+      "reserva_aplicada": 250,
+      "criado_em": "2026-08-25T21:28:33.190059Z"
+    },
+    {
+      "id": 10,
+      "data_ref": "2026-08-28",
+      "valor_total": 50.0,
+      "valor_cmv": 48.91,
+      "valor_lucro": 1.09,
+      "valor_fiado": 0,
+      "quem_levou": "Geraldinho",
+      "operador": "Nathan",
+      "pct": 50,
+      "reserva_aplicada": 150,
+      "criado_em": "2026-08-28T20:57:01.346664Z"
+    },
+    {
+      "id": 11,
+      "data_ref": "2026-08-29",
+      "valor_total": 152.19,
+      "valor_cmv": 151.97,
+      "valor_lucro": 0.22,
+      "valor_fiado": 0,
+      "quem_levou": "Renan Hinnen",
+      "operador": "Renan Hinnen",
+      "pct": 50,
+      "reserva_aplicada": 100,
+      "criado_em": "2026-08-29T15:55:12.154941Z"
+    },
+    {
+      "id": 12,
+      "data_ref": "2026-08-31",
+      "valor_total": 0.01,
+      "valor_cmv": 0.01,
+      "valor_lucro": 0,
+      "valor_fiado": 0,
+      "quem_levou": "Renan Hinnen",
+      "operador": "Renan Hinnen",
+      "pct": 25,
+      "reserva_aplicada": 100,
+      "criado_em": "2026-08-31T22:39:42.601743Z"
+    },
+    {
+      "id": 13,
+      "data_ref": "2026-09-01",
+      "valor_total": 650.0,
+      "valor_cmv": 546.65,
+      "valor_lucro": 46.85,
+      "valor_fiado": 56.5,
+      "quem_levou": "Renan Hinnen",
+      "operador": "Renan Hinnen",
+      "pct": 25,
+      "reserva_aplicada": 100,
+      "criado_em": "2026-09-01T22:34:05.472402Z"
+    },
+    {
+      "id": 14,
+      "data_ref": "2026-09-02",
+      "valor_total": 200.0,
+      "valor_cmv": 87.02,
+      "valor_lucro": 0,
+      "valor_fiado": 112.98,
+      "quem_levou": "Renan Hinnen",
+      "operador": "Renan Hinnen",
+      "pct": 0,
+      "reserva_aplicada": 83,
+      "criado_em": "2026-09-02T21:51:19.975642Z"
+    },
+    {
+      "id": 15,
+      "data_ref": "2026-09-04",
+      "valor_total": 0.01,
+      "valor_cmv": 0.01,
+      "valor_lucro": 0,
+      "valor_fiado": 0,
+      "quem_levou": "Renan Hinnen",
+      "operador": "Renan Hinnen",
+      "pct": 0,
+      "reserva_aplicada": 100,
+      "criado_em": "2026-09-04T21:47:40.487268Z"
+    },
+    {
+      "id": 16,
+      "data_ref": "2026-09-04",
+      "valor_total": 0.1,
+      "valor_cmv": 0.07,
+      "valor_lucro": 0.01,
+      "valor_fiado": 0.02,
+      "quem_levou": "Renan Hinnen",
+      "operador": "Renan Hinnen",
+      "pct": 50,
+      "reserva_aplicada": 100,
+      "criado_em": "2026-09-04T22:50:35.988884Z"
+    },
+    {
+      "id": 17,
+      "data_ref": "2026-09-08",
+      "valor_total": 40.0,
+      "valor_cmv": 39.35,
+      "valor_lucro": 0.65,
+      "valor_fiado": 0,
+      "quem_levou": "Renan Hinnen",
+      "operador": "Renan Hinnen",
+      "pct": 50,
+      "reserva_aplicada": 100,
+      "criado_em": "2026-09-08T17:40:09.493655Z"
+    },
+    {
+      "id": 18,
+      "data_ref": "2026-09-08",
+      "valor_total": 100.0,
+      "valor_cmv": 96.59,
+      "valor_lucro": 3.41,
+      "valor_fiado": 0,
+      "quem_levou": "Vitor Novaes",
+      "operador": "Renan Hinnen",
+      "pct": 50,
+      "reserva_aplicada": 100,
+      "criado_em": "2026-09-08T18:17:23.048048Z"
+    },
+    {
+      "id": 19,
+      "data_ref": "2026-09-11",
+      "valor_total": 500.0,
+      "valor_cmv": 491.81,
+      "valor_lucro": 8.19,
+      "valor_fiado": 0,
+      "quem_levou": "Geraldinho",
+      "operador": "Geraldinho",
+      "pct": 50,
+      "reserva_aplicada": 100,
+      "criado_em": "2026-09-11T13:37:48.510584Z"
+    }
+  ],
+  "deltas_cache": [
+    {
+      "data_ref": "2026-07-18",
+      "alvo_fisico": 0,
+      "enviado": 0,
+      "delta": 0
+    },
+    {
+      "data_ref": "2026-07-20",
+      "alvo_fisico": 75.0,
+      "enviado": 0,
+      "delta": 75.0
+    },
+    {
+      "data_ref": "2026-07-21",
+      "alvo_fisico": 0,
+      "enviado": 0,
+      "delta": 0
+    },
+    {
+      "data_ref": "2026-07-22",
+      "alvo_fisico": 1.3,
+      "enviado": 0,
+      "delta": 1.3
+    },
+    {
+      "data_ref": "2026-07-23",
+      "alvo_fisico": 41.6,
+      "enviado": 0,
+      "delta": 41.6
+    },
+    {
+      "data_ref": "2026-07-24",
+      "alvo_fisico": 76.99,
+      "enviado": 0,
+      "delta": 76.99
+    },
+    {
+      "data_ref": "2026-07-25",
+      "alvo_fisico": 73.9,
+      "enviado": 0,
+      "delta": 73.9
+    },
+    {
+      "data_ref": "2026-07-27",
+      "alvo_fisico": 10.0,
+      "enviado": 0,
+      "delta": 10.0
+    },
+    {
+      "data_ref": "2026-07-28",
+      "alvo_fisico": 2.0,
+      "enviado": 0,
+      "delta": 2.0
+    },
+    {
+      "data_ref": "2026-07-29",
+      "alvo_fisico": 119.1,
+      "enviado": 0,
+      "delta": 119.1
+    },
+    {
+      "data_ref": "2026-07-30",
+      "alvo_fisico": 147.5,
+      "enviado": 0,
+      "delta": 147.5
+    },
+    {
+      "data_ref": "2026-07-31",
+      "alvo_fisico": 114.8,
+      "enviado": 0,
+      "delta": 114.8
+    },
+    {
+      "data_ref": "2026-08-01",
+      "alvo_fisico": 215.2,
+      "enviado": 0,
+      "delta": 215.2
+    },
+    {
+      "data_ref": "2026-08-03",
+      "alvo_fisico": 22.5,
+      "enviado": 0,
+      "delta": 22.5
+    },
+    {
+      "data_ref": "2026-08-04",
+      "alvo_fisico": 382.9,
+      "enviado": 0,
+      "delta": 382.9
+    },
+    {
+      "data_ref": "2026-08-05",
+      "alvo_fisico": 0,
+      "enviado": 0,
+      "delta": 0
+    },
+    {
+      "data_ref": "2026-08-06",
+      "alvo_fisico": 338.4,
+      "enviado": 0,
+      "delta": 338.4
+    },
+    {
+      "data_ref": "2026-08-07",
+      "alvo_fisico": 0,
+      "enviado": 0,
+      "delta": 0
+    },
+    {
+      "data_ref": "2026-08-08",
+      "alvo_fisico": 731.35,
+      "enviado": 0,
+      "delta": 731.35
+    },
+    {
+      "data_ref": "2026-08-10",
+      "alvo_fisico": 566.08,
+      "enviado": 0,
+      "delta": 566.08
+    },
+    {
+      "data_ref": "2026-08-11",
+      "alvo_fisico": 33.5,
+      "enviado": 0,
+      "delta": 33.5
+    },
+    {
+      "data_ref": "2026-08-12",
+      "alvo_fisico": 74.6,
+      "enviado": 0,
+      "delta": 74.6
+    },
+    {
+      "data_ref": "2026-08-13",
+      "alvo_fisico": 144.41,
+      "enviado": 0,
+      "delta": 144.41
+    },
+    {
+      "data_ref": "2026-08-14",
+      "alvo_fisico": 200.0,
+      "enviado": 200.0,
+      "delta": 0
+    },
+    {
+      "data_ref": "2026-08-15",
+      "alvo_fisico": 632.0,
+      "enviado": 600.0,
+      "delta": 32.0
+    },
+    {
+      "data_ref": "2026-08-17",
+      "alvo_fisico": 224.99,
+      "enviado": 0,
+      "delta": 224.99
+    },
+    {
+      "data_ref": "2026-08-18",
+      "alvo_fisico": 445.46,
+      "enviado": 1878.47,
+      "delta": -1433.01
+    },
+    {
+      "data_ref": "2026-08-19",
+      "alvo_fisico": 120.0,
+      "enviado": 0,
+      "delta": 120.0
+    },
+    {
+      "data_ref": "2026-08-20",
+      "alvo_fisico": 801.36,
+      "enviado": 801.36,
+      "delta": 0
+    },
+    {
+      "data_ref": "2026-08-21",
+      "alvo_fisico": 107.47,
+      "enviado": 100.0,
+      "delta": 7.47
+    },
+    {
+      "data_ref": "2026-08-22",
+      "alvo_fisico": 333.28,
+      "enviado": 250.0,
+      "delta": 83.28
+    },
+    {
+      "data_ref": "2026-08-24",
+      "alvo_fisico": 223.4,
+      "enviado": 0,
+      "delta": 223.4
+    },
+    {
+      "data_ref": "2026-08-25",
+      "alvo_fisico": 400.0,
+      "enviado": 400.0,
+      "delta": 0
+    },
+    {
+      "data_ref": "2026-08-26",
+      "alvo_fisico": 0,
+      "enviado": 0,
+      "delta": 0
+    },
+    {
+      "data_ref": "2026-08-27",
+      "alvo_fisico": 67.37,
+      "enviado": 0,
+      "delta": 67.37
+    },
+    {
+      "data_ref": "2026-08-28",
+      "alvo_fisico": 59.98,
+      "enviado": 50.0,
+      "delta": 9.98
+    },
+    {
+      "data_ref": "2026-08-29",
+      "alvo_fisico": 151.97,
+      "enviado": 152.19,
+      "delta": -0.22
+    },
+    {
+      "data_ref": "2026-08-31",
+      "alvo_fisico": 53.79,
+      "enviado": 0.01,
+      "delta": 53.78
+    },
+    {
+      "data_ref": "2026-09-01",
+      "alvo_fisico": 603.15,
+      "enviado": 650.0,
+      "delta": -46.85
+    },
+    {
+      "data_ref": "2026-09-02",
+      "alvo_fisico": 354.11,
+      "enviado": 200.0,
+      "delta": 154.11
+    },
+    {
+      "data_ref": "2026-09-03",
+      "alvo_fisico": 56.99,
+      "enviado": 0,
+      "delta": 56.99
+    },
+    {
+      "data_ref": "2026-09-04",
+      "alvo_fisico": 139.71,
+      "enviado": 0.11,
+      "delta": 139.6
+    },
+    {
+      "data_ref": "2026-09-05",
+      "alvo_fisico": 0.8,
+      "enviado": 0,
+      "delta": 0.8
+    },
+    {
+      "data_ref": "2026-09-08",
+      "alvo_fisico": 242.37,
+      "enviado": 140.0,
+      "delta": 102.37
+    },
+    {
+      "data_ref": "2026-09-09",
+      "alvo_fisico": 0,
+      "enviado": 0,
+      "delta": 0
+    },
+    {
+      "data_ref": "2026-09-10",
+      "alvo_fisico": 297.77,
+      "enviado": 0,
+      "delta": 297.77
+    },
+    {
+      "data_ref": "2026-09-11",
+      "alvo_fisico": 65.97,
+      "enviado": 500.0,
+      "delta": -434.03
+    }
+  ],
+  "restaurar_como": {
+    "aviso": "NAO apagar envios. Snapshot e so referencia. Para voltar numeros de tela/cache: reaplicar linhas deltas + ajustes a partir deste arquivo (comando a criar se precisar). Cofres saldos: salario 1212.01 / vila_elias 1352.94.",
+    "tabelas": [
+      "produtos_repasseviladeltadiaagro",
+      "produtos_repassevilaacumuladoajusteagro",
+      "produtos_repassevilacentroagro (somente leitura — nao recriar)",
+      "produtos_repassevilaconfigagro (saldos cofre)"
+    ]
+  }
+}
