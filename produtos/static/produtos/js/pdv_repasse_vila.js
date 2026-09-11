@@ -1719,11 +1719,24 @@
   }
 
   function moneyParts(n) {
-    var t = Number(n || 0).toLocaleString('pt-BR', {
+    var t = Number(Math.abs(n || 0)).toLocaleString('pt-BR', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
     return { sym: 'R$', val: t };
+  }
+
+  /** Entrada = ↑ verde · Saída = ↓ vermelha (cofres: sinal do valor; Centro: sempre saída). */
+  function histDirecao(it) {
+    if (histKind === 'centro') return 'out';
+    var v = Number(it && it.valor != null ? it.valor : 0);
+    if (!isFinite(v) || v === 0) {
+      var t = String((it && it.tipo) || '').toLowerCase();
+      if (t === 'retirada') return 'out';
+      if (t === 'separacao' || t === 'saldo_inicial') return 'in';
+      return 'in';
+    }
+    return v < 0 ? 'out' : 'in';
   }
 
   function renderHistList(items) {
@@ -1747,7 +1760,11 @@
       var quando = fmtHistQuando(it);
       var tipo = it.tipo_label || it.tipo || 'Movimento';
       var quem = it.operador || it.quem_levou || '—';
-      var mp = moneyParts(it.valor != null ? it.valor : it.valor_total);
+      var rawVal = it.valor != null ? it.valor : it.valor_total;
+      var mp = moneyParts(rawVal);
+      var dir = histDirecao(it);
+      var arrow = dir === 'out' ? '↓' : '↑';
+      var dirTitle = dir === 'out' ? 'Saída' : 'Entrada';
       var detParts = [];
       if (it.origem_label) detParts.push('<div><b>Origem:</b> ' + escHtml(it.origem_label) + '</div>');
       if (it.saldo_anterior != null && it.saldo_posterior != null) {
@@ -1765,6 +1782,9 @@
       if (it.estornado) detParts.push('<div class="font-black text-rose-700">Já estornado</div>');
       if (it.repasse_id) detParts.push('<div><b>Repasse #</b>' + escHtml(it.repasse_id) + '</div>');
       if (it.id && histKind === 'centro') detParts.push('<div><b>Envio #</b>' + escHtml(it.id) + '</div>');
+      detParts.unshift(
+        '<div><b>Sentido:</b> ' + (dir === 'out' ? 'Saída ↓' : 'Entrada ↑') + '</div>'
+      );
       if (!detParts.length) detParts.push('<div class="text-slate-500">Sem detalhes extras.</div>');
 
       var tr = document.createElement('tr');
@@ -1773,7 +1793,15 @@
         '<td class="rp-hist-col-data">' + escHtml(quando) + '</td>' +
         '<td class="rp-hist-col-tipo truncate" title="' + escHtml(tipo) + '">' + escHtml(tipo) + '</td>' +
         '<td class="rp-hist-col-quem truncate" title="' + escHtml(quem) + '">' + escHtml(quem) + '</td>' +
-        '<td class="rp-hist-col-valor"><span class="rp-hist-moeda"><span class="rp-hist-moeda-sym">' +
+        '<td class="rp-hist-col-valor"><span class="rp-hist-moeda rp-hist-moeda--' +
+        dir +
+        '" title="' +
+        dirTitle +
+        '"><span class="rp-hist-dir rp-hist-dir--' +
+        dir +
+        '" aria-hidden="true">' +
+        arrow +
+        '</span><span class="rp-hist-moeda-sym">' +
         mp.sym +
         '</span><span class="rp-hist-moeda-val">' +
         escHtml(mp.val) +
@@ -1840,7 +1868,10 @@
           var quando = fmtHistQuando(it);
           var tipo = it.tipo_label || it.tipo || '';
           var quem = it.operador || it.quem_levou || '';
-          var valor = money(it.valor != null ? it.valor : it.valor_total);
+          var rawVal = it.valor != null ? it.valor : it.valor_total;
+          var dir = histDirecao(it);
+          var arrow = dir === 'out' ? '↓' : '↑';
+          var valor = arrow + ' ' + money(Math.abs(Number(rawVal || 0)));
           var extra = [];
           if (it.origem_label) extra.push(it.origem_label);
           if (it.observacao) extra.push(it.observacao);
@@ -1850,7 +1881,7 @@
             '<tr><td>' + escHtml(quando) + '</td><td>' + escHtml(tipo) +
             '</td><td>' + escHtml(quem) +
             (extra.length ? '<div class="sub">' + escHtml(extra.join(' · ')) + '</div>' : '') +
-            '</td><td class="v">' + valor + '</td></tr>'
+            '</td><td class="v ' + (dir === 'out' ? 'out' : 'in') + '">' + valor + '</td></tr>'
           );
         }).join('');
         var pageCss =
@@ -1864,7 +1895,8 @@
           'table{width:100%;border-collapse:collapse;table-layout:fixed}' +
           'th{text-align:left;font-size:10px;text-transform:uppercase;border-bottom:2px solid #cbd5e1;padding:3px 2px;color:#64748b}' +
           'td{padding:4px 2px;border-bottom:1px solid #e2e8f0;vertical-align:top}' +
-          'td.v{text-align:right;font-weight:800;white-space:nowrap}' +
+          'td.v{text-align:right;font-weight:900;white-space:nowrap;font-size:13px}' +
+          'td.v.out{color:#be123c}td.v.in{color:#047857}' +
           '.sub{font-size:10px;color:#64748b;font-weight:600}' +
           '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}';
         var bodyHtml =

@@ -205,16 +205,40 @@
   #pdv-repasse-overlay .rp-hist-col-data { width: 8.5rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
   #pdv-repasse-overlay .rp-hist-col-tipo { width: 28%; }
   #pdv-repasse-overlay .rp-hist-col-quem { width: 32%; }
-  #pdv-repasse-overlay .rp-hist-col-valor { width: 7.5rem; text-align: right; font-variant-numeric: tabular-nums; font-weight: 900; }
+  #pdv-repasse-overlay .rp-hist-col-valor { width: 9.5rem; text-align: right; font-variant-numeric: tabular-nums; font-weight: 900; }
   #pdv-repasse-overlay .rp-hist-moeda {
     display: inline-flex;
-    align-items: baseline;
-    gap: 0.2rem;
+    align-items: center;
+    gap: 0.35rem;
     justify-content: flex-end;
     width: 100%;
   }
-  #pdv-repasse-overlay .rp-hist-moeda-sym { font-size: 0.7rem; font-weight: 800; color: #64748b; }
-  #pdv-repasse-overlay .rp-hist-moeda-val { font-size: 1rem; font-weight: 900; }
+  #pdv-repasse-overlay .rp-hist-dir {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 999px;
+    font-size: 0.95rem;
+    font-weight: 900;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  #pdv-repasse-overlay .rp-hist-dir--in {
+    color: #047857;
+    background: #d1fae5;
+    border: 2px solid #059669;
+  }
+  #pdv-repasse-overlay .rp-hist-dir--out {
+    color: #be123c;
+    background: #ffe4e6;
+    border: 2px solid #e11d48;
+  }
+  #pdv-repasse-overlay .rp-hist-moeda-sym { font-size: 0.85rem; font-weight: 800; color: #64748b; }
+  #pdv-repasse-overlay .rp-hist-moeda-val { font-size: 1.35rem; font-weight: 900; letter-spacing: -0.02em; }
+  #pdv-repasse-overlay .rp-hist-moeda--in .rp-hist-moeda-val { color: #047857; }
+  #pdv-repasse-overlay .rp-hist-moeda--out .rp-hist-moeda-val { color: #be123c; }
   #pdv-repasse-overlay .rp-hist-det-tr td {
     padding: 0;
     border-bottom: 1px solid #cbd5e1;
