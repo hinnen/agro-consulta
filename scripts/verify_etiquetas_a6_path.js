@@ -172,6 +172,64 @@ check((html1.match(/class="sheet"/g) || []).length === 1, '1 etq → 1 folha');
 check((html1.match(/class="etq"/g) || []).length === 1, '1 célula preenchida');
 check((html1.match(/class="crop-layer"/g) || []).length >= 1, 'marcas de corte na folha');
 
+// --- HTML impressão A6 2 colunas (50×45) ---
+const p2 = Core.normalizarPreset({
+  estilo: 'gondola',
+  folha: 'a6',
+  largura_mm: 50,
+  altura_mm: 45,
+  borda_mm: 0.5,
+});
+check(p2.cols_folha === 2 && p2.rows_folha === 3, 'preset 50×45 → 2×3');
+const html2col = Core.montarHtmlImpressao(p2, [{ nome: 'DUAS COL', preco_venda: 8.9, qtd: 6 }]);
+check(html2col.includes('@page{size:A6;'), '2col @page A6');
+check((html2col.match(/class="etq"/g) || []).length === 6, '2col: 6 etiquetas');
+check((html2col.match(/class="sheet"/g) || []).length === 1, '2col: 6 etq = 1 folha');
+check(html2col.includes('width:51mm') || /width:51mm/.test(html2col), '2col célula outer 51mm');
+const left2 = (html2col.match(/left:([\d.]+)mm/g) || []).map(function (s) {
+  return Number(s.replace(/[^\d.]/g, ''));
+});
+check(left2.some(function (x) { return Math.abs(x - 1.5) < 0.2; }), '2col 1ª coluna ~left 1.5mm');
+check(left2.some(function (x) { return Math.abs(x - 52.5) < 0.2; }), '2col 2ª coluna ~left 52.5mm');
+const html2overflow = Core.montarHtmlImpressao(p2, [{ nome: 'X', preco_venda: 1, qtd: 7 }]);
+check((html2overflow.match(/class="sheet"/g) || []).length === 2, '2col: 7 etq → 2 folhas');
+
+// --- HTML impressão A6 3 colunas (33×30) ---
+const p3 = Core.normalizarPreset({
+  estilo: 'gondola',
+  folha: 'a6',
+  largura_mm: 33,
+  altura_mm: 30,
+  borda_mm: 0.5,
+});
+check(p3.cols_folha === 3, 'preset 33×30 → 3 colunas');
+check(p3.rows_folha >= 4, 'preset 33×30 → ≥4 linhas');
+const per3 = p3.cols_folha * p3.rows_folha;
+const html3col = Core.montarHtmlImpressao(p3, [{ nome: 'TRES COL', preco_venda: 3.5, qtd: per3 }]);
+check(html3col.includes('@page{size:A6;'), '3col @page A6');
+check((html3col.match(/class="etq"/g) || []).length === per3, '3col: enche 1 folha');
+check((html3col.match(/class="sheet"/g) || []).length === 1, '3col: 1 folha cheia');
+check(html3col.includes('width:34mm') || /width:34mm/.test(html3col), '3col célula outer 34mm');
+const left3 = (html3col.match(/left:([\d.]+)mm/g) || []).map(function (s) {
+  return Number(s.replace(/[^\d.]/g, ''));
+});
+check(left3.some(function (x) { return x < 5; }), '3col tem coluna esquerda');
+check(left3.some(function (x) { return x > 30 && x < 45; }), '3col tem coluna do meio');
+check(left3.some(function (x) { return x > 60; }), '3col tem coluna direita');
+const html3overflow = Core.montarHtmlImpressao(p3, [{ nome: 'Y', preco_venda: 1, qtd: per3 + 1 }]);
+check((html3overflow.match(/class="sheet"/g) || []).length === 2, '3col: overflow → 2 folhas');
+
+// cols_folha salva=1 com largura 50: respeita 1 (não força 2)
+const pForce1 = Core.normalizarPreset({
+  estilo: 'gondola',
+  folha: 'a6',
+  largura_mm: 50,
+  altura_mm: 45,
+  cols_folha: 1,
+  rows_folha: 3,
+});
+check(pForce1.cols_folha === 1, 'cols salvas=1 com 50 mm → mantém 1');
+
 // regressão HTML A4
 const htmlA4 = Core.montarHtmlImpressao(a4, [{ nome: 'A4', preco_venda: 10, qtd: 18 }]);
 check(htmlA4.includes('@page{size:A4;'), 'A4 ainda @page A4');
@@ -184,8 +242,8 @@ const htmlT = Core.montarHtmlImpressao(term, [{ nome: 'T', preco_venda: 1, codig
 check(htmlT.includes('@page{size:40mm 40mm;'), 'térmica 40×40 intacta');
 
 console.log('');
-console.log('ETQ-A6-BONUS path: ' + passed + ' ok · ' + failed + ' fail');
+console.log('ETQ-A6-COLS path: ' + passed + ' ok · ' + failed + ' fail');
 if (failed) {
   process.exit(1);
 }
-console.log('OK: path A6 bônus verificado (arquivos + grade + HTML + regressão A4/térmica).');
+console.log('OK: path A6 1/2/3 colunas verificado (grade + HTML + regressão A4/térmica).');
