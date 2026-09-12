@@ -4771,23 +4771,21 @@
                 '">Retomar</button>';
         }
         if (row.pode_adiar || row.pode_cancelar) {
-            btns += '<div class="flex w-full gap-1">';
             if (row.pode_adiar) {
                 btns +=
-                    '<button type="button" class="pdv-entrega-adiar min-w-0 flex-1 whitespace-nowrap rounded-lg border-2 border-amber-500 bg-amber-50 px-1 py-1 text-[9px] font-black uppercase leading-tight text-amber-950" data-entrega-id="' +
+                    '<button type="button" class="pdv-entrega-adiar w-full rounded-lg border-2 border-amber-500 bg-amber-50 px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-amber-950" data-entrega-id="' +
                     id +
                     '">Adiar</button>';
             }
             if (row.pode_cancelar) {
                 btns +=
-                    '<button type="button" class="pdv-entrega-cancelar min-w-0 flex-1 whitespace-nowrap rounded-lg border-2 border-red-300 bg-white px-1 py-1 text-[9px] font-black uppercase leading-tight text-red-800" data-entrega-id="' +
+                    '<button type="button" class="pdv-entrega-cancelar w-full rounded-lg border-2 border-red-300 bg-white px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-red-800" data-entrega-id="' +
                     id +
                     '">Cancelar</button>';
             }
-            btns += '</div>';
         }
         return (
-            '<article class="pdv-entrega-card flex items-stretch gap-2 rounded-xl border-2 p-2 ' +
+            '<article class="pdv-entrega-card flex items-stretch gap-2 overflow-hidden rounded-xl border-2 p-2 ' +
             borderCls +
             '">' +
             '<div class="min-w-0 flex-1">' +
@@ -4816,7 +4814,7 @@
             (cod ? '<div class="mt-0.5 text-[10px] font-mono text-slate-500">' + cod + '</div>' : '') +
             '</div>' +
             (btns
-                ? '<div class="pdv-entrega-card-acoes flex w-[min(40%,11.5rem)] shrink-0 flex-col gap-1">' +
+                ? '<div class="pdv-entrega-card-acoes flex w-[min(40%,11.5rem)] shrink-0 flex-col gap-1 box-border">' +
                   btns +
                   '</div>'
                 : '') +
