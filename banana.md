@@ -1288,11 +1288,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `WA-APP-SEM-PDV` | 🟢 **pronto para envio à produção** | **NÃO** | **48/48** · PIN **9973** |
+| 1 | `WA-APP-SEM-PDV` | 🟢 **pronto para envio à produção** (v24.24) | **NÃO** | **48/48** · PIN **9973** |
 
-**Loja:** **v23.94**. Tip `teste` sobe com o pacote. Cherry só `#1` + frase + senha — **não** merge `teste`.
+**Loja:** **v23.94**. Tip `teste` **v24.24**. Cherry só `#1` + frase + senha — **não** merge `teste`.
 
-### 📦 PACOTE PRONTO — Zap app sem PDV (`WA-APP-SEM-PDV` · 12/09)
+### 📦 PACOTE PRONTO — Zap app sem PDV (`WA-APP-SEM-PDV` · 12/09 · **v24.24**)
 
 | Campo | Valor |
 | ----- | ----- |
