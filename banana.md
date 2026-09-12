@@ -1284,24 +1284,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### ✅ CHECKLIST ÚNICO — 12/09 · pronto para envio
+### ✅ CHECKLIST ÚNICO — 12/09 · pronto para envio à produção
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `WA-APP-SEM-PDV` | 🟢 **pronto para envio** | **NÃO** | **17/17** · páginas PIN 9973 sem «Voltar PDV» |
+| 1 | `WA-APP-SEM-PDV` | 🟢 **pronto para envio à produção** | **NÃO** | **48/48** · PIN **9973** |
 
-**Loja:** **v23.94**. Tip `teste` sobe com este pacote. Cherry só `#1` + frase + senha — **não** merge `teste`.
+**Loja:** **v23.94**. Tip `teste` sobe com o pacote. Cherry só `#1` + frase + senha — **não** merge `teste`.
 
 ### 📦 PACOTE PRONTO — Zap app sem PDV (`WA-APP-SEM-PDV` · 12/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Tira **Voltar PDV** + FAB **PDV F1** do Zap; **Bot** volta só ao **Chat** (fica no app Zap) |
-| **Prova** | `verify_wa_app_sem_pdv_path.py` **17/17** · GET chat/bot **200** sem Voltar PDV · PWA **24/24** |
+| **O quê** | Sem **Voltar PDV** / FAB **F1** no Zap; **Bot** → **Chat** (mesmo app) |
+| **Prova** | `verify_wa_app_sem_pdv_path.py` **48/48** (path · dual · FAB · PIN 9973 · PWA) |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** |
-| **Você** | Ctrl+F5 no Zap · sem botão flutuante · Bot → Chat (não PDV) |
-| **Risco** | Baixo — só chrome do Zap |
+| **Você** | Ctrl+F5 Zap · sem flutuante · Bot → Chat |
+| **Risco** | Baixo |
 
 ### ✅ Deploy loja — Checklist 11/09d (`deploy/prep-checklist-1109d` · **v23.94**) · **Live**
 
