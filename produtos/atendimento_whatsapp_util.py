@@ -2074,7 +2074,15 @@ def transferir_conversa(
     return conv, ""
 
 
-def toque_heartbeat() -> WhatsAppPonteEstadoAgro:
+def toque_heartbeat() -> WhatsAppPonteEstadoAgro | None:
+    """Marca ponte viva. No máximo 1 gravação a cada ~25s (poll curto não engasga o PDV)."""
+    import time
+
+    agora_m = time.monotonic()
+    ultimo = getattr(toque_heartbeat, "_mono", 0.0)
+    if ultimo and (agora_m - ultimo) < 25.0:
+        return None
+    toque_heartbeat._mono = agora_m  # type: ignore[attr-defined]
     obj = obter_ponte()
     obj.heartbeat_em = timezone.now()
     obj.save(update_fields=["heartbeat_em"])
@@ -2188,7 +2196,8 @@ def listar_saida_pendente(limit: int = 20) -> list[dict]:
             "texto": m.texto or "",
             "tipo_midia": tipo,
             "mime": _mime_saida(m) if tipo else "",
-            "midia_b64": _arquivo_b64(m) if tipo in ("image", "audio") else "",
+            # Ponte baixa arquivo em /bridge/midia/ — b64 no poll inchava o JSON e engasgava o PDV
+            "midia_b64": "",
         }
         out.append(item)
     return out

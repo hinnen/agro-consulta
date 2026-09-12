@@ -1284,13 +1284,38 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### PC — disco C: cheio (12/09) · limpeza parcial
+
+| Campo | Valor |
+| ----- | ----- |
+| **C: livre** | **~20 GB** (antes ~3–8 GB) |
+| **Apagado** | TRAE `_old` · modelo IA Chrome · cache Codex · temp · (snapshots Cursor parcial) |
+| **Ainda no C:** | `state.vscdb` **~49 GB** (histórico Cursor) |
+| **Destino** | **E:** SSD (`E:\CursorOffload`) — HD D: fica de reserva |
+| **Pendente** | janela `ESPERAR-E-MOVER` no ar — fechar Cursor de novo para copiar ~49 GB → `E:\CursorOffload` |
+| **Não mexer** | GitHub / agro-consulta · OneDrive · `settings.json` |
+
 ### ✅ CHECKLIST ÚNICO — 12/09 · pronto para envio à produção
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `WA-APP-SEM-PDV` | 🟢 **pronto para envio à produção** (v24.24) | **NÃO** | **48/48** · PIN **9973** |
+| 1 | `WA-PONTE-ULTRA-LEVE` | 🟢 **pronto para envio** (**urgente lentidão**) | **NÃO** | **24/24** · PIN **9973** |
+| 2 | `WA-APP-SEM-PDV` | 🟢 **pronto para envio** | **NÃO** | **48/48** · PIN **9973** |
 
-**Loja:** **v23.94**. Tip `teste` **v24.24**. Cherry só `#1` + frase + senha — **não** merge `teste`.
+**Loja:** **v23.94**. Cherry `#1` (e `#2` se quiser) + frase + senha — **não** merge `teste`.
+
+**Agora (sem deploy):** fechar o `.bat` → PDV/gestão voltam. Religar `.bat` só depois do `#1` na loja.
+
+### 📦 PACOTE PRONTO — Ponte ultra leve (`WA-PONTE-ULTRA-LEVE` · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `.bat`+Zap engasgavam a loja: poll **≥8s** · heartbeat **25s** · sem mídia b64 no poll · cache bot |
+| **Prova** | `verify_wa_ponte_ultra_leve_path.py` **24/24** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | após loja: reiniciar `.bat` · Bot poll **10** → Salvar |
+| **Risco** | Baixo — saída Zap ~1–2s mais lenta |
 
 ### 📦 PACOTE PRONTO — Zap app sem PDV (`WA-APP-SEM-PDV` · 12/09 · **v24.24**)
 

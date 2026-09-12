@@ -15,7 +15,7 @@ BOT_DEFAULT: dict = {
     "atraso_resposta_seg": 2,
     "atraso_entre_msgs_seg": 2,
     # Poll da ponte: saída loja→cliente (entrada do cliente = socket, na hora)
-    "poll_saida_seg": 5,
+    "poll_saida_seg": 10,
     # Sync em massa agenda+fotos (1×/dia no PC da ponte, após este horário)
     "sync_agenda_fotos_hora": "00:00",
     "horario_ativo": True,
@@ -262,6 +262,24 @@ def carregar_bot(*, chave: str = CHAVE_DEFAULT) -> dict:
     return _merge(BOT_DEFAULT, obj.dados if isinstance(obj.dados, dict) else {})
 
 
+def carregar_bot_leve(*, chave: str = CHAVE_DEFAULT, ttl_seg: float = 20.0) -> dict:
+    """Cache curto p/ poll da ponte — evita get_or_create a cada 5–10s no mesmo worker."""
+    import time
+
+    k = (chave or CHAVE_DEFAULT)[:32]
+    cache = getattr(carregar_bot_leve, "_cache", None)
+    if not isinstance(cache, dict):
+        cache = {}
+        carregar_bot_leve._cache = cache  # type: ignore[attr-defined]
+    agora = time.monotonic()
+    hit = cache.get(k)
+    if hit and (agora - float(hit.get("t") or 0)) < float(ttl_seg or 20):
+        return dict(hit["dados"])
+    dados = carregar_bot(chave=k)
+    cache[k] = {"t": agora, "dados": dados}
+    return dict(dados)
+
+
 def salvar_bot(dados: dict, *, chave: str = CHAVE_DEFAULT, usuario: str = "") -> dict:
     from produtos.models import WhatsAppBotConfigAgro
 
@@ -275,9 +293,9 @@ def salvar_bot(dados: dict, *, chave: str = CHAVE_DEFAULT, usuario: str = "") ->
     except (TypeError, ValueError):
         limpo["atraso_entre_msgs_seg"] = 1
     try:
-        limpo["poll_saida_seg"] = max(3, min(15, int(limpo.get("poll_saida_seg") or 5)))
+        limpo["poll_saida_seg"] = max(8, min(30, int(limpo.get("poll_saida_seg") or 10)))
     except (TypeError, ValueError):
-        limpo["poll_saida_seg"] = 5
+        limpo["poll_saida_seg"] = 10
     sh = str(limpo.get("sync_agenda_fotos_hora") or "00:00").strip()
     if len(sh) == 5 and sh[2] == ":" and sh[:2].isdigit() and sh[3:].isdigit():
         hh, mm = int(sh[:2]), int(sh[3:])
@@ -340,6 +358,12 @@ def salvar_bot(dados: dict, *, chave: str = CHAVE_DEFAULT, usuario: str = "") ->
     obj.dados = limpo
     obj.atualizado_por = (usuario or "")[:120]
     obj.save()
+    try:
+        cache = getattr(carregar_bot_leve, "_cache", None)
+        if isinstance(cache, dict):
+            cache.pop((chave or CHAVE_DEFAULT)[:32], None)
+    except Exception:
+        pass
     return limpo
 
 

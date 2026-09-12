@@ -403,12 +403,12 @@
       }
       return;
     }
-    // Clamp visual: poll antigo < 3 não pode travar o Salvar (min do input)
+    // Clamp visual: poll antigo < 8 sobe (min do input / anti-lentidão PDV)
     try {
-      var poll = parseInt(dados.poll_saida_seg || 5, 10);
-      if (!(poll >= 3 && poll <= 15)) dados.poll_saida_seg = 5;
+      var poll = parseInt(dados.poll_saida_seg || 10, 10);
+      if (!(poll >= 8 && poll <= 30)) dados.poll_saida_seg = 10;
     } catch (ePoll) {
-      dados.poll_saida_seg = 5;
+      dados.poll_saida_seg = 10;
     }
     if (btn) {
       btn.disabled = true;
