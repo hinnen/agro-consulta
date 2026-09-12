@@ -6829,7 +6829,7 @@
                 header: 'bg-slate-800 text-white',
                 etapa: 'Pagamento na entrega',
                 titulo: 'Troco para quanto?',
-                sub: 'Pergunte ao cliente se precisa de troco.'
+                sub: 'Enter vazio = sem troco (preenche o total).'
             }
         };
         var t = themes[painel] || themes.pagamento_local;
@@ -6984,11 +6984,28 @@
         scrollEntregaWizardIntoView();
     }
 
+    function entregaTrocoTotalVendaNumero() {
+        return Number((State.getComputed() || {}).total || 0);
+    }
+
+    function preencherEntregaTrocoSemTroco() {
+        var inp = document.getElementById('pdv-ef3-troco-input');
+        if (!inp) return '';
+        var total = entregaTrocoTotalVendaNumero();
+        var display = moneyFieldDisplay(total);
+        if (!String(display || '').trim()) display = '0,00';
+        inp.value = display;
+        return display;
+    }
+
     function confirmarEntregaTrocoModal() {
         var inp = document.getElementById('pdv-ef3-troco-input');
         var val = inp ? String(inp.value || '').trim() : '';
         if (!val) {
-            alert('Informe o valor para troco (use 0 ou 0,00 se não precisar).');
+            val = preencherEntregaTrocoSemTroco();
+        }
+        if (!val) {
+            alert('Informe o valor para troco (Enter ou F7 vazio = sem troco).');
             return false;
         }
         entregaWizardAguardandoTroco = false;
