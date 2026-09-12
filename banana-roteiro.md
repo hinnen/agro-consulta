@@ -547,10 +547,10 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **REPASSE-ACUM-PCT-DIA** | 🚀 PREP · **16/16** | **NÃO** |
-| 2 | **PDV-ENT-ALERTA-LOJA** | 🚀 PREP · **76/76** | **NÃO** |
+| 1 | **REPASSE-ACUM-PCT-DIA** | ✅ Live · **16/16** | **NÃO** |
+| 2 | **PDV-ENT-ALERTA-LOJA** | ✅ Live · **76/76** | **NÃO** |
 
-**Status: PREP aguarda senha** — branch `deploy/prep-checklist-1209e` · loja hoje **Live v23.97**.  
+**Status: ✅ Live v23.98** — `producao` @ `6106b91` · Render `dep-dair1g7qj5pc73anadj0`.  
 **Rollback:** tag `rollback/pre-checklist-1209e-v23.97` · `docs/ROLLBACK-CHECKLIST-1209e.md`.  
 **Não** merge `teste`. Venda/caixa não mexidos.
 

@@ -1284,47 +1284,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚀 PREP deploy loja — Checklist 12/09e (`deploy/prep-checklist-1209e` · **v23.98**) · **aguarda senha**
+### ✅ Deploy loja — Checklist 12/09e (`deploy/prep-checklist-1209e` · **v23.98**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🚀 **PREP pronto** — **aguarda frase + senha** (**não** merge `teste`) |
-| **Loja hoje** | ✅ **Live v23.97** @ `3c56734` |
-| **Branch PREP** | `deploy/prep-checklist-1209e` @ tip **v23.98** |
-| **Pacotes** | `REPASSE-ACUM-PCT-DIA` · `PDV-ENT-ALERTA-LOJA` |
-| **Prova** | acum-pct **16/16** · alerta-loja **76/76** · extra **18/18** · pct-zero **20/20** · PIN **9973** · PG loja |
+| **Status** | ✅ **enviado / Live v23.98** — cherry **só** `#1`–`#2` (**não** merge `teste`) |
+| **Antes** | **Live v23.97** @ `3c56734` |
+| **Agora** | `producao` @ **`6106b91`** · Render `dep-dair1g7qj5pc73anadj0` |
+| **Smoke** | healthz **200** · wizard «loja que sai» · repasse hint «Cobre o dia» · meta **200** |
 | **Migrate** | **NÃO** |
-| **Rollback** | tag `rollback/pre-checklist-1209e-v23.97` · branch `producao-backup-pre-v2398-checklist-20260912e` · `docs/ROLLBACK-CHECKLIST-1209e.md` |
-| **Risco loja aberta** | Venda/caixa/Point **não** mexidos · Repasse: 1ª abertura reconstrói cache (números mudam = conserto) · alerta: só bip |
-| **Você (próximo chat)** | Pausar vendas → frase + senha `99738595` → deploy PREP → Ctrl+F5 · badge **v23.98** |
+| **Pacotes** | `REPASSE-ACUM-PCT-DIA` · `PDV-ENT-ALERTA-LOJA` |
+| **Prova pré** | acum-pct **16/16** · alerta-loja **76/76** · PIN **9973** |
+| **Rollback** | tag `rollback/pre-checklist-1209e-v23.97` · branch `producao-backup-pre-v2398-checklist-20260912e` · `docs/ROLLBACK-CHECKLIST-1209e.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.98** · Repasse (abre calc = reconstrói) · Vila sem bip em saída Centro |
 
-### ✅ CHECKLIST ÚNICO — 12/09e · **PREP aguarda senha** (alvo loja **v23.98**)
+### ✅ CHECKLIST ÚNICO — 12/09e · **Live v23.98**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `REPASSE-ACUM-PCT-DIA` | 🚀 **PREP · aguarda senha** | **NÃO** | **16/16** · PIN **9973** · PG |
-| 2 | `PDV-ENT-ALERTA-LOJA` | 🚀 **PREP · aguarda senha** | **NÃO** | **76/76** · PIN **9973** |
+| 1 | `REPASSE-ACUM-PCT-DIA` | ✅ **Live v23.98** | **NÃO** | **16/16** |
+| 2 | `PDV-ENT-ALERTA-LOJA` | ✅ **Live v23.98** | **NÃO** | **76/76** |
 
-### 📦 PACOTE PRONTO — Acumulado Repasse sem crédito fantasma (`REPASSE-ACUM-PCT-DIA` · PREP **v23.98**)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Cache do dia usa **maior % dos envios** (não o padrão 0%) · reconstrói ao abrir calc · hint se crédito cobre o dia |
-| **Causa** | Após % padrão=0, refresh reescrevia ~180 dias → envio 50% virava crédito (ex. 11/09 alvo **113** / enviado **532** / δ **−418**) |
-| **Prova** | **16/16** · PIN **9973** · PG agro-db |
-| **Migrate** | **NÃO** |
-| **Status** | 🚀 **no PREP** · aguarda senha |
-| **Risco** | Só Repasse — não mexe venda |
-
-### 📦 PACOTE PRONTO — Alerta horário só na loja que sai (`PDV-ENT-ALERTA-LOJA` · PREP **v23.98**)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Bip/piscar **só** se `loja_entrega` = depósito do PDV · Vila não toca saída Centro |
-| **Prova** | **76/76** · PIN **9973** |
-| **Migrate** | **NÃO** |
-| **Status** | 🚀 **no PREP** · aguarda senha |
-| **Risco** | Baixo — só bip |
+### ~~📦 PACOTE PRONTO — Acumulado Repasse~~ → **Live v23.98**
+### ~~📦 PACOTE PRONTO — Alerta horário loja~~ → **Live v23.98**
 
 ### ✅ Deploy loja — ETQ-A6-COLS (`deploy/prep-etq-a6-cols` · **v23.97**) · **Live**
 
