@@ -1284,6 +1284,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — Lote A4 fila + controle fino (`ETQ-LOTE-FILA` · **v24.34** · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | **Lote A4** usa a **fila de impressão** (ou monta loja inteira). Preset livre · QTD massa/item · etiquetas/folha · folhas/vez · intervalo · modo **pausa** (padrão) ou **auto**. Progresso no Postgres (desfazer/confirmar). |
+| **Onde** | `produtos_etiquetas*` · `produtos_etiquetas_lote*` · `views`/`urls` lote · `EtiquetaLoteAgro` |
+| **Prova** | `scripts/verify_etiquetas_lote_fila.py` **19/19** |
+| **Migrate** | **NÃO** |
+| **Status** | 🧪 **teste** — **Ctrl+F5** etiquetas · monte fila → **Lote A4** · imprimir 1 trecho → recusar confirm → tentar de novo |
+| **Risco** | Baixo — só `/produtos/etiquetas/` e `/lote/` |
+
 ### 📦 PACOTE PRONTO — Overlay Entregas duas colunas (`PDV-ENT-OVERLAY-SPLIT` · 12/09)
 
 | Campo | Valor |
