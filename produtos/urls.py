@@ -386,6 +386,11 @@ urlpatterns = [
         name='api_etiquetas_lote_detalhe',
     ),
     path(
+        'api/produtos/etiquetas/lote/<int:pk>/atualizar/',
+        views.api_etiquetas_lote_atualizar,
+        name='api_etiquetas_lote_atualizar',
+    ),
+    path(
         'api/produtos/etiquetas/lote/<int:pk>/proxima-folha/',
         views.api_etiquetas_lote_proxima_folha,
         name='api_etiquetas_lote_proxima_folha',

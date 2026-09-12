@@ -2285,8 +2285,8 @@ class EtiquetaPresetAgro(models.Model):
 
 class EtiquetaLoteAgro(models.Model):
     """
-    Lote provisório A4 gôndola (18/folha) — progresso multi-PC no Postgres.
-    Usado p.ex. abertura da Vila: lista completa + cursor do próximo a imprimir.
+    Lote de etiquetas — progresso multi-PC no Postgres.
+    Origem: fila de impressão ou lista da loja; config (folha/vez/intervalo/modo) em filtros_json.
     """
 
     class Status(models.TextChoices):

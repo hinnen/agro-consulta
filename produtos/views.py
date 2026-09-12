@@ -14599,9 +14599,9 @@ def api_etiquetas_historico_salvar(request):
     return JsonResponse({"ok": True, "id": h.pk, "job": _etiquetas_historico_row(h)})
 
 
-# --- Lote A4 gôndola (provisório · 18/folha) ---------------------------------
+# --- Lote etiquetas (fila ou loja · progresso Postgres) ----------------------
 
-ETQ_LOTE_FOLHA = 18  # A4 gôndola 2×9
+ETQ_LOTE_FOLHA_DEFAULT = 18  # A4 gôndola 2×9 (default)
 ETQ_LOTE_PRESET_ID = "gondola"
 
 
@@ -14633,7 +14633,16 @@ def _etiquetas_lote_preco(raw) -> float:
         return 0.0
 
 
-def _etiquetas_lote_item_de_prod(p: dict) -> dict:
+def _etiquetas_lote_qtd(raw, default: int = 1) -> int:
+    try:
+        q = int(raw)
+    except (TypeError, ValueError):
+        q = default
+    return max(1, min(q, 999))
+
+
+def _etiquetas_lote_item_de_prod(p: dict, *, qtd: int | None = None) -> dict:
+    qq = _etiquetas_lote_qtd(qtd if qtd is not None else p.get("qtd"), 1)
     return {
         "id": str(p.get("id") or "")[:64],
         "nome": str(p.get("nome") or "")[:300],
@@ -14643,8 +14652,71 @@ def _etiquetas_lote_item_de_prod(p: dict) -> dict:
         "codigo_barras": str(p.get("codigo_barras") or p.get("ean") or p.get("gtin") or "")[:80],
         "preco_venda": _etiquetas_lote_preco(p.get("preco_venda")),
         "peso_etiqueta": str(p.get("peso_etiqueta") or "")[:40],
-        "qtd": 1,
+        "qtd": qq,
     }
+
+
+def _etiquetas_lote_normalizar_itens_entrada(raw) -> list[dict]:
+    if not isinstance(raw, list):
+        return []
+    out: list[dict] = []
+    for p in raw:
+        if not isinstance(p, dict):
+            continue
+        it = _etiquetas_lote_item_de_prod(p)
+        if not it["nome"] and not it["id"]:
+            continue
+        out.append(it)
+    return out
+
+
+def _etiquetas_lote_flat(itens: list) -> list[dict]:
+    """Expande QTD → 1 etiqueta por slot (cursor)."""
+    flat: list[dict] = []
+    for it in itens or []:
+        if not isinstance(it, dict):
+            continue
+        q = _etiquetas_lote_qtd(it.get("qtd"), 1)
+        base = dict(it)
+        base["qtd"] = 1
+        for _ in range(q):
+            flat.append(dict(base))
+    return flat
+
+
+def _etiquetas_lote_parse_config(raw: dict | None) -> dict:
+    src = raw if isinstance(raw, dict) else {}
+    nested = src.get("config") if isinstance(src.get("config"), dict) else {}
+    merged = {**src, **nested}
+
+    def _int(key, default, lo, hi):
+        try:
+            v = int(merged.get(key, default))
+        except (TypeError, ValueError):
+            v = default
+        return max(lo, min(hi, v))
+
+    modo = str(merged.get("modo") or "pausa").strip().lower()
+    if modo not in ("pausa", "auto"):
+        modo = "pausa"
+    return {
+        "etiquetas_por_folha": _int("etiquetas_por_folha", ETQ_LOTE_FOLHA_DEFAULT, 1, 54),
+        "folhas_por_vez": _int("folhas_por_vez", 1, 1, 20),
+        "intervalo_seg": _int("intervalo_seg", 3, 0, 120),
+        "modo": modo,
+    }
+
+
+def _etiquetas_lote_config(lote: EtiquetaLoteAgro) -> dict:
+    filtros = lote.filtros_json if isinstance(lote.filtros_json, dict) else {}
+    return _etiquetas_lote_parse_config(filtros)
+
+
+def _etiquetas_lote_set_config(lote: EtiquetaLoteAgro, cfg: dict) -> None:
+    filtros = dict(lote.filtros_json) if isinstance(lote.filtros_json, dict) else {}
+    parsed = _etiquetas_lote_parse_config({**(filtros.get("config") or {}), **(cfg or {})})
+    filtros["config"] = parsed
+    lote.filtros_json = filtros
 
 
 def _etiquetas_lote_coletar_itens(
@@ -14708,40 +14780,52 @@ def _etiquetas_lote_coletar_itens(
 
 
 def _etiquetas_lote_totais(lote: EtiquetaLoteAgro) -> dict:
-    itens = lote.itens_json if isinstance(lote.itens_json, list) else []
-    total = len(itens)
+    cfg = _etiquetas_lote_config(lote)
+    folha = cfg["etiquetas_por_folha"]
+    folhas_vez = cfg["folhas_por_vez"]
+    flat = _etiquetas_lote_flat(lote.itens_json if isinstance(lote.itens_json, list) else [])
+    total = len(flat)
     cursor = max(0, min(int(lote.cursor or 0), total))
     impressos = cursor
     faltam = max(0, total - cursor)
-    folhas_tot = (total + ETQ_LOTE_FOLHA - 1) // ETQ_LOTE_FOLHA if total else 0
+    folhas_tot = (total + folha - 1) // folha if total else 0
     if faltam == 0:
         folhas_feitas = folhas_tot
         folha_atual = folhas_tot
     else:
-        folhas_feitas = cursor // ETQ_LOTE_FOLHA
+        folhas_feitas = cursor // folha
         folha_atual = folhas_feitas + 1
-    proxima_qtd = min(ETQ_LOTE_FOLHA, faltam) if faltam else 0
+    lote_max = folha * folhas_vez
+    proxima_qtd = min(lote_max, faltam) if faltam else 0
     return {
         "total": total,
         "cursor": cursor,
         "impressos": impressos,
         "faltam": faltam,
-        "folha_size": ETQ_LOTE_FOLHA,
+        "folha_size": folha,
+        "folhas_por_vez": folhas_vez,
+        "intervalo_seg": cfg["intervalo_seg"],
+        "modo": cfg["modo"],
         "folhas_tot": folhas_tot,
         "folhas_feitas": folhas_feitas,
         "folha_atual": folha_atual,
         "proxima_qtd": proxima_qtd,
         "ultima_folha_qtd": int(lote.ultima_folha_qtd or 0),
+        "n_produtos": len(lote.itens_json) if isinstance(lote.itens_json, list) else 0,
     }
 
 
 def _etiquetas_lote_row(lote: EtiquetaLoteAgro, *, incluir_itens: bool = False) -> dict:
     totais = _etiquetas_lote_totais(lote)
+    cfg = _etiquetas_lote_config(lote)
+    filtros = lote.filtros_json if isinstance(lote.filtros_json, dict) else {}
     row = {
         "id": lote.pk,
         "nome": lote.nome or "",
         "loja": lote.loja or "",
-        "filtros": lote.filtros_json if isinstance(lote.filtros_json, dict) else {},
+        "origem": str(filtros.get("origem") or "loja"),
+        "filtros": filtros,
+        "config": cfg,
         "preset_id": lote.preset_id or ETQ_LOTE_PRESET_ID,
         "status": lote.status,
         "usuario": lote.usuario or "",
@@ -14752,23 +14836,27 @@ def _etiquetas_lote_row(lote: EtiquetaLoteAgro, *, incluir_itens: bool = False) 
     }
     if incluir_itens:
         itens = lote.itens_json if isinstance(lote.itens_json, list) else []
+        flat = _etiquetas_lote_flat(itens)
         cur = totais["cursor"]
+        folha = totais["folha_size"]
         row["itens"] = itens
-        row["proximos"] = itens[cur : cur + ETQ_LOTE_FOLHA]
-        row["ultimos_impressos"] = itens[max(0, cur - totais["ultima_folha_qtd"]) : cur] if totais["ultima_folha_qtd"] else []
+        row["proximos"] = flat[cur : cur + folha]
+        uq = totais["ultima_folha_qtd"]
+        row["ultimos_impressos"] = flat[max(0, cur - uq) : cur] if uq else []
     return row
 
 
 @ensure_csrf_cookie
 @login_required(login_url="/entrar/")
 def produtos_etiquetas_lote_view(request):
-    """Tela provisória: lote A4 gôndola (18/folha) com progresso no Postgres."""
+    """Lote de etiquetas: fila ou loja inteira, progresso no Postgres."""
     return render(
         request,
         "produtos/produtos_etiquetas_lote.html",
         {
             "api_lote_url": reverse("api_etiquetas_lote"),
-            "folha_size": ETQ_LOTE_FOLHA,
+            "api_etq_presets_url": reverse("api_etiquetas_presets"),
+            "folha_size": ETQ_LOTE_FOLHA_DEFAULT,
             "preset_id": ETQ_LOTE_PRESET_ID,
         },
     )
@@ -14777,7 +14865,7 @@ def produtos_etiquetas_lote_view(request):
 @login_required(login_url="/entrar/")
 @require_http_methods(["GET", "POST"])
 def api_etiquetas_lote(request):
-    """GET lista lotes · POST cria lote (coleta todos os produtos do filtro)."""
+    """GET lista lotes · POST cria lote (origem=fila|loja)."""
     if request.method == "GET":
         status_f = str(request.GET.get("status") or "aberto").strip().lower()
         qs = EtiquetaLoteAgro.objects.all()
@@ -14789,12 +14877,16 @@ def api_etiquetas_lote(request):
             lim = 20
         lim = max(1, min(lim, 50))
         rows = [_etiquetas_lote_row(x) for x in qs.order_by("-criado_em")[:lim]]
-        return JsonResponse({"ok": True, "lotes": rows, "folha_size": ETQ_LOTE_FOLHA})
+        return JsonResponse({"ok": True, "lotes": rows, "folha_size": ETQ_LOTE_FOLHA_DEFAULT})
 
     try:
         body = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
         return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+
+    origem = str(body.get("origem") or "loja").strip().lower()
+    if origem not in ("fila", "loja"):
+        origem = "loja"
 
     loja = str(body.get("loja") or "vila").strip().lower()
     if loja not in ("vila", "centro", "total"):
@@ -14803,34 +14895,51 @@ def api_etiquetas_lote(request):
     if estoque_sinal not in ("", "positivo", "negativo", "zerado"):
         estoque_sinal = "positivo"
     somente_ativos = body.get("somente_ativos", True) is not False
+    preset_id = str(body.get("preset_id") or ETQ_LOTE_PRESET_ID).strip()[:64] or ETQ_LOTE_PRESET_ID
+    cfg = _etiquetas_lote_parse_config(body)
     nome = str(body.get("nome") or "").strip()[:160]
-    if not nome:
-        loja_lbl = {"vila": "Vila", "centro": "Centro", "total": "C+V"}.get(loja, loja)
-        sinal_lbl = estoque_sinal or "todos"
-        nome = f"Lote {loja_lbl} · {sinal_lbl} · {timezone.now():%d/%m %H:%M}"
 
-    itens = _etiquetas_lote_coletar_itens(
-        loja=loja,
-        estoque_sinal=estoque_sinal,
-        somente_ativos=somente_ativos,
-        usuario=request.user,
-    )
-    if not itens:
-        return JsonResponse(
-            {"ok": False, "erro": "Nenhum produto com esse filtro. Confira estoque / loja."},
-            status=400,
+    if origem == "fila":
+        itens = _etiquetas_lote_normalizar_itens_entrada(body.get("itens"))
+        if not itens:
+            return JsonResponse(
+                {"ok": False, "erro": "Fila vazia. Adicione produtos na fila de impressão."},
+                status=400,
+            )
+        if not nome:
+            nome = f"Fila · {len(itens)} prod. · {timezone.now():%d/%m %H:%M}"
+        filtros = {"origem": "fila", "config": cfg}
+        loja_salva = "fila"
+    else:
+        itens = _etiquetas_lote_coletar_itens(
+            loja=loja,
+            estoque_sinal=estoque_sinal,
+            somente_ativos=somente_ativos,
+            usuario=request.user,
         )
+        if not itens:
+            return JsonResponse(
+                {"ok": False, "erro": "Nenhum produto com esse filtro. Confira estoque / loja."},
+                status=400,
+            )
+        if not nome:
+            loja_lbl = {"vila": "Vila", "centro": "Centro", "total": "C+V"}.get(loja, loja)
+            sinal_lbl = estoque_sinal or "todos"
+            nome = f"Lote {loja_lbl} · {sinal_lbl} · {timezone.now():%d/%m %H:%M}"
+        filtros = {
+            "origem": "loja",
+            "loja": loja,
+            "estoque_sinal": estoque_sinal,
+            "somente_ativos": somente_ativos,
+            "config": cfg,
+        }
+        loja_salva = loja
 
-    filtros = {
-        "loja": loja,
-        "estoque_sinal": estoque_sinal,
-        "somente_ativos": somente_ativos,
-    }
     lote = EtiquetaLoteAgro.objects.create(
         nome=nome,
-        loja=loja,
+        loja=loja_salva,
         filtros_json=filtros,
-        preset_id=ETQ_LOTE_PRESET_ID,
+        preset_id=preset_id,
         status=EtiquetaLoteAgro.Status.ABERTO,
         itens_json=itens,
         cursor=0,
@@ -14849,23 +14958,121 @@ def api_etiquetas_lote_detalhe(request, pk: int):
 
 @login_required(login_url="/entrar/")
 @require_POST
+def api_etiquetas_lote_atualizar(request, pk: int):
+    """Atualiza preset, config (folha/vez/intervalo/modo) e/ou QTDs dos itens."""
+    lote = get_object_or_404(EtiquetaLoteAgro, pk=pk)
+    if lote.status == EtiquetaLoteAgro.Status.CANCELADO:
+        return JsonResponse({"ok": False, "erro": "Lote cancelado."}, status=400)
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+
+    fields = ["atualizado_em"]
+    if "preset_id" in body:
+        pid = str(body.get("preset_id") or "").strip()[:64]
+        if pid:
+            lote.preset_id = pid
+            fields.append("preset_id")
+
+    cfg_keys = ("etiquetas_por_folha", "folhas_por_vez", "intervalo_seg", "modo")
+    if any(k in body for k in cfg_keys) or isinstance(body.get("config"), dict):
+        patch = dict(body.get("config") or {})
+        for k in cfg_keys:
+            if k in body:
+                patch[k] = body[k]
+        _etiquetas_lote_set_config(lote, patch)
+        fields.append("filtros_json")
+
+    itens = lote.itens_json if isinstance(lote.itens_json, list) else []
+    mudou_itens = False
+
+    if "qtd_massa" in body and body.get("qtd_massa") is not None:
+        qq = _etiquetas_lote_qtd(body.get("qtd_massa"), 1)
+        for it in itens:
+            if isinstance(it, dict):
+                it["qtd"] = qq
+                mudou_itens = True
+
+    if isinstance(body.get("itens"), list):
+        novos = _etiquetas_lote_normalizar_itens_entrada(body.get("itens"))
+        if novos:
+            itens = novos
+            mudou_itens = True
+
+    if isinstance(body.get("qtds"), list):
+        # [{index: 0, qtd: 2}] ou [{id: "...", qtd: 2}]
+        by_idx = {}
+        by_id = {}
+        for row in body["qtds"]:
+            if not isinstance(row, dict):
+                continue
+            qq = _etiquetas_lote_qtd(row.get("qtd"), 1)
+            if "index" in row:
+                try:
+                    by_idx[int(row["index"])] = qq
+                except (TypeError, ValueError):
+                    pass
+            elif row.get("id") is not None:
+                by_id[str(row.get("id"))] = qq
+        for i, it in enumerate(itens):
+            if not isinstance(it, dict):
+                continue
+            if i in by_idx:
+                it["qtd"] = by_idx[i]
+                mudou_itens = True
+            elif str(it.get("id") or "") in by_id:
+                it["qtd"] = by_id[str(it.get("id"))]
+                mudou_itens = True
+
+    if mudou_itens:
+        lote.itens_json = itens
+        fields.append("itens_json")
+        flat_n = len(_etiquetas_lote_flat(itens))
+        if int(lote.cursor or 0) > flat_n:
+            lote.cursor = flat_n
+            fields.append("cursor")
+        if lote.status == EtiquetaLoteAgro.Status.CONCLUIDO and int(lote.cursor or 0) < flat_n:
+            lote.status = EtiquetaLoteAgro.Status.ABERTO
+            fields.append("status")
+        elif flat_n > 0 and int(lote.cursor or 0) >= flat_n:
+            lote.status = EtiquetaLoteAgro.Status.CONCLUIDO
+            if "status" not in fields:
+                fields.append("status")
+
+    # unique preserve order
+    seen = set()
+    uniq = []
+    for f in fields:
+        if f not in seen:
+            seen.add(f)
+            uniq.append(f)
+    lote.save(update_fields=uniq)
+    return JsonResponse({"ok": True, "lote": _etiquetas_lote_row(lote, incluir_itens=True)})
+
+
+@login_required(login_url="/entrar/")
+@require_POST
 def api_etiquetas_lote_proxima_folha(request, pk: int):
-    """Devolve os próximos ≤18 itens para o front imprimir (não avança cursor)."""
+    """Devolve próximos itens (folhas_por_vez × etiquetas_por_folha); não avança cursor."""
     lote = get_object_or_404(EtiquetaLoteAgro, pk=pk)
     if lote.status != EtiquetaLoteAgro.Status.ABERTO:
         return JsonResponse({"ok": False, "erro": "Lote não está aberto."}, status=400)
     totais = _etiquetas_lote_totais(lote)
     if totais["faltam"] <= 0:
         return JsonResponse({"ok": False, "erro": "Nada pendente.", "lote": _etiquetas_lote_row(lote)}, status=400)
-    itens = lote.itens_json if isinstance(lote.itens_json, list) else []
+    flat = _etiquetas_lote_flat(lote.itens_json if isinstance(lote.itens_json, list) else [])
     cur = totais["cursor"]
-    fatia = itens[cur : cur + ETQ_LOTE_FOLHA]
+    n = totais["proxima_qtd"]
+    fatia = flat[cur : cur + n]
     return JsonResponse(
         {
             "ok": True,
             "itens": fatia,
             "qtd": len(fatia),
-            "folha_size": ETQ_LOTE_FOLHA,
+            "folha_size": totais["folha_size"],
+            "folhas_por_vez": totais["folhas_por_vez"],
+            "preset_id": lote.preset_id or ETQ_LOTE_PRESET_ID,
             "lote": _etiquetas_lote_row(lote),
         }
     )
@@ -14874,7 +15081,7 @@ def api_etiquetas_lote_proxima_folha(request, pk: int):
 @login_required(login_url="/entrar/")
 @require_POST
 def api_etiquetas_lote_confirmar_folha(request, pk: int):
-    """Avança o cursor após o operador confirmar que a folha saiu ok."""
+    """Avança o cursor após o operador confirmar (ou modo auto)."""
     lote = get_object_or_404(EtiquetaLoteAgro, pk=pk)
     if lote.status != EtiquetaLoteAgro.Status.ABERTO:
         return JsonResponse({"ok": False, "erro": "Lote não está aberto."}, status=400)
@@ -14886,17 +15093,17 @@ def api_etiquetas_lote_confirmar_folha(request, pk: int):
     if totais["faltam"] <= 0:
         return JsonResponse({"ok": False, "erro": "Nada pendente.", "lote": _etiquetas_lote_row(lote)}, status=400)
     try:
-        qtd = int(body.get("qtd") or totais["proxima_qtd"] or ETQ_LOTE_FOLHA)
+        qtd = int(body.get("qtd") or totais["proxima_qtd"] or totais["folha_size"])
     except (TypeError, ValueError):
         qtd = totais["proxima_qtd"]
-    qtd = max(1, min(qtd, totais["proxima_qtd"], ETQ_LOTE_FOLHA))
-    itens = lote.itens_json if isinstance(lote.itens_json, list) else []
+    qtd = max(1, min(qtd, totais["proxima_qtd"]))
+    flat = _etiquetas_lote_flat(lote.itens_json if isinstance(lote.itens_json, list) else [])
     cur = totais["cursor"]
-    fatia = itens[cur : cur + qtd]
+    fatia = flat[cur : cur + qtd]
     novo_cursor = cur + len(fatia)
     lote.cursor = novo_cursor
     lote.ultima_folha_qtd = len(fatia)
-    if novo_cursor >= len(itens):
+    if novo_cursor >= len(flat):
         lote.status = EtiquetaLoteAgro.Status.CONCLUIDO
     lote.save(update_fields=["cursor", "ultima_folha_qtd", "status", "atualizado_em"])
 
@@ -14906,24 +15113,24 @@ def api_etiquetas_lote_confirmar_folha(request, pk: int):
 @login_required(login_url="/entrar/")
 @require_POST
 def api_etiquetas_lote_desfazer_folha(request, pk: int):
-    """Recua o cursor da última folha confirmada."""
+    """Recua o cursor do último lote confirmado."""
     lote = get_object_or_404(EtiquetaLoteAgro, pk=pk)
     if lote.status == EtiquetaLoteAgro.Status.CANCELADO:
         return JsonResponse({"ok": False, "erro": "Lote cancelado."}, status=400)
+    cfg = _etiquetas_lote_config(lote)
+    folha = cfg["etiquetas_por_folha"]
     qtd = int(lote.ultima_folha_qtd or 0)
     if qtd <= 0:
-        # fallback: recua 1 folha cheia se ainda houver impressos
         cur = int(lote.cursor or 0)
         if cur <= 0:
             return JsonResponse({"ok": False, "erro": "Nada para desfazer."}, status=400)
-        qtd = min(ETQ_LOTE_FOLHA, cur)
+        qtd = min(folha * cfg["folhas_por_vez"], cur)
     cur = int(lote.cursor or 0)
     novo = max(0, cur - qtd)
     lote.cursor = novo
     lote.ultima_folha_qtd = 0
-    if lote.status == EtiquetaLoteAgro.Status.CONCLUIDO and novo < (
-        len(lote.itens_json) if isinstance(lote.itens_json, list) else 0
-    ):
+    flat_n = len(_etiquetas_lote_flat(lote.itens_json if isinstance(lote.itens_json, list) else []))
+    if lote.status == EtiquetaLoteAgro.Status.CONCLUIDO and novo < flat_n:
         lote.status = EtiquetaLoteAgro.Status.ABERTO
     lote.save(update_fields=["cursor", "ultima_folha_qtd", "status", "atualizado_em"])
     return JsonResponse({"ok": True, "lote": _etiquetas_lote_row(lote, incluir_itens=True)})
