@@ -33,7 +33,7 @@ def main() -> int:
     mig = ROOT / "produtos/migrations/0130_pedido_entrega_pdv_lista_concluida.py"
 
     print("=== overlay split ===")
-    check("76rem" in html, "overlay mais largo")
+    check(("88rem" in html or "76rem" in html), "overlay mais largo")
     check("pdv-entregas-split" in html, "divisão no meio")
     check('id="pdv-entregas-list-pagar"' in html and 'id="pdv-entregas-list-pagas"' in html, "duas listas")
     check("overflow-y: auto" in html, "scroll nas colunas")

@@ -4647,23 +4647,23 @@
         var badges = [];
         if (pagasAba) {
             badges.push(
-                '<span class="rounded-md bg-emerald-600 px-1.5 py-0.5 text-[9px] font-black uppercase text-white">Paga na loja</span>'
+                '<span class="rounded-md bg-emerald-600 px-1.5 py-0.5 text-[9px] font-black uppercase whitespace-nowrap text-white">Paga na loja</span>'
             );
         }
         if (row.eh_catalogo) {
             badges.push(
-                '<span class="rounded-md bg-violet-600 px-1.5 py-0.5 text-[9px] font-black uppercase text-white">Catálogo</span>'
+                '<span class="rounded-md bg-violet-600 px-1.5 py-0.5 text-[9px] font-black uppercase whitespace-nowrap text-white">Catálogo</span>'
             );
         }
         if (row.pode_assumir) {
             badges.push(
-                '<span class="rounded-md bg-amber-500 px-1.5 py-0.5 text-[9px] font-black uppercase text-white animate-pulse">Sem dono</span>'
+                '<span class="rounded-md bg-amber-500 px-1.5 py-0.5 text-[9px] font-black uppercase whitespace-nowrap text-white animate-pulse">Sem dono</span>'
             );
         } else {
             var lojaLbl = lojaEntregaLabelUi(row.loja_entrega);
             if (lojaLbl) {
                 badges.push(
-                    '<span class="rounded-md bg-sky-700 px-1.5 py-0.5 text-[9px] font-black uppercase text-white">' +
+                    '<span class="rounded-md bg-sky-700 px-1.5 py-0.5 text-[9px] font-black uppercase whitespace-nowrap text-white">' +
                         escapeHtml(lojaLbl) +
                         '</span>'
                 );
@@ -4691,13 +4691,13 @@
                 adiar1hCls = 'border-slate-400 bg-white text-slate-800';
             }
             badges.push(
-                '<span class="inline-flex flex-wrap items-center gap-1">' +
+                '<span class="inline-flex shrink-0 flex-nowrap items-center gap-1">' +
                     '<span class="rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tabular-nums ' +
                     hpCls +
                     '" title="Horário agendado">' +
                     escapeHtml(hpUi) +
                     '</span>' +
-                    '<button type="button" class="pdv-entrega-adiar-alerta-1h rounded-md border-2 px-1.5 py-0.5 text-[9px] font-black uppercase leading-tight ' +
+                    '<button type="button" class="pdv-entrega-adiar-alerta-1h shrink-0 whitespace-nowrap rounded-md border-2 px-1.5 py-0.5 text-[9px] font-black uppercase leading-tight ' +
                     adiar1hCls +
                     '" title="Adia o piscar e o bip do horário por 1 hora">' +
                     adiar1hLbl +
@@ -4792,7 +4792,9 @@
             '">' +
             '<div class="min-w-0 flex-1">' +
             (badges.length
-                ? '<div class="mb-1 flex flex-wrap gap-1">' + badges.join('') + '</div>'
+                ? '<div class="pdv-entrega-card-badges mb-1 flex flex-nowrap items-center gap-1">' +
+                  badges.join('') +
+                  '</div>'
                 : '') +
             '<div class="text-sm font-black leading-tight text-slate-900">' +
             nome +
@@ -4814,7 +4816,7 @@
             (cod ? '<div class="mt-0.5 text-[10px] font-mono text-slate-500">' + cod + '</div>' : '') +
             '</div>' +
             (btns
-                ? '<div class="pdv-entrega-card-acoes flex w-[min(48%,13rem)] shrink-0 flex-col gap-1">' +
+                ? '<div class="pdv-entrega-card-acoes flex w-[min(40%,11.5rem)] shrink-0 flex-col gap-1">' +
                   btns +
                   '</div>'
                 : '') +

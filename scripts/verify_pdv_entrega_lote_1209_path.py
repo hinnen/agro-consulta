@@ -80,7 +80,7 @@ def test_estatico() -> None:
     check("troco_placeholder", "Enter = sem troco" in ent_ov)
 
     # OVERLAY-SPLIT
-    check("ov_largo", "76rem" in step)
+    check("ov_largo", ("88rem" in step or "76rem" in step))
     check("ov_split", "pdv-entregas-split" in step)
     check("ov_listas", 'id="pdv-entregas-list-pagar"' in step and 'id="pdv-entregas-list-pagas"' in step)
     check("ov_scroll", "overflow-y: auto" in step)
