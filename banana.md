@@ -1298,10 +1298,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 8 | `ETQ-LOTE-FILA` | 🟢 **pronto para envio à produção** | **NÃO** | **78/78** · PIN **9973** |
 | 9 | `PDV-IMP-SEP-OFF` | 🟢 **pronto para envio à produção** | **NÃO** | UX · Separação **desmarcada** |
 | 10 | `PDV-IMP-PIN-ANTES` | 🟢 **pronto para envio à produção** | **NÃO** | PIN **antes** de imprimir · sem 2ª via |
+| 11 | `PDV-ENT-CARD-LATERAL` | 🟢 **pronto para envio à produção** | **NÃO** | Botões à **direita** · card mais baixo |
 
-**Loja:** **v23.94**. Tip `teste` **v24.37+**. Cherry `#1`–`#10` + frase + senha — **não** merge `teste`.  
+**Loja:** **v23.94**. Tip `teste` **v24.39+**. Cherry `#1`–`#11` + frase + senha — **não** merge `teste`.  
 **Prova lote PDV (#4–#7):** `verify_pdv_entrega_lote_1209_path.py` **61/61**.  
 **Sem deploy Zap:** fechar `.bat` → PDV volta. Religar `.bat` só depois do `#1` na loja.
+
+### 📦 PACOTE PRONTO — Cards Entregas botões à direita (`PDV-ENT-CARD-LATERAL` · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Overlay Entregas: info à esquerda · botões empilhados à direita (A pagar + Pagas) · menos altura por card |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Risco** | Baixo |
 
 ### 📦 PACOTE PRONTO — PIN antes da impressão de entrega (`PDV-IMP-PIN-ANTES` · 12/09)
 
