@@ -4916,7 +4916,7 @@
                 id +
                 '" data-paga-loja="' +
                 (row.paga_na_loja && !row.aguarda_pagamento_pdv ? '1' : '0') +
-                '">Loja</button>';
+                '">Mudar Loja</button>';
         }
         if (row.pode_adiar || row.pode_cancelar) {
             btns += '<div class="pdv-entrega-adiar-cancelar flex w-full min-w-0 gap-1">';
@@ -4924,7 +4924,7 @@
                 btns +=
                     '<button type="button" class="pdv-entrega-adiar min-w-0 flex-1 rounded-lg border-2 border-amber-500 bg-amber-50 px-0.5 py-1 text-[9px] font-black uppercase leading-tight text-amber-950" data-entrega-id="' +
                     id +
-                    '">Adiar</button>';
+                    '">Adiar 1 Dia</button>';
             }
             if (row.pode_cancelar) {
                 btns +=
@@ -5515,7 +5515,7 @@
             return;
         }
         var btn = btnEl || null;
-        var lblOrig = btn ? String(btn.textContent || 'Adiar').trim() || 'Adiar' : 'Adiar';
+        var lblOrig = btn ? String(btn.textContent || 'Adiar 1 Dia').trim() || 'Adiar 1 Dia' : 'Adiar 1 Dia';
         var setBtn = function (busy, label, okTone) {
             if (!btn || !btn.isConnected) return;
             btn.disabled = !!busy;
