@@ -1301,28 +1301,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
 | 1–10 | (checklist 12/09b) | ✅ **Live v23.95** | — | — |
-| 11 | `PDV-ENT-CARD-LATERAL` | 🟢 **pronto para envio à produção** | **NÃO** | card **48/48** · PIN **9973** |
+| 11 | `PDV-ENT-CARD-LATERAL` | 🟢 **pronto para envio à produção** | **NÃO** | **51/51** · PIN **9973** |
 | 12 | `PDV-ENT-ALERTA-POR-ID` | 🟢 **pronto para envio à produção** | **NÃO** | **51/51** · PIN **9973** |
-| 13 | `PDV-ENT-MUDAR-LOJA` | 🟢 **pronto para envio à produção** | **SIM** `0131` | **35/35** · PIN **9973** |
+| 13 | `PDV-ENT-MUDAR-LOJA` | 🟢 **pronto para envio à produção** | **SIM** `0131` | **39/39** · PIN **9973** |
 
-**Loja:** ✅ Live **v23.95** @ `8faa4c1`. **Tip:** `#11`–`#13` prontos — **não** merge `teste` sem frase+senha.
+**Loja:** ✅ Live **v23.95** @ `8faa4c1`. **Tip:** `#11`–`#13` prontos (prova 12/09) — **não** merge sem frase+senha.
 
 ### 📦 PACOTE PRONTO — Mudar loja entrega/pagamento (`PDV-ENT-MUDAR-LOJA` · tip · 12/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Card **Loja** + wizard F3: **só entrega** · **só pagamento** · **as duas** · badges Sai/Paga · migrate `0131` |
-| **Prova** | `verify_pdv_entrega_mudar_loja_path.py` **35/35** · PIN **9973** |
+| **O quê** | **Mudar Loja** · só entrega / só pagamento / as duas · Sai/Paga · **Adiar 1 Dia** · tags **quebram linha** (sem scroll) · `0131` |
+| **Prova** | `verify_pdv_entrega_mudar_loja_path.py` **39/39** · PIN **9973** · card **51/51** · alerta **51/51** · lote **61/61** |
 | **Migrate** | **SIM** `0131` |
 | **Status** | 🟢 **pronto para envio à produção** |
-| **Risco** | Médio (caixa destino precisa estar aberto) · Ctrl+F5 |
+| **Risco** | Médio (caixa destino aberto) · Ctrl+F5 |
 
 ### 📦 PACOTE PRONTO — Adiar 1h por entrega (`PDV-ENT-ALERTA-POR-ID` · tip · 12/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | **Adiar 1h** no card = **só aquela** entrega · topo **Alerta +1h** = todas urgentes · lembrete centro (sem clique-through) |
-| **Prova** | `verify_pdv_entrega_alerta_por_id_path.py` **51/51** · PIN **9973** · card **48/48** |
+| **O quê** | **Adiar 1h** no card = **só aquela** · topo **Alerta +1h** = todas · lembrete centro |
+| **Prova** | `verify_pdv_entrega_alerta_por_id_path.py` **51/51** · PIN **9973** |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** |
 | **Risco** | Baixo · Ctrl+F5 |
@@ -1331,8 +1331,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | **Incluir**+Maps · hora + **Adiar 1h** · alerta · tags 1 linha · overlay **88rem** · Adiar\|Cancelar lado a lado |
-| **Prova** | `verify_pdv_imp_pin_card_1209_path.py` **48/48** · PIN **9973** |
+| **O quê** | **Incluir**+Maps · hora + **Adiar 1h** · overlay **88rem** · Adiar\|Cancelar · tags wrap · rótulos **Mudar Loja** / **Adiar 1 Dia** |
+| **Prova** | `verify_pdv_imp_pin_card_1209_path.py` **51/51** · PIN **9973** |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** |
 | **Risco** | Baixo |

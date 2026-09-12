@@ -155,6 +155,15 @@ def test_estatico() -> None:
         )
         is not None,
     )
+    check("card_lbl_mudar_loja", ">Mudar Loja</button>" in wiz_js)
+    check("card_lbl_adiar_1_dia", ">Adiar 1 Dia</button>" in wiz_js)
+    step = _read("produtos/templates/produtos/partials/pdv/step_produtos.html")
+    check(
+        "card_tags_wrap",
+        "flex-wrap: wrap" in step
+        and "pdv-entrega-card-badges" in step
+        and "flex flex-wrap" in wiz_js,
+    )
 
 
 def test_runtime() -> None:

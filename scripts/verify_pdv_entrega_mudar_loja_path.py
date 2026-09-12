@@ -61,9 +61,18 @@ def test_estatico() -> None:
     check("js_confirmar_escopo", "function confirmarLojaSaidaComEscopo" in js)
     check("js_payload_pag", "loja_pagamento: lojaPagamentoEntregaAtual" in js)
     check("js_btn_loja_card", "pdv-entrega-mudar-loja" in js)
+    check("js_lbl_mudar_loja", ">Mudar Loja</button>" in js)
+    check("js_lbl_adiar_1_dia", ">Adiar 1 Dia</button>" in js)
     check("js_api_mudar", "apiPdvEntregaPendenteMudarLoja" in js)
     check("registrar_loja_pag", 'campos["loja_pagamento"]' in views)
     check("resolver_loja_pag", "loja_pagamento" in util and "obter_caixa_pai_aberto" in util)
+    check(
+        "tags_wrap_css",
+        "pdv-entrega-card-badges" in step
+        and "flex-wrap: wrap" in step
+        and "overflow-x: auto" not in step[step.find("pdv-entrega-card-badges") : step.find("pdv-entrega-card-badges") + 280],
+    )
+    check("tags_wrap_js", "pdv-entrega-card-badges mb-1 flex flex-wrap" in js)
 
 
 def test_runtime() -> None:
