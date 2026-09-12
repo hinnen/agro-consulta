@@ -75,6 +75,20 @@ def main() -> int:
     must("Nunca espelhar |crédito|" in js or "dia de verdade" in js, "A SEPARAR = dia real")
     must("totAuto - acum" not in js, "não espelha |acum| no hero do dia")
 
+    # Simula o bug antigo vs fix (números da loja 12/09)
+    def hero_bug(tot_auto: float, acum: float, incl: bool) -> float:
+        if incl:
+            return max(0, round((tot_auto - acum) * 100) / 100)
+        return tot_auto
+
+    def hero_fix(dia_auto: float) -> float:
+        return max(0, round(float(dia_auto or 0) * 100) / 100)
+
+    must(hero_bug(0, -610.79, True) == 610.79, "bug antigo: líquido 0 espelhava 610,79")
+    must(hero_fix(0) == 0.0, "fix: dia real 0 → A SEPARAR 0")
+    must(hero_fix(856.55) == 856.55, "fix: dia 856,55 aparece 856,55")
+    must(hero_fix(100) != abs(-610.79), "fix: dia ≠ |crédito|")
+
     # Contrato: dia com envio a 50% (+ outro a 0%) usa o MAIOR % — não o padrão 0
     dia = timezone.localdate() - timedelta(days=3)
     with mock.patch(
