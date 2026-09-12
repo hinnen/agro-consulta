@@ -4468,7 +4468,9 @@
     }
 
 
-    var ENTREGAS_ALERTA_SNOOZE_KEY = 'gm_pdv_entregas_alerta_snooze_until';
+    /* Por entrega: { "42": 1739… } — localStorage só neste PC (alerta visual/bip). */
+    var ENTREGAS_ALERTA_SNOOZE_MAP_KEY = 'gm_pdv_entregas_alerta_snooze_map';
+    var ENTREGAS_ALERTA_SNOOZE_KEY_LEGACY = 'gm_pdv_entregas_alerta_snooze_until';
     var _entregasAlertaSomTimer = null;
     var _entregasAlertaSomNivel = 0;
 
@@ -4503,61 +4505,159 @@
         return 0;
     }
 
+    function lerMapaSnoozeEntregas() {
+        var map = {};
+        var agora = Date.now();
+        try {
+            var raw = localStorage.getItem(ENTREGAS_ALERTA_SNOOZE_MAP_KEY);
+            if (raw) {
+                var parsed = JSON.parse(raw);
+                if (parsed && typeof parsed === 'object') {
+                    Object.keys(parsed).forEach(function (k) {
+                        var until = parseInt(parsed[k], 10) || 0;
+                        if (until > agora) map[String(k)] = until;
+                    });
+                }
+            }
+            /* Migra chave antiga (global) → some; não espalha em todas. */
+            if (localStorage.getItem(ENTREGAS_ALERTA_SNOOZE_KEY_LEGACY)) {
+                localStorage.removeItem(ENTREGAS_ALERTA_SNOOZE_KEY_LEGACY);
+            }
+        } catch (eMap) {}
+        return map;
+    }
+
+    function gravarMapaSnoozeEntregas(map) {
+        try {
+            var limpo = {};
+            var agora = Date.now();
+            Object.keys(map || {}).forEach(function (k) {
+                var until = parseInt(map[k], 10) || 0;
+                if (until > agora) limpo[String(k)] = until;
+            });
+            if (Object.keys(limpo).length) {
+                localStorage.setItem(ENTREGAS_ALERTA_SNOOZE_MAP_KEY, JSON.stringify(limpo));
+            } else {
+                localStorage.removeItem(ENTREGAS_ALERTA_SNOOZE_MAP_KEY);
+            }
+        } catch (eGrav) {}
+    }
+
+    function entregaAlertaEstaAdiada(entregaId) {
+        if (entregaId == null || entregaId === '') return false;
+        var map = lerMapaSnoozeEntregas();
+        var until = parseInt(map[String(entregaId)], 10) || 0;
+        return !!(until && Date.now() < until);
+    }
+
+    function urgenciaEfetivaEntregaRow(row) {
+        var u = urgenciaHorarioEntregaUi(row && row.hora_prevista);
+        if (u > 0 && entregaAlertaEstaAdiada(row && row.id)) return 0;
+        return u;
+    }
+
     function maxUrgenciaEntregasPendentes() {
         var maxU = 0;
-        (entregasPendentesCache.itens || []).forEach(function (row) {
+        var todos = []
+            .concat(entregasPendentesCache.itens || [])
+            .concat(entregasPendentesCache.itensPagas || []);
+        todos.forEach(function (row) {
+            var u = urgenciaEfetivaEntregaRow(row);
+            if (u > maxU) maxU = u;
+        });
+        return maxU;
+    }
+
+    function maxUrgenciaBrutaEntregasPendentes() {
+        var maxU = 0;
+        var todos = []
+            .concat(entregasPendentesCache.itens || [])
+            .concat(entregasPendentesCache.itensPagas || []);
+        todos.forEach(function (row) {
             var u = urgenciaHorarioEntregaUi(row && row.hora_prevista);
             if (u > maxU) maxU = u;
         });
         return maxU;
     }
 
-    function entregasAlertaEstaAdiado() {
-        try {
-            var until = parseInt(localStorage.getItem(ENTREGAS_ALERTA_SNOOZE_KEY) || '0', 10);
-            return !!(until && Date.now() < until);
-        } catch (e0) {
-            return false;
-        }
+    function idsEntregasComHorarioUrgente() {
+        var ids = [];
+        var todos = []
+            .concat(entregasPendentesCache.itens || [])
+            .concat(entregasPendentesCache.itensPagas || []);
+        todos.forEach(function (row) {
+            if (!row || row.id == null) return;
+            if (urgenciaHorarioEntregaUi(row.hora_prevista) > 0) ids.push(String(row.id));
+        });
+        return ids;
     }
 
-    function limparAdiarAlertaEntregas() {
-        try {
-            localStorage.removeItem(ENTREGAS_ALERTA_SNOOZE_KEY);
-        } catch (eClr) {}
+    function todasUrgentesAdiadas() {
+        var ids = idsEntregasComHorarioUrgente();
+        if (!ids.length) return false;
+        return ids.every(function (id) {
+            return entregaAlertaEstaAdiada(id);
+        });
     }
 
-    function adiarAlertaEntregas1h() {
-        /* Já adiado → 2º toque cancela (desfaz o "Alerta OK"). */
-        if (entregasAlertaEstaAdiado()) {
-            limparAdiarAlertaEntregas();
+    function adiarAlertaEntrega1hPorId(entregaId) {
+        var id = String(entregaId || '').trim();
+        if (!id) return;
+        var map = lerMapaSnoozeEntregas();
+        if (entregaAlertaEstaAdiada(id)) {
+            delete map[id];
+            gravarMapaSnoozeEntregas(map);
             applyEntregasPendentesButton();
-            syncEntregasAdiarAlertaBtn();
             renderEntregasPendentesList();
-            showSaleDoneFeedback('Alerta de horário religado (piscar e bip).', 'ok');
+            showSaleDoneFeedback('Alerta desta entrega religado (piscar e bip).', 'ok');
             return;
         }
-        try {
-            localStorage.setItem(ENTREGAS_ALERTA_SNOOZE_KEY, String(Date.now() + 60 * 60 * 1000));
-        } catch (e1) {}
-        syncEntregasAlertaSonoro(0);
+        map[id] = Date.now() + 60 * 60 * 1000;
+        gravarMapaSnoozeEntregas(map);
         applyEntregasPendentesButton();
-        showSaleDoneFeedback('Alerta de horário adiado por 1 hora (piscar e bip).', 'ok');
-        syncEntregasAdiarAlertaBtn();
         renderEntregasPendentesList();
+        showSaleDoneFeedback('Alerta desta entrega adiado por 1 hora.', 'ok');
+    }
+
+    /** Botão do topo: adianta (ou religa) todas as urgentes de uma vez. */
+    function adiarAlertaEntregas1h() {
+        var ids = idsEntregasComHorarioUrgente();
+        if (!ids.length) {
+            showSaleDoneFeedback('Nenhuma entrega urgente no horário agora.', 'ok');
+            return;
+        }
+        var map = lerMapaSnoozeEntregas();
+        if (todasUrgentesAdiadas()) {
+            ids.forEach(function (id) {
+                delete map[id];
+            });
+            gravarMapaSnoozeEntregas(map);
+            applyEntregasPendentesButton();
+            renderEntregasPendentesList();
+            showSaleDoneFeedback('Alerta de horário religado em todas as urgentes.', 'ok');
+            return;
+        }
+        var until = Date.now() + 60 * 60 * 1000;
+        ids.forEach(function (id) {
+            map[id] = until;
+        });
+        gravarMapaSnoozeEntregas(map);
+        applyEntregasPendentesButton();
+        renderEntregasPendentesList();
+        showSaleDoneFeedback('Alerta adiado 1h em todas as urgentes.', 'ok');
     }
 
     function syncEntregasAdiarAlertaBtn() {
         var btn = document.getElementById('pdv-entregas-adiar-alerta');
         if (!btn) return;
-        var urg = maxUrgenciaEntregasPendentes();
-        var adiado = entregasAlertaEstaAdiado();
-        if (urg > 0) {
+        var urgBruta = maxUrgenciaBrutaEntregasPendentes();
+        var adiadoTodas = todasUrgentesAdiadas();
+        if (urgBruta > 0) {
             btn.classList.remove('hidden');
-            btn.textContent = adiado ? 'Alerta OK' : 'Alerta +1h';
-            btn.title = adiado
-                ? 'Alerta adiado — toque de novo para religar o alerta'
-                : 'Adia o piscar e o bip do horário por 1 hora';
+            btn.textContent = adiadoTodas ? 'Alerta OK' : 'Alerta +1h';
+            btn.title = adiadoTodas
+                ? 'Todas as urgentes adiadas — toque para religar todas'
+                : 'Adia o alerta (piscar/bip) de todas as entregas urgentes por 1 hora';
         } else {
             btn.classList.add('hidden');
         }
@@ -4569,10 +4669,10 @@
             _entregasAlertaSomTimer = null;
         }
         _entregasAlertaSomNivel = nivel || 0;
-        if (!nivel || entregasAlertaEstaAdiado()) return;
+        if (!nivel) return;
         var ms = nivel >= 2 ? 18000 : 40000;
         var tocar = function () {
-            if (entregasAlertaEstaAdiado()) return;
+            if (!maxUrgenciaEntregasPendentes()) return;
             if (typeof tocarSomLembreteWizard === 'function') tocarSomLembreteWizard();
         };
         tocar();
@@ -4595,12 +4695,11 @@
             return row && row.eh_catalogo && row.pode_assumir;
         });
         var urgHorario = maxUrgenciaEntregasPendentes();
-        var alertaAdiado = entregasAlertaEstaAdiado();
         if (catalogoSemDono) {
             alertTop += ' pdv-wiz-topbar-btn--entregas-catalogo';
-        } else if (!alertaAdiado && urgHorario >= 2) {
+        } else if (urgHorario >= 2) {
             alertTop += ' pdv-wiz-topbar-btn--entregas-urgente';
-        } else if (!alertaAdiado && urgHorario === 1) {
+        } else if (urgHorario === 1) {
             alertTop += ' pdv-wiz-topbar-btn--entregas-hora-proxima';
         } else if (nPagar === 0 && nPagas > 0) {
             alertTop += ' pdv-wiz-topbar-btn--entregas-pagas';
@@ -4611,9 +4710,9 @@
             dom.topbarEntregasBtn.className = n > 0 ? alertTop : discreteTop;
             if (catalogoSemDono) {
                 dom.topbarEntregasBtn.title = 'Catálogo sem loja — Assumir entrega';
-            } else if (!alertaAdiado && urgHorario >= 2) {
+            } else if (urgHorario >= 2) {
                 dom.topbarEntregasBtn.title = 'Entrega atrasada no horário — abra Entregas';
-            } else if (!alertaAdiado && urgHorario === 1) {
+            } else if (urgHorario === 1) {
                 dom.topbarEntregasBtn.title = 'Entrega próxima do horário (até 30 min)';
             } else if (nPagar > 0) {
                 dom.topbarEntregasBtn.title =
@@ -4624,7 +4723,7 @@
                 dom.topbarEntregasBtn.title = 'Entregas';
             }
         }
-        syncEntregasAlertaSonoro(alertaAdiado ? 0 : urgHorario);
+        syncEntregasAlertaSonoro(urgHorario);
         syncEntregasAdiarAlertaBtn();
         if (dom.topbarEntregasCount) {
             if (n > 0) {
@@ -4694,11 +4793,18 @@
                     : urgHp === 1
                       ? 'bg-amber-500 text-white animate-pulse'
                       : 'bg-slate-700 text-white';
-            var alertaAdiadoCard = entregasAlertaEstaAdiado();
+            var alertaAdiadoCard = entregaAlertaEstaAdiada(id);
             var adiar1hLbl = alertaAdiadoCard ? 'Alerta OK' : 'Adiar 1h';
             var adiar1hCls;
+            var hpClsShow = hpCls;
             if (alertaAdiadoCard) {
-                    adiar1hCls = 'border-emerald-500 bg-emerald-50 text-emerald-900';
+                adiar1hCls = 'border-emerald-500 bg-emerald-50 text-emerald-900';
+                hpClsShow =
+                    urgHp === 2
+                        ? 'bg-red-600 text-white'
+                        : urgHp === 1
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-slate-700 text-white';
             } else if (urgHp === 2) {
                 adiar1hCls = 'border-red-600 bg-red-50 text-red-900 animate-pulse';
             } else if (urgHp === 1) {
@@ -4709,16 +4815,18 @@
             badges.push(
                 '<span class="inline-flex shrink-0 flex-nowrap items-center gap-1">' +
                     '<span class="rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tabular-nums ' +
-                    hpCls +
+                    hpClsShow +
                     '" title="Horário agendado">' +
                     escapeHtml(hpUi) +
                     '</span>' +
                     '<button type="button" class="pdv-entrega-adiar-alerta-1h shrink-0 whitespace-nowrap rounded-md border-2 px-1.5 py-0.5 text-[9px] font-black uppercase leading-tight ' +
                     adiar1hCls +
+                    '" data-entrega-id="' +
+                    escapeHtml(String(id)) +
                     '" title="' +
                     (alertaAdiadoCard
-                        ? 'Alerta adiado — toque para religar'
-                        : 'Adia o piscar e o bip do horário por 1 hora') +
+                        ? 'Só esta entrega — toque para religar o alerta'
+                        : 'Só esta entrega — adia piscar e bip por 1 hora') +
                     '">' +
                     adiar1hLbl +
                     '</button>' +
@@ -4879,7 +4987,8 @@
         root.querySelectorAll('.pdv-entrega-adiar-alerta-1h').forEach(function (btn) {
             btn.addEventListener('click', function (ev) {
                 if (ev && ev.stopPropagation) ev.stopPropagation();
-                adiarAlertaEntregas1h();
+                var pk = btn.getAttribute('data-entrega-id');
+                if (pk) adiarAlertaEntrega1hPorId(pk);
             });
         });
         root.querySelectorAll('.pdv-entrega-cancelar').forEach(function (btn) {
