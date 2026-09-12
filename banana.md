@@ -1284,57 +1284,59 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### ✅ Deploy loja — Checklist 12/09b (`deploy/prep-checklist-1209b` · **v23.95**) · **Live**
+### ✅ Deploy loja — Checklist 12/09c (`deploy/prep-checklist-1209c` · **v23.96**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v23.95** — cherry **só** `#1`–`#10` (**não** merge `teste`) |
-| **Antes** | **Live v23.94** @ `c3e0b1c` |
-| **Agora** | `producao` @ **`8faa4c1`** · Render `dep-daincomk1f9s73f7e330` |
-| **Migrate** | **SIM** `0130` (no deploy) |
-| **Pacotes** | `WA-PONTE-ULTRA-LEVE` · `WA-APP-SEM-PDV` · `PDV-RACOES-MARCA-VAZIA` · `PDV-CHAT-ENTREGA-DOCK` · `PDV-ENT-HORARIO-OPCOES` · `PDV-ENT-TROCO-ENTER` · `PDV-ENT-OVERLAY-SPLIT` · `ETQ-LOTE-FILA` · `PDV-IMP-SEP-OFF` · `PDV-IMP-PIN-ANTES` |
-| **Rollback** | tag `rollback/pre-checklist-1209b-v23.94` · `docs/ROLLBACK-CHECKLIST-1209b.md` · **só** frase+senha |
-| **Fora ainda** | `#11`–`#13` no tip (`CARD-LATERAL` · `ALERTA-POR-ID` · `MUDAR-LOJA`) |
+| **Status** | ✅ **enviado / Live v23.96** — cherry **só** `#11`–`#13` (**não** merge `teste`) |
+| **Antes** | **Live v23.95** @ `8faa4c1` |
+| **Agora** | `producao` @ **`80350dc`** · Render `dep-daipecdg1s2s73bthtj0` |
+| **Smoke** | healthz **200** · `/pdv/` **200** |
+| **Migrate** | **SIM** `0131` (no deploy) |
+| **Pacotes** | `PDV-ENT-CARD-LATERAL` · `PDV-ENT-ALERTA-POR-ID` · `PDV-ENT-MUDAR-LOJA` |
+| **Prova pré** | CARD **51/51** · ALERTA **51/51** · MUDAR-LOJA **39/39** · PIN **9973** |
+| **Rollback** | tag `rollback/pre-checklist-1209c-v23.95` · branch `producao-backup-pre-v2396-checklist-20260912c` · `docs/ROLLBACK-CHECKLIST-1209c.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.96** · Mudar Loja · Adiar 1 Dia · tags wrap · pagamento exige **caixa aberto** na loja destino |
 
-### ✅ CHECKLIST ÚNICO — 12/09c tip (pós Live v23.95)
+### ✅ CHECKLIST ÚNICO — 12/09c · **Live v23.96**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
 | 1–10 | (checklist 12/09b) | ✅ **Live v23.95** | — | — |
-| 11 | `PDV-ENT-CARD-LATERAL` | 🟢 **pronto para envio à produção** | **NÃO** | **51/51** · PIN **9973** |
-| 12 | `PDV-ENT-ALERTA-POR-ID` | 🟢 **pronto para envio à produção** | **NÃO** | **51/51** · PIN **9973** |
-| 13 | `PDV-ENT-MUDAR-LOJA` | 🟢 **pronto para envio à produção** | **SIM** `0131` | **39/39** · PIN **9973** |
+| 11 | `PDV-ENT-CARD-LATERAL` | ✅ **Live v23.96** | **NÃO** | **51/51** · PIN **9973** |
+| 12 | `PDV-ENT-ALERTA-POR-ID` | ✅ **Live v23.96** | **NÃO** | **51/51** · PIN **9973** |
+| 13 | `PDV-ENT-MUDAR-LOJA` | ✅ **Live v23.96** | **SIM** `0131` | **39/39** · PIN **9973** |
 
-**Loja:** ✅ Live **v23.95** @ `8faa4c1`. **Tip:** `#11`–`#13` prontos (prova 12/09) — **não** merge sem frase+senha.
+**Loja:** ✅ Live **v23.96** @ `80350dc`. Rollback: `docs/ROLLBACK-CHECKLIST-1209c.md`.
 
-### 📦 PACOTE PRONTO — Mudar loja entrega/pagamento (`PDV-ENT-MUDAR-LOJA` · tip · 12/09)
+### 📦 PACOTE PRONTO — Mudar loja entrega/pagamento (`PDV-ENT-MUDAR-LOJA` · **Live v23.96**)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | **Mudar Loja** · só entrega / só pagamento / as duas · Sai/Paga · **Adiar 1 Dia** · tags **quebram linha** (sem scroll) · `0131` |
 | **Prova** | `verify_pdv_entrega_mudar_loja_path.py` **39/39** · PIN **9973** · card **51/51** · alerta **51/51** · lote **61/61** |
 | **Migrate** | **SIM** `0131` |
-| **Status** | 🟢 **pronto para envio à produção** |
+| **Status** | ✅ **Live v23.96** |
 | **Risco** | Médio (caixa destino aberto) · Ctrl+F5 |
 
-### 📦 PACOTE PRONTO — Adiar 1h por entrega (`PDV-ENT-ALERTA-POR-ID` · tip · 12/09)
+### 📦 PACOTE PRONTO — Adiar 1h por entrega (`PDV-ENT-ALERTA-POR-ID` · **Live v23.96**)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | **Adiar 1h** no card = **só aquela** · topo **Alerta +1h** = todas · lembrete centro |
 | **Prova** | `verify_pdv_entrega_alerta_por_id_path.py` **51/51** · PIN **9973** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** |
+| **Status** | ✅ **Live v23.96** |
 | **Risco** | Baixo · Ctrl+F5 |
 
-### 📦 PACOTE PRONTO — Cards Entregas rota/horário/alerta (`PDV-ENT-CARD-LATERAL` · tip · 12/09)
+### 📦 PACOTE PRONTO — Cards Entregas rota/horário/alerta (`PDV-ENT-CARD-LATERAL` · **Live v23.96**)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | **Incluir**+Maps · hora + **Adiar 1h** · overlay **88rem** · Adiar\|Cancelar · tags wrap · rótulos **Mudar Loja** / **Adiar 1 Dia** |
 | **Prova** | `verify_pdv_imp_pin_card_1209_path.py` **51/51** · PIN **9973** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** |
+| **Status** | ✅ **Live v23.96** |
 | **Risco** | Baixo |
 
 ### 📦 PACOTE PRONTO — PIN antes da impressão de entrega (`PDV-IMP-PIN-ANTES` · 12/09)
