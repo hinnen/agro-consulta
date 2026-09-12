@@ -1320,6 +1320,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 **Rollback:** tag `rollback/pre-checklist-1209b-v23.94` · `docs/ROLLBACK-CHECKLIST-1209b.md`.  
 **Pendente SOLO tip:** `#11` `PDV-ENT-CARD-LATERAL`.
 
+### 🔧 Tip — Adiar 1h por entrega (não muda todas · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Bug** | Clique em **Adiar 1h** dum card virava **Alerta OK** em **todas** (snooze global) |
+| **Fix** | Card = **só aquela** entrega · botão topo **Alerta +1h** = todas as urgentes |
+| **Status** | tip `teste` · **não** loja |
+| **Você** | Ctrl+F5 · teste: adiar 1 card → só ele «Alerta OK» |
+
 ### 🔧 Tip — Alerta OK sem clique (clique-through lembrete · 12/09)
 
 | Campo | Valor |
