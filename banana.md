@@ -554,7 +554,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 
 ### 4.6 Cadastro / gestÃ£o de produtos
 
-- **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé. Gôndola: folha **A4** (2/3 col) ou **A6** (1 col · bônus 100×45) — `ETQ-A6-BONUS` **v22.41** 🟢 pronto envio.
+- **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé. Gôndola: folha **A4** (2/3 col) ou **A6** (1–3 col conforme largura · bônus 100×45 = 1 col) — `ETQ-A6-COLS` **v24.66** 🟢 pronto envio.
 
 **Duas telas â€” nÃ£o confundir:**
 
@@ -1357,6 +1357,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `verify_pdv_imp_pin_card_1209_path.py` **42/42** · PIN **9973** |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** |
+| **Risco** | Baixo |
+
+### 📦 PACOTE PRONTO — A6 2/3 colunas (`ETQ-A6-COLS` · **v24.66** · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | A6 deixa de travar 1 col: grade = o que cabe · **~50 mm = 2 col** · **~33 mm = 3 col** · bônus 100×45 continua 1×3 |
+| **Prova** | `verify_etiquetas_a6_path.js` **67/67** · `verify_etiquetas_gondola_grade.js` OK |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 etiquetas · Folha A6 · largura 50 ou 33 · conferir grade |
 | **Risco** | Baixo |
 
 ### 📦 PACOTE PRONTO — Lote A4 fila + controle fino (`ETQ-LOTE-FILA` · **v24.34** · 12/09)

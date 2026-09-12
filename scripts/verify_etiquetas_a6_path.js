@@ -41,7 +41,8 @@ const html = fs.readFileSync(htmlPath, 'utf8');
 const jsUi = fs.readFileSync(jsPath, 'utf8');
 check(html.includes('id="etq-preset-folha"'), 'HTML tem select Folha');
 check(html.includes('value="a6"'), 'HTML tem opção A6');
-check(html.includes('?v=16'), 'HTML cache-bust ?v=16 nos JS');
+check(html.includes('?v=19'), 'HTML cache-bust ?v=19 nos JS');
+check(html.includes('1–3 colunas') || html.includes('1-3 colunas'), 'HTML A6 menciona 1–3 colunas');
 check(jsUi.includes('calcularGradeFolha'), 'UI usa calcularGradeFolha');
 check(jsUi.includes('etq-preset-folha'), 'UI lê/grava etq-preset-folha');
 check(jsUi.includes('normalizarFolha'), 'UI normaliza folha');
@@ -75,10 +76,23 @@ check(gBonus.cabe === true, 'cabe na A6');
 check(approx((105 - 101) / 2, 2), 'margem X centralizada 2 mm');
 check(approx((148 - 3 * 46) / 2, 5), 'margem Y centralizada 5 mm');
 
-// A6 não aceita 2 colunas mesmo se pedir
+// A6 100 mm: pedir 2 colunas não cabe → maxCols=1
 const gForce2 = Core.calcularGradeFolha('a6', 100, 45, 0.5, 2, 9);
-check(gForce2.cols === 1, 'A6 ignora cols=2 → força 1');
+check(gForce2.cols === 1, 'A6 100 mm: cols=2 → corta para 1 (não cabe)');
 check(gForce2.rows === 3, 'A6 rows pedidas 9 → corta para caber (3)');
+
+// A6 2 colunas (~50 mm)
+const g2col = Core.calcularGradeFolha('a6', 50, 45, 0.5);
+check(g2col.cols === 2, 'A6 50×45 → 2 colunas');
+check(g2col.rows === 3, 'A6 50×45 → 3 linhas');
+check(g2col.per_page === 6, 'A6 50 mm → 6 por folha');
+check(g2col.cabe === true, '50×45 cabe 2×3 na A6');
+
+// A6 3 colunas (~33 mm)
+const g3col = Core.calcularGradeFolha('a6', 33, 30, 0.5);
+check(g3col.cols === 3, 'A6 33×30 → 3 colunas');
+check(g3col.rows >= 4, 'A6 33×30 → pelo menos 4 linhas');
+check(g3col.cabe === true, '33×30 cabe 3 col na A6');
 
 // etiqueta maior que A6 em largura: ainda 1 col, outer > page
 const gWide = Core.calcularGradeFolha('a6', 110, 45, 0.5);
