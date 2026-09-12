@@ -1379,6 +1379,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** |
 | **Risco** | Baixo |
 
+### 📦 PACOTE PRONTO — Alerta horário só na loja que sai (`PDV-ENT-ALERTA-LOJA` · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Bip/piscar de horário **só** se `loja_entrega` = depósito do PDV · Vila com pagamento de entrega do Centro **não** toca · sem dono ainda alerta nas duas · cache LS por loja |
+| **Prova** | `verify_pdv_entrega_alerta_por_id_path.py` **63/63** · PIN **9973** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 PDV Vila · entrega Centro urgente: sem bip na Vila · bip no Centro |
+| **Risco** | Baixo — só alerta sonoro/visual de horário |
+
 ### ✅ PACOTE — A6 2/3 colunas (`ETQ-A6-COLS` · **Live v23.97**)
 
 | Campo | Valor |
