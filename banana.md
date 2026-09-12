@@ -735,7 +735,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 
 - Uso próprio · **QR no celular** (não API Meta) · 1 número · bot pergunta **Centro ou Vila** · duas filas no Agro.
 - Ponte Node: `whatsapp_atendimento/iniciar.bat` (PC ligado). Postgres = conversas.
-- **05/09 Renan:** desligou a ponte — deixava o **PDV de todas as lojas lento** (carga no Render). **`WA-PONTE-LEVE` (06/09 · v23.09):** agenda+fotos sync **1×/dia** (Bot → Tempo, padrão 00:00) · poll saída configurável **3–15s** (mín. 3; 2 engasga) · msgs cliente na hora · de dia sem reenvio. **06/09 noite:** status stories a cada **30s** (antes 5s ~40kb). **`WA-UI-POLL-LEVE` (07/09 · v23.39):** UI do Zap — foco msgs 5s / lista 10s / status 60s; sem foco (PDV na frente) msgs 15s / lista 60s / status 120s (`hasFocus`).
+- **05/09 Renan:** desligou a ponte — deixava o **PDV de todas as lojas lento** (carga no Render). **`WA-PONTE-LEVE` (06/09 · v23.09):** agenda+fotos sync **1×/dia** (Bot → Tempo, padrão 00:00) · poll saída configurável **3–15s** (mín. 3; 2 engasga) · msgs cliente na hora · de dia sem reenvio. **06/09 noite:** status stories a cada **30s** (antes 5s ~40kb). **`WA-UI-POLL-LEVE` (07/09 · v23.39):** UI do Zap — foco msgs 5s / lista 10s / status 60s; sem foco (PDV na frente) msgs 15s / lista 60s / status 120s (`hasFocus`). **`WA-PONTE-ULTRA-LEVE` (12/09):** poll mín **8** (padrão 10, máx 30) · heartbeat 25s · poll sem mídia b64 · cache bot — causa: `.bat`+Zap engasgavam PDV/gestão inteiros.
 - Sem disparo em massa. **Entrada loja:** menu/gestão → **WhatsApp computador (Z)**. **PDV** = ícone **Em breve…** (`PDV-WA-TOPBAR-BREVE`) — **não** abre o chat (combinado Renan 03/09). Ponte no PC (`iniciar.bat`).
 - Token `.env`: `AGRO_WA_BRIDGE_TOKEN`. Migrate `0108`+`0109`+**`0111`**+**`0112`**+**`0113`**. Pacote `WA-ATEND-QR`.
 - **Consulta fiado (`WA-FIADO-MSG`):** cliente escreve *fiado* (ou *quanto eu devo*) no mesmo Zap da loja; o bot responde o aberto pelo número do cadastro. Sem migrate extra. **Ainda fora da loja** (junto do chat QR).
@@ -1292,40 +1292,40 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Apagado** | TRAE `_old` · modelo IA Chrome · cache Codex · temp · (snapshots Cursor parcial) |
 | **Ainda no C:** | `state.vscdb` **~49 GB** (histórico Cursor) |
 | **Destino** | **E:** SSD (`E:\CursorOffload`) — HD D: fica de reserva |
-| **Pendente** | janela `ESPERAR-E-MOVER` no ar — fechar Cursor de novo para copiar ~49 GB → `E:\CursorOffload` |
+| **Pendente** | cópia **49 GB já no E:** · atalho de arquivo falhou · falta **junção da pasta** (fechar Cursor) |
 | **Não mexer** | GitHub / agro-consulta · OneDrive · `settings.json` |
 
 ### ✅ CHECKLIST ÚNICO — 12/09 · pronto para envio à produção
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `WA-PONTE-ULTRA-LEVE` | 🟢 **pronto para envio** (**urgente lentidão**) | **NÃO** | **24/24** · PIN **9973** |
-| 2 | `WA-APP-SEM-PDV` | 🟢 **pronto para envio** | **NÃO** | **48/48** · PIN **9973** |
+| 1 | `WA-PONTE-ULTRA-LEVE` | 🟢 **pronto para envio à produção** | **NÃO** | **47/47** · PIN **9973** |
+| 2 | `WA-APP-SEM-PDV` | 🟢 **pronto para envio à produção** | **NÃO** | **48/48** · PIN **9973** |
 
-**Loja:** **v23.94**. Cherry `#1` (e `#2` se quiser) + frase + senha — **não** merge `teste`.
+**Loja:** **v23.94**. Tip `teste` sobe com estes. Cherry `#1` (+ `#2`) + frase + senha — **não** merge `teste`.
 
-**Agora (sem deploy):** fechar o `.bat` → PDV/gestão voltam. Religar `.bat` só depois do `#1` na loja.
+**Sem deploy:** fechar `.bat` → PDV volta. Religar `.bat` só depois do `#1` na loja.
 
 ### 📦 PACOTE PRONTO — Ponte ultra leve (`WA-PONTE-ULTRA-LEVE` · 12/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | `.bat`+Zap engasgavam a loja: poll **≥8s** · heartbeat **25s** · sem mídia b64 no poll · cache bot |
-| **Prova** | `verify_wa_ponte_ultra_leve_path.py` **24/24** |
+| **O quê** | Poll **≥8s** (padrão 10) · heartbeat **25s** · sem mídia b64 no poll · cache bot |
+| **Prova** | `verify_wa_ponte_ultra_leve_path.py` **47/47** (path · clamp · bridge · PIN 9973 · restore) |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** |
-| **Você** | após loja: reiniciar `.bat` · Bot poll **10** → Salvar |
+| **Você** | após loja: reiniciar `.bat` · Bot → Tempo → poll **10** → Salvar |
 | **Risco** | Baixo — saída Zap ~1–2s mais lenta |
 
-### 📦 PACOTE PRONTO — Zap app sem PDV (`WA-APP-SEM-PDV` · 12/09 · **v24.24**)
+### 📦 PACOTE PRONTO — Zap app sem PDV (`WA-APP-SEM-PDV` · 12/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Sem **Voltar PDV** / FAB **F1** no Zap; **Bot** → **Chat** (mesmo app) |
-| **Prova** | `verify_wa_app_sem_pdv_path.py` **48/48** (path · dual · FAB · PIN 9973 · PWA) |
+| **O quê** | Sem Voltar PDV / FAB F1; Bot → Chat |
+| **Prova** | `verify_wa_app_sem_pdv_path.py` **48/48** |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** |
-| **Você** | Ctrl+F5 Zap · sem flutuante · Bot → Chat |
+| **Você** | Ctrl+F5 Zap · Bot → Chat |
 | **Risco** | Baixo |
 
 ### ✅ Deploy loja — Checklist 11/09d (`deploy/prep-checklist-1109d` · **v23.94**) · **Live**
