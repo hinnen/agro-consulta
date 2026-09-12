@@ -1,0 +1,118 @@
+{# Painel PDV (~95%): esconde cabeçalho interno e manda título/menu para a barra laranja. #}
+{% if request.GET.agro_pdv_overlay == '1' %}
+<style>
+  body.caixa-pdv-overlay-mode > header,
+  body.caixa-pdv-overlay-mode header.cf-top {
+    display: none !important;
+  }
+  body.caixa-pdv-overlay-mode main,
+  body.caixa-pdv-overlay-mode .cf-main {
+    padding-top: 0.25rem;
+  }
+</style>
+<script>
+(function () {
+  var MENU_URL = "{% url 'caixa_painel' %}";
+
+  function pathIsCaixaMenu() {
+    var path = (location.pathname || '').replace(/\/+$/, '') || '/';
+    if (path !== '/caixa') return false;
+    var q = new URLSearchParams(location.search || '');
+    var p = q.get('painel');
+    return !p || p === 'menu';
+  }
+
+  function readHeaderText(sel) {
+    var el = document.querySelector(sel);
+    return el ? String(el.textContent || '').replace(/\s+/g, ' ').trim() : '';
+  }
+
+  function overlayEmbedParams() {
+    var q = new URLSearchParams(location.search || '');
+    var out = new URLSearchParams();
+    if (q.get('agro_pdv_overlay') === '1') out.set('agro_pdv_overlay', '1');
+    if (q.get('agro_inapp_embed') === '1') out.set('agro_inapp_embed', '1');
+    var s = out.toString();
+    return s ? '?' + s : '';
+  }
+
+  function patchCaixaLinks() {
+    var suffix = overlayEmbedParams();
+    if (!suffix) return;
+    document.querySelectorAll('a[href]').forEach(function (a) {
+      try {
+        var u = new URL(a.href, location.origin);
+        if (u.origin !== location.origin) return;
+        var p = (u.pathname || '').replace(/\/+$/, '') || '/';
+        if (p !== '/caixa' && p.indexOf('/caixa/') !== 0) return;
+        if (!u.searchParams.has('agro_pdv_overlay')) {
+          u.searchParams.set('agro_pdv_overlay', '1');
+          u.searchParams.set('agro_inapp_embed', '1');
+          a.href = u.pathname + u.search + u.hash;
+        }
+      } catch (_) {}
+    });
+  }
+
+  function pageTitle() {
+    var inner = readHeaderText('main h2, .cf-main h2, .cf-t-page');
+    if (inner) return inner;
+    return readHeaderText('header h1, header .cf-t-page, header h1.cf-t-page') || 'Caixa';
+  }
+
+  function sendOverlayMeta() {
+    try {
+      if (window.top === window.self) return;
+      var path = (location.pathname || '').replace(/\/+$/, '') || '/';
+      var isCaixa = path === '/caixa' || path.indexOf('/caixa/') === 0;
+      var isAbrir = path.indexOf('/caixa/abrir') === 0;
+      var menuHref = MENU_URL + overlayEmbedParams();
+      if (!pathIsCaixaMenu()) {
+        try {
+          var mu = new URL(MENU_URL, location.origin);
+          mu.searchParams.delete('painel');
+          var embed = overlayEmbedParams();
+          menuHref = mu.pathname + embed;
+        } catch (_) {}
+      }
+      var helpHtml = '';
+      if (isAbrir) {
+        helpHtml =
+          '<p><strong>Gaveta Centro</strong> e <strong>Vila Elias</strong> são turnos separados — cada loja o seu.</p>' +
+          '<p><strong>Notebook</strong> entra no turno da loja do BI. <strong>Teste</strong> é isolado.</p>' +
+          '<p>Digite <strong>centro</strong> ou <strong>vila</strong> para confirmar a loja.</p>' +
+          '<p>Use <strong>Cédulas</strong> para contar o troco. O card azul mostra o último fechamento — confira na gaveta.</p>' +
+          '<p>Diferença na abertura (vs último fechamento) fica em <strong>Conferências · diferenças</strong>, com quem abriu e quem fechou.</p>';
+      }
+      window.top.postMessage(
+        {
+          type: 'agro-pdv-overlay-meta',
+          title: pageTitle(),
+          subtitle: readHeaderText('header .cf-t-sub, header .caixa-abrir-sub'),
+          menuHref: menuHref,
+          showMenu: isCaixa && !pathIsCaixaMenu(),
+          showHelp: !!helpHtml,
+          helpHtml: helpHtml,
+        },
+        location.origin
+      );
+      // Avisa o PDV pai para atualizar badge estoque + aviso caixa fechado
+      window.top.postMessage({ type: 'agro-pdv-caixa-changed' }, location.origin);
+    } catch (_) {}
+  }
+
+  document.documentElement.classList.add('caixa-pdv-overlay-doc');
+  document.body.classList.add('caixa-pdv-overlay-mode');
+  function boot() {
+    patchCaixaLinks();
+    sendOverlayMeta();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+  window.addEventListener('load', boot);
+})();
+</script>
+{% endif %}

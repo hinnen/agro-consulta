@@ -1,0 +1,20 @@
+{# Visualizador de status (stories) — aberto pelo botão no cabeçalho do chat #}
+<div id="wa-st-view" class="wa-st-view hidden" role="dialog" aria-modal="true" aria-label="Status">
+  <div class="wa-st-bars" id="wa-st-bars"></div>
+  <div class="wa-st-head">
+    <div class="wa-st-head-l">
+      <span id="wa-st-view-av" class="wa-st-view-av"></span>
+      <div>
+        <div id="wa-st-view-nome" class="wa-st-view-nome"></div>
+        <div id="wa-st-view-hora" class="wa-st-view-hora"></div>
+      </div>
+    </div>
+    <button type="button" id="wa-st-view-x" class="wa-st-view-x" aria-label="Fechar">×</button>
+  </div>
+  <div class="wa-st-stage">
+    <button type="button" id="wa-st-prev" class="wa-st-nav wa-st-nav-l" aria-label="Anterior">‹</button>
+    <div id="wa-st-media" class="wa-st-media"></div>
+    <button type="button" id="wa-st-next" class="wa-st-nav wa-st-nav-r" aria-label="Próximo">›</button>
+  </div>
+  <p id="wa-st-caption" class="wa-st-caption"></p>
+</div>

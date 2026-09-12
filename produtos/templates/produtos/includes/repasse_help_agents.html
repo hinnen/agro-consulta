@@ -1,0 +1,55 @@
+{# Ajuda Repasse — só ? compacto (texto longo ao abrir) #}
+{% if repasse_help == "geral" %}
+<details class="repasse-help relative inline-block shrink-0">
+  <summary class="list-none cursor-pointer select-none inline-flex h-8 w-8 items-center justify-center rounded-full border-2 border-amber-700 bg-amber-50 text-sm font-black text-amber-950 hover:bg-amber-100" title="O que é este repasse" aria-label="Ajuda: o que é este repasse">?</summary>
+  <div class="absolute right-0 z-30 mt-1 w-[min(22rem,90vw)] rounded-xl border-2 border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold leading-snug text-slate-700 shadow-lg space-y-1.5">
+    <p class="font-black uppercase text-amber-950 text-xs">O que é este repasse</p>
+    <p>A Vila Elias envia dinheiro para o <strong>Centro</strong>. O valor monta assim:</p>
+    <ul class="list-disc pl-5 space-y-0.5">
+      <li><strong>CMV</strong> — vendas da Vila, sem venda fiado.</li>
+      <li><strong>% do lucro bruto</strong> — 0 a 100% (padrão 50%).</li>
+      <li><strong>Fiado pago na Vila</strong> — valor inteiro (venda fiado não entra no CMV).</li>
+    </ul>
+    <p><strong>Cartão e PIX</strong> da Vila já caem na conta do Centro — entram sozinhos no cálculo. Você só leva o que <strong>falta em dinheiro</strong>.</p>
+    <p><strong>Dois cofrinhos físicos:</strong></p>
+    <ul class="list-disc pl-5 space-y-0.5">
+      <li><strong>Cofrinho Salário funcionário</strong> — valor diário configurável (ex. R$ 100). Sai <em>antes</em> da divisão 50/50.</li>
+      <li><strong>Cofre Vila Elias</strong> — fatia do que sobrou após salário/planos (ex. 50%).</li>
+    </ul>
+    <p>Ex.: lucro R$ 200 · gastos marcados R$ 0 · salário R$ 100 · 50% → Salário R$ 100 · Vila Elias R$ 50 · <strong>lucro ao Centro R$ 50</strong>. CMV e fiado seguem as regras de sempre.</p>
+    <p><strong>Vigência:</strong> Cofrinho Salário desde <strong>18/08/2026</strong>. Cofre Vila Elias desde <strong>29/08/2026</strong> (sem backfill).</p>
+    <p><strong>Ainda separar:</strong> pode arredondar pra mais ou pra menos (Salário, Vila Elias e Levar ao Centro). Falta soma amanhã; excedente fica <strong>negativo no acumulado</strong> e desconta o próximo dia. <strong>Saldo inicial</strong> também abate. Saldo compartilhado entre todos os PCs.</p>
+    <p><strong>Ordem do lucro:</strong> 1) planos marcados (Alimentação, Embalagens…) · 2) Cofrinho Salário · 3) divide o que sobrou (ex. 50% Vila Elias / 50% Centro).</p>
+    <p><strong>Planos:</strong> os marcados baixam <em>antes</em> da divisão. Os outros saem do que ficou na Vila (card «Lucro ficou»).</p>
+    <p><strong>Fundo de troco (gaveta Vila):</strong> valor-alvo configurável (padrão R$ 500). Depois do repasse a sugestão tenta deixar esse valor na gaveta. Se faltar: corta <em>Centro → Vila Elias → Salário</em>. Se sobrar: preenche Salário → Vila Elias → Centro. Só <strong>aviso</strong> — não trava.</p>
+    <p>Fiado do Centro pago na Vila <strong>não entra</strong>.</p>
+  </div>
+</details>
+{% elif repasse_help == "transferir" %}
+<details class="repasse-help relative inline-block shrink-0">
+  <summary class="list-none cursor-pointer select-none inline-flex h-8 w-8 items-center justify-center rounded-full border-2 border-amber-700 bg-amber-50 text-sm font-black text-amber-950 hover:bg-amber-100" title="Como transferir" aria-label="Ajuda: como transferir">?</summary>
+  <div class="absolute left-0 z-30 mt-1 w-[min(22rem,90vw)] rounded-xl border-2 border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold leading-snug text-slate-700 shadow-lg space-y-1.5">
+    <p class="font-black uppercase text-amber-950 text-xs">Como transferir</p>
+    <p>Marque CMV, % lucro e fiado. Escolha o <strong>dia</strong> (hoje ou que passou). A tela mostra o que <strong>já está no Centro</strong> (cartão/PIX) e o que <strong>falta em dinheiro</strong>.</p>
+    <p><strong>Transferir</strong> completa só o dinheiro. Precisa do <strong>caixa da Vila aberto agora</strong>.</p>
+  </div>
+</details>
+{% elif repasse_help == "historico" %}
+<details class="repasse-help relative inline-block shrink-0">
+  <summary class="list-none cursor-pointer select-none inline-flex h-8 w-8 items-center justify-center rounded-full border-2 border-amber-700 bg-amber-50 text-sm font-black text-amber-950 hover:bg-amber-100" title="Histórico do mês" aria-label="Ajuda: histórico">?</summary>
+  <div class="absolute right-0 z-30 mt-1 w-[min(22rem,90vw)] rounded-xl border-2 border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold leading-snug text-slate-700 shadow-lg space-y-1.5">
+    <p class="font-black uppercase text-amber-950 text-xs">Histórico do mês</p>
+    <p>Cada dia: valor enviado e <strong>% real do lucro</strong> (lucro enviado ÷ lucro do dia). Cards do topo: <strong>enviado ao Centro</strong> (dinheiro levado + cartão/PIX/fiado já na conta) e <strong>lucro que ficou na Vila</strong> (lucro bruto − lucro enviado − gastos da Vila que não foram marcados no botão Planos). Clique no dia para transferir. Mês novo zera.</p>
+  </div>
+</details>
+{% elif repasse_help == "acumulado" %}
+<details class="repasse-help relative inline-block shrink-0">
+  <summary class="list-none cursor-pointer select-none inline-flex h-8 w-8 items-center justify-center rounded-full border-2 border-amber-700 bg-amber-50 text-sm font-black text-amber-950 hover:bg-amber-100" title="Acumulado" aria-label="Ajuda: acumulado">?</summary>
+  <div class="absolute right-0 z-30 mt-1 w-[min(22rem,90vw)] rounded-xl border-2 border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold leading-snug text-slate-700 shadow-lg space-y-1.5">
+    <p class="font-black uppercase text-amber-950 text-xs">Acumulado</p>
+    <p>Soma o que <strong>faltou levar</strong> ou o que <strong>passou do alvo</strong> nos dias anteriores.</p>
+    <p><strong>Positivo</strong> = ainda falta levar · <strong>negativo</strong> = crédito (levou a mais).</p>
+    <p><strong>Total sugerido</strong> = falta de hoje + o que ainda falta dos dias anteriores. O valor manual <strong>já entrou no lucro</strong> (antes do %) — não corta de novo o total. Dinheiro já levado a mais <strong>abate sozinho</strong> — não pede o mesmo valor de novo. Só use <strong>zerar acumulado</strong> se o dinheiro saiu da loja <strong>sem</strong> o botão Transferir.</p>
+  </div>
+</details>
+{% endif %}

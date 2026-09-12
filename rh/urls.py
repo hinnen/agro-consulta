@@ -6,6 +6,33 @@ from rh import views
 urlpatterns = [
     path("", views.rh_painel, name="rh_painel"),
     path("operadores/", views.rh_operadores_pins, name="rh_operadores_pins"),
+    path("operadores/api/lista/", views.api_rh_operadores_lista, name="api_rh_operadores_lista"),
+    path(
+        "operadores/api/buscar-rh/",
+        views.api_rh_operadores_buscar_rh,
+        name="api_rh_operadores_buscar_rh",
+    ),
+    path("operadores/api/criar/", views.api_rh_operador_criar, name="api_rh_operador_criar"),
+    path(
+        "operadores/api/vincular/",
+        views.api_rh_operador_vincular,
+        name="api_rh_operador_vincular",
+    ),
+    path(
+        "operadores/api/desativar/",
+        views.api_rh_operador_desativar,
+        name="api_rh_operador_desativar",
+    ),
+    path(
+        "operadores/api/reativar/",
+        views.api_rh_operador_reativar,
+        name="api_rh_operador_reativar",
+    ),
+    path(
+        "operadores/api/reset-1234/",
+        views.api_rh_operador_reset_1234,
+        name="api_rh_operador_reset_1234",
+    ),
     path("gestao-funcionarios/", views.rh_gestao_funcionarios, name="rh_gestao_funcionarios"),
     path(
         "ferramentas-restritas/",

@@ -1,0 +1,180 @@
+"""Painel NFC-e por venda — consulta / reemissão."""
+from __future__ import annotations
+
+import re
+from datetime import timedelta
+from typing import Any
+
+from django.utils import timezone
+
+from produtos.models import NfceDocumentoAgro, VendaAgro
+from produtos.nfce_config_util import nfce_cfg, nfce_config_resumo, nfce_configurada, nfce_loja_de_venda
+from produtos.sefaz_soap_util import sanitizar_erro_sefaz_exibicao
+
+_NFCE_PROCESSANDO_JANELA = timedelta(seconds=120)
+
+
+def venda_nfce_processando(venda: VendaAgro) -> bool:
+    """NFC-e em voo (lock de reemitir/emissão). Sem lock = não trava o botão."""
+    from django.core.cache import cache
+
+    # Só o lock conta: «Em emissão» órfão (worker morto) não pode bloquear reemitir pra sempre.
+    if cache.get(f"nfce_emit_lock_{int(venda.pk)}"):
+        return True
+    if not getattr(venda, "nfce_solicitada", False):
+        return False
+    nfce = getattr(venda, "nfce", None)
+    if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
+        return False
+    if nfce and nfce.status in (
+        NfceDocumentoAgro.Status.REJEITADA,
+        NfceDocumentoAgro.Status.ERRO,
+        NfceDocumentoAgro.Status.CANCELADA,
+    ):
+        return False
+    if nfce is not None:
+        return False
+    criado = getattr(venda, "criado_em", None)
+    if not criado:
+        return True
+    return timezone.now() - criado < _NFCE_PROCESSANDO_JANELA
+
+
+def venda_nfce_pendente(venda: VendaAgro) -> bool:
+    if venda_nfce_processando(venda):
+        return False
+    nfce = getattr(venda, "nfce", None)
+    if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
+        return False
+    if getattr(venda, "nfce_solicitada", False):
+        return True
+    if nfce and nfce.status in (
+        NfceDocumentoAgro.Status.REJEITADA,
+        NfceDocumentoAgro.Status.ERRO,
+    ):
+        return True
+    return False
+
+
+def _erro_nfce_venda(venda: VendaAgro, nfce: NfceDocumentoAgro | None) -> str:
+    if nfce:
+        msg = sanitizar_erro_sefaz_exibicao(nfce.mensagem_sefaz or "")
+        if msg:
+            return msg
+        if nfce.status == NfceDocumentoAgro.Status.REJEITADA:
+            return "NFC-e rejeitada pela SEFAZ."
+        if nfce.status == NfceDocumentoAgro.Status.ERRO:
+            return "Erro técnico na emissão da NFC-e."
+    if getattr(venda, "nfce_solicitada", False):
+        return "Cupom fiscal não foi emitido nesta venda."
+    return ""
+
+
+def painel_nfce_venda(venda: VendaAgro, *, _cfg: dict[str, Any] | None = None) -> dict[str, Any]:
+    loja = nfce_loja_de_venda(venda)
+    cfg = _cfg if _cfg is not None else nfce_config_resumo(loja)
+    ativo = bool(cfg.get("ativo")) or nfce_configurada(loja=loja, warmup=False)
+    nfce = getattr(venda, "nfce", None)
+    solic = bool(getattr(venda, "nfce_solicitada", False))
+    out: dict[str, Any] = {
+        "ativo": ativo,
+        "solicitada": solic,
+        "pendente": False,
+        "autorizada": False,
+        "status": "",
+        "status_label": "",
+        "erro": "",
+        "numero": None,
+        "serie": None,
+        "chave": "",
+        "protocolo": "",
+        "dest_cpf": "",
+        "consumidor_sem_identificacao": False,
+        "processando": False,
+        "pode_reemitir": False,
+        "pode_cancelar": False,
+        "pode_imprimir_fiscal": False,
+        "documento_id": nfce.pk if nfce else None,
+    }
+    if not ativo:
+        if solic or (nfce and nfce.status != NfceDocumentoAgro.Status.AUTORIZADA):
+            out["pendente"] = True
+            out["erro"] = "NFC-e desligada ou incompleta no servidor (.env)."
+            out["pode_reemitir"] = False
+        return out
+    if nfce:
+        out["dest_cpf"] = nfce.dest_cpf or ""
+        out["consumidor_sem_identificacao"] = bool(nfce.consumidor_sem_identificacao)
+        out["numero"] = nfce.numero or None
+        out["serie"] = nfce.serie or None
+        out["chave"] = nfce.chave or ""
+        out["protocolo"] = nfce.protocolo or ""
+        out["status"] = nfce.status
+        out["status_label"] = nfce.get_status_display()
+    elif venda.cliente_documento:
+        from produtos.nfce_sp_emissao_util import documento_dest_nfce
+
+        out["dest_cpf"] = documento_dest_nfce(venda.cliente_documento) or re.sub(
+            r"\D", "", str(venda.cliente_documento or "")
+        )[:14]
+
+    if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
+        out["autorizada"] = True
+        out["status_label"] = "Autorizada"
+        out["pode_imprimir_fiscal"] = True
+        out["pode_cancelar"] = nfce_configurada(loja=loja, warmup=False)
+        return out
+
+    if nfce and nfce.status == NfceDocumentoAgro.Status.CANCELADA:
+        out["status_label"] = "Cancelada"
+        out["erro"] = nfce.mensagem_sefaz or "NFC-e cancelada na SEFAZ."
+        return out
+
+    if venda_nfce_processando(venda):
+        out["processando"] = True
+        out["status_label"] = "Emitindo"
+        msg = (nfce.mensagem_sefaz if nfce else "") or ""
+        out["erro"] = msg if msg.startswith("Em emissão") else "Em emissão na SEFAZ — aguarde…"
+        out["pode_reemitir"] = False
+        out["pode_imprimir_fiscal"] = False
+        return out
+
+    if venda_nfce_pendente(venda):
+        out["pendente"] = True
+        out["erro"] = _erro_nfce_venda(venda, nfce)
+        out["pode_reemitir"] = not venda.devolvida_em and nfce_configurada(loja=loja, warmup=False)
+        if not out["status_label"]:
+            out["status_label"] = "Pendente"
+        return out
+
+    if solic:
+        out["status_label"] = "Não solicitada"
+    return out
+
+
+def registrar_nfce_erro_venda(
+    venda: VendaAgro,
+    mensagem: str,
+    *,
+    cpf_dest: str = "",
+    sem_identificacao: bool = False,
+    tp_amb: int = 2,
+) -> NfceDocumentoAgro:
+    NfceDocumentoAgro.objects.filter(venda=venda).exclude(
+        status=NfceDocumentoAgro.Status.AUTORIZADA
+    ).delete()
+    loja = nfce_loja_de_venda(venda)
+    emit_cnpj = ""
+    try:
+        emit_cnpj = nfce_cfg(loja).get("cnpj") or ""
+    except Exception:
+        emit_cnpj = ""
+    return NfceDocumentoAgro.objects.create(
+        venda=venda,
+        status=NfceDocumentoAgro.Status.ERRO,
+        mensagem_sefaz=(mensagem or "Erro na NFC-e.")[:2000],
+        dest_cpf=cpf_dest or "",
+        consumidor_sem_identificacao=sem_identificacao,
+        tp_amb=tp_amb,
+        emitente_cnpj=emit_cnpj,
+    )

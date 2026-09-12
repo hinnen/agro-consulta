@@ -5,7 +5,7 @@ from django.dispatch import receiver
 from produtos.models import ClienteAgro
 
 # Mesma chave que produtos.views.API_LIST_CUSTOMERS_CACHE_KEY (evita import circular).
-_LISTA_CLIENTES_PDV_CACHE = "api_list_customers_v1"
+_LISTA_CLIENTES_PDV_CACHE = "api_list_customers_v2"
 
 
 @receiver([post_save, post_delete], sender=ClienteAgro)

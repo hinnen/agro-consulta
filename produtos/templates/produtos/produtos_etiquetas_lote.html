@@ -1,0 +1,204 @@
+{% extends "layouts/base_pdv.html" %}
+{% load static %}
+
+{% block pdv_title %}Lote etiquetas | SisVale{% endblock %}
+{% block body_class %}overflow-hidden bg-slate-950 text-slate-100{% endblock %}
+
+{% block head_extra %}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    .etq-lote-shell { height: 100dvh; max-height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+    .etq-lote-main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(17rem, 24rem) 1fr; gap: 0.75rem; padding: 0.75rem 1rem 0.5rem; }
+    @media (max-width: 900px) { .etq-lote-main { grid-template-columns: 1fr; } }
+    .etq-lote-panel { min-height: 0; display: flex; flex-direction: column; border-radius: 1rem; border: 1px solid rgb(51 65 85); background: rgb(30 41 59 / 0.9); padding: 0.75rem; }
+    .etq-lote-scroll { flex: 1; min-height: 0; overflow-y: auto; border-radius: 0.75rem; border: 1px solid rgb(51 65 85); background: rgb(15 23 42 / 0.6); }
+    .etq-lote-prog { font-variant-numeric: tabular-nums; }
+    .etq-lote-field { width: 100%; min-height: 2.5rem; border-radius: 0.75rem; border: 2px solid rgb(71 85 105); background: rgb(2 6 23); padding: 0 0.5rem; font-size: 0.875rem; font-weight: 700; color: #fff; }
+    .etq-lote-lbl { display: block; margin-bottom: 0.15rem; font-size: 0.625rem; font-weight: 700; text-transform: uppercase; color: rgb(100 116 139); }
+  </style>
+{% endblock %}
+
+{% block pdv_shell_class %}etq-lote-shell bg-slate-950{% endblock %}
+{% block pdv_section_class %}flex min-h-0 flex-1 flex-col overflow-hidden p-0{% endblock %}
+
+{% block pdv_header %}
+<header class="shrink-0 border-b border-slate-800 bg-slate-900/90">
+  <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-2 sm:px-5">
+    <div class="min-w-0">
+      <h1 class="truncate text-xl font-black tracking-tight text-white sm:text-2xl">Lote etiquetas</h1>
+      <p class="text-[11px] font-semibold text-slate-400">Fila ou loja · progresso salvo · pausa ou automático</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <a href="{% url 'produtos_etiquetas' %}"
+        class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-slate-500 bg-slate-800 px-3 py-1.5 text-xs font-black uppercase text-slate-100 hover:border-orange-500">Etiquetas</a>
+      {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-slate-600 bg-slate-800 px-3 py-1.5 text-xs font-black uppercase text-slate-100 hover:border-orange-500" %}
+    </div>
+  </div>
+</header>
+{% endblock %}
+
+{% block pdv_content %}
+<div class="etq-lote-main">
+  <section class="etq-lote-panel gap-2">
+    <h2 class="text-xs font-black uppercase tracking-wide text-orange-400">Montar lote</h2>
+
+    <div class="grid grid-cols-2 gap-1">
+      <button type="button" id="lote-tab-fila"
+        class="min-h-[40px] rounded-xl border-2 border-orange-500 bg-orange-950/40 text-[11px] font-black uppercase text-orange-100">Da fila</button>
+      <button type="button" id="lote-tab-loja"
+        class="min-h-[40px] rounded-xl border-2 border-slate-600 bg-slate-900 text-[11px] font-black uppercase text-slate-200">Loja inteira</button>
+    </div>
+
+    <div id="lote-painel-fila" class="space-y-2">
+      <p id="lote-fila-info" class="text-[11px] leading-snug text-slate-400">Nenhuma fila pendente. Na tela Etiquetas, monte a fila e clique em <strong class="text-orange-300">Lote A4</strong>.</p>
+      <button type="button" id="lote-btn-criar-fila" disabled
+        class="min-h-[44px] w-full rounded-xl border-2 border-emerald-500 bg-emerald-600 text-sm font-black uppercase text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40">
+        Usar fila
+      </button>
+    </div>
+
+    <div id="lote-painel-loja" class="hidden space-y-2">
+      <label class="block">
+        <span class="etq-lote-lbl">Loja (estoque)</span>
+        <select id="lote-loja" class="etq-lote-field">
+          <option value="vila" selected>Vila Elias</option>
+          <option value="centro">Centro</option>
+          <option value="total">Centro + Vila</option>
+        </select>
+      </label>
+      <label class="block">
+        <span class="etq-lote-lbl">Saldo</span>
+        <select id="lote-estoque-sinal" class="etq-lote-field">
+          <option value="positivo" selected>Só positivo</option>
+          <option value="">Todos</option>
+          <option value="zerado">Zerados</option>
+          <option value="negativo">Negativos</option>
+        </select>
+      </label>
+      <label class="etq-chk flex items-center gap-2 text-sm font-semibold text-slate-200">
+        <input type="checkbox" id="lote-somente-ativos" checked class="h-4 w-4 rounded border-slate-500" />
+        Somente ativos
+      </label>
+      <button type="button" id="lote-btn-criar"
+        class="min-h-[44px] w-full rounded-xl border-2 border-emerald-500 bg-emerald-600 text-sm font-black uppercase text-white hover:bg-emerald-500">
+        Montar lista completa
+      </button>
+    </div>
+
+    <label class="block">
+      <span class="etq-lote-lbl">Nome do lote (opcional)</span>
+      <input id="lote-nome" type="text" maxlength="160" placeholder="Ex.: Remedios Vila"
+        class="etq-lote-field" />
+    </label>
+
+    <div class="border-t border-slate-700 pt-2">
+      <h3 class="mb-1 text-[10px] font-black uppercase text-slate-500">Lotes abertos</h3>
+      <div id="lote-lista-abertos" class="etq-lote-scroll max-h-36 space-y-1 p-1 text-sm"></div>
+    </div>
+    <p id="lote-status" class="min-h-[1.25rem] text-xs font-semibold text-slate-400" aria-live="polite"></p>
+  </section>
+
+  <section class="etq-lote-panel gap-2">
+    <div class="flex shrink-0 flex-wrap items-start justify-between gap-2">
+      <div>
+        <h2 class="text-xs font-black uppercase tracking-wide text-orange-400">Progresso</h2>
+        <p id="lote-titulo-ativo" class="text-sm font-bold text-white">Nenhum lote ativo</p>
+      </div>
+      <span id="lote-badge-status" class="rounded-lg border border-slate-600 px-2 py-1 text-[10px] font-black uppercase text-slate-300">—</span>
+    </div>
+
+    <div class="etq-lote-prog rounded-xl border border-emerald-700/50 bg-emerald-950/40 px-4 py-3">
+      <p id="lote-prog-folha" class="text-2xl font-black text-emerald-300">Folha — / —</p>
+      <p id="lote-prog-itens" class="mt-1 text-sm font-bold text-slate-200">0 / 0 impressos · faltam 0</p>
+      <div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-800">
+        <div id="lote-prog-bar" class="h-full rounded-full bg-emerald-500 transition-all" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <label class="block">
+        <span class="etq-lote-lbl">Preset</span>
+        <select id="lote-preset" class="etq-lote-field"></select>
+      </label>
+      <label class="block">
+        <span class="etq-lote-lbl">Etiquetas / folha</span>
+        <input id="lote-etq-folha" type="number" min="1" max="54" value="{{ folha_size|default:18 }}" class="etq-lote-field" />
+      </label>
+      <label class="block">
+        <span class="etq-lote-lbl">Folhas por vez</span>
+        <input id="lote-folhas-vez" type="number" min="1" max="20" value="1" class="etq-lote-field" />
+      </label>
+      <label class="block">
+        <span class="etq-lote-lbl">Intervalo (s)</span>
+        <input id="lote-intervalo" type="number" min="0" max="120" value="3" class="etq-lote-field" />
+      </label>
+      <label class="block">
+        <span class="etq-lote-lbl">Modo</span>
+        <select id="lote-modo" class="etq-lote-field">
+          <option value="pausa" selected>Com pausa</option>
+          <option value="auto">Automático</option>
+        </select>
+      </label>
+      <label class="block">
+        <span class="etq-lote-lbl">QTD em massa</span>
+        <div class="flex gap-1">
+          <input id="lote-qtd-massa" type="number" min="1" max="999" value="1" class="etq-lote-field" />
+          <button type="button" id="lote-btn-qtd-massa"
+            class="shrink-0 rounded-xl border-2 border-slate-500 bg-slate-800 px-2 text-[10px] font-black uppercase text-slate-100 hover:border-orange-500">OK</button>
+        </div>
+      </label>
+    </div>
+
+    <div class="flex flex-wrap gap-2">
+      <button type="button" id="lote-btn-salvar-cfg"
+        class="min-h-[40px] rounded-xl border-2 border-slate-500 bg-slate-800 px-3 text-[11px] font-black uppercase text-slate-100 hover:border-orange-500">
+        Salvar ajustes
+      </button>
+      <button type="button" id="lote-btn-imprimir" disabled
+        class="min-h-[48px] flex-1 rounded-xl border-2 border-emerald-500 bg-emerald-600 px-4 text-sm font-black uppercase text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40">
+        Imprimir próximo
+      </button>
+      <button type="button" id="lote-btn-parar" disabled
+        class="min-h-[48px] rounded-xl border-2 border-sky-700 bg-sky-950/40 px-3 text-xs font-black uppercase text-sky-200 hover:bg-sky-900/50 disabled:cursor-not-allowed disabled:opacity-40">
+        Parar auto
+      </button>
+      <button type="button" id="lote-btn-desfazer" disabled
+        class="min-h-[48px] rounded-xl border-2 border-amber-600 bg-amber-900/40 px-3 text-xs font-black uppercase text-amber-200 hover:bg-amber-800/50 disabled:cursor-not-allowed disabled:opacity-40">
+        Desfazer
+      </button>
+      <button type="button" id="lote-btn-cancelar" disabled
+        class="min-h-[48px] rounded-xl border-2 border-red-800 bg-red-950/40 px-3 text-xs font-black uppercase text-red-300 hover:bg-red-900/40 disabled:cursor-not-allowed disabled:opacity-40">
+        Cancelar lote
+      </button>
+    </div>
+
+    <div class="grid min-h-0 flex-1 grid-cols-1 gap-2 lg:grid-cols-3">
+      <div class="flex min-h-0 flex-col lg:col-span-1">
+        <h3 class="mb-1 shrink-0 text-[10px] font-black uppercase text-slate-500">Itens do lote (QTD)</h3>
+        <div id="lote-itens-edit" class="etq-lote-scroll flex-1 p-1 text-xs"></div>
+      </div>
+      <div class="flex min-h-0 flex-col">
+        <h3 class="mb-1 shrink-0 text-[10px] font-black uppercase text-slate-500">Próximos (esta folha)</h3>
+        <div id="lote-proximos" class="etq-lote-scroll flex-1 p-1 text-xs"></div>
+      </div>
+      <div class="flex min-h-0 flex-col">
+        <h3 class="mb-1 shrink-0 text-[10px] font-black uppercase text-slate-500">Último lote confirmado</h3>
+        <div id="lote-ultimos" class="etq-lote-scroll flex-1 p-1 text-xs"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+window.AGRO_ETQ_LOTE_CFG = {
+  apiUrl: "{{ api_lote_url|default:'/api/produtos/etiquetas/lote/'|escapejs }}",
+  presetsUrl: "{{ api_etq_presets_url|default:'/api/produtos/etiquetas/presets/'|escapejs }}",
+  folhaSize: {{ folha_size|default:18 }},
+  presetId: "{{ preset_id|default:'gondola'|escapejs }}",
+  loteUrl: "{% url 'produtos_etiquetas_lote' %}"
+};
+</script>
+<script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=18"></script>
+<script src="{% static 'produtos/js/produtos_etiquetas_lote.js' %}?v=2" defer></script>
+{% endblock %}

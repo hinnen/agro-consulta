@@ -14,15 +14,20 @@ from financeiro.models import GrupoEmpresarial
 from financeiro.api.serializers import (
     DebugMongoResumoQuerySerializer,
     ResumoOperacionalQuerySerializer,
+    SaldoDiarioMesQuerySerializer,
 )
 from financeiro.services.consolidacao import ConsolidacaoFinanceiraService
+from financeiro.services.dre_planos_filtro_util import parse_planos_gasto_param
 from financeiro.services.equilibrio import EquilibrioFinanceiroService
-from financeiro.services.resumo_operacional_mongo import (
-    consolidar_empresa_mongo,
-    consolidar_grupo_mongo,
-)
 
 _log_resumo = logging.getLogger("financeiro.resumo_diagnostico")
+
+
+def _resumo_usa_titulos_pg(params: dict) -> bool:
+    """Lançamentos SisVale (TituloFinanceiroAgro)."""
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres
+
+    return agro_financeiro_usa_postgres()
 
 
 def _resumo_diagnostico_ativo(request) -> bool:
@@ -130,22 +135,33 @@ class ResumoOperacionalAPIView(_AuthAPIView):
 
         params = serializer.validated_data
         diagnostico = _resumo_diagnostico_ativo(request)
+        planos_incluir = parse_planos_gasto_param(params.get("planos_gasto"))
 
-        if params.get("fonte") == "mongo":
-            from produtos.views import obter_conexao_mongo
+        if _resumo_usa_titulos_pg(params):
+            from financeiro.services.resumo_operacional_pg import (
+                consolidar_empresa_pg,
+                consolidar_grupo_pg,
+                consolidar_por_loja_pg,
+            )
 
-            _, db = obter_conexao_mongo()
-            if db is None:
-                return Response(
-                    {"detail": "Mongo indisponível — necessário para ler DtoLancamento (ERP)."},
-                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
-                )
             por = params.get("por") or "competencia"
             valor = params.get("valor") or "bruto"
-            fc = (params.get("contas") or "").strip()
-            if params["modo"] == "empresa":
-                data = consolidar_empresa_mongo(
-                    db,
+            fc = (params.get("contas") or "").strip() or "resultado"
+            modo = params.get("modo") or "lojas"
+            if modo == "lojas":
+                data = consolidar_por_loja_pg(
+                    loja=params.get("loja") or "todas",
+                    data_inicio=params["data_inicio"],
+                    data_fim=params["data_fim"],
+                    por=por,
+                    valor=valor,
+                    filtro_contas=fc,
+                    diagnostico=diagnostico,
+                    anexar_cmv_modos=True,
+                    planos_incluir=planos_incluir,
+                )
+            elif modo == "empresa":
+                data = consolidar_empresa_pg(
                     empresa_id=params["empresa_id"],
                     data_inicio=params["data_inicio"],
                     data_fim=params["data_fim"],
@@ -153,13 +169,14 @@ class ResumoOperacionalAPIView(_AuthAPIView):
                     valor=valor,
                     filtro_contas=fc,
                     diagnostico=diagnostico,
+                    anexar_cmv_modos=True,
+                    planos_incluir=planos_incluir,
                 )
             else:
                 get_object_or_404(
                     GrupoEmpresarial, pk=params["grupo_id"], ativo=True
                 )
-                data = consolidar_grupo_mongo(
-                    db,
+                pack = consolidar_grupo_pg(
                     grupo_id=params["grupo_id"],
                     data_inicio=params["data_inicio"],
                     data_fim=params["data_fim"],
@@ -167,8 +184,16 @@ class ResumoOperacionalAPIView(_AuthAPIView):
                     valor=valor,
                     filtro_contas=fc,
                     diagnostico=diagnostico,
+                    anexar_cmv_modos=True,
+                    planos_incluir=planos_incluir,
                 )
-            if data.get("erro"):
+                if pack.get("erro"):
+                    return Response(
+                        json_safe({"detail": pack["erro"], **pack}),
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                data = pack["consolidado"]
+            if isinstance(data, dict) and data.get("erro"):
                 return Response(
                     json_safe({"detail": data["erro"], **data}),
                     status=status.HTTP_400_BAD_REQUEST,
@@ -176,6 +201,28 @@ class ResumoOperacionalAPIView(_AuthAPIView):
             if not params.get("incluir_linhas"):
                 if isinstance(data, dict) and "linhas_dre" in data:
                     data = {k: v for k, v in data.items() if k != "linhas_dre"}
+            if (
+                params.get("incluir_visual")
+                and modo in ("empresa", "lojas")
+                and isinstance(data, dict)
+                and not data.get("erro")
+            ):
+                from financeiro.services.dre_visual_util import montar_dre_visual
+
+                eid = data.get("empresa_id") or params.get("empresa_id")
+                vis_kw = {}
+                if modo == "lojas":
+                    vis_kw["deposito"] = data.get("deposito_pdv") or "todas"
+                data["visual"] = montar_dre_visual(
+                    empresa_id=eid,
+                    por=por,
+                    data_inicio=params["data_inicio"],
+                    data_fim=params["data_fim"],
+                    empresa_nome=data.get("empresa_nome_filtro"),
+                    valor=valor,
+                    planos_incluir=planos_incluir,
+                    **vis_kw,
+                )
         else:
             service = ConsolidacaoFinanceiraService()
             if params["modo"] == "empresa":
@@ -193,8 +240,11 @@ class ResumoOperacionalAPIView(_AuthAPIView):
                     data_inicio=params["data_inicio"],
                     data_fim=params["data_fim"],
                 )
+            if not params.get("incluir_linhas"):
+                if isinstance(data, dict) and "linhas_dre" in data:
+                    data = {k: v for k, v in data.items() if k != "linhas_dre"}
 
-        if diagnostico and params.get("fonte") == "mongo":
+        if diagnostico:
             _log_resumo.info(
                 "[FINANCEIRO_RESUMO_DIAG] resumo_operacional_api_payload=%s",
                 json_safe(data) if isinstance(data, dict) else data,
@@ -211,21 +261,36 @@ class GapEquilibrioAPIView(_AuthAPIView):
 
         equilibrio_service = EquilibrioFinanceiroService()
 
-        if params.get("fonte") == "mongo":
-            from produtos.views import obter_conexao_mongo
+        if _resumo_usa_titulos_pg(params):
+            from financeiro.services.resumo_operacional_pg import (
+                consolidar_empresa_pg,
+                consolidar_grupo_pg,
+                consolidar_por_loja_pg,
+            )
 
-            _, db = obter_conexao_mongo()
-            if db is None:
-                return Response(
-                    {"detail": "Mongo indisponível."},
-                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
-                )
             por = params.get("por") or "competencia"
             valor = params.get("valor") or "bruto"
-            fc = (params.get("contas") or "").strip()
-            if params["modo"] == "empresa":
-                pack = consolidar_empresa_mongo(
-                    db,
+            fc = (params.get("contas") or "").strip() or "resultado"
+            modo = params.get("modo") or "lojas"
+            if modo == "lojas":
+                pack = consolidar_por_loja_pg(
+                    loja=params.get("loja") or "todas",
+                    data_inicio=params["data_inicio"],
+                    data_fim=params["data_fim"],
+                    por=por,
+                    valor=valor,
+                    filtro_contas=fc,
+                    diagnostico=diagnostico,
+                    anexar_cmv_modos=True,
+                )
+                if pack.get("erro"):
+                    return Response(
+                        json_safe({"detail": pack["erro"]}),
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                resumo = pack
+            elif modo == "empresa":
+                pack = consolidar_empresa_pg(
                     empresa_id=params["empresa_id"],
                     data_inicio=params["data_inicio"],
                     data_fim=params["data_fim"],
@@ -233,6 +298,7 @@ class GapEquilibrioAPIView(_AuthAPIView):
                     valor=valor,
                     filtro_contas=fc,
                     diagnostico=diagnostico,
+                    anexar_cmv_modos=True,
                 )
                 if pack.get("erro"):
                     return Response(
@@ -244,8 +310,7 @@ class GapEquilibrioAPIView(_AuthAPIView):
                 get_object_or_404(
                     GrupoEmpresarial, pk=params["grupo_id"], ativo=True
                 )
-                grupo = consolidar_grupo_mongo(
-                    db,
+                grupo = consolidar_grupo_pg(
                     grupo_id=params["grupo_id"],
                     data_inicio=params["data_inicio"],
                     data_fim=params["data_fim"],
@@ -253,6 +318,7 @@ class GapEquilibrioAPIView(_AuthAPIView):
                     valor=valor,
                     filtro_contas=fc,
                     diagnostico=diagnostico,
+                    anexar_cmv_modos=True,
                 )
                 if grupo.get("erro"):
                     return Response(
@@ -287,10 +353,59 @@ class GapEquilibrioAPIView(_AuthAPIView):
             despesas_variaveis=resumo["despesas_variaveis"],
             dias_periodo=dias,
         )
-        if diagnostico and params.get("fonte") == "mongo":
+        if diagnostico:
             _log_resumo.info(
                 "[FINANCEIRO_RESUMO_DIAG] gap_equilibrio_payload=%s (insumo receita_op=%s)",
                 json_safe(data),
                 resumo.get("receita_operacional"),
             )
+        return Response(json_safe(data), status=status.HTTP_200_OK)
+
+
+class SaldoDiarioMesAPIView(_AuthAPIView):
+    """Saldo dia a dia do mês (vendas PDV − despesas) + previsão 90d."""
+
+    def get(self, request):
+        serializer = SaldoDiarioMesQuerySerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        params = serializer.validated_data
+
+        if not _resumo_usa_titulos_pg({"fonte": "postgres"}):
+            return Response(
+                {"ok": False, "detail": "Disponível somente com financeiro Postgres."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        from datetime import date as date_cls
+
+        from django.utils import timezone
+
+        from financeiro.services.dre_saldo_diario_util import dre_saldo_diario_mes_pg
+
+        ref = timezone.localdate()
+        mes_raw = (params.get("mes") or "").strip()
+        if mes_raw:
+            try:
+                y, m = mes_raw.split("-", 1)
+                ref = date_cls(int(y), int(m), 1)
+            except (TypeError, ValueError):
+                return Response(
+                    {"ok": False, "detail": "mes inválido (use YYYY-MM)."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        fc = (params.get("contas") or "").strip() or "resultado"
+        planos_incluir = parse_planos_gasto_param(params.get("planos_gasto"))
+        cmv_modo = (params.get("cmv") or "vendida").strip().lower()
+        if cmv_modo not in ("vendida", "paga"):
+            cmv_modo = "vendida"
+        data = dre_saldo_diario_mes_pg(
+            loja=params.get("loja") or "todas",
+            por=params.get("por") or "vencimento",
+            valor=params.get("valor") or "bruto",
+            ref=ref,
+            filtro_contas=fc,
+            planos_incluir=planos_incluir,
+            cmv_modo=cmv_modo,
+        )
         return Response(json_safe(data), status=status.HTTP_200_OK)

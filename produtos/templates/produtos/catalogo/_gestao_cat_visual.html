@@ -1,0 +1,14 @@
+<div class="mt-1 flex flex-wrap items-center gap-1.5 js-foto-cat-box" data-cat-id="{{ no.id }}" data-cat-cor="{{ no.cor|default:'' }}">
+  {% csrf_token %}
+  <input type="file" accept="image/*" class="text-[0.65rem] max-w-[8rem] js-foto-cat-input">
+  <button type="button" class="text-[0.65rem] font-black px-2 py-1 rounded-lg bg-emerald-600 text-white js-foto-cat-btn">Salvar capa</button>
+  {% if no.imagem %}
+  <button type="button" class="text-[0.65rem] font-bold px-2 py-1 rounded-lg border border-red-300 text-red-700 js-foto-cat-rem">Tirar</button>
+  {% endif %}
+  <label class="inline-flex items-center gap-1 text-[0.65rem] font-bold text-slate-600">
+    Cor
+    <input type="color" class="w-8 h-7 rounded border border-slate-300 js-cor-cat-input" value="{{ no.cor|default:'#059669' }}">
+  </label>
+  <button type="button" class="text-[0.65rem] font-black px-2 py-1 rounded-lg bg-slate-800 text-white js-cor-cat-btn">Salvar cor</button>
+  <span class="text-[0.6rem] font-bold text-slate-500 js-foto-cat-status w-full"></span>
+</div>

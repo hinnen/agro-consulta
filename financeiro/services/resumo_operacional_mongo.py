@@ -69,6 +69,16 @@ def classificar_receita_plano(nome_plano: str) -> str:
 
 
 def classificar_despesa_plano(nome_plano: str) -> str:
+    from financeiro.services.plano_conta_dre_util import natureza_dre_por_cadastro
+    from financeiro.services.plano_despesa_niveis import natureza_dre_por_planilha
+
+    nat_cad = natureza_dre_por_cadastro(nome_plano)
+    if nat_cad is not None:
+        return nat_cad
+    nat_planilha = natureza_dre_por_planilha(nome_plano)
+    if nat_planilha is not None:
+        return nat_planilha
+
     f = _fold(nome_plano)
     # Juros do contrato de empréstimo (ex.: plano «Juros de Emprestimos»): mesmo eixo que
     # «Pagamento de Emprestimos» / amortização ao credor — antes de «juros» genérico (cartão, etc.).
@@ -101,6 +111,9 @@ def classificar_despesa_plano(nome_plano: str) -> str:
         ),
     ):
         return NF.NATUREZA_EMPRESTIMO_AMORTIZACAO
+    # Extravio após depósito: mesma regra de retirada de sócio (não come líquido).
+    if "extravio" in f:
+        return NF.NATUREZA_RETIRADA_SOCIO
     if _match_any(
         f,
         (
@@ -137,10 +150,61 @@ def classificar_despesa_plano(nome_plano: str) -> str:
             "frete",
             "publicidade",
             "marketing",
+            "combustivel",
+            "combustível",
+            "gasolina",
+            "diesel",
+            "etanol",
         ),
     ):
         return NF.NATUREZA_DESPESA_VARIAVEL
-    return NF.NATUREZA_DESPESA_FIXA
+    if _match_any(
+        f,
+        (
+            "ativo",
+            "equipamento",
+            "imobilizado",
+            "investimento",
+            "veiculo",
+            "veículo",
+            "maquina",
+            "máquina",
+            "compra de ativo",
+        ),
+    ):
+        return NF.NATUREZA_DESPESA_FINANCEIRA
+    if f.startswith("10 ") or f.startswith("10-") or f.startswith("10—") or " — outros" in f:
+        return NF.NATUREZA_DESPESA_FINANCEIRA
+    if _match_any(
+        f,
+        (
+            "salario",
+            "salário",
+            "aluguel",
+            "energia",
+            "luz eletrica",
+            "luz elétrica",
+            "agua",
+            "água",
+            "esgoto",
+            "internet",
+            "telefone",
+            "contador",
+            "honorario",
+            "honorário",
+            "seguro",
+            "alimentacao",
+            "alimentação",
+            "pro-labore",
+            "pro labore",
+            "condominio",
+            "condomínio",
+            "imposto",
+            "taxa fixa",
+        ),
+    ):
+        return NF.NATUREZA_DESPESA_FIXA
+    return NF.NATUREZA_DESPESA_VARIAVEL
 
 
 def _buckets_vazios() -> dict[str, Decimal]:
@@ -178,6 +242,8 @@ def natureza_buckets_from_linhas_dre(
 
 
 def agregar_linhas_dre_em_resumo(linhas: list[dict[str, Any]]) -> dict[str, Any]:
+    from produtos.extravio_deposito_util import plano_eh_extravio_apos_deposito
+
     b = natureza_buckets_from_linhas_dre(linhas)
 
     receita_operacional = b[NF.NATUREZA_RECEITA_OPERACIONAL]
@@ -189,8 +255,24 @@ def agregar_linhas_dre_em_resumo(linhas: list[dict[str, Any]]) -> dict[str, Any]
     emprestimos_entrada = b[NF.NATUREZA_EMPRESTIMO_ENTRADA]
     amortizacao_emprestimos = b[NF.NATUREZA_EMPRESTIMO_AMORTIZACAO]
     aportes_socios = b[NF.NATUREZA_APORTE_SOCIO]
-    retiradas_socios = b[NF.NATUREZA_RETIRADA_SOCIO]
+    retiradas_brutas = b[NF.NATUREZA_RETIRADA_SOCIO]
     transferencias_internas = b[NF.NATUREZA_TRANSFERENCIA_INTERNA]
+
+    extravio_apos_deposito = Decimal("0")
+    for linha in linhas or []:
+        des = _dec(linha.get("despesa"))
+        if des <= 0:
+            continue
+        plano = str(linha.get("plano") or "")
+        if not plano_eh_extravio_apos_deposito(plano):
+            continue
+        if classificar_despesa_plano(plano) != NF.NATUREZA_RETIRADA_SOCIO:
+            continue
+        extravio_apos_deposito += des
+    extravio_apos_deposito = extravio_apos_deposito.quantize(Decimal("0.01"))
+    retiradas_socios = (retiradas_brutas - extravio_apos_deposito).quantize(Decimal("0.01"))
+    if retiradas_socios < 0:
+        retiradas_socios = Decimal("0")
 
     lucro_bruto = receita_operacional - cmv
     resultado_operacional = receita_operacional - cmv - despesas_fixas - despesas_variaveis
@@ -201,6 +283,7 @@ def agregar_linhas_dre_em_resumo(linhas: list[dict[str, Any]]) -> dict[str, Any]
         + aportes_socios
         - amortizacao_emprestimos
         - retiradas_socios
+        - extravio_apos_deposito
     )
 
     return {
@@ -217,6 +300,7 @@ def agregar_linhas_dre_em_resumo(linhas: list[dict[str, Any]]) -> dict[str, Any]
         "amortizacao_emprestimos": amortizacao_emprestimos,
         "aportes_socios": aportes_socios,
         "retiradas_socios": retiradas_socios,
+        "extravio_apos_deposito": extravio_apos_deposito,
         "geracao_caixa": geracao_caixa,
         "ajustes_eliminacao": {
             "receitas_internas_eliminadas": Decimal("0"),
@@ -332,6 +416,22 @@ def consolidar_empresa_mongo(
         }
 
     core = agregar_linhas_dre_em_resumo(raw.get("linhas") or [])
+    try:
+        from produtos.conferencia_deposito_extravio_util import aplicar_extravio_auto_no_resumo
+        from financeiro.services.receita_pdv_util import resolver_deposito_pdv
+
+        dep_cx = resolver_deposito_pdv(None, nome)
+        if dep_cx not in ("centro", "vila"):
+            dep_cx = None
+        aplicar_extravio_auto_no_resumo(
+            core,
+            data_inicio,
+            data_fim,
+            deposito=dep_cx,
+            empresa_nome=nome,
+        )
+    except Exception:
+        pass
     if diagnostico:
         linhas = raw.get("linhas") or []
         _log_diag.info(
@@ -398,6 +498,7 @@ def consolidar_grupo_mongo(
         "amortizacao_emprestimos",
         "aportes_socios",
         "retiradas_socios",
+        "extravio_apos_deposito",
         "geracao_caixa",
     )
 

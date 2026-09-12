@@ -1,0 +1,80 @@
+Nome antigo (como está no CP);Nome oficial;Tipo;Grupo;Observação
+2.1.1.1 — Salários;Salários;Fixa;Pessoal;Unificar
+2.1.1.1.2 — Salários;Salários;Fixa;Pessoal;Unificar
+Salários;Salários;Fixa;Pessoal;Já oficial
+Adiantamento de Salario ( Vale );Adiantamento de Salário (Vale);Fixa;Pessoal;Padronizar grafia
+Adiantamento de Salário ( Vale );Adiantamento de Salário (Vale);Fixa;Pessoal;Padronizar grafia
+FGTS;FGTS;Fixa;Pessoal;
+INSS;INSS;Fixa;Pessoal;
+Despesas Prolabore;Despesas Pró-labore;Fixa;Pessoal;Padronizar grafia
+Despesas Pró-labore;Despesas Pró-labore;Fixa;Pessoal;
+Cesta de Final de Ano e Churrascos;Cesta de Final de Ano e Churrascos;Fixa;Pessoal;
+Bonús;Bônus;Fixa;Pessoal;Grafia errada — acento ú
+Bônus;Bônus;Fixa;Pessoal;
+Aluguel;Aluguel;Fixa;Ocupação;
+Energia;Energia;Fixa;Ocupação;
+Agua e Esgoto;Água e Esgoto;Fixa;Ocupação;Padronizar acento
+Água e Esgoto;Água e Esgoto;Fixa;Ocupação;
+Manutenção do Prédio;Manutenção do Prédio;Fixa;Ocupação;
+taxas de licença de locação;Taxas de licença de locação;Fixa;Ocupação;Padronizar
+Contador / Contabilidade;Contabilidade;Fixa;Administrativo;Unificar
+Contabilidade;Contabilidade;Fixa;Administrativo;
+Internet;Internet;Fixa;Administrativo;
+sist;Sistema e Software;Fixa;Administrativo;Unificar
+Sistema e Software;Sistema e Software;Fixa;Administrativo;
+2.1.1.5 — Alimentação;Alimentação;Fixa;Operação loja;Unificar
+Alimentação;Alimentação;Fixa;Operação loja;
+2.2.5 — Materias de Escritório;Matérias de Escritório;Fixa;Operação loja;Unificar + grafia
+Materias de Escritório;Matérias de Escritório;Fixa;Operação loja;Unificar + grafia
+Matérias de Escritório;Matérias de Escritório;Fixa;Operação loja;
+Materias de informatica;Matérias de Informática;Variável;Operação loja;Padronizar
+Matérias de Informática;Matérias de Informática;Variável;Operação loja;
+2.2.3 — Embalagens;Embalagens;Variável;Operação loja;Unificar
+Embalagens;Embalagens;Variável;Operação loja;
+2.1.13 — Material de Limpeza e Conservação;Material de Limpeza e Conservação;Variável;Operação loja;Unificar
+Material de Limpeza e Conservação;Material de Limpeza e Conservação;Variável;Operação loja;
+Manutenção Equipamentos e Moveis;Manutenção Equipamentos e Móveis;Variável;Operação loja;Padronizar acento
+Manutenção Equipamentos e Móveis;Manutenção Equipamentos e Móveis;Variável;Operação loja;
+Impostos e Taxas Fixas;Impostos e Taxas Fixas;Fixa;Impostos e taxas;
+IPVA e outros;IPVA e outros;Fixa;Impostos e taxas;
+Impostos e Taxas variaveis;Impostos e Taxas variáveis;Variável;Impostos e taxas;Padronizar
+Impostos e Taxas variáveis;Impostos e Taxas variáveis;Variável;Impostos e taxas;
+Comissão;Comissão;Variável;Vendas / meios de pagamento;
+taxas Maquina Cartão;Taxas Máquina Cartão;Variável;Vendas / meios de pagamento;Padronizar
+Taxas Maquina Cartão;Taxas Máquina Cartão;Variável;Vendas / meios de pagamento;Unificar maiúsculas
+Taxas Máquina Cartão;Taxas Máquina Cartão;Variável;Vendas / meios de pagamento;
+2.1.7.1 — Combustivel Strada;Combustível Strada;Variável;Frota / logística;Unificar
+Combustivel Strada;Combustível Strada;Variável;Frota / logística;Unificar
+Combustível Strada;Combustível Strada;Variável;Frota / logística;
+2.1.7.2 — Combustivel Demais Carros;Combustível Demais Carros;Variável;Frota / logística;Unificar
+Combustivel Demais Carros;Combustível Demais Carros;Variável;Frota / logística;Unificar
+Combustível Demais Carros;Combustível Demais Carros;Variável;Frota / logística;
+Manutenção Frota;Manutenção Frota;Variável;Frota / logística;
+Multas de Transito;Multas de Trânsito;Variável;Frota / logística;Padronizar
+Multas de Trânsito;Multas de Trânsito;Variável;Frota / logística;
+Frete de Devolução;Frete de Devolução;Variável;Frota / logística;
+PUBLICIDADE E PROPAGANDA;Publicidade e Propaganda;Variável;Marketing / eventos;Padronizar
+Publicidade e Propaganda;Publicidade e Propaganda;Variável;Marketing / eventos;
+Brindes e ações festivas;Brindes e ações festivas;Variável;Marketing / eventos;
+2.2.1.2 — Compra Mercadoria SN;Compra Mercadoria SN;Outra;CMV / mercadoria;Unificar
+Compra Mercadoria SN;Compra Mercadoria SN;Outra;CMV / mercadoria;
+COMPRA MERCADORIA SN;Compra Mercadoria SN;Outra;CMV / mercadoria;Unificar maiúsculas
+Compra Mercadoria CN;Compra Mercadoria CN;Outra;CMV / mercadoria;
+COMPRA MERCADORIA CN;Compra Mercadoria CN;Outra;CMV / mercadoria;Unificar maiúsculas
+Compra de Mercadoria;Compra Mercadoria (provisório);Outra;CMV / mercadoria;Sem CN/SN — provisório
+Pagamento de Emprestimos;Pagamento de Empréstimos;Outra;Empréstimos / financeiro;Unificar
+Pagamento de Empréstimos;Pagamento de Empréstimos;Outra;Empréstimos / financeiro;
+Juros de Emprestimos;Juros de Empréstimos;Outra;Empréstimos / financeiro;Unificar
+Juros de Empréstimos;Juros de Empréstimos;Outra;Empréstimos / financeiro;
+COMPRA DE ATIVOS OU EQUIPAMENTOS;Compra de Ativos ou Equipamentos;Outra;Investimento;Padronizar
+Compra de Ativos ou Equipamentos;Compra de Ativos ou Equipamentos;Outra;Investimento;
+2.4.1 — Retiradas Geraldo;Retiradas Geraldo;Outra;Sócio;Unificar
+Retiradas Geraldo;Retiradas Geraldo;Outra;Sócio;
+2.4.2 — Retiradas Geraldinho;Retiradas Geraldinho;Outra;Sócio;Unificar
+Retiradas Geraldinho;Retiradas Geraldinho;Outra;Sócio;
+10 — Outros;Outros (verificar);Outra;A conferir;Unificar
+Outro ( verificar );Outros (verificar);Outra;A conferir;Unificar
+Outros (verificar);Outros (verificar);Outra;A conferir;
+teste;Lixo teste;Outra;A conferir;Identificar depois
+x;Lixo x;Outra;A conferir;Identificar depois
+Devolução de Mercadorias;Outros (verificar);Outra;A conferir;Removido do plano oficial — revisar títulos se existirem

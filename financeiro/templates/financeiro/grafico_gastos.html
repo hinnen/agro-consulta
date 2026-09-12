@@ -1,0 +1,1909 @@
+{% extends "layouts/base_admin.html" %}
+{% load static %}
+
+{% block admin_title %}SisVale | Gráfico de gastos{% endblock %}
+{% block admin_header %}{% endblock %}
+{% block body_class %}bg-slate-100 text-slate-800 overflow-hidden h-[100dvh] max-h-[100dvh] gg-grafico-page{% endblock %}
+
+{% block admin_shell_class %}h-[100dvh] max-h-[100dvh] bg-slate-100 flex flex-col overflow-hidden{% endblock %}
+{% block admin_section_class %}w-full max-w-[96rem] mx-auto flex-1 min-h-0 px-3 sm:px-5 lg:px-8 pb-2 pt-1 overflow-hidden flex flex-col{% endblock %}
+
+{% block head_extra %}
+{% include "produtos/includes/agro_date_picker_styles.html" %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+<script src="{% static 'produtos/js/agro_date_picker.js' %}" defer></script>
+<style>
+  :root {
+    --gg-emerald: #059669;
+    --gg-emerald-dark: #047857;
+    --gg-emerald-soft: #ecfdf5;
+    --gg-orange: #ea580c;
+    --gg-orange-soft: #fff7ed;
+    --gg-border: #cbd5e1;
+    --gg-card: #ffffff;
+    --gg-muted: #475569;
+    --gg-text: #0f172a;
+    --gg-radius: 0.875rem;
+    --gg-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
+    /* escala em rem — acompanha o Agro Display Scale (AGENTS §11), sem px fixo */
+    --gg-label: 0.875rem;
+    --gg-field: 0.9375rem;
+    --gg-title: 1.0625rem;
+    --gg-touch: 2.6rem;
+  }
+  .gg-shell-wrap {
+    display: flex; flex-direction: column; height: 100%; min-height: 0; gap: 0.35rem;
+  }
+  .gg-page-head {
+    display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-between;
+    gap: 0.5rem; padding: 0.1rem 0 0; flex-shrink: 0;
+  }
+  .gg-page-head h1 {
+    margin: 0; font-size: 1.25rem;
+    font-weight: 900; color: var(--gg-text); line-height: 1.1;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+  }
+  .gg-page-head h1 em { font-style: normal; color: var(--gg-emerald); }
+  .gg-head-actions { display: flex; gap: 0.35rem; align-items: center; flex-shrink: 0; }
+  .gg-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem;
+    min-height: var(--gg-touch); padding: 0 0.9rem; border-radius: 0.7rem;
+    font-size: var(--gg-label); font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.03em; text-decoration: none; cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  }
+  .gg-btn:focus-visible,
+  .gg-chip:focus-visible,
+  .gg-chip-hoje:focus-visible,
+  .gg-atalho-slot:focus-visible,
+  .gg-mini-btn:focus-visible,
+  .gg-summary-edit:focus-visible {
+    outline: 3px solid var(--gg-emerald); outline-offset: 2px;
+  }
+  .gg-btn-sm { min-height: 2.3rem; padding: 0 0.7rem; font-size: 0.8125rem; }
+  .gg-btn:active { transform: translateY(1px); }
+  .gg-btn-secondary { border: 2px solid var(--gg-border); background: var(--gg-card); color: var(--gg-text); }
+  .gg-btn-secondary:hover { border-color: #f59e0b; color: #92400e; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15); }
+  .gg-btn-primary {
+    border: 2px solid var(--gg-emerald-dark); background: linear-gradient(180deg, #10b981 0%, var(--gg-emerald) 100%);
+    color: #fff; box-shadow: 0 4px 14px rgba(5, 150, 105, 0.28);
+  }
+  .gg-btn-primary:hover { background: linear-gradient(180deg, var(--gg-emerald) 0%, var(--gg-emerald-dark) 100%); }
+  .gg-btn-ghost {
+    border: 2px solid transparent; background: transparent; color: #475569;
+  }
+  .gg-btn-ghost:hover { background: #f1f5f9; border-color: #e2e8f0; }
+  .gg-toolbar {
+    display: flex; flex-wrap: nowrap; align-items: center; gap: 0.35rem;
+    padding: 0.35rem 0.55rem; border-radius: var(--gg-radius);
+    border: 2px solid var(--gg-border); background: var(--gg-card); box-shadow: var(--gg-shadow);
+    flex-shrink: 0; overflow: hidden;
+  }
+  .gg-chips { display: flex; gap: 0.3rem; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .gg-chips::-webkit-scrollbar { display: none; }
+  .gg-chip {
+    min-height: 2.3rem; padding: 0 0.8rem; border-radius: 999px; flex-shrink: 0;
+    border: 2px solid #e2e8f0; background: #f8fafc; color: #334155;
+    font-size: var(--gg-label); font-weight: 800; cursor: pointer;
+  }
+  .gg-chip:hover { border-color: #86efac; background: var(--gg-emerald-soft); color: var(--gg-emerald-dark); }
+  .gg-chip.is-past { background: #f1f5f9; }
+  .gg-chip.is-future { background: #eff6ff; border-color: #bfdbfe; }
+  .gg-chip.is-future:hover { border-color: #60a5fa; background: #dbeafe; color: #1e40af; }
+  /* depois de is-past/is-future: senão o chip selecionado fica branco no branco */
+  .gg-chip.is-active,
+  .gg-chip.is-active:hover {
+    border-color: var(--gg-emerald-dark); background: var(--gg-emerald); color: #fff;
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.22);
+  }
+  .gg-chip-hoje {
+    min-height: var(--gg-touch); padding: 0 1rem; border-radius: 999px; flex-shrink: 0;
+    border: 2px solid #f59e0b; background: #fffbeb; color: #92400e;
+    font-size: var(--gg-label); font-weight: 900; cursor: pointer;
+  }
+  .gg-chip-hoje.is-active { background: #f59e0b; border-color: #d97706; color: #fff; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25); }
+  .gg-periodo-row { display: flex; align-items: center; gap: 0.3rem; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .gg-periodo-row::-webkit-scrollbar { display: none; }
+  .gg-periodo-sep { width: 2px; height: 1.5rem; background: #cbd5e1; flex-shrink: 0; margin: 0 0.15rem; }
+  .gg-atalhos { display: flex; gap: 0.3rem; flex-shrink: 0; margin-left: 0.35rem; padding-left: 0.35rem; border-left: 2px solid #e2e8f0; }
+  .gg-atalho-slot {
+    min-height: 2.3rem; max-width: 7.5rem; padding: 0 0.6rem; border-radius: 0.6rem;
+    border: 2px dashed #cbd5e1; background: #fafbfc; color: #475569;
+    font-size: 0.75rem; font-weight: 800; text-transform: uppercase;
+    cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .gg-atalho-slot.is-filled { border-style: solid; border-color: #86efac; background: #ecfdf5; color: #047857; }
+  .gg-atalho-slot.is-filled:hover { border-color: var(--gg-emerald); background: #d1fae5; }
+  .gg-atalho-slot.is-active { border-color: var(--gg-emerald); box-shadow: 0 0 0 2px rgba(5,150,105,0.2); }
+  .gg-atalho-slot.is-padrao {
+    border-color: #2563eb; background: #eff6ff; color: #1d4ed8;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18);
+  }
+  .gg-atalho-slot.is-padrao::before {
+    content: '📌\00a0'; font-size: 0.55rem; vertical-align: middle;
+  }
+  .gg-atalho-slot.is-padrao.is-active { border-color: var(--gg-emerald); box-shadow: 0 0 0 2px rgba(5,150,105,0.2); }
+  .gg-split-body {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 0.55rem; align-items: stretch; flex: 1 1 auto; min-height: 0;
+    overflow: hidden; grid-template-rows: minmax(0, 1fr);
+  }
+  @media (max-width: 900px) { .gg-split-body { grid-template-columns: 1fr; } }
+  .gg-split-body > details.gg-split-col[open] { height: 100%; max-height: 100%; }
+  details.gg-split-col { min-height: 0; overflow: hidden; border: 2px solid #e2e8f0; border-radius: var(--gg-radius); background: #fafbfc; }
+  details.gg-split-col[open] { display: flex; flex-direction: column; }
+  .gg-split-col > summary { flex-shrink: 0; }
+  /* base 0% = a coluna ocupa só a sobra da grade e rola por dentro (nada cortado) */
+  .gg-split-col[open] > .gg-split-inner { flex: 1 1 0%; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+  .gg-split-col[open] > .gg-split-inner--filtros {
+    display: block; overflow-y: auto; overflow-x: hidden; max-height: 100%;
+  }
+  .gg-split-col > summary {
+    list-style: none; cursor: pointer; padding: 0.45rem 0.65rem;
+    font-size: var(--gg-title); font-weight: 900; color: var(--gg-text);
+    background: linear-gradient(90deg, #f8fafc, #fff); border-bottom: 2px solid transparent;
+    user-select: none;
+  }
+  .gg-split-col[open] > summary { border-bottom-color: #e2e8f0; }
+  .gg-split-col > summary::-webkit-details-marker { display: none; }
+  .gg-split-col > summary::after { content: ' ▼'; font-size: 0.65rem; color: var(--gg-muted); float: right; }
+  .gg-split-col[open] > summary::after { content: ' ▲'; }
+  .gg-split-inner {
+    padding: 0.55rem; overflow-y: auto; flex: 1 1 auto; min-height: 0; max-height: none;
+  }
+  .gg-split-inner--filtros .gg-filters-grid {
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+  @media (min-width: 720px) {
+    .gg-split-inner--filtros .gg-filters-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  .gg-split-inner--planos {
+    display: flex; flex-direction: column; overflow: hidden;
+    flex: 1 1 auto; min-height: 0; max-height: 100%;
+  }
+  .gg-split-inner--planos .gg-planos-tools { flex-shrink: 0; margin-top: 0; margin-bottom: 0.45rem; }
+  .gg-split-inner--planos .gg-planos-grid {
+    flex: 1 1 auto; min-height: 5rem; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin; scrollbar-color: #059669 #ecfdf5;
+    border: 2px solid #86efac;
+  }
+  .gg-split-inner--planos .gg-planos-grid::-webkit-scrollbar { width: 12px; }
+  .gg-split-inner--planos .gg-planos-grid::-webkit-scrollbar-track { background: #ecfdf5; border-radius: 8px; }
+  .gg-split-inner--planos .gg-planos-grid::-webkit-scrollbar-thumb { background: #059669; border-radius: 8px; }
+  .gg-meta-split { display: flex; gap: 0.35rem; margin-left: auto; flex-shrink: 0; }
+  .gg-toolbar-actions { display: flex; gap: 0.35rem; margin-left: auto; flex-shrink: 0; }
+  .gg-meta-bar {
+    display: flex; flex-wrap: nowrap; align-items: center; gap: 0.45rem;
+    padding: 0.35rem 0.6rem; border-radius: var(--gg-radius);
+    border: 2px solid #86efac; background: linear-gradient(90deg, #ecfdf5, #f0fdf4);
+    font-size: var(--gg-label); flex-shrink: 0; overflow: hidden; min-height: 2.9rem;
+  }
+  .gg-meta-bar .gg-tag {
+    max-width: min(26rem, 100%); padding: 0.2rem 0.6rem; border-radius: 999px;
+    background: #fff; border: 1px solid #bbf7d0; font-weight: 800; color: #047857;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; min-width: 0;
+  }
+  .gg-meta-stat {
+    display: inline-flex; align-items: baseline; gap: 0.3rem; flex-shrink: 0;
+    padding: 0.15rem 0.55rem; border-radius: 0.55rem; background: #fff;
+    border: 1px solid #bbf7d0; font-weight: 800;
+  }
+  .gg-meta-stat small { font-size: 0.6875rem; font-weight: 800; text-transform: uppercase; color: var(--gg-muted); }
+  .gg-meta-stat strong { font-size: var(--gg-field); font-variant-numeric: tabular-nums; }
+  .gg-meta-stat.is-soma { border-color: var(--gg-emerald); background: #fff; }
+  .gg-meta-stat.is-soma strong { color: var(--gg-emerald-dark); font-size: 1.15rem; }
+  .gg-meta-stat.is-planos strong { color: var(--gg-orange); }
+  .gg-meta-time { margin-left: auto; flex-shrink: 0; font-size: 0.75rem; font-weight: 700; color: var(--gg-muted); }
+  .gg-summary-edit {
+    flex-shrink: 0; min-height: 2.3rem; padding: 0 0.8rem; border-radius: 999px;
+    border: 2px solid var(--gg-emerald); background: #fff;
+    font-size: 0.8125rem; font-weight: 800; text-transform: uppercase;
+    color: var(--gg-emerald-dark); cursor: pointer;
+  }
+  .gg-summary-edit:hover { background: var(--gg-emerald-soft); }
+  .gg-stage { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; overflow: hidden; }
+  .gg-backdrop { display: none; position: absolute; inset: 0; z-index: 30; background: rgba(15,23,42,0.42); backdrop-filter: blur(2px); }
+  .gg-backdrop.is-visible { display: block; }
+  .gg-filters-wrap {
+    display: none; position: absolute; inset: 0; z-index: 40;
+    padding: 0.2rem 0; min-height: 0;
+  }
+  .gg-filters-wrap.is-open { display: flex; flex-direction: column; min-height: 0; }
+  .gg-filters-card {
+    background: var(--gg-card); border: 2px solid var(--gg-border);
+    border-radius: var(--gg-radius); box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
+    overflow: hidden; flex: 1 1 auto; min-height: 0; max-height: 100%;
+    display: flex; flex-direction: column;
+  }
+  .gg-filters-head {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 0.35rem; padding: 0.45rem 0.75rem;
+    background: linear-gradient(90deg, #f8fafc, #fff);
+    border-bottom: 2px solid #f1f5f9; flex-shrink: 0;
+  }
+  .gg-filters-head h2 { margin: 0; font-size: var(--gg-title); font-weight: 900; color: var(--gg-text); }
+  .gg-filters-head-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+  .gg-toggle-opt {
+    display: inline-flex; align-items: center; gap: 0.45rem;
+    min-height: 2.5rem; padding: 0 0.65rem; border-radius: var(--gg-radius);
+    border: 2px solid #e2e8f0; background: #fff;
+    font-size: var(--gg-label); font-weight: 700; color: #475569; cursor: pointer;
+  }
+  .gg-toggle-opt input { width: 1rem; height: 1rem; accent-color: var(--gg-emerald); }
+  .gg-filters-body {
+    padding: 0.65rem 0.75rem; flex: 1 1 auto; min-height: 0;
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .gg-filters-grid {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.85rem 1rem;
+  }
+  @media (min-width: 768px) { .gg-filters-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (min-width: 1280px) { .gg-filters-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .gg-field { min-width: 0; }
+  .gg-field label {
+    display: block; margin-bottom: 0.35rem;
+    font-size: var(--gg-label); font-weight: 800; color: var(--gg-muted);
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .gg-field select,
+  .gg-field input[type="date"].agro-date-picker {
+    width: 100%; min-height: 2.65rem; border-radius: var(--gg-radius);
+    border: 2px solid #e2e8f0; background: #fff; padding: 0 0.85rem;
+    font-size: var(--gg-field); font-weight: 700; color: var(--gg-text);
+  }
+  .gg-field select:focus,
+  .gg-field input[type="date"].agro-date-picker:focus {
+    outline: none; border-color: var(--gg-emerald);
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+  }
+  .gg-field-span-2 { grid-column: span 2; }
+  @media (min-width: 768px) { .gg-field-span-2-md { grid-column: span 2; } }
+  .gg-fav-row { display: flex; gap: 0.55rem; align-items: stretch; }
+  .gg-fav-row select { flex: 1; min-width: 0; }
+  .gg-planos-section { margin-top: 1rem; padding-top: 1rem; border-top: 2px solid #f1f5f9; }
+  .gg-planos-section > summary {
+    list-style: none; cursor: pointer; display: flex; flex-wrap: wrap;
+    align-items: center; justify-content: space-between; gap: 0.5rem;
+    font-size: var(--gg-title); font-weight: 900; color: var(--gg-text);
+    padding: 0.15rem 0; user-select: none;
+  }
+  .gg-planos-section > summary::-webkit-details-marker { display: none; }
+  .gg-planos-section > summary::after {
+    content: '▼'; font-size: 0.75rem; color: var(--gg-muted);
+    transition: transform 0.2s ease;
+  }
+  .gg-planos-section[open] > summary::after { transform: rotate(180deg); }
+  .gg-planos-tools {
+    display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center;
+    margin-top: 0.75rem; margin-bottom: 0.65rem;
+  }
+  .gg-search-wrap {
+    position: relative; flex: 1 1 14rem; min-width: min(100%, 14rem); max-width: 24rem;
+  }
+  .gg-search-wrap input {
+    width: 100%; min-height: 2.85rem; padding: 0 0.85rem 0 2.55rem;
+    border-radius: var(--gg-radius); border: 2px solid #e2e8f0;
+    font-size: var(--gg-field); font-weight: 600;
+  }
+  .gg-search-wrap input:focus {
+    outline: none; border-color: var(--gg-emerald);
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
+  }
+  .gg-search-icon {
+    position: absolute; left: 0.8rem; top: 50%; transform: translateY(-50%);
+    font-size: 1.05rem; color: var(--gg-muted); pointer-events: none;
+  }
+  .gg-mini-btn {
+    min-height: 2.75rem; padding: 0 0.85rem; border-radius: var(--gg-radius);
+    border: 2px solid #e2e8f0; background: #fff;
+    font-size: var(--gg-label); font-weight: 800; text-transform: uppercase;
+    color: #475569; cursor: pointer;
+  }
+  .gg-mini-btn:hover { border-color: var(--gg-emerald); color: #065f46; background: var(--gg-emerald-soft); }
+  .gg-chk-toggle {
+    display: inline-flex; align-items: center; gap: 0.45rem;
+    min-height: 2.75rem; padding: 0 0.7rem; border-radius: var(--gg-radius);
+    border: 2px solid #e2e8f0; background: #f8fafc;
+    font-size: var(--gg-label); font-weight: 700; color: #334155; cursor: pointer;
+  }
+  .gg-chk-toggle input { width: 1.1rem; height: 1.1rem; accent-color: var(--gg-emerald); }
+  .gg-planos-grid {
+    display: flex; flex-wrap: wrap; gap: 0.45rem; align-content: flex-start;
+    overflow-y: auto;
+    padding: 0.7rem; border-radius: var(--gg-radius);
+    border: 2px solid #e2e8f0; background: #f8fafc;
+    scrollbar-width: thin; scrollbar-color: #86efac #f1f5f9;
+  }
+  .gg-planos-grid::-webkit-scrollbar { width: 8px; }
+  .gg-planos-grid::-webkit-scrollbar-thumb { background: #86efac; border-radius: 8px; }
+  .gg-plano-item {
+    display: inline-flex; align-items: center; gap: 0.45rem;
+    padding: 0.45rem 0.7rem; border-radius: 0.65rem;
+    border: 2px solid #e2e8f0; background: #fff;
+    font-size: var(--gg-field); font-weight: 600; color: #334155;
+    cursor: pointer; max-width: min(100%, 20rem);
+  }
+  .gg-plano-item:hover { border-color: #86efac; background: var(--gg-emerald-soft); }
+  .gg-plano-item.is-hidden { display: none !important; }
+  .gg-plano-item input { width: 1.1rem; height: 1.1rem; accent-color: var(--gg-emerald); flex-shrink: 0; }
+  .gg-plano-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gg-filters-foot {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 0.45rem; padding: 0.45rem 0.75rem;
+    border-top: 2px solid #f1f5f9; background: #fafbfc; flex-shrink: 0;
+  }
+  .gg-help details { margin-top: 0.45rem; padding: 0.45rem 0.65rem; border-radius: var(--gg-radius); border: 1px solid #e2e8f0; background: #fafbfc; font-size: var(--gg-label); }
+  .gg-help summary { cursor: pointer; font-weight: 800; color: #475569; }
+  .gg-help p { margin: 0.4rem 0 0; color: var(--gg-muted); line-height: 1.4; font-weight: 600; }
+  .gg-modo-tempo-row { display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center; }
+  .gg-modo-tempo-row .gg-chk-toggle { margin: 0; }
+  .gg-meta-bar.is-historico { border-color: #fcd34d; background: linear-gradient(90deg, #fffbeb, #fef3c7); }
+  .gg-meta-bar.is-comparar { border-color: #93c5fd; background: linear-gradient(90deg, #eff6ff, #dbeafe); }
+  .gg-meta-badge-hist {
+    flex-shrink: 0; padding: 0.2rem 0.6rem; border-radius: 999px;
+    background: #b45309; color: #fff; font-size: 0.75rem; font-weight: 900; text-transform: uppercase;
+  }
+  .gg-meta-badge-hist.is-comparar { background: #2563eb; }
+  .gg-chk-toggle.is-disabled { opacity: 0.55; cursor: not-allowed; }
+  .gg-compare-strip {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem;
+    padding: 0.45rem 0.55rem; border-radius: var(--gg-radius);
+    border: 2px solid #93c5fd; background: linear-gradient(90deg, #eff6ff, #fff);
+    flex-shrink: 0;
+  }
+  .gg-compare-strip[hidden] { display: none !important; }
+  .gg-compare-cell {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 0.2rem; min-height: 3.25rem; padding: 0.4rem 0.55rem;
+    border-radius: 0.65rem; background: rgba(255, 255, 255, 0.95);
+    border: 2px solid #e2e8f0; text-align: center;
+  }
+  .gg-compare-lbl {
+    font-size: clamp(0.75rem, 0.82rem, 0.875rem);
+    font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gg-muted);
+  }
+  .gg-compare-cell strong {
+    font-size: clamp(1.05rem, 1.2rem, 1.45rem);
+    font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1.15;
+  }
+  .gg-compare-cell.is-real { border-color: #86efac; background: #f0fdf4; }
+  .gg-compare-cell.is-real strong { color: #047857; }
+  .gg-compare-cell.is-hist { border-color: #fdba74; background: #fff7ed; }
+  .gg-compare-cell.is-hist strong { color: #b45309; }
+  .gg-compare-cell.is-delta { border-color: #cbd5e1; background: #f8fafc; }
+  .gg-compare-cell.is-delta.is-mais { border-color: #fdba74; background: #fffbeb; }
+  .gg-compare-cell.is-delta.is-mais strong { color: #b45309; }
+  .gg-compare-cell.is-delta.is-menos { border-color: #86efac; background: #ecfdf5; }
+  .gg-compare-cell.is-delta.is-menos strong { color: #047857; }
+  .gg-compare-cell.is-delta.is-zero strong { color: #64748b; }
+  .gg-chart-card {
+    flex: 1 1 auto; min-height: 0; height: 100%; display: flex; flex-direction: column;
+    border: 2px solid var(--gg-border); border-radius: var(--gg-radius);
+    background: var(--gg-card); box-shadow: var(--gg-shadow); overflow: hidden;
+  }
+  .gg-chart-inner { flex: 1 1 auto; min-height: 12rem; height: 100%; padding: 0.15rem 0.45rem 0.35rem; position: relative; }
+  .gg-chart-inner canvas { width: 100% !important; height: 100% !important; }
+  #gg-status {
+    position: absolute; inset: 0; z-index: 10;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.35rem;
+    padding: 1rem; font-size: var(--gg-field); font-weight: 800;
+    color: var(--gg-muted); background: rgba(255, 255, 255, 0.94);
+    pointer-events: none;
+  }
+  #gg-status.hidden { display: none !important; }
+  #gg-status.is-error { color: #b91c1c; }
+  #gg-status.is-loading::before {
+    content: ''; width: 2rem; height: 2rem; border-radius: 50%;
+    border: 3px solid #d1fae5; border-top-color: var(--gg-emerald);
+    animation: gg-spin 0.75s linear infinite;
+  }
+  @keyframes gg-spin { to { transform: rotate(360deg); } }
+  .gg-btn-filtros[aria-expanded="true"] {
+    border-color: var(--gg-emerald); background: var(--gg-emerald-soft); color: var(--gg-emerald-dark);
+  }
+  .gg-cp-popup {
+    position: fixed; inset: 0; z-index: 9999; display: flex;
+    align-items: center; justify-content: center; padding: 0.75rem;
+  }
+  .gg-cp-popup[hidden] { display: none !important; }
+  .gg-cp-popup-backdrop {
+    position: absolute; inset: 0; background: rgba(15, 23, 42, 0.58); backdrop-filter: blur(2px);
+  }
+  .gg-cp-popup-panel {
+    position: relative; z-index: 1; display: flex; flex-direction: column;
+    width: min(80vw, 96rem); height: min(80vh, calc(100dvh - 1.5rem));
+    background: #fff; border-radius: var(--gg-radius); overflow: hidden;
+    border: 2px solid var(--gg-border); box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
+  }
+  .gg-cp-popup-head {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem;
+    padding: 0.45rem 0.65rem; border-bottom: 2px solid #f1f5f9;
+    background: linear-gradient(90deg, #ecfdf5, #fff); flex-shrink: 0;
+  }
+  .gg-cp-popup-head strong { font-size: var(--gg-title); font-weight: 900; color: var(--gg-text); flex: 1; min-width: 0; }
+  .gg-cp-popup-head .gg-btn { min-height: 2.1rem; }
+  .gg-cp-popup-iframe { flex: 1 1 auto; min-height: 0; width: 100%; border: 0; background: #f8fafc; }
+  body.gg-cp-popup-open { overflow: hidden; }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+{% csrf_token %}
+{% include "produtos/_gm_loading_bar.html" %}
+
+<div class="gg-shell-wrap">
+
+<div class="gg-page-head">
+  <div>
+    <h1 title="Só leitura · totais iguais Contas a pagar"><em>Gráfico</em> · Gastos por plano</h1>
+  </div>
+  <div class="gg-head-actions">
+    <a href="{% url 'lancamentos_contas_pagar' %}" class="gg-btn gg-btn-secondary gg-btn-sm" data-prefetch>CP</a>
+    <a href="{% url 'lancamentos_financeiros' %}" class="gg-btn gg-btn-secondary gg-btn-sm" data-prefetch>Lanç.</a>
+    {% include "produtos/_pdv_voltar_link.html" with link_class="gg-btn gg-btn-secondary gg-btn-sm" %}
+  </div>
+</div>
+
+<div class="gg-toolbar" role="toolbar" aria-label="Atalhos e filtros">
+  <div class="gg-periodo-row" id="gg-chips-periodo" aria-label="Período passado e futuro">
+    <button type="button" class="gg-chip is-past" data-periodo="p1a" title="1 ano para trás até hoje">1a</button>
+    <button type="button" class="gg-chip is-past is-active" data-periodo="p3m" title="3 meses para trás">3m</button>
+    <button type="button" class="gg-chip is-past" data-periodo="p1m" title="1 mês para trás">1m</button>
+    <button type="button" class="gg-chip is-past" data-periodo="p1s" title="1 semana para trás">1s</button>
+    <span class="gg-periodo-sep" aria-hidden="true"></span>
+    <button type="button" class="gg-chip-hoje" data-periodo="hoje" title="Somente hoje">Hoje</button>
+    <span class="gg-periodo-sep" aria-hidden="true"></span>
+    <button type="button" class="gg-chip is-future" data-periodo="f1s" title="De hoje até 1 semana">1s</button>
+    <button type="button" class="gg-chip is-future" data-periodo="f1m" title="De hoje até 1 mês">1m</button>
+    <button type="button" class="gg-chip is-future" data-periodo="f3m" title="De hoje até 3 meses">3m</button>
+    <button type="button" class="gg-chip is-future" data-periodo="f1a" title="De hoje até 1 ano">1a</button>
+  </div>
+  <div class="gg-atalhos" id="gg-atalhos-slots" aria-label="Atalhos salvos (todos os usuários)"></div>
+  <div class="gg-toolbar-actions">
+    <button type="button" class="gg-btn gg-btn-secondary gg-btn-sm gg-btn-filtros" id="btn-toggle-filtros" aria-expanded="false" aria-controls="painel-filtros-grafico">
+      <span aria-hidden="true">⚙</span> Filtros
+    </button>
+    <button type="button" class="gg-btn gg-btn-primary gg-btn-sm" id="btn-atualizar-grafico" title="Atualizar gráfico">
+      <span aria-hidden="true">↻</span> Atualizar
+    </button>
+  </div>
+</div>
+
+<div class="gg-meta-bar" id="gg-meta-bar" aria-live="polite">
+  <span class="gg-meta-badge-hist" id="gg-badge-historico" hidden>Como era no dia</span>
+  <span class="gg-tag" id="gg-tag-resumo" title="">—</span>
+  <span class="gg-meta-stat is-soma"><small>Soma</small> <strong id="gg-kpi-soma">—</strong></span>
+  <span class="gg-meta-stat"><small>Pontos</small> <strong id="gg-kpi-pontos">—</strong></span>
+  <span class="gg-meta-stat is-planos"><small>Planos</small> <strong id="gg-kpi-planos">—</strong></span>
+  <span class="gg-meta-time" id="gg-ultima-atualizacao">—</span>
+  <button type="button" class="gg-summary-edit" id="btn-abrir-painel-filtros" title="Filtros e planos de contas">Filtros</button>
+</div>
+
+<div id="gg-compare-strip" class="gg-compare-strip" hidden aria-live="polite">
+  <div class="gg-compare-cell is-real">
+    <span class="gg-compare-lbl">Tempo real</span>
+    <strong id="gg-compare-real">—</strong>
+  </div>
+  <div class="gg-compare-cell is-hist">
+    <span class="gg-compare-lbl">Como era</span>
+    <strong id="gg-compare-hist">—</strong>
+  </div>
+  <div class="gg-compare-cell is-delta" id="gg-compare-delta-wrap">
+    <span class="gg-compare-lbl">Variação total</span>
+    <strong id="gg-compare-delta">—</strong>
+  </div>
+</div>
+
+<div class="gg-stage">
+  <div class="gg-backdrop" id="gg-backdrop" aria-hidden="true"></div>
+
+  <div class="gg-filters-wrap" id="painel-filtros-grafico">
+  <div class="gg-filters-card">
+    <div class="gg-filters-head">
+      <h2>Filtros do gráfico</h2>
+      <div class="gg-filters-head-actions">
+        <label class="gg-toggle-opt" title="Recolhe o painel sozinho após carregar o gráfico">
+          <input type="checkbox" id="gg-auto-retrair" checked>
+          <span>Recolher automaticamente</span>
+        </label>
+        <button type="button" class="gg-btn gg-btn-ghost" id="btn-recolher-filtros">Recolher ▲</button>
+      </div>
+    </div>
+    <div class="gg-filters-body">
+      <div class="gg-split-body">
+        <details class="gg-split-col" id="gg-col-filtros" open>
+          <summary>Filtros</summary>
+          <div class="gg-split-inner gg-split-inner--filtros">
+            <div class="gg-filters-grid">
+              <div class="gg-field">
+                <label for="filtro-periodo">Período (lista)</label>
+                <select id="filtro-periodo">
+                  <option value="p1a">1 ano · passado</option>
+                  <option value="p3m" selected>3 meses · passado</option>
+                  <option value="p1m">1 mês · passado</option>
+                  <option value="p1s">1 sem · passado</option>
+                  <option value="hoje">Hoje</option>
+                  <option value="f1s">1 sem · futuro</option>
+                  <option value="f1m">1 mês · futuro</option>
+                  <option value="f3m">3 meses · futuro</option>
+                  <option value="f1a">1 ano · futuro</option>
+                  <option value="custom">Personalizado</option>
+                </select>
+              </div>
+              <div class="gg-field">
+                <label for="data-inicial">Data inicial</label>
+                <input type="date" id="data-inicial" data-agro-date-picker class="agro-date-picker" value="{{ data_inicial_padrao }}">
+              </div>
+              <div class="gg-field">
+                <label for="data-final">Data final</label>
+                <input type="date" id="data-final" data-agro-date-picker class="agro-date-picker" value="{{ data_final_padrao }}">
+              </div>
+              <div class="gg-field">
+                <label for="filtro-agrupamento">Agrupamento</label>
+                <select id="filtro-agrupamento">
+                  <option value="dia">Dia a dia</option>
+                  <option value="semana">Semana a semana</option>
+                  <option value="mes" selected>Mês a mês</option>
+                  <option value="ano">Ano a ano</option>
+                </select>
+              </div>
+              <div class="gg-field">
+                <label for="filtro-por">Referência</label>
+                <select id="filtro-por">
+                  <option value="vencimento" selected>Vencimento</option>
+                  <option value="competencia">Competência</option>
+                  <option value="pagamento">Pagamento</option>
+                </select>
+              </div>
+              <div class="gg-field">
+                <label for="filtro-valor">Valor</label>
+                <select id="filtro-valor">
+                  <option value="bruto">Bruto (título)</option>
+                  <option value="pago">Pago</option>
+                  <option value="saldo" selected>Saldo em aberto</option>
+                </select>
+              </div>
+              <div class="gg-field gg-field-span-2">
+                <label>Visualização</label>
+                <div class="gg-modo-tempo-row">
+                  <label class="gg-chk-toggle">
+                    <input type="radio" name="modo-tempo" id="modo-tempo-real" value="real" checked>
+                    <span>Tempo real</span>
+                  </label>
+                  <label class="gg-chk-toggle">
+                    <input type="radio" name="modo-tempo" id="modo-tempo-historico" value="historico">
+                    <span>Como era no dia</span>
+                  </label>
+                  <label class="gg-chk-toggle">
+                    <input type="radio" name="modo-tempo" id="modo-tempo-comparar" value="comparar">
+                    <span>Comparar</span>
+                  </label>
+                </div>
+              </div>
+              <div class="gg-field" id="gg-wrap-data-ref">
+                <label for="filtro-data-referencia">Dia de referência</label>
+                <input type="date" id="filtro-data-referencia" data-agro-date-picker class="agro-date-picker" disabled>
+              </div>
+            </div>
+            <div class="gg-help">
+              <details>
+                <summary>? Comparar com Contas a pagar</summary>
+                <p>Mesma referência, valor e datas. Todos os planos marcados = total «A pagar» da CP.</p>
+              </details>
+              <details>
+                <summary>? Tempo real vs como era no dia</summary>
+                <p><strong>Tempo real</strong> — valores de hoje (pagamentos recentes já abatem o saldo).</p>
+                <p><strong>Como era no dia</strong> — simula o que você veria na data escolhida: título pago <em>depois</em> dessa data volta a aparecer em aberto. Quitação parcial em várias datas conta pela data do último pagamento, então pode dar pequena diferença. Título <em>lançado</em> depois da data continua aparecendo (o sistema não guarda a data de cadastro).</p>
+                <p><strong>Comparar</strong> — duas linhas no gráfico (verde = hoje, laranja = como era na data). Em cada mês aparece a <em>variação</em>; no canto, totais e diferença geral. Desliga «Individual».</p>
+              </details>
+              <details>
+                <summary>? Atalhos salvos (barra superior)</summary>
+                <p><strong>Clique</strong> — aplica o atalho · <strong>Shift+clique</strong> — grava filtros atuais no slot · <strong>Alt+clique</strong> — fixa como <em>padrão ao abrir</em> (📌 azul; vale para todos os usuários). Alt+clique de novo no fixado — tira o padrão.</p>
+              </details>
+            </div>
+          </div>
+        </details>
+        <details class="gg-split-col" id="gg-col-planos" open>
+          <summary>Planos de contas <small style="font-weight:700;color:var(--gg-muted)">({{ total_planos }})</small></summary>
+          <div class="gg-split-inner gg-split-inner--planos">
+            <div class="gg-planos-tools">
+              <div class="gg-search-wrap">
+                <span class="gg-search-icon" aria-hidden="true">🔍</span>
+                <input type="search" id="busca-planos" placeholder="Buscar plano…" autocomplete="off">
+              </div>
+              <label class="gg-chk-toggle">
+                <input type="checkbox" id="modo-individual">
+                <span>Individual</span>
+              </label>
+              <button type="button" class="gg-mini-btn" id="btn-marcar-todos">Todos</button>
+              <button type="button" class="gg-mini-btn" id="btn-desmarcar-todos">Nenhum</button>
+            </div>
+            <div id="container-planos-contas" class="gg-planos-grid">
+              {% for plano in planos_conta %}
+              <label class="gg-plano-item" data-nome-plano="{{ plano.nome|lower }}">
+                <input class="plano-checkbox" type="checkbox" value="{{ plano.id }}" data-nome="{{ plano.nome }}" checked>
+                <span title="{{ plano.nome }}">{{ plano.nome }}</span>
+              </label>
+              {% empty %}
+              <p class="text-base font-semibold text-slate-500 px-1">Nenhum plano distinto no filtro (igual Contas a pagar).</p>
+              {% endfor %}
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>
+    <div class="gg-filters-foot">
+      <button type="button" class="gg-btn gg-btn-ghost" id="btn-limpar-filtros">Limpar tudo</button>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" class="gg-btn gg-btn-secondary" id="btn-aplicar-manter">Aplicar (manter aberto)</button>
+        <button type="button" class="gg-btn gg-btn-primary" id="btn-aplicar-fechar">Aplicar e recolher</button>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <div class="gg-chart-card">
+    <div class="gg-chart-inner">
+      <div id="gg-status" class="is-loading">Montando gráfico…</div>
+      <canvas id="graficoGastos"></canvas>
+    </div>
+  </div>
+</div>
+
+<div id="gg-cp-popup" class="gg-cp-popup" hidden aria-hidden="true">
+  <div class="gg-cp-popup-backdrop" id="gg-cp-popup-backdrop" aria-hidden="true"></div>
+  <div class="gg-cp-popup-panel" role="dialog" aria-modal="true" aria-labelledby="gg-cp-popup-titulo">
+    <div class="gg-cp-popup-head">
+      <strong id="gg-cp-popup-titulo">Contas a pagar</strong>
+      <a href="#" id="gg-cp-popup-nova-aba" class="gg-btn gg-btn-secondary gg-btn-sm" target="_blank" rel="noopener">Nova aba</a>
+      <button type="button" class="gg-btn gg-btn-primary gg-btn-sm" id="gg-cp-popup-fechar">Fechar</button>
+    </div>
+    <iframe id="gg-cp-popup-iframe" class="gg-cp-popup-iframe" title="Contas a pagar — detalhe do período"></iframe>
+  </div>
+</div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const API_URL = "{% url 'api_dados_grafico_gastos' %}";
+  const API_PLANOS_CP = "{{ api_planos_cp_url|default:'/api/lancamentos/planos-distintos/'|escapejs }}";
+  const CP_URL = "{% url 'lancamentos_contas_pagar' %}";
+  const API_ATALHOS = "{% url 'api_grafico_gastos_atalhos' %}";
+  const API_ATALHO_SLOT = "{% url 'api_grafico_gastos_atalho_salvar' slot=0 %}".replace('/0/', '/');
+  const LS_AUTO_RETRAIR = 'grafico_gastos_auto_retrair_v1';
+  const LS_PAINEL_ABERTO = 'grafico_gastos_painel_aberto_v1';
+
+  const statusEl = document.getElementById('gg-status');
+  const painelEl = document.getElementById('painel-filtros-grafico');
+  const backdropEl = document.getElementById('gg-backdrop');
+  const btnToggle = document.getElementById('btn-toggle-filtros');
+  const tagResumo = document.getElementById('gg-tag-resumo');
+  const autoRetractEl = document.getElementById('gg-auto-retrair');
+  const kpiSoma = document.getElementById('gg-kpi-soma');
+  const kpiPontos = document.getElementById('gg-kpi-pontos');
+  const kpiPlanos = document.getElementById('gg-kpi-planos');
+  const ultimaEl = document.getElementById('gg-ultima-atualizacao');
+  const canvas = document.getElementById('graficoGastos');
+  if (!canvas) return;
+
+  let chartGastos = null;
+  let carregando = false;
+  let datalabelsOn = true;
+  let debounceTimer = null;
+  let periodoAtivo = 'p3m';
+  let atalhosCache = [];
+  let chartSerieMeta = { bucket_keys: [], labels: [], compareMode: false, deltas: [], comparacao: null };
+
+  const COR_REAL = '#059669';
+  const COR_HIST = '#d97706';
+
+  function isDatasetHistorico(ds) {
+    ds = ds || {};
+    return ds.ggSerie === 'historico' || String(ds.label || '').indexOf('Como era') === 0;
+  }
+
+  function ggRoundRect(ctx, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  const pluginGgCompareDelta = {
+    id: 'ggCompareDeltaBadge',
+    afterDatasetsDraw: function (chart) {
+      if (!chartSerieMeta.compareMode || !datalabelsOn) return;
+      const deltas = chartSerieMeta.deltas || [];
+      if (!deltas.length) return;
+      const meta0 = chart.getDatasetMeta(0);
+      if (!meta0 || !meta0.data) return;
+      const ctx = chart.ctx;
+      const area = chart.chartArea || {};
+
+      meta0.data.forEach(function (point, i) {
+        const real = chart.data.datasets[0] && chart.data.datasets[0].data[i];
+        if (real == null || real <= 0) return;
+        const d = deltas[i];
+        if (d == null) return;
+
+        const text = fmtDeltaCompact(d);
+        const n = Number(d) || 0;
+        let bg, border, color;
+        if (Math.abs(n) < 0.01) {
+          bg = 'rgba(241, 245, 249, 0.98)';
+          border = '#94a3b8';
+          color = '#475569';
+        } else if (n > 0) {
+          bg = 'rgba(254, 242, 242, 0.98)';
+          border = '#ef4444';
+          color = '#b91c1c';
+        } else {
+          bg = 'rgba(236, 253, 245, 0.98)';
+          border = '#059669';
+          color = '#047857';
+        }
+
+        ctx.save();
+        ctx.font = '900 12px system-ui, -apple-system, Segoe UI, sans-serif';
+        const tw = ctx.measureText(text).width;
+        const padX = 8;
+        const w = tw + padX * 2;
+        const h = 22;
+        let y = point.y + 50;
+        if (y + h / 2 > area.bottom - 2) y = point.y - 50;
+        const x = point.x - w / 2;
+
+        ctx.fillStyle = bg;
+        ctx.strokeStyle = border;
+        ctx.lineWidth = 2;
+        ggRoundRect(ctx, x, y - h / 2, w, h, 7);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, point.x, y);
+        ctx.restore();
+      });
+    }
+  };
+
+  // <details> não repassa altura para o conteúdo em todo Chrome — travar por JS
+  // para lista de planos e coluna de filtros rolarem em vez de cortar o fim.
+  function ajustarScrollPlanos() {
+    var foot = document.querySelector('.gg-filters-foot');
+    var wrap = document.getElementById('painel-filtros-grafico');
+    if (!foot || !wrap || !wrap.classList.contains('is-open')) return;
+    var limiteFoot = foot.getBoundingClientRect().top;
+    [
+      document.getElementById('container-planos-contas'),
+      document.querySelector('.gg-split-inner--filtros')
+    ].forEach(function (el) {
+      if (!el) return;
+      var lim = limiteFoot - el.getBoundingClientRect().top - 8;
+      if (lim < 80) lim = 80;
+      el.style.maxHeight = Math.floor(lim) + 'px';
+      el.style.overflowY = 'auto';
+    });
+  }
+
+  let cpPopupAberto = false;
+
+  function csrfToken() {
+    return (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || '';
+  }
+
+  function fmtValor(v, dec) {
+    if (v == null || v <= 0) return '';
+    return Number(v).toLocaleString('pt-BR', {
+      minimumFractionDigits: dec != null ? dec : 0,
+      maximumFractionDigits: dec != null ? dec : 0
+    });
+  }
+
+  function fmtMoeda(v) {
+    if (v == null) return '—';
+    return 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function deltaClasse(d) {
+    const n = Number(d) || 0;
+    if (Math.abs(n) < 0.01) return 'is-zero';
+    return n > 0 ? 'is-mais' : 'is-menos';
+  }
+
+  function fmtDeltaSigned(d) {
+    const n = Number(d) || 0;
+    if (Math.abs(n) < 0.01) return '± R$ 0';
+    const sign = n > 0 ? '+' : '−';
+    return sign + ' ' + fmtMoeda(Math.abs(n)).replace(/^R\$\s*/, 'R$ ');
+  }
+
+  function fmtDeltaCompact(d) {
+    const n = Number(d) || 0;
+    if (Math.abs(n) < 0.01) return '±0';
+    const sign = n > 0 ? '+' : '−';
+    return sign + Number(Math.abs(n)).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+  }
+
+  function getModoTempo() {
+    const el = document.querySelector('input[name="modo-tempo"]:checked');
+    return el ? el.value : 'real';
+  }
+
+  function fmtDataBr(iso) {
+    if (!iso) return '—';
+    const p = iso.split('-');
+    if (p.length !== 3) return iso;
+    return p[2] + '/' + p[1] + '/' + p[0];
+  }
+
+  function planosPayload() {
+    const all = Array.from(document.querySelectorAll('.plano-checkbox'));
+    const checked = all.filter(function (cb) { return cb.checked; });
+    const unchecked = all.filter(function (cb) { return !cb.checked; });
+    const todos = unchecked.length === 0 && checked.length > 0;
+    return {
+      todos_planos: todos,
+      planos_excluir: unchecked.map(function (cb) { return cb.getAttribute('data-nome') || ''; }).filter(Boolean),
+      planos: checked.map(function (cb) { return cb.value; }),
+      individual: document.getElementById('modo-individual').checked,
+      qtdMarcados: checked.length,
+      qtdTotal: all.length
+    };
+  }
+
+  function statusPlanosComoCp(por, valor, dataRef) {
+    por = (por || 'vencimento').toLowerCase();
+    valor = (valor || 'bruto').toLowerCase();
+    if (por === 'pagamento') {
+      return (valor === 'pago' && !dataRef) ? 'quitados' : 'todos';
+    }
+    if (dataRef) return 'todos';
+    if (valor === 'saldo') return 'abertos';
+    if (valor === 'bruto' && (por === 'vencimento' || por === 'competencia')) return 'abertos';
+    return 'todos';
+  }
+
+  function montarParamsPlanosCp() {
+    const por = document.getElementById('filtro-por').value;
+    const valor = document.getElementById('filtro-valor').value;
+    const de = document.getElementById('data-inicial').value;
+    const ate = document.getElementById('data-final').value;
+    const modo = getModoTempo();
+    const dataRef = (modo === 'historico' || modo === 'comparar')
+      ? (document.getElementById('filtro-data-referencia').value || '')
+      : '';
+    const p = new URLSearchParams();
+    p.set('tipo', 'pagar');
+    p.set('status', statusPlanosComoCp(por, valor, dataRef));
+    p.set('limit', '500');
+    if (por === 'competencia') {
+      if (de) p.set('comp_de', de);
+      if (ate) p.set('comp_ate', ate);
+    } else if (por === 'pagamento') {
+      if (de) p.set('pag_de', de);
+      if (ate) p.set('pag_ate', ate);
+    } else {
+      if (de) p.set('venc_de', de);
+      if (ate) p.set('venc_ate', ate);
+    }
+    return p;
+  }
+
+  function renderPlanosGrid(planos, excluirNomes) {
+    const cont = document.getElementById('container-planos-contas');
+    const summary = document.querySelector('#gg-col-planos summary small');
+    if (!cont) return;
+    const excl = excluirNomes instanceof Set ? excluirNomes : new Set(excluirNomes || []);
+    cont.innerHTML = '';
+    (planos || []).forEach(function (nome) {
+      const n = String(nome || '').trim();
+      if (!n || n === '(sem plano)') return;
+      const label = document.createElement('label');
+      label.className = 'gg-plano-item';
+      label.setAttribute('data-nome-plano', n.toLowerCase());
+      const cb = document.createElement('input');
+      cb.className = 'plano-checkbox';
+      cb.type = 'checkbox';
+      cb.value = n;
+      cb.setAttribute('data-nome', n);
+      cb.checked = !excl.has(n);
+      cb.addEventListener('change', function (e) {
+        if (document.getElementById('modo-individual').checked && e.target.checked) {
+          document.querySelectorAll('.plano-checkbox').forEach(function (other) {
+            if (other !== e.target) other.checked = false;
+          });
+        }
+        agendarAtualizacao({ syncPlanos: false });
+      });
+      label.appendChild(cb);
+      const span = document.createElement('span');
+      span.title = n;
+      span.textContent = n;
+      label.appendChild(span);
+      cont.appendChild(label);
+    });
+    if (summary) {
+      summary.textContent = '(' + (planos || []).length + ')';
+    }
+    if (!(planos || []).length) {
+      cont.innerHTML = '<p class="text-base font-semibold text-slate-500 px-1">Nenhum plano distinto no filtro (igual Contas a pagar).</p>';
+    }
+    filtrarPlanosBusca();
+    setTimeout(ajustarScrollPlanos, 30);
+  }
+
+  function carregarPlanosGrafico() {
+    const cont = document.getElementById('container-planos-contas');
+    if (!cont) return Promise.resolve();
+    const unchecked = Array.from(document.querySelectorAll('.plano-checkbox'))
+      .filter(function (cb) { return !cb.checked; })
+      .map(function (cb) { return cb.getAttribute('data-nome') || ''; })
+      .filter(Boolean);
+    const excluir = new Set(unchecked);
+    cont.innerHTML = '<p class="text-base font-semibold text-slate-500 px-1">Carregando planos…</p>';
+    return fetch(API_PLANOS_CP + '?' + montarParamsPlanosCp().toString(), {
+      credentials: 'same-origin',
+      cache: 'no-store'
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        const nomes = (data.planos || []).map(function (x) { return x.nome || ''; }).filter(Boolean);
+        renderPlanosGrid(nomes, excluir);
+      })
+      .catch(function () {
+        cont.innerHTML = '<p class="text-base font-semibold text-rose-600 px-1">Erro ao carregar planos.</p>';
+      });
+  }
+
+  function painelAberto() {
+    return painelEl.classList.contains('is-open');
+  }
+
+  function setPainelAberto(open, persist) {
+    painelEl.classList.toggle('is-open', open);
+    btnToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (backdropEl) {
+      backdropEl.classList.toggle('is-visible', open);
+      backdropEl.setAttribute('aria-hidden', open ? 'false' : 'true');
+    }
+    if (persist !== false) {
+      try { localStorage.setItem(LS_PAINEL_ABERTO, open ? '1' : '0'); } catch (_) {}
+    }
+    if (chartGastos) setTimeout(function () { chartGastos.resize(); }, 120);
+    if (open) {
+      setTimeout(ajustarScrollPlanos, 50);
+      setTimeout(ajustarScrollPlanos, 200);
+    }
+  }
+
+  function retrairPainel() {
+    setPainelAberto(false);
+  }
+
+  function expandirPainel() {
+    setPainelAberto(true);
+  }
+
+  function setStatus(msg, isError, loading) {
+    if (!statusEl) return;
+    statusEl.classList.toggle('is-loading', !!loading);
+    statusEl.classList.toggle('is-error', !!isError);
+    if (!msg && !loading) {
+      statusEl.classList.add('hidden');
+      return;
+    }
+    statusEl.classList.remove('hidden');
+    statusEl.textContent = msg || (loading ? 'Montando gráfico…' : '');
+  }
+
+  function syncChipsPeriodo(cod) {
+    const val = cod || document.getElementById('filtro-periodo').value || periodoAtivo;
+    periodoAtivo = val;
+    document.querySelectorAll('#gg-chips-periodo [data-periodo]').forEach(function (btn) {
+      const on = btn.getAttribute('data-periodo') === val;
+      btn.classList.toggle('is-active', on);
+    });
+  }
+
+  function aplicarPeriodoCodigo(cod) {
+    if (!cod || cod === 'custom') return;
+    const hoje = new Date();
+    const ini = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+    const fim = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+    if (cod === 'p1a') ini.setFullYear(hoje.getFullYear() - 1);
+    else if (cod === 'p3m') ini.setMonth(hoje.getMonth() - 3);
+    else if (cod === 'p1m') ini.setMonth(hoje.getMonth() - 1);
+    else if (cod === 'p1s') ini.setDate(hoje.getDate() - 6);
+    else if (cod === 'hoje') { /* ini/fim = hoje */ }
+    else if (cod === 'f1s') fim.setDate(hoje.getDate() + 6);
+    else if (cod === 'f1m') fim.setMonth(hoje.getMonth() + 1);
+    else if (cod === 'f3m') fim.setMonth(hoje.getMonth() + 3);
+    else if (cod === 'f1a') fim.setFullYear(hoje.getFullYear() + 1);
+    else return;
+    document.getElementById('data-inicial').value = isoDate(ini);
+    document.getElementById('data-final').value = isoDate(fim);
+    document.getElementById('filtro-periodo').value = cod;
+    syncChipsPeriodo(cod);
+  }
+
+  function isModoHistorico() {
+    return getModoTempo() === 'historico';
+  }
+
+  function isModoComparar() {
+    return getModoTempo() === 'comparar';
+  }
+
+  function syncModoTempoUi() {
+    const hist = isModoHistorico();
+    const comp = isModoComparar();
+    const inp = document.getElementById('filtro-data-referencia');
+    const badge = document.getElementById('gg-badge-historico');
+    const meta = document.getElementById('gg-meta-bar');
+    const ind = document.getElementById('modo-individual');
+    const indWrap = ind ? ind.closest('.gg-chk-toggle') : null;
+    if (inp) {
+      inp.disabled = !(hist || comp);
+      if ((hist || comp) && !inp.value) inp.value = isoDate(new Date());
+    }
+    if (badge) {
+      badge.hidden = !(hist || comp);
+      badge.textContent = comp ? 'Comparando' : 'Como era no dia';
+      badge.classList.toggle('is-comparar', comp);
+    }
+    if (meta) {
+      meta.classList.toggle('is-historico', hist);
+      meta.classList.toggle('is-comparar', comp);
+    }
+    if (ind) {
+      if (comp && ind.checked) ind.checked = false;
+      ind.disabled = comp;
+      if (indWrap) indWrap.classList.toggle('is-disabled', comp);
+    }
+  }
+
+  function payloadModoTempo() {
+    const ref = document.getElementById('filtro-data-referencia').value || isoDate(new Date());
+    if (isModoComparar()) return { modo_tempo: 'comparar', data_referencia: ref };
+    if (isModoHistorico()) return { modo_tempo: 'historico', data_referencia: ref };
+    return { modo_tempo: 'real' };
+  }
+
+  function atualizarCompareBox(comparacao) {
+    const strip = document.getElementById('gg-compare-strip');
+    const elReal = document.getElementById('gg-compare-real');
+    const elHist = document.getElementById('gg-compare-hist');
+    const elDelta = document.getElementById('gg-compare-delta');
+    const elDeltaWrap = document.getElementById('gg-compare-delta-wrap');
+    if (!strip || !elReal || !elHist || !elDelta || !elDeltaWrap) return;
+    if (!comparacao) {
+      strip.hidden = true;
+      return;
+    }
+    strip.hidden = false;
+    elReal.textContent = fmtMoeda(comparacao.total_real);
+    elHist.textContent = fmtMoeda(comparacao.total_historico);
+    const cls = deltaClasse(comparacao.delta_total);
+    elDeltaWrap.className = 'gg-compare-cell is-delta ' + cls;
+    elDelta.textContent = fmtDeltaSigned(comparacao.delta_total);
+  }
+
+  function atualizarResumoFiltros() {
+    const por = document.getElementById('filtro-por');
+    const valor = document.getElementById('filtro-valor');
+    const agr = document.getElementById('filtro-agrupamento');
+    const ini = document.getElementById('data-inicial').value;
+    const fim = document.getElementById('data-final').value;
+    const pp = planosPayload();
+    const porTxt = por.options[por.selectedIndex].text;
+    const valTxt = valor.options[valor.selectedIndex].text;
+    const agrTxt = agr.options[agr.selectedIndex].text;
+    let linha = porTxt + ' · ' + valTxt + ' · ' + agrTxt + ' · ' + fmtDataBr(ini) + ' → ' + fmtDataBr(fim);
+    if (isModoHistorico()) {
+      const ref = document.getElementById('filtro-data-referencia').value;
+      linha += ' · como em ' + fmtDataBr(ref);
+    } else if (isModoComparar()) {
+      const ref = document.getElementById('filtro-data-referencia').value;
+      linha += ' · comparar com ' + fmtDataBr(ref);
+    }
+    tagResumo.textContent = linha;
+    tagResumo.title = linha;
+    syncModoTempoUi();
+    const planosTxt = pp.todos_planos ? pp.qtdTotal + ' (todos)' : pp.qtdMarcados + '/' + pp.qtdTotal;
+    kpiPlanos.textContent = planosTxt;
+  }
+
+  function filtrarPlanosBusca() {
+    const q = (document.getElementById('busca-planos').value || '').trim().toLowerCase();
+    document.querySelectorAll('.gg-plano-item').forEach(function (el) {
+      const nome = el.getAttribute('data-nome-plano') || '';
+      el.classList.toggle('is-hidden', q.length > 0 && nome.indexOf(q) === -1);
+    });
+  }
+
+  function isoDate(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function isoWeekStart(y, w) {
+    const jan4 = new Date(y, 0, 4);
+    const day = jan4.getDay() || 7;
+    const mondayWeek1 = new Date(jan4);
+    mondayWeek1.setDate(jan4.getDate() - day + 1);
+    const start = new Date(mondayWeek1);
+    start.setDate(start.getDate() + (w - 1) * 7);
+    return start;
+  }
+
+  function bucketParaIntervalo(bucketKey, agrupamento) {
+    if (!bucketKey) return null;
+    const agr = (agrupamento || 'mes').toLowerCase();
+    if (agr === 'dia') {
+      return { de: bucketKey, ate: bucketKey };
+    }
+    if (agr === 'ano') {
+      const y = parseInt(bucketKey, 10);
+      if (!y) return null;
+      return { de: y + '-01-01', ate: y + '-12-31' };
+    }
+    if (agr === 'semana') {
+      const m = String(bucketKey).match(/^(\d{4})-W(\d{2})$/);
+      if (!m) return null;
+      const ini = isoWeekStart(parseInt(m[1], 10), parseInt(m[2], 10));
+      const fim = new Date(ini);
+      fim.setDate(fim.getDate() + 6);
+      return { de: isoDate(ini), ate: isoDate(fim) };
+    }
+    const p = String(bucketKey).split('-');
+    if (p.length < 2) return null;
+    const y = parseInt(p[0], 10);
+    const mo = parseInt(p[1], 10);
+    if (!y || !mo) return null;
+    const ini = new Date(y, mo - 1, 1);
+    const fim = new Date(y, mo, 0);
+    return { de: isoDate(ini), ate: isoDate(fim) };
+  }
+
+  function cpStatusFromGrafico(por, valor, dataRef) {
+    return statusPlanosComoCp(por, valor, dataRef);
+  }
+
+  function montarUrlCpPonto(index) {
+    const keys = chartSerieMeta.bucket_keys || [];
+    const labels = chartSerieMeta.labels || [];
+    const key = keys[index];
+    if (!key) return null;
+    const agr = document.getElementById('filtro-agrupamento').value;
+    const por = document.getElementById('filtro-por').value;
+    const valor = document.getElementById('filtro-valor').value;
+    const intervalo = bucketParaIntervalo(key, agr);
+    if (!intervalo) return null;
+    const filtroDe = document.getElementById('data-inicial').value;
+    const filtroAte = document.getElementById('data-final').value;
+    if (filtroDe && intervalo.de < filtroDe) intervalo.de = filtroDe;
+    if (filtroAte && intervalo.ate > filtroAte) intervalo.ate = filtroAte;
+
+    const modo = getModoTempo();
+    const dataRef = (modo === 'historico' || modo === 'comparar')
+      ? (document.getElementById('filtro-data-referencia').value || '')
+      : '';
+
+    const p = new URLSearchParams();
+    p.set('embed', 'grafico');
+    p.set('ref', por);
+    p.set('status', cpStatusFromGrafico(por, valor, dataRef));
+    if (por === 'competencia') {
+      if (intervalo.de) p.set('comp_de', intervalo.de);
+      if (intervalo.ate) p.set('comp_ate', intervalo.ate);
+    } else if (por === 'pagamento') {
+      if (intervalo.de) p.set('pag_de', intervalo.de);
+      if (intervalo.ate) p.set('pag_ate', intervalo.ate);
+    } else {
+      if (intervalo.de) p.set('venc_de', intervalo.de);
+      if (intervalo.ate) p.set('venc_ate', intervalo.ate);
+    }
+
+    const pp = planosPayload();
+    if (!pp.todos_planos && pp.planos_excluir.length) {
+      pp.planos_excluir.forEach(function (nome) {
+        if (nome) p.append('excluir_plano', nome);
+      });
+    }
+
+    let titulo = 'Contas a pagar · ' + (labels[index] || key);
+    if (dataRef) titulo += ' · situação de hoje (o ponto é como era em ' + fmtDataBr(dataRef) + ')';
+
+    return { url: CP_URL + '?' + p.toString(), titulo: titulo };
+  }
+
+  function indicePontoNoClique(evt) {
+    if (!chartGastos || !evt) return -1;
+    const pts = chartGastos.getElementsAtEventForMode(evt, 'index', { intersect: false }, true);
+    if (pts.length) return pts[0].index;
+    const near = chartGastos.getElementsAtEventForMode(evt, 'nearest', { intersect: false }, true);
+    return near.length ? near[0].index : -1;
+  }
+
+  function abrirCpPopup(index) {
+    if (index == null || index < 0) return;
+    const info = montarUrlCpPonto(index);
+    if (!info) {
+      setStatus('Não foi possível abrir o detalhe deste ponto.', true, false);
+      return;
+    }
+    const popup = document.getElementById('gg-cp-popup');
+    const iframe = document.getElementById('gg-cp-popup-iframe');
+    const titulo = document.getElementById('gg-cp-popup-titulo');
+    const novaAba = document.getElementById('gg-cp-popup-nova-aba');
+    if (!popup || !iframe) return;
+    titulo.textContent = info.titulo;
+    if (novaAba) {
+      novaAba.href = info.url;
+    }
+    iframe.src = info.url;
+    popup.hidden = false;
+    popup.setAttribute('aria-hidden', 'false');
+    cpPopupAberto = true;
+    document.body.classList.add('gg-cp-popup-open');
+    document.getElementById('gg-cp-popup-fechar')?.focus();
+  }
+
+  function fecharCpPopup() {
+    const popup = document.getElementById('gg-cp-popup');
+    const iframe = document.getElementById('gg-cp-popup-iframe');
+    if (!popup) return;
+    popup.hidden = true;
+    popup.setAttribute('aria-hidden', 'true');
+    cpPopupAberto = false;
+    document.body.classList.remove('gg-cp-popup-open');
+    if (iframe) iframe.src = 'about:blank';
+  }
+
+  function aplicarPeriodoRapido(codigo) {
+    aplicarPeriodoCodigo(codigo || document.getElementById('filtro-periodo').value);
+  }
+
+  function abrirPainelCompleto() {
+    expandirPainel();
+    const colF = document.getElementById('gg-col-filtros');
+    const colP = document.getElementById('gg-col-planos');
+    if (colF) colF.open = true;
+    if (colP) colP.open = true;
+  }
+
+  function coletarEstadoFiltros() {
+    const pp = planosPayload();
+    return {
+      planos: pp.planos,
+      planos_excluir: pp.planos_excluir,
+      todos_planos: pp.todos_planos,
+      agrupamento: document.getElementById('filtro-agrupamento').value,
+      por: document.getElementById('filtro-por').value,
+      valor: document.getElementById('filtro-valor').value,
+      periodo: document.getElementById('filtro-periodo').value,
+      individual: pp.individual,
+      inicio: document.getElementById('data-inicial').value,
+      fim: document.getElementById('data-final').value,
+      modo_tempo: getModoTempo(),
+      data_referencia: document.getElementById('filtro-data-referencia').value || ''
+    };
+  }
+
+  function aplicarEstadoFiltros(state) {
+    if (!state) return;
+    document.getElementById('filtro-agrupamento').value = state.agrupamento || 'mes';
+    document.getElementById('filtro-por').value = state.por || 'vencimento';
+    document.getElementById('filtro-valor').value = state.valor || 'saldo';
+    document.getElementById('modo-individual').checked = !!state.individual;
+    if (state.inicio) document.getElementById('data-inicial').value = state.inicio;
+    if (state.fim) document.getElementById('data-final').value = state.fim;
+    if (state.periodo && state.periodo !== 'custom') {
+      aplicarPeriodoCodigo(state.periodo);
+    } else {
+      document.getElementById('filtro-periodo').value = state.periodo || 'custom';
+      syncChipsPeriodo('custom');
+    }
+    if (state.todos_planos) {
+      document.querySelectorAll('.plano-checkbox').forEach(function (cb) { cb.checked = true; });
+    } else if (state.planos && state.planos.length) {
+      document.querySelectorAll('.plano-checkbox').forEach(function (cb) {
+        cb.checked = state.planos.includes(cb.value);
+      });
+    }
+    const modo = state.modo_tempo || 'real';
+    document.getElementById('modo-tempo-real').checked = modo === 'real';
+    document.getElementById('modo-tempo-historico').checked = modo === 'historico';
+    document.getElementById('modo-tempo-comparar').checked = modo === 'comparar';
+    if (state.data_referencia) {
+      document.getElementById('filtro-data-referencia').value = state.data_referencia;
+    }
+    syncModoTempoUi();
+    syncChipsPeriodo(document.getElementById('filtro-periodo').value);
+  }
+
+  function marcarAtalhoAtivo(slot) {
+    document.querySelectorAll('.gg-atalho-slot').forEach(function (b) {
+      const n = Number(b.getAttribute('data-slot'));
+      const row = atalhosCache.find(function (a) { return a.slot === n; });
+      b.classList.toggle('is-active', slot != null && n === slot);
+      b.classList.toggle('is-padrao', !!(row && row.eh_padrao));
+    });
+  }
+
+  function renderAtalhosSlots() {
+    const wrap = document.getElementById('gg-atalhos-slots');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    atalhosCache.forEach(function (a) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      let cls = 'gg-atalho-slot';
+      if (a.nome) cls += ' is-filled';
+      if (a.eh_padrao) cls += ' is-padrao';
+      btn.className = cls;
+      btn.setAttribute('data-slot', String(a.slot));
+      if (a.nome) {
+        let titulo = a.nome + ' — clique aplica · Shift+clique grava de novo';
+        if (a.eh_padrao) titulo += ' · padrão ao abrir';
+        titulo += ' · Alt+clique fixa/desfixa padrão';
+        btn.title = titulo;
+      } else {
+        btn.title = 'Slot ' + a.slot + ' — clique para salvar filtros atuais';
+      }
+      btn.textContent = a.nome || ('+' + a.slot);
+      btn.addEventListener('click', function (ev) { onAtalhoClick(a.slot, ev); });
+      wrap.appendChild(btn);
+    });
+  }
+
+  function carregarAtalhosServidor(cb) {
+    fetch(API_ATALHOS, { credentials: 'same-origin', cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        atalhosCache = data.atalhos || [];
+        renderAtalhosSlots();
+        if (cb) cb();
+      })
+      .catch(function () {
+        atalhosCache = [1, 2, 3, 4].map(function (s) { return { slot: s, nome: '', payload: null }; });
+        renderAtalhosSlots();
+      });
+  }
+
+  function salvarAtalhoServidor(slot, nome, payload, cb) {
+    fetch(API_ATALHO_SLOT + slot + '/', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+      body: JSON.stringify({ nome: nome, payload: payload })
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+      .then(function (res) {
+        if (!res.ok) {
+          alert(res.data.erro || 'Não foi possível salvar o atalho.');
+          return;
+        }
+        carregarAtalhosServidor(cb);
+      })
+      .catch(function () { alert('Falha ao salvar atalho no servidor.'); });
+  }
+
+  function definirAtalhoPadrao(slot, acao, cb) {
+    fetch(API_ATALHO_SLOT + slot + '/padrao/', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+      body: JSON.stringify({ acao: acao || 'definir' })
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+      .then(function (res) {
+        if (!res.ok) {
+          alert(res.data.erro || 'Não foi possível fixar o atalho.');
+          return;
+        }
+        carregarAtalhosServidor(cb);
+      })
+      .catch(function () { alert('Falha ao fixar atalho no servidor.'); });
+  }
+
+  function onAtalhoClick(slot, ev) {
+    const row = atalhosCache.find(function (a) { return a.slot === slot; });
+    const filled = row && row.nome && row.payload;
+    if (ev.altKey) {
+      if (!filled) {
+        alert('Salve um atalho neste slot antes de fixar como padrão.');
+        return;
+      }
+      if (row.eh_padrao) {
+        if (!confirm('Tirar «' + row.nome + '» como padrão ao abrir o gráfico?')) return;
+        definirAtalhoPadrao(slot, 'remover');
+        return;
+      }
+      if (!confirm('Fixar «' + row.nome + '» para abrir sempre neste gráfico? (todos os usuários)')) return;
+      definirAtalhoPadrao(slot, 'definir');
+      return;
+    }
+    if (ev.shiftKey && filled) {
+      if (!confirm('Gravar os filtros atuais no atalho «' + row.nome + '»? (todos os usuários)')) return;
+      salvarAtalhoServidor(slot, row.nome, coletarEstadoFiltros(), function () {
+        atualizarGrafico({ forceRetract: autoRetractEl.checked });
+      });
+      return;
+    }
+    if (!filled) {
+      const nome = prompt('Nome deste atalho (visível para todos):');
+      if (!nome || !nome.trim()) return;
+      salvarAtalhoServidor(slot, nome.trim(), coletarEstadoFiltros(), function () {
+        atualizarGrafico({ forceRetract: autoRetractEl.checked });
+      });
+      return;
+    }
+    aplicarEstadoFiltros(row.payload);
+    marcarAtalhoAtivo(slot);
+    atualizarGrafico({ forceRetract: autoRetractEl.checked });
+  }
+
+  function aplicarEstadoInicialGrafico() {
+    const padrao = atalhosCache.find(function (a) { return a.eh_padrao && a.nome && a.payload; });
+    if (padrao) {
+      aplicarEstadoFiltros(padrao.payload);
+      marcarAtalhoAtivo(padrao.slot);
+    } else {
+      aplicarPeriodoCodigo('p3m');
+      marcarAtalhoAtivo(null);
+    }
+    atualizarResumoFiltros();
+    atualizarGrafico({ forceRetract: autoRetractEl.checked });
+  }
+
+  function waitLibs(cb, tries) {
+    if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') { cb(); return; }
+    if ((tries || 0) >= 50) {
+      setStatus('Biblioteca do gráfico não carregou. Recarregue (F5).', true, false);
+      return;
+    }
+    setTimeout(function () { waitLibs(cb, (tries || 0) + 1); }, 50);
+  }
+
+  function initChart() {
+    if (typeof ChartDataLabels !== 'undefined') Chart.register(ChartDataLabels);
+    Chart.register(pluginGgCompareDelta);
+    chartGastos = new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: { labels: [], datasets: [] },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        onHover: function (evt, elements) {
+          const target = canvas;
+          if (!target) return;
+          if (elements && elements.length) {
+            target.style.cursor = 'pointer';
+            return;
+          }
+          const native = evt.native || evt;
+          target.style.cursor = indicePontoNoClique(native) >= 0 ? 'pointer' : 'default';
+        },
+        layout: { padding: { top: 36, right: 8, left: 4, bottom: 2 } },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { font: { weight: '800', size: 13 }, padding: 8, boxWidth: 14, boxHeight: 14, color: '#334155' }
+          },
+          tooltip: {
+            enabled: true,
+            usePointStyle: true,
+            padding: 14,
+            backgroundColor: 'rgba(15, 23, 42, 0.92)',
+            titleFont: { size: 15, weight: '800' },
+            bodyFont: { size: 14, weight: '700' },
+            bodySpacing: 6,
+            callbacks: {
+              label: function (ctx) {
+                return (ctx.dataset.label || '') + ': ' + fmtMoeda(ctx.parsed.y);
+              },
+              afterBody: function (items) {
+                if (!chartSerieMeta.compareMode || !items || !items.length) return [];
+                const i = items[0].dataIndex;
+                const d = (chartSerieMeta.deltas || [])[i];
+                if (d == null) return [];
+                return ['Variação: ' + fmtDeltaSigned(d)];
+              },
+              footer: function () {
+                return 'Clique no ponto → Contas a pagar';
+              }
+            }
+          },
+          datalabels: {
+            display: function (ctx) {
+              if (!datalabelsOn) return false;
+              const n = (ctx.chart.data.labels || []).length;
+              const v = ctx.dataset.data[ctx.dataIndex];
+              if (!(n > 0 && n <= 48 && v != null && v > 0)) return false;
+              if (!chartSerieMeta.compareMode) return true;
+              const d = (chartSerieMeta.deltas || [])[ctx.dataIndex];
+              if (Math.abs(Number(d) || 0) < 0.01) return !isDatasetHistorico(ctx.dataset);
+              return true;
+            },
+            align: function (ctx) {
+              if (chartSerieMeta.compareMode && isDatasetHistorico(ctx.dataset)) return 'bottom';
+              return 'top';
+            },
+            anchor: function (ctx) {
+              if (chartSerieMeta.compareMode && isDatasetHistorico(ctx.dataset)) return 'start';
+              return 'end';
+            },
+            offset: function (ctx) {
+              return chartSerieMeta.compareMode ? 10 : 10;
+            },
+            clip: false,
+            backgroundColor: function (ctx) {
+              if (chartSerieMeta.compareMode) {
+                return isDatasetHistorico(ctx.dataset) ? 'rgba(255, 247, 237, 0.98)' : 'rgba(236, 253, 245, 0.98)';
+              }
+              return 'rgba(255, 255, 255, 0.96)';
+            },
+            borderColor: function (ctx) {
+              if (chartSerieMeta.compareMode) {
+                return isDatasetHistorico(ctx.dataset) ? COR_HIST : COR_REAL;
+              }
+              return COR_REAL;
+            },
+            borderRadius: 8,
+            borderWidth: 2,
+            padding: { top: 7, bottom: 7, left: 10, right: 10 },
+            color: function (ctx) {
+              if (chartSerieMeta.compareMode) {
+                return isDatasetHistorico(ctx.dataset) ? '#b45309' : '#047857';
+              }
+              return '#047857';
+            },
+            font: function (ctx) {
+              return { weight: '900', size: chartSerieMeta.compareMode ? 14 : 17 };
+            },
+            formatter: function (v) { return fmtValor(v, 0); }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: { borderDash: [4, 4], color: '#e2e8f0' },
+            ticks: {
+              font: { size: 13, weight: '700' },
+              padding: 10,
+              color: '#475569',
+              callback: function (v) {
+                return 'R$ ' + Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+              }
+            }
+          },
+          x: {
+            grid: { display: false },
+            ticks: { maxRotation: 45, minRotation: 0, font: { size: 13, weight: '700' }, padding: 8, color: '#475569' }
+          }
+        }
+      }
+    });
+  }
+
+  function atualizarKpis(data) {
+    let total = 0;
+    let pontos = (data.labels || []).length;
+    const comp = data.modo_tempo === 'comparar' && data.comparacao;
+    if (comp) {
+      total = Number(comp.total_real) || 0;
+    } else {
+      (data.datasets || []).forEach(function (ds) {
+        (ds.data || []).forEach(function (v) { total += Number(v) || 0; });
+      });
+    }
+    kpiSoma.textContent = total > 0 ? fmtMoeda(total) : '—';
+    kpiPontos.textContent = pontos > 0 ? String(pontos) : '—';
+  }
+
+  function estilizarDataset(ds, compareMode) {
+    const cor = ds.borderColor || COR_REAL;
+    const isHist = isDatasetHistorico(ds);
+    const styled = Object.assign({}, ds, {
+      tension: 0.32,
+      borderWidth: compareMode && isHist ? 3 : 3,
+      pointRadius: compareMode ? (isHist ? 9 : 7) : 7,
+      pointHoverRadius: compareMode ? (isHist ? 12 : 10) : 10,
+      pointHitRadius: 18,
+      pointBorderWidth: compareMode && isHist ? 3 : 2,
+      pointBackgroundColor: '#fff',
+      pointBorderColor: cor,
+      fill: !compareMode,
+      backgroundColor: compareMode
+        ? (isHist ? 'rgba(217, 119, 6, 0.06)' : 'rgba(5, 150, 105, 0.06)')
+        : (ds.backgroundColor || 'rgba(5, 150, 105, 0.1)')
+    });
+    if (compareMode) {
+      styled.borderDash = isHist ? [10, 6] : [];
+      styled.pointStyle = isHist ? 'triangle' : 'circle';
+      styled.order = isHist ? 2 : 1;
+    }
+    return styled;
+  }
+
+  function marcarUltimaAtualizacao() {
+    const agora = new Date();
+    ultimaEl.textContent = 'Atualizado ' + agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function atualizarGrafico(opts) {
+    opts = opts || {};
+    if (!chartGastos || carregando) return;
+
+    function continuarGrafico() {
+      atualizarResumoFiltros();
+      const pp = planosPayload();
+      if (!pp.planos.length) {
+        chartGastos.data.labels = [];
+        chartGastos.data.datasets = [];
+        chartGastos.update();
+        chartSerieMeta = { bucket_keys: [], labels: [], compareMode: false, deltas: [], comparacao: null };
+        atualizarCompareBox(null);
+        kpiSoma.textContent = '—';
+        kpiPontos.textContent = '—';
+        setStatus('Marque ao menos um plano de contas.', true, false);
+        return;
+      }
+
+      carregando = true;
+      setStatus('Montando gráfico…', false, true);
+      if (window.gmLoadingBar && window.gmLoadingBar.show) window.gmLoadingBar.show();
+
+      const payload = Object.assign({
+        agrupamento: document.getElementById('filtro-agrupamento').value,
+        por: document.getElementById('filtro-por').value,
+        valor: document.getElementById('filtro-valor').value,
+        inicio: document.getElementById('data-inicial').value,
+        fim: document.getElementById('data-final').value
+      }, pp, payloadModoTempo());
+
+      fetch(API_URL, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || ''
+        },
+        body: JSON.stringify(payload)
+      })
+        .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+        .then(function (result) {
+          const data = result.data || {};
+          if (!result.ok || data.erro) {
+            setStatus(data.erro || 'Erro ao buscar dados.', true, false);
+          } else if (!(data.datasets || []).length) {
+            setStatus('Sem valores no período para os filtros.', true, false);
+          } else {
+            setStatus('', false, false);
+          }
+          datalabelsOn = ((data.labels || []).length <= 48);
+          const compareMode = data.modo_tempo === 'comparar';
+          chartSerieMeta = {
+            bucket_keys: data.bucket_keys || [],
+            labels: data.labels || [],
+            compareMode: compareMode,
+            deltas: data.deltas || [],
+            comparacao: data.comparacao || null
+          };
+          chartGastos.options.plugins.tooltip.enabled = true;
+          chartGastos.options.layout.padding.top = compareMode ? 52 : 44;
+          chartGastos.options.layout.padding.bottom = compareMode ? 36 : 2;
+          chartGastos.data.labels = data.labels || [];
+          chartGastos.data.datasets = (data.datasets || []).map(function (ds) {
+            return estilizarDataset(ds, compareMode);
+          });
+          chartGastos.update();
+          atualizarCompareBox(compareMode ? data.comparacao : null);
+          atualizarKpis(data);
+          marcarUltimaAtualizacao();
+          const ok = result.ok && !data.erro && (data.datasets || []).length;
+          if (ok && (opts.fecharDepois || (autoRetractEl.checked && opts.forceRetract))) {
+            retrairPainel();
+          }
+        })
+        .catch(function (err) {
+          console.error(err);
+          setStatus('Falha na comunicação com o servidor.', true, false);
+        })
+        .finally(function () {
+          carregando = false;
+          if (window.gmLoadingBar && window.gmLoadingBar.hide) window.gmLoadingBar.hide();
+        });
+    }
+
+    if (opts.syncPlanos !== false) {
+      carregarPlanosGrafico().then(continuarGrafico);
+    } else {
+      continuarGrafico();
+    }
+  }
+
+  function agendarAtualizacao(opts) {
+    clearTimeout(debounceTimer);
+    const merged = Object.assign({}, opts || {});
+    if (painelAberto() && !merged.forceRetract) merged.manterAberto = true;
+    debounceTimer = setTimeout(function () { atualizarGrafico(merged); }, 280);
+  }
+
+  function limparFiltros() {
+    document.getElementById('filtro-agrupamento').value = 'mes';
+    document.getElementById('filtro-por').value = 'vencimento';
+    document.getElementById('filtro-valor').value = 'saldo';
+    document.getElementById('modo-individual').checked = false;
+    document.getElementById('busca-planos').value = '';
+    filtrarPlanosBusca();
+    aplicarPeriodoCodigo('p3m');
+    document.querySelectorAll('.plano-checkbox').forEach(function (cb) { cb.checked = true; });
+    document.querySelectorAll('.gg-atalho-slot').forEach(function (b) { b.classList.remove('is-active'); });
+    document.getElementById('modo-tempo-real').checked = true;
+    document.getElementById('modo-tempo-historico').checked = false;
+    document.getElementById('modo-tempo-comparar').checked = false;
+    document.getElementById('filtro-data-referencia').value = isoDate(new Date());
+    syncModoTempoUi();
+    expandirPainel();
+    abrirPainelCompleto();
+    atualizarGrafico({ syncPlanos: true });
+  }
+
+  btnToggle.addEventListener('click', function () {
+    setPainelAberto(!painelAberto());
+  });
+  if (backdropEl) {
+    backdropEl.addEventListener('click', retrairPainel);
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && cpPopupAberto) {
+      e.preventDefault();
+      fecharCpPopup();
+      return;
+    }
+    if (e.key === 'Escape' && painelAberto()) retrairPainel();
+  });
+  document.getElementById('gg-cp-popup-fechar')?.addEventListener('click', fecharCpPopup);
+  document.getElementById('gg-cp-popup-backdrop')?.addEventListener('click', fecharCpPopup);
+  document.getElementById('btn-recolher-filtros').addEventListener('click', retrairPainel);
+  document.getElementById('btn-abrir-painel-filtros')?.addEventListener('click', abrirPainelCompleto);
+  document.getElementById('btn-atualizar-grafico').addEventListener('click', function () {
+    atualizarGrafico({ forceRetract: autoRetractEl.checked });
+  });
+  document.getElementById('btn-aplicar-manter').addEventListener('click', function () { atualizarGrafico({ manterAberto: true }); });
+  document.getElementById('btn-aplicar-fechar').addEventListener('click', function () {
+    atualizarGrafico({ fecharDepois: true });
+  });
+  document.getElementById('btn-limpar-filtros').addEventListener('click', limparFiltros);
+
+  autoRetractEl.addEventListener('change', function () {
+    try { localStorage.setItem(LS_AUTO_RETRAIR, autoRetractEl.checked ? '1' : '0'); } catch (_) {}
+  });
+
+  document.querySelectorAll('#gg-chips-periodo [data-periodo]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const cod = btn.getAttribute('data-periodo');
+      aplicarPeriodoCodigo(cod);
+      agendarAtualizacao({ forceRetract: autoRetractEl.checked });
+    });
+  });
+
+  document.querySelectorAll('.plano-checkbox').forEach(function (cb) {
+    cb.addEventListener('change', function (e) {
+      if (document.getElementById('modo-individual').checked && e.target.checked) {
+        document.querySelectorAll('.plano-checkbox').forEach(function (other) {
+          if (other !== e.target) other.checked = false;
+        });
+      }
+      agendarAtualizacao({ syncPlanos: false });
+    });
+  });
+
+  document.getElementById('modo-individual').addEventListener('change', function (e) {
+    if (e.target.checked) {
+      const checked = document.querySelectorAll('.plano-checkbox:checked');
+      if (checked.length > 1) {
+        for (let i = 1; i < checked.length; i++) checked[i].checked = false;
+      }
+    }
+    agendarAtualizacao();
+  });
+
+  document.getElementById('btn-marcar-todos').addEventListener('click', function () {
+    document.getElementById('modo-individual').checked = false;
+    document.querySelectorAll('.plano-checkbox').forEach(function (cb) { cb.checked = true; });
+    agendarAtualizacao();
+  });
+
+  document.getElementById('btn-desmarcar-todos').addEventListener('click', function () {
+    document.querySelectorAll('.plano-checkbox').forEach(function (cb) { cb.checked = false; });
+    agendarAtualizacao();
+  });
+
+  document.getElementById('busca-planos').addEventListener('input', filtrarPlanosBusca);
+
+  document.querySelectorAll('input[name="modo-tempo"]').forEach(function (el) {
+    el.addEventListener('change', function () {
+      syncModoTempoUi();
+      agendarAtualizacao();
+    });
+  });
+  document.getElementById('filtro-data-referencia').addEventListener('change', function () {
+    if (isModoHistorico() || isModoComparar()) agendarAtualizacao();
+  });
+
+  document.getElementById('filtro-periodo').addEventListener('change', function () {
+    syncChipsPeriodo(this.value);
+    if (this.value !== 'custom') aplicarPeriodoCodigo(this.value);
+    agendarAtualizacao();
+  });
+
+  ['data-inicial', 'data-final', 'filtro-agrupamento', 'filtro-por', 'filtro-valor'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', function () {
+      if (id.startsWith('data-')) {
+        document.getElementById('filtro-periodo').value = 'custom';
+        syncChipsPeriodo('custom');
+      }
+      agendarAtualizacao();
+    });
+  });
+
+  try {
+    const ar = localStorage.getItem(LS_AUTO_RETRAIR);
+    if (ar === '0') autoRetractEl.checked = false;
+    const pa = localStorage.getItem(LS_PAINEL_ABERTO);
+    if (pa === '1') setPainelAberto(true, false);
+    else setPainelAberto(false, false);
+  } catch (_) {
+    setPainelAberto(false, false);
+  }
+
+  document.getElementById('filtro-data-referencia').value = isoDate(new Date());
+  syncModoTempoUi();
+
+  const cpPopupEl = document.getElementById('gg-cp-popup');
+  if (cpPopupEl && cpPopupEl.parentElement !== document.body) {
+    document.body.appendChild(cpPopupEl);
+  }
+  canvas.addEventListener('click', function (evt) {
+    const idx = indicePontoNoClique(evt);
+    if (idx >= 0) abrirCpPopup(idx);
+  });
+
+  var resizeTimer = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+      ajustarScrollPlanos();
+      if (chartGastos) chartGastos.resize();
+    }, 80);
+  });
+
+  waitLibs(function () {
+    initChart();
+    if (window.AgroDatePicker) {
+      window.AgroDatePicker.bind(document, { accent: '#059669', accentSoft: '#ecfdf5' });
+    }
+    carregarAtalhosServidor(function () {
+      aplicarEstadoInicialGrafico();
+    });
+  });
+});
+</script>
+{% endblock %}

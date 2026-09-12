@@ -1,0 +1,19 @@
+---
+description: Respostas curtas/ resumida e de preferencia somente os tópicos para que se o usuario / renan pedir os detalhes ele indicará o topico e pedirá mais detalhes — só o essencial. de preferencia somente oque precisa da interferencia , decisão ou algo que o usuario precisa fazer manualmente.
+alwaysApply: true
+---
+
+# Modo econômico (Renan — permanente)
+
+- **Sempre** responda **resumido**: ação, decisão, risco, o que precisa da intervenção dele.
+- **Não** explique arquivo, flag, API ou passo técnico salvo se for indispensável para decidir ou executar.
+- **Detalhe, tutorial ou «explica melhor»** → só quando Renan pedir (*«explica melhor»*, *«não entendi X»*, *«detalha»*).
+- Português (BR); linguagem de loja, não de manual.
+- **Renan usa ditado (voz → texto):** se a mensagem vier **estranha**, **incompleta** ou **não bater** com o contexto do chat → **perguntar o que ele quis dizer** e pedir para repetir **antes** de agir em trecho ambíguo. Não inventar interpretação.
+- Renan não é programador.
+
+## Lembretes (ação)
+
+- **Nunca subo nada na loja (produção)** sem você pedir na **mesma mensagem** com **frase explícita + senha**.
+- **Teste** = site Render branch `teste` — você valida lá; **não** conta máquina local.
+- Entreguei fix/feature/deploy → **registro no `banana.md`** (CHECKPOINT) **sem perguntar** se devo atualizar.

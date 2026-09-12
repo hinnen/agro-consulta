@@ -12,6 +12,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Sum
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
@@ -40,6 +41,7 @@ from rh.models import (
 from produtos.views import obter_conexao_mongo
 from rh.services.fechamento import (
     garantir_fechamento_aberto,
+    garantir_fechamento_operacional,
     money_two_decimals,
     motivo_bloqueio_exclusao_fechamento,
     primeiro_dia_mes,
@@ -66,7 +68,7 @@ logger = logging.getLogger(__name__)
 
 def gestao_rh_required(view):
     @wraps(view)
-    @login_required(login_url="/admin/login/")
+    @login_required(login_url="/entrar/")
     def _wrapped(request, *args, **kwargs):
         if not usuario_rh_acesso_restrito(request.user):
             return HttpResponseForbidden("Acesso negado à gestão de RH.")
@@ -75,7 +77,7 @@ def gestao_rh_required(view):
     return _wrapped
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @ensure_csrf_cookie
 def rh_painel(request):
     return render(
@@ -85,14 +87,125 @@ def rh_painel(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @ensure_csrf_cookie
 def rh_operadores_pins(request):
-    funcionarios_outra = ["Matheus", "Estanislau"]
-    return render(
-        request,
-        "rh/rh_operadores_pins.html",
-        {"funcionarios_outra": funcionarios_outra},
+    return render(request, "rh/rh_operadores_pins.html", {})
+
+
+@login_required(login_url="/entrar/")
+@require_GET
+def api_rh_operadores_lista(request):
+    from base.operador_util import listar_operadores
+
+    incluir = str(request.GET.get("incluir_inativos") or "").strip() in ("1", "true", "sim")
+    return JsonResponse({"ok": True, "usuarios": listar_operadores(incluir_inativos=incluir)})
+
+
+@login_required(login_url="/entrar/")
+@require_GET
+def api_rh_operadores_buscar_rh(request):
+    from base.operador_util import buscar_funcionarios_rh
+
+    q = (request.GET.get("q") or "").strip()
+    return JsonResponse({"ok": True, "funcionarios": buscar_funcionarios_rh(q)})
+
+
+@login_required(login_url="/entrar/")
+@require_POST
+@csrf_protect
+def api_rh_operador_criar(request):
+    from base.operador_util import criar_operador
+
+    funcionario_id = request.POST.get("funcionario_id") or ""
+    nome = (request.POST.get("nome") or "").strip()
+    fid = None
+    if str(funcionario_id).strip().isdigit():
+        fid = int(funcionario_id)
+    ok, data, err = criar_operador(nome=nome, funcionario_id=fid)
+    if not ok:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse(
+        {
+            "ok": True,
+            "usuario": data,
+            "mensagem": "Operador criado com PIN inicial 1234. Na 1ª vez no caixa, a pessoa é obrigada a trocar.",
+        }
+    )
+
+
+@login_required(login_url="/entrar/")
+@require_POST
+@csrf_protect
+def api_rh_operador_vincular(request):
+    from base.operador_util import vincular_funcionario
+
+    try:
+        perfil_id = int(request.POST.get("perfil_id") or 0)
+        funcionario_id = int(request.POST.get("funcionario_id") or 0)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "erro": "Dados inválidos."}, status=400)
+    ok, data, err = vincular_funcionario(perfil_id, funcionario_id)
+    if not ok:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse({"ok": True, "usuario": data})
+
+
+@login_required(login_url="/entrar/")
+@require_POST
+@csrf_protect
+def api_rh_operador_desativar(request):
+    from base.operador_util import desativar_operador
+
+    try:
+        perfil_id = int(request.POST.get("perfil_id") or 0)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "erro": "Operador inválido."}, status=400)
+    ok, err = desativar_operador(perfil_id)
+    if not ok:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse({"ok": True, "mensagem": "Operador removido do caixa (ficha RH intacta)."})
+
+
+@login_required(login_url="/entrar/")
+@require_POST
+@csrf_protect
+def api_rh_operador_reativar(request):
+    from base.operador_util import reativar_operador
+
+    try:
+        perfil_id = int(request.POST.get("perfil_id") or 0)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "erro": "Operador inválido."}, status=400)
+    ok, err = reativar_operador(perfil_id)
+    if not ok:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse(
+        {
+            "ok": True,
+            "mensagem": "Reativado com PIN 1234. Na 1ª vez no caixa, a pessoa é obrigada a trocar.",
+        }
+    )
+
+
+@login_required(login_url="/entrar/")
+@require_POST
+@csrf_protect
+def api_rh_operador_reset_1234(request):
+    from base.operador_util import resetar_pin_bootstrap
+
+    try:
+        perfil_id = int(request.POST.get("perfil_id") or 0)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "erro": "Operador inválido."}, status=400)
+    ok, err = resetar_pin_bootstrap(perfil_id)
+    if not ok:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse(
+        {
+            "ok": True,
+            "mensagem": "PIN voltou para 1234. Na próxima vez no caixa, a pessoa é obrigada a cadastrar um PIN novo.",
+        }
     )
 
 
@@ -231,6 +344,8 @@ def rh_funcionario_ficha(request, pk: int):
     historico = f.historicos_salario.all()[:50]
     vales = f.vales.all()[:200]
     fechamentos = f.fechamentos.all()[:24]
+    comp_atual = primeiro_dia_mes(hoje)
+    folha_mes_atual = f.fechamentos.filter(competencia=comp_atual).first()
     sal_form = HistoricoSalarialForm()
     formas_c, bancos_c = montar_choices_formas_bancos(request.user, modo="erp")
     _, db_m = obter_conexao_mongo()
@@ -250,6 +365,7 @@ def rh_funcionario_ficha(request, pk: int):
             "historico_salario": historico,
             "vales": vales,
             "fechamentos": fechamentos,
+            "folha_mes_atual": folha_mes_atual,
             "sal_form": sal_form,
             "vale_form": vale_form,
             "vale_mongo_disponivel": db_m is not None,
@@ -266,7 +382,7 @@ def rh_funcionario_garantir_fechamento_mes_atual(request, pk: int):
     """Cria ou reabre folha do mês corrente sem depender de lançar vale antes."""
     f = get_object_or_404(Funcionario, pk=pk)
     hoje = timezone.localdate()
-    fech = garantir_fechamento_aberto(f, hoje)
+    fech = garantir_fechamento_operacional(f, hoje)
     messages.success(
         request,
         f"Folha {fech.competencia:%m/%Y} pronta. Lá você define o vencimento no financeiro (passo 2), se quiser.",
@@ -431,9 +547,6 @@ def rh_fechamento_detalhe(request, pk: int):
         FechamentoFolhaSimplificado.objects.select_related("funcionario", "funcionario__cliente_agro"),
         pk=pk,
     )
-    if f.status == FechamentoFolhaSimplificado.Status.ABERTO:
-        recalcular_fechamento(f)
-        f.refresh_from_db()
     f = (
         FechamentoFolhaSimplificado.objects.select_related(
             "funcionario",
@@ -504,12 +617,16 @@ def rh_fechamento_salvar(request, pk: int):
 def rh_fechamento_titulo_financeiro(request, pk: int):
     f = get_object_or_404(FechamentoFolhaSimplificado, pk=pk)
     formas_c, bancos_c = montar_choices_formas_bancos(request.user, modo="erp")
+    acao = (request.POST.get("titulo_acao") or "").strip()
+    post = request.POST.copy()
+    if acao == "sync_valores" and not (post.get("data_vencimento") or "").strip():
+        dv = f.data_vencimento_pagamento or ultimo_dia_mes(f.competencia)
+        post["data_vencimento"] = dv.isoformat()
     form = FechamentoTituloFinanceiroForm(
-        request.POST,
+        post,
         formas_choices=formas_c,
         bancos_choices=bancos_c,
     )
-    acao = (request.POST.get("titulo_acao") or "").strip()
     if not form.is_valid():
         for _field, errs in form.errors.items():
             for err in errs:
@@ -528,9 +645,12 @@ def rh_fechamento_titulo_financeiro(request, pk: int):
         f.save(update_fields=["data_vencimento_pagamento", "atualizado_em"])
         sr = sincronizar_valores_titulo_salario_mongo(f)
         if sr.get("ok"):
-            messages.success(request, "Valores do título sincronizados com a folha.")
-        else:
-            messages.error(request, sr.get("erro") or "Falha ao sincronizar.")
+            messages.success(
+                request,
+                "Conta a pagar alinhada com a folha. Confira em Lançamentos (Ctrl+F5).",
+            )
+            return redirect(f"{reverse('rh_fechamento_detalhe', kwargs={'pk': f.pk})}?rh_sync=ok")
+        messages.error(request, sr.get("erro") or "Falha ao sincronizar.")
         return redirect("rh_fechamento_detalhe", pk=f.pk)
 
     if acao != "publicar":
@@ -743,7 +863,7 @@ def rh_importar_vales(request):
     return redirect("rh_conferencia_tecnica")
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_rh_caixa_quem_leva(request):
     """

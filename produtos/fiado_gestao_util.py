@@ -12,7 +12,12 @@ from django.db.models import Count, Q, Sum
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
-from produtos.caixa_util import normalizar_forma_pagamento_caixa, obter_sessao_caixa_aberta_request
+from produtos.caixa_util import (
+    adotar_sessao_caixa_unica_aberta,
+    normalizar_forma_pagamento_caixa,
+    obter_sessao_caixa_aberta_request,
+    parse_valor_moeda_br,
+)
 from produtos.fiado_credito_util import (
     fiado_limite_padrao,
     montar_cronograma_fiado,
@@ -432,7 +437,9 @@ def baixar_titulo(
         mov = None
         if registrar_caixa:
             if sessao is None and request is not None:
-                sessao = obter_sessao_caixa_aberta_request(request)
+                sessao = obter_sessao_caixa_aberta_request(request) or adotar_sessao_caixa_unica_aberta(
+                    request
+                )
             if sessao is None:
                 raise ValueError("Abra o caixa neste navegador para registrar o recebimento.")
             obs_caixa = f"Baixa fiado título #{titulo.pk} — {titulo.cliente_nome[:40]}"
@@ -523,8 +530,11 @@ def baixar_cliente_fiado(
         raise ValueError("Cliente sem títulos em aberto.")
 
     saldo_cli = sum(t.saldo_aberto for t in titulos)
-    if v_total > saldo_cli + Decimal("0.009"):
+    # Tolerância centavos (JS float / arredondamento na tela — FL-028).
+    if v_total > saldo_cli + Decimal("0.02"):
         raise ValueError(f"Valor maior que o saldo em aberto (R$ {saldo_cli:.2f}).")
+    if v_total > saldo_cli:
+        v_total = saldo_cli
 
     nome_cli = titulos[0].cliente_nome
     baixas_ids: list[int] = []
@@ -532,7 +542,9 @@ def baixar_cliente_fiado(
     with transaction.atomic():
         sessao = None
         if registrar_caixa and request is not None:
-            sessao = obter_sessao_caixa_aberta_request(request)
+            sessao = obter_sessao_caixa_aberta_request(request) or adotar_sessao_caixa_unica_aberta(
+                request
+            )
             if sessao is None:
                 raise ValueError("Abra o caixa neste navegador para registrar o recebimento.")
             forma = normalizar_forma_pagamento_caixa(forma_pagamento or "Dinheiro")
@@ -644,6 +656,8 @@ def _q_titulos_cliente_gestao(
     """Filtro para títulos do cliente na gestão (popup / baixa), sem repetir por código ERP."""
     nome = (cliente_nome or "").strip()
     cod = (cliente_codigo or "").strip()
+    if not nome and cliente_agro_pk:
+        nome = nome_para_consulta_fiado("", cliente_agro_pk=cliente_agro_pk)
     if nome:
         from produtos.fiado_import_util import _norm_nome_fiado_match
 
@@ -679,6 +693,49 @@ def resumo_from_clientes_fiado(clientes: list[dict[str, Any]]) -> dict[str, Any]
         "titulos_abertos": titulos,
         "clientes_com_saldo": len(clientes),
         "total_saldo_aberto": float(total.quantize(Decimal("0.01"))),
+        **_kpis_mensais_fiado(),
+    }
+
+
+def _inicio_mes_local(ano: int, mes: int):
+    tz = timezone.get_current_timezone()
+    return timezone.make_aware(datetime(ano, mes, 1, 0, 0, 0), tz)
+
+
+def _kpis_mensais_fiado() -> dict[str, Any]:
+    hoje = timezone.localdate()
+    ini_este = _inicio_mes_local(hoje.year, hoje.month)
+    if hoje.month == 1:
+        ini_ant = _inicio_mes_local(hoje.year - 1, 12)
+    else:
+        ini_ant = _inicio_mes_local(hoje.year, hoje.month - 1)
+    if hoje.month == 12:
+        fim_este = _inicio_mes_local(hoje.year + 1, 1)
+    else:
+        fim_este = _inicio_mes_local(hoje.year, hoje.month + 1)
+
+    def _soma_dec(val) -> float:
+        return float(Decimal(str(val or 0)).quantize(Decimal("0.01")))
+
+    def soma_vendido(ini, fim) -> float:
+        v = (
+            FiadoTituloAgro.objects.exclude(situacao=FiadoTituloAgro.Situacao.CANCELADO)
+            .filter(criado_em__gte=ini, criado_em__lt=fim)
+            .aggregate(t=Coalesce(Sum("valor_bruto"), Decimal("0")))["t"]
+        )
+        return _soma_dec(v)
+
+    def soma_pago(ini, fim) -> float:
+        v = FiadoBaixaAgro.objects.filter(criado_em__gte=ini, criado_em__lt=fim).aggregate(
+            t=Coalesce(Sum("valor"), Decimal("0"))
+        )["t"]
+        return _soma_dec(v)
+
+    return {
+        "vendido_mes": soma_vendido(ini_este, fim_este),
+        "vendido_mes_anterior": soma_vendido(ini_ant, ini_este),
+        "pago_mes": soma_pago(ini_este, fim_este),
+        "pago_mes_anterior": soma_pago(ini_ant, ini_este),
     }
 
 
@@ -699,6 +756,7 @@ def resumo_gestao_fiado() -> dict[str, Any]:
         "titulos_abertos": int(agg["titulos_abertos"] or 0),
         "clientes_com_saldo": len(chaves),
         "total_saldo_aberto": float(total_saldo),
+        **_kpis_mensais_fiado(),
     }
 
 
@@ -825,6 +883,54 @@ def listar_clientes_fiado(
         g.pop("tem_parcial", None)
         g.pop("tem_vencido", None)
         out.append(g)
+    if qtxt and not apenas_com_saldo:
+        keys_existentes = {
+            _chave_grupo_fiado_cliente(
+                cliente_agro_id=g.get("cliente_agro_pk"),
+                cliente_nome=g.get("cliente_nome") or "",
+                cliente_codigo=g.get("cliente_codigo") or "",
+            )
+            for g in out
+        }
+        lim_padrao_busca = fiado_limite_padrao()
+        extra_cli = (
+            ClienteAgro.objects.filter(ativo=True)
+            .filter(
+                Q(nome__icontains=qtxt)
+                | Q(externo_id__icontains=qtxt)
+                | Q(cpf__icontains=qtxt)
+                | Q(whatsapp__icontains=qtxt)
+            )
+            .order_by("nome")[:40]
+        )
+        for c in extra_cli:
+            cod = (c.externo_id or "").strip()
+            key = _chave_grupo_fiado_cliente(
+                cliente_agro_id=c.pk, cliente_nome=c.nome or "", cliente_codigo=cod
+            )
+            if key in keys_existentes:
+                continue
+            lim_local = Decimal(str(c.limite_fiado_local or 0))
+            limite = lim_local if lim_local > 0 else lim_padrao_busca
+            out.append(
+                {
+                    "cliente_agro_pk": c.pk,
+                    "cliente_nome": c.nome,
+                    "cliente_codigo": cod,
+                    "saldo_aberto": 0.0,
+                    "valor_bruto": 0.0,
+                    "valor_pago": 0.0,
+                    "titulos_abertos": 0,
+                    "situacao_resumo": "zerado",
+                    "situacao_label": "Sem saldo",
+                    "limite": float(limite),
+                    "disponivel": float(limite),
+                    "vencimento_mais_antigo": "",
+                    "vencimento_mais_antigo_texto": "—",
+                    "limite_fiado_local": float(c.limite_fiado_local or 0),
+                }
+            )
+            keys_existentes.add(key)
     out.sort(key=lambda x: (-x["saldo_aberto"], x["cliente_nome"]))
     return out
 
@@ -996,8 +1102,10 @@ def baixar_titulos_selecionados(
     v_total = _dec(valor) if valor is not None else saldo_sel
     if v_total <= 0:
         raise ValueError("Informe um valor maior que zero.")
-    if v_total > saldo_sel + Decimal("0.009"):
+    if v_total > saldo_sel + Decimal("0.02"):
         raise ValueError(f"Valor maior que o saldo selecionado (R$ {saldo_sel:.2f}).")
+    if v_total > saldo_sel:
+        v_total = saldo_sel
 
     nome_cli = titulos[0].cliente_nome
     baixas_ids: list[int] = []
@@ -1005,7 +1113,9 @@ def baixar_titulos_selecionados(
     with transaction.atomic():
         sessao = None
         if registrar_caixa and request is not None:
-            sessao = obter_sessao_caixa_aberta_request(request)
+            sessao = obter_sessao_caixa_aberta_request(request) or adotar_sessao_caixa_unica_aberta(
+                request
+            )
             if sessao is None:
                 raise ValueError("Abra o caixa neste navegador para registrar o recebimento.")
             forma = normalizar_forma_pagamento_caixa(forma_pagamento or "Dinheiro")
@@ -1052,6 +1162,360 @@ def baixar_titulos_selecionados(
         "titulos_afetados": len(baixas_ids),
         "movimento_caixa_id": mov.pk if mov else None,
     }
+
+
+def _cliente_pdv_de_titulo_fiado(titulo: FiadoTituloAgro) -> dict[str, Any]:
+    cli = titulo.cliente_agro
+    out: dict[str, Any] = {
+        "nome": titulo.cliente_nome,
+        "cliente_agro_pk": titulo.cliente_agro_id,
+        "documento": "",
+        "telefone": "",
+        "id": "",
+    }
+    if cli:
+        out["cliente_agro_pk"] = cli.pk
+        out["nome"] = (cli.nome or titulo.cliente_nome or "").strip()
+        out["documento"] = str(getattr(cli, "documento", "") or getattr(cli, "cpf_cnpj", "") or "")[:32]
+        out["telefone"] = str(getattr(cli, "telefone", "") or "")[:32]
+        ext = (cli.externo_id or "").strip()
+        out["id"] = ext or f"agro:{cli.pk}"
+    else:
+        cod = (titulo.cliente_codigo or "").strip()
+        out["id"] = f"fiado:{cod or titulo.cliente_nome}"
+    return out
+
+
+def _resolver_titulos_cobranca_pdv(
+    *,
+    modo: str,
+    titulo_id: int | None = None,
+    titulo_ids: list[int] | None = None,
+    cliente_agro_pk: int | None = None,
+    cliente_nome: str = "",
+    cliente_codigo: str = "",
+    valor: Decimal | float | None = None,
+) -> tuple[list[FiadoTituloAgro], Decimal]:
+    modo_n = (modo or "titulo").strip().lower()
+    excl = (
+        FiadoTituloAgro.Situacao.QUITADO,
+        FiadoTituloAgro.Situacao.CANCELADO,
+    )
+    titulos: list[FiadoTituloAgro] = []
+    if modo_n == "titulo":
+        if not titulo_id:
+            raise ValueError("Informe o título.")
+        titulos = list(
+            FiadoTituloAgro.objects.filter(pk=int(titulo_id))
+            .exclude(situacao__in=excl)
+            .order_by("vencimento", "pk")
+        )
+    elif modo_n == "selecionados":
+        ids = [int(x) for x in (titulo_ids or []) if x]
+        if not ids:
+            raise ValueError("Selecione ao menos um título.")
+        titulos = list(
+            FiadoTituloAgro.objects.filter(pk__in=ids)
+            .exclude(situacao__in=excl)
+            .order_by("vencimento", "pk")
+        )
+        if len(titulos) != len(set(ids)):
+            raise ValueError("Um ou mais títulos não estão disponíveis para baixa.")
+    elif modo_n == "cliente":
+        filtros = _q_titulos_cliente_gestao(
+            cliente_agro_pk=cliente_agro_pk,
+            cliente_nome=(cliente_nome or "").strip(),
+            cliente_codigo=(cliente_codigo or "").strip(),
+        )
+        if not _q_fiado_tem_escopo(filtros):
+            raise ValueError("Informe o cliente.")
+        titulos = list(
+            FiadoTituloAgro.objects.filter(filtros)
+            .exclude(situacao__in=excl)
+            .order_by("vencimento", "pk")
+        )
+    else:
+        raise ValueError("Modo de cobrança inválido.")
+
+    if not titulos:
+        raise ValueError("Nenhum título em aberto para quitar.")
+
+    saldo = sum(t.saldo_aberto for t in titulos)
+    v_total = _dec(valor) if valor is not None else saldo
+    if v_total <= 0:
+        raise ValueError("Informe um valor maior que zero.")
+    if v_total > saldo + Decimal("0.02"):
+        raise ValueError(f"Valor maior que o saldo em aberto (R$ {saldo:.2f}).")
+    if v_total > saldo:
+        v_total = saldo
+    return titulos, v_total.quantize(Decimal("0.01"))
+
+
+def _parse_pagamentos_baixa_pdv(raw_list) -> tuple[list[dict[str, Any]], Decimal, str | None]:
+    from produtos.caixa_util import pagamento_linha_eh_mercado_pago
+
+    if not isinstance(raw_list, list) or not raw_list:
+        return [], Decimal("0"), "Informe ao menos uma forma de pagamento."
+    out: list[dict[str, Any]] = []
+    for row in raw_list[:24]:
+        if not isinstance(row, dict):
+            continue
+        forma = normalizar_forma_pagamento_caixa(
+            str(row.get("forma") or row.get("formaPagamento") or row.get("forma_pagamento") or "")
+        )
+        if forma == "Fiado":
+            return [], Decimal("0"), "Não é possível quitar fiado com nova venda fiado."
+        val = parse_valor_moeda_br(row.get("valor") or row.get("valorPagamento"))
+        if val is None or val <= 0:
+            continue
+        out.append(
+            {
+                "forma": forma,
+                "valor": val.quantize(Decimal("0.01")),
+                "maquina_id": str(row.get("maquinaId") or row.get("maquina_id") or "")[:40],
+                "mercado_pago": bool(pagamento_linha_eh_mercado_pago(row)),
+            }
+        )
+    if not out:
+        return [], Decimal("0"), "Nenhum pagamento válido."
+    soma = sum((r["valor"] for r in out), Decimal("0")).quantize(Decimal("0.01"))
+    return out, soma, None
+
+
+def _fiado_baixa_pdv_idempotente(client_request_id: str) -> dict[str, Any] | None:
+    cid = (client_request_id or "").strip()
+    if not cid:
+        return None
+    ev = (
+        FiadoEventoAgro.objects.filter(
+            tipo=FiadoEventoAgro.Tipo.BAIXA,
+            payload_json__client_request_id=cid,
+        )
+        .order_by("-pk")
+        .first()
+    )
+    if ev and isinstance(ev.payload_json, dict):
+        res = ev.payload_json.get("resultado")
+        if isinstance(res, dict):
+            return res
+    return None
+
+
+def montar_cobranca_pdv_fiado(
+    *,
+    modo: str,
+    titulo_id: int | None = None,
+    titulo_ids: list[int] | None = None,
+    cliente_agro_pk: int | None = None,
+    cliente_nome: str = "",
+    cliente_codigo: str = "",
+    valor: Decimal | float | None = None,
+) -> dict[str, Any]:
+    titulos, v_total = _resolver_titulos_cobranca_pdv(
+        modo=modo,
+        titulo_id=titulo_id,
+        titulo_ids=titulo_ids,
+        cliente_agro_pk=cliente_agro_pk,
+        cliente_nome=cliente_nome,
+        cliente_codigo=cliente_codigo,
+        valor=valor,
+    )
+    saldo_total = sum(t.saldo_aberto for t in titulos).quantize(Decimal("0.01"))
+    modo_n = (modo or "titulo").strip().lower()
+    t0 = titulos[0]
+    cliente = _cliente_pdv_de_titulo_fiado(t0)
+    titulos_out = [titulo_para_dict(t) for t in titulos]
+    if modo_n == "titulo":
+        resumo = f"{t0.numero_documento or 'Lançamento'} — {t0.cliente_nome}"
+    elif modo_n == "selecionados":
+        resumo = f"{t0.cliente_nome} — {len(titulos)} título(s)"
+    else:
+        resumo = f"{t0.cliente_nome} — saldo total"
+    return {
+        "ok": True,
+        "modo": modo_n,
+        "titulo_id": titulos[0].pk if modo_n == "titulo" else None,
+        "titulo_ids": [t.pk for t in titulos] if modo_n != "titulo" else [],
+        "valor_total": float(v_total),
+        "saldo_total": float(saldo_total),
+        "parcial": v_total < saldo_total - Decimal("0.02"),
+        "cliente": cliente,
+        "titulos": titulos_out,
+        "resumo_texto": resumo,
+    }
+
+
+def baixar_fiado_via_pdv(
+    *,
+    modo: str,
+    titulo_id: int | None = None,
+    titulo_ids: list[int] | None = None,
+    cliente_agro_pk: int | None = None,
+    cliente_nome: str = "",
+    cliente_codigo: str = "",
+    valor: Decimal | float | None = None,
+    pagamentos: list[dict],
+    request=None,
+    observacao: str = "",
+    client_request_id: str = "",
+    usuario: str = "",
+) -> dict[str, Any]:
+    idem = _fiado_baixa_pdv_idempotente(client_request_id)
+    if idem:
+        return {**idem, "ja_processado": True}
+
+    pag_norm, soma_pag, err_pag = _parse_pagamentos_baixa_pdv(pagamentos)
+    if err_pag:
+        raise ValueError(err_pag)
+
+    titulos, v_total = _resolver_titulos_cobranca_pdv(
+        modo=modo,
+        titulo_id=titulo_id,
+        titulo_ids=titulo_ids,
+        cliente_agro_pk=cliente_agro_pk,
+        cliente_nome=cliente_nome,
+        cliente_codigo=cliente_codigo,
+        valor=valor,
+    )
+    saldo_total = sum(t.saldo_aberto for t in titulos).quantize(Decimal("0.01"))
+    if abs(soma_pag - v_total) > Decimal("0.02"):
+        raise ValueError(
+            f"A soma dos pagamentos (R$ {soma_pag:.2f}) deve ser igual ao valor a quitar (R$ {v_total:.2f})."
+        )
+
+    user_label = usuario or _usuario_de_request(request)
+    nome_cli = titulos[0].cliente_nome
+    baixas_ids: list[int] = []
+    movimentos_ids: list[int] = []
+    titulos_afetados_set: set[int] = set()
+
+    with transaction.atomic():
+        sessao = None
+        if request is not None:
+            sessao = obter_sessao_caixa_aberta_request(request) or adotar_sessao_caixa_unica_aberta(
+                request
+            )
+            if sessao is None:
+                raise ValueError("Abra o caixa neste navegador para registrar o recebimento.")
+
+        user_mov = None
+        if request and getattr(request, "user", None) and request.user.is_authenticated:
+            user_mov = request.user
+
+        pool: list[tuple[MovimentoCaixa, Decimal]] = []
+        for p in pag_norm:
+            obs_caixa = f"Baixa fiado PDV — {nome_cli[:36]}"
+            if observacao:
+                obs_caixa = f"{obs_caixa} — {observacao}"[:500]
+            if p.get("mercado_pago"):
+                obs_caixa = f"{obs_caixa} [MP_POINT]"[:500]
+            mov = MovimentoCaixa.objects.create(
+                sessao_caixa=sessao,
+                tipo=MovimentoCaixa.Tipo.REFORCO,
+                forma_pagamento=p["forma"],
+                valor=p["valor"],
+                observacao=obs_caixa,
+                usuario=user_mov,
+            )
+            pool.append((mov, p["valor"]))
+            movimentos_ids.append(mov.pk)
+
+        restante_quitar = v_total
+        for titulo in titulos:
+            titulo = FiadoTituloAgro.objects.select_for_update().get(pk=titulo.pk)
+            if titulo.situacao in (
+                FiadoTituloAgro.Situacao.QUITADO,
+                FiadoTituloAgro.Situacao.CANCELADO,
+            ):
+                continue
+            saldo_t = titulo.saldo_aberto
+            while saldo_t > Decimal("0") and restante_quitar > Decimal("0") and pool:
+                mov, rest_mov = pool[0]
+                parcela = min(saldo_t, rest_mov, restante_quitar)
+                if parcela <= Decimal("0"):
+                    break
+                baixa = FiadoBaixaAgro.objects.create(
+                    titulo=titulo,
+                    valor=parcela,
+                    forma_pagamento=mov.forma_pagamento,
+                    sessao_caixa=sessao,
+                    movimento_caixa=mov,
+                    usuario=user_label,
+                    observacao=(observacao or "")[:500],
+                )
+                titulo.valor_pago = (titulo.valor_pago + parcela).quantize(Decimal("0.01"))
+                _atualizar_situacao_titulo(titulo)
+                titulo.save(update_fields=["valor_pago", "situacao", "atualizado_em"])
+                baixas_ids.append(baixa.pk)
+                titulos_afetados_set.add(titulo.pk)
+                saldo_t = (saldo_t - parcela).quantize(Decimal("0.01"))
+                restante_quitar = (restante_quitar - parcela).quantize(Decimal("0.01"))
+                rest_mov = (rest_mov - parcela).quantize(Decimal("0.01"))
+                if rest_mov <= Decimal("0"):
+                    pool.pop(0)
+                else:
+                    pool[0] = (mov, rest_mov)
+
+        if restante_quitar > Decimal("0.02"):
+            raise ValueError("Pagamentos não cobriram todos os títulos. Tente de novo.")
+
+    from produtos.fiado_recibo_util import saldo_aberto_cliente_fiado
+
+    t0 = titulos[0]
+    saldo_restante = saldo_aberto_cliente_fiado(
+        cliente_agro_pk=t0.cliente_agro_id,
+        cliente_nome=t0.cliente_nome,
+        cliente_codigo=t0.cliente_codigo or "",
+    )
+    formas_recibo = [{"forma": p["forma"], "valor": float(p["valor"])} for p in pag_norm]
+    parcial = v_total < saldo_total - Decimal("0.02")
+    resultado = {
+        "valor_aplicado": float(v_total),
+        "saldo_total": float(saldo_total),
+        "saldo_restante": float(saldo_restante),
+        "parcial": parcial,
+        "baixas_ids": baixas_ids,
+        "titulos_afetados": len(titulos_afetados_set),
+        "movimentos_caixa_ids": movimentos_ids,
+        "formas": formas_recibo,
+        "cliente_nome": t0.cliente_nome,
+        "cliente_agro_pk": t0.cliente_agro_id,
+    }
+    ev = registrar_evento_fiado(
+        FiadoEventoAgro.Tipo.BAIXA,
+        cliente_agro=t0.cliente_agro,
+        titulo=t0,
+        payload={
+            "origem": "pdv",
+            "modo": (modo or "").strip().lower(),
+            "recibo": True,
+            "valor_aplicado": resultado["valor_aplicado"],
+            "saldo_restante": resultado["saldo_restante"],
+            "parcial": parcial,
+            "baixas_ids": baixas_ids,
+            "titulos_afetados": len(titulos_afetados_set),
+            "movimentos_caixa_ids": movimentos_ids,
+            "formas": formas_recibo,
+            "cliente_nome": t0.cliente_nome,
+            "cliente_agro_pk": t0.cliente_agro_id,
+        },
+        usuario=user_label,
+    )
+    resultado["recibo_id"] = ev.pk
+    cid = (client_request_id or "").strip()
+    if cid:
+        registrar_evento_fiado(
+            FiadoEventoAgro.Tipo.BAIXA,
+            cliente_agro=t0.cliente_agro,
+            titulo=t0,
+            payload={
+                "origem": "pdv_idempotencia",
+                "client_request_id": cid,
+                "resultado": resultado,
+            },
+            usuario=user_label,
+        )
+    return resultado
 
 
 def export_backup_fiado() -> dict[str, Any]:

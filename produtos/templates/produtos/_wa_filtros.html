@@ -1,0 +1,15 @@
+{# Filtros da lista WhatsApp — horário (padrão) · espera · novas. #}
+<div class="wa-filtros" id="wa-filtros" role="toolbar" aria-label="Filtrar conversas">
+  <button type="button" class="wa-filtro is-on" data-filtro="hora" title="Por horário (padrão do Zap)" aria-pressed="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 1.5"/></svg>
+  </button>
+  <button type="button" class="wa-filtro wa-filtro-espera" data-filtro="espera" title="Aguardando resposta (laranja)" aria-pressed="false">
+    <span class="wa-filtro-dot" aria-hidden="true"></span>
+    <span class="wa-filtro-n is-zero" data-filtro-n="espera">0</span>
+  </button>
+  <button type="button" class="wa-filtro wa-filtro-nova" data-filtro="nova" title="Mensagens novas (verde)" aria-pressed="false">
+    <span class="wa-filtro-dot" aria-hidden="true"></span>
+    <span class="wa-filtro-n is-zero" data-filtro-n="nova">0</span>
+  </button>
+  <button type="button" id="wa-limpar-lista" class="wa-filtro" title="Apagar todas as conversas só no Agro (não apaga no celular)">Limpar</button>
+</div>
