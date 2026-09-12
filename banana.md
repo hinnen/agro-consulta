@@ -1295,7 +1295,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 5 | `PDV-ENT-HORARIO-OPCOES` | 🟢 **pronto para envio à produção** | **NÃO** | **16/16** |
 | 6 | `PDV-ENT-TROCO-ENTER` | 🟢 **pronto para envio à produção** | **NÃO** | **6/6** |
 | 7 | `PDV-ENT-OVERLAY-SPLIT` | 🟢 **pronto para envio à produção** | **SIM** `0130` | lote **61/61** · PIN **9973** |
-| 8 | `ETQ-LOTE-FILA` | 🟢 **pronto para envio à produção** | **NÃO** | **19/19** |
+| 8 | `ETQ-LOTE-FILA` | 🟢 **pronto para envio à produção** | **NÃO** | **78/78** · PIN **9973** |
 
 **Loja:** **v23.94**. Tip `teste` **v24.34+**. Cherry `#1`–`#8` + frase + senha — **não** merge `teste`.  
 **Prova lote PDV (#4–#7):** `verify_pdv_entrega_lote_1209_path.py` **61/61**.  
