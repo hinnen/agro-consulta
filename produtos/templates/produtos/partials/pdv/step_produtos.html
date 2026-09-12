@@ -183,10 +183,10 @@
     </aside>
   </div>
 
-  <dialog id="pdv-entregas-pendentes-modal" class="pdv-entregas-modal w-[min(96vw,76rem)] max-h-[min(92dvh,52rem)] rounded-2xl border-2 border-orange-300 bg-white p-0 shadow-2xl backdrop:bg-slate-950/65">
+  <dialog id="pdv-entregas-pendentes-modal" class="pdv-entregas-modal w-[min(98vw,88rem)] max-h-[min(92dvh,52rem)] rounded-2xl border-2 border-orange-300 bg-white p-0 shadow-2xl backdrop:bg-slate-950/65">
     <style>
       #pdv-entregas-pendentes-modal details.pdv-entregas-help summary::-webkit-details-marker { display: none; }
-      #pdv-entregas-pendentes-modal.pdv-entregas-modal { width: min(96vw, 76rem); max-height: min(92dvh, 52rem); }
+      #pdv-entregas-pendentes-modal.pdv-entregas-modal { width: min(98vw, 88rem); max-height: min(92dvh, 52rem); position: relative; }
       #pdv-entregas-pendentes-modal .pdv-entregas-shell { max-height: min(92dvh, 52rem); }
       #pdv-entregas-pendentes-modal .pdv-entregas-split {
         display: grid;
@@ -205,8 +205,64 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        padding: 0.55rem 0.75rem;
+        height: 2.75rem;
+        min-height: 2.75rem;
+        max-height: 2.75rem;
+        padding: 0 0.75rem;
         border-bottom: 2px solid #e2e8f0;
+        box-sizing: border-box;
+      }
+      #pdv-entregas-pendentes-modal .pdv-entrega-card-acoes {
+        width: min(42%, 12.75rem);
+        min-width: 8rem;
+        max-width: 42%;
+        box-sizing: border-box;
+        overflow: hidden;
+      }
+      #pdv-entregas-pendentes-modal .pdv-entrega-card-acoes > * {
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+      /* Dialog força botão grande (UI global) — aqui precisa caber Adiar|Cancelar lado a lado. */
+      #pdv-entregas-pendentes-modal .pdv-entrega-card-acoes button {
+        min-height: 1.7rem !important;
+        font-size: 0.62rem !important;
+        line-height: 1.1 !important;
+        padding-top: 0.2rem !important;
+        padding-bottom: 0.2rem !important;
+        padding-left: 0.2rem !important;
+        padding-right: 0.2rem !important;
+        white-space: nowrap !important;
+        overflow: hidden;
+      }
+      #pdv-entregas-pendentes-modal .pdv-entrega-adiar-cancelar {
+        display: flex;
+        width: 100%;
+        min-width: 0;
+        gap: 0.25rem;
+      }
+      #pdv-entregas-pendentes-modal .pdv-entrega-adiar-cancelar > button {
+        flex: 1 1 0;
+        min-width: 0 !important;
+        max-width: none !important;
+      }
+      #pdv-entregas-pendentes-modal .pdv-entrega-card-badges {
+        flex-wrap: wrap;
+        white-space: normal;
+        overflow: visible;
+        max-width: 100%;
+        row-gap: 0.2rem;
+      }
+      #pdv-entregas-pendentes-modal .pdv-entrega-card-badges > span,
+      #pdv-entregas-pendentes-modal .pdv-entrega-card-badges > button {
+        flex-shrink: 0;
+        white-space: nowrap;
+      }
+      #pdv-entregas-pendentes-modal .pdv-entrega-card {
+        margin-bottom: 0.45rem;
+        padding: 0.55rem 0.65rem;
+        overflow: hidden;
+        box-sizing: border-box;
       }
       #pdv-entregas-pendentes-modal .pdv-entregas-col--pagar .pdv-entregas-col-head { background: #fff7ed; }
       #pdv-entregas-pendentes-modal .pdv-entregas-col--pagas .pdv-entregas-col-head { background: #ecfdf5; }
@@ -214,10 +270,6 @@
         min-height: 0;
         flex: 1;
         overflow-y: auto;
-        padding: 0.55rem 0.65rem;
-      }
-      #pdv-entregas-pendentes-modal .pdv-entrega-card {
-        margin-bottom: 0.45rem;
         padding: 0.55rem 0.65rem;
       }
       @media (max-width: 52rem) {
@@ -232,13 +284,15 @@
           <h3 class="text-base font-black text-slate-900">Controle de entregas</h3>
         </div>
         <div class="flex shrink-0 items-center gap-1.5">
+          <button type="button" id="pdv-entregas-adiar-alerta" class="hidden rounded-xl border-2 border-amber-500 bg-amber-50 px-3 py-1.5 text-[10px] font-black uppercase text-amber-950 shadow-sm hover:bg-amber-100" title="Adia o piscar e o bip do horário por 1 hora">Alerta +1h</button>
+          <button type="button" id="pdv-entregas-rota" class="rounded-xl border-2 border-emerald-600 bg-emerald-600 px-3 py-1.5 text-[10px] font-black uppercase text-white shadow-sm hover:bg-emerald-700" title="Monta rota no Maps com A pagar + Pagas">Rota</button>
           <details class="pdv-entregas-help relative">
             <summary class="cursor-pointer list-none flex h-9 w-9 items-center justify-center rounded-xl border-2 border-orange-300 bg-white text-sm font-black text-orange-900 shadow-sm hover:bg-orange-50 select-none" title="Ajuda — entregas">?</summary>
             <div class="absolute right-0 z-20 mt-1 w-[min(92vw,22rem)] rounded-xl border-2 border-orange-300 bg-white px-3 py-2.5 text-xs font-semibold leading-snug text-slate-700 shadow-xl">
               <p><strong>A pagar</strong> (esquerda): cobrança na entrega. Catálogo sem dono → <strong>Assumir</strong>.</p>
               <p class="mt-2"><strong>Pagas na loja</strong> (direita): já cobradas no caixa. <strong>Concluir</strong> some da lista. Se não concluir, saem sozinhas em <strong>24 h</strong>. <strong>Não</strong> travam o fechar caixa.</p>
-              <p class="mt-2"><strong>Imprimir</strong> reimprime as vias. <strong>Maps</strong> abre o destino. Marque várias e <strong>Rota</strong>.</p>
-              <p class="mt-2"><strong>Adiar 1 dia</strong> (PIN) só nas que ainda precisam de pagamento.</p>
+              <p class="mt-2"><strong>Rota</strong> (topo): Maps. Em A pagar, marque □ ao lado de <strong>Maps</strong>; em Pagas use <strong>Incluir</strong>. Sem marca = todas.</p>
+              <p class="mt-2"><strong>Imprimir</strong> reimprime as vias. <strong>Maps</strong> abre o destino. <strong>Adiar</strong> (PIN) só nas que ainda precisam de pagamento.</p>
             </div>
           </details>
           <button type="button" id="pdv-entregas-pendentes-close" class="rounded-xl border-2 border-slate-200 bg-white px-3 py-1.5 text-[10px] font-black uppercase text-slate-700">Fechar</button>
@@ -247,17 +301,40 @@
       <div class="pdv-entregas-split">
         <section class="pdv-entregas-col pdv-entregas-col--pagar" aria-label="A pagar">
           <div class="pdv-entregas-col-head">
-            <p id="pdv-entregas-tab-pagar" class="m-0 text-[11px] font-black uppercase tracking-wide text-orange-950">A pagar <span id="pdv-entregas-tab-pagar-n" class="tabular-nums">0</span></p>
+            <p id="pdv-entregas-tab-pagar" class="m-0 min-w-0 flex-1 text-[11px] font-black uppercase leading-none tracking-wide text-orange-950">A pagar <span id="pdv-entregas-tab-pagar-n" class="tabular-nums">0</span></p>
           </div>
           <div id="pdv-entregas-list-pagar" class="pdv-entregas-col-list pdv-wizard-scroll text-sm"></div>
         </section>
         <section class="pdv-entregas-col pdv-entregas-col--pagas" aria-label="Pagas na loja">
           <div class="pdv-entregas-col-head">
-            <p id="pdv-entregas-tab-pagas" class="m-0 min-w-0 flex-1 text-[11px] font-black uppercase tracking-wide text-emerald-950">Pagas na loja <span id="pdv-entregas-tab-pagas-n" class="tabular-nums">0</span></p>
-            <button type="button" id="pdv-entregas-rota-pagas" class="rounded-lg border-2 border-emerald-600 bg-emerald-600 px-3 py-1.5 text-[10px] font-black uppercase text-white">Rota</button>
+            <p id="pdv-entregas-tab-pagas" class="m-0 min-w-0 flex-1 text-[11px] font-black uppercase leading-none tracking-wide text-emerald-950">Pagas na loja <span id="pdv-entregas-tab-pagas-n" class="tabular-nums">0</span></p>
           </div>
           <div id="pdv-entregas-list-pagas" class="pdv-entregas-col-list pdv-wizard-scroll text-sm"></div>
         </section>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="pdv-entrega-mudar-loja-modal" class="w-[min(96vw,28rem)] rounded-2xl border-2 border-sky-400 bg-white p-0 shadow-2xl backdrop:bg-slate-950/65">
+    <div class="border-b border-sky-100 bg-gradient-to-r from-sky-600 to-indigo-600 px-4 py-3">
+      <p class="m-0 text-[11px] font-black uppercase text-white/90">Mudar loja</p>
+      <p id="pdv-entrega-mudar-loja-titulo" class="m-0 mt-0.5 text-sm font-black text-white">Centro ou Vila</p>
+    </div>
+    <div class="space-y-3 p-4">
+      <p class="m-0 text-[11px] font-bold text-slate-600">Destino</p>
+      <div class="grid grid-cols-2 gap-2">
+        <button type="button" id="pdv-ml-destino-centro" class="rounded-xl border-2 border-sky-400 bg-sky-50 px-2 py-2.5 text-[11px] font-black uppercase text-sky-950">Centro</button>
+        <button type="button" id="pdv-ml-destino-vila" class="rounded-xl border-2 border-violet-400 bg-violet-50 px-2 py-2.5 text-[11px] font-black uppercase text-violet-950">Vila</button>
+      </div>
+      <p class="m-0 text-[11px] font-bold text-slate-600">O que muda</p>
+      <div class="grid grid-cols-1 gap-1.5">
+        <button type="button" data-escopo="entrega" class="pdv-ml-escopo rounded-xl border-2 border-sky-500 bg-white px-3 py-2 text-left text-[11px] font-black uppercase text-sky-950 hover:bg-sky-50">Só entrega <span class="font-bold normal-case text-slate-500">(quem sai)</span></button>
+        <button type="button" data-escopo="pagamento" class="pdv-ml-escopo rounded-xl border-2 border-amber-500 bg-white px-3 py-2 text-left text-[11px] font-black uppercase text-amber-950 hover:bg-amber-50">Só pagamento <span class="font-bold normal-case text-slate-500">(caixa)</span></button>
+        <button type="button" data-escopo="ambos" class="pdv-ml-escopo rounded-xl border-2 border-emerald-600 bg-emerald-50 px-3 py-2 text-left text-[11px] font-black uppercase text-emerald-950 hover:bg-emerald-100">As duas</button>
+      </div>
+      <p id="pdv-entrega-mudar-loja-hint" class="m-0 text-[10px] font-semibold text-slate-500">Entrega = quem sai · Pagamento = qual caixa fecha.</p>
+      <div class="flex justify-end gap-2 pt-1">
+        <button type="button" id="pdv-ml-cancelar" class="rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-[10px] font-black uppercase text-slate-700">Cancelar</button>
       </div>
     </div>
   </dialog>

@@ -2131,6 +2131,10 @@
     background: #25D366 !important;
     color: #fff !important;
   }
+  #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--wa.is-off {
+    background: #b91c1c !important;
+    border-color: #7f1d1d !important;
+  }
   #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn:hover,
   #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--emerald:hover,
   #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--amber:hover,
@@ -2191,6 +2195,29 @@
     background: #fff !important;
     color: #c2410c !important;
   }
+
+  #pdv-topbar-compact #pdv-topbar-entregas-btn.pdv-wiz-topbar-btn--entregas-urgente {
+    border-color: #dc2626 !important;
+    background: linear-gradient(90deg, #dc2626, #ea580c) !important;
+    color: #fff !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.4), 0 6px 18px rgba(234, 88, 12, 0.45) !important;
+    animation: pdv-entregas-urgente-pulse 0.45s ease-in-out infinite;
+  }
+  #pdv-topbar-compact #pdv-topbar-entregas-btn.pdv-wiz-topbar-btn--entregas-urgente .pdv-topbar-entregas-count {
+    background: #fff !important;
+    color: #b91c1c !important;
+  }
+  #pdv-topbar-compact #pdv-topbar-entregas-btn.pdv-wiz-topbar-btn--entregas-hora-proxima {
+    border-color: #f59e0b !important;
+    background: linear-gradient(90deg, #d97706, #ea580c) !important;
+    color: #fff !important;
+    animation: pdv-entregas-catalogo-pulse 0.7s ease-in-out infinite;
+  }
+  @keyframes pdv-entregas-urgente-pulse {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.1); filter: brightness(1.12); }
+  }
+
   @keyframes pdv-entregas-catalogo-pulse {
     0%, 100% { transform: scale(1); filter: brightness(1); }
     50% { transform: scale(1.06); filter: brightness(1.08); }
@@ -2679,6 +2706,26 @@
     width: 1.35rem;
     height: 1.35rem;
   }
+  .pdv-wiz-topbar-btn--wa.is-off {
+    background: #b91c1c !important;
+    border-color: #7f1d1d !important;
+  }
+  .pdv-wiz-topbar-btn--wa .pdv-wa-flag {
+    position: absolute;
+    top: -0.2rem;
+    right: -0.25rem;
+    min-width: 1.15rem;
+    height: 1.15rem;
+    padding: 0 0.22rem;
+    border-radius: 999px;
+    background: #111827;
+    color: #fff;
+    font-size: 0.58rem;
+    font-weight: 900;
+    line-height: 1.15rem;
+    text-align: center;
+  }
+  .pdv-wiz-topbar-btn--wa { position: relative; }
   .pdv-wiz-topbar-btn--amber {
     border-color: #fbbf24 !important;
     background: #fef3c7 !important;
@@ -3934,7 +3981,7 @@
               <a href="{% url 'fiado_gestao' %}?from=pdv" id="pdv-topbar-fiado-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" data-pdv-topbar-key="fiado" data-pdv-topbar-node="fiado" title="Gestão crédito loja — saldos em aberto e baixa">Fiado</a>
             </div>
             <div class="pdv-wiz-topbar-actions" id="pdv-topbar-actions">
-              <button type="button" id="pdv-topbar-whatsapp-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--wa" data-pdv-topbar-key="whatsapp" title="WhatsApp das lojas">
+              <button type="button" id="pdv-topbar-whatsapp-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--wa" data-pdv-topbar-key="whatsapp" data-wa-chat-url="{% url 'atendimento_whatsapp' %}" title="WhatsApp das lojas — atendimento">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M17.5 14.4c-.3-.1-1.6-.8-1.8-.9-.2-.1-.4-.1-.6.1-.2.3-.7.9-.8 1-.2.1-.3.2-.6.1-.3-.1-1.2-.4-2.2-1.4-.8-.7-1.4-1.6-1.5-1.9-.2-.3 0-.4.1-.6l.4-.5c.1-.1.2-.3.2-.4 0-.2 0-.3 0-.4 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.6.3-.2.3-.8.8-.8 1.9 0 1.1.8 2.2.9 2.3.1.2 1.6 2.5 3.9 3.5.5.2 1 .4 1.3.5.6.2 1.1.2 1.5.1.5-.1 1.6-.6 1.8-1.3.2-.6.2-1.2.1-1.3-.1 0-.3-.1-.6-.2z"/><path fill="currentColor" d="M12.04 2C6.5 2 2 6.4 2 11.8c0 1.7.5 3.4 1.3 4.9L2 22l5.4-1.4c1.4.8 3 .1 4.6.8 5.5 0 10-4.4 10-9.8S17.5 2 12.04 2zm0 17.9c-1.5 0-2.9-.4-4.1-1.1l-.3-.2-3.2.8.9-3.1-.2-.3c-.8-1.3-1.3-2.7-1.3-4.2 0-4.5 3.7-8.1 8.2-8.1s8.2 3.6 8.2 8.1-3.7 8.1-8.2 8.1z"/></svg>
                 <span class="sr-only">WhatsApp</span>
               </button>
@@ -4488,13 +4535,13 @@
   </div>
 </div>
 
-<div id="alerta-lembrete" class="fixed bottom-4 right-4 z-[126] hidden max-w-[min(24rem,92vw)] rounded-2xl border-[3px] border-orange-500 bg-white p-4 shadow-2xl" role="alert" aria-live="assertive">
+<div id="alerta-lembrete" class="fixed left-1/2 top-4 z-[126] hidden max-h-[min(40vh,22rem)] w-[min(24rem,92vw)] -translate-x-1/2 overflow-auto rounded-2xl border-[3px] border-orange-500 bg-white p-4 shadow-2xl" role="alert" aria-live="assertive">
   <div class="flex items-start gap-3">
     <div class="text-2xl" aria-hidden="true">⏰</div>
-    <div class="min-w-0">
+    <div class="min-w-0 flex-1">
       <div id="alerta-lembrete-titulo" class="text-sm font-black uppercase text-slate-800">Lembrete do caixa</div>
       <div id="alerta-lembrete-texto" class="mt-1 break-words text-sm font-bold text-slate-600"></div>
-      <div class="mt-3 flex gap-2">
+      <div class="mt-3 flex flex-wrap gap-2">
         <button type="button" id="alerta-lembrete-ok" class="rounded-lg bg-orange-500 px-3 py-1.5 text-[11px] font-black uppercase text-white hover:bg-orange-600">Ok</button>
       </div>
     </div>

@@ -396,17 +396,18 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - VersÃ£o do commit no Render (nÃ£o hardcoded).
 - Card **Validade** destaca vermelho se produto vencido.
 - Card **Lucro LÃ­quido** (no lugar de Novos Clientes): vencimento Â· bruto + pago Â· mesmo DRE do Resumo.
+- **Resumo — fatia OUTROS (07/09):** no donut/KPIs, o bucket interno `despesas_financeiras` aparece como **OUTROS** (não «Financeiras») — ativo / tarifa / «a conferir»; juro e pagamento de empréstimo ficam fora.
 - **Filtro Números** (10/08): **Centro + Vila** (padrão) · Centro · Vila — independente do seletor PDV (Centro/Vila do caixa).
 - **Meta C / média base (29/08):** mesma fórmula do Centro (3 meses + dia da semana + ocorrência). **Vila** ignora dias antes de **20/07/2026**. **Centro + Vila** = **soma** das metas. BI passa filtro Números na série compare. Prova: `scripts/verify_meta_c_vila_abertura.py`.
 - **Card Validade BI (18/08):** vencidos / no mês / conferir **iguais** nas 3 opções do filtro Números (contagem empresa); clique **Conferir vencidos** abre relatório **Todas + vencidos**. Baixa por loja = passo 2 pendente.
 - **Topo BI compacto (10/08):** sem «Gestão Estratégica» · sem botão Orç. (F2 no teclado/Menu) · **Trava** embaixo de Loja.
 - Gastos por plano de conta: oculto por padrÃ£o (`AGRO_DASHBOARD_GASTOS_PLANO=true` no `.env`).
 - Template: `produtos/templates/produtos/dashboard_gerencial.html`.
-- **Central de Relatórios** (`/relatorios/`): mais vendidos · por grupo · ABC · margem · validade · etc. Filtros cat/sub 1–4 (OR no campo, AND entre campos) · agrupar · Excel. Contrato: `vendas_por_grupo_relatorio()` (Central) vs `vendas_por_grupo()` lista (DRE/BI). **500 cat/sub (ago/26) → Live v18.26.1** — Renan OK 28/08 · CHECKPOINT `relatórios`.
+- **Central de Relatórios** (`/relatorios/`): mais vendidos · por grupo · ABC · margem · validade · **quem já comprou** (produto/categoria → clientes + Zap) · etc. Filtros cat/sub 1–4 (OR no campo, AND entre campos) · agrupar · Excel. Contrato: `vendas_por_grupo_relatorio()` (Central) vs `vendas_por_grupo()` lista (DRE/BI). **500 cat/sub (ago/26) → Live v18.26.1** — Renan OK 28/08 · CHECKPOINT `relatórios` · `REL-QUEM-COMPROU` (08/09).
 
 ### 4.2 PDV â€” ponto de venda
 
-**Duas interfaces:**
+- **Orçamento PDV (02/09):** grava no servidor (`PDV-ORC-SAVE` · Live v21.06). Lista = **só o cliente da tela**, sync online multi-PC (`PDV-ORC-POR-CLIENTE` · **Live v21.08**).
 
 
 | Tela                  | URL              | JS principal                    |
@@ -423,16 +424,16 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Regras UX jÃ¡ decididas:**
 
-- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · loja v20.22 · hotfix `PDV-PIN-CHAT-TEMPEDIDO` v20.33):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · «ainda sou eu» ~45s · descanso ~3 min · abrir PDV sem PIN · renovar PIN no chat **não** abre popup «tem pedido».
+- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · loja v20.22 · hotfix chat v20.33 · `PIN-VENDA-10S` tip v21.32):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · Pedir/chat ~45s · **fechar venda ~10s** (🟡 pronto envio) · descanso ~3 min · abrir PDV sem PIN.
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08 · **Mais ⋯** 31/08 · `PDV-TOPBAR-MAIS` v20.34 · **layout** 31/08 · `PDV-TOPBAR-LAYOUT`):** faixa quente padrão = Pedir loja · Vendas · Uso loja · Entregas · Caixa · **Fiado** · Nova venda (Pedir/Uso = cinza slate; **Mais ⋯** laranja destaque). **Mais ⋯** = Saldo Vila · Repasse · Pesar · PIN + **Organizar atalhos** (quente/frio em Postgres `PdvTopbarLayoutAgro` · migrate `0110` · PIN ao salvar). Contagem diária PG (`0107`). **Ícone WhatsApp** na faixa de ações (ao lado de Nova venda) → aviso **Em breve…** (`PDV-WA-TOPBAR-BREVE`).
 - **Pedir loja (15/08 · +cupom/qtd/escrito 29/08 · +escolha/forçada 30/08):** overlay Pedir/Recebidos/Enviados/Histórico · **pedido escrito** · obs · cupom 80mm · qtd · Transferir rosa · PIN · furado · bip · migrate `0018`+`0020`. **Clique topbar** → escolha: **Pedir** (fila) ou **Transferência forçada** (estoque agora, overlay PDV = Logística; PIN na confirmação; Esc volta à escolha). Badge só conta pedidos.
-- **Chat lojas (29/08 · `PDV-CHAT-LOJA` + `PDV-CHAT-OPEN`):** aba **Chat** colada embaixo · grupo único · som + badge/pisca · sem Processando · Postgres `ChatLojaMensagemAgro` · migrate `0105` · **Live v19.63** (dock→`body`, janela abre).
+- **Chat lojas (29/08 · `PDV-CHAT-LOJA` + `PDV-CHAT-OPEN` · 12/09 `PDV-CHAT-ENTREGA-DOCK`):** aba **Chat** colada embaixo · grupo único · som + badge/pisca · sem Processando · Postgres `ChatLojaMensagemAgro` · migrate `0105` · **Live v19.63** (dock→`body`, janela abre). **Entrega:** aba depois do F7 (não tapa Voltar/F7).
 - **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
 - **Perf. animaÃ§Ãµes (decisÃ£o Renan, 2026-06):** acÃºmulo de efeitos no app inteiro *pode* pesar em PC fraco â€” mas **este FAB Ã© impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA pÃ¡gina inteira, listas grandes, Mongo, JS do PDV/LanÃ§amentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
 - **Interruptor efeitos (2026-06-19):** botÃ£o minÃºsculo **Â«FX on / FX offÂ»** acima do FAB PDV (`localStorage` `agro_reduzir_efeitos_v1`). **FX off** â†’ classe `html.agro-fx-reduced`: desliga arco-Ã­ris/pulso do FAB, pulso do card **Validade** vencida, pulso decorativo PDV/OrÃ§amento no BI. **NÃ£o** desliga: barra de loading, feedback de scanner, spinners de Â«salvandoÂ» (Ãºteis). API JS: `agroSetFxReduced(true|false)`, `agroFxReduced()`.
-- Entrega wizard **F3:** pagamento local â†’ endereÃ§o â†’ taxa â†’ meio â†’ troco â†’ **Conferir entrega** (resumo com Editar por bloco). Frete grÃ¡tis por endereÃ§o no futuro pula popup taxa.
+- Entrega wizard **F3:** pagamento local â†’ endereÃ§o â†’ taxa â†’ meio â†’ troco â†’ **Conferir entrega**. **Horário (`PDV-ENT-HORARIO-OPCOES`):** 9h–17h obrigatório. **Troco (`PDV-ENT-TROCO-ENTER`):** Enter vazio = total. **Overlay Entregas (`PDV-ENT-OVERLAY-SPLIT`):** maior · **A pagar | Pagas** lado a lado · scroll · **Concluir** some da lista (senão 24 h).
 - EndereÃ§o oculto atÃ© escolher pagamento na entrega ou na loja.
 - Barra de estoque: atualizaÃ§Ã£o manual + horÃ¡rio + standby.
 
@@ -442,7 +443,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Cadastro rápido PDV (04/08 · v13.82):** botão **+ Produto** na busca · bipar → checa EAN → lookup internet opcional · cria Agro (UN) · card **PDV conferir** no Cadastro ERP · VERIFY_OK.
 
-**Rações PDV (09/08 · loja v15.26 · teste UX):** botão **Rações** → tipo → marca (ou Todas) → tamanho → **lista grande** (menor→maior preço) → Adicionar / Adicionar todas / Fechar. Não vai direto ao carrinho. Linha **zebra cinza fraca** (sem cor da marca) · foto miniatura (clique abre grande) · “No carrinho” na coluna Ação. Esc fecha (não fecha se a foto estiver aberta). Lê Categoria/Sub 1/Sub 2/Peso do Agro na hora. Cadastro: Cat. `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 + Peso `1`/`2,5`/`5`/`10`/`15`/`20`/`25`/`pacote`.
+**Rações PDV (09/08 · loja v15.26 · teste UX · 12/09 `PDV-RACOES-MARCA-VAZIA`):** botão **Rações** → tipo → marca (ou Todas) → tamanho → **lista grande** (menor→maior preço) → Adicionar / Adicionar todas / Fechar. Não vai direto ao carrinho. Linha **zebra cinza fraca** (sem cor da marca) · foto miniatura (clique abre grande) · “No carrinho” na coluna Ação. Esc fecha (não fecha se a foto estiver aberta). Lê Categoria/Sub 1/Sub 2/Peso do Agro na hora. Cadastro: Cat. `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 + Peso `1`/`2,5`/`5`/`10`/`15`/`20`/`25`/`pacote`. **Marca sem ração com peso some**; cadastrar peso depois traz a marca de volta.
 
 **Balança granel (16/08 · teste v16.71 · hotfix loja v17.82):** botão **Pesar** / **F10** → overlay · Web Serial Chrome · Urano **USE-P2 / USE-PII** · COM4 **9600 8N2** (8N1 ok neste USB) · dump vazio `ESC N 1` + `0,00` · dump ao vivo `0,478 kg` (não o ESC N 1 auxiliar) · códigos **1–199** · auto-add ao estabilizar · prato vazio libera de novo · SEM PORTA simula o dump · Unidade **KG** · migrate `0089` (já na loja).
 
@@ -546,13 +547,14 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 - Sync ERP/Mongo â†’ Agro: `produtos/services_clientes_sync.py`, botÃ£o na lista, comando `sincronizar_clientes_agro`.
 - `**editado_local=True` nÃ£o Ã© sobrescrito** na sync.
 - PDV lista/busca clientes **sÃ³ no Agro** (`api/listar-clientes/`, `api/buscar-clientes/`).
-- **Editar cadastro (PDV):** modal sem scroll; telefone duplicado = popup no meio (abrir o outro ou **limpar o número** dali, com PIN). **Excluir** (bloqueia fiado em aberto e vínculo RH) + transferir cashback/vale. **Vale crédito:** clicar no saldo ou no cadastro — pagar (entra no caixa) ou manual (sem caixa). Log em `ClienteAgroEventoAgro`. Mesmas ações em `/clientes/…/editar/`.
+- **Editar cadastro (PDV):** modal sem scroll; telefone duplicado = popup no meio (abrir o outro ou **limpar o número** dali, com PIN) — overlay acao **z 250** acima do EDITAR **240** (`CLI-DUP-TEL-Z` · 10/09). **Excluir** (bloqueia fiado em aberto e vínculo RH) + transferir cashback/vale. **Vale crédito:** clicar no saldo ou no cadastro — pagar (entra no caixa) ou manual (sem caixa). Log em `ClienteAgroEventoAgro`. Mesmas ações em `/clientes/…/editar/` — layout largo alinhado ao PDV (`CLI-FORM-PDV-LAYOUT`).
 - IDs Mongo no JSON viram `local:{pk}` para nÃ£o mandar ObjectId ao ERP.
 - Contexto antigo detalhado: `docs/CONTEXTO_SESSAO_CLIENTES_PDV.md`.
+- **Fiado limite (`FIADO-LIMITE-LINHA`):** na lista `/fiado/`, clique no valor da coluna **Limite** para editar (sem botão Limite cliente).
 
 ### 4.6 Cadastro / gestÃ£o de produtos
 
-- **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé.
+- **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé. Gôndola: folha **A4** (2/3 col) ou **A6** (1 col · bônus 100×45) — `ETQ-A6-BONUS` **v22.41** 🟢 pronto envio.
 
 **Duas telas â€” nÃ£o confundir:**
 
@@ -615,12 +617,15 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Nova nota (21/07):** botÃ£o Â«NovaÂ» zera XML/cabeÃ§alho/financeiro/rateio â€” nÃ£o herda a nota anterior (autosave tambÃ©m).
 - **HistÃ³rico C1â€“C3 + NF (18/07):** C1â€“C3 = sÃ³ compras **anteriores**; a NF aberta **nÃ£o** entra (evitava parecer 2 notas: data entrada vs emissÃ£o).
 - **Vínculo XML (30/07 · v12.10):** tabela Postgres `EntradaNfeVinculoAgro` = fonte da verdade multi-PC; «Ler XML» reaproveita cProd (R0151…). Migrate `0069` · backfill `agro_backfill_c_prod_nf_entrada`.
-- **Financeiro desync (2026-06-19 / reforço 29/07 / **04/09** `NF-FIN-MANUAL-RELIGA`):** título já no CP mas etapa 7 laranja + «Salvar + a pagar». Nota **manual** (sem chave XML) não casava. Abrir a nota religa; **não** gerar de novo se os títulos já existem.
+- **Financeiro desync (2026-06-19 / reforço 29/07 / **04/09** `NF-FIN-MANUAL-RELIGA` / **10/09** `NF-FIN-NAO-TEM`):** título já no CP mas etapa 7 laranja + «Salvar + a pagar». Nota **manual** (sem chave XML) não casava; «**NF não tem**» também falhava (extrator só lia dígitos). Abrir a nota / Salvar religa; **não** gerar de novo se os títulos já existem.
+- **Lista Em andamento vazia (04/09 · `NF-LISTA-ANDAMENTO`):** chip filtrava só as ~25 notas mais novas — nota antiga em Financeiro/Estoque sumia até digitar na busca. Fix: scan fundo + preencher lim com quem casa no filtro.
+- **Fornecedor deve produto (10/09 · `NF-AGUARDA-PRODUTO`):** marca na lista — nota com PIN/CP/estoque ok **continua em Em andamento** até **Chegou**. Chip **Deve produto**.
 - **Reabrir → estoque de novo (03/08):** ao reabrir, estornar se houver status/`estoque_aplicado_em`/carimbo/`ajuste_ids` (não só `estoque_aplicado`). Autosave não ressuscita carimbo. Lista «reabrir» encerrada chama o mesmo estorno.
-- **Etapa 5 bloqueio falso (29/08 · `NF-ESTOQUE-BLOQUEIO-FALSO`):** confirmar 1–4 **não** é «finalizada com PIN»; caixa amarela só com PIN/financeiro/bucket concluída.
+- **PIN etapa 5 (02/09 · `PIN-ET5-CAMPO`):** linha de PIN **sempre visível** acima do botão azul «Registrar estoque»; o POST manda `pin`. Overlay escuro **não** é o caminho desta etapa. Loja **v20.86** ainda **não** tem isso.
 - **Kardex ao reabrir (03/08):** reabrir **não apaga** a Entrada NF — grava saída `estorno_entrada_nf_agro` («Estorno NF (reabrir)»); ao concluir de novo, nova Entrada NF. `nf_qtd=` no ajuste para qtd confiável.
 - **Trocar/remover produto com estoque lançado (05/08 · v14.48):** exige **estorno** antes — modal «Estornar e trocar» (PIN) chama a rotina de reabrir e joga o usuário de volta à etapa 2; backend recusa salvar linhas com `produto_id` diferente enquanto houver carimbo de estoque (`requer_estorno`).
 - **Custo do cadastro na etapa 2 (03/08 · v13.71):** V. unit puxa custo do Cadastro (overlay/PG) — JS ignora `preco_custo_final=0` do Mongo; overlay sincroniza final/acréscimo; `buscar-produto-id` fallback `Produto.custo`. Linha com custo da NF (`preservar`) continua sem sobrescrever.
+- **Lote/validade do XML (11/09 · `NF-LOTE-XML`):** lê `prod/rastro` + `infAdProd`. Etapa 4 já abre com as datas. Nota já aberta: **Ler XML de novo**.
 - **Validade → tela Validade (06/08):** ao **lançar estoque**, se a linha tiver `lote_validade` (etapa 4), grava/soma `EstoqueLote` (antes só ficava no rascunho). Reabrir reduz o lote se a entrada tinha `nf_lote`/`nf_val`. Notas **já** lançadas antes do fix **não** voltam sozinhas.
 - **Etapa 3 cód. barras (12/08 · v16.06 `NF-BIP-ET3`):** bip casa com EAN da linha **e** barras do cadastro/overlay dos itens da NF; casado por EAN/bip na etapa 2 → Ok verde; prova `verify_nf_bip_et3_path.py`.
 - **Etapa 3 PEND após bip etapa 2 (17/08 · `NF-BIP-ET2` · **Live v17.09**):** leitor no **Mudar**/busca (8+ dígitos) vale como Ok; XML `ean_pg`/`ean_overlay` também. Código do fornecedor (sem bip) continua PEND. Prova `verify_nf_bip_et2_path.py`.
@@ -665,6 +670,8 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Novo empréstimo no CP (`CP-NOVO-EMPRESTIMO` / `CP-NE-BUSCA-EMPRESA` · v17.93 → v18.54):** Externo/Interno · parcelas auto · Outros · contorno · **busca Empresa/Credor** · empresa padrão pela loja · composição na linha da data.
 - **Lista CP — destaque empréstimo (`CP-EMP-ROW-TINT` · v18.77):** fundo laranja leve nas linhas Pagamento/Juros de Empréstimos (externo e interno).
 - **Nova saÃ­da** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **Â«EmprÃ©stimo (entrada + pagamento)Â»** â€” gera receita quitada (hoje) + despesa(s); se saÃ­da > entrada, diferenÃ§a em **Juros de EmprÃ©stimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
+- **Nova saÃ­da no BI — PIN (`PIN-NS-BI` · v23.80):** Finalizar no Dashboard abre teclado (não alert «modo descanso»); sspin no home + tratamento no `lancamento_nova_saida.js`.
+- **PIN global loja (`PIN-SSPIN-GLOBAL` · v23.84):** teclado em `base.html` + telas standalone (RH, caixa, promo…); alert nativo de PIN **proibido** na bridge; login/catálogo público fora.
 - **Nova saÃ­da â€” escolha 1Âº passo (`NS-ESCOLHA-EMP` Â· v18.67):** ao abrir, 2 cards grandes (**Novo LanÃ§amento** Ã— **EmprÃ©stimo**) no padrÃ£o Externo/Interno; EmprÃ©stimo abre o modal CP (BI tambÃ©m inclui o modal).
 - **GrÃ¡fico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` â€” **100dvh sem scroll**; toolbar perÃ­odo simÃ©trica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrÃ£o ðŸ“Œ); modos tempo real / histÃ³rico / comparar; drill-down CP popup. **Entrada BI:** botÃ£o laranja no card **Contas a Pagar** (`/`). Teste **v3.54+**; loja **v3.39**.
 - **DRE Indicadores + Resumo — CMV (09/08, `DRE-CMV-TOGGLE` + `RG-CMV-TOGGLE`):** botão **Mercadoria vendida** (custo cadastro × qtd) × **Mercadoria paga** (lançamentos). Lucro bruto / margem / líquido / PE acompanham. Caixa não muda. Padrão = vendida. Mesma chave `agro_dre_cmv_modo_v1`.
@@ -693,11 +700,15 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Fundo troco gaveta (`REPASSE-FUNDO-TROCO` · 31/08):** alvo configurável (padrão R$ 500) em % lucro/opções; sugestão Salário→VE→Centro; falta corta Centro→VE→Salário; só aviso. Migrate `0106`.
 - **Dois cofrinhos (`REPASSE-DOIS-COFRES` · v18.81):** Salário (config) + Vila Elias (fatia que fica); fórmula sem cortar salário antes do %; migrate `0103`.
 - **Overlay PDV limpo (`REPASSE-PDV-OVERLAY-LIMPO` → hotfix `REPASSE-PDV-OVERLAY-POPUP` · v18.68):** quem/PIN só no popup · forma oculta (= Dinheiro) · sem chips · hero enxuto.
+- **Gestão `/repasse-vila/` (`REPASSE-GESTAO-SIMPLES` + `REPASSE-COFRE-PLANO` · v23.63):** botão **Gestão** no overlay. **Retirada / uso** = **plano de conta** (gasto empresa **Agro Mais Vila Elias** → DRE/Lançamentos). Ajuste / saldo inicial = motivo livre. Envelope do dia = overlay PDV.
 - **Confirmação cofrinho (`REPASSE-COFRE-CONFIRM` · v18.78):** modal rosa ~80% da tela no lugar do `confirm` do browser.
 - **Hero totais (`REPASSE-HERO-TOTAIS` · v18.80):** Enviado no mês + Total geral no card «Levar ao Centro».
 - **Planos no lucro do envio (17/08):** botão **Planos** na tela de repasse — marca o que desconta do dinheiro enviado ao Centro (ex. Alimentação); o restante das saídas de caixa da Vila desconta do card **Lucro ficou na Vila**. Grava no Postgres (`RepasseVilaConfigAgro.planos_desconto_centro`). Migrate `0091`.
 - **Devolução em dinheiro × maquininha (23/08 · loja v17.84 · `CAIXA-DEVOL-DINHEIRO-MP`):** venda no Point/cartão/Pix **entra** no esperado da maquininha mesmo se devolvida no turno; a saída em **dinheiro** desconta só a gaveta. Contagem **auto** (MP pinpad / fiado / vale / cashback) **copia o esperado** (sem rascunho, sem «Sobra», campo só leitura). Aviso amarelo: «conte a gaveta já sem esse valor». FL-017 (dinheiro+dinheiro) continua: esperado = abertura. Prova `scripts/verify_caixa_devolucao_dinheiro_mp_path.py`.
 - **Devolução mesma forma MP (bug #8 · 30/08):** se devolver Pix/débito/crédito **Mercado Pago automático** na **mesma forma** (não em dinheiro), a retirada cai na linha «— Mercado Pago» — **não** nas máquinas manuais (Cielo etc.).
+- **Fiado caixinha no Fechar caixa (`CAIXA-FIADO-CONF`):** **Confirmar** grava no Postgres (`fiado_nota_caixa_conferida_em`). Reabrir não pede de novo. **Pular + PIN** não grava. Migrate `0123`.
+- **Repasse popups (`REPASSE-STACK-NEST`):** Confirmar + 3 OKs = filhos do overlay; stack **não** põe vidro no pai (senão trava o clique). Prova `verify_repasse_stack_nest_path` **35/35**.
+- **Repasse 0,00 (`REPASSE-ZERO-OK` · 04/09):** algum dos 3 campos em **0,00** confirma (vazio = 0,00). Levar ao Centro 0 = só cofres. Os 3 OKs pulam o que estiver zerado. Os três em 0,00 continua bloqueado.
 
 ### 4.12 RH
 
@@ -724,13 +735,22 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 
 - Uso próprio · **QR no celular** (não API Meta) · 1 número · bot pergunta **Centro ou Vila** · duas filas no Agro.
 - Ponte Node: `whatsapp_atendimento/iniciar.bat` (PC ligado). Postgres = conversas.
-- Sem disparo em massa. Ícone PDV → **abre o chat** (`WA-BOT-CFG-RENAN`); ponte no PC (`iniciar.bat`).
+- **05/09 Renan:** desligou a ponte — deixava o **PDV de todas as lojas lento** (carga no Render). **`WA-PONTE-LEVE` (06/09 · v23.09):** agenda+fotos sync **1×/dia** (Bot → Tempo, padrão 00:00) · poll saída configurável **3–15s** (mín. 3; 2 engasga) · msgs cliente na hora · de dia sem reenvio. **06/09 noite:** status stories a cada **30s** (antes 5s ~40kb). **`WA-UI-POLL-LEVE` (07/09 · v23.39):** UI do Zap — foco msgs 5s / lista 10s / status 60s; sem foco (PDV na frente) msgs 15s / lista 60s / status 120s (`hasFocus`). **`WA-PONTE-ULTRA-LEVE` (12/09):** poll mín **8** (padrão 10, máx 30) · heartbeat 25s · poll sem mídia b64 · cache bot — causa: `.bat`+Zap engasgavam PDV/gestão inteiros.
+- Sem disparo em massa. **Entrada loja:** menu/gestão → **WhatsApp computador (Z)**. **PDV** = ícone **Em breve…** (`PDV-WA-TOPBAR-BREVE`) — **não** abre o chat (combinado Renan 03/09). Ponte no PC (`iniciar.bat`).
 - Token `.env`: `AGRO_WA_BRIDGE_TOKEN`. Migrate `0108`+`0109`+**`0111`**+**`0112`**+**`0113`**. Pacote `WA-ATEND-QR`.
 - **Consulta fiado (`WA-FIADO-MSG`):** cliente escreve *fiado* (ou *quanto eu devo*) no mesmo Zap da loja; o bot responde o aberto pelo número do cadastro. Sem migrate extra. **Ainda fora da loja** (junto do chat QR).
-- **Chamar + histórico (`WA-CHAMAR-HIST` · 01/09):** botão **Novo** = poucos envios (cadastro Agro; agenda do Zap só se pedir, teto 80, sem grupo). **Anteriores** = ~40 msgs / 7 dias daquele chat — **não** baixa o Zap inteiro. Teto 20 conversas novas/dia. **Só celular 1-a-1** — ignora grupo/canal (`120363…`). **Apagar** = tira da lista no Agro (não apaga no celular). Fora da loja.
+- **Chamar + histórico (`WA-CHAMAR-HIST` · 01/09):** busca no topo da lista (cadastro + agenda Zap + conversa). Nome salvo no celular vem da ponte (`WA-AGENDA-NOME`). **Enviar** não pode travar em «Processando» (guard PDV). Clique abre o chat, como o Zap Web. **Passar p/ Centro ou Vila** = transfere o atendimento, avisa o cliente e cai na fila da outra loja. **Anteriores** = ~40 msgs / 7 dias. Teto 20 conversas novas/dia. Só celular 1-a-1. **Apagar conversa** = só no Agro. **Apagar msg** (`WA-MSG-DEL` · 03/09) = × na bolha enviada → some no Zap do cliente também. Migrate **`0122`**. Fora da loja.
 - **Operação PC:** sessão salva em `whatsapp_atendimento/auth/` — desligar/reiniciar **não** pede QR de novo, salvo logout do Zap. De noite: PC off = bot parado (ninguém atende até ligar de manhã).
 - **01/09 decisão:** ponte **neste PC** (Renan, 01/09) · `iniciar.bat` na Inicializar do Windows · se a janela cair, religa em 5s · failover automático **adiado**.
 - **Usabilidade (`WA-UX-AVISO` · 01/09):** **Apagar** conversa · som/aviso no PDV · ícone vermelho **Off** se a ponte cair · foto/áudio no chat · nome do **cadastro** pelo telefone. Migrate **`0114`**.
+- **Ligar sem câmera (`WA-PAIR-CODE` · 01/09):** código de 8 dígitos (igual WhatsApp Web) — celular: Aparelhos conectados → Vincular com número. QR continua como opção. Migrate **`0115`**. **Trocar Zap (`WA-TROCAR` · 03/09):** botão desliga a sessão neste PC → novo QR/código. Migrate **`0119`**.
+- **Celular (`WA-CEL` · 02/09):** Menu = **dois botões** (computador Z · celular Y). Bot: desligar flag grava de verdade; aviso fora do horário tem interruptor próprio. **Separar Centro/Vila** dá para desligar no Bot → Lojas. Fora da loja.
+- **PC app Chrome (`WA-PC-PWA` · 07/09):** a versão **web** (`/atendimento-whatsapp/`) instala como app (ícone «Zap PC») — botão **Instalar no PC** ou Chrome ⋮ → Instalar. Celular PWA continua separado. **`WA-APP-SEM-PDV` (12/09):** sem Voltar PDV / FAB F1; Bot fica no Zap (volta ao Chat).
+- **Bot (`WA-BOT-CFG` · 02/09):** intervalo do aviso fora do horário · saudação sem as 2 lojas · códigos `{empresa}` `{cliente}` · ordem do nome · áudio sem pergunta. Migrate **`0117`**. **Replay (`WA-BOT-REPLAY` · 03/09):** reconnect não dispara boas-vindas sozinho. **Status (`WA-STATUS-OFF`/`WA-STATUS-VER`/`WA-CHAT-HEAD` · 03/09):** stories fora do chat · chip **Status** no cabeçalho da conversa (só se o contato tiver). Migrate **`0120`**. **Espera visual (`WA-ESPERA` · 03/09):** verde/laranja/✓ · migrate **`0118`**.
+- **Saudação + Resolvidas (`WA-SAUDACAO-RICH` + `WA-ARQUIVO` · 05/09 · v22.86):** Bot aba **Saudação** (não mais bloco cru no Menu) · **✓** = arquivar → aba **Resolvidas** · **Reabrir** · msg do cliente desarquiva · prefs auto em Bot → **Arquivo** (default OFF, sem cron). Migrate **`0126`**.
+- **Agenda + barra (`WA-AGENDA-LID` · 02/09):** busca pelo nome no Zap/cadastro (não a agenda inteira do celular). Eco do próprio envio não duplica. Áudio vira ogg com ffmpeg-static. Gravando: some o botão verde; envia no microfone vermelho. **Import .vcf** fica em **Bot → Geral** (`WA-VCF-BOT` · 03/09). Lista/topo: só nome se salvo; clique → ficha com telefone (`WA-FICHA-NOME`).
+- **Chat duplicado LID (`WA-LID-UM` · 02/09):** `@lid` e telefone viram **um** chat; fiado usa o número real. Envio ao cliente usa o `@lid`. Foto/áudio vão pelo arquivo, não pela palavra `[imagem]`. Migrate **`0116`**.
+- **Entrada instável (`WA-MSG-LID` · 01/09):** mensagem offline (`append`) era descartada; Zap novo manda `@lid` e a ponte recusava — por isso só caía depois de mandar da loja. Ponte aceita LID + append recente; mapa LID↔telefone fica no PC (`lid_map.json`); Postgres **não** apaga chat ao reiniciar o `.bat`; LID junta no mesmo fio do telefone. Aba Centro/Vila/Fila é lembrada. Salvar bot (ausência) não trava em «Processando».
 
 ### 4.15 DesvinculaÃ§Ã£o ERP (Mongo espelho â†’ Postgres SisVale)
 
@@ -1184,7 +1204,7 @@ Fluxo **seguro** do checkpoint (sÃ³ admin vÃª os botÃµes):
 
 **Armadilha cherry-pick:** se `lancamentos_financeiros.html` incluir `lancamentos_pin_entrada.html`, o template **tem** que ir junto â€” senÃ£o **500** em Contas a pagar/receber.
 
-- **PIN LanÃ§amentos:** 1Ã— por sessÃ£o ao entrar em qualquer tela `/lancamentos/*` (sem hub modal); navegaÃ§Ã£o interna sem repetir; **modo descanso** (~3 min idle) pede de novo; sair para PDV/outra tela limpa a sessÃ£o.
+- **PIN LanÃ§amentos:** 1Ã— por sessÃ£o ao entrar em qualquer tela `/lancamentos/*` (sem hub modal); navegaÃ§Ã£o interna sem repetir; **modo descanso** (~3 min idle) pede de novo; sair para PDV/outra tela limpa a sessÃ£o. **Gravar** (Finalizar/baixa/editar): se PIN fresco (~45s) venceu → **teclado** (LANC-PIN-TECLADO v22.91), não alert nativo.
 
 Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-status/` Â· `congelar-pre-corte/`. Painel na entrada `/lancamentos/`.
 
@@ -1264,63 +1284,280 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚀 PREP deploy loja — checklist 12/09b (`deploy/prep-checklist-1209b` · **v23.95**) · aguarda senha
+### ✅ Deploy loja — Checklist 12/09c (`deploy/prep-checklist-1209c` · **v23.96**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **PREP pronto** — **só** frase + senha · **não** subiu ainda |
-| **Live agora** | **v23.94** @ `c3e0b1c` |
-| **Branch PREP** | `deploy/prep-checklist-1209b` · tip **v23.95** |
-| **Pacotes** | `WA-PONTE-ULTRA-LEVE` · `WA-APP-SEM-PDV` · `PDV-RACOES-MARCA-VAZIA` · `PDV-CHAT-ENTREGA-DOCK` · `PDV-ENT-HORARIO-OPCOES` · `PDV-ENT-TROCO-ENTER` · `PDV-ENT-OVERLAY-SPLIT` · `ETQ-LOTE-FILA` · `PDV-IMP-SEP-OFF` · `PDV-IMP-PIN-ANTES` |
-| **Migrate** | **SIM** `0130` |
-| **Prova pré** | ponte **47/47** · Zap app **53/53** · rações **57/57** · dock **7/7** · horário **16/16** · troco **6/6** · split **16/16** · lote entrega **61/61** · etq **78/78** · SEP/PIN UX · `check` OK · hashes SAME vs tip |
-| **Rollback** | tag `rollback/pre-checklist-1209b-v23.94` · branch `producao-backup-pre-v2395-checklist-20260912b` · `docs/ROLLBACK-CHECKLIST-1209b.md` · **só** frase+senha |
-| **Operacional** | lojas abertas → **pausar vendas** no deploy · fechar `.bat` Zap antes · Ctrl+F5 depois · religar `.bat` |
-| **Não** | merge `teste` |
+| **Status** | ✅ **enviado / Live v23.96** — cherry **só** `#11`–`#13` (**não** merge `teste`) |
+| **Antes** | **Live v23.95** @ `8faa4c1` |
+| **Agora** | `producao` @ **PREP** · Render (aguardando smoke) |
+| **Migrate** | **SIM** `0131` (no deploy) |
+| **Pacotes** | `PDV-ENT-CARD-LATERAL` · `PDV-ENT-ALERTA-POR-ID` · `PDV-ENT-MUDAR-LOJA` |
+| **Prova pré** | CARD **51/51** · ALERTA **51/51** · MUDAR-LOJA **39/39** · PIN **9973** |
+| **Rollback** | tag `rollback/pre-checklist-1209c-v23.95` · branch `producao-backup-pre-v2396-checklist-20260912c` · `docs/ROLLBACK-CHECKLIST-1209c.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.96** · Mudar Loja · Adiar 1 Dia · tags wrap |
 
-### ✅ CHECKLIST ÚNICO — 12/09b · 🟡 PREP aguarda senha (alvo **v23.95**)
+### ✅ CHECKLIST ÚNICO — 12/09c · **Live v23.96**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `WA-PONTE-ULTRA-LEVE` | 🟡 PREP | **NÃO** | **47/47** |
-| 2 | `WA-APP-SEM-PDV` | 🟡 PREP | **NÃO** | **53/53** |
-| 3 | `PDV-RACOES-MARCA-VAZIA` | 🟡 PREP | **NÃO** | **57/57** |
-| 4 | `PDV-CHAT-ENTREGA-DOCK` | 🟡 PREP | **NÃO** | **7/7** |
-| 5 | `PDV-ENT-HORARIO-OPCOES` | 🟡 PREP | **NÃO** | **16/16** |
-| 6 | `PDV-ENT-TROCO-ENTER` | 🟡 PREP | **NÃO** | **6/6** |
-| 7 | `PDV-ENT-OVERLAY-SPLIT` | 🟡 PREP | **SIM** `0130` | lote **61/61** |
-| 8 | `ETQ-LOTE-FILA` | 🟡 PREP | **NÃO** | **78/78** |
-| 9 | `PDV-IMP-SEP-OFF` | 🟡 PREP | **NÃO** | Separação off |
-| 10 | `PDV-IMP-PIN-ANTES` | 🟡 PREP | **NÃO** | PIN antes · sem 2ª via |
+| 1–10 | (checklist 12/09b) | ✅ **Live v23.95** | — | — |
+| 11 | `PDV-ENT-CARD-LATERAL` | ✅ **Live v23.96** | **NÃO** | **51/51** · PIN **9973** |
+| 12 | `PDV-ENT-ALERTA-POR-ID` | ✅ **Live v23.96** | **NÃO** | **51/51** · PIN **9973** |
+| 13 | `PDV-ENT-MUDAR-LOJA` | ✅ **Live v23.96** | **SIM** `0131` | **39/39** · PIN **9973** |
 
+**Loja:** ✅ Live **v23.96**. Rollback: `docs/ROLLBACK-CHECKLIST-1209c.md`.
 
-### 🚀 PREP deploy loja — checklist 10/09 (`deploy/prep-checklist-1009` · **v23.91**) · aguarda senha
+### 📦 PACOTE PRONTO — Mudar loja entrega/pagamento (`PDV-ENT-MUDAR-LOJA` · **Live v23.96**)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **PREP pronto** — **só** frase + senha na próxima mensagem · **não** subiu ainda |
-| **Live agora** | **v23.76** @ `056e9a7` |
-| **Branch PREP** | `deploy/prep-checklist-1009` · tip **v23.91** |
+| **O quê** | **Mudar Loja** · só entrega / só pagamento / as duas · Sai/Paga · **Adiar 1 Dia** · tags **quebram linha** (sem scroll) · `0131` |
+| **Prova** | `verify_pdv_entrega_mudar_loja_path.py` **39/39** · PIN **9973** · card **51/51** · alerta **51/51** · lote **61/61** |
+| **Migrate** | **SIM** `0131` |
+| **Status** | ✅ **Live v23.96** |
+| **Risco** | Médio (caixa destino aberto) · Ctrl+F5 |
+
+### 📦 PACOTE PRONTO — Adiar 1h por entrega (`PDV-ENT-ALERTA-POR-ID` · **Live v23.96**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | **Adiar 1h** no card = **só aquela** · topo **Alerta +1h** = todas · lembrete centro |
+| **Prova** | `verify_pdv_entrega_alerta_por_id_path.py` **51/51** · PIN **9973** |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ **Live v23.96** |
+| **Risco** | Baixo · Ctrl+F5 |
+
+### 📦 PACOTE PRONTO — Cards Entregas rota/horário/alerta (`PDV-ENT-CARD-LATERAL` · **Live v23.96**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | **Incluir**+Maps · hora + **Adiar 1h** · overlay **88rem** · Adiar\|Cancelar · tags wrap · rótulos **Mudar Loja** / **Adiar 1 Dia** |
+| **Prova** | `verify_pdv_imp_pin_card_1209_path.py` **51/51** · PIN **9973** |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ **Live v23.96** |
+| **Risco** | Baixo |
+
+### 📦 PACOTE PRONTO — PIN antes da impressão de entrega (`PDV-IMP-PIN-ANTES` · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | PIN **antes** de imprimir · retry de registro **sem** reimprimir · TTL pós-vias **120s** |
+| **Prova** | `verify_pdv_imp_pin_card_1209_path.py` **42/42** · PIN **9973** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Risco** | Baixo |
+
+### 📦 PACOTE PRONTO — Separação desmarcada por padrão (`PDV-IMP-SEP-OFF` · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Modal impressão: **Separação** começa **desmarcada** (PDV + painel); entregador + cupom marcados |
+| **Prova** | `verify_pdv_imp_pin_card_1209_path.py` **42/42** · PIN **9973** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Risco** | Baixo |
+
+### 📦 PACOTE PRONTO — Lote A4 fila + controle fino (`ETQ-LOTE-FILA` · **v24.34** · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | **Lote A4** pela **fila** ou loja · preset · QTD · folhas/vez · intervalo · pausa/auto · progresso PG |
+| **Prova** | `verify_etiquetas_lote_fila.py` **78/78** · PIN **9973** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 etiquetas · fila → Lote A4 · 1 trecho → Não no confirm → reimprimir |
+| **Risco** | Baixo |
+
+### 📦 PACOTE PRONTO — Overlay Entregas duas colunas (`PDV-ENT-OVERLAY-SPLIT` · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Overlay maior · **A pagar \| Pagas** lado a lado · scroll · **Concluir** (senão 24 h) |
+| **Prova** | lote **61/61** · split **16/16** · PIN **9973** |
+| **Migrate** | **SIM** `0130` |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Risco** | Baixo |
+
+### 📦 PACOTE PRONTO — Enter no troco = sem troco (`PDV-ENT-TROCO-ENTER` · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Enter/F7 vazio preenche o **total** (sem troco) |
+| **Prova** | **6/6** · lote **61/61** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Risco** | Baixo |
+
+### 📦 PACOTE PRONTO — Horário da entrega 9h–17h (`PDV-ENT-HORARIO-OPCOES` · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Cartão frete maior · horário **9–17h** obrigatório |
+| **Prova** | **16/16** · lote **61/61** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Risco** | Baixo |
+
+### 📦 PACOTE PRONTO — Chat não cobre F7 na Entrega (`PDV-CHAT-ENTREGA-DOCK` · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Aba Chat depois do F7 na Entrega |
+| **Prova** | **7/7** · lote **61/61** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Risco** | Baixo |
+
+### 📦 PACOTE PRONTO — Rações some marca vazia (`PDV-RACOES-MARCA-VAZIA` · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Marca sem ração com peso some |
+| **Prova** | **57/57** · PIN **9973** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Risco** | Baixo |
+
+### PC — disco C: cheio (12/09) · limpeza parcial · **terminar HOJE à tarde**
+
+| Campo | Valor |
+| ----- | ----- |
+| **C: livre agora** | **~18 GB** |
+| **Falta** | fechar Cursor → `E:\CursorOffload\RODAR.cmd` |
+| **Não mexer** | agro-consulta · OneDrive · `E:\CursorOffload` |
+
+### 📦 PACOTE PRONTO — Ponte ultra leve (`WA-PONTE-ULTRA-LEVE` · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Poll **≥8s** (padrão 10) · heartbeat **25s** · sem mídia b64 no poll · cache bot |
+| **Prova** | `verify_wa_ponte_ultra_leve_path.py` **47/47** (path · clamp · bridge · PIN 9973 · restore) |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | após loja: reiniciar `.bat` · Bot → Tempo → poll **10** → Salvar |
+| **Risco** | Baixo — saída Zap ~1–2s mais lenta |
+
+### 📦 PACOTE PRONTO — Zap app sem PDV (`WA-APP-SEM-PDV` · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Sem Voltar PDV / FAB F1; Bot → Chat |
+| **Prova** | `verify_wa_app_sem_pdv_path.py` **48/48** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 Zap · Bot → Chat |
+| **Risco** | Baixo |
+
+### ✅ Deploy loja — Checklist 11/09d (`deploy/prep-checklist-1109d` · **v23.94**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v23.94** — cherry **só** os 3 pacotes (**não** merge `teste`) |
+| **Antes** | **Live v23.93** @ `fc34325` |
+| **Agora** | `producao` @ **`c3e0b1c`** · Render `dep-daiji4qjnfac73e9r5dg` |
+| **Migrate** | **NÃO** |
+| **Pacotes** | `NF-LOTE-XML` · `REPASSE-HIST-OVERLAY` · `REPASSE-STATUS-FLASH` |
+| **Prova pré** | NF **48/48** · hist **19/19** · flash **43/43** · vila **280** · pct-zero **20/20** · PIN **9973** · `check` OK |
+| **Rollback** | tag `rollback/pre-checklist-1109d-v23.93` · branch `producao-backup-pre-v2394-checklist-20260911d` · `docs/ROLLBACK-CHECKLIST-1109d.md` · **só** frase+senha |
+| **Smoke** | healthz **200** · home **200** · Render **live** |
+| **Você** | **Ctrl+F5** · badge **v23.94** · Entrada NF etapa 4 · Repasse Histórico · TRANSFERINDO no centro |
+
+### ✅ CHECKLIST ÚNICO — 11/09d · **Live v23.94**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `NF-LOTE-XML` | ✅ **Live v23.94** | **NÃO** | **48/48** · PIN **9973** |
+| 2 | `REPASSE-HIST-OVERLAY` | ✅ **Live v23.94** | **NÃO** | **19/19** |
+| 3 | `REPASSE-STATUS-FLASH` | ✅ **Live v23.94** | **NÃO** | **43/43** · PIN **9973** |
+
+### ✅ Deploy loja — Checklist 11/09b (`deploy/prep-checklist-1109b` · **v23.93**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v23.93** — cherry **só** `REPASSE-PCT-ZERO` (**não** merge `teste`) |
+| **Antes** | **Live v23.92** @ `78098c3` |
+| **Agora** | `producao` @ **`fc34325`** · Render `dep-dai36tks728c73c9snm0` |
+| **Migrate** | **NÃO** |
+| **Prova pré** | path **20/20** · PIN **9973** · meta/config/calc · vila **271** · deep **103** · acum **18+29** · arredonda **41** · `check` OK |
+| **Rollback** | tag `rollback/pre-checklist-1109b-v23.92` · branch `producao-backup-pre-v2393-checklist-20260911b` · `docs/ROLLBACK-CHECKLIST-1109b.md` · **só** frase+senha |
+| **Smoke** | healthz **200** · home **200** |
+| **Você** | **Ctrl+F5** · badge **v23.93** · Repasse PDV **0%** (igual Gestão) |
+
+### ✅ CHECKLIST ÚNICO — 11/09b · **Live v23.93**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `REPASSE-PCT-ZERO` | ✅ **Live v23.93** | **NÃO** | path **20/20** · PIN **9973** |
+
+### ✅ PACOTE — % lucro 0% no PDV (`REPASSE-PCT-ZERO` · **Live v23.93**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | PDV (e calc Gestão) honram **0%**; não forçam 50. |
+| **Status** | ✅ **enviado / Live v23.93** |
+| **Rollback** | `docs/ROLLBACK-CHECKLIST-1109b.md` |
+
+### ✅ Deploy loja — Checklist 11/09 (`deploy/prep-checklist-1109` · **v23.92**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v23.92** — cherry **só** `REPASSE-ACUM-EXTRA-BUG` (**não** merge `teste`) |
+| **Antes** | **Live v23.91** @ `22186fb` |
+| **Agora** | `producao` @ **`78098c3`** · Render `dep-dai2a3uk1f9s73ep6kvg` |
+| **Migrate** | **NÃO** |
+| **Prova pré** | path **18/18** · acum-net **29/29** · vila **268** · deep **103** · arredonda **41** · `check` OK |
+| **Rollback** | tag `rollback/pre-checklist-1109-v23.91` · branch `producao-backup-pre-v2392-checklist-20260911` · `docs/ROLLBACK-CHECKLIST-1109.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.92** · Repasse → acumulado ~**254** (não 445) |
+
+### ✅ CHECKLIST ÚNICO — 11/09 · **Live v23.92**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `REPASSE-ACUM-EXTRA-BUG` | ✅ **Live v23.92** | **NÃO** | path **18/18** · acum-net **29/29** |
+
+### ✅ PACOTE — Repasse acumulado abate excedente (`REPASSE-ACUM-EXTRA-BUG` · **Live v23.92**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Depois de levar a mais no dia, acumulado conta cartão/PIX no alvo. |
+| **Caso loja** | 11/09: **522,40** → **500** → tela bug **445** → Live ~**254**. |
+| **Status** | ✅ **enviado / Live v23.92** |
+| **Rollback** | `docs/ROLLBACK-CHECKLIST-1109.md` |
+
+### ✅ Prova reforçada — NF-AGUARDA-PRODUTO (`verify` **13/13** · unit **4/4** · 10/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ já **Live v23.91** — path revalidado (fonte · bucket · filtros · API on/off · PG ok) |
+| **Prova** | `verify_nf_aguarda_produto_path.py` **13/13** · `tests_entrada_nf_aguarda_produto` **4/4** |
+| **Falta subir** | **nada** deste pacote (já na loja) |
+
+### ✅ Deploy loja — Checklist 10/09 (`deploy/prep-checklist-1009` · **v23.91**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v23.91** — cherry **só** 6 pacotes (**não** merge `teste`) |
+| **Antes** | **Live v23.76** @ `056e9a7` |
+| **Agora** | `producao` @ **`22186fb`** · Render `dep-dahg41navr4c738vno40` **live** |
 | **Pacotes** | `CLI-DUP-TEL-Z` · `PIN-NS-BI` · `FOTOS-PRODUTO-MOBILE` · `PIN-SSPIN-GLOBAL` · `NF-FIN-NAO-TEM` · `NF-AGUARDA-PRODUTO` |
 | **Migrate** | **NÃO** |
-| **Prova pré** | CLI path **60/60** · deep **24/24** · PIN-ALERT **130/130** · SSPIN **197/197** · Fotos **59/59** · NF-FIN **15/15** · NF-AGUARDA **6/6** · `check` OK |
-| **Rollback** | tag `rollback/pre-checklist-1009-v23.76` · branch `producao-backup-pre-v2391-checklist-20260910` · `docs/ROLLBACK-CHECKLIST-1009.md` |
-| **O quê NÃO sobe** | merge `teste` · WhatsApp · Excel · DRE WIP |
-| **Risco loja aberta** | PIN global = médio (Ctrl+F5) · resto não mexe finalizar venda |
-| **Você no deploy** | Pausar vendas → frase+senha → Live → Ctrl+F5 · badge **v23.91** |
+| **Prova pré** | CLI **60/60**+deep **24/24** · PIN-ALERT **130/130** · SSPIN **197/197** · Fotos **59/59** · NF-FIN **15/15** · NF-AGUARDA **13/13**+unit **4/4** · `check` OK |
+| **Rollback** | tag `rollback/pre-checklist-1009-v23.76` · branch `producao-backup-pre-v2391-checklist-20260910` · `docs/ROLLBACK-CHECKLIST-1009.md` · **só** frase+senha |
+| **Smoke** | healthz **ok** · consulta **301** · Ctrl+F5 · badge **v23.91** |
+| **Você** | **Ctrl+F5** · teclado PIN · EDITAR telefone · Hub Fotos · Entrada NF |
 
-### ✅ CHECKLIST ÚNICO — 10/09 · PREP aguarda senha
+### ✅ CHECKLIST ÚNICO — 10/09 · **Live v23.91**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `PIN-SSPIN-GLOBAL` | 🟡 **PREP** · aguarda senha | **NÃO** | **197/197** |
-| 2 | `FOTOS-PRODUTO-MOBILE` | 🟡 **PREP** · aguarda senha | **NÃO** | **59/59** |
-| 3 | `PIN-NS-BI` | 🟡 **PREP** · aguarda senha | **NÃO** | **130/130** |
-| 4 | `CLI-DUP-TEL-Z` | 🟡 **PREP** · aguarda senha | **NÃO** | **60/60** |
-| 5 | `NF-FIN-NAO-TEM` | 🟡 **PREP** · aguarda senha | **NÃO** | **15/15** |
-| 6 | `NF-AGUARDA-PRODUTO` | 🟡 **PREP** · aguarda senha | **NÃO** | **6/6** |
+| 1 | `PIN-SSPIN-GLOBAL` | ✅ **Live v23.91** | **NÃO** | **197/197** |
+| 2 | `FOTOS-PRODUTO-MOBILE` | ✅ **Live v23.91** | **NÃO** | **59/59** |
+| 3 | `PIN-NS-BI` | ✅ **Live v23.91** | **NÃO** | **130/130** |
+| 4 | `CLI-DUP-TEL-Z` | ✅ **Live v23.91** | **NÃO** | **60/60** |
+| 5 | `NF-FIN-NAO-TEM` | ✅ **Live v23.91** | **NÃO** | **15/15** |
+| 6 | `NF-AGUARDA-PRODUTO` | ✅ **Live v23.91** | **NÃO** | **13/13** · unit **4/4** |
 
-**Live agora:** **v23.76**. PREP cherry **só** estes 6 · **não** merge `teste`.
 
 ### ✅ Deploy loja — Hotfixes Repasse (`deploy/prep-repasse-hotfix-0909` · **v23.76**) · **Live**
 
@@ -1328,11 +1565,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Status** | ✅ **enviado / Live v23.76** — cherry **só** 2 hotfixes (**não** merge `teste`) |
 | **Antes** | **Live v23.73** @ `c7e6fd2` |
+| **Agora** | `producao` @ **`056e9a7`** · Render `dep-dah1ih9t0dsc73djodbg` |
 | **Pacotes** | `REPASSE-COFRE-ESTORNO-MOTIVO` · `REPASSE-FUNDO-FECHADO` |
 | **Migrate** | **NÃO** |
 | **Prova** | fundo **61/61** · cofre-plano **65/65** · gestão **64/64** · vila-path **262** · deep PIN/API OK · `check` OK |
-| **Rollback** | tag `rollback/pre-repasse-hotfix-0909-v23.73` · `docs/ROLLBACK-REPASSE-HOTFIX-0909.md` |
-| **Você** | **Ctrl+F5** · badge **v23.76** · Repasse com caixa fechado: Levar coerente · Estornar pede motivo na caixa |
+| **Rollback** | tag `rollback/pre-repasse-hotfix-0909-v23.73` · branch `producao-backup-pre-v2376-repasse-hotfix-20260909` · `docs/ROLLBACK-REPASSE-HOTFIX-0909.md` |
+| **Você** | **Ctrl+F5** · badge **v23.76** · Repasse fechado: Levar coerente · Estornar pede motivo |
 
 ### ✅ Deploy loja — Point não desiste no 502 (`MP-POINT-POLL-RETRY` · bug #7423 · **v23.73**) · **Live**
 
@@ -1340,13 +1578,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Status** | ✅ **enviado / Live v23.73** — cherry **só** este pacote (**não** merge `teste`) |
 | **Antes** | **Live v23.70** @ `71a169a` |
+| **Agora** | `producao` @ **`c7e6fd2`** · Render `dep-dah01b95efls739b0u30` |
 | **Relato** | Máquina MP cobrou · PDV «não aconteceu nada» · fecharam na Cielo. Caso: venda **#7423** R$ 239 (Ademir) · Geraldinho · 09/09 ~18:09 |
 | **Causa** | Poll do status: **um 502** da API Mercado Pago **matava** a espera (`throw`). Point já tinha cobrado (`tinha_pago` no forçar liberar). |
 | **O quê** | Erro transitório (502/5xx/429/rede) → continua aguardando + aviso «Conexão instável…». Só cancel/recusa/erro definitivo aborta. |
 | **Onde** | `pdv_wizard.js` (`pollMpPointUntilPaid`) |
 | **Migrate** | **NÃO** |
 | **Prova** | poll-retry **13/13** · final-pin **41/41** · `tests_mp_point_pin_forcar` **16/16** · PIN **9973** · lógica 502 **10/10** |
-| **Rollback** | tag `rollback/pre-mp-point-poll-retry-v23.70` · `docs/ROLLBACK-MP-POINT-POLL-RETRY.md` |
+| **Rollback** | tag `rollback/pre-mp-point-poll-retry-v23.70` · branch `producao-backup-pre-v2373-mp-point-poll-retry-20260909` · `docs/ROLLBACK-MP-POINT-POLL-RETRY.md` |
 | **Você** | **Ctrl+F5** PDV · badge **v23.73** · Point: se a rede oscilar, continua «aguardando» |
 | **Risco caixa** | #7423 gravada como **Cielo**; Point órfão R$239 foi forçado abandon — conferir se cliente pagou 1× ou 2× |
 
@@ -1356,10 +1595,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Status** | ✅ **enviado / Live v23.70** — cherry **só** 6 pacotes (**não** merge `teste`) |
 | **Antes** | **Live v23.58** @ `0e0c419` |
-| **Agora** | `producao` @ **`71a169a`** (antes deste Point) |
+| **Agora** | `producao` @ **`71a169a`** · Render `dep-dagsqovlk1mc73a5t8cg` **live** |
 | **Pacotes** | `PDV-ENTREGA-PAGAS-24H` · `PDV-ENTREGA-LOJA-SAIDA` · `CAIXA-ENTREGA-ADIAR` · `TAREFAS-DETALHE-LOTE` · `REPASSE-COFRE-PLANO` · `REPASSE-GESTAO-SIMPLES` |
-| **Migrate** | ✅ `produtos.0128` + `0129` |
-| **Rollback** | tag `rollback/pre-checklist-0909-v23.58` · `docs/ROLLBACK-CHECKLIST-0909.md` |
+| **Migrate** | ✅ `produtos.0128` + `0129` OK no build |
+| **Prova pré** | pagas **64/64** · loja-saída **12/12** · adiar **26/26** · tarefas **90/90** · cofre **62/62** · gestão **64/64** · `check` OK |
+| **Rollback** | tag `rollback/pre-checklist-0909-v23.58` · branch `producao-backup-pre-v2370-checklist-20260909` · `docs/ROLLBACK-CHECKLIST-0909.md` |
+| **Smoke** | healthz **ok** · badge **v23.70** · Ctrl+F5 |
 
 ### ✅ CHECKLIST ÚNICO — 09/09 · **Live v23.70**
 
@@ -1372,17 +1613,247 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 5 | `REPASSE-COFRE-PLANO` | ✅ **Live v23.70** | **NÃO** | **62/62** |
 | 6 | `REPASSE-GESTAO-SIMPLES` | ✅ **Live v23.70** | **NÃO** | **64/64** |
 
-**Loja agora:** **v23.73** (Point poll-retry). **Não** merge `teste`.
+**Loja agora:** **v23.70**. **Não** merge `teste`.
 
-### 📦 PACOTE PRONTO — Ícone Zap S (WA-PC-ICON · 07/09)
+### ✅ PACOTE — Entregas pagas na loja 24h (`PDV-ENTREGA-PAGAS-24H` · **v23.68** · 09/09) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Ícone do app Zap (bolha verde com **S**) no Chrome PWA PC e celular |
-| **Arquivos** | static/produtos/pwa/zap-loja-192.png · zap-loja-512.png |
+| **O quê** | Overlay Entregas: aba **A pagar** + **Pagas na loja** (24 h). Botão da topbar conta as duas. Reimprimir, Maps e rota. **Não** trava fechar caixa. Depois de 24 h some da lista. Só venda já cobrada no caixa. |
+| **Onde** | overlay PDV · `entrega_pdv_pendente_util.py` · `api_pdv_entregas_pendentes` · migrate `0129` |
+| **Migrate** | **SIM** `produtos.0129` |
+| **Prova** | `scripts/verify_pdv_entrega_pagas_loja_path.py` **64/64** (PIN **9973**=Renan · HTTP · caixa não trava · 24 h · Vila isolada) |
+| **Status** | ✅ **Live v23.70** |
+| **Você** | Ctrl+F5 · venda Entrega paga na loja → Entregas → aba Pagas · Imprimir/Maps · Fechar caixa **não** pede essa venda |
+
+### ✅ PACOTE — Entrega: de qual loja sai (`PDV-ENTREGA-LOJA-SAIDA` · **v23.67** · 09/09) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | No fluxo Entrega: tela **De qual loja sai?** (Centro / Vila). Padrão = loja deste PDV. Trocar = popup. Estoque e caixa da loja escolhida. Outra loja: manda pro painel dela **sem Assumir**. |
+| **Onde** | overlay entrega · `pdv_wizard.js` · `api_entrega_registrar` · `resolver_sessao_caixa_entrega_pdv` |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 	este |
-| **Você** | Desinstalar o app Zap no Chrome e instalar de novo (ícone antigo fica em cache) |
+| **Prova** | `scripts/verify_pdv_entrega_loja_saida_path.py` **12/12** |
+| **Status** | ✅ **Live v23.70** |
+| **Você** | PDV → Entrega → tela da loja · F7 na mesma · outra loja + Sim |
+
+### ✅ PACOTE — Entrega: retomar + adiar 1 dia (`CAIXA-ENTREGA-ADIAR` · **v23.64** · 09/09) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Fechar caixa: **Retomar** mesmo se outra loja assumiu. **Adiar 1 dia** (PIN) solta o caixa de hoje; **amanhã trava de novo** até fechar a venda ou adiar outra vez. Pagamento entra no caixa do dia em que fechar. Sem fiado falso no cliente. |
+| **Onde** | `entrega_pdv_pendente_util.py` · Fechar caixa · PDV Entregas · migrate `0128` |
+| **Migrate** | **SIM** `produtos.0128` |
+| **Prova** | `scripts/verify_caixa_entrega_adiar_path.py` **26/26** |
+| **Status** | ✅ **Live v23.70** |
+| **Você** | Fechar caixa com entrega pendente: Retomar · Adiar 1 dia + PIN |
+
+### ✅ PACOTE — Tarefa: título + um botão (`TAREFAS-DETALHE-LOTE` · **v23.66** · 09/09) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Detalhe: **título editável** · status + prioridade juntos · **um** botão **Salvar alterações**. Comentário separado. |
+| **Onde** | `tarefas/templates/tarefas/detalhe.html` · `scripts/verify_vl_hub_tarefas_path.py` |
+| **Migrate** | **NÃO** |
+| **Prova** | **90/90** (PIN **9973**=Renan · lote título+status+prioridade · título vazio recusa · lista atualiza · Chrome OK) |
+| **Status** | ✅ **Live v23.70** |
+| **Você** | **Ctrl+F5** · abrir a tarefa · mudar título/status/prioridade · um toque em Salvar |
+
+### ✅ PACOTE — Retirada cofre com plano (Vila) (`REPASSE-COFRE-PLANO` · **v23.63** · 09/09) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Retirada dos **2 cofres**: select **plano de conta** (não motivo livre). Cria despesa quitada empresa **Agro Mais Vila Elias**. Histórico mostra plano; estorno apaga o título. Ajuste / saldo inicial = motivo livre. |
+| **Onde** | `repasse_vila.html` · `views_repasse_vila.py` · `repasse_vila_util.py` · `saida_caixa_planos.py` · `scripts/verify_repasse_cofre_plano_path.py` |
+| **Migrate** | **NÃO** |
+| **Prova** | cofre-plano **62/62** (título PG Vila · quitado · estorno apaga · API+PIN 9973 · sem gaveta) · cofre **38/38** · gestao **64/64** · `check` OK |
+| **Status** | ✅ **Live v23.76** (modal estorno + fundo fechado) |
+| **Você** | Ctrl+F5 `/repasse-vila/` · Retirada → plano → Registrar · **Estornar** pede motivo na caixa · conferir Lançamentos (empresa Vila) |
+
+### 🩹 HOTFIX — Estorno cofre pede motivo sem campo (`REPASSE-COFRE-ESTORNO-MOTIVO` · 09/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Bug** | Após plano na retirada, **Estornar** lia o «Detalhe (opcional)» e avisava «Informe o motivo» sem caixa clara |
+| **Fix** | Modal **Motivo do estorno** ao clicar Estornar (`rv-estorno-modal`) |
+| **Onde** | `repasse_vila.html` |
+| **Status** | ✅ **Live v23.76** |
+| **Você** | Ctrl+F5 Gestão → Estornar → digitar motivo → Confirmar |
+
+### 🩹 HOTFIX — Repasse: fundo troco também com caixa fechado (`REPASSE-FUNDO-FECHADO` · 09/09) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Bug** | Caixa Vila fechado → tela mostrava «Levar» cheio (ex. R$ 401) sem aplicar alvo R$ 500 / prioridade cofres |
+| **Fix** | Sempre `sugerirFundoTroco` · fechado usa dinheiro do **último fechamento** |
+| **Onde** | `pdv_repasse_vila.js` · `saldo_dinheiro_caixa_vila` |
+| **Status** | ✅ **Live v23.76** |
+| **Você** | Ctrl+F5 overlay Repasse com caixa **fechado** · Levar coerente com troco · ainda precisa **abrir** pra confirmar |
+
+### ✅ PACOTE — Gestão repasse no padrão PDV (`REPASSE-GESTAO-SIMPLES` · **v23.62** · 09/09) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `/repasse-vila/` (Gestão): cofres no topo, **Lançar saída** laranja nos **2 cofres**. Detalhes do dia recolhidos. Envelope = overlay PDV. |
+| **Onde** | `repasse_vila.html` · `scripts/verify_repasse_gestao_simples_path.py` |
+| **Migrate** | **NÃO** |
+| **Prova** | gestao **64/64** · cofre **38/38** |
+| **Status** | ✅ **Live v23.70** |
+| **Você** | Ver pacote plano acima. |
+
+### ~~✅ CHECKLIST ÚNICO — 09/09 · pronto envio (tip **v23.69**)~~ · **Live v23.70 acima**
+
+### ✅ Deploy loja — Checklist 08/09 (`deploy/prep-checklist-0809` · **v23.58**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v23.58** — cherry **só** 3 pacotes (**não** merge `teste`) |
+| **Antes** | **v23.45** @ `1b942c4` |
+| **Agora** | `producao` @ **`0e0c419`** · Render `dep-daga8npsrm7s73a5ngl0` **live** |
+| **Pacotes** | `PIN-ALERT-TECLADO` · `REL-QUEM-COMPROU` · `ETQ-COLAR-MV` |
+| **Migrate** | **NÃO** |
+| **Prova pré** | PIN **117/117** · LANC **70/70** · REL **67/67** · ETQ **82/82** · `check` OK |
+| **Risco PDV** | **Baixo** |
+| **Rollback** | tag `rollback/pre-checklist-0809-v23.45` · branch `producao-backup-pre-v2358-checklist-20260908` · `docs/ROLLBACK-CHECKLIST-0809.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 · badge **v23.58** · PIN velho → teclado · Quem já comprou · Etiquetas colar/ranking |
+
+### ✅ CHECKLIST ÚNICO — 08/09 · **Live v23.58**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `PIN-ALERT-TECLADO` | ✅ **enviado / Live v23.58** | **NÃO** | **117/117** |
+| 2 | `REL-QUEM-COMPROU` | ✅ **enviado / Live v23.58** | **NÃO** | **67/67** |
+| 3 | `ETQ-COLAR-MV` | ✅ **enviado / Live v23.58** | **NÃO** | **82/82** |
+
+**Loja agora:** **v23.58**. **Não** merge `teste`.
+
+### 📦 PACOTE — Etiquetas colar códigos + mais vendidos (`ETQ-COLAR-MV` · **v23.52**) · **Live v23.58**
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `/produtos/etiquetas/`: **Colar códigos** (lista/Excel → fila) · filtro **Mais vendidos** (período/top/ordenar + cat/sub) → lista → Adicionar todos |
+| **Onde** | `etiquetas_fila_util.py` · `views`/`urls` · `produtos_etiquetas.html` · `produtos_etiquetas.js` |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_etq_colar_mv_path.py` **VERIFY_OK 82/82** (arquivos · tokens · resolver GM/overlay · ranking qtd/cat/limite · HTTP auth/página/APIs · PIN 9973=Renan) |
+| **Status** | ✅ **enviado / Live v23.58** |
+| **Você** | Ctrl+F5 etiquetas · Colar códigos (lista GM) · ou Carregar ranking → Adicionar todos |
+
+### 📦 PACOTE — PIN alert vira teclado global (`PIN-ALERT-TECLADO` · **v23.50**) · **Live v23.58**
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Alert «modo descanso» em gestão/PDV/lançamentos → **teclado PIN**. Não confia no fresco. Bridge UI + sspin em mais telas. |
+| **Onde** | `_screensaver_pin` · `_agro_open_external` · fiado/vendas/clientes/caixa/histórico |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_pin_alert_teclado_path.py` **VERIFY_OK 117/117** · `verify_lanc_pin_teclado_path.py` **70/70** · PIN **9973** Renan |
+| **Status** | ✅ **enviado / Live v23.58** |
+| **Você** | Ctrl+F5 · Finalizar/baixa/gestão/PDV com PIN velho → teclado (sem alert preto) |
+
+### 📦 PACOTE — Quem já comprou (`REL-QUEM-COMPROU` · **v23.51**) · **Live v23.58**
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `/relatorios/quem-comprou/`: produto ou categoria → clientes + Zap 1 a 1 · mensagem modelo · Excel · expandir compras |
+| **Fix na prova** | Join telefone via `ClienteAgro.cpf` (campo certo; não `documento`) |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_rel_quem_comprou_path.py` **67/67** |
+| **Status** | ✅ **enviado / Live v23.58** |
+| **Você** | Relatórios → **Quem já comprou** · produto/categoria · Atualizar · Zap |
+
+### ✅ Deploy loja — Checklist 07/09b (`deploy/prep-checklist-0709b` · **v23.45**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v23.45** — cherry **só** 2 pacotes (**não** merge `teste`) |
+| **Antes** | **v23.38** @ `f13fb1e` |
+| **Agora** | `producao` @ **`1b942c4`** · Render `dep-dafgdh15efls73argh90` **live** |
+| **Pacotes** | `WA-UI-POLL-LEVE` · `CP-FORMAS-EXTRAVIO-SINAL` |
+| **Migrate** | **NÃO** |
+| **Prova pré** | WA **44/44** · CP **ALL OK** · `check` OK |
+| **Smoke** | healthz **200** · VERSION **23.45** |
+| **Risco PDV** | **Baixo** |
+| **Rollback** | `rollback/pre-checklist-0709b-v23.38` · `producao-backup-pre-v2345-checklist-20260907` · `docs/ROLLBACK-CHECKLIST-0709b.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 · badge **v23.45** · Zap + vender · CP: DINHEIRO/BANCO · Extravio ± |
+
+### ✅ CHECKLIST ÚNICO — 07/09b · **Live v23.45**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `WA-PC-ICON` | ✅ **Live v23.38** | **NÃO** | 11/11 |
+| 2 | `EXTRAVIO-CONFERENCIA-AUTO` | ✅ **Live v23.38** | **NÃO** | — |
+| 3 | `DRE-NO-DASH-OVERLAY` | ✅ **Live v23.38** | **NÃO** | 9+33 |
+| 4 | `WA-UI-POLL-LEVE` | ✅ **enviado / Live v23.45** | **NÃO** | **44/44** |
+| 5 | `CP-FORMAS-EXTRAVIO-SINAL` | ✅ **enviado / Live v23.45** | **NÃO** | **ALL OK** |
+
+**Loja agora:** **v23.45**. **Não** merge `teste`.
+
+### ✅ PACOTE — Poll Zap leve (`WA-UI-POLL-LEVE`) · **Live v23.45**
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Zap não engasga PDV (poll leve) |
+| **Tip** | Live **v23.45** @ `1b942c4` |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ **enviado / Live v23.45** |
+
+### ✅ PACOTE — CP formas + Extravio ± (`CP-FORMAS-EXTRAVIO-SINAL`) · **Live v23.45**
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Baixa CP só **DINHEIRO** + **BANCO** · checkbox caixa · Extravio (±) |
+| **Tip** | Live **v23.45** @ `1b942c4` |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ **enviado / Live v23.45** |
+
+### ✅ Deploy loja — Checklist 07/09 (`deploy/prep-checklist-0709` · **v23.38**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v23.38** — cherry **só** 3 pacotes (**não** merge `teste`) |
+| **Antes** | **v23.34** @ `95b10c3` |
+| **Agora** | `producao` @ **`f13fb1e`** · Render `dep-daffjs3m8hqs73dv324g` **live** |
+| **Pacotes** | `WA-PC-ICON` · `EXTRAVIO-CONFERENCIA-AUTO` · `DRE-NO-DASH-OVERLAY` |
+| **Migrate** | **NÃO** |
+| **Prova pré** | DRE **9+33** · Extravio **23/23** · Zap ícone **11/11** · `check` OK |
+| **Risco PDV** | **Baixo** — não mexe finalizar venda |
+| **Rollback** | `rollback/pre-checklist-0709-v23.34` · `producao-backup-pre-v2338-checklist-20260907` · `docs/ROLLBACK-CHECKLIST-0709.md` · **só** frase+senha |
+| **Fora deste lote** | ver PREP **07/09b** (`WA-UI-POLL-LEVE` + `CP-FORMAS-EXTRAVIO-SINAL`) |
+| **Você** | Ctrl+F5 · badge **v23.38** · F8 = 1 aba DRE · CP baixa só BANCO/DINHEIRO · Extravio no Resumo · Zap: reinstalar ícone se preciso |
+
+### ✅ PACOTE — DRE não em cima do Dashboard (`DRE-NO-DASH-OVERLAY` · 07/09) · **Live v23.38**
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | DRE/Resumo **só em aba**; Dashboard não vira DRE. |
+| **Prova** | path **9/9** · deep **33/33** · HTTP static OK · `check` OK |
+| **Tip** | Live **v23.38** @ `f13fb1e` |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ **enviado / Live v23.38** |
+| **Você** | Ctrl+F5 · F8 → **1 aba** |
+
+### ✅ PACOTE — Ícone Zap S (`WA-PC-ICON` · 07/09) · **Live v23.38**
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Ícone Zap (bolha **S**) no PWA PC/celular |
+| **Prova** | `verify_wa_pc_icon_path.py` **11/11** |
+| **Tip** | Live **v23.38** @ `f13fb1e` |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ **enviado / Live v23.38** |
+| **Você** | Reinstalar app Zap no Chrome se o ícone antigo ficar |
+
+### ~~📦 PACOTE PRONTO — CP formas~~ → ver tip checklist **#5** `CP-FORMAS-EXTRAVIO-SINAL`
+
+### ✅ PACOTE — Conferência depósito × BANCO (`EXTRAVIO-CONFERENCIA-AUTO` · 07/09) · **Live v23.38** · *superado no teste pelo sinal ±*
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | CP baixa só **BANCO/DINHEIRO** · Mini DRE Extravio = depósito − BANCO |
+| **Prova** | `verify_extravio_conferencia_auto_path.py` **23/23** |
+| **Tip** | Live **v23.38** @ `f13fb1e` |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ **enviado / Live v23.38** |
+| **Você** | Ctrl+F5 · CP baixa · Resumo Extravio |
 
 ### ✅ Deploy loja — WA-PC-PWA-FIX (`deploy/prep-wa-pc-pwa-fix-0709` · **v23.34**) · **Live**
 
@@ -1390,13 +1861,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Status** | ✅ **enviado / Live v23.34** — cherry **só** este pacote (**não** merge `teste`) |
 | **Antes** | `origin/producao` @ **v23.33** / `c4e931c` |
-| **Agora** | `producao` @ tip PREP **v23.34** (hash após push) |
+| **Agora** | `producao` @ **`3af6516`** |
 | **Pacote** | `WA-PC-PWA-FIX` — Zap PC fora da Gestão (janela `SistValeZap`) |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_wa_pc_pwa_path.py` **24/24** · fachona **9/9** · Bot **12/12** PIN 9973 |
 | **Risco loja aberta** | **Baixo** — só roteamento Zap ↔ Gestão · **não** mexe PDV/caixa/venda |
 | **Rollback** | tag `rollback/pre-wa-pc-pwa-fix-v23.33` · branch `producao-backup-pre-v2334-wa-pc-pwa-fix-20260907` · `docs/ROLLBACK-WA-PC-PWA-FIX-0709.md` · **só** frase+senha |
 | **Você** | **Ctrl+F5** · badge **v23.34** · WhatsApp computador → **outra janela** → Instalar |
+
+### ~~📦 PACOTE PRONTO — Zap PC fora da Gestão~~ (`WA-PC-PWA-FIX` · **Live v23.34**)
 
 ### ✅ Deploy loja — WA-PC-PWA (`deploy/prep-wa-pc-pwa-0709` · **v23.33**) · **Live**
 
@@ -1412,6 +1885,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | tag `rollback/pre-wa-pc-pwa-v23.32` · branch `producao-backup-pre-v2333-wa-pc-pwa-20260907` · `docs/ROLLBACK-WA-PC-PWA-0709.md` · **só** frase+senha |
 | **Você** | **Ctrl+F5** · badge **v23.33** · Chrome ⋮ → Instalar · ou botão **Instalar no PC** |
 
+### ~~📦 PACOTE PRONTO — Zap PC instalável Chrome~~ (`WA-PC-PWA` · **Live v23.33**)
+
+### ✅ Deploy loja — EXTRAVIO + OUTROS (`deploy/prep-extravio-0709` · **v23.32**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v23.32** — cherry **só** `BI-ROTULO-OUTROS` + `EXTRAVIO-APOS-DEPOSITO` (**não** merge `teste`) |
+| **Antes** | `origin/producao` @ **v23.25** / `849f9e0` |
+| **Agora** | `producao` @ **`2f5206f`** |
+| **Pacotes** | rótulo **OUTROS** · plano **Extravio após Depósito** · Mini DRE · checkbox Dinheiro (default off) · saída Extravio sem 2ª retirada |
+| **Migrate** | **SIM** `produtos.0127` (build Render) |
+| **Prova** | path **20/20** · deep **42/42** · check OK · loja JS OUTROS+Extravio · healthz **200** |
+| **Risco loja aberta** | **Baixo** — não mexe finalizar venda · extravio não corta lucro operacional |
+| **Rollback** | tag `rollback/pre-extravio-outros-v23.25` · branch `producao-backup-pre-v2332-extravio-20260907` · `docs/ROLLBACK-EXTRAVIO-OUTROS-0709.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.32** · Resumo OUTROS + Mini DRE Extravio · CP Dinheiro checkbox off · Caixa plano Extravio |
+
+### ~~📦 PACOTE PRONTO — Extravio após Depósito~~ (`EXTRAVIO-APOS-DEPOSITO` · **Live v23.32**)
+
+### ~~📦 PACOTE PRONTO — BI rótulo OUTROS~~ (`BI-ROTULO-OUTROS` · **Live v23.32**)
 
 ### ✅ Deploy loja — WA-BOT-SALVAR (`deploy/prep-wa-bot-salvar-0709` · **v23.25**) · **Live**
 
@@ -1422,10 +1914,57 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Agora** | `producao` @ **`677d22e`** |
 | **Pacote** | `WA-BOT-SALVAR` — Salvar Bot destravado (`novalidate` · `type=button` · clamp poll) |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_wa_bot_salvar_path.py` **12/12** (repo `teste`) · estático PREP OK · horário intacto |
+| **Prova** | `verify_wa_bot_salvar_path.py` **12/12** · horário **22/22** · PIN 9973 |
 | **Risco loja aberta** | **Baixo** — só Bot WhatsApp · **não** mexe PDV/caixa/venda |
 | **Rollback** | tag `rollback/pre-wa-bot-salvar-v23.24` · branch `producao-backup-pre-v2325-wa-bot-salvar-20260907` · `docs/ROLLBACK-WA-BOT-SALVAR-0709.md` · **só** frase+senha |
-| **Você** | **Ctrl+F5** · badge **v23.25** · Bot → **Salvar** → «Salvo» · Tempo → poll **5** → Salvar |
+| **Você** | **Ctrl+F5** · badge **v23.25** · Bot → **Salvar** → «Salvo» · (lentidão) Tempo → poll **5** → Salvar |
+
+### ~~📦 PACOTE PRONTO — Bot Salvar destravado~~ (`WA-BOT-SALVAR` · **Live v23.25**)
+
+### WIP — Amanhã loja aberta · Zap envio + lentidão (pós Live **v23.23**) · 06/09 noite
+
+| Campo | Valor |
+| ----- | ----- |
+| **Envio** | ✅ fechado (Renan + PG: `out` com `wa_id`) |
+| **Código anti-lentidão** | ✅ loja **v23.23** (poll min 3 · status ~30s · ponte leve) · **`WA-UI-POLL-LEVE` v23.39** no `teste` (UI Zap + hasFocus) |
+| **Bot PG loja agora** | `poll_saida_seg` = **2** (API já sobe pra 3) · sync fotos `00:00` |
+| **Bug Salvar Bot** | ✅ **Live v23.25** — causa: poll=2 + `min=3` → Chrome bloqueava submit |
+| **Você (após Ctrl+F5)** | Bot → Tempo → **Checar saída = 5** → **Salvar** |
+| **Checklist 10 min** | 1) badge **v23.25** + Ctrl+F5 · 2) `iniciar.bat` **1×** · 3) poll **5** · 4) PDV+Zap: 1 venda + 1 «teste» · 5) engasgou? só PDV / só Zap / os dois · 6) preta: `Saida pendente` / `Enviado ok` · 7) quantos PCs com Zap? |
+| **OK lentidão** | PDV normal com Zap+ponte ON |
+| **Falha** | PDV trava → fecha bat e vê se alivia |
+| **Horário por dia** | ✅ **Live v23.24** (`WA-HORARIO-DIA`) |
+| **Rollback WA-ENVIO** | tag `rollback/pre-wa-envio-fromme-v23.20` · `docs/ROLLBACK-WA-ENVIO-FROMME-0609.md` · só frase+senha |
+
+### ✅ Deploy loja — WA-HORARIO-DIA (`deploy/prep-wa-horario-dia-0609` · **v23.24**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v23.24** — cherry **só** este pacote (**não** merge `teste`) |
+| **Antes** | `origin/producao` @ **v23.23** / `1b25379` |
+| **Agora** | `producao` @ **`82d2ac2`** |
+| **Pacote** | `WA-HORARIO-DIA` — Bot Horário 7 dias · `horario_por_dia` · `fora_do_horario` por dia |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_wa_horario_por_dia_path.py` **22/22** · SimpleTest **3/3** · API GET/POST bot OK (PIN 9973) |
+| **Risco loja aberta** | **Baixo** — só Bot WhatsApp · **não** mexe PDV/caixa/venda |
+| **Rollback** | tag `rollback/pre-wa-horario-dia-v23.23` · branch `producao-backup-pre-v2324-wa-horario-20260906` · `docs/ROLLBACK-WA-HORARIO-DIA-0609.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.24** · Bot → Horário → 7 linhas · Salvar · (lentidão) Tempo → poll **5** |
+
+### ~~📦 PACOTE PRONTO — Horário WA por dia~~ (`WA-HORARIO-DIA` · **Live v23.24**)
+
+### ✅ CHECKLIST ÚNICO — 06/09f · **Live v23.24**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `WA-HORARIO-DIA` | ✅ **Live v23.24** | **NÃO** |
+
+### ✅ CHECKLIST ÚNICO — 06/09e · **Live v23.20**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `TAREFAS-PRIORIDADE` | ✅ **Live v23.20** | **SIM** `0004` |
+
+**Já Live:** `VL-HUB-TAREFAS` **v23.18** · `TAREFAS-UI-STATUS` **v23.19** · `TAREFAS-PRIORIDADE` **v23.20**.
 
 ### ✅ Deploy loja — TAREFAS-PRIORIDADE (`deploy/prep-tarefas-prioridade-0609` · **v23.20**) · **Live**
 
@@ -1433,7 +1972,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Status** | ✅ **enviado / Live v23.20** — cherry só este pacote (**não** merge `teste`) |
 | **Antes** | `origin/producao` @ **v23.19** / `a3a22ff` |
-| **Agora** | `producao` @ **`8f4b9a2`** |
+| **Agora** | `producao` @ **`1e88a32`** |
 | **Pacote** | `TAREFAS-PRIORIDADE` — alta/média/baixa · badge · criar/editar · ordem na lista |
 | **Migrate** | **SIM** `tarefas.0004` (AddField default média) |
 | **Prova** | `verify_vl_hub_tarefas_path.py` **74/74** |
@@ -1441,69 +1980,76 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | tag `rollback/pre-tarefas-prioridade-v23.19` · branch `producao-backup-pre-v2320-tarefas-prio-20260906` · `docs/ROLLBACK-TAREFAS-PRIORIDADE-0609.md` · **só** frase+senha |
 | **Você** | **Ctrl+F5** · badge **v23.20** · Tarefas → prioridade |
 
-### ✅ Deploy loja — WA-ENVIO-FROMME (`deploy/prep-wa-envio-fromme-0609` · **v23.23**) · **Live**
+### ✅ Deploy loja — TAREFAS-UI-STATUS · **Live v23.19**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v23.23** — cherry só este pacote (**não** merge `teste`) |
-| **Antes** | `origin/producao` @ **v23.20** / `1e88a32` |
-| **Agora** | `producao` @ **`288c556`** (código útil `7ce182e`) |
-| **Pacote** | `WA-ENVIO-FROMME` — eco celular · seta sem travar · lid+telefone · poll mín. 3 · status leve |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_wa_envio_fromme_path.py` **35/35** |
-| **Risco loja aberta** | **Baixo** — só Zap + ponte PC · **não** mexe PDV/caixa/venda |
-| **Rollback** | tag `rollback/pre-wa-envio-fromme-v23.20` · branch `producao-backup-pre-v2323-wa-envio-20260906` · `docs/ROLLBACK-WA-ENVIO-FROMME-0609.md` · **só** frase+senha |
-| **Você** | **Ctrl+F5** · badge **v23.23** · fechar/abrir `iniciar.bat` · teste seta |
-| **Renan 06/09 23h** | ✅ **enviar OK** (PC). Lentidão → testa **amanhã loja aberta** |
+| **Status** | ✅ **Live v23.19** @ `a3a22ff` / código `15c67a5` |
+| **Migrate** | **SIM** `tarefas.0003` (já na loja) |
 
-### ✅ CHECKLIST ÚNICO — 06/09f · **Live v23.23**
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | `WA-ENVIO-FROMME` | ✅ **Live v23.23** | **NÃO** |
-
-**Loja agora:** Live **v23.23**. Já Live antes: Tarefas **v23.18–v23.20**. Excel / resto do `teste` **fora**.
-
-### ✅ Deploy loja — TAREFAS-UI-STATUS (`deploy/prep-tarefas-ui-status-0609` · **v23.19**) · **Live**
+### ✅ Deploy loja — VL-HUB-TAREFAS · **Live v23.18**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v23.19** — cherry só este pacote (**não** merge `teste`) |
-| **Antes** | `origin/producao` @ **v23.18** / `3ba41db` |
-| **Agora** | `producao` @ **`de927c0`** |
-| **Pacote** | `TAREFAS-UI-STATUS` — UI blocos · Adiado permanente · Cancelados |
-| **Migrate** | **SIM** `tarefas.0003` (AlterField leve — só choices/tamanho) |
-| **Prova** | `verify_vl_hub_tarefas_path.py` **68/68** |
-| **Risco loja aberta** | **Baixo** — só `/vendas/lojas/tarefas/` · **não** mexe PDV/caixa/venda |
-| **Rollback** | tag `rollback/pre-tarefas-ui-status-v23.18` · branch `producao-backup-pre-v2319-tarefas-ui-20260906` · `docs/ROLLBACK-TAREFAS-UI-STATUS-0609.md` · **só** frase+senha |
-| **Você** | **Ctrl+F5** · badge **v23.19** · Tarefas → blocos + novos status |
+| **Status** | ✅ **Live v23.18** @ `3ba41db` |
+| **Migrate** | **SIM** `0001`+`0002` (já na loja) |
 
-### ✅ CHECKLIST ÚNICO — 06/09d · **Live v23.19**
+### Conferência bugs #11–#16 pós-loja (06/09 · Live **v21.91+** / tip loja **v21.93**)
 
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | `TAREFAS-UI-STATUS` | ✅ **Live v23.19** | **SIM** `0003` |
+| # | Pacote | Na loja? | Prova agora | Marcar resolvido? |
+| - | ------ | -------- | ----------- | ----------------- |
+| **11** | `MP-POINT-FINAL-PIN` | ✅ desde **v21.91** | **41/41** | **Sim** (Ctrl+F5 se Point) |
+| **12** | `PDV-ENTREGA-TABELA-FORMA` | ✅ **v21.91** | **41/41** | **Sim** |
+| **13** | `BI-DEVOL-*` (cálculo) | ✅ há tempo | **43/43** | **Sim o cálculo**. **Troca** A→B **não existe** — não feche se o pedido era troca |
+| **14** | `PDV-ORC-LISTA-LIVE` | ✅ **v21.91** · JS loja tem `_orcamentosMem` | **28/28** | **Sim** (Ctrl+F5 nos PCs Centro) |
+| **15** | `PDV-VALE-SALDO-LIVE` | ✅ **v21.91** | **17/17** | **Sim** |
+| **16** | `PDV-VALE-USADO` | ✅ **v21.91** | **38/38** | **Sim** |
 
-**Loja agora:** Live **v23.19**. Excel / WA extra / resto do `teste` **fora**.
+**Smoke loja:** healthz **ok** · `pdv_wizard.js` produção com fix #14.
 
-### ✅ Deploy loja — VL-HUB-TAREFAS (`deploy/prep-vl-hub-tarefas-0609` · **v23.18**) · **Live**
+### WIP — Zap teste no celular Renan (06/09 noite)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v23.18** — cherry só este pacote (**não** merge `teste`) |
-| **Antes** | `origin/producao` @ **v23.07** / `4c59e54` |
-| **Agora** | `producao` @ **`5387e4a`** |
-| **Pacote** | `VL-HUB-TAREFAS` — hub Vendas/Tarefas no PWA · PIN · seed Agro Mais |
-| **Migrate** | **SIM** `tarefas.0001` + `0002` |
-| **Prova** | `verify_vl_hub_tarefas_path.py` **55/55** |
-| **Rollback** | tag `rollback/pre-vl-hub-tarefas-v23.07` · branch `producao-backup-pre-v2318-vl-hub-tarefas-20260906` · `docs/ROLLBACK-VL-HUB-TAREFAS-0609.md` · **só** frase+senha |
-| **Você** | **Ctrl+F5** · badge **v23.18** · app Vendas → 2 botões → Tarefas → PIN |
+| **Decisao** | Fora da loja: testar ponte no Zap **pessoal 1403** (nao o 3389 da loja) |
+| **Voce** | `iniciar.bat` → QR com o celular **1403** → na preta tem que mostrar esse numero → teste msg **para o 1403** |
+| **Depois** | Na loja: Trocar Zap de volta pro **3389** |
+| **Status** | auth limpa; aguarda QR do 1403 |
 
-### ✅ CHECKLIST ÚNICO — 06/09c · **Live v23.18**
+### 📦 PACOTE PRONTO — Zap envia (eco celular + UI) (`WA-ENVIO-FROMME` · **v23.21** · 06/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Ponte **parava** msg do celular (`fromMe`). UI: seta travava (1º some texto, 2º morta) — timeout 12s + type=button + toast. Envio tenta lid+telefone. |
+| **Tip** | `teste` **v23.23+** |
+| **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha · **sem isso o PDV da loja continua com a seta velha** |
+| **Você agora** | **1)** Fechar/abrir `iniciar.bat` (ponte local já pega o fix). **2)** Ctrl+F5 no Zap do site. **3)** Responder **na tela verde do Agro** (seta) **ou** no celular — preta deve mostrar `Eco celular` / `Enviado ok`. |
+
+### ✅ CHECKLIST ÚNICO — 06/09c · pronto envio
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `VL-HUB-TAREFAS` | ✅ **Live v23.18** | **SIM** `tarefas.0001`+`0002` |
+| 1 | `WA-ENVIO-FROMME` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 2 | `VL-HUB-TAREFAS` | 🟢 **pronto para envio à produção** (migrate SIM) | **SIM** `tarefas.0001+0002` |
+
+**Live agora:** **v23.07** (WA-PONTE-LEVE). Estes dois **ainda não** subiram.
+
+### WIP — Zap recebe / não envia (06/09 noite) · **causa achada**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Causa real** | Ponte **ignorava** `fromMe` (resposta no celular não ia pro Agro). Banco: só `in`/`bot`, **0** `out` humano. Fix lag (poll) **não** era o envio. |
+| **Pacote** | `WA-ENVIO-FROMME` — ver PACOTE PRONTO acima |
+| **Status** | código no `teste` · aguarda Renan religar bat + frase/senha loja |
+
+### WIP — Zap sem msg (06/09 · após WA-PONTE-LEVE)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Causa** | Sessão Zap corrompida (`Bad MAC`) — ponte **conectado**, agenda ok, mas **0 msgs** no banco |
+| **Você** | **Trocar Zap** → QR uma vez → fechar/abrir `iniciar.bat` → teste celular↔loja |
+| **Código** | `teste` **v23.14** — ponte não engasga com busca; sync 45s após connect |
+| **Status** | parcial — msgs **in** voltaram; **out** humano ainda 0 |
 
 ### ✅ Deploy loja — WA-PONTE-LEVE (`deploy/prep-wa-ponte-leve-0609` · **v23.07**) · **Live**
 
@@ -1512,12 +2058,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | ✅ **enviado / Live v23.07** — cherry só este pacote (**não** merge `teste`) |
 | **Antes** | `origin/producao` @ **v23.06** / `c39d7a2` |
 | **Agora** | `producao` @ **`f5d65d0`** |
-| **Pacote** | `WA-PONTE-LEVE` (sync agenda/fotos 1×/dia · poll Bot · fotos só `?fotos=1`) |
-| **Fora** | Excel / resto do `teste` |
+| **Pacote** | `WA-PONTE-LEVE` |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_wa_ponte_leve_path.py` **74/74** (PIN 9973) |
-| **Rollback** | tag `rollback/pre-wa-ponte-leve-v23.06` @ `c39d7a2` · branch `producao-backup-pre-v2307-wa-ponte-leve-20260906` · `docs/ROLLBACK-WA-PONTE-LEVE-0609.md` · **só** frase+senha |
-| **Você** | **Ctrl+F5** · badge **v23.07** · **fechar/abrir** `iniciar.bat` · Bot → Tempo → Salvar |
+| **Prova** | `verify_wa_ponte_leve_path.py` **74/74** |
+| **Rollback** | tag `rollback/pre-wa-ponte-leve-v23.06` · `docs/ROLLBACK-WA-PONTE-LEVE-0609.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.07** · fechar/abrir `iniciar.bat` · Bot → Tempo → Salvar |
 
 ### ✅ CHECKLIST ÚNICO — 06/09b · **Live v23.07**
 
@@ -1525,7 +2070,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- |
 | 1 | `WA-PONTE-LEVE` | ✅ **Live v23.07** | **NÃO** |
 
-**Já Live:** `VL-PREV-MES` **v23.06**. Excel / resto **fora**.
+**Loja agora:** Live **v23.07**. Excel / resto do `teste` **fora**.
+
+### ~~📦 PACOTE PRONTO — Ponte leve~~ (`WA-PONTE-LEVE` · **Live v23.07**)
 
 ### ✅ Deploy loja — VL-PREV-MES (`deploy/prep-vl-prev-mes-0609` · **v23.06**) · **Live**
 
@@ -1535,60 +2082,238 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Antes** | `origin/producao` @ **v21.93** / `8884c9c` |
 | **Agora** | `producao` @ **`d0732d0`** |
 | **Pacote** | `VL-PREV-MES` (previsão mês + aviso + fonte + async) |
-| **Fora** | (era `WA-PONTE-LEVE` — sobe no PREP v23.07) |
+| **Fora** | `WA-PONTE-LEVE` · resto do `teste` |
 | **Migrate** | **NÃO** |
 | **Rollback** | tag `rollback/pre-vl-prev-mes-v21.93` @ `8884c9c` · branch `producao-backup-pre-v2306-vl-prev-mes-20260906` · `docs/ROLLBACK-VL-PREV-MES-0609.md` · **só** frase+senha |
 | **Você** | **Ctrl+F5** · badge **v23.06** · `/vendas/lojas/` · totais na hora · previsão em seguida |
 
-### ~~✅ CHECKLIST ÚNICO — 06/09 · Live v23.06~~ · **ver PREP 06/09b**
+### ~~✅ CHECKLIST ÚNICO — 06/09 · Live v23.06 (+ WA no teste)~~ · **ver checklist tip v23.12 acima**
 
-### ~~🚀 PREP deploy loja — lote checklist 0509h~~ · **Live v21.93** (base deste deploy)
+### ~~📦 PACOTE PRONTO — Vendas lojas previsão mês~~ (`VL-PREV-MES` · **Live v23.06**)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **Live v21.93** @ `8884c9c` — base antes de VL-PREV-MES |
-| **Base loja** | Live **v21.92** @ `041e1b5` |
-| **Branch PREP** | `deploy/prep-checklist-0509h` |
+| **O quê** | `/vendas/lojas/`: card **Previsão mês** (Centro+Vila+total) · mês fechado pelo ritmo vs Meta C · aviso «ainda é cedo» · fonte menor que o Total |
+| **Perf** | 1º paint só totais · média/previsão/fiado async `/api/vendas/lojas/extras/` |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_vendas_lojas_resumo_path.py` **179/179** · PIN **9973** |
+| **Status** | ✅ **Live v23.06** @ `d0732d0` |
+| **Commits teste** | `39ee80d` · `616f182` · `8b0d702` · `338abb7` |
+
+### ✅ Deploy loja — lote checklist 0509h (`deploy/prep-checklist-0509h` · **v21.93**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v21.93** — cherry só o lote (**não** merge `teste`) · tip **`8884c9c`** |
+| **Antes** | `producao` @ **`041e1b5`** · v21.92 |
+| **Agora** | `producao` @ **`8884c9c`** |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-lote-checklist-0509h-v21.92` · branch `producao-backup-pre-v2193-lote-checklist-20260905` · `docs/ROLLBACK-LOTE-CHECKLIST-0509h.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v21.93** · PDV F7 · Lançamentos PIN velho → teclado · Zap balcão 1 barra |
+
+### ✅ CHECKLIST ÚNICO — 05/09h · **Live v21.93**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `LANC-PIN-TECLADO` | ✅ **Live v21.93** | **NÃO** |
+| 2 | `WA-TROCAR-FEED` | ✅ **Live v21.93** | **NÃO** |
+| 3 | `WA-TOPBAR-OVERLAY` | ✅ **Live v21.93** | **NÃO** |
+
+**Live agora:** **v21.93**. Excel cadastro / resto do `teste` **fora**.
+
+### ~~🚀 PREP deploy loja — lote checklist 0509h (`deploy/prep-checklist-0509h` · **v21.93**) · aguarda senha~~ · **Live v21.93**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live v21.93** — tip **`8884c9c`** |
+| **Base loja** | era Live **v21.92** @ `041e1b5` |
+| **Branch PREP** | `deploy/prep-checklist-0509h` @ `8884c9c` |
 | **Rollback** | tag `rollback/pre-lote-checklist-0509h-v21.92` · branch `producao-backup-pre-v2193-lote-checklist-20260905` · `docs/ROLLBACK-LOTE-CHECKLIST-0509h.md` |
 | **Migrate** | **NÃO** |
 | **Provas** | LANC **70/70** · WA contrato **10/10** · PDV wizard/caixa/views_pdv **intocados** |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (05/09h · tip **v21.93** PREP)
+### ~~✅ CHECKLIST ÚNICO — pronto envio (05/09h · tip **v21.93** PREP)~~ · **Live v21.93**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `LANC-PIN-TECLADO` | 🟢 **pronto / no PREP** | **NÃO** |
-| 2 | `WA-TROCAR-FEED` | 🟢 **pronto / no PREP** | **NÃO** |
-| 3 | `WA-TOPBAR-OVERLAY` | 🟢 **pronto / no PREP** | **NÃO** |
+| 1 | `LANC-PIN-TECLADO` | ✅ **Live v21.93** | **NÃO** |
+| 2 | `WA-TROCAR-FEED` | ✅ **Live v21.93** | **NÃO** |
+| 3 | `WA-TOPBAR-OVERLAY` | ✅ **Live v21.93** | **NÃO** |
 
-**Live agora:** **v21.92**. Este lote **só sobe** com frase + senha no próximo chat (pausar vendas ~2 min).
+**Live agora:** **v21.93**. Este lote **subiu** com frase + senha (05/09 noite).
 
 
-### 🟢 PREP — lote checklist 05/09g (`deploy/prep-checklist-0509g` · alvo loja **v21.91**) · aguarda senha
+
+
+### 📦 PACOTE PRONTO — Zap na topbar do balcão (`WA-TOPBAR-OVERLAY` · **v22.96** · 05/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP pronto / aguarda frase + senha** — **não** subiu |
-| **Base loja** | Live **v21.90** @ `aaff41d` |
-| **Branch** | `deploy/prep-checklist-0509g` |
-| **Migrate** | **SIM** `produtos.0126` |
-| **Rollback** | tag `rollback/pre-lote-checklist-0509g-v21.90` · branch `producao-backup-pre-v2191-lote-checklist-20260905` · `docs/ROLLBACK-LOTE-CHECKLIST-0509g.md` |
-| **Fora** | merge `teste` · Excel cadastro · `WA-PONTE-LEVE` |
-| **Você no próximo chat** | lojas **pausam venda ~2 min** · frase + senha **na mesma** mensagem |
+| **O quê** | No painel GM do balcão: some a 2ª faixa do Zap; bolinha + número + Trocar + Bot sobem para a barra junto do Fechar. |
+| **Onde** | `agro_pdv_overlay.js` · `atendimento_whatsapp.js` · `_wa_skin.html` |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ **Live v21.93** |
+| **Você** | Ctrl+F5 no PDV · abre Zap · 1 barra só |
 
-**PDV:** F7 balcão **igual**. Entrega/Point/vale só mudam o que já quebrava. Zap **não** ligar o `.bat` neste deploy.
+### 📦 PACOTE PRONTO — Trocar Zap com ponte OFF (WA-TROCAR-FEED · **v22.94** · 05/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Botão Trocar Zap sumia na CSS (ficava clicável com Off) e ao confirmar não avisava. Agora some de verdade com Off; se clicar, explica apagar pasta auth; com ponte ON, confirma o pedido. |
+| **Onde** | _wa_skin.html · atendimento_whatsapp.js |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ **Live v21.93** |
+| **Você** | Ctrl+F5 · se Off, **não** use Trocar — apague whatsapp_atendimento\\auth e religue o .bat |
+
+### 📦 PACOTE PRONTO — PIN Lançamentos abre teclado (LANC-PIN-TECLADO · **v22.93** · 05/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Finalizar / baixar / editar / excluir: se o PIN venceu (~45s), **abre o teclado** — **não** alert do Chrome «modo descanso». |
+| **Onde** | lancamentos_pin_entrada · Novo lançamento · Contas a pagar · Contas a receber |
+| **Migrate** | **NÃO** |
+| **Prova** | scripts/verify_lanc_pin_teclado_path.py **VERIFY_OK 70/70** (static · gate · PIN **9973** Renan · APIs 403/fresco · HTML teclado) |
+| **Status** | ✅ **Live v21.93** |
+| **Você** | Ctrl+F5 · Novo lançamento · preencher demorado · **Finalizar** → teclado PIN → grava |
+
+### ~~✅ CHECKLIST ÚNICO — pronto envio (05/09 · tip **v22.94**)~~ · **superado — ver PREP 0509h**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | LANC-PIN-TECLADO | 🟢 **no PREP 0509h** | **NÃO** |
+
+
+### 📦 PACOTE PRONTO — Saudação completa + Resolvidas (`WA-SAUDACAO-RICH` + `WA-ARQUIVO` · **v22.86** · 05/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Bot → aba **Saudação** (liga/desliga, horário, delay, códigos `{hora}`/`{loja}`, prévia, mídia URL). **✓** arquiva → aba **Resolvidas**; **Reabrir**; cliente manda msg → volta sozinho. Bot → **Arquivo** com auto **OFF**. |
+| **Onde** | model+migrate `0126` · util · views/urls · WA web/celular · bot HTML/JS/config |
+| **Migrate** | **SIM** `produtos.0126_whatsapp_conversa_arquivada` |
+| **Prova** | `scripts/verify_wa_arquivo_saudacao_path.py` **VERIFY_OK 82/82** (contratos · ORM · Client PIN 9973 · HTML) |
+| **Status** | ✅ **Live v21.91** |
+| **Você** | Ctrl+F5 Zap (quando religar) · ✓ some da fila · Resolvidas · Reabrir · Bot Saudação/Arquivo |
+
+### 📦 PACOTE PRONTO — Nome do PIN na barra do Zap (`WA-PIN-COMPOSER` · **v22.83** · 05/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Card **Quem** + nome do PIN · clique **sempre** abre PIN · troca assinatura |
+| **Visual** | Card claro · campo cede espaço · sem amontoar |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_wa_pin_composer_path.py` **VERIFY_OK 13/13** (fonte + Client PIN **9973** Renan · `_autor_wa` troca · web/celular 200) |
+| **Status** | ✅ **Live v21.91** |
+| **Você** | Ctrl+F5 Zap · card **Quem** · clicar · trocar PIN · enviar |
+
+### 📦 PACOTE PRONTO — Some faixa preta Chrome no Zap (`WA-FACHONA-PRETA` · **v22.71** · 05/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Faixa preta URL/título = Chrome «fora do escopo» do app PDV. Zap não navega mais o endereço do atalho; se cair fora, volta ao balcão e manda a tela pra Gestão. |
+| **Onde** | `pdv_topbar_whatsapp.js` · `agro_dual_window.js` · `_agro_open_external.html` |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_wa_fachona_preta_path.py` **VERIFY_OK 9/9** |
+| **Status** | ✅ **Live v21.91** |
+| **Você** | Ctrl+F5 · se a faixa ainda estiver aí, clica o **×** nela · abre Zap pelo **Z** na Gestão (não pelo atalho PDV) |
+
+### 📦 PACOTE PRONTO — Lista WA sem piscada (`WA-LISTA-SEM-PISCA` · **v22.69** · 05/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Avatar da lista não pisca a cada ~2,5s (atualiza item a item · src igual não recarrega · foto quebrada → letra) |
+| **Onde** | `/atendimento-whatsapp/` · `atendimento_whatsapp.js` |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_wa_lista_sem_pisca_path.py` **VERIFY_OK 27/27** (JS + lógica src + PIN 9973 Client) |
+| **Status** | ✅ **Live v21.91** |
+| **Você** | Ctrl+F5 no Zap · olha a lista ~10s sem piscada |
+
+### 📦 PACOTE PRONTO — Orçamento lista após salvar (`PDV-ORC-LISTA-LIVE` · **v22.70** · 05/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Bug** | #14 Centro: **verde** “salvo” mas card ORÇAMENTOS **não** mostra o novo (notebook + PC caixa Centro; Vila/PC Renan/anônima OK) |
+| **Causa** | Lista lia só `localStorage` (cheio/falha no Centro) · data `Date()` invertia dia/mês |
+| **Fix** | Memória no PDV + limpa cota · após OK **repuxa servidor** · ordena por id · data BR antes do `Date` · sem URL **não** mente verde |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_pdv_orc_lista_live_path` **28/28** (PIN 9973 Renan · POST R$1,30 · GET lista · PG) · `verify_pdv_orcamento_save` **74/74** |
+| **Status** | ✅ **Live v21.91** |
+| **Você (após loja)** | Ctrl+F5 nos PCs Centro · Salvar · novo valor no card na hora (sem limpar Chrome) |
+
+### ✅ Deploy loja — lote checklist 05/09g (`deploy/prep-checklist-0509g` · **v21.91**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v21.91** — cherry só o lote (**não** merge `teste`) · tip **`319404f`** |
+| **Antes** | `producao` @ **`aaff41d`** · v21.90 |
+| **Agora** | `producao` @ **`319404f`** |
+| **Migrate** | **SIM** `0126` (Render no deploy) |
+| **Rollback** | tag `rollback/pre-lote-checklist-0509g-v21.90` @ `aaff41d` · branch `producao-backup-pre-v2191-lote-checklist-20260905` · `docs/ROLLBACK-LOTE-CHECKLIST-0509g.md` |
+| **Smoke** | healthz **200** · deploy Render **live** |
+| **Você** | **Ctrl+F5** · badge **v21.91** · F7 · **não** ligar `.bat` do Zap |
+
+### ✅ CHECKLIST ÚNICO — 05/09g · **Live v21.91**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `PDV-ENTREGA-TABELA-FORMA` (#12) | ✅ **Live v21.91** | **NÃO** |
+| 2 | `REPASSE-ZERO-OK` | ✅ **Live v21.91** | **NÃO** |
+| 3 | `PDV-VALE-SALDO-LIVE` (#15) | ✅ **Live v21.91** | **NÃO** |
+| 4 | `MP-POINT-FINAL-PIN` (#11) | ✅ **Live v21.91** | **NÃO** |
+| 5 | `PDV-VALE-USADO` (#16) | ✅ **Live v21.91** | **NÃO** |
+| 6 | `PDV-ORC-LISTA-LIVE` (#14) | ✅ **Live v21.91** | **NÃO** |
+| 7 | `WA-LISTA-SEM-PISCA` | ✅ **Live v21.91** | **NÃO** |
+| 8 | `WA-FACHONA-PRETA` | ✅ **Live v21.91** | **NÃO** |
+| 9 | `WA-PIN-COMPOSER` | ✅ **Live v21.91** | **NÃO** |
+| 10 | `WA-SAUDACAO-RICH` + `WA-ARQUIVO` | ✅ **Live v21.91** | **SIM** `0126` |
+| 11 | `WA-TROCAR-FEED` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 12 | `WA-TOPBAR-OVERLAY` | 🟢 **pronto para envio à produção** | **NÃO** |
+
+**Live agora:** **v21.92**. Excel cadastro / ponte Zap extra / `WA-TOPBAR-OVERLAY` do `teste` **fora**.
+
+### 📦 PACOTE — troca de chat rápida + ponte mais leve (`WA-CHAT-SNAP` + parcial `WA-PONTE-LEVE`) · 05/09 noite
+
+| Campo | Valor |
+| ----- | ----- |
+| **Problema** | Clicar outro chat demorava · sensação de sistema lento com Zap ligado |
+| **Causa** | Cada clique recarregava **estado + lista** · poll UI tudo a **2,5s** · ponte `puxarSaida` a **2,5s** |
+| **Fix** | Abrir chat = só msgs/ficha (sem reload lista) · gen token anti-atraso · lista/estado a **5s** · ponte a **5s** |
+| **Arquivos** | `atendimento_whatsapp.js` · `whatsapp_atendimento/index.js` |
+| **Ops** | Ctrl+F5 no Zap · **fechar e abrir** `iniciar.bat` (ponte pegar 5s) |
+| **Loja** | ✅ **Live v21.92** · tip **`041e1b5`** · rollback `rollback/pre-wa-chat-snap-v21.91` · `docs/ROLLBACK-WA-CHAT-SNAP-0509.md` |
+
+### ✅ Deploy loja — WA-CHAT-SNAP (`deploy/prep-wa-chat-snap-0509` · **v21.92**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v21.92** — cherry só este pacote · tip **`041e1b5`** |
+| **Antes** | `producao` @ **`319404f`** · v21.91 |
+| **Agora** | `producao` @ **`041e1b5`** |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-wa-chat-snap-v21.91` · branch `producao-backup-pre-v2192-wa-chat-snap-20260905` · `docs/ROLLBACK-WA-CHAT-SNAP-0509.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v21.92** · fecha/abre `iniciar.bat` · testar troca de 3 chats |
+
+**Live agora:** **v21.92**. Excel cadastro / `WA-TOPBAR-OVERLAY` / resto do `teste` **fora**.
+
+### ⚠️ WA desligado (05/09 tarde) — PDV lento em todas as lojas
+
+| Campo | Valor |
+| ----- | ----- |
+| **Decisão Renan** | Desativou `iniciar.bat` — PDV Centro/Vila ficava **muito lento** com a ponte ligada |
+| **Causa provável** | Ponte bate no Render a cada **2,5s** (`bridge/saida` + fotos pendentes + agenda ~2000 contatos) · **1 worker** Gunicorn divide com busca do PDV |
+| **Estado** | Zap loja **on** · **v21.92** Live com poll 5s (`WA-CHAT-SNAP`) · ainda falta aliviar fotos/agenda |
+| **UI** | `WA-LISTA-SEM-PISCA` · `WA-FACHONA-PRETA` · `WA-PIN-COMPOSER` · `WA-SAUDACAO-RICH`/`WA-ARQUIVO` · **v21.91+** |
+| **Não confundir** | Chat interno PDV (`PDV-CHAT-POLL-10S`) já Live; aqui é a **ponte WhatsApp** |
 
 ### ✅ Deploy loja — RH-PIN-GESTAO (`deploy/prep-rh-pin-gestao-0509` · **v21.90**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v21.90** — cherry só este pacote (**não** merge `teste`) · tip **`d8c7388`** |
+| **Status** | ✅ **enviado / Live v21.90** — cherry só este pacote · tip **`d8c7388`** / docs **`aaff41d`** |
 | **Antes** | `origin/producao` @ **v21.89** / `4910c79` |
-| **Agora** | `producao` @ **`d8c7388`** |
-| **Pacote** | `RH-PIN-GESTAO` |
-| **Migrate** | **SIM** `base.0011` (no build Render) |
-| **Rollback** | tag `rollback/pre-rh-pin-gestao-v21.89` @ `4910c79` · branch `producao-backup-pre-v2190-rh-pin-gestao-20260905` · `docs/ROLLBACK-RH-PIN-GESTAO-0509.md` · **só** frase+senha |
-| **Você** | **Ctrl+F5** · badge **v21.90** · RH Operadores · PIN 9973 |
+| **Agora** | `producao` @ **`aaff41d`** |
+| **Migrate** | **SIM** `base.0011` |
+| **Rollback** | tag `rollback/pre-rh-pin-gestao-v21.89` · `docs/ROLLBACK-RH-PIN-GESTAO-0509.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v21.90** · RH Operadores |
 
 ### ✅ CHECKLIST ÚNICO — enviado produção (05/09 · loja **v21.90**)
 
@@ -1596,19 +2321,215 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- |
 | 1 | `RH-PIN-GESTAO` | ✅ **Live v21.90** | **SIM** `base.0011` |
 
-**Ainda fora da loja:** `PDV-ENTREGA-TABELA-FORMA` · `REPASSE-ZERO-OK` · `PDV-VALE-SALDO-LIVE` · `MP-POINT-FINAL-PIN` · `PDV-VALE-USADO`.
+**Ainda fora:** `PDV-ENTREGA-TABELA-FORMA` · `REPASSE-ZERO-OK` · `PDV-VALE-SALDO-LIVE` · `MP-POINT-FINAL-PIN` · `PDV-VALE-USADO`.
 
-### ~~🚀 PREP deploy loja — RH-PIN-GESTAO~~ · **superado — Live v21.90**
+### ~~📦 PACOTE PRONTO — RH operadores PIN gestão (`RH-PIN-GESTAO`)~~ · **Live v21.90**
 
-### ~~🟢 PREP — lote checklist 04/09b~~ · **superado — já Live v21.89**
+### ~~✅ CHECKLIST ÚNICO — pronto envio (05/09 · tip **v22.66**)~~ · **parcial — RH-PIN Live; resto fora**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `PDV-ENTREGA-TABELA-FORMA` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 2 | `REPASSE-ZERO-OK` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 3 | `PDV-VALE-SALDO-LIVE` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 4 | `MP-POINT-FINAL-PIN` (bug #11) | 🟢 **pronto para envio à produção** | **NÃO** |
+| 5 | `PDV-VALE-USADO` (bug #16) | 🟢 **pronto para envio à produção** | **NÃO** |
+| 6 | `RH-PIN-GESTAO` | ✅ **Live v21.90** | **SIM** `base.0011` |
+
+**Live agora:** **v21.90**.
+
+### Bug loja #13 — cálculo conferido (`BI-DEVOL-*` · 04/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Cálculo** | ✅ **já na loja** (v20.56–v20.86). Devolução cai no **dia do evento**; venda original permanece no dia dela. |
+| **Prova** | `verify_bi_devolucao_dia.py` **43/43** · PIN **9973** · math OK · HTTP home/BI/vendas-lojas/atalhos **200** · healthz **200** |
+| **Dados PC** | 29/08 bruto 5225,37 − devolução 225 = **5000,37** (card = série). Troca de dia: 24/08 venda **fica**; 25/08 abate **120**. |
+| **Troca (A→B)** | ❌ **não existe** — só **Devolver**. **Não** entra no lote de envio. |
+| **Status** | Cálculo **não** sobe de novo. Troca só se você pedir o fluxo. |
+
+### 📦 PACOTE PRONTO — Point grava após cobrar (`MP-POINT-FINAL-PIN` · bug #11 · **v22.61**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Máquina cobrou e a venda deu 500 (PIN 10s / F5). Carimba quem cobrou · grava com PIN morto · JSON + retry. |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_mp_point_final_pin_path.py` **41/41** · `tests_mp_point_pin_forcar` **OK** · PIN 9973 carimbo **Renan** · healthz 200 |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 PDV · débito Point · espera na máquina · Confirmar sem tela vermelha |
+
+### 📦 PACOTE PRONTO — Vale crédito no contador na hora (`PDV-VALE-SALDO-LIVE` · **v22.62** · 04/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Bug loja **#15**: ao **adicionar** vale, o número à direita do PDV ficava no cache |
+| **Causa** | Refresh do crédito **sem force** (reusava saldo velho) · resposta do crédito não ia pro contador |
+| **Fix** | Aplica `cliente` da API na hora · `force` + bust `_t=` · limpa cache após compra de vale |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_pdv_vale_saldo_live_path` **22/22** (PIN 9973 · crédito + estorno) · cli **54/54** · vale-usado **11/11** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 PDV · cliente · **Adicionar vale** (manual) · número **Vale crédito** sobe na hora |
+
+### 📦 PACOTE PRONTO — Vale crédito baixa na venda (`PDV-VALE-USADO` · bug #16 · **v22.64** · 04/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Pagar com vale **desce o saldo** no cadastro (não era só tela) |
+| **Também** | Trava se passar do saldo · devolver na forma vale **devolve** · número à direita atualiza |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_vale_credito_venda_path.py` **VERIFY_OK 38/38** (fonte + payload + ORM + API PIN 9973 + healthz) |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 PDV · cliente com vale · pagar **só vale** · o número cai · F5: continua baixo |
+
+### 📦 PACOTE PRONTO — Tabela % na entrega (`PDV-ENTREGA-TABELA-FORMA` · **v22.61** · 04/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Bug loja **#12**: entrega (dinheiro/cartão) liga a tabela de preço da forma |
+| **Onde** | `/pdv/` etapa Entrega |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_pdv_entrega_tabela_forma_path.py` **VERIFY_OK 41/41** (PIN 9973 · HTTP · bug vs fix) |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 no PDV · item com tabela · Entrega → pagar na entrega → Cartão/Dinheiro · total muda |
+
+### 📦 PACOTE PRONTO — Repasse confirma com 0,00 (`REPASSE-ZERO-OK` · **v22.61** · 04/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Confirmar com **algum** dos 3 valores em 0,00 |
+| **Agora** | 0,00 e vazio ok · Centro 0 = só cofres · OKs só no que tem valor · os 3 em 0,00 travam |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_repasse_zero_ok_path` **33/33** (fonte + PIN 9973 Renan + Django 5 casos + GET tela) · overlay **190** · vila **262** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 PDV **Repasse** · 1–2 campos em 0,00 · Confirmar |
+
+### ~~✅ CHECKLIST ÚNICO — pronto envio (04/09c · tip **v22.64**)~~ · **superado — ver tip 05/09 v22.66**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `PDV-ENTREGA-TABELA-FORMA` | 🟢 ver tip **05/09** | **NÃO** |
+| 2 | `REPASSE-ZERO-OK` | 🟢 ver tip **05/09** | **NÃO** |
+| 3 | `PDV-VALE-SALDO-LIVE` | 🟢 ver tip **05/09** | **NÃO** |
+| 4 | `MP-POINT-FINAL-PIN` (bug #11) | 🟢 ver tip **05/09** | **NÃO** |
+| 5 | `PDV-VALE-USADO` (bug #16) | 🟢 ver tip **05/09** | **NÃO** |
+
+### ✅ RH — Queila 08 + cron envio CP (`RH-CRON-ENVIO` · **v22.53** · 04/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Queila sem folha 08 · robô dia 28 **não existia** no Render |
+| **Fix dados** | Folha **2026-08** Queila + título CP venc. **01/09** · R$ 1964,12 · **Isabela** título 08 venc. **14/09** · R$ 1853 |
+| **Cron loja** | ✅ `crn-dadj0q6q1p3s73dsrd70` · `15 6 * * *` UTC · `producao` · Trigger OK |
+| **Prova** | `scripts/verify_rh_envio_cp_automatico_path.py` **22/22** (live + dry_run 28 = 6 candidatos) |
+| **Status** | ✅ **Live ops** (cron na loja) · prova no `teste` **v22.53** |
+| **Nota** | Dia ≠ 28 → `candidatos=0` é normal |
+
+### 📦 PACOTE PRONTO — Login obrigatório + tela GM Agro Mais (`LOGIN-BI-FECHADO` + `LOGIN-UI-AGRO` · **v22.57** · 04/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Navegador novo pede login · tela GM Agro Mais (gradiente + logo) · Admin feio redireciona |
+| **Fix** | `AGRO_PUBLIC_DASHBOARD=false` · `/entrar/` · `LOGIN_URL` · `/admin/login/` → `/entrar/` |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_login_bi_fechado_path.py` **VERIFY_OK 24/24** (fonte + Client + PIN 9973 + HTTP) |
+| **Status** | ✅ **Live v21.89** |
+| **Você** | **Ctrl+F5** · janela anônima `/` → login da marca |
+
+### 📦 PACOTE PRONTO — Entrada NF lista «Em andamento» vazia (`NF-LISTA-ANDAMENTO` · **v22.48** · 04/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Aba **Em andamento** abria vazia; a nota (ex. MS em Financeiro) só aparecia ao digitar na busca |
+| **Fix** | Com filtro de estágio, varre mais fundo e preenche a lista com quem casa no filtro |
+| **Onde** | `nfe_entrada_util.py` (`listar_rascunhos_entrada`) |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_nf_lista_em_andamento_path.py` **VERIFY_OK 27/27** (PIN 9973 + HTTP + PG 9 andamento + fixture) |
+| **Status** | ✅ **Live v21.89** |
+| **Você** | Ctrl+F5 Entrada NF → **Em andamento** sem digitar |
+
+### ✅ Deploy loja — lote checklist 04/09b (`deploy/prep-checklist-0409` · **v21.89**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v21.89** — cherry só o lote (**não** merge `teste`) · tip **`4910c79`** |
+| **Antes** | `producao` @ **`329f9b5`** · v21.88 |
+| **Agora** | `producao` @ **`4910c79`** |
+| **Migrate** | **SIM** `0125` (Render no deploy) |
+| **Rollback** | tag `rollback/pre-lote-checklist-0409-v21.88` · branch `producao-backup-pre-v2189-lote-checklist-20260904` · `docs/ROLLBACK-LOTE-CHECKLIST-0409.md` |
+| **Smoke** | healthz **200** · deploy Render **live** |
+| **Você** | **Ctrl+F5** · badge **v21.89** · PDV consulta · F7 · BI `/` pede login · reiniciar `.bat` do Zap |
+
+### ✅ CHECKLIST ÚNICO — 04/09b · **Live v21.89**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **LOGIN-BI-FECHADO** + **LOGIN-UI-AGRO** | ✅ **Live v21.89** | **NÃO** |
+| 2 | **NF-LISTA-ANDAMENTO** | ✅ **Live v21.89** | **NÃO** |
+| 3 | **ETQ-A6-BONUS** | ✅ **Live v21.89** | **NÃO** |
+| 4 | **FIADO-LIMITE-LINHA** | ✅ **Live v21.89** | **NÃO** |
+| 5 | **PDV-CHAT-POLL-10S** | ✅ **Live v21.89** | **NÃO** |
+| 6 | **WA-XFER-PIX-ORC** | ✅ **Live v21.89** | **SIM** `0125` |
+| — | **RH-CRON-ENVIO** | ✅ **Live ops** | **NÃO** |
+
+**Live agora:** **v21.89**. WhatsApp extra / Excel cadastro do `teste` **fora**.
+
+### 📦 PACOTE PRONTO — Zap: transfer + Pix + orçamento loja (`WA-XFER-PIX-ORC` · **v22.47** · 04/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | (1) Modal próprio ao passar Centro↔Vila + liga/desliga aviso ao cliente · (2) Fiado+Pix: chave no Bot, 2 msgs texto estáveis · (3) PDV: **Celular** \| **Loja** (orçamento pelo Zap da loja) |
+| **Bot** | Lojas → avisar cliente · Recursos → Fiado+Pix (chave) · Orçamento no Zap |
+| **Ponte** | Reiniciar bat após deploy (legado pix_copy → texto) |
+| **Migrate** | **SIM** `0125` (loja) |
+| **Prova** | `scripts/verify_wa_xfer_pix_orc_path.py` **VERIFY_OK 73/73** (PIN 9973 + HTTP + flags) |
+| **Status** | ✅ **Live v21.89** |
+| **Fora** | Botão Copiar Business (`cta_copy`) — abandonado no QR |
+| **Você** | **Ctrl+F5** · reiniciar `.bat` · passar loja · pix · orçamento Loja |
+
+### 📦 PACOTE PRONTO — Chat PDV poll 10s (`PDV-CHAT-POLL-10S` · 04/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Chat interno PDV: poll **10s** fechado · **2,5s** aberto (menos carga no Render). Abrir/enviar na hora. |
+| **Onde** | `pdv_chat_loja.js` |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_pdv_chat_poll_10s_path.py` **VERIFY_OK 38/38** (PIN 9973 + lista/enviar HTTP) |
+| **Status** | ✅ **Live v21.89** |
+| **Depois** | Excluir chat interno · tentar via WhatsApp |
+| **Você** | Ctrl+F5 PDV · fechado: aviso até ~10s · aberto: rápido |
+
+### 📦 PACOTE PRONTO — Limite fiado na linha (`FIADO-LIMITE-LINHA` · 04/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `/fiado/`: remove botão **Limite cliente**. Edita o limite **clicando no valor** da coluna Limite (por cliente). Enter grava · Esc cancela. |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_fiado_limite_linha_path` **40/40** (UI + util PG + API POST/negativo/404 + PIN 9973 + restore) · recibos **66/66** |
+| **Status** | ✅ **Live v21.89** |
+| **Você** | Ctrl+F5 · Fiado · clique no Limite da linha · digite · Enter |
+
+### 📦 PACOTE PRONTO LOJA — Etiquetas A6 bônus (`ETQ-A6-BONUS` · **v22.41** · 04/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Gôndola: folha **A4** ou **A6**. A6 = **1 coluna** · preset **Bônus A6** 100×45 mm · **3/folha**. Epson / papel foto. |
+| **Onde** | `/produtos/etiquetas/` · Presets → Folha · «Bônus A6» |
+| **Migrate** | **NÃO** |
+| **Provas** | `node scripts/verify_etiquetas_a6_path.js` **59/59** · `verify_etiquetas_gondola_grade.js` OK · Django `tests_etiquetas_presets` **3/3** · página+API local OK (folha a6 no PG) |
+| **Status** | ✅ **Live v21.89** |
+| **Você (loja)** | Ctrl+F5 · Bônus A6 · Chrome papel **A6** · margens nenhuma · gráficos de fundo |
+
+### ~~✅ RH — Queila folha 08~~ · ver topo **RH-CRON-ENVIO** v22.52
+
+### ~~WIP — PDV leve lentidão~~ · fechado → `PDV-CHAT-POLL-10S` (prova 38/38 · fila checklist)
 
 ### ✅ Deploy loja — religa CP nota manual (`NF-FIN-MANUAL-RELIGA` · **v21.88**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v21.88** — cherry só este pacote (**não** merge `teste`) · commit **`9266ca8`** |
+| **Status** | ✅ **enviado / Live v21.88** — cherry só este pacote (**não** merge `teste`) · commit **`9266ca8`** / tip **`329f9b5`** |
 | **Antes** | `producao` @ **`55e9b6b`** · v21.87 |
-| **Agora** | `producao` @ **`9266ca8`** |
+| **Agora** | `producao` @ **`329f9b5`** |
 | **Pacote** | `NF-FIN-MANUAL-RELIGA` — etapa 7 religa CP da nota digitada |
 | **Migrate** | **NÃO** |
 | **Rollback** | tag `rollback/pre-nf-fin-manual-religa-v21.87` · branch `producao-backup-pre-v2188-nf-fin-manual-20260904` · `docs/ROLLBACK-NF-FIN-MANUAL-RELIGA-0409.md` |
@@ -1626,9 +2547,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v21.87** — cherry só stack nest (**não** merge `teste`) · commit **`53b565a`** |
+| **Status** | ✅ **enviado / Live v21.87** — cherry só stack nest (**não** merge `teste`) · commit **`53b565a`** / tip docs **`55e9b6b`** |
 | **Antes** | `producao` @ **`9adc305`** · v21.86 |
-| **Agora** | `producao` @ **`53b565a`** |
+| **Agora** | `producao` @ **`55e9b6b`** |
 | **Pacote** | `REPASSE-STACK-NEST` — Confirmar/3 OKs sem vidro |
 | **Migrate** | **NÃO** |
 | **Rollback** | tag `rollback/pre-repasse-stack-nest-0309-v21.86` · branch `producao-backup-pre-v2187-repasse-stack-nest-20260903` · `docs/ROLLBACK-REPASSE-STACK-NEST-0309.md` |
@@ -1642,75 +2563,443 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 **Live agora:** **v21.87**. WhatsApp UI extra / Excel cadastro **fora**.
 
-### Live loja — WhatsApp 1 Zap = 1 SisVale (`WA-DEDUP` · **v21.86**) — 03/09/2026
 
-### Live loja — WhatsApp anti-duplicata (`WA-DEDUP-MSG` · **v21.86**) — 03/09/2026
+### ~~🩹 Bug loja #16 — pagar com vale~~ · ver topo **PDV-VALE-USADO** (prova **38/38**)
+
+### ~~📦 PACOTE PRONTO — Tabela % na entrega (`PDV-ENTREGA-TABELA-FORMA`)~~ · ver tip **v22.61**
+
+### ~~🩹 Bug loja #11 — MP Point 500 após cobrar~~ · ver topo **MP-POINT-FINAL-PIN**
+
+### ~~📦 PACOTE — Vale crédito no contador~~ → **PACOTE PRONTO** no topo (`PDV-VALE-SALDO-LIVE` · tip **v22.62**)
+
+### ✅ Live loja — WhatsApp anti-duplicata (`WA-DEDUP-MSG` · **v21.86**) — 03/09/2026
 
 | | |
 | --- | --- |
-| **Loja** | **Live v21.86** · cherry só WA-DEDUP (não merge `teste`) |
+| **Loja** | **Live v21.86** @ `9adc305` · cherry (não merge `teste`) |
 | **O quê** | 1 msg Zap = 1 SisVale · unique `wa_id` · migrate **0124** · ponte só notify · claim saída |
-| **Migrate** | **SIM — 0124** (só índice; limpa wa_id duplicado antigo) |
+| **Migrate** | **SIM — 0124** |
 | **Rollback** | Tag `rollback/pre-wa-dedup-0309-v21.85` @ `10b2821` · branch `producao-backup-pre-wa-dedup-0309-v21.85` · `docs/ROLLBACK-WA-DEDUP-0309.md` |
 | **Ponte** | **Uma** janela `iniciar.bat` — **reiniciar** após Render verde |
-| **Smoke** | badge **v21.86** · 1 «aa» cliente = 1 bolha · 1 envio loja = 1 no celular |
+| **Smoke** | badge **v21.86** · 1 «aa» = 1 bolha |
+| **teste** | mesmo fix em `c9bd6fd` · VERSION teste **22.00** |
 
-### ~~Live loja — fix WhatsApp Limpar/entrada/foto (**v21.85**)~~ · base do rollback acima
+### WIP — foto perfil loja (`WA-FOTO-RETRY` · 03/09/2026)
 
 | | |
 | --- | --- |
-| **Loja** | foi **v21.85** @ `10b2821` · agora tip = v21.86 |
-| **O quê** | Limpar lista · msg após limpar · foto sem duplicar · `iniciar-local.bat` |
-| **Migrate** | **NÃO** (na época) |
-| **Rollback** | Tag `rollback/pre-wa-fix-0309-v21.84` @ `c165db2` · `docs/ROLLBACK-WA-FIX-0309.md` |
-| **Ponte** | Loja: `iniciar.bat` + `.env` sistvale. Local: `iniciar-local.bat` |
-| **Smoke** | badge **v21.85** · Limpar · 1 oi · 1 foto |
+| **Problema** | Local OK; loja sem foto — 1ª falha (LID) travava **6 h** |
+| **Fix** | Tenta número `@s.whatsapp.net` antes do LID · retry **15 min** se falhar |
+| **Onde** | só `whatsapp_atendimento/index.js` (ponte) — **sem** migrate |
+| **Status** | 🟡 `teste` — reiniciar `iniciar.bat` já aplica na loja se a ponte usar o código do PC; senão cherry + senha |
 
-### 🚀 PREP deploy loja — PIN + orçamento (`prep-pin-orc-0209` · **v21.06**) · **aguarda senha**
+### WIP — envio com bolha na hora (`WA-SEND-OPTIMIST` · 03/09/2026)
+
+| | |
+| --- | --- |
+| **Problema** | Loja: msg demorava a aparecer na própria tela (poll); cliente já recebia rápido |
+| **Fix** | Bolha **na hora** ao mandar · confirma com resposta da API (sem esperar poll) |
+| **Migrate** | **NÃO** |
+| **Status** | 🟡 `teste` — loja precisa senha (static JS) |
+
+### 📦 PACOTE PRONTO — recursos Zap desligados (`WA-REC-OFF` · 04/09/2026)
+
+| | |
+| --- | --- |
+| **O quê** | 18 recursos (PDV abre Zap, aviso, respostas, fiado+Pix, orçamento, entrega, VIP…) |
+| **Padrão** | **TODOS OFF** — ligar em **Bot → Recursos** um a um |
+| **Migrate** | **SIM — 0125** (`extras` na conversa: VIP/nota/espera) |
+| **APIs** | `/api/atendimento-whatsapp/recursos/` · `/recurso-acao/` |
+| **Status** | 🟡 `teste` · **não** loja até Renan + senha |
+| **Como usar** | Bot → Recursos → liga 1 → testa → próximo |
+
+### 📦 PACOTE PRONTO — modal transferência Zap (`WA-XFER-UI` · 04/09/2026)
+
+| | |
+| --- | --- |
+| **O quê** | Janelas próprias (sem `alert` do Chrome) ao passar Centro↔Vila + nota interna |
+| **Bot** | Lojas → **Avisar cliente ao passar** (`xfer_avisar_cliente`, padrão **ligado**) |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ incluso em **\WA-XFER-PIX-ORC\** |
+| **Você** | Ctrl+F5 · passar atendimento · Bot → Lojas (liga/desliga aviso Zap) |
+
+### 📦 PACOTE PRONTO — Fiado + Pix chave (`WA-FIADO-PIX-CHAVE` · **v22.24** · 04/09/2026)
+
+| | |
+| --- | --- |
+| **O quê** | Com **Fiado + Pix** ligado: após saldo lembra; se cliente escreve *pix*, bot manda a chave |
+| **Bot** | Recursos → liga **Fiado + Pix** · preenche **Chave Pix** (+ titular opcional) · Salvar |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ incluso em **\WA-XFER-PIX-ORC\** |
+| **Você** | Ctrl+F5 Bot · liga recurso · cola chave · no Zap do cliente manda «pix» |
+
+### 📦 PACOTE PRONTO — Pix chave + copiar (`WA-PIX-COPIAR` · **v22.25** · 04/09/2026)
+
+| | |
+| --- | --- |
+| **Bug** | Recurso ligado mas `pix_chave` vazia no PG → bot dizia «não configurada» |
+| **Fix** | Caixa verde no topo de Recursos · Salvar bloqueia se falta chave · 2 msgs (intro + chave sozinha p/ Copiar no Zap) |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ incluso em **\WA-XFER-PIX-ORC\** |
+
+### 📦 PACOTE PRONTO — Orçamento Zap loja no PDV (`WA-ORC-PDV` · **v22.26** · 04/09/2026)
+
+| | |
+| --- | --- |
+| **O quê** | PDV: botão **Celular** (wa.me) + **Loja** (chat da loja) lado a lado |
+| **Bot** | Recursos → **Orçamento no Zap** ligado · ponte ligada |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ incluso em **\WA-XFER-PIX-ORC\** |
+| **Você** | Ctrl+F5 PDV · cliente c/ telefone · carrinho · Loja |
+
+### 📦 PACOTE PRONTO — Pix botão Copiar (`WA-PIX-CTA` · **v22.27** · 04/09/2026)
+
+| | |
+| --- | --- |
+| **O quê** | Msg Pix limpa + tentativa de botão **Copiar chave Pix** (cta_copy) na ponte |
+| **Fix** | Template sujo com `{número}` não aparece mais |
+| **Ponte** | Reiniciar `iniciar-local.bat` / `iniciar.bat` |
+| **Migrate** | **NÃO** |
+| **Status** | ❌ **abandonado** — cta_copy quebra no celular («não foi possível carregar») · ver `WA-PIX-PLAIN` |
+
+### 📦 PACOTE PRONTO — Pix texto estável (`WA-PIX-PLAIN` · **v22.28** · 04/09/2026)
+
+| | |
+| --- | --- |
+| **O quê** | Volta a 2 msgs texto (intro + chave). Botão Business não é confiável no Zap QR |
+| **Extra** | Chave só-número com espaço invisível (não vira «ligar») |
+| **Ponte** | Reiniciar bat |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ incluso em **`WA-XFER-PIX-ORC`** (checklist tip) |
+
+| | |
+| --- | --- |
+| **Junto com** | `WA-SEND-OPTIMIST` · `WA-FOTO-RETRY` (ponte) · outras mudanças que Renan for juntando |
+| **1 Foto** | Miniatura menor · clique = tela cheia (Esc/clique fecha) |
+| **2 Nome** | Verde: **PIN do PDV** · Branco: **só horário** |
+| **3 Bolha** | Largura do texto · verde à direita (tipo Zap Web) |
+| **4 Fonte** | Corpo ~**+30%** (1.2rem) · meta legível |
+| **5 Cor** | Msg real **não** fica cinza (só rascunho tmp) — pendente_envio não apaga a bolha |
+| **Assinatura PIN** | `pdv_operador_nome` no mesmo Chrome · Zap pelo menu |
+| **Migrate** | **NÃO** |
+| **Status** | 🟡 `teste` · subir com o lote + senha |
+
+### Live loja — WhatsApp atendimento (`WA-ATEND-QR` · **v21.82**) — 03/09/2026
+
+| | |
+| --- | --- |
+| **Loja** | **Live v21.82** · commit `527be62` (cherry em `producao`, **nao** merge full `teste`) |
+| **Pacote** | WhatsApp lojas pelo **menu/gestao** + celular PWA · migrations `0108`–`0122` (grafo: `0107`→`0110`→`0108`→`0109`→`0111`…→`0122`) |
+| **PDV** | Icone WhatsApp continua **Em breve** (nao abre chat) |
+| **Rollback** | Tag `rollback/pre-wa-atend-0309-v21.08` · branch `producao-backup-pre-wa-atend-0309-v21.08` · doc `docs/ROLLBACK-WA-ATEND-0309.md` |
+| **Prep** | Branch `deploy/prep-wa-atend-0309` |
+
+**Ponte:** local OK (msg/áudio/Limpar). Foto duplicava por poll cruzado — trava `saidaEmVoo`. Pacote WA pós-loja: Limpar, iniciar-local, entrada pós-Limpar, foto 1x. **Loja:** frase + senha (cherry, não merge full `teste`).
+
+---
+
+### 📦 PACOTE PRONTO — Repasse sem vidro nos popups (`REPASSE-STACK-NEST` · 03/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP pronto** · **não** subiu loja |
-| **Antes (loja hoje)** | `producao` @ **`798caaa`** · Live **v20.86** |
-| **PREP** | `deploy/prep-pin-orc-0209` · VERSION **21.06** |
+| **O quê** | Depois de **Confirmar transferência**, os popups (confirmar / 3 OKs) ficavam com vidro na frente e sem clique. Stack congelava o overlay pai (popup é filho). |
+| **Fix** | Se a camada de cima é **filha** da de baixo → sem vidro/`pointer-events:none` no pai. |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_repasse_stack_nest_path` **35/35** (contratos + sim Node filho sem vidro + sibling congela + stack **23/23** + PIN 9973) |
+| **Status** | ✅ **Live v21.87** |
+| **Commit** | loja `53b565a` / `55e9b6b` |
+| **Você** | Ctrl+F5 · Repasse → Confirmar → clicar Confirmar / OKs até transferir |
+
+### 📦 PACOTE PRONTO - F8 Histórico sem cards (`F8-HIST-VENDAS` · **v21.90** · 03/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Aba **Histórico** do F8: some **Itens mais comprados**. Abre direto em **Últimas vendas**. Top produtos continua no **Resumo**. |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_f8_hist_vendas_path` **11/11** · overlay stack **16/16** · HTTP local **off** |
+| **Status** | ✅ **Live v21.84** |
+| **Você** | Ctrl+F5 · F8 · aba Histórico (lista vendas; sem cards) |
+
+### 📦 PACOTE — cadastro cliente layout PDV (`CLI-FORM-PDV-LAYOUT` · 03/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `/clientes/…/editar/` (e novo): tela larga no visual do PDV (grade emerald, botões grandes). No overlay some o header interno — usa a barra verde FECHAR. Campos `referencia_rural` + `maps_url_manual` passam a aparecer (já estavam no form; antes sumiam e podiam zerar no save). **Não** mexe save/API/saldos. |
+| **Migrate** | **NÃO** |
+| **Status** | teste — aguarda Ctrl+F5 no PC |
+| **Você** | Abrir cliente no Zap/overlay · editar/salvar · Vale/Excluir/Histórico |
+
+### 📦 WIP — cadastro vazio + Excel/histórico (`CAD-FALLBACK-HIST` · 03/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Vazio → hist PG → Excel. Pacote: marca/cat/forn/unidade + barras (principal + opcionais). NCM fora. Comando `recuperar_cadastro_vazios_excel`. |
+| **Produção (leitura)** | **841 produtos** · marca 96 · cat 91 · forn 336 · und 517 · barras 90 · opcionais 93 · HTML `conferencia-cadastro-excel-2026-09-03.html` |
+| **Status** | Teste loja **10 produtos** aplicados (poucas vendas) · snapshot antes/depois OK (preço intacto) · lote 841 **não** rodou · HTML `conferencia-teste10-antes-depois.html` |
+| **Você** | Conferir os 10 na loja · se OK, liberar lote (frase+senha) |
+
+### 📦 PACOTE PRONTO — lista vendas compacta + busca (`VENDAS-LISTA-UX` · **v21.77** · 03/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `/vendas/`: sem rolagem lateral (tirou **Caixa** e **Fiscal**). Overlay: header interno some · período/CSV na topbar verde. Ações em grade 4 slots (Ver/Imprimir/Devolver\|Devolvida/NFC-e). Busca `q` no servidor. Colunas fixed · R$ menor · valor 20px · Data sem vazar. |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_vendas_lista_ux_path` **52/52** · HTTP local `/vendas/` **200** · busca fiado OK |
+| **Status** | ✅ **Live v21.84** |
+| **Você** | Ctrl+F5 · tecla `/` foca busca · overlay PDV → Vendas |
+
+### 📦 PACOTE PRONTO — Overlay empilhado (`PDV-OVERLAY-STACK` · **v21.84** · 03/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | 2ª/3ª camada: de baixo inativa (Fechar/Esc/F1). Motor `AgroOverlayStack` + chromeLocked. Fiado/Vendas/Caixa/Clientes/Compras/Repasse/Pedir/Uso/Transf/Balança/Entrega/pagamento/cadastro rápido. |
+| **Hotfix** | Caixa: 4 botões tela cheia + Nova saída/Repasse 2ª camada; Esc/Fechar 1 nível. Stack não força `relative` em modal `fixed` (Reemitir NFC-e). **Esc e Fechar no Ver venda** voltam à lista (1 nível); **F1** fecha o painel. **EDITAR cadastro PDV** (v21.91): centro firme + acima do CHAT. **Fechar caixa popup** (v21.95): cliques liberados. **Repasse no Fechar caixa** = overlay do PDV (não a tela de gestão). **Repasse Confirmar** (`REPASSE-STACK-NEST`): popup filho sem vidro. |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_pdv_overlay_stack_path` **23/23** · vendas UX **52/52** |
+| **Status** | ✅ **Live v21.84** (+ hotfix nest **Live v21.87**) |
+
+### 📦 PACOTE PRONTO — Fiado caixinha persiste (`CAIXA-FIADO-CONF` · **v21.97** · 03/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Fechar caixa: **Confirmar** na conferência fiado grava no Postgres. Reabrir a tela **não** pede de novo as notas já conferidas. Só aparece venda/pagamento **novo**. |
+| **Migrate** | **SIM** `produtos.0123` |
+| **Prova** | `verify_caixa_fiado_conferencia_path` **30/30** (contratos + validar + PIN 9973 + Pular não grava + API só turno/loja + HTTP login) |
+| **Status** | ✅ **Live v21.84** |
+
+### 📦 PACOTE PRONTO — Fiado ver pedido + recibos (`FIADO-VER-RECIBOS` · **v21.79** · 03/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `/fiado/`: KPIs mês; Limite na linha; cliente tela cheia; Recibos modal; Pedido/**Ver** = overlay em cima (não troca página); Esc/← Lista volta ao fiado (não ao PDV); tabela compacta + fonte maior; top bar some no overlay. |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_fiado_ver_recibos_path` **63/63** · stack **14/14** · check OK · APIs resumo/clientes/titulos/recibos/limite/venda embed **200** |
+| **Status** | ✅ **Live v21.84** |
+| **Inclui** | `FIADO-TOPBAR-OVERLAY` · hotfixes Esc + Ver overlay |
+
+### 📦 PACOTE PRONTO — PIN fechar venda 10s (`PIN-VENDA-10S` · **v21.32** · 03/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Fechar venda: «ainda sou eu» **10s**. Pedir/chat: **45s**. Descanso: **3 min**. |
+| **Prova** | path **78/78** · API local PIN 9973 (ttl 10 vs 45) **OK** · Pedir/chat sem 10s |
+| **Migrate** | **NÃO** |
+| **Commit código** | `73c0b2e` · Live **v21.84** |
+| **Status** | ✅ **Live v21.84** |
+| **Fora** | WhatsApp (`WA-*`) |
+
+### ✅ Deploy loja — lote checklist 03/09 (`deploy/prep-checklist-0309` · **v21.84**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v21.84** — healthz **ok** · consulta **200** · badge **21.84** · commit **`c165db2`** |
+| **Antes** | `producao` @ **`527be62`** · v21.82 |
+| **Agora** | `producao` @ **`c165db2`** |
+| **Pacotes** | `PIN-VENDA-10S` · `FIADO-VER-RECIBOS` · `PDV-OVERLAY-STACK` · `VENDAS-LISTA-UX` · `F8-HIST-VENDAS` · `CAIXA-FIADO-CONF` |
+| **Hotfix** | 1ª tentativa v21.83 falhou no build (rota WA `excluir-todas` sem view). Loja **não** caiu (ficou no v21.82). Tirei a rota e subi **v21.84**. |
+| **Migrate** | **SIM** `produtos.0123` |
+| **Não sobe** | WhatsApp extra do `teste` · `CLI-FORM-PDV-LAYOUT` · `CAD-FALLBACK-HIST` |
+| **Rollback** | tag `rollback/pre-lote-checklist-0309-v21.82` · `docs/ROLLBACK-LOTE-CHECKLIST-0309.md` · volta **v21.82** |
+| **Você** | **Ctrl+F5** · badge **v21.84** · PIN+F7 (10s) · F8 · overlay Vendas · Fiado Ver · Fechar caixa fiado |
+
+### ~~✅ CHECKLIST ÚNICO — pronto para envio (03/09 · tip v22.18)~~ · **Live v21.87**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `REPASSE-STACK-NEST` | ✅ **Live v21.87** | **NÃO** |
+
+**Live agora:** **v21.87**.
+
+### ~~✅ CHECKLIST ÚNICO — 03/09 · Live v21.84~~ · ver tip **v21.87** acima
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `PIN-VENDA-10S` | ✅ **Live v21.84** | **NÃO** |
+| 2 | `FIADO-VER-RECIBOS` | ✅ **Live v21.84** | **NÃO** |
+| 3 | `PDV-OVERLAY-STACK` | ✅ **Live v21.84** | **NÃO** |
+| 4 | `VENDAS-LISTA-UX` | ✅ **Live v21.84** | **NÃO** |
+| 5 | `F8-HIST-VENDAS` | ✅ **Live v21.84** | **NÃO** |
+| 6 | `CAIXA-FIADO-CONF` | ✅ **Live v21.84** | **SIM** `0123` |
+
+**Live agora:** **v21.84**. WhatsApp extra / cadastro cliente layout / Excel vazio **fora**.
+
+### PC — disco C: cheio (02/09) · offload Cursor **preparado, ainda não executado**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Já limpo** | Temp / npm / pip / `.cache` / cache Chrome / snapshots Cursor / cache agent — C: ~**9 GB** livres |
+| **Não mexido** | projetos GitHub · `settings.json` · extensões · `state.vscdb` (histórico) |
+| **Pendente** | mover `state.vscdb` (~43 GB) C: → **D:\CursorOffload** com Cursor **fechado** |
+| **Script** | `D:\CursorOffload\MOVER-CURSOR-STATE.ps1` · reverter: `REVERTER-CURSOR-STATE.ps1` · `LEIA-ME.txt` |
+| **Projetos** | **fora** do script (só AppData do Cursor) |
+
+### ~~✅ CHECKLIST ÚNICO — Live v21.08~~ · fila agora = tip **v21.32** acima
+
+### ✅ Deploy loja — orçamento por cliente (`prep-orc-cliente-0209` · **v21.08**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v21.08** — healthz **ok** · PDV/consulta **200** · commit **`3a89b86`** |
+| **Antes** | `producao` @ **`0f5bd5d`** · v21.07 |
+| **Agora** | `producao` @ **`3a89b86`** |
+| **Pacotes** | só `PDV-ORC-POR-CLIENTE` |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-orc-cliente-0209-v21.07` · `docs/ROLLBACK-PDV-ORC-CLIENTE-0209.md` · volta **v21.07** |
+| **Você** | **Ctrl+F5** · badge **v21.08** · F7 1 venda · Renan salvar · outro PC F6 só dele |
+
+### ~~🚀 PREP deploy loja — orçamento por cliente~~ · **superado — Live v21.08**
+
+### 📦 PACOTE — Orçamento por cliente online (`PDV-ORC-POR-CLIENTE`) · ✅ **Live v21.08**
+
+Salva na pasta do cliente; F6/card só dele; sync multi-PC. Prova **68/68**.
+
+### ✅ Deploy loja — lista orçamento (`prep-orc-lista-0209` · **v21.07**) · **Live** (superado pelo v21.08 acima)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v21.07** — healthz **ok** · home/PDV/consulta **200** · commit **`0f5bd5d`** |
+| **Antes** | `producao` @ **`a08dfed`** · v21.06 |
+| **Agora** | `producao` @ **`0f5bd5d`** |
+| **Pacotes** | só `PDV-ORC-LISTA-PC` |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-orc-lista-0209-v21.06` · `docs/ROLLBACK-PDV-ORC-LISTA-0209.md` · volta **v21.06** |
+| **Você** | **Ctrl+F5** · badge **v21.07** · F7 1 venda · F6 no caixa Centro |
+
+### ~~🚀 PREP deploy loja — lista orçamento~~ · **superado — Live v21.07**
+
+### 📦 PACOTE — Orçamento some no outro PC (`PDV-ORC-LISTA-PC`) · ✅ **Live v21.07**
+
+`/pdv/` baixa a lista da loja ao abrir e no F6. Prova **44/44**.
+
+### ✅ Deploy loja — PIN + orçamento (`prep-pin-orc-0209` · **v21.06**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v21.06** — healthz **ok** · frase+senha neste chat |
+| **Antes** | `producao` @ **`798caaa`** · v20.86 |
+| **Agora** | `producao` @ **`a08dfed`** |
 | **Pacotes** | `PIN-TECLADO-OBRIG` · `PIN-ET5-CAMPO` · `PDV-ORC-SAVE` |
-| **Fora** | WhatsApp `WA-*` · resto do `teste` |
 | **Migrate** | **NÃO** |
-| **Prova** | PIN **54/54** · orçamento **33/33** (PIN 9973) |
-| **Rollback** | tag `rollback/pre-pin-orc-0209-v20.86` @ `798caaa` · `docs/ROLLBACK-PIN-ORC-0209.md` |
-| **Risco loja aberta** | **Baixo** — venda F7 / caixa / NFC-e **iguais**; só PIN na ação que já pedia + gravar orçamento |
-| **Deploy (com senha)** | `producao` ← `origin/deploy/prep-pin-orc-0209` · **não** merge `teste` |
-| **Smoke** | badge **v21.06** · F7 1 venda · salvar orç. · NF etapa 5 campo PIN |
+| **Rollback** | tag `rollback/pre-pin-orc-0209-v20.86` · `docs/ROLLBACK-PIN-ORC-0209.md` |
+| **Você** | **Ctrl+F5** · badge **v21.06** · F7 1 venda · salvar orç. · NF etapa 5 PIN |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (02/09 · alvo **v21.06**)
+### ~~✅ CHECKLIST ÚNICO — Live v21.06~~ · **ver checklist no topo** (falta `PDV-ORC-LISTA-PC`)
 
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | `PIN-TECLADO-OBRIG` + `PIN-ET5-CAMPO` | 🟢 **PREP / aguarda senha** | **NÃO** |
-| 2 | `PDV-ORC-SAVE` | 🟢 **PREP / aguarda senha** | **NÃO** |
+### 📦 PACOTE — PIN teclado + campo NF etapa 5 · ✅ **Live v21.06**
 
-### 🚀 PREP deploy loja — lote vendas + BI (`prep-lote-vendas-bi-0109d` · **v20.73** · 01/09/2026)
+Teclado PIN + linha na etapa 5. Prova **54/54**.
+
+### 📦 PACOTE — Salvar orçamento PDV · ✅ **Live v21.06**
+
+Grava no Postgres sem login Chrome. Prova **33/33**.
+
+### ✅ Deploy loja — lote vendas + BI (`prep-lote-vendas-bi-0109d` · **v20.86**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Loja hoje** | **v20.58** @ `751c0d4` |
-| **Teste** | **v20.73** · PIN **9973** OK |
+| **Status** | ✅ **enviado / Live v20.86** — healthz **ok** · frase+senha neste chat |
+| **Antes** | `producao` @ **v20.58** / `751c0d4` |
+| **Agora** | `producao` @ **`798caaa`** |
+| **Pacotes** | `BI-DEVOL-CARD` · `BI-DEVOL-MEIO` · `VL-FIADO-TAGS` · `VL-CAL-INTERVALO` |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_vendas_lojas_resumo_path.py` **140/140** · `verify_bi_devolucao_dia.py` **43/43** |
-| **Você** | Ctrl+F5 `/vendas/lojas/` · calendário 2 toques · tag fiado · BI bate com vendas-lojas |
-| **Loja** | **aguarda senha** neste chat |
+| **Rollback** | `docs/ROLLBACK-LOTE-VENDAS-BI-0109d.md` · tag `rollback/pre-lote-vendas-bi-0109d-v20.58` |
+| **Você** | Ctrl+F5 · badge **v20.86** · `/vendas/lojas/` tag fiado · BI = vendas-lojas |
 
-### ✅ CHECKLIST ÚNICO — 01/09d · **pronto envio produção**
+### ✅ CHECKLIST ÚNICO — 01/09d · **Live v20.86**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `BI-DEVOL-CARD` | 🟢 **pronto envio** | **NÃO** |
-| 2 | `BI-DEVOL-MEIO` | 🟢 **pronto envio** | **NÃO** |
-| 3 | `VL-FIADO-TAGS` | 🟢 **pronto envio** | **NÃO** |
-| 4 | `VL-CAL-INTERVALO` | 🟢 **pronto envio** | **NÃO** |
-| 5 | `fix marcar_lidas` | 🟢 **pronto envio** | **NÃO** |
+| 1 | `BI-DEVOL-CARD` | ✅ **Live v20.86** | **NÃO** |
+| 2 | `BI-DEVOL-MEIO` | ✅ **Live v20.86** | **NÃO** |
+| 3 | `VL-FIADO-TAGS` | ✅ **Live v20.86** | **NÃO** |
+| 4 | `VL-CAL-INTERVALO` | ✅ **Live v20.86** | **NÃO** |
 
-**Fora deste lote:** `WA-ATEND-QR` e derivados (migrate `0111–0114`) · `WA-BOT-*` · `BI-META-C-VILA-RAMP`
+**Fora (ainda só `teste`):** WhatsApp · resto do `teste`
+
+- **Chat duplicado LID (`WA-LID-UM` · 02/09):** um número = um chat; fiado acha cadastro; envio usa `@lid`. Foto/áudio arquivo. **Bot:** intervalo fora do horário · saudação sem 2 lojas · `{empresa}` `{cliente}` · ordem do nome · áudio sem pergunta. **v20.98**. Migrate **`0117`**.
+- **Agenda + barra Zap (`WA-AGENDA-LID` · 02/09):** busca acha nome salvo no celular (`@lid`). Barra de enviar no jeito do WhatsApp Web (clipe · texto · microfone/enviar). **v21.01**. **Não** copiamos código do WASeller.
+- **Eco + áudio (`WA-ECO-AUD` · 02/09 · teste v21.14):** eco cortado. Áudio converte com ffmpeg-static (baixa sozinho no `.bat`). Na gravação some o botão verde — envia no microfone vermelho. **Ctrl+F5** + **religar o `.bat` uma vez**.
+- **Import agenda VCF (`WA-AGENDA-VCF` · 02/09 · teste v21.19):** botão **Importar agenda** sob a busca (PC e celular). Arquivo `.vcf` dos Contatos do celular → Postgres. Arquivo de teste do Renan tinha **11** contatos (sem “Esposa”).
+- **Lista sem número (`WA-FICHA-NOME` · 02/09):** com nome salvo, lista e topo mostram só o nome; clique no nome abre ficha (telefone + cadastro Agro se casar).
+- **Anteriores (`WA-HIST-FIX` · 02/09 · v21.27):** ANT. lia o sync do Zap; LID≠telefone descartava. Agora aceita os dois + mensagens do `messaging-history.set`. **Religar `.bat`**.
+- **Áudio celular (`WA-AUD-VOIP` · 02/09):** conversão ogg/opus no formato do Zap (voip 48k) + duração; se falhar marca erro (não “finge” enviado). **Religar `.bat`** + teste curto.
+- **Áudio toca no celular (`WA-AUD-CODE3` · 03/09):** bolha chegava mas «arquivo com problema» — Opus do ffmpeg (code 0) → remonta code 3 como o Zap nativo. **Religar `.bat`**.
+- **Bot sozinho (`WA-BOT-REPLAY` · 03/09 · teste v21.33):** reconnect do `.bat` reenviava msgs antigas como “ao vivo” → boas-vindas sem o cliente escrever. Agora: idade da msg (ponte + Django). **Religar `.bat`**.
+- **Status do Zap (`WA-STATUS-OFF` · 03/09):** stories (`status@broadcast`) caíam no chat 1-a-1 (foto/legenda) e disparavam boas-vindas. Ponte + Django ignoram. **Religar `.bat`**.
+- **Ver status (`WA-STATUS-VER` · 03/09):** visualizador (foto/vídeo/texto). Migrate **`0120`**. **Religar `.bat`** + Ctrl+F5.
+- **Cabeçalho chat (`WA-CHAT-HEAD` · 03/09 · teste v21.77):** sem conversa = só «Selecione…»; aberta = foto+nome · Status (se houver) · Anteriores/✓/Apagar num grupo. Faixa STATUS sumiu da lista.
+- **Apagar mensagem (`WA-MSG-DEL` · 03/09 · teste v21.78):** × na bolha da loja/bot → apaga no Zap do cliente (pra todos) + “Mensagem apagada” no Agro. Migrate **`0122`**. **Religar `.bat`** + migrate + Ctrl+F5.
+- **PDV sem Zap (`PDV-WA-TOPBAR-BREVE` · 03/09):** ícone do PDV volta a **Em breve…** — atendimento só pelo menu (WhatsApp computador). Combinado antes de subir loja.
+- **Ficha (`WA-FICHA-OVERLAY` · 03/09):** **Fechar** da ficha (antes o JS carregava antes do botão). **Abrir cadastro** abre em overlay (não troca a página).
+- **Status áudio + foto (`WA-STATUS-AUD` / `WA-FOTO-PERFIL` · 03/09):** Esc/fecha para o áudio/vídeo do status. Lista com foto de perfil (ponte Baileys). Migrate **`0121`**. **Religar `.bat`** + migrate + Ctrl+F5.
+- **Lista estilo Zap (`WA-LISTA-UI` · 03/09):** ícone áudio/figurinha · prévia 1 linha · horário coluna fixa à direita · lista mais larga. Abas Fila/Centro/Vila somem se **Separar lojas** off (`WA-TABS-OFF`). Não lidas = **bolinha verde** só com número (`WA-UNREAD-DOT`). **Fila visual (`WA-ESPERA` · 03/09):** verde=nova · laranja=leu sem resposta · neutro=respondeu ou **✓** concluir. Migrate **`0118`**. **Trocar Zap (`WA-TROCAR` · 03/09):** botão no topo · migrate **`0119`**.
+
+### 📦 PACOTE PRONTO — Bot WhatsApp (`WA-BOT-CFG` · 02/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Intervalo do aviso fora do horário · saudação sem 2 lojas · `{empresa}` `{cliente}` · ordem do nome · áudio sem pergunta |
+| **Onde** | `/atendimento-whatsapp/bot/` |
+| **Migrate** | **`0117`** (`aviso_fora_em`) |
+| **Status** | 🟡 `teste` **v21.00** · **fora da loja** |
+| **Você** | Recarrega `runserver` · Ctrl+F5. **Nome da agenda na busca:** fecha a janela preta **uma vez** e abre o `.bat`. |
+
+### ~~🚀 PREP deploy loja — lote vendas + BI~~ · **superado — Live v20.86 @ 798caaa**
+
+- **Celular (`WA-CEL` · 02/09):** Menu = **dois botões** (computador Z · celular Y). Bot: desligar flag grava de verdade; aviso fora do horário tem interruptor próprio. **Separar Centro/Vila** dá para desligar no Bot → Lojas. Fora da loja.
+
+### 📦 PACOTE PRONTO — WhatsApp celular (`WA-CEL` · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Zap no celular **sem** chrome SisVale · PWA · foto/áudio · menu com **computador + celular** · bot respeita desligar · dá para não separar lojas |
+| **Onde** | Menu: **WhatsApp computador (Z)** e **WhatsApp celular (Y)** · `/atendimento-whatsapp/` e `/atendimento-whatsapp/celular/` |
+| **Migrate** | **NÃO** |
+| **Status** | 🟡 `teste` **v20.93** · **fora da loja** · Render teste (não Consulta) |
+| **Ponte** | 1 `iniciar.bat` · `AGRO_WA_DJANGO_URL` = HTTPS do **agro-consulta-teste** (não 127.0.0.1) · token = env Render · senão a tela em casa fica vazia |
+
+### 📦 PACOTE PRONTO — Mensagens WhatsApp estáveis (`WA-MSG-LID` · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Aceita msg offline + ID `@lid` · junta conversa antiga · aba lembrada · Salvar bot não trava |
+| **Migrate** | **NÃO** |
+| **Ops** | Fechar **todas** janelas do `.bat` · abrir **uma** · Ctrl+F5 no chat |
+| **Status** | 🟡 `teste` **v20.90** · fora da loja (lote `WA-ATEND-QR`) · prova 89/89 |
+
+### 📦 PACOTE PRONTO — Transferir atendimento WhatsApp (`WA-XFER-LOJA` · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Passar chat Centro ↔ Vila · avisa o cliente no Zap · outra loja vê como nova |
+| **Migrate** | **NÃO** |
+| **Status** | 🟡 `teste` · fora da loja (lote `WA-ATEND-QR`) |
+
+### 📦 PACOTE PRONTO — Agenda Zap por nome (`WA-AGENDA-NOME` · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Busca mistura cadastro + agenda incremental · fiado responde mesmo fora do horário |
+| **Migrate** | **NÃO** |
+| **Ops** | Reiniciar `iniciar.bat` · **só uma** janela preta aberta |
+| **Status** | 🟡 `teste` · fora da loja (lote `WA-ATEND-QR`) · sync bootstrap **revertido** (estabilidade) |
+
+### 📦 PACOTE PRONTO — Busca estilo Zap Web (`WA-BUSCA-WEB` · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Campo busca no topo da lista · clique abre chat · cadastro + agenda Zap juntos |
+| **Migrate** | **NÃO** |
+| **Status** | 🟡 `teste` · fora da loja (lote `WA-ATEND-QR`) |
+
+### 📦 PACOTE PRONTO — Código de ligação WhatsApp (`WA-PAIR-CODE` · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Ligar o Zap com código (sem câmera), igual o WhatsApp Web · QR continua |
+| **Onde** | `/atendimento-whatsapp/` · Gerar código |
+| **Migrate** | **SIM** `0115` |
+| **Status** | 🟡 `teste` · fora da loja (lote `WA-ATEND-QR`) |
 
 ### 📦 PACOTE PRONTO — Bot + PDV WhatsApp (`WA-BOT-CFG-RENAN` · 01/09/2026)
 
@@ -1772,7 +3061,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Calendário: 1º toque = início · 2º = fim · totais entre os dias (inclusive) |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_vendas_lojas_resumo_path.py` **140/140** |
-| **Status** | 🟢 **pronto envio** · `teste` **v20.73** · loja **v20.58** |
+| **Status** | ✅ **Live v20.86** |
 
 ### 📦 PACOTE PRONTO — Vendas lojas tags fiado (`VL-FIADO-TAGS` · 01/09/2026)
 
@@ -1781,7 +3070,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Tag **Sem fiado** · **c/ fiado quitado** + modal no celular |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_vendas_lojas_resumo_path.py` (fiado DB + HTTP) |
-| **Status** | 🟢 **pronto envio** · `teste` **v20.73** · loja **v20.58** |
+| **Status** | ✅ **Live v20.86** |
 
 ### 📦 PACOTE PRONTO — BI/atalhos alinhados (`BI-DEVOL-MEIO` · 01/09/2026)
 
@@ -1790,7 +3079,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Atalhos «Vendas hoje» + ranking vendedor/cliente do BI abatem devolução no dia do evento |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_bi_devolucao_dia.py` **43/43** |
-| **Status** | 🟢 **pronto envio** · loja **v20.58** |
+| **Status** | ✅ **Live v20.86** |
 
 ### 📦 PACOTE PRONTO — BI card igual vendas-lojas (`BI-DEVOL-CARD` · 01/09/2026)
 
@@ -1799,7 +3088,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Card/total do BI `/` = mesma conta do `/vendas/lojas/` |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_bi_devolucao_dia.py` |
-| **Status** | 🟢 **pronto envio** · loja **v20.58** |
+| **Status** | ✅ **Live v20.86** |
 
 ### ✅ Deploy loja — lote checklist 01/09c (`deploy/prep-checklist-0109c` · **v20.58**) · **Live**
 

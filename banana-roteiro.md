@@ -328,11 +328,28 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **BI-DEVOL-PLANILHA** | 🟡 **PREP** · prova **28/28** | **NÃO** |
+| 1 | **BI-DEVOL-PLANILHA** | ✅ **Live v20.58** · prova **28/28** | **NÃO** |
 
-**Status: PREP — ainda não na loja.** Loja hoje **v20.56** @ `d30c5ca`.  
+**Status: enviado / Live v20.58.** `producao` @ `751c0d4`.  
 **Rollback:** tag `rollback/pre-lote-checklist-0109c-v20.56` @ `d30c5ca` · branch `producao-backup-pre-v2058-lote-checklist-20260901` · `docs/ROLLBACK-LOTE-CHECKLIST-0109c.md` · **só** frase+senha.  
-**Deploy:** **não** resetar `producao` no `teste`. `reset --hard origin/deploy/prep-checklist-0109c`. **Fora:** `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP`. PDV/caixa **iguais**.
+**Smoke:** healthz ok · badge **v20.58** · Ctrl+F5. **Fora:** `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP`.
+
+---
+
+## 19. Checklist único — lote 03/09 (`deploy/prep-checklist-0309` · loja **v21.84**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PIN-VENDA-10S** | ✅ **Live v21.84** | **NÃO** |
+| 2 | **FIADO-VER-RECIBOS** | ✅ **Live v21.84** | **NÃO** |
+| 3 | **PDV-OVERLAY-STACK** | ✅ **Live v21.84** | **NÃO** |
+| 4 | **VENDAS-LISTA-UX** | ✅ **Live v21.84** | **NÃO** |
+| 5 | **F8-HIST-VENDAS** | ✅ **Live v21.84** | **NÃO** |
+| 6 | **CAIXA-FIADO-CONF** | ✅ **Live v21.84** | **SIM** `0123` |
+
+**Status: enviado / Live v21.84.** `producao` @ `c165db2`.  
+**Rollback:** tag `rollback/pre-lote-checklist-0309-v21.82` @ `527be62` · branch `producao-backup-pre-v2183-lote-checklist-20260903` · `docs/ROLLBACK-LOTE-CHECKLIST-0309.md` · **só** frase+senha.  
+**Smoke:** healthz ok · consulta **200** · badge **v21.84** · Ctrl+F5. **Fora:** WhatsApp extra · `CLI-FORM-PDV-LAYOUT` · `CAD-FALLBACK-HIST`.
 
 ---
 
@@ -340,16 +357,16 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **LOGIN-BI-FECHADO** + **LOGIN-UI-AGRO** | 🟢 **PREP** · aguarda senha | **NÃO** |
-| 2 | **NF-LISTA-ANDAMENTO** | 🟢 **PREP** | **NÃO** |
-| 3 | **ETQ-A6-BONUS** | 🟢 **PREP** · prova **59/59** | **NÃO** |
-| 4 | **FIADO-LIMITE-LINHA** | 🟢 **PREP** | **NÃO** |
-| 5 | **PDV-CHAT-POLL-10S** | 🟢 **PREP** | **NÃO** |
-| 6 | **WA-XFER-PIX-ORC** | 🟢 **PREP** | **SIM** `0125` |
+| 1 | **LOGIN-BI-FECHADO** + **LOGIN-UI-AGRO** | ✅ **Live v21.89** | **NÃO** |
+| 2 | **NF-LISTA-ANDAMENTO** | ✅ **Live v21.89** | **NÃO** |
+| 3 | **ETQ-A6-BONUS** | ✅ **Live v21.89** | **NÃO** |
+| 4 | **FIADO-LIMITE-LINHA** | ✅ **Live v21.89** | **NÃO** |
+| 5 | **PDV-CHAT-POLL-10S** | ✅ **Live v21.89** | **NÃO** |
+| 6 | **WA-XFER-PIX-ORC** | ✅ **Live v21.89** | **SIM** `0125` |
 
-**Status: PREP / aguarda senha.** Live ainda **v21.88**. **Não** merge `teste`.  
-**Rollback:** tag `rollback/pre-lote-checklist-0409-v21.88` · branch `producao-backup-pre-v2189-lote-checklist-20260904` · `docs/ROLLBACK-LOTE-CHECKLIST-0409.md`.  
-**PDV:** `/consulta/` sem login Django · F7 igual. BI `/` pede `/entrar/`.
+**Status: enviado / Live v21.89.** `producao` @ `4910c79`.  
+**Rollback:** tag `rollback/pre-lote-checklist-0409-v21.88` @ `329f9b5` · branch `producao-backup-pre-v2189-lote-checklist-20260904` · `docs/ROLLBACK-LOTE-CHECKLIST-0409.md` · **só** frase+senha.  
+**Smoke:** healthz ok · badge **v21.89** · Ctrl+F5. **Fora:** Excel cadastro · WhatsApp extra.
 
 ---
 
@@ -357,19 +374,20 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PDV-ENTREGA-TABELA-FORMA** | 🟢 **PREP** | **NÃO** |
-| 2 | **REPASSE-ZERO-OK** | 🟢 **PREP** | **NÃO** |
-| 3 | **PDV-VALE-SALDO-LIVE** | 🟢 **PREP** | **NÃO** |
-| 4 | **MP-POINT-FINAL-PIN** | 🟢 **PREP** · prova PREP **39/39** | **NÃO** |
-| 5 | **PDV-VALE-USADO** | 🟢 **PREP** | **NÃO** |
-| 6 | **PDV-ORC-LISTA-LIVE** | 🟢 **PREP** | **NÃO** |
-| 7 | **WA-LISTA-SEM-PISCA** | 🟢 **PREP** | **NÃO** |
-| 8 | **WA-FACHONA-PRETA** | 🟢 **PREP** · **9/9** | **NÃO** |
-| 9 | **WA-PIN-COMPOSER** | 🟢 **PREP** | **NÃO** |
-| 10 | **WA-SAUDACAO-RICH** + **WA-ARQUIVO** | 🟢 **PREP** | **SIM** `0126` |
+| 1 | **PDV-ENTREGA-TABELA-FORMA** | ✅ **Live v21.91** | **NÃO** |
+| 2 | **REPASSE-ZERO-OK** | ✅ **Live v21.91** | **NÃO** |
+| 3 | **PDV-VALE-SALDO-LIVE** | ✅ **Live v21.91** | **NÃO** |
+| 4 | **MP-POINT-FINAL-PIN** | ✅ **Live v21.91** | **NÃO** |
+| 5 | **PDV-VALE-USADO** | ✅ **Live v21.91** | **NÃO** |
+| 6 | **PDV-ORC-LISTA-LIVE** | ✅ **Live v21.91** | **NÃO** |
+| 7 | **WA-LISTA-SEM-PISCA** | ✅ **Live v21.91** | **NÃO** |
+| 8 | **WA-FACHONA-PRETA** | ✅ **Live v21.91** | **NÃO** |
+| 9 | **WA-PIN-COMPOSER** | ✅ **Live v21.91** | **NÃO** |
+| 10 | **WA-SAUDACAO-RICH** + **WA-ARQUIVO** | ✅ **Live v21.91** | **SIM** `0126` |
 
-**Status: PREP / aguarda senha.** Live ainda **v21.90**. **Não** merge `teste`. **Não** ligar ponte Zap.  
-**Rollback:** `docs/ROLLBACK-LOTE-CHECKLIST-0509g.md`.
+**Status: enviado / Live v21.91.** `producao` @ `319404f`.  
+**Rollback:** tag `rollback/pre-lote-checklist-0509g-v21.90` @ `aaff41d` · branch `producao-backup-pre-v2191-lote-checklist-20260905` · `docs/ROLLBACK-LOTE-CHECKLIST-0509g.md` · **só** frase+senha.  
+**Smoke:** healthz ok · badge **v21.91** · Ctrl+F5. **Não** ligar ponte Zap.
 
 ---
 
@@ -383,18 +401,18 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 **Status: enviado / Live v21.93.** `producao` @ `8884c9c`.  
 **Rollback:** tag `rollback/pre-lote-checklist-0509h-v21.92` @ `041e1b5` · branch `producao-backup-pre-v2193-lote-checklist-20260905` · `docs/ROLLBACK-LOTE-CHECKLIST-0509h.md` · **só** frase+senha.  
-**Smoke:** Ctrl+F5 · badge **v21.93** · PDV F7 · Lançamentos PIN velho → teclado · Zap balcão 1 barra.
+**Smoke:** Ctrl+F5 · badge **v21.93** · PDV F7 · Lançamentos PIN velho → teclado · Zap balcão 1 barra.  
+**Não subiu:** merge `teste` · Excel · resto ponte foto/agenda.
 
 ---
 
-## 23. Checklist único — VL-HUB-TAREFAS (loja **v23.18**)
+## 23. Checklist único — VL-HUB-TAREFAS · ✅ **Live v23.18+**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **VL-HUB-TAREFAS** | ✅ **Live v23.18** | **SIM** `tarefas.0001` + `0002` |
+| 1 | **VL-HUB-TAREFAS** | ✅ **Live v23.18+** | **SIM** `tarefas.0001` + `0002` |
 
-**Status: enviado / Live v23.18.** Prova `verify_vl_hub_tarefas_path.py` **55/55**.  
-**Rollback:** tag `rollback/pre-vl-hub-tarefas-v23.07` · `docs/ROLLBACK-VL-HUB-TAREFAS-0609.md` · **só** frase+senha.
+**Status: enviado / Live.** Ver CHECKPOINT banana.
 
 ---
 
@@ -407,60 +425,119 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 | 3 | **ETQ-COLAR-MV** | ✅ **Live v23.58** · prova **82/82** | **NÃO** |
 
 **Status: enviado / Live v23.58.** `producao` @ `0e0c419`.  
-**Rollback:** `docs/ROLLBACK-CHECKLIST-0809.md` · **só** frase+senha.
+**Rollback:** tag `rollback/pre-checklist-0809-v23.45` @ `1b942c4` · branch `producao-backup-pre-v2358-checklist-20260908` · `docs/ROLLBACK-CHECKLIST-0809.md` · **só** frase+senha.  
+**Smoke:** healthz · badge **v23.58** · Ctrl+F5 · PIN teclado · Quem já comprou · Etiquetas colar/ranking.
 
 ---
 
-## 25. Checklist único — lote 09/09 (`deploy/prep-checklist-0909` · alvo loja **v23.70**)
+## 25. Checklist único — lote 09/09 · ✅ **Live v23.70**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PDV-ENTREGA-PAGAS-24H** | 🟡 PREP / aguarda senha · **64/64** | **SIM** `0129` |
-| 2 | **PDV-ENTREGA-LOJA-SAIDA** | 🟡 PREP / aguarda senha · **12/12** | **NÃO** |
-| 3 | **CAIXA-ENTREGA-ADIAR** | 🟡 PREP / aguarda senha · **26/26** | **SIM** `0128` |
-| 4 | **TAREFAS-DETALHE-LOTE** | 🟡 PREP / aguarda senha · **90/90** | **NÃO** |
-| 5 | **REPASSE-COFRE-PLANO** | 🟡 PREP / aguarda senha · **62/62** | **NÃO** |
-| 6 | **REPASSE-GESTAO-SIMPLES** | 🟡 PREP / aguarda senha · **64/64** | **NÃO** |
+| 1 | **PDV-ENTREGA-PAGAS-24H** | ✅ Live · **64/64** | **SIM** `0129` |
+| 2 | **PDV-ENTREGA-LOJA-SAIDA** | ✅ Live · **12/12** | **NÃO** |
+| 3 | **CAIXA-ENTREGA-ADIAR** | ✅ Live · **26/26** | **SIM** `0128` |
+| 4 | **TAREFAS-DETALHE-LOTE** | ✅ Live · **90/90** | **NÃO** |
+| 5 | **REPASSE-COFRE-PLANO** | ✅ Live · **62/62** | **NÃO** |
+| 6 | **REPASSE-GESTAO-SIMPLES** | ✅ Live · **64/64** | **NÃO** |
 
-**Status: PREP pronto — aguarda frase + senha.** Branch `deploy/prep-checklist-0909` · tip **v23.70**.  
-**Antes loja:** Live **v23.58** @ `0e0c419`. **Não** merge `teste`.  
-**Rollback:** `docs/ROLLBACK-CHECKLIST-0909.md` · tag `rollback/pre-checklist-0909-v23.58` (criar no deploy).  
-**Risco:** médio em entrega/caixa — **pausar vendas** no deploy.  
-**Smoke pós:** badge **v23.70** · migrate 0128+0129 · Entregas abas · loja sai · Adiar · Tarefas Salvar · repasse cofre plano.
-
-## 27. Checklist único — lote 10/09 (`deploy/prep-checklist-1009` · alvo loja **v23.91**)
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **PIN-SSPIN-GLOBAL** | 🟡 **PREP** · aguarda senha | **NÃO** |
-| 2 | **FOTOS-PRODUTO-MOBILE** | 🟡 **PREP** · aguarda senha | **NÃO** |
-| 3 | **PIN-NS-BI** | 🟡 **PREP** · aguarda senha | **NÃO** |
-| 4 | **CLI-DUP-TEL-Z** | 🟡 **PREP** · aguarda senha | **NÃO** |
-| 5 | **NF-FIN-NAO-TEM** | 🟡 **PREP** · aguarda senha | **NÃO** |
-| 6 | **NF-AGUARDA-PRODUTO** | 🟡 **PREP** · aguarda senha | **NÃO** |
-
-**Status: PREP pronto / aguarda senha.** Branch `deploy/prep-checklist-1009`. Live ainda **v23.76**.  
-**Prova:** SSPIN **197/197** · Fotos **59/59** · PIN-ALERT **130/130** · CLI **60/60**+deep **24/24** · NF-FIN **15/15** · NF-AGUARDA **6/6**.  
-**Rollback:** `docs/ROLLBACK-CHECKLIST-1009.md` · tag `rollback/pre-checklist-1009-v23.76`. **Só** frase+senha. **Não** merge `teste`.
+**Status: ✅ Live v23.70** — `producao` @ `71a169a` · Render `dep-dagsqovlk1mc73a5t8cg`.  
+**Antes:** Live **v23.58** @ `0e0c419`. Migrate **0128+0129** OK. **Não** merge `teste`.  
+**Rollback:** tag `rollback/pre-checklist-0909-v23.58` · `docs/ROLLBACK-CHECKLIST-0909.md`.  
+**Smoke:** Ctrl+F5 · badge **v23.70** · Entregas · Adiar · Tarefas · repasse.
 
 ---
 
-## 31. Checklist único — lote 12/09b (`deploy/prep-checklist-1209b` · alvo loja **v23.95**) · 🟡 aguarda senha
+## 26. Checklist único — MP-POINT-POLL-RETRY · ✅ **Live v23.73**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **WA-PONTE-ULTRA-LEVE** | 🟡 PREP · **47/47** | **NÃO** |
-| 2 | **WA-APP-SEM-PDV** | 🟡 PREP · **53/53** | **NÃO** |
-| 3 | **PDV-RACOES-MARCA-VAZIA** | 🟡 PREP · **57/57** | **NÃO** |
-| 4 | **PDV-CHAT-ENTREGA-DOCK** | 🟡 PREP · **7/7** | **NÃO** |
-| 5 | **PDV-ENT-HORARIO-OPCOES** | 🟡 PREP · **16/16** | **NÃO** |
-| 6 | **PDV-ENT-TROCO-ENTER** | 🟡 PREP · **6/6** | **NÃO** |
-| 7 | **PDV-ENT-OVERLAY-SPLIT** | 🟡 PREP · lote **61/61** | **SIM** `0130` |
-| 8 | **ETQ-LOTE-FILA** | 🟡 PREP · **78/78** | **NÃO** |
-| 9 | **PDV-IMP-SEP-OFF** | 🟡 PREP | **NÃO** |
-| 10 | **PDV-IMP-PIN-ANTES** | 🟡 PREP | **NÃO** |
+| 1 | **MP-POINT-POLL-RETRY** | ✅ Live · poll **13/13** · PIN **41/41** · tests **16/16** | **NÃO** |
 
-**Status:** 🟡 **PREP pronto** — `deploy/prep-checklist-1209b` · **só** frase+senha · **não** merge `teste`.  
-**Rollback:** `docs/ROLLBACK-CHECKLIST-1209b.md` · tag `rollback/pre-checklist-1209b-v23.94`.  
-**Loja ainda:** **v23.94**. Antes do deploy: pausar vendas · fechar `.bat` Zap.
+**Status: ✅ Live v23.73** — `producao` @ `c7e6fd2` · Render `dep-dah01b95efls739b0u30`.  
+**Antes:** Live **v23.70** @ `71a169a`. Bug **#7423** (502 matava espera Point). **Não** merge `teste`.  
+**Rollback:** tag `rollback/pre-mp-point-poll-retry-v23.70` · `docs/ROLLBACK-MP-POINT-POLL-RETRY.md`.  
+**Smoke:** Ctrl+F5 · badge **v23.73** · Point: oscilação de rede continua aguardando.
+
+---
+
+## 27. Checklist único — lote 10/09 · ✅ **Live v23.91**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PIN-SSPIN-GLOBAL** | ✅ Live · **197/197** | **NÃO** |
+| 2 | **FOTOS-PRODUTO-MOBILE** | ✅ Live · **59/59** | **NÃO** |
+| 3 | **PIN-NS-BI** | ✅ Live · **130/130** | **NÃO** |
+| 4 | **CLI-DUP-TEL-Z** | ✅ Live · **60/60** | **NÃO** |
+| 5 | **NF-FIN-NAO-TEM** | ✅ Live · **15/15** | **NÃO** |
+| 6 | **NF-AGUARDA-PRODUTO** | ✅ Live · **6/6** | **NÃO** |
+
+**Status: ✅ Live v23.91** — `producao` @ `22186fb` · Render `dep-dahg41navr4c738vno40`.  
+**Antes:** Live **v23.76** @ `056e9a7`. **Não** merge `teste`. Sem migrate.  
+**Rollback:** tag `rollback/pre-checklist-1009-v23.76` · `docs/ROLLBACK-CHECKLIST-1009.md`.  
+**Smoke:** healthz ok · Ctrl+F5 · badge **v23.91**.
+
+---
+
+## 28. Checklist único — lote 11/09 · ✅ **Live v23.92**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **REPASSE-ACUM-EXTRA-BUG** | ✅ Live · path **18/18** | **NÃO** |
+
+**Status: ✅ Live v23.92** — `producao` @ `78098c3` · Render `dep-dai2a3uk1f9s73ep6kvg`.  
+**Antes:** Live **v23.91** @ `22186fb`. **Não** merge `teste`. Sem migrate.  
+**Rollback:** tag `rollback/pre-checklist-1109-v23.91` · `docs/ROLLBACK-CHECKLIST-1109.md`.  
+**Smoke:** Ctrl+F5 · badge **v23.92** · Repasse acumulado ~**254**.
+
+---
+
+## 29. Checklist único — lote 11/09b · ✅ **Live v23.93**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **REPASSE-PCT-ZERO** | ✅ Live · path **20/20** · PIN **9973** | **NÃO** |
+
+**Status: ✅ Live v23.93** — `producao` @ `fc34325` · Render `dep-dai36tks728c73c9snm0`.  
+**Antes:** Live **v23.92** @ `78098c3`. **Não** merge `teste`. Sem migrate.  
+**Rollback:** tag `rollback/pre-checklist-1109b-v23.92` · `docs/ROLLBACK-CHECKLIST-1109b.md`.  
+**Smoke:** Ctrl+F5 · badge **v23.93** · Repasse PDV **0%**.
+
+---
+
+## 30. Checklist único — lote 11/09d · ✅ **Live v23.94**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **NF-LOTE-XML** | ✅ Live · path **48/48** · PIN **9973** | **NÃO** |
+| 2 | **REPASSE-HIST-OVERLAY** | ✅ Live · hist **19/19** | **NÃO** |
+| 3 | **REPASSE-STATUS-FLASH** | ✅ Live · **43/43** · PIN **9973** | **NÃO** |
+
+**Status: ✅ Live v23.94** — `producao` @ `c3e0b1c` · Render `dep-daiji4qjnfac73e9r5dg`.  
+**Antes:** Live **v23.93** @ `fc34325`. **Não** merge `teste`. Sem migrate.  
+**Rollback:** tag `rollback/pre-checklist-1109d-v23.93` · `docs/ROLLBACK-CHECKLIST-1109d.md`.  
+**Smoke:** Ctrl+F5 · badge **v23.94** · NF etapa 4 · Repasse Histórico · TRANSFERINDO.
+
+---
+
+## 31. Checklist único — lote 12/09c · ✅ **Live v23.96**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **WA-PONTE-ULTRA-LEVE** | ✅ Live · **47/47** | **NÃO** |
+| 2 | **WA-APP-SEM-PDV** | ✅ Live · **53/53** | **NÃO** |
+| 3 | **PDV-RACOES-MARCA-VAZIA** | ✅ Live · **57/57** | **NÃO** |
+| 4 | **PDV-CHAT-ENTREGA-DOCK** | ✅ Live · **7/7** | **NÃO** |
+| 5 | **PDV-ENT-HORARIO-OPCOES** | ✅ Live · **16/16** | **NÃO** |
+| 6 | **PDV-ENT-TROCO-ENTER** | ✅ Live · **6/6** | **NÃO** |
+| 7 | **PDV-ENT-OVERLAY-SPLIT** | ✅ Live · lote **61/61** | **SIM** `0130` |
+| 8 | **ETQ-LOTE-FILA** | ✅ Live · **78/78** | **NÃO** |
+| 9 | **PDV-IMP-SEP-OFF** | ✅ Live | **NÃO** |
+| 10 | **PDV-IMP-PIN-ANTES** | ✅ Live | **NÃO** |
+| 11 | **PDV-ENT-CARD-LATERAL** | ✅ **Live v23.96** · **51/51** | **NÃO** |
+| 12 | **PDV-ENT-ALERTA-POR-ID** | ✅ **Live v23.96** · **51/51** | **NÃO** |
+| 13 | **PDV-ENT-MUDAR-LOJA** | ✅ **Live v23.96** · **39/39** | **SIM** `0131` |
+
+**Status: ✅ Live v23.96** — `#11`–`#13`. Antes: Live **v23.95** @ `8faa4c1`.  
+**Rollback:** tag `rollback/pre-checklist-1209c-v23.95` · `docs/ROLLBACK-CHECKLIST-1209c.md`.
 

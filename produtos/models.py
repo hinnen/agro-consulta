@@ -1314,6 +1314,13 @@ class PedidoEntrega(models.Model):
         db_index=True,
         help_text="Dono da entrega: centro | vila. Vazio = ainda sem loja (as duas veem).",
     )
+    loja_pagamento = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Caixa que fecha a venda: centro | vila. Vazio = mesmo que loja_entrega / sessão.",
+    )
     loja_assumida_em = models.DateTimeField(null=True, blank=True)
     loja_assumida_por = models.CharField(max_length=120, blank=True, default="")
     endereco_linha = models.CharField(max_length=500, blank=True, default="")

@@ -4467,6 +4467,218 @@
             '</div>';
     }
 
+
+    /* Por entrega: { "42": 1739… } — localStorage só neste PC (alerta visual/bip). */
+    var ENTREGAS_ALERTA_SNOOZE_MAP_KEY = 'gm_pdv_entregas_alerta_snooze_map';
+    var ENTREGAS_ALERTA_SNOOZE_KEY_LEGACY = 'gm_pdv_entregas_alerta_snooze_until';
+    var _entregasAlertaSomTimer = null;
+    var _entregasAlertaSomNivel = 0;
+
+    function formatHoraPrevistaEntregaUi(raw) {
+        var s = String(raw || '').trim();
+        if (!s) return '';
+        var m = s.match(/^(\d{1,2}):(\d{2})/);
+        if (!m) return '';
+        var hh = String(Math.min(23, parseInt(m[1], 10) || 0)).padStart(2, '0');
+        var mm = String(Math.min(59, parseInt(m[2], 10) || 0)).padStart(2, '0');
+        return hh + ':' + mm;
+    }
+
+    /** 0=ok · 1=próximo (≤30 min) · 2=atrasado */
+    function urgenciaHorarioEntregaUi(hhmm) {
+        var hp = formatHoraPrevistaEntregaUi(hhmm);
+        if (!hp) return 0;
+        var parts = hp.split(':');
+        var agora = new Date();
+        var alvo = new Date(
+            agora.getFullYear(),
+            agora.getMonth(),
+            agora.getDate(),
+            parseInt(parts[0], 10) || 0,
+            parseInt(parts[1], 10) || 0,
+            0,
+            0
+        );
+        var diffMin = (alvo.getTime() - agora.getTime()) / 60000;
+        if (diffMin < 0) return 2;
+        if (diffMin <= 30) return 1;
+        return 0;
+    }
+
+    function lerMapaSnoozeEntregas() {
+        var map = {};
+        var agora = Date.now();
+        try {
+            var raw = localStorage.getItem(ENTREGAS_ALERTA_SNOOZE_MAP_KEY);
+            if (raw) {
+                var parsed = JSON.parse(raw);
+                if (parsed && typeof parsed === 'object') {
+                    Object.keys(parsed).forEach(function (k) {
+                        var until = parseInt(parsed[k], 10) || 0;
+                        if (until > agora) map[String(k)] = until;
+                    });
+                }
+            }
+            /* Migra chave antiga (global) → some; não espalha em todas. */
+            if (localStorage.getItem(ENTREGAS_ALERTA_SNOOZE_KEY_LEGACY)) {
+                localStorage.removeItem(ENTREGAS_ALERTA_SNOOZE_KEY_LEGACY);
+            }
+        } catch (eMap) {}
+        return map;
+    }
+
+    function gravarMapaSnoozeEntregas(map) {
+        try {
+            var limpo = {};
+            var agora = Date.now();
+            Object.keys(map || {}).forEach(function (k) {
+                var until = parseInt(map[k], 10) || 0;
+                if (until > agora) limpo[String(k)] = until;
+            });
+            if (Object.keys(limpo).length) {
+                localStorage.setItem(ENTREGAS_ALERTA_SNOOZE_MAP_KEY, JSON.stringify(limpo));
+            } else {
+                localStorage.removeItem(ENTREGAS_ALERTA_SNOOZE_MAP_KEY);
+            }
+        } catch (eGrav) {}
+    }
+
+    function entregaAlertaEstaAdiada(entregaId) {
+        if (entregaId == null || entregaId === '') return false;
+        var map = lerMapaSnoozeEntregas();
+        var until = parseInt(map[String(entregaId)], 10) || 0;
+        return !!(until && Date.now() < until);
+    }
+
+    function urgenciaEfetivaEntregaRow(row) {
+        var u = urgenciaHorarioEntregaUi(row && row.hora_prevista);
+        if (u > 0 && entregaAlertaEstaAdiada(row && row.id)) return 0;
+        return u;
+    }
+
+    function maxUrgenciaEntregasPendentes() {
+        var maxU = 0;
+        var todos = []
+            .concat(entregasPendentesCache.itens || [])
+            .concat(entregasPendentesCache.itensPagas || []);
+        todos.forEach(function (row) {
+            var u = urgenciaEfetivaEntregaRow(row);
+            if (u > maxU) maxU = u;
+        });
+        return maxU;
+    }
+
+    function maxUrgenciaBrutaEntregasPendentes() {
+        var maxU = 0;
+        var todos = []
+            .concat(entregasPendentesCache.itens || [])
+            .concat(entregasPendentesCache.itensPagas || []);
+        todos.forEach(function (row) {
+            var u = urgenciaHorarioEntregaUi(row && row.hora_prevista);
+            if (u > maxU) maxU = u;
+        });
+        return maxU;
+    }
+
+    function idsEntregasComHorarioUrgente() {
+        var ids = [];
+        var todos = []
+            .concat(entregasPendentesCache.itens || [])
+            .concat(entregasPendentesCache.itensPagas || []);
+        todos.forEach(function (row) {
+            if (!row || row.id == null) return;
+            if (urgenciaHorarioEntregaUi(row.hora_prevista) > 0) ids.push(String(row.id));
+        });
+        return ids;
+    }
+
+    function todasUrgentesAdiadas() {
+        var ids = idsEntregasComHorarioUrgente();
+        if (!ids.length) return false;
+        return ids.every(function (id) {
+            return entregaAlertaEstaAdiada(id);
+        });
+    }
+
+    function adiarAlertaEntrega1hPorId(entregaId) {
+        var id = String(entregaId || '').trim();
+        if (!id) return;
+        var map = lerMapaSnoozeEntregas();
+        if (entregaAlertaEstaAdiada(id)) {
+            delete map[id];
+            gravarMapaSnoozeEntregas(map);
+            applyEntregasPendentesButton();
+            renderEntregasPendentesList();
+            showSaleDoneFeedback('Alerta desta entrega religado (piscar e bip).', 'ok');
+            return;
+        }
+        map[id] = Date.now() + 60 * 60 * 1000;
+        gravarMapaSnoozeEntregas(map);
+        applyEntregasPendentesButton();
+        renderEntregasPendentesList();
+        showSaleDoneFeedback('Alerta desta entrega adiado por 1 hora.', 'ok');
+    }
+
+    /** Botão do topo: adianta (ou religa) todas as urgentes de uma vez. */
+    function adiarAlertaEntregas1h() {
+        var ids = idsEntregasComHorarioUrgente();
+        if (!ids.length) {
+            showSaleDoneFeedback('Nenhuma entrega urgente no horário agora.', 'ok');
+            return;
+        }
+        var map = lerMapaSnoozeEntregas();
+        if (todasUrgentesAdiadas()) {
+            ids.forEach(function (id) {
+                delete map[id];
+            });
+            gravarMapaSnoozeEntregas(map);
+            applyEntregasPendentesButton();
+            renderEntregasPendentesList();
+            showSaleDoneFeedback('Alerta de horário religado em todas as urgentes.', 'ok');
+            return;
+        }
+        var until = Date.now() + 60 * 60 * 1000;
+        ids.forEach(function (id) {
+            map[id] = until;
+        });
+        gravarMapaSnoozeEntregas(map);
+        applyEntregasPendentesButton();
+        renderEntregasPendentesList();
+        showSaleDoneFeedback('Alerta adiado 1h em todas as urgentes.', 'ok');
+    }
+
+    function syncEntregasAdiarAlertaBtn() {
+        var btn = document.getElementById('pdv-entregas-adiar-alerta');
+        if (!btn) return;
+        var urgBruta = maxUrgenciaBrutaEntregasPendentes();
+        var adiadoTodas = todasUrgentesAdiadas();
+        if (urgBruta > 0) {
+            btn.classList.remove('hidden');
+            btn.textContent = adiadoTodas ? 'Alerta OK' : 'Alerta +1h';
+            btn.title = adiadoTodas
+                ? 'Todas as urgentes adiadas — toque para religar todas'
+                : 'Adia o alerta (piscar/bip) de todas as entregas urgentes por 1 hora';
+        } else {
+            btn.classList.add('hidden');
+        }
+    }
+
+    function syncEntregasAlertaSonoro(nivel) {
+        if (_entregasAlertaSomTimer) {
+            clearInterval(_entregasAlertaSomTimer);
+            _entregasAlertaSomTimer = null;
+        }
+        _entregasAlertaSomNivel = nivel || 0;
+        if (!nivel) return;
+        var ms = nivel >= 2 ? 18000 : 40000;
+        var tocar = function () {
+            if (!maxUrgenciaEntregasPendentes()) return;
+            if (typeof tocarSomLembreteWizard === 'function') tocarSomLembreteWizard();
+        };
+        tocar();
+        _entregasAlertaSomTimer = setInterval(tocar, ms);
+    }
+
     function applyEntregasPendentesButton() {
         var itens = entregasPendentesCache.itens || [];
         var pagas = entregasPendentesCache.itensPagas || [];
@@ -4482,8 +4694,13 @@
         var catalogoSemDono = itens.some(function (row) {
             return row && row.eh_catalogo && row.pode_assumir;
         });
+        var urgHorario = maxUrgenciaEntregasPendentes();
         if (catalogoSemDono) {
             alertTop += ' pdv-wiz-topbar-btn--entregas-catalogo';
+        } else if (urgHorario >= 2) {
+            alertTop += ' pdv-wiz-topbar-btn--entregas-urgente';
+        } else if (urgHorario === 1) {
+            alertTop += ' pdv-wiz-topbar-btn--entregas-hora-proxima';
         } else if (nPagar === 0 && nPagas > 0) {
             alertTop += ' pdv-wiz-topbar-btn--entregas-pagas';
         }
@@ -4493,6 +4710,10 @@
             dom.topbarEntregasBtn.className = n > 0 ? alertTop : discreteTop;
             if (catalogoSemDono) {
                 dom.topbarEntregasBtn.title = 'Catálogo sem loja — Assumir entrega';
+            } else if (urgHorario >= 2) {
+                dom.topbarEntregasBtn.title = 'Entrega atrasada no horário — abra Entregas';
+            } else if (urgHorario === 1) {
+                dom.topbarEntregasBtn.title = 'Entrega próxima do horário (até 30 min)';
             } else if (nPagar > 0) {
                 dom.topbarEntregasBtn.title =
                     'A pagar: ' + nPagar + (nPagas ? ' · Pagas na loja: ' + nPagas : '');
@@ -4502,6 +4723,8 @@
                 dom.topbarEntregasBtn.title = 'Entregas';
             }
         }
+        syncEntregasAlertaSonoro(urgHorario);
+        syncEntregasAdiarAlertaBtn();
         if (dom.topbarEntregasCount) {
             if (n > 0) {
                 dom.topbarEntregasCount.textContent = String(n);
@@ -4524,7 +4747,7 @@
     }
 
     function syncEntregasOverlayAbas() {
-        var btnRota = document.getElementById('pdv-entregas-rota-pagas');
+        var btnRota = document.getElementById('pdv-entregas-rota') || document.getElementById('pdv-entregas-rota-pagas');
         if (btnRota) btnRota.classList.remove('hidden');
     }
 
@@ -4539,27 +4762,88 @@
         var badges = [];
         if (pagasAba) {
             badges.push(
-                '<span class="rounded-md bg-emerald-600 px-1.5 py-0.5 text-[9px] font-black uppercase text-white">Paga na loja</span>'
+                '<span class="rounded-md bg-emerald-600 px-1.5 py-0.5 text-[9px] font-black uppercase whitespace-nowrap text-white">Paga na loja</span>'
             );
         }
         if (row.eh_catalogo) {
             badges.push(
-                '<span class="rounded-md bg-violet-600 px-1.5 py-0.5 text-[9px] font-black uppercase text-white">Catálogo</span>'
+                '<span class="rounded-md bg-violet-600 px-1.5 py-0.5 text-[9px] font-black uppercase whitespace-nowrap text-white">Catálogo</span>'
             );
         }
         if (row.pode_assumir) {
             badges.push(
-                '<span class="rounded-md bg-amber-500 px-1.5 py-0.5 text-[9px] font-black uppercase text-white animate-pulse">Sem dono</span>'
+                '<span class="rounded-md bg-amber-500 px-1.5 py-0.5 text-[9px] font-black uppercase whitespace-nowrap text-white animate-pulse">Sem dono</span>'
             );
         } else {
             var lojaLbl = lojaEntregaLabelUi(row.loja_entrega);
-            if (lojaLbl) {
+            var lojaPagLbl = lojaEntregaLabelUi(row.loja_pagamento || row.loja_entrega);
+            if (row.loja_divergente && lojaLbl && lojaPagLbl) {
                 badges.push(
-                    '<span class="rounded-md bg-sky-700 px-1.5 py-0.5 text-[9px] font-black uppercase text-white">' +
+                    '<span class="rounded-md bg-sky-700 px-1.5 py-0.5 text-[9px] font-black uppercase whitespace-nowrap text-white" title="Quem sai">Sai ' +
+                        escapeHtml(lojaLbl) +
+                        '</span>'
+                );
+                badges.push(
+                    '<span class="rounded-md bg-amber-700 px-1.5 py-0.5 text-[9px] font-black uppercase whitespace-nowrap text-white" title="Caixa">Paga ' +
+                        escapeHtml(lojaPagLbl) +
+                        '</span>'
+                );
+            } else if (lojaLbl) {
+                badges.push(
+                    '<span class="rounded-md bg-sky-700 px-1.5 py-0.5 text-[9px] font-black uppercase whitespace-nowrap text-white">' +
                         escapeHtml(lojaLbl) +
                         '</span>'
                 );
             }
+        }
+        var hpUi = formatHoraPrevistaEntregaUi(row.hora_prevista);
+        if (hpUi) {
+            var urgHp = urgenciaHorarioEntregaUi(hpUi);
+            var hpCls =
+                urgHp === 2
+                    ? 'bg-red-600 text-white animate-pulse'
+                    : urgHp === 1
+                      ? 'bg-amber-500 text-white animate-pulse'
+                      : 'bg-slate-700 text-white';
+            var alertaAdiadoCard = entregaAlertaEstaAdiada(id);
+            var adiar1hLbl = alertaAdiadoCard ? 'Alerta OK' : 'Adiar 1h';
+            var adiar1hCls;
+            var hpClsShow = hpCls;
+            if (alertaAdiadoCard) {
+                adiar1hCls = 'border-emerald-500 bg-emerald-50 text-emerald-900';
+                hpClsShow =
+                    urgHp === 2
+                        ? 'bg-red-600 text-white'
+                        : urgHp === 1
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-slate-700 text-white';
+            } else if (urgHp === 2) {
+                adiar1hCls = 'border-red-600 bg-red-50 text-red-900 animate-pulse';
+            } else if (urgHp === 1) {
+                adiar1hCls = 'border-amber-500 bg-amber-50 text-amber-950 animate-pulse';
+            } else {
+                adiar1hCls = 'border-slate-400 bg-white text-slate-800';
+            }
+            badges.push(
+                '<span class="inline-flex shrink-0 flex-nowrap items-center gap-1">' +
+                    '<span class="rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tabular-nums ' +
+                    hpClsShow +
+                    '" title="Horário agendado">' +
+                    escapeHtml(hpUi) +
+                    '</span>' +
+                    '<button type="button" class="pdv-entrega-adiar-alerta-1h shrink-0 whitespace-nowrap rounded-md border-2 px-1.5 py-0.5 text-[9px] font-black uppercase leading-tight ' +
+                    adiar1hCls +
+                    '" data-entrega-id="' +
+                    escapeHtml(String(id)) +
+                    '" title="' +
+                    (alertaAdiadoCard
+                        ? 'Só esta entrega — toque para religar o alerta'
+                        : 'Só esta entrega — adia piscar e bip por 1 hora') +
+                    '">' +
+                    adiar1hLbl +
+                    '</button>' +
+                    '</span>'
+            );
         }
         if (row.caixa_adiada_para) {
             badges.push(
@@ -4576,57 +4860,89 @@
         var btns = '';
         if (pagasAba) {
             btns +=
-                '<label class="inline-flex items-center gap-1 rounded-lg border-2 border-emerald-200 bg-white px-2 py-1.5 text-[10px] font-black uppercase text-emerald-950">' +
-                '<input type="checkbox" class="pdv-entrega-paga-chk h-4 w-4 accent-emerald-600" data-entrega-id="' +
+                '<label class="inline-flex w-full items-center justify-center gap-1 rounded-lg border-2 border-emerald-200 bg-white px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-emerald-950">' +
+                '<input type="checkbox" class="pdv-entrega-paga-chk h-3.5 w-3.5 accent-emerald-600" data-entrega-id="' +
                 id +
                 '"> Incluir</label>';
             btns +=
-                '<button type="button" class="pdv-entrega-concluir rounded-lg bg-emerald-700 px-2 py-1.5 text-[10px] font-black uppercase text-white" data-entrega-id="' +
+                '<button type="button" class="pdv-entrega-concluir w-full rounded-lg bg-emerald-700 px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-white" data-entrega-id="' +
                 id +
                 '">Concluir</button>';
         }
         if (row.pode_assumir) {
             btns +=
-                '<button type="button" class="pdv-entrega-assumir rounded-lg bg-amber-600 px-2 py-1.5 text-[10px] font-black uppercase text-white shadow" data-entrega-id="' +
+                '<button type="button" class="pdv-entrega-assumir w-full rounded-lg bg-amber-600 px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-white shadow" data-entrega-id="' +
                 id +
                 '">Assumir</button>';
         }
         if (row.pode_imprimir) {
             btns +=
-                '<button type="button" class="pdv-entrega-imprimir rounded-lg border-2 border-slate-300 bg-white px-2 py-1.5 text-[10px] font-black uppercase text-slate-800" data-entrega-id="' +
+                '<button type="button" class="pdv-entrega-imprimir w-full rounded-lg border-2 border-slate-300 bg-white px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-slate-800" data-entrega-id="' +
                 id +
                 '">Imprimir</button>';
         }
-        if (row.maps_url) {
+        if (!pagasAba) {
+            btns += '<div class="flex w-full items-stretch gap-1">';
             btns +=
-                '<button type="button" class="pdv-entrega-maps rounded-lg border-2 border-sky-400 bg-sky-50 px-2 py-1.5 text-[10px] font-black uppercase text-sky-950" data-entrega-id="' +
+                '<label class="inline-flex min-w-0 flex-[1.1] items-center justify-center gap-1 rounded-lg border-2 border-sky-300 bg-white px-1 py-1 text-[9px] font-black uppercase leading-tight text-sky-950" title="Incluir na rota">' +
+                '<input type="checkbox" class="pdv-entrega-rota-chk h-3.5 w-3.5 shrink-0 accent-sky-600" data-entrega-id="' +
+                id +
+                '" aria-label="Incluir na rota"> Incluir</label>';
+            if (row.maps_url) {
+                btns +=
+                    '<button type="button" class="pdv-entrega-maps min-w-0 flex-1 rounded-lg border-2 border-sky-400 bg-sky-50 px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-sky-950" data-entrega-id="' +
+                    id +
+                    '">Maps</button>';
+            } else {
+                btns +=
+                    '<span class="min-w-0 flex-1 rounded-lg border border-dashed border-slate-200 px-1.5 py-1 text-center text-[9px] font-bold uppercase text-slate-400">Sem Maps</span>';
+            }
+            btns += '</div>';
+        } else if (row.maps_url) {
+            btns +=
+                '<button type="button" class="pdv-entrega-maps w-full rounded-lg border-2 border-sky-400 bg-sky-50 px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-sky-950" data-entrega-id="' +
                 id +
                 '">Maps</button>';
         }
         if (row.pode_retomar) {
             btns +=
-                '<button type="button" class="pdv-entrega-retomar rounded-lg bg-emerald-600 px-2 py-1.5 text-[10px] font-black uppercase text-white" data-entrega-id="' +
+                '<button type="button" class="pdv-entrega-retomar w-full rounded-lg bg-emerald-600 px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-white" data-entrega-id="' +
                 id +
-                '">Retomar pagamento</button>';
+                '">Retomar</button>';
         }
-        if (row.pode_adiar) {
+        if (row.pode_mudar_loja !== false && (row.aguarda_pagamento_pdv || row.paga_na_loja)) {
             btns +=
-                '<button type="button" class="pdv-entrega-adiar rounded-lg border-2 border-amber-500 bg-amber-50 px-2 py-1.5 text-[10px] font-black uppercase text-amber-950" data-entrega-id="' +
+                '<button type="button" class="pdv-entrega-mudar-loja w-full rounded-lg border-2 border-sky-500 bg-sky-50 px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-sky-950" data-entrega-id="' +
                 id +
-                '">Adiar 1 dia</button>';
+                '" data-paga-loja="' +
+                (row.paga_na_loja && !row.aguarda_pagamento_pdv ? '1' : '0') +
+                '">Mudar Loja</button>';
         }
-        if (row.pode_cancelar) {
-            btns +=
-                '<button type="button" class="pdv-entrega-cancelar rounded-lg border-2 border-red-300 bg-white px-2 py-1.5 text-[10px] font-black uppercase text-red-800" data-entrega-id="' +
-                id +
-                '">Cancelar</button>';
+        if (row.pode_adiar || row.pode_cancelar) {
+            btns += '<div class="pdv-entrega-adiar-cancelar flex w-full min-w-0 gap-1">';
+            if (row.pode_adiar) {
+                btns +=
+                    '<button type="button" class="pdv-entrega-adiar min-w-0 flex-1 rounded-lg border-2 border-amber-500 bg-amber-50 px-0.5 py-1 text-[9px] font-black uppercase leading-tight text-amber-950" data-entrega-id="' +
+                    id +
+                    '">Adiar 1 Dia</button>';
+            }
+            if (row.pode_cancelar) {
+                btns +=
+                    '<button type="button" class="pdv-entrega-cancelar min-w-0 flex-1 rounded-lg border-2 border-red-300 bg-white px-0.5 py-1 text-[9px] font-black uppercase leading-tight text-red-800" data-entrega-id="' +
+                    id +
+                    '">Cancelar</button>';
+            }
+            btns += '</div>';
         }
         return (
-            '<article class="pdv-entrega-card rounded-xl border-2 ' +
+            '<article class="pdv-entrega-card flex items-stretch gap-2 overflow-hidden rounded-xl border-2 p-2 ' +
             borderCls +
             '">' +
+            '<div class="min-w-0 flex-1">' +
             (badges.length
-                ? '<div class="mb-1 flex flex-wrap gap-1">' + badges.join('') + '</div>'
+                ? '<div class="pdv-entrega-card-badges mb-1 flex flex-wrap items-center gap-1">' +
+                  badges.join('') +
+                  '</div>'
                 : '') +
             '<div class="text-sm font-black leading-tight text-slate-900">' +
             nome +
@@ -4646,9 +4962,12 @@
                   '</div>'
                 : '') +
             (cod ? '<div class="mt-0.5 text-[10px] font-mono text-slate-500">' + cod + '</div>' : '') +
-            '<div class="mt-2 flex flex-wrap gap-1.5">' +
-            btns +
             '</div>' +
+            (btns
+                ? '<div class="pdv-entrega-card-acoes flex w-[min(42%,12.75rem)] shrink-0 flex-col gap-1 box-border">' +
+                  btns +
+                  '</div>'
+                : '') +
             '</article>'
         );
     }
@@ -4679,10 +4998,25 @@
                 if (pk) retomarEntregaPendente(pk);
             });
         });
+        root.querySelectorAll('.pdv-entrega-mudar-loja').forEach(function (btn) {
+            btn.addEventListener('click', function (ev) {
+                if (ev && ev.stopPropagation) ev.stopPropagation();
+                var pk = btn.getAttribute('data-entrega-id');
+                var paga = btn.getAttribute('data-paga-loja') === '1';
+                if (pk) abrirModalMudarLojaEntrega(pk, { soEntrega: paga });
+            });
+        });
         root.querySelectorAll('.pdv-entrega-adiar').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 var pk = btn.getAttribute('data-entrega-id');
-                if (pk) adiarEntregaPendenteCaixa(pk);
+                if (pk) adiarEntregaPendenteCaixa(pk, btn);
+            });
+        });
+        root.querySelectorAll('.pdv-entrega-adiar-alerta-1h').forEach(function (btn) {
+            btn.addEventListener('click', function (ev) {
+                if (ev && ev.stopPropagation) ev.stopPropagation();
+                var pk = btn.getAttribute('data-entrega-id');
+                if (pk) adiarAlertaEntrega1hPorId(pk);
             });
         });
         root.querySelectorAll('.pdv-entrega-cancelar').forEach(function (btn) {
@@ -4777,18 +5111,34 @@
     }
 
     function abrirRotaEntregasPagas() {
-        var el = dom.entregasPendentesList;
+        return abrirRotaEntregasOverlay.apply(this, arguments);
+    }
+
+    function abrirRotaEntregasOverlay() {
         var ids = [];
-        if (el) {
-            el.querySelectorAll('.pdv-entrega-paga-chk:checked').forEach(function (chk) {
-                var pk = chk.getAttribute('data-entrega-id');
-                if (pk) ids.push(String(pk));
-            });
+        var seen = {};
+        function addId(id) {
+            var s = String(id);
+            if (!s || seen[s]) return;
+            seen[s] = 1;
+            ids.push(s);
         }
-        var rows = entregasPendentesCache.itensPagas || [];
-        if (!ids.length) {
-            rows.forEach(function (r) {
-                if (r && r.id != null) ids.push(String(r.id));
+        /* Marcados: □ ao lado do Maps (A pagar) + Incluir (Pagas). */
+        var checked = [];
+        var modalRoot = document.getElementById('pdv-entregas-pendentes-modal');
+        var scope = modalRoot || document;
+        scope.querySelectorAll('.pdv-entrega-rota-chk:checked, .pdv-entrega-paga-chk:checked').forEach(function (chk) {
+            var pk = chk.getAttribute('data-entrega-id');
+            if (pk) checked.push(String(pk));
+        });
+        if (checked.length) {
+            checked.forEach(addId);
+        } else {
+            (entregasPendentesCache.itens || []).forEach(function (r) {
+                if (r && r.id != null) addId(r.id);
+            });
+            (entregasPendentesCache.itensPagas || []).forEach(function (r) {
+                if (r && r.id != null) addId(r.id);
             });
         }
         var paradas = [];
@@ -4798,7 +5148,7 @@
             if (q) paradas.push(q);
         });
         if (!paradas.length) {
-            showSaleDoneFeedback('Marque as entregas (ou cadastre endereço) para montar a rota.', 'warn');
+            showSaleDoneFeedback('Cadastre endereço nas entregas (A pagar ou Pagas) para montar a rota.', 'warn');
             return;
         }
         var origem = origemMapsPdvAtual();
@@ -4957,6 +5307,148 @@
         wizardModalEscolhaImpressaoEntrega().then(doPrint);
     }
 
+    var _mudarLojaCtx = { pk: '', destino: '', soEntrega: false };
+
+    function fecharModalMudarLojaEntrega() {
+        var dlg = document.getElementById('pdv-entrega-mudar-loja-modal');
+        if (dlg && typeof dlg.close === 'function') {
+            try {
+                dlg.close();
+            } catch (eClose) {}
+        }
+        _mudarLojaCtx = { pk: '', destino: '', soEntrega: false };
+    }
+
+    function syncModalMudarLojaDestinoUi() {
+        var d = _mudarLojaCtx.destino === 'vila' ? 'vila' : 'centro';
+        var bC = document.getElementById('pdv-ml-destino-centro');
+        var bV = document.getElementById('pdv-ml-destino-vila');
+        if (bC) {
+            bC.classList.toggle('ring-4', d === 'centro');
+            bC.classList.toggle('ring-sky-300', d === 'centro');
+        }
+        if (bV) {
+            bV.classList.toggle('ring-4', d === 'vila');
+            bV.classList.toggle('ring-violet-300', d === 'vila');
+        }
+        var hint = document.getElementById('pdv-entrega-mudar-loja-hint');
+        if (hint && _mudarLojaCtx.soEntrega) {
+            hint.textContent = 'Já paga na loja — só dá para mudar quem sai (entrega).';
+        } else if (hint) {
+            hint.textContent = 'Entrega = quem sai · Pagamento = qual caixa fecha.';
+        }
+        document.querySelectorAll('.pdv-ml-escopo').forEach(function (btn) {
+            var esc = btn.getAttribute('data-escopo');
+            var block = _mudarLojaCtx.soEntrega && esc !== 'entrega';
+            btn.disabled = !!block;
+            btn.classList.toggle('opacity-40', !!block);
+            btn.classList.toggle('pointer-events-none', !!block);
+        });
+    }
+
+    function abrirModalMudarLojaEntrega(pk, opts) {
+        opts = opts || {};
+        var dlg = document.getElementById('pdv-entrega-mudar-loja-modal');
+        if (!dlg) {
+            showSaleDoneFeedback('Modal de loja indisponível — atualize a página (Ctrl+F5).', 'warn');
+            return;
+        }
+        _mudarLojaCtx = {
+            pk: String(pk || ''),
+            destino: depositoPdvAtivo() === 'vila' ? 'vila' : 'centro',
+            soEntrega: !!opts.soEntrega
+        };
+        var tit = document.getElementById('pdv-entrega-mudar-loja-titulo');
+        if (tit) tit.textContent = 'Entrega #' + _mudarLojaCtx.pk;
+        syncModalMudarLojaDestinoUi();
+        try {
+            if (typeof dlg.showModal === 'function') dlg.showModal();
+            else dlg.setAttribute('open', '');
+        } catch (eShow) {
+            showSaleDoneFeedback('Não abriu o modal de loja.', 'warn');
+        }
+    }
+
+    function enviarMudarLojaEntrega(escopo) {
+        var pk = _mudarLojaCtx.pk;
+        var loja = _mudarLojaCtx.destino === 'vila' ? 'vila' : 'centro';
+        escopo = String(escopo || '').trim().toLowerCase();
+        if (!pk || (escopo !== 'entrega' && escopo !== 'pagamento' && escopo !== 'ambos')) return;
+        if (_mudarLojaCtx.soEntrega && escopo !== 'entrega') {
+            showSaleDoneFeedback('Já paga — use só entrega.', 'warn');
+            return;
+        }
+        var url = entregaPendenteApiUrl(urls.apiPdvEntregaPendenteMudarLoja, pk);
+        if (!url) {
+            showSaleDoneFeedback('API mudar loja indisponível.', 'warn');
+            return;
+        }
+        var run = function () {
+            if (window.gmLoadingBar) window.gmLoadingBar.show('Mudando loja…');
+            return jsonPost(url, { loja: loja, escopo: escopo })
+                .then(function (res) {
+                    if (!res.ok || !res.data || !res.data.ok) {
+                        throw new Error(
+                            (res.data && (res.data.erro || res.data.mensagem)) ||
+                                'Não foi possível mudar a loja.'
+                        );
+                    }
+                    fecharModalMudarLojaEntrega();
+                    var msg =
+                        escopo === 'entrega'
+                            ? 'Entrega → ' + (loja === 'vila' ? 'Vila' : 'Centro')
+                            : escopo === 'pagamento'
+                              ? 'Pagamento → ' + (loja === 'vila' ? 'Vila' : 'Centro')
+                              : 'Entrega e pagamento → ' + (loja === 'vila' ? 'Vila' : 'Centro');
+                    showSaleDoneFeedback(msg, 'ok');
+                    invalidateEntregasPendentesCache();
+                    return refreshEntregasPendentesUi(false, true);
+                })
+                .catch(function (err) {
+                    showSaleDoneFeedback(
+                        err && err.message ? err.message : 'Falha ao mudar loja.',
+                        'warn'
+                    );
+                })
+                .finally(function () {
+                    if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                });
+        };
+        if (typeof window.gmSspinGarantirOperador === 'function') {
+            window.gmSspinGarantirOperador(function () {
+                run();
+            }, { titulo: 'PIN para mudar loja da entrega' });
+            return;
+        }
+        run();
+    }
+
+    function bindModalMudarLojaEntregaOnce() {
+        if (bindModalMudarLojaEntregaOnce._ok) return;
+        bindModalMudarLojaEntregaOnce._ok = true;
+        var bC = document.getElementById('pdv-ml-destino-centro');
+        var bV = document.getElementById('pdv-ml-destino-vila');
+        var bX = document.getElementById('pdv-ml-cancelar');
+        if (bC) {
+            bC.addEventListener('click', function () {
+                _mudarLojaCtx.destino = 'centro';
+                syncModalMudarLojaDestinoUi();
+            });
+        }
+        if (bV) {
+            bV.addEventListener('click', function () {
+                _mudarLojaCtx.destino = 'vila';
+                syncModalMudarLojaDestinoUi();
+            });
+        }
+        if (bX) bX.addEventListener('click', fecharModalMudarLojaEntrega);
+        document.querySelectorAll('.pdv-ml-escopo').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                enviarMudarLojaEntrega(btn.getAttribute('data-escopo'));
+            });
+        });
+    }
+
     function assumirEntregaPendente(pk) {
         var url = entregaPendenteApiUrl(urls.apiPdvEntregaPendenteAssumir, pk);
         if (!url) return;
@@ -5014,7 +5506,7 @@
             });
     }
 
-    function adiarEntregaPendenteCaixa(pk) {
+    function adiarEntregaPendenteCaixa(pk, btnEl) {
         var url = entregaPendenteApiUrl(urls.apiPdvEntregaPendenteAdiarCaixa, pk);
         if (!url) return;
         var loja = typeof depositoPdvAtivo === 'function' ? depositoPdvAtivo() : '';
@@ -5022,7 +5514,24 @@
             showSaleDoneFeedback('Defina o depósito do PDV (Centro ou Vila) antes de adiar.', 'warn');
             return;
         }
+        var btn = btnEl || null;
+        var lblOrig = btn ? String(btn.textContent || 'Adiar 1 Dia').trim() || 'Adiar 1 Dia' : 'Adiar 1 Dia';
+        var setBtn = function (busy, label, okTone) {
+            if (!btn || !btn.isConnected) return;
+            btn.disabled = !!busy;
+            btn.setAttribute('aria-busy', busy ? 'true' : 'false');
+            btn.classList.toggle('animate-pulse', !!busy);
+            btn.classList.toggle('opacity-80', !!busy);
+            btn.classList.toggle('cursor-wait', !!busy);
+            if (okTone) {
+                btn.classList.remove('border-amber-500', 'bg-amber-50', 'text-amber-950');
+                btn.classList.add('border-emerald-600', 'bg-emerald-600', 'text-white');
+            }
+            if (label) btn.textContent = label;
+        };
+        setBtn(true, 'PIN…');
         var run = function () {
+            setBtn(true, 'Adiando…');
             if (window.gmLoadingBar) window.gmLoadingBar.show();
             jsonPost(url, { loja: loja })
                 .then(function (res) {
@@ -5033,13 +5542,16 @@
                         );
                     }
                     var para = (res.data.caixa_adiada_para || '').slice(0, 10);
+                    var paraBr = para ? para.split('-').reverse().join('/') : 'amanhã';
+                    setBtn(false, 'Adiada ✓', true);
                     showSaleDoneFeedback(
                         'Entrega #' +
                             pk +
                             ' adiada. Este caixa pode fechar. Volta a travar em ' +
-                            (para ? para.split('-').reverse().join('/') : 'amanhã') +
+                            paraBr +
                             '.',
-                        'ok'
+                        'ok',
+                        { title: 'Adiada 1 dia', durationMs: 7000, placementTop: true }
                     );
                     invalidateEntregasPendentesCache();
                     return refreshEntregasPendentesUi(false, true);
@@ -5048,6 +5560,7 @@
                     renderEntregasPendentesList();
                 })
                 .catch(function (err) {
+                    setBtn(false, lblOrig);
                     showSaleDoneFeedback(
                         err && err.message ? err.message : 'Falha ao adiar entrega.',
                         'warn'
@@ -5058,7 +5571,17 @@
                 });
         };
         if (typeof window.gmSspinGarantirOperador === 'function') {
-            window.gmSspinGarantirOperador(run, { titulo: 'PIN para adiar 1 dia' });
+            window.gmSspinGarantirOperador(
+                function () {
+                    run();
+                },
+                {
+                    titulo: 'PIN para adiar 1 dia',
+                    onCancel: function () {
+                        setBtn(false, lblOrig);
+                    },
+                }
+            );
             return;
         }
         run();
@@ -5980,6 +6503,9 @@
             enderecoPassoConcluido: false,
             entregaFreteLiberadoPagamento: false,
             lojaSaida: loja === 'vila' ? 'vila' : 'centro',
+            lojaPagamento: loja === 'vila' ? 'vila' : 'centro',
+            lojaEscopo: '',
+            lojaSaidaDraft: loja === 'vila' ? 'vila' : 'centro',
             lojaSaidaConfirmada: false
         });
         State.setPagamentoField('frete', 0);
@@ -6014,7 +6540,11 @@
             return;
         }
         if (fase === 'loja') {
-            confirmarLojaSaidaEntrega(lojaSaidaEntregaAtual(state));
+            var draft = String((state.entrega && state.entrega.lojaSaidaDraft) || '').trim().toLowerCase();
+            if (draft !== 'centro' && draft !== 'vila') {
+                draft = lojaSaidaEntregaAtual(state);
+            }
+            confirmarLojaSaidaComEscopo(draft, 'ambos');
             return;
         }
         if (fase === 'detalhes') {
@@ -6835,8 +7365,8 @@
                 border: 'border-sky-400',
                 header: 'bg-gradient-to-r from-sky-600 to-indigo-600 text-white',
                 etapa: 'Loja da entrega',
-                titulo: 'De qual loja sai?',
-                sub: 'Padrão: esta loja. Trocar manda estoque e caixa para a outra.'
+                titulo: 'Loja: quem sai e qual caixa?',
+                sub: 'Escolha Centro/Vila e depois: só entrega, só pagamento ou as duas.'
             },
             detalhes: {
                 border: 'border-amber-400',
@@ -6895,22 +7425,40 @@
         return depositoPdvAtivo();
     }
 
+    function lojaPagamentoEntregaAtual(state) {
+        var e = (state && state.entrega) || {};
+        var v = String(e.lojaPagamento || '').trim().toLowerCase();
+        if (v === 'centro' || v === 'vila') return v;
+        return lojaSaidaEntregaAtual(state);
+    }
+
     function entregaVaiParaOutraLoja(state) {
         return lojaSaidaEntregaAtual(state) !== depositoPdvAtivo();
     }
 
     function renderEntregaLojaPainelUi() {
-        var loja = lojaSaidaEntregaAtual(State.getState());
+        var st = State.getState();
+        var e = st.entrega || {};
+        var draft = String(e.lojaSaidaDraft || e.lojaSaida || '').trim().toLowerCase();
+        if (draft !== 'centro' && draft !== 'vila') draft = depositoPdvAtivo();
         var bC = document.getElementById('pdv-ed-loja-centro');
         var bV = document.getElementById('pdv-ed-loja-vila');
         if (bC) {
-            bC.classList.toggle('ring-4', loja === 'centro');
-            bC.classList.toggle('ring-sky-300', loja === 'centro');
+            bC.classList.toggle('ring-4', draft === 'centro');
+            bC.classList.toggle('ring-sky-300', draft === 'centro');
         }
         if (bV) {
-            bV.classList.toggle('ring-4', loja === 'vila');
-            bV.classList.toggle('ring-violet-300', loja === 'vila');
+            bV.classList.toggle('ring-4', draft === 'vila');
+            bV.classList.toggle('ring-violet-300', draft === 'vila');
         }
+        var esc = String(e.lojaEscopo || '').trim().toLowerCase();
+        ['entrega', 'pagamento', 'ambos'].forEach(function (k) {
+            var btn = document.getElementById('pdv-ed-loja-escopo-' + k);
+            if (!btn) return;
+            var on = esc === k && !!e.lojaSaidaConfirmada;
+            btn.classList.toggle('ring-2', on);
+            btn.classList.toggle('ring-offset-1', on);
+        });
     }
 
     function syncPartidaMapsComLojaSaida(loja) {
@@ -6923,41 +7471,70 @@
         }
     }
 
-    function confirmarLojaSaidaEntrega(loja) {
+    function selecionarLojaSaidaDraft(loja) {
         loja = loja === 'vila' ? 'vila' : 'centro';
+        State.setEntregaPatch({
+            lojaSaidaDraft: loja,
+            lojaSaidaConfirmada: false,
+            lojaEscopo: ''
+        });
+        renderEntregaLojaPainelUi();
+    }
+
+    function confirmarLojaSaidaComEscopo(loja, escopo) {
+        loja = loja === 'vila' ? 'vila' : 'centro';
+        escopo = String(escopo || 'ambos').trim().toLowerCase();
+        if (escopo !== 'entrega' && escopo !== 'pagamento' && escopo !== 'ambos') {
+            escopo = 'ambos';
+        }
         var atual = depositoPdvAtivo();
+        var lojaEnt = loja;
+        var lojaPag = loja;
+        if (escopo === 'entrega') {
+            lojaPag = atual === 'vila' ? 'vila' : 'centro';
+        } else if (escopo === 'pagamento') {
+            lojaEnt = atual === 'vila' ? 'vila' : 'centro';
+        }
         var aplicar = function () {
-            State.setEntregaPatch({ lojaSaida: loja, lojaSaidaConfirmada: true });
-            syncPartidaMapsComLojaSaida(loja);
+            State.setEntregaPatch({
+                lojaSaida: lojaEnt,
+                lojaPagamento: lojaPag,
+                lojaEscopo: escopo,
+                lojaSaidaDraft: loja,
+                lojaSaidaConfirmada: true
+            });
+            syncPartidaMapsComLojaSaida(lojaEnt);
             syncEntregaDetalhesModalUi();
             scrollEntregaWizardIntoView();
         };
-        if (loja === atual) {
+        var mudaAlgo = lojaEnt !== atual || lojaPag !== atual;
+        if (!mudaAlgo) {
             aplicar();
             return;
         }
         var nome = loja === 'vila' ? 'Vila Elias' : 'Centro';
-        var aqui = atual === 'vila' ? 'Vila Elias' : 'Centro';
+        var msg =
+            escopo === 'entrega'
+                ? 'Só a entrega (quem sai) vai para a ' + nome + '. O caixa fica aqui.'
+                : escopo === 'pagamento'
+                  ? 'Só o pagamento (caixa) vai para a ' + nome + '. Quem sai fica aqui.'
+                  : 'Entrega e pagamento vão para a ' + nome + '.';
         var p = showPdvConfirmacao
-            ? showPdvConfirmacao(
-                  'Estoque e o caixa desta venda ficam na ' +
-                      nome +
-                      '.\n\nNão fecha aqui no ' +
-                      aqui +
-                      '. A ' +
-                      nome +
-                      ' retoma o pagamento — sem Assumir.',
-                  {
-                      title: 'Mandar para ' + nome + '?',
-                      confirmLabel: 'Sim, ' + nome,
-                      cancelLabel: 'Ficar no ' + aqui,
-                      tone: 'warn'
-                  }
-              )
-            : Promise.resolve(window.confirm('Mandar estoque e caixa para a ' + nome + '?'));
+            ? showPdvConfirmacao(msg, {
+                  title: 'Confirmar loja?',
+                  confirmLabel: 'Sim',
+                  cancelLabel: 'Voltar',
+                  tone: 'warn'
+              })
+            : Promise.resolve(window.confirm(msg));
         p.then(function (ok) {
             if (ok) aplicar();
         });
+    }
+
+    /** Compat: F7/atalhos antigos → as duas. */
+    function confirmarLojaSaidaEntrega(loja) {
+        confirmarLojaSaidaComEscopo(loja, 'ambos');
     }
 
     function entregaHorariosFixos() {
@@ -7143,7 +7720,10 @@
                 lp === 'entrega' ? 'Pagamento na entrega' : lp === 'loja' ? 'Pagamento na loja' : '—';
         }
         if (elLojaSai) {
-            elLojaSai.textContent = lojaEntregaLabelUi(lojaSaidaEntregaAtual(state)) || '—';
+            var sai = lojaEntregaLabelUi(lojaSaidaEntregaAtual(state)) || '—';
+            var paga = lojaEntregaLabelUi(lojaPagamentoEntregaAtual(state)) || sai;
+            elLojaSai.textContent =
+                sai !== paga ? 'Sai ' + sai + ' · Paga ' + paga : sai;
         }
         if (elMeio) {
             var meioRow = elMeio.closest('.pdv-entrega-review-row');
@@ -10792,7 +11372,8 @@
             pagamento_pdv: flags.pagamento_pdv,
             observacoes: observacoes,
             origem: 'pdv',
-            loja_entrega: lojaSaidaEntregaAtual(state)
+            loja_entrega: lojaSaidaEntregaAtual(state),
+            loja_pagamento: lojaPagamentoEntregaAtual(state)
         };
         if (extras.orc_local_id != null && String(extras.orc_local_id).trim() !== '') {
             out.orc_local_id = parseInt(extras.orc_local_id, 10);
@@ -10952,16 +11533,37 @@
             host.setAttribute('aria-live', 'polite');
             document.body.appendChild(host);
         }
+        /* Toast no body fica atrás do <dialog> aberto — monta dentro do modal Entregas. */
+        var dlgEnt = document.getElementById('pdv-entregas-pendentes-modal');
+        var toastInDialog = !!(dlgEnt && (dlgEnt.open || dlgEnt.hasAttribute('open')));
+        if (toastInDialog) {
+            if (host.parentNode !== dlgEnt) dlgEnt.appendChild(host);
+        } else if (host.parentNode !== document.body) {
+            document.body.appendChild(host);
+        }
         host.removeAttribute('aria-hidden');
         var prominent = !!opts.prominent;
         var persistent = !!opts.persistent || opts.durationMs === 0;
         var placementTop = !!opts.placementTop && !prominent;
         host.className =
-            'pointer-events-auto fixed z-[9999] transition-all duration-300 ease-out opacity-0 ' +
+            'pointer-events-auto transition-all duration-300 ease-out opacity-0 ' +
+            (toastInDialog
+                ? 'absolute z-[200] ' +
+                  (placementTop || prominent
+                      ? 'top-4 left-1/2 -translate-x-1/2'
+                      : 'bottom-4 right-4') +
+                  ' w-[min(26rem,calc(100%-2rem))]'
+                : 'fixed z-[9999] ') +
             (prominent
                 ? 'pdv-sale-toast--prominent'
-                : 'w-[min(26rem,calc(100vw-2rem))] translate-y-3 ' +
-                  (placementTop ? 'top-4 left-1/2 -translate-x-1/2' : 'bottom-4 right-4 translate-x-0'));
+                : (toastInDialog
+                      ? ''
+                      : 'w-[min(26rem,calc(100vw-2rem))] translate-y-3 ') +
+                  (placementTop && !toastInDialog
+                      ? 'top-4 left-1/2 -translate-x-1/2'
+                      : toastInDialog
+                        ? ''
+                        : 'bottom-4 right-4 translate-x-0'));
         var palette =
             tone === 'error'
                 ? 'border-rose-500 bg-rose-50 text-rose-950 shadow-rose-300/60'
@@ -11067,6 +11669,11 @@
         host.className = 'hidden';
         host.setAttribute('aria-hidden', 'true');
         host.innerHTML = '';
+        if (host.parentNode && host.parentNode !== document.body) {
+            try {
+                document.body.appendChild(host);
+            } catch (eMove) {}
+        }
         if (typeof onDismiss === 'function') {
             try {
                 onDismiss();
@@ -12969,12 +13576,26 @@
         } catch (e2) {}
     }
 
+    function fecharAlertaLembreteWizard() {
+        var box = document.getElementById('alerta-lembrete');
+        if (!box || box.classList.contains('hidden')) return;
+        /* Evita o clique do Ok “cair” no botão embaixo (Alerta +1h / Rota). */
+        box.style.pointerEvents = 'none';
+        box.classList.add('hidden');
+        setTimeout(function () {
+            try {
+                box.style.pointerEvents = '';
+            } catch (ePe) {}
+        }, 400);
+    }
+
     function exibirAlertaLembreteWizard(lembrete) {
         var t = document.getElementById('alerta-lembrete-texto');
         var box = document.getElementById('alerta-lembrete');
         if (t && box && lembrete) {
             t.textContent = (lembrete.hora || '') + ' · ' + (lembrete.texto || '');
             box.classList.remove('hidden');
+            box.style.pointerEvents = '';
             tocarSomLembreteWizard();
         } else if (lembrete) {
             alert((lembrete.hora || '') + ' — ' + (lembrete.texto || ''));
@@ -15531,9 +16152,20 @@
         if (dom.entregasPendentesClose) {
             dom.entregasPendentesClose.addEventListener('click', closeEntregasPendentesModal);
         }
-        var btnRotaPagas = document.getElementById('pdv-entregas-rota-pagas');
-        if (btnRotaPagas) {
-            btnRotaPagas.addEventListener('click', abrirRotaEntregasPagas);
+        var btnRota = document.getElementById('pdv-entregas-rota') || document.getElementById('pdv-entregas-rota-pagas');
+        if (btnRota) {
+            btnRota.addEventListener('click', abrirRotaEntregasOverlay);
+        }
+        var btnAdiarAlerta = document.getElementById('pdv-entregas-adiar-alerta');
+        if (btnAdiarAlerta) {
+            btnAdiarAlerta.addEventListener('click', adiarAlertaEntregas1h);
+        }
+        if (!window.__pdvEntregasUrgenciaTick) {
+            window.__pdvEntregasUrgenciaTick = setInterval(function () {
+                try {
+                    applyEntregasPendentesButton();
+                } catch (eTick) {}
+            }, 30000);
         }
         if (dom.entregasPendentesModal) {
             dom.entregasPendentesModal.addEventListener('click', function (ev) {
@@ -16161,15 +16793,43 @@
         var btnLojaCentro = document.getElementById('pdv-ed-loja-centro');
         if (btnLojaCentro) {
             btnLojaCentro.addEventListener('click', function () {
-                confirmarLojaSaidaEntrega('centro');
+                selecionarLojaSaidaDraft('centro');
             });
         }
         var btnLojaVila = document.getElementById('pdv-ed-loja-vila');
         if (btnLojaVila) {
             btnLojaVila.addEventListener('click', function () {
-                confirmarLojaSaidaEntrega('vila');
+                selecionarLojaSaidaDraft('vila');
             });
         }
+        var btnEscEnt = document.getElementById('pdv-ed-loja-escopo-entrega');
+        if (btnEscEnt) {
+            btnEscEnt.addEventListener('click', function () {
+                var st = State.getState();
+                var d = String((st.entrega && st.entrega.lojaSaidaDraft) || '').trim().toLowerCase();
+                if (d !== 'centro' && d !== 'vila') d = depositoPdvAtivo();
+                confirmarLojaSaidaComEscopo(d, 'entrega');
+            });
+        }
+        var btnEscPag = document.getElementById('pdv-ed-loja-escopo-pagamento');
+        if (btnEscPag) {
+            btnEscPag.addEventListener('click', function () {
+                var st = State.getState();
+                var d = String((st.entrega && st.entrega.lojaSaidaDraft) || '').trim().toLowerCase();
+                if (d !== 'centro' && d !== 'vila') d = depositoPdvAtivo();
+                confirmarLojaSaidaComEscopo(d, 'pagamento');
+            });
+        }
+        var btnEscAmb = document.getElementById('pdv-ed-loja-escopo-ambos');
+        if (btnEscAmb) {
+            btnEscAmb.addEventListener('click', function () {
+                var st = State.getState();
+                var d = String((st.entrega && st.entrega.lojaSaidaDraft) || '').trim().toLowerCase();
+                if (d !== 'centro' && d !== 'vila') d = depositoPdvAtivo();
+                confirmarLojaSaidaComEscopo(d, 'ambos');
+            });
+        }
+        bindModalMudarLojaEntregaOnce();
         var btnEf2Din = document.getElementById('pdv-ef2-dinheiro');
         if (btnEf2Din) {
             btnEf2Din.addEventListener('click', function () {
@@ -16415,14 +17075,23 @@
                 if (!inField && isEntregaFluxoLojaOpen()) {
                     var d1l = event.code === 'Digit1' || event.code === 'Numpad1';
                     var d2l = event.code === 'Digit2' || event.code === 'Numpad2';
+                    var d3l = event.code === 'Digit3' || event.code === 'Numpad3';
                     if (d1l) {
                         event.preventDefault();
-                        confirmarLojaSaidaEntrega('centro');
+                        selecionarLojaSaidaDraft('centro');
                         return;
                     }
                     if (d2l) {
                         event.preventDefault();
-                        confirmarLojaSaidaEntrega('vila');
+                        selecionarLojaSaidaDraft('vila');
+                        return;
+                    }
+                    if (d3l) {
+                        event.preventDefault();
+                        var stL = State.getState();
+                        var draftL = String((stL.entrega && stL.entrega.lojaSaidaDraft) || '').trim().toLowerCase();
+                        if (draftL !== 'centro' && draftL !== 'vila') draftL = depositoPdvAtivo();
+                        confirmarLojaSaidaComEscopo(draftL, 'ambos');
                         return;
                     }
                 }
@@ -16547,11 +17216,21 @@
 
         var alertaOk = document.getElementById('alerta-lembrete-ok');
         if (alertaOk) {
-            alertaOk.addEventListener('click', function () {
-                var box = document.getElementById('alerta-lembrete');
-                if (box) box.classList.add('hidden');
+            alertaOk.addEventListener('click', function (evOk) {
+                if (evOk) {
+                    evOk.preventDefault();
+                    evOk.stopPropagation();
+                }
+                fecharAlertaLembreteWizard();
             });
         }
+        document.addEventListener('keydown', function (evLembrete) {
+            if (evLembrete.key !== 'Escape') return;
+            var boxEsc = document.getElementById('alerta-lembrete');
+            if (boxEsc && !boxEsc.classList.contains('hidden')) {
+                fecharAlertaLembreteWizard();
+            }
+        });
         setInterval(verificarLembretesWizardTick, 25000);
     }
 

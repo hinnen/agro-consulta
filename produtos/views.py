@@ -165,6 +165,7 @@ from .entrega_pdv_pendente_util import (
     listar_entregas_pagas_loja_pdv,
     listar_entregas_pendentes_pdv,
     marcar_entrega_pendente_fechada,
+    mudar_loja_entrega_pdv,
     normalizar_loja_entrega,
     resolver_sessao_caixa_entrega_pdv,
     serializar_entrega_pendente_pdv,
@@ -32772,11 +32773,16 @@ def api_entrega_registrar(request):
         pdv_state = {}
     sessao_cx = resolver_sessao_caixa_entrega_pdv(request, body)
     loja_dest = normalizar_loja_entrega(body.get("loja_entrega") or body.get("loja"))
+    loja_pag = normalizar_loja_entrega(body.get("loja_pagamento"))
     origem_ped = str(body.get("origem") or "").strip()[:24]
     if not origem_ped:
         origem_ped = "pdv"
     if loja_dest:
         campos["loja_entrega"] = loja_dest
+    if loja_pag:
+        campos["loja_pagamento"] = loja_pag
+    elif loja_dest:
+        campos["loja_pagamento"] = loja_dest
     campos["origem"] = origem_ped
 
     venda_link = None
@@ -32897,6 +32903,31 @@ def api_pdv_entrega_pendente_assumir(request, pk):
     row = serializar_entrega_pendente_pdv(ent)
     row["sessao_caixa_label"] = _sessao_caixa_label_entrega(ent) if ent.sessao_caixa_id else "Sem caixa vinculado"
     return JsonResponse({"ok": True, "entrega": row, "ja_sua": (ent.loja_entrega or "") == loja})
+
+
+@login_required(login_url="/entrar/")
+@require_POST
+def api_pdv_entrega_pendente_mudar_loja(request, pk):
+    """Muda loja de saída e/ou caixa de pagamento (escopo entrega|pagamento|ambos)."""
+    try:
+        body = json.loads(request.body.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        body = {}
+    loja = normalizar_loja_entrega(body.get("loja") or body.get("loja_destino"))
+    escopo = str(body.get("escopo") or "").strip().lower()
+    pin = str(body.get("pin") or "").strip()
+    quem = operador_label_request(request)
+    ent, erro = mudar_loja_entrega_pdv(
+        pk, loja=loja, escopo=escopo, pin=pin, quem=quem
+    )
+    if erro:
+        status = 403 if "PIN" in erro else 400
+        if "não encontrada" in erro.lower():
+            status = 404
+        return JsonResponse({"ok": False, "erro": erro}, status=status)
+    row = serializar_entrega_pendente_pdv(ent)
+    row["sessao_caixa_label"] = _sessao_caixa_label_entrega(ent) if ent.sessao_caixa_id else "Sem caixa vinculado"
+    return JsonResponse({"ok": True, "entrega": row})
 
 
 @login_required(login_url="/entrar/")
