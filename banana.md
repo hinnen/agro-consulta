@@ -1313,18 +1313,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 8 | `ETQ-LOTE-FILA` | ✅ **Live v23.95** | **NÃO** | **78/78** · PIN **9973** |
 | 9 | `PDV-IMP-SEP-OFF` | ✅ **Live v23.95** | **NÃO** | Separação **desmarcada** |
 | 10 | `PDV-IMP-PIN-ANTES` | ✅ **Live v23.95** | **NÃO** | PIN **antes** · sem 2ª via |
-| 11 | `PDV-ENT-CARD-LATERAL` | 🟢 **pronto para envio** (tip) | **NÃO** | tip **v24.48+** · □ rota·Maps · horário · alerta +1h |
+| 11 | `PDV-ENT-CARD-LATERAL` | 🟢 **pronto para envio** (tip) | **NÃO** | **Adiar 1h** ao lado da hora · **Incluir**+Maps |
 
 **Status: ✅ Live v23.95** — `producao` @ `8faa4c1` · Render `dep-daincomk1f9s73f7e330`.  
 **Antes:** Live **v23.94** @ `c3e0b1c`. Migrate **0130** OK. **Não** merge `teste`.  
 **Rollback:** tag `rollback/pre-checklist-1209b-v23.94` · `docs/ROLLBACK-CHECKLIST-1209b.md`.  
 **Pendente SOLO tip:** `#11` `PDV-ENT-CARD-LATERAL`.
 
-### 📦 PACOTE PRONTO — Cards Entregas rota/horário/alerta (`PDV-ENT-CARD-LATERAL` · **v24.48** · 12/09)
+### 📦 PACOTE PRONTO — Cards Entregas rota/horário/alerta (`PDV-ENT-CARD-LATERAL` · tip · 12/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | □ rota ao lado do **Maps** · badge **horário** · alerta urgente · **Alerta +1h** |
+| **O quê** | **Incluir**+Maps · badge hora + **Adiar 1h** (pisca) · alerta urgente · **Alerta +1h** topo |
 | **Prova** | `verify_pdv_imp_pin_card_1209_path.py` · PIN **9973** |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** |

@@ -4676,13 +4676,32 @@
                 urgHp === 2
                     ? 'bg-red-600 text-white animate-pulse'
                     : urgHp === 1
-                      ? 'bg-amber-500 text-white'
+                      ? 'bg-amber-500 text-white animate-pulse'
                       : 'bg-slate-700 text-white';
+            var alertaAdiadoCard = entregasAlertaEstaAdiado();
+            var adiar1hLbl = alertaAdiadoCard ? 'Alerta OK' : 'Adiar 1h';
+            var adiar1hCls;
+            if (alertaAdiadoCard) {
+                adiar1hCls = 'border-emerald-500 bg-emerald-50 text-emerald-900';
+            } else if (urgHp === 2) {
+                adiar1hCls = 'border-red-600 bg-red-50 text-red-900 animate-pulse';
+            } else if (urgHp === 1) {
+                adiar1hCls = 'border-amber-500 bg-amber-50 text-amber-950 animate-pulse';
+            } else {
+                adiar1hCls = 'border-slate-400 bg-white text-slate-800';
+            }
             badges.push(
-                '<span class="rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tabular-nums ' +
+                '<span class="inline-flex flex-wrap items-center gap-1">' +
+                    '<span class="rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tabular-nums ' +
                     hpCls +
                     '" title="Horário agendado">' +
                     escapeHtml(hpUi) +
+                    '</span>' +
+                    '<button type="button" class="pdv-entrega-adiar-alerta-1h rounded-md border-2 px-1.5 py-0.5 text-[9px] font-black uppercase leading-tight ' +
+                    adiar1hCls +
+                    '" title="Adia o piscar e o bip do horário por 1 hora">' +
+                    adiar1hLbl +
+                    '</button>' +
                     '</span>'
             );
         }
@@ -4725,10 +4744,10 @@
         if (!pagasAba) {
             btns += '<div class="flex w-full items-stretch gap-1">';
             btns +=
-                '<label class="inline-flex shrink-0 items-center justify-center rounded-lg border-2 border-sky-300 bg-white px-1.5 py-1" title="Incluir na rota">' +
-                '<input type="checkbox" class="pdv-entrega-rota-chk h-3.5 w-3.5 accent-sky-600" data-entrega-id="' +
+                '<label class="inline-flex min-w-0 flex-[1.1] items-center justify-center gap-1 rounded-lg border-2 border-sky-300 bg-white px-1 py-1 text-[9px] font-black uppercase leading-tight text-sky-950" title="Incluir na rota">' +
+                '<input type="checkbox" class="pdv-entrega-rota-chk h-3.5 w-3.5 shrink-0 accent-sky-600" data-entrega-id="' +
                 id +
-                '" aria-label="Incluir na rota"></label>';
+                '" aria-label="Incluir na rota"> Incluir</label>';
             if (row.maps_url) {
                 btns +=
                     '<button type="button" class="pdv-entrega-maps min-w-0 flex-1 rounded-lg border-2 border-sky-400 bg-sky-50 px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-sky-950" data-entrega-id="' +
@@ -4833,6 +4852,12 @@
             btn.addEventListener('click', function () {
                 var pk = btn.getAttribute('data-entrega-id');
                 if (pk) adiarEntregaPendenteCaixa(pk);
+            });
+        });
+        root.querySelectorAll('.pdv-entrega-adiar-alerta-1h').forEach(function (btn) {
+            btn.addEventListener('click', function (ev) {
+                if (ev && ev.stopPropagation) ev.stopPropagation();
+                adiarAlertaEntregas1h();
             });
         });
         root.querySelectorAll('.pdv-entrega-cancelar').forEach(function (btn) {

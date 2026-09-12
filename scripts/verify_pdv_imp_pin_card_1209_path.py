@@ -140,6 +140,8 @@ def test_estatico() -> None:
     # Bind ainda existe
     check("card_bind_btns", "function bindEntregaPendenteCardBtns" in wiz_js)
     check("card_concluir", "pdv-entrega-concluir w-full" in wiz_js)
+    check("card_adiar_1h_hora", "pdv-entrega-adiar-alerta-1h" in wiz_js and "Adiar 1h" in wiz_js)
+    check("card_rota_incluir_lbl", 'aria-label="Incluir na rota"> Incluir</label>' in wiz_js)
 
 
 def test_runtime() -> None:
