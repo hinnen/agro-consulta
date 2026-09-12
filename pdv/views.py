@@ -221,6 +221,9 @@ def pdv_home(request):
                 "apiPdvEntregaPendenteAssumir": reverse("api_pdv_entrega_pendente_assumir", args=[0]).replace(
                     "/0/", "/__pk__/"
                 ),
+                "apiPdvEntregaPendenteMudarLoja": reverse(
+                    "api_pdv_entrega_pendente_mudar_loja", args=[0]
+                ).replace("/0/", "/__pk__/"),
                 "apiPdvEntregaPendenteFinalizar": reverse("api_pdv_entrega_pendente_finalizar", args=[0]).replace(
                     "/0/", "/__pk__/"
                 ),

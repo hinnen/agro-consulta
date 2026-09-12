@@ -68,16 +68,38 @@ def queryset_entregas_bloqueando_fechamento_caixa():
 
 
 def filtrar_qs_por_loja(qs, loja: str | None):
-    """Sem dono, dono = loja do PDV, ou caixa daquela loja (mesmo se outra assumiu)."""
+    """Sem dono, dono = loja do PDV, pagamento nesta loja, ou caixa daquela loja."""
     loja_n = normalizar_loja_entrega(loja)
     if not loja_n:
         return qs
-    q = Q(loja_entrega="") | Q(loja_entrega=loja_n)
+    q = Q(loja_entrega="") | Q(loja_entrega=loja_n) | Q(loja_pagamento=loja_n)
     if loja_n == "vila":
         q |= Q(sessao_caixa__ponto_caixa=PONTO_CAIXA_VILA)
     else:
         q |= Q(sessao_caixa_id__isnull=False) & ~Q(sessao_caixa__ponto_caixa=PONTO_CAIXA_VILA)
     return qs.filter(q)
+
+
+def loja_pagamento_efetiva(ent: PedidoEntrega) -> str:
+    """centro|vila do caixa desta entrega (campo, sessão ou dono)."""
+    lp = normalizar_loja_entrega(getattr(ent, "loja_pagamento", None) or "")
+    if lp:
+        return lp
+    sess = getattr(ent, "sessao_caixa", None)
+    if sess is not None:
+        from produtos.caixa_util import deposito_de_ponto_caixa
+
+        return deposito_de_ponto_caixa(getattr(sess, "ponto_caixa", None))
+    return normalizar_loja_entrega(ent.loja_entrega or "")
+
+
+def rotulo_loja_curto(loja: str) -> str:
+    v = normalizar_loja_entrega(loja)
+    if v == "vila":
+        return "Vila"
+    if v == "centro":
+        return "Centro"
+    return ""
 
 
 def _sessao_caixa_label_entrega(ent: PedidoEntrega) -> str:
@@ -135,6 +157,7 @@ def contar_entregas_pendentes_pdv(
 
 def serializar_entrega_pendente_pdv(ent: PedidoEntrega, *, incluir_estado: bool = False) -> dict:
     loja = (ent.loja_entrega or "").strip()
+    loja_pag = loja_pagamento_efetiva(ent)
     origem = (ent.origem or "").strip()
     tem_estado = isinstance(ent.pdv_wizard_state, dict) and bool(ent.pdv_wizard_state)
     itens = _itens_resumo(ent)
@@ -151,6 +174,12 @@ def serializar_entrega_pendente_pdv(ent: PedidoEntrega, *, incluir_estado: bool 
         "sessao_caixa_id": ent.sessao_caixa_id,
         "origem": origem,
         "loja_entrega": loja,
+        "loja_pagamento": loja_pag,
+        "loja_entrega_label": rotulo_loja_curto(loja),
+        "loja_pagamento_label": rotulo_loja_curto(loja_pag),
+        "loja_divergente": bool(loja and loja_pag and loja != loja_pag),
+        "pode_mudar_loja": bool(ent.aguarda_pagamento_pdv)
+        or bool(getattr(ent, "paga_na_loja", False)),
         "loja_assumida_em": ent.loja_assumida_em.isoformat() if ent.loja_assumida_em else "",
         "loja_assumida_por": (ent.loja_assumida_por or "").strip(),
         "caixa_adiada_para": ent.caixa_adiada_para.isoformat()
@@ -226,6 +255,7 @@ def listar_entregas_pagas_loja_pdv(
         row["pode_cancelar"] = False
         row["paga_na_loja"] = True
         row["pode_concluir_overlay"] = True
+        row["pode_mudar_loja"] = True
         out.append(row)
     return out
 
@@ -392,7 +422,10 @@ def resolver_sessao_caixa_entrega_pdv(request, body: dict | None = None) -> Sess
     )
 
     body = body if isinstance(body, dict) else {}
-    loja_dest = normalizar_loja_entrega(body.get("loja_entrega") or body.get("loja"))
+    loja_pag = normalizar_loja_entrega(body.get("loja_pagamento"))
+    loja_dest = loja_pag or normalizar_loja_entrega(
+        body.get("loja_entrega") or body.get("loja")
+    )
     loja_nav = ""
     if request is not None:
         loja_nav = normalizar_loja_entrega(deposito_caixa_browser(request))
@@ -409,6 +442,91 @@ def resolver_sessao_caixa_entrega_pdv(request, body: dict | None = None) -> Sess
         if s and sessao_caixa_compativel_loja_browser(request, s):
             return s
     return None
+
+
+ESCOPOS_MUDAR_LOJA = frozenset({"entrega", "pagamento", "ambos"})
+
+
+def mudar_loja_entrega_pdv(
+    entrega_id: int,
+    *,
+    loja: str,
+    escopo: str,
+    pin: str = "",
+    quem: str = "",
+) -> tuple[PedidoEntrega | None, str | None]:
+    """
+    Reaponta loja de saída e/ou caixa de pagamento.
+    escopo: entrega | pagamento | ambos
+    """
+    from produtos.caixa_util import obter_caixa_pai_aberto
+
+    loja_n = normalizar_loja_entrega(loja)
+    esc = str(escopo or "").strip().lower()
+    if not loja_n:
+        return None, "Informe a loja (centro ou vila)."
+    if esc not in ESCOPOS_MUDAR_LOJA:
+        return None, "Escolha: só entrega, só pagamento ou as duas."
+
+    rotulo = (quem or "").strip()
+    pin_n = (pin or "").strip()
+    if pin_n:
+        ok_pin, err_pin = validar_pin_operador(pin_n)
+        if not ok_pin:
+            return None, err_pin
+        rotulo = rotulo_operador_pin(pin_n) or rotulo
+    if not rotulo:
+        return None, "Informe o PIN."
+
+    ent = (
+        PedidoEntrega.objects.filter(pk=entrega_id)
+        .exclude(status=PedidoEntrega.Status.CANCELADO)
+        .select_related("sessao_caixa")
+        .first()
+    )
+    if not ent:
+        return None, "Entrega não encontrada."
+
+    paga = bool(getattr(ent, "paga_na_loja", False)) and not bool(ent.aguarda_pagamento_pdv)
+    if paga and esc in ("pagamento", "ambos"):
+        return None, "Já paga na loja — só dá para mudar a loja de entrega (quem sai)."
+    if not paga and not ent.aguarda_pagamento_pdv:
+        return None, "Só dá para mudar loja em entrega a pagar ou paga na loja."
+
+    loja_ent_atual = normalizar_loja_entrega(ent.loja_entrega or "")
+    loja_pag_atual = loja_pagamento_efetiva(ent)
+    nova_ent = loja_ent_atual
+    nova_pag = loja_pag_atual
+    if esc in ("entrega", "ambos"):
+        nova_ent = loja_n
+    if esc in ("pagamento", "ambos"):
+        nova_pag = loja_n
+
+    update_fields = ["atualizado_em", "loja_assumida_em", "loja_assumida_por"]
+    ent.loja_assumida_em = timezone.now()
+    ent.loja_assumida_por = rotulo[:120]
+
+    if esc in ("entrega", "ambos"):
+        ent.loja_entrega = nova_ent
+        update_fields.append("loja_entrega")
+
+    if esc in ("pagamento", "ambos"):
+        ent.loja_pagamento = nova_pag
+        update_fields.append("loja_pagamento")
+        if ent.aguarda_pagamento_pdv:
+            s_dest = obter_caixa_pai_aberto(nova_pag)
+            if not s_dest or getattr(s_dest, "fechado_em", None) is not None:
+                nome = "Vila" if nova_pag == "vila" else "Centro"
+                return None, f"Abra o caixa da {nome} antes de mudar o pagamento."
+            ent.sessao_caixa = s_dest
+            update_fields.append("sessao_caixa")
+    elif esc == "entrega" and not (getattr(ent, "loja_pagamento", None) or "").strip():
+        # Mantém pagamento explícito no valor atual (legado sem campo).
+        ent.loja_pagamento = loja_pag_atual or loja_ent_atual or loja_n
+        update_fields.append("loja_pagamento")
+
+    ent.save(update_fields=list(dict.fromkeys(update_fields)))
+    return ent, None
 
 
 def marcar_entrega_pendente_fechada(

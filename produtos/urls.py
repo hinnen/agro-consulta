@@ -202,6 +202,11 @@ urlpatterns = [
         name='api_pdv_entrega_pendente_assumir',
     ),
     path(
+        'api/pdv/entrega-pendente/<int:pk>/mudar-loja/',
+        views.api_pdv_entrega_pendente_mudar_loja,
+        name='api_pdv_entrega_pendente_mudar_loja',
+    ),
+    path(
         'api/pdv/entrega-pendente/<int:pk>/finalizar/',
         views.api_pdv_entrega_pendente_finalizar,
         name='api_pdv_entrega_pendente_finalizar',

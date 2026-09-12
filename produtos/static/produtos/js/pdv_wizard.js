@@ -4776,7 +4776,19 @@
             );
         } else {
             var lojaLbl = lojaEntregaLabelUi(row.loja_entrega);
-            if (lojaLbl) {
+            var lojaPagLbl = lojaEntregaLabelUi(row.loja_pagamento || row.loja_entrega);
+            if (row.loja_divergente && lojaLbl && lojaPagLbl) {
+                badges.push(
+                    '<span class="rounded-md bg-sky-700 px-1.5 py-0.5 text-[9px] font-black uppercase whitespace-nowrap text-white" title="Quem sai">Sai ' +
+                        escapeHtml(lojaLbl) +
+                        '</span>'
+                );
+                badges.push(
+                    '<span class="rounded-md bg-amber-700 px-1.5 py-0.5 text-[9px] font-black uppercase whitespace-nowrap text-white" title="Caixa">Paga ' +
+                        escapeHtml(lojaPagLbl) +
+                        '</span>'
+                );
+            } else if (lojaLbl) {
                 badges.push(
                     '<span class="rounded-md bg-sky-700 px-1.5 py-0.5 text-[9px] font-black uppercase whitespace-nowrap text-white">' +
                         escapeHtml(lojaLbl) +
@@ -4898,6 +4910,14 @@
                 id +
                 '">Retomar</button>';
         }
+        if (row.pode_mudar_loja !== false && (row.aguarda_pagamento_pdv || row.paga_na_loja)) {
+            btns +=
+                '<button type="button" class="pdv-entrega-mudar-loja w-full rounded-lg border-2 border-sky-500 bg-sky-50 px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-sky-950" data-entrega-id="' +
+                id +
+                '" data-paga-loja="' +
+                (row.paga_na_loja && !row.aguarda_pagamento_pdv ? '1' : '0') +
+                '">Loja</button>';
+        }
         if (row.pode_adiar || row.pode_cancelar) {
             btns += '<div class="pdv-entrega-adiar-cancelar flex w-full min-w-0 gap-1">';
             if (row.pode_adiar) {
@@ -4976,6 +4996,14 @@
             btn.addEventListener('click', function () {
                 var pk = btn.getAttribute('data-entrega-id');
                 if (pk) retomarEntregaPendente(pk);
+            });
+        });
+        root.querySelectorAll('.pdv-entrega-mudar-loja').forEach(function (btn) {
+            btn.addEventListener('click', function (ev) {
+                if (ev && ev.stopPropagation) ev.stopPropagation();
+                var pk = btn.getAttribute('data-entrega-id');
+                var paga = btn.getAttribute('data-paga-loja') === '1';
+                if (pk) abrirModalMudarLojaEntrega(pk, { soEntrega: paga });
             });
         });
         root.querySelectorAll('.pdv-entrega-adiar').forEach(function (btn) {
@@ -5277,6 +5305,148 @@
             return;
         }
         wizardModalEscolhaImpressaoEntrega().then(doPrint);
+    }
+
+    var _mudarLojaCtx = { pk: '', destino: '', soEntrega: false };
+
+    function fecharModalMudarLojaEntrega() {
+        var dlg = document.getElementById('pdv-entrega-mudar-loja-modal');
+        if (dlg && typeof dlg.close === 'function') {
+            try {
+                dlg.close();
+            } catch (eClose) {}
+        }
+        _mudarLojaCtx = { pk: '', destino: '', soEntrega: false };
+    }
+
+    function syncModalMudarLojaDestinoUi() {
+        var d = _mudarLojaCtx.destino === 'vila' ? 'vila' : 'centro';
+        var bC = document.getElementById('pdv-ml-destino-centro');
+        var bV = document.getElementById('pdv-ml-destino-vila');
+        if (bC) {
+            bC.classList.toggle('ring-4', d === 'centro');
+            bC.classList.toggle('ring-sky-300', d === 'centro');
+        }
+        if (bV) {
+            bV.classList.toggle('ring-4', d === 'vila');
+            bV.classList.toggle('ring-violet-300', d === 'vila');
+        }
+        var hint = document.getElementById('pdv-entrega-mudar-loja-hint');
+        if (hint && _mudarLojaCtx.soEntrega) {
+            hint.textContent = 'Já paga na loja — só dá para mudar quem sai (entrega).';
+        } else if (hint) {
+            hint.textContent = 'Entrega = quem sai · Pagamento = qual caixa fecha.';
+        }
+        document.querySelectorAll('.pdv-ml-escopo').forEach(function (btn) {
+            var esc = btn.getAttribute('data-escopo');
+            var block = _mudarLojaCtx.soEntrega && esc !== 'entrega';
+            btn.disabled = !!block;
+            btn.classList.toggle('opacity-40', !!block);
+            btn.classList.toggle('pointer-events-none', !!block);
+        });
+    }
+
+    function abrirModalMudarLojaEntrega(pk, opts) {
+        opts = opts || {};
+        var dlg = document.getElementById('pdv-entrega-mudar-loja-modal');
+        if (!dlg) {
+            showSaleDoneFeedback('Modal de loja indisponível — atualize a página (Ctrl+F5).', 'warn');
+            return;
+        }
+        _mudarLojaCtx = {
+            pk: String(pk || ''),
+            destino: depositoPdvAtivo() === 'vila' ? 'vila' : 'centro',
+            soEntrega: !!opts.soEntrega
+        };
+        var tit = document.getElementById('pdv-entrega-mudar-loja-titulo');
+        if (tit) tit.textContent = 'Entrega #' + _mudarLojaCtx.pk;
+        syncModalMudarLojaDestinoUi();
+        try {
+            if (typeof dlg.showModal === 'function') dlg.showModal();
+            else dlg.setAttribute('open', '');
+        } catch (eShow) {
+            showSaleDoneFeedback('Não abriu o modal de loja.', 'warn');
+        }
+    }
+
+    function enviarMudarLojaEntrega(escopo) {
+        var pk = _mudarLojaCtx.pk;
+        var loja = _mudarLojaCtx.destino === 'vila' ? 'vila' : 'centro';
+        escopo = String(escopo || '').trim().toLowerCase();
+        if (!pk || (escopo !== 'entrega' && escopo !== 'pagamento' && escopo !== 'ambos')) return;
+        if (_mudarLojaCtx.soEntrega && escopo !== 'entrega') {
+            showSaleDoneFeedback('Já paga — use só entrega.', 'warn');
+            return;
+        }
+        var url = entregaPendenteApiUrl(urls.apiPdvEntregaPendenteMudarLoja, pk);
+        if (!url) {
+            showSaleDoneFeedback('API mudar loja indisponível.', 'warn');
+            return;
+        }
+        var run = function () {
+            if (window.gmLoadingBar) window.gmLoadingBar.show('Mudando loja…');
+            return jsonPost(url, { loja: loja, escopo: escopo })
+                .then(function (res) {
+                    if (!res.ok || !res.data || !res.data.ok) {
+                        throw new Error(
+                            (res.data && (res.data.erro || res.data.mensagem)) ||
+                                'Não foi possível mudar a loja.'
+                        );
+                    }
+                    fecharModalMudarLojaEntrega();
+                    var msg =
+                        escopo === 'entrega'
+                            ? 'Entrega → ' + (loja === 'vila' ? 'Vila' : 'Centro')
+                            : escopo === 'pagamento'
+                              ? 'Pagamento → ' + (loja === 'vila' ? 'Vila' : 'Centro')
+                              : 'Entrega e pagamento → ' + (loja === 'vila' ? 'Vila' : 'Centro');
+                    showSaleDoneFeedback(msg, 'ok');
+                    invalidateEntregasPendentesCache();
+                    return refreshEntregasPendentesUi(false, true);
+                })
+                .catch(function (err) {
+                    showSaleDoneFeedback(
+                        err && err.message ? err.message : 'Falha ao mudar loja.',
+                        'warn'
+                    );
+                })
+                .finally(function () {
+                    if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                });
+        };
+        if (typeof window.gmSspinGarantirOperador === 'function') {
+            window.gmSspinGarantirOperador(function () {
+                run();
+            }, { titulo: 'PIN para mudar loja da entrega' });
+            return;
+        }
+        run();
+    }
+
+    function bindModalMudarLojaEntregaOnce() {
+        if (bindModalMudarLojaEntregaOnce._ok) return;
+        bindModalMudarLojaEntregaOnce._ok = true;
+        var bC = document.getElementById('pdv-ml-destino-centro');
+        var bV = document.getElementById('pdv-ml-destino-vila');
+        var bX = document.getElementById('pdv-ml-cancelar');
+        if (bC) {
+            bC.addEventListener('click', function () {
+                _mudarLojaCtx.destino = 'centro';
+                syncModalMudarLojaDestinoUi();
+            });
+        }
+        if (bV) {
+            bV.addEventListener('click', function () {
+                _mudarLojaCtx.destino = 'vila';
+                syncModalMudarLojaDestinoUi();
+            });
+        }
+        if (bX) bX.addEventListener('click', fecharModalMudarLojaEntrega);
+        document.querySelectorAll('.pdv-ml-escopo').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                enviarMudarLojaEntrega(btn.getAttribute('data-escopo'));
+            });
+        });
     }
 
     function assumirEntregaPendente(pk) {
@@ -6333,6 +6503,9 @@
             enderecoPassoConcluido: false,
             entregaFreteLiberadoPagamento: false,
             lojaSaida: loja === 'vila' ? 'vila' : 'centro',
+            lojaPagamento: loja === 'vila' ? 'vila' : 'centro',
+            lojaEscopo: '',
+            lojaSaidaDraft: loja === 'vila' ? 'vila' : 'centro',
             lojaSaidaConfirmada: false
         });
         State.setPagamentoField('frete', 0);
@@ -6367,7 +6540,11 @@
             return;
         }
         if (fase === 'loja') {
-            confirmarLojaSaidaEntrega(lojaSaidaEntregaAtual(state));
+            var draft = String((state.entrega && state.entrega.lojaSaidaDraft) || '').trim().toLowerCase();
+            if (draft !== 'centro' && draft !== 'vila') {
+                draft = lojaSaidaEntregaAtual(state);
+            }
+            confirmarLojaSaidaComEscopo(draft, 'ambos');
             return;
         }
         if (fase === 'detalhes') {
@@ -7188,8 +7365,8 @@
                 border: 'border-sky-400',
                 header: 'bg-gradient-to-r from-sky-600 to-indigo-600 text-white',
                 etapa: 'Loja da entrega',
-                titulo: 'De qual loja sai?',
-                sub: 'Padrão: esta loja. Trocar manda estoque e caixa para a outra.'
+                titulo: 'Loja: quem sai e qual caixa?',
+                sub: 'Escolha Centro/Vila e depois: só entrega, só pagamento ou as duas.'
             },
             detalhes: {
                 border: 'border-amber-400',
@@ -7248,22 +7425,40 @@
         return depositoPdvAtivo();
     }
 
+    function lojaPagamentoEntregaAtual(state) {
+        var e = (state && state.entrega) || {};
+        var v = String(e.lojaPagamento || '').trim().toLowerCase();
+        if (v === 'centro' || v === 'vila') return v;
+        return lojaSaidaEntregaAtual(state);
+    }
+
     function entregaVaiParaOutraLoja(state) {
         return lojaSaidaEntregaAtual(state) !== depositoPdvAtivo();
     }
 
     function renderEntregaLojaPainelUi() {
-        var loja = lojaSaidaEntregaAtual(State.getState());
+        var st = State.getState();
+        var e = st.entrega || {};
+        var draft = String(e.lojaSaidaDraft || e.lojaSaida || '').trim().toLowerCase();
+        if (draft !== 'centro' && draft !== 'vila') draft = depositoPdvAtivo();
         var bC = document.getElementById('pdv-ed-loja-centro');
         var bV = document.getElementById('pdv-ed-loja-vila');
         if (bC) {
-            bC.classList.toggle('ring-4', loja === 'centro');
-            bC.classList.toggle('ring-sky-300', loja === 'centro');
+            bC.classList.toggle('ring-4', draft === 'centro');
+            bC.classList.toggle('ring-sky-300', draft === 'centro');
         }
         if (bV) {
-            bV.classList.toggle('ring-4', loja === 'vila');
-            bV.classList.toggle('ring-violet-300', loja === 'vila');
+            bV.classList.toggle('ring-4', draft === 'vila');
+            bV.classList.toggle('ring-violet-300', draft === 'vila');
         }
+        var esc = String(e.lojaEscopo || '').trim().toLowerCase();
+        ['entrega', 'pagamento', 'ambos'].forEach(function (k) {
+            var btn = document.getElementById('pdv-ed-loja-escopo-' + k);
+            if (!btn) return;
+            var on = esc === k && !!e.lojaSaidaConfirmada;
+            btn.classList.toggle('ring-2', on);
+            btn.classList.toggle('ring-offset-1', on);
+        });
     }
 
     function syncPartidaMapsComLojaSaida(loja) {
@@ -7276,41 +7471,70 @@
         }
     }
 
-    function confirmarLojaSaidaEntrega(loja) {
+    function selecionarLojaSaidaDraft(loja) {
         loja = loja === 'vila' ? 'vila' : 'centro';
+        State.setEntregaPatch({
+            lojaSaidaDraft: loja,
+            lojaSaidaConfirmada: false,
+            lojaEscopo: ''
+        });
+        renderEntregaLojaPainelUi();
+    }
+
+    function confirmarLojaSaidaComEscopo(loja, escopo) {
+        loja = loja === 'vila' ? 'vila' : 'centro';
+        escopo = String(escopo || 'ambos').trim().toLowerCase();
+        if (escopo !== 'entrega' && escopo !== 'pagamento' && escopo !== 'ambos') {
+            escopo = 'ambos';
+        }
         var atual = depositoPdvAtivo();
+        var lojaEnt = loja;
+        var lojaPag = loja;
+        if (escopo === 'entrega') {
+            lojaPag = atual === 'vila' ? 'vila' : 'centro';
+        } else if (escopo === 'pagamento') {
+            lojaEnt = atual === 'vila' ? 'vila' : 'centro';
+        }
         var aplicar = function () {
-            State.setEntregaPatch({ lojaSaida: loja, lojaSaidaConfirmada: true });
-            syncPartidaMapsComLojaSaida(loja);
+            State.setEntregaPatch({
+                lojaSaida: lojaEnt,
+                lojaPagamento: lojaPag,
+                lojaEscopo: escopo,
+                lojaSaidaDraft: loja,
+                lojaSaidaConfirmada: true
+            });
+            syncPartidaMapsComLojaSaida(lojaEnt);
             syncEntregaDetalhesModalUi();
             scrollEntregaWizardIntoView();
         };
-        if (loja === atual) {
+        var mudaAlgo = lojaEnt !== atual || lojaPag !== atual;
+        if (!mudaAlgo) {
             aplicar();
             return;
         }
         var nome = loja === 'vila' ? 'Vila Elias' : 'Centro';
-        var aqui = atual === 'vila' ? 'Vila Elias' : 'Centro';
+        var msg =
+            escopo === 'entrega'
+                ? 'Só a entrega (quem sai) vai para a ' + nome + '. O caixa fica aqui.'
+                : escopo === 'pagamento'
+                  ? 'Só o pagamento (caixa) vai para a ' + nome + '. Quem sai fica aqui.'
+                  : 'Entrega e pagamento vão para a ' + nome + '.';
         var p = showPdvConfirmacao
-            ? showPdvConfirmacao(
-                  'Estoque e o caixa desta venda ficam na ' +
-                      nome +
-                      '.\n\nNão fecha aqui no ' +
-                      aqui +
-                      '. A ' +
-                      nome +
-                      ' retoma o pagamento — sem Assumir.',
-                  {
-                      title: 'Mandar para ' + nome + '?',
-                      confirmLabel: 'Sim, ' + nome,
-                      cancelLabel: 'Ficar no ' + aqui,
-                      tone: 'warn'
-                  }
-              )
-            : Promise.resolve(window.confirm('Mandar estoque e caixa para a ' + nome + '?'));
+            ? showPdvConfirmacao(msg, {
+                  title: 'Confirmar loja?',
+                  confirmLabel: 'Sim',
+                  cancelLabel: 'Voltar',
+                  tone: 'warn'
+              })
+            : Promise.resolve(window.confirm(msg));
         p.then(function (ok) {
             if (ok) aplicar();
         });
+    }
+
+    /** Compat: F7/atalhos antigos → as duas. */
+    function confirmarLojaSaidaEntrega(loja) {
+        confirmarLojaSaidaComEscopo(loja, 'ambos');
     }
 
     function entregaHorariosFixos() {
@@ -7496,7 +7720,10 @@
                 lp === 'entrega' ? 'Pagamento na entrega' : lp === 'loja' ? 'Pagamento na loja' : '—';
         }
         if (elLojaSai) {
-            elLojaSai.textContent = lojaEntregaLabelUi(lojaSaidaEntregaAtual(state)) || '—';
+            var sai = lojaEntregaLabelUi(lojaSaidaEntregaAtual(state)) || '—';
+            var paga = lojaEntregaLabelUi(lojaPagamentoEntregaAtual(state)) || sai;
+            elLojaSai.textContent =
+                sai !== paga ? 'Sai ' + sai + ' · Paga ' + paga : sai;
         }
         if (elMeio) {
             var meioRow = elMeio.closest('.pdv-entrega-review-row');
@@ -11145,7 +11372,8 @@
             pagamento_pdv: flags.pagamento_pdv,
             observacoes: observacoes,
             origem: 'pdv',
-            loja_entrega: lojaSaidaEntregaAtual(state)
+            loja_entrega: lojaSaidaEntregaAtual(state),
+            loja_pagamento: lojaPagamentoEntregaAtual(state)
         };
         if (extras.orc_local_id != null && String(extras.orc_local_id).trim() !== '') {
             out.orc_local_id = parseInt(extras.orc_local_id, 10);
@@ -16565,15 +16793,43 @@
         var btnLojaCentro = document.getElementById('pdv-ed-loja-centro');
         if (btnLojaCentro) {
             btnLojaCentro.addEventListener('click', function () {
-                confirmarLojaSaidaEntrega('centro');
+                selecionarLojaSaidaDraft('centro');
             });
         }
         var btnLojaVila = document.getElementById('pdv-ed-loja-vila');
         if (btnLojaVila) {
             btnLojaVila.addEventListener('click', function () {
-                confirmarLojaSaidaEntrega('vila');
+                selecionarLojaSaidaDraft('vila');
             });
         }
+        var btnEscEnt = document.getElementById('pdv-ed-loja-escopo-entrega');
+        if (btnEscEnt) {
+            btnEscEnt.addEventListener('click', function () {
+                var st = State.getState();
+                var d = String((st.entrega && st.entrega.lojaSaidaDraft) || '').trim().toLowerCase();
+                if (d !== 'centro' && d !== 'vila') d = depositoPdvAtivo();
+                confirmarLojaSaidaComEscopo(d, 'entrega');
+            });
+        }
+        var btnEscPag = document.getElementById('pdv-ed-loja-escopo-pagamento');
+        if (btnEscPag) {
+            btnEscPag.addEventListener('click', function () {
+                var st = State.getState();
+                var d = String((st.entrega && st.entrega.lojaSaidaDraft) || '').trim().toLowerCase();
+                if (d !== 'centro' && d !== 'vila') d = depositoPdvAtivo();
+                confirmarLojaSaidaComEscopo(d, 'pagamento');
+            });
+        }
+        var btnEscAmb = document.getElementById('pdv-ed-loja-escopo-ambos');
+        if (btnEscAmb) {
+            btnEscAmb.addEventListener('click', function () {
+                var st = State.getState();
+                var d = String((st.entrega && st.entrega.lojaSaidaDraft) || '').trim().toLowerCase();
+                if (d !== 'centro' && d !== 'vila') d = depositoPdvAtivo();
+                confirmarLojaSaidaComEscopo(d, 'ambos');
+            });
+        }
+        bindModalMudarLojaEntregaOnce();
         var btnEf2Din = document.getElementById('pdv-ef2-dinheiro');
         if (btnEf2Din) {
             btnEf2Din.addEventListener('click', function () {
@@ -16819,14 +17075,23 @@
                 if (!inField && isEntregaFluxoLojaOpen()) {
                     var d1l = event.code === 'Digit1' || event.code === 'Numpad1';
                     var d2l = event.code === 'Digit2' || event.code === 'Numpad2';
+                    var d3l = event.code === 'Digit3' || event.code === 'Numpad3';
                     if (d1l) {
                         event.preventDefault();
-                        confirmarLojaSaidaEntrega('centro');
+                        selecionarLojaSaidaDraft('centro');
                         return;
                     }
                     if (d2l) {
                         event.preventDefault();
-                        confirmarLojaSaidaEntrega('vila');
+                        selecionarLojaSaidaDraft('vila');
+                        return;
+                    }
+                    if (d3l) {
+                        event.preventDefault();
+                        var stL = State.getState();
+                        var draftL = String((stL.entrega && stL.entrega.lojaSaidaDraft) || '').trim().toLowerCase();
+                        if (draftL !== 'centro' && draftL !== 'vila') draftL = depositoPdvAtivo();
+                        confirmarLojaSaidaComEscopo(draftL, 'ambos');
                         return;
                     }
                 }
