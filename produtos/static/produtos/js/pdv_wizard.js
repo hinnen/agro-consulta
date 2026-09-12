@@ -4940,7 +4940,7 @@
             '">' +
             '<div class="min-w-0 flex-1">' +
             (badges.length
-                ? '<div class="pdv-entrega-card-badges mb-1 flex flex-nowrap items-center gap-1">' +
+                ? '<div class="pdv-entrega-card-badges mb-1 flex flex-wrap items-center gap-1">' +
                   badges.join('') +
                   '</div>'
                 : '') +
