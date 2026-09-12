@@ -4609,17 +4609,21 @@
                 id +
                 '">Retomar</button>';
         }
-        if (row.pode_adiar) {
-            btns +=
-                '<button type="button" class="pdv-entrega-adiar w-full rounded-lg border-2 border-amber-500 bg-amber-50 px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-amber-950" data-entrega-id="' +
-                id +
-                '">Adiar 1 dia</button>';
-        }
-        if (row.pode_cancelar) {
-            btns +=
-                '<button type="button" class="pdv-entrega-cancelar w-full rounded-lg border-2 border-red-300 bg-white px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-red-800" data-entrega-id="' +
-                id +
-                '">Cancelar</button>';
+        if (row.pode_adiar || row.pode_cancelar) {
+            btns += '<div class="flex w-full gap-1">';
+            if (row.pode_adiar) {
+                btns +=
+                    '<button type="button" class="pdv-entrega-adiar min-w-0 flex-1 rounded-lg border-2 border-amber-500 bg-amber-50 px-1 py-1 text-[9px] font-black uppercase leading-tight text-amber-950" data-entrega-id="' +
+                    id +
+                    '">Adiar</button>';
+            }
+            if (row.pode_cancelar) {
+                btns +=
+                    '<button type="button" class="pdv-entrega-cancelar min-w-0 flex-1 rounded-lg border-2 border-red-300 bg-white px-1 py-1 text-[9px] font-black uppercase leading-tight text-red-800" data-entrega-id="' +
+                    id +
+                    '">Cancelar</button>';
+            }
+            btns += '</div>';
         }
         return (
             '<article class="pdv-entrega-card flex items-stretch gap-2 rounded-xl border-2 p-2 ' +
