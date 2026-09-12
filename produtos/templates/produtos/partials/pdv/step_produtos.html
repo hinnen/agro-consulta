@@ -213,15 +213,38 @@
         box-sizing: border-box;
       }
       #pdv-entregas-pendentes-modal .pdv-entrega-card-acoes {
-        width: min(40%, 11.5rem);
-        min-width: 7rem;
-        max-width: 40%;
+        width: min(42%, 12.75rem);
+        min-width: 8rem;
+        max-width: 42%;
         box-sizing: border-box;
+        overflow: hidden;
       }
       #pdv-entregas-pendentes-modal .pdv-entrega-card-acoes > * {
-        width: 100%;
         max-width: 100%;
         box-sizing: border-box;
+      }
+      /* Dialog força botão grande (UI global) — aqui precisa caber Adiar|Cancelar lado a lado. */
+      #pdv-entregas-pendentes-modal .pdv-entrega-card-acoes button {
+        min-height: 1.7rem !important;
+        font-size: 0.62rem !important;
+        line-height: 1.1 !important;
+        padding-top: 0.2rem !important;
+        padding-bottom: 0.2rem !important;
+        padding-left: 0.2rem !important;
+        padding-right: 0.2rem !important;
+        white-space: nowrap !important;
+        overflow: hidden;
+      }
+      #pdv-entregas-pendentes-modal .pdv-entrega-adiar-cancelar {
+        display: flex;
+        width: 100%;
+        min-width: 0;
+        gap: 0.25rem;
+      }
+      #pdv-entregas-pendentes-modal .pdv-entrega-adiar-cancelar > button {
+        flex: 1 1 0;
+        min-width: 0 !important;
+        max-width: none !important;
       }
       #pdv-entregas-pendentes-modal .pdv-entrega-card-badges {
         flex-wrap: nowrap;

@@ -4771,18 +4771,20 @@
                 '">Retomar</button>';
         }
         if (row.pode_adiar || row.pode_cancelar) {
+            btns += '<div class="pdv-entrega-adiar-cancelar flex w-full min-w-0 gap-1">';
             if (row.pode_adiar) {
                 btns +=
-                    '<button type="button" class="pdv-entrega-adiar w-full rounded-lg border-2 border-amber-500 bg-amber-50 px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-amber-950" data-entrega-id="' +
+                    '<button type="button" class="pdv-entrega-adiar min-w-0 flex-1 rounded-lg border-2 border-amber-500 bg-amber-50 px-0.5 py-1 text-[9px] font-black uppercase leading-tight text-amber-950" data-entrega-id="' +
                     id +
                     '">Adiar</button>';
             }
             if (row.pode_cancelar) {
                 btns +=
-                    '<button type="button" class="pdv-entrega-cancelar w-full rounded-lg border-2 border-red-300 bg-white px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-red-800" data-entrega-id="' +
+                    '<button type="button" class="pdv-entrega-cancelar min-w-0 flex-1 rounded-lg border-2 border-red-300 bg-white px-0.5 py-1 text-[9px] font-black uppercase leading-tight text-red-800" data-entrega-id="' +
                     id +
                     '">Cancelar</button>';
             }
+            btns += '</div>';
         }
         return (
             '<article class="pdv-entrega-card flex items-stretch gap-2 overflow-hidden rounded-xl border-2 p-2 ' +
@@ -4814,7 +4816,7 @@
             (cod ? '<div class="mt-0.5 text-[10px] font-mono text-slate-500">' + cod + '</div>' : '') +
             '</div>' +
             (btns
-                ? '<div class="pdv-entrega-card-acoes flex w-[min(40%,11.5rem)] shrink-0 flex-col gap-1 box-border">' +
+                ? '<div class="pdv-entrega-card-acoes flex w-[min(42%,12.75rem)] shrink-0 flex-col gap-1 box-border">' +
                   btns +
                   '</div>'
                 : '') +
@@ -13217,12 +13219,20 @@
         } catch (e2) {}
     }
 
+    function fecharAlertaLembreteWizard() {
+        var box = document.getElementById('alerta-lembrete');
+        if (box) box.classList.add('hidden');
+    }
+
     function exibirAlertaLembreteWizard(lembrete) {
         var t = document.getElementById('alerta-lembrete-texto');
         var box = document.getElementById('alerta-lembrete');
         if (t && box && lembrete) {
             t.textContent = (lembrete.hora || '') + ' · ' + (lembrete.texto || '');
+            /* Topo direito: não tapa SEM/COM impressão nem o rodapé do pagamento. */
             box.classList.remove('hidden');
+            box.classList.remove('bottom-4');
+            box.classList.add('top-4', 'right-4');
             tocarSomLembreteWizard();
         } else if (lembrete) {
             alert((lembrete.hora || '') + ' — ' + (lembrete.texto || ''));
@@ -16807,10 +16817,16 @@
         var alertaOk = document.getElementById('alerta-lembrete-ok');
         if (alertaOk) {
             alertaOk.addEventListener('click', function () {
-                var box = document.getElementById('alerta-lembrete');
-                if (box) box.classList.add('hidden');
+                fecharAlertaLembreteWizard();
             });
         }
+        document.addEventListener('keydown', function (evLembrete) {
+            if (evLembrete.key !== 'Escape') return;
+            var boxEsc = document.getElementById('alerta-lembrete');
+            if (boxEsc && !boxEsc.classList.contains('hidden')) {
+                fecharAlertaLembreteWizard();
+            }
+        });
         setInterval(verificarLembretesWizardTick, 25000);
     }
 
