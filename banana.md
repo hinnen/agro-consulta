@@ -1312,9 +1312,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 8 | `ETQ-LOTE-FILA` | 🟢 **pronto para envio à produção** | **NÃO** | **78/78** · PIN **9973** |
 | 9 | `PDV-IMP-SEP-OFF` | 🟢 **pronto para envio à produção** | **NÃO** | **42/42** · PIN **9973** |
 | 10 | `PDV-IMP-PIN-ANTES` | 🟢 **pronto para envio à produção** | **NÃO** | **42/42** · PIN **9973** |
-| 11 | `PDV-ENT-CARD-LATERAL` | 🟢 **pronto para envio à produção** | **NÃO** | **42/42** · PIN **9973** |
+| 11 | `PDV-ENT-CARD-LATERAL` | 🟢 **pronto para envio à produção** | **NÃO** | **42/42** · Adiar\|Cancelar lado a lado |
 
-**Loja:** **v23.94**. Tip `teste` **v24.40+**. PREP `#1`–`#10` @ `8faa4c1` · `#11` só no tip. Cherry + frase + senha — **não** merge `teste`.  
+**Loja:** **v23.94**. Tip `teste` **v24.44+**. PREP `#1`–`#10` @ `8faa4c1` · `#11` só no tip. Cherry + frase + senha — **não** merge `teste`.  
 **Prova #9–#11:** `verify_pdv_imp_pin_card_1209_path.py` **42/42**. Lote PDV (#4–#7): **61/61**.  
 **Sem deploy Zap:** fechar `.bat` → PDV volta. Religar `.bat` só depois do `#1` na loja.
 
@@ -1322,8 +1322,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Overlay Entregas: info à esquerda · botões empilhados à direita (A pagar + Pagas) · menos altura |
-| **Prova** | `verify_pdv_imp_pin_card_1209_path.py` **42/42** · PIN **9973** |
+| **O quê** | Botões à direita · **Adiar \| Cancelar** na mesma linha · títulos das colunas com altura igual |
+| **Prova** | `verify_pdv_imp_pin_card_1209_path.py` · PIN **9973** |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** |
 | **Risco** | Baixo |
