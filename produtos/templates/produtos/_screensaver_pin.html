@@ -871,6 +871,9 @@
         try { nome = (localStorage.getItem(LS_OPERADOR) || '').trim(); } catch (eN) {}
         if (!nome) {
           /* PIN cancelado / falhou — não segue a ação */
+          if (typeof opts.onCancel === 'function') {
+            try { opts.onCancel(); } catch (eCancel) {}
+          }
           return;
         }
         finish(nome);

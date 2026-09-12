@@ -4851,7 +4851,7 @@
         root.querySelectorAll('.pdv-entrega-adiar').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 var pk = btn.getAttribute('data-entrega-id');
-                if (pk) adiarEntregaPendenteCaixa(pk);
+                if (pk) adiarEntregaPendenteCaixa(pk, btn);
             });
         });
         root.querySelectorAll('.pdv-entrega-adiar-alerta-1h').forEach(function (btn) {
@@ -5205,7 +5205,7 @@
             });
     }
 
-    function adiarEntregaPendenteCaixa(pk) {
+    function adiarEntregaPendenteCaixa(pk, btnEl) {
         var url = entregaPendenteApiUrl(urls.apiPdvEntregaPendenteAdiarCaixa, pk);
         if (!url) return;
         var loja = typeof depositoPdvAtivo === 'function' ? depositoPdvAtivo() : '';
@@ -5213,7 +5213,24 @@
             showSaleDoneFeedback('Defina o depósito do PDV (Centro ou Vila) antes de adiar.', 'warn');
             return;
         }
+        var btn = btnEl || null;
+        var lblOrig = btn ? String(btn.textContent || 'Adiar').trim() || 'Adiar' : 'Adiar';
+        var setBtn = function (busy, label, okTone) {
+            if (!btn || !btn.isConnected) return;
+            btn.disabled = !!busy;
+            btn.setAttribute('aria-busy', busy ? 'true' : 'false');
+            btn.classList.toggle('animate-pulse', !!busy);
+            btn.classList.toggle('opacity-80', !!busy);
+            btn.classList.toggle('cursor-wait', !!busy);
+            if (okTone) {
+                btn.classList.remove('border-amber-500', 'bg-amber-50', 'text-amber-950');
+                btn.classList.add('border-emerald-600', 'bg-emerald-600', 'text-white');
+            }
+            if (label) btn.textContent = label;
+        };
+        setBtn(true, 'PIN…');
         var run = function () {
+            setBtn(true, 'Adiando…');
             if (window.gmLoadingBar) window.gmLoadingBar.show();
             jsonPost(url, { loja: loja })
                 .then(function (res) {
@@ -5224,13 +5241,16 @@
                         );
                     }
                     var para = (res.data.caixa_adiada_para || '').slice(0, 10);
+                    var paraBr = para ? para.split('-').reverse().join('/') : 'amanhã';
+                    setBtn(false, 'Adiada ✓', true);
                     showSaleDoneFeedback(
                         'Entrega #' +
                             pk +
                             ' adiada. Este caixa pode fechar. Volta a travar em ' +
-                            (para ? para.split('-').reverse().join('/') : 'amanhã') +
+                            paraBr +
                             '.',
-                        'ok'
+                        'ok',
+                        { title: 'Adiada 1 dia', durationMs: 7000, placementTop: true }
                     );
                     invalidateEntregasPendentesCache();
                     return refreshEntregasPendentesUi(false, true);
@@ -5239,6 +5259,7 @@
                     renderEntregasPendentesList();
                 })
                 .catch(function (err) {
+                    setBtn(false, lblOrig);
                     showSaleDoneFeedback(
                         err && err.message ? err.message : 'Falha ao adiar entrega.',
                         'warn'
@@ -5249,7 +5270,17 @@
                 });
         };
         if (typeof window.gmSspinGarantirOperador === 'function') {
-            window.gmSspinGarantirOperador(run, { titulo: 'PIN para adiar 1 dia' });
+            window.gmSspinGarantirOperador(
+                function () {
+                    run();
+                },
+                {
+                    titulo: 'PIN para adiar 1 dia',
+                    onCancel: function () {
+                        setBtn(false, lblOrig);
+                    },
+                }
+            );
             return;
         }
         run();
@@ -11143,16 +11174,37 @@
             host.setAttribute('aria-live', 'polite');
             document.body.appendChild(host);
         }
+        /* Toast no body fica atrás do <dialog> aberto — monta dentro do modal Entregas. */
+        var dlgEnt = document.getElementById('pdv-entregas-pendentes-modal');
+        var toastInDialog = !!(dlgEnt && (dlgEnt.open || dlgEnt.hasAttribute('open')));
+        if (toastInDialog) {
+            if (host.parentNode !== dlgEnt) dlgEnt.appendChild(host);
+        } else if (host.parentNode !== document.body) {
+            document.body.appendChild(host);
+        }
         host.removeAttribute('aria-hidden');
         var prominent = !!opts.prominent;
         var persistent = !!opts.persistent || opts.durationMs === 0;
         var placementTop = !!opts.placementTop && !prominent;
         host.className =
-            'pointer-events-auto fixed z-[9999] transition-all duration-300 ease-out opacity-0 ' +
+            'pointer-events-auto transition-all duration-300 ease-out opacity-0 ' +
+            (toastInDialog
+                ? 'absolute z-[200] ' +
+                  (placementTop || prominent
+                      ? 'top-4 left-1/2 -translate-x-1/2'
+                      : 'bottom-4 right-4') +
+                  ' w-[min(26rem,calc(100%-2rem))]'
+                : 'fixed z-[9999] ') +
             (prominent
                 ? 'pdv-sale-toast--prominent'
-                : 'w-[min(26rem,calc(100vw-2rem))] translate-y-3 ' +
-                  (placementTop ? 'top-4 left-1/2 -translate-x-1/2' : 'bottom-4 right-4 translate-x-0'));
+                : (toastInDialog
+                      ? ''
+                      : 'w-[min(26rem,calc(100vw-2rem))] translate-y-3 ') +
+                  (placementTop && !toastInDialog
+                      ? 'top-4 left-1/2 -translate-x-1/2'
+                      : toastInDialog
+                        ? ''
+                        : 'bottom-4 right-4 translate-x-0'));
         var palette =
             tone === 'error'
                 ? 'border-rose-500 bg-rose-50 text-rose-950 shadow-rose-300/60'
@@ -11258,6 +11310,11 @@
         host.className = 'hidden';
         host.setAttribute('aria-hidden', 'true');
         host.innerHTML = '';
+        if (host.parentNode && host.parentNode !== document.body) {
+            try {
+                document.body.appendChild(host);
+            } catch (eMove) {}
+        }
         if (typeof onDismiss === 'function') {
             try {
                 onDismiss();
