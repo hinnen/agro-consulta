@@ -489,9 +489,15 @@ function pdvModalEscolhaImpressaoEntrega() {
     return new Promise((resolve) => {
         const root = document.getElementById('modal-pdv-entrega-impressao');
         if (!root) {
-            resolve({ sep: true, ent: true, cup: true });
+            resolve({ sep: false, ent: true, cup: true });
             return;
         }
+        const chkSep = document.getElementById('mei-chk-sep');
+        const chkEnt = document.getElementById('mei-chk-ent');
+        const chkCup = document.getElementById('mei-chk-cup');
+        if (chkSep) chkSep.checked = false;
+        if (chkEnt) chkEnt.checked = true;
+        if (chkCup) chkCup.checked = true;
         const btnImp = document.getElementById('mei-imprimir');
         const btnCan = document.getElementById('mei-cancelar');
         let done = false;
@@ -1942,7 +1948,15 @@ async function salvarOrcamentoManual() {
         }
         const serverSave = await salvarHistoricoLocal({ entrega: comEntrega, orcId });
         tocarSom('add');
+        let entregaRegOk = !comEntrega;
         if (comEntrega) {
+            if (typeof window.gmSspinGarantirOperador === 'function') {
+                await new Promise(function (resolve) {
+                    window.gmSspinGarantirOperador(function () {
+                        resolve(true);
+                    }, { titulo: 'PIN para registrar entrega', maxFrescoS: 60 });
+                });
+            }
             const escImp = await pdvModalEscolhaImpressaoEntrega();
             if (escImp) imprimirPacoteEntregaTresViasPdv(orcId, escImp);
             const zap = await pdvModalPerguntaEntrega(
@@ -1956,13 +1970,37 @@ async function salvarOrcamentoManual() {
                 troco_precisa: trocoPrecisa,
             });
             if (!reg || !reg.ok) {
-                alert((reg && reg.erro) ? reg.erro : 'Não foi possível registrar o pedido no painel Entregas.');
+                const msgPin =
+                    (reg && reg.erro) ? reg.erro : 'Não foi possível registrar o pedido no painel Entregas.';
+                if (
+                    typeof window.gmSspinAbrirSeErroPin === 'function' &&
+                    window.gmSspinAbrirSeErroPin(
+                        msgPin,
+                        function () {
+                            registrarPedidoEntregaServidor(orcId, {
+                                forma_pagamento: fp,
+                                troco_precisa: trocoPrecisa,
+                            });
+                        },
+                        { titulo: 'PIN para registrar entrega' }
+                    )
+                ) {
+                    /* PIN aberto; registro após PIN sem reimprimir */
+                } else {
+                    alert(msgPin);
+                }
+            } else {
+                entregaRegOk = true;
             }
         }
         const gravou = !!(serverSave && serverSave.ok);
         alert(
             comEntrega
-                ? 'Orçamento salvo com entrega. O pedido foi registrado no painel Entregas (menu). Bipe ' + pdvCodigoBarrasOrcamento(orcId) + ' no buscador para retomar. F6 lista orçamentos.'
+                ? entregaRegOk
+                    ? 'Orçamento salvo com entrega. O pedido foi registrado no painel Entregas (menu). Bipe ' +
+                      pdvCodigoBarrasOrcamento(orcId) +
+                      ' no buscador para retomar. F6 lista orçamentos.'
+                    : 'Orçamento salvo neste PC. Se o painel Entregas pediu PIN, digite e aguarde o registro (sem imprimir de novo).'
                 : gravou
                   ? 'Orçamento salvo. Abra Orçamentos (F6) para listar ou recuperar.'
                   : 'Orçamento neste PC, mas o servidor não confirmou. Dê Ctrl+F5 e tente de novo.'

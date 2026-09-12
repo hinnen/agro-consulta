@@ -36,6 +36,7 @@ def queryset_entregas_pagas_loja_pdv():
     """Pagas no caixa ao lançar — overlay 24h, não trava fechar caixa."""
     return PedidoEntrega.objects.filter(
         paga_na_loja=True,
+        pdv_lista_concluida=False,
         criado_em__gte=corte_pagas_loja_pdv(),
     ).exclude(status=PedidoEntrega.Status.CANCELADO)
 
@@ -172,6 +173,9 @@ def serializar_entrega_pendente_pdv(ent: PedidoEntrega, *, incluir_estado: bool 
         "pode_cancelar": bool(ent.aguarda_pagamento_pdv),
         "eh_catalogo": origem == "catalogo",
         "paga_na_loja": bool(getattr(ent, "paga_na_loja", False)),
+        "pdv_lista_concluida": bool(getattr(ent, "pdv_lista_concluida", False)),
+        "pode_concluir_overlay": bool(getattr(ent, "paga_na_loja", False))
+        and not bool(getattr(ent, "pdv_lista_concluida", False)),
         "venda_agro_id": ent.venda_agro_id,
         "aguarda_pagamento_pdv": bool(ent.aguarda_pagamento_pdv),
     }
@@ -218,8 +222,25 @@ def listar_entregas_pagas_loja_pdv(
         row["pode_assumir"] = False
         row["pode_cancelar"] = False
         row["paga_na_loja"] = True
+        row["pode_concluir_overlay"] = True
         out.append(row)
     return out
+
+
+def concluir_entrega_paga_overlay(entrega_id: int, *, loja: str | None = None):
+    """Tira da lista Pagas na loja. Sem isso, some sozinha em 24 h."""
+    qs = PedidoEntrega.objects.filter(pk=entrega_id, paga_na_loja=True).exclude(
+        status=PedidoEntrega.Status.CANCELADO
+    )
+    qs = filtrar_qs_por_loja(qs, loja)
+    ent = qs.first()
+    if not ent:
+        return None, "Entrega não encontrada."
+    if ent.pdv_lista_concluida:
+        return ent, ""
+    ent.pdv_lista_concluida = True
+    ent.save(update_fields=["pdv_lista_concluida", "atualizado_em"])
+    return ent, ""
 
 
 def listar_entregas_bloqueando_fechamento_caixa(

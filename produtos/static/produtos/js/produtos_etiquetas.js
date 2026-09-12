@@ -1272,6 +1272,41 @@
     });
   }
 
+  function abrirLoteA4() {
+    var LOTE_URL = '/produtos/etiquetas/lote/';
+    var FILA_KEY = 'agro_etq_lote_fila_v1';
+    if (state.fila.length) {
+      var itens = state.fila.map(function (it) {
+        return {
+          id: it.id,
+          nome: it.nome,
+          codigo_gm: it.codigo_gm || it.codigo_nfe || it.codigo || '',
+          codigo_barras: it.codigo_barras || it.ean || '',
+          preco_venda: it.preco_venda,
+          peso_etiqueta: it.peso_etiqueta || '',
+          qtd: Math.max(1, parseInt(it.qtd, 10) || 1),
+        };
+      });
+      try {
+        sessionStorage.setItem(
+          FILA_KEY,
+          JSON.stringify({
+            itens: itens,
+            preset_id: presetIdFila() || state.storage.preset_ativo || '',
+            nome: '',
+          })
+        );
+      } catch (e) {
+        setStatus('Não gravou a fila no navegador. Abra o Lote sem fila.', true);
+      }
+    } else {
+      try {
+        sessionStorage.removeItem(FILA_KEY);
+      } catch (e2) {}
+    }
+    window.location.href = LOTE_URL;
+  }
+
   function salvarPresetAtual() {
     var p = lerPresetForm();
     var nome = prompt('Nome do preset (ex.: OPE 7):', p.nome);
@@ -1623,6 +1658,7 @@
     $('etq-mv-carregar') &&
       $('etq-mv-carregar').addEventListener('click', carregarMaisVendidos);
     $('etq-btn-imprimir') && $('etq-btn-imprimir').addEventListener('click', imprimirFila);
+    $('etq-btn-lote-a4') && $('etq-btn-lote-a4').addEventListener('click', abrirLoteA4);
     $('etq-btn-limpar') &&
       $('etq-btn-limpar').addEventListener('click', function () {
         if (state.fila.length && !confirm('Limpar fila?')) return;

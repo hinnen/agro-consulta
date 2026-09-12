@@ -435,6 +435,42 @@
   window.agroChatLojaAbrir = abrir;
   window.agroChatLojaFechar = fechar;
 
+  function reposicionarDock() {
+    if (!dock) return;
+    var step = (document.body && document.body.getAttribute('data-pdv-step')) || '';
+    if (step !== 'entrega') {
+      dock.style.removeProperty('--pdv-chat-dock-left');
+      return;
+    }
+    var next = document.getElementById('pdv-btn-next');
+    if (!next || !next.getClientRects().length) return;
+    var left = Math.ceil(next.getBoundingClientRect().right + 10);
+    dock.style.setProperty('--pdv-chat-dock-left', left + 'px');
+  }
+  function reposicionarDockSoon() {
+    requestAnimationFrame(reposicionarDock);
+  }
+  window.addEventListener('resize', reposicionarDockSoon);
+  if (window.MutationObserver) {
+    if (document.body) {
+      new MutationObserver(reposicionarDockSoon).observe(document.body, {
+        attributes: true,
+        attributeFilter: ['data-pdv-step'],
+      });
+    }
+    var btnNext = document.getElementById('pdv-btn-next');
+    if (btnNext) {
+      new MutationObserver(reposicionarDockSoon).observe(btnNext, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+        attributes: true,
+        attributeFilter: ['style', 'class'],
+      });
+    }
+  }
+  reposicionarDockSoon();
+
   loadSeen();
   pollOnce(false);
   schedulePoll();

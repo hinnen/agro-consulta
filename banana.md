@@ -1264,6 +1264,36 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🚀 PREP deploy loja — checklist 12/09b (`deploy/prep-checklist-1209b` · **v23.95**) · aguarda senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 **PREP pronto** — **só** frase + senha · **não** subiu ainda |
+| **Live agora** | **v23.94** @ `c3e0b1c` |
+| **Branch PREP** | `deploy/prep-checklist-1209b` · tip **v23.95** |
+| **Pacotes** | `WA-PONTE-ULTRA-LEVE` · `WA-APP-SEM-PDV` · `PDV-RACOES-MARCA-VAZIA` · `PDV-CHAT-ENTREGA-DOCK` · `PDV-ENT-HORARIO-OPCOES` · `PDV-ENT-TROCO-ENTER` · `PDV-ENT-OVERLAY-SPLIT` · `ETQ-LOTE-FILA` · `PDV-IMP-SEP-OFF` · `PDV-IMP-PIN-ANTES` |
+| **Migrate** | **SIM** `0130` |
+| **Prova pré** | ponte **47/47** · Zap app **53/53** · rações **57/57** · dock **7/7** · horário **16/16** · troco **6/6** · split **16/16** · lote entrega **61/61** · etq **78/78** · SEP/PIN UX · `check` OK · hashes SAME vs tip |
+| **Rollback** | tag `rollback/pre-checklist-1209b-v23.94` · branch `producao-backup-pre-v2395-checklist-20260912b` · `docs/ROLLBACK-CHECKLIST-1209b.md` · **só** frase+senha |
+| **Operacional** | lojas abertas → **pausar vendas** no deploy · fechar `.bat` Zap antes · Ctrl+F5 depois · religar `.bat` |
+| **Não** | merge `teste` |
+
+### ✅ CHECKLIST ÚNICO — 12/09b · 🟡 PREP aguarda senha (alvo **v23.95**)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `WA-PONTE-ULTRA-LEVE` | 🟡 PREP | **NÃO** | **47/47** |
+| 2 | `WA-APP-SEM-PDV` | 🟡 PREP | **NÃO** | **53/53** |
+| 3 | `PDV-RACOES-MARCA-VAZIA` | 🟡 PREP | **NÃO** | **57/57** |
+| 4 | `PDV-CHAT-ENTREGA-DOCK` | 🟡 PREP | **NÃO** | **7/7** |
+| 5 | `PDV-ENT-HORARIO-OPCOES` | 🟡 PREP | **NÃO** | **16/16** |
+| 6 | `PDV-ENT-TROCO-ENTER` | 🟡 PREP | **NÃO** | **6/6** |
+| 7 | `PDV-ENT-OVERLAY-SPLIT` | 🟡 PREP | **SIM** `0130` | lote **61/61** |
+| 8 | `ETQ-LOTE-FILA` | 🟡 PREP | **NÃO** | **78/78** |
+| 9 | `PDV-IMP-SEP-OFF` | 🟡 PREP | **NÃO** | Separação off |
+| 10 | `PDV-IMP-PIN-ANTES` | 🟡 PREP | **NÃO** | PIN antes · sem 2ª via |
+
+
 ### 🚀 PREP deploy loja — checklist 10/09 (`deploy/prep-checklist-1009` · **v23.91**) · aguarda senha
 
 | Campo | Valor |

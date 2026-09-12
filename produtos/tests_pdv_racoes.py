@@ -5,6 +5,7 @@ from produtos.pdv_racoes_util import (
     TIPOS_RACOES,
     eh_categoria_racoes,
     filtrar_racoes,
+    marcas_racoes_do_tipo,
     parse_peso_racoes,
     patch_racoes_de_campos,
     tipo_racoes_por_id,
@@ -153,6 +154,17 @@ class FiltrarTests(SimpleTestCase):
         tipo = tipo_racoes_por_id("cao_senior")
         rows = [_row(id="s", subcategoria="CAO", subcategoria_2="SENIOR", peso_etiqueta="20")]
         self.assertEqual([r["id"] for r in filtrar_racoes(rows, tipo)], ["s"])
+
+    def test_marca_sem_peso_nao_aparece(self):
+        tipo = tipo_racoes_por_id("cao_senior")
+        rows = [
+            _row(id="vazio", marca="GRAN PLUS", subcategoria_2="Sênior", peso_etiqueta=""),
+            _row(id="estranho", marca="ORIGENS", subcategoria_2="Sênior", peso_etiqueta="7"),
+            _row(id="ok", marca="ESTIMACAO", subcategoria_2="Sênior", peso_etiqueta="15"),
+        ]
+        self.assertEqual(marcas_racoes_do_tipo(rows, tipo), ["ESTIMACAO"])
+        rows[0]["peso_etiqueta"] = "10"
+        self.assertEqual(marcas_racoes_do_tipo(rows, tipo), ["ESTIMACAO", "GRAN PLUS"])
 
     def test_sem_marca_e_todas(self):
         tipo = tipo_racoes_por_id("cao_adulto")

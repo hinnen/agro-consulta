@@ -443,3 +443,24 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 **Prova:** SSPIN **197/197** · Fotos **59/59** · PIN-ALERT **130/130** · CLI **60/60**+deep **24/24** · NF-FIN **15/15** · NF-AGUARDA **6/6**.  
 **Rollback:** `docs/ROLLBACK-CHECKLIST-1009.md` · tag `rollback/pre-checklist-1009-v23.76`. **Só** frase+senha. **Não** merge `teste`.
 
+---
+
+## 31. Checklist único — lote 12/09b (`deploy/prep-checklist-1209b` · alvo loja **v23.95**) · 🟡 aguarda senha
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **WA-PONTE-ULTRA-LEVE** | 🟡 PREP · **47/47** | **NÃO** |
+| 2 | **WA-APP-SEM-PDV** | 🟡 PREP · **53/53** | **NÃO** |
+| 3 | **PDV-RACOES-MARCA-VAZIA** | 🟡 PREP · **57/57** | **NÃO** |
+| 4 | **PDV-CHAT-ENTREGA-DOCK** | 🟡 PREP · **7/7** | **NÃO** |
+| 5 | **PDV-ENT-HORARIO-OPCOES** | 🟡 PREP · **16/16** | **NÃO** |
+| 6 | **PDV-ENT-TROCO-ENTER** | 🟡 PREP · **6/6** | **NÃO** |
+| 7 | **PDV-ENT-OVERLAY-SPLIT** | 🟡 PREP · lote **61/61** | **SIM** `0130` |
+| 8 | **ETQ-LOTE-FILA** | 🟡 PREP · **78/78** | **NÃO** |
+| 9 | **PDV-IMP-SEP-OFF** | 🟡 PREP | **NÃO** |
+| 10 | **PDV-IMP-PIN-ANTES** | 🟡 PREP | **NÃO** |
+
+**Status:** 🟡 **PREP pronto** — `deploy/prep-checklist-1209b` · **só** frase+senha · **não** merge `teste`.  
+**Rollback:** `docs/ROLLBACK-CHECKLIST-1209b.md` · tag `rollback/pre-checklist-1209b-v23.94`.  
+**Loja ainda:** **v23.94**. Antes do deploy: pausar vendas · fechar `.bat` Zap.
+

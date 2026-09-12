@@ -42,7 +42,7 @@ let ultimoQrEm = 0;
 let salvarAgendaTimer = 0;
 let enviarAgendaTimer = 0;
 let salvarLidTimer = 0;
-let pollSegAtual = 5;
+let pollSegAtual = 10;
 let syncHoraCfg = "00:00";
 let syncRodando = false;
 let pollQuerFotos = false;
@@ -515,7 +515,7 @@ function precisaSyncAgendaFotos() {
 }
 
 function ajustarPollSaida(seg) {
-  const n = Math.max(3, Math.min(15, Number(seg) || 5));
+  const n = Math.max(8, Math.min(30, Number(seg) || 10));
   if (pollTimer && n === pollSegAtual) return;
   pollSegAtual = n;
   if (pollTimer) clearInterval(pollTimer);

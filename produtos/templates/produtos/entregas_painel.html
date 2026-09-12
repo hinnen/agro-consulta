@@ -95,7 +95,7 @@
         <p class="text-[10px] text-slate-500 font-semibold mt-0.5">Marque o que enviar à impressora (80 mm).</p>
       </div>
       <div class="px-4 py-4 space-y-3">
-        <label class="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700"><input type="checkbox" id="imp-chk-sep" class="w-4 h-4 accent-emerald-600 rounded border-slate-300" checked> Separação</label>
+        <label class="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700"><input type="checkbox" id="imp-chk-sep" class="w-4 h-4 accent-emerald-600 rounded border-slate-300"> Separação</label>
         <label class="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700"><input type="checkbox" id="imp-chk-ent" class="w-4 h-4 accent-emerald-600 rounded border-slate-300" checked> Via do entregador</label>
         <label class="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700"><input type="checkbox" id="imp-chk-cup" class="w-4 h-4 accent-emerald-600 rounded border-slate-300" checked> Cupom (cliente)</label>
       </div>
@@ -1539,7 +1539,7 @@
 
   function abrirModalImp(tr, e) {
     impContext = { tr: tr, e: e };
-    document.getElementById('imp-chk-sep').checked = true;
+    document.getElementById('imp-chk-sep').checked = false;
     document.getElementById('imp-chk-ent').checked = true;
     document.getElementById('imp-chk-cup').checked = true;
     var m = document.getElementById('modal-imp-entrega');

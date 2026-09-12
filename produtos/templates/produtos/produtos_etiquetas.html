@@ -148,15 +148,11 @@
 
       </button>
 
-      <a href="{% url 'produtos_etiquetas_lote' %}"
-
+      <button type="button" id="etq-btn-lote-a4"
         class="inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-xl border-2 border-orange-600/70 bg-slate-800 px-3 py-1.5 text-xs font-black uppercase text-orange-200 hover:border-orange-400"
-
-        title="Lote A4 gôndola — 18 por folha, com progresso salvo">
-
+        title="Lote com progresso — usa a fila ou monta a loja">
         <i class="fas fa-layer-group" aria-hidden="true"></i>Lote A4
-
-      </a>
+      </button>
 
       <a href="{% url 'produtos_cadastro_erp' %}"
 
@@ -622,9 +618,9 @@ window.AGRO_ETQ_CFG = {
   maisVendidosUrl: "{{ api_etq_mais_vendidos_url|default:'/api/produtos/etiquetas/mais-vendidos/'|escapejs }}"
 };
 </script>
-<script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=17"></script>
+<script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=18"></script>
 
-<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=17" defer></script>
+<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=18" defer></script>
 
 {% endblock %}
 

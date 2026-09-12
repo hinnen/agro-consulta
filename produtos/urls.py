@@ -217,6 +217,11 @@ urlpatterns = [
         name='api_pdv_entrega_pendente_adiar_caixa',
     ),
     path(
+        'api/pdv/entrega-pendente/<int:pk>/concluir-overlay/',
+        views.api_pdv_entrega_pendente_concluir_overlay,
+        name='api_pdv_entrega_pendente_concluir_overlay',
+    ),
+    path(
         'entregas/api/ordenar-rota/',
         views.api_entregas_ordenar_rota,
         name='api_entregas_ordenar_rota',
@@ -379,6 +384,11 @@ urlpatterns = [
         'api/produtos/etiquetas/lote/<int:pk>/',
         views.api_etiquetas_lote_detalhe,
         name='api_etiquetas_lote_detalhe',
+    ),
+    path(
+        'api/produtos/etiquetas/lote/<int:pk>/atualizar/',
+        views.api_etiquetas_lote_atualizar,
+        name='api_etiquetas_lote_atualizar',
     ),
     path(
         'api/produtos/etiquetas/lote/<int:pk>/proxima-folha/',

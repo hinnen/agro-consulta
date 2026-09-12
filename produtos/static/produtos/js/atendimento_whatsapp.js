@@ -378,7 +378,7 @@
       waStatus: txt,
       waStatusKind: kind,
       waDot: kind === 'ok' ? 'on' : kind === 'warn' ? 'wait' : 'off',
-      botHref: '/atendimento-whatsapp/bot/?agro_pdv_overlay=1',
+      botHref: '/atendimento-whatsapp/bot/',
       subtitle: '',
     });
     ultimaStatusTxt = txt;

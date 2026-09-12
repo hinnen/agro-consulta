@@ -2,7 +2,7 @@
   /* Chat lojas — aba colada embaixo da tela (MSN), visual PDV */
   #pdv-chat-loja-dock {
     position: fixed;
-    left: max(10.5rem, calc(env(safe-area-inset-left, 0px) + 9.5rem));
+    left: var(--pdv-chat-dock-left, max(10.5rem, calc(env(safe-area-inset-left, 0px) + 9.5rem)));
     bottom: 0;
     z-index: 220;
     display: flex;
@@ -11,6 +11,10 @@
     gap: 0;
     pointer-events: none;
     padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  /* Entrega: Voltar + F7 ficam à esquerda (hint some) — aba Chat depois do F7 */
+  body[data-pdv-step="entrega"] #pdv-chat-loja-dock {
+    left: var(--pdv-chat-dock-left, max(27.5rem, calc(env(safe-area-inset-left, 0px) + 26.5rem)));
   }
   #pdv-chat-loja-dock > * {
     pointer-events: auto;

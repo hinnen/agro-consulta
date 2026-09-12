@@ -305,6 +305,11 @@
     return false;
   }
 
+  function pathIsWhatsApp() {
+    var p = (window.location.pathname || "").replace(/\/+$/, "") || "/";
+    return p === "/atendimento-whatsapp" || p.indexOf("/atendimento-whatsapp/") === 0;
+  }
+
   function pathIsContabilidade() {
     var p = (window.location.pathname || "").replace(/\/+$/, "") || "/";
     return p === "/contabilidade" || p.indexOf("/contabilidade/") === 0;
@@ -351,6 +356,7 @@
 
   function shouldHide() {
     if (pathIsPdv()) return true;
+    if (pathIsWhatsApp()) return true;
     try {
       if (window.AgroDualWindow && typeof window.AgroDualWindow.isGestaoContext === "function" && window.AgroDualWindow.isGestaoContext()) {
         return true;
@@ -537,6 +543,7 @@
       return;
     }
     if (pathIsPdv()) return;
+    if (pathIsWhatsApp()) return;
     if (inputFocused()) return;
     e.preventDefault();
     if (window.AgroDualWindow && typeof window.AgroDualWindow.focusPdv === "function") {

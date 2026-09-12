@@ -211,3 +211,18 @@ def filtrar_racoes(
             continue
         out.append(row)
     return out
+
+
+def marcas_racoes_do_tipo(rows: list[dict] | None, tipo: dict[str, str] | None) -> list[str]:
+    """Marcas com pelo menos uma ração do tipo **e** peso reconhecido (1, 2,5…25 ou pacote)."""
+    seen: set[str] = set()
+    out: list[str] = []
+    for row in filtrar_racoes(rows, tipo, marca=None, peso_key=None):
+        m = str(row.get("marca") or "").strip()
+        k = norm_txt_racoes(m) or "__sem__"
+        if k in seen:
+            continue
+        seen.add(k)
+        out.append(m)
+    out.sort(key=lambda a: (not a, norm_txt_racoes(a)))
+    return out
