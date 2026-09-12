@@ -1363,6 +1363,12 @@ class PedidoEntrega(models.Model):
         verbose_name="Paga na loja",
         help_text="Venda já cobrada no caixa ao lançar a entrega. Overlay PDV 24h; não trava fechar caixa.",
     )
+    pdv_lista_concluida = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name="Concluída no overlay PDV",
+        help_text="Some da lista Pagas na loja. Se não marcar, some sozinha em 24 h.",
+    )
     pdv_wizard_state = models.JSONField(
         default=dict,
         blank=True,

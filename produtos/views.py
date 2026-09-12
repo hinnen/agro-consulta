@@ -158,6 +158,7 @@ from .entrega_pdv_pendente_util import (
     adiar_entrega_caixa_um_dia,
     assumir_entrega_loja,
     cancelar_entrega_pendente_pdv,
+    concluir_entrega_paga_overlay,
     filtrar_qs_por_loja,
     finalizar_entregas_pagas_pendentes_ao_fechar_caixa,
     listar_entregas_bloqueando_fechamento_caixa,
@@ -32939,6 +32940,21 @@ def api_pdv_entrega_pendente_adiar_caixa(request, pk):
             "caixa_adiada_para": row.get("caixa_adiada_para") or "",
         }
     )
+
+
+@login_required(login_url="/entrar/")
+@require_POST
+def api_pdv_entrega_pendente_concluir_overlay(request, pk):
+    """Some da lista Pagas na loja. Sem concluir, a regra de 24 h segue."""
+    try:
+        body = json.loads(request.body.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        body = {}
+    loja = normalizar_loja_entrega(body.get("loja"))
+    ent, erro = concluir_entrega_paga_overlay(pk, loja=loja or None)
+    if erro:
+        return JsonResponse({"ok": False, "erro": erro}, status=404)
+    return JsonResponse({"ok": True, "id": ent.pk})
 
 
 @require_GET

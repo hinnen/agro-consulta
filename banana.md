@@ -433,7 +433,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
 - **Perf. animaÃ§Ãµes (decisÃ£o Renan, 2026-06):** acÃºmulo de efeitos no app inteiro *pode* pesar em PC fraco â€” mas **este FAB Ã© impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA pÃ¡gina inteira, listas grandes, Mongo, JS do PDV/LanÃ§amentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
 - **Interruptor efeitos (2026-06-19):** botÃ£o minÃºsculo **Â«FX on / FX offÂ»** acima do FAB PDV (`localStorage` `agro_reduzir_efeitos_v1`). **FX off** â†’ classe `html.agro-fx-reduced`: desliga arco-Ã­ris/pulso do FAB, pulso do card **Validade** vencida, pulso decorativo PDV/OrÃ§amento no BI. **NÃ£o** desliga: barra de loading, feedback de scanner, spinners de Â«salvandoÂ» (Ãºteis). API JS: `agroSetFxReduced(true|false)`, `agroFxReduced()`.
-- Entrega wizard **F3:** pagamento local â†’ endereÃ§o â†’ taxa â†’ meio â†’ troco â†’ **Conferir entrega** (resumo com Editar por bloco). Frete grÃ¡tis por endereÃ§o no futuro pula popup taxa. **Horário (12/09 `PDV-ENT-HORARIO-OPCOES`):** cartão maior · opções **9h–17h** (hora em hora) · **obrigatório**. **Troco (`PDV-ENT-TROCO-ENTER`):** Enter/F7 vazio preenche o **total** (sem troco).
+- Entrega wizard **F3:** pagamento local â†’ endereÃ§o â†’ taxa â†’ meio â†’ troco â†’ **Conferir entrega**. **Horário (`PDV-ENT-HORARIO-OPCOES`):** 9h–17h obrigatório. **Troco (`PDV-ENT-TROCO-ENTER`):** Enter vazio = total. **Overlay Entregas (`PDV-ENT-OVERLAY-SPLIT`):** maior · **A pagar | Pagas** lado a lado · scroll · **Concluir** some da lista (senão 24 h).
 - EndereÃ§o oculto atÃ© escolher pagamento na entrega ou na loja.
 - Barra de estoque: atualizaÃ§Ã£o manual + horÃ¡rio + standby.
 
@@ -1283,6 +1283,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 📦 PACOTE PRONTO — Overlay Entregas duas colunas (`PDV-ENT-OVERLAY-SPLIT` · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Overlay **maior**. Esquerda **A pagar** · direita **Pagas na loja** (as duas de uma vez, scroll). Cards mais estreitos. **Concluir** some da lista. Sem concluir, some em **24 h**. |
+| **Onde** | `step_produtos.html` · `pdv_wizard.js` · `entrega_pdv_pendente_util.py` · migrate **`0130`** |
+| **Prova** | `verify_pdv_entrega_overlay_split_path.py` **16/16** |
+| **Migrate** | **SIM** `0130` |
+| **Status** | 🧪 **teste** — **Ctrl+F5** · Entregas · Concluir uma paga |
+| **Risco** | Baixo — só essa tela + um campo no PG |
 
 ### 📦 PACOTE PRONTO — Enter no troco = sem troco (`PDV-ENT-TROCO-ENTER` · 12/09)
 

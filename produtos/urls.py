@@ -217,6 +217,11 @@ urlpatterns = [
         name='api_pdv_entrega_pendente_adiar_caixa',
     ),
     path(
+        'api/pdv/entrega-pendente/<int:pk>/concluir-overlay/',
+        views.api_pdv_entrega_pendente_concluir_overlay,
+        name='api_pdv_entrega_pendente_concluir_overlay',
+    ),
+    path(
         'entregas/api/ordenar-rota/',
         views.api_entregas_ordenar_rota,
         name='api_entregas_ordenar_rota',

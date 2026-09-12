@@ -183,11 +183,49 @@
     </aside>
   </div>
 
-  <dialog id="pdv-entregas-pendentes-modal" class="max-h-[min(92vh,640px)] w-[min(96vw,640px)] rounded-2xl border-2 border-orange-300 bg-white p-0 shadow-2xl backdrop:bg-slate-950/65">
+  <dialog id="pdv-entregas-pendentes-modal" class="pdv-entregas-modal w-[min(96vw,76rem)] max-h-[min(92dvh,52rem)] rounded-2xl border-2 border-orange-300 bg-white p-0 shadow-2xl backdrop:bg-slate-950/65">
     <style>
       #pdv-entregas-pendentes-modal details.pdv-entregas-help summary::-webkit-details-marker { display: none; }
+      #pdv-entregas-pendentes-modal.pdv-entregas-modal { width: min(96vw, 76rem); max-height: min(92dvh, 52rem); }
+      #pdv-entregas-pendentes-modal .pdv-entregas-shell { max-height: min(92dvh, 52rem); }
+      #pdv-entregas-pendentes-modal .pdv-entregas-split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        min-height: 0;
+        flex: 1;
+      }
+      #pdv-entregas-pendentes-modal .pdv-entregas-col {
+        display: flex;
+        min-width: 0;
+        min-height: 0;
+        flex-direction: column;
+      }
+      #pdv-entregas-pendentes-modal .pdv-entregas-col--pagar { border-right: 2px solid #fdba74; }
+      #pdv-entregas-pendentes-modal .pdv-entregas-col-head {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.55rem 0.75rem;
+        border-bottom: 2px solid #e2e8f0;
+      }
+      #pdv-entregas-pendentes-modal .pdv-entregas-col--pagar .pdv-entregas-col-head { background: #fff7ed; }
+      #pdv-entregas-pendentes-modal .pdv-entregas-col--pagas .pdv-entregas-col-head { background: #ecfdf5; }
+      #pdv-entregas-pendentes-modal .pdv-entregas-col-list {
+        min-height: 0;
+        flex: 1;
+        overflow-y: auto;
+        padding: 0.55rem 0.65rem;
+      }
+      #pdv-entregas-pendentes-modal .pdv-entrega-card {
+        margin-bottom: 0.45rem;
+        padding: 0.55rem 0.65rem;
+      }
+      @media (max-width: 52rem) {
+        #pdv-entregas-pendentes-modal .pdv-entregas-split { grid-template-columns: 1fr; }
+        #pdv-entregas-pendentes-modal .pdv-entregas-col--pagar { border-right: 0; border-bottom: 2px solid #fdba74; max-height: 48%; }
+      }
     </style>
-    <div class="flex max-h-[min(92vh,640px)] flex-col">
+    <div class="pdv-entregas-shell flex flex-col">
       <div class="flex items-center justify-between gap-2 border-b border-orange-100 bg-orange-50 px-3 py-2.5">
         <div class="min-w-0 flex-1">
           <p class="text-[10px] font-black uppercase tracking-wide text-orange-800">PDV · Entregas</p>
@@ -197,8 +235,8 @@
           <details class="pdv-entregas-help relative">
             <summary class="cursor-pointer list-none flex h-9 w-9 items-center justify-center rounded-xl border-2 border-orange-300 bg-white text-sm font-black text-orange-900 shadow-sm hover:bg-orange-50 select-none" title="Ajuda — entregas">?</summary>
             <div class="absolute right-0 z-20 mt-1 w-[min(92vw,22rem)] rounded-xl border-2 border-orange-300 bg-white px-3 py-2.5 text-xs font-semibold leading-snug text-slate-700 shadow-xl">
-              <p><strong>A pagar</strong>: cobrança na entrega. Catálogo sem dono → <strong>Assumir</strong>.</p>
-              <p class="mt-2"><strong>Pagas na loja</strong>: já cobradas no caixa. Ficam 24 h para reimprimir e abrir rota. <strong>Não</strong> travam o fechar caixa. Depois de 24 h saem sozinhas desta lista.</p>
+              <p><strong>A pagar</strong> (esquerda): cobrança na entrega. Catálogo sem dono → <strong>Assumir</strong>.</p>
+              <p class="mt-2"><strong>Pagas na loja</strong> (direita): já cobradas no caixa. <strong>Concluir</strong> some da lista. Se não concluir, saem sozinhas em <strong>24 h</strong>. <strong>Não</strong> travam o fechar caixa.</p>
               <p class="mt-2"><strong>Imprimir</strong> reimprime as vias. <strong>Maps</strong> abre o destino. Marque várias e <strong>Rota</strong>.</p>
               <p class="mt-2"><strong>Adiar 1 dia</strong> (PIN) só nas que ainda precisam de pagamento.</p>
             </div>
@@ -206,12 +244,21 @@
           <button type="button" id="pdv-entregas-pendentes-close" class="rounded-xl border-2 border-slate-200 bg-white px-3 py-1.5 text-[10px] font-black uppercase text-slate-700">Fechar</button>
         </div>
       </div>
-      <div class="flex items-center gap-1 border-b border-slate-200 bg-white px-2 pt-2">
-        <button type="button" id="pdv-entregas-tab-pagar" class="rounded-t-lg border-2 border-b-0 border-orange-300 bg-orange-50 px-3 py-1.5 text-[10px] font-black uppercase text-orange-950">A pagar <span id="pdv-entregas-tab-pagar-n" class="tabular-nums">0</span></button>
-        <button type="button" id="pdv-entregas-tab-pagas" class="rounded-t-lg border-2 border-b-0 border-transparent bg-transparent px-3 py-1.5 text-[10px] font-black uppercase text-slate-600">Pagas na loja <span id="pdv-entregas-tab-pagas-n" class="tabular-nums">0</span></button>
-        <button type="button" id="pdv-entregas-rota-pagas" class="ml-auto mb-1 hidden rounded-lg border-2 border-emerald-600 bg-emerald-600 px-3 py-1.5 text-[10px] font-black uppercase text-white">Rota</button>
+      <div class="pdv-entregas-split">
+        <section class="pdv-entregas-col pdv-entregas-col--pagar" aria-label="A pagar">
+          <div class="pdv-entregas-col-head">
+            <p id="pdv-entregas-tab-pagar" class="m-0 text-[11px] font-black uppercase tracking-wide text-orange-950">A pagar <span id="pdv-entregas-tab-pagar-n" class="tabular-nums">0</span></p>
+          </div>
+          <div id="pdv-entregas-list-pagar" class="pdv-entregas-col-list pdv-wizard-scroll text-sm"></div>
+        </section>
+        <section class="pdv-entregas-col pdv-entregas-col--pagas" aria-label="Pagas na loja">
+          <div class="pdv-entregas-col-head">
+            <p id="pdv-entregas-tab-pagas" class="m-0 min-w-0 flex-1 text-[11px] font-black uppercase tracking-wide text-emerald-950">Pagas na loja <span id="pdv-entregas-tab-pagas-n" class="tabular-nums">0</span></p>
+            <button type="button" id="pdv-entregas-rota-pagas" class="rounded-lg border-2 border-emerald-600 bg-emerald-600 px-3 py-1.5 text-[10px] font-black uppercase text-white">Rota</button>
+          </div>
+          <div id="pdv-entregas-list-pagas" class="pdv-entregas-col-list pdv-wizard-scroll text-sm"></div>
+        </section>
       </div>
-      <div id="pdv-entregas-pendentes-list" class="pdv-wizard-scroll min-h-0 flex-1 overflow-y-auto px-3 py-3 text-sm"></div>
     </div>
   </dialog>
 

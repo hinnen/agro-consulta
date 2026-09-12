@@ -230,6 +230,9 @@ def pdv_home(request):
                 "apiPdvEntregaPendenteAdiarCaixa": reverse("api_pdv_entrega_pendente_adiar_caixa", args=[0]).replace(
                     "/0/", "/__pk__/"
                 ),
+                "apiPdvEntregaPendenteConcluirOverlay": reverse(
+                    "api_pdv_entrega_pendente_concluir_overlay", args=[0]
+                ).replace("/0/", "/__pk__/"),
                 "apiVendaReenviarErp": reverse("api_venda_agro_reenviar_erp", args=[0]).replace(
                     "/0/", "/__pk__/"
                 ),
