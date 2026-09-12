@@ -75,7 +75,7 @@
     layout: JSON.parse(JSON.stringify(DEFAULT_GONDOLA_LAYOUT)),
   };
 
-  /** Bônus / foto A6 — 1 coluna × ~3 linhas (100 × 45 mm). */
+  /** Bônus / foto A6 — 100 × 45 mm → 1 coluna × ~3 linhas (cabem 3/folha). */
   var DEFAULT_BONUS_A6_PRESET = {
     id: 'bonus-a6',
     nome: 'Bônus A6',
@@ -134,7 +134,8 @@
   /**
    * Grade na folha.
    * A4: 90 mm = 2 colunas; 60 mm = 3; 9 linhas.
-   * A6: 1 coluna; linhas = o que cabe na altura (ex. 100×45 → 3).
+   * A6: colunas = o que cabe na largura (100×45 → 1; ~50 → 2; ~33 → 3);
+   *     linhas = o que cabe na altura (ex. 100×45 → 3).
    */
   function calcularGradeFolha(folha, larguraMm, alturaMm, bordaMm, colsSalvas, rowsSalvas) {
     var page = dimensoesFolha(folha);
@@ -152,14 +153,15 @@
     var maxRows = Math.max(1, Math.floor((pageH + 0.01) / outerH));
     var cols;
     var rows;
+    var colsWant = parseInt(colsSalvas, 10);
+    var rowsWant = parseInt(rowsSalvas, 10);
     if (page.css === 'A6') {
-      cols = 1;
-      var rowsWant = parseInt(rowsSalvas, 10);
+      cols = colsWant > 0 ? Math.min(colsWant, maxCols) : maxCols;
       rows = rowsWant > 0 ? Math.min(rowsWant, maxRows) : maxRows;
     } else {
       var largura60 = Math.abs(w - 60) < 0.01;
-      cols = largura60 ? Math.min(3, maxCols) : Math.max(1, Math.min(maxCols, parseInt(colsSalvas, 10) || 2));
-      rows = Math.max(1, Math.min(maxRows, parseInt(rowsSalvas, 10) || 9));
+      cols = largura60 ? Math.min(3, maxCols) : Math.max(1, Math.min(maxCols, colsWant || 2));
+      rows = Math.max(1, Math.min(maxRows, rowsWant || 9));
     }
     return {
       folha: page.css === 'A6' ? 'a6' : 'a4',

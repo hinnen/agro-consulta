@@ -458,7 +458,7 @@
         <label class="block etq-field-gondola"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Folha</span>
           <select id="etq-preset-folha" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white">
             <option value="a4">A4 (210×297 · 2/3 colunas)</option>
-            <option value="a6">A6 (105×148 · 1 coluna)</option>
+            <option value="a6">A6 (105×148 · 1–3 colunas)</option>
           </select>
         </label>
 
@@ -466,7 +466,7 @@
 
         <label class="block etq-field-termica"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Rodapé padrão</span><input id="etq-preset-texto-rodape" type="text" maxlength="80" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
 
-        <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Largura mm</span><input id="etq-preset-largura" type="number" min="20" max="200" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
+        <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Largura mm</span><input id="etq-preset-largura" type="number" min="20" max="200" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /><span class="mt-0.5 block text-[10px] text-slate-500 etq-field-gondola">A6: ~50 = 2 col · ~33 = 3 col</span></label>
 
         <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Altura mm</span><input id="etq-preset-altura" type="number" min="15" max="120" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
 
@@ -618,9 +618,9 @@ window.AGRO_ETQ_CFG = {
   maisVendidosUrl: "{{ api_etq_mais_vendidos_url|default:'/api/produtos/etiquetas/mais-vendidos/'|escapejs }}"
 };
 </script>
-<script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=18"></script>
+<script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=19"></script>
 
-<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=18" defer></script>
+<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=19" defer></script>
 
 {% endblock %}
 

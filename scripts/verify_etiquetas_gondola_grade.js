@@ -69,6 +69,14 @@ check(gradeA6.cabe, '1×3 deve caber na A6');
 check((105 - gradeA6.outer_w) / 2 === 2, 'coluna única centralizada na A6');
 check((148 - 3 * gradeA6.outer_h) / 2 === 5, 'três linhas centralizadas na A6');
 
+const gradeA6_2 = Core.calcularGradeFolha('a6', 50, 45, 0.5);
+check(gradeA6_2.cols === 2 && gradeA6_2.rows === 3, 'A6 50×45 → 2×3');
+check(gradeA6_2.cabe, '2×3 deve caber na A6');
+
+const gradeA6_3 = Core.calcularGradeFolha('a6', 33, 30, 0.5);
+check(gradeA6_3.cols === 3, 'A6 33×30 → 3 colunas');
+check(gradeA6_3.cabe, '3 colunas devem caber na A6');
+
 const htmlBonus = Core.montarHtmlImpressao(bonus, [{ nome: 'Bônus', preco_venda: 5, qtd: 3 }]);
 check(htmlBonus.includes('@page{size:A6;'), 'HTML A6 deve pedir papel A6');
 check((htmlBonus.match(/class="etq"/g) || []).length === 3, '3 bônus em uma A6');
