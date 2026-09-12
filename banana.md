@@ -1284,35 +1284,34 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 WIP — Acumulado Repasse crédito fantasma (`REPASSE-ACUM-PCT-DIA` · **v24.73**)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Sintoma** | Tela −956 vs dia 956 · loja desconfia do acumulado |
-| **Causa** | Padrão **0%** reescrevia dias antigos → envio a **50%** virava «crédito fantasma» |
-| **Fix** | Cache usa **maior % dos envios do dia** · reconstrói ao abrir calc · hint quando crédito cobre o dia |
-| **Prova** | acum-pct-dia **10/10** · acum-extra **18/18** · acum-net **29/29** |
-| **Migrate** | **NÃO** |
-| **Status** | 🟡 **só no teste** — falta subir loja |
-| **Você** | Ctrl+F5 no PC · Repasse · loja: frase + senha |
-
-### 🟢 PREP — Checklist 12/09d · `PDV-ENT-ALERTA-LOJA` · alvo loja **v23.98**
+### 🟢 PREP — Checklist 12/09e · `REPASSE-ACUM-PCT-DIA` (+ alerta loja) · tip **v24.75**
 
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **pronto para envio à produção** (**não** merge `teste`) |
 | **Loja hoje** | ✅ **Live v23.97** @ `3c56734` |
-| **Pacote** | `PDV-ENT-ALERTA-LOJA` |
-| **Prova** | `verify_pdv_entrega_alerta_por_id_path.py` **76/76** · PIN **9973** |
+| **Prioridade** | `REPASSE-ACUM-PCT-DIA` (crédito fantasma) · depois `PDV-ENT-ALERTA-LOJA` |
 | **Migrate** | **NÃO** |
-| **Risco** | Baixo — só bip/piscar de horário no PDV |
-| **Você (após senha)** | Ctrl+F5 · badge **v23.98** · Vila sem bip em saída Centro |
+| **Você (após senha)** | Ctrl+F5 · Repasse: acumulado sem −956 fantasma · badge loja |
 
-### ✅ CHECKLIST ÚNICO — 12/09d · **pronto para envio à produção**
+### ✅ CHECKLIST ÚNICO — 12/09e · **pronto para envio à produção**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `PDV-ENT-ALERTA-LOJA` | 🟢 **pronto para envio à produção** | **NÃO** | **76/76** · PIN **9973** |
+| 1 | `REPASSE-ACUM-PCT-DIA` | 🟢 **pronto para envio à produção** | **NÃO** | **16/16** · PIN **9973** · PG loja |
+| 2 | `PDV-ENT-ALERTA-LOJA` | 🟢 **pronto para envio à produção** | **NÃO** | **76/76** · PIN **9973** |
+
+### 📦 PACOTE PRONTO — Acumulado Repasse sem crédito fantasma (`REPASSE-ACUM-PCT-DIA` · **v24.75**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Cache do dia usa **maior % dos envios** (não o padrão 0%) · reconstrói ao abrir calc · hint se crédito cobre o dia |
+| **Causa** | Após % padrão=0, refresh reescrevia ~180 dias → envio 50% virava crédito (ex. 11/09 alvo **113** / enviado **532** / δ **−418**) |
+| **Prova** | acum-pct-dia **16/16** · acum-extra **18/18** · acum-net **29/29** · status-flash **43/43** · pct-zero **20/20** · PIN **9973** · PG agro-db (Max% 11/09=50 · bruto −935,74) |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** (**não** merge `teste`) |
+| **Você** | Ctrl+F5 · Repasse · após loja: abrir calc (reconstrói sozinho) |
+| **Risco** | Médio — só Repasse; 1ª abertura reconstrói cache |
 
 ### 📦 PACOTE PRONTO — Alerta horário só na loja que sai (`PDV-ENT-ALERTA-LOJA` · **v24.71**)
 

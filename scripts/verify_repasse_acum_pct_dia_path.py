@@ -115,6 +115,71 @@ def main() -> int:
         "preencher/atualizar usa % do dia",
     )
 
+    # Contrato refresh/reconstruir: passa % do dia (não padrao) para o cache
+    called: list[Decimal] = []
+
+    def _dec_pct(v):
+        if v is None:
+            return Decimal("0")
+        return Decimal(str(v))
+
+    def _fake_atualizar(d, *, percentual_lucro=None):
+        called.append(_dec_pct(percentual_lucro))
+        return mock.MagicMock()
+
+    dia_bug = timezone.localdate() - timedelta(days=1)
+    with mock.patch(
+        "produtos.repasse_vila_util._atualizar_delta_cache", side_effect=_fake_atualizar
+    ), mock.patch(
+        "produtos.repasse_vila_util._percentual_para_delta_dia", return_value=Decimal("50")
+    ), mock.patch(
+        "produtos.repasse_vila_util._preencher_cache_faltante"
+    ), mock.patch(
+        "produtos.repasse_vila_util.RepasseVilaCentroAgro.objects"
+    ) as m_objs, mock.patch(
+        "produtos.repasse_vila_util.acumulado_anterior", return_value=Decimal("0")
+    ):
+        chain = mock.MagicMock()
+        m_objs.filter.return_value = chain
+        chain.values_list.return_value = chain
+        chain.distinct.return_value = chain
+        chain.order_by.return_value = [dia_bug]
+        reconstruir_deltas_acumulado(ate=dia_bug, lookback_days=7)
+    must(called and called[0] == Decimal("50"), f"reconstruir passa %50 → {called}")
+
+    called.clear()
+    with mock.patch(
+        "produtos.repasse_vila_util._atualizar_delta_cache", side_effect=_fake_atualizar
+    ), mock.patch(
+        "produtos.repasse_vila_util._percentual_para_delta_dia", return_value=Decimal("50")
+    ), mock.patch(
+        "produtos.repasse_vila_util._preencher_cache_faltante"
+    ), mock.patch(
+        "produtos.repasse_vila_util.RepasseVilaCentroAgro.objects"
+    ) as m_objs:
+        chain = mock.MagicMock()
+        m_objs.filter.return_value = chain
+        chain.values_list.return_value = chain
+        chain.distinct.return_value = [dia_bug]
+        refresh_deltas_apos_envio(dia_bug, lookback_days=7)
+    must(
+        all(c == Decimal("50") for c in called) and len(called) >= 1,
+        f"refresh usa % do dia em todos → {called}",
+    )
+
+    # Snapshot loja (PG agro-db 12/09 · leitura): cache 11/09 ainda fantasma até deploy
+    # Geraldinho 500@50 + Renan 32@0 → Max% = 50; cache alvo 113,61 / δ −418,39
+    must(Decimal("50") == max(Decimal("50"), Decimal("0")), "loja 11/09 Max%=50")
+    fantasma = Decimal("532.00") - Decimal("113.61")
+    must(fantasma == Decimal("418.39"), f"crédito fantasma cache 11/09 = {fantasma}")
+    bruto_ate_11 = Decimal("-2576.42") + Decimal("1640.68")
+    must(bruto_ate_11 == Decimal("-935.74"), f"bruto até 11/09 (ajustes+δ) = {bruto_ate_11}")
+
+    from produtos.caixa_util import operador_label_de_pin
+
+    ok_pin, label, _ = operador_label_de_pin("9973")
+    must(ok_pin and "Renan" in label, f"PIN 9973 → Renan ({label})")
+
     print(f"\n{oks} OK · {len(fails)} FAIL")
     for f in fails:
         print(f"  - {f}")
