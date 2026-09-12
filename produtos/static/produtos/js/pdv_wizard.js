@@ -4524,7 +4524,7 @@
     }
 
     function syncEntregasOverlayAbas() {
-        var btnRota = document.getElementById('pdv-entregas-rota-pagas');
+        var btnRota = document.getElementById('pdv-entregas-rota') || document.getElementById('pdv-entregas-rota-pagas');
         if (btnRota) btnRota.classList.remove('hidden');
     }
 
@@ -4613,13 +4613,13 @@
             btns += '<div class="flex w-full gap-1">';
             if (row.pode_adiar) {
                 btns +=
-                    '<button type="button" class="pdv-entrega-adiar min-w-0 flex-1 rounded-lg border-2 border-amber-500 bg-amber-50 px-1 py-1 text-[9px] font-black uppercase leading-tight text-amber-950" data-entrega-id="' +
+                    '<button type="button" class="pdv-entrega-adiar min-w-0 flex-1 whitespace-nowrap rounded-lg border-2 border-amber-500 bg-amber-50 px-1 py-1 text-[9px] font-black uppercase leading-tight text-amber-950" data-entrega-id="' +
                     id +
                     '">Adiar</button>';
             }
             if (row.pode_cancelar) {
                 btns +=
-                    '<button type="button" class="pdv-entrega-cancelar min-w-0 flex-1 rounded-lg border-2 border-red-300 bg-white px-1 py-1 text-[9px] font-black uppercase leading-tight text-red-800" data-entrega-id="' +
+                    '<button type="button" class="pdv-entrega-cancelar min-w-0 flex-1 whitespace-nowrap rounded-lg border-2 border-red-300 bg-white px-1 py-1 text-[9px] font-black uppercase leading-tight text-red-800" data-entrega-id="' +
                     id +
                     '">Cancelar</button>';
             }
@@ -4653,7 +4653,7 @@
             (cod ? '<div class="mt-0.5 text-[10px] font-mono text-slate-500">' + cod + '</div>' : '') +
             '</div>' +
             (btns
-                ? '<div class="pdv-entrega-card-acoes flex w-[min(42%,10.5rem)] shrink-0 flex-col gap-1">' +
+                ? '<div class="pdv-entrega-card-acoes flex w-[min(48%,13rem)] shrink-0 flex-col gap-1">' +
                   btns +
                   '</div>'
                 : '') +
@@ -4785,18 +4785,36 @@
     }
 
     function abrirRotaEntregasPagas() {
-        var el = dom.entregasPendentesList;
+        return abrirRotaEntregasOverlay.apply(this, arguments);
+    }
+
+    function abrirRotaEntregasOverlay() {
         var ids = [];
-        if (el) {
-            el.querySelectorAll('.pdv-entrega-paga-chk:checked').forEach(function (chk) {
+        var seen = {};
+        function addId(id) {
+            var s = String(id);
+            if (!s || seen[s]) return;
+            seen[s] = 1;
+            ids.push(s);
+        }
+        /* A pagar: sempre entram na rota. */
+        (entregasPendentesCache.itens || []).forEach(function (r) {
+            if (r && r.id != null) addId(r.id);
+        });
+        /* Pagas: só as marcadas em Incluir; se nenhuma marcada, todas. */
+        var checked = [];
+        var elPagas = document.getElementById('pdv-entregas-list-pagas') || dom.entregasPendentesList;
+        if (elPagas) {
+            elPagas.querySelectorAll('.pdv-entrega-paga-chk:checked').forEach(function (chk) {
                 var pk = chk.getAttribute('data-entrega-id');
-                if (pk) ids.push(String(pk));
+                if (pk) checked.push(String(pk));
             });
         }
-        var rows = entregasPendentesCache.itensPagas || [];
-        if (!ids.length) {
-            rows.forEach(function (r) {
-                if (r && r.id != null) ids.push(String(r.id));
+        if (checked.length) {
+            checked.forEach(addId);
+        } else {
+            (entregasPendentesCache.itensPagas || []).forEach(function (r) {
+                if (r && r.id != null) addId(r.id);
             });
         }
         var paradas = [];
@@ -4806,7 +4824,7 @@
             if (q) paradas.push(q);
         });
         if (!paradas.length) {
-            showSaleDoneFeedback('Marque as entregas (ou cadastre endereço) para montar a rota.', 'warn');
+            showSaleDoneFeedback('Cadastre endereço nas entregas (A pagar ou Pagas) para montar a rota.', 'warn');
             return;
         }
         var origem = origemMapsPdvAtual();
@@ -15539,9 +15557,9 @@
         if (dom.entregasPendentesClose) {
             dom.entregasPendentesClose.addEventListener('click', closeEntregasPendentesModal);
         }
-        var btnRotaPagas = document.getElementById('pdv-entregas-rota-pagas');
-        if (btnRotaPagas) {
-            btnRotaPagas.addEventListener('click', abrirRotaEntregasPagas);
+        var btnRota = document.getElementById('pdv-entregas-rota') || document.getElementById('pdv-entregas-rota-pagas');
+        if (btnRota) {
+            btnRota.addEventListener('click', abrirRotaEntregasOverlay);
         }
         if (dom.entregasPendentesModal) {
             dom.entregasPendentesModal.addEventListener('click', function (ev) {

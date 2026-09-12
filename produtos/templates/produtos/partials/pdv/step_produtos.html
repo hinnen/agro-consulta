@@ -205,10 +205,20 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        height: 2.75rem;
         min-height: 2.75rem;
-        padding: 0.55rem 0.75rem;
+        max-height: 2.75rem;
+        padding: 0 0.75rem;
         border-bottom: 2px solid #e2e8f0;
         box-sizing: border-box;
+      }
+      #pdv-entregas-pendentes-modal .pdv-entrega-card-acoes {
+        width: min(48%, 13rem);
+        min-width: 7.25rem;
+      }
+      #pdv-entregas-pendentes-modal .pdv-entrega-adiar,
+      #pdv-entregas-pendentes-modal .pdv-entrega-cancelar {
+        white-space: nowrap;
       }
       #pdv-entregas-pendentes-modal .pdv-entregas-col--pagar .pdv-entregas-col-head { background: #fff7ed; }
       #pdv-entregas-pendentes-modal .pdv-entregas-col--pagas .pdv-entregas-col-head { background: #ecfdf5; }
@@ -234,13 +244,14 @@
           <h3 class="text-base font-black text-slate-900">Controle de entregas</h3>
         </div>
         <div class="flex shrink-0 items-center gap-1.5">
+          <button type="button" id="pdv-entregas-rota" class="rounded-xl border-2 border-emerald-600 bg-emerald-600 px-3 py-1.5 text-[10px] font-black uppercase text-white shadow-sm hover:bg-emerald-700" title="Monta rota no Maps com A pagar + Pagas">Rota</button>
           <details class="pdv-entregas-help relative">
             <summary class="cursor-pointer list-none flex h-9 w-9 items-center justify-center rounded-xl border-2 border-orange-300 bg-white text-sm font-black text-orange-900 shadow-sm hover:bg-orange-50 select-none" title="Ajuda — entregas">?</summary>
             <div class="absolute right-0 z-20 mt-1 w-[min(92vw,22rem)] rounded-xl border-2 border-orange-300 bg-white px-3 py-2.5 text-xs font-semibold leading-snug text-slate-700 shadow-xl">
               <p><strong>A pagar</strong> (esquerda): cobrança na entrega. Catálogo sem dono → <strong>Assumir</strong>.</p>
               <p class="mt-2"><strong>Pagas na loja</strong> (direita): já cobradas no caixa. <strong>Concluir</strong> some da lista. Se não concluir, saem sozinhas em <strong>24 h</strong>. <strong>Não</strong> travam o fechar caixa.</p>
-              <p class="mt-2"><strong>Imprimir</strong> reimprime as vias. <strong>Maps</strong> abre o destino. Marque várias e <strong>Rota</strong>.</p>
-              <p class="mt-2"><strong>Adiar 1 dia</strong> (PIN) só nas que ainda precisam de pagamento.</p>
+              <p class="mt-2"><strong>Rota</strong> (topo): Maps com <strong>A pagar + Pagas</strong>. Em Pagas, marque <strong>Incluir</strong> para filtrar só algumas.</p>
+              <p class="mt-2"><strong>Imprimir</strong> reimprime as vias. <strong>Maps</strong> abre o destino. <strong>Adiar</strong> (PIN) só nas que ainda precisam de pagamento.</p>
             </div>
           </details>
           <button type="button" id="pdv-entregas-pendentes-close" class="rounded-xl border-2 border-slate-200 bg-white px-3 py-1.5 text-[10px] font-black uppercase text-slate-700">Fechar</button>
@@ -249,14 +260,13 @@
       <div class="pdv-entregas-split">
         <section class="pdv-entregas-col pdv-entregas-col--pagar" aria-label="A pagar">
           <div class="pdv-entregas-col-head">
-            <p id="pdv-entregas-tab-pagar" class="m-0 text-[11px] font-black uppercase tracking-wide text-orange-950">A pagar <span id="pdv-entregas-tab-pagar-n" class="tabular-nums">0</span></p>
+            <p id="pdv-entregas-tab-pagar" class="m-0 min-w-0 flex-1 text-[11px] font-black uppercase leading-none tracking-wide text-orange-950">A pagar <span id="pdv-entregas-tab-pagar-n" class="tabular-nums">0</span></p>
           </div>
           <div id="pdv-entregas-list-pagar" class="pdv-entregas-col-list pdv-wizard-scroll text-sm"></div>
         </section>
         <section class="pdv-entregas-col pdv-entregas-col--pagas" aria-label="Pagas na loja">
           <div class="pdv-entregas-col-head">
-            <p id="pdv-entregas-tab-pagas" class="m-0 min-w-0 flex-1 text-[11px] font-black uppercase tracking-wide text-emerald-950">Pagas na loja <span id="pdv-entregas-tab-pagas-n" class="tabular-nums">0</span></p>
-            <button type="button" id="pdv-entregas-rota-pagas" class="rounded-lg border-2 border-emerald-600 bg-emerald-600 px-3 py-1.5 text-[10px] font-black uppercase text-white">Rota</button>
+            <p id="pdv-entregas-tab-pagas" class="m-0 min-w-0 flex-1 text-[11px] font-black uppercase leading-none tracking-wide text-emerald-950">Pagas na loja <span id="pdv-entregas-tab-pagas-n" class="tabular-nums">0</span></p>
           </div>
           <div id="pdv-entregas-list-pagas" class="pdv-entregas-col-list pdv-wizard-scroll text-sm"></div>
         </section>
