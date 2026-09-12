@@ -1283,35 +1283,39 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
-
-### ✅ CHECKLIST ÚNICO — 12/09b · pronto para envio à produção
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | `WA-PONTE-ULTRA-LEVE` | 🟢 **pronto para envio à produção** | **NÃO** | **47/47** · PIN **9973** |
-| 2 | `WA-APP-SEM-PDV` | 🟢 **pronto para envio à produção** | **NÃO** | **48/48** · PIN **9973** |
-| 3 | `PDV-RACOES-MARCA-VAZIA` | 🟢 **pronto para envio à produção** | **NÃO** | **57/57** · PIN **9973** |
-| 4 | `PDV-CHAT-ENTREGA-DOCK` | 🟢 **pronto para envio à produção** | **NÃO** | **7/7** |
-| 5 | `PDV-ENT-HORARIO-OPCOES` | 🟢 **pronto para envio à produção** | **NÃO** | **16/16** |
-| 6 | `PDV-ENT-TROCO-ENTER` | 🟢 **pronto para envio à produção** | **NÃO** | **6/6** |
-| 7 | `PDV-ENT-OVERLAY-SPLIT` | 🟢 **pronto para envio à produção** | **SIM** `0130` | lote **61/61** · PIN **9973** |
-| 8 | `ETQ-LOTE-FILA` | 🟢 **pronto para envio à produção** | **NÃO** | **78/78** · PIN **9973** |
-| 9 | `PDV-IMP-SEP-OFF` | 🟢 **pronto para envio à produção** | **NÃO** | UX · Separação **desmarcada** |
-| 10 | `PDV-IMP-PIN-ANTES` | 🟢 **pronto para envio à produção** | **NÃO** | PIN **antes** de imprimir · sem 2ª via |
-| 11 | `PDV-ENT-CARD-LATERAL` | 🟢 **pronto para envio à produção** | **NÃO** | Botões à **direita** · card mais baixo |
-
-**Loja:** **v23.94**. Tip `teste` **v24.39+**. Cherry `#1`–`#11` + frase + senha — **não** merge `teste`.  
-**Prova lote PDV (#4–#7):** `verify_pdv_entrega_lote_1209_path.py` **61/61**.  
-**Sem deploy Zap:** fechar `.bat` → PDV volta. Religar `.bat` só depois do `#1` na loja.
-
-### 📦 PACOTE PRONTO — Cards Entregas botões à direita (`PDV-ENT-CARD-LATERAL` · 12/09)
+### 🚀 PREP deploy loja — checklist 12/09b (`deploy/prep-checklist-1209b` · **v23.95**) · aguarda senha
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Overlay Entregas: info à esquerda · botões empilhados à direita (A pagar + Pagas) · menos altura por card |
-| **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** |
-| **Risco** | Baixo |
+| **Status** | 🟡 **PREP pronto** — **só** frase + senha · **não** subiu ainda |
+| **Live agora** | **v23.94** @ `c3e0b1c` |
+| **Branch PREP** | `deploy/prep-checklist-1209b` @ **`8faa4c1`** · tip **v23.95** |
+| **Pacotes** | `WA-PONTE-ULTRA-LEVE` · `WA-APP-SEM-PDV` · `PDV-RACOES-MARCA-VAZIA` · `PDV-CHAT-ENTREGA-DOCK` · `PDV-ENT-HORARIO-OPCOES` · `PDV-ENT-TROCO-ENTER` · `PDV-ENT-OVERLAY-SPLIT` · `ETQ-LOTE-FILA` · `PDV-IMP-SEP-OFF` · `PDV-IMP-PIN-ANTES` |
+| **Migrate** | **SIM** `0130` |
+| **Prova pré** | ponte **47/47** · Zap app **53/53** · rações **57/57** · dock **7/7** · horário **16/16** · troco **6/6** · split **16/16** · lote **61/61** · etq **78/78** · SEP/PIN UX · `check` OK · hashes SAME |
+| **Rollback** | tag `rollback/pre-checklist-1209b-v23.94` · branch `producao-backup-pre-v2395-checklist-20260912b` · `docs/ROLLBACK-CHECKLIST-1209b.md` · **só** frase+senha |
+| **Operacional** | **pausar vendas** no deploy · fechar `.bat` Zap antes · Ctrl+F5 · religar `.bat` |
+| **Não** | merge `teste` |
+
+
+### ✅ CHECKLIST ÚNICO — 12/09b · 🟡 PREP aguarda senha (alvo **v23.95**)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `WA-PONTE-ULTRA-LEVE` | 🟡 **PREP aguarda senha** | **NÃO** | **47/47** · PIN **9973** |
+| 2 | `WA-APP-SEM-PDV` | 🟡 **PREP aguarda senha** | **NÃO** | **53/53** · PIN **9973** |
+| 3 | `PDV-RACOES-MARCA-VAZIA` | 🟡 **PREP aguarda senha** | **NÃO** | **57/57** · PIN **9973** |
+| 4 | `PDV-CHAT-ENTREGA-DOCK` | 🟡 **PREP aguarda senha** | **NÃO** | **7/7** |
+| 5 | `PDV-ENT-HORARIO-OPCOES` | 🟡 **PREP aguarda senha** | **NÃO** | **16/16** |
+| 6 | `PDV-ENT-TROCO-ENTER` | 🟡 **PREP aguarda senha** | **NÃO** | **6/6** |
+| 7 | `PDV-ENT-OVERLAY-SPLIT` | 🟡 **PREP aguarda senha** | **SIM** `0130` | lote **61/61** · PIN **9973** |
+| 8 | `ETQ-LOTE-FILA` | 🟡 **PREP aguarda senha** | **NÃO** | **78/78** · PIN **9973** |
+| 9 | `PDV-IMP-SEP-OFF` | 🟡 **PREP aguarda senha** | **NÃO** | Separação **desmarcada** |
+| 10 | `PDV-IMP-PIN-ANTES` | 🟡 **PREP aguarda senha** | **NÃO** | PIN **antes** · sem 2ª via |
+
+**Loja:** **v23.94**. PREP **v23.95** @ `8faa4c1`. Cherry `#1`–`#10` + frase + senha — **não** merge `teste`.  
+**Prova lote PDV (#4–#7):** `verify_pdv_entrega_lote_1209_path.py` **61/61**.  
+**Sem deploy Zap:** fechar `.bat` → PDV volta. Religar `.bat` só depois do `#1` na loja.
 
 ### 📦 PACOTE PRONTO — PIN antes da impressão de entrega (`PDV-IMP-PIN-ANTES` · 12/09)
 

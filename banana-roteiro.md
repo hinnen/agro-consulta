@@ -520,20 +520,22 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 ---
 
-## 31. Checklist único — lote 12/09b · 🟢 **pronto para envio** (tip `teste` **v24.34+**)
+## 31. Checklist único — lote 12/09b (`deploy/prep-checklist-1209b` · alvo loja **v23.95**) · 🟡 aguarda senha
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **WA-PONTE-ULTRA-LEVE** | 🟢 pronto · **47/47** | **NÃO** |
-| 2 | **WA-APP-SEM-PDV** | 🟢 pronto · **48/48** | **NÃO** |
-| 3 | **PDV-RACOES-MARCA-VAZIA** | 🟢 pronto · **57/57** | **NÃO** |
-| 4 | **PDV-CHAT-ENTREGA-DOCK** | 🟢 pronto · **7/7** | **NÃO** |
-| 5 | **PDV-ENT-HORARIO-OPCOES** | 🟢 pronto · **16/16** | **NÃO** |
-| 6 | **PDV-ENT-TROCO-ENTER** | 🟢 pronto · **6/6** | **NÃO** |
-| 7 | **PDV-ENT-OVERLAY-SPLIT** | 🟢 pronto · lote **61/61** | **SIM** `0130` |
-| 8 | **ETQ-LOTE-FILA** | 🟢 pronto · **19/19** | **NÃO** |
+| 1 | **WA-PONTE-ULTRA-LEVE** | 🟡 PREP · **47/47** | **NÃO** |
+| 2 | **WA-APP-SEM-PDV** | 🟡 PREP · **53/53** | **NÃO** |
+| 3 | **PDV-RACOES-MARCA-VAZIA** | 🟡 PREP · **57/57** | **NÃO** |
+| 4 | **PDV-CHAT-ENTREGA-DOCK** | 🟡 PREP · **7/7** | **NÃO** |
+| 5 | **PDV-ENT-HORARIO-OPCOES** | 🟡 PREP · **16/16** | **NÃO** |
+| 6 | **PDV-ENT-TROCO-ENTER** | 🟡 PREP · **6/6** | **NÃO** |
+| 7 | **PDV-ENT-OVERLAY-SPLIT** | 🟡 PREP · lote **61/61** | **SIM** `0130` |
+| 8 | **ETQ-LOTE-FILA** | 🟡 PREP · **78/78** | **NÃO** |
+| 9 | **PDV-IMP-SEP-OFF** | 🟡 PREP | **NÃO** |
+| 10 | **PDV-IMP-PIN-ANTES** | 🟡 PREP | **NÃO** |
 
-**Status:** 🟢 **pronto para envio** — cherry **só** estes + frase+senha · **não** merge `teste`.  
-**Prova lote PDV (#4–#7):** `verify_pdv_entrega_lote_1209_path.py` **61/61** · PIN **9973**.  
-**Loja ainda:** **v23.94**.
+**Status:** 🟡 **PREP pronto** — `deploy/prep-checklist-1209b` @ `8faa4c1` · **só** frase+senha · **não** merge `teste`.  
+**Rollback:** `docs/ROLLBACK-CHECKLIST-1209b.md` · tag `rollback/pre-checklist-1209b-v23.94`.  
+**Loja ainda:** **v23.94**. Antes do deploy: pausar vendas · fechar `.bat` Zap.
 
