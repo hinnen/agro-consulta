@@ -1284,22 +1284,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — Repasse «A SEPARAR» = dia real (`REPASSE-DIA-HERO` · tip **v24.78**)
+### ✅ Deploy loja — REPASSE-DIA-HERO (`deploy/prep-repasse-dia-hero` · **v23.99**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Card verde **A SEPARAR** mostra o **dia de verdade** · não espelha `|crédito|` quando líquido é 0 |
-| **Prova** | acum-pct-dia (hero dia real) · `node --check` OK |
+| **Status** | ✅ **enviado / Live v23.99** — cherry **só** `REPASSE-DIA-HERO` (**não** merge `teste`) |
+| **Antes** | **Live v23.98** @ `6106b91` |
+| **Agora** | `producao` @ **`a43340a`** · Render (aguardar smoke) |
+| **Smoke** | healthz · JS «dia de verdade» · sem `totAuto - acum` |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** (**não** merge `teste`) |
-| **Você** | Ctrl+F5 · Repasse: A SEPARAR ≠ acumulado espelhado |
-| **Risco** | Baixo — só número no card |
+| **Pacotes** | `REPASSE-DIA-HERO` |
+| **Prova pré** | **22/22** · fundo **61/61** · pct-zero **20/20** · PIN **9973** |
+| **Rollback** | tag `rollback/pre-repasse-dia-hero-v23.98` · branch `producao-backup-pre-v2399-dia-hero-20260912` · `docs/ROLLBACK-REPASSE-DIA-HERO.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.99** · Repasse: A SEPARAR = dia real (não espelho do crédito) |
 
-### ✅ CHECKLIST ÚNICO — 12/09f · **pronto para envio à produção**
+### ✅ CHECKLIST ÚNICO — 12/09f · **Live v23.99**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `REPASSE-DIA-HERO` | 🟢 **pronto para envio à produção** | **NÃO** | hero ≠ `|acum|` |
+| 1 | `REPASSE-DIA-HERO` | ✅ **Live v23.99** | **NÃO** | **22/22** |
+
+### ~~📦 PACOTE PRONTO — REPASSE-DIA-HERO~~ → **Live v23.99**
 
 ### ✅ Deploy loja — Checklist 12/09e (`deploy/prep-checklist-1209e` · **v23.98**) · **Live**
 
