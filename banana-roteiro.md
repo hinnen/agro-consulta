@@ -520,7 +520,7 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 ---
 
-## 31. Checklist único — lote 12/09b · ✅ **Live v23.95**
+## 31. Checklist único — lote 12/09b · ✅ **Live v23.95** (+ tip `#11`–`#12`)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -534,9 +534,9 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 | 8 | **ETQ-LOTE-FILA** | ✅ Live · **78/78** | **NÃO** |
 | 9 | **PDV-IMP-SEP-OFF** | ✅ Live | **NÃO** |
 | 10 | **PDV-IMP-PIN-ANTES** | ✅ Live | **NÃO** |
+| 11 | **PDV-ENT-CARD-LATERAL** | 🟢 **pronto envio** · **48/48** | **NÃO** |
+| 12 | **PDV-ENT-ALERTA-POR-ID** | 🟢 **pronto envio** · **51/51** | **NÃO** |
 
-**Status: ✅ Live v23.95** — `producao` @ `8faa4c1` · Render `dep-daincomk1f9s73f7e330`.  
-**Antes:** Live **v23.94** @ `c3e0b1c`. Migrate **0130** OK. **Não** merge `teste`.  
-**Rollback:** tag `rollback/pre-checklist-1209b-v23.94` · `docs/ROLLBACK-CHECKLIST-1209b.md`.  
-**Fora ainda (tip):** `PDV-ENT-CARD-LATERAL`.
+**Status: ✅ Live v23.95** — `producao` @ `8faa4c1`. Tip `#11`+`#12` prontos.  
+**Rollback:** tag `rollback/pre-checklist-1209b-v23.94` · `docs/ROLLBACK-CHECKLIST-1209b.md`.
 

@@ -1293,58 +1293,35 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Agora** | `producao` @ **`8faa4c1`** · Render `dep-daincomk1f9s73f7e330` |
 | **Migrate** | **SIM** `0130` (no deploy) |
 | **Pacotes** | `WA-PONTE-ULTRA-LEVE` · `WA-APP-SEM-PDV` · `PDV-RACOES-MARCA-VAZIA` · `PDV-CHAT-ENTREGA-DOCK` · `PDV-ENT-HORARIO-OPCOES` · `PDV-ENT-TROCO-ENTER` · `PDV-ENT-OVERLAY-SPLIT` · `ETQ-LOTE-FILA` · `PDV-IMP-SEP-OFF` · `PDV-IMP-PIN-ANTES` |
-| **Prova pré** | ponte **47/47** · Zap app **53/53** · rações **57/57** · dock **7/7** · horário **16/16** · troco **6/6** · split **16/16** · lote **61/61** · etq **78/78** · SEP/PIN UX · `check` OK |
-| **Rollback** | tag `rollback/pre-checklist-1209b-v23.94` · branch `producao-backup-pre-v2395-checklist-20260912b` · `docs/ROLLBACK-CHECKLIST-1209b.md` · **só** frase+senha |
-| **Smoke** | healthz **200** · home/consulta/PDV **200** · badge **v23.95** · Render **live** |
-| **Você** | **Ctrl+F5** · religar `.bat` Zap · Entrega · Etiquetas lote |
-| **Fora ainda** | `#11` `PDV-ENT-CARD-LATERAL` (só no tip `teste`) |
+| **Rollback** | tag `rollback/pre-checklist-1209b-v23.94` · `docs/ROLLBACK-CHECKLIST-1209b.md` · **só** frase+senha |
+| **Fora ainda** | `#11`–`#12` no tip (`CARD-LATERAL` · `ALERTA-POR-ID`) |
 
-### ✅ CHECKLIST ÚNICO — 12/09b · **Live v23.95** (+ `#11` ainda no tip)
+### ✅ CHECKLIST ÚNICO — 12/09c tip (pós Live v23.95)
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `WA-PONTE-ULTRA-LEVE` | ✅ **Live v23.95** | **NÃO** | **47/47** · PIN **9973** |
-| 2 | `WA-APP-SEM-PDV` | ✅ **Live v23.95** | **NÃO** | **53/53** · PIN **9973** |
-| 3 | `PDV-RACOES-MARCA-VAZIA` | ✅ **Live v23.95** | **NÃO** | **57/57** · PIN **9973** |
-| 4 | `PDV-CHAT-ENTREGA-DOCK` | ✅ **Live v23.95** | **NÃO** | **7/7** |
-| 5 | `PDV-ENT-HORARIO-OPCOES` | ✅ **Live v23.95** | **NÃO** | **16/16** |
-| 6 | `PDV-ENT-TROCO-ENTER` | ✅ **Live v23.95** | **NÃO** | **6/6** |
-| 7 | `PDV-ENT-OVERLAY-SPLIT` | ✅ **Live v23.95** | **SIM** `0130` | lote **61/61** · PIN **9973** |
-| 8 | `ETQ-LOTE-FILA` | ✅ **Live v23.95** | **NÃO** | **78/78** · PIN **9973** |
-| 9 | `PDV-IMP-SEP-OFF` | ✅ **Live v23.95** | **NÃO** | Separação **desmarcada** |
-| 10 | `PDV-IMP-PIN-ANTES` | ✅ **Live v23.95** | **NÃO** | PIN **antes** · sem 2ª via |
-| 11 | `PDV-ENT-CARD-LATERAL` | 🟢 **pronto para envio** (tip) | **NÃO** | **Adiar 1h** ao lado da hora · **Incluir**+Maps |
+| 1–10 | (checklist 12/09b) | ✅ **Live v23.95** | — | — |
+| 11 | `PDV-ENT-CARD-LATERAL` | 🟢 **pronto para envio à produção** | **NÃO** | card **48/48** · PIN **9973** |
+| 12 | `PDV-ENT-ALERTA-POR-ID` | 🟢 **pronto para envio à produção** | **NÃO** | **51/51** · PIN **9973** |
 
-**Status: ✅ Live v23.95** — `producao` @ `8faa4c1` · Render `dep-daincomk1f9s73f7e330`.  
-**Antes:** Live **v23.94** @ `c3e0b1c`. Migrate **0130** OK. **Não** merge `teste`.  
-**Rollback:** tag `rollback/pre-checklist-1209b-v23.94` · `docs/ROLLBACK-CHECKLIST-1209b.md`.  
-**Pendente SOLO tip:** `#11` `PDV-ENT-CARD-LATERAL`.
+**Loja:** ✅ Live **v23.95** @ `8faa4c1`. **Tip:** `#11`+`#12` prontos — **não** merge `teste` sem frase+senha.
 
-### 🔧 Tip — Adiar 1h por entrega (não muda todas · 12/09)
+### 📦 PACOTE PRONTO — Adiar 1h por entrega (`PDV-ENT-ALERTA-POR-ID` · tip · 12/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Bug** | Clique em **Adiar 1h** dum card virava **Alerta OK** em **todas** (snooze global) |
-| **Fix** | Card = **só aquela** entrega · botão topo **Alerta +1h** = todas as urgentes |
-| **Status** | tip `teste` · **não** loja |
-| **Você** | Ctrl+F5 · teste: adiar 1 card → só ele «Alerta OK» |
-
-### 🔧 Tip — Alerta OK sem clique (clique-through lembrete · 12/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Bug** | Ok do **Lembrete do caixa** (mesmo canto do **Alerta +1h**) fazia o clique “cair” no botão → virava **Alerta OK** sem querer |
-| **Fix** | Lembrete no **topo centro** · ao fechar, `pointer-events: none` 400ms · **2º toque** em Alerta OK **religar** alerta |
-| **Arquivos** | `pdv_wizard.js` · `pdv_wizard.html` |
-| **Status** | tip `teste` · **não** loja |
-| **Você** | Ctrl+F5 · se ainda «Alerta OK», **toque de novo** (religar) |
+| **O quê** | **Adiar 1h** no card = **só aquela** entrega · topo **Alerta +1h** = todas urgentes · lembrete centro (sem clique-through) |
+| **Prova** | `verify_pdv_entrega_alerta_por_id_path.py` **51/51** · PIN **9973** · card **48/48** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Risco** | Baixo · Ctrl+F5 |
 
 ### 📦 PACOTE PRONTO — Cards Entregas rota/horário/alerta (`PDV-ENT-CARD-LATERAL` · tip · 12/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | **Incluir**+Maps · badge hora + **Adiar 1h** (pisca) · alerta urgente · **Alerta +1h** topo · **tags numa linha** (Paga/Vila/hora/Adiar) · overlay **88rem** |
-| **Prova** | `verify_pdv_imp_pin_card_1209_path.py` **44/44** · PIN **9973** |
+| **O quê** | **Incluir**+Maps · hora + **Adiar 1h** · alerta · tags 1 linha · overlay **88rem** · Adiar\|Cancelar lado a lado |
+| **Prova** | `verify_pdv_imp_pin_card_1209_path.py` **48/48** · PIN **9973** |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** |
 | **Risco** | Baixo |

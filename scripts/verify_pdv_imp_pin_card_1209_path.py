@@ -142,6 +142,19 @@ def test_estatico() -> None:
     check("card_concluir", "pdv-entrega-concluir w-full" in wiz_js)
     check("card_adiar_1h_hora", "pdv-entrega-adiar-alerta-1h" in wiz_js and "Adiar 1h" in wiz_js)
     check("card_rota_incluir_lbl", 'aria-label="Incluir na rota"> Incluir</label>' in wiz_js)
+    # Adiar 1h por id (não global)
+    check("card_snooze_map", "gm_pdv_entregas_alerta_snooze_map" in wiz_js)
+    check("card_snooze_por_id_fn", "function adiarAlertaEntrega1hPorId" in wiz_js)
+    check("card_badge_por_id", "entregaAlertaEstaAdiada(id)" in wiz_js)
+    check(
+        "card_bind_por_id",
+        "adiarAlertaEntrega1hPorId" in wiz_js
+        and re.search(
+            r"pdv-entrega-adiar-alerta-1h[\s\S]{0,500}?adiarAlertaEntrega1hPorId",
+            wiz_js,
+        )
+        is not None,
+    )
 
 
 def test_runtime() -> None:
