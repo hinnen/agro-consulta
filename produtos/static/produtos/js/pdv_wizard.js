@@ -4576,55 +4576,56 @@
         var btns = '';
         if (pagasAba) {
             btns +=
-                '<label class="inline-flex items-center gap-1 rounded-lg border-2 border-emerald-200 bg-white px-2 py-1.5 text-[10px] font-black uppercase text-emerald-950">' +
-                '<input type="checkbox" class="pdv-entrega-paga-chk h-4 w-4 accent-emerald-600" data-entrega-id="' +
+                '<label class="inline-flex w-full items-center justify-center gap-1 rounded-lg border-2 border-emerald-200 bg-white px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-emerald-950">' +
+                '<input type="checkbox" class="pdv-entrega-paga-chk h-3.5 w-3.5 accent-emerald-600" data-entrega-id="' +
                 id +
                 '"> Incluir</label>';
             btns +=
-                '<button type="button" class="pdv-entrega-concluir rounded-lg bg-emerald-700 px-2 py-1.5 text-[10px] font-black uppercase text-white" data-entrega-id="' +
+                '<button type="button" class="pdv-entrega-concluir w-full rounded-lg bg-emerald-700 px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-white" data-entrega-id="' +
                 id +
                 '">Concluir</button>';
         }
         if (row.pode_assumir) {
             btns +=
-                '<button type="button" class="pdv-entrega-assumir rounded-lg bg-amber-600 px-2 py-1.5 text-[10px] font-black uppercase text-white shadow" data-entrega-id="' +
+                '<button type="button" class="pdv-entrega-assumir w-full rounded-lg bg-amber-600 px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-white shadow" data-entrega-id="' +
                 id +
                 '">Assumir</button>';
         }
         if (row.pode_imprimir) {
             btns +=
-                '<button type="button" class="pdv-entrega-imprimir rounded-lg border-2 border-slate-300 bg-white px-2 py-1.5 text-[10px] font-black uppercase text-slate-800" data-entrega-id="' +
+                '<button type="button" class="pdv-entrega-imprimir w-full rounded-lg border-2 border-slate-300 bg-white px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-slate-800" data-entrega-id="' +
                 id +
                 '">Imprimir</button>';
         }
         if (row.maps_url) {
             btns +=
-                '<button type="button" class="pdv-entrega-maps rounded-lg border-2 border-sky-400 bg-sky-50 px-2 py-1.5 text-[10px] font-black uppercase text-sky-950" data-entrega-id="' +
+                '<button type="button" class="pdv-entrega-maps w-full rounded-lg border-2 border-sky-400 bg-sky-50 px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-sky-950" data-entrega-id="' +
                 id +
                 '">Maps</button>';
         }
         if (row.pode_retomar) {
             btns +=
-                '<button type="button" class="pdv-entrega-retomar rounded-lg bg-emerald-600 px-2 py-1.5 text-[10px] font-black uppercase text-white" data-entrega-id="' +
+                '<button type="button" class="pdv-entrega-retomar w-full rounded-lg bg-emerald-600 px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-white" data-entrega-id="' +
                 id +
-                '">Retomar pagamento</button>';
+                '">Retomar</button>';
         }
         if (row.pode_adiar) {
             btns +=
-                '<button type="button" class="pdv-entrega-adiar rounded-lg border-2 border-amber-500 bg-amber-50 px-2 py-1.5 text-[10px] font-black uppercase text-amber-950" data-entrega-id="' +
+                '<button type="button" class="pdv-entrega-adiar w-full rounded-lg border-2 border-amber-500 bg-amber-50 px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-amber-950" data-entrega-id="' +
                 id +
                 '">Adiar 1 dia</button>';
         }
         if (row.pode_cancelar) {
             btns +=
-                '<button type="button" class="pdv-entrega-cancelar rounded-lg border-2 border-red-300 bg-white px-2 py-1.5 text-[10px] font-black uppercase text-red-800" data-entrega-id="' +
+                '<button type="button" class="pdv-entrega-cancelar w-full rounded-lg border-2 border-red-300 bg-white px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-red-800" data-entrega-id="' +
                 id +
                 '">Cancelar</button>';
         }
         return (
-            '<article class="pdv-entrega-card rounded-xl border-2 ' +
+            '<article class="pdv-entrega-card flex items-stretch gap-2 rounded-xl border-2 p-2 ' +
             borderCls +
             '">' +
+            '<div class="min-w-0 flex-1">' +
             (badges.length
                 ? '<div class="mb-1 flex flex-wrap gap-1">' + badges.join('') + '</div>'
                 : '') +
@@ -4646,9 +4647,12 @@
                   '</div>'
                 : '') +
             (cod ? '<div class="mt-0.5 text-[10px] font-mono text-slate-500">' + cod + '</div>' : '') +
-            '<div class="mt-2 flex flex-wrap gap-1.5">' +
-            btns +
             '</div>' +
+            (btns
+                ? '<div class="pdv-entrega-card-acoes flex w-[min(42%,10.5rem)] shrink-0 flex-col gap-1">' +
+                  btns +
+                  '</div>'
+                : '') +
             '</article>'
         );
     }
