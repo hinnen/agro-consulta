@@ -12,6 +12,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="{% static 'produtos/pwa/zap-loja-192.png' %}">
   <script>
   (function () {
+    try { document.documentElement.setAttribute("data-agro-hide-pdv", "1"); } catch (_) {}
     /* Sai do iframe/aba embutida da Gestão — senão o Chrome instala dentro do app Gestão. */
     try {
       if (window.top !== window.self) {
@@ -46,7 +47,10 @@
     color: #064e3b; font-size: .8rem; font-weight: 700; line-height: 1.35;
   }
   #wa-pwa-dica button { float: right; border: 0; background: transparent; color: #065f46; font-weight: 900; font-size: 1rem; padding: 0 .2rem; }
-  html[data-wa-standalone="1"] #wa-voltar-pdv,
+  /* App Zap separado: sem Voltar PDV / FAB / F1 */
+  #wa-voltar-pdv,
+  #agro-pdv-fab-wrap,
+  a.agro-pdv-voltar-link { display: none !important; }
   html[data-wa-standalone="1"] #wa-pwa-instalar,
   html[data-wa-standalone="1"] #wa-pwa-dica { display: none !important; }
 </style>
@@ -56,8 +60,7 @@
   <div id="wa-status" class="wa-pill">…</div>
   <button type="button" id="wa-pwa-instalar" title="Instalar como app no Chrome">Instalar no PC</button>
   <button type="button" id="wa-trocar" class="wa-ico hidden" title="Desligar este Zap e ligar outro (QR ou código)">Trocar Zap</button>
-  <a href="{% url 'atendimento_whatsapp_bot' %}" class="wa-ico pri" title="Configurar bot">Bot</a>
-  <span id="wa-voltar-pdv">{% include "produtos/_pdv_voltar_link.html" with link_class="wa-ico" %}</span>
+  <a href="{% url 'atendimento_whatsapp_bot' %}" class="wa-ico pri" id="wa-btn-bot" title="Configurar bot">Bot</a>
 </header>
 {% endblock %}
 

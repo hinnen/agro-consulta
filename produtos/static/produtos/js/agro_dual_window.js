@@ -41,11 +41,10 @@
     return p === '/atendimento-whatsapp/celular' || p.indexOf('/atendimento-whatsapp/celular/') === 0;
   }
 
-  /** Zap web no PC (não celular, não Bot). */
+  /** Zap web no PC (inclui Bot — mesmo app, sem PDV). */
   function isWhatsAppPcPath(p) {
     p = pathnameNorm(p);
     if (isWhatsAppCelularPath(p)) return false;
-    if (p === '/atendimento-whatsapp/bot' || p.indexOf('/atendimento-whatsapp/bot/') === 0) return false;
     return p === '/atendimento-whatsapp' || p.indexOf('/atendimento-whatsapp/') === 0;
   }
 
