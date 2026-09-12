@@ -175,6 +175,18 @@ def check_frontend_parity() -> None:
         fail("rota racoes-overlay")
     else:
         ok("rota racoes-overlay")
+    if "pesoKey === undefined) return true" in js:
+        fail("marca ainda inclui ração sem peso")
+    else:
+        ok("marca exige peso reconhecido")
+    if "pdvRacoesFiltrar(tipo, undefined, null)" not in js:
+        fail("lista de marcas sem filtro de peso")
+    else:
+        ok("lista de marcas filtra peso")
+    if "marcas_racoes_do_tipo" not in read("produtos/pdv_racoes_util.py"):
+        fail("util sem marcas_racoes_do_tipo")
+    else:
+        ok("util marcas_racoes_do_tipo")
     if "/api/pdv/racoes-overlay/" not in js or "pdvRacoesSincronizarCadastro" not in js:
         fail("JS puxa cadastro vivo Racoes")
     elif "loadWizardCatalog()" not in js.split("function pdvRacoesSincronizarCadastro")[1].split("function pdvRacoesAbrir")[0]:
@@ -496,6 +508,7 @@ def check_util_cenarios() -> None:
     from produtos.pdv_racoes_util import (
         TIPOS_RACOES,
         filtrar_racoes,
+        marcas_racoes_do_tipo,
         parse_peso_racoes,
         patch_racoes_de_campos,
         tipo_racoes_por_id,
@@ -645,6 +658,34 @@ def check_util_cenarios() -> None:
         fail("origens apos patch cadastro")
     else:
         ok("origens apos patch cadastro")
+    senior = tipo_racoes_por_id("cao_senior")
+    marcas_mix = [
+        {
+            "id": "vazio",
+            "categoria": "Rações",
+            "subcategoria": "Cão",
+            "subcategoria_2": "Sênior",
+            "marca": "GRAN PLUS",
+            "peso_etiqueta": "",
+        },
+        {
+            "id": "ok",
+            "categoria": "Rações",
+            "subcategoria": "Cão",
+            "subcategoria_2": "Sênior",
+            "marca": "ESTIMACAO",
+            "peso_etiqueta": "15",
+        },
+    ]
+    if marcas_racoes_do_tipo(marcas_mix, senior) != ["ESTIMACAO"]:
+        fail("marca sem peso ainda aparece")
+    else:
+        ok("marca sem peso some")
+    marcas_mix[0]["peso_etiqueta"] = "10"
+    if marcas_racoes_do_tipo(marcas_mix, senior) != ["ESTIMACAO", "GRAN PLUS"]:
+        fail("marca nao volta apos cadastrar peso")
+    else:
+        ok("marca volta apos cadastrar peso")
 
 
 def check_overlay_row() -> None:

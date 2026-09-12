@@ -429,7 +429,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08 · **Mais ⋯** 31/08 · `PDV-TOPBAR-MAIS` v20.34 · **layout** 31/08 · `PDV-TOPBAR-LAYOUT`):** faixa quente padrão = Pedir loja · Vendas · Uso loja · Entregas · Caixa · **Fiado** · Nova venda (Pedir/Uso = cinza slate; **Mais ⋯** laranja destaque). **Mais ⋯** = Saldo Vila · Repasse · Pesar · PIN + **Organizar atalhos** (quente/frio em Postgres `PdvTopbarLayoutAgro` · migrate `0110` · PIN ao salvar). Contagem diária PG (`0107`). **Ícone WhatsApp** na faixa de ações (ao lado de Nova venda) → aviso **Em breve…** (`PDV-WA-TOPBAR-BREVE`).
 - **Pedir loja (15/08 · +cupom/qtd/escrito 29/08 · +escolha/forçada 30/08):** overlay Pedir/Recebidos/Enviados/Histórico · **pedido escrito** · obs · cupom 80mm · qtd · Transferir rosa · PIN · furado · bip · migrate `0018`+`0020`. **Clique topbar** → escolha: **Pedir** (fila) ou **Transferência forçada** (estoque agora, overlay PDV = Logística; PIN na confirmação; Esc volta à escolha). Badge só conta pedidos.
-- **Chat lojas (29/08 · `PDV-CHAT-LOJA` + `PDV-CHAT-OPEN`):** aba **Chat** colada embaixo · grupo único · som + badge/pisca · sem Processando · Postgres `ChatLojaMensagemAgro` · migrate `0105` · **Live v19.63** (dock→`body`, janela abre).
+- **Chat lojas (29/08 · `PDV-CHAT-LOJA` + `PDV-CHAT-OPEN` · 12/09 `PDV-CHAT-ENTREGA-DOCK`):** aba **Chat** colada embaixo · grupo único · som + badge/pisca · sem Processando · Postgres `ChatLojaMensagemAgro` · migrate `0105` · **Live v19.63** (dock→`body`, janela abre). **Entrega:** aba depois do F7 (não tapa Voltar/F7).
 - **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
 - **Perf. animaÃ§Ãµes (decisÃ£o Renan, 2026-06):** acÃºmulo de efeitos no app inteiro *pode* pesar em PC fraco â€” mas **este FAB Ã© impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA pÃ¡gina inteira, listas grandes, Mongo, JS do PDV/LanÃ§amentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
 - **Interruptor efeitos (2026-06-19):** botÃ£o minÃºsculo **Â«FX on / FX offÂ»** acima do FAB PDV (`localStorage` `agro_reduzir_efeitos_v1`). **FX off** â†’ classe `html.agro-fx-reduced`: desliga arco-Ã­ris/pulso do FAB, pulso do card **Validade** vencida, pulso decorativo PDV/OrÃ§amento no BI. **NÃ£o** desliga: barra de loading, feedback de scanner, spinners de Â«salvandoÂ» (Ãºteis). API JS: `agroSetFxReduced(true|false)`, `agroFxReduced()`.
@@ -443,7 +443,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Cadastro rápido PDV (04/08 · v13.82):** botão **+ Produto** na busca · bipar → checa EAN → lookup internet opcional · cria Agro (UN) · card **PDV conferir** no Cadastro ERP · VERIFY_OK.
 
-**Rações PDV (09/08 · loja v15.26 · teste UX):** botão **Rações** → tipo → marca (ou Todas) → tamanho → **lista grande** (menor→maior preço) → Adicionar / Adicionar todas / Fechar. Não vai direto ao carrinho. Linha **zebra cinza fraca** (sem cor da marca) · foto miniatura (clique abre grande) · “No carrinho” na coluna Ação. Esc fecha (não fecha se a foto estiver aberta). Lê Categoria/Sub 1/Sub 2/Peso do Agro na hora. Cadastro: Cat. `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 + Peso `1`/`2,5`/`5`/`10`/`15`/`20`/`25`/`pacote`.
+**Rações PDV (09/08 · loja v15.26 · teste UX · 12/09 `PDV-RACOES-MARCA-VAZIA`):** botão **Rações** → tipo → marca (ou Todas) → tamanho → **lista grande** (menor→maior preço) → Adicionar / Adicionar todas / Fechar. Não vai direto ao carrinho. Linha **zebra cinza fraca** (sem cor da marca) · foto miniatura (clique abre grande) · “No carrinho” na coluna Ação. Esc fecha (não fecha se a foto estiver aberta). Lê Categoria/Sub 1/Sub 2/Peso do Agro na hora. Cadastro: Cat. `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 + Peso `1`/`2,5`/`5`/`10`/`15`/`20`/`25`/`pacote`. **Marca sem ração com peso some**; cadastrar peso depois traz a marca de volta.
 
 **Balança granel (16/08 · teste v16.71 · hotfix loja v17.82):** botão **Pesar** / **F10** → overlay · Web Serial Chrome · Urano **USE-P2 / USE-PII** · COM4 **9600 8N2** (8N1 ok neste USB) · dump vazio `ESC N 1` + `0,00` · dump ao vivo `0,478 kg` (não o ESC N 1 auxiliar) · códigos **1–199** · auto-add ao estabilizar · prato vazio libera de novo · SEM PORTA simula o dump · Unidade **KG** · migrate `0089` (já na loja).
 
@@ -1284,16 +1284,39 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### PC — disco C: cheio (12/09) · limpeza parcial
+### 📦 PACOTE PRONTO — Chat não cobre F7 na Entrega (`PDV-CHAT-ENTREGA-DOCK` · 12/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **C: livre** | **~20 GB** (antes ~3–8 GB) |
-| **Apagado** | TRAE `_old` · modelo IA Chrome · cache Codex · temp · (snapshots Cursor parcial) |
-| **Ainda no C:** | `state.vscdb` **~49 GB** (histórico Cursor) |
-| **Destino** | **E:** SSD (`E:\CursorOffload`) — HD D: fica de reserva |
-| **Pendente** | cópia **49 GB já no E:** · atalho de arquivo falhou · falta **junção da pasta** (fechar Cursor) |
-| **Não mexer** | GitHub / agro-consulta · OneDrive · `settings.json` |
+| **O quê** | Na etapa Entrega, aba **Chat** fica **depois** do botão verde (F7) — não tapa Voltar nem «Entrega ou loja» |
+| **Onde** | `chat_loja_overlay.html` · `pdv_chat_loja.js` |
+| **Prova** | `verify_pdv_chat_entrega_dock_path.py` **7/7** |
+| **Migrate** | **NÃO** |
+| **Status** | 🧪 **teste** — **Ctrl+F5** no PDV · F3 Entrega |
+| **Risco** | Baixo — só posição da aba |
+
+### 📦 PACOTE PRONTO — Rações some marca vazia (`PDV-RACOES-MARCA-VAZIA` · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | No atalho **Rações**, marca **só** aparece se tiver produto daquele tipo **com peso** (1, 2,5, 5, 10, 15, 20, 25 ou pacote). Sem ração = some. Cadastrou peso depois = marca volta. |
+| **Prova** | `verify_pdv_racoes.py` + `tests_pdv_racoes` |
+| **Migrate** | **NÃO** |
+| **Status** | 🧪 **teste** — aguarda Ctrl+F5 no PDV |
+| **Você** | PDV → Rações → Cão Sênior: GRAN PLUS sem peso **não** deve aparecer |
+| **Risco** | Baixo — só esconde botão vazio |
+
+### PC — disco C: cheio (12/09) · limpeza parcial · **terminar HOJE à tarde**
+
+| Campo | Valor |
+| ----- | ----- |
+| **C: livre agora** | **~18 GB** — dá para trabalhar no Agro |
+| **Apagado** | TRAE `_old` · modelo IA Chrome · cache Codex · temp |
+| **Já no E:** | cópia `state.vscdb` **49,25 GB** em `E:\CursorOffload\CursorState` (igual ao C:) |
+| **Falta** | fechar Cursor → junção da pasta `globalStorage` → apagar duplicata no C: (~**+50 GB** livres) |
+| **Script** | `E:\CursorOffload\RODAR.cmd` (janela preta; esperar **PRONTO**; **não** abrir Cursor no meio) |
+| **Pausado** | 12/09 manhã — Renan volta ao agro-consulta; **lembrar hoje à tarde** |
+| **Não mexer** | GitHub / agro-consulta · OneDrive · `settings.json` · **não apagar** `E:\CursorOffload` |
 
 ### ✅ CHECKLIST ÚNICO — 12/09 · pronto para envio à produção
 
@@ -1302,7 +1325,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | `WA-PONTE-ULTRA-LEVE` | 🟢 **pronto para envio à produção** | **NÃO** | **47/47** · PIN **9973** |
 | 2 | `WA-APP-SEM-PDV` | 🟢 **pronto para envio à produção** | **NÃO** | **48/48** · PIN **9973** |
 
-**Loja:** **v23.94**. Tip `teste` sobe com estes. Cherry `#1` (+ `#2`) + frase + senha — **não** merge `teste`.
+**Loja:** **v23.94**. Tip `teste` **v24.26**. Cherry `#1` (+ `#2`) + frase + senha — **não** merge `teste`.
 
 **Sem deploy:** fechar `.bat` → PDV volta. Religar `.bat` só depois do `#1` na loja.
 

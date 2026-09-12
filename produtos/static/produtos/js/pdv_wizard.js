@@ -14199,8 +14199,7 @@
 
     function pdvRacoesPassaPeso(p, pesoKey) {
         var parsed = pdvRacoesParsePeso(p && p.peso_etiqueta);
-        if (pesoKey === undefined) return true;
-        if (pesoKey === null) return !!parsed;
+        if (pesoKey === undefined || pesoKey === null) return !!parsed;
         return parsed === pesoKey;
     }
 
@@ -14272,7 +14271,7 @@
     function pdvRacoesMarcasDoTipo(tipo) {
         var seen = {};
         var out = [];
-        pdvRacoesFiltrar(tipo).forEach(function (p) {
+        pdvRacoesFiltrar(tipo, undefined, null).forEach(function (p) {
             var m = String(p.marca || '').trim();
             var k = pdvRacoesNorm(m) || '__sem__';
             if (seen[k]) return;
@@ -14392,6 +14391,12 @@
         document.body.classList.add('modal-open');
         pdvRacoesSincronizarCadastro().finally(function () {
             pdvRacoesSetMsg('');
+            if (!pdvRacoesOverlayAberto()) return;
+            if (pdvRacoesSel.step === 'marca' && pdvRacoesSel.tipo) {
+                pdvRacoesRenderMarcas(pdvRacoesSel.tipo);
+            } else if (pdvRacoesSel.step === 'peso' && pdvRacoesSel.tipo) {
+                pdvRacoesRenderPesos(pdvRacoesSel.tipo, pdvRacoesSel.marca);
+            }
         });
     }
 
@@ -14567,7 +14572,7 @@
 
     function pdvRacoesIrMarca(tipo) {
         function seguir() {
-            var qtd = pdvRacoesFiltrar(tipo).length;
+            var qtd = pdvRacoesFiltrar(tipo, undefined, null).length;
             if (!qtd) {
                 pdvRacoesSetMsg('Nenhum produto cadastrado nessa opção. Confira Categoria, Sub 1 e Sub 2.');
                 return;
@@ -14586,7 +14591,7 @@
     }
 
     function pdvRacoesSeguirMarca(tipo) {
-        var qtd = pdvRacoesFiltrar(tipo).length;
+        var qtd = pdvRacoesFiltrar(tipo, undefined, null).length;
         if (!qtd) {
             pdvRacoesSetMsg('Nenhum produto cadastrado nessa opção. Confira Categoria, Sub 1 e Sub 2.');
             return;
