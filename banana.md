@@ -1312,17 +1312,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 8 | `ETQ-LOTE-FILA` | 🟢 **pronto para envio à produção** | **NÃO** | **78/78** · PIN **9973** |
 | 9 | `PDV-IMP-SEP-OFF` | 🟢 **pronto para envio à produção** | **NÃO** | **42/42** · PIN **9973** |
 | 10 | `PDV-IMP-PIN-ANTES` | 🟢 **pronto para envio à produção** | **NÃO** | **42/42** · PIN **9973** |
-| 11 | `PDV-ENT-CARD-LATERAL` | 🟢 **pronto para envio à produção** | **NÃO** | **42/42** · Adiar\|Cancelar lado a lado |
+| 11 | `PDV-ENT-CARD-LATERAL` | 🟢 **pronto para envio à produção** | **NÃO** | tip **v24.48** · □ rota·Maps · horário · alerta +1h |
 
-**Loja:** **v23.94**. Tip `teste` **v24.44+**. PREP `#1`–`#10` @ `8faa4c1` · `#11` só no tip. Cherry + frase + senha — **não** merge `teste`.  
+**Loja:** **v23.94**. Tip `teste` **v24.48**. PREP `#1`–`#10` @ `8faa4c1` · `#11` só no tip. Cherry + frase + senha — **não** merge `teste`.  
 **Prova #9–#11:** `verify_pdv_imp_pin_card_1209_path.py` **42/42**. Lote PDV (#4–#7): **61/61**.  
 **Sem deploy Zap:** fechar `.bat` → PDV volta. Religar `.bat` só depois do `#1` na loja.
 
-### 📦 PACOTE PRONTO — Cards Entregas botões à direita (`PDV-ENT-CARD-LATERAL` · **v24.40** · 12/09)
+### 📦 PACOTE PRONTO — Cards Entregas rota/horário/alerta (`PDV-ENT-CARD-LATERAL` · **v24.48** · 12/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Botões mais largos (Cancelar 1 linha) · títulos alinhados · **Rota** no topo (A pagar + Pagas) |
+| **O quê** | □ rota ao lado do **Maps** · badge **horário** · alerta urgente · **Alerta +1h** |
 | **Prova** | `verify_pdv_imp_pin_card_1209_path.py` · PIN **9973** |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** |
