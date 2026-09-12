@@ -1284,6 +1284,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — Repasse «A SEPARAR» = dia real (`REPASSE-DIA-HERO` · tip **v24.78**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Card verde **A SEPARAR** mostra o **dia de verdade** · não espelha `|crédito|` quando líquido é 0 |
+| **Prova** | acum-pct-dia (hero dia real) · `node --check` OK |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** (**não** merge `teste`) |
+| **Você** | Ctrl+F5 · Repasse: A SEPARAR ≠ acumulado espelhado |
+| **Risco** | Baixo — só número no card |
+
+### ✅ CHECKLIST ÚNICO — 12/09f · **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `REPASSE-DIA-HERO` | 🟢 **pronto para envio à produção** | **NÃO** | hero ≠ `|acum|` |
+
 ### ✅ Deploy loja — Checklist 12/09e (`deploy/prep-checklist-1209e` · **v23.98**) · **Live**
 
 | Campo | Valor |

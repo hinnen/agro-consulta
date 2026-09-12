@@ -72,6 +72,8 @@ def main() -> int:
     must("Não reescreve o passado inteiro" in util or "não podem ficar com o % padrão" in views, "doc/proteção")
     must("reconstruir_deltas_acumulado" in views, "calc chama reconstruir")
     must("Crédito de dias anteriores cobre o dia" in js, "hint UX líquido zero")
+    must("Nunca espelhar |crédito|" in js or "dia de verdade" in js, "A SEPARAR = dia real")
+    must("totAuto - acum" not in js, "não espelha |acum| no hero do dia")
 
     # Contrato: dia com envio a 50% (+ outro a 0%) usa o MAIOR % — não o padrão 0
     dia = timezone.localdate() - timedelta(days=3)
