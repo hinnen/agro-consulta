@@ -1284,6 +1284,35 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 PREP — Checklist 12/09d · `PDV-ENT-ALERTA-LOJA` · alvo loja **v23.98**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **pronto para envio à produção** (**não** merge `teste`) |
+| **Loja hoje** | ✅ **Live v23.97** @ `3c56734` |
+| **Pacote** | `PDV-ENT-ALERTA-LOJA` |
+| **Prova** | `verify_pdv_entrega_alerta_por_id_path.py` **76/76** · PIN **9973** |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só bip/piscar de horário no PDV |
+| **Você (após senha)** | Ctrl+F5 · badge **v23.98** · Vila sem bip em saída Centro |
+
+### ✅ CHECKLIST ÚNICO — 12/09d · **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `PDV-ENT-ALERTA-LOJA` | 🟢 **pronto para envio à produção** | **NÃO** | **76/76** · PIN **9973** |
+
+### 📦 PACOTE PRONTO — Alerta horário só na loja que sai (`PDV-ENT-ALERTA-LOJA` · **v24.71**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Bip/piscar de horário **só** se `loja_entrega` = depósito do PDV · Vila com pagamento de entrega do Centro **não** toca · sem dono ainda alerta nas duas · cache LS por loja · card «Só sai» |
+| **Prova** | `verify_pdv_entrega_alerta_por_id_path.py` **76/76** · PIN **9973** · API centro/vila **200** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 PDV Vila · entrega Centro urgente: sem bip · Centro: bip normal |
+| **Risco** | Baixo |
+
 ### ✅ Deploy loja — ETQ-A6-COLS (`deploy/prep-etq-a6-cols` · **v23.97**) · **Live**
 
 | Campo | Valor |
@@ -1359,36 +1388,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | ✅ **Live v23.96** |
 | **Risco** | Baixo |
 
-### 📦 PACOTE PRONTO — PIN antes da impressão de entrega (`PDV-IMP-PIN-ANTES` · 12/09)
+### ✅ PACOTE — PIN antes da impressão de entrega (`PDV-IMP-PIN-ANTES` · **Live v23.95**)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | PIN **antes** de imprimir · retry de registro **sem** reimprimir · TTL pós-vias **120s** |
 | **Prova** | `verify_pdv_imp_pin_card_1209_path.py` **42/42** · PIN **9973** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** |
+| **Status** | ✅ **Live v23.95** |
 | **Risco** | Baixo |
 
-### 📦 PACOTE PRONTO — Separação desmarcada por padrão (`PDV-IMP-SEP-OFF` · 12/09)
+### ✅ PACOTE — Separação desmarcada por padrão (`PDV-IMP-SEP-OFF` · **Live v23.95**)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Modal impressão: **Separação** começa **desmarcada** (PDV + painel); entregador + cupom marcados |
 | **Prova** | `verify_pdv_imp_pin_card_1209_path.py` **42/42** · PIN **9973** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** |
+| **Status** | ✅ **Live v23.95** |
 | **Risco** | Baixo |
 
-### 📦 PACOTE PRONTO — Alerta horário só na loja que sai (`PDV-ENT-ALERTA-LOJA` · 12/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Bip/piscar de horário **só** se `loja_entrega` = depósito do PDV · Vila com pagamento de entrega do Centro **não** toca · sem dono ainda alerta nas duas · cache LS por loja |
-| **Prova** | `verify_pdv_entrega_alerta_por_id_path.py` **63/63** · PIN **9973** |
-| **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** |
-| **Você** | Ctrl+F5 PDV Vila · entrega Centro urgente: sem bip na Vila · bip no Centro |
-| **Risco** | Baixo — só alerta sonoro/visual de horário |
+### ~~📦 PACOTE PRONTO — Alerta horário só na loja que sai~~ → **ver PREP 12/09d no topo** (prova **76/76**)
 
 ### ✅ PACOTE — A6 2/3 colunas (`ETQ-A6-COLS` · **Live v23.97**)
 
@@ -1409,7 +1429,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | **Lote A4** pela **fila** ou loja · preset · QTD · folhas/vez · intervalo · pausa/auto · progresso PG |
 | **Prova** | `verify_etiquetas_lote_fila.py` **78/78** · PIN **9973** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** |
+| **Status** | ✅ **Live v23.95** |
 | **Você** | Ctrl+F5 etiquetas · fila → Lote A4 · 1 trecho → Não no confirm → reimprimir |
 | **Risco** | Baixo |
 

@@ -319,6 +319,41 @@ def test_runtime() -> None:
             isinstance(dj, dict),
             str(list(dj.keys())[:12]),
         )
+        check("api_pendentes_ok_flag", bool(dj.get("ok")))
+
+    wiz_js = _read("produtos/static/produtos/js/pdv_wizard.js")
+
+    for loja in ("centro", "vila"):
+        rl = client.get(url_pend, {"loja": loja})
+        check(f"api_pendentes_{loja}_status", rl.status_code == 200, str(rl.status_code))
+        if rl.status_code != 200:
+            continue
+        try:
+            data = rl.json()
+        except Exception:
+            data = {}
+        check(f"api_pendentes_{loja}_ok", bool(data.get("ok")))
+        check(f"api_pendentes_{loja}_campo", data.get("loja") == loja, str(data.get("loja")))
+        itens = list(data.get("itens") or []) + list(data.get("itens_pagas") or [])
+        check(f"api_pendentes_{loja}_lista", isinstance(itens, list), f"n={len(itens)}")
+
+    check("card_so_sai_marker", "Só sai" in wiz_js)
+    check(
+        "card_so_sai_title",
+        "Alerta de horário só na loja que sai" in wiz_js,
+    )
+    check(
+        "pdv_assets_script",
+        "pdv_wizard.js" in body
+        or "pdv_wizard.js" in _read("produtos/templates/produtos/pdv_wizard.html"),
+    )
+    check(
+        "som_usa_max_filtrado",
+        "maxUrgenciaEntregasPendentes"
+        in _fn_body(wiz_js, "syncEntregasAlertaSonoro", 900)
+        and "entregaAlertaHorarioDestaLoja"
+        in _fn_body(wiz_js, "urgenciaEfetivaEntregaRow", 900),
+    )
 
 
 def main() -> int:
