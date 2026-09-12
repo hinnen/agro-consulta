@@ -1284,6 +1284,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟡 WIP — Acumulado Repasse crédito fantasma (`REPASSE-ACUM-PCT-DIA` · **v24.73**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Sintoma** | Tela −956 vs dia 956 · loja desconfia do acumulado |
+| **Causa** | Padrão **0%** reescrevia dias antigos → envio a **50%** virava «crédito fantasma» |
+| **Fix** | Cache usa **maior % dos envios do dia** · reconstrói ao abrir calc · hint quando crédito cobre o dia |
+| **Prova** | acum-pct-dia **10/10** · acum-extra **18/18** · acum-net **29/29** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟡 **só no teste** — falta subir loja |
+| **Você** | Ctrl+F5 no PC · Repasse · loja: frase + senha |
+
 ### 🟢 PREP — Checklist 12/09d · `PDV-ENT-ALERTA-LOJA` · alvo loja **v23.98**
 
 | Campo | Valor |
