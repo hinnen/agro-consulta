@@ -244,13 +244,14 @@
           <h3 class="text-base font-black text-slate-900">Controle de entregas</h3>
         </div>
         <div class="flex shrink-0 items-center gap-1.5">
+          <button type="button" id="pdv-entregas-adiar-alerta" class="hidden rounded-xl border-2 border-amber-500 bg-amber-50 px-3 py-1.5 text-[10px] font-black uppercase text-amber-950 shadow-sm hover:bg-amber-100" title="Adia o piscar e o bip do horário por 1 hora">Alerta +1h</button>
           <button type="button" id="pdv-entregas-rota" class="rounded-xl border-2 border-emerald-600 bg-emerald-600 px-3 py-1.5 text-[10px] font-black uppercase text-white shadow-sm hover:bg-emerald-700" title="Monta rota no Maps com A pagar + Pagas">Rota</button>
           <details class="pdv-entregas-help relative">
             <summary class="cursor-pointer list-none flex h-9 w-9 items-center justify-center rounded-xl border-2 border-orange-300 bg-white text-sm font-black text-orange-900 shadow-sm hover:bg-orange-50 select-none" title="Ajuda — entregas">?</summary>
             <div class="absolute right-0 z-20 mt-1 w-[min(92vw,22rem)] rounded-xl border-2 border-orange-300 bg-white px-3 py-2.5 text-xs font-semibold leading-snug text-slate-700 shadow-xl">
               <p><strong>A pagar</strong> (esquerda): cobrança na entrega. Catálogo sem dono → <strong>Assumir</strong>.</p>
               <p class="mt-2"><strong>Pagas na loja</strong> (direita): já cobradas no caixa. <strong>Concluir</strong> some da lista. Se não concluir, saem sozinhas em <strong>24 h</strong>. <strong>Não</strong> travam o fechar caixa.</p>
-              <p class="mt-2"><strong>Rota</strong> (topo): Maps com <strong>A pagar + Pagas</strong>. Em Pagas, marque <strong>Incluir</strong> para filtrar só algumas.</p>
+              <p class="mt-2"><strong>Rota</strong> (topo): Maps. Em A pagar, marque □ ao lado de <strong>Maps</strong>; em Pagas use <strong>Incluir</strong>. Sem marca = todas.</p>
               <p class="mt-2"><strong>Imprimir</strong> reimprime as vias. <strong>Maps</strong> abre o destino. <strong>Adiar</strong> (PIN) só nas que ainda precisam de pagamento.</p>
             </div>
           </details>

@@ -178,6 +178,9 @@ def serializar_entrega_pendente_pdv(ent: PedidoEntrega, *, incluir_estado: bool 
         and not bool(getattr(ent, "pdv_lista_concluida", False)),
         "venda_agro_id": ent.venda_agro_id,
         "aguarda_pagamento_pdv": bool(ent.aguarda_pagamento_pdv),
+        "hora_prevista": ent.hora_prevista.strftime("%H:%M")
+        if getattr(ent, "hora_prevista", None)
+        else "",
     }
     if incluir_estado:
         row["pdv_wizard_state"] = ent.pdv_wizard_state if isinstance(ent.pdv_wizard_state, dict) else {}

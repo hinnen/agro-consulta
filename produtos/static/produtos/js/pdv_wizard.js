@@ -4467,6 +4467,102 @@
             '</div>';
     }
 
+
+    var ENTREGAS_ALERTA_SNOOZE_KEY = 'gm_pdv_entregas_alerta_snooze_until';
+    var _entregasAlertaSomTimer = null;
+    var _entregasAlertaSomNivel = 0;
+
+    function formatHoraPrevistaEntregaUi(raw) {
+        var s = String(raw || '').trim();
+        if (!s) return '';
+        var m = s.match(/^(\d{1,2}):(\d{2})/);
+        if (!m) return '';
+        var hh = String(Math.min(23, parseInt(m[1], 10) || 0)).padStart(2, '0');
+        var mm = String(Math.min(59, parseInt(m[2], 10) || 0)).padStart(2, '0');
+        return hh + ':' + mm;
+    }
+
+    /** 0=ok · 1=próximo (≤30 min) · 2=atrasado */
+    function urgenciaHorarioEntregaUi(hhmm) {
+        var hp = formatHoraPrevistaEntregaUi(hhmm);
+        if (!hp) return 0;
+        var parts = hp.split(':');
+        var agora = new Date();
+        var alvo = new Date(
+            agora.getFullYear(),
+            agora.getMonth(),
+            agora.getDate(),
+            parseInt(parts[0], 10) || 0,
+            parseInt(parts[1], 10) || 0,
+            0,
+            0
+        );
+        var diffMin = (alvo.getTime() - agora.getTime()) / 60000;
+        if (diffMin < 0) return 2;
+        if (diffMin <= 30) return 1;
+        return 0;
+    }
+
+    function maxUrgenciaEntregasPendentes() {
+        var maxU = 0;
+        (entregasPendentesCache.itens || []).forEach(function (row) {
+            var u = urgenciaHorarioEntregaUi(row && row.hora_prevista);
+            if (u > maxU) maxU = u;
+        });
+        return maxU;
+    }
+
+    function entregasAlertaEstaAdiado() {
+        try {
+            var until = parseInt(localStorage.getItem(ENTREGAS_ALERTA_SNOOZE_KEY) || '0', 10);
+            return !!(until && Date.now() < until);
+        } catch (e0) {
+            return false;
+        }
+    }
+
+    function adiarAlertaEntregas1h() {
+        try {
+            localStorage.setItem(ENTREGAS_ALERTA_SNOOZE_KEY, String(Date.now() + 60 * 60 * 1000));
+        } catch (e1) {}
+        syncEntregasAlertaSonoro(0);
+        applyEntregasPendentesButton();
+        showSaleDoneFeedback('Alerta de horário adiado por 1 hora (piscar e bip).', 'ok');
+        syncEntregasAdiarAlertaBtn();
+    }
+
+    function syncEntregasAdiarAlertaBtn() {
+        var btn = document.getElementById('pdv-entregas-adiar-alerta');
+        if (!btn) return;
+        var urg = maxUrgenciaEntregasPendentes();
+        var adiado = entregasAlertaEstaAdiado();
+        if (urg > 0) {
+            btn.classList.remove('hidden');
+            btn.textContent = adiado ? 'Alerta OK' : 'Alerta +1h';
+            btn.title = adiado
+                ? 'Alerta adiado — toque de novo só renova +1h'
+                : 'Adia o piscar e o bip do horário por 1 hora';
+        } else {
+            btn.classList.add('hidden');
+        }
+    }
+
+    function syncEntregasAlertaSonoro(nivel) {
+        if (_entregasAlertaSomTimer) {
+            clearInterval(_entregasAlertaSomTimer);
+            _entregasAlertaSomTimer = null;
+        }
+        _entregasAlertaSomNivel = nivel || 0;
+        if (!nivel || entregasAlertaEstaAdiado()) return;
+        var ms = nivel >= 2 ? 18000 : 40000;
+        var tocar = function () {
+            if (entregasAlertaEstaAdiado()) return;
+            if (typeof tocarSomLembreteWizard === 'function') tocarSomLembreteWizard();
+        };
+        tocar();
+        _entregasAlertaSomTimer = setInterval(tocar, ms);
+    }
+
     function applyEntregasPendentesButton() {
         var itens = entregasPendentesCache.itens || [];
         var pagas = entregasPendentesCache.itensPagas || [];
@@ -4482,8 +4578,14 @@
         var catalogoSemDono = itens.some(function (row) {
             return row && row.eh_catalogo && row.pode_assumir;
         });
+        var urgHorario = maxUrgenciaEntregasPendentes();
+        var alertaAdiado = entregasAlertaEstaAdiado();
         if (catalogoSemDono) {
             alertTop += ' pdv-wiz-topbar-btn--entregas-catalogo';
+        } else if (!alertaAdiado && urgHorario >= 2) {
+            alertTop += ' pdv-wiz-topbar-btn--entregas-urgente';
+        } else if (!alertaAdiado && urgHorario === 1) {
+            alertTop += ' pdv-wiz-topbar-btn--entregas-hora-proxima';
         } else if (nPagar === 0 && nPagas > 0) {
             alertTop += ' pdv-wiz-topbar-btn--entregas-pagas';
         }
@@ -4493,6 +4595,10 @@
             dom.topbarEntregasBtn.className = n > 0 ? alertTop : discreteTop;
             if (catalogoSemDono) {
                 dom.topbarEntregasBtn.title = 'Catálogo sem loja — Assumir entrega';
+            } else if (!alertaAdiado && urgHorario >= 2) {
+                dom.topbarEntregasBtn.title = 'Entrega atrasada no horário — abra Entregas';
+            } else if (!alertaAdiado && urgHorario === 1) {
+                dom.topbarEntregasBtn.title = 'Entrega próxima do horário (até 30 min)';
             } else if (nPagar > 0) {
                 dom.topbarEntregasBtn.title =
                     'A pagar: ' + nPagar + (nPagas ? ' · Pagas na loja: ' + nPagas : '');
@@ -4502,6 +4608,8 @@
                 dom.topbarEntregasBtn.title = 'Entregas';
             }
         }
+        syncEntregasAlertaSonoro(alertaAdiado ? 0 : urgHorario);
+        syncEntregasAdiarAlertaBtn();
         if (dom.topbarEntregasCount) {
             if (n > 0) {
                 dom.topbarEntregasCount.textContent = String(n);
@@ -4561,6 +4669,23 @@
                 );
             }
         }
+        var hpUi = formatHoraPrevistaEntregaUi(row.hora_prevista);
+        if (hpUi) {
+            var urgHp = urgenciaHorarioEntregaUi(hpUi);
+            var hpCls =
+                urgHp === 2
+                    ? 'bg-red-600 text-white animate-pulse'
+                    : urgHp === 1
+                      ? 'bg-amber-500 text-white'
+                      : 'bg-slate-700 text-white';
+            badges.push(
+                '<span class="rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tabular-nums ' +
+                    hpCls +
+                    '" title="Horário agendado">' +
+                    escapeHtml(hpUi) +
+                    '</span>'
+            );
+        }
         if (row.caixa_adiada_para) {
             badges.push(
                 '<span class="rounded-md bg-amber-700 px-1.5 py-0.5 text-[9px] font-black uppercase text-white">Adiada · volta ' +
@@ -4597,7 +4722,24 @@
                 id +
                 '">Imprimir</button>';
         }
-        if (row.maps_url) {
+        if (!pagasAba) {
+            btns += '<div class="flex w-full items-stretch gap-1">';
+            btns +=
+                '<label class="inline-flex shrink-0 items-center justify-center rounded-lg border-2 border-sky-300 bg-white px-1.5 py-1" title="Incluir na rota">' +
+                '<input type="checkbox" class="pdv-entrega-rota-chk h-3.5 w-3.5 accent-sky-600" data-entrega-id="' +
+                id +
+                '" aria-label="Incluir na rota"></label>';
+            if (row.maps_url) {
+                btns +=
+                    '<button type="button" class="pdv-entrega-maps min-w-0 flex-1 rounded-lg border-2 border-sky-400 bg-sky-50 px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-sky-950" data-entrega-id="' +
+                    id +
+                    '">Maps</button>';
+            } else {
+                btns +=
+                    '<span class="min-w-0 flex-1 rounded-lg border border-dashed border-slate-200 px-1.5 py-1 text-center text-[9px] font-bold uppercase text-slate-400">Sem Maps</span>';
+            }
+            btns += '</div>';
+        } else if (row.maps_url) {
             btns +=
                 '<button type="button" class="pdv-entrega-maps w-full rounded-lg border-2 border-sky-400 bg-sky-50 px-1.5 py-1 text-[9px] font-black uppercase leading-tight text-sky-950" data-entrega-id="' +
                 id +
@@ -4797,22 +4939,20 @@
             seen[s] = 1;
             ids.push(s);
         }
-        /* A pagar: sempre entram na rota. */
-        (entregasPendentesCache.itens || []).forEach(function (r) {
-            if (r && r.id != null) addId(r.id);
-        });
-        /* Pagas: só as marcadas em Incluir; se nenhuma marcada, todas. */
+        /* Marcados: □ ao lado do Maps (A pagar) + Incluir (Pagas). */
         var checked = [];
-        var elPagas = document.getElementById('pdv-entregas-list-pagas') || dom.entregasPendentesList;
-        if (elPagas) {
-            elPagas.querySelectorAll('.pdv-entrega-paga-chk:checked').forEach(function (chk) {
-                var pk = chk.getAttribute('data-entrega-id');
-                if (pk) checked.push(String(pk));
-            });
-        }
+        var modalRoot = document.getElementById('pdv-entregas-pendentes-modal');
+        var scope = modalRoot || document;
+        scope.querySelectorAll('.pdv-entrega-rota-chk:checked, .pdv-entrega-paga-chk:checked').forEach(function (chk) {
+            var pk = chk.getAttribute('data-entrega-id');
+            if (pk) checked.push(String(pk));
+        });
         if (checked.length) {
             checked.forEach(addId);
         } else {
+            (entregasPendentesCache.itens || []).forEach(function (r) {
+                if (r && r.id != null) addId(r.id);
+            });
             (entregasPendentesCache.itensPagas || []).forEach(function (r) {
                 if (r && r.id != null) addId(r.id);
             });
@@ -15560,6 +15700,17 @@
         var btnRota = document.getElementById('pdv-entregas-rota') || document.getElementById('pdv-entregas-rota-pagas');
         if (btnRota) {
             btnRota.addEventListener('click', abrirRotaEntregasOverlay);
+        }
+        var btnAdiarAlerta = document.getElementById('pdv-entregas-adiar-alerta');
+        if (btnAdiarAlerta) {
+            btnAdiarAlerta.addEventListener('click', adiarAlertaEntregas1h);
+        }
+        if (!window.__pdvEntregasUrgenciaTick) {
+            window.__pdvEntregasUrgenciaTick = setInterval(function () {
+                try {
+                    applyEntregasPendentesButton();
+                } catch (eTick) {}
+            }, 30000);
         }
         if (dom.entregasPendentesModal) {
             dom.entregasPendentesModal.addEventListener('click', function (ev) {

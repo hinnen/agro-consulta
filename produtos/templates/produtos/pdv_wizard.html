@@ -2195,6 +2195,29 @@
     background: #fff !important;
     color: #c2410c !important;
   }
+
+  #pdv-topbar-compact #pdv-topbar-entregas-btn.pdv-wiz-topbar-btn--entregas-urgente {
+    border-color: #dc2626 !important;
+    background: linear-gradient(90deg, #dc2626, #ea580c) !important;
+    color: #fff !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.4), 0 6px 18px rgba(234, 88, 12, 0.45) !important;
+    animation: pdv-entregas-urgente-pulse 0.45s ease-in-out infinite;
+  }
+  #pdv-topbar-compact #pdv-topbar-entregas-btn.pdv-wiz-topbar-btn--entregas-urgente .pdv-topbar-entregas-count {
+    background: #fff !important;
+    color: #b91c1c !important;
+  }
+  #pdv-topbar-compact #pdv-topbar-entregas-btn.pdv-wiz-topbar-btn--entregas-hora-proxima {
+    border-color: #f59e0b !important;
+    background: linear-gradient(90deg, #d97706, #ea580c) !important;
+    color: #fff !important;
+    animation: pdv-entregas-catalogo-pulse 0.7s ease-in-out infinite;
+  }
+  @keyframes pdv-entregas-urgente-pulse {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.1); filter: brightness(1.12); }
+  }
+
   @keyframes pdv-entregas-catalogo-pulse {
     0%, 100% { transform: scale(1); filter: brightness(1); }
     50% { transform: scale(1.06); filter: brightness(1.08); }
