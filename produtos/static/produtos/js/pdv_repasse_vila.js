@@ -527,8 +527,9 @@
     syncManualFromAuto(totAuto);
     var mv = manualDirty ? parseManualValor() : null;
     var tot = mv != null ? mv : totAuto;
-    // Grande = dia (já com fundo troco) · menor = acumulado
-    var diaHero = inclAcum ? Math.max(0, Math.round((totAuto - acum) * 100) / 100) : totAuto;
+    // A SEPARAR = dia de verdade (CMV+lucro+fiado). Nunca espelhar |crédito|
+    // (bug: totAuto=0 e acum=-X virava «A SEPARAR X» igual ao acumulado).
+    var diaHero = Math.max(0, Math.round(Number(diaAuto || 0) * 100) / 100);
     setText('pdv-rp-total', money(diaHero));
     var acumHero = document.getElementById('pdv-rp-total-acum');
     if (acumHero) {
