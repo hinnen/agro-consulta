@@ -599,6 +599,13 @@
         enviarHint.textContent = 'Digitou a menos · falta ' + money(-difLev) + ' soma amanhã';
       } else if (mv != null) {
         enviarHint.textContent = 'Valor digitado · total a levar ' + money(tot);
+      } else if (inclAcum && tot < 0.009 && acum < -0.009) {
+        enviarHint.textContent =
+          'Crédito de dias anteriores cobre o dia · líquido R$ 0,00 (não é erro: dia ' +
+          money(diaAuto) +
+          ' − crédito ' +
+          money(-acum) +
+          ')';
       } else if (inclAcum && Math.abs(acum) > 0.009) {
         enviarHint.textContent = 'Total a levar ' + money(tot) + ' (dia + acumulado)';
       } else {

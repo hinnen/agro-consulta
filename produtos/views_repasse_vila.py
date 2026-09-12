@@ -30,6 +30,7 @@ from produtos.repasse_vila_util import (
     nomes_planos_desconto_centro,
     obter_config,
     quitar_acumulado_zerar,
+    reconstruir_deltas_acumulado,
     registrar_ajuste_acumulado,
     reserva_vila_desde_config,
     resumo_cofrinho_vila,
@@ -124,6 +125,11 @@ def api_repasse_vila_calc(request):
         pct_v = Decimal(str(pct).replace(",", ".")) if pct not in (None, "") else None
     except Exception:
         pct_v = None
+    # Repara cache: dias antigos não podem ficar com o % padrão de hoje (crédito fantasma).
+    try:
+        reconstruir_deltas_acumulado(ate=dia)
+    except Exception:
+        pass
     out = calcular_disponivel(dia, percentual_lucro=pct_v, modo_dia_cheio=modo)
     out["cofrinho"] = resumo_cofrinho_vila(dia, limit=10, cofre="salario")
     out["cofre_vila_elias"] = resumo_cofrinho_vila(dia, limit=10, cofre="vila_elias")
