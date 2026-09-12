@@ -1364,11 +1364,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | A6 deixa de travar 1 col: grade = o que cabe · **~50 mm = 2 col** · **~33 mm = 3 col** · bônus 100×45 continua 1×3 |
-| **Prova** | `verify_etiquetas_a6_path.js` **67/67** · `verify_etiquetas_gondola_grade.js` OK |
+| **Prova** | `verify_etiquetas_a6_path.js` **86/86** · gondola OK · Django presets **3/3** · página+API local **200** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** |
+| **Status** | 🟢 **pronto para envio à produção** · alvo loja **v23.97** |
 | **Você** | Ctrl+F5 etiquetas · Folha A6 · largura 50 ou 33 · conferir grade |
-| **Risco** | Baixo |
+| **Rollback** | `docs/ROLLBACK-ETQ-A6-COLS.md` · tag `rollback/pre-etq-a6-cols-v23.96` |
+| **Risco** | Baixo — só etiquetas · zero PDV/caixa |
 
 ### 📦 PACOTE PRONTO — Lote A4 fila + controle fino (`ETQ-LOTE-FILA` · **v24.34** · 12/09)
 
