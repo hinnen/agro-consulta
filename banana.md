@@ -1297,10 +1297,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 7 | `PDV-ENT-OVERLAY-SPLIT` | 🟢 **pronto para envio à produção** | **SIM** `0130` | lote **61/61** · PIN **9973** |
 | 8 | `ETQ-LOTE-FILA` | 🟢 **pronto para envio à produção** | **NÃO** | **78/78** · PIN **9973** |
 | 9 | `PDV-IMP-SEP-OFF` | 🟢 **pronto para envio à produção** | **NÃO** | UX · Separação **desmarcada** |
+| 10 | `PDV-IMP-PIN-ANTES` | 🟢 **pronto para envio à produção** | **NÃO** | PIN **antes** de imprimir · sem 2ª via |
 
-**Loja:** **v23.94**. Tip `teste` **v24.35+**. Cherry `#1`–`#9` + frase + senha — **não** merge `teste`.  
+**Loja:** **v23.94**. Tip `teste` **v24.37+**. Cherry `#1`–`#10` + frase + senha — **não** merge `teste`.  
 **Prova lote PDV (#4–#7):** `verify_pdv_entrega_lote_1209_path.py` **61/61**.  
 **Sem deploy Zap:** fechar `.bat` → PDV volta. Religar `.bat` só depois do `#1` na loja.
+
+### 📦 PACOTE PRONTO — PIN antes da impressão de entrega (`PDV-IMP-PIN-ANTES` · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Enviar entrega / ir p/ pagamento: **PIN primeiro**, depois vias. Se registrar falhar por PIN, **reenvia sem reimprimir**. TTL pós-vias na confirmação **120s**. |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Risco** | Baixo |
 
 ### 📦 PACOTE PRONTO — Separação desmarcada por padrão (`PDV-IMP-SEP-OFF` · 12/09)
 

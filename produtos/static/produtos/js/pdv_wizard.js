@@ -11765,11 +11765,19 @@
             } catch (eMpPin) {
                 jaPagoMp = false;
             }
+            var frescoEntrega = false;
+            try {
+                frescoEntrega = !!(
+                    State.getState().entrega && State.getState().entrega.entregaFreteLiberadoPagamento
+                );
+            } catch (eEntPin) {
+                frescoEntrega = false;
+            }
             window.gmSspinGarantirOperador(runConfirm, {
                 titulo: jaPagoMp
                     ? 'PIN para gravar a venda (máquina já cobrou)'
                     : 'PIN para confirmar a venda',
-                maxFrescoS: jaPagoMp ? 45 : 10
+                maxFrescoS: jaPagoMp ? 45 : frescoEntrega ? 120 : 10
             });
         } else {
             runConfirm();
@@ -13557,6 +13565,67 @@
         return '';
     }
 
+    function wizardRegistrarEntregaPainelAposEscolha(opt, alreadyPrinted, orcIdFixo) {
+        if (!opt) return;
+        var orcId = orcIdFixo != null ? orcIdFixo : Date.now();
+        if (!alreadyPrinted) {
+            wizardImprimirPacoteEntrega(orcId, opt);
+        }
+        var state2 = State.getState();
+        var computed2 = State.getComputed();
+        var snapshot = State.exportWizardStateSnapshot
+            ? State.exportWizardStateSnapshot()
+            : null;
+        var body = buildEntregaPayload(state2, computed2, {
+            orc_local_id: orcId,
+            retomar_codigo: 'GMORC' + String(orcId),
+            obsExtra: obsFluxoEntregaResumo(state2)
+        });
+        body.aguarda_pagamento_pdv = true;
+        body.pdv_wizard_state = snapshot || {};
+        if (bootstrap.caixa && bootstrap.caixa.id) {
+            body.sessao_caixa_id = bootstrap.caixa.id;
+        }
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
+        jsonPost(urls.apiEntregaRegistrar || '', body)
+            .then(function (res) {
+                if (!res.ok || !res.data || !res.data.ok) {
+                    throw new Error(
+                        (res.data && (res.data.erro || res.data.mensagem)) ||
+                            'Falha ao registrar no painel Entregas.'
+                    );
+                }
+                resetWizardParaNovaVenda();
+                showSaleDoneFeedback(
+                    'Entrega enviada. Quando o entregador voltar, use Entregas para registrar o pagamento.',
+                    'success'
+                );
+                return refreshEntregasPendentesUi(true);
+            })
+            .catch(function (err) {
+                var msg =
+                    err && err.message
+                        ? err.message
+                        : 'Não foi possível registrar no painel Entregas.';
+                if (
+                    typeof window.gmSspinAbrirSeErroPin === 'function' &&
+                    window.gmSspinAbrirSeErroPin(
+                        msg,
+                        function () {
+                            wizardRegistrarEntregaPainelAposEscolha(opt, true, orcId);
+                        },
+                        { titulo: 'PIN para enviar entrega' }
+                    )
+                ) {
+                    return;
+                }
+                alert(msg);
+            })
+            .finally(function () {
+                if (window.gmLoadingBar) window.gmLoadingBar.hide();
+            });
+    }
+
     function wizardEnviarEntregaPainel() {
         var state = State.getState();
         var computed = State.getComputed();
@@ -13576,46 +13645,21 @@
             abrirFluxoPagamentoEntregaSePendente();
             return;
         }
-        fecharModaisEntregaAntesImpressao();
-        wizardModalEscolhaImpressaoEntrega().then(function (opt) {
-            if (!opt) return;
-            var orcId = Date.now();
-            wizardImprimirPacoteEntrega(orcId, opt);
-            var state2 = State.getState();
-            var computed2 = State.getComputed();
-            var snapshot = State.exportWizardStateSnapshot
-                ? State.exportWizardStateSnapshot()
-                : null;
-            var body = buildEntregaPayload(state2, computed2, {
-                orc_local_id: orcId,
-                retomar_codigo: 'GMORC' + String(orcId),
-                obsExtra: obsFluxoEntregaResumo(state2)
+        var run = function () {
+            fecharModaisEntregaAntesImpressao();
+            wizardModalEscolhaImpressaoEntrega().then(function (opt) {
+                if (!opt) return;
+                wizardRegistrarEntregaPainelAposEscolha(opt, false);
             });
-            body.aguarda_pagamento_pdv = true;
-            body.pdv_wizard_state = snapshot || {};
-            if (bootstrap.caixa && bootstrap.caixa.id) {
-                body.sessao_caixa_id = bootstrap.caixa.id;
-            }
-            if (window.gmLoadingBar) window.gmLoadingBar.show();
-            jsonPost(urls.apiEntregaRegistrar || '', body)
-                .then(function (res) {
-                    if (!res.ok || !res.data || !res.data.ok) {
-                        throw new Error((res.data && (res.data.erro || res.data.mensagem)) || 'Falha ao registrar no painel Entregas.');
-                    }
-                    resetWizardParaNovaVenda();
-                    showSaleDoneFeedback(
-                        'Entrega enviada. Quando o entregador voltar, use Entregas para registrar o pagamento.',
-                        'success'
-                    );
-                    return refreshEntregasPendentesUi(true);
-                })
-                .catch(function (err) {
-                    alert(err && err.message ? err.message : 'Não foi possível registrar no painel Entregas.');
-                })
-                .finally(function () {
-                    if (window.gmLoadingBar) window.gmLoadingBar.hide();
-                });
-        });
+        };
+        if (typeof window.gmSspinGarantirOperador === 'function') {
+            window.gmSspinGarantirOperador(run, {
+                titulo: 'PIN para enviar entrega',
+                maxFrescoS: 60
+            });
+        } else {
+            run();
+        }
     }
 
     function wizardIrParaPagamentoComImpressao() {
@@ -13638,14 +13682,24 @@
             wizardEnviarEntregaPainel();
             return;
         }
-        fecharModaisEntregaAntesImpressao();
-        wizardModalEscolhaImpressaoEntrega().then(function (opt) {
-            if (!opt) return;
-            var orcId = Date.now();
-            wizardImprimirPacoteEntrega(orcId, opt);
-            State.setEntregaPatch({ entregaFreteLiberadoPagamento: true });
-            State.setCurrentStep('pagamento');
-        });
+        var run = function () {
+            fecharModaisEntregaAntesImpressao();
+            wizardModalEscolhaImpressaoEntrega().then(function (opt) {
+                if (!opt) return;
+                var orcId = Date.now();
+                wizardImprimirPacoteEntrega(orcId, opt);
+                State.setEntregaPatch({ entregaFreteLiberadoPagamento: true });
+                State.setCurrentStep('pagamento');
+            });
+        };
+        if (typeof window.gmSspinGarantirOperador === 'function') {
+            window.gmSspinGarantirOperador(run, {
+                titulo: 'PIN para seguir com a entrega',
+                maxFrescoS: 120
+            });
+        } else {
+            run();
+        }
     }
 
     function reiniciarFluxoPagamentoEntregaUi() {
