@@ -518,3 +518,22 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 **Rollback:** tag `rollback/pre-checklist-1109d-v23.93` · `docs/ROLLBACK-CHECKLIST-1109d.md`.  
 **Smoke:** Ctrl+F5 · badge **v23.94** · NF etapa 4 · Repasse Histórico · TRANSFERINDO.
 
+---
+
+## 31. Checklist único — lote 12/09b · 🟢 **pronto para envio** (tip `teste` **v24.34+**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **WA-PONTE-ULTRA-LEVE** | 🟢 pronto · **47/47** | **NÃO** |
+| 2 | **WA-APP-SEM-PDV** | 🟢 pronto · **48/48** | **NÃO** |
+| 3 | **PDV-RACOES-MARCA-VAZIA** | 🟢 pronto · **57/57** | **NÃO** |
+| 4 | **PDV-CHAT-ENTREGA-DOCK** | 🟢 pronto · **7/7** | **NÃO** |
+| 5 | **PDV-ENT-HORARIO-OPCOES** | 🟢 pronto · **16/16** | **NÃO** |
+| 6 | **PDV-ENT-TROCO-ENTER** | 🟢 pronto · **6/6** | **NÃO** |
+| 7 | **PDV-ENT-OVERLAY-SPLIT** | 🟢 pronto · lote **61/61** | **SIM** `0130` |
+| 8 | **ETQ-LOTE-FILA** | 🟢 pronto · **19/19** | **NÃO** |
+
+**Status:** 🟢 **pronto para envio** — cherry **só** estes + frase+senha · **não** merge `teste`.  
+**Prova lote PDV (#4–#7):** `verify_pdv_entrega_lote_1209_path.py` **61/61** · PIN **9973**.  
+**Loja ainda:** **v23.94**.
+

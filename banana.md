@@ -1284,95 +1284,90 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — Lote A4 fila + controle fino (`ETQ-LOTE-FILA` · **v24.34** · 12/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | **Lote A4** usa a **fila de impressão** (ou monta loja inteira). Preset livre · QTD massa/item · etiquetas/folha · folhas/vez · intervalo · modo **pausa** (padrão) ou **auto**. Progresso no Postgres (desfazer/confirmar). |
-| **Onde** | `produtos_etiquetas*` · `produtos_etiquetas_lote*` · `views`/`urls` lote · `EtiquetaLoteAgro` |
-| **Prova** | `scripts/verify_etiquetas_lote_fila.py` **19/19** |
-| **Migrate** | **NÃO** |
-| **Status** | 🧪 **teste** — **Ctrl+F5** etiquetas · monte fila → **Lote A4** · imprimir 1 trecho → recusar confirm → tentar de novo |
-| **Risco** | Baixo — só `/produtos/etiquetas/` e `/lote/` |
-
-### 📦 PACOTE PRONTO — Overlay Entregas duas colunas (`PDV-ENT-OVERLAY-SPLIT` · 12/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Overlay **maior**. Esquerda **A pagar** · direita **Pagas na loja** (as duas de uma vez, scroll). Cards mais estreitos. **Concluir** some da lista. Sem concluir, some em **24 h**. |
-| **Onde** | `step_produtos.html` · `pdv_wizard.js` · `entrega_pdv_pendente_util.py` · migrate **`0130`** |
-| **Prova** | `verify_pdv_entrega_overlay_split_path.py` **16/16** |
-| **Migrate** | **SIM** `0130` |
-| **Status** | 🧪 **teste** — **Ctrl+F5** · Entregas · Concluir uma paga |
-| **Risco** | Baixo — só essa tela + um campo no PG |
-
-### 📦 PACOTE PRONTO — Enter no troco = sem troco (`PDV-ENT-TROCO-ENTER` · 12/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Tela «Troco para quanto?»: **Enter** ou **F7** com campo vazio preenche o **total da venda** (não precisa de troco). Se digitar outro valor, usa o digitado. |
-| **Onde** | `pdv_wizard.js` · `entrega_wizard_overlay.html` |
-| **Prova** | `verify_pdv_entrega_troco_enter_path.py` **6/6** |
-| **Migrate** | **NÃO** |
-| **Status** | 🧪 **teste** — **Ctrl+F5** · entrega dinheiro → troco → Enter vazio |
-| **Risco** | Baixo |
-
-### 📦 PACOTE PRONTO — Horário da entrega 9h–17h (`PDV-ENT-HORARIO-OPCOES` · 12/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Cartão «Cobrar frete» **maior**. Horário = opções **9:00 … 17:00** (de hora em hora). **Obrigatório** marcar uma (F7 não segue sem). |
-| **Onde** | `entrega_wizard_overlay.html` · `pdv_wizard.html` · `pdv_wizard.js` |
-| **Prova** | `verify_pdv_entrega_horario_opcoes_path.py` **16/16** |
-| **Migrate** | **NÃO** |
-| **Status** | 🧪 **teste** — **Ctrl+F5** · F3 Entrega → taxa |
-| **Risco** | Baixo — só essa tela |
-
-### 📦 PACOTE PRONTO — Chat não cobre F7 na Entrega (`PDV-CHAT-ENTREGA-DOCK` · 12/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Na etapa Entrega, aba **Chat** fica **depois** do botão verde (F7) — não tapa Voltar nem «Entrega ou loja» |
-| **Onde** | `chat_loja_overlay.html` · `pdv_chat_loja.js` |
-| **Prova** | `verify_pdv_chat_entrega_dock_path.py` **7/7** |
-| **Migrate** | **NÃO** |
-| **Status** | 🧪 **teste** — **Ctrl+F5** no PDV · F3 Entrega |
-| **Risco** | Baixo — só posição da aba |
-
-### 📦 PACOTE PRONTO — Rações some marca vazia (`PDV-RACOES-MARCA-VAZIA` · 12/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | No atalho **Rações**, marca **só** aparece se tiver produto daquele tipo **com peso** (1, 2,5, 5, 10, 15, 20, 25 ou pacote). Sem ração = some. Cadastrou peso depois = marca volta. |
-| **Prova** | `verify_pdv_racoes_marca_vazia_path.py` **57/57** · PIN **9973** · `verify_pdv_racoes` · tests **18/18** |
-| **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** |
-| **Você** | PDV → Rações → tipo: marca vazia **não** aparece |
-| **Risco** | Baixo — só esconde botão vazio |
-
-### PC — disco C: cheio (12/09) · limpeza parcial · **terminar HOJE à tarde**
-
-| Campo | Valor |
-| ----- | ----- |
-| **C: livre agora** | **~18 GB** — dá para trabalhar no Agro |
-| **Apagado** | TRAE `_old` · modelo IA Chrome · cache Codex · temp |
-| **Já no E:** | cópia `state.vscdb` **49,25 GB** em `E:\CursorOffload\CursorState` (igual ao C:) |
-| **Falta** | fechar Cursor → junção da pasta `globalStorage` → apagar duplicata no C: (~**+50 GB** livres) |
-| **Script** | `E:\CursorOffload\RODAR.cmd` (janela preta; esperar **PRONTO**; **não** abrir Cursor no meio) |
-| **Pausado** | 12/09 manhã — Renan volta ao agro-consulta; **lembrar hoje à tarde** |
-| **Não mexer** | GitHub / agro-consulta · OneDrive · `settings.json` · **não apagar** `E:\CursorOffload` |
-
-### ✅ CHECKLIST ÚNICO — 12/09 · pronto para envio à produção
+### ✅ CHECKLIST ÚNICO — 12/09b · pronto para envio à produção
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
 | 1 | `WA-PONTE-ULTRA-LEVE` | 🟢 **pronto para envio à produção** | **NÃO** | **47/47** · PIN **9973** |
 | 2 | `WA-APP-SEM-PDV` | 🟢 **pronto para envio à produção** | **NÃO** | **48/48** · PIN **9973** |
 | 3 | `PDV-RACOES-MARCA-VAZIA` | 🟢 **pronto para envio à produção** | **NÃO** | **57/57** · PIN **9973** |
+| 4 | `PDV-CHAT-ENTREGA-DOCK` | 🟢 **pronto para envio à produção** | **NÃO** | **7/7** |
+| 5 | `PDV-ENT-HORARIO-OPCOES` | 🟢 **pronto para envio à produção** | **NÃO** | **16/16** |
+| 6 | `PDV-ENT-TROCO-ENTER` | 🟢 **pronto para envio à produção** | **NÃO** | **6/6** |
+| 7 | `PDV-ENT-OVERLAY-SPLIT` | 🟢 **pronto para envio à produção** | **SIM** `0130` | lote **61/61** · PIN **9973** |
+| 8 | `ETQ-LOTE-FILA` | 🟢 **pronto para envio à produção** | **NÃO** | **19/19** |
 
-**Loja:** **v23.94**. Tip `teste` **v24.30**. Cherry `#1`–`#3` + frase + senha — **não** merge `teste`.
+**Loja:** **v23.94**. Tip `teste` **v24.34+**. Cherry `#1`–`#8` + frase + senha — **não** merge `teste`.  
+**Prova lote PDV (#4–#7):** `verify_pdv_entrega_lote_1209_path.py` **61/61**.  
+**Sem deploy Zap:** fechar `.bat` → PDV volta. Religar `.bat` só depois do `#1` na loja.
 
-**Sem deploy:** fechar `.bat` → PDV volta. Religar `.bat` só depois do `#1` na loja.
+### 📦 PACOTE PRONTO — Lote A4 fila + controle fino (`ETQ-LOTE-FILA` · **v24.34** · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | **Lote A4** usa a **fila de impressão**. Preset · QTD · folhas/vez · pausa/auto · progresso PG. |
+| **Prova** | `verify_etiquetas_lote_fila.py` **19/19** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Risco** | Baixo |
+
+### 📦 PACOTE PRONTO — Overlay Entregas duas colunas (`PDV-ENT-OVERLAY-SPLIT` · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Overlay maior · **A pagar \| Pagas** lado a lado · scroll · **Concluir** (senão 24 h) |
+| **Prova** | lote **61/61** · split **16/16** · PIN **9973** |
+| **Migrate** | **SIM** `0130` |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Risco** | Baixo |
+
+### 📦 PACOTE PRONTO — Enter no troco = sem troco (`PDV-ENT-TROCO-ENTER` · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Enter/F7 vazio preenche o **total** (sem troco) |
+| **Prova** | **6/6** · lote **61/61** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Risco** | Baixo |
+
+### 📦 PACOTE PRONTO — Horário da entrega 9h–17h (`PDV-ENT-HORARIO-OPCOES` · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Cartão frete maior · horário **9–17h** obrigatório |
+| **Prova** | **16/16** · lote **61/61** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Risco** | Baixo |
+
+### 📦 PACOTE PRONTO — Chat não cobre F7 na Entrega (`PDV-CHAT-ENTREGA-DOCK` · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Aba Chat depois do F7 na Entrega |
+| **Prova** | **7/7** · lote **61/61** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Risco** | Baixo |
+
+### 📦 PACOTE PRONTO — Rações some marca vazia (`PDV-RACOES-MARCA-VAZIA` · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Marca sem ração com peso some |
+| **Prova** | **57/57** · PIN **9973** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Risco** | Baixo |
+
+### PC — disco C: cheio (12/09) · limpeza parcial · **terminar HOJE à tarde**
+
+| Campo | Valor |
+| ----- | ----- |
+| **C: livre agora** | **~18 GB** |
+| **Falta** | fechar Cursor → `E:\CursorOffload\RODAR.cmd` |
+| **Não mexer** | agro-consulta · OneDrive · `E:\CursorOffload` |
 
 ### 📦 PACOTE PRONTO — Ponte ultra leve (`WA-PONTE-ULTRA-LEVE` · 12/09)
 
