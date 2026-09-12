@@ -1284,51 +1284,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 PREP LOJA — Checklist 11/09d (`deploy/prep-checklist-1109d` · **v23.94**) · aguarda senha
+### ✅ Deploy loja — Checklist 11/09d (`deploy/prep-checklist-1109d` · **v23.94**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **PREP pronto** — **não** subiu · aguarda frase + senha no próximo chat |
-| **Branch PREP** | `deploy/prep-checklist-1109d` @ **`c3e0b1c`** · tip **v23.94** |
-| **Base loja** | Live **v23.93** @ `fc34325` |
-| **Pacotes** | `NF-LOTE-XML` · `REPASSE-HIST-OVERLAY` · `REPASSE-STATUS-FLASH` |
-| **Cherry** | **11** commits código · **não** merge `teste` |
+| **Status** | ✅ **enviado / Live v23.94** — cherry **só** os 3 pacotes (**não** merge `teste`) |
+| **Antes** | **Live v23.93** @ `fc34325` |
+| **Agora** | `producao` @ **`c3e0b1c`** · Render `dep-daiji4qjnfac73e9r5dg` |
 | **Migrate** | **NÃO** |
-| **Prova** | NF **48/48** · hist **19/19** · status-flash **43/43** · vila **280** · pct-zero **20/20** · PIN **9973** · `check` OK |
-| **Rollback** | tag `rollback/pre-checklist-1109d-v23.93` · branch `producao-backup-pre-v2394-checklist-20260911d` · `docs/ROLLBACK-CHECKLIST-1109d.md` |
-| **Risco loja aberta** | **Não** mexe venda/caixa — só Entrada NF etapa 4 + UI Repasse |
-| **Próximo chat** | Pausar vendas → frase + senha `99738595` → assistente faz fast-forward `producao` ← PREP |
+| **Pacotes** | `NF-LOTE-XML` · `REPASSE-HIST-OVERLAY` · `REPASSE-STATUS-FLASH` |
+| **Prova pré** | NF **48/48** · hist **19/19** · flash **43/43** · vila **280** · pct-zero **20/20** · PIN **9973** · `check` OK |
+| **Rollback** | tag `rollback/pre-checklist-1109d-v23.93` · branch `producao-backup-pre-v2394-checklist-20260911d` · `docs/ROLLBACK-CHECKLIST-1109d.md` · **só** frase+senha |
+| **Smoke** | healthz **200** · home **200** · Render **live** |
+| **Você** | **Ctrl+F5** · badge **v23.94** · Entrada NF etapa 4 · Repasse Histórico · TRANSFERINDO no centro |
 
-### ✅ CHECKLIST ÚNICO — 11/09d · PREP v23.94 aguarda senha
+### ✅ CHECKLIST ÚNICO — 11/09d · **Live v23.94**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `NF-LOTE-XML` | 🟡 **PREP / aguarda senha** | **NÃO** | **48/48** · PIN **9973** |
-| 2 | `REPASSE-HIST-OVERLAY` | 🟡 **PREP / aguarda senha** | **NÃO** | **19/19** |
-| 3 | `REPASSE-STATUS-FLASH` | 🟡 **PREP / aguarda senha** | **NÃO** | **43/43** · PIN **9973** |
-
-**Live agora:** **v23.93**. Alvo pós-deploy: **v23.94**.
-
-### 📦 PACOTE — Status central Repasse (`REPASSE-STATUS-FLASH`) · no PREP 11/09d
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | TRANSFERINDO / avisos no meio da tela · bloqueia fechar no meio |
-| **Status** | 🟡 no PREP **v23.94** · aguarda senha |
-
-### 📦 PACOTE — Histórico 3 cofres (`REPASSE-HIST-OVERLAY`) · no PREP 11/09d
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Histórico + impressão 80mm/A4 no Repasse PDV |
-| **Status** | 🟡 no PREP **v23.94** · aguarda senha |
-
-### 📦 PACOTE — Lote/validade XML (`NF-LOTE-XML`) · no PREP 11/09d
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Etapa 4 puxa lote/validade do XML |
-| **Status** | 🟡 no PREP **v23.94** · aguarda senha |
+| 1 | `NF-LOTE-XML` | ✅ **Live v23.94** | **NÃO** | **48/48** · PIN **9973** |
+| 2 | `REPASSE-HIST-OVERLAY` | ✅ **Live v23.94** | **NÃO** | **19/19** |
+| 3 | `REPASSE-STATUS-FLASH` | ✅ **Live v23.94** | **NÃO** | **43/43** · PIN **9973** |
 
 ### ✅ Deploy loja — Checklist 11/09b (`deploy/prep-checklist-1109b` · **v23.93**) · **Live**
 
