@@ -1284,45 +1284,47 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PREP — Checklist 12/09e · `REPASSE-ACUM-PCT-DIA` (+ alerta loja) · tip **v24.75**
+### 🚀 PREP deploy loja — Checklist 12/09e (`deploy/prep-checklist-1209e` · **v23.98**) · **aguarda senha**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **pronto para envio à produção** (**não** merge `teste`) |
+| **Status** | 🚀 **PREP pronto** — **aguarda frase + senha** (**não** merge `teste`) |
 | **Loja hoje** | ✅ **Live v23.97** @ `3c56734` |
-| **Prioridade** | `REPASSE-ACUM-PCT-DIA` (crédito fantasma) · depois `PDV-ENT-ALERTA-LOJA` |
+| **Branch PREP** | `deploy/prep-checklist-1209e` @ tip **v23.98** |
+| **Pacotes** | `REPASSE-ACUM-PCT-DIA` · `PDV-ENT-ALERTA-LOJA` |
+| **Prova** | acum-pct **16/16** · alerta-loja **76/76** · extra **18/18** · pct-zero **20/20** · PIN **9973** · PG loja |
 | **Migrate** | **NÃO** |
-| **Você (após senha)** | Ctrl+F5 · Repasse: acumulado sem −956 fantasma · badge loja |
+| **Rollback** | tag `rollback/pre-checklist-1209e-v23.97` · branch `producao-backup-pre-v2398-checklist-20260912e` · `docs/ROLLBACK-CHECKLIST-1209e.md` |
+| **Risco loja aberta** | Venda/caixa/Point **não** mexidos · Repasse: 1ª abertura reconstrói cache (números mudam = conserto) · alerta: só bip |
+| **Você (próximo chat)** | Pausar vendas → frase + senha `99738595` → deploy PREP → Ctrl+F5 · badge **v23.98** |
 
-### ✅ CHECKLIST ÚNICO — 12/09e · **pronto para envio à produção**
+### ✅ CHECKLIST ÚNICO — 12/09e · **PREP aguarda senha** (alvo loja **v23.98**)
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `REPASSE-ACUM-PCT-DIA` | 🟢 **pronto para envio à produção** | **NÃO** | **16/16** · PIN **9973** · PG loja |
-| 2 | `PDV-ENT-ALERTA-LOJA` | 🟢 **pronto para envio à produção** | **NÃO** | **76/76** · PIN **9973** |
+| 1 | `REPASSE-ACUM-PCT-DIA` | 🚀 **PREP · aguarda senha** | **NÃO** | **16/16** · PIN **9973** · PG |
+| 2 | `PDV-ENT-ALERTA-LOJA` | 🚀 **PREP · aguarda senha** | **NÃO** | **76/76** · PIN **9973** |
 
-### 📦 PACOTE PRONTO — Acumulado Repasse sem crédito fantasma (`REPASSE-ACUM-PCT-DIA` · **v24.75**)
+### 📦 PACOTE PRONTO — Acumulado Repasse sem crédito fantasma (`REPASSE-ACUM-PCT-DIA` · PREP **v23.98**)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Cache do dia usa **maior % dos envios** (não o padrão 0%) · reconstrói ao abrir calc · hint se crédito cobre o dia |
 | **Causa** | Após % padrão=0, refresh reescrevia ~180 dias → envio 50% virava crédito (ex. 11/09 alvo **113** / enviado **532** / δ **−418**) |
-| **Prova** | acum-pct-dia **16/16** · acum-extra **18/18** · acum-net **29/29** · status-flash **43/43** · pct-zero **20/20** · PIN **9973** · PG agro-db (Max% 11/09=50 · bruto −935,74) |
+| **Prova** | **16/16** · PIN **9973** · PG agro-db |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** (**não** merge `teste`) |
-| **Você** | Ctrl+F5 · Repasse · após loja: abrir calc (reconstrói sozinho) |
-| **Risco** | Médio — só Repasse; 1ª abertura reconstrói cache |
+| **Status** | 🚀 **no PREP** · aguarda senha |
+| **Risco** | Só Repasse — não mexe venda |
 
-### 📦 PACOTE PRONTO — Alerta horário só na loja que sai (`PDV-ENT-ALERTA-LOJA` · **v24.71**)
+### 📦 PACOTE PRONTO — Alerta horário só na loja que sai (`PDV-ENT-ALERTA-LOJA` · PREP **v23.98**)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Bip/piscar de horário **só** se `loja_entrega` = depósito do PDV · Vila com pagamento de entrega do Centro **não** toca · sem dono ainda alerta nas duas · cache LS por loja · card «Só sai» |
-| **Prova** | `verify_pdv_entrega_alerta_por_id_path.py` **76/76** · PIN **9973** · API centro/vila **200** |
+| **O quê** | Bip/piscar **só** se `loja_entrega` = depósito do PDV · Vila não toca saída Centro |
+| **Prova** | **76/76** · PIN **9973** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** |
-| **Você** | Ctrl+F5 PDV Vila · entrega Centro urgente: sem bip · Centro: bip normal |
-| **Risco** | Baixo |
+| **Status** | 🚀 **no PREP** · aguarda senha |
+| **Risco** | Baixo — só bip |
 
 ### ✅ Deploy loja — ETQ-A6-COLS (`deploy/prep-etq-a6-cols` · **v23.97**) · **Live**
 

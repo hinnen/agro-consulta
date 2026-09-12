@@ -541,3 +541,16 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 **Status: ✅ Live v23.95** — `producao` @ `8faa4c1`. Tip `#11`–`#13` prontos.  
 **Rollback:** tag `rollback/pre-checklist-1209b-v23.94` · `docs/ROLLBACK-CHECKLIST-1209b.md`.
 
+---
+
+## 32. Checklist único — lote 12/09e (`deploy/prep-checklist-1209e` · alvo loja **v23.98**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **REPASSE-ACUM-PCT-DIA** | 🚀 PREP · **16/16** | **NÃO** |
+| 2 | **PDV-ENT-ALERTA-LOJA** | 🚀 PREP · **76/76** | **NÃO** |
+
+**Status: PREP aguarda senha** — branch `deploy/prep-checklist-1209e` · loja hoje **Live v23.97**.  
+**Rollback:** tag `rollback/pre-checklist-1209e-v23.97` · `docs/ROLLBACK-CHECKLIST-1209e.md`.  
+**Não** merge `teste`. Venda/caixa não mexidos.
+
