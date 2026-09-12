@@ -1305,10 +1305,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | **Lote A4** usa a **fila de impressão**. Preset · QTD · folhas/vez · pausa/auto · progresso PG. |
-| **Prova** | `verify_etiquetas_lote_fila.py` **19/19** |
+| **O quê** | **Lote A4** pela **fila** ou loja · preset · QTD · folhas/vez · intervalo · pausa/auto · progresso PG |
+| **Prova** | `verify_etiquetas_lote_fila.py` **78/78** · PIN **9973** |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 etiquetas · fila → Lote A4 · 1 trecho → Não no confirm → reimprimir |
 | **Risco** | Baixo |
 
 ### 📦 PACOTE PRONTO — Overlay Entregas duas colunas (`PDV-ENT-OVERLAY-SPLIT` · 12/09)
