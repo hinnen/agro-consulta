@@ -534,9 +534,9 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 | 8 | **ETQ-LOTE-FILA** | ✅ Live · **78/78** | **NÃO** |
 | 9 | **PDV-IMP-SEP-OFF** | ✅ Live | **NÃO** |
 | 10 | **PDV-IMP-PIN-ANTES** | ✅ Live | **NÃO** |
-| 11 | **PDV-ENT-CARD-LATERAL** | 🟢 **pronto envio** · **48/48** | **NÃO** |
+| 11 | **PDV-ENT-CARD-LATERAL** | 🟢 **pronto envio** · **51/51** | **NÃO** |
 | 12 | **PDV-ENT-ALERTA-POR-ID** | 🟢 **pronto envio** · **51/51** | **NÃO** |
-| 13 | **PDV-ENT-MUDAR-LOJA** | 🟢 **pronto envio** · **35/35** | **SIM** `0131` |
+| 13 | **PDV-ENT-MUDAR-LOJA** | 🟢 **pronto envio** · **39/39** | **SIM** `0131` |
 
 **Status: ✅ Live v23.95** — `producao` @ `8faa4c1`. Tip `#11`–`#13` prontos.  
 **Rollback:** tag `rollback/pre-checklist-1209b-v23.94` · `docs/ROLLBACK-CHECKLIST-1209b.md`.
