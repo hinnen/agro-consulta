@@ -207,7 +207,7 @@
         entregasPendentesCache.itens = [];
         entregasPendentesCache.itensPagas = [];
         if (window.AgroPdvOfflineCache && window.AgroPdvOfflineCache.writePayload) {
-            window.AgroPdvOfflineCache.writePayload(ENTREGAS_PENDENTES_LS_KEY, {
+            window.AgroPdvOfflineCache.writePayload(entregasPendentesLsKey(), {
                 total: 0,
                 itens: [],
                 itensPagas: [],
@@ -804,7 +804,16 @@
     var clientSearchSeq = 0;
     var lastClientSearchQuery = '';
     var PDV_CLIENTES_LS_KEY = 'agro_pdv_clientes_cache_v1';
-    var ENTREGAS_PENDENTES_LS_KEY = 'agro_pdv_entregas_pendentes_v1';
+    var ENTREGAS_PENDENTES_LS_KEY_BASE = 'agro_pdv_entregas_pendentes_v1';
+
+    function entregasPendentesLsKey() {
+        var loja =
+            typeof depositoPdvAtivo === 'function' ? String(depositoPdvAtivo() || '') : '';
+        if (loja === 'centro' || loja === 'vila') {
+            return ENTREGAS_PENDENTES_LS_KEY_BASE + '_' + loja;
+        }
+        return ENTREGAS_PENDENTES_LS_KEY_BASE;
+    }
     var wizardClientesCache = [];
     var wizardClientesCacheReady = false;
     var wizardClientesCacheLoading = false;
@@ -4550,7 +4559,24 @@
         return !!(until && Date.now() < until);
     }
 
+    /**
+     * Bip/piscar de horário = só a loja que SAI com a entrega.
+     * Se o pagamento é na outra (ex. sai Centro / paga Vila), a Vila vê na lista
+     * mas NÃO toca alerta de horário do Centro.
+     */
+    function entregaAlertaHorarioDestaLoja(row) {
+        var loja =
+            typeof depositoPdvAtivo === 'function' ? String(depositoPdvAtivo() || '') : '';
+        if (loja !== 'centro' && loja !== 'vila') return true;
+        var saida = String((row && row.loja_entrega) || '')
+            .trim()
+            .toLowerCase();
+        if (!saida) return true;
+        return saida === loja;
+    }
+
     function urgenciaEfetivaEntregaRow(row) {
+        if (!entregaAlertaHorarioDestaLoja(row)) return 0;
         var u = urgenciaHorarioEntregaUi(row && row.hora_prevista);
         if (u > 0 && entregaAlertaEstaAdiada(row && row.id)) return 0;
         return u;
@@ -4574,6 +4600,7 @@
             .concat(entregasPendentesCache.itens || [])
             .concat(entregasPendentesCache.itensPagas || []);
         todos.forEach(function (row) {
+            if (!entregaAlertaHorarioDestaLoja(row)) return;
             var u = urgenciaHorarioEntregaUi(row && row.hora_prevista);
             if (u > maxU) maxU = u;
         });
@@ -4587,6 +4614,7 @@
             .concat(entregasPendentesCache.itensPagas || []);
         todos.forEach(function (row) {
             if (!row || row.id == null) return;
+            if (!entregaAlertaHorarioDestaLoja(row)) return;
             if (urgenciaHorarioEntregaUi(row.hora_prevista) > 0) ids.push(String(row.id));
         });
         return ids;
@@ -4798,39 +4826,36 @@
         }
         var hpUi = formatHoraPrevistaEntregaUi(row.hora_prevista);
         if (hpUi) {
-            var urgHp = urgenciaHorarioEntregaUi(hpUi);
-            var hpCls =
-                urgHp === 2
-                    ? 'bg-red-600 text-white animate-pulse'
-                    : urgHp === 1
-                      ? 'bg-amber-500 text-white animate-pulse'
-                      : 'bg-slate-700 text-white';
-            var alertaAdiadoCard = entregaAlertaEstaAdiada(id);
-            var adiar1hLbl = alertaAdiadoCard ? 'Alerta OK' : 'Adiar 1h';
-            var adiar1hCls;
-            var hpClsShow = hpCls;
-            if (alertaAdiadoCard) {
-                adiar1hCls = 'border-emerald-500 bg-emerald-50 text-emerald-900';
-                hpClsShow =
-                    urgHp === 2
-                        ? 'bg-red-600 text-white'
-                        : urgHp === 1
-                          ? 'bg-amber-500 text-white'
-                          : 'bg-slate-700 text-white';
-            } else if (urgHp === 2) {
-                adiar1hCls = 'border-red-600 bg-red-50 text-red-900 animate-pulse';
-            } else if (urgHp === 1) {
-                adiar1hCls = 'border-amber-500 bg-amber-50 text-amber-950 animate-pulse';
+            var urgHpBruta = urgenciaHorarioEntregaUi(hpUi);
+            var alertaHorarioAqui = entregaAlertaHorarioDestaLoja(row);
+            var urgHp = alertaHorarioAqui ? urgHpBruta : 0;
+            var alertaAdiadoCard = alertaHorarioAqui && entregaAlertaEstaAdiada(id);
+            var hpClsShow =
+                !alertaHorarioAqui
+                    ? 'bg-slate-600 text-white'
+                    : urgHp === 2
+                      ? alertaAdiadoCard
+                          ? 'bg-red-600 text-white'
+                          : 'bg-red-600 text-white animate-pulse'
+                      : urgHp === 1
+                        ? alertaAdiadoCard
+                            ? 'bg-amber-500 text-white'
+                            : 'bg-amber-500 text-white animate-pulse'
+                        : 'bg-slate-700 text-white';
+            var adiarBtnHtml;
+            if (!alertaHorarioAqui) {
+                adiarBtnHtml =
+                    '<span class="shrink-0 whitespace-nowrap rounded-md border border-slate-500 px-1.5 py-0.5 text-[9px] font-bold uppercase text-slate-300" title="Alerta de horário só na loja que sai">Só sai</span>';
             } else {
-                adiar1hCls = 'border-slate-400 bg-white text-slate-800';
-            }
-            badges.push(
-                '<span class="inline-flex shrink-0 flex-nowrap items-center gap-1">' +
-                    '<span class="rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tabular-nums ' +
-                    hpClsShow +
-                    '" title="Horário agendado">' +
-                    escapeHtml(hpUi) +
-                    '</span>' +
+                var adiar1hLbl = alertaAdiadoCard ? 'Alerta OK' : 'Adiar 1h';
+                var adiar1hCls = alertaAdiadoCard
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-900'
+                    : urgHp === 2
+                      ? 'border-red-600 bg-red-50 text-red-900 animate-pulse'
+                      : urgHp === 1
+                        ? 'border-amber-500 bg-amber-50 text-amber-950 animate-pulse'
+                        : 'border-slate-400 bg-white text-slate-800';
+                adiarBtnHtml =
                     '<button type="button" class="pdv-entrega-adiar-alerta-1h shrink-0 whitespace-nowrap rounded-md border-2 px-1.5 py-0.5 text-[9px] font-black uppercase leading-tight ' +
                     adiar1hCls +
                     '" data-entrega-id="' +
@@ -4841,7 +4866,16 @@
                         : 'Só esta entrega — adia piscar e bip por 1 hora') +
                     '">' +
                     adiar1hLbl +
-                    '</button>' +
+                    '</button>';
+            }
+            badges.push(
+                '<span class="inline-flex shrink-0 flex-nowrap items-center gap-1">' +
+                    '<span class="rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tabular-nums ' +
+                    hpClsShow +
+                    '" title="Horário agendado">' +
+                    escapeHtml(hpUi) +
+                    '</span>' +
+                    adiarBtnHtml +
                     '</span>'
             );
         }
@@ -5640,7 +5674,7 @@
             url += (url.indexOf('?') >= 0 ? '&' : '?') + 'loja=' + encodeURIComponent(loja);
         }
         if (!forceRefresh && window.AgroPdvOfflineCache) {
-            var cached = window.AgroPdvOfflineCache.readPayload(ENTREGAS_PENDENTES_LS_KEY);
+            var cached = window.AgroPdvOfflineCache.readPayload(entregasPendentesLsKey());
             if (cached && Array.isArray(cached.itens)) {
                 entregasPendentesCache.itens = cached.itens;
                 entregasPendentesCache.itensPagas = Array.isArray(cached.itensPagas)
@@ -5656,7 +5690,7 @@
                 ) {
                     renderEntregasPendentesList();
                 }
-                if (!window.AgroPdvOfflineCache.isStale(ENTREGAS_PENDENTES_LS_KEY, window.AgroPdvOfflineCache.TTL.ENTREGAS_MS)) {
+                if (!window.AgroPdvOfflineCache.isStale(entregasPendentesLsKey(), window.AgroPdvOfflineCache.TTL.ENTREGAS_MS)) {
                     return Promise.resolve();
                 }
             }
@@ -5669,7 +5703,7 @@
                 entregasPendentesCache.total =
                     entregasPendentesCache.itens.length + entregasPendentesCache.itensPagas.length;
                 if (window.AgroPdvOfflineCache) {
-                    window.AgroPdvOfflineCache.writePayload(ENTREGAS_PENDENTES_LS_KEY, {
+                    window.AgroPdvOfflineCache.writePayload(entregasPendentesLsKey(), {
                         total: entregasPendentesCache.total,
                         itens: entregasPendentesCache.itens,
                         itensPagas: entregasPendentesCache.itensPagas,
