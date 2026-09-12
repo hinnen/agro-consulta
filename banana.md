@@ -554,7 +554,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 
 ### 4.6 Cadastro / gestÃ£o de produtos
 
-- **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé. Gôndola: folha **A4** (2/3 col) ou **A6** (1–3 col conforme largura · bônus 100×45 = 1 col) — `ETQ-A6-COLS` **v24.66** 🟢 pronto envio.
+- **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé. Gôndola: folha **A4** (2/3 col) ou **A6** (1–3 col conforme largura · bônus 100×45 = 1 col) — `ETQ-A6-COLS` ✅ **Live v23.97**.
 
 **Duas telas â€” nÃ£o confundir:**
 
@@ -1284,6 +1284,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ Deploy loja — ETQ-A6-COLS (`deploy/prep-etq-a6-cols` · **v23.97**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v23.97** — cherry **só** `ETQ-A6-COLS` (**não** merge `teste`) |
+| **Antes** | **Live v23.96** @ `80350dc` |
+| **Agora** | `producao` @ **`3c56734`** · Render `dep-daipp8ks728c73apvrcg` |
+| **Smoke** | healthz **200** · core JS A6 maxCols no static |
+| **Migrate** | **NÃO** |
+| **Pacotes** | `ETQ-A6-COLS` |
+| **Prova pré** | path **86/86** · gondola OK · Django presets **3/3** · página+API local **200** |
+| **Rollback** | tag `rollback/pre-etq-a6-cols-v23.96` · branch `producao-backup-pre-v2397-etq-a6-cols-20260912` · `docs/ROLLBACK-ETQ-A6-COLS.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.97** · Etiquetas A6: 100=1 col · ~50=2 · ~33=3 |
+
+### ✅ CHECKLIST ÚNICO — ETQ-A6-COLS · **Live v23.97**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `ETQ-A6-COLS` | ✅ **Live v23.97** | **NÃO** | **86/86** |
+
 ### ✅ Deploy loja — Checklist 12/09c (`deploy/prep-checklist-1209c` · **v23.96**) · **Live**
 
 | Campo | Valor |
@@ -1359,14 +1379,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** |
 | **Risco** | Baixo |
 
-### 📦 PACOTE PRONTO — A6 2/3 colunas (`ETQ-A6-COLS` · **v24.66** · 12/09)
+### ✅ PACOTE — A6 2/3 colunas (`ETQ-A6-COLS` · **Live v23.97**)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | A6 deixa de travar 1 col: grade = o que cabe · **~50 mm = 2 col** · **~33 mm = 3 col** · bônus 100×45 continua 1×3 |
+| **O quê** | A6: grade = o que cabe · **~50 mm = 2 col** · **~33 mm = 3 col** · bônus 100×45 continua 1×3 |
 | **Prova** | `verify_etiquetas_a6_path.js` **86/86** · gondola OK · Django presets **3/3** · página+API local **200** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** · alvo loja **v23.97** |
+| **Status** | ✅ **Live v23.97** |
 | **Você** | Ctrl+F5 etiquetas · Folha A6 · largura 50 ou 33 · conferir grade |
 | **Rollback** | `docs/ROLLBACK-ETQ-A6-COLS.md` · tag `rollback/pre-etq-a6-cols-v23.96` |
 | **Risco** | Baixo — só etiquetas · zero PDV/caixa |
