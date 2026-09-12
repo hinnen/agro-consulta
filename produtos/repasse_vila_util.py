@@ -1652,15 +1652,34 @@ def _atualizar_delta_cache(dia: date, *, percentual_lucro=None) -> RepasseVilaDe
     return obj
 
 
+def _percentual_para_delta_dia(dia: date) -> Decimal:
+    """% do cache do dia = maior % entre os envios daquele dia (não o padrão atual).
+
+    Se recalcular dias antigos com o % de hoje (ex. padrão virou 0%), envios feitos
+    a 50% viram «crédito fantasma» e o acumulado perde confiança.
+
+    Usa o **maior** % do dia: envio grande a 50% + ajuste a 0% não pode rebaixar o alvo.
+    """
+    from django.db.models import Max
+
+    mx = (
+        RepasseVilaCentroAgro.objects.filter(data_ref=dia)
+        .aggregate(m=Max("percentual_lucro"))
+        .get("m")
+    )
+    if mx is not None:
+        return _dec(mx)
+    return _dec(obter_config().percentual_lucro_padrao)
+
+
 def _preencher_cache_faltante(d0: date, d1: date, *, forcar: bool = False) -> None:
     """Atualiza cache de delta dos dias com atividade.
 
     forcar=True: recalcula mesmo se já existir (após envio / mudança de fórmula).
+    Cada dia usa o % do próprio envio quando houver.
     """
     if d0 > d1:
         return
-    cfg = obter_config()
-    pct = _dec(cfg.percentual_lucro_padrao)
     cached = set(
         RepasseVilaDeltaDiaAgro.objects.filter(data_ref__gte=d0, data_ref__lte=d1).values_list(
             "data_ref", flat=True
@@ -1668,14 +1687,53 @@ def _preencher_cache_faltante(d0: date, d1: date, *, forcar: bool = False) -> No
     )
     for d in _datas_com_atividade(d0, d1):
         if forcar or d not in cached:
-            _atualizar_delta_cache(d, percentual_lucro=pct)
+            _atualizar_delta_cache(d, percentual_lucro=_percentual_para_delta_dia(d))
 
 
 def refresh_deltas_apos_envio(dia: date, *, lookback_days: int = REPASSE_MAX_DIAS_ATRASO) -> None:
-    """Recalcula hoje + janela recente para o acumulado líquido acompanhar o envio."""
-    d0 = dia - timedelta(days=lookback_days)
-    _preencher_cache_faltante(d0, dia, forcar=True)
+    """Atualiza o dia do envio e repara dias com envio (com o % de cada dia).
 
+    Não reescreve o passado inteiro com o % padrão atual.
+    """
+    d0 = dia - timedelta(days=lookback_days)
+    _atualizar_delta_cache(dia, percentual_lucro=_percentual_para_delta_dia(dia))
+    dias_com_envio = (
+        RepasseVilaCentroAgro.objects.filter(data_ref__gte=d0, data_ref__lte=dia)
+        .values_list("data_ref", flat=True)
+        .distinct()
+    )
+    for d in dias_com_envio:
+        _atualizar_delta_cache(d, percentual_lucro=_percentual_para_delta_dia(d))
+    # Faltantes (venda sem envio ainda): cria cache sem forçar os já ok
+    _preencher_cache_faltante(d0, dia, forcar=False)
+
+
+def reconstruir_deltas_acumulado(
+    *,
+    lookback_days: int = REPASSE_MAX_DIAS_ATRASO,
+    ate: date | None = None,
+) -> dict[str, Any]:
+    """Repara cache de acumulado: cada dia com envio volta ao % daquele envio."""
+    ate = ate or timezone.localdate()
+    d0 = ate - timedelta(days=lookback_days)
+    n = 0
+    for d in (
+        RepasseVilaCentroAgro.objects.filter(data_ref__gte=d0, data_ref__lte=ate)
+        .values_list("data_ref", flat=True)
+        .distinct()
+        .order_by("data_ref")
+    ):
+        _atualizar_delta_cache(d, percentual_lucro=_percentual_para_delta_dia(d))
+        n += 1
+    _preencher_cache_faltante(d0, ate, forcar=False)
+    bruto = acumulado_anterior(ate)
+    return {
+        "ok": True,
+        "dias_com_envio_refeitos": n,
+        "de": d0.isoformat(),
+        "ate": ate.isoformat(),
+        "acumulado_bruto": float(bruto),
+    }
 
 def _sum_delta_cache(d0: date, d1: date) -> Decimal:
     return _dec(
