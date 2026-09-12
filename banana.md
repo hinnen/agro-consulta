@@ -1322,7 +1322,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Botões à direita · **Adiar \| Cancelar** na mesma linha · títulos das colunas com altura igual |
+| **O quê** | Botões mais largos (Cancelar 1 linha) · títulos alinhados · **Rota** no topo (A pagar + Pagas) |
 | **Prova** | `verify_pdv_imp_pin_card_1209_path.py` · PIN **9973** |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** |
