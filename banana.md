@@ -1337,7 +1337,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 2 | `WA-APP-SEM-PDV` | 🟢 **pronto para envio à produção** | **NÃO** | **48/48** · PIN **9973** |
 | 3 | `PDV-RACOES-MARCA-VAZIA` | 🟢 **pronto para envio à produção** | **NÃO** | **57/57** · PIN **9973** |
 
-**Loja:** **v23.94**. Tip `teste` **v24.28**. Cherry `#1`–`#3` + frase + senha — **não** merge `teste`.
+**Loja:** **v23.94**. Tip `teste` **v24.30**. Cherry `#1`–`#3` + frase + senha — **não** merge `teste`.
 
 **Sem deploy:** fechar `.bat` → PDV volta. Religar `.bat` só depois do `#1` na loja.
 
