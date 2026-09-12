@@ -120,12 +120,36 @@ def test_estatico() -> None:
     )
 
     # Urgência efetiva ignora adiada
-    body_urg = _fn_body(wiz_js, "urgenciaEfetivaEntregaRow", 600)
+    body_urg = _fn_body(wiz_js, "urgenciaEfetivaEntregaRow", 900)
     check("urg_efetiva_zera_adiada", "entregaAlertaEstaAdiada" in body_urg and "return 0" in body_urg)
+    check(
+        "urg_efetiva_filtra_loja_saida",
+        "entregaAlertaHorarioDestaLoja" in body_urg,
+        "bip só na loja que sai",
+    )
+
+    check("fn_alerta_loja_saida", "function entregaAlertaHorarioDestaLoja" in wiz_js)
+    body_loja = _fn_body(wiz_js, "entregaAlertaHorarioDestaLoja", 900)
+    check("loja_saida_usa_deposito", "depositoPdvAtivo" in body_loja)
+    check("loja_saida_compara_loja_entrega", "loja_entrega" in body_loja)
+    check("loja_saida_sem_dono_ok", "if (!saida) return true" in body_loja)
 
     body_max = _fn_body(wiz_js, "maxUrgenciaEntregasPendentes", 800)
     check("max_urg_usa_efetiva", "urgenciaEfetivaEntregaRow" in body_max)
     check("max_urg_inclui_pagas", "itensPagas" in body_max)
+
+    body_ids = _fn_body(wiz_js, "idsEntregasComHorarioUrgente", 900)
+    check("ids_urgentes_filtra_loja", "entregaAlertaHorarioDestaLoja" in body_ids)
+
+    body_bruta = _fn_body(wiz_js, "maxUrgenciaBrutaEntregasPendentes", 900)
+    check("bruta_filtra_loja", "entregaAlertaHorarioDestaLoja" in body_bruta)
+
+    check(
+        "cache_ls_por_loja",
+        "entregasPendentesLsKey" in wiz_js
+        and "ENTREGAS_PENDENTES_LS_KEY_BASE" in wiz_js
+        and "+ '_' + loja" in wiz_js,
+    )
 
     # Som não deve depender de flag global antiga
     body_som = _fn_body(wiz_js, "syncEntregasAlertaSonoro", 900)
@@ -203,6 +227,38 @@ def test_logica_mapa_python() -> None:
     raw = json.dumps(limpo)
     back = json.loads(raw)
     check("sim_json_expira", "7" in back and "8" not in back, raw)
+
+    # Bip só na loja que sai (Centro entrega / Vila só paga → Vila urg=0)
+    def alerta_horario_desta_loja(loja_pdv: str, loja_entrega: str) -> bool:
+        loja = (loja_pdv or "").strip().lower()
+        if loja not in ("centro", "vila"):
+            return True
+        saida = (loja_entrega or "").strip().lower()
+        if not saida:
+            return True
+        return saida == loja
+
+    def urg_com_loja(loja_pdv: str, loja_entrega: str, urg_bruta: int) -> int:
+        if not alerta_horario_desta_loja(loja_pdv, loja_entrega):
+            return 0
+        return urg_bruta
+
+    check(
+        "sim_vila_ignora_saida_centro",
+        urg_com_loja("vila", "centro", 2) == 0,
+    )
+    check(
+        "sim_centro_alerta_saida_centro",
+        urg_com_loja("centro", "centro", 2) == 2,
+    )
+    check(
+        "sim_vila_alerta_saida_vila",
+        urg_com_loja("vila", "vila", 1) == 1,
+    )
+    check(
+        "sim_sem_dono_alerta_nas_duas",
+        urg_com_loja("vila", "", 2) == 2 and urg_com_loja("centro", "", 2) == 2,
+    )
 
 
 def test_runtime() -> None:
