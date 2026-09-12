@@ -1320,12 +1320,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 **Rollback:** tag `rollback/pre-checklist-1209b-v23.94` · `docs/ROLLBACK-CHECKLIST-1209b.md`.  
 **Pendente SOLO tip:** `#11` `PDV-ENT-CARD-LATERAL`.
 
+### 🔧 Tip — Alerta OK sem clique (clique-through lembrete · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Bug** | Ok do **Lembrete do caixa** (mesmo canto do **Alerta +1h**) fazia o clique “cair” no botão → virava **Alerta OK** sem querer |
+| **Fix** | Lembrete no **topo centro** · ao fechar, `pointer-events: none` 400ms · **2º toque** em Alerta OK **religar** alerta |
+| **Arquivos** | `pdv_wizard.js` · `pdv_wizard.html` |
+| **Status** | tip `teste` · **não** loja |
+| **Você** | Ctrl+F5 · se ainda «Alerta OK», **toque de novo** (religar) |
+
 ### 📦 PACOTE PRONTO — Cards Entregas rota/horário/alerta (`PDV-ENT-CARD-LATERAL` · tip · 12/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | **Incluir**+Maps · badge hora + **Adiar 1h** (pisca) · alerta urgente · **Alerta +1h** topo |
-| **Prova** | `verify_pdv_imp_pin_card_1209_path.py` · PIN **9973** |
+| **O quê** | **Incluir**+Maps · badge hora + **Adiar 1h** (pisca) · alerta urgente · **Alerta +1h** topo · **tags numa linha** (Paga/Vila/hora/Adiar) · overlay **88rem** |
+| **Prova** | `verify_pdv_imp_pin_card_1209_path.py` **44/44** · PIN **9973** |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** |
 | **Risco** | Baixo |

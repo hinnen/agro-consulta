@@ -4521,7 +4521,22 @@
         }
     }
 
+    function limparAdiarAlertaEntregas() {
+        try {
+            localStorage.removeItem(ENTREGAS_ALERTA_SNOOZE_KEY);
+        } catch (eClr) {}
+    }
+
     function adiarAlertaEntregas1h() {
+        /* Já adiado → 2º toque cancela (desfaz o "Alerta OK"). */
+        if (entregasAlertaEstaAdiado()) {
+            limparAdiarAlertaEntregas();
+            applyEntregasPendentesButton();
+            syncEntregasAdiarAlertaBtn();
+            renderEntregasPendentesList();
+            showSaleDoneFeedback('Alerta de horário religado (piscar e bip).', 'ok');
+            return;
+        }
         try {
             localStorage.setItem(ENTREGAS_ALERTA_SNOOZE_KEY, String(Date.now() + 60 * 60 * 1000));
         } catch (e1) {}
@@ -4529,6 +4544,7 @@
         applyEntregasPendentesButton();
         showSaleDoneFeedback('Alerta de horário adiado por 1 hora (piscar e bip).', 'ok');
         syncEntregasAdiarAlertaBtn();
+        renderEntregasPendentesList();
     }
 
     function syncEntregasAdiarAlertaBtn() {
@@ -4540,7 +4556,7 @@
             btn.classList.remove('hidden');
             btn.textContent = adiado ? 'Alerta OK' : 'Alerta +1h';
             btn.title = adiado
-                ? 'Alerta adiado — toque de novo só renova +1h'
+                ? 'Alerta adiado — toque de novo para religar o alerta'
                 : 'Adia o piscar e o bip do horário por 1 hora';
         } else {
             btn.classList.add('hidden');
@@ -4682,7 +4698,7 @@
             var adiar1hLbl = alertaAdiadoCard ? 'Alerta OK' : 'Adiar 1h';
             var adiar1hCls;
             if (alertaAdiadoCard) {
-                adiar1hCls = 'border-emerald-500 bg-emerald-50 text-emerald-900';
+                    adiar1hCls = 'border-emerald-500 bg-emerald-50 text-emerald-900';
             } else if (urgHp === 2) {
                 adiar1hCls = 'border-red-600 bg-red-50 text-red-900 animate-pulse';
             } else if (urgHp === 1) {
@@ -4699,7 +4715,11 @@
                     '</span>' +
                     '<button type="button" class="pdv-entrega-adiar-alerta-1h shrink-0 whitespace-nowrap rounded-md border-2 px-1.5 py-0.5 text-[9px] font-black uppercase leading-tight ' +
                     adiar1hCls +
-                    '" title="Adia o piscar e o bip do horário por 1 hora">' +
+                    '" title="' +
+                    (alertaAdiadoCard
+                        ? 'Alerta adiado — toque para religar'
+                        : 'Adia o piscar e o bip do horário por 1 hora') +
+                    '">' +
                     adiar1hLbl +
                     '</button>' +
                     '</span>'
@@ -13221,7 +13241,15 @@
 
     function fecharAlertaLembreteWizard() {
         var box = document.getElementById('alerta-lembrete');
-        if (box) box.classList.add('hidden');
+        if (!box || box.classList.contains('hidden')) return;
+        /* Evita o clique do Ok “cair” no botão embaixo (Alerta +1h / Rota). */
+        box.style.pointerEvents = 'none';
+        box.classList.add('hidden');
+        setTimeout(function () {
+            try {
+                box.style.pointerEvents = '';
+            } catch (ePe) {}
+        }, 400);
     }
 
     function exibirAlertaLembreteWizard(lembrete) {
@@ -13229,10 +13257,8 @@
         var box = document.getElementById('alerta-lembrete');
         if (t && box && lembrete) {
             t.textContent = (lembrete.hora || '') + ' · ' + (lembrete.texto || '');
-            /* Topo direito: não tapa SEM/COM impressão nem o rodapé do pagamento. */
             box.classList.remove('hidden');
-            box.classList.remove('bottom-4');
-            box.classList.add('top-4', 'right-4');
+            box.style.pointerEvents = '';
             tocarSomLembreteWizard();
         } else if (lembrete) {
             alert((lembrete.hora || '') + ' — ' + (lembrete.texto || ''));
@@ -16816,7 +16842,11 @@
 
         var alertaOk = document.getElementById('alerta-lembrete-ok');
         if (alertaOk) {
-            alertaOk.addEventListener('click', function () {
+            alertaOk.addEventListener('click', function (evOk) {
+                if (evOk) {
+                    evOk.preventDefault();
+                    evOk.stopPropagation();
+                }
                 fecharAlertaLembreteWizard();
             });
         }
