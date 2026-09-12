@@ -489,9 +489,15 @@ function pdvModalEscolhaImpressaoEntrega() {
     return new Promise((resolve) => {
         const root = document.getElementById('modal-pdv-entrega-impressao');
         if (!root) {
-            resolve({ sep: true, ent: true, cup: true });
+            resolve({ sep: false, ent: true, cup: true });
             return;
         }
+        const chkSep = document.getElementById('mei-chk-sep');
+        const chkEnt = document.getElementById('mei-chk-ent');
+        const chkCup = document.getElementById('mei-chk-cup');
+        if (chkSep) chkSep.checked = false;
+        if (chkEnt) chkEnt.checked = true;
+        if (chkCup) chkCup.checked = true;
         const btnImp = document.getElementById('mei-imprimir');
         const btnCan = document.getElementById('mei-cancelar');
         let done = false;

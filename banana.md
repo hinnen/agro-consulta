@@ -1296,10 +1296,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 6 | `PDV-ENT-TROCO-ENTER` | 🟢 **pronto para envio à produção** | **NÃO** | **6/6** |
 | 7 | `PDV-ENT-OVERLAY-SPLIT` | 🟢 **pronto para envio à produção** | **SIM** `0130` | lote **61/61** · PIN **9973** |
 | 8 | `ETQ-LOTE-FILA` | 🟢 **pronto para envio à produção** | **NÃO** | **78/78** · PIN **9973** |
+| 9 | `PDV-IMP-SEP-OFF` | 🟢 **pronto para envio à produção** | **NÃO** | UX · Separação **desmarcada** |
 
-**Loja:** **v23.94**. Tip `teste` **v24.34+**. Cherry `#1`–`#8` + frase + senha — **não** merge `teste`.  
+**Loja:** **v23.94**. Tip `teste` **v24.35+**. Cherry `#1`–`#9` + frase + senha — **não** merge `teste`.  
 **Prova lote PDV (#4–#7):** `verify_pdv_entrega_lote_1209_path.py` **61/61**.  
 **Sem deploy Zap:** fechar `.bat` → PDV volta. Religar `.bat` só depois do `#1` na loja.
+
+### 📦 PACOTE PRONTO — Separação desmarcada por padrão (`PDV-IMP-SEP-OFF` · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Modal impressão entrega: **Separação** começa **desmarcada** (PDV + painel Entregas); entregador + cupom seguem marcados |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Risco** | Baixo |
 
 ### 📦 PACOTE PRONTO — Lote A4 fila + controle fino (`ETQ-LOTE-FILA` · **v24.34** · 12/09)
 

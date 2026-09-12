@@ -13466,9 +13466,15 @@
         return new Promise(function (resolve) {
             var root = document.getElementById('modal-pdv-entrega-impressao');
             if (!root) {
-                resolve({ sep: true, ent: true, cup: true });
+                resolve({ sep: false, ent: true, cup: true });
                 return;
             }
+            var chkSep = document.getElementById('mei-chk-sep');
+            var chkEnt = document.getElementById('mei-chk-ent');
+            var chkCup = document.getElementById('mei-chk-cup');
+            if (chkSep) chkSep.checked = false;
+            if (chkEnt) chkEnt.checked = true;
+            if (chkCup) chkCup.checked = true;
             var btnImp = document.getElementById('mei-imprimir');
             var btnCan = document.getElementById('mei-cancelar');
             var done = false;
