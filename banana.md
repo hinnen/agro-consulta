@@ -1284,6 +1284,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — Enter no troco = sem troco (`PDV-ENT-TROCO-ENTER` · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Tela «Troco para quanto?»: **Enter** ou **F7** com campo vazio preenche o **total da venda** (não precisa de troco). Se digitar outro valor, usa o digitado. |
+| **Onde** | `pdv_wizard.js` · `entrega_wizard_overlay.html` |
+| **Prova** | `verify_pdv_entrega_troco_enter_path.py` **6/6** |
+| **Migrate** | **NÃO** |
+| **Status** | 🧪 **teste** — **Ctrl+F5** · entrega dinheiro → troco → Enter vazio |
+| **Risco** | Baixo |
+
 ### 📦 PACOTE PRONTO — Horário da entrega 9h–17h (`PDV-ENT-HORARIO-OPCOES` · 12/09)
 
 | Campo | Valor |
