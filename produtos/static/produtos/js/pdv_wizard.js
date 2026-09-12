@@ -6692,7 +6692,7 @@
         if (!dom.entregaWizard || dom.entregaWizard.classList.contains('hidden')) return;
         var painel = entregaWizardPainelAtual();
         var foco =
-            (painel === 'detalhes' && document.getElementById('pdv-entrega-horario')) ||
+            (painel === 'detalhes' && document.getElementById('pdv-ed-horario-opcoes')) ||
             (painel === 'troco' && document.getElementById('pdv-ef3-troco-input')) ||
             document.getElementById('pdv-ed-shell');
         if (!foco) return;
@@ -6815,7 +6815,7 @@
                 header: 'bg-gradient-to-r from-amber-600 to-orange-600 text-white',
                 etapa: 'Taxa e horário',
                 titulo: 'Cobrar frete nesta entrega?',
-                sub: 'Confira o horário se o cliente pediu.'
+                sub: 'Escolha o horário da entrega (9h às 17h).'
             },
             meio: {
                 border: 'border-orange-400',
@@ -6932,16 +6932,48 @@
         });
     }
 
+    function entregaHorariosFixos() {
+        return ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
+    }
+
+    function normalizarHorarioEntregaOpcao(v) {
+        var s = String(v || '').trim();
+        var m = s.match(/^(\d{1,2}):(\d{2})/);
+        if (!m) return '';
+        var slot = String(parseInt(m[1], 10)).padStart(2, '0') + ':' + m[2];
+        return entregaHorariosFixos().indexOf(slot) >= 0 ? slot : '';
+    }
+
+    function syncEntregaHorarioOpcoes(hor) {
+        var slot = normalizarHorarioEntregaOpcao(hor);
+        if (dom.entregaHorario) dom.entregaHorario.value = slot;
+        document.querySelectorAll('input[name="pdv-entrega-horario-opcao"]').forEach(function (r) {
+            r.checked = slot !== '' && r.value === slot;
+        });
+    }
+
+    function commitEntregaHorarioOpcao() {
+        var checked = document.querySelector('input[name="pdv-entrega-horario-opcao"]:checked');
+        var slot = checked ? normalizarHorarioEntregaOpcao(checked.value) : '';
+        if (dom.entregaHorario) dom.entregaHorario.value = slot;
+        State.setEntregaField('horario', slot);
+        wizardSyncLembretesFromEntregaHorario();
+        return slot;
+    }
+
     function confirmarEntregaDetalhesModal() {
         var taxaChecked = document.querySelector('input[name="pdv-entrega-taxa-modo"]:checked');
         if (!taxaChecked) {
             alert('Escolha se cobra frete, não cobra ou decide depois.');
             return;
         }
+        var hor = commitEntregaHorarioOpcao();
+        if (!hor) {
+            alert('Escolha o horário da entrega (9h às 17h).');
+            return;
+        }
         commitEntregaTaxaModo(taxaChecked.value);
         commitEntregaTaxaValorInput();
-        var horEl = document.getElementById('pdv-entrega-horario');
-        var hor = horEl ? horEl.value : '';
         State.setEntregaPatch({
             horario: hor,
             detalhesEntregaRespondidos: true
@@ -6996,6 +7028,7 @@
             } else {
                 renderEntregaTaxaCard(st);
             }
+            syncEntregaHorarioOpcoes((stDet.entrega && stDet.entrega.horario) || '');
         }
         if (painel === 'troco') renderEntregaTrocoPainelUi();
         if (painel === 'loja') renderEntregaLojaPainelUi();
@@ -7403,6 +7436,7 @@
         setInputValueUnlessFocused(dom.entregaComplemento, e.complemento);
         setInputValueUnlessFocused(dom.entregaReferencia, e.referencia || (c && c.referencia_rural) || '');
         setInputValue(dom.entregaHorario, e.horario);
+        syncEntregaHorarioOpcoes(e.horario);
         setInputValue(dom.entregaTroco, e.troco);
         setInputValue(dom.entregaObservacao, e.observacao);
         setInputValue(dom.vendaObservacao, state.venda.observacao);
@@ -15960,6 +15994,12 @@
             radio.addEventListener('change', function () {
                 if (!radio.checked) return;
                 commitEntregaTaxaModo(radio.value, { draft: true });
+            });
+        });
+        document.querySelectorAll('input[name="pdv-entrega-horario-opcao"]').forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                if (!radio.checked) return;
+                commitEntregaHorarioOpcao();
             });
         });
         var inpTaxaValor = document.getElementById('pdv-entrega-taxa-valor');

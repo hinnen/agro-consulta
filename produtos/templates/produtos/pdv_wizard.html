@@ -1553,7 +1553,23 @@
     flex: none;
   }
   .pdv-ed-wizard-panel[data-pdv-ed-painel="detalhes"] {
-    width: min(94vw, 34rem);
+    width: min(94vw, 52rem);
+  }
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="detalhes"] #pdv-ed-header {
+    padding: 1.25rem 1.5rem 1.35rem;
+  }
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="detalhes"] #pdv-ed-etapa {
+    font-size: clamp(0.9rem, 0.32vw + 0.82rem, 1.08rem);
+  }
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="detalhes"] #pdv-ed-titulo {
+    font-size: clamp(1.55rem, 0.8vw + 1.2rem, 2.15rem);
+  }
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="detalhes"] #pdv-ed-subtitulo {
+    font-size: clamp(1rem, 0.4vw + 0.9rem, 1.25rem);
+  }
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="detalhes"] .pdv-ed-detalhes-panel {
+    padding: 1.2rem 1.45rem 1.35rem;
+    gap: 1rem;
   }
   .pdv-ed-wizard-panel[data-pdv-ed-painel="troco"] {
     width: min(94vw, 34rem);
@@ -1682,13 +1698,36 @@
   .pdv-ed-opcao input { margin: 0; }
   .pdv-ed-detalhes-campos {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.55rem;
-    align-items: end;
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+    align-items: stretch;
   }
   .pdv-ed-detalhes-campos--so-horario {
     grid-template-columns: 1fr;
   }
+  .pdv-ed-horario-opcoes {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+  .pdv-ed-horario-opcao {
+    display: flex;
+    min-height: 3.5rem;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border-radius: 0.85rem;
+    border: 2px solid #fdba74;
+    background: #fff7ed;
+    padding: 0.45rem 0.35rem;
+    font-size: clamp(1.05rem, 0.4vw + 0.95rem, 1.35rem);
+    font-weight: 900;
+    color: #9a3412;
+    transition: border-color 0.12s ease, background 0.12s ease;
+  }
+  .pdv-ed-horario-opcao:hover { filter: brightness(0.98); }
+  .pdv-ed-horario-opcao input { margin: 0; }
   .pdv-ed-field-label {
     display: block;
     margin-bottom: 0.4rem;

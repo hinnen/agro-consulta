@@ -38,9 +38,20 @@
             <label id="pdv-ed-label-taxa-valor" class="pdv-ed-field-label" for="pdv-entrega-taxa-valor">Valor do frete (R$)</label>
             <input id="pdv-entrega-taxa-valor" type="text" class="pdv-input pdv-ed-field-input" placeholder="10,00" inputmode="decimal" autocomplete="off" aria-labelledby="pdv-ed-label-taxa-valor">
           </div>
-          <div class="pdv-ed-field">
-            <span id="pdv-ed-label-horario" class="pdv-ed-field-label">Horário</span>
-            <input id="pdv-entrega-horario" type="time" class="pdv-input pdv-ed-field-input" title="Lembretes 20 min antes e no horário" aria-labelledby="pdv-ed-label-horario">
+          <div class="pdv-ed-field pdv-ed-field--horario">
+            <span id="pdv-ed-label-horario" class="pdv-ed-field-label">Horário (obrigatório)</span>
+            <input id="pdv-entrega-horario" type="hidden" value="" autocomplete="off">
+            <div id="pdv-ed-horario-opcoes" class="pdv-ed-horario-opcoes" role="radiogroup" aria-labelledby="pdv-ed-label-horario" title="Lembretes 20 min antes e no horário">
+              <label class="pdv-ed-horario-opcao has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50"><input type="radio" name="pdv-entrega-horario-opcao" value="09:00" class="h-4 w-4 shrink-0 accent-orange-600"><span>9:00</span></label>
+              <label class="pdv-ed-horario-opcao has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50"><input type="radio" name="pdv-entrega-horario-opcao" value="10:00" class="h-4 w-4 shrink-0 accent-orange-600"><span>10:00</span></label>
+              <label class="pdv-ed-horario-opcao has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50"><input type="radio" name="pdv-entrega-horario-opcao" value="11:00" class="h-4 w-4 shrink-0 accent-orange-600"><span>11:00</span></label>
+              <label class="pdv-ed-horario-opcao has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50"><input type="radio" name="pdv-entrega-horario-opcao" value="12:00" class="h-4 w-4 shrink-0 accent-orange-600"><span>12:00</span></label>
+              <label class="pdv-ed-horario-opcao has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50"><input type="radio" name="pdv-entrega-horario-opcao" value="13:00" class="h-4 w-4 shrink-0 accent-orange-600"><span>13:00</span></label>
+              <label class="pdv-ed-horario-opcao has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50"><input type="radio" name="pdv-entrega-horario-opcao" value="14:00" class="h-4 w-4 shrink-0 accent-orange-600"><span>14:00</span></label>
+              <label class="pdv-ed-horario-opcao has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50"><input type="radio" name="pdv-entrega-horario-opcao" value="15:00" class="h-4 w-4 shrink-0 accent-orange-600"><span>15:00</span></label>
+              <label class="pdv-ed-horario-opcao has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50"><input type="radio" name="pdv-entrega-horario-opcao" value="16:00" class="h-4 w-4 shrink-0 accent-orange-600"><span>16:00</span></label>
+              <label class="pdv-ed-horario-opcao has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50"><input type="radio" name="pdv-entrega-horario-opcao" value="17:00" class="h-4 w-4 shrink-0 accent-orange-600"><span>17:00</span></label>
+            </div>
           </div>
         </div>
         <p class="pdv-ed-detalhes-hint">Use <strong>F7</strong> ou o botão verde do rodapé para confirmar.</p>

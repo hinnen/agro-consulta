@@ -433,7 +433,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
 - **Perf. animaÃ§Ãµes (decisÃ£o Renan, 2026-06):** acÃºmulo de efeitos no app inteiro *pode* pesar em PC fraco â€” mas **este FAB Ã© impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA pÃ¡gina inteira, listas grandes, Mongo, JS do PDV/LanÃ§amentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
 - **Interruptor efeitos (2026-06-19):** botÃ£o minÃºsculo **Â«FX on / FX offÂ»** acima do FAB PDV (`localStorage` `agro_reduzir_efeitos_v1`). **FX off** â†’ classe `html.agro-fx-reduced`: desliga arco-Ã­ris/pulso do FAB, pulso do card **Validade** vencida, pulso decorativo PDV/OrÃ§amento no BI. **NÃ£o** desliga: barra de loading, feedback de scanner, spinners de Â«salvandoÂ» (Ãºteis). API JS: `agroSetFxReduced(true|false)`, `agroFxReduced()`.
-- Entrega wizard **F3:** pagamento local â†’ endereÃ§o â†’ taxa â†’ meio â†’ troco â†’ **Conferir entrega** (resumo com Editar por bloco). Frete grÃ¡tis por endereÃ§o no futuro pula popup taxa.
+- Entrega wizard **F3:** pagamento local â†’ endereÃ§o â†’ taxa â†’ meio â†’ troco â†’ **Conferir entrega** (resumo com Editar por bloco). Frete grÃ¡tis por endereÃ§o no futuro pula popup taxa. **Horário (12/09 `PDV-ENT-HORARIO-OPCOES`):** cartão maior · opções **9h–17h** (hora em hora) · **obrigatório**.
 - EndereÃ§o oculto atÃ© escolher pagamento na entrega ou na loja.
 - Barra de estoque: atualizaÃ§Ã£o manual + horÃ¡rio + standby.
 
@@ -1284,6 +1284,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — Horário da entrega 9h–17h (`PDV-ENT-HORARIO-OPCOES` · 12/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Cartão «Cobrar frete» **maior**. Horário = opções **9:00 … 17:00** (de hora em hora). **Obrigatório** marcar uma (F7 não segue sem). |
+| **Onde** | `entrega_wizard_overlay.html` · `pdv_wizard.html` · `pdv_wizard.js` |
+| **Prova** | `verify_pdv_entrega_horario_opcoes_path.py` **16/16** |
+| **Migrate** | **NÃO** |
+| **Status** | 🧪 **teste** — **Ctrl+F5** · F3 Entrega → taxa |
+| **Risco** | Baixo — só essa tela |
+
 ### 📦 PACOTE PRONTO — Chat não cobre F7 na Entrega (`PDV-CHAT-ENTREGA-DOCK` · 12/09)
 
 | Campo | Valor |
@@ -1300,10 +1311,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | No atalho **Rações**, marca **só** aparece se tiver produto daquele tipo **com peso** (1, 2,5, 5, 10, 15, 20, 25 ou pacote). Sem ração = some. Cadastrou peso depois = marca volta. |
-| **Prova** | `verify_pdv_racoes.py` + `tests_pdv_racoes` |
+| **Prova** | `verify_pdv_racoes_marca_vazia_path.py` **57/57** · PIN **9973** · `verify_pdv_racoes` · tests **18/18** |
 | **Migrate** | **NÃO** |
-| **Status** | 🧪 **teste** — aguarda Ctrl+F5 no PDV |
-| **Você** | PDV → Rações → Cão Sênior: GRAN PLUS sem peso **não** deve aparecer |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | PDV → Rações → tipo: marca vazia **não** aparece |
 | **Risco** | Baixo — só esconde botão vazio |
 
 ### PC — disco C: cheio (12/09) · limpeza parcial · **terminar HOJE à tarde**
@@ -1324,8 +1335,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- | ----- |
 | 1 | `WA-PONTE-ULTRA-LEVE` | 🟢 **pronto para envio à produção** | **NÃO** | **47/47** · PIN **9973** |
 | 2 | `WA-APP-SEM-PDV` | 🟢 **pronto para envio à produção** | **NÃO** | **48/48** · PIN **9973** |
+| 3 | `PDV-RACOES-MARCA-VAZIA` | 🟢 **pronto para envio à produção** | **NÃO** | **57/57** · PIN **9973** |
 
-**Loja:** **v23.94**. Tip `teste` **v24.26**. Cherry `#1` (+ `#2`) + frase + senha — **não** merge `teste`.
+**Loja:** **v23.94**. Tip `teste` **v24.28**. Cherry `#1`–`#3` + frase + senha — **não** merge `teste`.
 
 **Sem deploy:** fechar `.bat` → PDV volta. Religar `.bat` só depois do `#1` na loja.
 
