@@ -1283,40 +1283,42 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
-### 🚀 PREP deploy loja — checklist 12/09b (`deploy/prep-checklist-1209b` · **v23.95**) · aguarda senha
+
+### ✅ Deploy loja — Checklist 12/09b (`deploy/prep-checklist-1209b` · **v23.95**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **PREP pronto** — **só** frase + senha · **não** subiu ainda |
-| **Live agora** | **v23.94** @ `c3e0b1c` |
-| **Branch PREP** | `deploy/prep-checklist-1209b` @ **`8faa4c1`** · tip **v23.95** |
-| **Pacotes** | `#1`–`#10` no PREP · `#11` CARD-LATERAL no tip `teste` (**v24.40+**) |
-| **Migrate** | **SIM** `0130` |
-| **Prova pré** | ponte **47/47** · Zap app **53/53** · rações **57/57** · dock **7/7** · horário **16/16** · troco **6/6** · split **16/16** · lote **61/61** · etq **78/78** · SEP/PIN/CARD **42/42** · `check` OK |
+| **Status** | ✅ **enviado / Live v23.95** — cherry **só** `#1`–`#10` (**não** merge `teste`) |
+| **Antes** | **Live v23.94** @ `c3e0b1c` |
+| **Agora** | `producao` @ **`8faa4c1`** · Render `dep-daincomk1f9s73f7e330` |
+| **Migrate** | **SIM** `0130` (no deploy) |
+| **Pacotes** | `WA-PONTE-ULTRA-LEVE` · `WA-APP-SEM-PDV` · `PDV-RACOES-MARCA-VAZIA` · `PDV-CHAT-ENTREGA-DOCK` · `PDV-ENT-HORARIO-OPCOES` · `PDV-ENT-TROCO-ENTER` · `PDV-ENT-OVERLAY-SPLIT` · `ETQ-LOTE-FILA` · `PDV-IMP-SEP-OFF` · `PDV-IMP-PIN-ANTES` |
+| **Prova pré** | ponte **47/47** · Zap app **53/53** · rações **57/57** · dock **7/7** · horário **16/16** · troco **6/6** · split **16/16** · lote **61/61** · etq **78/78** · SEP/PIN UX · `check` OK |
 | **Rollback** | tag `rollback/pre-checklist-1209b-v23.94` · branch `producao-backup-pre-v2395-checklist-20260912b` · `docs/ROLLBACK-CHECKLIST-1209b.md` · **só** frase+senha |
-| **Operacional** | **pausar vendas** no deploy · fechar `.bat` Zap antes · Ctrl+F5 · religar `.bat` |
-| **Não** | merge `teste` |
+| **Smoke** | healthz **200** · home/consulta/PDV **200** · badge **v23.95** · Render **live** |
+| **Você** | **Ctrl+F5** · religar `.bat` Zap · Entrega · Etiquetas lote |
+| **Fora ainda** | `#11` `PDV-ENT-CARD-LATERAL` (só no tip `teste`) |
 
-
-### ✅ CHECKLIST ÚNICO — 12/09c · pronto para envio à produção
+### ✅ CHECKLIST ÚNICO — 12/09b · **Live v23.95** (+ `#11` ainda no tip)
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `WA-PONTE-ULTRA-LEVE` | 🟢 **pronto para envio à produção** | **NÃO** | **47/47** · PIN **9973** |
-| 2 | `WA-APP-SEM-PDV` | 🟢 **pronto para envio à produção** | **NÃO** | **53/53** · PIN **9973** |
-| 3 | `PDV-RACOES-MARCA-VAZIA` | 🟢 **pronto para envio à produção** | **NÃO** | **57/57** · PIN **9973** |
-| 4 | `PDV-CHAT-ENTREGA-DOCK` | 🟢 **pronto para envio à produção** | **NÃO** | **7/7** |
-| 5 | `PDV-ENT-HORARIO-OPCOES` | 🟢 **pronto para envio à produção** | **NÃO** | **16/16** |
-| 6 | `PDV-ENT-TROCO-ENTER` | 🟢 **pronto para envio à produção** | **NÃO** | **6/6** |
-| 7 | `PDV-ENT-OVERLAY-SPLIT` | 🟢 **pronto para envio à produção** | **SIM** `0130` | lote **61/61** · PIN **9973** |
-| 8 | `ETQ-LOTE-FILA` | 🟢 **pronto para envio à produção** | **NÃO** | **78/78** · PIN **9973** |
-| 9 | `PDV-IMP-SEP-OFF` | 🟢 **pronto para envio à produção** | **NÃO** | **42/42** · PIN **9973** |
-| 10 | `PDV-IMP-PIN-ANTES` | 🟢 **pronto para envio à produção** | **NÃO** | **42/42** · PIN **9973** |
-| 11 | `PDV-ENT-CARD-LATERAL` | 🟢 **pronto para envio à produção** | **NÃO** | tip **v24.48** · □ rota·Maps · horário · alerta +1h |
+| 1 | `WA-PONTE-ULTRA-LEVE` | ✅ **Live v23.95** | **NÃO** | **47/47** · PIN **9973** |
+| 2 | `WA-APP-SEM-PDV` | ✅ **Live v23.95** | **NÃO** | **53/53** · PIN **9973** |
+| 3 | `PDV-RACOES-MARCA-VAZIA` | ✅ **Live v23.95** | **NÃO** | **57/57** · PIN **9973** |
+| 4 | `PDV-CHAT-ENTREGA-DOCK` | ✅ **Live v23.95** | **NÃO** | **7/7** |
+| 5 | `PDV-ENT-HORARIO-OPCOES` | ✅ **Live v23.95** | **NÃO** | **16/16** |
+| 6 | `PDV-ENT-TROCO-ENTER` | ✅ **Live v23.95** | **NÃO** | **6/6** |
+| 7 | `PDV-ENT-OVERLAY-SPLIT` | ✅ **Live v23.95** | **SIM** `0130` | lote **61/61** · PIN **9973** |
+| 8 | `ETQ-LOTE-FILA` | ✅ **Live v23.95** | **NÃO** | **78/78** · PIN **9973** |
+| 9 | `PDV-IMP-SEP-OFF` | ✅ **Live v23.95** | **NÃO** | Separação **desmarcada** |
+| 10 | `PDV-IMP-PIN-ANTES` | ✅ **Live v23.95** | **NÃO** | PIN **antes** · sem 2ª via |
+| 11 | `PDV-ENT-CARD-LATERAL` | 🟢 **pronto para envio** (tip) | **NÃO** | tip **v24.48+** · □ rota·Maps · horário · alerta +1h |
 
-**Loja:** **v23.94**. Tip `teste` **v24.48**. PREP `#1`–`#10` @ `8faa4c1` · `#11` só no tip. Cherry + frase + senha — **não** merge `teste`.  
-**Prova #9–#11:** `verify_pdv_imp_pin_card_1209_path.py` **42/42**. Lote PDV (#4–#7): **61/61**.  
-**Sem deploy Zap:** fechar `.bat` → PDV volta. Religar `.bat` só depois do `#1` na loja.
+**Status: ✅ Live v23.95** — `producao` @ `8faa4c1` · Render `dep-daincomk1f9s73f7e330`.  
+**Antes:** Live **v23.94** @ `c3e0b1c`. Migrate **0130** OK. **Não** merge `teste`.  
+**Rollback:** tag `rollback/pre-checklist-1209b-v23.94` · `docs/ROLLBACK-CHECKLIST-1209b.md`.  
+**Pendente SOLO tip:** `#11` `PDV-ENT-CARD-LATERAL`.
 
 ### 📦 PACOTE PRONTO — Cards Entregas rota/horário/alerta (`PDV-ENT-CARD-LATERAL` · **v24.48** · 12/09)
 
