@@ -18061,8 +18061,6 @@ def api_entrada_nota_conferir_codigo(request):
 
 @login_required(login_url="/entrar/")
 @require_POST
-@login_required(login_url="/entrar/")
-@require_POST
 def api_entrada_nota_aprovar_wizard(request):
     """Grava carimbo de conferência final com o mesmo PIN usado em estoque / empréstimo (``PerfilUsuario.senha_rapida``)."""
     try:
@@ -18093,6 +18091,16 @@ def api_entrada_nota_aprovar_wizard(request):
     doc = col_rasc.find_one({"_id": _oid})
     if not doc:
         return JsonResponse({"ok": False, "erro": "Rascunho não encontrado."}, status=404)
+    # Título já no CP mas flag sumiu: religa antes de barrar o PIN (bug #18 / NF-FIN-*).
+    try:
+        from produtos.nfe_entrada_util import entrada_nfe_extra_financeiro_ok
+
+        ex0 = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+        if _entrada_nfe_tipo_entrada(ex0) != "bonificacao" and not entrada_nfe_extra_financeiro_ok(ex0):
+            sincronizar_financeiro_rascunho_entrada_nfe(db, oid, usuario=usuario or "sistema")
+            doc = col_rasc.find_one({"_id": _oid}) or doc
+    except Exception:
+        logger.exception("api_entrada_nota_aprovar_wizard sync financeiro pré-PIN")
     ok_r, err_r = rascunho_entrada_valido_para_aprovacao_wizard(doc)
     if not ok_r:
         return JsonResponse({"ok": False, "erro": err_r}, status=400)

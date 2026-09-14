@@ -618,6 +618,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **HistÃ³rico C1â€“C3 + NF (18/07):** C1â€“C3 = sÃ³ compras **anteriores**; a NF aberta **nÃ£o** entra (evitava parecer 2 notas: data entrada vs emissÃ£o).
 - **Vínculo XML (30/07 · v12.10):** tabela Postgres `EntradaNfeVinculoAgro` = fonte da verdade multi-PC; «Ler XML» reaproveita cProd (R0151…). Migrate `0069` · backfill `agro_backfill_c_prod_nf_entrada`.
 - **Financeiro desync (2026-06-19 / reforço 29/07 / **04/09** `NF-FIN-MANUAL-RELIGA` / **10/09** `NF-FIN-NAO-TEM`):** título já no CP mas etapa 7 laranja + «Salvar + a pagar». Nota **manual** (sem chave XML) não casava; «**NF não tem**» também falhava (extrator só lia dígitos). Abrir a nota / Salvar religa; **não** gerar de novo se os títulos já existem.
+- **PIN sem a pagar (14/09 · bug #18 · `NF-PIN-EXIGE-FIN`):** dava pra gravar PIN (Concluída) sem «Salvar + a pagar». Agora UI+API **bloqueiam** (exceto bonificação); sync tenta religar CP antes de barrar; lista: PIN sem título → chip **Financeiro** (não Concluída).
 - **Lista Em andamento vazia (04/09 · `NF-LISTA-ANDAMENTO`):** chip filtrava só as ~25 notas mais novas — nota antiga em Financeiro/Estoque sumia até digitar na busca. Fix: scan fundo + preencher lim com quem casa no filtro.
 - **Fornecedor deve produto (10/09 · `NF-AGUARDA-PRODUTO`):** marca na lista — nota com PIN/CP/estoque ok **continua em Em andamento** até **Chegou**. Chip **Deve produto**.
 - **Reabrir → estoque de novo (03/08):** ao reabrir, estornar se houver status/`estoque_aplicado_em`/carimbo/`ajuste_ids` (não só `estoque_aplicado`). Autosave não ressuscita carimbo. Lista «reabrir» encerrada chama o mesmo estorno.
@@ -1283,6 +1284,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 🩹 Bug #18 — Entrada NF finalizada sem financeiro (`NF-PIN-EXIGE-FIN` · **teste v24.82** · 14/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Relato** | Renan · Caixa Centro · 03/09 · v21.86 — nota **Concluída** sem lançar a pagar |
+| **Causa** | Etapa 7 aceitava «pular» se ninguém mexia no financeiro; PIN gravava mesmo assim |
+| **Fix** | UI + API exigem «Salvar + a pagar» (ou **Bonificação**); sync religa CP antes de barrar; bucket Concluída = PIN **+** financeiro |
+| **Prova** | `verify_nf_pin_exige_fin_path.py` **9/9** · `verify_nf_aguarda_produto_path.py` **13/13** |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 `/entrada-nota/` · badge **v24.82** · estoque ok → etapa 8 sem a pagar = **bloqueia** · Salvar + a pagar → PIN libera · chip **Financeiro** nas notas antigas com PIN sem título |
+| **Loja** | **só** frase + senha |
 
 ### ✅ CHECKLIST ÚNICO — bugs vale #15+#16 · rechecagem 14/09 · **já Live (nada a subir)**
 
