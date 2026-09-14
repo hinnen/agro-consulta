@@ -1284,6 +1284,39 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🚀 PREP deploy loja — Checklist 14/09 (`deploy/prep-checklist-1409` · **v25.20**) · aguarda senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha no próximo chat |
+| **Base loja** | Live **v23.99** @ `a43340a` |
+| **Branch PREP** | `deploy/prep-checklist-1409` · tip **v25.20** |
+| **Migrate** | **NÃO** |
+| **Pacotes** | #18 `NF-PIN-EXIGE-FIN` · #19 `CP-BAIXA-DESC` · #20/#24 preço A/B · #21 Trocar · #22 timeout/PAGAR · #25 caixa milhar · #26 PIN 45s+nova venda · `PDV-ENTREGAS-MODAL-BODY` · `PDV-FECHAR-CTA-QUITADO` · `PDV-ORC-IMPRIMIR` |
+| **Fora** | merge `teste` · #23 já Live · WIP DRE/Excel/WA |
+| **Provas** | 9+12+17+31+13+15+14+17 · pin **79** · fechar **60** · entregas tip **37** · PIN **9973** · `manage.py check` OK |
+| **Rollback** | tag `rollback/pre-checklist-1409-v23.99` · branch `producao-backup-pre-v2520-checklist-20260914` · `docs/ROLLBACK-CHECKLIST-1409.md` |
+| **Você no deploy** | pausar vendas → frase+senha → Ctrl+F5 badge **v25.20** · smoke 1 venda + PIN próxima + Entregas no Pagamento |
+
+### ✅ CHECKLIST ÚNICO — 14/09 · PREP v25.20 · 🟢 aguarda senha
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 18 | `NF-PIN-EXIGE-FIN` | 🟢 **no PREP** | **NÃO** | **9/9** |
+| 19 | `CP-BAIXA-DESC` | 🟢 **no PREP** | **NÃO** | **12/12** |
+| 20 | `PDV-TABELA-PRINT-FORMA` | 🟢 **no PREP** | **NÃO** | **17/17** |
+| 21 | `PDV-CONFIRM-QUITADO-TROCAR` | 🟢 **no PREP** | **NÃO** | **31/31** |
+| 22 | `PDV-FINAL-TIMEOUT-UI` | 🟢 **no PREP** | **NÃO** | **13/13** |
+| 23 | Zap PDV lento | ✅ **já Live** | — | — |
+| 24 | `PDV-PRECO-FORMA-DIN` | 🟢 **no PREP** | **NÃO** | **15/15** |
+| 25 | `CAIXA-ABERTURA-MILHAR` | 🟢 **no PREP** | **NÃO** | **14/14** |
+| 26 | `PIN-VENDA-45S` | 🟢 **no PREP** | **NÃO** | **17/17** · **79/79** |
+| — | `PDV-ENTREGAS-MODAL-BODY` | 🟢 **no PREP** | **NÃO** | **37/37** tip |
+| — | `PDV-FECHAR-CTA-QUITADO` | 🟢 **no PREP** | **NÃO** | **60/60** |
+| — | `PDV-ORC-IMPRIMIR` | 🟢 **no PREP** | **NÃO** | path OK |
+
+**Não** merge `teste`. **Não** push `producao` sem frase+senha.
+
 ### ✅ Deploy loja — Checklist 12/09c (`deploy/prep-checklist-1209c` · **v23.96**) · **Live**
 
 | Campo | Valor |

@@ -45,7 +45,8 @@ def ready_confirm(
     if err:
         return False
     ready_outro = forma == "Outro" and rest > 0.009 and outro_pronta(forma, pin, detalhe)
-    ready_quitado = (not forma) and n_lanc > 0 and rest <= 0.009
+    # Quitado libera Confirmar mesmo com forma ainda setada (bug #21 — Trocar de novo).
+    ready_quitado = n_lanc > 0 and rest <= 0.009
     return ready_outro or ready_quitado
 
 
@@ -122,8 +123,9 @@ def main() -> int:
         ("Outro", True, "", 79.0, 0, False, False, "sem detalhe → Confirmar off"),
         ("Outro", True, "   ", 79.0, 0, False, False, "detalhe só espaço → off"),
         ("Outro", True, "não dado bai", 79.0, 0, False, True, "PIN+detalhe+resta → Confirmar on (bug #2)"),
-        ("Outro", True, "ok", 0.0, 1, False, False, "restante 0 com forma ainda Outro → off (precisa limpar forma)"),
+        ("Outro", True, "ok", 0.0, 1, False, True, "restante 0 com forma ainda Outro → on (bug #21)"),
         ("", True, "x", 0.0, 1, False, True, "quitado clássico: sem forma + lançamentos"),
+        ("Dinheiro", True, "x", 0.0, 1, False, True, "quitado + Trocar/Dinheiro de novo → Confirmar on"),
         ("Dinheiro", True, "x", 50.0, 0, False, False, "Dinheiro aberto não libera Confirmar"),
         ("Outro", True, "ok", 79.0, 0, True, False, "com erro validação → off"),
     ]

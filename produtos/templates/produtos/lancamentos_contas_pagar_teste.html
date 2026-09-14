@@ -626,6 +626,10 @@
       <span>Juros nesta quitação (opcional, R$)</span>
       <input type="text" id="sv-bx-juros" placeholder="0,00" inputmode="decimal">
     </label>
+    <label style="display:block;margin-top:14px;">
+      <span>Descrição do pagamento (opcional)</span>
+      <input type="text" id="sv-bx-desc" maxlength="400" placeholder="Ex.: boleto pago no app, comprovante XPTO…" autocomplete="off">
+    </label>
     <div class="sv-modal-actions">
       <button type="button" class="sv-btn-action sv-btn-edit" id="sv-bx-cancel">Cancelar</button>
       <button type="button" class="sv-btn-action sv-btn-pay" id="sv-bx-ok">Confirmar pagamento</button>
@@ -638,6 +642,10 @@
     <h2 id="sv-modal-parcial-titulo">Pagamento parcial</h2>
     <p id="sv-modal-parcial-resumo" class="sv-sub"></p>
     <label><span>Data do movimento</span><input type="date" id="sv-bxp-data"></label>
+    <label style="display:block;margin-top:14px;">
+      <span>Descrição do pagamento (opcional)</span>
+      <input type="text" id="sv-bxp-desc" maxlength="400" placeholder="Ex.: pagamento parcial NF…" autocomplete="off">
+    </label>
     <div style="margin-top:16px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <span style="font-weight:600;color:var(--cor-texto-secundario);">Parcelas (valor + forma + banco)</span>
@@ -1762,6 +1770,8 @@
     }
     document.getElementById('sv-bx-data').value = hojeYmd();
     document.getElementById('sv-bx-juros').value = '';
+    const bxDesc = document.getElementById('sv-bx-desc');
+    if (bxDesc) bxDesc.value = '';
     const svRet = document.getElementById('sv-bx-retirar-caixa');
     if (svRet) svRet.checked = false;
     await carregarOpcoesBaixa();
@@ -1777,6 +1787,8 @@
     document.getElementById('sv-modal-parcial-resumo').textContent =
       `${row.cliente || row.descricao || 'Título'} · Saldo em aberto ${brl(bxpSaldoMax)}`;
     document.getElementById('sv-bxp-data').value = hojeYmd();
+    const bxpDesc = document.getElementById('sv-bxp-desc');
+    if (bxpDesc) bxpDesc.value = '';
     document.getElementById('sv-bxp-linhas').innerHTML = '';
     await carregarOpcoesBaixa();
     bxpAddLinha(bxpSaldoMax.toFixed(2).replace('.', ','));
@@ -2645,6 +2657,8 @@
       banco: b.nome,
       banco_id: b.id,
     });
+    const descBx = (document.getElementById('sv-bx-desc')?.value || '').trim();
+    if (descBx) body.descricao = descBx.slice(0, 400);
     const svRet = document.getElementById('sv-bx-retirar-caixa');
     if (svRet && svRet.checked) {
       const fn = String(f.nome || '').toLowerCase();
@@ -2738,6 +2752,7 @@
             lancamento_id: bxpIdAtual,
             tipo: 'pagar',
             data_movimento: document.getElementById('sv-bxp-data').value,
+            descricao: ((document.getElementById('sv-bxp-desc')?.value || '').trim()).slice(0, 400) || undefined,
             parcelas,
           })),
         });

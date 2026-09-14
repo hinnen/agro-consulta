@@ -831,8 +831,25 @@
   }
 
   /**
+   * Após venda gravada: zera «ainda sou eu» no servidor.
+   * A próxima Confirmar / Pedir pede PIN de novo (servidor também expira no POST da venda).
+   */
+  window.gmSspinExpirarFrescoAposVenda = function () {
+    try {
+      return fetch(API_OPERADOR, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: JSON.stringify({ expirar_fresco: true })
+      }).catch(function () { return null; });
+    } catch (eExp) {
+      return Promise.resolve(null);
+    }
+  };
+
+  /**
    * Garante operador fresco no servidor. Mouse NÃO renova.
-   * opts.maxFrescoS — janela curta (ex.: 10 no fechar venda). Default = TTL do servidor (~45s).
+   * opts.maxFrescoS — janela curta (ex.: 45 no fechar venda). Default = TTL do servidor (~45s).
    * Se fresco → renova TTL e chama onSuccess(nome). Senão abre PIN.
    */
   window.gmSspinGarantirOperador = function (onSuccess, opts) {

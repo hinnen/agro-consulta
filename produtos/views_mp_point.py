@@ -86,6 +86,16 @@ _ERP_PAYLOAD_KEYS = frozenset(
 MP_POINT_OPERADOR_KEY = "mp_point_operador"
 
 
+def _mp_point_expirar_pin_apos_venda(request) -> None:
+    """Venda Point gravada → próxima ação pede PIN (igual api_enviar_pedido_erp)."""
+    try:
+        from produtos.pdv_transf_loja_util import expirar_operador_pdv_fresco
+
+        expirar_operador_pdv_fresco(request)
+    except Exception:
+        pass
+
+
 def _mp_point_carimbar_operador(request, erp_payload: dict) -> None:
     """Guarda quem estava no PIN no momento da cobrança (espera na maquininha > 10s)."""
     if not isinstance(erp_payload, dict):
@@ -782,6 +792,7 @@ def api_pdv_mp_point_confirmar_tranche(request):
             return JsonResponse({"ok": False, "erro": "Sessão não confere."}, status=403)
 
         if row.status == PdvMercadoPagoPointOrder.Status.FINALIZED:
+            _mp_point_expirar_pin_apos_venda(request)
             return JsonResponse({"ok": True, "ja_finalizado": True, "venda_id": row.venda_id})
         if row.status == PdvMercadoPagoPointOrder.Status.PAID:
             return JsonResponse({"ok": True, "ja_pago": True, "order_id": order_id})
@@ -977,6 +988,7 @@ def _api_pdv_mp_point_finalizar_impl(request):
             return JsonResponse({"ok": False, "erro": "Sessão não confere."}, status=403)
 
         if row.status == PdvMercadoPagoPointOrder.Status.FINALIZED and row.venda_id:
+            _mp_point_expirar_pin_apos_venda(request)
             return JsonResponse({"ok": True, "venda_id": row.venda_id, "ja_finalizado": True})
 
         if row.status == PdvMercadoPagoPointOrder.Status.ABANDONED:
@@ -1150,6 +1162,7 @@ def _api_pdv_mp_point_finalizar_impl(request):
             }
             _mp_point_anexar_recon_payload(payload, recon)
             anexar_nfce_resposta_venda(venda_local, erp_data, payload)
+            _mp_point_expirar_pin_apos_venda(request)
             return JsonResponse(payload)
 
         if getattr(settings, "PDV_ERP_ENVIO_ASSINCRONO", True):
@@ -1180,6 +1193,7 @@ def _api_pdv_mp_point_finalizar_impl(request):
             }
             _mp_point_anexar_recon_payload(payload, recon)
             anexar_nfce_resposta_venda(venda_local, erp_data, payload)
+            _mp_point_expirar_pin_apos_venda(request)
             return JsonResponse(payload)
 
         err, out = _fluxo_enviar_pedido_erp_interno(request, erp_data, client_m=client_m, db=db)
@@ -1244,6 +1258,7 @@ def _api_pdv_mp_point_finalizar_impl(request):
 
             _mp_point_anexar_recon_payload(payload, recon)
             anexar_nfce_resposta_venda(venda_local, erp_data, payload)
+            _mp_point_expirar_pin_apos_venda(request)
             return JsonResponse(payload)
 
         row.status = PdvMercadoPagoPointOrder.Status.FAILED

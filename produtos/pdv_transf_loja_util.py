@@ -18,8 +18,8 @@ from produtos.pdv_deposito_util import DEPOSITOS_VALIDOS, normalizar_deposito, r
 
 # Identidade do operador para ações (venda, Pedir, chat…): NÃO renova com mouse.
 PDV_OPERADOR_FRESCO_TTL_S = 45
-# Fechar venda: janela curta (troca rápida de pessoa no mesmo caixa).
-PDV_OPERADOR_FRESCO_VENDA_TTL_S = 10
+# Fechar venda: mesmo TTL das demais ações. (Bug #26: 10s pedia PIN toda hora no balcão.)
+PDV_OPERADOR_FRESCO_VENDA_TTL_S = 45
 PDV_OPERADOR_FRESCO_KEY = "pdv_operador_fresco_em"
 MSG_PIN_PDV_ACAO = "Entre com o PIN no PDV para registrar a ação."
 
@@ -117,6 +117,21 @@ def limpar_operador_pdv_sessao(request) -> None:
         except Exception:
             pass
     try:
+        request.session.modified = True
+    except Exception:
+        pass
+
+
+def expirar_operador_pdv_fresco(request) -> None:
+    """Após fechar venda: zera «ainda sou eu» — a próxima ação pede PIN de novo.
+
+    Mantém o nome na sessão só como lembrete; sem timestamp fresco o GET/garantir
+    trata como vencido. (Bug #26 / pedido Renan 14/09.)
+    """
+    if request is None:
+        return
+    try:
+        request.session.pop(PDV_OPERADOR_FRESCO_KEY, None)
         request.session.modified = True
     except Exception:
         pass

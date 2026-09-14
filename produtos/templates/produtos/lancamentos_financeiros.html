@@ -645,6 +645,10 @@
         <p class="text-[10px] text-slate-500 leading-relaxed">Valor em R$ gera um título a pagar no plano <strong>Juros de Emprestimos</strong>, quitado na mesma data, forma e conta abaixo (usa empresa e favorecido do primeiro título selecionado).</p>
         <input type="text" id="bx-juros" placeholder="0,00" class="w-full max-w-xs rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold tabular-nums">
       </div>
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-500">Descrição do pagamento (opcional)</span>
+        <input type="text" id="bx-desc" maxlength="400" placeholder="Ex.: boleto pago no app…" autocomplete="off" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold">
+      </label>
       <div class="flex flex-wrap gap-2 justify-end pt-2">
         <button type="button" id="bx-cancel" class="px-4 py-2.5 rounded-xl border-2 border-slate-200 font-black text-xs uppercase text-slate-600">Cancelar</button>
         <button type="button" id="bx-ok" class="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-xs uppercase hover:bg-emerald-700">Confirmar baixa total</button>
@@ -664,6 +668,10 @@
           <input type="date" id="bxp-data" class="w-full max-w-xs rounded-xl border-2 border-slate-200 px-3 py-2.5 text-base font-bold">
           <span id="bxp-data-vis" class="text-base font-black tabular-nums text-slate-800" aria-live="polite"></span>
         </div>
+      </label>
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-500">Descrição do pagamento (opcional)</span>
+        <input type="text" id="bxp-desc" maxlength="400" placeholder="Ex.: pagamento parcial NF…" autocomplete="off" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold">
       </label>
       <div class="space-y-2">
         <div class="flex flex-wrap items-center justify-between gap-2">
@@ -1734,6 +1742,8 @@
         `1 título · Saldo em aberto ${brl(rest)} · ${tipoAtual === 'pagar' ? 'Contas a pagar' : 'Contas a receber'}`;
       const inpD = document.getElementById('bxp-data');
       inpD.value = hojeISO();
+      const bxpDesc = document.getElementById('bxp-desc');
+      if (bxpDesc) bxpDesc.value = '';
       document.getElementById('bxp-linhas').innerHTML = '';
       const bxpRet = document.getElementById('bxp-retirar-caixa');
       if (bxpRet) bxpRet.checked = false;
@@ -2382,6 +2392,7 @@
               lancamento_id: bxpIdAtual,
               tipo: tipoAtual,
               data_movimento: document.getElementById('bxp-data').value,
+              descricao: ((document.getElementById('bxp-desc')?.value || '').trim()).slice(0, 400) || undefined,
               parcelas,
               ...(tipoAtual === 'pagar' && document.getElementById('bxp-retirar-caixa')?.checked
                 ? { retirar_caixa_pdv: true }
@@ -2435,6 +2446,8 @@
       document.getElementById('bx-data').value = hojeISO();
       document.getElementById('bx-forma-sel').selectedIndex = 0;
       document.getElementById('bx-banco-sel').selectedIndex = 0;
+      const bxDesc = document.getElementById('bx-desc');
+      if (bxDesc) bxDesc.value = '';
       const bxRet = document.getElementById('bx-retirar-caixa');
       if (bxRet) bxRet.checked = false;
       const jw = document.getElementById('bx-juros-wrap');
@@ -2479,6 +2492,8 @@
         banco: bancoNome,
         banco_id: bancoId,
       };
+      const descBx = (document.getElementById('bx-desc')?.value || '').trim();
+      if (descBx) body.descricao = descBx.slice(0, 400);
       const bxRetChk = document.getElementById('bx-retirar-caixa');
       if (tipoAtual === 'pagar' && bxRetChk && bxRetChk.checked && formaEhDinheiroNome(formaNome)) {
         body.retirar_caixa_pdv = true;

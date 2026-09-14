@@ -2147,7 +2147,7 @@ async function pdvEnviarOrcamentoErpCarrinho() {
         const pinOk = await new Promise(function (resolve) {
             window.gmSspinGarantirOperador(function () {
                 resolve(true);
-            }, { titulo: 'PIN para confirmar a venda', maxFrescoS: 10 });
+            }, { titulo: 'PIN para confirmar a venda', maxFrescoS: 45 });
             /* Se abandonar o PIN, a Promise fica pendente — ok (não envia). */
         });
         if (!pinOk) return;
@@ -2196,6 +2196,11 @@ async function pdvEnviarOrcamentoErpCarrinho() {
         const data = await res.json();
         if (data.ok) {
             agroPdvAplicarPatchesRespostaVenda(data);
+            try {
+                if (typeof window.gmSspinExpirarFrescoAposVenda === 'function') {
+                    window.gmSspinExpirarFrescoAposVenda();
+                }
+            } catch (ePinExp) {}
             const msg = typeof data.mensagem === 'string' ? data.mensagem : JSON.stringify(data.mensagem);
             const vid = data.venda_id != null ? '\nRegistro local: #' + data.venda_id : '';
             alert('✅ ' + msg + vid);

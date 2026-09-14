@@ -225,7 +225,11 @@ def check_labels_foco() -> None:
         fail(f"Enter_rotulos sem={enter_in_sem} com={enter_in_com}")
 
     body_after = _fn_body(js, "afterCommitTrancheFlow")
-    if "pdv-confirm-sale-no-print" in body_after and ".focus()" in body_after:
+    if (
+        ("pdv-confirm-sale-no-print" in body_after and ".focus()" in body_after)
+        or "openFecharVendaModal(true)" in body_after
+        or "pdv-fechar-hero-no-print" in body_after
+    ):
         ok("foco_pos_quitado_SEM")
     else:
         fail("foco_pos_quitado")

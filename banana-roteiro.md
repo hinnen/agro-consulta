@@ -541,3 +541,26 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 **Status: ✅ Live v23.96** — `#11`–`#13`. Antes: Live **v23.95** @ `8faa4c1`.  
 **Rollback:** tag `rollback/pre-checklist-1209c-v23.95` · `docs/ROLLBACK-CHECKLIST-1209c.md`.
 
+---
+
+## 33. Checklist único — lote 14/09 (`deploy/prep-checklist-1409` · alvo loja **v25.20**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 18 | **NF-PIN-EXIGE-FIN** | 🟢 PREP · **9/9** | **NÃO** |
+| 19 | **CP-BAIXA-DESC** | 🟢 PREP · **12/12** | **NÃO** |
+| 20 | **PDV-TABELA-PRINT-FORMA** | 🟢 PREP · **17/17** | **NÃO** |
+| 21 | **PDV-CONFIRM-QUITADO-TROCAR** | 🟢 PREP · **31/31** | **NÃO** |
+| 22 | **PDV-FINAL-TIMEOUT-UI** | 🟢 PREP · **13/13** | **NÃO** |
+| 23 | Zap PDV lento | ✅ já Live | — |
+| 24 | **PDV-PRECO-FORMA-DIN** | 🟢 PREP · **15/15** | **NÃO** |
+| 25 | **CAIXA-ABERTURA-MILHAR** | 🟢 PREP · **14/14** | **NÃO** |
+| 26 | **PIN-VENDA-45S** | 🟢 PREP · **17/17** · pin **79** | **NÃO** |
+| — | **PDV-ENTREGAS-MODAL-BODY** | 🟢 PREP | **NÃO** |
+| — | **PDV-FECHAR-CTA-QUITADO** | 🟢 PREP · **60/60** | **NÃO** |
+| — | **PDV-ORC-IMPRIMIR** | 🟢 PREP | **NÃO** |
+
+**Status: 🟢 PREP pronto · aguarda senha.** Base loja **v23.99** @ `a43340a`.  
+**Rollback:** tag `rollback/pre-checklist-1409-v23.99` · `docs/ROLLBACK-CHECKLIST-1409.md`.  
+**Não** merge `teste`. Lojas abertas → deploy só com pausa + frase + senha.
+

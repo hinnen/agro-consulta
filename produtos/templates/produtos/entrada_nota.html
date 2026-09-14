@@ -1342,11 +1342,11 @@
         <button type="button" class="filtro-nfe-chip filtro-nfe-chip-on min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="em_andamento" title="Nota aberta, estoque, financeiro, finalização PIN ou fornecedor ainda deve produto.">Em andamento</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="nota_aberta" title="Falta casar produto do catálogo na grade (botão Mudar ou linha de busca).">Nota aberta</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="estoque" title="Grade ok; falta registrar entrada no estoque Agro.">Estoque</button>
-        <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="financeiro" title="Estoque já feito; falta gerar a pagar (Salvar + a pagar), se for o caso.">Financeiro</button>
+        <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="financeiro" title="Estoque já feito; falta gerar a pagar (Salvar + a pagar). Inclui nota com PIN antigo sem título.">Financeiro</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="finalizar" title="Estoque + financeiro ok; falta gravar a finalização com PIN (etapa 8 do assistente).">Finalizar</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="correcao_sistemica" title="Notas em andamento marcadas manualmente como CORREÇÃO SISTEMICA (aguardando ajuste no sistema).">Correção sistemica</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="aguardando_produto" title="Nota já lançada, mas o fornecedor ainda deve produto — fica em Em andamento até marcar «produto chegou».">Deve produto</button>
-        <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="concluida" title="PIN da etapa 8 gravado. Não garante sozinho «Salvar + a pagar» — use «Auditar financeiro».">Concluída</button>
+        <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="concluida" title="PIN da etapa 8 + conta a pagar gerada (ou bonificação).">Concluída</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="encerrada" title="Entradas antigas marcadas como encerradas (antes do fluxo só estoque + financeiro).">Encerr. legado</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="descartada" title="Marcada como descartada.">Descartada</button>
       </div>
@@ -1866,7 +1866,7 @@
         </div>
         <div id="nfe-wiz-fin-alerta" class="hidden shrink-0 rounded-xl border-2 border-orange-400 bg-orange-50 p-3 text-sm font-bold text-orange-950 leading-snug" role="alert">
           <p class="text-[10px] font-black uppercase tracking-wide text-orange-800">Atenção — sem financeiro</p>
-          <p class="mt-1">Esta nota já foi finalizada com PIN, mas ainda não tem conta a pagar gerada. Volte à etapa 7 · Financeiro e use «Salvar + a pagar» (ou reabra a nota).</p>
+          <p class="mt-1">Esta nota tem PIN gravado, mas ainda não tem conta a pagar. Use «Salvar + a pagar» nesta etapa (ou marque Bonificação / reabra a nota).</p>
         </div>
         <div class="shrink-0 rounded-2xl border-2 border-slate-200 bg-white p-3 shadow-sm space-y-2.5">
           <label class="block max-w-sm">
@@ -2220,7 +2220,7 @@
             <li><strong>Estoque</strong> — grade ok (produtos casados); falta registrar entrada no estoque Agro. Na lista aparece só o chip da <strong>fila</strong>, para não confundir com “pronta” de outro sentido.</li>
             <li><strong>Financeiro</strong> — estoque já feito; falta gerar a pagar, se você for usar essa etapa.</li>
             <li><strong>Finalizar</strong> — estoque e financeiro ok; falta a etapa 8 do assistente (<strong>Gravar finalização</strong> com PIN e custo no catálogo).</li>
-            <li><strong>Concluída</strong> — finalização do assistente registrada (PIN etapa 8). Não confunda com só estoque + a pagar.</li>
+            <li><strong>Concluída</strong> — PIN da etapa 8 <strong>e</strong> conta a pagar gerada (ou bonificação). Sem a pagar fica no chip Financeiro.</li>
             <li><strong>Encerrada (legado)</strong> — entradas antigas marcadas manualmente como encerradas; use <strong>Reabrir</strong> se precisar seguir o fluxo normal.</li>
             <li><strong>Descartada</strong> — você marcou como descartada.</li>
           </ul>
@@ -3375,6 +3375,14 @@
     if (entradaNfeWizardConferenciaRegistrada) {
       btn.disabled = true;
       btn.textContent = 'FINALIZAÇÃO JÁ REGISTRADA';
+      btn.classList.add('opacity-90', 'cursor-not-allowed');
+      btn.removeAttribute('aria-busy');
+    } else if (
+      !entradaNfeBonificacaoAtiva()
+      && !entradaNfeFinanceiroTituloJaGeradoEditor()
+    ) {
+      btn.disabled = true;
+      btn.textContent = 'GERE A PAGAR NA ETAPA 7';
       btn.classList.add('opacity-90', 'cursor-not-allowed');
       btn.removeAttribute('aria-busy');
     } else {
@@ -4603,7 +4611,12 @@
           erro: 'Aguarde a entrada gravar no Agro (automático) ou abra a etapa 7 · Financeiro antes de finalizar.',
         };
       }
-      return { ok: true, irPara: 7, erro: '' };
+      /* Bug #18: sem «Salvar + a pagar» a nota ia pra Concluída sem título no CP. */
+      return {
+        ok: false,
+        irPara: 7,
+        erro: 'Gere a conta a pagar com «Salvar + a pagar» na etapa 7 · Financeiro antes de finalizar (ou marque Bonificação).',
+      };
     }
     if (s === 8) {
       if (!entradaNfeWizardConferenciaRegistrada) {
@@ -11259,6 +11272,7 @@
           entradaNfeAtualizarUiBotaoFinanceiro({ entrada_financeiro_lancado: true, status: '' });
           entradaNfeAtualizarAvisoFinanceiroPendente();
           try {
+            entradaNfeAtualizarUiBotaoWizardFinalizar();
             entradaNfeAplicarTravasEtapasWizardUi();
             entradaNfeAplicarCongelamentoEditorUi();
           } catch (_) {}

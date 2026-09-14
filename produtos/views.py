@@ -12860,12 +12860,23 @@ def caixa_abrir(request):
                 )
                 return _redirect_caixa(request, "caixa_abrir")
 
-        raw = (request.POST.get("valor_abertura") or "0").replace(",", ".").strip()
+        raw_abertura = (request.POST.get("valor_abertura") or "").strip()
+        if not raw_abertura:
+            messages.error(
+                request,
+                "Informe o valor em gaveta. Se estiver zerado, digite 0,00 "
+                "(campo vazio não abre o caixa).",
+            )
+            return _redirect_caixa(request, "caixa_abrir")
         try:
-            va = Decimal(raw)
+            # BR com milhar (ex. 1.500,00 via Cédulas) — NÃO usar só replace(",", ".")
+            va = _decimal_br_post(raw_abertura, "0").quantize(Decimal("0.01"))
         except Exception:
-            va = Decimal("0")
-        va = va.quantize(Decimal("0.01"))
+            messages.error(
+                request,
+                "Valor em gaveta inválido. Use o formato 1.234,56 ou o botão Cédulas.",
+            )
+            return _redirect_caixa(request, "caixa_abrir")
         obs = (request.POST.get("observacao_abertura") or "").strip()[:500]
         sug_map = ultimo_fechamento_sugestao_abertura(ponto=ponto)
         sug_val = None
@@ -17913,8 +17924,6 @@ def api_entrada_nota_conferir_codigo(request):
 
 @login_required(login_url="/entrar/")
 @require_POST
-@login_required(login_url="/entrar/")
-@require_POST
 def api_entrada_nota_aprovar_wizard(request):
     """Grava carimbo de conferência final com o mesmo PIN usado em estoque / empréstimo (``PerfilUsuario.senha_rapida``)."""
     try:
@@ -17945,6 +17954,16 @@ def api_entrada_nota_aprovar_wizard(request):
     doc = col_rasc.find_one({"_id": _oid})
     if not doc:
         return JsonResponse({"ok": False, "erro": "Rascunho não encontrado."}, status=404)
+    # Título já no CP mas flag sumiu: religa antes de barrar o PIN (bug #18 / NF-FIN-*).
+    try:
+        from produtos.nfe_entrada_util import entrada_nfe_extra_financeiro_ok
+
+        ex0 = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+        if _entrada_nfe_tipo_entrada(ex0) != "bonificacao" and not entrada_nfe_extra_financeiro_ok(ex0):
+            sincronizar_financeiro_rascunho_entrada_nfe(db, oid, usuario=usuario or "sistema")
+            doc = col_rasc.find_one({"_id": _oid}) or doc
+    except Exception:
+        logger.exception("api_entrada_nota_aprovar_wizard sync financeiro pré-PIN")
     ok_r, err_r = rascunho_entrada_valido_para_aprovacao_wizard(doc)
     if not ok_r:
         return JsonResponse({"ok": False, "erro": err_r}, status=400)
@@ -20592,6 +20611,13 @@ def api_lancamentos_baixa(request):
     if err_resp:
         return err_resp
 
+    descricao_baixa = str(
+        payload.get("descricao")
+        or payload.get("observacao")
+        or payload.get("descricao_baixa")
+        or ""
+    ).strip()[:400]
+
     querer_ret_caixa = bool(payload.get("retirar_caixa_pdv"))
     if querer_ret_caixa and despesa and _forma_pagamento_eh_dinheiro(forma_nome):
         if not obter_sessao_caixa_aberta_request(request):
@@ -20642,6 +20668,7 @@ def api_lancamentos_baixa(request):
             banco_nome=banco_nome,
             banco_id=str(banco_id).strip() if banco_id else None,
             usuario_label=usuario,
+            descricao=descricao_baixa,
         )
     else:
         resultado = baixar_lancamentos_pg(
@@ -20653,6 +20680,7 @@ def api_lancamentos_baixa(request):
             banco_nome=banco_nome,
             banco_id=str(banco_id).strip() if banco_id else None,
             usuario_label=usuario,
+            descricao=descricao_baixa,
         )
 
     path_baixa = (
@@ -20807,6 +20835,13 @@ def api_lancamentos_baixa_parcial(request):
     if err_resp:
         return err_resp
 
+    descricao_baixa = str(
+        payload.get("descricao")
+        or payload.get("observacao")
+        or payload.get("descricao_baixa")
+        or ""
+    ).strip()[:400]
+
     querer_ret_parcial = bool(payload.get("retirar_caixa_pdv"))
     valor_dinheiro_parcial = Decimal("0")
     if querer_ret_parcial and despesa:
@@ -20856,6 +20891,7 @@ def api_lancamentos_baixa_parcial(request):
             data_movimento=data_movimento,
             parcelas=parcelas,
             usuario_label=usuario,
+            descricao=descricao_baixa,
         )
     else:
         _, db = obter_conexao_mongo()
@@ -20868,6 +20904,7 @@ def api_lancamentos_baixa_parcial(request):
             data_movimento=data_movimento,
             parcelas=parcelas,
             usuario_label=usuario,
+            descricao=descricao_baixa,
         )
 
     if not resultado.get("ok"):
@@ -27215,6 +27252,19 @@ def api_pdv_registrar_operador(request):
             status=403,
         )
 
+    if data.get("expirar_fresco") or data.get("expirar"):
+        from produtos.pdv_transf_loja_util import expirar_operador_pdv_fresco
+
+        expirar_operador_pdv_fresco(request)
+        return JsonResponse(
+            {
+                "ok": True,
+                "operador": str(request.session.get("pdv_operador_nome") or "").strip()[:120],
+                "fresco": False,
+                "restante_s": 0,
+            }
+        )
+
     if not op_req:
         limpar_operador_pdv_sessao(request)
         return JsonResponse(
@@ -28678,6 +28728,22 @@ def _persistir_venda_agro(
         normalizar_deposito,
         resolver_deposito_request,
     )
+    from produtos.precos_forma_pagamento_util import (
+        corrigir_precos_itens_lista_sem_forma,
+        forma_principal_para_preco,
+    )
+
+    # Bug #24: milho/grupos A/B — se o PDV mandou preço de lista no Dinheiro, corrige antes da campanha.
+    try:
+        pag_pre = data.get("pagamentos") if isinstance(data.get("pagamentos"), list) else None
+        forma_preco = forma_principal_para_preco(forma, pag_pre)
+        if forma_preco and isinstance(raw_itens, list):
+            n_corr = corrigir_precos_itens_lista_sem_forma(raw_itens, forma_preco)
+            if n_corr:
+                data = dict(data)
+                data["itens"] = raw_itens
+    except Exception:
+        pass
 
     sessao = exigir_sessao_caixa_para_venda(request, data)
 
@@ -29453,10 +29519,13 @@ def _validar_cashback_venda_json(data: dict, raw_itens: list):
 @require_POST
 def api_enviar_pedido_erp(request):
     def _resposta_venda(data, venda, **payload):
+        from produtos.pdv_transf_loja_util import expirar_operador_pdv_fresco
         from produtos.pin_gerencial_util import limpar_mp_point_forcar_bypass
         from produtos.views_nfce import anexar_nfce_resposta_venda
 
         limpar_mp_point_forcar_bypass(request)
+        # Próxima venda/ação exige PIN de novo (TTL 45s só vale dentro da mesma confirmação).
+        expirar_operador_pdv_fresco(request)
         payload = _anexar_pdv_patches_resposta_venda(venda, payload)
         return JsonResponse(anexar_nfce_resposta_venda(venda, data, payload))
 
@@ -30615,8 +30684,8 @@ def api_pdv_catalogo_slim(request):
     from produtos import catalogo_agro as cat_agro
 
     hoje = timezone.localdate().isoformat()
-    # v5: + custo (Compras cards); v4 tinha fornecedor.
-    ck = f"pdv_catalogo_slim_v5:{hoje}"
+    # v6: não manda modo=grupos sem precos_grupos (bug #24 milho/lista).
+    ck = f"pdv_catalogo_slim_v6:{hoje}"
     hit = cache.get(ck)
     if isinstance(hit, dict) and isinstance(hit.get("produtos"), list) and hit["produtos"]:
         return JsonResponse(hit)
