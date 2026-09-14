@@ -1286,6 +1286,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🩹 Bug #21 — Confirmar cinza após Trocar (PDV-CONFIRM-QUITADO-TROCAR · **teste v24.88** · 14/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Relato** | Luana · Caixa Centro · 05/09 · v21.89 — «botao na tela de ajuda de troca fica carregando» · print: pagamento Dinheiro quitado + ? aberto + **Trocar T** |
+| **Causa** | Com total já pago, se apertava **Trocar** de novo a forma voltava e o Confirmar exigia !forma → botão cinza/morto (parecia «carregando») |
+| **Fix** | Quitado libera Confirmar mesmo com forma aberta · esconde o fluxo quando já pagou · validação confere lançamentos mesmo com forma setada |
+| **Prova** | scripts/verify_pdv_outro_baixa_path.py **31/31** |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 /pdv/ · badge **v24.88** · Dinheiro → Enter (lança) → **Trocar** de novo → Confirmar (Enter/F9) deve liberar |
+| **Loja** | **só** frase + senha |
+
 ### 🩹 Bug #20 — Notinha/tabela A/B errada (`PDV-TABELA-PRINT-FORMA` · **teste v24.87** · 14/09)
 
 | Campo | Valor |
