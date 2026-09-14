@@ -1286,7 +1286,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🩹 Bug #21 — Confirmar cinza após Trocar (PDV-CONFIRM-QUITADO-TROCAR · **teste v24.88** · 14/09)
+### 🩹 Bug #21 — Confirmar cinza após Trocar (PDV-CONFIRM-QUITADO-TROCAR · **teste v24.89** · 14/09)
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1295,7 +1295,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | Quitado libera Confirmar mesmo com forma aberta · esconde o fluxo quando já pagou · validação confere lançamentos mesmo com forma setada |
 | **Prova** | scripts/verify_pdv_outro_baixa_path.py **31/31** |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 /pdv/ · badge **v24.88** · Dinheiro → Enter (lança) → **Trocar** de novo → Confirmar (Enter/F9) deve liberar |
+| **Você** | Ctrl+F5 /pdv/ · badge **v24.89** · Dinheiro → Enter (lança) → **Trocar** de novo → Confirmar (Enter/F9) deve liberar |
 | **Loja** | **só** frase + senha |
 
 ### 🩹 Bug #20 — Notinha/tabela A/B errada (`PDV-TABELA-PRINT-FORMA` · **teste v24.87** · 14/09)
