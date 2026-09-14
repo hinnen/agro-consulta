@@ -1299,6 +1299,35 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **teste v25.24** · validar no PC · loja **só** frase+senha |
 | **Você** | Ctrl+F5 PDV Vila · se ainda apitar sem número no Pedir, avisar |
 
+### ✅ Deploy loja — Checklist 14/09 · **Live v25.23** · 14/09
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v25.23** — PREP sobre Live **v25.22** (**não** merge `teste`) |
+| **Antes** | Live **v25.22** @ `d747d63` (REL-MV-LOJA) |
+| **Agora** | `producao` @ **`218db50`** · Render `dep-dak4imijnfac73eql860` |
+| **Migrate** | **NÃO** |
+| **Pacotes** | #18–#22 · #24–#26 · Entregas modal · Fechar CTA · Orçamento Imprimir |
+| **Mantém** | REL-MV-LOJA v25.22 |
+| **Rollback** | tag `rollback/pre-checklist-1409-v25.22` · branch `producao-backup-pre-v2523-checklist-20260914` · `docs/ROLLBACK-CHECKLIST-1409.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v25.23** · smoke 1 venda + PIN na próxima + Entregas no Pagamento |
+
+### ✅ CHECKLIST ÚNICO — 14/09f · bugs #18–#26 · ✅ Live v25.23
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 18 | `NF-PIN-EXIGE-FIN` | ✅ **Live v25.23** | **NÃO** | **9/9** |
+| 19 | `CP-BAIXA-DESC` | ✅ **Live v25.23** | **NÃO** | **12/12** |
+| 20 | `PDV-TABELA-PRINT-FORMA` | ✅ **Live v25.23** | **NÃO** | **17/17** |
+| 21 | `PDV-CONFIRM-QUITADO-TROCAR` | ✅ **Live v25.23** | **NÃO** | **31/31** |
+| 22 | `PDV-FINAL-TIMEOUT-UI` | ✅ **Live v25.23** | **NÃO** | **13/13** |
+| 23 | Zap PDV lento | ✅ **já Live** | — | — |
+| 24 | `PDV-PRECO-FORMA-DIN` | ✅ **Live v25.23** | **NÃO** | **15/15** |
+| 25 | `CAIXA-ABERTURA-MILHAR` | ✅ **Live v25.23** | **NÃO** | **14/14** |
+| 26 | `PIN-VENDA-45S` | ✅ **Live v25.23** | **NÃO** | **17/17** · pin **79/79** |
+
+### ~~🚀 PREP 14/09 / PACOTES Entregas·Fechar·Orc~~ → **Live v25.23** (acima)
+
 ### ✅ Deploy loja — `REL-MV-LOJA` · **Live v25.22** · 14/09
 
 | Campo | Valor |
@@ -1325,114 +1354,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | ✅ **enviado / Live** |
 | **Rollback** | `docs/ROLLBACK-REL-MV-LOJA.md` |
 
-### 🚀 PREP deploy loja — Checklist 14/09 (`deploy/prep-checklist-1409` · **v25.20**) · aguarda senha
+### ~~🚀 PREP deploy loja — Checklist 14/09~~ → **Live v25.23** (topo CHECKPOINT)
 
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · próximo chat: pausar vendas + frase + senha |
-| **Base loja** | Live **v23.99** @ `a43340a` |
-| **Branch PREP** | `deploy/prep-checklist-1409` · tip **v25.20** |
-| **Migrate** | **NÃO** |
-| **Pacotes** | #18–#22 · #24–#26 · Entregas modal · Fechar CTA · Orçamento Imprimir |
-| **Fora** | merge `teste` · #23 já Live |
-| **Provas** | path lote OK · pin **79/79** · fechar **60/60** · PIN **9973** · check Django OK |
-| **Rollback** | `rollback/pre-checklist-1409-v23.99` · `producao-backup-pre-v2520-checklist-20260914` · `docs/ROLLBACK-CHECKLIST-1409.md` |
+### ~~✅ CHECKLIST ÚNICO — 14/09f · no PREP~~ → **Live v25.23**
 
-### ✅ CHECKLIST ÚNICO — 14/09f · bugs #18–#26 · 🟢 no PREP (aguarda senha)
+### ~~📦 PACOTE PRONTO — Lote bugs #18–#26~~ → **Live v25.23**
 
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 18 | `NF-PIN-EXIGE-FIN` | 🟢 **no PREP v25.20** | **NÃO** | **9/9** |
-| 19 | `CP-BAIXA-DESC` | 🟢 **no PREP v25.20** | **NÃO** | **12/12** |
-| 20 | `PDV-TABELA-PRINT-FORMA` | 🟢 **no PREP v25.20** | **NÃO** | **17/17** |
-| 21 | `PDV-CONFIRM-QUITADO-TROCAR` | 🟢 **no PREP v25.20** | **NÃO** | **31/31** |
-| 22 | `PDV-FINAL-TIMEOUT-UI` | 🟢 **no PREP v25.20** | **NÃO** | **13/13** |
-| 23 | Zap PDV lento | ✅ **já Live** | — | — |
-| 24 | `PDV-PRECO-FORMA-DIN` | 🟢 **no PREP v25.20** | **NÃO** | **15/15** (c/ #20) |
-| 25 | `CAIXA-ABERTURA-MILHAR` | 🟢 **no PREP v25.20** | **NÃO** | **14/14** |
-| 26 | `PIN-VENDA-45S` | 🟢 **no PREP v25.20** | **NÃO** | **17/17** · pin-na-ação **79/79** · PIN **9973** |
+### ~~✅ CHECKLIST ÚNICO — 14/09e Entregas~~ → **Live v25.23**
 
-**Você (local):** Ctrl+F5 · smoke do lote.  
-**Loja:** **só** frase + senha · **#23 não sobe**.
+### ~~✅ CHECKLIST ÚNICO — 14/09d Fechar~~ → **Live v25.23**
 
-### 📦 PACOTE PRONTO — Lote bugs #18–#26 (exceto #23) · **v25.20** · 14/09 · **no PREP**
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | NF exige financeiro no PIN · descrição opcional na baixa CP · preço/notinha A/B + Dinheiro · Confirmar após Trocar · timeout 55s + PAGAR 1440 · caixa milhar BR · PIN venda 45s e **nova venda pede PIN** |
-| **Provas** | scripts `verify_nf_pin_*` · `verify_cp_baixa_desc_*` · `verify_bug20_*` · `verify_pdv_outro_baixa_*` · `verify_pdv_final_timeout_*` · `verify_bug24_*` · `verify_caixa_abertura_*` · `verify_bug26_*` · `verify_pdv_pin_na_acao` |
-| **Migrate** | **NÃO** |
-| **Status** | 🟢 **no PREP** · tip **v25.20** · aguarda senha |
-| **Você** | checklist 14/09f acima |
-| **Loja** | **só** frase + senha |
-| **Risco** | Médio — PDV preço/PIN + NF + caixa abertura; #19 só UI CP |
-
-### ✅ CHECKLIST ÚNICO — 14/09e · `PDV-ENTREGAS-MODAL-BODY` · 🟢 no PREP
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | `PDV-ENTREGAS-MODAL-BODY` | 🟢 **no PREP v25.20** | **NÃO** | **37/37** · PIN **9973** · HTML servido OK · runtime modal visível c/ painel produtos `display:none` |
-
-**Você (local):** Ctrl+F5 `/pdv/` · Pagamento → **ENTREGAS** → lista abre · Fechar/Esc.  
-**Loja:** **só** frase + senha.
-
-### 📦 PACOTE PRONTO — Entregas não trava no Pagamento (`PDV-ENTREGAS-MODAL-BODY` · **v25.19** · 14/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Relato** | Clicar **ENTREGAS** na etapa Pagamento travava o PDV |
-| **Causa** | `<dialog>` dentro do painel Produtos (`display:none`) + `showModal()` = tela bloqueada sem modal |
-| **O quê** | Dialogs fora do painel + move pro `body` ao abrir |
-| **Prova** | `scripts/verify_pdv_entregas_modal_body_path.py` **37/37** |
-| **Migrate** | **NÃO** |
-| **Status** | 🟢 **no PREP** · tip **v25.19+** · aguarda senha (lote **v25.20**) |
-| **Você** | Ctrl+F5 `/pdv/` · Pagamento → ENTREGAS |
-| **Loja** | **só** frase + senha |
-| **Risco** | Baixo — só UI overlay |
-
-### ✅ CHECKLIST ÚNICO — 14/09d · `PDV-FECHAR-CTA-QUITADO` · 🟢 no PREP
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | `PDV-FECHAR-CTA-QUITADO` | 🟢 **no PREP v25.20** | **NÃO** | **60/60** · anti-reg Enter/F9 **41/41** · browser hold OK |
-
-**Você (local):** Ctrl+F5 `/pdv/` · pagar → popup grande · **Com impressão** some o grande e sobe só o cupom · Cancelar volta · F12 pergunta.  
-**Loja:** **só** frase + senha.
-
-### 📦 PACOTE PRONTO — Fechar venda popup (`PDV-FECHAR-CTA-QUITADO` · tip **v25.16** · 14/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Popup grande · Enter/F9 · Voltar · F12 avisa · idle · **ao escolher some o popup** (não fica atrás) · Cancelar/PIN volta |
-| **Prova** | `scripts/verify_pdv_fechar_cta_quitado_path.py` **60/60** · `verify_pdv_cupom_dinheiro_path.py` **41/41** · CDP: só escolha visível + z360>z320 · JS servido com hold |
-| **Migrate** | **NÃO** |
-| **Status** | 🟢 **no PREP** · aguarda senha (lote **v25.20**) |
-| **Você** | Ctrl+F5 · badge tip · venda paga → Com impressão OK |
-| **Loja** | **só** frase + senha |
-| **Risco** | Baixo |
-
-### ✅ CHECKLIST ÚNICO — 14/09c · `PDV-ORC-IMPRIMIR` · 🟢 no PREP
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | `PDV-ORC-IMPRIMIR` | 🟢 **no PREP v25.20** | **NÃO** | **65/65** · PIN **9973** · página `/pdv/` OK |
-
-**Você (local):** Ctrl+F5 `/pdv/` · itens → **Imprimir** → lista com ícone impressora · **Salvar** só grava.  
-**Loja:** **só** frase + senha.
-
-### 📦 PACOTE PRONTO — Salvar | Imprimir orçamento (`PDV-ORC-IMPRIMIR` · **v24.99** · 14/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Card lateral: **Salvar** \| **Imprimir**. Imprimir grava (origem `impressao`) + cupom 80mm (só via cliente) + ícone sutil de impressora na lista (como Zap). |
-| **Prova** | `scripts/verify_pdv_orc_imprimir_path.py` **65/65** · PIN **9973** · POST/GET/PG origem · `/pdv/` tem os 2 botões |
-| **Migrate** | **NÃO** |
-| **Status** | 🟢 **no PREP** · aguarda senha (lote **v25.20**) |
-| **Você** | Ctrl+F5 `/pdv/` · badge tip · carrinho → **Imprimir** / **Salvar** |
-| **Loja** | **só** frase + senha |
-| **Risco** | Baixo — só UI/orçamento · não mexe venda/caixa |
-
-### ~~🩹 Bugs #18–#26~~ → **CHECKLIST 14/09f + PREP 1409** (acima)
+### ~~✅ CHECKLIST ÚNICO — 14/09c Orçamento~~ → **Live v25.23**
 
 ### ✅ CHECKLIST ÚNICO — bugs vale #15+#16 · rechecagem 14/09 · **já Live (nada a subir)**
 

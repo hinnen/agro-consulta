@@ -573,7 +573,8 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 | — | **PDV-FECHAR-CTA-QUITADO** | 🟢 PREP · **60/60** | **NÃO** |
 | — | **PDV-ORC-IMPRIMIR** | 🟢 PREP | **NÃO** |
 
-**Status: 🟢 PREP pronto · aguarda senha.** Base loja **v23.99** @ `a43340a`.  
-**Rollback:** tag `rollback/pre-checklist-1409-v23.99` · `docs/ROLLBACK-CHECKLIST-1409.md`.  
-**Não** merge `teste`. Lojas abertas → deploy só com pausa + frase + senha.
+**Status: ✅ Live v25.23** — `producao` @ `218db50` · Render `dep-dak4imijnfac73eql860`.  
+**Antes:** Live **v25.22** @ `d747d63` (REL-MV-LOJA mantido).  
+**Rollback:** tag `rollback/pre-checklist-1409-v25.22` · `docs/ROLLBACK-CHECKLIST-1409.md`.  
+**Não** merge `teste`.
 
