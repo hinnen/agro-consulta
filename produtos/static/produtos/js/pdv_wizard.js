@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     'use strict';
 
     var bootstrapEl =
@@ -10953,8 +10953,13 @@
         });
     }
 
-    function jsonPost(url, payload) {
-        return fetch(url, {
+    /** POST JSON. opts.timeoutMs → AbortController (bug #22: Confirmar sem prazo ficava «finalizando…» pra sempre). */
+    function jsonPost(url, payload, opts) {
+        opts = opts || {};
+        var timeoutMs = Number(opts.timeoutMs) || 0;
+        var ctrl = null;
+        var timer = null;
+        var init = {
             method: 'POST',
             credentials: 'same-origin',
             headers: {
@@ -10962,8 +10967,38 @@
                 'X-CSRFToken': csrfToken()
             },
             body: JSON.stringify(payload || {})
-        }).then(parseFetchJson);
+        };
+        if (timeoutMs > 0 && typeof AbortController !== 'undefined') {
+            ctrl = new AbortController();
+            init.signal = ctrl.signal;
+            timer = setTimeout(function () {
+                try {
+                    ctrl.abort();
+                } catch (eAb) {}
+            }, timeoutMs);
+        }
+        return fetch(url, init)
+            .then(parseFetchJson)
+            .catch(function (err) {
+                var aborted =
+                    (err && err.name === 'AbortError') ||
+                    (ctrl && ctrl.signal && ctrl.signal.aborted);
+                if (aborted) {
+                    var eTo = new Error(
+                        opts.timeoutMsg ||
+                            'Demorou demais para gravar a venda. Confirme de novo — se a maquininha já cobrou, não envie outro valor.'
+                    );
+                    eTo.pdvTimeout = true;
+                    throw eTo;
+                }
+                throw err;
+            })
+            .finally(function () {
+                if (timer) clearTimeout(timer);
+            });
     }
+
+    var PDV_CONFIRM_POST_TIMEOUT_MS = 55000;
 
     function renovarPinPdvDuranteEsperaMp() {
         jsonPost('/api/pdv/operador/', { renovar: true, touch: true }).catch(function () {});
@@ -12526,11 +12561,20 @@
         if (window.gmLoadingBar) window.gmLoadingBar.show();
 
         var saleFinalizeStarted = false;
+        var confirmPostOpts = {
+            timeoutMs: PDV_CONFIRM_POST_TIMEOUT_MS,
+            timeoutMsg:
+                'Demorou demais para gravar a venda (~55s). Confirme de novo — se já saiu no caixa, não repita o pagamento.'
+        };
 
-        jsonPost(urls.apiPdvSalvarCheckoutDraft, buildCheckoutDraftPayload(state, computed))
+        jsonPost(
+            urls.apiPdvSalvarCheckoutDraft,
+            buildCheckoutDraftPayload(state, computed),
+            confirmPostOpts
+        )
             .then(function (draftRes) {
                 if (!draftRes.ok || !draftRes.data.ok) throw new Error((draftRes.data && (draftRes.data.erro || draftRes.data.mensagem)) || 'Falha ao salvar rascunho.');
-                return jsonPost(urls.apiEnviarPedidoErp, buildErpPayload(state, computed));
+                return jsonPost(urls.apiEnviarPedidoErp, buildErpPayload(state, computed), confirmPostOpts);
             })
             .then(function (erpRes) {
                 if (!erpRes.ok || !erpRes.data.ok) {
@@ -12757,7 +12801,11 @@
 
         var startChain = skipDraft
             ? Promise.resolve({ ok: true, data: { ok: true } })
-            : jsonPost(urls.apiPdvSalvarCheckoutDraft, buildCheckoutDraftPayload(state, computed));
+            : jsonPost(urls.apiPdvSalvarCheckoutDraft, buildCheckoutDraftPayload(state, computed), {
+                  timeoutMs: PDV_CONFIRM_POST_TIMEOUT_MS,
+                  timeoutMsg:
+                      'Demorou demais ao gravar após o Point (~55s). Confirme de novo — a máquina já cobrou; não envie outro valor.'
+              });
 
         return startChain
             .then(function (draftRes) {
