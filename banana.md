@@ -1286,6 +1286,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🩹 PDV — ENTREGAS trava no Pagamento (`PDV-ENTREGAS-MODAL-BODY` · **teste tip** · 14/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Relato** | Renan · clicou **ENTREGAS** na etapa **Pagamento** (tudo pago) → PDV travou |
+| **Causa** | Modal `<dialog>` ficava **dentro** do painel Produtos (`display:none` no pagamento). `showModal()` bloqueava a tela **sem** mostrar o modal |
+| **Fix** | Dialogs fora do painel + move pro `body` ao abrir |
+| **Prova** | `scripts/verify_pdv_entregas_modal_body_path.py` **6/6** |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 `/pdv/` · vá em Pagamento → **ENTREGAS** → lista abre (não trava) · Esc/Fechar volta |
+| **Loja** | **só** frase + senha |
+
 ### ✅ CHECKLIST ÚNICO — 14/09d · `PDV-FECHAR-CTA-QUITADO` · 🟢 pronto envio
 
 | # | Pacote | Status | Migrate | Prova |
