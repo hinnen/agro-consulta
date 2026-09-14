@@ -12251,6 +12251,11 @@
             }
         }
         jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
+        try {
+            if (typeof window.gmSspinExpirarFrescoAposVenda === 'function') {
+                window.gmSspinExpirarFrescoAposVenda();
+            }
+        } catch (ePinExp) {}
         /* Cupom ANTES do modal «nova venda» — senão o foco do start cancela o print() do Chrome. */
         return imprimirCupomAposVenda(imprimir, printWin, opts.vendaId, cupomImpressao)
             .then(function (printFail) {
