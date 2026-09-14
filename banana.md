@@ -1295,7 +1295,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 **Você (local):** Ctrl+F5 `/pdv/` · Pagamento → **ENTREGAS** → lista abre · Fechar/Esc.  
 **Loja:** **só** frase + senha.
 
-### 📦 PACOTE PRONTO — Entregas não trava no Pagamento (`PDV-ENTREGAS-MODAL-BODY` · **v25.15+** · 14/09)
+### 📦 PACOTE PRONTO — Entregas não trava no Pagamento (`PDV-ENTREGAS-MODAL-BODY` · **v25.18** · 14/09)
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1304,7 +1304,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Dialogs fora do painel + move pro `body` ao abrir |
 | **Prova** | `scripts/verify_pdv_entregas_modal_body_path.py` **37/37** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** |
+| **Status** | 🟢 **pronto para envio à produção** · tip **v25.18** |
 | **Você** | Ctrl+F5 `/pdv/` · Pagamento → ENTREGAS |
 | **Loja** | **só** frase + senha |
 | **Risco** | Baixo — só UI overlay |
