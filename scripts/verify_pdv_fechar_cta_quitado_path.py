@@ -182,18 +182,21 @@ def main() -> int:
     else:
         fail("idle ms")
 
-    section("3 tryConfirmSale fecha popup (bug Com impressão)")
+    section("3 tryConfirmSale fecha popup (bug Com impressao)")
     body_try = fn_body(js, "tryConfirmSale")
-    if "closeFecharVendaModal(false)" in body_try:
-        ok("tryConfirmSale fecha fechar-modal")
+    if "function ocultarFecharVendaParaConfirmar" in js and "ocultarFecharVendaParaConfirmar()" in body_try:
+        ok("tryConfirmSale chama ocultarFechar")
     else:
-        fail("tryConfirmSale não fecha modal")
-    if body_try.find("closeFecharVendaModal") < body_try.find("confirmSale("):
-        ok("fecha ANTES de confirmSale")
+        fail("tryConfirmSale nao oculta modal")
+    if "pdvFecharModalHold" in js and "pdvFecharModalHold" in fn_body(js, "syncFecharVendaModalUi"):
+        ok("hold impede reopen no render")
     else:
-        fail("ordem fecha/confirmSale")
+        fail("hold sync")
+    if body_try.find("ocultarFecharVendaParaConfirmar") < body_try.find("confirmSale("):
+        ok("oculta ANTES de confirmSale")
+    else:
+        fail("ordem oculta/confirmSale")
 
-    # also replace other arrows if any
     section("4 cancelar cupom reabre popup")
     body_escolha_call = ""
     m = re.search(
@@ -202,10 +205,10 @@ def main() -> int:
     )
     if m:
         body_escolha_call = m.group(0)
-    if "if (!escolha)" in body_escolha_call and "openFecharVendaModal(true)" in body_escolha_call:
-        ok("cancela escolha -> reabre")
+    if "if (!escolha)" in body_escolha_call and "restaurarFecharVendaAposCancelarConfirm" in body_escolha_call:
+        ok("cancela escolha -> restaura popup")
     else:
-        fail("cancela escolha sem reabrir")
+        fail("cancela escolha sem restaurar")
     body_nfce_call = ""
     m2 = re.search(
         r"abrirModalNfceCpf\(function\s*\(opts\)\s*\{[\s\S]{0,500}?}\)",
@@ -213,10 +216,17 @@ def main() -> int:
     )
     if m2:
         body_nfce_call = m2.group(0)
-    if "if (!opts)" in body_nfce_call and "openFecharVendaModal(true)" in body_nfce_call:
-        ok("cancela NFC-e CPF -> reabre")
+    if "if (!opts)" in body_nfce_call and "restaurarFecharVendaAposCancelarConfirm" in body_nfce_call:
+        ok("cancela NFC-e CPF -> restaura popup")
     else:
-        fail("cancela NFC-e sem reabrir")
+        fail("cancela NFC-e sem restaurar")
+    if re.search(
+        r"onCancel:\s*function\s*\(\)\s*\{[\s\S]{0,120}?restaurarFecharVendaAposCancelarConfirm",
+        js,
+    ):
+        ok("PIN cancel -> restaura popup")
+    else:
+        fail("PIN cancel sem restaurar")
 
     section("5 idle + saída")
     body_idle = fn_body(js, "scheduleQuitadoIdlePulse")
