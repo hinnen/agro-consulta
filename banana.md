@@ -1307,7 +1307,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 **Você (local):** Ctrl+F5 `/pdv/` · pagar → popup grande · **Com impressão** some o grande e sobe só o cupom · Cancelar volta · F12 pergunta.  
 **Loja:** **só** frase + senha.
 
-### 📦 PACOTE PRONTO — Fechar venda popup (`PDV-FECHAR-CTA-QUITADO` · tip **v25.15+** · 14/09)
+### 📦 PACOTE PRONTO — Fechar venda popup (`PDV-FECHAR-CTA-QUITADO` · tip **v25.16** · 14/09)
 
 | Campo | Valor |
 | ----- | ----- |
