@@ -1286,16 +1286,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE — Relatórios filtro loja (`REL-MV-LOJA` · **v25.21**) · 14/09 · teste
+### ✅ CHECKLIST ÚNICO — 14/09g · `REL-MV-LOJA` · 🟢 pronto envio
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `REL-MV-LOJA` | 🟢 **pronto envio** · tip **v25.22** | **NÃO** | path **107/107** · unit **10/10** · PIN **9973** |
+
+**Você (local):** Ctrl+F5 · Relatórios → Mais vendidos / Vendas por grupo → Loja Centro+Vila / Centro / Vila.  
+**Loja:** **só** frase + senha (não sobe sozinho).
+
+### 📦 PACOTE PRONTO — Relatórios filtro loja (`REL-MV-LOJA` · **v25.22**) · 14/09
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | **Mais vendidos** + **Vendas por grupo**: select **Loja** = Centro+Vila / Só Centro / Só Vila (já filtrava no motor; faltava na tela) |
-| **Arquivos** | `relatorios_vendas_util.py` · `relatorios_central_views.py` · `relatorios_generico.html` · hub · help · `tests_relatorios_central_filtros.py` |
-| **Prova** | `tests_relatorios_central_filtros` **10/10** |
+| **O quê** | Filtro **Loja** (Centro+Vila / Só Centro / Só Vila) em **Mais vendidos** e **Vendas por grupo** · Excel e tela · legado depósito vazio conta no Centro · devolvida fora |
+| **Prova** | `scripts/verify_rel_mv_loja_path.py` **VERIFY_OK 107/107** · `tests_relatorios_central_filtros` **10/10** · PIN **9973**=Renan |
 | **Migrate** | **NÃO** |
-| **Status** | ✅ no `teste` · valida local · loja só frase+senha |
-| **Você** | Ctrl+F5 · Relatórios → Mais vendidos / Vendas por grupo → troca Loja |
+| **Status** | 🟢 **pronto para envio** · no `teste` · aguarda frase+senha |
+| **Você** | Ctrl+F5 · troca Loja e confere ranking/grupo |
 
 ### 🚀 PREP deploy loja — Checklist 14/09 (`deploy/prep-checklist-1409` · **v25.20**) · aguarda senha
 
