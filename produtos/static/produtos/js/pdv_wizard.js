@@ -195,6 +195,10 @@
     }
     /** Trava duplo clique / Enter+F9 repetido enquanto a confirmação de venda está em andamento. */
     var isProcessingSale = false;
+    /** Idle com tudo pago: pisca Confirmar após ~45s (não fecha sozinho). */
+    var PDV_QUITADO_IDLE_MS = 45000;
+    var pdvQuitadoIdleTimer = null;
+    var pdvQuitadoIdleAtivo = false;
     var isProcessingMpTranche = false;
 
     function releaseSaleProcessingLock() {
@@ -731,6 +735,10 @@
         paymentLancamentosList: document.getElementById('pdv-payment-lancamentos-list'),
         confirmSaleNoPrint: document.getElementById('pdv-confirm-sale-no-print'),
         confirmSalePrint: document.getElementById('pdv-confirm-sale-print'),
+        paymentFormaAtualWrap: document.getElementById('pdv-payment-forma-atual-wrap'),
+        paymentFecharHero: document.getElementById('pdv-payment-fechar-hero'),
+        fecharHeroNoPrint: document.getElementById('pdv-fechar-hero-no-print'),
+        fecharHeroPrint: document.getElementById('pdv-fechar-hero-print'),
         paymentModalCards: document.querySelectorAll('[data-payment-modal-card]'),
         paymentFormaModal: document.getElementById('pdv-payment-forma-modal'),
         paymentFormaModalBackdrop: document.getElementById('pdv-payment-forma-modal-backdrop'),
@@ -2099,6 +2107,97 @@
         return Math.max(0, totalNumberFromComputed(computed) - sumValorLancamentos(state));
     }
 
+    function vendaQuitadaSemFechar(state, computed) {
+        state = state || State.getState();
+        computed = computed || State.getComputed();
+        if (!state || state.currentStep !== 'pagamento') return false;
+        var larr = (state.pagamento && state.pagamento.lancamentos) || [];
+        if (!larr.length) return false;
+        return saldoRestantePagamento(state, computed) <= 0.009;
+    }
+
+    function applyQuitadoIdlePulseClass(on) {
+        try {
+            document.body.classList.toggle('pdv-quitado-idle-pulse', !!on);
+        } catch (_) {}
+    }
+
+    function clearQuitadoIdlePulse() {
+        if (pdvQuitadoIdleTimer) {
+            clearTimeout(pdvQuitadoIdleTimer);
+            pdvQuitadoIdleTimer = null;
+        }
+        pdvQuitadoIdleAtivo = false;
+        applyQuitadoIdlePulseClass(false);
+    }
+
+    function scheduleQuitadoIdlePulse(forceRestart) {
+        if (!vendaQuitadaSemFechar()) {
+            clearQuitadoIdlePulse();
+            return;
+        }
+        if (pdvQuitadoIdleTimer && !forceRestart) return;
+        if (pdvQuitadoIdleTimer) {
+            clearTimeout(pdvQuitadoIdleTimer);
+            pdvQuitadoIdleTimer = null;
+        }
+        applyQuitadoIdlePulseClass(false);
+        pdvQuitadoIdleAtivo = false;
+        pdvQuitadoIdleTimer = setTimeout(function () {
+            pdvQuitadoIdleTimer = null;
+            if (!vendaQuitadaSemFechar() || isProcessingSale) return;
+            pdvQuitadoIdleAtivo = true;
+            applyQuitadoIdlePulseClass(true);
+        }, PDV_QUITADO_IDLE_MS);
+    }
+
+    function bumpQuitadoIdleActivity() {
+        if (!vendaQuitadaSemFechar()) return;
+        scheduleQuitadoIdlePulse(true);
+    }
+
+    function focarFecharVendaQuitada() {
+        scheduleQuitadoIdlePulse(true);
+        applyQuitadoIdlePulseClass(true);
+        pdvQuitadoIdleAtivo = true;
+        var hero = dom.paymentFecharHero;
+        if (hero) {
+            try {
+                hero.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            } catch (_) {}
+        }
+        var n = dom.fecharHeroNoPrint || dom.confirmSaleNoPrint;
+        if (n && !n.disabled) {
+            try {
+                n.focus();
+            } catch (_) {}
+        }
+        showPdvAviso('Venda paga — feche com Enter (sem cupom) ou F9 (com cupom).', {
+            tone: 'info',
+            title: 'Pode fechar',
+            durationMs: 6000
+        });
+    }
+
+    /** true = pode sair; false = ficou na tela para fechar. */
+    function confirmarSaidaComVendaQuitada(acaoLabel) {
+        if (!vendaQuitadaSemFechar()) return Promise.resolve(true);
+        return showPdvConfirmacao(
+            'Tem venda paga sem fechar.\n\nFechar agora?',
+            {
+                title: 'Venda ainda aberta',
+                confirmLabel: 'Sim, fechar',
+                cancelLabel: acaoLabel || 'Não, sair'
+            }
+        ).then(function (querFechar) {
+            if (querFechar) {
+                focarFecharVendaQuitada();
+                return false;
+            }
+            return true;
+        });
+    }
+
     function effectiveValorDestaForma(state, computed) {
         var total = totalNumberFromComputed(computed);
         var raw = String((state.pagamento && state.pagamento.valorDestaForma) || '').trim();
@@ -2133,8 +2232,11 @@
                 openPaymentFormaModal();
             } else {
                 /* Quitado → foco no SEM impressão (Enter = sem cupom; F9 = com). */
-                var n = document.getElementById('pdv-confirm-sale-no-print');
+                var n =
+                    document.getElementById('pdv-fechar-hero-no-print') ||
+                    document.getElementById('pdv-confirm-sale-no-print');
                 if (n) n.focus();
+                scheduleQuitadoIdlePulse(true);
             }
         }, 0);
     }
@@ -5469,6 +5571,11 @@
             showSaleDoneFeedback('Modal de loja indisponível — atualize a página (Ctrl+F5).', 'warn');
             return;
         }
+        try {
+            if (document.body && dlg.parentElement !== document.body) {
+                document.body.appendChild(dlg);
+            }
+        } catch (eMoveMl) {}
         _mudarLojaCtx = {
             pk: String(pk || ''),
             destino: depositoPdvAtivo() === 'vila' ? 'vila' : 'centro',
@@ -5703,6 +5810,17 @@
         run();
     }
 
+    function ensureEntregasModalNoBody() {
+        var dlg = dom.entregasPendentesModal;
+        if (!dlg || !document.body) return dlg;
+        try {
+            if (dlg.parentElement !== document.body) {
+                document.body.appendChild(dlg);
+            }
+        } catch (eMove) {}
+        return dlg;
+    }
+
     function openEntregasPendentesModal() {
         if (entregasPendentesOpening) return;
         if (pdvSspinLocked()) {
@@ -5715,20 +5833,26 @@
         }
         entregasPendentesOpening = true;
         entregasPendentesAbrirAposUnlock = false;
+        ensureEntregasModalNoBody();
         refreshEntregasPendentesUi(false, true)
             .then(function () {
-                if (!dom.entregasPendentesModal) return;
+                var dlg = ensureEntregasModalNoBody();
+                if (!dlg) return;
                 var nPagar = (entregasPendentesCache.itens || []).length;
                 var nPagas = (entregasPendentesCache.itensPagas || []).length;
                 if (nPagar === 0 && nPagas > 0) entregasPendentesAba = 'pagas';
                 else entregasPendentesAba = 'pagar';
                 renderEntregasPendentesList();
-                if (typeof dom.entregasPendentesModal.showModal === 'function') {
-                    if (!dom.entregasPendentesModal.open) {
-                        dom.entregasPendentesModal.showModal();
+                try {
+                    if (typeof dlg.showModal === 'function') {
+                        if (!dlg.open) dlg.showModal();
+                    } else {
+                        dlg.setAttribute('open', 'open');
                     }
-                } else {
-                    dom.entregasPendentesModal.setAttribute('open', 'open');
+                } catch (eShow) {
+                    try {
+                        dlg.setAttribute('open', 'open');
+                    } catch (eAttr) {}
                 }
                 syncPdvSspinIdlePause();
             })
@@ -8247,7 +8371,20 @@
            Senao a loja via Confirmar cinza/"carregando" com "Tudo pago" na revisao. */
         var fluxoAberto = !!forma && !quitadoPay;
         if (dom.paymentFlowArea) dom.paymentFlowArea.classList.toggle('hidden', !fluxoAberto);
-        if (dom.paymentNoFormaHint) dom.paymentNoFormaHint.classList.toggle('hidden', !!fluxoAberto);
+        if (dom.paymentNoFormaHint) {
+            dom.paymentNoFormaHint.classList.toggle('hidden', !!fluxoAberto || quitadoPay);
+        }
+        if (dom.paymentFormaAtualWrap) {
+            dom.paymentFormaAtualWrap.classList.toggle('hidden', quitadoPay);
+        }
+        if (dom.paymentFecharHero) {
+            dom.paymentFecharHero.classList.toggle('hidden', !quitadoPay);
+        }
+        if (quitadoPay) {
+            scheduleQuitadoIdlePulse(false);
+        } else {
+            clearQuitadoIdlePulse();
+        }
 
         dom.paymentModalCards.forEach(function (btn) {
             var v = btn.getAttribute('data-payment-modal-card');
@@ -8573,6 +8710,16 @@
             cp.disabled = !readyConfirm;
             cp.classList.toggle('opacity-40', !readyConfirm);
         }
+        var hn = dom.fecharHeroNoPrint;
+        var hp = dom.fecharHeroPrint;
+        if (hn) {
+            hn.disabled = !readyConfirm;
+            hn.classList.toggle('opacity-40', !readyConfirm);
+        }
+        if (hp) {
+            hp.disabled = !readyConfirm;
+            hp.classList.toggle('opacity-40', !readyConfirm);
+        }
         if (err) {
             dom.paymentFeedback.textContent = err;
             dom.paymentFeedback.classList.remove('hidden');
@@ -8823,22 +8970,45 @@
             executarNovaVendaLimpar();
             return;
         }
-        var msg = 'Descartar esta venda e começar outra?';
-        var confirmLabel = 'Sim, descartar';
-        if (lancamentosComMpPointPago(state)) {
-            msg =
-                'Há pagamento já confirmado na maquininha Mercado Pago.\n\nDescartar só limpa o PDV — o dinheiro já foi cobrado. Se a venda não foi confirmada, confira em Consultar vendas.';
-            confirmLabel = 'Entendi, descartar';
-        } else if ((state.pagamento.lancamentos || []).length) {
-            msg = 'Há pagamento lançado nesta venda.\n\nDescartar tudo e começar outra?';
+        var seguirNovaVenda = function () {
+            var msg = 'Descartar esta venda e começar outra?';
+            var confirmLabel = 'Sim, descartar';
+            if (lancamentosComMpPointPago(state)) {
+                msg =
+                    'Há pagamento já confirmado na maquininha Mercado Pago.\n\nDescartar só limpa o PDV — o dinheiro já foi cobrado. Se a venda não foi confirmada, confira em Consultar vendas.';
+                confirmLabel = 'Entendi, descartar';
+            } else if ((state.pagamento.lancamentos || []).length) {
+                msg = 'Há pagamento lançado nesta venda.\n\nDescartar tudo e começar outra?';
+            }
+            showPdvConfirmacao(msg, {
+                title: 'Nova venda',
+                confirmLabel: confirmLabel,
+                cancelLabel: 'Cancelar'
+            }).then(function (ok) {
+                if (ok) executarNovaVendaLimpar();
+            });
+        };
+        if (vendaQuitadaSemFechar(state)) {
+            confirmarSaidaComVendaQuitada('Não, descartar').then(function (podeSair) {
+                if (!podeSair) return;
+                if (lancamentosComMpPointPago(state)) {
+                    showPdvConfirmacao(
+                        'Há pagamento já confirmado na maquininha Mercado Pago.\n\nDescartar só limpa o PDV — o dinheiro já foi cobrado. Se a venda não foi confirmada, confira em Consultar vendas.',
+                        {
+                            title: 'Nova venda',
+                            confirmLabel: 'Entendi, descartar',
+                            cancelLabel: 'Cancelar'
+                        }
+                    ).then(function (ok) {
+                        if (ok) executarNovaVendaLimpar();
+                    });
+                    return;
+                }
+                executarNovaVendaLimpar();
+            });
+            return;
         }
-        showPdvConfirmacao(msg, {
-            title: 'Nova venda',
-            confirmLabel: confirmLabel,
-            cancelLabel: 'Cancelar'
-        }).then(function (ok) {
-            if (ok) executarNovaVendaLimpar();
-        });
+        seguirNovaVenda();
     }
 
     function resetWizardParaNovaVenda() {
@@ -8846,6 +9016,7 @@
             return String(L.forma || '') === 'Vale crédito';
         });
         var eraCompraVale = isCompraValeCreditoAtiva();
+        clearQuitadoIdlePulse();
         closePaymentFormaModal();
         hideMpPointWaitBar();
         if (dom.stepPagamentoRoot) {
@@ -11701,6 +11872,16 @@
     function setConfirmButtonsBusy(busy) {
         var n = dom.confirmSaleNoPrint;
         var p = dom.confirmSalePrint;
+        var hn = dom.fecharHeroNoPrint;
+        var hp = dom.fecharHeroPrint;
+        var labelNo =
+            'Sem impressão <kbd class="ml-1 rounded border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px]">Enter</kbd>';
+        var labelPrint =
+            'Com impressão <kbd class="ml-1 rounded bg-emerald-500 px-1.5 py-0.5 font-mono text-[10px] text-white">F9</kbd>';
+        var labelNoFooter =
+            'Confirmar sem impressão <kbd class="ml-1 rounded border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px]">Enter</kbd>';
+        var labelPrintFooter =
+            'Confirmar com impressão <kbd class="ml-1 rounded bg-emerald-500 px-1.5 py-0.5 font-mono text-[10px] text-white">F9</kbd>';
         if (n) {
             n.disabled = !!busy;
             n.textContent = busy ? 'Confirmando…' : '';
@@ -11713,17 +11894,26 @@
             p.classList.toggle('opacity-50', !!busy);
             p.classList.toggle('cursor-not-allowed', !!busy);
         }
+        if (hn) {
+            hn.disabled = !!busy;
+            hn.textContent = busy ? 'Confirmando…' : '';
+            hn.classList.toggle('opacity-50', !!busy);
+            hn.classList.toggle('cursor-not-allowed', !!busy);
+        }
+        if (hp) {
+            hp.disabled = !!busy;
+            hp.textContent = busy ? 'Confirmando…' : '';
+            hp.classList.toggle('opacity-50', !!busy);
+            hp.classList.toggle('cursor-not-allowed', !!busy);
+        }
         if (!busy) {
-            if (n) {
-                n.innerHTML =
-                    'Confirmar sem impressão <kbd class="ml-1 rounded border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px]">Enter</kbd>';
-            }
-            if (p) {
-                p.innerHTML =
-                    'Confirmar com impressão <kbd class="ml-1 rounded bg-emerald-500 px-1.5 py-0.5 font-mono text-[10px] text-white">F9</kbd>';
-            }
+            if (n) n.innerHTML = labelNoFooter;
+            if (p) p.innerHTML = labelPrintFooter;
+            if (hn) hn.innerHTML = labelNo;
+            if (hp) hp.innerHTML = labelPrint;
             State.setPagamentoField('observacaoFinal', State.getState().pagamento.observacaoFinal || '');
         }
+        if (busy) clearQuitadoIdlePulse();
     }
 
     function showSaleDoneFeedback(msg, tone, opts) {
@@ -13256,6 +13446,10 @@
 
     function openPaymentFormaModal() {
         if (!dom.paymentFormaModal) return;
+        if (vendaQuitadaSemFechar()) {
+            focarFecharVendaQuitada();
+            return;
+        }
         dom.paymentFormaModal.classList.remove('hidden');
         dom.paymentFormaModal.classList.add('flex');
         try {
@@ -14574,9 +14768,18 @@
                 var state = State.getState();
                 var computed = State.getComputed();
                 if (computed.flow.indexOf(step) === -1) return;
-                if (flowIndex(computed.flow, step) <= flowIndex(computed.flow, state.currentStep)) {
+                if (flowIndex(computed.flow, step) > flowIndex(computed.flow, state.currentStep)) return;
+                if (step === state.currentStep) return;
+                var ir = function () {
                     State.setCurrentStep(step);
+                };
+                if (vendaQuitadaSemFechar(state, computed)) {
+                    confirmarSaidaComVendaQuitada('Não, voltar etapa').then(function (podeSair) {
+                        if (podeSair) ir();
+                    });
+                    return;
                 }
+                ir();
             });
         });
 
@@ -14586,15 +14789,25 @@
                 cancelarCobrancaFiadoPdv();
                 return;
             }
-            if (state.currentStep === 'entrega' && voltarUmPassoEntrega()) {
+            var seguirVoltar = function () {
+                state = State.getState();
+                if (state.currentStep === 'entrega' && voltarUmPassoEntrega()) {
+                    return;
+                }
+                var computed = State.getComputed();
+                var target = prevStep(state, computed);
+                if (state.currentStep === 'entrega' && target === 'produtos') {
+                    resetEntregaModoAoVoltarProdutos();
+                }
+                if (target) State.setCurrentStep(target);
+            };
+            if (vendaQuitadaSemFechar(state)) {
+                confirmarSaidaComVendaQuitada('Não, voltar').then(function (podeSair) {
+                    if (podeSair) seguirVoltar();
+                });
                 return;
             }
-            var computed = State.getComputed();
-            var target = prevStep(state, computed);
-            if (state.currentStep === 'entrega' && target === 'produtos') {
-                resetEntregaModoAoVoltarProdutos();
-            }
-            if (target) State.setCurrentStep(target);
+            seguirVoltar();
         });
 
         dom.btnNext.addEventListener('click', function () {
@@ -16935,6 +17148,20 @@
                 tryConfirmSale(true);
             });
         }
+        if (dom.fecharHeroNoPrint) {
+            dom.fecharHeroNoPrint.addEventListener('click', function () {
+                tryConfirmSale(false);
+            });
+        }
+        if (dom.fecharHeroPrint) {
+            dom.fecharHeroPrint.addEventListener('click', function () {
+                tryConfirmSale(true);
+            });
+        }
+
+        document.addEventListener('pointerdown', function () {
+            bumpQuitadoIdleActivity();
+        }, true);
 
         initEntregaToolbarOnce();
         atualizarUiAvisoCaixa();
@@ -17100,6 +17327,7 @@
         }
 
         document.addEventListener('keydown', function (event) {
+            bumpQuitadoIdleActivity();
             var inField = event.target && event.target.closest && event.target.closest('input,textarea,select');
             if (dom.modalStart && !dom.modalStart.classList.contains('hidden') && !event.altKey && !event.ctrlKey && !event.metaKey) {
                 if (event.code === 'Enter' && dom.startConsumidorFinal) {
