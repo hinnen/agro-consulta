@@ -55,7 +55,16 @@ def main() -> int:
     ) is not None)
     ok("js nova venda guarda", "confirmarSaidaComVendaQuitada" in js and "Não, descartar" in js)
     ok("msg fechar agora", "Tem venda paga sem fechar" in js)
-    ok("ajuda popup", "popup grande" in wiz)
+    ok("js fecha modal no confirm", re.search(
+        r"function tryConfirmSale\([\s\S]{0,280}?closeFecharVendaModal\(false\)",
+        js,
+    ) is not None)
+    ok("js reabre se cancela impressao", re.search(
+        r"abrirModalEscolhaImpressao[\s\S]{0,400}?openFecharVendaModal\(true\)",
+        js,
+    ) is not None)
+    ok("html escolha impressao z alto", 'id="modal-pdv-escolha-impressao"' in wiz and "z-[360]" in wiz)
+    ok("html nfce cpf z alto", 'id="modal-pdv-nfce-cpf"' in wiz and "z-[370]" in wiz)
 
     failed = [n for n, c in checks if not c]
     for n, c in checks:

@@ -1316,7 +1316,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `pdv_wizard.js` · `step_pagamento.html` · `pdv_wizard.html` |
 | **Prova** | `scripts/verify_pdv_fechar_cta_quitado_path.py` |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** · tip **v25.09** · botões popup grandes |
+| **Status** | 🟢 **pronto para envio à produção** · tip **v25.10** · popup grande (~marca vermelha) |
 | **Você** | Ctrl+F5 `/pdv/` · badge tip · pagar → popup · Voltar ao pagamento |
 | **Loja** | **só** frase + senha |
 | **Risco** | Baixo — só UX |
