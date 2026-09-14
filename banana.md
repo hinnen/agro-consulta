@@ -1295,7 +1295,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 **Você (local):** Ctrl+F5 `/pdv/` · itens → **Imprimir** → lista com ícone impressora · **Salvar** só grava.  
 **Loja:** **só** frase + senha.
 
-### 📦 PACOTE PRONTO — Salvar | Imprimir orçamento (`PDV-ORC-IMPRIMIR` · **v24.98** · 14/09)
+### 📦 PACOTE PRONTO — Salvar | Imprimir orçamento (`PDV-ORC-IMPRIMIR` · **v24.99** · 14/09)
 
 | Campo | Valor |
 | ----- | ----- |
