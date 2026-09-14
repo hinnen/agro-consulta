@@ -407,7 +407,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 ### 4.2 PDV â€” ponto de venda
 
-- **Orçamento PDV (02/09):** grava no servidor (`PDV-ORC-SAVE` · Live v21.06). Lista = **só o cliente da tela**, sync online multi-PC (`PDV-ORC-POR-CLIENTE` · **Live v21.08**).
+- **Orçamento PDV (02/09 · +imprimir 14/09):** grava no servidor (`PDV-ORC-SAVE` · Live v21.06). Lista = **só o cliente da tela**, sync online multi-PC (`PDV-ORC-POR-CLIENTE` · **Live v21.08**). Card lateral: **Salvar** \| **Imprimir** (`PDV-ORC-IMPRIMIR` · teste v24.92) — Imprimir = salva + cupom 80mm + ícone impressora (como Zap).
 
 
 | Tela                  | URL              | JS principal                    |
@@ -424,7 +424,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Regras UX jÃ¡ decididas:**
 
-- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · loja v20.22 · hotfix chat v20.33 · `PIN-VENDA-10S` tip v21.32):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · Pedir/chat ~45s · **fechar venda ~10s** (🟡 pronto envio) · descanso ~3 min · abrir PDV sem PIN.
+- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · loja v20.22 · hotfix chat v20.33 · `PIN-VENDA-10S` tip v21.32 · **bug #26** `PIN-VENDA-45S` teste v24.91):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · Pedir/chat/venda **~45s** · entrega paga ~120s · descanso ~3 min · abrir PDV sem PIN.
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08 · **Mais ⋯** 31/08 · `PDV-TOPBAR-MAIS` v20.34 · **layout** 31/08 · `PDV-TOPBAR-LAYOUT`):** faixa quente padrão = Pedir loja · Vendas · Uso loja · Entregas · Caixa · **Fiado** · Nova venda (Pedir/Uso = cinza slate; **Mais ⋯** laranja destaque). **Mais ⋯** = Saldo Vila · Repasse · Pesar · PIN + **Organizar atalhos** (quente/frio em Postgres `PdvTopbarLayoutAgro` · migrate `0110` · PIN ao salvar). Contagem diária PG (`0107`). **Ícone WhatsApp** na faixa de ações (ao lado de Nova venda) → aviso **Em breve…** (`PDV-WA-TOPBAR-BREVE`).
@@ -1286,6 +1286,41 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🩹 Bug #24 + #20 — Preço crédito no Dinheiro / notinha A/B (PDV-PRECO-FORMA-DIN · **teste v24.92** · 14/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Relato** | Nathan #24 · Caixa Centro · 05/09 · v21.89 — milho no crédito na notinha em dinheiro · Geraldinho #20 · tabela A/B errada |
+| **Prova loja** | Vendas 7075/7076 milho grande · Dinheiro · unitário **92** (certo = **87**) |
+| **Causa** | A/B com ormas_b vazio + carrinho sem tabela → preço de lista (crédito) no Dinheiro |
+| **Fix** | B vazio = resto das formas · sync A/B antes de gravar/cupom · servidor corrige unitário=lista · slim v6 |
+| **Prova** | erify_bug24_preco_forma_dinheiro.py **15/15** · erify_bug20_tabela_preco_print_path.py **17/17** |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 /pdv/ · badge **v24.92** · milho 47kg · Dinheiro → **87** · crédito/fiado → **92** |
+| **Loja** | **só** frase + senha |
+
+### ✨ PDV — Salvar | Imprimir orçamento (`PDV-ORC-IMPRIMIR` · **teste v24.92** · 14/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | No card lateral do PDV, o espaço do **Salvar orçamento** vira **Salvar** \| **Imprimir**. Imprimir grava na lista (como o Zap) com ícone sutil de impressora e abre o cupom 80mm (só via cliente). |
+| **Prova** | `scripts/verify_pdv_orc_imprimir_path.py` **16/16** |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 `/pdv/` · badge **v24.92** · itens no carrinho → **Imprimir** → lista com ícone impressora · **Salvar** continua só gravando |
+| **Loja** | **só** frase + senha |
+
+### 🩹 Bug #26 — PIN pedindo toda hora (`PIN-VENDA-45S` · **teste v24.91** · 14/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Relato** | Luana · Caixa Centro · 08/09 · v23.45 — «pedindo pin toda hora» · `/pdv/?agro_dual=1` |
+| **Causa** | Fechar venda só aceitava PIN fresco por **10s** (`PIN-VENDA-10S`) — cada Confirmar após montar o carrinho pedia de novo |
+| **Fix** | TTL venda = **45s** (igual Pedir/chat) · entrega paga continua **120s** |
+| **Prova** | `scripts/verify_bug26_pin_venda_ttl_path.py` **10/10** · `verify_pdv_pin_na_acao.py` **79/79** |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 `/pdv/` · badge **v24.91** · digita PIN · fecha 1 venda · em até ~45s fecha outra **sem** PIN de novo |
+| **Loja** | **só** frase + senha |
+
 ### 🩹 Bug #21 — Confirmar cinza após Trocar (PDV-CONFIRM-QUITADO-TROCAR · **teste v24.89** · 14/09)
 
 | Campo | Valor |
@@ -1298,7 +1333,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 /pdv/ · badge **v24.89** · Dinheiro → Enter (lança) → **Trocar** de novo → Confirmar (Enter/F9) deve liberar |
 | **Loja** | **só** frase + senha |
 
-### 🩹 Bug #20 — Notinha/tabela A/B errada (`PDV-TABELA-PRINT-FORMA` · **teste v24.87** · 14/09)
+### 🩹 Bug #20 — Notinha/tabela A/B errada (`PDV-TABELA-PRINT-FORMA` · **teste v24.92** · 14/09)
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1307,7 +1342,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | B vazio = resto das formas · fallback mapa por forma · sync preço antes de gravar/cupom · cadastro preenche B ao salvar · servidor corrige se PDV mandar lista no Dinheiro · slim v6 sem grupos vazios |
 | **Prova** | `scripts/verify_bug20_tabela_preco_print_path.py` **17/17** |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 `/pdv/` · badge **v24.87** · milho 47kg · Dinheiro = **87** na notinha · Fiado/crédito = **92** |
+| **Você** | Ctrl+F5 `/pdv/` · badge **v24.92** · milho 47kg · Dinheiro = **87** na notinha · Fiado/crédito = **92** |
 | **Loja** | **só** frase + senha · também fecha bug **#24** |
 
 ### 🩹 Bug #22 — PDV não finaliza normalmente (`PDV-FINAL-TIMEOUT-UI` · **teste v24.86** · 14/09)

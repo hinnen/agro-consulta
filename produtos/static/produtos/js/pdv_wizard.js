@@ -1171,6 +1171,10 @@
         if (!loc) return rem;
         if (!rem) return loc;
         var id = resolveProdutoId(rem) || resolveProdutoId(loc);
+        var pgRem = rem.precos_grupos && typeof rem.precos_grupos === 'object' ? rem.precos_grupos : null;
+        var pgLoc = loc.precos_grupos && typeof loc.precos_grupos === 'object' ? loc.precos_grupos : null;
+        var ppfRem = rem.precos_por_forma && typeof rem.precos_por_forma === 'object' ? rem.precos_por_forma : null;
+        var ppfLoc = loc.precos_por_forma && typeof loc.precos_por_forma === 'object' ? loc.precos_por_forma : null;
         return Object.assign({}, loc, rem, {
             id: id,
             nome: rem.nome || loc.nome,
@@ -1183,6 +1187,9 @@
             index_codigos: Array.isArray(rem.index_codigos) && rem.index_codigos.length
                 ? rem.index_codigos
                 : loc.index_codigos,
+            precos_grupos: pgRem || pgLoc || undefined,
+            precos_por_forma: ppfRem || ppfLoc || undefined,
+            precos_modo: rem.precos_modo || loc.precos_modo
         });
     }
 
@@ -10914,6 +10921,7 @@
                 codigo: item.codigo
             };
             if (item.unidade) row.unidade = item.unidade;
+            if (item.preco_manual) row.preco_manual = true;
             if (precoBase != null && isFinite(Number(precoBase)) && Number(precoBase) > 0) {
                 row.preco_base = precoBase;
             }
@@ -11253,10 +11261,56 @@
         return injetarOperadorNoPayload(payload);
     }
 
+    /** Bug #20/#24: antes de gravar/imprimir, puxa A/B do catálogo e reaplica preço da forma. */
+    function sincronizarPrecosFormaAntesGravar(state) {
+        if (!state || !Array.isArray(state.itens) || !state.itens.length) return;
+        var forma = '';
+        if (window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.obterFormaDoState) {
+            forma = String(window.AgroPrecosFormaPagamento.obterFormaDoState(state) || '').trim();
+        }
+        if (!forma && state.pagamento && state.pagamento.forma) {
+            forma = String(state.pagamento.forma || '').trim();
+        }
+        if (!forma && state.pagamento && Array.isArray(state.pagamento.lancamentos)) {
+            for (var li = 0; li < state.pagamento.lancamentos.length; li++) {
+                var ln = state.pagamento.lancamentos[li];
+                var ff = String((ln && ln.forma) || '').trim();
+                if (ff && ff !== 'Vale crédito' && ff !== 'Cashback') {
+                    forma = ff;
+                    break;
+                }
+                if (!forma && ff) forma = ff;
+            }
+        }
+        if (!forma) return;
+        state.itens.forEach(function (item) {
+            if (!item || item.preco_manual) return;
+            var pid = String(item.id || '');
+            if (!pid) return;
+            var cat = null;
+            for (var i = 0; i < wizardProductCatalog.length; i++) {
+                var rowC = wizardProductCatalog[i];
+                if (String((rowC && (rowC.id || rowC.Id)) || '') === pid) {
+                    cat = rowC;
+                    break;
+                }
+            }
+            if (cat && window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.copiarPrecosPorFormaDoProduto) {
+                window.AgroPrecosFormaPagamento.copiarPrecosPorFormaDoProduto(item, cat);
+            }
+        });
+        if (window.AgroPdvPromocoes && window.AgroPdvPromocoes.recalcCarrinhoComForma) {
+            window.AgroPdvPromocoes.recalcCarrinhoComForma(state.itens, forma);
+        } else if (window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.aplicarCarrinho) {
+            window.AgroPrecosFormaPagamento.aplicarCarrinho(state.itens, forma);
+        }
+    }
+
     function buildErpPayload(state, computed) {
         if (isFiadoCobrancaAtiva(state)) {
             return buildFiadoBaixaPayload(state, computed);
         }
+        sincronizarPrecosFormaAntesGravar(state);
         var cliente = state.cliente || {};
         var payload = {
             cliente: currentClientName(state),
@@ -11542,6 +11596,7 @@
 
     function printSaleReceiptWindow(win, state, computed, extras) {
         extras = extras || {};
+        sincronizarPrecosFormaAntesGravar(state);
         var payload = buildCupomPayloadFromWizard(state, computed, extras);
         if (typeof window.agroImprimirCupomVenda80mm === 'function') {
             window.agroImprimirCupomVenda80mm(payload);
