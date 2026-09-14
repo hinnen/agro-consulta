@@ -12460,7 +12460,10 @@
             return;
         }
         abrirModalNfceCpf(function (opts) {
-            if (!opts) return;
+            if (!opts) {
+                if (vendaQuitadaSemFechar()) openFecharVendaModal(true);
+                return;
+            }
             State.setPagamentoField('nfceOpts', opts);
             if (opts.cpf) {
                 var stCl = State.getState();
@@ -12807,7 +12810,10 @@
                         return;
                     }
                     abrirModalEscolhaImpressao(function (escolha) {
-                        if (!escolha) return;
+                        if (!escolha) {
+                            if (vendaQuitadaSemFechar()) openFecharVendaModal(true);
+                            return;
+                        }
                         prepararNfceComImpressao(escolha);
                         resolverNfceAntesConfirmar(true);
                     });
@@ -13807,6 +13813,9 @@
      */
     function tryConfirmSale(withPrint) {
         syncOutroDetalhesFromDom();
+        /* Fecha popup «Pode fechar» — senão cupom/PIN/impressão ficam atrás (z-320). */
+        pdvFecharModalDismissed = false;
+        closeFecharVendaModal(false);
         var st = State.getState();
         if (st.currentStep !== 'pagamento') {
             confirmSale(withPrint);
