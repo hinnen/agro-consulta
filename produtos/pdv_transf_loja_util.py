@@ -122,6 +122,21 @@ def limpar_operador_pdv_sessao(request) -> None:
         pass
 
 
+def expirar_operador_pdv_fresco(request) -> None:
+    """Após fechar venda: zera «ainda sou eu» — a próxima ação pede PIN de novo.
+
+    Mantém o nome na sessão só como lembrete; sem timestamp fresco o GET/garantir
+    trata como vencido. (Bug #26 / pedido Renan 14/09.)
+    """
+    if request is None:
+        return
+    try:
+        request.session.pop(PDV_OPERADOR_FRESCO_KEY, None)
+        request.session.modified = True
+    except Exception:
+        pass
+
+
 def operador_pdv_restante_fresco_s(
     request, ttl_s: int | None = None
 ) -> int:

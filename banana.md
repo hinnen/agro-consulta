@@ -407,7 +407,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 ### 4.2 PDV â€” ponto de venda
 
-- **Orçamento PDV (02/09 · +imprimir 14/09):** grava no servidor (`PDV-ORC-SAVE` · Live v21.06). Lista = **só o cliente da tela**, sync online multi-PC (`PDV-ORC-POR-CLIENTE` · **Live v21.08**). Card lateral: **Salvar** \| **Imprimir** (`PDV-ORC-IMPRIMIR` · teste v24.98) — Imprimir = salva + cupom 80mm + ícone impressora (como Zap).
+- **Orçamento PDV (02/09 · +imprimir 14/09):** grava no servidor (`PDV-ORC-SAVE` · Live v21.06). Lista = **só o cliente da tela**, sync online multi-PC (`PDV-ORC-POR-CLIENTE` · **Live v21.08**). Card lateral: **Salvar** \| **Imprimir** (`PDV-ORC-IMPRIMIR` · **v24.99** 🟢 pronto envio) — Imprimir = salva + cupom 80mm + ícone impressora (como Zap).
 
 
 | Tela                  | URL              | JS principal                    |
@@ -424,7 +424,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Regras UX jÃ¡ decididas:**
 
-- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · loja v20.22 · hotfix chat v20.33 · `PIN-VENDA-10S` tip v21.32 · **bug #26** `PIN-VENDA-45S` teste v24.94):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · Pedir/chat/venda **~45s** · entrega paga ~120s · descanso ~3 min · abrir PDV sem PIN.
+- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · loja v20.22 · hotfix chat v20.33 · `PIN-VENDA-10S` tip v21.32 · **bug #26** `PIN-VENDA-45S` teste):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · Pedir/chat/venda **~45s** na mesma ação · **após fechar venda** zera fresco (próxima pede PIN) · entrega paga ~120s · descanso ~3 min · abrir PDV sem PIN.
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08 · **Mais ⋯** 31/08 · `PDV-TOPBAR-MAIS` v20.34 · **layout** 31/08 · `PDV-TOPBAR-LAYOUT`):** faixa quente padrão = Pedir loja · Vendas · Uso loja · Entregas · Caixa · **Fiado** · Nova venda (Pedir/Uso = cinza slate; **Mais ⋯** laranja destaque). **Mais ⋯** = Saldo Vila · Repasse · Pesar · PIN + **Organizar atalhos** (quente/frio em Postgres `PdvTopbarLayoutAgro` · migrate `0110` · PIN ao salvar). Contagem diária PG (`0107`). **Ícone WhatsApp** na faixa de ações (ao lado de Nova venda) → aviso **Em breve…** (`PDV-WA-TOPBAR-BREVE`).
@@ -1320,16 +1320,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/pdv/` · badge **v24.93** · milho 47kg · Dinheiro → **87** · crédito/fiado → **92** |
 | **Loja** | **só** frase + senha |
 
-### 🩹 Bug #26 — PIN pedindo toda hora (`PIN-VENDA-45S` · **teste v24.94** · 14/09)
+### 🩹 Bug #26 — PIN pedindo toda hora (`PIN-VENDA-45S` · **teste tip** · 14/09)
 
 | Campo | Valor |
 | ----- | ----- |
 | **Relato** | Luana · Caixa Centro · 08/09 · v23.45 — «pedindo pin toda hora» · `/pdv/?agro_dual=1` |
 | **Causa** | Fechar venda só aceitava PIN fresco por **10s** (`PIN-VENDA-10S`) — cada Confirmar após montar o carrinho pedia de novo |
-| **Fix** | TTL venda = **45s** (igual Pedir/chat) · entrega paga continua **120s** |
-| **Prova** | `scripts/verify_bug26_pin_venda_ttl_path.py` **10/10** · `verify_pdv_pin_na_acao.py` **79/79** |
+| **Fix** | TTL venda = **45s** (igual Pedir/chat) · entrega paga **120s** · **após gravar a venda**, zera fresco (`expirar_operador_pdv_fresco`) — **próxima venda pede PIN de novo** (Renan 14/09) |
+| **Prova** | `scripts/verify_bug26_pin_venda_ttl_path.py` · `verify_pdv_pin_na_acao.py` |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 `/pdv/` · badge **v24.94** · digita PIN · fecha 1 venda · em até ~45s fecha outra **sem** PIN de novo |
+| **Você** | Ctrl+F5 `/pdv/` · digita PIN → fecha 1 venda → **próxima** deve pedir PIN de novo · dentro da **mesma** confirmação (~45s) não pede no meio |
 | **Loja** | **só** frase + senha |
 
 ### 🩹 Bug #21 — Confirmar cinza após Trocar (PDV-CONFIRM-QUITADO-TROCAR · **teste v24.89** · 14/09)

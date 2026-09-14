@@ -2196,6 +2196,11 @@ async function pdvEnviarOrcamentoErpCarrinho() {
         const data = await res.json();
         if (data.ok) {
             agroPdvAplicarPatchesRespostaVenda(data);
+            try {
+                if (typeof window.gmSspinExpirarFrescoAposVenda === 'function') {
+                    window.gmSspinExpirarFrescoAposVenda();
+                }
+            } catch (ePinExp) {}
             const msg = typeof data.mensagem === 'string' ? data.mensagem : JSON.stringify(data.mensagem);
             const vid = data.venda_id != null ? '\nRegistro local: #' + data.venda_id : '';
             alert('✅ ' + msg + vid);

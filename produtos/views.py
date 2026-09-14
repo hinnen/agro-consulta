@@ -27422,6 +27422,19 @@ def api_pdv_registrar_operador(request):
             status=403,
         )
 
+    if data.get("expirar_fresco") or data.get("expirar"):
+        from produtos.pdv_transf_loja_util import expirar_operador_pdv_fresco
+
+        expirar_operador_pdv_fresco(request)
+        return JsonResponse(
+            {
+                "ok": True,
+                "operador": str(request.session.get("pdv_operador_nome") or "").strip()[:120],
+                "fresco": False,
+                "restante_s": 0,
+            }
+        )
+
     if not op_req:
         limpar_operador_pdv_sessao(request)
         return JsonResponse(
@@ -29676,10 +29689,13 @@ def _validar_cashback_venda_json(data: dict, raw_itens: list):
 @require_POST
 def api_enviar_pedido_erp(request):
     def _resposta_venda(data, venda, **payload):
+        from produtos.pdv_transf_loja_util import expirar_operador_pdv_fresco
         from produtos.pin_gerencial_util import limpar_mp_point_forcar_bypass
         from produtos.views_nfce import anexar_nfce_resposta_venda
 
         limpar_mp_point_forcar_bypass(request)
+        # Próxima venda/ação exige PIN de novo (TTL 45s só vale dentro da mesma confirmação).
+        expirar_operador_pdv_fresco(request)
         payload = _anexar_pdv_patches_resposta_venda(venda, payload)
         return JsonResponse(anexar_nfce_resposta_venda(venda, data, payload))
 
