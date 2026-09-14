@@ -153,6 +153,17 @@
     </div>
     {% endif %}
 
+    {% if filtro_parcial == 'mais_vendidos' or filtro_parcial == 'vendas_grupo' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Loja</label>
+      <select name="deposito" class="min-h-[44px] rounded-xl border-2 border-orange-500/60 bg-slate-900 px-3 text-sm font-bold text-white" onchange="this.form.submit()" title="Centro, Vila ou as duas">
+        <option value="ambos" {% if extra_filtros.deposito == 'ambos' or not extra_filtros.deposito %}selected{% endif %}>Centro + Vila</option>
+        <option value="centro" {% if extra_filtros.deposito == 'centro' %}selected{% endif %}>Só Centro</option>
+        <option value="vila" {% if extra_filtros.deposito == 'vila' %}selected{% endif %}>Só Vila</option>
+      </select>
+    </div>
+    {% endif %}
+
     {% if filtro_parcial == 'mais_vendidos' %}
     <div>
       <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Ordenar</label>

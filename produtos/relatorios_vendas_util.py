@@ -385,6 +385,30 @@ def filtros_catalogo_request(request) -> dict[str, list[str] | None]:
     return out
 
 
+def parse_deposito_relatorio(request) -> str | None:
+    """GET deposito=ambos|centro|vila → None (ambas) ou 'centro'/'vila'."""
+    raw = (getattr(request, "GET", None) or {}).get("deposito") or "ambos"
+    dep = str(raw).strip().lower()
+    if dep in ("centro", "vila"):
+        return dep
+    return None
+
+
+def rotulo_deposito_relatorio(deposito: str | None) -> str:
+    if deposito == "centro":
+        return "Só Centro"
+    if deposito == "vila":
+        return "Só Vila"
+    return "Centro + Vila"
+
+
+def deposito_ui_value(deposito: str | None) -> str:
+    """Valor do select na tela (ambos / centro / vila)."""
+    if deposito in ("centro", "vila"):
+        return deposito
+    return "ambos"
+
+
 def _meta_dims(m: dict) -> dict[str, str]:
     return {
         campo: (m.get(campo) or vazio)
@@ -577,6 +601,7 @@ def ranking_produtos(
     subcategoria_2: object = None,
     subcategoria_3: object = None,
     subcategoria_4: object = None,
+    deposito: str | None = None,
 ) -> list[dict]:
     filtros = _norm_filtros_kwargs(
         categoria=categoria,
@@ -585,7 +610,7 @@ def ranking_produtos(
         subcategoria_3=subcategoria_3,
         subcategoria_4=subcategoria_4,
     )
-    rows = _agg_itens_por_produto(desde, ate)
+    rows = _agg_itens_por_produto(desde, ate, deposito=deposito)
     reverse = sentido != "menos"
     key = "qtd" if ordenar == "qtd" else "valor"
     rows.sort(key=lambda x: x[key], reverse=reverse)
@@ -631,13 +656,14 @@ def facetas_categoria_sub(
     subcategoria_4: object = None,
     ordenar: str = "valor",
     sentido: str = "mais",
+    deposito: str | None = None,
 ) -> tuple[dict[str, Any], list[dict]]:
     """
     Uma passagem: ranking do período + listas/rótulos ativos + linhas já filtradas.
     Multi-select = OR no nível; AND entre níveis.
     """
     rows = ranking_produtos(
-        desde, ate, ordenar=ordenar, sentido=sentido, limite=0
+        desde, ate, ordenar=ordenar, sentido=sentido, limite=0, deposito=deposito
     )
     pedidos = _norm_filtros_kwargs(
         categoria=categoria,
