@@ -93,6 +93,7 @@ def relatorios_mais_vendidos(request):
 
 def _relatorios_mais_vendidos_impl(request):
     f = _periodo_filtros(request)
+    deposito = ru.parse_deposito_relatorio(request)
     ordenar = (request.GET.get("ordenar") or "valor").strip().lower()
     if ordenar not in ("valor", "qtd"):
         ordenar = "valor"
@@ -104,6 +105,7 @@ def _relatorios_mais_vendidos_impl(request):
         f["ate_dt"],
         ordenar=ordenar,
         sentido=sentido,
+        deposito=deposito,
         **ru.filtros_catalogo_request(request),
     )
     rows = ru.limitar_ranking(rows_all, 100)
@@ -111,7 +113,9 @@ def _relatorios_mais_vendidos_impl(request):
         "#", "Código GM", "Produto", "Categoria", "Sub", "Sub 2", "Sub 3", "Sub 4",
         "Qtd", "Ticket médio", "Total R$",
     ]
-    sub_periodo = _subtitulo_catalogo(f["label"], facetas)
+    sub_periodo = _subtitulo_catalogo(
+        f"{f['label']} · {ru.rotulo_deposito_relatorio(deposito)}", facetas
+    )
     if request.GET.get("export") == "xlsx":
         data = [
             [
@@ -135,9 +139,14 @@ def _relatorios_mais_vendidos_impl(request):
         {
             "titulo": "Produtos mais vendidos",
             "eyebrow": "Ranking",
-            "subtitulo": "Ordene por valor ou quantidade. Marque várias categorias/subs · Atualizar.",
+            "subtitulo": "Loja · valor ou quantidade · categorias. Depois Atualizar.",
             "filtros": f,
-            "extra_filtros": _extra_filtros_catalogo(facetas, ordenar=ordenar, sentido=sentido),
+            "extra_filtros": _extra_filtros_catalogo(
+                facetas,
+                ordenar=ordenar,
+                sentido=sentido,
+                deposito=ru.deposito_ui_value(deposito),
+            ),
             "filtro_parcial": "mais_vendidos",
             "rel_help": "mais_vendidos",
             "headers": headers,
@@ -165,16 +174,23 @@ def _relatorios_mais_vendidos_impl(request):
 @require_GET
 def relatorios_vendas_grupo(request):
     f = _periodo_filtros(request)
+    deposito = ru.parse_deposito_relatorio(request)
     agrupar = (request.GET.get("agrupar") or "categoria").strip().lower()
     if agrupar not in (
         "categoria", "subcategoria", "subcategoria_2", "subcategoria_3", "subcategoria_4"
     ):
         agrupar = "categoria"
     rows, meta = ru.vendas_por_grupo_relatorio(
-        f["desde"], f["ate_dt"], agrupar=agrupar, **ru.filtros_catalogo_request(request)
+        f["desde"],
+        f["ate_dt"],
+        agrupar=agrupar,
+        deposito=deposito,
+        **ru.filtros_catalogo_request(request),
     )
     headers = ["#", meta.get("col_grupo") or "Grupo", "SKUs", "Qtd", "Total R$", "%"]
-    sub_periodo = _subtitulo_catalogo(f["label"], meta)
+    sub_periodo = _subtitulo_catalogo(
+        f"{f['label']} · {ru.rotulo_deposito_relatorio(deposito)}", meta
+    )
     if agrupar != "categoria":
         sub_periodo = f"{sub_periodo} · por {meta.get('col_grupo') or agrupar}"
     if request.GET.get("export") == "xlsx":
@@ -192,11 +208,13 @@ def relatorios_vendas_grupo(request):
         {
             "titulo": "Vendas por grupo",
             "eyebrow": "Categoria",
-            "subtitulo": "Faturamento por categoria ou subcategoria (1–4). Combine os filtros.",
+            "subtitulo": "Loja · categoria ou sub · combine filtros · Atualizar.",
             "filtros": f,
             "filtro_parcial": "vendas_grupo",
             "rel_help": "vendas_grupo",
-            "extra_filtros": _extra_filtros_catalogo(meta, agrupar=agrupar),
+            "extra_filtros": _extra_filtros_catalogo(
+                meta, agrupar=agrupar, deposito=ru.deposito_ui_value(deposito)
+            ),
             "headers": headers,
             "rows": [
                 [

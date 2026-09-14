@@ -1286,6 +1286,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE — Relatórios filtro loja (`REL-MV-LOJA` · **v25.21**) · 14/09 · teste
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | **Mais vendidos** + **Vendas por grupo**: select **Loja** = Centro+Vila / Só Centro / Só Vila (já filtrava no motor; faltava na tela) |
+| **Arquivos** | `relatorios_vendas_util.py` · `relatorios_central_views.py` · `relatorios_generico.html` · hub · help · `tests_relatorios_central_filtros.py` |
+| **Prova** | `tests_relatorios_central_filtros` **10/10** |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ no `teste` · valida local · loja só frase+senha |
+| **Você** | Ctrl+F5 · Relatórios → Mais vendidos / Vendas por grupo → troca Loja |
+
 ### 🚀 PREP deploy loja — Checklist 14/09 (`deploy/prep-checklist-1409` · **v25.20**) · aguarda senha
 
 | Campo | Valor |

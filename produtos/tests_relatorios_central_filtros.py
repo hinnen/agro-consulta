@@ -1,7 +1,6 @@
 from datetime import datetime
 from unittest.mock import patch
 
-from django.http import QueryDict
 from django.test import RequestFactory, SimpleTestCase
 from django.urls import reverse
 
@@ -69,6 +68,19 @@ class RelatoriosCatalogoUtilTests(SimpleTestCase):
         receita = ru.receita_categorias_pdv(self.desde.date(), self.ate.date())
         self.assertEqual(receita["total"], 180)
 
+    def test_parse_deposito_e_passa_no_ranking(self):
+        req = RequestFactory().get("/", {"deposito": "vila"})
+        self.assertEqual(ru.parse_deposito_relatorio(req), "vila")
+        self.assertEqual(ru.deposito_ui_value(None), "ambos")
+        self.assertEqual(ru.rotulo_deposito_relatorio("centro"), "Só Centro")
+        with patch.object(ru, "_agg_itens_por_produto", return_value=[dict(x) for x in AGG]) as mock_agg:
+            ru.ranking_produtos(self.desde, self.ate, deposito="centro", limite=0)
+            mock_agg.assert_called_once()
+            self.assertEqual(mock_agg.call_args.kwargs.get("deposito"), "centro")
+        with patch.object(ru, "_agg_itens_por_produto", return_value=[dict(x) for x in AGG]) as mock_agg:
+            ru.vendas_por_grupo_relatorio(self.desde, self.ate, deposito="vila")
+            self.assertEqual(mock_agg.call_args.kwargs.get("deposito"), "vila")
+
 
 class RelatoriosCentralRoutesTests(SimpleTestCase):
     def setUp(self):
@@ -92,6 +104,19 @@ class RelatoriosCentralRoutesTests(SimpleTestCase):
                 self.assertEqual(response.status_code, 200, (nome, query))
                 if "export=xlsx" in query:
                     self.assertIn("spreadsheetml", response["Content-Type"])
+
+    def test_mais_vendidos_e_grupo_filtro_loja_html(self):
+        for nome, dep in (
+            ("relatorios_mais_vendidos", "centro"),
+            ("relatorios_vendas_grupo", "vila"),
+            ("relatorios_mais_vendidos", "ambos"),
+        ):
+            response = self.client.get(reverse(nome) + f"?deposito={dep}")
+            self.assertEqual(response.status_code, 200, (nome, dep))
+            body = response.content.decode("utf-8", errors="ignore")
+            self.assertIn('name="deposito"', body)
+            self.assertIn("Só Centro", body)
+            self.assertIn("Só Vila", body)
 
     def test_todos_ru_usados_pela_view_existem(self):
         import ast
