@@ -1307,19 +1307,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 **Você (local):** Ctrl+F5 `/pdv/` · pagar → **popup** no meio · Voltar ao pagamento · F12 pergunta · ~45s reabre.  
 **Loja:** **só** frase + senha.
 
-### 📦 PACOTE PRONTO — Fechar venda popup (`PDV-FECHAR-CTA-QUITADO` · **v25.06** · 14/09)
+### 📦 PACOTE PRONTO — Fechar venda popup (`PDV-FECHAR-CTA-QUITADO` · **v25.11** · 14/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Relato** | Operador esquece de fechar · Renan não gostou do bloco no meio → pediu **popup** |
-| **O quê** | Quitado abre popup grande (fundo opaco) · Enter/F9 · **Voltar ao pagamento** · F12/Voltar avisam · idle ~45s reabre+pisca |
-| **Onde** | `pdv_wizard.js` · `step_pagamento.html` · `pdv_wizard.html` |
+| **Relato** | Operador esquece de fechar · Renan pediu popup · Com impressão: cupom ficava atrás |
+| **O quê** | Popup grande · Enter/F9 · Voltar · F12 avisa · idle reabre · **ao Confirmar fecha o popup** · escolha cupom/NFC-e z↑ |
 | **Prova** | `scripts/verify_pdv_fechar_cta_quitado_path.py` |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** · tip **v25.10** · popup grande (~marca vermelha) |
-| **Você** | Ctrl+F5 `/pdv/` · badge tip · pagar → popup · Voltar ao pagamento |
+| **Status** | 🟢 **pronto para envio à produção** · tip **v25.11** |
+| **Você** | Ctrl+F5 · pagar → popup → **Com impressão** deve abrir escolha/cupom na frente |
 | **Loja** | **só** frase + senha |
-| **Risco** | Baixo — só UX |
+| **Risco** | Baixo |
 
 ### ✅ CHECKLIST ÚNICO — 14/09c · `PDV-ORC-IMPRIMIR` · 🟢 pronto envio
 
