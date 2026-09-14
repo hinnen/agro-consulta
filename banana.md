@@ -1286,6 +1286,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🩹 Bug #22 — PDV não finaliza normalmente (`PDV-FINAL-TIMEOUT-UI` · **teste v24.86** · 14/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Relato** | Nathan · Caixa Centro · 05/09 · v21.89 — «não esta finalizando normalmente» · print carrinho vazio · **PAGAR** espremido |
+| **Causa** | (1) No mesmo dia o Zap deixava o PDV lento (#23 já ✅) — Confirmar sem prazo ficava na barra. (2) CSS compacto só ≤1400×800 — **1440×900** do Centro usava layout grande e esmagava PAGAR/ENTREGA |
+| **Fix** | Timeout **55s** no gravar (rascunho+ERP / draft Point) + aviso claro · media **1500×920** + painel laranja sem cortar botões |
+| **Prova** | `scripts/verify_pdv_final_timeout_ui_path.py` **13/13** |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 `/pdv/` · badge **v24.86** · tela ~1440×900: PAGAR legível · Confirmar: se travar, em ~55s solta com aviso (não fica eternamente «finalizando») |
+| **Loja** | **só** frase + senha · Zap leve já Live |
+
 ### 🩹 Bug #25 — Caixa abre com R$ 0,00 (`CAIXA-ABERTURA-MILHAR` · **teste v24.85** · 14/09)
 
 | Campo | Valor |
