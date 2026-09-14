@@ -431,6 +431,13 @@
           return false;
         }
       }
+      var rawVa = valorAbertura ? String(valorAbertura.value || '').trim() : '';
+      if (!rawVa) {
+        ev.preventDefault();
+        alert('Informe o valor em gaveta. Se estiver zerado, digite 0,00. Ou use Cédulas.');
+        if (valorAbertura) valorAbertura.focus();
+        return false;
+      }
     });
   }
   syncUi();
