@@ -407,7 +407,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 ### 4.2 PDV â€” ponto de venda
 
-- **Orçamento PDV (02/09 · +imprimir 14/09):** grava no servidor (`PDV-ORC-SAVE` · Live v21.06). Lista = **só o cliente da tela**, sync online multi-PC (`PDV-ORC-POR-CLIENTE` · **Live v21.08**). Card lateral: **Salvar** \| **Imprimir** (`PDV-ORC-IMPRIMIR` · teste v24.96) — Imprimir = salva + cupom 80mm + ícone impressora (como Zap).
+- **Orçamento PDV (02/09 · +imprimir 14/09):** grava no servidor (`PDV-ORC-SAVE` · Live v21.06). Lista = **só o cliente da tela**, sync online multi-PC (`PDV-ORC-POR-CLIENTE` · **Live v21.08**). Card lateral: **Salvar** \| **Imprimir** (`PDV-ORC-IMPRIMIR` · teste v24.98) — Imprimir = salva + cupom 80mm + ícone impressora (como Zap).
 
 
 | Tela                  | URL              | JS principal                    |
@@ -1286,6 +1286,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ CHECKLIST ÚNICO — 14/09c · `PDV-ORC-IMPRIMIR` · 🟢 pronto envio
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `PDV-ORC-IMPRIMIR` | 🟢 **pronto para envio à produção** | **NÃO** | **65/65** · PIN **9973** · página `/pdv/` OK |
+
+**Você (local):** Ctrl+F5 `/pdv/` · itens → **Imprimir** → lista com ícone impressora · **Salvar** só grava.  
+**Loja:** **só** frase + senha.
+
+### 📦 PACOTE PRONTO — Salvar | Imprimir orçamento (`PDV-ORC-IMPRIMIR` · **v24.98** · 14/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Card lateral: **Salvar** \| **Imprimir**. Imprimir grava (origem `impressao`) + cupom 80mm (só via cliente) + ícone sutil de impressora na lista (como Zap). |
+| **Prova** | `scripts/verify_pdv_orc_imprimir_path.py` **65/65** · PIN **9973** · POST/GET/PG origem · `/pdv/` tem os 2 botões |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 `/pdv/` · badge tip · carrinho → **Imprimir** / **Salvar** |
+| **Loja** | **só** frase + senha |
+| **Risco** | Baixo — só UI/orçamento · não mexe venda/caixa |
+
 ### 🩹 Bug #24 + #20 — Preço crédito no Dinheiro / notinha A/B (`PDV-PRECO-FORMA-DIN` · **teste v24.93** · 14/09)
 
 | Campo | Valor |
@@ -1297,16 +1318,6 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `verify_bug24_preco_forma_dinheiro.py` **15/15** · `verify_bug20_tabela_preco_print_path.py` **17/17** |
 | **Migrate** | **NÃO** |
 | **Você** | Ctrl+F5 `/pdv/` · badge **v24.93** · milho 47kg · Dinheiro → **87** · crédito/fiado → **92** |
-| **Loja** | **só** frase + senha |
-
-### ✨ PDV — Salvar | Imprimir orçamento (`PDV-ORC-IMPRIMIR` · **teste v24.97** · 14/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | No card lateral do PDV, o espaço do **Salvar orçamento** vira **Salvar** \| **Imprimir**. Imprimir grava na lista (como o Zap) com ícone sutil de impressora e abre o cupom 80mm (só via cliente). |
-| **Prova** | `scripts/verify_pdv_orc_imprimir_path.py` **16/16** |
-| **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 `/pdv/` · badge **v24.97** · itens no carrinho → **Imprimir** → lista com ícone impressora · **Salvar** continua só gravando |
 | **Loja** | **só** frase + senha |
 
 ### 🩹 Bug #26 — PIN pedindo toda hora (`PIN-VENDA-45S` · **teste v24.94** · 14/09)
