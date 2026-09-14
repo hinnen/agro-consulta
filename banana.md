@@ -1302,21 +1302,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `PDV-FECHAR-CTA-QUITADO` | 🟢 **pronto para envio à produção** | **NÃO** | **23/23** |
+| 1 | `PDV-FECHAR-CTA-QUITADO` | 🟢 **pronto para envio à produção** | **NÃO** | **51/51** · HTTP local OK · z-index runtime OK |
 
-**Você (local):** Ctrl+F5 `/pdv/` · pagar → **popup** no meio · Voltar ao pagamento · F12 pergunta · ~45s reabre.  
+**Você (local):** Ctrl+F5 `/pdv/` · pagar → popup grande · **Com impressão** abre escolha/cupom **na frente** · Voltar/Esc · F12 pergunta.  
 **Loja:** **só** frase + senha.
 
-### 📦 PACOTE PRONTO — Fechar venda popup (`PDV-FECHAR-CTA-QUITADO` · **v25.11** · 14/09)
+### 📦 PACOTE PRONTO — Fechar venda popup (`PDV-FECHAR-CTA-QUITADO` · **v25.11+** · 14/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Relato** | Operador esquece de fechar · Renan pediu popup · Com impressão: cupom ficava atrás |
-| **O quê** | Popup grande · Enter/F9 · Voltar · F12 avisa · idle reabre · **ao Confirmar fecha o popup** · escolha cupom/NFC-e z↑ |
-| **Prova** | `scripts/verify_pdv_fechar_cta_quitado_path.py` |
+| **O quê** | Popup grande (fundo opaco) · Enter/F9 · Voltar ao pagamento · F12/Voltar avisam · idle 45s · Confirmar fecha popup · escolha cupom z360 / NFC-e z370 |
+| **Prova** | `scripts/verify_pdv_fechar_cta_quitado_path.py` **51/51** · anti-reg Enter/F9 **41/41** · browser: escolha na frente do popup |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** · tip **v25.11** |
-| **Você** | Ctrl+F5 · pagar → popup → **Com impressão** deve abrir escolha/cupom na frente |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 · badge tip · venda paga → Com impressão OK |
 | **Loja** | **só** frase + senha |
 | **Risco** | Baixo |
 
