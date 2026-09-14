@@ -665,6 +665,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - PDF: `lancamentos_financeiro_pdf.py` (sem coluna observaÃ§Ãµes longas; forma pagamento; bruto destacado).
 - Busca na lista: termos com espaÃ§o; **valor** (bruto/pago/saldo); **número da NF**; **data** digitada; boleto; parcela; CPF/CNPJ. Ajuda: `includes/lancamentos_help_agents.html`.
 - **Layout novo CP:** `lancamentos_contas_pagar_teste.html` â€” API `/api/lancamentos/`; filtros na URL; recarga in-place preserva scroll/filtros/pÃ¡ginas. **Filtro de data:** vencimento (padrÃ£o) Â· competÃªncia Â· pagamento (`ref` + `venc_*` / `comp_*` / `pag_*` na URL e na API).
+- **Descrição na baixa (14/09 · bug #19 · `CP-BAIXA-DESC`):** campo opcional no pagamento total/parcial → grava em **observações** do título.
 - **Perf lista (2026-06-19):** projeÃ§Ã£o slim Mongo; `skip_totais` pÃ¡g. 2+; cache sessionStorage; planos lazy.
 - **Abertura CP â€” Chrome (2026-06-19, v1.48+):** prefetch BI/F7 Â· cache do dia Â· selo **Sincronizandoâ€¦** Â· **bootstrap HTML** (lista hoje+abertos jÃ¡ no servidor, sem 2Âª ida Ã  API). Renan validou melhora **sutil** â€” esperado no Chrome MPA.
 - **Teto sem refactor grande:** no Chrome cada clique = **pÃ¡gina nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** prÃ³ximo salto = Postgres financeiro **ou** lista no BI â€” ver CHECKPOINT.
@@ -1284,6 +1285,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### ✨ Bug #19 — Descrição na baixa CP (`CP-BAIXA-DESC` · **teste v24.84** · 14/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Relato** | Renan · Caixa Centro · 03/09 · v21.86 — «ADICIONAR DESCRIÇÃO PARA BAIXAS PAGOS» · print **em branco** |
+| **Tipo** | **Melhoria** (não bug de quebra) |
+| **Feito** | Campo opcional **Descrição do pagamento** na baixa total e parcial · grava em **observações** do título (`Agro baixa …` / `Agro parc. … — …`) |
+| **Arquivos** | `lancamentos_contas_pagar_teste.html` · `lancamentos_financeiros.html` · `views.py` · `lancamentos_financeiro_pg_write_util.py` · `mongo_financeiro_util.py` |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 Contas a pagar · badge **v24.84** · pagar título → digitar descrição → confirmar → abrir detalhe e ver em Observações |
+| **Loja** | **só** frase + senha |
 
 ### 🩹 Bug #18 — Entrada NF finalizada sem financeiro (`NF-PIN-EXIGE-FIN` · **teste v24.82** · 14/09)
 

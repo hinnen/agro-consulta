@@ -3049,6 +3049,7 @@ def baixar_lancamentos_mongo(
     banco_nome: str,
     banco_id: str | None,
     usuario_label: str,
+    descricao: str = "",
 ) -> dict[str, Any]:
     """
     Quitação **total** de cada título (saldo restante) no Mongo, sobrescrevendo forma e conta bancária
@@ -3067,6 +3068,7 @@ def baixar_lancamentos_mongo(
     col = db[COL_DTO_LANCAMENTO]
     res_ok: list[str] = []
     res_err: list[dict] = []
+    desc_bx = str(descricao or "").strip()[:400]
 
     # ERP espera string em FormaPagamentoID/BancoID; mantemos sempre string aqui.
     fid = _financeiro_id_para_string(forma_id)
@@ -3087,6 +3089,22 @@ def baixar_lancamentos_mongo(
             res_err.append({"id": sid, "erro": "Tipo de lançamento divergente (pagar/receber)"})
             continue
 
+        set_fields: dict[str, Any] = {
+            "Pago": True,
+            "DataPagamento": data_movimento,
+            "FormaPagamento": forma_nome[:200],
+            "FormaPagamentoID": fid,
+            "Banco": banco_nome[:200],
+            "BancoID": bid,
+            "LastUpdate": now,
+            "ModificadoPor": mod,
+        }
+        if desc_bx:
+            obs_ant = str(doc.get("Observacoes") or "").strip()[:1800]
+            dt_lbl = timezone.localtime(data_movimento).strftime("%d/%m/%Y")
+            linha = f"Agro baixa {dt_lbl}: {desc_bx}"
+            set_fields["Observacoes"] = (obs_ant + (" | " if obs_ant else "") + linha)[:2000]
+
         if despesa:
             if _lancamento_quitado_totalmente(doc):
                 res_err.append({"id": sid, "erro": "Já quitado"})
@@ -3096,22 +3114,8 @@ def baixar_lancamentos_mongo(
             if rest <= 0 or saida <= 0:
                 res_err.append({"id": sid, "erro": "Sem saldo a pagar"})
                 continue
-            col.update_one(
-                {"_id": oid},
-                {
-                    "$set": {
-                        "Pago": True,
-                        "DataPagamento": data_movimento,
-                        "ValorPago": saida,
-                        "FormaPagamento": forma_nome[:200],
-                        "FormaPagamentoID": fid,
-                        "Banco": banco_nome[:200],
-                        "BancoID": bid,
-                        "LastUpdate": now,
-                        "ModificadoPor": mod,
-                    }
-                },
-            )
+            set_fields["ValorPago"] = saida
+            col.update_one({"_id": oid}, {"$set": set_fields})
         else:
             if _lancamento_quitado_totalmente(doc):
                 res_err.append({"id": sid, "erro": "Já recebido/quitado"})
@@ -3121,23 +3125,9 @@ def baixar_lancamentos_mongo(
             if rest <= 0 or entrada <= 0:
                 res_err.append({"id": sid, "erro": "Sem saldo a receber"})
                 continue
-            col.update_one(
-                {"_id": oid},
-                {
-                    "$set": {
-                        "Pago": True,
-                        "DataPagamento": data_movimento,
-                        "Recebido": entrada,
-                        "ValorPago": entrada,
-                        "FormaPagamento": forma_nome[:200],
-                        "FormaPagamentoID": fid,
-                        "Banco": banco_nome[:200],
-                        "BancoID": bid,
-                        "LastUpdate": now,
-                        "ModificadoPor": mod,
-                    }
-                },
-            )
+            set_fields["Recebido"] = entrada
+            set_fields["ValorPago"] = entrada
+            col.update_one({"_id": oid}, {"$set": set_fields})
         res_ok.append(str(oid))
         _sanear_dto_lancamento_ids_erp_string(col, oid)
         doc_at = col.find_one({"_id": oid})
@@ -3271,6 +3261,7 @@ def baixar_lancamento_parcial_mongo(
     parcelas: list[dict[str, Any]],
     usuario_label: str,
     notificar_rh_baixa_cp: bool = True,
+    descricao: str = "",
 ) -> dict[str, Any]:
     """
     Uma ou mais parcelas no mesmo título (várias formas/contas). Soma em ValorPago (a pagar)
@@ -3286,6 +3277,7 @@ def baixar_lancamento_parcial_mongo(
     mod = (usuario_label or "Agro")[:80] + " — baixa parcial Agro"
     mod = mod[:200]
     col = db[COL_DTO_LANCAMENTO]
+    desc_bx = str(descricao or "").strip()[:400]
 
     try:
         oid = ObjectId(str(lancamento_id).strip())
@@ -3346,7 +3338,7 @@ def baixar_lancamento_parcial_mongo(
     ultima_fid = ""
     ultima_bid = ""
 
-    for par in raw:
+    for ix_par, par in enumerate(raw):
         doc = col.find_one({"_id": oid})
         if not doc:
             return {"ok": False, "id": str(oid), "erro": "Lançamento sumiu durante a baixa", "quitado": False}
@@ -3366,6 +3358,8 @@ def baixar_lancamento_parcial_mongo(
             f"Agro parc. {timezone.localtime(data_movimento).strftime('%d/%m/%Y')} "
             f"{forma_nome[:50]}/{banco_nome[:50]} R$ {valor_par:.2f}"
         )
+        if desc_bx and ix_par == 0:
+            linha_obs = f"{linha_obs} — {desc_bx}"
         obs_nova = (obs_ant + (" | " if obs_ant else "") + linha_obs)[:2000]
 
         if despesa:
