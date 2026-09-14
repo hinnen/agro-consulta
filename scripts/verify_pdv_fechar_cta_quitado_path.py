@@ -1,18 +1,18 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""VERIFY PDV-FECHAR-CTA-QUITADO ÔÇö prova detalhada.
+"""VERIFY PDV-FECHAR-CTA-QUITADO — prova detalhada.
 
 Path:
-  ┬À Quitado abre popup grande (n├úo bloco no meio)
-  ┬À Enter/F9 no popup ┬À Voltar ao pagamento ┬À Esc
-  ┬À tryConfirmSale oculta popup (hold) ÔÇö n├úo fica atr├ís do cupom
-  ┬À Cancelar escolha / NFC-e / PIN restaura popup
-  ┬À hold bloqueia sync + esconde barra reabrir
-  ┬À z-index escolha 360 ┬À NFC-e CPF 370 > fechar 320
-  ┬À F12 / Voltar / stepper avisam venda paga
-  ┬À Idle 45s reabre + pulsa
-  ┬À Anti-reg Enter=sem ┬À F9=com
-  ┬À HTTP /pdv/ 200 se local
+  · Quitado abre popup grande (não bloco no meio)
+  · Enter/F9 no popup · Voltar ao pagamento · Esc
+  · tryConfirmSale oculta popup (hold) — não fica atrás do cupom
+  · Cancelar escolha / NFC-e / PIN restaura popup
+  · hold bloqueia sync + esconde barra reabrir
+  · z-index escolha 360 · NFC-e CPF 370 > fechar 320
+  · F12 / Voltar / stepper avisam venda paga
+  · Idle 45s reabre + pulsa
+  · Anti-reg Enter=sem · F9=com
+  · HTTP /pdv/ 200 se local
 
 Uso: python scripts/verify_pdv_fechar_cta_quitado_path.py
      AGRO_VERIFY_HTTP=1 python ...  (probe 127.0.0.1:8000)
@@ -121,7 +121,7 @@ def main() -> int:
     else:
         fail("titulo")
     if 'id="pdv-payment-fechar-hero"' not in step:
-        ok("sem hero inline (s├│ popup)")
+        ok("sem hero inline (só popup)")
     else:
         fail("ainda tem hero inline")
     if 'id="pdv-payment-reabrir-fechar"' in step and 'id="pdv-payment-reabrir-fechar-btn"' in step:
@@ -229,7 +229,7 @@ def main() -> int:
     else:
         fail("PIN cancel sem restaurar")
 
-    section("5 idle + sa├¡da")
+    section("5 idle + saída")
     body_idle = fn_body(js, "scheduleQuitadoIdlePulse")
     if "openFecharVendaModal(true)" in body_idle and "applyQuitadoIdlePulseClass(true)" in body_idle:
         ok("idle 45s reabre + pulsa")
@@ -240,15 +240,15 @@ def main() -> int:
     else:
         fail("CSS pulse")
     if "Tem venda paga sem fechar" in js and "Sim, fechar" in js:
-        ok("aviso sa├¡da quitada")
+        ok("aviso saída quitada")
     else:
-        fail("aviso sa├¡da")
+        fail("aviso saída")
     body_nova = fn_body(js, "solicitarNovaVenda")
     if "confirmarSaidaComVendaQuitada" in body_nova:
         ok("F12/Nova venda guarda quitado")
     else:
         fail("F12 guarda")
-    if "N├úo, voltar" in js and "N├úo, voltar etapa" in js:
+    if "Não, voltar" in js and "Não, voltar etapa" in js:
         ok("Voltar + stepper guardam")
     else:
         fail("voltar/stepper")
@@ -287,7 +287,7 @@ def main() -> int:
 
     section("7 anti-reg Enter/F9")
     if (
-        "Enter = sempre sem impress├úo" in js
+        "Enter = sempre sem impressão" in js
         and re.search(r"key === 'Enter'[\s\S]{0,500}?tryConfirmSale\(false\)", js)
     ):
         ok("kbd Enter -> sem impressao")
@@ -313,7 +313,7 @@ def main() -> int:
     else:
         fail("render sync")
     if "paymentFormaAtualWrap" in body_pag and "pdvFecharModalDismissed" in body_pag:
-        ok("esconde forma s├│ com popup aberto")
+        ok("esconde forma só com popup aberto")
     else:
         fail("forma wrap toggle")
 
@@ -359,7 +359,7 @@ def main() -> int:
     ):
         ok("sync trata reabrir com hold")
     else:
-        # still ok if hold returns before reabrir ÔÇö check order
+        # still ok if hold returns before reabrir — check order
         hold_i = body_sync.find("pdvFecharModalHold")
         reabrir_i = body_sync.find("paymentReabrirFechar")
         if hold_i >= 0 and (reabrir_i < 0 or hold_i < reabrir_i):
@@ -401,7 +401,7 @@ def main() -> int:
     else:
         ok("HTTP skip (AGRO_VERIFY_HTTP=0)")
 
-    print(f"\nRESULTADO: {oks} OK ┬À {fails} FAIL")
+    print(f"\nRESULTADO: {oks} OK · {fails} FAIL")
     if fails:
         return 1
     print("VERIFY_OK")
