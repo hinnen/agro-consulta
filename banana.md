@@ -1303,7 +1303,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 **Você (local):** Ctrl+F5 · badge tip · smoke: NF sem a pagar bloqueia · CP baixa c/ descrição · milho Dinheiro 87 / crédito 92 · Trocar c/ quitado Confirma · PAGAR 1440 · abrir caixa milhar · PIN pós-venda pede de novo.  
 **Loja:** **só** frase + senha · **#23 não sobe** (já Live).
 
-### 📦 PACOTE PRONTO — Lote bugs #18–#26 (exceto #23) · tip pós-commit · 14/09
+### 📦 PACOTE PRONTO — Lote bugs #18–#26 (exceto #23) · **v25.20** · 14/09
 
 | Campo | Valor |
 | ----- | ----- |
