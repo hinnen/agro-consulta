@@ -1307,14 +1307,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 **Você (local):** Ctrl+F5 `/pdv/` · pagar → popup grande · **Com impressão** abre escolha/cupom **na frente** · Voltar/Esc · F12 pergunta.  
 **Loja:** **só** frase + senha.
 
-### 📦 PACOTE PRONTO — Fechar venda popup (`PDV-FECHAR-CTA-QUITADO` · **v25.13** · 14/09)
+### 📦 PACOTE PRONTO — Fechar venda popup (`PDV-FECHAR-CTA-QUITADO` · **v25.14** · 14/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Popup grande (fundo opaco) · Enter/F9 · Voltar ao pagamento · F12/Voltar avisam · idle 45s · Confirmar fecha popup · escolha cupom z360 / NFC-e z370 |
-| **Prova** | `scripts/verify_pdv_fechar_cta_quitado_path.py` **51/51** · anti-reg Enter/F9 **41/41** · browser: escolha na frente do popup |
+| **O quê** | Popup grande · Enter/F9 · Voltar · F12 avisa · idle · **ao escolher some o popup** (não fica atrás do cupom) · Cancelar/PIN volta |
+| **Prova** | `scripts/verify_pdv_fechar_cta_quitado_path.py` |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** |
+| **Status** | 🟢 **pronto para envio à produção** · tip **v25.14** |
 | **Você** | Ctrl+F5 · badge tip · venda paga → Com impressão OK |
 | **Loja** | **só** frase + senha |
 | **Risco** | Baixo |
