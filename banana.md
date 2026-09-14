@@ -424,7 +424,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Regras UX jÃ¡ decididas:**
 
-- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · loja v20.22 · hotfix chat v20.33 · `PIN-VENDA-10S` tip v21.32 · **bug #26** `PIN-VENDA-45S` teste v24.91):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · Pedir/chat/venda **~45s** · entrega paga ~120s · descanso ~3 min · abrir PDV sem PIN.
+- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · loja v20.22 · hotfix chat v20.33 · `PIN-VENDA-10S` tip v21.32 · **bug #26** `PIN-VENDA-45S` teste v24.94):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · Pedir/chat/venda **~45s** · entrega paga ~120s · descanso ~3 min · abrir PDV sem PIN.
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08 · **Mais ⋯** 31/08 · `PDV-TOPBAR-MAIS` v20.34 · **layout** 31/08 · `PDV-TOPBAR-LAYOUT`):** faixa quente padrão = Pedir loja · Vendas · Uso loja · Entregas · Caixa · **Fiado** · Nova venda (Pedir/Uso = cinza slate; **Mais ⋯** laranja destaque). **Mais ⋯** = Saldo Vila · Repasse · Pesar · PIN + **Organizar atalhos** (quente/frio em Postgres `PdvTopbarLayoutAgro` · migrate `0110` · PIN ao salvar). Contagem diária PG (`0107`). **Ícone WhatsApp** na faixa de ações (ao lado de Nova venda) → aviso **Em breve…** (`PDV-WA-TOPBAR-BREVE`).
@@ -1299,14 +1299,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/pdv/` · badge **v24.93** · milho 47kg · Dinheiro → **87** · crédito/fiado → **92** |
 | **Loja** | **só** frase + senha |
 
-### ✨ PDV — Salvar | Imprimir orçamento (`PDV-ORC-IMPRIMIR` · **teste v24.92** · 14/09)
+### ✨ PDV — Salvar | Imprimir orçamento (`PDV-ORC-IMPRIMIR` · **teste v24.95** · 14/09)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | No card lateral do PDV, o espaço do **Salvar orçamento** vira **Salvar** \| **Imprimir**. Imprimir grava na lista (como o Zap) com ícone sutil de impressora e abre o cupom 80mm (só via cliente). |
 | **Prova** | `scripts/verify_pdv_orc_imprimir_path.py` **16/16** |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 `/pdv/` · badge **v24.92** · itens no carrinho → **Imprimir** → lista com ícone impressora · **Salvar** continua só gravando |
+| **Você** | Ctrl+F5 `/pdv/` · badge **v24.95** · itens no carrinho → **Imprimir** → lista com ícone impressora · **Salvar** continua só gravando |
 | **Loja** | **só** frase + senha |
 
 ### 🩹 Bug #26 — PIN pedindo toda hora (`PIN-VENDA-45S` · **teste v24.94** · 14/09)
