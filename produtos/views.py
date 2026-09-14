@@ -12860,12 +12860,23 @@ def caixa_abrir(request):
                 )
                 return _redirect_caixa(request, "caixa_abrir")
 
-        raw = (request.POST.get("valor_abertura") or "0").replace(",", ".").strip()
+        raw_abertura = (request.POST.get("valor_abertura") or "").strip()
+        if not raw_abertura:
+            messages.error(
+                request,
+                "Informe o valor em gaveta. Se estiver zerado, digite 0,00 "
+                "(campo vazio não abre o caixa).",
+            )
+            return _redirect_caixa(request, "caixa_abrir")
         try:
-            va = Decimal(raw)
+            # BR com milhar (ex. 1.500,00 via Cédulas) — NÃO usar só replace(",", ".")
+            va = _decimal_br_post(raw_abertura, "0").quantize(Decimal("0.01"))
         except Exception:
-            va = Decimal("0")
-        va = va.quantize(Decimal("0.01"))
+            messages.error(
+                request,
+                "Valor em gaveta inválido. Use o formato 1.234,56 ou o botão Cédulas.",
+            )
+            return _redirect_caixa(request, "caixa_abrir")
         obs = (request.POST.get("observacao_abertura") or "").strip()[:500]
         sug_map = ultimo_fechamento_sugestao_abertura(ponto=ponto)
         sug_val = None
@@ -20600,6 +20611,13 @@ def api_lancamentos_baixa(request):
     if err_resp:
         return err_resp
 
+    descricao_baixa = str(
+        payload.get("descricao")
+        or payload.get("observacao")
+        or payload.get("descricao_baixa")
+        or ""
+    ).strip()[:400]
+
     querer_ret_caixa = bool(payload.get("retirar_caixa_pdv"))
     if querer_ret_caixa and despesa and _forma_pagamento_eh_dinheiro(forma_nome):
         if not obter_sessao_caixa_aberta_request(request):
@@ -20650,6 +20668,7 @@ def api_lancamentos_baixa(request):
             banco_nome=banco_nome,
             banco_id=str(banco_id).strip() if banco_id else None,
             usuario_label=usuario,
+            descricao=descricao_baixa,
         )
     else:
         resultado = baixar_lancamentos_pg(
@@ -20661,6 +20680,7 @@ def api_lancamentos_baixa(request):
             banco_nome=banco_nome,
             banco_id=str(banco_id).strip() if banco_id else None,
             usuario_label=usuario,
+            descricao=descricao_baixa,
         )
 
     path_baixa = (
@@ -20815,6 +20835,13 @@ def api_lancamentos_baixa_parcial(request):
     if err_resp:
         return err_resp
 
+    descricao_baixa = str(
+        payload.get("descricao")
+        or payload.get("observacao")
+        or payload.get("descricao_baixa")
+        or ""
+    ).strip()[:400]
+
     querer_ret_parcial = bool(payload.get("retirar_caixa_pdv"))
     valor_dinheiro_parcial = Decimal("0")
     if querer_ret_parcial and despesa:
@@ -20864,6 +20891,7 @@ def api_lancamentos_baixa_parcial(request):
             data_movimento=data_movimento,
             parcelas=parcelas,
             usuario_label=usuario,
+            descricao=descricao_baixa,
         )
     else:
         _, db = obter_conexao_mongo()
@@ -20876,6 +20904,7 @@ def api_lancamentos_baixa_parcial(request):
             data_movimento=data_movimento,
             parcelas=parcelas,
             usuario_label=usuario,
+            descricao=descricao_baixa,
         )
 
     if not resultado.get("ok"):

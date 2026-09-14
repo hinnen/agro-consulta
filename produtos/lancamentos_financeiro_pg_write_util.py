@@ -282,6 +282,10 @@ def _criar_proximo_recorrente_pg(t: TituloFinanceiroAgro, *, usuario_label: str)
     return new_id
 
 
+def _descricao_baixa_limpa(descricao: str | None) -> str:
+    return str(descricao or "").strip()[:400]
+
+
 def baixar_lancamentos_pg(
     ids: list[str],
     *,
@@ -292,6 +296,7 @@ def baixar_lancamentos_pg(
     banco_nome: str,
     banco_id: str | None,
     usuario_label: str,
+    descricao: str = "",
 ) -> dict[str, Any]:
     forma_nome = (forma_nome or "").strip()
     banco_nome = (banco_nome or "").strip()
@@ -305,6 +310,7 @@ def baixar_lancamentos_pg(
     now = timezone.now()
     dp = data_movimento.date() if hasattr(data_movimento, "date") else None
     lbl_saldo = "Sem saldo a pagar" if despesa else "Sem saldo a receber"
+    desc_bx = _descricao_baixa_limpa(descricao)
 
     res_ok: list[str] = []
     res_err: list[dict] = []
@@ -331,6 +337,11 @@ def baixar_lancamentos_pg(
         t.quitado = True
         t.data_pagamento = dp
         t.usuario_quitou = (usuario_label or "Agro")[:150]
+        if desc_bx:
+            obs_ant = (t.observacoes or "").strip()[:1800]
+            dt_lbl = timezone.localtime(data_movimento).strftime("%d/%m/%Y")
+            linha = f"Agro baixa {dt_lbl}: {desc_bx}"
+            t.observacoes = (obs_ant + (" | " if obs_ant else "") + linha)[:2000]
         _touch_titulo(t, mod=mod, now=now)
         t.save()
         res_ok.append(t.mongo_id)
@@ -356,10 +367,12 @@ def baixar_lancamento_parcial_pg(
     parcelas: list[dict[str, Any]],
     usuario_label: str,
     notificar_rh_baixa_cp: bool = True,
+    descricao: str = "",
 ) -> dict[str, Any]:
     raw = [p for p in (parcelas or []) if isinstance(p, dict)]
     if not raw or len(raw) > 24:
         return {"ok": False, "id": None, "erro": "Informe de 1 a 24 parcelas (valor + forma + banco).", "quitado": False}
+    desc_bx = _descricao_baixa_limpa(descricao)
 
     lid = str(lancamento_id or "").strip()
     t = _get_titulo(lid, despesa=despesa)
@@ -401,7 +414,7 @@ def baixar_lancamento_parcial_pg(
     dp = data_movimento.date() if hasattr(data_movimento, "date") else None
     quitado_final = False
 
-    for valor_par, forma_nome, banco_nome, fid, bid in parsed:
+    for ix_par, (valor_par, forma_nome, banco_nome, fid, bid) in enumerate(parsed):
         t.refresh_from_db()
         if _titulo_quitado(t):
             return {"ok": False, "id": lid, "erro": "Título quitado durante a baixa", "quitado": False}
@@ -410,6 +423,8 @@ def baixar_lancamento_parcial_pg(
             f"Agro parc. {timezone.localtime(data_movimento).strftime('%d/%m/%Y')} "
             f"{forma_nome[:50]}/{banco_nome[:50]} R$ {float(valor_par):.2f}"
         )
+        if desc_bx and ix_par == 0:
+            linha_obs = f"{linha_obs} — {desc_bx}"
         t.observacoes = (obs_ant + (" | " if obs_ant else "") + linha_obs)[:2000]
         t.valor_pago = _dec2(t.valor_pago) + valor_par
         t.forma_pagamento = forma_nome
