@@ -3025,7 +3025,7 @@
         }
         var forma = String(state.pagamento.forma || '').trim();
         var arr = state.pagamento.lancamentos || [];
-        /* Ainda montando a 1a forma (sem lancamento): nao bloqueia — Confirmar fica off pelo readyConfirm. */
+        /* Ainda montando a 1ª forma (sem lançamento): não bloqueia — Confirmar fica off pelo readyConfirm. */
         if (forma && !arr.length) return '';
         if (!arr.length) return 'Escolha formas de pagamento até cobrir o total.';
         var total = totalNumberFromComputed(computed);
@@ -12479,7 +12479,8 @@
                 titulo: jaPagoMp
                     ? 'PIN para gravar a venda (máquina já cobrou)'
                     : 'PIN para confirmar a venda',
-                maxFrescoS: jaPagoMp ? 45 : frescoEntrega ? 120 : 10
+                /* Bug #26: venda alinhada a 45s (antes 10s = PIN toda hora). Entrega paga = 120s. */
+                maxFrescoS: frescoEntrega ? 120 : 45
             });
         } else {
             runConfirm();
