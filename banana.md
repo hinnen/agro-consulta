@@ -1286,17 +1286,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🩹 Bug #24 + #20 — Preço crédito no Dinheiro / notinha A/B (PDV-PRECO-FORMA-DIN · **teste v24.92** · 14/09)
+### 🩹 Bug #24 + #20 — Preço crédito no Dinheiro / notinha A/B (`PDV-PRECO-FORMA-DIN` · **teste v24.93** · 14/09)
 
 | Campo | Valor |
 | ----- | ----- |
 | **Relato** | Nathan #24 · Caixa Centro · 05/09 · v21.89 — milho no crédito na notinha em dinheiro · Geraldinho #20 · tabela A/B errada |
 | **Prova loja** | Vendas 7075/7076 milho grande · Dinheiro · unitário **92** (certo = **87**) |
-| **Causa** | A/B com ormas_b vazio + carrinho sem tabela → preço de lista (crédito) no Dinheiro |
+| **Causa** | A/B com `formas_b` vazio + carrinho sem tabela → preço de lista (crédito) no Dinheiro |
 | **Fix** | B vazio = resto das formas · sync A/B antes de gravar/cupom · servidor corrige unitário=lista · slim v6 |
-| **Prova** | erify_bug24_preco_forma_dinheiro.py **15/15** · erify_bug20_tabela_preco_print_path.py **17/17** |
+| **Prova** | `verify_bug24_preco_forma_dinheiro.py` **15/15** · `verify_bug20_tabela_preco_print_path.py` **17/17** |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 /pdv/ · badge **v24.92** · milho 47kg · Dinheiro → **87** · crédito/fiado → **92** |
+| **Você** | Ctrl+F5 `/pdv/` · badge **v24.93** · milho 47kg · Dinheiro → **87** · crédito/fiado → **92** |
 | **Loja** | **só** frase + senha |
 
 ### ✨ PDV — Salvar | Imprimir orçamento (`PDV-ORC-IMPRIMIR` · **teste v24.92** · 14/09)
