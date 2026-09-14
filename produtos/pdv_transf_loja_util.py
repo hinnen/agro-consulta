@@ -18,8 +18,8 @@ from produtos.pdv_deposito_util import DEPOSITOS_VALIDOS, normalizar_deposito, r
 
 # Identidade do operador para ações (venda, Pedir, chat…): NÃO renova com mouse.
 PDV_OPERADOR_FRESCO_TTL_S = 45
-# Fechar venda: janela curta (troca rápida de pessoa no mesmo caixa).
-PDV_OPERADOR_FRESCO_VENDA_TTL_S = 10
+# Fechar venda: mesmo TTL das demais ações. (Bug #26: 10s pedia PIN toda hora no balcão.)
+PDV_OPERADOR_FRESCO_VENDA_TTL_S = 45
 PDV_OPERADOR_FRESCO_KEY = "pdv_operador_fresco_em"
 MSG_PIN_PDV_ACAO = "Entre com o PIN no PDV para registrar a ação."
 
