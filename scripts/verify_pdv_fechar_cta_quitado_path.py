@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Path: PDV-FECHAR-CTA-QUITADO — CTA central + aviso sair + idle pulse."""
+"""Path: PDV-FECHAR-CTA-QUITADO — popup Fechar + aviso sair + idle pulse."""
 from __future__ import annotations
 
 import re
@@ -24,41 +24,38 @@ def main() -> int:
     step = HTML_STEP.read_text(encoding="utf-8")
     wiz = HTML_WIZ.read_text(encoding="utf-8")
 
-    ok("hero html id", 'id="pdv-payment-fechar-hero"' in step)
+    ok("modal html id", 'id="pdv-payment-fechar-modal"' in step)
+    ok("modal backdrop", 'id="pdv-payment-fechar-modal-backdrop"' in step)
+    ok("btn voltar pagamento", 'id="pdv-payment-fechar-voltar"' in step)
+    ok("voltar label", "Voltar ao pagamento" in step)
     ok("hero btn no-print", 'id="pdv-fechar-hero-no-print"' in step)
     ok("hero btn print", 'id="pdv-fechar-hero-print"' in step)
-    ok("hero title text", "Pode fechar a venda" in step)
-    ok("css idle pulse class", "pdv-quitado-idle-pulse" in wiz)
-    ok("css keyframes", "pdv-quitado-confirm-pulse" in wiz)
-    ok("js vendaQuitadaSemFechar", "function vendaQuitadaSemFechar" in js)
+    ok("title text", "Pode fechar a venda" in step)
+    ok("sem hero inline", 'id="pdv-payment-fechar-hero"' not in step)
+    ok("reabrir bar", 'id="pdv-payment-reabrir-fechar"' in step)
+    ok("css idle pulse", "pdv-quitado-idle-pulse" in wiz)
+    ok("backdrop opaco", "bg-slate-950/80" in step)
+    ok("js openFechar", "function openFecharVendaModal" in js)
+    ok("js closeFechar", "function closeFecharVendaModal" in js)
+    ok("js syncFechar", "function syncFecharVendaModalUi" in js)
+    ok("js dismissed flag", "pdvFecharModalDismissed" in js)
+    ok("js vendaQuitada", "function vendaQuitadaSemFechar" in js)
     ok("js confirmarSaida", "function confirmarSaidaComVendaQuitada" in js)
-    ok("js focarFechar", "function focarFecharVendaQuitada" in js)
-    ok("js schedule idle", "function scheduleQuitadoIdlePulse" in js)
-    ok("js idle ms 45s", "PDV_QUITADO_IDLE_MS = 45000" in js)
-    ok("js hide forma wrap quitado", "paymentFormaAtualWrap" in js and "quitadoPay" in js)
-    ok("js show fechar hero", "paymentFecharHero" in js)
-    ok("js openForma bloqueia quitado", re.search(
-        r"function openPaymentFormaModal\(\)\s*\{[\s\S]{0,400}?vendaQuitadaSemFechar",
+    ok("js idle reopen modal", re.search(
+        r"scheduleQuitadoIdlePulse[\s\S]{0,800}?openFecharVendaModal\(true\)",
         js,
     ) is not None)
-    ok("js nova venda guarda quitado", re.search(
-        r"function solicitarNovaVenda\(\)\s*\{[\s\S]{0,2500}?confirmarSaidaComVendaQuitada",
+    ok("js voltar click", re.search(
+        r"paymentFecharVoltar[\s\S]{0,200}?closeFecharVendaModal\(true\)",
         js,
     ) is not None)
-    ok("js btnPrev guarda", "Não, voltar" in js and "confirmarSaidaComVendaQuitada" in js)
-    ok("js hero click no-print", re.search(
-        r"fecharHeroNoPrint[\s\S]{0,200}?tryConfirmSale\(false\)",
+    ok("js esc fecha modal", re.search(
+        r"isFecharVendaModalOpen\(\)[\s\S]{0,120}?closeFecharVendaModal\(true\)",
         js,
     ) is not None)
-    ok("js hero click print", re.search(
-        r"fecharHeroPrint[\s\S]{0,200}?tryConfirmSale\(true\)",
-        js,
-    ) is not None)
-    ok("js setConfirmButtonsBusy hero", "fecharHeroNoPrint" in js and "Confirmando…" in js)
-    ok("js bump idle activity", "function bumpQuitadoIdleActivity" in js)
-    ok("js pointerdown bump", "bumpQuitadoIdleActivity" in js and "pointerdown" in js)
+    ok("js nova venda guarda", "confirmarSaidaComVendaQuitada" in js and "Não, descartar" in js)
     ok("msg fechar agora", "Tem venda paga sem fechar" in js)
-    ok("ajuda wizard texto", "Pode fechar a venda" in wiz)
+    ok("ajuda popup", "popup grande" in wiz)
 
     failed = [n for n, c in checks if not c]
     for n, c in checks:
