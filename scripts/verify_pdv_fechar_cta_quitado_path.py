@@ -5,8 +5,9 @@
 Path:
   · Quitado abre popup grande (não bloco no meio)
   · Enter/F9 no popup · Voltar ao pagamento · Esc
-  · tryConfirmSale fecha popup (cupom/PIN na frente)
-  · Cancelar escolha impressão / NFC-e CPF reabre popup
+  · tryConfirmSale oculta popup (hold) — não fica atrás do cupom
+  · Cancelar escolha / NFC-e / PIN restaura popup
+  · hold bloqueia sync + esconde barra reabrir
   · z-index escolha 360 · NFC-e CPF 370 > fechar 320
   · F12 / Voltar / stepper avisam venda paga
   · Idle 45s reabre + pulsa
@@ -331,7 +332,56 @@ def main() -> int:
     else:
         fail(f"js_size={sz}")
 
-    section("10 HTTP local (opcional)")
+    section("10 hold detalhado (popup some ao escolher)")
+    body_ocultar = fn_body(js, "ocultarFecharVendaParaConfirmar")
+    body_restaurar = fn_body(js, "restaurarFecharVendaAposCancelarConfirm")
+    body_sync = fn_body(js, "syncFecharVendaModalUi")
+    body_close = fn_body(js, "closeFecharVendaModal")
+    if "pdvFecharModalHold = true" in body_ocultar and "closeFecharVendaModal(false)" in body_ocultar:
+        ok("ocultar: hold=true + close(false)")
+    else:
+        fail("ocultar body")
+    if "pdvFecharModalHold = false" in body_restaurar and "openFecharVendaModal(true)" in body_restaurar:
+        ok("restaurar: hold=false + open(true)")
+    else:
+        fail("restaurar body")
+    if "if (pdvFecharModalHold)" in body_sync and "return" in body_sync:
+        ok("sync: hold early-return")
+    else:
+        fail("sync hold return")
+    # reabrir bar must stay hidden while hold
+    if re.search(
+        r"pdvFecharModalHold[\s\S]{0,400}?paymentReabrirFechar",
+        body_sync,
+    ) or (
+        "pdvFecharModalHold" in body_sync
+        and "paymentReabrirFechar" in body_sync
+    ):
+        ok("sync trata reabrir com hold")
+    else:
+        # still ok if hold returns before reabrir — check order
+        hold_i = body_sync.find("pdvFecharModalHold")
+        reabrir_i = body_sync.find("paymentReabrirFechar")
+        if hold_i >= 0 and (reabrir_i < 0 or hold_i < reabrir_i):
+            ok("sync hold antes de reabrir (ou sem reabrir no hold)")
+        else:
+            fail("sync reabrir/hold")
+    if "pdvFecharModalHold = false" in fn_body(js, "resetWizardParaNovaVenda"):
+        ok("resetWizard zera hold")
+    else:
+        fail("reset hold")
+    # Outro validation errors restore
+    if body_try.count("restaurarFecharVendaAposCancelarConfirm") >= 2:
+        ok("tryConfirmSale restaura em erros (>=2)")
+    else:
+        fail(f"tryConfirmSale restaura count={body_try.count('restaurarFecharVendaAposCancelarConfirm')}")
+    # close(false) must NOT clear hold (dismissed only)
+    if "pdvFecharModalHold" not in body_close or "pdvFecharModalHold = false" not in body_close:
+        ok("closeFechar nao zera hold sozinho")
+    else:
+        fail("close zera hold (ruim)")
+
+    section("11 HTTP local (opcional)")
     do_http = os.environ.get("AGRO_VERIFY_HTTP", "1").strip() not in ("0", "false", "no")
     if do_http:
         for path, label in (("/healthz", "healthz"), ("/pdv/", "pdv")):

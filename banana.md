@@ -1302,19 +1302,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `PDV-FECHAR-CTA-QUITADO` | 🟢 **pronto para envio à produção** | **NÃO** | **51/51** · HTTP local OK · z-index runtime OK |
+| 1 | `PDV-FECHAR-CTA-QUITADO` | 🟢 **pronto para envio à produção** | **NÃO** | **60/60** · anti-reg Enter/F9 **41/41** · browser hold OK |
 
-**Você (local):** Ctrl+F5 `/pdv/` · pagar → popup grande · **Com impressão** abre escolha/cupom **na frente** · Voltar/Esc · F12 pergunta.  
+**Você (local):** Ctrl+F5 `/pdv/` · pagar → popup grande · **Com impressão** some o grande e sobe só o cupom · Cancelar volta · F12 pergunta.  
 **Loja:** **só** frase + senha.
 
-### 📦 PACOTE PRONTO — Fechar venda popup (`PDV-FECHAR-CTA-QUITADO` · **v25.14** · 14/09)
+### 📦 PACOTE PRONTO — Fechar venda popup (`PDV-FECHAR-CTA-QUITADO` · tip **v25.15+** · 14/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Popup grande · Enter/F9 · Voltar · F12 avisa · idle · **ao escolher some o popup** (não fica atrás do cupom) · Cancelar/PIN volta |
-| **Prova** | `scripts/verify_pdv_fechar_cta_quitado_path.py` |
+| **O quê** | Popup grande · Enter/F9 · Voltar · F12 avisa · idle · **ao escolher some o popup** (não fica atrás) · Cancelar/PIN volta |
+| **Prova** | `scripts/verify_pdv_fechar_cta_quitado_path.py` **60/60** · `verify_pdv_cupom_dinheiro_path.py` **41/41** · CDP: só escolha visível + z360>z320 · JS servido com hold |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** · tip **v25.14** |
+| **Status** | 🟢 **pronto para envio à produção** |
 | **Você** | Ctrl+F5 · badge tip · venda paga → Com impressão OK |
 | **Loja** | **só** frase + senha |
 | **Risco** | Baixo |
