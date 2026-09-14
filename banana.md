@@ -1309,7 +1309,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/pdv/` · badge **v24.92** · itens no carrinho → **Imprimir** → lista com ícone impressora · **Salvar** continua só gravando |
 | **Loja** | **só** frase + senha |
 
-### 🩹 Bug #26 — PIN pedindo toda hora (`PIN-VENDA-45S` · **teste v24.91** · 14/09)
+### 🩹 Bug #26 — PIN pedindo toda hora (`PIN-VENDA-45S` · **teste v24.94** · 14/09)
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1318,7 +1318,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | TTL venda = **45s** (igual Pedir/chat) · entrega paga continua **120s** |
 | **Prova** | `scripts/verify_bug26_pin_venda_ttl_path.py` **10/10** · `verify_pdv_pin_na_acao.py` **79/79** |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 `/pdv/` · badge **v24.91** · digita PIN · fecha 1 venda · em até ~45s fecha outra **sem** PIN de novo |
+| **Você** | Ctrl+F5 `/pdv/` · badge **v24.94** · digita PIN · fecha 1 venda · em até ~45s fecha outra **sem** PIN de novo |
 | **Loja** | **só** frase + senha |
 
 ### 🩹 Bug #21 — Confirmar cinza após Trocar (PDV-CONFIRM-QUITADO-TROCAR · **teste v24.89** · 14/09)
