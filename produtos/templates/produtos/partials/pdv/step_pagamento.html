@@ -65,17 +65,10 @@
         <p class="text-[11px] font-bold text-slate-600 sm:text-xs">F3 — forma · teclas 1–9 no painel</p>
       </div>
 
-      <div id="pdv-payment-fechar-hero" class="pdv-payment-fechar-hero hidden mx-2 mb-2 flex min-h-0 flex-1 flex-col items-center justify-center gap-3 rounded-[1rem] border-2 border-emerald-400 bg-gradient-to-br from-emerald-50 via-white to-teal-50 px-3 py-4 shadow-md sm:mx-2.5 sm:mb-2.5 sm:gap-4 sm:rounded-[1.15rem] sm:px-5 sm:py-6" aria-live="polite">
-        <p class="pdv-payment-fechar-kicker">Pronto</p>
-        <h3 class="pdv-payment-fechar-title">Pode fechar a venda</h3>
-        <p class="pdv-payment-fechar-sub">Escolha com ou sem cupom — a venda ainda não foi gravada</p>
-        <div class="pdv-payment-fechar-actions flex w-full max-w-xl flex-col gap-2 sm:flex-row sm:gap-3">
-          <button type="button" id="pdv-fechar-hero-no-print" class="pdv-action-btn pdv-fechar-hero-btn pdv-fechar-hero-btn--no-print flex-1 border-2 border-emerald-500 bg-white font-black text-emerald-900 shadow-sm hover:bg-emerald-50">
-            Sem impressão <kbd class="ml-1 rounded border border-emerald-300 bg-emerald-50 px-1.5 font-mono text-[0.7em]">Enter</kbd>
-          </button>
-          <button type="button" id="pdv-fechar-hero-print" class="pdv-action-btn pdv-fechar-hero-btn pdv-fechar-hero-btn--print flex-1 bg-emerald-600 font-black text-white shadow-md shadow-emerald-600/25 hover:bg-emerald-700">
-            Com impressão <kbd class="ml-1 rounded bg-emerald-500 px-1.5 font-mono text-[0.7em] text-white">F9</kbd>
-          </button>
+      <div id="pdv-payment-reabrir-fechar" class="hidden shrink-0 mx-2 rounded-xl border-2 border-emerald-400 bg-emerald-50 px-3 py-2.5 sm:mx-2.5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <p class="min-w-0 text-sm font-black text-emerald-950">Tudo pago — falta fechar a venda</p>
+          <button type="button" id="pdv-payment-reabrir-fechar-btn" class="pdv-action-btn shrink-0 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-black uppercase text-white shadow-md">Fechar venda</button>
         </div>
       </div>
 
@@ -461,6 +454,26 @@
           Desconto — editar valor
         </button>
       </div>
+    </div>
+  </div>
+
+  <div id="pdv-payment-fechar-modal" class="pdv-payment-fechar-modal fixed inset-0 z-[320] hidden items-center justify-center p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="pdv-payment-fechar-modal-title" aria-hidden="true">
+    <div id="pdv-payment-fechar-modal-backdrop" class="absolute inset-0 bg-slate-950/80 backdrop-blur-[2px]" tabindex="-1"></div>
+    <div class="pdv-payment-fechar-modal-panel relative z-10 flex w-full max-w-3xl flex-col gap-4 rounded-[1.35rem] border-2 border-emerald-400 bg-gradient-to-br from-emerald-50 via-white to-teal-50 px-4 py-5 shadow-2xl sm:gap-5 sm:px-8 sm:py-8" role="document">
+      <p class="pdv-payment-fechar-kicker text-center">Pronto</p>
+      <h2 id="pdv-payment-fechar-modal-title" class="pdv-payment-fechar-title text-center">Pode fechar a venda</h2>
+      <p class="pdv-payment-fechar-sub mx-auto text-center">Escolha com ou sem cupom — a venda ainda não foi gravada</p>
+      <div class="pdv-payment-fechar-actions flex w-full flex-col gap-2.5 sm:flex-row sm:gap-3">
+        <button type="button" id="pdv-fechar-hero-no-print" class="pdv-action-btn pdv-fechar-hero-btn pdv-fechar-hero-btn--no-print flex-1 border-2 border-emerald-500 bg-white font-black text-emerald-900 shadow-sm hover:bg-emerald-50">
+          Sem impressão <kbd class="ml-1 rounded border border-emerald-300 bg-emerald-50 px-1.5 font-mono text-[0.7em]">Enter</kbd>
+        </button>
+        <button type="button" id="pdv-fechar-hero-print" class="pdv-action-btn pdv-fechar-hero-btn pdv-fechar-hero-btn--print flex-1 bg-emerald-600 font-black text-white shadow-md shadow-emerald-600/25 hover:bg-emerald-700">
+          Com impressão <kbd class="ml-1 rounded bg-emerald-500 px-1.5 font-mono text-[0.7em] text-white">F9</kbd>
+        </button>
+      </div>
+      <button type="button" id="pdv-payment-fechar-voltar" class="pdv-action-btn w-full rounded-xl border-2 border-slate-300 bg-white px-4 py-3 text-sm font-black uppercase tracking-wide text-slate-700 hover:bg-slate-50">
+        Voltar ao pagamento
+      </button>
     </div>
   </div>
 </section>

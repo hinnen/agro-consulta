@@ -2936,34 +2936,34 @@
   #pdv-step-pagamento-root .pdv-pay-restante-hero--quitado .pdv-pay-hero-val {
     color: #047857;
   }
-  #pdv-step-pagamento-root .pdv-payment-fechar-hero {
+  .pdv-payment-fechar-modal {
     text-align: center;
   }
-  #pdv-step-pagamento-root .pdv-payment-fechar-kicker {
-    font-size: 0.75rem;
+  .pdv-payment-fechar-kicker {
+    font-size: 0.8rem;
     font-weight: 900;
     letter-spacing: 0.22em;
     text-transform: uppercase;
     color: #059669;
   }
-  #pdv-step-pagamento-root .pdv-payment-fechar-title {
-    font-size: clamp(1.45rem, 3.2vw, 2.15rem);
+  .pdv-payment-fechar-title {
+    font-size: clamp(1.65rem, 3.6vw, 2.35rem);
     font-weight: 900;
     line-height: 1.1;
     color: #064e3b;
   }
-  #pdv-step-pagamento-root .pdv-payment-fechar-sub {
-    max-width: 28rem;
-    font-size: clamp(0.8rem, 1.4vw, 0.95rem);
+  .pdv-payment-fechar-sub {
+    max-width: 32rem;
+    font-size: clamp(0.85rem, 1.5vw, 1.05rem);
     font-weight: 700;
     line-height: 1.35;
     color: #475569;
   }
-  #pdv-step-pagamento-root .pdv-fechar-hero-btn {
-    min-height: 3.25rem;
-    font-size: clamp(0.95rem, 1.8vw, 1.15rem);
-    border-radius: 0.9rem;
-    padding: 0.85rem 1rem;
+  .pdv-fechar-hero-btn {
+    min-height: 3.5rem;
+    font-size: clamp(1rem, 2vw, 1.2rem);
+    border-radius: 0.95rem;
+    padding: 0.95rem 1.1rem;
   }
   body.pdv-quitado-idle-pulse #pdv-confirm-sale-no-print,
   body.pdv-quitado-idle-pulse #pdv-confirm-sale-print,
@@ -4722,9 +4722,9 @@
       itens: [
         'F3 ou “Escolher forma” abre formas disponíveis; teclas rápidas 1–9 quando o painel mostrar.',
         'Você pode dividir entre várias formas até zerar “Restante”.',
-        'Quando aparecer “Tudo pago”, o meio da tela vira “Pode fechar a venda” — Enter sem cupom, F9 com cupom.',
+        'Quando aparecer “Tudo pago”, abre um popup grande no meio: Enter sem cupom, F9 com cupom, ou Voltar ao pagamento.',
         'Se tentar Nova venda (F12) ou Voltar com tudo pago, o sistema pergunta antes de sair.',
-        'Se ficar parado ~45s com venda paga, os botões de confirmar piscam (não fecha sozinho).',
+        'Se ficar parado ~45s com venda paga, o popup volta e os botões piscam (não fecha sozinho).',
         'Vale crédito e cashback usam saldo já carregado; fiado só para clientes habilitados.',
       ],
     },
