@@ -9,6 +9,7 @@ from produtos.precos_forma_pagamento_util import (
     extrair_precos_grupos_cadastro_extras,
     extrair_precos_modo_cadastro_extras,
     extrair_precos_por_forma_cadastro_extras,
+    formas_b_efetivas,
     formas_pagamento_lista,
     normalizar_precos_modo,
     preco_venda_para_forma,
@@ -223,10 +224,12 @@ def _tem_preco_individual_na_forma(produto: dict, forma: str) -> bool:
     ppf = produto.get("precos_por_forma") or extrair_precos_por_forma_cadastro_extras(ce)
     pg = produto.get("precos_grupos") or extrair_precos_grupos_cadastro_extras(ce)
     if modo == "grupos" and pg:
-        calc = preco_venda_para_forma(base, None, forma_n, precos_modo="grupos", precos_grupos=pg)
+        calc = preco_venda_para_forma(
+            base, ppf, forma_n, precos_modo="grupos", precos_grupos=pg
+        )
         return abs(calc - base) > 0.0001 or forma_n in set(
             _norm_formas(pg.get("formas_a"))
-        ) or forma_n in set(_norm_formas(pg.get("formas_b")))
+        ) or forma_n in set(formas_b_efetivas(pg))
     if ppf and isinstance(ppf, dict):
         for k in ppf.keys():
             if _forma_canonica(str(k)) == forma_n:
@@ -386,7 +389,7 @@ def listar_conflitos(tabela, *, limit: int = 200) -> list[dict]:
         hit_formas: list[str] = []
         if modo == "grupos" and pg:
             fa = set(_norm_formas(pg.get("formas_a")))
-            fb = set(_norm_formas(pg.get("formas_b")))
+            fb = set(formas_b_efetivas(pg))
             hit_formas = sorted(formas & (fa | fb))
         else:
             for k in ppf.keys():

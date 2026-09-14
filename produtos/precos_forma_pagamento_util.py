@@ -73,10 +73,29 @@ def _formas_lista_payload(raw: Any) -> list[str]:
     return out
 
 
+def formas_b_efetivas(grupos: dict[str, Any] | None) -> list[str]:
+    """
+    Formas do grupo B. Se tem preço B mas formas_b vazio, o resto das formas
+    (fora do A) cai no B — padrão loja: A=à vista, B=crédito/fiado/etc.
+    """
+    if not isinstance(grupos, dict):
+        return []
+    formas_a = _formas_lista_payload(grupos.get("formas_a"))
+    formas_b = _formas_lista_payload(grupos.get("formas_b"))
+    if formas_b:
+        return formas_b
+    preco_b = _dec_pos(grupos.get("preco_b"))
+    if preco_b is None or preco_b <= 0:
+        return []
+    set_a = set(formas_a)
+    return [f for f in FORMAS_PAGAMENTO_CAIXA if f not in set_a]
+
+
 def normalizar_precos_grupos_payload(raw: Any) -> dict[str, Any] | None:
     """
     Retorna dict canônico ou None se vazio (sem preços e sem formas).
     Forma em A e B ao mesmo tempo fica só em A.
+    Com preço B e formas_b vazio, preenche B com o restante (fora do A).
     """
     if not isinstance(raw, dict):
         return None
@@ -87,6 +106,8 @@ def normalizar_precos_grupos_payload(raw: Any) -> dict[str, Any] | None:
     # Remove colisão: prioridade A
     set_a = set(formas_a)
     formas_b = [f for f in formas_b if f not in set_a]
+    if not formas_b and preco_b is not None and preco_b > 0:
+        formas_b = [f for f in FORMAS_PAGAMENTO_CAIXA if f not in set_a]
     if not ((preco_a is not None and preco_a > 0) or (preco_b is not None and preco_b > 0) or formas_a or formas_b):
         return None
     return {
@@ -153,18 +174,22 @@ def preco_venda_para_forma(
     modo = normalizar_precos_modo(precos_modo)
     if modo == "grupos":
         g = precos_grupos if isinstance(precos_grupos, dict) else None
-        if not g:
-            return base
-        formas_a = set(_formas_lista_payload(g.get("formas_a")))
-        formas_b = set(_formas_lista_payload(g.get("formas_b")))
-        if forma_n in formas_a:
-            pa = _dec_pos(g.get("preco_a"))
-            if pa is not None and pa > 0:
-                return pa
-        if forma_n in formas_b:
-            pb = _dec_pos(g.get("preco_b"))
-            if pb is not None and pb > 0:
-                return pb
+        if g:
+            formas_a = set(_formas_lista_payload(g.get("formas_a")))
+            formas_b = set(formas_b_efetivas(g))
+            if forma_n in formas_a:
+                pa = _dec_pos(g.get("preco_a"))
+                if pa is not None and pa > 0:
+                    return pa
+            if forma_n in formas_b:
+                pb = _dec_pos(g.get("preco_b"))
+                if pb is not None and pb > 0:
+                    return pb
+        # Legado: mapa por forma ainda preenchido (ex. Fiado) quando B veio vazio no cadastro.
+        if isinstance(precos_por_forma, dict) and forma_n in precos_por_forma:
+            pf = _dec_pos(precos_por_forma.get(forma_n))
+            if pf is not None and pf > 0:
+                return pf
         return base
     if not isinstance(precos_por_forma, dict):
         return base
@@ -177,3 +202,105 @@ def preco_venda_para_forma(
 
 def formas_pagamento_lista() -> list[str]:
     return list(FORMAS_PAGAMENTO_CAIXA)
+
+
+def forma_principal_para_preco(
+    forma_pagamento: str | None,
+    pagamentos_json: list | None = None,
+) -> str:
+    """Forma que manda no preço: 1ª de mercadoria (pula vale/cashback se houver outra)."""
+    skip = {"Vale crédito", "Cashback"}
+    forms: list[str] = []
+    if isinstance(pagamentos_json, list):
+        for row in pagamentos_json:
+            if not isinstance(row, dict):
+                continue
+            f = _forma_canonica(str(row.get("forma") or ""))
+            if f:
+                forms.append(f)
+    if not forms:
+        return _forma_canonica(str(forma_pagamento or ""))
+    for f in forms:
+        if f not in skip:
+            return f
+    return forms[0]
+
+
+def corrigir_precos_itens_lista_sem_forma(
+    raw_itens: list,
+    forma: str | None,
+    *,
+    overlays_by_pid: dict | None = None,
+) -> int:
+    """
+    Bug #24: PDV às vezes grava preço de lista (crédito) no Dinheiro.
+    Se o unitário veio igual à lista e a forma tem preço diferente, corrige.
+    Não mexe em preço manual nem em valor já diferente da lista (promo/digitado).
+    """
+    from produtos.models import ProdutoGestaoOverlayAgro
+
+    if not isinstance(raw_itens, list) or not raw_itens:
+        return 0
+    forma_n = _forma_canonica(str(forma or ""))
+    if not forma_n:
+        return 0
+
+    pids: list[str] = []
+    for it in raw_itens:
+        if not isinstance(it, dict):
+            continue
+        if it.get("preco_manual"):
+            continue
+        pid = str(it.get("id") or it.get("produto_id") or "").strip()
+        if pid:
+            pids.append(pid)
+    if not pids:
+        return 0
+
+    ov_map = overlays_by_pid
+    if ov_map is None:
+        ov_map = {
+            str(o.produto_externo_id): o
+            for o in ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id__in=pids)
+        }
+
+    n_fix = 0
+    for it in raw_itens:
+        if not isinstance(it, dict) or it.get("preco_manual"):
+            continue
+        pid = str(it.get("id") or it.get("produto_id") or "").strip()
+        if not pid:
+            continue
+        ov = ov_map.get(pid)
+        if ov is None:
+            continue
+        lista = _dec_pos(getattr(ov, "preco_venda", None))
+        if lista is None or lista <= 0:
+            continue
+        client = _dec_pos(it.get("preco"))
+        if client is None:
+            continue
+        # Só corrige o caso «ficou na lista» — promo/digitado saem da lista.
+        if abs(client - lista) > 0.009:
+            continue
+        modo = extrair_precos_modo_overlay(ov)
+        pg = extrair_precos_grupos_overlay(ov)
+        ppf = extrair_precos_por_forma_overlay(ov) or None
+        if modo != "grupos" and not ppf:
+            continue
+        if modo == "grupos" and not pg and not ppf:
+            continue
+        novo = preco_venda_para_forma(
+            float(lista),
+            ppf,
+            forma_n,
+            precos_modo=modo,
+            precos_grupos=pg,
+        )
+        if novo is None or novo <= 0:
+            continue
+        if abs(float(novo) - client) <= 0.009:
+            continue
+        it["preco"] = round(float(novo), 2)
+        n_fix += 1
+    return n_fix

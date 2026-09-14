@@ -3017,8 +3017,9 @@
             }
         }
         var forma = String(state.pagamento.forma || '').trim();
-        if (forma) return '';
         var arr = state.pagamento.lancamentos || [];
+        /* Ainda montando a 1a forma (sem lancamento): nao bloqueia — Confirmar fica off pelo readyConfirm. */
+        if (forma && !arr.length) return '';
         if (!arr.length) return 'Escolha formas de pagamento até cobrir o total.';
         var total = totalNumberFromComputed(computed);
         var sum = sumValorLancamentos(state);
@@ -8116,6 +8117,8 @@
     function renderPagamento(state, computed) {
         syncFooterFreteField(state, computed);
         var forma = state.pagamento.forma || '';
+        var restFinEarly = saldoRestantePagamento(state, computed);
+        var quitadoPay = restFinEarly <= 0.009;
         setSelectValue(dom.paymentMethod, forma, '');
         setInputValueUnlessFocused(dom.paymentDiscount, moneyFieldDisplay(state.pagamento.descontoGeral));
         setInputValueUnlessFocused(dom.paymentShipping, moneyFieldDisplay(state.pagamento.frete));
@@ -8159,8 +8162,11 @@
         if (dom.paymentFlowHeading) {
             dom.paymentFlowHeading.textContent = forma ? forma : '—';
         }
-        if (dom.paymentFlowArea) dom.paymentFlowArea.classList.toggle('hidden', !forma);
-        if (dom.paymentNoFormaHint) dom.paymentNoFormaHint.classList.toggle('hidden', !!forma);
+        /* Quitado: esconde o fluxo mesmo se ainda houver forma (ex.: apertou Trocar de novo).
+           Senao a loja via Confirmar cinza/"carregando" com "Tudo pago" na revisao. */
+        var fluxoAberto = !!forma && !quitadoPay;
+        if (dom.paymentFlowArea) dom.paymentFlowArea.classList.toggle('hidden', !fluxoAberto);
+        if (dom.paymentNoFormaHint) dom.paymentNoFormaHint.classList.toggle('hidden', !!fluxoAberto);
 
         dom.paymentModalCards.forEach(function (btn) {
             var v = btn.getAttribute('data-payment-modal-card');
@@ -8337,10 +8343,9 @@
 
         var total = totalNumberFromComputed(computed);
         var pagoAcum = sumValorLancamentos(state);
-        var restFin = saldoRestantePagamento(state, computed);
+        var restFin = restFinEarly;
         if (dom.paymentPaidAccum) dom.paymentPaidAccum.textContent = formatMoney(pagoAcum);
         if (dom.paymentRemainingTop) dom.paymentRemainingTop.textContent = formatMoney(restFin);
-        var quitadoPay = restFin <= 0.009;
         var fc = state.fiadoCobranca || {};
         if (dom.paymentRestanteHero) {
             dom.paymentRestanteHero.classList.toggle('pdv-pay-restante-hero--quitado', quitadoPay);
@@ -8474,8 +8479,9 @@
         var err = erroValidacaoPagamento(state, computed);
         var readyOutroAuto =
             !err && forma === 'Outro' && restFin > 0.009 && outroTranchePronta(state);
+        /* Quitado libera Confirmar mesmo se ainda houver forma (Trocar de novo / fluxo aberto). */
         var readyConfirm =
-            (!err && !forma && larr.length && restFin <= 0.009) || readyOutroAuto;
+            (!err && larr.length && restFin <= 0.009) || readyOutroAuto;
         var cnp = dom.confirmSaleNoPrint;
         var cp = dom.confirmSalePrint;
         if (cnp) {

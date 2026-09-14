@@ -1286,6 +1286,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🩹 Bug #20 — Notinha/tabela A/B errada (`PDV-TABELA-PRINT-FORMA` · **teste v24.87** · 14/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Relato** | Geraldinho · Caixa Centro · 04/09 · v21.87 — «impressao da tabela de preço errada» · milho 47kg A=87 / B=92 · Nathan #24: crédito na notinha em dinheiro |
+| **Causa** | Grupo B sem formas no cadastro → Fiado/crédito e às vezes Dinheiro caíam no preço padrão 92; gravar/imprimir não reaplicava a forma |
+| **Fix** | B vazio = resto das formas · fallback mapa por forma · sync preço antes de gravar/cupom · cadastro preenche B ao salvar · servidor corrige se PDV mandar lista no Dinheiro · slim v6 sem grupos vazios |
+| **Prova** | `scripts/verify_bug20_tabela_preco_print_path.py` **17/17** |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 `/pdv/` · badge **v24.87** · milho 47kg · Dinheiro = **87** na notinha · Fiado/crédito = **92** |
+| **Loja** | **só** frase + senha · também fecha bug **#24** |
+
 ### 🩹 Bug #22 — PDV não finaliza normalmente (`PDV-FINAL-TIMEOUT-UI` · **teste v24.86** · 14/09)
 
 | Campo | Valor |

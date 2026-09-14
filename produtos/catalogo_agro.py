@@ -1882,6 +1882,9 @@ def listar_slim_rows_pdv() -> list[dict]:
                 modo = "grupos"
             else:
                 modo = "por_forma"
+        # Evita modo=grupos sem tabela A/B no slim (PDV trava no preço de lista / crédito).
+        if modo == "grupos" and not pg:
+            modo = "por_forma"
         row_slim: dict = {
             "id": pid,
             "nome": nome,
