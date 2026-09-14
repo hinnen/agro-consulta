@@ -1284,14 +1284,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ CHECKLIST ÚNICO — bugs vale #15+#16 · rechecagem 14/09 · **já Live (nada a subir)**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `PDV-VALE-SALDO-LIVE` (#15) | ✅ **Live v21.91+** (loja **v23.99**) | **NÃO** | path **22/22** · detalhe PIN **9973** **15/15** |
+| 2 | `PDV-VALE-USADO` (#16) | ✅ **Live v21.91+** (loja **v23.99**) | **NÃO** | path **37/37** · detalhe PIN **9973** (baixa PG + evento + bloqueio) |
+
+**Rechecagem 14/09:** crédito manual sobe saldo + API fiado · pagar com vale **baixa Postgres** · JS loja tem `aplicarSaldo` / `force` / `_t=` / `cliente_saldos` · **não** falta cherry.  
+**Você:** Ctrl+F5 PDV · (#15) Adicionar vale manual → número sobe · (#16) pagar só vale → número cai e F5 continua baixo.
+
+### ~~📦 PACOTE PRONTO — Vale #15 / #16~~ → **já Live** (checklist acima)
+
 ### ✅ Deploy loja — REPASSE-DIA-HERO (`deploy/prep-repasse-dia-hero` · **v23.99**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | ✅ **enviado / Live v23.99** — cherry **só** `REPASSE-DIA-HERO` (**não** merge `teste`) |
 | **Antes** | **Live v23.98** @ `6106b91` |
-| **Agora** | `producao` @ **`a43340a`** · Render (aguardar smoke) |
-| **Smoke** | healthz · JS «dia de verdade» · sem `totAuto - acum` |
+| **Agora** | `producao` @ **`a43340a`** · Render `dep-dair9fss728c73arap40` |
+| **Smoke** | healthz **200** · JS «dia de verdade» · sem `totAuto - acum` |
 | **Migrate** | **NÃO** |
 | **Pacotes** | `REPASSE-DIA-HERO` |
 | **Prova pré** | **22/22** · fundo **61/61** · pct-zero **20/20** · PIN **9973** |
@@ -2410,11 +2422,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `PDV-ENTREGA-TABELA-FORMA` | 🟢 **pronto para envio à produção** | **NÃO** |
-| 2 | `REPASSE-ZERO-OK` | 🟢 **pronto para envio à produção** | **NÃO** |
-| 3 | `PDV-VALE-SALDO-LIVE` | 🟢 **pronto para envio à produção** | **NÃO** |
-| 4 | `MP-POINT-FINAL-PIN` (bug #11) | 🟢 **pronto para envio à produção** | **NÃO** |
-| 5 | `PDV-VALE-USADO` (bug #16) | 🟢 **pronto para envio à produção** | **NÃO** |
+| 1 | `PDV-ENTREGA-TABELA-FORMA` | ✅ **Live v21.91** | **NÃO** |
+| 2 | `REPASSE-ZERO-OK` | ✅ **Live v21.91** | **NÃO** |
+| 3 | `PDV-VALE-SALDO-LIVE` | ✅ **Live v21.91** · rechecagem **14/09** OK | **NÃO** |
+| 4 | `MP-POINT-FINAL-PIN` (bug #11) | ✅ **Live v21.91** | **NÃO** |
+| 5 | `PDV-VALE-USADO` (bug #16) | ✅ **Live v21.91** · rechecagem **14/09** OK | **NÃO** |
 | 6 | `RH-PIN-GESTAO` | ✅ **Live v21.90** | **SIM** `base.0011` |
 
 **Live agora:** **v21.90**.
@@ -2439,28 +2451,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** |
 | **Você** | Ctrl+F5 PDV · débito Point · espera na máquina · Confirmar sem tela vermelha |
 
-### 📦 PACOTE PRONTO — Vale crédito no contador na hora (`PDV-VALE-SALDO-LIVE` · **v22.62** · 04/09)
+### ~~📦 PACOTE PRONTO — Vale crédito no contador (`PDV-VALE-SALDO-LIVE` #15)~~ → ✅ **Live v21.91+** · rechecagem tip
 
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Bug loja **#15**: ao **adicionar** vale, o número à direita do PDV ficava no cache |
-| **Causa** | Refresh do crédito **sem force** (reusava saldo velho) · resposta do crédito não ia pro contador |
-| **Fix** | Aplica `cliente` da API na hora · `force` + bust `_t=` · limpa cache após compra de vale |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_pdv_vale_saldo_live_path` **22/22** (PIN 9973 · crédito + estorno) · cli **54/54** · vale-usado **11/11** |
-| **Status** | 🟢 **pronto para envio à produção** |
-| **Você** | Ctrl+F5 PDV · cliente · **Adicionar vale** (manual) · número **Vale crédito** sobe na hora |
-
-### 📦 PACOTE PRONTO — Vale crédito baixa na venda (`PDV-VALE-USADO` · bug #16 · **v22.64** · 04/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Pagar com vale **desce o saldo** no cadastro (não era só tela) |
-| **Também** | Trava se passar do saldo · devolver na forma vale **devolve** · número à direita atualiza |
-| **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_vale_credito_venda_path.py` **VERIFY_OK 38/38** (fonte + payload + ORM + API PIN 9973 + healthz) |
-| **Status** | 🟢 **pronto para envio à produção** |
-| **Você** | Ctrl+F5 PDV · cliente com vale · pagar **só vale** · o número cai · F5: continua baixo |
+### ~~📦 PACOTE PRONTO — Vale crédito baixa na venda (`PDV-VALE-USADO` #16)~~ → ✅ **Live v21.91+** · rechecagem tip
 
 ### 📦 PACOTE PRONTO — Tabela % na entrega (`PDV-ENTREGA-TABELA-FORMA` · **v22.61** · 04/09)
 
