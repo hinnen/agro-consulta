@@ -201,6 +201,8 @@
     var pdvQuitadoIdleAtivo = false;
     /** Operador fechou o popup «Pode fechar» com Voltar ao pagamento. */
     var pdvFecharModalDismissed = false;
+    /** Confirmar em andamento (PIN/cupom) — não reabre o popup grande atrás. */
+    var pdvFecharModalHold = false;
     var isProcessingMpTranche = false;
 
     function releaseSaleProcessingLock() {
@@ -2173,7 +2175,13 @@
     function syncFecharVendaModalUi(quitadoPay) {
         if (!quitadoPay) {
             pdvFecharModalDismissed = false;
+            pdvFecharModalHold = false;
             closeFecharVendaModal(false);
+            if (dom.paymentReabrirFechar) dom.paymentReabrirFechar.classList.add('hidden');
+            return;
+        }
+        if (pdvFecharModalHold) {
+            if (isFecharVendaModalOpen()) closeFecharVendaModal(false);
             if (dom.paymentReabrirFechar) dom.paymentReabrirFechar.classList.add('hidden');
             return;
         }
@@ -2183,6 +2191,19 @@
             return;
         }
         openFecharVendaModal(false);
+    }
+
+    function ocultarFecharVendaParaConfirmar() {
+        pdvFecharModalHold = true;
+        pdvFecharModalDismissed = false;
+        closeFecharVendaModal(false);
+        if (dom.paymentReabrirFechar) dom.paymentReabrirFechar.classList.add('hidden');
+        clearQuitadoIdlePulse();
+    }
+
+    function restaurarFecharVendaAposCancelarConfirm() {
+        pdvFecharModalHold = false;
+        if (vendaQuitadaSemFechar()) openFecharVendaModal(true);
     }
 
     function applyQuitadoIdlePulseClass(on) {
@@ -9073,6 +9094,7 @@
         var eraCompraVale = isCompraValeCreditoAtiva();
         clearQuitadoIdlePulse();
         pdvFecharModalDismissed = false;
+        pdvFecharModalHold = false;
         closeFecharVendaModal(false);
         closePaymentFormaModal();
         hideMpPointWaitBar();
@@ -12461,7 +12483,7 @@
         }
         abrirModalNfceCpf(function (opts) {
             if (!opts) {
-                if (vendaQuitadaSemFechar()) openFecharVendaModal(true);
+                restaurarFecharVendaAposCancelarConfirm();
                 return;
             }
             State.setPagamentoField('nfceOpts', opts);
@@ -12811,7 +12833,7 @@
                     }
                     abrirModalEscolhaImpressao(function (escolha) {
                         if (!escolha) {
-                            if (vendaQuitadaSemFechar()) openFecharVendaModal(true);
+                            restaurarFecharVendaAposCancelarConfirm();
                             return;
                         }
                         prepararNfceComImpressao(escolha);
@@ -12847,7 +12869,10 @@
                     ? 'PIN para gravar a venda (máquina já cobrou)'
                     : 'PIN para confirmar a venda',
                 /* Bug #26: venda alinhada a 45s (antes 10s = PIN toda hora). Entrega paga = 120s. */
-                maxFrescoS: frescoEntrega ? 120 : 45
+                maxFrescoS: frescoEntrega ? 120 : 45,
+                onCancel: function () {
+                    restaurarFecharVendaAposCancelarConfirm();
+                }
             });
         } else {
             runConfirm();
@@ -13813,9 +13838,8 @@
      */
     function tryConfirmSale(withPrint) {
         syncOutroDetalhesFromDom();
-        /* Fecha popup «Pode fechar» — senão cupom/PIN/impressão ficam atrás (z-320). */
-        pdvFecharModalDismissed = false;
-        closeFecharVendaModal(false);
+        /* Some o popup grande — senão fica atrás do PIN/cupom e o render reabria. */
+        ocultarFecharVendaParaConfirmar();
         var st = State.getState();
         if (st.currentStep !== 'pagamento') {
             confirmSale(withPrint);
@@ -13830,6 +13854,7 @@
                         ? 'Valide o PIN do operador em “Outro”.'
                         : 'Descreva o pagamento em “Outro” e toque em Lançar ou Confirmar.'
                 );
+                restaurarFecharVendaAposCancelarConfirm();
                 return;
             }
             var inp = document.getElementById('pdv-pay-valor-tranche');
@@ -13839,6 +13864,7 @@
             var err = erroCommitTranche(st, comp, cur);
             if (err) {
                 showPdvAviso(err);
+                restaurarFecharVendaAposCancelarConfirm();
                 return;
             }
             State.addPagamentoLancamento(snapshotLancamentoFromState(st, cur));
