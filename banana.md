@@ -1286,6 +1286,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🩹 Bug #25 — Caixa abre com R$ 0,00 (`CAIXA-ABERTURA-MILHAR` · **teste v24.85** · 14/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Relato** | Renan · Caixa Centro · 07/09 · v23.45 — «de vez em quando abre dizendo 0,00» |
+| **Causa** | Cédulas grava `1.500,00` (pt-BR); o servidor fazia só `replace(",", ".")` → `1.500.00` → Decimal falhava → **R$ 0,00**. Campo vazio também virava 0 sem aviso. |
+| **Fix** | Parse com `_decimal_br_post` · vazio bloqueia (digite `0,00` se for zero) · JS igual |
+| **Prova** | `scripts/verify_caixa_abertura_milhar_path.py` **14/14** |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 · Abrir caixa · **Cédulas** com total ≥ R$ 1.000 · conferir «Valor de abertura: R$ …» certo · campo vazio não abre |
+| **Loja** | **só** frase + senha |
+
+
 ### ✨ Bug #19 — Descrição na baixa CP (`CP-BAIXA-DESC` · **teste v24.84** · 14/09)
 
 | Campo | Valor |
