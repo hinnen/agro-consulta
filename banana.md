@@ -1286,6 +1286,35 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ CHECKLIST ÚNICO — 14/09f · bugs #18–#26 · 🟢 pronto envio
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 18 | `NF-PIN-EXIGE-FIN` | 🟢 **pronto para envio à produção** | **NÃO** | **9/9** |
+| 19 | `CP-BAIXA-DESC` | 🟢 **pronto para envio à produção** | **NÃO** | **12/12** |
+| 20 | `PDV-TABELA-PRINT-FORMA` | 🟢 **pronto para envio à produção** | **NÃO** | **17/17** |
+| 21 | `PDV-CONFIRM-QUITADO-TROCAR` | 🟢 **pronto para envio à produção** | **NÃO** | **31/31** |
+| 22 | `PDV-FINAL-TIMEOUT-UI` | 🟢 **pronto para envio à produção** | **NÃO** | **13/13** |
+| 23 | Zap PDV lento | ✅ **já Live** (WA-PONTE-*) | — | — |
+| 24 | `PDV-PRECO-FORMA-DIN` | 🟢 **pronto para envio à produção** | **NÃO** | **15/15** (c/ #20) |
+| 25 | `CAIXA-ABERTURA-MILHAR` | 🟢 **pronto para envio à produção** | **NÃO** | **14/14** |
+| 26 | `PIN-VENDA-45S` | 🟢 **pronto para envio à produção** | **NÃO** | **17/17** · pin-na-ação **79/79** · PIN **9973** |
+
+**Você (local):** Ctrl+F5 · badge tip · smoke: NF sem a pagar bloqueia · CP baixa c/ descrição · milho Dinheiro 87 / crédito 92 · Trocar c/ quitado Confirma · PAGAR 1440 · abrir caixa milhar · PIN pós-venda pede de novo.  
+**Loja:** **só** frase + senha · **#23 não sobe** (já Live).
+
+### 📦 PACOTE PRONTO — Lote bugs #18–#26 (exceto #23) · tip pós-commit · 14/09
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | NF exige financeiro no PIN · descrição opcional na baixa CP · preço/notinha A/B + Dinheiro · Confirmar após Trocar · timeout 55s + PAGAR 1440 · caixa milhar BR · PIN venda 45s e **nova venda pede PIN** |
+| **Provas** | scripts `verify_nf_pin_*` · `verify_cp_baixa_desc_*` · `verify_bug20_*` · `verify_pdv_outro_baixa_*` · `verify_pdv_final_timeout_*` · `verify_bug24_*` · `verify_caixa_abertura_*` · `verify_bug26_*` · `verify_pdv_pin_na_acao` |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | checklist 14/09f acima |
+| **Loja** | **só** frase + senha |
+| **Risco** | Médio — PDV preço/PIN + NF + caixa abertura; #19 só UI CP |
+
 ### ✅ CHECKLIST ÚNICO — 14/09e · `PDV-ENTREGAS-MODAL-BODY` · 🟢 pronto envio
 
 | # | Pacote | Status | Migrate | Prova |
@@ -1295,7 +1324,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 **Você (local):** Ctrl+F5 `/pdv/` · Pagamento → **ENTREGAS** → lista abre · Fechar/Esc.  
 **Loja:** **só** frase + senha.
 
-### 📦 PACOTE PRONTO — Entregas não trava no Pagamento (`PDV-ENTREGAS-MODAL-BODY` · **v25.18** · 14/09)
+### 📦 PACOTE PRONTO — Entregas não trava no Pagamento (`PDV-ENTREGAS-MODAL-BODY` · **v25.19** · 14/09)
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1304,7 +1333,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Dialogs fora do painel + move pro `body` ao abrir |
 | **Prova** | `scripts/verify_pdv_entregas_modal_body_path.py` **37/37** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** · tip **v25.18** |
+| **Status** | 🟢 **pronto para envio à produção** · tip **v25.19** |
 | **Você** | Ctrl+F5 `/pdv/` · Pagamento → ENTREGAS |
 | **Loja** | **só** frase + senha |
 | **Risco** | Baixo — só UI overlay |
@@ -1351,103 +1380,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Loja** | **só** frase + senha |
 | **Risco** | Baixo — só UI/orçamento · não mexe venda/caixa |
 
-### 🩹 Bug #24 + #20 — Preço crédito no Dinheiro / notinha A/B (`PDV-PRECO-FORMA-DIN` · **teste v24.93** · 14/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Relato** | Nathan #24 · Caixa Centro · 05/09 · v21.89 — milho no crédito na notinha em dinheiro · Geraldinho #20 · tabela A/B errada |
-| **Prova loja** | Vendas 7075/7076 milho grande · Dinheiro · unitário **92** (certo = **87**) |
-| **Causa** | A/B com `formas_b` vazio + carrinho sem tabela → preço de lista (crédito) no Dinheiro |
-| **Fix** | B vazio = resto das formas · sync A/B antes de gravar/cupom · servidor corrige unitário=lista · slim v6 |
-| **Prova** | `verify_bug24_preco_forma_dinheiro.py` **15/15** · `verify_bug20_tabela_preco_print_path.py` **17/17** |
-| **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 `/pdv/` · badge **v24.93** · milho 47kg · Dinheiro → **87** · crédito/fiado → **92** |
-| **Loja** | **só** frase + senha |
-
-### 🩹 Bug #26 — PIN pedindo toda hora (`PIN-VENDA-45S` · **teste tip** · 14/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Relato** | Luana · Caixa Centro · 08/09 · v23.45 — «pedindo pin toda hora» · `/pdv/?agro_dual=1` |
-| **Causa** | Fechar venda só aceitava PIN fresco por **10s** (`PIN-VENDA-10S`) — cada Confirmar após montar o carrinho pedia de novo |
-| **Fix** | TTL venda = **45s** (igual Pedir/chat) · entrega paga **120s** · **após gravar a venda**, zera fresco (`expirar_operador_pdv_fresco`) — **próxima venda pede PIN de novo** (Renan 14/09) |
-| **Prova** | `scripts/verify_bug26_pin_venda_ttl_path.py` · `verify_pdv_pin_na_acao.py` |
-| **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 `/pdv/` · digita PIN → fecha 1 venda → **próxima** deve pedir PIN de novo · dentro da **mesma** confirmação (~45s) não pede no meio |
-| **Loja** | **só** frase + senha |
-
-### 🩹 Bug #21 — Confirmar cinza após Trocar (PDV-CONFIRM-QUITADO-TROCAR · **teste v24.89** · 14/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Relato** | Luana · Caixa Centro · 05/09 · v21.89 — «botao na tela de ajuda de troca fica carregando» · print: pagamento Dinheiro quitado + ? aberto + **Trocar T** |
-| **Causa** | Com total já pago, se apertava **Trocar** de novo a forma voltava e o Confirmar exigia !forma → botão cinza/morto (parecia «carregando») |
-| **Fix** | Quitado libera Confirmar mesmo com forma aberta · esconde o fluxo quando já pagou · validação confere lançamentos mesmo com forma setada |
-| **Prova** | scripts/verify_pdv_outro_baixa_path.py **31/31** |
-| **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 /pdv/ · badge **v24.89** · Dinheiro → Enter (lança) → **Trocar** de novo → Confirmar (Enter/F9) deve liberar |
-| **Loja** | **só** frase + senha |
-
-### 🩹 Bug #20 — Notinha/tabela A/B errada (`PDV-TABELA-PRINT-FORMA` · **teste v24.92** · 14/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Relato** | Geraldinho · Caixa Centro · 04/09 · v21.87 — «impressao da tabela de preço errada» · milho 47kg A=87 / B=92 · Nathan #24: crédito na notinha em dinheiro |
-| **Causa** | Grupo B sem formas no cadastro → Fiado/crédito e às vezes Dinheiro caíam no preço padrão 92; gravar/imprimir não reaplicava a forma |
-| **Fix** | B vazio = resto das formas · fallback mapa por forma · sync preço antes de gravar/cupom · cadastro preenche B ao salvar · servidor corrige se PDV mandar lista no Dinheiro · slim v6 sem grupos vazios |
-| **Prova** | `scripts/verify_bug20_tabela_preco_print_path.py` **17/17** |
-| **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 `/pdv/` · badge **v24.92** · milho 47kg · Dinheiro = **87** na notinha · Fiado/crédito = **92** |
-| **Loja** | **só** frase + senha · também fecha bug **#24** |
-
-### 🩹 Bug #22 — PDV não finaliza normalmente (`PDV-FINAL-TIMEOUT-UI` · **teste v24.86** · 14/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Relato** | Nathan · Caixa Centro · 05/09 · v21.89 — «não esta finalizando normalmente» · print carrinho vazio · **PAGAR** espremido |
-| **Causa** | (1) No mesmo dia o Zap deixava o PDV lento (#23 já ✅) — Confirmar sem prazo ficava na barra. (2) CSS compacto só ≤1400×800 — **1440×900** do Centro usava layout grande e esmagava PAGAR/ENTREGA |
-| **Fix** | Timeout **55s** no gravar (rascunho+ERP / draft Point) + aviso claro · media **1500×920** + painel laranja sem cortar botões |
-| **Prova** | `scripts/verify_pdv_final_timeout_ui_path.py` **13/13** |
-| **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 `/pdv/` · badge **v24.86** · tela ~1440×900: PAGAR legível · Confirmar: se travar, em ~55s solta com aviso (não fica eternamente «finalizando») |
-| **Loja** | **só** frase + senha · Zap leve já Live |
-
-### 🩹 Bug #25 — Caixa abre com R$ 0,00 (`CAIXA-ABERTURA-MILHAR` · **teste v24.85** · 14/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Relato** | Renan · Caixa Centro · 07/09 · v23.45 — «de vez em quando abre dizendo 0,00» |
-| **Causa** | Cédulas grava `1.500,00` (pt-BR); o servidor fazia só `replace(",", ".")` → `1.500.00` → Decimal falhava → **R$ 0,00**. Campo vazio também virava 0 sem aviso. |
-| **Fix** | Parse com `_decimal_br_post` · vazio bloqueia (digite `0,00` se for zero) · JS igual |
-| **Prova** | `scripts/verify_caixa_abertura_milhar_path.py` **14/14** |
-| **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 · Abrir caixa · **Cédulas** com total ≥ R$ 1.000 · conferir «Valor de abertura: R$ …» certo · campo vazio não abre |
-| **Loja** | **só** frase + senha |
-
-
-### ✨ Bug #19 — Descrição na baixa CP (`CP-BAIXA-DESC` · **teste v24.84** · 14/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Relato** | Renan · Caixa Centro · 03/09 · v21.86 — «ADICIONAR DESCRIÇÃO PARA BAIXAS PAGOS» · print **em branco** |
-| **Tipo** | **Melhoria** (não bug de quebra) |
-| **Feito** | Campo opcional **Descrição do pagamento** na baixa total e parcial · grava em **observações** do título (`Agro baixa …` / `Agro parc. … — …`) |
-| **Arquivos** | `lancamentos_contas_pagar_teste.html` · `lancamentos_financeiros.html` · `views.py` · `lancamentos_financeiro_pg_write_util.py` · `mongo_financeiro_util.py` |
-| **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 Contas a pagar · badge **v24.84** · pagar título → digitar descrição → confirmar → abrir detalhe e ver em Observações |
-| **Loja** | **só** frase + senha |
-
-### 🩹 Bug #18 — Entrada NF finalizada sem financeiro (`NF-PIN-EXIGE-FIN` · **teste v24.82** · 14/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Relato** | Renan · Caixa Centro · 03/09 · v21.86 — nota **Concluída** sem lançar a pagar |
-| **Causa** | Etapa 7 aceitava «pular» se ninguém mexia no financeiro; PIN gravava mesmo assim |
-| **Fix** | UI + API exigem «Salvar + a pagar» (ou **Bonificação**); sync religa CP antes de barrar; bucket Concluída = PIN **+** financeiro |
-| **Prova** | `verify_nf_pin_exige_fin_path.py` **9/9** · `verify_nf_aguarda_produto_path.py` **13/13** |
-| **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 `/entrada-nota/` · badge **v24.82** · estoque ok → etapa 8 sem a pagar = **bloqueia** · Salvar + a pagar → PIN libera · chip **Financeiro** nas notas antigas com PIN sem título |
-| **Loja** | **só** frase + senha |
+### ~~🩹 Bugs #18–#26~~ → **CHECKLIST 14/09f + PACOTE PRONTO** (acima)
 
 ### ✅ CHECKLIST ÚNICO — bugs vale #15+#16 · rechecagem 14/09 · **já Live (nada a subir)**
 
