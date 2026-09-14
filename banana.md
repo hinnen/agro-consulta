@@ -1286,24 +1286,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### ✅ CHECKLIST ÚNICO — 14/09g · `REL-MV-LOJA` · 🟢 pronto envio
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | `REL-MV-LOJA` | 🟢 **pronto envio** · tip **v25.22** | **NÃO** | path **107/107** · unit **10/10** · PIN **9973** |
-
-**Você (local):** Ctrl+F5 · Relatórios → Mais vendidos / Vendas por grupo → Loja Centro+Vila / Centro / Vila.  
-**Loja:** **só** frase + senha (não sobe sozinho).
-
-### 📦 PACOTE PRONTO — Relatórios filtro loja (`REL-MV-LOJA` · **v25.22**) · 14/09
+### ✅ Deploy loja — `REL-MV-LOJA` · **Live v25.22** · 14/09
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Filtro **Loja** (Centro+Vila / Só Centro / Só Vila) em **Mais vendidos** e **Vendas por grupo** · Excel e tela · legado depósito vazio conta no Centro · devolvida fora |
-| **Prova** | `scripts/verify_rel_mv_loja_path.py` **VERIFY_OK 107/107** · `tests_relatorios_central_filtros` **10/10** · PIN **9973**=Renan |
+| **Status** | ✅ **enviado / Live v25.22** — cherry **só** `REL-MV-LOJA` (**não** merge `teste` · **não** PREP 14/09) |
+| **Antes** | Live **v23.99** @ `a43340a` |
+| **Agora** | `producao` @ `d747d63` · Render `dep-dak4eass728c739fdujg` |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio** · no `teste` · aguarda frase+senha |
-| **Você** | Ctrl+F5 · troca Loja e confere ranking/grupo |
+| **Prova** | path **107/107** · unit **10/10** · PIN **9973** |
+| **Rollback** | tag `rollback/pre-rel-mv-loja-v23.99` · branch `producao-backup-pre-v2522-rel-mv-loja-20260914` · `docs/ROLLBACK-REL-MV-LOJA.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 · badge **v25.22** · Relatórios → Mais vendidos / Grupo → Loja |
+
+### ✅ CHECKLIST ÚNICO — 14/09g · `REL-MV-LOJA` · ✅ Live v25.22
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `REL-MV-LOJA` | ✅ **Live v25.22** | **NÃO** | **107/107** · PIN **9973** |
+
+### 📦 PACOTE — Relatórios filtro loja (`REL-MV-LOJA` · **Live v25.22**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Filtro Loja (Centro+Vila / Centro / Vila) em Mais vendidos + Vendas por grupo |
+| **Status** | ✅ **enviado / Live** |
+| **Rollback** | `docs/ROLLBACK-REL-MV-LOJA.md` |
 
 ### 🚀 PREP deploy loja — Checklist 14/09 (`deploy/prep-checklist-1409` · **v25.20**) · aguarda senha
 
