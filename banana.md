@@ -1286,6 +1286,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — Pedir loja bip preso (`PDV-PEDIR-BIP-STUCK` · **v25.24** · 14/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Sintoma** | Vila apita a cada ~1 min sem badge em Pedir / Entregas / Chat |
+| **Causa** | Após enviar pedido, badge zerava e o timer do bip **não**; se o poll falhasse depois, ficava bipando |
+| **O quê** | `applyResumoCounts` sempre alinha badge+bip · defesa se UI sem alerta · poll/lista manda `?loja=` |
+| **Onde** | `pdv_pedir_loja.js` · `views_pdv_transf_loja.py` · verify Pedir loja |
+| **Migrate** | **NÃO** |
+| **Prova** | verify **75/75** |
+| **Status** | 🟢 **teste v25.24** · validar no PC · loja **só** frase+senha |
+| **Você** | Ctrl+F5 PDV Vila · se ainda apitar sem número no Pedir, avisar |
+
 ### ✅ Deploy loja — `REL-MV-LOJA` · **Live v25.22** · 14/09
 
 | Campo | Valor |
