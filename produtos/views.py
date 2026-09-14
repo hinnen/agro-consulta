@@ -28715,6 +28715,22 @@ def _persistir_venda_agro(
         normalizar_deposito,
         resolver_deposito_request,
     )
+    from produtos.precos_forma_pagamento_util import (
+        corrigir_precos_itens_lista_sem_forma,
+        forma_principal_para_preco,
+    )
+
+    # Bug #24: milho/grupos A/B — se o PDV mandou preço de lista no Dinheiro, corrige antes da campanha.
+    try:
+        pag_pre = data.get("pagamentos") if isinstance(data.get("pagamentos"), list) else None
+        forma_preco = forma_principal_para_preco(forma, pag_pre)
+        if forma_preco and isinstance(raw_itens, list):
+            n_corr = corrigir_precos_itens_lista_sem_forma(raw_itens, forma_preco)
+            if n_corr:
+                data = dict(data)
+                data["itens"] = raw_itens
+    except Exception:
+        pass
 
     sessao = exigir_sessao_caixa_para_venda(request, data)
 
@@ -30652,8 +30668,8 @@ def api_pdv_catalogo_slim(request):
     from produtos import catalogo_agro as cat_agro
 
     hoje = timezone.localdate().isoformat()
-    # v5: + custo (Compras cards); v4 tinha fornecedor.
-    ck = f"pdv_catalogo_slim_v5:{hoje}"
+    # v6: não manda modo=grupos sem precos_grupos (bug #24 milho/lista).
+    ck = f"pdv_catalogo_slim_v6:{hoje}"
     hit = cache.get(ck)
     if isinstance(hit, dict) and isinstance(hit.get("produtos"), list) and hit["produtos"]:
         return JsonResponse(hit)

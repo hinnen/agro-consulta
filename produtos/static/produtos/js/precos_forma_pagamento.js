@@ -88,6 +88,11 @@
     function modoItem(item) {
         var m = String((item && item.precos_modo) || '').toLowerCase().replace(/-/g, '_').replace(/\s+/g, '_');
         if (m === 'grupos' || m === 'grupo' || m === '2_grupos' || m === 'dois_grupos' || m === 'ab' || m === 'a_b') {
+            /* Modo grupos sem dados A/B: cai para por_forma se houver mapa legado. */
+            if (!gruposTemDados(precosGruposDoItem(item))) {
+                var map0 = item && item.precos_por_forma;
+                if (map0 && typeof map0 === 'object' && Object.keys(map0).length) return 'por_forma';
+            }
             return 'grupos';
         }
         /* Modo explícito «por forma» manda — não voltar para A/B por lixo antigo no JSON. */
@@ -97,6 +102,36 @@
         /* Cache slim antigo / rascunho sem modo: se tem tabela A/B, trata como grupos. */
         if (gruposTemDados(precosGruposDoItem(item))) return 'grupos';
         return 'por_forma';
+    }
+
+    var FORMAS_PADRAO_PDV = [
+        'Dinheiro',
+        'PIX',
+        'Cartão de débito',
+        'Cartão de crédito',
+        'Cartão de crédito parcelado',
+        'Fiado',
+        'Vale crédito',
+        'Cashback',
+        'Outro'
+    ];
+
+    /** Se tem preço B e formas_b vazio → resto das formas (fora do A) cai no B. */
+    function formasGrupoBEfetivas(g) {
+        if (!g || typeof g !== 'object') return [];
+        var fb = Array.isArray(g.formas_b) ? g.formas_b : [];
+        if (fb.length) return fb;
+        if (!(toNum(g.preco_b, 0) > 0)) return [];
+        var setA = {};
+        (Array.isArray(g.formas_a) ? g.formas_a : []).forEach(function (f) {
+            var k = formaCanonKey(f);
+            if (k) setA[k] = true;
+        });
+        var out = [];
+        FORMAS_PADRAO_PDV.forEach(function (f) {
+            if (!setA[formaCanonKey(f)]) out.push(f);
+        });
+        return out;
     }
 
     function precosGruposDoItem(item) {
@@ -120,6 +155,24 @@
         return { a: a > 0 ? a : null, b: b > 0 ? b : null };
     }
 
+    function precoViaMapaPorForma(item, formaTrim, padrao) {
+        var map = item && item.precos_por_forma;
+        if (!map || typeof map !== 'object') return padrao;
+        if (Object.prototype.hasOwnProperty.call(map, formaTrim)) {
+            var pf = toNum(map[formaTrim], 0);
+            if (pf > 0) return pf;
+        }
+        var want = formaCanonKey(formaTrim);
+        var keys = Object.keys(map);
+        for (var ki = 0; ki < keys.length; ki++) {
+            if (formaCanonKey(keys[ki]) === want) {
+                var pf2 = toNum(map[keys[ki]], 0);
+                if (pf2 > 0) return pf2;
+            }
+        }
+        return padrao;
+    }
+
     function precoBaseForma(item, forma) {
         if (!item) return 0;
         var padrao = toNum(item.preco_padrao != null ? item.preco_padrao : item.preco, 0);
@@ -132,34 +185,21 @@
 
         if (modoItem(item) === 'grupos') {
             var g = precosGruposDoItem(item);
-            if (!g || typeof g !== 'object') return padrao;
-            if (formaNaLista(g.formas_a, formaTrim)) {
-                var pa = toNum(g.preco_a, 0);
-                if (pa > 0) return pa;
+            if (g && typeof g === 'object') {
+                if (formaNaLista(g.formas_a, formaTrim)) {
+                    var pa = toNum(g.preco_a, 0);
+                    if (pa > 0) return pa;
+                }
+                if (formaNaLista(formasGrupoBEfetivas(g), formaTrim)) {
+                    var pb = toNum(g.preco_b, 0);
+                    if (pb > 0) return pb;
+                }
             }
-            if (formaNaLista(g.formas_b, formaTrim)) {
-                var pb = toNum(g.preco_b, 0);
-                if (pb > 0) return pb;
-            }
-            return padrao;
+            /* Legado: mapa por forma ainda no produto (cadastro com B vazio). */
+            return precoViaMapaPorForma(item, formaTrim, padrao);
         }
 
-        var map = item.precos_por_forma;
-        if (!map || typeof map !== 'object') return padrao;
-        if (Object.prototype.hasOwnProperty.call(map, formaTrim)) {
-            var pf = toNum(map[formaTrim], 0);
-            if (pf > 0) return pf;
-        }
-        /* Chaves no map podem ser canônicas; tenta match flexível. */
-        var want = formaCanonKey(formaTrim);
-        var keys = Object.keys(map);
-        for (var ki = 0; ki < keys.length; ki++) {
-            if (formaCanonKey(keys[ki]) === want) {
-                var pf2 = toNum(map[keys[ki]], 0);
-                if (pf2 > 0) return pf2;
-            }
-        }
-        return padrao;
+        return precoViaMapaPorForma(item, formaTrim, padrao);
     }
 
     var _tabelasCache = { tabelas: [], resolucoes: {}, loaded: false };
@@ -204,7 +244,7 @@
         if (modoItem(item) === 'grupos') {
             var g = precosGruposDoItem(item);
             if (!g) return false;
-            return formaNaLista(g.formas_a, forma) || formaNaLista(g.formas_b, forma);
+            return formaNaLista(g.formas_a, forma) || formaNaLista(formasGrupoBEfetivas(g), forma);
         }
         var map = item.precos_por_forma;
         if (!map || typeof map !== 'object') return false;
@@ -381,6 +421,7 @@
         carregarTabelasGlobais: carregarTabelasGlobais,
         tabelaParaForma: tabelaParaForma,
         modoItem: modoItem,
+        formasGrupoBEfetivas: formasGrupoBEfetivas,
         copiarPrecosPorFormaDoProduto: copiarPrecosPorFormaDoProduto,
         aplicarPrecoBaseNoItem: aplicarPrecoBaseNoItem,
         aplicarPromocaoDepoisForma: aplicarPromocaoDepoisForma,
