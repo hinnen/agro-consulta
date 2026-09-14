@@ -1286,6 +1286,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ CHECKLIST ÚNICO — 14/09d · `PDV-FECHAR-CTA-QUITADO` · 🟢 pronto envio
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `PDV-FECHAR-CTA-QUITADO` | 🟢 **pronto para envio à produção** | **NÃO** | **23/23** |
+
+**Você (local):** Ctrl+F5 `/pdv/` · venda pequena → pagar → centro vira **Pode fechar a venda** · F12 pergunta · esperar ~45s pisca.  
+**Loja:** **só** frase + senha.
+
+### 📦 PACOTE PRONTO — Fechar venda óbvio (`PDV-FECHAR-CTA-QUITADO` · **v25.02** · 14/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Relato** | Operador esquece de fechar com «Tudo pago» — meio da tela ainda puxava «Escolher forma» |
+| **O quê** | (1) Quitado: some forma/F3 do meio · bloco **Pode fechar a venda** + Enter/F9. (2) F12/Voltar/stepper pergunta *venda paga sem fechar*. (3) Idle ~45s pisca Confirmar (não fecha sozinho). |
+| **Onde** | `pdv_wizard.js` · `step_pagamento.html` · `pdv_wizard.html` |
+| **Prova** | `scripts/verify_pdv_fechar_cta_quitado_path.py` **23/23** · anti-reg Enter/F9 **41/41** · Outro/bug21 **31/31** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** · tip **v25.02** |
+| **Você** | Ctrl+F5 `/pdv/` · badge tip · pagar tudo → centro fecha · F12 avisa |
+| **Loja** | **só** frase + senha |
+| **Risco** | Baixo — só UX confirmação · não mexe gravação/caixa |
+
 ### ✅ CHECKLIST ÚNICO — 14/09c · `PDV-ORC-IMPRIMIR` · 🟢 pronto envio
 
 | # | Pacote | Status | Migrate | Prova |

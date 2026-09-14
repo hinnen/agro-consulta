@@ -65,6 +65,20 @@
         <p class="text-[11px] font-bold text-slate-600 sm:text-xs">F3 — forma · teclas 1–9 no painel</p>
       </div>
 
+      <div id="pdv-payment-fechar-hero" class="pdv-payment-fechar-hero hidden mx-2 mb-2 flex min-h-0 flex-1 flex-col items-center justify-center gap-3 rounded-[1rem] border-2 border-emerald-400 bg-gradient-to-br from-emerald-50 via-white to-teal-50 px-3 py-4 shadow-md sm:mx-2.5 sm:mb-2.5 sm:gap-4 sm:rounded-[1.15rem] sm:px-5 sm:py-6" aria-live="polite">
+        <p class="pdv-payment-fechar-kicker">Pronto</p>
+        <h3 class="pdv-payment-fechar-title">Pode fechar a venda</h3>
+        <p class="pdv-payment-fechar-sub">Escolha com ou sem cupom — a venda ainda não foi gravada</p>
+        <div class="pdv-payment-fechar-actions flex w-full max-w-xl flex-col gap-2 sm:flex-row sm:gap-3">
+          <button type="button" id="pdv-fechar-hero-no-print" class="pdv-action-btn pdv-fechar-hero-btn pdv-fechar-hero-btn--no-print flex-1 border-2 border-emerald-500 bg-white font-black text-emerald-900 shadow-sm hover:bg-emerald-50">
+            Sem impressão <kbd class="ml-1 rounded border border-emerald-300 bg-emerald-50 px-1.5 font-mono text-[0.7em]">Enter</kbd>
+          </button>
+          <button type="button" id="pdv-fechar-hero-print" class="pdv-action-btn pdv-fechar-hero-btn pdv-fechar-hero-btn--print flex-1 bg-emerald-600 font-black text-white shadow-md shadow-emerald-600/25 hover:bg-emerald-700">
+            Com impressão <kbd class="ml-1 rounded bg-emerald-500 px-1.5 font-mono text-[0.7em] text-white">F9</kbd>
+          </button>
+        </div>
+      </div>
+
       <div id="pdv-payment-flow-area" class="hidden mx-2 mb-2 min-h-0 flex-1 flex-col overflow-hidden rounded-[1rem] border-2 border-emerald-300/90 bg-gradient-to-br from-emerald-50/90 via-white to-slate-50 shadow-sm sm:mx-2.5 sm:mb-2.5 sm:rounded-[1.15rem]">
         <div class="flex shrink-0 flex-wrap items-start justify-between gap-2 border-b-2 border-emerald-200/80 bg-gradient-to-r from-emerald-600 to-teal-600 px-2.5 py-2 text-white sm:px-3 sm:py-2">
           <div class="min-w-0">
