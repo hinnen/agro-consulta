@@ -2939,31 +2939,54 @@
   .pdv-payment-fechar-modal {
     text-align: center;
   }
+  .pdv-payment-fechar-modal-panel {
+    max-width: min(56rem, 96vw) !important;
+    padding: clamp(1.25rem, 2.5vw, 2.25rem) clamp(1.25rem, 3vw, 2.5rem) !important;
+    gap: clamp(1rem, 2vw, 1.5rem) !important;
+  }
   .pdv-payment-fechar-kicker {
-    font-size: 0.8rem;
+    font-size: clamp(0.85rem, 1.4vw, 1rem);
     font-weight: 900;
     letter-spacing: 0.22em;
     text-transform: uppercase;
     color: #059669;
   }
   .pdv-payment-fechar-title {
-    font-size: clamp(1.65rem, 3.6vw, 2.35rem);
+    font-size: clamp(1.85rem, 4.2vw, 2.75rem);
     font-weight: 900;
-    line-height: 1.1;
+    line-height: 1.08;
     color: #064e3b;
   }
   .pdv-payment-fechar-sub {
-    max-width: 32rem;
-    font-size: clamp(0.85rem, 1.5vw, 1.05rem);
+    max-width: 36rem;
+    font-size: clamp(0.95rem, 1.7vw, 1.2rem);
     font-weight: 700;
     line-height: 1.35;
     color: #475569;
   }
+  .pdv-payment-fechar-actions {
+    gap: clamp(0.85rem, 1.8vw, 1.15rem) !important;
+  }
   .pdv-fechar-hero-btn {
-    min-height: 3.5rem;
-    font-size: clamp(1rem, 2vw, 1.2rem);
-    border-radius: 0.95rem;
-    padding: 0.95rem 1.1rem;
+    min-height: clamp(4.5rem, 9vh, 6.25rem);
+    font-size: clamp(1.25rem, 2.6vw, 1.75rem);
+    border-radius: 1.1rem;
+    padding: 1.15rem 1.35rem;
+    border-width: 3px;
+    line-height: 1.15;
+  }
+  .pdv-fechar-hero-btn kbd {
+    font-size: 0.72em !important;
+    padding: 0.2em 0.45em !important;
+    margin-left: 0.4em !important;
+  }
+  #pdv-payment-fechar-voltar {
+    min-height: clamp(3.75rem, 7vh, 5rem);
+    font-size: clamp(1.05rem, 2.1vw, 1.35rem);
+    border-radius: 1rem;
+    border-width: 3px;
+    padding: 1rem 1.25rem;
+    letter-spacing: 0.06em;
   }
   body.pdv-quitado-idle-pulse #pdv-confirm-sale-no-print,
   body.pdv-quitado-idle-pulse #pdv-confirm-sale-print,
