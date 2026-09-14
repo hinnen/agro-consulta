@@ -195,10 +195,11 @@ def _entrada_nfe_extra_aviso_operacional(extra: Any) -> str:
 def entrada_nfe_fila_bucket_lista(d: dict[str, Any]) -> str:
     """
     Estágio exclusivo para filtros da lista (Entrada NF-e), alinhado ao fluxo:
-    Nota aberta → Estoque → Financeiro → Finalizar (PIN etapa 6) → Concluída; Descartada à parte.
+    Nota aberta → Estoque → Financeiro → Finalizar (PIN etapa 8) → Concluída; Descartada à parte.
 
-    **Concluída** só com finalização do assistente (``extra.aprovacao_wizard_em`` / PIN etapa 6),
-    alinhado ao chip verde do passo 6. Estoque + financeiro sem PIN ficam em **finalizar**.
+    **Concluída** = PIN do assistente **e** financeiro ok (ou bonificação).
+    PIN sem conta a pagar (compras) fica em **financeiro** — bug #18 / loja v21.86.
+    Estoque + financeiro sem PIN ficam em **finalizar**.
     Status ``encerrada`` (legado, antes só por botão) fica em fila própria, não em Concluída.
     **Aguardando produto** (fornecedor deve) fica em Em andamento mesmo com PIN.
     """
@@ -207,6 +208,7 @@ def entrada_nfe_fila_bucket_lista(d: dict[str, Any]) -> str:
     ex = d.get("extra") if isinstance(d.get("extra"), dict) else {}
     wizard_ok = _entrada_nfe_extra_wizard_data_ok(ex)
     final_ok = _entrada_nfe_extra_finalizacao_ok(ex)
+    bonif = _entrada_nfe_tipo_entrada_extra(ex) == "bonificacao"
     if eff == ENTRADA_NFE_STATUS_DESCARTADA:
         return "descartada"
     if eff == ENTRADA_NFE_STATUS_ENCERRADA:
@@ -215,13 +217,16 @@ def entrada_nfe_fila_bucket_lista(d: dict[str, Any]) -> str:
     if _entrada_nfe_extra_aguardando_produto(ex):
         return "aguardando_produto"
     if final_ok:
+        # Compras: sem a pagar não some em Concluída (legado PIN solto).
+        if not fin_ok and not bonif:
+            return "financeiro"
         return "concluida"
     if eff == ENTRADA_NFE_STATUS_COM_PENDENCIAS:
         return "nota_aberta"
     if eff == ENTRADA_NFE_STATUS_PRONTA:
         return "estoque" if wizard_ok else "nota_aberta"
     if eff == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO:
-        if not fin_ok:
+        if not fin_ok and not bonif:
             return "financeiro"
         return "finalizar"
     return "nota_aberta"
@@ -1767,6 +1772,14 @@ def rascunho_entrada_valido_para_aprovacao_wizard(doc: dict[str, Any]) -> tuple[
     dep = str(cab.get("deposito_entrada") or "").strip()
     if dep not in ("centro", "vila"):
         return False, "Depósito inválido ou ausente no rascunho."
+    extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+    # Bug #18: PIN sem «Salvar + a pagar» marcava Concluída sem título no CP.
+    if _entrada_nfe_tipo_entrada_extra(extra) != "bonificacao" and not entrada_nfe_extra_financeiro_ok(extra):
+        return (
+            False,
+            "Gere a conta a pagar na etapa 7 · Financeiro («Salvar + a pagar») antes de finalizar. "
+            "Se for bonificação, marque Bonificação na nota.",
+        )
     return True, ""
 
 
