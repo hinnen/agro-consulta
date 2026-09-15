@@ -2445,7 +2445,7 @@
     }
 
     function deveCobrarMpPointNaTranche(state, trancheValor) {
-        if (!pagamentoUi.mpPointEnabled || !String(urls.apiPdvMpPointCriar || '').trim()) return false;
+        if (!mpPointApiPronta()) return false;
         if (!(trancheValor > 0.009)) return false;
         var forma = String(state.pagamento.forma || '').trim();
         var mid = String(state.pagamento.maquinaId || '').trim();
@@ -2599,8 +2599,29 @@
             showPdvAviso(err);
             return;
         }
+        var formaT = String(st.pagamento.forma || '').trim();
+        var midT = String(st.pagamento.maquinaId || '').trim();
+        if (maquinaIncompativelComForma(midT, formaT)) {
+            showPdvAviso(
+                'Essa máquina não combina com ' +
+                    (formaT === 'PIX' ? 'Pix' : 'cartão') +
+                    '. Escolha de novo a máquina (automática de Pix ≠ automática de cartão).',
+                { tone: 'error' }
+            );
+            State.setPagamentoPatch({ maquinaId: '', maquinaNome: '', mpBalcaoModo: '' });
+            openMaquinasDialog();
+            return;
+        }
         if (deveCobrarMpPointNaTranche(st, cur)) {
             cobrarMpPointNaTranche(st, comp, cur);
+            return;
+        }
+        /* Nunca «lançar» PIX/cartão Point auto sem mandar à maquininha (bug loja: fechava sem acionar). */
+        if (isMaquinaMpPointAuto(midT, formaT)) {
+            showMpPointAviso(
+                'Mercado Pago automático precisa cobrar na maquininha. Abra o Caixa Gaveta/Vila neste PC ou troque a máquina.',
+                { tone: 'error' }
+            );
             return;
         }
         State.addPagamentoLancamento(snapshotLancamentoFromState(st, cur));
@@ -2718,6 +2739,15 @@
             .join('');
     }
 
+    /** API Point disponível neste PDV (Centro e/ou Vila). */
+    function mpPointApiPronta() {
+        if (!String(urls.apiPdvMpPointCriar || '').trim()) return false;
+        if (pagamentoUi.mpPointEnabled) return true;
+        if (pagamentoUi.mpPointCentroEnabled) return true;
+        if (pagamentoUi.mpPointVilaEnabled) return true;
+        return false;
+    }
+
     function isMaquinaMpPointAuto(maquinaId, forma) {
         var mid = String(maquinaId || '').trim();
         var f = String(forma || '').trim();
@@ -2727,10 +2757,27 @@
                 : !!pagamentoUi.mpPointEnabled;
         var vilaOn = !!pagamentoUi.mpPointVilaEnabled;
         if (!centroOn && !vilaOn) return false;
+        /* Cartão auto ≠ Pix auto (ids diferentes). */
         if (centroOn && mid === 'mp_balcao' && f !== 'PIX') return true;
         if (centroOn && mid === 'pix_mp_qr' && f === 'PIX') return true;
         if (vilaOn && mid === 'mp_vila' && f !== 'PIX') return true;
         if (vilaOn && mid === 'pix_mp_vila' && f === 'PIX') return true;
+        return false;
+    }
+
+    /** Máquina de cartão auto não serve para PIX (e vice-versa). */
+    function maquinaIncompativelComForma(maquinaId, forma) {
+        var mid = String(maquinaId || '').trim();
+        var f = String(forma || '').trim();
+        if (!mid || !f) return false;
+        if (f === 'PIX' && (mid === 'mp_balcao' || mid === 'mp_vila')) return true;
+        if (
+            f !== 'PIX' &&
+            requiresMaquina(f) &&
+            (mid === 'pix_mp_qr' || mid === 'pix_mp_vila')
+        ) {
+            return true;
+        }
         return false;
     }
 
@@ -3182,10 +3229,11 @@
     }
 
     function deveUsarMpPointNoFechar(state, computed) {
-        if (!pagamentoUi.mpPointEnabled || !String(urls.apiPdvMpPointCriar || '').trim()) return false;
+        if (!mpPointApiPronta()) return false;
         var arr = state.pagamento.lancamentos || [];
         if (arr.length !== 1) return false;
         var L = arr[0];
+        if (L && L.mpPointPago) return false;
         var mid = String(L.maquinaId || '').trim();
         var forma = String(L.forma || state.pagamento.forma || '').trim();
         if (!isMaquinaMpPointAuto(mid, forma)) return false;
@@ -3194,6 +3242,24 @@
         var vT = Math.round((total + Number.EPSILON) * 100) / 100;
         if (Math.abs(vL - vT) > 0.1) return false;
         return true;
+    }
+
+    /** Lançamento Point auto sem mpPointPago = não pode fechar venda «direto». */
+    function erroLancamentoPointAutoSemCobranca(state) {
+        var arr = (state && state.pagamento && state.pagamento.lancamentos) || [];
+        for (var i = 0; i < arr.length; i++) {
+            var L = arr[i];
+            if (!L || L.mpPointPago) continue;
+            var mid = String(L.maquinaId || '').trim();
+            var forma = String(L.forma || '').trim();
+            if (isMaquinaMpPointAuto(mid, forma) || String(L.mpBalcaoModo || '') === 'point') {
+                return (
+                    'Há Pix/cartão Mercado Pago automático sem cobrança na maquininha. ' +
+                    'Apague o lançamento e use «Cobrar na maquininha».'
+                );
+            }
+        }
+        return '';
     }
 
     function erroValidacaoPagamento(state, computed) {
@@ -3208,6 +3274,8 @@
         /* Ainda montando a 1ª forma (sem lançamento): não bloqueia — Confirmar fica off pelo readyConfirm. */
         if (forma && !arr.length) return '';
         if (!arr.length) return 'Escolha formas de pagamento até cobrir o total.';
+        var errPoint = erroLancamentoPointAutoSemCobranca(state);
+        if (errPoint) return errPoint;
         var total = totalNumberFromComputed(computed);
         var sum = sumValorLancamentos(state);
         if (sum + 0.009 < total) {
@@ -8499,6 +8567,11 @@
             if (el) el.classList.toggle('hidden', !yes);
         };
         var hasMaquina = !!(state.pagamento.maquinaId && String(state.pagamento.maquinaId).trim());
+        if (hasMaquina && maquinaIncompativelComForma(state.pagamento.maquinaId, forma)) {
+            State.setPagamentoPatch({ maquinaId: '', maquinaNome: '', mpBalcaoModo: '' });
+            state = State.getState();
+            hasMaquina = false;
+        }
         var mpPixAuto =
             hasMaquina && isMaquinaMpPointAuto(String(state.pagamento.maquinaId || '').trim(), 'PIX');
         var needMaquinaBar = requiresMaquina(forma);
@@ -12918,6 +12991,12 @@
             confirmSaleMercadoPagoPoint(!!withPrint);
             return;
         }
+        var errPointPulo = erroLancamentoPointAutoSemCobranca(state);
+        if (errPointPulo) {
+            showMpPointAviso(errPointPulo, { tone: 'error' });
+            restaurarFecharVendaAposCancelarConfirm();
+            return;
+        }
         isProcessingSale = true;
         setConfirmButtonsBusy(true);
         var printWin = pdvReservarJanelaCupomFallback(withPrint);
@@ -13135,8 +13214,8 @@
         withPrint = !!withPrint;
         opts = opts || {};
         if (isProcessingSale) return Promise.resolve();
-        if (!pagamentoUi.mpPointEnabled || !String(urls.apiPdvMpPointFinalizar || '').trim()) {
-            showMpPointAviso('Mercado Pago Point não está configurado no servidor.', { tone: 'error' });
+        if (!mpPointApiPronta() || !String(urls.apiPdvMpPointFinalizar || '').trim()) {
+            showMpPointAviso('Mercado Pago Point não está configurado neste caixa/PDV.', { tone: 'error' });
             return Promise.resolve();
         }
         var state = State.getState();
@@ -13323,8 +13402,8 @@
     function confirmSaleMercadoPagoPoint(withPrint) {
         withPrint = !!withPrint;
         if (isProcessingSale) return;
-        if (!pagamentoUi.mpPointEnabled || !String(urls.apiPdvMpPointCriar || '').trim()) {
-            showMpPointAviso('Mercado Pago Point não está configurado no servidor.', { tone: 'error' });
+        if (!mpPointApiPronta()) {
+            showMpPointAviso('Mercado Pago Point não está configurado neste caixa/PDV.', { tone: 'error' });
             return;
         }
         var state = State.getState();
