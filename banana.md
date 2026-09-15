@@ -1316,19 +1316,6 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 PDV · Pix → **Mercado Pago … (automático)** → **Cobrar na maquininha** (tem que acender) · não fecha no Enter sem isso |
 | **Risco** | Médio — trava caminho errado; Cielo/Renan/Sicredi iguais |
 
-### 📦 PACOTE PRONTO — Entrega: estoque/caixa no lançamento (`PDV-ENT-LOJA-LANC` · **v25.25** · 15/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Sintoma** | No lançamento, escolher sair da Vila (ou outra loja) não baixava estoque/caixa certos; depois em Entregas → Mudar Loja funcionava |
-| **Causa** | Venda forçava depósito do caixa do aparelho e ignorava loja de saída; fluxo “outra loja” misturava painel com pagar aqui |
-| **O quê** | Estoque = loja de saída no lançamento · caixa = loja de pagamento · só-entrega em outra loja + pagar aqui segue no PDV |
-| **Onde** | `pdv_wizard.js` · `views.py` (venda) · `caixa_util.py` |
-| **Migrate** | **NÃO** |
-| **Prova** | loja-saída **16/16** · mudar-loja **39/39** · PIN **9973** |
-| **Status** | 🟢 **teste v25.25** · validar no PC · loja **só** frase+senha |
-| **Você** | Ctrl+F5 PDV · Entrega → Só entrega Vila · pagar na loja · conferir estoque Vila |
-
 ### 📦 PACOTE PRONTO — Pedir loja bip preso (`PDV-PEDIR-BIP-STUCK` · **v25.24** · 14/09)
 
 | Campo | Valor |
