@@ -1286,7 +1286,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🩹 PACOTE PRONTO — Pix Sicoob 1 venda ≠ 4 (`PDV-VENDA-NAO-DUP` · **v25.29** · 15/09)
+### 🩹 PACOTE PRONTO — Pix Sicoob 1 venda ≠ 4 (`PDV-VENDA-NAO-DUP` · **v25.30** · 15/09)
 
 | Campo | Valor |
 | ----- | ----- |
