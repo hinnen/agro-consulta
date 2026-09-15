@@ -28696,6 +28696,15 @@ def _persistir_venda_agro(
     if err_pin_op:
         raise PinOperadorObrigatorioError(err_pin_op)
 
+    # Idempotência: mesmo client_request_id (retry Enter / timeout) → mesma venda.
+    client_req = str(
+        (data or {}).get("client_request_id") or (data or {}).get("idempotency_key") or ""
+    ).strip()[:96]
+    if client_req:
+        existente = VendaAgro.objects.filter(client_request_id=client_req).first()
+        if existente is not None:
+            return existente
+
     cliente = (data.get("cliente") or "").strip() or "CONSUMIDOR NÃO IDENTIFICADO..."
     cid = str(data.get("cliente_id") or data.get("ClienteID") or "").strip()
     agro_pk_raw = data.get("cliente_agro_pk")
@@ -28862,25 +28871,46 @@ def _persistir_venda_agro(
         pass
 
     with transaction.atomic():
-        v = VendaAgro.objects.create(
-            cliente_nome=cliente[:300],
-            cliente_id_erp=cid[:32],
-            cliente_documento=re.sub(r"\D", "", doc)[:20],
-            total=total.quantize(Decimal("0.01")),
-            frete=frete.quantize(Decimal("0.01")),
-            forma_pagamento=forma,
-            pagamentos_json=pagamentos_json or None,
-            fiado_cronograma_json=fiado_cron,
-            erp_sync_status=sync_st,
-            enviado_erp=bool(enviado_erp_com_sucesso),
-            erp_http_status=st,
-            erp_resposta=resp_json,
-            usuario_registro=user_label,
-            sessao_caixa=sessao,
-            estoque_baixa_agro_aplicada=False,
-            nfce_solicitada=nfce_solicitada,
-            deposito=dep_v,
-        )
+        if client_req:
+            existente_lock = (
+                VendaAgro.objects.select_for_update()
+                .filter(client_request_id=client_req)
+                .first()
+            )
+            if existente_lock is not None:
+                return existente_lock
+        sid = transaction.savepoint()
+        try:
+            v = VendaAgro.objects.create(
+                cliente_nome=cliente[:300],
+                cliente_id_erp=cid[:32],
+                cliente_documento=re.sub(r"\D", "", doc)[:20],
+                total=total.quantize(Decimal("0.01")),
+                frete=frete.quantize(Decimal("0.01")),
+                forma_pagamento=forma,
+                pagamentos_json=pagamentos_json or None,
+                fiado_cronograma_json=fiado_cron,
+                erp_sync_status=sync_st,
+                enviado_erp=bool(enviado_erp_com_sucesso),
+                erp_http_status=st,
+                erp_resposta=resp_json,
+                usuario_registro=user_label,
+                sessao_caixa=sessao,
+                estoque_baixa_agro_aplicada=False,
+                nfce_solicitada=nfce_solicitada,
+                deposito=dep_v,
+                client_request_id=client_req or None,
+            )
+            transaction.savepoint_commit(sid)
+        except Exception as exc_create:
+            from django.db import IntegrityError
+
+            if client_req and isinstance(exc_create, IntegrityError):
+                transaction.savepoint_rollback(sid)
+                existente2 = VendaAgro.objects.filter(client_request_id=client_req).first()
+                if existente2 is not None:
+                    return existente2
+            raise
         for it in itens_payload:
             ItemVendaAgro.objects.create(venda=v, **it)
 
@@ -29542,8 +29572,7 @@ def api_enviar_pedido_erp(request):
         data = json.loads(request.body)
     except Exception:
         return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
-    data.pop("client_request_id", None)
-    data.pop("idempotency_key", None)
+    # Mantém client_request_id / idempotency_key — _persistir_venda_agro usa p/ não duplicar.
     raw_itens_cb = data.get("itens", [])
     if not isinstance(raw_itens_cb, list):
         raw_itens_cb = []

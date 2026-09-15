@@ -525,6 +525,13 @@ class VendaAgro(models.Model):
         db_index=True,
         help_text="Fechar caixa: nota fiado conferida na caixinha (não pede de novo neste turno).",
     )
+    client_request_id = models.CharField(
+        max_length=96,
+        null=True,
+        blank=True,
+        unique=True,
+        help_text="Chave do PDV (UUID) — mesmo Confirmar/Enter de novo não cria outra venda.",
+    )
 
     class Meta:
         ordering = ["-criado_em"]
