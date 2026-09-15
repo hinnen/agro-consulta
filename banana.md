@@ -744,6 +744,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Chamar + histórico (`WA-CHAMAR-HIST` · 01/09):** busca no topo da lista (cadastro + agenda Zap + conversa). Nome salvo no celular vem da ponte (`WA-AGENDA-NOME`). **Enviar** não pode travar em «Processando» (guard PDV). Clique abre o chat, como o Zap Web. **Passar p/ Centro ou Vila** = transfere o atendimento, avisa o cliente e cai na fila da outra loja. **Anteriores** = ~40 msgs / 7 dias. Teto 20 conversas novas/dia. Só celular 1-a-1. **Apagar conversa** = só no Agro. **Apagar msg** (`WA-MSG-DEL` · 03/09) = × na bolha enviada → some no Zap do cliente também. Migrate **`0122`**. Fora da loja.
 - **Operação PC:** sessão salva em `whatsapp_atendimento/auth/` — desligar/reiniciar **não** pede QR de novo, salvo logout do Zap. De noite: PC off = bot parado (ninguém atende até ligar de manhã).
 - **01/09 decisão:** ponte **neste PC** (Renan, 01/09) · `iniciar.bat` na Inicializar do Windows · se a janela cair, religa em 5s · failover automático **adiado**.
+- **15/09 Renan:** **tirou** auto-start — removido atalho `Agro WhatsApp Ponte.lnk` da Inicializar · script `desinstalar_inicio_windows.bat` · pra religar: `instalar_inicio_windows.bat`.
 - **Usabilidade (`WA-UX-AVISO` · 01/09):** **Apagar** conversa · som/aviso no PDV · ícone vermelho **Off** se a ponte cair · foto/áudio no chat · nome do **cadastro** pelo telefone. Migrate **`0114`**.
 - **Ligar sem câmera (`WA-PAIR-CODE` · 01/09):** código de 8 dígitos (igual WhatsApp Web) — celular: Aparelhos conectados → Vincular com número. QR continua como opção. Migrate **`0115`**. **Trocar Zap (`WA-TROCAR` · 03/09):** botão desliga a sessão neste PC → novo QR/código. Migrate **`0119`**.
 - **Celular (`WA-CEL` · 02/09):** Menu = **dois botões** (computador Z · celular Y). Bot: desligar flag grava de verdade; aviso fora do horário tem interruptor próprio. **Separar Centro/Vila** dá para desligar no Bot → Lojas. Fora da loja.
@@ -1285,6 +1286,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 🔧 PC Renan — WhatsApp sem auto-start (`iniciar.bat`) · 15/09
+
+| Campo | Valor |
+| ----- | ----- |
+| **Pedido** | Desativar `iniciar.bat` / ponte Zap abrindo sozinha |
+| **Feito** | Removido atalho **Agro WhatsApp Ponte.lnk** da Inicializar do Windows |
+| **Script** | `whatsapp_atendimento/desinstalar_inicio_windows.bat` (repete se precisar) · religar = `instalar_inicio_windows.bat` |
+| **Loja** | **Não** sobe — só PC local |
 
 ### ✅ Deploy loja — Checklist 15/09 · **Live v25.33** · 15/09
 
