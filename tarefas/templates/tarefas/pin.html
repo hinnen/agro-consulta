@@ -1,0 +1,53 @@
+{% extends "tarefas/base.html" %}
+{% block title %}PIN — Tarefas{% endblock %}
+{% block body %}
+<div class="tf-top">
+  <div>
+    <p class="tf-kicker">GM Agro</p>
+    <h1 class="tf-title">Tarefas</h1>
+  </div>
+  <div class="tf-ops">
+    <a class="tf-btn" href="{% url 'vendas_lojas_hub' %}">Início</a>
+  </div>
+</div>
+<p class="tf-who">Digite o PIN — o nome fica em tudo que você fizer.</p>
+{% if erro %}<div class="tf-err">{{ erro }}</div>{% endif %}
+<div style="background:#fff;border:2px solid var(--line);border-radius:1.25rem;padding:1.25rem;">
+  <label class="tf-lab" for="pin">PIN</label>
+  <input class="tf-field" type="password" id="pin" name="pin" inputmode="numeric" maxlength="8"
+    placeholder="••••" enterkeyhint="go" autocomplete="one-time-code"
+    style="text-align:center;font-size:2rem;letter-spacing:0.35em;font-weight:900;min-height:4rem;">
+  <button type="button" class="tf-btn tf-btn-primary" id="btnEntrar" style="width:100%;min-height:3.4rem;font-size:1rem;margin-top:0.35rem;">Entrar</button>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  const pin = document.getElementById("pin");
+  const btn = document.getElementById("btnEntrar");
+  async function entrar() {
+    const fd = new FormData();
+    fd.append("pin", pin.value || "");
+    btn.disabled = true;
+    try {
+      const res = await fetch("{% url 'tarefas_pin' %}", {
+        method: "POST",
+        body: fd,
+        headers: { "X-CSRFToken": window.tfCsrf, "X-Requested-With": "XMLHttpRequest" },
+      });
+      const j = await res.json().catch(() => ({}));
+      if (res.ok && j.ok) {
+        location.href = j.next || "{% url 'tarefas_lista' %}";
+        return;
+      }
+      alert(j.erro || "PIN errado");
+    } finally {
+      btn.disabled = false;
+    }
+  }
+  btn.addEventListener("click", entrar);
+  pin.addEventListener("keydown", (e) => { if (e.key === "Enter") entrar(); });
+  pin.focus();
+})();
+</script>
+{% endblock %}

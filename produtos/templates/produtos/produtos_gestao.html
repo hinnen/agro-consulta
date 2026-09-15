@@ -138,15 +138,15 @@
     </div>
     <div class="flex-1 overflow-y-auto p-4 space-y-3">
       <input type="hidden" id="ed-id" />
-      <p class="text-xs font-bold text-slate-800"><span class="text-red-600 font-black">*</span> Somente os campos com asterisco são obrigatórios para salvar ou enviar ao ERP.</p>
+      <p class="text-xs font-bold text-slate-800"><span class="text-red-600 font-black">*</span> Somente os campos com asterisco são obrigatórios para salvar.</p>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Nome <span class="text-red-600 font-black">*</span></label><input id="ed-nome" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
-      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Marca <span class="text-red-600 font-black">*</span></label><input id="ed-marca" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
-      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Categoria <span class="text-red-600 font-black">*</span></label><input id="ed-cat" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
-      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Fornecedor (texto)</label><input id="ed-forn" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
-      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Unidade</label><input id="ed-un" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Marca <span class="text-red-600 font-black">*</span></label><div class="flex gap-1 relative"><input id="ed-marca" autocomplete="off" placeholder="Buscar..." class="flex-1 min-h-[44px] rounded-xl border-2 border-slate-200 px-3 font-semibold" /><button type="button" id="ed-marca-mais" class="w-11 h-11 shrink-0 rounded-xl border-2 border-slate-200 bg-slate-100 text-lg font-black" title="Nova marca">+</button><div id="ed-marca-res" class="hidden absolute top-full left-0 right-12 z-20 max-h-40 overflow-y-auto rounded-b-xl border border-slate-200 bg-white shadow-xl [scrollbar-width:thin]"></div></div></div>
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Categoria <span class="text-red-600 font-black">*</span></label><div class="flex gap-1 relative"><input id="ed-cat" autocomplete="off" placeholder="Buscar..." class="flex-1 min-h-[44px] rounded-xl border-2 border-slate-200 px-3 font-semibold" /><button type="button" id="ed-cat-mais" class="w-11 h-11 shrink-0 rounded-xl border-2 border-slate-200 bg-slate-100 text-lg font-black" title="Nova categoria">+</button><div id="ed-cat-res" class="hidden absolute top-full left-0 right-12 z-20 max-h-40 overflow-y-auto rounded-b-xl border border-slate-200 bg-white shadow-xl [scrollbar-width:thin]"></div></div></div>
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Fornecedor</label><div class="flex gap-1 relative"><input id="ed-forn" autocomplete="off" placeholder="Buscar..." class="flex-1 min-h-[44px] rounded-xl border-2 border-slate-200 px-3 font-semibold" /><button type="button" id="ed-forn-mais" class="w-11 h-11 shrink-0 rounded-xl border-2 border-slate-200 bg-slate-100 text-lg font-black" title="Novo fornecedor">+</button><div id="ed-forn-res" class="hidden absolute top-full left-0 right-12 z-20 max-h-40 overflow-y-auto rounded-b-xl border border-slate-200 bg-white shadow-xl [scrollbar-width:thin]"></div></div></div>
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Unidade</label><div class="flex gap-1 relative"><input id="ed-un" autocomplete="off" placeholder="Buscar..." class="flex-1 min-h-[44px] rounded-xl border-2 border-slate-200 px-3 font-semibold" /><button type="button" id="ed-un-mais" class="w-11 h-11 shrink-0 rounded-xl border-2 border-slate-200 bg-slate-100 text-lg font-black" title="Nova unidade">+</button><div id="ed-un-res" class="hidden absolute top-full left-0 right-12 z-20 max-h-40 overflow-y-auto rounded-b-xl border border-slate-200 bg-white shadow-xl [scrollbar-width:thin]"></div></div></div>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Código GM / NFe</label><input id="ed-codigo-nfe" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-mono font-bold" maxlength="64" autocomplete="off" /></div>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Código de barras <span class="text-red-600 font-black">*</span></label><input id="ed-cb" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-mono font-bold" maxlength="80" inputmode="numeric" autocomplete="off" /></div>
-      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Subcategoria</label><input id="ed-sub" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" maxlength="200" /></div>
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Subcategoria</label><div class="flex gap-1 relative"><input id="ed-sub" autocomplete="off" placeholder="Buscar..." class="flex-1 min-h-[44px] rounded-xl border-2 border-slate-200 px-3 font-semibold" maxlength="200" /><button type="button" id="ed-sub-mais" class="w-11 h-11 shrink-0 rounded-xl border-2 border-slate-200 bg-slate-100 text-lg font-black" title="Nova subcategoria">+</button><div id="ed-sub-res" class="hidden absolute top-full left-0 right-12 z-20 max-h-40 overflow-y-auto rounded-b-xl border border-slate-200 bg-white shadow-xl [scrollbar-width:thin]"></div></div></div>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Subcategoria 2</label><input id="ed-sub2" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" maxlength="200" /></div>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Subcategoria 3</label><input id="ed-sub3" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" maxlength="200" /></div>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Subcategoria 4</label><input id="ed-sub4" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" maxlength="200" /></div>
@@ -156,15 +156,17 @@
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Cashback na venda (%)</label><input id="ed-cashback" inputmode="decimal" class="min-h-[44px] w-full rounded-xl border-2 border-rose-200 px-3 font-semibold" placeholder="1 — vazio = padrão do sistema" title="Percentual sobre o valor do item. 0 = sem cashback. Vazio = padrão (1%)." /></div>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Status exibição</label>
         <select id="ed-ativo" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-bold">
-          <option value="">Seguir ERP</option>
+          <option value="">Seguir catálogo</option>
           <option value="1">Ativo</option>
           <option value="0">Inativo</option>
         </select>
       </div>
-      <p class="text-xs text-slate-500 font-medium leading-snug"><strong>Salvar no Agro</strong> grava overlay local (PDV e buscas). <strong>Enviar ao ERP</strong> replica no ERP legado (API Produtos/Salvar). Nos demais campos, em branco + salvar remove override no Agro.</p>
+      <p class="text-xs text-slate-500 font-medium leading-snug"><strong>Salvar no Agro</strong> grava overlay local (PDV e buscas).{% if cadastro_produto_erp_sync_habilitado %} <strong>Enviar ao ERP</strong> replica no ERP legado (API Produtos/Salvar).{% else %} Sincronização com a API do ERP está desligada.{% endif %} Nos demais campos, em branco + salvar remove override no Agro.</p>
       <div class="flex flex-wrap gap-2 pt-2">
         <button type="button" id="ed-salvar" class="flex-1 min-w-[9rem] min-h-[48px] rounded-xl bg-blue-600 text-white font-black uppercase border-2 border-blue-700 hover:bg-blue-700">Salvar no Agro</button>
+        {% if cadastro_produto_erp_sync_habilitado %}
         <button type="button" id="ed-sync-erp" class="flex-1 min-w-[9rem] min-h-[48px] rounded-xl bg-amber-600 text-white font-black uppercase border-2 border-amber-700 hover:bg-amber-700" title="Produtos/Salvar no ERP legado">Enviar ao ERP</button>
+        {% endif %}
         <button type="button" id="ed-cancelar" class="min-h-[48px] px-4 rounded-xl border-2 border-slate-200 bg-white font-black uppercase text-slate-700">Cancelar</button>
       </div>
     </div>
@@ -178,19 +180,22 @@
         <li>Lista espelhada do ERP com saldos <strong>Centro</strong> e <strong>Vila Elias</strong> (camada Agro).</li>
         <li><strong>Filtrar</strong> aplica status, marca, categoria e fornecedor; a busca instantânea refaz a lista.</li>
         <li><strong>Estoque</strong> na tabela é o total C+V; use <strong>Ajustar</strong> para saldo absoluto por loja.</li>
-        <li><strong>Editar</strong> grava só no Agro; use <strong>Enviar ao ERP</strong> para replicar no ERP legado. <strong>Ver</strong> abre cadastro ERP em nova aba.</li>
+        <li><strong>Editar</strong> grava só no Agro (SisVale).{% if cadastro_produto_erp_sync_habilitado %} Use <strong>Enviar ao ERP</strong> para replicar no ERP legado.{% endif %} <strong>Ver</strong> abre cadastro em nova aba.</li>
         <li><kbd class="text-[10px] px-1 rounded border bg-slate-100 font-mono">F3</kbd> foca a busca.</li>
       </ul>
     </div>
   </details>
 
   {% include "produtos/_atalho_voltar_pdv.html" %}
+  <script src="{% static 'produtos/js/agro_picklist.js' %}?v=1"></script>
   <script>
 (function () {
   var URL_LISTA = "{% url 'api_produtos_gestao_lista' %}";
   var URL_FAC = "{% url 'api_produtos_gestao_facetas' %}";
+  var URL_FACETA_NOVA = "{% url 'api_produtos_cadastro_faceta_nova' %}";
   var URL_AJ = "{% url 'api_produtos_gestao_ajuste_estoque' %}";
   var URL_OV = "{% url 'api_produtos_gestao_overlay_salvar' %}";
+  var ERP_SYNC_HABILITADO = {% if cadastro_produto_erp_sync_habilitado %}true{% else %}false{% endif %};
   var URL_CAD_ERP_PROD_TMPL = "{% url 'produtos_cadastro_erp_produto' produto_id='__AGRO_PH__' %}";
   function urlCadastroErpProduto(pid) {
     return URL_CAD_ERP_PROD_TMPL.replace('__AGRO_PH__', encodeURIComponent(String(pid)));
@@ -266,6 +271,11 @@
     if (!t) { banEl.classList.add('hidden'); banEl.textContent = ''; return; }
     banEl.textContent = t;
     banEl.classList.remove('hidden');
+    if (typeof window.gmSspinAbrirSeErroPin === 'function') {
+      try {
+        window.gmSspinAbrirSeErroPin(t, function () {}, { titulo: 'Identifique-se com o PIN' });
+      } catch (ePinBan) {}
+    }
   }
 
   function paramsLista() {
@@ -552,9 +562,12 @@
     });
   }
 
+  var facetasCarregadas = false;
   function fillFacetSelects() {
+    if (facetasCarregadas) return;
+    facetasCarregadas = true;
     fetch(URL_FAC, { credentials: 'same-origin' }).then(function (r) { return jsonOuErroHumano(r); }).then(function (j) {
-      if (!j.ok) return;
+      if (!j.ok) { facetasCarregadas = false; return; }
       function fill(sel, arr, allLabel) {
         var cur = sel.value;
         sel.innerHTML = '<option value="">' + allLabel + '</option>';
@@ -569,7 +582,23 @@
       fill(fMarca, j.marcas, 'Todas');
       fill(fCat, j.categorias, 'Todas');
       fill(fForn, j.fornecedores, 'Todos');
-    });
+      if (window.AgroPickList) {
+        window.AgroPickList.mergeFacetas(j);
+        wireGestaoPicks();
+      }
+    }).catch(function () { facetasCarregadas = false; });
+  }
+
+  var gestaoPicksWired = false;
+  function wireGestaoPicks() {
+    if (!window.AgroPickList || gestaoPicksWired) return;
+    gestaoPicksWired = true;
+    var cfg = { urlNova: URL_FACETA_NOVA, csrf: csrf() };
+    window.AgroPickList.wire(Object.assign({ input: 'ed-marca', box: 'ed-marca-res', plusBtn: 'ed-marca-mais', tipo: 'marca', tituloNovo: 'Nova marca' }, cfg));
+    window.AgroPickList.wire(Object.assign({ input: 'ed-cat', box: 'ed-cat-res', plusBtn: 'ed-cat-mais', tipo: 'categoria', tituloNovo: 'Nova categoria' }, cfg));
+    window.AgroPickList.wire(Object.assign({ input: 'ed-forn', box: 'ed-forn-res', plusBtn: 'ed-forn-mais', tipo: 'fornecedor', tituloNovo: 'Novo fornecedor' }, cfg));
+    window.AgroPickList.wire(Object.assign({ input: 'ed-un', box: 'ed-un-res', plusBtn: 'ed-un-mais', tipo: 'unidade', tituloNovo: 'Nova unidade' }, cfg));
+    window.AgroPickList.wire(Object.assign({ input: 'ed-sub', box: 'ed-sub-res', plusBtn: 'ed-sub-mais', tipo: 'subcategoria', tituloNovo: 'Nova subcategoria' }, cfg));
   }
 
   function abrirDrawer(p) {
@@ -585,6 +614,17 @@
     document.getElementById('ed-sub2').value = p.subcategoria_2 || '';
     document.getElementById('ed-sub3').value = p.subcategoria_3 || '';
     document.getElementById('ed-sub4').value = p.subcategoria_4 || '';
+    if (window.AgroPickList) {
+      wireGestaoPicks();
+      ['ed-marca', 'ed-cat', 'ed-forn', 'ed-un', 'ed-sub'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) {
+          window.AgroPickList.markCommitted(el, el.value);
+          var key = el.dataset.agroPick;
+          if (key) window.AgroPickList.appendFacet(key, el.value);
+        }
+      });
+    }
     document.getElementById('ed-desc').value = p.descricao || '';
     document.getElementById('ed-custo').value = p.preco_custo != null ? String(p.preco_custo).replace('.', ',') : '';
     document.getElementById('ed-preco').value = p.preco_venda != null ? String(p.preco_venda).replace('.', ',') : '';
@@ -605,7 +645,9 @@
     drawer.setAttribute('aria-hidden', 'true');
   }
   document.getElementById('gm-drawer-x').addEventListener('click', fecharDrawer);
-  drawerBack.addEventListener('click', fecharDrawer);
+  drawerBack.addEventListener('click', function () {
+    /* Fundo nao fecha — so X / FECHAR / Esc */
+  });
   document.getElementById('ed-cancelar').addEventListener('click', fecharDrawer);
   function gmDrawerMontarBody() {
     var id = document.getElementById('ed-id').value;
@@ -634,6 +676,7 @@
     return body;
   }
   function gmDrawerSalvar(syncErp) {
+    syncErp = !!syncErp && ERP_SYNC_HABILITADO;
     var bSal = document.getElementById('ed-salvar');
     var bErp = document.getElementById('ed-sync-erp');
     if (syncErp) {
@@ -665,6 +708,18 @@
       showBan('Preencha a Categoria (obrigatório).');
       return;
     }
+    if (window.AgroPickList) {
+      var errPick =
+        window.AgroPickList.assertField('ed-marca', 'marcas', 'Marca', true) ||
+        window.AgroPickList.assertField('ed-cat', 'categorias', 'Categoria', true) ||
+        window.AgroPickList.assertField('ed-forn', 'fornecedores', 'Fornecedor', false) ||
+        window.AgroPickList.assertField('ed-un', 'unidades', 'Unidade', false) ||
+        window.AgroPickList.assertField('ed-sub', 'subcategorias', 'Subcategoria', false);
+      if (errPick) {
+        showBan(errPick);
+        return;
+      }
+    }
     if (!gvEd('ed-cb')) {
       showBan('Preencha o Código de barras (obrigatório).');
       return;
@@ -690,7 +745,9 @@
       if (!j.ok) throw new Error(j.erro || 'erro');
       fecharDrawer();
       if (j.aviso && String(j.aviso).trim()) showBan(String(j.aviso).trim());
-      else if (!syncErp && j.somente_agro) showBan('Salvo no Agro. Use «Enviar ao ERP» para replicar no ERP legado.');
+      else if (!syncErp && j.somente_agro) {
+        showBan(ERP_SYNC_HABILITADO ? 'Salvo no Agro. Use «Enviar ao ERP» para replicar no ERP legado.' : 'Salvo no SisVale.');
+      }
       aplicarLinhaAtualizada(j.produto);
     }).catch(function (e) { showBan(e.message || 'Falha ao salvar'); })
     .finally(function () {
@@ -699,7 +756,10 @@
     });
   }
   document.getElementById('ed-salvar').addEventListener('click', function () { gmDrawerSalvar(false); });
-  document.getElementById('ed-sync-erp').addEventListener('click', function () { gmDrawerSalvar(true); });
+  var edSyncErp = document.getElementById('ed-sync-erp');
+  if (edSyncErp && ERP_SYNC_HABILITADO) {
+    edSyncErp.addEventListener('click', function () { gmDrawerSalvar(true); });
+  }
 
   document.addEventListener('keydown', function (e) {
     if (e.key === 'F3') { e.preventDefault(); qEl.focus(); qEl.select(); }
@@ -712,9 +772,68 @@
     });
   }
 
-  fillFacetSelects();
+  var PDV_PATCH_QUEUE_KEY = 'agro_pdv_catalog_patch_queue_v1';
+
+  function gmAplicarPatchSaldoPdv(patch) {
+    if (!patch || patch.id == null) return false;
+    var pid = String(patch.id);
+    var touched = false;
+    for (var i = 0; i < ultimos.length; i++) {
+      if (String(ultimos[i].id) !== pid) continue;
+      var p = ultimos[i];
+      if (patch.saldo_centro != null) {
+        p.saldo_centro = patch.saldo_centro;
+        touched = true;
+      }
+      if (patch.saldo_vila != null) {
+        p.saldo_vila = patch.saldo_vila;
+        touched = true;
+      }
+      if (touched) {
+        var sc = Number(p.saldo_centro);
+        var sv = Number(p.saldo_vila);
+        if (isFinite(sc) && isFinite(sv)) p.saldo_total = sc + sv;
+        else if (patch.saldo_total != null) p.saldo_total = patch.saldo_total;
+      }
+      break;
+    }
+    if (!touched) return false;
+    renderLista(ultimos);
+    return true;
+  }
+
+  function gmConsumirFilaPatchPdv() {
+    try {
+      var raw = localStorage.getItem(PDV_PATCH_QUEUE_KEY);
+      if (!raw) return;
+      var q = JSON.parse(raw);
+      if (!q || !Array.isArray(q.items) || !q.items.length) return;
+      var applied = false;
+      q.items.forEach(function (it) {
+        var patch = (it && it.patch) ? it.patch : it;
+        if (gmAplicarPatchSaldoPdv(patch)) applied = true;
+      });
+      if (applied) {
+        try { localStorage.removeItem(PDV_PATCH_QUEUE_KEY); } catch (_e) {}
+      }
+    } catch (_e2) {}
+  }
+
+  window.addEventListener('storage', function (ev) {
+    if (ev.key === PDV_PATCH_QUEUE_KEY) gmConsumirFilaPatchPdv();
+  });
+  gmConsumirFilaPatchPdv();
+
+  var gmAdvDetails = document.querySelector('.gm-adv');
+  if (gmAdvDetails) {
+    gmAdvDetails.addEventListener('toggle', function () {
+      if (gmAdvDetails.open) fillFacetSelects();
+    });
+  }
+
   carregar();
 })();
   </script>
+{% include "produtos/_screensaver_pin.html" %}
 </body>
 </html>

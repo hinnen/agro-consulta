@@ -22,16 +22,23 @@ from estoque.models import (
     OrigemAjusteEstoque,
     PedidoTransferencia,
 )
-from integracoes.venda_erp_mongo import VendaERPMongoClient
 from atualizar_medias import calcular
 import json
 
 _cached_mongo_client = None
 def get_mongo_client():
+    """
+    Cliente Mongo legado do módulo estoque.
+    Respeita ``obter_conexao_mongo`` (kill switch + circuit) — nunca abre URI morta.
+    """
     global _cached_mongo_client
-    if _cached_mongo_client is None:
-        _cached_mongo_client = VendaERPMongoClient()
-    return _cached_mongo_client
+    from produtos.views import obter_conexao_mongo
+
+    client, db = obter_conexao_mongo()
+    if client is None or db is None:
+        raise RuntimeError("Mongo ERP indisponível (desligado ou circuit open)")
+    _cached_mongo_client = client
+    return client
 
 
 def consulta_produtos(request):
@@ -97,7 +104,7 @@ def _rotulo_usuario_pin(pin):
     if not pin or pin == "1234":
         return ""
     perfil = (
-        PerfilUsuario.objects.filter(senha_rapida=pin)
+        PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True)
         .select_related("user")
         .first()
     )
@@ -138,7 +145,7 @@ def _historico_transferencia(
         pass
 
 
-def _transferir_vila_para_centro_exec(
+def _transferir_entre_depositos_exec(
     request,
     pin,
     produto_id,
@@ -146,16 +153,27 @@ def _transferir_vila_para_centro_exec(
     nome_produto,
     codigo_interno,
     obs_extra,
+    origem="vila",
+    destino="centro",
     registrar_historico=True,
     invalidar_cache=True,
+    pular_validacao_pin=False,
+    usuario_label_override="",
 ):
     """
-    Executa uma transferência Vila→Centro (Agro). Retorna dict com ok/erro e códigos HTTP sugeridos.
+    Transferência entre depósitos Agro (Vila ↔ Centro).
+    ``origem`` / ``destino``: ``vila`` ou ``centro``.
     """
-    if pin == "1234":
-        return {"ok": False, "erro": "Senha padrão (1234) bloqueada. Troque seu PIN.", "status": 403}
-    if not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
-        return {"ok": False, "erro": "PIN incorreto.", "status": 403}
+    if not pular_validacao_pin:
+        if pin == "1234":
+            return {"ok": False, "erro": "Senha padrão (1234) bloqueada. Troque seu PIN.", "status": 403}
+        if not PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).exists():
+            return {"ok": False, "erro": "PIN incorreto.", "status": 403}
+
+    origem = (origem or "vila").strip().lower()
+    destino = (destino or "centro").strip().lower()
+    if origem not in ("vila", "centro") or destino not in ("vila", "centro") or origem == destino:
+        return {"ok": False, "erro": "Direção inválida.", "status": 400}
 
     produto_id = (produto_id or "").strip()[:100]
     if not produto_id:
@@ -177,6 +195,8 @@ def _transferir_vila_para_centro_exec(
     ped_row = PedidoTransferencia.objects.filter(produto_externo_id=produto_id).first()
     lote_ref = ped_row.lote_uuid if ped_row else None
 
+    from produtos.agro_fonte_config import agro_estoque_operacional_sem_mongo_erp
+    from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
     from produtos.views import (
         _empresa_loja_padrao_agro_estoque,
         _invalidar_caches_apos_ajuste_pin,
@@ -185,35 +205,43 @@ def _transferir_vila_para_centro_exec(
         obter_conexao_mongo,
     )
 
-    client_m, db = obter_conexao_mongo()
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível.", "status": 503}
+    if agro_estoque_operacional_sem_mongo_erp():
+        info = (mapa_saldos_operacionais_agro([produto_id], db=None, client=None) or {}).get(
+            produto_id
+        ) or {}
+        saldo_ag_v = Decimal(str(info.get("saldo_vila", 0) or 0))
+        saldo_ag_c = Decimal(str(info.get("saldo_centro", 0) or 0))
+        saldo_erp_v = Decimal(str(info.get("saldo_erp_vila", 0) or 0))
+        saldo_erp_c = Decimal(str(info.get("saldo_erp_centro", 0) or 0))
+    else:
+        client_m, db = obter_conexao_mongo()
+        if db is None:
+            return {"ok": False, "erro": "Mongo indisponível.", "status": 503}
 
-    saldo_erp_v = _saldo_erp_produto_deposito_mongo(db, client_m, produto_id, "vila")
-    saldo_erp_c = _saldo_erp_produto_deposito_mongo(db, client_m, produto_id, "centro")
-    saldo_ag_v = _saldo_final_agro_com_pin(produto_id, "vila", saldo_erp_v)
-    saldo_ag_c = _saldo_final_agro_com_pin(produto_id, "centro", saldo_erp_c)
+        saldo_erp_v = _saldo_erp_produto_deposito_mongo(db, client_m, produto_id, "vila")
+        saldo_erp_c = _saldo_erp_produto_deposito_mongo(db, client_m, produto_id, "centro")
+        saldo_ag_v = _saldo_final_agro_com_pin(produto_id, "vila", saldo_erp_v)
+        saldo_ag_c = _saldo_final_agro_com_pin(produto_id, "centro", saldo_erp_c)
 
-    if qtd > saldo_ag_v:
-        return {
-            "ok": False,
-            "erro": f"Quantidade maior que o saldo na Vila ({float(saldo_ag_v):.3f}).",
-            "status": 400,
-        }
-
-    novo_v = (saldo_ag_v - qtd).quantize(Decimal("0.001"))
-    novo_c = (saldo_ag_c + qtd).quantize(Decimal("0.001"))
+    # Permite qtd > saldo da origem (zerado/negativo) — correção operacional na camada Agro.
+    if origem == "vila":
+        novo_v = (saldo_ag_v - qtd).quantize(Decimal("0.001"))
+        novo_c = (saldo_ag_c + qtd).quantize(Decimal("0.001"))
+        rotulo_dir = "Vila→Centro"
+    else:
+        novo_c = (saldo_ag_c - qtd).quantize(Decimal("0.001"))
+        novo_v = (saldo_ag_v + qtd).quantize(Decimal("0.001"))
+        rotulo_dir = "Centro→Vila"
 
     empresa_v, loja_v = _empresa_loja_padrao_agro_estoque("vila")
     empresa_c, loja_c = _empresa_loja_padrao_agro_estoque("centro")
     empresa = Empresa.objects.filter(nome_fantasia="Agro Mais").first()
 
-    ref_obs = f"Vila→Centro {qtd}"
+    ref_obs = f"{rotulo_dir} {qtd}"
     if obs_extra:
         ref_obs = f"{ref_obs} · {obs_extra}"
 
-    nome_v = f"{nome_produto} · Transferência {ref_obs}"[:255]
-    nome_c = nome_v
+    nome_aj = f"{nome_produto} · Transferência {ref_obs}"[:255]
 
     with transaction.atomic():
         AjusteRapidoEstoque.objects.create(
@@ -221,7 +249,7 @@ def _transferir_vila_para_centro_exec(
             loja=loja_v,
             produto_externo_id=produto_id,
             codigo_interno=codigo_interno,
-            nome_produto=nome_v,
+            nome_produto=nome_aj,
             deposito="vila",
             saldo_erp_referencia=saldo_erp_v,
             saldo_informado=novo_v,
@@ -234,7 +262,7 @@ def _transferir_vila_para_centro_exec(
             loja=loja_c,
             produto_externo_id=produto_id,
             codigo_interno=codigo_interno,
-            nome_produto=nome_c,
+            nome_produto=nome_aj,
             deposito="centro",
             saldo_erp_referencia=saldo_erp_c,
             saldo_informado=novo_c,
@@ -248,14 +276,18 @@ def _transferir_vila_para_centro_exec(
     PedidoTransferencia.objects.filter(produto_externo_id=produto_id).delete()
 
     if registrar_historico:
-        rotulo = _rotulo_usuario_pin(pin) or _rotulo_usuario_request(request)
+        rotulo = (
+            (usuario_label_override or "").strip()
+            or _rotulo_usuario_pin(pin)
+            or _rotulo_usuario_request(request)
+        )
         _historico_transferencia(
             HistoricoTransferencia.TIPO_TRANSFER_ITEM,
             usuario_label=rotulo,
             lote_uuid=lote_ref,
             produto_externo_id=produto_id,
             quantidade=qtd,
-            observacao=nome_produto[:500],
+            observacao=f"{rotulo_dir} · {nome_produto}"[:500],
         )
 
     return {
@@ -263,7 +295,35 @@ def _transferir_vila_para_centro_exec(
         "saldo_vila": float(novo_v),
         "saldo_centro": float(novo_c),
         "quantidade": float(qtd),
+        "direcao": f"{origem}_{destino}",
     }
+
+
+def _transferir_vila_para_centro_exec(
+    request,
+    pin,
+    produto_id,
+    qtd,
+    nome_produto,
+    codigo_interno,
+    obs_extra,
+    registrar_historico=True,
+    invalidar_cache=True,
+):
+    """Compat: Vila→Centro."""
+    return _transferir_entre_depositos_exec(
+        request,
+        pin,
+        produto_id,
+        qtd,
+        nome_produto,
+        codigo_interno,
+        obs_extra,
+        origem="vila",
+        destino="centro",
+        registrar_historico=registrar_historico,
+        invalidar_cache=invalidar_cache,
+    )
 
 
 @require_GET
@@ -274,48 +334,57 @@ def api_buscar_produtos(request):
 
     if termo:
         try:
+            from produtos.agro_fonte_config import agro_estoque_operacional_sem_mongo_erp
             from produtos.busca_produtos_mongo import buscar_produtos_motor_pdv
+            from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
 
-            produtos = buscar_produtos_motor_pdv(termo, limit=120)
-            if not produtos:
-                produtos = []
-
-            client = get_mongo_client()
+            produtos = buscar_produtos_motor_pdv(termo, limit=120) or []
             produto_ids = [str(produto.get("Id") or produto.get("_id")) for produto in produtos]
-            estoques = client.buscar_estoques_por_produto_ids(produto_ids)
-            ajustes = _buscar_ajustes_mais_recentes(produto_ids)
-
-            estoques_por_produto = {}
-            for estoque in estoques:
-                produto_id = str(estoque.get("ProdutoID"))
-                estoques_por_produto.setdefault(produto_id, []).append(estoque)
+            saldos_map = {}
+            if agro_estoque_operacional_sem_mongo_erp():
+                saldos_map = mapa_saldos_operacionais_agro(produto_ids, db=None, client=None)
+            else:
+                client = get_mongo_client()
+                estoques = client.buscar_estoques_por_produto_ids(produto_ids)
+                estoques_por_produto = {}
+                for estoque in estoques:
+                    produto_id = str(estoque.get("ProdutoID"))
+                    estoques_por_produto.setdefault(produto_id, []).append(estoque)
+                for produto in produtos:
+                    produto_id = str(produto.get("Id") or produto.get("_id"))
+                    saldo_centro_erp = Decimal('0')
+                    saldo_vila_erp = Decimal('0')
+                    for estoque in estoques_por_produto.get(produto_id, []):
+                        deposito = str(estoque.get("Deposito", "")).strip().lower()
+                        saldo = Decimal(str(estoque.get("Saldo", 0) or 0))
+                        if "centro" in deposito:
+                            saldo_centro_erp += saldo
+                        elif "vila" in deposito:
+                            saldo_vila_erp += saldo
+                    saldos_map[produto_id] = {
+                        "saldo_erp_centro": float(saldo_centro_erp),
+                        "saldo_erp_vila": float(saldo_vila_erp),
+                        "saldo_centro": float(saldo_centro_erp),
+                        "saldo_vila": float(saldo_vila_erp),
+                    }
+                ajustes = _buscar_ajustes_mais_recentes(produto_ids)
+                for produto_id, info in list(saldos_map.items()):
+                    ajuste_centro = ajustes.get((produto_id, 'centro'))
+                    ajuste_vila = ajustes.get((produto_id, 'vila'))
+                    saldo_centro = Decimal(str(info["saldo_erp_centro"]))
+                    saldo_vila = Decimal(str(info["saldo_erp_vila"]))
+                    if ajuste_centro:
+                        saldo_centro = saldo_centro + ajuste_centro.diferenca_saldo
+                    if ajuste_vila:
+                        saldo_vila = saldo_vila + ajuste_vila.diferenca_saldo
+                    info["saldo_centro"] = float(saldo_centro)
+                    info["saldo_vila"] = float(saldo_vila)
 
             for produto in produtos:
                 produto_id = str(produto.get("Id") or produto.get("_id"))
-                saldo_centro_erp = Decimal('0')
-                saldo_vila_erp = Decimal('0')
-
-                for estoque in estoques_por_produto.get(produto_id, []):
-                    deposito = str(estoque.get("Deposito", "")).strip().lower()
-                    saldo = Decimal(str(estoque.get("Saldo", 0) or 0))
-
-                    if "centro" in deposito:
-                        saldo_centro_erp += saldo
-                    elif "vila" in deposito:
-                        saldo_vila_erp += saldo
-
-                ajuste_centro = ajustes.get((produto_id, 'centro'))
-                ajuste_vila = ajustes.get((produto_id, 'vila'))
-
-                saldo_centro = saldo_centro_erp
-                saldo_vila = saldo_vila_erp
-
-                if ajuste_centro:
-                    saldo_centro = saldo_centro_erp + ajuste_centro.diferenca_saldo
-
-                if ajuste_vila:
-                    saldo_vila = saldo_vila_erp + ajuste_vila.diferenca_saldo
-
+                s = saldos_map.get(produto_id) or {}
+                saldo_centro = float(s.get("saldo_centro", 0) or 0)
+                saldo_vila = float(s.get("saldo_vila", 0) or 0)
                 produtos_json.append({
                     "id": produto_id,
                     "codigo_interno": produto.get("CodigoNFe") or str(produto.get("Codigo") or ""),
@@ -324,15 +393,15 @@ def api_buscar_produtos(request):
                     "marca": produto.get("Marca") or "",
                     "categoria": produto.get("Categoria") or "",
                     "preco_venda": float(produto.get("PrecoVenda") or 0),
-                    "saldo_centro": float(saldo_centro),
-                    "saldo_vila": float(saldo_vila),
+                    "saldo_centro": saldo_centro,
+                    "saldo_vila": saldo_vila,
                     "saldo_total": float(saldo_centro + saldo_vila),
-                    "saldo_centro_erp": float(saldo_centro_erp),
-                    "saldo_vila_erp": float(saldo_vila_erp),
+                    "saldo_centro_erp": float(s.get("saldo_erp_centro", 0) or 0),
+                    "saldo_vila_erp": float(s.get("saldo_erp_vila", 0) or 0),
                 })
 
         except Exception as exc:
-            erro_api = f'Erro ao consultar MongoDB do Venda ERP: {exc}'
+            erro_api = f'Erro ao consultar estoque: {exc}'
 
     return JsonResponse({
         'produtos': produtos_json,
@@ -343,34 +412,29 @@ def api_buscar_produtos(request):
 @require_GET
 def api_listar_usuarios(request):
     try:
-        perfis = PerfilUsuario.objects.all()
-        
-        # Trava de sobrevivência: Se o Render apagar o banco, cria um usuário automaticamente
-        if not perfis.exists():
-            from django.contrib.auth.models import User
-            user, _ = User.objects.get_or_create(username='caixa', defaults={'first_name': 'Caixa', 'is_staff': True})
-            PerfilUsuario.objects.get_or_create(user=user, codigo_vendedor='0001', defaults={'senha_rapida': '1234'})
-            perfis = PerfilUsuario.objects.all()
+        from base.operador_util import listar_operadores
 
-        lista = []
-        for p in perfis:
-            # Tenta descobrir o nome amigável do usuário atrelado ao perfil
-            nome = "Usuário Desconhecido"
-            if hasattr(p, 'user') and p.user:
-                nome = f"{p.codigo_vendedor} - {p.user.get_full_name() or p.user.username}"
-            elif hasattr(p, 'nome'):
-                nome = p.nome
-            else:
-                nome = str(p)
-            pin_raw = (getattr(p, "senha_rapida", None) or "").strip()
-            pin_personalizado = bool(pin_raw) and pin_raw != "1234"
-            lista.append({"id": p.id, "nome": nome, "pin_personalizado": pin_personalizado})
-        
-        # Ordena a lista em ordem alfabética para facilitar
-        lista.sort(key=lambda x: x['nome'])
-        return JsonResponse({'ok': True, 'usuarios': lista})
+        incluir_inativos = str(request.GET.get("incluir_inativos") or "").strip() in (
+            "1",
+            "true",
+            "sim",
+        )
+        lista = listar_operadores(incluir_inativos=incluir_inativos)
+        # Compatível com screensaver / telas antigas (só ativos na prática)
+        if not incluir_inativos and not lista:
+            from django.contrib.auth.models import User
+
+            user, _ = User.objects.get_or_create(
+                username="caixa", defaults={"first_name": "Caixa", "is_staff": True}
+            )
+            PerfilUsuario.objects.get_or_create(
+                user=user,
+                defaults={"codigo_vendedor": "0001", "senha_rapida": "1234", "ativo": True},
+            )
+            lista = listar_operadores(incluir_inativos=False)
+        return JsonResponse({"ok": True, "usuarios": lista})
     except Exception as exc:
-        return JsonResponse({'ok': False, 'erro': f'Erro: {exc}'}, status=500)
+        return JsonResponse({"ok": False, "erro": f"Erro: {exc}"}, status=500)
 
 @require_POST
 @csrf_protect
@@ -392,7 +456,7 @@ def api_atualizar_pin(request):
         return JsonResponse({'ok': False, 'erro': f'Erro ao atualizar PIN: {exc}'}, status=500)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 @csrf_protect
 def api_definir_pin_rh(request):
@@ -411,16 +475,44 @@ def api_definir_pin_rh(request):
             return JsonResponse({'ok': False, 'erro': 'Escolha um PIN diferente de 1234.'}, status=400)
 
         try:
-            perfil = PerfilUsuario.objects.get(id=perfil_id)
+            perfil = PerfilUsuario.objects.get(id=perfil_id, ativo=True)
         except PerfilUsuario.DoesNotExist:
-            return JsonResponse({'ok': False, 'erro': 'Perfil não encontrado.'}, status=404)
+            return JsonResponse({'ok': False, 'erro': 'Perfil não encontrado ou inativo.'}, status=404)
+
+        if PerfilUsuario.objects.filter(senha_rapida=novo_pin, ativo=True).exclude(pk=perfil.pk).exists():
+            return JsonResponse({'ok': False, 'erro': 'Este PIN já está em uso. Escolha outro.'}, status=400)
 
         perfil.senha_rapida = novo_pin
-        perfil.save()
+        perfil.primeiro_acesso = False
+        perfil.save(update_fields=["senha_rapida", "primeiro_acesso"])
 
         return JsonResponse({'ok': True, 'mensagem': 'PIN atualizado com sucesso.'})
     except Exception as exc:
         return JsonResponse({'ok': False, 'erro': f'Erro ao atualizar PIN: {exc}'}, status=500)
+
+
+@require_POST
+@csrf_protect
+def api_cadastrar_pin_bootstrap(request):
+    """1ª vez: operador digita 1234 no descanso, escolhe nome e grava PIN no servidor."""
+    from produtos.caixa_util import cadastrar_pin_operador_primeira_vez
+
+    bootstrap = str(request.POST.get("bootstrap") or request.POST.get("codigo") or "").strip()
+    perfil_id = request.POST.get("perfil_id", "").strip()
+    novo_pin = request.POST.get("novo_pin", "").strip()
+
+    ok, operador, err = cadastrar_pin_operador_primeira_vez(
+        perfil_id, novo_pin, bootstrap=bootstrap
+    )
+    if not ok:
+        status = 403 if "inválid" in err.lower() or "já tem" in err.lower() else 400
+        return JsonResponse({"ok": False, "erro": err}, status=status)
+
+    request.session["mobile_auth"] = True
+    request.session["pdv_operador_nome"] = operador[:120]
+    request.session.modified = True
+    return JsonResponse({"ok": True, "operador": operador, "mensagem": "PIN cadastrado com sucesso."})
+
 
 @require_POST
 @csrf_protect
@@ -559,7 +651,7 @@ def api_transferir_lote_vila_para_centro(request):
         except ValueError:
             return JsonResponse({"ok": False, "erro": "lote_uuid inválido."}, status=400)
 
-        if pin == "1234" or not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
+        if pin == "1234" or not PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).exists():
             return JsonResponse({"ok": False, "erro": "PIN incorreto ou bloqueado."}, status=403)
 
         linhas_raw = list(
@@ -629,6 +721,266 @@ def api_transferir_lote_vila_para_centro(request):
                 "transferidos": resultados_ok,
                 "falhas": resultados_erro,
                 "mensagem": f"{len(resultados_ok)} transferido(s), {len(resultados_erro)} falha(s).",
+            }
+        )
+    except Exception as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=500)
+
+
+@require_POST
+@csrf_protect
+def api_transferir_forcado_vila_para_centro(request):
+    """
+    Transferência em massa Vila↔Centro a partir de lista livre (carrinho / colar).
+    Body JSON: pin, itens[], direcao=``vila_centro``|``centro_vila`` (padrão Vila→Centro).
+    """
+    try:
+        try:
+            raw_body = request.body.decode("utf-8") if request.body else "{}"
+            data = json.loads(raw_body) if raw_body.strip() else {}
+        except (json.JSONDecodeError, UnicodeDecodeError, AttributeError):
+            return JsonResponse(
+                {"ok": False, "erro": "JSON inválido.", "transferidos": [], "falhas": []},
+                status=400,
+            )
+        if not isinstance(data, dict):
+            data = {}
+        pin = str(data.get("pin") or "").strip()
+        if pin == "1234" or not PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).exists():
+            return JsonResponse({"ok": False, "erro": "PIN incorreto ou bloqueado."}, status=403)
+
+        direcao = str(data.get("direcao") or "vila_centro").strip().lower().replace("-", "_").replace("→", "_")
+        if direcao in ("centro_vila", "c_v", "centro_para_vila"):
+            origem, destino = "centro", "vila"
+            rotulo_dir = "Centro→Vila"
+        else:
+            origem, destino = "vila", "centro"
+            rotulo_dir = "Vila→Centro"
+            direcao = "vila_centro"
+
+        itens_raw = data.get("itens")
+        if not isinstance(itens_raw, list) or not itens_raw:
+            return JsonResponse({"ok": False, "erro": "Informe ao menos um item."}, status=400)
+        if len(itens_raw) > 200:
+            return JsonResponse({"ok": False, "erro": "Máximo 200 itens por vez."}, status=400)
+
+        from produtos.views import _invalidar_caches_apos_ajuste_pin
+
+        rotulo = _rotulo_usuario_pin(pin) or _rotulo_usuario_request(request)
+        resultados_ok = []
+        resultados_erro = []
+
+        for row in itens_raw:
+            if not isinstance(row, dict):
+                resultados_erro.append({"produto_id": "", "erro": "Item inválido."})
+                continue
+            pid = str(row.get("produto_id") or "").strip()[:100]
+            nome = (str(row.get("nome_produto") or "").strip()[:255]) or (f"Produto {pid}" if pid else "Produto")
+            cod = str(row.get("codigo_interno") or "").strip()[:100]
+            try:
+                qtd = _normalizar_decimal(row.get("quantidade", "0"))
+            except (InvalidOperation, TypeError, ValueError):
+                resultados_erro.append({"produto_id": pid or "?", "erro": "Quantidade inválida.", "nome": nome})
+                continue
+            if not pid:
+                resultados_erro.append({"produto_id": "", "erro": "Produto sem id.", "nome": nome})
+                continue
+            out = _transferir_entre_depositos_exec(
+                request,
+                pin,
+                pid,
+                qtd,
+                nome,
+                cod,
+                "forçado",
+                origem=origem,
+                destino=destino,
+                registrar_historico=False,
+                invalidar_cache=False,
+            )
+            if out.get("ok"):
+                resultados_ok.append(
+                    {
+                        "produto_id": pid,
+                        "nome": nome,
+                        "quantidade": float(out.get("quantidade", qtd)),
+                        "saldo_vila": out.get("saldo_vila"),
+                        "saldo_centro": out.get("saldo_centro"),
+                    }
+                )
+            else:
+                resultados_erro.append(
+                    {"produto_id": pid, "nome": nome, "erro": out.get("erro", "Erro")}
+                )
+
+        _invalidar_caches_apos_ajuste_pin()
+        _historico_transferencia(
+            HistoricoTransferencia.TIPO_TRANSFER_LOTE,
+            usuario_label=rotulo,
+            observacao=json.dumps(
+                {
+                    "origem": "forcado",
+                    "direcao": direcao,
+                    "ok": resultados_ok,
+                    "erro": resultados_erro,
+                },
+                ensure_ascii=False,
+            )[:8000],
+        )
+
+        return JsonResponse(
+            {
+                "ok": len(resultados_erro) == 0 and len(resultados_ok) > 0,
+                "direcao": direcao,
+                "transferidos": resultados_ok,
+                "falhas": resultados_erro,
+                "mensagem": f"{rotulo_dir}: {len(resultados_ok)} transferido(s), {len(resultados_erro)} falha(s).",
+            }
+        )
+    except Exception as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=500)
+
+
+@require_POST
+@csrf_protect
+def api_resolver_codigos_transferencia_forcada(request):
+    """Resolve códigos (GM / barras / EAN / id) para montar o carrinho da transferência forçada."""
+    try:
+        try:
+            raw_body = request.body.decode("utf-8") if request.body else "{}"
+            data = json.loads(raw_body) if raw_body.strip() else {}
+        except (json.JSONDecodeError, UnicodeDecodeError, AttributeError):
+            return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+        if not isinstance(data, dict):
+            data = {}
+        linhas = data.get("linhas")
+        if not isinstance(linhas, list) or not linhas:
+            return JsonResponse({"ok": False, "erro": "Informe linhas com código."}, status=400)
+        if len(linhas) > 200:
+            return JsonResponse({"ok": False, "erro": "Máximo 200 linhas."}, status=400)
+
+        pedidos = []
+        codigos = set()
+        for row in linhas:
+            if isinstance(row, str):
+                codigo = row.strip()
+                qtd_raw = "1"
+            elif isinstance(row, dict):
+                codigo = str(row.get("codigo") or row.get("code") or "").strip()
+                qtd_raw = row.get("quantidade", row.get("qtd", "1"))
+            else:
+                continue
+            if not codigo:
+                continue
+            try:
+                qtd = _normalizar_decimal(qtd_raw)
+            except (InvalidOperation, TypeError, ValueError):
+                qtd = Decimal("0")
+            pedidos.append({"codigo": codigo, "quantidade": qtd})
+            codigos.add(codigo)
+
+        if not pedidos:
+            return JsonResponse({"ok": False, "erro": "Nenhuma linha válida."}, status=400)
+
+        from bson.objectid import ObjectId
+
+        client = get_mongo_client()
+        obj_ids = []
+        for c in codigos:
+            if len(c) == 24:
+                try:
+                    obj_ids.append(ObjectId(c))
+                except Exception:
+                    pass
+        query = {
+            "$or": [
+                {"CodigoNFe": {"$in": list(codigos)}},
+                {"Codigo": {"$in": list(codigos)}},
+                {"CodigoBarras": {"$in": list(codigos)}},
+                {"EAN_NFe": {"$in": list(codigos)}},
+            ]
+        }
+        if obj_ids:
+            query["$or"].append({"_id": {"$in": obj_ids}})
+
+        mapa = {}
+        produtos_mongo = client.db[client.col_p].find(
+            query,
+            {
+                "_id": 1,
+                "Id": 1,
+                "Nome": 1,
+                "CodigoNFe": 1,
+                "Codigo": 1,
+                "CodigoBarras": 1,
+                "EAN_NFe": 1,
+            },
+        )
+        for p in produtos_mongo:
+            pid = str(p.get("_id") or p.get("Id"))
+            info = {
+                "id": pid,
+                "nome": (p.get("Nome") or f"Produto {pid}")[:255],
+                "codigo_interno": str(p.get("CodigoNFe") or p.get("Codigo") or "")[:100],
+                "codigo_barras": str(p.get("EAN_NFe") or p.get("CodigoBarras") or "")[:100],
+            }
+            for key in ("CodigoNFe", "Codigo", "CodigoBarras", "EAN_NFe"):
+                val = p.get(key)
+                if val is not None and str(val).strip():
+                    mapa[str(val).strip()] = info
+            mapa[pid] = info
+
+        from produtos.views import (
+            _saldo_erp_produto_deposito_mongo,
+            _saldo_final_agro_com_pin,
+            obter_conexao_mongo,
+        )
+
+        client_m, db = obter_conexao_mongo()
+        encontrados = []
+        nao_encontrados = []
+        vistos = {}
+
+        for ped in pedidos:
+            codigo = ped["codigo"]
+            qtd = ped["quantidade"]
+            info = mapa.get(codigo)
+            if not info:
+                nao_encontrados.append({"codigo": codigo, "quantidade": float(qtd)})
+                continue
+            pid = info["id"]
+            if pid in vistos:
+                vistos[pid]["quantidade"] = float(
+                    Decimal(str(vistos[pid]["quantidade"])) + qtd
+                )
+                continue
+            saldo_vila = 0.0
+            saldo_centro = 0.0
+            if db is not None:
+                try:
+                    sv_erp = _saldo_erp_produto_deposito_mongo(db, client_m, pid, "vila")
+                    sc_erp = _saldo_erp_produto_deposito_mongo(db, client_m, pid, "centro")
+                    saldo_vila = float(_saldo_final_agro_com_pin(pid, "vila", sv_erp))
+                    saldo_centro = float(_saldo_final_agro_com_pin(pid, "centro", sc_erp))
+                except Exception:
+                    pass
+            item = {
+                "produto_id": pid,
+                "nome": info["nome"],
+                "codigo_interno": info["codigo_interno"],
+                "codigo_barras": info["codigo_barras"],
+                "quantidade": float(qtd) if qtd > 0 else 1.0,
+                "saldo_vila": round(saldo_vila, 3),
+                "saldo_centro": round(saldo_centro, 3),
+            }
+            vistos[pid] = item
+            encontrados.append(item)
+
+        return JsonResponse(
+            {
+                "ok": True,
+                "itens": encontrados,
+                "nao_encontrados": nao_encontrados,
             }
         )
     except Exception as exc:
@@ -877,7 +1229,7 @@ def api_salvar_config_transferencia(request):
         pin = request.POST.get('pin', '').strip()
         if pin == '1234':
             return JsonResponse({'ok': False, 'erro': 'Senha padrão (1234) bloqueada. Troque seu PIN.'}, status=403)
-        perfil = PerfilUsuario.objects.filter(senha_rapida=pin).first()
+        perfil = PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).first()
         if not perfil:
             return JsonResponse({'ok': False, 'erro': 'PIN INCORRETO'}, status=403)
 
@@ -1039,7 +1391,7 @@ def api_atualizar_pedido_transferencia(request):
         pin = str(data.get("pin") or "").strip()
         if pin == "1234":
             return JsonResponse({"ok": False, "erro": "Senha padrão (1234) bloqueada. Troque seu PIN."}, status=403)
-        if not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
+        if not PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).exists():
             return JsonResponse({"ok": False, "erro": "PIN incorreto."}, status=403)
 
         produto_id = str(data.get("produto_id") or "").strip()[:100]
@@ -1072,7 +1424,7 @@ def api_adicionar_pedido_transferencia(request):
         pin = str(data.get("pin") or "").strip()
         if pin == "1234":
             return JsonResponse({"ok": False, "erro": "Senha padrão (1234) bloqueada. Troque seu PIN."}, status=403)
-        if not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
+        if not PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).exists():
             return JsonResponse({"ok": False, "erro": "PIN incorreto."}, status=403)
 
         produto_id = str(data.get("produto_id") or "").strip()[:100]
@@ -1160,7 +1512,7 @@ def api_importar_planilha_transferencia(request):
         pin = request.POST.get('pin', '').strip()
         if pin == '1234':
             return JsonResponse({'ok': False, 'erro': 'Senha padrão (1234) bloqueada. Troque seu PIN.'}, status=403)
-        perfil = PerfilUsuario.objects.filter(senha_rapida=pin).first()
+        perfil = PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).first()
         if not perfil:
             return JsonResponse({'ok': False, 'erro': 'PIN INCORRETO'}, status=403)
 
@@ -1180,7 +1532,8 @@ def api_importar_planilha_transferencia(request):
         if not reader.fieldnames:
             return JsonResponse({'ok': False, 'erro': 'Planilha vazia ou formato inválido.'}, status=400)
 
-        client = get_mongo_client()
+        from produtos.agro_fonte_config import agro_estoque_operacional_sem_mongo_erp
+
         sucesso = 0
         
         # 1. Lê a planilha inteira e separa os códigos
@@ -1201,34 +1554,68 @@ def api_importar_planilha_transferencia(request):
             linhas_validas.append({'codigo': codigo, 'p_seg': p_seg, 'p_max': p_max})
             codigos_buscados.add(codigo)
 
-        # 2. Faz UMA ÚNICA viagem ao Banco de Dados buscando todos os códigos juntos!
+        # 2. Resolve produtos no Postgres Agro (ou Mongo legado se ainda ligado)
         mapa_produtos = {}
         if codigos_buscados:
-            from bson.objectid import ObjectId
-            obj_ids = []
-            for c in codigos_buscados:
-                if len(c) == 24:
-                    try: obj_ids.append(ObjectId(c))
-                    except: pass
-            
-            query = {"$or": [
-                {"CodigoNFe": {"$in": list(codigos_buscados)}},
-                {"Codigo": {"$in": list(codigos_buscados)}},
-                {"CodigoBarras": {"$in": list(codigos_buscados)}},
-                {"EAN_NFe": {"$in": list(codigos_buscados)}}
-            ]}
-            if obj_ids: query["$or"].append({"_id": {"$in": obj_ids}})
-            
-            produtos_mongo = client.db[client.col_p].find(query, {"_id": 1, "Id": 1, "Nome": 1, "CodigoNFe": 1, "Codigo": 1, "CodigoBarras": 1, "EAN_NFe": 1})
-            
-            for p in produtos_mongo:
-                pid = str(p.get('_id') or p.get('Id'))
-                info = {"id": pid, "nome": p.get('Nome', f"Produto {pid}")}
-                if p.get("CodigoNFe"): mapa_produtos[str(p.get("CodigoNFe"))] = info
-                if p.get("Codigo"): mapa_produtos[str(p.get("Codigo"))] = info
-                if p.get("CodigoBarras"): mapa_produtos[str(p.get("CodigoBarras"))] = info
-                if p.get("EAN_NFe"): mapa_produtos[str(p.get("EAN_NFe"))] = info
-                mapa_produtos[pid] = info
+            if agro_estoque_operacional_sem_mongo_erp():
+                from django.db.models import Q
+                from produtos.models import Produto
+
+                codigos = list(codigos_buscados)
+                qs = Produto.objects.filter(
+                    Q(codigo_nfe__in=codigos)
+                    | Q(codigo_barras__in=codigos)
+                    | Q(codigo_interno__in=codigos)
+                    | Q(produto_externo_id__in=codigos)
+                )
+                for p in qs:
+                    pid = str(p.produto_externo_id or p.pk)
+                    info = {"id": pid, "nome": (p.nome or f"Produto {pid}")}
+                    if p.codigo_nfe:
+                        mapa_produtos[str(p.codigo_nfe)] = info
+                    if p.codigo_interno:
+                        mapa_produtos[str(p.codigo_interno)] = info
+                    if p.codigo_barras:
+                        mapa_produtos[str(p.codigo_barras)] = info
+                    mapa_produtos[pid] = info
+            else:
+                from bson.objectid import ObjectId
+
+                client = get_mongo_client()
+                obj_ids = []
+                for c in codigos_buscados:
+                    if len(c) == 24:
+                        try:
+                            obj_ids.append(ObjectId(c))
+                        except Exception:
+                            pass
+
+                query = {"$or": [
+                    {"CodigoNFe": {"$in": list(codigos_buscados)}},
+                    {"Codigo": {"$in": list(codigos_buscados)}},
+                    {"CodigoBarras": {"$in": list(codigos_buscados)}},
+                    {"EAN_NFe": {"$in": list(codigos_buscados)}}
+                ]}
+                if obj_ids:
+                    query["$or"].append({"_id": {"$in": obj_ids}})
+
+                produtos_mongo = client.db[client.col_p].find(
+                    query,
+                    {"_id": 1, "Id": 1, "Nome": 1, "CodigoNFe": 1, "Codigo": 1, "CodigoBarras": 1, "EAN_NFe": 1},
+                )
+
+                for p in produtos_mongo:
+                    pid = str(p.get('_id') or p.get('Id'))
+                    info = {"id": pid, "nome": p.get('Nome', f"Produto {pid}")}
+                    if p.get("CodigoNFe"):
+                        mapa_produtos[str(p.get("CodigoNFe"))] = info
+                    if p.get("Codigo"):
+                        mapa_produtos[str(p.get("Codigo"))] = info
+                    if p.get("CodigoBarras"):
+                        mapa_produtos[str(p.get("CodigoBarras"))] = info
+                    if p.get("EAN_NFe"):
+                        mapa_produtos[str(p.get("EAN_NFe"))] = info
+                    mapa_produtos[pid] = info
 
         # 3. Salva no Cockpit na velocidade da luz
         for linha in linhas_validas:
@@ -1254,7 +1641,7 @@ def api_atualizar_medias(request):
         pin = request.POST.get('pin', '').strip()
         if pin == '1234':
             return JsonResponse({'ok': False, 'erro': 'Senha padrão (1234) bloqueada. Troque seu PIN.'}, status=403)
-        perfil = PerfilUsuario.objects.filter(senha_rapida=pin).first()
+        perfil = PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).first()
         if not perfil:
             return JsonResponse({'ok': False, 'erro': 'PIN INCORRETO'}, status=403)
 
@@ -1264,9 +1651,188 @@ def api_atualizar_medias(request):
     except Exception as exc:
         return JsonResponse({'ok': False, 'erro': f'Erro ao calcular médias: {exc}'}, status=500)
 
+def _montar_sugestoes_transferencia(mapa_produtos, mapa_regras, mapa_pedidos, ajustes, *, saldos_map=None):
+    from produtos.estoque_saldo_agro_util import saldos_transferencia_de_mapa
+
+    sugestoes = []
+
+    for pid, p_info in mapa_produtos.items():
+        if saldos_map is not None:
+            base_map = saldos_map
+        else:
+            base_map = {
+                pid: {
+                    "saldo_erp_centro": float(p_info["saldo_c"]),
+                    "saldo_erp_vila": float(p_info["saldo_v"]),
+                }
+            }
+        saldo_centro, saldo_vila, saldo_centro_erp, saldo_vila_erp = saldos_transferencia_de_mapa(
+            base_map, pid, ajustes
+        )
+
+        regra = mapa_regras.get(pid)
+        pedido = mapa_pedidos.get(pid)
+
+        if regra:
+            qtde_transferir = Decimal("0")
+            qtde_comprar = Decimal("0")
+            status = "OK"
+
+            if saldo_centro <= regra.capacidade_minima:
+                if regra.capacidade_maxima == Decimal("-1"):
+                    qtde_transferir = max(Decimal("0"), saldo_vila)
+                    falta_para_minimo = regra.capacidade_minima - saldo_centro
+                    qtde_comprar = max(Decimal("0"), falta_para_minimo - qtde_transferir)
+
+                    if pedido:
+                        status = "SEPARANDO"
+                        qtde_transferir = pedido.quantidade
+                    else:
+                        if qtde_transferir > 0 and qtde_comprar > 0:
+                            status = "TRANSFERIR_COMPRAR"
+                        elif qtde_transferir > 0:
+                            status = "TRANSFERIR"
+                        elif qtde_comprar > 0:
+                            status = "COMPRAR"
+                else:
+                    qtde_necessaria = regra.capacidade_maxima - saldo_centro
+                    if qtde_necessaria > 0:
+                        qtde_transferir = (
+                            qtde_necessaria
+                            if saldo_vila >= qtde_necessaria
+                            else max(Decimal("0"), saldo_vila)
+                        )
+                        qtde_comprar = qtde_necessaria - qtde_transferir
+                        if pedido:
+                            status = "SEPARANDO"
+                            qtde_transferir = pedido.quantidade
+                        else:
+                            status = (
+                                "COMPRAR"
+                                if qtde_transferir == 0
+                                else ("TRANSFERIR" if qtde_comprar == 0 else "TRANSFERIR_COMPRAR")
+                            )
+            else:
+                if pedido:
+                    pedido.delete()
+                    status = "OK"
+
+            sugestoes.append(
+                {
+                    "produto_id": pid,
+                    "codigo": p_info["codigo"],
+                    "codigo_barras": p_info["codigo_barras"],
+                    "nome": p_info["nome"] or regra.nome_produto,
+                    "saldo_centro": float(saldo_centro),
+                    "saldo_vila": float(saldo_vila),
+                    "saldo_centro_erp": float(saldo_centro_erp),
+                    "saldo_vila_erp": float(saldo_vila_erp),
+                    "status": status,
+                    "qtde_transferir": float(qtde_transferir),
+                    "qtde_comprar": float(qtde_comprar),
+                    "capacidade_maxima": float(regra.capacidade_maxima),
+                    "estoque_seguranca": float(regra.estoque_seguranca),
+                    "capacidade_minima": float(regra.capacidade_minima),
+                    "configurado": True,
+                    "prioridade": 3 if status != "SEPARANDO" else 4,
+                    **_pedido_transferencia_extra(pedido),
+                }
+            )
+        else:
+            if pedido:
+                status = "SEPARANDO"
+                qtde_transferir = pedido.quantidade
+            else:
+                status = "ALTA" if saldo_vila > 0 else "MEDIA"
+                qtde_transferir = Decimal("0")
+
+            sugestoes.append(
+                {
+                    "produto_id": pid,
+                    "codigo": p_info["codigo"],
+                    "codigo_barras": p_info["codigo_barras"],
+                    "nome": p_info["nome"],
+                    "saldo_centro": float(saldo_centro),
+                    "saldo_vila": float(saldo_vila),
+                    "saldo_centro_erp": float(saldo_centro_erp),
+                    "saldo_vila_erp": float(saldo_vila_erp),
+                    "status": status,
+                    "qtde_transferir": float(qtde_transferir),
+                    "qtde_comprar": 0.0,
+                    "configurado": False,
+                    "prioridade": 4 if status == "SEPARANDO" else 1,
+                    **_pedido_transferencia_extra(pedido),
+                }
+            )
+
+    sugestoes.sort(key=lambda x: (x["prioridade"], x["nome"]))
+    return sugestoes
+
+
+def _resposta_sugestoes_transferencia(sugestoes):
+    ultima_atualizacao = "Nunca"
+    ultima_regra = ConfiguracaoTransferencia.objects.order_by("-atualizado_em").first()
+    if ultima_regra and ultima_regra.atualizado_em:
+        ultima_atualizacao = localtime(ultima_regra.atualizado_em).strftime("%d/%m às %H:%M")
+    return JsonResponse({"sugestoes": sugestoes, "ultima_atualizacao": ultima_atualizacao})
+
+
+def _api_sugestoes_transferencia_agro(request):
+    from produtos.estoque_saldo_agro_util import (
+        mapa_produtos_info_por_externo_ids,
+        mapa_saldos_operacionais_agro,
+        produto_ids_saldo_deposito_positivo,
+    )
+
+    regras = ConfiguracaoTransferencia.objects.all()
+    mapa_regras = {str(r.produto_externo_id): r for r in regras}
+    ids_configurados = list(mapa_regras.keys())
+
+    pedidos_sep = PedidoTransferencia.objects.filter(status="IMPRESSO")
+    mapa_pedidos = {str(p.produto_externo_id): p for p in pedidos_sep}
+    ids_pedidos = list(mapa_pedidos.keys())
+
+    # Prioridade: regras + pedidos; depois saldo Vila (teto — evita timeout na loja).
+    ids_prio = {str(x).strip() for x in (ids_configurados + ids_pedidos) if str(x).strip()}
+    ids_com_saldo_vila = produto_ids_saldo_deposito_positivo("vila", limite=800)
+    extras = [x for x in ids_com_saldo_vila if x not in ids_prio]
+    room = max(0, 600 - len(ids_prio))
+    ids_alvo = list(ids_prio) + extras[:room]
+
+    if not ids_alvo:
+        return JsonResponse({"sugestoes": [], "ultima_atualizacao": "—"})
+
+    info_map = mapa_produtos_info_por_externo_ids(ids_alvo)
+    saldos_map = mapa_saldos_operacionais_agro(ids_alvo, db=None, client=None)
+
+    mapa_produtos = {}
+    for pid in ids_alvo:
+        info = info_map.get(pid) or {}
+        regra = mapa_regras.get(pid)
+        saldo_info = saldos_map.get(pid) or {}
+        mapa_produtos[pid] = {
+            "nome": info.get("nome") or (regra.nome_produto if regra else f"Produto {pid}"),
+            "codigo": info.get("codigo") or pid,
+            "codigo_barras": info.get("codigo_barras") or "",
+            "saldo_c": float(saldo_info.get("saldo_erp_centro", 0.0)),
+            "saldo_v": float(saldo_info.get("saldo_erp_vila", 0.0)),
+        }
+
+    ajustes = _buscar_ajustes_mais_recentes(list(mapa_produtos.keys()))
+    sugestoes = _montar_sugestoes_transferencia(
+        mapa_produtos, mapa_regras, mapa_pedidos, ajustes, saldos_map=saldos_map
+    )
+    return _resposta_sugestoes_transferencia(sugestoes)
+
+
 @require_GET
 def api_sugestoes_transferencia(request):
     try:
+        from produtos.agro_fonte_config import agro_estoque_operacional_sem_mongo_erp
+
+        if agro_estoque_operacional_sem_mongo_erp():
+            return _api_sugestoes_transferencia_agro(request)
+
         client = get_mongo_client()
 
         # 1. Pegar IDs dos produtos que possuem regras configuradas
@@ -1363,120 +1929,17 @@ def api_sugestoes_transferencia(request):
         # 7. Cruzar com ajustes e montar sugestões
         ajustes = _buscar_ajustes_mais_recentes(p_ids_encontrados)
 
-        sugestoes = []
+        sugestoes = _montar_sugestoes_transferencia(
+            mapa_produtos, mapa_regras, mapa_pedidos, ajustes
+        )
 
-        for pid, p_info in mapa_produtos.items():
-            saldo_centro_erp = Decimal(str(p_info["saldo_c"]))
-            saldo_vila_erp = Decimal(str(p_info["saldo_v"]))
-
-            ajuste_centro = ajustes.get((pid, 'centro'))
-            ajuste_vila = ajustes.get((pid, 'vila'))
-
-            saldo_centro = saldo_centro_erp + (ajuste_centro.diferenca_saldo if ajuste_centro else Decimal('0'))
-            saldo_vila = saldo_vila_erp + (ajuste_vila.diferenca_saldo if ajuste_vila else Decimal('0'))
-
-            regra = mapa_regras.get(pid)
-            pedido = mapa_pedidos.get(pid)
-
-            if regra:
-                # PRODUTO JÁ CONFIGURADO
-                qtde_transferir = Decimal('0')
-                qtde_comprar = Decimal('0')
-                status = "OK"
-
-                if saldo_centro <= regra.capacidade_minima:
-                    if regra.capacidade_maxima == Decimal('-1'):
-                        qtde_transferir = max(Decimal('0'), saldo_vila)
-                        falta_para_minimo = regra.capacidade_minima - saldo_centro
-                        qtde_comprar = max(Decimal('0'), falta_para_minimo - qtde_transferir)
-                        
-                        if pedido:
-                            status = "SEPARANDO"
-                            qtde_transferir = pedido.quantidade
-                        else:
-                            if qtde_transferir > 0 and qtde_comprar > 0: status = "TRANSFERIR_COMPRAR"
-                            elif qtde_transferir > 0: status = "TRANSFERIR"
-                            elif qtde_comprar > 0: status = "COMPRAR"
-                    else:
-                        qtde_necessaria = regra.capacidade_maxima - saldo_centro
-                        if qtde_necessaria > 0:
-                            qtde_transferir = qtde_necessaria if saldo_vila >= qtde_necessaria else max(Decimal('0'), saldo_vila)
-                            qtde_comprar = qtde_necessaria - qtde_transferir
-                            if pedido:
-                                status = "SEPARANDO"
-                                qtde_transferir = pedido.quantidade
-                            else:
-                                status = "COMPRAR" if qtde_transferir == 0 else ("TRANSFERIR" if qtde_comprar == 0 else "TRANSFERIR_COMPRAR")
-                else:
-                    # Auto-limpeza do pedido caso o saldo tenha subido no ERP
-                    if pedido:
-                        pedido.delete()
-                        status = "OK"
-
-                sugestoes.append(
-                    {
-                        "produto_id": pid,
-                        "codigo": p_info["codigo"],
-                        "codigo_barras": p_info["codigo_barras"],
-                        "nome": p_info["nome"] or regra.nome_produto,
-                        "saldo_centro": float(saldo_centro),
-                        "saldo_vila": float(saldo_vila),
-                        "saldo_centro_erp": float(saldo_centro_erp),
-                        "saldo_vila_erp": float(saldo_vila_erp),
-                        "status": status,
-                        "qtde_transferir": float(qtde_transferir),
-                        "qtde_comprar": float(qtde_comprar),
-                        "capacidade_maxima": float(regra.capacidade_maxima),
-                        "estoque_seguranca": float(regra.estoque_seguranca),
-                        "capacidade_minima": float(regra.capacidade_minima),
-                        "configurado": True,
-                        "prioridade": 3 if status != "SEPARANDO" else 4,
-                        **_pedido_transferencia_extra(pedido),
-                    }
-                )
-            else:
-                # PRODUTO NÃO CONFIGURADO
-                if pedido:
-                    status = "SEPARANDO"
-                    qtde_transferir = pedido.quantidade
-                else:
-                    status = "ALTA" if saldo_vila > 0 else "MEDIA"
-                    qtde_transferir = Decimal('0')
-
-                sugestoes.append(
-                    {
-                        "produto_id": pid,
-                        "codigo": p_info["codigo"],
-                        "codigo_barras": p_info["codigo_barras"],
-                        "nome": p_info["nome"],
-                        "saldo_centro": float(saldo_centro),
-                        "saldo_vila": float(saldo_vila),
-                        "saldo_centro_erp": float(saldo_centro_erp),
-                        "saldo_vila_erp": float(saldo_vila_erp),
-                        "status": status,
-                        "qtde_transferir": float(qtde_transferir),
-                        "qtde_comprar": 0.0,
-                        "configurado": False,
-                        "prioridade": 4 if status == "SEPARANDO" else 1,
-                        **_pedido_transferencia_extra(pedido),
-                    }
-                )
-
-        # Ordenação mágica: Prioridade 1 (Alta) -> 3 (Configurados), e dentro delas em ordem alfabética.
-        sugestoes.sort(key=lambda x: (x["prioridade"], x["nome"]))
-
-        ultima_atualizacao = "Nunca"
-        ultima_regra = ConfiguracaoTransferencia.objects.order_by('-atualizado_em').first()
-        if ultima_regra and ultima_regra.atualizado_em:
-            ultima_atualizacao = localtime(ultima_regra.atualizado_em).strftime("%d/%m às %H:%M")
-
-        return JsonResponse({'sugestoes': sugestoes, 'ultima_atualizacao': ultima_atualizacao})
+        return _resposta_sugestoes_transferencia(sugestoes)
     except Exception as exc:
         return JsonResponse({'ok': False, 'erro': f'Erro: {exc}'}, status=500)
 
 
 @never_cache
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_estoque_sync_health(request):
     """JSON: heartbeat leitura Mongo + build catálogo (ver ``EstoqueSyncHealth``)."""
@@ -1486,7 +1949,7 @@ def api_estoque_sync_health(request):
 
 
 @never_cache
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_estoque_divergencia_ajustes(request):
     """

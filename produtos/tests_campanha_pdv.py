@@ -1,0 +1,131 @@
+"""Testes da campanha inauguração Vila (5% automático)."""
+
+from datetime import date
+from decimal import Decimal
+from unittest import mock
+
+from django.test import SimpleTestCase, override_settings
+
+from produtos.campanha_pdv_util import (
+    CAMPANHA_ID,
+    aplicar_desconto_campanha_nos_itens,
+    arredondar_preco_5_centavos,
+    bootstrap_campanha,
+    campanha_ativa_para_deposito,
+    campanha_no_calendario,
+)
+
+
+class CampanhaInauguracaoVilaTests(SimpleTestCase):
+    def test_ativa_vila_no_dia(self):
+        camp = campanha_ativa_para_deposito("vila", agora=date(2026, 8, 8))
+        self.assertIsNotNone(camp)
+        self.assertEqual(camp["id"], CAMPANHA_ID)
+        self.assertEqual(camp["percentual"], 5.0)
+        self.assertAlmostEqual(camp["fator"], 0.95)
+
+    @override_settings(
+        AGRO_CAMPANHA_INAUGURACAO_TEST=False,
+        AGRO_CAMPANHA_INAUGURACAO_INICIO="",
+        AGRO_CAMPANHA_INAUGURACAO_FIM="",
+    )
+    def test_ativa_vila_dia_07(self):
+        camp = campanha_ativa_para_deposito("vila", agora=date(2026, 8, 7))
+        self.assertIsNotNone(camp)
+        self.assertEqual(camp["data_inicio"], "2026-08-07")
+        self.assertEqual(camp["data_fim"], "2026-08-08")
+
+    def test_centro_nao_aplica(self):
+        self.assertIsNone(campanha_ativa_para_deposito("centro", agora=date(2026, 8, 8)))
+        self.assertIsNone(campanha_ativa_para_deposito("centro", agora=date(2026, 8, 7)))
+
+    def test_fora_da_data_nao_aplica(self):
+        with override_settings(
+            AGRO_CAMPANHA_INAUGURACAO_TEST=False,
+            AGRO_CAMPANHA_INAUGURACAO_INICIO="",
+            AGRO_CAMPANHA_INAUGURACAO_FIM="",
+        ):
+            self.assertIsNone(campanha_ativa_para_deposito("vila", agora=date(2026, 8, 6)))
+            self.assertIsNone(campanha_ativa_para_deposito("vila", agora=date(2026, 8, 9)))
+
+    @override_settings(AGRO_CAMPANHA_INAUGURACAO_OFF="1")
+    def test_kill_switch(self):
+        self.assertIsNone(campanha_ativa_para_deposito("vila", agora=date(2026, 8, 8)))
+
+    @override_settings(AGRO_CAMPANHA_INAUGURACAO_TEST="1")
+    def test_modo_teste_fora_da_data(self):
+        camp = campanha_ativa_para_deposito("vila", agora=date(2026, 8, 1))
+        self.assertIsNotNone(camp)
+        self.assertTrue(camp.get("teste"))
+
+    def test_aplica_preco_itens(self):
+        itens = [{"id": "1", "nome": "X", "qtd": 2, "preco": 100}]
+        out, camp = aplicar_desconto_campanha_nos_itens(itens, "vila", agora=date(2026, 8, 8))
+        self.assertIsNotNone(camp)
+        self.assertEqual(out[0]["preco"], 95.0)
+        self.assertEqual(out[0]["campanha_id"], CAMPANHA_ID)
+        self.assertEqual(out[0]["campanha_modo"], "menor")
+        # original intacto
+        self.assertEqual(itens[0]["preco"], 100)
+
+    def test_menor_valor_promo_vence(self):
+        """Promo R$ 8 vs lista R$ 100×0,95=95 → fica 8."""
+        itens = [{"id": "1", "preco": 8, "preco_base": 100}]
+        out, _ = aplicar_desconto_campanha_nos_itens(itens, "vila", agora=date(2026, 8, 8))
+        self.assertEqual(out[0]["preco"], 8.0)
+
+    def test_menor_valor_campanha_vence(self):
+        """Promo fraca R$ 98 vs lista R$ 100×0,95=95 → fica 95."""
+        itens = [{"id": "1", "preco": 98, "preco_base": 100}]
+        out, _ = aplicar_desconto_campanha_nos_itens(itens, "vila", agora=date(2026, 8, 8))
+        self.assertEqual(out[0]["preco"], 95.0)
+
+    def test_arredonda_5_centavos(self):
+        self.assertEqual(arredondar_preco_5_centavos(Decimal("2.375")), Decimal("2.40"))
+        self.assertEqual(arredondar_preco_5_centavos(Decimal("82.65")), Decimal("82.65"))
+        self.assertEqual(arredondar_preco_5_centavos(Decimal("31.6635")), Decimal("31.65"))
+
+    def test_fator_decimal_arredonda_5c(self):
+        itens = [{"id": "1", "preco": Decimal("33.33")}]
+        out, _ = aplicar_desconto_campanha_nos_itens(itens, "vila", agora=date(2026, 8, 8))
+        self.assertEqual(out[0]["preco"], 31.65)
+
+    def test_milho_1kg_arredonda(self):
+        itens = [{"id": "1", "preco": Decimal("2.50")}]
+        out, _ = aplicar_desconto_campanha_nos_itens(itens, "vila", agora=date(2026, 8, 8))
+        self.assertEqual(out[0]["preco"], 2.40)
+
+    def test_servidor_nao_aplica_duas_vezes_com_preco_base(self):
+        itens = [{"id": "1", "preco": 82.65, "preco_base": 87}]
+        out, _ = aplicar_desconto_campanha_nos_itens(itens, "vila", agora=date(2026, 8, 8))
+        self.assertEqual(out[0]["preco"], 82.65)
+
+    def test_bootstrap_centro_regra_visivel_mas_inativa(self):
+        with mock.patch(
+            "produtos.campanha_pdv_util.campanha_no_calendario",
+            return_value={
+                "id": CAMPANHA_ID,
+                "deposito": "vila",
+                "percentual": 5.0,
+                "fator": 0.95,
+                "rotulo": "x",
+            },
+        ):
+            boot = bootstrap_campanha("centro")
+        self.assertFalse(boot["ativa"])
+        self.assertIsNotNone(boot["regra"])
+
+    def test_bootstrap_vila_ativa(self):
+        with mock.patch(
+            "produtos.campanha_pdv_util.campanha_no_calendario",
+            return_value={
+                "id": CAMPANHA_ID,
+                "deposito": "vila",
+                "percentual": 5.0,
+                "fator": 0.95,
+                "rotulo": "x",
+            },
+        ):
+            boot = bootstrap_campanha("vila")
+        self.assertTrue(boot["ativa"])
+        self.assertEqual(boot["regra"]["id"], CAMPANHA_ID)

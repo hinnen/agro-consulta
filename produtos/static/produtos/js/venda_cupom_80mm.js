@@ -15,6 +15,43 @@
             .replace(/"/g, '&quot;');
     }
 
+    var _jsBarcodePromise = null;
+
+    function cupomEnsureJsBarcode(cb) {
+        cb = typeof cb === 'function' ? cb : function () {};
+        if (global.JsBarcode) {
+            cb();
+            return Promise.resolve();
+        }
+        if (!_jsBarcodePromise) {
+            _jsBarcodePromise = new Promise(function (resolve) {
+                var s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js';
+                s.async = true;
+                s.onload = function () {
+                    resolve();
+                };
+                s.onerror = function () {
+                    resolve();
+                };
+                (document.head || document.documentElement).appendChild(s);
+            });
+        }
+        return _jsBarcodePromise.then(cb);
+    }
+
+    function cupomPreloadRecursos() {
+        cupomEnsureJsBarcode(function () {});
+        try {
+            var url = cupomLogoUrl();
+            if (url) {
+                var img = new Image();
+                img.decoding = 'async';
+                img.src = url;
+            }
+        } catch (ePre) {}
+    }
+
     function cupomLogoUrl() {
         var u = String(global.AGRO_CUPOM_LOGO_URL || '').trim();
         if (!u) u = '/static/produtos/img/logo_termica.png';
@@ -42,6 +79,27 @@
     function isFiadoCupom(c) {
         if (c && c.eh_fiado) return true;
         return /fiado/i.test(String((c && c.forma_pagamento) || ''));
+    }
+
+    function cupomEnsureFreteItem(c, itensRaw) {
+        var itens = Array.isArray(itensRaw) ? itensRaw.slice() : [];
+        var frete = Number((c && c.frete) || 0);
+        if (!isFinite(frete) || frete <= 0.009) return itens;
+        var jaTemFrete = itens.some(function (it) {
+            if (!it || typeof it !== 'object') return false;
+            if (it.eh_frete) return true;
+            var nome = String(it.nome || '').toLowerCase();
+            return nome.indexOf('taxa de entrega') >= 0 || nome === 'frete';
+        });
+        if (jaTemFrete) return itens;
+        itens.push({
+            nome: 'Taxa de entrega',
+            qtd: 1,
+            preco: frete,
+            subtotal: frete,
+            eh_frete: true
+        });
+        return itens;
     }
 
     function parseDataCupomBr(str) {
@@ -131,25 +189,119 @@
         return '<div class="rodape-sistvale">' + escHtml(CUPOM_RODAPE_SISTEMA) + '</div>';
     }
 
+    function buildReciboFiadoInnerHtml(c) {
+        c = c || {};
+        var h = '<div class="pg">';
+        if (c.mostrar_cabecalho !== false) {
+            h += cupomCabecalhoHtml();
+        }
+        h +=
+            '<div style="text-align:center;font-size:11px;font-weight:900;margin:4px 0 3px;letter-spacing:.06em;">' +
+            escHtml(c.subtitulo || 'RECIBO DE PAGAMENTO FIADO') +
+            '</div>';
+        if (c.segunda_via) {
+            h +=
+                '<div style="text-align:center;font-size:10px;font-weight:900;margin:4px 0;border:1px dashed #000;padding:3px;">2ª VIA</div>';
+        }
+        if (c.criado_em) {
+            h += '<div style="font-size:10px;font-weight:800;margin-top:3px;">Data: ' + escHtml(c.criado_em) + '</div>';
+        }
+        if (c.recibo_id) {
+            h += '<div style="font-size:9px;font-weight:700;margin-top:2px;">Recibo #' + escHtml(String(c.recibo_id)) + '</div>';
+        }
+        h += '<div style="border-top:1px dashed #000;margin:6px 0 4px;"></div>';
+        h += cupomNomeClienteHtml(c.cliente_nome);
+        var titulos = Array.isArray(c.titulos) ? c.titulos : Array.isArray(c.itens) ? c.itens : [];
+        if (titulos.length) {
+            h += '<div style="font-size:10px;font-weight:900;margin:8px 0 3px;text-transform:uppercase;">Notinhas pagas</div>';
+            titulos.forEach(function (it) {
+                var nome = String(it.nome || it.documento || '').slice(0, 48);
+                var val = it.valor_pago_texto || moedaCupom(it.valor_pago != null ? it.valor_pago : it.subtotal);
+                h +=
+                    '<div style="display:flex;justify-content:space-between;gap:2px;margin:3px 0;font-size:11px;line-height:1.22;">' +
+                    '<span style="flex:1;min-width:0;">' +
+                    escHtml(nome || '—') +
+                    '</span><span style="white-space:nowrap;font-weight:800;flex-shrink:0;">' +
+                    escHtml(val) +
+                    '</span></div>';
+            });
+        }
+        h +=
+            '<div class="total-linha"><span>PAGO</span><span class="total-valor">' +
+            escHtml(c.valor_pago_texto || c.total_texto || moedaCupom(c.valor_pago || c.total)) +
+            '</span></div>';
+        if (c.forma_pagamento) {
+            h +=
+                '<div style="font-size:11px;margin-top:4px;word-break:break-word;font-weight:800;"><strong>Pag.:</strong> ' +
+                escHtml(c.forma_pagamento) +
+                '</div>';
+        }
+        h +=
+            '<div style="font-size:14px;font-weight:900;margin-top:8px;border:2px solid #000;padding:6px 5px;">' +
+            (c.quitou
+                ? 'Saldo restante: QUITADO'
+                : 'Ainda deve: ' + escHtml(c.saldo_restante_texto || moedaCupom(c.saldo_restante))) +
+            '</div>';
+        if (c.operador) {
+            h += '<div style="font-size:9px;margin-top:6px;color:#334155;">Recebido por: ' + escHtml(c.operador) + '</div>';
+        }
+        if (c.com_assinatura !== false) {
+            h +=
+                '<div class="assinatura">' +
+                '<div class="assinatura-titulo">Assinatura do cliente</div>' +
+                '<div class="assinatura-area"></div>' +
+                '</div>';
+        }
+        h += '<div style="text-align:center;font-size:10px;margin-top:10px;font-weight:600;">Obrigado pela preferência</div>';
+        h += cupomRodapeSistvaleHtml();
+        h += cupomPgCorteHtml();
+        h += '</div>';
+        return h;
+    }
+
     function buildCupomInnerHtml(c) {
         c = c || {};
+        if (c.tipo === 'recibo_fiado') {
+            return buildReciboFiadoInnerHtml(c);
+        }
+        if (c.tipo === 'nfce') {
+            return buildNfceCupomInnerHtml(c);
+        }
         var fiado = isFiadoCupom(c);
         var subtitulo =
             c.subtitulo ||
             (fiado ? 'COMPROVANTE FIADO' : 'COMPROVANTE DE VENDA');
-        var itens = Array.isArray(c.itens) ? c.itens : [];
+        var itens = cupomEnsureFreteItem(c, c.itens);
         var lines = '';
         itens.forEach(function (it) {
             var q = Number(it.qtd != null ? it.qtd : 0);
             var sub = it.subtotal != null ? Number(it.subtotal) : q * Number(it.preco != null ? it.preco : 0);
             var subTxt = isFinite(sub) ? moedaCupom(sub) : '—';
             var nome = String(it.nome || '').slice(0, 52);
+            var devTotal = !!it.devolvido_total;
+            var devParc = !!it.devolvido_parcial;
+            var rotulo = fmtQtd(q) + '× ' + nome;
+            if (devParc) {
+                var qRest = Number(it.qtd_restante != null ? it.qtd_restante : q);
+                rotulo = fmtQtd(qRest) + '× ' + nome + ' (parc. devolvido)';
+            } else if (devTotal) {
+                rotulo = fmtQtd(q) + '× ' + nome + ' (devolvido)';
+            }
+            // <s> nos filhos: text-decoration no flex some na impressão do Chrome
+            var left = escHtml(rotulo);
+            var right = escHtml(subTxt);
+            if (devTotal) {
+                left = '<s style="text-decoration:line-through;">' + left + '</s>';
+                right = '<s style="text-decoration:line-through;">' + right + '</s>';
+            }
             lines +=
-                '<div style="display:flex;justify-content:space-between;gap:2px;margin:3px 0;font-size:11px;line-height:1.22;">' +
+                '<div style="display:flex;justify-content:space-between;gap:2px;margin:3px 0;font-size:11px;line-height:1.22;' +
+                (devTotal ? 'opacity:.75;' : '') +
+                '">' +
                 '<span style="flex:1;min-width:0;">' +
-                escHtml(fmtQtd(q) + '× ' + nome) +
+                left +
                 '</span><span style="white-space:nowrap;font-weight:800;flex-shrink:0;font-size:11px;">' +
-                escHtml(subTxt) +
+                right +
                 '</span></div>';
         });
 
@@ -177,6 +329,8 @@
         }
         if (c.devolvida) {
             h += '<div style="text-align:center;font-size:10px;font-weight:900;margin:4px 0;color:#b91c1c;">*** DEVOLVIDA ***</div>';
+        } else if (c.tem_devolucao_parcial) {
+            h += '<div style="text-align:center;font-size:10px;font-weight:900;margin:4px 0;border:1px dashed #000;padding:3px;">DEVOLUÇÃO PARCIAL</div>';
         }
         h += '<div style="border-top:1px dashed #000;margin:6px 0 4px;"></div>';
         h += cupomNomeClienteHtml(c.cliente_nome);
@@ -202,6 +356,12 @@
             '<div class="total-linha"><span>TOTAL</span><span class="total-valor">' +
             escHtml(c.total_texto || moedaCupom(c.total)) +
             '</span></div>';
+        if (c.tem_devolucao_parcial && c.total_original_texto) {
+            h +=
+                '<div style="font-size:9px;font-weight:700;text-align:right;margin-top:2px;text-decoration:line-through;opacity:.7;">Original ' +
+                escHtml(c.total_original_texto) +
+                '</div>';
+        }
         if (c.forma_pagamento) {
             h +=
                 '<div style="font-size:11px;margin-top:4px;word-break:break-word;font-weight:800;"><strong>Pag.:</strong> ' +
@@ -225,6 +385,129 @@
                 '</div>';
         }
         h += '<div style="text-align:center;font-size:10px;margin-top:10px;font-weight:600;">Obrigado pela preferência</div>';
+        h += cupomRodapeSistvaleHtml();
+        h += cupomPgCorteHtml();
+        h += '</div>';
+        return h;
+    }
+
+    function formatChaveNfce(chave) {
+        var s = String(chave || '').replace(/\D/g, '');
+        if (s.length !== 44) return s;
+        var out = [];
+        var i;
+        for (i = 0; i < s.length; i += 4) {
+            out.push(s.slice(i, i + 4));
+        }
+        return out.join(' ');
+    }
+
+    function buildNfceCupomInnerHtml(c) {
+        c = c || {};
+        var itens = cupomEnsureFreteItem(c, c.itens);
+        var lines = '';
+        itens.forEach(function (it) {
+            var q = Number(it.qtd != null ? it.qtd : 0);
+            var sub = it.subtotal != null ? Number(it.subtotal) : q * Number(it.preco != null ? it.preco : 0);
+            lines +=
+                '<div style="display:flex;justify-content:space-between;gap:2px;margin:3px 0;font-size:11px;line-height:1.22;">' +
+                '<span style="flex:1;min-width:0;">' +
+                escHtml(fmtQtd(q) + '× ' + String(it.nome || '').slice(0, 48)) +
+                '</span><span style="white-space:nowrap;font-weight:800;">' +
+                escHtml(moedaCupom(sub)) +
+                '</span></div>';
+        });
+        var qrImg = '';
+        if (c.qr_code_url) {
+            qrImg =
+                '<div style="text-align:center;margin:8px 0 4px;"><img alt="QR NFC-e" style="width:42mm;max-width:100%;height:auto;" src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' +
+                encodeURIComponent(String(c.qr_code_url)) +
+                '"></div>';
+        }
+        var h = '<div class="pg">';
+        if (c.homologacao) {
+            h +=
+                '<div style="text-align:center;font-size:10px;font-weight:900;border:2px dashed #000;padding:4px;margin-bottom:6px;">EMITIDA EM HOMOLOGAÇÃO — SEM VALOR FISCAL</div>';
+        }
+        if (c.emitente_razao_social) {
+            h += '<div style="text-align:center;font-size:10px;font-weight:900;line-height:1.25;">' + escHtml(c.emitente_razao_social) + '</div>';
+        }
+        if (c.emitente_fantasia && c.emitente_fantasia !== c.emitente_razao_social) {
+            h += '<div style="text-align:center;font-size:10px;font-weight:800;line-height:1.25;">' + escHtml(c.emitente_fantasia) + '</div>';
+        } else if (!c.emitente_razao_social && c.emitente_fantasia) {
+            h += '<div style="text-align:center;font-size:11px;font-weight:900;line-height:1.25;">' + escHtml(c.emitente_fantasia) + '</div>';
+        }
+        if (c.emitente_cnpj) {
+            h += '<div style="text-align:center;font-size:9px;">CNPJ ' + escHtml(c.emitente_cnpj) + ' · IE ' + escHtml(c.emitente_ie || '—') + '</div>';
+        }
+        if (c.emitente_endereco) {
+            h += '<div style="text-align:center;font-size:9px;line-height:1.25;margin:2px 0 4px;">' + escHtml(c.emitente_endereco) + '</div>';
+        }
+        h +=
+            '<div style="text-align:center;font-size:10px;font-weight:900;line-height:1.2;margin:6px 0 2px;">DOCUMENTO AUXILIAR DA NOTA FISCAL DE CONSUMIDOR ELETRÔNICA</div>';
+        h +=
+            '<div style="text-align:center;font-size:9px;font-weight:800;line-height:1.2;margin:0 0 4px;">NÃO PERMITE APROVEITAMENTO DE CRÉDITO DE ICMS</div>';
+        if (c.emissao_normal && !c.homologacao) {
+            h += '<div style="text-align:center;font-size:9px;margin-bottom:4px;">EMISSÃO NORMAL</div>';
+        }
+        h += '<div style="font-size:10px;font-weight:800;">NFC-e nº ' + escHtml(String(c.numero_nf || '')) + ' · Série ' + escHtml(String(c.serie_nf || '')) + '</div>';
+        if (c.criado_em) {
+            h += '<div style="font-size:10px;">Emissão: ' + escHtml(c.criado_em) + '</div>';
+        }
+        if (c.protocolo) {
+            h += '<div style="font-size:9px;word-break:break-all;">Protocolo: ' + escHtml(c.protocolo) + '</div>';
+        }
+        h += '<div style="border-top:1px dashed #000;margin:6px 0 4px;"></div>';
+        h += cupomNomeClienteHtml(c.cliente_nome);
+        if (c.cliente_cpf) {
+            var rotuloDoc = c.cliente_doc_rotulo || 'CPF';
+            h += '<div style="font-size:10px;font-weight:800;">' + escHtml(rotuloDoc) + ' ' + escHtml(c.cliente_cpf) + '</div>';
+        } else if (c.consumidor_sem_identificacao) {
+            h += '<div style="font-size:10px;font-weight:800;">Consumidor não identificado</div>';
+        }
+        h += lines;
+        if (c.qtd_itens) {
+            h += '<div style="font-size:10px;margin-top:4px;">Qtd. total de itens: ' + escHtml(String(c.qtd_itens)) + '</div>';
+        }
+        h +=
+            '<div class="total-linha"><span>TOTAL</span><span class="total-valor">' +
+            escHtml(c.total_texto || moedaCupom(c.total)) +
+            '</span></div>';
+        if (c.desconto_texto && Number(c.desconto || 0) >= 0) {
+            h += '<div style="font-size:10px;">Desconto: ' + escHtml(c.desconto_texto) + '</div>';
+        }
+        if (c.forma_pagamento) {
+            h += '<div style="font-size:11px;margin-top:4px;font-weight:800;">Pag.: ' + escHtml(c.forma_pagamento) + '</div>';
+        }
+        if (c.valor_pago_texto) {
+            h += '<div style="font-size:10px;">Valor pago: ' + escHtml(c.valor_pago_texto) + '</div>';
+        }
+        if (Number(c.troco || 0) > 0 && c.troco_texto) {
+            h += '<div style="font-size:10px;font-weight:800;">Troco: ' + escHtml(c.troco_texto) + '</div>';
+        }
+        if (c.ibpt_texto) {
+            h +=
+                '<div style="font-size:8px;line-height:1.25;margin:6px 0 4px;text-align:center;">' +
+                escHtml(c.ibpt_texto) +
+                '</div>';
+        }
+        if (c.chave) {
+            h +=
+                '<div style="font-size:8px;line-height:1.25;margin-top:6px;word-break:break-word;">Chave: ' +
+                escHtml(formatChaveNfce(c.chave)) +
+                '</div>';
+        }
+        h += qrImg;
+        if (c.url_consulta_chave) {
+            h +=
+                '<div style="text-align:center;font-size:8px;line-height:1.2;margin-top:4px;word-break:break-all;">' +
+                escHtml(c.url_consulta_chave) +
+                '</div>';
+        }
+        h += '<div style="text-align:center;font-size:9px;margin-top:4px;">Consulte pela chave de acesso ou QR Code</div>';
+        if (c.segunda_via) {
+            h += '<div style="text-align:center;font-size:10px;font-weight:900;margin:4px 0;border:1px dashed #000;padding:3px;">2ª VIA</div>';
+        }
         h += cupomRodapeSistvaleHtml();
         h += cupomPgCorteHtml();
         h += '</div>';
@@ -300,9 +583,9 @@
         cb = typeof cb === 'function' ? cb : function () {};
         try {
             var svg = idoc.getElementById('barc-orc');
-            var win = idoc.defaultView;
-            if (svg && win && typeof win.JsBarcode !== 'undefined') {
-                win.JsBarcode(svg, barcodeVal, {
+            var JB = global.JsBarcode;
+            if (svg && JB) {
+                JB(svg, barcodeVal, {
                     format: 'CODE128',
                     width: 1.35,
                     height: 44,
@@ -318,15 +601,7 @@
     }
 
     function cupomLoadJsBarcodeInDoc(idoc, cb) {
-        cb = typeof cb === 'function' ? cb : function () {};
-        var old = idoc.querySelector('script[data-agro-jsbarcode-cupom]');
-        if (old) old.remove();
-        var s = idoc.createElement('script');
-        s.setAttribute('data-agro-jsbarcode-cupom', '1');
-        s.src = 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js';
-        s.onload = cb;
-        s.onerror = cb;
-        idoc.head.appendChild(s);
+        cupomEnsureJsBarcode(cb);
     }
 
     function cupomPrintIframeWindow(win, cb) {
@@ -356,8 +631,8 @@
         if (!pages.length) return Promise.resolve(false);
         var styles = opts.styles || cupomStyles();
         var iframe = cupomEnsureIframe(opts.iframeId || 'agro-print-iframe-cupom-venda', opts.title || 'Cupom');
-        var gapMs = isFinite(opts.gapMs) ? opts.gapMs : 500;
-        var readyDelay = isFinite(opts.readyDelay) ? opts.readyDelay : 120;
+        var gapMs = isFinite(opts.gapMs) ? opts.gapMs : 420;
+        var readyDelay = isFinite(opts.readyDelay) ? opts.readyDelay : 80;
         var idx = 0;
 
         return new Promise(function (resolve) {
@@ -405,7 +680,142 @@
         });
     }
 
+    function agroImprimirReciboFiado80mm(c) {
+        c = c || {};
+        if (c.tipo !== 'recibo_fiado') c.tipo = 'recibo_fiado';
+        var html = buildReciboFiadoInnerHtml(c);
+        if (!html) {
+            alert('Não foi possível montar o recibo.');
+            return false;
+        }
+        var iframe = cupomEnsureIframe('agro-print-iframe-recibo-fiado', 'Recibo fiado');
+        var idoc = cupomWritePageInIframe(iframe, cupomStyles(), 'Recibo fiado', html);
+        cupomWhenImagesReady(idoc, function () {
+            try {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+            } catch (errP) {
+                alert('Não foi possível abrir a impressão. Verifique a impressora térmica 80mm.');
+            }
+        }, 80);
+        return true;
+    }
+
+    function agroUrlReciboFiado(opts) {
+        opts = opts || {};
+        var id = parseInt(opts.recibo_id != null ? opts.recibo_id : opts.reciboId, 10);
+        var qs = [];
+        if (opts.segunda_via) qs.push('segunda_via=1');
+        if (id) {
+            return '/api/fiado/recibo/' + id + '/' + (qs.length ? '?' + qs.join('&') : '');
+        }
+        var ids = Array.isArray(opts.baixas_ids) ? opts.baixas_ids : [];
+        if (!ids.length && opts.baixas) {
+            ids = String(opts.baixas)
+                .split(',')
+                .map(function (x) {
+                    return parseInt(String(x).trim(), 10);
+                })
+                .filter(function (n) {
+                    return !!n;
+                });
+        }
+        if (!ids.length) return '';
+        qs.unshift('baixas=' + ids.join(','));
+        return '/api/fiado/recibo/?' + qs.join('&');
+    }
+
+    function agroCarregarEImprimirReciboFiado(opts) {
+        opts = opts || {};
+        var url = agroUrlReciboFiado(opts);
+        if (!url) return Promise.reject(new Error('Recibo inválido.'));
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
+        return fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+            .then(function (r) {
+                return r.json().then(function (d) {
+                    if (!r.ok || !d.ok) throw new Error((d && d.erro) || 'Falha ao carregar recibo.');
+                    return d.cupom || d;
+                });
+            })
+            .then(function (cupom) {
+                agroImprimirReciboFiado80mm(cupom);
+            })
+            .finally(function () {
+                if (window.gmLoadingBar) window.gmLoadingBar.hide();
+            });
+    }
+
+    function agroEscolherImprimirReciboFiado(opts) {
+        opts = opts || {};
+        if (typeof opts === 'number' || (typeof opts === 'string' && String(opts).trim() !== '')) {
+            opts = { recibo_id: opts };
+        }
+
+        return new Promise(function (resolveEscolha) {
+            var overlay = document.getElementById('agro-modal-recibo-fiado');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'agro-modal-recibo-fiado';
+                overlay.className =
+                    'fixed inset-0 z-[120] hidden items-center justify-center p-3 bg-slate-900/65';
+                overlay.setAttribute('role', 'dialog');
+                overlay.setAttribute('aria-modal', 'true');
+                overlay.innerHTML =
+                    '<div class="w-full max-w-md rounded-2xl border-2 border-orange-300 bg-white shadow-2xl p-4 sm:p-5">' +
+                    '<h2 class="text-lg font-black text-orange-950">Pagamento fiado registrado</h2>' +
+                    '<p class="mt-2 text-sm font-semibold text-slate-700 leading-snug">Imprimir recibo na térmica 80 mm agora?</p>' +
+                    '<div class="mt-4 flex flex-col-reverse sm:flex-row flex-wrap gap-2 sm:justify-end">' +
+                    '<button type="button" data-agro-recibo-nao class="min-h-[48px] px-4 rounded-xl border-2 border-slate-200 text-xs font-black uppercase text-slate-700 hover:bg-slate-50">Agora não</button>' +
+                    '<button type="button" data-agro-recibo-sim class="min-h-[48px] px-5 rounded-xl border-2 border-orange-500 bg-orange-500 text-xs font-black uppercase text-white hover:bg-orange-600">Imprimir recibo</button>' +
+                    '</div></div>';
+                document.body.appendChild(overlay);
+            }
+
+            var btnNao = overlay.querySelector('[data-agro-recibo-nao]');
+            var btnSim = overlay.querySelector('[data-agro-recibo-sim]');
+
+            function fecharModal() {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+            }
+
+            function escolher(sim) {
+                fecharModal();
+                resolveEscolha(!!sim);
+            }
+
+            btnNao.onclick = function () {
+                escolher(false);
+            };
+            btnSim.onclick = function () {
+                escolher(true);
+            };
+            overlay.onclick = function (e) {
+                /* Fundo nao fecha — so X / FECHAR / Esc */
+            };
+
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+            setTimeout(function () {
+                if (btnSim) btnSim.focus();
+            }, 40);
+        }).then(function (quImprime) {
+            if (!quImprime) return false;
+            return agroCarregarEImprimirReciboFiado(Object.assign({}, opts, { segunda_via: false }))
+                .then(function () {
+                    return true;
+                })
+                .catch(function (err) {
+                    alert(err && err.message ? err.message : 'Não foi possível imprimir o recibo.');
+                    return false;
+                });
+        });
+    }
+
     function agroImprimirCupomVenda80mm(c) {
+        if (c && c.tipo === 'recibo_fiado') {
+            return agroImprimirReciboFiado80mm(c);
+        }
         if (!c || (!c.itens || !c.itens.length)) {
             alert('Não há itens para imprimir nesta venda.');
             return false;
@@ -430,13 +840,44 @@
             } catch (errP) {
                 alert('Não foi possível abrir a impressão. Verifique a impressora térmica 80mm.');
             }
-        }, 120);
+        }, 80);
         return true;
+    }
+
+    function cupomPrintBodyInIframe(opts) {
+        opts = opts || {};
+        var bodyHtml = opts.bodyHtml || '';
+        if (!bodyHtml) return;
+        var styles = opts.styles || cupomStyles();
+        var iframe = cupomEnsureIframe(opts.iframeId || 'agro-print-iframe-generic', opts.title || 'Impressão');
+        var idoc = cupomWritePageInIframe(iframe, styles, opts.title || 'Impressão', bodyHtml);
+        var readyDelay = isFinite(opts.readyDelay) ? opts.readyDelay : 80;
+        var barcodeVal = opts.barcodeVal != null ? String(opts.barcodeVal) : '';
+        var goPrint = function () {
+            cupomWhenImagesReady(
+                idoc,
+                function () {
+                    try {
+                        iframe.contentWindow.focus();
+                        iframe.contentWindow.print();
+                    } catch (ePr) {}
+                    if (typeof opts.onDone === 'function') opts.onDone();
+                },
+                readyDelay
+            );
+        };
+        if (barcodeVal) {
+            cupomEnsureJsBarcode(function () {
+                cupomRunJsBarcodeInDoc(idoc, barcodeVal, goPrint);
+            });
+        } else {
+            goPrint();
+        }
     }
 
     function cupomWhenImagesReady(doc, fn, minDelayMs) {
         fn = typeof fn === 'function' ? fn : function () {};
-        minDelayMs = isFinite(minDelayMs) ? minDelayMs : 150;
+        minDelayMs = isFinite(minDelayMs) ? minDelayMs : 80;
         if (!doc || !doc.querySelectorAll) {
             setTimeout(fn, minDelayMs);
             return;
@@ -446,7 +887,15 @@
             setTimeout(fn, minDelayMs);
             return;
         }
-        var pending = imgs.length;
+        var pending = 0;
+        var i;
+        for (i = 0; i < imgs.length; i++) {
+            if (!imgs[i].complete) pending += 1;
+        }
+        if (pending <= 0) {
+            setTimeout(fn, Math.min(minDelayMs, 40));
+            return;
+        }
         var done = false;
         var finish = function () {
             if (done) return;
@@ -457,24 +906,26 @@
             pending -= 1;
             if (pending <= 0) finish();
         };
-        for (var i = 0; i < imgs.length; i++) {
+        for (i = 0; i < imgs.length; i++) {
             var img = imgs[i];
             if (img.complete) {
                 tick();
             } else {
-                img.addEventListener('load', tick);
-                img.addEventListener('error', tick);
+                img.addEventListener('load', tick, { once: true });
+                img.addEventListener('error', tick, { once: true });
             }
         }
-        if (pending <= 0) finish();
-        setTimeout(finish, 4000);
+        setTimeout(finish, 2500);
     }
 
     function agroCarregarEImprimirCupomVenda(vendaId, opts) {
         opts = opts || {};
         var id = parseInt(vendaId, 10);
         if (!id) return Promise.reject(new Error('Venda inválida.'));
-        var qs = opts.segunda_via === false ? '?segunda_via=0' : '';
+        var qsParts = [];
+        if (opts.segunda_via === false) qsParts.push('segunda_via=0');
+        if (opts.interno) qsParts.push('interno=1');
+        var qs = qsParts.length ? '?' + qsParts.join('&') : '';
         if (window.gmLoadingBar) window.gmLoadingBar.show();
         return fetch('/venda/' + id + '/cupom/' + qs, {
             credentials: 'same-origin',
@@ -494,8 +945,95 @@
             });
     }
 
+    function agroEscolherImprimirCupomPosNfce(vendaId, opts) {
+        opts = opts || {};
+        var id = parseInt(vendaId, 10);
+
+        function concluir(imprimiu) {
+            if (typeof opts.onDone === 'function') opts.onDone(!!imprimiu);
+        }
+
+        if (!id || typeof agroCarregarEImprimirCupomVenda !== 'function') {
+            concluir(false);
+            return Promise.resolve(false);
+        }
+
+        return new Promise(function (resolveEscolha) {
+            var overlay = document.getElementById('agro-modal-nfce-pos-imprimir');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'agro-modal-nfce-pos-imprimir';
+                overlay.className =
+                    'fixed inset-0 z-[120] hidden items-center justify-center p-3 bg-slate-900/65';
+                overlay.setAttribute('role', 'dialog');
+                overlay.setAttribute('aria-modal', 'true');
+                overlay.innerHTML =
+                    '<div class="w-full max-w-md rounded-2xl border-2 border-emerald-300 bg-white shadow-2xl p-4 sm:p-5">' +
+                    '<h2 class="text-lg font-black text-emerald-950">NFC-e autorizada</h2>' +
+                    '<p class="mt-2 text-sm font-semibold text-slate-700 leading-snug">Deseja imprimir o cupom fiscal na impressora térmica agora?</p>' +
+                    '<div class="mt-4 flex flex-col-reverse sm:flex-row flex-wrap gap-2 sm:justify-end">' +
+                    '<button type="button" data-agro-nfce-pos-nao class="min-h-[48px] px-4 rounded-xl border-2 border-slate-200 text-xs font-black uppercase text-slate-700 hover:bg-slate-50">Agora não</button>' +
+                    '<button type="button" data-agro-nfce-pos-sim class="min-h-[48px] px-5 rounded-xl border-2 border-emerald-500 bg-emerald-500 text-xs font-black uppercase text-white hover:bg-emerald-600">Imprimir cupom</button>' +
+                    '</div></div>';
+                document.body.appendChild(overlay);
+            }
+
+            var btnNao = overlay.querySelector('[data-agro-nfce-pos-nao]');
+            var btnSim = overlay.querySelector('[data-agro-nfce-pos-sim]');
+
+            function fecharModal() {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+            }
+
+            function escolher(sim) {
+                fecharModal();
+                resolveEscolha(!!sim);
+            }
+
+            btnNao.onclick = function () {
+                escolher(false);
+            };
+            btnSim.onclick = function () {
+                escolher(true);
+            };
+            overlay.onclick = function (e) {
+                /* Fundo nao fecha — so X / FECHAR / Esc */
+            };
+
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+            setTimeout(function () {
+                if (btnSim) btnSim.focus();
+            }, 40);
+        }).then(function (quImprime) {
+            if (!quImprime) {
+                concluir(false);
+                return false;
+            }
+            return agroCarregarEImprimirCupomVenda(id, { segunda_via: false })
+                .then(function () {
+                    concluir(true);
+                    return true;
+                })
+                .catch(function (err) {
+                    alert(
+                        err && err.message
+                            ? err.message
+                            : 'Não foi possível imprimir o cupom fiscal.'
+                    );
+                    concluir(false);
+                    return false;
+                });
+        });
+    }
+
     global.agroImprimirCupomVenda80mm = agroImprimirCupomVenda80mm;
+    global.agroImprimirReciboFiado80mm = agroImprimirReciboFiado80mm;
+    global.agroCarregarEImprimirReciboFiado = agroCarregarEImprimirReciboFiado;
+    global.agroEscolherImprimirReciboFiado = agroEscolherImprimirReciboFiado;
     global.agroCarregarEImprimirCupomVenda = agroCarregarEImprimirCupomVenda;
+    global.agroEscolherImprimirCupomPosNfce = agroEscolherImprimirCupomPosNfce;
     global.agroBuildCupomVenda80mmHtml = buildCupomDocumentHtml;
     global.agroCupomInnerHtml = buildCupomInnerHtml;
     global.agroCupomPagesInnerHtml = buildCupomPagesInnerHtml;
@@ -508,4 +1046,13 @@
     global.agroCupomRodapeSistvaleHtml = cupomRodapeSistvaleHtml;
     global.agroCupomZapHtml = cupomZapHtml;
     global.agroCupomWhenImagesReady = cupomWhenImagesReady;
+    global.agroCupomEnsureJsBarcode = cupomEnsureJsBarcode;
+    global.agroCupomPreloadRecursos = cupomPreloadRecursos;
+    global.agroCupomPrintBodyInIframe = cupomPrintBodyInIframe;
+
+    if (typeof global.requestIdleCallback === 'function') {
+        global.requestIdleCallback(cupomPreloadRecursos, { timeout: 5000 });
+    } else {
+        setTimeout(cupomPreloadRecursos, 1200);
+    }
 })(typeof window !== 'undefined' ? window : globalThis);

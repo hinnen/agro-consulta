@@ -60,6 +60,12 @@ GM_LOADING_BAR_SHOW_DELAY_MS (opcional, antes deste include): 0 = sem atraso; pa
         concealBar();
       }
     },
+    reset: function () {
+      depth = 0;
+      clearTimeout(showTimer);
+      showTimer = null;
+      concealBar();
+    },
     wrap: function (p) {
       this.show();
       return Promise.resolve(p).finally(function () {

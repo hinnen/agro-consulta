@@ -468,6 +468,7 @@
 {% block pdv_section_class %}flex flex-col flex-1 min-h-0 overflow-hidden p-0 m-0 max-w-none{% endblock %}
 {% block pdv_content %}
 {% include "produtos/_gm_loading_bar.html" %}
+{% include "produtos/includes/pdv_catalog_boot_splash.html" %}
 {% if pdv_reabrir_data %}
 {{ pdv_reabrir_data|json_script:"pdv-reabrir-draft" }}
 {% endif %}
@@ -476,7 +477,17 @@
 {{ pdv_bootstrap|json_script:"agro-pdv-bootstrap" }}
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 {% include "produtos/_js_busca_produto_inteligente.html" %}
+<script src="{% static 'produtos/js/pdv_offline_cache.js' %}{% if agro_pdv_assets_v %}?v={{ agro_pdv_assets_v }}{% endif %}"></script>
 <script src="{% static 'produtos/js/pdv_promocoes.js' %}{% if agro_pdv_assets_v %}?v={{ agro_pdv_assets_v }}{% endif %}"></script>
+<script src="{% static 'produtos/js/precos_forma_pagamento.js' %}{% if agro_pdv_assets_v %}?v={{ agro_pdv_assets_v }}{% endif %}"></script>
+<script>
+(function () {
+  if (window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.carregarTabelasGlobais) {
+    window.AgroPrecosFormaPagamento.carregarTabelasGlobais('/api/tabelas-preco-forma/pdv/');
+  }
+})();
+</script>
+<script src="{% static 'produtos/js/agro_busca_catalogo.js' %}{% if agro_pdv_assets_v %}?v={{ agro_pdv_assets_v }}{% endif %}"></script>
 <script src="{% static 'produtos/js/consulta_produtos.js' %}{% if agro_pdv_assets_v %}?v={{ agro_pdv_assets_v }}{% endif %}"></script>
 <script>
 (function () {

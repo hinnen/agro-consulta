@@ -1,0 +1,463 @@
+"""Busca por código GM / barras no cadastro SisVale (Postgres e fallback Mongo)."""
+from __future__ import annotations
+
+import re
+from typing import Any
+
+from django.db.models import Q
+
+from produtos.mongo_index_codigos import (
+    CAD_EXTRAS_CB_OPCIONAIS_KEYS,
+    mongo_query_so_index_codigo,
+    produto_termo_bate_campos_principais,
+    somente_alnum,
+)
+
+_RE_NAO_ALNUM = re.compile(r"[^a-zA-Z0-9]")
+
+
+def termo_eh_codigo_gm(termo: str) -> bool:
+    """Etiqueta GM (ex. GM9503) — não usar ``icontains`` só-dígitos (9503 ≠ GM9503)."""
+    return bool(re.match(r"^gm", str(termo or "").strip(), re.I))
+
+
+def gm_base_familia(termo: str) -> str | None:
+    """
+    Prefixo de família GM sem variante: ``GM0024`` / ``gm0024`` → ``GM0024``.
+    Com hífen (``GM0024-10``) → None (etiqueta completa, não expandir família).
+    """
+    t = str(termo or "").strip()
+    if not t or "-" in t:
+        return None
+    al = somente_alnum(t)
+    m = re.match(r"^(gm\d{4})$", al, re.I)
+    if not m:
+        return None
+    return m.group(1).upper()
+
+
+def q_prefixo_codigo_ci(*campos: str, prefixo: str) -> Q:
+    """Prefixo case-insensitive (Postgres: ``istartswith`` é case-sensitive)."""
+    p = str(prefixo or "").strip()
+    if not p or not campos:
+        return Q(pk__in=[])
+    variantes = {p, p.lower(), p.upper()}
+    if p[:2].lower() == "gm" and len(p) > 2:
+        variantes.add("GM" + p[2:])
+        variantes.add("gm" + p[2:])
+    esc = re.escape(p)
+    q = Q()
+    for c in campos:
+        q |= Q(**{f"{c}__iregex": rf"^{esc}"})
+        for v in variantes:
+            q |= Q(**{f"{c}__istartswith": v})
+    return q
+
+
+def q_familia_gm_cadastro(termo: str) -> Q | None:
+    """Todas as variantes ``GMXXXX`` / ``GMXXXX-*`` (case-insensitive)."""
+    base = gm_base_familia(termo)
+    if not base:
+        return None
+    # base já é GM0024 uppercase
+    bl = base.lower()
+    esc = re.escape(base)
+    return (
+        Q(codigo_nfe__iregex=rf"^{esc}(-|$)")
+        | Q(codigo_interno__iregex=rf"^{esc}(-|$)")
+        | Q(codigo_barras__iregex=rf"^{esc}(-|$)")
+        | Q(codigo_nfe__istartswith=base)
+        | Q(codigo_nfe__istartswith=bl)
+        | Q(codigo_interno__istartswith=base)
+        | Q(codigo_interno__istartswith=bl)
+        | Q(codigo_nfe__icontains=base)
+        | Q(codigo_nfe__icontains=bl)
+    )
+
+
+def parece_codigo_cadastro(termo: str) -> bool:
+    t = str(termo or "").strip()
+    if not t:
+        return False
+    lim = _RE_NAO_ALNUM.sub("", t)
+    if not lim:
+        return False
+    if lim.isdigit():
+        return len(lim) >= 8
+    if re.match(r"^gm", lim, re.I):
+        return len(lim) >= 5
+    tem_l = bool(re.search(r"[a-zA-Z]", lim))
+    tem_n = bool(re.search(r"\d", lim))
+    return tem_l and tem_n and len(lim) >= 3 and " " not in t
+
+
+def variantes_gm_literal(raw: str) -> set[str]:
+    n = str(raw or "").strip().lower()
+    out: set[str] = set()
+    if not n or not n.startswith("gm"):
+        return out
+    out.add(n)
+    al = somente_alnum(n).lower()
+    if len(al) >= 5:
+        out.add(al)
+    m = re.match(r"^gm(\d{3,})([a-z]?)$", al)
+    if m:
+        digits, suf = m.group(1), m.group(2) or ""
+        if len(digits) >= 4:
+            out.add(f"gm{digits[:4]}-{digits[4:]}{suf}")
+            if suf:
+                out.add(f"gm{digits}{suf}")
+            out.add(f"gm{digits}")
+    return out
+
+
+def _norm_cmp(val: Any) -> str:
+    return str(val or "").strip().lower()
+
+
+def _alnum_cmp(val: Any) -> str:
+    return somente_alnum(str(val or "")).lower()
+
+
+def termo_bate_valor_codigo(termo: str, val: Any) -> bool:
+    if val is None or str(val).strip() == "":
+        return False
+    t = _norm_cmp(termo)
+    tn = _alnum_cmp(termo)
+    vn = _norm_cmp(val)
+    va = _alnum_cmp(val)
+    if not t:
+        return False
+    if vn == t:
+        return True
+    if tn and va and tn == va:
+        return True
+    if t.isdigit():
+        vd = _RE_NAO_ALNUM.sub("", str(val))
+        if vd == t:
+            return True
+    if tn and len(tn) >= 5 and va and va == tn:
+        return True
+    if t.startswith("gm") and len(t) >= 3:
+        if vn.startswith(t):
+            return True
+        if tn and len(tn) >= 3 and va.startswith(tn):
+            return True
+        for v in variantes_gm_literal(t):
+            if vn == v or va == somente_alnum(v).lower():
+                return True
+    return False
+
+
+def termo_bate_codigos_produto(
+    termo: str,
+    *,
+    codigo_interno: str | None = None,
+    codigo_nfe: str | None = None,
+    codigo_barras: str | None = None,
+    extras: tuple[str | None, ...] = (),
+) -> bool:
+    campos = (codigo_nfe, codigo_barras, codigo_interno, *extras)
+    return any(termo_bate_valor_codigo(termo, c) for c in campos if c)
+
+
+def q_nome_tokens_cadastro(termo: str) -> Q | None:
+    """Busca textual leve (nome/marca por token) — evita OR em 8 colunas."""
+    parts = [p.strip() for p in (termo or "").split() if len(p.strip()) >= 2]
+    if not parts:
+        return None
+    q_obj = Q()
+    for pl in parts:
+        q_obj &= Q(nome__icontains=pl) | Q(marca__icontains=pl) | Q(modelo__icontains=pl)
+    return q_obj
+
+
+def q_codigo_exato_cadastro(termo: str) -> Q | None:
+    """Match indexável (barras, GM, ids) — sem varrer o catálogo inteiro."""
+    termo = (termo or "").strip()
+    if not termo:
+        return None
+    q_obj: Q | None = None
+    digits = _RE_NAO_ALNUM.sub("", termo)
+
+    def _or(q_new: Q) -> None:
+        nonlocal q_obj
+        q_obj = q_new if q_obj is None else (q_obj | q_new)
+
+    if digits and len(digits) >= 4:
+        _or(Q(codigo_barras=digits) | Q(codigo_barras__iexact=termo.strip()))
+        if not termo_eh_codigo_gm(termo):
+            _or(Q(codigo_interno__iexact=digits) | Q(codigo_nfe__iexact=digits))
+    for v in variantes_gm_literal(termo):
+        _or(Q(codigo_interno__iexact=v) | Q(codigo_nfe__iexact=v))
+    if termo_eh_codigo_gm(termo):
+        esc = termo.strip()
+        _or(q_prefixo_codigo_ci("codigo_interno", "codigo_nfe", prefixo=esc))
+        fam = q_familia_gm_cadastro(termo)
+        if fam is not None:
+            _or(fam)
+        al_gm = somente_alnum(termo).lower()
+        if al_gm.startswith("gm") and len(al_gm) >= 5:
+            _or(Q(codigo_nfe__icontains=al_gm) | Q(codigo_interno__icontains=al_gm))
+    tl = somente_alnum(termo).lower()
+    if tl and len(tl) >= 3:
+        _or(Q(produto_externo_id__iexact=termo) | Q(erp_produto_id__iexact=termo))
+    return q_obj
+
+
+def q_icontains_cadastro(termo: str) -> Q:
+    termo = (termo or "").strip()
+    digits = _RE_NAO_ALNUM.sub("", termo)
+    q_obj = (
+        Q(nome__icontains=termo)
+        | Q(marca__icontains=termo)
+        | Q(modelo__icontains=termo)
+        | Q(categoria__icontains=termo)
+        | Q(codigo_interno__icontains=termo)
+        | Q(codigo_nfe__icontains=termo)
+        | Q(codigo_barras__icontains=termo)
+        | Q(produto_externo_id__icontains=termo)
+        | Q(erp_produto_id__icontains=termo)
+    )
+    for v in variantes_gm_literal(termo):
+        q_obj |= Q(codigo_interno__iexact=v) | Q(codigo_nfe__iexact=v)
+    if digits and len(digits) >= 4 and not termo_eh_codigo_gm(termo):
+        q_obj |= Q(codigo_barras__icontains=digits) | Q(codigo_interno__icontains=digits)
+        if digits.isdigit():
+            q_obj |= Q(codigo_barras=digits) | Q(codigo_barras__iexact=digits)
+    return q_obj
+
+
+def q_overlay_json_barras_opcionais(digits: str) -> Q | None:
+    """JSONField do overlay: lista **e** string, nas duas chaves (opcional + alias)."""
+    d = str(digits or "").strip()
+    if not d.isdigit() or len(d) < 8:
+        return None
+    q = Q()
+    for k in CAD_EXTRAS_CB_OPCIONAIS_KEYS:
+        q |= Q(**{f"cadastro_extras__{k}__contains": [d]})
+        q |= Q(**{f"cadastro_extras__{k}__contains": d})
+    q |= Q(cadastro_extras__icontains=d)
+    return q
+
+
+def overlay_pids_por_codigo(termo: str, *, limit: int = 80) -> list[str]:
+    from produtos.models import ProdutoGestaoOverlayAgro
+    from produtos.mongo_index_codigos import (
+        _eans_embalagem_nf_de_cadastro_extras,
+        codigos_barras_opcionais_de_cadastro_extras,
+    )
+
+    termo = (termo or "").strip()
+    if not termo:
+        return []
+    al = somente_alnum(termo).lower()
+    if termo_eh_codigo_gm(termo) and len(al) < 5:
+        return []
+    digits = _RE_NAO_ALNUM.sub("", termo)
+    if digits.isdigit() and len(digits) < 8:
+        return []
+
+    q_obj: Q | None = None
+
+    def _or(q_new: Q) -> None:
+        nonlocal q_obj
+        q_obj = q_new if q_obj is None else (q_obj | q_new)
+
+    if termo_eh_codigo_gm(termo):
+        for v in variantes_gm_literal(termo):
+            _or(Q(codigo_nfe__iexact=v) | Q(codigo_barras__iexact=v))
+        esc = termo.strip()
+        _or(q_prefixo_codigo_ci("codigo_nfe", "codigo_barras", prefixo=esc))
+        base = gm_base_familia(termo)
+        if base:
+            esc_b = re.escape(base)
+            _or(Q(codigo_nfe__iregex=rf"^{esc_b}(-|$)") | Q(codigo_barras__iregex=rf"^{esc_b}(-|$)"))
+    elif digits.isdigit() and len(digits) >= 8:
+        _or(Q(codigo_barras=digits) | Q(codigo_barras__iexact=digits) | Q(codigo_nfe__iexact=digits))
+        q_json = q_overlay_json_barras_opcionais(digits)
+        if q_json is not None:
+            _or(q_json)
+        _or(Q(cadastro_extras__entrada_nfe_ean_embalagem=digits))
+        _or(Q(cadastro_extras__ean_embalagem_nf=digits))
+    else:
+        _or(Q(codigo_nfe__icontains=termo) | Q(codigo_barras__icontains=termo))
+        if digits and len(digits) >= 4:
+            _or(Q(codigo_barras=digits) | Q(codigo_barras__iexact=digits))
+            if digits.isdigit() and len(digits) >= 8:
+                q_json = q_overlay_json_barras_opcionais(digits)
+                if q_json is not None:
+                    _or(q_json)
+
+    if q_obj is None:
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+
+    def _considerar(ov) -> bool:
+        pid = str(ov.produto_externo_id or "").strip()
+        if not pid or pid in seen:
+            return False
+        ce = getattr(ov, "cadastro_extras", None)
+        extras = tuple(
+            list(codigos_barras_opcionais_de_cadastro_extras(ce))
+            + list(_eans_embalagem_nf_de_cadastro_extras(ce))
+        )
+        base = gm_base_familia(termo)
+        if base:
+            cn = str(ov.codigo_nfe or "").strip().upper()
+            cb = str(ov.codigo_barras or "").strip().upper()
+            ok_fam = cn.startswith(base) or cb.startswith(base) or termo_bate_codigos_produto(
+                termo, codigo_nfe=ov.codigo_nfe, codigo_barras=ov.codigo_barras, extras=extras
+            )
+            if not ok_fam:
+                return False
+        elif not termo_bate_codigos_produto(
+            termo, codigo_nfe=ov.codigo_nfe, codigo_barras=ov.codigo_barras, extras=extras
+        ):
+            return False
+        seen.add(pid)
+        out.append(pid)
+        return True
+
+    for ov in ProdutoGestaoOverlayAgro.objects.filter(q_obj).only(
+        "produto_externo_id", "codigo_nfe", "codigo_barras", "cadastro_extras"
+    )[: max(limit * 3, 120)]:
+        _considerar(ov)
+        if len(out) >= limit:
+            break
+
+    # Fallback: JSON contains pode falhar no SQLite — varre quem tem a chave (ou o alias).
+    if digits.isdigit() and len(digits) >= 8 and len(out) < limit:
+        q_keys = Q()
+        for k in CAD_EXTRAS_CB_OPCIONAIS_KEYS:
+            q_keys |= Q(**{"cadastro_extras__has_key": k})
+        for ov in (
+            ProdutoGestaoOverlayAgro.objects.filter(q_keys)
+            .only("produto_externo_id", "codigo_nfe", "codigo_barras", "cadastro_extras")[:800]
+        ):
+            if digits not in codigos_barras_opcionais_de_cadastro_extras(getattr(ov, "cadastro_extras", None)):
+                continue
+            _considerar(ov)
+            if len(out) >= limit:
+                break
+
+    return out
+
+
+def index_codigos_de_campos(
+    *,
+    codigo: str | None = None,
+    codigo_nfe: str | None = None,
+    codigo_barras: str | None = None,
+    cadastro_extras: dict | None = None,
+    extras: list[str] | tuple[str, ...] | None = None,
+) -> list[str]:
+    """
+    Códigos para busca (PDV / Entrada NF).
+    Inclui EAN da embalagem NF + cProd do fornecedor + barras opcionais do overlay.
+    """
+    from produtos.mongo_index_codigos import (
+        _c_prods_nf_de_cadastro_extras,
+        _eans_embalagem_nf_de_cadastro_extras,
+        codigos_barras_opcionais_de_cadastro_extras,
+        extrair_index_codigos_de_documento_mongo,
+        somente_alnum,
+    )
+
+    doc = {
+        "Codigo": codigo or "",
+        "CodigoNFe": codigo_nfe or codigo or "",
+        "CodigoBarras": codigo_barras or "",
+    }
+    out = list(extrair_index_codigos_de_documento_mongo(doc) or [])
+    seen = {somente_alnum(str(x)).lower() for x in out if x}
+    extras_list: list[str] = []
+    if isinstance(extras, (list, tuple)):
+        extras_list.extend(str(x) for x in extras if x is not None and str(x).strip())
+    if isinstance(cadastro_extras, dict):
+        extras_list.extend(_eans_embalagem_nf_de_cadastro_extras(cadastro_extras))
+        extras_list.extend(_c_prods_nf_de_cadastro_extras(cadastro_extras))
+        extras_list.extend(codigos_barras_opcionais_de_cadastro_extras(cadastro_extras))
+    for raw in extras_list:
+        s = str(raw or "").strip()
+        if not s:
+            continue
+        key = somente_alnum(s).lower()
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        out.append(s)
+    return out
+
+
+def cadastro_mongo_busca_por_codigo(
+    db,
+    client_m,
+    termo: str,
+    *,
+    limit: int = 80,
+    include_inactive: bool = False,
+    projection: dict | None = None,
+) -> list[dict]:
+    """Fallback quando o motor de busca não acha GM/barras (ex.: ``index_codigos`` desatualizado)."""
+    termo = str(termo or "").strip()
+    if not termo or db is None or client_m is None:
+        return []
+    base: dict[str, Any] = {} if include_inactive else {"CadastroInativo": {"$ne": True}}
+    col = db[client_m.col_p]
+    lim = max(1, min(int(limit or 80), 160))
+    proj = projection or {"Id": 1, "_id": 1, "Nome": 1}
+
+    out: list[dict] = []
+    seen: set[str] = set()
+
+    def _push(doc: dict | None) -> None:
+        if not doc:
+            return
+        pid = str(doc.get("Id") or doc.get("_id") or "").strip()
+        if not pid or pid in seen:
+            return
+        seen.add(pid)
+        out.append(doc)
+
+    try:
+        q_ix = mongo_query_so_index_codigo(termo)
+        for doc in col.find({**base, **q_ix}, proj).limit(lim):
+            _push(doc)
+    except Exception:
+        pass
+
+    if len(out) < lim and parece_codigo_cadastro(termo):
+        tl = somente_alnum(termo).lower()
+        ors: list[dict] = []
+        if tl.startswith("gm") and len(tl) >= 3:
+            esc = re.escape(termo.strip())
+            ors.append({"CodigoNFe": {"$regex": f"^{esc}", "$options": "i"}})
+            ors.append({"Codigo": {"$regex": f"^{esc}", "$options": "i"}})
+        digits = _RE_NAO_ALNUM.sub("", termo)
+        if digits and len(digits) >= 4:
+            for fld in ("CodigoBarras", "EAN_NFe", "EAN", "CodigoDeBarras", "GTIN"):
+                ors.append({fld: digits})
+                ors.append({fld: termo.strip()})
+        if ors:
+            try:
+                for doc in col.find({**base, "$or": ors}, proj).limit(lim):
+                    _push(doc)
+                    if len(out) >= lim:
+                        break
+            except Exception:
+                pass
+
+    if len(out) < lim:
+        try:
+            scan_cap = min(4000, max(lim * 40, 800))
+            for doc in col.find(base, proj).limit(scan_cap):
+                if produto_termo_bate_campos_principais(doc, termo):
+                    _push(doc)
+                    if len(out) >= lim:
+                        break
+        except Exception:
+            pass
+
+    return out[:lim]

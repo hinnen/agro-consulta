@@ -1,12 +1,12 @@
 """
 Distribuição DF-e (notas destinadas ao CNPJ) — SEFAZ nacional.
 
-Requer no .env (ou ambiente):
-  NFE_DIST_DFE_CERT_PATH — caminho absoluto do .pfx (A1)
-  NFE_DIST_DFE_CERT_PASSWORD — senha do certificado
-  NFE_DIST_DFE_CNPJ — CNPJ da empresa (somente dígitos, 14)
-  NFE_DIST_DFE_UF — sigla UF (ex.: SP)
-  NFE_DIST_DFE_TP_AMB — 1 produção, 2 homologação (default 2)
+Requer no .env (ou ambiente) — **mesmo A1 da NFC-e**:
+  NFE_DIST_DFE_* (opcional) **ou** só NFC_E_CERT_PATH / NFC_E_CERT_BASE64,
+  NFC_E_CERT_PASSWORD, NFC_E_CNPJ, NFC_E_UF, NFC_E_TP_AMB
+  (Dist DF-e reusa NFC_E_* quando NFE_DIST_DFE_* estiver vazio).
+
+  NFE_DIST_DFE_TP_AMB / NFC_E_TP_AMB — 1 produção, 2 homologação
 
 Dependências opcionais: cryptography, lxml, signxml
   pip install cryptography lxml signxml
@@ -23,6 +23,7 @@ import requests
 from decouple import config
 
 from produtos.nfe_entrada_util import decodificar_doc_zip_base64
+from produtos.sefaz_ssl_util import sefaz_requests_verify
 
 logger = logging.getLogger(__name__)
 
@@ -61,20 +62,228 @@ URL_DIST_DFE = {
     2: "https://hom1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx",
 }
 
+URL_RECEPCAO_EVENTO_AN = {
+    1: "https://www.nfe.fazenda.gov.br/NFeRecepcaoEvento4/NFeRecepcaoEvento4.asmx",
+    2: "https://hom1.nfe.fazenda.gov.br/NFeRecepcaoEvento4/NFeRecepcaoEvento4.asmx",
+}
+NS_NFE = "http://www.portalfiscal.inf.br/nfe"
+NS_WSDL_EVENTO = "http://www.portalfiscal.inf.br/nfe/wsdl/NFeRecepcaoEvento4"
+CIENCIA_CSTAT_OK = frozenset({"135", "136", "573"})
+
 
 def _cfg_dist_dfe() -> dict[str, Any]:
+    """
+    Prefere ``NFE_DIST_DFE_*``; se vazio, reusa o mesmo A1/CNPJ/UF da NFC-e
+    (``NFC_E_CERT_*``, ``NFC_E_CNPJ``, ``NFC_E_UF``, ``NFC_E_TP_AMB``).
+    """
+    import os
+
+    from produtos.nfce_config_util import nfce_garantir_certificado
+
+    path = (config("NFE_DIST_DFE_CERT_PATH", default="") or "").strip()
+    if not path or not os.path.isfile(path):
+        path = nfce_garantir_certificado() or path
+    password = (config("NFE_DIST_DFE_CERT_PASSWORD", default="") or "").strip() or (
+        config("NFC_E_CERT_PASSWORD", default="") or ""
+    ).strip()
+    cnpj = re.sub(
+        r"\D",
+        "",
+        (config("NFE_DIST_DFE_CNPJ", default="") or "")
+        or (config("NFC_E_CNPJ", default="") or ""),
+    )[:14]
+    uf = (
+        (config("NFE_DIST_DFE_UF", default="") or "").strip()
+        or (config("NFC_E_UF", default="SP") or "SP").strip()
+        or "SP"
+    ).upper()[:2]
+    try:
+        tp_raw = config("NFE_DIST_DFE_TP_AMB", default="") or ""
+        if str(tp_raw).strip() == "":
+            tp_raw = config("NFC_E_TP_AMB", default="2") or "2"
+        tp_amb = int(tp_raw)
+    except (TypeError, ValueError):
+        tp_amb = 2
+    if tp_amb not in (1, 2):
+        tp_amb = 2
     return {
-        "cert_path": (config("NFE_DIST_DFE_CERT_PATH", default="") or "").strip(),
-        "cert_password": (config("NFE_DIST_DFE_CERT_PASSWORD", default="") or "").strip(),
-        "cnpj": re.sub(r"\D", "", config("NFE_DIST_DFE_CNPJ", default="") or "")[:14],
-        "uf": (config("NFE_DIST_DFE_UF", default="SP") or "SP").strip().upper()[:2],
-        "tp_amb": int(config("NFE_DIST_DFE_TP_AMB", default="2") or 2),
+        "cert_path": path,
+        "cert_password": password,
+        "cnpj": cnpj,
+        "uf": uf,
+        "tp_amb": tp_amb,
     }
 
 
 def distribuicao_dfe_configurada() -> bool:
+    import os
+
     c = _cfg_dist_dfe()
-    return bool(c["cert_path"] and c["cert_password"] and len(c["cnpj"]) == 14 and c["uf"] in UF_PARA_COD)
+    return bool(
+        c["cert_path"]
+        and os.path.isfile(str(c["cert_path"]))
+        and c["cert_password"]
+        and len(c["cnpj"]) == 14
+        and c["uf"] in UF_PARA_COD
+    )
+
+
+def dfe_ambiente_permite_consulta_sefaz() -> bool:
+    """
+    Consulta Dist DF-e na Receita só no Render (loja/staging).
+    No runserver local fica desligada — mesmo CNPJ/certificado compete com a loja (656).
+    Exceção explícita: NFE_DIST_DFE_PERMITIR_LOCAL=true no .env.
+    """
+    import os
+
+    if str(os.environ.get("NFE_DIST_DFE_PERMITIR_LOCAL", "")).lower() in ("1", "true", "yes"):
+        return True
+    return str(os.environ.get("RENDER", "")).lower() in ("1", "true", "yes")
+
+
+def dfe_bloqueio_pc_local() -> dict[str, Any] | None:
+    """Retorna dict de erro se a consulta SEFAZ estiver desligada neste ambiente."""
+    if dfe_ambiente_permite_consulta_sefaz():
+        return None
+    return {
+        "ok": False,
+        "erro": (
+            "Consulta SEFAZ Dist DF-e desligada no PC local — não compete com a loja. "
+            "Use a produção online."
+        ),
+        "bloqueio_pc_local": True,
+        "bloqueio_local": True,
+        "c_stat": None,
+        "aguardar_segundos": 0,
+        "ult_nsu": None,
+        "max_nsu": None,
+        "notas_xml": [],
+        "x_motivo": "",
+    }
+
+
+def nfe_manifestar_ciencia_operacao(chave: str) -> dict[str, Any]:
+    """Registra evento 210210 no Ambiente Nacional para liberar o XML completo."""
+    import os
+    from datetime import datetime
+
+    from lxml import etree
+
+    from produtos.nfce_sp_emissao_util import (
+        _assinar_evento_xml,
+        _cert_pem_temporario,
+        _parse_retorno_evento,
+    )
+    from produtos.sefaz_soap_util import (
+        montar_envelope_nfe_dados_msg,
+        normalizar_xml_envio,
+        sanitizar_erro_http_sefaz,
+    )
+    out: dict[str, Any] = {
+        "ok": False,
+        "c_stat": "",
+        "x_motivo": "",
+        "protocolo": "",
+        "erro": None,
+    }
+    ch = re.sub(r"\D", "", str(chave or ""))[:44]
+    if len(ch) != 44:
+        out["erro"] = "Chave NF-e inválida (44 dígitos)."
+        return out
+    if not distribuicao_dfe_configurada():
+        out["erro"] = "Certificado DF-e/NFC-e incompleto no servidor."
+        return out
+    bloqueio_pc = dfe_bloqueio_pc_local()
+    if bloqueio_pc:
+        out.update(bloqueio_pc)
+        return out
+
+    cfg = _cfg_dist_dfe()
+    tp_amb = 1 if int(cfg.get("tp_amb") or 2) == 1 else 2
+    id_evento = f"ID210210{ch}01"
+    dh_evento = datetime.now().astimezone().isoformat(timespec="seconds")
+
+    def _el(parent, tag: str, text: str | None = None, **attrs):
+        el = etree.SubElement(parent, etree.QName(NS_NFE, tag), **attrs)
+        if text is not None:
+            el.text = str(text)
+        return el
+
+    evento = etree.Element(
+        etree.QName(NS_NFE, "evento"), nsmap={None: NS_NFE}, versao="1.00"
+    )
+    inf = etree.SubElement(evento, etree.QName(NS_NFE, "infEvento"), Id=id_evento)
+    _el(inf, "cOrgao", "91")
+    _el(inf, "tpAmb", str(tp_amb))
+    _el(inf, "CNPJ", cfg["cnpj"])
+    _el(inf, "chNFe", ch)
+    _el(inf, "dhEvento", dh_evento)
+    _el(inf, "tpEvento", "210210")
+    _el(inf, "nSeqEvento", "1")
+    _el(inf, "verEvento", "1.00")
+    det = etree.SubElement(inf, etree.QName(NS_NFE, "detEvento"), versao="1.00")
+    _el(det, "descEvento", "Ciencia da Operacao")
+
+    signed, err_sign = _assinar_evento_xml(
+        evento, cfg["cert_path"], cfg["cert_password"], id_evento
+    )
+    if err_sign or not signed:
+        out["erro"] = err_sign or "Falha ao assinar Ciência da Operação."
+        return out
+
+    id_lote = str(int(datetime.now().timestamp()))[-15:]
+    env_evento = (
+        f'<envEvento xmlns="{NS_NFE}" versao="1.00">'
+        f"<idLote>{id_lote}</idLote>{normalizar_xml_envio(signed)}</envEvento>"
+    )
+    soap, headers = montar_envelope_nfe_dados_msg(
+        NS_WSDL_EVENTO, env_evento, "nfeRecepcaoEvento"
+    )
+    cleanup: list[str] = []
+    try:
+        cert_file, key_file, cleanup = _cert_pem_temporario(
+            cfg["cert_path"], cfg["cert_password"]
+        )
+        response = requests.post(
+            URL_RECEPCAO_EVENTO_AN[tp_amb],
+            data=soap.encode("utf-8"),
+            headers=headers,
+            cert=(cert_file, key_file),
+            verify=sefaz_requests_verify(),
+            timeout=60,
+        )
+        text = response.text or ""
+        if response.status_code >= 400:
+            out["erro"] = sanitizar_erro_http_sefaz(response.status_code, text)
+            return out
+        ret = _parse_retorno_evento(text)
+    except requests.RequestException as exc:
+        out["erro"] = str(exc)[:400]
+        return out
+    except Exception as exc:
+        logger.exception("nfe_manifestar_ciencia_operacao")
+        out["erro"] = str(exc)[:400]
+        return out
+    finally:
+        for path in cleanup:
+            try:
+                if path and os.path.isfile(path):
+                    os.unlink(path)
+            except OSError:
+                pass
+
+    c_stat = str(ret.get("c_stat") or "")
+    out.update(
+        {
+            "c_stat": c_stat,
+            "x_motivo": str(ret.get("x_motivo") or ""),
+            "protocolo": str(ret.get("protocolo") or ""),
+            "ok": c_stat in CIENCIA_CSTAT_OK,
+        }
+    )
+    if not out["ok"]:
+        out["erro"] = out["x_motivo"] or f"Ciência rejeitada (cStat {c_stat or '—'})."
+    return out
 
 
 def _assinar_dist_dfe_xml(xml_unsigned: str, cert_path: str, cert_password: str) -> tuple[str | None, str | None]:
@@ -82,7 +291,8 @@ def _assinar_dist_dfe_xml(xml_unsigned: str, cert_path: str, cert_password: str)
         from cryptography.hazmat.backends import default_backend
         from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption, pkcs12
         from lxml import etree
-        from signxml import XMLSigner, methods
+        from produtos.sefaz_signxml_util import criar_sefaz_xml_signer
+        from produtos.sefaz_xml_fiscal_util import tostring_sem_prefixos
     except ImportError:
         return None, "Instale: pip install cryptography lxml signxml"
 
@@ -105,17 +315,204 @@ def _assinar_dist_dfe_xml(xml_unsigned: str, cert_path: str, cert_password: str)
         root = etree.fromstring(xml_unsigned.encode("utf-8"), parser)
         root.set("Id", f"distNFe{uuid.uuid4().hex[:12]}")
 
-        signer = XMLSigner(
-            method=methods.enveloped,
-            signature_algorithm="rsa-sha1",
-            digest_algorithm="sha1",
-            c14n_algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315",
-        )
+        signer = criar_sefaz_xml_signer()
         signed_root = signer.sign(root, key=key_pem, cert=cert_pem)
-        return etree.tostring(signed_root, encoding="unicode", xml_declaration=True), None
+        # lxml: encoding=unicode + xml_declaration=True → TypeError
+        return tostring_sem_prefixos(signed_root), None
     except Exception as exc:
         logger.exception("assinar_dist_dfe")
         return None, str(exc)[:400]
+
+
+def _dfe_cnpj_cfg() -> str:
+    return str(_cfg_dist_dfe().get("cnpj") or "")
+
+
+def _dfe_cooldown_key(cnpj: str) -> str:
+    return f"agro_dfe_cooldown:{cnpj}"
+
+
+def _dfe_last_call_key(cnpj: str, *, modo: str = "dist_nsu") -> str:
+    suf = "chave" if modo == "cons_chave" else "nsu"
+    return f"agro_dfe_last_call:{suf}:{cnpj}"
+
+
+def dfe_intervalo_minimo_segundos(*, modo: str = "dist_nsu") -> int:
+    """Intervalo mínimo entre cliques (anti-spam). NT: após 137/vazio = 1h no distNSU."""
+    if modo == "cons_chave":
+        try:
+            return max(2, int(config("NFE_DIST_DFE_MIN_INTERVALO_CHAVE_S", default="3") or 3))
+        except (TypeError, ValueError):
+            return 3
+    try:
+        return max(30, int(config("NFE_DIST_DFE_MIN_INTERVALO_S", default="60") or 60))
+    except (TypeError, ValueError):
+        return 60
+
+
+def _dfe_cooldown_tipo(cd: dict[str, Any]) -> str:
+    """Normaliza tipo do bloqueio: 656 trava tudo; dist_nsu só trava Buscar lista."""
+    tipo = str(cd.get("tipo") or "").strip().lower()
+    if tipo in ("656", "dist_nsu"):
+        return tipo
+    motivo = str(cd.get("motivo") or "")
+    if "656" in motivo or "indevido" in motivo.lower():
+        return "656"
+    return "dist_nsu"
+
+
+def dfe_checar_limite_consulta(
+    cnpj: str,
+    *,
+    modo: str = "dist_nsu",
+) -> dict[str, Any] | None:
+    """
+    Bloqueia consulta se ainda no cooldown da NT ou intervalo mínimo.
+
+    modo=dist_nsu (Buscar lista): 1h após 137/fim NSU ou 656.
+    modo=cons_chave (Buscar XML / baixar chave): só 656 trava 1h; o Aguarde da lista
+    não impede liberar o XML completo após a Ciência.
+    """
+    import time
+
+    from django.core.cache import cache
+
+    modo_n = "cons_chave" if modo == "cons_chave" else "dist_nsu"
+    cnpj = re.sub(r"\D", "", cnpj or "")[:14]
+    if len(cnpj) != 14:
+        return None
+    agora = time.time()
+    cd = cache.get(_dfe_cooldown_key(cnpj))
+    if isinstance(cd, dict):
+        ate = float(cd.get("ate") or 0)
+        if ate > agora:
+            tipo = _dfe_cooldown_tipo(cd)
+            # Lista em espera (137) NÃO bloqueia download por chave.
+            if modo_n == "cons_chave" and tipo != "656":
+                pass
+            else:
+                falta = int(ate - agora)
+                motivo = str(cd.get("motivo") or "Aguarde antes de nova consulta à SEFAZ.")
+                return {
+                    "ok": False,
+                    "erro": f"{motivo} Faltam ~{max(1, falta // 60)} min ({falta}s).",
+                    "aguardar_segundos": falta,
+                    "c_stat": 656 if tipo == "656" else 137,
+                    "cooldown_tipo": tipo,
+                }
+    last = cache.get(_dfe_last_call_key(cnpj, modo=modo_n))
+    try:
+        last_f = float(last) if last is not None else 0.0
+    except (TypeError, ValueError):
+        last_f = 0.0
+    min_s = dfe_intervalo_minimo_segundos(modo=modo_n)
+    if last_f and (agora - last_f) < min_s:
+        falta = int(min_s - (agora - last_f))
+        return {
+            "ok": False,
+            "erro": (
+                f"Aguarde {falta}s entre consultas (mínimo {min_s}s). "
+                "A SEFAZ bloqueia consumo indevido (cStat 656) se consultar demais."
+            ),
+            "aguardar_segundos": falta,
+        }
+    return None
+
+
+def dfe_status_limite(cnpj: str) -> dict[str, Any]:
+    """Para a UI: se pode consultar agora (sem bater na SEFAZ)."""
+    bloqueio = dfe_checar_limite_consulta(cnpj, modo="dist_nsu")
+    bloqueio_xml = dfe_checar_limite_consulta(cnpj, modo="cons_chave")
+    if not bloqueio and not bloqueio_xml:
+        return {
+            "liberado": True,
+            "xml_liberado": True,
+            "aguardar_segundos": 0,
+            "aguardar_xml_segundos": 0,
+            "motivo": "",
+        }
+    return {
+        "liberado": not bool(bloqueio),
+        "xml_liberado": not bool(bloqueio_xml),
+        "aguardar_segundos": int((bloqueio or {}).get("aguardar_segundos") or 0),
+        "aguardar_xml_segundos": int((bloqueio_xml or {}).get("aguardar_segundos") or 0),
+        "motivo": str(
+            (bloqueio or bloqueio_xml or {}).get("erro") or "Aguarde antes de nova consulta."
+        ),
+    }
+
+
+def dfe_registrar_consulta_enviada(cnpj: str, *, modo: str = "dist_nsu") -> None:
+    import time
+
+    from django.core.cache import cache
+
+    modo_n = "cons_chave" if modo == "cons_chave" else "dist_nsu"
+    cnpj = re.sub(r"\D", "", cnpj or "")[:14]
+    if len(cnpj) != 14:
+        return
+    cache.set(_dfe_last_call_key(cnpj, modo=modo_n), time.time(), timeout=60 * 60 * 6)
+
+
+def dfe_aplicar_cooldown_apos_resposta(
+    cnpj: str,
+    *,
+    c_stat: Any,
+    ult_nsu: str | None,
+    max_nsu: str | None,
+    x_motivo: str = "",
+    origem: str = "dist_nsu",
+) -> None:
+    """
+    NT 2014.002: após 137 ou ultNSU==maxNSU (distNSU), ou 656 → esperar 1 hora.
+    Download por chave (consChNFe) só grava cooldown no 656 — resposta 137/138
+    da chave não pode travar o Buscar XML das outras notas.
+    """
+    import time
+
+    from django.core.cache import cache
+
+    cnpj = re.sub(r"\D", "", cnpj or "")[:14]
+    if len(cnpj) != 14:
+        return
+    motivo = ""
+    tipo = "dist_nsu"
+    try:
+        st = int(c_stat) if c_stat is not None else None
+    except (TypeError, ValueError):
+        st = None
+    # Erros de schema/validação (ex. 215) não disparam cooldown de 1h.
+    if st is not None and st not in (137, 138, 656) and st >= 200:
+        return
+    u = re.sub(r"\D", "", str(ult_nsu or ""))
+    m = re.sub(r"\D", "", str(max_nsu or ""))
+    if st == 656:
+        motivo = x_motivo or "Consumo indevido (656) — aguarde 1 hora."
+        tipo = "656"
+    elif origem == "cons_chave":
+        # consChNFe: não aplicar espera de lista (137 / fim NSU).
+        return
+    elif st == 137:
+        motivo = (
+            x_motivo
+            or "Nenhum documento novo (137). Pela regra da SEFAZ, aguarde 1 hora para consultar de novo."
+        )
+        tipo = "dist_nsu"
+    elif st == 138:
+        try:
+            # Só “fim do NSU” se ambos > 0 e iguais (zeros em rejeição 215 não contam).
+            if u and m and int(u) > 0 and int(u) == int(m):
+                motivo = "Já no último NSU (ultNSU = maxNSU). Aguarde 1 hora antes de nova consulta."
+                tipo = "dist_nsu"
+        except ValueError:
+            pass
+    if not motivo:
+        return
+    cache.set(
+        _dfe_cooldown_key(cnpj),
+        {"ate": time.time() + 3600, "motivo": motivo[:280], "tipo": tipo},
+        timeout=3600 + 120,
+    )
 
 
 def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
@@ -123,6 +520,8 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
     Consulta documentos destinados ao CNPJ (iteração por ultNSU).
     Retorno: ok, c_stat, x_motivo, ult_nsu, max_nsu, notas_xml (lista de XML string), erro
     """
+    import os
+
     out: dict[str, Any] = {
         "ok": False,
         "c_stat": None,
@@ -135,9 +534,25 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
     cfg = _cfg_dist_dfe()
     if not distribuicao_dfe_configurada():
         out["erro"] = (
-            "Configure NFE_DIST_DFE_CERT_PATH, NFE_DIST_DFE_CERT_PASSWORD, "
-            "NFE_DIST_DFE_CNPJ (14 dígitos) e NFE_DIST_DFE_UF no .env."
+            "Certificado DF-e/NFC-e incompleto. Use o mesmo A1 da NFC-e "
+            "(NFC_E_CERT_PATH ou NFC_E_CERT_BASE64 + NFC_E_CERT_PASSWORD + NFC_E_CNPJ + NFC_E_UF) "
+            "ou as variáveis NFE_DIST_DFE_*."
         )
+        return out
+
+    bloqueio_pc = dfe_bloqueio_pc_local()
+    if bloqueio_pc:
+        out.update(bloqueio_pc)
+        return out
+
+    bloqueio = dfe_checar_limite_consulta(cfg["cnpj"], modo="dist_nsu")
+    if bloqueio:
+        # Trava local (cache) — NÃO ecoar o ultNSU pedido como se viesse da SEFAZ
+        # (senão o Buscar no Aguarde podia gravar NSU digitado à toa).
+        out.update(bloqueio)
+        out["bloqueio_local"] = True
+        out["ult_nsu"] = None
+        out["max_nsu"] = None
         return out
 
     c_uf = UF_PARA_COD.get(cfg["uf"])
@@ -150,6 +565,8 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
     ult_nsu = re.sub(r"\D", "", str(ult_nsu or "0")) or "0"
     ult_nsu = ult_nsu.zfill(15)[:15]
 
+    # Schema distDFeInt_v1.01: SEM assinatura XML / Id / Signature.
+    # Autenticação = certificado na conexão (mTLS). Assinar aqui → cStat 215.
     xml_body = (
         f'<distDFeInt xmlns="http://www.portalfiscal.inf.br/nfe" versao="1.01">'
         f"<tpAmb>{tp_amb}</tpAmb>"
@@ -159,38 +576,62 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
         f"</distDFeInt>"
     )
 
-    signed, err = _assinar_dist_dfe_xml(xml_body, cfg["cert_path"], cfg["cert_password"])
-    if err or not signed:
-        out["erro"] = err or "Falha ao assinar XML."
-        return out
+    from produtos.sefaz_soap_util import normalizar_xml_envio
 
-    inner = signed.replace('<?xml version="1.0" encoding="UTF-8"?>', "").strip()
-    soap = f"""<?xml version="1.0" encoding="utf-8"?>
-<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
-  <soap12:Body>
-    <nfeDistDFeInteresse xmlns="http://www.portalfiscal.inf.br/nfe/wsdl/NFeDistribuicaoDFe">
-      <nfeDadosMsg><![CDATA[{inner}]]></nfeDadosMsg>
-    </nfeDistDFeInteresse>
-  </soap12:Body>
-</soap12:Envelope>"""
-
+    wsdl = "http://www.portalfiscal.inf.br/nfe/wsdl/NFeDistribuicaoDFe"
+    inner = normalizar_xml_envio(xml_body)
+    soap = (
+        '<?xml version="1.0" encoding="utf-8"?>'
+        '<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+        'xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
+        'xmlns:soap="http://www.w3.org/2003/05/soap-envelope">'
+        "<soap:Body>"
+        f'<nfeDistDFeInteresse xmlns="{wsdl}">'
+        f'<nfeDadosMsg xmlns="{wsdl}">{inner}</nfeDadosMsg>'
+        "</nfeDistDFeInteresse>"
+        "</soap:Body></soap:Envelope>"
+    )
     headers = {
-        "Content-Type": 'application/soap+xml; charset=utf-8; action="http://www.portalfiscal.inf.br/nfe/wsdl/NFeDistribuicaoDFe/nfeDistDFeInteresse"',
-        "SOAPAction": "http://www.portalfiscal.inf.br/nfe/wsdl/NFeDistribuicaoDFe/nfeDistDFeInteresse",
+        "Content-Type": f'application/soap+xml;charset=utf-8;action="{wsdl}/nfeDistDFeInteresse"',
+        "Accept": "application/soap+xml; charset=utf-8;",
     }
+
+    cleanup: list[str] = []
+    text = ""
     try:
-        r = requests.post(url, data=soap.encode("utf-8"), headers=headers, timeout=60)
+        from produtos.nfce_sp_emissao_util import _cert_pem_temporario
+
+        cert_file, key_file, cleanup = _cert_pem_temporario(cfg["cert_path"], cfg["cert_password"])
+        dfe_registrar_consulta_enviada(cfg["cnpj"], modo="dist_nsu")
+        r = requests.post(
+            url,
+            data=soap.encode("utf-8"),
+            headers=headers,
+            cert=(cert_file, key_file),
+            verify=sefaz_requests_verify(),
+            timeout=60,
+        )
         text = r.text or ""
         if r.status_code >= 400:
-            out["erro"] = f"HTTP {r.status_code}: {text[:500]}"
+            msg = f"HTTP {r.status_code}: {text[:400]}"
+            if r.status_code == 403:
+                msg += (
+                    " — Costuma ser certificado na conexão (mTLS), firewall ou SEFAZ indisponível. "
+                    "Confira validade do .pfx e tente de novo em alguns minutos."
+                )
+            out["erro"] = msg
             return out
     except requests.RequestException as exc:
         out["erro"] = str(exc)[:400]
         return out
+    finally:
+        for p in cleanup:
+            try:
+                if p and os.path.isfile(p):
+                    os.unlink(p)
+            except OSError:
+                pass
 
-    # Parse resposta SOAP (best effort)
     try:
         root = ET.fromstring(text)
     except ET.ParseError:
@@ -241,12 +682,35 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
     if ult_nsu_ret:
         out["ult_nsu"] = ult_nsu_ret
     out["notas_xml"] = notas
+
+    dfe_aplicar_cooldown_apos_resposta(
+        cfg["cnpj"],
+        c_stat=c_stat,
+        ult_nsu=str(ult_nsu_ret or ult_nsu),
+        max_nsu=str(max_nsu or ""),
+        x_motivo=x_motivo,
+    )
+
     # 137: sem documento; 138: com documento(s); 656: consumo indevido / intervalo
     if c_stat == 656:
         out["ok"] = False
-        out["erro"] = x_motivo or "Rejeição 656 — aguarde entre consultas idênticas."
+        out["erro"] = x_motivo or "Rejeição 656 — aguarde 1 hora entre consultas."
+        out["aguardar_segundos"] = 3600
+    elif c_stat == 215:
+        out["ok"] = False
+        out["erro"] = (
+            (x_motivo or "Falha no esquema XML (215).")
+            + " O pedido Dist DF-e não usa assinatura XML — só certificado na conexão. "
+            "Se persistir após atualizar o sistema, avise o suporte."
+        )
     elif c_stat in (137, 138):
         out["ok"] = True
+        if c_stat == 137:
+            out["aguardar_segundos"] = 3600
+            out["x_motivo"] = (
+                (x_motivo or "Nenhum documento localizado.")
+                + " Próxima consulta automática liberada em ~1 hora (regra SEFAZ)."
+            )
     elif c_stat is None:
         out["ok"] = False
         out["erro"] = out.get("erro") or "Resposta sem cStat reconhecido."
@@ -254,4 +718,163 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
         out["ok"] = False
         out["erro"] = f"cStat={c_stat} {x_motivo}".strip()
 
+    return out
+
+
+def nfe_distribuicao_dfe_por_chave(chave: str) -> dict[str, Any]:
+    """
+    Baixa documento pela chave de acesso (consChNFe).
+    Não altera o cursor ultNSU da loja — uso para recuperar nota já “passada” na fila.
+    """
+    import os
+
+    out: dict[str, Any] = {
+        "ok": False,
+        "c_stat": None,
+        "x_motivo": "",
+        "ult_nsu": None,
+        "max_nsu": None,
+        "notas_xml": [],
+        "erro": None,
+    }
+    cfg = _cfg_dist_dfe()
+    if not distribuicao_dfe_configurada():
+        out["erro"] = "Certificado DF-e/NFC-e incompleto."
+        return out
+
+    bloqueio_pc = dfe_bloqueio_pc_local()
+    if bloqueio_pc:
+        out.update(bloqueio_pc)
+        return out
+
+    bloqueio = dfe_checar_limite_consulta(cfg["cnpj"], modo="cons_chave")
+    if bloqueio:
+        out.update(bloqueio)
+        out["bloqueio_local"] = True
+        return out
+
+    ch = re.sub(r"\D", "", str(chave or ""))[:44]
+    if len(ch) != 44:
+        out["erro"] = "Chave NF-e inválida (44 dígitos)."
+        return out
+
+    c_uf = UF_PARA_COD.get(cfg["uf"])
+    if not c_uf:
+        out["erro"] = "UF inválida."
+        return out
+
+    tp_amb = 1 if cfg["tp_amb"] == 1 else 2
+    url = URL_DIST_DFE.get(tp_amb, URL_DIST_DFE[2])
+    xml_body = (
+        f'<distDFeInt xmlns="http://www.portalfiscal.inf.br/nfe" versao="1.01">'
+        f"<tpAmb>{tp_amb}</tpAmb>"
+        f"<cUFAutor>{c_uf}</cUFAutor>"
+        f"<CNPJ>{cfg['cnpj']}</CNPJ>"
+        f"<consChNFe><chNFe>{ch}</chNFe></consChNFe>"
+        f"</distDFeInt>"
+    )
+
+    from produtos.sefaz_soap_util import normalizar_xml_envio
+
+    wsdl = "http://www.portalfiscal.inf.br/nfe/wsdl/NFeDistribuicaoDFe"
+    inner = normalizar_xml_envio(xml_body)
+    soap = (
+        '<?xml version="1.0" encoding="utf-8"?>'
+        '<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+        'xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
+        'xmlns:soap="http://www.w3.org/2003/05/soap-envelope">'
+        "<soap:Body>"
+        f'<nfeDistDFeInteresse xmlns="{wsdl}">'
+        f'<nfeDadosMsg xmlns="{wsdl}">{inner}</nfeDadosMsg>'
+        "</nfeDistDFeInteresse>"
+        "</soap:Body></soap:Envelope>"
+    )
+    headers = {
+        "Content-Type": f'application/soap+xml;charset=utf-8;action="{wsdl}/nfeDistDFeInteresse"',
+        "Accept": "application/soap+xml; charset=utf-8;",
+    }
+
+    cleanup: list[str] = []
+    text = ""
+    try:
+        from produtos.nfce_sp_emissao_util import _cert_pem_temporario
+
+        cert_file, key_file, cleanup = _cert_pem_temporario(cfg["cert_path"], cfg["cert_password"])
+        dfe_registrar_consulta_enviada(cfg["cnpj"], modo="cons_chave")
+        r = requests.post(
+            url,
+            data=soap.encode("utf-8"),
+            headers=headers,
+            cert=(cert_file, key_file),
+            verify=sefaz_requests_verify(),
+            timeout=60,
+        )
+        text = r.text or ""
+        if r.status_code >= 400:
+            out["erro"] = f"HTTP {r.status_code}: {text[:400]}"
+            return out
+    except Exception as exc:
+        logger.exception("nfe_distribuicao_dfe_por_chave")
+        out["erro"] = str(exc)[:400]
+        return out
+    finally:
+        for p in cleanup:
+            try:
+                if p and os.path.isfile(p):
+                    os.remove(p)
+            except OSError:
+                pass
+
+    c_stat = None
+    x_motivo = ""
+    max_nsu = None
+    ult_nsu_ret = None
+    notas: list[str] = []
+    try:
+        root = ET.fromstring(text)
+        for ch_el in root.iter():
+            tag = ch_el.tag.split("}")[-1] if "}" in ch_el.tag else ch_el.tag
+            if tag == "cStat" and ch_el.text and c_stat is None:
+                try:
+                    c_stat = int(ch_el.text.strip())
+                except ValueError:
+                    c_stat = ch_el.text.strip()
+            elif tag == "xMotivo" and ch_el.text and not x_motivo:
+                x_motivo = ch_el.text.strip()
+            elif tag == "maxNSU" and ch_el.text:
+                max_nsu = ch_el.text.strip()
+            elif tag == "ultNSU" and ch_el.text:
+                ult_nsu_ret = ch_el.text.strip()
+            elif tag == "docZip" and ch_el.text:
+                xml_doc = decodificar_doc_zip_base64(ch_el.text.strip())
+                if xml_doc:
+                    notas.append(xml_doc)
+    except ET.ParseError:
+        out["erro"] = "Resposta SEFAZ inválida."
+        return out
+
+    out["c_stat"] = c_stat
+    out["x_motivo"] = x_motivo
+    out["max_nsu"] = max_nsu
+    out["ult_nsu"] = ult_nsu_ret
+    out["notas_xml"] = notas
+
+    dfe_aplicar_cooldown_apos_resposta(
+        cfg["cnpj"],
+        c_stat=c_stat,
+        ult_nsu=str(ult_nsu_ret or ""),
+        max_nsu=str(max_nsu or ""),
+        x_motivo=x_motivo,
+        origem="cons_chave",
+    )
+
+    if c_stat == 656:
+        out["ok"] = False
+        out["erro"] = x_motivo or "Rejeição 656 — aguarde 1 hora."
+        out["aguardar_segundos"] = 3600
+    elif c_stat in (137, 138):
+        out["ok"] = True
+    else:
+        out["ok"] = False
+        out["erro"] = f"cStat={c_stat} {x_motivo}".strip()
     return out
