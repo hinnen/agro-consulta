@@ -1286,6 +1286,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — Entrega: estoque/caixa no lançamento (`PDV-ENT-LOJA-LANC` · **v25.28** · 15/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Sintoma** | No lançamento, escolher sair da Vila não baixava estoque/caixa certos; só Mudar Loja depois |
+| **O quê** | Estoque = loja de saída · caixa = loja de pagamento · só-entrega outra loja + pagar aqui segue no PDV |
+| **Prova** | `verify_pdv_ent_loja_lanc_path.py` **31/31** · loja-saída **16/16** · mudar-loja **39/39** · PIN **9973** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio** · teste **v25.28** · loja **só** frase+senha |
+| **Você** | Ctrl+F5 · Entrega → Só entrega Vila · pagar na loja · conferir estoque Vila |
+
+### ✅ CHECKLIST ÚNICO — 15/09 · `PDV-ENT-LOJA-LANC`
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `PDV-ENT-LOJA-LANC` | 🟢 **pronto para envio** | **NÃO** | **31/31** · PIN **9973** |
+
 ### 🩹 PACOTE PRONTO — PIX Point não fecha sem máquina (`MP-POINT-PIX-NAO-FECHA` · **v25.26** · 15/09)
 
 | Campo | Valor |

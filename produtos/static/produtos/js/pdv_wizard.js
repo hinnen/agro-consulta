@@ -12743,7 +12743,11 @@
         if (isProcessingSale) return;
         var state = State.getState();
         var computed = State.getComputed();
-        (function setFiadoClientRequestId() {
+        (function ensureFiadoClientRequestId() {
+            var cur = String(
+                (State.getState().pagamento && State.getState().pagamento.clientRequestId) || ''
+            ).trim();
+            if (cur) return;
             var uuid =
                 typeof crypto !== 'undefined' && crypto.randomUUID
                     ? crypto.randomUUID()
@@ -12973,7 +12977,11 @@
         if (isProcessingSale) return;
         var state = State.getState();
         var computed = State.getComputed();
-        (function setSaleClientRequestId() {
+        (function ensureSaleClientRequestId() {
+            var cur = String(
+                (State.getState().pagamento && State.getState().pagamento.clientRequestId) || ''
+            ).trim();
+            if (cur) return;
             var uuid =
                 typeof crypto !== 'undefined' && crypto.randomUUID
                     ? crypto.randomUUID()
