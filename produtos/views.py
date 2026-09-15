@@ -28917,16 +28917,25 @@ def _persistir_venda_agro(
 
     sessao = exigir_sessao_caixa_para_venda(request, data)
 
-    dep_payload = data.get("deposito") or data.get("pdv_deposito") or data.get("loja_id")
+    # Estoque: depósito explícito do PDV (loja de saída da entrega) manda.
+    # Não sobrescrever com o caixa do aparelho — senão “sair da Vila” baixa no Centro.
+    dep_payload = (
+        data.get("deposito")
+        or data.get("pdv_deposito")
+        or data.get("loja_entrega")
+        or data.get("loja_id")
+    )
+    dep_explicito = False
     if dep_payload is not None and str(dep_payload).strip() != "":
         raw_dep = str(dep_payload).strip().lower()
         if raw_dep in ("1", "2"):
             dep_v = deposito_de_loja_id(raw_dep)
         else:
             dep_v = normalizar_deposito(raw_dep)
+        dep_explicito = dep_v in ("centro", "vila")
     else:
         dep_v = resolver_deposito_request(request)
-    if sessao is not None:
+    if not dep_explicito and sessao is not None:
         try:
             from produtos.caixa_util import deposito_de_ponto_caixa
 
