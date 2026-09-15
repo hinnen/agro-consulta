@@ -53,9 +53,28 @@ def test_arquivos() -> None:
     check("js_confirmar", "function confirmarLojaSaidaEntrega" in js)
     check("js_payload", "loja_entrega: lojaSaidaEntregaAtual" in js)
     check("js_outra_loja_painel", "entregaVaiParaOutraLoja(state)" in js)
+    check(
+        "js_prosseguir_pag_outra",
+        "lojaPagamentoEntregaAtual(state) !== depositoPdvAtivo()" in js
+        and "wizardEnviarEntregaPainel()" in js,
+    )
+    check(
+        "js_injetar_loja_pag",
+        "payload.loja_pagamento = lojaP" in js and "payload.loja_entrega = lojaE" in js,
+    )
     check("resumo_loja", 'id="pdv-resumo-loja-saida"' in html)
     check("api_campos_loja", 'campos["loja_entrega"] = loja_dest' in views)
     check("sessao_dest", "obter_caixa_pai_aberto(loja_dest)" in util)
+    check(
+        "venda_dep_explicito",
+        "dep_explicito" in views and 'data.get("loja_entrega")' in views,
+    )
+    caixa = _read("produtos/caixa_util.py")
+    check(
+        "venda_sessao_loja_pag",
+        'body.get("loja_pagamento")' in caixa
+        and "obter_caixa_pai_aberto(loja_pag)" in caixa,
+    )
 
 
 def test_sessao_dest() -> None:

@@ -6798,11 +6798,17 @@
         if (abrirFluxoPagamentoEntregaSePendente()) return;
         var state = State.getState();
         var lp = String((state.entrega && state.entrega.localPagamento) || '');
-        if (entregaVaiParaOutraLoja(state) || lp === 'entrega') {
+        // Pagamento na entrega → painel. Pagamento em outra loja → painel dela.
+        // Só entrega em outra loja + pagar aqui → segue no PDV (estoque = loja de saída).
+        if (lp === 'entrega') {
             wizardEnviarEntregaPainel();
             return;
         }
         if (lp === 'loja') {
+            if (lojaPagamentoEntregaAtual(state) !== depositoPdvAtivo()) {
+                wizardEnviarEntregaPainel();
+                return;
+            }
             wizardIrParaPagamentoComImpressao();
         }
     }
@@ -11713,13 +11719,24 @@
 
     function injetarDepositoNoPayload(payload) {
         if (!payload) return payload;
-        var lojaE = '';
+        var st = null;
         try {
-            lojaE = lojaSaidaEntregaAtual(State.getState());
+            st = State.getState();
+        } catch (eSt) {
+            st = null;
+        }
+        var lojaE = '';
+        var lojaP = '';
+        try {
+            lojaE = lojaSaidaEntregaAtual(st);
+            lojaP = lojaPagamentoEntregaAtual(st);
         } catch (eDep) {
             lojaE = '';
+            lojaP = '';
         }
         payload.deposito = lojaE === 'vila' || lojaE === 'centro' ? lojaE : depositoPdvAtivo();
+        if (lojaE === 'vila' || lojaE === 'centro') payload.loja_entrega = lojaE;
+        if (lojaP === 'vila' || lojaP === 'centro') payload.loja_pagamento = lojaP;
         return payload;
     }
 
@@ -14771,7 +14788,14 @@
         }
         var lp = String((state.entrega && state.entrega.localPagamento) || '');
         var meio = String((state.entrega && state.entrega.meioNaEntrega) || '');
-        if (lp !== 'entrega' || !meio) {
+        var pagOutraLoja = lojaPagamentoEntregaAtual(state) !== depositoPdvAtivo();
+        // Pagamento na entrega (com meio) OU pagamento já apontado pra outra loja.
+        if (lp === 'entrega') {
+            if (!meio) {
+                abrirFluxoPagamentoEntregaSePendente();
+                return;
+            }
+        } else if (!(lp === 'loja' && pagOutraLoja)) {
             abrirFluxoPagamentoEntregaSePendente();
             return;
         }

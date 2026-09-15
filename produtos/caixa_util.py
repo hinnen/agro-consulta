@@ -1596,9 +1596,25 @@ def exigir_sessao_caixa_para_venda(request, data: dict | None = None):
 
 def resolver_sessao_caixa_para_venda(request, data: dict | None = None):
     """
-    Vincula venda ao caixa do aparelho: sessão do navegador → único caixa aberto da loja.
+    Vincula venda ao caixa: loja de pagamento da entrega (se vier) → aparelho → único aberto.
     Não aceita ``sessao_caixa_id`` solto do cliente (evita bater na loja errada).
     """
+    body = data if isinstance(data, dict) else {}
+    try:
+        from produtos.entrega_pdv_pendente_util import normalizar_loja_entrega
+
+        loja_pag = normalizar_loja_entrega(
+            body.get("loja_pagamento") or body.get("loja_entrega") or body.get("loja")
+        )
+    except Exception:
+        loja_pag = ""
+    if loja_pag:
+        loja_nav = deposito_caixa_browser(request)
+        if loja_pag != loja_nav:
+            s_dest = obter_caixa_pai_aberto(loja_pag)
+            if s_dest and getattr(s_dest, "fechado_em", None) is None:
+                return s_dest
+            return None
     sessao = obter_sessao_caixa_aberta_request(request)
     if sessao:
         return sessao
