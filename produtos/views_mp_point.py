@@ -369,6 +369,40 @@ def _mp_point_promover_pago_local(row: PdvMercadoPagoPointOrder, body: dict) -> 
     return True
 
 
+def mp_point_rejeitar_venda_erp_sem_maquina(data: dict | None) -> dict | None:
+    """
+    PIX/cartão com máquina Point automática não pode fechar via ERP «direto»
+    (sem cobrança na maquininha). Retorna dict de erro ou None.
+    """
+    from produtos.mercado_pago_point import (
+        MAQUININHAS_MP_POINT_AUTO_CENTRO,
+        MAQUININHAS_MP_POINT_AUTO_VILA,
+    )
+
+    if not isinstance(data, dict):
+        return None
+    auto = MAQUININHAS_MP_POINT_AUTO_CENTRO | MAQUININHAS_MP_POINT_AUTO_VILA
+    pag = data.get("pagamentos")
+    if not isinstance(pag, list):
+        return None
+    for row in pag:
+        if not isinstance(row, dict):
+            continue
+        mid = str(row.get("maquinaId") or row.get("maquina_id") or "").strip().lower()
+        modo = str(row.get("mpBalcaoModo") or row.get("mp_balcao_modo") or "").strip().lower()
+        if mid in auto or modo == "point":
+            return {
+                "ok": False,
+                "erro": (
+                    "Esta venda usa Mercado Pago automático. "
+                    "Use «Cobrar na maquininha» e aguarde o Pix/cartão no terminal — "
+                    "não feche a venda direto."
+                ),
+                "mp_point_exige_maquina": True,
+            }
+    return None
+
+
 def mp_point_bloqueio_info(request) -> dict | None:
     """
     Bloqueia fechar venda por outra forma se a sessão ainda tem Point PENDING/PAID

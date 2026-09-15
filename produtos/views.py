@@ -29557,7 +29557,7 @@ def api_enviar_pedido_erp(request):
     _, err_pin_op = exigir_operador_pin_request(request, data)
     if err_pin_op:
         return JsonResponse({"ok": False, "erro": err_pin_op}, status=403)
-    from produtos.views_mp_point import mp_point_bloqueio_info
+    from produtos.views_mp_point import mp_point_bloqueio_info, mp_point_rejeitar_venda_erp_sem_maquina
 
     bloqueio_mp = mp_point_bloqueio_info(request)
     if bloqueio_mp:
@@ -29576,6 +29576,9 @@ def api_enviar_pedido_erp(request):
             },
             status=409,
         )
+    rejeita_mp_direto = mp_point_rejeitar_venda_erp_sem_maquina(data)
+    if rejeita_mp_direto:
+        return JsonResponse(rejeita_mp_direto, status=409)
     from produtos.cliente_operacoes_util import payload_e_compra_vale_credito
 
     if payload_e_compra_vale_credito(data, raw_itens_cb):
