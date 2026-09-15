@@ -1286,7 +1286,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — Entrega: estoque/caixa no lançamento (`PDV-ENT-LOJA-LANC` · **v25.28** · 15/09)
+### 🩹 PACOTE PRONTO — Pix Sicoob 1 venda ≠ 4 (`PDV-VENDA-NAO-DUP` · **v25.29** · 15/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Relato** | Pix **Sicoob**: 1 venda → **4** na lista (Luana R$ 87 · #7809–#7812 · estoque −4×) |
+| **Causa** | Enter/Confirmar de novo gerava UUID novo; API descartava a chave — cada retry = venda nova |
+| **O quê** | Mesma chave até fechar · `client_request_id` único na venda · 2º POST devolve a mesma |
+| **Migrate** | **SIM** — `produtos.0132` |
+| **Prova** | `verify_pdv_venda_nao_duplica_sicoob_path.py` OK · PIN **9973** |
+| **Status** | 🟢 **teste v25.29** · validar no PC · loja **só** frase+senha (+migrate) |
+| **Você** | Ctrl+F5 · Pix Sicoob · Enter várias vezes → **1** venda |
+| **Loja agora** | Devolver #7810 #7811 #7812 (manter #7809) |
+
+### 📦 PACOTE PRONTO — Entrega: estoque/caixa no lançamento (`PDV-ENT-LOJA-LANC` · **v25.31** · 15/09)
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1294,7 +1307,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Estoque = loja de saída · caixa = loja de pagamento · só-entrega outra loja + pagar aqui segue no PDV |
 | **Prova** | `verify_pdv_ent_loja_lanc_path.py` **31/31** · loja-saída **16/16** · mudar-loja **39/39** · PIN **9973** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio** · teste **v25.28** · loja **só** frase+senha |
+| **Status** | 🟢 **pronto para envio** · teste **v25.31** · loja **só** frase+senha |
 | **Você** | Ctrl+F5 · Entrega → Só entrega Vila · pagar na loja · conferir estoque Vila |
 
 ### ✅ CHECKLIST ÚNICO — 15/09 · `PDV-ENT-LOJA-LANC`
