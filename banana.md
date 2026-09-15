@@ -1286,6 +1286,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ Deploy loja — Checklist 15/09 · **Live v25.33** · 15/09
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v25.33** — PREP sobre Live **v25.23** (**não** merge `teste`) |
+| **Antes** | Live **v25.23** @ `218db50` |
+| **Agora** | `producao` @ **`7b27ec7`** · Render `dep-dakjm6mk1f9s7386v6i0` |
+| **Pacotes** | `PDV-ENT-LOJA-LANC` · `MP-POINT-PIX-NAO-FECHA` · `PDV-VENDA-NAO-DUP` |
+| **Migrate** | **SIM** — `produtos.0132` (OK no PG loja) |
+| **Prova** | Sicoob OK · Point **17/17** · Ent-loja **31/31** · saída **16/16** · mudar-loja **39/39** · API 2×=1 · PIN **9973** |
+| **Rollback** | tag `rollback/pre-checklist-1509-v25.23` · branch `producao-backup-pre-v2523-checklist-1509` · `docs/ROLLBACK-CHECKLIST-1509.md` · **só** frase+senha |
+
+### ✅ CHECKLIST ÚNICO — 15/09 · lote loja · ✅ Live v25.33
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `PDV-ENT-LOJA-LANC` | ✅ **Live v25.33** | **NÃO** | **31/31** |
+| 2 | `MP-POINT-PIX-NAO-FECHA` | ✅ **Live v25.33** | **NÃO** | **17/17** |
+| 3 | `PDV-VENDA-NAO-DUP` | ✅ **Live v25.33** | **SIM 0132** | OK + API 2×=1 |
+
 ### 🩹 PACOTE PRONTO — Pix Sicoob 1 venda ≠ 4 (`PDV-VENDA-NAO-DUP` · **v25.30** · 15/09)
 
 | Campo | Valor |
