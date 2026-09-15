@@ -1286,6 +1286,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🩹 PACOTE PRONTO — PIX Point não fecha sem máquina (`MP-POINT-PIX-NAO-FECHA` · **v25.26** · 15/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Relato** | Loja: Pix na maquininha MP **automática** fechava a venda **sem** acionar o terminal |
+| **Causa** | Dava pra «lançar»/fechar com máquina Point (ou id de cartão no Pix) **sem** passar por Cobrar → ERP gravava direto |
+| **O quê** | Cobrar obrigatório no Point auto · bloqueia fechar sem cobrança · limpa máquina cartão↔Pix errada · API rejeita ERP com `pix_mp_qr`/`pix_mp_vila` sem Point |
+| **Prova** | `verify_mp_point_pix_nao_fecha_direto_path.py` **17/17** · PIN **9973** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **teste v25.26** · validar no PC · loja **só** frase+senha |
+| **Você** | Ctrl+F5 PDV · Pix → **Mercado Pago … (automático)** → **Cobrar na maquininha** (tem que acender) · não fecha no Enter sem isso |
+| **Risco** | Médio — trava caminho errado; Cielo/Renan/Sicredi iguais |
+
 ### 📦 PACOTE PRONTO — Entrega: estoque/caixa no lançamento (`PDV-ENT-LOJA-LANC` · **v25.25** · 15/09)
 
 | Campo | Valor |
