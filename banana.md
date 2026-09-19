@@ -424,7 +424,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Regras UX jÃ¡ decididas:**
 
-- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · loja v20.22 · hotfix chat v20.33 · `PIN-VENDA-10S` tip v21.32 · **bug #26** `PIN-VENDA-45S` teste):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · Pedir/chat/venda **~45s** na mesma ação · **após fechar venda** zera fresco (próxima pede PIN) · entrega paga ~120s · descanso ~3 min · abrir PDV sem PIN.
+- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · loja v20.22 · hotfix chat v20.33 · `PIN-VENDA-10S` tip v21.32 · **bug #26** `PIN-VENDA-45S` · **bug #28** retenta pós-PIN v25.35 teste):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · Pedir/chat/venda **~45s** na mesma ação · **após fechar venda** zera fresco (próxima pede PIN) · entrega paga / pendente ~120s · erro «precisa PIN» abre teclado e **retenta** · descanso ~3 min · abrir PDV sem PIN.
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08 · **Mais ⋯** 31/08 · `PDV-TOPBAR-MAIS` v20.34 · **layout** 31/08 · `PDV-TOPBAR-LAYOUT`):** faixa quente padrão = Pedir loja · Vendas · Uso loja · Entregas · Caixa · **Fiado** · Nova venda (Pedir/Uso = cinza slate; **Mais ⋯** laranja destaque). **Mais ⋯** = Saldo Vila · Repasse · Pesar · PIN + **Organizar atalhos** (quente/frio em Postgres `PdvTopbarLayoutAgro` · migrate `0110` · PIN ao salvar). Contagem diária PG (`0107`). **Ícone WhatsApp** na faixa de ações (ao lado de Nova venda) → aviso **Em breve…** (`PDV-WA-TOPBAR-BREVE`).
@@ -1286,6 +1286,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 🩹 BUG #28 — PIN retenta após erro (venda / MP / entrega) · **v25.35** · 19/09
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `pdv_wizard.js`: `showPdvAviso` com `onPinOk`/`pinTitulo` · fresco entrega também `pedidoEntregaPendenteId` · finalize MP propaga `precisaPin` · catch retenta após PIN |
+| **Arquivo** | só `produtos/static/produtos/js/pdv_wizard.js` |
+| **Status** | 🟢 **teste v25.35** · validar no PC (Ctrl+F5) · loja **só** frase+senha |
+| **Você** | Confirmar venda / entrega / MP com PIN stale → digita PIN → deve retentar sozinho |
 
 ### 🔧 PC Renan — WhatsApp sem auto-start (`iniciar.bat`) · 15/09
 
