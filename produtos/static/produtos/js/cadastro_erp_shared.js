@@ -7,8 +7,15 @@
   }
 
   function csrf() {
+    var lista = w.AgroCadastroErpLista;
+    if (lista && lista.CSRF_TOKEN) return lista.CSRF_TOKEN;
+    var meta = document.querySelector('meta[name="csrfmiddlewaretoken"]');
+    if (meta && meta.getAttribute('content')) return meta.getAttribute('content');
+    var ck = document.cookie.match(/(?:^|; )csrftoken=([^;]*)/);
+    if (ck) return decodeURIComponent(ck[1]);
     var el = document.querySelector('[name=csrfmiddlewaretoken]');
-    return el ? el.value : getCookie('csrftoken');
+    if (el && el.value) return el.value;
+    return '';
   }
 
   function escapeHtml(s) {
@@ -30,6 +37,12 @@
     });
   }
 
+  function resetLoading() {
+    if (w.gmLoadingBar && typeof w.gmLoadingBar.reset === 'function') {
+      w.gmLoadingBar.reset();
+    }
+  }
+
   function setLoading(on) {
     if (w.gmLoadingBar) {
       if (on) w.gmLoadingBar.show();
@@ -37,11 +50,149 @@
     }
   }
 
+  var PDV_CACHE_KEY = 'agro_pdv_catalog_cache_v2';
+  var PDV_PATCH_QUEUE_KEY = 'agro_pdv_catalog_patch_queue_v1';
+  var PDV_PATCH_QUEUE_MAX = 24;
+  var PDV_PATCH_TTL_MS = 45 * 60 * 1000;
+
+  function enqueuePdvCatalogoPatch(patch) {
+    try {
+      var raw = localStorage.getItem(PDV_PATCH_QUEUE_KEY);
+      var q = raw ? JSON.parse(raw) : null;
+      if (!q || !Array.isArray(q.items)) q = { updated_at: 0, items: [] };
+      var pid = String(patch.id);
+      q.items = q.items.filter(function (it) {
+        var p = (it && it.patch) ? it.patch : it;
+        return p && String(p.id) !== pid;
+      });
+      q.items.push({ patch: patch, ts: Date.now() });
+      if (q.items.length > PDV_PATCH_QUEUE_MAX) {
+        q.items = q.items.slice(q.items.length - PDV_PATCH_QUEUE_MAX);
+      }
+      q.updated_at = Date.now();
+      localStorage.setItem(PDV_PATCH_QUEUE_KEY, JSON.stringify(q));
+    } catch (e2) { /* ignore */ }
+  }
+
+  function gestaoProdutoParaPatchPdv(p) {
+    if (!p || p.id == null || p.id === '') return null;
+    var patch = {
+      id: String(p.id),
+      nome: p.nome,
+      marca: p.marca,
+      modelo: p.modelo,
+      codigo_nfe: p.codigo_gm || p.codigo_nfe || p.codigo,
+      codigo_barras: p.codigo_barras,
+      preco_venda: p.preco_venda,
+      preco_custo: p.preco_custo,
+      categoria: p.categoria,
+      subcategoria: p.subcategoria,
+      subcategoria_2: p.subcategoria_2,
+      subcategoria_3: p.subcategoria_3,
+      subcategoria_4: p.subcategoria_4,
+      fornecedor: p.fornecedor,
+      unidade: p.unidade,
+      descricao: p.descricao,
+      inativo: !!p.inativo
+    };
+    if (p.cashback_percentual != null && isFinite(Number(p.cashback_percentual))) {
+      patch.cashback_percentual = Number(p.cashback_percentual);
+    }
+    if (p.precos_por_forma && typeof p.precos_por_forma === 'object') {
+      patch.precos_por_forma = p.precos_por_forma;
+    }
+    if (p.precos_modo) patch.precos_modo = String(p.precos_modo);
+    if (p.precos_grupos && typeof p.precos_grupos === 'object') {
+      patch.precos_grupos = p.precos_grupos;
+    }
+    return patch;
+  }
+
+  /** Atualiza um produto no cache local do PDV (localStorage) após save no cadastro. */
+  function patchPdvCatalogoCache(produto) {
+    var patch = gestaoProdutoParaPatchPdv(produto);
+    if (!patch) return false;
+    try {
+      var raw = localStorage.getItem(PDV_CACHE_KEY);
+      var cache = raw ? JSON.parse(raw) : null;
+      if (!cache || !Array.isArray(cache.produtos)) {
+        cache = { saved_at: Date.now(), catalog_version: '', catalog_updated_at: '', produtos: [] };
+      }
+      var pid = String(patch.id);
+      var found = false;
+      for (var i = 0; i < cache.produtos.length; i++) {
+        if (String(cache.produtos[i].id) === pid) {
+          cache.produtos[i] = Object.assign({}, cache.produtos[i], patch);
+          found = true;
+          break;
+        }
+      }
+      if (!found) cache.produtos.push(patch);
+      cache.saved_at = Date.now();
+      localStorage.setItem(PDV_CACHE_KEY, JSON.stringify(cache));
+      enqueuePdvCatalogoPatch(patch);
+      return true;
+    } catch (e1) {
+      return false;
+    }
+  }
+
+  function loadPdvPatchMap() {
+    try {
+      var raw = localStorage.getItem(PDV_PATCH_QUEUE_KEY);
+      var q = raw ? JSON.parse(raw) : null;
+      if (!q || !Array.isArray(q.items)) return new Map();
+      var now = Date.now();
+      var map = new Map();
+      q.items.forEach(function (it) {
+        if (!it || !it.patch || it.patch.id == null) return;
+        if (now - Number(it.ts || 0) > PDV_PATCH_TTL_MS) return;
+        map.set(String(it.patch.id), it.patch);
+      });
+      return map;
+    } catch (e3) {
+      return new Map();
+    }
+  }
+
+  /** Preferir preço/nome recém-salvos no cadastro sobre Mongo/API desatualizados (evita «piscar»). */
+  function aplicarPatchPdvNoProduto(produto) {
+    if (!produto || produto.id == null) return produto;
+    var patch = loadPdvPatchMap().get(String(produto.id));
+    if (!patch) return produto;
+    var out = Object.assign({}, produto);
+    var keys = [
+      'preco_venda', 'preco_custo', 'nome', 'marca', 'modelo', 'codigo_nfe', 'codigo_barras',
+      'categoria', 'subcategoria', 'subcategoria_2', 'subcategoria_3', 'subcategoria_4',
+      'fornecedor', 'unidade', 'descricao', 'inativo'
+    ];
+    keys.forEach(function (k) {
+      if (Object.prototype.hasOwnProperty.call(patch, k)) out[k] = patch[k];
+    });
+    if (patch.precos_por_forma && typeof patch.precos_por_forma === 'object') {
+      out.precos_por_forma = patch.precos_por_forma;
+    }
+    if (patch.precos_modo) out.precos_modo = patch.precos_modo;
+    if (patch.precos_grupos && typeof patch.precos_grupos === 'object') {
+      out.precos_grupos = patch.precos_grupos;
+    }
+    if (patch.cashback_percentual != null && isFinite(Number(patch.cashback_percentual))) {
+      out.cashback_percentual = Number(patch.cashback_percentual);
+    }
+    return out;
+  }
+
+  w.agroPdvPatchCatalogoCache = patchPdvCatalogoCache;
+  w.agroAplicarPatchPdvNoProduto = aplicarPatchPdvNoProduto;
+  w.AGRO_PDV_PATCH_QUEUE_KEY = PDV_PATCH_QUEUE_KEY;
+
   w.AgroCadastroErpUtil = {
     getCookie: getCookie,
     csrf: csrf,
     escapeHtml: escapeHtml,
     fmtMoney: fmtMoney,
-    setLoading: setLoading
+    resetLoading: resetLoading,
+    setLoading: setLoading,
+    patchPdvCatalogoCache: patchPdvCatalogoCache
   };
 })(window);

@@ -1,0 +1,11 @@
+{% if agro_emprestimo_dual_cfg %}
+{{ agro_emprestimo_dual_cfg|json_script:"agro-emprestimo-dual-cfg" }}
+<script>
+  (function () {
+    var el = document.getElementById('agro-emprestimo-dual-cfg');
+    if (el) {
+      try { window.AGRO_LANC_EMPRESTIMO_CFG = JSON.parse(el.textContent); } catch (_) {}
+    }
+  })();
+</script>
+{% endif %}

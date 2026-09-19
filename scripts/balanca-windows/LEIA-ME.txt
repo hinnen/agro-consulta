@@ -1,0 +1,49 @@
+SisVale — driver da balança Urano (Windows)
+===========================================
+
+Leve esta pasta no pendrive para o PC do caixa.
+
+O que faz
+---------
+Instala os drivers USB que criam a porta COM da balança:
+
+- Silicon Labs CP210x  → cabo/adaptador oficial Urano TTL/USB
+- Pacote USB do site da Urano
+- CH340/CH341          → cabo USB-serial barato
+- FTDI                 → aparece no Chrome como "USB Serial Port (COMx)"
+                         (o que o caixa já usou)
+
+Não instala o programa LePeso. O PDV lê a balança pelo Chrome.
+
+Como instalar
+-------------
+1. No PC novo, clique com o direito em INSTALAR-BALANCA.bat
+2. "Executar como administrador"
+3. Deixe terminar. Na primeira vez precisa de internet.
+4. Conecte o cabo USB da balança.
+5. Se não aparecer porta COM, rode o .bat de novo com o cabo já plugado.
+
+Pendrive (sem internet no caixa)
+--------------------------------
+1. Rode uma vez num PC com internet (baixa os arquivos para a pasta cache\).
+2. Copie a pasta inteira scripts\balanca-windows (com cache\) no pendrive.
+3. No caixa: INSTALAR-BALANCA.bat como administrador.
+
+Na balança
+----------
+FUNÇÃO → 3 → IMPRIME até aparecer USE-P2 → ENTRA.
+
+No PDV
+------
+Chrome (ou Edge) → PDV → F10 Pesar.
+Se pedir Conectar, marque USB Serial Port (COMx).
+Não precisa ser COM4 — no PC novo pode ser COM3, COM5, etc.
+
+Se a porta não aparecer
+-----------------------
+Gerenciador de dispositivos → Portas (COM e LPT)
+ou "Outros dispositivos" com um item amarelo.
+
+Aí o cabo é de outro chip: rode o script de novo com o cabo plugado,
+ou instale o driver que o Windows sugerir ao clicar com o direito
+em "Atualizar driver".

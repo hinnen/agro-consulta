@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#7c3aed">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Vendas">
+  <title>PIN — Fotos | GM</title>
+  <link rel="manifest" href="{% url 'vendas_lojas_manifest' %}">
+  <link rel="apple-touch-icon" href="/static/produtos/pwa/vendas-lojas-192.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #0f172a; --muted: #64748b; --accent: #7c3aed;
+      --safe-t: env(safe-area-inset-top, 0px);
+      --safe-b: env(safe-area-inset-bottom, 0px);
+      --safe-l: env(safe-area-inset-left, 0px);
+      --safe-r: env(safe-area-inset-right, 0px);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100dvh; background: #f8fafc; color: var(--ink); font-family: Inter, system-ui, sans-serif; }
+    .shell {
+      min-height: 100dvh; max-width: 28rem; margin: 0 auto;
+      padding: max(0.85rem, var(--safe-t)) max(1rem, var(--safe-r)) max(1rem, var(--safe-b)) max(1rem, var(--safe-l));
+    }
+    .kicker { margin: 0; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); }
+    .title { margin: 0.2rem 0 0.5rem; font-size: clamp(1.55rem, 6vw + 0.4rem, 2rem); font-weight: 900; letter-spacing: -0.04em; }
+    .sub { margin: 0 0 1rem; font-size: 0.92rem; font-weight: 700; color: var(--muted); }
+    .card { background: #fff; border: 2px solid #e2e8f0; border-radius: 1.25rem; padding: 1.25rem; }
+    label { display: block; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 0.35rem; }
+    input {
+      width: 100%; min-height: 4rem; border: 2px solid #e2e8f0; border-radius: 1rem;
+      text-align: center; font-size: 2rem; letter-spacing: 0.35em; font-weight: 900; outline: none;
+    }
+    input:focus { border-color: var(--accent); }
+    .btn {
+      width: 100%; min-height: 3.4rem; margin-top: 0.75rem; border: 0; border-radius: 1rem;
+      background: linear-gradient(145deg, #7c3aed, #5b21b6); color: #fff; font-weight: 900; font-size: 1rem; text-transform: uppercase;
+    }
+    .btn:active { transform: scale(0.98); }
+    .err { background: #fef2f2; color: #b91c1c; font-weight: 800; padding: 0.75rem 1rem; border-radius: 0.85rem; margin-bottom: 0.85rem; }
+    .top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem; }
+    .link {
+      display: inline-flex; align-items: center; min-height: 2.5rem; padding: 0 0.85rem; border-radius: 0.75rem;
+      background: #fff; border: 2px solid #e2e8f0; color: var(--ink); text-decoration: none; font-weight: 800; font-size: 0.78rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="top">
+      <div>
+        <p class="kicker">GM Agro</p>
+        <h1 class="title">Fotos</h1>
+      </div>
+      <a class="link" href="{% url 'vendas_lojas_hub' %}">Início</a>
+    </div>
+    <p class="sub">Digite o PIN — o nome fica em tudo que você fizer.</p>
+    {% if erro %}<div class="err">{{ erro }}</div>{% endif %}
+    <div class="card">
+      <label for="pin">PIN</label>
+      <input type="password" id="pin" inputmode="numeric" maxlength="8" placeholder="••••" enterkeyhint="go" autocomplete="one-time-code">
+      <button type="button" class="btn" id="btnEntrar">Entrar</button>
+    </div>
+  </div>
+  <script>
+  (function () {
+    function csrf() {
+      var m = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+      return m ? decodeURIComponent(m[1]) : "";
+    }
+    var pin = document.getElementById("pin");
+    var btn = document.getElementById("btnEntrar");
+    async function entrar() {
+      var fd = new FormData();
+      fd.append("pin", pin.value || "");
+      btn.disabled = true;
+      try {
+        var res = await fetch("{% url 'fotos_produto_pin' %}", {
+          method: "POST",
+          body: fd,
+          headers: { "X-CSRFToken": csrf(), "X-Requested-With": "XMLHttpRequest" },
+        });
+        var j = await res.json().catch(function () { return {}; });
+        if (res.ok && j.ok) {
+          location.href = j.next || "{% url 'fotos_produto_app' %}";
+          return;
+        }
+        alert(j.erro || "PIN errado");
+      } finally {
+        btn.disabled = false;
+      }
+    }
+    btn.addEventListener("click", entrar);
+    pin.addEventListener("keydown", function (e) { if (e.key === "Enter") entrar(); });
+    pin.focus();
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("{% url 'vendas_lojas_sw' %}", { scope: "/vendas/lojas/" }).catch(function () {});
+    }
+  })();
+  </script>
+</body>
+</html>

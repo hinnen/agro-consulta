@@ -23,6 +23,13 @@ _CAD_EXTRAS_EAN_EMBALAGEM_KEYS = ("entrada_nfe_ean_embalagem", "ean_embalagem_nf
 _MIN_EAN_EMBALAGEM_NF = 8
 _MAX_EAN_EMBALAGEM_NF = 20
 
+# EANs / barras extras do mesmo SKU (marca trocou o código; bip antigo ainda acha o produto).
+CAD_EXTRAS_CB_OPCIONAIS_KEYS = ("codigos_barras_opcionais", "codigos_barras_alternativos")
+_CAD_EXTRAS_CB_OPCIONAIS_KEYS = CAD_EXTRAS_CB_OPCIONAIS_KEYS
+_MIN_CB_OPCIONAL = 8
+_MAX_CB_OPCIONAL = 20
+_MAX_CB_OPCIONAIS_LIST = 20
+
 # cProd do fornecedor na NF-e (ex.: R0151) — distinto do código GM no catálogo.
 _CAD_EXTRAS_C_PROD_NF_KEYS = ("entrada_nfe_c_prods", "entrada_nfe_c_prod")
 _MIN_C_PROD_NF_ALNUM = 2
@@ -350,6 +357,130 @@ def _eans_embalagem_nf_de_cadastro_extras(cadastro_extras: dict | None) -> list[
     return out
 
 
+def normalizar_codigos_barras_opcionais(
+    raw: Any,
+    *,
+    excluir: str | None = None,
+) -> list[str]:
+    """Lista limpa só-dígitos (8–20), sem duplicata, sem o EAN principal."""
+    partes: list[str]
+    if raw is None:
+        return []
+    if isinstance(raw, list):
+        partes = [str(x) for x in raw]
+    elif isinstance(raw, str):
+        partes = re.split(r"[\s,;|/]+", raw)
+    else:
+        partes = [str(raw)]
+    excl = "".join(ch for ch in str(excluir or "") if ch.isdigit())
+    out: list[str] = []
+    seen: set[str] = set()
+    for s in partes:
+        d = "".join(ch for ch in str(s) if ch.isdigit())
+        if not (_MIN_CB_OPCIONAL <= len(d) <= _MAX_CB_OPCIONAL):
+            continue
+        if excl and d == excl:
+            continue
+        if d in seen:
+            continue
+        seen.add(d)
+        out.append(d)
+        if len(out) >= _MAX_CB_OPCIONAIS_LIST:
+            break
+    return out
+
+
+def codigos_barras_opcionais_de_cadastro_extras(cadastro_extras: dict | None) -> list[str]:
+    """Barras alternativas do mesmo produto (overlay ``cadastro_extras``)."""
+    if not isinstance(cadastro_extras, dict):
+        return []
+    raw: list[Any] = []
+    for k in _CAD_EXTRAS_CB_OPCIONAIS_KEYS:
+        if k not in cadastro_extras:
+            continue
+        v = cadastro_extras.get(k)
+        if isinstance(v, (list, tuple)):
+            raw.extend(v)
+        elif v not in (None, ""):
+            raw.append(v)
+    return normalizar_codigos_barras_opcionais(raw)
+
+
+def mesclar_codigos_barras_opcionais_adicionar(
+    cadastro_extras: dict | None,
+    adicionar: Any,
+    *,
+    principal: str | None = None,
+) -> list[str]:
+    """Une barras opcionais já gravadas com novas (Entrada NF bip / cadastro)."""
+    atuais = codigos_barras_opcionais_de_cadastro_extras(cadastro_extras)
+    novos = normalizar_codigos_barras_opcionais(adicionar, excluir=principal)
+    return normalizar_codigos_barras_opcionais(atuais + novos, excluir=principal)
+
+
+def aplicar_bip_entrada_nf_troca_inteligente(
+    *,
+    codigo_barras_atual: str,
+    cadastro_extras: dict | None,
+    bip: str,
+    promover_se_loja: bool = True,
+) -> dict[str, Any]:
+    """
+    Regra B (Entrada NF etapa 3):
+    - bip inválido → noop
+    - principal atual é 230… (loja) e bip é outro EAN → bip vira principal; 230… vai a opcionais
+    - senão → bip só entra em opcionais
+    """
+    dig_bip = "".join(ch for ch in str(bip or "") if ch.isdigit())
+    if not (_MIN_CB_OPCIONAL <= len(dig_bip) <= _MAX_CB_OPCIONAL):
+        return {
+            "acao": "noop",
+            "codigo_barras": None,
+            "codigos_barras_opcionais": codigos_barras_opcionais_de_cadastro_extras(
+                cadastro_extras
+            ),
+            "bip": dig_bip,
+        }
+    dig_atual = "".join(ch for ch in str(codigo_barras_atual or "") if ch.isdigit())
+    if dig_bip == dig_atual:
+        return {
+            "acao": "noop",
+            "codigo_barras": None,
+            "codigos_barras_opcionais": codigos_barras_opcionais_de_cadastro_extras(
+                cadastro_extras
+            ),
+            "bip": dig_bip,
+        }
+
+    from produtos.agro_codigo_barras_loja_util import eh_codigo_barras_loja
+
+    if promover_se_loja and dig_atual and eh_codigo_barras_loja(dig_atual):
+        lista = mesclar_codigos_barras_opcionais_adicionar(
+            cadastro_extras,
+            [dig_atual],
+            principal=dig_bip,
+        )
+        return {
+            "acao": "promove",
+            "codigo_barras": dig_bip,
+            "codigos_barras_opcionais": lista,
+            "bip": dig_bip,
+            "antigo_principal": dig_atual,
+        }
+
+    lista = mesclar_codigos_barras_opcionais_adicionar(
+        cadastro_extras,
+        [dig_bip],
+        principal=dig_atual or None,
+    )
+    return {
+        "acao": "opcional",
+        "codigo_barras": None,
+        "codigos_barras_opcionais": lista,
+        "bip": dig_bip,
+    }
+
+
 def coletar_extras_agro_para_busca(produto_externo_id: str) -> list[str]:
     """
     Códigos cadastrados no Agro que entram no mesmo ``index_codigos`` do ERP:
@@ -372,6 +503,7 @@ def coletar_extras_agro_para_busca(produto_externo_id: str) -> list[str]:
             if s:
                 out.append(s)
         out.extend(_eans_embalagem_nf_de_cadastro_extras(getattr(ov, "cadastro_extras", None)))
+        out.extend(codigos_barras_opcionais_de_cadastro_extras(getattr(ov, "cadastro_extras", None)))
         out.extend(_c_prods_nf_de_cadastro_extras(getattr(ov, "cadastro_extras", None)))
     for row in ProdutoMarcaVariacaoAgro.objects.filter(produto_externo_id=pid[:64]).only(
         "codigo_barras",
@@ -406,6 +538,8 @@ def mapa_extras_agro_por_produto_externo_id() -> dict[str, list[str]]:
             if s:
                 out[pid].append(s)
         for d in _eans_embalagem_nf_de_cadastro_extras(getattr(ov, "cadastro_extras", None)):
+            out[pid].append(d)
+        for d in codigos_barras_opcionais_de_cadastro_extras(getattr(ov, "cadastro_extras", None)):
             out[pid].append(d)
         for c in _c_prods_nf_de_cadastro_extras(getattr(ov, "cadastro_extras", None)):
             out[pid].append(c)
@@ -589,6 +723,11 @@ def encontrar_produto_casar_entrada_nfe(
                         "Id": 1,
                         "_id": 1,
                         "Nome": 1,
+                        "ValorVenda": 1,
+                        "PrecoVenda": 1,
+                        "CodigoNFe": 1,
+                        "Codigo": 1,
+                        "CodigoBarras": 1,
                         **{k: 1 for k in CAMPOS_CODIGO_RAIZ_MONGO},
                         INDEX_CODIGOS_CAMPO: 1,
                     },
