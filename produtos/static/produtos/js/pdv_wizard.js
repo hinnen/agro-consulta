@@ -307,7 +307,10 @@
         /* Toast «precisa PIN» sem teclado → abre a linha do PIN. */
         if (typeof window.gmSspinAbrirSeErroPin === 'function') {
             try {
-                window.gmSspinAbrirSeErroPin(texto, function () {}, { titulo: 'Identifique-se com o PIN' });
+                var onPinOk = typeof opts.onPinOk === 'function' ? opts.onPinOk : function () {};
+                window.gmSspinAbrirSeErroPin(texto, onPinOk, {
+                    titulo: opts.pinTitulo || 'Identifique-se com o PIN'
+                });
             } catch (ePinToast) {}
         }
     }
@@ -12952,8 +12955,9 @@
             }
             var frescoEntrega = false;
             try {
+                var ent = State.getState().entrega;
                 frescoEntrega = !!(
-                    State.getState().entrega && State.getState().entrega.entregaFreteLiberadoPagamento
+                    ent && (ent.entregaFreteLiberadoPagamento || ent.pedidoEntregaPendenteId)
                 );
             } catch (eEntPin) {
                 frescoEntrega = false;
@@ -12961,7 +12965,9 @@
             window.gmSspinGarantirOperador(runConfirm, {
                 titulo: jaPagoMp
                     ? 'PIN para gravar a venda (máquina já cobrou)'
-                    : 'PIN para confirmar a venda',
+                    : frescoEntrega
+                      ? 'PIN para confirmar entrega + pagamento'
+                      : 'PIN para confirmar a venda',
                 /* Bug #26: venda alinhada a 45s (antes 10s = PIN toda hora). Entrega paga = 120s. */
                 maxFrescoS: frescoEntrega ? 120 : 45,
                 onCancel: function () {
@@ -13208,7 +13214,15 @@
                     }
                     return pedirPinLiberar();
                 }
-                showPdvAviso(err && err.message ? err.message : 'Falha ao confirmar venda.', { tone: 'error' });
+                showPdvAviso(err && err.message ? err.message : 'Falha ao confirmar venda.', {
+                    tone: 'error',
+                    onPinOk: function () {
+                        setTimeout(function () {
+                            confirmSaleProsseguir(withPrint);
+                        }, 350);
+                    },
+                    pinTitulo: 'PIN para confirmar a venda'
+                });
             })
             .finally(function () {
                 if (window.gmLoadingBar) window.gmLoadingBar.hide();
@@ -13281,10 +13295,15 @@
             })
             .then(function (finRes) {
                 if (!finRes.ok || !finRes.data.ok) {
-                    throw new Error(
+                    var eFin = new Error(
                         (finRes.data && (finRes.data.erro || finRes.data.mensagem)) ||
                             'Falha ao registrar venda após pagamento na maquininha.'
                     );
+                    if (finRes.data) {
+                        eFin.precisaPin = !!finRes.data.precisa_pin;
+                        eFin.pagamentoEfetivado = !!finRes.data.pagamento_efetivado;
+                    }
+                    throw eFin;
                 }
                 var mpPointFormaDivergiu =
                     !!(finRes.data && finRes.data.mp_point_forma_divergencia && finRes.data.mp_point_aviso);
@@ -13394,10 +13413,28 @@
                     } catch (errC) {}
                 }
                 pdvMpPointBeep('err');
-                showMpPointAviso(
-                    (err && err.message) || 'Falha ao confirmar venda com pagamento MP.',
-                    { tone: 'error' }
-                );
+                var msgMp =
+                    (err && err.message) || 'Falha ao confirmar venda com pagamento MP.';
+                var pedePin =
+                    !!(err && err.precisaPin) ||
+                    (typeof window.gmSspinErroPedePin === 'function' &&
+                        window.gmSspinErroPedePin(msgMp));
+                if (pedePin) {
+                    showMpPointAviso(msgMp, { tone: 'warn' });
+                    if (typeof window.gmSspinAbrirSeErroPin === 'function') {
+                        window.gmSspinAbrirSeErroPin(
+                            msgMp,
+                            function () {
+                                setTimeout(function () {
+                                    confirmSaleFinalizarMpPointOrders(withPrint, opts);
+                                }, 350);
+                            },
+                            { titulo: 'PIN para gravar a venda (máquina já cobrou)' }
+                        );
+                    }
+                } else {
+                    showMpPointAviso(msgMp, { tone: 'error' });
+                }
             })
             .finally(function () {
                 if (window.gmLoadingBar) window.gmLoadingBar.hide();
