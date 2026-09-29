@@ -468,17 +468,21 @@
 
         <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Largura mm</span><input id="etq-preset-largura" type="number" min="20" max="200" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /><span class="mt-0.5 block text-[10px] text-slate-500 etq-field-gondola">A6: ~50 = 2 col · ~33 = 3 col</span></label>
 
-        <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Altura mm</span><input id="etq-preset-altura" type="number" min="15" max="120" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
+        <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Altura mm</span><input id="etq-preset-altura" type="number" min="15" max="300" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
 
-        <label class="block etq-field-termica"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Fonte nome pt</span><input id="etq-preset-nome-pt" type="number" min="4" max="36" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
+        <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Nome 1 linha pt</span><input id="etq-preset-nome-pt-1" type="number" min="4" max="72" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" title="Quando o nome cabe em 1 linha" /></label>
 
-        <label class="block etq-field-gondola"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Nome 1 linha pt</span><input id="etq-preset-nome-pt-1" type="number" min="4" max="36" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" title="Quando o nome cabe em 1 linha" /></label>
+        <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Nome 2 linhas pt</span><input id="etq-preset-nome-pt-2" type="number" min="4" max="72" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" title="Quando o nome usa 2 linhas" /></label>
 
-        <label class="block etq-field-gondola"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Nome 2 linhas pt</span><input id="etq-preset-nome-pt-2" type="number" min="4" max="36" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" title="Quando o nome usa 2 linhas" /></label>
+        <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Nome 3 linhas pt</span><input id="etq-preset-nome-pt-3" type="number" min="4" max="72" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" title="Quando o nome usa 3 linhas" /></label>
 
-        <label class="block etq-field-gondola"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Nome 3 linhas pt</span><input id="etq-preset-nome-pt-3" type="number" min="4" max="36" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" title="Máximo 3 linhas — corta o resto" /></label>
+        <label class="block etq-field-termica"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Nome 4 linhas pt</span><input id="etq-preset-nome-pt-4" type="number" min="4" max="72" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" title="Quando o nome usa 4 linhas" /></label>
 
-        <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Fonte preço pt</span><input id="etq-preset-preco-pt" type="number" min="8" max="64" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
+        <label class="block etq-field-termica"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Máx. linhas do nome</span><input id="etq-preset-nome-linhas" type="number" min="1" max="4" step="1" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" title="Corta o resto do nome" /></label>
+
+        <label class="block etq-field-termica"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Moldura mm</span><input id="etq-preset-borda-mm" type="number" min="0" max="8" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" title="0 = sem moldura" /></label>
+
+        <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Fonte preço pt</span><input id="etq-preset-preco-pt" type="number" min="8" max="120" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
 
         <label class="block etq-field-gondola"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Fonte R$ pt</span><input id="etq-preset-rs-pt" type="number" min="4" max="36" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
 
@@ -486,13 +490,47 @@
 
         <label class="block etq-field-gondola"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Fonte GM pt</span><input id="etq-preset-gm-pt" type="number" min="4" max="24" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" title="Ex.: GM0050-1 vira GM50 na etiqueta" /></label>
 
-        <label class="block etq-field-termica"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Fonte GM pt</span><input id="etq-preset-codigo-pt" type="number" min="4" max="20" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
+        <label class="block etq-field-termica"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Fonte GM pt</span><input id="etq-preset-codigo-pt" type="number" min="4" max="48" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
 
-        <label class="block etq-field-termica"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Fonte rodapé pt</span><input id="etq-preset-rodape-pt" type="number" min="4" max="20" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
+        <label class="block etq-field-termica"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Fonte rodapé pt</span><input id="etq-preset-rodape-pt" type="number" min="4" max="48" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
 
         <label class="block etq-field-termica"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Altura barras px</span><input id="etq-preset-bar-h" type="number" min="10" max="80" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
 
         <label class="block etq-field-termica"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Largura barras</span><input id="etq-preset-bar-w" type="number" min="0.5" max="3" step="0.05" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
+
+        <div class="sm:col-span-2 lg:col-span-3 etq-field-termica grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Fundo</span><input id="etq-term-cor-fundo" type="color" class="h-9 w-full cursor-pointer rounded border border-slate-600 bg-slate-950" /></label>
+          <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Nome</span><input id="etq-term-cor-nome" type="color" class="h-9 w-full cursor-pointer rounded border border-slate-600 bg-slate-950" /></label>
+          <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Preço</span><input id="etq-term-cor-preco" type="color" class="h-9 w-full cursor-pointer rounded border border-slate-600 bg-slate-950" /></label>
+          <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">GM</span><input id="etq-term-cor-gm" type="color" class="h-9 w-full cursor-pointer rounded border border-slate-600 bg-slate-950" /></label>
+          <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Rodapé</span><input id="etq-term-cor-rodape" type="color" class="h-9 w-full cursor-pointer rounded border border-slate-600 bg-slate-950" /></label>
+          <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Moldura</span><input id="etq-term-cor-borda" type="color" class="h-9 w-full cursor-pointer rounded border border-slate-600 bg-slate-950" /></label>
+          <div class="col-span-2 sm:col-span-3 lg:col-span-6 flex flex-wrap gap-x-4 gap-y-2 rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2">
+            <span class="w-full text-[10px] font-black uppercase text-slate-500">Campos na etiqueta (liga/desliga)</span>
+            <label class="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-slate-300"><input id="etq-term-show-nome" type="checkbox" class="h-4 w-4 rounded border-slate-500" checked /> Nome</label>
+            <label class="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-slate-300"><input id="etq-term-show-preco" type="checkbox" class="h-4 w-4 rounded border-slate-500" checked /> Preço</label>
+            <label class="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-slate-300"><input id="etq-term-show-barcode" type="checkbox" class="h-4 w-4 rounded border-slate-500" checked /> Barras</label>
+            <label class="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-slate-300"><input id="etq-term-show-gm" type="checkbox" class="h-4 w-4 rounded border-slate-500" checked /> GM</label>
+            <label class="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-slate-300"><input id="etq-term-show-rodape" type="checkbox" class="h-4 w-4 rounded border-slate-500" checked /> Rodapé</label>
+          </div>
+          <p id="etq-resumo-termica" class="col-span-2 sm:col-span-3 lg:col-span-6 text-[11px] font-semibold text-slate-400"></p>
+        </div>
+
+        <div class="sm:col-span-2 lg:col-span-3 etq-field-termica">
+          <div class="mb-1 flex flex-wrap items-center justify-between gap-2">
+            <span class="text-[10px] font-bold uppercase text-slate-500">Layout — arraste as caixas · canto = redimensionar</span>
+            <button type="button" id="etq-btn-reset-layout-termica" class="min-h-[32px] rounded-lg border border-slate-600 px-2 text-[10px] font-black uppercase text-slate-300">Reset layout</button>
+          </div>
+          <div class="overflow-auto rounded-xl border border-slate-700 bg-slate-950 p-3">
+            <div id="etq-layout-stage-termica" class="relative mx-auto select-none overflow-hidden" style="width:280px;height:280px;background:#fff;border:2px solid #111">
+              <div class="etq-lay-item" data-lay="nome" style="left:3%;top:2%;width:94%;height:26%"><span class="etq-lay-label">NOME</span><i class="etq-lay-handle" aria-hidden="true"></i></div>
+              <div class="etq-lay-item" data-lay="preco" style="left:3%;top:28%;width:94%;height:26%"><span class="etq-lay-label">PREÇO</span><i class="etq-lay-handle" aria-hidden="true"></i></div>
+              <div class="etq-lay-item" data-lay="barcode" style="left:6%;top:54%;width:88%;height:22%"><span class="etq-lay-label">BARRAS</span><i class="etq-lay-handle" aria-hidden="true"></i></div>
+              <div class="etq-lay-item" data-lay="gm" style="left:3%;top:76%;width:94%;height:10%"><span class="etq-lay-label">GM</span><i class="etq-lay-handle" aria-hidden="true"></i></div>
+              <div class="etq-lay-item" data-lay="rodape" style="left:3%;top:86%;width:94%;height:12%"><span class="etq-lay-label">RODAPÉ</span><i class="etq-lay-handle" aria-hidden="true"></i></div>
+            </div>
+          </div>
+        </div>
 
         <div class="sm:col-span-2 lg:col-span-3 etq-field-gondola grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
           <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Faixa</span><input id="etq-cor-faixa-bg" type="color" class="h-9 w-full cursor-pointer rounded border border-slate-600 bg-slate-950" /></label>
@@ -618,9 +656,9 @@ window.AGRO_ETQ_CFG = {
   maisVendidosUrl: "{{ api_etq_mais_vendidos_url|default:'/api/produtos/etiquetas/mais-vendidos/'|escapejs }}"
 };
 </script>
-<script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=20"></script>
+<script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=21"></script>
 
-<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=19" defer></script>
+<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=21" defer></script>
 
 {% endblock %}
 

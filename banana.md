@@ -1303,21 +1303,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** — teste **v25.40** — só frase + senha |
 | **Você** | Ctrl+F5 · Entrega → Hoje ou Amanhã ou Outro dia · F7 · card com o dia · caixa de hoje não cobra essa pendência |
 
-### CHECKLIST ÚNICO — 29/09 · etiqueta térmica várias
+### CHECKLIST ÚNICO — 29/09 · etiqueta térmica
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-TERMICA-VARIAS** | 🟢 **pronto para envio à produção** | **NÃO** | `verify_etiquetas_termica_varias.js` **39/39** · A6 **86/86** · gôndola OK |
+| 1 | **ETQ-TERMICA-VARIAS** | 🟢 **pronto para envio à produção** | **NÃO** | várias **39/39** · layout **30/30** · A6 **86/86** |
 
 ### PACOTE PRONTO — ETQ-TERMICA-VARIAS
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Preset térmico (Elgin): várias etiquetas saíam só a 1ª. Agora uma página por etiqueta. Tela de etiquetas, histórico e etapa 6 da entrada de nota |
-| **Prova** | **39/39** · 1 etiqueta = 1 página · 3 = 3 · quantidade 3 = 3 · gôndola A6 não misturou |
+| **O quê** | Térmica (Elgin): cada etiqueta da fila sai numa folha. No preset: fonte do nome por 1–4 linhas, máx. de linhas, arrastar nome/preço/barras/GM/rodapé, ligar/desligar cada um, moldura e cores. Vale na tela, no histórico e na etapa 6 da nota |
+| **Prova** | PDF 1→1 página · 3→3 · qtd 3→3 · gôndola A6 segue 1 folha |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** — teste **v25.39** — só frase + senha |
-| **Você** | Ctrl+F5 · fila com 3 · Imprimir · o Chrome tem que mostrar **3 folhas** |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.41** — só frase + senha |
+| **Você** | Ctrl+F5 · Presets → estilo Térmica → arrastar e moldura → Salvar · fila com 3 · Chrome mostra **3 folhas** |
 
 ### CHECKLIST ÚNICO — 18/09 · Excel clientes + fiado
 

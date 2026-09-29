@@ -19,6 +19,35 @@
     barcode_width: 1.05,
     texto_rodape: 'Gm Agro Mais',
     impressora: '',
+    nome_pt_1: 8,
+    nome_pt_2: 8,
+    nome_pt_3: 7,
+    nome_pt_4: 6,
+    nome_linhas: 2,
+    borda_mm: 0,
+    show_nome: true,
+    show_preco: true,
+    show_barcode: true,
+    show_gm: true,
+    show_rodape: true,
+  };
+
+  /** Caixas em % da etiqueta térmica — arraste no preset. */
+  var DEFAULT_TERMICA_LAYOUT = {
+    nome: { x: 3, y: 2, w: 94, h: 26 },
+    preco: { x: 3, y: 28, w: 94, h: 26 },
+    barcode: { x: 6, y: 54, w: 88, h: 22 },
+    gm: { x: 3, y: 76, w: 94, h: 10 },
+    rodape: { x: 3, y: 86, w: 94, h: 12 },
+  };
+
+  var DEFAULT_TERMICA_CORES = {
+    fundo: '#ffffff',
+    nome_fg: '#111111',
+    preco_fg: '#111111',
+    gm_fg: '#111111',
+    rodape_fg: '#111111',
+    borda: '#111111',
   };
 
   var DEFAULT_GONDOLA_LAYOUT = {
@@ -395,6 +424,34 @@
       if (out.nome_pt_2 == null) out.nome_pt_2 = Math.max(4, Math.round((Number(out.nome_pt_1) || 11) * 0.82 * 10) / 10);
       if (out.nome_pt_3 == null) out.nome_pt_3 = Math.max(4, Math.round((Number(out.nome_pt_1) || 11) * 0.68 * 10) / 10);
       if (!out.nome || out.nome === 'Gôndola') out.nome = 'Gôndola A4';
+    } else {
+      var basePt = Number(out.nome_pt) || 8;
+      out.nome_linhas = Math.max(1, Math.min(4, parseInt(out.nome_linhas, 10) || 2));
+      if (out.nome_pt_1 == null) out.nome_pt_1 = basePt;
+      if (out.nome_pt_2 == null) out.nome_pt_2 = basePt;
+      if (out.nome_pt_3 == null) out.nome_pt_3 = Math.max(4, Math.round(basePt * 0.85 * 10) / 10);
+      if (out.nome_pt_4 == null) out.nome_pt_4 = Math.max(4, Math.round(basePt * 0.72 * 10) / 10);
+      var bordaT = Number(out.borda_mm);
+      out.borda_mm = isFinite(bordaT) && bordaT > 0 ? Math.min(8, bordaT) : 0;
+      if (!out.cores || typeof out.cores !== 'object') {
+        out.cores = clonePreset(DEFAULT_TERMICA_CORES);
+      } else {
+        Object.keys(DEFAULT_TERMICA_CORES).forEach(function (k) {
+          if (!out.cores[k]) out.cores[k] = DEFAULT_TERMICA_CORES[k];
+        });
+      }
+      if (!out.layout || typeof out.layout !== 'object') {
+        out.layout = clonePreset(DEFAULT_TERMICA_LAYOUT);
+      } else {
+        Object.keys(DEFAULT_TERMICA_LAYOUT).forEach(function (k) {
+          if (!out.layout[k]) out.layout[k] = clonePreset(DEFAULT_TERMICA_LAYOUT[k]);
+        });
+      }
+      if (out.show_nome == null) out.show_nome = true;
+      if (out.show_preco == null) out.show_preco = true;
+      if (out.show_barcode == null) out.show_barcode = true;
+      if (out.show_gm == null) out.show_gm = true;
+      if (out.show_rodape == null) out.show_rodape = true;
     }
     return out;
   }
@@ -972,6 +1029,66 @@
     );
   }
 
+  function scriptFitNomeTermica(preset) {
+    var maxL = Math.max(1, Math.min(4, parseInt(preset.nome_linhas, 10) || 2));
+    var pt1 = Number(preset.nome_pt_1) || Number(preset.nome_pt) || 8;
+    var pt2 = Number(preset.nome_pt_2) || pt1;
+    var pt3 = Number(preset.nome_pt_3) || pt2;
+    var pt4 = Number(preset.nome_pt_4) || pt3;
+    return (
+      '<script>(function(){var MAX=' +
+      maxL +
+      ',PTS=[' +
+      [pt1, pt2, pt3, pt4].join(',') +
+      '];function cabe(el,linhas,pt){el.style.fontSize=pt+"pt";el.style.webkitLineClamp=String(linhas);el.style.lineClamp=String(linhas);void el.offsetHeight;return el.scrollHeight<=el.clientHeight+1.5;}function fit(el){var i;for(i=1;i<MAX;i++){if(cabe(el,i,PTS[i-1]))return;}el.style.fontSize=PTS[MAX-1]+"pt";el.style.webkitLineClamp=String(MAX);el.style.lineClamp=String(MAX);}function go(){document.querySelectorAll(".slot-nome").forEach(fit);}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",go);else go();setTimeout(go,30);})();<\/script>'
+    );
+  }
+
+  function montarConteudoEtiquetaTermica(lb, layout, preset) {
+    var html = '';
+    if (campoVisivel(preset, 'nome', true)) {
+      html +=
+        '<div class="slot slot-nome" style="' +
+        boxCss(layout.nome) +
+        '">' +
+        esc(lb.nome) +
+        '</div>';
+    }
+    if (campoVisivel(preset, 'preco', true)) {
+      html +=
+        '<div class="slot slot-preco" style="' +
+        boxCss(layout.preco) +
+        '">' +
+        esc(lb.preco) +
+        '</div>';
+    }
+    if (campoVisivel(preset, 'barcode', true)) {
+      html +=
+        '<div class="slot slot-barcode" style="' +
+        boxCss(layout.barcode) +
+        '"><svg id="' +
+        esc(lb.bcId) +
+        '"></svg></div>';
+    }
+    if (campoVisivel(preset, 'gm', true) && lb.gm) {
+      html +=
+        '<div class="slot slot-gm" style="' +
+        boxCss(layout.gm) +
+        '">' +
+        esc(lb.gm) +
+        '</div>';
+    }
+    if (campoVisivel(preset, 'rodape', true) && lb.rodape) {
+      html +=
+        '<div class="slot slot-rodape" style="' +
+        boxCss(layout.rodape) +
+        '">' +
+        esc(lb.rodape) +
+        '</div>';
+    }
+    return html;
+  }
+
   function montarHtmlTermica(preset, itens, textoRodape) {
     var w = Number(preset.largura_mm) || 40;
     var h = Number(preset.altura_mm) || 40;
@@ -985,6 +1102,7 @@
           nome: String(it.nome || ''),
           preco: fmtPreco(it.preco_venda),
           gm: gm,
+          rodape: String(textoRodape || ''),
           bcValor: bc.valor,
           bcFormato: bc.formato,
           bcId: 'bc-' + idxIt + '-' + i,
@@ -992,9 +1110,16 @@
       }
     });
 
-    /* Página = 1 etiqueta. Altura fixa no body + overflow corta as seguintes
-       (Chrome mostra «1 folha» e a Elgin só sai a primeira). Quebra no bloco
-       .pg — no flex o Chrome ignora page-break. */
+    var layout = preset.layout || DEFAULT_TERMICA_LAYOUT;
+    var cores = preset.cores || DEFAULT_TERMICA_CORES;
+    var bordaMm = Number(preset.borda_mm) || 0;
+    var bordaCss =
+      bordaMm > 0
+        ? 'border:' + bordaMm + 'mm solid ' + esc(cores.borda || '#111111') + ';'
+        : '';
+    var nomePt = Number(preset.nome_pt_1) || Number(preset.nome_pt) || 8;
+    var maxLinhas = Math.max(1, Math.min(4, parseInt(preset.nome_linhas, 10) || 2));
+    /* Página = 1 etiqueta. Quebra no bloco .pg (flex não pagina no Chrome). */
     var css =
       '@page{size:' +
       w +
@@ -1011,45 +1136,42 @@
       h +
       'mm;box-sizing:border-box;overflow:hidden;page-break-inside:avoid;break-inside:avoid-page}' +
       '.pg + .pg{page-break-before:always;break-before:page}' +
-      '.etq{width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:hidden;padding:1mm 0.8mm;text-align:center;gap:0.25mm}' +
-      '.nome{width:100%;flex:0 0 auto;font-size:' +
-      preset.nome_pt +
-      'pt;line-height:1.05;font-weight:600;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}' +
-      '.preco{flex:0 0 auto;font-size:' +
-      Math.min(Number(preset.preco_pt) || 28, Math.round(h * 2.2)) +
-      'pt;font-weight:900;line-height:1;margin:0}' +
-      '.barcode-wrap{flex:0 1 auto;width:92%;max-height:' +
-      Math.max(8, Math.round(h * 0.28)) +
-      'mm;display:flex;align-items:center;justify-content:center;overflow:hidden;margin:0.2mm 0}' +
-      '.barcode-wrap svg{display:block;max-width:100%!important;max-height:' +
-      Math.max(8, Math.round(h * 0.28)) +
-      'mm!important;width:auto!important;height:auto!important}' +
-      '.codigo-gm{flex:0 0 auto;font-size:' +
-      preset.codigo_pt +
-      'pt;font-weight:700;line-height:1}' +
-      '.rodape{flex:0 0 auto;font-size:' +
-      preset.rodape_pt +
-      'pt;font-weight:800;line-height:1.05;margin-top:0.2mm;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}';
+      '.etq{position:relative;width:100%;height:100%;box-sizing:border-box;overflow:hidden;background:' +
+      esc(cores.fundo || '#fff') +
+      ';' +
+      bordaCss +
+      '}' +
+      '.slot{position:absolute;box-sizing:border-box;overflow:hidden}' +
+      '.slot-nome{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:' +
+      maxLinhas +
+      ';align-content:center;justify-content:center;text-align:center;font-size:' +
+      nomePt +
+      'pt;font-weight:700;line-height:1.05;color:' +
+      esc(cores.nome_fg || '#111') +
+      ';word-break:break-word;overflow-wrap:anywhere}' +
+      '.slot-preco{display:flex;align-items:center;justify-content:center;text-align:center;font-size:' +
+      (Number(preset.preco_pt) || 28) +
+      'pt;font-weight:900;line-height:1;color:' +
+      esc(cores.preco_fg || '#111') +
+      ';white-space:nowrap}' +
+      '.slot-barcode{display:flex;align-items:center;justify-content:center}' +
+      '.slot-barcode svg{display:block;max-width:100%!important;max-height:100%!important;width:auto!important;height:auto!important}' +
+      '.slot-gm{display:flex;align-items:center;justify-content:center;text-align:center;font-size:' +
+      (Number(preset.codigo_pt) || 7) +
+      'pt;font-weight:800;line-height:1;color:' +
+      esc(cores.gm_fg || '#111') +
+      ';white-space:nowrap}' +
+      '.slot-rodape{display:flex;align-items:center;justify-content:center;text-align:center;font-size:' +
+      (Number(preset.rodape_pt) || 8) +
+      'pt;font-weight:800;line-height:1.05;color:' +
+      esc(cores.rodape_fg || '#111') +
+      ';white-space:nowrap}';
 
     var body = labels
       .map(function (lb) {
         return (
           '<div class="pg"><div class="etq">' +
-          '<div class="nome">' +
-          esc(lb.nome) +
-          '</div>' +
-          '<div class="preco">' +
-          esc(lb.preco) +
-          '</div>' +
-          '<div class="barcode-wrap"><svg id="' +
-          esc(lb.bcId) +
-          '"></svg></div>' +
-          '<div class="codigo-gm">' +
-          esc(lb.gm) +
-          '</div>' +
-          '<div class="rodape">' +
-          esc(textoRodape) +
-          '</div>' +
+          montarConteudoEtiquetaTermica(lb, layout, preset) +
           '</div></div>'
         );
       })
@@ -1074,6 +1196,7 @@
       css +
       '</style></head><body>' +
       body +
+      scriptFitNomeTermica(preset) +
       '<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"><\/script>' +
       '<script>var _bars=' +
       jsData +
@@ -1240,6 +1363,8 @@
     DEFAULT_GONDOLA_PRESET: DEFAULT_GONDOLA_PRESET,
     DEFAULT_BONUS_A6_PRESET: DEFAULT_BONUS_A6_PRESET,
     DEFAULT_GONDOLA_LAYOUT: DEFAULT_GONDOLA_LAYOUT,
+    DEFAULT_TERMICA_LAYOUT: DEFAULT_TERMICA_LAYOUT,
+    DEFAULT_TERMICA_CORES: DEFAULT_TERMICA_CORES,
     normalizarFolha: normalizarFolha,
     dimensoesFolha: dimensoesFolha,
     calcularGradeFolha: calcularGradeFolha,

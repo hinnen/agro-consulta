@@ -99,7 +99,7 @@ def check_arquivos() -> None:
         ("etq-mv-carregar", "btn carregar"),
         ("resolverUrl", "CFG resolver"),
         ("maisVendidosUrl", "CFG mv"),
-        ("?v=17", "cache-bust v17"),
+        ("?v=21", "cache-bust v21"),
     ):
         check(needle in html, f"HTML {label}")
 
@@ -301,7 +301,7 @@ def check_http(ctx: dict) -> None:
         # escapejs vira hífen em \u002D — checar chave + trecho do path
         check("resolverUrl:" in body and "resolver" in body and "codigos" in body, "página embute resolverUrl")
         check("maisVendidosUrl:" in body and "mais" in body and "vendidos" in body, "página embute maisVendidosUrl")
-        check("produtos_etiquetas.js?v=17" in body, "página puxa JS v17")
+        check("produtos_etiquetas.js?v=21" in body, "página puxa JS v21")
 
         # CSRF: Client emite cookie; force_login + json POST com CSRF
         c.get(reverse("produtos_etiquetas"))
