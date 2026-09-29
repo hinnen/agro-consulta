@@ -166,6 +166,7 @@ from .entrega_pdv_pendente_util import (
     listar_entregas_pendentes_pdv,
     marcar_entrega_pendente_fechada,
     mudar_loja_entrega_pdv,
+    parse_data_prevista_entrega,
     normalizar_loja_entrega,
     resolver_sessao_caixa_entrega_pdv,
     serializar_entrega_pendente_pdv,
@@ -33045,6 +33046,11 @@ def api_entrega_registrar(request):
     if campos["forma_pagamento"] and campos["forma_pagamento"] != "Dinheiro":
         campos["troco_precisa"] = None
 
+    dia_ent, err_dia = parse_data_prevista_entrega(body.get("data_prevista"))
+    if err_dia:
+        return JsonResponse({"ok": False, "erro": err_dia}, status=400)
+    campos["data_prevista"] = dia_ent
+
     cli_obj = _cliente_agro_de_body(body)
 
     aguarda_pdv = bool(body.get("aguarda_pagamento_pdv"))
@@ -33353,6 +33359,7 @@ def api_entregas_listar(request):
                     "retomar_codigo": e.retomar_codigo,
                     "operador": e.operador,
                     "hora_prevista": e.hora_prevista.isoformat() if e.hora_prevista else None,
+                    "data_prevista": e.data_prevista.isoformat() if e.data_prevista else None,
                     "hora_saida": e.hora_saida.isoformat() if e.hora_saida else None,
                     "hora_entrega": e.hora_entrega.isoformat() if e.hora_entrega else None,
                     "observacoes": e.observacoes,
@@ -33426,6 +33433,11 @@ def api_entrega_atualizar(request):
         ent.observacoes = str(body["observacoes"])[:2000]
     if "hora_prevista" in body:
         ent.hora_prevista = _parse_hhmm_entrega(body.get("hora_prevista"))
+    if "data_prevista" in body:
+        dia_ent, err_dia = parse_data_prevista_entrega(body.get("data_prevista"))
+        if err_dia:
+            return JsonResponse({"ok": False, "erro": err_dia}, status=400)
+        ent.data_prevista = dia_ent
     if body.get("hora_saida_now"):
         ent.hora_saida = timezone.now()
     if body.get("hora_entrega_now"):

@@ -1287,6 +1287,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### CHECKLIST ÚNICO — 29/09 · dia da entrega opcional
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-ENT-DIA-OPCIONAL** | 🟢 **pronto para envio à produção** | **SIM** `0133` | `verify_pdv_entrega_dia_opcional_path.py` **14/14** |
+
+### PACOTE PRONTO — PDV-ENT-DIA-OPCIONAL
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Fechar venda como entrega: **Hoje** (padrão) · **Amanhã** · **Outro dia**. Dia futuro não apita hoje e não trava o caixa até esse dia. Paga na loja fica na lista até o dia. |
+| **Onde** | overlay entrega · `pdv_wizard.js` · `PedidoEntrega.data_prevista` · painel `/entregas/` |
+| **Migrate** | **SIM** `0133` |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.40** — só frase + senha |
+| **Você** | Ctrl+F5 · Entrega → Hoje ou Amanhã ou Outro dia · F7 · card com o dia · caixa de hoje não cobra essa pendência |
+
 ### CHECKLIST ÚNICO — 29/09 · etiqueta térmica várias
 
 | # | Pacote | Status | Migrate | Prova |

@@ -1585,6 +1585,7 @@
   }
   .pdv-ed-wizard-panel[data-pdv-ed-painel="detalhes"] {
     width: min(94vw, 52rem);
+    overflow-y: auto;
   }
   .pdv-ed-wizard-panel[data-pdv-ed-painel="detalhes"] #pdv-ed-header {
     padding: 1.25rem 1.5rem 1.35rem;
@@ -1736,6 +1737,28 @@
   .pdv-ed-detalhes-campos--so-horario {
     grid-template-columns: 1fr;
   }
+  .pdv-ed-dia-opcoes {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
+  }
+  .pdv-ed-dia-opcao {
+    display: flex;
+    min-height: 2.75rem;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border-radius: 0.85rem;
+    border: 2px solid #cbd5e1;
+    background: #f8fafc;
+    padding: 0.4rem 0.35rem;
+    font-size: clamp(0.95rem, 0.3vw + 0.85rem, 1.15rem);
+    font-weight: 900;
+    color: #1e293b;
+  }
+  .pdv-ed-dia-opcao input { margin: 0; }
+  .pdv-ed-dia-outro { max-width: 16rem; }
   .pdv-ed-horario-opcoes {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

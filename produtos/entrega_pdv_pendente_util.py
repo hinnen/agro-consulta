@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
+import re
+from datetime import date, timedelta
 from urllib.parse import quote
 
 from django.db.models import Q
@@ -33,11 +34,16 @@ def corte_pagas_loja_pdv():
 
 
 def queryset_entregas_pagas_loja_pdv():
-    """Pagas no caixa ao lançar — overlay 24h, não trava fechar caixa."""
+    """Pagas no caixa ao lançar — overlay 24h, não trava fechar caixa.
+
+    Dia futuro combinado continua na lista até esse dia (não some em 24 h).
+    """
+    hoje = data_hoje_loja()
     return PedidoEntrega.objects.filter(
         paga_na_loja=True,
         pdv_lista_concluida=False,
-        criado_em__gte=corte_pagas_loja_pdv(),
+    ).filter(
+        Q(criado_em__gte=corte_pagas_loja_pdv()) | Q(data_prevista__gte=hoje)
     ).exclude(status=PedidoEntrega.Status.CANCELADO)
 
 
@@ -210,6 +216,9 @@ def serializar_entrega_pendente_pdv(ent: PedidoEntrega, *, incluir_estado: bool 
         "hora_prevista": ent.hora_prevista.strftime("%H:%M")
         if getattr(ent, "hora_prevista", None)
         else "",
+        "data_prevista": ent.data_prevista.isoformat()
+        if getattr(ent, "data_prevista", None)
+        else "",
     }
     if incluir_estado:
         row["pdv_wizard_state"] = ent.pdv_wizard_state if isinstance(ent.pdv_wizard_state, dict) else {}
@@ -321,9 +330,44 @@ def data_hoje_loja():
 
 
 def qs_excluindo_adiadas_futuras(qs, hoje=None):
-    """Adiada para data futura não trava o caixa de hoje."""
+    """Adiada ou marcada para dia futuro não trava o caixa de hoje."""
     dia = hoje or data_hoje_loja()
-    return qs.filter(Q(caixa_adiada_para__isnull=True) | Q(caixa_adiada_para__lte=dia))
+    qs = qs.filter(Q(caixa_adiada_para__isnull=True) | Q(caixa_adiada_para__lte=dia))
+    return qs.filter(Q(data_prevista__isnull=True) | Q(data_prevista__lte=dia))
+
+
+def parse_data_prevista_entrega(val, hoje=None):
+    """
+    Dia combinado no lançamento.
+    Vazio ou hoje → (None, "") — mesmo comportamento de sempre.
+    Futuro → (date, "").
+    Passado ou texto inválido → (None, mensagem).
+    """
+    if val is None:
+        return None, ""
+    s = str(val).strip()
+    if not s:
+        return None, ""
+    dia = None
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}.*", s):
+        try:
+            dia = date.fromisoformat(s[:10])
+        except ValueError:
+            return None, "Dia da entrega inválido."
+    else:
+        m = re.fullmatch(r"(\d{1,2})/(\d{1,2})/(\d{4})", s)
+        if not m:
+            return None, "Dia da entrega inválido."
+        try:
+            dia = date(int(m.group(3)), int(m.group(2)), int(m.group(1)))
+        except ValueError:
+            return None, "Dia da entrega inválido."
+    ref = hoje or data_hoje_loja()
+    if dia < ref:
+        return None, "O dia da entrega não pode ser no passado."
+    if dia == ref:
+        return None, ""
+    return dia, ""
 
 
 def adiar_entrega_caixa_um_dia(

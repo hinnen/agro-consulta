@@ -1350,6 +1350,12 @@ class PedidoEntrega(models.Model):
     retomar_codigo = models.CharField(max_length=40, blank=True, default="")
     operador = models.CharField(max_length=120, blank=True, default="")
     hora_prevista = models.TimeField(null=True, blank=True)
+    data_prevista = models.DateField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Dia combinado. Vazio = o dia em que lançou.",
+    )
     hora_saida = models.DateTimeField(null=True, blank=True)
     hora_entrega = models.DateTimeField(null=True, blank=True)
     observacoes = models.TextField(blank=True, default="")
