@@ -19,6 +19,7 @@ from . import views_pdv_topbar
 from . import views_repasse_vila
 from . import views_tabela_preco_forma
 from . import views_cliente_cadastro
+from . import views_cliente_planilha
 from . import bug_report_views
 from . import ajuste_codigo_pendente_views
 from . import views_planos_conta
@@ -772,6 +773,21 @@ urlpatterns = [
     ),
     path('venda/<int:pk>/', views.venda_agro_detalhe, name='venda_agro_detalhe'),
     path('clientes/', views.clientes_lista, name='clientes_lista'),
+    path(
+        'api/clientes/export-xlsx/',
+        views_cliente_planilha.api_clientes_export_xlsx,
+        name='api_clientes_export_xlsx',
+    ),
+    path(
+        'api/clientes/import-preview/',
+        views_cliente_planilha.api_clientes_import_preview,
+        name='api_clientes_import_preview',
+    ),
+    path(
+        'api/clientes/import-aplicar/',
+        views_cliente_planilha.api_clientes_import_aplicar,
+        name='api_clientes_import_aplicar',
+    ),
     path('clientes/sincronizar/', views.clientes_sincronizar, name='clientes_sincronizar'),
     path('clientes/novo/', views.cliente_novo, name='cliente_novo'),
     path('clientes/<int:pk>/editar/', views.cliente_editar, name='cliente_editar'),

@@ -1287,6 +1287,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### CHECKLIST ÚNICO — 18/09 · Excel clientes + fiado
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CLIENTE-XLSX-FIADO** | 🟢 **pronto para envio à produção** | **NÃO** | `verify_cliente_planilha_path.py` **30/30** |
+
+### PACOTE PRONTO — CLIENTE-XLSX-FIADO · teste **v25.37**
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `/clientes/` — **Excel ↓** / **Excel ↑** (igual cadastro produtos): cadastro completo + média fiado 3m + mês que mais comprou + limite editável · prévia antes de gravar |
+| **Arquivos** | `cliente_planilha_util.py` · `views_cliente_planilha.py` · `clientes_lista.html` · `urls.py` · `scripts/verify_cliente_planilha_path.py` |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
+| **Você** | Ctrl+F5 · Clientes → Excel ↓ · editar limite no Excel · Excel ↑ → prévia → confirmar |
+
 ### CHECKLIST ÚNICO — 29/09 · catch do PIN no Point
 
 | # | Pacote | Status | Migrate | Prova |

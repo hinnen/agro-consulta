@@ -578,3 +578,14 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 **Rollback:** tag `rollback/pre-checklist-1409-v25.22` · `docs/ROLLBACK-CHECKLIST-1409.md`.  
 **Não** merge `teste`.
 
+---
+
+## 34. Checklist único — lote 18/09 (`CLIENTE-XLSX-FIADO` · alvo loja **v25.37**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CLIENTE-XLSX-FIADO** | 🟢 **pronto envio** · **30/30** | **NÃO** |
+
+**Status:** teste **v25.37** — `/clientes/` Excel ↓↑ · média fiado 3m · mês que mais comprou · limite na planilha · prévia na importação.  
+**Prova:** `scripts/verify_cliente_planilha_path.py`. **Migrate:** não.
+
