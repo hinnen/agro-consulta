@@ -59,7 +59,7 @@ def main() -> None:
 
     troca = _fn_body(mic, "aplicar_bip_entrada_nf_troca_inteligente")
     check("fn_troca_inteligente", bool(troca), f"chars={len(troca)}")
-    check("troca_promove_230", "eh_codigo_barras_loja" in troca and "promove" in troca)
+    check("troca_nao_substitui_principal", '"opcional"' in troca and '"definir"' in troca and "eh_codigo_barras_loja" not in troca)
     check("troca_opcional", '"opcional"' in troca)
     check("mesclar_fn", "def mesclar_codigos_barras_opcionais_adicionar" in mic)
 
@@ -103,9 +103,10 @@ def main() -> None:
         cadastro_extras={},
         bip="7898752405197",
     )
-    check("rule_promove", r1.get("acao") == "promove", str(r1.get("acao")))
-    check("rule_promove_principal", r1.get("codigo_barras") == "7898752405197")
-    check("rule_promove_230_opc", "2300000001490" in (r1.get("codigos_barras_opcionais") or []))
+    check("rule_230_fica", r1.get("acao") == "opcional", str(r1.get("acao")))
+    check("rule_230_principal_intacto", r1.get("codigo_barras") is None)
+    check("rule_230_ean_extra", "7898752405197" in (r1.get("codigos_barras_opcionais") or []))
+    check("rule_230_nao_vai_extra", "2300000001490" not in (r1.get("codigos_barras_opcionais") or []))
 
     r2 = aplicar_bip_entrada_nf_troca_inteligente(
         codigo_barras_atual="7891111111111",

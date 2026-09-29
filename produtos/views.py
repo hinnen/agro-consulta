@@ -338,25 +338,6 @@ from .mongo_financeiro_util import (
 logger = logging.getLogger(__name__)
 
 
-def _debug_482fe6(location: str, message: str, data: dict | None = None, *, run_id: str = "", hypothesis_id: str = "") -> None:
-    # #region agent log
-    try:
-        row = {
-            "sessionId": "482fe6",
-            "runId": run_id or "",
-            "hypothesisId": hypothesis_id or "",
-            "location": location,
-            "message": message,
-            "data": data or {},
-            "timestamp": int(time.time() * 1000),
-        }
-        with open(os.path.join(settings.BASE_DIR, "debug-482fe6.log"), "a", encoding="utf-8") as fh:
-            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
-    except Exception:
-        pass
-    # #endregion
-
-
 def _dashboard_login_required(view_func):
     """login_required, exceto se settings.AGRO_PUBLIC_DASHBOARD (painel BI só leitura na web)."""
     protected = login_required(login_url="/entrar/")(view_func)
@@ -2651,29 +2632,6 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         payload = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
         return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
-    # #region agent log
-    _debug_482fe6(
-        "produtos/views.py:_api_produtos_gestao_overlay_salvar_core:payload",
-        "overlay salvar payload recebido",
-        {
-            "produto_id": str(payload.get("produto_id") or "")[:64],
-            "origem_historico": str(payload.get("origem_historico") or "")[:32],
-            "pdv_edicao_rapida": bool(payload.get("pdv_edicao_rapida")),
-            "entrada_nfe": bool(payload.get("entrada_nfe") or payload.get("origem_entrada_nf")),
-            "has_marca": "marca" in payload,
-            "marca_len": len(str(payload.get("marca") or "").strip()) if "marca" in payload else None,
-            "has_categoria": "categoria" in payload,
-            "categoria_len": len(str(payload.get("categoria") or "").strip()) if "categoria" in payload else None,
-            "has_codigo_barras": "codigo_barras" in payload,
-            "codigo_barras_len": len(str(payload.get("codigo_barras") or "").strip()) if "codigo_barras" in payload else None,
-            "has_cb_opcionais": "codigos_barras_opcionais" in payload,
-            "cb_opcionais_len": len(payload.get("codigos_barras_opcionais") or []) if isinstance(payload.get("codigos_barras_opcionais"), list) else None,
-            "has_variacoes": "variacoes" in payload,
-            "variacoes_len": len(payload.get("variacoes") or []) if isinstance(payload.get("variacoes"), list) else None,
-        },
-        hypothesis_id="H1|H2|H3|H4",
-    )
-    # #endregion
     if payload.get("validar_cadastro_minimo"):
         vmsg = _overlay_erro_validacao_cadastro_minimo(payload)
         if vmsg:
@@ -2727,29 +2685,6 @@ def _api_produtos_gestao_overlay_salvar_core(request):
     hist_antes["variacoes"] = snapshot_variacoes_resumo(
         list(_PMVA_hist.objects.filter(produto_externo_id=pid[:64]).order_by("ordem", "id")[:200])
     )
-    principal_antes_dbg = str(hist_antes.get("codigo_barras") or "").strip()
-    principal_payload_dbg = str(payload.get("codigo_barras") or "").strip()
-    cb_op_payload_dbg = payload.get("codigos_barras_opcionais")
-    # #region agent log
-    _debug_482fe6(
-        "produtos/views.py:_api_produtos_gestao_overlay_salvar_core:antes",
-        "overlay antes do save",
-        {
-            "produto_id": pid[:64],
-            "origem_historico": str(payload.get("origem_historico") or "")[:32],
-            "antes_marca": str(hist_antes.get("marca") or "")[:120],
-            "antes_categoria": str(hist_antes.get("categoria") or "")[:200],
-            "antes_codigo_barras": str(hist_antes.get("codigo_barras") or "")[:80],
-            "antes_cb_opcionais": list((hist_antes.get("codigos_barras_opcionais") or [])[:10]) if isinstance(hist_antes.get("codigos_barras_opcionais"), list) else [],
-            "payload_codigo_barras": principal_payload_dbg[:80],
-            "payload_trocou_principal": bool(principal_payload_dbg and principal_payload_dbg != principal_antes_dbg),
-            "payload_contem_antigo_em_opcional": (
-                principal_antes_dbg in cb_op_payload_dbg if principal_antes_dbg and isinstance(cb_op_payload_dbg, list) else False
-            ),
-        },
-        hypothesis_id="H1|H2|H3|H5",
-    )
-    # #endregion
     # Lápis PDV: string vazia NÃO apaga campo do overlay (só altera o que veio preenchido).
     pdv_rapida = str(payload.get("pdv_edicao_rapida") or "").strip().lower() in (
         "1",
@@ -3145,7 +3080,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         if lista_op_add:
             ex["codigos_barras_opcionais"] = lista_op_add
             ex.pop("codigos_barras_alternativos", None)
-    # Entrada NF etapa 3 — regra B: 230… → opcional; bip vira principal (senão só opcional).
+    # Entrada NF etapa 3: código igual fica; diferente entra só como extra. Sem principal, o bip vira o código.
     if "codigo_barras_bip_entrada_nf" in payload:
         from produtos.mongo_index_codigos import aplicar_bip_entrada_nf_troca_inteligente
 
@@ -3179,7 +3114,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
                 bip=dig_bip_nf,
                 promover_se_loja=promover,
             )
-            if res_bip.get("acao") == "promove" and res_bip.get("codigo_barras"):
+            if res_bip.get("acao") in ("promove", "definir") and res_bip.get("codigo_barras"):
                 ov.codigo_barras = str(res_bip["codigo_barras"])[:80]
             lista_bip = res_bip.get("codigos_barras_opcionais") or []
             if lista_bip:
@@ -3338,21 +3273,6 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             hist_depois["variacoes"] = snapshot_variacoes_resumo(variacoes_novas)
         else:
             hist_depois["variacoes"] = hist_antes.get("variacoes") or ""
-        # #region agent log
-        _debug_482fe6(
-            "produtos/views.py:_api_produtos_gestao_overlay_salvar_core:depois",
-            "overlay depois do save",
-            {
-                "produto_id": pid[:64],
-                "origem_historico": str(payload.get("origem_historico") or "")[:32],
-                "depois_marca": str(hist_depois.get("marca") or "")[:120],
-                "depois_categoria": str(hist_depois.get("categoria") or "")[:200],
-                "depois_codigo_barras": str(hist_depois.get("codigo_barras") or "")[:80],
-                "depois_cb_opcionais": list((hist_depois.get("codigos_barras_opcionais") or [])[:10]) if isinstance(hist_depois.get("codigos_barras_opcionais"), list) else [],
-            },
-            hypothesis_id="H1|H2|H3",
-        )
-        # #endregion
         try:
             registrar_diffs_cadastro(
                 produto_id=pid,
@@ -25536,28 +25456,6 @@ def api_produtos_cadastro_detalhe(request, produto_id: str):
         p_mod = cat_agro.obter_produto_model(pid)
         if p_mod is None:
             return JsonResponse({"ok": False, "erro": "Produto não encontrado"}, status=404)
-        # #region agent log
-        try:
-            ov_dbg = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).only(
-                "codigo_barras", "marca", "categoria", "cadastro_extras"
-            ).first()
-            ce_dbg = ov_dbg.cadastro_extras if ov_dbg and isinstance(ov_dbg.cadastro_extras, dict) else {}
-            _debug_482fe6(
-                "produtos/views.py:api_produtos_cadastro_detalhe:agro_pg",
-                "detalhe cadastro aberto",
-                {
-                    "produto_id": pid[:64],
-                    "produto_codigo_barras": str(getattr(p_mod, "codigo_barras", None) or "")[:80],
-                    "produto_marca": str(getattr(p_mod, "marca", None) or "")[:120],
-                    "produto_categoria": str(getattr(p_mod, "categoria", None) or "")[:200],
-                    "overlay_codigo_barras": str(getattr(ov_dbg, "codigo_barras", None) or "")[:80] if ov_dbg else "",
-                    "overlay_cb_opcionais": list((ce_dbg.get("codigos_barras_opcionais") or [])[:10]) if isinstance(ce_dbg.get("codigos_barras_opcionais"), list) else [],
-                },
-                hypothesis_id="H2|H5",
-            )
-        except Exception:
-            pass
-        # #endregion
         return JsonResponse(
             {"ok": True, "produto": cat_agro.produto_model_para_detalhe(p_mod), "fonte": "agro_pg"}
         )

@@ -1287,6 +1287,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🩹 Entrada de nota manual apagava código de barras (`NF-CB-NAO-APAGA` · 29/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Gravar custo/preço na nota manual apagava o código (overlay vazio cobria o cadastro). Agora: código igual fica; código diferente só entra como extra; o principal não é trocado. |
+| **Nota 36696** | Já apagou na loja: GM0934 `7899751100632` · GM0752 `7898311540444` · GM0738 `7898917425527` · GM4619 `7896744177428`. Não regravei. |
+| **Migrate** | **NÃO** |
+| **Status** | Código no `teste`. Loja **não**. Devolver os 4 códigos só se Renan pedir. |
+
 ### CHECKLIST ÚNICO — 29/09 · cartão da entrega no dia anterior
 
 | # | Pacote | Status | Migrate | Prova |

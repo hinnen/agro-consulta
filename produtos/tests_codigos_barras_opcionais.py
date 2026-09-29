@@ -59,15 +59,25 @@ class NormalizarCbOpcionaisTests(SimpleTestCase):
         )
         self.assertEqual(out, ["7891111111111", "7898752405197"])
 
-    def test_troca_inteligente_promove_230(self):
+    def test_troca_inteligente_230_fica_e_ean_vira_extra(self):
         res = aplicar_bip_entrada_nf_troca_inteligente(
             codigo_barras_atual="2300000001490",
             cadastro_extras={},
             bip="7898752405197",
         )
-        self.assertEqual(res["acao"], "promove")
+        self.assertEqual(res["acao"], "opcional")
+        self.assertIsNone(res["codigo_barras"])
+        self.assertEqual(res["codigos_barras_opcionais"], ["7898752405197"])
+        self.assertNotIn("2300000001490", res["codigos_barras_opcionais"])
+
+    def test_troca_inteligente_sem_principal_define(self):
+        res = aplicar_bip_entrada_nf_troca_inteligente(
+            codigo_barras_atual="",
+            cadastro_extras={},
+            bip="7898752405197",
+        )
+        self.assertEqual(res["acao"], "definir")
         self.assertEqual(res["codigo_barras"], "7898752405197")
-        self.assertIn("2300000001490", res["codigos_barras_opcionais"])
 
     def test_troca_inteligente_ean_fabrica_so_opcional(self):
         res = aplicar_bip_entrada_nf_troca_inteligente(

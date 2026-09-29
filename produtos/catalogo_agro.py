@@ -2,35 +2,13 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 import secrets
-import time
 from decimal import Decimal
 
-from django.conf import settings
 from django.db.models import Q
 
 from produtos.models import Produto, ProdutoCadastroAlteracaoAgro, ProdutoGestaoOverlayAgro
-
-
-def _debug_482fe6(location: str, message: str, data: dict | None = None, *, run_id: str = "", hypothesis_id: str = "") -> None:
-    # #region agent log
-    try:
-        row = {
-            "sessionId": "482fe6",
-            "runId": run_id or "",
-            "hypothesisId": hypothesis_id or "",
-            "location": location,
-            "message": message,
-            "data": data or {},
-            "timestamp": int(time.time() * 1000),
-        }
-        with open(os.path.join(settings.BASE_DIR, "debug-482fe6.log"), "a", encoding="utf-8") as fh:
-            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
-    except Exception:
-        pass
-    # #endregion
 
 _SORT_MAP = {
     "nome": "nome",
@@ -542,14 +520,6 @@ def produto_model_para_detalhe(p: Produto) -> dict:
             )
 
         if hist_por_campo:
-            before_fb = {
-                "marca": str(row.get("marca") or ""),
-                "categoria": str(row.get("categoria") or ""),
-                "subcategoria": str(row.get("subcategoria") or ""),
-                "unidade": str(row.get("unidade") or ""),
-                "codigo_barras": str(row.get("codigo_barras") or ""),
-                "cb_opcionais": list((row.get("cadastro_extras") or {}).get("codigos_barras_opcionais") or []),
-            }
             for field in ("marca", "categoria", "subcategoria", "unidade"):
                 if not str(row.get(field) or "").strip():
                     val = _hist_text(field)
@@ -569,27 +539,6 @@ def produto_model_para_detalhe(p: Produto) -> dict:
                     excluir=cb_atual or None,
                 )
                 row["cadastro_extras"] = ce_row
-            # #region agent log
-            _debug_482fe6(
-                "produtos/catalogo_agro.py:produto_model_para_detalhe:fallback_hist",
-                "fallback historico aplicado na leitura do detalhe",
-                {
-                    "produto_id": pid,
-                    "before": before_fb,
-                    "after": {
-                        "marca": str(row.get("marca") or ""),
-                        "categoria": str(row.get("categoria") or ""),
-                        "subcategoria": str(row.get("subcategoria") or ""),
-                        "unidade": str(row.get("unidade") or ""),
-                        "codigo_barras": str(row.get("codigo_barras") or ""),
-                        "cb_opcionais": list((row.get("cadastro_extras") or {}).get("codigos_barras_opcionais") or []),
-                    },
-                    "hist_codigo_barras": cb_hist,
-                },
-                run_id="post-fix",
-                hypothesis_id="H2|H5",
-            )
-            # #endregion
     except Exception:
         pass
 
@@ -732,18 +681,6 @@ def sincronizar_modelo_produto_de_overlay(
     payload = payload or {}
     p = obter_produto_model(pid64)
     if p is not None and not payload_overlay_deve_sincronizar_produto(payload, custo_payload):
-        # #region agent log
-        _debug_482fe6(
-            "produtos/catalogo_agro.py:sincronizar_modelo_produto_de_overlay:skip",
-            "sync produto pulado por payload sem cadastro",
-            {
-                "produto_id": pid64,
-                "origem_historico": str(payload.get("origem_historico") or "")[:32],
-                "payload_keys": sorted([str(k)[:40] for k in payload.keys()])[:20],
-            },
-            hypothesis_id="H4",
-        )
-        # #endregion
         return p
     if p is None and not payload_overlay_deve_sincronizar_produto(payload, custo_payload):
         return None
@@ -896,25 +833,23 @@ def sincronizar_modelo_produto_de_overlay(
         modelo_val = str(getattr(p, "modelo", None) or "").strip()[:200]
 
     cb_cand = ov.codigo_barras.strip() or None
-    # #region agent log
-    _debug_482fe6(
-        "produtos/catalogo_agro.py:sincronizar_modelo_produto_de_overlay:defaults",
-        "sync produto calculou defaults",
-        {
-            "produto_id": pid64,
-            "origem_historico": str(payload.get("origem_historico") or "")[:32],
-            "pdv_edicao_rapida": pdv_rapida,
-            "produto_antes_marca": str(p.marca or "")[:120] if p is not None else "",
-            "produto_antes_categoria": str(p.categoria or "")[:200] if p is not None else "",
-            "produto_antes_codigo_barras": str(p.codigo_barras or "")[:80] if p is not None else "",
-            "overlay_marca": str(ov.marca or "")[:120],
-            "overlay_categoria": str(ov.categoria or "")[:200],
-            "overlay_codigo_barras": str(ov.codigo_barras or "")[:80],
-            "cb_cand": str(cb_cand or "")[:80],
-        },
-        hypothesis_id="H1|H2|H3|H4",
-    )
-    # #endregion
+    # Custo/preço da nota não mandam o código. Overlay vazio não pode apagar o que já está no produto.
+    if (
+        not cb_cand
+        and "codigo_barras" not in payload
+        and p is not None
+        and str(p.codigo_barras or "").strip()
+    ):
+        cb_cand = str(p.codigo_barras).strip()[:50]
+
+    def _sem_apagar(novo, antigo, chave: str, mx: int) -> str:
+        ns = str(novo or "").strip()[:mx]
+        if ns:
+            return ns
+        if chave in payload:
+            return ""
+        return str(antigo or "").strip()[:mx]
+
     if pdv_rapida:
         defaults = {
             "codigo_interno": codigo_interno[:50],
@@ -981,21 +916,32 @@ def sincronizar_modelo_produto_de_overlay(
             "cadastro_inativo": cad_inativo,
         }
     else:
+        ant = p
         defaults = {
             "codigo_interno": (codigo_interno or "")[:50],
             "codigo_nfe": (codigo_nfe_val or "")[:64],
             "codigo_barras": cb_cand,
             "nome": nome[:300],
-            "marca": ov.marca.strip()[:120],
-            "modelo": modelo_val,
-            "categoria": ov.categoria.strip()[:200] or None,
-            "subcategoria": ov.subcategoria.strip()[:200],
-            "subcategoria_2": ov.subcategoria_2.strip()[:200],
-            "subcategoria_3": ov.subcategoria_3.strip()[:200],
-            "subcategoria_4": ov.subcategoria_4.strip()[:200],
-            "fornecedor_texto": ov.fornecedor_texto.strip()[:300],
-            "unidade": (ov.unidade.strip() or "UN")[:20],
-            "descricao": ov.descricao.strip()[:16000],
+            "marca": _sem_apagar(ov.marca, ant.marca if ant else "", "marca", 120),
+            "modelo": _sem_apagar(modelo_val, getattr(ant, "modelo", "") if ant else "", "modelo", 200),
+            "categoria": _sem_apagar(ov.categoria, ant.categoria if ant else "", "categoria", 200) or None,
+            "subcategoria": _sem_apagar(ov.subcategoria, ant.subcategoria if ant else "", "subcategoria", 200),
+            "subcategoria_2": _sem_apagar(
+                ov.subcategoria_2, ant.subcategoria_2 if ant else "", "subcategoria_2", 200
+            ),
+            "subcategoria_3": _sem_apagar(
+                ov.subcategoria_3, ant.subcategoria_3 if ant else "", "subcategoria_3", 200
+            ),
+            "subcategoria_4": _sem_apagar(
+                ov.subcategoria_4, ant.subcategoria_4 if ant else "", "subcategoria_4", 200
+            ),
+            "fornecedor_texto": _sem_apagar(
+                ov.fornecedor_texto, ant.fornecedor_texto if ant else "", "fornecedor_texto", 300
+            ),
+            "unidade": (
+                _sem_apagar(ov.unidade, ant.unidade if ant else "UN", "unidade", 20) or "UN"
+            )[:20],
+            "descricao": _sem_apagar(ov.descricao, ant.descricao if ant else "", "descricao", 16000),
             "custo": custo,
             "preco_venda": pv,
             "ativo": ativo,
@@ -1007,21 +953,6 @@ def sincronizar_modelo_produto_de_overlay(
         for k, v in defaults.items():
             setattr(p, k, v)
         p.save()
-    # #region agent log
-    _debug_482fe6(
-        "produtos/catalogo_agro.py:sincronizar_modelo_produto_de_overlay:salvo",
-        "produto postgres salvo apos sync overlay",
-        {
-            "produto_id": pid64,
-            "origem_historico": str(payload.get("origem_historico") or "")[:32],
-            "produto_depois_marca": str(p.marca or "")[:120],
-            "produto_depois_categoria": str(p.categoria or "")[:200],
-            "produto_depois_codigo_barras": str(p.codigo_barras or "")[:80],
-            "produto_depois_codigo_nfe": str(p.codigo_nfe or "")[:64],
-        },
-        hypothesis_id="H1|H2|H3|H4",
-    )
-    # #endregion
     return p
 
 
