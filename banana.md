@@ -1299,11 +1299,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 · retomar entrega de ontem no cartão · **Passou ontem** · Fechar caixa: faixa amarela e o esperado do cartão sem esse valor |
 | **Versão** | teste **v25.42** |
 
+### CHECKLIST ÚNICO — falta subir
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-ENT-DIA-OPCIONAL** | 🟢 **pronto para envio à produção** | **SIM** `0133` | **18/18** |
+| 2 | **ETQ-TERMICA-VARIAS** | 🟢 **pronto para envio à produção** | **NÃO** | **39/39** · layout **30/30** |
+| 3 | **CLIENTE-XLSX-FIADO** | 🟢 **pronto para envio à produção** | **NÃO** | **30/30** |
+| 4 | **BUG-28-PIN-CATCH** | 🟢 **pronto para envio à produção** | **NÃO** | JS **14/14** |
+
+### PACOTE PRONTO — o que ainda falta subir
+
+| Pacote | O que testar |
+| ------ | ------------ |
+| **Dia da entrega** | Ctrl+F5 · Entrega → **Hoje** ou **Amanhã** / **Outro dia** · card mostra o dia · caixa de hoje não trava o futuro · migrate `0133` |
+| **Etiqueta térmica** | Ctrl+F5 · fila com 3 · Chrome mostra **3 folhas** · preset: arrastar e fonte |
+| **Excel clientes** | Ctrl+F5 · Clientes → Excel ↓ · mudar limite · Excel ↑ → prévia → confirmar |
+| **PIN no Point** | Ctrl+F5 · entrega paga na loja → débito Point → PIN → a venda fecha |
+
 ### CHECKLIST ÚNICO — 29/09 · dia da entrega opcional
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-ENT-DIA-OPCIONAL** | 🟢 **pronto para envio à produção** | **SIM** `0133` | `verify_pdv_entrega_dia_opcional_path.py` **14/14** |
+| 1 | **PDV-ENT-DIA-OPCIONAL** | 🟢 **pronto para envio à produção** | **SIM** `0133` | **18/18** |
 
 ### PACOTE PRONTO — PDV-ENT-DIA-OPCIONAL
 
@@ -1312,7 +1330,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Fechar venda como entrega: **Hoje** (padrão) · **Amanhã** · **Outro dia**. Dia futuro não apita hoje e não trava o caixa até esse dia. Paga na loja fica na lista até o dia. |
 | **Onde** | overlay entrega · `pdv_wizard.js` · `PedidoEntrega.data_prevista` · painel `/entregas/` |
 | **Migrate** | **SIM** `0133` |
-| **Status** | 🟢 **pronto para envio à produção** — teste **v25.40** — só frase + senha |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.40** — prova **18/18** — só frase + senha |
 | **Você** | Ctrl+F5 · Entrega → Hoje ou Amanhã ou Outro dia · F7 · card com o dia · caixa de hoje não cobra essa pendência |
 
 ### CHECKLIST ÚNICO — 29/09 · etiqueta térmica
