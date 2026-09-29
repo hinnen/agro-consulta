@@ -1309,7 +1309,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- | ----- |
 | 1 | `PDV-ENT-CARTAO-ONTEM` | 🟢 **pronto para envio à produção** | **SIM** `0134` | **46/46** |
 | 2 | **PDV-ENT-DIA-OPCIONAL** | 🟢 **pronto para envio à produção** | **SIM** `0133` | **18/18** |
-| 3 | **ETQ-TERMICA-VARIAS** | 🟢 **pronto para envio à produção** · Renan OK no PC 29/09 | **NÃO** | **39/39** · layout **30/30** |
+| 3 | **ETQ-TERMICA-VARIAS** | 🟢 **pronto para envio à produção** | **NÃO** | **39/39** · layout **37/37** · quebra **20/20** |
 | 4 | **CLIENTE-XLSX-FIADO** | 🟢 **pronto para envio à produção** | **NÃO** | **30/30** |
 | 5 | `BUG-28-PIN-CATCH` | 🟢 **pronto para envio à produção** | **NÃO** | JS **14/14** |
 
@@ -1319,7 +1319,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ------ | ------------ |
 | **Cartão da entrega ontem** | Ctrl+F5 · retomar entrega de ontem no cartão · **Passou ontem** · Fechar caixa: faixa amarela · migrate `0134` |
 | **Dia da entrega** | Ctrl+F5 · Entrega → **Hoje** ou **Amanhã** / **Outro dia** · card mostra o dia · caixa de hoje não trava o futuro · migrate `0133` |
-| **Etiqueta térmica** | Renan OK no PC 29/09 · falta só subir · Ctrl+F5 na loja depois |
+| **Etiqueta térmica** | Ctrl+F5 · nome sem `...` (palavra inteira desce) · Centavos pt · Salvar · testar o leitor. Sem migrate. v25.47 |
 | **Excel clientes** | Ctrl+F5 · Clientes → Excel ↓ · mudar limite · Excel ↑ → prévia → confirmar |
 | **PIN no Point** | Ctrl+F5 · entrega paga na loja → débito Point → PIN → a venda fecha |
 
@@ -1350,9 +1350,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Térmica (Elgin): uma folha por etiqueta. Nome sem três pontinhos; a palavra inteira desce. Reais e centavos com tamanho separado. Nome no alto. Barras com faixa branca. Tela, histórico e etapa 6 |
-| **Prova** | várias **39/39** · layout **37/37** · A6 **86/86** · PDF 3 = 3 páginas |
+| **Prova** | várias **39/39** · layout **37/37** · quebra Chrome **20/20** · A6 **86/86** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** — teste **v25.46** — só frase + senha |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.47** — só frase + senha |
 | **Você** | Ctrl+F5 · Presets → Centavos pt → Salvar · imprime · nome sem `...` · testar o leitor |
 
 ### CHECKLIST ÚNICO — 18/09 · Excel clientes + fiado
