@@ -1291,27 +1291,33 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `PDV-ENT-CARTAO-ONTEM` | 🟢 **teste** · loja **só** frase+senha | **SIM** `0134` | **18/18** |
+| 1 | `PDV-ENT-CARTAO-ONTEM` | 🟢 **pronto para envio à produção** | **SIM** `0134` | **46/46** |
+
+### PACOTE PRONTO — PDV-ENT-CARTAO-ONTEM
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Entrega que já virou o dia: ao fechar a venda, **Passou hoje** ou **Passou ontem**. Ontem = o cartão não soma no esperado da máquina de hoje e aparece à parte no Fechar caixa. O caixa de ontem não muda. |
-| **Você** | Ctrl+F5 · retomar entrega de ontem no cartão · **Passou ontem** · Fechar caixa: faixa amarela e o esperado do cartão sem esse valor |
-| **Versão** | teste **v25.42** |
+| **O quê** | Entrega que já virou o dia, com cartão: **Passou hoje** ou **Passou ontem**. Ontem não soma no esperado da máquina de hoje e aparece numa faixa amarela no Fechar caixa. O caixa de ontem não muda. |
+| **Migrate** | **SIM** `0134` |
+| **Prova** | `verify_cartao_entrega_dia_anterior.py` **46/46** |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.43** — só frase + senha |
+| **Você** | Ctrl+F5 · retomar entrega de ontem no cartão · **Passou ontem** · Fechar caixa: faixa amarela, esperado do cartão sem esse valor |
 
 ### CHECKLIST ÚNICO — falta subir
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-ENT-DIA-OPCIONAL** | 🟢 **pronto para envio à produção** | **SIM** `0133` | **18/18** |
-| 2 | **ETQ-TERMICA-VARIAS** | 🟢 **pronto para envio à produção** | **NÃO** | **39/39** · layout **30/30** |
-| 3 | **CLIENTE-XLSX-FIADO** | 🟢 **pronto para envio à produção** | **NÃO** | **30/30** |
-| 4 | **BUG-28-PIN-CATCH** | 🟢 **pronto para envio à produção** | **NÃO** | JS **14/14** |
+| 1 | `PDV-ENT-CARTAO-ONTEM` | 🟢 **pronto para envio à produção** | **SIM** `0134` | **46/46** |
+| 2 | **PDV-ENT-DIA-OPCIONAL** | 🟢 **pronto para envio à produção** | **SIM** `0133` | **18/18** |
+| 3 | **ETQ-TERMICA-VARIAS** | 🟢 **pronto para envio à produção** | **NÃO** | **39/39** · layout **30/30** |
+| 4 | **CLIENTE-XLSX-FIADO** | 🟢 **pronto para envio à produção** | **NÃO** | **30/30** |
+| 5 | `BUG-28-PIN-CATCH` | 🟢 **pronto para envio à produção** | **NÃO** | JS **14/14** |
 
 ### PACOTE PRONTO — o que ainda falta subir
 
 | Pacote | O que testar |
 | ------ | ------------ |
+| **Cartão da entrega ontem** | Ctrl+F5 · retomar entrega de ontem no cartão · **Passou ontem** · Fechar caixa: faixa amarela · migrate `0134` |
 | **Dia da entrega** | Ctrl+F5 · Entrega → **Hoje** ou **Amanhã** / **Outro dia** · card mostra o dia · caixa de hoje não trava o futuro · migrate `0133` |
 | **Etiqueta térmica** | Ctrl+F5 · fila com 3 · Chrome mostra **3 folhas** · preset: arrastar e fonte |
 | **Excel clientes** | Ctrl+F5 · Clientes → Excel ↓ · mudar limite · Excel ↑ → prévia → confirmar |
