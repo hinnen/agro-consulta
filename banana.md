@@ -1300,7 +1300,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Entrega que já virou o dia, com cartão: **Passou hoje** ou **Passou ontem**. Ontem não soma no esperado da máquina de hoje e aparece numa faixa amarela no Fechar caixa. O caixa de ontem não muda. |
 | **Migrate** | **SIM** `0134` |
 | **Prova** | `verify_cartao_entrega_dia_anterior.py` **46/46** |
-| **Status** | 🟢 **pronto para envio à produção** — teste **v25.43** — só frase + senha |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.44** — só frase + senha |
 | **Você** | Ctrl+F5 · retomar entrega de ontem no cartão · **Passou ontem** · Fechar caixa: faixa amarela, esperado do cartão sem esse valor |
 
 ### CHECKLIST ÚNICO — falta subir
