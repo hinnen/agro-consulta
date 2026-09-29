@@ -1351,18 +1351,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `BUG-28-PIN-CATCH` | 🟢 **pronto para envio à produção** | **NÃO** | JS **14/14** · teste Point OK |
+| 1 | `BUG-28-PIN-CATCH` | 🟢 **pronto para envio à produção** | **NÃO** | `verify_bug28_pin_catch_path.py` **14/14** · PIN **9973** |
 
-### PACOTE PRONTO — o que ainda falta subir
+### PACOTE PRONTO — BUG-28-PIN-CATCH
 
 | Campo | Valor |
 | ----- | ----- |
-| **Já na loja** | BUG #28 grosso · **Live v25.35** |
-| **Falta** | Ajuste do catch: depois que a máquina cobrou, o PIN abre e **tenta gravar de novo** (`pdv_wizard.js`) |
-| **Teste** | `teste` **v25.36** · commit `6a865508` |
+| **O quê** | Depois que a maquininha já cobrou, o PIN abre e **grava a venda** (não pede PIN de novo em loop) |
+| **Já na loja** | O grosso do #28 · **Live v25.35** |
+| **Falta** | Só este catch · `pdv_wizard.js` · commit `6a865508` |
+| **Prova** | **14/14** · API 403 `precisa_pin` · PIN **9973** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
-| **Você** | Depois que subir: Ctrl+F5 · entrega → pagar na loja → débito Point → PIN → venda fecha |
+| **Status** | 🟢 **pronto para envio à produção** — teste · só frase + senha |
+| **Você** | Ctrl+F5 · entrega → pagar na loja → débito Point → PIN → venda fecha |
 
 ### ✅ Deploy loja — BUG #28 PIN retenta · **Live v25.35** · 19/09
 
