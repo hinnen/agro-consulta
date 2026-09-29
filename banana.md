@@ -1287,6 +1287,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### CHECKLIST ÚNICO — 29/09 · etiqueta térmica várias
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ETQ-TERMICA-VARIAS** | 🟢 **pronto para envio à produção** | **NÃO** | HTML 4 etiquetas → PDF **4 páginas** |
+
+### PACOTE PRONTO — ETQ-TERMICA-VARIAS
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Preset térmico (ex. A6 na Elgin): várias etiquetas saíam só a 1ª. Agora uma página por etiqueta. Vale na tela de etiquetas e na etapa 6 da entrada de nota |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
+| **Você** | Ctrl+F5 · fila com 3 · Imprimir · o Chrome tem que mostrar **3 folhas** antes de sair na Elgin |
+
 ### CHECKLIST ÚNICO — 18/09 · Excel clientes + fiado
 
 | # | Pacote | Status | Migrate | Prova |

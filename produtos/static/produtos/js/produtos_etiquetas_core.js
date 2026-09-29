@@ -992,6 +992,9 @@
       }
     });
 
+    /* Página = 1 etiqueta. Altura fixa no body + overflow corta as seguintes
+       (Chrome mostra «1 folha» e a Elgin só sai a primeira). Quebra no bloco
+       .pg — no flex o Chrome ignora page-break. */
     var css =
       '@page{size:' +
       w +
@@ -1000,16 +1003,15 @@
       'mm;margin:0}' +
       'html,body{margin:0;padding:0;width:' +
       w +
-      'mm;height:' +
-      h +
-      'mm;zoom:1!important;transform:none!important;overflow:hidden}' +
+      'mm;height:auto;background:#fff;zoom:1!important;transform:none!important}' +
       'body{font-family:Arial,Helvetica,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
-      '.etq{width:' +
+      '.pg{display:block;width:' +
       w +
       'mm;height:' +
       h +
-      'mm;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:hidden;page-break-after:always;break-after:page;padding:1mm 0.8mm;text-align:center;gap:0.25mm}' +
-      '.etq:last-child{page-break-after:auto;break-after:auto}' +
+      'mm;box-sizing:border-box;overflow:hidden;page-break-inside:avoid;break-inside:avoid-page}' +
+      '.pg + .pg{page-break-before:always;break-before:page}' +
+      '.etq{width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:hidden;padding:1mm 0.8mm;text-align:center;gap:0.25mm}' +
       '.nome{width:100%;flex:0 0 auto;font-size:' +
       preset.nome_pt +
       'pt;line-height:1.05;font-weight:600;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}' +
@@ -1032,7 +1034,7 @@
     var body = labels
       .map(function (lb) {
         return (
-          '<div class="etq">' +
+          '<div class="pg"><div class="etq">' +
           '<div class="nome">' +
           esc(lb.nome) +
           '</div>' +
@@ -1048,7 +1050,7 @@
           '<div class="rodape">' +
           esc(textoRodape) +
           '</div>' +
-          '</div>'
+          '</div></div>'
         );
       })
       .join('');
@@ -1178,10 +1180,21 @@
         iframe.id = 'etq-print-iframe';
         iframe.title = 'Impressão etiquetas';
         iframe.setAttribute('aria-hidden', 'true');
-        iframe.style.cssText =
-          'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none;';
         document.body.appendChild(iframe);
       }
+      /* Iframe 0×0 faz o Chrome paginar só a 1ª etiqueta. */
+      var nEtq = 0;
+      itens.forEach(function (it) {
+        nEtq += Math.max(1, parseInt(it.qtd, 10) || 1);
+      });
+      var frameW = ehGondola(preset) ? 210 : w;
+      var frameH = ehGondola(preset) ? 297 : Math.max(h, h * Math.max(nEtq, 1));
+      iframe.style.cssText =
+        'position:fixed;left:0;top:0;width:' +
+        frameW +
+        'mm;height:' +
+        frameH +
+        'mm;border:0;opacity:0;pointer-events:none;z-index:-1;';
       var idoc = iframe.contentDocument || iframe.contentWindow.document;
       idoc.open();
       idoc.write(html);
