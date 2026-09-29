@@ -1291,16 +1291,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-TERMICA-VARIAS** | 🟢 **pronto para envio à produção** | **NÃO** | HTML 4 etiquetas → PDF **4 páginas** |
+| 1 | **ETQ-TERMICA-VARIAS** | 🟢 **pronto para envio à produção** | **NÃO** | `verify_etiquetas_termica_varias.js` **39/39** · A6 **86/86** · gôndola OK |
 
 ### PACOTE PRONTO — ETQ-TERMICA-VARIAS
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Preset térmico (ex. A6 na Elgin): várias etiquetas saíam só a 1ª. Agora uma página por etiqueta. Vale na tela de etiquetas e na etapa 6 da entrada de nota |
+| **O quê** | Preset térmico (Elgin): várias etiquetas saíam só a 1ª. Agora uma página por etiqueta. Tela de etiquetas, histórico e etapa 6 da entrada de nota |
+| **Prova** | **39/39** · 1 etiqueta = 1 página · 3 = 3 · quantidade 3 = 3 · gôndola A6 não misturou |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** — teste **v25.38** — só frase + senha |
-| **Você** | Ctrl+F5 · fila com 3 · Imprimir · o Chrome tem que mostrar **3 folhas** antes de sair na Elgin |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.39** — só frase + senha |
+| **Você** | Ctrl+F5 · fila com 3 · Imprimir · o Chrome tem que mostrar **3 folhas** |
 
 ### CHECKLIST ÚNICO — 18/09 · Excel clientes + fiado
 
