@@ -1343,17 +1343,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-TERMICA-VARIAS** | 🟢 **pronto para envio à produção** | **NÃO** | várias **39/39** · layout **33/33** · A6 **86/86** |
+| 1 | **ETQ-TERMICA-VARIAS** | 🟢 **pronto para envio à produção** | **NÃO** | várias **39/39** · layout **37/37** · A6 **86/86** |
 
 ### PACOTE PRONTO — ETQ-TERMICA-VARIAS
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Térmica (Elgin): uma folha por etiqueta. Nome cola no alto da caixa (não fica mais no meio). Barras mais grossas e com faixa branca dos lados, pro leitor. Layout: fonte por linha, arrastar, moldura. Tela, histórico e etapa 6 |
-| **Prova** | várias **39/39** · layout **33/33** · A6 **86/86** · PDF 3 = 3 páginas |
+| **O quê** | Térmica (Elgin): uma folha por etiqueta. Nome sem três pontinhos; a palavra inteira desce. Reais e centavos com tamanho separado. Nome no alto. Barras com faixa branca. Tela, histórico e etapa 6 |
+| **Prova** | várias **39/39** · layout **37/37** · A6 **86/86** · PDF 3 = 3 páginas |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** — teste **v25.45** — só frase + senha |
-| **Você** | Ctrl+F5 · imprime de novo · nome no alto · tenta o leitor no código |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.46** — só frase + senha |
+| **Você** | Ctrl+F5 · Presets → Centavos pt → Salvar · imprime · nome sem `...` · testar o leitor |
 
 ### CHECKLIST ÚNICO — 18/09 · Excel clientes + fiado
 

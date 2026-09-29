@@ -46,6 +46,7 @@ const base = Core.normalizarPreset({
 ok(base.nome_linhas === 2, 'linhas padrao 2');
 ok(base.layout && base.layout.barcode, 'layout padrao tem barras');
 ok(base.borda_mm === 0, 'sem moldura se nao pediu');
+ok(base.centavos_pt === 36, 'centavos comeca igual ao real');
 ok(base.show_gm === true, 'GM ligado por padrao');
 
 const html3 = Core.montarHtmlImpressao(base, itens, 'Gm Agro Mais');
@@ -57,7 +58,9 @@ ok(html3.includes('class="slot slot-barcode"'), 'barras posicionadas');
 ok((html3.match(/GM0836/g) || []).length >= 1, 'codigo da 1');
 ok((html3.match(/GM0838/g) || []).length >= 1, 'codigo da 3');
 ok(html3.includes('MAX=2'), 'ajuste de nome usa no maximo 2 linhas');
-ok(html3.includes('-webkit-box-pack:start'), 'nome cola no alto da caixa');
+ok(html3.includes('overflow-wrap:normal'), 'palavra inteira desce');
+ok(!html3.includes('webkitLineClamp'), 'sem tres pontinhos');
+ok(html3.includes('class="preco-cent"'), 'centavos separado do real');
 ok(html3.includes('marginLeft'), 'barras tem zona quieta pro leitor');
 ok(html3.includes('shape-rendering:crispEdges'), 'barras sem borrar');
 
@@ -119,6 +122,7 @@ const ui = fs.readFileSync(
 );
 ok(page.includes('id="etq-layout-stage-termica"'), 'tela tem palco para arrastar');
 ok(page.includes('id="etq-preset-nome-linhas"'), 'tela tem maximo de linhas');
+ok(page.includes('id="etq-preset-centavos-pt"'), 'tela tem tamanho dos centavos');
 ok(page.includes('id="etq-preset-borda-mm"'), 'tela tem moldura');
 ok(page.includes('id="etq-term-show-barcode"'), 'tela liga/desliga barras');
 ok(ui.includes('DEFAULT_TERMICA_LAYOUT'), 'reset usa layout termico');

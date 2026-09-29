@@ -13,6 +13,7 @@
     altura_mm: 40,
     nome_pt: 8,
     preco_pt: 28,
+    centavos_pt: 28,
     codigo_pt: 7,
     rodape_pt: 8,
     barcode_height: 26,
@@ -459,6 +460,7 @@
       if (out.nome_pt_4 == null) out.nome_pt_4 = Math.max(4, Math.round(basePt * 0.72 * 10) / 10);
       var bordaT = Number(out.borda_mm);
       out.borda_mm = isFinite(bordaT) && bordaT > 0 ? Math.min(8, bordaT) : 0;
+      if (out.centavos_pt == null) out.centavos_pt = Number(out.preco_pt) || 28;
       if (!out.cores || typeof out.cores !== 'object') {
         out.cores = clonePreset(DEFAULT_TERMICA_CORES);
       } else {
@@ -1066,7 +1068,7 @@
       maxL +
       ',PTS=[' +
       [pt1, pt2, pt3, pt4].join(',') +
-      '];function cabe(el,linhas,pt){el.style.fontSize=pt+"pt";el.style.webkitLineClamp=String(linhas);el.style.lineClamp=String(linhas);void el.offsetHeight;return el.scrollHeight<=el.clientHeight+1.5;}function fit(el){var i;for(i=1;i<MAX;i++){if(cabe(el,i,PTS[i-1]))return;}el.style.fontSize=PTS[MAX-1]+"pt";el.style.webkitLineClamp=String(MAX);el.style.lineClamp=String(MAX);}function go(){document.querySelectorAll(".slot-nome").forEach(fit);}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",go);else go();setTimeout(go,30);})();<\/script>'
+      '];function montar(el,palavras,pt,teto){el.style.fontSize=pt+"pt";el.textContent="";var larg=el.clientWidth;if(larg<4)return 0;var usadas=0,linha=null;function nova(){linha=document.createElement("div");linha.style.whiteSpace="nowrap";linha.style.lineHeight="1";linha.style.textAlign="center";el.appendChild(linha);usadas++;}nova();var i,pal,antes;for(i=0;i<palavras.length;i++){pal=palavras[i];antes=linha.textContent;linha.textContent=antes?(antes+" "+pal):pal;if(linha.scrollWidth>larg+1){if(!antes||usadas>=teto)return -1;linha.textContent=antes;nova();linha.textContent=pal;if(linha.scrollWidth>larg+1)return -1;}}return usadas;}function cabe(el){return el.scrollHeight<=el.clientHeight+1.5;}function fit(el){var texto=(el.getAttribute("data-nome")||"").replace(/\\s+/g," ").trim();var palavras=texto?texto.split(" "):[];var i,n,pt;for(i=1;i<=MAX;i++){n=montar(el,palavras,PTS[i-1],i);if(n>0&&n<=i&&cabe(el))return;}pt=PTS[MAX-1];for(i=0;i<40&&pt>=4;i++){n=montar(el,palavras,pt,MAX);if(n>0&&n<=MAX&&cabe(el))return;pt=Math.round((pt-0.4)*10)/10;}}function go(){document.querySelectorAll(".slot-nome").forEach(fit);}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",go);else go();setTimeout(go,30);})();<\/script>'
     );
   }
 
@@ -1074,19 +1076,27 @@
     var html = '';
     if (campoVisivel(preset, 'nome', true)) {
       html +=
-        '<div class="slot slot-nome" style="' +
+        '<div class="slot slot-nome" data-nome="' +
+        esc(lb.nome) +
+        '" style="' +
         boxCss(layout.nome) +
         '">' +
         esc(lb.nome) +
         '</div>';
     }
     if (campoVisivel(preset, 'preco', true)) {
+      var precoTxt = String(lb.preco || '0,00');
+      var virgula = precoTxt.indexOf(',');
+      var reais = virgula < 0 ? precoTxt : precoTxt.slice(0, virgula);
+      var cents = virgula < 0 ? '' : precoTxt.slice(virgula);
       html +=
         '<div class="slot slot-preco" style="' +
         boxCss(layout.preco) +
-        '">' +
-        esc(lb.preco) +
-        '</div>';
+        '"><span class="preco-int">' +
+        esc(reais) +
+        '</span><span class="preco-cent">' +
+        esc(cents) +
+        '</span></div>';
     }
     if (campoVisivel(preset, 'barcode', true)) {
       html +=
@@ -1144,7 +1154,6 @@
         ? 'border:' + bordaMm + 'mm solid ' + esc(cores.borda || '#111111') + ';'
         : '';
     var nomePt = Number(preset.nome_pt_1) || Number(preset.nome_pt) || 8;
-    var maxLinhas = Math.max(1, Math.min(4, parseInt(preset.nome_linhas, 10) || 2));
     /* Página = 1 etiqueta. Quebra no bloco .pg (flex não pagina no Chrome). */
     var css =
       '@page{size:' +
@@ -1168,18 +1177,20 @@
       bordaCss +
       '}' +
       '.slot{position:absolute;box-sizing:border-box;overflow:hidden}' +
-      '.slot-nome{display:-webkit-box;-webkit-box-orient:vertical;-webkit-box-pack:start;-webkit-box-align:center;-webkit-line-clamp:' +
-      maxLinhas +
-      ';align-content:flex-start;justify-content:flex-start;text-align:center;padding:0;font-size:' +
+      '.slot-nome{display:block;text-align:center;padding:0;overflow:hidden;font-size:' +
       nomePt +
       'pt;font-weight:700;line-height:1;color:' +
       esc(cores.nome_fg || '#111') +
-      ';word-break:break-word;overflow-wrap:anywhere}' +
-      '.slot-preco{display:flex;align-items:center;justify-content:center;text-align:center;font-size:' +
-      (Number(preset.preco_pt) || 28) +
-      'pt;font-weight:900;line-height:1;color:' +
+      ';word-break:normal;overflow-wrap:normal}' +
+      '.slot-preco{display:flex;align-items:baseline;justify-content:center;text-align:center;color:' +
       esc(cores.preco_fg || '#111') +
       ';white-space:nowrap}' +
+      '.preco-int{font-size:' +
+      (Number(preset.preco_pt) || 28) +
+      'pt;font-weight:900;line-height:1}' +
+      '.preco-cent{font-size:' +
+      (Number(preset.centavos_pt) || Number(preset.preco_pt) || 28) +
+      'pt;font-weight:900;line-height:1}' +
       '.slot-barcode{display:flex;align-items:center;justify-content:center;background:#fff}' +
       '.slot-barcode svg{display:block;shape-rendering:crispEdges;max-width:100%!important;max-height:100%!important;width:auto!important;height:auto!important}' +
       '.slot-gm{display:flex;align-items:center;justify-content:center;text-align:center;font-size:' +

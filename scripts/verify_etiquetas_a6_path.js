@@ -41,7 +41,7 @@ const html = fs.readFileSync(htmlPath, 'utf8');
 const jsUi = fs.readFileSync(jsPath, 'utf8');
 check(html.includes('id="etq-preset-folha"'), 'HTML tem select Folha');
 check(html.includes('value="a6"'), 'HTML tem opção A6');
-check(html.includes('?v=22'), 'HTML cache-bust ?v=22 nos JS');
+check(html.includes('?v=23'), 'HTML cache-bust ?v=23 nos JS');
 check(html.includes('1–3 colunas') || html.includes('1-3 colunas'), 'HTML A6 menciona 1–3 colunas');
 check(jsUi.includes('calcularGradeFolha'), 'UI usa calcularGradeFolha');
 check(jsUi.includes('etq-preset-folha'), 'UI lê/grava etq-preset-folha');

@@ -327,6 +327,7 @@
       'etq-preset-nome-linhas': p.nome_linhas != null ? p.nome_linhas : 2,
       'etq-preset-borda-mm': p.borda_mm != null ? p.borda_mm : 0,
       'etq-preset-preco-pt': p.preco_pt,
+      'etq-preset-centavos-pt': p.centavos_pt != null ? p.centavos_pt : p.preco_pt,
       'etq-preset-rs-pt': p.rs_pt != null ? p.rs_pt : 11,
       'etq-preset-peso-pt': p.peso_pt != null ? p.peso_pt : 7,
       'etq-preset-gm-pt': p.gm_pt != null ? p.gm_pt : 8,
@@ -424,6 +425,7 @@
     p.nome_linhas = Math.max(1, Math.min(4, parseInt($('etq-preset-nome-linhas') && $('etq-preset-nome-linhas').value, 10) || p.nome_linhas || 2));
     p.nome_pt = p.nome_pt_1;
     p.preco_pt = Number($('etq-preset-preco-pt') && $('etq-preset-preco-pt').value) || 28;
+    p.centavos_pt = Number($('etq-preset-centavos-pt') && $('etq-preset-centavos-pt').value) || p.preco_pt;
     p.rs_pt = Number($('etq-preset-rs-pt') && $('etq-preset-rs-pt').value) || 11;
     p.peso_pt = Number($('etq-preset-peso-pt') && $('etq-preset-peso-pt').value) || 7;
     p.gm_pt = Number($('etq-preset-gm-pt') && $('etq-preset-gm-pt').value) || 8;

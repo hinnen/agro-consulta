@@ -90,10 +90,10 @@ const etqJs = fs.readFileSync(
   'utf8'
 );
 
-check(etqHtml.includes("produtos_etiquetas_core.js' %}?v=22"), 'tela etiquetas puxa core v=22');
-check(nfeHtml.includes("produtos_etiquetas_core.js' %}?v=22"), 'entrada de nota puxa core v=22');
-check(loteHtml.includes("produtos_etiquetas_core.js' %}?v=22"), 'lote puxa core v=22');
-check(cadHtml.includes("produtos_etiquetas_core.js' %}?v=22"), 'cadastro puxa core v=22');
+check(etqHtml.includes("produtos_etiquetas_core.js' %}?v=23"), 'tela etiquetas puxa core v=23');
+check(nfeHtml.includes("produtos_etiquetas_core.js' %}?v=23"), 'entrada de nota puxa core v=23');
+check(loteHtml.includes("produtos_etiquetas_core.js' %}?v=23"), 'lote puxa core v=23');
+check(cadHtml.includes("produtos_etiquetas_core.js' %}?v=23"), 'cadastro puxa core v=23');
 check(etqJs.includes('Core.imprimirItens(state.fila'), 'fila da tela usa o mesmo imprimir');
 check(etqJs.includes("origem: 'historico'"), 'reimpressão do histórico usa o mesmo imprimir');
 check(nfeHtml.includes('Core.imprimirItens(itens'), 'etapa 6 da nota usa o mesmo imprimir');
@@ -107,7 +107,7 @@ check(count(um, /class="pg"/g) === 1, '1 item → 1 página no HTML');
 check(!/html,body\{[^}]*overflow:hidden/.test(um), 'body térmico não esconde o resto');
 check(!/html,body\{[^}]*height:\d/.test(um), 'body térmico não trava na altura de 1 etiqueta');
 check(um.includes('@page{size:100mm 80mm;margin:0}'), 'página = tamanho da etiqueta');
-check(um.includes('alfafa 1kg') && um.includes('37,90') && um.includes('GM0836'), '1 etiqueta traz nome, preço e GM');
+check(um.includes('alfafa 1kg') && um.includes('>37<') && um.includes('>,90<') && um.includes('GM0836'), '1 etiqueta traz nome, preço e GM');
 check(um.includes('Gm Agro Mais'), 'rodapé da loja');
 check(um.includes('id="bc-0-0"'), 'código de barras da primeira');
 
