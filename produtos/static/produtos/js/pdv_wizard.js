@@ -2131,6 +2131,93 @@
         return !!(dom.paymentFecharModal && !dom.paymentFecharModal.classList.contains('hidden'));
     }
 
+    function diaLocalNumero(raw) {
+        var d = raw instanceof Date ? raw : new Date(raw);
+        if (!d || isNaN(d.getTime())) return 0;
+        return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+    }
+
+    function entregaVirouPeloMenosUmDia(state) {
+        if (!state || !state.entrega || !state.entrega.pedidoEntregaPendenteId) return false;
+        var lancada = diaLocalNumero(state.entrega.lancadaEm);
+        if (!lancada) return false;
+        return lancada < diaLocalNumero(new Date());
+    }
+
+    function lancamentosTemCartao(state) {
+        var arr = (state && state.pagamento && state.pagamento.lancamentos) || [];
+        for (var i = 0; i < arr.length; i++) {
+            var f = String((arr[i] && arr[i].forma) || '').toLowerCase();
+            if (f.indexOf('cartão') >= 0 || f.indexOf('cartao') >= 0) return true;
+        }
+        return false;
+    }
+
+    function entregaPrecisaEscolhaCartaoDia(state) {
+        state = state || State.getState();
+        return entregaVirouPeloMenosUmDia(state) && lancamentosTemCartao(state);
+    }
+
+    function entregaCartaoDiaEscolha(state) {
+        state = state || State.getState();
+        if (!entregaPrecisaEscolhaCartaoDia(state)) return '';
+        var e = String((state.pagamento && state.pagamento.cartaoMaquinaDia) || '');
+        return e === 'hoje' || e === 'ontem' ? e : '';
+    }
+
+    function syncCartaoDiaAnteriorUi() {
+        var box = document.getElementById('pdv-cartao-dia-anterior');
+        if (!box) return;
+        var precisa = entregaPrecisaEscolhaCartaoDia();
+        var escolha = entregaCartaoDiaEscolha();
+        box.classList.toggle('hidden', !precisa);
+        var btnHoje = document.getElementById('pdv-cartao-dia-hoje');
+        var btnOntem = document.getElementById('pdv-cartao-dia-ontem');
+        function pintar(btn, ativo, ativoCls) {
+            if (!btn) return;
+            btn.classList.remove('bg-emerald-600', 'text-white', 'bg-amber-500', 'text-amber-950', 'bg-white', 'text-emerald-900');
+            if (ativo) {
+                ativoCls.forEach(function (c) { btn.classList.add(c); });
+            } else if (btn === btnHoje) {
+                btn.classList.add('bg-white', 'text-emerald-900');
+            } else {
+                btn.classList.add('bg-white', 'text-amber-950');
+            }
+            btn.setAttribute('aria-pressed', ativo ? 'true' : 'false');
+        }
+        pintar(btnHoje, escolha === 'hoje', ['bg-emerald-600', 'text-white']);
+        pintar(btnOntem, escolha === 'ontem', ['bg-amber-500', 'text-amber-950']);
+        var bloq = precisa && !escolha;
+        [dom.fecharHeroNoPrint, dom.fecharHeroPrint, dom.confirmSaleNoPrint, dom.confirmSalePrint].forEach(function (btn) {
+            if (!btn) return;
+            btn.disabled = !!bloq;
+            btn.classList.toggle('opacity-40', !!bloq);
+        });
+        if (!bloq) {
+            var err = document.getElementById('pdv-cartao-dia-erro');
+            if (err) err.classList.add('hidden');
+        }
+    }
+
+    function marcarErroDiaCartao() {
+        syncCartaoDiaAnteriorUi();
+        var err = document.getElementById('pdv-cartao-dia-erro');
+        var box = document.getElementById('pdv-cartao-dia-anterior');
+        if (err) err.classList.remove('hidden');
+        if (box) {
+            box.classList.add('ring-2', 'ring-rose-500');
+            try { box.scrollIntoView({ block: 'nearest' }); } catch (_) {}
+        }
+    }
+
+    function escolherCartaoDiaEntrega(dia) {
+        if (dia !== 'hoje' && dia !== 'ontem') return;
+        State.setPagamentoField('cartaoMaquinaDia', dia);
+        var box = document.getElementById('pdv-cartao-dia-anterior');
+        if (box) box.classList.remove('ring-2', 'ring-rose-500');
+        syncCartaoDiaAnteriorUi();
+    }
+
     function openFecharVendaModal(force) {
         if (!dom.paymentFecharModal) return;
         if (!vendaQuitadaSemFechar()) return;
@@ -2148,7 +2235,17 @@
         } catch (errOv) {}
         if (dom.paymentReabrirFechar) dom.paymentReabrirFechar.classList.add('hidden');
         syncPdvSspinIdlePause();
+        syncCartaoDiaAnteriorUi();
         if (jaAberto && !force) return;
+        if (entregaPrecisaEscolhaCartaoDia() && !entregaCartaoDiaEscolha()) {
+            var btnDia = document.getElementById('pdv-cartao-dia-ontem');
+            if (btnDia) {
+                try {
+                    btnDia.focus();
+                } catch (_) {}
+            }
+            return;
+        }
         var n = dom.fecharHeroNoPrint || dom.confirmSaleNoPrint;
         if (n && !n.disabled) {
             try {
@@ -6121,7 +6218,10 @@
                 }
                 closeEntregasPendentesModal();
                 closeStartModal();
-                State.hydrateFromEntregaPendente(snap, { id: ent.id });
+                State.hydrateFromEntregaPendente(snap, {
+                    id: ent.id,
+                    criadoEm: ent.criado_em
+                });
                 showSaleDoneFeedback(
                     'Venda retomada (entrega #' + ent.id + '). Registre o pagamento e confirme a venda.',
                     'info'
@@ -8001,7 +8101,7 @@
         if (outro) {
             outro.min = hoje;
             outro.classList.toggle('hidden', modo !== 'outro');
-            if (modo === 'outro') outro.value = iso;
+            outro.value = modo === 'outro' ? iso : '';
         }
         var hid = document.getElementById('pdv-entrega-dia');
         if (hid) hid.value = iso;
@@ -9001,6 +9101,7 @@
         ensureEntregaModoNaEtapa();
         state = State.getState();
         computed = State.getComputed();
+        syncCartaoDiaAnteriorUi();
         if (state.currentStep === 'entrega' && wasStep !== 'entrega') {
             entregaWizardAguardandoTroco = false;
             if (window.gmLoadingBar && window.gmLoadingBar.hide) window.gmLoadingBar.hide();
@@ -11862,6 +11963,9 @@
         if (state.entrega && state.entrega.pedidoEntregaPendenteId) {
             payload.pedido_entrega_pendente_id = state.entrega.pedidoEntregaPendenteId;
         }
+        if (entregaCartaoDiaEscolha(state) === 'ontem') {
+            payload.cartao_maquina_dia_anterior = true;
+        }
         if (window.AgroPdvCampanha && window.AgroPdvCampanha.metaPayload) {
             var metaCamp = window.AgroPdvCampanha.metaPayload();
             if (metaCamp) {
@@ -12983,6 +13087,11 @@
 
     function confirmSale(withPrint) {
         if (isProcessingSale) return;
+        if (entregaPrecisaEscolhaCartaoDia() && !entregaCartaoDiaEscolha()) {
+            openFecharVendaModal(true);
+            marcarErroDiaCartao();
+            return;
+        }
         var state0 = State.getState();
         var computed0 = State.getComputed();
         var validation0 = canAdvance(Object.assign({}, state0, { currentStep: 'pagamento' }), computed0);
@@ -14075,6 +14184,11 @@
      */
     function tryConfirmSale(withPrint) {
         syncOutroDetalhesFromDom();
+        if (entregaPrecisaEscolhaCartaoDia() && !entregaCartaoDiaEscolha()) {
+            openFecharVendaModal(true);
+            marcarErroDiaCartao();
+            return;
+        }
         /* Some o popup grande — senão fica atrás do PIN/cupom e o render reabria. */
         ocultarFecharVendaParaConfirmar();
         var st = State.getState();
@@ -17495,6 +17609,18 @@
         if (dom.fecharHeroPrint) {
             dom.fecharHeroPrint.addEventListener('click', function () {
                 tryConfirmSale(true);
+            });
+        }
+        var btnCartaoHoje = document.getElementById('pdv-cartao-dia-hoje');
+        var btnCartaoOntem = document.getElementById('pdv-cartao-dia-ontem');
+        if (btnCartaoHoje) {
+            btnCartaoHoje.addEventListener('click', function () {
+                escolherCartaoDiaEntrega('hoje');
+            });
+        }
+        if (btnCartaoOntem) {
+            btnCartaoOntem.addEventListener('click', function () {
+                escolherCartaoDiaEntrega('ontem');
             });
         }
         if (dom.paymentFecharVoltar) {

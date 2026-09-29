@@ -115,6 +115,8 @@
                 localPagamento: '',
                 meioNaEntrega: '',
                 pedidoEntregaPendenteId: null,
+                /** ISO do lançamento — escolha do dia do cartão só se já virou o dia */
+                lancadaEm: '',
                 /** centro | vila — loja do estoque / quem sai */
                 lojaSaida: '',
                 /** centro | vila — caixa que fecha (pode diferir) */
@@ -146,6 +148,8 @@
                 mpBalcaoModo: '',
                 /** Chave por tentativa de confirmação (idempotência no servidor). */
                 clientRequestId: '',
+                /** hoje | ontem — cartão da entrega que virou o dia */
+                cartaoMaquinaDia: '',
                 lancamentos: [],
                 nfceEmitir: false,
                 nfceOpts: {},
@@ -1201,6 +1205,7 @@
         if (!Array.isArray(state.pagamento.lancamentos)) state.pagamento.lancamentos = [];
         state.venda = Object.assign({}, def.venda, snap.venda || {});
         state.entrega.pedidoEntregaPendenteId = meta.id != null ? meta.id : null;
+        state.entrega.lancadaEm = String(meta.criadoEm || meta.criado_em || '').trim();
         state.entrega.entregaFreteLiberadoPagamento = true;
         if (state.entrega.ativa) {
             state.entrega.modoRetiradaEntrega = 'entrega';
@@ -1209,6 +1214,7 @@
         }
         state.pagamento.forma = '';
         state.pagamento.lancamentos = [];
+        state.pagamento.cartaoMaquinaDia = '';
         state.pagamento.valorRecebido = '';
         state.pagamento.trocoCalculado = '';
         state.pagamento.valorDestaForma = '';

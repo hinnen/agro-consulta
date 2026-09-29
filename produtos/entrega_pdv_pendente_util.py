@@ -9,7 +9,13 @@ from urllib.parse import quote
 from django.db.models import Q
 from django.utils import timezone
 
-from produtos.caixa_util import PONTO_CAIXA_VILA, rotulo_operador_pin, validar_pin_operador
+from produtos.caixa_util import (
+    PONTO_CAIXA_VILA,
+    linha_eh_cartao_maquina,
+    normalizar_forma_pagamento_caixa,
+    rotulo_operador_pin,
+    validar_pin_operador,
+)
 from produtos.models import PedidoEntrega, SessaoCaixa
 
 LOJAS_ENTREGA = frozenset({"centro", "vila"})
@@ -327,6 +333,44 @@ def listar_entregas_bloqueando_fechamento_caixa(
 
 def data_hoje_loja():
     return timezone.localdate()
+
+
+def cartao_maquina_dia_anterior_aceito(data: dict | None, pagamentos_json) -> bool:
+    """Só grava a marca se a entrega já virou o dia e o pagamento tem cartão."""
+    if not isinstance(data, dict):
+        return False
+    raw = data.get("cartao_maquina_dia_anterior")
+    if raw is True:
+        marcado = True
+    else:
+        marcado = str(raw or "").strip().lower() in ("1", "true", "sim", "yes", "ontem")
+    if not marcado:
+        return False
+    try:
+        ent_id = int(data.get("pedido_entrega_pendente_id") or 0)
+    except (TypeError, ValueError):
+        return False
+    if ent_id <= 0:
+        return False
+    ent = (
+        PedidoEntrega.objects.filter(pk=ent_id)
+        .exclude(status=PedidoEntrega.Status.CANCELADO)
+        .first()
+    )
+    if not ent or not ent.criado_em:
+        return False
+    if timezone.localtime(ent.criado_em).date() >= timezone.localdate():
+        return False
+    rows = pagamentos_json if isinstance(pagamentos_json, list) else []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        fn = normalizar_forma_pagamento_caixa(
+            str(row.get("forma") or row.get("formaPagamento") or "")
+        )
+        if linha_eh_cartao_maquina(fn):
+            return True
+    return False
 
 
 def qs_excluindo_adiadas_futuras(qs, hoje=None):

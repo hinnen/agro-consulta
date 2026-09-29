@@ -1123,6 +1123,7 @@
             </p>
             <p class="mt-2 text-slate-600">Em <strong>Dinheiro</strong>, o esperado inclui fundo de abertura + vendas + reforços − retiradas. Contagem salva sozinha (mesmo sem fechar).</p>
             <p class="mt-2 text-slate-600">Devolução em <strong>dinheiro</strong> de venda no cartão/Pix: a maquininha continua com o valor; o esperado do dinheiro cai.</p>
+            <p class="mt-2 text-slate-600">Entrega fechada no dia seguinte com <strong>cartão de ontem</strong>: o valor aparece à parte e <strong>não soma</strong> no esperado que você confere com o relatório da máquina de hoje.</p>
           </div>
         </details>
       </div>
@@ -1182,6 +1183,11 @@
           <p id="cf-contagem-status" class="cf-t-meta hidden font-black uppercase text-emerald-700" role="status" aria-live="polite"></p>
           <p id="cf-aviso-reserva-vila" class="rounded-xl border-2 border-rose-600 bg-rose-50 px-3 py-2.5 text-sm sm:text-base font-black text-rose-950 leading-snug{% if not aviso_reserva_vila.tem %} hidden{% endif %}" role="alert">{{ aviso_reserva_vila.texto }}</p>
           <p id="cf-aviso-devolucao-dinheiro" class="rounded-xl border-2 border-amber-500 bg-amber-50 px-3 py-2.5 text-sm sm:text-base font-black text-amber-950 leading-snug{% if not aviso_devolucao_dinheiro.tem %} hidden{% endif %}" role="status">{{ aviso_devolucao_dinheiro.texto }}</p>
+          <div id="cf-aviso-cartao-entrega-ontem" class="rounded-xl border-2 border-amber-600 bg-amber-50 px-3 py-3{% if not aviso_cartao_entrega_ontem.tem %} hidden{% endif %}" role="status">
+            <p class="text-[11px] font-black uppercase tracking-wide text-amber-900">Cartão de entrega — dia anterior</p>
+            <p class="mt-1 text-2xl font-black tabular-nums leading-none text-amber-950 sm:text-3xl">R$ <span id="cf-aviso-cartao-entrega-valor">{{ aviso_cartao_entrega_ontem.valor_br }}</span></p>
+            <p id="cf-aviso-cartao-entrega-texto" class="mt-2 text-sm font-bold leading-snug text-amber-950">{{ aviso_cartao_entrega_ontem.texto }}</p>
+          </div>
           {% if linhas_conferencia %}
           <div class="cf-conf-table" role="table" aria-label="Conferência por forma de pagamento">
             <div class="cf-conf-head" role="row">
@@ -1606,6 +1612,19 @@
       el.classList.remove('hidden');
     } else {
       el.textContent = '';
+      el.classList.add('hidden');
+    }
+  }
+  function aplicarAvisoCartaoEntregaOntem(av) {
+    var el = document.getElementById('cf-aviso-cartao-entrega-ontem');
+    if (!el) return;
+    var valorEl = document.getElementById('cf-aviso-cartao-entrega-valor');
+    var textoEl = document.getElementById('cf-aviso-cartao-entrega-texto');
+    if (av && av.tem) {
+      if (valorEl) valorEl.textContent = av.valor_br || '';
+      if (textoEl) textoEl.textContent = av.texto || '';
+      el.classList.remove('hidden');
+    } else {
       el.classList.add('hidden');
     }
   }
@@ -2229,6 +2248,7 @@
         aplicarCardsConferencia(data.cards);
         aplicarAvisoReservaVila(data.aviso_reserva_vila);
         aplicarAvisoDevolucaoDinheiro(data.aviso_devolucao_dinheiro);
+        aplicarAvisoCartaoEntregaOntem(data.aviso_cartao_entrega_ontem);
         aplicarAutoContadoEsperado();
         if (statusEl) {
           statusEl.textContent = 'Valores esperados atualizados';

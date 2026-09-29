@@ -1287,6 +1287,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### CHECKLIST ÚNICO — 29/09 · cartão da entrega no dia anterior
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `PDV-ENT-CARTAO-ONTEM` | 🟢 **teste** · loja **só** frase+senha | **SIM** `0134` | **18/18** |
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Entrega que já virou o dia: ao fechar a venda, **Passou hoje** ou **Passou ontem**. Ontem = o cartão não soma no esperado da máquina de hoje e aparece à parte no Fechar caixa. O caixa de ontem não muda. |
+| **Você** | Ctrl+F5 · retomar entrega de ontem no cartão · **Passou ontem** · Fechar caixa: faixa amarela e o esperado do cartão sem esse valor |
+| **Versão** | teste **v25.42** |
+
 ### CHECKLIST ÚNICO — 29/09 · dia da entrega opcional
 
 | # | Pacote | Status | Migrate | Prova |

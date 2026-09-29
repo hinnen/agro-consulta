@@ -164,6 +164,12 @@ def normalizar_forma_pagamento_caixa(raw: str) -> str:
     return base[:80] if base else "Outro"
 
 
+def linha_eh_cartao_maquina(fn: str) -> bool:
+    """Débito/crédito (inclusive parcelado e Mercado Pago). Pix e dinheiro ficam de fora."""
+    low = str(fn or "").strip().lower()
+    return low.startswith("cartão") or low.startswith("cartao")
+
+
 def agrupar_forma_para_fechamento_caixa(forma: str) -> str:
     """No fechar caixa, parcelado entra no mesmo balde que crédito à vista."""
     fn = normalizar_forma_pagamento_caixa(forma)
@@ -412,9 +418,12 @@ def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, 
             pk = getattr(v, "pk", None)
             if pk is not None:
                 vendas_by_pk[int(pk)] = v
+            cartao_ontem = bool(getattr(v, "cartao_maquina_dia_anterior", False))
             for fn_caixa, val in pagamentos_por_linha_conferencia_venda(
                 v, vendas_mp_point=vendas_mp_point
             ).items():
+                if cartao_ontem and linha_eh_cartao_maquina(fn_caixa):
+                    continue
                 vendas_por[fn_caixa] += val
                 esperado[fn_caixa] += val
 
@@ -441,6 +450,19 @@ def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, 
                             venda_ref,
                             vendas_mp_point=vendas_mp_point,
                         )
+            if (
+                m.tipo == "retirada"
+                and eh_movimento_retirada_devolucao(obs_m)
+                and linha_eh_cartao_maquina(fn)
+            ):
+                vp_ontem = _pk_venda_devolucao_obs(obs_m)
+                venda_ontem = (
+                    vendas_by_pk.get(vp_ontem) if vp_ontem is not None else None
+                )
+                if venda_ontem is not None and getattr(
+                    venda_ontem, "cartao_maquina_dia_anterior", False
+                ):
+                    continue
             val = _dec(m.valor)
             if m.tipo == "reforco":
                 reforco_por[fn] += val
@@ -668,6 +690,85 @@ def _fmt_moeda_aviso_caixa(val: Decimal) -> str:
     return f"{_dec(val).quantize(Decimal('0.01')):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
+def resumo_cartao_entrega_dia_anterior(sessoes) -> dict[str, Any]:
+    """Cartão de entrega marcado como dia anterior — fora do relatório da máquina de hoje."""
+    vazio = {
+        "tem": False,
+        "valor": "0.00",
+        "valor_br": "0,00",
+        "qtd": 0,
+        "texto": "",
+        "linhas": [],
+    }
+    if not sessoes:
+        return vazio
+    por: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    qtd = 0
+    for sessao in sessoes:
+        rel = getattr(sessao, "vendas", None)
+        if rel is None:
+            continue
+        vendas = list(rel.all())
+        if not vendas:
+            continue
+        vendas_mp: set[int] = set()
+        try:
+            from produtos.models import PdvMercadoPagoPointOrder
+
+            vendas_mp = set(
+                PdvMercadoPagoPointOrder.objects.filter(
+                    venda_id__in=[v.pk for v in vendas if getattr(v, "pk", None)],
+                    status=PdvMercadoPagoPointOrder.Status.FINALIZED,
+                ).values_list("venda_id", flat=True)
+            )
+        except Exception:
+            vendas_mp = set()
+        for v in vendas:
+            if not getattr(v, "cartao_maquina_dia_anterior", False):
+                continue
+            if getattr(v, "devolvida_em", None):
+                continue
+            teve = False
+            for fn, val in pagamentos_por_linha_conferencia_venda(
+                v, vendas_mp_point=vendas_mp
+            ).items():
+                if linha_eh_cartao_maquina(fn) and val > 0:
+                    por[fn] += val
+                    teve = True
+            if teve:
+                qtd += 1
+    total = sum(por.values(), Decimal("0"))
+    if total <= 0 or qtd <= 0:
+        return vazio
+    linhas = []
+    for fn in sorted(por.keys()):
+        val = por[fn]
+        if val <= 0:
+            continue
+        linhas.append(
+            {
+                "forma": fn,
+                "valor": str(val.quantize(Decimal("0.01"))),
+                "valor_br": _fmt_moeda_aviso_caixa(val),
+            }
+        )
+    partes = [f"{row['forma']} R$ {row['valor_br']}" for row in linhas]
+    detalhe = " · ".join(partes)
+    br = _fmt_moeda_aviso_caixa(total)
+    texto = (
+        f"{detalhe}. Não soma no esperado de hoje — "
+        "o relatório da máquina de hoje não tem essa venda."
+    )
+    return {
+        "tem": True,
+        "valor": str(total.quantize(Decimal("0.01"))),
+        "valor_br": br,
+        "qtd": qtd,
+        "texto": texto,
+        "linhas": linhas,
+    }
+
+
 def resumo_devolucao_dinheiro_maquina(sessoes) -> dict[str, Any]:
     """Aviso na contagem: devolução em dinheiro de venda no cartão/Pix (maquininha não muda)."""
     vazio = {"tem": False, "valor": "0.00", "qtd": 0, "texto": ""}
@@ -767,6 +868,7 @@ def serializar_estado_conferencia_fechar(
         "linhas": linhas,
         "deposito": dep,
         "aviso_devolucao_dinheiro": resumo_devolucao_dinheiro_maquina(sessoes),
+        "aviso_cartao_entrega_ontem": resumo_cartao_entrega_dia_anterior(sessoes),
         "cards": cards,
     }
 
