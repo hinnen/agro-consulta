@@ -57,6 +57,9 @@ ok(html3.includes('class="slot slot-barcode"'), 'barras posicionadas');
 ok((html3.match(/GM0836/g) || []).length >= 1, 'codigo da 1');
 ok((html3.match(/GM0838/g) || []).length >= 1, 'codigo da 3');
 ok(html3.includes('MAX=2'), 'ajuste de nome usa no maximo 2 linhas');
+ok(html3.includes('-webkit-box-pack:start'), 'nome cola no alto da caixa');
+ok(html3.includes('marginLeft'), 'barras tem zona quieta pro leitor');
+ok(html3.includes('shape-rendering:crispEdges'), 'barras sem borrar');
 
 const custom = Core.normalizarPreset({
   estilo: 'termica',

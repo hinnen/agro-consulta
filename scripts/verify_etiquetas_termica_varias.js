@@ -90,10 +90,10 @@ const etqJs = fs.readFileSync(
   'utf8'
 );
 
-check(etqHtml.includes("produtos_etiquetas_core.js' %}?v=21"), 'tela etiquetas puxa core v=21');
-check(nfeHtml.includes("produtos_etiquetas_core.js' %}?v=21"), 'entrada de nota puxa core v=21');
-check(loteHtml.includes("produtos_etiquetas_core.js' %}?v=21"), 'lote puxa core v=21');
-check(cadHtml.includes("produtos_etiquetas_core.js' %}?v=21"), 'cadastro puxa core v=21');
+check(etqHtml.includes("produtos_etiquetas_core.js' %}?v=22"), 'tela etiquetas puxa core v=22');
+check(nfeHtml.includes("produtos_etiquetas_core.js' %}?v=22"), 'entrada de nota puxa core v=22');
+check(loteHtml.includes("produtos_etiquetas_core.js' %}?v=22"), 'lote puxa core v=22');
+check(cadHtml.includes("produtos_etiquetas_core.js' %}?v=22"), 'cadastro puxa core v=22');
 check(etqJs.includes('Core.imprimirItens(state.fila'), 'fila da tela usa o mesmo imprimir');
 check(etqJs.includes("origem: 'historico'"), 'reimpressão do histórico usa o mesmo imprimir');
 check(nfeHtml.includes('Core.imprimirItens(itens'), 'etapa 6 da nota usa o mesmo imprimir');

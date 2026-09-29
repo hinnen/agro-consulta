@@ -1343,17 +1343,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-TERMICA-VARIAS** | 🟢 **pronto para envio à produção** | **NÃO** | várias **39/39** · layout **30/30** · A6 **86/86** |
+| 1 | **ETQ-TERMICA-VARIAS** | 🟢 **pronto para envio à produção** | **NÃO** | várias **39/39** · layout **33/33** · A6 **86/86** |
 
 ### PACOTE PRONTO — ETQ-TERMICA-VARIAS
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Térmica (Elgin): cada etiqueta da fila sai numa folha. No preset: fonte do nome por 1–4 linhas, máx. de linhas, arrastar nome/preço/barras/GM/rodapé, ligar/desligar cada um, moldura e cores. Vale na tela, no histórico e na etapa 6 da nota |
-| **Prova** | PDF 1→1 página · 3→3 · qtd 3→3 · gôndola A6 segue 1 folha |
+| **O quê** | Térmica (Elgin): uma folha por etiqueta. Nome cola no alto da caixa (não fica mais no meio). Barras mais grossas e com faixa branca dos lados, pro leitor. Layout: fonte por linha, arrastar, moldura. Tela, histórico e etapa 6 |
+| **Prova** | várias **39/39** · layout **33/33** · A6 **86/86** · PDF 3 = 3 páginas |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** — teste **v25.41** — Renan OK no PC 29/09 — só frase + senha |
-| **Você** | Ctrl+F5 · Presets → estilo Térmica → arrastar e moldura → Salvar · fila com 3 · Chrome mostra **3 folhas** |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.45** — só frase + senha |
+| **Você** | Ctrl+F5 · imprime de novo · nome no alto · tenta o leitor no código |
 
 ### CHECKLIST ÚNICO — 18/09 · Excel clientes + fiado
 

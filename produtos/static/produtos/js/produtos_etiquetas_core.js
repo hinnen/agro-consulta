@@ -300,6 +300,32 @@
     return bw;
   }
 
+  /** Barras da térmica: cabem na caixa arrastada, com zona quieta e traço grosso o bastante pro leitor. */
+  function barcodeTermicaMedidas(formato, valor, larguraMm, alturaMm, layout, preset) {
+    var box = (layout && layout.barcode) || { w: 88, h: 22 };
+    var slotWmm = ((Number(larguraMm) || 40) * (Number(box.w) || 88)) / 100;
+    var slotHmm = ((Number(alturaMm) || 40) * (Number(box.h) || 22)) / 100;
+    var pxMm = 3.7795275591;
+    var slotWpx = Math.max(48, slotWmm * pxMm);
+    var slotHpx = Math.max(22, slotHmm * pxMm);
+    var quiet = Math.max(8, Math.round(slotWpx * 0.045));
+    var mods = 95;
+    if (formato === 'EAN8') mods = 67;
+    else if (formato !== 'EAN13') {
+      var n = String(valor || '').length || 1;
+      mods = 11 * n + 35;
+    }
+    var fit = Math.max(0.8, (slotWpx - quiet * 2) / mods);
+    var pedido = Number(preset && preset.barcode_width);
+    var bw = fit;
+    if (pedido > 0) bw = Math.min(pedido, fit);
+    var piso = 1.7;
+    if (fit >= piso) bw = Math.max(bw, Math.min(piso, fit));
+    bw = Math.round(Math.max(0.9, bw) * 100) / 100;
+    var bh = Math.max(28, Math.round(slotHpx * 0.92));
+    return { bw: bw, bh: bh, mq: quiet };
+  }
+
   function barcodeHeightParaFormato(formato, presetHeight, alturaMm) {
     var bh = Number(presetHeight) || 26;
     var hMm = Number(alturaMm) || 40;
@@ -1142,11 +1168,11 @@
       bordaCss +
       '}' +
       '.slot{position:absolute;box-sizing:border-box;overflow:hidden}' +
-      '.slot-nome{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:' +
+      '.slot-nome{display:-webkit-box;-webkit-box-orient:vertical;-webkit-box-pack:start;-webkit-box-align:center;-webkit-line-clamp:' +
       maxLinhas +
-      ';align-content:center;justify-content:center;text-align:center;font-size:' +
+      ';align-content:flex-start;justify-content:flex-start;text-align:center;padding:0;font-size:' +
       nomePt +
-      'pt;font-weight:700;line-height:1.05;color:' +
+      'pt;font-weight:700;line-height:1;color:' +
       esc(cores.nome_fg || '#111') +
       ';word-break:break-word;overflow-wrap:anywhere}' +
       '.slot-preco{display:flex;align-items:center;justify-content:center;text-align:center;font-size:' +
@@ -1154,8 +1180,8 @@
       'pt;font-weight:900;line-height:1;color:' +
       esc(cores.preco_fg || '#111') +
       ';white-space:nowrap}' +
-      '.slot-barcode{display:flex;align-items:center;justify-content:center}' +
-      '.slot-barcode svg{display:block;max-width:100%!important;max-height:100%!important;width:auto!important;height:auto!important}' +
+      '.slot-barcode{display:flex;align-items:center;justify-content:center;background:#fff}' +
+      '.slot-barcode svg{display:block;shape-rendering:crispEdges;max-width:100%!important;max-height:100%!important;width:auto!important;height:auto!important}' +
       '.slot-gm{display:flex;align-items:center;justify-content:center;text-align:center;font-size:' +
       (Number(preset.codigo_pt) || 7) +
       'pt;font-weight:800;line-height:1;color:' +
@@ -1179,12 +1205,14 @@
 
     var jsData = JSON.stringify(
       labels.map(function (lb) {
+        var med = barcodeTermicaMedidas(lb.bcFormato, lb.bcValor, w, h, layout, preset);
         return {
           id: lb.bcId,
           valor: lb.bcValor,
           formato: lb.bcFormato,
-          bw: barcodeWidthParaFormato(lb.bcFormato, w, preset.barcode_width),
-          bh: barcodeHeightParaFormato(lb.bcFormato, preset.barcode_height, h),
+          bw: med.bw,
+          bh: med.bh,
+          mq: med.mq,
         };
       })
     );
@@ -1200,7 +1228,7 @@
       '<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"><\/script>' +
       '<script>var _bars=' +
       jsData +
-      ';function _drawOne(b){var el=document.getElementById(b.id);if(!el)return;var opts={format:b.formato,width:b.bw,height:b.bh,displayValue:false,margin:0};try{JsBarcode(el,b.valor,opts);return;}catch(e1){try{JsBarcode(el,b.valor,{format:"CODE128",width:b.bw,height:b.bh,displayValue:false,margin:0});}catch(e2){el.setAttribute("data-bc-erro","1");}}}function _draw(){try{_bars.forEach(_drawOne);}catch(e){}}function _go(){setTimeout(_draw,40);setTimeout(function(){document.body.dataset.agroReady="1";},520);}if(typeof JsBarcode!=="undefined"){_go();}else{window.addEventListener("load",_go);}<\/script>' +
+      ';function _drawOne(b){var el=document.getElementById(b.id);if(!el)return;var opts={format:b.formato,width:b.bw,height:b.bh,displayValue:false,margin:0,marginTop:0,marginBottom:0,marginLeft:b.mq||8,marginRight:b.mq||8,lineColor:"#000",background:"#fff"};try{JsBarcode(el,b.valor,opts);return;}catch(e1){try{JsBarcode(el,b.valor,{format:"CODE128",width:b.bw,height:b.bh,displayValue:false,margin:0,marginLeft:b.mq||8,marginRight:b.mq||8,lineColor:"#000",background:"#fff"});}catch(e2){el.setAttribute("data-bc-erro","1");}}}function _draw(){try{_bars.forEach(_drawOne);}catch(e){}}function _go(){setTimeout(_draw,40);setTimeout(function(){document.body.dataset.agroReady="1";},520);}if(typeof JsBarcode!=="undefined"){_go();}else{window.addEventListener("load",_go);}<\/script>' +
       '</body></html>'
     );
   }
