@@ -13214,15 +13214,18 @@
                     }
                     return pedirPinLiberar();
                 }
-                showPdvAviso(err && err.message ? err.message : 'Falha ao confirmar venda.', {
-                    tone: 'error',
-                    onPinOk: function () {
-                        setTimeout(function () {
-                            confirmSaleProsseguir(withPrint);
-                        }, 350);
-                    },
-                    pinTitulo: 'PIN para confirmar a venda'
-                });
+                showPdvAviso(
+                    err && err.message ? err.message : 'Falha ao confirmar venda.',
+                    {
+                        tone: 'error',
+                        onPinOk: function () {
+                            setTimeout(function () {
+                                confirmSaleProsseguir(withPrint);
+                            }, 350);
+                        },
+                        pinTitulo: 'PIN para confirmar a venda'
+                    }
+                );
             })
             .finally(function () {
                 if (window.gmLoadingBar) window.gmLoadingBar.hide();
@@ -13299,10 +13302,8 @@
                         (finRes.data && (finRes.data.erro || finRes.data.mensagem)) ||
                             'Falha ao registrar venda após pagamento na maquininha.'
                     );
-                    if (finRes.data) {
-                        eFin.precisaPin = !!finRes.data.precisa_pin;
-                        eFin.pagamentoEfetivado = !!finRes.data.pagamento_efetivado;
-                    }
+                    eFin.precisaPin = !!(finRes.data && finRes.data.precisa_pin);
+                    eFin.pagamentoEfetivado = !!(finRes.data && finRes.data.pagamento_efetivado);
                     throw eFin;
                 }
                 var mpPointFormaDivergiu =
@@ -13413,17 +13414,20 @@
                     } catch (errC) {}
                 }
                 pdvMpPointBeep('err');
-                var msgMp =
+                var msg =
                     (err && err.message) || 'Falha ao confirmar venda com pagamento MP.';
                 var pedePin =
                     !!(err && err.precisaPin) ||
                     (typeof window.gmSspinErroPedePin === 'function' &&
-                        window.gmSspinErroPedePin(msgMp));
-                if (pedePin) {
-                    showMpPointAviso(msgMp, { tone: 'warn' });
-                    if (typeof window.gmSspinAbrirSeErroPin === 'function') {
+                        window.gmSspinErroPedePin(msg));
+                if (pedePin && typeof window.gmSspinAbrirSeErroPin === 'function') {
+                    showMpPointAviso(msg, {
+                        tone: 'warn',
+                        title: 'PIN para gravar (já cobrado)'
+                    });
+                    try {
                         window.gmSspinAbrirSeErroPin(
-                            msgMp,
+                            msg,
                             function () {
                                 setTimeout(function () {
                                     confirmSaleFinalizarMpPointOrders(withPrint, opts);
@@ -13431,10 +13435,10 @@
                             },
                             { titulo: 'PIN para gravar a venda (máquina já cobrou)' }
                         );
-                    }
-                } else {
-                    showMpPointAviso(msgMp, { tone: 'error' });
+                    } catch (ePinMp) {}
+                    return;
                 }
+                showMpPointAviso(msg, { tone: 'error' });
             })
             .finally(function () {
                 if (window.gmLoadingBar) window.gmLoadingBar.hide();
