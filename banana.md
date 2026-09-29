@@ -424,7 +424,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Regras UX jÃ¡ decididas:**
 
-- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · loja v20.22 · hotfix chat v20.33 · `PIN-VENDA-10S` tip v21.32 · **bug #26** `PIN-VENDA-45S` · **bug #28** retenta pós-PIN **Live v25.35**):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · Pedir/chat/venda **~45s** na mesma ação · **após fechar venda** zera fresco (próxima pede PIN) · entrega paga / pendente ~120s · erro «precisa PIN» abre teclado e **retenta** · descanso ~3 min · abrir PDV sem PIN.
+- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · loja v20.22 · hotfix chat v20.33 · `PIN-VENDA-10S` tip v21.32 · **bug #26** `PIN-VENDA-45S` · **bug #28** retenta pós-PIN **Live v25.35** · catch **v25.36** 🟢 pronto envio):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · Pedir/chat/venda **~45s** na mesma ação · **após fechar venda** zera fresco (próxima pede PIN) · entrega paga / pendente ~120s · erro «precisa PIN» abre teclado e **retenta** · descanso ~3 min · abrir PDV sem PIN.
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08 · **Mais ⋯** 31/08 · `PDV-TOPBAR-MAIS` v20.34 · **layout** 31/08 · `PDV-TOPBAR-LAYOUT`):** faixa quente padrão = Pedir loja · Vendas · Uso loja · Entregas · Caixa · **Fiado** · Nova venda (Pedir/Uso = cinza slate; **Mais ⋯** laranja destaque). **Mais ⋯** = Saldo Vila · Repasse · Pesar · PIN + **Organizar atalhos** (quente/frio em Postgres `PdvTopbarLayoutAgro` · migrate `0110` · PIN ao salvar). Contagem diária PG (`0107`). **Ícone WhatsApp** na faixa de ações (ao lado de Nova venda) → aviso **Em breve…** (`PDV-WA-TOPBAR-BREVE`).
@@ -1286,6 +1286,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### CHECKLIST ÚNICO — 29/09 · catch do PIN no Point
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `BUG-28-PIN-CATCH` | 🟢 **pronto para envio à produção** | **NÃO** | JS **14/14** · teste Point OK |
+
+### PACOTE PRONTO — o que ainda falta subir
+
+| Campo | Valor |
+| ----- | ----- |
+| **Já na loja** | BUG #28 grosso · **Live v25.35** |
+| **Falta** | Ajuste do catch: depois que a máquina cobrou, o PIN abre e **tenta gravar de novo** (`pdv_wizard.js`) |
+| **Teste** | `teste` **v25.36** · commit `6a865508` |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
+| **Você** | Depois que subir: Ctrl+F5 · entrega → pagar na loja → débito Point → PIN → venda fecha |
 
 ### ✅ Deploy loja — BUG #28 PIN retenta · **Live v25.35** · 19/09
 
