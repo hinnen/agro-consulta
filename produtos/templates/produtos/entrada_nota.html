@@ -5645,8 +5645,8 @@
   }
 
   /**
-   * Grava no cadastro o EAN bipado na etapa 3 (regra B):
-   * principal 230??? ??? bip vira principal e 230??? vai a opcionais; sen??o s?? opcional.
+   * Grava no cadastro o EAN bipado na etapa 3:
+   * igual ao principal não mexe; diferente entra só como extra. Sem principal, o bip vira o código.
    */
   async function entradaNfeLembrarBarrasOpcionaisAposBip(tr, ...codigos) {
     try {

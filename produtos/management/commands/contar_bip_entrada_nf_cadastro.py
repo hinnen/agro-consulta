@@ -164,8 +164,12 @@ def _aplicar_um(pid: str, dig: str) -> str:
     )
     ex = dict(ov.cadastro_extras) if isinstance(ov.cadastro_extras, dict) else {}
     promover = not _bip_conflito_outro_produto(pid, dig)
+    atual_cb = (ov.codigo_barras or "").strip()
+    if not atual_cb:
+        p_cb = Produto.objects.filter(produto_externo_id=pid[:64]).only("codigo_barras").first()
+        atual_cb = str(getattr(p_cb, "codigo_barras", None) or "").strip()
     res = aplicar_bip_entrada_nf_troca_inteligente(
-        codigo_barras_atual=(ov.codigo_barras or "").strip(),
+        codigo_barras_atual=atual_cb,
         cadastro_extras=ex,
         bip=dig,
         promover_se_loja=promover,

@@ -3089,10 +3089,19 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         )
         if len(dig_bip_nf) >= 8:
             # Se outro cadastro já usa esse EAN como principal, não promove — só opcional.
+            # Ficha vazia não conta: o código pode estar só no produto.
             promover = True
+            atual_cb = (ov.codigo_barras or "").strip()
             try:
                 from produtos.models import Produto, ProdutoGestaoOverlayAgro as _OvCb
 
+                if not atual_cb:
+                    p_cb = (
+                        Produto.objects.filter(produto_externo_id=pid[:64])
+                        .only("codigo_barras")
+                        .first()
+                    )
+                    atual_cb = str(getattr(p_cb, "codigo_barras", None) or "").strip()
                 conflito = (
                     _OvCb.objects.filter(codigo_barras=dig_bip_nf)
                     .exclude(produto_externo_id=pid[:64])
@@ -3109,7 +3118,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
                     exc_info=True,
                 )
             res_bip = aplicar_bip_entrada_nf_troca_inteligente(
-                codigo_barras_atual=(ov.codigo_barras or "").strip(),
+                codigo_barras_atual=atual_cb,
                 cadastro_extras=ex,
                 bip=dig_bip_nf,
                 promover_se_loja=promover,
