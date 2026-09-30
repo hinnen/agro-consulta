@@ -1296,10 +1296,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | `/interno/dispenser-a6/`: **Imprimir 1 A6** como antes. **4 A6 na A4 em pé** (dois em cima, dois embaixo). **2 A5 na A4 deitada** — a folha sai deitada, os dois cartões ficam em pé, lado a lado. Cada espaço pede uma folha diferente (Prontas ou a prévia). |
-| **Prova** | `scripts/verify_dsp_impressao_folha_path.py` **17/17** |
+| **Prova** | `scripts/verify_dsp_impressao_folha_path.py` **18/18** · no Chrome: 4 artes diferentes 105×148 na A4 210×297 · 2 artes em pé 148×210 na A4 297×210 · cancelar não imprime · prévia volta · sem folha extra |
 | **Migrate** | **NÃO** |
-| **Status** | teste local — **não** subiu |
-| **Você** | Ctrl+F5 no Dispenser · escolha as folhas · na janela de imprimir: margens **nenhuma** e escala **100%** |
+| **Status** | prova OK — sobe com frase+senha **30/09** |
+| **Você** | Ctrl+F5 no Dispenser · na janela de imprimir: margens **nenhuma** e escala **100%** |
+| **Rollback** | tag `rollback/pre-dsp-impressao-folha-v25.75` |
 
 ### ✅ Deploy loja — checklist 30/09 · **Live v25.75** · 30/09
 
