@@ -1290,14 +1290,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### PACOTE — Gestão pede PIN com menos frequência (`GESTAO-PIN-FOLGA` · 30/09)
+### PACOTE PRONTO — PIN na Gestão (`GESTAO-PIN-FOLGA`)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Só `/produtos/gestao/`: modo descanso pede PIN depois de **5 min** parado. Digitar o PIN uma vez vale para as próximas ações nessa tela, até parar 5 min. PDV **não** muda. |
+| **O quê** | Na Gestão de produtos, o PIN vale para as próximas ações. O descanso pede de novo só depois de **5 min** parado. PDV continua em **3 min** e pede a cada ação. |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_gestao_pin_folga_path.py` |
-| **Você** | Ctrl+F5 na Gestão. Pode trabalhar um bom tempo sem o PIN. Se parar 30 min, pede de novo. |
+| **Prova** | **43/43** · PIN 9973 |
+| **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
+| **Você** | Ctrl+F5 na Gestão. PIN uma vez. Salvar e cadastrar marca sem pedir de novo. Parar 5 min pede outra vez. |
 
 ### PACOTE PRONTO — fechar caixa não separa cofrinho (`COFRE-SEM-AUTO`)
 
@@ -1356,7 +1357,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `PDV-ENT-CARTAO-ONTEM` | 🟢 **pronto para envio à produção** | **SIM** `0134` + `0135` | **57/57** |
+| 1 | `PDV-ENT-CARTAO-ONTEM` | 🟢 **pronto para envio à produção** | **SIM** `0134` + `0135` | **68/68** |
 
 ### PACOTE PRONTO — PDV-ENT-CARTAO-ONTEM
 
@@ -1364,8 +1365,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | Entrega que já virou o dia, com cartão **ou Pix**: **Passou hoje**, **Passou ontem** ou **Outro dia** (calendário). Outro dia não soma no esperado da máquina de hoje e aparece na faixa amarela do Fechar caixa. No Relatório de caixa a data da venda continua sendo o dia do fechamento; a linha diz em que dia passou na máquina. |
 | **Migrate** | **SIM** `0134` + `0135` |
-| **Prova** | `verify_cartao_entrega_dia_anterior.py` **57/57** |
-| **Status** | 🟢 **pronto para envio à produção** — teste **v25.57** — só frase + senha |
+| **Prova** | `verify_cartao_entrega_dia_anterior.py` **68/68** |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.58** — só frase + senha |
 | **Você** | Ctrl+F5 · retomar a entrega · cartão ou Pix · **Outro dia** ou **Passou ontem** · Fechar caixa: faixa amarela |
 
 ### CHECKLIST ÚNICO — falta subir
@@ -1374,26 +1375,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- | ----- |
 | 1 | `FIADO-LIMITE-TODOS` | 🟢 **já testado · pronto para envio à produção** | **NÃO** | **13/13** |
 | 2 | `CLI-RENOME-HIST` | 🟢 **já testado · pronto para envio à produção** | **NÃO** | **13/13** |
-| 3 | `PDV-ENT-CARTAO-ONTEM` | 🟢 **pronto para envio à produção** | **SIM** `0134` + `0135` | **57/57** |
+| 3 | `PDV-ENT-CARTAO-ONTEM` | 🟢 **pronto para envio à produção** | **SIM** `0134` + `0135` | **68/68** |
 | 4 | **PDV-ENT-DIA-OPCIONAL** | 🟢 **pronto para envio à produção** | **SIM** `0133` | **33/33** |
 | 5 | **CLIENTE-XLSX-FIADO** | 🟢 **pronto para envio à produção** | **NÃO** | **30/30** |
 | 6 | `BUG-28-PIN-CATCH` | 🟢 **pronto para envio à produção** | **NÃO** | JS **14/14** |
 | 7 | `NF-CB-NAO-APAGA` | 🟢 **já testado · pronto para envio à produção** | **NÃO** | **24/24** |
 | 8 | `COFRE-SEM-AUTO` | 🟢 **pronto para envio à produção** | **NÃO** | path **15/15** · **39/39** |
 | 9 | **PDV-ENT-VER-OUTRA** | 🟢 **pronto para envio à produção** | **NÃO** | **33/33** |
+| 10 | `GESTAO-PIN-FOLGA` | 🟢 **pronto para envio à produção** | **NÃO** | **43/43** |
 
 ### PACOTE PRONTO — o que ainda falta subir
 
 | Pacote | O que testar |
 | ------ | ------------ |
 | **Limite + nome do cliente** | ✅ Renan testou no teste · lápis em quem tem fiado · corrigir letra não some o histórico · prova **13/13** · sem migrate |
-| **Cartão da entrega ontem** | Ctrl+F5 · cartão ou Pix · **Passou ontem** ou **Outro dia** (calendário) · Fechar caixa: faixa amarela · Relatório: data da venda é hoje, a linha diz o dia da máquina · migrate `0134` + `0135` |
+| **Cartão da entrega ontem** | Ctrl+F5 · cartão ou qualquer Pix (máquina ou conta) · **Passou ontem** ou **Outro dia** · Fechar caixa: faixa amarela · prova **68/68** · migrate `0134` + `0135` |
 | **Dia da entrega** | Ctrl+F5 · Entregas: card de amanhã continua · o número do botão só sobe no dia · migrate `0133` |
 | **Ver a outra loja** | Ctrl+F5 · Entregas → **Ver Vila** (ou **Ver Centro**) · painel por cima, só olhar, sem Retomar nem Fechar |
 | **Excel clientes** | Ctrl+F5 · Clientes → Excel ↓ · mudar limite · Excel ↑ → prévia → confirmar |
 | **PIN no Point** | Ctrl+F5 · entrega paga na loja → débito Point → PIN → a venda fecha |
 | **Código na nota** | ✅ Renan testou no PC · igual fica · diferente só em extra · prova **24/24** · sem migrate |
 | **Cofrinho no fechar** | Ctrl+F5 · Fechar caixa Vila sem faixa «Separe» · esperado igual à gaveta · sem migrate |
+| **PIN na Gestão** | Ctrl+F5 na Gestão · PIN uma vez vale nas próximas ações · descanso só depois de 5 min · PDV continua pedindo · prova **43/43** · sem migrate |
 
 ### CHECKLIST ÚNICO — 29/09 · dia da entrega opcional
 
