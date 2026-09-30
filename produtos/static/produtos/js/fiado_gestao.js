@@ -294,6 +294,56 @@
     mostrarErroLimiteCli('');
   }
 
+  let sortCol = 'saldo';
+  let sortDir = 'desc';
+  const WA_ICON =
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.52 3.48A11.86 11.86 0 0 0 12.04 0C5.5 0 .2 5.29.2 11.82c0 2.08.54 4.11 1.58 5.9L0 24l6.45-1.69a11.9 11.9 0 0 0 5.59 1.42h.01c6.54 0 11.84-5.3 11.84-11.83 0-3.16-1.23-6.13-3.37-8.42zM12.05 21.8h-.01a9.9 9.9 0 0 1-5.04-1.38l-.36-.21-3.83 1 .99-3.73-.24-.38a9.86 9.86 0 0 1-1.51-5.27c0-5.45 4.45-9.89 9.91-9.89 2.65 0 5.14 1.03 7.01 2.9a9.82 9.82 0 0 1 2.9 7c0 5.45-4.45 9.89-9.82 9.96zm5.42-7.4c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.16-.17.2-.35.22-.64.07-.3-.15-1.25-.46-2.38-1.47-.88-.78-1.47-1.75-1.64-2.05-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.22 3.08c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.36.2 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35z"/></svg>';
+
+  function valorOrdem(c, col) {
+    if (col === 'titulos') return Number(c.titulos_abertos) || 0;
+    if (col === 'valor') return Number(c.valor_bruto) || 0;
+    if (col === 'pago') return Number(c.valor_pago) || 0;
+    if (col === 'saldo') return Number(c.saldo_aberto) || 0;
+    if (col === 'limite') return Number(c.limite != null ? c.limite : c.limite_fiado_local) || 0;
+    if (col === 'situacao') {
+      const rank = { vencido: 3, parcial: 2, aberto: 1, zerado: 0 };
+      return rank[c.situacao_resumo] || 0;
+    }
+    return 0;
+  }
+
+  function ordenarClientes(lista) {
+    const dir = sortDir === 'asc' ? 1 : -1;
+    return (lista || []).slice().sort(function (a, b) {
+      let cmp = 0;
+      if (sortCol === 'cliente') {
+        cmp = String(a.cliente_nome || '').localeCompare(String(b.cliente_nome || ''), 'pt', { sensitivity: 'base' });
+      } else if (sortCol === 'venc') {
+        const av = a.vencimento_mais_antigo || '';
+        const bv = b.vencimento_mais_antigo || '';
+        if (!av && bv) return 1;
+        if (av && !bv) return -1;
+        if (av && bv && av !== bv) cmp = av < bv ? -1 : 1;
+      } else {
+        const av = valorOrdem(a, sortCol);
+        const bv = valorOrdem(b, sortCol);
+        if (av !== bv) cmp = av < bv ? -1 : 1;
+      }
+      if (cmp) return cmp * dir;
+      return String(a.cliente_nome || '').localeCompare(String(b.cliente_nome || ''), 'pt', { sensitivity: 'base' });
+    });
+  }
+
+  function pintarMarcasSort() {
+    document.querySelectorAll('.fiado-cli-table .fiado-sort').forEach(function (th) {
+      const mark = th.querySelector('.fiado-sort-mark');
+      const on = th.getAttribute('data-sort') === sortCol;
+      th.classList.toggle('is-on', on);
+      if (mark) mark.textContent = on ? (sortDir === 'desc' ? '▼' : '▲') : '';
+      th.setAttribute('aria-sort', on ? (sortDir === 'desc' ? 'descending' : 'ascending') : 'none');
+    });
+  }
+
   function renderClientes(clientes) {
     clientesCache = clientes || [];
     if (!el.tbody) return;
@@ -301,7 +351,7 @@
       el.tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-10 text-center text-sm font-bold text-slate-500">Nenhum cliente com saldo em aberto.</td></tr>';
       return;
     }
-    el.tbody.innerHTML = clientesCache.map(function (c) {
+    el.tbody.innerHTML = ordenarClientes(clientesCache).map(function (c) {
       const pk = c.cliente_agro_pk;
       const limiteVal = c.limite_fiado_local != null ? c.limite_fiado_local : (c.limite || 0);
       const destaque = CFG.clientePrePk && pk === CFG.clientePrePk ? ' ring-2 ring-inset ring-orange-300 bg-orange-50' : '';
@@ -322,9 +372,10 @@
         '<td class="text-right tabular-nums font-black text-orange-800">' + fmtMoeda(c.saldo_aberto) + '</td>' +
         '<td class="text-right">' + limiteCel + '</td>' +
         '<td><span class="inline-block rounded-lg px-2 py-0.5 text-[10px] font-black uppercase ' + situacaoClass(c.situacao_resumo) + '">' + esc(c.situacao_label) + '</span></td>' +
-        '<td class="text-right whitespace-nowrap">' +
+        '<td class="text-right whitespace-nowrap"><span class="inline-flex items-center justify-end gap-1">' +
+        '<button type="button" class="fiado-btn-wa' + (c.whatsapp_url ? '' : ' is-off') + '" data-wa="' + esc(c.whatsapp_url || '') + '" title="' + (c.whatsapp_url ? 'Abrir WhatsApp' : 'Sem WhatsApp no cadastro') + '" aria-label="WhatsApp">' + WA_ICON + '</button>' +
         '<button type="button" class="fiado-btn-baixa fiado-acao-slot bg-orange-600 text-white shadow-sm hover:bg-orange-700" data-pk="' + esc(pk || '') + '" data-nome="' + esc(c.cliente_nome) + '" data-codigo="' + esc(c.cliente_codigo || '') + '" data-saldo="' + c.saldo_aberto + '">Baixa</button>' +
-        '</td></tr>'
+        '</span></td></tr>'
       );
     }).join('');
   }
@@ -996,6 +1047,19 @@
         iniciarEdicaoLimite(bLimValor);
         return;
       }
+      const bWa = ev.target.closest('.fiado-btn-wa');
+      if (bWa) {
+        ev.stopPropagation();
+        ev.preventDefault();
+        const url = bWa.getAttribute('data-wa') || '';
+        if (!url) {
+          alert('Este cliente não tem WhatsApp no cadastro.');
+          return;
+        }
+        if (typeof window.agroAbrirUrlExterna === 'function') window.agroAbrirUrlExterna(url);
+        else window.open(url, '_blank', 'noopener,noreferrer');
+        return;
+      }
       const bBaixa = ev.target.closest('.fiado-btn-baixa');
       if (bBaixa) {
         ev.stopPropagation();
@@ -1388,6 +1452,24 @@
       }
     }
   });
+
+  const theadCli = document.querySelector('.fiado-cli-table thead');
+  if (theadCli) {
+    theadCli.addEventListener('click', function (ev) {
+      const th = ev.target.closest('.fiado-sort');
+      if (!th) return;
+      const col = th.getAttribute('data-sort') || '';
+      if (!col) return;
+      if (sortCol === col) sortDir = sortDir === 'desc' ? 'asc' : 'desc';
+      else {
+        sortCol = col;
+        sortDir = 'desc';
+      }
+      pintarMarcasSort();
+      renderClientes(clientesCache);
+    });
+  }
+  pintarMarcasSort();
 
   recarregar().then(function () {
     return abrirClientePrePk();
