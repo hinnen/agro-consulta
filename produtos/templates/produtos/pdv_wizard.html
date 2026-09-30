@@ -9,6 +9,7 @@
 {% block pdv_section_class %}flex min-h-0 flex-1 flex-col max-w-none overflow-hidden p-0{% endblock %}
 
 {% block head_extra %}
+{% include "produtos/includes/agro_date_picker_styles.html" %}
 <meta name="csrfmiddlewaretoken" content="{{ csrf_token }}">
 <style>
   .pdv-wizard-scroll::-webkit-scrollbar { width: 8px; height: 8px; }

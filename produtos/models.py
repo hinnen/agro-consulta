@@ -537,6 +537,12 @@ class VendaAgro(models.Model):
         db_index=True,
         help_text="Entrega fechada no dia seguinte: o cartão passou na máquina no dia anterior e não soma no esperado do relatório de hoje.",
     )
+    cartao_maquina_dia = models.DateField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Dia em que o cartão passou na máquina, quando não foi hoje.",
+    )
 
     class Meta:
         ordering = ["-criado_em"]

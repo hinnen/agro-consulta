@@ -335,15 +335,15 @@ def data_hoje_loja():
     return timezone.localdate()
 
 
-def cartao_maquina_dia_anterior_aceito(data: dict | None, pagamentos_json) -> bool:
-    """Só grava a marca se a entrega já virou o dia e o pagamento tem cartão."""
+def _entrega_permite_cartao_outro_dia(data: dict | None, pagamentos_json) -> bool:
+    """Entrega já virou o dia, marca ligada e tem cartão."""
     if not isinstance(data, dict):
         return False
     raw = data.get("cartao_maquina_dia_anterior")
     if raw is True:
         marcado = True
     else:
-        marcado = str(raw or "").strip().lower() in ("1", "true", "sim", "yes", "ontem")
+        marcado = str(raw or "").strip().lower() in ("1", "true", "sim", "yes", "ontem", "outro")
     if not marcado:
         return False
     try:
@@ -371,6 +371,28 @@ def cartao_maquina_dia_anterior_aceito(data: dict | None, pagamentos_json) -> bo
         if linha_eh_cartao_maquina(fn):
             return True
     return False
+
+
+def data_cartao_maquina_escolhida(data: dict | None, pagamentos_json) -> date | None:
+    """Dia do cartão, só se for antes de hoje. Sem data no payload = ontem."""
+    if not _entrega_permite_cartao_outro_dia(data, pagamentos_json):
+        return None
+    hoje = timezone.localdate()
+    raw = str((data or {}).get("cartao_maquina_data") or "").strip()[:10]
+    if raw:
+        try:
+            dia = date.fromisoformat(raw)
+        except ValueError:
+            return None
+        if dia >= hoje:
+            return None
+        return dia
+    return hoje - timedelta(days=1)
+
+
+def cartao_maquina_dia_anterior_aceito(data: dict | None, pagamentos_json) -> bool:
+    """Só grava a marca se a entrega já virou o dia, o pagamento tem cartão e o dia é passado."""
+    return data_cartao_maquina_escolhida(data, pagamentos_json) is not None
 
 
 def qs_excluindo_adiadas_futuras(qs, hoje=None):

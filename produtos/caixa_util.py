@@ -704,6 +704,7 @@ def resumo_cartao_entrega_dia_anterior(sessoes) -> dict[str, Any]:
         return vazio
     por: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
     qtd = 0
+    dias: set = set()
     for sessao in sessoes:
         rel = getattr(sessao, "vendas", None)
         if rel is None:
@@ -737,6 +738,9 @@ def resumo_cartao_entrega_dia_anterior(sessoes) -> dict[str, Any]:
                     teve = True
             if teve:
                 qtd += 1
+                dia_cartao = getattr(v, "cartao_maquina_dia", None)
+                if dia_cartao:
+                    dias.add(dia_cartao)
     total = sum(por.values(), Decimal("0"))
     if total <= 0 or qtd <= 0:
         return vazio
@@ -754,6 +758,9 @@ def resumo_cartao_entrega_dia_anterior(sessoes) -> dict[str, Any]:
         )
     partes = [f"{row['forma']} R$ {row['valor_br']}" for row in linhas]
     detalhe = " · ".join(partes)
+    if dias:
+        quando = ", ".join(d.strftime("%d/%m/%Y") for d in sorted(dias))
+        detalhe = f"{detalhe} em {quando}"
     br = _fmt_moeda_aviso_caixa(total)
     texto = (
         f"{detalhe}. Não soma no esperado de hoje — "
