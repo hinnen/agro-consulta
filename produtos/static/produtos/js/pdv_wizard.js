@@ -3429,6 +3429,8 @@
         if (dom.fiadoGestaoOpen) {
             dom.fiadoGestaoOpen.classList.toggle('pdv-fiado-usado--atraso', atrasado);
         }
+        var situacaoEl = document.getElementById('pdv-product-fiado-situacao');
+        if (situacaoEl) situacaoEl.textContent = atrasado ? 'Atrasado' : 'Em dia';
         if (dom.topbarFiadoLink) {
             dom.topbarFiadoLink.href = buildFiadoGestaoUrl(state);
         }

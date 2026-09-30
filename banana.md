@@ -1312,11 +1312,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | No card Saldos e dentro de cada cliente do fiado: **Deve** (laranja), **Limite** (azul) e, no cliente, **Limite livre** (verde = limite − o que já deve). O limite abre popup (digitar ou +/− R$ 100) e só grava com PIN do Geraldo, Geraldinho ou Renan. Atraso deixa o Deve vermelho. Limite livre zerado fica vermelho. |
+| **O quê** | No card Saldos e dentro de cada cliente: **Em dia** e **Limite** azuis. Atrasado, o card da dívida fica vermelho e a palavra vira **Atrasado**. Limite livre (verde) só no cliente. Limite abre popup (digitar ou +/− R$ 100) e só grava com PIN do Geraldo, Geraldinho ou Renan. |
 | **Prova** | `scripts/verify_pdv_fiado_limite_card_path.py` **30/30** |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
-| **Você** | Ctrl+F5 · abra o cliente: três cards iguais — **Deve**, **Limite** e **Limite livre** |
+| **Você** | Ctrl+F5 no PDV: em dia os dois cards azuis (**Em dia** e **Limite**). Atrasado, o da dívida fica vermelho |
 
 ### DADO — fiado sem cadastro (30/09)
 
