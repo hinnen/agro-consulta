@@ -11780,9 +11780,13 @@ def cliente_editar(request, pk):
     if request.method == "POST":
         form = ClienteAgroForm(request.POST, instance=cli)
         if form.is_valid():
+            nome_antes = cli.nome
             obj = form.save(commit=False)
             obj.editado_local = True
             obj.save()
+            from produtos.cliente_operacoes_util import propagar_renome_cliente
+
+            propagar_renome_cliente(obj, nome_antes)
             messages.success(request, "Cliente atualizado.")
             return redirect("clientes_lista")
         from produtos.cliente_whatsapp_util import info_whatsapp_duplicado
@@ -32504,6 +32508,7 @@ def api_pdv_cliente_editar(request, pk):
     cpf_val, cpf_err = _pdv_cpf_field_from_payload(data)
     if cpf_err:
         return JsonResponse({"ok": False, "erro": cpf_err}, status=400)
+    nome_antes = cli.nome
     cli.nome = nome[:200]
     cli.whatsapp = wa_digits
     if cpf_val is not None:
@@ -32515,6 +32520,9 @@ def api_pdv_cliente_editar(request, pk):
     except Exception as e:
         logger.exception("api_pdv_cliente_editar pk=%s", pk)
         return JsonResponse({"ok": False, "erro": str(e)[:500]}, status=400)
+    from produtos.cliente_operacoes_util import propagar_renome_cliente
+
+    propagar_renome_cliente(cli, nome_antes)
     return JsonResponse({"ok": True, "cliente": _linha_clienteagro_pdv(cli)})
 
 
@@ -32771,6 +32779,7 @@ def _sincronizar_clienteagro_desde_modal_entrega(ent: PedidoEntrega, body: dict)
     if not cli:
         return False
     nome = str(body.get("cliente_nome") or ent.cliente_nome or "").strip()[:200]
+    nome_antes = cli.nome
     if nome:
         cli.nome = nome
     tel = str(body.get("telefone") if body.get("telefone") is not None else ent.telefone).strip()
@@ -32812,6 +32821,9 @@ def _sincronizar_clienteagro_desde_modal_entrega(ent: PedidoEntrega, body: dict)
         )[:500]
     cli.editado_local = True
     cli.save()
+    from produtos.cliente_operacoes_util import propagar_renome_cliente
+
+    propagar_renome_cliente(cli, nome_antes)
     ent_updated = False
     if not ent.cliente_agro_id or ent.cliente_agro_id != cli.pk:
         ent.cliente_agro = cli

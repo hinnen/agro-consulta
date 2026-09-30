@@ -138,6 +138,7 @@ def _vendas_cliente_qs(cli: ClienteAgro):
     if ext:
         q |= Q(cliente_id_erp=ext)
     q |= Q(cliente_id_erp=f"local:{cli.pk}")
+    q |= Q(cliente_id_erp=f"agro:{cli.pk}")
     if not q:
         return VendaAgro.objects.none()
     qs = (

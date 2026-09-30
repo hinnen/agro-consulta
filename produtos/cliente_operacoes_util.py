@@ -31,6 +31,40 @@ def _q2(v) -> Decimal:
     return _dec(v).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
+def propagar_renome_cliente(cli: ClienteAgro, nome_anterior: str) -> None:
+    """Corrigir uma letra no nome não pode esconder vendas, fiado e entregas."""
+    from produtos.models import PedidoEntrega, VendaAgro
+
+    novo = (cli.nome or "").strip()[:300]
+    antigo = (nome_anterior or "").strip()
+    if not novo or not antigo or novo.casefold() == antigo.casefold():
+        return
+    outros = ClienteAgro.objects.exclude(pk=cli.pk).filter(nome__iexact=antigo).exists()
+    FiadoTituloAgro.objects.filter(cliente_agro_id=cli.pk).exclude(cliente_nome=novo).update(
+        cliente_nome=novo
+    )
+    PedidoEntrega.objects.filter(cliente_agro_id=cli.pk).exclude(cliente_nome=novo).update(
+        cliente_nome=novo
+    )
+    ids = [f"local:{cli.pk}", f"agro:{cli.pk}"]
+    ext = (cli.externo_id or "").strip()
+    if ext:
+        ids.append(ext)
+    VendaAgro.objects.filter(cliente_id_erp__in=ids).exclude(cliente_nome=novo).update(cliente_nome=novo)
+    if outros:
+        return
+    FiadoTituloAgro.objects.filter(cliente_nome__iexact=antigo).filter(
+        Q(cliente_agro__isnull=True) | Q(cliente_agro_id=cli.pk)
+    ).exclude(cliente_nome=novo).update(cliente_nome=novo, cliente_agro_id=cli.pk)
+    VendaAgro.objects.filter(cliente_nome__iexact=antigo).exclude(cliente_nome=novo).update(
+        cliente_nome=novo
+    )
+    PedidoEntrega.objects.filter(cliente_nome__iexact=antigo, cliente_agro__isnull=True).update(
+        cliente_nome=novo,
+        cliente_agro_id=cli.pk,
+    )
+
+
 def item_id_e_servico_pdv(pid: str) -> bool:
     p = str(pid or "").strip().lower()
     return p in {PID_VALE_CREDITO, PID_FIADO_COBRANCA} or p.startswith("vale-credito")
