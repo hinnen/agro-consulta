@@ -1292,9 +1292,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Gravar custo/preço na nota manual apagava o código (overlay vazio cobria o cadastro). Agora: código igual fica; código diferente só entra como extra; o principal não é trocado. |
-| **Nota 36696** | Já apagou na loja: GM0934 `7899751100632` · GM0752 `7898311540444` · GM0738 `7898917425527` · GM4619 `7896744177428`. Não regravei. |
+| **Nota 36696** | Códigos devolvidos na loja 29/09. |
+| **Loja (dados)** | **41** voltaram como código principal · **7** entraram só como extra · **3** não mexi porque o número já é de outro produto (lâmina GM4178, lixeira GM4188, bebedouro GM4236). |
 | **Migrate** | **NÃO** |
-| **Status** | Código no `teste`. Loja **não**. Devolver os 4 códigos só se Renan pedir. |
+| **Status** | Dados **na loja**. O programa que impede repetir está no `teste` **v25.48** — a loja ainda roda o programa antigo até subir. |
 
 ### CHECKLIST ÚNICO — 29/09 · cartão da entrega no dia anterior
 
