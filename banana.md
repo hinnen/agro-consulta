@@ -1302,8 +1302,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `FIADO-LIMITE-TODOS` | 🟢 **pronto para envio à produção** | **NÃO** | correção no agrupamento da lista |
-| 2 | `CLI-RENOME-HIST` | 🟢 **pronto para envio à produção** | **NÃO** | nome novo acompanha venda, fiado e entrega |
+| 1 | `FIADO-LIMITE-TODOS` | 🟢 **já testado · pronto para envio à produção** | **NÃO** | **13/13** |
+| 2 | `CLI-RENOME-HIST` | 🟢 **já testado · pronto para envio à produção** | **NÃO** | **13/13** |
 
 ### PACOTE PRONTO — limite no fiado + histórico ao corrigir o nome
 
@@ -1311,7 +1311,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | Em `/fiado/`, quem já tem título também ganha o lápis do limite. Corrigir uma letra no nome não esconde mais compras, fiado nem entrega. |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** — teste **v25.50** — só frase + senha |
+| **Status** | 🟢 **já testado · pronto para envio à produção** — teste **v25.51** — Renan OK no teste · prova **13/13** — só frase + senha |
 | **Você** | Ctrl+F5 · `/fiado/` buscar RENAN · todo mundo com lápis no limite. Se o histórico já sumiu: volte o nome antigo, salve, depois coloque o nome certo e salve de novo. |
 
 ### CHECKLIST ÚNICO — 29/09 · código da nota não some
@@ -1350,23 +1350,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `PDV-ENT-CARTAO-ONTEM` | 🟢 **pronto para envio à produção** | **SIM** `0134` | **46/46** |
-| 2 | **PDV-ENT-DIA-OPCIONAL** | 🟢 **pronto para envio à produção** | **SIM** `0133` | **18/18** |
-| 3 | **ETQ-TERMICA-VARIAS** | ✅ **Live v25.36** · Renan testou **30/09** | **NÃO** | **39/39** · layout **37/37** · quebra **20/20** |
-| 4 | **CLIENTE-XLSX-FIADO** | 🟢 **pronto para envio à produção** | **NÃO** | **30/30** |
-| 5 | `BUG-28-PIN-CATCH` | 🟢 **pronto para envio à produção** | **NÃO** | JS **14/14** |
-| 6 | `NF-CB-NAO-APAGA` | 🟢 **pronto para envio à produção** | **NÃO** | **24/24** |
+| 1 | `FIADO-LIMITE-TODOS` | 🟢 **já testado · pronto para envio à produção** | **NÃO** | **13/13** |
+| 2 | `CLI-RENOME-HIST` | 🟢 **já testado · pronto para envio à produção** | **NÃO** | **13/13** |
+| 3 | `PDV-ENT-CARTAO-ONTEM` | 🟢 **pronto para envio à produção** | **SIM** `0134` | **46/46** |
+| 4 | **PDV-ENT-DIA-OPCIONAL** | 🟢 **pronto para envio à produção** | **SIM** `0133` | **18/18** |
+| 5 | **CLIENTE-XLSX-FIADO** | 🟢 **pronto para envio à produção** | **NÃO** | **30/30** |
+| 6 | `BUG-28-PIN-CATCH` | 🟢 **pronto para envio à produção** | **NÃO** | JS **14/14** |
+| 7 | `NF-CB-NAO-APAGA` | 🟢 **pronto para envio à produção** | **NÃO** | **24/24** |
 
 ### PACOTE PRONTO — o que ainda falta subir
 
 | Pacote | O que testar |
 | ------ | ------------ |
+| **Limite + nome do cliente** | ✅ Renan testou no teste · lápis em quem tem fiado · corrigir letra não some o histórico · prova **13/13** · sem migrate |
 | **Cartão da entrega ontem** | Ctrl+F5 · retomar entrega de ontem no cartão · **Passou ontem** · Fechar caixa: faixa amarela · migrate `0134` |
 | **Dia da entrega** | Ctrl+F5 · Entrega → **Hoje** ou **Amanhã** / **Outro dia** · card mostra o dia · caixa de hoje não trava o futuro · migrate `0133` |
-| **Etiqueta térmica** | ✅ já na loja **v25.36** · Ctrl+F5 · badge **v25.36** |
 | **Excel clientes** | Ctrl+F5 · Clientes → Excel ↓ · mudar limite · Excel ↑ → prévia → confirmar |
 | **PIN no Point** | Ctrl+F5 · entrega paga na loja → débito Point → PIN → a venda fecha |
-| **Código na nota** | Ctrl+F5 · nota manual · bipar produto com código · gravar custo · ficha: igual fica, diferente só em extra. Sem migrate. v25.49 |
+| **Código na nota** | Ctrl+F5 · nota manual · bipar produto com código · gravar custo · ficha: igual fica, diferente só em extra. Sem migrate. |
 
 ### CHECKLIST ÚNICO — 29/09 · dia da entrega opcional
 
