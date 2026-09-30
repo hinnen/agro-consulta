@@ -1290,13 +1290,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### DADO — fiado na ficha errada (loja, só leitura · 30/09)
+
+Um cadastro só (`ClienteAgro`). Loja: **2.167** fichas. Fiado em aberto **175** títulos · **R$ 17.111,24**. Nenhum sem ficha. Venda do PDV (**125**) está na pessoa certa. Planilha antiga: **22** títulos (**R$ 2.449,51**, **14** pessoas) caíram na ficha cujo número bateu com o código velho — a ficha certa existe (ex.: Erlindo pk 29, dívida nos pk 795–800). **Não** corrigido. Só olhar; mexer só com pedido do Renan.
+
 ### PACOTE PRONTO — busca PDV não mistura palavra solta (`PDV-BUSCA-COERENTE`)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | «milho grande» não puxa mais bebedouro só por «grande». O que casa a frase fica azul. O que o motor só completou (outro milho) fica cinza. |
+| **O quê** | «milho grande» não puxa mais bebedouro só por «grande». O que casa a frase fica verde. O chute fica cinza. A linha do cursor fica verde mais forte, não o azul antigo da seleção. |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **teste v25.64** · validar no PC · loja só frase + senha |
+| **Status** | 🟢 **teste v25.65** · validar no PC · loja só frase + senha |
 | **Você** | Ctrl+F5 no PDV · buscar milho grande · sem bebedouro · cinza = chute |
 
 ### PACOTE PRONTO — nome do produto em 2 linhas no carrinho (`PDV-CART-NOME-2L`)
