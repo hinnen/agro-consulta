@@ -1332,9 +1332,10 @@ Um cadastro só (`ClienteAgro`). Loja: **2.167** fichas. Fiado em aberto **175**
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | No carrinho do PDV, o nome do produto usa até **2 linhas**. Nome curto continua numa. Se ainda não couber, o resto fica no passar o mouse. |
+| **Prova** | `scripts/verify_pdv_cart_nome_2l_path.py` **34/34** · PIN não entra (não grava venda) |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** — teste **v25.63** — só frase + senha |
-| **Você** | Ctrl+F5 no PDV · carrinho com nome longo |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.73** — prova **34/34** — só frase + senha |
+| **Você** | Ctrl+F5 no PDV · nome longo em 2 linhas · nome curto em 1 |
 
 ### PACOTE PRONTO — Excel clientes: valor do mês (`CLI-XLSX-MES-VALOR`)
 
@@ -1455,7 +1456,7 @@ Joelma (Esposa Wagner) e 018 Junior (pai de Isabela) estavam no fiado **sem** o 
 | 11 | `CLI-XLSX-MES-VALOR` | 🟢 **pronto para envio à produção** | **NÃO** | **42/42** |
 | 12 | `PDV-FIADO-LIMITE-CARD` | 🟢 **pronto para envio à produção** | **NÃO** | **39/39** |
 | 13 | `PDV-BUSCA-COERENTE` | 🟢 **pronto para envio à produção** | **NÃO** | **30/30** |
-| 14 | `PDV-CART-NOME-2L` | 🟢 **pronto para envio à produção** | **NÃO** | — |
+| 14 | `PDV-CART-NOME-2L` | 🟢 **pronto para envio à produção** | **NÃO** | **34/34** |
 | 15 | `FIADO-ORDEM-ZAP` | 🟢 **pronto para envio à produção** | **NÃO** | **59/59** · PIN **9973** |
 | 15 | `FIADO-ORDEM-ZAP` | 🟢 **pronto para envio à produção** | **NÃO** | — |
 
@@ -1474,9 +1475,9 @@ Joelma (Esposa Wagner) e 018 Junior (pai de Isabela) estavam no fiado **sem** o 
 | **PIN na Gestão** | Ctrl+F5 na Gestão · PIN uma vez vale nas próximas ações · descanso só depois de 5 min · PDV continua pedindo · prova **43/43** · sem migrate |
 | **Fiado no PDV** | Ctrl+F5 · em dia: **Em dia** e **Limite** azuis · atrasado: card da dívida vermelho **Atrasado** · no cliente, terceiro card **Limite livre** · prova **39/39** · sem migrate |
 | **Busca do PDV** | Ctrl+F5 · milho grande: verde o que casa, cinza o chute, azul o cursor · não traz bebedouro · prova **30/30** · sem migrate |
-| **Nome no carrinho** | Ctrl+F5 · nome longo usa até 2 linhas · nome curto continua numa · sem migrate |
+| **Nome no carrinho** | Ctrl+F5 · nome longo usa até 2 linhas · nome curto continua numa · prova **34/34** · sem migrate |
 | **Ordem e Zap no fiado** | Ctrl+F5 em `/fiado/` · clique em Saldo e em Cliente · verde abre o Zap · cinza avisa sem número · prova **59/59** · sem migrate |
-| **Ordem e Zap no fiado** | Ctrl+F5 em `/fiado/` · clique em Saldo e em Cliente · botão verde abre o Zap · sem migrate |
+| **Logos do Dispenser** | Ctrl+F5 · `/interno/dispenser-a6/` · sobe logo além dos 24 (até 72) · pet e ingrediente param em 24 · prova **27/27** · sem migrate |
 
 ### CHECKLIST ÚNICO — 29/09 · dia da entrega opcional
 
