@@ -16,6 +16,19 @@
     cliModalNome: document.getElementById('fiado-cli-modal-nome'),
     cliModalMeta: document.getElementById('fiado-cli-modal-meta'),
     cliModalSaldo: document.getElementById('fiado-cli-modal-saldo'),
+    cliPillDeve: document.getElementById('fiado-cli-pill-deve'),
+    cliPillDeveValor: document.getElementById('fiado-cli-pill-deve-valor'),
+    cliPillLimite: document.getElementById('fiado-cli-pill-limite'),
+    cliPillLimiteValor: document.getElementById('fiado-cli-pill-limite-valor'),
+    modalLimiteCli: document.getElementById('fiado-modal-limite-cli'),
+    limiteCliNome: document.getElementById('fiado-limite-cli-nome'),
+    limiteCliInput: document.getElementById('fiado-limite-cli-input'),
+    limiteCliPin: document.getElementById('fiado-limite-cli-pin'),
+    limiteCliErro: document.getElementById('fiado-limite-cli-erro'),
+    limiteCliMenos: document.getElementById('fiado-limite-cli-menos'),
+    limiteCliMais: document.getElementById('fiado-limite-cli-mais'),
+    limiteCliCancelar: document.getElementById('fiado-limite-cli-cancelar'),
+    formLimiteCli: document.getElementById('fiado-form-limite-cli'),
     cliModalFechar: document.getElementById('fiado-cli-modal-fechar'),
     tbodyTitulos: document.getElementById('fiado-tbody-titulos'),
     titSelTodos: document.getElementById('fiado-tit-sel-todos'),
@@ -226,13 +239,49 @@
   }
 
   function clienteFromRow(c) {
+    const limite = c.limite != null ? c.limite : (c.limite_fiado_local || 0);
     return {
       pk: c.cliente_agro_pk || null,
       nome: c.cliente_nome || '',
       codigo: c.cliente_codigo || '',
       saldo: c.saldo_aberto || 0,
       titulos: c.titulos_abertos || 0,
+      limite: limite,
+      vencido: !!c.tem_vencido || c.situacao_resumo === 'vencido',
     };
+  }
+
+  function pintarParCliente(cli) {
+    if (!cli) return;
+    if (el.cliPillDeveValor) el.cliPillDeveValor.textContent = fmtMoeda(cli.saldo || 0);
+    if (el.cliPillLimiteValor) el.cliPillLimiteValor.textContent = fmtMoeda(cli.limite || 0);
+    if (el.cliPillDeve) el.cliPillDeve.classList.toggle('fiado-pill--atraso', !!cli.vencido);
+  }
+
+  function parseLimiteCampo(raw) {
+    let s = String(raw || '').replace(/R\$\s*/gi, '').trim();
+    if (!s) return NaN;
+    if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+    const n = Number(s);
+    if (!isFinite(n)) return NaN;
+    return Math.round(n * 100) / 100;
+  }
+
+  function mostrarErroLimiteCli(msg) {
+    if (!el.limiteCliErro) return;
+    const t = String(msg || '').trim();
+    el.limiteCliErro.textContent = t;
+    el.limiteCliErro.classList.toggle('hidden', !t);
+  }
+
+  function passoLimiteCli(delta) {
+    if (!el.limiteCliInput) return;
+    let atual = parseLimiteCampo(el.limiteCliInput.value);
+    if (!isFinite(atual)) atual = 0;
+    let novo = Math.round((atual + delta) * 100) / 100;
+    if (novo < 0) novo = 0;
+    el.limiteCliInput.value = fmtLimiteCampo(novo);
+    mostrarErroLimiteCli('');
   }
 
   function renderClientes(clientes) {
@@ -254,7 +303,7 @@
           '</button></div>'
         : '<span class="block text-right tabular-nums font-black text-slate-400" title="Cadastro sem vínculo — não dá para editar limite aqui">' + limiteTxt + '</span>';
       return (
-        '<tr class="fiado-cli-row border-t border-slate-100' + destaque + '" data-pk="' + esc(pk || '') + '" data-nome="' + esc(c.cliente_nome) + '" data-codigo="' + esc(c.cliente_codigo || '') + '" data-saldo="' + c.saldo_aberto + '" data-titulos="' + (c.titulos_abertos || 0) + '">' +
+        '<tr class="fiado-cli-row border-t border-slate-100' + destaque + '" data-pk="' + esc(pk || '') + '" data-nome="' + esc(c.cliente_nome) + '" data-codigo="' + esc(c.cliente_codigo || '') + '" data-saldo="' + c.saldo_aberto + '" data-titulos="' + (c.titulos_abertos || 0) + '" data-limite="' + (c.limite != null ? c.limite : limiteVal) + '" data-vencido="' + (c.tem_vencido || c.situacao_resumo === 'vencido' ? '1' : '0') + '">' +
         '<td class="font-black text-slate-900 max-w-[16rem] truncate" title="' + esc(c.cliente_nome) + '">' + esc(c.cliente_nome) + '</td>' +
         '<td class="text-center font-bold tabular-nums">' + (c.titulos_abertos || 0) + '</td>' +
         '<td class="font-bold whitespace-nowrap">' + esc(c.vencimento_mais_antigo_texto || '—') + '</td>' +
@@ -327,6 +376,8 @@
         codigo: cred.cliente_id || '',
         saldo: saldoTitulos(lista) || cred.usado || 0,
         titulos: lista.length,
+        limite: cred.limite || 0,
+        vencido: !!cred.tem_vencido,
       });
     } catch (e) {
       console.warn('[fiado] abrir cliente pre pk', e);
@@ -532,6 +583,7 @@
       const saldo = saldoTitulos(j.titulos);
       if (el.cliModalSaldo) el.cliModalSaldo.textContent = fmtMoeda(saldo);
       clienteModal.saldo = saldo;
+      pintarParCliente(clienteModal);
       if (el.recibosResumo) {
         el.recibosResumo.textContent = (cli.nome || 'Cliente') + ' · últimos recibos para reimpressão';
       }
@@ -554,6 +606,7 @@
         (cli.codigo ? 'Cód. ' + cli.codigo + ' · ' : '') + (cli.titulos || 0) + ' título(s)';
     }
     if (el.cliModalSaldo) el.cliModalSaldo.textContent = fmtMoeda(cli.saldo || 0);
+    pintarParCliente(cli);
     if (el.tbodyTitulos) {
       el.tbodyTitulos.innerHTML =
         '<tr><td colspan="9" class="px-4 py-10 text-center text-sm font-bold text-slate-500">Carregando lançamentos…</td></tr>';
@@ -958,6 +1011,8 @@
         codigo: row.getAttribute('data-codigo') || '',
         saldo: parseFloat(row.getAttribute('data-saldo') || '0'),
         titulos: parseInt(row.getAttribute('data-titulos') || '0', 10),
+        limite: parseFloat(row.getAttribute('data-limite') || '0'),
+        vencido: row.getAttribute('data-vencido') === '1',
       });
     });
     el.tbody.addEventListener('keydown', function (ev) {
@@ -1145,6 +1200,72 @@
       if (ev.data && ev.data.type === 'fiado-venda-overlay-close') fecharVendaOverlay();
     } catch (_) {}
   });
+
+  function abrirLimiteCliente() {
+    if (!clienteModal || !clienteModal.pk || !el.modalLimiteCli) return;
+    if (el.limiteCliNome) el.limiteCliNome.textContent = clienteModal.nome || 'Cliente';
+    if (el.limiteCliInput) el.limiteCliInput.value = fmtLimiteCampo(clienteModal.limite || 0);
+    if (el.limiteCliPin) el.limiteCliPin.value = '';
+    mostrarErroLimiteCli('');
+    if (el.modalLimiteCli.showModal) el.modalLimiteCli.showModal();
+    if (el.limiteCliInput) {
+      setTimeout(function () {
+        try { el.limiteCliInput.focus(); el.limiteCliInput.select(); } catch (_) {}
+      }, 40);
+    }
+  }
+
+  async function gravarLimiteCliente(ev) {
+    if (ev) ev.preventDefault();
+    if (!clienteModal || !clienteModal.pk) {
+      mostrarErroLimiteCli('Esse cliente não está no cadastro.');
+      return;
+    }
+    const valor = parseLimiteCampo(el.limiteCliInput ? el.limiteCliInput.value : '');
+    if (!isFinite(valor) || valor < 0) {
+      mostrarErroLimiteCli('Digite um valor válido. O limite não pode ficar negativo.');
+      return;
+    }
+    const pin = el.limiteCliPin ? String(el.limiteCliPin.value || '').trim() : '';
+    if (!pin) {
+      mostrarErroLimiteCli('Digite o PIN do Geraldo, do Geraldinho ou do Renan.');
+      return;
+    }
+    const url = urls.limitePdv || '/api/pdv/fiado-limite/';
+    try {
+      const j = await fetchJson(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+        body: JSON.stringify({
+          cliente_agro_pk: clienteModal.pk,
+          limite: String(valor).replace('.', ','),
+          pin: pin,
+        }),
+      });
+      const novo = j.credito && j.credito.limite != null ? j.credito.limite : valor;
+      clienteModal.limite = novo;
+      pintarParCliente(clienteModal);
+      const row = el.tbody && el.tbody.querySelector('.fiado-cli-row[data-pk="' + String(clienteModal.pk) + '"]');
+      if (row) row.setAttribute('data-limite', String(novo));
+      const btn = row && row.querySelector('.fiado-limite-valor');
+      if (btn) {
+        const txt = fmtLimiteCampo(novo);
+        btn.textContent = txt;
+        btn.setAttribute('data-valor', txt);
+      }
+      if (el.modalLimiteCli && el.modalLimiteCli.close) el.modalLimiteCli.close();
+    } catch (e) {
+      mostrarErroLimiteCli(e.message || 'Não foi possível gravar o limite.');
+    }
+  }
+
+  if (el.cliPillLimite) el.cliPillLimite.addEventListener('click', abrirLimiteCliente);
+  if (el.limiteCliMenos) el.limiteCliMenos.addEventListener('click', function () { passoLimiteCli(-100); });
+  if (el.limiteCliMais) el.limiteCliMais.addEventListener('click', function () { passoLimiteCli(100); });
+  if (el.limiteCliCancelar && el.modalLimiteCli) {
+    el.limiteCliCancelar.addEventListener('click', function () { el.modalLimiteCli.close(); });
+  }
+  if (el.formLimiteCli) el.formLimiteCli.addEventListener('submit', gravarLimiteCliente);
 
   if (el.cliModalFechar && el.modalCliente) {
     el.cliModalFechar.addEventListener('click', function () {

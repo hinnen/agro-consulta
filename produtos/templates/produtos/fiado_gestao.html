@@ -199,6 +199,62 @@
       background: rgb(248 250 252);
       border-bottom: 1px solid rgb(226 232 240);
     }
+    .fiado-cli-par {
+      display: flex;
+      flex: 1 1 16rem;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      min-width: 14rem;
+    }
+    .fiado-cli-seta {
+      font-size: 1.15rem;
+      font-weight: 900;
+      color: #94a3b8;
+      line-height: 1;
+    }
+    .fiado-pill {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: center;
+      min-width: 7.2rem;
+      border: 2px solid transparent;
+      border-radius: 0.7rem;
+      padding: 0.2rem 0.7rem 0.28rem;
+      line-height: 1.05;
+      background: #fff;
+    }
+    .fiado-pill-k {
+      font-size: 0.62rem;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .fiado-pill-val {
+      font-size: 1.05rem;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+    }
+    .fiado-pill--deve {
+      border-color: #fb923c;
+      background: #fff7ed;
+      color: #9a3412;
+    }
+    .fiado-pill--deve.fiado-pill--atraso {
+      border-color: #f87171;
+      background: #fef2f2;
+      color: #b91c1c;
+    }
+    .fiado-pill--limite {
+      border-color: #38bdf8;
+      background: #f0f9ff;
+      color: #075985;
+      cursor: pointer;
+    }
+    .fiado-pill--limite:hover {
+      background: #e0f2fe;
+    }
     .fiado-modal-saldo-card {
       background: linear-gradient(135deg, rgb(255 237 213), rgb(254 243 199));
       border: 2px solid rgb(251 146 60);
@@ -574,6 +630,17 @@
           <p id="fiado-cli-modal-meta" class="text-[11px] font-bold text-slate-500 truncate"></p>
         </div>
       </div>
+      <div class="fiado-cli-par" aria-label="Saldo e limite do cliente">
+        <div id="fiado-cli-pill-deve" class="fiado-pill fiado-pill--deve">
+          <span class="fiado-pill-k">Deve</span>
+          <span id="fiado-cli-pill-deve-valor" class="fiado-pill-val">R$ 0,00</span>
+        </div>
+        <span class="fiado-cli-seta" aria-hidden="true">→</span>
+        <button type="button" id="fiado-cli-pill-limite" class="fiado-pill fiado-pill--limite" title="Clique para alterar o limite">
+          <span class="fiado-pill-k">Limite</span>
+          <span id="fiado-cli-pill-limite-valor" class="fiado-pill-val">R$ 0,00</span>
+        </button>
+      </div>
       <div class="flex flex-wrap items-center gap-2 shrink-0">
         <div class="fiado-modal-saldo-card text-right px-3 py-1.5 rounded-xl">
           <p class="text-[10px] font-black uppercase text-orange-900">Saldo em aberto</p>
@@ -707,6 +774,34 @@
     </div>
   </dialog>
 
+  </dialog>
+
+  <dialog id="fiado-modal-limite-cli" class="fiado-modal-limite">
+    <form id="fiado-form-limite-cli" class="w-[min(28rem,94vw)] rounded-2xl border-[3px] border-sky-300 bg-white shadow-2xl overflow-hidden">
+      <header class="border-b-2 border-sky-200 bg-sky-50 px-4 py-3">
+        <p class="text-[10px] font-black uppercase tracking-wide text-sky-800">Limite do fiado</p>
+        <h2 class="text-lg font-black text-slate-900">Aumentar ou diminuir</h2>
+        <p id="fiado-limite-cli-nome" class="truncate text-sm font-bold text-slate-600">—</p>
+      </header>
+      <div class="space-y-3 px-4 py-4">
+        <div class="flex items-center gap-2">
+          <button type="button" id="fiado-limite-cli-menos" class="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border-2 border-slate-300 bg-white text-2xl font-black text-slate-800" title="Diminuir R$ 100">−</button>
+          <input type="text" id="fiado-limite-cli-input" inputmode="decimal" autocomplete="off" class="min-h-14 w-full rounded-xl border-2 border-sky-400 px-3 text-center text-2xl font-black tabular-nums text-slate-900">
+          <button type="button" id="fiado-limite-cli-mais" class="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border-2 border-emerald-400 bg-emerald-50 text-2xl font-black text-emerald-900" title="Aumentar R$ 100">+</button>
+        </div>
+        <p class="text-center text-[11px] font-bold text-slate-500">Os botões sobem ou descem R$ 100. Também dá para digitar.</p>
+        <label class="block text-[10px] font-black uppercase tracking-wide text-amber-900">PIN do Geraldo, Geraldinho ou Renan
+          <input type="password" id="fiado-limite-cli-pin" inputmode="numeric" autocomplete="one-time-code" maxlength="12" class="mt-1 w-full rounded-xl border-2 border-amber-500 bg-amber-50 px-3 py-3 text-center text-lg font-black tracking-[0.35em]">
+        </label>
+        <p id="fiado-limite-cli-erro" class="hidden rounded-xl border-2 border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-800"></p>
+      </div>
+      <footer class="grid grid-cols-2 gap-2 border-t border-slate-200 bg-slate-50 px-4 py-3">
+        <button type="button" id="fiado-limite-cli-cancelar" class="min-h-[48px] rounded-xl border-2 border-slate-300 bg-white text-xs font-black uppercase">Cancelar</button>
+        <button type="submit" class="min-h-[48px] rounded-xl bg-sky-700 text-xs font-black uppercase text-white">Gravar</button>
+      </footer>
+    </form>
+  </dialog>
+
   <dialog id="fiado-modal-recibos" class="fiado-modal-limite fiado-modal-recibos">
     <div class="fiado-recibos-panel">
       <div class="flex flex-wrap items-start justify-between gap-3">
@@ -737,6 +832,7 @@
         recibo: "{% url 'api_fiado_recibo_baixas' %}",
         tituloEditar: "{% url 'api_fiado_titulo_editar' %}",
         limite: "{% url 'api_fiado_limite' %}",
+        limitePdv: "{% url 'api_pdv_fiado_limite' %}",
         clienteCredito: "{% url 'api_fiado_cliente_credito' %}",
         buscarCliente: "{% url 'api_fiado_buscar_cliente' %}",
         resumo: "{% url 'api_fiado_resumo' %}",
