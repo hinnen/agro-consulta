@@ -1307,7 +1307,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `scripts/verify_pdv_fiado_limite_card_path.py` **30/30** |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
-| **Você** | Ctrl+F5 no PDV · escolha um cliente · a linha do fiado tem dois valores |
+| **Você** | Ctrl+F5 · abra o cliente: dois cards iguais, **Deve** e **Limite**, sem seta e sem o saldo repetido |
 
 ### PACOTE PRONTO — PIN na Gestão (`GESTAO-PIN-FOLGA`)
 
