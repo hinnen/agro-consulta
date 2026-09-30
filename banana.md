@@ -1,4 +1,4 @@
-# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
+﻿# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** â€” teste Render, produÃ§Ã£o, pacotes, operaÃ§Ã£o diÃ¡ria. O **produto SisVale** no geral estÃ¡ em **`SISTVALE.md`**; a instÃ¢ncia **delivery em branco** estÃ¡ em **`FOOD.md`**.
 
@@ -1283,6 +1283,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### ✅ Deploy loja — ETQ-TERMICA-VARIAS · **Live v25.36** · 30/09
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v25.36** — só o path da etiqueta térmica (**não** merge `teste`) |
+| **Antes** | Live **v25.35** @ `a854a182` |
+| **Pacote** | `ETQ-TERMICA-VARIAS` — fila inteira, nome sem reticências, centavos à parte, barras com faixa |
+| **Migrate** | **NÃO** |
+| **Prova** | path **37/37** · várias **39/39** · quebra **20/20** · Renan testou **30/09** |
+| **Rollback** | tag `rollback/pre-etq-termica-varias-v25.35` · branch `producao-backup-pre-v2536-etq-termica-20260930` · `docs/ROLLBACK-ETQ-TERMICA-VARIAS.md` · **só** frase+senha |
+| **Não subiu** | cartão ontem · dia da entrega · Excel clientes · PIN Point · código da nota |
 
 ### ✅ Deploy loja — BUG #28 PIN retenta · **Live v25.35** · 19/09
 

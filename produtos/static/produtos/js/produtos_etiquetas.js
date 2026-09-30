@@ -107,8 +107,7 @@
 
   var layoutDrag = null;
 
-  function bindLayoutEditor() {
-    var stage = $('etq-layout-stage');
+  function bindLayoutEditor(stage) {
     if (!stage || stage.dataset.layBound) return;
     stage.dataset.layBound = '1';
 
@@ -192,6 +191,7 @@
     togglePresetFields(p.estilo || 'termica');
     syncLayoutStageSize(p);
     renderResumoGondola(p);
+    renderResumoTermica(p);
     clearTimeout(state._presetSaveTimer);
     state._presetSaveTimer = setTimeout(function () {
       syncPresetToServer(p, { silent: true });
@@ -230,8 +230,7 @@
     });
   }
 
-  function applyLayoutBoxes(layout) {
-    var stage = $('etq-layout-stage');
+  function applyLayoutBoxes(layout, stage) {
     if (!stage || !layout) return;
     stage.querySelectorAll('.etq-lay-item').forEach(function (el) {
       var id = el.getAttribute('data-lay');
@@ -244,8 +243,7 @@
     });
   }
 
-  function readLayoutBoxes() {
-    var stage = $('etq-layout-stage');
+  function readLayoutBoxes(stage) {
     var out = {};
     if (!stage) return out;
     stage.querySelectorAll('.etq-lay-item').forEach(function (el) {
@@ -261,17 +259,20 @@
   }
 
   function syncLayoutStageSize(p) {
-    var stage = $('etq-layout-stage');
-    if (!stage) return;
     var wMm = Number(p.largura_mm) || 90;
     var hMm = Number(p.altura_mm) || 30;
     var maxW = 420;
-    var scale = maxW / wMm;
-    stage.style.width = Math.round(wMm * scale) + 'px';
-    stage.style.height = Math.round(hMm * scale) + 'px';
+    var scale = maxW / Math.max(wMm, 1);
     var cores = (p.cores && typeof p.cores === 'object') ? p.cores : {};
-    stage.style.background = cores.fundo || '#ffffff';
-    stage.style.borderColor = cores.borda || cores.faixa_bg || '#1a4d2e';
+    [$('etq-layout-stage'), $('etq-layout-stage-termica')].forEach(function (stage) {
+      if (!stage) return;
+      stage.style.width = Math.round(wMm * scale) + 'px';
+      stage.style.height = Math.round(Math.max(48, hMm * scale)) + 'px';
+      stage.style.background = cores.fundo || '#ffffff';
+      stage.style.borderColor = cores.borda || cores.faixa_bg || '#111111';
+      stage.style.borderWidth = (Number(p.borda_mm) > 0 ? Math.max(2, Number(p.borda_mm)) : 2) + 'px';
+      stage.style.borderStyle = 'solid';
+    });
   }
 
   function fmtMm(n) {
@@ -322,7 +323,11 @@
       'etq-preset-nome-pt-1': p.nome_pt_1 != null ? p.nome_pt_1 : p.nome_pt || 11,
       'etq-preset-nome-pt-2': p.nome_pt_2 != null ? p.nome_pt_2 : 9,
       'etq-preset-nome-pt-3': p.nome_pt_3 != null ? p.nome_pt_3 : 7.5,
+      'etq-preset-nome-pt-4': p.nome_pt_4 != null ? p.nome_pt_4 : 6,
+      'etq-preset-nome-linhas': p.nome_linhas != null ? p.nome_linhas : 2,
+      'etq-preset-borda-mm': p.borda_mm != null ? p.borda_mm : 0,
       'etq-preset-preco-pt': p.preco_pt,
+      'etq-preset-centavos-pt': p.centavos_pt != null ? p.centavos_pt : p.preco_pt,
       'etq-preset-rs-pt': p.rs_pt != null ? p.rs_pt : 11,
       'etq-preset-peso-pt': p.peso_pt != null ? p.peso_pt : 7,
       'etq-preset-gm-pt': p.gm_pt != null ? p.gm_pt : 8,
@@ -367,9 +372,38 @@
 
     togglePresetFields(p.estilo || 'termica');
     syncLayoutStageSize(p);
-    applyLayoutBoxes(p.layout || Core.DEFAULT_GONDOLA_LAYOUT);
+    if (Core.ehGondola(p)) {
+      applyLayoutBoxes(p.layout || Core.DEFAULT_GONDOLA_LAYOUT, $('etq-layout-stage'));
+    } else {
+      applyLayoutBoxes(p.layout || Core.DEFAULT_TERMICA_LAYOUT, $('etq-layout-stage-termica'));
+      var tc = p.cores || {};
+      var tmap = {
+        'etq-term-cor-fundo': tc.fundo || '#ffffff',
+        'etq-term-cor-nome': tc.nome_fg || '#111111',
+        'etq-term-cor-preco': tc.preco_fg || '#111111',
+        'etq-term-cor-gm': tc.gm_fg || '#111111',
+        'etq-term-cor-rodape': tc.rodape_fg || '#111111',
+        'etq-term-cor-borda': tc.borda || '#111111',
+      };
+      Object.keys(tmap).forEach(function (k) {
+        var el = $(k);
+        if (el) el.value = tmap[k];
+      });
+      var tchecks = {
+        'etq-term-show-nome': p.show_nome !== false,
+        'etq-term-show-preco': p.show_preco !== false,
+        'etq-term-show-barcode': p.show_barcode !== false,
+        'etq-term-show-gm': p.show_gm !== false,
+        'etq-term-show-rodape': p.show_rodape !== false,
+      };
+      Object.keys(tchecks).forEach(function (k) {
+        var el = $(k);
+        if (el) el.checked = tchecks[k];
+      });
+    }
     syncLayoutBoxesVisibility(p);
     renderResumoGondola(p);
+    renderResumoTermica(p);
 
     var tr = $('etq-texto-rodape-global');
     if (tr && !tr.dataset.touched) {
@@ -384,14 +418,14 @@
     p.estilo = ($('etq-preset-estilo') && $('etq-preset-estilo').value) || p.estilo || 'termica';
     p.largura_mm = Number($('etq-preset-largura') && $('etq-preset-largura').value) || 40;
     p.altura_mm = Number($('etq-preset-altura') && $('etq-preset-altura').value) || 40;
-    p.nome_pt = Number($('etq-preset-nome-pt') && $('etq-preset-nome-pt').value) || 8;
-    p.nome_pt_1 = Number($('etq-preset-nome-pt-1') && $('etq-preset-nome-pt-1').value) || 11;
-    p.nome_pt_2 = Number($('etq-preset-nome-pt-2') && $('etq-preset-nome-pt-2').value) || 9;
-    p.nome_pt_3 = Number($('etq-preset-nome-pt-3') && $('etq-preset-nome-pt-3').value) || 7.5;
-    if (($('etq-preset-estilo') && $('etq-preset-estilo').value) === 'gondola') {
-      p.nome_pt = p.nome_pt_1;
-    }
+    p.nome_pt_1 = Number($('etq-preset-nome-pt-1') && $('etq-preset-nome-pt-1').value) || Number(p.nome_pt) || 8;
+    p.nome_pt_2 = Number($('etq-preset-nome-pt-2') && $('etq-preset-nome-pt-2').value) || p.nome_pt_1;
+    p.nome_pt_3 = Number($('etq-preset-nome-pt-3') && $('etq-preset-nome-pt-3').value) || p.nome_pt_2;
+    p.nome_pt_4 = Number($('etq-preset-nome-pt-4') && $('etq-preset-nome-pt-4').value) || p.nome_pt_3;
+    p.nome_linhas = Math.max(1, Math.min(4, parseInt($('etq-preset-nome-linhas') && $('etq-preset-nome-linhas').value, 10) || p.nome_linhas || 2));
+    p.nome_pt = p.nome_pt_1;
     p.preco_pt = Number($('etq-preset-preco-pt') && $('etq-preset-preco-pt').value) || 28;
+    p.centavos_pt = Number($('etq-preset-centavos-pt') && $('etq-preset-centavos-pt').value) || p.preco_pt;
     p.rs_pt = Number($('etq-preset-rs-pt') && $('etq-preset-rs-pt').value) || 11;
     p.peso_pt = Number($('etq-preset-peso-pt') && $('etq-preset-peso-pt').value) || 7;
     p.gm_pt = Number($('etq-preset-gm-pt') && $('etq-preset-gm-pt').value) || 8;
@@ -401,13 +435,13 @@
     p.barcode_width = Number($('etq-preset-bar-w') && $('etq-preset-bar-w').value) || 1.05;
     p.texto_rodape = ($('etq-preset-texto-rodape') && $('etq-preset-texto-rodape').value) || '';
     p.impressora = ($('etq-preset-impressora') && $('etq-preset-impressora').value.trim()) || '';
-    p.show_logo = !($('etq-preset-show-logo') && !$('etq-preset-show-logo').checked);
-    p.show_nome = !($('etq-show-nome') && !$('etq-show-nome').checked);
-    p.show_rs = !($('etq-show-rs') && !$('etq-show-rs').checked);
-    p.show_preco = !($('etq-show-preco') && !$('etq-show-preco').checked);
-    p.show_peso = !($('etq-show-peso') && !$('etq-show-peso').checked);
-    p.show_gm = !!($('etq-show-gm') && $('etq-show-gm').checked);
     if (Core.ehGondola(p)) {
+      p.show_logo = !($('etq-preset-show-logo') && !$('etq-preset-show-logo').checked);
+      p.show_nome = !($('etq-show-nome') && !$('etq-show-nome').checked);
+      p.show_rs = !($('etq-show-rs') && !$('etq-show-rs').checked);
+      p.show_preco = !($('etq-show-preco') && !$('etq-show-preco').checked);
+      p.show_peso = !($('etq-show-peso') && !$('etq-show-peso').checked);
+      p.show_gm = !!($('etq-show-gm') && $('etq-show-gm').checked);
       p.cores = {
         faixa_bg: ($('etq-cor-faixa-bg') && $('etq-cor-faixa-bg').value) || '#1a4d2e',
         faixa_fg: ($('etq-cor-faixa-fg') && $('etq-cor-faixa-fg').value) || '#ffffff',
@@ -419,28 +453,68 @@
         borda: ($('etq-cor-borda') && $('etq-cor-borda').value) || '#1a4d2e',
         marca_corte: ($('etq-cor-corte') && $('etq-cor-corte').value) || '#94a3b8',
       };
-      p.layout = readLayoutBoxes();
+      p.layout = readLayoutBoxes($('etq-layout-stage'));
       p.folha = Core.normalizarFolha(
         ($('etq-preset-folha') && $('etq-preset-folha').value) || p.folha || 'a4'
       );
       var grade = Core.calcularGradeFolha(p.folha, p.largura_mm, p.altura_mm, p.borda_mm);
       p.cols_folha = grade.cols;
       p.rows_folha = grade.rows;
+    } else {
+      var bordaIn = Number($('etq-preset-borda-mm') && $('etq-preset-borda-mm').value);
+      p.borda_mm = isFinite(bordaIn) && bordaIn > 0 ? Math.min(8, bordaIn) : 0;
+      p.show_nome = !($('etq-term-show-nome') && !$('etq-term-show-nome').checked);
+      p.show_preco = !($('etq-term-show-preco') && !$('etq-term-show-preco').checked);
+      p.show_barcode = !($('etq-term-show-barcode') && !$('etq-term-show-barcode').checked);
+      p.show_gm = !($('etq-term-show-gm') && !$('etq-term-show-gm').checked);
+      p.show_rodape = !($('etq-term-show-rodape') && !$('etq-term-show-rodape').checked);
+      p.cores = {
+        fundo: ($('etq-term-cor-fundo') && $('etq-term-cor-fundo').value) || '#ffffff',
+        nome_fg: ($('etq-term-cor-nome') && $('etq-term-cor-nome').value) || '#111111',
+        preco_fg: ($('etq-term-cor-preco') && $('etq-term-cor-preco').value) || '#111111',
+        gm_fg: ($('etq-term-cor-gm') && $('etq-term-cor-gm').value) || '#111111',
+        rodape_fg: ($('etq-term-cor-rodape') && $('etq-term-cor-rodape').value) || '#111111',
+        borda: ($('etq-term-cor-borda') && $('etq-term-cor-borda').value) || '#111111',
+      };
+      p.layout = readLayoutBoxes($('etq-layout-stage-termica'));
     }
     return p;
   }
 
+  function renderResumoTermica(p) {
+    var el = $('etq-resumo-termica');
+    if (!el || Core.ehGondola(p)) return;
+    var mold = Number(p.borda_mm) > 0 ? fmtMm(p.borda_mm) + ' mm' : 'sem moldura';
+    el.innerHTML =
+      'Uma etiqueta por folha · <strong class="text-slate-200">' +
+      fmtMm(p.largura_mm) + ' × ' + fmtMm(p.altura_mm) +
+      ' mm</strong> · nome até <strong class="text-slate-200">' +
+      (p.nome_linhas || 2) +
+      '</strong> linhas · moldura <strong class="text-slate-200">' +
+      mold +
+      '</strong>. Arraste nome, preço, barras, GM e rodapé.';
+  }
+
   function syncLayoutBoxesVisibility(p) {
-    var stage = $('etq-layout-stage');
+    var gondola = Core.ehGondola(p);
+    var stage = $(gondola ? 'etq-layout-stage' : 'etq-layout-stage-termica');
     if (!stage) return;
-    var map = {
-      nome: p.show_nome !== false,
-      rs: p.show_rs !== false,
-      preco: p.show_preco !== false,
-      peso: p.show_peso !== false,
-      logo: p.show_logo !== false,
-      gm: !!p.show_gm,
-    };
+    var map = gondola
+      ? {
+          nome: p.show_nome !== false,
+          rs: p.show_rs !== false,
+          preco: p.show_preco !== false,
+          peso: p.show_peso !== false,
+          logo: p.show_logo !== false,
+          gm: !!p.show_gm,
+        }
+      : {
+          nome: p.show_nome !== false,
+          preco: p.show_preco !== false,
+          barcode: p.show_barcode !== false,
+          gm: p.show_gm !== false,
+          rodape: p.show_rodape !== false,
+        };
     stage.querySelectorAll('.etq-lay-item').forEach(function (el) {
       var id = el.getAttribute('data-lay');
       el.classList.toggle('is-off', map[id] === false);
@@ -1672,29 +1746,31 @@
     $('etq-btn-historico') && $('etq-btn-historico').addEventListener('click', abrirModalHistorico);
     $('etq-modal-fechar') && $('etq-modal-fechar').addEventListener('click', fecharModalPreset);
     $('etq-hist-fechar') && $('etq-hist-fechar').addEventListener('click', fecharModalHistorico);
-    $('etq-btn-reset-layout') &&
-      $('etq-btn-reset-layout').addEventListener('click', function () {
-        var p = getPresetAtivo();
-        if (Core.ehGondola(p)) {
-          p.layout = Core.clonePreset(Core.DEFAULT_GONDOLA_LAYOUT);
-          p.folha = Core.normalizarFolha(p.folha);
-          var grade = Core.calcularGradeFolha(p.folha, p.largura_mm, p.altura_mm, p.borda_mm);
-          p.cols_folha = grade.cols;
-          p.rows_folha = grade.rows;
-          var idx = state.storage.presets.findIndex(function (x) {
-            return x.id === p.id;
-          });
-          if (idx >= 0) state.storage.presets[idx] = p;
-          persistStorage();
-          renderPresetForm();
-        } else {
-          applyLayoutBoxes(Core.clonePreset(Core.DEFAULT_GONDOLA_LAYOUT));
-          commitPresetFormLive();
-        }
-        setStatus('Posições do layout restauradas.');
+    function resetLayoutAtivo() {
+      var p = getPresetAtivo();
+      if (Core.ehGondola(p)) {
+        p.layout = Core.clonePreset(Core.DEFAULT_GONDOLA_LAYOUT);
+        p.folha = Core.normalizarFolha(p.folha);
+        var grade = Core.calcularGradeFolha(p.folha, p.largura_mm, p.altura_mm, p.borda_mm);
+        p.cols_folha = grade.cols;
+        p.rows_folha = grade.rows;
+      } else {
+        p.layout = Core.clonePreset(Core.DEFAULT_TERMICA_LAYOUT);
+      }
+      var idx = state.storage.presets.findIndex(function (x) {
+        return x.id === p.id;
       });
+      if (idx >= 0) state.storage.presets[idx] = p;
+      persistStorage();
+      renderPresetForm();
+      setStatus('Posições do layout restauradas.');
+    }
+    $('etq-btn-reset-layout') && $('etq-btn-reset-layout').addEventListener('click', resetLayoutAtivo);
+    $('etq-btn-reset-layout-termica') &&
+      $('etq-btn-reset-layout-termica').addEventListener('click', resetLayoutAtivo);
 
-    bindLayoutEditor();
+    bindLayoutEditor($('etq-layout-stage'));
+    bindLayoutEditor($('etq-layout-stage-termica'));
 
     var estiloSel = $('etq-preset-estilo');
     if (estiloSel) {
@@ -1728,6 +1804,9 @@
       'etq-preset-nome-pt-1',
       'etq-preset-nome-pt-2',
       'etq-preset-nome-pt-3',
+      'etq-preset-nome-pt-4',
+      'etq-preset-nome-linhas',
+      'etq-preset-borda-mm',
       'etq-preset-preco-pt',
       'etq-preset-rs-pt',
       'etq-preset-peso-pt',
@@ -1747,6 +1826,17 @@
       'etq-show-preco',
       'etq-show-peso',
       'etq-show-gm',
+      'etq-term-cor-fundo',
+      'etq-term-cor-nome',
+      'etq-term-cor-preco',
+      'etq-term-cor-gm',
+      'etq-term-cor-rodape',
+      'etq-term-cor-borda',
+      'etq-term-show-nome',
+      'etq-term-show-preco',
+      'etq-term-show-barcode',
+      'etq-term-show-gm',
+      'etq-term-show-rodape',
     ].forEach(function (id) {
       var el = $(id);
       if (!el) return;
@@ -1755,7 +1845,7 @@
         syncLayoutBoxesVisibility(lerPresetForm());
       });
       el.addEventListener('input', function () {
-        if (id.indexOf('etq-cor-') === 0 || id === 'etq-preset-largura' || id === 'etq-preset-altura') {
+        if (id.indexOf('etq-cor-') === 0 || id.indexOf('etq-term-cor-') === 0 || id === 'etq-preset-largura' || id === 'etq-preset-altura' || id === 'etq-preset-borda-mm') {
           commitPresetFormLive();
         }
       });
