@@ -145,6 +145,7 @@ def testar_banco_e_pin() -> None:
                 "/entregas/api/registrar/",
                 data=json.dumps(body),
                 content_type="application/json",
+                HTTP_HOST="127.0.0.1",
             )
             data = {}
             try:
@@ -164,6 +165,7 @@ def testar_banco_e_pin() -> None:
                 "/entregas/api/registrar/",
                 data=json.dumps(body),
                 content_type="application/json",
+                HTTP_HOST="127.0.0.1",
             )
             try:
                 data_p = resp_p.json()
@@ -178,6 +180,7 @@ def testar_banco_e_pin() -> None:
                 "/entregas/api/registrar/",
                 data=json.dumps(body),
                 content_type="application/json",
+                HTTP_HOST="127.0.0.1",
             )
             check(resp_z.status_code == 403, "API recusa PIN errado")
     finally:
@@ -202,6 +205,7 @@ def main() -> int:
     check("outro.value = modo === 'outro' ? iso : ''" in js, "Outro dia não herda data da venda anterior")
     check("dia && dia > hoje) return 0" in js, "alerta não dispara em dia futuro")
     check("if (!dia.ok)" in js, "F7 recusa Outro dia vazio")
+    check("entregaEhDoDiaUi" in js, "contagem do botão ignora entrega de outro dia")
     check("data_prevista" in model and "data_prevista" in mig, "campo no model + migrate 0133")
     check("Q(data_prevista__isnull=True)" in util, "caixa de hoje não trava dia futuro")
     check("data_prevista__gte=hoje" in util, "pagas na loja ficam até o dia combinado")

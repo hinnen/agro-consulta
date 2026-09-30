@@ -5161,13 +5161,21 @@
         _entregasAlertaSomTimer = setInterval(tocar, ms);
     }
 
+    function entregaEhDoDiaUi(row) {
+        var dia = String((row && row.data_prevista) || '').slice(0, 10);
+        if (!dia) return true;
+        return dia <= dataLocalHojeLembrete();
+    }
+
     function applyEntregasPendentesButton() {
         var itens = entregasPendentesCache.itens || [];
         var pagas = entregasPendentesCache.itensPagas || [];
-        var nPagar = itens.length;
-        var nPagas = pagas.length;
+        var nPagarLista = itens.length;
+        var nPagasLista = pagas.length;
+        var nPagar = itens.filter(entregaEhDoDiaUi).length;
+        var nPagas = pagas.filter(entregaEhDoDiaUi).length;
         var n = nPagar + nPagas;
-        entregasPendentesCache.total = n;
+        entregasPendentesCache.total = nPagarLista + nPagasLista;
         var apiOk = !!String(urls.apiPdvEntregasPendentes || '').trim();
         var discreteTop =
             'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative';
@@ -5189,7 +5197,8 @@
 
         if (dom.topbarEntregasBtn) {
             dom.topbarEntregasBtn.hidden = !apiOk;
-            dom.topbarEntregasBtn.className = n > 0 ? alertTop : discreteTop;
+            dom.topbarEntregasBtn.className =
+                n > 0 || catalogoSemDono || urgHorario > 0 ? alertTop : discreteTop;
             if (catalogoSemDono) {
                 dom.topbarEntregasBtn.title = 'Catálogo sem loja — Assumir entrega';
             } else if (urgHorario >= 2) {
@@ -5217,8 +5226,8 @@
         }
         var nPagarEl = document.getElementById('pdv-entregas-tab-pagar-n');
         var nPagasEl = document.getElementById('pdv-entregas-tab-pagas-n');
-        if (nPagarEl) nPagarEl.textContent = String(nPagar);
-        if (nPagasEl) nPagasEl.textContent = String(nPagas);
+        if (nPagarEl) nPagarEl.textContent = String(nPagarLista);
+        if (nPagasEl) nPagasEl.textContent = String(nPagasLista);
     }
 
     function lojaEntregaLabelUi(loja) {
