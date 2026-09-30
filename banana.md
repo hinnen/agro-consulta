@@ -1296,7 +1296,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | «milho grande» não puxa mais bebedouro só por «grande». O que casa a frase fica azul. O que o motor só completou (outro milho) fica cinza. |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 pronto envio — validar no PC · loja só frase + senha |
+| **Status** | 🟢 **teste v25.64** · validar no PC · loja só frase + senha |
 | **Você** | Ctrl+F5 no PDV · buscar milho grande · sem bebedouro · cinza = chute |
 
 ### PACOTE PRONTO — nome do produto em 2 linhas no carrinho (`PDV-CART-NOME-2L`)
