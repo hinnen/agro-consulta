@@ -1290,6 +1290,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### PACOTE PRONTO — Excel clientes: valor do mês (`CLI-XLSX-MES-VALOR`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | No Excel ↓ de Clientes, duas colunas só leitura: **Valor do mês que mais comprou** e **Valor mês anterior**. Não mexe no saldo em aberto. |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.61** — só frase + senha |
+| **Você** | Clientes → Excel ↓ · colunas ao lado de «Mês que mais comprou» |
+
 ### PACOTE PRONTO — limite no card de Saldos do PDV (`PDV-FIADO-LIMITE-CARD`)
 
 | Campo | Valor |
@@ -1393,6 +1402,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 8 | `COFRE-SEM-AUTO` | 🟢 **pronto para envio à produção** | **NÃO** | path **15/15** · **39/39** |
 | 9 | **PDV-ENT-VER-OUTRA** | 🟢 **pronto para envio à produção** | **NÃO** | **40/40** |
 | 10 | `GESTAO-PIN-FOLGA` | 🟢 **pronto para envio à produção** | **NÃO** | **43/43** |
+| 11 | `CLI-XLSX-MES-VALOR` | 🟢 **pronto para envio à produção** | **NÃO** | Excel ↓ |
 
 ### PACOTE PRONTO — o que ainda falta subir
 
@@ -1402,7 +1412,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Cartão da entrega ontem** | Ctrl+F5 · cartão ou qualquer Pix (máquina ou conta) · **Passou ontem** ou **Outro dia** · Fechar caixa: faixa amarela · prova **68/68** · migrate `0134` + `0135` |
 | **Dia da entrega** | Ctrl+F5 · Entregas: card de amanhã continua · o número do botão só sobe no dia · migrate `0133` |
 | **Ver a outra loja** | Ctrl+F5 · Entregas → **Ver Vila** ou **Ver Centro** · título grande no meio · só olhar, sem Retomar · prova **40/40** · sem migrate |
-| **Excel clientes** | Ctrl+F5 · Clientes → Excel ↓ · mudar limite · Excel ↑ → prévia → confirmar |
+| **Excel clientes** | Ctrl+F5 · Clientes → Excel ↓ · ao lado do mês: valor desse mês e valor do mês anterior · mudar limite · Excel ↑ → prévia → confirmar |
 | **PIN no Point** | Ctrl+F5 · entrega paga na loja → débito Point → PIN → a venda fecha |
 | **Código na nota** | ✅ Renan testou no PC · igual fica · diferente só em extra · prova **24/24** · sem migrate |
 | **Cofrinho no fechar** | Ctrl+F5 · Fechar caixa Vila sem faixa «Separe» · esperado igual à gaveta · sem migrate |
