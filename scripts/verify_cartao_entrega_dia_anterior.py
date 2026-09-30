@@ -170,6 +170,58 @@ def main() -> int:
         esp_pix_hoje, _, _, _ = _agregar_resumo_turno_sessao(_Sessao([pix_hoje]))
         check("pix de hoje continua no esperado", esp_pix_hoje.get("PIX") == Decimal("12.00"))
 
+        misto = _Venda(
+            42,
+            [{"forma": "PIX", "valor": 20}, {"forma": "Dinheiro", "valor": 5}],
+            flag=True,
+        )
+        esp_m, _, _, _ = _agregar_resumo_turno_sessao(_Sessao([misto]))
+        check(
+            "pix misturado fora e dinheiro fica",
+            esp_m.get("PIX", Decimal("0")) == 0 and esp_m.get("Dinheiro") == Decimal("105.00"),
+            str(esp_m.get("Dinheiro")),
+        )
+        check(
+            "aviso só o pix misturado",
+            resumo_cartao_entrega_dia_anterior([_Sessao([misto])]).get("valor") == "20.00",
+        )
+
+        pix_mp = _Venda(
+            43,
+            [{"forma": "PIX", "valor": 18, "maquinaId": "pix_mp_qr"}],
+            flag=True,
+        )
+        esp_pm, _, _, _ = _agregar_resumo_turno_sessao(_Sessao([pix_mp]))
+        check(
+            "pix MP automático fora da linha",
+            esp_pm.get("Pix — Mercado Pago", Decimal("0")) == 0,
+        )
+        check("pix MP não cai no pix comum", esp_pm.get("PIX", Decimal("0")) == 0)
+        check(
+            "aviso pix MP",
+            resumo_cartao_entrega_dia_anterior([_Sessao([pix_mp])]).get("valor") == "18.00",
+        )
+
+        pix_conta = _Venda(
+            44,
+            [{"forma": "PIX", "valor": 7, "maquinaId": "pix_sicoob_chave"}],
+            flag=True,
+        )
+        esp_pc, _, _, _ = _agregar_resumo_turno_sessao(_Sessao([pix_conta]))
+        check("pix da conta fora do esperado", esp_pc.get("PIX", Decimal("0")) == 0)
+        check(
+            "aviso pix da conta",
+            resumo_cartao_entrega_dia_anterior([_Sessao([pix_conta])]).get("valor") == "7.00",
+        )
+
+        dev_pix = _Mov("retirada", "PIX", 30, "Devolução venda #4")
+        esp_dp, _, _, ret_dp = _agregar_resumo_turno_sessao(_Sessao([pix], [dev_pix]))
+        check("devolução do pix de outro dia não fura", esp_dp.get("PIX", Decimal("0")) == 0)
+        check(
+            "devolução do pix de outro dia não entra em retirada",
+            ret_dp.get("PIX", Decimal("0")) == 0,
+        )
+
         parc = _Venda(5, [{"forma": "Cartão de crédito parcelado", "valor": 80}], flag=True)
         esp_p, _, _, _ = _agregar_resumo_turno_sessao(_Sessao([parc]))
         check("parcelado ontem fora do crédito", esp_p.get("Cartão de crédito", Decimal("0")) == 0)
@@ -274,6 +326,20 @@ def main() -> int:
             cartao_maquina_dia_anterior_aceito(
                 {"cartao_maquina_dia_anterior": True, "pedido_entrega_pendente_id": 9},
                 [{"forma": "PIX", "valor": 15}],
+            ),
+        )
+        check(
+            "aceita pix da conta",
+            cartao_maquina_dia_anterior_aceito(
+                {"cartao_maquina_dia_anterior": True, "pedido_entrega_pendente_id": 9},
+                [{"forma": "Sicoob chave Pix", "valor": 7}],
+            ),
+        )
+        check(
+            "recusa só dinheiro",
+            not cartao_maquina_dia_anterior_aceito(
+                {"cartao_maquina_dia_anterior": True, "pedido_entrega_pendente_id": 9},
+                [{"forma": "Dinheiro", "valor": 15}],
             ),
         )
         check(
