@@ -5715,7 +5715,7 @@
         var elPagas = document.getElementById('pdv-entregas-outra-list-pagas');
         var listaPagar = Array.isArray(itens) ? itens : [];
         var listaPagas = Array.isArray(pagas) ? pagas : [];
-        if (titulo) titulo.textContent = nomeLoja + ' — só olhar';
+        if (titulo) titulo.textContent = nomeLoja + ' só olhar';
         if (nPagar) nPagar.textContent = String(listaPagar.length);
         if (nPagas) nPagas.textContent = String(listaPagas.length);
         if (elPagar) {
