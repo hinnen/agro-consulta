@@ -193,6 +193,9 @@ def main() -> int:
         encoding="utf-8"
     )
     js = (ROOT / "produtos/static/produtos/js/pdv_wizard.js").read_text(encoding="utf-8")
+    html_step = (
+        ROOT / "produtos/templates/produtos/partials/pdv/step_produtos.html"
+    ).read_text(encoding="utf-8")
     util = (ROOT / "produtos/entrega_pdv_pendente_util.py").read_text(encoding="utf-8")
     model = (ROOT / "produtos/models.py").read_text(encoding="utf-8")
     mig = (ROOT / "produtos/migrations/0133_pedido_entrega_data_prevista.py").read_text(encoding="utf-8")
@@ -206,6 +209,8 @@ def main() -> int:
     check("dia && dia > hoje) return 0" in js, "alerta não dispara em dia futuro")
     check("if (!dia.ok)" in js, "F7 recusa Outro dia vazio")
     check("entregaEhDoDiaUi" in js, "contagem do botão ignora entrega de outro dia")
+    check("pdv-entregas-ver-outra-loja" in html_step and "htmlEntregaSomenteLeitura" in js, "botão só olhar a outra loja")
+    check("Retomar" not in js[js.find("function htmlEntregaSomenteLeitura"): js.find("function renderEntregasOutraLoja")], "card da outra loja sem botão de mexer")
     check("data_prevista" in model and "data_prevista" in mig, "campo no model + migrate 0133")
     check("Q(data_prevista__isnull=True)" in util, "caixa de hoje não trava dia futuro")
     check("data_prevista__gte=hoje" in util, "pagas na loja ficam até o dia combinado")

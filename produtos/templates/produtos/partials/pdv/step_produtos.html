@@ -296,6 +296,8 @@
           <h3 class="text-base font-black text-slate-900">Controle de entregas</h3>
         </div>
         <div class="flex shrink-0 items-center gap-1.5">
+          <button type="button" id="pdv-entregas-ver-outra-loja" class="mr-1 rounded-xl border-2 border-sky-700 bg-white px-3 py-1.5 text-[10px] font-black uppercase text-sky-900 shadow-sm hover:bg-sky-50" title="Só olhar a outra loja. Não retoma, não cancela e não fecha venda.">Ver outra loja</button>
+          <span class="mx-0.5 hidden h-6 w-px bg-orange-200 sm:inline-block" aria-hidden="true"></span>
           <button type="button" id="pdv-entregas-adiar-alerta" class="hidden rounded-xl border-2 border-amber-500 bg-amber-50 px-3 py-1.5 text-[10px] font-black uppercase text-amber-950 shadow-sm hover:bg-amber-100" title="Adia o piscar e o bip do horário por 1 hora">Alerta +1h</button>
           <button type="button" id="pdv-entregas-rota" class="rounded-xl border-2 border-emerald-600 bg-emerald-600 px-3 py-1.5 text-[10px] font-black uppercase text-white shadow-sm hover:bg-emerald-700" title="Monta rota no Maps com A pagar + Pagas">Rota</button>
           <details class="pdv-entregas-help relative">
@@ -322,6 +324,33 @@
             <p id="pdv-entregas-tab-pagas" class="m-0 min-w-0 flex-1 text-[11px] font-black uppercase leading-none tracking-wide text-emerald-950">Pagas na loja <span id="pdv-entregas-tab-pagas-n" class="tabular-nums">0</span></p>
           </div>
           <div id="pdv-entregas-list-pagas" class="pdv-entregas-col-list pdv-wizard-scroll text-sm"></div>
+        </section>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="pdv-entregas-outra-loja-modal" class="w-[min(96vw,72rem)] max-h-[min(86dvh,46rem)] rounded-2xl border-2 border-sky-400 bg-white p-0 shadow-2xl backdrop:bg-slate-950/55">
+    <div class="flex max-h-[min(86dvh,46rem)] flex-col">
+      <div class="flex items-center justify-between gap-2 border-b border-sky-100 bg-sky-50 px-3 py-2.5">
+        <div class="min-w-0 flex-1">
+          <p class="text-[10px] font-black uppercase tracking-wide text-sky-800">Só olhar</p>
+          <h3 id="pdv-entregas-outra-loja-titulo" class="text-base font-black text-slate-900">Outra loja</h3>
+          <p class="m-0 text-[11px] font-semibold text-slate-600">Não retoma, não cancela e não fecha venda.</p>
+        </div>
+        <button type="button" id="pdv-entregas-outra-loja-close" class="rounded-xl border-2 border-slate-200 bg-white px-3 py-1.5 text-[10px] font-black uppercase text-slate-700">Fechar</button>
+      </div>
+      <div class="grid min-h-0 flex-1 grid-cols-1 sm:grid-cols-2">
+        <section class="flex min-h-0 min-w-0 flex-col border-b-2 border-orange-200 sm:border-b-0 sm:border-r-2" aria-label="A pagar da outra loja">
+          <div class="flex h-11 items-center border-b-2 border-slate-200 bg-orange-50 px-3">
+            <p class="m-0 text-[11px] font-black uppercase text-orange-950">A pagar <span id="pdv-entregas-outra-pagar-n" class="tabular-nums">0</span></p>
+          </div>
+          <div id="pdv-entregas-outra-list-pagar" class="pdv-wizard-scroll min-h-0 flex-1 overflow-y-auto p-2 text-sm"></div>
+        </section>
+        <section class="flex min-h-0 min-w-0 flex-col" aria-label="Pagas da outra loja">
+          <div class="flex h-11 items-center border-b-2 border-slate-200 bg-emerald-50 px-3">
+            <p class="m-0 text-[11px] font-black uppercase text-emerald-950">Pagas na loja <span id="pdv-entregas-outra-pagas-n" class="tabular-nums">0</span></p>
+          </div>
+          <div id="pdv-entregas-outra-list-pagas" class="pdv-wizard-scroll min-h-0 flex-1 overflow-y-auto p-2 text-sm"></div>
         </section>
       </div>
     </div>
