@@ -87,9 +87,11 @@ def test_export_xlsx_bytes() -> None:
     ws = wb["Clientes"]
     check("sheet_clientes", ws.title == "Clientes")
     check("header_nome", ws.cell(1, 3).value in ("Nome",) or "Nome" in str(ws.cell(1, 1).value))
-    hdrs = [ws.cell(1, c).value for c in range(1, 25)]
+    hdrs = [ws.cell(1, c).value for c in range(1, 30)]
     check("hdr_media", "Média fiado (3 meses)" in hdrs)
     check("hdr_mes", "Mês que mais comprou fiado" in hdrs)
+    check("hdr_valor_mes", "Valor do mês que mais comprou" in hdrs)
+    check("hdr_valor_ant", "Valor mês anterior" in hdrs)
     check("hdr_limite", "Limite fiado" in hdrs)
     check("aba_instr", "Como usar" in wb.sheetnames)
     wb.close()

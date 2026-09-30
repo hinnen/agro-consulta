@@ -52,6 +52,8 @@ COL_LIMITE_FIADO = "limite_fiado_local"
 COL_QTD_FIADO_3M = "qtd_compras_fiado_3m"
 COL_MEDIA_FIADO_3M = "media_fiado_3m"
 COL_MES_MAIS_FIADO = "mes_mais_comprou_fiado"
+COL_VALOR_MES_MAIS = "valor_mes_mais_comprou"
+COL_VALOR_MES_ANTERIOR = "valor_mes_anterior"
 COL_FIADO_USADO = "fiado_usado_agora"
 
 EXPORT_HEADERS: list[tuple[str, str]] = [
@@ -78,6 +80,8 @@ EXPORT_HEADERS: list[tuple[str, str]] = [
     ("Qtd compras fiado (3 meses)", COL_QTD_FIADO_3M),
     ("Média fiado (3 meses)", COL_MEDIA_FIADO_3M),
     ("Mês que mais comprou fiado", COL_MES_MAIS_FIADO),
+    ("Valor do mês que mais comprou", COL_VALOR_MES_MAIS),
+    ("Valor mês anterior", COL_VALOR_MES_ANTERIOR),
     ("Fiado em aberto agora", COL_FIADO_USADO),
 ]
 
@@ -89,6 +93,8 @@ EXPORT_ONLY = frozenset(
         COL_QTD_FIADO_3M,
         COL_MEDIA_FIADO_3M,
         COL_MES_MAIS_FIADO,
+        COL_VALOR_MES_MAIS,
+        COL_VALOR_MES_ANTERIOR,
         COL_FIADO_USADO,
     }
 )
@@ -149,6 +155,11 @@ def _map_headers(headers: list[str]) -> dict[str, str | None]:
         COL_QTD_FIADO_3M: ("qtd compras fiado 3m", "qtd compras fiado (3 meses)"),
         COL_MEDIA_FIADO_3M: ("media fiado 3m", "média fiado (3 meses)", "media fiado (3 meses)"),
         COL_MES_MAIS_FIADO: ("mes mais comprou fiado", "mês que mais comprou fiado"),
+        COL_VALOR_MES_MAIS: (
+            "valor do mes que mais comprou",
+            "valor do mês que mais comprou",
+        ),
+        COL_VALOR_MES_ANTERIOR: ("valor mes anterior", "valor mês anterior"),
         COL_FIADO_USADO: ("fiado em aberto", "fiado usado agora"),
     }
     out: dict[str, str | None] = {}
@@ -301,14 +312,23 @@ def _fiado_stats_3m_por_cliente() -> dict[int, dict[str, Any]]:
         total = sum(v for _d, v in compras).quantize(Decimal("0.01"))
         media = (total / qtd).quantize(Decimal("0.01")) if qtd else Decimal("0")
         cont_mes = Counter((d.year, d.month) for d, _v in compras)
+        soma_mes: dict[tuple[int, int], Decimal] = defaultdict(lambda: Decimal("0"))
+        for d, v in compras:
+            soma_mes[(d.year, d.month)] += v
         mes_top = ""
+        valor_top = Decimal("0")
         if cont_mes:
             (ano, mes), _q = cont_mes.most_common(1)[0]
             mes_top = _label_mes(ano, mes)
+            valor_top = soma_mes[(ano, mes)].quantize(Decimal("0.01"))
+        ant = hoje.replace(day=1) - timedelta(days=1)
+        valor_ant = soma_mes.get((ant.year, ant.month), Decimal("0")).quantize(Decimal("0.01"))
         out[pk] = {
             "qtd": qtd,
             "media": float(media),
             "mes_mais": mes_top,
+            "valor_mes_mais": float(valor_top),
+            "valor_mes_anterior": float(valor_ant),
         }
     return out
 
@@ -368,6 +388,8 @@ def coletar_linhas_export_clientes() -> list[dict[str, Any]]:
                 COL_QTD_FIADO_3M: int(st.get("qtd") or 0),
                 COL_MEDIA_FIADO_3M: float(st.get("media") or 0),
                 COL_MES_MAIS_FIADO: st.get("mes_mais") or "",
+                COL_VALOR_MES_MAIS: float(st.get("valor_mes_mais") or 0),
+                COL_VALOR_MES_ANTERIOR: float(st.get("valor_mes_anterior") or 0),
                 COL_FIADO_USADO: float(usado_map.get(cli.pk) or 0),
             }
         )
@@ -422,7 +444,8 @@ def montar_xlsx_clientes(rows: list[dict[str, Any]]) -> bytes:
         "1) Excel ↓ baixa todos os clientes do sistema (dados online da loja).",
         "2) Colunas amarelas podem ser editadas. Cinza = só leitura (média fiado, mês que mais comprou, etc.).",
         "3) Média fiado (3 meses) = valor médio de cada COMPRA fiado nos últimos 90 dias (não é por parcela).",
-        "4) Mês que mais comprou fiado = mês com mais compras (ex.: Mar/2025), para você usar como referência.",
+        "4) Mês que mais comprou fiado = mês com mais compras (ex.: Ago/2026). A coluna ao lado é o valor comprado nesse mês.",
+        "4b) Valor mês anterior = quanto comprou fiado no mês calendário anterior (só leitura).",
         "5) Limite fiado: 0 = volta ao padrão (R$ 5.000). 0,01 = bloqueia fiado. Qualquer outro valor = limite fixo.",
         "6) Não apague a coluna ID (oculta). Linha sem ID não é importada.",
         "7) Célula vazia na importação = não muda aquele campo.",
