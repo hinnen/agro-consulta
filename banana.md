@@ -1297,7 +1297,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | Em `/fiado/`, clique no título da coluna ordena do maior para o menor; outro clique inverte. Botão verde do WhatsApp abre a conversa do cadastro. Sem número, o botão fica cinza. |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.68** — só frase + senha |
 | **Você** | Ctrl+F5 em `/fiado/` · clique em Saldo e em Cliente · botão verde abre o Zap |
 
 ### DADO — fiado na ficha errada (loja · passou 20 · 30/09)
@@ -1441,6 +1441,7 @@ Joelma (Esposa Wagner) e 018 Junior (pai de Isabela) estavam no fiado **sem** o 
 | 11 | `CLI-XLSX-MES-VALOR` | 🟢 **pronto para envio à produção** | **NÃO** | **42/42** |
 | 12 | `PDV-FIADO-LIMITE-CARD` | 🟢 **pronto para envio à produção** | **NÃO** | **39/39** |
 | 13 | `PDV-BUSCA-COERENTE` | 🟢 **pronto para envio à produção** | **NÃO** | **30/30** |
+| 14 | `PDV-CART-NOME-2L` | 🟢 **pronto para envio à produção** | **NÃO** | — |
 
 ### PACOTE PRONTO — o que ainda falta subir
 
@@ -1457,6 +1458,7 @@ Joelma (Esposa Wagner) e 018 Junior (pai de Isabela) estavam no fiado **sem** o 
 | **PIN na Gestão** | Ctrl+F5 na Gestão · PIN uma vez vale nas próximas ações · descanso só depois de 5 min · PDV continua pedindo · prova **43/43** · sem migrate |
 | **Fiado no PDV** | Ctrl+F5 · em dia: **Em dia** e **Limite** azuis · atrasado: card da dívida vermelho **Atrasado** · no cliente, terceiro card **Limite livre** · prova **39/39** · sem migrate |
 | **Busca do PDV** | Ctrl+F5 · milho grande: verde o que casa, cinza o chute, azul o cursor · não traz bebedouro · prova **30/30** · sem migrate |
+| **Nome no carrinho** | Ctrl+F5 · nome longo usa até 2 linhas · nome curto continua numa · sem migrate |
 
 ### CHECKLIST ÚNICO — 29/09 · dia da entrega opcional
 
