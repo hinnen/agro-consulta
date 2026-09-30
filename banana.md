@@ -1299,10 +1299,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `scripts/verify_dsp_impressao_folha_path.py` **19/19** (30/09) |
 | **Migrate** | **NÃO** |
 | **Mexe** | só `/interno/dispenser-a6/` (CSS do cartão). **Não** entra PDV, caixa, venda, fiado, nota, financeiro. |
-| **Status** | 🟢 **PREP** `deploy/prep-dsp-pin-descanso` · alvo **v25.78** · **não subiu** · lojas abertas |
+| **Status** | ✅ **enviado / Live v25.78** — `producao` @ `4e4a1244` · Render `dep-dauls4m417fc73fdlr70` · **não** foi merge do `teste` |
 | **Antes** | Live **v25.77** · `producao` @ `6eff0f70` |
 | **Rollback** | tag `rollback/pre-dsp-pin-descanso-v25.77` · `docs/ROLLBACK-DSP-PIN-DESCANSO.md` · **só** frase+senha |
-| **Você** | no próximo chat: lojas pausam · frase + senha · aí sobe · Ctrl+F5 no Dispenser |
+| **Você** | Ctrl+F5 no Dispenser · deixe parado · o cartão do PIN aparece na frente e o OK funciona |
 
 ### PACOTE PRONTO — Dispenser em folha (`DSP-IMPRESSAO-FOLHA`)
 

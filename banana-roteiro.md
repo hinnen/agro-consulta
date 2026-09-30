@@ -630,7 +630,7 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 **O quê:** no Dispenser, depois de um tempo parado, o cartão do PIN cobre a tela e o OK funciona.  
 **Não mexe:** PDV, caixa, venda, fiado, nota, financeiro.  
-**Status: 🟢 PREP** `deploy/prep-dsp-pin-descanso` · alvo **v25.78** · **não subiu**.  
+**Status: ✅ Live v25.78** — `producao` @ `4e4a1244` · Render `dep-dauls4m417fc73fdlr70`. **Não** foi merge do `teste`.  
 **Antes:** Live **v25.77** @ `6eff0f70`.  
 **Rollback:** tag `rollback/pre-dsp-pin-descanso-v25.77` · `docs/ROLLBACK-DSP-PIN-DESCANSO.md` · **só** frase+senha.
 
