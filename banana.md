@@ -1297,7 +1297,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | Tela `/interno/dispenser-a6/`: limite de logos **24 → 72**. Não pesa o PDV. Só essa tela, ao abrir, baixa um pouco mais. |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** — teste **v25.70** — só frase + senha |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.72** — só frase + senha |
 | **Você** | Ctrl+F5 no Dispenser · adicionar logo além dos 24 |
 
 ### Prova — PDV e Gestão são a mesma ficha (30/09)
