@@ -565,7 +565,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 | **GestÃ£o operacional**     | `produtos_gestao.html`, `api_produtos_gestao_lista` | Saldo, facetas, operaÃ§Ã£o loja                        |
 
 
-**PIN na Gestão (30/09 · GESTAO-PIN-FOLGA):** descanso pede PIN só após **30 min** parado. PDV continua **3 min**.
+**PIN na Gestão (30/09 · GESTAO-PIN-FOLGA):** descanso pede PIN após **5 min** parado. O PIN de uma ação vale até o descanso. PDV continua **3 min** e pede de novo em cada ação.
 
 **Excel fase 1:** export com colunas/categorias; import async com histÃ³rico e desfazer; ID oculta; CÃ³digo GM editÃ¡vel; cÃ©lula vazia nÃ£o altera. Colunas: Sub 2–4, Unidade, Modelo, Peso (além das originais). **v18.02 CAD-XLSX-ULT-FORN:** Últ. / 2º / 3º fornecedor (só Excel ↓; Entrada NF Agro; import ignora) — ✅ Live · Renan OK 28/08 · roteiro §9.
 
@@ -1294,7 +1294,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Só `/produtos/gestao/`: modo descanso pede PIN depois de **30 min** parado (era 3). PDV, caixa e o resto **não** mudam. |
+| **O quê** | Só `/produtos/gestao/`: modo descanso pede PIN depois de **5 min** parado. Digitar o PIN uma vez vale para as próximas ações nessa tela, até parar 5 min. PDV **não** muda. |
 | **Migrate** | **NÃO** |
 | **Prova** | `scripts/verify_gestao_pin_folga_path.py` |
 | **Você** | Ctrl+F5 na Gestão. Pode trabalhar um bom tempo sem o PIN. Se parar 30 min, pede de novo. |

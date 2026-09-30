@@ -4822,7 +4822,11 @@
     if (!miniAgro || !miniInp || !miniTit) return;
     miniTit.textContent = titulo;
     miniInp.value = '';
-    if (miniPin) miniPin.value = '';
+    if (miniPin) {
+      miniPin.value = '';
+      var pinJaOk = !!(window.gmSspinGestaoLiberado && window.gmSspinGestaoLiberado());
+      if (miniPin.parentElement) miniPin.parentElement.classList.toggle('hidden', pinJaOk);
+    }
     if (miniErro) {
       miniErro.classList.add('hidden');
       miniErro.textContent = '';
@@ -4931,7 +4935,10 @@
         fecharMiniAgro();
         return;
       }
-      if (!pin) {
+      var liberado = !!(window.gmSspinGestaoLiberado && window.gmSspinGestaoLiberado());
+      var rootSspin = document.getElementById('sspin-root');
+      var telaGestao = !!(rootSspin && rootSspin.getAttribute('data-sspin-gestao') === '1');
+      if (!pin && !liberado) {
         if (miniErro) {
           miniErro.textContent = 'Informe o PIN do operador para cadastrar novo.';
           miniErro.classList.remove('hidden');
@@ -4955,7 +4962,13 @@
           'Content-Type': 'application/json',
           'X-CSRFToken': obterCsrfCadastro(cfg)
         },
-        body: JSON.stringify({ tipo: miniTipo, valor: v, pin: pin })
+        body: JSON.stringify({
+          tipo: miniTipo,
+          valor: v,
+          pin: pin,
+          usar_sessao: !pin && liberado,
+          tela_gestao: telaGestao
+        })
       })
         .then(function (r) {
           return r.json().catch(function () {
@@ -4970,6 +4983,7 @@
             throw new Error((j && j.erro) || 'Não foi possível cadastrar.');
           }
           var canon = String(j.valor || v).trim();
+          if (j.gestao_nonce && window.gmSspinMarcarGestaoOk) window.gmSspinMarcarGestaoOk(j.gestao_nonce);
           appendFacetToList(miniFacetKey, canon);
           var target = document.getElementById(miniTargetId);
           if (target) {

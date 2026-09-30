@@ -187,7 +187,7 @@
   </details>
 
   {% include "produtos/_atalho_voltar_pdv.html" %}
-  <script src="{% static 'produtos/js/agro_picklist.js' %}?v=1"></script>
+  <script src="{% static 'produtos/js/agro_picklist.js' %}?v=2"></script>
   <script>
 (function () {
   var URL_LISTA = "{% url 'api_produtos_gestao_lista' %}";
@@ -834,6 +834,6 @@
   carregar();
 })();
   </script>
-{% include "produtos/_screensaver_pin.html" with sspin_idle_min=30 %}
+{% include "produtos/_screensaver_pin.html" with sspin_idle_min=5 sspin_gestao=1 %}
 </body>
 </html>

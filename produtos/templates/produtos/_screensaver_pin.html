@@ -1,5 +1,5 @@
-{# Modo descanso + PIN. Padrão: 3 min. Só Gestão passa sspin_idle_min (ex. 30). PDV não mexe. #}
-<div id="sspin-root" class="fixed inset-0 flex flex-col items-center justify-center bg-slate-950/94 text-slate-100 p-4 transition-opacity duration-300 opacity-0 pointer-events-none" style="z-index:2147483646" {% if sspin_idle_min %}data-idle-min="{{ sspin_idle_min }}"{% else %}data-idle-min="3"{% endif %}{% if lancamentos_pin_entrada %} data-sspin-lancamentos="1"{% endif %}{% if lancamentos_pin_entrada %} data-sspin-hide-idle-hint="1"{% endif %}{% if sspin_pedir_pin_ao_abrir %} data-sspin-require-pin-on-load="1"{% endif %} aria-hidden="true">
+{# Modo descanso + PIN. Padrão: 3 min. Gestão passa sspin_idle_min=5 e sspin_gestao=1. PDV não mexe. #}
+<div id="sspin-root" class="fixed inset-0 flex flex-col items-center justify-center bg-slate-950/94 text-slate-100 p-4 transition-opacity duration-300 opacity-0 pointer-events-none" style="z-index:2147483646" {% if sspin_idle_min %}data-idle-min="{{ sspin_idle_min }}"{% else %}data-idle-min="3"{% endif %}{% if sspin_gestao %} data-sspin-gestao="1"{% endif %}{% if lancamentos_pin_entrada %} data-sspin-lancamentos="1"{% endif %}{% if lancamentos_pin_entrada %} data-sspin-hide-idle-hint="1"{% endif %}{% if sspin_pedir_pin_ao_abrir %} data-sspin-require-pin-on-load="1"{% endif %} aria-hidden="true">
   <div class="w-full max-w-sm rounded-2xl border border-slate-600/80 bg-slate-900 shadow-2xl overflow-hidden">
     <div class="px-5 pt-5 pb-2 text-center border-b border-slate-700/80">
       <p class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400/90">SisVale</p>
@@ -66,6 +66,7 @@
 
   var BOOTSTRAP_PIN = '1234';
   var LS_OPERADOR = 'gm_sspin_operador';
+  var LS_GESTAO_OK = 'gm_sspin_gestao_ok_v1';
   var LS_LANC_DESBLOQ = 'gm_lancamentos_desbloqueado';
   var SS_PIN_SESSION = 'gm_sspin_pin_session_v1';
   var LS_OPERADORES_SETUP = 'agro_pdv_operadores_setup_v1';
@@ -108,6 +109,8 @@
   var lancamentosMode = root.getAttribute('data-sspin-lancamentos') === '1';
   var entryOnly = root.getAttribute('data-sspin-entry-only') === '1';
   var requirePinOnLoad = root.getAttribute('data-sspin-require-pin-on-load') === '1';
+  var gestaoMode = root.getAttribute('data-sspin-gestao') === '1';
+  var gestaoNonceAtual = '';
   var idleMin = parseFloat(root.getAttribute('data-idle-min') || '3', 10);
   if (entryOnly) idleMin = 0;
   else if (!Number.isFinite(idleMin) || idleMin < 0.5) idleMin = 3;
@@ -304,6 +307,46 @@
     if (!lancamentosMode) return false;
     try { return sessionStorage.getItem(LS_LANC_DESBLOQ) === '1'; } catch (e) { return false; }
   }
+
+  function gestaoOkLocal() {
+    if (!gestaoMode) return false;
+    try { return sessionStorage.getItem(LS_GESTAO_OK) === '1'; } catch (eG) { return false; }
+  }
+
+  function marcarGestaoOk(nonce) {
+    if (!gestaoMode) return;
+    if (nonce) gestaoNonceAtual = String(nonce);
+    try {
+      sessionStorage.setItem(LS_GESTAO_OK, '1');
+      if (gestaoNonceAtual) sessionStorage.setItem(LS_GESTAO_OK + '_nonce', gestaoNonceAtual);
+    } catch (eSet) {}
+  }
+
+  function limparGestaoOk() {
+    if (!gestaoMode) return;
+    var nonce = gestaoNonceAtual;
+    try {
+      if (!nonce) nonce = sessionStorage.getItem(LS_GESTAO_OK + '_nonce') || '';
+      sessionStorage.removeItem(LS_GESTAO_OK);
+      sessionStorage.removeItem(LS_GESTAO_OK + '_nonce');
+    } catch (eClrG) {}
+    gestaoNonceAtual = '';
+    if (!nonce) return;
+    fetch(API_OPERADOR, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+      body: JSON.stringify({ gestao_limpar: true, gestao_nonce: nonce })
+    }).catch(function () {});
+  }
+
+  window.gmSspinGestaoLiberado = function () {
+    return gestaoOkLocal();
+  };
+
+  window.gmSspinMarcarGestaoOk = function (nonce) {
+    marcarGestaoOk(nonce);
+  };
 
   function setOperador(nome) {
     nome = (nome || '').trim();
@@ -503,6 +546,7 @@
        Não limpar async aqui — corrida apagaria o PIN novo. */
     setOperador('');
     try { sessionStorage.removeItem(SS_PIN_SESSION); } catch (ePinSess) {}
+    limparGestaoOk();
     locked = true;
     root.classList.remove('opacity-0', 'pointer-events-none', 'hidden', 'invisible');
     forcarVisibilidadeLock();
@@ -526,6 +570,7 @@
     root.classList.add('opacity-0', 'pointer-events-none');
     root.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('sspin-locked');
+    if (gestaoMode) marcarGestaoOk(gestaoNonceAtual);
     if (lancamentosMode) {
       try { sessionStorage.setItem(LS_LANC_DESBLOQ, '1'); } catch (eLanc) {}
       try { window.dispatchEvent(new CustomEvent('gm-lancamentos-desbloqueado')); } catch (eEv) {}
@@ -558,6 +603,11 @@
     if (msg) msg.textContent = 'Validando…';
     var fd = new FormData();
     fd.append('pin', pin);
+    if (gestaoMode) {
+      gestaoNonceAtual = String(Date.now());
+      fd.append('origem', 'gestao');
+      fd.append('gestao_nonce', gestaoNonceAtual);
+    }
     fetch(API_VALIDAR_PIN, {
       method: 'POST',
       credentials: 'same-origin',
@@ -577,6 +627,7 @@
           }
           setOperador(op);
           savePinSession(pin, op);
+          if (gestaoMode && res.data.gestao_nonce) gestaoNonceAtual = String(res.data.gestao_nonce);
           if (input) input.value = '';
           closeLock();
           return;
@@ -855,6 +906,14 @@
   window.gmSspinGarantirOperador = function (onSuccess, opts) {
     opts = opts || {};
     if (typeof onSuccess !== 'function') return;
+    if (gestaoOkLocal()) {
+      var nomeGestao = '';
+      try { nomeGestao = (localStorage.getItem(LS_OPERADOR) || '').trim(); } catch (eGg) {}
+      if (nomeGestao) {
+        try { onSuccess(nomeGestao); } catch (eOkG) {}
+        return;
+      }
+    }
     var tituloAcao = (opts.titulo || 'Identifique-se').trim();
     var maxFrescoS = 0;
     try {

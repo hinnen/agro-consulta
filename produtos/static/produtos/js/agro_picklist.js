@@ -309,7 +309,10 @@
         closePin(exact, true);
         return;
       }
-      if (!p) {
+      var liberado = !!(window.gmSspinGestaoLiberado && window.gmSspinGestaoLiberado());
+      var rootSspin = document.getElementById('sspin-root');
+      var telaGestao = !!(rootSspin && rootSspin.getAttribute('data-sspin-gestao') === '1');
+      if (!p && !liberado) {
         erro.textContent = 'Informe o PIN do operador.';
         erro.classList.remove('hidden');
         return;
@@ -329,7 +332,13 @@
           'Content-Type': 'application/json',
           'X-CSRFToken': csrfToken(pinState),
         },
-        body: JSON.stringify({ tipo: pinState.tipo, valor: v, pin: p }),
+        body: JSON.stringify({
+          tipo: pinState.tipo,
+          valor: v,
+          pin: p,
+          usar_sessao: !p && liberado,
+          tela_gestao: telaGestao,
+        }),
       })
         .then(function (r) {
           return r.json().catch(function () {
@@ -342,6 +351,7 @@
           var j = pack.j || {};
           if (!pack.okHttp || !j.ok) throw new Error((j && j.erro) || 'Não foi possível cadastrar.');
           var canon = String(j.valor || v).trim();
+          if (j.gestao_nonce && window.gmSspinMarcarGestaoOk) window.gmSspinMarcarGestaoOk(j.gestao_nonce);
           appendFacet(pinState.facetKey, canon);
           closePin(canon, false);
         })
@@ -390,6 +400,8 @@
       modal._tit.textContent = opts.titulo || 'Novo';
       modal._nome.value = String(opts.valorInicial || '').trim();
       modal._pin.value = '';
+      var pinJaOk = !!(window.gmSspinGestaoLiberado && window.gmSspinGestaoLiberado());
+      if (modal._pin.parentElement) modal._pin.parentElement.classList.toggle('hidden', pinJaOk);
       modal._erro.classList.add('hidden');
       modal._erro.textContent = '';
       modal._renderParecidos();
