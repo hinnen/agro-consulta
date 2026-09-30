@@ -1284,6 +1284,38 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 PREP — checklist 30/09 · alvo loja **v25.75** · aguarda senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **preparado** — **não** subiu · loja ainda **Live v25.36** |
+| **Branch** | `deploy/prep-checklist-3009` |
+| **Antes** | `c8b78d80` · v25.36 |
+| **Migrate** | **SIM** `0133` `0134` `0135` — campo novo; venda de hoje não muda sozinha |
+| **Não entra** | merge do `teste` · unificação de fichas (dado já feito na loja 30/09) |
+| **Rollback** | tag `rollback/pre-checklist-3009-v25.36` · `docs/ROLLBACK-CHECKLIST-3009.md` · **só** frase+senha |
+| **Prova no PC** | Point 14 · entrega 40 · cartão 68 · Excel 42 · fiado 13 · card 39 · Gestão 43 · busca 30 · nome 34 · Zap 59 · nota 24 · cofre 15 · cofrinho 39 · Dispenser 27 |
+| **Próximo** | lojas pausam · Renan manda frase + senha · aí sobe |
+
+| # | Pacote | Migrate |
+| - | ------ | ------- |
+| 1 | Limite no fiado | não |
+| 2 | Corrigir o nome | não |
+| 3 | Cartão da entrega no dia anterior | `0134`+`0135` |
+| 4 | Dia da entrega | `0133` |
+| 5 | Excel de clientes | não |
+| 6 | PIN no Point | não |
+| 7 | Código na nota | não |
+| 8 | Cofrinho no fechar | não |
+| 9 | Ver a outra loja | não |
+| 10 | PIN na Gestão | não |
+| 11 | Excel: valor do mês | não |
+| 12 | Limite no card do PDV | não |
+| 13 | Busca do PDV | não |
+| 14 | Nome no carrinho | não |
+| 15 | Ordem e Zap no fiado | não |
+| 16 | Logos do Dispenser | não |
+
 ### ✅ Deploy loja — ETQ-TERMICA-VARIAS · **Live v25.36** · 30/09
 
 | Campo | Valor |

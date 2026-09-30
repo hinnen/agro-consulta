@@ -564,3 +564,29 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 **Rollback:** tag `rollback/pre-checklist-1409-v23.99` · `docs/ROLLBACK-CHECKLIST-1409.md`.  
 **Não** merge `teste`. Lojas abertas → deploy só com pausa + frase + senha.
 
+---
+
+## 34. Checklist único — lote 30/09 (`deploy/prep-checklist-3009` · alvo loja **v25.75**)
+
+16 pacotes do checklist. **Não** inclui a unificação de fichas (dado já feito na loja). **Não** merge `teste`.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1–2 | Limite no fiado · corrigir o nome | 🟢 PREP · **13/13** | **NÃO** |
+| 3 | Cartão da entrega no dia anterior | 🟢 PREP · **68/68** | **SIM** `0134`+`0135` |
+| 4 | Dia da entrega | 🟢 PREP · **40/40** | **SIM** `0133` |
+| 5 | Excel de clientes + valor do mês | 🟢 PREP · **42/42** | **NÃO** |
+| 6 | PIN no Point | 🟢 PREP · **14/14** | **NÃO** |
+| 7 | Código na nota | 🟢 PREP · **24/24** | **NÃO** |
+| 8 | Cofrinho no fechar | 🟢 PREP · **15/15** · cofrinho **39/39** | **NÃO** |
+| 9 | Ver a outra loja | 🟢 PREP · no **40/40** | **NÃO** |
+| 10 | PIN na Gestão | 🟢 PREP · **43/43** | **NÃO** |
+| 12 | Limite no card do PDV | 🟢 PREP · **39/39** | **NÃO** |
+| 13 | Busca do PDV | 🟢 PREP · **30/30** | **NÃO** |
+| 14 | Nome no carrinho | 🟢 PREP · **34/34** | **NÃO** |
+| 15 | Ordem e Zap no fiado | 🟢 PREP · **59/59** | **NÃO** |
+| 16 | Logos do Dispenser | 🟢 PREP · **27/27** | **NÃO** |
+
+**Status: 🟢 PREP · aguarda pausa + frase + senha.** Loja ainda **v25.36** @ `c8b78d80`.  
+**Rollback:** tag `rollback/pre-checklist-3009-v25.36` · `docs/ROLLBACK-CHECKLIST-3009.md`.
+
