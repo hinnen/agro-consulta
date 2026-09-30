@@ -1353,7 +1353,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | `FIADO-LIMITE-TODOS` | 🟢 **já testado · pronto para envio à produção** | **NÃO** | **13/13** |
 | 2 | `CLI-RENOME-HIST` | 🟢 **já testado · pronto para envio à produção** | **NÃO** | **13/13** |
 | 3 | `PDV-ENT-CARTAO-ONTEM` | 🟢 **pronto para envio à produção** | **SIM** `0134` | **46/46** |
-| 4 | **PDV-ENT-DIA-OPCIONAL** | 🟢 **pronto para envio à produção** | **SIM** `0133` | **18/18** |
+| 4 | **PDV-ENT-DIA-OPCIONAL** | 🟢 **pronto para envio à produção** | **SIM** `0133` | **31/31** |
 | 5 | **CLIENTE-XLSX-FIADO** | 🟢 **pronto para envio à produção** | **NÃO** | **30/30** |
 | 6 | `BUG-28-PIN-CATCH` | 🟢 **pronto para envio à produção** | **NÃO** | JS **14/14** |
 | 7 | `NF-CB-NAO-APAGA` | 🟢 **já testado · pronto para envio à produção** | **NÃO** | **24/24** |
@@ -1364,7 +1364,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ------ | ------------ |
 | **Limite + nome do cliente** | ✅ Renan testou no teste · lápis em quem tem fiado · corrigir letra não some o histórico · prova **13/13** · sem migrate |
 | **Cartão da entrega ontem** | Ctrl+F5 · retomar entrega de ontem no cartão · **Passou ontem** · Fechar caixa: faixa amarela · migrate `0134` |
-| **Dia da entrega** | Ctrl+F5 · Entrega → **Hoje** ou **Amanhã** / **Outro dia** · card mostra o dia · caixa de hoje não trava o futuro · migrate `0133` |
+| **Dia da entrega** | Ctrl+F5 · Entregas: card de amanhã continua · o número do botão só sobe no dia · migrate `0133` |
 | **Excel clientes** | Ctrl+F5 · Clientes → Excel ↓ · mudar limite · Excel ↑ → prévia → confirmar |
 | **PIN no Point** | Ctrl+F5 · entrega paga na loja → débito Point → PIN → a venda fecha |
 | **Código na nota** | ✅ Renan testou no PC · igual fica · diferente só em extra · prova **24/24** · sem migrate |
@@ -1373,17 +1373,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-ENT-DIA-OPCIONAL** | 🟢 **pronto para envio à produção** | **SIM** `0133` | **18/18** |
+| 1 | **PDV-ENT-DIA-OPCIONAL** | 🟢 **pronto para envio à produção** | **SIM** `0133` | **31/31** |
 
 ### PACOTE PRONTO — PDV-ENT-DIA-OPCIONAL
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Fechar venda como entrega: **Hoje** (padrão) · **Amanhã** · **Outro dia**. Dia futuro não apita hoje e não trava o caixa até esse dia. Paga na loja fica na lista até o dia. |
+| **O quê** | Fechar venda como entrega: **Hoje** (padrão) · **Amanhã** · **Outro dia**. O número do botão Entregas só sobe no dia. O card do outro dia fica na lista. Dia futuro não apita e não trava o caixa até esse dia. |
 | **Onde** | overlay entrega · `pdv_wizard.js` · `PedidoEntrega.data_prevista` · painel `/entregas/` |
 | **Migrate** | **SIM** `0133` |
-| **Status** | 🟢 **pronto para envio à produção** — teste **v25.40** — prova **18/18** — só frase + senha |
-| **Você** | Ctrl+F5 · Entrega → Hoje ou Amanhã ou Outro dia · F7 · card com o dia · caixa de hoje não cobra essa pendência |
+| **Status** | 🟢 **pronto para envio à produção** — prova **31/31** — só frase + senha |
+| **Você** | Ctrl+F5 · entrega de amanhã continua no painel · o **1** do botão some · entrega de hoje continua contando |
 
 ### CHECKLIST ÚNICO — 29/09 · etiqueta térmica
 
