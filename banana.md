@@ -551,6 +551,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 - IDs Mongo no JSON viram `local:{pk}` para nÃ£o mandar ObjectId ao ERP.
 - Contexto antigo detalhado: `docs/CONTEXTO_SESSAO_CLIENTES_PDV.md`.
 - **Fiado limite (`FIADO-LIMITE-LINHA`):** na lista `/fiado/`, clique no valor da coluna **Limite** para editar (sem botão Limite cliente).
+- **Lista `/fiado/` (`FIADO-ORDEM-ZAP`):** clique no título da coluna ordena do maior para o menor e de novo o contrário. Botão verde do WhatsApp abre a conversa do cadastro; cinza se não tiver número.
 
 ### 4.6 Cadastro / gestÃ£o de produtos
 
@@ -1289,6 +1290,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### PACOTE PRONTO — ordem das colunas e Zap no fiado (`FIADO-ORDEM-ZAP`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Em `/fiado/`, clique no título da coluna ordena do maior para o menor; outro clique inverte. Botão verde do WhatsApp abre a conversa do cadastro. Sem número, o botão fica cinza. |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
+| **Você** | Ctrl+F5 em `/fiado/` · clique em Saldo e em Cliente · botão verde abre o Zap |
 
 ### DADO — fiado na ficha errada (loja · passou 20 · 30/09)
 

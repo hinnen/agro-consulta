@@ -115,6 +115,27 @@
     }
     .fiado-limite-input.is-saving { opacity: 0.65; }
     .fiado-limite-input.is-ok { border-color: rgb(16 185 129); background: rgb(209 250 229); }
+    .fiado-sort { cursor: pointer; user-select: none; }
+    .fiado-sort:hover { color: rgb(15 23 42); }
+    .fiado-sort.is-on { color: rgb(15 23 42); }
+    .fiado-sort-mark { margin-left: 0.2rem; font-size: 0.7rem; }
+    .fiado-btn-wa {
+      box-sizing: border-box;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.5rem;
+      min-width: 2.5rem;
+      height: 2.5rem;
+      min-height: 2.5rem;
+      border-radius: 0.75rem;
+      background: #25d366;
+      color: #fff;
+      box-shadow: 0 1px 2px rgb(15 23 42 / 0.12);
+    }
+    .fiado-btn-wa:hover { background: #1ebe5d; }
+    .fiado-btn-wa.is-off { background: #cbd5e1; color: #fff; }
+    .fiado-btn-wa svg { width: 1.15rem; height: 1.15rem; display: block; }
     .fiado-cli-table tbody tr.fiado-cli-row { cursor: pointer; transition: background-color 0.12s ease; }
     .fiado-cli-table tbody tr.fiado-cli-row:hover { background: rgb(255 247 237); }
     .fiado-cli-table tbody tr.fiado-cli-row.fiado-cli-row-ativo {
@@ -612,14 +633,14 @@
         <table class="fiado-cli-table w-full text-left text-sm min-w-[52rem]">
           <thead class="sticky top-0 bg-slate-50 text-[10px] font-black uppercase tracking-wide text-slate-500 z-10">
             <tr class="border-b border-slate-200">
-              <th>Cliente</th>
-              <th class="text-center">Títulos</th>
-              <th>Venc. + antigo</th>
-              <th class="text-right">Valor</th>
-              <th class="text-right">Pago</th>
-              <th class="text-right">Saldo</th>
-              <th class="text-right" title="Clique no valor da linha para editar o limite">Limite</th>
-              <th>Situação</th>
+              <th class="fiado-sort" data-sort="cliente" title="Clique para ordenar">Cliente<span class="fiado-sort-mark" aria-hidden="true"></span></th>
+              <th class="fiado-sort text-center" data-sort="titulos" title="Clique para ordenar">Títulos<span class="fiado-sort-mark" aria-hidden="true"></span></th>
+              <th class="fiado-sort" data-sort="venc" title="Clique para ordenar">Venc. + antigo<span class="fiado-sort-mark" aria-hidden="true"></span></th>
+              <th class="fiado-sort text-right" data-sort="valor" title="Clique para ordenar">Valor<span class="fiado-sort-mark" aria-hidden="true"></span></th>
+              <th class="fiado-sort text-right" data-sort="pago" title="Clique para ordenar">Pago<span class="fiado-sort-mark" aria-hidden="true"></span></th>
+              <th class="fiado-sort text-right" data-sort="saldo" title="Clique para ordenar">Saldo<span class="fiado-sort-mark" aria-hidden="true"></span></th>
+              <th class="fiado-sort text-right" data-sort="limite" title="Clique para ordenar. Na linha, clique no valor para editar.">Limite<span class="fiado-sort-mark" aria-hidden="true"></span></th>
+              <th class="fiado-sort" data-sort="situacao" title="Clique para ordenar">Situação<span class="fiado-sort-mark" aria-hidden="true"></span></th>
               <th class="text-right">Ações</th>
             </tr>
           </thead>

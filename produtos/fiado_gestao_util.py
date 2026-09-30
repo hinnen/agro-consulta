@@ -18,6 +18,7 @@ from produtos.caixa_util import (
     obter_sessao_caixa_aberta_request,
     parse_valor_moeda_br,
 )
+from produtos.cliente_whatsapp_util import extrair_whatsapp_digits
 from produtos.fiado_credito_util import (
     fiado_limite_padrao,
     montar_cronograma_fiado,
@@ -766,6 +767,16 @@ def resumo_gestao_fiado() -> dict[str, Any]:
     }
 
 
+def url_whatsapp_chat(raw: str | None) -> str:
+    """Abre a conversa no WhatsApp. Vazio se o cadastro não tiver número."""
+    d = extrair_whatsapp_digits(raw)
+    if len(d) < 10:
+        return ""
+    if not (d.startswith("55") and len(d) >= 12):
+        d = "55" + d
+    return "https://api.whatsapp.com/send?phone=" + d
+
+
 def listar_clientes_fiado(
     *,
     busca: str = "",
@@ -800,6 +811,7 @@ def listar_clientes_fiado(
         "situacao",
         "cliente_agro__externo_id",
         "cliente_agro__limite_fiado_local",
+        "cliente_agro__whatsapp",
     )
     lim_padrao = fiado_limite_padrao()
     for t in qs.order_by("cliente_nome", "vencimento"):
@@ -822,6 +834,7 @@ def listar_clientes_fiado(
                 "tem_vencido": False,
                 "vencimento_mais_antigo": None,
                 "limite_fiado_local": float(cli.limite_fiado_local or 0) if cli else 0.0,
+                "whatsapp_url": url_whatsapp_chat(getattr(cli, "whatsapp", "") if cli else ""),
             }
         else:
             g0 = grupos[key]
@@ -831,8 +844,11 @@ def listar_clientes_fiado(
                 if cli and (cli.externo_id or "").strip():
                     g0["cliente_codigo"] = str(cli.externo_id).strip()
                 g0["limite_fiado_local"] = float(cli.limite_fiado_local or 0) if cli else g0["limite_fiado_local"]
+                g0["whatsapp_url"] = url_whatsapp_chat(getattr(cli, "whatsapp", "") if cli else "")
             elif len((t.cliente_nome or "")) > len(g0.get("cliente_nome") or ""):
                 g0["cliente_nome"] = t.cliente_nome
+            if not g0.get("whatsapp_url") and t.cliente_agro:
+                g0["whatsapp_url"] = url_whatsapp_chat(getattr(t.cliente_agro, "whatsapp", ""))
         if t.situacao not in (
             FiadoTituloAgro.Situacao.QUITADO,
             FiadoTituloAgro.Situacao.CANCELADO,
@@ -857,10 +873,12 @@ def listar_clientes_fiado(
         if isinstance(pks, set) and len(pks) == 1:
             pk_u = next(iter(pks))
             g["cliente_agro_pk"] = pk_u
-            if not g.get("cliente_codigo"):
-                cli_u = ClienteAgro.objects.filter(pk=pk_u).only("externo_id").first()
+            if not g.get("cliente_codigo") or not g.get("whatsapp_url"):
+                cli_u = ClienteAgro.objects.filter(pk=pk_u).only("externo_id", "whatsapp").first()
                 if cli_u and (cli_u.externo_id or "").strip():
                     g["cliente_codigo"] = str(cli_u.externo_id).strip()
+                if cli_u and not g.get("whatsapp_url"):
+                    g["whatsapp_url"] = url_whatsapp_chat(cli_u.whatsapp)
         elif isinstance(pks, set) and len(pks) > 1:
             g["cliente_agro_pk"] = None
             g["cliente_codigo"] = ""
@@ -933,6 +951,7 @@ def listar_clientes_fiado(
                     "vencimento_mais_antigo": "",
                     "vencimento_mais_antigo_texto": "—",
                     "limite_fiado_local": float(c.limite_fiado_local or 0),
+                    "whatsapp_url": url_whatsapp_chat(c.whatsapp),
                 }
             )
             keys_existentes.add(key)
