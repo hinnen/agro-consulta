@@ -1287,6 +1287,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ Deploy loja — ETQ-TERMICA-VARIAS · **Live v25.36** · 30/09
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v25.36** — só a etiqueta térmica (**não** merge `teste`) |
+| **Antes** | Live **v25.35** @ `a854a182` |
+| **Agora** | `producao` @ **`c8b78d80`** |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-etq-termica-varias-v25.35` · branch `producao-backup-pre-v2536-etq-termica-20260930` · `docs/ROLLBACK-ETQ-TERMICA-VARIAS.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 · badge **v25.36** · imprimir uma térmica |
+
 ### CHECKLIST ÚNICO — 30/09 · limite fiado e nome do cliente
 
 | # | Pacote | Status | Migrate | Prova |
@@ -1341,7 +1352,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- | ----- |
 | 1 | `PDV-ENT-CARTAO-ONTEM` | 🟢 **pronto para envio à produção** | **SIM** `0134` | **46/46** |
 | 2 | **PDV-ENT-DIA-OPCIONAL** | 🟢 **pronto para envio à produção** | **SIM** `0133` | **18/18** |
-| 3 | **ETQ-TERMICA-VARIAS** | 🟢 **pronto para envio** · Renan testou **30/09** | **NÃO** | **39/39** · layout **37/37** · quebra **20/20** |
+| 3 | **ETQ-TERMICA-VARIAS** | ✅ **Live v25.36** · Renan testou **30/09** | **NÃO** | **39/39** · layout **37/37** · quebra **20/20** |
 | 4 | **CLIENTE-XLSX-FIADO** | 🟢 **pronto para envio à produção** | **NÃO** | **30/30** |
 | 5 | `BUG-28-PIN-CATCH` | 🟢 **pronto para envio à produção** | **NÃO** | JS **14/14** |
 | 6 | `NF-CB-NAO-APAGA` | 🟢 **pronto para envio à produção** | **NÃO** | **24/24** |
@@ -1352,7 +1363,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ------ | ------------ |
 | **Cartão da entrega ontem** | Ctrl+F5 · retomar entrega de ontem no cartão · **Passou ontem** · Fechar caixa: faixa amarela · migrate `0134` |
 | **Dia da entrega** | Ctrl+F5 · Entrega → **Hoje** ou **Amanhã** / **Outro dia** · card mostra o dia · caixa de hoje não trava o futuro · migrate `0133` |
-| **Etiqueta térmica** | Ctrl+F5 · nome sem `...` (palavra inteira desce) · Centavos pt · Salvar · testar o leitor. Sem migrate. v25.47 |
+| **Etiqueta térmica** | ✅ já na loja **v25.36** · Ctrl+F5 · badge **v25.36** |
 | **Excel clientes** | Ctrl+F5 · Clientes → Excel ↓ · mudar limite · Excel ↑ → prévia → confirmar |
 | **PIN no Point** | Ctrl+F5 · entrega paga na loja → débito Point → PIN → a venda fecha |
 | **Código na nota** | Ctrl+F5 · nota manual · bipar produto com código · gravar custo · ficha: igual fica, diferente só em extra. Sem migrate. v25.49 |
@@ -1377,7 +1388,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-TERMICA-VARIAS** | 🟢 **pronto para envio** · Renan testou **30/09** | **NÃO** | várias **39/39** · layout **37/37** · A6 **86/86** |
+| 1 | **ETQ-TERMICA-VARIAS** | ✅ **Live v25.36** | **NÃO** | várias **39/39** · layout **37/37** · A6 **86/86** |
 
 ### PACOTE PRONTO — ETQ-TERMICA-VARIAS
 
@@ -1386,7 +1397,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Térmica (Elgin): uma folha por etiqueta. Nome sem três pontinhos; a palavra inteira desce. Reais e centavos com tamanho separado. Nome no alto. Barras com faixa branca. Tela, histórico e etapa 6 |
 | **Prova** | várias **39/39** · layout **37/37** · quebra Chrome **20/20** · A6 **86/86** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio** — Renan testou **30/09** — teste **v25.47** — só frase + senha |
+| **Status** | ✅ **enviado / Live v25.36** — `producao` @ `c8b78d80` — Renan testou **30/09** |
 | **Você** | Ctrl+F5 · Presets → Centavos pt → Salvar · imprime · nome sem `...` · testar o leitor |
 
 ### CHECKLIST ÚNICO — 18/09 · Excel clientes + fiado
