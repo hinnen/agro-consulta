@@ -259,6 +259,45 @@ def api_fiado_limite(request):
 
 @login_required(login_url="/entrar/")
 @require_POST
+def api_pdv_fiado_limite(request):
+    """PDV: muda o limite do cliente. Só entra com PIN do Geraldo, Geraldinho ou Renan."""
+    from produtos.pin_gerencial_util import validar_pin_gerencial
+
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    ok_pin, rotulo, err_pin = validar_pin_gerencial(str(data.get("pin") or ""))
+    if not ok_pin:
+        return JsonResponse({"ok": False, "erro": err_pin or "PIN não autorizado."}, status=403)
+    try:
+        pk = int(data.get("cliente_agro_pk"))
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "erro": "Escolha o cliente antes de mudar o limite."}, status=400)
+    limite = parse_valor_moeda_br(data.get("limite") or data.get("limite_fiado_local"))
+    if limite is None:
+        return JsonResponse({"ok": False, "erro": "Limite inválido."}, status=400)
+    try:
+        cli = definir_limite_fiado_cliente(pk, limite, usuario=rotulo or _usuario_de_request(request))
+        cid = (cli.externo_id or "").strip() or f"agro:{cli.pk}"
+        cred = resumo_credito_fiado_cliente(cid, cliente_agro_pk=cli.pk, cliente_nome=cli.nome or "")
+        return JsonResponse(
+            {
+                "ok": True,
+                "cliente_agro_pk": cli.pk,
+                "limite_fiado_local": float(cli.limite_fiado_local or 0),
+                "alterado_por": rotulo,
+                "credito": cred,
+            }
+        )
+    except ClienteAgro.DoesNotExist:
+        return JsonResponse({"ok": False, "erro": "Cliente não encontrado."}, status=404)
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
+
+
+@login_required(login_url="/entrar/")
+@require_POST
 def api_fiado_baixa_cliente(request):
     try:
         data = json.loads(request.body.decode("utf-8") or "{}")

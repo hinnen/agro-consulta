@@ -105,10 +105,16 @@
                   <span class="min-w-0 truncate">Cashback</span>
                   <span id="pdv-product-cashback-balance" class="pdv-side-money shrink-0 tabular-nums">R$ 0,00</span>
                 </div>
-                <button type="button" id="pdv-fiado-gestao-open" class="pdv-step1-side-saldos-row w-full rounded-lg px-1 py-1 text-left transition hover:bg-orange-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400" title="Saldo fiado em aberto — clique para gerir">
-                  <span class="min-w-0 truncate">Fiado · em aberto</span>
-                  <span id="pdv-product-fiado-balance" class="pdv-side-money shrink-0 tabular-nums text-orange-700">R$ 0,00</span>
-                </button>
+                <div class="pdv-step1-side-saldos-row pdv-fiado-duo">
+                  <button type="button" id="pdv-fiado-gestao-open" class="pdv-fiado-duo-btn pdv-fiado-duo-usado rounded-lg text-left transition hover:bg-orange-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400" title="O que o cliente deve — clique para abrir o fiado">
+                    <span class="min-w-0 truncate">Fiado</span>
+                    <span id="pdv-product-fiado-balance" class="pdv-side-money shrink-0 tabular-nums text-orange-700">R$ 0,00</span>
+                  </button>
+                  <span class="pdv-fiado-limite-sep" aria-hidden="true">/</span>
+                  <button type="button" id="pdv-fiado-limite-open" class="pdv-fiado-duo-btn pdv-fiado-duo-limite rounded-lg transition hover:bg-sky-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400" title="Limite total — clique para alterar">
+                    <span id="pdv-product-fiado-limite" class="pdv-side-money shrink-0 tabular-nums">R$ 0,00</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
