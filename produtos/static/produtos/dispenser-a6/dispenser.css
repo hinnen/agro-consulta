@@ -1942,3 +1942,93 @@ html.dsp-modo-a4h { page: dspA4h; }
     break-inside: avoid !important;
   }
 }
+
+/* PIN do descanso: esta tela não carrega o visual do PDV.
+   Sem position fixo o cartão fica fora da área e a folha fica sem clique. */
+#sspin-root {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483646;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  padding: 1rem;
+  box-sizing: border-box;
+  background: rgba(2, 6, 23, 0.94);
+  color: #f8fafc;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+#sspin-root .hidden {
+  display: none !important;
+}
+
+#sspin-root > div {
+  width: min(24rem, 100%);
+  background: #0f172a;
+  color: #f8fafc;
+  border: 2px solid #475569;
+  border-radius: 1rem;
+  padding: 1rem 1rem 1.1rem;
+  box-sizing: border-box;
+}
+
+#sspin-root h2,
+#sspin-root p {
+  margin: 0.2rem 0;
+  text-align: center;
+}
+
+#sspin-input,
+#sspin-new1,
+#sspin-new2 {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 0.45rem;
+  min-height: 3rem;
+  text-align: center;
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: 0.28em;
+  border-radius: 0.75rem;
+  border: 2px solid #475569;
+  background: #1e293b;
+  color: #fff;
+}
+
+#sspin-numpad {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin-top: 0.7rem;
+}
+
+#sspin-numpad .sspin-key,
+#sspin-btn-save,
+#sspin-btn-back {
+  min-height: 3rem;
+  border-radius: 0.75rem;
+  border: 2px solid #475569;
+  background: #1e293b;
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  font-size: 1.15rem;
+  cursor: pointer;
+}
+
+#sspin-numpad .sspin-key[data-d="ok"],
+#sspin-btn-save {
+  background: #059669;
+  border-color: #059669;
+}
+
+body.sspin-locked #sspin-root {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
