@@ -1287,15 +1287,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🩹 Entrada de nota manual apagava código de barras (`NF-CB-NAO-APAGA` · 29/09)
+### CHECKLIST ÚNICO — 29/09 · código da nota não some
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | `NF-CB-NAO-APAGA` | 🟢 **pronto para envio à produção** | **NÃO** | **24/24** |
+
+### PACOTE PRONTO — NF-CB-NAO-APAGA
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Gravar custo/preço na nota manual apagava o código (overlay vazio cobria o cadastro). Agora: código igual fica; código diferente só entra como extra; o principal não é trocado. |
-| **Nota 36696** | Códigos devolvidos na loja 29/09. |
-| **Loja (dados)** | **41** voltaram como código principal · **7** entraram só como extra · **3** não mexi porque o número já é de outro produto (lâmina GM4178, lixeira GM4188, bebedouro GM4236). |
+| **O quê** | Nota manual: gravar custo/preço não apaga o código. Igual fica. Diferente entra só como extra. Sem código, o bip vira o principal. |
+| **Prova** | `scripts/verify_nf_cb_nao_apaga_path.py` **24/24** |
 | **Migrate** | **NÃO** |
-| **Status** | Dados **na loja**. O programa que impede repetir está no `teste` **v25.48** — a loja ainda roda o programa antigo até subir. |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.49** — só frase + senha |
+| **Você** | Ctrl+F5 · nota manual · bipar um produto que já tem código · gravar custo · abrir a ficha: código igual continua; código diferente aparece em barras opcionais |
 
 ### CHECKLIST ÚNICO — 29/09 · cartão da entrega no dia anterior
 
@@ -1322,6 +1328,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 3 | **ETQ-TERMICA-VARIAS** | 🟢 **pronto para envio à produção** | **NÃO** | **39/39** · layout **37/37** · quebra **20/20** |
 | 4 | **CLIENTE-XLSX-FIADO** | 🟢 **pronto para envio à produção** | **NÃO** | **30/30** |
 | 5 | `BUG-28-PIN-CATCH` | 🟢 **pronto para envio à produção** | **NÃO** | JS **14/14** |
+| 6 | `NF-CB-NAO-APAGA` | 🟢 **pronto para envio à produção** | **NÃO** | **24/24** |
 
 ### PACOTE PRONTO — o que ainda falta subir
 
@@ -1332,6 +1339,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Etiqueta térmica** | Ctrl+F5 · nome sem `...` (palavra inteira desce) · Centavos pt · Salvar · testar o leitor. Sem migrate. v25.47 |
 | **Excel clientes** | Ctrl+F5 · Clientes → Excel ↓ · mudar limite · Excel ↑ → prévia → confirmar |
 | **PIN no Point** | Ctrl+F5 · entrega paga na loja → débito Point → PIN → a venda fecha |
+| **Código na nota** | Ctrl+F5 · nota manual · bipar produto com código · gravar custo · ficha: igual fica, diferente só em extra. Sem migrate. v25.49 |
 
 ### CHECKLIST ÚNICO — 29/09 · dia da entrega opcional
 
