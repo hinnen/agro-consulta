@@ -112,6 +112,41 @@ def testar_banco_e_pin() -> None:
         vis = listar_entregas_pendentes_pdv(loja="centro")
         row = next((r for r in vis if r["id"] == ent.pk), None)
         check(row is not None and row.get("data_prevista") == amanha.isoformat(), "lista mostra o dia")
+
+        sess_vila = SessaoCaixa.objects.create(
+            usuario=user, ponto_caixa="vila", valor_abertura=0
+        )
+        ent_vila = PedidoEntrega.objects.create(
+            cliente_nome="Prova outra loja",
+            aguarda_pagamento_pdv=True,
+            status=PedidoEntrega.Status.PENDENTE,
+            sessao_caixa=sess_vila,
+            loja_entrega="vila",
+            loja_pagamento="vila",
+            hora_prevista=dtime(9, 0),
+            origem="pdv",
+        )
+        criado_ids.append(ent_vila.pk)
+        ids_centro = {r["id"] for r in listar_entregas_pendentes_pdv(loja="centro")}
+        ids_vila = {r["id"] for r in listar_entregas_pendentes_pdv(loja="vila")}
+        check(ent.pk in ids_centro and ent.pk not in ids_vila, "Centro não lista a entrega da Vila")
+        check(ent_vila.pk in ids_vila and ent_vila.pk not in ids_centro, "Vila não lista a entrega do Centro")
+
+        client_ver = Client()
+        client_ver.force_login(user)
+        resp_v = client_ver.get(
+            "/api/pdv/entregas-pendentes/?loja=vila",
+            HTTP_HOST="127.0.0.1",
+        )
+        data_v = resp_v.json() if resp_v.status_code == 200 else {}
+        ids_api = {r.get("id") for r in (data_v.get("itens") or [])}
+        check(
+            resp_v.status_code == 200
+            and data_v.get("ok")
+            and ent_vila.pk in ids_api
+            and ent.pk not in ids_api,
+            "API Ver Vila só traz a Vila",
+        )
         pagas = listar_entregas_pagas_loja_pdv(loja="centro")
         check(any(r["id"] == paga.pk for r in pagas), "paga na loja fica até o dia combinado")
 
@@ -185,7 +220,7 @@ def testar_banco_e_pin() -> None:
             check(resp_z.status_code == 403, "API recusa PIN errado")
     finally:
         PedidoEntrega.objects.filter(pk__in=criado_ids).delete()
-        SessaoCaixa.objects.filter(pk=sess.pk).delete()
+        SessaoCaixa.objects.filter(pk__in=[sess.pk, locals().get("sess_vila") and sess_vila.pk]).delete()
 
 
 def main() -> int:
@@ -210,7 +245,21 @@ def main() -> int:
     check("if (!dia.ok)" in js, "F7 recusa Outro dia vazio")
     check("entregaEhDoDiaUi" in js, "contagem do botão ignora entrega de outro dia")
     check("pdv-entregas-ver-outra-loja" in html_step and "htmlEntregaSomenteLeitura" in js, "botão só olhar a outra loja")
-    check("Retomar" not in js[js.find("function htmlEntregaSomenteLeitura"): js.find("function renderEntregasOutraLoja")], "card da outra loja sem botão de mexer")
+    trecho_card = js[js.find("function htmlEntregaSomenteLeitura"): js.find("function renderEntregasOutraLoja")]
+    check("Retomar" not in trecho_card and "<button" not in trecho_card, "card da outra loja sem botão de mexer")
+    ini = html_step.find('id="pdv-entregas-outra-loja-modal"')
+    fim = html_step.find('id="pdv-entrega-mudar-loja-modal"')
+    bloco = html_step[ini:fim]
+    check("text-center" in bloco and "text-6xl" in bloco, "título da outra loja centralizado e grande")
+    check(bloco.count("<button") == 1 and "Fechar" in bloco, "painel da outra loja só tem Fechar")
+    trecho_abre = js[js.find("function openEntregasOutraLojaModal"): js.find("function findEntregaPendenteCache")]
+    check(
+        "loja=" in trecho_abre
+        and "entregasPendentesCache" not in trecho_abre
+        and "nomeLoja + ' só olhar'" in js,
+        "abre a outra loja sem mexer na contagem da sua",
+    )
+    check("closeEntregasOutraLojaModal()" in js[js.find("function closeEntregasPendentesModal"): js.find("function closeEntregasPendentesModal") + 400], "fechar a sua loja fecha o painel de cima")
     check("data_prevista" in model and "data_prevista" in mig, "campo no model + migrate 0133")
     check("Q(data_prevista__isnull=True)" in util, "caixa de hoje não trava dia futuro")
     check("data_prevista__gte=hoje" in util, "pagas na loja ficam até o dia combinado")
