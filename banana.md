@@ -1322,7 +1322,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | No card Saldos e dentro de cada cliente: **Em dia** e **Limite** azuis. Atrasado, o card da dívida fica vermelho e a palavra vira **Atrasado**. Limite livre (verde) só no cliente. Limite abre popup (digitar ou +/− R$ 100) e só grava com PIN do Geraldo, Geraldinho ou Renan. |
-| **Prova** | `scripts/verify_pdv_fiado_limite_card_path.py` **30/30** |
+| **Prova** | `scripts/verify_pdv_fiado_limite_card_path.py` **39/39** · PIN 9973 grava e o limite volta ao que estava |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
 | **Você** | Ctrl+F5 no PDV: em dia os dois cards azuis (**Em dia** e **Limite**). Atrasado, o da dívida fica vermelho |
@@ -1425,6 +1425,7 @@ Joelma (Esposa Wagner) e 018 Junior (pai de Isabela) estavam no fiado **sem** o 
 | 9 | **PDV-ENT-VER-OUTRA** | 🟢 **pronto para envio à produção** | **NÃO** | **40/40** |
 | 10 | `GESTAO-PIN-FOLGA` | 🟢 **pronto para envio à produção** | **NÃO** | **43/43** |
 | 11 | `CLI-XLSX-MES-VALOR` | 🟢 **pronto para envio à produção** | **NÃO** | **42/42** |
+| 12 | `PDV-FIADO-LIMITE-CARD` | 🟢 **pronto para envio à produção** | **NÃO** | **39/39** |
 
 ### PACOTE PRONTO — o que ainda falta subir
 
@@ -1439,6 +1440,7 @@ Joelma (Esposa Wagner) e 018 Junior (pai de Isabela) estavam no fiado **sem** o 
 | **Código na nota** | ✅ Renan testou no PC · igual fica · diferente só em extra · prova **24/24** · sem migrate |
 | **Cofrinho no fechar** | Ctrl+F5 · Fechar caixa Vila sem faixa «Separe» · esperado igual à gaveta · sem migrate |
 | **PIN na Gestão** | Ctrl+F5 na Gestão · PIN uma vez vale nas próximas ações · descanso só depois de 5 min · PDV continua pedindo · prova **43/43** · sem migrate |
+| **Fiado no PDV** | Ctrl+F5 · em dia: **Em dia** e **Limite** azuis · atrasado: card da dívida vermelho **Atrasado** · no cliente, terceiro card **Limite livre** · prova **39/39** · sem migrate |
 
 ### CHECKLIST ÚNICO — 29/09 · dia da entrega opcional
 
