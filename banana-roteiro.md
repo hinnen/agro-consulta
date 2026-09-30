@@ -615,6 +615,6 @@ Os 16 do checklist. **Não** inclui a unificação de fichas (dado já feito na 
 | 15 | Ordem e Zap no fiado | **59/59** | **NÃO** |
 | 16 | Logos do Dispenser | **27/27** | **NÃO** |
 
-**Status: 🟢 PREP · aguarda pausa + frase + senha.** `deploy/prep-checklist-3009` @ `b934ae31`.  
-**Rollback:** tag `rollback/pre-checklist-3009-v25.36` · `docs/ROLLBACK-CHECKLIST-3009.md`.
+**Status: ✅ Live v25.75** — `producao` @ `b934ae31` · Render `dep-dauiu4vf3r2c73fv91i0`.  
+**Rollback:** tag `rollback/pre-checklist-3009-v25.36` · `docs/ROLLBACK-CHECKLIST-3009.md` · **só** frase+senha.
 
