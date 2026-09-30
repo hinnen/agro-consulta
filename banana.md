@@ -705,7 +705,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Dois cofrinhos (`REPASSE-DOIS-COFRES` · v18.81):** Salário (config) + Vila Elias (fatia que fica); fórmula sem cortar salário antes do %; migrate `0103`.
 - **Overlay PDV limpo (`REPASSE-PDV-OVERLAY-LIMPO` → hotfix `REPASSE-PDV-OVERLAY-POPUP` · v18.68):** quem/PIN só no popup · forma oculta (= Dinheiro) · sem chips · hero enxuto.
 - **Gestão `/repasse-vila/` (`REPASSE-GESTAO-SIMPLES` + `REPASSE-COFRE-PLANO` · v23.63):** botão **Gestão** no overlay. **Retirada / uso** = **plano de conta** (gasto empresa **Agro Mais Vila Elias** → DRE/Lançamentos). Ajuste / saldo inicial = motivo livre. Envelope do dia = overlay PDV.
-- **Fechar caixa não separa cofrinho (`COFRE-SEM-AUTO` · v25.55):** fechar a Vila **não** credita Salário nem Vila Elias e **não** baixa o dinheiro esperado da gaveta. Separar continua só no botão **Separar**.
+- **Fechar caixa não separa cofrinho (`COFRE-SEM-AUTO` · v25.56):** fechar a Vila **não** credita Salário nem Vila Elias e **não** baixa o dinheiro esperado da gaveta. Separar continua só no botão **Separar**.
 - **Confirmação cofrinho (`REPASSE-COFRE-CONFIRM` · v18.78):** modal rosa ~80% da tela no lugar do `confirm` do browser.
 - **Hero totais (`REPASSE-HERO-TOTAIS` · v18.80):** Enviado no mês + Total geral no card «Levar ao Centro».
 - **Planos no lucro do envio (17/08):** botão **Planos** na tela de repasse — marca o que desconta do dinheiro enviado ao Centro (ex. Alimentação); o restante das saídas de caixa da Vila desconta do card **Lucro ficou na Vila**. Grava no Postgres (`RepasseVilaConfigAgro.planos_desconto_centro`). Migrate `0091`.
@@ -1306,7 +1306,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Fechar a Vila não joga valor no cofrinho e não tira o dinheiro esperado da gaveta. Separar continua só no botão **Separar**. |
 | **Prova** | path **15/15** · cofrinho **39/39** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** — teste **v25.55** — só frase + senha |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.56** — só frase + senha |
 | **Você** | Ctrl+F5 · Fechar caixa Vila: sem faixa «Separe R$ …» · esperado igual à gaveta · cofre sem linha automática |
 
 ### ✅ Deploy loja — ETQ-TERMICA-VARIAS · **Live v25.36** · 30/09
