@@ -45,10 +45,13 @@
     min-width: 0;
   }
   .pdv-cart-nome {
-    display: block;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: break-word;
     font-size: 17.25px;
     font-weight: 900;
     line-height: 1.2;

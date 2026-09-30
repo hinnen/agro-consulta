@@ -4284,7 +4284,9 @@
                     '" alt="" class="pointer-events-none h-full w-full object-cover">' +
                     '  </span>' +
                     '  <div class="pdv-cart-line overflow-hidden">' +
-                    '    <span class="pdv-cart-nome">' +
+                    '    <span class="pdv-cart-nome" title="' +
+                    escapeHtml(item.nome) +
+                    '">' +
                     renderCartMixNameTag(item) +
                     escapeHtml(item.nome) +
                     '</span>' +
