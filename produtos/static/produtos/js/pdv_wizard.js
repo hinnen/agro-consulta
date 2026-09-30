@@ -1794,7 +1794,11 @@
         var nome = stripAccents(String((p && p.nome) || ''));
         var marca = stripAccents(String((p && p.marca) || ''));
         var busca = stripAccents(String((p && p.busca_texto) || ''));
-        return (nome + ' ' + marca + ' ' + busca).indexOf(tok) !== -1;
+        var blob = nome + ' ' + marca + ' ' + busca;
+        if (/^\d+$/.test(tok)) {
+            return new RegExp('(?:^|[^0-9])' + tok + '(?:[^0-9]|$)').test(blob);
+        }
+        return blob.indexOf(tok) !== -1;
     }
 
     function tokensBuscaQuery(query) {

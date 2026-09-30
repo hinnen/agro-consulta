@@ -1290,9 +1290,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### DADO — fiado na ficha errada (loja, só leitura · 30/09)
+### DADO — fiado na ficha errada (loja · passou 20 · 30/09)
 
-Um cadastro só (`ClienteAgro`). Loja: **2.167** fichas. Fiado em aberto **175** títulos · **R$ 17.111,24**. Nenhum sem ficha. Venda do PDV (**125**) está na pessoa certa. Planilha antiga: **22** títulos (**R$ 2.449,51**, **14** pessoas) caíram na ficha cujo número bateu com o código velho — a ficha certa existe (ex.: Erlindo pk 29, dívida nos pk 795–800). **Não** corrigido. Só olhar; mexer só com pedido do Renan.
+Um cadastro só (`ClienteAgro`). Loja: **2.167** fichas. Fiado em aberto **175** títulos · **R$ 17.111,24** (igual antes e depois). Renan OK + senha **30/09**: **20** dívidas (R$ 2.377,51) passaram para a ficha do mesmo nome. Valter = **038 Valter ( Dos Cavalos )**. Os 2 «Não usar Renan» (R$ 72, títulos 22 e 23) **não** foram mexidos. Volta: `scripts/fiado_reverter_ficha_20260930.py` (só devolve a ficha; não mexe em valor). Marca no título: `vinculo_ficha_20260930`.
 
 ### PACOTE PRONTO — busca PDV não mistura palavra solta (`PDV-BUSCA-COERENTE`)
 
@@ -1300,8 +1300,8 @@ Um cadastro só (`ClienteAgro`). Loja: **2.167** fichas. Fiado em aberto **175**
 | ----- | ----- |
 | **O quê** | «milho grande» não puxa mais bebedouro só por «grande». Acerto = verde claro. Chute = cinza. A linha do cursor continua azul. |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **teste v25.66** · validar no PC · loja só frase + senha |
-| **Você** | Ctrl+F5 no PDV · acerto verde · chute cinza · cursor azul |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.67** — prova **30/30** — só frase + senha |
+| **Você** | Ctrl+F5 · milho grande: verde o que casa, cinza o chute, azul o cursor · sem bebedouro |
 
 ### PACOTE PRONTO — nome do produto em 2 linhas no carrinho (`PDV-CART-NOME-2L`)
 
@@ -1430,6 +1430,7 @@ Joelma (Esposa Wagner) e 018 Junior (pai de Isabela) estavam no fiado **sem** o 
 | 10 | `GESTAO-PIN-FOLGA` | 🟢 **pronto para envio à produção** | **NÃO** | **43/43** |
 | 11 | `CLI-XLSX-MES-VALOR` | 🟢 **pronto para envio à produção** | **NÃO** | **42/42** |
 | 12 | `PDV-FIADO-LIMITE-CARD` | 🟢 **pronto para envio à produção** | **NÃO** | **39/39** |
+| 13 | `PDV-BUSCA-COERENTE` | 🟢 **pronto para envio à produção** | **NÃO** | **30/30** |
 
 ### PACOTE PRONTO — o que ainda falta subir
 
@@ -1445,6 +1446,7 @@ Joelma (Esposa Wagner) e 018 Junior (pai de Isabela) estavam no fiado **sem** o 
 | **Cofrinho no fechar** | Ctrl+F5 · Fechar caixa Vila sem faixa «Separe» · esperado igual à gaveta · sem migrate |
 | **PIN na Gestão** | Ctrl+F5 na Gestão · PIN uma vez vale nas próximas ações · descanso só depois de 5 min · PDV continua pedindo · prova **43/43** · sem migrate |
 | **Fiado no PDV** | Ctrl+F5 · em dia: **Em dia** e **Limite** azuis · atrasado: card da dívida vermelho **Atrasado** · no cliente, terceiro card **Limite livre** · prova **39/39** · sem migrate |
+| **Busca do PDV** | Ctrl+F5 · milho grande: verde o que casa, cinza o chute, azul o cursor · não traz bebedouro · prova **30/30** · sem migrate |
 
 ### CHECKLIST ÚNICO — 29/09 · dia da entrega opcional
 
