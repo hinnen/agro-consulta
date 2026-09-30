@@ -634,3 +634,16 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **Antes:** Live **v25.77** @ `6eff0f70`.  
 **Rollback:** tag `rollback/pre-dsp-pin-descanso-v25.77` · `docs/ROLLBACK-DSP-PIN-DESCANSO.md` · **só** frase+senha.
 
+---
+
+## 37. Checklist único — Dispenser fundo branco na impressão (30/09)
+
+| # | Pacote | Prova | Migrate |
+| - | ------ | ----- | ------- |
+| 1 | **DSP-PRINT-BRANCO** | **20/20** | **NÃO** |
+
+**O quê:** logo, animal e foto de ingredientes saem com o fundo da prévia, não pretos.  
+**Não mexe:** PDV, caixa, venda, fiado, nota, financeiro.  
+**Status: ✅ Live v25.79** — `producao` @ `072ff56e` · Render `dep-daumndjm8hqs738qeci0`. **Não** foi merge do `teste`.  
+**Rollback:** tag `rollback/pre-dsp-print-branco-v25.78` · `docs/ROLLBACK-DSP-PRINT-BRANCO.md` · **só** frase+senha.
+

@@ -1312,8 +1312,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `scripts/verify_dsp_impressao_folha_path.py` **20/20** |
 | **Migrate** | **NÃO** |
 | **Mexe** | só `/interno/dispenser-a6/` |
-| **Status** | 🟢 **PREP** · alvo **v25.79** · ponto de volta **v25.78** @ `4e4a1244` |
-| **Você** | Ctrl+F5 no Dispenser depois de subir · Imprimir de novo |
+| **Status** | ✅ **enviado / Live v25.79** — `producao` @ `072ff56e` · Render `dep-daumndjm8hqs738qeci0` · **não** foi merge do `teste` |
+| **Rollback** | tag `rollback/pre-dsp-print-branco-v25.78` · `docs/ROLLBACK-DSP-PRINT-BRANCO.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 no Dispenser · Imprimir de novo · logo e fotos no mesmo fundo da prévia |
 
 ### PACOTE PRONTO — Dispenser em folha (`DSP-IMPRESSAO-FOLHA`)
 
