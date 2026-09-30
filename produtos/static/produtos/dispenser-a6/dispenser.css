@@ -530,6 +530,17 @@ html, body {
   margin-top: 0.75rem;
 }
 
+.dsp-actions.dsp-print-menu {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.dsp-actions.dsp-print-menu button {
+  width: 100%;
+  min-height: 2.75rem;
+  text-align: left;
+}
+
 .dsp-actions button {
   border: 0;
   border-radius: 0.65rem;
@@ -1664,4 +1675,265 @@ html, body {
 
 .dsp-brand.has-brand-bg.has-brand-border {
   padding: 1.2mm 1.5mm;
+}
+
+/* Folha montada (4× A6 na A4 em pé · 2× A5 em pé na A4 deitada) — só na impressão */
+.dsp-print-sheet {
+  display: none;
+}
+
+.dsp-print-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.dsp-print-modal[hidden] {
+  display: none !important;
+}
+
+.dsp-print-modal-card {
+  width: min(46rem, 100%);
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  background: #fff;
+  color: #0f172a;
+  border-radius: 0.85rem;
+  padding: 1rem 1.1rem 1.1rem;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.28);
+}
+
+.dsp-print-modal-card h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.25rem;
+}
+
+.dsp-print-modal-card p {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+}
+
+.dsp-print-layout {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.9rem;
+  align-items: start;
+}
+
+.dsp-print-map {
+  background: #fff;
+  border: 2px solid #0f172a;
+  display: grid;
+  gap: 2px;
+  padding: 2px;
+  box-sizing: border-box;
+}
+
+.dsp-print-map.is-4 {
+  width: 9.2rem;
+  height: 13rem;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.dsp-print-map.is-2 {
+  width: 13rem;
+  height: 9.2rem;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+}
+
+.dsp-print-map-cell {
+  background: #f1f5f9;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: hidden;
+  position: relative;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.1;
+  padding: 0.15rem;
+}
+
+.dsp-print-map-cell img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dsp-print-map-cell span {
+  position: relative;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.88);
+  padding: 0.05rem 0.15rem;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.dsp-print-picks {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.dsp-print-pick {
+  display: grid;
+  gap: 0.2rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.dsp-print-pick select {
+  font: inherit;
+  font-weight: 700;
+  min-height: 2.5rem;
+  border: 2px solid #0f172a;
+  border-radius: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  background: #fff;
+}
+
+.dsp-print-warn {
+  color: #b45309;
+  font-weight: 700;
+}
+
+.dsp-print-modal-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.dsp-print-modal-actions button {
+  border: 0;
+  border-radius: 0.65rem;
+  min-height: 2.75rem;
+  padding: 0.55rem 1rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  background: #10b981;
+  color: #fff;
+}
+
+.dsp-print-modal-actions button.secondary {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.dsp-print-modal-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@page dspA4v {
+  size: 210mm 297mm;
+  margin: 0;
+}
+
+@page dspA4h {
+  size: 297mm 210mm;
+  margin: 0;
+}
+
+html.dsp-modo-a4v { page: dspA4v; }
+html.dsp-modo-a4h { page: dspA4h; }
+
+@media print {
+  .dsp-print-sheet {
+    display: none !important;
+  }
+
+  html.dsp-modo-a4v,
+  html.dsp-modo-a4v body {
+    width: 210mm !important;
+    height: 297mm !important;
+    overflow: hidden !important;
+  }
+
+  html.dsp-modo-a4h,
+  html.dsp-modo-a4h body {
+    width: 297mm !important;
+    height: 210mm !important;
+    overflow: hidden !important;
+  }
+
+  html.dsp-modo-a4v .dsp-studio,
+  html.dsp-modo-a4h .dsp-studio,
+  html.dsp-modo-a4v .dsp-stage,
+  html.dsp-modo-a4h .dsp-stage {
+    width: auto !important;
+    height: auto !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  html.dsp-modo-a4v .dsp-stage > .dsp-a6,
+  html.dsp-modo-a4h .dsp-stage > .dsp-a6 {
+    display: none !important;
+  }
+
+  html.dsp-modo-a4v .dsp-print-sheet--a4v {
+    display: grid !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    grid-template-columns: 105mm 105mm;
+    grid-template-rows: 148mm 148mm;
+    justify-content: center;
+    align-content: center;
+    background: #fff !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  html.dsp-modo-a4h .dsp-print-sheet--a4h {
+    display: grid !important;
+    width: 297mm !important;
+    height: 210mm !important;
+    grid-template-columns: 148mm 148mm;
+    grid-template-rows: 210mm;
+    justify-content: center;
+    align-content: center;
+    background: #fff !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  html.dsp-modo-a4v .dsp-slot--a6,
+  html.dsp-modo-a4h .dsp-slot--a5 {
+    overflow: hidden !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    page-break-before: auto !important;
+    page-break-after: auto !important;
+  }
+
+  html.dsp-modo-a4v .dsp-slot--a6 {
+    width: 105mm !important;
+    height: 148mm !important;
+  }
+
+  html.dsp-modo-a4h .dsp-slot--a5 {
+    width: 148mm !important;
+    height: 210mm !important;
+  }
+
+  /* A6 105×148 → largura A5 148 mm. Altura visual ~208,6 mm (cabe em 210). */
+  html.dsp-modo-a4h .dsp-slot--a5 .dsp-a6 {
+    zoom: 1.40952381 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
 }

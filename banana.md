@@ -1291,6 +1291,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### PACOTE PRONTO — Dispenser em folha (`DSP-IMPRESSAO-FOLHA`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `/interno/dispenser-a6/`: **Imprimir 1 A6** como antes. **4 A6 na A4 em pé** (dois em cima, dois embaixo). **2 A5 na A4 deitada** — a folha sai deitada, os dois cartões ficam em pé, lado a lado. Cada espaço pede uma folha diferente (Prontas ou a prévia). |
+| **Prova** | `scripts/verify_dsp_impressao_folha_path.py` **17/17** |
+| **Migrate** | **NÃO** |
+| **Status** | teste local — **não** subiu |
+| **Você** | Ctrl+F5 no Dispenser · escolha as folhas · na janela de imprimir: margens **nenhuma** e escala **100%** |
+
 ### ✅ Deploy loja — checklist 30/09 · **Live v25.75** · 30/09
 
 | Campo | Valor |

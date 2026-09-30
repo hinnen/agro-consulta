@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dispenser A6 · GM Agro Mais</title>
-  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=13.60" />
+  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=13.61" />
   <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=13.60"></script>
   <script src="{% static 'produtos/dispenser-a6/js/layout_edit.js' %}?v=13.60"></script>
   <script src="{% static 'produtos/dispenser-a6/js/dispenser_cloud.js' %}?v=13.60"></script>
@@ -232,8 +232,10 @@ Batata-Doce</textarea>
         </div>
       </div>
 
-      <div class="dsp-actions">
-        <button type="button" id="dspPrint">Imprimir A6</button>
+      <div class="dsp-actions dsp-print-menu">
+        <button type="button" id="dspPrint">Imprimir 1 A6</button>
+        <button type="button" id="dspPrintA4v">4 A6 na A4 em pé</button>
+        <button type="button" id="dspPrintA4h">2 A5 na A4 deitada</button>
         <button type="button" class="secondary" id="dspReset">Exemplo</button>
       </div>
     </aside>
@@ -291,6 +293,7 @@ Batata-Doce</textarea>
           </div>
         </section>
       </article>
+      <div id="dspPrintSheet" class="dsp-print-sheet" aria-hidden="true"></div>
       <div class="dsp-fit-tools no-print">
         <div class="dsp-fit-group">
           <span>Logo</span>
@@ -315,6 +318,22 @@ Batata-Doce</textarea>
   </div>
 
   {% include "produtos/includes/dispenser_flavor_icons.html" %}
+
+  <div class="dsp-print-modal no-print" id="dspPrintModal" hidden>
+    <div class="dsp-print-modal-card" role="dialog" aria-modal="true" aria-labelledby="dspPrintModalTitle">
+      <h2 id="dspPrintModalTitle">Montar a folha</h2>
+      <p id="dspPrintModalLead"></p>
+      <div class="dsp-print-layout">
+        <div id="dspPrintMap" class="dsp-print-map" aria-hidden="true"></div>
+        <div id="dspPrintSlots" class="dsp-print-picks"></div>
+      </div>
+      <p class="dsp-print-warn" id="dspPrintWarn" hidden></p>
+      <div class="dsp-print-modal-actions">
+        <button type="button" id="dspPrintGo">Imprimir</button>
+        <button type="button" class="secondary" id="dspPrintCancel">Cancelar</button>
+      </div>
+    </div>
+  </div>
 
   <script>
   (function () {
@@ -3035,7 +3054,382 @@ Batata-Doce</textarea>
     proteinEl.addEventListener("input", renderAll);
     bindProteinPos();
     bindPanelTabs();
-    document.getElementById("dspPrint").addEventListener("click", function () { window.print(); });
+    /* ===== Impressão: 1 A6 · 4 A6 na A4 em pé · 2 A5 em pé na A4 deitada ===== */
+    var printModal = document.getElementById("dspPrintModal");
+    var printSlots = document.getElementById("dspPrintSlots");
+    var printMap = document.getElementById("dspPrintMap");
+    var printWarn = document.getElementById("dspPrintWarn");
+    var printTitle = document.getElementById("dspPrintModalTitle");
+    var printLead = document.getElementById("dspPrintModalLead");
+    var printGo = document.getElementById("dspPrintGo");
+    var printModo = "";
+    var WORKING_LAYOUT_KEY = "dsp_layout_working_v2";
+
+    function readWorkingRaw() {
+      try { return localStorage.getItem(WORKING_LAYOUT_KEY); } catch (eW) { return null; }
+    }
+    function writeWorkingRaw(raw) {
+      try {
+        if (raw) localStorage.setItem(WORKING_LAYOUT_KEY, raw);
+        else localStorage.removeItem(WORKING_LAYOUT_KEY);
+      } catch (eW2) {}
+    }
+
+    function folhaNamesSorted() {
+      var folhas = loadFolhas();
+      return Object.keys(folhas).sort(function (a, b) {
+        return (folhas[b].savedAt || 0) - (folhas[a].savedAt || 0);
+      });
+    }
+
+    function printChoiceList() {
+      var names = folhaNamesSorted();
+      var opts = [{ value: "__preview__", label: "O que está na prévia" }];
+      names.forEach(function (n) {
+        opts.push({ value: n, label: n });
+      });
+      return opts;
+    }
+
+    function applyModelOnCard(model) {
+      if (model && model.sheet) applySheet(model.sheet);
+      if (model && model.items && window.DspLayoutEdit && window.DspLayoutEdit.applyLayout) {
+        window.DspLayoutEdit.applyLayout({ v: 1, items: model.items });
+      } else if (window.DspLayoutEdit && window.DspLayoutEdit.resetToFlow) {
+        window.DspLayoutEdit.resetToFlow();
+      }
+    }
+
+    function cloneLiveCard() {
+      var live = document.getElementById("dspCard");
+      var clone = live.cloneNode(true);
+      var cat = document.documentElement.getAttribute("data-cat") || "";
+      if (cat) clone.setAttribute("data-cat", cat);
+      clone.removeAttribute("id");
+      clone.querySelectorAll("[id]").forEach(function (el) { el.removeAttribute("id"); });
+      clone.querySelectorAll(".no-print, .dsp-layout-handle").forEach(function (el) { el.remove(); });
+      return clone;
+    }
+
+    function captureEditor() {
+      var card = document.getElementById("dspCard");
+      var free = !!(card && card.classList.contains("is-free-layout"));
+      var layout = null;
+      if (free && window.DspLayoutEdit && window.DspLayoutEdit.snapshotFromDom) {
+        layout = window.DspLayoutEdit.snapshotFromDom();
+      }
+      return {
+        sheet: snapshotSheet(),
+        free: free,
+        layout: layout,
+        name: folhaActive,
+        edit: !!(card && card.classList.contains("is-layout-edit")),
+        workingRaw: readWorkingRaw()
+      };
+    }
+
+    function restoreEditor(backup) {
+      if (!backup) return;
+      if (backup.free && backup.layout && backup.layout.items) {
+        applySheet(backup.sheet);
+        if (window.DspLayoutEdit && window.DspLayoutEdit.applyLayout) {
+          window.DspLayoutEdit.applyLayout(backup.layout);
+        }
+      } else {
+        applySheet(backup.sheet);
+        if (window.DspLayoutEdit && window.DspLayoutEdit.resetToFlow) {
+          window.DspLayoutEdit.resetToFlow();
+        }
+      }
+      writeWorkingRaw(backup.workingRaw);
+      folhaActive = backup.name || "";
+      try {
+        if (folhaActive) localStorage.setItem(FOLHA_ACTIVE_KEY, folhaActive);
+        else localStorage.removeItem(FOLHA_ACTIVE_KEY);
+      } catch (eR) {}
+      if (backup.edit && window.DspLayoutEdit && window.DspLayoutEdit.setEditMode) {
+        window.DspLayoutEdit.setEditMode(true);
+      }
+      syncFolhaSaveUi();
+      buildFolhaGal();
+    }
+
+    function clonesForChoices(choices) {
+      var folhas = loadFolhas();
+      var backup = captureEditor();
+      var previewClone = null;
+      if (choices.indexOf("__preview__") >= 0) previewClone = cloneLiveCard();
+      var out = [];
+      choices.forEach(function (key) {
+        if (key === "__preview__") {
+          out.push(previewClone ? previewClone.cloneNode(true) : cloneLiveCard());
+          return;
+        }
+        applyModelOnCard(folhas[key]);
+        out.push(cloneLiveCard());
+      });
+      restoreEditor(backup);
+      return out;
+    }
+
+    function clearPrintMode() {
+      document.documentElement.classList.remove("dsp-modo-a4v", "dsp-modo-a4h");
+      var style = document.getElementById("dspPageSize");
+      if (style) style.textContent = "";
+      var host = document.getElementById("dspPrintSheet");
+      if (host) {
+        host.innerHTML = "";
+        host.className = "dsp-print-sheet";
+      }
+    }
+
+    function armPrintMode(modo) {
+      document.documentElement.classList.remove("dsp-modo-a4v", "dsp-modo-a4h");
+      var css = modo === "a4v"
+        ? "@page{size:210mm 297mm;margin:0}"
+        : "@page{size:297mm 210mm;margin:0}";
+      var style = document.getElementById("dspPageSize");
+      if (!style) {
+        style = document.createElement("style");
+        style.id = "dspPageSize";
+        document.head.appendChild(style);
+      }
+      style.textContent = css;
+      document.documentElement.classList.add(modo === "a4v" ? "dsp-modo-a4v" : "dsp-modo-a4h");
+    }
+
+    function mountPrintSheet(modo, clones) {
+      var host = document.getElementById("dspPrintSheet");
+      if (!host) return;
+      host.className = "dsp-print-sheet " + (modo === "a4v" ? "dsp-print-sheet--a4v" : "dsp-print-sheet--a4h");
+      host.innerHTML = "";
+      clones.forEach(function (clone) {
+        var slot = document.createElement("div");
+        slot.className = "dsp-slot " + (modo === "a4v" ? "dsp-slot--a6" : "dsp-slot--a5");
+        slot.appendChild(clone);
+        host.appendChild(slot);
+      });
+    }
+
+    function whenImages(root, done) {
+      var imgs = root.querySelectorAll("img");
+      var left = 0;
+      var finished = false;
+      function finish() {
+        if (finished) return;
+        left -= 1;
+        if (left <= 0) {
+          finished = true;
+          done();
+        }
+      }
+      imgs.forEach(function (img) {
+        if (img.complete) return;
+        left += 1;
+        img.addEventListener("load", finish);
+        img.addEventListener("error", finish);
+      });
+      if (!left) done();
+      else setTimeout(function () {
+        if (!finished) {
+          finished = true;
+          done();
+        }
+      }, 1600);
+    }
+
+    function printChoicesNow(modo, choices) {
+      clearPrintMode();
+      var clones = clonesForChoices(choices);
+      armPrintMode(modo);
+      mountPrintSheet(modo, clones);
+      var host = document.getElementById("dspPrintSheet");
+      var started = false;
+      function go() {
+        if (started) return;
+        started = true;
+        window.print();
+      }
+      whenImages(host, function () {
+        requestAnimationFrame(function () {
+          requestAnimationFrame(go);
+        });
+      });
+    }
+
+    function slotLabels(modo) {
+      if (modo === "a4v") {
+        return ["Cima, esquerda", "Cima, direita", "Baixo, esquerda", "Baixo, direita"];
+      }
+      return ["Esquerda (em pé)", "Direita (em pé)"];
+    }
+
+    function selectedKeys() {
+      var keys = [];
+      printSlots.querySelectorAll("select").forEach(function (sel) {
+        keys.push(sel.value || "");
+      });
+      return keys;
+    }
+
+    function refreshPrintChoices() {
+      var opts = printChoiceList();
+      var keys = selectedKeys();
+      var used = {};
+      keys.forEach(function (k) { if (k) used[k] = (used[k] || 0) + 1; });
+      printSlots.querySelectorAll("select").forEach(function (sel) {
+        var cur = sel.value;
+        sel.innerHTML = "";
+        var blank = document.createElement("option");
+        blank.value = "";
+        blank.textContent = "Escolher…";
+        sel.appendChild(blank);
+        opts.forEach(function (op) {
+          var o = document.createElement("option");
+          o.value = op.value;
+          o.textContent = op.label;
+          if (op.value !== cur && used[op.value]) o.disabled = true;
+          sel.appendChild(o);
+        });
+        sel.value = cur;
+      });
+      var mapSlots = printMap.querySelectorAll("[data-map-i]");
+      var folhas = loadFolhas();
+      keys.forEach(function (k, i) {
+        var cell = mapSlots[i];
+        if (!cell) return;
+        cell.innerHTML = "";
+        var cap = document.createElement("span");
+        if (k === "__preview__") cap.textContent = "Prévia";
+        else if (k && folhas[k] && folhas[k].thumb) {
+          var img = document.createElement("img");
+          img.src = folhas[k].thumb;
+          img.alt = "";
+          cell.appendChild(img);
+          cap.textContent = k;
+        } else if (k) cap.textContent = k;
+        else cap.textContent = String(i + 1);
+        cell.appendChild(cap);
+      });
+      var dup = false;
+      var empty = false;
+      var seen = {};
+      keys.forEach(function (k) {
+        if (!k) empty = true;
+        else if (seen[k]) dup = true;
+        else seen[k] = true;
+      });
+      if (printWarn) {
+        if (dup) {
+          printWarn.hidden = false;
+          printWarn.textContent = "Cada espaço precisa de uma folha diferente.";
+        } else if (empty) {
+          printWarn.hidden = false;
+          printWarn.textContent = "Preencha todos os espaços com folhas diferentes.";
+        } else {
+          printWarn.hidden = true;
+          printWarn.textContent = "";
+        }
+      }
+      if (printGo) printGo.disabled = dup || empty;
+    }
+
+    function defaultKeys(n) {
+      var names = folhaNamesSorted();
+      var keys = [];
+      if (folhaActive && names.indexOf(folhaActive) >= 0) keys.push(folhaActive);
+      else keys.push("__preview__");
+      names.forEach(function (nme) {
+        if (keys.length >= n) return;
+        if (keys.indexOf(nme) >= 0) return;
+        keys.push(nme);
+      });
+      if (keys.indexOf("__preview__") < 0 && keys.length < n) keys.push("__preview__");
+      while (keys.length < n) keys.push("");
+      return keys.slice(0, n);
+    }
+
+    function openPrintModal(modo) {
+      var n = modo === "a4v" ? 4 : 2;
+      var opts = printChoiceList();
+      if (opts.length < n) {
+        window.alert(
+          "Para essa folha precisa de " + n + " impressos diferentes.\n" +
+          "Salve mais folhas em Prontas e volte aqui."
+        );
+        return;
+      }
+      printModo = modo;
+      if (printTitle) {
+        printTitle.textContent = modo === "a4v"
+          ? "A4 em pé · 4 cartões A6"
+          : "A4 deitada · 2 cartões A5";
+      }
+      if (printLead) {
+        printLead.textContent = modo === "a4v"
+          ? "Quatro cartões A6, em pé. Dois em cima e dois embaixo. Cada um uma folha diferente."
+          : "A folha sai deitada. Os dois cartões A5 ficam em pé, um ao lado do outro. Cada um uma folha diferente.";
+      }
+      var labels = slotLabels(modo);
+      var keys = defaultKeys(n);
+      printSlots.innerHTML = "";
+      printMap.innerHTML = "";
+      printMap.className = "dsp-print-map " + (modo === "a4v" ? "is-4" : "is-2");
+      labels.forEach(function (label, i) {
+        var cell = document.createElement("div");
+        cell.className = "dsp-print-map-cell";
+        cell.setAttribute("data-map-i", String(i));
+        printMap.appendChild(cell);
+        var row = document.createElement("label");
+        row.className = "dsp-print-pick";
+        var lab = document.createElement("span");
+        lab.textContent = label;
+        var sel = document.createElement("select");
+        sel.setAttribute("data-i", String(i));
+        sel.value = keys[i] || "";
+        sel.addEventListener("change", refreshPrintChoices);
+        row.appendChild(lab);
+        row.appendChild(sel);
+        printSlots.appendChild(row);
+        sel._want = keys[i] || "";
+      });
+      printSlots.querySelectorAll("select").forEach(function (sel) {
+        sel.value = "";
+      });
+      refreshPrintChoices();
+      printSlots.querySelectorAll("select").forEach(function (sel) {
+        var want = sel._want || "";
+        if (want) {
+          sel.value = want;
+        }
+      });
+      refreshPrintChoices();
+      if (printModal) printModal.hidden = false;
+    }
+
+    function closePrintModal() {
+      printModo = "";
+      if (printModal) printModal.hidden = true;
+    }
+
+    document.getElementById("dspPrint").addEventListener("click", function () {
+      clearPrintMode();
+      window.print();
+    });
+    document.getElementById("dspPrintA4v").addEventListener("click", function () { openPrintModal("a4v"); });
+    document.getElementById("dspPrintA4h").addEventListener("click", function () { openPrintModal("a4h"); });
+    document.getElementById("dspPrintCancel").addEventListener("click", closePrintModal);
+    printModal.addEventListener("click", function (ev) {
+      if (ev.target === printModal) closePrintModal();
+    });
+    document.getElementById("dspPrintGo").addEventListener("click", function () {
+      if (printGo.disabled) return;
+      var keys = selectedKeys();
+      var modo = printModo;
+      closePrintModal();
+      printChoicesNow(modo, keys);
+    });
+    window.addEventListener("afterprint", clearPrintMode);
     document.getElementById("dspReset").addEventListener("click", function () {
       catEl.value = "cao-adulto-pequeno";
       brandEl.value = "Robustus";
