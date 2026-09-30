@@ -1396,6 +1396,52 @@
     return aid;
   }
 
+  /** Códigos internos do casamento da NF — não fazem parte do nome do cadastro. */
+  var TIPOS_MATCH_NF = [
+    'vinculo_c_prod_rascunho',
+    'vinculo_c_prod_overlay',
+    'vinculo_c_prod',
+    'vinculo_desc',
+    'ean_overlay',
+    'ean_pg',
+    'codigo_overlay',
+    'codigo_pg',
+    'xml_vinculo_pre',
+    'compras',
+    'pg',
+  ];
+
+  function nomeCadastroSemTipoMatch(nome, matchTipo) {
+    var s = String(nome || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!s) return '';
+    var tipos = TIPOS_MATCH_NF.slice();
+    var mt = String(matchTipo || '').trim();
+    if (mt && tipos.indexOf(mt) < 0) tipos.push(mt);
+    tipos.sort(function (a, b) {
+      return b.length - a.length;
+    });
+    var mudou = true;
+    while (mudou && s) {
+      mudou = false;
+      for (var i = 0; i < tipos.length; i++) {
+        var t = tipos[i];
+        if (!t) continue;
+        var marca = '(' + t + ')';
+        var low = s.toLowerCase();
+        var alvo = marca.toLowerCase();
+        if (low.length < alvo.length || low.slice(low.length - alvo.length) !== alvo) continue;
+        var corte = s.length - marca.length;
+        if (corte > 0 && !/\s/.test(s.charAt(corte - 1))) continue;
+        s = s.slice(0, corte).replace(/\s+$/, '');
+        mudou = true;
+        break;
+      }
+    }
+    return s;
+  }
+
   global.AgroEtiquetasCore = {
     LS_KEY: LS_KEY,
     DEFAULT_PRESET: DEFAULT_PRESET,
@@ -1431,6 +1477,7 @@
     imprimirItens: imprimirItens,
     podeSilentPrint: podeSilentPrint,
     fillPresetSelect: fillPresetSelect,
+    nomeCadastroSemTipoMatch: nomeCadastroSemTipoMatch,
     valorBarcodeProduto: valorBarcodeProduto,
     extrairEanNumerico: extrairEanNumerico,
     ehCodigoBarrasLojaInterno: ehCodigoBarrasLojaInterno,
