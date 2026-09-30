@@ -25,6 +25,7 @@ from django.utils import timezone
 from produtos.caixa_util import (
     _agregar_resumo_turno_sessao,
     linha_eh_cartao_maquina,
+    linha_passa_na_maquininha,
     linhas_conferencia_fechar,
     resumo_cartao_entrega_dia_anterior,
     serializar_estado_conferencia_fechar,
@@ -102,8 +103,10 @@ class _Sessao:
 def main() -> int:
     check("cartão débito", linha_eh_cartao_maquina("Cartão de débito"))
     check("cartão MP", linha_eh_cartao_maquina("Cartão de crédito — Mercado Pago"))
-    check("pix fora", not linha_eh_cartao_maquina("PIX"))
-    check("dinheiro fora", not linha_eh_cartao_maquina("Dinheiro"))
+    check("pix fora do cartão", not linha_eh_cartao_maquina("PIX"))
+    check("pix entra na máquina", linha_passa_na_maquininha("PIX"))
+    check("pix MP entra na máquina", linha_passa_na_maquininha("Pix — Mercado Pago"))
+    check("dinheiro fora", not linha_eh_cartao_maquina("Dinheiro") and not linha_passa_na_maquininha("Dinheiro"))
 
     real_mp = pm.PdvMercadoPagoPointOrder
     pm.PdvMercadoPagoPointOrder = _Mgr
@@ -160,8 +163,12 @@ def main() -> int:
 
         pix = _Venda(4, [{"forma": "PIX", "valor": 30}], flag=True)
         esp_pix, _, _, _ = _agregar_resumo_turno_sessao(_Sessao([pix]))
-        check("pix continua no esperado", esp_pix.get("PIX") == Decimal("30.00"))
-        check("pix não gera aviso de cartão", resumo_cartao_entrega_dia_anterior([_Sessao([pix])]).get("tem") is False)
+        check("pix de outro dia fora do esperado", esp_pix.get("PIX", Decimal("0")) == 0)
+        av_pix = resumo_cartao_entrega_dia_anterior([_Sessao([pix])])
+        check("pix de outro dia gera aviso", av_pix.get("tem") is True and av_pix.get("valor") == "30.00")
+        pix_hoje = _Venda(41, [{"forma": "PIX", "valor": 12}], flag=False)
+        esp_pix_hoje, _, _, _ = _agregar_resumo_turno_sessao(_Sessao([pix_hoje]))
+        check("pix de hoje continua no esperado", esp_pix_hoje.get("PIX") == Decimal("12.00"))
 
         parc = _Venda(5, [{"forma": "Cartão de crédito parcelado", "valor": 80}], flag=True)
         esp_p, _, _, _ = _agregar_resumo_turno_sessao(_Sessao([parc]))
@@ -263,8 +270,8 @@ def main() -> int:
             ),
         )
         check(
-            "recusa pix",
-            not cartao_maquina_dia_anterior_aceito(
+            "aceita pix",
+            cartao_maquina_dia_anterior_aceito(
                 {"cartao_maquina_dia_anterior": True, "pedido_entrega_pendente_id": 9},
                 [{"forma": "PIX", "valor": 15}],
             ),
@@ -317,7 +324,7 @@ def main() -> int:
     views = (ROOT / "produtos/views.py").read_text(encoding="utf-8")
     mig = (ROOT / "produtos/migrations/0134_vendaagro_cartao_maquina_dia_anterior.py").read_text(encoding="utf-8")
     mig135 = (ROOT / "produtos/migrations/0135_vendaagro_cartao_maquina_dia.py").read_text(encoding="utf-8")
-    check("pdv pergunta o dia", "O cartão passou em qual dia?" in pagamento)
+    check("pdv pergunta o dia", "O cartão ou o Pix passou em qual dia?" in pagamento)
     check("botão passou hoje", 'id="pdv-cartao-dia-hoje"' in pagamento)
     check("botão passou ontem", 'id="pdv-cartao-dia-ontem"' in pagamento)
     check("botão outro dia", 'id="pdv-cartao-dia-outro"' in pagamento)

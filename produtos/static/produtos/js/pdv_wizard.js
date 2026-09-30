@@ -2148,7 +2148,7 @@
         var arr = (state && state.pagamento && state.pagamento.lancamentos) || [];
         for (var i = 0; i < arr.length; i++) {
             var f = String((arr[i] && arr[i].forma) || '').toLowerCase();
-            if (f.indexOf('cartão') >= 0 || f.indexOf('cartao') >= 0) return true;
+            if (f.indexOf('cartão') >= 0 || f.indexOf('cartao') >= 0 || f.indexOf('pix') >= 0) return true;
         }
         return false;
     }

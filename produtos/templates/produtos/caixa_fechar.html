@@ -1184,7 +1184,7 @@
           <p id="cf-aviso-reserva-vila" class="rounded-xl border-2 border-rose-600 bg-rose-50 px-3 py-2.5 text-sm sm:text-base font-black text-rose-950 leading-snug{% if not aviso_reserva_vila.tem %} hidden{% endif %}" role="alert">{{ aviso_reserva_vila.texto }}</p>
           <p id="cf-aviso-devolucao-dinheiro" class="rounded-xl border-2 border-amber-500 bg-amber-50 px-3 py-2.5 text-sm sm:text-base font-black text-amber-950 leading-snug{% if not aviso_devolucao_dinheiro.tem %} hidden{% endif %}" role="status">{{ aviso_devolucao_dinheiro.texto }}</p>
           <div id="cf-aviso-cartao-entrega-ontem" class="rounded-xl border-2 border-amber-600 bg-amber-50 px-3 py-3{% if not aviso_cartao_entrega_ontem.tem %} hidden{% endif %}" role="status">
-            <p class="text-[11px] font-black uppercase tracking-wide text-amber-900">Cartão que passou em outro dia</p>
+            <p class="text-[11px] font-black uppercase tracking-wide text-amber-900">Cartão ou Pix que passou em outro dia</p>
             <p class="mt-1 text-2xl font-black tabular-nums leading-none text-amber-950 sm:text-3xl">R$ <span id="cf-aviso-cartao-entrega-valor">{{ aviso_cartao_entrega_ontem.valor_br }}</span></p>
             <p id="cf-aviso-cartao-entrega-texto" class="mt-2 text-sm font-bold leading-snug text-amber-950">{{ aviso_cartao_entrega_ontem.texto }}</p>
           </div>
