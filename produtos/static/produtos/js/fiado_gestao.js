@@ -17,6 +17,7 @@
     cliModalMeta: document.getElementById('fiado-cli-modal-meta'),
     cliModalSaldo: document.getElementById('fiado-cli-modal-saldo'),
     cliPillDeve: document.getElementById('fiado-cli-pill-deve'),
+    cliPillDeveK: document.getElementById('fiado-cli-pill-deve-k'),
     cliPillDeveValor: document.getElementById('fiado-cli-pill-deve-valor'),
     cliPillLimite: document.getElementById('fiado-cli-pill-limite'),
     cliPillLimiteValor: document.getElementById('fiado-cli-pill-limite-valor'),
@@ -263,6 +264,7 @@
     if (el.cliPillLimiteValor) el.cliPillLimiteValor.textContent = fmtMoeda(limite);
     if (el.cliPillLivreValor) el.cliPillLivreValor.textContent = fmtMoeda(livre);
     if (el.cliPillDeve) el.cliPillDeve.classList.toggle('fiado-pill--atraso', !!cli.vencido);
+    if (el.cliPillDeveK) el.cliPillDeveK.textContent = cli.vencido ? 'Atrasado' : 'Em dia';
     if (el.cliPillLivre) el.cliPillLivre.classList.toggle('fiado-pill--zerado', livre <= 0);
   }
 
