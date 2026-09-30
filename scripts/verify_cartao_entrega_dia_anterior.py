@@ -25,7 +25,9 @@ from django.utils import timezone
 from produtos.caixa_util import (
     _agregar_resumo_turno_sessao,
     linha_eh_cartao_maquina,
+    linhas_conferencia_fechar,
     resumo_cartao_entrega_dia_anterior,
+    serializar_estado_conferencia_fechar,
 )
 from produtos.entrega_pdv_pendente_util import cartao_maquina_dia_anterior_aceito
 import produtos.entrega_pdv_pendente_util as eu
@@ -77,11 +79,21 @@ class _Venda:
         self.total = 0
 
 
+class _Mov:
+    def __init__(self, tipo, forma, valor, obs=""):
+        self.tipo = tipo
+        self.forma_pagamento = forma
+        self.valor = Decimal(str(valor))
+        self.observacao = obs
+
+
 class _Sessao:
-    def __init__(self, vendas):
+    def __init__(self, vendas, movimentos=None):
+        self.pk = 1
+        self.usuario_id = None
         self.valor_abertura = Decimal("100.00")
         self.vendas = _Rel(vendas)
-        self.movimentos = _Rel([])
+        self.movimentos = _Rel(movimentos or [])
 
 
 def main() -> int:
@@ -118,6 +130,73 @@ def main() -> int:
         check("aviso tem", av.get("tem") is True, str(av.get("valor")))
         check("aviso 40", av.get("valor") == "40.00")
         check("aviso some sem marca", resumo_cartao_entrega_dia_anterior([_Sessao([normal])]).get("tem") is False)
+
+        mp = _Venda(
+            3,
+            [
+                {
+                    "forma": "Cartão de débito",
+                    "valor": 55,
+                    "cobrarNoPointMp": True,
+                    "maquinaId": "mp_balcao",
+                }
+            ],
+            flag=True,
+        )
+        esp_mp, _, _, _ = _agregar_resumo_turno_sessao(_Sessao([mp]))
+        check(
+            "point ontem fora da linha MP",
+            esp_mp.get("Cartão de débito — Mercado Pago", Decimal("0")) == 0,
+        )
+        check(
+            "point ontem não cai no débito comum",
+            esp_mp.get("Cartão de débito", Decimal("0")) == 0,
+        )
+        av_mp = resumo_cartao_entrega_dia_anterior([_Sessao([mp])])
+        check("aviso point 55", av_mp.get("valor") == "55.00" and av_mp.get("tem") is True)
+
+        pix = _Venda(4, [{"forma": "PIX", "valor": 30}], flag=True)
+        esp_pix, _, _, _ = _agregar_resumo_turno_sessao(_Sessao([pix]))
+        check("pix continua no esperado", esp_pix.get("PIX") == Decimal("30.00"))
+        check("pix não gera aviso de cartão", resumo_cartao_entrega_dia_anterior([_Sessao([pix])]).get("tem") is False)
+
+        parc = _Venda(5, [{"forma": "Cartão de crédito parcelado", "valor": 80}], flag=True)
+        esp_p, _, _, _ = _agregar_resumo_turno_sessao(_Sessao([parc]))
+        check("parcelado ontem fora do crédito", esp_p.get("Cartão de crédito", Decimal("0")) == 0)
+        check("aviso parcelado 80", resumo_cartao_entrega_dia_anterior([_Sessao([parc])]).get("valor") == "80.00")
+
+        dev_card = _Mov("retirada", "Cartão de débito", 40, "Devolução venda #1")
+        esp_d, _, _, ret_d = _agregar_resumo_turno_sessao(_Sessao([venda], [dev_card]))
+        check("devolução do cartão de ontem não fura o esperado", esp_d.get("Cartão de débito", Decimal("0")) == 0)
+        check("devolução do cartão de ontem não entra em retirada", ret_d.get("Cartão de débito", Decimal("0")) == 0)
+        check("dinheiro da mesma venda segue", esp_d.get("Dinheiro") == Decimal("110.00"))
+
+        so_card = _Venda(7, [{"forma": "Cartão de crédito", "valor": 40}], flag=True)
+        dev_din = _Mov("retirada", "Dinheiro", 40, "Devolução venda #7")
+        esp_dd, _, _, _ = _agregar_resumo_turno_sessao(_Sessao([so_card], [dev_din]))
+        check(
+            "devolver em dinheiro hoje baixa a gaveta",
+            esp_dd.get("Dinheiro") == Decimal("60.00"),
+            str(esp_dd.get("Dinheiro")),
+        )
+        check("crédito de ontem continua fora", esp_dd.get("Cartão de crédito", Decimal("0")) == 0)
+
+        outra = _Venda(8, [{"forma": "Cartão de débito", "valor": 15}], flag=True)
+        av2 = resumo_cartao_entrega_dia_anterior([_Sessao([venda, outra])])
+        check("duas entregas somam 55", av2.get("valor") == "55.00" and av2.get("qtd") == 2)
+
+        venda.devolvida_em = timezone.now()
+        check(
+            "venda devolvida some do aviso",
+            resumo_cartao_entrega_dia_anterior([_Sessao([venda])]).get("tem") is False,
+        )
+        venda.devolvida_em = None
+
+        linhas = linhas_conferencia_fechar(_Sessao([venda]))
+        card_linhas = [L for L in linhas if str(L["forma"]).lower().startswith("cart")]
+        check("fechar não lista cartão zerado", card_linhas == [])
+        estado = serializar_estado_conferencia_fechar([_Sessao([venda])], deposito="centro")
+        check("json do fechar traz o aviso", (estado.get("aviso_cartao_entrega_ontem") or {}).get("tem") is True)
     finally:
         pm.PdvMercadoPagoPointOrder = real_mp
 
@@ -156,6 +235,36 @@ def main() -> int:
                 [{"forma": "PIX", "valor": 15}],
             ),
         )
+        check(
+            "aceita texto ontem",
+            cartao_maquina_dia_anterior_aceito(
+                {"cartao_maquina_dia_anterior": "ontem", "pedido_entrega_pendente_id": 9},
+                pag,
+            ),
+        )
+        check(
+            "aceita crédito",
+            cartao_maquina_dia_anterior_aceito(
+                {"cartao_maquina_dia_anterior": True, "pedido_entrega_pendente_id": 9},
+                [{"forma": "Cartão de crédito", "valor": 15}],
+            ),
+        )
+        check(
+            "recusa sem entrega",
+            not cartao_maquina_dia_anterior_aceito(
+                {"cartao_maquina_dia_anterior": True},
+                pag,
+            ),
+        )
+        _Filtro.first = lambda self: None
+        check(
+            "recusa entrega inexistente",
+            not cartao_maquina_dia_anterior_aceito(
+                {"cartao_maquina_dia_anterior": True, "pedido_entrega_pendente_id": 9},
+                pag,
+            ),
+        )
+        _Filtro.first = lambda self: _Ent()
         _Ent.criado_em = timezone.now()
         check(
             "recusa mesmo dia",
@@ -168,10 +277,22 @@ def main() -> int:
         eu.PedidoEntrega.objects.filter = real_filter
 
     wizard = (ROOT / "produtos/static/produtos/js/pdv_wizard.js").read_text(encoding="utf-8")
+    state_js = (ROOT / "produtos/static/produtos/js/pdv_state.js").read_text(encoding="utf-8")
     caixa = (ROOT / "produtos/templates/produtos/caixa_fechar.html").read_text(encoding="utf-8")
-    check("pdv pergunta o dia", "O cartão passou em qual dia?" in (ROOT / "produtos/templates/produtos/partials/pdv/step_pagamento.html").read_text(encoding="utf-8"))
-    check("payload ontem", "cartao_maquina_dia_anterior" in wizard)
-    check("fechar caixa linha", "cf-aviso-cartao-entrega-ontem" in caixa)
+    pagamento = (ROOT / "produtos/templates/produtos/partials/pdv/step_pagamento.html").read_text(encoding="utf-8")
+    views = (ROOT / "produtos/views.py").read_text(encoding="utf-8")
+    mig = (ROOT / "produtos/migrations/0134_vendaagro_cartao_maquina_dia_anterior.py").read_text(encoding="utf-8")
+    check("pdv pergunta o dia", "O cartão passou em qual dia?" in pagamento)
+    check("botão passou hoje", 'id="pdv-cartao-dia-hoje"' in pagamento)
+    check("botão passou ontem", 'id="pdv-cartao-dia-ontem"' in pagamento)
+    check("payload só ontem", "entregaCartaoDiaEscolha(state) === 'ontem'" in wizard)
+    check("trava sem escolha", wizard.count("entregaPrecisaEscolhaCartaoDia() && !entregaCartaoDiaEscolha()") >= 2)
+    check("retomar manda o dia", "criadoEm: ent.criado_em" in wizard)
+    check("state guarda lancadaEm", "lancadaEm:" in state_js)
+    check("fechar caixa faixa", "cf-aviso-cartao-entrega-ontem" in caixa)
+    check("fechar atualiza sozinho", "aplicarAvisoCartaoEntregaOntem" in caixa)
+    check("grava na venda", "cartao_maquina_dia_anterior=cartao_ontem" in views)
+    check("migrate 0134", "cartao_maquina_dia_anterior" in mig and "0133_pedido_entrega_data_prevista" in mig)
 
     print(f"\n{len(oks)} ok, {len(fails)} falha(s)")
     return 1 if fails else 0
