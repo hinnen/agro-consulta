@@ -20,19 +20,24 @@ from django.contrib.auth import get_user_model
 from django.test import Client
 
 from produtos.cliente_planilha_util import (
+    COL_FIADO_USADO,
     COL_ID,
     COL_LIMITE_FIADO,
     COL_MEDIA_FIADO_3M,
     COL_MES_MAIS_FIADO,
     COL_NOME,
+    COL_QTD_FIADO_3M,
+    COL_VALOR_MES_ANTERIOR,
+    COL_VALOR_MES_MAIS,
     EXPORT_ONLY,
     IMPORT_EDIT_KEYS,
+    _label_mes,
     aplicar_importacao_clientes,
     coletar_linhas_export_clientes,
     montar_xlsx_clientes,
     preview_importacao_clientes,
 )
-from produtos.models import ClienteAgro
+from produtos.models import ClienteAgro, VendaAgro
 
 fails: list[str] = []
 oks: list[str] = []
@@ -66,6 +71,8 @@ def test_arquivos() -> None:
     check("col_media_3m", COL_MEDIA_FIADO_3M in util)
     check("col_mes_mais", COL_MES_MAIS_FIADO in util)
     check("export_only_fiado", COL_MEDIA_FIADO_3M in EXPORT_ONLY and COL_MES_MAIS_FIADO in EXPORT_ONLY)
+    check("valores_so_leitura", COL_VALOR_MES_MAIS in EXPORT_ONLY and COL_VALOR_MES_ANTERIOR in EXPORT_ONLY)
+    check("valores_nao_editaveis", COL_VALOR_MES_MAIS not in IMPORT_EDIT_KEYS and COL_VALOR_MES_ANTERIOR not in IMPORT_EDIT_KEYS)
     check("limite_editavel", COL_LIMITE_FIADO in IMPORT_EDIT_KEYS)
     check("aba_como_usar", '"Como usar"' in util or "'Como usar'" in util)
 
@@ -96,6 +103,74 @@ def test_export_xlsx_bytes() -> None:
     check("aba_instr", "Como usar" in wb.sheetnames)
     wb.close()
     tmp.unlink(missing_ok=True)
+
+
+def test_valores_mes() -> None:
+    """Mês com mais compras = contagem. Valor = soma desse mês. Mês anterior = calendário local."""
+    print("== Valores de mês ==")
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+
+    from django.utils import timezone
+
+    tz = ZoneInfo("America/Sao_Paulo")
+    hoje = timezone.localdate()
+    ant = hoje.replace(day=1) - timedelta(days=1)
+    cli = ClienteAgro.objects.create(nome="ZZ Prova Mes Valor", limite_fiado_local=Decimal("0"))
+    pks: list[int] = []
+    try:
+        def _venda(quando: datetime, valor: str, *, fiado: bool = True, devolvida=None) -> None:
+            v = VendaAgro.objects.create(
+                cliente_nome=cli.nome,
+                cliente_id_erp=f"agro:{cli.pk}",
+                total=Decimal(valor),
+                forma_pagamento="Fiado" if fiado else "Dinheiro",
+                pagamentos_json=[{"formaPagamento": "Fiado" if fiado else "Dinheiro", "valorPagamento": valor}],
+            )
+            VendaAgro.objects.filter(pk=v.pk).update(criado_em=quando, devolvida_em=devolvida)
+            pks.append(v.pk)
+
+        # 23h30 do último dia do mês passado = dia seguinte em UTC. Tem que cair no mês passado.
+        _venda(datetime(ant.year, ant.month, ant.day, 23, 30, tzinfo=tz), "300.00")
+        _venda(datetime(hoje.year, hoje.month, hoje.day, 10, 0, tzinfo=tz), "10.00")
+        _venda(datetime(hoje.year, hoje.month, hoje.day, 11, 0, tzinfo=tz), "20.00")
+        _venda(datetime(hoje.year, hoje.month, hoje.day, 12, 0, tzinfo=tz), "999.00", fiado=False)
+        _venda(
+            datetime(hoje.year, hoje.month, hoje.day, 13, 0, tzinfo=tz),
+            "500.00",
+            devolvida=timezone.now(),
+        )
+
+        rows = coletar_linhas_export_clientes()
+        row = next(r for r in rows if r[COL_ID] == cli.pk)
+        check("qtd_so_fiado", row[COL_QTD_FIADO_3M] == 3, str(row[COL_QTD_FIADO_3M]))
+        check("mes_e_o_atual", row[COL_MES_MAIS_FIADO] == _label_mes(hoje.year, hoje.month), row[COL_MES_MAIS_FIADO])
+        check("valor_do_mes_campeao", abs(float(row[COL_VALOR_MES_MAIS]) - 30.0) < 0.001, str(row[COL_VALOR_MES_MAIS]))
+        check("valor_mes_anterior", abs(float(row[COL_VALOR_MES_ANTERIOR]) - 300.0) < 0.001, str(row[COL_VALOR_MES_ANTERIOR]))
+        check("aberto_nao_mexe", abs(float(row[COL_FIADO_USADO]) - 0.0) < 0.001, str(row[COL_FIADO_USADO]))
+
+        row[COL_VALOR_MES_MAIS] = 99999
+        row[COL_VALOR_MES_ANTERIOR] = 1
+        data = montar_xlsx_clientes([row])
+        tmp = Path(tempfile.mkdtemp()) / "mes.xlsx"
+        tmp.write_bytes(data)
+        from openpyxl import load_workbook
+
+        wb = load_workbook(tmp)
+        ws = wb["Clientes"]
+        hdrs = [ws.cell(1, c).value for c in range(1, 30)]
+        i_mes = hdrs.index("Valor do mês que mais comprou") + 1
+        i_ant = hdrs.index("Valor mês anterior") + 1
+        check("cinza_valor_mes", (ws.cell(1, i_mes).fill.fgColor.rgb or "").endswith("F1F5F9"))
+        check("cinza_valor_ant", (ws.cell(1, i_ant).fill.fgColor.rgb or "").endswith("F1F5F9"))
+        wb.close()
+        prev = preview_importacao_clientes(tmp)
+        campos = [c.get("campo") for a in prev.get("alteracoes", []) for c in a.get("campos", [])]
+        check("import_ignora_valores", COL_VALOR_MES_MAIS not in campos and COL_VALOR_MES_ANTERIOR not in campos, str(campos))
+        tmp.unlink(missing_ok=True)
+    finally:
+        VendaAgro.objects.filter(pk__in=pks).delete()
+        cli.delete()
 
 
 def test_import_roundtrip() -> None:
@@ -161,6 +236,7 @@ def test_http_endpoints() -> None:
 def main() -> int:
     test_arquivos()
     test_export_xlsx_bytes()
+    test_valores_mes()
     test_import_roundtrip()
     test_http_endpoints()
     print(f"\n== {len(oks)} OK · {len(fails)} FAIL ==")

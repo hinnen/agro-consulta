@@ -263,6 +263,15 @@ def _label_mes(ano: int, mes: int) -> str:
     return f"{mes:02d}/{ano}"
 
 
+def _data_local(dt) -> date:
+    """Dia da loja (Jacupiranga), não o dia em UTC."""
+    if dt is None:
+        return timezone.localdate()
+    if timezone.is_aware(dt):
+        return timezone.localtime(dt).date()
+    return dt.date()
+
+
 def _fiado_stats_3m_por_cliente() -> dict[int, dict[str, Any]]:
     """Compras fiado por venda nos últimos ~3 meses (90 dias)."""
     hoje = timezone.localdate()
@@ -282,7 +291,7 @@ def _fiado_stats_3m_por_cliente() -> dict[int, dict[str, Any]]:
             agro_pk = cliente_agro_pk_de_ref(venda.cliente_id_erp)
         if not agro_pk or not venda.criado_em:
             continue
-        por_cliente[int(agro_pk)].append((venda.criado_em.date(), valor.quantize(Decimal("0.01"))))
+        por_cliente[int(agro_pk)].append((_data_local(venda.criado_em), valor.quantize(Decimal("0.01"))))
 
     titulos = (
         FiadoTituloAgro.objects.filter(venda_agro_id__isnull=True, criado_em__date__gte=desde)
@@ -295,7 +304,7 @@ def _fiado_stats_3m_por_cliente() -> dict[int, dict[str, Any]]:
             continue
         doc = (t.numero_documento or t.chave_unica or f"t{t.pk}").strip()
         key = (int(t.cliente_agro_id), doc)
-        dt = t.criado_em.date() if t.criado_em else hoje
+        dt = _data_local(t.criado_em) if t.criado_em else hoje
         val = _parse_decimal_br(t.valor_bruto) or Decimal("0")
         if key in agrupado:
             prev_dt, prev_val = agrupado[key]

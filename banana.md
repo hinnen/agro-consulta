@@ -1296,14 +1296,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | No Excel ↓ de Clientes, duas colunas só leitura: **Valor do mês que mais comprou** e **Valor mês anterior**. Não mexe no saldo em aberto. |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** — teste **v25.61** — só frase + senha |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.62** — prova **42/42** — só frase + senha |
 | **Você** | Clientes → Excel ↓ · colunas ao lado de «Mês que mais comprou» |
 
 ### PACOTE PRONTO — limite no card de Saldos do PDV (`PDV-FIADO-LIMITE-CARD`)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | No card Saldos, a linha do fiado tem dois botões separados: **Deve** (laranja, abre o fiado) e **Limite** (azul, popup digitar ou +/− R$ 100). Só grava com PIN do Geraldo, Geraldinho ou Renan. Atraso deixa o botão Deve vermelho. |
+| **O quê** | No card Saldos e dentro de cada cliente do fiado: **Deve** (laranja) e **Limite** (azul). O limite abre popup (digitar ou +/− R$ 100) e só grava com PIN do Geraldo, Geraldinho ou Renan. Atraso deixa o Deve vermelho. |
 | **Prova** | `scripts/verify_pdv_fiado_limite_card_path.py` **27/27** |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
