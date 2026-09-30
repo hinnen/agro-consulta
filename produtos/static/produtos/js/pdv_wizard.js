@@ -3426,6 +3426,9 @@
         if (dom.productFiadoBalance) {
             dom.productFiadoBalance.classList.toggle('pdv-fiado-usado--atraso', atrasado);
         }
+        if (dom.fiadoGestaoOpen) {
+            dom.fiadoGestaoOpen.classList.toggle('pdv-fiado-usado--atraso', atrasado);
+        }
         if (dom.topbarFiadoLink) {
             dom.topbarFiadoLink.href = buildFiadoGestaoUrl(state);
         }

@@ -951,36 +951,72 @@
     color: #0369a1;
   }
   #pdv-step1-side .pdv-fiado-duo {
-    gap: 0.15rem;
+    gap: 0.28rem;
     padding: 0;
+    align-items: stretch;
   }
-  #pdv-step1-side .pdv-fiado-duo-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
+  #pdv-step1-side .pdv-fiado-duo-rotulo {
+    flex: 0 0 auto;
+    align-self: center;
+    font-size: 11px;
+  }
+  #pdv-step1-side .pdv-fiado-pill {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
     min-width: 0;
-    min-height: 1.7rem;
-    border: 0;
-    background: transparent;
-    padding: 0.15rem 0.2rem;
+    margin: 0;
+    border-width: 2px;
+    border-style: solid;
+    border-radius: 0.45rem;
+    padding: 0.12rem 0.32rem 0.16rem;
     font: inherit;
     letter-spacing: inherit;
     text-transform: inherit;
-    color: inherit;
+    line-height: 1.05;
     cursor: pointer;
   }
-  #pdv-step1-side .pdv-fiado-duo-usado {
-    flex: 1 1 auto;
-    justify-content: space-between;
-  }
-  #pdv-step1-side .pdv-fiado-duo-limite {
-    flex: 0 0 auto;
-  }
-  #pdv-step1-side .pdv-fiado-limite-sep {
-    flex: 0 0 auto;
-    color: #94a3b8;
+  #pdv-step1-side .pdv-fiado-pill-k {
+    font-size: 8px;
     font-weight: 900;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    text-transform: uppercase;
   }
+  #pdv-step1-side .pdv-fiado-pill .pdv-side-money {
+    font-size: 12px;
+  }
+  #pdv-step1-side .pdv-fiado-pill--deve {
+    border-color: #fb923c;
+    background: #fff7ed;
+    color: #9a3412;
+  }
+  #pdv-step1-side .pdv-fiado-pill--deve .pdv-side-money {
+    color: #c2410c;
+  }
+  #pdv-step1-side .pdv-fiado-pill--deve:hover {
+    background: #ffedd5;
+  }
+  #pdv-step1-side .pdv-fiado-pill--limite {
+    border-color: #38bdf8;
+    background: #f0f9ff;
+    color: #075985;
+  }
+  #pdv-step1-side .pdv-fiado-pill--limite .pdv-side-money {
+    color: #0369a1;
+  }
+  #pdv-step1-side .pdv-fiado-pill--limite:hover {
+    background: #e0f2fe;
+  }
+  #pdv-step1-side .pdv-fiado-pill--deve.pdv-fiado-usado--atraso,
+  #pdv-step1-side #pdv-product-fiado-balance.pdv-fiado-usado--atraso {
+    color: #b91c1c;
+    border-color: #f87171;
+    background: #fef2f2;
+  }
+  #pdv-step1-side .pdv-fiado-pill--deve.pdv-fiado-usado--atraso .pdv-side-money,
   #pdv-step1-side #pdv-product-fiado-balance.pdv-fiado-usado--atraso {
     color: #b91c1c;
   }
