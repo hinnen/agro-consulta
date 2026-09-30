@@ -22,6 +22,8 @@
           <button type="submit" class="text-xs font-black uppercase px-4 py-2.5 rounded-xl bg-sky-600 text-white hover:bg-sky-700" title="Última vez: lê Mongo e API ERP. Alterações no Agro não voltam ao ERP.">Última importação ERP</button>
         </form>
         {% endif %}
+        <button type="button" id="clientes-btn-export-xlsx" class="text-xs font-black uppercase px-4 py-2.5 rounded-xl bg-amber-500 text-white hover:bg-amber-600" title="Baixa Excel com todos os clientes e médias de fiado">Excel ↓</button>
+        <button type="button" id="clientes-btn-import-xlsx" class="text-xs font-black uppercase px-4 py-2.5 rounded-xl bg-violet-600 text-white hover:bg-violet-700" title="Sobe planilha editada (prévia antes de gravar)">Excel ↑</button>
         <a href="{% url 'cliente_novo' %}" class="text-xs font-black uppercase px-4 py-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700">Novo</a>
         {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-slate-200 bg-white text-slate-800 shadow-sm hover:border-emerald-500 hover:text-emerald-900 hover:bg-emerald-50/80 transition-colors shrink-0" %}
       </div>
@@ -76,6 +78,131 @@
       {% endfor %}
     </div>
   </main>
+
+  <div id="clientes-import-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50">
+    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-5 space-y-4 border border-slate-200">
+      <h2 class="text-sm font-black uppercase text-slate-900">Excel ↑ — importar clientes</h2>
+      <p class="text-xs text-slate-600 font-semibold leading-relaxed">Escolha a planilha editada. O sistema mostra uma <strong>prévia</strong> — só grava depois de confirmar.</p>
+      <input type="file" id="clientes-import-arquivo" accept=".xlsx,.xls,.csv" class="block w-full text-sm font-semibold">
+      <div id="clientes-import-status" class="hidden text-xs font-bold rounded-xl px-3 py-2"></div>
+      <pre id="clientes-import-previa" class="hidden text-[11px] bg-slate-50 border border-slate-200 rounded-xl p-3 max-h-48 overflow-auto whitespace-pre-wrap font-mono"></pre>
+      <div class="flex flex-wrap gap-2 justify-end">
+        <button type="button" id="clientes-import-fechar" class="text-xs font-black uppercase px-4 py-2 rounded-xl border-2 border-slate-200">Fechar</button>
+        <button type="button" id="clientes-import-previa-btn" class="text-xs font-black uppercase px-4 py-2 rounded-xl bg-sky-600 text-white">Ver prévia</button>
+        <button type="button" id="clientes-import-confirmar" class="hidden text-xs font-black uppercase px-4 py-2 rounded-xl bg-emerald-600 text-white">Confirmar gravação</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var exportUrl = "{% url 'api_clientes_export_xlsx' %}";
+      var previewUrl = "{% url 'api_clientes_import_preview' %}";
+      var aplicarUrl = "{% url 'api_clientes_import_aplicar' %}";
+      var csrf = "{{ csrf_token }}";
+      var modal = document.getElementById('clientes-import-modal');
+      var arquivo = document.getElementById('clientes-import-arquivo');
+      var statusEl = document.getElementById('clientes-import-status');
+      var previaEl = document.getElementById('clientes-import-previa');
+      var btnConfirmar = document.getElementById('clientes-import-confirmar');
+
+      document.getElementById('clientes-btn-export-xlsx')?.addEventListener('click', function () {
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
+        window.location.href = exportUrl;
+      });
+
+      function abrirModal() {
+        modal.classList.remove('hidden');
+        statusEl.classList.add('hidden');
+        previaEl.classList.add('hidden');
+        btnConfirmar.classList.add('hidden');
+        arquivo.value = '';
+      }
+      function fecharModal() { modal.classList.add('hidden'); }
+
+      document.getElementById('clientes-btn-import-xlsx')?.addEventListener('click', abrirModal);
+      document.getElementById('clientes-import-fechar')?.addEventListener('click', fecharModal);
+
+      function mostrarStatus(msg, ok) {
+        statusEl.textContent = msg;
+        statusEl.className = 'text-xs font-bold rounded-xl px-3 py-2 ' + (ok ? 'bg-emerald-50 text-emerald-900 border border-emerald-200' : 'bg-red-50 text-red-900 border border-red-200');
+        statusEl.classList.remove('hidden');
+      }
+
+      function resumirPrevia(data) {
+        var linhas = [];
+        linhas.push('Alterações: ' + (data.n_alteracoes || 0));
+        linhas.push('Ignoradas: ' + (data.n_ignoradas || 0));
+        linhas.push('Erros: ' + (data.n_erros || 0));
+        (data.alteracoes || []).slice(0, 25).forEach(function (a) {
+          linhas.push('');
+          linhas.push('Linha ' + a.linha + ' — ' + (a.nome || '') + ' (ID ' + a.id + ')');
+          (a.campos || []).forEach(function (c) {
+            linhas.push('  · ' + c.campo + ': «' + c.de + '» → «' + c.para + '»');
+          });
+        });
+        if ((data.alteracoes || []).length > 25) linhas.push('… e mais linhas.');
+        return linhas.join('\n');
+      }
+
+      document.getElementById('clientes-import-previa-btn')?.addEventListener('click', function () {
+        if (!arquivo.files || !arquivo.files[0]) {
+          mostrarStatus('Escolha um arquivo primeiro.', false);
+          return;
+        }
+        var fd = new FormData();
+        fd.append('arquivo', arquivo.files[0]);
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
+        fetch(previewUrl, { method: 'POST', body: fd, headers: { 'X-CSRFToken': csrf }, credentials: 'same-origin' })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (window.gmLoadingBar) window.gmLoadingBar.hide();
+            if (!data.ok) {
+              mostrarStatus(data.erro || 'Falha na prévia.', false);
+              btnConfirmar.classList.add('hidden');
+              return;
+            }
+            previaEl.textContent = resumirPrevia(data);
+            previaEl.classList.remove('hidden');
+            if (data.n_alteracoes > 0) {
+              mostrarStatus('Prévia OK — ' + data.n_alteracoes + ' cliente(s) serão alterados.', true);
+              btnConfirmar.classList.remove('hidden');
+            } else {
+              mostrarStatus('Nada para gravar.', false);
+              btnConfirmar.classList.add('hidden');
+            }
+          })
+          .catch(function () {
+            if (window.gmLoadingBar) window.gmLoadingBar.hide();
+            mostrarStatus('Erro de rede.', false);
+          });
+      });
+
+      btnConfirmar?.addEventListener('click', function () {
+        if (!arquivo.files || !arquivo.files[0]) return;
+        if (!confirm('Gravar as alterações no cadastro de clientes?')) return;
+        var fd = new FormData();
+        fd.append('arquivo', arquivo.files[0]);
+        fd.append('nome_arquivo', arquivo.files[0].name || 'clientes.xlsx');
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
+        fetch(aplicarUrl, { method: 'POST', body: fd, headers: { 'X-CSRFToken': csrf }, credentials: 'same-origin' })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (window.gmLoadingBar) window.gmLoadingBar.hide();
+            if (!data.ok) {
+              mostrarStatus(data.erro || 'Falha ao gravar.', false);
+              return;
+            }
+            alert('Gravado: ' + (data.clientes_alterados || 0) + ' cliente(s).');
+            window.location.reload();
+          })
+          .catch(function () {
+            if (window.gmLoadingBar) window.gmLoadingBar.hide();
+            mostrarStatus('Erro de rede ao gravar.', false);
+          });
+      });
+    })();
+  </script>
   <script>
     document.addEventListener('keydown', function (e) {
       if (e.key !== '/') return;
