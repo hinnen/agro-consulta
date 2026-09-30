@@ -8,7 +8,7 @@ from produtos.models import DispenserDocumentoAgro, DispenserMidiaAgro
 MAX_B64 = 1_700_000
 MAX_THUMB_B64 = 400_000
 MAX_POR_TIPO = {
-    DispenserMidiaAgro.TIPO_LOGO: 72,
+    DispenserMidiaAgro.TIPO_LOGO: 24,
     DispenserMidiaAgro.TIPO_PET: 24,
     DispenserMidiaAgro.TIPO_ING: 24,
     DispenserMidiaAgro.TIPO_FLAVOR_ICO: 80,
