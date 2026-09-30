@@ -25461,6 +25461,9 @@ def api_produtos_cadastro_faceta_nova(request):
     tipo = str(payload.get("tipo") or "").strip().lower()
     valor = str(payload.get("valor") or "").strip()[:200]
     pin = str(payload.get("pin") or "").strip()
+    usar_sessao = bool(payload.get("usar_sessao"))
+    tela_gestao = bool(payload.get("tela_gestao"))
+    gestao_nonce_out = ""
     mapa = {
         "marca": "Nova marca",
         "fornecedor": "Novo fornecedor",
@@ -25474,13 +25477,32 @@ def api_produtos_cadastro_faceta_nova(request):
     if len(valor) < min_len:
         return JsonResponse({"ok": False, "erro": "Informe o nome."}, status=400)
 
-    ok_pin, err_pin = validar_pin_operador(pin)
-    if not ok_pin:
-        return JsonResponse({"ok": False, "erro": err_pin or "PIN incorreto."}, status=403)
+    if usar_sessao and not pin:
+        if not request.session.get("gestao_pin_liberado"):
+            return JsonResponse(
+                {"ok": False, "erro": "Identifique-se com o PIN (modo descanso) antes de continuar."},
+                status=403,
+            )
+        operador = str(request.session.get("pdv_operador_nome") or "").strip()
+        if not operador:
+            return JsonResponse(
+                {"ok": False, "erro": "Identifique-se com o PIN (modo descanso) antes de continuar."},
+                status=403,
+            )
+    else:
+        ok_pin, err_pin = validar_pin_operador(pin)
+        if not ok_pin:
+            return JsonResponse({"ok": False, "erro": err_pin or "PIN incorreto."}, status=403)
+        operador = rotulo_operador_pin(pin) or ""
+        if tela_gestao and operador:
+            import time
+
+            gestao_nonce_out = str(int(time.time() * 1000))
+            request.session["gestao_pin_nonce"] = gestao_nonce_out
+            request.session["gestao_pin_liberado"] = True
+            request.session.modified = True
 
     from produtos.models import ProdutoCadastroAlteracaoAgro
-
-    operador = rotulo_operador_pin(pin) or ""
     try:
         ProdutoCadastroAlteracaoAgro.objects.create(
             produto_externo_id="__faceta__",
@@ -25501,7 +25523,15 @@ def api_produtos_cadastro_faceta_nova(request):
     except Exception:
         pass
 
-    return JsonResponse({"ok": True, "valor": valor, "tipo": tipo, "operador": operador})
+    return JsonResponse(
+        {
+            "ok": True,
+            "valor": valor,
+            "tipo": tipo,
+            "operador": operador,
+            "gestao_nonce": gestao_nonce_out,
+        }
+    )
 
 
 @login_required(login_url="/entrar/")
@@ -27087,7 +27117,19 @@ def api_login_mobile(request):
         from produtos.pdv_transf_loja_util import gravar_operador_sessao_pdv
 
         gravar_operador_sessao_pdv(request, pin)
-    return JsonResponse({"ok": True, "operador": operador})
+    if origem == "gestao":
+        nonce = str(request.POST.get("gestao_nonce") or "").strip()[:40]
+        if nonce:
+            request.session["gestao_pin_nonce"] = nonce
+            request.session["gestao_pin_liberado"] = True
+            request.session.modified = True
+    return JsonResponse(
+        {
+            "ok": True,
+            "operador": operador,
+            "gestao_nonce": str(request.session.get("gestao_pin_nonce") or ""),
+        }
+    )
 
 
 @require_http_methods(["GET", "POST"])
@@ -27210,6 +27252,15 @@ def api_pdv_registrar_operador(request):
         data = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
         data = {}
+    if data.get("gestao_limpar"):
+        nonce = str(data.get("gestao_nonce") or "").strip()
+        atual = str(request.session.get("gestao_pin_nonce") or "")
+        if nonce and atual and nonce == atual:
+            request.session.pop("gestao_pin_liberado", None)
+            request.session.pop("gestao_pin_nonce", None)
+            request.session.modified = True
+        return JsonResponse({"ok": True})
+
     pin = str(data.get("pin") or "").strip()
     op_req = str(data.get("operador") or data.get("operador_pdv") or "").strip()
     renovar = bool(data.get("renovar") or data.get("touch"))

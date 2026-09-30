@@ -588,7 +588,7 @@
   })();
   </script>
   <script src="{% static 'produtos/js/cadastro_erp_shared.js' %}?v=6"></script>
-  <script src="{% static 'produtos/js/agro_picklist.js' %}?v=1"></script>
+  <script src="{% static 'produtos/js/agro_picklist.js' %}?v=2"></script>
 
   {% include "produtos/_modal_editar_produto_cadastro_erp.inc.html" %}
 
@@ -757,6 +757,6 @@
   <script src="{% static 'produtos/js/agro_busca_catalogo.js' %}?v=2"></script>
   <script src="{% static 'produtos/js/cadastro_erp_panel.js' %}?v=29"></script>
   <script src="{% static 'produtos/js/cadastro_erp_grupos.js' %}?v=4"></script>
-{% include "produtos/_screensaver_pin.html" %}
+{% include "produtos/_screensaver_pin.html" with sspin_idle_min=5 sspin_gestao=1 %}
 </body>
 </html>
