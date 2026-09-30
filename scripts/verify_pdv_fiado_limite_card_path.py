@@ -45,10 +45,14 @@ def test_arquivos() -> None:
     check("card_fiado", 'id="pdv-fiado-gestao-open"' in html_side and ">Fiado<" in html_side)
     check("card_limite", 'id="pdv-fiado-limite-open"' in html_side)
     check("card_dois_valores", "pdv-product-fiado-balance" in html_side and "pdv-product-fiado-limite" in html_side)
+    check("card_em_dia", 'id="pdv-product-fiado-situacao"' in html_side and ">Em dia<" in html_side)
     check("modal", 'id="pdv-fiado-limite-modal"' in html)
     check("botoes", 'id="pdv-fiado-limite-menos"' in html and 'id="pdv-fiado-limite-mais"' in html)
     check("campo", 'id="pdv-fiado-limite-input"' in html)
-    check("css_atraso", "pdv-fiado-usado--atraso" in html)
+    check("css_atraso", "pdv-fiado-usado--atraso" in html and "#b91c1c" in html)
+    deve_css = html.split(".pdv-fiado-pill--deve {", 1)[-1].split("}", 1)[0]
+    check("css_em_dia_azul", "#38bdf8" in deve_css and "#fb923c" not in deve_css)
+    check("js_situacao", "Atrasado" in js and "Em dia" in js and "pdv-product-fiado-situacao" in js)
     check("js_passo", "FIADO_LIMITE_PASSO = 100" in js)
     check("js_abre", "function openFiadoLimiteModal" in js)
     check("js_grava", "function gravarLimiteFiadoPdv" in js)
@@ -63,6 +67,14 @@ def test_arquivos() -> None:
     check("cli_par", "fiado-cli-par" in fiado_html and "fiado-cli-pill-limite" in fiado_html and "fiado-cli-pill-livre" in fiado_html)
     check("cli_popup", "fiado-modal-limite-cli" in fiado_html and "limitePdv" in fiado_html)
     check("cli_js", "function gravarLimiteCliente" in fiado_js and "function pintarParCliente" in fiado_js)
+    check("cli_em_dia", "fiado-cli-pill-deve-k" in fiado_html and ">Em dia<" in fiado_html)
+    check("cli_livre", "Limite livre" in fiado_html and "fiado-pill--livre" in fiado_html)
+    check("cli_sem_seta", "fiado-cli-seta" not in fiado_html and "fiado-cli-modal-saldo" not in fiado_html)
+    check("cli_livre_calc", "limite - usado" in fiado_js and "Atrasado" in fiado_js)
+    check(
+        "cli_mesmo_tamanho",
+        "width: 8.75rem" in fiado_html and "height: 3.15rem" in fiado_html,
+    )
 
 
 def test_node() -> None:
@@ -75,6 +87,13 @@ def test_node() -> None:
             timeout=30,
         )
         check("node_check", r.returncode == 0, (r.stderr or "")[:120])
+        r2 = subprocess.run(
+            ["node", "--check", str(ROOT / "produtos/static/produtos/js/fiado_gestao.js")],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        check("node_fiado", r2.returncode == 0, (r2.stderr or "")[:120])
     except FileNotFoundError:
         check("node_check_skip", True, "node off")
 
