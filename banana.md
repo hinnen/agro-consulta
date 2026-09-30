@@ -1318,7 +1318,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `NF-CB-NAO-APAGA` | 🟢 **pronto para envio à produção** | **NÃO** | **24/24** |
+| 1 | `NF-CB-NAO-APAGA` | 🟢 **já testado · pronto para envio à produção** | **NÃO** | **24/24** |
 
 ### PACOTE PRONTO — NF-CB-NAO-APAGA
 
@@ -1327,8 +1327,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Nota manual: gravar custo/preço não apaga o código. Igual fica. Diferente entra só como extra. Sem código, o bip vira o principal. |
 | **Prova** | `scripts/verify_nf_cb_nao_apaga_path.py` **24/24** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** — teste **v25.49** — só frase + senha |
-| **Você** | Ctrl+F5 · nota manual · bipar um produto que já tem código · gravar custo · abrir a ficha: código igual continua; código diferente aparece em barras opcionais |
+| **Status** | 🟢 **já testado · pronto para envio à produção** — teste **v25.51** — Renan OK no PC · prova **24/24** — só frase + senha |
+| **Você** | Ctrl+F5 · nota manual · bipar um produto que já tem código · gravar custo · ficha: código igual continua; código diferente só em extra |
 
 ### CHECKLIST ÚNICO — 29/09 · cartão da entrega no dia anterior
 
@@ -1356,7 +1356,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 4 | **PDV-ENT-DIA-OPCIONAL** | 🟢 **pronto para envio à produção** | **SIM** `0133` | **18/18** |
 | 5 | **CLIENTE-XLSX-FIADO** | 🟢 **pronto para envio à produção** | **NÃO** | **30/30** |
 | 6 | `BUG-28-PIN-CATCH` | 🟢 **pronto para envio à produção** | **NÃO** | JS **14/14** |
-| 7 | `NF-CB-NAO-APAGA` | 🟢 **pronto para envio à produção** | **NÃO** | **24/24** |
+| 7 | `NF-CB-NAO-APAGA` | 🟢 **já testado · pronto para envio à produção** | **NÃO** | **24/24** |
 
 ### PACOTE PRONTO — o que ainda falta subir
 
@@ -1367,7 +1367,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Dia da entrega** | Ctrl+F5 · Entrega → **Hoje** ou **Amanhã** / **Outro dia** · card mostra o dia · caixa de hoje não trava o futuro · migrate `0133` |
 | **Excel clientes** | Ctrl+F5 · Clientes → Excel ↓ · mudar limite · Excel ↑ → prévia → confirmar |
 | **PIN no Point** | Ctrl+F5 · entrega paga na loja → débito Point → PIN → a venda fecha |
-| **Código na nota** | Ctrl+F5 · nota manual · bipar produto com código · gravar custo · ficha: igual fica, diferente só em extra. Sem migrate. |
+| **Código na nota** | ✅ Renan testou no PC · igual fica · diferente só em extra · prova **24/24** · sem migrate |
 
 ### CHECKLIST ÚNICO — 29/09 · dia da entrega opcional
 
