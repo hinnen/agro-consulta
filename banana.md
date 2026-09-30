@@ -1299,7 +1299,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Na etapa 6 da entrada de nota, o nome da etiqueta vinha com texto que não é do cadastro (`(vinculo_c_prod)`, `(ean_pg)` e similares). Cada gravação repetia. Agora imprime o nome do cadastro. Parêntese de verdade (ex. 500 ml) fica. |
 | **Prova** | `scripts/verify_nf_etq_nome_cadastro.js` **14/14** · térmica várias **39/39** |
 | **Migrate** | **NÃO** |
-| **Status** | teste — falta Renan imprimir uma etiqueta na entrada de nota (Ctrl+F5) |
+| **Status** | teste **v25.80** — falta Renan imprimir uma etiqueta na entrada de nota (Ctrl+F5) |
 | **Você** | Ctrl+F5 na entrada de nota · etapa 6 · imprimir de novo |
 
 ### PACOTE PRONTO — Dispenser não trava no PIN (`DSP-PIN-DESCANSO`)
