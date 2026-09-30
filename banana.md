@@ -1297,6 +1297,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | tag `rollback/pre-dsp-pin-descanso-v25.77` · `docs/ROLLBACK-DSP-PIN-DESCANSO.md` · **só** frase+senha |
 | **Você** | no próximo chat: lojas pausam · frase + senha · aí sobe · Ctrl+F5 no Dispenser |
 
+### PACOTE PRONTO — Dispenser fundo branco na impressão (`DSP-PRINT-BRANCO`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Na janela de imprimir, logo, animal e foto de ingredientes ficavam pretos. A prévia na tela continua branca. A cópia da impressão ganha o mesmo fundo da prévia. |
+| **Prova** | `scripts/verify_dsp_impressao_folha_path.py` **20/20** |
+| **Migrate** | **NÃO** |
+| **Mexe** | só `/interno/dispenser-a6/` |
+| **Status** | teste — **não** subiu |
+| **Você** | Ctrl+F5 no Dispenser depois de subir · Imprimir de novo |
+
 ### PACOTE PRONTO — Dispenser em folha (`DSP-IMPRESSAO-FOLHA`)
 
 | Campo | Valor |
