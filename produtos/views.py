@@ -158,6 +158,7 @@ from .entrega_pdv_pendente_util import (
     adiar_entrega_caixa_um_dia,
     assumir_entrega_loja,
     cancelar_entrega_pendente_pdv,
+    cartao_maquina_dia_anterior_aceito,
     concluir_entrega_paga_overlay,
     filtrar_qs_por_loja,
     finalizar_entregas_pagas_pendentes_ao_fechar_caixa,
@@ -13207,6 +13208,14 @@ def caixa_fechar(request):
         "qtd": 0,
         "texto": "",
     }
+    aviso_cartao_entrega_ontem = estado_conf.get("aviso_cartao_entrega_ontem") or {
+        "tem": False,
+        "valor": "0.00",
+        "valor_br": "0,00",
+        "qtd": 0,
+        "texto": "",
+        "linhas": [],
+    }
     aviso_reserva_vila = estado_conf.get("aviso_reserva_vila") or {
         "tem": False,
         "valor": "0.00",
@@ -13248,6 +13257,7 @@ def caixa_fechar(request):
             "linhas_visiveis": linhas_visiveis,
             "linhas_ocultas": linhas_ocultas,
             "aviso_devolucao_dinheiro": aviso_devolucao_dinheiro,
+            "aviso_cartao_entrega_ontem": aviso_cartao_entrega_ontem,
             "aviso_reserva_vila": aviso_reserva_vila,
             "linhas_com_movimento": [L for L in linhas_conferencia if L.get("com_movimento")],
             "linhas_sem_movimento": [L for L in linhas_conferencia if not L.get("com_movimento")],
@@ -28847,6 +28857,7 @@ def _persistir_venda_agro(
     pagamentos_json = pagamentos_json_com_metadados_de_payload(data)
     if not pagamentos_json and total > 0:
         pagamentos_json = [{"forma": forma or "Outro", "valor": float(total.quantize(Decimal("0.01")))}]
+    cartao_ontem = cartao_maquina_dia_anterior_aceito(data, pagamentos_json)
     fiado_cron: list = []
     if isinstance(pagamentos_json, list):
         for row in pagamentos_json:
@@ -28901,6 +28912,7 @@ def _persistir_venda_agro(
                 nfce_solicitada=nfce_solicitada,
                 deposito=dep_v,
                 client_request_id=client_req or None,
+                cartao_maquina_dia_anterior=cartao_ontem,
             )
             transaction.savepoint_commit(sid)
         except Exception as exc_create:

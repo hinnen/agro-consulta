@@ -532,6 +532,11 @@ class VendaAgro(models.Model):
         unique=True,
         help_text="Chave do PDV (UUID) — mesmo Confirmar/Enter de novo não cria outra venda.",
     )
+    cartao_maquina_dia_anterior = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Entrega fechada no dia seguinte: o cartão passou na máquina no dia anterior e não soma no esperado do relatório de hoje.",
+    )
 
     class Meta:
         ordering = ["-criado_em"]
