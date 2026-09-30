@@ -4825,12 +4825,37 @@
         return hh + ':' + mm;
     }
 
-    /** 0=ok · 1=próximo (≤30 min) · 2=atrasado */
-    function urgenciaHorarioEntregaUi(hhmm) {
+    function dataIsoMaisDiasEntrega(n) {
+        var d = new Date();
+        d.setDate(d.getDate() + (parseInt(n, 10) || 0));
+        return (
+            String(d.getFullYear()) +
+            '-' +
+            String(d.getMonth() + 1).padStart(2, '0') +
+            '-' +
+            String(d.getDate()).padStart(2, '0')
+        );
+    }
+
+    function rotuloDiaEntregaUi(iso) {
+        var dia = String(iso || '').slice(0, 10);
+        if (!dia || dia === dataLocalHojeLembrete()) return '';
+        if (dia === dataIsoMaisDiasEntrega(1)) return 'Amanhã';
+        var p = dia.split('-');
+        if (p.length !== 3) return dia;
+        return p[2] + '/' + p[1];
+    }
+
+    /** 0=ok · 1=próximo (≤30 min) · 2=atrasado. Dia futuro = sem alerta hoje. */
+    function urgenciaHorarioEntregaUi(hhmm, dataIso) {
+        var dia = String(dataIso || '').slice(0, 10);
+        var hoje = dataLocalHojeLembrete();
+        if (dia && dia > hoje) return 0;
         var hp = formatHoraPrevistaEntregaUi(hhmm);
-        if (!hp) return 0;
+        if (!hp) return dia && dia < hoje ? 2 : 0;
         var parts = hp.split(':');
         var agora = new Date();
+        if (dia && dia < hoje) return 2;
         var alvo = new Date(
             agora.getFullYear(),
             agora.getMonth(),
@@ -4909,7 +4934,7 @@
 
     function urgenciaEfetivaEntregaRow(row) {
         if (!entregaAlertaHorarioDestaLoja(row)) return 0;
-        var u = urgenciaHorarioEntregaUi(row && row.hora_prevista);
+        var u = urgenciaHorarioEntregaUi(row && row.hora_prevista, row && row.data_prevista);
         if (u > 0 && entregaAlertaEstaAdiada(row && row.id)) return 0;
         return u;
     }
@@ -4933,7 +4958,7 @@
             .concat(entregasPendentesCache.itensPagas || []);
         todos.forEach(function (row) {
             if (!entregaAlertaHorarioDestaLoja(row)) return;
-            var u = urgenciaHorarioEntregaUi(row && row.hora_prevista);
+            var u = urgenciaHorarioEntregaUi(row && row.hora_prevista, row && row.data_prevista);
             if (u > maxU) maxU = u;
         });
         return maxU;
@@ -4947,7 +4972,7 @@
         todos.forEach(function (row) {
             if (!row || row.id == null) return;
             if (!entregaAlertaHorarioDestaLoja(row)) return;
-            if (urgenciaHorarioEntregaUi(row.hora_prevista) > 0) ids.push(String(row.id));
+            if (urgenciaHorarioEntregaUi(row.hora_prevista, row.data_prevista) > 0) ids.push(String(row.id));
         });
         return ids;
     }
@@ -5157,8 +5182,9 @@
             }
         }
         var hpUi = formatHoraPrevistaEntregaUi(row.hora_prevista);
+        var diaUi = rotuloDiaEntregaUi(row.data_prevista);
         if (hpUi) {
-            var urgHpBruta = urgenciaHorarioEntregaUi(hpUi);
+            var urgHpBruta = urgenciaHorarioEntregaUi(hpUi, row.data_prevista);
             var alertaHorarioAqui = entregaAlertaHorarioDestaLoja(row);
             var urgHp = alertaHorarioAqui ? urgHpBruta : 0;
             var alertaAdiadoCard = alertaHorarioAqui && entregaAlertaEstaAdiada(id);
@@ -5205,7 +5231,7 @@
                     '<span class="rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tabular-nums ' +
                     hpClsShow +
                     '" title="Horário agendado">' +
-                    escapeHtml(hpUi) +
+                    escapeHtml((diaUi ? diaUi + ' · ' : '') + hpUi) +
                     '</span>' +
                     adiarBtnHtml +
                     '</span>'
@@ -6900,7 +6926,8 @@
             lojaPagamento: loja === 'vila' ? 'vila' : 'centro',
             lojaEscopo: '',
             lojaSaidaDraft: loja === 'vila' ? 'vila' : 'centro',
-            lojaSaidaConfirmada: false
+            lojaSaidaConfirmada: false,
+            dataPrevista: ''
         });
         State.setPagamentoField('frete', 0);
         syncEntregaEnderecoFromCliente();
@@ -7960,6 +7987,50 @@
         return slot;
     }
 
+    function syncEntregaDiaOpcoes(iso) {
+        iso = String(iso || '').slice(0, 10);
+        var hoje = dataLocalHojeLembrete();
+        var modo = 'hoje';
+        if (iso && iso === dataIsoMaisDiasEntrega(1)) modo = 'amanha';
+        else if (iso && iso > hoje) modo = 'outro';
+        else iso = '';
+        document.querySelectorAll('input[name="pdv-entrega-dia-opcao"]').forEach(function (r) {
+            r.checked = r.value === modo;
+        });
+        var outro = document.getElementById('pdv-entrega-dia-outro');
+        if (outro) {
+            outro.min = hoje;
+            outro.classList.toggle('hidden', modo !== 'outro');
+            if (modo === 'outro') outro.value = iso;
+        }
+        var hid = document.getElementById('pdv-entrega-dia');
+        if (hid) hid.value = iso;
+    }
+
+    function commitEntregaDiaOpcao() {
+        var checked = document.querySelector('input[name="pdv-entrega-dia-opcao"]:checked');
+        var modo = checked ? String(checked.value || 'hoje') : 'hoje';
+        var outro = document.getElementById('pdv-entrega-dia-outro');
+        var hoje = dataLocalHojeLembrete();
+        if (outro) {
+            outro.min = hoje;
+            outro.classList.toggle('hidden', modo !== 'outro');
+        }
+        var iso = '';
+        if (modo === 'amanha') {
+            iso = dataIsoMaisDiasEntrega(1);
+        } else if (modo === 'outro') {
+            var raw = outro ? String(outro.value || '').slice(0, 10) : '';
+            if (!raw) return { ok: false, iso: '', erro: 'Escolha a data em Outro dia, ou volte em Hoje.' };
+            if (raw < hoje) return { ok: false, iso: '', erro: 'O dia da entrega não pode ser no passado.' };
+            if (raw > hoje) iso = raw;
+        }
+        var hid = document.getElementById('pdv-entrega-dia');
+        if (hid) hid.value = iso;
+        State.setEntregaField('dataPrevista', iso);
+        return { ok: true, iso: iso, erro: '' };
+    }
+
     function confirmarEntregaDetalhesModal() {
         var taxaChecked = document.querySelector('input[name="pdv-entrega-taxa-modo"]:checked');
         if (!taxaChecked) {
@@ -7971,10 +8042,22 @@
             alert('Escolha o horário da entrega (9h às 17h).');
             return;
         }
+        var dia = commitEntregaDiaOpcao();
+        if (!dia.ok) {
+            alert(dia.erro || 'Escolha o dia da entrega.');
+            if (dia && document.getElementById('pdv-entrega-dia-outro')) {
+                var outroFoco = document.getElementById('pdv-entrega-dia-outro');
+                if (outroFoco && !outroFoco.classList.contains('hidden')) {
+                    try { outroFoco.focus(); } catch (eDia) {}
+                }
+            }
+            return;
+        }
         commitEntregaTaxaModo(taxaChecked.value);
         commitEntregaTaxaValorInput();
         State.setEntregaPatch({
             horario: hor,
+            dataPrevista: dia.iso || '',
             detalhesEntregaRespondidos: true
         });
         wizardSyncLembretesFromEntregaHorario();
@@ -8045,6 +8128,7 @@
                 renderEntregaTaxaCard(st);
             }
             syncEntregaHorarioOpcoes((stDet.entrega && stDet.entrega.horario) || '');
+            syncEntregaDiaOpcoes((stDet.entrega && stDet.entrega.dataPrevista) || '');
         }
         if (painel === 'troco') renderEntregaTrocoPainelUi();
         if (painel === 'loja') renderEntregaLojaPainelUi();
@@ -8081,10 +8165,16 @@
         return '—';
     }
 
-    function entregaResumoHorarioTexto(hor) {
+    function entregaResumoHorarioTexto(hor, diaIso) {
         hor = String(hor || '').trim();
         if (!hor) return 'Horário não informado';
         var parts = hor.split(':');
+        var quando = '';
+        if (parts.length >= 2) quando = ' às ' + parts[0] + ':' + parts[1];
+        else quando = ' · ' + hor;
+        var rot = rotuloDiaEntregaUi(diaIso);
+        if (rot === 'Amanhã') return 'Entregar amanhã' + quando;
+        if (rot) return 'Entregar em ' + rot + quando;
         if (parts.length >= 2) return 'Entregar às ' + parts[0] + ':' + parts[1];
         return 'Horário: ' + hor;
     }
@@ -8167,7 +8257,7 @@
         var elTaxa = document.getElementById('pdv-resumo-taxa');
         var elHor = document.getElementById('pdv-resumo-horario');
         if (elTaxa) elTaxa.textContent = entregaResumoLabelTaxa(state);
-        if (elHor) elHor.textContent = entregaResumoHorarioTexto(e.horario);
+        if (elHor) elHor.textContent = entregaResumoHorarioTexto(e.horario, e.dataPrevista);
         var aside = document.getElementById('pdv-resumo-aside');
         var elTotal = document.getElementById('pdv-resumo-total');
         if (aside && elTotal) {
@@ -9398,6 +9488,7 @@
             taxaEntregaModo: '',
             enderecoPassoConcluido: false,
             horario: '',
+            dataPrevista: '',
             troco: '',
             logradouro: '',
             numero: '',
@@ -11911,6 +12002,7 @@
             retomar_codigo: extras.retomar_codigo != null ? String(extras.retomar_codigo) : '',
             operador: operadorPdvAtual(),
             hora_prevista: state.entrega.horario || '',
+            data_prevista: state.entrega.dataPrevista || '',
             forma_pagamento: flags.forma_pagamento,
             troco_precisa: flags.troco_precisa,
             troco_paga_com: flags.troco_paga_com,
@@ -14329,12 +14421,15 @@
             return;
         }
         var h20 = hhmmMinusMinutes(horarioVal, 20);
-        var d = dataLocalHojeLembrete();
+        var d = String((State.getState().entrega && State.getState().entrega.dataPrevista) || '').slice(0, 10);
+        if (!d) d = dataLocalHojeLembrete();
+        var rotDia = rotuloDiaEntregaUi(d);
+        var extraDia = rotDia ? ' · ' + rotDia : '';
         var slug = slugClienteLembreteEntrega(nome) || 'cli';
         if (h20 && h20 !== horarioVal) {
             lista.push({
                 id: 'pdv_wiz_ent_warn_' + slug + '_' + horarioVal,
-                texto: 'Entrega — ' + nome + ' (faltam 20 min)',
+                texto: 'Entrega — ' + nome + extraDia + ' (faltam 20 min)',
                 cliente: nome,
                 hora: h20,
                 disparado: false,
@@ -14344,7 +14439,7 @@
         }
         lista.push({
             id: 'pdv_wiz_ent_at_' + slug + '_' + horarioVal,
-            texto: 'Entrega — ' + nome + ' (horário)',
+            texto: 'Entrega — ' + nome + extraDia + ' (horário)',
             cliente: nome,
             hora: horarioVal,
             disparado: false,
@@ -17437,6 +17532,24 @@
                 commitEntregaHorarioOpcao();
             });
         });
+        document.querySelectorAll('input[name="pdv-entrega-dia-opcao"]').forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                if (!radio.checked) return;
+                var outro = document.getElementById('pdv-entrega-dia-outro');
+                if (radio.value === 'outro' && outro) {
+                    outro.classList.remove('hidden');
+                    outro.min = dataLocalHojeLembrete();
+                    try { outro.focus(); } catch (eFocoDia) {}
+                }
+                commitEntregaDiaOpcao();
+            });
+        });
+        var inpDiaOutro = document.getElementById('pdv-entrega-dia-outro');
+        if (inpDiaOutro) {
+            inpDiaOutro.addEventListener('change', function () {
+                commitEntregaDiaOpcao();
+            });
+        }
         var inpTaxaValor = document.getElementById('pdv-entrega-taxa-valor');
         if (inpTaxaValor) {
             // Mesmo padrão do frete no pagamento: sanitiza digitação, formata só no blur.

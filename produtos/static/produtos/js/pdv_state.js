@@ -103,6 +103,7 @@
                 complemento: '',
                 referencia: '',
                 horario: '',
+                dataPrevista: '',
                 troco: '',
                 statusPagamento: '',
                 maquininha: '',
@@ -968,6 +969,7 @@
         state.entrega.complemento = '';
         state.entrega.referencia = '';
         state.entrega.horario = '';
+        state.entrega.dataPrevista = '';
         state.entrega.troco = '';
         state.entrega.statusPagamento = '';
         state.entrega.maquininha = '';

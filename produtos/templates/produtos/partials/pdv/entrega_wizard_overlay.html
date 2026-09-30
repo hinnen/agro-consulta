@@ -43,6 +43,16 @@
             <label id="pdv-ed-label-taxa-valor" class="pdv-ed-field-label" for="pdv-entrega-taxa-valor">Valor do frete (R$)</label>
             <input id="pdv-entrega-taxa-valor" type="text" class="pdv-input pdv-ed-field-input" placeholder="10,00" inputmode="decimal" autocomplete="off" aria-labelledby="pdv-ed-label-taxa-valor">
           </div>
+          <div class="pdv-ed-field pdv-ed-field--dia">
+            <span id="pdv-ed-label-dia" class="pdv-ed-field-label">Dia da entrega (opcional)</span>
+            <input id="pdv-entrega-dia" type="hidden" value="" autocomplete="off">
+            <div id="pdv-ed-dia-opcoes" class="pdv-ed-dia-opcoes" role="radiogroup" aria-labelledby="pdv-ed-label-dia">
+              <label class="pdv-ed-dia-opcao has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50"><input type="radio" name="pdv-entrega-dia-opcao" value="hoje" class="h-4 w-4 shrink-0 accent-emerald-700" checked><span>Hoje</span></label>
+              <label class="pdv-ed-dia-opcao has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50"><input type="radio" name="pdv-entrega-dia-opcao" value="amanha" class="h-4 w-4 shrink-0 accent-orange-600"><span>Amanhã</span></label>
+              <label class="pdv-ed-dia-opcao has-[:checked]:border-sky-600 has-[:checked]:bg-sky-50"><input type="radio" name="pdv-entrega-dia-opcao" value="outro" class="h-4 w-4 shrink-0 accent-sky-700"><span>Outro dia</span></label>
+            </div>
+            <input id="pdv-entrega-dia-outro" type="date" class="pdv-input pdv-ed-field-input pdv-ed-dia-outro hidden mt-2" autocomplete="off" aria-label="Outro dia da entrega">
+          </div>
           <div class="pdv-ed-field pdv-ed-field--horario">
             <span id="pdv-ed-label-horario" class="pdv-ed-field-label">Horário (obrigatório)</span>
             <input id="pdv-entrega-horario" type="hidden" value="" autocomplete="off">

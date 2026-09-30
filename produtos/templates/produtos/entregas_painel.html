@@ -1556,6 +1556,11 @@
       var hp = e.hora_prevista;
       if (hp.length >= 5) prev = hp.slice(0, 5);
     }
+    var diaPrevTxt = '';
+    if (e.data_prevista) {
+      var dp = String(e.data_prevista).slice(0, 10).split('-');
+      if (dp.length === 3) diaPrevTxt = dp[2] + '/' + dp[1] + '/' + dp[0];
+    }
     var hs = e.hora_saida ? e.hora_saida.replace('T', ' ').slice(0, 16) : '—';
     var he = e.hora_entrega ? e.hora_entrega.replace('T', ' ').slice(0, 16) : '—';
 
@@ -1619,7 +1624,11 @@
         '>Não precisa</option>' +
         '</select></div>' +
       '</td>' +
-      '<td class="p-1.5 align-middle"><input type="text" class="ent-hprev w-[4.5rem] text-xs font-mono font-bold border-2 border-slate-200 rounded-lg px-1.5 py-1.5 text-center" placeholder="HH:MM" value="' + esc(prev) + '"></td>' +
+      '<td class="p-1.5 align-middle"><div class="ent-dprev text-[11px] font-black uppercase text-orange-800 leading-tight' +
+      (diaPrevTxt ? '' : ' hidden') +
+      '">' +
+      esc(diaPrevTxt || '') +
+      '</div><input type="text" class="ent-hprev w-[4.5rem] text-xs font-mono font-bold border-2 border-slate-200 rounded-lg px-1.5 py-1.5 text-center" placeholder="HH:MM" value="' + esc(prev) + '"></td>' +
       '<td class="p-1.5 align-middle text-xs font-mono font-semibold text-slate-700 leading-tight">' + esc(hs) + '<br><span class="text-slate-500">' + esc(he) + '</span></td>' +
       '<td class="p-1.5 align-middle w-[188px]">' +
         '<div class="grid grid-cols-3 gap-1">' +
