@@ -1290,6 +1290,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### PACOTE PRONTO — nome do produto em 2 linhas no carrinho (`PDV-CART-NOME-2L`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | No carrinho do PDV, o nome do produto usa até **2 linhas**. Nome curto continua numa. Se ainda não couber, o resto fica no passar o mouse. |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.63** — só frase + senha |
+| **Você** | Ctrl+F5 no PDV · carrinho com nome longo |
+
 ### PACOTE PRONTO — Excel clientes: valor do mês (`CLI-XLSX-MES-VALOR`)
 
 | Campo | Valor |
