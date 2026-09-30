@@ -1295,9 +1295,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Tela `/interno/dispenser-a6/`: limite de logos **24 → 72**. Não pesa o PDV. Só essa tela, ao abrir, baixa um pouco mais. |
+| **O quê** | Tela `/interno/dispenser-a6/`: limite de logos **24 → 72**. Pet e ingrediente continuam em 24. Não pesa o PDV. |
+| **Prova** | `scripts/verify_dsp_logo_72_path.py` **27/27** · o 73º não entra · atualizar um logo não estoura · prova desfeita (7 logos de volta) |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** — teste **v25.72** — só frase + senha |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.74** — só frase + senha |
 | **Você** | Ctrl+F5 no Dispenser · adicionar logo além dos 24 |
 
 ### Prova — PDV e Gestão são a mesma ficha (30/09)
@@ -1458,7 +1459,7 @@ Joelma (Esposa Wagner) e 018 Junior (pai de Isabela) estavam no fiado **sem** o 
 | 13 | `PDV-BUSCA-COERENTE` | 🟢 **pronto para envio à produção** | **NÃO** | **30/30** |
 | 14 | `PDV-CART-NOME-2L` | 🟢 **pronto para envio à produção** | **NÃO** | **34/34** |
 | 15 | `FIADO-ORDEM-ZAP` | 🟢 **pronto para envio à produção** | **NÃO** | **59/59** · PIN **9973** |
-| 15 | `FIADO-ORDEM-ZAP` | 🟢 **pronto para envio à produção** | **NÃO** | — |
+| 16 | `DSP-LOGO-72` | 🟢 **pronto para envio à produção** | **NÃO** | **27/27** |
 
 ### PACOTE PRONTO — o que ainda falta subir
 
