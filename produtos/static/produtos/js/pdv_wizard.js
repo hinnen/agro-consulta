@@ -2162,7 +2162,29 @@
         state = state || State.getState();
         if (!entregaPrecisaEscolhaCartaoDia(state)) return '';
         var e = String((state.pagamento && state.pagamento.cartaoMaquinaDia) || '');
-        return e === 'hoje' || e === 'ontem' ? e : '';
+        if (e === 'hoje' || e === 'ontem') return e;
+        if (e === 'outro' && isoDataCartaoPassada(state.pagamento && state.pagamento.cartaoMaquinaData)) return 'outro';
+        return '';
+    }
+
+    function isoDataLocal(d) {
+        d = d || new Date();
+        var m = d.getMonth() + 1;
+        var dia = d.getDate();
+        return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (dia < 10 ? '0' : '') + dia;
+    }
+
+    function isoDataCartaoPassada(raw) {
+        var iso = String(raw || '').slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return '';
+        if (iso >= isoDataLocal(new Date())) return '';
+        return iso;
+    }
+
+    function rotuloDataCartao(iso) {
+        var p = String(iso || '').slice(0, 10).split('-');
+        if (p.length !== 3) return '';
+        return p[2] + '/' + p[1] + '/' + p[0];
     }
 
     function syncCartaoDiaAnteriorUi() {
@@ -2187,6 +2209,18 @@
         }
         pintar(btnHoje, escolha === 'hoje', ['bg-emerald-600', 'text-white']);
         pintar(btnOntem, escolha === 'ontem', ['bg-amber-500', 'text-amber-950']);
+        var btnOutro = document.getElementById('pdv-cartao-dia-outro');
+        if (btnOutro) {
+            var isoOutro = escolha === 'outro' ? isoDataCartaoPassada(State.getState().pagamento.cartaoMaquinaData) : '';
+            btnOutro.textContent = isoOutro ? ('Outro dia · ' + rotuloDataCartao(isoOutro)) : 'Outro dia';
+            btnOutro.classList.remove('bg-amber-500', 'text-amber-950', 'bg-white', 'text-slate-800');
+            if (escolha === 'outro') {
+                btnOutro.classList.add('bg-amber-500', 'text-amber-950');
+            } else {
+                btnOutro.classList.add('bg-white', 'text-slate-800');
+            }
+            btnOutro.setAttribute('aria-pressed', escolha === 'outro' ? 'true' : 'false');
+        }
         var bloq = precisa && !escolha;
         [dom.fecharHeroNoPrint, dom.fecharHeroPrint, dom.confirmSaleNoPrint, dom.confirmSalePrint].forEach(function (btn) {
             if (!btn) return;
@@ -2212,10 +2246,74 @@
 
     function escolherCartaoDiaEntrega(dia) {
         if (dia !== 'hoje' && dia !== 'ontem') return;
+        State.setPagamentoField('cartaoMaquinaData', '');
         State.setPagamentoField('cartaoMaquinaDia', dia);
         var box = document.getElementById('pdv-cartao-dia-anterior');
         if (box) box.classList.remove('ring-2', 'ring-rose-500');
+        var err = document.getElementById('pdv-cartao-dia-erro');
+        if (err) {
+            err.textContent = 'Escolha o dia antes de fechar a venda.';
+            err.classList.add('hidden');
+        }
         syncCartaoDiaAnteriorUi();
+    }
+
+    function aplicarOutroDiaCartao() {
+        var inp = document.getElementById('pdv-cartao-dia-outro-data');
+        var iso = String((inp && inp.value) || '').slice(0, 10);
+        var err = document.getElementById('pdv-cartao-dia-erro');
+        var box = document.getElementById('pdv-cartao-dia-anterior');
+        if (box) box.classList.remove('ring-2', 'ring-rose-500');
+        if (!iso) {
+            if (String((State.getState().pagamento || {}).cartaoMaquinaDia || '') === 'outro') {
+                State.setPagamentoField('cartaoMaquinaDia', '');
+                State.setPagamentoField('cartaoMaquinaData', '');
+            }
+            syncCartaoDiaAnteriorUi();
+            return;
+        }
+        if (iso === isoDataLocal(new Date())) {
+            escolherCartaoDiaEntrega('hoje');
+            return;
+        }
+        if (iso > isoDataLocal(new Date())) {
+            if (err) {
+                err.textContent = 'Esse dia ainda não chegou.';
+                err.classList.remove('hidden');
+            }
+            return;
+        }
+        State.setPagamentoField('cartaoMaquinaData', iso);
+        State.setPagamentoField('cartaoMaquinaDia', 'outro');
+        if (err) {
+            err.textContent = 'Escolha o dia antes de fechar a venda.';
+            err.classList.add('hidden');
+        }
+        syncCartaoDiaAnteriorUi();
+    }
+
+    function abrirCalendarioCartaoOutroDia(ev) {
+        if (ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+        }
+        var inp = document.getElementById('pdv-cartao-dia-outro-data');
+        var btn = document.getElementById('pdv-cartao-dia-outro');
+        if (!inp || !btn || !window.AgroDatePicker) return;
+        var atual = isoDataCartaoPassada((State.getState().pagamento || {}).cartaoMaquinaData);
+        if (atual) inp.value = atual;
+        var r = btn.getBoundingClientRect();
+        inp.style.position = 'fixed';
+        inp.style.left = r.left + 'px';
+        inp.style.top = r.top + 'px';
+        inp.style.width = Math.max(r.width, 8) + 'px';
+        inp.style.height = Math.max(r.height, 8) + 'px';
+        window.AgroDatePicker.bindInput(inp, { accent: '#d97706', accentSoft: '#fffbeb' });
+        if (inp.dataset.pdvCartaoDiaBound !== '1') {
+            inp.dataset.pdvCartaoDiaBound = '1';
+            inp.addEventListener('change', aplicarOutroDiaCartao);
+        }
+        window.AgroDatePicker.calOpen(inp, { accent: '#d97706', accentSoft: '#fffbeb' });
     }
 
     function openFecharVendaModal(force) {
@@ -5553,6 +5651,126 @@
         }
     }
 
+    function lojaEntregaOpostaUi() {
+        var loja = typeof depositoPdvAtivo === 'function' ? depositoPdvAtivo() : '';
+        if (loja === 'centro') return 'vila';
+        if (loja === 'vila') return 'centro';
+        return '';
+    }
+
+    function syncBtnVerOutraLoja() {
+        var btn = document.getElementById('pdv-entregas-ver-outra-loja');
+        if (!btn) return;
+        var outra = lojaEntregaOpostaUi();
+        if (!outra) {
+            btn.hidden = true;
+            return;
+        }
+        btn.hidden = false;
+        btn.textContent = outra === 'vila' ? 'Ver Vila' : 'Ver Centro';
+    }
+
+    function htmlEntregaSomenteLeitura(row, pagasAba) {
+        var nome = escapeHtml((row && row.cliente_nome) || '—');
+        var total = escapeHtml((row && row.total_texto) || '—');
+        var forma = escapeHtml((row && row.forma_pagamento) || '');
+        var end = escapeHtml((row && row.endereco_linha) || '');
+        var caixaLbl = escapeHtml((row && row.sessao_caixa_label) || '');
+        var hpUi = formatHoraPrevistaEntregaUi(row && row.hora_prevista);
+        var diaUi = rotuloDiaEntregaUi(row && row.data_prevista);
+        var quando = [diaUi, hpUi].filter(Boolean).join(' · ');
+        var tag = pagasAba
+            ? '<span class="rounded-md bg-emerald-600 px-1.5 py-0.5 text-[9px] font-black uppercase text-white">Paga na loja</span>'
+            : '<span class="rounded-md bg-orange-600 px-1.5 py-0.5 text-[9px] font-black uppercase text-white">A pagar</span>';
+        return (
+            '<article class="mb-2 rounded-xl border-2 border-slate-200 bg-white px-3 py-2">' +
+            '<div class="flex flex-wrap items-center gap-1.5">' +
+            tag +
+            (quando
+                ? '<span class="rounded-md bg-slate-700 px-1.5 py-0.5 text-[9px] font-black uppercase text-white">' +
+                  escapeHtml(quando) +
+                  '</span>'
+                : '') +
+            '</div>' +
+            '<p class="m-0 mt-1 text-sm font-black text-slate-900">' +
+            nome +
+            '</p>' +
+            '<p class="m-0 text-sm font-black text-slate-800">' +
+            total +
+            (forma ? ' · ' + forma : '') +
+            '</p>' +
+            (end ? '<p class="m-0 mt-0.5 text-xs font-semibold text-slate-600">' + end + '</p>' : '') +
+            (caixaLbl
+                ? '<p class="m-0 mt-0.5 text-[11px] font-bold text-slate-500">' + caixaLbl + '</p>'
+                : '') +
+            '</article>'
+        );
+    }
+
+    function renderEntregasOutraLoja(itens, pagas, nomeLoja) {
+        var titulo = document.getElementById('pdv-entregas-outra-loja-titulo');
+        var nPagar = document.getElementById('pdv-entregas-outra-pagar-n');
+        var nPagas = document.getElementById('pdv-entregas-outra-pagas-n');
+        var elPagar = document.getElementById('pdv-entregas-outra-list-pagar');
+        var elPagas = document.getElementById('pdv-entregas-outra-list-pagas');
+        var listaPagar = Array.isArray(itens) ? itens : [];
+        var listaPagas = Array.isArray(pagas) ? pagas : [];
+        if (titulo) titulo.textContent = nomeLoja + ' — só olhar';
+        if (nPagar) nPagar.textContent = String(listaPagar.length);
+        if (nPagas) nPagas.textContent = String(listaPagas.length);
+        if (elPagar) {
+            elPagar.innerHTML = listaPagar.length
+                ? listaPagar.map(function (row) { return htmlEntregaSomenteLeitura(row, false); }).join('')
+                : '<p class="py-6 text-center text-sm font-bold text-slate-500">Nenhuma pendência de pagamento agora.</p>';
+        }
+        if (elPagas) {
+            elPagas.innerHTML = listaPagas.length
+                ? listaPagas.map(function (row) { return htmlEntregaSomenteLeitura(row, true); }).join('')
+                : '<p class="py-6 text-center text-sm font-bold text-slate-500">Nenhuma paga na loja nas últimas 24 h.</p>';
+        }
+    }
+
+    function closeEntregasOutraLojaModal() {
+        var dlg = document.getElementById('pdv-entregas-outra-loja-modal');
+        if (!dlg) return;
+        if (typeof dlg.close === 'function' && dlg.open) dlg.close();
+        else dlg.removeAttribute('open');
+    }
+
+    function openEntregasOutraLojaModal() {
+        var outra = lojaEntregaOpostaUi();
+        if (!outra) return;
+        var dlg = document.getElementById('pdv-entregas-outra-loja-modal');
+        if (!dlg || !urls.apiPdvEntregasPendentes) return;
+        try {
+            if (dlg.parentElement !== document.body) document.body.appendChild(dlg);
+        } catch (eMove) {}
+        var nome = outra === 'vila' ? 'Vila' : 'Centro';
+        renderEntregasOutraLoja([], [], nome);
+        var url = urls.apiPdvEntregasPendentes;
+        url += (url.indexOf('?') >= 0 ? '&' : '?') + 'loja=' + encodeURIComponent(outra);
+        jsonGet(url)
+            .then(function (res) {
+                if (!res.ok || !res.data || !res.data.ok) {
+                    showSaleDoneFeedback('Não deu para ver a outra loja.', 'warn');
+                    return;
+                }
+                renderEntregasOutraLoja(res.data.itens, res.data.itens_pagas, nome);
+                try {
+                    if (typeof dlg.showModal === 'function') {
+                        if (!dlg.open) dlg.showModal();
+                    } else {
+                        dlg.setAttribute('open', 'open');
+                    }
+                } catch (eShow) {
+                    dlg.setAttribute('open', 'open');
+                }
+            })
+            .catch(function () {
+                showSaleDoneFeedback('Não deu para ver a outra loja.', 'warn');
+            });
+    }
+
     function findEntregaPendenteCache(pk) {
         var id = String(pk || '');
         var listas = [entregasPendentesCache.itens || [], entregasPendentesCache.itensPagas || []];
@@ -6123,6 +6341,7 @@
                 if (nPagar === 0 && nPagas > 0) entregasPendentesAba = 'pagas';
                 else entregasPendentesAba = 'pagar';
                 renderEntregasPendentesList();
+                syncBtnVerOutraLoja();
                 try {
                     if (typeof dlg.showModal === 'function') {
                         if (!dlg.open) dlg.showModal();
@@ -6142,6 +6361,7 @@
     }
 
     function closeEntregasPendentesModal() {
+        closeEntregasOutraLojaModal();
         if (!dom.entregasPendentesModal) return;
         if (typeof dom.entregasPendentesModal.close === 'function') {
             dom.entregasPendentesModal.close();
@@ -11972,8 +12192,14 @@
         if (state.entrega && state.entrega.pedidoEntregaPendenteId) {
             payload.pedido_entrega_pendente_id = state.entrega.pedidoEntregaPendenteId;
         }
-        if (entregaCartaoDiaEscolha(state) === 'ontem') {
+        var escCartao = entregaCartaoDiaEscolha(state);
+        if (escCartao === 'ontem' || escCartao === 'outro') {
+            var ontem = new Date();
+            ontem.setDate(ontem.getDate() - 1);
             payload.cartao_maquina_dia_anterior = true;
+            payload.cartao_maquina_data = escCartao === 'ontem'
+                ? isoDataLocal(ontem)
+                : String((state.pagamento && state.pagamento.cartaoMaquinaData) || '').slice(0, 10);
         }
         if (window.AgroPdvCampanha && window.AgroPdvCampanha.metaPayload) {
             var metaCamp = window.AgroPdvCampanha.metaPayload();
@@ -17057,6 +17283,15 @@
         if (btnRota) {
             btnRota.addEventListener('click', abrirRotaEntregasOverlay);
         }
+        var btnVerOutra = document.getElementById('pdv-entregas-ver-outra-loja');
+        if (btnVerOutra) {
+            syncBtnVerOutraLoja();
+            btnVerOutra.addEventListener('click', openEntregasOutraLojaModal);
+        }
+        var btnOutraClose = document.getElementById('pdv-entregas-outra-loja-close');
+        if (btnOutraClose) {
+            btnOutraClose.addEventListener('click', closeEntregasOutraLojaModal);
+        }
         var btnAdiarAlerta = document.getElementById('pdv-entregas-adiar-alerta');
         if (btnAdiarAlerta) {
             btnAdiarAlerta.addEventListener('click', adiarAlertaEntregas1h);
@@ -17631,6 +17866,10 @@
             btnCartaoOntem.addEventListener('click', function () {
                 escolherCartaoDiaEntrega('ontem');
             });
+        }
+        var btnCartaoOutro = document.getElementById('pdv-cartao-dia-outro');
+        if (btnCartaoOutro) {
+            btnCartaoOutro.addEventListener('click', abrirCalendarioCartaoOutroDia);
         }
         if (dom.paymentFecharVoltar) {
             dom.paymentFecharVoltar.addEventListener('click', function () {

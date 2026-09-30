@@ -158,7 +158,7 @@ from .entrega_pdv_pendente_util import (
     adiar_entrega_caixa_um_dia,
     assumir_entrega_loja,
     cancelar_entrega_pendente_pdv,
-    cartao_maquina_dia_anterior_aceito,
+    data_cartao_maquina_escolhida,
     concluir_entrega_paga_overlay,
     filtrar_qs_por_loja,
     finalizar_entregas_pagas_pendentes_ao_fechar_caixa,
@@ -28919,7 +28919,8 @@ def _persistir_venda_agro(
     pagamentos_json = pagamentos_json_com_metadados_de_payload(data)
     if not pagamentos_json and total > 0:
         pagamentos_json = [{"forma": forma or "Outro", "valor": float(total.quantize(Decimal("0.01")))}]
-    cartao_ontem = cartao_maquina_dia_anterior_aceito(data, pagamentos_json)
+    cartao_dia = data_cartao_maquina_escolhida(data, pagamentos_json)
+    cartao_ontem = cartao_dia is not None
     fiado_cron: list = []
     if isinstance(pagamentos_json, list):
         for row in pagamentos_json:
@@ -28975,6 +28976,7 @@ def _persistir_venda_agro(
                 deposito=dep_v,
                 client_request_id=client_req or None,
                 cartao_maquina_dia_anterior=cartao_ontem,
+                cartao_maquina_dia=cartao_dia,
             )
             transaction.savepoint_commit(sid)
         except Exception as exc_create:

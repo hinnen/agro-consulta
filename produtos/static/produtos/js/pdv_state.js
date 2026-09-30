@@ -148,8 +148,10 @@
                 mpBalcaoModo: '',
                 /** Chave por tentativa de confirmação (idempotência no servidor). */
                 clientRequestId: '',
-                /** hoje | ontem — cartão da entrega que virou o dia */
+                /** hoje | ontem | outro — cartão da entrega que virou o dia */
                 cartaoMaquinaDia: '',
+                /** ISO yyyy-mm-dd quando a escolha é outro dia */
+                cartaoMaquinaData: '',
                 lancamentos: [],
                 nfceEmitir: false,
                 nfceOpts: {},
@@ -1215,6 +1217,7 @@
         state.pagamento.forma = '';
         state.pagamento.lancamentos = [];
         state.pagamento.cartaoMaquinaDia = '';
+        state.pagamento.cartaoMaquinaData = '';
         state.pagamento.valorRecebido = '';
         state.pagamento.trocoCalculado = '';
         state.pagamento.valorDestaForma = '';

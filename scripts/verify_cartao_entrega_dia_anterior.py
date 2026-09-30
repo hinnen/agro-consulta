@@ -29,7 +29,10 @@ from produtos.caixa_util import (
     resumo_cartao_entrega_dia_anterior,
     serializar_estado_conferencia_fechar,
 )
-from produtos.entrega_pdv_pendente_util import cartao_maquina_dia_anterior_aceito
+from produtos.entrega_pdv_pendente_util import (
+    cartao_maquina_dia_anterior_aceito,
+    data_cartao_maquina_escolhida,
+)
 import produtos.entrega_pdv_pendente_util as eu
 import produtos.models as pm
 
@@ -197,6 +200,10 @@ def main() -> int:
         check("fechar não lista cartão zerado", card_linhas == [])
         estado = serializar_estado_conferencia_fechar([_Sessao([venda])], deposito="centro")
         check("json do fechar traz o aviso", (estado.get("aviso_cartao_entrega_ontem") or {}).get("tem") is True)
+        dia_aviso = timezone.localdate() - timedelta(days=3)
+        venda.cartao_maquina_dia = dia_aviso
+        texto_av = (resumo_cartao_entrega_dia_anterior([_Sessao([venda])]).get("texto") or "")
+        check("aviso cita o dia escolhido", dia_aviso.strftime("%d/%m/%Y") in texto_av)
     finally:
         pm.PdvMercadoPagoPointOrder = real_mp
 
@@ -215,9 +222,36 @@ def main() -> int:
     try:
         pag = [{"forma": "Cartão de débito", "valor": 15}]
         check(
-            "aceita ontem + cartão",
-            cartao_maquina_dia_anterior_aceito(
-                {"cartao_maquina_dia_anterior": True, "pedido_entrega_pendente_id": 9},
+            "aceita outro dia no calendário",
+            data_cartao_maquina_escolhida(
+                {
+                    "cartao_maquina_dia_anterior": "outro",
+                    "cartao_maquina_data": (timezone.localdate() - timedelta(days=3)).isoformat(),
+                    "pedido_entrega_pendente_id": 9,
+                },
+                pag,
+            )
+            == timezone.localdate() - timedelta(days=3),
+        )
+        check(
+            "recusa dia de hoje no calendário",
+            not cartao_maquina_dia_anterior_aceito(
+                {
+                    "cartao_maquina_dia_anterior": True,
+                    "cartao_maquina_data": timezone.localdate().isoformat(),
+                    "pedido_entrega_pendente_id": 9,
+                },
+                pag,
+            ),
+        )
+        check(
+            "recusa dia futuro",
+            not cartao_maquina_dia_anterior_aceito(
+                {
+                    "cartao_maquina_dia_anterior": True,
+                    "cartao_maquina_data": (timezone.localdate() + timedelta(days=1)).isoformat(),
+                    "pedido_entrega_pendente_id": 9,
+                },
                 pag,
             ),
         )
@@ -282,17 +316,23 @@ def main() -> int:
     pagamento = (ROOT / "produtos/templates/produtos/partials/pdv/step_pagamento.html").read_text(encoding="utf-8")
     views = (ROOT / "produtos/views.py").read_text(encoding="utf-8")
     mig = (ROOT / "produtos/migrations/0134_vendaagro_cartao_maquina_dia_anterior.py").read_text(encoding="utf-8")
+    mig135 = (ROOT / "produtos/migrations/0135_vendaagro_cartao_maquina_dia.py").read_text(encoding="utf-8")
     check("pdv pergunta o dia", "O cartão passou em qual dia?" in pagamento)
     check("botão passou hoje", 'id="pdv-cartao-dia-hoje"' in pagamento)
     check("botão passou ontem", 'id="pdv-cartao-dia-ontem"' in pagamento)
-    check("payload só ontem", "entregaCartaoDiaEscolha(state) === 'ontem'" in wizard)
+    check("botão outro dia", 'id="pdv-cartao-dia-outro"' in pagamento)
+    check("calendário novo", "AgroDatePicker.calOpen" in wizard and "agro-date-picker" in pagamento)
+    check("payload ontem ou outro dia", "escCartao === 'ontem' || escCartao === 'outro'" in wizard)
     check("trava sem escolha", wizard.count("entregaPrecisaEscolhaCartaoDia() && !entregaCartaoDiaEscolha()") >= 2)
     check("retomar manda o dia", "criadoEm: ent.criado_em" in wizard)
     check("state guarda lancadaEm", "lancadaEm:" in state_js)
+    check("state guarda a data", "cartaoMaquinaData:" in state_js)
     check("fechar caixa faixa", "cf-aviso-cartao-entrega-ontem" in caixa)
     check("fechar atualiza sozinho", "aplicarAvisoCartaoEntregaOntem" in caixa)
     check("grava na venda", "cartao_maquina_dia_anterior=cartao_ontem" in views)
+    check("grava o dia escolhido", "cartao_maquina_dia=cartao_dia" in views)
     check("migrate 0134", "cartao_maquina_dia_anterior" in mig and "0133_pedido_entrega_data_prevista" in mig)
+    check("migrate 0135", "cartao_maquina_dia" in mig135 and "0134_vendaagro_cartao_maquina_dia_anterior" in mig135)
 
     print(f"\n{len(oks)} ok, {len(fails)} falha(s)")
     return 1 if fails else 0

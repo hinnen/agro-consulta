@@ -705,7 +705,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Dois cofrinhos (`REPASSE-DOIS-COFRES` · v18.81):** Salário (config) + Vila Elias (fatia que fica); fórmula sem cortar salário antes do %; migrate `0103`.
 - **Overlay PDV limpo (`REPASSE-PDV-OVERLAY-LIMPO` → hotfix `REPASSE-PDV-OVERLAY-POPUP` · v18.68):** quem/PIN só no popup · forma oculta (= Dinheiro) · sem chips · hero enxuto.
 - **Gestão `/repasse-vila/` (`REPASSE-GESTAO-SIMPLES` + `REPASSE-COFRE-PLANO` · v23.63):** botão **Gestão** no overlay. **Retirada / uso** = **plano de conta** (gasto empresa **Agro Mais Vila Elias** → DRE/Lançamentos). Ajuste / saldo inicial = motivo livre. Envelope do dia = overlay PDV.
-- **Fechar caixa não separa cofrinho (`COFRE-SEM-AUTO` · v25.54):** fechar a Vila **não** credita Salário nem Vila Elias e **não** baixa o dinheiro esperado da gaveta. Separar continua só no botão **Separar**.
+- **Fechar caixa não separa cofrinho (`COFRE-SEM-AUTO` · v25.55):** fechar a Vila **não** credita Salário nem Vila Elias e **não** baixa o dinheiro esperado da gaveta. Separar continua só no botão **Separar**.
 - **Confirmação cofrinho (`REPASSE-COFRE-CONFIRM` · v18.78):** modal rosa ~80% da tela no lugar do `confirm` do browser.
 - **Hero totais (`REPASSE-HERO-TOTAIS` · v18.80):** Enviado no mês + Total geral no card «Levar ao Centro».
 - **Planos no lucro do envio (17/08):** botão **Planos** na tela de repasse — marca o que desconta do dinheiro enviado ao Centro (ex. Alimentação); o restante das saídas de caixa da Vila desconta do card **Lucro ficou na Vila**. Grava no Postgres (`RepasseVilaConfigAgro.planos_desconto_centro`). Migrate `0091`.
@@ -1299,15 +1299,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `scripts/verify_gestao_pin_folga_path.py` |
 | **Você** | Ctrl+F5 na Gestão. Pode trabalhar um bom tempo sem o PIN. Se parar 30 min, pede de novo. |
 
-### COFRE-SEM-AUTO — fechar caixa não separa cofrinho · 30/09
+### PACOTE PRONTO — fechar caixa não separa cofrinho (`COFRE-SEM-AUTO`)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Fechar o caixa da Vila não joga valor no cofrinho e não tira esse valor do esperado da gaveta. Separar continua só no botão **Separar**. |
-| **Prova** | `scripts/verify_repasse_cofrinho.py` **39/39** |
+| **O quê** | Fechar a Vila não joga valor no cofrinho e não tira o dinheiro esperado da gaveta. Separar continua só no botão **Separar**. |
+| **Prova** | path **15/15** · cofrinho **39/39** |
 | **Migrate** | **NÃO** |
-| **Status** | teste **v25.54** — **não** subiu loja |
-| **Você** | Ctrl+F5 · Fechar caixa Vila: sem faixa «Separe R$ … cofrinhos» · esperado do dinheiro igual ao que está na gaveta · histórico do cofre não ganha linha «Separação automática» |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.55** — só frase + senha |
+| **Você** | Ctrl+F5 · Fechar caixa Vila: sem faixa «Separe R$ …» · esperado igual à gaveta · cofre sem linha automática |
 
 ### ✅ Deploy loja — ETQ-TERMICA-VARIAS · **Live v25.36** · 30/09
 
@@ -1356,17 +1356,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `PDV-ENT-CARTAO-ONTEM` | 🟢 **pronto para envio à produção** | **SIM** `0134` | **46/46** |
+| 1 | `PDV-ENT-CARTAO-ONTEM` | 🟢 **pronto para envio à produção** | **SIM** `0134` + `0135` | **54/54** |
 
 ### PACOTE PRONTO — PDV-ENT-CARTAO-ONTEM
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Entrega que já virou o dia, com cartão: **Passou hoje** ou **Passou ontem**. Ontem não soma no esperado da máquina de hoje e aparece numa faixa amarela no Fechar caixa. O caixa de ontem não muda. |
-| **Migrate** | **SIM** `0134` |
-| **Prova** | `verify_cartao_entrega_dia_anterior.py` **46/46** |
-| **Status** | 🟢 **pronto para envio à produção** — teste **v25.44** — só frase + senha |
-| **Você** | Ctrl+F5 · retomar entrega de ontem no cartão · **Passou ontem** · Fechar caixa: faixa amarela, esperado do cartão sem esse valor |
+| **O quê** | Entrega que já virou o dia, com cartão: **Passou hoje**, **Passou ontem** ou **Outro dia** (calendário). Outro dia não soma no esperado da máquina de hoje e aparece na faixa amarela do Fechar caixa. No Relatório de caixa a data da venda continua sendo o dia do fechamento; a linha diz em que dia o cartão passou. |
+| **Migrate** | **SIM** `0134` + `0135` |
+| **Prova** | `verify_cartao_entrega_dia_anterior.py` **54/54** |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.55** — só frase + senha |
+| **Você** | Ctrl+F5 · retomar a entrega · cartão · **Outro dia** ou **Passou ontem** · Fechar caixa: faixa amarela |
 
 ### CHECKLIST ÚNICO — falta subir
 
@@ -1374,28 +1374,32 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- | ----- |
 | 1 | `FIADO-LIMITE-TODOS` | 🟢 **já testado · pronto para envio à produção** | **NÃO** | **13/13** |
 | 2 | `CLI-RENOME-HIST` | 🟢 **já testado · pronto para envio à produção** | **NÃO** | **13/13** |
-| 3 | `PDV-ENT-CARTAO-ONTEM` | 🟢 **pronto para envio à produção** | **SIM** `0134` | **46/46** |
-| 4 | **PDV-ENT-DIA-OPCIONAL** | 🟢 **pronto para envio à produção** | **SIM** `0133` | **31/31** |
+| 3 | `PDV-ENT-CARTAO-ONTEM` | 🟢 **pronto para envio à produção** | **SIM** `0134` + `0135` | **54/54** |
+| 4 | **PDV-ENT-DIA-OPCIONAL** | 🟢 **pronto para envio à produção** | **SIM** `0133` | **33/33** |
 | 5 | **CLIENTE-XLSX-FIADO** | 🟢 **pronto para envio à produção** | **NÃO** | **30/30** |
 | 6 | `BUG-28-PIN-CATCH` | 🟢 **pronto para envio à produção** | **NÃO** | JS **14/14** |
 | 7 | `NF-CB-NAO-APAGA` | 🟢 **já testado · pronto para envio à produção** | **NÃO** | **24/24** |
+| 8 | `COFRE-SEM-AUTO` | 🟢 **pronto para envio à produção** | **NÃO** | path **15/15** · **39/39** |
+| 9 | **PDV-ENT-VER-OUTRA** | 🟢 **pronto para envio à produção** | **NÃO** | **33/33** |
 
 ### PACOTE PRONTO — o que ainda falta subir
 
 | Pacote | O que testar |
 | ------ | ------------ |
 | **Limite + nome do cliente** | ✅ Renan testou no teste · lápis em quem tem fiado · corrigir letra não some o histórico · prova **13/13** · sem migrate |
-| **Cartão da entrega ontem** | Ctrl+F5 · retomar entrega de ontem no cartão · **Passou ontem** · Fechar caixa: faixa amarela · migrate `0134` |
+| **Cartão da entrega ontem** | Ctrl+F5 · cartão · **Passou ontem** ou **Outro dia** (calendário) · Fechar caixa: faixa amarela · Relatório: data da venda é hoje, a linha diz o dia do cartão · migrate `0134` + `0135` |
 | **Dia da entrega** | Ctrl+F5 · Entregas: card de amanhã continua · o número do botão só sobe no dia · migrate `0133` |
+| **Ver a outra loja** | Ctrl+F5 · Entregas → **Ver Vila** (ou **Ver Centro**) · painel por cima, só olhar, sem Retomar nem Fechar |
 | **Excel clientes** | Ctrl+F5 · Clientes → Excel ↓ · mudar limite · Excel ↑ → prévia → confirmar |
 | **PIN no Point** | Ctrl+F5 · entrega paga na loja → débito Point → PIN → a venda fecha |
 | **Código na nota** | ✅ Renan testou no PC · igual fica · diferente só em extra · prova **24/24** · sem migrate |
+| **Cofrinho no fechar** | Ctrl+F5 · Fechar caixa Vila sem faixa «Separe» · esperado igual à gaveta · sem migrate |
 
 ### CHECKLIST ÚNICO — 29/09 · dia da entrega opcional
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-ENT-DIA-OPCIONAL** | 🟢 **pronto para envio à produção** | **SIM** `0133` | **31/31** |
+| 1 | **PDV-ENT-DIA-OPCIONAL** | 🟢 **pronto para envio à produção** | **SIM** `0133` | **33/33** |
 
 ### PACOTE PRONTO — PDV-ENT-DIA-OPCIONAL
 
@@ -1404,7 +1408,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Fechar venda como entrega: **Hoje** (padrão) · **Amanhã** · **Outro dia**. O número do botão Entregas só sobe no dia. O card do outro dia fica na lista. Dia futuro não apita e não trava o caixa até esse dia. |
 | **Onde** | overlay entrega · `pdv_wizard.js` · `PedidoEntrega.data_prevista` · painel `/entregas/` |
 | **Migrate** | **SIM** `0133` |
-| **Status** | 🟢 **pronto para envio à produção** — prova **31/31** — só frase + senha |
+| **Status** | 🟢 **pronto para envio à produção** — prova **33/33** — só frase + senha |
 | **Você** | Ctrl+F5 · entrega de amanhã continua no painel · o **1** do botão some · entrega de hoje continua contando |
 
 ### CHECKLIST ÚNICO — 29/09 · etiqueta térmica
