@@ -1309,6 +1309,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
 | **Você** | Ctrl+F5 · abra o cliente: dois cards iguais, **Deve** e **Limite**, sem seta e sem o saldo repetido |
 
+### DADO — fiado sem cadastro (30/09)
+
+Joelma (Esposa Wagner) e 018 Junior (pai de Isabela) estavam no fiado **sem** o cadastro do PDV (importação antiga não achou o nome). Ligados: Joelma pk 1446 (3 títulos, R$ 544,60) · Junior pk 1676 (pedido 17063, R$ 140,00, junto dos que ele já tinha). Dois restos de teste `VERIFY` (R$ 17,34) cancelados. Total em aberto da tela: **R$ 12.024,67**. Excel ↓ de Clientes passa a bater com a tela no próximo download.
+
 ### PACOTE PRONTO — PIN na Gestão (`GESTAO-PIN-FOLGA`)
 
 | Campo | Valor |
