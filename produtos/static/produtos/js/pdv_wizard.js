@@ -1766,6 +1766,76 @@
         return score;
     }
 
+    // Espelho de produtos/busca_filtro_pdv_util.py _TOKEN_BUSCA_FRACO.
+    var PDV_BUSCA_TOKEN_FRACO = {
+        grande: 1, grandes: 1, pequeno: 1, pequena: 1, pequenos: 1, pequenas: 1,
+        medio: 1, media: 1, medios: 1, medias: 1, grosso: 1, grossa: 1, fino: 1, fina: 1,
+        porte: 1, maior: 1, menor: 1, mini: 1, gigante: 1,
+        azul: 1, vermelho: 1, vermelha: 1, preto: 1, preta: 1, branco: 1, branca: 1,
+        verde: 1, amarelo: 1, amarela: 1, rosa: 1, laranja: 1, marrom: 1, bege: 1,
+        cinza: 1, roxo: 1, roxa: 1, transparente: 1,
+        com: 1, sem: 1, para: 1, por: 1, dos: 1, das: 1,
+        kit: 1, pacote: 1, saco: 1, unidade: 1, quilo: 1, quilos: 1, litro: 1, litros: 1,
+        novo: 1, nova: 1, usado: 1, usada: 1, tipo: 1, original: 1, similar: 1,
+        reforcado: 1, reforcada: 1, simples: 1, duplo: 1, dupla: 1,
+        redondo: 1, redonda: 1, oval: 1, quadrado: 1, quadrada: 1
+    };
+
+    function pdvTokenBuscaFraco(tok) {
+        var t = stripAccents(String(tok || '')).trim();
+        if (!t) return true;
+        if (PDV_BUSCA_TOKEN_FRACO[t]) return true;
+        if (t.length <= 2) return true;
+        if (/^\d{1,4}$/.test(t)) return true;
+        return false;
+    }
+
+    function produtoCasaTokenBusca(p, tok) {
+        var nome = stripAccents(String((p && p.nome) || ''));
+        var marca = stripAccents(String((p && p.marca) || ''));
+        var busca = stripAccents(String((p && p.busca_texto) || ''));
+        return (nome + ' ' + marca + ' ' + busca).indexOf(tok) !== -1;
+    }
+
+    function tokensBuscaQuery(query) {
+        return stripAccents(String(query || '')).split(/\s+/).filter(function (t) {
+            return t.length > 0;
+        });
+    }
+
+    function produtoBuscaEhChute(p, query) {
+        var q = String(query || '').trim();
+        var tokens = tokensBuscaQuery(q);
+        if (tokens.length < 2 || looksLikeSkuCode(q)) return false;
+        return !tokens.every(function (t) {
+            return produtoCasaTokenBusca(p, t);
+        });
+    }
+
+    /** Tira chute sem a palavra do produto («grande» → bebedouro). Exato fica na frente. */
+    function refinarListaBuscaPdv(list, query) {
+        var q = String(query || '').trim();
+        var tokens = tokensBuscaQuery(q);
+        if (!list || !list.length || tokens.length < 2 || looksLikeSkuCode(q)) return list || [];
+        var fortes = tokens.filter(function (t) { return !pdvTokenBuscaFraco(t); });
+        var obrigatorios = fortes.length ? fortes : tokens;
+        function casaTodos(p, arr) {
+            return arr.every(function (t) { return produtoCasaTokenBusca(p, t); });
+        }
+        var base = list.filter(function (p) { return casaTodos(p, obrigatorios); });
+        if (!base.length) {
+            var best = obrigatorios.slice().sort(function (a, b) { return b.length - a.length; })[0];
+            base = list.filter(function (p) { return produtoCasaTokenBusca(p, best); });
+        }
+        var exatos = [];
+        var chutes = [];
+        base.forEach(function (p) {
+            if (casaTodos(p, tokens)) exatos.push(p);
+            else chutes.push(p);
+        });
+        return exatos.concat(chutes);
+    }
+
     function filterCatalogLocal(query, mode) {
         var q = String(query || '').trim();
         if (!allowLocalQuery(q)) {
@@ -1793,8 +1863,8 @@
                 if (b.s !== a.s) return b.s - a.s;
                 return stripAccents(a.p.nome || '').localeCompare(stripAccents(b.p.nome || ''));
             })
-            .map(function (x) { return x.p; })
-            .slice(0, MAX_LOCAL_RESULTS);
+            .map(function (x) { return x.p; });
+        scored = refinarListaBuscaPdv(scored, q).slice(0, MAX_LOCAL_RESULTS);
         return {
             list: scored,
             message: scored.length ? '' : 'Nenhum produto no cache para este termo.'
@@ -6862,6 +6932,10 @@
 
     function productAutocompleteHtml(produto, index) {
         var selected = index === productSelectionIndex;
+        var chute = produtoBuscaEhChute(
+            produto,
+            String((dom.productSearch && dom.productSearch.value) || '')
+        );
         var gm = displayCodigoGm(produto);
         var marca = String(produto.marca || '').trim() || '—';
         var imgUrl = String(produto.imagem || assets.placeholderProduto || '').trim();
@@ -6869,6 +6943,7 @@
         return (
             '' +
             '<button type="button" class="pdv-ac-row ' +
+            (chute ? 'pdv-ac-row--chute ' : '') +
             (selected ? 'pdv-ac-row-selected' : '') +
             '" data-add-product="' +
             escapeHtml(pid) +
@@ -11721,7 +11796,10 @@
                 productSearchAwaitingServer = false;
                 var remote = payload.remote;
                 // Ordem do cache local; servidor atualiza preço / grupos no mesmo id.
-                var merged = mergeProductsById(payload.localList || [], remote);
+                var merged = refinarListaBuscaPdv(
+                    mergeProductsById(payload.localList || [], remote),
+                    query
+                );
                 // Código de barras: tenta incluir na venda; se falhar (caixa fechado,
                 // produto incompleto), MOSTRA na lista — antes sumia e parecia "não achou".
                 if (payload.mode === 'barcode' && merged.length >= 1) {

@@ -8,6 +8,105 @@ from produtos.mongo_index_codigos import INDEX_CODIGOS_CAMPO, somente_alnum
 
 _RE_DIGITOS = re.compile(r"\D")
 
+# Palavra que não identifica o produto (tamanho, cor, unidade). «milho grande» não pode
+# completar só com «grande» (bebedouro). Espelho no PDV: pdv_wizard.js PDV_BUSCA_TOKEN_FRACO.
+_TOKEN_BUSCA_FRACO = frozenset(
+    {
+        "grande",
+        "grandes",
+        "pequeno",
+        "pequena",
+        "pequenos",
+        "pequenas",
+        "medio",
+        "media",
+        "medios",
+        "medias",
+        "grosso",
+        "grossa",
+        "fino",
+        "fina",
+        "porte",
+        "maior",
+        "menor",
+        "mini",
+        "gigante",
+        "azul",
+        "vermelho",
+        "vermelha",
+        "preto",
+        "preta",
+        "branco",
+        "branca",
+        "verde",
+        "amarelo",
+        "amarela",
+        "rosa",
+        "laranja",
+        "marrom",
+        "bege",
+        "cinza",
+        "roxo",
+        "roxa",
+        "transparente",
+        "com",
+        "sem",
+        "para",
+        "por",
+        "dos",
+        "das",
+        "kit",
+        "pacote",
+        "saco",
+        "unidade",
+        "quilo",
+        "quilos",
+        "litro",
+        "litros",
+        "novo",
+        "nova",
+        "usado",
+        "usada",
+        "tipo",
+        "original",
+        "similar",
+        "reforcado",
+        "reforcada",
+        "simples",
+        "duplo",
+        "dupla",
+        "redondo",
+        "redonda",
+        "oval",
+        "quadrado",
+        "quadrada",
+    }
+)
+
+
+def token_busca_fraco(tok: str) -> bool:
+    """Tamanho, cor, unidade ou número curto — não serve para completar a busca sozinho."""
+    t = _norm_termo(tok)
+    if not t:
+        return True
+    if t in _TOKEN_BUSCA_FRACO:
+        return True
+    if len(t) <= 2:
+        return True
+    if t.isdigit() and len(t) <= 4:
+        return True
+    return False
+
+
+def token_fallback_frase(termo: str) -> str | None:
+    """AND zerou: completa pelo token que identifica o produto, não pelo mais longo («grande»)."""
+    partes = [p.strip() for p in str(termo or "").split() if len(p.strip()) >= 4]
+    if len(partes) < 2:
+        return None
+    fortes = [p for p in partes if not token_busca_fraco(p)]
+    pool = fortes or partes
+    return max(pool, key=len)
+
 
 def _norm_termo(termo: str) -> str:
     return normalizar(str(termo or "").strip())
