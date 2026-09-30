@@ -20,6 +20,8 @@
     cliPillDeveValor: document.getElementById('fiado-cli-pill-deve-valor'),
     cliPillLimite: document.getElementById('fiado-cli-pill-limite'),
     cliPillLimiteValor: document.getElementById('fiado-cli-pill-limite-valor'),
+    cliPillLivre: document.getElementById('fiado-cli-pill-livre'),
+    cliPillLivreValor: document.getElementById('fiado-cli-pill-livre-valor'),
     modalLimiteCli: document.getElementById('fiado-modal-limite-cli'),
     limiteCliNome: document.getElementById('fiado-limite-cli-nome'),
     limiteCliInput: document.getElementById('fiado-limite-cli-input'),
@@ -253,9 +255,15 @@
 
   function pintarParCliente(cli) {
     if (!cli) return;
-    if (el.cliPillDeveValor) el.cliPillDeveValor.textContent = fmtMoeda(cli.saldo || 0);
-    if (el.cliPillLimiteValor) el.cliPillLimiteValor.textContent = fmtMoeda(cli.limite || 0);
+    const usado = Number(cli.saldo) || 0;
+    const limite = Number(cli.limite) || 0;
+    let livre = Math.round((limite - usado) * 100) / 100;
+    if (livre < 0) livre = 0;
+    if (el.cliPillDeveValor) el.cliPillDeveValor.textContent = fmtMoeda(usado);
+    if (el.cliPillLimiteValor) el.cliPillLimiteValor.textContent = fmtMoeda(limite);
+    if (el.cliPillLivreValor) el.cliPillLivreValor.textContent = fmtMoeda(livre);
     if (el.cliPillDeve) el.cliPillDeve.classList.toggle('fiado-pill--atraso', !!cli.vencido);
+    if (el.cliPillLivre) el.cliPillLivre.classList.toggle('fiado-pill--zerado', livre <= 0);
   }
 
   function parseLimiteCampo(raw) {

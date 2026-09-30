@@ -236,6 +236,7 @@
       font-weight: 900;
       letter-spacing: 0.06em;
       text-transform: uppercase;
+      white-space: nowrap;
     }
     .fiado-pill-val {
       font-size: 1.05rem;
@@ -260,6 +261,16 @@
     }
     .fiado-pill--limite:hover {
       background: #e0f2fe;
+    }
+    .fiado-pill--livre {
+      border-color: #34d399;
+      background: #ecfdf5;
+      color: #065f46;
+    }
+    .fiado-pill--livre.fiado-pill--zerado {
+      border-color: #f87171;
+      background: #fef2f2;
+      color: #b91c1c;
     }
     /* Lançamentos = mesmo tamanho do overlay fiado (tampa tudo, sem moldura) */
     .fiado-modal-shell {
@@ -631,7 +642,7 @@
           <p id="fiado-cli-modal-meta" class="text-[11px] font-bold text-slate-500 truncate"></p>
         </div>
       </div>
-      <div class="fiado-cli-par" aria-label="Saldo e limite do cliente">
+      <div class="fiado-cli-par" aria-label="Saldo usado, limite e limite livre">
         <div id="fiado-cli-pill-deve" class="fiado-pill fiado-pill--deve">
           <span class="fiado-pill-k">Deve</span>
           <span id="fiado-cli-pill-deve-valor" class="fiado-pill-val">R$ 0,00</span>
@@ -640,6 +651,10 @@
           <span class="fiado-pill-k">Limite</span>
           <span id="fiado-cli-pill-limite-valor" class="fiado-pill-val">R$ 0,00</span>
         </button>
+        <div id="fiado-cli-pill-livre" class="fiado-pill fiado-pill--livre" title="Quanto ainda cabe no limite">
+          <span class="fiado-pill-k">Limite livre</span>
+          <span id="fiado-cli-pill-livre-valor" class="fiado-pill-val">R$ 0,00</span>
+        </div>
         <button type="button" id="fiado-cli-modal-fechar" class="min-h-[40px] px-4 rounded-xl border-2 border-emerald-400 bg-emerald-50 font-black text-[11px] uppercase text-emerald-950 hover:bg-emerald-100">← Lista fiado · Esc</button>
       </div>
     </header>
