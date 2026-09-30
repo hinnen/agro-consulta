@@ -1291,6 +1291,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### PACOTE PRONTO — Dispenser não trava no PIN (`DSP-PIN-DESCANSO`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | No Dispenser, depois de um tempo parado o cartão do PIN travava a tela sem aparecer na frente. Agora o cartão cobre a folha: dá para digitar o PIN e OK. |
+| **Prova** | `scripts/verify_dsp_impressao_folha_path.py` **19/19** |
+| **Migrate** | **NÃO** |
+| **Status** | teste — **não** subiu |
+| **Você** | Ctrl+F5 no Dispenser · deixe parado · o cartão do PIN aparece na frente e o OK funciona |
+
 ### PACOTE PRONTO — Dispenser em folha (`DSP-IMPRESSAO-FOLHA`)
 
 | Campo | Valor |
