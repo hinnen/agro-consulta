@@ -13027,26 +13027,7 @@ def caixa_fechar(request):
         _limpar_rascunho_conferencia_caixa(req, deposito=dep_fechar)
 
     def _separar_reserva_vila_antes_fechar(alvo, pin: str = "") -> str:
-        if not alvo or not any(getattr(s, "ponto_caixa", "") == "vila" for s in alvo):
-            return ""
-        from produtos.repasse_vila_util import separar_reservas_ao_fechar_vila
-
-        op = rotulo_operador_pin(pin) if pin else ""
-        if not op:
-            op = str(request.session.get("pdv_operador_nome") or "").strip()
-        if not op:
-            return MSG_PIN_OPERADOR_OBRIGATORIO
-        _feitos, err = separar_reservas_ao_fechar_vila(
-            alvo,
-            operador=op or "Operador fechamento",
-            usuario=request.user if getattr(request, "user", None) and request.user.is_authenticated else None,
-        )
-        if not err:
-            for s in alvo:
-                cache_prefetch = getattr(s, "_prefetched_objects_cache", None)
-                if isinstance(cache_prefetch, dict):
-                    cache_prefetch.pop("movimentos", None)
-        return err
+        return ""
 
     sessoes_operacional = filtrar_sessoes_operacional(sessoes)
     sessoes_teste = filtrar_sessoes_teste(sessoes)

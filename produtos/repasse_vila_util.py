@@ -1194,43 +1194,17 @@ def resumo_reserva_fechamento_vila(sessoes) -> dict[str, Any]:
 
 
 def aplicar_reserva_virtual_estado_caixa(estado: dict, reserva: dict) -> dict:
-    """Antecipa no GET o desconto que será persistido ao confirmar o fechamento."""
-    if not reserva.get("tem"):
-        estado["aviso_reserva_vila"] = reserva
-        return estado
-    valor = min(
-        _dec(reserva.get("valor")),
-        max(ZERO, _dec(estado.get("tot_esperado_dinheiro"))),
-    )
-    reserva = dict(reserva)
-    reserva["valor"] = str(valor)
-    br = f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    reserva["texto"] = (
-        f"Separe R$ {br} da gaveta e coloque nos cofrinhos (Salário + Vila Elias). "
-        "Esse dinheiro continua na loja, mas fica fora da contagem normal do caixa."
-    )
-    reserva["tem"] = valor > 0
-    estado["tot_esperado_dinheiro"] = str(
-        (_dec(estado.get("tot_esperado_dinheiro")) - valor).quantize(Decimal("0.01"))
-    )
-    for row in estado.get("linhas") or []:
-        if row.get("forma") == "Dinheiro":
-            row["esperado"] = str((_dec(row.get("esperado")) - valor).quantize(Decimal("0.01")))
-            row["retiradas"] = str((_dec(row.get("retiradas")) + valor).quantize(Decimal("0.01")))
-            row["com_movimento"] = True
-            break
-    for card in estado.get("cards") or []:
-        # O lote Vila possui um único caixa principal; notebook não cria sessão própria.
-        card["esperado_dinheiro"] = str(
-            (_dec(card.get("esperado_dinheiro")) - valor).quantize(Decimal("0.01"))
-        )
-        for row in card.get("linhas") or []:
-            if row.get("forma") == "Dinheiro":
-                row["esperado"] = str((_dec(row.get("esperado")) - valor).quantize(Decimal("0.01")))
-                row["retiradas"] = str((_dec(row.get("retiradas")) + valor).quantize(Decimal("0.01")))
-                break
-        break
-    estado["aviso_reserva_vila"] = reserva
+    """Fechar caixa não tira o valor da gaveta. Separar é só no botão Separar."""
+    estado["aviso_reserva_vila"] = {
+        "tem": False,
+        "valor": "0.00",
+        "saldo": str((reserva or {}).get("saldo") or "0.00"),
+        "saldo_vila_elias": str((reserva or {}).get("saldo_vila_elias") or "0.00"),
+        "dias": [],
+        "texto": "",
+        "pendente_salario": "0.00",
+        "pendente_vila_elias": "0.00",
+    }
     return estado
 
 
@@ -1240,28 +1214,8 @@ def separar_reservas_ao_fechar_vila(
     operador: str,
     usuario=None,
 ) -> tuple[list[RepasseVilaReservaMovimentoAgro], str]:
-    principais = [s for s in (sessoes or []) if getattr(s, "ponto_caixa", "") == "vila"]
-    if not principais:
-        return [], ""
-    resumo = resumo_reserva_fechamento_vila(principais)
-    if not resumo.get("tem"):
-        return [], ""
-    out: list[RepasseVilaReservaMovimentoAgro] = []
-    for cofre_n in (COFRE_SALARIO, COFRE_VILA_ELIAS):
-        mov, criado, err = separar_reserva_diaria(
-            timezone.localdate(),
-            origem=RepasseVilaReservaMovimentoAgro.Origem.FECHAMENTO,
-            operador=operador,
-            usuario=usuario,
-            sessao_caixa=principais[0],
-            observacao="Separação automática no fechamento do caixa Vila",
-            cofre=cofre_n,
-        )
-        if err:
-            return out, err
-        if criado and mov:
-            out.append(mov)
-    return out, ""
+    """Fechar o caixa da Vila não credita os cofrinhos."""
+    return [], ""
 
 
 def _norm_plano_nome(nome: str) -> str:
