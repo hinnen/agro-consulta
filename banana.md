@@ -565,6 +565,8 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 | **GestÃ£o operacional**     | `produtos_gestao.html`, `api_produtos_gestao_lista` | Saldo, facetas, operaÃ§Ã£o loja                        |
 
 
+**PIN na Gestão (30/09 · GESTAO-PIN-FOLGA):** descanso pede PIN só após **30 min** parado. PDV continua **3 min**.
+
 **Excel fase 1:** export com colunas/categorias; import async com histÃ³rico e desfazer; ID oculta; CÃ³digo GM editÃ¡vel; cÃ©lula vazia nÃ£o altera. Colunas: Sub 2–4, Unidade, Modelo, Peso (além das originais). **v18.02 CAD-XLSX-ULT-FORN:** Últ. / 2º / 3º fornecedor (só Excel ↓; Entrada NF Agro; import ignora) — ✅ Live · Renan OK 28/08 · roteiro §9.
 
 **Modal cadastro — marca/categoria (08/07):** «Salvar no Agro» grava online (Postgres + overlay). Botão **+** só preenche o campo — **não** substitui salvar. Ao reabrir, detalhe da API prevalece sobre linha da lista (fix bug que «apagava» marca/cat).
@@ -703,6 +705,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Dois cofrinhos (`REPASSE-DOIS-COFRES` · v18.81):** Salário (config) + Vila Elias (fatia que fica); fórmula sem cortar salário antes do %; migrate `0103`.
 - **Overlay PDV limpo (`REPASSE-PDV-OVERLAY-LIMPO` → hotfix `REPASSE-PDV-OVERLAY-POPUP` · v18.68):** quem/PIN só no popup · forma oculta (= Dinheiro) · sem chips · hero enxuto.
 - **Gestão `/repasse-vila/` (`REPASSE-GESTAO-SIMPLES` + `REPASSE-COFRE-PLANO` · v23.63):** botão **Gestão** no overlay. **Retirada / uso** = **plano de conta** (gasto empresa **Agro Mais Vila Elias** → DRE/Lançamentos). Ajuste / saldo inicial = motivo livre. Envelope do dia = overlay PDV.
+- **Fechar caixa não separa cofrinho (`COFRE-SEM-AUTO` · 30/09):** fechar a Vila **não** credita Salário nem Vila Elias e **não** baixa o dinheiro esperado da gaveta. Separar continua só no botão **Separar**.
 - **Confirmação cofrinho (`REPASSE-COFRE-CONFIRM` · v18.78):** modal rosa ~80% da tela no lugar do `confirm` do browser.
 - **Hero totais (`REPASSE-HERO-TOTAIS` · v18.80):** Enviado no mês + Total geral no card «Levar ao Centro».
 - **Planos no lucro do envio (17/08):** botão **Planos** na tela de repasse — marca o que desconta do dinheiro enviado ao Centro (ex. Alimentação); o restante das saídas de caixa da Vila desconta do card **Lucro ficou na Vila**. Grava no Postgres (`RepasseVilaConfigAgro.planos_desconto_centro`). Migrate `0091`.
@@ -1286,6 +1289,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### PACOTE — Gestão pede PIN com menos frequência (`GESTAO-PIN-FOLGA` · 30/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Só `/produtos/gestao/`: modo descanso pede PIN depois de **30 min** parado (era 3). PDV, caixa e o resto **não** mudam. |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_gestao_pin_folga_path.py` |
+| **Você** | Ctrl+F5 na Gestão. Pode trabalhar um bom tempo sem o PIN. Se parar 30 min, pede de novo. |
+
+### COFRE-SEM-AUTO — fechar caixa não separa cofrinho · 30/09
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Fechar o caixa da Vila não joga valor no cofrinho e não tira esse valor do esperado da gaveta. Separar continua só no botão **Separar**. |
+| **Prova** | `scripts/verify_repasse_cofrinho.py` **39/39** |
+| **Migrate** | **NÃO** |
+| **Status** | teste local — **não** subiu loja |
+| **Você** | Ctrl+F5 · Fechar caixa Vila: sem faixa «Separe R$ … cofrinhos» · esperado do dinheiro igual ao que está na gaveta · histórico do cofre não ganha linha «Separação automática» |
 
 ### ✅ Deploy loja — ETQ-TERMICA-VARIAS · **Live v25.36** · 30/09
 

@@ -195,7 +195,7 @@ def main():
         check(not err2 and not criado2 and est2.pk == est.pk, "estorno idempotente")
         check(all([uso.operador, uso.observacao, uso.data_ref, uso.saldo_anterior is not None, uso.saldo_posterior is not None]), "rastreabilidade mínima completa")
 
-        # Fechamento: aviso/esperado virtual e persistência usam o mesmo valor, sem duplicar.
+        # Fechamento: não credita cofrinho e não baixa o esperado da gaveta.
         hoje = timezone.localdate()
         MovimentoCaixa.objects.create(
             sessao_caixa=sessao,
@@ -211,11 +211,12 @@ def main():
             estado = {"tot_esperado_dinheiro": "420.00", "linhas": [{"forma": "Dinheiro", "esperado": "420.00", "retiradas": "80.00"}], "cards": []}
             reserva = {"tem": True, "valor": "60.00", "saldo": str(saldo_cofrinho_vila()), "dias": [], "texto": ""}
             aplicar_reserva_virtual_estado_caixa(estado, reserva)
-            check(estado["tot_esperado_dinheiro"] == "360.00", "fechamento antecipa desconto no esperado")
+            check(estado["tot_esperado_dinheiro"] == "420.00", "fechamento não baixa o esperado da gaveta")
+            check(not (estado.get("aviso_reserva_vila") or {}).get("tem"), "fechamento não pede separar cofrinho")
             feitos, err = separar_reservas_ao_fechar_vila([sessao], operador="Bot Cofre", usuario=user)
-            check(not err and sum((_dec(x.valor) for x in feitos), Decimal("0")) == Decimal("60.00"), "fechamento separa valor exato")
+            check(not err and not feitos, "fechamento não credita o cofrinho")
             feitos2, err2 = separar_reservas_ao_fechar_vila([sessao], operador="Bot Cofre", usuario=user)
-            check(not err2 and not feitos2, "fechamento repetido não separa duas vezes")
+            check(not err2 and not feitos2, "fechamento repetido também não credita")
 
         # Acumulado: não separar ontem → hoje deve ontem+hoje; separar a mais / saldo inicial abate amanhã.
         ontem = hoje - timedelta(days=1)
