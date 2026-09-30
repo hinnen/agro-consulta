@@ -31,6 +31,7 @@ def main():
     ok("zoom: 1.40952381" in css, "A6 aumenta até a largura A5")
     ok("min-height: 0 !important" in css and "#sspin-root" in css, "nao sobra folha em branco nem PIN")
     ok("body.sspin-locked #sspin-root" in css and "pointer-events: auto" in css, "PIN do descanso cobre a tela")
+    ok("pintarFundoBranco" in html and 'ctx.fillStyle = corAtras(img)' in html, "foto transparente imprime no fundo da prévia")
     ok("size: 210mm 297mm" in css and "size: 297mm 210mm" in css, "papel A4")
     ok("page: dspA4v" in css and "page: dspA4h" in css, "modo de página")
 

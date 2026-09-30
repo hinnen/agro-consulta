@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dispenser A6 · GM Agro Mais</title>
-  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=13.63" />
+  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=13.64" />
   <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=13.60"></script>
   <script src="{% static 'produtos/dispenser-a6/js/layout_edit.js' %}?v=13.60"></script>
   <script src="{% static 'produtos/dispenser-a6/js/dispenser_cloud.js' %}?v=13.60"></script>
@@ -3211,6 +3211,81 @@ Batata-Doce</textarea>
       });
     }
 
+    function corAtras(img) {
+      var el = img.parentElement;
+      while (el && el !== document.documentElement) {
+        var bg = window.getComputedStyle(el).backgroundColor;
+        if (bg && bg !== "transparent" && bg !== "rgba(0, 0, 0, 0)") return bg;
+        el = el.parentElement;
+      }
+      return "#ffffff";
+    }
+
+    function pintarFundoBranco(root, done) {
+      var imgs = Array.prototype.filter.call(
+        root.querySelectorAll(".dsp-brand-logo, .dsp-pet-img, .dsp-ing-img"),
+        function (img) { return img && img.getAttribute("src"); }
+      );
+      var left = imgs.length;
+      if (!left) { done(); return; }
+      function uma() {
+        left -= 1;
+        if (left <= 0) done();
+      }
+      imgs.forEach(function (img) {
+        var fechou = false;
+        function fecha() {
+          if (fechou) return;
+          fechou = true;
+          uma();
+        }
+        function paint() {
+          try {
+            var w = img.naturalWidth;
+            var h = img.naturalHeight;
+            if (!w || !h) { fecha(); return; }
+            var c = document.createElement("canvas");
+            c.width = w;
+            c.height = h;
+            var ctx = c.getContext("2d");
+            ctx.fillStyle = corAtras(img);
+            ctx.fillRect(0, 0, w, h);
+            ctx.drawImage(img, 0, 0);
+            var url = c.toDataURL("image/png");
+            img.addEventListener("load", fecha, { once: true });
+            img.addEventListener("error", fecha, { once: true });
+            img.src = url;
+            if (img.complete) fecha();
+          } catch (e) {
+            fecha();
+          }
+        }
+        if (img.complete && img.naturalWidth) paint();
+        else if (img.complete) fecha();
+        else {
+          img.addEventListener("load", paint, { once: true });
+          img.addEventListener("error", fecha, { once: true });
+        }
+      });
+    }
+
+    var fotosParaRestaurar = [];
+
+    function lembrarFotos(root) {
+      fotosParaRestaurar = [];
+      if (!root) return;
+      root.querySelectorAll(".dsp-brand-logo, .dsp-pet-img, .dsp-ing-img").forEach(function (img) {
+        fotosParaRestaurar.push({ img: img, src: img.src });
+      });
+    }
+
+    function restaurarFotos() {
+      fotosParaRestaurar.forEach(function (item) {
+        if (item.img && item.src) item.img.src = item.src;
+      });
+      fotosParaRestaurar = [];
+    }
+
     function whenImages(root, done) {
       var imgs = root.querySelectorAll("img");
       var left = 0;
@@ -3251,8 +3326,10 @@ Batata-Doce</textarea>
         window.print();
       }
       whenImages(host, function () {
-        requestAnimationFrame(function () {
-          requestAnimationFrame(go);
+        pintarFundoBranco(host, function () {
+          requestAnimationFrame(function () {
+            requestAnimationFrame(go);
+          });
         });
       });
     }
@@ -3414,7 +3491,9 @@ Batata-Doce</textarea>
 
     document.getElementById("dspPrint").addEventListener("click", function () {
       clearPrintMode();
-      window.print();
+      var card = document.getElementById("dspCard");
+      lembrarFotos(card);
+      pintarFundoBranco(card, function () { window.print(); });
     });
     document.getElementById("dspPrintA4v").addEventListener("click", function () { openPrintModal("a4v"); });
     document.getElementById("dspPrintA4h").addEventListener("click", function () { openPrintModal("a4h"); });
@@ -3429,7 +3508,10 @@ Batata-Doce</textarea>
       closePrintModal();
       printChoicesNow(modo, keys);
     });
-    window.addEventListener("afterprint", clearPrintMode);
+    window.addEventListener("afterprint", function () {
+      clearPrintMode();
+      restaurarFotos();
+    });
     document.getElementById("dspReset").addEventListener("click", function () {
       catEl.value = "cao-adulto-pequeno";
       brandEl.value = "Robustus";

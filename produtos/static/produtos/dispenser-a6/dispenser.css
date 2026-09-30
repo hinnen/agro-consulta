@@ -1585,6 +1585,13 @@ html, body {
     print-color-adjust: exact !important;
   }
 
+  /* Sombra no logo faz o Chrome pintar o PNG transparente de preto. */
+  .dsp-brand-logo,
+  .dsp-pet-img,
+  .dsp-ing-img {
+    filter: none !important;
+  }
+
   .dsp-sabores-title {
     color: var(--dsp-cat-deep) !important;
   }
