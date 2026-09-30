@@ -1290,6 +1290,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### PACOTE PRONTO — limite no card de Saldos do PDV (`PDV-FIADO-LIMITE-CARD`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | No card Saldos, a linha do fiado mostra o que ele deve e o limite total. Clique no primeiro abre o fiado. Clique no segundo abre popup (digitar ou +/− R$ 100). Só grava com PIN do Geraldo, Geraldinho ou Renan. Atraso deixa o valor devido em vermelho. |
+| **Prova** | `scripts/verify_pdv_fiado_limite_card_path.py` **27/27** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
+| **Você** | Ctrl+F5 no PDV · escolha um cliente · a linha do fiado tem dois valores |
+
 ### PACOTE PRONTO — PIN na Gestão (`GESTAO-PIN-FOLGA`)
 
 | Campo | Valor |

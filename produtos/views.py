@@ -11123,6 +11123,7 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
             "apiEnviarPedidoErp": reverse("api_enviar_pedido_erp"),
             "apiPdvClienteRapido": reverse("api_pdv_cliente_rapido"),
             "apiPdvClienteCreditoFiado": reverse("api_pdv_cliente_credito_fiado"),
+            "apiPdvFiadoLimite": reverse("api_pdv_fiado_limite"),
             "apiPdvRelacionamentoCliente": reverse("api_pdv_relacionamento_cliente"),
             "apiPdvRelacionamentoClienteExtras": reverse("api_pdv_relacionamento_cliente_extras"),
             "apiPdvOrcamentos": reverse("api_pdv_orcamentos"),

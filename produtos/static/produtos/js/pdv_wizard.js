@@ -382,7 +382,10 @@
         var msgBase =
             String(opts.mensagem || '').trim() ||
             'Há cobrança da maquininha automática ainda aberta nesta venda.';
+        var titulo = String(opts.titulo || 'Forçar com PIN gerencial').trim();
+        var botao = String(opts.botao || 'Liberar venda').trim();
         var hint =
+            String(opts.hint || '').trim() ||
             'Para forçar esta ação, peça e digite o PIN de um usuário gerencial: ' + nomes + '.';
         return new Promise(function (resolve) {
             var host = document.getElementById('pdv-sale-toast');
@@ -399,7 +402,9 @@
                 '<div class="pdv-sale-toast-panel rounded-3xl border-2 border-amber-500 bg-amber-50 text-amber-950 shadow-2xl shadow-amber-400/70">' +
                 '<div class="pdv-sale-toast-prominent-inner">' +
                 '<span class="pdv-sale-toast-icon flex shrink-0 items-center justify-center rounded-full bg-white/90 text-lg font-black" aria-hidden="true">PIN</span>' +
-                '<p class="pdv-sale-toast-title text-base font-black leading-tight">Forçar com PIN gerencial</p>' +
+                '<p class="pdv-sale-toast-title text-base font-black leading-tight">' +
+                escapeHtml(titulo) +
+                '</p>' +
                 '<p class="pdv-sale-toast-body mt-1 text-sm font-semibold leading-snug whitespace-pre-line">' +
                 escapeHtml(msgBase) +
                 '</p>' +
@@ -413,7 +418,9 @@
                 '<p data-pdv-pin-gerencial-err class="mt-2 hidden text-sm font-bold text-rose-700"></p>' +
                 '<div class="mt-4 flex flex-wrap justify-center gap-3">' +
                 '<button type="button" data-pdv-pin-gerencial-cancel class="rounded-xl border-2 border-current/25 bg-white px-4 py-2 text-xs font-black uppercase tracking-wide hover:bg-white/80">Cancelar</button>' +
-                '<button type="button" data-pdv-pin-gerencial-ok class="rounded-xl border-2 border-amber-800 bg-amber-600 px-4 py-2 text-xs font-black uppercase tracking-wide text-white hover:bg-amber-700">Liberar venda</button>' +
+                '<button type="button" data-pdv-pin-gerencial-ok class="rounded-xl border-2 border-amber-800 bg-amber-600 px-4 py-2 text-xs font-black uppercase tracking-wide text-white hover:bg-amber-700">' +
+                escapeHtml(botao) +
+                '</button>' +
                 '</div></div></div>';
             if (showSaleDoneFeedback._timer) clearTimeout(showSaleDoneFeedback._timer);
             showSaleDoneFeedback._timer = null;
@@ -649,7 +656,17 @@
         productCreditBalance: document.getElementById('pdv-product-credit-balance'),
         productCashbackBalance: document.getElementById('pdv-product-cashback-balance'),
         productFiadoBalance: document.getElementById('pdv-product-fiado-balance'),
+        productFiadoLimite: document.getElementById('pdv-product-fiado-limite'),
         fiadoGestaoOpen: document.getElementById('pdv-fiado-gestao-open'),
+        fiadoLimiteOpen: document.getElementById('pdv-fiado-limite-open'),
+        fiadoLimiteModal: document.getElementById('pdv-fiado-limite-modal'),
+        fiadoLimiteCliente: document.getElementById('pdv-fiado-limite-cliente'),
+        fiadoLimiteInput: document.getElementById('pdv-fiado-limite-input'),
+        fiadoLimiteMenos: document.getElementById('pdv-fiado-limite-menos'),
+        fiadoLimiteMais: document.getElementById('pdv-fiado-limite-mais'),
+        fiadoLimiteErro: document.getElementById('pdv-fiado-limite-erro'),
+        fiadoLimiteCancelar: document.getElementById('pdv-fiado-limite-cancelar'),
+        fiadoLimiteGravar: document.getElementById('pdv-fiado-limite-gravar'),
         topbarCaixaLink: document.getElementById('pdv-topbar-caixa-link'),
         topbarFiadoLink: document.getElementById('pdv-topbar-fiado-link'),
         fiadoVencidosModal: document.getElementById('pdv-fiado-vencidos-modal'),
@@ -3219,31 +3236,195 @@
         return '';
     }
 
+    var FIADO_LIMITE_PASSO = 100;
+
+    function parseLimiteCampo(raw) {
+        var s = String(raw || '')
+            .replace(/R\$\s*/gi, '')
+            .trim();
+        if (!s) return NaN;
+        if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+        var n = Number(s);
+        if (!isFinite(n)) return NaN;
+        return Math.round(n * 100) / 100;
+    }
+
+    function textoLimiteCampo(n) {
+        var v = Number(n);
+        if (!isFinite(v) || v < 0) v = 0;
+        return v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function mostrarErroLimiteFiado(msg) {
+        if (!dom.fiadoLimiteErro) return;
+        var t = String(msg || '').trim();
+        if (!t) {
+            dom.fiadoLimiteErro.textContent = '';
+            dom.fiadoLimiteErro.classList.add('hidden');
+            return;
+        }
+        dom.fiadoLimiteErro.textContent = t;
+        dom.fiadoLimiteErro.classList.remove('hidden');
+    }
+
+    function aplicarPassoLimiteFiado(delta) {
+        if (!dom.fiadoLimiteInput) return;
+        var atual = parseLimiteCampo(dom.fiadoLimiteInput.value);
+        if (!isFinite(atual)) atual = 0;
+        var novo = Math.round((atual + delta) * 100) / 100;
+        if (novo < 0) novo = 0;
+        dom.fiadoLimiteInput.value = textoLimiteCampo(novo);
+        mostrarErroLimiteFiado('');
+    }
+
+    function closeFiadoLimiteModal() {
+        if (!dom.fiadoLimiteModal) return;
+        dom.fiadoLimiteModal.classList.add('hidden');
+        dom.fiadoLimiteModal.classList.remove('flex');
+        mostrarErroLimiteFiado('');
+    }
+
+    function openFiadoLimiteModal() {
+        var state = State.getState();
+        if (!clientePodeFiado(state) || !creditoFiadoCliente || !dom.fiadoLimiteModal) {
+            openFiadoGestao();
+            return;
+        }
+        var c = state.cliente || {};
+        var pk = c.cliente_agro_pk != null ? String(c.cliente_agro_pk).trim() : '';
+        if (!pk) {
+            openFiadoGestao();
+            return;
+        }
+        if (dom.fiadoLimiteCliente) {
+            dom.fiadoLimiteCliente.textContent = String(c.nome || 'Cliente').trim() || 'Cliente';
+        }
+        var lim = State.toNumber(creditoFiadoCliente.limite);
+        if (!isFinite(lim) || lim < 0) lim = 0;
+        if (dom.fiadoLimiteInput) dom.fiadoLimiteInput.value = textoLimiteCampo(lim);
+        mostrarErroLimiteFiado('');
+        dom.fiadoLimiteModal.classList.remove('hidden');
+        dom.fiadoLimiteModal.classList.add('flex');
+        if (dom.fiadoLimiteInput) {
+            setTimeout(function () {
+                try {
+                    dom.fiadoLimiteInput.focus();
+                    dom.fiadoLimiteInput.select();
+                } catch (eF) {}
+            }, 40);
+        }
+    }
+
+    function gravarLimiteFiadoPdv() {
+        var state = State.getState();
+        var c = (state && state.cliente) || {};
+        var pk = c.cliente_agro_pk != null ? String(c.cliente_agro_pk).trim() : '';
+        if (!pk) {
+            mostrarErroLimiteFiado('Escolha o cliente antes de mudar o limite.');
+            return;
+        }
+        var valor = parseLimiteCampo(dom.fiadoLimiteInput ? dom.fiadoLimiteInput.value : '');
+        if (!isFinite(valor) || valor < 0) {
+            mostrarErroLimiteFiado('Digite um valor válido. O limite não pode ficar negativo.');
+            return;
+        }
+        var url = String((urls && urls.apiPdvFiadoLimite) || '').trim();
+        if (!url) {
+            mostrarErroLimiteFiado('Não deu para gravar o limite agora. Recarregue a tela.');
+            return;
+        }
+        mostrarErroLimiteFiado('');
+        showPdvPinGerencial({
+            titulo: 'PIN para mudar o limite',
+            botao: 'Gravar limite',
+            mensagem: 'Limite novo: ' + formatMoney(valor) + '.',
+            hint: 'Só o PIN do Geraldo, do Geraldinho ou do Renan grava este valor.'
+        }).then(function (pinRes) {
+            if (!pinRes || !pinRes.ok || !pinRes.pin) return;
+            if (dom.fiadoLimiteGravar) dom.fiadoLimiteGravar.disabled = true;
+            return jsonPost(url, {
+                pin: pinRes.pin,
+                cliente_agro_pk: pk,
+                limite: String(valor).replace('.', ',')
+            })
+                .then(function (res) {
+                    if (!res.ok || !res.data || res.data.ok === false) {
+                        mostrarErroLimiteFiado(
+                            (res.data && (res.data.erro || res.data.mensagem)) ||
+                                'Não foi possível gravar o limite.'
+                        );
+                        return;
+                    }
+                    if (res.data.credito) {
+                        creditoFiadoCliente = res.data.credito;
+                        creditoFiadoClienteId = clienteFiadoQueryKey(State.getState());
+                    }
+                    renderProductFiadoBalance(State.getState());
+                    closeFiadoLimiteModal();
+                    showPdvAviso('Limite do fiado atualizado.', {
+                        title: 'Fiado',
+                        tone: 'success'
+                    });
+                })
+                .catch(function () {
+                    mostrarErroLimiteFiado('Não foi possível gravar o limite. Tente de novo.');
+                })
+                .then(function () {
+                    if (dom.fiadoLimiteGravar) dom.fiadoLimiteGravar.disabled = false;
+                });
+        });
+    }
+
     function renderProductFiadoBalance(state) {
-        if (!dom.productFiadoBalance) return;
+        if (!dom.productFiadoBalance && !dom.productFiadoLimite) return;
         var cf = creditoFiadoCliente;
         var cidKey = clienteFiadoQueryKey(state);
-        if (cf && creditoFiadoClienteId === cidKey) {
+        var pronto = !!(cf && creditoFiadoClienteId === cidKey);
+        var atrasado = false;
+        if (pronto) {
             var saldoDevedor = State.toNumber(cf.usado);
             if (!isFinite(saldoDevedor) || saldoDevedor < 0) saldoDevedor = 0;
-            dom.productFiadoBalance.textContent = formatMoney(saldoDevedor);
-            var tip = 'Saldo devedor (fiado em aberto) · clique para gerir';
-            if (cf.tem_vencido || cf.bloqueado_nova_venda) {
-                tip = mensagemBloqueioFiadoPendencia() + ' · clique para gerir';
+            var limiteTotal = State.toNumber(cf.limite);
+            if (!isFinite(limiteTotal) || limiteTotal < 0) limiteTotal = 0;
+            atrasado = !!(cf.tem_vencido || cf.bloqueado_nova_venda);
+            if (dom.productFiadoBalance) dom.productFiadoBalance.textContent = formatMoney(saldoDevedor);
+            if (dom.productFiadoLimite) dom.productFiadoLimite.textContent = formatMoney(limiteTotal);
+            var tip = 'O que o cliente deve · clique para abrir o fiado';
+            if (atrasado) {
+                tip = mensagemBloqueioFiadoPendencia() + ' · clique para abrir o fiado';
             } else if (saldoDevedor > 0.009) {
-                tip = 'Saldo fiado em aberto · clique para gerir';
+                tip = 'Fiado em aberto · clique para abrir o fiado';
             } else {
-                tip = 'Sem saldo fiado em aberto';
+                tip = 'Sem fiado em aberto · clique para abrir o fiado';
             }
-            dom.productFiadoBalance.title = tip;
+            if (dom.productFiadoBalance) dom.productFiadoBalance.title = tip;
+            if (dom.fiadoGestaoOpen) dom.fiadoGestaoOpen.title = tip;
+            if (dom.fiadoLimiteOpen) {
+                dom.fiadoLimiteOpen.title = 'Limite total ' + formatMoney(limiteTotal) + ' · clique para alterar';
+            }
         } else {
-            dom.productFiadoBalance.textContent = clientePodeFiado(state) ? '…' : 'R$ 0,00';
-            dom.productFiadoBalance.title = clientePodeFiado(state)
-                ? 'Carregando saldo fiado…'
-                : 'Selecione um cliente cadastrado';
+            var carregando = clientePodeFiado(state);
+            var zero = carregando ? '…' : 'R$ 0,00';
+            if (dom.productFiadoBalance) {
+                dom.productFiadoBalance.textContent = zero;
+                dom.productFiadoBalance.title = carregando
+                    ? 'Carregando saldo fiado…'
+                    : 'Sem cliente · clique para abrir o fiado';
+            }
+            if (dom.productFiadoLimite) {
+                dom.productFiadoLimite.textContent = zero;
+            }
+            if (dom.fiadoGestaoOpen && dom.productFiadoBalance) {
+                dom.fiadoGestaoOpen.title = dom.productFiadoBalance.title;
+            }
+            if (dom.fiadoLimiteOpen) {
+                dom.fiadoLimiteOpen.title = carregando
+                    ? 'Carregando limite…'
+                    : 'Sem cliente · clique abre o fiado';
+            }
         }
-        if (dom.fiadoGestaoOpen) {
-            dom.fiadoGestaoOpen.title = dom.productFiadoBalance.title;
+        if (dom.productFiadoBalance) {
+            dom.productFiadoBalance.classList.toggle('pdv-fiado-usado--atraso', atrasado);
         }
         if (dom.topbarFiadoLink) {
             dom.topbarFiadoLink.href = buildFiadoGestaoUrl(state);
@@ -17208,6 +17389,41 @@
         }
         if (dom.fiadoGestaoOpen) {
             dom.fiadoGestaoOpen.addEventListener('click', openFiadoGestao);
+        }
+        if (dom.fiadoLimiteOpen) {
+            dom.fiadoLimiteOpen.addEventListener('click', openFiadoLimiteModal);
+        }
+        if (dom.fiadoLimiteMenos) {
+            dom.fiadoLimiteMenos.addEventListener('click', function () {
+                aplicarPassoLimiteFiado(-FIADO_LIMITE_PASSO);
+            });
+        }
+        if (dom.fiadoLimiteMais) {
+            dom.fiadoLimiteMais.addEventListener('click', function () {
+                aplicarPassoLimiteFiado(FIADO_LIMITE_PASSO);
+            });
+        }
+        if (dom.fiadoLimiteCancelar) {
+            dom.fiadoLimiteCancelar.addEventListener('click', closeFiadoLimiteModal);
+        }
+        if (dom.fiadoLimiteModal) {
+            dom.fiadoLimiteModal.addEventListener('click', function (ev) {
+                if (ev.target === dom.fiadoLimiteModal) closeFiadoLimiteModal();
+            });
+        }
+        if (dom.fiadoLimiteGravar) {
+            dom.fiadoLimiteGravar.addEventListener('click', gravarLimiteFiadoPdv);
+        }
+        if (dom.fiadoLimiteInput) {
+            dom.fiadoLimiteInput.addEventListener('keydown', function (ev) {
+                if (ev.key === 'Enter') {
+                    ev.preventDefault();
+                    gravarLimiteFiadoPdv();
+                } else if (ev.key === 'Escape') {
+                    ev.preventDefault();
+                    closeFiadoLimiteModal();
+                }
+            });
         }
         if (dom.topbarFiadoLink) {
             dom.topbarFiadoLink.addEventListener('click', function (ev) {

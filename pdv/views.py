@@ -211,6 +211,7 @@ def pdv_home(request):
                 "apiPdvMpPointForcarLiberar": reverse("api_pdv_mp_point_forcar_liberar"),
                 "apiEntregaRegistrar": reverse("api_entrega_registrar"),
                 "apiPdvClienteCreditoFiado": reverse("api_pdv_cliente_credito_fiado"),
+                "apiPdvFiadoLimite": reverse("api_pdv_fiado_limite"),
                 "apiPdvRelacionamentoCliente": reverse("api_pdv_relacionamento_cliente"),
                 "apiPdvRelacionamentoClienteExtras": reverse("api_pdv_relacionamento_cliente_extras"),
                 "apiPdvOrcamentos": reverse("api_pdv_orcamentos"),

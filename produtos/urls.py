@@ -178,6 +178,11 @@ urlpatterns = [
         name='api_pdv_cliente_credito_fiado',
     ),
     path(
+        'api/pdv/fiado-limite/',
+        fiado_views.api_pdv_fiado_limite,
+        name='api_pdv_fiado_limite',
+    ),
+    path(
         'api/pdv/relacionamento-cliente/',
         views.api_pdv_relacionamento_cliente,
         name='api_pdv_relacionamento_cliente',

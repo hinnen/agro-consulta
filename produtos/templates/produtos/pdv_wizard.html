@@ -950,6 +950,40 @@
     font-size: 13px;
     color: #0369a1;
   }
+  #pdv-step1-side .pdv-fiado-duo {
+    gap: 0.15rem;
+    padding: 0;
+  }
+  #pdv-step1-side .pdv-fiado-duo-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;
+    min-height: 1.7rem;
+    border: 0;
+    background: transparent;
+    padding: 0.15rem 0.2rem;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+  #pdv-step1-side .pdv-fiado-duo-usado {
+    flex: 1 1 auto;
+    justify-content: space-between;
+  }
+  #pdv-step1-side .pdv-fiado-duo-limite {
+    flex: 0 0 auto;
+  }
+  #pdv-step1-side .pdv-fiado-limite-sep {
+    flex: 0 0 auto;
+    color: #94a3b8;
+    font-weight: 900;
+  }
+  #pdv-step1-side #pdv-product-fiado-balance.pdv-fiado-usado--atraso {
+    color: #b91c1c;
+  }
   #pdv-step1-side .pdv-step1-side-meta {
     font-size: 10px;
     font-weight: 900;
@@ -4646,6 +4680,30 @@
     <footer class="shrink-0 flex flex-wrap gap-2 border-t border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
       <a id="pdv-fiado-vencidos-gestao" href="{% url 'fiado_gestao' %}?from=pdv" class="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-xl border-2 border-orange-300 bg-orange-50 px-4 text-xs font-black uppercase text-orange-950 no-underline hover:bg-orange-100 sm:flex-none">Abrir gestão fiado</a>
       <button type="button" id="pdv-fiado-vencidos-fechar" class="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-xl bg-slate-900 px-5 text-xs font-black uppercase text-white hover:bg-slate-800 sm:flex-none">Entendi · continuar venda</button>
+    </footer>
+  </div>
+</div>
+
+<div id="pdv-fiado-limite-modal" class="fixed inset-0 z-[137] hidden items-center justify-center bg-slate-950/65 p-3 backdrop-blur-sm sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-fiado-limite-titulo">
+  <div class="w-full max-w-[min(28rem,96vw)] overflow-hidden rounded-2xl border-[3px] border-sky-300 bg-white shadow-2xl" onclick="event.stopPropagation();">
+    <header class="border-b-2 border-sky-200 bg-gradient-to-r from-sky-50 to-white px-4 py-3 sm:px-5">
+      <p class="text-[10px] font-black uppercase tracking-wide text-sky-800">Limite do fiado</p>
+      <h2 id="pdv-fiado-limite-titulo" class="text-[clamp(1.05rem,0.6vw+0.95rem,1.35rem)] font-black leading-tight text-slate-900">Aumentar ou diminuir</h2>
+      <p id="pdv-fiado-limite-cliente" class="mt-1 truncate text-sm font-bold text-slate-700">—</p>
+    </header>
+    <div class="space-y-3 px-4 py-4 sm:px-5">
+      <label class="block text-[10px] font-black uppercase tracking-wide text-slate-500" for="pdv-fiado-limite-input">Valor do limite</label>
+      <div class="flex items-center gap-2">
+        <button type="button" id="pdv-fiado-limite-menos" class="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border-2 border-slate-300 bg-white text-2xl font-black text-slate-800 hover:bg-slate-50" title="Diminuir R$ 100" aria-label="Diminuir 100 reais">−</button>
+        <input type="text" id="pdv-fiado-limite-input" inputmode="decimal" autocomplete="off" class="min-h-14 w-full rounded-xl border-2 border-sky-400 bg-white px-3 py-3 text-center text-2xl font-black tabular-nums text-slate-900 focus:border-sky-600 focus:outline-none focus:ring-4 focus:ring-sky-200" />
+        <button type="button" id="pdv-fiado-limite-mais" class="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border-2 border-emerald-400 bg-emerald-50 text-2xl font-black text-emerald-900 hover:bg-emerald-100" title="Aumentar R$ 100" aria-label="Aumentar 100 reais">+</button>
+      </div>
+      <p class="text-center text-[11px] font-bold text-slate-500">Os botões sobem ou descem R$ 100. Também dá para digitar o valor.</p>
+      <p id="pdv-fiado-limite-erro" class="hidden rounded-xl border-2 border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-800"></p>
+    </div>
+    <footer class="grid grid-cols-2 gap-2 border-t border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
+      <button type="button" id="pdv-fiado-limite-cancelar" class="min-h-[48px] rounded-xl border-2 border-slate-300 bg-white text-xs font-black uppercase text-slate-800 hover:bg-slate-100">Cancelar</button>
+      <button type="button" id="pdv-fiado-limite-gravar" class="min-h-[48px] rounded-xl bg-sky-700 text-xs font-black uppercase text-white hover:bg-sky-800">Gravar</button>
     </footer>
   </div>
 </div>
