@@ -15,7 +15,7 @@ from produtos.caixa_util import (
     extrair_linhas_conferencia_sessao,
     formatar_opcao_sessao_caixa,
     linha_diferenca_abertura_sessao,
-    linha_eh_cartao_maquina,
+    linha_passa_na_maquininha,
     normalizar_forma_pagamento_caixa,
     normalizar_ponto_caixa,
     pagamentos_por_forma_venda,
@@ -215,13 +215,13 @@ def montar_relatorio_caixa(
             desc = f"Venda #{v.pk} · {(v.cliente_nome or '')[:40]}"
             if (
                 getattr(v, "cartao_maquina_dia_anterior", False)
-                and linha_eh_cartao_maquina(fn)
+                and linha_passa_na_maquininha(fn)
             ):
                 dia_cartao = getattr(v, "cartao_maquina_dia", None)
                 if dia_cartao:
-                    desc += f" · cartão em {dia_cartao.strftime('%d/%m/%Y')}"
+                    desc += f" · na máquina em {dia_cartao.strftime('%d/%m/%Y')}"
                 else:
-                    desc += " · cartão em outro dia"
+                    desc += " · na máquina em outro dia"
             buckets["vendas"].append(
                 _row(
                     "vendas",

@@ -1356,17 +1356,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | `PDV-ENT-CARTAO-ONTEM` | 🟢 **pronto para envio à produção** | **SIM** `0134` + `0135` | **54/54** |
+| 1 | `PDV-ENT-CARTAO-ONTEM` | 🟢 **pronto para envio à produção** | **SIM** `0134` + `0135` | **57/57** |
 
 ### PACOTE PRONTO — PDV-ENT-CARTAO-ONTEM
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Entrega que já virou o dia, com cartão: **Passou hoje**, **Passou ontem** ou **Outro dia** (calendário). Outro dia não soma no esperado da máquina de hoje e aparece na faixa amarela do Fechar caixa. No Relatório de caixa a data da venda continua sendo o dia do fechamento; a linha diz em que dia o cartão passou. |
+| **O quê** | Entrega que já virou o dia, com cartão **ou Pix**: **Passou hoje**, **Passou ontem** ou **Outro dia** (calendário). Outro dia não soma no esperado da máquina de hoje e aparece na faixa amarela do Fechar caixa. No Relatório de caixa a data da venda continua sendo o dia do fechamento; a linha diz em que dia passou na máquina. |
 | **Migrate** | **SIM** `0134` + `0135` |
-| **Prova** | `verify_cartao_entrega_dia_anterior.py` **54/54** |
-| **Status** | 🟢 **pronto para envio à produção** — teste **v25.55** — só frase + senha |
-| **Você** | Ctrl+F5 · retomar a entrega · cartão · **Outro dia** ou **Passou ontem** · Fechar caixa: faixa amarela |
+| **Prova** | `verify_cartao_entrega_dia_anterior.py` **57/57** |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.57** — só frase + senha |
+| **Você** | Ctrl+F5 · retomar a entrega · cartão ou Pix · **Outro dia** ou **Passou ontem** · Fechar caixa: faixa amarela |
 
 ### CHECKLIST ÚNICO — falta subir
 
@@ -1374,7 +1374,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- | ----- |
 | 1 | `FIADO-LIMITE-TODOS` | 🟢 **já testado · pronto para envio à produção** | **NÃO** | **13/13** |
 | 2 | `CLI-RENOME-HIST` | 🟢 **já testado · pronto para envio à produção** | **NÃO** | **13/13** |
-| 3 | `PDV-ENT-CARTAO-ONTEM` | 🟢 **pronto para envio à produção** | **SIM** `0134` + `0135` | **54/54** |
+| 3 | `PDV-ENT-CARTAO-ONTEM` | 🟢 **pronto para envio à produção** | **SIM** `0134` + `0135` | **57/57** |
 | 4 | **PDV-ENT-DIA-OPCIONAL** | 🟢 **pronto para envio à produção** | **SIM** `0133` | **33/33** |
 | 5 | **CLIENTE-XLSX-FIADO** | 🟢 **pronto para envio à produção** | **NÃO** | **30/30** |
 | 6 | `BUG-28-PIN-CATCH` | 🟢 **pronto para envio à produção** | **NÃO** | JS **14/14** |
@@ -1387,7 +1387,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Pacote | O que testar |
 | ------ | ------------ |
 | **Limite + nome do cliente** | ✅ Renan testou no teste · lápis em quem tem fiado · corrigir letra não some o histórico · prova **13/13** · sem migrate |
-| **Cartão da entrega ontem** | Ctrl+F5 · cartão · **Passou ontem** ou **Outro dia** (calendário) · Fechar caixa: faixa amarela · Relatório: data da venda é hoje, a linha diz o dia do cartão · migrate `0134` + `0135` |
+| **Cartão da entrega ontem** | Ctrl+F5 · cartão ou Pix · **Passou ontem** ou **Outro dia** (calendário) · Fechar caixa: faixa amarela · Relatório: data da venda é hoje, a linha diz o dia da máquina · migrate `0134` + `0135` |
 | **Dia da entrega** | Ctrl+F5 · Entregas: card de amanhã continua · o número do botão só sobe no dia · migrate `0133` |
 | **Ver a outra loja** | Ctrl+F5 · Entregas → **Ver Vila** (ou **Ver Centro**) · painel por cima, só olhar, sem Retomar nem Fechar |
 | **Excel clientes** | Ctrl+F5 · Clientes → Excel ↓ · mudar limite · Excel ↑ → prévia → confirmar |

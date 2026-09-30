@@ -165,9 +165,17 @@ def normalizar_forma_pagamento_caixa(raw: str) -> str:
 
 
 def linha_eh_cartao_maquina(fn: str) -> bool:
-    """Débito/crédito (inclusive parcelado e Mercado Pago). Pix e dinheiro ficam de fora."""
+    """Débito/crédito (inclusive parcelado e Mercado Pago). Pix fica de fora desta função."""
     low = str(fn or "").strip().lower()
     return low.startswith("cartão") or low.startswith("cartao")
+
+
+def linha_passa_na_maquininha(fn: str) -> bool:
+    """Cartão ou Pix conferidos com o relatório da maquininha."""
+    if linha_eh_cartao_maquina(fn):
+        return True
+    low = str(fn or "").strip().lower()
+    return low == "pix" or low.startswith("pix ")
 
 
 def agrupar_forma_para_fechamento_caixa(forma: str) -> str:
@@ -422,7 +430,7 @@ def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, 
             for fn_caixa, val in pagamentos_por_linha_conferencia_venda(
                 v, vendas_mp_point=vendas_mp_point
             ).items():
-                if cartao_ontem and linha_eh_cartao_maquina(fn_caixa):
+                if cartao_ontem and linha_passa_na_maquininha(fn_caixa):
                     continue
                 vendas_por[fn_caixa] += val
                 esperado[fn_caixa] += val
@@ -453,7 +461,7 @@ def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, 
             if (
                 m.tipo == "retirada"
                 and eh_movimento_retirada_devolucao(obs_m)
-                and linha_eh_cartao_maquina(fn)
+                and linha_passa_na_maquininha(fn)
             ):
                 vp_ontem = _pk_venda_devolucao_obs(obs_m)
                 venda_ontem = (
@@ -733,7 +741,7 @@ def resumo_cartao_entrega_dia_anterior(sessoes) -> dict[str, Any]:
             for fn, val in pagamentos_por_linha_conferencia_venda(
                 v, vendas_mp_point=vendas_mp
             ).items():
-                if linha_eh_cartao_maquina(fn) and val > 0:
+                if linha_passa_na_maquininha(fn) and val > 0:
                     por[fn] += val
                     teve = True
             if teve:

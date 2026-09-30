@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from produtos.caixa_util import (
     PONTO_CAIXA_VILA,
-    linha_eh_cartao_maquina,
+    linha_passa_na_maquininha,
     normalizar_forma_pagamento_caixa,
     rotulo_operador_pin,
     validar_pin_operador,
@@ -368,7 +368,7 @@ def _entrega_permite_cartao_outro_dia(data: dict | None, pagamentos_json) -> boo
         fn = normalizar_forma_pagamento_caixa(
             str(row.get("forma") or row.get("formaPagamento") or "")
         )
-        if linha_eh_cartao_maquina(fn):
+        if linha_passa_na_maquininha(fn):
             return True
     return False
 
