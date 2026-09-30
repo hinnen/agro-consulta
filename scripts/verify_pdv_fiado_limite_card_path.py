@@ -58,6 +58,11 @@ def test_arquivos() -> None:
     check("api", "def api_pdv_fiado_limite" in views and "validar_pin_gerencial" in views)
     check("url", "api/pdv/fiado-limite/" in urls and "api_pdv_fiado_limite" in urls)
     check("boot", "apiPdvFiadoLimite" in boot)
+    fiado_html = (ROOT / "produtos/templates/produtos/fiado_gestao.html").read_text(encoding="utf-8")
+    fiado_js = (ROOT / "produtos/static/produtos/js/fiado_gestao.js").read_text(encoding="utf-8")
+    check("cli_par", "fiado-cli-par" in fiado_html and "fiado-cli-pill-limite" in fiado_html)
+    check("cli_popup", "fiado-modal-limite-cli" in fiado_html and "limitePdv" in fiado_html)
+    check("cli_js", "function gravarLimiteCliente" in fiado_js and "function pintarParCliente" in fiado_js)
 
 
 def test_node() -> None:

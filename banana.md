@@ -1304,7 +1304,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | No card Saldos e dentro de cada cliente do fiado: **Deve** (laranja) e **Limite** (azul). O limite abre popup (digitar ou +/− R$ 100) e só grava com PIN do Geraldo, Geraldinho ou Renan. Atraso deixa o Deve vermelho. |
-| **Prova** | `scripts/verify_pdv_fiado_limite_card_path.py` **27/27** |
+| **Prova** | `scripts/verify_pdv_fiado_limite_card_path.py` **30/30** |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
 | **Você** | Ctrl+F5 no PDV · escolha um cliente · a linha do fiado tem dois valores |
@@ -1402,7 +1402,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 8 | `COFRE-SEM-AUTO` | 🟢 **pronto para envio à produção** | **NÃO** | path **15/15** · **39/39** |
 | 9 | **PDV-ENT-VER-OUTRA** | 🟢 **pronto para envio à produção** | **NÃO** | **40/40** |
 | 10 | `GESTAO-PIN-FOLGA` | 🟢 **pronto para envio à produção** | **NÃO** | **43/43** |
-| 11 | `CLI-XLSX-MES-VALOR` | 🟢 **pronto para envio à produção** | **NÃO** | Excel ↓ |
+| 11 | `CLI-XLSX-MES-VALOR` | 🟢 **pronto para envio à produção** | **NÃO** | **42/42** |
 
 ### PACOTE PRONTO — o que ainda falta subir
 
