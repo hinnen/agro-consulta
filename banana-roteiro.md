@@ -590,3 +590,19 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 **Status: 🟢 PREP · aguarda pausa + frase + senha.** Loja ainda **v25.36** @ `c8b78d80`.  
 **Rollback:** tag `rollback/pre-checklist-3009-v25.36` · `docs/ROLLBACK-CHECKLIST-3009.md`.
 
+---
+
+## 36. Checklist único — Dispenser PIN do descanso (30/09)
+
+A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja (v25.75)**. O que falta, e o **único** que entra no próximo envio:
+
+| # | Pacote | Prova | Migrate |
+| - | ------ | ----- | ------- |
+| 1 | **DSP-PIN-DESCANSO** | **19/19** | **NÃO** |
+
+**O quê:** no Dispenser, depois de um tempo parado, o cartão do PIN cobre a tela e o OK funciona.  
+**Não mexe:** PDV, caixa, venda, fiado, nota, financeiro.  
+**Status: 🟢 PREP** `deploy/prep-dsp-pin-descanso` · alvo **v25.78** · **não subiu**.  
+**Antes:** Live **v25.77** @ `6eff0f70`.  
+**Rollback:** tag `rollback/pre-dsp-pin-descanso-v25.77` · `docs/ROLLBACK-DSP-PIN-DESCANSO.md` · **só** frase+senha.
+

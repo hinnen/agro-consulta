@@ -1289,10 +1289,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | No Dispenser, depois de um tempo parado o cartão do PIN travava a tela sem aparecer na frente. Agora o cartão cobre a folha: dá para digitar o PIN e OK. |
-| **Prova** | `scripts/verify_dsp_impressao_folha_path.py` **19/19** |
+| **Prova** | `scripts/verify_dsp_impressao_folha_path.py` **19/19** (30/09) |
 | **Migrate** | **NÃO** |
-| **Status** | teste — **não** subiu |
-| **Você** | Ctrl+F5 no Dispenser · deixe parado · o cartão do PIN aparece na frente e o OK funciona |
+| **Mexe** | só `/interno/dispenser-a6/` (CSS do cartão). **Não** entra PDV, caixa, venda, fiado, nota, financeiro. |
+| **Status** | 🟢 **PREP** `deploy/prep-dsp-pin-descanso` · alvo **v25.78** · **não subiu** · lojas abertas |
+| **Antes** | Live **v25.77** · `producao` @ `6eff0f70` |
+| **Rollback** | tag `rollback/pre-dsp-pin-descanso-v25.77` · `docs/ROLLBACK-DSP-PIN-DESCANSO.md` · **só** frase+senha |
+| **Você** | no próximo chat: lojas pausam · frase + senha · aí sobe · Ctrl+F5 no Dispenser |
 
 ### PACOTE PRONTO — Dispenser em folha (`DSP-IMPRESSAO-FOLHA`)
 
