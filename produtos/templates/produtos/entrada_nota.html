@@ -2273,7 +2273,7 @@
 
   {% csrf_token %}
   {% include "produtos/_js_busca_produto_inteligente.html" %}
-  <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=23"></script>
+  <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=24"></script>
   <script src="{% static 'produtos/js/agro_busca_catalogo.js' %}{% if agro_pdv_assets_v %}?v={{ agro_pdv_assets_v }}{% endif %}"></script>
   <script>
 (function () {
@@ -8059,11 +8059,14 @@
     return s;
   }
 
-  /** Nome do cadastro sem sufixo « (match) » para exibir sob a descrição da NF. */
+  /** Nome do cadastro sem o código interno do vínculo (não corta parêntese de verdade, tipo «500 ml»). */
   function entradaNfeLinhaNomeCatalogoLimpo(tr) {
-    let s = entradaNfeLinhaNomeCatalogoTexto(tr);
+    const s = entradaNfeLinhaNomeCatalogoTexto(tr);
     if (!s) return '';
-    s = s.replace(/\s*\([^)]{1,48}\)\s*$/u, '').trim();
+    const Core = window.AgroEtiquetasCore;
+    if (Core && typeof Core.nomeCadastroSemTipoMatch === 'function') {
+      return Core.nomeCadastroSemTipoMatch(s, tr && tr.dataset ? tr.dataset.nfeMatchTipo : '');
+    }
     return s;
   }
 
@@ -8268,9 +8271,12 @@
       q_estoque: merged.q_estoque,
       preservar_custo_nf: !!merged.preservar_custo_nf,
     };
-    const mt = d.match_tipo ? ` (${d.match_tipo})` : '';
-    const textoCatCompleto =
-      (d.nome_catalogo ? `${d.nome_catalogo}${mt}` : d.produto_id ? String(d.produto_id) : '') || '';
+    const CoreNome = window.AgroEtiquetasCore;
+    const nomeBase =
+      CoreNome && typeof CoreNome.nomeCadastroSemTipoMatch === 'function'
+        ? CoreNome.nomeCadastroSemTipoMatch(d.nome_catalogo, d.match_tipo)
+        : String(d.nome_catalogo || '').trim();
+    const textoCatCompleto = nomeBase || (d.produto_id ? String(d.produto_id) : '');
     tr.dataset.nfeNomeCatalogo =
       textoCatCompleto.trim() !== '' ? textoCatCompleto.trim().slice(0, 500) : '';
     tr.dataset.nfeMatchTipo = d.match_tipo ? String(d.match_tipo).trim().slice(0, 80) : '';
@@ -8705,6 +8711,16 @@
     };
   }
 
+  function entradaNfeEtiquetaNomeDoLinha(l) {
+    const Core = window.AgroEtiquetasCore;
+    let s =
+      Core && typeof Core.nomeCadastroSemTipoMatch === 'function'
+        ? Core.nomeCadastroSemTipoMatch(l && l.nome_catalogo, l && l.match_tipo)
+        : String((l && l.nome_catalogo) || '').trim();
+    if (!s || /^[a-f0-9-]{20,}$/i.test(s)) s = String((l && l.x_prod) || '').trim();
+    return s;
+  }
+
   function entradaNfeEtiquetasFmtPreco(v) {
     const n = Number(v);
     if (!Number.isFinite(n)) return '0,00';
@@ -8724,7 +8740,7 @@
     }
     host.innerHTML = linhas
       .map((l, idx) => {
-        const nome = String(l.nome_catalogo || l.x_prod || '—').trim();
+        const nome = entradaNfeEtiquetaNomeDoLinha(l) || '—';
         const gm = String(l.c_prod || '').trim();
         const pv = entradaNfeEtiquetasFmtPreco(l.preco_venda);
         const qtd = Math.max(1, Math.round(Number(l.q_estoque) || Number(l.q_com) || 1));
@@ -8743,7 +8759,7 @@
       .join('');
     host.querySelectorAll('.nfe-etq-row').forEach((row, idx) => {
       row.dataset.etqPid = String(linhas[idx].produto_id || '');
-      row.dataset.etqNome = String(linhas[idx].nome_catalogo || linhas[idx].x_prod || '');
+      row.dataset.etqNome = entradaNfeEtiquetaNomeDoLinha(linhas[idx]);
       row.dataset.etqGm = String(linhas[idx].c_prod || '');
       row.dataset.etqEan = String(linhas[idx].ean || '');
       row.dataset.etqPv = String(linhas[idx].preco_venda || 0);

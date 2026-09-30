@@ -630,6 +630,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Etapa 3 cód. barras (12/08 · v16.06 `NF-BIP-ET3`):** bip casa com EAN da linha **e** barras do cadastro/overlay dos itens da NF; casado por EAN/bip na etapa 2 → Ok verde; prova `verify_nf_bip_et3_path.py`.
 - **Etapa 3 PEND após bip etapa 2 (17/08 · `NF-BIP-ET2` · **Live v17.09**):** leitor no **Mudar**/busca (8+ dígitos) vale como Ok; XML `ean_pg`/`ean_overlay` também. Código do fornecedor (sem bip) continua PEND. Prova `verify_nf_bip_et2_path.py`.
 - **Etapa 3 lenta + visual (17/08 · `NF-BIP-ET3-SNAP`):** um lote de códigos do cadastro (não 1 request por item); barra Conferidos; flash + som no Ok. Prova `verify_nf_bip_et3_path.py` **83/83**.
+- **Etiqueta da nota (30/09 · `NF-ETQ-NOME-CADASTRO`):** etapa 6 imprime o nome do cadastro. Não cola `(vinculo_c_prod)` / `(ean_pg)` e não repete na gravação. Prova `verify_nf_etq_nome_cadastro.js`.
 - **Vínculo NF não sobrescreve cadastro (17/08 · `NF-VINCULO-NAO-SOBRESCREVE`):** «Mudar»/cProd/EAN grava só o vínculo. Nome, marca, categoria, GM e preços ficam. Lote/validade não copia xProd da NF no nome. Prova `verify_nf_vinculo_nao_sobrescreve.py`.
 - **Itens já estragados (17/08 · `NF-VINCULO-REPARO`):** ✅ **33 corrigidos** (18/08 · `--aplicar` na loja). Devolve histórico ou tira overlay / colchete `[EAN]`. **Não** mexe preço, GM, barras.
 
@@ -1283,6 +1284,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### PACOTE — etiqueta da nota sem código interno (`NF-ETQ-NOME-CADASTRO`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Na etapa 6 da entrada de nota, o nome da etiqueta vinha com texto que não é do cadastro (`(vinculo_c_prod)`, `(ean_pg)` e similares). Cada gravação repetia. Agora imprime o nome do cadastro. Parêntese de verdade (ex. 500 ml) fica. |
+| **Prova** | `scripts/verify_nf_etq_nome_cadastro.js` **14/14** · térmica várias **39/39** |
+| **Migrate** | **NÃO** |
+| **Status** | teste — falta Renan imprimir uma etiqueta na entrada de nota (Ctrl+F5) |
+| **Você** | Ctrl+F5 na entrada de nota · etapa 6 · imprimir de novo |
 
 ### PACOTE PRONTO — Dispenser não trava no PIN (`DSP-PIN-DESCANSO`)
 
