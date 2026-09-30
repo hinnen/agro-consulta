@@ -1312,7 +1312,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `scripts/verify_dsp_impressao_folha_path.py` **20/20** |
 | **Migrate** | **NÃO** |
 | **Mexe** | só `/interno/dispenser-a6/` |
-| **Status** | teste — **não** subiu |
+| **Status** | 🟢 **PREP** · alvo **v25.79** · ponto de volta **v25.78** @ `4e4a1244` |
 | **Você** | Ctrl+F5 no Dispenser depois de subir · Imprimir de novo |
 
 ### PACOTE PRONTO — Dispenser em folha (`DSP-IMPRESSAO-FOLHA`)
