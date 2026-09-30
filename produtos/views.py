@@ -3080,7 +3080,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         if lista_op_add:
             ex["codigos_barras_opcionais"] = lista_op_add
             ex.pop("codigos_barras_alternativos", None)
-    # Entrada NF etapa 3 — regra B: 230… → opcional; bip vira principal (senão só opcional).
+    # Entrada NF etapa 3: código igual fica; diferente entra só como extra. Sem principal, o bip vira o código.
     if "codigo_barras_bip_entrada_nf" in payload:
         from produtos.mongo_index_codigos import aplicar_bip_entrada_nf_troca_inteligente
 
@@ -3114,7 +3114,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
                 bip=dig_bip_nf,
                 promover_se_loja=promover,
             )
-            if res_bip.get("acao") == "promove" and res_bip.get("codigo_barras"):
+            if res_bip.get("acao") in ("promove", "definir") and res_bip.get("codigo_barras"):
                 ov.codigo_barras = str(res_bip["codigo_barras"])[:80]
             lista_bip = res_bip.get("codigos_barras_opcionais") or []
             if lista_bip:

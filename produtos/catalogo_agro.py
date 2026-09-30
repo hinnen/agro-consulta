@@ -1,13 +1,14 @@
 """Catálogo PostgreSQL (``Produto``) — ``AGRO_FONTE_CATALOGO=agro_pg``."""
 from __future__ import annotations
 
+import json
 import re
 import secrets
 from decimal import Decimal
 
 from django.db.models import Q
 
-from produtos.models import Produto, ProdutoGestaoOverlayAgro
+from produtos.models import Produto, ProdutoCadastroAlteracaoAgro, ProdutoGestaoOverlayAgro
 
 _SORT_MAP = {
     "nome": "nome",
@@ -460,6 +461,86 @@ def produto_model_para_detalhe(p: Produto) -> dict:
     aplicar_fiscal_padrao_em_row_detalhe(row)
     ce = ov.cadastro_extras if ov and isinstance(ov.cadastro_extras, dict) else {}
     row["cadastro_extras"] = dict(ce) if ce else {}
+    # Leitura segura 100% Agro: se PG/overlay estiverem em branco, completa do histórico local.
+    # Código antigo do histórico entra como opcional para não perder o novo.
+    try:
+        from produtos.mongo_index_codigos import normalizar_codigos_barras_opcionais
+        hist_rows = list(
+            ProdutoCadastroAlteracaoAgro.objects.filter(
+                produto_externo_id=pid,
+                campo__in=[
+                    "marca",
+                    "categoria",
+                    "subcategoria",
+                    "unidade",
+                    "codigo_barras",
+                    "codigos_barras_opcionais",
+                ],
+            ).order_by("-id")[:80]
+        )
+        hist_por_campo: dict[str, ProdutoCadastroAlteracaoAgro] = {}
+        for h in hist_rows:
+            if h.campo not in hist_por_campo:
+                hist_por_campo[h.campo] = h
+
+        def _hist_text(campo: str) -> str:
+            h = hist_por_campo.get(campo)
+            if h is None:
+                return ""
+            for raw in (h.valor_depois, h.valor_antes):
+                s = str(raw or "").strip()
+                if s and s not in ("[]", "{}", "—", "-", "–"):
+                    return s
+            return ""
+
+        def _hist_codigos_opcionais() -> list[str]:
+            vals: list[str] = []
+            h = hist_por_campo.get("codigos_barras_opcionais")
+            if h is not None:
+                for raw in (h.valor_depois, h.valor_antes):
+                    txt = str(raw or "").strip()
+                    if not txt:
+                        continue
+                    try:
+                        parsed = json.loads(txt)
+                    except Exception:
+                        parsed = txt
+                    vals.extend(normalizar_codigos_barras_opcionais(parsed))
+            hcb = hist_por_campo.get("codigo_barras")
+            if hcb is not None:
+                vals.extend(
+                    normalizar_codigos_barras_opcionais(
+                        [hcb.valor_antes, hcb.valor_depois],
+                        excluir=str(row.get("codigo_barras") or "").strip() or None,
+                    )
+                )
+            return normalizar_codigos_barras_opcionais(
+                vals,
+                excluir=str(row.get("codigo_barras") or "").strip() or None,
+            )
+
+        if hist_por_campo:
+            for field in ("marca", "categoria", "subcategoria", "unidade"):
+                if not str(row.get(field) or "").strip():
+                    val = _hist_text(field)
+                    if val:
+                        row[field] = val
+            cb_hist = _hist_text("codigo_barras")
+            cb_atual = str(row.get("codigo_barras") or "").strip()
+            if cb_hist and not cb_atual:
+                row["codigo_barras"] = cb_hist
+                cb_atual = cb_hist
+            ce_row = row.get("cadastro_extras") if isinstance(row.get("cadastro_extras"), dict) else {}
+            lista_atual = ce_row.get("codigos_barras_opcionais") if isinstance(ce_row.get("codigos_barras_opcionais"), list) else []
+            lista_hist = _hist_codigos_opcionais()
+            if lista_hist:
+                ce_row["codigos_barras_opcionais"] = normalizar_codigos_barras_opcionais(
+                    list(lista_atual) + list(lista_hist),
+                    excluir=cb_atual or None,
+                )
+                row["cadastro_extras"] = ce_row
+    except Exception:
+        pass
 
     # Custo família (saco) + composição (kit) — sem isso o Salvar apaga o vínculo ao reabrir (agro_pg).
     try:
@@ -752,6 +833,23 @@ def sincronizar_modelo_produto_de_overlay(
         modelo_val = str(getattr(p, "modelo", None) or "").strip()[:200]
 
     cb_cand = ov.codigo_barras.strip() or None
+    # Custo/preço da nota não mandam o código. Overlay vazio não pode apagar o que já está no produto.
+    if (
+        not cb_cand
+        and "codigo_barras" not in payload
+        and p is not None
+        and str(p.codigo_barras or "").strip()
+    ):
+        cb_cand = str(p.codigo_barras).strip()[:50]
+
+    def _sem_apagar(novo, antigo, chave: str, mx: int) -> str:
+        ns = str(novo or "").strip()[:mx]
+        if ns:
+            return ns
+        if chave in payload:
+            return ""
+        return str(antigo or "").strip()[:mx]
+
     if pdv_rapida:
         defaults = {
             "codigo_interno": codigo_interno[:50],
@@ -818,21 +916,32 @@ def sincronizar_modelo_produto_de_overlay(
             "cadastro_inativo": cad_inativo,
         }
     else:
+        ant = p
         defaults = {
             "codigo_interno": (codigo_interno or "")[:50],
             "codigo_nfe": (codigo_nfe_val or "")[:64],
             "codigo_barras": cb_cand,
             "nome": nome[:300],
-            "marca": ov.marca.strip()[:120],
-            "modelo": modelo_val,
-            "categoria": ov.categoria.strip()[:200] or None,
-            "subcategoria": ov.subcategoria.strip()[:200],
-            "subcategoria_2": ov.subcategoria_2.strip()[:200],
-            "subcategoria_3": ov.subcategoria_3.strip()[:200],
-            "subcategoria_4": ov.subcategoria_4.strip()[:200],
-            "fornecedor_texto": ov.fornecedor_texto.strip()[:300],
-            "unidade": (ov.unidade.strip() or "UN")[:20],
-            "descricao": ov.descricao.strip()[:16000],
+            "marca": _sem_apagar(ov.marca, ant.marca if ant else "", "marca", 120),
+            "modelo": _sem_apagar(modelo_val, getattr(ant, "modelo", "") if ant else "", "modelo", 200),
+            "categoria": _sem_apagar(ov.categoria, ant.categoria if ant else "", "categoria", 200) or None,
+            "subcategoria": _sem_apagar(ov.subcategoria, ant.subcategoria if ant else "", "subcategoria", 200),
+            "subcategoria_2": _sem_apagar(
+                ov.subcategoria_2, ant.subcategoria_2 if ant else "", "subcategoria_2", 200
+            ),
+            "subcategoria_3": _sem_apagar(
+                ov.subcategoria_3, ant.subcategoria_3 if ant else "", "subcategoria_3", 200
+            ),
+            "subcategoria_4": _sem_apagar(
+                ov.subcategoria_4, ant.subcategoria_4 if ant else "", "subcategoria_4", 200
+            ),
+            "fornecedor_texto": _sem_apagar(
+                ov.fornecedor_texto, ant.fornecedor_texto if ant else "", "fornecedor_texto", 300
+            ),
+            "unidade": (
+                _sem_apagar(ov.unidade, ant.unidade if ant else "UN", "unidade", 20) or "UN"
+            )[:20],
+            "descricao": _sem_apagar(ov.descricao, ant.descricao if ant else "", "descricao", 16000),
             "custo": custo,
             "preco_venda": pv,
             "ativo": ativo,

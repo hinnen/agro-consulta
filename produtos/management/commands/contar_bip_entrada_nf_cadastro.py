@@ -174,7 +174,7 @@ def _aplicar_um(pid: str, dig: str) -> str:
     if acao == "noop":
         return "noop"
     with transaction.atomic():
-        if acao == "promove" and res.get("codigo_barras"):
+        if acao in ("promove", "definir") and res.get("codigo_barras"):
             ov.codigo_barras = str(res["codigo_barras"])[:80]
         lista = res.get("codigos_barras_opcionais") or []
         if lista:

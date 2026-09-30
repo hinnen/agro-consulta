@@ -73,8 +73,26 @@ class NfVinculoNaoSobrescreveTests(TestCase):
         self.assertEqual(p.nome, self.nome)
         self.assertEqual(p.marca, "BOEHRINGER INGELHEIM")
         self.assertEqual(p.codigo_nfe, "GM1097")
+        self.assertEqual(p.codigo_barras, "7898053772789")
         self.assertEqual(p.custo, Decimal("14.45"))
         self.assertEqual(p.preco_venda, Decimal("39.90"))
+
+    def test_preco_nf_nao_apaga_codigo_barras(self):
+        sincronizar_modelo_produto_de_overlay(
+            self.pid, self.ov, payload={"preco_venda": "41.00"}
+        )
+        p = self._reload()
+        self.assertEqual(p.codigo_barras, "7898053772789")
+        self.assertEqual(p.marca, "BOEHRINGER INGELHEIM")
+        self.assertEqual(p.preco_venda, Decimal("39.90"))
+
+    def test_modal_pode_limpar_codigo_barras(self):
+        self.ov.codigo_barras = ""
+        self.ov.save(update_fields=["codigo_barras", "atualizado_em"])
+        sincronizar_modelo_produto_de_overlay(
+            self.pid, self.ov, payload={"codigo_barras": ""}
+        )
+        self.assertFalse((self._reload().codigo_barras or "").strip())
 
     def test_editar_nome_ainda_grava(self):
         self.ov.nome = "Ivomec 50ml loja"

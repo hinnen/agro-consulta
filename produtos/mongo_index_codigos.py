@@ -426,10 +426,10 @@ def aplicar_bip_entrada_nf_troca_inteligente(
     promover_se_loja: bool = True,
 ) -> dict[str, Any]:
     """
-    Regra B (Entrada NF etapa 3):
-    - bip inválido → noop
-    - principal atual é 230… (loja) e bip é outro EAN → bip vira principal; 230… vai a opcionais
-    - senão → bip só entra em opcionais
+    Entrada NF (bip / busca):
+    - bip inválido ou igual ao principal → não mexe
+    - sem principal → o bip vira o código
+    - bip diferente → só entra como código extra; o principal fica
     """
     dig_bip = "".join(ch for ch in str(bip or "") if ch.isdigit())
     if not (_MIN_CB_OPCIONAL <= len(dig_bip) <= _MAX_CB_OPCIONAL):
@@ -452,26 +452,21 @@ def aplicar_bip_entrada_nf_troca_inteligente(
             "bip": dig_bip,
         }
 
-    from produtos.agro_codigo_barras_loja_util import eh_codigo_barras_loja
-
-    if promover_se_loja and dig_atual and eh_codigo_barras_loja(dig_atual):
-        lista = mesclar_codigos_barras_opcionais_adicionar(
-            cadastro_extras,
-            [dig_atual],
-            principal=dig_bip,
-        )
+    if not dig_atual:
         return {
-            "acao": "promove",
+            "acao": "definir",
             "codigo_barras": dig_bip,
-            "codigos_barras_opcionais": lista,
+            "codigos_barras_opcionais": codigos_barras_opcionais_de_cadastro_extras(
+                cadastro_extras
+            ),
             "bip": dig_bip,
-            "antigo_principal": dig_atual,
         }
 
+    # Principal existente (230 da loja ou EAN) fica. Código diferente só entra extra.
     lista = mesclar_codigos_barras_opcionais_adicionar(
         cadastro_extras,
         [dig_bip],
-        principal=dig_atual or None,
+        principal=dig_atual,
     )
     return {
         "acao": "opcional",
