@@ -1298,10 +1298,10 @@ Um cadastro só (`ClienteAgro`). Loja: **2.167** fichas. Fiado em aberto **175**
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | «milho grande» não puxa mais bebedouro só por «grande». O que casa a frase fica verde. O chute fica cinza. A linha do cursor fica verde mais forte, não o azul antigo da seleção. |
+| **O quê** | «milho grande» não puxa mais bebedouro só por «grande». Acerto = verde claro. Chute = cinza. A linha do cursor continua azul. |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **teste v25.65** · validar no PC · loja só frase + senha |
-| **Você** | Ctrl+F5 no PDV · buscar milho grande · sem bebedouro · cinza = chute |
+| **Status** | 🟢 **teste v25.66** · validar no PC · loja só frase + senha |
+| **Você** | Ctrl+F5 no PDV · acerto verde · chute cinza · cursor azul |
 
 ### PACOTE PRONTO — nome do produto em 2 linhas no carrinho (`PDV-CART-NOME-2L`)
 
