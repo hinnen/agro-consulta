@@ -1303,7 +1303,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | No card Saldos, a linha do fiado mostra o que ele deve e o limite total. Clique no primeiro abre o fiado. Clique no segundo abre popup (digitar ou +/− R$ 100). Só grava com PIN do Geraldo, Geraldinho ou Renan. Atraso deixa o valor devido em vermelho. |
+| **O quê** | No card Saldos, a linha do fiado tem dois botões separados: **Deve** (laranja, abre o fiado) e **Limite** (azul, popup digitar ou +/− R$ 100). Só grava com PIN do Geraldo, Geraldinho ou Renan. Atraso deixa o botão Deve vermelho. |
 | **Prova** | `scripts/verify_pdv_fiado_limite_card_path.py` **27/27** |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
