@@ -1291,6 +1291,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 PREP — checklist 30/09 · alvo loja **v25.75** · aguarda senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **preparado no GitHub** — loja ainda **Live v25.36** · **não** subiu |
+| **Branch** | `deploy/prep-checklist-3009` @ `b934ae31` |
+| **Antes** | `c8b78d80` · v25.36 |
+| **Migrate** | **SIM** `0133` `0134` `0135` — campo novo; venda de hoje não muda sozinha |
+| **Não entra** | merge do `teste` · unificação de fichas (dado já feito na loja 30/09) |
+| **Rollback** | tag `rollback/pre-checklist-3009-v25.36` · branch `producao-backup-pre-v2575-checklist-20260930` · `docs/ROLLBACK-CHECKLIST-3009.md` |
+| **Prova no PC** | Point 14 · entrega 40 · cartão 68 · Excel 42 · fiado 13 · card 39 · Gestão 43 · busca 30 · nome 34 · Zap 59 · nota 24 · cofre 15 · cofrinho 39 · Dispenser 27 |
+| **Próximo** | lojas pausam · frase + senha na mesma mensagem · aí sobe esta branch |
+
+Os 16 estão nesta branch. A loja continua na v25.36 até essa autorização.
+
 ### PACOTE PRONTO — mais logos no Dispenser (`DSP-LOGO-72`)
 
 | Campo | Valor |
@@ -1440,7 +1455,7 @@ Joelma (Esposa Wagner) e 018 Junior (pai de Isabela) estavam no fiado **sem** o 
 | **Status** | 🟢 **pronto para envio à produção** — teste **v25.58** — só frase + senha |
 | **Você** | Ctrl+F5 · retomar a entrega · cartão ou Pix · **Outro dia** ou **Passou ontem** · Fechar caixa: faixa amarela |
 
-### CHECKLIST ÚNICO — falta subir
+### CHECKLIST ÚNICO — falta subir · **já no PREP v25.75** (aguarda senha, loja ainda v25.36)
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |

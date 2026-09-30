@@ -587,5 +587,34 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 | 1 | **CLIENTE-XLSX-FIADO** | 🟢 **pronto envio** · **30/30** | **NÃO** |
 
 **Status:** teste **v25.37** — `/clientes/` Excel ↓↑ · média fiado 3m · mês que mais comprou · limite na planilha · prévia na importação.  
-**Prova:** `scripts/verify_cliente_planilha_path.py`. **Migrate:** não.
+**Prova:** `scripts/verify_cliente_planilha_path.py`. **Migrate:** não.  
+**30/09:** este Excel entrou no PREP da **§35** (ainda não subiu).
+
+---
+
+## 35. Checklist único — lote 30/09 (`deploy/prep-checklist-3009` · alvo loja **v25.75**)
+
+Os 16 do checklist. **Não** inclui a unificação de fichas (dado já feito na loja). **Não** merge `teste`. Loja ainda **v25.36** até frase + senha.
+
+| # | Pacote | Prova | Migrate |
+| - | ------ | ----- | ------- |
+| 1 | Limite no fiado | **13/13** | **NÃO** |
+| 2 | Corrigir o nome | **13/13** | **NÃO** |
+| 3 | Cartão da entrega no dia anterior | **68/68** | **SIM** `0134`+`0135` |
+| 4 | Dia da entrega | **40/40** | **SIM** `0133` |
+| 5 | Excel de clientes | **42/42** | **NÃO** |
+| 6 | PIN no Point | **14/14** | **NÃO** |
+| 7 | Código na nota | **24/24** | **NÃO** |
+| 8 | Cofrinho no fechar | **15/15** · cofrinho **39/39** | **NÃO** |
+| 9 | Ver a outra loja | no **40/40** | **NÃO** |
+| 10 | PIN na Gestão | **43/43** | **NÃO** |
+| 11 | Excel: valor do mês | no **42/42** | **NÃO** |
+| 12 | Limite no card do PDV | **39/39** | **NÃO** |
+| 13 | Busca do PDV | **30/30** | **NÃO** |
+| 14 | Nome no carrinho | **34/34** | **NÃO** |
+| 15 | Ordem e Zap no fiado | **59/59** | **NÃO** |
+| 16 | Logos do Dispenser | **27/27** | **NÃO** |
+
+**Status: 🟢 PREP · aguarda pausa + frase + senha.** `deploy/prep-checklist-3009` @ `b934ae31`.  
+**Rollback:** tag `rollback/pre-checklist-3009-v25.36` · `docs/ROLLBACK-CHECKLIST-3009.md`.
 
