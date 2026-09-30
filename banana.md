@@ -1297,7 +1297,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | Tela `/interno/dispenser-a6/`: limite de logos **24 → 72**. Não pesa o PDV. Só essa tela, ao abrir, baixa um pouco mais. |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** — só frase + senha |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.70** — só frase + senha |
 | **Você** | Ctrl+F5 no Dispenser · adicionar logo além dos 24 |
 
 ### Prova — PDV e Gestão são a mesma ficha (30/09)
@@ -1311,7 +1311,7 @@ Neste computador: **1.864** fichas, as duas telas iguais. A busca do PDV e a lis
 | **O quê** | Em `/fiado/`, clique no título da coluna ordena do maior para o menor; outro clique inverte. Botão verde do WhatsApp abre a conversa do cadastro. Sem número, o botão fica cinza. |
 | **Prova** | `scripts/verify_fiado_ordem_zap_path.py` **59/59** · PIN **9973** (não grava saldo) |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** — teste **v25.70** — prova **59/59** — só frase + senha |
+| **Status** | 🟢 **pronto para envio à produção** — teste **v25.71** — prova **59/59** — só frase + senha |
 | **Você** | Ctrl+F5 em `/fiado/` · clique em Saldo e em Cliente · botão verde abre o Zap |
 
 ### DADO — fiado na ficha errada (loja · passou 20 · 30/09)
