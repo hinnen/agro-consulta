@@ -606,6 +606,8 @@ def _aplicar_patch_cliente(cli: ClienteAgro, patch: dict[str, Any], user) -> lis
     from produtos.fiado_gestao_util import definir_limite_fiado_cliente
     from produtos.models import compor_endereco_resumo_cliente
 
+    nome_antes = cli.nome
+
     alterados: list[str] = []
     endereco_keys = {
         COL_CEP,
@@ -681,6 +683,10 @@ def _aplicar_patch_cliente(cli: ClienteAgro, patch: dict[str, Any], user) -> lis
             limite_patch,
             usuario=usuario or "planilha-clientes",
         )
+    if COL_NOME in alterados:
+        from produtos.cliente_operacoes_util import propagar_renome_cliente
+
+        propagar_renome_cliente(cli, nome_antes)
     return alterados
 
 

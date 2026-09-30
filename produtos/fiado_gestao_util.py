@@ -658,6 +658,9 @@ def _q_titulos_cliente_gestao(
     cod = (cliente_codigo or "").strip()
     if not nome and cliente_agro_pk:
         nome = nome_para_consulta_fiado("", cliente_agro_pk=cliente_agro_pk)
+    filtros = Q()
+    if cliente_agro_pk:
+        filtros |= Q(cliente_agro_id=cliente_agro_pk)
     if nome:
         from produtos.fiado_import_util import _norm_nome_fiado_match
 
@@ -674,8 +677,11 @@ def _q_titulos_cliente_gestao(
         )
         matching = [n for n in nomes if n and _norm_nome_fiado_match(n) == key]
         if matching:
-            return Q(cliente_nome__in=matching)
-        return Q(cliente_nome__iexact=nome)
+            filtros |= Q(cliente_nome__in=matching)
+        else:
+            filtros |= Q(cliente_nome__iexact=nome)
+    if _q_fiado_tem_escopo(filtros):
+        return filtros
     if cliente_agro_pk:
         return Q(cliente_agro_id=cliente_agro_pk)
     if cod:
@@ -847,18 +853,17 @@ def listar_clientes_fiado(
 
     out: list[dict] = []
     for g in grupos.values():
-        pks = g.pop("cliente_agro_pks", set()) or set()
-        if len(pks) == 1:
+        pks = g.pop("cliente_agro_pks", None)
+        if isinstance(pks, set) and len(pks) == 1:
             pk_u = next(iter(pks))
             g["cliente_agro_pk"] = pk_u
             if not g.get("cliente_codigo"):
                 cli_u = ClienteAgro.objects.filter(pk=pk_u).only("externo_id").first()
                 if cli_u and (cli_u.externo_id or "").strip():
                     g["cliente_codigo"] = str(cli_u.externo_id).strip()
-        else:
+        elif isinstance(pks, set) and len(pks) > 1:
             g["cliente_agro_pk"] = None
-            if len(pks) > 1:
-                g["cliente_codigo"] = ""
+            g["cliente_codigo"] = ""
         saldo_dec = g["saldo_aberto"].quantize(Decimal("0.01"))
         lim_local = Decimal(str(g.get("limite_fiado_local") or 0))
         limite = lim_local if lim_local > 0 else lim_padrao
