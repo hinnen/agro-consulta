@@ -1291,6 +1291,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### Prova — PDV e Gestão são a mesma ficha (30/09)
+
+Neste computador: **1.864** fichas, as duas telas iguais. A busca do PDV e a lista de Clientes devolveram **006 Adiel 7313** (ficha 2), com o mesmo limite. Teste de limite gravou e desfez. Quem tem fiado não exclui. Excel **42/42**. PIN **9973**. Prova: `scripts/verify_cliente_fonte_unica_path.py`.
+
 ### PACOTE PRONTO — ordem das colunas e Zap no fiado (`FIADO-ORDEM-ZAP`)
 
 | Campo | Valor |
@@ -1442,6 +1446,7 @@ Joelma (Esposa Wagner) e 018 Junior (pai de Isabela) estavam no fiado **sem** o 
 | 12 | `PDV-FIADO-LIMITE-CARD` | 🟢 **pronto para envio à produção** | **NÃO** | **39/39** |
 | 13 | `PDV-BUSCA-COERENTE` | 🟢 **pronto para envio à produção** | **NÃO** | **30/30** |
 | 14 | `PDV-CART-NOME-2L` | 🟢 **pronto para envio à produção** | **NÃO** | — |
+| 15 | `FIADO-ORDEM-ZAP` | 🟢 **pronto para envio à produção** | **NÃO** | — |
 
 ### PACOTE PRONTO — o que ainda falta subir
 
@@ -1459,6 +1464,7 @@ Joelma (Esposa Wagner) e 018 Junior (pai de Isabela) estavam no fiado **sem** o 
 | **Fiado no PDV** | Ctrl+F5 · em dia: **Em dia** e **Limite** azuis · atrasado: card da dívida vermelho **Atrasado** · no cliente, terceiro card **Limite livre** · prova **39/39** · sem migrate |
 | **Busca do PDV** | Ctrl+F5 · milho grande: verde o que casa, cinza o chute, azul o cursor · não traz bebedouro · prova **30/30** · sem migrate |
 | **Nome no carrinho** | Ctrl+F5 · nome longo usa até 2 linhas · nome curto continua numa · sem migrate |
+| **Ordem e Zap no fiado** | Ctrl+F5 em `/fiado/` · clique em Saldo e em Cliente · botão verde abre o Zap · sem migrate |
 
 ### CHECKLIST ÚNICO — 29/09 · dia da entrega opcional
 
