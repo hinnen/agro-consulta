@@ -328,11 +328,12 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                 lim,
             )
         # Frase longa (ex. "ração estima carne"): AND de todos os tokens pode zerar.
-        # Fallback: token mais longo (≥4) — costuma ser a marca/linha (estima, milho…).
+        # Fallback: token que identifica o produto (estima, milho) — não «grande»/cor.
         if not found:
-            partes_fb = [p.strip() for p in termo.split() if len(p.strip()) >= 4]
-            if len(partes_fb) >= 2:
-                best = max(partes_fb, key=len)
+            from produtos.busca_filtro_pdv_util import token_fallback_frase
+
+            best = token_fallback_frase(termo)
+            if best:
                 q_fb = q_nome_tokens_cadastro(best)
                 if q_fb is not None:
                     _cadastro_pg_append_unicos(
