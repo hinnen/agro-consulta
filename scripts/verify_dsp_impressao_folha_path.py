@@ -29,6 +29,7 @@ def main():
     ok("grid-template-columns: 148mm 148mm" in css, "dois A5 lado a lado")
     ok("grid-template-rows: 210mm" in css, "altura A5")
     ok("zoom: 1.40952381" in css, "A6 aumenta até a largura A5")
+    ok("min-height: 0 !important" in css and "#sspin-root" in css, "nao sobra folha em branco nem PIN")
     ok("size: 210mm 297mm" in css and "size: 297mm 210mm" in css, "papel A4")
     ok("page: dspA4v" in css and "page: dspA4h" in css, "modo de página")
 
