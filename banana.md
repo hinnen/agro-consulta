@@ -1318,6 +1318,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | tag `rollback/pre-nf-etq-codigo-gm-v25.80` · `docs/ROLLBACK-NF-ETQ-CODIGO-GM.md` · **só** frase+senha |
 | **Você** | Ctrl+F5 · entrada de nota · etapa 6 · conferir GM na lista · imprimir 1 etiqueta de teste |
 
+### PACOTE PRONTO — Excel clientes: média fiado por mês (`CLIENTE-MEDIA-FIADO-MES`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | **Excel ↓** em `/clientes/`: coluna **Média fiado/mês (3 meses)** = total fiado nos 3 meses calendário (atual + 2 anteriores) ÷ 3. Antes: média **por compra**. Qtd compras e demais colunas iguais. |
+| **Prova** | `scripts/verify_cliente_planilha_path.py` (média mensal + contratos) |
+| **Migrate** | **NÃO** |
+| **Mexe** | `cliente_planilha_util.py` + prova |
+| **Status** | 🟢 **pronto envio** — alvo **v25.82** · branch `deploy/prep-cliente-media-fiado-mes-v2582` · **aguarda** pausa + frase + senha |
+| **Antes** | Live **v25.81** · `producao` @ `c03890f2` |
+| **Rollback** | tag `rollback/pre-cliente-media-fiado-mes-v25.81` · `docs/ROLLBACK-CLIENTE-MEDIA-FIADO-MES.md` |
+| **Você** | Ctrl+F5 · Clientes · Excel ↓ · conferir cabeçalho **Média fiado/mês** e valores coerentes |
+
 ### PACOTE PRONTO — Dispenser não trava no PIN (`DSP-PIN-DESCANSO`)
 
 | Campo | Valor |
