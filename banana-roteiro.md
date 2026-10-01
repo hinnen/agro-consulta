@@ -725,3 +725,27 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **Status: ✅ Live v25.85** — `producao` @ `7bb7aad5` · **não** merge do `teste`.  
 **Rollback:** `docs/ROLLBACK-DEPLOY-V2585-RH-WHATSAPP.md` · tag `rollback/pre-deploy-v2584-live-20261001` · **só** frase+senha.
 
+---
+
+## 44. Checklist único — etiquetas barras laser 1D (01/10)
+
+| # | Pacote | Prova | Migrate |
+| - | ------ | ----- | ------- |
+| 1 | **ETQ-BARCODE-LASER** | `verify_etiquetas_termica_path.js` **44/44** | **NÃO** |
+
+**O quê:** etiquetas térmicas: barras mais legíveis no leitor laser (traço + quiet zone, SVG sem encolher). Core cache **v=25**.  
+**Status: ✅ Live v25.86** — `producao` @ `f540081c` · cherry **`9453a951`** · **não** merge do `teste`.  
+**Rollback:** tag `rollback/pre-etq-barcode-laser-v25.85` · `docs/ROLLBACK-ETQ-BARCODE-LASER.md` · **só** frase+senha.
+
+---
+
+## 45. Checklist único — cliente novo limite fiado 0,01 (01/10)
+
+| # | Pacote | Prova | Migrate |
+| - | ------ | ----- | ------- |
+| 1 | **CLIENTE-NOVO-LIMITE-001** | `verify_cliente_fonte_unica_path.py` (bloco limite inicial) | **SIM** `0136_clienteagro_limite_fiado_default_001` |
+
+**O quê:** cadastro novo (form, PDV rápido, sync) nasce com **R$ 0,01** de limite fiado local — PDV **não** usa mais o padrão R$ 5.000 até alguém subir o limite. **0** no campo continua = padrão da loja (só em edição / import explícito). Env opcional: `AGRO_FIADO_LIMITE_INICIAL`.  
+**Status:** pronto em **`teste`** (branch `cursor/cliente-novo-limite-001-f2f0`) · Live **pendente**.  
+**Rollback:** `docs/ROLLBACK-CLIENTE-LIMITE-INICIAL-001.md` · **só** frase+senha.
+
