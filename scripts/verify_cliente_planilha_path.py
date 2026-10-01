@@ -227,6 +227,91 @@ def test_import_roundtrip() -> None:
         cli.delete()
 
 
+def test_import_alem_de_400_e_nao_mexe_fiado() -> None:
+    """Gravação aplica todas as linhas; fiado em aberto não entra no patch."""
+    print("== Import >400 + fiado só leitura ==")
+    from decimal import Decimal
+    from unittest.mock import MagicMock, patch
+
+    import django
+
+    django.setup()
+    from openpyxl import Workbook
+
+    from produtos.cliente_planilha_util import (
+        COL_FIADO_USADO,
+        COL_LIMITE_FIADO,
+        EXPORT_ONLY,
+        IMPORT_EDIT_KEYS,
+        aplicar_importacao_clientes,
+        preview_importacao_clientes,
+    )
+
+    check("fiado_aberto_so_leitura", COL_FIADO_USADO in EXPORT_ONLY and COL_FIADO_USADO not in IMPORT_EDIT_KEYS)
+    n = 401
+    wb = Workbook()
+    ws = wb.active
+    ws.append(["ID", "Limite fiado", "Fiado em aberto agora"])
+    for i in range(1, n + 1):
+        ws.append([i, 0.01, 99999])
+    tmp = Path(tempfile.mkdtemp()) / "muitos.xlsx"
+    wb.save(tmp)
+
+    clis: dict[int, MagicMock] = {}
+
+    def _filter(pk):
+        qs = MagicMock()
+        cli = clis.get(pk)
+        if cli is None:
+            cli = MagicMock()
+            cli.pk = pk
+            cli.nome = f"C{pk}"
+            cli.whatsapp = ""
+            cli.cpf = ""
+            cli.ativo = True
+            cli.cep = cli.uf = cli.cidade = cli.bairro = ""
+            cli.logradouro = cli.numero = cli.complemento = ""
+            cli.plus_code = cli.referencia_rural = cli.maps_url_manual = ""
+            cli.saldo_cashback = Decimal("0")
+            cli.saldo_vale_credito = Decimal("0")
+            cli.limite_fiado_local = Decimal("0")
+            clis[pk] = cli
+        qs.first.return_value = cli
+        return qs
+
+    limites: list[tuple] = []
+
+    def _def_limite(pk, valor, usuario=""):
+        limites.append((pk, Decimal(str(valor))))
+        return clis[pk]
+
+    hist = MagicMock()
+    hist.pk = 1
+    hist.n_campos = n
+
+    with (
+        patch("produtos.cliente_planilha_util.ClienteAgro") as CM,
+        patch("produtos.fiado_gestao_util.definir_limite_fiado_cliente", side_effect=_def_limite),
+        patch("produtos.cliente_planilha_util.CadastroPlanilhaImportHistoricoAgro") as HM,
+    ):
+        CM.objects.filter.side_effect = lambda **kw: _filter(kw["pk"])
+        HM.objects.create.return_value = hist
+        HM.Tipo.CADASTRO = "cadastro"
+        prev = preview_importacao_clientes(tmp)
+        check("preview_conta_401", prev.get("n_alteracoes") == n, str(prev.get("n_alteracoes")))
+        check("preview_amostra_400", len(prev.get("alteracoes") or []) == 400)
+        check("preview_avisa_corte", prev.get("alteracoes_preview_cortada") is True)
+        user = MagicMock()
+        user.is_authenticated = True
+        user.get_username.return_value = "prova"
+        r = aplicar_importacao_clientes(tmp, user, nome_arquivo="muitos.xlsx")
+    check("gravou_401", r.get("clientes_alterados") == n, str(r.get("clientes_alterados")))
+    check("chamou_limite_401", len(limites) == n, str(len(limites)))
+    check("ultimo_e_401", limites and limites[-1][0] == n and limites[-1][1] == Decimal("0.01"))
+    check("primeiro_e_1", limites and limites[0][0] == 1)
+    tmp.unlink(missing_ok=True)
+
+
 def test_http_endpoints() -> None:
     print("== HTTP (login) ==")
     from django.conf import settings
@@ -257,6 +342,7 @@ def main() -> int:
     test_export_xlsx_bytes()
     test_valores_mes()
     test_import_roundtrip()
+    test_import_alem_de_400_e_nao_mexe_fiado()
     test_http_endpoints()
     print(f"\n== {len(oks)} OK · {len(fails)} FAIL ==")
     if fails:

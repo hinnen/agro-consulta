@@ -657,3 +657,15 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **Status: ✅ Live v25.82** — `producao` @ `3b33d4ac` · **não** foi merge do `teste`.  
 **Rollback:** tag `rollback/pre-cliente-media-fiado-mes-v25.81` · `docs/ROLLBACK-CLIENTE-MEDIA-FIADO-MES.md` · **só** frase+senha.
 
+---
+
+## 42. Checklist único — Excel clientes grava todos os limites (01/10)
+
+| # | Pacote | Prova | Migrate |
+| - | ------ | ----- | ------- |
+| 1 | **CLIENTE-XLSX-LIMITE-TODOS** | import **401/401** limites · fiado em aberto **não** grava | **NÃO** |
+
+**O quê:** Excel ↑ em `/clientes/` só gravava as **primeiras 400** alterações. Quem ficava depois continuava com limite **0** e o PDV mostrava **R$ 5.000**. Agora grava **todas**. **0** no cadastro = padrão R$ 5.000 no PDV; **0,01** bloqueia. Coluna **Fiado em aberto** continua cinza (não altera dívida).  
+**Não mexe:** saldo fiado, títulos, PDV, caixa.  
+**Status:** 🟢 **pronto envio** — branch `deploy/prep-cliente-xlsx-limite-todos-v2584` · alvo **v25.84** · **aguarda** frase + senha.  
+**Rollback:** tag `rollback/pre-cliente-xlsx-limite-todos-v25.82` · `docs/ROLLBACK-CLIENTE-XLSX-LIMITE-TODOS.md` · **só** frase+senha.
