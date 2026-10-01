@@ -1352,10 +1352,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `scripts/verify_cliente_planilha_path.py` — **57/57** (patch + mock prévia/gravação) |
 | **Migrate** | **NÃO** |
 | **Mexe** | `cliente_planilha_util.py` + prova |
-| **Status** | 🟢 **pronto envio** · alvo **v25.85** · branch `deploy/prep-cliente-xlsx-whatsapp-vazio-v2585` |
-| **Antes** | Live **v25.84** · `producao` @ `c1034c00` |
-| **Rollback** | tag `rollback/pre-cliente-xlsx-whatsapp-vazio-v25.84` · `docs/ROLLBACK-CLIENTE-XLSX-WHATSAPP-VAZIO.md` |
+| **Status** | ✅ **enviado / Live v25.85** — `producao` @ `7bb7aad5` · **não** merge do `teste` |
+| **Antes** | Live **v25.84** · `c1034c00` |
+| **Rollback** | `docs/ROLLBACK-DEPLOY-V2585-RH-WHATSAPP.md` · tag `rollback/pre-deploy-v2584-live-20261001` |
 | **Você** | Excel ↓ · apague WhatsApp dos duplicados · Excel ↑ · prévia `whatsapp` de → vazio · confirmar |
+
+### PACOTE PRONTO — cron RH envio CP Render (`RH-CRON-ENVIO-RENDER`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Cron `agro-rh-envio-cp-automatico`: salário R$ 0 não derruba job (exit 1). |
+| **Prova** | `verify_rh_envio_cp_automatico_path.py` **20/20** |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ **enviado / Live v25.85** — lote com WhatsApp planilha · `7bb7aad5` |
+| **Rollback** | `docs/ROLLBACK-DEPLOY-V2585-RH-WHATSAPP.md` |
 
 ### PACOTE PRONTO — Dispenser não trava no PIN (`DSP-PIN-DESCANSO`)
 

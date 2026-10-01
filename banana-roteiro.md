@@ -696,8 +696,8 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 **O quê:** e-mail Render «Exited with status 1» no cron **`agro-rh-envio-cp-automatico`** quando algum funcionário do dia tinha **salário R$ 0** (sem faixa na ficha). O robô **rodava**; o job marcava falha. Agora: conta `pulados_salario_zero`, aviso no log, **exit 0**; erros reais continuam no stderr.  
 **Não mexe:** PDV, caixa, venda, regra de geração do título (só comportamento do cron).  
-**Status:** 🟢 **pronto envio** — branch `deploy/prep-rh-cron-envio-cp-render-v2583` · alvo **v25.83** · **aguarda** frase + senha.  
-**Rollback:** tag `rollback/pre-rh-cron-envio-cp-render-v25.82` · `docs/ROLLBACK-RH-CRON-ENVIO-CP-RENDER.md` · **só** frase+senha.
+**Status: ✅ Live v25.85** — `producao` @ `7bb7aad5` · lote com WhatsApp planilha · **não** merge do `teste`.  
+**Rollback:** `docs/ROLLBACK-DEPLOY-V2585-RH-WHATSAPP.md` · tag `rollback/pre-deploy-v2584-live-20261001` · **só** frase+senha.
 
 ---
 
@@ -722,6 +722,6 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 **O quê:** na importação Excel de `/clientes/`, **apagar** o WhatsApp na coluna amarela e subir a planilha **limpa** o número no cadastro (antes: célula vazia = não mudava — duplicados ficavam). **Demais campos:** vazio continua = não altera. Aba «Como usar» item 7.  
 **Não mexe:** PDV, caixa, limite fiado, saldo fiado, títulos, PDV checkout.  
-**Status:** 🟢 **pronto envio** — branch `deploy/prep-cliente-xlsx-whatsapp-vazio-v2585` · alvo **v25.85** · **aguarda** frase + senha.  
-**Rollback:** tag `rollback/pre-cliente-xlsx-whatsapp-vazio-v25.84` · `docs/ROLLBACK-CLIENTE-XLSX-WHATSAPP-VAZIO.md` · **só** frase+senha.
+**Status: ✅ Live v25.85** — `producao` @ `7bb7aad5` · **não** merge do `teste`.  
+**Rollback:** `docs/ROLLBACK-DEPLOY-V2585-RH-WHATSAPP.md` · tag `rollback/pre-deploy-v2584-live-20261001` · **só** frase+senha.
 
