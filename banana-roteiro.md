@@ -660,3 +660,16 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **Status: ✅ Live v25.80** — `producao` @ `780015dd` · Render `dep-dautkfrm8hqs7393o53g`. **Não** foi merge do `teste`.  
 **Rollback:** tag `rollback/pre-nf-etq-nome-cadastro-v25.79` · `docs/ROLLBACK-NF-ETQ-NOME-CADASTRO.md` · **só** frase+senha.
 
+---
+
+## 39. Checklist único — etiqueta da nota com código GM (01/10)
+
+| # | Pacote | Prova | Migrate |
+| - | ------ | ----- | ------- |
+| 1 | **NF-ETQ-CODIGO-GM** | **21/21** · térmica **39/39** | **NÃO** |
+
+**O quê:** na etapa 6 da entrada de nota, a etiqueta usava `cProd` do XML (código da nota). Agora usa **código GM** do vínculo (`codigo_nfe` / `codigo_gm`; fallback `produto_id` ERP). EAN prioriza cadastro quando existir.  
+**Não mexe:** PDV, caixa, venda, fiado, financeiro.  
+**Status:** 🟢 **pronto envio** — branch `deploy/prep-nf-etq-codigo-gm-v2581` · alvo loja **v25.81** · **aguarda** frase + senha (`99738595`) após pausa das vendas.  
+**Rollback:** tag `rollback/pre-nf-etq-codigo-gm-v25.80` · `docs/ROLLBACK-NF-ETQ-CODIGO-GM.md` · **só** frase+senha.
+
