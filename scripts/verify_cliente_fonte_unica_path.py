@@ -137,6 +137,25 @@ def main() -> None:
     if not bloqueou:
         ok("neste banco não há saldo de fiado para testar a exclusão")
 
+    from produtos.fiado_credito_util import fiado_limite_inicial_novo_cliente, resumo_credito_fiado_cliente
+
+    ini = fiado_limite_inicial_novo_cliente()
+    cli_novo = ClienteAgro.objects.create(nome="ZZ Prova limite inicial", editado_local=True)
+    try:
+        if Decimal(cli_novo.limite_fiado_local or 0) != ini:
+            falha(f"cliente novo limite={cli_novo.limite_fiado_local} esperado {ini}")
+        else:
+            ok(f"cliente novo nasce com limite {ini}")
+        cred = resumo_credito_fiado_cliente(cliente_agro_pk=cli_novo.pk)
+        if cred.get("limite_padrao"):
+            falha("cliente novo não deve usar limite padrão 5000")
+        elif abs(float(cred.get("limite") or 0) - float(ini)) > 0.001:
+            falha(f"PDV crédito limite={cred.get('limite')}")
+        else:
+            ok("PDV enxerga 0,01 (não 5000)")
+    finally:
+        cli_novo.delete()
+
     if FALHAS:
         raise SystemExit(f"{len(FALHAS)} falha(s)")
     print("prova ok")

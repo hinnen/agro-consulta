@@ -191,8 +191,11 @@ class ClienteAgro(models.Model):
         "Limite fiado (local)",
         max_digits=12,
         decimal_places=2,
-        default=0,
-        help_text="Quando maior que zero, substitui o limite vindo do ERP/Mongo para este cliente.",
+        default="0.01",
+        help_text=(
+            "0,01 = fiado bloqueado no PDV. 0 = usa o padrão da loja (R$ 5.000). "
+            "Outro valor = limite fixo em reais."
+        ),
     )
     relacionamento_extras_json = models.JSONField(
         "Relacionamento (pets, saúde, anotações)",
