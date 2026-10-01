@@ -663,7 +663,7 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 | # | Pacote | Prova | Migrate |
 | - | ------ | ----- | ------- |
-| 1 | **RH-CRON-ENVIO-RENDER** | `verify_rh_envio_cp_automatico_path.py` **21/21** | **NÃO** |
+| 1 | **RH-CRON-ENVIO-RENDER** | `verify_rh_envio_cp_automatico_path.py` **20/20** | **NÃO** |
 
 **O quê:** e-mail Render «Exited with status 1» no cron **`agro-rh-envio-cp-automatico`** quando algum funcionário do dia tinha **salário R$ 0** (sem faixa na ficha). O robô **rodava**; o job marcava falha. Agora: conta `pulados_salario_zero`, aviso no log, **exit 0**; erros reais continuam no stderr.  
 **Não mexe:** PDV, caixa, venda, regra de geração do título (só comportamento do cron).  
