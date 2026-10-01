@@ -1,0 +1,31 @@
+---
+description: Git teste — Cursor no PC e agente na nuvem na mesma linha
+alwaysApply: true
+---
+
+# Sincronia Cursor (PC) × Cloud Agent
+
+Fonte humana: **`docs/CURSOR-LOCAL-NUVEM.md`**. Branch canônica de trabalho: **`teste`** → GitHub `origin/teste`.
+
+## Antes de editar código (qualquer Cursor)
+
+1. Estar na branch **`teste`** (ou branch `cursor/...` criada **a partir** de `origin/teste` atualizado).
+2. **`git fetch origin teste`** e alinhar: no PC do Renan, preferir **`scripts/alinhar-teste.ps1`**; em ambiente Linux, **`scripts/alinhar-teste.sh`**.
+3. Se o Renan avisou **WIP local** em arquivos, **não** alterar esses arquivos até ele alinhar ou autorizar.
+
+## Ao terminar uma tarefa (agente na nuvem)
+
+- O Renan usa o repo **no PC**; o trabalho **precisa** estar em **`origin/teste`** (push direto em `teste` **ou** PR mergeado em `teste`).
+- **Não** deixar só branch `cursor/...` no remoto sem integrar em `teste`, salvo se o Renan pediu explicitamente PR aberto para revisar antes.
+- **Proibido:** `git push --force` em `teste` ou `producao`.
+- Commits em `teste`/`producao`: incluir bump de **`VERSION`** (hook `.githooks` ou `python scripts/bump_version.py`).
+
+## Ao terminar (Renan no PC)
+
+- **`git push origin teste`** se houver commits locais.
+- Depois de merge de PR da nuvem: rodar **`alinhar-teste.ps1`** antes do próximo chat.
+
+## Memória / banana
+
+- Decisões de produto → `banana.md` conforme `agro-consulta.mdc`.
+- Este arquivo **não** substitui o roteiro `banana-roteiro.md` no PC do Renan.

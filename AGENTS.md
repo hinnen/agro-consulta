@@ -115,6 +115,7 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 - **Escopo:** preferir **apenas os arquivos combinados**; se precisar alargar, **pedir autorização**.
 - **Antes de editar:** **uma linha** com o plano.
 - **Entrega:** um **patch coeso** por tarefa quando fizer sentido.
+- **Cursor PC × agente na nuvem:** branch canônica **`teste`** no GitHub; antes de codar no PC, `scripts/alinhar-teste.ps1`; regras em `.cursor/rules/sync-local-nuvem.mdc` — detalhes em **`docs/CURSOR-LOCAL-NUVEM.md`**.
 
 ---
 

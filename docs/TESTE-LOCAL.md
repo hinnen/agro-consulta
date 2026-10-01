@@ -119,6 +119,8 @@ location.reload();
 3. Só então: *«pode subir para produção»* + senha — se quiser loja.  
 4. Push no Render **teste** = **opcional** e **só se você pedir** (não é mais o gate padrão).
 
+**Cursor na nuvem + Cursor no PC:** ver **`docs/CURSOR-LOCAL-NUVEM.md`**. Antes de abrir o projeto: `.\scripts\alinhar-teste.ps1`.
+
 ## 6. Se o local «parecer ok» e a loja diferente
 
 Costuma ser: env diferente (`AGRO_FONTE_*`), banco vazio no SQLite, ou pacote que ainda não subiu na loja. Conferir `VERSION` e `/api/agro/fonte-status/` nos dois lados.
