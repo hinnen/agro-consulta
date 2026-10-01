@@ -481,7 +481,8 @@ def montar_xlsx_clientes(rows: list[dict[str, Any]]) -> bytes:
         "3) Média fiado/mês (3 meses) = total fiado nos últimos 3 meses calendário (mês atual + 2 anteriores) ÷ 3. Meses sem compra contam zero.",
         "4) Mês que mais comprou fiado = mês com mais compras (ex.: Ago/2026). A coluna ao lado é o valor comprado nesse mês.",
         "4b) Valor mês anterior = quanto comprou fiado no mês calendário anterior (só leitura).",
-        "5) Limite fiado: 0 = volta ao padrão (R$ 5.000). 0,01 = bloqueia fiado. Qualquer outro valor = limite fixo.",
+        "5) Limite fiado: célula vazia = não muda. 0 = grava zero no cadastro e o PDV mostra o padrão (R$ 5.000). "
+        "0,01 = bloqueia fiado no PDV. Outro valor = limite fixo em reais.",
         "6) Não apague a coluna ID (oculta). Linha sem ID não é importada.",
         "7) Célula vazia na importação = não muda aquele campo.",
         "8) Excel ↑ mostra prévia antes de gravar — confira e confirme.",
@@ -578,7 +579,8 @@ def _patch_da_linha(raw: dict, colmap: dict[str, str | None]) -> dict[str, Any]:
     return patch
 
 
-def preview_importacao_clientes(path: Path) -> dict[str, Any]:
+def analise_importacao_clientes(path: Path) -> dict[str, Any]:
+    """Lista completa de alterações (usada na gravação — sem truncar)."""
     headers, rows_raw = _ler_planilha(path)
     colmap = _map_headers(headers)
     hdr_id = colmap.get(COL_ID)
@@ -651,8 +653,23 @@ def preview_importacao_clientes(path: Path) -> dict[str, Any]:
 
     return {
         "total_linhas": len(rows_raw),
+        "alteracoes": alteracoes,
+        "ignoradas": ignoradas,
+        "erros": erros,
+    }
+
+
+def preview_importacao_clientes(path: Path) -> dict[str, Any]:
+    """Prévia para a tela — amostra truncada; contadores usam a lista inteira."""
+    r = analise_importacao_clientes(path)
+    alteracoes = r["alteracoes"]
+    ignoradas = r["ignoradas"]
+    erros = r["erros"]
+    return {
+        "total_linhas": r["total_linhas"],
         "alteracoes": alteracoes[:400],
         "n_alteracoes": len(alteracoes),
+        "alteracoes_preview_cortada": len(alteracoes) > 400,
         "ignoradas": ignoradas[:80],
         "n_ignoradas": len(ignoradas),
         "erros": erros[:120],
@@ -749,14 +766,15 @@ def _aplicar_patch_cliente(cli: ClienteAgro, patch: dict[str, Any], user) -> lis
 
 
 def aplicar_importacao_clientes(path: Path, user, *, nome_arquivo: str = "") -> dict[str, Any]:
-    prev = preview_importacao_clientes(path)
-    if not prev.get("n_alteracoes"):
+    analise = analise_importacao_clientes(path)
+    alteracoes = analise["alteracoes"]
+    if not alteracoes:
         raise ValueError("Nenhuma alteração para gravar.")
 
     backups: list[dict] = []
     ok = 0
     with transaction.atomic():
-        for item in prev["alteracoes"]:
+        for item in alteracoes:
             pk = int(item["id"])
             cli = ClienteAgro.objects.filter(pk=pk).first()
             if not cli:
@@ -790,7 +808,8 @@ def aplicar_importacao_clientes(path: Path, user, *, nome_arquivo: str = "") -> 
         "clientes_alterados": ok,
         "n_campos": hist.n_campos,
         "preview": {
-            "n_erros": prev.get("n_erros"),
-            "n_ignoradas": prev.get("n_ignoradas"),
+            "n_erros": len(analise["erros"]),
+            "n_ignoradas": len(analise["ignoradas"]),
+            "n_alteracoes": len(alteracoes),
         },
     }

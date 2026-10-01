@@ -132,6 +132,9 @@
       function resumirPrevia(data) {
         var linhas = [];
         linhas.push('Alterações: ' + (data.n_alteracoes || 0));
+        if (data.alteracoes_preview_cortada) {
+          linhas.push('(Prévia mostra só 400 linhas; na gravação entram TODAS as alterações.)');
+        }
         linhas.push('Ignoradas: ' + (data.n_ignoradas || 0));
         linhas.push('Erros: ' + (data.n_erros || 0));
         (data.alteracoes || []).slice(0, 25).forEach(function (a) {

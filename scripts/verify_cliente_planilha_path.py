@@ -88,6 +88,9 @@ def test_arquivos() -> None:
     check("valores_nao_editaveis", COL_VALOR_MES_MAIS not in IMPORT_EDIT_KEYS and COL_VALOR_MES_ANTERIOR not in IMPORT_EDIT_KEYS)
     check("limite_editavel", COL_LIMITE_FIADO in IMPORT_EDIT_KEYS)
     check("aba_como_usar", '"Como usar"' in util or "'Como usar'" in util)
+    check("analise_importacao", "def analise_importacao_clientes" in util)
+    check("aplicar_usa_analise", "analise_importacao_clientes(path)" in util and "alteracoes[:400]" not in util.split("def aplicar_importacao_clientes")[1].split("def ")[0])
+    check("help_limite_zero_pdv", "PDV mostra o padrão" in util or "padrão (R$ 5.000)" in util)
 
 
 def test_export_xlsx_bytes() -> None:
