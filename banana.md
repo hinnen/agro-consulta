@@ -2614,6 +2614,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | ✅ **Live ops** (cron na loja) · prova no `teste` **v22.53** |
 | **Nota** | Dia ≠ 28 → `candidatos=0` é normal |
 
+### PACOTE PRONTO — cron RH envio CP sem exit 1 falso (`RH-CRON-ENVIO-RENDER`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Render alertava falha no cron **`agro-rh-envio-cp-automatico`** quando um funcionário do dia não gerava título (ex. **salário R$ 0**). Job rodava; exit 1 era alerta falso. |
+| **Prova** | `scripts/verify_rh_envio_cp_automatico_path.py` **21/21** |
+| **Migrate** | **NÃO** |
+| **Mexe** | `rh/services/envio_cp_automatico.py` · `rh/management/commands/rh_envio_cp_automatico.py` |
+| **Status** | 🟢 **pronto envio** — alvo **v25.83** · branch `deploy/prep-rh-cron-envio-cp-render-v2583` · **aguarda** frase + senha |
+| **Antes** | Live **v25.82** · `producao` @ `d342e2a5` |
+| **Rollback** | tag `rollback/pre-rh-cron-envio-cp-render-v25.82` · `docs/ROLLBACK-RH-CRON-ENVIO-CP-RENDER.md` |
+| **Você** | Após deploy: conferir log do cron no Render no próximo dia de envio; corrigir ficha (faixa salarial) de quem aparecer em `pulados_salario_zero` |
+
 ### 📦 PACOTE PRONTO — Login obrigatório + tela GM Agro Mais (`LOGIN-BI-FECHADO` + `LOGIN-UI-AGRO` · **v22.57** · 04/09)
 
 | Campo | Valor |
