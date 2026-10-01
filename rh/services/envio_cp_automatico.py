@@ -137,6 +137,18 @@ def processar_envio_cp_automatico_funcionario(
         }
 
 
+def _erro_envio_cp_e_esperado(r: dict[str, Any]) -> bool:
+    """Falha de negócio que não deve derrubar o cron no Render (alerta falso)."""
+    if r.get("ok"):
+        return False
+    err = str(r.get("erro") or "").lower()
+    if "salário r$ 0" in err or "salario r$ 0" in err:
+        return True
+    if "faixa salarial" in err:
+        return True
+    return False
+
+
 def rodar_envio_cp_automatico_diario(*, hoje: date | None = None, dry_run: bool = False) -> dict[str, Any]:
     """Processa todos os ativos com dia_envio_cp_auto == dia de hoje."""
     hoje = hoje or timezone.localdate()
@@ -151,6 +163,7 @@ def rodar_envio_cp_automatico_diario(*, hoje: date | None = None, dry_run: bool 
         "candidatos": qs.count(),
         "criados": 0,
         "ja_existiam": 0,
+        "pulados_salario_zero": 0,
         "erros": [],
         "itens": [],
     }
@@ -168,6 +181,14 @@ def rodar_envio_cp_automatico_diario(*, hoje: date | None = None, dry_run: bool 
             continue
         out["itens"].append(r)
         if not r.get("ok"):
+            if _erro_envio_cp_e_esperado(r):
+                out["pulados_salario_zero"] += 1
+                logger.warning(
+                    "RH envio CP auto skip funcionario=%s: %s",
+                    fn.pk,
+                    (r.get("erro") or "")[:200],
+                )
+                continue
             out["erros"].append(r)
         elif r.get("skipped"):
             continue

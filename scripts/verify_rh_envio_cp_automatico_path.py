@@ -69,6 +69,10 @@ def prova_fonte() -> None:
         fail("comando sem --data (replay dia)")
     if "--dry-run" not in cmd:
         fail("comando sem --dry-run")
+    if "raise SystemExit(1)" in cmd:
+        fail("cron não deve exit 1 por erro pontual (e-mail falso no Render)")
+    if "_erro_envio_cp_e_esperado" not in svc:
+        fail("falta classificar erro esperado (salário R$ 0)")
     ok("management command rh_envio_cp_automatico")
 
     if "api_cron_rh_envio_cp_automatico" not in views:
