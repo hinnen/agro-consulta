@@ -1344,6 +1344,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | tag `rollback/pre-cliente-xlsx-limite-todos-v25.82` · `docs/ROLLBACK-CLIENTE-XLSX-LIMITE-TODOS.md` |
 | **Você** | Depois do deploy: Excel ↑ da mesma planilha · prévia **Alterações** = **Gravado** |
 
+### PACOTE PRONTO — Excel clientes: WhatsApp vazio apaga (`CLIENTE-XLSX-WHATSAPP-VAZIO`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Importação Excel `/clientes/`: **WhatsApp vazio** na planilha **apaga** o número no cadastro (limpar duplicados). Outras colunas: vazio = não altera. |
+| **Prova** | `scripts/verify_cliente_planilha_path.py` — **57/57** (patch + mock prévia/gravação) |
+| **Migrate** | **NÃO** |
+| **Mexe** | `cliente_planilha_util.py` + prova |
+| **Status** | 🟢 **pronto envio** · alvo **v25.85** · branch `deploy/prep-cliente-xlsx-whatsapp-vazio-v2585` |
+| **Antes** | Live **v25.84** · `producao` @ `c1034c00` |
+| **Rollback** | tag `rollback/pre-cliente-xlsx-whatsapp-vazio-v25.84` · `docs/ROLLBACK-CLIENTE-XLSX-WHATSAPP-VAZIO.md` |
+| **Você** | Excel ↓ · apague WhatsApp dos duplicados · Excel ↑ · prévia `whatsapp` de → vazio · confirmar |
+
 ### PACOTE PRONTO — Dispenser não trava no PIN (`DSP-PIN-DESCANSO`)
 
 | Campo | Valor |

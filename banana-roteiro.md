@@ -712,3 +712,16 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **Status: ✅ Live v25.84** — `producao` @ `a294eb3b` · **não** foi merge do `teste`.  
 **Rollback:** tag `rollback/pre-cliente-xlsx-limite-todos-v25.82` · `docs/ROLLBACK-CLIENTE-XLSX-LIMITE-TODOS.md` · **só** frase+senha.
 
+---
+
+## 43. Checklist único — Excel clientes: WhatsApp vazio apaga (01/10)
+
+| # | Pacote | Prova | Migrate |
+| - | ------ | ----- | ------- |
+| 1 | **CLIENTE-XLSX-WHATSAPP-VAZIO** | `verify_cliente_planilha_path.py` **57/57** (mock + contratos) | **NÃO** |
+
+**O quê:** na importação Excel de `/clientes/`, **apagar** o WhatsApp na coluna amarela e subir a planilha **limpa** o número no cadastro (antes: célula vazia = não mudava — duplicados ficavam). **Demais campos:** vazio continua = não altera. Aba «Como usar» item 7.  
+**Não mexe:** PDV, caixa, limite fiado, saldo fiado, títulos, PDV checkout.  
+**Status:** 🟢 **pronto envio** — branch `deploy/prep-cliente-xlsx-whatsapp-vazio-v2585` · alvo **v25.85** · **aguarda** frase + senha.  
+**Rollback:** tag `rollback/pre-cliente-xlsx-whatsapp-vazio-v25.84` · `docs/ROLLBACK-CLIENTE-XLSX-WHATSAPP-VAZIO.md` · **só** frase+senha.
+
