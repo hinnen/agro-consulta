@@ -484,7 +484,7 @@ def montar_xlsx_clientes(rows: list[dict[str, Any]]) -> bytes:
         "5) Limite fiado: célula vazia = não muda. 0 = grava zero no cadastro e o PDV mostra o padrão (R$ 5.000). "
         "0,01 = bloqueia fiado no PDV. Outro valor = limite fixo em reais.",
         "6) Não apague a coluna ID (oculta). Linha sem ID não é importada.",
-        "7) Célula vazia na importação = não muda aquele campo.",
+        "7) Célula vazia na importação = não muda aquele campo — exceto WhatsApp: célula vazia apaga o número.",
         "8) Excel ↑ mostra prévia antes de gravar — confira e confirme.",
     ]
     for i, t in enumerate(dicas, start=2):
@@ -551,7 +551,10 @@ def _patch_da_linha(raw: dict, colmap: dict[str, str | None]) -> dict[str, Any]:
             patch[key] = d
 
     txt(COL_NOME, 200)
-    txt(COL_WHATSAPP, 20)
+    hdr_wa = colmap.get(COL_WHATSAPP)
+    if hdr_wa and hdr_wa in raw:
+        v_wa = _cel_str(raw.get(hdr_wa))
+        patch[COL_WHATSAPP] = v_wa[:20] if v_wa else ""
     txt(COL_CPF, 14)
     txt(COL_CEP, 12)
     txt(COL_UF, 2)

@@ -29,6 +29,7 @@ from produtos.cliente_planilha_util import (
     COL_QTD_FIADO_3M,
     COL_VALOR_MES_ANTERIOR,
     COL_VALOR_MES_MAIS,
+    COL_WHATSAPP,
     EXPORT_ONLY,
     IMPORT_EDIT_KEYS,
     _inicio_janela_fiado_3_meses,
@@ -91,6 +92,8 @@ def test_arquivos() -> None:
     check("analise_importacao", "def analise_importacao_clientes" in util)
     check("aplicar_usa_analise", "analise_importacao_clientes(path)" in util and "alteracoes[:400]" not in util.split("def aplicar_importacao_clientes")[1].split("def ")[0])
     check("help_limite_zero_pdv", "PDV mostra o padrão" in util or "padrão (R$ 5.000)" in util)
+    check("help_whatsapp_vazio_apaga", "exceto WhatsApp" in util and "apaga o número" in util)
+    check("patch_whatsapp_vazio", "patch[COL_WHATSAPP] = v_wa[:20] if v_wa else \"\"" in util)
 
 
 def test_export_xlsx_bytes() -> None:
@@ -227,6 +230,41 @@ def test_import_roundtrip() -> None:
         cli.delete()
 
 
+def test_import_whatsapp_vazio_limpa() -> None:
+    print("== Import WhatsApp vazio apaga ==")
+    cli = ClienteAgro.objects.create(
+        nome="ZZ Prova WA Limpar",
+        whatsapp="11988887777",
+        limite_fiado_local=Decimal("0"),
+    )
+    try:
+        rows = coletar_linhas_export_clientes()
+        row = next(r for r in rows if r[COL_ID] == cli.pk)
+        row[COL_WHATSAPP] = ""
+        data = montar_xlsx_clientes([row])
+        tmp = Path(tempfile.mkdtemp()) / "wa_clear.xlsx"
+        tmp.write_bytes(data)
+
+        prev = preview_importacao_clientes(tmp)
+        wa_campos = [
+            c
+            for a in prev.get("alteracoes", [])
+            for c in a.get("campos", [])
+            if c.get("campo") == COL_WHATSAPP
+        ]
+        check("prev_whatsapp", len(wa_campos) == 1, str(wa_campos))
+        check("prev_para_vazio", wa_campos and wa_campos[0].get("para") == "", str(wa_campos))
+
+        User = get_user_model()
+        user = User.objects.filter(is_superuser=True).first() or User.objects.first()
+        aplicar_importacao_clientes(tmp, user, nome_arquivo="wa_clear.xlsx")
+        cli.refresh_from_db()
+        check("whatsapp_gravado_vazio", cli.whatsapp == "")
+        tmp.unlink(missing_ok=True)
+    finally:
+        cli.delete()
+
+
 def test_import_alem_de_400_e_nao_mexe_fiado() -> None:
     """Gravação aplica todas as linhas; fiado em aberto não entra no patch."""
     print("== Import >400 + fiado só leitura ==")
@@ -342,6 +380,7 @@ def main() -> int:
     test_export_xlsx_bytes()
     test_valores_mes()
     test_import_roundtrip()
+    test_import_whatsapp_vazio_limpa()
     test_import_alem_de_400_e_nao_mexe_fiado()
     test_http_endpoints()
     print(f"\n== {len(oks)} OK · {len(fails)} FAIL ==")
