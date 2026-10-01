@@ -602,7 +602,45 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 **O quê:** no Dispenser, depois de um tempo parado, o cartão do PIN cobre a tela e o OK funciona.  
 **Não mexe:** PDV, caixa, venda, fiado, nota, financeiro.  
-**Status: 🟢 PREP** `deploy/prep-dsp-pin-descanso` · alvo **v25.78** · **não subiu**.  
-**Antes:** Live **v25.77** @ `6eff0f70`.  
+**Status: ✅ Live v25.78** — `producao` @ `4e4a1244`. **Não** foi merge do `teste`.  
 **Rollback:** tag `rollback/pre-dsp-pin-descanso-v25.77` · `docs/ROLLBACK-DSP-PIN-DESCANSO.md` · **só** frase+senha.
+
+---
+
+## 37. Checklist único — Dispenser fundo branco na impressão (30/09)
+
+| # | Pacote | Prova | Migrate |
+| - | ------ | ----- | ------- |
+| 1 | **DSP-PRINT-BRANCO** | **20/20** | **NÃO** |
+
+**O quê:** logo, animal e foto de ingredientes saem com o fundo da prévia, não pretos.  
+**Não mexe:** PDV, caixa, venda, fiado, nota, financeiro.  
+**Status: ✅ Live v25.79** — `producao` @ `072ff56e` · Render `dep-daumndjm8hqs738qeci0`. **Não** foi merge do `teste`.  
+**Rollback:** tag `rollback/pre-dsp-print-branco-v25.78` · `docs/ROLLBACK-DSP-PRINT-BRANCO.md` · **só** frase+senha.
+
+---
+
+## 38. Checklist único — etiqueta da nota só com o nome do cadastro (01/10)
+
+| # | Pacote | Prova | Migrate |
+| - | ------ | ----- | ------- |
+| 1 | **NF-ETQ-NOME-CADASTRO** | **14/14** · térmica **39/39** | **NÃO** |
+
+**O quê:** na etapa 6 da entrada de nota, a etiqueta imprime o nome do cadastro. Não cola `(vinculo_c_prod)` nem `(ean_pg)`, e não repete a cada gravação. Parêntese de verdade (500 ml) fica.  
+**Não mexe:** PDV, caixa, venda, fiado, financeiro.  
+**Status: ✅ Live v25.80** — `producao` @ `780015dd` · Render `dep-dautkfrm8hqs7393o53g`. **Não** foi merge do `teste`.  
+**Rollback:** tag `rollback/pre-nf-etq-nome-cadastro-v25.79` · `docs/ROLLBACK-NF-ETQ-NOME-CADASTRO.md` · **só** frase+senha.
+
+---
+
+## 39. Checklist único — etiqueta da nota com código GM (01/10)
+
+| # | Pacote | Prova | Migrate |
+| - | ------ | ----- | ------- |
+| 1 | **NF-ETQ-CODIGO-GM** | **21/21** · térmica **39/39** | **NÃO** |
+
+**O quê:** na etapa 6 da entrada de nota, a etiqueta usava `cProd` do XML (código da nota). Agora usa **código GM** do vínculo (`codigo_nfe` / `codigo_gm`; fallback `produto_id` ERP). EAN prioriza cadastro quando existir.  
+**Não mexe:** PDV, caixa, venda, fiado, financeiro.  
+**Status:** 🟢 **pronto envio** — branch `deploy/prep-nf-etq-codigo-gm-v2581` · alvo loja **v25.81** · **aguarda** frase + senha (`99738595`) após pausa das vendas.  
+**Rollback:** tag `rollback/pre-nf-etq-codigo-gm-v25.80` · `docs/ROLLBACK-NF-ETQ-CODIGO-GM.md` · **só** frase+senha.
 

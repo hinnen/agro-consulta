@@ -52,5 +52,23 @@ check(nfe.includes('entradaNfeEtiquetaCodigoGm(l)'), 'a lista da etapa 6 usa có
 check(nfe.includes('row.dataset.etqGm = entradaNfeEtiquetaCodigoGm'), 'a impressão usa código GM do catálogo');
 check(!/entradaNfeEtiquetasRenderLista[\s\S]{0,1200}l\.c_prod/.test(nfe), 'etapa 6 não usa c_prod da nota como GM');
 
+function entradaNfeStrCampo(x) {
+  return String(x == null ? '' : x).trim();
+}
+function entradaNfeEtiquetaCodigoGm(l) {
+  const gm = entradaNfeStrCampo(l && (l.codigo_nfe || l.codigo_gm));
+  if (gm) return gm;
+  return entradaNfeStrCampo(l && l.produto_id);
+}
+check(
+  entradaNfeEtiquetaCodigoGm({ c_prod: '4022', codigo_nfe: 'GM4022-1', produto_id: '999' }) === 'GM4022-1',
+  'prefere codigo_nfe do catálogo em vez de c_prod da nota'
+);
+check(
+  entradaNfeEtiquetaCodigoGm({ c_prod: '10918', produto_id: '10918' }) === '10918',
+  'sem codigo_nfe usa produto_id ERP'
+);
+check(nfe.includes('codigo_barras_catalogo'), 'EAN da etiqueta pode usar o cadastro');
+
 console.log(passed + '/' + (passed + failed));
 process.exit(failed ? 1 : 0);
