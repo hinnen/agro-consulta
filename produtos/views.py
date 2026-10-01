@@ -32431,9 +32431,12 @@ def api_pdv_cliente_rapido(request):
     endereco_manual = (data.get("endereco") or "").strip()[:500]
     endereco_final = endereco_manual or resumo_end
     try:
+        from produtos.fiado_credito_util import fiado_limite_inicial_novo_cliente
+
         c = ClienteAgro.objects.create(
             nome=nome[:200],
             whatsapp=wa_digits[:20] if wa_digits else "",
+            limite_fiado_local=fiado_limite_inicial_novo_cliente(),
             endereco=endereco_final,
             cep=(data.get("cep") or "").strip()[:12],
             uf=(data.get("uf") or "").strip()[:2].upper(),

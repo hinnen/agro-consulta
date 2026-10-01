@@ -124,6 +124,16 @@ def fiado_limite_padrao() -> Decimal:
         return Decimal("5000.00")
 
 
+def fiado_limite_inicial_novo_cliente() -> Decimal:
+    """Cadastro novo: bloqueia fiado no PDV até alguém subir o limite (≠ 0,01)."""
+    raw = getattr(settings, "AGRO_FIADO_LIMITE_INICIAL", "0.01")
+    try:
+        v = Decimal(str(raw).replace(",", ".")).quantize(Decimal("0.01"))
+        return v if v > 0 else Decimal("0.01")
+    except Exception:
+        return Decimal("0.01")
+
+
 def _dec(val) -> Decimal:
     try:
         if val is None:

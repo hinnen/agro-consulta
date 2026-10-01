@@ -1,9 +1,26 @@
+from decimal import Decimal
+
 from django import forms
 
 from .models import ClienteAgro
 
 
 class ClienteAgroForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from produtos.fiado_credito_util import fiado_limite_inicial_novo_cliente
+
+        if not self.instance.pk and self.initial.get("limite_fiado_local") in (None, ""):
+            self.initial["limite_fiado_local"] = fiado_limite_inicial_novo_cliente()
+
+    def clean_limite_fiado_local(self):
+        from produtos.fiado_credito_util import fiado_limite_inicial_novo_cliente
+
+        val = self.cleaned_data.get("limite_fiado_local")
+        if not self.instance.pk and (val is None or val == Decimal("0")):
+            return fiado_limite_inicial_novo_cliente()
+        return val
+
     class Meta:
         model = ClienteAgro
         fields = (
