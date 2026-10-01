@@ -78,7 +78,7 @@ EXPORT_HEADERS: list[tuple[str, str]] = [
     ("Saldo vale", COL_SALDO_VALE),
     ("Limite fiado", COL_LIMITE_FIADO),
     ("Qtd compras fiado (3 meses)", COL_QTD_FIADO_3M),
-    ("Média fiado (3 meses)", COL_MEDIA_FIADO_3M),
+    ("Média fiado/mês (3 meses)", COL_MEDIA_FIADO_3M),
     ("Mês que mais comprou fiado", COL_MES_MAIS_FIADO),
     ("Valor do mês que mais comprou", COL_VALOR_MES_MAIS),
     ("Valor mês anterior", COL_VALOR_MES_ANTERIOR),
@@ -153,7 +153,13 @@ def _map_headers(headers: list[str]) -> dict[str, str | None]:
         COL_SALDO_VALE: ("saldo vale", "vale credito", "vale crédito"),
         COL_LIMITE_FIADO: ("limite fiado", "limite_fiado_local", "limite de fiado"),
         COL_QTD_FIADO_3M: ("qtd compras fiado 3m", "qtd compras fiado (3 meses)"),
-        COL_MEDIA_FIADO_3M: ("media fiado 3m", "média fiado (3 meses)", "media fiado (3 meses)"),
+        COL_MEDIA_FIADO_3M: (
+            "media fiado 3m",
+            "média fiado (3 meses)",
+            "media fiado (3 meses)",
+            "média fiado/mês (3 meses)",
+            "media fiado/mes (3 meses)",
+        ),
         COL_MES_MAIS_FIADO: ("mes mais comprou fiado", "mês que mais comprou fiado"),
         COL_VALOR_MES_MAIS: (
             "valor do mes que mais comprou",
@@ -272,10 +278,29 @@ def _data_local(dt) -> date:
     return dt.date()
 
 
+def _meses_calendario_ultimos_3(hoje: date) -> list[tuple[int, int]]:
+    """Mês atual + os 2 anteriores (calendário local da loja)."""
+    y, m = hoje.year, hoje.month
+    out: list[tuple[int, int]] = []
+    for _ in range(3):
+        out.append((y, m))
+        m -= 1
+        if m < 1:
+            m = 12
+            y -= 1
+    return out
+
+
+def _inicio_janela_fiado_3_meses(hoje: date) -> date:
+    """Primeiro dia do mês mais antigo da janela de 3 meses calendário."""
+    ano, mes = _meses_calendario_ultimos_3(hoje)[-1]
+    return date(ano, mes, 1)
+
+
 def _fiado_stats_3m_por_cliente() -> dict[int, dict[str, Any]]:
-    """Compras fiado por venda nos últimos ~3 meses (90 dias)."""
+    """Compras fiado por venda nos últimos 3 meses calendário (mês atual + 2 anteriores)."""
     hoje = timezone.localdate()
-    desde = hoje - timedelta(days=90)
+    desde = _inicio_janela_fiado_3_meses(hoje)
     por_cliente: dict[int, list[tuple[date, Decimal]]] = defaultdict(list)
 
     vendas = VendaAgro.objects.filter(
@@ -315,15 +340,16 @@ def _fiado_stats_3m_por_cliente() -> dict[int, dict[str, Any]]:
         if val > Decimal("0.009"):
             por_cliente[pk].append((dt, val))
 
+    meses_ref = _meses_calendario_ultimos_3(hoje)
     out: dict[int, dict[str, Any]] = {}
     for pk, compras in por_cliente.items():
         qtd = len(compras)
-        total = sum(v for _d, v in compras).quantize(Decimal("0.01"))
-        media = (total / qtd).quantize(Decimal("0.01")) if qtd else Decimal("0")
         cont_mes = Counter((d.year, d.month) for d, _v in compras)
         soma_mes: dict[tuple[int, int], Decimal] = defaultdict(lambda: Decimal("0"))
         for d, v in compras:
             soma_mes[(d.year, d.month)] += v
+        total_3m = sum(soma_mes.get(chave, Decimal("0")) for chave in meses_ref).quantize(Decimal("0.01"))
+        media = (total_3m / Decimal("3")).quantize(Decimal("0.01"))
         mes_top = ""
         valor_top = Decimal("0")
         if cont_mes:
@@ -452,7 +478,7 @@ def montar_xlsx_clientes(rows: list[dict[str, Any]]) -> bytes:
         "",
         "1) Excel ↓ baixa todos os clientes do sistema (dados online da loja).",
         "2) Colunas amarelas podem ser editadas. Cinza = só leitura (média fiado, mês que mais comprou, etc.).",
-        "3) Média fiado (3 meses) = valor médio de cada COMPRA fiado nos últimos 90 dias (não é por parcela).",
+        "3) Média fiado/mês (3 meses) = total fiado nos últimos 3 meses calendário (mês atual + 2 anteriores) ÷ 3. Meses sem compra contam zero.",
         "4) Mês que mais comprou fiado = mês com mais compras (ex.: Ago/2026). A coluna ao lado é o valor comprado nesse mês.",
         "4b) Valor mês anterior = quanto comprou fiado no mês calendário anterior (só leitura).",
         "5) Limite fiado: 0 = volta ao padrão (R$ 5.000). 0,01 = bloqueia fiado. Qualquer outro valor = limite fixo.",
