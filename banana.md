@@ -1339,7 +1339,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `scripts/verify_cliente_planilha_path.py` — **401** limites gravados; coluna fiado fora de `IMPORT_EDIT_KEYS` |
 | **Migrate** | **NÃO** |
 | **Mexe** | `cliente_planilha_util.py` · prévia em `clientes_lista.html` |
-| **Status** | 🟢 **pronto envio** — alvo **v25.84** · branch `deploy/prep-cliente-xlsx-limite-todos-v2584` · **aguarda** frase + senha |
+| **Status** | ✅ **enviado / Live v25.84** — `producao` @ `a294eb3b` · **não** foi merge do `teste` |
 | **Antes** | Live **v25.82** · `producao` @ `d342e2a5` |
 | **Rollback** | tag `rollback/pre-cliente-xlsx-limite-todos-v25.82` · `docs/ROLLBACK-CLIENTE-XLSX-LIMITE-TODOS.md` |
 | **Você** | Depois do deploy: Excel ↑ da mesma planilha · prévia **Alterações** = **Gravado** |
