@@ -432,7 +432,7 @@
     p.codigo_pt = Number($('etq-preset-codigo-pt') && $('etq-preset-codigo-pt').value) || 7;
     p.rodape_pt = Number($('etq-preset-rodape-pt') && $('etq-preset-rodape-pt').value) || 8;
     p.barcode_height = Number($('etq-preset-bar-h') && $('etq-preset-bar-h').value) || 26;
-    p.barcode_width = Number($('etq-preset-bar-w') && $('etq-preset-bar-w').value) || 1.05;
+    p.barcode_width = Number($('etq-preset-bar-w') && $('etq-preset-bar-w').value) || 1.75;
     p.texto_rodape = ($('etq-preset-texto-rodape') && $('etq-preset-texto-rodape').value) || '';
     p.impressora = ($('etq-preset-impressora') && $('etq-preset-impressora').value.trim()) || '';
     if (Core.ehGondola(p)) {
