@@ -669,3 +669,27 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **Não mexe:** saldo fiado, títulos, PDV, caixa.  
 **Status: ✅ Live v25.84** — `producao` @ `a294eb3b` · **não** foi merge do `teste`.  
 **Rollback:** tag `rollback/pre-cliente-xlsx-limite-todos-v25.82` · `docs/ROLLBACK-CLIENTE-XLSX-LIMITE-TODOS.md` · **só** frase+senha.
+
+---
+
+## 41. Checklist único — cron RH envio CP (Render exit 1) (01/10)
+
+| # | Pacote | Prova | Migrate |
+| - | ------ | ----- | ------- |
+| 1 | **RH-CRON-ENVIO-RENDER** | `verify_rh_envio_cp_automatico_path.py` **20/20** | **NÃO** |
+
+**O quê:** cron **`agro-rh-envio-cp-automatico`**: salário R$ 0 → `pulados_salario_zero`, **exit 0**; erros reais no log.  
+**Status: ✅ Live v25.85** — cherry com WhatsApp vazio · **não** merge do `teste`.  
+**Rollback:** `docs/ROLLBACK-DEPLOY-V2585-RH-WHATSAPP.md` · tag `rollback/pre-deploy-v2584-live-20261001` · **só** frase+senha.
+
+---
+
+## 43. Checklist único — Excel clientes: WhatsApp vazio apaga (01/10)
+
+| # | Pacote | Prova | Migrate |
+| - | ------ | ----- | ------- |
+| 1 | **CLIENTE-XLSX-WHATSAPP-VAZIO** | `verify_cliente_planilha_path.py` **57/57** | **NÃO** |
+
+**O quê:** Excel ↑ `/clientes/`: **WhatsApp vazio** apaga o número (demais colunas: vazio = não altera).  
+**Status: ✅ Live v25.85** — cherry · **não** merge do `teste`.  
+**Rollback:** `docs/ROLLBACK-DEPLOY-V2585-RH-WHATSAPP.md` · tag `rollback/pre-deploy-v2584-live-20261001` · **só** frase+senha.
