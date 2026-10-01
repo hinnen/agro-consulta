@@ -35,10 +35,17 @@ class Command(BaseCommand):
         out = rodar_envio_cp_automatico_diario(hoje=hoje, dry_run=bool(options.get("dry_run")))
         self.stdout.write(
             f"RH envio CP auto {out.get('hoje')}: candidatos={out.get('candidatos')} "
-            f"criados={out.get('criados')} ja={out.get('ja_existiam')} erros={len(out.get('erros') or [])}"
+            f"criados={out.get('criados')} ja={out.get('ja_existiam')} "
+            f"pulados_salario_zero={out.get('pulados_salario_zero', 0)} "
+            f"erros={len(out.get('erros') or [])}"
         )
         for e in out.get("erros") or []:
-            self.stderr.write(self.style.ERROR(str(e)[:400]))
-        if not out.get("ok") and (out.get("erros") or []):
-            raise SystemExit(1)
+            self.stderr.write(self.style.ERROR(f"ERRO: {str(e)[:400]}"))
+        if out.get("erros"):
+            # Job rodou; falhas pontuais ficam no log. Exit 0 evita e-mail do Render em caso recuperável.
+            self.stderr.write(
+                self.style.WARNING(
+                    "Concluído com erros — conferir log e ficha/fechamento dos funcionários listados."
+                )
+            )
         self.stdout.write(self.style.SUCCESS("OK"))
