@@ -1331,6 +1331,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | tag `rollback/pre-cliente-media-fiado-mes-v25.81` · `docs/ROLLBACK-CLIENTE-MEDIA-FIADO-MES.md` |
 | **Você** | Ctrl+F5 · Clientes · Excel ↓ · conferir cabeçalho **Média fiado/mês** e valores coerentes |
 
+### PACOTE PRONTO — Excel clientes grava todos os limites (`CLIENTE-XLSX-LIMITE-TODOS`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Importação Excel de clientes truncava em **400** alterações. Limite **0,01** dos demais não gravava; PDV seguia **R$ 5.000** (limite 0 = padrão). Agora aplica a lista inteira. Fiado em aberto não é importado. |
+| **Prova** | `scripts/verify_cliente_planilha_path.py` — **401** limites gravados; coluna fiado fora de `IMPORT_EDIT_KEYS` |
+| **Migrate** | **NÃO** |
+| **Mexe** | `cliente_planilha_util.py` · prévia em `clientes_lista.html` |
+| **Status** | 🟢 **pronto envio** — alvo **v25.84** · branch `deploy/prep-cliente-xlsx-limite-todos-v2584` · **aguarda** frase + senha |
+| **Antes** | Live **v25.82** · `producao` @ `d342e2a5` |
+| **Rollback** | tag `rollback/pre-cliente-xlsx-limite-todos-v25.82` · `docs/ROLLBACK-CLIENTE-XLSX-LIMITE-TODOS.md` |
+| **Você** | Depois do deploy: Excel ↑ da mesma planilha · prévia **Alterações** = **Gravado** |
+
 ### PACOTE PRONTO — Dispenser não trava no PIN (`DSP-PIN-DESCANSO`)
 
 | Campo | Valor |
