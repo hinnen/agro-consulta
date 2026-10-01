@@ -693,3 +693,16 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **O quê:** Excel ↑ `/clientes/`: **WhatsApp vazio** apaga o número (demais colunas: vazio = não altera).  
 **Status: ✅ Live v25.85** — cherry · **não** merge do `teste`.  
 **Rollback:** `docs/ROLLBACK-DEPLOY-V2585-RH-WHATSAPP.md` · tag `rollback/pre-deploy-v2584-live-20261001` · **só** frase+senha.
+
+---
+
+## 44. Checklist único — etiquetas barras laser 1D (01/10)
+
+| # | Pacote | Prova | Migrate |
+| - | ------ | ----- | ------- |
+| 1 | **ETQ-BARCODE-LASER** | `verify_etiquetas_termica_path.js` **44/44** | **NÃO** |
+
+**O quê:** etiquetas térmicas (entrada NF, fila, cadastro): barras **mais grossas**, quiet zone GS1, SVG **sem encolher** no flex; core cache **v=25**.  
+**Não mexe:** PDV, caixa, financeiro, cadastro além do JS de etiqueta.  
+**Status: ✅ Live v25.86** — `producao` @ (após deploy) · cherry **`9453a951`** · **não** merge do `teste`.  
+**Rollback:** tag `rollback/pre-etq-barcode-laser-v25.85` · `docs/ROLLBACK-ETQ-BARCODE-LASER.md` · **só** frase+senha.
