@@ -8721,6 +8721,13 @@
     return s;
   }
 
+  /** Código GM do catálogo (não o cProd do XML da nota). */
+  function entradaNfeEtiquetaCodigoGm(l) {
+    const gm = entradaNfeStrCampo(l && (l.codigo_nfe || l.codigo_gm));
+    if (gm) return gm;
+    return entradaNfeStrCampo(l && l.produto_id);
+  }
+
   function entradaNfeEtiquetasFmtPreco(v) {
     const n = Number(v);
     if (!Number.isFinite(n)) return '0,00';
@@ -8741,7 +8748,7 @@
     host.innerHTML = linhas
       .map((l, idx) => {
         const nome = entradaNfeEtiquetaNomeDoLinha(l) || '—';
-        const gm = String(l.c_prod || '').trim();
+        const gm = entradaNfeEtiquetaCodigoGm(l);
         const pv = entradaNfeEtiquetasFmtPreco(l.preco_venda);
         const qtd = Math.max(1, Math.round(Number(l.q_estoque) || Number(l.q_com) || 1));
         return (
@@ -8760,8 +8767,8 @@
     host.querySelectorAll('.nfe-etq-row').forEach((row, idx) => {
       row.dataset.etqPid = String(linhas[idx].produto_id || '');
       row.dataset.etqNome = entradaNfeEtiquetaNomeDoLinha(linhas[idx]);
-      row.dataset.etqGm = String(linhas[idx].c_prod || '');
-      row.dataset.etqEan = String(linhas[idx].ean || '');
+      row.dataset.etqGm = entradaNfeEtiquetaCodigoGm(linhas[idx]);
+      row.dataset.etqEan = String(linhas[idx].codigo_barras_catalogo || linhas[idx].ean || '');
       row.dataset.etqPv = String(linhas[idx].preco_venda || 0);
     });
   }

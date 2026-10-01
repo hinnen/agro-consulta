@@ -47,6 +47,10 @@ check(nfe.includes('nomeCadastroSemTipoMatch(d.nome_catalogo, d.match_tipo)'), '
 check(nfe.includes('function entradaNfeEtiquetaNomeDoLinha'), 'a etapa 6 tem nome próprio da etiqueta');
 check(nfe.includes('entradaNfeEtiquetaNomeDoLinha(l)'), 'a lista da etapa 6 usa o nome limpo');
 check(nfe.includes('row.dataset.etqNome = entradaNfeEtiquetaNomeDoLinha'), 'a impressão usa o nome limpo');
+check(nfe.includes('function entradaNfeEtiquetaCodigoGm'), 'a etapa 6 tem código GM próprio da etiqueta');
+check(nfe.includes('entradaNfeEtiquetaCodigoGm(l)'), 'a lista da etapa 6 usa código GM do catálogo');
+check(nfe.includes('row.dataset.etqGm = entradaNfeEtiquetaCodigoGm'), 'a impressão usa código GM do catálogo');
+check(!/entradaNfeEtiquetasRenderLista[\s\S]{0,1200}l\.c_prod/.test(nfe), 'etapa 6 não usa c_prod da nota como GM');
 
 console.log(passed + '/' + (passed + failed));
 process.exit(failed ? 1 : 0);
