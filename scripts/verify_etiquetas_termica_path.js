@@ -63,6 +63,23 @@ ok(!html3.includes('webkitLineClamp'), 'sem tres pontinhos');
 ok(html3.includes('class="preco-cent"'), 'centavos separado do real');
 ok(html3.includes('marginLeft'), 'barras tem zona quieta pro leitor');
 ok(html3.includes('shape-rendering:crispEdges'), 'barras sem borrar');
+ok(!html3.includes('max-width:100%'), 'svg barras sem encolher no flex');
+ok(html3.includes('flat:true'), 'jsbarcode flat');
+ok(html3.includes('_fixSvg'), 'fixa px do svg pos render');
+const barsJson = html3.match(/var _bars=(\[[\s\S]*?\]);function _fixSvg/);
+if (barsJson) {
+  try {
+    const bars = JSON.parse(barsJson[1]);
+    ok(bars.length >= 1, 'dados das barras');
+    ok(Number(bars[0].bw) >= 1.35, 'modulo largo o bastante bw=' + bars[0].bw);
+    ok(Number(bars[0].bh) >= 32, 'altura barras bh=' + bars[0].bh);
+    ok(Number(bars[0].mq) >= 14, 'quiet zone mq=' + bars[0].mq);
+  } catch (e) {
+    ok(false, 'parse _bars: ' + e.message);
+  }
+} else {
+  ok(false, 'bloco _bars no html');
+}
 
 const custom = Core.normalizarPreset({
   estilo: 'termica',

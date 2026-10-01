@@ -16,8 +16,8 @@
     centavos_pt: 28,
     codigo_pt: 7,
     rodape_pt: 8,
-    barcode_height: 26,
-    barcode_width: 1.05,
+    barcode_height: 34,
+    barcode_width: 1.75,
     texto_rodape: 'Gm Agro Mais',
     impressora: '',
     nome_pt_1: 8,
@@ -37,7 +37,7 @@
   var DEFAULT_TERMICA_LAYOUT = {
     nome: { x: 3, y: 2, w: 94, h: 26 },
     preco: { x: 3, y: 28, w: 94, h: 26 },
-    barcode: { x: 6, y: 54, w: 88, h: 22 },
+    barcode: { x: 4, y: 52, w: 92, h: 26 },
     gm: { x: 3, y: 76, w: 94, h: 10 },
     rodape: { x: 3, y: 86, w: 94, h: 12 },
   };
@@ -78,8 +78,8 @@
     gm_pt: 8,
     codigo_pt: 7,
     rodape_pt: 8,
-    barcode_height: 26,
-    barcode_width: 1.05,
+    barcode_height: 34,
+    barcode_width: 1.75,
     texto_rodape: '',
     impressora: '',
     show_logo: true,
@@ -123,8 +123,8 @@
     gm_pt: 9,
     codigo_pt: 7,
     rodape_pt: 8,
-    barcode_height: 26,
-    barcode_width: 1.05,
+    barcode_height: 34,
+    barcode_width: 1.75,
     texto_rodape: '',
     impressora: '',
     show_logo: true,
@@ -290,40 +290,52 @@
   }
 
   function barcodeWidthParaFormato(formato, larguraMm, presetWidth) {
-    var bw = Number(presetWidth) || 1.05;
+    var bw = Number(presetWidth) || 1.75;
     if (formato === 'EAN13') {
       var modulos = 95;
-      var availPx = (Number(larguraMm) || 40) * 3.7795275591 * 0.88;
-      bw = Math.min(bw, Math.max(0.55, availPx / modulos));
+      var quietMods = 22;
+      var availPx = (Number(larguraMm) || 40) * 3.85 * 0.9;
+      bw = Math.min(bw, Math.max(1.2, availPx / (modulos + quietMods)));
     } else if (formato === 'EAN8') {
-      bw = Math.min(bw, 1.1);
+      bw = Math.min(bw, 1.45);
     }
-    return bw;
+    return Math.round(bw * 100) / 100;
   }
 
-  /** Barras da térmica: cabem na caixa arrastada, com zona quieta e traço grosso o bastante pro leitor. */
+  /**
+   * Barras térmicas — traço largo, quiet zone GS1 (~11 módulos/lado), sem encolher SVG no CSS.
+   * Leitor laser 1D: prioriza módulo ≥ ~1,5 px e altura ≥ 32 px na renderização.
+   */
   function barcodeTermicaMedidas(formato, valor, larguraMm, alturaMm, layout, preset) {
     var box = (layout && layout.barcode) || { w: 88, h: 22 };
     var slotWmm = ((Number(larguraMm) || 40) * (Number(box.w) || 88)) / 100;
     var slotHmm = ((Number(alturaMm) || 40) * (Number(box.h) || 22)) / 100;
-    var pxMm = 3.7795275591;
-    var slotWpx = Math.max(48, slotWmm * pxMm);
-    var slotHpx = Math.max(22, slotHmm * pxMm);
-    var quiet = Math.max(8, Math.round(slotWpx * 0.045));
+    var pxMm = 3.85;
+    var slotWpx = Math.max(72, slotWmm * pxMm);
+    var slotHpx = Math.max(28, slotHmm * pxMm);
     var mods = 95;
     if (formato === 'EAN8') mods = 67;
     else if (formato !== 'EAN13') {
       var n = String(valor || '').length || 1;
       mods = 11 * n + 35;
     }
-    var fit = Math.max(0.8, (slotWpx - quiet * 2) / mods);
+    var quietMods = formato === 'EAN13' || formato === 'EAN8' ? 22 : 16;
     var pedido = Number(preset && preset.barcode_width);
-    var bw = fit;
-    if (pedido > 0) bw = Math.min(pedido, fit);
-    var piso = 1.7;
-    if (fit >= piso) bw = Math.max(bw, Math.min(piso, fit));
-    bw = Math.round(Math.max(0.9, bw) * 100) / 100;
-    var bh = Math.max(28, Math.round(slotHpx * 0.92));
+    var alvoBw = pedido > 0 ? pedido : 1.75;
+    var maxBw = (slotWpx * 0.97) / (mods + quietMods);
+    var minBw = formato === 'EAN13' || formato === 'EAN8' ? 1.35 : 1.25;
+    var bw = Math.min(alvoBw, maxBw);
+    bw = Math.max(minBw, bw);
+    bw = Math.round(bw * 100) / 100;
+    var quiet = Math.ceil(11 * bw);
+    var totalW = mods * bw + quiet * 2;
+    if (totalW > slotWpx) {
+      bw = Math.round(Math.max(1.15, (slotWpx - quiet * 2) / mods) * 100) / 100;
+      quiet = Math.ceil(11 * bw);
+    }
+    var bh = Math.max(32, Math.round(slotHpx * 0.96));
+    var presetH = Number(preset && preset.barcode_height);
+    if (presetH >= 28) bh = Math.max(32, Math.min(bh, presetH));
     return { bw: bw, bh: bh, mq: quiet };
   }
 
@@ -1191,8 +1203,8 @@
       '.preco-cent{font-size:' +
       (Number(preset.centavos_pt) || Number(preset.preco_pt) || 28) +
       'pt;font-weight:900;line-height:1}' +
-      '.slot-barcode{display:flex;align-items:center;justify-content:center;background:#fff}' +
-      '.slot-barcode svg{display:block;shape-rendering:crispEdges;max-width:100%!important;max-height:100%!important;width:auto!important;height:auto!important}' +
+      '.slot-barcode{display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden}' +
+      '.slot-barcode svg{display:block;shape-rendering:crispEdges;image-rendering:-webkit-optimize-contrast;image-rendering:pixelated;flex-shrink:0}' +
       '.slot-gm{display:flex;align-items:center;justify-content:center;text-align:center;font-size:' +
       (Number(preset.codigo_pt) || 7) +
       'pt;font-weight:800;line-height:1;color:' +
@@ -1239,7 +1251,7 @@
       '<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"><\/script>' +
       '<script>var _bars=' +
       jsData +
-      ';function _drawOne(b){var el=document.getElementById(b.id);if(!el)return;var opts={format:b.formato,width:b.bw,height:b.bh,displayValue:false,margin:0,marginTop:0,marginBottom:0,marginLeft:b.mq||8,marginRight:b.mq||8,lineColor:"#000",background:"#fff"};try{JsBarcode(el,b.valor,opts);return;}catch(e1){try{JsBarcode(el,b.valor,{format:"CODE128",width:b.bw,height:b.bh,displayValue:false,margin:0,marginLeft:b.mq||8,marginRight:b.mq||8,lineColor:"#000",background:"#fff"});}catch(e2){el.setAttribute("data-bc-erro","1");}}}function _draw(){try{_bars.forEach(_drawOne);}catch(e){}}function _go(){setTimeout(_draw,40);setTimeout(function(){document.body.dataset.agroReady="1";},520);}if(typeof JsBarcode!=="undefined"){_go();}else{window.addEventListener("load",_go);}<\/script>' +
+      ';function _fixSvg(el){if(!el)return;el.style.flexShrink="0";el.style.maxWidth="none";el.style.maxHeight="none";var w=el.getAttribute("width"),h=el.getAttribute("height");if(w)el.style.width=w+"px";if(h)el.style.height=h+"px";}function _drawOne(b){var el=document.getElementById(b.id);if(!el)return;var opts={format:b.formato,width:b.bw,height:b.bh,displayValue:false,flat:true,margin:0,marginTop:0,marginBottom:0,marginLeft:b.mq||10,marginRight:b.mq||10,lineColor:"#000000",background:"#ffffff"};try{JsBarcode(el,b.valor,opts);_fixSvg(el);return;}catch(e1){try{JsBarcode(el,b.valor,{format:"CODE128",width:b.bw,height:b.bh,displayValue:false,flat:true,margin:0,marginLeft:b.mq||10,marginRight:b.mq||10,lineColor:"#000000",background:"#ffffff"});_fixSvg(el);}catch(e2){el.setAttribute("data-bc-erro","1");}}}function _draw(){try{_bars.forEach(_drawOne);}catch(e){}}function _go(){setTimeout(_draw,40);setTimeout(function(){document.body.dataset.agroReady="1";},520);}if(typeof JsBarcode!=="undefined"){_go();}else{window.addEventListener("load",_go);}<\/script>' +
       '</body></html>'
     );
   }
