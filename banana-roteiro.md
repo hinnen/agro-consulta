@@ -683,6 +683,6 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 **O quê:** na planilha **Excel ↓** de `/clientes/`, a coluna passa a **Média fiado/mês (3 meses)** = soma do fiado no mês atual + 2 anteriores, **÷ 3** (mês sem compra = zero). Antes era média **por compra**. Janela de dados = 3 meses calendário (desde o dia 1 do mês mais antigo).  
 **Não mexe:** PDV, caixa, limite fiado na loja (só o número exportado na coluna cinza).  
-**Status:** 🟢 **pronto envio** — branch `deploy/prep-cliente-media-fiado-mes-v2582` · alvo **v25.82** · **aguarda** frase + senha após pausa das vendas.  
+**Status: ✅ Live v25.82** — `producao` @ `3b33d4ac` · **não** foi merge do `teste`.  
 **Rollback:** tag `rollback/pre-cliente-media-fiado-mes-v25.81` · `docs/ROLLBACK-CLIENTE-MEDIA-FIADO-MES.md` · **só** frase+senha.
 

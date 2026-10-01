@@ -1326,7 +1326,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `scripts/verify_cliente_planilha_path.py` (média mensal + contratos) |
 | **Migrate** | **NÃO** |
 | **Mexe** | `cliente_planilha_util.py` + prova |
-| **Status** | 🟢 **pronto envio** — alvo **v25.82** · branch `deploy/prep-cliente-media-fiado-mes-v2582` · **aguarda** pausa + frase + senha |
+| **Status** | ✅ **enviado / Live v25.82** — `producao` @ `3b33d4ac` · **não** foi merge do `teste` |
 | **Antes** | Live **v25.81** · `producao` @ `c03890f2` |
 | **Rollback** | tag `rollback/pre-cliente-media-fiado-mes-v25.81` · `docs/ROLLBACK-CLIENTE-MEDIA-FIADO-MES.md` |
 | **Você** | Ctrl+F5 · Clientes · Excel ↓ · conferir cabeçalho **Média fiado/mês** e valores coerentes |
