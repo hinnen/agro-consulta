@@ -1336,6 +1336,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | tag `rollback/pre-cliente-xlsx-limite-todos-v25.82` · `docs/ROLLBACK-CLIENTE-XLSX-LIMITE-TODOS.md` |
 | **Você** | Depois do deploy: Excel ↑ da mesma planilha · prévia **Alterações** = **Gravado** |
 
+### PACOTE PRONTO — Etiquetas barras laser 1D (`ETQ-BARCODE-LASER`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Etiquetas térmicas: barras mais legíveis no leitor laser (traço + quiet zone, SVG sem encolher). Core **v=25**. |
+| **Prova** | `verify_etiquetas_termica_path.js` **44/44** |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ **enviado / Live v25.86** |
+| **Antes** | Live **v25.85** · `7bb7aad5` |
+| **Rollback** | `docs/ROLLBACK-ETQ-BARCODE-LASER.md` · tag `rollback/pre-etq-barcode-laser-v25.85` |
+| **Você** | Ctrl+F5 · 1 etiqueta teste · bip laser · cadastrar EAN quando existir |
+
 ### PACOTE PRONTO — Dispenser não trava no PIN (`DSP-PIN-DESCANSO`)
 
 | Campo | Valor |

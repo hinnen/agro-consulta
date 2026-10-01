@@ -704,5 +704,5 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 **O quê:** etiquetas térmicas (entrada NF, fila, cadastro): barras **mais grossas**, quiet zone GS1, SVG **sem encolher** no flex; core cache **v=25**.  
 **Não mexe:** PDV, caixa, financeiro, cadastro além do JS de etiqueta.  
-**Status: ✅ Live v25.86** — `producao` @ (após deploy) · cherry **`9453a951`** · **não** merge do `teste`.  
+**Status: ✅ Live v25.86** — `producao` @ `c2a95d73` · cherry **`9453a951`** · **não** merge do `teste`.  
 **Rollback:** tag `rollback/pre-etq-barcode-laser-v25.85` · `docs/ROLLBACK-ETQ-BARCODE-LASER.md` · **só** frase+senha.
