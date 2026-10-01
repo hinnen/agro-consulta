@@ -631,7 +631,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Etapa 3 PEND após bip etapa 2 (17/08 · `NF-BIP-ET2` · **Live v17.09**):** leitor no **Mudar**/busca (8+ dígitos) vale como Ok; XML `ean_pg`/`ean_overlay` também. Código do fornecedor (sem bip) continua PEND. Prova `verify_nf_bip_et2_path.py`.
 - **Etapa 3 lenta + visual (17/08 · `NF-BIP-ET3-SNAP`):** um lote de códigos do cadastro (não 1 request por item); barra Conferidos; flash + som no Ok. Prova `verify_nf_bip_et3_path.py` **83/83**.
 - **Etiqueta da nota (30/09 · `NF-ETQ-NOME-CADASTRO`):** etapa 6 imprime o nome do cadastro. Não cola `(vinculo_c_prod)` / `(ean_pg)` e não repete na gravação. Prova `verify_nf_etq_nome_cadastro.js`.
-- **Etiqueta da nota — código GM (01/10 · `NF-ETQ-CODIGO-GM`):** etapa 6 imprime **código GM** do catálogo, não `cProd` do XML. Prova `verify_nf_etq_nome_cadastro.js` **21/21**. 🟢 pronto envio **v25.81** — ver `banana-roteiro.md` §39.
+- **Etiqueta da nota — código GM (01/10 · `NF-ETQ-CODIGO-GM`):** etapa 6 imprime **código GM** do catálogo, não `cProd` do XML. Prova **21/21**. ✅ **Live v25.81** — `banana-roteiro.md` §39.
 - **Vínculo NF não sobrescreve cadastro (17/08 · `NF-VINCULO-NAO-SOBRESCREVE`):** «Mudar»/cProd/EAN grava só o vínculo. Nome, marca, categoria, GM e preços ficam. Lote/validade não copia xProd da NF no nome. Prova `verify_nf_vinculo_nao_sobrescreve.py`.
 - **Itens já estragados (17/08 · `NF-VINCULO-REPARO`):** ✅ **33 corrigidos** (18/08 · `--aplicar` na loja). Devolve histórico ou tira overlay / colchete `[EAN]`. **Não** mexe preço, GM, barras.
 
@@ -1305,7 +1305,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `scripts/verify_nf_etq_nome_cadastro.js` **21/21** · térmica várias **39/39** |
 | **Migrate** | **NÃO** |
 | **Mexe** | só `entrada_nota.html` (etapa 6) + script de prova |
-| **Status** | 🟢 **pronto envio** — alvo **v25.81** · branch `deploy/prep-nf-etq-codigo-gm-v2581` · **aguarda** pausa vendas + frase + senha |
+| **Status** | ✅ **enviado / Live v25.81** — `producao` @ `6c64ddaa` · **não** foi merge do `teste` |
 | **Antes** | Live **v25.80** · `producao` @ `780015dd` |
 | **Rollback** | tag `rollback/pre-nf-etq-codigo-gm-v25.80` · `docs/ROLLBACK-NF-ETQ-CODIGO-GM.md` · **só** frase+senha |
 | **Você** | Ctrl+F5 · entrada de nota · etapa 6 · conferir GM na lista · imprimir 1 etiqueta de teste |
