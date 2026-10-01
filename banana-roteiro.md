@@ -32,6 +32,16 @@
 
 Detalhe no topo do `banana.md` (bloco **Teste / backup GitHub**).
 
+### 0.3 Cursor PC ↔ Cloud Agent (2026-10-01)
+
+| Quem | Antes do chat | Ao fechar entrega |
+| ---- | ------------- | ----------------- |
+| **Renan (PC)** | `scripts/alinhar_cursor_teste.ps1` · CHECKPOINT no `banana.md` | Teste local (`docs/TESTE-LOCAL.md`) |
+| **Assistente (PC ou nuvem)** | Roteiro + CHECKPOINT · **perguntar** se algo mudou fora do Git | Código em **`teste`** + **`git push origin teste`** + linha no CHECKPOINT |
+| **Cloud Agent** | Mesmas regras · branch `cursor/…-9476` → PR/merge em **`teste`** na entrega fechada | Idem — **não** deixar só no branch da nuvem |
+
+Guia completo: **`docs/CURSOR-PC-NUVEM.md`**. Chat **não** substitui Git nem CHECKPOINT.
+
 ---
 
 ## 1. Todo chat — ordem fixa
@@ -87,7 +97,7 @@ Escolha o ramo que mais se aproxima. Leia **na ordem**; pare quando tiver contex
 | **Deploy produção / cherry loja** | Topo L22–31 · `## 3` até `### 3.2` · CHECKPOINT deploy loja · **parar e confirmar** com Renan |
 | **Desvinculação Mongo / corte ERP** | `### 4.15` + `### Checklist — corte total` · escada §5 (ler muito) |
 | **Variável `.env`** | `## 5` |
-| **Dúvida «como usar o Cursor»** | `## 6` |
+| **Dúvida «como usar o Cursor»** | `## 6` · PC↔nuvem: `docs/CURSOR-PC-NUVEM.md` |
 
 ### 2.3 Árvore rápida (texto)
 

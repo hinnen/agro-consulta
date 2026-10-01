@@ -55,6 +55,14 @@ Ajuda longa do **RH**: **§9** em `AGENTS.md` e `rh/templates/rh/includes/rh_hel
 - **Commit em `teste`/`producao`:** incluir bump de `VERSION` (`scripts/bump_version.py` ou hook `.githooks`).
 - Código existente: citar com formato ` ```startLine:endLine:path` ` quando mostrar trechos.
 
+## Cursor PC ↔ Cloud Agent (não descronizar)
+
+- **Código entregue:** branch **`teste`** no GitHub (`git push origin teste` ao fechar entrega).
+- **Contexto entre chats:** **`banana.md` CHECKPOINT** — atualizar ao fechar entrega; início de chat = reler CHECKPOINT e **perguntar** se Renan mudou algo fora do Git.
+- **Renan no PC:** antes do chat → `scripts/alinhar_cursor_teste.ps1` (ver `docs/CURSOR-PC-NUVEM.md`).
+- **Cloud Agent:** entrega fechada → merge/push em **`teste`** + CHECKPOINT; **não** assumir que este chat = estado do PC ou da loja.
+- **Produção:** inalterada (frase + senha no mesmo pedido — topo do `banana.md`).
+
 ## TESTE vs PRODUÇÃO
 
 - **TESTE / prova:** **PC local** do Renan (Chrome + Django + Postgres). Render staging **free descartado** (23/07 — cold start 10–15 min; não quer pagar). Ver topo do `banana.md`.

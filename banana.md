@@ -1251,6 +1251,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 9. **Modo econÃ´mico:** permanente â€” rule `modo-economico.mdc`; detalhe sÃ³ se Renan pedir.
 10. **Cliente:** Renan usa **Chrome** (loja e local) â€” nÃ£o perguntar Electron vs browser.
 11. **Retomar trabalho antigo:** `@banana-roteiro` + este arquivo; chats anteriores nÃ£o ficam na memÃ³ria do assistente.
+12. **Cursor PC + nuvem (2026-10-01):** antes de codar no PC → `scripts/alinhar_cursor_teste.ps1` · guia `docs/CURSOR-PC-NUVEM.md`. Assistente na nuvem: ao fechar entrega, código na **`teste`** + CHECKPOINT — senÃ£o o PC fica para trÃ¡s.
+13. **Conflito Git:** resolver no PC (ou pedir ao assistente), depois push `teste`; mencionar no prÃ³ximo chat o que foi mergeado.
 
 ---
 
@@ -1266,6 +1268,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | `docs/CONTEXTO_SESSAO_CLIENTES_PDV.md`  | SessÃ£o clientes (histÃ³rico)                                                          |
 | `docs/GUIA_ABAS_NAVEGADOR_AGRO.md`      | Abas navegador                                                                       |
 | `banana-roteiro.md`                     | Fluxograma â€” o que ler no banana por tarefa (ler **antes** do banana)                |
+| `docs/CURSOR-PC-NUVEM.md`          | Alinhar Cursor no PC com Cloud Agent (Git `teste` + CHECKPOINT)                      |
 | `.cursor/rules/agro-consulta.mdc`       | Regra Cursor resumida (auto-carregada)                                               |
 | `.cursor/rules/modo-economico.mdc`      | Respostas curtas â€” permanente                                                        |
 
@@ -1291,6 +1294,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### PACOTE — Cursor PC ↔ nuvem (`CURSOR-SYNC-DESKTOP`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Guia `docs/CURSOR-PC-NUVEM.md` + scripts `alinhar_cursor_teste` (`.ps1`/`.sh`) + roteiro §0.3 e rule Cursor — alinhar Git `teste` e CHECKPOINT entre PC e Cloud Agent |
+| **Migrate** | **NÃO** |
+| **Status** | 🟡 **só docs/scripts** — merge `teste` · Renan: rodar `.ps1` antes dos chats no PC |
+| **Você** | No PowerShell, na pasta do repo: `.\scripts\alinhar_cursor_teste.ps1` |
 
 ### PACOTE — etiqueta da nota sem código interno (`NF-ETQ-NOME-CADASTRO`)
 
