@@ -31,12 +31,15 @@ from produtos.cliente_planilha_util import (
     COL_VALOR_MES_MAIS,
     EXPORT_ONLY,
     IMPORT_EDIT_KEYS,
+    _inicio_janela_fiado_3_meses,
     _label_mes,
+    _meses_calendario_ultimos_3,
     aplicar_importacao_clientes,
     coletar_linhas_export_clientes,
     montar_xlsx_clientes,
     preview_importacao_clientes,
 )
+from datetime import date
 from produtos.models import ClienteAgro, VendaAgro
 
 fails: list[str] = []
@@ -50,6 +53,16 @@ def check(name: str, cond: bool, detail: str = "") -> None:
     else:
         fails.append(name)
         print(f"  FAIL {name}" + (f" — {detail}" if detail else ""))
+
+
+def test_media_mensal_calendario() -> None:
+    print("== Média fiado/mês (3 meses calendário) ==")
+    ref = date(2026, 10, 15)
+    check("meses_ref", _meses_calendario_ultimos_3(ref) == [(2026, 10), (2026, 9), (2026, 8)])
+    check("inicio_janela", _inicio_janela_fiado_3_meses(ref) == date(2026, 8, 1))
+    util = (ROOT / "produtos/cliente_planilha_util.py").read_text(encoding="utf-8")
+    check("media_div_3", "total_3m / Decimal(\"3\")" in util)
+    check("help_media_mes", "média fiado/mês" in util.lower() or "media fiado/mes" in util.lower())
 
 
 def test_arquivos() -> None:
@@ -95,7 +108,7 @@ def test_export_xlsx_bytes() -> None:
     check("sheet_clientes", ws.title == "Clientes")
     check("header_nome", ws.cell(1, 3).value in ("Nome",) or "Nome" in str(ws.cell(1, 1).value))
     hdrs = [ws.cell(1, c).value for c in range(1, 30)]
-    check("hdr_media", "Média fiado (3 meses)" in hdrs)
+    check("hdr_media", "Média fiado/mês (3 meses)" in hdrs)
     check("hdr_mes", "Mês que mais comprou fiado" in hdrs)
     check("hdr_valor_mes", "Valor do mês que mais comprou" in hdrs)
     check("hdr_valor_ant", "Valor mês anterior" in hdrs)
@@ -147,6 +160,8 @@ def test_valores_mes() -> None:
         check("mes_e_o_atual", row[COL_MES_MAIS_FIADO] == _label_mes(hoje.year, hoje.month), row[COL_MES_MAIS_FIADO])
         check("valor_do_mes_campeao", abs(float(row[COL_VALOR_MES_MAIS]) - 30.0) < 0.001, str(row[COL_VALOR_MES_MAIS]))
         check("valor_mes_anterior", abs(float(row[COL_VALOR_MES_ANTERIOR]) - 300.0) < 0.001, str(row[COL_VALOR_MES_ANTERIOR]))
+        # Mês atual 30 + mês anterior 300 + terceiro mês 0 → média mensal 110 (não média por compra).
+        check("media_por_mes", abs(float(row[COL_MEDIA_FIADO_3M]) - 110.0) < 0.001, str(row[COL_MEDIA_FIADO_3M]))
         check("aberto_nao_mexe", abs(float(row[COL_FIADO_USADO]) - 0.0) < 0.001, str(row[COL_FIADO_USADO]))
 
         row[COL_VALOR_MES_MAIS] = 99999
@@ -234,6 +249,7 @@ def test_http_endpoints() -> None:
 
 
 def main() -> int:
+    test_media_mensal_calendario()
     test_arquivos()
     test_export_xlsx_bytes()
     test_valores_mes()
