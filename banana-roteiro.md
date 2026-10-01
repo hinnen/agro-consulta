@@ -667,5 +667,5 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 **O quê:** Excel ↑ em `/clientes/` só gravava as **primeiras 400** alterações. Quem ficava depois continuava com limite **0** e o PDV mostrava **R$ 5.000**. Agora grava **todas**. **0** no cadastro = padrão R$ 5.000 no PDV; **0,01** bloqueia. Coluna **Fiado em aberto** continua cinza (não altera dívida).  
 **Não mexe:** saldo fiado, títulos, PDV, caixa.  
-**Status:** 🟢 **pronto envio** — branch `deploy/prep-cliente-xlsx-limite-todos-v2584` · alvo **v25.84** · **aguarda** frase + senha.  
+**Status: ✅ Live v25.84** — `producao` @ `a294eb3b` · **não** foi merge do `teste`.  
 **Rollback:** tag `rollback/pre-cliente-xlsx-limite-todos-v25.82` · `docs/ROLLBACK-CLIENTE-XLSX-LIMITE-TODOS.md` · **só** frase+senha.
