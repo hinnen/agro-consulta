@@ -686,3 +686,16 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **Status: ✅ Live v25.82** — `producao` @ `3b33d4ac` · **não** foi merge do `teste`.  
 **Rollback:** tag `rollback/pre-cliente-media-fiado-mes-v25.81` · `docs/ROLLBACK-CLIENTE-MEDIA-FIADO-MES.md` · **só** frase+senha.
 
+---
+
+## 41. Checklist único — cron RH envio CP (Render exit 1) (01/10)
+
+| # | Pacote | Prova | Migrate |
+| - | ------ | ----- | ------- |
+| 1 | **RH-CRON-ENVIO-RENDER** | `verify_rh_envio_cp_automatico_path.py` **21/21** | **NÃO** |
+
+**O quê:** e-mail Render «Exited with status 1» no cron **`agro-rh-envio-cp-automatico`** quando algum funcionário do dia tinha **salário R$ 0** (sem faixa na ficha). O robô **rodava**; o job marcava falha. Agora: conta `pulados_salario_zero`, aviso no log, **exit 0**; erros reais continuam no stderr.  
+**Não mexe:** PDV, caixa, venda, regra de geração do título (só comportamento do cron).  
+**Status:** 🟢 **pronto envio** — branch `deploy/prep-rh-cron-envio-cp-render-v2583` · alvo **v25.83** · **aguarda** frase + senha.  
+**Rollback:** tag `rollback/pre-rh-cron-envio-cp-render-v25.82` · `docs/ROLLBACK-RH-CRON-ENVIO-CP-RENDER.md` · **só** frase+senha.
+
