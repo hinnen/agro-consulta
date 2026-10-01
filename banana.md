@@ -3026,7 +3026,7 @@ Joelma (Esposa Wagner) e 018 Junior (pai de Isabela) estavam no fiado **sem** o 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Render alertava falha no cron **`agro-rh-envio-cp-automatico`** quando um funcionário do dia não gerava título (ex. **salário R$ 0**). Job rodava; exit 1 era alerta falso. |
-| **Prova** | `scripts/verify_rh_envio_cp_automatico_path.py` **21/21** |
+| **Prova** | `scripts/verify_rh_envio_cp_automatico_path.py` **20/20** |
 | **Migrate** | **NÃO** |
 | **Mexe** | `rh/services/envio_cp_automatico.py` · `rh/management/commands/rh_envio_cp_automatico.py` |
 | **Status** | 🟢 **pronto envio** — alvo **v25.83** · branch `deploy/prep-rh-cron-envio-cp-render-v2583` · **aguarda** frase + senha |
