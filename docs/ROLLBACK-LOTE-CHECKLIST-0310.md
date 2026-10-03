@@ -6,19 +6,22 @@ Volta a loja ao estado **antes** deste lote (Live **v25.86**).
 | ---- | ----- |
 | **Antes (loja)** | `producao` @ `f540081c` · VERSION **25.86** |
 | **Tag sugerida** | `rollback/pre-checklist-0310-v25.86` |
-| **Branch backup** | `producao-backup-pre-v2595-checklist-20261003` |
-| **Branch PREP** | `deploy/prep-checklist-0310` · alvo loja **v25.95** |
+| **Branch backup** | `producao-backup-pre-v2599-checklist-20261003` |
+| **Branch PREP** | `deploy/prep-checklist-0310` · alvo loja **v25.99** |
 | **Migrate** | **NÃO** |
 | **Merge `teste`?** | **NÃO** — só cherry deste PREP |
 
-## Pacotes do lote
+## Pacotes do lote (7)
 
-| # | Pacote | Risco venda aberta |
-| - | ------ | ------------------ |
-| 1 | **ETQ-EAN-LOJA** | Baixo — códigos `230…` novos + impressão |
+| # | Pacote | Risco loja aberta |
+| - | ------ | ----------------- |
+| 1 | **ETQ-EAN-LOJA** | Baixo — códigos `230…` + impressão |
 | 2 | **PDV-EDIT-CB-ETQ** | Baixo — só lápis/etiqueta do produto |
-| 3 | **BUG-28-ENT-LOJA-PIN** | Médio — PIN pós-venda/entrega (é **correção** de loop) |
-| 4 | **BUG-32-SO-ENT-OUTRA** | Médio — fluxo entrega→pagamento (é **correção** de trava) |
+| 3 | **BUG-28-ENT-LOJA-PIN** | Médio — **correção** loop PIN na entrega |
+| 4 | **BUG-32-SO-ENT-OUTRA** | Médio — **correção** trava só-entrega outra loja |
+| 5 | **ETQ-TERMICA-53X30** | Baixo — novo preset seed 53×30 |
+| 6 | **PDV-PEDIR-ETQ53** | Baixo — botão Etiquetas 53 no Pedir loja |
+| 7 | **PDV-PEDIR-BIP-30** | Baixo — Aceitar silencia bip 30 min |
 
 ## Como voltar (só frase + senha)
 
@@ -29,11 +32,19 @@ git reset --hard rollback/pre-checklist-0310-v25.86
 git push origin producao --force-with-lease
 ```
 
-## Provas (no PREP)
+## Provas (no PREP · PIN 9973)
 
-- `verify_etq_ean_loja_path.py` **74/74**
-- `verify_pdv_edicao_barras_etq_path.py` **74/74**
-- `verify_bug28_entrega_loja_pin_path.py` **10/10**
-- `verify_bug32_so_entrega_outra_loja_path.py` **8/8**
-- `verify_pdv_ent_loja_lanc_path.py` **33/33**
-- térmica **56/56** · várias **39/39**
+| Prova | Resultado |
+| ----- | --------- |
+| ETQ-EAN-LOJA | **74/74** |
+| PDV-EDIT-CB-ETQ | **74/74** |
+| BUG-28 path | **10/10** |
+| BUG-28/32 runtime | **16/16** |
+| BUG-32 path | **8/8** |
+| ent-loja lanc | **33/33** |
+| Pedir loja | **80/80** |
+| Pedir etq53 | **14/14** |
+| térmica | **63/63** |
+| térmica várias | **39/39** |
+
+**PREP_FAILS=0** · tip PREP a confirmar no banana após push.
