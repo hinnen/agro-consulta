@@ -742,3 +742,13 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | 1 | **ETQ-53-QUOTA** | ✅ **Live v26.02** · **34/34** + smoke **22/22** | **NÃO** |
 
 **Rollback:** tag `rollback/pre-etq-53-quota-v26.00` · `docs/ROLLBACK-ETQ-53-QUOTA.md` · **só** frase+senha.
+
+---
+
+## 53. CHECKLIST ÚNICO — PDV-FIADO-LIMITE-REFRESH · ✅ Live v26.05
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-FIADO-LIMITE-REFRESH** | ✅ **Live v26.05** · `producao` @ `829e4475` · prova **39/39** | **NÃO** |
+
+**Rollback:** tag `rollback/pre-pdv-fiado-limite-refresh-v26.02` · `docs/ROLLBACK-PDV-FIADO-LIMITE-REFRESH.md` · **só** frase+senha.

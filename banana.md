@@ -553,6 +553,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 - IDs Mongo no JSON viram `local:{pk}` para nÃ£o mandar ObjectId ao ERP.
 - Contexto antigo detalhado: `docs/CONTEXTO_SESSAO_CLIENTES_PDV.md`.
 - **Fiado limite (`FIADO-LIMITE-LINHA`):** na lista `/fiado/`, clique no valor da coluna **Limite** para editar (sem botão Limite cliente).
+- **Limite no PDV sem reabrir (`PDV-FIADO-LIMITE-REFRESH` · Live v26.05):** ao mudar o limite, o wizard busca de novo o crédito (Fiado / lançar / confirmar / foco).
 
 ### 4.6 Cadastro / gestÃ£o de produtos
 
@@ -1287,6 +1288,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### ✅ Deploy loja — PDV-FIADO-LIMITE-REFRESH · **Live v26.05** · 03/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v26.05** — `producao` @ `829e4475` · Render `dep-db0lq3jm8hqs73d8ib7g` · **não** foi merge do `teste` |
+| **O quê** | Limite fiado atualiza no PDV sem fechar/abrir (refresh ao escolher Fiado / lançar / confirmar / foco). |
+| **Branch PREP** | `deploy/prep-pdv-fiado-limite-refresh` · tip `829e4475` · base Live **v26.02** @ `f7ef7844` |
+| **Migrate** | **NÃO** |
+| **Provas** | path **39/39** · card **39/39** · PIN **9973** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-pdv-fiado-limite-refresh-v26.02` @ `f7ef7844` · branch `producao-backup-pre-v2605-pdv-fiado-limite-refresh-20261003` · `docs/ROLLBACK-PDV-FIADO-LIMITE-REFRESH.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 PDV · badge **v26.05** · muda limite → Fiado sem reabrir |
+
+### ✅ CHECKLIST ÚNICO — PDV-FIADO-LIMITE-REFRESH · ✅ Live v26.05
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-FIADO-LIMITE-REFRESH** | ✅ **enviado / Live v26.05** | **NÃO** | **39/39** |
 
 ### ✅ Deploy loja — ETQ-53-QUOTA · **Live v26.02** · 03/10
 
