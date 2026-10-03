@@ -87,6 +87,12 @@ def main() -> int:
     check("js_pin_sessao", "precisa_pin" in js)
     check("js_confirm_modal", "abrirConfirm" in js and "estoque_furado" in js)
     check("js_bip_pendente", "syncBeepPendentes" in js and "60000" in js)
+    check(
+        "js_bip_folga_30",
+        "recebidos_bip" in js and "recebidos_bip" in util and "PEDIR_LOJA_BIP_GRACE" in util,
+    )
+    check("util_bip_grace_30", "timedelta(minutes=30)" in util and "solicitacao_deve_bipar" in util)
+    check("tests_bip_folga", "test_bip_aceito_folga_30min" in tests)
     check("js_bip_apply_resumo", "applyResumoCounts" in js)
     check("js_bip_defesa_ui", "uiPedirSemAlerta" in js and "pdv-wiz-topbar-btn--pedir-loja-alerta" in js)
     check("js_resumo_loja_qs", "loja=" in js and "apiPdvTransfLojaResumo" in js)

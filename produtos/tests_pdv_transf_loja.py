@@ -2,20 +2,24 @@
 from __future__ import annotations
 
 import json
+from datetime import timedelta
 from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from django.test import RequestFactory, SimpleTestCase
 from django.urls import reverse, NoReverseMatch
+from django.utils import timezone
 
 from produtos.pdv_transf_loja_util import (
+    PEDIR_LOJA_BIP_GRACE,
     STATUS_ACEITO,
     STATUS_PENDENTE,
     STATUS_PRONTO,
     loja_oposta,
     pode_agir,
     qtd_decimal,
+    solicitacao_deve_bipar,
 )
 
 
@@ -55,6 +59,32 @@ class UtilBasicoTests(SimpleTestCase):
         self.assertEqual(qtd_decimal_ou_zero("2,5"), Decimal("2.500"))
         self.assertIsNone(qtd_decimal_ou_zero("-1"))
         self.assertIsNone(qtd_decimal_ou_zero("x"))
+
+    def test_bip_pendente_sempre(self):
+        agora = timezone.now()
+        self.assertTrue(solicitacao_deve_bipar(STATUS_PENDENTE, None, agora))
+        self.assertTrue(solicitacao_deve_bipar(STATUS_PENDENTE, agora, agora))
+
+    def test_bip_aceito_folga_30min(self):
+        agora = timezone.now()
+        self.assertFalse(solicitacao_deve_bipar(STATUS_ACEITO, agora, agora))
+        self.assertFalse(
+            solicitacao_deve_bipar(STATUS_ACEITO, agora - timedelta(minutes=29), agora)
+        )
+        self.assertTrue(
+            solicitacao_deve_bipar(STATUS_ACEITO, agora - PEDIR_LOJA_BIP_GRACE, agora)
+        )
+        self.assertTrue(
+            solicitacao_deve_bipar(STATUS_ACEITO, agora - timedelta(minutes=31), agora)
+        )
+        self.assertTrue(solicitacao_deve_bipar(STATUS_ACEITO, None, agora))
+
+    def test_bip_pronto_mesma_folga(self):
+        agora = timezone.now()
+        self.assertFalse(solicitacao_deve_bipar(STATUS_PRONTO, agora, agora))
+        self.assertTrue(
+            solicitacao_deve_bipar(STATUS_PRONTO, agora - timedelta(minutes=40), agora)
+        )
 
 
 class PodeAgirTests(SimpleTestCase):

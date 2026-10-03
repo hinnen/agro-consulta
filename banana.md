@@ -1295,6 +1295,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### PACOTE — Pedir loja bip folga 30 min (`PDV-PEDIR-BIP-30`) · 03/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | **Aceitar** → bip silencia **30 min**. Se não **Transferir**, volta a apitar (mesmo som). Pendente novo continua bipando. |
+| **Onde** | `pdv_transf_loja_util.py` (`recebidos_bip`) · `pdv_pedir_loja.js` |
+| **Prova** | Django bip folga · `verify_pdv_pedir_loja.py` |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 no `teste` · loja **só** frase+senha |
+| **Você** | Ctrl+F5 · receber pedido → Aceitar → para de apitar · (ou esperar 30 min sem transferir) |
+
 ### PACOTE — Pedir loja Etiquetas 53 (`PDV-PEDIR-ETQ53`) · 03/10
 
 | Campo | Valor |
