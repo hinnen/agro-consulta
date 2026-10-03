@@ -1288,22 +1288,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PACOTE PRONTO — ETQ-PRESET-SYNC · tip **v26.03** · 03/10
+### 🟢 PACOTE PRONTO — ETQ-PRESET-SYNC · tip **v26.04** · 03/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Alterar preset num PC não aparecia nos outros (Ctrl+F5). Arrastar layout só gravava no PC; merge/migração podia preferir cache velho. |
-| **Fix** | Drag/reset synca Postgres; merge **loja manda**; migrate **não** sobrescreve id que já existe; detecta login. Cache `core?v=30` · `js?v=27`. |
-| **Prova** | sync **15/15** · quota **34/34** · UX **32/32** · térmica **39/39** |
+| **O quê** | Alterar preset num PC não aparecia nos outros. Arrastar layout só gravava no PC; merge/migração podia preferir cache velho. |
+| **Fix** | Drag/reset → Postgres; merge **loja manda**; migrate **não** sobrescreve; detecta login. Cache `core?v=30` · `js?v=27`. |
+| **Prova** | path **25/25** · smoke API **23/23** (PIN 9973 · PC A→B) · quota **34/34** · UX **32/32** · térmica **39/39** |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** — `teste` · **aguarda frase + senha** |
-| **Você** | No PC que mexeu: login · abrir presets · mexer de novo (ou Salvar) · outros PCs Ctrl+F5 logados |
+| **Você** | PC que mexeu: login · Presets · mexer/Salvar · outros PCs logados Ctrl+F5 |
 
-### 🟢 CHECKLIST ÚNICO — ETQ-PRESET-SYNC · pronto envio · tip **v26.03**
+### 🟢 CHECKLIST ÚNICO — ETQ-PRESET-SYNC · pronto envio · tip **v26.04**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-PRESET-SYNC** | 🟢 **pronto para envio à produção** | **NÃO** | **15/15** |
+| 1 | **ETQ-PRESET-SYNC** | 🟢 **pronto para envio à produção** | **NÃO** | **25/25** + smoke **23/23** |
 
 ### ✅ Deploy loja — ETQ-53-QUOTA · **Live v26.02** · 03/10
 
