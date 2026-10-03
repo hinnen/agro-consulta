@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import time
+from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from estoque.models import (
@@ -28,6 +30,9 @@ STATUS_ACEITO = SolicitacaoTransferenciaPdv.STATUS_ACEITO
 STATUS_PRONTO = SolicitacaoTransferenciaPdv.STATUS_PRONTO
 STATUS_CONCLUIDO = SolicitacaoTransferenciaPdv.STATUS_CONCLUIDO
 STATUS_CANCELADO = SolicitacaoTransferenciaPdv.STATUS_CANCELADO
+
+# Após Aceitar: silêncio no bip por este tempo. Depois, se não transferir, volta a apitar.
+PEDIR_LOJA_BIP_GRACE = timedelta(minutes=30)
 
 # Item sem produto cadastro (sacola, café, recado…) — não move estoque.
 PREFIXO_ITEM_LIVRE = "livre:"
@@ -707,6 +712,38 @@ def _fmt_qtd(q: Decimal) -> str:
     return s or "0"
 
 
+def solicitacao_deve_bipar(
+    status: str,
+    aceito_em: datetime | None,
+    agora: datetime | None = None,
+    grace: timedelta | None = None,
+) -> bool:
+    """Pendente = bipa. Aceito/Pronto = bipa só depois da folga de 30 min (ou sem aceito_em)."""
+    st = (status or "").strip().lower()
+    if st == STATUS_PENDENTE:
+        return True
+    if st not in (STATUS_ACEITO, STATUS_PRONTO):
+        return False
+    if aceito_em is None:
+        return True
+    agora = agora or timezone.now()
+    grace = PEDIR_LOJA_BIP_GRACE if grace is None else grace
+    return aceito_em <= (agora - grace)
+
+
+def contar_recebidos_bip(abertos_qs, agora: datetime | None = None) -> int:
+    """Quantos recebidos abertos pedem bip (pendente + aceito/pronto fora da folga)."""
+    agora = agora or timezone.now()
+    limite = agora - PEDIR_LOJA_BIP_GRACE
+    pendentes = abertos_qs.filter(status=STATUS_PENDENTE).count()
+    atrasados = (
+        abertos_qs.filter(status__in=(STATUS_ACEITO, STATUS_PRONTO))
+        .filter(Q(aceito_em__isnull=True) | Q(aceito_em__lte=limite))
+        .count()
+    )
+    return int(pendentes) + int(atrasados)
+
+
 def resumo_loja(loja: str) -> dict:
     loja = normalizar_deposito(loja)
     abertos = SolicitacaoTransferenciaPdv.objects.filter(
@@ -714,11 +751,13 @@ def resumo_loja(loja: str) -> dict:
         status__in=SolicitacaoTransferenciaPdv.STATUS_ABERTOS,
     )
     pendentes = abertos.filter(status=STATUS_PENDENTE).count()
+    bip = contar_recebidos_bip(abertos)
     return {
         "loja": loja,
         "loja_label": rotulo_deposito(loja),
         "recebidos_abertos": abertos.count(),
         "recebidos_pendentes": pendentes,
+        "recebidos_bip": bip,
         "enviados_abertos": SolicitacaoTransferenciaPdv.objects.filter(
             loja_destino=loja,
             status__in=SolicitacaoTransferenciaPdv.STATUS_ABERTOS,

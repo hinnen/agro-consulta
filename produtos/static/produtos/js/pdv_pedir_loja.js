@@ -156,6 +156,25 @@
     }
   }
 
+  function applyResumoCounts(d) {
+    d = d || {};
+    var n = Number(d.recebidos_abertos || 0);
+    /* Bip: pendente sempre; aceito/pronto só após 30 min sem transferir (servidor). */
+    var bip = Number(
+      d.recebidos_bip != null
+        ? d.recebidos_bip
+        : d.recebidos_pendentes != null
+          ? d.recebidos_pendentes
+          : d.recebidos_abertos || 0
+    );
+    var pend = Number(
+      d.recebidos_pendentes != null ? d.recebidos_pendentes : d.recebidos_abertos || 0
+    );
+    applyBadge(n);
+    syncBeepPendentes(bip);
+    return { n: n, pend: pend, bip: bip };
+  }
+
   function syncFuradoUi() {
     if (!dom.confirmAjusteWrap || !dom.confirmFurado) return;
     if (dom.confirmFurado.checked) dom.confirmAjusteWrap.classList.add('is-on');
