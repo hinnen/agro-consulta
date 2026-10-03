@@ -553,6 +553,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 - IDs Mongo no JSON viram `local:{pk}` para nÃ£o mandar ObjectId ao ERP.
 - Contexto antigo detalhado: `docs/CONTEXTO_SESSAO_CLIENTES_PDV.md`.
 - **Fiado limite (`FIADO-LIMITE-LINHA`):** na lista `/fiado/`, clique no valor da coluna **Limite** para editar (sem botão Limite cliente).
+- **Limite no PDV sem reabrir (`PDV-FIADO-LIMITE-REFRESH` · 03/10):** ao mudar o limite (card PDV ou outra tela), o wizard **busca de novo** o crédito ao escolher Fiado, lançar, confirmar e ao voltar o foco — **não** precisa fechar/abrir o PDV. Prova: `scripts/verify_pdv_fiado_limite_refresh_path.py`.
 
 ### 4.6 Cadastro / gestÃ£o de produtos
 
@@ -1287,6 +1288,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 🔧 WIP — Limite fiado atualiza sem reabrir PDV (`PDV-FIADO-LIMITE-REFRESH` · 03/10)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ no **`teste`** · prova **13/13** · Renan valida no **PC local** (Ctrl+F5 no PDV) |
+| **O quê** | Mudou o limite do cliente → PDV lia cache velho e bloqueava até fechar/abrir. Agora força refresh ao escolher Fiado / lançar / confirmar / voltar à aba. |
+| **Arquivos** | `pdv_wizard.js` · `scripts/verify_pdv_fiado_limite_refresh_path.py` |
+| **Migrate** | **NÃO** |
+| **Loja** | **ainda não** — só com frase + senha depois do teste local |
+| **Você** | No PDV: cliente com limite baixo → sobe o limite (card ou `/fiado/`) → tenta Fiado de novo **sem** fechar o PDV |
 
 ### 🚀 PREP deploy loja — ETQ-PRESET-SYNC (`deploy/prep-etq-preset-sync` · alvo **v26.04**) · aguarda senha
 
