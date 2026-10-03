@@ -697,13 +697,15 @@
   }
 
   function mergeServerPresets(localList, serverList) {
+    /* Postgres manda: o que veio do servidor vence no mesmo id. Local só entra se for id novo. */
     var byId = {};
-    ensureSeedPresets(localList || []).forEach(function (p) {
-      byId[p.id] = normalizarPreset(p);
-    });
     (serverList || []).forEach(function (p) {
       if (!p || !p.id) return;
       byId[p.id] = normalizarPreset(p);
+    });
+    ensureSeedPresets(localList || []).forEach(function (p) {
+      if (!p || !p.id) return;
+      if (!byId[p.id]) byId[p.id] = normalizarPreset(p);
     });
     var out = Object.keys(byId).map(function (k) {
       return byId[k];
@@ -716,14 +718,26 @@
       credentials: 'same-origin',
       headers: { Accept: 'application/json' },
       cache: 'no-store',
+      redirect: 'manual',
     })
       .then(function (r) {
+        if (r.status === 0 || r.type === 'opaqueredirect' || r.status === 301 || r.status === 302) {
+          var errR = new Error('login');
+          errR.code = 'auth';
+          throw errR;
+        }
         if (r.status === 401 || r.status === 403) {
           var err = new Error('login');
           err.code = 'auth';
           throw err;
         }
         if (!r.ok) throw new Error('HTTP ' + r.status);
+        var ct = String(r.headers.get('content-type') || '');
+        if (ct.indexOf('application/json') < 0) {
+          var errH = new Error('login');
+          errH.code = 'auth';
+          throw errH;
+        }
         return r.json();
       })
       .then(function (j) {
@@ -738,6 +752,7 @@
     return fetch(presetsApiUrl(), {
       method: 'POST',
       credentials: 'same-origin',
+      redirect: 'manual',
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
@@ -745,6 +760,11 @@
       },
       body: JSON.stringify({ client_key: p.id, nome: p.nome, payload: p }),
     }).then(function (r) {
+      if (r.status === 0 || r.type === 'opaqueredirect' || r.status === 301 || r.status === 302) {
+        var errR = new Error('Faça login para gravar preset na loja.');
+        errR.code = 'auth';
+        throw errR;
+      }
       if (r.status === 401 || r.status === 403) {
         var err = new Error('Faça login para gravar preset na loja.');
         err.code = 'auth';
@@ -772,13 +792,16 @@
     });
   }
 
-  function migrateLocalPresetsToServerOnce(presets) {
+  function migrateLocalPresetsToServerOnce(presets, opts) {
+    opts = opts || {};
     if (typeof localStorage === 'undefined') return Promise.resolve({ migrated: 0, skipped: true });
     if (localStorage.getItem(LS_MIGRATE_FLAG) === '1') {
       return Promise.resolve({ migrated: 0, skipped: true });
     }
+    var onServer = opts.onServer || {};
+    /* Nunca sobrescreve o que já está no Postgres — só sobe id que ainda não existe na loja. */
     var list = (presets || []).filter(function (p) {
-      return p && p.id;
+      return p && p.id && !onServer[p.id];
     });
     if (!list.length) {
       localStorage.setItem(LS_MIGRATE_FLAG, '1');
