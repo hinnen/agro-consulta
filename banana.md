@@ -1299,13 +1299,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Código interno `230…`: **novos** saem EAN-13 com dígito verificador. **Legado** (ex. `2300000001571`) **mantém o número** no cadastro; na impressão vira EAN-13 forçado (não CODE128) p/ laser 1D. Core **v=26**. |
-| **Prova** | `verify_etq_ean_loja_path.py` **11/11** · térmica **56/56** · várias **39/39** |
+| **O quê** | Código interno `230…`: **novos** = EAN-13 com DV. **Legado** mantém o número; impressão EAN forçado (não CODE128). Core **v=26**. |
+| **Prova** | `verify_etq_ean_loja_path.py` **74/74** (API local `2300000015720` EAN ok) · térmica **56/56** · várias **39/39** |
 | **Migrate** | **NÃO** |
-| **Mexe** | `agro_codigo_barras_loja_util.py` · `produtos_etiquetas_core.js` · templates etq `?v=26` · cadastro aviso |
-| **Status** | 🟢 **teste v25.88** — validar no PC · loja **só** frase+senha |
-| **Você** | Ctrl+F5 etiquetas · reimprimir **1** etiqueta de um `230…` antigo (mesmo número) · bipar no laser · produto novo: gerar barras e conferir |
-| **Nota** | Etiqueta **já colada** em CODE128 do SisVale: precisa **reimprimir** (número igual). Etiqueta do sistema antigo que já bipa: **não mexer**. |
+| **Mexe** | `agro_codigo_barras_loja_util.py` · `produtos_etiquetas_core.js` · templates `?v=26` · cadastro aviso · API docstring |
+| **Status** | 🟢 **pronto para envio** · teste **v25.90** · loja **só** frase+senha |
+| **Você** | Ctrl+F5 · reimprimir 1 etiqueta `230…` antiga · bipar laser |
+| **Nota** | Já colada CODE128 SisVale → reimprimir (mesmo nº). Sistema antigo que já bipa → não mexer. |
+
+### CHECKLIST ÚNICO — ETQ-EAN-LOJA
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **ETQ-EAN-LOJA** | 🟢 **pronto para envio** · **74/74** | **NÃO** |
 
 ### PACOTE WIP — PDV edição: barras extras + etiqueta (`PDV-EDIT-CB-ETQ`)
 

@@ -753,11 +753,12 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ## 46. Checklist único — EAN loja 230… p/ laser (`ETQ-EAN-LOJA`) (03/10)
 
-| # | Pacote | Prova | Migrate |
-| - | ------ | ----- | ------- |
-| 1 | **ETQ-EAN-LOJA** | `verify_etq_ean_loja_path.py` **11/11** · térmica **56/56** · várias **39/39** | **NÃO** |
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **ETQ-EAN-LOJA** | 🟢 **pronto para envio** · prova **74/74** | **NÃO** |
 
-**O quê:** `230…` novos = EAN-13 com DV. Legado = mesmo número no cadastro; impressão EAN forçado (não CODE128). Core **v=26**.  
-**Status:** 🟢 **teste v25.88** · loja **só** frase+senha.  
+**O quê:** `230…` novos = EAN-13 com DV. Legado = mesmo número; impressão EAN forçado (não CODE128). Core **v=26**.  
+**Prova:** `verify_etq_ean_loja_path.py` **74/74** · térmica **56/56** · várias **39/39** · API local OK.  
+**Status:** 🟢 **pronto para envio** · teste **v25.90** · loja **só** frase+senha.  
 **Você:** Ctrl+F5 · reimprimir 1 etiqueta `230…` antiga · bipar laser.
 
