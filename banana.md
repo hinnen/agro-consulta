@@ -1288,22 +1288,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚀 PREP — ETQ-53-QUOTA (`deploy/prep-etq-53-quota` · alvo **v26.02**) · em envio
+### 🟢 PACOTE PRONTO — ETQ-53-QUOTA · tip **v26.02** · 03/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Hotfix loja v26.00: presets/busca mortos por quota `localStorage`. Cache `core?v=29` · `js?v=26`. |
-| **Branch PREP** | `deploy/prep-etq-53-quota` · base Live **v26.00** @ `af1944cd` |
+| **O quê** | Loja v26.00: presets vazios + busca morta (local OK). Causa: `localStorage` cheio → `setItem` estourava antes de pintar PRESET e ligar busca. |
+| **Fix** | `savePrefs` engole quota; pinta presets antes de persistir; `init`/`bindEvents` resilientes. Cache `core?v=29` · `js?v=26`. |
+| **Prova** | quota **34/34** · UX **32/32** · smoke **22/22** (PIN 9973) · térmica várias **39/39** · A6 **88/88** |
 | **Migrate** | **NÃO** |
-| **Merge `teste`?** | **NÃO** — só cherry deste PREP |
-| **Prova** | quota **34/34** · UX **32/32** · smoke **22/22** |
-| **Rollback** | tag `rollback/pre-etq-53-quota-v26.00` @ `af1944cd` · `docs/ROLLBACK-ETQ-53-QUOTA.md` |
+| **Status** | 🟢 **pronto para envio à produção** — `teste` · **aguarda frase + senha** |
+| **Você** | Ctrl+F5 etiquetas · PRESET com 53×30 · buscar produto · autorizar loja |
 
-### 🟢 CHECKLIST ÚNICO — ETQ-53-QUOTA · em envio · tip **v26.02**
+### 🟢 CHECKLIST ÚNICO — ETQ-53-QUOTA · pronto envio · tip **v26.02**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-53-QUOTA** | 🚀 **em envio à produção** | **NÃO** | **34/34** + smoke **22/22** |
+| 1 | **ETQ-53-QUOTA** | 🟢 **pronto para envio à produção** | **NÃO** | **34/34** + smoke **22/22** |
 
 ### ✅ Deploy loja — Checklist 03/10b · **Live v26.00** · 03/10
 

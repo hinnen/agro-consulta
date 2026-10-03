@@ -739,6 +739,6 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-53-QUOTA** | 🚀 **em envio** · tip **v26.02** · **34/34** + smoke **22/22** | **NÃO** |
+| 1 | **ETQ-53-QUOTA** | 🟢 **pronto para envio à produção** · tip **v26.02** · **34/34** + smoke **22/22** | **NÃO** |
 
-**O quê:** loja v26.00 sem presets/busca — quota `localStorage`. Rollback: `docs/ROLLBACK-ETQ-53-QUOTA.md`.
+**O quê:** loja v26.00 sem presets/busca — quota `localStorage` matava o JS. Local OK. **Não sobe loja sem frase+senha.**
