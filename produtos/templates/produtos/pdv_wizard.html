@@ -4409,8 +4409,8 @@
           <input id="pdv-quick-product-edit-gm" type="text" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off">
         </label>
         <label class="pdv-product-edit-field pdv-pe-f-cb">
-          <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Código de barras</span>
-          <input id="pdv-quick-product-edit-cb" type="text" inputmode="numeric" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off">
+          <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Adicionar código</span>
+          <input id="pdv-quick-product-edit-cb" type="text" inputmode="numeric" maxlength="22" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off" placeholder="Bipe ou digite o novo…" title="Sempre vazio: o que digitar aqui vira código adicional. Não troca o principal.">
         </label>
         <div class="pdv-product-edit-field pdv-pe-f-un relative">
           <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Unidade</span>
@@ -4418,7 +4418,7 @@
           <div id="pdv-quick-product-edit-unidade-lista" class="pdv-quick-un-lista hidden absolute left-0 right-0 z-30 mt-0.5 max-h-40 overflow-y-auto rounded-xl border-2 border-slate-200 bg-white shadow-xl [scrollbar-width:thin]" role="listbox"></div>
         </div>
         <div class="pdv-product-edit-field pdv-pe-f-cb-ops" style="grid-column:1/-1">
-          <p class="pdv-product-edit-section-title font-black uppercase tracking-wide text-slate-600">Barras adicionais <span class="font-semibold normal-case text-slate-500">(até 6 no PDV)</span></p>
+          <p class="pdv-product-edit-section-title font-black uppercase tracking-wide text-slate-600">Códigos já cadastrados <span class="font-semibold normal-case text-slate-500">(até 6 · principal incluso)</span></p>
           <div class="pdv-pe-cb-ops-grid">
             <label class="pdv-product-edit-field min-w-0">
               <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Extra 1</span>

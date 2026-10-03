@@ -449,7 +449,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Barras secundárias (24/08 · teste v17.85):** bip de EAN opcional do cadastro agora acha no PDV. Antes o `agro_pg` pulava o Mongo se o overlay não achasse o JSON.
 
-**Edição rápida PDV — barras extras + etiqueta (03/10 · `PDV-EDIT-CB-ETQ`):** lápis do carrinho mostra **até 6** códigos adicionais (cadastro pode ter mais — cauda preservada). Botão **Etiqueta** → escolhe preset Postgres e imprime 1 produto.
+**Edição rápida PDV — barras extras + etiqueta (03/10 · `PDV-EDIT-CB-ETQ`):** lápis: campo **Adicionar código** sempre vazio (só soma adicional; não troca o principal). Listagem Extra 1–6 = códigos já cadastrados (principal incluso). Botão **Etiqueta** → preset → imprime.
 
 **Fiado â€” baixa (decisÃ£o 07/07):** cobranÃ§a de tÃ­tulo em aberto **nÃ£o** fica no modal de `/fiado/` â€” redireciona ao **PDV pagamento** com cliente + valor do tÃ­tulo (ou selecionados). Quita `FiadoTituloAgro` + caixa no confirmar. **Cupom fiscal na baixa** = **FL-052** (P1,1), depois do pacote pagamento.
 
@@ -1311,12 +1311,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | No lápis do produto no PDV: até **6** códigos de barras adicionais + botão **Etiqueta** (preset + quantidade + imprimir). Códigos 7+ do cadastro não aparecem, mas **não apagam** ao salvar. |
-| **Prova** | `scripts/verify_pdv_edicao_barras_etq_path.py` **21/21** |
+| **O quê** | Lápis PDV: **Adicionar código** (topo) sempre vazio → vira **adicional** (não mexe no principal). Extra 1–6 = códigos já no cadastro (principal aparece na lista). **Etiqueta** com preset. |
+| **Prova** | `scripts/verify_pdv_edicao_barras_etq_path.py` |
 | **Migrate** | **NÃO** |
-| **Mexe** | `pdv_wizard.html` · `pdv_wizard.js` · `api_pdv_produto_edicao_rapida` · `produtos_etiquetas_core.js` no PDV |
-| **Status** | 🟢 **teste v25.87** — prova **21/21** · validar no PC · loja **só** frase+senha |
-| **Você** | Ctrl+F5 no `/pdv/` · lápis no item · Extra 1–6 · Salvar · Etiqueta → preset → Imprimir |
+| **Mexe** | `pdv_wizard.html` · `pdv_wizard.js` · `api_pdv_produto_edicao_rapida` · core etiquetas no PDV |
+| **Status** | 🟢 **teste** — validar no PC · loja **só** frase+senha |
+| **Você** | Ctrl+F5 `/pdv/` · lápis · bipar no «Adicionar código» · Salvar · conferir bip · Etiqueta |
 
 ### PACOTE — etiqueta da nota sem código interno (`NF-ETQ-NOME-CADASTRO`)
 
