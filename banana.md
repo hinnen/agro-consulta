@@ -1292,9 +1292,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v26.02** — `producao` @ tip PREP · **não** foi merge do `teste` |
+| **Status** | ✅ **enviado / Live v26.02** — `producao` @ `fc463d4f` · Render `dep-db0k9quq1p3s73ef8rjg` · **não** foi merge do `teste` |
 | **O quê** | Hotfix: presets/busca mortos na loja por quota `localStorage`. Cache `core?v=29` · `js?v=26`. |
-| **Branch PREP** | `deploy/prep-etq-53-quota` · base Live **v26.00** @ `af1944cd` |
+| **Branch PREP** | `deploy/prep-etq-53-quota` · tip `fc463d4f` · base Live **v26.00** @ `af1944cd` |
 | **Migrate** | **NÃO** |
 | **Provas (PREP · PIN 9973)** | quota **34/34** · UX **32/32** · smoke **22/22** · térmica **39/39** · **PREP_FAILS=0** |
 | **Rollback** | tag `rollback/pre-etq-53-quota-v26.00` @ `af1944cd` · branch `producao-backup-pre-v2602-etq-quota-20261003` · `docs/ROLLBACK-ETQ-53-QUOTA.md` · **só** frase+senha |
