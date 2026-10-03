@@ -739,15 +739,15 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 45. Checklist único — cliente novo limite fiado 0,01 (01/10)
+## 45. Checklist único — cliente novo limite fiado 0,01 (`CLIENTE-NOVO-LIMITE-001`)
 
-| # | Pacote | Prova | Migrate |
-| - | ------ | ----- | ------- |
-| 1 | **CLIENTE-NOVO-LIMITE-001** | `verify_cliente_fonte_unica_path.py` (bloco limite inicial) | **SIM** `0136_clienteagro_limite_fiado_default_001` |
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CLIENTE-NOVO-LIMITE-001** | 🟢 **pronto para envio** · prova **10/10** + runtime OK | **SIM** `0136` |
 
-**O quê:** cadastro novo (form, PDV rápido, sync) nasce com **R$ 0,01** de limite fiado local — PDV **não** usa mais o padrão R$ 5.000 até alguém subir o limite. **0** no campo continua = padrão da loja (só em edição / import explícito). Env opcional: `AGRO_FIADO_LIMITE_INICIAL`.  
-**Status:** pronto em **`teste`** (branch `cursor/cliente-novo-limite-001-f2f0`) · Live **pendente**.  
-**Rollback:** `docs/ROLLBACK-CLIENTE-LIMITE-INICIAL-001.md` · **só** frase+senha.
+**O quê:** cadastro novo (form, PDV rápido, sync) = **R$ 0,01** — PDV não usa R$ 5.000. **0** = padrão loja (legado/import).  
+**Status:** 🟢 no `teste` @ `778af4f4` · loja **só** frase+senha.  
+**Rollback:** `docs/ROLLBACK-CLIENTE-LIMITE-INICIAL-001.md`.
 
 ---
 

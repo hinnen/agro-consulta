@@ -1307,16 +1307,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- | ----- |
 | 1 | **CLIENTE-NOVO-LIMITE-001** | 🟢 **pronto para envio** | **SIM** `0136` | **10/10** + runtime OK |
 
-### PACOTE — etiquetas 53×30 óbvio + presets sumidos (`ETQ-53-UX`) · 03/10
+### PACOTE PRONTO — etiquetas 53×30 óbvio + presets (`ETQ-53-UX`) · 03/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Botão **53×30 mm** nos Presets; preview largo; lista PRESET mostra mm; se motor falhar avisa Ctrl+F5; recupera presets vazios. |
-| **Causa UX** | «Estilo térmica» **não** muda o mm — precisa escolher preset **53×30 térmica** (ou o botão rápido). |
-| **Prova** | térmica **67/67** · várias **39/39** · A6 **88/88** |
+| **O quê** | Botão **53×30 mm** nos Presets; preview largo; PRESET mostra mm; se motor falhar → Ctrl+F5; recupera presets vazios. |
+| **Causa UX** | «Estilo térmica» não muda o mm — escolher **53×30 térmica** (ou botão rápido). |
+| **Commit** | `54532b48` + provas `a020af3a` · teste **v26.00** |
+| **Prova** | path **29/29** · smoke local **16/16** (PIN **9973**) · térmica **67/67** · várias **39/39** · A6 **88/88** · Pedir **80/80** · EAN **74/74** · Django **9/9** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 no `teste` · loja **só** frase+senha |
-| **Você** | Ctrl+F5 `/produtos/etiquetas/` · no PRESET da fila: **53×30 térmica** · digitar nome de produto |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 `/produtos/etiquetas/` · PRESET **53×30 térmica** · buscar produto |
+
+### CHECKLIST ÚNICO — pendentes envio · 🟢 pronto para envio à produção
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ETQ-53-UX** | 🟢 **pronto para envio à produção** | **NÃO** | **29/29** + smoke **16/16** |
+| 2 | **CLIENTE-NOVO-LIMITE-001** | 🟢 **pronto para envio à produção** | **SIM** `0136` | **10/10** |
+
+**Sem** merge `teste`. **Só** frase + senha.
 
 ### ✅ Deploy loja — Checklist 03/10 · **Live v25.99** · 03/10
 
