@@ -1297,9 +1297,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Merge `teste`?** | **NÃO** — só cherry deste PREP |
 | **Provas (PREP · PIN 9973)** | EAN **74/74** · EDIT **74/74** · BUG-28 **10/10** · runtime **16/16** · BUG-32 **8/8** · ent-loja **33/33** · Pedir **80/80** · etq53 **14/14** · térmica **63/63** · várias **39/39** · **PREP_FAILS=0** |
-| **Rollback** | `docs/ROLLBACK-LOTE-CHECKLIST-0310.md` · tag `rollback/pre-checklist-0310-v25.86` · **só** frase+senha |
+| **Rollback** | tag `rollback/pre-checklist-0310-v25.86` @ `f540081c` · branch `producao-backup-pre-v2599-checklist-20261003` · doc `docs/ROLLBACK-LOTE-CHECKLIST-0310.md` — **já criados** |
 | **Status** | 🟢 **PREP pronto / aguarda senha** — lojas abertas: **não** subir até pausar vendas |
-| **Próximo chat** | Pausar vendas → frase + senha → tag rollback → `producao` = PREP → Render → Ctrl+F5 |
+| **Próximo chat (pausa curta)** | Frase + senha → `producao` = tip PREP `d4e8ff8d` → Render → Ctrl+F5 · badge **v25.99** · **não** merge `teste` |
 
 ### CHECKLIST ÚNICO — lote 03/10 (`deploy/prep-checklist-0310` · alvo **v25.99**)
 
