@@ -77,19 +77,47 @@
       });
   }
 
+  function enviarBuiltinsFaltantes(serverList) {
+    var onServer = {};
+    (serverList || []).forEach(function (p) {
+      if (p && p.id) onServer[p.id] = 1;
+    });
+    var builtins = Core.BUILTIN_IDS || {};
+    var missing = (state.storage.presets || []).filter(function (p) {
+      return p && p.id && builtins[p.id] && !onServer[p.id];
+    });
+    if (!missing.length) return Promise.resolve(0);
+    var i = 0;
+    var ok = 0;
+    function next() {
+      if (i >= missing.length) return Promise.resolve(ok);
+      var p = missing[i++];
+      return Core.upsertPresetToServer(p)
+        .then(function () {
+          ok += 1;
+        })
+        .catch(function () {})
+        .then(next);
+    }
+    return next();
+  }
+
   function carregarPresetsDaLoja() {
     return Core.fetchPresetsFromServer()
       .then(function (serverList) {
         state.storage.presets = Core.mergeServerPresets(state.storage.presets, serverList);
         persistStorage();
         return Core.migrateLocalPresetsToServerOnce(state.storage.presets).then(function (mig) {
-          if (mig && mig.migrated > 0) {
-            return Core.fetchPresetsFromServer().then(function (again) {
-              state.storage.presets = Core.mergeServerPresets(state.storage.presets, again);
-              persistStorage();
-              setStatus(mig.migrated + ' preset(s) deste PC enviados para a loja.');
-            });
-          }
+          return enviarBuiltinsFaltantes(serverList).then(function (nBuiltin) {
+            var total = (mig && mig.migrated ? mig.migrated : 0) + (nBuiltin || 0);
+            if (total > 0) {
+              return Core.fetchPresetsFromServer().then(function (again) {
+                state.storage.presets = Core.mergeServerPresets(state.storage.presets, again);
+                persistStorage();
+                setStatus(total + ' preset(s) enviados para a loja.');
+              });
+            }
+          });
         });
       })
       .catch(function (err) {

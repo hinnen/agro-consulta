@@ -41,7 +41,7 @@ const html = fs.readFileSync(htmlPath, 'utf8');
 const jsUi = fs.readFileSync(jsPath, 'utf8');
 check(html.includes('id="etq-preset-folha"'), 'HTML tem select Folha');
 check(html.includes('value="a6"'), 'HTML tem opção A6');
-check(html.includes('?v=23'), 'HTML cache-bust ?v=23 nos JS');
+check(html.includes('?v=24') || html.includes('?v=27'), 'HTML cache-bust nos JS');
 check(html.includes('1–3 colunas') || html.includes('1-3 colunas'), 'HTML A6 menciona 1–3 colunas');
 check(jsUi.includes('calcularGradeFolha'), 'UI usa calcularGradeFolha');
 check(jsUi.includes('etq-preset-folha'), 'UI lê/grava etq-preset-folha');
@@ -240,6 +240,16 @@ check(htmlA4.includes('width:210mm'), 'sheet A4 210');
 const term = Core.normalizarPreset(Core.clonePreset(Core.DEFAULT_PRESET));
 const htmlT = Core.montarHtmlImpressao(term, [{ nome: 'T', preco_venda: 1, codigo_gm: 'GM1', qtd: 1 }]);
 check(htmlT.includes('@page{size:40mm 40mm;'), 'térmica 40×40 intacta');
+check(
+  Core.DEFAULT_TERMICA_53X30_PRESET && Core.DEFAULT_TERMICA_53X30_PRESET.id === 'padrao-53x30',
+  'seed 53×30 térmico'
+);
+const html53 = Core.montarHtmlImpressao(
+  Core.normalizarPreset(Core.clonePreset(Core.DEFAULT_TERMICA_53X30_PRESET)),
+  [{ nome: 'x', preco_venda: 1, codigo_gm: 'GM1', qtd: 1 }],
+  'R'
+);
+check(html53.includes('@page{size:53mm 30mm;'), 'térmica 53×30 página');
 
 console.log('');
 console.log('ETQ-A6-COLS path: ' + passed + ' ok · ' + failed + ' fail');
