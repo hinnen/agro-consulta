@@ -1293,7 +1293,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha no próximo chat |
-| **Branch PREP** | `deploy/prep-etq-preset-sync` · tip abaixo · base Live **v26.02** @ `f7ef7844` |
+| **Branch PREP** | `deploy/prep-etq-preset-sync` · tip `064d5067` · base Live **v26.02** @ `f7ef7844` |
 | **Alvo loja** | **v26.04** |
 | **Migrate** | **NÃO** |
 | **Merge `teste`?** | **NÃO** — só cherry deste PREP |
