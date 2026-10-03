@@ -1302,6 +1302,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Novo preset seed **53×30 térmica** (bobina 1 coluna contínua) — mesma lógica do 4×4. Ao abrir etiquetas logado, sobe pro Postgres se faltar. |
 | **Onde** | `produtos_etiquetas_core.js` · `produtos_etiquetas.js` · templates cache `?v=27`/`?v=24` |
 | **Prova** | térmica **63/63** · várias **39/39** · A6 **88/88** · gôndola OK |
+| **Commit** | `b7c65135` (+ banana) |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 no `teste` · loja **só** frase+senha |
 | **Você** | Ctrl+F5 `/produtos/etiquetas/` · escolher **53×30 térmica** · imprimir 1 |
