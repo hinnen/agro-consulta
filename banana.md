@@ -553,7 +553,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 - IDs Mongo no JSON viram `local:{pk}` para nÃ£o mandar ObjectId ao ERP.
 - Contexto antigo detalhado: `docs/CONTEXTO_SESSAO_CLIENTES_PDV.md`.
 - **Fiado limite (`FIADO-LIMITE-LINHA`):** na lista `/fiado/`, clique no valor da coluna **Limite** para editar (sem botão Limite cliente).
-- **Limite no PDV sem reabrir (`PDV-FIADO-LIMITE-REFRESH` · 03/10):** ao mudar o limite (card PDV ou outra tela), o wizard **busca de novo** o crédito ao escolher Fiado, lançar, confirmar e ao voltar o foco — **não** precisa fechar/abrir o PDV. Prova: `scripts/verify_pdv_fiado_limite_refresh_path.py`.
+- **Limite no PDV sem reabrir (`PDV-FIADO-LIMITE-REFRESH` · Live v26.05):** ao mudar o limite, o wizard busca de novo o crédito (Fiado / lançar / confirmar / foco).
 
 ### 4.6 Cadastro / gestÃ£o de produtos
 
@@ -1289,43 +1289,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — Limite fiado atualiza sem reabrir PDV (`PDV-FIADO-LIMITE-REFRESH` · **v26.05**)
+### ✅ Deploy loja — PDV-FIADO-LIMITE-REFRESH · **Live v26.05** · 03/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Mudou o limite → PDV lia cache velho e bloqueava até fechar/abrir. Agora busca de novo ao escolher Fiado / lançar / confirmar / voltar o foco. |
-| **Prova** | `scripts/verify_pdv_fiado_limite_refresh_path.py` **39/39** · PIN **9973** · regressão card **39/39** · **PREP_FAILS=0** |
+| **Status** | ✅ **enviado / Live v26.05** — `producao` @ `829e4475` · Render `dep-db0lq3jm8hqs73d8ib7g` · **não** foi merge do `teste` |
+| **O quê** | Limite fiado atualiza no PDV sem fechar/abrir (refresh ao escolher Fiado / lançar / confirmar / foco). |
+| **Branch PREP** | `deploy/prep-pdv-fiado-limite-refresh` · tip `829e4475` · base Live **v26.02** @ `f7ef7844` |
 | **Migrate** | **NÃO** |
-| **Mexe** | `pdv_wizard.js` (+ script de prova) |
-| **Status** | 🟢 **pronto para envio à produção** · no **`teste`** @ **v26.05** · loja ainda **v26.02** |
-| **Antes** | Live **v26.02** · `producao` @ `f7ef7844` |
-| **Você** | Ctrl+F5 PDV → sobe limite → Fiado de novo **sem** fechar o PDV |
+| **Provas** | path **39/39** · card **39/39** · PIN **9973** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-pdv-fiado-limite-refresh-v26.02` @ `f7ef7844` · branch `producao-backup-pre-v2605-pdv-fiado-limite-refresh-20261003` · `docs/ROLLBACK-PDV-FIADO-LIMITE-REFRESH.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 PDV · badge **v26.05** · muda limite → Fiado sem reabrir |
 
-### 🟢 CHECKLIST ÚNICO — PDV-FIADO-LIMITE-REFRESH · pronto para envio · alvo **v26.05**
+### ✅ CHECKLIST ÚNICO — PDV-FIADO-LIMITE-REFRESH · ✅ Live v26.05
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-FIADO-LIMITE-REFRESH** | 🟢 **pronto para envio à produção** | **NÃO** | **39/39** |
-
-### 🚀 PREP deploy loja — ETQ-PRESET-SYNC (`deploy/prep-etq-preset-sync` · alvo **v26.04**) · aguarda senha
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha no próximo chat |
-| **Branch PREP** | `deploy/prep-etq-preset-sync` · tip `064d5067` · base Live **v26.02** @ `f7ef7844` |
-| **Alvo loja** | **v26.04** |
-| **Migrate** | **NÃO** |
-| **Merge `teste`?** | **NÃO** — só cherry deste PREP |
-| **Provas (PREP · PIN 9973)** | sync **25/25** · smoke API **23/23** · quota **34/34** · UX **32/32** · térmica **39/39** · smoke UX **22/22** · **PREP_FAILS=0** |
-| **Rollback** | tag `rollback/pre-etq-preset-sync-v26.02` @ `f7ef7844` · branch `producao-backup-pre-v2604-etq-preset-sync-20261003` · `docs/ROLLBACK-ETQ-PRESET-SYNC.md` |
-| **Risco loja aberta** | Baixo — só `/produtos/etiquetas/` (sync multi-PC). **Não** mexe venda / caixa / Point / NF |
-| **Próximo chat** | Pausar vendas → frase + senha → `producao` = tip PREP → Render → Ctrl+F5 · badge **v26.04** |
-
-### 🟢 CHECKLIST ÚNICO — ETQ-PRESET-SYNC · PREP pronto · alvo **v26.04**
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-PRESET-SYNC** | 🟢 **pronto para envio à produção** (no PREP) | **NÃO** | **25/25** + smoke **23/23** |
+| 1 | **PDV-FIADO-LIMITE-REFRESH** | ✅ **enviado / Live v26.05** | **NÃO** | **39/39** |
 
 ### ✅ Deploy loja — ETQ-53-QUOTA · **Live v26.02** · 03/10
 
