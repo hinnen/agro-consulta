@@ -949,6 +949,7 @@
     }
     var creditoFiadoCliente = null;
     var creditoFiadoClienteId = '';
+    var creditoFiadoValorKey = '';
     var fiadoVencidosAlertShownKey = '';
 
     function entregaPendenteApiUrl(template, pk) {
@@ -2672,13 +2673,8 @@
             if (fd < 1) return 'Fiado: prazo em dias inválido.';
             var vFiado = State.toNumber(state.pagamento.valorDestaForma);
             if (!(vFiado > 0.009)) vFiado = T - sumValorLancamentos(state);
-            if (creditoFiadoCliente && creditoFiadoCliente.excede) {
-                return (
-                    'Fiado acima do limite. Disponível ' +
-                    (creditoFiadoCliente.disponivel_texto || '') +
-                    '.'
-                );
-            }
+            var msgLim = mensagemFiadoAcimaLimite();
+            if (msgLim) return msgLim;
         }
         if (forma === 'Vale crédito') {
             var sv = saldoValeAtual(state);
@@ -3333,6 +3329,50 @@
         return '';
     }
 
+    function mensagemFiadoAcimaLimite() {
+        if (!creditoFiadoCliente || !creditoFiadoCliente.excede) return '';
+        var disp = creditoFiadoCliente.disponivel_texto || '';
+        var msg = 'Fiado acima do limite. Disponível ' + disp;
+        var vendaTxt = creditoFiadoCliente.valor_fiado_texto || '';
+        if (vendaTxt) msg += ' · esta venda fiado ' + vendaTxt;
+        return msg + '.';
+    }
+
+    function valorFiadoParaConsultaCredito(state, valorTrancheExtra) {
+        var base = valorFiadoNosLancamentos(state || State.getState());
+        var extra = State.toNumber(valorTrancheExtra);
+        if (extra > 0.009) base += extra;
+        return Math.round((base + Number.EPSILON) * 100) / 100;
+    }
+
+    function ensureCreditoFiadoFrescos(valorFiado, opts) {
+        opts = opts || {};
+        var state = State.getState();
+        if (!clientePodeFiado(state)) {
+            creditoFiadoCliente = null;
+            creditoFiadoClienteId = '';
+            creditoFiadoValorKey = '';
+            return Promise.resolve();
+        }
+        return refreshCreditoFiadoCliente(valorFiado, {
+            force: true,
+            showVencidosAlert: !!opts.showVencidosAlert
+        });
+    }
+
+    function agroFiadoCreditoRefreshNoFoco() {
+        if (document.hidden) return;
+        var state = State.getState();
+        if (!clientePodeFiado(state)) return;
+        ensureCreditoFiadoFrescos(valorFiadoNosLancamentos(state)).then(function () {
+            try {
+                renderAll(State.getState(), State.getComputed());
+            } catch (eR) {
+                renderProductFiadoBalance(State.getState());
+            }
+        });
+    }
+
     var FIADO_LIMITE_PASSO = 100;
 
     function parseLimiteCampo(raw) {
@@ -3452,15 +3492,18 @@
                         );
                         return;
                     }
-                    if (res.data.credito) {
-                        creditoFiadoCliente = res.data.credito;
-                        creditoFiadoClienteId = clienteFiadoQueryKey(State.getState());
-                    }
-                    renderProductFiadoBalance(State.getState());
-                    closeFiadoLimiteModal();
-                    showPdvAviso('Limite do fiado atualizado.', {
-                        title: 'Fiado',
-                        tone: 'success'
+                    var stLim = State.getState();
+                    return ensureCreditoFiadoFrescos(valorFiadoNosLancamentos(stLim)).then(function () {
+                        try {
+                            renderAll(State.getState(), State.getComputed());
+                        } catch (eLimR) {
+                            renderProductFiadoBalance(State.getState());
+                        }
+                        closeFiadoLimiteModal();
+                        showPdvAviso('Limite do fiado atualizado.', {
+                            title: 'Fiado',
+                            tone: 'success'
+                        });
                     });
                 })
                 .catch(function () {
@@ -3605,15 +3648,25 @@
         if (!clientePodeFiado(state)) {
             creditoFiadoCliente = null;
             creditoFiadoClienteId = '';
+            creditoFiadoValorKey = '';
             fiadoVencidosAlertShownKey = '';
             return Promise.resolve();
         }
         var c = state.cliente;
         var cidKey = clienteFiadoQueryKey(state);
-        if (!opts.force && creditoFiadoClienteId === cidKey && creditoFiadoCliente) {
+        var valorNum = State.toNumber(valorFiadoPendente);
+        if (!(valorNum > 0.009)) valorNum = 0;
+        var valorKey = String(Math.round(valorNum * 100));
+        if (
+            !opts.force &&
+            creditoFiadoClienteId === cidKey &&
+            creditoFiadoCliente &&
+            creditoFiadoValorKey === valorKey
+        ) {
             return Promise.resolve();
         }
         creditoFiadoClienteId = cidKey;
+        creditoFiadoValorKey = valorKey;
         creditoFiadoCliente = null;
         renderProductFiadoBalance(state);
         var q = url + (url.indexOf('?') >= 0 ? '&' : '?');
@@ -3628,12 +3681,11 @@
         if (String(c.nome || '').trim()) {
             q += '&cliente_nome=' + encodeURIComponent(String(c.nome).trim());
         }
-        if (valorFiadoPendente != null && State.toNumber(valorFiadoPendente) > 0.009) {
-            q += '&valor_fiado=' + encodeURIComponent(String(valorFiadoPendente).replace('.', ','));
+        if (valorNum > 0.009) {
+            q += '&valor_fiado=' + encodeURIComponent(String(valorNum).replace('.', ','));
         }
-        if (opts.force) {
-            q += '&_t=' + encodeURIComponent(String(Date.now()));
-        }
+        /* Sempre evita cache HTTP — limite alterado em outra tela deve entrar na hora. */
+        q += '&_t=' + encodeURIComponent(String(Date.now()));
         return jsonGet(q)
             .then(function (res) {
                 if (clienteFiadoQueryKey(State.getState()) !== cidKey) {
@@ -3641,6 +3693,9 @@
                 }
                 if (res.ok && res.data && res.data.ok !== false) {
                     creditoFiadoCliente = res.data;
+                    if (valorNum > 0.009 && creditoFiadoCliente) {
+                        creditoFiadoCliente.valor_fiado_texto = formatMoney(valorNum);
+                    }
                 } else {
                     creditoFiadoCliente = null;
                 }
@@ -3769,13 +3824,8 @@
         if (temFiado) {
             var msgFi = validarFiadoPermitido(state);
             if (msgFi) return msgFi;
-            if (creditoFiadoCliente && creditoFiadoCliente.excede) {
-                return (
-                    'Fiado acima do limite. Disponível ' +
-                    (creditoFiadoCliente.disponivel_texto || '') +
-                    '.'
-                );
-            }
+            var msgLim = mensagemFiadoAcimaLimite();
+            if (msgLim) return msgLim;
         }
         return '';
     }
@@ -4498,6 +4548,7 @@
         } else if (!clientePodeFiado(state) && creditoFiadoClienteId) {
             creditoFiadoCliente = null;
             creditoFiadoClienteId = '';
+            creditoFiadoValorKey = '';
             renderProductFiadoBalance(state);
         }
     }
@@ -9900,6 +9951,7 @@
         State.reset(false);
         creditoFiadoCliente = null;
         creditoFiadoClienteId = '';
+        creditoFiadoValorKey = '';
         if (usouValePagamento || eraCompraVale) {
             loadWizardClientesCache(true);
         }
@@ -13832,91 +13884,115 @@
             return;
         }
         var state0 = State.getState();
-        var computed0 = State.getComputed();
-        var validation0 = canAdvance(Object.assign({}, state0, { currentStep: 'pagamento' }), computed0);
-        if (validation0 && !isFiadoCobrancaAtiva() && !isCompraValeCreditoAtiva()) {
-            alert(validation0);
-            return;
-        }
-        var runConfirm = function () {
-            if (isFiadoCobrancaAtiva()) {
-                confirmFiadoCobranca();
+        var temFiadoConfirm = ((state0.pagamento && state0.pagamento.lancamentos) || []).some(function (L) {
+            return String(L.forma || '') === 'Fiado';
+        });
+        var iniciarConfirmSale = function () {
+            var computed0 = State.getComputed();
+            state0 = State.getState();
+            var validation0 = canAdvance(
+                Object.assign({}, state0, { currentStep: 'pagamento' }),
+                computed0
+            );
+            if (validation0 && !isFiadoCobrancaAtiva() && !isCompraValeCreditoAtiva()) {
+                showPdvAviso(validation0, { tone: 'error', title: 'Atenção' });
+                restaurarFecharVendaAposCancelarConfirm();
                 return;
             }
-            if (isCompraValeCreditoAtiva()) {
-                withPrint = false;
-            }
-            if (isProcessingSale) return;
-            var state = State.getState();
-            var computed = State.getComputed();
-            var validation = canAdvance(Object.assign({}, state, { currentStep: 'pagamento' }), computed);
-            if (validation) {
-                alert(validation);
-                return;
-            }
-            ensureCaixaAbertoParaVenda().then(function (caixaOk) {
-                if (!caixaOk) return;
-                if (withPrint && nfceAtivoNoPdv()) {
-                    // Mercado Pago Renan: imprime cupom de venda, sem NFC-e automática.
-                    if (nfceVendaUsaMaquinaMpRenan(state)) {
-                        prepararNfceComImpressao('venda');
-                        resolverNfceAntesConfirmar(true);
-                        return;
-                    }
-                    if (nfceModoGlobalAuto() || nfceVendaTemFormaAuto(state)) {
-                        prepararNfceComImpressao('nfce');
-                        resolverNfceAntesConfirmar(true);
-                        return;
-                    }
-                    abrirModalEscolhaImpressao(function (escolha) {
-                        if (!escolha) {
-                            restaurarFecharVendaAposCancelarConfirm();
-                            return;
-                        }
-                        prepararNfceComImpressao(escolha);
-                        resolverNfceAntesConfirmar(true);
-                    });
+            var runConfirm = function () {
+                if (isFiadoCobrancaAtiva()) {
+                    confirmFiadoCobranca();
                     return;
                 }
-                if (withPrint) {
-                    prepararNfceComImpressao('venda');
-                } else {
-                    prepararNfceSemImpressao();
+                if (isCompraValeCreditoAtiva()) {
+                    withPrint = false;
                 }
-                resolverNfceAntesConfirmar(!!withPrint);
-            });
-        };
-        if (typeof window.gmSspinGarantirOperador === 'function') {
-            var jaPagoMp = false;
-            try {
-                jaPagoMp = vendaPrecisaFinalizarMpPoint(State.getState());
-            } catch (eMpPin) {
-                jaPagoMp = false;
-            }
-            var frescoEntrega = false;
-            try {
-                var ent = State.getState().entrega;
-                frescoEntrega = !!(
-                    ent && (ent.entregaFreteLiberadoPagamento || ent.pedidoEntregaPendenteId)
+                if (isProcessingSale) return;
+                var state = State.getState();
+                var computed = State.getComputed();
+                var validation = canAdvance(
+                    Object.assign({}, state, { currentStep: 'pagamento' }),
+                    computed
                 );
-            } catch (eEntPin) {
-                frescoEntrega = false;
-            }
-            window.gmSspinGarantirOperador(runConfirm, {
-                titulo: jaPagoMp
-                    ? 'PIN para gravar a venda (máquina já cobrou)'
-                    : frescoEntrega
-                      ? 'PIN para confirmar entrega + pagamento'
-                      : 'PIN para confirmar a venda',
-                /* Bug #26: venda alinhada a 45s (antes 10s = PIN toda hora). Entrega paga = 120s. */
-                maxFrescoS: frescoEntrega ? 120 : 45,
-                onCancel: function () {
+                if (validation) {
+                    showPdvAviso(validation, { tone: 'error', title: 'Atenção' });
                     restaurarFecharVendaAposCancelarConfirm();
+                    return;
                 }
+                ensureCaixaAbertoParaVenda().then(function (caixaOk) {
+                    if (!caixaOk) return;
+                    if (withPrint && nfceAtivoNoPdv()) {
+                        // Mercado Pago Renan: imprime cupom de venda, sem NFC-e automática.
+                        if (nfceVendaUsaMaquinaMpRenan(state)) {
+                            prepararNfceComImpressao('venda');
+                            resolverNfceAntesConfirmar(true);
+                            return;
+                        }
+                        if (nfceModoGlobalAuto() || nfceVendaTemFormaAuto(state)) {
+                            prepararNfceComImpressao('nfce');
+                            resolverNfceAntesConfirmar(true);
+                            return;
+                        }
+                        abrirModalEscolhaImpressao(function (escolha) {
+                            if (!escolha) {
+                                restaurarFecharVendaAposCancelarConfirm();
+                                return;
+                            }
+                            prepararNfceComImpressao(escolha);
+                            resolverNfceAntesConfirmar(true);
+                        });
+                        return;
+                    }
+                    if (withPrint) {
+                        prepararNfceComImpressao('venda');
+                    } else {
+                        prepararNfceSemImpressao();
+                    }
+                    resolverNfceAntesConfirmar(!!withPrint);
+                });
+            };
+            if (typeof window.gmSspinGarantirOperador === 'function') {
+                var jaPagoMp = false;
+                try {
+                    jaPagoMp = vendaPrecisaFinalizarMpPoint(State.getState());
+                } catch (eMpPin) {
+                    jaPagoMp = false;
+                }
+                var frescoEntrega = false;
+                try {
+                    var ent = State.getState().entrega;
+                    frescoEntrega = !!(
+                        ent && (ent.entregaFreteLiberadoPagamento || ent.pedidoEntregaPendenteId)
+                    );
+                } catch (eEntPin) {
+                    frescoEntrega = false;
+                }
+                window.gmSspinGarantirOperador(runConfirm, {
+                    titulo: jaPagoMp
+                        ? 'PIN para gravar a venda (máquina já cobrou)'
+                        : frescoEntrega
+                          ? 'PIN para confirmar entrega + pagamento'
+                          : 'PIN para confirmar a venda',
+                    /* Bug #26: venda alinhada a 45s (antes 10s = PIN toda hora). Entrega paga = 120s. */
+                    maxFrescoS: frescoEntrega ? 120 : 45,
+                    onCancel: function () {
+                        restaurarFecharVendaAposCancelarConfirm();
+                    }
+                });
+            } else {
+                runConfirm();
+            }
+        };
+        if (temFiadoConfirm && clientePodeFiado(state0)) {
+            ensureCreditoFiadoFrescos(valorFiadoNosLancamentos(state0)).then(function () {
+                try {
+                    renderAll(State.getState(), State.getComputed());
+                } catch (eCf) {}
+                iniciarConfirmSale();
             });
-        } else {
-            runConfirm();
+            return;
         }
+        iniciarConfirmSale();
     }
 
     function confirmSaleProsseguir(withPrint) {
@@ -14834,40 +14910,54 @@
 
     function selectPaymentForma(forma) {
         if (!forma) return;
-        var st = State.getState();
-        var patch = {
-            forma: forma,
-            maquinaId: '',
-            maquinaNome: '',
-            mpBalcaoModo: '',
-            outroPinVerificado: forma === 'Outro' ? !!st.pagamento.outroPinVerificado : false,
-            valorDestaForma: ''
+        var aplicarForma = function () {
+            var st = State.getState();
+            var patch = {
+                forma: forma,
+                maquinaId: '',
+                maquinaNome: '',
+                mpBalcaoModo: '',
+                outroPinVerificado: forma === 'Outro' ? !!st.pagamento.outroPinVerificado : false,
+                valorDestaForma: ''
+            };
+            if (forma === 'Fiado') {
+                var msgFiado = validarFiadoPermitido(st);
+                if (msgFiado) {
+                    showSaleDoneFeedback(msgFiado, 'error');
+                    return;
+                }
+                var msgLimSel = mensagemFiadoAcimaLimite();
+                if (msgLimSel) {
+                    showSaleDoneFeedback(msgLimSel, 'error');
+                    return;
+                }
+            }
+            /* 1º aplica a forma (atualiza preço por grupo A/B) · 2º preenche valor com o restante novo */
+            State.setPagamentoPatch(patch);
+            st = State.getState();
+            var comp = State.getComputed();
+            var rest = saldoRestantePagamento(st, comp);
+            var valorFmt = '';
+            if (forma === 'Vale crédito') {
+                var sv = Math.min(saldoValeAtual(st), rest);
+                valorFmt = sv > 0 ? String(sv.toFixed(2)).replace('.', ',') : '';
+            } else if (forma === 'Cashback') {
+                var scb = Math.min(saldoCashbackAtual(st), rest);
+                valorFmt = scb > 0 ? String(scb.toFixed(2)).replace('.', ',') : '';
+            } else if (forma === 'Dinheiro') {
+                valorFmt = '';
+            } else {
+                valorFmt = rest > 0.009 ? String(rest.toFixed(2)).replace('.', ',') : '';
+            }
+            State.setPagamentoField('valorDestaForma', valorFmt);
         };
         if (forma === 'Fiado') {
-            var msgFiado = validarFiadoPermitido(st);
-            if (msgFiado) {
-                showSaleDoneFeedback(msgFiado, 'error');
-                return;
-            }
+            var st0 = State.getState();
+            var rest0 = saldoRestantePagamento(st0, State.getComputed());
+            ensureCreditoFiadoFrescos(valorFiadoParaConsultaCredito(st0, rest0)).then(aplicarForma);
+            return;
         }
-        /* 1º aplica a forma (atualiza preço por grupo A/B) · 2º preenche valor com o restante novo */
-        State.setPagamentoPatch(patch);
-        st = State.getState();
-        var comp = State.getComputed();
-        var rest = saldoRestantePagamento(st, comp);
-        var valorFmt = '';
-        if (forma === 'Vale crédito') {
-            var sv = Math.min(saldoValeAtual(st), rest);
-            valorFmt = sv > 0 ? String(sv.toFixed(2)).replace('.', ',') : '';
-        } else if (forma === 'Cashback') {
-            var scb = Math.min(saldoCashbackAtual(st), rest);
-            valorFmt = scb > 0 ? String(scb.toFixed(2)).replace('.', ',') : '';
-        } else if (forma === 'Dinheiro') {
-            valorFmt = '';
-        } else {
-            valorFmt = rest > 0.009 ? String(rest.toFixed(2)).replace('.', ',') : '';
-        }
-        State.setPagamentoField('valorDestaForma', valorFmt);
+        aplicarForma();
     }
 
     function normalizeDigitKeyCode(code) {
@@ -14914,12 +15004,21 @@
             showPdvAviso('Valor preenchido com o que falta. Toque no botão verde para continuar.');
             return;
         }
-        var err = erroCommitTranche(st, comp, cur);
-        if (err) {
-            showPdvAviso(err);
+        var seguirCommit = function () {
+            st = State.getState();
+            comp = State.getComputed();
+            var err = erroCommitTranche(st, comp, cur);
+            if (err) {
+                showPdvAviso(err);
+                return;
+            }
+            commitTrancheFlow(st, comp, cur);
+        };
+        if (String(st.pagamento.forma || '') === 'Fiado') {
+            ensureCreditoFiadoFrescos(valorFiadoParaConsultaCredito(st, cur)).then(seguirCommit);
             return;
         }
-        commitTrancheFlow(st, comp, cur);
+        seguirCommit();
     }
 
     /**
@@ -19136,11 +19235,20 @@
     });
 
     document.addEventListener('visibilitychange', function () {
-        if (!document.hidden) agroWizardCatalogoRefreshNoFoco();
+        if (!document.hidden) {
+            agroWizardCatalogoRefreshNoFoco();
+            agroFiadoCreditoRefreshNoFoco();
+        }
     });
-    window.addEventListener('focus', agroWizardCatalogoRefreshNoFoco);
+    window.addEventListener('focus', function () {
+        agroWizardCatalogoRefreshNoFoco();
+        agroFiadoCreditoRefreshNoFoco();
+    });
     window.addEventListener('pageshow', function (ev) {
-        if (ev.persisted) agroWizardCatalogoRefreshNoFoco();
+        if (ev.persisted) {
+            agroWizardCatalogoRefreshNoFoco();
+            agroFiadoCreditoRefreshNoFoco();
+        }
     });
 
     var fiadoCobrancaBootPromise = iniciarFiadoCobrancaFromQuery();
