@@ -796,9 +796,15 @@
     var btns = [];
     if (aba === 'recebidos' && (st === 'pendente' || st === 'aceito' || st === 'pronto')) {
       btns.push('<button type="button" class="pl-btn pl-btn--print" data-pl-acao="imprimir">Imprimir cupom</button>');
+      btns.push(
+        '<button type="button" class="pl-btn pl-btn--etq" data-pl-acao="etiquetas" title="Lista compacta na térmica 53×30 (separar estoque)">Etiquetas 53</button>'
+      );
     }
     if (aba === 'enviados' && (st === 'pendente' || st === 'aceito' || st === 'pronto')) {
       btns.push('<button type="button" class="pl-btn pl-btn--print" data-pl-acao="imprimir">Imprimir cupom</button>');
+      btns.push(
+        '<button type="button" class="pl-btn pl-btn--etq" data-pl-acao="etiquetas" title="Lista compacta na térmica 53×30 (separar estoque)">Etiquetas 53</button>'
+      );
     }
     if (aba === 'recebidos' && st === 'pendente') {
       btns.push('<button type="button" class="pl-btn pl-btn--ok" data-pl-acao="aceitar">Aceitar</button>');
@@ -894,6 +900,34 @@
     return out;
   }
 
+  function abrirPrintIframe(html, titulo, erroMsg) {
+    var iframe = document.getElementById('pdv-pedir-loja-print-iframe');
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'pdv-pedir-loja-print-iframe';
+      iframe.setAttribute('title', titulo || 'Impressão Pedir loja');
+      iframe.style.cssText =
+        'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none';
+      document.body.appendChild(iframe);
+    }
+    var idoc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
+    if (!idoc) {
+      setStatus('Não abriu a impressão.', true);
+      return;
+    }
+    idoc.open();
+    idoc.write(html);
+    idoc.close();
+    window.setTimeout(function () {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch (e) {
+        setStatus(erroMsg || 'Não imprimiu.', true);
+      }
+    }, 120);
+  }
+
   function imprimirCupomSeparacao(row) {
     if (!row) return;
     var dh = new Date().toLocaleString('pt-BR');
@@ -948,32 +982,99 @@
       bodyItens +
       '<div style="margin-top:10px;text-align:center;font-size:10px;font-weight:900;">Conferir e transferir no PDV</div>' +
       '</div></body></html>';
+    abrirPrintIframe(html, 'Cupom separação', 'Não imprimiu. Confira a térmica 80mm.');
+  }
 
-    var iframe = document.getElementById('pdv-pedir-loja-print-iframe');
-    if (!iframe) {
-      iframe = document.createElement('iframe');
-      iframe.id = 'pdv-pedir-loja-print-iframe';
-      iframe.setAttribute('title', 'Cupom separação');
-      iframe.style.cssText =
-        'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none';
-      document.body.appendChild(iframe);
-    }
-    var idoc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
-    if (!idoc) {
-      setStatus('Não abriu a impressão.', true);
+  /**
+   * Lista compacta na bobina 53×30 — gambiarra sem cupom 80mm.
+   * Várias linhas por etiqueta pra gastar o mínimo de papel.
+   */
+  function imprimirEtiquetasSeparacao53(row) {
+    if (!row) return;
+    var itens = row.itens || [];
+    if (!itens.length) {
+      setStatus('Pedido sem itens pra etiqueta.', true);
       return;
     }
-    idoc.open();
-    idoc.write(html);
-    idoc.close();
-    window.setTimeout(function () {
-      try {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-      } catch (e) {
-        setStatus('Não imprimiu. Confira a térmica 80mm.', true);
-      }
-    }, 120);
+    var LINHAS_POR_ETQ = 6;
+    var rota =
+      String(row.loja_origem_label || '').replace(/\s+/g, ' ').trim() +
+      '→' +
+      String(row.loja_destino_label || '').replace(/\s+/g, ' ').trim();
+    var linhas = [];
+    itens.forEach(function (it) {
+      var livre = !!it.livre || String(it.produto_id || '').indexOf('livre:') === 0;
+      var q =
+        it.quantidade_pedida != null && Number(it.quantidade_pedida) > 0
+          ? it.quantidade_pedida
+          : it.quantidade;
+      var gm = String(it.codigo_interno || '').trim();
+      var nome = String(it.nome || '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (nome.length > 34) nome = nome.slice(0, 33) + '…';
+      var left = livre ? 'ESC' : gm ? gm : '—';
+      linhas.push({
+        q: fmtSaldo(q),
+        left: left,
+        nome: nome || (livre ? 'pedido escrito' : ''),
+      });
+    });
+    var pages = [];
+    for (var i = 0; i < linhas.length; i += LINHAS_POR_ETQ) {
+      pages.push(linhas.slice(i, i + LINHAS_POR_ETQ));
+    }
+    var totalPg = pages.length;
+    var body = pages
+      .map(function (chunk, idx) {
+        var head =
+          '#' +
+          String(row.id || '') +
+          ' ' +
+          rota +
+          (totalPg > 1 ? ' ·' + (idx + 1) + '/' + totalPg : '');
+        var rowsHtml = chunk
+          .map(function (ln) {
+            return (
+              '<div class="ln"><b class="q">x' +
+              escapeHtml(ln.q) +
+              '</b> <span class="gm">' +
+              escapeHtml(ln.left) +
+              '</span> ' +
+              escapeHtml(ln.nome) +
+              '</div>'
+            );
+          })
+          .join('');
+        return (
+          '<div class="pg"><div class="hd">' +
+          escapeHtml(head) +
+          '</div>' +
+          rowsHtml +
+          '</div>'
+        );
+      })
+      .join('');
+    var html =
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Etiquetas Pedir loja</title>' +
+      '<style>@page{margin:0;size:53mm 30mm}' +
+      'html,body{margin:0;padding:0;width:53mm;background:#fff}' +
+      'body{font-family:Arial,Helvetica,sans-serif;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+      '.pg{display:block;width:53mm;height:30mm;box-sizing:border-box;padding:1.2mm 1.4mm;overflow:hidden;' +
+      'page-break-inside:avoid;break-inside:avoid-page}' +
+      '.pg + .pg{page-break-before:always;break-before:page}' +
+      '.hd{font-size:7.5pt;font-weight:900;line-height:1.1;margin:0 0 0.6mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' +
+      'border-bottom:0.3mm solid #000;padding-bottom:0.4mm}' +
+      '.ln{font-size:7pt;line-height:1.15;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+      '.q{font-weight:900}.gm{font-weight:800}</style></head><body>' +
+      body +
+      '</body></html>';
+    abrirPrintIframe(html, 'Etiquetas 53×30', 'Não imprimiu. Escolha a térmica 53×30.');
+    setStatus(
+      totalPg === 1
+        ? '1 etiqueta 53×30 · ' + linhas.length + ' produto(s).'
+        : totalPg + ' etiquetas 53×30 · ' + linhas.length + ' produto(s).'
+    );
   }
 
   function renderLista(itens) {
@@ -1112,12 +1213,16 @@
   }
 
   function pedirAcao(id, acao, card) {
-    if (acao === 'imprimir') {
+    if (acao === 'imprimir' || acao === 'etiquetas') {
       var rows = (dom.lista && dom.lista._rows) || [];
       var row = rows.filter(function (r) {
         return String(r.id) === String(id);
       })[0];
-      if (row) imprimirCupomSeparacao(row);
+      if (acao === 'etiquetas') {
+        if (row) imprimirEtiquetasSeparacao53(row);
+      } else if (row) {
+        imprimirCupomSeparacao(row);
+      }
       return;
     }
     if (acao === 'cancelar') {

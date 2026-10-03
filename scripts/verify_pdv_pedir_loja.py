@@ -89,6 +89,15 @@ def main() -> int:
     check("js_ajuste_busca", "abrirAjuste" in js and "apiPdvTransfLojaAjustar" in js and "data-pl-aj" in js)
     check("js_aviso_pos_pin", "abrirTemPedido" in js and "aposPin" in js)
     check("js_cupom_80mm", "imprimirCupomSeparacao" in js and "SEPARAÇÃO" in js)
+    check(
+        "js_etq_53",
+        "imprimirEtiquetasSeparacao53" in js
+        and "size:53mm 30mm" in js
+        and "LINHAS_POR_ETQ = 6" in js
+        and 'data-pl-acao="etiquetas"' in js
+        and "Etiquetas 53" in js,
+    )
+    check("overlay_btn_etq", "pl-btn--etq" in html)
     check("js_qtd_envio", "lerQtdsDoCard" in js and "pl-item-qtd" in js and "podeEditarQtd" in js)
     check("js_pedido_escrito", "addCartLivre" in js and "livre:" in js and "pdv-pedir-loja-livre" in html)
     check("js_escrito_embaixo", "pl-escrito-bar" in html and "garantirItensAntesDeEnviar" in js)
