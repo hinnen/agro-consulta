@@ -1315,8 +1315,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `scripts/verify_pdv_edicao_barras_etq_path.py` |
 | **Migrate** | **NÃO** |
 | **Mexe** | `pdv_wizard.html` · `pdv_wizard.js` · `api_pdv_produto_edicao_rapida` · core etiquetas no PDV |
-| **Status** | 🟢 **teste v25.89** — prova **26/26** · validar no PC · loja **só** frase+senha |
-| **Você** | Ctrl+F5 `/pdv/` · lápis · bipar no «Adicionar código» · Salvar · conferir bip · Etiqueta |
+| **Status** | 🟢 **teste v25.90** — layout largo + barras 1 linha · prova **28/28** · validar no PC · loja **só** frase+senha |
+| **Você** | Ctrl+F5 `/pdv/` · lápis · ver se cabe sem scroll · bipar «Adicionar código» · Etiqueta |
 
 ### PACOTE — etiqueta da nota sem código interno (`NF-ETQ-NOME-CADASTRO`)
 
