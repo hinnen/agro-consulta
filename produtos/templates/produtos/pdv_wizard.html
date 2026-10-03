@@ -3462,16 +3462,17 @@
     color: #b45309;
   }
   .pdv-product-edit-panel {
-    /* Largo / retangular — cabe sem scroll na maioria dos monitores (mesmo com zoom) */
-    --pdv-pe-zoom: 1.08;
-    width: min(calc(99.2vw / var(--pdv-pe-zoom)), calc(96rem / var(--pdv-pe-zoom)));
-    max-height: calc(96dvh / var(--pdv-pe-zoom));
+    /* Largo / retangular — sem zoom local (Display Scale já escala o html; zoom aqui cortava o rodapé) */
+    width: min(99.2vw, 96rem);
+    max-height: 94dvh;
     height: auto;
-    zoom: var(--pdv-pe-zoom);
+    display: flex;
+    flex-direction: column;
   }
   #pdv-quick-product-edit-overlay {
     padding: 0.2rem !important;
     align-items: center;
+    justify-content: center;
   }
   #pdv-quick-product-edit-overlay #pdv-quick-product-edit-title {
     font-size: clamp(1.1rem, 0.45vw + 0.95rem, 1.45rem);
@@ -3541,16 +3542,21 @@
     font-size: clamp(0.95rem, 0.32vw + 0.85rem, 1.12rem);
   }
   #pdv-quick-product-edit-overlay > .pdv-product-edit-panel > header {
-    padding-top: 0.45rem !important;
-    padding-bottom: 0.45rem !important;
+    flex: 0 0 auto;
+    padding-top: 0.4rem !important;
+    padding-bottom: 0.4rem !important;
   }
   #pdv-quick-product-edit-overlay > .pdv-product-edit-panel > footer {
-    padding-top: 0.45rem !important;
-    padding-bottom: 0.45rem !important;
+    flex: 0 0 auto;
+    padding-top: 0.4rem !important;
+    padding-bottom: 0.4rem !important;
   }
   /* Estoque: «agora» e «novo» com o mesmo tamanho de número */
   #pdv-quick-product-edit-overlay .pdv-pe-estoque-card {
-    padding: 0.45rem 0.65rem;
+    padding: 0.35rem 0.55rem;
+  }
+  #pdv-quick-product-edit-overlay .pdv-pe-estoque > p.mt-1 {
+    display: none; /* texto auxiliar — economiza altura; footer sempre visível */
   }
   #pdv-quick-product-edit-overlay .pdv-pe-estoque-tag {
     font-size: clamp(0.75rem, 0.28vw + 0.68rem, 0.88rem);
