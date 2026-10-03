@@ -1306,47 +1306,38 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 no `teste` · loja **só** frase+senha |
 | **Você** | Ctrl+F5 `/produtos/etiquetas/` · escolher **53×30 térmica** · imprimir 1 |
 
-### ✅ PREP loja — Checklist 03/10 (`deploy/prep-checklist-0310` · alvo **v25.95**)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Branch PREP** | `deploy/prep-checklist-0310` · tip `0ae12849` · base Live **v25.86** @ `f540081c` |
-| **Alvo loja** | **v25.95** |
-| **Migrate** | **NÃO** |
-| **Merge `teste`?** | **NÃO** — só cherry deste PREP |
-| **Provas (no PREP)** | ETQ-EAN **74/74** · PDV-EDIT **74/74** · BUG-28 **10/10** · BUG-32 **8/8** · ent-loja **33/33** · térmica **56/56** · várias **39/39** |
-| **Rollback** | `docs/ROLLBACK-LOTE-CHECKLIST-0310.md` · tag sugerida `rollback/pre-checklist-0310-v25.86` · **só** frase+senha |
-| **Status** | 🟢 **PREP pronto / aguarda senha** — lojas abertas: **não** subir até pausar vendas |
-| **Próximo chat** | Pausar vendas → frase + senha → tag rollback → `producao` = PREP → Render → Ctrl+F5 |
-
-### CHECKLIST ÚNICO — lote 03/10 (`deploy/prep-checklist-0310` · alvo **v25.95**)
+### CHECKLIST ÚNICO — lote 03/10 (alvo loja **v25.95**)
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-EAN-LOJA** | 🟢 **no PREP** | **NÃO** | **74/74** |
-| 2 | **PDV-EDIT-CB-ETQ** | 🟢 **no PREP** | **NÃO** | **74/74** |
-| 3 | **BUG-28-ENT-LOJA-PIN** | 🟢 **no PREP** | **NÃO** | **10/10** |
-| 4 | **BUG-32-SO-ENT-OUTRA** | 🟢 **no PREP** | **NÃO** | **8/8** |
+| 1 | **ETQ-EAN-LOJA** | 🟢 **pronto para envio à produção** | **NÃO** | **74/74** |
+| 2 | **PDV-EDIT-CB-ETQ** | 🟢 **pronto para envio à produção** | **NÃO** | **74/74** |
+| 3 | **BUG-28-ENT-LOJA-PIN** | 🟢 **pronto para envio à produção** | **NÃO** | **10/10** + runtime **16/16** · PIN **9973** |
+| 4 | **BUG-32-SO-ENT-OUTRA** | 🟢 **pronto para envio à produção** | **NÃO** | **8/8** + ent-loja **33/33** · PIN **9973** |
 
-**Risco loja aberta:** 1–2 baixos. 3–4 médios (são **correções** de PIN loop / trava entrega). Sem migrate.
+**PREP:** `deploy/prep-checklist-0310` @ `0ae12849` · base Live **v25.86** · **sem** merge `teste` · **sem** migrate.  
+**Status lote:** 🟢 **pronto para envio à produção** — **só** frase + senha (pausar vendas).  
+**Rollback:** `docs/ROLLBACK-LOTE-CHECKLIST-0310.md` · tag `rollback/pre-checklist-0310-v25.86`.
 
-### 🩹 BUG #32 — trava só-entrega outra loja (`BUG-32-SO-ENT-OUTRA`) · **v25.94** · 03/10
-
-| Campo | Valor |
-| ----- | ----- |
-| **Sintoma** | Notebook Vila → Entrega → **só entrega Centro** → ir pro pagamento **trava** (não segue) |
-| **Fix** | Só-entrega outra loja + **pagar aqui** segue no PDV |
-| **Prova** | **8/8** · ent-loja **33/33** |
-| **Status** | 🟢 **no PREP** `deploy/prep-checklist-0310` · alvo **v25.95** |
-
-### 🩹 BUG #28 — PIN loop em entrega + pagar na loja (`BUG-28-ENT-LOJA-PIN`) · **v25.92** · 03/10
+### PACOTE PRONTO — BUG #28 PIN entrega+loja (`BUG-28-ENT-LOJA-PIN`)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Sintoma** | Entrega → pagar na loja → PIN pede de novo (loop) |
-| **Fix** | Não zerar PIN no meio da venda; zera só no fim |
-| **Prova** | **10/10** |
-| **Status** | 🟢 **no PREP** `deploy/prep-checklist-0310` · alvo **v25.95** |
+| **O quê** | Entrega → pagar na loja: PIN não loopa (não zera no meio; zera só no fim). |
+| **Prova** | path **10/10** · runtime **16/16** · catch **14/14** · PIN **9973** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 · Entrega → pagar na loja → Confirmar → PIN 1× → fecha |
+
+### PACOTE PRONTO — BUG #32 só-entrega outra loja (`BUG-32-SO-ENT-OUTRA`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Vila → só entrega Centro + pagar aqui: segue pro Pagamento (não trava). |
+| **Prova** | path **8/8** · ent-loja **33/33** · runtime **16/16** · PIN **9973** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 notebook Vila · só Centro · pagar na loja → abre Pagamento |
 
 ### PACOTE PRONTO — EAN loja 230… laser (`ETQ-EAN-LOJA`)
 
@@ -1354,15 +1345,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | `230…` novos = EAN-13 com DV. Legado mantém. Impressão EAN forçado. |
 | **Prova** | **74/74** · térmica **56/56** · várias **39/39** |
-| **Status** | 🟢 **no PREP** `deploy/prep-checklist-0310` · alvo **v25.95** |
+| **Status** | 🟢 **pronto para envio à produção** |
 
 ### PACOTE PRONTO — PDV edição: barras + etiqueta (`PDV-EDIT-CB-ETQ`)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Lápis: Adicionar código + 1–6 numa linha + Etiqueta com preset |
-| **Prova** | **74/74** · smoke local OK |
-| **Status** | 🟢 **no PREP** `deploy/prep-checklist-0310` · alvo **v25.95** |
+| **Prova** | **74/74** |
+| **Status** | 🟢 **pronto para envio à produção** |
 
 ### PACOTE — etiqueta da nota sem código interno (`NF-ETQ-NOME-CADASTRO`)
 
