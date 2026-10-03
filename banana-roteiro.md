@@ -778,16 +778,22 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 48. Checklist único — lote 03/10 (deploy/prep-checklist-0310 · alvo loja **v25.95**)
+## 48. Checklist único — lote 03/10 · ✅ **Live v25.99**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-EAN-LOJA** | 🟢 **PREP** · **74/74** | **NÃO** |
-| 2 | **PDV-EDIT-CB-ETQ** | 🟢 **PREP** · **74/74** | **NÃO** |
-| 3 | **BUG-28-ENT-LOJA-PIN** | 🟢 **PREP** · **10/10** | **NÃO** |
-| 4 | **BUG-32-SO-ENT-OUTRA** | 🟢 **PREP** · **8/8** | **NÃO** |
+| 1–7 | ETQ-EAN · PDV-EDIT · BUG-28 · BUG-32 · ETQ-53X30 · PEDIR-ETQ53 · BIP-30 | ✅ **Live v25.99** | **NÃO** |
 
-**Branch:** `deploy/prep-checklist-0310` @ `0ae12849` · base Live **v25.86**.  
-**Extras:** ent-loja **33/33** · térmica **56/56** · várias **39/39**.  
-**Rollback:** `docs/ROLLBACK-LOTE-CHECKLIST-0310.md`.  
-**Próximo chat:** pausar vendas · frase + senha → tag + push PREP em `producao`. **Não** merge `teste`.
+**Status:** ✅ enviado / Live **v25.99** — `producao` @ `55f8fe79`. **Não** merge `teste`.
+
+---
+
+## 49. Checklist único — ETQ-53-UX (03/10)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **ETQ-53-UX** | 🟢 **pronto para envio à produção** · **29/29** + smoke **16/16** | **NÃO** |
+
+**O quê:** botão **53×30 mm** · preview largo · PRESET com mm · recupera presets/busca se motor falhar.  
+**Prova:** `verify_etq_53_ux_path.js` · `smoke_etq_53_ux_local.py` (PIN **9973**).  
+**Status:** 🟢 teste **v26.00** · loja **só** frase+senha. **Não** merge `teste`.
