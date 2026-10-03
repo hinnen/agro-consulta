@@ -66,7 +66,7 @@ ok(html3.includes('shape-rendering:crispEdges'), 'barras sem borrar');
 ok(!html3.includes('max-width:100%'), 'svg barras sem encolher no flex');
 ok(html3.includes('flat:true'), 'jsbarcode flat');
 ok(html3.includes('_fixSvg'), 'fixa px do svg pos render');
-const barsJson = html3.match(/var _bars=(\[[\s\S]*?\]);function _fixSvg/);
+const barsJson = html3.match(/var _bars=(\[[\s\S]*?\]);function _eanBits/);
 if (barsJson) {
   try {
     const bars = JSON.parse(barsJson[1]);
@@ -144,6 +144,47 @@ ok(page.includes('id="etq-preset-borda-mm"'), 'tela tem moldura');
 ok(page.includes('id="etq-term-show-barcode"'), 'tela liga/desliga barras');
 ok(ui.includes('DEFAULT_TERMICA_LAYOUT'), 'reset usa layout termico');
 ok(ui.includes('etq-layout-stage-termica'), 'form grava o palco termico');
+
+/* 230 legado: mesmo número, EAN-13 forçado (não CODE128). */
+const legado = Core.valorBarcodeProduto({
+  nome: 'teste',
+  preco_venda: 1,
+  codigo_barras: '2300000001571',
+  codigo_gm: 'GM1',
+});
+ok(legado.formato === 'EAN13', 'legado 230 formato EAN13');
+ok(legado.valor === '2300000001571', 'legado 230 mantem numero');
+ok(legado.ean_force === true, 'legado 230 ean_force');
+ok(legado.codigo_loja === true, 'legado 230 codigo_loja');
+ok(Core.ean13ChecksumOk('2300000001571') === false, 'legado 230 DV invalido');
+ok(String(Core.encodeEan13Bits('2300000001571') || '').length === 95, 'EAN force 95 modulos');
+
+/* 230 novo (DV ok): EAN13 sem force. */
+function eanDv(d12) {
+  let s = 0;
+  for (let i = 0; i < 12; i++) s += parseInt(d12[i], 10) * (i % 2 === 0 ? 1 : 3);
+  return String((10 - (s % 10)) % 10);
+}
+const novo12 = '230000001572';
+const novo13 = novo12 + eanDv(novo12);
+const novo = Core.valorBarcodeProduto({
+  nome: 'teste',
+  preco_venda: 1,
+  codigo_barras: novo13,
+  codigo_gm: 'GM1',
+});
+ok(Core.ean13ChecksumOk(novo13), 'novo 230 DV ok ' + novo13);
+ok(novo.formato === 'EAN13', 'novo 230 formato EAN13');
+ok(novo.ean_force !== true, 'novo 230 sem ean_force');
+
+const htmlLoja = Core.montarHtmlImpressao(
+  base,
+  [{ nome: 'loja', preco_venda: 2, codigo_barras: '2300000001571', codigo_gm: 'GM9', qtd: 1 }],
+  'R'
+);
+ok(htmlLoja.includes('"ean_force":true'), 'html imprint ean_force legado');
+ok(htmlLoja.includes('_drawEanForce'), 'html tem desenho EAN forçado');
+ok(htmlLoja.includes('2300000001571'), 'html traz numero legado');
 
 const htmlPath = path.join(root, 'tmp-etq-termica.html');
 fs.writeFileSync(htmlPath, html3);
