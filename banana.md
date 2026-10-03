@@ -1288,22 +1288,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PACOTE PRONTO — ETQ-53-QUOTA · tip **v26.02** · 03/10
+### ✅ Deploy loja — ETQ-53-QUOTA · **Live v26.02** · 03/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Loja v26.00: presets vazios + busca morta (local OK). Causa: `localStorage` cheio → `setItem` estourava antes de pintar PRESET e ligar busca. |
-| **Fix** | `savePrefs` engole quota; pinta presets antes de persistir; `init`/`bindEvents` resilientes. Cache `core?v=29` · `js?v=26`. |
-| **Prova** | quota **34/34** · UX **32/32** · smoke **22/22** (PIN 9973) · térmica várias **39/39** · A6 **88/88** |
+| **Status** | ✅ **enviado / Live v26.02** — `producao` @ tip PREP · **não** foi merge do `teste` |
+| **O quê** | Hotfix: presets/busca mortos na loja por quota `localStorage`. Cache `core?v=29` · `js?v=26`. |
+| **Branch PREP** | `deploy/prep-etq-53-quota` · base Live **v26.00** @ `af1944cd` |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** — `teste` · **aguarda frase + senha** |
-| **Você** | Ctrl+F5 etiquetas · PRESET com 53×30 · buscar produto · autorizar loja |
+| **Provas (PREP · PIN 9973)** | quota **34/34** · UX **32/32** · smoke **22/22** · térmica **39/39** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-etq-53-quota-v26.00` @ `af1944cd` · branch `producao-backup-pre-v2602-etq-quota-20261003` · `docs/ROLLBACK-ETQ-53-QUOTA.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 etiquetas · badge **v26.02** · PRESET com 53×30 · buscar produto |
 
-### 🟢 CHECKLIST ÚNICO — ETQ-53-QUOTA · pronto envio · tip **v26.02**
+### ✅ CHECKLIST ÚNICO — ETQ-53-QUOTA · ✅ Live v26.02
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-53-QUOTA** | 🟢 **pronto para envio à produção** | **NÃO** | **34/34** + smoke **22/22** |
+| 1 | **ETQ-53-QUOTA** | ✅ **enviado / Live v26.02** | **NÃO** | **34/34** + smoke **22/22** |
 
 ### ✅ Deploy loja — Checklist 03/10b · **Live v26.00** · 03/10
 
