@@ -1301,7 +1301,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | Em Enviados/Recebidos: botão **Etiquetas 53** ao lado do cupom. Lista compacta na bobina 53×30 (até **6 produtos/etiqueta**) — gambiarra sem cupom 80mm pra separar no estoque. |
 | **Onde** | `pdv_pedir_loja.js` · `pedir_loja_overlay.html` |
-| **Prova** | `verify_pdv_pedir_etq53_path.js` · `verify_pdv_pedir_loja.py` |
+| **Prova** | etq53 **14/14** · pedir loja **77/77** |
+| **Commit** | `538991e4` · teste **v25.97** |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 no `teste` · loja **só** frase+senha |
 | **Você** | Ctrl+F5 PDV · Pedir loja · Enviados · **Etiquetas 53** · escolher térmica 53×30 |
