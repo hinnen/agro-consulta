@@ -831,8 +831,10 @@
     var quickProductEditItemId = null;
     var quickProductEditProdutoId = null;
     var quickProductEditSaldoOrig = { centro: null, vila: null };
-    /** Opcionais além dos 6 campos do PDV — preservados no salvar. */
+    /** Códigos além dos 6 slots do PDV — preservados no salvar. */
     var quickProductEditCbOpcionaisTail = [];
+    /** Principal real do cadastro (fica na listagem; o campo de cima só adiciona). */
+    var quickProductEditPrincipalCb = '';
     var PDV_QUICK_CB_OPS_MAX = 6;
     var quickProductUnidadesCache = null;
     var quickProductUnidadesLoading = null;
@@ -10981,10 +10983,7 @@
             gm = '';
         }
         if (dom.quickProductEditGm) dom.quickProductEditGm.value = gm;
-        if (dom.quickProductEditCb) {
-            dom.quickProductEditCb.value = String(prod.codigo_barras || '').trim();
-        }
-        fillQuickProductCbOpcionais(prod.codigos_barras_opcionais);
+        fillQuickProductBarrasCadastro(prod);
         if (dom.quickProductEditUnidade) {
             var un = String(prod.unidade || '').trim();
             dom.quickProductEditUnidade.value = un === 'UN / KG / SC' ? '' : un;
@@ -11020,52 +11019,79 @@
         closeQuickProductUnidadeLista();
     }
 
-    function fillQuickProductCbOpcionais(lista) {
-        var ops = Array.isArray(lista) ? lista : [];
-        var cleaned = [];
-        for (var i = 0; i < ops.length; i++) {
-            var dig = String(ops[i] || '').replace(/\D/g, '').trim();
-            if (dig) cleaned.push(dig);
+    function digitosCodigoBarrasPdv(raw) {
+        return String(raw || '')
+            .replace(/\D/g, '')
+            .trim();
+    }
+
+    function fillQuickProductBarrasCadastro(prod) {
+        prod = prod || {};
+        var principal = digitosCodigoBarrasPdv(prod.codigo_barras);
+        quickProductEditPrincipalCb = principal;
+        var ops = Array.isArray(prod.codigos_barras_opcionais) ? prod.codigos_barras_opcionais : [];
+        var display = [];
+        var seen = {};
+        function pushDisp(raw) {
+            var dig = digitosCodigoBarrasPdv(raw);
+            if (!dig || seen[dig]) return;
+            seen[dig] = true;
+            display.push(dig);
         }
-        quickProductEditCbOpcionaisTail = cleaned.slice(PDV_QUICK_CB_OPS_MAX);
+        if (principal) pushDisp(principal);
+        for (var i = 0; i < ops.length; i++) pushDisp(ops[i]);
+        quickProductEditCbOpcionaisTail = display.slice(PDV_QUICK_CB_OPS_MAX);
         var fields = dom.quickProductEditCbOps || [];
         for (var j = 0; j < fields.length; j++) {
             if (!fields[j]) continue;
-            fields[j].value = cleaned[j] ? cleaned[j] : '';
+            fields[j].value = display[j] ? display[j] : '';
         }
+        /* Campo de cima sempre vazio — só para bipar/digitar código novo (vira adicional). */
+        if (dom.quickProductEditCb) dom.quickProductEditCb.value = '';
     }
 
-    function collectQuickProductCbOpcionais() {
-        var principal = dom.quickProductEditCb
-            ? String(dom.quickProductEditCb.value || '').replace(/\D/g, '').trim()
-            : '';
-        var seen = {};
-        var out = [];
-        function pushDig(raw) {
-            var dig = String(raw || '').replace(/\D/g, '').trim();
-            if (!dig || dig.length < 4) return;
-            if (principal && dig === principal) return;
-            if (seen[dig]) return;
-            seen[dig] = true;
-            out.push(dig);
-        }
+    function collectQuickProductBarrasPayload() {
+        var novo = digitosCodigoBarrasPdv(dom.quickProductEditCb && dom.quickProductEditCb.value);
+        var extras = [];
+        var seenExtra = {};
         var fields = dom.quickProductEditCbOps || [];
         for (var i = 0; i < fields.length; i++) {
-            if (fields[i]) pushDig(fields[i].value);
+            var d = digitosCodigoBarrasPdv(fields[i] && fields[i].value);
+            if (!d || d.length < 4 || seenExtra[d]) continue;
+            seenExtra[d] = true;
+            extras.push(d);
         }
+        var principal = digitosCodigoBarrasPdv(quickProductEditPrincipalCb);
+        if (principal && extras.indexOf(principal) === -1) {
+            /* Tirou o principal da lista → o 1º que sobrou assume (ou fica sem). */
+            principal = extras.length ? extras[0] : '';
+        }
+        var opcionais = [];
+        var seenOp = {};
+        function pushOp(raw) {
+            var dig = digitosCodigoBarrasPdv(raw);
+            if (!dig || dig.length < 4) return;
+            if (principal && dig === principal) return;
+            if (seenOp[dig]) return;
+            seenOp[dig] = true;
+            opcionais.push(dig);
+        }
+        for (var e = 0; e < extras.length; e++) pushOp(extras[e]);
+        if (novo) pushOp(novo);
         var tail = quickProductEditCbOpcionaisTail || [];
-        for (var t = 0; t < tail.length; t++) pushDig(tail[t]);
-        return out;
+        for (var t = 0; t < tail.length; t++) pushOp(tail[t]);
+        return { principal: principal, opcionais: opcionais };
     }
 
     function buildQuickProductEtqProdFromForm() {
         var vendaN = parseMoneyEdit(dom.quickProductEditVenda && dom.quickProductEditVenda.value);
+        var barras = collectQuickProductBarrasPayload();
         return {
             id: quickProductEditProdutoId,
             nome: dom.quickProductEditNome ? String(dom.quickProductEditNome.value || '').trim() : '',
             codigo_gm: dom.quickProductEditGm ? String(dom.quickProductEditGm.value || '').trim() : '',
             codigo_nfe: dom.quickProductEditGm ? String(dom.quickProductEditGm.value || '').trim() : '',
-            codigo_barras: dom.quickProductEditCb ? String(dom.quickProductEditCb.value || '').trim() : '',
+            codigo_barras: barras.principal || '',
             preco_venda: vendaN != null ? vendaN : 0
         };
     }
@@ -11216,6 +11242,7 @@
         quickProductEditItemId = null;
         quickProductEditProdutoId = null;
         quickProductEditCbOpcionaisTail = [];
+        quickProductEditPrincipalCb = '';
     }
 
     function openQuickProductEditOverlay(itemId) {
@@ -11482,11 +11509,11 @@
         };
         // Não mandar GM/barras vazios — apagava o cadastro no Postgres (sync overlay→Produto).
         var gmVal = dom.quickProductEditGm ? String(dom.quickProductEditGm.value || '').trim() : '';
-        var cbVal = dom.quickProductEditCb ? String(dom.quickProductEditCb.value || '').trim() : '';
         if (gmVal) payload.codigo_nfe = gmVal;
-        if (cbVal) payload.codigo_barras = cbVal;
-        // Lista completa: 6 do PDV + cauda (7+) preservada do cadastro.
-        payload.codigos_barras_opcionais = collectQuickProductCbOpcionais();
+        // Campo de cima = só adicionar (opcional). Principal fica na listagem Extra 1–6.
+        var barrasPack = collectQuickProductBarrasPayload();
+        if (barrasPack.principal) payload.codigo_barras = barrasPack.principal;
+        payload.codigos_barras_opcionais = barrasPack.opcionais || [];
         var custoN = parseMoneyEdit(dom.quickProductEditCusto && dom.quickProductEditCusto.value);
         var vendaN = parseMoneyEdit(dom.quickProductEditVenda && dom.quickProductEditVenda.value);
         if (custoN != null) payload.preco_custo = custoN;
