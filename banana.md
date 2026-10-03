@@ -546,7 +546,6 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 ### 4.5 Clientes
 
 - Cadastro local: `ClienteAgro` (Postgres).
-- **Limite fiado novo (`CLIENTE-NOVO-LIMITE-001`):** cadastro novo = **R$ 0,01** (bloqueia fiado no PDV). **0** no campo = padrão loja R$ 5.000. 🟢 pronto envio · migrate `0136`.
 - Sync ERP/Mongo â†’ Agro: `produtos/services_clientes_sync.py`, botÃ£o na lista, comando `sincronizar_clientes_agro`.
 - `**editado_local=True` nÃ£o Ã© sobrescrito** na sync.
 - PDV lista/busca clientes **sÃ³ no Agro** (`api/listar-clientes/`, `api/buscar-clientes/`).
@@ -1289,34 +1288,33 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PACOTE PRONTO — ETQ-53-QUOTA · tip **v26.02** · 03/10
+### ✅ Deploy loja — ETQ-53-QUOTA · **Live v26.02** · 03/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Loja v26.00: presets vazios + busca morta (local OK). Causa: `localStorage` cheio → `setItem` estourava antes de pintar PRESET e ligar busca. |
-| **Fix** | `savePrefs` engole quota; pinta presets antes de persistir; `init`/`bindEvents` resilientes. Cache `core?v=29` · `js?v=26`. |
-| **Prova** | quota **34/34** · UX **32/32** · smoke **22/22** (PIN 9973) · térmica várias **39/39** · A6 **88/88** |
+| **Status** | ✅ **enviado / Live v26.02** — `producao` @ `fc463d4f` · Render `dep-db0k9quq1p3s73ef8rjg` · **não** foi merge do `teste` |
+| **O quê** | Hotfix: presets/busca mortos na loja por quota `localStorage`. Cache `core?v=29` · `js?v=26`. |
+| **Branch PREP** | `deploy/prep-etq-53-quota` · tip `fc463d4f` · base Live **v26.00** @ `af1944cd` |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** — `teste` · **aguarda frase + senha** |
-| **Você** | Ctrl+F5 etiquetas · PRESET com 53×30 · buscar produto · autorizar loja |
+| **Provas (PREP · PIN 9973)** | quota **34/34** · UX **32/32** · smoke **22/22** · térmica **39/39** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-etq-53-quota-v26.00` @ `af1944cd` · branch `producao-backup-pre-v2602-etq-quota-20261003` · `docs/ROLLBACK-ETQ-53-QUOTA.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 etiquetas · badge **v26.02** · PRESET com 53×30 · buscar produto |
 
-### 🟢 CHECKLIST ÚNICO — ETQ-53-QUOTA · pronto envio · tip **v26.02**
+### ✅ CHECKLIST ÚNICO — ETQ-53-QUOTA · ✅ Live v26.02
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-53-QUOTA** | 🟢 **pronto para envio à produção** | **NÃO** | **34/34** + smoke **22/22** |
+| 1 | **ETQ-53-QUOTA** | ✅ **enviado / Live v26.02** | **NÃO** | **34/34** + smoke **22/22** |
 
 ### ✅ Deploy loja — Checklist 03/10b · **Live v26.00** · 03/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v26.00** — `producao` @ `af1944cd` · Render `dep-db0jt2g473hc7388inng` · **não** foi merge do `teste` |
+| **Status** | ✅ **enviado / Live v26.00** — `producao` @ `af1944cd` |
 | **Branch PREP** | `deploy/prep-checklist-0310b` · tip `af1944cd` · base Live **v25.99** @ `55f8fe79` |
 | **Migrate** | **SIM** `0136` (só default — fichas antigas intactas) |
-| **Smoke** | healthz **ok** · home **200** · deploy **live** |
 | **Provas (PREP · PIN 9973)** | ETQ-53-UX **29/29** · smoke **16/16** · Cliente **10/10** · **PREP_FAILS=0** |
-| **Rollback** | tag `rollback/pre-checklist-0310b-v25.99` @ `55f8fe79` · branch `producao-backup-pre-v2600-checklist-20261003` · `docs/ROLLBACK-CHECKLIST-0310b.md` · **só** frase+senha |
-| **Você** | Ctrl+F5 · badge **v26.00** · etiquetas botão 53×30 · cliente novo limite 0,01 |
+| **Rollback** | tag `rollback/pre-checklist-0310b-v25.99` @ `55f8fe79` · `docs/ROLLBACK-CHECKLIST-0310b.md` |
 
 ### ✅ CHECKLIST ÚNICO — lote 03/10b · ✅ Live v26.00
 
@@ -1329,12 +1327,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v25.99** — `producao` @ `55f8fe79` · Render `dep-db0jiftckfvc73cstfb0` · **não** foi merge do `teste` |
+| **Status** | ✅ **enviado / Live v25.99** — `producao` @ `55f8fe79` · **não** foi merge do `teste` |
 | **Branch PREP** | `deploy/prep-checklist-0310` · tip `55f8fe79` · base Live **v25.86** @ `f540081c` |
 | **Migrate** | **NÃO** |
-| **Smoke** | healthz **ok** · PDV APIs 200 · `VERSION` **25.99** |
-| **Provas (PREP · PIN 9973)** | EAN **74/74** · EDIT **74/74** · BUG-28 **10/10** · runtime **16/16** · BUG-32 **8/8** · ent-loja **33/33** · Pedir **80/80** · etq53 **14/14** · térmica **63/63** · várias **39/39** · **PREP_FAILS=0** |
-| **Rollback** | tag `rollback/pre-checklist-0310-v25.86` @ `f540081c` · branch `producao-backup-pre-v2599-checklist-20261003` · doc `docs/ROLLBACK-LOTE-CHECKLIST-0310.md` |
+| **Rollback** | tag `rollback/pre-checklist-0310-v25.86` @ `f540081c` · branch `producao-backup-pre-v2599-checklist-20261003` · `docs/ROLLBACK-LOTE-CHECKLIST-0310.md` |
 
 ### ✅ CHECKLIST ÚNICO — lote 03/10 · ✅ Live v25.99
 

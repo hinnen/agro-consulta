@@ -520,7 +520,7 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 ---
 
-## 31. Checklist único — lote 12/09b · ✅ **Live v23.95** (+ tip `#11`–`#12`)
+## 31. Checklist único — lote 12/09c · ✅ **Live v23.96**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -534,25 +534,12 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 | 8 | **ETQ-LOTE-FILA** | ✅ Live · **78/78** | **NÃO** |
 | 9 | **PDV-IMP-SEP-OFF** | ✅ Live | **NÃO** |
 | 10 | **PDV-IMP-PIN-ANTES** | ✅ Live | **NÃO** |
-| 11 | **PDV-ENT-CARD-LATERAL** | 🟢 **pronto envio** · **51/51** | **NÃO** |
-| 12 | **PDV-ENT-ALERTA-POR-ID** | 🟢 **pronto envio** · **51/51** | **NÃO** |
-| 13 | **PDV-ENT-MUDAR-LOJA** | 🟢 **pronto envio** · **39/39** | **SIM** `0131` |
+| 11 | **PDV-ENT-CARD-LATERAL** | ✅ **Live v23.96** · **51/51** | **NÃO** |
+| 12 | **PDV-ENT-ALERTA-POR-ID** | ✅ **Live v23.96** · **51/51** | **NÃO** |
+| 13 | **PDV-ENT-MUDAR-LOJA** | ✅ **Live v23.96** · **39/39** | **SIM** `0131` |
 
-**Status: ✅ Live v23.95** — `producao` @ `8faa4c1`. Tip `#11`–`#13` prontos.  
-**Rollback:** tag `rollback/pre-checklist-1209b-v23.94` · `docs/ROLLBACK-CHECKLIST-1209b.md`.
-
----
-
-## 32. Checklist único — lote 12/09e (`deploy/prep-checklist-1209e` · alvo loja **v23.98**)
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **REPASSE-ACUM-PCT-DIA** | ✅ Live · **16/16** | **NÃO** |
-| 2 | **PDV-ENT-ALERTA-LOJA** | ✅ Live · **76/76** | **NÃO** |
-
-**Status: ✅ Live v23.98** — `producao` @ `6106b91` · Render `dep-dair1g7qj5pc73anadj0`.  
-**Rollback:** tag `rollback/pre-checklist-1209e-v23.97` · `docs/ROLLBACK-CHECKLIST-1209e.md`.  
-**Não** merge `teste`. Venda/caixa não mexidos.
+**Status: ✅ Live v23.96** — `#11`–`#13`. Antes: Live **v23.95** @ `8faa4c1`.  
+**Rollback:** tag `rollback/pre-checklist-1209c-v23.95` · `docs/ROLLBACK-CHECKLIST-1209c.md`.
 
 ---
 
@@ -573,50 +560,35 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 | — | **PDV-FECHAR-CTA-QUITADO** | 🟢 PREP · **60/60** | **NÃO** |
 | — | **PDV-ORC-IMPRIMIR** | 🟢 PREP | **NÃO** |
 
-**Status: ✅ Live v25.23** — `producao` @ `218db50` · Render `dep-dak4imijnfac73eql860`.  
-**Antes:** Live **v25.22** @ `d747d63` (REL-MV-LOJA mantido).  
-**Rollback:** tag `rollback/pre-checklist-1409-v25.22` · `docs/ROLLBACK-CHECKLIST-1409.md`.  
-**Não** merge `teste`.
+**Status: 🟢 PREP pronto · aguarda senha.** Base loja **v23.99** @ `a43340a`.  
+**Rollback:** tag `rollback/pre-checklist-1409-v23.99` · `docs/ROLLBACK-CHECKLIST-1409.md`.  
+**Não** merge `teste`. Lojas abertas → deploy só com pausa + frase + senha.
 
 ---
 
-## 34. Checklist único — lote 18/09 (`CLIENTE-XLSX-FIADO` · alvo loja **v25.37**)
+## 34. Checklist único — lote 30/09 (`deploy/prep-checklist-3009` · alvo loja **v25.75**)
+
+16 pacotes do checklist. **Não** inclui a unificação de fichas (dado já feito na loja). **Não** merge `teste`.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CLIENTE-XLSX-FIADO** | 🟢 **pronto envio** · **30/30** | **NÃO** |
+| 1–2 | Limite no fiado · corrigir o nome | 🟢 PREP · **13/13** | **NÃO** |
+| 3 | Cartão da entrega no dia anterior | 🟢 PREP · **68/68** | **SIM** `0134`+`0135` |
+| 4 | Dia da entrega | 🟢 PREP · **40/40** | **SIM** `0133` |
+| 5 | Excel de clientes + valor do mês | 🟢 PREP · **42/42** | **NÃO** |
+| 6 | PIN no Point | 🟢 PREP · **14/14** | **NÃO** |
+| 7 | Código na nota | 🟢 PREP · **24/24** | **NÃO** |
+| 8 | Cofrinho no fechar | 🟢 PREP · **15/15** · cofrinho **39/39** | **NÃO** |
+| 9 | Ver a outra loja | 🟢 PREP · no **40/40** | **NÃO** |
+| 10 | PIN na Gestão | 🟢 PREP · **43/43** | **NÃO** |
+| 12 | Limite no card do PDV | 🟢 PREP · **39/39** | **NÃO** |
+| 13 | Busca do PDV | 🟢 PREP · **30/30** | **NÃO** |
+| 14 | Nome no carrinho | 🟢 PREP · **34/34** | **NÃO** |
+| 15 | Ordem e Zap no fiado | 🟢 PREP · **59/59** | **NÃO** |
+| 16 | Logos do Dispenser | 🟢 PREP · **27/27** | **NÃO** |
 
-**Status:** teste **v25.37** — `/clientes/` Excel ↓↑ · média fiado 3m · mês que mais comprou · limite na planilha · prévia na importação.  
-**Prova:** `scripts/verify_cliente_planilha_path.py`. **Migrate:** não.  
-**30/09:** este Excel entrou no PREP da **§35** (ainda não subiu).
-
----
-
-## 35. Checklist único — lote 30/09 (`deploy/prep-checklist-3009` · alvo loja **v25.75**)
-
-Os 16 do checklist. **Não** inclui a unificação de fichas (dado já feito na loja). **Não** merge `teste`. Loja ainda **v25.36** até frase + senha.
-
-| # | Pacote | Prova | Migrate |
-| - | ------ | ----- | ------- |
-| 1 | Limite no fiado | **13/13** | **NÃO** |
-| 2 | Corrigir o nome | **13/13** | **NÃO** |
-| 3 | Cartão da entrega no dia anterior | **68/68** | **SIM** `0134`+`0135` |
-| 4 | Dia da entrega | **40/40** | **SIM** `0133` |
-| 5 | Excel de clientes | **42/42** | **NÃO** |
-| 6 | PIN no Point | **14/14** | **NÃO** |
-| 7 | Código na nota | **24/24** | **NÃO** |
-| 8 | Cofrinho no fechar | **15/15** · cofrinho **39/39** | **NÃO** |
-| 9 | Ver a outra loja | no **40/40** | **NÃO** |
-| 10 | PIN na Gestão | **43/43** | **NÃO** |
-| 11 | Excel: valor do mês | no **42/42** | **NÃO** |
-| 12 | Limite no card do PDV | **39/39** | **NÃO** |
-| 13 | Busca do PDV | **30/30** | **NÃO** |
-| 14 | Nome no carrinho | **34/34** | **NÃO** |
-| 15 | Ordem e Zap no fiado | **59/59** | **NÃO** |
-| 16 | Logos do Dispenser | **27/27** | **NÃO** |
-
-**Status: ✅ Live v25.75** — `producao` @ `b934ae31` · Render `dep-dauiu4vf3r2c73fv91i0`.  
-**Rollback:** tag `rollback/pre-checklist-3009-v25.36` · `docs/ROLLBACK-CHECKLIST-3009.md` · **só** frase+senha.
+**Status: 🟢 PREP · aguarda pausa + frase + senha.** Loja ainda **v25.36** @ `c8b78d80`.  
+**Rollback:** tag `rollback/pre-checklist-3009-v25.36` · `docs/ROLLBACK-CHECKLIST-3009.md`.
 
 ---
 
@@ -630,8 +602,7 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 **O quê:** no Dispenser, depois de um tempo parado, o cartão do PIN cobre a tela e o OK funciona.  
 **Não mexe:** PDV, caixa, venda, fiado, nota, financeiro.  
-**Status: ✅ Live v25.78** — `producao` @ `4e4a1244` · Render `dep-dauls4m417fc73fdlr70`. **Não** foi merge do `teste`.  
-**Antes:** Live **v25.77** @ `6eff0f70`.  
+**Status: ✅ Live v25.78** — `producao` @ `4e4a1244`. **Não** foi merge do `teste`.  
 **Rollback:** tag `rollback/pre-dsp-pin-descanso-v25.77` · `docs/ROLLBACK-DSP-PIN-DESCANSO.md` · **só** frase+senha.
 
 ---
@@ -688,19 +659,6 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 41. Checklist único — cron RH envio CP (Render exit 1) (01/10)
-
-| # | Pacote | Prova | Migrate |
-| - | ------ | ----- | ------- |
-| 1 | **RH-CRON-ENVIO-RENDER** | `verify_rh_envio_cp_automatico_path.py` **20/20** | **NÃO** |
-
-**O quê:** e-mail Render «Exited with status 1» no cron **`agro-rh-envio-cp-automatico`** quando algum funcionário do dia tinha **salário R$ 0** (sem faixa na ficha). O robô **rodava**; o job marcava falha. Agora: conta `pulados_salario_zero`, aviso no log, **exit 0**; erros reais continuam no stderr.  
-**Não mexe:** PDV, caixa, venda, regra de geração do título (só comportamento do cron).  
-**Status: ✅ Live v25.85** — `producao` @ `7bb7aad5` · lote com WhatsApp planilha · **não** merge do `teste`.  
-**Rollback:** `docs/ROLLBACK-DEPLOY-V2585-RH-WHATSAPP.md` · tag `rollback/pre-deploy-v2584-live-20261001` · **só** frase+senha.
-
----
-
 ## 42. Checklist único — Excel clientes grava todos os limites (01/10)
 
 | # | Pacote | Prova | Migrate |
@@ -714,15 +672,26 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
+## 41. Checklist único — cron RH envio CP (Render exit 1) (01/10)
+
+| # | Pacote | Prova | Migrate |
+| - | ------ | ----- | ------- |
+| 1 | **RH-CRON-ENVIO-RENDER** | `verify_rh_envio_cp_automatico_path.py` **20/20** | **NÃO** |
+
+**O quê:** cron **`agro-rh-envio-cp-automatico`**: salário R$ 0 → `pulados_salario_zero`, **exit 0**; erros reais no log.  
+**Status: ✅ Live v25.85** — cherry com WhatsApp vazio · **não** merge do `teste`.  
+**Rollback:** `docs/ROLLBACK-DEPLOY-V2585-RH-WHATSAPP.md` · tag `rollback/pre-deploy-v2584-live-20261001` · **só** frase+senha.
+
+---
+
 ## 43. Checklist único — Excel clientes: WhatsApp vazio apaga (01/10)
 
 | # | Pacote | Prova | Migrate |
 | - | ------ | ----- | ------- |
-| 1 | **CLIENTE-XLSX-WHATSAPP-VAZIO** | `verify_cliente_planilha_path.py` **57/57** (mock + contratos) | **NÃO** |
+| 1 | **CLIENTE-XLSX-WHATSAPP-VAZIO** | `verify_cliente_planilha_path.py` **57/57** | **NÃO** |
 
-**O quê:** na importação Excel de `/clientes/`, **apagar** o WhatsApp na coluna amarela e subir a planilha **limpa** o número no cadastro (antes: célula vazia = não mudava — duplicados ficavam). **Demais campos:** vazio continua = não altera. Aba «Como usar» item 7.  
-**Não mexe:** PDV, caixa, limite fiado, saldo fiado, títulos, PDV checkout.  
-**Status: ✅ Live v25.85** — `producao` @ `7bb7aad5` · **não** merge do `teste`.  
+**O quê:** Excel ↑ `/clientes/`: **WhatsApp vazio** apaga o número (demais colunas: vazio = não altera).  
+**Status: ✅ Live v25.85** — cherry · **não** merge do `teste`.  
 **Rollback:** `docs/ROLLBACK-DEPLOY-V2585-RH-WHATSAPP.md` · tag `rollback/pre-deploy-v2584-live-20261001` · **só** frase+senha.
 
 ---
@@ -733,60 +702,43 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | - | ------ | ----- | ------- |
 | 1 | **ETQ-BARCODE-LASER** | `verify_etiquetas_termica_path.js` **44/44** | **NÃO** |
 
-**O quê:** etiquetas térmicas: barras mais legíveis no leitor laser (traço + quiet zone, SVG sem encolher). Core cache **v=25**.  
-**Status: ✅ Live v25.86** — `producao` @ `f540081c` · cherry **`9453a951`** · **não** merge do `teste`.  
+**O quê:** etiquetas térmicas (entrada NF, fila, cadastro): barras **mais grossas**, quiet zone GS1, SVG **sem encolher** no flex; core cache **v=25**.  
+**Não mexe:** PDV, caixa, financeiro, cadastro além do JS de etiqueta.  
+**Status: ✅ Live v25.86** — `producao` @ `c2a95d73` · cherry **`9453a951`** · **não** merge do `teste`.  
 **Rollback:** tag `rollback/pre-etq-barcode-laser-v25.85` · `docs/ROLLBACK-ETQ-BARCODE-LASER.md` · **só** frase+senha.
 
 ---
 
-## 45. Checklist único — cliente novo limite fiado 0,01 (`CLIENTE-NOVO-LIMITE-001`)
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **CLIENTE-NOVO-LIMITE-001** | ✅ **Live v26.00** · **10/10** | **SIM** `0136` |
-
-**O quê:** cadastro novo = **R$ 0,01**. **0** = padrão loja. ✅ no lote **§50**.  
-**Rollback:** `docs/ROLLBACK-CHECKLIST-0310b.md`.
-
----
-
-## 46–48. Checklist único — lote 03/10 · ✅ **Live v25.99**
+## 45. Checklist único — lote 03/10 · ✅ **Live v25.99**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1–7 | ETQ-EAN · PDV-EDIT · BUG-28 · BUG-32 · ETQ-53X30 · PEDIR-ETQ53 · BIP-30 | ✅ **Live v25.99** | **NÃO** |
 
-**Status:** ✅ enviado / Live **v25.99** — `producao` @ `55f8fe79`. **Não** merge `teste`.
+**Status:** ✅ enviado / Live **v25.99** — `producao` @ `55f8fe79`. **Não** merge `teste`.  
+**Rollback:** tag `rollback/pre-checklist-0310-v25.86` · `docs/ROLLBACK-LOTE-CHECKLIST-0310.md`.
 
 ---
 
-## 49. Checklist único — ETQ-53-UX (03/10)
+## 46. Checklist único — lote 03/10b (`deploy/prep-checklist-0310b` · alvo loja **v26.00**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-53-UX** | ✅ **Live v26.00** · **29/29** + smoke **16/16** | **NÃO** |
+| 1 | **ETQ-53-UX** | 🟢 **PREP pronto** · **29/29** + smoke **16/16** | **NÃO** |
+| 2 | **CLIENTE-NOVO-LIMITE-001** | 🟢 **PREP pronto** · **10/10** | **SIM** `0136` |
 
-**O quê:** botão **53×30 mm** · preview · presets. ✅ no lote **§50**.
-
----
-
-## 50. Checklist único — lote 03/10b · ✅ **Live v26.00**
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **ETQ-53-UX** | ✅ **Live v26.00** · **29/29** + smoke **16/16** | **NÃO** |
-| 2 | **CLIENTE-NOVO-LIMITE-001** | ✅ **Live v26.00** · **10/10** | **SIM** `0136` |
-
-**Status:** ✅ enviado / Live **v26.00** — `producao` @ `af1944cd` · Render `dep-db0jt2g473hc7388inng`. **Não** merge `teste`.  
+**O quê:** (1) botão **53×30 mm** + preview/presets na tela de etiquetas. (2) cadastro novo = limite fiado **0,01** (bloqueia até subir); cliente antigo com **0** continua R$ 5.000.  
+**Não mexe:** finalizar venda, caixa, Point, NFC-e.  
+**Branch PREP:** `deploy/prep-checklist-0310b` · tip `51a62353` · base Live **v25.99** @ `55f8fe79`.  
 **Rollback:** tag `rollback/pre-checklist-0310b-v25.99` · `docs/ROLLBACK-CHECKLIST-0310b.md` · **só** frase+senha.  
-**Smoke:** healthz ok · Ctrl+F5 · badge **v26.00**.
+**Status:** ✅ Live **v26.00**.  
 
 ---
 
-## 51. CHECKLIST ÚNICO — ETQ-53-QUOTA (03/10 · tip v26.02)
+## 51. CHECKLIST ÚNICO — ETQ-53-QUOTA · ✅ Live v26.02
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-53-QUOTA** | 🟢 **pronto para envio à produção** · tip **v26.02** · **34/34** + smoke **22/22** | **NÃO** |
+| 1 | **ETQ-53-QUOTA** | ✅ **Live v26.02** · **34/34** + smoke **22/22** | **NÃO** |
 
-**O quê:** loja v26.00 sem presets/busca — quota `localStorage` matava o JS. Local OK. **Não sobe loja sem frase+senha.**
+**Rollback:** tag `rollback/pre-etq-53-quota-v26.00` · `docs/ROLLBACK-ETQ-53-QUOTA.md` · **só** frase+senha.
