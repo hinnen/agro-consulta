@@ -1303,7 +1303,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `verify_etq_ean_loja_path.py` **74/74** (API local `2300000015720` EAN ok) · térmica **56/56** · várias **39/39** |
 | **Migrate** | **NÃO** |
 | **Mexe** | `agro_codigo_barras_loja_util.py` · `produtos_etiquetas_core.js` · templates `?v=26` · cadastro aviso · API docstring |
-| **Status** | 🟢 **pronto para envio** · teste **v25.90** · loja **só** frase+senha |
+| **Status** | 🟢 **pronto para envio** · teste **v25.91** · loja **só** frase+senha |
 | **Você** | Ctrl+F5 · reimprimir 1 etiqueta `230…` antiga · bipar laser |
 | **Nota** | Já colada CODE128 SisVale → reimprimir (mesmo nº). Sistema antigo que já bipa → não mexer. |
 
