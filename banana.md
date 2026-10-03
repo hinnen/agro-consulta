@@ -1293,7 +1293,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ no **`teste`** · prova **13/13** · Renan valida no **PC local** (Ctrl+F5 no PDV) |
+| **Status** | ✅ no **`teste`** · **v26.05** · prova **13/13** · Renan valida no **PC local** (Ctrl+F5 no PDV) |
 | **O quê** | Mudou o limite do cliente → PDV lia cache velho e bloqueava até fechar/abrir. Agora força refresh ao escolher Fiado / lançar / confirmar / voltar à aba. |
 | **Arquivos** | `pdv_wizard.js` · `scripts/verify_pdv_fiado_limite_refresh_path.py` |
 | **Migrate** | **NÃO** |
