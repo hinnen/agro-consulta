@@ -1301,7 +1301,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | **Aceitar** → bip silencia **30 min**. Se não **Transferir**, volta a apitar (mesmo som). Pendente novo continua bipando. |
 | **Onde** | `pdv_transf_loja_util.py` (`recebidos_bip`) · `pdv_pedir_loja.js` |
-| **Prova** | Django bip folga · `verify_pdv_pedir_loja.py` |
+| **Prova** | Django **6/6** · pedir loja **80/80** |
+| **Commit** | `3bc3f9d4` · teste **v25.98** |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 no `teste` · loja **só** frase+senha |
 | **Você** | Ctrl+F5 · receber pedido → Aceitar → para de apitar · (ou esperar 30 min sem transferir) |
