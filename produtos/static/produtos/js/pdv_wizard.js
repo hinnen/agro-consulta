@@ -14308,6 +14308,11 @@
                 }
                 saleFinalizeStarted = true;
                 jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
+                try {
+                    if (typeof window.gmSspinExpirarFrescoAposVenda === 'function') {
+                        window.gmSspinExpirarFrescoAposVenda();
+                    }
+                } catch (ePinExpMp) {}
                 return imprimirCupomAposVenda(withPrint, printWin, vIdMp, cupomImpMp)
                     .then(function (printFail) {
                         return aguardarPosImpressao(withPrint ? 900 : 0).then(function () {

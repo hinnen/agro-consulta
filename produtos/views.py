@@ -29627,13 +29627,13 @@ def _validar_cashback_venda_json(data: dict, raw_itens: list):
 @require_POST
 def api_enviar_pedido_erp(request):
     def _resposta_venda(data, venda, **payload):
-        from produtos.pdv_transf_loja_util import expirar_operador_pdv_fresco
         from produtos.pin_gerencial_util import limpar_mp_point_forcar_bypass
         from produtos.views_nfce import anexar_nfce_resposta_venda
 
         limpar_mp_point_forcar_bypass(request)
-        # Próxima venda/ação exige PIN de novo (TTL 45s só vale dentro da mesma confirmação).
-        expirar_operador_pdv_fresco(request)
+        # NÃO expirar PIN aqui: entrega+pagamento na loja ainda chama api_entrega_registrar
+        # na mesma confirmação. Zerar no meio → loop «precisa PIN». O PDV expira no fim
+        # (finalizeConfirmedSale → gmSspinExpirarFrescoAposVenda). Bug #28 entrega-loja.
         payload = _anexar_pdv_patches_resposta_venda(venda, payload)
         return JsonResponse(anexar_nfce_resposta_venda(venda, data, payload))
 
@@ -29654,7 +29654,10 @@ def api_enviar_pedido_erp(request):
         return JsonResponse({"ok": False, "erro": str(e)}, status=400)
     _, err_pin_op = exigir_operador_pin_request(request, data)
     if err_pin_op:
-        return JsonResponse({"ok": False, "erro": err_pin_op}, status=403)
+        return JsonResponse(
+            {"ok": False, "erro": err_pin_op, "precisa_pin": True},
+            status=403,
+        )
     from produtos.views_mp_point import mp_point_bloqueio_info, mp_point_rejeitar_venda_erp_sem_maquina
 
     bloqueio_mp = mp_point_bloqueio_info(request)
@@ -32927,7 +32930,10 @@ def api_entrega_registrar(request):
 
     op_label, err_pin_op = exigir_operador_pin_request(request, body if isinstance(body, dict) else None)
     if err_pin_op:
-        return JsonResponse({"ok": False, "erro": err_pin_op}, status=403)
+        return JsonResponse(
+            {"ok": False, "erro": err_pin_op, "precisa_pin": True},
+            status=403,
+        )
 
     campos = {
         "cliente_nome": cliente_nome,

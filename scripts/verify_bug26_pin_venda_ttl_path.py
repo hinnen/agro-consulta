@@ -55,8 +55,20 @@ def main() -> int:
 
     check("gmSspinExpirarFrescoAposVenda" in sspin, "sspin helper expirar")
     check("expirar_fresco" in views, "API operador aceita expirar_fresco")
-    check("expirar_operador_pdv_fresco(request)" in views, "enviar ERP expira fresco na resposta")
-    check("_mp_point_expirar_pin_apos_venda" in mp, "Point expira fresco pós-venda")
+    # Bug #28 entrega-loja: ERP/Point NÃO podem zerar PIN no meio — o PDV expira no fim.
+    resp_i = views.find("def _resposta_venda")
+    resp_bloco = views[resp_i : resp_i + 700] if resp_i >= 0 else ""
+    check(
+        "expirar_operador_pdv_fresco(request)" not in resp_bloco,
+        "enviar ERP não expira fresco no meio (entrega ainda usa PIN)",
+    )
+    check("gmSspinExpirarFrescoAposVenda" in wiz, "wizard expira fresco após venda completa")
+    check("_mp_point_expirar_pin_apos_venda" in mp, "Point tem helper (no-op; PDV expira no fim)")
+    mp_helper = mp.split("def _mp_point_expirar_pin_apos_venda", 1)[-1][:400]
+    check(
+        "expirar_operador_pdv_fresco(request)" not in mp_helper,
+        "Point helper não zera PIN no meio da confirmação",
+    )
 
     check("PDV_OPERADOR_FRESCO_TTL_S = 45" in transf, "TTL geral 45 no util")
     check(
