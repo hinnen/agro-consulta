@@ -1288,22 +1288,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PACOTE PRONTO — ETQ-PRESET-SYNC · tip **v26.04** · 03/10
+### 🚀 PREP deploy loja — ETQ-PRESET-SYNC (`deploy/prep-etq-preset-sync` · alvo **v26.04**) · aguarda senha
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Alterar preset num PC não aparecia nos outros. Arrastar layout só gravava no PC; merge/migração podia preferir cache velho. |
-| **Fix** | Drag/reset → Postgres; merge **loja manda**; migrate **não** sobrescreve; detecta login. Cache `core?v=30` · `js?v=27`. |
-| **Prova** | path **25/25** · smoke API **23/23** (PIN 9973 · PC A→B) · quota **34/34** · UX **32/32** · térmica **39/39** |
+| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha no próximo chat |
+| **Branch PREP** | `deploy/prep-etq-preset-sync` · tip `064d5067` · base Live **v26.02** @ `f7ef7844` |
+| **Alvo loja** | **v26.04** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** — `teste` · **aguarda frase + senha** |
-| **Você** | PC que mexeu: login · Presets · mexer/Salvar · outros PCs logados Ctrl+F5 |
+| **Merge `teste`?** | **NÃO** — só cherry deste PREP |
+| **Provas (PREP · PIN 9973)** | sync **25/25** · smoke API **23/23** · quota **34/34** · UX **32/32** · térmica **39/39** · smoke UX **22/22** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-etq-preset-sync-v26.02` @ `f7ef7844` · branch `producao-backup-pre-v2604-etq-preset-sync-20261003` · `docs/ROLLBACK-ETQ-PRESET-SYNC.md` |
+| **Risco loja aberta** | Baixo — só `/produtos/etiquetas/` (sync multi-PC). **Não** mexe venda / caixa / Point / NF |
+| **Próximo chat** | Pausar vendas → frase + senha → `producao` = tip PREP → Render → Ctrl+F5 · badge **v26.04** |
 
-### 🟢 CHECKLIST ÚNICO — ETQ-PRESET-SYNC · pronto envio · tip **v26.04**
+### 🟢 CHECKLIST ÚNICO — ETQ-PRESET-SYNC · PREP pronto · alvo **v26.04**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-PRESET-SYNC** | 🟢 **pronto para envio à produção** | **NÃO** | **25/25** + smoke **23/23** |
+| 1 | **ETQ-PRESET-SYNC** | 🟢 **pronto para envio à produção** (no PREP) | **NÃO** | **25/25** + smoke **23/23** |
 
 ### ✅ Deploy loja — ETQ-53-QUOTA · **Live v26.02** · 03/10
 
