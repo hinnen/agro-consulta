@@ -31,6 +31,8 @@ def main() -> int:
         check(f"html cb-op-{i}", f"pdv-quick-product-edit-cb-op-{i}" in tpl)
     check("html adicionar código", "Adicionar código" in tpl)
     check("html ja cadastrados", "Códigos já cadastrados" in tpl)
+    check("html cb ops 1 linha", "repeat(6, minmax(0, 1fr))" in tpl and "pdv-pe-cb-ops-grid" in tpl)
+    check("html painel largo", "96rem" in tpl and "pdv-product-edit-panel" in tpl)
     check("html botão etiqueta", 'id="pdv-quick-product-edit-etiqueta"' in tpl)
     check("html modal etq preset", 'id="pdv-pe-etq-preset"' in tpl)
     check("html modal etq imprimir", 'id="pdv-pe-etq-imprimir"' in tpl)
