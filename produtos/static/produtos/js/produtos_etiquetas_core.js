@@ -3,7 +3,7 @@
 
   var LS_KEY = 'agro_etiquetas_presets_v1';
   var LS_MIGRATE_FLAG = 'agro_etiquetas_presets_pg_v1';
-  var BUILTIN_IDS = { 'padrao-4x4': 1, gondola: 1, 'bonus-a6': 1 };
+  var BUILTIN_IDS = { 'padrao-4x4': 1, 'padrao-53x30': 1, gondola: 1, 'bonus-a6': 1 };
 
   var DEFAULT_PRESET = {
     id: 'padrao-4x4',
@@ -24,6 +24,35 @@
     nome_pt_2: 8,
     nome_pt_3: 7,
     nome_pt_4: 6,
+    nome_linhas: 2,
+    borda_mm: 0,
+    show_nome: true,
+    show_preco: true,
+    show_barcode: true,
+    show_gm: true,
+    show_rodape: true,
+  };
+
+  /** Térmica bobina 53×30 mm — 1 coluna contínua (mesma lógica do 4×4). */
+  var DEFAULT_TERMICA_53X30_PRESET = {
+    id: 'padrao-53x30',
+    nome: '53×30 térmica',
+    estilo: 'termica',
+    largura_mm: 53,
+    altura_mm: 30,
+    nome_pt: 7,
+    preco_pt: 20,
+    centavos_pt: 20,
+    codigo_pt: 6,
+    rodape_pt: 6,
+    barcode_height: 26,
+    barcode_width: 1.6,
+    texto_rodape: 'Gm Agro Mais',
+    impressora: '',
+    nome_pt_1: 7,
+    nome_pt_2: 7,
+    nome_pt_3: 6,
+    nome_pt_4: 5.5,
     nome_linhas: 2,
     borda_mm: 0,
     show_nome: true,
@@ -777,6 +806,10 @@
       return p.id === 'bonus-a6';
     });
     if (!hasBonusA6) list.push(clonePreset(DEFAULT_BONUS_A6_PRESET));
+    var has53x30 = list.some(function (p) {
+      return p.id === 'padrao-53x30';
+    });
+    if (!has53x30) list.push(clonePreset(DEFAULT_TERMICA_53X30_PRESET));
     return list;
   }
 
@@ -1544,8 +1577,10 @@
   global.AgroEtiquetasCore = {
     LS_KEY: LS_KEY,
     DEFAULT_PRESET: DEFAULT_PRESET,
+    DEFAULT_TERMICA_53X30_PRESET: DEFAULT_TERMICA_53X30_PRESET,
     DEFAULT_GONDOLA_PRESET: DEFAULT_GONDOLA_PRESET,
     DEFAULT_BONUS_A6_PRESET: DEFAULT_BONUS_A6_PRESET,
+    BUILTIN_IDS: BUILTIN_IDS,
     DEFAULT_GONDOLA_LAYOUT: DEFAULT_GONDOLA_LAYOUT,
     DEFAULT_TERMICA_LAYOUT: DEFAULT_TERMICA_LAYOUT,
     DEFAULT_TERMICA_CORES: DEFAULT_TERMICA_CORES,

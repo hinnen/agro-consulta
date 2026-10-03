@@ -450,7 +450,7 @@
 
         <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Estilo</span>
           <select id="etq-preset-estilo" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white">
-            <option value="termica">Térmica (4×4 / barras)</option>
+            <option value="termica">Térmica (4×4 / 53×30 / barras)</option>
             <option value="gondola">Gôndola (nome + preço + peso)</option>
           </select>
         </label>
@@ -658,9 +658,9 @@ window.AGRO_ETQ_CFG = {
   maisVendidosUrl: "{{ api_etq_mais_vendidos_url|default:'/api/produtos/etiquetas/mais-vendidos/'|escapejs }}"
 };
 </script>
-<script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=26"></script>
+<script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=27"></script>
 
-<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=23" defer></script>
+<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=24" defer></script>
 
 {% endblock %}
 

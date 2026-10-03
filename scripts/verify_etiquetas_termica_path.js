@@ -144,6 +144,24 @@ ok(page.includes('id="etq-preset-borda-mm"'), 'tela tem moldura');
 ok(page.includes('id="etq-term-show-barcode"'), 'tela liga/desliga barras');
 ok(ui.includes('DEFAULT_TERMICA_LAYOUT'), 'reset usa layout termico');
 ok(ui.includes('etq-layout-stage-termica'), 'form grava o palco termico');
+ok(ui.includes('enviarBuiltinsFaltantes'), 'sobe seed novo pro Postgres');
+
+const seed53 = Core.DEFAULT_TERMICA_53X30_PRESET;
+ok(seed53 && seed53.id === 'padrao-53x30', 'seed 53×30 existe');
+ok(Number(seed53.largura_mm) === 53 && Number(seed53.altura_mm) === 30, 'seed 53×30 mm');
+ok(seed53.estilo === 'termica', 'seed 53×30 termica');
+const seeded = Core.mergeServerPresets([], []);
+ok(
+  seeded.some(function (p) {
+    return p.id === 'padrao-53x30';
+  }),
+  'merge seed inclui 53×30'
+);
+const html53 = Core.montarHtmlImpressao(Core.normalizarPreset(seed53), [
+  { nome: 'teste 53x30', preco_venda: 12.9, codigo_gm: 'GM100', qtd: 1 },
+], 'Gm Agro Mais');
+ok(html53.includes('@page{size:53mm 30mm;'), 'página térmica 53×30');
+ok((html53.match(/class="pg"/g) || []).length === 1, '53×30 = 1 página por etiqueta');
 
 /* 230 legado: mesmo número, EAN-13 forçado (não CODE128). */
 const legado = Core.valorBarcodeProduto({
