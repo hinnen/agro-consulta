@@ -1289,16 +1289,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PACOTE PRONTO — ETQ-53-QUOTA (hotfix loja) · tip **v26.01** · 03/10
+### 🟢 PACOTE PRONTO — ETQ-53-QUOTA · tip **v26.02** · 03/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Loja v26.00: presets vazios + busca morta (local OK). Causa: `localStorage` cheio no Chrome da loja → `setItem` estourava **antes** de pintar o select e ligar a busca. |
-| **Fix** | `savePrefs` engole quota (grava só prefs leves); pinta presets **antes** de persistir; `init`/`bindEvents` resilientes. Cache `core?v=29` · `js?v=26`. |
-| **Prova** | `verify_etq_53_ux_path.js` **32/32** · térmica várias **39/39** |
+| **O quê** | Loja v26.00: presets vazios + busca morta (local OK). Causa: `localStorage` cheio → `setItem` estourava antes de pintar PRESET e ligar busca. |
+| **Fix** | `savePrefs` engole quota; pinta presets antes de persistir; `init`/`bindEvents` resilientes. Cache `core?v=29` · `js?v=26`. |
+| **Prova** | quota **34/34** · UX **32/32** · smoke **22/22** (PIN 9973) · térmica várias **39/39** · A6 **88/88** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio** — no `teste` · **aguarda frase + senha** (não sobe loja sozinho) |
-| **Você** | Ctrl+F5 local · etiquetas: PRESET com 53×30 · digitar produto · depois autorizar loja |
+| **Status** | 🟢 **pronto para envio à produção** — `teste` · **aguarda frase + senha** |
+| **Você** | Ctrl+F5 etiquetas · PRESET com 53×30 · buscar produto · autorizar loja |
+
+### 🟢 CHECKLIST ÚNICO — ETQ-53-QUOTA · pronto envio · tip **v26.02**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ETQ-53-QUOTA** | 🟢 **pronto para envio à produção** | **NÃO** | **34/34** + smoke **22/22** |
 
 ### ✅ Deploy loja — Checklist 03/10b · **Live v26.00** · 03/10
 

@@ -783,10 +783,10 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 51. Hotfix — ETQ-53-QUOTA (03/10 · tip v26.01)
+## 51. CHECKLIST ÚNICO — ETQ-53-QUOTA (03/10 · tip v26.02)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-53-QUOTA** | 🟢 **pronto envio** · tip **v26.01** · prova **32/32** | **NÃO** |
+| 1 | **ETQ-53-QUOTA** | 🟢 **pronto para envio à produção** · tip **v26.02** · **34/34** + smoke **22/22** | **NÃO** |
 
-**O quê:** loja v26.00 sem presets/busca — `localStorage` quota matava o JS. Local OK. **Não sobe loja sem frase+senha.**
+**O quê:** loja v26.00 sem presets/busca — quota `localStorage` matava o JS. Local OK. **Não sobe loja sem frase+senha.**
