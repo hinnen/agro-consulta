@@ -1288,27 +1288,39 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚀 PREP deploy loja — Checklist 03/10b (`deploy/prep-checklist-0310b` · alvo **v26.00**) · aguarda senha
+### 🚀 PREP — ETQ-53-QUOTA (`deploy/prep-etq-53-quota` · alvo **v26.02**) · em envio
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha no próximo chat |
-| **Branch PREP** | `deploy/prep-checklist-0310b` · tip `51a62353` · base Live **v25.99** @ `55f8fe79` |
-| **Alvo loja** | **v26.00** |
-| **Migrate** | **SIM** `0136` (só default do campo — **não** reescreve clientes antigos) |
+| **O quê** | Hotfix loja v26.00: presets/busca mortos por quota `localStorage`. Cache `core?v=29` · `js?v=26`. |
+| **Branch PREP** | `deploy/prep-etq-53-quota` · base Live **v26.00** @ `af1944cd` |
+| **Migrate** | **NÃO** |
 | **Merge `teste`?** | **NÃO** — só cherry deste PREP |
-| **Provas (PREP · PIN 9973)** | ETQ-53-UX **29/29** · smoke **16/16** · Cliente **10/10** · **PREP_FAILS=0** |
-| **Rollback** | tag `rollback/pre-checklist-0310b-v25.99` @ `55f8fe79` · branch `producao-backup-pre-v2600-checklist-20261003` · `docs/ROLLBACK-CHECKLIST-0310b.md` |
-| **Próximo chat** | Pausar vendas → frase + senha → `producao` = tip PREP → Render → migrate 0136 → Ctrl+F5 · badge **v26.00** |
+| **Prova** | quota **34/34** · UX **32/32** · smoke **22/22** |
+| **Rollback** | tag `rollback/pre-etq-53-quota-v26.00` @ `af1944cd` · `docs/ROLLBACK-ETQ-53-QUOTA.md` |
 
-### CHECKLIST ÚNICO — lote 03/10b · 🟢 pronto para envio à produção
+### 🟢 CHECKLIST ÚNICO — ETQ-53-QUOTA · em envio · tip **v26.02**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-53-UX** | 🟢 **pronto para envio à produção** | **NÃO** | **29/29** + smoke **16/16** |
-| 2 | **CLIENTE-NOVO-LIMITE-001** | 🟢 **pronto para envio à produção** | **SIM** `0136` | **10/10** |
+| 1 | **ETQ-53-QUOTA** | 🚀 **em envio à produção** | **NÃO** | **34/34** + smoke **22/22** |
 
-**Risco loja aberta:** baixo. Etiquetas só UI. Cliente novo = limite 0,01; fichas com **0** continuam padrão R$ 5.000. **Não** mexe finalizar venda / caixa / Point.
+### ✅ Deploy loja — Checklist 03/10b · **Live v26.00** · 03/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v26.00** — `producao` @ `af1944cd` |
+| **Branch PREP** | `deploy/prep-checklist-0310b` · tip `af1944cd` · base Live **v25.99** @ `55f8fe79` |
+| **Migrate** | **SIM** `0136` (só default — fichas antigas intactas) |
+| **Provas (PREP · PIN 9973)** | ETQ-53-UX **29/29** · smoke **16/16** · Cliente **10/10** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-checklist-0310b-v25.99` @ `55f8fe79` · `docs/ROLLBACK-CHECKLIST-0310b.md` |
+
+### ✅ CHECKLIST ÚNICO — lote 03/10b · ✅ Live v26.00
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ETQ-53-UX** | ✅ **enviado / Live v26.00** | **NÃO** | **29/29** + smoke **16/16** |
+| 2 | **CLIENTE-NOVO-LIMITE-001** | ✅ **enviado / Live v26.00** | **SIM** `0136` | **10/10** |
 
 ### ✅ Deploy loja — Checklist 03/10 · **Live v25.99** · 03/10
 

@@ -95,10 +95,30 @@ ok(ui.includes("kind === '53'"), 'atalho 53');
 ok(page.includes('id="etq-btn-size-53"'), 'botão 53×30');
 ok(page.includes('id="etq-btn-size-40"'), 'botão 4×4');
 ok(page.includes('53×30 térmica'), 'dica na fila');
-ok(page.includes("produtos_etiquetas_core.js' %}?v=28"), 'core v=28');
-ok(page.includes("produtos_etiquetas.js' %}?v=25"), 'ui v=25');
+ok(page.includes("produtos_etiquetas_core.js' %}?v=29"), 'core v=29');
+ok(page.includes("produtos_etiquetas.js' %}?v=26"), 'ui v=26');
 ok(!page.includes('defer></script>'), 'sem defer no JS etiquetas (ordem Core)');
 ok(page.includes('Térmica (bobina / barras)'), 'estilo sem confundir mm');
+ok(coreCode.includes('Quota') || coreCode.includes('e1'), 'savePrefs tolerante a quota');
+ok(ui.includes('pinta a tela ANTES') || ui.includes('ANTES de gravar'), 'render antes de persist');
+
+/* Quota cheia: saveStorage não pode estourar (produção Chrome app). */
+s.localStorage.setItem = function () {
+  var err = new Error('QuotaExceededError');
+  err.name = 'QuotaExceededError';
+  throw err;
+};
+var threw = false;
+try {
+  Core.saveStorage({
+    presets: seeded,
+    preset_ativo: 'padrao-53x30',
+    texto_rodape_global: 'x',
+  });
+} catch (eQ) {
+  threw = true;
+}
+ok(!threw, 'saveStorage com quota não lança');
 
 /* Aspecto preview: 53×30 mais largo que alto na escala */
 const wMm = 53;

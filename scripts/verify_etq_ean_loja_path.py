@@ -115,7 +115,7 @@ def main() -> int:
         "produtos/templates/produtos/produtos_cadastro_erp.html",
     ):
         html = read(rel)
-        ok("produtos_etiquetas_core.js' %}?v=28" in html or 'produtos_etiquetas_core.js" %}?v=28' in html or "etiquetas_core.js' %}?v=28" in html, f"{rel} core v=28")
+        ok("produtos_etiquetas_core.js' %}?v=29" in html or 'produtos_etiquetas_core.js" %}?v=29' in html or "etiquetas_core.js' %}?v=29" in html, f"{rel} core v=29")
 
     # URL name no urls
     urls = read("produtos/urls.py")
