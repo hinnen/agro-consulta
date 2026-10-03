@@ -339,6 +339,7 @@
         <span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Preset</span>
 
         <select id="etq-fila-preset" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white"></select>
+        <p class="mt-0.5 text-[10px] font-semibold text-slate-500">Pra bobina 53×30: escolha «53×30 térmica» aqui.</p>
 
       </label>
 
@@ -450,7 +451,7 @@
 
         <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Estilo</span>
           <select id="etq-preset-estilo" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white">
-            <option value="termica">Térmica (4×4 / 53×30 / barras)</option>
+            <option value="termica">Térmica (bobina / barras)</option>
             <option value="gondola">Gôndola (nome + preço + peso)</option>
           </select>
         </label>
@@ -469,6 +470,13 @@
         <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Largura mm</span><input id="etq-preset-largura" type="number" min="20" max="200" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /><span class="mt-0.5 block text-[10px] text-slate-500 etq-field-gondola">A6: ~50 = 2 col · ~33 = 3 col</span></label>
 
         <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Altura mm</span><input id="etq-preset-altura" type="number" min="15" max="300" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
+
+        <div class="sm:col-span-2 lg:col-span-3 etq-field-termica flex flex-wrap items-center gap-2">
+          <span class="text-[10px] font-black uppercase text-slate-500">Tamanho rápido:</span>
+          <button type="button" id="etq-btn-size-40" class="min-h-[36px] rounded-lg border border-slate-500 bg-slate-900 px-3 text-xs font-black uppercase text-slate-100 hover:border-emerald-500 hover:text-emerald-200">4×4 (40×40)</button>
+          <button type="button" id="etq-btn-size-53" class="min-h-[36px] rounded-lg border-2 border-violet-500 bg-violet-950/50 px-3 text-xs font-black uppercase text-violet-100 hover:bg-violet-700">53×30 mm</button>
+          <span class="text-[11px] font-semibold text-slate-400">Ou no menu PRESET da fila escolha «53×30 térmica».</span>
+        </div>
 
         <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Nome 1 linha pt</span><input id="etq-preset-nome-pt-1" type="number" min="4" max="72" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" title="Quando o nome cabe em 1 linha" /></label>
 
@@ -658,9 +666,8 @@ window.AGRO_ETQ_CFG = {
   maisVendidosUrl: "{{ api_etq_mais_vendidos_url|default:'/api/produtos/etiquetas/mais-vendidos/'|escapejs }}"
 };
 </script>
-<script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=27"></script>
-
-<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=24" defer></script>
+<script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=28"></script>
+<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=25"></script>
 
 {% endblock %}
 

@@ -2,7 +2,30 @@
   'use strict';
 
   var Core = window.AgroEtiquetasCore;
-  if (!Core) return;
+  if (!Core) {
+    function showEtqBootErro() {
+      var box = document.getElementById('etq-busca-resultados');
+      if (box) {
+        box.innerHTML =
+          '<p class="px-3 py-3 text-sm text-red-400">Motor de etiquetas não carregou. Aperte <b>Ctrl+F5</b> e abra de novo.</p>';
+      }
+      var st = document.getElementById('etq-status');
+      if (st) {
+        st.textContent = 'Falha ao carregar etiquetas (Ctrl+F5).';
+        st.className = 'text-xs font-semibold text-red-400';
+      }
+      var sel = document.getElementById('etq-fila-preset');
+      if (sel && !sel.options.length) {
+        sel.innerHTML = '<option value="">(Recarregue Ctrl+F5)</option>';
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', showEtqBootErro);
+    } else {
+      showEtqBootErro();
+    }
+    return;
+  }
 
   var CFG = window.AGRO_ETQ_CFG || {};
   var URL_BUSCAR = '/api/produtos/cadastro/';
@@ -102,6 +125,21 @@
     return next();
   }
 
+  function garantirPresetsNaTela() {
+    if (!state.storage) reloadStorage();
+    if (!state.storage.presets || !state.storage.presets.length) {
+      state.storage.presets = Core.mergeServerPresets([], []);
+    } else {
+      state.storage.presets = Core.mergeServerPresets(state.storage.presets, []);
+    }
+    if (!state.storage.preset_ativo || !Core.getPresetById(state.storage.presets, state.storage.preset_ativo)) {
+      state.storage.preset_ativo = (state.storage.presets[0] && state.storage.presets[0].id) || Core.DEFAULT_PRESET.id;
+    }
+    persistStorage();
+    renderPresetSelect();
+    renderPresetForm();
+  }
+
   function carregarPresetsDaLoja() {
     return Core.fetchPresetsFromServer()
       .then(function (serverList) {
@@ -126,6 +164,9 @@
         } else {
           setStatus('Usando presets locais — servidor indisponível.', true);
         }
+      })
+      .then(function () {
+        garantirPresetsNaTela();
       });
   }
 
@@ -226,10 +267,29 @@
     }, 600);
   }
 
+  function ordenarPresetsParaSelect(list) {
+    var ordem = { 'padrao-4x4': 1, 'padrao-53x30': 2, gondola: 3, 'bonus-a6': 4 };
+    return (list || []).slice().sort(function (a, b) {
+      var oa = ordem[a.id] || 50;
+      var ob = ordem[b.id] || 50;
+      if (oa !== ob) return oa - ob;
+      return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
+    });
+  }
+
   function renderPresetOptions(selectEl, activeId) {
     if (!selectEl || !state.storage) return;
-    selectEl.innerHTML = state.storage.presets
+    var list = ordenarPresetsParaSelect(state.storage.presets);
+    if (!list.length) {
+      selectEl.innerHTML = '<option value="">(Sem preset — Ctrl+F5)</option>';
+      return;
+    }
+    selectEl.innerHTML = list
       .map(function (p) {
+        var mm =
+          p.estilo === 'termica'
+            ? ' · ' + (Number(p.largura_mm) || 40) + '×' + (Number(p.altura_mm) || 40) + ' mm'
+            : '';
         return (
           '<option value="' +
           Core.esc(p.id) +
@@ -237,6 +297,7 @@
           (p.id === activeId ? ' selected' : '') +
           '>' +
           Core.esc(p.nome) +
+          Core.esc(mm) +
           '</option>'
         );
       })
@@ -289,8 +350,10 @@
   function syncLayoutStageSize(p) {
     var wMm = Number(p.largura_mm) || 90;
     var hMm = Number(p.altura_mm) || 30;
+    /* Limita largura e altura pra 53×30 ficar claramente mais largo que o 4×4. */
     var maxW = 420;
-    var scale = maxW / Math.max(wMm, 1);
+    var maxH = 260;
+    var scale = Math.min(maxW / Math.max(wMm, 1), maxH / Math.max(hMm, 1));
     var cores = (p.cores && typeof p.cores === 'object') ? p.cores : {};
     [$('etq-layout-stage'), $('etq-layout-stage-termica')].forEach(function (stage) {
       if (!stage) return;
@@ -301,6 +364,46 @@
       stage.style.borderWidth = (Number(p.borda_mm) > 0 ? Math.max(2, Number(p.borda_mm)) : 2) + 'px';
       stage.style.borderStyle = 'solid';
     });
+  }
+
+  /** Atalho: aplica mm + fontes do seed 4×4 ou 53×30 no preset térmico atual. */
+  function aplicarTamanhoTermicaRapido(kind) {
+    var src =
+      kind === '53'
+        ? Core.DEFAULT_TERMICA_53X30_PRESET
+        : Core.DEFAULT_PRESET;
+    if (!src) return;
+    var elW = $('etq-preset-largura');
+    var elH = $('etq-preset-altura');
+    var elEstilo = $('etq-preset-estilo');
+    if (elEstilo) elEstilo.value = 'termica';
+    if (elW) elW.value = String(src.largura_mm);
+    if (elH) elH.value = String(src.altura_mm);
+    var map = {
+      'etq-preset-nome-pt-1': src.nome_pt_1,
+      'etq-preset-nome-pt-2': src.nome_pt_2,
+      'etq-preset-nome-pt-3': src.nome_pt_3,
+      'etq-preset-nome-pt-4': src.nome_pt_4,
+      'etq-preset-nome-linhas': src.nome_linhas,
+      'etq-preset-preco-pt': src.preco_pt,
+      'etq-preset-centavos-pt': src.centavos_pt,
+      'etq-preset-codigo-pt': src.codigo_pt,
+      'etq-preset-rodape-pt': src.rodape_pt,
+      'etq-preset-bar-h': src.barcode_height,
+      'etq-preset-bar-w': src.barcode_width,
+      'etq-preset-borda-mm': src.borda_mm,
+    };
+    Object.keys(map).forEach(function (id) {
+      var el = $(id);
+      if (el && map[id] != null) el.value = String(map[id]);
+    });
+    commitPresetFormLive();
+    renderPresetForm();
+    setStatus(
+      kind === '53'
+        ? 'Tamanho 53×30 mm aplicado — salve o preset se quiser guardar.'
+        : 'Tamanho 4×4 mm aplicado — salve o preset se quiser guardar.'
+    );
   }
 
   function fmtMm(n) {
@@ -1650,6 +1753,7 @@
     m.classList.remove('hidden');
     m.setAttribute('aria-hidden', 'false');
     document.body.classList.add('modal-open');
+    garantirPresetsNaTela();
     renderPresetForm();
   }
 
@@ -1771,6 +1875,14 @@
     $('etq-btn-novo-preset') && $('etq-btn-novo-preset').addEventListener('click', criarNovoPreset);
     $('etq-btn-excluir-preset') && $('etq-btn-excluir-preset').addEventListener('click', excluirPresetAtual);
     $('etq-btn-preset') && $('etq-btn-preset').addEventListener('click', abrirModalPreset);
+    $('etq-btn-size-40') &&
+      $('etq-btn-size-40').addEventListener('click', function () {
+        aplicarTamanhoTermicaRapido('40');
+      });
+    $('etq-btn-size-53') &&
+      $('etq-btn-size-53').addEventListener('click', function () {
+        aplicarTamanhoTermicaRapido('53');
+      });
     $('etq-btn-historico') && $('etq-btn-historico').addEventListener('click', abrirModalHistorico);
     $('etq-modal-fechar') && $('etq-modal-fechar').addEventListener('click', fecharModalPreset);
     $('etq-hist-fechar') && $('etq-hist-fechar').addEventListener('click', fecharModalHistorico);
@@ -1920,20 +2032,18 @@
     ensureModalOnBody();
     ensureHistModalOnBody();
     reloadStorage();
-    /* Garante seed Gôndola no PC (quem já tinha só 4×4). */
-    persistStorage();
-    renderPresetSelect();
-    renderPresetForm();
+    /* Garante seed Gôndola / 53×30 no PC. */
+    garantirPresetsNaTela();
     renderFila();
     bindEvents();
     carregarFacetas();
     carregarPresetsFiltro();
-    carregarPresetsDaLoja().then(function () {
-      renderPresetSelect();
-      renderPresetForm();
-    });
+    carregarPresetsDaLoja();
     var inp = $('etq-busca-input');
-    if (inp) inp.focus();
+    if (inp) {
+      inp.focus();
+      if (inp.value && inp.value.trim().length >= 2) scheduleBusca();
+    }
   }
 
   if (document.readyState === 'loading') {

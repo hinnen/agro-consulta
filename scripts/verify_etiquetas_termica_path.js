@@ -145,6 +145,10 @@ ok(page.includes('id="etq-term-show-barcode"'), 'tela liga/desliga barras');
 ok(ui.includes('DEFAULT_TERMICA_LAYOUT'), 'reset usa layout termico');
 ok(ui.includes('etq-layout-stage-termica'), 'form grava o palco termico');
 ok(ui.includes('enviarBuiltinsFaltantes'), 'sobe seed novo pro Postgres');
+ok(ui.includes('aplicarTamanhoTermicaRapido'), 'atalho tamanho 4x4 / 53x30');
+ok(ui.includes('garantirPresetsNaTela'), 'recupera presets vazios');
+ok(page.includes('id="etq-btn-size-53"'), 'botao rapido 53x30');
+ok(page.includes('53×30 térmica'), 'dica preset 53×30 na fila');
 
 const seed53 = Core.DEFAULT_TERMICA_53X30_PRESET;
 ok(seed53 && seed53.id === 'padrao-53x30', 'seed 53×30 existe');
