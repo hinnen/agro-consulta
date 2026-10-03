@@ -762,3 +762,16 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **Status:** 🟢 **pronto para envio** · teste **v25.91** · loja **só** frase+senha.  
 **Você:** Ctrl+F5 · reimprimir 1 etiqueta `230…` antiga · bipar laser.
 
+---
+
+## 47. Checklist único — PDV edição barras + etiqueta (`PDV-EDIT-CB-ETQ`) (03/10)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-EDIT-CB-ETQ** | 🟢 **pronto para envio** · prova **74/74** | **NÃO** |
+
+**O quê:** lápis PDV — **Adicionar código** vazio (só adicional); códigos 1–6 numa linha; **Etiqueta** com preset Postgres. Overlay largo, rodapé visível.  
+**Prova:** `verify_pdv_edicao_barras_etq_path.py` **74/74** · smoke local overlay + modal etiqueta.  
+**Status:** 🟢 **pronto para envio** · teste **v25.93** · loja **só** frase+senha.  
+**Você:** Ctrl+F5 `/pdv/` · lápis · bipar novo · Etiqueta → preset → Imprimir.
+

@@ -449,7 +449,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Barras secundárias (24/08 · teste v17.85):** bip de EAN opcional do cadastro agora acha no PDV. Antes o `agro_pg` pulava o Mongo se o overlay não achasse o JSON.
 
-**Edição rápida PDV — barras extras + etiqueta (03/10 · `PDV-EDIT-CB-ETQ`):** lápis: campo **Adicionar código** sempre vazio (só soma adicional; não troca o principal). Listagem Extra 1–6 = códigos já cadastrados (principal incluso). Botão **Etiqueta** → preset → imprime.
+**Edição rápida PDV — barras + etiqueta (03/10 · `PDV-EDIT-CB-ETQ` · 🟢 pronto envio v25.93):** **Adicionar código** vazio → adicional. Códigos 1–6 numa linha. **Etiqueta** com preset.
 
 **Fiado â€” baixa (decisÃ£o 07/07):** cobranÃ§a de tÃ­tulo em aberto **nÃ£o** fica no modal de `/fiado/` â€” redireciona ao **PDV pagamento** com cliente + valor do tÃ­tulo (ou selecionados). Quita `FiadoTituloAgro` + caixa no confirmar. **Cupom fiscal na baixa** = **FL-052** (P1,1), depois do pacote pagamento.
 
@@ -1333,7 +1333,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `verify_pdv_edicao_barras_etq_path.py` **74/74** · smoke local: overlay + modal etiqueta com 7 presets |
 | **Migrate** | **NÃO** |
 | **Mexe** | `pdv_wizard.html` · `pdv_wizard.js` · `api_pdv_produto_edicao_rapida` · core etiquetas no PDV |
-| **Status** | 🟢 **pronto para envio** · teste **v25.92** · loja **só** frase+senha |
+| **Status** | 🟢 **pronto para envio** · teste **v25.93** · loja **só** frase+senha |
+| **Rollback** | `docs/ROLLBACK-PDV-EDIT-CB-ETQ.md` · **só** frase+senha |
 | **Você** | Ctrl+F5 `/pdv/` · lápis · bipar novo · Etiqueta → preset → Imprimir |
 
 ### CHECKLIST ÚNICO — PDV-EDIT-CB-ETQ
