@@ -759,8 +759,8 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 **O quê:** `230…` novos = EAN-13 com DV. Legado = mesmo número; impressão EAN forçado (não CODE128). Core **v=26**.  
 **Prova:** `verify_etq_ean_loja_path.py` **74/74** · térmica **56/56** · várias **39/39** · API local OK.  
-**Status:** 🟢 **pronto para envio** · teste **v25.91** · loja **só** frase+senha.  
-**Você:** Ctrl+F5 · reimprimir 1 etiqueta `230…` antiga · bipar laser.
+**Status:** 🟢 **no PREP** lote 03/10 · alvo **v25.95**.  
+**Você:** (após loja) Ctrl+F5 · reimprimir 1 etiqueta `230…` antiga · bipar laser.
 
 ---
 
@@ -775,3 +775,19 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **Status:** 🟢 **pronto para envio** · teste **v25.93** · loja **só** frase+senha.  
 **Você:** Ctrl+F5 `/pdv/` · lápis · bipar novo · Etiqueta → preset → Imprimir.
 
+
+---
+
+## 48. Checklist único — lote 03/10 (deploy/prep-checklist-0310 · alvo loja **v25.95**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **ETQ-EAN-LOJA** | 🟢 **PREP** · **74/74** | **NÃO** |
+| 2 | **PDV-EDIT-CB-ETQ** | 🟢 **PREP** · **74/74** | **NÃO** |
+| 3 | **BUG-28-ENT-LOJA-PIN** | 🟢 **PREP** · **10/10** | **NÃO** |
+| 4 | **BUG-32-SO-ENT-OUTRA** | 🟢 **PREP** · **8/8** | **NÃO** |
+
+**Branch:** `deploy/prep-checklist-0310` @ `0ae12849` · base Live **v25.86**.  
+**Extras:** ent-loja **33/33** · térmica **56/56** · várias **39/39**.  
+**Rollback:** `docs/ROLLBACK-LOTE-CHECKLIST-0310.md`.  
+**Próximo chat:** pausar vendas · frase + senha → tag + push PREP em `producao`. **Não** merge `teste`.

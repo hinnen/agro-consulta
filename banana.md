@@ -1295,65 +1295,63 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ PREP loja — Checklist 03/10 (`deploy/prep-checklist-0310` · alvo **v25.95**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Branch PREP** | `deploy/prep-checklist-0310` · tip `0ae12849` · base Live **v25.86** @ `f540081c` |
+| **Alvo loja** | **v25.95** |
+| **Migrate** | **NÃO** |
+| **Merge `teste`?** | **NÃO** — só cherry deste PREP |
+| **Provas (no PREP)** | ETQ-EAN **74/74** · PDV-EDIT **74/74** · BUG-28 **10/10** · BUG-32 **8/8** · ent-loja **33/33** · térmica **56/56** · várias **39/39** |
+| **Rollback** | `docs/ROLLBACK-LOTE-CHECKLIST-0310.md` · tag sugerida `rollback/pre-checklist-0310-v25.86` · **só** frase+senha |
+| **Status** | 🟢 **PREP pronto / aguarda senha** — lojas abertas: **não** subir até pausar vendas |
+| **Próximo chat** | Pausar vendas → frase + senha → tag rollback → `producao` = PREP → Render → Ctrl+F5 |
+
+### CHECKLIST ÚNICO — lote 03/10 (`deploy/prep-checklist-0310` · alvo **v25.95**)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ETQ-EAN-LOJA** | 🟢 **no PREP** | **NÃO** | **74/74** |
+| 2 | **PDV-EDIT-CB-ETQ** | 🟢 **no PREP** | **NÃO** | **74/74** |
+| 3 | **BUG-28-ENT-LOJA-PIN** | 🟢 **no PREP** | **NÃO** | **10/10** |
+| 4 | **BUG-32-SO-ENT-OUTRA** | 🟢 **no PREP** | **NÃO** | **8/8** |
+
+**Risco loja aberta:** 1–2 baixos. 3–4 médios (são **correções** de PIN loop / trava entrega). Sem migrate.
+
 ### 🩹 BUG #32 — trava só-entrega outra loja (`BUG-32-SO-ENT-OUTRA`) · **v25.94** · 03/10
 
 | Campo | Valor |
 | ----- | ----- |
 | **Sintoma** | Notebook Vila → Entrega → **só entrega Centro** → ir pro pagamento **trava** (não segue) |
-| **Causa** | `wizardIrParaPagamentoComImpressao` mandava pro painel só porque saída ≠ aparelho; painel reabria o fluxo |
-| **Fix** | Só-entrega outra loja + **pagar aqui** segue no PDV (estoque = saída). Painel só se pagar na outra |
-| **Prova** | `verify_bug32_so_entrega_outra_loja_path.py` **8/8** · `verify_pdv_ent_loja_lanc_path.py` **33/33** |
-| **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio** · teste **v25.94** · loja **só** frase+senha |
-| **Você** | Ctrl+F5 no notebook Vila · Entrega → só Centro · pagar na loja → tem que ir pro Pagamento |
+| **Fix** | Só-entrega outra loja + **pagar aqui** segue no PDV |
+| **Prova** | **8/8** · ent-loja **33/33** |
+| **Status** | 🟢 **no PREP** `deploy/prep-checklist-0310` · alvo **v25.95** |
 
 ### 🩹 BUG #28 — PIN loop em entrega + pagar na loja (`BUG-28-ENT-LOJA-PIN`) · **v25.92** · 03/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Sintoma** | Entrega → pagamento na loja → Confirmar → pede PIN → digita → pede de novo (não fecha) |
-| **Causa** | Venda ERP/Point **zerava o PIN no meio**; em seguida `api_entrega_registrar` pedia PIN de novo → loop |
-| **Fix** | Não zerar PIN na resposta da venda/Point; PDV zera **só no fim** (`gmSspinExpirarFrescoAposVenda`) |
-| **Prova** | `verify_bug28_entrega_loja_pin_path.py` **10/10** · bug26 **19/19** · catch **14/14** |
-| **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio** · teste **v25.92** · loja **só** frase+senha |
-| **Você** | Ctrl+F5 · Entrega → pagar na loja → forma → Confirmar → PIN 1× → venda fecha |
+| **Sintoma** | Entrega → pagar na loja → PIN pede de novo (loop) |
+| **Fix** | Não zerar PIN no meio da venda; zera só no fim |
+| **Prova** | **10/10** |
+| **Status** | 🟢 **no PREP** `deploy/prep-checklist-0310` · alvo **v25.95** |
 
 ### PACOTE PRONTO — EAN loja 230… laser (`ETQ-EAN-LOJA`)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Código interno `230…`: **novos** = EAN-13 com DV. **Legado** mantém o número; impressão EAN forçado (não CODE128). Core **v=26**. |
-| **Prova** | `verify_etq_ean_loja_path.py` **74/74** (API local `2300000015720` EAN ok) · térmica **56/56** · várias **39/39** |
-| **Migrate** | **NÃO** |
-| **Mexe** | `agro_codigo_barras_loja_util.py` · `produtos_etiquetas_core.js` · templates `?v=26` · cadastro aviso · API docstring |
-| **Status** | 🟢 **pronto para envio** · teste **v25.91** · loja **só** frase+senha |
-| **Você** | Ctrl+F5 · reimprimir 1 etiqueta `230…` antiga · bipar laser |
-| **Nota** | Já colada CODE128 SisVale → reimprimir (mesmo nº). Sistema antigo que já bipa → não mexer. |
-
-### CHECKLIST ÚNICO — ETQ-EAN-LOJA
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **ETQ-EAN-LOJA** | 🟢 **pronto para envio** · **74/74** | **NÃO** |
+| **O quê** | `230…` novos = EAN-13 com DV. Legado mantém. Impressão EAN forçado. |
+| **Prova** | **74/74** · térmica **56/56** · várias **39/39** |
+| **Status** | 🟢 **no PREP** `deploy/prep-checklist-0310` · alvo **v25.95** |
 
 ### PACOTE PRONTO — PDV edição: barras + etiqueta (`PDV-EDIT-CB-ETQ`)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Lápis PDV: **Adicionar código** vazio (só soma adicional). Códigos 1–6 numa linha (principal incluso). Overlay largo, rodapé visível. **Etiqueta** → preset Postgres + imprimir. |
-| **Prova** | `verify_pdv_edicao_barras_etq_path.py` **74/74** · smoke local: overlay + modal etiqueta com 7 presets |
-| **Migrate** | **NÃO** |
-| **Mexe** | `pdv_wizard.html` · `pdv_wizard.js` · `api_pdv_produto_edicao_rapida` · core etiquetas no PDV |
-| **Status** | 🟢 **pronto para envio** · teste **v25.93** · loja **só** frase+senha |
-| **Rollback** | `docs/ROLLBACK-PDV-EDIT-CB-ETQ.md` · **só** frase+senha |
-| **Você** | Ctrl+F5 `/pdv/` · lápis · bipar novo · Etiqueta → preset → Imprimir |
-
-### CHECKLIST ÚNICO — PDV-EDIT-CB-ETQ
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **PDV-EDIT-CB-ETQ** | 🟢 **pronto para envio** · **74/74** | **NÃO** |
+| **O quê** | Lápis: Adicionar código + 1–6 numa linha + Etiqueta com preset |
+| **Prova** | **74/74** · smoke local OK |
+| **Status** | 🟢 **no PREP** `deploy/prep-checklist-0310` · alvo **v25.95** |
 
 ### PACOTE — etiqueta da nota sem código interno (`NF-ETQ-NOME-CADASTRO`)
 
