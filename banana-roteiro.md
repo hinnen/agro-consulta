@@ -743,9 +743,9 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CLIENTE-NOVO-LIMITE-001** | 🟢 **no PREP 03/10b** · **10/10** | **SIM** `0136` |
+| 1 | **CLIENTE-NOVO-LIMITE-001** | ✅ **Live v26.00** · **10/10** | **SIM** `0136` |
 
-**O quê:** cadastro novo = **R$ 0,01**. **0** = padrão loja. Entrou no lote **§50**.  
+**O quê:** cadastro novo = **R$ 0,01**. **0** = padrão loja. ✅ no lote **§50**.  
 **Rollback:** `docs/ROLLBACK-CHECKLIST-0310b.md`.
 
 ---
@@ -764,19 +764,19 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-53-UX** | 🟢 **no PREP 03/10b** · **29/29** + smoke **16/16** | **NÃO** |
+| 1 | **ETQ-53-UX** | ✅ **Live v26.00** · **29/29** + smoke **16/16** | **NÃO** |
 
-**O quê:** botão **53×30 mm** · preview · presets. Entrou no lote **§50**.
+**O quê:** botão **53×30 mm** · preview · presets. ✅ no lote **§50**.
 
 ---
 
-## 50. Checklist único — lote 03/10b (`deploy/prep-checklist-0310b` · alvo loja **v26.00**)
+## 50. Checklist único — lote 03/10b · ✅ **Live v26.00**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-53-UX** | 🟢 **PREP pronto** · **29/29** + smoke **16/16** | **NÃO** |
-| 2 | **CLIENTE-NOVO-LIMITE-001** | 🟢 **PREP pronto** · **10/10** | **SIM** `0136` |
+| 1 | **ETQ-53-UX** | ✅ **Live v26.00** · **29/29** + smoke **16/16** | **NÃO** |
+| 2 | **CLIENTE-NOVO-LIMITE-001** | ✅ **Live v26.00** · **10/10** | **SIM** `0136` |
 
-**Branch PREP:** `deploy/prep-checklist-0310b` · tip `af1944cd` · base Live **v25.99** @ `55f8fe79`.  
+**Status:** ✅ enviado / Live **v26.00** — `producao` @ `af1944cd` · Render `dep-db0jt2g473hc7388inng`. **Não** merge `teste`.  
 **Rollback:** tag `rollback/pre-checklist-0310b-v25.99` · `docs/ROLLBACK-CHECKLIST-0310b.md` · **só** frase+senha.  
-**Próximo chat:** pausar vendas · frase + senha → tip PREP em `producao` → Ctrl+F5 · badge **v26.00**. **Não** merge `teste`.
+**Smoke:** healthz ok · Ctrl+F5 · badge **v26.00**.

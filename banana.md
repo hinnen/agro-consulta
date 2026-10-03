@@ -1289,27 +1289,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚀 PREP deploy loja — Checklist 03/10b (`deploy/prep-checklist-0310b` · alvo **v26.00**) · aguarda senha
+### ✅ Deploy loja — Checklist 03/10b · **Live v26.00** · 03/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha no próximo chat |
+| **Status** | ✅ **enviado / Live v26.00** — `producao` @ `af1944cd` · Render `dep-db0jt2g473hc7388inng` · **não** foi merge do `teste` |
 | **Branch PREP** | `deploy/prep-checklist-0310b` · tip `af1944cd` · base Live **v25.99** @ `55f8fe79` |
-| **Alvo loja** | **v26.00** |
-| **Migrate** | **SIM** `0136` (só default do campo — **não** reescreve clientes antigos) |
-| **Merge `teste`?** | **NÃO** — só cherry deste PREP |
+| **Migrate** | **SIM** `0136` (só default — fichas antigas intactas) |
+| **Smoke** | healthz **ok** · home **200** · deploy **live** |
 | **Provas (PREP · PIN 9973)** | ETQ-53-UX **29/29** · smoke **16/16** · Cliente **10/10** · **PREP_FAILS=0** |
-| **Rollback** | tag `rollback/pre-checklist-0310b-v25.99` @ `55f8fe79` · branch `producao-backup-pre-v2600-checklist-20261003` · `docs/ROLLBACK-CHECKLIST-0310b.md` |
-| **Próximo chat** | Pausar vendas → frase + senha → `producao` = tip PREP `af1944cd` → Render → migrate 0136 → Ctrl+F5 · badge **v26.00** |
+| **Rollback** | tag `rollback/pre-checklist-0310b-v25.99` @ `55f8fe79` · branch `producao-backup-pre-v2600-checklist-20261003` · `docs/ROLLBACK-CHECKLIST-0310b.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 · badge **v26.00** · etiquetas botão 53×30 · cliente novo limite 0,01 |
 
-### CHECKLIST ÚNICO — lote 03/10b · 🟢 pronto para envio à produção
+### ✅ CHECKLIST ÚNICO — lote 03/10b · ✅ Live v26.00
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-53-UX** | 🟢 **PREP pronto / aguarda senha** | **NÃO** | **29/29** + smoke **16/16** |
-| 2 | **CLIENTE-NOVO-LIMITE-001** | 🟢 **PREP pronto / aguarda senha** | **SIM** `0136` | **10/10** |
-
-**Risco loja aberta:** baixo. Etiquetas só UI. Cliente novo = limite 0,01; fichas com **0** continuam padrão R$ 5.000. **Não** mexe finalizar venda / caixa / Point.
+| 1 | **ETQ-53-UX** | ✅ **enviado / Live v26.00** | **NÃO** | **29/29** + smoke **16/16** |
+| 2 | **CLIENTE-NOVO-LIMITE-001** | ✅ **enviado / Live v26.00** | **SIM** `0136` | **10/10** |
 
 ### ✅ Deploy loja — Checklist 03/10 · **Live v25.99** · 03/10
 
