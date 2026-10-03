@@ -1553,6 +1553,13 @@ def api_pdv_produto_edicao_rapida(request, produto_id: str):
     if not pg and isinstance(row.get("precos_grupos"), dict):
         pg = row.get("precos_grupos")
     modo = extrair_precos_modo_overlay(ov) or str(row.get("precos_modo") or "por_forma")
+    from produtos.mongo_index_codigos import codigos_barras_opcionais_de_cadastro_extras
+
+    cb_ops = (
+        codigos_barras_opcionais_de_cadastro_extras(getattr(ov, "cadastro_extras", None))
+        if ov is not None
+        else []
+    )
     return JsonResponse(
         {
             "ok": True,
@@ -1564,6 +1571,7 @@ def api_pdv_produto_edicao_rapida(request, produto_id: str):
                 "codigo_nfe": cod_gm,
                 "codigo_gm": cod_gm,
                 "codigo_barras": cb,
+                "codigos_barras_opcionais": cb_ops,
                 "unidade": unidade,
                 "preco_custo": round(pc, 2) if pc > 0 else round(float(row.get("preco_custo") or 0), 2),
                 "preco_venda": round(pv, 2),
