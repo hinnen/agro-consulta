@@ -614,6 +614,24 @@
         quickProductEditNome: document.getElementById('pdv-quick-product-edit-nome'),
         quickProductEditGm: document.getElementById('pdv-quick-product-edit-gm'),
         quickProductEditCb: document.getElementById('pdv-quick-product-edit-cb'),
+        quickProductEditCbOps: [
+            document.getElementById('pdv-quick-product-edit-cb-op-1'),
+            document.getElementById('pdv-quick-product-edit-cb-op-2'),
+            document.getElementById('pdv-quick-product-edit-cb-op-3'),
+            document.getElementById('pdv-quick-product-edit-cb-op-4'),
+            document.getElementById('pdv-quick-product-edit-cb-op-5'),
+            document.getElementById('pdv-quick-product-edit-cb-op-6')
+        ],
+        quickProductEditEtiqueta: document.getElementById('pdv-quick-product-edit-etiqueta'),
+        peEtqBack: document.getElementById('pdv-pe-etq-back'),
+        peEtqModal: document.getElementById('pdv-pe-etq-modal'),
+        peEtqNome: document.getElementById('pdv-pe-etq-nome'),
+        peEtqGm: document.getElementById('pdv-pe-etq-gm'),
+        peEtqQtd: document.getElementById('pdv-pe-etq-qtd'),
+        peEtqPreset: document.getElementById('pdv-pe-etq-preset'),
+        peEtqImprimir: document.getElementById('pdv-pe-etq-imprimir'),
+        peEtqCancelar: document.getElementById('pdv-pe-etq-cancelar'),
+        peEtqStatus: document.getElementById('pdv-pe-etq-status'),
         quickProductEditUnidade: document.getElementById('pdv-quick-product-edit-unidade'),
         quickProductEditUnidadeLista: document.getElementById('pdv-quick-product-edit-unidade-lista'),
         quickProductEditCusto: document.getElementById('pdv-quick-product-edit-custo'),
@@ -813,6 +831,9 @@
     var quickProductEditItemId = null;
     var quickProductEditProdutoId = null;
     var quickProductEditSaldoOrig = { centro: null, vila: null };
+    /** Opcionais além dos 6 campos do PDV — preservados no salvar. */
+    var quickProductEditCbOpcionaisTail = [];
+    var PDV_QUICK_CB_OPS_MAX = 6;
     var quickProductUnidadesCache = null;
     var quickProductUnidadesLoading = null;
     var PDV_QUICK_FORMAS = [
@@ -10963,6 +10984,7 @@
         if (dom.quickProductEditCb) {
             dom.quickProductEditCb.value = String(prod.codigo_barras || '').trim();
         }
+        fillQuickProductCbOpcionais(prod.codigos_barras_opcionais);
         if (dom.quickProductEditUnidade) {
             var un = String(prod.unidade || '').trim();
             dom.quickProductEditUnidade.value = un === 'UN / KG / SC' ? '' : un;
@@ -10998,8 +11020,190 @@
         closeQuickProductUnidadeLista();
     }
 
+    function fillQuickProductCbOpcionais(lista) {
+        var ops = Array.isArray(lista) ? lista : [];
+        var cleaned = [];
+        for (var i = 0; i < ops.length; i++) {
+            var dig = String(ops[i] || '').replace(/\D/g, '').trim();
+            if (dig) cleaned.push(dig);
+        }
+        quickProductEditCbOpcionaisTail = cleaned.slice(PDV_QUICK_CB_OPS_MAX);
+        var fields = dom.quickProductEditCbOps || [];
+        for (var j = 0; j < fields.length; j++) {
+            if (!fields[j]) continue;
+            fields[j].value = cleaned[j] ? cleaned[j] : '';
+        }
+    }
+
+    function collectQuickProductCbOpcionais() {
+        var principal = dom.quickProductEditCb
+            ? String(dom.quickProductEditCb.value || '').replace(/\D/g, '').trim()
+            : '';
+        var seen = {};
+        var out = [];
+        function pushDig(raw) {
+            var dig = String(raw || '').replace(/\D/g, '').trim();
+            if (!dig || dig.length < 4) return;
+            if (principal && dig === principal) return;
+            if (seen[dig]) return;
+            seen[dig] = true;
+            out.push(dig);
+        }
+        var fields = dom.quickProductEditCbOps || [];
+        for (var i = 0; i < fields.length; i++) {
+            if (fields[i]) pushDig(fields[i].value);
+        }
+        var tail = quickProductEditCbOpcionaisTail || [];
+        for (var t = 0; t < tail.length; t++) pushDig(tail[t]);
+        return out;
+    }
+
+    function buildQuickProductEtqProdFromForm() {
+        var vendaN = parseMoneyEdit(dom.quickProductEditVenda && dom.quickProductEditVenda.value);
+        return {
+            id: quickProductEditProdutoId,
+            nome: dom.quickProductEditNome ? String(dom.quickProductEditNome.value || '').trim() : '',
+            codigo_gm: dom.quickProductEditGm ? String(dom.quickProductEditGm.value || '').trim() : '',
+            codigo_nfe: dom.quickProductEditGm ? String(dom.quickProductEditGm.value || '').trim() : '',
+            codigo_barras: dom.quickProductEditCb ? String(dom.quickProductEditCb.value || '').trim() : '',
+            preco_venda: vendaN != null ? vendaN : 0
+        };
+    }
+
+    function closePdvPeEtqModal() {
+        if (dom.peEtqModal) {
+            dom.peEtqModal.classList.add('hidden');
+            dom.peEtqModal.setAttribute('aria-hidden', 'true');
+        }
+        if (dom.peEtqBack) {
+            dom.peEtqBack.classList.add('hidden');
+            dom.peEtqBack.setAttribute('aria-hidden', 'true');
+        }
+        if (dom.peEtqStatus) dom.peEtqStatus.textContent = '';
+    }
+
+    function openPdvPeEtqModal() {
+        var Core = window.AgroEtiquetasCore;
+        if (!Core) {
+            if (typeof showPdvAviso === 'function') {
+                showPdvAviso('Módulo de etiquetas indisponível. Recarregue o PDV (Ctrl+F5).', {
+                    title: 'Etiqueta',
+                    tone: 'danger'
+                });
+            }
+            return;
+        }
+        if (!quickProductEditProdutoId || !dom.peEtqModal) return;
+        var prod = buildQuickProductEtqProdFromForm();
+        if (!prod.nome) {
+            if (dom.quickProductEditErro) {
+                dom.quickProductEditErro.textContent = 'Informe o nome antes de imprimir a etiqueta.';
+                dom.quickProductEditErro.classList.remove('hidden');
+            }
+            return;
+        }
+        if (dom.peEtqNome) dom.peEtqNome.textContent = prod.nome || '—';
+        if (dom.peEtqGm) {
+            var gm = String(prod.codigo_nfe || prod.codigo_gm || '—');
+            var pv =
+                prod.preco_venda != null && isFinite(Number(prod.preco_venda))
+                    ? Number(prod.preco_venda).toFixed(2).replace('.', ',')
+                    : '0,00';
+            dom.peEtqGm.textContent = gm + ' · R$ ' + pv;
+        }
+        if (dom.peEtqQtd) dom.peEtqQtd.value = '1';
+        if (dom.peEtqStatus) dom.peEtqStatus.textContent = '';
+        var fillSelect = function () {
+            if (dom.peEtqPreset) Core.fillPresetSelect(dom.peEtqPreset);
+        };
+        fillSelect();
+        if (typeof Core.fetchPresetsFromServer === 'function') {
+            Core.fetchPresetsFromServer()
+                .then(function (serverList) {
+                    var st = Core.loadStorage();
+                    st.presets = Core.mergeServerPresets(st.presets, serverList || []);
+                    Core.saveStorage(st);
+                    fillSelect();
+                })
+                .catch(function () {
+                    fillSelect();
+                });
+        }
+        if (dom.peEtqBack) {
+            dom.peEtqBack.classList.remove('hidden');
+            dom.peEtqBack.setAttribute('aria-hidden', 'false');
+        }
+        dom.peEtqModal.classList.remove('hidden');
+        dom.peEtqModal.setAttribute('aria-hidden', 'false');
+        window.setTimeout(function () {
+            if (dom.peEtqQtd) {
+                try {
+                    dom.peEtqQtd.focus({ preventScroll: true });
+                    dom.peEtqQtd.select();
+                } catch (_) {
+                    try {
+                        dom.peEtqQtd.focus();
+                    } catch (__) {}
+                }
+            }
+        }, 40);
+    }
+
+    function imprimirPdvPeEtiqueta() {
+        var Core = window.AgroEtiquetasCore;
+        if (!Core || !quickProductEditProdutoId) return;
+        var prod = buildQuickProductEtqProdFromForm();
+        var qtd = parseInt(dom.peEtqQtd && dom.peEtqQtd.value, 10) || 1;
+        if (qtd < 1) qtd = 1;
+        if (qtd > 999) qtd = 999;
+        var presetId = dom.peEtqPreset && dom.peEtqPreset.value;
+        var st = Core.loadStorage();
+        if (presetId) {
+            st.preset_ativo = presetId;
+            Core.saveStorage(st);
+        }
+        var item = Core.produtoParaItem(prod, qtd);
+        if (dom.peEtqStatus) dom.peEtqStatus.textContent = 'Enviando…';
+        var btn = dom.peEtqImprimir;
+        if (btn) {
+            btn.disabled = true;
+            btn.setAttribute('aria-busy', 'true');
+        }
+        Core.imprimirItens([item], {
+            presetId: presetId || st.preset_ativo,
+            textoRodape: st.texto_rodape_global || Core.getPresetAtivo(st).texto_rodape || '',
+            origem: 'pdv_edicao'
+        })
+            .then(function (res) {
+                if (res && res.ok) {
+                    closePdvPeEtqModal();
+                    if (typeof showPdvAviso === 'function') {
+                        showPdvAviso('Etiqueta enviada.', { title: 'Etiqueta', tone: 'success' });
+                    }
+                    return;
+                }
+                if (dom.peEtqStatus) {
+                    dom.peEtqStatus.textContent =
+                        'Falha: ' + (res && res.reason ? res.reason : 'erro');
+                }
+            })
+            .catch(function (err) {
+                if (dom.peEtqStatus) {
+                    dom.peEtqStatus.textContent =
+                        'Falha: ' + ((err && err.message) || 'erro de impressão');
+                }
+            })
+            .then(function () {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.removeAttribute('aria-busy');
+                }
+            });
+    }
+
     function closeQuickProductEditOverlay() {
         if (!dom.quickProductEditOverlay) return;
+        closePdvPeEtqModal();
         closeQuickProductUnidadeLista();
         dom.quickProductEditOverlay.classList.add('hidden');
         dom.quickProductEditOverlay.classList.remove('flex');
@@ -11011,6 +11215,7 @@
         } catch (_) {}
         quickProductEditItemId = null;
         quickProductEditProdutoId = null;
+        quickProductEditCbOpcionaisTail = [];
     }
 
     function openQuickProductEditOverlay(itemId) {
@@ -11280,6 +11485,8 @@
         var cbVal = dom.quickProductEditCb ? String(dom.quickProductEditCb.value || '').trim() : '';
         if (gmVal) payload.codigo_nfe = gmVal;
         if (cbVal) payload.codigo_barras = cbVal;
+        // Lista completa: 6 do PDV + cauda (7+) preservada do cadastro.
+        payload.codigos_barras_opcionais = collectQuickProductCbOpcionais();
         var custoN = parseMoneyEdit(dom.quickProductEditCusto && dom.quickProductEditCusto.value);
         var vendaN = parseMoneyEdit(dom.quickProductEditVenda && dom.quickProductEditVenda.value);
         if (custoN != null) payload.preco_custo = custoN;
@@ -16928,6 +17135,26 @@
         if (dom.quickProductEditFechar) {
             dom.quickProductEditFechar.addEventListener('click', closeQuickProductEditOverlay);
         }
+        if (dom.quickProductEditEtiqueta) {
+            dom.quickProductEditEtiqueta.addEventListener('click', openPdvPeEtqModal);
+        }
+        if (dom.peEtqImprimir) {
+            dom.peEtqImprimir.addEventListener('click', imprimirPdvPeEtiqueta);
+        }
+        if (dom.peEtqCancelar) {
+            dom.peEtqCancelar.addEventListener('click', closePdvPeEtqModal);
+        }
+        if (dom.peEtqBack) {
+            dom.peEtqBack.addEventListener('click', closePdvPeEtqModal);
+        }
+        if (dom.peEtqQtd) {
+            dom.peEtqQtd.addEventListener('keydown', function (ev) {
+                if (ev.key === 'Enter') {
+                    ev.preventDefault();
+                    imprimirPdvPeEtiqueta();
+                }
+            });
+        }
         wireCadastroRapidoUi();
         wireRacoesUi();
         if (dom.quickProductEditOverlay) {
@@ -18446,6 +18673,14 @@
                 if (isQuickClientEditOpen()) {
                     event.preventDefault();
                     closeQuickClientEditOverlay();
+                    return;
+                }
+                if (
+                    dom.peEtqModal &&
+                    !dom.peEtqModal.classList.contains('hidden')
+                ) {
+                    event.preventDefault();
+                    closePdvPeEtqModal();
                     return;
                 }
                 if (isQuickProductEditOpen()) {

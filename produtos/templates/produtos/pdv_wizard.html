@@ -3509,8 +3509,25 @@
     #pdv-quick-product-edit-overlay .pdv-pe-f-gm { grid-column: 1 / 3; }
     #pdv-quick-product-edit-overlay .pdv-pe-f-cb { grid-column: 3 / 5; }
     #pdv-quick-product-edit-overlay .pdv-pe-f-un { grid-column: 5 / 7; }
+    #pdv-quick-product-edit-overlay .pdv-pe-f-cb-ops { grid-column: 1 / -1; }
     #pdv-quick-product-edit-overlay .pdv-pe-f-custo { grid-column: 1 / 4; }
     #pdv-quick-product-edit-overlay .pdv-pe-f-venda { grid-column: 4 / 7; }
+  }
+  #pdv-quick-product-edit-overlay .pdv-pe-cb-ops-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem 0.5rem;
+  }
+  @media (min-width: 640px) {
+    #pdv-quick-product-edit-overlay .pdv-pe-cb-ops-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  #pdv-pe-etq-modal {
+    z-index: 250;
+  }
+  #pdv-pe-etq-back {
+    z-index: 249;
   }
   #pdv-quick-product-edit-overlay .pdv-product-edit-footer-btn {
     min-height: 3.35rem;
@@ -4400,6 +4417,35 @@
           <input id="pdv-quick-product-edit-unidade" type="text" class="pdv-input pdv-product-edit-input w-full" placeholder="Buscar unidade…" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="pdv-quick-product-edit-unidade-lista" aria-expanded="false">
           <div id="pdv-quick-product-edit-unidade-lista" class="pdv-quick-un-lista hidden absolute left-0 right-0 z-30 mt-0.5 max-h-40 overflow-y-auto rounded-xl border-2 border-slate-200 bg-white shadow-xl [scrollbar-width:thin]" role="listbox"></div>
         </div>
+        <div class="pdv-product-edit-field pdv-pe-f-cb-ops" style="grid-column:1/-1">
+          <p class="pdv-product-edit-section-title font-black uppercase tracking-wide text-slate-600">Barras adicionais <span class="font-semibold normal-case text-slate-500">(até 6 no PDV)</span></p>
+          <div class="pdv-pe-cb-ops-grid">
+            <label class="pdv-product-edit-field min-w-0">
+              <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Extra 1</span>
+              <input id="pdv-quick-product-edit-cb-op-1" type="text" inputmode="numeric" maxlength="22" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off">
+            </label>
+            <label class="pdv-product-edit-field min-w-0">
+              <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Extra 2</span>
+              <input id="pdv-quick-product-edit-cb-op-2" type="text" inputmode="numeric" maxlength="22" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off">
+            </label>
+            <label class="pdv-product-edit-field min-w-0">
+              <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Extra 3</span>
+              <input id="pdv-quick-product-edit-cb-op-3" type="text" inputmode="numeric" maxlength="22" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off">
+            </label>
+            <label class="pdv-product-edit-field min-w-0">
+              <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Extra 4</span>
+              <input id="pdv-quick-product-edit-cb-op-4" type="text" inputmode="numeric" maxlength="22" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off">
+            </label>
+            <label class="pdv-product-edit-field min-w-0">
+              <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Extra 5</span>
+              <input id="pdv-quick-product-edit-cb-op-5" type="text" inputmode="numeric" maxlength="22" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off">
+            </label>
+            <label class="pdv-product-edit-field min-w-0">
+              <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Extra 6</span>
+              <input id="pdv-quick-product-edit-cb-op-6" type="text" inputmode="numeric" maxlength="22" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off">
+            </label>
+          </div>
+        </div>
         <label class="pdv-product-edit-field pdv-pe-f-custo">
           <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Preço de custo</span>
           <input id="pdv-quick-product-edit-custo" type="text" inputmode="decimal" class="pdv-input pdv-product-edit-input w-full tabular-nums" autocomplete="off">
@@ -4473,11 +4519,32 @@
         <p id="pdv-quick-product-edit-erro" class="hidden text-[clamp(1rem,0.45vw+0.9rem,1.2rem)] font-bold text-red-600" role="alert" style="grid-column:1/-1"></p>
       </div>
     </div>
-    <footer class="flex shrink-0 gap-2 border-t-2 border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4 sm:py-3">
+    <footer class="flex shrink-0 flex-wrap gap-2 border-t-2 border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4 sm:py-3">
       <button type="button" id="pdv-quick-product-edit-cancelar" class="pdv-action-btn pdv-product-edit-footer-btn flex-1 border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-100">Cancelar</button>
+      <button type="button" id="pdv-quick-product-edit-etiqueta" class="pdv-action-btn pdv-product-edit-footer-btn flex-1 border-2 border-emerald-600 bg-emerald-600 uppercase text-white shadow-md hover:bg-emerald-700" title="Imprimir etiqueta deste produto">Etiqueta</button>
       <button type="button" id="pdv-quick-product-edit-salvar" class="pdv-action-btn pdv-product-edit-footer-btn flex-1 bg-orange-500 uppercase text-white shadow-md hover:bg-orange-600">Salvar</button>
     </footer>
   </div>
+</div>
+
+<div id="pdv-pe-etq-back" class="fixed inset-0 hidden bg-slate-900/55" aria-hidden="true"></div>
+<div id="pdv-pe-etq-modal" class="fixed left-1/2 top-1/2 hidden w-[min(58vw,28rem)] max-w-[95vw] -translate-x-1/2 -translate-y-1/2 rounded-2xl border-2 border-emerald-600 bg-white p-5 shadow-2xl sm:p-6" role="dialog" aria-labelledby="pdv-pe-etq-titulo" aria-modal="true">
+  <h2 id="pdv-pe-etq-titulo" class="text-base font-black uppercase text-slate-900">Imprimir etiqueta</h2>
+  <p id="pdv-pe-etq-nome" class="mt-3 text-lg font-bold leading-snug text-slate-900"></p>
+  <p id="pdv-pe-etq-gm" class="mt-1 font-mono text-sm text-slate-500"></p>
+  <label class="mt-4 block">
+    <span class="mb-1 block text-[10px] font-black uppercase text-slate-500">Quantidade</span>
+    <input id="pdv-pe-etq-qtd" type="number" min="1" max="999" value="1" class="w-full min-h-[3.25rem] rounded-xl border-2 border-slate-200 px-3 text-center text-2xl font-black text-slate-900" />
+  </label>
+  <label class="mt-3 block">
+    <span class="mb-1 block text-[10px] font-black uppercase text-slate-500">Preset</span>
+    <select id="pdv-pe-etq-preset" class="w-full min-h-[2.75rem] rounded-xl border-2 border-slate-200 px-3 text-sm font-bold text-slate-900"></select>
+  </label>
+  <div class="mt-4 flex gap-2">
+    <button type="button" id="pdv-pe-etq-imprimir" class="min-h-[3.25rem] flex-1 rounded-xl border-2 border-emerald-700 bg-emerald-600 text-sm font-black uppercase text-white hover:bg-emerald-700">Imprimir</button>
+    <button type="button" id="pdv-pe-etq-cancelar" class="min-h-[3.25rem] rounded-xl border-2 border-slate-200 px-5 text-sm font-black uppercase text-slate-600">Cancelar</button>
+  </div>
+  <p id="pdv-pe-etq-status" class="mt-2 text-xs font-semibold text-slate-500" role="status"></p>
 </div>
 
 <div id="pdv-racoes-overlay" class="fixed inset-0 z-[140] hidden items-center justify-center bg-slate-950/55 p-2 backdrop-blur-[2px] sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-racoes-titulo">
@@ -5074,6 +5141,12 @@
   </div>
 </div>
 
+<script>
+window.AGRO_ETQ_CFG = window.AGRO_ETQ_CFG || {
+  etqPresetsUrl: "{% url 'api_etiquetas_presets' %}"
+};
+</script>
+<script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_wizard.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_topbar_mais.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_topbar_whatsapp.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
