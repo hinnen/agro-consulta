@@ -1288,32 +1288,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### ✅ PREP loja — Checklist 03/10 (`deploy/prep-checklist-0310` · alvo **v25.99**)
+### ✅ Deploy loja — Checklist 03/10 · **Live v25.99** · 03/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Branch PREP** | `deploy/prep-checklist-0310` · tip `3505e17b` · base Live **v25.86** @ `f540081c` |
-| **Alvo loja** | **v25.99** |
+| **Status** | ✅ **enviado / Live v25.99** — `producao` @ `55f8fe79` · Render `dep-db0jiftckfvc73cstfb0` · **não** foi merge do `teste` |
+| **Branch PREP** | `deploy/prep-checklist-0310` · tip `55f8fe79` · base Live **v25.86** @ `f540081c` |
 | **Migrate** | **NÃO** |
-| **Merge `teste`?** | **NÃO** — só cherry deste PREP |
+| **Smoke** | healthz **ok** · PDV APIs 200 · `VERSION` **25.99** |
 | **Provas (PREP · PIN 9973)** | EAN **74/74** · EDIT **74/74** · BUG-28 **10/10** · runtime **16/16** · BUG-32 **8/8** · ent-loja **33/33** · Pedir **80/80** · etq53 **14/14** · térmica **63/63** · várias **39/39** · **PREP_FAILS=0** |
-| **Rollback** | tag `rollback/pre-checklist-0310-v25.86` @ `f540081c` · branch `producao-backup-pre-v2599-checklist-20261003` · doc `docs/ROLLBACK-LOTE-CHECKLIST-0310.md` — **já criados** |
-| **Status** | 🟢 **PREP pronto / aguarda senha** — lojas abertas: **não** subir até pausar vendas |
-| **Próximo chat (pausa curta)** | Frase + senha → `producao` = tip PREP `d4e8ff8d` → Render → Ctrl+F5 · badge **v25.99** · **não** merge `teste` |
+| **Rollback** | tag `rollback/pre-checklist-0310-v25.86` @ `f540081c` · branch `producao-backup-pre-v2599-checklist-20261003` · doc `docs/ROLLBACK-LOTE-CHECKLIST-0310.md` |
 
-### CHECKLIST ÚNICO — lote 03/10 (`deploy/prep-checklist-0310` · alvo **v25.99**)
+### ✅ CHECKLIST ÚNICO — lote 03/10 · ✅ Live v25.99
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-EAN-LOJA** | 🟢 **pronto para envio à produção** | **NÃO** | **74/74** |
-| 2 | **PDV-EDIT-CB-ETQ** | 🟢 **pronto para envio à produção** | **NÃO** | **74/74** |
-| 3 | **BUG-28-ENT-LOJA-PIN** | 🟢 **pronto para envio à produção** | **NÃO** | **10/10** + runtime **16/16** |
-| 4 | **BUG-32-SO-ENT-OUTRA** | 🟢 **pronto para envio à produção** | **NÃO** | **8/8** + ent-loja **33/33** |
-| 5 | **ETQ-TERMICA-53X30** | 🟢 **pronto para envio à produção** | **NÃO** | térmica **63/63** · várias **39/39** |
-| 6 | **PDV-PEDIR-ETQ53** | 🟢 **pronto para envio à produção** | **NÃO** | **14/14** |
-| 7 | **PDV-PEDIR-BIP-30** | 🟢 **pronto para envio à produção** | **NÃO** | Pedir **80/80** |
-
-**Risco loja aberta:** 1–2–5–6–7 baixos. 3–4 médios (**correções** PIN loop / trava entrega). Venda dinheiro/cartão normal **não** muda de propósito.
+| 1 | **ETQ-EAN-LOJA** | ✅ **enviado / Live v25.99** | **NÃO** | **74/74** |
+| 2 | **PDV-EDIT-CB-ETQ** | ✅ **enviado / Live v25.99** | **NÃO** | **74/74** |
+| 3 | **BUG-28-ENT-LOJA-PIN** | ✅ **enviado / Live v25.99** | **NÃO** | **10/10** + runtime **16/16** |
+| 4 | **BUG-32-SO-ENT-OUTRA** | ✅ **enviado / Live v25.99** | **NÃO** | **8/8** + ent-loja **33/33** |
+| 5 | **ETQ-TERMICA-53X30** | ✅ **enviado / Live v25.99** | **NÃO** | térmica **63/63** · várias **39/39** |
+| 6 | **PDV-PEDIR-ETQ53** | ✅ **enviado / Live v25.99** | **NÃO** | **14/14** |
+| 7 | **PDV-PEDIR-BIP-30** | ✅ **enviado / Live v25.99** | **NÃO** | Pedir **80/80** |
 
 ### PACOTE — etiqueta da nota sem código interno (`NF-ETQ-NOME-CADASTRO`)
 
