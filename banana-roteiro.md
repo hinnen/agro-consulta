@@ -742,3 +742,13 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | 1 | **ETQ-53-QUOTA** | ✅ **Live v26.02** · **34/34** + smoke **22/22** | **NÃO** |
 
 **Rollback:** tag `rollback/pre-etq-53-quota-v26.00` · `docs/ROLLBACK-ETQ-53-QUOTA.md` · **só** frase+senha.
+
+---
+
+## 52. CHECKLIST ÚNICO — ETQ-PRESET-SYNC (03/10 · tip v26.03)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **ETQ-PRESET-SYNC** | 🟢 **pronto para envio à produção** · tip **v26.03** · **15/15** | **NÃO** |
+
+**O quê:** preset alterado num PC agora sobe/baixa na loja (Postgres). **Não sobe loja sem frase+senha.**

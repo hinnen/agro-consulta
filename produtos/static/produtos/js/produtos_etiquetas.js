@@ -162,25 +162,34 @@
   function carregarPresetsDaLoja() {
     return Core.fetchPresetsFromServer()
       .then(function (serverList) {
-        state.storage.presets = Core.mergeServerPresets(state.storage.presets, serverList);
-        /* Pinta antes de gravar cache — quota cheia no Chrome da loja não pode zerar a fila. */
-        garantirPresetsNaTela();
-        return Core.migrateLocalPresetsToServerOnce(state.storage.presets).then(function (mig) {
-          return enviarBuiltinsFaltantes(serverList).then(function (nBuiltin) {
-            var total = (mig && mig.migrated ? mig.migrated : 0) + (nBuiltin || 0);
-            if (total > 0) {
-              return Core.fetchPresetsFromServer().then(function (again) {
-                state.storage.presets = Core.mergeServerPresets(state.storage.presets, again);
-                garantirPresetsNaTela();
-                setStatus(total + ' preset(s) enviados para a loja.');
-              });
-            }
-          });
+        var onServer = {};
+        (serverList || []).forEach(function (p) {
+          if (p && p.id) onServer[p.id] = 1;
         });
+        /* Servidor manda; cache local não esconde alteração de outro PC. */
+        state.storage.presets = Core.mergeServerPresets(state.storage.presets, serverList);
+        garantirPresetsNaTela();
+        if ((serverList || []).length) {
+          setStatus('Presets da loja atualizados (' + serverList.length + ').');
+        }
+        return Core.migrateLocalPresetsToServerOnce(state.storage.presets, { onServer: onServer }).then(
+          function (mig) {
+            return enviarBuiltinsFaltantes(serverList).then(function (nBuiltin) {
+              var total = (mig && mig.migrated ? mig.migrated : 0) + (nBuiltin || 0);
+              if (total > 0) {
+                return Core.fetchPresetsFromServer().then(function (again) {
+                  state.storage.presets = Core.mergeServerPresets(state.storage.presets, again);
+                  garantirPresetsNaTela();
+                  setStatus(total + ' preset(s) enviados para a loja.');
+                });
+              }
+            });
+          }
+        );
       })
       .catch(function (err) {
         if (err && err.code === 'auth') {
-          setStatus('Login necessário para ver presets de outros PCs.', true);
+          setStatus('Faça login — sem login o preset fica só neste PC.', true);
         } else {
           setStatus('Usando presets locais — servidor indisponível.', true);
         }
@@ -265,6 +274,11 @@
       });
       if (idx >= 0) state.storage.presets[idx] = p;
       persistStorage();
+      /* Arrastar posição tem que ir pro Postgres — senão outro PC não vê. */
+      clearTimeout(state._presetSaveTimer);
+      state._presetSaveTimer = setTimeout(function () {
+        syncPresetToServer(p, { silent: true });
+      }, 400);
     }
     stage.addEventListener('pointerup', endDrag);
     stage.addEventListener('pointercancel', endDrag);
@@ -1923,7 +1937,8 @@
       if (idx >= 0) state.storage.presets[idx] = p;
       persistStorage();
       renderPresetForm();
-      setStatus('Posições do layout restauradas.');
+      syncPresetToServer(p, { silent: true });
+      setStatus('Posições do layout restauradas (enviando à loja…).');
     }
     $('etq-btn-reset-layout') && $('etq-btn-reset-layout').addEventListener('click', resetLayoutAtivo);
     $('etq-btn-reset-layout-termica') &&
