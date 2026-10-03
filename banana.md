@@ -1295,6 +1295,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🩹 BUG #32 — trava só-entrega outra loja (`BUG-32-SO-ENT-OUTRA`) · **v25.94** · 03/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Sintoma** | Notebook Vila → Entrega → **só entrega Centro** → ir pro pagamento **trava** (não segue) |
+| **Causa** | `wizardIrParaPagamentoComImpressao` mandava pro painel só porque saída ≠ aparelho; painel reabria o fluxo |
+| **Fix** | Só-entrega outra loja + **pagar aqui** segue no PDV (estoque = saída). Painel só se pagar na outra |
+| **Prova** | `verify_bug32_so_entrega_outra_loja_path.py` **8/8** · `verify_pdv_ent_loja_lanc_path.py` **33/33** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio** · teste **v25.94** · loja **só** frase+senha |
+| **Você** | Ctrl+F5 no notebook Vila · Entrega → só Centro · pagar na loja → tem que ir pro Pagamento |
+
 ### 🩹 BUG #28 — PIN loop em entrega + pagar na loja (`BUG-28-ENT-LOJA-PIN`) · **v25.92** · 03/10
 
 | Campo | Valor |

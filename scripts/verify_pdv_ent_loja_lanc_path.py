@@ -91,6 +91,21 @@ def test_estatico() -> None:
         "entregaVaiParaOutraLoja(state) || lp === 'entrega'" not in body,
         "só-entrega outra loja segue no PDV",
     )
+    # Bug #32: wizardIrParaPagamento também não pode desviar por lojaSaida
+    idx_pag = js.find("function wizardIrParaPagamentoComImpressao")
+    nxt_pag = js.find("\n    function ", idx_pag + 10) if idx_pag >= 0 else -1
+    body_pag = js[idx_pag:nxt_pag] if idx_pag >= 0 and nxt_pag > idx_pag else (
+        js[idx_pag : idx_pag + 2500] if idx_pag >= 0 else ""
+    )
+    check(
+        "js_pag_nao_painel_por_saida",
+        "entregaVaiParaOutraLoja" not in body_pag and "wizardEnviarEntregaPainel" not in body_pag,
+        "bug #32 só-entrega Centro + pagar Vila segue pro pagamento",
+    )
+    check(
+        "js_pag_vai_passo_pagamento",
+        "setCurrentStep('pagamento')" in body_pag or 'setCurrentStep("pagamento")' in body_pag,
+    )
     check("js_painel_aceita_loja_pag_outra", "pagOutraLoja" in js and "lp === 'loja' && pagOutraLoja" in js)
     check("api_registrar_loja", 'campos["loja_entrega"]' in views and 'campos["loja_pagamento"]' in views)
     check("util_mudar_loja", "def mudar_loja_entrega_pdv" in util)

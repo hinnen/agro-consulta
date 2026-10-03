@@ -15913,10 +15913,8 @@
             alert('Esta ação é para pagamento na loja. Escolha essa opção no pop-up da etapa Entrega.');
             return;
         }
-        if (entregaVaiParaOutraLoja(state)) {
-            wizardEnviarEntregaPainel();
-            return;
-        }
+        /* Bug #32: só-entrega outra loja + pagar AQUI deve seguir no PDV (estoque = saída).
+           NÃO mandar pro painel só porque lojaSaida ≠ aparelho — isso reabria o fluxo e travava. */
         var run = function () {
             fecharModaisEntregaAntesImpressao();
             wizardModalEscolhaImpressaoEntrega().then(function (opt) {
