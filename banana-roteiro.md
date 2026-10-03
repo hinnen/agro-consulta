@@ -780,3 +780,13 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **Status:** ✅ enviado / Live **v26.00** — `producao` @ `af1944cd` · Render `dep-db0jt2g473hc7388inng`. **Não** merge `teste`.  
 **Rollback:** tag `rollback/pre-checklist-0310b-v25.99` · `docs/ROLLBACK-CHECKLIST-0310b.md` · **só** frase+senha.  
 **Smoke:** healthz ok · Ctrl+F5 · badge **v26.00**.
+
+---
+
+## 51. Hotfix — ETQ-53-QUOTA (03/10 · tip v26.01)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **ETQ-53-QUOTA** | 🟢 **pronto envio** · tip **v26.01** · prova **32/32** | **NÃO** |
+
+**O quê:** loja v26.00 sem presets/busca — `localStorage` quota matava o JS. Local OK. **Não sobe loja sem frase+senha.**

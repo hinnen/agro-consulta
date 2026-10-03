@@ -126,32 +126,52 @@
   }
 
   function garantirPresetsNaTela() {
-    if (!state.storage) reloadStorage();
-    if (!state.storage.presets || !state.storage.presets.length) {
-      state.storage.presets = Core.mergeServerPresets([], []);
-    } else {
-      state.storage.presets = Core.mergeServerPresets(state.storage.presets, []);
+    try {
+      if (!state.storage) reloadStorage();
+      if (!state.storage.presets || !state.storage.presets.length) {
+        state.storage.presets = Core.mergeServerPresets([], []);
+      } else {
+        state.storage.presets = Core.mergeServerPresets(state.storage.presets, []);
+      }
+      if (
+        !state.storage.preset_ativo ||
+        !Core.getPresetById(state.storage.presets, state.storage.preset_ativo)
+      ) {
+        state.storage.preset_ativo =
+          (state.storage.presets[0] && state.storage.presets[0].id) || Core.DEFAULT_PRESET.id;
+      }
+    } catch (e) {
+      state.storage = {
+        presets: Core.mergeServerPresets([], []),
+        preset_ativo: Core.DEFAULT_PRESET.id,
+        texto_rodape_global: Core.DEFAULT_PRESET.texto_rodape || '',
+      };
     }
-    if (!state.storage.preset_ativo || !Core.getPresetById(state.storage.presets, state.storage.preset_ativo)) {
-      state.storage.preset_ativo = (state.storage.presets[0] && state.storage.presets[0].id) || Core.DEFAULT_PRESET.id;
+    /* Sempre pinta a tela ANTES de gravar cache — setItem com quota cheia não pode deixar PRESET vazio. */
+    try {
+      renderPresetSelect();
+      renderPresetForm();
+    } catch (e2) {
+      setStatus('Erro ao montar presets — Ctrl+F5.', true);
     }
-    persistStorage();
-    renderPresetSelect();
-    renderPresetForm();
+    try {
+      persistStorage();
+    } catch (e3) {}
   }
 
   function carregarPresetsDaLoja() {
     return Core.fetchPresetsFromServer()
       .then(function (serverList) {
         state.storage.presets = Core.mergeServerPresets(state.storage.presets, serverList);
-        persistStorage();
+        /* Pinta antes de gravar cache — quota cheia no Chrome da loja não pode zerar a fila. */
+        garantirPresetsNaTela();
         return Core.migrateLocalPresetsToServerOnce(state.storage.presets).then(function (mig) {
           return enviarBuiltinsFaltantes(serverList).then(function (nBuiltin) {
             var total = (mig && mig.migrated ? mig.migrated : 0) + (nBuiltin || 0);
             if (total > 0) {
               return Core.fetchPresetsFromServer().then(function (again) {
                 state.storage.presets = Core.mergeServerPresets(state.storage.presets, again);
-                persistStorage();
+                garantirPresetsNaTela();
                 setStatus(total + ' preset(s) enviados para a loja.');
               });
             }
@@ -2029,19 +2049,44 @@
   }
 
   function init() {
-    ensureModalOnBody();
-    ensureHistModalOnBody();
-    reloadStorage();
-    /* Garante seed Gôndola / 53×30 no PC. */
+    try {
+      ensureModalOnBody();
+      ensureHistModalOnBody();
+    } catch (e0) {}
+    try {
+      reloadStorage();
+    } catch (e1) {
+      state.storage = {
+        presets: Core.mergeServerPresets([], []),
+        preset_ativo: Core.DEFAULT_PRESET.id,
+        texto_rodape_global: '',
+      };
+    }
+    /* Garante seed Gôndola / 53×30 e pinta selects mesmo se localStorage falhar. */
     garantirPresetsNaTela();
-    renderFila();
-    bindEvents();
-    carregarFacetas();
-    carregarPresetsFiltro();
-    carregarPresetsDaLoja();
+    try {
+      renderFila();
+    } catch (e2) {}
+    /* Busca/botões: ligar sempre, mesmo se algo acima falhou. */
+    try {
+      bindEvents();
+    } catch (e3) {
+      setStatus('Erro ao ligar a tela — Ctrl+F5.', true);
+    }
+    try {
+      carregarFacetas();
+    } catch (e4) {}
+    try {
+      carregarPresetsFiltro();
+    } catch (e5) {}
+    try {
+      carregarPresetsDaLoja();
+    } catch (e6) {}
     var inp = $('etq-busca-input');
     if (inp) {
-      inp.focus();
+      try {
+        inp.focus();
+      } catch (e7) {}
       if (inp.value && inp.value.trim().length >= 2) scheduleBusca();
     }
   }

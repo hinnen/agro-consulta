@@ -647,15 +647,30 @@
     } catch (e) {
       prev = {};
     }
-    localStorage.setItem(
-      LS_KEY,
-      JSON.stringify({
-        /* presets só como cache; fonte da verdade = Postgres */
-        presets: Array.isArray(data.presets) ? data.presets : prev.presets || [],
-        preset_ativo: data.preset_ativo || prev.preset_ativo || DEFAULT_PRESET.id,
-        texto_rodape_global: data.texto_rodape_global != null ? data.texto_rodape_global : prev.texto_rodape_global || '',
-      })
-    );
+    var payload = {
+      /* presets só como cache; fonte da verdade = Postgres */
+      presets: Array.isArray(data.presets) ? data.presets : prev.presets || [],
+      preset_ativo: data.preset_ativo || prev.preset_ativo || DEFAULT_PRESET.id,
+      texto_rodape_global:
+        data.texto_rodape_global != null ? data.texto_rodape_global : prev.texto_rodape_global || '',
+    };
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(payload));
+    } catch (e1) {
+      /* Quota / Chrome app: não pode matar a tela. Tenta só prefs leves. */
+      try {
+        localStorage.setItem(
+          LS_KEY,
+          JSON.stringify({
+            presets: [],
+            preset_ativo: payload.preset_ativo,
+            texto_rodape_global: payload.texto_rodape_global,
+          })
+        );
+      } catch (e2) {
+        /* Sem localStorage — segue só em memória. */
+      }
+    }
   }
 
   function loadStorage() {

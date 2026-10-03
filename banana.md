@@ -1289,6 +1289,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 PACOTE PRONTO — ETQ-53-QUOTA (hotfix loja) · tip **v26.01** · 03/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Loja v26.00: presets vazios + busca morta (local OK). Causa: `localStorage` cheio no Chrome da loja → `setItem` estourava **antes** de pintar o select e ligar a busca. |
+| **Fix** | `savePrefs` engole quota (grava só prefs leves); pinta presets **antes** de persistir; `init`/`bindEvents` resilientes. Cache `core?v=29` · `js?v=26`. |
+| **Prova** | `verify_etq_53_ux_path.js` **32/32** · térmica várias **39/39** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio** — no `teste` · **aguarda frase + senha** (não sobe loja sozinho) |
+| **Você** | Ctrl+F5 local · etiquetas: PRESET com 53×30 · digitar produto · depois autorizar loja |
+
 ### ✅ Deploy loja — Checklist 03/10b · **Live v26.00** · 03/10
 
 | Campo | Valor |
