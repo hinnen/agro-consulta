@@ -25432,7 +25432,7 @@ def api_produtos_cadastro_detalhe(request, produto_id: str):
 
 @require_GET
 def api_produtos_cadastro_proximo_cb_loja(request):
-    """Próximo código de barras interno 230 + 10 dígitos (embalagem loja / bipar no caixa)."""
+    """Próximo código de barras interno 230… EAN-13 com DV (embalagem loja / bipar no caixa)."""
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres
 
     if agro_catalogo_usa_postgres():
