@@ -1289,44 +1289,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### PACOTE PRONTO — cliente novo limite fiado 0,01 (`CLIENTE-NOVO-LIMITE-001`) · 03/10
+### 🚀 PREP deploy loja — Checklist 03/10b (`deploy/prep-checklist-0310b` · alvo **v26.00**) · aguarda senha
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Cadastro novo (form, PDV rápido, sync/default) nasce com **R$ 0,01** — PDV **não** usa R$ 5.000. **0** no campo = padrão loja (legado/import). |
-| **Prova** | `verify_cliente_fonte_unica_path.py` **10/10** · form/API/sync runtime **OK** · PIN **9973** · migrate local **0136** OK |
-| **Migrate** | **SIM** `0136_clienteagro_limite_fiado_default_001` |
-| **Commit** | `778af4f4` (já no `teste`) |
-| **Status** | 🟢 **pronto para envio** · loja **só** frase+senha |
-| **Rollback** | `docs/ROLLBACK-CLIENTE-LIMITE-INICIAL-001.md` |
-| **Você** | Ctrl+F5 · cadastrar cliente novo · limite deve ser **0,01** (fiado bloqueado até subir) |
+| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha no próximo chat |
+| **Branch PREP** | `deploy/prep-checklist-0310b` · tip `af1944cd` · base Live **v25.99** @ `55f8fe79` |
+| **Alvo loja** | **v26.00** |
+| **Migrate** | **SIM** `0136` (só default do campo — **não** reescreve clientes antigos) |
+| **Merge `teste`?** | **NÃO** — só cherry deste PREP |
+| **Provas (PREP · PIN 9973)** | ETQ-53-UX **29/29** · smoke **16/16** · Cliente **10/10** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-checklist-0310b-v25.99` @ `55f8fe79` · branch `producao-backup-pre-v2600-checklist-20261003` · `docs/ROLLBACK-CHECKLIST-0310b.md` |
+| **Próximo chat** | Pausar vendas → frase + senha → `producao` = tip PREP `af1944cd` → Render → migrate 0136 → Ctrl+F5 · badge **v26.00** |
 
-### ✅ CHECKLIST ÚNICO — CLIENTE-NOVO-LIMITE-001 · 🟢 pronto envio
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **CLIENTE-NOVO-LIMITE-001** | 🟢 **pronto para envio** | **SIM** `0136` | **10/10** + runtime OK |
-
-### PACOTE PRONTO — etiquetas 53×30 óbvio + presets (`ETQ-53-UX`) · 03/10
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Botão **53×30 mm** nos Presets; preview largo; PRESET mostra mm; se motor falhar → Ctrl+F5; recupera presets vazios. |
-| **Causa UX** | «Estilo térmica» não muda o mm — escolher **53×30 térmica** (ou botão rápido). |
-| **Commit** | `54532b48` + provas `a020af3a` · teste **v26.00** |
-| **Prova** | path **29/29** · smoke local **16/16** (PIN **9973**) · térmica **67/67** · várias **39/39** · A6 **88/88** · Pedir **80/80** · EAN **74/74** · Django **9/9** |
-| **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** |
-| **Você** | Ctrl+F5 `/produtos/etiquetas/` · PRESET **53×30 térmica** · buscar produto |
-
-### CHECKLIST ÚNICO — pendentes envio · 🟢 pronto para envio à produção
+### CHECKLIST ÚNICO — lote 03/10b · 🟢 pronto para envio à produção
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-53-UX** | 🟢 **pronto para envio à produção** | **NÃO** | **29/29** + smoke **16/16** |
-| 2 | **CLIENTE-NOVO-LIMITE-001** | 🟢 **pronto para envio à produção** | **SIM** `0136` | **10/10** |
+| 1 | **ETQ-53-UX** | 🟢 **PREP pronto / aguarda senha** | **NÃO** | **29/29** + smoke **16/16** |
+| 2 | **CLIENTE-NOVO-LIMITE-001** | 🟢 **PREP pronto / aguarda senha** | **SIM** `0136` | **10/10** |
 
-**Sem** merge `teste`. **Só** frase + senha.
+**Risco loja aberta:** baixo. Etiquetas só UI. Cliente novo = limite 0,01; fichas com **0** continuam padrão R$ 5.000. **Não** mexe finalizar venda / caixa / Point.
 
 ### ✅ Deploy loja — Checklist 03/10 · **Live v25.99** · 03/10
 

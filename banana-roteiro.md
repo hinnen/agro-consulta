@@ -743,42 +743,14 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CLIENTE-NOVO-LIMITE-001** | 🟢 **pronto para envio** · prova **10/10** + runtime OK | **SIM** `0136` |
+| 1 | **CLIENTE-NOVO-LIMITE-001** | 🟢 **no PREP 03/10b** · **10/10** | **SIM** `0136` |
 
-**O quê:** cadastro novo (form, PDV rápido, sync) = **R$ 0,01** — PDV não usa R$ 5.000. **0** = padrão loja (legado/import).  
-**Status:** 🟢 no `teste` @ `778af4f4` · loja **só** frase+senha.  
-**Rollback:** `docs/ROLLBACK-CLIENTE-LIMITE-INICIAL-001.md`.
-
----
-
-## 46. Checklist único — EAN loja 230… p/ laser (`ETQ-EAN-LOJA`) (03/10)
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **ETQ-EAN-LOJA** | 🟢 **pronto para envio** · prova **74/74** | **NÃO** |
-
-**O quê:** `230…` novos = EAN-13 com DV. Legado = mesmo número; impressão EAN forçado (não CODE128). Core **v=26**.  
-**Prova:** `verify_etq_ean_loja_path.py` **74/74** · térmica **56/56** · várias **39/39** · API local OK.  
-**Status:** 🟢 **no PREP** lote 03/10 · alvo **v25.95**.  
-**Você:** (após loja) Ctrl+F5 · reimprimir 1 etiqueta `230…` antiga · bipar laser.
+**O quê:** cadastro novo = **R$ 0,01**. **0** = padrão loja. Entrou no lote **§50**.  
+**Rollback:** `docs/ROLLBACK-CHECKLIST-0310b.md`.
 
 ---
 
-## 47. Checklist único — PDV edição barras + etiqueta (`PDV-EDIT-CB-ETQ`) (03/10)
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **PDV-EDIT-CB-ETQ** | 🟢 **pronto para envio** · prova **74/74** | **NÃO** |
-
-**O quê:** lápis PDV — **Adicionar código** vazio (só adicional); códigos 1–6 numa linha; **Etiqueta** com preset Postgres. Overlay largo, rodapé visível.  
-**Prova:** `verify_pdv_edicao_barras_etq_path.py` **74/74** · smoke local overlay + modal etiqueta.  
-**Status:** 🟢 **pronto para envio** · teste **v25.93** · loja **só** frase+senha.  
-**Você:** Ctrl+F5 `/pdv/` · lápis · bipar novo · Etiqueta → preset → Imprimir.
-
-
----
-
-## 48. Checklist único — lote 03/10 · ✅ **Live v25.99**
+## 46–48. Checklist único — lote 03/10 · ✅ **Live v25.99**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -792,8 +764,19 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-53-UX** | 🟢 **pronto para envio à produção** · **29/29** + smoke **16/16** | **NÃO** |
+| 1 | **ETQ-53-UX** | 🟢 **no PREP 03/10b** · **29/29** + smoke **16/16** | **NÃO** |
 
-**O quê:** botão **53×30 mm** · preview largo · PRESET com mm · recupera presets/busca se motor falhar.  
-**Prova:** `verify_etq_53_ux_path.js` · `smoke_etq_53_ux_local.py` (PIN **9973**).  
-**Status:** 🟢 teste **v26.00** · loja **só** frase+senha. **Não** merge `teste`.
+**O quê:** botão **53×30 mm** · preview · presets. Entrou no lote **§50**.
+
+---
+
+## 50. Checklist único — lote 03/10b (`deploy/prep-checklist-0310b` · alvo loja **v26.00**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **ETQ-53-UX** | 🟢 **PREP pronto** · **29/29** + smoke **16/16** | **NÃO** |
+| 2 | **CLIENTE-NOVO-LIMITE-001** | 🟢 **PREP pronto** · **10/10** | **SIM** `0136` |
+
+**Branch PREP:** `deploy/prep-checklist-0310b` · tip `af1944cd` · base Live **v25.99** @ `55f8fe79`.  
+**Rollback:** tag `rollback/pre-checklist-0310b-v25.99` · `docs/ROLLBACK-CHECKLIST-0310b.md` · **só** frase+senha.  
+**Próximo chat:** pausar vendas · frase + senha → tip PREP em `producao` → Ctrl+F5 · badge **v26.00**. **Não** merge `teste`.
