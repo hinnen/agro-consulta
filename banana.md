@@ -1288,16 +1288,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### PACOTE WIP — PDV edição: barras extras + etiqueta (`PDV-EDIT-CB-ETQ`)
+### ✅ PREP loja — Checklist 03/10 (`deploy/prep-checklist-0310` · alvo **v25.95**)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Lápis PDV: **Adicionar código** (topo) sempre vazio → vira **adicional** (não mexe no principal). Extra 1–6 = códigos já no cadastro (principal aparece na lista). **Etiqueta** com preset. |
-| **Prova** | `scripts/verify_pdv_edicao_barras_etq_path.py` |
+| **Branch PREP** | `deploy/prep-checklist-0310` (base `producao` @ `f540081c` / Live **v25.86**) |
+| **Alvo loja** | **v25.95** |
 | **Migrate** | **NÃO** |
-| **Mexe** | `pdv_wizard.html` · `pdv_wizard.js` · `api_pdv_produto_edicao_rapida` · core etiquetas no PDV |
-| **Status** | 🟢 **teste** — validar no PC · loja **só** frase+senha |
-| **Você** | Ctrl+F5 `/pdv/` · lápis · bipar no «Adicionar código» · Salvar · conferir bip · Etiqueta |
+| **Merge `teste`?** | **NÃO** — só cherry deste PREP |
+| **Provas (PREP)** | ETQ-EAN **74/74** · PDV-EDIT **74/74** · BUG-28 **10/10** · BUG-32 **8/8** · ent-loja **33/33** · térmica **56/56** · várias **39/39** |
+| **Rollback** | `docs/ROLLBACK-LOTE-CHECKLIST-0310.md` · tag sugerida `rollback/pre-checklist-0310-v25.86` · **só** frase+senha |
+| **Status** | 🟢 **PREP pronto** — aguarda lojas pausarem + frase + senha no próximo chat |
+| **Próximo chat** | Tag rollback → push PREP em `producao` → Render → Ctrl+F5 · **não** merge `teste` |
+
+### CHECKLIST ÚNICO — lote 03/10 (`deploy/prep-checklist-0310` · alvo **v25.95**)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ETQ-EAN-LOJA** | 🟢 **pronto envio / no PREP** | **NÃO** | **74/74** |
+| 2 | **PDV-EDIT-CB-ETQ** | 🟢 **pronto envio / no PREP** | **NÃO** | **74/74** |
+| 3 | **BUG-28-ENT-LOJA-PIN** | 🟢 **pronto envio / no PREP** | **NÃO** | **10/10** |
+| 4 | **BUG-32-SO-ENT-OUTRA** | 🟢 **pronto envio / no PREP** | **NÃO** | **8/8** |
+
+**Risco com loja aberta:** 1–2 baixos (etiqueta/lápis). 3–4 médios mas são **correções** (PIN loop / trava entrega). Venda dinheiro/cartão normal **não** muda de propósito.
 
 ### PACOTE — etiqueta da nota sem código interno (`NF-ETQ-NOME-CADASTRO`)
 

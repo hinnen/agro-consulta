@@ -706,3 +706,19 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **Não mexe:** PDV, caixa, financeiro, cadastro além do JS de etiqueta.  
 **Status: ✅ Live v25.86** — `producao` @ `c2a95d73` · cherry **`9453a951`** · **não** merge do `teste`.  
 **Rollback:** tag `rollback/pre-etq-barcode-laser-v25.85` · `docs/ROLLBACK-ETQ-BARCODE-LASER.md` · **só** frase+senha.
+
+---
+
+## 45. Checklist único — lote 03/10 (deploy/prep-checklist-0310 · alvo loja **v25.95**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **ETQ-EAN-LOJA** | 🟢 **PREP** · **74/74** | **NÃO** |
+| 2 | **PDV-EDIT-CB-ETQ** | 🟢 **PREP** · **74/74** | **NÃO** |
+| 3 | **BUG-28-ENT-LOJA-PIN** | 🟢 **PREP** · **10/10** | **NÃO** |
+| 4 | **BUG-32-SO-ENT-OUTRA** | 🟢 **PREP** · **8/8** | **NÃO** |
+
+**Branch:** `deploy/prep-checklist-0310` · base Live **v25.86** @ `f540081c`.  
+**Provas extras:** ent-loja **33/33** · térmica **56/56** · várias **39/39**.  
+**Rollback:** `docs/ROLLBACK-LOTE-CHECKLIST-0310.md` · **só** frase+senha.  
+**Próximo chat:** pausar vendas · frase + senha → tag rollback → push PREP em `producao` → Ctrl+F5. **Não** merge `teste`.
