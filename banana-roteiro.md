@@ -729,6 +729,6 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 **O quê:** (1) botão **53×30 mm** + preview/presets na tela de etiquetas. (2) cadastro novo = limite fiado **0,01** (bloqueia até subir); cliente antigo com **0** continua R$ 5.000.  
 **Não mexe:** finalizar venda, caixa, Point, NFC-e.  
-**Branch PREP:** `deploy/prep-checklist-0310b` · tip `277b58c3` · base Live **v25.99** @ `55f8fe79`.  
+**Branch PREP:** `deploy/prep-checklist-0310b` · tip `c4b06ff6` · base Live **v25.99** @ `55f8fe79`.  
 **Rollback:** tag `rollback/pre-checklist-0310b-v25.99` · `docs/ROLLBACK-CHECKLIST-0310b.md` · **só** frase+senha.  
 **Próximo chat:** pausar vendas · frase + senha → tip PREP em `producao` → Ctrl+F5 · badge **v26.00**. **Não** merge `teste`.
