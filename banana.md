@@ -1293,7 +1293,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha no próximo chat |
-| **Branch PREP** | `deploy/prep-checklist-0310b` · tip `c4b06ff6` · base Live **v25.99** @ `55f8fe79` |
+| **Branch PREP** | `deploy/prep-checklist-0310b` · tip `51a62353` · base Live **v25.99** @ `55f8fe79` |
 | **Alvo loja** | **v26.00** |
 | **Migrate** | **SIM** `0136` (só default do campo — **não** reescreve clientes antigos) |
 | **Merge `teste`?** | **NÃO** — só cherry deste PREP |

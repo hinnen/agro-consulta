@@ -7,7 +7,7 @@ Volta a loja ao estado **antes** deste lote (Live **v25.99**).
 | **Antes (loja)** | `producao` @ `55f8fe79` · VERSION **25.99** |
 | **Tag segurança** | `rollback/pre-checklist-0310b-v25.99` |
 | **Branch backup** | `producao-backup-pre-v2600-checklist-20261003` |
-| **Branch PREP** | `deploy/prep-checklist-0310b` @ `c4b06ff6` · alvo loja **v26.00** |
+| **Branch PREP** | `deploy/prep-checklist-0310b` @ `51a62353` · alvo loja **v26.00** |
 | **Migrate** | **SIM** `produtos.0136` (só default do campo; **não** reescreve fichas) |
 | **Merge `teste`?** | **NÃO** — só cherry deste PREP |
 
