@@ -557,7 +557,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 
 ### 4.6 Cadastro / gestÃ£o de produtos
 
-- **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé. Gôndola: folha **A4** (2/3 col) ou **A6** (1–3 col conforme largura · bônus 100×45 = 1 col) — `ETQ-A6-COLS` ✅ **Live v23.97**.
+- **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé. Gôndola: folha **A4** (2/3 col) ou **A6** (1–3 col conforme largura · bônus 100×45 = 1 col) — `ETQ-A6-COLS` ✅ **Live v23.97**. Térmica seed: **4×4** + **53×30** (bobina 1 col) — `ETQ-TERMICA-53X30`.
 
 **Duas telas â€” nÃ£o confundir:**
 
@@ -1294,6 +1294,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### PACOTE — etiqueta térmica 53×30 (`ETQ-TERMICA-53X30`) · 03/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Novo preset seed **53×30 térmica** (bobina 1 coluna contínua) — mesma lógica do 4×4. Ao abrir etiquetas logado, sobe pro Postgres se faltar. |
+| **Onde** | `produtos_etiquetas_core.js` · `produtos_etiquetas.js` · templates cache `?v=27`/`?v=24` |
+| **Prova** | térmica **63/63** · várias **39/39** · A6 **88/88** · gôndola OK |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 no `teste` · loja **só** frase+senha |
+| **Você** | Ctrl+F5 `/produtos/etiquetas/` · escolher **53×30 térmica** · imprimir 1 |
 
 ### ✅ PREP loja — Checklist 03/10 (`deploy/prep-checklist-0310` · alvo **v25.95**)
 
