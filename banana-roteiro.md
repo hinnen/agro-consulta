@@ -745,10 +745,10 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 52. CHECKLIST ÚNICO — ETQ-PRESET-SYNC (03/10 · tip v26.03)
+## 52. CHECKLIST ÚNICO — ETQ-PRESET-SYNC (03/10 · tip v26.04)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-PRESET-SYNC** | 🟢 **pronto para envio à produção** · tip **v26.03** · **15/15** | **NÃO** |
+| 1 | **ETQ-PRESET-SYNC** | 🟢 **pronto para envio à produção** · tip **v26.04** · **25/25** + smoke **23/23** | **NÃO** |
 
-**O quê:** preset alterado num PC agora sobe/baixa na loja (Postgres). **Não sobe loja sem frase+senha.**
+**O quê:** preset alterado num PC sobe/baixa na loja (Postgres). **Não sobe loja sem frase+senha.**

@@ -39,6 +39,23 @@ ok(ui.includes('Arrastar posição tem que ir pro Postgres'), 'drag synca loja')
 ok(ui.includes('syncPresetToServer(p, { silent: true })'), 'reset/drag sync');
 ok(ui.includes('Presets da loja atualizados'), 'status ao puxar loja');
 ok(ui.includes('migrateLocalPresetsToServerOnce(state.storage.presets, { onServer: onServer })'), 'migrate com onServer');
+ok(ui.includes('function endDrag'), 'endDrag existe');
+ok(ui.includes('function resetLayoutAtivo'), 'resetLayoutAtivo existe');
+ok(ui.includes('function syncPresetToServer'), 'syncPresetToServer existe');
+ok(ui.includes('function salvarPresetAtual'), 'salvarPresetAtual existe');
+ok(coreCode.includes('upsertPresetToServer'), 'upsert no core');
+ok((coreCode.match(/redirect:\s*'manual'/g) || []).length >= 2, 'fetch+upsert redirect manual');
+
+const endIdx = ui.indexOf('function endDrag');
+const endBlock = ui.slice(endIdx, endIdx + 900);
+ok(endBlock.includes('syncPresetToServer'), 'endDrag chama sync');
+const resetIdx = ui.indexOf('function resetLayoutAtivo');
+const resetBlock = ui.slice(resetIdx, resetIdx + 900);
+ok(resetBlock.includes('syncPresetToServer'), 'resetLayout chama sync');
+const loadIdx = ui.indexOf('function carregarPresetsDaLoja');
+const loadBlock = ui.slice(loadIdx, loadIdx + 1800);
+ok(loadBlock.includes('onServer'), 'carregarPresets passa onServer');
+ok(loadBlock.includes('mergeServerPresets'), 'carregarPresets faz merge');
 
 const store = {};
 const s = {
