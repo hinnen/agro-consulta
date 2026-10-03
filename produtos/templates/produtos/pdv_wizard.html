@@ -3462,44 +3462,47 @@
     color: #b45309;
   }
   .pdv-product-edit-panel {
-    /* Mesmo tamanho das letras; caixa quase tela cheia — sem scroll interno */
-    --pdv-pe-zoom: 1.25;
-    width: min(calc(98vw / var(--pdv-pe-zoom)), calc(64rem / var(--pdv-pe-zoom)));
-    max-height: calc(98dvh / var(--pdv-pe-zoom));
+    /* Largo / retangular — cabe sem scroll na maioria dos monitores (mesmo com zoom) */
+    --pdv-pe-zoom: 1.08;
+    width: min(calc(99.2vw / var(--pdv-pe-zoom)), calc(96rem / var(--pdv-pe-zoom)));
+    max-height: calc(96dvh / var(--pdv-pe-zoom));
     height: auto;
     zoom: var(--pdv-pe-zoom);
   }
   #pdv-quick-product-edit-overlay {
-    padding: 0.25rem !important;
+    padding: 0.2rem !important;
     align-items: center;
   }
   #pdv-quick-product-edit-overlay #pdv-quick-product-edit-title {
-    font-size: clamp(1.2rem, 0.55vw + 1.05rem, 1.6rem);
-    line-height: 1.15;
+    font-size: clamp(1.1rem, 0.45vw + 0.95rem, 1.45rem);
+    line-height: 1.1;
   }
   #pdv-quick-product-edit-overlay .pdv-product-edit-label {
-    font-size: clamp(0.78rem, 0.3vw + 0.68rem, 0.92rem);
-    letter-spacing: 0.04em;
+    font-size: clamp(0.7rem, 0.22vw + 0.62rem, 0.84rem);
+    letter-spacing: 0.03em;
+    margin-bottom: 0.1rem;
   }
   #pdv-quick-product-edit-overlay .pdv-product-edit-input {
-    min-height: 2.85rem;
-    padding: 0.5rem 0.75rem;
-    font-size: clamp(1.05rem, 0.4vw + 0.92rem, 1.22rem);
+    min-height: 2.45rem;
+    padding: 0.35rem 0.55rem;
+    font-size: clamp(0.95rem, 0.32vw + 0.85rem, 1.12rem);
   }
   #pdv-quick-product-edit-overlay .pdv-product-edit-section-title {
-    margin: 0.35rem 0 0.4rem;
-    font-size: clamp(0.82rem, 0.32vw + 0.72rem, 0.98rem);
+    margin: 0.15rem 0 0.25rem;
+    font-size: clamp(0.74rem, 0.25vw + 0.66rem, 0.88rem);
   }
   #pdv-quick-product-edit-overlay .pdv-product-edit-body {
     flex: 1 1 auto;
     min-height: 0;
-    /* Só rola se abrir Formas A/B em tela bem baixa; formulário padrão cabe sem barra */
+    /* Fallback raro (Formas A/B aberto / tela bem baixa) */
     overflow-y: auto;
+    padding-top: 0.35rem !important;
+    padding-bottom: 0.35rem !important;
   }
   #pdv-quick-product-edit-overlay .pdv-product-edit-form {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.45rem 0.55rem;
+    gap: 0.3rem 0.4rem;
   }
   @media (min-width: 640px) {
     #pdv-quick-product-edit-overlay .pdv-product-edit-form {
@@ -3513,15 +3516,19 @@
     #pdv-quick-product-edit-overlay .pdv-pe-f-custo { grid-column: 1 / 4; }
     #pdv-quick-product-edit-overlay .pdv-pe-f-venda { grid-column: 4 / 7; }
   }
+  /* Extra 1–6 numa linha só (PDV = PC largo) */
   #pdv-quick-product-edit-overlay .pdv-pe-cb-ops-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.4rem 0.5rem;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.25rem 0.3rem;
   }
-  @media (min-width: 640px) {
-    #pdv-quick-product-edit-overlay .pdv-pe-cb-ops-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
+  #pdv-quick-product-edit-overlay .pdv-pe-cb-ops-grid .pdv-product-edit-label {
+    font-size: clamp(0.62rem, 0.15vw + 0.58rem, 0.74rem);
+  }
+  #pdv-quick-product-edit-overlay .pdv-pe-cb-ops-grid .pdv-product-edit-input {
+    min-height: 2.25rem;
+    padding: 0.28rem 0.35rem;
+    font-size: clamp(0.82rem, 0.22vw + 0.75rem, 0.98rem);
   }
   #pdv-pe-etq-modal {
     z-index: 250;
@@ -3530,12 +3537,20 @@
     z-index: 249;
   }
   #pdv-quick-product-edit-overlay .pdv-product-edit-footer-btn {
-    min-height: 3.35rem;
-    font-size: clamp(1.05rem, 0.4vw + 0.92rem, 1.25rem);
+    min-height: 2.85rem;
+    font-size: clamp(0.95rem, 0.32vw + 0.85rem, 1.12rem);
+  }
+  #pdv-quick-product-edit-overlay > .pdv-product-edit-panel > header {
+    padding-top: 0.45rem !important;
+    padding-bottom: 0.45rem !important;
+  }
+  #pdv-quick-product-edit-overlay > .pdv-product-edit-panel > footer {
+    padding-top: 0.45rem !important;
+    padding-bottom: 0.45rem !important;
   }
   /* Estoque: «agora» e «novo» com o mesmo tamanho de número */
   #pdv-quick-product-edit-overlay .pdv-pe-estoque-card {
-    padding: 0.75rem 0.9rem;
+    padding: 0.45rem 0.65rem;
   }
   #pdv-quick-product-edit-overlay .pdv-pe-estoque-tag {
     font-size: clamp(0.75rem, 0.28vw + 0.68rem, 0.88rem);
@@ -3548,9 +3563,9 @@
   }
   #pdv-quick-product-edit-overlay .pdv-pe-estoque-num,
   #pdv-quick-product-edit-overlay input.pdv-pe-estoque-num {
-    font-size: clamp(1.4rem, 0.75vw + 1.2rem, 1.85rem) !important;
+    font-size: clamp(1.15rem, 0.45vw + 1rem, 1.5rem) !important;
     font-weight: 900;
-    line-height: 1.15;
+    line-height: 1.1;
     font-variant-numeric: tabular-nums;
     min-height: 3rem;
   }
@@ -4421,28 +4436,28 @@
           <p class="pdv-product-edit-section-title font-black uppercase tracking-wide text-slate-600">Códigos já cadastrados <span class="font-semibold normal-case text-slate-500">(até 6 · principal incluso)</span></p>
           <div class="pdv-pe-cb-ops-grid">
             <label class="pdv-product-edit-field min-w-0">
-              <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Extra 1</span>
-              <input id="pdv-quick-product-edit-cb-op-1" type="text" inputmode="numeric" maxlength="22" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off">
+              <span class="pdv-product-edit-label block font-black uppercase text-slate-500">1</span>
+              <input id="pdv-quick-product-edit-cb-op-1" type="text" inputmode="numeric" maxlength="22" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off" title="Código 1">
             </label>
             <label class="pdv-product-edit-field min-w-0">
-              <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Extra 2</span>
-              <input id="pdv-quick-product-edit-cb-op-2" type="text" inputmode="numeric" maxlength="22" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off">
+              <span class="pdv-product-edit-label block font-black uppercase text-slate-500">2</span>
+              <input id="pdv-quick-product-edit-cb-op-2" type="text" inputmode="numeric" maxlength="22" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off" title="Código 2">
             </label>
             <label class="pdv-product-edit-field min-w-0">
-              <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Extra 3</span>
-              <input id="pdv-quick-product-edit-cb-op-3" type="text" inputmode="numeric" maxlength="22" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off">
+              <span class="pdv-product-edit-label block font-black uppercase text-slate-500">3</span>
+              <input id="pdv-quick-product-edit-cb-op-3" type="text" inputmode="numeric" maxlength="22" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off" title="Código 3">
             </label>
             <label class="pdv-product-edit-field min-w-0">
-              <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Extra 4</span>
-              <input id="pdv-quick-product-edit-cb-op-4" type="text" inputmode="numeric" maxlength="22" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off">
+              <span class="pdv-product-edit-label block font-black uppercase text-slate-500">4</span>
+              <input id="pdv-quick-product-edit-cb-op-4" type="text" inputmode="numeric" maxlength="22" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off" title="Código 4">
             </label>
             <label class="pdv-product-edit-field min-w-0">
-              <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Extra 5</span>
-              <input id="pdv-quick-product-edit-cb-op-5" type="text" inputmode="numeric" maxlength="22" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off">
+              <span class="pdv-product-edit-label block font-black uppercase text-slate-500">5</span>
+              <input id="pdv-quick-product-edit-cb-op-5" type="text" inputmode="numeric" maxlength="22" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off" title="Código 5">
             </label>
             <label class="pdv-product-edit-field min-w-0">
-              <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Extra 6</span>
-              <input id="pdv-quick-product-edit-cb-op-6" type="text" inputmode="numeric" maxlength="22" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off">
+              <span class="pdv-product-edit-label block font-black uppercase text-slate-500">6</span>
+              <input id="pdv-quick-product-edit-cb-op-6" type="text" inputmode="numeric" maxlength="22" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off" title="Código 6">
             </label>
           </div>
         </div>
