@@ -745,10 +745,12 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 52. CHECKLIST ÚNICO — ETQ-PRESET-SYNC (03/10 · tip v26.04)
+## 52. CHECKLIST ÚNICO — ETQ-PRESET-SYNC · 🟢 PREP pronto (alvo v26.04)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-PRESET-SYNC** | 🟢 **pronto para envio à produção** · tip **v26.04** · **25/25** + smoke **23/23** | **NÃO** |
+| 1 | **ETQ-PRESET-SYNC** | 🟢 **PREP pronto** · `deploy/prep-etq-preset-sync` · **25/25** + smoke **23/23** · **PREP_FAILS=0** | **NÃO** |
 
-**O quê:** preset alterado num PC sobe/baixa na loja (Postgres). **Não sobe loja sem frase+senha.**
+**O quê:** preset num PC sobe/baixa na loja (Postgres). Só `/produtos/etiquetas/`.  
+**Rollback:** tag `rollback/pre-etq-preset-sync-v26.02` · `docs/ROLLBACK-ETQ-PRESET-SYNC.md`.  
+**Próximo chat:** pausar vendas · frase + senha → tip PREP em `producao`. **Não** merge `teste`.
