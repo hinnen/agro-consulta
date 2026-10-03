@@ -1,0 +1,152 @@
+{# Modal: digitar centro ou vila para confirmar troca de loja (teclado-safe no celular). #}
+<div id="agro-loja-confirm-modal" class="fixed inset-0 z-[160] hidden items-end sm:items-center justify-center bg-slate-900/70 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4" role="dialog" aria-modal="true" aria-labelledby="agro-loja-confirm-title" style="padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px) + var(--ma-kb-inset, 0px));">
+  <div class="w-full max-w-md rounded-2xl border-2 border-amber-400 bg-white p-5 shadow-2xl max-h-[min(85dvh,36rem)] overflow-y-auto">
+    <p id="agro-loja-confirm-title" class="text-[11px] font-black uppercase text-amber-800">Confirmar loja</p>
+    <p id="agro-loja-confirm-msg" class="mt-2 text-base font-bold text-slate-900 leading-snug">Digite a loja para confirmar.</p>
+    <label class="mt-4 block">
+      <span class="text-[10px] font-black uppercase text-slate-600">Digite exatamente: <span id="agro-loja-confirm-palavra" class="text-emerald-700">centro</span></span>
+      <input type="text" id="agro-loja-confirm-input" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" class="mt-1 w-full min-h-[52px] rounded-xl border-2 border-amber-400 bg-amber-50/40 px-4 text-lg font-black tracking-wide" placeholder="centro ou vila">
+    </label>
+    <p id="agro-loja-confirm-erro" class="mt-2 hidden text-sm font-black text-red-700" role="alert">Ainda não está certo — digite exatamente a palavra pedida.</p>
+    <p id="agro-loja-confirm-ok-hint" class="mt-2 hidden text-sm font-black text-emerald-700">Certo. Pode confirmar.</p>
+    <div class="mt-4 flex flex-col sm:flex-row gap-2">
+      <button type="button" id="agro-loja-confirm-ok" class="flex-1 min-h-[52px] rounded-xl bg-emerald-600 text-white font-black uppercase text-sm hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed">Confirmar</button>
+      <button type="button" id="agro-loja-confirm-cancel" class="flex-1 min-h-[52px] rounded-xl border-2 border-slate-300 bg-white text-slate-800 font-black uppercase text-sm hover:bg-slate-50">Cancelar</button>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  if (window.AgroLojaConfirm) return;
+  var CLS_BASE = 'mt-1 w-full min-h-[52px] rounded-xl border-2 px-4 text-lg font-black tracking-wide';
+  var CLS_IDLE = CLS_BASE + ' border-amber-400 bg-amber-50/40';
+  var CLS_OK = CLS_BASE + ' border-emerald-500 bg-emerald-50';
+  var CLS_ERR = CLS_BASE + ' border-red-500 bg-red-50';
+  function norm(t) {
+    return String(t || '').trim().toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ');
+  }
+  function bate(texto, esperado) {
+    var n = norm(texto);
+    var esp = String(esperado || 'centro').toLowerCase();
+    if (esp === 'vila') return n === 'vila' || n === 'vila elias' || n === 'vilas' || n === 'vilaelias';
+    return n === 'centro' || n === 'central' || n === 'loja centro';
+  }
+  function el(id) { return document.getElementById(id); }
+  function lockScroll(on) {
+    try {
+      if (typeof window.maLockScroll === 'function') {
+        window.maLockScroll(!!on);
+        return;
+      }
+    } catch (e0) {}
+    try {
+      document.documentElement.classList.toggle('ma-scroll-lock', !!on);
+      document.body.classList.toggle('ma-modal-open', !!on);
+    } catch (e1) {}
+  }
+  window.AgroLojaConfirm = {
+    bate: bate,
+    pedir: function (opts) {
+      opts = opts || {};
+      var esperado = String(opts.esperado || 'centro').toLowerCase() === 'vila' ? 'vila' : 'centro';
+      var modal = el('agro-loja-confirm-modal');
+      var inp = el('agro-loja-confirm-input');
+      var ok = el('agro-loja-confirm-ok');
+      var cancel = el('agro-loja-confirm-cancel');
+      var err = el('agro-loja-confirm-erro');
+      var okHint = el('agro-loja-confirm-ok-hint');
+      var palavra = el('agro-loja-confirm-palavra');
+      var msg = el('agro-loja-confirm-msg');
+      if (!modal || !inp || !ok) {
+        if (typeof opts.onCancel === 'function') opts.onCancel();
+        return;
+      }
+      if (palavra) palavra.textContent = esperado;
+      if (msg) {
+        msg.textContent = opts.mensagem || (
+          esperado === 'vila'
+            ? 'Vai usar estoque e vendas da VILA ELIAS. Digite vila para confirmar.'
+            : 'Vai usar estoque e vendas do CENTRO. Digite centro para confirmar.'
+        );
+      }
+      inp.value = '';
+      inp.className = CLS_IDLE;
+      if (err) {
+        err.textContent = 'Ainda não está certo — digite exatamente: ' + esperado;
+        err.classList.add('hidden');
+      }
+      if (okHint) okHint.classList.add('hidden');
+      ok.disabled = true;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      lockScroll(true);
+      setTimeout(function () {
+        try {
+          inp.focus({ preventScroll: false });
+          if (typeof inp.scrollIntoView === 'function') {
+            inp.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          }
+        } catch (e0) {}
+      }, 80);
+
+      function limpar() {
+        ok.onclick = null;
+        cancel.onclick = null;
+        inp.oninput = null;
+        inp.onkeydown = null;
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        lockScroll(false);
+      }
+      function mostrarErro() {
+        inp.className = CLS_ERR;
+        if (err) err.classList.remove('hidden');
+        if (okHint) okHint.classList.add('hidden');
+      }
+      function syncOk() {
+        var raw = inp.value;
+        var vazio = !String(raw || '').trim();
+        var certo = bate(raw, esperado);
+        ok.disabled = !certo;
+        if (vazio) {
+          inp.className = CLS_IDLE;
+          if (err) err.classList.add('hidden');
+          if (okHint) okHint.classList.add('hidden');
+          return;
+        }
+        if (certo) {
+          inp.className = CLS_OK;
+          if (err) err.classList.add('hidden');
+          if (okHint) okHint.classList.remove('hidden');
+          return;
+        }
+        mostrarErro();
+      }
+      inp.oninput = syncOk;
+      inp.onkeydown = function (ev) {
+        if (ev.key === 'Enter') {
+          ev.preventDefault();
+          ok.click();
+        } else if (ev.key === 'Escape') {
+          ev.preventDefault();
+          cancel.click();
+        }
+      };
+      ok.onclick = function () {
+        if (!bate(inp.value, esperado)) {
+          mostrarErro();
+          try { inp.focus(); } catch (e1) {}
+          return;
+        }
+        var texto = inp.value;
+        limpar();
+        if (typeof opts.onOk === 'function') opts.onOk(texto);
+      };
+      cancel.onclick = function () {
+        limpar();
+        if (typeof opts.onCancel === 'function') opts.onCancel();
+      };
+    }
+  };
+})();
+</script>

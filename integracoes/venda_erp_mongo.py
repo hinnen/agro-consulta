@@ -5,23 +5,23 @@ from datetime import datetime
 
 
 def _mongo_timeout_ms(key: str, default: int) -> int:
-    """Timeouts em ms; use env no Render se o ERP demorar (médias, estoque). Mínimo 5s."""
+    """Timeouts em ms. Mínimo 1,5s — ERP morto não pode segurar o worker 30s."""
     try:
         n = int(config(key, default=str(default), cast=int))
     except (TypeError, ValueError):
         return default
-    return max(5000, min(n, 600_000))
+    return max(1500, min(n, 600_000))
 
 
 class VendaERPMongoClient:
     def __init__(self):
         self.uri = config("VENDA_ERP_MONGO_URL")
 
-        # Padrões mais tolerantes para nuvem (Render → Mongo ERP). Sobrescreva no .env se precisar.
-        # AGRO_MONGO_SERVER_SELECTION_TIMEOUT_MS, AGRO_MONGO_CONNECT_TIMEOUT_MS, AGRO_MONGO_SOCKET_TIMEOUT_MS
-        sel_ms = _mongo_timeout_ms("AGRO_MONGO_SERVER_SELECTION_TIMEOUT_MS", 30_000)
-        conn_ms = _mongo_timeout_ms("AGRO_MONGO_CONNECT_TIMEOUT_MS", 20_000)
-        sock_ms = _mongo_timeout_ms("AGRO_MONGO_SOCKET_TIMEOUT_MS", 120_000)
+        # Curtos: ERP cancelado / auth fail não pode segurar o Gunicorn.
+        # Sobrescreva no Render: AGRO_MONGO_*_TIMEOUT_MS
+        sel_ms = _mongo_timeout_ms("AGRO_MONGO_SERVER_SELECTION_TIMEOUT_MS", 3_000)
+        conn_ms = _mongo_timeout_ms("AGRO_MONGO_CONNECT_TIMEOUT_MS", 3_000)
+        sock_ms = _mongo_timeout_ms("AGRO_MONGO_SOCKET_TIMEOUT_MS", 8_000)
 
         self.client = MongoClient(
             self.uri,

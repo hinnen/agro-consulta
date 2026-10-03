@@ -2,12 +2,14 @@ from django.contrib import admin
 
 from .models import (
     ClienteAgro,
+    ClienteAgroEventoAgro,
     FiadoBaixaAgro,
     FiadoEventoAgro,
     FiadoTituloAgro,
     ItemVendaAgro,
     MovimentoCaixa,
     OpcaoBaixaFinanceiroExtra,
+    PlanoContaAgro,
     Produto,
     SessaoCaixa,
     VendaAgro,
@@ -58,19 +60,46 @@ class ClienteAgroAdmin(admin.ModelAdmin):
     list_filter = ("ativo", "origem_import", "editado_local")
 
 
+@admin.register(ClienteAgroEventoAgro)
+class ClienteAgroEventoAgroAdmin(admin.ModelAdmin):
+    list_display = ("id", "tipo", "cliente_nome_snap", "usuario", "criado_em")
+    list_filter = ("tipo",)
+    search_fields = ("cliente_nome_snap", "destino_nome_snap", "usuario")
+    readonly_fields = (
+        "tipo",
+        "cliente_agro",
+        "cliente_pk_snap",
+        "cliente_nome_snap",
+        "destino_agro",
+        "destino_pk_snap",
+        "destino_nome_snap",
+        "payload_json",
+        "usuario",
+        "pin_operador",
+        "origem_tela",
+        "criado_em",
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+
 @admin.register(SessaoCaixa)
 class SessaoCaixaAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "ponto_caixa",
         "usuario",
+        "usuario_fechamento",
         "aberto_em",
         "valor_abertura",
+        "diferenca_abertura",
         "fechado_em",
         "valor_fechamento",
     )
     list_filter = ("fechado_em", "ponto_caixa")
     readonly_fields = ("aberto_em", "conferencia_fechamento")
+    raw_id_fields = ("usuario", "usuario_fechamento", "sessao_principal")
 
 
 class MovimentoCaixaInline(admin.TabularInline):
@@ -92,6 +121,7 @@ class VendaAgroAdmin(admin.ModelAdmin):
         "criado_em",
         "cliente_nome",
         "total",
+        "deposito",
         "sessao_caixa",
         "erp_sync_status",
         "enviado_erp",
@@ -99,13 +129,14 @@ class VendaAgroAdmin(admin.ModelAdmin):
         "forma_pagamento",
         "usuario_registro",
     )
-    list_filter = ("enviado_erp", "erp_sync_status", "estoque_baixa_agro_aplicada")
+    list_filter = ("enviado_erp", "erp_sync_status", "estoque_baixa_agro_aplicada", "deposito")
     search_fields = ("cliente_nome", "cliente_id_erp", "cliente_documento")
     readonly_fields = (
         "cliente_nome",
         "cliente_id_erp",
         "cliente_documento",
         "total",
+        "deposito",
         "forma_pagamento",
         "erp_sync_status",
         "enviado_erp",
@@ -240,3 +271,11 @@ class OpcaoBaixaFinanceiroExtraAdmin(admin.ModelAdmin):
     list_filter = ("tipo",)
     search_fields = ("nome", "id_erp", "usuario__username")
     raw_id_fields = ("usuario",)
+
+
+@admin.register(PlanoContaAgro)
+class PlanoContaAgroAdmin(admin.ModelAdmin):
+    list_display = ("id", "nome", "tipo", "grupo", "exibir_pdv", "ativo", "atualizado_em")
+    list_filter = ("tipo", "exibir_pdv", "ativo")
+    search_fields = ("nome", "grupo")
+    list_editable = ("exibir_pdv", "ativo")

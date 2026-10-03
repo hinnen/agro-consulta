@@ -1,0 +1,124 @@
+# Teste local (PC do Renan) — a partir de 22/07/2026
+
+**Regra:** validar no **Chrome em `http://127.0.0.1:8000`**.  
+**Não** depender do Render teste (dorme no free).  
+**Produção** só depois que você testou local **e** mandou frase + senha.
+
+## 0. Site local «lento pra desgraça»?
+
+**Causa nº 1 (medida no seu PC):** `.env` com `DATABASE_URL` do Postgres staging no **Oregon (EUA)**.  
+Cada consulta simples leva **~300–600 ms**. Uma tela com 5–10 consultas = **vários segundos**. Antes (SQLite no disco) era quase instantâneo — não é «falta de cache», é **latência Brasil ↔ Oregon**.
+
+### Catálogo cheio + rápido (congelado no PC)
+
+1. Assistente copia o catálogo **uma vez** do Oregon → SQLite (`db.sqlite3`).
+2. **Comenta** `DATABASE_URL` no `.env` (fica `#DATABASE_URL=...`).
+3. Você **reinicia** o `runserver` → Ctrl+F5.
+
+Resultado: ~3300 produtos **no PC**, **rápido**, **não atualiza sozinho**.  
+Quando quiser atualizar: peça *«atualiza o catálogo local»*.
+
+| Modo | Velocidade | Dados |
+|------|------------|--------|
+| SQLite local (snapshot) | Rápido | Catálogo cheio congelado |
+| Oregon ao vivo (`DATABASE_URL` ligado) | Lento | Sempre atualizado |
+
+Mongo já está desligado (`AGRO_MONGO_ERP_DESLIGADO=true`) — **não** é timeout de Mongo.
+
+Repo na pasta **OneDrive** também atrasa um pouco (sync); o Oregon era o que matava.
+
+## 1. Uma vez (se ainda não tiver)
+
+No PowerShell, pasta do repo `agro-consulta`:
+
+```powershell
+cd C:\Users\RenanHinnen\OneDrive\Documentos\GitHub\agro-consulta
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+Arquivo `.env` (já existe aí): para espelhar a loja sem Mongo morto, confira:
+
+```env
+AGRO_FONTE_CATALOGO=agro_pg
+AGRO_FONTE_FINANCEIRO=agro_pg
+AGRO_MONGO_ERP_DESLIGADO=true
+AGRO_PDV_VENDA_SEM_MONGO_ERP=true
+```
+
+- **Sem** `DATABASE_URL` → Django usa **SQLite** (`db.sqlite3`) — bom para UI/fluxo.
+- **Com** `DATABASE_URL` de um Postgres **só seu** (nunca o da loja) → dados mais parecidos com staging.
+
+**Nunca** coloque o `DATABASE_URL` da loja no `.env` local.
+
+## 2. Subir o site no PC
+
+```powershell
+cd C:\Users\RenanHinnen\OneDrive\Documentos\GitHub\agro-consulta
+.\.venv\Scripts\Activate.ps1
+python manage.py migrate
+python manage.py runserver
+```
+
+Abra: **http://127.0.0.1:8000/**  
+Login: usuário Django local (superuser). Se não tiver:
+
+```powershell
+python manage.py createsuperuser
+```
+
+## 3. Catálogo vazio / só 2 produtos «TESTE»
+
+Local usa **SQLite** (`db.sqlite3`) — **não** vem com os ~3000 da loja. Isso é esperado.
+
+### Jeito mais rápido (recomendado)
+
+1. No Render → serviço **Postgres do staging** (não o `agro-db` da loja) → **External Database URL**.
+2. No `.env` local, **temporário**:
+
+```env
+DATABASE_URL=postgres://...url-externa-do-STAGING...
+AGRO_FONTE_CATALOGO=agro_pg
+AGRO_MONGO_ERP_DESLIGADO=true
+```
+
+3. Pare o `runserver`, suba de novo, **Ctrl+F5**.  
+4. Busca deve achar milho/sache como no staging.
+
+**Atenção:** staging no **Oregon** = local **lento** (ver §0). Use só quando precisar do catálogo cheio.
+
+**Proibido:** colar o `DATABASE_URL` da **loja** (`agro-db` produção) no local (risco de gravar na loja).
+
+### Alternativa sem Postgres staging
+
+Na **loja** (ou staging acordado): Cadastro → **Excel ↓** (todas colunas) → no local: **Excel ↑**.
+
+### Depois de popular
+
+Limpe o cache do pacote no Chrome (F12 → Application → Local Storage) se a busca ainda mostrar só «TESTE»:
+
+```javascript
+localStorage.removeItem('agro_bca_pacote_v1');
+localStorage.removeItem('agro_pdv_catalog_cache_v2');
+location.reload();
+```
+
+## 4. O que testar (checklist curto)
+
+| Tela | Ok se… |
+|------|--------|
+| PDV | PIN abre, busca produto responde |
+| Cadastro | busca não fica minutos em «Buscando…» |
+| Entrada NF | **Ler XML** não dá «Erro de rede» por Mongo |
+| `/api/agro/fonte-status/` | `mongo_erp_desligado: true`, `catalogo_postgres: true` |
+
+## 5. Fluxo com o assistente
+
+1. Assistente **implementa** e deixa commit na branch `teste` (ou worktree).  
+2. **Você** roda local e valida.  
+3. Só então: *«pode subir para produção»* + senha — se quiser loja.  
+4. Push no Render **teste** = **opcional** e **só se você pedir** (não é mais o gate padrão).
+
+## 6. Se o local «parecer ok» e a loja diferente
+
+Costuma ser: env diferente (`AGRO_FONTE_*`), banco vazio no SQLite, ou pacote que ainda não subiu na loja. Conferir `VERSION` e `/api/agro/fonte-status/` nos dois lados.
