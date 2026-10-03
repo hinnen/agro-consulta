@@ -1292,7 +1292,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Branch PREP** | `deploy/prep-checklist-0310` · tip `7cbb95ac` · base Live **v25.86** @ `f540081c` |
+| **Branch PREP** | `deploy/prep-checklist-0310` · tip `3505e17b` · base Live **v25.86** @ `f540081c` |
 | **Alvo loja** | **v25.99** |
 | **Migrate** | **NÃO** |
 | **Merge `teste`?** | **NÃO** — só cherry deste PREP |
