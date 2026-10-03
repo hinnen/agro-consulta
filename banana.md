@@ -424,7 +424,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Regras UX jÃ¡ decididas:**
 
-- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · loja v20.22 · hotfix chat v20.33 · `PIN-VENDA-10S` tip v21.32 · **bug #26** `PIN-VENDA-45S` · **bug #28** retenta pós-PIN **Live v25.35** · catch **v25.36** 🟢 pronto envio):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · Pedir/chat/venda **~45s** na mesma ação · **após fechar venda** zera fresco (próxima pede PIN) · entrega paga / pendente ~120s · erro «precisa PIN» abre teclado e **retenta** · descanso ~3 min · abrir PDV sem PIN.
+- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · loja v20.22 · hotfix chat v20.33 · `PIN-VENDA-10S` tip v21.32 · **bug #26** `PIN-VENDA-45S` · **bug #28** retenta pós-PIN **Live v25.35** · catch **Live v25.75** · **entrega+loja** `BUG-28-ENT-LOJA-PIN` **v25.92** 🟢 pronto envio):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · Pedir/chat/venda **~45s** na mesma ação · **após fechar venda** zera fresco (próxima pede PIN) · entrega paga / pendente ~120s · erro «precisa PIN» abre teclado e **retenta** · **não** zerar PIN no meio (antes de registrar entrega) · descanso ~3 min · abrir PDV sem PIN.
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08 · **Mais ⋯** 31/08 · `PDV-TOPBAR-MAIS` v20.34 · **layout** 31/08 · `PDV-TOPBAR-LAYOUT`):** faixa quente padrão = Pedir loja · Vendas · Uso loja · Entregas · Caixa · **Fiado** · Nova venda (Pedir/Uso = cinza slate; **Mais ⋯** laranja destaque). **Mais ⋯** = Saldo Vila · Repasse · Pesar · PIN + **Organizar atalhos** (quente/frio em Postgres `PdvTopbarLayoutAgro` · migrate `0110` · PIN ao salvar). Contagem diária PG (`0107`). **Ícone WhatsApp** na faixa de ações (ao lado de Nova venda) → aviso **Em breve…** (`PDV-WA-TOPBAR-BREVE`).
@@ -1295,6 +1295,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🩹 BUG #28 — PIN loop em entrega + pagar na loja (`BUG-28-ENT-LOJA-PIN`) · **v25.92** · 03/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Sintoma** | Entrega → pagamento na loja → Confirmar → pede PIN → digita → pede de novo (não fecha) |
+| **Causa** | Venda ERP/Point **zerava o PIN no meio**; em seguida `api_entrega_registrar` pedia PIN de novo → loop |
+| **Fix** | Não zerar PIN na resposta da venda/Point; PDV zera **só no fim** (`gmSspinExpirarFrescoAposVenda`) |
+| **Prova** | `verify_bug28_entrega_loja_pin_path.py` **10/10** · bug26 **19/19** · catch **14/14** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio** · teste **v25.92** · loja **só** frase+senha |
+| **Você** | Ctrl+F5 · Entrega → pagar na loja → forma → Confirmar → PIN 1× → venda fecha |
+
 ### PACOTE PRONTO — EAN loja 230… laser (`ETQ-EAN-LOJA`)
 
 | Campo | Valor |
@@ -1313,16 +1325,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- |
 | 1 | **ETQ-EAN-LOJA** | 🟢 **pronto para envio** · **74/74** | **NÃO** |
 
-### PACOTE WIP — PDV edição: barras extras + etiqueta (`PDV-EDIT-CB-ETQ`)
+### PACOTE PRONTO — PDV edição: barras + etiqueta (`PDV-EDIT-CB-ETQ`)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Lápis PDV: **Adicionar código** (topo) sempre vazio → vira **adicional** (não mexe no principal). Extra 1–6 = códigos já no cadastro (principal aparece na lista). **Etiqueta** com preset. |
-| **Prova** | `scripts/verify_pdv_edicao_barras_etq_path.py` |
+| **O quê** | Lápis PDV: **Adicionar código** vazio (só soma adicional). Códigos 1–6 numa linha (principal incluso). Overlay largo, rodapé visível. **Etiqueta** → preset Postgres + imprimir. |
+| **Prova** | `verify_pdv_edicao_barras_etq_path.py` **74/74** · smoke local: overlay + modal etiqueta com 7 presets |
 | **Migrate** | **NÃO** |
 | **Mexe** | `pdv_wizard.html` · `pdv_wizard.js` · `api_pdv_produto_edicao_rapida` · core etiquetas no PDV |
-| **Status** | 🟢 **teste v25.90** — layout largo + barras 1 linha · prova **28/28** · validar no PC · loja **só** frase+senha |
-| **Você** | Ctrl+F5 `/pdv/` · lápis · ver se cabe sem scroll · bipar «Adicionar código» · Etiqueta |
+| **Status** | 🟢 **pronto para envio** · teste **v25.92** · loja **só** frase+senha |
+| **Você** | Ctrl+F5 `/pdv/` · lápis · bipar novo · Etiqueta → preset → Imprimir |
+
+### CHECKLIST ÚNICO — PDV-EDIT-CB-ETQ
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-EDIT-CB-ETQ** | 🟢 **pronto para envio** · **74/74** | **NÃO** |
 
 ### PACOTE — etiqueta da nota sem código interno (`NF-ETQ-NOME-CADASTRO`)
 

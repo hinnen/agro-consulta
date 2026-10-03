@@ -87,13 +87,13 @@ MP_POINT_OPERADOR_KEY = "mp_point_operador"
 
 
 def _mp_point_expirar_pin_apos_venda(request) -> None:
-    """Venda Point gravada → próxima ação pede PIN (igual api_enviar_pedido_erp)."""
-    try:
-        from produtos.pdv_transf_loja_util import expirar_operador_pdv_fresco
+    """No-op: não zerar PIN no meio da confirmação.
 
-        expirar_operador_pdv_fresco(request)
-    except Exception:
-        pass
+    Depois do finalize Point o PDV ainda pode registrar entrega (pagamento na loja).
+    Zerar aqui causava loop «precisa PIN» (bug #28 entrega-loja). O wizard expira
+    no fim com gmSspinExpirarFrescoAposVenda.
+    """
+    return
 
 
 def _mp_point_carimbar_operador(request, erp_payload: dict) -> None:
