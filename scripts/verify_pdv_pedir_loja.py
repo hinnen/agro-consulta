@@ -78,7 +78,9 @@ def main() -> int:
     check("overlay_saldo_pills", "Saldo Centro" in js and "Saldo Vila" in js)
     check("overlay_abas_completas", "Recebidos" in html and "Histórico" in html)
     check("overlay_obs_visivel", 'id="pdv-pedir-loja-obs"' in html)
-    check("js_btn_rosa", "pdv-wiz-topbar-btn--rose" in js)
+    check("js_btn_slate", "pdv-wiz-topbar-btn--slate" in js)
+    # legado rose removido do botão Pedir loja (topbar cinza)
+    check("js_btn_nao_rosa_base", "pdv-wiz-topbar-btn--rose relative" not in js)
     check("overlay_ajuda_larga", "Ajuda" in html)
     check("js_tirar_x", 'aria-label="Tirar da lista"' in js)
     check("js_status_sem_estoque", "transferir" in js and "aceitar" in js)
@@ -98,6 +100,14 @@ def main() -> int:
     check("js_sem_window_confirm", "window.confirm" not in js)
     check("js_ajuste_busca", "abrirAjuste" in js and "apiPdvTransfLojaAjustar" in js and "data-pl-aj" in js)
     check("js_aviso_pos_pin", "abrirTemPedido" in js and "aposPin" in js)
+    # Popup «tem pedido» só após PIN do Pedir loja — não no evento global (chat/venda).
+    _sspin_idx = js.find("gm-sspin-operador")
+    _sspin_chunk = js[_sspin_idx : _sspin_idx + 280] if _sspin_idx >= 0 else ""
+    check(
+        "js_sspin_sem_aviso_tem_pedido",
+        "gm-sspin-operador" in js and "aposPin" not in _sspin_chunk,
+    )
+    check("js_abrir_pin_com_aviso", "abrirPin" in js and "refreshResumo({ aposPin: true })" in js)
     check("js_cupom_80mm", "imprimirCupomSeparacao" in js and "SEPARAÇÃO" in js)
     check(
         "js_etq_53",

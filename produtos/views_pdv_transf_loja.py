@@ -38,6 +38,13 @@ def _payload(request) -> dict | None:
 def _loja_atual(request, payload=None) -> str:
     if payload and payload.get("loja"):
         return normalizar_deposito(payload.get("loja"))
+    get_loja = ""
+    try:
+        get_loja = str(request.GET.get("loja") or "").strip()
+    except Exception:
+        get_loja = ""
+    if get_loja:
+        return normalizar_deposito(get_loja)
     boot = bootstrap_deposito(request)
     return normalizar_deposito(boot.get("deposito") or "centro")
 

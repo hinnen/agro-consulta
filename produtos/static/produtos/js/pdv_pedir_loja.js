@@ -141,13 +141,22 @@
     } catch (e) {}
   }
 
+  function uiPedirSemAlerta() {
+    return !!(dom.btnOpen && !dom.btnOpen.classList.contains('pdv-wiz-topbar-btn--pedir-loja-alerta'));
+  }
+
   function syncBeepPendentes(n) {
     pendentesBeep = Number(n || 0);
     if (pendentesBeep > 0) {
       if (!beepTimer) {
         plBeep();
         beepTimer = setInterval(function () {
-          if (pendentesBeep > 0) plBeep();
+          /* Defesa: badge sumiu e timer ficou preso (ex. enviar pedido sem syncBeep). */
+          if (pendentesBeep <= 0 || uiPedirSemAlerta()) {
+            syncBeepPendentes(0);
+            return;
+          }
+          plBeep();
         }, 60000);
       }
     } else if (beepTimer) {
@@ -347,20 +356,17 @@
     opts = opts || {};
     var url = urls.apiPdvTransfLojaResumo;
     if (!url) return;
+    url +=
+      (url.indexOf('?') >= 0 ? '&' : '?') + 'loja=' + encodeURIComponent(depositoAtual());
     fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
       .then(function (r) {
         return r.json();
       })
       .then(function (d) {
         if (!d || !d.ok) return;
-        var n = Number(d.recebidos_abertos || 0);
-        var pend = Number(
-          d.recebidos_pendentes != null ? d.recebidos_pendentes : d.recebidos_abertos || 0
-        );
-        applyBadge(n);
-        syncBeepPendentes(pend);
+        var counts = applyResumoCounts(d);
         setPinAviso(!!d.precisa_pin);
-        if (opts.aposPin && !d.precisa_pin && n > 0) abrirTemPedido(n);
+        if (opts.aposPin && !d.precisa_pin && counts.n > 0) abrirTemPedido(counts.n);
       })
       .catch(function () {});
   }
@@ -800,7 +806,7 @@
         cart = [];
         if (dom.obs) dom.obs.value = '';
         renderCart();
-        applyBadge(res.data.recebidos_abertos || 0);
+        applyResumoCounts(res.data);
         setStatus(res.data.mensagem || 'Pedido enviado.');
         setAba('enviados');
       })
@@ -1143,7 +1149,12 @@
     var url = urls.apiPdvTransfLojaLista;
     if (!url || !dom.lista) return;
     dom.lista.innerHTML = '<p class="py-6 text-center text-sm font-bold text-slate-500">Carregando…</p>';
-    fetch(url + '?aba=' + encodeURIComponent(qual), {
+    var qs =
+      '?aba=' +
+      encodeURIComponent(qual) +
+      '&loja=' +
+      encodeURIComponent(depositoAtual());
+    fetch(url + qs, {
       credentials: 'same-origin',
       headers: { Accept: 'application/json' },
     })
@@ -1155,10 +1166,7 @@
           dom.lista.innerHTML = '<p class="text-sm font-bold text-red-700">Não carregou a lista.</p>';
           return;
         }
-        applyBadge(d.recebidos_abertos || 0);
-        syncBeepPendentes(
-          d.recebidos_pendentes != null ? d.recebidos_pendentes : d.recebidos_abertos || 0
-        );
+        applyResumoCounts(d);
         renderLista(d.itens || []);
       })
       .catch(function () {
@@ -1217,10 +1225,7 @@
           setStatus((res.data && res.data.erro) || 'Não salvou.', true);
           return;
         }
-        applyBadge(res.data.recebidos_abertos || 0);
-        syncBeepPendentes(
-          res.data.recebidos_pendentes != null ? res.data.recebidos_pendentes : res.data.recebidos_abertos || 0
-        );
+        applyResumoCounts(res.data);
         setStatus(res.data.mensagem || 'Ok.');
         carregarLista(aba);
         refreshResumo();
