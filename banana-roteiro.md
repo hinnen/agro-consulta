@@ -709,16 +709,26 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 45. Checklist único — lote 03/10 (deploy/prep-checklist-0310 · alvo loja **v25.95**)
+## 45. Checklist único — lote 03/10 · ✅ **Live v25.99**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-EAN-LOJA** | 🟢 **PREP** · **74/74** | **NÃO** |
-| 2 | **PDV-EDIT-CB-ETQ** | 🟢 **PREP** · **74/74** | **NÃO** |
-| 3 | **BUG-28-ENT-LOJA-PIN** | 🟢 **PREP** · **10/10** | **NÃO** |
-| 4 | **BUG-32-SO-ENT-OUTRA** | 🟢 **PREP** · **8/8** | **NÃO** |
+| 1–7 | ETQ-EAN · PDV-EDIT · BUG-28 · BUG-32 · ETQ-53X30 · PEDIR-ETQ53 · BIP-30 | ✅ **Live v25.99** | **NÃO** |
 
-**Branch:** `deploy/prep-checklist-0310` · base Live **v25.86** @ `f540081c`.  
-**Provas extras:** ent-loja **33/33** · térmica **56/56** · várias **39/39**.  
-**Rollback:** `docs/ROLLBACK-LOTE-CHECKLIST-0310.md` · **só** frase+senha.  
-**Próximo chat:** pausar vendas · frase + senha → tag rollback → push PREP em `producao` → Ctrl+F5. **Não** merge `teste`.
+**Status:** ✅ enviado / Live **v25.99** — `producao` @ `55f8fe79`. **Não** merge `teste`.  
+**Rollback:** tag `rollback/pre-checklist-0310-v25.86` · `docs/ROLLBACK-LOTE-CHECKLIST-0310.md`.
+
+---
+
+## 46. Checklist único — lote 03/10b (`deploy/prep-checklist-0310b` · alvo loja **v26.00**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **ETQ-53-UX** | 🟢 **PREP pronto** · **29/29** + smoke **16/16** | **NÃO** |
+| 2 | **CLIENTE-NOVO-LIMITE-001** | 🟢 **PREP pronto** · **10/10** | **SIM** `0136` |
+
+**O quê:** (1) botão **53×30 mm** + preview/presets na tela de etiquetas. (2) cadastro novo = limite fiado **0,01** (bloqueia até subir); cliente antigo com **0** continua R$ 5.000.  
+**Não mexe:** finalizar venda, caixa, Point, NFC-e.  
+**Branch PREP:** `deploy/prep-checklist-0310b` · tip `277b58c3` · base Live **v25.99** @ `55f8fe79`.  
+**Rollback:** tag `rollback/pre-checklist-0310b-v25.99` · `docs/ROLLBACK-CHECKLIST-0310b.md` · **só** frase+senha.  
+**Próximo chat:** pausar vendas · frase + senha → tip PREP em `producao` → Ctrl+F5 · badge **v26.00**. **Não** merge `teste`.
