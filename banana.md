@@ -1295,6 +1295,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### PACOTE — Pedir loja Etiquetas 53 (`PDV-PEDIR-ETQ53`) · 03/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Em Enviados/Recebidos: botão **Etiquetas 53** ao lado do cupom. Lista compacta na bobina 53×30 (até **6 produtos/etiqueta**) — gambiarra sem cupom 80mm pra separar no estoque. |
+| **Onde** | `pdv_pedir_loja.js` · `pedir_loja_overlay.html` |
+| **Prova** | `verify_pdv_pedir_etq53_path.js` · `verify_pdv_pedir_loja.py` |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 no `teste` · loja **só** frase+senha |
+| **Você** | Ctrl+F5 PDV · Pedir loja · Enviados · **Etiquetas 53** · escolher térmica 53×30 |
+
 ### PACOTE — etiqueta térmica 53×30 (`ETQ-TERMICA-53X30`) · 03/10
 
 | Campo | Valor |

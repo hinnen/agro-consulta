@@ -103,6 +103,15 @@ def main() -> int:
     )
     check("js_abrir_pin_com_aviso", "abrirPin" in js and "refreshResumo({ aposPin: true })" in js)
     check("js_cupom_80mm", "imprimirCupomSeparacao" in js and "SEPARAÇÃO" in js)
+    check(
+        "js_etq_53",
+        "imprimirEtiquetasSeparacao53" in js
+        and "size:53mm 30mm" in js
+        and "LINHAS_POR_ETQ = 6" in js
+        and 'data-pl-acao="etiquetas"' in js
+        and "Etiquetas 53" in js,
+    )
+    check("overlay_btn_etq", "pl-btn--etq" in html)
     check("js_qtd_envio", "lerQtdsDoCard" in js and "pl-item-qtd" in js and "podeEditarQtd" in js)
     check("js_pedido_escrito", "addCartLivre" in js and "livre:" in js and "pdv-pedir-loja-livre" in html)
     check("js_escrito_embaixo", "pl-escrito-bar" in html and "garantirItensAntesDeEnviar" in js)
