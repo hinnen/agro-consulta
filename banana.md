@@ -546,6 +546,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 ### 4.5 Clientes
 
 - Cadastro local: `ClienteAgro` (Postgres).
+- **Limite fiado novo (`CLIENTE-NOVO-LIMITE-001`):** cadastro novo = **R$ 0,01** (bloqueia fiado no PDV). **0** no campo = padrão loja R$ 5.000. 🟢 pronto envio · migrate `0136`.
 - Sync ERP/Mongo â†’ Agro: `produtos/services_clientes_sync.py`, botÃ£o na lista, comando `sincronizar_clientes_agro`.
 - `**editado_local=True` nÃ£o Ã© sobrescrito** na sync.
 - PDV lista/busca clientes **sÃ³ no Agro** (`api/listar-clientes/`, `api/buscar-clientes/`).
@@ -1287,6 +1288,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### PACOTE PRONTO — cliente novo limite fiado 0,01 (`CLIENTE-NOVO-LIMITE-001`) · 03/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Cadastro novo (form, PDV rápido, sync/default) nasce com **R$ 0,01** — PDV **não** usa R$ 5.000. **0** no campo = padrão loja (legado/import). |
+| **Prova** | `verify_cliente_fonte_unica_path.py` **10/10** · form/API/sync runtime **OK** · PIN **9973** · migrate local **0136** OK |
+| **Migrate** | **SIM** `0136_clienteagro_limite_fiado_default_001` |
+| **Commit** | `778af4f4` (já no `teste`) |
+| **Status** | 🟢 **pronto para envio** · loja **só** frase+senha |
+| **Rollback** | `docs/ROLLBACK-CLIENTE-LIMITE-INICIAL-001.md` |
+| **Você** | Ctrl+F5 · cadastrar cliente novo · limite deve ser **0,01** (fiado bloqueado até subir) |
+
+### ✅ CHECKLIST ÚNICO — CLIENTE-NOVO-LIMITE-001 · 🟢 pronto envio
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CLIENTE-NOVO-LIMITE-001** | 🟢 **pronto para envio** | **SIM** `0136` | **10/10** + runtime OK |
 
 ### PACOTE — etiquetas 53×30 óbvio + presets sumidos (`ETQ-53-UX`) · 03/10
 
