@@ -1289,16 +1289,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🔧 WIP — Limite fiado atualiza sem reabrir PDV (`PDV-FIADO-LIMITE-REFRESH` · 03/10)
+### 📦 PACOTE PRONTO — Limite fiado atualiza sem reabrir PDV (`PDV-FIADO-LIMITE-REFRESH` · **v26.05**)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ no **`teste`** · **v26.05** · prova **13/13** · Renan valida no **PC local** (Ctrl+F5 no PDV) |
-| **O quê** | Mudou o limite do cliente → PDV lia cache velho e bloqueava até fechar/abrir. Agora força refresh ao escolher Fiado / lançar / confirmar / voltar à aba. |
-| **Arquivos** | `pdv_wizard.js` · `scripts/verify_pdv_fiado_limite_refresh_path.py` |
+| **O quê** | Mudou o limite → PDV lia cache velho e bloqueava até fechar/abrir. Agora busca de novo ao escolher Fiado / lançar / confirmar / voltar o foco. |
+| **Prova** | `scripts/verify_pdv_fiado_limite_refresh_path.py` **39/39** · PIN **9973** · regressão card **39/39** · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
-| **Loja** | **ainda não** — só com frase + senha depois do teste local |
-| **Você** | No PDV: cliente com limite baixo → sobe o limite (card ou `/fiado/`) → tenta Fiado de novo **sem** fechar o PDV |
+| **Mexe** | `pdv_wizard.js` (+ script de prova) |
+| **Status** | 🟢 **pronto para envio à produção** · no **`teste`** @ **v26.05** · loja ainda **v26.02** |
+| **Antes** | Live **v26.02** · `producao` @ `f7ef7844` |
+| **Você** | Ctrl+F5 PDV → sobe limite → Fiado de novo **sem** fechar o PDV |
+
+### 🟢 CHECKLIST ÚNICO — PDV-FIADO-LIMITE-REFRESH · pronto para envio · alvo **v26.05**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-FIADO-LIMITE-REFRESH** | 🟢 **pronto para envio à produção** | **NÃO** | **39/39** |
 
 ### 🚀 PREP deploy loja — ETQ-PRESET-SYNC (`deploy/prep-etq-preset-sync` · alvo **v26.04**) · aguarda senha
 

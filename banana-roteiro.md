@@ -754,3 +754,15 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **O quê:** preset num PC sobe/baixa na loja (Postgres). Só `/produtos/etiquetas/`.  
 **Rollback:** tag `rollback/pre-etq-preset-sync-v26.02` · `docs/ROLLBACK-ETQ-PRESET-SYNC.md`.  
 **Próximo chat:** pausar vendas · frase + senha → tip PREP em `producao`. **Não** merge `teste`.
+
+---
+
+## 53. CHECKLIST ÚNICO — PDV-FIADO-LIMITE-REFRESH · 🟢 pronto para envio (alvo v26.05)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-FIADO-LIMITE-REFRESH** | 🟢 **pronto para envio à produção** · `teste` **v26.05** · prova **39/39** · **PREP_FAILS=0** | **NÃO** |
+
+**O quê:** mudar limite do cliente no PDV passa a valer na hora (sem fechar/abrir).  
+**Não mexe:** caixa, Point, NFC-e, estoque.  
+**Loja ainda:** **v26.02**. **Não** merge `teste`. Só frase + senha.
