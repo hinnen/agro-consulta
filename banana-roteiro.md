@@ -759,6 +759,6 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 **O quê:** `230…` novos = EAN-13 com DV. Legado = mesmo número; impressão EAN forçado (não CODE128). Core **v=26**.  
 **Prova:** `verify_etq_ean_loja_path.py` **74/74** · térmica **56/56** · várias **39/39** · API local OK.  
-**Status:** 🟢 **pronto para envio** · teste **v25.90** · loja **só** frase+senha.  
+**Status:** 🟢 **pronto para envio** · teste **v25.91** · loja **só** frase+senha.  
 **Você:** Ctrl+F5 · reimprimir 1 etiqueta `230…` antiga · bipar laser.
 
