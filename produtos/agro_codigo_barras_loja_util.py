@@ -1,9 +1,12 @@
 """
-Código de barras interno da loja (embalagem no balcão): prefixo 230 + 10 dígitos sequenciais.
-Ex.: 2300000000001, 2300000000002 …
+Código de barras interno da loja (embalagem no balcão): prefixo 230.
 
-São 13 caracteres numéricos, mas **não** EAN-13 de fábrica (sem dígito verificador EAN).
-Na etiqueta SisVale saem como CODE128; no PDV o leitor bipa o número normalmente.
+Formato novo (EAN-13 válido): 230 + 9 dígitos de sequência + dígito verificador.
+Ex.: seq 1572 → 2300000015728 (DV correto).
+
+Formato legado (ainda aceito no cadastro): 230 + 10 dígitos sequenciais sem DV EAN.
+Ex.: 2300000001571 — número NÃO muda; na etiqueta SisVale imprime EAN-13 forçado
+(mesmo dígitos) para o laser 1D ler, sem trocar etiqueta/cadastro em massa.
 """
 
 from __future__ import annotations
@@ -20,28 +23,76 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 CB_LOJA_PREFIX = "230"
-CB_LOJA_SEQ_LEN = 10
+CB_LOJA_SEQ_LEN = 10  # corpo legado (10) / regex 13 dígitos totais
+CB_LOJA_SEQ_LEN_NOVO = 9  # payload EAN-13 novo
 _CB_LOJA_REGEX = re.compile(rf"^{CB_LOJA_PREFIX}\d{{{CB_LOJA_SEQ_LEN}}}$")
 
 
+def ean13_digito_verificador(d12: str) -> int | None:
+    d = re.sub(r"\D", "", str(d12 or ""))
+    if len(d) != 12 or not d.isdigit():
+        return None
+    soma = 0
+    for i, ch in enumerate(d):
+        n = int(ch)
+        soma += n if i % 2 == 0 else n * 3
+    return (10 - (soma % 10)) % 10
+
+
+def ean13_checksum_ok(d13: str) -> bool:
+    d = re.sub(r"\D", "", str(d13 or ""))
+    if len(d) != 13 or not d.isdigit():
+        return False
+    dv = ean13_digito_verificador(d[:12])
+    return dv is not None and str(dv) == d[12]
+
+
 def formatar_codigo_barras_loja(seq: int) -> str:
+    """Próximo código novo: EAN-13 válido (230 + 9 dígitos + DV)."""
     n = max(1, int(seq))
-    return f"{CB_LOJA_PREFIX}{n:0{CB_LOJA_SEQ_LEN}d}"
+    if n > 999_999_999:
+        n = 999_999_999
+    d12 = f"{CB_LOJA_PREFIX}{n:0{CB_LOJA_SEQ_LEN_NOVO}d}"
+    dv = ean13_digito_verificador(d12)
+    assert dv is not None
+    return f"{d12}{dv}"
 
 
 def parsear_seq_codigo_barras_loja(cb: str) -> int | None:
+    """
+    Sequência lógica do código 230….
+    Novo (DV EAN ok) → 9 dígitos centrais; legado → 10 dígitos após 230.
+    """
     d = re.sub(r"\D", "", str(cb or ""))
     if not _CB_LOJA_REGEX.match(d):
         return None
     try:
+        if ean13_checksum_ok(d):
+            return int(d[len(CB_LOJA_PREFIX) : 12])
         return int(d[len(CB_LOJA_PREFIX) :])
     except ValueError:
         return None
 
 
+def _seqs_para_max_alocacao(cb: str) -> list[int]:
+    """Candidatos de seq para achar o próximo livre (legado 10 + novo 9)."""
+    d = re.sub(r"\D", "", str(cb or ""))
+    if not _CB_LOJA_REGEX.match(d):
+        return []
+    out: list[int] = []
+    try:
+        out.append(int(d[len(CB_LOJA_PREFIX) :]))  # leitura 10 dígitos (legado / DV incluso)
+        if ean13_checksum_ok(d):
+            out.append(int(d[len(CB_LOJA_PREFIX) : 12]))  # payload novo 9
+    except ValueError:
+        return []
+    return out
+
+
 def eh_codigo_barras_loja(cb: str) -> bool:
-    """True se for faixa interna 230… (13 dígitos sequenciais da loja)."""
-    return parsear_seq_codigo_barras_loja(cb) is not None
+    """True se for faixa interna 230… (13 dígitos da loja — legado ou EAN novo)."""
+    d = re.sub(r"\D", "", str(cb or ""))
+    return bool(_CB_LOJA_REGEX.match(d))
 
 
 def _cb_loja_ocupado_overlays(cb: str) -> bool:
@@ -84,9 +135,9 @@ def _max_seq_cb_loja_catalogo(db: Database, col: str) -> int:
 
     def bump(cb_raw: object) -> None:
         nonlocal max_seq
-        s = parsear_seq_codigo_barras_loja(str(cb_raw or ""))
-        if s is not None and s > max_seq:
-            max_seq = s
+        for s in _seqs_para_max_alocacao(str(cb_raw or "")):
+            if s > max_seq:
+                max_seq = s
 
     for fld in ("CodigoBarras", "CodigoBarrasProduto"):
         try:
@@ -118,9 +169,9 @@ def _max_seq_cb_loja_postgres() -> int:
 
     def bump(cb_raw: object) -> None:
         nonlocal max_seq
-        s = parsear_seq_codigo_barras_loja(str(cb_raw or ""))
-        if s is not None and s > max_seq:
-            max_seq = s
+        for s in _seqs_para_max_alocacao(str(cb_raw or "")):
+            if s > max_seq:
+                max_seq = s
 
     for cb in Produto.objects.exclude(codigo_barras="").values_list("codigo_barras", flat=True):
         bump(cb)
@@ -156,7 +207,7 @@ def _erro_cb_loja_esgotado() -> tuple[JsonResponse, None]:
 
 
 def alocar_proximo_codigo_barras_loja_postgres() -> tuple[JsonResponse | None, str | None]:
-    """Próximo EAN 230… livre no catálogo Postgres + overlays Agro."""
+    """Próximo EAN-13 230… livre no catálogo Postgres + overlays Agro."""
     n = max(1, _max_seq_cb_loja_postgres() + 1)
     max_steps = 100_000
     steps = 0
@@ -172,7 +223,7 @@ def alocar_proximo_codigo_barras_loja_postgres() -> tuple[JsonResponse | None, s
 def mongo_alocar_proximo_codigo_barras_loja(
     db: Database, col: str
 ) -> tuple[JsonResponse | None, str | None]:
-    """Próximo EAN 230… livre no catálogo (Mongo + overlays Agro)."""
+    """Próximo EAN-13 230… livre no catálogo (Mongo + overlays Agro)."""
     n = max(1, _max_seq_cb_loja_catalogo(db, col) + 1)
     max_steps = 100_000
     steps = 0

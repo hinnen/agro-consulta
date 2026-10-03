@@ -232,7 +232,7 @@
 
   var CB_LOJA_PREFIX_RE = /^230\d{10}$/;
 
-  /** Faixa interna loja (230 + 10 dígitos) — 13 chars mas NÃO é EAN-13 (sem DV EAN). */
+  /** Faixa interna loja 230… (13 dígitos) — legado sem DV ou EAN-13 novo com DV. */
   function ehCodigoBarrasLojaInterno(cb) {
     var d = String(cb || '').replace(/\D/g, '');
     return CB_LOJA_PREFIX_RE.test(d);
@@ -243,10 +243,88 @@
     for (var i = 0; i < cands.length; i++) {
       var cb = String(cands[i] || '').replace(/\D/g, '');
       if (ehCodigoBarrasLojaInterno(cb)) {
-        return { valor: cb, formato: 'CODE128', codigo_loja: true };
+        /* Sempre EAN-13 nas barras (laser 1D). Legado sem DV: ean_force mantém o mesmo número. */
+        return {
+          valor: cb,
+          formato: 'EAN13',
+          codigo_loja: true,
+          ean_force: !ean13ChecksumOk(cb),
+        };
       }
     }
     return null;
+  }
+
+  /** Desenha EAN-13 mesmo com DV “errado” (legado 230…) — JsBarcode recusa; laser costuma bipar. */
+  function encodeEan13Bits(d13) {
+    var d = String(d13 || '').replace(/\D/g, '');
+    if (d.length !== 13) return null;
+    var L = [
+      '0001101', '0011001', '0010011', '0111101', '0100011',
+      '0110001', '0101111', '0111011', '0110111', '0001011',
+    ];
+    var G = [
+      '0100111', '0110011', '0011011', '0100001', '0011101',
+      '0111001', '0000101', '0010001', '0001001', '0010111',
+    ];
+    var R = [
+      '1110010', '1100110', '1101100', '1000010', '1011100',
+      '1001110', '1010000', '1000100', '1001000', '1110100',
+    ];
+    var struct = [
+      'LLLLLL', 'LLGLGG', 'LLGGLG', 'LLGGGL', 'LGLLGG',
+      'LGGLLG', 'LGGGLL', 'LGLGLG', 'LGLGGL', 'LGGLGL',
+    ];
+    var first = parseInt(d.charAt(0), 10);
+    if (!(first >= 0 && first <= 9)) return null;
+    var pat = struct[first];
+    var bits = '101';
+    var i;
+    for (i = 0; i < 6; i++) {
+      var dig = parseInt(d.charAt(i + 1), 10);
+      bits += (pat.charAt(i) === 'G' ? G : L)[dig];
+    }
+    bits += '01010';
+    for (i = 7; i < 13; i++) {
+      bits += R[parseInt(d.charAt(i), 10)];
+    }
+    bits += '101';
+    return bits;
+  }
+
+  function drawEan13ForceSvg(el, d13, opts) {
+    if (!el) return false;
+    var bits = encodeEan13Bits(d13);
+    if (!bits) return false;
+    var bw = Number(opts && opts.width) || 1.5;
+    var bh = Number(opts && opts.height) || 40;
+    var ml = Number(opts && opts.marginLeft) || 10;
+    var mr = Number(opts && opts.marginRight) || 10;
+    var totalW = ml + bits.length * bw + mr;
+    var NS = 'http://www.w3.org/2000/svg';
+    while (el.firstChild) el.removeChild(el.firstChild);
+    el.setAttribute('width', String(totalW));
+    el.setAttribute('height', String(bh));
+    el.setAttribute('viewBox', '0 0 ' + totalW + ' ' + bh);
+    var bg = document.createElementNS(NS, 'rect');
+    bg.setAttribute('width', String(totalW));
+    bg.setAttribute('height', String(bh));
+    bg.setAttribute('fill', '#ffffff');
+    el.appendChild(bg);
+    var x = ml;
+    for (var i = 0; i < bits.length; i++) {
+      if (bits.charAt(i) === '1') {
+        var r = document.createElementNS(NS, 'rect');
+        r.setAttribute('x', String(x));
+        r.setAttribute('y', '0');
+        r.setAttribute('width', String(bw));
+        r.setAttribute('height', String(bh));
+        r.setAttribute('fill', '#000000');
+        el.appendChild(r);
+      }
+      x += bw;
+    }
+    return true;
   }
 
   function ean13Digito(d12) {
@@ -1153,6 +1231,7 @@
           rodape: String(textoRodape || ''),
           bcValor: bc.valor,
           bcFormato: bc.formato,
+          bcEanForce: !!bc.ean_force,
           bcId: 'bc-' + idxIt + '-' + i,
         });
       }
@@ -1233,12 +1312,18 @@
           id: lb.bcId,
           valor: lb.bcValor,
           formato: lb.bcFormato,
+          ean_force: !!lb.bcEanForce,
           bw: med.bw,
           bh: med.bh,
           mq: med.mq,
         };
       })
     );
+
+    /* Desenho EAN forçado (legado 230…) embutido na página de impressão — sem depender do Core. */
+    var forceEanFn =
+      'function _eanBits(d13){var d=String(d13||"").replace(/\\D/g,"");if(d.length!==13)return null;var L=["0001101","0011001","0010011","0111101","0100011","0110001","0101111","0111011","0110111","0001011"],G=["0100111","0110011","0011011","0100001","0011101","0111001","0000101","0010001","0001001","0010111"],R=["1110010","1100110","1101100","1000010","1011100","1001110","1010000","1000100","1001000","1110100"],S=["LLLLLL","LLGLGG","LLGGLG","LLGGGL","LGLLGG","LGGLLG","LGGGLL","LGLGLG","LGLGGL","LGGLGL"];var f=+d.charAt(0);if(!(f>=0&&f<=9))return null;var p=S[f],b="101",i;for(i=0;i<6;i++){b+=(p.charAt(i)==="G"?G:L)[+d.charAt(i+1)];}b+="01010";for(i=7;i<13;i++){b+=R[+d.charAt(i)];}return b+"101";}' +
+      'function _drawEanForce(el,d13,o){var bits=_eanBits(d13);if(!el||!bits)return false;var bw=+o.width||1.5,bh=+o.height||40,ml=+o.marginLeft||10,mr=+o.marginRight||10,tw=ml+bits.length*bw+mr,NS="http://www.w3.org/2000/svg";while(el.firstChild)el.removeChild(el.firstChild);el.setAttribute("width",tw);el.setAttribute("height",bh);el.setAttribute("viewBox","0 0 "+tw+" "+bh);var bg=document.createElementNS(NS,"rect");bg.setAttribute("width",tw);bg.setAttribute("height",bh);bg.setAttribute("fill","#ffffff");el.appendChild(bg);var x=ml,i,r;for(i=0;i<bits.length;i++){if(bits.charAt(i)==="1"){r=document.createElementNS(NS,"rect");r.setAttribute("x",x);r.setAttribute("y",0);r.setAttribute("width",bw);r.setAttribute("height",bh);r.setAttribute("fill","#000000");el.appendChild(r);}x+=bw;}return true;}';
 
     return (
       '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=' +
@@ -1251,7 +1336,9 @@
       '<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"><\/script>' +
       '<script>var _bars=' +
       jsData +
-      ';function _fixSvg(el){if(!el)return;el.style.flexShrink="0";el.style.maxWidth="none";el.style.maxHeight="none";var w=el.getAttribute("width"),h=el.getAttribute("height");if(w)el.style.width=w+"px";if(h)el.style.height=h+"px";}function _drawOne(b){var el=document.getElementById(b.id);if(!el)return;var opts={format:b.formato,width:b.bw,height:b.bh,displayValue:false,flat:true,margin:0,marginTop:0,marginBottom:0,marginLeft:b.mq||10,marginRight:b.mq||10,lineColor:"#000000",background:"#ffffff"};try{JsBarcode(el,b.valor,opts);_fixSvg(el);return;}catch(e1){try{JsBarcode(el,b.valor,{format:"CODE128",width:b.bw,height:b.bh,displayValue:false,flat:true,margin:0,marginLeft:b.mq||10,marginRight:b.mq||10,lineColor:"#000000",background:"#ffffff"});_fixSvg(el);}catch(e2){el.setAttribute("data-bc-erro","1");}}}function _draw(){try{_bars.forEach(_drawOne);}catch(e){}}function _go(){setTimeout(_draw,40);setTimeout(function(){document.body.dataset.agroReady="1";},520);}if(typeof JsBarcode!=="undefined"){_go();}else{window.addEventListener("load",_go);}<\/script>' +
+      ';' +
+      forceEanFn +
+      'function _fixSvg(el){if(!el)return;el.style.flexShrink="0";el.style.maxWidth="none";el.style.maxHeight="none";var w=el.getAttribute("width"),h=el.getAttribute("height");if(w)el.style.width=w+"px";if(h)el.style.height=h+"px";}function _drawOne(b){var el=document.getElementById(b.id);if(!el)return;var opts={format:b.formato,width:b.bw,height:b.bh,displayValue:false,flat:true,margin:0,marginTop:0,marginBottom:0,marginLeft:b.mq||10,marginRight:b.mq||10,lineColor:"#000000",background:"#ffffff"};if(b.ean_force&&b.formato==="EAN13"){if(_drawEanForce(el,b.valor,opts)){_fixSvg(el);return;}}try{JsBarcode(el,b.valor,opts);_fixSvg(el);return;}catch(e1){try{JsBarcode(el,b.valor,{format:"CODE128",width:b.bw,height:b.bh,displayValue:false,flat:true,margin:0,marginLeft:b.mq||10,marginRight:b.mq||10,lineColor:"#000000",background:"#ffffff"});_fixSvg(el);}catch(e2){el.setAttribute("data-bc-erro","1");}}}function _draw(){try{_bars.forEach(_drawOne);}catch(e){}}function _go(){setTimeout(_draw,40);setTimeout(function(){document.body.dataset.agroReady="1";},520);}if(typeof JsBarcode!=="undefined"){_go();}else{window.addEventListener("load",_go);}<\/script>' +
       '</body></html>'
     );
   }
@@ -1495,5 +1582,7 @@
     ehCodigoBarrasLojaInterno: ehCodigoBarrasLojaInterno,
     ean13ChecksumOk: ean13ChecksumOk,
     normalizarEan13: normalizarEan13,
+    encodeEan13Bits: encodeEan13Bits,
+    drawEan13ForceSvg: drawEan13ForceSvg,
   };
 })(typeof window !== 'undefined' ? window : this);
