@@ -1291,27 +1291,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO LOJA — Pedir parcial: encerrar ou resto (`PDV-PEDIR-PARCIAL-RESTO` · **v26.34**)
+### 📦 PACOTE PRONTO LOJA — Pedir parcial: encerrar ou resto (`PDV-PEDIR-PARCIAL-RESTO` · **v26.35**)
 
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **pronto para envio à produção** — aguarda frase + senha |
-| **O quê** | Pedido 8→4 no **Transferir**: popup com **dois** botões — **Transferir e encerrar** (não cria fila) · **Transferir e deixar resto** (cria pedido RESTANTE com a diferença). Sem resto = um botão como antes. |
+| **O quê** | Pedido 8→4 no **Transferir**: **Transferir e encerrar** (sem fila) · **Transferir e deixar resto** (pedido RESTANTE). Sem resto = 1 botão. |
 | **Migrate** | **NÃO** |
-| **Prova** | path resto **29/29** · parcial print **37/37** · Django transf **29/29** |
-| **Tip** | `teste` **v26.34** |
-| **Você** | Ctrl+F5 PDV → Pedir loja → Aceitar → mudar qtd → Transferir → escolher encerrar ou resto |
+| **Prova** | path **38/38** · smoke PIN **36/36** (9973) · parcial **37/37** · Django **29/29** |
+| **Tip** | `teste` **v26.35** |
+| **Você** | Ctrl+F5 PDV → Pedir loja → mudar qtd → Transferir → testar os 2 botões |
 
 ### ✅ CHECKLIST ÚNICO — falta subir · 🟢 pronto para envio à produção
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-PEDIR-PARCIAL-RESTO** | 🟢 **pronto para envio à produção** | **NÃO** | **29/29** |
+| 1 | **PDV-PEDIR-PARCIAL-RESTO** | 🟢 **pronto para envio à produção** | **NÃO** | path **38/38** · smoke **36/36** |
 | 2 | **PDV-PEDIR-PRONTO-TRANSF** | 🟢 **pronto / no PREP 05/10b** | **NÃO** | **42/42** |
 | 3 | **META-MODO-AGORA** | 🟢 **pronto / no PREP 05/10b** | **NÃO** | **125/125** |
 | 4 | **CREDITO-SCORE-XLSX-COLS** | 🟢 **pronto / no PREP 05/10b** | **NÃO** | **86/86** |
 | 5 | **ETQ-PRESET-ESPELHO** | 🟢 **pronto para envio à produção** | **NÃO** | path **40/40** · smoke **24/24** |
-| 6 | **ETQ-PRINT-DIRETO** | 🟢 **pronto para envio à produção** | **NÃO** | full **68/68** · dl **21/21** · ZIP/HTTP **OK** · bridge print **OK** |
+| 6 | **ETQ-PRINT-DIRETO** | 🟢 **pronto para envio à produção** | **NÃO** | full **68/68** |
 | 7 | **PDV-PEDIR-PRINT-3** | 🟢 **pronto para envio à produção** | **NÃO** | path **37/37** · smoke **23/23** |
 
 ### 📦 PACOTE PRONTO LOJA — Pedir loja 3 layouts de impressão (`PDV-PEDIR-PRINT-3` · **v26.30**)
