@@ -1289,18 +1289,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### WIP — Análise crédito shadow (laboratório) · 05/10/2026
+### PACOTE PRONTO — Análise crédito shadow (`CREDITO-SCORE-SHADOW`)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **só no `teste`** v26.06 — aguarda revisão Renan · **NÃO** produção |
-| **O quê** | Laboratório `/fiado/analise-credito/` — score shadow_v1, snapshots `ClienteAnaliseCreditoAgro`, **não** mexe limite/venda/fiado operacional |
-| **Flag** | `AGRO_CREDITO_SCORE_SHADOW_ENABLED=false` (default) · allowlist `AGRO_CREDITO_SCORE_SHADOW_USERNAMES` · superuser OK · staff sozinho **não** |
-| **Migrate** | **SIM** `0137` — **só** CreateModel da tabela nova |
-| **Cmd** | `manage.py analisar_credito_shadow` (dry-run) · `--persist` · `--cliente-id` |
-| **Doc** | `docs/CREDITO_SCORE_SHADOW.md` |
-| **Provas** | Pureza 3/3 OK · testes DB precisam Postgres (`0136` quebra SQLite) · path verify: migrate 0137 no PG local |
-| **Você** | Ativar flag no `.env` local · migrate · abrir URL logado como você · **Recalcular** · conferir scores · depois decidir produção |
+| **O quê** | Laboratório `/fiado/analise-credito/` — score `shadow_v1`, snapshots `ClienteAnaliseCreditoAgro`. **Não** altera limite/venda/fiado/PDV. |
+| **Prova** | `scripts/verify_credito_score_shadow_path.py` **93/93** · PIN **9973** · média pk79 = planilha · **PREP_FAILS=0** |
+| **Migrate** | **SIM** `0137` (só CreateModel) |
+| **Flag** | default **off** · `AGRO_CREDITO_SCORE_SHADOW_ENABLED` + `AGRO_CREDITO_SCORE_SHADOW_USERNAMES` |
+| **Mexe** | tabela nova + tela admin isolada · **sem** menu PDV/fiado |
+| **Status** | 🟢 **pronto para envio à produção** · tip `teste` **v26.07** |
+| **Antes** | Live **v26.05** |
+| **Rollback** | `docs/ROLLBACK-CREDITO-SCORE-SHADOW.md` · tag `rollback/pre-credito-score-shadow-v26.05` · **só** frase+senha |
+| **Você** | frase+senha → deploy → migrate → ligar flag no Render → Ctrl+F5 na URL (só você) |
+
+### ✅ CHECKLIST ÚNICO — CREDITO-SCORE-SHADOW · 🟢 pronto para envio à produção
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CREDITO-SCORE-SHADOW** | 🟢 **pronto para envio à produção** | **SIM** `0137` | **93/93** |
 
 ### ✅ Deploy loja — PDV-FIADO-LIMITE-REFRESH · **Live v26.05** · 03/10
 
