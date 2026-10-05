@@ -105,10 +105,10 @@ ok(ui.includes('function carregarPresetsDaLoja'), 'fila carrega presets da loja'
 ok(ui.includes('mergeServerPresets'), 'fila faz merge');
 
 /* --- Cache-bust --- */
-ok(page.includes("produtos_etiquetas_core.js' %}?v=32"), 'etiquetas core v=32');
-ok(lote.includes("produtos_etiquetas_core.js' %}?v=32"), 'lote core v=32');
-ok(cadHtml.includes("produtos_etiquetas_core.js' %}?v=32"), 'cadastro core v=32');
-ok(nfe.includes("produtos_etiquetas_core.js' %}?v=32"), 'entrada NF core v=32');
+ok(page.includes("produtos_etiquetas_core.js' %}?v=33"), 'etiquetas core v=33');
+ok(lote.includes("produtos_etiquetas_core.js' %}?v=33"), 'lote core v=33');
+ok(cadHtml.includes("produtos_etiquetas_core.js' %}?v=33"), 'cadastro core v=33');
+ok(nfe.includes("produtos_etiquetas_core.js' %}?v=33"), 'entrada NF core v=33');
 ok(cadHtml.includes("cadastro_erp_panel.js' %}?v=30"), 'cadastro panel v=30');
 
 /* --- Runtime: merge + refresh --- */

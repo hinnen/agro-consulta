@@ -43,11 +43,11 @@ function ok(cond, msg) {
 }
 
 /* --- Cache-bust alinhado em todas as telas --- */
-ok(page.includes("produtos_etiquetas_core.js' %}?v=32"), 'etiquetas core v=32');
+ok(page.includes("produtos_etiquetas_core.js' %}?v=33"), 'etiquetas core v=33');
 ok(page.includes("produtos_etiquetas.js' %}?v=28"), 'etiquetas ui v=28');
-ok(lote.includes("produtos_etiquetas_core.js' %}?v=32"), 'lote core v=32');
-ok(cad.includes("produtos_etiquetas_core.js' %}?v=32"), 'cadastro core v=32');
-ok(nfe.includes("produtos_etiquetas_core.js' %}?v=32"), 'entrada NF core v=32');
+ok(lote.includes("produtos_etiquetas_core.js' %}?v=33"), 'lote core v=33');
+ok(cad.includes("produtos_etiquetas_core.js' %}?v=33"), 'cadastro core v=33');
+ok(nfe.includes("produtos_etiquetas_core.js' %}?v=33"), 'entrada NF core v=33');
 ok(!page.includes('defer></script>'), 'sem defer (ordem Core→UI)');
 
 /* --- Código: ordem paint → persist + tolerância quota --- */
