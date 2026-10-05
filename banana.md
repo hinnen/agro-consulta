@@ -1291,55 +1291,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### PACOTE PRONTO — Ponte 1 clique + Node dentro (`ETQ-PONTE-1CLIQUE`)
+### 🚀 PREP deploy loja — Checklist 05/10d (deploy/prep-checklist-0510d · **v26.46**) · aguarda senha
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | ZIP: na raiz só **CLIQUE-AQUI-INSTALAR.bat** (+ LEIA-ME). Resto em `app/`. Node portátil já vem em `app/vendor` (não depende de baixar Node na hora). |
+| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha no próximo chat |
+| **O quê** | **CREDITO-SCORE-TRAVAS** (shadow_v1_1 · só lab) + **ETQ-PONTE-1CLIQUE** (ZIP CLIQUE-AQUI + Node embutido; absorve NODE-FIX) |
+| **Branch PREP** | deploy/prep-checklist-0510d · tip ac308f47 |
+| **Base Live** | **v26.40** @ 8be1f093 |
+| **Alvo loja** | **v26.46** |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_etq_ponte_1clique_path.py` **37/37** · bridge **22/22** · full **79/79** · PIN **9973** · zip ~34 MB · HTTP download OK · **PREP_FAILS=0** |
-| **Status** | 🟢 **pronto para envio à produção** · tip abaixo após push |
-| **Rollback** | `docs/ROLLBACK-ETQ-PONTE-1CLIQUE.md` · **só** frase+senha |
-| **Você** | Baixar ponte → extrair → **só** CLIQUE-AQUI-INSTALAR.bat |
+| **Merge 	este?** | **NÃO** — cherry só destes 2 pacotes |
+| **Provas (revalidadas no PREP)** | shadow **98/98** · xlsx **90/90** · 1clique **37/37** · bridge **22/22** · full **79/79** · **PREP_FAILS=0** |
+| **Rollback** | tag 
+ollback/pre-checklist-0510d-v26.40 @ 8be1f093 · branch producao-backup-pre-v2646-checklist-0510d · docs/ROLLBACK-CHECKLIST-0510d.md |
+| **Doc** | docs/DEPLOY-PREP-CHECKLIST-0510d.md |
+| **Na senha (rápido ~1–2 min)** | Lojas pausam vendas → 
+eset --hard origin/deploy/prep-checklist-0510d → push producao → Render Live → Ctrl+F5 · badge **v26.46** · PC etiqueta: baixar ZIP de novo se for usar ponte |
+| **Risco loja aberta** | **Baixo** — **não** mexe PDV venda · caixa · Point · NFC-e · financeiro. Só lab crédito (flag off) + ZIP/ponte etiquetas |
 
-### ✅ CHECKLIST ÚNICO — ETQ-PONTE-1CLIQUE · 🟢 pronto para envio à produção
+### ✅ CHECKLIST ÚNICO — 05/10d · 🟢 PREP v26.46 · aguarda senha
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-PONTE-1CLIQUE** | 🟢 **pronto para envio à produção** | **NÃO** | **37/37** |
-
-### PACOTE PRONTO — Ponte etiqueta Node 404 + bat (`ETQ-PONTE-NODE-FIX`)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Instalador da ponte: `.bat` só ASCII (acabava `tle`/`cp` no cmd) · download Node com várias versões + espelho (evita 404) · detecta x64/arm64/x86 |
-| **Migrate** | **NÃO** |
-| **Prova** | bridge dl **21/21** · full **78/78** · zip ASCII OK · **PREP_FAILS=0** |
-| **Status** | 🟢 **pronto para envio à produção** · tip `teste` **v26.44** @ `e59c0d32` |
-| **Você** | No PC com erro: baixar de novo o ZIP em Etiquetas → extrair → **1-INSTALAR.bat** (internet na 1ª vez) |
-
-### ✅ CHECKLIST ÚNICO — ETQ-PONTE-NODE-FIX · 🟢 pronto para envio à produção
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-PONTE-NODE-FIX** | 🟢 **pronto para envio à produção** | **NÃO** | **78/78** |
-
-### PACOTE PRONTO — Travas score crédito (`CREDITO-SCORE-TRAVAS`)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | `shadow_v1_1`: travas score (% em dia / atraso >30d) + candidato mais rigoroso (≥6 títulos, ≥80% em dia, atraso ≤15d…). Pesos 5 componentes iguais. «Revisar dados» mantido. Só lab shadow. |
-| **Migrate** | **NÃO** |
-| **Prova** | shadow **98/98** · xlsx **90/90** · PIN **9973** · **PREP_FAILS=0** · recalc local **1864** snaps · Excel gerado na pasta do repo |
-| **Status** | 🟢 **pronto para envio à produção** · tip `teste` **v26.43** @ `8dd4b7f9` |
-| **Rollback** | `docs/ROLLBACK-CREDITO-SCORE-SHADOW.md` / `ROLLBACK-CREDITO-SCORE-XLSX.md` · **só** frase+senha |
-| **Você** | Lab → Recalcular → Excel ↓ · arquivo local `analise_credito_shadow_v1_1_20261005_1759.xlsx` |
-
-### ✅ CHECKLIST ÚNICO — CREDITO-SCORE-TRAVAS · 🟢 pronto para envio à produção
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **CREDITO-SCORE-TRAVAS** | 🟢 **pronto para envio à produção** | **NÃO** | **98/98** |
+| 1 | **CREDITO-SCORE-TRAVAS** | 🟢 **no PREP** · aguarda senha | **NÃO** | **98/98** · xlsx **90/90** |
+| 2 | **ETQ-PONTE-1CLIQUE** (+ NODE-FIX) | 🟢 **no PREP** · aguarda senha | **NÃO** | **37/37** |
 
 ### ✅ Deploy loja — ETQ-PRINT-ELGIN-MAP · **Live v26.40** · 05/10
 
@@ -1385,7 +1361,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### 📦 PACOTES JÁ LIVE (05/10c · v26.35) — sem fila
 
-`PDV-PEDIR-PARCIAL-RESTO` · `PDV-PEDIR-PRONTO-TRANSF` · `META-MODO-AGORA` · `CREDITO-SCORE-XLSX-COLS` · `ETQ-PRESET-ESPELHO` · `ETQ-PRINT-DIRETO` · `PDV-PEDIR-PRINT-3` → ✅ **Live v26.35**. Fila atual = **PREP** deploy/prep-etq-print-elgin-map (aguarda senha).
+`PDV-PEDIR-PARCIAL-RESTO` · `PDV-PEDIR-PRONTO-TRANSF` · `META-MODO-AGORA` · `CREDITO-SCORE-XLSX-COLS` · `ETQ-PRESET-ESPELHO` · `ETQ-PRINT-DIRETO` · `PDV-PEDIR-PRINT-3` → ✅ **Live v26.35**. Fila atual = **PREP** deploy/prep-checklist-0510d · v26.46 (aguarda senha). ETQ-PRINT-ELGIN-MAP já Live v26.40.
 
 ### 🚀 PREP deploy loja — Checklist 05/10b (`deploy/prep-checklist-0510b` · **v26.24**) · aguarda senha
 
