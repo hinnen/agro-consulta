@@ -762,4 +762,17 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | 1 | **CREDITO-SCORE-SHADOW** | ✅ **Live v26.07** · `producao` @ `d6c19c84` · prova **93/93** | **SIM** `0137` |
 
 **Rollback:** tag `rollback/pre-credito-score-shadow-v26.05` @ `41a6fdea` · `docs/ROLLBACK-CREDITO-SCORE-SHADOW.md` · **só** frase+senha.  
-**Flag:** ainda **OFF** na loja (ligar env depois, se quiser o laboratório).
+**Flag:** **ON** no Render (env).  
+
+---
+
+## 55. CHECKLIST ÚNICO — CREDITO-SCORE-LAB-ACESSO · 🟢 pronto envio (alvo **v26.12**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CREDITO-SCORE-LAB-ACESSO** | 🟢 **pronto para envio** · path **34/34** | **NÃO** |
+
+**O quê:** botão Gestão + fix URL lab não volta ao PDV.  
+**Prova:** `verify_credito_score_lab_acesso_path.py` **34/34** · shadow **93/93** · PDV fiado **39/39**.  
+**Rollback:** `docs/ROLLBACK-CREDITO-SCORE-LAB-ACESSO.md` · **só** frase+senha.  
+**Não entra:** merge do `teste` (tem META etc.).

@@ -393,7 +393,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 ### 4.1 Home / BI (`/`)
 
 - Dashboard gerencial SisVale BI; atalhos clÃ¡ssicos em `/atalhos/`.
-- **META mostruário (05/10 · `META-MOSTRUARIO`):** botão no menu Gestão → `/meta/` · faixas manuais (venda + bônus) no Postgres · vs média esperada Meta C · Copiar pro Zap.
+- **META mostruário (05/10 · `META-MOSTRUARIO`):** botão no menu Gestão → `/meta/` · faixas manuais (venda + bônus) no Postgres · vs média esperada Meta C · Copiar foto + texto Zap · 🟢 pronto envio.
 - VersÃ£o do commit no Render (nÃ£o hardcoded).
 - Card **Validade** destaca vermelho se produto vencido.
 - Card **Lucro LÃ­quido** (no lugar de Novos Clientes): vencimento Â· bruto + pago Â· mesmo DRE do Resumo.
@@ -1290,6 +1290,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### PACOTE PRONTO — Acesso lab crédito (`CREDITO-SCORE-LAB-ACESSO`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | (1) Botão **Análise de crédito** no menu Gestão (só autorizado). (2) Fix: abrir `/fiado/analise-credito/` no app PDV **não** volta sozinho pro PDV — manda pra Gestão. |
+| **Prova** | `scripts/verify_credito_score_lab_acesso_path.py` **34/34** · shadow **93/93** · PDV fiado **39/39** · PIN **9973** · **PREP_FAILS=0** |
+| **Migrate** | **NÃO** |
+| **Mexe** | launchpad GESTÃO · `agro_dual_window.js` · `_agro_open_external.html` · **não** PDV/limite/venda |
+| **Status** | 🟢 **pronto para envio à produção** · tip `teste` **v26.12** |
+| **Antes** | Live **v26.07** (lab shadow já na loja · flag ON) |
+| **Rollback** | `docs/ROLLBACK-CREDITO-SCORE-LAB-ACESSO.md` · **só** frase+senha |
+| **Você** | frase+senha → deploy → Ctrl+F5 Gestão · botão abaixo Configuração · URL no Chrome Gestão (não app PDV) |
+
+### ✅ CHECKLIST ÚNICO — CREDITO-SCORE-LAB-ACESSO · 🟢 pronto para envio à produção
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CREDITO-SCORE-LAB-ACESSO** | 🟢 **pronto para envio à produção** | **NÃO** | **34/34** |
+
 ### 📦 PACOTE — META mostruário (`META-MOSTRUARIO` · tip **v26.11**) · 05/10/2026
 
 | Campo | Valor |
@@ -1306,9 +1325,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **só no `teste`** v26.08 — botão no launchpad GESTÃO (abaixo Configuração) · **só** quem tem flag+allowlist |
-| **Loja** | Flag **ON** no Render (env) · URL já abre · botão ainda **não** na loja (falta frase+senha) |
-| **URL** | `/fiado/analise-credito/` |
+| **Status** | → ver **PACOTE PRONTO CREDITO-SCORE-LAB-ACESSO** (acima) |
 
 ### ✅ Deploy loja — CREDITO-SCORE-SHADOW · **Live v26.07** · 05/10
 
