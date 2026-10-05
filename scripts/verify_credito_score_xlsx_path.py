@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Prova detalhada — Excel ↓ do laboratório de crédito (`CREDITO-SCORE-XLSX`).
+Prova detalhada — Excel ↓ cols + Revisar dados (`CREDITO-SCORE-XLSX-COLS`).
 
   set AGRO_PIN_TESTE=9973
   set PYTHONIOENCODING=utf-8
@@ -151,6 +151,36 @@ def test_contratos_arquivo() -> None:
         "tpl_passa_filtros",
         "score_min={{ score_min|urlencode }}" in tpl and "classificacao={{ classificacao|urlencode }}" in tpl,
     )
+    check("tpl_badge_revisar", "revisar_dados" in tpl and "Revisar dados" in tpl)
+    check("tpl_badge_candidato", "candidato_revisao" in tpl and "Candidato revisão" in tpl)
+
+    det = (
+        ROOT / "produtos/templates/produtos/credito_score_cliente_detalhe.html"
+    ).read_text(encoding="utf-8")
+    check("det_badge_revisar", "revisar_dados" in det and "Revisar dados" in det)
+
+    shadow = (ROOT / "produtos/credito_score_shadow.py").read_text(encoding="utf-8")
+    check("motor_fn_alerta", "def alerta_inconsistencia_pagamento" in shadow)
+    check("motor_fn_rotulo", "def rotulo_candidato_revisao" in shadow)
+    check("motor_marca_baixas", "sem baixas suficientes" in shadow)
+    check(
+        "motor_gate_candidato",
+        "revisar_dados = alerta_inconsistencia_pagamento(alertas)" in shadow
+        and "candidato = False" in shadow,
+    )
+    check("motor_flag_json", "revisar_dados_inconsistencia" in shadow)
+    check("score_peso_pontualidade_45", '* Decimal("45")' in shadow)
+    check("score_peso_situacao_25", "situacao_pts = 25" in shadow)
+    check("score_peso_quit_freq_rel_10", 'Decimal("10")' in shadow)
+    check(
+        "view_cols_indicadores",
+        "titulos_analisados" in views
+        and "pct_pago_em_dia" in views
+        and "pts_pontualidade" in views
+        and "pts_relacionamento" in views,
+    )
+    check("view_usa_rotulo", "rotulo_candidato_revisao" in views)
+
     check(
         "dual_export_coberto",
         "p.indexOf('/fiado/analise-credito/') === 0" in dual
@@ -374,6 +404,53 @@ def test_http_e_filtros() -> None:
                     abs(float(ws.cell(2, 18).value) - round(100.0 * 5 / 6, 2)) < 0.01,
                 )
                 check("export_pts_pont", ws.cell(2, 19).value == 40)
+                check("export_pts_sit", ws.cell(2, 20).value == 25)
+                check("export_pts_quit", ws.cell(2, 21).value == 9)
+                check("export_pts_freq", ws.cell(2, 22).value == 8)
+                check("export_pts_rel", ws.cell(2, 23).value == 7)
+
+                # Regra provisória: flag candidato True + alerta baixas → Revisar dados
+                cli2 = ClienteAgro.objects.create(
+                    nome="ZZ PROVA CREDITO REVISAR DADOS NAO USAR",
+                    limite_fiado_local=Decimal("500.00"),
+                    ativo=True,
+                )
+                ClienteAnaliseCreditoAgro.objects.create(
+                    cliente=cli2,
+                    regra_versao="shadow_v1",
+                    score=90,
+                    classificacao=ClienteAnaliseCreditoAgro.Classificacao.EXCELENTE,
+                    confianca=ClienteAnaliseCreditoAgro.Confianca.ALTA,
+                    limite_cadastrado_snapshot=Decimal("500.00"),
+                    limite_efetivo_snapshot=Decimal("500.00"),
+                    saldo_aberto_snapshot=Decimal("0"),
+                    saldo_vencido_snapshot=Decimal("0"),
+                    tem_vencido_snapshot=False,
+                    media_fiado_3m=Decimal("200.00"),
+                    limite_sugerido=Decimal("600.00"),
+                    maior_atraso_dias=0,
+                    indicadores_json={"candidato_revisao_limite": True},
+                    alertas_json=[
+                        "Título quitado #99 sem baixas suficientes "
+                        "(pago no título R$ 100 · baixas R$ 0)."
+                    ],
+                )
+                rows_rev = _listar_snapshots_filtrados({"q": "ZZ PROVA CREDITO REVISAR"})
+                check(
+                    "lista_revisar_label",
+                    len(rows_rev) == 1 and rows_rev[0].get("revisar_dados") is True,
+                )
+                check(
+                    "lista_nao_candidato",
+                    rows_rev[0].get("candidato_revisao") is False
+                    and rows_rev[0].get("candidato_revisao_label") == "Revisar dados",
+                )
+                r_rev = c.get(url_x, {"q": "ZZ PROVA CREDITO REVISAR"})
+                wb_rev = load_workbook(io.BytesIO(r_rev.content), data_only=True)
+                check("export_revisar_dados", wb_rev.active.cell(2, 14).value == "Revisar dados")
+
+                r_lab2 = c.get(url_lab, {"q": "ZZ PROVA CREDITO REVISAR"})
+                check("lab_html_revisar", b"Revisar dados" in r_lab2.content)
 
                 # Filtro score_min alto → 0 linhas de dados
                 r0 = c.get(url_x, {"q": "ZZ PROVA CREDITO XLSX", "score_min": "99"})
@@ -402,9 +479,11 @@ def test_http_e_filtros() -> None:
 
         # Limpa sobra de provas anteriores (se houver) + confirma rollback
         ClienteAgro.objects.filter(nome__icontains="ZZ PROVA CREDITO XLSX").delete()
+        ClienteAgro.objects.filter(nome__icontains="ZZ PROVA CREDITO REVISAR").delete()
         check(
             "rollback_sem_lixo",
-            not ClienteAgro.objects.filter(nome__icontains="ZZ PROVA CREDITO XLSX").exists(),
+            not ClienteAgro.objects.filter(nome__icontains="ZZ PROVA CREDITO XLSX").exists()
+            and not ClienteAgro.objects.filter(nome__icontains="ZZ PROVA CREDITO REVISAR").exists(),
         )
 
 
@@ -437,7 +516,7 @@ def test_regressao_leve() -> None:
 
 
 def main() -> int:
-    print(f"=== verify CREDITO-SCORE-XLSX · PIN={PIN} ===")
+    print(f"=== verify CREDITO-SCORE-XLSX-COLS · PIN={PIN} ===")
     test_contratos_arquivo()
     test_pin()
     test_builder_unitario()
