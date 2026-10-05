@@ -54,7 +54,13 @@ ok(main.includes("url === '/printers'"), '/printers');
 ok(main.includes("url === '/health'") || main.includes("url === '/'"), '/health');
 ok(main.includes('silent: true'), 'silent print');
 ok(main.includes('pageSize'), 'pageSize');
-ok(main.includes('Abrir com o Windows'), 'menu inicio Windows');
+ok(main.includes('size-printer-map') || main.includes('SIZE_MAP_FILE') || main.includes('sizeKeyFromMicrons'), 'mapa tamanho→impressora');
+ok(main.includes('/size-map'), 'endpoint size-map');
+ok(exists('agro-print-bridge/Elgin-duas-filas.txt'), 'ajuda Elgin duas filas');
+ok(html.includes('etq-size-map-box'), 'UI mapa tamanho');
+ok(html.includes('etq-btn-save-size-map'), 'botão salvar mapa');
+ok(pageJs.includes('salvarSizeMapUi'), 'JS salvar mapa');
+ok(read('produtos/static/produtos/js/agro_print_bridge.js').includes('getSizeMap'), 'cliente getSizeMap');
 
 const instalar = read('agro-print-bridge/Instalar-inicio-Windows.bat');
 ok(instalar.includes('ensure-node.bat'), 'instalar → ensure-node');
@@ -170,13 +176,14 @@ z = build_print_bridge_zip()
 assert z[:2] == b"PK"
 zf = zipfile.ZipFile(io.BytesIO(z))
 names = zf.namelist()
-need = [
+        need = [
   "Agro-Etiqueta-Print/1-INSTALAR.bat",
   "Agro-Etiqueta-Print/LEIA-ME.txt",
   "Agro-Etiqueta-Print/main.js",
   "Agro-Etiqueta-Print/ensure-node.bat",
   "Agro-Etiqueta-Print/Instalar-inicio-Windows.bat",
   "Agro-Etiqueta-Print/iniciar-silencioso.vbs",
+  "Agro-Etiqueta-Print/Elgin-duas-filas.txt",
 ]
 for n in need:
   assert n in names, n

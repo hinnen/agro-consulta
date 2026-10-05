@@ -17,6 +17,12 @@ const PORT = Math.min(
 );
 const HOST = '127.0.0.1';
 
+const CONFIG_DIR = path.join(
+  process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'),
+  'AgroEtiquetaPrint'
+);
+const SIZE_MAP_FILE = path.join(CONFIG_DIR, 'size-printer-map.json');
+
 let tray = null;
 let server = null;
 let statusText = 'iniciando…';
@@ -27,6 +33,46 @@ function setStatus(msg) {
   try {
     if (tray && !tray.isDestroyed()) tray.setToolTip('Agro Etiqueta Print · ' + statusText);
   } catch (_) {}
+}
+
+function loadSizeMap() {
+  try {
+    if (!fs.existsSync(SIZE_MAP_FILE)) return {};
+    const j = JSON.parse(fs.readFileSync(SIZE_MAP_FILE, 'utf8'));
+    return j && typeof j === 'object' ? j : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function saveSizeMap(map) {
+  fs.mkdirSync(CONFIG_DIR, { recursive: true });
+  const clean = {};
+  Object.keys(map || {}).forEach((k) => {
+    const v = String(map[k] || '').trim();
+    if (v) clean[String(k)] = v;
+  });
+  fs.writeFileSync(SIZE_MAP_FILE, JSON.stringify(clean, null, 2), 'utf8');
+  return clean;
+}
+
+/** Chave estável por mm (Elgin: USER≈40×40, GONDOLA≈50×30). */
+function sizeKeyFromMicrons(wMic, hMic) {
+  const w = Math.round(Number(wMic) / 1000) || 0;
+  const h = Math.round(Number(hMic) / 1000) || 0;
+  if (Math.abs(w - 40) <= 2 && Math.abs(h - 40) <= 2) return '40x40';
+  if (Math.abs(w - 50) <= 2 && Math.abs(h - 30) <= 2) return '50x30';
+  if (Math.abs(w - 53) <= 2 && Math.abs(h - 30) <= 2) return '53x30';
+  return w + 'x' + h;
+}
+
+function resolveDeviceName(payload) {
+  const map = loadSizeMap();
+  const key = sizeKeyFromMicrons(payload?.pageWidthMicrons, payload?.pageHeightMicrons);
+  if (map[key]) return String(map[key]).trim();
+  if (key === '53x30' && map['50x30']) return String(map['50x30']).trim();
+  if (key === '50x30' && map['53x30']) return String(map['53x30']).trim();
+  return String(payload?.deviceName || '').trim();
 }
 
 function cors(res, origin) {
@@ -104,10 +150,11 @@ async function listPrinters() {
 
 function silentPrint(payload) {
   const html = String(payload?.html || '');
-  const deviceName = String(payload?.deviceName || '').trim();
+  const deviceName = resolveDeviceName(payload);
   const waitMs = Math.min(Math.max(Number(payload?.waitMs) || 900, 200), 12000);
   const pageW = Number(payload?.pageWidthMicrons) || 40000;
   const pageH = Number(payload?.pageHeightMicrons) || 40000;
+  const sizeKey = sizeKeyFromMicrons(pageW, pageH);
   if (!html) return Promise.resolve({ ok: false, reason: 'empty_html' });
 
   let tmpFile = '';
@@ -131,7 +178,14 @@ function silentPrint(payload) {
       try {
         if (!printWin.isDestroyed()) printWin.destroy();
       } catch (_) {}
-      resolve({ ok: !!ok, reason: reason || null, silent: true, bridge: true });
+      resolve({
+        ok: !!ok,
+        reason: reason || null,
+        silent: true,
+        bridge: true,
+        deviceName: deviceName || null,
+        sizeKey,
+      });
     };
 
     printWin.webContents.on('did-fail-load', (_e, code, desc) => {
@@ -192,6 +246,18 @@ function startHttpServer() {
       if (req.method === 'GET' && url === '/printers') {
         const printers = await listPrinters();
         sendJson(res, 200, { ok: true, printers }, origin);
+        return;
+      }
+
+      if (req.method === 'GET' && url === '/size-map') {
+        sendJson(res, 200, { ok: true, map: loadSizeMap(), file: SIZE_MAP_FILE }, origin);
+        return;
+      }
+
+      if (req.method === 'POST' && url === '/size-map') {
+        const body = await readBody(req);
+        const map = saveSizeMap(body?.map || body || {});
+        sendJson(res, 200, { ok: true, map }, origin);
         return;
       }
 
