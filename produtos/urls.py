@@ -26,6 +26,7 @@ from . import ajuste_codigo_pendente_views
 from . import views_planos_conta
 from . import contagem_ciclica_views
 from . import views_fotos_produto
+from . import views_meta_vendas
 
 urlpatterns = [
     # --- PÁGINAS ---
@@ -675,6 +676,9 @@ urlpatterns = [
     path('vendas/lojas/sw.js', views.vendas_lojas_sw, name='vendas_lojas_sw'),
     path('api/vendas/lojas/extras/', views.api_vendas_lojas_extras, name='api_vendas_lojas_extras'),
     path('vendas/lojas/painel/', views.vendas_lojas_resumo, name='vendas_lojas_resumo'),
+    path('meta/', views_meta_vendas.meta_vendas_painel, name='meta_vendas_painel'),
+    path('api/meta/resumo/', views_meta_vendas.api_meta_vendas_resumo, name='api_meta_vendas_resumo'),
+    path('api/meta/faixas/', views_meta_vendas.api_meta_vendas_faixas, name='api_meta_vendas_faixas'),
     path('vendas/lojas/tarefas/', include('tarefas.urls')),
     path('vendas/lojas/fotos/pin/', views_fotos_produto.fotos_produto_pin, name='fotos_produto_pin'),
     path('vendas/lojas/fotos/sair/', views_fotos_produto.fotos_produto_logout, name='fotos_produto_logout'),

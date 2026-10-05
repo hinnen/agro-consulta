@@ -1,0 +1,433 @@
+{% extends "layouts/base_admin.html" %}
+{% load static %}
+
+{% block admin_title %}SisVale | META{% endblock %}
+{% block admin_header_title %}META{% endblock %}
+{% block admin_header_meta %}Mostruário · venda × meta × média esperada{% endblock %}
+
+{% block admin_shell_class %}min-h-screen bg-slate-100 flex flex-col{% endblock %}
+{% block admin_header_inner_class %}w-full max-w-none px-4 sm:px-6 lg:px-8 py-3 sm:py-4{% endblock %}
+{% block admin_section_class %}w-full max-w-none flex-1 min-h-0 px-3 py-2 sm:px-5 lg:px-6 sm:py-3 overflow-y-auto{% endblock %}
+
+{% block admin_header_actions %}
+  <button type="button" id="meta-copiar-zap" class="inline-flex min-h-[2.75rem] items-center justify-center rounded-xl bg-emerald-600 px-4 text-sm font-black uppercase text-white shadow hover:bg-emerald-700">Copiar pro Zap</button>
+  <a href="{% url 'home' %}" class="inline-flex min-h-[2.75rem] items-center justify-center rounded-xl bg-slate-800 px-4 text-sm font-black uppercase text-white shadow hover:bg-slate-900">Início</a>
+{% endblock %}
+
+{% block admin_content %}
+{% include "produtos/_gm_loading_bar.html" %}
+{% include "produtos/_agro_consulta_ui.html" %}
+
+<style>
+  .meta-shell { display: grid; gap: 0.85rem; max-width: 72rem; margin: 0 auto; }
+  @media (min-width: 1100px) {
+    .meta-shell { grid-template-columns: 1.35fr 1fr; align-items: start; }
+    .meta-span { grid-column: 1 / -1; }
+  }
+  .meta-card {
+    border: 3px solid #cbd5e1;
+    border-radius: 1rem;
+    background: #fff;
+    padding: 0.85rem 1rem;
+  }
+  .meta-card h2 {
+    margin: 0 0 0.55rem;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+  .meta-kpi {
+    font-size: clamp(1.55rem, 3.5vw, 2.1rem);
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: #0f172a;
+  }
+  .meta-sub { margin-top: 0.25rem; font-size: 0.95rem; font-weight: 700; color: #475569; }
+  .meta-acima { color: #047857; }
+  .meta-abaixo { color: #b91c1c; }
+  .meta-igual { color: #0369a1; }
+  .meta-toolbar {
+    display: flex; flex-wrap: wrap; gap: 0.55rem; align-items: end;
+  }
+  .meta-toolbar label {
+    display: flex; flex-direction: column; gap: 0.2rem;
+    font-size: 0.68rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b;
+  }
+  .meta-toolbar input, .meta-toolbar select {
+    min-height: 2.85rem; min-width: 9rem;
+    border: 3px solid #94a3b8; border-radius: 0.75rem;
+    padding: 0.35rem 0.65rem; font-size: 1.05rem; font-weight: 800; background: #fff;
+  }
+  .meta-toolbar button {
+    min-height: 2.85rem; border-radius: 0.75rem; border: 3px solid #0f172a;
+    background: #0f172a; color: #fff; font-weight: 900; text-transform: uppercase;
+    padding: 0 1rem; font-size: 0.8rem;
+  }
+  .meta-faixa {
+    display: grid; grid-template-columns: 1fr auto; gap: 0.35rem 0.75rem;
+    align-items: center; padding: 0.65rem 0; border-bottom: 2px solid #e2e8f0;
+  }
+  .meta-faixa:last-child { border-bottom: 0; }
+  .meta-faixa .tit { font-weight: 900; font-size: 1.05rem; color: #0f172a; }
+  .meta-faixa .bon { font-size: 0.85rem; font-weight: 700; color: #64748b; }
+  .meta-faixa .st { font-weight: 900; font-size: 0.95rem; text-align: right; }
+  .meta-bar {
+    grid-column: 1 / -1; height: 0.55rem; border-radius: 999px; background: #e2e8f0; overflow: hidden;
+  }
+  .meta-bar > span { display: block; height: 100%; background: #059669; border-radius: 999px; }
+  .meta-bar.is-low > span { background: #dc2626; }
+  .meta-bar.is-mid > span { background: #d97706; }
+  .meta-cfg-row {
+    display: grid; grid-template-columns: 1.2fr 1fr 1fr auto; gap: 0.45rem; align-items: center;
+    margin-bottom: 0.45rem;
+  }
+  @media (max-width: 720px) {
+    .meta-cfg-row { grid-template-columns: 1fr 1fr; }
+  }
+  .meta-cfg-row input {
+    min-height: 2.75rem; border: 2px solid #94a3b8; border-radius: 0.65rem;
+    padding: 0.3rem 0.55rem; font-weight: 800; font-size: 1rem;
+  }
+  .meta-cfg-row button {
+    min-height: 2.75rem; border-radius: 0.65rem; font-weight: 900; text-transform: uppercase;
+    padding: 0 0.75rem; font-size: 0.72rem; border: 2px solid transparent;
+  }
+  .meta-btn-save { background: #059669; color: #fff; }
+  .meta-btn-del { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+  .meta-btn-add { background: #0f172a; color: #fff; min-height: 3rem; width: 100%; border-radius: 0.75rem; font-weight: 900; text-transform: uppercase; }
+  .meta-zap {
+    width: 100%; min-height: 12rem; border: 3px solid #86efac; border-radius: 0.85rem;
+    background: #f0fdf4; padding: 0.75rem; font-family: ui-monospace, monospace;
+    font-size: 0.82rem; line-height: 1.45; white-space: pre-wrap; color: #14532d;
+  }
+  .meta-toast {
+    position: fixed; bottom: 1.25rem; right: 1.25rem; z-index: 80;
+    background: #065f46; color: #fff; font-weight: 900; padding: 0.75rem 1.1rem;
+    border-radius: 0.85rem; box-shadow: 0 10px 30px rgba(0,0,0,.25); display: none;
+  }
+</style>
+
+<div class="meta-shell" id="meta-root"
+     data-comp="{{ competencia }}"
+     data-api-resumo="{{ api_resumo_url }}"
+     data-api-faixas="{{ api_faixas_url }}">
+
+  <div class="meta-card meta-span">
+    <div class="meta-toolbar">
+      <label>Mês
+        <input type="month" id="meta-comp" value="{{ competencia }}">
+      </label>
+      <button type="button" id="meta-atualizar">Atualizar</button>
+      <span class="meta-sub" id="meta-comp-lbl">{{ mostruario.competencia_fmt }}</span>
+    </div>
+  </div>
+
+  <div class="meta-card" id="meta-card-mes">
+    <h2 id="meta-mes-titulo">{% if mostruario.mes_atual %}Mês até hoje{% else %}Mês fechado{% endif %}</h2>
+    <div class="meta-kpi" id="meta-vendido-mes">{{ mostruario.vendido_mes_fmt }}</div>
+    <div class="meta-sub">Vendido · até <span id="meta-fim-lbl">{{ mostruario.fim_vendido_fmt }}</span></div>
+    <div class="meta-sub mt-2">Média esperada: <strong id="meta-media-mes">{{ mostruario.media_mes_ref_fmt }}</strong></div>
+    <div class="meta-sub meta-{{ mostruario.vs_media_mes.sentido }}" id="meta-vs-media-mes">
+      {{ mostruario.vs_media_mes.diff_fmt }} · {{ mostruario.vs_media_mes.pct_signed_fmt }} {{ mostruario.vs_media_mes.sentido_label }}
+    </div>
+  </div>
+
+  <div class="meta-card" id="meta-card-hoje">
+    <h2>Hoje</h2>
+    {% if mostruario.hoje.ativo %}
+    <div class="meta-kpi" id="meta-vendido-hoje">{{ mostruario.hoje.vendido_fmt }}</div>
+    <div class="meta-sub">Vendido · <span id="meta-hoje-data">{{ mostruario.hoje.data_fmt }}</span></div>
+    <div class="meta-sub mt-2">Média esperada (até agora): <strong id="meta-media-hoje">{{ mostruario.hoje.media_ate_agora_fmt }}</strong></div>
+    <div class="meta-sub meta-{{ mostruario.hoje.vs_media.sentido }}" id="meta-vs-media-hoje">
+      {{ mostruario.hoje.vs_media.diff_fmt }} · {{ mostruario.hoje.vs_media.pct_signed_fmt }} {{ mostruario.hoje.vs_media.sentido_label }}
+    </div>
+    {% else %}
+    <div class="meta-kpi" id="meta-vendido-hoje">—</div>
+    <div class="meta-sub" id="meta-hoje-off">Só no mês corrente</div>
+    <div class="meta-sub mt-2 hidden" id="meta-media-hoje-wrap">Média esperada (até agora): <strong id="meta-media-hoje">—</strong></div>
+    <div class="meta-sub hidden" id="meta-vs-media-hoje">—</div>
+    {% endif %}
+  </div>
+
+  <div class="meta-card meta-span" id="meta-card-faixas">
+    <h2>Metas do mês · quanto falta</h2>
+    <div id="meta-faixas-prog">
+      {% for f in mostruario.faixas %}
+      <div class="meta-faixa">
+        <div>
+          <div class="tit">{{ f.valor_meta_fmt }}</div>
+          <div class="bon">Bônus {{ f.bonus_label }}</div>
+        </div>
+        <div class="st {% if f.atingida %}meta-acima{% else %}meta-abaixo{% endif %}">
+          {% if f.atingida %}✅ +{{ f.excedente_fmt }}{% else %}faltam {{ f.falta_fmt }} · {{ f.pct_fmt }}{% endif %}
+        </div>
+        <div class="meta-bar {% if f.pct < 70 %}is-low{% elif f.pct < 100 %}is-mid{% endif %}"><span style="width: {% if f.pct > 100 %}100{% else %}{{ f.pct|floatformat:0 }}{% endif %}%;"></span></div>
+      </div>
+      {% empty %}
+      <p class="meta-sub">Nenhuma meta neste mês — cadastre abaixo.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="meta-card meta-span">
+    <h2>Texto pro grupo (Zap)</h2>
+    <textarea class="meta-zap" id="meta-zap-txt" readonly>{{ texto_zap }}</textarea>
+  </div>
+
+  <div class="meta-card meta-span" id="meta-config">
+    <h2>Configurar metas · valor + bônus</h2>
+    <p class="meta-sub mb-3">Pode ter 1, 5 ou 20 — o que quiser. Bônus em R$ e, se precisar, texto extra (ex.: moleton).</p>
+    <div id="meta-cfg-lista">
+      {% for f in faixas %}
+      <div class="meta-cfg-row" data-id="{{ f.id }}">
+        <input type="text" inputmode="decimal" data-f="valor_meta" value="{{ f.valor_meta }}" placeholder="Meta venda R$" title="Meta de venda">
+        <input type="text" inputmode="decimal" data-f="bonus_valor" value="{{ f.bonus_valor }}" placeholder="Bônus R$" title="Bônus em R$">
+        <input type="text" data-f="bonus_extra" value="{{ f.bonus_extra }}" placeholder="Extra (moleton…)" title="Bônus extra">
+        <div class="flex gap-1">
+          <button type="button" class="meta-btn-save" data-act="save">Salvar</button>
+          <button type="button" class="meta-btn-del" data-act="del">Excluir</button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <button type="button" class="meta-btn-add mt-2" id="meta-add">+ Nova meta</button>
+  </div>
+</div>
+
+<div class="meta-toast" id="meta-toast">Copiado!</div>
+
+<script>
+(function () {
+  var root = document.getElementById("meta-root");
+  if (!root) return;
+  var apiResumo = root.getAttribute("data-api-resumo");
+  var apiFaixas = root.getAttribute("data-api-faixas");
+  var csrf = (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || "";
+
+  function toast(msg) {
+    var el = document.getElementById("meta-toast");
+    if (!el) return;
+    el.textContent = msg || "Ok";
+    el.style.display = "block";
+    clearTimeout(el._t);
+    el._t = setTimeout(function () { el.style.display = "none"; }, 1800);
+  }
+
+  function sentidoClass(s) {
+    return "meta-sub meta-" + (s || "sem");
+  }
+
+  function barClass(pct) {
+    if (pct == null) return "meta-bar";
+    if (pct < 70) return "meta-bar is-low";
+    if (pct < 100) return "meta-bar is-mid";
+    return "meta-bar";
+  }
+
+  function renderFaixasProg(faixas) {
+    var box = document.getElementById("meta-faixas-prog");
+    if (!box) return;
+    if (!faixas || !faixas.length) {
+      box.innerHTML = '<p class="meta-sub">Nenhuma meta neste mês — cadastre abaixo.</p>';
+      return;
+    }
+    box.innerHTML = faixas.map(function (f) {
+      var pct = Number(f.pct || 0);
+      var w = Math.max(0, Math.min(100, pct));
+      var st = f.atingida
+        ? ('✅ +' + (f.excedente_fmt || "—"))
+        : ("faltam " + (f.falta_fmt || "—") + " · " + (f.pct_fmt || "—"));
+      var stCls = f.atingida ? "meta-acima" : "meta-abaixo";
+      return (
+        '<div class="meta-faixa">' +
+          '<div><div class="tit">' + (f.valor_meta_fmt || "—") + '</div>' +
+          '<div class="bon">Bônus ' + (f.bonus_label || "—") + '</div></div>' +
+          '<div class="st ' + stCls + '">' + st + '</div>' +
+          '<div class="' + barClass(pct) + '"><span style="width:' + w + '%"></span></div>' +
+        '</div>'
+      );
+    }).join("");
+  }
+
+  function renderCfg(faixas) {
+    var box = document.getElementById("meta-cfg-lista");
+    if (!box) return;
+    box.innerHTML = (faixas || []).map(function (f) {
+      return (
+        '<div class="meta-cfg-row" data-id="' + f.id + '">' +
+          '<input type="text" inputmode="decimal" data-f="valor_meta" value="' + f.valor_meta + '" placeholder="Meta venda R$">' +
+          '<input type="text" inputmode="decimal" data-f="bonus_valor" value="' + f.bonus_valor + '" placeholder="Bônus R$">' +
+          '<input type="text" data-f="bonus_extra" value="' + (f.bonus_extra || "").replace(/"/g, "&quot;") + '" placeholder="Extra (moleton…)">' +
+          '<div class="flex gap-1">' +
+            '<button type="button" class="meta-btn-save" data-act="save">Salvar</button>' +
+            '<button type="button" class="meta-btn-del" data-act="del">Excluir</button>' +
+          '</div>' +
+        '</div>'
+      );
+    }).join("");
+  }
+
+  function applyMostruario(m, texto) {
+    if (!m) return;
+    root.setAttribute("data-comp", m.competencia || "");
+    var lbl = document.getElementById("meta-comp-lbl");
+    if (lbl) lbl.textContent = m.competencia_fmt || m.competencia || "";
+    var tit = document.getElementById("meta-mes-titulo");
+    if (tit) tit.textContent = (m.mes_atual ? "Mês até hoje" : "Mês fechado");
+    var vm = document.getElementById("meta-vendido-mes");
+    if (vm) vm.textContent = m.vendido_mes_fmt || "—";
+    var fim = document.getElementById("meta-fim-lbl");
+    if (fim) fim.textContent = m.fim_vendido_fmt || "";
+    var mm = document.getElementById("meta-media-mes");
+    if (mm) mm.textContent = m.media_mes_ref_fmt || "—";
+    var vs = document.getElementById("meta-vs-media-mes");
+    if (vs && m.vs_media_mes) {
+      vs.className = sentidoClass(m.vs_media_mes.sentido);
+      vs.textContent = (m.vs_media_mes.diff_fmt || "—") + " · " + (m.vs_media_mes.pct_signed_fmt || "—") + " " + (m.vs_media_mes.sentido_label || "");
+    }
+    var hoje = m.hoje || {};
+    var vh = document.getElementById("meta-vendido-hoje");
+    var mh = document.getElementById("meta-media-hoje");
+    var vsh = document.getElementById("meta-vs-media-hoje");
+    var off = document.getElementById("meta-hoje-off");
+    if (hoje.ativo) {
+      if (vh) vh.textContent = hoje.vendido_fmt || "—";
+      if (mh) mh.textContent = hoje.media_ate_agora_fmt || "—";
+      if (vsh && hoje.vs_media) {
+        vsh.className = sentidoClass(hoje.vs_media.sentido);
+        vsh.textContent = (hoje.vs_media.diff_fmt || "—") + " · " + (hoje.vs_media.pct_signed_fmt || "—") + " " + (hoje.vs_media.sentido_label || "");
+        vsh.classList.remove("hidden");
+      }
+      if (off) off.classList.add("hidden");
+    } else {
+      if (vh) vh.textContent = "—";
+      if (off) { off.classList.remove("hidden"); off.textContent = "Só no mês corrente"; }
+      if (vsh) vsh.classList.add("hidden");
+    }
+    renderFaixasProg(m.faixas || []);
+    var zap = document.getElementById("meta-zap-txt");
+    if (zap && typeof texto === "string") zap.value = texto;
+  }
+
+  function competencia() {
+    var inp = document.getElementById("meta-comp");
+    return (inp && inp.value) || root.getAttribute("data-comp") || "";
+  }
+
+  function carregar() {
+    var url = apiResumo + "?competencia=" + encodeURIComponent(competencia());
+    return fetch(url, { credentials: "same-origin", headers: { "Accept": "application/json" } })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data || !data.ok) throw new Error((data && data.erro) || "Falha");
+        applyMostruario(data.mostruario, data.texto_zap);
+        return fetch(apiFaixas + "?competencia=" + encodeURIComponent(competencia()), {
+          credentials: "same-origin",
+          headers: { "Accept": "application/json" }
+        });
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data && data.ok) renderCfg(data.faixas || []);
+      })
+      .catch(function () { toast("Erro ao atualizar"); });
+  }
+
+  document.getElementById("meta-atualizar").addEventListener("click", carregar);
+  document.getElementById("meta-comp").addEventListener("change", carregar);
+
+  document.getElementById("meta-copiar-zap").addEventListener("click", function () {
+    var zap = document.getElementById("meta-zap-txt");
+    var txt = zap ? zap.value : "";
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(function () { toast("Copiado pro Zap!"); });
+    } else if (zap) {
+      zap.select();
+      document.execCommand("copy");
+      toast("Copiado!");
+    }
+  });
+
+  document.getElementById("meta-add").addEventListener("click", function () {
+    var box = document.getElementById("meta-cfg-lista");
+    var row = document.createElement("div");
+    row.className = "meta-cfg-row";
+    row.setAttribute("data-id", "");
+    row.innerHTML =
+      '<input type="text" inputmode="decimal" data-f="valor_meta" value="" placeholder="Meta venda R$">' +
+      '<input type="text" inputmode="decimal" data-f="bonus_valor" value="0" placeholder="Bônus R$">' +
+      '<input type="text" data-f="bonus_extra" value="" placeholder="Extra (moleton…)">' +
+      '<div class="flex gap-1">' +
+        '<button type="button" class="meta-btn-save" data-act="save">Salvar</button>' +
+        '<button type="button" class="meta-btn-del" data-act="del">Excluir</button>' +
+      '</div>';
+    box.appendChild(row);
+    row.querySelector('[data-f="valor_meta"]').focus();
+  });
+
+  document.getElementById("meta-cfg-lista").addEventListener("click", function (ev) {
+    var btn = ev.target.closest("[data-act]");
+    if (!btn) return;
+    var row = btn.closest(".meta-cfg-row");
+    if (!row) return;
+    var id = row.getAttribute("data-id") || "";
+    var act = btn.getAttribute("data-act");
+
+    if (act === "del") {
+      if (!id) { row.remove(); return; }
+      if (!confirm("Excluir esta meta?")) return;
+      fetch(apiFaixas, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrf,
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({ acao: "excluir", id: id, competencia: competencia() })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.ok) throw new Error(data.erro || "Erro");
+          renderCfg(data.faixas || []);
+          carregar();
+          toast("Excluída");
+        })
+        .catch(function (e) { toast(e.message || "Erro"); });
+      return;
+    }
+
+    if (act === "save") {
+      var payload = {
+        competencia: competencia(),
+        id: id || null,
+        valor_meta: (row.querySelector('[data-f="valor_meta"]') || {}).value,
+        bonus_valor: (row.querySelector('[data-f="bonus_valor"]') || {}).value,
+        bonus_extra: (row.querySelector('[data-f="bonus_extra"]') || {}).value
+      };
+      fetch(apiFaixas, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrf,
+          "Accept": "application/json"
+        },
+        body: JSON.stringify(payload)
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.ok) throw new Error(data.erro || "Erro");
+          renderCfg(data.faixas || []);
+          carregar();
+          toast("Salva");
+        })
+        .catch(function (e) { toast(e.message || "Erro"); });
+    }
+  });
+})();
+</script>
+{% endblock %}

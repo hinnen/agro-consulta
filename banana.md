@@ -393,6 +393,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 ### 4.1 Home / BI (`/`)
 
 - Dashboard gerencial SisVale BI; atalhos clÃ¡ssicos em `/atalhos/`.
+- **META mostruário (05/10 · `META-MOSTRUARIO`):** botão no menu Gestão → `/meta/` · faixas manuais (venda + bônus) no Postgres · vs média esperada Meta C · Copiar pro Zap.
 - VersÃ£o do commit no Render (nÃ£o hardcoded).
 - Card **Validade** destaca vermelho se produto vencido.
 - Card **Lucro LÃ­quido** (no lugar de Novos Clientes): vencimento Â· bruto + pago Â· mesmo DRE do Resumo.
@@ -1288,6 +1289,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 📦 PACOTE — META mostruário (`META-MOSTRUARIO` · tip **v26.09**) · 05/10/2026
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 **só no `teste`** — validar local |
+| **O quê** | Botão **META** no menu Gestão (abaixo Configuração) · tela `/meta/` · metas manuais + bônus no Postgres · mostruário vs média esperada (Meta C) · dia / mês até hoje / mês fechado · Copiar pro Zap |
+| **Padrão seed** | 105k/100 · 110k/150 · 115k/100+moleton · 120k/250 · 130k/500 (mês corrente) |
+| **Migrate** | **SIM** `0138` (`MetaVendaFaixaAgro`) |
+| **URLs** | `/meta/` · `/api/meta/resumo/` · `/api/meta/faixas/` |
+| **Arquivos** | `meta_vendas_util.py` · `views_meta_vendas.py` · `meta_vendas.html` · launchpad GESTÃO · models + 0138 |
+| **Você** | Ctrl+F5 BI → Menu → META · confere números · edita faixa · Copiar pro Zap |
 
 ### WIP — botão Análise de crédito no menu Gestão · 05/10
 
