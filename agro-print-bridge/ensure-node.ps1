@@ -37,7 +37,35 @@ if (Has-WorkingNode) {
 $archFolder = Get-NodeArchFolder
 Write-Host "Arquitetura: $archFolder"
 
-# Ja tem portatil?
+# 1) Node ja veio no ZIP da loja (app\vendor\node-*-win-x64.zip)
+$vendorDir = Join-Path $PSScriptRoot 'vendor'
+if (Test-Path $vendorDir) {
+  $bundledZip = Get-ChildItem -Path $vendorDir -Filter "node-*-$archFolder.zip" -File -ErrorAction SilentlyContinue |
+    Select-Object -First 1
+  if (-not $bundledZip) {
+    $bundledZip = Get-ChildItem -Path $vendorDir -Filter 'node-*-win-x64.zip' -File -ErrorAction SilentlyContinue |
+      Select-Object -First 1
+  }
+  if ($bundledZip) {
+    $folderName = [IO.Path]::GetFileNameWithoutExtension($bundledZip.Name)
+    $nodeDir = Join-Path $nodeHome $folderName
+    $nodeExe = Join-Path $nodeDir 'node.exe'
+    if (-not (Test-Path $nodeExe)) {
+      Write-Host "Usando Node que veio no pacote (sem baixar)..."
+      New-Item -ItemType Directory -Force -Path $nodeHome | Out-Null
+      if (Test-Path $nodeDir) { Remove-Item -Recurse -Force $nodeDir }
+      Expand-Archive -Path $bundledZip.FullName -DestinationPath $nodeHome -Force
+    }
+    if (Test-Path $nodeExe) {
+      Write-Host "Node do pacote OK: $nodeExe"
+      $env:Path = "$nodeDir;$env:Path"
+      [Environment]::SetEnvironmentVariable('AGRO_NODE_DIR', $nodeDir, 'Process')
+      exit 0
+    }
+  }
+}
+
+# Ja tem portatil em LocalAppData?
 $existing = Get-ChildItem -Path $nodeHome -Directory -ErrorAction SilentlyContinue |
   Where-Object { $_.Name -like "node-*-$archFolder" -or $_.Name -like 'node-*-win-*' }
 foreach ($d in $existing) {
@@ -68,7 +96,7 @@ $lts = Get-LtsVersionFromIndex
 # Ordem: LTS atual (se achou) + pins conhecidos que ainda existem no dist
 $versions = @()
 if ($lts) { $versions += $lts }
-$versions += @('v22.22.0', 'v22.14.0', 'v20.19.0', 'v20.18.0')
+$versions += @('v22.14.0', 'v22.23.0', 'v20.19.0')
 $versions = $versions | Select-Object -Unique
 
 $mirrors = @(
@@ -82,7 +110,11 @@ New-Item -ItemType Directory -Force -Path $nodeHome | Out-Null
 $ok = $false
 $lastErr = ''
 foreach ($ver in $versions) {
-  $folderName = "node-$($ver.TrimStart('v'))-$archFolder"
+  $folderName = "node-$ver-$archFolder"
+  # nodejs.org usa node-v22.14.0-win-x64 (com "v" no nome)
+  if (-not $folderName.StartsWith('node-v') -and $ver.StartsWith('v')) {
+    $folderName = "node-$ver-$archFolder"
+  }
   $zipPath = Join-Path $nodeHome "$folderName.zip"
   $nodeDir = Join-Path $nodeHome $folderName
   $nodeExe = Join-Path $nodeDir 'node.exe'

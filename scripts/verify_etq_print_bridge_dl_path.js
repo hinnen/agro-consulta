@@ -32,9 +32,10 @@ const html = read('produtos/templates/produtos/produtos_etiquetas.html');
 const js = read('produtos/static/produtos/js/produtos_etiquetas.js');
 
 ok(util.includes('build_print_bridge_zip'), 'util zip');
-ok(util.includes('1-INSTALAR.bat'), 'util inclui 1-INSTALAR');
+ok(util.includes('CLIQUE-AQUI-INSTALAR.bat'), 'util inclui CLIQUE-AQUI-INSTALAR');
 ok(util.includes('LEIA-ME.txt'), 'util inclui LEIA-ME');
 ok(util.includes('node_modules'), 'util exclui node_modules');
+ok(util.includes('ensure_node_vendor') || util.includes('app/vendor'), 'Node embutido no ZIP');
 ok(views.includes('api_etiquetas_print_bridge_download'), 'view download');
 ok(views.includes('Agro-Etiqueta-Print-Windows.zip'), 'nome zip');
 ok(views.includes('api_etq_bridge_download_url'), 'view passa URL template');
@@ -46,11 +47,11 @@ ok(fs.existsSync(path.join(root, 'agro-print-bridge/ensure-node.bat')), 'ensure-
 ok(fs.existsSync(path.join(root, 'agro-print-bridge/ensure-node.ps1')), 'ensure-node.ps1');
 ok(read('agro-print-bridge/Instalar-inicio-Windows.bat').includes('ensure-node.bat'), 'instalar chama ensure-node');
 ok(read('agro-print-bridge/Iniciar-ponte-etiquetas.bat').includes('ensure-node.bat'), 'iniciar chama ensure-node');
-ok(read('produtos/etiquetas_print_bridge_util.py').includes('BAIXA SOZINHO'), 'LEIA-ME sem exigir Node manual');
-ok(html.includes('1-INSTALAR.bat'), 'UI instalar 1x');
+ok(read('agro-print-bridge/ensure-node.ps1').includes('vendor'), 'ensure-node usa vendor do pacote');
+ok(html.includes('CLIQUE-AQUI-INSTALAR.bat'), 'UI instalar 1x');
 ok(html.includes('bridgeDownloadUrl'), 'cfg bridgeDownloadUrl');
 ok(js.includes('etq-btn-bridge-download'), 'JS hook download');
-ok(js.includes('1-INSTALAR.bat'), 'JS avisa instalar');
+ok(js.includes('CLIQUE-AQUI-INSTALAR.bat'), 'JS avisa instalar');
 
 try {
   const py = `

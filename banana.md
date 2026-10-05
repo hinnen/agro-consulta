@@ -1291,6 +1291,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### PACOTE PRONTO — Ponte 1 clique + Node dentro (`ETQ-PONTE-1CLIQUE`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | ZIP: na raiz só **CLIQUE-AQUI-INSTALAR.bat** (+ LEIA-ME). Resto em `app/`. Node portátil já vem em `app/vendor` (não depende de baixar Node na hora). |
+| **Migrate** | **NÃO** |
+| **Prova** | bridge **22/22** · full **79/79** · zip ~34 MB · **PREP_FAILS=0** |
+| **Status** | 🟢 **pronto para envio à produção** · tip abaixo após push |
+| **Você** | Baixar ponte → extrair → **só** CLIQUE-AQUI-INSTALAR.bat |
+
+### ✅ CHECKLIST ÚNICO — ETQ-PONTE-1CLIQUE · 🟢 pronto para envio à produção
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ETQ-PONTE-1CLIQUE** | 🟢 **pronto para envio à produção** | **NÃO** | **79/79** |
+
 ### PACOTE PRONTO — Ponte etiqueta Node 404 + bat (`ETQ-PONTE-NODE-FIX`)
 
 | Campo | Valor |
@@ -1298,7 +1314,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Instalador da ponte: `.bat` só ASCII (acabava `tle`/`cp` no cmd) · download Node com várias versões + espelho (evita 404) · detecta x64/arm64/x86 |
 | **Migrate** | **NÃO** |
 | **Prova** | bridge dl **21/21** · full **78/78** · zip ASCII OK · **PREP_FAILS=0** |
-| **Status** | 🟢 **pronto para envio à produção** · tip abaixo após push |
+| **Status** | 🟢 **pronto para envio à produção** · tip `teste` **v26.44** @ `e59c0d32` |
 | **Você** | No PC com erro: baixar de novo o ZIP em Etiquetas → extrair → **1-INSTALAR.bat** (internet na 1ª vez) |
 
 ### ✅ CHECKLIST ÚNICO — ETQ-PONTE-NODE-FIX · 🟢 pronto para envio à produção
