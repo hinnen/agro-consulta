@@ -1289,21 +1289,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### PACOTE PRONTO — Análise crédito shadow (`CREDITO-SCORE-SHADOW`)
+### 🟢 PREP — CREDITO-SCORE-SHADOW · alvo loja **v26.07** · aguarda senha
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Laboratório `/fiado/analise-credito/` — score `shadow_v1`, snapshots `ClienteAnaliseCreditoAgro`. **Não** altera limite/venda/fiado/PDV. |
-| **Prova** | `scripts/verify_credito_score_shadow_path.py` **93/93** · PIN **9973** · média pk79 = planilha · **PREP_FAILS=0** |
-| **Migrate** | **SIM** `0137` (só CreateModel) |
-| **Flag** | default **off** · `AGRO_CREDITO_SCORE_SHADOW_ENABLED` + `AGRO_CREDITO_SCORE_SHADOW_USERNAMES` |
-| **Mexe** | tabela nova + tela admin isolada · **sem** menu PDV/fiado |
-| **Status** | 🟢 **pronto para envio à produção** · tip `teste` **v26.07** |
-| **Antes** | Live **v26.05** |
-| **Rollback** | `docs/ROLLBACK-CREDITO-SCORE-SHADOW.md` · tag `rollback/pre-credito-score-shadow-v26.05` · **só** frase+senha |
-| **Você** | frase+senha → deploy → migrate → ligar flag no Render → Ctrl+F5 na URL (só você) |
+| **Status** | 🟢 **PREP pronto** — **não** subiu · loja ainda **Live v26.05** |
+| **Branch PREP** | `deploy/prep-credito-score-shadow` |
+| **Antes** | `producao` @ `41a6fdea` · v**26.05** |
+| **Migrate** | **SIM** `0137` (só CREATE TABLE) — no build do Render |
+| **Não entra** | merge do `teste` · flag ligada · PDV/caixa/fiado operacional |
+| **Flag no 1º deploy** | **ficar OFF** (default) — operador 404 · sem 2ª queda |
+| **Rollback** | tag `rollback/pre-credito-score-shadow-v26.05` · backup `producao-backup-pre-v2607-credito-score-shadow-20261005` · `docs/ROLLBACK-CREDITO-SCORE-SHADOW.md` · **só** frase+senha |
+| **Prova PREP** | shadow **93/93** · PDV limite refresh **39/39** · card fiado **39/39** · **PREP_FAILS=0** |
+| **Próximo** | lojas pausam · frase + senha · `producao` ← PREP · **não** ligar env neste passo |
 
-### ✅ CHECKLIST ÚNICO — CREDITO-SCORE-SHADOW · 🟢 pronto para envio à produção
+### ✅ CHECKLIST ÚNICO — CREDITO-SCORE-SHADOW · 🟢 PREP pronto · aguarda senha
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
