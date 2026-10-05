@@ -1295,14 +1295,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v26.46** — producao @ 68ef04ce · Render dep-db21bsmgekts739g5sj0 · **não** foi merge do 	este |
+| **Status** | ✅ **enviado / Live v26.46** — producao @ 68ef04ce · Render dep-db21bsmgekts739g5sj0 · **não** foi merge do teste |
 | **O quê** | **CREDITO-SCORE-TRAVAS** + **ETQ-PONTE-1CLIQUE** (+ NODE-FIX) |
 | **Branch PREP** | deploy/prep-checklist-0510d · tip 68ef04ce · base Live **v26.40** @ 8be1f093 |
 | **Migrate** | **NÃO** |
 | **Smoke** | healthz **ok** · deploy **live** |
 | **Provas (PREP)** | shadow **98/98** · xlsx **90/90** · 1clique **37/37** · **PREP_FAILS=0** |
-| **Rollback** | tag 
-ollback/pre-checklist-0510d-v26.40 @ 8be1f093 · branch producao-backup-pre-v2646-checklist-0510d · docs/ROLLBACK-CHECKLIST-0510d.md · **só** frase+senha |
+| **Rollback** | tag rollback/pre-checklist-0510d-v26.40 @ 8be1f093 · branch producao-backup-pre-v2646-checklist-0510d · docs/ROLLBACK-CHECKLIST-0510d.md · **só** frase+senha |
 | **Você** | Ctrl+F5 · badge **v26.46** · liberar vendas · PC etiqueta: baixar ZIP de novo se for reinstalar ponte |
 
 ### ✅ CHECKLIST ÚNICO — 05/10d · ✅ Live v26.46
