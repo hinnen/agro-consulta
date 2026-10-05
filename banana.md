@@ -1290,101 +1290,41 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚀 PREP deploy loja — Checklist 05/10 (`deploy/prep-checklist-0510` · **v26.08**) · aguarda senha
+### ✅ Deploy loja — Checklist 05/10 · **Live v26.08** · 05/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP pronto** · **não subiu** · aguarda pausa loja + frase + senha |
-| **Branch PREP** | `deploy/prep-checklist-0510` @ `8b636b67` |
-| **Base Live** | **v26.07** @ `93189ebb` |
-| **Rollback tag** | `rollback/pre-checklist-0510-v26.07` @ `93189ebb` |
-| **Alvo loja** | **v26.08** |
-| **Migrate** | **SIM** só `produtos.0138` (META · CreateModel + seed) |
-| **Não é** | merge do `teste` · **só** os 4 pacotes do checklist abaixo |
-| **Provas no PREP** | META **105/105** · LAB **34/34** · XLSX **54/54** · Pedir **30/30** · cupom **32/32** · Django Pedir **29/29** · shadow/PDV fiado **PREP_FAILS=0** · `manage.py check` OK |
-| **Risco PDV/caixa** | Pedir loja = só overlay/API pedido · crédito = lab/gestão · META = menu Gestão · **não** mexe NFC-e / finalizar venda / caixa |
-| **No deploy (com senha)** | 1) pausar vendas · 2) fast-forward `producao` ← PREP (ou reset --hard PREP tip) · 3) push `producao` · 4) Render migrate `0138` no build · 5) Ctrl+F5 PDVs · 6) limpar badges no banana |
+| **Status** | ✅ **enviado / Live v26.08** — `producao` @ `8b636b67` · Render `dep-db1uj2eq1p3s73e1aqqg` · **não** foi merge do `teste` |
+| **Branch PREP** | `deploy/prep-checklist-0510` · tip `8b636b67` · base Live **v26.07** @ `93189ebb` |
+| **Backup** | `producao-backup-pre-v2608-checklist-0510` @ `93189ebb` |
+| **Rollback** | tag `rollback/pre-checklist-0510-v26.07` @ `93189ebb` · `docs/DEPLOY-PREP-CHECKLIST-0510.md` · **só** frase+senha |
+| **Migrate** | **SIM** `0138` (META) — no build |
+| **Pacotes** | META-MOSTRUARIO · CREDITO-SCORE-LAB-ACESSO · CREDITO-SCORE-XLSX · PDV-PEDIR-PARCIAL-PRINT |
+| **Provas (PREP)** | META **105/105** · LAB **34/34** · XLSX **54/54** · Pedir **30/30** · **PREP_FAILS=0** |
+| **Você** | Ctrl+F5 PDV/BI · badge **v26.08** · Pedir loja · Menu META · Análise de crédito (autorizado) |
 
-### ✅ CHECKLIST ÚNICO — 05/10 · PREP v26.08 · 🟢 aguarda senha
+### ✅ CHECKLIST ÚNICO — 05/10 · ✅ Live v26.08
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **META-MOSTRUARIO** | 🟢 PREP | **SIM** `0138` | **105/105** |
-| 2 | **CREDITO-SCORE-LAB-ACESSO** | 🟢 PREP | **NÃO** | **34/34** |
-| 3 | **CREDITO-SCORE-XLSX** | 🟢 PREP | **NÃO** | **54/54** |
-| 4 | **PDV-PEDIR-PARCIAL-PRINT** | 🟢 PREP | **NÃO** | **30/30** + smoke PIN |
+| 1 | **META-MOSTRUARIO** | ✅ **enviado / Live v26.08** | **SIM** `0138` | **105/105** |
+| 2 | **CREDITO-SCORE-LAB-ACESSO** | ✅ **enviado / Live v26.08** | **NÃO** | **34/34** |
+| 3 | **CREDITO-SCORE-XLSX** | ✅ **enviado / Live v26.08** | **NÃO** | **54/54** |
+| 4 | **PDV-PEDIR-PARCIAL-PRINT** | ✅ **enviado / Live v26.08** | **NÃO** | **30/30** + smoke PIN |
 
-### PACOTE PRONTO — Pedir loja parcial + imprimir todos (`PDV-PEDIR-PARCIAL-PRINT`)
+### ~~PACOTE PRONTO — Pedir loja parcial + imprimir todos~~ · **superado — Live v26.08**
 
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Imprimir todos · Aceitar todos · lista 1 linha · □ parcial (resto na fila) · qtd 0 = NÃO ENVIADO · badges RESTANTE / ENVIO PARCIAL · seções por status |
-| **Migrate** | **NÃO** |
-| **Mexe** | `pdv_pedir_loja.js` · overlay · `pdv_transf_loja_util` · `views_pdv_transf_loja` |
-| **Prova** | path **30/30** · cupom-qtd **32/32** · etq53 **14/14** · Django **29/29** · smoke DB PIN **9973** |
-| **Status** | 🟢 **no PREP** `deploy/prep-checklist-0510` · aguarda senha |
-| **Rollback** | `docs/ROLLBACK-PDV-PEDIR-PARCIAL-PRINT.md` · tag `rollback/pre-checklist-0510-v26.07` |
-| **Você** | no próximo chat: pausar lojas + frase + senha |
+### ~~PACOTE PRONTO — Excel lab crédito~~ · **superado — Live v26.08**
 
-### ✅ CHECKLIST ÚNICO — PDV-PEDIR-PARCIAL-PRINT · 🟢 no PREP
+### ~~PACOTE PRONTO — Acesso lab crédito~~ · **superado — Live v26.08**
 
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-PEDIR-PARCIAL-PRINT** | 🟢 **no PREP** (lote 05/10) | **NÃO** | **30/30** + smoke PIN |
-
-### PACOTE PRONTO — Excel lab crédito (`CREDITO-SCORE-XLSX`)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Botão **Excel ↓** em `/fiado/analise-credito/` — mesmas linhas/filtros da tela (+ ID, limites, vencido, candidato revisão, diff). Só leitura. |
-| **Migrate** | **NÃO** |
-| **Prova** | **54/54** · shadow **93/93** · **PREP_FAILS=0** |
-| **Status** | 🟢 **no PREP** `deploy/prep-checklist-0510` · aguarda senha |
-| **Rollback** | `docs/ROLLBACK-CREDITO-SCORE-XLSX.md` |
-
-### ✅ CHECKLIST ÚNICO — CREDITO-SCORE-XLSX · 🟢 no PREP
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **CREDITO-SCORE-XLSX** | 🟢 **no PREP** (lote 05/10) | **NÃO** | **54/54** |
-
-### PACOTE PRONTO — Acesso lab crédito (`CREDITO-SCORE-LAB-ACESSO`)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Botão **Análise de crédito** no menu Gestão + fix app PDV não puxa de volta. |
-| **Migrate** | **NÃO** |
-| **Prova** | **34/34** · **PREP_FAILS=0** |
-| **Status** | 🟢 **no PREP** `deploy/prep-checklist-0510` · aguarda senha |
-| **Rollback** | `docs/ROLLBACK-CREDITO-SCORE-LAB-ACESSO.md` |
-
-### ✅ CHECKLIST ÚNICO — CREDITO-SCORE-LAB-ACESSO · 🟢 no PREP
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **CREDITO-SCORE-LAB-ACESSO** | 🟢 **no PREP** (lote 05/10) | **NÃO** | **34/34** |
-
-### 📦 PACOTE PRONTO — META mostruário (`META-MOSTRUARIO`)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Botão **META** · `/meta/` · faixas+bônus · Copiar foto/texto |
-| **Migrate** | **SIM** `0138` |
-| **Prova** | **105/105** |
-| **Status** | 🟢 **no PREP** `deploy/prep-checklist-0510` · aguarda senha |
-| **Rollback** | `docs/ROLLBACK-META-MOSTRUARIO.md` |
-
-### ✅ CHECKLIST ÚNICO — META-MOSTRUARIO · 🟢 no PREP
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **META-MOSTRUARIO** | 🟢 **no PREP** (lote 05/10) | **SIM** `0138` | **105/105** |
+### ~~PACOTE PRONTO — META mostruário~~ · **superado — Live v26.08**
 
 ### WIP — botão Análise de crédito no menu Gestão · 05/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | → ver **PACOTE PRONTO CREDITO-SCORE-LAB-ACESSO** (acima) |
+| **Status** | ✅ **Live v26.08** (lote checklist 05/10) |
 
 ### ✅ Deploy loja — CREDITO-SCORE-SHADOW · **Live v26.07** · 05/10
 
