@@ -167,29 +167,27 @@ ok(Number(p53.largura_mm) === 53 && Number(p53.altura_mm) === 30, 'preset 53 mm'
 
 // --- ZIP real ---
 try {
-  const py = `
-import sys
-sys.path.insert(0, r"${root.replace(/\\/g, '\\\\')}")
-from produtos.etiquetas_print_bridge_util import build_print_bridge_zip
-import zipfile, io
-z = build_print_bridge_zip()
-assert z[:2] == b"PK"
-zf = zipfile.ZipFile(io.BytesIO(z))
-names = zf.namelist()
-        need = [
-  "Agro-Etiqueta-Print/1-INSTALAR.bat",
-  "Agro-Etiqueta-Print/LEIA-ME.txt",
-  "Agro-Etiqueta-Print/main.js",
-  "Agro-Etiqueta-Print/ensure-node.bat",
-  "Agro-Etiqueta-Print/Instalar-inicio-Windows.bat",
-  "Agro-Etiqueta-Print/iniciar-silencioso.vbs",
-  "Agro-Etiqueta-Print/Elgin-duas-filas.txt",
-]
-for n in need:
-  assert n in names, n
-assert not any("node_modules" in n for n in names)
-print("ZIP_OK", len(z), len(names))
-`;
+  const py = [
+    'import sys, zipfile, io',
+    'sys.path.insert(0, r"' + root.replace(/\\/g, '\\\\') + '")',
+    'from produtos.etiquetas_print_bridge_util import build_print_bridge_zip',
+    'z = build_print_bridge_zip()',
+    'assert z[:2] == b"PK"',
+    'names = zipfile.ZipFile(io.BytesIO(z)).namelist()',
+    'need = [',
+    '  "Agro-Etiqueta-Print/1-INSTALAR.bat",',
+    '  "Agro-Etiqueta-Print/LEIA-ME.txt",',
+    '  "Agro-Etiqueta-Print/main.js",',
+    '  "Agro-Etiqueta-Print/ensure-node.bat",',
+    '  "Agro-Etiqueta-Print/Instalar-inicio-Windows.bat",',
+    '  "Agro-Etiqueta-Print/iniciar-silencioso.vbs",',
+    '  "Agro-Etiqueta-Print/Elgin-duas-filas.txt",',
+    ']',
+    'missing = [n for n in need if n not in names]',
+    'assert not missing, missing',
+    'assert not any("node_modules" in n for n in names)',
+    'print("ZIP_OK", len(z), len(names))',
+  ].join('\n');
   const out = execFileSync('python', ['-c', py], { cwd: root, encoding: 'utf8' });
   ok(out.includes('ZIP_OK'), 'zip conteúdo (' + out.trim() + ')');
 } catch (e) {
