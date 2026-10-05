@@ -34,7 +34,7 @@ from produtos.models import (
     VendaAgro,
 )
 
-REGRA_VERSAO = "shadow_v1"
+REGRA_VERSAO = "shadow_v1_1"
 _Q2 = Decimal("0.01")
 _ZERO = Decimal("0.00")
 
@@ -59,6 +59,42 @@ def rotulo_candidato_revisao(*, candidato: bool, alertas: list | None) -> str:
     if alerta_inconsistencia_pagamento(alertas):
         return "Revisar dados"
     return "Sim" if candidato else "Não"
+
+
+def _pct_pago_em_dia(em_dia: int, quitados: int) -> float | None:
+    if quitados <= 0:
+        return None
+    return round(100.0 * float(em_dia) / float(quitados), 2)
+
+
+def _aplicar_travas_score(
+    score: int,
+    *,
+    pct_em_dia: float | None,
+    maior_atraso_12m: int,
+) -> tuple[int, list[str]]:
+    """
+    Travas do score final (não altera pesos dos 5 componentes).
+    - % em dia < 50 → máx 79
+    - % em dia >= 50 e < 80 → máx 84
+    - atraso > 30 dias (12m) → máx 79
+    """
+    travas: list[str] = []
+    out = score
+    if pct_em_dia is not None:
+        if pct_em_dia < 50:
+            if out > 79:
+                travas.append("pct_em_dia<50→max79")
+            out = min(out, 79)
+        elif pct_em_dia < 80:
+            if out > 84:
+                travas.append("pct_em_dia<80→max84")
+            out = min(out, 84)
+    if maior_atraso_12m > 30:
+        if out > 79:
+            travas.append("atraso>30d→max79")
+        out = min(out, 79)
+    return out, travas
 
 
 
@@ -578,10 +614,21 @@ def analisar_cliente(
         quitacao_pts = 0.0
         freq_pts = 0
         rel_pts = 0
+        pct_em_dia = None
+        maior_atraso_12m = 0
+        score_antes_trava = None
+        travas_score: list[str] = []
         alertas.append("Sem histórico suficiente para score numérico.")
     else:
         score_raw = pontualidade_pts + situacao_pts + quitacao_pts + freq_pts + rel_pts
-        score = _clamp_int(int(round(score_raw)), 0, 100)
+        score_antes_trava = _clamp_int(int(round(score_raw)), 0, 100)
+        pct_em_dia = _pct_pago_em_dia(em_dia, titulos_quitados_avaliaveis)
+        maior_atraso_12m = max(int(maior_atraso_pago or 0), int(maior_atraso_atual or 0))
+        score, travas_score = _aplicar_travas_score(
+            score_antes_trava,
+            pct_em_dia=pct_em_dia,
+            maior_atraso_12m=maior_atraso_12m,
+        )
         classificacao = _classificacao_de_score(score)
         if titulos_quitados_avaliaveis <= 2 or dias_rel < 90:
             confianca = ClienteAnaliseCreditoAgro.Confianca.BAIXA
@@ -594,6 +641,11 @@ def analisar_cliente(
     mult = _multiplicador_limite(score)
     sugerido = (media * mult).quantize(_Q2) if score is not None else _ZERO
 
+    titulos_analisados = len(
+        [t for t in titulos_janela if t.situacao != FiadoTituloAgro.Situacao.CANCELADO]
+    )
+    # Regra provisória: inconsistência quitado/baixas → «Revisar dados» (não candidato).
+    revisar_dados = alerta_inconsistencia_pagamento(alertas)
     candidato = bool(
         score is not None
         and score >= 85
@@ -601,28 +653,29 @@ def analisar_cliente(
             ClienteAnaliseCreditoAgro.Confianca.MEDIA,
             ClienteAnaliseCreditoAgro.Confianca.ALTA,
         )
+        and titulos_analisados >= 6
+        and pct_em_dia is not None
+        and pct_em_dia >= 80
+        and maior_atraso_12m <= 15
         and not tem_vencido
+        and not revisar_dados
         and sugerido > limite_efet
     )
-    # Regra provisória: inconsistência quitado/baixas → não é candidato (revisar dados).
-    revisar_dados = alerta_inconsistencia_pagamento(alertas)
-    if revisar_dados:
-        candidato = False
 
     indicadores = {
         "regra": REGRA_VERSAO,
         "janela_pagamento_meses": 12,
         "janela_media_meses": 3,
         "titulos_total_cliente": len(titulos),
-        "titulos_analisados_janela": len(
-            [t for t in titulos_janela if t.situacao != FiadoTituloAgro.Situacao.CANCELADO]
-        ),
+        "titulos_analisados_janela": titulos_analisados,
         "titulos_quitados_avaliaveis": titulos_quitados_avaliaveis,
         "titulos_vencidos_atualmente": qtd_vencidos,
         "titulo_vencido_mais_antigo": titulo_vencido_mais_antigo,
         "pagamentos_em_dia": em_dia,
+        "pct_pago_em_dia": pct_em_dia if pct_em_dia is not None else "",
         "atrasos_ate_3_dias": atr_ate_3,
         "maior_atraso_pago_dias": maior_atraso_pago,
+        "maior_atraso_12m_dias": maior_atraso_12m,
         "pontualidade_media_ponderada": float(media_pond.quantize(_Q2)),
         "pontualidade_pontos": pontualidade_pts,
         "situacao_atual_pontos": situacao_pts,
@@ -633,6 +686,8 @@ def analisar_cliente(
         "relacionamento_dias": dias_rel,
         "relacionamento_primeiro": primeiro.isoformat() if primeiro else "",
         "relacionamento_pontos": rel_pts,
+        "score_antes_trava": score_antes_trava,
+        "travas_score": travas_score,
         "multiplicador_limite": float(mult),
         "piso_operacional_sem_travar": float(max(sugerido, saldo_aberto).quantize(_Q2)),
         "candidato_revisao_limite": candidato,

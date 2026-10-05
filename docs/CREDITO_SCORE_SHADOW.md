@@ -59,7 +59,7 @@ Não há cron, signal nem cálculo no PDV.
 
 ## Fórmula atual
 
-Versão: **`shadow_v1`**
+Versão: **`shadow_v1_1`** (pesos dos 5 componentes iguais ao v1; travas no score final)
 
 | Componente | Máx |
 |------------|-----|
@@ -68,6 +68,14 @@ Versão: **`shadow_v1`**
 | Quitação | 10 |
 | Frequência (6 meses) | 10 |
 | Relacionamento | 10 |
+
+**Travas do score final** (após somar os componentes):
+
+- % pago em dia < 50% → score máx **79**
+- % pago em dia ≥ 50% e < 80% → score máx **84**
+- atraso > 30 dias nos últimos 12 meses → score máx **79**
+
+**Candidato à revisão** exige: score ≥ 85 · confiança Média/Alta · ≥ 6 títulos analisados · ≥ 80% em dia · maior atraso histórico ≤ 15 dias · sem vencido atual · sem inconsistência crítica (quitado sem baixas → **Revisar dados**) · sugerido > limite atual.
 
 Sem histórico suficiente → `score = null`, classificação `SEM_HISTORICO`.
 

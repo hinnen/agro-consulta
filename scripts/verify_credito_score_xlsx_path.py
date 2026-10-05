@@ -166,8 +166,15 @@ def test_contratos_arquivo() -> None:
     check(
         "motor_gate_candidato",
         "revisar_dados = alerta_inconsistencia_pagamento(alertas)" in shadow
-        and "candidato = False" in shadow,
+        and "titulos_analisados >= 6" in shadow
+        and "pct_em_dia >= 80" in shadow
+        and "maior_atraso_12m <= 15" in shadow
+        and "not revisar_dados" in shadow,
     )
+    check("motor_travas_fn", "def _aplicar_travas_score" in shadow)
+    check("motor_trava_pct50", "pct_em_dia<50" in shadow or "pct_em_dia < 50" in shadow)
+    check("motor_trava_atraso30", "maior_atraso_12m > 30" in shadow)
+    check("motor_regra_v11", 'REGRA_VERSAO = "shadow_v1_1"' in shadow)
     check("motor_flag_json", "revisar_dados_inconsistencia" in shadow)
     check("score_peso_pontualidade_45", '* Decimal("45")' in shadow)
     check("score_peso_situacao_25", "situacao_pts = 25" in shadow)

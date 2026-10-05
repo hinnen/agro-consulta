@@ -109,7 +109,7 @@ def test_arquivos_e_isolamento() -> None:
     check("arquivo_migration_0137", mig.is_file())
     check("rota_laboratorio", "fiado/analise-credito/" in urls)
     check("rota_detalhe", "fiado/analise-credito/cliente/<int:pk>/" in urls)
-    check("regra_versao", REGRA_VERSAO == "shadow_v1")
+    check("regra_versao", REGRA_VERSAO == "shadow_v1_1")
 
     src = motor.read_text(encoding="utf-8")
     tree = ast.parse(src)
@@ -164,7 +164,7 @@ def test_arquivos_e_isolamento() -> None:
 
 
 def test_formula_pura() -> None:
-    print("== 2) Fórmula shadow_v1 (puros) ==")
+    print("== 2) Fórmula shadow_v1_1 (puros) ==")
     check("fator_0", _fator_pontualidade(0) == Decimal("1.00"))
     check("fator_3", _fator_pontualidade(3) == Decimal("0.90"))
     check("fator_5", _fator_pontualidade(5) == Decimal("0.75"))
@@ -253,7 +253,42 @@ def test_db_cenarios() -> None:
                 scores.append(analisar_cliente(cli, hoje=hoje, media_3m=Decimal("100")).score)
             check("atrasos_todos_score", all(s is not None for s in scores), str(scores))
             check("atrasos_pioram", scores[0] >= scores[1] > scores[2] > scores[3], str(scores))
+            check("trava_atraso_40_max79", scores[3] is not None and scores[3] <= 79, str(scores[3]))
 
+            # Trava % em dia < 50 → score máx 79 (pesos intactos; só teto)
+            late = ClienteAgro.objects.create(nome="ZZ Late Pct", limite_fiado_local=Decimal("300"))
+            for i in range(4):
+                venc = hoje - timedelta(days=40 + 30 * i)
+                t = _titulo(
+                    late,
+                    bruto="100.00",
+                    pago="100.00",
+                    situacao=FiadoTituloAgro.Situacao.QUITADO,
+                    vencimento=venc,
+                    chave=f"late-{late.pk}-{i}",
+                )
+                # 1 em dia, 3 com atraso 20d → 25% em dia
+                dias_pag = 0 if i == 0 else 20
+                pag = venc + timedelta(days=dias_pag)
+                _baixa(
+                    t,
+                    "100.00",
+                    timezone.make_aware(datetime(pag.year, pag.month, pag.day, 10, 0, 0)),
+                )
+            rl = analisar_cliente(late, hoje=hoje, media_3m=Decimal("100"))
+            pct = rl.indicadores.get("pct_pago_em_dia")
+            check("late_pct_lt_50", pct is not None and float(pct) < 50, str(pct))
+            check("late_score_max79", rl.score is not None and rl.score <= 79, str(rl.score))
+            check("late_nao_candidato", rl.candidato_revisao is False)
+
+            # Candidato exige >=6 analisados, >=80% em dia, atraso hist <=15
+            check(
+                "bom_candidato_exige_80pct",
+                rb.candidato_revisao is False or (
+                    float(rb.indicadores.get("pct_pago_em_dia") or 0) >= 80
+                    and int(rb.indicadores.get("titulos_analisados_janela") or 0) >= 6
+                ),
+            )
             # vencido atual
             vv = ClienteAgro.objects.create(nome="ZZ Vencido", limite_fiado_local=Decimal("400"))
             for i in range(4):
