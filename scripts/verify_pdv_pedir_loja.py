@@ -150,6 +150,8 @@ def main() -> int:
     check("rollback_migrate", "0018_solicitacao_transferencia_pdv" in rollback)
     path_script = ROOT / "scripts/verify_pdv_pedir_cupom_qtd_path.py"
     check("path_cupom_qtd_script", path_script.is_file())
+    path_pronto = ROOT / "scripts/verify_pdv_pedir_pronto_transf_path.py"
+    check("path_pronto_transf_script", path_pronto.is_file())
     ver = _read("VERSION").strip()
     check("version_bump", ver >= "19.01", ver)
 

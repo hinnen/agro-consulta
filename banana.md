@@ -1291,6 +1291,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### PACOTE PRONTO — Pedir loja Pronto opcional + Transferir sel + bip (`PDV-PEDIR-PRONTO-TRANSF`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Transferir no **Aceito** (Pronto opcional) · **Transferir selecionados** · bip **30 min** em Aceito e Pronto (Postgres, multi-PC) |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_pdv_pedir_pronto_transf_path.py` **42/42** · parcial **37/37** · Pedir **81/81** · PIN **9973** · **PREP_FAILS=0** |
+| **Versão** | **v26.27** · `teste` |
+| **Status** | 🟢 **pronto para envio à produção** · já no PREP 05/10b |
+| **Você** | Ctrl+F5 PDV → Aceitar → Transferir (sem Pronto) |
+
+### ✅ CHECKLIST ÚNICO — falta subir · 🟢 pronto para envio à produção
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-PEDIR-PRONTO-TRANSF** | 🟢 **pronto / no PREP 05/10b** | **NÃO** | **42/42** |
+| 2 | **META-MODO-AGORA** | 🟢 **pronto / no PREP 05/10b** | **NÃO** | **125/125** |
+| 3 | **CREDITO-SCORE-XLSX-COLS** | 🟢 **pronto / no PREP 05/10b** | **NÃO** | **86/86** |
+| 4 | **ETQ-PRESET-ESPELHO** | 🟢 **pronto para envio à produção** | **NÃO** | **21/21** |
+| 5 | **ETQ-PRINT-DIRETO** | 🟢 **pronto para envio à produção** | **NÃO** | **38/38** |
+
 ### ✅ PACOTE — impressão térmica direta Windows (`ETQ-PRINT-DIRETO`) · tip **v26.26** · 05/10
 
 | Campo | Valor |
@@ -1303,17 +1324,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 no `teste` · **não** loja até frase+senha |
 | **Você** | Local: Ctrl+F5 etiquetas · rodar o `.bat` · Verificar · Testar 1 etiqueta · configurar presets |
 
-### 🔧 PACOTE — Presets etiqueta espelho gestão×PDV (`ETQ-PRESET-ESPELHO` · **v26.25** · 05/10)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | 🟢 **no `teste`** — Renan valida local · **não** loja sem frase+senha |
-| **O quê** | Cadastro (gestão), entrada NF e PDV puxam Postgres ao abrir PRESET — mesma lista da fila / outros PCs |
-| **Causa** | Gestão/NF usavam só `localStorage`; PDV/fila já usavam API |
-| **Arquivos** | `produtos_etiquetas_core.js` (`refreshPresetsFromServer`) · `cadastro_erp_panel.js` · `entrada_nota.html` · `pdv_wizard.js` · cache core `?v=31` |
-| **Prova** | `node scripts/verify_etq_preset_espelho_path.js` **21/21** · sync **26/26** · quota **34/34** |
-| **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 · abrir etiqueta no **cadastro** e no **PDV** → mesma lista da **fila** · salvar na fila → reabrir nos outros |
+### ~~🔧 PACOTE — Presets etiqueta espelho gestão×PDV (`ETQ-PRESET-ESPELHO` · **v26.25**)~~ · **superado — PACOTE PRONTO acima**
 
 ### 🚀 PREP deploy loja — Checklist 05/10b (`deploy/prep-checklist-0510b` · **v26.24**) · aguarda senha
 
@@ -1326,7 +1337,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Alvo** | **v26.24** |
 | **Migrate** | **NÃO** |
 | **Pacotes** | PDV-PEDIR-PRONTO-TRANSF · META-MODO-AGORA · CREDITO-SCORE-XLSX-COLS |
-| **Provas** | Pedir **37/37**+**80/80** · META **125/125** · Crédito **86/86** · shadow **93/93** · **PREP_FAILS=0** |
+| **Provas** | Pedir **42/42**+**37/37**+**81/81** · META **125/125** · Crédito **86/86** · shadow **93/93** · **PREP_FAILS=0** |
 | **Doc** | `docs/DEPLOY-PREP-CHECKLIST-0510b.md` |
 | **Na senha** | Zap pausa ~2–3 min → `reset --hard origin/deploy/prep-checklist-0510b` → push `producao` → Render Live → Ctrl+F5 |
 | **Você (próximo chat)** | frase explícita + senha `99738595` · lojas pausam finalizar venda |
@@ -1335,7 +1346,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-PEDIR-PRONTO-TRANSF** | 🟢 **no PREP** | **NÃO** | **37/37** + **80/80** |
+| 1 | **PDV-PEDIR-PRONTO-TRANSF** | 🟢 **no PREP** | **NÃO** | **42/42** + **81/81** |
 | 2 | **META-MODO-AGORA** | 🟢 **no PREP** | **NÃO** | **125/125** |
 | 3 | **CREDITO-SCORE-XLSX-COLS** | 🟢 **no PREP** | **NÃO** | **86/86** |
 
