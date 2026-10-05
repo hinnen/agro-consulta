@@ -746,6 +746,20 @@
       });
   }
 
+  /** Puxa Postgres, mescla no cache e devolve a lista. Em falha de rede/login, mantém o local. */
+  function refreshPresetsFromServer() {
+    return fetchPresetsFromServer()
+      .then(function (serverList) {
+        var st = loadStorage();
+        st.presets = mergeServerPresets(st.presets, serverList || []);
+        saveStorage(st);
+        return st.presets;
+      })
+      .catch(function () {
+        return loadStorage().presets;
+      });
+  }
+
   function upsertPresetToServer(preset) {
     var p = normalizarPreset(preset);
     if (!p.id) return Promise.reject(new Error('preset sem id'));
@@ -1638,6 +1652,7 @@
     loadStorage: loadStorage,
     saveStorage: saveStorage,
     fetchPresetsFromServer: fetchPresetsFromServer,
+    refreshPresetsFromServer: refreshPresetsFromServer,
     upsertPresetToServer: upsertPresetToServer,
     deletePresetFromServer: deletePresetFromServer,
     migrateLocalPresetsToServerOnce: migrateLocalPresetsToServerOnce,

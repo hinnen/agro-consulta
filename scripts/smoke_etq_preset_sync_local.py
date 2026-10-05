@@ -64,7 +64,7 @@ def main() -> int:
     r_page = a.get("/produtos/etiquetas/")
     check(r_page.status_code == 200, f"página etiquetas HTTP {r_page.status_code}")
     body = r_page.content.decode("utf-8", "replace")
-    check("?v=30" in body and "etiquetas_core" in body, "HTML core ?v=30")
+    check("?v=31" in body and "etiquetas_core" in body, "HTML core ?v=31")
     check("?v=27" in body and "produtos_etiquetas.js" in body, "HTML ui ?v=27")
 
     core = (ROOT / "produtos/static/produtos/js/produtos_etiquetas_core.js").read_text(

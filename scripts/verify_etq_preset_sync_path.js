@@ -30,7 +30,8 @@ function ok(cond, msg) {
   }
 }
 
-ok(page.includes("?v=30"), 'core cache v=30');
+ok(page.includes("?v=31"), 'core cache v=31');
+ok(coreCode.includes('function refreshPresetsFromServer'), 'core tem refreshPresetsFromServer');
 ok(page.includes("produtos_etiquetas.js' %}?v=27"), 'ui cache v=27');
 ok(coreCode.includes('Postgres manda') || coreCode.includes('servidor vence'), 'merge servidor manda');
 ok(coreCode.includes('!onServer[p.id]'), 'migrate não sobrescreve PG');

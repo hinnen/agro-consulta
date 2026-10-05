@@ -61,7 +61,7 @@ def main() -> int:
     body = r.content.decode("utf-8", "replace")
     check("etq-btn-size-53" in body, "HTML tem botão 53×30")
     check("etq-btn-size-40" in body, "HTML tem botão 4×4")
-    check("etiquetas_core.js" in body and "?v=30" in body, "HTML puxa core ?v=30")
+    check("etiquetas_core.js" in body and "?v=31" in body, "HTML puxa core ?v=31")
     check("produtos_etiquetas.js" in body and "?v=27" in body, "HTML puxa ui ?v=27")
     check("53×30 térmica" in body, "dica preset 53×30")
     check("Térmica (bobina / barras)" in body, "estilo sem confundir mm")

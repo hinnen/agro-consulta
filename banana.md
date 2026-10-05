@@ -559,6 +559,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 ### 4.6 Cadastro / gestÃ£o de produtos
 
 - **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé. Gôndola: folha **A4** (2/3 col) ou **A6** (1 col · bônus 100×45) — `ETQ-A6-BONUS` **v22.41** 🟢 pronto envio.
+- **Presets espelho gestão×PDV (`ETQ-PRESET-ESPELHO` · 05/10):** cadastro ERP, entrada NF e PDV passam a **puxar a API** ao abrir o dropdown (antes gestão/NF ficavam só no Chrome). Fila já puxava. Mudou num PC/tela → todos veem a mesma lista.
 
 **Duas telas â€” nÃ£o confundir:**
 
@@ -1289,6 +1290,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 🔧 PACOTE — Presets etiqueta espelho gestão×PDV (`ETQ-PRESET-ESPELHO` · **v26.25** · 05/10)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **no `teste`** — Renan valida local · **não** loja sem frase+senha |
+| **O quê** | Cadastro (gestão), entrada NF e PDV puxam Postgres ao abrir PRESET — mesma lista da fila / outros PCs |
+| **Causa** | Gestão/NF usavam só `localStorage`; PDV/fila já usavam API |
+| **Arquivos** | `produtos_etiquetas_core.js` (`refreshPresetsFromServer`) · `cadastro_erp_panel.js` · `entrada_nota.html` · `pdv_wizard.js` · cache core `?v=31` |
+| **Prova** | `node scripts/verify_etq_preset_espelho_path.js` **21/21** · sync **26/26** · quota **34/34** |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 · abrir etiqueta no **cadastro** e no **PDV** → mesma lista da **fila** · salvar na fila → reabrir nos outros |
 
 ### 🚀 PREP deploy loja — Checklist 05/10b (`deploy/prep-checklist-0510b` · **v26.24**) · aguarda senha
 

@@ -2455,7 +2455,14 @@
         barrasEl.classList.add('text-amber-900', 'bg-amber-50', 'rounded-lg', 'px-2', 'py-1.5');
       }
     }
-    if (cadEtqPreset) Core.fillPresetSelect(cadEtqPreset);
+    if (cadEtqPreset) {
+      Core.fillPresetSelect(cadEtqPreset);
+      if (typeof Core.refreshPresetsFromServer === 'function') {
+        Core.refreshPresetsFromServer().then(function () {
+          Core.fillPresetSelect(cadEtqPreset);
+        });
+      }
+    }
     if (cadEtqQtd) {
       cadEtqQtd.value = '1';
       setTimeout(function () {

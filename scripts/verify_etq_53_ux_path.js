@@ -95,7 +95,7 @@ ok(ui.includes("kind === '53'"), 'atalho 53');
 ok(page.includes('id="etq-btn-size-53"'), 'botão 53×30');
 ok(page.includes('id="etq-btn-size-40"'), 'botão 4×4');
 ok(page.includes('53×30 térmica'), 'dica na fila');
-ok(page.includes("produtos_etiquetas_core.js' %}?v=30"), 'core v=30');
+ok(page.includes("produtos_etiquetas_core.js' %}?v=31"), 'core v=31');
 ok(page.includes("produtos_etiquetas.js' %}?v=27"), 'ui v=27');
 ok(!page.includes('defer></script>'), 'sem defer no JS etiquetas (ordem Core)');
 ok(page.includes('Térmica (bobina / barras)'), 'estilo sem confundir mm');
