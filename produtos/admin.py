@@ -3,6 +3,7 @@ from django.contrib import admin
 from .models import (
     ClienteAgro,
     ClienteAgroEventoAgro,
+    ClienteAnaliseCreditoAgro,
     FiadoBaixaAgro,
     FiadoEventoAgro,
     FiadoTituloAgro,
@@ -230,6 +231,48 @@ class FiadoEventoAgroAdmin(admin.ModelAdmin):
         "payload_json",
         "usuario",
         "criado_em",
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(ClienteAnaliseCreditoAgro)
+class ClienteAnaliseCreditoAgroAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "cliente",
+        "score",
+        "classificacao",
+        "confianca",
+        "limite_sugerido",
+        "calculado_em",
+    )
+    list_filter = ("classificacao", "confianca", "regra_versao")
+    search_fields = ("cliente__nome",)
+    readonly_fields = (
+        "cliente",
+        "calculado_em",
+        "regra_versao",
+        "score",
+        "classificacao",
+        "confianca",
+        "limite_cadastrado_snapshot",
+        "limite_efetivo_snapshot",
+        "saldo_aberto_snapshot",
+        "saldo_vencido_snapshot",
+        "media_fiado_3m",
+        "limite_sugerido",
+        "tem_vencido_snapshot",
+        "maior_atraso_dias",
+        "indicadores_json",
+        "alertas_json",
     )
 
     def has_add_permission(self, request):

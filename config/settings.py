@@ -566,6 +566,14 @@ PDV_WIZARD_SALDO_CASHBACK = config("PDV_WIZARD_SALDO_CASHBACK", default="0").str
 AGRO_CASHBACK_PERCENTUAL_PADRAO = config("AGRO_CASHBACK_PERCENTUAL_PADRAO", default="1").strip()
 # Limite de fiado quando o ERP/Mongo não informar limite por cliente
 AGRO_FIADO_LIMITE_PADRAO = config("AGRO_FIADO_LIMITE_PADRAO", default="5000").strip()
+# Laboratório de score de crédito (shadow) — default off; não mexe no fiado operacional.
+AGRO_CREDITO_SCORE_SHADOW_ENABLED = config(
+    "AGRO_CREDITO_SCORE_SHADOW_ENABLED", default=False, cast=bool
+)
+# Usernames (vírgula) além de superuser. Staff sozinho NÃO entra.
+AGRO_CREDITO_SCORE_SHADOW_USERNAMES = (
+    config("AGRO_CREDITO_SCORE_SHADOW_USERNAMES", default="") or ""
+).strip()
 # Forma de pagamento no ERP (Pedidos/Salvar) quando a venda no PDV é Fiado.
 VENDA_ERP_FORMA_PAGAMENTO_FIADO = config(
     "VENDA_ERP_FORMA_PAGAMENTO_FIADO", default="Crédito Loja"

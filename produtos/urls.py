@@ -8,6 +8,7 @@ from financeiro.views import (
 
 from . import promocoes_views, views, views_mp_point, views_nfce, pg_backup_views
 from . import fiado_gestao_views as fiado_views
+from . import credito_score_views
 from . import relatorios_central_views as relatorios_views
 from . import views_catalogo_delivery
 from . import views_dispenser_a6
@@ -696,6 +697,16 @@ urlpatterns = [
     path('vendas/lojas/', views.vendas_lojas_hub, name='vendas_lojas_hub'),
     path('vendas/', views.vendas_lista, name='vendas_lista'),
     path('fiado/', fiado_views.fiado_gestao, name='fiado_gestao'),
+    path(
+        'fiado/analise-credito/',
+        credito_score_views.credito_score_laboratorio,
+        name='credito_score_laboratorio',
+    ),
+    path(
+        'fiado/analise-credito/cliente/<int:pk>/',
+        credito_score_views.credito_score_cliente_detalhe,
+        name='credito_score_cliente_detalhe',
+    ),
     path('api/fiado/resumo/', fiado_views.api_fiado_resumo, name='api_fiado_resumo'),
     path('api/fiado/clientes/', fiado_views.api_fiado_clientes, name='api_fiado_clientes'),
     path('api/fiado/titulos/', fiado_views.api_fiado_titulos, name='api_fiado_titulos'),

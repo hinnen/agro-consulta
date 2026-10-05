@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ cliente.nome }} · Análise crédito | GM Agro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>body { font-family: system-ui, sans-serif; }</style>
+</head>
+<body class="min-h-dvh bg-slate-100 text-slate-900">
+  <div class="max-w-5xl mx-auto px-3 py-4">
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <a href="{% url 'credito_score_laboratorio' %}" class="font-bold text-emerald-800 underline">← Laboratório</a>
+      <form method="post" onsubmit="return confirm('Recalcular só este cliente? Não altera limite/saldo.');">
+        {% csrf_token %}
+        <input type="hidden" name="acao" value="recalcular_cliente">
+        <button type="submit" class="rounded-xl bg-emerald-700 text-white font-black px-4 py-2 text-sm">Recalcular este cliente</button>
+      </form>
+    </div>
+
+    {% if messages %}
+    <ul class="mb-3 space-y-1">
+      {% for m in messages %}
+      <li class="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-sm font-semibold">{{ m }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    <h1 class="text-2xl font-black text-emerald-900">{{ cliente.nome }}</h1>
+    <p class="text-xs text-slate-500 font-semibold mb-4">pk {{ cliente.pk }} · laboratório shadow · limite operacional NÃO é alterado</p>
+
+    {% if not atual %}
+    <p class="rounded-xl bg-white border border-slate-200 p-6 font-semibold text-slate-600">
+      Sem snapshot. Use <strong>Recalcular este cliente</strong>.
+    </p>
+    {% else %}
+    <section class="grid md:grid-cols-2 gap-3 mb-4">
+      <div class="rounded-xl bg-white border border-slate-200 p-4">
+        <p class="text-xs font-bold uppercase text-slate-500">Score</p>
+        <p class="text-3xl font-black">
+          {% if atual.score is None %}—{% else %}{{ atual.score }} / 100{% endif %}
+          <span class="text-base font-bold text-slate-600">— {{ atual.classificacao_label }}</span>
+        </p>
+        <p class="mt-1 font-semibold">Confiança: <span class="text-emerald-800">{{ atual.confianca_label }}</span></p>
+        {% if atual.candidato_revisao %}
+        <p class="mt-2 text-sm font-black text-amber-800 bg-amber-50 rounded-lg px-2 py-1 inline-block">Candidato para revisão de limite</p>
+        {% endif %}
+      </div>
+      <div class="rounded-xl bg-white border border-slate-200 p-4">
+        <p class="text-xs font-bold uppercase text-slate-500 mb-2">Componentes</p>
+        <ul class="space-y-1 text-sm font-semibold tabular-nums">
+          <li>Pontualidade: {{ atual.indicadores.pontualidade_pontos|default:0 }} / 45</li>
+          <li>Situação atual: {{ atual.indicadores.situacao_atual_pontos|default:0 }} / 25</li>
+          <li>Quitação: {{ atual.indicadores.quitacao_pontos|default:0 }} / 10</li>
+          <li>Frequência: {{ atual.indicadores.frequencia_pontos|default:0 }} / 10</li>
+          <li>Relacionamento: {{ atual.indicadores.relacionamento_pontos|default:0 }} / 10</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="rounded-xl bg-white border border-slate-200 p-4 mb-4">
+      <p class="text-xs font-bold uppercase text-slate-500 mb-2">Financeiro observado</p>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm font-semibold">
+        <div>Limite cadastrado<br><span class="text-lg font-black tabular-nums">{{ atual.limite_cadastrado|floatformat:2 }}</span></div>
+        <div>Limite efetivo (PDV)<br><span class="text-lg font-black tabular-nums">{{ atual.limite_efetivo|floatformat:2 }}</span></div>
+        <div>Saldo aberto<br><span class="text-lg font-black tabular-nums">{{ atual.saldo_aberto|floatformat:2 }}</span></div>
+        <div>Saldo vencido<br><span class="text-lg font-black tabular-nums {% if atual.tem_vencido %}text-red-700{% endif %}">{{ atual.saldo_vencido|floatformat:2 }}</span></div>
+        <div>Média fiado 3m<br><span class="text-lg font-black tabular-nums">{{ atual.media_fiado_3m|floatformat:2 }}</span></div>
+        <div>Limite sugerido<br><span class="text-lg font-black tabular-nums text-emerald-800">{{ atual.limite_sugerido|floatformat:2 }}</span></div>
+      </div>
+      {% if atual.limite_sugerido < atual.saldo_aberto %}
+      <p class="mt-3 text-sm font-bold text-orange-800 bg-orange-50 rounded-lg px-3 py-2">
+        Dívida ({{ atual.saldo_aberto|floatformat:2 }}) maior que a sugestão ({{ atual.limite_sugerido|floatformat:2 }}).
+        Piso temporário só para não travar saldo existente: {{ atual.indicadores.piso_operacional_sem_travar|floatformat:2 }}
+        — <em>não é recomendação de novo limite</em>.
+      </p>
+      {% endif %}
+    </section>
+
+    <section class="rounded-xl bg-white border border-slate-200 p-4 mb-4">
+      <p class="text-xs font-bold uppercase text-slate-500 mb-2">Histórico (indicadores)</p>
+      <ul class="text-sm font-semibold grid grid-cols-2 gap-1">
+        <li>Títulos quitados avaliáveis: {{ atual.indicadores.titulos_quitados_avaliaveis|default:0 }}</li>
+        <li>Pagamentos em dia: {{ atual.indicadores.pagamentos_em_dia|default:0 }}</li>
+        <li>Atrasos até 3 dias: {{ atual.indicadores.atrasos_ate_3_dias|default:0 }}</li>
+        <li>Maior atraso (pago): {{ atual.indicadores.maior_atraso_pago_dias|default:0 }} dias</li>
+        <li>Vencidos agora: {{ atual.indicadores.titulos_vencidos_atualmente|default:0 }}</li>
+        <li>Maior atraso atual: {{ atual.maior_atraso_dias }} dias</li>
+      </ul>
+    </section>
+
+    <section class="rounded-xl bg-white border border-slate-200 p-4 mb-4">
+      <p class="text-xs font-bold uppercase text-slate-500 mb-2">Alertas</p>
+      {% if atual.alertas %}
+      <ul class="list-disc pl-5 text-sm font-semibold text-amber-900 space-y-1">
+        {% for a in atual.alertas %}<li>{{ a }}</li>{% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-sm font-semibold text-slate-500">Nenhum.</p>
+      {% endif %}
+    </section>
+
+    <section class="rounded-xl bg-white border border-slate-200 p-4">
+      <p class="text-xs font-bold uppercase text-slate-500 mb-2">Histórico do score</p>
+      <table class="w-full text-sm">
+        <thead><tr class="text-left text-slate-500"><th class="py-1">Data</th><th>Score</th><th>Confiança</th><th>Sugerido</th></tr></thead>
+        <tbody>
+          {% for h in historico %}
+          <tr class="border-t border-slate-100 font-semibold">
+            <td class="py-1.5">{{ h.calculado_em|date:"d/m/Y H:i" }}</td>
+            <td>{% if h.score is None %}—{% else %}{{ h.score }}{% endif %} · {{ h.classificacao_label }}</td>
+            <td>{{ h.confianca_label }}</td>
+            <td class="tabular-nums">{{ h.limite_sugerido|floatformat:2 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+    {% endif %}
+  </div>
+</body>
+</html>
