@@ -30,7 +30,7 @@ function ok(cond, msg) {
   }
 }
 
-ok(page.includes("?v=32"), 'core cache v=32');
+ok(page.includes("?v=33"), 'core cache v=32');
 ok(coreCode.includes('function refreshPresetsFromServer'), 'core tem refreshPresetsFromServer');
 ok(page.includes("produtos_etiquetas.js' %}?v=28"), 'ui cache v=28');
 ok(coreCode.includes('Postgres manda') || coreCode.includes('servidor vence'), 'merge servidor manda');

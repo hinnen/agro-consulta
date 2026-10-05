@@ -47,7 +47,7 @@ ok(fs.existsSync(path.join(root, 'agro-print-bridge/ensure-node.ps1')), 'ensure-
 ok(read('agro-print-bridge/Instalar-inicio-Windows.bat').includes('ensure-node.bat'), 'instalar chama ensure-node');
 ok(read('agro-print-bridge/Iniciar-ponte-etiquetas.bat').includes('ensure-node.bat'), 'iniciar chama ensure-node');
 ok(read('produtos/etiquetas_print_bridge_util.py').includes('BAIXA SOZINHO'), 'LEIA-ME sem exigir Node manual');
-ok(html.includes('Baixa Node/Electron sozinho'), 'UI sem exigir Node manual');
+ok(html.includes('1-INSTALAR.bat'), 'UI instalar 1x');
 ok(html.includes('bridgeDownloadUrl'), 'cfg bridgeDownloadUrl');
 ok(js.includes('etq-btn-bridge-download'), 'JS hook download');
 ok(js.includes('1-INSTALAR.bat'), 'JS avisa instalar');
