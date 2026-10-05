@@ -1297,9 +1297,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | **Pronto obrigatório** antes de Transferir. Botão **Transferir selecionados**. Após **Aceitar**, bip/alerta para **30 min** (Postgres) em **todos os PCs** (poll 12s). |
 | **Migrate** | **NÃO** |
 | **Prova** | parcial **35/35** · cupom **32/32** · Pedir **80/80** |
-| **Versão** | **v26.19** · `teste` |
-| **Status** | ✅ commit `teste` · **aguarda frase+senha** pra loja |
+| **Versão** | **v26.20** · `teste` |
+| **Status** | 🟢 **pronto para envio à produção** · tip abaixo após push |
 | **Você** | Ctrl+F5 PDV → Aceitar → **Pronto** → □ → Transferir / Transferir selecionados |
+
+### ✅ CHECKLIST ÚNICO — PDV-PEDIR-PRONTO-TRANSF · 🟢 pronto para envio à produção
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-PEDIR-PRONTO-TRANSF** | 🟢 **pronto para envio à produção** | **NÃO** | **35/35** + **80/80** |
 
 ### PACOTE PRONTO — Excel crédito cols + Revisar dados (`CREDITO-SCORE-XLSX-COLS`)
 
