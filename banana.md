@@ -1290,57 +1290,35 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### PACOTE PRONTO — Pedir loja Pronto opcional + Transferir sel + bip multi-PC (`PDV-PEDIR-PRONTO-TRANSF`)
+### 🚀 PREP deploy loja — Checklist 05/10b (`deploy/prep-checklist-0510b` · **v26.24**) · aguarda senha
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | **Transferir no Aceito** (Pronto opcional). Botão **Transferir selecionados**. Após **Aceitar** (e em **Pronto**), bip/alerta para **30 min** (Postgres) em **todos os PCs** (poll 12s). |
+| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha no próximo chat |
+| **Branch PREP** | `deploy/prep-checklist-0510b` @ `e11c4ab3` |
+| **Base Live** | **v26.08** @ `8b636b67` |
+| **Tag rollback** | `rollback/pre-checklist-0510b-v26.08` @ `8b636b67` |
+| **Alvo** | **v26.24** |
 | **Migrate** | **NÃO** |
-| **Prova** | parcial **37/37** · Pedir **80/80** · cupom **32/32** |
-| **Versão** | **v26.22** · `teste` |
-| **Status** | 🟢 **pronto para envio à produção** · tip `teste` **v26.22** @ `49ce6406` |
-| **Você** | Ctrl+F5 PDV → Aceitar → Transferir (sem precisar Pronto) · ou Pronto → Transferir · Aceitar em 1 PC → outros param de apitar |
+| **Pacotes** | PDV-PEDIR-PRONTO-TRANSF · META-MODO-AGORA · CREDITO-SCORE-XLSX-COLS |
+| **Provas** | Pedir **37/37**+**80/80** · META **125/125** · Crédito **86/86** · shadow **93/93** · **PREP_FAILS=0** |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-0510b.md` |
+| **Na senha** | Zap pausa ~2–3 min → `reset --hard origin/deploy/prep-checklist-0510b` → push `producao` → Render Live → Ctrl+F5 |
+| **Você (próximo chat)** | frase explícita + senha `99738595` · lojas pausam finalizar venda |
 
-### ✅ CHECKLIST ÚNICO — PDV-PEDIR-PRONTO-TRANSF · 🟢 pronto para envio à produção
+### ✅ CHECKLIST ÚNICO — 05/10b · 🟢 PREP v26.24 · aguarda senha
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-PEDIR-PRONTO-TRANSF** | 🟢 **pronto para envio à produção** | **NÃO** | **37/37** + **80/80** |
+| 1 | **PDV-PEDIR-PRONTO-TRANSF** | 🟢 **no PREP** | **NÃO** | **37/37** + **80/80** |
+| 2 | **META-MODO-AGORA** | 🟢 **no PREP** | **NÃO** | **125/125** |
+| 3 | **CREDITO-SCORE-XLSX-COLS** | 🟢 **no PREP** | **NÃO** | **86/86** |
 
-### 📦 PACOTE PRONTO — META visão Até agora (`META-MODO-AGORA` · tip **v26.23**) · 05/10
+### ~~PACOTE PRONTO — Pedir loja Pronto opcional~~ · **absorvido no PREP 05/10b**
 
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | 🟢 **pronto para envio à produção** (aguarda frase + senha) |
-| **O quê** | Interruptor **Meta do mês** × **Até agora** (ritmo pela média esperada) — lista, foto Zap e texto |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_meta_mostruario_path.py` **125/125** · PIN **9973** |
-| **Tip** | `teste` **v26.23** @ `db3a3c77` |
-| **Não mexe** | PDV · caixa · NFC-e · financeiro · migrate |
-| **Você** | Ctrl+F5 META → **Até agora** → Copiar foto |
+### ~~PACOTE PRONTO — META Até agora~~ · **absorvido no PREP 05/10b**
 
-### ✅ CHECKLIST ÚNICO — META-MODO-AGORA · 🟢 pronto envio
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **META-MODO-AGORA** | 🟢 **pronto para envio à produção** | **NÃO** | **125/125** |
-
-### PACOTE PRONTO — Excel crédito cols + Revisar dados (`CREDITO-SCORE-XLSX-COLS`)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Excel ↓: + qtd analisados/quitada/vencida · % em dia · pts pontualidade/situação/quitação/frequência/relacionamento. Alerta «sem baixas suficientes» → **Revisar dados** (não candidato). Score e financeiro intactos. |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_credito_score_xlsx_path.py` **86/86** · shadow **93/93** · PIN **9973** · **PREP_FAILS=0** |
-| **Status** | 🟢 **pronto para envio à produção** · tip `teste` **v26.24** @ `41f0625a` |
-| **Rollback** | `docs/ROLLBACK-CREDITO-SCORE-XLSX.md` · **só** frase+senha |
-| **Você** | Lab → Excel ↓ · Ctrl+F5 · (recalcular se quiser snapshots novos) |
-
-### ✅ CHECKLIST ÚNICO — CREDITO-SCORE-XLSX-COLS · 🟢 pronto para envio à produção
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **CREDITO-SCORE-XLSX-COLS** | 🟢 **pronto para envio à produção** | **NÃO** | **86/86** |
+### ~~PACOTE PRONTO — Excel crédito cols~~ · **absorvido no PREP 05/10b**
 
 ### ✅ Deploy loja — Checklist 05/10 · **Live v26.08** · 05/10
 
