@@ -38,6 +38,29 @@ REGRA_VERSAO = "shadow_v1"
 _Q2 = Decimal("0.01")
 _ZERO = Decimal("0.00")
 
+# Alerta de título quitado sem baixas suficientes (inconsistência de pagamento).
+_MARCA_ALERTA_BAIXAS_INSUF = "sem baixas suficientes"
+
+
+def alerta_inconsistencia_pagamento(alertas: list | None) -> bool:
+    """True se há alerta de quitado sem baixas suficientes (ou inconsistência explícita)."""
+    for a in alertas or []:
+        s = str(a).lower()
+        if _MARCA_ALERTA_BAIXAS_INSUF in s or "inconsist" in s:
+            return True
+    return False
+
+
+def rotulo_candidato_revisao(*, candidato: bool, alertas: list | None) -> str:
+    """
+    Regra provisória de apresentação:
+    inconsistência de baixas → «Revisar dados» (nunca «Sim»).
+    """
+    if alerta_inconsistencia_pagamento(alertas):
+        return "Revisar dados"
+    return "Sim" if candidato else "Não"
+
+
 
 def _dec(val) -> Decimal:
     try:
@@ -581,6 +604,10 @@ def analisar_cliente(
         and not tem_vencido
         and sugerido > limite_efet
     )
+    # Regra provisória: inconsistência quitado/baixas → não é candidato (revisar dados).
+    revisar_dados = alerta_inconsistencia_pagamento(alertas)
+    if revisar_dados:
+        candidato = False
 
     indicadores = {
         "regra": REGRA_VERSAO,
@@ -609,6 +636,7 @@ def analisar_cliente(
         "multiplicador_limite": float(mult),
         "piso_operacional_sem_travar": float(max(sugerido, saldo_aberto).quantize(_Q2)),
         "candidato_revisao_limite": candidato,
+        "revisar_dados_inconsistencia": revisar_dados,
     }
 
     return ResultadoAnaliseCredito(

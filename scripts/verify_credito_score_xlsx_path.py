@@ -39,6 +39,7 @@ from produtos.credito_score_views import (
     _listar_snapshots_filtrados,
     _montar_xlsx_laboratorio,
 )
+from produtos.credito_score_shadow import rotulo_candidato_revisao
 from produtos.models import ClienteAgro, ClienteAnaliseCreditoAgro
 
 PIN = (os.environ.get("AGRO_PIN_TESTE") or "9973").strip()
@@ -60,6 +61,15 @@ HEADERS_ESPERADOS = [
     "Dif. sugerido − atual",
     "Situação",
     "Candidato revisão",
+    "Qtd títulos analisados",
+    "Qtd quitada",
+    "Qtd vencida",
+    "% pago em dia",
+    "Pts pontualidade",
+    "Pts situação atual",
+    "Pts quitação",
+    "Pts frequência",
+    "Pts relacionamento",
     "Maior atraso (dias)",
     "Calculado em",
     "Alertas",
@@ -171,6 +181,22 @@ def test_pin() -> None:
 
 def test_builder_unitario() -> None:
     print("== 3) Builder openpyxl (unitário) ==")
+    check(
+        "rotulo_revisar_dados",
+        rotulo_candidato_revisao(
+            candidato=True,
+            alertas=["Título quitado #9 sem baixas suficientes (pago R$ 10 · baixas R$ 0)."],
+        )
+        == "Revisar dados",
+    )
+    check(
+        "rotulo_sim",
+        rotulo_candidato_revisao(candidato=True, alertas=[]) == "Sim",
+    )
+    check(
+        "rotulo_nao",
+        rotulo_candidato_revisao(candidato=False, alertas=[]) == "Não",
+    )
     rows = [
         {
             "cliente_pk": 77,
@@ -186,6 +212,16 @@ def test_builder_unitario() -> None:
             "limite_sugerido": Decimal("250.00"),
             "situacao_label": "Em dia",
             "candidato_revisao": True,
+            "candidato_revisao_label": "Sim",
+            "titulos_analisados": 5,
+            "titulos_quitados": 4,
+            "titulos_vencidos_qtd": 0,
+            "pct_pago_em_dia": 75.0,
+            "pts_pontualidade": 40,
+            "pts_situacao": 25,
+            "pts_quitacao": 10,
+            "pts_frequencia": 8,
+            "pts_relacionamento": 6,
             "maior_atraso_dias": 0,
             "calculado_em": timezone.now(),
             "alertas": ["prova"],
@@ -203,8 +239,22 @@ def test_builder_unitario() -> None:
     check("xlsx_media", abs(float(ws.cell(2, 10).value) - 100.50) < 0.001)
     check("xlsx_diff", abs(float(ws.cell(2, 12).value) - 50.0) < 0.001)
     check("xlsx_candidato", ws.cell(2, 14).value == "Sim")
+    check("xlsx_qtd_analisados", ws.cell(2, 15).value == 5)
+    check("xlsx_pct_em_dia", abs(float(ws.cell(2, 18).value) - 75.0) < 0.001)
+    check("xlsx_pts_pont", ws.cell(2, 19).value == 40)
     check("xlsx_auto_filter", bool(ws.auto_filter.ref))
     check("xlsx_freeze", ws.freeze_panes == "A2")
+
+    rows_rev = [
+        {
+            **rows[0],
+            "candidato_revisao": False,
+            "candidato_revisao_label": "Revisar dados",
+            "alertas": ["Título quitado #1 sem baixas suficientes (x)."],
+        }
+    ]
+    wb2 = load_workbook(io.BytesIO(_montar_xlsx_laboratorio(rows_rev)), data_only=True)
+    check("xlsx_revisar_dados", wb2.active.cell(2, 14).value == "Revisar dados")
 
 
 def test_http_e_filtros() -> None:
@@ -271,7 +321,18 @@ def test_http_e_filtros() -> None:
                     media_fiado_3m=Decimal("120.00"),
                     limite_sugerido=Decimal("400.00"),
                     maior_atraso_dias=0,
-                    indicadores_json={"candidato_revisao_limite": True},
+                    indicadores_json={
+                        "candidato_revisao_limite": True,
+                        "titulos_analisados_janela": 8,
+                        "titulos_quitados_avaliaveis": 6,
+                        "titulos_vencidos_atualmente": 0,
+                        "pagamentos_em_dia": 5,
+                        "pontualidade_pontos": 40,
+                        "situacao_atual_pontos": 25,
+                        "quitacao_pontos": 9,
+                        "frequencia_pontos": 8,
+                        "relacionamento_pontos": 7,
+                    },
                     alertas_json=["prova-xlsx"],
                 )
                 lim_antes = ClienteAgro.objects.get(pk=cli.pk).limite_fiado_local
@@ -306,6 +367,13 @@ def test_http_e_filtros() -> None:
                     abs(float(ws.cell(2, 12).value) - 100.0) < 0.001,
                 )
                 check("export_candidato", ws.cell(2, 14).value == "Sim")
+                check("export_qtd_analisados", ws.cell(2, 15).value == 8)
+                check("export_qtd_quitada", ws.cell(2, 16).value == 6)
+                check(
+                    "export_pct_em_dia",
+                    abs(float(ws.cell(2, 18).value) - round(100.0 * 5 / 6, 2)) < 0.01,
+                )
+                check("export_pts_pont", ws.cell(2, 19).value == 40)
 
                 # Filtro score_min alto → 0 linhas de dados
                 r0 = c.get(url_x, {"q": "ZZ PROVA CREDITO XLSX", "score_min": "99"})
