@@ -5167,6 +5167,7 @@ window.AGRO_ETQ_CFG = window.AGRO_ETQ_CFG || {
   etqPresetsUrl: "{% url 'api_etiquetas_presets' %}"
 };
 </script>
+<script src="{% static 'produtos/js/agro_print_bridge.js' %}?v=1"></script>
 <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_wizard.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_topbar_mais.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>

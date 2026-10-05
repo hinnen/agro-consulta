@@ -8,6 +8,8 @@ _local_catalogo_snapshot.json
 staticfiles/
 node_modules/
 dist-electron/
+agro-print-bridge/node_modules/
+agro-print-bridge/dist/
 config/build_stamp.json
 
 # Cópias de conflito do Windows/OneDrive (não versionar; Django usa os ficheiros sem sufixo)

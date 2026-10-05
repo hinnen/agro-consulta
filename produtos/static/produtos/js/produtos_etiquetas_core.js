@@ -20,6 +20,7 @@
     barcode_width: 1.75,
     texto_rodape: 'Gm Agro Mais',
     impressora: '',
+    print_modo: 'auto',
     nome_pt_1: 8,
     nome_pt_2: 8,
     nome_pt_3: 7,
@@ -49,6 +50,7 @@
     barcode_width: 1.6,
     texto_rodape: 'Gm Agro Mais',
     impressora: '',
+    print_modo: 'auto',
     nome_pt_1: 7,
     nome_pt_2: 7,
     nome_pt_3: 6,
@@ -111,6 +113,7 @@
     barcode_width: 1.75,
     texto_rodape: '',
     impressora: '',
+    print_modo: 'auto',
     show_logo: true,
     show_nome: true,
     show_rs: true,
@@ -156,6 +159,7 @@
     barcode_width: 1.75,
     texto_rodape: '',
     impressora: '',
+    print_modo: 'auto',
     show_logo: true,
     show_nome: true,
     show_rs: true,
@@ -519,10 +523,18 @@
     return String((preset && preset.estilo) || '') === 'gondola';
   }
 
+  function normalizarPrintModo(v) {
+    var s = String(v || '').trim().toLowerCase();
+    if (s === 'direto' || s === 'dialogo' || s === 'auto') return s;
+    return 'auto';
+  }
+
   function normalizarPreset(p) {
     if (!p || typeof p !== 'object') return clonePreset(DEFAULT_PRESET);
     var out = clonePreset(p);
     if (!out.estilo) out.estilo = out.id === 'gondola' ? 'gondola' : 'termica';
+    out.print_modo = normalizarPrintModo(out.print_modo);
+    if (out.impressora == null) out.impressora = '';
     if (ehGondola(out)) {
       out.folha = normalizarFolha(out.folha);
       /* Força padrão 9×3 cm se ainda no seed antigo 90×35. */
@@ -1411,8 +1423,34 @@
     return montarHtmlTermica(preset, itens, textoRodape);
   }
 
+  function getPrintShell() {
+    if (global.agroShell && typeof global.agroShell.silentPrint === 'function') {
+      return global.agroShell;
+    }
+    if (global.agroPrintBridge && typeof global.agroPrintBridge.silentPrint === 'function') {
+      if (typeof global.agroPrintBridge.isReady === 'function' && !global.agroPrintBridge.isReady()) {
+        return null;
+      }
+      return global.agroPrintBridge;
+    }
+    return null;
+  }
+
   function podeSilentPrint() {
-    return !!(global.agroShell && typeof global.agroShell.silentPrint === 'function');
+    return !!getPrintShell();
+  }
+
+  function deveUsarSilent(preset) {
+    var modo = normalizarPrintModo(preset && preset.print_modo);
+    var shell = getPrintShell();
+    if (modo === 'dialogo') return { use: false, shell: null, reason: null };
+    if (modo === 'direto') {
+      if (!shell) return { use: false, shell: null, reason: 'ponte_offline' };
+      return { use: true, shell: shell, reason: null };
+    }
+    /* auto */
+    if (shell) return { use: true, shell: shell, reason: null };
+    return { use: false, shell: null, reason: null };
   }
 
   function registrarHistoricoBackend(opts, itens) {
@@ -1481,8 +1519,17 @@
       pageHMicrons = 297000;
     }
 
-    if (podeSilentPrint()) {
-      return global.agroShell
+    var silentPlan = deveUsarSilent(preset);
+    if (silentPlan.reason === 'ponte_offline') {
+      return Promise.resolve({
+        ok: false,
+        reason: 'ponte_offline',
+        message:
+          'Modo Direto ligado, mas a ponte Agro Etiqueta Print não está no ar. Abra Iniciar-ponte-etiquetas.bat neste PC.',
+      });
+    }
+    if (silentPlan.use && silentPlan.shell) {
+      return silentPlan.shell
         .silentPrint({
           html: html,
           deviceName: preset.impressora || '',
@@ -1640,6 +1687,9 @@
     montarHtmlImpressao: montarHtmlImpressao,
     imprimirItens: imprimirItens,
     podeSilentPrint: podeSilentPrint,
+    getPrintShell: getPrintShell,
+    deveUsarSilent: deveUsarSilent,
+    normalizarPrintModo: normalizarPrintModo,
     fillPresetSelect: fillPresetSelect,
     nomeCadastroSemTipoMatch: nomeCadastroSemTipoMatch,
     valorBarcodeProduto: valorBarcodeProduto,
