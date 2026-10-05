@@ -8243,6 +8243,18 @@ def _dashboard_gastos_plano_ativo() -> bool:
     return bool(getattr(settings, "AGRO_DASHBOARD_GASTOS_PLANO", False))
 
 
+def _usuario_pode_ver_credito_score_shadow(user) -> bool:
+    """Botão no menu de atalhos — só quem passa no gate do laboratório (flag + allowlist/superuser)."""
+    try:
+        from produtos.credito_score_acesso_util import (
+            usuario_pode_acessar_credito_score_shadow,
+        )
+
+        return bool(usuario_pode_acessar_credito_score_shadow(user))
+    except Exception:
+        return False
+
+
 def _dashboard_interno_preview_permitido(user) -> bool:
     """Prévia do BI com gastos por plano: superuser ou lista em AGRO_DASHBOARD_PREVIEW_USERNAMES."""
     if not getattr(user, "is_authenticated", False):
@@ -10679,6 +10691,9 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
         ),
         "dashboard_gastos_plano_ativo": gastos_plano_ativo,
         "dashboard_interno_preview": False,
+        "mostrar_credito_score_shadow": _usuario_pode_ver_credito_score_shadow(
+            getattr(request, "user", None)
+        ),
         "dashboard_conteudo_url_name": "dashboard_gerencial_conteudo",
         "dashboard_sync_url_name": "dashboard_gerencial_sincronizar",
         "gasto_data_por": gasto_por,
