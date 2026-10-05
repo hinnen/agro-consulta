@@ -1298,7 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rota** | `GET /fiado/analise-credito/export-xlsx/` · mesmo gate do lab |
 | **Migrate** | **NÃO** |
 | **Mexe** | `credito_score_views` · url · botão no template · **não** PDV/limite/venda |
-| **Status** | 🟡 **só no teste** · tip abaixo após push |
+| **Status** | 🟡 **só no teste** · tip `teste` **v26.15** @ `f6717675` |
 | **Você** | Lab → filtrar se quiser → **Excel ↓** · comparar com Excel ↓ de Clientes |
 
 ### ✅ CHECKLIST ÚNICO — CREDITO-SCORE-XLSX · 🟡 só no teste
