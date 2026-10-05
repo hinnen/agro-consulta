@@ -42,7 +42,13 @@ def main() -> int:
     tests = _read("produtos/tests_pdv_transf_loja.py")
 
     # --- Contrato UI ---
-    check("ui_btn_imprimir", "Imprimir cupom" in js and "data-pl-acao=\"imprimir\"" in js)
+    check(
+        "ui_btn_imprimir",
+        'data-pl-acao="imprimir"' in js
+        and "Imprimir</button>" in js
+        and "abrirEscolhaImpressao" in js
+        and "Imprimir cupom" not in js,
+    )
     check("ui_cupom_80mm", "size:80mm" in js and "SEPARAÇÃO" in js and "PEDIR LOJA #" in js)
     check("ui_cupom_usa_pedida", "quantidade_pedida" in js and "imprimirCupomSeparacao" in js)
     check("ui_qtd_edit_origem", "podeEditarQtd" in js and "aba === 'recebidos'" in js)

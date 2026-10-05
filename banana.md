@@ -1298,7 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** — aguarda frase + senha |
 | **O quê** | 1 botão **Imprimir** (item / todos) → popup: **Cupom 80 mm** · **Folha A4** · **Etiqueta 40×40** (3 produtos/etiqueta). Some cupom+Etiquetas 53. |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_pdv_pedir_print_layouts_path.py` **30/30** · etq path **15/15** · Pedir loja **81/81** · parcial **37/37** |
+| **Prova** | path **37/37** · smoke **23/23** (PIN 9973) · etq **15/15** · Pedir **81/81** · parcial **37/37** · cupom-qtd **32/32** · Django transf **29/29** |
 | **Você** | Ctrl+F5 PDV → Pedir loja → Imprimir → escolher formato |
 
 ### ✅ CHECKLIST ÚNICO — falta subir · 🟢 pronto para envio à produção
@@ -1310,7 +1310,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 3 | **CREDITO-SCORE-XLSX-COLS** | 🟢 **pronto / no PREP 05/10b** | **NÃO** | **86/86** |
 | 4 | **ETQ-PRESET-ESPELHO** | 🟢 **pronto para envio à produção** | **NÃO** | path **40/40** · smoke **24/24** |
 | 5 | **ETQ-PRINT-DIRETO** | 🟢 **pronto para envio à produção** | **NÃO** | **38/38** |
-| 6 | **PDV-PEDIR-PRINT-3** | 🟢 **pronto para envio à produção** | **NÃO** | **30/30** |
+| 6 | **PDV-PEDIR-PRINT-3** | 🟢 **pronto para envio à produção** | **NÃO** | path **37/37** · smoke **23/23** |
 
 ### PACOTE PRONTO — Pedir loja Pronto opcional + Transferir sel + bip (`PDV-PEDIR-PRONTO-TRANSF`)
 

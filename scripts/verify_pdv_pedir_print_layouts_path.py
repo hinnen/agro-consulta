@@ -56,6 +56,12 @@ def main() -> int:
     check("imprimirTodosCupons" not in js, "sem imprimirTodosCupons direto")
     check("abrirEscolhaImpressao([row])" in js, "item abre popup")
     check("abrirEscolhaImpressao(rows)" in js, "todos abre popup")
+    check("executarImpressaoEscolhida(opt.getAttribute" in js or "executarImpressaoEscolhida(" in js, "click opção executa")
+    check("fecharEscolhaImpressao" in js, "fechar escolha")
+    check("pdv-pedir-loja-print-cancel" in html, "botão cancelar modal")
+    check("#pdv-pedir-loja-print.is-open" in html, "CSS modal aberto")
+    check("Imprimir (1)" in js, "toolbar 1 pedido = Imprimir (1)")
+    check("modo === 'cupom80'" in js and "modo === 'a4'" in js and "modo === 'etq40'" in js, "3 modos no executor")
 
     # packing 40×40
     def pages_for(count: int, per: int = 3) -> int:
@@ -65,6 +71,7 @@ def main() -> int:
     check(pages_for(3) == 1, "3 itens = 1 etq")
     check(pages_for(4) == 2, "4 itens = 2 etq")
     check(pages_for(9) == 3, "9 itens = 3 etq")
+    check(pages_for(0) == 0, "0 item = 0 etq")
 
     print(f"{'OK' if fail_n == 0 else 'FAIL'} {ok_n}/{ok_n + fail_n}")
     return 1 if fail_n else 0
