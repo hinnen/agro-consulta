@@ -20,13 +20,20 @@
         <p class="text-sm font-semibold text-orange-700">Laboratório — não interfere no limite dos clientes</p>
         <p class="text-xs text-slate-500 mt-1">Somente leitura financeira · snapshots em tabela isolada</p>
       </div>
-      <form method="post" class="flex gap-2" onsubmit="return confirm('Recalcular TODOS os clientes? Só grava snapshots novos. Não altera limite/saldo/venda.');">
-        {% csrf_token %}
-        <input type="hidden" name="acao" value="recalcular_todos">
-        <button type="submit" class="rounded-xl bg-emerald-700 text-white font-black px-4 py-2.5 text-sm hover:bg-emerald-800">
-          Recalcular análises
-        </button>
-      </form>
+      <div class="flex flex-wrap gap-2 items-start">
+        <a
+          href="{% url 'credito_score_laboratorio_export_xlsx' %}?q={{ q|urlencode }}&classificacao={{ classificacao|urlencode }}&confianca={{ confianca|urlencode }}&vencidos={{ vencidos|urlencode }}&score_min={{ score_min|urlencode }}&score_max={{ score_max|urlencode }}"
+          class="rounded-xl bg-amber-500 text-white font-black px-4 py-2.5 text-sm hover:bg-amber-600"
+          title="Baixa Excel com as mesmas linhas/filtros da tela (só leitura)"
+        >Excel ↓</a>
+        <form method="post" class="flex gap-2" onsubmit="return confirm('Recalcular TODOS os clientes? Só grava snapshots novos. Não altera limite/saldo/venda.');">
+          {% csrf_token %}
+          <input type="hidden" name="acao" value="recalcular_todos">
+          <button type="submit" class="rounded-xl bg-emerald-700 text-white font-black px-4 py-2.5 text-sm hover:bg-emerald-800">
+            Recalcular análises
+          </button>
+        </form>
+      </div>
     </header>
 
     {% if messages %}
