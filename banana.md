@@ -1324,23 +1324,6 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- | ----- |
 | 1 | **META-MODO-AGORA** | 🟢 **pronto para envio à produção** | **NÃO** | **112/112** |
 
-### PACOTE PRONTO — Pedir loja Pronto opcional + Transferir sel + bip multi-PC (`PDV-PEDIR-PRONTO-TRANSF`)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | **Transferir no Aceito** (Pronto opcional). Botão **Transferir selecionados**. Após **Aceitar** (e em **Pronto**), bip/alerta para **30 min** (Postgres) em **todos os PCs** (poll 12s). |
-| **Migrate** | **NÃO** |
-| **Prova** | parcial **37/37** · Pedir **80/80** |
-| **Versão** | **v26.21** · `teste` |
-| **Status** | 🟢 **pronto para envio à produção** · tip abaixo após push |
-| **Você** | Ctrl+F5 PDV → Aceitar → Transferir (sem precisar Pronto) · ou Pronto → Transferir · Aceitar em 1 PC → outros param de apitar |
-
-### ✅ CHECKLIST ÚNICO — PDV-PEDIR-PRONTO-TRANSF · 🟢 pronto para envio à produção
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-PEDIR-PRONTO-TRANSF** | 🟢 **pronto para envio à produção** | **NÃO** | **37/37** + **80/80** |
-
 ### PACOTE PRONTO — Excel crédito cols + Revisar dados (`CREDITO-SCORE-XLSX-COLS`)
 
 | Campo | Valor |
