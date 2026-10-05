@@ -1298,7 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `scripts/verify_credito_score_lab_acesso_path.py` **34/34** · shadow **93/93** · PDV fiado **39/39** · PIN **9973** · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
 | **Mexe** | launchpad GESTÃO · `agro_dual_window.js` · `_agro_open_external.html` · **não** PDV/limite/venda |
-| **Status** | 🟢 **pronto para envio à produção** · tip `teste` **v26.12** |
+| **Status** | 🟢 **pronto para envio à produção** · tip `teste` **v26.13** @ `ce67bb93` |
 | **Antes** | Live **v26.07** (lab shadow já na loja · flag ON) |
 | **Rollback** | `docs/ROLLBACK-CREDITO-SCORE-LAB-ACESSO.md` · **só** frase+senha |
 | **Você** | frase+senha → deploy → Ctrl+F5 Gestão · botão abaixo Configuração · URL no Chrome Gestão (não app PDV) |

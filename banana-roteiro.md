@@ -766,7 +766,7 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 55. CHECKLIST ÚNICO — CREDITO-SCORE-LAB-ACESSO · 🟢 pronto envio (alvo **v26.12**)
+## 55. CHECKLIST ÚNICO — CREDITO-SCORE-LAB-ACESSO · 🟢 pronto envio (alvo **v26.13**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
