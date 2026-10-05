@@ -67,8 +67,17 @@ ok(instalar.includes('Start Menu\\Programs\\Startup') || instalar.includes('Star
 
 const ensureNode = read('agro-print-bridge/ensure-node.ps1');
 ok(ensureNode.includes('nodejs.org/dist'), 'baixa Node do nodejs.org');
-ok(ensureNode.includes('v22.14.0') || ensureNode.includes('node-'), 'versão Node pinada');
+ok(ensureNode.includes('npmmirror.com') || ensureNode.includes('mirrors/node'), 'espelho fallback Node');
+ok(
+  ensureNode.includes('v22.14.0') ||
+    ensureNode.includes('v22.22.0') ||
+    ensureNode.includes('Get-LtsVersionFromIndex') ||
+    ensureNode.includes('node-'),
+  'versão Node pinada ou LTS'
+);
+ok(ensureNode.includes('win-arm64') || ensureNode.includes('Get-NodeArchFolder'), 'detecta arquitetura');
 ok(ensureNode.includes('LOCALAPPDATA') || ensureNode.includes('AgroEtiquetaPrint'), 'Node em LocalAppData');
+ok(!instalar.includes('\u2014'), 'instalar.bat sem em-dash UTF-8');
 
 const vbs = read('agro-print-bridge/iniciar-silencioso.vbs');
 ok(vbs.includes('19192'), 'vbs checa health');
@@ -82,6 +91,7 @@ const util = read('produtos/etiquetas_print_bridge_util.py');
 ok(util.includes('1-INSTALAR.bat'), 'zip com 1-INSTALAR');
 ok(util.includes('BAIXA SOZINHO'), 'LEIA-ME auto Node');
 ok(util.includes('node_modules'), 'exclui node_modules');
+ok(util.includes('_ascii_crlf') || util.includes('ASCII'), 'zip força bat ASCII');
 
 const views = read('produtos/views.py');
 ok(views.includes('api_etiquetas_print_bridge_download'), 'view download');

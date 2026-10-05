@@ -15,29 +15,36 @@ _SKIP_DIR_NAMES = {
 }
 _SKIP_FILE_SUFFIXES = {".pyc", ".log"}
 
-_LEIA_ME = """Agro Etiqueta Print — SisVale
+_LEIA_ME = """Agro Etiqueta Print - SisVale
 ================================
 
-1) Extraia esta pasta (botão direito → Extrair tudo).
-2) Abra a pasta e dê dois cliques em:
+1) Extraia esta pasta (botao direito -> Extrair tudo).
+2) Abra a pasta e de dois cliques em:
 
    1-INSTALAR.bat
 
-3) Espere “Pronto”. Se faltar Node/Electron, o instalador BAIXA SOZINHO
-   (precisa de internet na 1ª vez).
+3) Espere "Pronto". Se faltar Node/Electron, o instalador BAIXA SOZINHO
+   (precisa de internet na 1a vez).
 4) A ponte fica em segundo plano (bandeja).
-5) Volte no SisVale → Etiquetas → o card deve ficar VERDE.
+5) Volte no SisVale -> Etiquetas -> o card deve ficar VERDE.
 6) Ao ligar o PC, a ponte sobe sozinha.
 
 Se o card continuar amarelo: rode de novo 1-INSTALAR.bat
 """
 
-_INSTALAR_BAT = r"""@echo off
-chcp 65001 >nul
-cd /d "%~dp0"
-title Agro Etiqueta Print — instalar
-call "%~dp0Instalar-inicio-Windows.bat"
-"""
+# ASCII only + CRLF: cmd.exe em Windows antigo quebra com tracinho UTF-8 (—).
+_INSTALAR_BAT = (
+    "@echo off\r\n"
+    "cd /d \"%~dp0\"\r\n"
+    "title Agro Etiqueta Print - instalar\r\n"
+    "call \"%~dp0Instalar-inicio-Windows.bat\"\r\n"
+)
+
+
+def _ascii_crlf_bytes(text: str) -> bytes:
+    """Garante CRLF e só ASCII (bat seguro no cmd)."""
+    t = text.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "\r\n")
+    return t.encode("ascii", errors="strict")
 
 
 def bridge_source_dir() -> Path:
@@ -63,8 +70,14 @@ def build_print_bridge_zip() -> bytes:
     root = bridge_source_dir()
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr("Agro-Etiqueta-Print/LEIA-ME.txt", _LEIA_ME)
-        zf.writestr("Agro-Etiqueta-Print/1-INSTALAR.bat", _INSTALAR_BAT)
+        zf.writestr(
+            "Agro-Etiqueta-Print/LEIA-ME.txt",
+            _LEIA_ME.encode("utf-8"),
+        )
+        zf.writestr(
+            "Agro-Etiqueta-Print/1-INSTALAR.bat",
+            _ascii_crlf_bytes(_INSTALAR_BAT.replace("\r\n", "\n")),
+        )
         for path in root.rglob("*"):
             if not path.is_file():
                 continue
@@ -74,5 +87,12 @@ def build_print_bridge_zip() -> bytes:
             if path.suffix.lower() in _SKIP_FILE_SUFFIXES:
                 continue
             arc = "Agro-Etiqueta-Print/" + "/".join(rel_parts)
-            zf.write(path, arcname=arc)
+            # .bat do disco: regrava ASCII+CRLF se for texto bat
+            if path.suffix.lower() == ".bat":
+                raw = path.read_text(encoding="utf-8", errors="replace")
+                # remove chars nao-ASCII (—, acentos em echo) p/ cmd
+                safe = "".join(ch if ord(ch) < 128 else "-" for ch in raw)
+                zf.writestr(arc, _ascii_crlf_bytes(safe))
+            else:
+                zf.write(path, arcname=arc)
     return buf.getvalue()

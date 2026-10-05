@@ -1,7 +1,7 @@
 @echo off
-chcp 65001 >nul
+REM ASCII only - evita erro tle/cp no cmd (tracinho especial quebrava o bat).
 cd /d "%~dp0"
-title Agro Etiqueta Print — inicio automatico
+title Agro Etiqueta Print - inicio automatico
 echo.
 echo  Instala a ponte para ABRIR SOZINHA quando o Windows ligar.
 echo  Rode UMA VEZ em cada PC da etiqueta (Centro / Vila).

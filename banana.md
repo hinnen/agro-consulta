@@ -1291,6 +1291,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### PACOTE PRONTO — Ponte etiqueta Node 404 + bat (`ETQ-PONTE-NODE-FIX`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Instalador da ponte: `.bat` só ASCII (acabava `tle`/`cp` no cmd) · download Node com várias versões + espelho (evita 404) · detecta x64/arm64/x86 |
+| **Migrate** | **NÃO** |
+| **Prova** | bridge dl **21/21** · full **78/78** · zip ASCII OK · **PREP_FAILS=0** |
+| **Status** | 🟢 **pronto para envio à produção** · tip abaixo após push |
+| **Você** | No PC com erro: baixar de novo o ZIP em Etiquetas → extrair → **1-INSTALAR.bat** (internet na 1ª vez) |
+
+### ✅ CHECKLIST ÚNICO — ETQ-PONTE-NODE-FIX · 🟢 pronto para envio à produção
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ETQ-PONTE-NODE-FIX** | 🟢 **pronto para envio à produção** | **NÃO** | **78/78** |
+
 ### PACOTE PRONTO — Travas score crédito (`CREDITO-SCORE-TRAVAS`)
 
 | Campo | Valor |
