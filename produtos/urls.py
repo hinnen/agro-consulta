@@ -364,6 +364,11 @@ urlpatterns = [
         name='api_etiquetas_mais_vendidos',
     ),
     path(
+        'api/produtos/etiquetas/print-bridge/download/',
+        views.api_etiquetas_print_bridge_download,
+        name='api_etiquetas_print_bridge_download',
+    ),
+    path(
         'api/produtos/etiquetas/presets/',
         views.api_etiquetas_presets,
         name='api_etiquetas_presets',

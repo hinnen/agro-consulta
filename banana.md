@@ -1344,7 +1344,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `verify_etq_print_direto_path.js` **41/41** · health local OK |
 | **Versão** | **v26.28** · `teste` |
 | **Status** | 🟢 no `teste` · **não** loja até frase+senha |
-| **Você** | Em cada PC da etiqueta: **1×** `Instalar-inicio-Windows.bat` → reinicia ou espera → card verde. Depois sobe sozinho com o Windows. |
+| **Você** | Etiquetas → **Baixar ponte** → extrair → **1-INSTALAR.bat** (1× por PC). Card verde. Depois sobe sozinho com o Windows. |
 
 ### ~~🔧 PACOTE — Presets etiqueta espelho gestão×PDV (`ETQ-PRESET-ESPELHO` · **v26.25**)~~ · **superado — PACOTE PRONTO acima**
 
