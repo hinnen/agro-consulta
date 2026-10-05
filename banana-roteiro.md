@@ -766,16 +766,16 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 58. CHECKLIST ÚNICO — ETQ-PRINT-ELGIN-MAP · 🟢 pronto envio (alvo **v26.40**)
+## 58. CHECKLIST ÚNICO — ETQ-PRINT-ELGIN-MAP · 🟢 PREP v26.40 · aguarda senha
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-PRINT-ELGIN-MAP** | 🟢 **pronto para envio à produção** · full **74/74** | **NÃO** |
+| 1 | **ETQ-PRINT-ELGIN-MAP** | 🟢 **no PREP** · full **74/74** | **NÃO** |
 
-**O quê:** mapa tamanho→impressora (Elgin 40×40 USER + 50×30 GONDOLA).  
-**Prova:** `verify_etq_print_direto_full_path.js` **74/74** · print resolve **40→Elgin 40x40** · **50→Elgin 50x30**.  
-**Base:** Live **v26.35** já tem ponte básica.  
-**Só** frase+senha.
+**Branch PREP:** `deploy/prep-etq-print-elgin-map` · base Live **v26.35** @ `c517af0a`.  
+**Prova:** full **74/74** · print **40→Elgin 40x40** · **50→Elgin 50x30** · **PREP_FAILS=0**.  
+**Doc:** `docs/DEPLOY-PREP-ETQ-PRINT-ELGIN-MAP.md` · rollback `docs/ROLLBACK-ETQ-PRINT-ELGIN-MAP.md`.  
+**Na senha:** `reset --hard origin/deploy/prep-etq-print-elgin-map` → push `producao`. **Não** merge `teste`.
 
 ---
 

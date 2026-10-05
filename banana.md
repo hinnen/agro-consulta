@@ -1291,23 +1291,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO LOJA — Elgin mapa 40×40 / 50×30 (`ETQ-PRINT-ELGIN-MAP` · **v26.40**) · 05/10
+### 🚀 PREP deploy loja — ETQ-PRINT-ELGIN-MAP (`deploy/prep-etq-print-elgin-map` · **v26.40**) · aguarda senha
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **pronto para envio à produção** — aguarda frase + senha |
-| **O quê** | Mapa tamanho→impressora na ponte (LocalAppData). Elgin: 2 filas Windows (**Elgin 40x40** USER + **Elgin 50x30** GONDOLA). Print 40×40 e 50/53×30 escolhem a fila certa. UI no card Etiquetas. |
+| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha no próximo chat |
+| **O quê** | Mapa tamanho→impressora (Elgin **40x40** USER + **50x30** GONDOLA). UI no card Etiquetas. |
+| **Branch PREP** | `deploy/prep-etq-print-elgin-map` |
+| **Base Live** | **v26.35** @ `c517af0a` |
+| **Alvo loja** | **v26.40** |
 | **Migrate** | **NÃO** |
-| **Prova** | full **74/74** · path **45/45** · dl **21/21** · ZIP HTTP **200** · bridge resolve **40→Elgin 40x40** · **50→Elgin 50x30** · print **OK** |
-| **Tip** | `teste` **v26.40** |
-| **Base loja** | Live **v26.35** já tem ETQ-PRINT-DIRETO básico — este pacote é o mapa Elgin |
-| **Você** | Ctrl+F5 Etiquetas · reiniciar ponte · mapa 40/50 salvo · testar 1 de cada tamanho |
+| **Merge `teste`?** | **NÃO** |
+| **Provas (PREP)** | full **74/74** · path **45/45** · dl **21/21** · print **40→Elgin 40x40** · **50→Elgin 50x30** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-etq-print-elgin-map-v26.35` @ `c517af0a` · branch `producao-backup-pre-v2640-etq-elgin-map` · `docs/ROLLBACK-ETQ-PRINT-ELGIN-MAP.md` |
+| **Doc** | `docs/DEPLOY-PREP-ETQ-PRINT-ELGIN-MAP.md` |
+| **Na senha (rápido ~1–2 min)** | Zap pausa → `reset --hard origin/deploy/prep-etq-print-elgin-map` → push `producao` → Render Live → Ctrl+F5 · badge **v26.40** · reiniciar ponte |
+| **Risco loja aberta** | **Baixo** — só etiquetas/ponte. **Não** mexe PDV venda · caixa · Point · NFC-e |
 
-### ✅ CHECKLIST ÚNICO — falta subir · 🟢 pronto para envio à produção
+### ✅ CHECKLIST ÚNICO — ETQ-PRINT-ELGIN-MAP · 🟢 PREP v26.40 · aguarda senha
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-PRINT-ELGIN-MAP** | 🟢 **pronto para envio à produção** | **NÃO** | full **74/74** · resolve print **OK** |
+| 1 | **ETQ-PRINT-ELGIN-MAP** | 🟢 **no PREP** · aguarda senha | **NÃO** | full **74/74** · resolve print **OK** |
 
 ### ✅ Deploy loja — Checklist 05/10c · **Live v26.35** · 05/10
 
@@ -1335,7 +1340,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### 📦 PACOTES JÁ LIVE (05/10c · v26.35) — sem fila
 
-`PDV-PEDIR-PARCIAL-RESTO` · `PDV-PEDIR-PRONTO-TRANSF` · `META-MODO-AGORA` · `CREDITO-SCORE-XLSX-COLS` · `ETQ-PRESET-ESPELHO` · `ETQ-PRINT-DIRETO` · `PDV-PEDIR-PRINT-3` → ✅ **Live v26.35**. Fila atual = só **ETQ-PRINT-ELGIN-MAP** (topo).
+`PDV-PEDIR-PARCIAL-RESTO` · `PDV-PEDIR-PRONTO-TRANSF` · `META-MODO-AGORA` · `CREDITO-SCORE-XLSX-COLS` · `ETQ-PRESET-ESPELHO` · `ETQ-PRINT-DIRETO` · `PDV-PEDIR-PRINT-3` → ✅ **Live v26.35**. Fila atual = **PREP** deploy/prep-etq-print-elgin-map (aguarda senha).
 
 ### 🚀 PREP deploy loja — Checklist 05/10b (`deploy/prep-checklist-0510b` · **v26.24**) · aguarda senha
 
