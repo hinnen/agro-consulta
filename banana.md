@@ -1,4 +1,4 @@
-﻿# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
+# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** â€” teste Render, produÃ§Ã£o, pacotes, operaÃ§Ã£o diÃ¡ria. O **produto SisVale** no geral estÃ¡ em **`SISTVALE.md`**; a instÃ¢ncia **delivery em branco** estÃ¡ em **`FOOD.md`**.
 
@@ -1291,20 +1291,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚀 PREP deploy loja — Checklist 05/10c (deploy/prep-checklist-0510c · alvo **v26.35**) · aguarda senha
+### 🚀 PREP deploy loja — Checklist 05/10c (`deploy/prep-checklist-0510c` · alvo **v26.35**) · aguarda senha
 
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha |
-| **Branch PREP** | deploy/prep-checklist-0510c · tip c517af0a · base Live **v26.08** @ 8b636b67 |
+| **Branch PREP** | `deploy/prep-checklist-0510c` · tip `c517af0a` · base Live **v26.08** @ `8b636b67` |
 | **Alvo loja** | **v26.35** |
 | **Migrate** | **NÃO** |
-| **Merge \	este\?** | **NÃO** |
+| **Merge `teste`?** | **NÃO** |
 | **Provas (PREP)** | resto **38/38**+smoke **36/36** · pronto-transf **42/42** · META **125/125** · crédito **86/86** · espelho **40/40**+smoke **24/24** · print-direto **68/68** · print-3 **37/37**+smoke **23/23** · Pedir **80/80** · **PREP_FAILS=0** |
-| **Rollback** | tag 
-ollback/pre-checklist-0510c-v26.08 @ 8b636b67 · branch producao-backup-pre-v2635-checklist-20261005 · docs/ROLLBACK-CHECKLIST-0510c.md |
-| **Na senha (rápido)** | pausar vendas → git fetch → producao = tip PREP → push → Render Live → Ctrl+F5 · badge **v26.35** |
-| **Doc** | docs/DEPLOY-PREP-CHECKLIST-0510c.md |
+| **Rollback** | tag `rollback/pre-checklist-0510c-v26.08` @ `8b636b67` · branch `producao-backup-pre-v2635-checklist-20261005` · `docs/ROLLBACK-CHECKLIST-0510c.md` |
+| **Na senha (rápido)** | pausar vendas → `git fetch` → `producao` = tip PREP → push → Render Live → Ctrl+F5 · badge **v26.35** |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-0510c.md` |
 
 ### ✅ CHECKLIST ÚNICO — 05/10c · 🟢 PREP v26.35 · aguarda senha
 
@@ -1319,7 +1318,6 @@ ollback/pre-checklist-0510c-v26.08 @ 8b636b67 · branch producao-backup-pre-v263
 | 7 | **PDV-PEDIR-PRINT-3** | 🟢 **no PREP** | **NÃO** | **37/37** · smoke **23/23** |
 
 **Risco loja aberta:** baixo–médio só em Pedir loja / etiquetas / META / lab crédito. **Não** mexe finalizar venda · caixa · Point · NFC-e.
-
 
 ### 📦 PACOTE PRONTO LOJA — Pedir parcial: encerrar ou resto (`PDV-PEDIR-PARCIAL-RESTO` · **v26.35**)
 
