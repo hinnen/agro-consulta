@@ -1291,12 +1291,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### ? CHECKLIST ÚNICO — lote PREP 05/10d · ?? PREP em montagem
+### ? CHECKLIST ÚNICO — lote PREP 05/10d · ?? finalizando docs
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
 | 1 | **CREDITO-SCORE-TRAVAS** | ?? no PREP | **NÃO** | 98/98 |
-| 2 | **ETQ-PONTE-1CLIQUE** (+ NODE-FIX) | ?? cherry 1CLIQUE | **NÃO** | — |
+| 2 | **ETQ-PONTE-1CLIQUE** (+ NODE-FIX) | ?? path no PREP | **NÃO** | 37/37 |
+
+### ? Deploy loja — ETQ-PRINT-ELGIN-MAP · **Live v26.40** · 05/10
 
 ### ? Deploy loja — ETQ-PRINT-ELGIN-MAP · **Live v26.40** · 05/10
 
