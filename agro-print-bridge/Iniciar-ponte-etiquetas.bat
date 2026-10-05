@@ -5,6 +5,7 @@ title Agro Etiqueta Print
 echo.
 echo  Agro Etiqueta Print — ponte do SisVale
 echo  Deixe esta janela aberta (ou minimize). Depois imprima no Chrome.
+echo  Dica loja: use Instalar-inicio-Windows.bat ^(abre sozinho ao ligar o PC^).
 echo.
 
 where node >nul 2>&1
