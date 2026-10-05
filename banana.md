@@ -1322,17 +1322,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Você** | Ctrl+F5 · cadastro + PDV + fila = mesma lista |
 
-### ✅ PACOTE — impressão térmica direta Windows (`ETQ-PRINT-DIRETO`) · tip **v26.26** · 05/10
+### ✅ PACOTE — impressão térmica direta Windows (`ETQ-PRINT-DIRETO`) · tip **v26.28** · 05/10
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Ponte local **Agro Etiqueta Print** (`agro-print-bridge/`) + config no preset: impressora + modo **auto/direto/diálogo**. Serve 1–N impressoras ou troca de bobina na mesma. |
+| **Fix 05/10** | Electron instalava quebrado no OneDrive → `ensure-electron.js` baixa em `%LOCALAPPDATA%\AgroEtiquetaPrint\`. |
 | **Como ligar** | PC da etiqueta → `agro-print-bridge/Iniciar-ponte-etiquetas.bat` → card verde em `/produtos/etiquetas/` → Salvar preset com impressora/modo. |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_etq_print_direto_path.js` **38/38** · térmica várias **39/39** · UX 53 **32/32** |
-| **Versão** | **v26.26** · `teste` |
+| **Prova** | `verify_etq_print_direto_path.js` **41/41** · health local OK |
+| **Versão** | **v26.28** · `teste` |
 | **Status** | 🟢 no `teste` · **não** loja até frase+senha |
-| **Você** | Local: Ctrl+F5 etiquetas · rodar o `.bat` · Verificar · Testar 1 etiqueta · configurar presets |
+| **Você** | Feche a janela preta antiga → rode de novo o `.bat` → card verde → Testar 1 etiqueta |
 
 ### ~~🔧 PACOTE — Presets etiqueta espelho gestão×PDV (`ETQ-PRESET-ESPELHO` · **v26.25**)~~ · **superado — PACOTE PRONTO acima**
 
