@@ -1289,25 +1289,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PREP — CREDITO-SCORE-SHADOW · alvo loja **v26.07** · aguarda senha
+### ✅ Deploy loja — CREDITO-SCORE-SHADOW · **Live v26.07** · 05/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP pronto** — **não** subiu · loja ainda **Live v26.05** |
-| **Branch PREP** | `deploy/prep-credito-score-shadow` · tip `ce71fb0f` |
-| **Antes** | `producao` @ `41a6fdea` · v**26.05** |
-| **Migrate** | **SIM** `0137` (só CREATE TABLE) — no build do Render |
-| **Não entra** | merge do `teste` · flag ligada · PDV/caixa/fiado operacional |
-| **Flag no 1º deploy** | **ficar OFF** (default) — operador 404 · sem 2ª queda |
-| **Rollback** | tag `rollback/pre-credito-score-shadow-v26.05` · backup `producao-backup-pre-v2607-credito-score-shadow-20261005` · `docs/ROLLBACK-CREDITO-SCORE-SHADOW.md` · **só** frase+senha |
-| **Prova PREP** | shadow **93/93** · PDV limite refresh **39/39** · card fiado **39/39** · **PREP_FAILS=0** |
-| **Próximo** | lojas pausam · frase + senha · `producao` ← PREP · **não** ligar env neste passo |
+| **Status** | ✅ **enviado / Live v26.07** — `producao` @ `d6c19c84` · Render `dep-db1spqjm8hqs73eeqlp0` · **não** foi merge do `teste` |
+| **O quê** | Laboratório `/fiado/analise-credito/` (shadow). Flag **OFF** no 1º deploy — operador 404. |
+| **Branch PREP** | `deploy/prep-credito-score-shadow` · tip `d6c19c84` · base Live **v26.05** @ `41a6fdea` |
+| **Migrate** | **SIM** `0137` (só CreateModel) — no build |
+| **Provas** | shadow **93/93** · PDV limite **39/39** · card **39/39** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-credito-score-shadow-v26.05` @ `41a6fdea` · backup `producao-backup-pre-v2607-credito-score-shadow-20261005` · `docs/ROLLBACK-CREDITO-SCORE-SHADOW.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 PDV · badge **v26.07**. Laboratório: ligar env depois (fora do pico) + restart |
 
-### ✅ CHECKLIST ÚNICO — CREDITO-SCORE-SHADOW · 🟢 PREP pronto · aguarda senha
+### ✅ CHECKLIST ÚNICO — CREDITO-SCORE-SHADOW · ✅ Live v26.07
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CREDITO-SCORE-SHADOW** | 🟢 **pronto para envio à produção** | **SIM** `0137` | **93/93** |
+| 1 | **CREDITO-SCORE-SHADOW** | ✅ **enviado / Live v26.07** | **SIM** `0137` | **93/93** |
 
 ### ✅ Deploy loja — PDV-FIADO-LIMITE-REFRESH · **Live v26.05** · 03/10
 
