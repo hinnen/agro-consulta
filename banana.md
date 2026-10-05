@@ -1309,17 +1309,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- | ----- |
 | 1 | **CREDITO-SCORE-LAB-ACESSO** | 🟢 **pronto para envio à produção** | **NÃO** | **34/34** |
 
-### 📦 PACOTE — META mostruário (`META-MOSTRUARIO` · tip **v26.11**) · 05/10/2026
+### 📦 PACOTE PRONTO — META mostruário (`META-MOSTRUARIO` · tip **v26.14**) · 05/10/2026
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **só no `teste`** — validar local |
-| **O quê** | Botão **META** no menu Gestão · tela `/meta/` · metas + bônus PG · vs média Meta C · **Copiar foto** (tabelinha PNG amarela + resumo) · Copiar texto |
-| **Padrão seed** | 105k/100 · 110k/150 · 115k/100+moleton · 120k/250 · 130k/500 (mês corrente) |
-| **Migrate** | **SIM** `0138` (`MetaVendaFaixaAgro`) |
-| **URLs** | `/meta/` · `/api/meta/resumo/` · `/api/meta/faixas/` |
-| **Arquivos** | `meta_vendas_util.py` · `views_meta_vendas.py` · `meta_vendas.html` · launchpad GESTÃO · models + 0138 |
-| **Você** | Ctrl+F5 → META · **Copiar foto** → cola no Zap (Ctrl+V); se o Chrome não colar imagem, baixa o PNG |
+| **Status** | 🟢 **pronto para envio à produção** (aguarda frase + senha) |
+| **Tip** | `teste` **v26.14** · prova path **105/105** · PIN **9973** |
+| **O quê** | Botão **META** no menu Gestão · `/meta/` · metas+bônus Postgres · vs média Meta C · Copiar foto (tabelinha) · Copiar texto |
+| **Migrate** | **SIM** `0138` (`MetaVendaFaixaAgro` + seed 105k…130k) |
+| **Prova** | `scripts/verify_meta_mostruario_path.py` **105/105** |
+| **Rollback** | `docs/ROLLBACK-META-MOSTRUARIO.md` · tag ao subir |
+| **Não mexe** | PDV · caixa · NFC-e · financeiro |
+| **Você** | Ctrl+F5 BI → Menu → META · Copiar foto → cola no Zap |
+
+### ✅ CHECKLIST ÚNICO — META-MOSTRUARIO · 🟢 pronto envio
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **META-MOSTRUARIO** | 🟢 **pronto para envio à produção** | **SIM** `0138` | **105/105** |
 
 ### WIP — botão Análise de crédito no menu Gestão · 05/10
 
