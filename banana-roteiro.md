@@ -792,7 +792,6 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | 7 | **PDV-PEDIR-PRINT-3** | 🟢 **PREP** · **37/37** + smoke **23/23** | **NÃO** |
 
 **Branch PREP:** deploy/prep-checklist-0510c · tip c517af0a · base Live **v26.08** @ 8b636b67.  
-**Rollback:** tag 
-ollback/pre-checklist-0510c-v26.08 · docs/ROLLBACK-CHECKLIST-0510c.md · **só** frase+senha.  
-**Na senha:** pausar vendas · tip PREP → producao → Ctrl+F5 · badge **v26.35**. **Não** merge 	este.
+**Rollback:** tag rollback/pre-checklist-0510c-v26.08 · docs/ROLLBACK-CHECKLIST-0510c.md · **só** frase+senha.  
+**Na senha:** pausar vendas · tip PREP → producao → Ctrl+F5 · badge **v26.35**. **Não** merge teste.
 
