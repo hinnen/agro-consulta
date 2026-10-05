@@ -52,6 +52,12 @@
     return isWhatsAppCelularPath(p) || isWhatsAppPcPath(p);
   }
 
+  /** Laboratório admin de crédito — abre na Gestão, nunca fica no app PDV. */
+  function isCreditoScoreLabPath(p) {
+    p = pathnameNorm(p);
+    return p === '/fiado/analise-credito' || p.indexOf('/fiado/analise-credito/') === 0;
+  }
+
   function openWhatsAppCelularStandalone(href) {
     var url = absUrl(href);
     try {
@@ -525,6 +531,7 @@
     if (!shouldRoutePdvLinkToGestao(pathname)) return false;
     if (isGestaoShellPath(pathname)) return false;
     if (isWhatsAppStandalonePath(pathname)) return false;
+    if (isCreditoScoreLabPath(pathname)) return false;
     return true;
   }
 
@@ -820,9 +827,18 @@
       here = '';
     }
     if (!here) return;
+    // Lab crédito / demais telas de gestão: abre na Gestão (não fica no app PDV).
     try {
-      pulseGestaoFocus(here);
-    } catch (_) {}
+      if (isCreditoScoreLabPath()) {
+        openGestao(here);
+      } else {
+        pulseGestaoFocus(here);
+      }
+    } catch (_) {
+      try {
+        pulseGestaoFocus(here);
+      } catch (_) {}
+    }
     try {
       location.replace(pdvUrl('/pdv/?agro_dual=1&agro_app_role=pdv'));
     } catch (_) {

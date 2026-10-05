@@ -1136,6 +1136,11 @@
     return p === '/' || p.indexOf('/dashboard/gerencial') === 0;
   }
 
+  function pathLookLikeCreditoScoreLab(uriPathOnly) {
+    var p = String(uriPathOnly || '').toLowerCase().split('?')[0].replace(/\/+$/, '') || '/';
+    return p === '/fiado/analise-credito' || p.indexOf('/fiado/analise-credito/') === 0;
+  }
+
   function normPathUrl(absUrlStr) {
     try {
       var u = new URL(absUrlStr, location.origin);
@@ -1816,6 +1821,9 @@
       if (pinTab === 'pdv' || pinTab === 'dash') shell.pinnedTabGlow = pinTab;
       showWhich('dash');
       resumeInAppTabAfterHome();
+    } else if (pathLookLikeCreditoScoreLab(pathNow)) {
+      /* Laboratório admin: página completa — não puxar de volta ao PDV/BI. */
+      return;
     } else {
       /**
        * App instalado do Chrome: URL no topo fora do PDV/BI → faixa preta «fora do escopo».
