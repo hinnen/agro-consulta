@@ -3790,3 +3790,45 @@ class WhatsAppPontePedidoAgro(models.Model):
 
     def __str__(self):
         return f"{self.tipo} {self.status} {self.jid}"
+
+
+class MetaVendaFaixaAgro(models.Model):
+    """
+    Faixa de meta de venda bruta do mês (mostruário META).
+    Postgres multi-PC — valor da meta + bônus (R$ e/ou texto, ex. moleton).
+    """
+
+    competencia = models.CharField(
+        "Competência",
+        max_length=7,
+        db_index=True,
+        help_text="YYYY-MM",
+    )
+    valor_meta = models.DecimalField("Meta de venda (R$)", max_digits=14, decimal_places=2)
+    bonus_valor = models.DecimalField(
+        "Bônus (R$)",
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+    )
+    bonus_extra = models.CharField(
+        "Bônus extra",
+        max_length=120,
+        blank=True,
+        default="",
+        help_text="Ex.: moleton — texto livre além do R$.",
+    )
+    ordem = models.PositiveSmallIntegerField("Ordem", default=0, db_index=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Faixa de meta de venda"
+        verbose_name_plural = "Faixas de meta de venda"
+        ordering = ["competencia", "ordem", "valor_meta", "id"]
+        indexes = [
+            models.Index(fields=["competencia", "ordem"], name="meta_venda_comp_ord_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.competencia} · R$ {self.valor_meta}"
