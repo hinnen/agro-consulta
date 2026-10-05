@@ -71,8 +71,7 @@ def _atomic():
     yield
 
 
-def main() -> int:
-    print("VERIFY PDV-PEDIR-PARCIAL-RESTO PATH")
+def test_contratos() -> None:
     js = _read("produtos/static/produtos/js/pdv_pedir_loja.js")
     html = _read("produtos/templates/produtos/partials/pdv/pedir_loja_overlay.html")
     util = _read("produtos/pdv_transf_loja_util.py")
@@ -85,20 +84,21 @@ def main() -> int:
     check("ui_payload_flag", "deixar_resto:" in js or "deixar_resto =" in js)
     check("ui_transf_sel_flag", "deixarResto" in js and "transferirSelecionadosTodos" in js)
     check("ui_texto_corpo", "Se deixar resto" in js or "Encerrar =" in js)
+    check("ui_fechar_choice", "fecharConfirm(true, 'resto')" in js and "fecharConfirm(true, 'encerrar')" in js)
+    check("ui_abrir_choice", "choice === 'resto'" in js)
     check("css_resto", "pl-confirm-btns--resto" in html)
     check("util_flag", "deixar_resto" in util and "splits_resto" in util)
     check("util_encerrar_obs", "Encerrado sem resto" in util)
+    check("util_split_create", "Parcial resto" in util)
+    check("util_compat_adiar", "deixar_resto = bool(adiar_ids)" in util or "deixar_resto=None" in util)
     check("view_passa_flag", "deixar_resto=" in views and 'payload.get("deixar_resto")' in views)
+    check("view_msg_resto", "ficaram na fila" in views and "resto_solicitacao_id" in views)
+    check("smoke_script", (ROOT / "scripts/smoke_pdv_pedir_parcial_resto_local.py").is_file())
 
-    sys.path.insert(0, str(ROOT))
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
-    import django
 
-    django.setup()
-
+def test_runtime() -> None:
     from produtos.pdv_transf_loja_util import STATUS_ACEITO, STATUS_PRONTO, concluir_transferencia
 
-    # --- 8→4 + deixar_resto=True → cria RESTANTE qtd 4 ---
     it_a = _mk_item(41, "PA", "8", "Racao")
     sol_a = _mk_sol(201, [it_a])
     created_a: dict = {}
@@ -173,7 +173,6 @@ def main() -> int:
         str(it_a.quantidade),
     )
 
-    # --- 8→4 + deixar_resto=False → NÃO cria RESTANTE ---
     it_b = _mk_item(42, "PB", "8", "Milho")
     sol_b = _mk_sol(202, [it_b])
     created_b: dict = {}
@@ -227,22 +226,17 @@ def main() -> int:
         str(res_b),
     )
 
-    # --- desmarcado + deixar_resto=False → item zera, sem RESTANTE ---
     it_c1 = _mk_item(51, "PC1", "3", "A")
     it_c2 = _mk_item(52, "PC2", "5", "B")
     sol_c = _mk_sol(203, [it_c1, it_c2])
     created_c: dict = {}
-    calls_c = []
 
-    def fake_transf_c(*args, **kwargs):
-        calls_c.append(args[3])
-        return {"ok": True, "quantidade": float(args[3])}
-
-    with patch("estoque.views._transferir_entre_depositos_exec", side_effect=fake_transf_c), patch(
-        "produtos.pdv_transf_loja_util.transaction.atomic", _atomic
-    ), patch("produtos.pdv_transf_loja_util._registrar_evento"), patch(
-        "produtos.views._invalidar_caches_apos_ajuste_pin"
-    ), patch(
+    with patch(
+        "estoque.views._transferir_entre_depositos_exec",
+        return_value={"ok": True, "quantidade": 3},
+    ), patch("produtos.pdv_transf_loja_util.transaction.atomic", _atomic), patch(
+        "produtos.pdv_transf_loja_util._registrar_evento"
+    ), patch("produtos.views._invalidar_caches_apos_ajuste_pin"), patch(
         "produtos.pdv_transf_loja_util.SolicitacaoTransferenciaPdv.objects.create",
         side_effect=lambda **kw: created_c.setdefault("sol", SimpleNamespace(pk=803, **kw)),
     ):
@@ -265,7 +259,6 @@ def main() -> int:
         str(it_c2.quantidade),
     )
 
-    # --- desmarcado + deixar_resto=True (compat) → move item ---
     it_d1 = _mk_item(61, "PD1", "2", "C")
     it_d2 = _mk_item(62, "PD2", "7", "D")
     sol_d = _mk_sol(204, [it_d1, it_d2])
@@ -302,6 +295,51 @@ def main() -> int:
         it_d2.solicitacao is created_d.get("sol"),
         str(getattr(it_d2, "solicitacao", None)),
     )
+
+    it_e = _mk_item(71, "PE", "5", "Igual")
+    sol_e = _mk_sol(205, [it_e])
+    created_e: dict = {}
+    with patch(
+        "estoque.views._transferir_entre_depositos_exec",
+        return_value={"ok": True, "quantidade": 5},
+    ), patch("produtos.pdv_transf_loja_util.transaction.atomic", _atomic), patch(
+        "produtos.pdv_transf_loja_util._registrar_evento"
+    ), patch("produtos.views._invalidar_caches_apos_ajuste_pin"), patch(
+        "produtos.pdv_transf_loja_util.SolicitacaoTransferenciaPdv.objects.create",
+        side_effect=lambda **kw: created_e.setdefault("sol", SimpleNamespace(pk=805, **kw)),
+    ):
+        ok_e, err_e, res_e = concluir_transferencia(
+            SimpleNamespace(),
+            sol_e,
+            loja_atual="vila",
+            operador_label="Teste",
+            usuario=None,
+            quantidades_envio=[{"id": 71, "quantidade": "5"}],
+            deixar_resto=True,
+        )
+    check("runtime_igual_ok", ok_e and not err_e, err_e or "ok")
+    check("runtime_igual_sem_resto", "sol" not in created_e)
+    check(
+        "runtime_igual_sem_id",
+        not any(isinstance(r, dict) and r.get("resto_solicitacao_id") for r in res_e),
+        str(res_e),
+    )
+
+
+def main() -> int:
+    print("VERIFY PDV-PEDIR-PARCIAL-RESTO PATH")
+    print(f"PIN={'set' if (os.environ.get('AGRO_PIN_TESTE') or '').strip() else '— (smoke separado)'}")
+    test_contratos()
+    sys.path.insert(0, str(ROOT))
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+    import django
+
+    django.setup()
+    try:
+        test_runtime()
+    except Exception as exc:
+        check("runtime_setup", False, str(exc))
+        print(f"ERRO runtime: {exc}")
 
     print()
     print(f"RESULTADO: {len(oks)}/{len(oks) + len(fails)}")
