@@ -1,5 +1,5 @@
-"""
-Path PDV-PEDIR-PARCIAL-PRINT — imprimir todos + checkbox parcial + qtd 0 no histórico.
+﻿"""
+Path PDV-PEDIR-PARCIAL-PRINT ÔÇö imprimir todos + checkbox parcial + qtd 0 no hist├│rico.
 
   python scripts/verify_pdv_pedir_parcial_print_path.py
 """
@@ -21,10 +21,10 @@ oks: list[str] = []
 def check(name: str, cond: bool, detail: str = "") -> None:
     if cond:
         oks.append(name)
-        print(f"  OK  {name}" + (f" — {detail}" if detail else ""))
+        print(f"  OK  {name}" + (f" ÔÇö {detail}" if detail else ""))
     else:
         fails.append(name)
-        print(f"  FAIL {name}" + (f" — {detail}" if detail else ""))
+        print(f"  FAIL {name}" + (f" ÔÇö {detail}" if detail else ""))
 
 
 def _read(rel: str) -> str:
@@ -46,6 +46,13 @@ def main() -> int:
     check("ui_toolbar", "pl-lista-toolbar" in html and "syncListaToolbar" in js)
     check("ui_ajuda_parcial", "fica na fila" in html.lower() or "fica pra depois" in html.lower())
     check("ui_aceitar_todos", "pdv-pedir-loja-aceitar-todos" in html and "Aceitar todos" in js)
+    check("ui_transferir_sel", "pdv-pedir-loja-transferir-sel" in html and "transferirSelecionadosTodos" in js)
+    check("ui_transf_aceito_ou_pronto", "STATUS_ACEITO, STATUS_PRONTO" in util and "(st === 'aceito' || st === 'pronto')" in js)
+    check("ui_transf_sel_aceito", 'data-pl-st="aceito"], .pl-card[data-pl-st="pronto"]' in js)
+    check("ui_ajuda_transf_direto", "transferir direto" in html.lower() or "Pronto opcional" in html or "opcional" in html.lower())
+    check("ui_ajuda_pronto", "Pronto" in html and "30 min" in html)
+    check("js_bip_alerta_por_bip", "applyBadge(n, bip)" in js and "bip pausado 30 min" in js)
+    check("js_poll_12s", "12000" in js and "visibilitychange" in js)
     check("ui_marcar_todos", 'data-pl-sel="todos"' in js and "marcarChecksDoCard" in js)
     check("ui_secoes_status", "pl-sec" in js and "eh_resto" in js)
     check("ui_confirm_lista", "Vai agora:" in js and "Ficam na fila" in js)
@@ -187,7 +194,7 @@ def main() -> int:
     )
     sol2 = SimpleNamespace(
         pk=100,
-        status=STATUS_ACEITO,
+        status=STATUS_PRONTO,
         loja_origem="vila",
         loja_destino="centro",
         observacao="",

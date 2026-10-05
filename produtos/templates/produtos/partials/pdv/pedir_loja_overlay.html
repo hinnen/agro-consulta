@@ -740,9 +740,9 @@
         <summary class="list-none inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 border-orange-500 bg-white text-lg font-black text-orange-900 hover:bg-orange-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda" title="Ajuda">?</summary>
         <div class="absolute right-0 top-full z-30 mt-1.5 w-[min(24rem,calc(100vw-2rem))] rounded-xl border border-orange-200 bg-white p-3 text-sm font-semibold text-slate-700 shadow-xl space-y-2 leading-snug">
           <p>Peça produtos pela busca <strong>ou</strong> só o <strong>pedido escrito</strong> embaixo (sacola, café…) — <strong>não precisa</strong> de produto cadastro.</p>
-          <p>Lá: <strong>Aceitar</strong> (ou <strong>Aceitar todos</strong>) → <strong>Imprimir</strong> / <strong>Imprimir todos</strong> → marque o □ → <strong>Transferir</strong>.</p>
+          <p>Lá: <strong>Aceitar</strong> → (opcional <strong>Pronto</strong>) → marque o □ → <strong>Transferir</strong> (ou <strong>Transferir selecionados</strong> no topo). Dá pra transferir direto no Aceito.</p>
           <p><strong>Qtd 0</strong> = não enviou (histórico). Desmarque o □ = fica na fila. Badge <strong>RESTANTE</strong> = o que sobrou de um envio parcial.</p>
-          <p><strong>Observação</strong> = mensagem opcional. Pedido pendente bipa a cada 1 min.</p>
+          <p><strong>Observação</strong> = mensagem opcional. Pendente bipa a cada 1 min; depois do <strong>Aceitar</strong> (e também em <strong>Pronto</strong>) o bip para <strong>30 min em todos os PCs</strong> da loja.</p>
         </div>
       </details>
       <button type="button" id="pdv-pedir-loja-fechar" class="inline-flex min-h-[2.65rem] items-center rounded-xl border-2 border-teal-600 bg-teal-600 px-3.5 text-[11px] font-black uppercase text-white hover:bg-teal-700">Fechar</button>
@@ -809,6 +809,7 @@
       <div id="pdv-pedir-loja-lista-toolbar" class="pl-lista-toolbar">
         <button type="button" id="pdv-pedir-loja-imprimir-todos" class="pl-btn pl-btn--print">Imprimir todos</button>
         <button type="button" id="pdv-pedir-loja-aceitar-todos" class="pl-btn pl-btn--ok hidden">Aceitar todos</button>
+        <button type="button" id="pdv-pedir-loja-transferir-sel" class="pl-btn pl-btn--transf hidden">Transferir selecionados</button>
         <span id="pdv-pedir-loja-lista-count" class="pl-lista-count"></span>
       </div>
       <div id="pdv-pedir-loja-lista" class="space-y-2"></div>

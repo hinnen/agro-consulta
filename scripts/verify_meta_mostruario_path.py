@@ -276,6 +276,31 @@ def test_mostruario_consistencia() -> None:
             abs(float(f0["meta_agora"]) - esp) < 0.05,
             f"got={f0['meta_agora']} exp≈{esp:.2f}",
         )
+        # progresso «agora» coerente com parcela
+        a = f0.get("agora") or {}
+        if float(f0["meta_agora"]) > 0:
+            pct_a = float(m["vendido_mes"]) / float(f0["meta_agora"]) * 100.0
+            check(
+                "agora_pct_coerente",
+                abs(float(a.get("pct") or 0) - round(pct_a, 1)) < 0.2,
+                f"got={a.get('pct')} exp≈{round(pct_a,1)}",
+            )
+            if float(m["vendido_mes"]) >= float(f0["meta_agora"]):
+                check("agora_atingida_ok", a.get("atingida") is True)
+            else:
+                check(
+                    "agora_falta_ok",
+                    a.get("atingida") is False and float(a.get("falta") or 0) > 0,
+                )
+
+    # fração = media_ref / media_cheia
+    if float(m.get("media_mes_cheia") or 0) > 0:
+        frac_esp = float(m["media_mes_ref"]) / float(m["media_mes_cheia"])
+        check(
+            "fracao_bate_medias",
+            abs(float(m["fracao_ate_agora"]) - frac_esp) < 0.0002,
+            f"got={m['fracao_ate_agora']} exp≈{frac_esp:.4f}",
+        )
 
     zap = meta_texto_zap(m)
     check("zap_tem_meta", "META" in zap)
@@ -326,6 +351,10 @@ def test_http() -> None:
     check("painel_titulo", "META" in body)
     check("painel_copiar_foto", "meta-copiar-foto" in body)
     check("painel_cfg", "meta-cfg-lista" in body)
+    check("painel_modo_agora_btn", 'data-modo="agora"' in body and "Até agora" in body)
+    check("painel_modo_mes_btn", 'data-modo="mes"' in body and "Meta do mês" in body)
+    check("painel_js_setModo", "function setModo" in body or "setModo(" in body)
+    check("painel_js_progAtivo", "progAtivo" in body)
 
     r2 = c.get(reverse("api_meta_vendas_resumo"), {"competencia": comp})
     check("api_resumo_200", r2.status_code == 200, str(r2.status_code))
@@ -339,6 +368,35 @@ def test_http() -> None:
         check("api_resumo_jsonable", True)
     except TypeError as exc:
         check("api_resumo_jsonable", False, str(exc))
+
+    r2a = c.get(
+        reverse("api_meta_vendas_resumo"),
+        {"competencia": comp, "modo": "agora"},
+    )
+    check("api_resumo_agora_200", r2a.status_code == 200)
+    d2a = r2a.json()
+    check("api_resumo_agora_ok", d2a.get("ok") is True and d2a.get("modo") == "agora")
+    zap_http = d2a.get("texto_zap") or ""
+    check(
+        "api_resumo_agora_zap",
+        "até agora" in zap_http.lower() or "ATÉ AGORA" in zap_http or "ritmo" in zap_http.lower(),
+    )
+    m_http = d2a.get("mostruario") or {}
+    check("api_resumo_agora_fracao", "fracao_ate_agora" in m_http)
+    faixas_http = m_http.get("faixas") or []
+    if faixas_http:
+        a0 = faixas_http[0].get("agora") or {}
+        check("api_resumo_agora_faixa", "pct" in a0 and "falta_fmt" in a0)
+        # pct modo agora = vendido / meta_agora
+        ma = float(faixas_http[0].get("meta_agora") or 0)
+        vd = float(m_http.get("vendido_mes") or 0)
+        if ma > 0:
+            exp_pct = round(vd / ma * 100.0, 1)
+            check(
+                "api_resumo_agora_pct",
+                abs(float(a0.get("pct") or 0) - exp_pct) < 0.2,
+                f"got={a0.get('pct')} exp≈{exp_pct}",
+            )
 
     r3 = c.get(reverse("api_meta_vendas_faixas"), {"competencia": comp})
     check("api_faixas_200", r3.status_code == 200)

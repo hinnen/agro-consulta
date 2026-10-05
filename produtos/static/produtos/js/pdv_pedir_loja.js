@@ -49,6 +49,7 @@
     listaToolbar: document.getElementById('pdv-pedir-loja-lista-toolbar'),
     imprimirTodos: document.getElementById('pdv-pedir-loja-imprimir-todos'),
     aceitarTodos: document.getElementById('pdv-pedir-loja-aceitar-todos'),
+    transferirSel: document.getElementById('pdv-pedir-loja-transferir-sel'),
     listaCount: document.getElementById('pdv-pedir-loja-lista-count'),
     status: document.getElementById('pdv-pedir-loja-status'),
     pinAviso: document.getElementById('pdv-pedir-loja-pin-aviso'),
@@ -183,7 +184,7 @@
     var pend = Number(
       d.recebidos_pendentes != null ? d.recebidos_pendentes : d.recebidos_abertos || 0
     );
-    applyBadge(n);
+    applyBadge(n, bip);
     syncBeepPendentes(bip);
     return { n: n, pend: pend, bip: bip };
   }
@@ -330,6 +331,44 @@
         dom.aceitarTodos.classList.add('hidden');
       }
     }
+    syncTransferirSelBtn();
+  }
+
+  function contarSelecaoLista() {
+    var nPedidos = 0;
+    var nItens = 0;
+    if (!dom.lista || aba !== 'recebidos') return { pedidos: 0, itens: 0 };
+    dom.lista
+      .querySelectorAll('.pl-card[data-pl-st="aceito"], .pl-card[data-pl-st="pronto"]')
+      .forEach(function (card) {
+        var sel = lerSelecaoDoCard(card);
+        var comQtd = sel.itens.filter(function (it) {
+          return Number(it.quantidade) > 0;
+        });
+        if (comQtd.length) {
+          nPedidos += 1;
+          nItens += comQtd.length;
+        }
+      });
+    return { pedidos: nPedidos, itens: nItens };
+  }
+
+  function syncTransferirSelBtn() {
+    if (!dom.transferirSel) return;
+    if (aba !== 'recebidos') {
+      dom.transferirSel.classList.add('hidden');
+      return;
+    }
+    var c = contarSelecaoLista();
+    if (c.itens <= 0) {
+      dom.transferirSel.classList.add('hidden');
+      return;
+    }
+    dom.transferirSel.classList.remove('hidden');
+    dom.transferirSel.textContent =
+      c.pedidos > 1
+        ? 'Transferir selecionados (' + c.itens + ' em ' + c.pedidos + ')'
+        : 'Transferir selecionados (' + c.itens + ')';
   }
 
   function atualizarBtnTransferir(card) {
@@ -341,11 +380,13 @@
     var total = card.querySelectorAll('.pl-item-row[data-pl-item-id]').length;
     if (!total) {
       btn.textContent = 'Transferir estoque';
+      syncTransferirSelBtn();
       return;
     }
     if (n === 0) btn.textContent = 'Transferir (marque □)';
     else if (n < total) btn.textContent = 'Transferir ' + n + ' de ' + total;
     else btn.textContent = 'Transferir estoque';
+    syncTransferirSelBtn();
   }
 
   function marcarChecksDoCard(card, ligado) {
@@ -370,15 +411,19 @@
     inp.classList.toggle('is-diff', diff);
   }
 
-  function applyBadge(n) {
+  function applyBadge(n, bip) {
     n = Number(n || 0);
+    bip = Number(bip != null ? bip : n);
     if (dom.btnOpen) {
       var base = 'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative';
-      if (n > 0) base += ' pdv-wiz-topbar-btn--pedir-loja-alerta';
+      /* Alerta/bip so com recebidos_bip (Postgres) — Aceitar/Pronto silenciam 30 min em todos os PCs. */
+      if (bip > 0) base += ' pdv-wiz-topbar-btn--pedir-loja-alerta';
       dom.btnOpen.className = base;
       dom.btnOpen.title =
         n > 0
-          ? n + ' pedido(s) da outra loja'
+          ? bip > 0
+            ? n + ' pedido(s) da outra loja'
+            : n + ' pedido(s) · bip pausado 30 min apos Aceitar'
           : 'Pedir produto da outra loja (Centro ↔ Vila)';
     }
     if (dom.btnCount) {
@@ -1540,6 +1585,155 @@
     postAcao(id, acao);
   }
 
+
+  function coletarLotesTransferirSel() {
+    var lotes = [];
+    if (!dom.lista || aba !== 'recebidos') return lotes;
+    var rows = (dom.lista._rows) || [];
+    dom.lista
+      .querySelectorAll('.pl-card[data-pl-st="aceito"], .pl-card[data-pl-st="pronto"]')
+      .forEach(function (card) {
+        var id = card.getAttribute('data-pl-id');
+        var sel = lerSelecaoDoCard(card);
+        var comQtd = sel.itens.filter(function (it) {
+          return Number(it.quantidade) > 0;
+        });
+        if (!comQtd.length) return;
+        var rowData = rows.filter(function (r) {
+          return String(r.id) === String(id);
+        })[0];
+        var nomesPorId = {};
+        if (rowData && rowData.itens) {
+          rowData.itens.forEach(function (it) {
+            nomesPorId[String(it.id)] = it.nome || '#' + it.id;
+          });
+        }
+        lotes.push({
+          id: id,
+          sel: { itens: sel.itens, adiar_itens: sel.adiar_itens },
+          nomesPorId: nomesPorId,
+        });
+      });
+    return lotes;
+  }
+
+  function transferirSelecionadosTodos() {
+    var lotes = coletarLotesTransferirSel();
+    if (!lotes.length) {
+      setStatus('Marque □ em pedidos Aceito/Pronto com quantidade maior que zero.', true);
+      return;
+    }
+    var linhas = [];
+    var totalItens = 0;
+    lotes.forEach(function (lote) {
+      linhas.push('Pedido #' + lote.id + ':');
+      lote.sel.itens.forEach(function (it) {
+        var nome = lote.nomesPorId[String(it.id)] || '#' + it.id;
+        var q = Number(it.quantidade);
+        if (q === 0) linhas.push('  · ' + nome + ' — NÃO ENVIAR (0)');
+        else {
+          linhas.push('  · ' + nome + ' × ' + fmtSaldo(it.quantidade));
+          totalItens += 1;
+        }
+      });
+      if (lote.sel.adiar_itens.length) {
+        linhas.push('  (ficam na fila: ' + lote.sel.adiar_itens.length + ')');
+      }
+    });
+    abrirConfirm({
+      title: 'Transferir selecionados?',
+      body:
+        lotes.length +
+        ' pedido(s) · ' +
+        totalItens +
+        ' produto(s)\n\n' +
+        linhas.join('\n'),
+      confirmLabel: 'Transferir tudo',
+      furado: true,
+    }).then(function (r) {
+      if (!r.ok) return;
+      var idx = 0;
+      var okN = 0;
+      function runOne() {
+        if (idx >= lotes.length) {
+          busy = false;
+          setStatus('Transferidos: ' + okN + '/' + lotes.length + ' pedido(s).');
+          carregarLista(aba);
+          refreshResumo();
+          return;
+        }
+        var lote = lotes[idx];
+        idx += 1;
+        var pattern = urls.apiPdvTransfLojaAcaoPattern || '';
+        var url = pattern.replace('__pk__', String(lote.id));
+        if (!url) {
+          runOne();
+          return;
+        }
+        busy = true;
+        setStatus('Transferindo ' + idx + '/' + lotes.length + '…');
+        var body = {
+          acao: 'transferir',
+          loja: depositoAtual(),
+          estoque_furado: !!r.estoque_furado,
+          ajustar_estoque: !!r.ajustar_estoque,
+          ajuste_quantidade: r.ajuste_quantidade,
+          itens: lote.sel.itens,
+        };
+        if (lote.sel.adiar_itens.length) body.adiar_itens = lote.sel.adiar_itens;
+        fetch(url, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrf(),
+            Accept: 'application/json',
+          },
+          body: JSON.stringify(body),
+        })
+          .then(function (resp) {
+            return resp.json().then(function (d) {
+              return { ok: resp.ok, data: d };
+            });
+          })
+          .then(function (res) {
+            if (res.data && res.data.precisa_pin) {
+              busy = false;
+              setPinAviso(true);
+              setStatus(res.data.erro || 'Entre com o PIN.', true);
+              if (typeof window.gmSspinGarantirOperador === 'function') {
+                window.gmSspinGarantirOperador(function () {
+                  transferirSelecionadosTodos();
+                }, { titulo: 'PIN para Pedir loja' });
+              }
+              return;
+            }
+            if (!res.ok || !res.data || !res.data.ok) {
+              busy = false;
+              setStatus(
+                (res.data && res.data.erro) ||
+                  'Falhou no pedido #' + lote.id + '.',
+                true
+              );
+              carregarLista(aba);
+              refreshResumo();
+              return;
+            }
+            okN += 1;
+            applyResumoCounts(res.data);
+            runOne();
+          })
+          .catch(function () {
+            busy = false;
+            setStatus('Erro de rede no pedido #' + lote.id + '.', true);
+            carregarLista(aba);
+            refreshResumo();
+          });
+      }
+      runOne();
+    });
+  }
+
   /* Escolha: Pedir × Transferência forçada (badge continua só nos pedidos) */
   var escolha = document.getElementById('pdv-pedir-loja-escolha');
   var escolhaFechar = document.getElementById('pdv-pedir-loja-escolha-fechar');
@@ -1722,6 +1916,11 @@
       imprimirTodosCupons();
     });
   }
+  if (dom.transferirSel) {
+    dom.transferirSel.addEventListener('click', function () {
+      transferirSelecionadosTodos();
+    });
+  }
   if (dom.aceitarTodos) {
     dom.aceitarTodos.addEventListener('click', function () {
       var rows = (dom.lista && dom.lista._rows) || [];
@@ -1737,7 +1936,7 @@
         body:
           'Vai aceitar ' +
           pend.length +
-          ' pedido(s). Depois você imprime / separa / transfere.',
+          ' pedido(s). Depois: (Pronto opcional) → Transferir.',
         confirmLabel: 'Aceitar todos',
       }).then(function (r) {
         if (!r.ok) return;
@@ -1874,7 +2073,10 @@
   refreshResumo();
   pollTimer = setInterval(function () {
     refreshResumo();
-  }, 25000);
+  }, 12000);
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) refreshResumo();
+  });
   /* Só badge/beep — NÃO abrir «tem pedido» aqui.
      Chat/venda também disparam gm-sspin-operador ao renovar PIN (~45s).
      O popup «tem pedido» fica só em abrirPin() (botão PIN do Pedir loja). */

@@ -371,6 +371,9 @@ def aplicar_status(
         sol.pronto_em = agora
         sol.pronto_por_label = label
         sol.pronto_por = usuario
+        # Bip 30 min usa aceito_em — vale em Aceito e em Pronto.
+        if sol.aceito_em is None:
+            sol.aceito_em = agora
     elif novo == STATUS_CANCELADO:
         sol.cancelado_em = agora
         sol.cancelado_por_label = label
