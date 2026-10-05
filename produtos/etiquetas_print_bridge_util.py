@@ -23,15 +23,13 @@ _LEIA_ME = """Agro Etiqueta Print — SisVale
 
    1-INSTALAR.bat
 
-3) Espere “Pronto”. A ponte fica em segundo plano (bandeja).
-4) Volte no SisVale → Etiquetas → o card deve ficar VERDE.
-5) Pronto: ao ligar o PC, a ponte sobe sozinha.
-
-Precisa ter Node.js LTS (20 ou 22) neste PC:
-https://nodejs.org
+3) Espere “Pronto”. Se faltar Node/Electron, o instalador BAIXA SOZINHO
+   (precisa de internet na 1ª vez).
+4) A ponte fica em segundo plano (bandeja).
+5) Volte no SisVale → Etiquetas → o card deve ficar VERDE.
+6) Ao ligar o PC, a ponte sobe sozinha.
 
 Se o card continuar amarelo: rode de novo 1-INSTALAR.bat
-ou Iniciar-ponte-etiquetas.bat
 """
 
 _INSTALAR_BAT = r"""@echo off

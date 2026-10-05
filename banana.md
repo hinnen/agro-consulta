@@ -1338,7 +1338,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Ponte local **Agro Etiqueta Print** (`agro-print-bridge/`) + config no preset: impressora + modo **auto/direto/diálogo**. Serve 1–N impressoras ou troca de bobina na mesma. |
-| **Fix 05/10** | Electron instalava quebrado no OneDrive → `ensure-electron.js` baixa em `%LOCALAPPDATA%\AgroEtiquetaPrint\`. |
+| **Fix Node** | `ensure-node` baixa Node portátil em LocalAppData se faltar — loja não instala Node na mão. |
 | **Como ligar** | PC da etiqueta → `agro-print-bridge/Iniciar-ponte-etiquetas.bat` → card verde em `/produtos/etiquetas/` → Salvar preset com impressora/modo. |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_etq_print_direto_path.js` **41/41** · health local OK |

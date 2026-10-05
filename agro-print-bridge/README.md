@@ -4,20 +4,18 @@ Imprime etiquetas do SisVale **direto** na impressora, sem ficar escolhendo tama
 
 ## Na loja (uma vez por PC)
 
-1. Abra a pasta `agro-print-bridge`.
-2. Dê dois cliques em **`Instalar-inicio-Windows.bat`**.
-3. Espere “Pronto”. A ponte sobe em **segundo plano** (ícone na bandeja).
-4. Chrome → **Etiquetas** → card **Impressão direta** verde.
-5. Em cada preset: impressora + modo → **Salvar**.
-
-**Depois disso:** ao **ligar o computador**, a ponte **abre sozinha**. Não precisa rodar script todo dia.
+1. SisVale → Etiquetas → **Baixar ponte** (ou use os arquivos desta pasta).
+2. Extraia o ZIP → dois cliques em **`1-INSTALAR.bat`** / **`Instalar-inicio-Windows.bat`**.
+3. Na 1ª vez baixa **Node** e **Electron** sozinho (internet). Sem instalar nada na mão.
+4. Ponte em segundo plano; ao ligar o PC sobe sozinha.
 
 | Arquivo | Quando usar |
 | ------- | ----------- |
 | `Instalar-inicio-Windows.bat` | **1× por PC** — instala + início automático |
+| `ensure-node.bat` / `ensure-node.ps1` | Baixa Node portátil se faltar (automático) |
 | `Iniciar-ponte-etiquetas.bat` | Manual (teste / se caiu) |
 | `Remover-inicio-Windows.bat` | Tirar do início automático |
-| `iniciar-silencioso.vbs` | Usado pelo Windows na partida (não precisa abrir) |
+| `iniciar-silencioso.vbs` | Usado pelo Windows na partida |
 
 ## Cenários
 
