@@ -1,0 +1,91 @@
+# Análise de Crédito — Laboratório (shadow)
+
+## Objetivo
+
+Ferramenta **administrativa** para observar score, confiança e limite **sugerido** dos clientes, com base no histórico de fiado já existente.
+
+**Não altera** limite, saldo, título, pagamento, venda, caixa nem estoque.
+
+## Ativar
+
+No `.env` / Render:
+
+```env
+AGRO_CREDITO_SCORE_SHADOW_ENABLED=true
+AGRO_CREDITO_SCORE_SHADOW_USERNAMES=renan
+```
+
+- Default: **desligado** (`False`).
+- Acesso: **superuser** ou username na lista (vírgula).
+- **Staff sozinho não entra.**
+- Com flag off: URL responde **404** (mesmo para superuser).
+
+## URLs
+
+| Rota | Uso |
+|------|-----|
+| `/fiado/analise-credito/` | Lista + botão recalcular todos |
+| `/fiado/analise-credito/cliente/<pk>/` | Detalhe + histórico de snapshots |
+
+**Não** há link no menu do PDV nem na tela operacional `/fiado/`.
+
+## Snapshots
+
+Tabela Postgres: `ClienteAnaliseCreditoAgro` (migration `0137`).
+
+Cada recalculo **cria uma linha nova** (histórico). Não sobrescreve.
+
+Única escrita normal do módulo: `INSERT` nessa tabela.
+
+## Recalcular
+
+- Na tela: POST nos botões (todos / um cliente).
+- CLI dry-run (não grava):
+
+```bash
+python manage.py analisar_credito_shadow
+python manage.py analisar_credito_shadow --cliente-id 12
+```
+
+- Gravar snapshots:
+
+```bash
+python manage.py analisar_credito_shadow --persist
+```
+
+Abrir a página (GET) **não** recalcula.
+
+Não há cron, signal nem cálculo no PDV.
+
+## Fórmula atual
+
+Versão: **`shadow_v1`**
+
+| Componente | Máx |
+|------------|-----|
+| Pontualidade (12 meses, média ponderada por valor) | 45 |
+| Situação atual (vencidos) | 25 |
+| Quitação | 10 |
+| Frequência (6 meses) | 10 |
+| Relacionamento | 10 |
+
+Sem histórico suficiente → `score = null`, classificação `SEM_HISTORICO`.
+
+Limite sugerido = média fiado 3 meses × multiplicador do score (**só simulação**).
+
+## Isolamento
+
+Se o laboratório falhar ou estiver desligado, o PDV e o fiado operacional continuam iguais.
+
+O score **nunca** é consultado em:
+
+- `api_enviar_pedido_erp`
+- `resumo_credito_fiado_cliente`
+- `definir_limite_fiado_cliente`
+- baixas / títulos / caixa
+
+## Testes
+
+```bash
+python manage.py test produtos.tests_credito_score_shadow
+```

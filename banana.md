@@ -1289,6 +1289,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### WIP — Análise crédito shadow (laboratório) · 05/10/2026
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 **só no `teste`** v26.06 — aguarda revisão Renan · **NÃO** produção |
+| **O quê** | Laboratório `/fiado/analise-credito/` — score shadow_v1, snapshots `ClienteAnaliseCreditoAgro`, **não** mexe limite/venda/fiado operacional |
+| **Flag** | `AGRO_CREDITO_SCORE_SHADOW_ENABLED=false` (default) · allowlist `AGRO_CREDITO_SCORE_SHADOW_USERNAMES` · superuser OK · staff sozinho **não** |
+| **Migrate** | **SIM** `0137` — **só** CreateModel da tabela nova |
+| **Cmd** | `manage.py analisar_credito_shadow` (dry-run) · `--persist` · `--cliente-id` |
+| **Doc** | `docs/CREDITO_SCORE_SHADOW.md` |
+| **Provas** | Pureza 3/3 OK · testes DB precisam Postgres (`0136` quebra SQLite) · path verify: migrate 0137 no PG local |
+| **Você** | Ativar flag no `.env` local · migrate · abrir URL logado como você · **Recalcular** · conferir scores · depois decidir produção |
+
 ### ✅ Deploy loja — PDV-FIADO-LIMITE-REFRESH · **Live v26.05** · 03/10
 
 | Campo | Valor |

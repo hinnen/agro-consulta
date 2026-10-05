@@ -839,6 +839,71 @@ class FiadoEventoAgro(models.Model):
         return f"{self.get_tipo_display()} · {self.criado_em:%d/%m/%Y %H:%M}"
 
 
+class ClienteAnaliseCreditoAgro(models.Model):
+    """Snapshot de análise de crédito (shadow) — somente observação; não altera fiado operacional."""
+
+    class Classificacao(models.TextChoices):
+        ALTO_RISCO = "ALTO_RISCO", "Alto risco"
+        REGULAR = "REGULAR", "Regular"
+        BOM = "BOM", "Bom"
+        MUITO_BOM = "MUITO_BOM", "Muito bom"
+        EXCELENTE = "EXCELENTE", "Excelente"
+        SEM_HISTORICO = "SEM_HISTORICO", "Sem histórico"
+
+    class Confianca(models.TextChoices):
+        SEM_DADOS = "SEM_DADOS", "Sem dados"
+        BAIXA = "BAIXA", "Baixa"
+        MEDIA = "MEDIA", "Média"
+        ALTA = "ALTA", "Alta"
+
+    cliente = models.ForeignKey(
+        ClienteAgro,
+        on_delete=models.CASCADE,
+        related_name="analises_credito_shadow",
+    )
+    calculado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+    regra_versao = models.CharField(max_length=32, default="shadow_v1", db_index=True)
+    score = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="0–100; nulo = sem histórico suficiente.",
+    )
+    classificacao = models.CharField(
+        max_length=20,
+        choices=Classificacao.choices,
+        default=Classificacao.SEM_HISTORICO,
+        db_index=True,
+    )
+    confianca = models.CharField(
+        max_length=16,
+        choices=Confianca.choices,
+        default=Confianca.SEM_DADOS,
+        db_index=True,
+    )
+    limite_cadastrado_snapshot = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    limite_efetivo_snapshot = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    saldo_aberto_snapshot = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    saldo_vencido_snapshot = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    media_fiado_3m = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    limite_sugerido = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    tem_vencido_snapshot = models.BooleanField(default=False, db_index=True)
+    maior_atraso_dias = models.PositiveIntegerField(default=0)
+    indicadores_json = models.JSONField(default=dict, blank=True)
+    alertas_json = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        ordering = ["-calculado_em", "-pk"]
+        verbose_name = "Análise crédito (shadow)"
+        verbose_name_plural = "Análises crédito (shadow)"
+        indexes = [
+            models.Index(fields=["cliente", "-calculado_em"], name="cli_analise_cli_dt_idx"),
+        ]
+
+    def __str__(self):
+        sc = "—" if self.score is None else str(self.score)
+        return f"Análise #{self.pk} · cliente {self.cliente_id} · score {sc}"
+
+
 class TituloFinanceiroAgro(models.Model):
     """Título CP/CR no Postgres — espelho de ``DtoLancamento`` (desvinculação ERP).
 
