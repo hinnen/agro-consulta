@@ -1980,6 +1980,18 @@
           setStatus('Script da ponte não carregou — Ctrl+F5.', true);
         }
       });
+    var dl = $('etq-btn-bridge-download');
+    if (dl) {
+      var cfgUrl =
+        (window.AGRO_ETQ_CFG && window.AGRO_ETQ_CFG.bridgeDownloadUrl) ||
+        '/api/produtos/etiquetas/print-bridge/download/';
+      if (!dl.getAttribute('href') || dl.getAttribute('href') === '#') {
+        dl.setAttribute('href', cfgUrl);
+      }
+      dl.addEventListener('click', function () {
+        setStatus('Baixando ZIP… Extraia e rode 1-INSTALAR.bat (uma vez neste PC).');
+      });
+    }
     $('etq-btn-bridge-test') &&
       $('etq-btn-bridge-test').addEventListener('click', testarBridgeUmaEtiqueta);
     if (window.agroPrintBridge && window.agroPrintBridge.onChange) {

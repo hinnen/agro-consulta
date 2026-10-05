@@ -14185,8 +14185,30 @@ def produtos_etiquetas_view(request):
             "api_etq_presets_url": reverse("api_etiquetas_presets"),
             "api_etq_resolver_url": reverse("api_etiquetas_resolver_codigos"),
             "api_etq_mais_vendidos_url": reverse("api_etiquetas_mais_vendidos"),
+            "api_etq_bridge_download_url": reverse("api_etiquetas_print_bridge_download"),
         },
     )
+
+
+@login_required(login_url="/entrar/")
+@require_GET
+def api_etiquetas_print_bridge_download(request):
+    """ZIP da ponte Windows (Agro Etiqueta Print) para baixar na loja."""
+    from django.http import HttpResponse
+
+    from produtos.etiquetas_print_bridge_util import build_print_bridge_zip
+
+    try:
+        data = build_print_bridge_zip()
+    except FileNotFoundError as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=404)
+    except Exception as exc:
+        logger.exception("api_etiquetas_print_bridge_download")
+        return JsonResponse({"ok": False, "erro": str(exc)[:200]}, status=500)
+    resp = HttpResponse(data, content_type="application/zip")
+    resp["Content-Disposition"] = 'attachment; filename="Agro-Etiqueta-Print-Windows.zip"'
+    resp["Content-Length"] = str(len(data))
+    return resp
 
 
 @login_required(login_url="/entrar/")

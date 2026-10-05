@@ -339,11 +339,14 @@
           <p id="etq-bridge-status" class="text-xs font-bold text-amber-300">Verificando ponte…</p>
         </div>
         <div class="flex flex-wrap gap-2">
+          <a id="etq-btn-bridge-download" href="{{ api_etq_bridge_download_url|default:'/api/produtos/etiquetas/print-bridge/download/' }}"
+            class="inline-flex min-h-[36px] items-center justify-center rounded-lg border-2 border-orange-500 bg-orange-600 px-3 text-[10px] font-black uppercase text-white hover:bg-orange-500"
+            download="Agro-Etiqueta-Print-Windows.zip">Baixar ponte</a>
           <button type="button" id="etq-btn-bridge-probe" class="min-h-[36px] rounded-lg border border-slate-500 px-3 text-[10px] font-black uppercase text-slate-200">Verificar</button>
           <button type="button" id="etq-btn-bridge-test" class="min-h-[36px] rounded-lg border border-emerald-700 bg-emerald-900/40 px-3 text-[10px] font-black uppercase text-emerald-200">Testar 1 etiqueta</button>
         </div>
       </div>
-      <p class="mt-1 text-[11px] font-semibold text-slate-400">1 impressora + troca bobina: presets com a mesma impressora e tamanhos diferentes. Várias impressoras: cada preset aponta pra uma. Pasta: <code class="text-slate-300">agro-print-bridge/Iniciar-ponte-etiquetas.bat</code></p>
+      <p class="mt-1 text-[11px] font-semibold text-slate-400">Baixe → extraia → rode <strong class="text-slate-200">1-INSTALAR.bat</strong> (uma vez). Depois sobe sozinho com o Windows. Precisa Node.js LTS neste PC.</p>
       <label class="mt-1 inline-flex items-center gap-2 text-[11px] font-bold text-slate-300">
         <span>Porta</span>
         <input id="etq-bridge-port" type="number" min="1024" max="65535" class="w-20 min-h-[32px] rounded border border-slate-600 bg-slate-900 px-2 text-white" />
@@ -690,12 +693,13 @@ window.AGRO_ETQ_CFG = {
   presetsUrl: "{{ api_presets_url|default:'/api/compras/folha-saldo-presets/'|escapejs }}",
   etqPresetsUrl: "{{ api_etq_presets_url|default:'/api/produtos/etiquetas/presets/'|escapejs }}",
   resolverUrl: "{{ api_etq_resolver_url|default:'/api/produtos/etiquetas/resolver-codigos/'|escapejs }}",
-  maisVendidosUrl: "{{ api_etq_mais_vendidos_url|default:'/api/produtos/etiquetas/mais-vendidos/'|escapejs }}"
+  maisVendidosUrl: "{{ api_etq_mais_vendidos_url|default:'/api/produtos/etiquetas/mais-vendidos/'|escapejs }}",
+  bridgeDownloadUrl: "{{ api_etq_bridge_download_url|default:'/api/produtos/etiquetas/print-bridge/download/'|escapejs }}"
 };
 </script>
 <script src="{% static 'produtos/js/agro_print_bridge.js' %}?v=1"></script>
 <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=32"></script>
-<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=28"></script>
+<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=29"></script>
 
 {% endblock %}
 
