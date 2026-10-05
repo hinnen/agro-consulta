@@ -776,3 +776,10 @@ A impressÃ£o da folha **jÃ¡ estÃ¡ na loja (v25.77)**. O Â§35 **jÃ¡ estÃ¡ na loja
 **Prova:** `verify_etq_print_direto_full_path.js` **68/68** Â· ZIP HTTP **200** Â· bridge print **OK**.  
 **NÃ£o entra:** merge do `teste` inteiro â€” cherry/PREP sÃ³ deste pacote.  
 **SÃ³** frase+senha.
+
+---
+
+## 57. Checklist único — lote 05/10c (\deploy/prep-checklist-0510c\ · alvo loja **v26.35**)
+
+Ver CHECKPOINT banana · tip PREP \$final\ · rollback \ollback/pre-checklist-0510c-v26.08\ · **só** frase+senha.
+
