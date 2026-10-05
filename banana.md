@@ -1315,7 +1315,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Interruptor **Meta do mês** × **Até agora** (ritmo pela média esperada) — lista, foto Zap e texto |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_meta_mostruario_path.py` **125/125** · PIN **9973** |
-| **Tip** | `teste` **v26.23** (após push) |
+| **Tip** | `teste` **v26.23** @ `db3a3c77` |
 | **Não mexe** | PDV · caixa · NFC-e · financeiro · migrate |
 | **Você** | Ctrl+F5 META → **Até agora** → Copiar foto |
 
