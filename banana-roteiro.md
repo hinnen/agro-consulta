@@ -762,22 +762,36 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | 1 | **CREDITO-SCORE-SHADOW** | ✅ **Live v26.07** · `producao` @ `d6c19c84` · prova **93/93** | **SIM** `0137` |
 
 **Rollback:** tag `rollback/pre-credito-score-shadow-v26.05` @ `41a6fdea` · `docs/ROLLBACK-CREDITO-SCORE-SHADOW.md` · **só** frase+senha.  
-**Flag:** ainda **OFF** na loja (ligar env depois, se quiser o laboratório).
+**Flag:** **ON** no Render (env).  
 
 ---
 
-## 57. Checklist �nico � lote 05/10c (deploy/prep-checklist-0510c � alvo loja **v26.35**)
+## 58. CHECKLIST ÚNICO — ETQ-PRINT-ELGIN-MAP · 🟢 PREP v26.40 · aguarda senha
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PDV-PEDIR-PARCIAL-RESTO** | ?? **PREP** � **38/38** + smoke **36/36** | **N�O** |
-| 2 | **PDV-PEDIR-PRONTO-TRANSF** | ?? **PREP** � **42/42** | **N�O** |
-| 3 | **META-MODO-AGORA** | ?? **PREP** � **125/125** | **N�O** |
-| 4 | **CREDITO-SCORE-XLSX-COLS** | ?? **PREP** � **86/86** | **N�O** |
-| 5 | **ETQ-PRESET-ESPELHO** | ?? **PREP** � **40/40** + smoke **24/24** | **N�O** |
-| 6 | **ETQ-PRINT-DIRETO** | ?? **PREP** � **68/68** | **N�O** |
-| 7 | **PDV-PEDIR-PRINT-3** | ?? **PREP** � **37/37** + smoke **23/23** | **N�O** |
+| 1 | **ETQ-PRINT-ELGIN-MAP** | 🟢 **no PREP** · full **74/74** | **NÃO** |
 
-**Branch PREP:** `deploy/prep-checklist-0510c` � base Live **v26.08** @ `8b636b67`.  
-**Rollback:** tag `rollback/pre-checklist-0510c-v26.08` � `docs/ROLLBACK-CHECKLIST-0510c.md` � **s�** frase+senha.  
-**Na senha:** pausar vendas � tip PREP ? `producao` ? Ctrl+F5 � badge **v26.35**. **N�o** merge `teste`.
+**Branch PREP:** `deploy/prep-etq-print-elgin-map` · base Live **v26.35** @ `c517af0a`.  
+**Prova:** full **74/74** · print **40→Elgin 40x40** · **50→Elgin 50x30** · **PREP_FAILS=0**.  
+**Doc:** `docs/DEPLOY-PREP-ETQ-PRINT-ELGIN-MAP.md` · rollback `docs/ROLLBACK-ETQ-PRINT-ELGIN-MAP.md`.  
+**Na senha:** `reset --hard origin/deploy/prep-etq-print-elgin-map` → push `producao`. **Não** merge `teste`.
+
+---
+
+## 57. Checklist único — lote 05/10c · ✅ **Live v26.35**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-PEDIR-PARCIAL-RESTO** | ✅ **Live v26.35** · **38/38** + smoke **36/36** | **NÃO** |
+| 2 | **PDV-PEDIR-PRONTO-TRANSF** | ✅ **Live v26.35** · **42/42** | **NÃO** |
+| 3 | **META-MODO-AGORA** | ✅ **Live v26.35** · **125/125** | **NÃO** |
+| 4 | **CREDITO-SCORE-XLSX-COLS** | ✅ **Live v26.35** · **86/86** | **NÃO** |
+| 5 | **ETQ-PRESET-ESPELHO** | ✅ **Live v26.35** · **40/40** + smoke **24/24** | **NÃO** |
+| 6 | **ETQ-PRINT-DIRETO** | ✅ **Live v26.35** · **68/68** | **NÃO** |
+| 7 | **PDV-PEDIR-PRINT-3** | ✅ **Live v26.35** · **37/37** + smoke **23/23** | **NÃO** |
+
+**Status:** ✅ enviado / Live **v26.35** — `producao` @ `c517af0a` · Render `dep-db201js9v7es73fuo7sg`. **Não** merge `teste`.  
+**Rollback:** tag `rollback/pre-checklist-0510c-v26.08` · `docs/ROLLBACK-CHECKLIST-0510c.md` · **só** frase+senha.  
+**Smoke:** healthz ok · Ctrl+F5 · badge **v26.35**.
+

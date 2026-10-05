@@ -393,6 +393,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 ### 4.1 Home / BI (`/`)
 
 - Dashboard gerencial SisVale BI; atalhos clÃ¡ssicos em `/atalhos/`.
+- **META mostruário (05/10 · `META-MOSTRUARIO`):** botão no menu Gestão → `/meta/` · faixas manuais (venda + bônus) no Postgres · vs média esperada Meta C · Copiar foto + texto Zap · 🟢 pronto envio.
 - VersÃ£o do commit no Render (nÃ£o hardcoded).
 - Card **Validade** destaca vermelho se produto vencido.
 - Card **Lucro LÃ­quido** (no lugar de Novos Clientes): vencimento Â· bruto + pago Â· mesmo DRE do Resumo.
@@ -428,7 +429,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08 · **Mais ⋯** 31/08 · `PDV-TOPBAR-MAIS` v20.34 · **layout** 31/08 · `PDV-TOPBAR-LAYOUT`):** faixa quente padrão = Pedir loja · Vendas · Uso loja · Entregas · Caixa · **Fiado** · Nova venda (Pedir/Uso = cinza slate; **Mais ⋯** laranja destaque). **Mais ⋯** = Saldo Vila · Repasse · Pesar · PIN + **Organizar atalhos** (quente/frio em Postgres `PdvTopbarLayoutAgro` · migrate `0110` · PIN ao salvar). Contagem diária PG (`0107`). **Ícone WhatsApp** na faixa de ações (ao lado de Nova venda) → aviso **Em breve…** (`PDV-WA-TOPBAR-BREVE`).
-- **Pedir loja (15/08 · +cupom/qtd/escrito 29/08 · +escolha/forçada 30/08):** overlay Pedir/Recebidos/Enviados/Histórico · **pedido escrito** · obs · cupom 80mm · qtd · Transferir rosa · PIN · furado · bip · migrate `0018`+`0020`. **Clique topbar** → escolha: **Pedir** (fila) ou **Transferência forçada** (estoque agora, overlay PDV = Logística; PIN na confirmação; Esc volta à escolha). Badge só conta pedidos.
+- **Pedir loja (15/08 · +cupom/qtd/escrito 29/08 · +escolha/forçada 30/08 · +parcial/print-todos 05/10 · +Transferir sel/bip multi-PC 05/10):** overlay Pedir/Recebidos/Enviados/Histórico · **pedido escrito** · obs · cupom 80mm · **Imprimir todos** · **Transferir selecionados** · qtd · □ parcial · **Aceitar → Transferir** (Pronto opcional) · PIN · furado · bip 30 min pós-Aceitar/Pronto (Postgres) · migrate `0018`+`0020`. **Clique topbar** → escolha: **Pedir** (fila) ou **Transferência forçada**. Badge só conta pedidos.
 - **Chat lojas (29/08 · `PDV-CHAT-LOJA` + `PDV-CHAT-OPEN` · 12/09 `PDV-CHAT-ENTREGA-DOCK`):** aba **Chat** colada embaixo · grupo único · som + badge/pisca · sem Processando · Postgres `ChatLojaMensagemAgro` · migrate `0105` · **Live v19.63** (dock→`body`, janela abre). **Entrega:** aba depois do F7 (não tapa Voltar/F7).
 - **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
 - **Perf. animaÃ§Ãµes (decisÃ£o Renan, 2026-06):** acÃºmulo de efeitos no app inteiro *pode* pesar em PC fraco â€” mas **este FAB Ã© impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA pÃ¡gina inteira, listas grandes, Mongo, JS do PDV/LanÃ§amentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
@@ -557,7 +558,8 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 
 ### 4.6 Cadastro / gestÃ£o de produtos
 
-- **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé. Gôndola: folha **A4** (2/3 col) ou **A6** (1 col · bônus 100×45) — `ETQ-A6-BONUS` **v22.41** 🟢 pronto envio.
+- **Etiquetas `/produtos/etiquetas/`:** presets = **Postgres**. **Impressão direta** (`ETQ-PRINT-DIRETO` Live v26.35 + mapa Elgin `ETQ-PRINT-ELGIN-MAP` v26.37): 2 filas 40×40/50×30.
+- **Presets espelho gestão×PDV (`ETQ-PRESET-ESPELHO` · 05/10):** cadastro ERP, entrada NF e PDV passam a **puxar a API** ao abrir o dropdown (antes gestão/NF ficavam só no Chrome). Fila já puxava. Mudou num PC/tela → todos veem a mesma lista.
 
 **Duas telas â€” nÃ£o confundir:**
 
@@ -1289,33 +1291,122 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚀 PREP deploy loja — Checklist 05/10c (`deploy/prep-checklist-0510c` · alvo **v26.35**) · aguarda senha
+### 🚀 PREP deploy loja — ETQ-PRINT-ELGIN-MAP (`deploy/prep-etq-print-elgin-map` · **v26.40**) · aguarda senha
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha |
-| **Branch PREP** | `deploy/prep-checklist-0510c` · tip `91a7fd92` · base Live **v26.08** @ `8b636b67` |
-| **Alvo loja** | **v26.35** |
+| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha no próximo chat |
+| **O quê** | Mapa tamanho→impressora (Elgin **40x40** USER + **50x30** GONDOLA). UI no card Etiquetas. |
+| **Branch PREP** | `deploy/prep-etq-print-elgin-map` |
+| **Base Live** | **v26.35** @ `c517af0a` |
+| **Alvo loja** | **v26.40** |
 | **Migrate** | **NÃO** |
 | **Merge `teste`?** | **NÃO** |
-| **Provas (PREP)** | resto **38/38**+smoke **36/36** · pronto-transf **42/42** · META **125/125** · crédito **86/86** · espelho **40/40**+smoke **24/24** · print-direto **68/68** · print-3 **37/37**+smoke **23/23** · Pedir **80/80** · **PREP_FAILS=0** |
-| **Rollback** | tag `rollback/pre-checklist-0510c-v26.08` @ `8b636b67` · branch `producao-backup-pre-v2635-checklist-20261005` · `docs/ROLLBACK-CHECKLIST-0510c.md` |
-| **Na senha (rápido)** | `git fetch` → `producao` = `reset --hard origin/deploy/prep-checklist-0510c` → push → Render Live → Ctrl+F5 · badge **v26.35** |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-0510c.md` |
+| **Provas (PREP)** | full **74/74** · path **45/45** · dl **21/21** · print **40→Elgin 40x40** · **50→Elgin 50x30** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-etq-print-elgin-map-v26.35` @ `c517af0a` · branch `producao-backup-pre-v2640-etq-elgin-map` · `docs/ROLLBACK-ETQ-PRINT-ELGIN-MAP.md` |
+| **Doc** | `docs/DEPLOY-PREP-ETQ-PRINT-ELGIN-MAP.md` |
+| **Na senha (rápido ~1–2 min)** | Zap pausa → `reset --hard origin/deploy/prep-etq-print-elgin-map` → push `producao` → Render Live → Ctrl+F5 · badge **v26.40** · reiniciar ponte |
+| **Risco loja aberta** | **Baixo** — só etiquetas/ponte. **Não** mexe PDV venda · caixa · Point · NFC-e |
 
-### ✅ CHECKLIST ÚNICO — 05/10c · 🟢 PREP v26.35 · aguarda senha
+### ✅ CHECKLIST ÚNICO — ETQ-PRINT-ELGIN-MAP · 🟢 PREP v26.40 · aguarda senha
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-PEDIR-PARCIAL-RESTO** | 🟢 **no PREP** | **NÃO** | **38/38** · smoke **36/36** |
-| 2 | **PDV-PEDIR-PRONTO-TRANSF** | 🟢 **no PREP** | **NÃO** | **42/42** |
-| 3 | **META-MODO-AGORA** | 🟢 **no PREP** | **NÃO** | **125/125** |
-| 4 | **CREDITO-SCORE-XLSX-COLS** | 🟢 **no PREP** | **NÃO** | **86/86** |
-| 5 | **ETQ-PRESET-ESPELHO** | 🟢 **no PREP** | **NÃO** | **40/40** · smoke **24/24** |
-| 6 | **ETQ-PRINT-DIRETO** | 🟢 **no PREP** | **NÃO** | **68/68** |
-| 7 | **PDV-PEDIR-PRINT-3** | 🟢 **no PREP** | **NÃO** | **37/37** · smoke **23/23** |
+| 1 | **ETQ-PRINT-ELGIN-MAP** | 🟢 **no PREP** · aguarda senha | **NÃO** | full **74/74** · resolve print **OK** |
 
-**Risco loja aberta:** baixo–médio só em **Pedir loja** / etiquetas / META / lab crédito. **Não** mexe finalizar venda · caixa · Point · NFC-e.
+### ✅ Deploy loja — Checklist 05/10c · **Live v26.35** · 05/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v26.35** — `producao` @ `c517af0a` · Render `dep-db201js9v7es73fuo7sg` · **não** foi merge do `teste` |
+| **Branch PREP** | `deploy/prep-checklist-0510c` · tip `c517af0a` · base Live **v26.08** @ `8b636b67` |
+| **Migrate** | **NÃO** |
+| **Smoke** | healthz **ok** · deploy **live** |
+| **Provas (PREP)** | resto **38/38**+smoke **36/36** · pronto-transf **42/42** · META **125/125** · crédito **86/86** · espelho **40/40**+smoke **24/24** · print-direto **68/68** · print-3 **37/37**+smoke **23/23** · Pedir **80/80** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-checklist-0510c-v26.08` @ `8b636b67` · branch `producao-backup-pre-v2635-checklist-20261005` · `docs/ROLLBACK-CHECKLIST-0510c.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 · badge **v26.35** · Pedir loja (resto/print) · etiquetas · META · Excel crédito |
+
+### ✅ CHECKLIST ÚNICO — 05/10c · ✅ Live v26.35
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-PEDIR-PARCIAL-RESTO** | ✅ **enviado / Live v26.35** | **NÃO** | **38/38** · smoke **36/36** |
+| 2 | **PDV-PEDIR-PRONTO-TRANSF** | ✅ **enviado / Live v26.35** | **NÃO** | **42/42** |
+| 3 | **META-MODO-AGORA** | ✅ **enviado / Live v26.35** | **NÃO** | **125/125** |
+| 4 | **CREDITO-SCORE-XLSX-COLS** | ✅ **enviado / Live v26.35** | **NÃO** | **86/86** |
+| 5 | **ETQ-PRESET-ESPELHO** | ✅ **enviado / Live v26.35** | **NÃO** | **40/40** · smoke **24/24** |
+| 6 | **ETQ-PRINT-DIRETO** | ✅ **enviado / Live v26.35** | **NÃO** | **68/68** |
+| 7 | **PDV-PEDIR-PRINT-3** | ✅ **enviado / Live v26.35** | **NÃO** | **37/37** · smoke **23/23** |
+
+### 📦 PACOTES JÁ LIVE (05/10c · v26.35) — sem fila
+
+`PDV-PEDIR-PARCIAL-RESTO` · `PDV-PEDIR-PRONTO-TRANSF` · `META-MODO-AGORA` · `CREDITO-SCORE-XLSX-COLS` · `ETQ-PRESET-ESPELHO` · `ETQ-PRINT-DIRETO` · `PDV-PEDIR-PRINT-3` → ✅ **Live v26.35**. Fila atual = **PREP** deploy/prep-etq-print-elgin-map (aguarda senha).
+
+### 🚀 PREP deploy loja — Checklist 05/10b (`deploy/prep-checklist-0510b` · **v26.24**) · aguarda senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha no próximo chat |
+| **Branch PREP** | `deploy/prep-checklist-0510b` @ `e11c4ab3` |
+| **Base Live** | **v26.08** @ `8b636b67` |
+| **Tag rollback** | `rollback/pre-checklist-0510b-v26.08` @ `8b636b67` |
+| **Alvo** | **v26.24** |
+| **Migrate** | **NÃO** |
+| **Pacotes** | PDV-PEDIR-PRONTO-TRANSF · META-MODO-AGORA · CREDITO-SCORE-XLSX-COLS |
+| **Provas** | Pedir **42/42**+**37/37**+**81/81** · META **125/125** · Crédito **86/86** · shadow **93/93** · **PREP_FAILS=0** |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-0510b.md` |
+| **Na senha** | Zap pausa ~2–3 min → `reset --hard origin/deploy/prep-checklist-0510b` → push `producao` → Render Live → Ctrl+F5 |
+| **Você (próximo chat)** | frase explícita + senha `99738595` · lojas pausam finalizar venda |
+
+### ✅ CHECKLIST ÚNICO — 05/10b · 🟢 PREP v26.24 · aguarda senha
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-PEDIR-PRONTO-TRANSF** | 🟢 **no PREP** | **NÃO** | **42/42** + **81/81** |
+| 2 | **META-MODO-AGORA** | 🟢 **no PREP** | **NÃO** | **125/125** |
+| 3 | **CREDITO-SCORE-XLSX-COLS** | 🟢 **no PREP** | **NÃO** | **86/86** |
+
+### ~~PACOTE PRONTO — Pedir loja Pronto opcional~~ · **absorvido no PREP 05/10b**
+
+### ~~PACOTE PRONTO — META Até agora~~ · **absorvido no PREP 05/10b**
+
+### ~~PACOTE PRONTO — Excel crédito cols~~ · **absorvido no PREP 05/10b**
+
+### ✅ Deploy loja — Checklist 05/10 · **Live v26.08** · 05/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v26.08** — `producao` @ `8b636b67` · Render `dep-db1uj2eq1p3s73e1aqqg` · **não** foi merge do `teste` |
+| **Branch PREP** | `deploy/prep-checklist-0510` · tip `8b636b67` · base Live **v26.07** @ `93189ebb` |
+| **Backup** | `producao-backup-pre-v2608-checklist-0510` @ `93189ebb` |
+| **Rollback** | tag `rollback/pre-checklist-0510-v26.07` @ `93189ebb` · `docs/DEPLOY-PREP-CHECKLIST-0510.md` · **só** frase+senha |
+| **Migrate** | **SIM** `0138` (META) — no build |
+| **Pacotes** | META-MOSTRUARIO · CREDITO-SCORE-LAB-ACESSO · CREDITO-SCORE-XLSX · PDV-PEDIR-PARCIAL-PRINT |
+| **Provas (PREP)** | META **105/105** · LAB **34/34** · XLSX **54/54** · Pedir **30/30** · **PREP_FAILS=0** |
+| **Você** | Ctrl+F5 PDV/BI · badge **v26.08** · Pedir loja · Menu META · Análise de crédito (autorizado) |
+
+### ✅ CHECKLIST ÚNICO — 05/10 · ✅ Live v26.08
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **META-MOSTRUARIO** | ✅ **enviado / Live v26.08** | **SIM** `0138` | **105/105** |
+| 2 | **CREDITO-SCORE-LAB-ACESSO** | ✅ **enviado / Live v26.08** | **NÃO** | **34/34** |
+| 3 | **CREDITO-SCORE-XLSX** | ✅ **enviado / Live v26.08** | **NÃO** | **54/54** |
+| 4 | **PDV-PEDIR-PARCIAL-PRINT** | ✅ **enviado / Live v26.08** | **NÃO** | **30/30** + smoke PIN |
+
+### ~~PACOTE PRONTO — Pedir loja parcial + imprimir todos~~ · **superado — Live v26.08**
+
+### ~~PACOTE PRONTO — Excel lab crédito~~ · **superado — Live v26.08**
+
+### ~~PACOTE PRONTO — Acesso lab crédito~~ · **superado — Live v26.08**
+
+### ~~PACOTE PRONTO — META mostruário~~ · **superado — Live v26.08**
+
+### WIP — botão Análise de crédito no menu Gestão · 05/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live v26.08** (lote checklist 05/10) |
 
 ### ✅ Deploy loja — CREDITO-SCORE-SHADOW · **Live v26.07** · 05/10
 
