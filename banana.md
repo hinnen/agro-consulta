@@ -1290,6 +1290,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### PACOTE PRONTO — Excel lab crédito (`CREDITO-SCORE-XLSX`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Botão **Excel ↓** em `/fiado/analise-credito/` — planilha com mesmas linhas/filtros da tela (+ ID, limite cadastrado, vencido, candidato revisão, diff sugerido−atual). Só leitura. Cruzar com Excel de Clientes no ChatGPT. |
+| **Rota** | `GET /fiado/analise-credito/export-xlsx/` · mesmo gate do lab |
+| **Migrate** | **NÃO** |
+| **Mexe** | `credito_score_views` · url · botão no template · **não** PDV/limite/venda |
+| **Status** | 🟡 **só no teste** · tip abaixo após push |
+| **Você** | Lab → filtrar se quiser → **Excel ↓** · comparar com Excel ↓ de Clientes |
+
+### ✅ CHECKLIST ÚNICO — CREDITO-SCORE-XLSX · 🟡 só no teste
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CREDITO-SCORE-XLSX** | 🟡 **só no teste** | **NÃO** | smoke xlsx OK |
+
 ### PACOTE PRONTO — Acesso lab crédito (`CREDITO-SCORE-LAB-ACESSO`)
 
 | Campo | Valor |
