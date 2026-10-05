@@ -92,7 +92,9 @@
               <a href="{% url 'credito_score_cliente_detalhe' r.cliente_pk %}" class="text-emerald-800 underline decoration-emerald-300">
                 {{ r.cliente_nome }}
               </a>
-              {% if r.candidato_revisao %}
+              {% if r.revisar_dados %}
+              <span class="badge bg-orange-100 text-orange-900 ml-1">Revisar dados</span>
+              {% elif r.candidato_revisao %}
               <span class="badge bg-amber-100 text-amber-900 ml-1">Candidato revisão</span>
               {% endif %}
             </td>

@@ -12,7 +12,12 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods
 
 from produtos.credito_score_acesso_util import credito_score_shadow_required
-from produtos.credito_score_shadow import analisar_cliente, analisar_clientes, persistir_analise
+from produtos.credito_score_shadow import (
+    analisar_cliente,
+    analisar_clientes,
+    persistir_analise,
+    rotulo_candidato_revisao,
+)
 from produtos.models import ClienteAgro, ClienteAnaliseCreditoAgro
 
 
@@ -24,8 +29,33 @@ def _fmt_money(val) -> str:
         return "R$ 0,00"
 
 
+def _ind_num(ind: dict, key: str, default=0):
+    try:
+        v = ind.get(key, default)
+        if v is None or v == "":
+            return default
+        return v
+    except Exception:
+        return default
+
+
+def _pct_pago_em_dia(ind: dict):
+    """Percentual em dia a partir de contagens já gravadas no JSON (só export/tela)."""
+    try:
+        quitados = int(ind.get("titulos_quitados_avaliaveis") or 0)
+        em_dia = int(ind.get("pagamentos_em_dia") or 0)
+    except (TypeError, ValueError):
+        return ""
+    if quitados <= 0:
+        return ""
+    return round(100.0 * em_dia / quitados, 2)
+
+
 def _snapshot_row(s: ClienteAnaliseCreditoAgro) -> dict:
     ind = s.indicadores_json if isinstance(s.indicadores_json, dict) else {}
+    alertas = s.alertas_json if isinstance(s.alertas_json, list) else []
+    candidato_flag = bool(ind.get("candidato_revisao_limite"))
+    candidato_label = rotulo_candidato_revisao(candidato=candidato_flag, alertas=alertas)
     return {
         "id": s.pk,
         "cliente_pk": s.cliente_id,
@@ -45,8 +75,19 @@ def _snapshot_row(s: ClienteAnaliseCreditoAgro) -> dict:
         "tem_vencido": s.tem_vencido_snapshot,
         "maior_atraso_dias": s.maior_atraso_dias,
         "indicadores": ind,
-        "alertas": s.alertas_json if isinstance(s.alertas_json, list) else [],
-        "candidato_revisao": bool(ind.get("candidato_revisao_limite")),
+        "alertas": alertas,
+        "candidato_revisao": candidato_label == "Sim",
+        "candidato_revisao_label": candidato_label,
+        "revisar_dados": candidato_label == "Revisar dados",
+        "titulos_analisados": _ind_num(ind, "titulos_analisados_janela", 0),
+        "titulos_quitados": _ind_num(ind, "titulos_quitados_avaliaveis", 0),
+        "titulos_vencidos_qtd": _ind_num(ind, "titulos_vencidos_atualmente", 0),
+        "pct_pago_em_dia": _pct_pago_em_dia(ind),
+        "pts_pontualidade": _ind_num(ind, "pontualidade_pontos", 0),
+        "pts_situacao": _ind_num(ind, "situacao_atual_pontos", 0),
+        "pts_quitacao": _ind_num(ind, "quitacao_pontos", 0),
+        "pts_frequencia": _ind_num(ind, "frequencia_pontos", 0),
+        "pts_relacionamento": _ind_num(ind, "relacionamento_pontos", 0),
         "situacao_label": "Vencido"
         if s.tem_vencido_snapshot
         else ("Sem histórico" if s.score is None else "Em dia"),
@@ -135,7 +176,16 @@ def _montar_xlsx_laboratorio(rows: list[dict]) -> bytes:
         ("Limite sugerido", "limite_sugerido"),
         ("Dif. sugerido − atual", "diff_sugerido"),
         ("Situação", "situacao_label"),
-        ("Candidato revisão", "candidato_revisao"),
+        ("Candidato revisão", "candidato_revisao_label"),
+        ("Qtd títulos analisados", "titulos_analisados"),
+        ("Qtd quitada", "titulos_quitados"),
+        ("Qtd vencida", "titulos_vencidos_qtd"),
+        ("% pago em dia", "pct_pago_em_dia"),
+        ("Pts pontualidade", "pts_pontualidade"),
+        ("Pts situação atual", "pts_situacao"),
+        ("Pts quitação", "pts_quitacao"),
+        ("Pts frequência", "pts_frequencia"),
+        ("Pts relacionamento", "pts_relacionamento"),
         ("Maior atraso (dias)", "maior_atraso_dias"),
         ("Calculado em", "calculado_em"),
         ("Alertas", "alertas_txt"),
@@ -151,6 +201,7 @@ def _montar_xlsx_laboratorio(rows: list[dict]) -> bytes:
         "limite_sugerido",
         "diff_sugerido",
     }
+    pct_keys = {"pct_pago_em_dia"}
 
     for col, (label, _key) in enumerate(headers, start=1):
         cell = ws.cell(row=1, column=col, value=label)
@@ -164,7 +215,11 @@ def _montar_xlsx_laboratorio(rows: list[dict]) -> bytes:
         payload = {
             **row,
             "diff_sugerido": round(sug - lim_e, 2),
-            "candidato_revisao": "Sim" if row.get("candidato_revisao") else "Não",
+            "candidato_revisao_label": row.get("candidato_revisao_label")
+            or rotulo_candidato_revisao(
+                candidato=bool(row.get("candidato_revisao")),
+                alertas=alertas,
+            ),
             "alertas_txt": " | ".join(str(a) for a in alertas) if alertas else "",
         }
         for col, (_label, key) in enumerate(headers, start=1):
@@ -179,31 +234,22 @@ def _montar_xlsx_laboratorio(rows: list[dict]) -> bytes:
                     pass
             if key in money_keys:
                 val = _money_cell(val)
-            cell = ws.cell(row=r_idx, column=col, value=val)
+            cell = ws.cell(row=r_idx, column=col, value=val if val != "" else None)
             if key in money_keys:
                 cell.number_format = "#,##0.00"
+            if key in pct_keys and val not in (None, ""):
+                cell.number_format = "0.00"
 
-    widths = {
-        "A": 12,
-        "B": 36,
-        "C": 10,
-        "D": 14,
-        "E": 12,
-        "F": 16,
-        "G": 18,
-        "H": 12,
-        "I": 14,
-        "J": 14,
-        "K": 14,
-        "L": 16,
-        "M": 12,
-        "N": 16,
-        "O": 14,
-        "P": 18,
-        "Q": 40,
-    }
-    for letter, w in widths.items():
-        ws.column_dimensions[letter].width = w
+    for col in range(1, len(headers) + 1):
+        letter = get_column_letter(col)
+        if col == 1:
+            ws.column_dimensions[letter].width = 12
+        elif col == 2:
+            ws.column_dimensions[letter].width = 36
+        elif col == len(headers):
+            ws.column_dimensions[letter].width = 40
+        else:
+            ws.column_dimensions[letter].width = 14
 
     ws.auto_filter.ref = f"A1:{get_column_letter(len(headers))}{max(1, len(rows) + 1)}"
     ws.freeze_panes = "A2"
