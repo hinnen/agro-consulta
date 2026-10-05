@@ -1656,6 +1656,74 @@
     });
   }
 
+  function fillSizeMapSelects(printers, map) {
+    var box = $('etq-size-map-box');
+    if (!box) return;
+    box.classList.remove('hidden');
+    map = map || {};
+    function fill(selId, key) {
+      var sel = $(selId);
+      if (!sel) return;
+      var cur = map[key] || '';
+      var opts = ['<option value="">(não usar mapa)</option>'];
+      (printers || []).forEach(function (p) {
+        var name = p.name || p;
+        opts.push(
+          '<option value="' +
+            Core.esc(name) +
+            '"' +
+            (cur === name ? ' selected' : '') +
+            '>' +
+            Core.esc(name) +
+            '</option>'
+        );
+      });
+      if (cur && !(printers || []).some(function (p) { return (p.name || p) === cur; })) {
+        opts.push(
+          '<option value="' + Core.esc(cur) + '" selected>' + Core.esc(cur) + ' (salva)</option>'
+        );
+      }
+      sel.innerHTML = opts.join('');
+    }
+    fill('etq-map-40', '40x40');
+    fill('etq-map-50', '50x30');
+    if (map['53x30'] && !map['50x30']) {
+      var s50 = $('etq-map-50');
+      if (s50) s50.value = map['53x30'];
+    }
+  }
+
+  function carregarSizeMapUi() {
+    var bridge = window.agroPrintBridge;
+    if (!bridge || !bridge.isReady || !bridge.isReady()) {
+      var box = $('etq-size-map-box');
+      if (box) box.classList.add('hidden');
+      return;
+    }
+    Promise.all([bridge.listPrinters(), bridge.getSizeMap()]).then(function (arr) {
+      var printers = (arr[0] && arr[0].ok && arr[0].printers) || [];
+      var map = (arr[1] && arr[1].ok && arr[1].map) || {};
+      fillSizeMapSelects(printers, map);
+    });
+  }
+
+  function salvarSizeMapUi() {
+    var bridge = window.agroPrintBridge;
+    if (!bridge || !bridge.setSizeMap) {
+      setStatus('Ponte offline.', true);
+      return;
+    }
+    var map = {
+      '40x40': ($('etq-map-40') && $('etq-map-40').value) || '',
+      '50x30': ($('etq-map-50') && $('etq-map-50').value) || '',
+      '53x30': ($('etq-map-50') && $('etq-map-50').value) || '',
+    };
+    bridge.setSizeMap(map).then(function (res) {
+      if (res && res.ok) setStatus('Mapa tamanho→impressora salvo neste PC.');
+      else setStatus('Falha ao salvar mapa.', true);
+    });
+  }
+
   function atualizarBridgeUi(info) {
     var el = $('etq-bridge-status');
     var portEl = $('etq-bridge-port');
@@ -1683,10 +1751,13 @@
         var p = getPresetAtivo();
         carregarImpressoras((p && p.impressora) || '');
       } catch (_) {}
+      carregarSizeMapUi();
     } else {
       el.className = 'text-xs font-bold text-amber-300';
       el.textContent =
         'Ponte desligada — rode agro-print-bridge/Iniciar-ponte-etiquetas.bat neste PC (ou use Janela do Windows).';
+      var box = $('etq-size-map-box');
+      if (box) box.classList.add('hidden');
     }
   }
 
@@ -2008,6 +2079,8 @@
     }
     $('etq-btn-bridge-test') &&
       $('etq-btn-bridge-test').addEventListener('click', testarBridgeUmaEtiqueta);
+    $('etq-btn-save-size-map') &&
+      $('etq-btn-save-size-map').addEventListener('click', salvarSizeMapUi);
     if (window.agroPrintBridge && window.agroPrintBridge.onChange) {
       window.agroPrintBridge.onChange(atualizarBridgeUi);
       atualizarBridgeUi({

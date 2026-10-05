@@ -114,6 +114,28 @@
     });
   }
 
+  function getSizeMap() {
+    return fetchJson('/size-map', { timeoutMs: 4000 }).then(function (res) {
+      if (!res.httpOk || !res.body || !res.body.ok) {
+        return { ok: false, map: {}, reason: (res.body && res.body.reason) || 'fail' };
+      }
+      return { ok: true, map: res.body.map || {} };
+    });
+  }
+
+  function setSizeMap(map) {
+    return fetchJson('/size-map', {
+      method: 'POST',
+      body: { map: map || {} },
+      timeoutMs: 5000,
+    }).then(function (res) {
+      if (!res.httpOk || !res.body || !res.body.ok) {
+        return { ok: false, map: {}, reason: (res.body && res.body.reason) || 'fail' };
+      }
+      return { ok: true, map: res.body.map || {} };
+    });
+  }
+
   function silentPrint(payload) {
     return fetchJson('/print', {
       method: 'POST',
@@ -135,6 +157,8 @@
     startWatch: startWatch,
     onChange: onChange,
     listPrinters: listPrinters,
+    getSizeMap: getSizeMap,
+    setSizeMap: setSizeMap,
     silentPrint: silentPrint,
     isReady: function () {
       return ready;
