@@ -1291,6 +1291,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### PACOTE PRONTO — Travas score crédito (`CREDITO-SCORE-TRAVAS`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `shadow_v1_1`: travas score (% em dia / atraso >30d) + candidato mais rigoroso (≥6 títulos, ≥80% em dia, atraso ≤15d…). Pesos 5 componentes iguais. «Revisar dados» mantido. Só lab shadow. |
+| **Migrate** | **NÃO** |
+| **Prova** | shadow **98/98** · xlsx **90/90** · PIN **9973** · **PREP_FAILS=0** · recalc local **1864** snaps · Excel gerado na pasta do repo |
+| **Status** | 🟢 **pronto para envio à produção** · tip abaixo após push |
+| **Rollback** | `docs/ROLLBACK-CREDITO-SCORE-SHADOW.md` / `ROLLBACK-CREDITO-SCORE-XLSX.md` · **só** frase+senha |
+| **Você** | Lab → Recalcular → Excel ↓ · arquivo local `analise_credito_shadow_v1_1_20261005_1759.xlsx` |
+
+### ✅ CHECKLIST ÚNICO — CREDITO-SCORE-TRAVAS · 🟢 pronto para envio à produção
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CREDITO-SCORE-TRAVAS** | 🟢 **pronto para envio à produção** | **NÃO** | **98/98** |
+
 ### ✅ Deploy loja — ETQ-PRINT-ELGIN-MAP · **Live v26.40** · 05/10
 
 | Campo | Valor |
