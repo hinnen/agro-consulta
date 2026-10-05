@@ -1290,6 +1290,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🚀 PREP deploy loja — Checklist 05/10 (`deploy/prep-checklist-0510` · **v26.08**) · aguarda senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **PREP pronto** · **não subiu** · aguarda pausa loja + frase + senha |
+| **Branch PREP** | `deploy/prep-checklist-0510` @ `8b636b67` |
+| **Base Live** | **v26.07** @ `93189ebb` |
+| **Rollback tag** | `rollback/pre-checklist-0510-v26.07` @ `93189ebb` |
+| **Alvo loja** | **v26.08** |
+| **Migrate** | **SIM** só `produtos.0138` (META · CreateModel + seed) |
+| **Não é** | merge do `teste` · **só** os 4 pacotes do checklist abaixo |
+| **Provas no PREP** | META **105/105** · LAB **34/34** · XLSX **54/54** · Pedir **30/30** · cupom **32/32** · Django Pedir **29/29** · shadow/PDV fiado **PREP_FAILS=0** · `manage.py check` OK |
+| **Risco PDV/caixa** | Pedir loja = só overlay/API pedido · crédito = lab/gestão · META = menu Gestão · **não** mexe NFC-e / finalizar venda / caixa |
+| **No deploy (com senha)** | 1) pausar vendas · 2) fast-forward `producao` ← PREP (ou reset --hard PREP tip) · 3) push `producao` · 4) Render migrate `0138` no build · 5) Ctrl+F5 PDVs · 6) limpar badges no banana |
+
+### ✅ CHECKLIST ÚNICO — 05/10 · PREP v26.08 · 🟢 aguarda senha
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **META-MOSTRUARIO** | 🟢 PREP | **SIM** `0138` | **105/105** |
+| 2 | **CREDITO-SCORE-LAB-ACESSO** | 🟢 PREP | **NÃO** | **34/34** |
+| 3 | **CREDITO-SCORE-XLSX** | 🟢 PREP | **NÃO** | **54/54** |
+| 4 | **PDV-PEDIR-PARCIAL-PRINT** | 🟢 PREP | **NÃO** | **30/30** + smoke PIN |
+
 ### PACOTE PRONTO — Pedir loja parcial + imprimir todos (`PDV-PEDIR-PARCIAL-PRINT`)
 
 | Campo | Valor |
@@ -1297,73 +1321,64 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Imprimir todos · Aceitar todos · lista 1 linha · □ parcial (resto na fila) · qtd 0 = NÃO ENVIADO · badges RESTANTE / ENVIO PARCIAL · seções por status |
 | **Migrate** | **NÃO** |
 | **Mexe** | `pdv_pedir_loja.js` · overlay · `pdv_transf_loja_util` · `views_pdv_transf_loja` |
-| **Prova** | path **30/30** · cupom-qtd **32/32** · etq53 **14/14** · Django **29/29** · smoke DB PIN **9973** (criar→aceitar→parcial→zero) |
-| **Status** | 🟢 **pronto para envio à produção** · tip `teste` **v26.18** @ `9bff3249` |
-| **Rollback** | `docs/ROLLBACK-PDV-PEDIR-PARCIAL-PRINT.md` · **só** frase+senha |
-| **Você** | frase+senha → deploy → Ctrl+F5 PDV · Pedir loja → Recebidos |
+| **Prova** | path **30/30** · cupom-qtd **32/32** · etq53 **14/14** · Django **29/29** · smoke DB PIN **9973** |
+| **Status** | 🟢 **no PREP** `deploy/prep-checklist-0510` · aguarda senha |
+| **Rollback** | `docs/ROLLBACK-PDV-PEDIR-PARCIAL-PRINT.md` · tag `rollback/pre-checklist-0510-v26.07` |
+| **Você** | no próximo chat: pausar lojas + frase + senha |
 
-### ✅ CHECKLIST ÚNICO — PDV-PEDIR-PARCIAL-PRINT · 🟢 pronto para envio à produção
+### ✅ CHECKLIST ÚNICO — PDV-PEDIR-PARCIAL-PRINT · 🟢 no PREP
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-PEDIR-PARCIAL-PRINT** | 🟢 **pronto para envio à produção** | **NÃO** | **30/30** + smoke PIN |
+| 1 | **PDV-PEDIR-PARCIAL-PRINT** | 🟢 **no PREP** (lote 05/10) | **NÃO** | **30/30** + smoke PIN |
 
 ### PACOTE PRONTO — Excel lab crédito (`CREDITO-SCORE-XLSX`)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Botão **Excel ↓** em `/fiado/analise-credito/` — mesmas linhas/filtros da tela (+ ID, limites, vencido, candidato revisão, diff). Só leitura. Cruzar com Excel de Clientes. |
-| **Rota** | `GET /fiado/analise-credito/export-xlsx/` · mesmo gate do lab |
+| **O quê** | Botão **Excel ↓** em `/fiado/analise-credito/` — mesmas linhas/filtros da tela (+ ID, limites, vencido, candidato revisão, diff). Só leitura. |
 | **Migrate** | **NÃO** |
-| **Mexe** | `credito_score_views` · url · template · **não** PDV/limite/venda |
-| **Prova** | `scripts/verify_credito_score_xlsx_path.py` **54/54** · shadow **93/93** · PIN **9973** · **PREP_FAILS=0** |
-| **Status** | 🟢 **pronto para envio à produção** · tip `teste` **v26.16** @ `8beab653` |
-| **Rollback** | `docs/ROLLBACK-CREDITO-SCORE-XLSX.md` · **só** frase+senha |
-| **Você** | Lab → **Excel ↓** · comparar com Excel ↓ Clientes |
+| **Prova** | **54/54** · shadow **93/93** · **PREP_FAILS=0** |
+| **Status** | 🟢 **no PREP** `deploy/prep-checklist-0510` · aguarda senha |
+| **Rollback** | `docs/ROLLBACK-CREDITO-SCORE-XLSX.md` |
 
-### ✅ CHECKLIST ÚNICO — CREDITO-SCORE-XLSX · 🟢 pronto para envio à produção
+### ✅ CHECKLIST ÚNICO — CREDITO-SCORE-XLSX · 🟢 no PREP
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CREDITO-SCORE-XLSX** | 🟢 **pronto para envio à produção** | **NÃO** | **54/54** |
+| 1 | **CREDITO-SCORE-XLSX** | 🟢 **no PREP** (lote 05/10) | **NÃO** | **54/54** |
 
 ### PACOTE PRONTO — Acesso lab crédito (`CREDITO-SCORE-LAB-ACESSO`)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | (1) Botão **Análise de crédito** no menu Gestão (só autorizado). (2) Fix: abrir `/fiado/analise-credito/` no app PDV **não** volta sozinho pro PDV — manda pra Gestão. |
-| **Prova** | `scripts/verify_credito_score_lab_acesso_path.py` **34/34** · shadow **93/93** · PDV fiado **39/39** · PIN **9973** · **PREP_FAILS=0** |
+| **O quê** | Botão **Análise de crédito** no menu Gestão + fix app PDV não puxa de volta. |
 | **Migrate** | **NÃO** |
-| **Mexe** | launchpad GESTÃO · `agro_dual_window.js` · `_agro_open_external.html` · **não** PDV/limite/venda |
-| **Status** | 🟢 **pronto para envio à produção** · tip `teste` **v26.13** @ `ce67bb93` |
-| **Antes** | Live **v26.07** (lab shadow já na loja · flag ON) |
-| **Rollback** | `docs/ROLLBACK-CREDITO-SCORE-LAB-ACESSO.md` · **só** frase+senha |
-| **Você** | frase+senha → deploy → Ctrl+F5 Gestão · botão abaixo Configuração · URL no Chrome Gestão (não app PDV) |
+| **Prova** | **34/34** · **PREP_FAILS=0** |
+| **Status** | 🟢 **no PREP** `deploy/prep-checklist-0510` · aguarda senha |
+| **Rollback** | `docs/ROLLBACK-CREDITO-SCORE-LAB-ACESSO.md` |
 
-### ✅ CHECKLIST ÚNICO — CREDITO-SCORE-LAB-ACESSO · 🟢 pronto para envio à produção
+### ✅ CHECKLIST ÚNICO — CREDITO-SCORE-LAB-ACESSO · 🟢 no PREP
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CREDITO-SCORE-LAB-ACESSO** | 🟢 **pronto para envio à produção** | **NÃO** | **34/34** |
+| 1 | **CREDITO-SCORE-LAB-ACESSO** | 🟢 **no PREP** (lote 05/10) | **NÃO** | **34/34** |
 
-### 📦 PACOTE PRONTO — META mostruário (`META-MOSTRUARIO` · tip **v26.14**) · 05/10/2026
+### 📦 PACOTE PRONTO — META mostruário (`META-MOSTRUARIO`)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **pronto para envio à produção** (aguarda frase + senha) |
-| **Tip** | `teste` **v26.14** · prova path **105/105** · PIN **9973** |
-| **O quê** | Botão **META** no menu Gestão · `/meta/` · metas+bônus Postgres · vs média Meta C · Copiar foto (tabelinha) · Copiar texto |
-| **Migrate** | **SIM** `0138` (`MetaVendaFaixaAgro` + seed 105k…130k) |
-| **Prova** | `scripts/verify_meta_mostruario_path.py` **105/105** |
-| **Rollback** | `docs/ROLLBACK-META-MOSTRUARIO.md` · tag ao subir |
-| **Não mexe** | PDV · caixa · NFC-e · financeiro |
-| **Você** | Ctrl+F5 BI → Menu → META · Copiar foto → cola no Zap |
+| **O quê** | Botão **META** · `/meta/` · faixas+bônus · Copiar foto/texto |
+| **Migrate** | **SIM** `0138` |
+| **Prova** | **105/105** |
+| **Status** | 🟢 **no PREP** `deploy/prep-checklist-0510` · aguarda senha |
+| **Rollback** | `docs/ROLLBACK-META-MOSTRUARIO.md` |
 
-### ✅ CHECKLIST ÚNICO — META-MOSTRUARIO · 🟢 pronto envio
+### ✅ CHECKLIST ÚNICO — META-MOSTRUARIO · 🟢 no PREP
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **META-MOSTRUARIO** | 🟢 **pronto para envio à produção** | **SIM** `0138` | **105/105** |
+| 1 | **META-MOSTRUARIO** | 🟢 **no PREP** (lote 05/10) | **SIM** `0138` | **105/105** |
 
 ### WIP — botão Análise de crédito no menu Gestão · 05/10
 
