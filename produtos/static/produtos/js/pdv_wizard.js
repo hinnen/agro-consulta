@@ -11195,7 +11195,11 @@
             if (dom.peEtqPreset) Core.fillPresetSelect(dom.peEtqPreset);
         };
         fillSelect();
-        if (typeof Core.fetchPresetsFromServer === 'function') {
+        if (typeof Core.refreshPresetsFromServer === 'function') {
+            Core.refreshPresetsFromServer().then(function () {
+                fillSelect();
+            });
+        } else if (typeof Core.fetchPresetsFromServer === 'function') {
             Core.fetchPresetsFromServer()
                 .then(function (serverList) {
                     var st = Core.loadStorage();
