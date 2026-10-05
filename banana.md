@@ -1290,17 +1290,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE — META mostruário (`META-MOSTRUARIO` · tip **v26.09**) · 05/10/2026
+### 📦 PACOTE — META mostruário (`META-MOSTRUARIO` · tip **v26.10**) · 05/10/2026
 
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟡 **só no `teste`** — validar local |
-| **O quê** | Botão **META** no menu Gestão (abaixo Configuração) · tela `/meta/` · metas manuais + bônus no Postgres · mostruário vs média esperada (Meta C) · dia / mês até hoje / mês fechado · Copiar pro Zap |
+| **O quê** | Botão **META** no menu Gestão · tela `/meta/` · metas + bônus PG · vs média Meta C · **Copiar foto** (tabelinha PNG amarela + resumo) · Copiar texto |
 | **Padrão seed** | 105k/100 · 110k/150 · 115k/100+moleton · 120k/250 · 130k/500 (mês corrente) |
 | **Migrate** | **SIM** `0138` (`MetaVendaFaixaAgro`) |
 | **URLs** | `/meta/` · `/api/meta/resumo/` · `/api/meta/faixas/` |
 | **Arquivos** | `meta_vendas_util.py` · `views_meta_vendas.py` · `meta_vendas.html` · launchpad GESTÃO · models + 0138 |
-| **Você** | Ctrl+F5 BI → Menu → META · confere números · edita faixa · Copiar pro Zap |
+| **Você** | Ctrl+F5 → META · **Copiar foto** → cola no Zap (Ctrl+V); se o Chrome não colar imagem, baixa o PNG |
 
 ### WIP — botão Análise de crédito no menu Gestão · 05/10
 
