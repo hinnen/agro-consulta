@@ -1291,7 +1291,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO LOJA — Elgin mapa 40×40 / 50×30 (`ETQ-PRINT-ELGIN-MAP` · **v26.37**) · 05/10
+### 📦 PACOTE PRONTO LOJA — Elgin mapa 40×40 / 50×30 (`ETQ-PRINT-ELGIN-MAP` · **v26.38**) · 05/10
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1299,7 +1299,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Mapa tamanho→impressora na ponte (LocalAppData). Elgin: 2 filas Windows (**Elgin 40x40** USER + **Elgin 50x30** GONDOLA). Print 40×40 e 50/53×30 escolhem a fila certa. UI no card Etiquetas. |
 | **Migrate** | **NÃO** |
 | **Prova** | full **74/74** · path **45/45** · dl **21/21** · ZIP HTTP **200** · bridge resolve **40→Elgin 40x40** · **50→Elgin 50x30** · print **OK** |
-| **Tip** | `teste` **v26.37** |
+| **Tip** | `teste` **v26.38** |
 | **Base loja** | Live **v26.35** já tem ETQ-PRINT-DIRETO básico — este pacote é o mapa Elgin |
 | **Você** | Ctrl+F5 Etiquetas · reiniciar ponte · mapa 40/50 salvo · testar 1 de cada tamanho |
 
