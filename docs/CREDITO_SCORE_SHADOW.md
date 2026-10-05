@@ -84,8 +84,21 @@ O score **nunca** é consultado em:
 - `definir_limite_fiado_cliente`
 - baixas / títulos / caixa
 
+## Subir produção (pouca parada)
+
+1. Deploy código com flag **ainda desligada** (default) → PDV/fiado iguais.
+2. `python manage.py migrate` → só `0137` (CREATE TABLE).
+3. No Render: `AGRO_CREDITO_SCORE_SHADOW_ENABLED=true` + `AGRO_CREDITO_SCORE_SHADOW_USERNAMES=renan` → restart.
+4. Abrir `/fiado/analise-credito/` logado como Renan → **Recalcular análises**.
+
+Operador sem allowlist continua com **404**. Sem link no menu.
+
+Rollback: `docs/ROLLBACK-CREDITO-SCORE-SHADOW.md`.
+
 ## Testes
 
 ```bash
-python manage.py test produtos.tests_credito_score_shadow
+set AGRO_PIN_TESTE=9973
+python scripts/verify_credito_score_shadow_path.py
+python manage.py test produtos.tests_credito_score_shadow.CreditoScorePurezaTests
 ```
