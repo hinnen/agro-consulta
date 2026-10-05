@@ -1294,18 +1294,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Recebidos: **Imprimir todos** (1 cupom). Lista **1 linha/produto** (sem resumo duplicado). □ marca o que envia agora; desmarcado = fica na fila (pedido resto). Qtd **0** = **NÃO ENVIADO** no histórico. |
+| **O quê** | Recebidos: **Imprimir todos** · **Aceitar todos** · lista agrupada por status · cores · badge **RESTANTE** / **ENVIO PARCIAL** · □ + Marcar todos · confirmação lista o que vai/fica · qtd diferente fica vermelha · **NÃO ENVIADO (0)** no histórico. |
 | **Migrate** | **NÃO** |
 | **Mexe** | `pdv_pedir_loja.js` · overlay · `pdv_transf_loja_util` · `views_pdv_transf_loja` |
-| **Prova** | `scripts/verify_pdv_pedir_parcial_print_path.py` **22/22** · cupom-qtd **32/32** |
-| **Status** | 🟢 tip `teste` **v26.17** — validar local |
-| **Você** | Ctrl+F5 PDV · Pedir loja → Recebidos · Imprimir todos · □ parcial · qtd 0 → Histórico |
+| **Prova** | `scripts/verify_pdv_pedir_parcial_print_path.py` **30/30** · cupom-qtd **32/32** |
+| **Status** | 🟢 tip `teste` **v26.18** — validar local |
+| **Você** | Ctrl+F5 PDV · Pedir loja → Recebidos · Aceitar todos · Imprimir todos · □ parcial · qtd 0 → Histórico |
 
 ### ✅ CHECKLIST ÚNICO — PDV-PEDIR-PARCIAL-PRINT · tip teste
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-PEDIR-PARCIAL-PRINT** | 🟢 tip `teste` | **NÃO** | **22/22** |
+| 1 | **PDV-PEDIR-PARCIAL-PRINT** | 🟢 tip `teste` **v26.18** | **NÃO** | **30/30** |
 
 ### PACOTE PRONTO — Excel lab crédito (`CREDITO-SCORE-XLSX`)
 
