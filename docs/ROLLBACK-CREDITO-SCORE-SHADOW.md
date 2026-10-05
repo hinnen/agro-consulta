@@ -4,11 +4,12 @@ Volta a loja ao estado **antes** deste pacote (Live **v26.05**).
 
 | Item | Valor |
 | ---- | ----- |
-| **Antes (loja)** | `producao` @ Live **v26.05** |
-| **Tag segurança** | `rollback/pre-credito-score-shadow-v26.05` *(criar no deploy)* |
-| **Branch PREP** | `teste` · alvo loja **v26.07** |
+| **Antes (loja)** | `producao` @ `41a6fdea` · VERSION **26.05** |
+| **Tag segurança** | `rollback/pre-credito-score-shadow-v26.05` |
+| **Branch backup** | `producao-backup-pre-v2607-credito-score-shadow-20261005` |
+| **Branch PREP** | `deploy/prep-credito-score-shadow` · alvo loja **v26.07** |
 | **Migrate** | **SIM** `0137` — só CreateModel `ClienteAnaliseCreditoAgro` |
-| **Merge `teste`?** | Preferir cherry/PREP só deste pacote se a loja estiver atrás do tip `teste` |
+| **Merge `teste`?** | **NÃO** — só cherry deste PREP (o `teste` tem outros pacotes que **não** sobem) |
 
 ## Pacote
 
@@ -16,14 +17,17 @@ Volta a loja ao estado **antes** deste pacote (Live **v26.05**).
 | - | ------ | ----------------- |
 | 1 | **CREDITO-SCORE-SHADOW** | Baixo — tela admin isolada + tabela nova. Flag default **off**. **Não** mexe PDV, limite, venda, baixa, caixa, estoque. |
 
-**O quê muda:** laboratório `/fiado/analise-credito/` (só quem tem flag + allowlist/superuser). Snapshots em tabela nova.
+**O quê muda no 1º deploy:** código + `CREATE TABLE`. Com a flag **desligada**, operadores **não** veem a tela (404). PDV/fiado iguais.
 
-## Subida com pouca parada
+**Não ligar a flag no mesmo restart** (evita 2ª queda). Depois do Live, quando quiser o laboratório: no Render `AGRO_CREDITO_SCORE_SHADOW_ENABLED=true` e `AGRO_CREDITO_SCORE_SHADOW_USERNAMES=renan` (outro restart, pode ser fora do expediente).
 
-1. Deploy código (flag ainda **false** no Render) → loja igual.
-2. `migrate` `0137` (rápido, só CREATE TABLE).
-3. No Render, setar `AGRO_CREDITO_SCORE_SHADOW_ENABLED=true` e `AGRO_CREDITO_SCORE_SHADOW_USERNAMES=renan` → restart.
-4. Operadores **não** veem link; URL dá 404 sem allowlist.
+## Subida (próximo chat · pausa + frase + senha)
+
+1. Lojas pausam vendas.
+2. `producao` ← `deploy/prep-credito-score-shadow` (sem merge `teste`).
+3. Render: build já roda `migrate --noinput` (`0137`).
+4. **Não** alterar env da flag neste passo.
+5. Live → Ctrl+F5 PDV → venda teste se quiser.
 
 ## Como voltar (só frase + senha)
 
@@ -36,11 +40,13 @@ git push origin producao --force-with-lease
 
 Tabela `produtos_clienteanalisecreditoagro` pode ficar órfã (só snapshots). Remover só se quiser limpar — **não** afeta fiado operacional.
 
-No Render: apagar ou zerar as duas env vars do shadow.
+No Render: apagar ou zerar as duas env vars do shadow, se tiverem sido ligadas.
 
-## Provas (local · PIN 9973)
+## Provas (PREP · PIN 9973)
 
 | Prova | Resultado |
 | ----- | --------- |
 | CREDITO-SCORE-SHADOW path | **93/93** |
+| PDV-FIADO-LIMITE-REFRESH (regressão) | **39/39** |
+| PDV fiado card (regressão) | **39/39** |
 | PREP_FAILS | **0** |

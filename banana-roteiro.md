@@ -752,3 +752,17 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | 1 | **PDV-FIADO-LIMITE-REFRESH** | ✅ **Live v26.05** · `producao` @ `829e4475` · prova **39/39** | **NÃO** |
 
 **Rollback:** tag `rollback/pre-pdv-fiado-limite-refresh-v26.02` · `docs/ROLLBACK-PDV-FIADO-LIMITE-REFRESH.md` · **só** frase+senha.
+
+---
+
+## 54. CHECKLIST ÚNICO — CREDITO-SCORE-SHADOW · 🟢 PREP (`deploy/prep-credito-score-shadow` · alvo **v26.07**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CREDITO-SCORE-SHADOW** | 🟢 **PREP pronto** · path **93/93** | **SIM** `0137` |
+
+**O quê:** laboratório `/fiado/analise-credito/` (shadow). **Não** mexe limite, venda, PDV, caixa. Flag default **off**.  
+**Não entra:** merge do `teste` · ligar flag no 1º deploy.  
+**Branch PREP:** `deploy/prep-credito-score-shadow` · base Live **v26.05** @ `41a6fdea`.  
+**Rollback:** tag `rollback/pre-credito-score-shadow-v26.05` · `docs/ROLLBACK-CREDITO-SCORE-SHADOW.md` · **só** frase+senha.  
+**Status:** 🟢 PREP · aguarda pausa + frase + senha. Loja ainda **v26.05**.
