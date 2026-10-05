@@ -6,10 +6,11 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "ensure": "node ensure-electron.js",
     "build": "electron-builder --win --publish never"
   },
   "devDependencies": {
-    "electron": "^33.2.1",
+    "electron": "33.4.11",
     "electron-builder": "^25.1.8"
   },
   "build": {
@@ -27,15 +28,22 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "installerLanguages": ["pt_BR"],
+      "installerLanguages": [
+        "pt_BR"
+      ],
       "language": "1046"
     }
+  },
+  "allowScripts": {
+    "electron@33.4.11": true
   }
 }
