@@ -46,6 +46,8 @@
     limpar: document.getElementById('pdv-pedir-loja-limpar'),
     enviar: document.getElementById('pdv-pedir-loja-enviar'),
     lista: document.getElementById('pdv-pedir-loja-lista'),
+    listaToolbar: document.getElementById('pdv-pedir-loja-lista-toolbar'),
+    imprimirTodos: document.getElementById('pdv-pedir-loja-imprimir-todos'),
     status: document.getElementById('pdv-pedir-loja-status'),
     pinAviso: document.getElementById('pdv-pedir-loja-pin-aviso'),
     abrirPin: document.getElementById('pdv-pedir-loja-abrir-pin'),
@@ -291,7 +293,14 @@
       if (aba === 'pedir') lista.classList.add('hidden');
       else lista.classList.remove('hidden');
     }
+    syncListaToolbar();
     if (aba !== 'pedir') carregarLista(aba);
+  }
+
+  function syncListaToolbar() {
+    if (!dom.listaToolbar) return;
+    var show = aba === 'recebidos' || aba === 'enviados' || aba === 'historico';
+    dom.listaToolbar.classList.toggle('is-show', show);
   }
 
   function applyBadge(n) {
@@ -872,6 +881,14 @@
             '<p class="pl-item-ped">Pedido: ' + escapeHtml(fmtSaldo(pedida)) + '</p>';
         } else if (
           Number(it.quantidade_pedida) > 0 &&
+          Number(it.quantidade) === 0
+        ) {
+          pedHint =
+            '<p class="pl-item-ped pl-item-ped--zero">Pedido ' +
+            escapeHtml(fmtSaldo(it.quantidade_pedida)) +
+            ' · <strong>NÃO ENVIADO (0)</strong></p>';
+        } else if (
+          Number(it.quantidade_pedida) > 0 &&
           Number(it.quantidade_pedida) !== Number(it.quantidade)
         ) {
           pedHint =
@@ -880,6 +897,9 @@
             ' · enviado ' +
             escapeHtml(fmtSaldo(it.quantidade)) +
             '</p>';
+        } else if (!edit) {
+          pedHint =
+            '<p class="pl-item-ped">Qtd ' + escapeHtml(fmtSaldo(qtdAtual)) + '</p>';
         }
         var qtdCell = edit
           ? '<input type="number" class="pl-item-qtd" min="0" step="0.001" data-pl-item-id="' +
@@ -888,8 +908,18 @@
             escapeHtml(String(qtdAtual)) +
             '" aria-label="Quantidade a enviar" />'
           : '<span class="pl-item-qtd-ro">' + escapeHtml(fmtSaldo(qtdAtual)) + '</span>';
+        var checkCell = edit
+          ? '<input type="checkbox" class="pl-item-check" checked data-pl-item-id="' +
+            escapeHtml(String(it.id)) +
+            '" title="Marcado = envia agora · desmarcado = fica pra depois" aria-label="Enviar este produto agora" />'
+          : '';
         return (
-          '<div class="pl-item-row">' +
+          '<div class="pl-item-row' +
+          (edit ? '' : ' pl-item-row--ro') +
+          '" data-pl-item-id="' +
+          escapeHtml(String(it.id)) +
+          '">' +
+          checkCell +
           '<div class="pl-item-meta">' +
           '<p class="pl-item-nome">' +
           escapeHtml(it.nome || '') +
@@ -906,23 +936,46 @@
     return (
       '<div class="pl-itens">' +
       (edit
-        ? '<p class="m-0 text-[10px] font-black uppercase tracking-wide text-orange-800">Qtd a enviar (já vem com o pedido · mude se faltar)</p>'
+        ? '<p class="m-0 text-[10px] font-black uppercase tracking-wide text-orange-800">□ = envia agora · qtd 0 = não enviou (histórico) · desmarque = fica pra depois</p>'
         : '') +
       lines +
       '</div>'
     );
   }
 
-  function lerQtdsDoCard(card) {
-    if (!card) return [];
-    var out = [];
-    card.querySelectorAll('.pl-item-qtd[data-pl-item-id]').forEach(function (inp) {
-      out.push({
-        id: Number(inp.getAttribute('data-pl-item-id')),
-        quantidade: String(inp.value || '0'),
+  function lerSelecaoDoCard(card) {
+    if (!card) return { itens: [], adiar_itens: [] };
+    var itens = [];
+    var adiar = [];
+    var rows = card.querySelectorAll('.pl-item-row[data-pl-item-id]');
+    if (!rows.length) {
+      /* legado: só inputs de qtd */
+      card.querySelectorAll('.pl-item-qtd[data-pl-item-id]').forEach(function (inp) {
+        itens.push({
+          id: Number(inp.getAttribute('data-pl-item-id')),
+          quantidade: String(inp.value || '0'),
+        });
+      });
+      return { itens: itens, adiar_itens: adiar };
+    }
+    rows.forEach(function (row) {
+      var id = Number(row.getAttribute('data-pl-item-id'));
+      var cb = row.querySelector('.pl-item-check');
+      var inp = row.querySelector('.pl-item-qtd');
+      if (cb && !cb.checked) {
+        adiar.push(id);
+        return;
+      }
+      itens.push({
+        id: id,
+        quantidade: String(inp ? inp.value || '0' : '0'),
       });
     });
-    return out;
+    return { itens: itens, adiar_itens: adiar };
+  }
+
+  function lerQtdsDoCard(card) {
+    return lerSelecaoDoCard(card).itens;
   }
 
   function abrirPrintIframe(html, titulo, erroMsg) {
@@ -955,59 +1008,95 @@
 
   function imprimirCupomSeparacao(row) {
     if (!row) return;
+    abrirPrintIframe(
+      montarHtmlCupomPedidos([row]),
+      'Cupom separação',
+      'Não imprimiu. Confira a térmica 80mm.'
+    );
+  }
+
+  function montarHtmlCupomPedidos(rows) {
     var dh = new Date().toLocaleString('pt-BR');
-    var itens = row.itens || [];
-    var bodyItens = '';
-    itens.forEach(function (it) {
-      var livre = !!it.livre || String(it.produto_id || '').indexOf('livre:') === 0;
-      var q =
-        it.quantidade_pedida != null && Number(it.quantidade_pedida) > 0
-          ? it.quantidade_pedida
-          : it.quantidade;
-      bodyItens +=
-        '<div style="border-top:1px dashed #000;margin-top:6px;padding-top:4px;">' +
-        (livre
-          ? '<div style="font-weight:900;font-size:11px;">PEDIDO ESCRITO</div>'
-          : it.codigo_interno
-            ? '<div><b>GM</b> ' + escapeHtml(it.codigo_interno) + '</div>'
-            : '') +
-        '<div style="font-weight:bold;font-size:13px;">' +
-        escapeHtml(it.nome || '') +
+    var blocos = '';
+    (rows || []).forEach(function (row, idx) {
+      if (!row) return;
+      var itens = row.itens || [];
+      var bodyItens = '';
+      itens.forEach(function (it) {
+        var livre = !!it.livre || String(it.produto_id || '').indexOf('livre:') === 0;
+        var q =
+          it.quantidade_pedida != null && Number(it.quantidade_pedida) > 0
+            ? it.quantidade_pedida
+            : it.quantidade;
+        bodyItens +=
+          '<div style="border-top:1px dashed #000;margin-top:6px;padding-top:4px;">' +
+          (livre
+            ? '<div style="font-weight:900;font-size:11px;">PEDIDO ESCRITO</div>'
+            : it.codigo_interno
+              ? '<div><b>GM</b> ' + escapeHtml(it.codigo_interno) + '</div>'
+              : '') +
+          '<div style="font-weight:bold;font-size:13px;">' +
+          escapeHtml(it.nome || '') +
+          '</div>' +
+          '<div style="font-size:22px;font-weight:900;margin:4px 0;">QTD ' +
+          escapeHtml(fmtSaldo(q)) +
+          '</div>' +
+          '</div>';
+      });
+      if (idx > 0) {
+        blocos += '<div style="border-top:3px double #000;margin:12px 0 8px;"></div>';
+      }
+      blocos +=
+        '<div style="text-align:center;font-weight:900;font-size:14px;">SEPARAÇÃO</div>' +
+        '<div style="text-align:center;font-weight:900;font-size:12px;margin-top:2px;">PEDIR LOJA #' +
+        escapeHtml(String(row.id || '')) +
         '</div>' +
-        '<div style="font-size:22px;font-weight:900;margin:4px 0;">QTD ' +
-        escapeHtml(fmtSaldo(q)) +
+        '<div style="margin-top:6px;">' +
+        escapeHtml(dh) +
         '</div>' +
-        '</div>';
+        '<div style="margin-top:4px;font-weight:900;font-size:13px;">' +
+        escapeHtml(row.loja_origem_label || '') +
+        ' → ' +
+        escapeHtml(row.loja_destino_label || '') +
+        '</div>' +
+        (row.criado_por
+          ? '<div style="margin-top:2px;"><b>Pediu</b> ' + escapeHtml(row.criado_por) + '</div>'
+          : '') +
+        (row.observacao
+          ? '<div style="margin-top:4px;"><b>Obs</b> ' + escapeHtml(row.observacao) + '</div>'
+          : '') +
+        '<div style="border-top:2px solid #000;margin:8px 0 4px;"></div>' +
+        bodyItens;
     });
-    var html =
+    return (
       '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Separação Pedir loja</title>' +
       '<style>@page{margin:0;size:80mm auto}html,body{margin:0;padding:0;width:80mm}' +
       'body{font-family:"Courier New",Courier,monospace;color:#000;background:#fff}' +
       '.pg{width:80mm;box-sizing:border-box;padding:4mm 3mm;font-size:11px;line-height:1.35}</style></head><body>' +
       '<div class="pg">' +
-      '<div style="text-align:center;font-weight:900;font-size:14px;">SEPARAÇÃO</div>' +
-      '<div style="text-align:center;font-weight:900;font-size:12px;margin-top:2px;">PEDIR LOJA #' +
-      escapeHtml(String(row.id || '')) +
-      '</div>' +
-      '<div style="margin-top:6px;">' +
-      escapeHtml(dh) +
-      '</div>' +
-      '<div style="margin-top:4px;font-weight:900;font-size:13px;">' +
-      escapeHtml(row.loja_origem_label || '') +
-      ' → ' +
-      escapeHtml(row.loja_destino_label || '') +
-      '</div>' +
-      (row.criado_por
-        ? '<div style="margin-top:2px;"><b>Pediu</b> ' + escapeHtml(row.criado_por) + '</div>'
+      (rows && rows.length > 1
+        ? '<div style="text-align:center;font-weight:900;font-size:13px;margin-bottom:8px;">TODOS · ' +
+          escapeHtml(String(rows.length)) +
+          ' PEDIDO(S)</div>'
         : '') +
-      (row.observacao
-        ? '<div style="margin-top:4px;"><b>Obs</b> ' + escapeHtml(row.observacao) + '</div>'
-        : '') +
-      '<div style="border-top:2px solid #000;margin:8px 0 4px;"></div>' +
-      bodyItens +
+      blocos +
       '<div style="margin-top:10px;text-align:center;font-size:10px;font-weight:900;">Conferir e transferir no PDV</div>' +
-      '</div></body></html>';
-    abrirPrintIframe(html, 'Cupom separação', 'Não imprimiu. Confira a térmica 80mm.');
+      '</div></body></html>'
+    );
+  }
+
+  function imprimirTodosCupons() {
+    var rows = (dom.lista && dom.lista._rows) || [];
+    if (!rows.length) {
+      setStatus('Nada pra imprimir nesta lista.', true);
+      return;
+    }
+    abrirPrintIframe(
+      montarHtmlCupomPedidos(rows),
+      'Cupom todos',
+      'Não imprimiu. Confira a térmica 80mm.'
+    );
+    setStatus('Imprimindo ' + rows.length + ' pedido(s) em um cupom.');
   }
 
   /**
@@ -1121,9 +1210,6 @@
           escapeHtml(row.status_label || row.status) +
           ' · #' +
           escapeHtml(String(row.id)) +
-          '</p>' +
-          '<p class="pl-name">' +
-          escapeHtml(row.resumo || '') +
           '</p>' +
           '<p class="mt-1 text-sm font-bold text-slate-500">' +
           escapeHtml(row.loja_origem_label) +
@@ -1267,10 +1353,29 @@
       return;
     }
     if (acao === 'transferir') {
-      var qtds = lerQtdsDoCard(card);
+      var sel = lerSelecaoDoCard(card);
+      if (!sel.itens.length) {
+        setStatus('Marque ao menos um produto (□) para enviar agora.', true);
+        return;
+      }
+      var temQtdPos = sel.itens.some(function (it) {
+        return Number(it.quantidade) > 0;
+      });
+      if (!temQtdPos) {
+        setStatus('Coloque quantidade > 0 em pelo menos um marcado (ou use 0 só se for misturar com outro > 0).', true);
+        return;
+      }
+      var bodyTxt =
+        'Some na origem e entra na loja que pediu. Confira as quantidades. Qtd 0 = não enviou (histórico).';
+      if (sel.adiar_itens.length) {
+        bodyTxt +=
+          ' ' +
+          sel.adiar_itens.length +
+          ' produto(s) desmarcado(s) ficam na fila pra enviar depois.';
+      }
       abrirConfirm({
         title: 'Transferir estoque?',
-        body: 'Some na origem e entra na loja que pediu. Confira as quantidades nos campos (já vêm com o pedido). Se o saldo estiver errado, marque estoque furado.',
+        body: bodyTxt,
         confirmLabel: 'Transferir',
         furado: true,
       }).then(function (r) {
@@ -1279,8 +1384,9 @@
           estoque_furado: !!r.estoque_furado,
           ajustar_estoque: !!r.ajustar_estoque,
           ajuste_quantidade: r.ajuste_quantidade,
+          itens: sel.itens,
         };
-        if (qtds.length) extra.itens = qtds;
+        if (sel.adiar_itens.length) extra.adiar_itens = sel.adiar_itens;
         postAcao(id, 'transferir', extra);
       });
       return;
@@ -1421,6 +1527,20 @@
       var card = btn.closest('[data-pl-id]');
       if (!card) return;
       pedirAcao(card.getAttribute('data-pl-id'), btn.getAttribute('data-pl-acao'), card);
+    });
+    dom.lista.addEventListener('change', function (e) {
+      var cb = e.target.closest('.pl-item-check');
+      if (!cb) return;
+      var row = cb.closest('.pl-item-row');
+      if (!row) return;
+      row.classList.toggle('is-off', !cb.checked);
+      var inp = row.querySelector('.pl-item-qtd');
+      if (inp) inp.disabled = !cb.checked;
+    });
+  }
+  if (dom.imprimirTodos) {
+    dom.imprimirTodos.addEventListener('click', function () {
+      imprimirTodosCupons();
     });
   }
 

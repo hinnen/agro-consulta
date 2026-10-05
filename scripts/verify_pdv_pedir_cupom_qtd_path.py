@@ -48,7 +48,7 @@ def main() -> int:
     check("ui_qtd_edit_origem", "podeEditarQtd" in js and "aba === 'recebidos'" in js)
     check("ui_qtd_input", 'class="pl-item-qtd"' in js and "data-pl-item-id" in js)
     check("ui_qtd_prefill_pedida", "qtdAtual = edit ? pedida" in js or "edit ? pedida" in js)
-    check("ui_transfer_manda_itens", "extra.itens = qtds" in js and "lerQtdsDoCard" in js)
+    check("ui_transfer_manda_itens", ("extra.itens = qtds" in js or "itens: sel.itens" in js) and ("lerQtdsDoCard" in js or "lerSelecaoDoCard" in js))
     check("ui_msg_migrate", "rode migrate" in js)
     check("ui_ajuda_cupom", "Imprimir" in html and "quantidade" in html.lower())
     check("ui_css_print_btn", "pl-btn--print" in html)

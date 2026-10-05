@@ -368,41 +368,72 @@
     margin-top: 0.55rem;
   }
   #pdv-pedir-loja-overlay .pl-itens {
-    margin-top: 0.65rem;
+    margin-top: 0.45rem;
     border-top: 1px dashed #fdba74;
-    padding-top: 0.5rem;
+    padding-top: 0.45rem;
     display: flex;
     flex-direction: column;
-    gap: 0.45rem;
+    gap: 0.35rem;
   }
   #pdv-pedir-loja-overlay .pl-item-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 5.5rem;
-    gap: 0.45rem;
+    grid-template-columns: auto minmax(0, 1fr) 5.25rem;
+    gap: 0.4rem;
     align-items: center;
+  }
+  #pdv-pedir-loja-overlay .pl-item-row.pl-item-row--ro {
+    grid-template-columns: minmax(0, 1fr) 5.25rem;
+  }
+  #pdv-pedir-loja-overlay .pl-item-check {
+    width: 1.35rem;
+    height: 1.35rem;
+    accent-color: #ea580c;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  #pdv-pedir-loja-overlay .pl-item-row.is-off {
+    opacity: 0.55;
+  }
+  #pdv-pedir-loja-overlay .pl-item-row.is-off .pl-item-qtd {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #94a3b8;
   }
   #pdv-pedir-loja-overlay .pl-item-meta {
     min-width: 0;
   }
   #pdv-pedir-loja-overlay .pl-item-meta .pl-item-nome {
     margin: 0;
-    font-size: 0.92rem;
+    font-size: 0.95rem;
     font-weight: 900;
     color: #0f172a;
     line-height: 1.2;
     overflow-wrap: anywhere;
   }
   #pdv-pedir-loja-overlay .pl-item-meta .pl-item-gm {
-    margin: 0.1rem 0 0;
-    font-size: 0.72rem;
+    margin: 0.05rem 0 0;
+    font-size: 0.7rem;
     font-weight: 800;
     color: #64748b;
   }
   #pdv-pedir-loja-overlay .pl-item-meta .pl-item-ped {
-    margin: 0.1rem 0 0;
+    margin: 0.05rem 0 0;
     font-size: 0.7rem;
     font-weight: 800;
     color: #9a3412;
+  }
+  #pdv-pedir-loja-overlay .pl-item-meta .pl-item-ped--zero {
+    color: #b91c1c;
+  }
+  #pdv-pedir-loja-overlay .pl-lista-toolbar {
+    display: none;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    align-items: center;
+    margin: 0.35rem 0 0.55rem;
+  }
+  #pdv-pedir-loja-overlay .pl-lista-toolbar.is-show {
+    display: flex;
   }
   #pdv-pedir-loja-overlay .pl-item-qtd {
     min-height: 2.55rem;
@@ -624,7 +655,8 @@
         <summary class="list-none inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 border-orange-500 bg-white text-lg font-black text-orange-900 hover:bg-orange-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda" title="Ajuda">?</summary>
         <div class="absolute right-0 top-full z-30 mt-1.5 w-[min(24rem,calc(100vw-2rem))] rounded-xl border border-orange-200 bg-white p-3 text-sm font-semibold text-slate-700 shadow-xl space-y-2 leading-snug">
           <p>Peça produtos pela busca <strong>ou</strong> só o <strong>pedido escrito</strong> embaixo (sacola, café…) — <strong>não precisa</strong> de produto cadastro.</p>
-          <p>Lá: <strong>Aceitar</strong> → <strong>Imprimir</strong> → <strong>Transferir</strong> (escrito não mexe estoque).</p>
+          <p>Lá: <strong>Aceitar</strong> → <strong>Imprimir</strong> (ou <strong>Imprimir todos</strong>) → marque o que vai agora → <strong>Transferir</strong>.</p>
+          <p><strong>Qtd 0</strong> = não enviou (aparece no histórico). Desmarque o □ = fica na fila pra depois.</p>
           <p><strong>Observação</strong> = mensagem opcional. Pedido pendente bipa a cada 1 min.</p>
         </div>
       </details>
@@ -689,6 +721,10 @@
     </div>
 
     <div class="pl-view-lista hidden min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-2">
+      <div id="pdv-pedir-loja-lista-toolbar" class="pl-lista-toolbar">
+        <button type="button" id="pdv-pedir-loja-imprimir-todos" class="pl-btn pl-btn--print">Imprimir todos</button>
+        <span class="text-xs font-bold text-slate-500">Um cupom com todos os pedidos da lista</span>
+      </div>
       <div id="pdv-pedir-loja-lista" class="space-y-2"></div>
     </div>
 

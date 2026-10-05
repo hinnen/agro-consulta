@@ -496,6 +496,22 @@ def _resolver_qtds_envio(
     return mapa, ""
 
 
+def _parse_adiar_ids(adiar_item_ids) -> set[int]:
+    out: set[int] = set()
+    if not adiar_item_ids:
+        return out
+    if isinstance(adiar_item_ids, (str, int)):
+        adiar_item_ids = [adiar_item_ids]
+    if not isinstance(adiar_item_ids, (list, tuple, set)):
+        return out
+    for raw in adiar_item_ids:
+        try:
+            out.add(int(raw))
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
 def concluir_transferencia(
     request,
     sol: SolicitacaoTransferenciaPdv,
@@ -508,15 +524,26 @@ def concluir_transferencia(
     ajuste_quantidade=None,
     ajustes_por_produto: dict | None = None,
     quantidades_envio=None,
+    adiar_item_ids=None,
 ) -> tuple[bool, str, list]:
+    """
+    Transfere itens marcados. Qtd 0 = não enviou (fica no histórico).
+    Itens em adiar_item_ids saem pra um pedido novo (mesmo status) e ficam na fila.
+    """
     ok, err = pode_agir(sol, loja_atual, "transferir")
     if not ok:
         return False, err, []
     from estoque.views import _transferir_entre_depositos_exec
 
-    itens = list(sol.itens.all())
-    if not itens:
+    itens_todos = list(sol.itens.all())
+    if not itens_todos:
         return False, "Pedido sem itens.", []
+
+    adiar_ids = _parse_adiar_ids(adiar_item_ids)
+    itens_adiar = [it for it in itens_todos if it.pk in adiar_ids]
+    itens = [it for it in itens_todos if it.pk not in adiar_ids]
+    if not itens:
+        return False, "Marque ao menos um produto para enviar agora.", []
 
     mapa_envio, err_q = _resolver_qtds_envio(itens, quantidades_envio)
     if err_q:
@@ -547,12 +574,49 @@ def concluir_transferencia(
     obs_evento = ""
     if diffs:
         obs_evento = "Qtd " + "; ".join(diffs)[:360]
+    if itens_adiar:
+        nomes_adiar = ", ".join(it.nome_produto[:28] for it in itens_adiar[:4])
+        marca_adiar = f"Restante ({len(itens_adiar)}): {nomes_adiar}"[:200]
+        obs_evento = f"{obs_evento} · {marca_adiar}".strip(" ·") if obs_evento else marca_adiar
     if estoque_furado:
         marca = "Estoque furado"
         if ajustar_estoque:
             marca += " · ajuste origem"
         obs_evento = f"{obs_evento} · {marca}".strip(" ·") if obs_evento else marca
+    sol_resto_pk = None
     with transaction.atomic():
+        if itens_adiar:
+            status_resto = sol.status if sol.status in (STATUS_ACEITO, STATUS_PRONTO) else STATUS_ACEITO
+            obs_base = (sol.observacao or "").strip()
+            marca_resto = f"Restante do pedido #{sol.pk}"
+            obs_resto = (f"{obs_base} · {marca_resto}" if obs_base else marca_resto)[:400]
+            sol_resto = SolicitacaoTransferenciaPdv.objects.create(
+                loja_origem=sol.loja_origem,
+                loja_destino=sol.loja_destino,
+                status=status_resto,
+                observacao=obs_resto,
+                criado_por_label=sol.criado_por_label,
+                criado_por=sol.criado_por,
+                aceito_em=sol.aceito_em or timezone.now(),
+                aceito_por_label=sol.aceito_por_label or (operador_label or "")[:150],
+                aceito_por=sol.aceito_por or usuario,
+                pronto_em=sol.pronto_em if status_resto == STATUS_PRONTO else None,
+                pronto_por_label=sol.pronto_por_label if status_resto == STATUS_PRONTO else "",
+                pronto_por=sol.pronto_por if status_resto == STATUS_PRONTO else None,
+            )
+            for it in itens_adiar:
+                it.solicitacao = sol_resto
+                it.save(update_fields=["solicitacao"])
+            sol_resto_pk = sol_resto.pk
+            _registrar_evento(
+                sol_resto,
+                acao="resto",
+                status_de="",
+                status_para=status_resto,
+                operador_label=operador_label,
+                usuario=usuario,
+                observacao=f"Ficou pra depois · veio do #{sol.pk}"[:400],
+            )
         if mapa_ajuste:
             for it in itens:
                 if eh_item_livre(it.produto_externo_id):
@@ -636,6 +700,8 @@ def concluir_transferencia(
         _invalidar_caches_apos_ajuste_pin()
     except Exception:
         pass
+    if sol_resto_pk:
+        resultados.append({"ok": True, "resto_solicitacao_id": sol_resto_pk, "adiados": len(itens_adiar)})
     return True, "", resultados
 
 
