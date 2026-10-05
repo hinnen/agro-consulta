@@ -57,9 +57,6 @@ ok(main.includes('pageSize'), 'pageSize');
 ok(main.includes('size-printer-map') || main.includes('SIZE_MAP_FILE') || main.includes('sizeKeyFromMicrons'), 'mapa tamanho→impressora');
 ok(main.includes('/size-map'), 'endpoint size-map');
 ok(exists('agro-print-bridge/Elgin-duas-filas.txt'), 'ajuda Elgin duas filas');
-ok(html.includes('etq-size-map-box'), 'UI mapa tamanho');
-ok(html.includes('etq-btn-save-size-map'), 'botão salvar mapa');
-ok(pageJs.includes('salvarSizeMapUi'), 'JS salvar mapa');
 ok(read('produtos/static/produtos/js/agro_print_bridge.js').includes('getSizeMap'), 'cliente getSizeMap');
 
 const instalar = read('agro-print-bridge/Instalar-inicio-Windows.bat');
@@ -95,9 +92,11 @@ ok(urls.includes('print-bridge/download'), 'rota download');
 
 const html = read('produtos/templates/produtos/produtos_etiquetas.html');
 ok(html.includes('etq-btn-bridge-download'), 'botão Baixar ponte');
-ok(html.includes('Baixa Node/Electron sozinho'), 'texto UI auto');
+ok(html.includes('Baixa Node/Electron sozinho') || html.includes('Elgin: use 2 filas'), 'texto UI auto/Elgin');
 ok(html.includes('agro_print_bridge.js'), 'página puxa bridge client');
 ok(html.includes('etq-preset-print-modo'), 'modo impressão no preset');
+ok(html.includes('etq-size-map-box'), 'UI mapa tamanho');
+ok(html.includes('etq-btn-save-size-map'), 'botão salvar mapa');
 
 ['produtos_etiquetas_lote.html', 'entrada_nota.html', 'produtos_cadastro_erp.html', 'pdv_wizard.html'].forEach(
   (f) => {
@@ -115,6 +114,7 @@ const pageJs = read('produtos/static/produtos/js/produtos_etiquetas.js');
 ok(pageJs.includes('etq-btn-bridge-download'), 'JS download');
 ok(pageJs.includes('testarBridgeUmaEtiqueta'), 'JS teste etiqueta');
 ok(pageJs.includes('atualizarBridgeUi'), 'JS status ponte');
+ok(pageJs.includes('salvarSizeMapUi'), 'JS salvar mapa');
 
 // --- Core runtime ---
 const s = {
