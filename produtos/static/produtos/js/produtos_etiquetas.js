@@ -501,6 +501,7 @@
       'etq-preset-bar-h': p.barcode_height,
       'etq-preset-bar-w': p.barcode_width,
       'etq-preset-texto-rodape': p.texto_rodape,
+      'etq-preset-print-modo': Core.normalizarPrintModo(p.print_modo),
     };
     Object.keys(map).forEach(function (k) {
       var el = $(k);
@@ -600,6 +601,9 @@
     p.barcode_width = Number($('etq-preset-bar-w') && $('etq-preset-bar-w').value) || 1.75;
     p.texto_rodape = ($('etq-preset-texto-rodape') && $('etq-preset-texto-rodape').value) || '';
     p.impressora = ($('etq-preset-impressora') && $('etq-preset-impressora').value.trim()) || '';
+    p.print_modo = Core.normalizarPrintModo(
+      ($('etq-preset-print-modo') && $('etq-preset-print-modo').value) || p.print_modo || 'auto'
+    );
     if (Core.ehGondola(p)) {
       p.show_logo = !($('etq-preset-show-logo') && !$('etq-preset-show-logo').checked);
       p.show_nome = !($('etq-show-nome') && !$('etq-show-nome').checked);
@@ -1503,10 +1507,12 @@
       origem: 'fila',
     }).then(function (res) {
       if (res && res.ok) {
-        setStatus('Enviado.');
+        setStatus(res.silent ? 'Impresso direto.' : 'Enviado (janela do Windows).');
         if ($('etq-hist-back') && !$('etq-hist-back').classList.contains('hidden')) {
           carregarHistorico();
         }
+      } else if (res && res.reason === 'ponte_offline') {
+        setStatus(res.message || 'Ponte offline — abra Iniciar-ponte-etiquetas.bat.', true);
       } else if (res && res.reason) setStatus('Falha: ' + res.reason, true);
     });
   }
@@ -1606,26 +1612,106 @@
   function carregarImpressoras(atual) {
     var sel = $('etq-preset-impressora');
     if (!sel) return;
-    if (!(window.agroShell && typeof window.agroShell.listPrinters === 'function')) {
+    var shell = null;
+    if (window.agroShell && typeof window.agroShell.listPrinters === 'function') {
+      shell = window.agroShell;
+    } else if (
+      window.agroPrintBridge &&
+      typeof window.agroPrintBridge.listPrinters === 'function' &&
+      (!window.agroPrintBridge.isReady || window.agroPrintBridge.isReady())
+    ) {
+      shell = window.agroPrintBridge;
+    }
+    if (!shell) {
       sel.innerHTML = '<option value="">(Padrão do Windows)</option>';
-      if (atual) sel.value = atual;
+      if (atual) {
+        sel.innerHTML +=
+          '<option value="' + Core.esc(atual) + '" selected>' + Core.esc(atual) + '</option>';
+      }
       return;
     }
-    window.agroShell.listPrinters().then(function (res) {
+    shell.listPrinters().then(function (res) {
       if (!res || !res.ok) return;
       var opts = ['<option value="">(Padrão do Windows)</option>'];
+      var found = false;
       (res.printers || []).forEach(function (p) {
+        var name = p.name || p;
+        if (atual && name === atual) found = true;
         opts.push(
           '<option value="' +
-            Core.esc(p.name) +
+            Core.esc(name) +
             '"' +
-            (atual === p.name || (!atual && p.isDefault) ? ' selected' : '') +
+            (atual === name || (!atual && p.isDefault) ? ' selected' : '') +
             '>' +
-            Core.esc(p.name) +
+            Core.esc(name) +
             '</option>'
         );
       });
+      if (atual && !found) {
+        opts.push(
+          '<option value="' + Core.esc(atual) + '" selected>' + Core.esc(atual) + ' (salva)</option>'
+        );
+      }
       sel.innerHTML = opts.join('');
+    });
+  }
+
+  function atualizarBridgeUi(info) {
+    var el = $('etq-bridge-status');
+    var portEl = $('etq-bridge-port');
+    var bridge = window.agroPrintBridge;
+    if (portEl && bridge && !portEl.dataset.bound) {
+      portEl.dataset.bound = '1';
+      try {
+        portEl.value = String((bridge.loadCfg && bridge.loadCfg().port) || 19192);
+      } catch (_) {
+        portEl.value = '19192';
+      }
+      portEl.addEventListener('change', function () {
+        var p = parseInt(portEl.value, 10);
+        if (!(p >= 1024 && p <= 65535)) return;
+        bridge.saveCfg({ port: p });
+        bridge.probe && bridge.probe();
+      });
+    }
+    if (!el) return;
+    var ready = info && info.ready;
+    if (ready) {
+      el.className = 'text-xs font-bold text-emerald-300';
+      el.textContent = 'Ponte ligada · impressão direta disponível';
+      try {
+        var p = getPresetAtivo();
+        carregarImpressoras((p && p.impressora) || '');
+      } catch (_) {}
+    } else {
+      el.className = 'text-xs font-bold text-amber-300';
+      el.textContent =
+        'Ponte desligada — rode agro-print-bridge/Iniciar-ponte-etiquetas.bat neste PC (ou use Janela do Windows).';
+    }
+  }
+
+  function testarBridgeUmaEtiqueta() {
+    var bridge = window.agroPrintBridge;
+    if (!bridge || !bridge.isReady || !bridge.isReady()) {
+      setStatus('Ponte offline. Abra Iniciar-ponte-etiquetas.bat neste PC.', true);
+      return;
+    }
+    var preset = Core.normalizarPreset(getPresetAtivo());
+    var item = {
+      id: 'teste-bridge',
+      nome: 'TESTE PONTE',
+      codigo_gm: 'GM-TESTE',
+      codigo_barras: '7891000100103',
+      preco_venda: 9.9,
+      qtd: 1,
+    };
+    Core.imprimirItens([item], {
+      preset: Object.assign({}, preset, { print_modo: 'direto' }),
+      textoRodape: 'teste ponte',
+      origem: 'teste-ponte',
+    }).then(function (res) {
+      if (res && res.ok) setStatus('Teste enviado direto.');
+      else setStatus((res && (res.message || res.reason)) || 'Falha no teste.', true);
     });
   }
 
@@ -1898,6 +1984,26 @@
     $('etq-mv-carregar') &&
       $('etq-mv-carregar').addEventListener('click', carregarMaisVendidos);
     $('etq-btn-imprimir') && $('etq-btn-imprimir').addEventListener('click', imprimirFila);
+    $('etq-btn-bridge-probe') &&
+      $('etq-btn-bridge-probe').addEventListener('click', function () {
+        if (window.agroPrintBridge && window.agroPrintBridge.probe) {
+          window.agroPrintBridge.probe().then(function (ok) {
+            setStatus(ok ? 'Ponte OK.' : 'Ponte offline.', !ok);
+          });
+        } else {
+          setStatus('Script da ponte não carregou — Ctrl+F5.', true);
+        }
+      });
+    $('etq-btn-bridge-test') &&
+      $('etq-btn-bridge-test').addEventListener('click', testarBridgeUmaEtiqueta);
+    if (window.agroPrintBridge && window.agroPrintBridge.onChange) {
+      window.agroPrintBridge.onChange(atualizarBridgeUi);
+      atualizarBridgeUi({
+        ready: window.agroPrintBridge.isReady && window.agroPrintBridge.isReady(),
+      });
+    } else {
+      atualizarBridgeUi({ ready: false });
+    }
     $('etq-btn-lote-a4') && $('etq-btn-lote-a4').addEventListener('click', abrirLoteA4);
     $('etq-btn-limpar') &&
       $('etq-btn-limpar').addEventListener('click', function () {

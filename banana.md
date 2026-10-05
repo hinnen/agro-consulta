@@ -558,7 +558,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 
 ### 4.6 Cadastro / gestÃ£o de produtos
 
-- **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé. Gôndola: folha **A4** (2/3 col) ou **A6** (1 col · bônus 100×45) — `ETQ-A6-BONUS` **v22.41** 🟢 pronto envio.
+- **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé. Gôndola: folha **A4** (2/3 col) ou **A6** (1 col · bônus 100×45) — `ETQ-A6-BONUS` **v22.41** 🟢 pronto envio. **Impressão direta** (`ETQ-PRINT-DIRETO` v26.26): ponte `agro-print-bridge` no PC + modo/impressora no preset.
 - **Presets espelho gestão×PDV (`ETQ-PRESET-ESPELHO` · 05/10):** cadastro ERP, entrada NF e PDV passam a **puxar a API** ao abrir o dropdown (antes gestão/NF ficavam só no Chrome). Fila já puxava. Mudou num PC/tela → todos veem a mesma lista.
 
 **Duas telas â€” nÃ£o confundir:**
@@ -1290,6 +1290,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### ✅ PACOTE — impressão térmica direta Windows (`ETQ-PRINT-DIRETO`) · tip **v26.26** · 05/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Ponte local **Agro Etiqueta Print** (`agro-print-bridge/`) + config no preset: impressora + modo **auto/direto/diálogo**. Serve 1–N impressoras ou troca de bobina na mesma. |
+| **Como ligar** | PC da etiqueta → `agro-print-bridge/Iniciar-ponte-etiquetas.bat` → card verde em `/produtos/etiquetas/` → Salvar preset com impressora/modo. |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_etq_print_direto_path.js` **38/38** · térmica várias **39/39** · UX 53 **32/32** |
+| **Versão** | **v26.26** · `teste` |
+| **Status** | 🟢 no `teste` · **não** loja até frase+senha |
+| **Você** | Local: Ctrl+F5 etiquetas · rodar o `.bat` · Verificar · Testar 1 etiqueta · configurar presets |
 
 ### 🔧 PACOTE — Presets etiqueta espelho gestão×PDV (`ETQ-PRESET-ESPELHO` · **v26.25** · 05/10)
 

@@ -70,10 +70,10 @@ ok(
 ok(nfe.includes('refreshPresetsFromServer'), 'entrada NF chama refresh');
 ok(nfe.includes('nfe-etq-preset'), 'entrada NF tem select preset');
 
-ok(page.includes("produtos_etiquetas_core.js' %}?v=31"), 'etiquetas core v=31');
-ok(lote.includes("produtos_etiquetas_core.js' %}?v=31"), 'lote core v=31');
-ok(cadHtml.includes("produtos_etiquetas_core.js' %}?v=31"), 'cadastro core v=31');
-ok(nfe.includes("produtos_etiquetas_core.js' %}?v=31"), 'entrada NF core v=31');
+ok(page.includes("produtos_etiquetas_core.js' %}?v=32"), 'etiquetas core v=32');
+ok(lote.includes("produtos_etiquetas_core.js' %}?v=32"), 'lote core v=32');
+ok(cadHtml.includes("produtos_etiquetas_core.js' %}?v=32"), 'cadastro core v=32');
+ok(nfe.includes("produtos_etiquetas_core.js' %}?v=32"), 'entrada NF core v=32');
 ok(cadHtml.includes("cadastro_erp_panel.js' %}?v=30"), 'cadastro panel v=30');
 
 const store = {};
