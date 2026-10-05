@@ -334,9 +334,11 @@ def pode_agir(sol: SolicitacaoTransferenciaPdv, loja_atual: str, acao: str) -> t
     if acao in ACOES_QUALQUER_LOJA and loja not in (sol.loja_origem, sol.loja_destino):
         return False, "Esta loja não participa deste pedido."
     if acao == "transferir":
-        if sol.status not in (STATUS_ACEITO, STATUS_PRONTO):
-            return False, "Aceite o pedido (e, se quiser, marque Pronto) antes de transferir o estoque."
-        return True, ""
+        if sol.status == STATUS_PRONTO:
+            return True, ""
+        if sol.status == STATUS_ACEITO:
+            return False, "Marque Pronto antes de transferir o estoque."
+        return False, "Aceite o pedido e marque Pronto antes de transferir o estoque."
     destino = TRANSICOES.get((sol.status, acao))
     if not destino:
         return False, "Esta ação não vale para o status atual."

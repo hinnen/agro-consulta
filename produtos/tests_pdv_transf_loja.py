@@ -101,10 +101,14 @@ class PodeAgirTests(SimpleTestCase):
         self.assertFalse(ok)
         self.assertIn("Vila", err)
 
-    def test_transferir_so_depois_de_aceito(self):
-        ok, _ = pode_agir(self._sol(STATUS_PENDENTE), "vila", "transferir")
+    def test_transferir_so_depois_de_pronto(self):
+        ok, err = pode_agir(self._sol(STATUS_PENDENTE), "vila", "transferir")
         self.assertFalse(ok)
-        ok, _ = pode_agir(self._sol(STATUS_ACEITO), "vila", "transferir")
+        self.assertIn("Pronto", err)
+        ok, err = pode_agir(self._sol(STATUS_ACEITO), "vila", "transferir")
+        self.assertFalse(ok)
+        self.assertIn("Pronto", err)
+        ok, _ = pode_agir(self._sol(STATUS_PRONTO), "vila", "transferir")
         self.assertTrue(ok)
         ok, _ = pode_agir(self._sol(STATUS_PRONTO), "centro", "transferir")
         self.assertTrue(ok)

@@ -46,6 +46,11 @@ def main() -> int:
     check("ui_toolbar", "pl-lista-toolbar" in html and "syncListaToolbar" in js)
     check("ui_ajuda_parcial", "fica na fila" in html.lower() or "fica pra depois" in html.lower())
     check("ui_aceitar_todos", "pdv-pedir-loja-aceitar-todos" in html and "Aceitar todos" in js)
+    check("ui_transferir_sel", "pdv-pedir-loja-transferir-sel" in html and "transferirSelecionadosTodos" in js)
+    check("ui_pronto_antes_transf", "Marque Pronto antes" in util and "st === 'pronto'" in js)
+    check("ui_ajuda_pronto", "Pronto" in html and "30 min" in html)
+    check("js_bip_alerta_por_bip", "applyBadge(n, bip)" in js and "bip pausado 30 min" in js)
+    check("js_poll_12s", "12000" in js and "visibilitychange" in js)
     check("ui_marcar_todos", 'data-pl-sel="todos"' in js and "marcarChecksDoCard" in js)
     check("ui_secoes_status", "pl-sec" in js and "eh_resto" in js)
     check("ui_confirm_lista", "Vai agora:" in js and "Ficam na fila" in js)
@@ -187,7 +192,7 @@ def main() -> int:
     )
     sol2 = SimpleNamespace(
         pk=100,
-        status=STATUS_ACEITO,
+        status=STATUS_PRONTO,
         loja_origem="vila",
         loja_destino="centro",
         observacao="",

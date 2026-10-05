@@ -74,7 +74,7 @@ def main() -> int:
     django.setup()
 
     from produtos.pdv_transf_loja_util import (
-        STATUS_ACEITO,
+        STATUS_PRONTO,
         _resolver_qtds_envio,
         concluir_transferencia,
         serializar_item,
@@ -122,7 +122,7 @@ def main() -> int:
     # concluir: 1 item parcial, 1 zerado → só 1 transfer
     sol = SimpleNamespace(
         pk=42,
-        status=STATUS_ACEITO,
+        status=STATUS_PRONTO,
         loja_origem="vila",
         loja_destino="centro",
         observacao="",
