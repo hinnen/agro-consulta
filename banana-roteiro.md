@@ -766,15 +766,15 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 56. CHECKLIST ÚNICO — ETQ-PRINT-DIRETO · 🟢 pronto envio (alvo **v26.33**)
+## 58. CHECKLIST ÚNICO — ETQ-PRINT-ELGIN-MAP · 🟢 pronto envio (alvo **v26.37**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-PRINT-DIRETO** | 🟢 **pronto para envio à produção** · full **68/68** | **NÃO** |
+| 1 | **ETQ-PRINT-ELGIN-MAP** | 🟢 **pronto para envio à produção** · full **74/74** | **NÃO** |
 
-**O quê:** Baixar ponte no SisVale · instalar 1× · imprime sem escolher tamanho · sobe com o Windows.  
-**Prova:** `verify_etq_print_direto_full_path.js` **68/68** · ZIP HTTP **200** · bridge print **OK**.  
-**Não entra:** merge do `teste` inteiro — cherry/PREP só deste pacote.  
+**O quê:** mapa tamanho→impressora (Elgin 40×40 USER + 50×30 GONDOLA).  
+**Prova:** `verify_etq_print_direto_full_path.js` **74/74** · print resolve **40→Elgin 40x40** · **50→Elgin 50x30**.  
+**Base:** Live **v26.35** já tem ponte básica.  
 **Só** frase+senha.
 
 ---

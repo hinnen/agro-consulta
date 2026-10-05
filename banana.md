@@ -558,7 +558,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 
 ### 4.6 Cadastro / gestÃ£o de produtos
 
-- **Etiquetas `/produtos/etiquetas/`:** presets = **Postgres**. **Impressão direta** (`ETQ-PRINT-DIRETO` v26.33): Baixar ponte no SisVale → instalar 1× → silent print.
+- **Etiquetas `/produtos/etiquetas/`:** presets = **Postgres**. **Impressão direta** (`ETQ-PRINT-DIRETO` Live v26.35 + mapa Elgin `ETQ-PRINT-ELGIN-MAP` v26.37): 2 filas 40×40/50×30.
 - **Presets espelho gestão×PDV (`ETQ-PRESET-ESPELHO` · 05/10):** cadastro ERP, entrada NF e PDV passam a **puxar a API** ao abrir o dropdown (antes gestão/NF ficavam só no Chrome). Fila já puxava. Mudou num PC/tela → todos veem a mesma lista.
 
 **Duas telas â€” nÃ£o confundir:**
@@ -1290,6 +1290,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 📦 PACOTE PRONTO LOJA — Elgin mapa 40×40 / 50×30 (`ETQ-PRINT-ELGIN-MAP` · **v26.37**) · 05/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **pronto para envio à produção** — aguarda frase + senha |
+| **O quê** | Mapa tamanho→impressora na ponte (LocalAppData). Elgin: 2 filas Windows (**Elgin 40x40** USER + **Elgin 50x30** GONDOLA). Print 40×40 e 50/53×30 escolhem a fila certa. UI no card Etiquetas. |
+| **Migrate** | **NÃO** |
+| **Prova** | full **74/74** · path **45/45** · dl **21/21** · ZIP HTTP **200** · bridge resolve **40→Elgin 40x40** · **50→Elgin 50x30** · print **OK** |
+| **Tip** | `teste` **v26.37** |
+| **Base loja** | Live **v26.35** já tem ETQ-PRINT-DIRETO básico — este pacote é o mapa Elgin |
+| **Você** | Ctrl+F5 Etiquetas · reiniciar ponte · mapa 40/50 salvo · testar 1 de cada tamanho |
+
+### ✅ CHECKLIST ÚNICO — falta subir · 🟢 pronto para envio à produção
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ETQ-PRINT-ELGIN-MAP** | 🟢 **pronto para envio à produção** | **NÃO** | full **74/74** · resolve print **OK** |
 
 ### ✅ Deploy loja — Checklist 05/10c · **Live v26.35** · 05/10
 
