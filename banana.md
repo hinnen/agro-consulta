@@ -429,7 +429,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08 · **Mais ⋯** 31/08 · `PDV-TOPBAR-MAIS` v20.34 · **layout** 31/08 · `PDV-TOPBAR-LAYOUT`):** faixa quente padrão = Pedir loja · Vendas · Uso loja · Entregas · Caixa · **Fiado** · Nova venda (Pedir/Uso = cinza slate; **Mais ⋯** laranja destaque). **Mais ⋯** = Saldo Vila · Repasse · Pesar · PIN + **Organizar atalhos** (quente/frio em Postgres `PdvTopbarLayoutAgro` · migrate `0110` · PIN ao salvar). Contagem diária PG (`0107`). **Ícone WhatsApp** na faixa de ações (ao lado de Nova venda) → aviso **Em breve…** (`PDV-WA-TOPBAR-BREVE`).
-- **Pedir loja (15/08 · +cupom/qtd/escrito 29/08 · +escolha/forçada 30/08):** overlay Pedir/Recebidos/Enviados/Histórico · **pedido escrito** · obs · cupom 80mm · qtd · Transferir rosa · PIN · furado · bip · migrate `0018`+`0020`. **Clique topbar** → escolha: **Pedir** (fila) ou **Transferência forçada** (estoque agora, overlay PDV = Logística; PIN na confirmação; Esc volta à escolha). Badge só conta pedidos.
+- **Pedir loja (15/08 · +cupom/qtd/escrito 29/08 · +escolha/forçada 30/08 · +parcial/print-todos 05/10):** overlay Pedir/Recebidos/Enviados/Histórico · **pedido escrito** · obs · cupom 80mm · **Imprimir todos** · qtd · □ parcial (resto na fila) · Transferir rosa · PIN · furado · bip · migrate `0018`+`0020`. **Clique topbar** → escolha: **Pedir** (fila) ou **Transferência forçada** (estoque agora, overlay PDV = Logística; PIN na confirmação; Esc volta à escolha). Badge só conta pedidos.
 - **Chat lojas (29/08 · `PDV-CHAT-LOJA` + `PDV-CHAT-OPEN` · 12/09 `PDV-CHAT-ENTREGA-DOCK`):** aba **Chat** colada embaixo · grupo único · som + badge/pisca · sem Processando · Postgres `ChatLojaMensagemAgro` · migrate `0105` · **Live v19.63** (dock→`body`, janela abre). **Entrega:** aba depois do F7 (não tapa Voltar/F7).
 - **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
 - **Perf. animaÃ§Ãµes (decisÃ£o Renan, 2026-06):** acÃºmulo de efeitos no app inteiro *pode* pesar em PC fraco â€” mas **este FAB Ã© impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA pÃ¡gina inteira, listas grandes, Mongo, JS do PDV/LanÃ§amentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
@@ -1289,6 +1289,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### PACOTE PRONTO — Pedir loja parcial + imprimir todos (`PDV-PEDIR-PARCIAL-PRINT`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Recebidos: **Imprimir todos** (1 cupom). Lista **1 linha/produto** (sem resumo duplicado). □ marca o que envia agora; desmarcado = fica na fila (pedido resto). Qtd **0** = **NÃO ENVIADO** no histórico. |
+| **Migrate** | **NÃO** |
+| **Mexe** | `pdv_pedir_loja.js` · overlay · `pdv_transf_loja_util` · `views_pdv_transf_loja` |
+| **Prova** | `scripts/verify_pdv_pedir_parcial_print_path.py` **22/22** · cupom-qtd **32/32** |
+| **Status** | 🟢 tip `teste` **v26.17** — validar local |
+| **Você** | Ctrl+F5 PDV · Pedir loja → Recebidos · Imprimir todos · □ parcial · qtd 0 → Histórico |
+
+### ✅ CHECKLIST ÚNICO — PDV-PEDIR-PARCIAL-PRINT · tip teste
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-PEDIR-PARCIAL-PRINT** | 🟢 tip `teste` | **NÃO** | **22/22** |
 
 ### PACOTE PRONTO — Excel lab crédito (`CREDITO-SCORE-XLSX`)
 

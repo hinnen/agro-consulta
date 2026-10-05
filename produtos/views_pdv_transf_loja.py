@@ -194,7 +194,10 @@ def api_pdv_transf_loja_acao(request, pk: int):
             qtds_envio = payload.get("quantidades_envio")
         if qtds_envio is None:
             qtds_envio = payload.get("quantidades")
-        ok_t, err_t, _res = concluir_transferencia(
+        adiar_itens = payload.get("adiar_itens")
+        if adiar_itens is None:
+            adiar_itens = payload.get("adiar_item_ids")
+        ok_t, err_t, res_t = concluir_transferencia(
             request,
             sol,
             loja_atual=loja,
@@ -207,6 +210,7 @@ def api_pdv_transf_loja_acao(request, pk: int):
             else payload.get("ajuste_qtd"),
             ajustes_por_produto=ajustes,
             quantidades_envio=qtds_envio,
+            adiar_item_ids=adiar_itens,
         )
         if not ok_t:
             return JsonResponse({"ok": False, "erro": err_t}, status=400)
@@ -221,11 +225,24 @@ def api_pdv_transf_loja_acao(request, pk: int):
             msg = "Estoque transferido · marcado furado."
             if ajustar:
                 msg = "Estoque transferido · furado · saldo da origem ajustado."
+        n_adiar = 0
+        resto_id = None
+        for r in res_t or []:
+            if isinstance(r, dict) and r.get("resto_solicitacao_id"):
+                resto_id = r.get("resto_solicitacao_id")
+                n_adiar = int(r.get("adiados") or 0)
+                break
+        if n_adiar > 0:
+            msg = (
+                f"{msg} · {n_adiar} produto(s) ficaram na fila"
+                + (f" (pedido #{resto_id})." if resto_id else ".")
+            )
         return JsonResponse(
             {
                 "ok": True,
                 "mensagem": msg,
                 "solicitacao": serializar_solicitacao(sol, com_eventos=True),
+                "resto_solicitacao_id": resto_id,
                 **resumo_loja(loja),
             }
         )
