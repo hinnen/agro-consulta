@@ -1289,6 +1289,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### WIP — botão Análise de crédito no menu Gestão · 05/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 **só no `teste`** v26.08 — botão no launchpad GESTÃO (abaixo Configuração) · **só** quem tem flag+allowlist |
+| **Loja** | Flag **ON** no Render (env) · URL já abre · botão ainda **não** na loja (falta frase+senha) |
+| **URL** | `/fiado/analise-credito/` |
+
 ### ✅ Deploy loja — CREDITO-SCORE-SHADOW · **Live v26.07** · 05/10
 
 | Campo | Valor |
