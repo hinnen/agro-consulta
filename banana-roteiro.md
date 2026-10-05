@@ -763,3 +763,21 @@ A impressÃ£o da folha **jÃ¡ estÃ¡ na loja (v25.77)**. O Â§35 **jÃ¡ estÃ¡ na loja
 
 **Rollback:** tag `rollback/pre-credito-score-shadow-v26.05` @ `41a6fdea` Â· `docs/ROLLBACK-CREDITO-SCORE-SHADOW.md` Â· **sÃ³** frase+senha.  
 **Flag:** ainda **OFF** na loja (ligar env depois, se quiser o laboratÃ³rio).
+
+---
+
+## 57. Checklist único — lote 05/10c (deploy/prep-checklist-0510c · alvo loja **v26.35**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-PEDIR-PARCIAL-RESTO** | ?? **PREP** · **38/38** + smoke **36/36** | **NÃO** |
+| 2 | **PDV-PEDIR-PRONTO-TRANSF** | ?? **PREP** · **42/42** | **NÃO** |
+| 3 | **META-MODO-AGORA** | ?? **PREP** · **125/125** | **NÃO** |
+| 4 | **CREDITO-SCORE-XLSX-COLS** | ?? **PREP** · **86/86** | **NÃO** |
+| 5 | **ETQ-PRESET-ESPELHO** | ?? **PREP** · **40/40** + smoke **24/24** | **NÃO** |
+| 6 | **ETQ-PRINT-DIRETO** | ?? **PREP** · **68/68** | **NÃO** |
+| 7 | **PDV-PEDIR-PRINT-3** | ?? **PREP** · **37/37** + smoke **23/23** | **NÃO** |
+
+**Branch PREP:** `deploy/prep-checklist-0510c` · base Live **v26.08** @ `8b636b67`.  
+**Rollback:** tag `rollback/pre-checklist-0510c-v26.08` · `docs/ROLLBACK-CHECKLIST-0510c.md` · **só** frase+senha.  
+**Na senha:** pausar vendas · tip PREP ? `producao` ? Ctrl+F5 · badge **v26.35**. **Não** merge `teste`.

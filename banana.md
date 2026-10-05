@@ -1289,6 +1289,34 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🚀 PREP deploy loja — Checklist 05/10c (`deploy/prep-checklist-0510c` · alvo **v26.35**) · aguarda senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha |
+| **Branch PREP** | `deploy/prep-checklist-0510c` (tip após docs) · base Live **v26.08** @ `8b636b67` |
+| **Alvo loja** | **v26.35** |
+| **Migrate** | **NÃO** |
+| **Merge `teste`?** | **NÃO** |
+| **Provas (PREP)** | resto **38/38**+smoke **36/36** · pronto-transf **42/42** · META **125/125** · crédito **86/86** · espelho **40/40**+smoke **24/24** · print-direto **68/68** · print-3 **37/37**+smoke **23/23** · Pedir **80/80** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-checklist-0510c-v26.08` @ `8b636b67` · branch `producao-backup-pre-v2635-checklist-20261005` · `docs/ROLLBACK-CHECKLIST-0510c.md` |
+| **Na senha (rápido)** | `git fetch` → `producao` = `reset --hard origin/deploy/prep-checklist-0510c` → push → Render Live → Ctrl+F5 · badge **v26.35** |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-0510c.md` |
+
+### ✅ CHECKLIST ÚNICO — 05/10c · 🟢 PREP v26.35 · aguarda senha
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-PEDIR-PARCIAL-RESTO** | 🟢 **no PREP** | **NÃO** | **38/38** · smoke **36/36** |
+| 2 | **PDV-PEDIR-PRONTO-TRANSF** | 🟢 **no PREP** | **NÃO** | **42/42** |
+| 3 | **META-MODO-AGORA** | 🟢 **no PREP** | **NÃO** | **125/125** |
+| 4 | **CREDITO-SCORE-XLSX-COLS** | 🟢 **no PREP** | **NÃO** | **86/86** |
+| 5 | **ETQ-PRESET-ESPELHO** | 🟢 **no PREP** | **NÃO** | **40/40** · smoke **24/24** |
+| 6 | **ETQ-PRINT-DIRETO** | 🟢 **no PREP** | **NÃO** | **68/68** |
+| 7 | **PDV-PEDIR-PRINT-3** | 🟢 **no PREP** | **NÃO** | **37/37** · smoke **23/23** |
+
+**Risco loja aberta:** baixo–médio só em **Pedir loja** / etiquetas / META / lab crédito. **Não** mexe finalizar venda · caixa · Point · NFC-e.
+
 ### ✅ Deploy loja — CREDITO-SCORE-SHADOW · **Live v26.07** · 05/10
 
 | Campo | Valor |
