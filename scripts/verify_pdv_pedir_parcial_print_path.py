@@ -39,7 +39,10 @@ def main() -> int:
     views = _read("produtos/views_pdv_transf_loja.py")
 
     check("ui_imprimir_todos_btn", "pdv-pedir-loja-imprimir-todos" in html and "Imprimir todos" in html)
-    check("ui_imprimir_todos_fn", "imprimirTodosCupons" in js and "montarHtmlCupomPedidos" in js)
+    check(
+        "ui_imprimir_todos_fn",
+        "imprimirTodosPedidos" in js and "montarHtmlCupomPedidos" in js and "abrirEscolhaImpressao" in js,
+    )
     check("ui_sem_resumo_duplicado", "row.resumo" not in js or "escapeHtml(row.resumo" not in js)
     check("ui_checkbox_item", "pl-item-check" in js and "adiar_itens" in js)
     check("ui_historico_zero", "NÃO ENVIADO" in js)

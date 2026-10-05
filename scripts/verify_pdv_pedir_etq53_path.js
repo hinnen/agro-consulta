@@ -1,6 +1,7 @@
 /**
- * Path: Pedir loja → Etiquetas 53×30 (lista compacta).
+ * Path PDV-PEDIR-PRINT-3 — Etiqueta 40×40 (substitui Etiquetas 53).
  * node scripts/verify_pdv_pedir_etq53_path.js
+ * Mantém o nome do arquivo por quem ainda chama o path antigo.
  */
 const fs = require('fs');
 const path = require('path');
@@ -22,25 +23,25 @@ function ok(cond, msg) {
   }
 }
 
-ok(js.includes('function imprimirEtiquetasSeparacao53'), 'fn etiquetas 53');
-ok(js.includes('size:53mm 30mm'), 'página 53×30');
-ok(js.includes('LINHAS_POR_ETQ = 6'), '6 linhas por etiqueta');
-ok(js.includes('data-pl-acao="etiquetas"'), 'botão acao etiquetas');
-ok(js.includes('Etiquetas 53'), 'rótulo botão');
-ok(js.includes("acao === 'etiquetas'"), 'handler etiquetas');
+ok(js.includes('function montarHtmlEtiquetas40x40'), 'fn etiquetas 40×40');
+ok(js.includes('size:40mm 40mm'), 'página 40×40');
+ok(js.includes('LINHAS_POR_ETQ = 3'), '3 linhas por etiqueta');
+ok(!js.includes('data-pl-acao="etiquetas"'), 'sem botão acao etiquetas');
+ok(!js.includes('Etiquetas 53'), 'sem rótulo Etiquetas 53');
+ok(js.includes('abrirEscolhaImpressao'), 'popup escolha');
+ok(html.includes('data-pl-print="etq40"'), 'opção etq40 no modal');
 ok(js.includes('function abrirPrintIframe'), 'iframe compartilhado');
-ok(html.includes('pl-btn--etq'), 'CSS botão roxo');
-ok(js.includes('imprimirCupomSeparacao'), 'cupom 80mm intacto');
+ok(js.includes('montarHtmlCupomPedidos'), 'cupom 80mm intacto');
+ok(js.includes('size:80mm auto'), 'cupom 80mm');
+ok(js.includes('montarHtmlA4Separacao'), 'folha A4');
 
-/* Packing: 6 → 1 página; 7 → 2; 12 → 2; 13 → 3 */
 function pagesFor(count, per) {
   return Math.max(1, Math.ceil(count / per));
 }
-ok(pagesFor(1, 6) === 1, '1 item = 1 etq');
-ok(pagesFor(6, 6) === 1, '6 itens = 1 etq');
-ok(pagesFor(7, 6) === 2, '7 itens = 2 etq');
-ok(pagesFor(12, 6) === 2, '12 itens = 2 etq');
-ok(pagesFor(13, 6) === 3, '13 itens = 3 etq');
+ok(pagesFor(1, 3) === 1, '1 item = 1 etq');
+ok(pagesFor(3, 3) === 1, '3 itens = 1 etq');
+ok(pagesFor(4, 3) === 2, '4 itens = 2 etq');
+ok(pagesFor(9, 3) === 3, '9 itens = 3 etq');
 
 console.log(fail ? 'FAIL ' + fail + '/' + n : 'OK ' + n + '/' + n);
 process.exit(fail ? 1 : 0);

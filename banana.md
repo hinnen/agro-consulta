@@ -1291,16 +1291,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### PACOTE PRONTO — Pedir loja Pronto opcional + Transferir sel + bip (`PDV-PEDIR-PRONTO-TRANSF`)
+### 📦 PACOTE PRONTO LOJA — Pedir loja 3 layouts de impressão (`PDV-PEDIR-PRINT-3` · **v26.30**)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Transferir no **Aceito** (Pronto opcional) · **Transferir selecionados** · bip **30 min** em Aceito e Pronto (Postgres, multi-PC) |
+| **Status** | 🟢 **pronto para envio à produção** — aguarda frase + senha |
+| **O quê** | 1 botão **Imprimir** (item / todos) → popup: **Cupom 80 mm** · **Folha A4** · **Etiqueta 40×40** (3 produtos/etiqueta). Some cupom+Etiquetas 53. |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_pdv_pedir_pronto_transf_path.py` **42/42** · parcial **37/37** · Pedir **81/81** · PIN **9973** · **PREP_FAILS=0** |
-| **Versão** | **v26.27** · `teste` |
-| **Status** | 🟢 **pronto para envio à produção** · já no PREP 05/10b |
-| **Você** | Ctrl+F5 PDV → Aceitar → Transferir (sem Pronto) |
+| **Prova** | `verify_pdv_pedir_print_layouts_path.py` **30/30** · etq path **15/15** · Pedir loja **81/81** · parcial **37/37** |
+| **Você** | Ctrl+F5 PDV → Pedir loja → Imprimir → escolher formato |
 
 ### ✅ CHECKLIST ÚNICO — falta subir · 🟢 pronto para envio à produção
 
@@ -1311,6 +1310,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 3 | **CREDITO-SCORE-XLSX-COLS** | 🟢 **pronto / no PREP 05/10b** | **NÃO** | **86/86** |
 | 4 | **ETQ-PRESET-ESPELHO** | 🟢 **pronto para envio à produção** | **NÃO** | path **40/40** · smoke **24/24** |
 | 5 | **ETQ-PRINT-DIRETO** | 🟢 **pronto para envio à produção** | **NÃO** | **38/38** |
+| 6 | **PDV-PEDIR-PRINT-3** | 🟢 **pronto para envio à produção** | **NÃO** | **30/30** |
+
+### PACOTE PRONTO — Pedir loja Pronto opcional + Transferir sel + bip (`PDV-PEDIR-PRONTO-TRANSF`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Transferir no **Aceito** (Pronto opcional) · **Transferir selecionados** · bip **30 min** em Aceito e Pronto (Postgres, multi-PC) |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_pdv_pedir_pronto_transf_path.py` **42/42** · parcial **37/37** · Pedir **81/81** · PIN **9973** · **PREP_FAILS=0** |
+| **Versão** | **v26.27** · `teste` |
+| **Status** | 🟢 **pronto para envio à produção** · já no PREP 05/10b |
+| **Você** | Ctrl+F5 PDV → Aceitar → Transferir (sem Pronto) |
 
 ### 📦 PACOTE PRONTO LOJA — Presets etiqueta espelho gestão×PDV (`ETQ-PRESET-ESPELHO` · **v26.25+**)
 
