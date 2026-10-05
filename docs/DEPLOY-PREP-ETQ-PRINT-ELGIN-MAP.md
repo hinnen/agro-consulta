@@ -1,3 +1,5 @@
+> ✅ **Live v26.40** — producao @ 8be1f093 · Render dep-db20u9favr4c73a4ot70 (05/10).
+
 # PREP deploy — ETQ-PRINT-ELGIN-MAP (`deploy/prep-etq-print-elgin-map` · alvo **v26.40**)
 
 **Não sobe sozinho.** Só com frase explícita + senha `99738595` na mesma mensagem.

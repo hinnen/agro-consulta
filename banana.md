@@ -558,7 +558,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 
 ### 4.6 Cadastro / gestÃ£o de produtos
 
-- **Etiquetas `/produtos/etiquetas/`:** presets = **Postgres**. **Impressão direta** (`ETQ-PRINT-DIRETO` Live v26.35 + mapa Elgin `ETQ-PRINT-ELGIN-MAP` v26.37): 2 filas 40×40/50×30.
+- **Etiquetas `/produtos/etiquetas/`:** presets = **Postgres**. **Impressão direta** (`ETQ-PRINT-DIRETO` Live v26.35 + mapa Elgin `ETQ-PRINT-ELGIN-MAP` Live v26.40): 2 filas 40×40/50×30.
 - **Presets espelho gestão×PDV (`ETQ-PRESET-ESPELHO` · 05/10):** cadastro ERP, entrada NF e PDV passam a **puxar a API** ao abrir o dropdown (antes gestão/NF ficavam só no Chrome). Fila já puxava. Mudou num PC/tela → todos veem a mesma lista.
 
 **Duas telas â€” nÃ£o confundir:**
@@ -1291,28 +1291,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚀 PREP deploy loja — ETQ-PRINT-ELGIN-MAP (`deploy/prep-etq-print-elgin-map` · **v26.40**) · aguarda senha
+### ✅ Deploy loja — ETQ-PRINT-ELGIN-MAP · **Live v26.40** · 05/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha no próximo chat |
-| **O quê** | Mapa tamanho→impressora (Elgin **40x40** USER + **50x30** GONDOLA). UI no card Etiquetas. |
-| **Branch PREP** | `deploy/prep-etq-print-elgin-map` |
-| **Base Live** | **v26.35** @ `c517af0a` |
-| **Alvo loja** | **v26.40** |
+| **Status** | ✅ **enviado / Live v26.40** — `producao` @ `8be1f093` · Render `dep-db20u9favr4c73a4ot70` · **não** foi merge do `teste` |
+| **O quê** | Mapa tamanho→impressora (Elgin **40x40** USER + **50x30** GONDOLA) |
+| **Branch PREP** | `deploy/prep-etq-print-elgin-map` · tip `8be1f093` · base Live **v26.35** @ `c517af0a` |
 | **Migrate** | **NÃO** |
-| **Merge `teste`?** | **NÃO** |
-| **Provas (PREP)** | full **74/74** · path **45/45** · dl **21/21** · print **40→Elgin 40x40** · **50→Elgin 50x30** · **PREP_FAILS=0** |
-| **Rollback** | tag `rollback/pre-etq-print-elgin-map-v26.35` @ `c517af0a` · branch `producao-backup-pre-v2640-etq-elgin-map` · `docs/ROLLBACK-ETQ-PRINT-ELGIN-MAP.md` |
-| **Doc** | `docs/DEPLOY-PREP-ETQ-PRINT-ELGIN-MAP.md` |
-| **Na senha (rápido ~1–2 min)** | Zap pausa → `reset --hard origin/deploy/prep-etq-print-elgin-map` → push `producao` → Render Live → Ctrl+F5 · badge **v26.40** · reiniciar ponte |
-| **Risco loja aberta** | **Baixo** — só etiquetas/ponte. **Não** mexe PDV venda · caixa · Point · NFC-e |
+| **Provas** | full **74/74** · path **45/45** · dl **21/21** · print resolve **OK** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-etq-print-elgin-map-v26.35` @ `c517af0a` · branch `producao-backup-pre-v2640-etq-elgin-map` · `docs/ROLLBACK-ETQ-PRINT-ELGIN-MAP.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 · badge **v26.40** · reiniciar ponte · testar 1 etiqueta 40 e 1 de 50 |
 
-### ✅ CHECKLIST ÚNICO — ETQ-PRINT-ELGIN-MAP · 🟢 PREP v26.40 · aguarda senha
+### ✅ CHECKLIST ÚNICO — ETQ-PRINT-ELGIN-MAP · ✅ Live v26.40
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-PRINT-ELGIN-MAP** | 🟢 **no PREP** · aguarda senha | **NÃO** | full **74/74** · resolve print **OK** |
+| 1 | **ETQ-PRINT-ELGIN-MAP** | ✅ **enviado / Live v26.40** | **NÃO** | full **74/74** |
 
 ### ✅ Deploy loja — Checklist 05/10c · **Live v26.35** · 05/10
 

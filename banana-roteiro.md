@@ -766,16 +766,15 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 58. CHECKLIST ÚNICO — ETQ-PRINT-ELGIN-MAP · 🟢 PREP v26.40 · aguarda senha
+## 58. CHECKLIST ÚNICO — ETQ-PRINT-ELGIN-MAP · ✅ **Live v26.40**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-PRINT-ELGIN-MAP** | 🟢 **no PREP** · full **74/74** | **NÃO** |
+| 1 | **ETQ-PRINT-ELGIN-MAP** | ✅ **Live v26.40** · full **74/74** | **NÃO** |
 
-**Branch PREP:** `deploy/prep-etq-print-elgin-map` · base Live **v26.35** @ `c517af0a`.  
-**Prova:** full **74/74** · print **40→Elgin 40x40** · **50→Elgin 50x30** · **PREP_FAILS=0**.  
-**Doc:** `docs/DEPLOY-PREP-ETQ-PRINT-ELGIN-MAP.md` · rollback `docs/ROLLBACK-ETQ-PRINT-ELGIN-MAP.md`.  
-**Na senha:** `reset --hard origin/deploy/prep-etq-print-elgin-map` → push `producao`. **Não** merge `teste`.
+**Status:** ✅ enviado / Live **v26.40** — `producao` @ `8be1f093` · Render `dep-db20u9favr4c73a4ot70`. **Não** merge `teste`.  
+**Rollback:** tag `rollback/pre-etq-print-elgin-map-v26.35` · `docs/ROLLBACK-ETQ-PRINT-ELGIN-MAP.md` · **só** frase+senha.  
+**Smoke:** Ctrl+F5 · badge **v26.40** · reiniciar ponte · 1×40 + 1×50.
 
 ---
 
