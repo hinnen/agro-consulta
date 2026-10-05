@@ -1298,7 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Prova** | parcial **35/35** · cupom **32/32** · Pedir **80/80** |
 | **Versão** | **v26.20** · `teste` |
-| **Status** | 🟢 **pronto para envio à produção** · tip abaixo após push |
+| **Status** | 🟢 **pronto para envio à produção** · tip `teste` **v26.20** @ `dc9b67c8` |
 | **Você** | Ctrl+F5 PDV → Aceitar → **Pronto** → □ → Transferir / Transferir selecionados |
 
 ### ✅ CHECKLIST ÚNICO — PDV-PEDIR-PRONTO-TRANSF · 🟢 pronto para envio à produção
