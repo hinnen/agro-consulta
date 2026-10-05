@@ -1,4 +1,4 @@
-# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
+﻿# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** â€” teste Render, produÃ§Ã£o, pacotes, operaÃ§Ã£o diÃ¡ria. O **produto SisVale** no geral estÃ¡ em **`SISTVALE.md`**; a instÃ¢ncia **delivery em branco** estÃ¡ em **`FOOD.md`**.
 
@@ -1291,33 +1291,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚀 PREP deploy loja — Checklist 05/10c (`deploy/prep-checklist-0510c` · alvo **v26.35**) · aguarda senha
+### ✅ Deploy loja — Checklist 05/10c · **Live v26.35** · 05/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha |
+| **Status** | ✅ **enviado / Live v26.35** — `producao` @ `c517af0a` · Render `dep-db201js9v7es73fuo7sg` · **não** foi merge do `teste` |
 | **Branch PREP** | `deploy/prep-checklist-0510c` · tip `c517af0a` · base Live **v26.08** @ `8b636b67` |
-| **Alvo loja** | **v26.35** |
 | **Migrate** | **NÃO** |
-| **Merge `teste`?** | **NÃO** |
+| **Smoke** | healthz **ok** · deploy **live** |
 | **Provas (PREP)** | resto **38/38**+smoke **36/36** · pronto-transf **42/42** · META **125/125** · crédito **86/86** · espelho **40/40**+smoke **24/24** · print-direto **68/68** · print-3 **37/37**+smoke **23/23** · Pedir **80/80** · **PREP_FAILS=0** |
-| **Rollback** | tag `rollback/pre-checklist-0510c-v26.08` @ `8b636b67` · branch `producao-backup-pre-v2635-checklist-20261005` · `docs/ROLLBACK-CHECKLIST-0510c.md` |
-| **Na senha (rápido)** | pausar vendas → `git fetch` → `producao` = tip PREP → push → Render Live → Ctrl+F5 · badge **v26.35** |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-0510c.md` |
+| **Rollback** | tag `rollback/pre-checklist-0510c-v26.08` @ `8b636b67` · branch `producao-backup-pre-v2635-checklist-20261005` · `docs/ROLLBACK-CHECKLIST-0510c.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 · badge **v26.35** · Pedir loja (resto/print) · etiquetas · META · Excel crédito |
 
-### ✅ CHECKLIST ÚNICO — 05/10c · 🟢 PREP v26.35 · aguarda senha
+### ✅ CHECKLIST ÚNICO — 05/10c · ✅ Live v26.35
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-PEDIR-PARCIAL-RESTO** | 🟢 **no PREP** | **NÃO** | **38/38** · smoke **36/36** |
-| 2 | **PDV-PEDIR-PRONTO-TRANSF** | 🟢 **no PREP** | **NÃO** | **42/42** |
-| 3 | **META-MODO-AGORA** | 🟢 **no PREP** | **NÃO** | **125/125** |
-| 4 | **CREDITO-SCORE-XLSX-COLS** | 🟢 **no PREP** | **NÃO** | **86/86** |
-| 5 | **ETQ-PRESET-ESPELHO** | 🟢 **no PREP** | **NÃO** | **40/40** · smoke **24/24** |
-| 6 | **ETQ-PRINT-DIRETO** | 🟢 **no PREP** | **NÃO** | **68/68** |
-| 7 | **PDV-PEDIR-PRINT-3** | 🟢 **no PREP** | **NÃO** | **37/37** · smoke **23/23** |
-
-**Risco loja aberta:** baixo–médio só em Pedir loja / etiquetas / META / lab crédito. **Não** mexe finalizar venda · caixa · Point · NFC-e.
+| 1 | **PDV-PEDIR-PARCIAL-RESTO** | ✅ **enviado / Live v26.35** | **NÃO** | **38/38** · smoke **36/36** |
+| 2 | **PDV-PEDIR-PRONTO-TRANSF** | ✅ **enviado / Live v26.35** | **NÃO** | **42/42** |
+| 3 | **META-MODO-AGORA** | ✅ **enviado / Live v26.35** | **NÃO** | **125/125** |
+| 4 | **CREDITO-SCORE-XLSX-COLS** | ✅ **enviado / Live v26.35** | **NÃO** | **86/86** |
+| 5 | **ETQ-PRESET-ESPELHO** | ✅ **enviado / Live v26.35** | **NÃO** | **40/40** · smoke **24/24** |
+| 6 | **ETQ-PRINT-DIRETO** | ✅ **enviado / Live v26.35** | **NÃO** | **68/68** |
+| 7 | **PDV-PEDIR-PRINT-3** | ✅ **enviado / Live v26.35** | **NÃO** | **37/37** · smoke **23/23** |
 
 ### 📦 PACOTE PRONTO LOJA — Pedir parcial: encerrar ou resto (`PDV-PEDIR-PARCIAL-RESTO` · **v26.35**)
 
