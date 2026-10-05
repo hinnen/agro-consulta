@@ -1294,18 +1294,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Botão **Excel ↓** em `/fiado/analise-credito/` — planilha com mesmas linhas/filtros da tela (+ ID, limite cadastrado, vencido, candidato revisão, diff sugerido−atual). Só leitura. Cruzar com Excel de Clientes no ChatGPT. |
+| **O quê** | Botão **Excel ↓** em `/fiado/analise-credito/` — mesmas linhas/filtros da tela (+ ID, limites, vencido, candidato revisão, diff). Só leitura. Cruzar com Excel de Clientes. |
 | **Rota** | `GET /fiado/analise-credito/export-xlsx/` · mesmo gate do lab |
 | **Migrate** | **NÃO** |
-| **Mexe** | `credito_score_views` · url · botão no template · **não** PDV/limite/venda |
-| **Status** | 🟡 **só no teste** · tip `teste` **v26.15** @ `f6717675` |
-| **Você** | Lab → filtrar se quiser → **Excel ↓** · comparar com Excel ↓ de Clientes |
+| **Mexe** | `credito_score_views` · url · template · **não** PDV/limite/venda |
+| **Prova** | `scripts/verify_credito_score_xlsx_path.py` **54/54** · shadow **93/93** · PIN **9973** · **PREP_FAILS=0** |
+| **Status** | 🟢 **pronto para envio à produção** · tip `teste` abaixo após push |
+| **Rollback** | `docs/ROLLBACK-CREDITO-SCORE-XLSX.md` · **só** frase+senha |
+| **Você** | Lab → **Excel ↓** · comparar com Excel ↓ Clientes |
 
-### ✅ CHECKLIST ÚNICO — CREDITO-SCORE-XLSX · 🟡 só no teste
+### ✅ CHECKLIST ÚNICO — CREDITO-SCORE-XLSX · 🟢 pronto para envio à produção
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CREDITO-SCORE-XLSX** | 🟡 **só no teste** | **NÃO** | smoke xlsx OK |
+| 1 | **CREDITO-SCORE-XLSX** | 🟢 **pronto para envio à produção** | **NÃO** | **54/54** |
 
 ### PACOTE PRONTO — Acesso lab crédito (`CREDITO-SCORE-LAB-ACESSO`)
 
