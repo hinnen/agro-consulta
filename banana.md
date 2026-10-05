@@ -1290,7 +1290,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE — META mostruário (`META-MOSTRUARIO` · tip **v26.10**) · 05/10/2026
+### 📦 PACOTE — META mostruário (`META-MOSTRUARIO` · tip **v26.11**) · 05/10/2026
 
 | Campo | Valor |
 | ----- | ----- |
