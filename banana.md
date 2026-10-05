@@ -1294,18 +1294,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Recebidos: **Imprimir todos** · **Aceitar todos** · lista agrupada por status · cores · badge **RESTANTE** / **ENVIO PARCIAL** · □ + Marcar todos · confirmação lista o que vai/fica · qtd diferente fica vermelha · **NÃO ENVIADO (0)** no histórico. |
+| **O quê** | Imprimir todos · Aceitar todos · lista 1 linha · □ parcial (resto na fila) · qtd 0 = NÃO ENVIADO · badges RESTANTE / ENVIO PARCIAL · seções por status |
 | **Migrate** | **NÃO** |
 | **Mexe** | `pdv_pedir_loja.js` · overlay · `pdv_transf_loja_util` · `views_pdv_transf_loja` |
-| **Prova** | `scripts/verify_pdv_pedir_parcial_print_path.py` **30/30** · cupom-qtd **32/32** |
-| **Status** | 🟢 tip `teste` **v26.18** — validar local |
-| **Você** | Ctrl+F5 PDV · Pedir loja → Recebidos · Aceitar todos · Imprimir todos · □ parcial · qtd 0 → Histórico |
+| **Prova** | path **30/30** · cupom-qtd **32/32** · etq53 **14/14** · Django **29/29** · smoke DB PIN **9973** (criar→aceitar→parcial→zero) |
+| **Status** | 🟢 **pronto para envio à produção** · tip `teste` **v26.18** @ `45ca33f2` |
+| **Rollback** | `docs/ROLLBACK-PDV-PEDIR-PARCIAL-PRINT.md` · **só** frase+senha |
+| **Você** | frase+senha → deploy → Ctrl+F5 PDV · Pedir loja → Recebidos |
 
-### ✅ CHECKLIST ÚNICO — PDV-PEDIR-PARCIAL-PRINT · tip teste
+### ✅ CHECKLIST ÚNICO — PDV-PEDIR-PARCIAL-PRINT · 🟢 pronto para envio à produção
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-PEDIR-PARCIAL-PRINT** | 🟢 tip `teste` **v26.18** | **NÃO** | **30/30** |
+| 1 | **PDV-PEDIR-PARCIAL-PRINT** | 🟢 **pronto para envio à produção** | **NÃO** | **30/30** + smoke PIN |
 
 ### PACOTE PRONTO — Excel lab crédito (`CREDITO-SCORE-XLSX`)
 
