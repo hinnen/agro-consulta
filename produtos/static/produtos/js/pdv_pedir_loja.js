@@ -1,7 +1,7 @@
-﻿/**
- * PDV ÔÇö overlay Pedir loja (solicita├º├úo Centro Ôåö Vila).
- * Pedir / Aceitar / Pronto = s├│ status. Transferir = move estoque (s├│ depois de Pronto).
- * PIN: usa o operador j├í logado no PDV (sem redigitar).
+/**
+ * PDV — overlay Pedir loja (solicitação Centro ↔ Vila).
+ * Pedir / Aceitar / Pronto = só status. Transferir = move estoque.
+ * PIN: usa o operador já logado no PDV (sem redigitar).
  */
 (function () {
   'use strict';
@@ -173,7 +173,7 @@
   function applyResumoCounts(d) {
     d = d || {};
     var n = Number(d.recebidos_abertos || 0);
-    /* Bip: pendente sempre; aceito/pronto s├│ ap├│s 30 min sem transferir (servidor / Postgres). */
+    /* Bip: pendente sempre; aceito/pronto só após 30 min sem transferir (servidor). */
     var bip = Number(
       d.recebidos_bip != null
         ? d.recebidos_bip
@@ -338,16 +338,18 @@
     var nPedidos = 0;
     var nItens = 0;
     if (!dom.lista || aba !== 'recebidos') return { pedidos: 0, itens: 0 };
-    dom.lista.querySelectorAll('.pl-card[data-pl-st="pronto"]').forEach(function (card) {
-      var sel = lerSelecaoDoCard(card);
-      var comQtd = sel.itens.filter(function (it) {
-        return Number(it.quantidade) > 0;
+    dom.lista
+      .querySelectorAll('.pl-card[data-pl-st="aceito"], .pl-card[data-pl-st="pronto"]')
+      .forEach(function (card) {
+        var sel = lerSelecaoDoCard(card);
+        var comQtd = sel.itens.filter(function (it) {
+          return Number(it.quantidade) > 0;
+        });
+        if (comQtd.length) {
+          nPedidos += 1;
+          nItens += comQtd.length;
+        }
       });
-      if (comQtd.length) {
-        nPedidos += 1;
-        nItens += comQtd.length;
-      }
-    });
     return { pedidos: nPedidos, itens: nItens };
   }
 
@@ -381,7 +383,7 @@
       syncTransferirSelBtn();
       return;
     }
-    if (n === 0) btn.textContent = 'Transferir (marque Ôûí)';
+    if (n === 0) btn.textContent = 'Transferir (marque □)';
     else if (n < total) btn.textContent = 'Transferir ' + n + ' de ' + total;
     else btn.textContent = 'Transferir estoque';
     syncTransferirSelBtn();
@@ -414,15 +416,15 @@
     bip = Number(bip != null ? bip : n);
     if (dom.btnOpen) {
       var base = 'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative';
-      /* Alerta/bip s├│ com recebidos_bip (Postgres) ÔÇö Aceitar silencia 30 min em todos os PCs. */
+      /* Alerta/bip so com recebidos_bip (Postgres) — Aceitar/Pronto silenciam 30 min em todos os PCs. */
       if (bip > 0) base += ' pdv-wiz-topbar-btn--pedir-loja-alerta';
       dom.btnOpen.className = base;
       dom.btnOpen.title =
         n > 0
           ? bip > 0
             ? n + ' pedido(s) da outra loja'
-            : n + ' pedido(s) ┬À bip pausado 30 min ap├│s Aceitar'
-          : 'Pedir produto da outra loja (Centro Ôåö Vila)';
+            : n + ' pedido(s) · bip pausado 30 min apos Aceitar'
+          : 'Pedir produto da outra loja (Centro ↔ Vila)';
     }
     if (dom.btnCount) {
       if (n > 0) {
@@ -502,7 +504,7 @@
 
   function fmtSaldo(n) {
     var x = Number(n);
-    if (!isFinite(x)) return 'ÔÇö';
+    if (!isFinite(x)) return '—';
     if (Math.abs(x - Math.round(x)) < 0.001) return String(Math.round(x));
     return String(Math.round(x * 100) / 100).replace('.', ',');
   }
@@ -531,7 +533,7 @@
     var gm = codigoGm(p);
     if (dom.ajusteNome) {
       dom.ajusteNome.textContent =
-        nome + (gm ? ' ┬À GM ' + gm : '') + ' ┬À digite o saldo real de cada loja';
+        nome + (gm ? ' · GM ' + gm : '') + ' · digite o saldo real de cada loja';
     }
     if (dom.ajusteCentro) dom.ajusteCentro.value = String(numSaldo(p, 'saldo_centro'));
     if (dom.ajusteVila) dom.ajusteVila.value = String(numSaldo(p, 'saldo_vila'));
@@ -554,17 +556,17 @@
     if (!ajusteProduto || busy) return;
     var url = urls.apiPdvTransfLojaAjustar;
     if (!url) {
-      setStatus('URL de ajuste indispon├¡vel.', true);
+      setStatus('URL de ajuste indisponível.', true);
       return;
     }
     var pid = produtoId(ajusteProduto);
     if (!pid) {
-      setStatus('Produto inv├ílido.', true);
+      setStatus('Produto inválido.', true);
       return;
     }
     busy = true;
     if (dom.ajusteSim) dom.ajusteSim.disabled = true;
-    setStatus('Ajustando estoqueÔÇª');
+    setStatus('Ajustando estoque…');
     fetch(url, {
       method: 'POST',
       credentials: 'same-origin',
@@ -595,7 +597,7 @@
           return;
         }
         if (!res.ok || !res.data || !res.data.ok) {
-          setStatus((res.data && res.data.erro) || 'N├úo ajustou.', true);
+          setStatus((res.data && res.data.erro) || 'Não ajustou.', true);
           return;
         }
         if (res.data.saldo_centro != null) ajusteProduto.saldo_centro = res.data.saldo_centro;
@@ -648,7 +650,7 @@
       });
     }
     renderCart();
-    hitsHint('Digite o nome, GM ou c├│digo.');
+    hitsHint('Digite o nome, GM ou código.');
     if (dom.busca) dom.busca.value = '';
   }
 
@@ -666,7 +668,7 @@
     var texto = dom.livre ? String(dom.livre.value || '').trim() : '';
     if (!texto) {
       if (!silent) {
-        setStatus('Escreva o que quer pedir (ex.: sacola, caf├®).', true);
+        setStatus('Escreva o que quer pedir (ex.: sacola, café).', true);
         if (dom.livre) {
           try {
             dom.livre.focus();
@@ -720,7 +722,7 @@
     if (!dom.cart) return;
     if (!cart.length) {
       dom.cart.innerHTML =
-        '<p class="px-1 py-2 text-sm font-bold text-slate-500">Busque ├á esquerda ou escreva embaixo e Enviar.</p>';
+        '<p class="px-1 py-2 text-sm font-bold text-slate-500">Busque à esquerda ou escreva embaixo e Enviar.</p>';
       return;
     }
     var outra = depositoAtual() === 'vila' ? 'saldo_centro' : 'saldo_vila';
@@ -744,13 +746,13 @@
           '</p>' +
           '<button type="button" class="pl-rm" data-pl-rm="' +
           idx +
-          '" aria-label="Tirar da lista">├ù</button>' +
+          '" aria-label="Tirar da lista">×</button>' +
           '</div>' +
           saldos +
           '<div class="pl-qty-row">' +
           '<button type="button" class="pl-qty-btn" data-pl-q="-1" data-i="' +
           idx +
-          '" aria-label="Menos">ÔêÆ</button>' +
+          '" aria-label="Menos">−</button>' +
           '<span class="pl-qty">' +
           escapeHtml(String(it.qtd)) +
           '</span>' +
@@ -767,7 +769,7 @@
     q = String(q || '').trim();
     if (q.length < 2) {
       buscaSeq += 1;
-      hitsHint('Digite o nome, GM ou c├│digo.');
+      hitsHint('Digite o nome, GM ou código.');
       return;
     }
     var seq = ++buscaSeq;
@@ -819,7 +821,7 @@
               escapeHtml(p.nome || '') +
               '</td>' +
               '<td class="pl-td-gm">' +
-              escapeHtml(codigoGm(p) || 'ÔÇö') +
+              escapeHtml(codigoGm(p) || '—') +
               '</td>' +
               '<td class="pl-td-n">' +
               escapeHtml(fmtSaldo(numSaldo(p, 'saldo_centro'))) +
@@ -868,7 +870,7 @@
     var url = urls.apiPdvTransfLojaCriar;
     if (!url) return;
     busy = true;
-    setStatus('EnviandoÔÇª');
+    setStatus('Enviando…');
     fetch(url, {
       method: 'POST',
       credentials: 'same-origin',
@@ -901,7 +903,7 @@
               erro:
                 r.status === 500
                   ? 'Erro no servidor (rode migrate no PC se acabou de atualizar).'
-                  : 'Resposta inv├ílida do servidor.',
+                  : 'Resposta inválida do servidor.',
             },
           };
         });
@@ -919,7 +921,7 @@
           return;
         }
         if (!res.ok || !res.data || !res.data.ok) {
-          setStatus((res.data && res.data.erro) || 'N├úo enviou.', true);
+          setStatus((res.data && res.data.erro) || 'Não enviou.', true);
           return;
         }
         cart = [];
@@ -941,13 +943,13 @@
     if (aba === 'recebidos' && (st === 'pendente' || st === 'aceito' || st === 'pronto')) {
       btns.push('<button type="button" class="pl-btn pl-btn--print" data-pl-acao="imprimir">Imprimir cupom</button>');
       btns.push(
-        '<button type="button" class="pl-btn pl-btn--etq" data-pl-acao="etiquetas" title="Lista compacta na t├®rmica 53├ù30 (separar estoque)">Etiquetas 53</button>'
+        '<button type="button" class="pl-btn pl-btn--etq" data-pl-acao="etiquetas" title="Lista compacta na térmica 53×30 (separar estoque)">Etiquetas 53</button>'
       );
     }
     if (aba === 'enviados' && (st === 'pendente' || st === 'aceito' || st === 'pronto')) {
       btns.push('<button type="button" class="pl-btn pl-btn--print" data-pl-acao="imprimir">Imprimir cupom</button>');
       btns.push(
-        '<button type="button" class="pl-btn pl-btn--etq" data-pl-acao="etiquetas" title="Lista compacta na t├®rmica 53├ù30 (separar estoque)">Etiquetas 53</button>'
+        '<button type="button" class="pl-btn pl-btn--etq" data-pl-acao="etiquetas" title="Lista compacta na térmica 53×30 (separar estoque)">Etiquetas 53</button>'
       );
     }
     if (aba === 'recebidos' && st === 'pendente') {
@@ -956,8 +958,7 @@
     if (aba === 'recebidos' && st === 'aceito') {
       btns.push('<button type="button" class="pl-btn pl-btn--ok" data-pl-acao="pronto">Pronto</button>');
     }
-    /* Transferir s├│ depois de Pronto (n├úo pula o passo). */
-    if (aba === 'recebidos' && st === 'pronto') {
+    if ((st === 'aceito' || st === 'pronto') && (aba === 'recebidos' || aba === 'enviados')) {
       btns.push('<button type="button" class="pl-btn pl-btn--transf" data-pl-acao="transferir">Transferir estoque</button>');
     }
     if (st === 'pendente' || st === 'aceito' || st === 'pronto') {
@@ -997,7 +998,7 @@
           pedHint =
             '<p class="pl-item-ped pl-item-ped--zero">Pedido ' +
             escapeHtml(fmtSaldo(it.quantidade_pedida)) +
-            ' ┬À <strong>N├âO ENVIADO (0)</strong></p>';
+            ' · <strong>NÃO ENVIADO (0)</strong></p>';
         } else if (
           Number(it.quantidade_pedida) > 0 &&
           Number(it.quantidade_pedida) !== Number(it.quantidade)
@@ -1005,7 +1006,7 @@
           pedHint =
             '<p class="pl-item-ped">Pedido ' +
             escapeHtml(fmtSaldo(it.quantidade_pedida)) +
-            ' ┬À enviado ' +
+            ' · enviado ' +
             escapeHtml(fmtSaldo(it.quantidade)) +
             '</p>';
         } else if (!edit) {
@@ -1024,7 +1025,7 @@
         var checkCell = edit
           ? '<input type="checkbox" class="pl-item-check" checked data-pl-item-id="' +
             escapeHtml(String(it.id)) +
-            '" title="Marcado = envia agora ┬À desmarcado = fica pra depois" aria-label="Enviar este produto agora" />'
+            '" title="Marcado = envia agora · desmarcado = fica pra depois" aria-label="Enviar este produto agora" />'
           : '';
         return (
           '<div class="pl-item-row' +
@@ -1051,13 +1052,13 @@
       selBar =
         '<div class="pl-sel-bar">' +
         '<button type="button" class="pl-btn pl-btn--ghost" data-pl-sel="todos">Marcar todos</button>' +
-        '<button type="button" class="pl-btn pl-btn--ghost" data-pl-sel="nenhum">S├│ depois</button>' +
+        '<button type="button" class="pl-btn pl-btn--ghost" data-pl-sel="nenhum">Só depois</button>' +
         '</div>';
     }
     return (
       '<div class="pl-itens">' +
       (edit
-        ? '<p class="m-0 text-[10px] font-black uppercase tracking-wide text-orange-800">Ôûí = envia agora ┬À qtd 0 = n├úo enviou ┬À desmarque = fica pra depois</p>'
+        ? '<p class="m-0 text-[10px] font-black uppercase tracking-wide text-orange-800">□ = envia agora · qtd 0 = não enviou · desmarque = fica pra depois</p>'
         : '') +
       selBar +
       lines +
@@ -1071,7 +1072,7 @@
     var adiar = [];
     var rows = card.querySelectorAll('.pl-item-row[data-pl-item-id]');
     if (!rows.length) {
-      /* legado: s├│ inputs de qtd */
+      /* legado: só inputs de qtd */
       card.querySelectorAll('.pl-item-qtd[data-pl-item-id]').forEach(function (inp) {
         itens.push({
           id: Number(inp.getAttribute('data-pl-item-id')),
@@ -1105,14 +1106,14 @@
     if (!iframe) {
       iframe = document.createElement('iframe');
       iframe.id = 'pdv-pedir-loja-print-iframe';
-      iframe.setAttribute('title', titulo || 'Impress├úo Pedir loja');
+      iframe.setAttribute('title', titulo || 'Impressão Pedir loja');
       iframe.style.cssText =
         'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none';
       document.body.appendChild(iframe);
     }
     var idoc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
     if (!idoc) {
-      setStatus('N├úo abriu a impress├úo.', true);
+      setStatus('Não abriu a impressão.', true);
       return;
     }
     idoc.open();
@@ -1123,7 +1124,7 @@
         iframe.contentWindow.focus();
         iframe.contentWindow.print();
       } catch (e) {
-        setStatus(erroMsg || 'N├úo imprimiu.', true);
+        setStatus(erroMsg || 'Não imprimiu.', true);
       }
     }, 120);
   }
@@ -1132,8 +1133,8 @@
     if (!row) return;
     abrirPrintIframe(
       montarHtmlCupomPedidos([row]),
-      'Cupom separa├º├úo',
-      'N├úo imprimiu. Confira a t├®rmica 80mm.'
+      'Cupom separação',
+      'Não imprimiu. Confira a térmica 80mm.'
     );
   }
 
@@ -1155,9 +1156,9 @@
           row.status === 'concluido' && Number(ped) !== Number(env)
             ? 'PEDIDO ' +
               escapeHtml(fmtSaldo(ped)) +
-              ' ┬À ENVIADO ' +
+              ' · ENVIADO ' +
               escapeHtml(fmtSaldo(env)) +
-              (Number(env) === 0 ? ' (N├âO ENVIADO)' : '')
+              (Number(env) === 0 ? ' (NÃO ENVIADO)' : '')
             : 'QTD ' + escapeHtml(fmtSaldo(ped));
         bodyItens +=
           '<div style="border-top:1px dashed #000;margin-top:6px;padding-top:4px;">' +
@@ -1178,7 +1179,7 @@
         blocos += '<div style="border-top:3px double #000;margin:12px 0 8px;"></div>';
       }
       blocos +=
-        '<div style="text-align:center;font-weight:900;font-size:14px;">SEPARA├ç├âO</div>' +
+        '<div style="text-align:center;font-weight:900;font-size:14px;">SEPARAÇÃO</div>' +
         '<div style="text-align:center;font-weight:900;font-size:12px;margin-top:2px;">PEDIR LOJA #' +
         escapeHtml(String(row.id || '')) +
         '</div>' +
@@ -1187,7 +1188,7 @@
         '</div>' +
         '<div style="margin-top:4px;font-weight:900;font-size:13px;">' +
         escapeHtml(row.loja_origem_label || '') +
-        ' ÔåÆ ' +
+        ' → ' +
         escapeHtml(row.loja_destino_label || '') +
         '</div>' +
         (row.criado_por
@@ -1200,13 +1201,13 @@
         bodyItens;
     });
     return (
-      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Separa├º├úo Pedir loja</title>' +
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Separação Pedir loja</title>' +
       '<style>@page{margin:0;size:80mm auto}html,body{margin:0;padding:0;width:80mm}' +
       'body{font-family:"Courier New",Courier,monospace;color:#000;background:#fff}' +
       '.pg{width:80mm;box-sizing:border-box;padding:4mm 3mm;font-size:11px;line-height:1.35}</style></head><body>' +
       '<div class="pg">' +
       (rows && rows.length > 1
-        ? '<div style="text-align:center;font-weight:900;font-size:13px;margin-bottom:8px;">TODOS ┬À ' +
+        ? '<div style="text-align:center;font-weight:900;font-size:13px;margin-bottom:8px;">TODOS · ' +
           escapeHtml(String(rows.length)) +
           ' PEDIDO(S)</div>'
         : '') +
@@ -1225,14 +1226,14 @@
     abrirPrintIframe(
       montarHtmlCupomPedidos(rows),
       'Cupom todos',
-      'N├úo imprimiu. Confira a t├®rmica 80mm.'
+      'Não imprimiu. Confira a térmica 80mm.'
     );
     setStatus('Imprimindo ' + rows.length + ' pedido(s) em um cupom.');
   }
 
   /**
-   * Lista compacta na bobina 53├ù30 ÔÇö gambiarra sem cupom 80mm.
-   * V├írias linhas por etiqueta pra gastar o m├¡nimo de papel.
+   * Lista compacta na bobina 53×30 — gambiarra sem cupom 80mm.
+   * Várias linhas por etiqueta pra gastar o mínimo de papel.
    */
   function imprimirEtiquetasSeparacao53(row) {
     if (!row) return;
@@ -1244,7 +1245,7 @@
     var LINHAS_POR_ETQ = 6;
     var rota =
       String(row.loja_origem_label || '').replace(/\s+/g, ' ').trim() +
-      'ÔåÆ' +
+      '→' +
       String(row.loja_destino_label || '').replace(/\s+/g, ' ').trim();
     var linhas = [];
     itens.forEach(function (it) {
@@ -1257,8 +1258,8 @@
       var nome = String(it.nome || '')
         .replace(/\s+/g, ' ')
         .trim();
-      if (nome.length > 34) nome = nome.slice(0, 33) + 'ÔÇª';
-      var left = livre ? 'ESC' : gm ? gm : 'ÔÇö';
+      if (nome.length > 34) nome = nome.slice(0, 33) + '…';
+      var left = livre ? 'ESC' : gm ? gm : '—';
       linhas.push({
         q: fmtSaldo(q),
         left: left,
@@ -1277,7 +1278,7 @@
           String(row.id || '') +
           ' ' +
           rota +
-          (totalPg > 1 ? ' ┬À' + (idx + 1) + '/' + totalPg : '');
+          (totalPg > 1 ? ' ·' + (idx + 1) + '/' + totalPg : '');
         var rowsHtml = chunk
           .map(function (ln) {
             return (
@@ -1314,11 +1315,11 @@
       '.q{font-weight:900}.gm{font-weight:800}</style></head><body>' +
       body +
       '</body></html>';
-    abrirPrintIframe(html, 'Etiquetas 53├ù30', 'N├úo imprimiu. Escolha a t├®rmica 53├ù30.');
+    abrirPrintIframe(html, 'Etiquetas 53×30', 'Não imprimiu. Escolha a térmica 53×30.');
     setStatus(
       totalPg === 1
-        ? '1 etiqueta 53├ù30 ┬À ' + linhas.length + ' produto(s).'
-        : totalPg + ' etiquetas 53├ù30 ┬À ' + linhas.length + ' produto(s).'
+        ? '1 etiqueta 53×30 · ' + linhas.length + ' produto(s).'
+        : totalPg + ' etiquetas 53×30 · ' + linhas.length + ' produto(s).'
     );
   }
 
@@ -1336,7 +1337,7 @@
       pendente: 'Pendente',
       aceito: 'Aceito',
       pronto: 'Pronto',
-      concluido: 'Conclu├¡do',
+      concluido: 'Concluído',
       cancelado: 'Cancelado',
     };
     var html = '';
@@ -1368,18 +1369,18 @@
         escapeHtml(st) +
         '">' +
         escapeHtml(row.status_label || row.status) +
-        ' ┬À #' +
+        ' · #' +
         escapeHtml(String(row.id)) +
         badges +
         '</p>' +
         '<p class="mt-1 text-sm font-bold text-slate-500">' +
         escapeHtml(row.loja_origem_label) +
-        ' ÔåÆ ' +
+        ' → ' +
         escapeHtml(row.loja_destino_label) +
-        (row.criado_por ? ' ┬À ' + escapeHtml(row.criado_por) : '') +
+        (row.criado_por ? ' · ' + escapeHtml(row.criado_por) : '') +
         '</p>' +
         (row.observacao
-          ? '<p class="mt-1 rounded-lg border border-orange-200 bg-orange-50 px-2 py-1.5 text-sm font-bold text-orange-950">­ƒÆ¼ ' +
+          ? '<p class="mt-1 rounded-lg border border-orange-200 bg-orange-50 px-2 py-1.5 text-sm font-bold text-orange-950">💬 ' +
             escapeHtml(row.observacao) +
             '</p>'
           : '') +
@@ -1395,7 +1396,7 @@
   function carregarLista(qual) {
     var url = urls.apiPdvTransfLojaLista;
     if (!url || !dom.lista) return;
-    dom.lista.innerHTML = '<p class="py-6 text-center text-sm font-bold text-slate-500">CarregandoÔÇª</p>';
+    dom.lista.innerHTML = '<p class="py-6 text-center text-sm font-bold text-slate-500">Carregando…</p>';
     var qs =
       '?aba=' +
       encodeURIComponent(qual) +
@@ -1410,7 +1411,7 @@
       })
       .then(function (d) {
         if (!d || !d.ok) {
-          dom.lista.innerHTML = '<p class="text-sm font-bold text-red-700">N├úo carregou a lista.</p>';
+          dom.lista.innerHTML = '<p class="text-sm font-bold text-red-700">Não carregou a lista.</p>';
           dom.lista._rows = [];
           syncListaToolbar();
           return;
@@ -1444,7 +1445,7 @@
     if (!url) return;
     var body = Object.assign({ acao: acao, loja: depositoAtual() }, extra || {});
     busy = true;
-    setStatus('SalvandoÔÇª');
+    setStatus('Salvando…');
     fetch(url, {
       method: 'POST',
       credentials: 'same-origin',
@@ -1473,7 +1474,7 @@
           return;
         }
         if (!res.ok || !res.data || !res.data.ok) {
-          setStatus((res.data && res.data.erro) || 'N├úo salvou.', true);
+          setStatus((res.data && res.data.erro) || 'Não salvou.', true);
           return;
         }
         applyResumoCounts(res.data);
@@ -1520,7 +1521,7 @@
     if (acao === 'transferir') {
       var sel = lerSelecaoDoCard(card);
       if (!sel.itens.length) {
-        setStatus('Marque ao menos um produto (Ôûí) para enviar agora.', true);
+        setStatus('Marque ao menos um produto (□) para enviar agora.', true);
         return;
       }
       var temQtdPos = sel.itens.some(function (it) {
@@ -1528,7 +1529,7 @@
       });
       if (!temQtdPos) {
         setStatus(
-          'Coloque quantidade maior que zero em pelo menos um marcado. Qtd 0 sozinho n├úo fecha o envio.',
+          'Coloque quantidade maior que zero em pelo menos um marcado. Qtd 0 sozinho não fecha o envio.',
           true
         );
         return;
@@ -1547,15 +1548,15 @@
         .map(function (it) {
           var nome = nomesPorId[String(it.id)] || '#' + it.id;
           var q = Number(it.quantidade);
-          if (q === 0) return '┬À ' + nome + ' ÔÇö N├âO ENVIAR (0)';
-          return '┬À ' + nome + ' ├ù ' + fmtSaldo(it.quantidade);
+          if (q === 0) return '· ' + nome + ' — NÃO ENVIAR (0)';
+          return '· ' + nome + ' × ' + fmtSaldo(it.quantidade);
         })
         .join('\n');
       var bodyTxt = 'Vai agora:\n' + enviandoTxt;
       if (sel.adiar_itens.length) {
         var depoisTxt = sel.adiar_itens
           .map(function (iid) {
-            return '┬À ' + (nomesPorId[String(iid)] || '#' + iid);
+            return '· ' + (nomesPorId[String(iid)] || '#' + iid);
           })
           .join('\n');
         bodyTxt +=
@@ -1584,39 +1585,42 @@
     postAcao(id, acao);
   }
 
+
   function coletarLotesTransferirSel() {
     var lotes = [];
     if (!dom.lista || aba !== 'recebidos') return lotes;
     var rows = (dom.lista._rows) || [];
-    dom.lista.querySelectorAll('.pl-card[data-pl-st="pronto"]').forEach(function (card) {
-      var id = card.getAttribute('data-pl-id');
-      var sel = lerSelecaoDoCard(card);
-      var comQtd = sel.itens.filter(function (it) {
-        return Number(it.quantidade) > 0;
-      });
-      if (!comQtd.length) return;
-      var rowData = rows.filter(function (r) {
-        return String(r.id) === String(id);
-      })[0];
-      var nomesPorId = {};
-      if (rowData && rowData.itens) {
-        rowData.itens.forEach(function (it) {
-          nomesPorId[String(it.id)] = it.nome || '#' + it.id;
+    dom.lista
+      .querySelectorAll('.pl-card[data-pl-st="aceito"], .pl-card[data-pl-st="pronto"]')
+      .forEach(function (card) {
+        var id = card.getAttribute('data-pl-id');
+        var sel = lerSelecaoDoCard(card);
+        var comQtd = sel.itens.filter(function (it) {
+          return Number(it.quantidade) > 0;
         });
-      }
-      lotes.push({
-        id: id,
-        sel: { itens: sel.itens, adiar_itens: sel.adiar_itens },
-        nomesPorId: nomesPorId,
+        if (!comQtd.length) return;
+        var rowData = rows.filter(function (r) {
+          return String(r.id) === String(id);
+        })[0];
+        var nomesPorId = {};
+        if (rowData && rowData.itens) {
+          rowData.itens.forEach(function (it) {
+            nomesPorId[String(it.id)] = it.nome || '#' + it.id;
+          });
+        }
+        lotes.push({
+          id: id,
+          sel: { itens: sel.itens, adiar_itens: sel.adiar_itens },
+          nomesPorId: nomesPorId,
+        });
       });
-    });
     return lotes;
   }
 
   function transferirSelecionadosTodos() {
     var lotes = coletarLotesTransferirSel();
     if (!lotes.length) {
-      setStatus('Marque Ôûí em pedidos Pronto com quantidade maior que zero.', true);
+      setStatus('Marque □ em pedidos Aceito/Pronto com quantidade maior que zero.', true);
       return;
     }
     var linhas = [];
@@ -1626,9 +1630,9 @@
       lote.sel.itens.forEach(function (it) {
         var nome = lote.nomesPorId[String(it.id)] || '#' + it.id;
         var q = Number(it.quantidade);
-        if (q === 0) linhas.push('  ┬À ' + nome + ' ÔÇö N├âO ENVIAR (0)');
+        if (q === 0) linhas.push('  · ' + nome + ' — NÃO ENVIAR (0)');
         else {
-          linhas.push('  ┬À ' + nome + ' ├ù ' + fmtSaldo(it.quantidade));
+          linhas.push('  · ' + nome + ' × ' + fmtSaldo(it.quantidade));
           totalItens += 1;
         }
       });
@@ -1640,7 +1644,7 @@
       title: 'Transferir selecionados?',
       body:
         lotes.length +
-        ' pedido(s) ┬À ' +
+        ' pedido(s) · ' +
         totalItens +
         ' produto(s)\n\n' +
         linhas.join('\n'),
@@ -1667,7 +1671,7 @@
           return;
         }
         busy = true;
-        setStatus('Transferindo ' + idx + '/' + lotes.length + 'ÔÇª');
+        setStatus('Transferindo ' + idx + '/' + lotes.length + '…');
         var body = {
           acao: 'transferir',
           loja: depositoAtual(),
@@ -1730,7 +1734,7 @@
     });
   }
 
-  /* Escolha: Pedir ├ù Transfer├¬ncia for├ºada (badge continua s├│ nos pedidos) */
+  /* Escolha: Pedir × Transferência forçada (badge continua só nos pedidos) */
   var escolha = document.getElementById('pdv-pedir-loja-escolha');
   var escolhaFechar = document.getElementById('pdv-pedir-loja-escolha-fechar');
   var escolhaCancelar = document.getElementById('pdv-pedir-loja-escolha-cancelar');
@@ -1777,13 +1781,13 @@
       if (window.PdvTransfForcada && typeof window.PdvTransfForcada.abrirDirecao === 'function') {
         window.PdvTransfForcada.abrirDirecao();
       } else {
-        alert('Transfer├¬ncia for├ºada indispon├¡vel neste PDV.');
+        alert('Transferência forçada indisponível neste PDV.');
       }
     });
   }
   if (dom.fechar) dom.fechar.addEventListener('click', fechar);
   overlay.addEventListener('click', function (e) {
-    /* Fundo nao fecha ÔÇö so X / FECHAR / Esc */
+    /* Fundo nao fecha — so X / FECHAR / Esc */
   });
   overlay.querySelectorAll('.pl-tab').forEach(function (btn) {
     btn.addEventListener('click', function () {
@@ -1912,6 +1916,11 @@
       imprimirTodosCupons();
     });
   }
+  if (dom.transferirSel) {
+    dom.transferirSel.addEventListener('click', function () {
+      transferirSelecionadosTodos();
+    });
+  }
   if (dom.aceitarTodos) {
     dom.aceitarTodos.addEventListener('click', function () {
       var rows = (dom.lista && dom.lista._rows) || [];
@@ -1927,7 +1936,7 @@
         body:
           'Vai aceitar ' +
           pend.length +
-          ' pedido(s). Depois: Pronto ÔåÆ Transferir.',
+          ' pedido(s). Depois: (Pronto opcional) → Transferir.',
         confirmLabel: 'Aceitar todos',
       }).then(function (r) {
         if (!r.ok) return;
@@ -1948,7 +1957,7 @@
             return;
           }
           busy = true;
-          setStatus('Aceitando ' + idx + '/' + pend.length + 'ÔÇª');
+          setStatus('Aceitando ' + idx + '/' + pend.length + '…');
           fetch(url, {
             method: 'POST',
             credentials: 'same-origin',
@@ -1965,22 +1974,25 @@
               });
             })
             .then(function (res) {
+              busy = false;
               if (res.data && res.data.precisa_pin) {
-                busy = false;
                 setPinAviso(true);
                 setStatus(res.data.erro || 'Entre com o PIN.', true);
                 if (typeof window.gmSspinGarantirOperador === 'function') {
                   window.gmSspinGarantirOperador(function () {
-                    if (dom.aceitarTodos) dom.aceitarTodos.click();
+                    idx -= 1;
+                    runOne();
                   }, { titulo: 'PIN para Pedir loja' });
                 }
                 return;
               }
               if (!res.ok || !res.data || !res.data.ok) {
-                busy = false;
-                setStatus((res.data && res.data.erro) || 'Falhou ao aceitar.', true);
+                setStatus(
+                  (res.data && res.data.erro) ||
+                    'Parou no pedido #' + pk + '.',
+                  true
+                );
                 carregarLista(aba);
-                refreshResumo();
                 return;
               }
               applyResumoCounts(res.data);
@@ -1990,16 +2002,14 @@
               busy = false;
               setStatus('Erro de rede ao aceitar.', true);
               carregarLista(aba);
-              refreshResumo();
             });
         }
-        runOne();
+        if (typeof window.gmSspinGarantirOperador === 'function') {
+          window.gmSspinGarantirOperador(runOne, { titulo: 'PIN para Pedir loja' });
+        } else {
+          runOne();
+        }
       });
-    });
-  }
-  if (dom.transferirSel) {
-    dom.transferirSel.addEventListener('click', function () {
-      transferirSelecionadosTodos();
     });
   }
 
@@ -2007,7 +2017,7 @@
   if (dom.confirmNao) dom.confirmNao.addEventListener('click', function () { fecharConfirm(false); });
   if (dom.confirm) {
     dom.confirm.addEventListener('click', function (e) {
-      /* Fundo nao fecha ÔÇö so X / FECHAR / Esc */
+      /* Fundo nao fecha — so X / FECHAR / Esc */
     });
   }
   if (dom.confirmFurado) dom.confirmFurado.addEventListener('change', syncFuradoUi);
@@ -2015,7 +2025,7 @@
   if (dom.ajusteNao) dom.ajusteNao.addEventListener('click', fecharAjuste);
   if (dom.ajuste) {
     dom.ajuste.addEventListener('click', function (e) {
-      /* Fundo nao fecha ÔÇö so X / FECHAR / Esc */
+      /* Fundo nao fecha — so X / FECHAR / Esc */
     });
   }
 
@@ -2055,7 +2065,7 @@
   if (dom.temPedidoOk) dom.temPedidoOk.addEventListener('click', fecharTemPedido);
   if (dom.temPedido) {
     dom.temPedido.addEventListener('click', function (e) {
-      /* Fundo nao fecha ÔÇö so X / FECHAR / Esc */
+      /* Fundo nao fecha — so X / FECHAR / Esc */
     });
   }
 
@@ -2064,13 +2074,13 @@
   pollTimer = setInterval(function () {
     refreshResumo();
   }, 12000);
-  /* S├│ badge/beep ÔÇö N├âO abrir ┬½tem pedido┬╗ aqui.
-     Chat/venda tamb├®m disparam gm-sspin-operador ao renovar PIN (~45s).
-     O popup ┬½tem pedido┬╗ fica s├│ em abrirPin() (bot├úo PIN do Pedir loja). */
-  window.addEventListener('gm-sspin-operador', function () {
-    refreshResumo();
-  });
   document.addEventListener('visibilitychange', function () {
     if (!document.hidden) refreshResumo();
+  });
+  /* Só badge/beep — NÃO abrir «tem pedido» aqui.
+     Chat/venda também disparam gm-sspin-operador ao renovar PIN (~45s).
+     O popup «tem pedido» fica só em abrirPin() (botão PIN do Pedir loja). */
+  window.addEventListener('gm-sspin-operador', function () {
+    refreshResumo();
   });
 })();
