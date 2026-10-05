@@ -106,7 +106,8 @@ def test_arquivos_rotas() -> None:
     check("tpl_clipboard_png", "image/png" in tpl_txt and "ClipboardItem" in tpl_txt)
     check("tpl_cabecalho_amarelo", "#facc15" in tpl_txt or "facc15" in tpl_txt)
     check("tpl_cols_venda_bonus", "VENDA (meta)" in tpl_txt and "BÔNUS" in tpl_txt)
-    check("tpl_json_inicial", "meta-inicial-json" in tpl_txt)
+    check("tpl_modo_agora", "data-modo=\"agora\"" in tpl_txt and "Até agora" in tpl_txt)
+    check("tpl_modo_mes", "data-modo=\"mes\"" in tpl_txt and "Meta do mês" in tpl_txt)
 
     mig_txt = mig.read_text(encoding="utf-8")
     check("mig_seed_padrao", "105000" in mig_txt and "moleton" in mig_txt)
@@ -262,11 +263,27 @@ def test_mostruario_consistencia() -> None:
     # média esperada presente (Meta C pode ser 0 em staging vazio — só exige chave)
     check("vs_media_keys", "vs_media_mes" in m and "sentido" in m["vs_media_mes"])
     check("media_ref_fmt", bool(m.get("media_mes_ref_fmt")))
+    check("fracao_ate_agora", "fracao_ate_agora" in m and 0 <= float(m["fracao_ate_agora"]) <= 1)
+    f0 = (m.get("faixas") or [None])[0]
+    check("faixa_tem_agora", isinstance(f0, dict) and isinstance(f0.get("agora"), dict))
+    check("faixa_meta_agora", isinstance(f0, dict) and "meta_agora_fmt" in f0)
+
+    # ritmo: parcela = meta × fração
+    if f0 and float(m.get("media_mes_cheia") or 0) > 0:
+        esp = float(f0["valor_meta"]) * float(m["fracao_ate_agora"])
+        check(
+            "parcela_bate_fracao",
+            abs(float(f0["meta_agora"]) - esp) < 0.05,
+            f"got={f0['meta_agora']} exp≈{esp:.2f}",
+        )
 
     zap = meta_texto_zap(m)
     check("zap_tem_meta", "META" in zap)
     check("zap_tem_vendido", "Vendido" in zap)
     check("zap_tem_faixa", "105" in zap or "Meta" in zap or "meta" in zap.lower())
+    zap_a = meta_texto_zap(m, modo="agora")
+    check("zap_modo_agora", "ATÉ AGORA" in zap_a or "até agora" in zap_a.lower())
+    check("zap_modo_ritmo", "ritmo" in zap_a.lower() or "parcela" in zap_a.lower())
 
     # mês fechado (competência prova — rollback)
     with transaction.atomic():

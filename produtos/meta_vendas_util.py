@@ -210,6 +210,40 @@ def _progresso_meta(vendido, valor_meta) -> dict:
     }
 
 
+def _fracao_ate_agora(media_ref, media_cheia) -> Decimal:
+    """Quanto da média do mês já 'deveria' ter passado (0–1)."""
+    cheia = _q2(media_cheia)
+    ref = _q2(media_ref)
+    if cheia <= 0:
+        return Decimal("1")
+    frac = (ref / cheia).quantize(Decimal("0.0001"))
+    if frac < 0:
+        return Decimal("0")
+    if frac > 1:
+        return Decimal("1")
+    return frac
+
+
+def _progresso_meta_modos(vendido, valor_meta, fracao_ate_agora: Decimal) -> dict:
+    """
+    Duas leituras da mesma faixa:
+    - mes: vendido × meta cheia do mês
+    - agora: vendido × parcela da meta até agora (ritmo da média esperada)
+    """
+    prog_mes = _progresso_meta(vendido, valor_meta)
+    # Fração 0–1: 4 casas (não _q2 — arredondava 0,17 e distorcia a parcela).
+    frac = Decimal(str(fracao_ate_agora)).quantize(Decimal("0.0001"))
+    meta_agora = (_q2(valor_meta) * frac).quantize(Decimal("0.01"))
+    prog_agora = _progresso_meta(vendido, meta_agora)
+    return {
+        **prog_mes,
+        "meta_agora": meta_agora,
+        "meta_agora_fmt": meta_fmt_moeda(meta_agora),
+        "agora": prog_agora,
+        "fracao_ate_agora": float(frac),
+    }
+
+
 def _json_deep(obj):
     if isinstance(obj, dict):
         return {k: _json_deep(v) for k, v in obj.items()}
@@ -293,17 +327,25 @@ def meta_montar_mostruario(
         bloco_hoje = {"ativo": False}
 
     faixas_raw = meta_listar_faixas(comp)
+    fracao = _fracao_ate_agora(media_mes_ref, meta_mes_cheia)
     faixas = []
     proxima = None
     ultima_batida = None
+    proxima_agora = None
+    ultima_batida_agora = None
     for f in faixas_raw:
-        prog = _progresso_meta(vendido_mes, f["valor_meta"])
+        prog = _progresso_meta_modos(vendido_mes, f["valor_meta"], fracao)
         item = {**f, **prog}
         faixas.append(item)
         if prog["atingida"]:
             ultima_batida = item
         elif proxima is None:
             proxima = item
+        agora = prog.get("agora") or {}
+        if agora.get("atingida"):
+            ultima_batida_agora = item
+        elif proxima_agora is None:
+            proxima_agora = item
 
     out = {
         "competencia": comp,
@@ -323,21 +365,31 @@ def meta_montar_mostruario(
         "media_mes_ref_fmt": meta_fmt_moeda(media_mes_ref),
         "media_mes_dia": _q2(media_mes_dia),
         "media_mes_dia_fmt": meta_fmt_moeda(media_mes_dia),
+        "fracao_ate_agora": float(fracao),
+        "fracao_ate_agora_pct_fmt": meta_fmt_pct((fracao * Decimal("100")).quantize(Decimal("0.1"))),
         "vs_media_mes": cmp_media_mes,
         "hoje": bloco_hoje,
         "faixas": faixas,
         "proxima_meta": proxima,
         "ultima_batida": ultima_batida,
+        "proxima_meta_agora": proxima_agora,
+        "ultima_batida_agora": ultima_batida_agora,
     }
     return _json_deep(out)
 
 
-def meta_texto_zap(mostruario: dict) -> str:
-    """Texto pronto pra colar no grupo."""
+def meta_texto_zap(mostruario: dict, modo: str = "mes") -> str:
+    """Texto pronto pra colar no grupo. ``modo``: mes | agora."""
+    modo_agora = (modo or "mes").strip().lower() in ("agora", "ate_agora", "ritmo")
     linhas = [
         f"🎯 *META — {mostruario.get('competencia_fmt', '')}*",
         "",
     ]
+    if modo_agora:
+        linhas.append(
+            f"⏱ *VISÃO ATÉ AGORA* (ritmo · {mostruario.get('fracao_ate_agora_pct_fmt', '—')} do mês pela média)"
+        )
+        linhas.append("")
     hoje = mostruario.get("hoje") or {}
     if hoje.get("ativo"):
         vs = hoje.get("vs_media") or {}
@@ -360,27 +412,50 @@ def meta_texto_zap(mostruario: dict) -> str:
             f"Média esperada: {mostruario.get('media_mes_ref_fmt', '—')}",
             f"vs média: *{vs_m.get('diff_fmt', '—')}* ({vs_m.get('pct_signed_fmt', '—')} {vs_m.get('sentido_label', '')})",
             "",
-            "🏁 *Metas do mês*",
+            "🏁 *Metas*" + (" · ritmo até agora" if modo_agora else " · meta do mês"),
         ]
     )
     for f in mostruario.get("faixas") or []:
-        if f.get("atingida"):
-            status = f"✅ batida · +{f.get('excedente_fmt', '—')}"
+        if modo_agora:
+            a = f.get("agora") or {}
+            if a.get("atingida"):
+                status = f"✅ no ritmo · +{a.get('excedente_fmt', '—')}"
+            else:
+                status = f"faltam {a.get('falta_fmt', '—')} · {a.get('pct_fmt', '—')} do esperado"
+            linhas.append(
+                f"• {f.get('valor_meta_fmt', '—')} (parcela {f.get('meta_agora_fmt', '—')}) · bônus {f.get('bonus_label', '—')} — {status}"
+            )
         else:
-            status = f"faltam {f.get('falta_fmt', '—')} ({f.get('pct_fmt', '—')})"
-        linhas.append(
-            f"• {f.get('valor_meta_fmt', '—')} · bônus {f.get('bonus_label', '—')} — {status}"
-        )
-    prox = mostruario.get("proxima_meta")
-    if prox:
-        linhas.extend(
-            [
-                "",
-                f"👉 Próxima: *{prox.get('valor_meta_fmt')}* — faltam *{prox.get('falta_fmt')}*",
-            ]
-        )
-    elif mostruario.get("ultima_batida"):
-        linhas.extend(["", "🏆 Todas as metas batidas!"])
+            if f.get("atingida"):
+                status = f"✅ batida · +{f.get('excedente_fmt', '—')}"
+            else:
+                status = f"faltam {f.get('falta_fmt', '—')} ({f.get('pct_fmt', '—')})"
+            linhas.append(
+                f"• {f.get('valor_meta_fmt', '—')} · bônus {f.get('bonus_label', '—')} — {status}"
+            )
+    if modo_agora:
+        prox = mostruario.get("proxima_meta_agora")
+        if prox:
+            a = prox.get("agora") or {}
+            linhas.extend(
+                [
+                    "",
+                    f"👉 Próxima no ritmo: *{prox.get('valor_meta_fmt')}* — faltam *{a.get('falta_fmt')}* da parcela",
+                ]
+            )
+        elif mostruario.get("ultima_batida_agora"):
+            linhas.extend(["", "🏆 No ritmo de todas as metas até agora!"])
+    else:
+        prox = mostruario.get("proxima_meta")
+        if prox:
+            linhas.extend(
+                [
+                    "",
+                    f"👉 Próxima: *{prox.get('valor_meta_fmt')}* — faltam *{prox.get('falta_fmt')}*",
+                ]
+            )
+        elif mostruario.get("ultima_batida"):
+            linhas.extend(["", "🏆 Todas as metas batidas!"])
     return "\n".join(linhas).strip() + "\n"
 
 
