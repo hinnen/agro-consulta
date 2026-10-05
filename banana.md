@@ -1309,8 +1309,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | **PDV-PEDIR-PRONTO-TRANSF** | 🟢 **pronto / no PREP 05/10b** | **NÃO** | **42/42** |
 | 2 | **META-MODO-AGORA** | 🟢 **pronto / no PREP 05/10b** | **NÃO** | **125/125** |
 | 3 | **CREDITO-SCORE-XLSX-COLS** | 🟢 **pronto / no PREP 05/10b** | **NÃO** | **86/86** |
-| 4 | **ETQ-PRESET-ESPELHO** | 🟢 **pronto para envio à produção** | **NÃO** | **21/21** |
+| 4 | **ETQ-PRESET-ESPELHO** | 🟢 **pronto para envio à produção** | **NÃO** | path **40/40** · smoke **24/24** |
 | 5 | **ETQ-PRINT-DIRETO** | 🟢 **pronto para envio à produção** | **NÃO** | **38/38** |
+
+### 📦 PACOTE PRONTO LOJA — Presets etiqueta espelho gestão×PDV (`ETQ-PRESET-ESPELHO` · **v26.25+**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **pronto para envio à produção** — aguarda frase + senha |
+| **O quê** | Cadastro / NF / PDV puxam Postgres ao abrir PRESET (mesma lista da fila / outros PCs) |
+| **Prova** | `verify_etq_preset_espelho_path.js` **40/40** · `smoke_etq_preset_espelho_local.py` **24/24** (PIN 9973) · sync **26/26** · Django **3/3** |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 · cadastro + PDV + fila = mesma lista |
 
 ### ✅ PACOTE — impressão térmica direta Windows (`ETQ-PRINT-DIRETO`) · tip **v26.26** · 05/10
 
