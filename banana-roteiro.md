@@ -766,13 +766,13 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 55. CHECKLIST ÚNICO — CREDITO-SCORE-LAB-ACESSO · 🟢 pronto envio (alvo **v26.13**)
+## 56. CHECKLIST ÚNICO — ETQ-PRINT-DIRETO · 🟢 pronto envio (alvo **v26.33**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CREDITO-SCORE-LAB-ACESSO** | 🟢 **pronto para envio** · path **34/34** | **NÃO** |
+| 1 | **ETQ-PRINT-DIRETO** | 🟢 **pronto para envio à produção** · full **68/68** | **NÃO** |
 
-**O quê:** botão Gestão + fix URL lab não volta ao PDV.  
-**Prova:** `verify_credito_score_lab_acesso_path.py` **34/34** · shadow **93/93** · PDV fiado **39/39**.  
-**Rollback:** `docs/ROLLBACK-CREDITO-SCORE-LAB-ACESSO.md` · **só** frase+senha.  
-**Não entra:** merge do `teste` (tem META etc.).
+**O quê:** Baixar ponte no SisVale · instalar 1× · imprime sem escolher tamanho · sobe com o Windows.  
+**Prova:** `verify_etq_print_direto_full_path.js` **68/68** · ZIP HTTP **200** · bridge print **OK**.  
+**Não entra:** merge do `teste` inteiro — cherry/PREP só deste pacote.  
+**Só** frase+senha.

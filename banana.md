@@ -558,7 +558,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 
 ### 4.6 Cadastro / gestÃ£o de produtos
 
-- **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé. Gôndola: folha **A4** (2/3 col) ou **A6** (1 col · bônus 100×45) — `ETQ-A6-BONUS` **v22.41** 🟢 pronto envio. **Impressão direta** (`ETQ-PRINT-DIRETO` v26.26): ponte `agro-print-bridge` no PC + modo/impressora no preset.
+- **Etiquetas `/produtos/etiquetas/`:** presets = **Postgres**. **Impressão direta** (`ETQ-PRINT-DIRETO` v26.33): Baixar ponte no SisVale → instalar 1× → silent print.
 - **Presets espelho gestão×PDV (`ETQ-PRESET-ESPELHO` · 05/10):** cadastro ERP, entrada NF e PDV passam a **puxar a API** ao abrir o dropdown (antes gestão/NF ficavam só no Chrome). Fila já puxava. Mudou num PC/tela → todos veem a mesma lista.
 
 **Duas telas â€” nÃ£o confundir:**
@@ -1309,7 +1309,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 2 | **META-MODO-AGORA** | 🟢 **pronto / no PREP 05/10b** | **NÃO** | **125/125** |
 | 3 | **CREDITO-SCORE-XLSX-COLS** | 🟢 **pronto / no PREP 05/10b** | **NÃO** | **86/86** |
 | 4 | **ETQ-PRESET-ESPELHO** | 🟢 **pronto para envio à produção** | **NÃO** | path **40/40** · smoke **24/24** |
-| 5 | **ETQ-PRINT-DIRETO** | 🟢 **pronto para envio à produção** | **NÃO** | **38/38** |
+| 5 | **ETQ-PRINT-DIRETO** | 🟢 **pronto para envio à produção** | **NÃO** | full **68/68** · dl **21/21** · ZIP/HTTP **OK** · bridge print **OK** |
 | 6 | **PDV-PEDIR-PRINT-3** | 🟢 **pronto para envio à produção** | **NÃO** | path **37/37** · smoke **23/23** |
 
 ### PACOTE PRONTO — Pedir loja Pronto opcional + Transferir sel + bip (`PDV-PEDIR-PRONTO-TRANSF`)
@@ -1333,7 +1333,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Você** | Ctrl+F5 · cadastro + PDV + fila = mesma lista |
 
-### ✅ PACOTE — impressão térmica direta Windows (`ETQ-PRINT-DIRETO`) · tip **v26.28** · 05/10
+### 📦 PACOTE PRONTO LOJA — impressão térmica direta Windows (`ETQ-PRINT-DIRETO` · **v26.33**) · 05/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **pronto para envio à produção** — aguarda frase + senha |
+| **O quê** | Ponte **Agro Etiqueta Print**: Baixar ZIP no SisVale → `1-INSTALAR.bat` (Node/Electron sozinhos) → início automático Windows · preset impressora + modo auto/direto/diálogo |
+| **Migrate** | **NÃO** |
+| **Prova** | full **68/68** · path **45/45** · dl **21/21** · térmica várias **39/39** · ZIP HTTP **200** · bridge `/print` **OK** (6 impressoras) |
+| **Tip** | `teste` **v26.33** |
+| **Não mexe** | PDV venda · caixa · NFC-e · financeiro |
+| **Você** | Ctrl+F5 Etiquetas → **Baixar ponte** → extrair → **1-INSTALAR.bat** → card verde → Testar 1 etiqueta |
+
+### ✅ CHECKLIST ÚNICO — ETQ-PRINT-DIRETO · 🟢 pronto para envio à produção
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ETQ-PRINT-DIRETO** | 🟢 **pronto para envio à produção** | **NÃO** | full **68/68** |
+
+### ✅ PACOTE — impressão térmica direta Windows (`ETQ-PRINT-DIRETO`) · tip **v26.28** · 05/10 · **superado — ver PACOTE PRONTO v26.33**
 
 | Campo | Valor |
 | ----- | ----- |
