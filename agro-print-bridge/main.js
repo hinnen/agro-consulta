@@ -249,12 +249,33 @@ function buildTray() {
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAKElEQVQ4T2NkYGD4z0ABYBzVMKoBBgYGBgYGBgYGBgYGBgYGBgYGBgD6JwQB1nYVnQAAAABJRU5ErkJggg=='
   ) : image);
   tray.setToolTip('Agro Etiqueta Print');
+  let openAtLogin = false;
+  try {
+    openAtLogin = Boolean(app.getLoginItemSettings().openAtLogin);
+  } catch (_) {}
   const menu = Menu.buildFromTemplate([
     {
       label: 'Status: ' + statusText,
       enabled: false,
     },
     { type: 'separator' },
+    {
+      label: 'Abrir com o Windows',
+      type: 'checkbox',
+      checked: openAtLogin,
+      click: (item) => {
+        try {
+          app.setLoginItemSettings({
+            openAtLogin: Boolean(item.checked),
+            openAsHidden: true,
+            path: process.execPath,
+            args: [path.resolve(__dirname)],
+          });
+        } catch (e) {
+          dialog.showErrorBox('Inicio automatico', String(e && e.message));
+        }
+      },
+    },
     {
       label: 'Testar listar impressoras',
       click: async () => {
@@ -295,6 +316,8 @@ app.whenReady().then(() => {
   if (process.platform === 'win32') {
     app.setAppUserModelId('br.com.sistvale.agro-print-bridge');
   }
+  /* Preferir o atalho em Startup (Instalar-inicio-Windows.bat).
+     LoginItem do Electron é reforço se o usuário marcar no menu. */
   buildTray();
   startHttpServer();
 });
