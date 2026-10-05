@@ -1299,7 +1299,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Mexe** | `credito_score_views` · url · template · **não** PDV/limite/venda |
 | **Prova** | `scripts/verify_credito_score_xlsx_path.py` **54/54** · shadow **93/93** · PIN **9973** · **PREP_FAILS=0** |
-| **Status** | 🟢 **pronto para envio à produção** · tip `teste` abaixo após push |
+| **Status** | 🟢 **pronto para envio à produção** · tip `teste` **v26.16** @ `8beab653` |
 | **Rollback** | `docs/ROLLBACK-CREDITO-SCORE-XLSX.md` · **só** frase+senha |
 | **Você** | Lab → **Excel ↓** · comparar com Excel ↓ Clientes |
 
