@@ -1331,8 +1331,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | Excel ↓: + qtd analisados/quitada/vencida · % em dia · pts pontualidade/situação/quitação/frequência/relacionamento. Alerta «sem baixas suficientes» → **Revisar dados** (não candidato). Score e financeiro intactos. |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_credito_score_xlsx_path.py` **65/65** · shadow **93/93** · PIN **9973** · **PREP_FAILS=0** |
-| **Status** | 🟢 **pronto para envio à produção** · tip `teste` **v26.19** @ `7f423640` |
+| **Prova** | `verify_credito_score_xlsx_path.py` **86/86** · shadow **93/93** · PIN **9973** · **PREP_FAILS=0** |
+| **Status** | 🟢 **pronto para envio à produção** · tip abaixo após push |
 | **Rollback** | `docs/ROLLBACK-CREDITO-SCORE-XLSX.md` · **só** frase+senha |
 | **Você** | Lab → Excel ↓ · Ctrl+F5 · (recalcular se quiser snapshots novos) |
 
@@ -1340,7 +1340,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CREDITO-SCORE-XLSX-COLS** | 🟢 **pronto para envio à produção** | **NÃO** | **65/65** |
+| 1 | **CREDITO-SCORE-XLSX-COLS** | 🟢 **pronto para envio à produção** | **NÃO** | **86/86** |
 
 ### ✅ Deploy loja — Checklist 05/10 · **Live v26.08** · 05/10
 
