@@ -1,5 +1,5 @@
-"""
-Path PDV-PEDIR-CUPOM-QTD — cupom 80mm + qtd editável ao enviar.
+﻿"""
+Path PDV-PEDIR-CUPOM-QTD ÔÇö cupom 80mm + qtd edit├ível ao enviar.
 
   python scripts/verify_pdv_pedir_cupom_qtd_path.py
 """
@@ -21,10 +21,10 @@ oks: list[str] = []
 def check(name: str, cond: bool, detail: str = "") -> None:
     if cond:
         oks.append(name)
-        print(f"  OK  {name}" + (f" — {detail}" if detail else ""))
+        print(f"  OK  {name}" + (f" ÔÇö {detail}" if detail else ""))
     else:
         fails.append(name)
-        print(f"  FAIL {name}" + (f" — {detail}" if detail else ""))
+        print(f"  FAIL {name}" + (f" ÔÇö {detail}" if detail else ""))
 
 
 def _read(rel: str) -> str:
@@ -43,7 +43,7 @@ def main() -> int:
 
     # --- Contrato UI ---
     check("ui_btn_imprimir", "Imprimir cupom" in js and "data-pl-acao=\"imprimir\"" in js)
-    check("ui_cupom_80mm", "size:80mm" in js and "SEPARAÇÃO" in js and "PEDIR LOJA #" in js)
+    check("ui_cupom_80mm", "size:80mm" in js and "SEPARA├ç├âO" in js and "PEDIR LOJA #" in js)
     check("ui_cupom_usa_pedida", "quantidade_pedida" in js and "imprimirCupomSeparacao" in js)
     check("ui_qtd_edit_origem", "podeEditarQtd" in js and "aba === 'recebidos'" in js)
     check("ui_qtd_input", 'class="pl-item-qtd"' in js and "data-pl-item-id" in js)
@@ -74,7 +74,7 @@ def main() -> int:
     django.setup()
 
     from produtos.pdv_transf_loja_util import (
-        STATUS_ACEITO,
+        STATUS_PRONTO,
         _resolver_qtds_envio,
         concluir_transferencia,
         serializar_item,
@@ -119,10 +119,10 @@ def main() -> int:
         str(ser),
     )
 
-    # concluir: 1 item parcial, 1 zerado → só 1 transfer
+    # concluir: 1 item parcial, 1 zerado ÔåÆ s├│ 1 transfer
     sol = SimpleNamespace(
         pk=42,
-        status=STATUS_ACEITO,
+        status=STATUS_PRONTO,
         loja_origem="vila",
         loja_destino="centro",
         observacao="",

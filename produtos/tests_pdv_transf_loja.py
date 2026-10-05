@@ -1,4 +1,4 @@
-"""PDV — Pedir loja (solicitação de transferência Centro ↔ Vila)."""
+﻿"""PDV ÔÇö Pedir loja (solicita├º├úo de transfer├¬ncia Centro Ôåö Vila)."""
 from __future__ import annotations
 
 import json
@@ -33,7 +33,7 @@ class UrlsPdvTransfTests(SimpleTestCase):
         try:
             reverse("sugestao_transferencia")
         except NoReverseMatch:
-            self.fail("tela Logística someu — não deveria ser alterada")
+            self.fail("tela Log├¡stica someu ÔÇö n├úo deveria ser alterada")
 
 
 class UtilBasicoTests(SimpleTestCase):
@@ -101,10 +101,14 @@ class PodeAgirTests(SimpleTestCase):
         self.assertFalse(ok)
         self.assertIn("Vila", err)
 
-    def test_transferir_so_depois_de_aceito(self):
-        ok, _ = pode_agir(self._sol(STATUS_PENDENTE), "vila", "transferir")
+    def test_transferir_so_depois_de_pronto(self):
+        ok, err = pode_agir(self._sol(STATUS_PENDENTE), "vila", "transferir")
         self.assertFalse(ok)
-        ok, _ = pode_agir(self._sol(STATUS_ACEITO), "vila", "transferir")
+        self.assertIn("Pronto", err)
+        ok, err = pode_agir(self._sol(STATUS_ACEITO), "vila", "transferir")
+        self.assertFalse(ok)
+        self.assertIn("Pronto", err)
+        ok, _ = pode_agir(self._sol(STATUS_PRONTO), "vila", "transferir")
         self.assertTrue(ok)
         ok, _ = pode_agir(self._sol(STATUS_PRONTO), "centro", "transferir")
         self.assertTrue(ok)
@@ -174,7 +178,7 @@ class CriarItensTests(SimpleTestCase):
 
         itens, err = _normalizar_itens(
             [
-                {"produto_id": "A1", "nome": "Ração", "quantidade": "2"},
+                {"produto_id": "A1", "nome": "Ra├º├úo", "quantidade": "2"},
                 {"id": "A1", "quantidade": 9},
                 {"produto_id": "B2", "nome": "Sal", "qtd": "1,5"},
             ]
@@ -271,7 +275,7 @@ class CriarSolicitacaoMockTests(SimpleTestCase):
                 loja_destino="centro",
                 itens_raw=[{"produto_id": "X", "nome": "Milho", "quantidade": 2}],
                 observacao="cliente na frente",
-                operador_label="João",
+                operador_label="Jo├úo",
                 usuario=None,
             )
         self.assertEqual(err, "")

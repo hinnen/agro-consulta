@@ -1,4 +1,4 @@
-"""Solicitação de transferência entre lojas no PDV (Centro ↔ Vila)."""
+﻿"""Solicita├º├úo de transfer├¬ncia entre lojas no PDV (Centro Ôåö Vila)."""
 from __future__ import annotations
 
 import time
@@ -18,12 +18,12 @@ from estoque.models import (
 from produtos.caixa_util import operador_label_de_pin, usuario_django_de_pin
 from produtos.pdv_deposito_util import DEPOSITOS_VALIDOS, normalizar_deposito, rotulo_deposito
 
-# Identidade do operador para ações (venda, Pedir, chat…): NÃO renova com mouse.
+# Identidade do operador para a├º├Áes (venda, Pedir, chatÔÇª): N├âO renova com mouse.
 PDV_OPERADOR_FRESCO_TTL_S = 45
-# Fechar venda: mesmo TTL das demais ações. (Bug #26: 10s pedia PIN toda hora no balcão.)
+# Fechar venda: mesmo TTL das demais a├º├Áes. (Bug #26: 10s pedia PIN toda hora no balc├úo.)
 PDV_OPERADOR_FRESCO_VENDA_TTL_S = 45
 PDV_OPERADOR_FRESCO_KEY = "pdv_operador_fresco_em"
-MSG_PIN_PDV_ACAO = "Entre com o PIN no PDV para registrar a ação."
+MSG_PIN_PDV_ACAO = "Entre com o PIN no PDV para registrar a a├º├úo."
 
 STATUS_PENDENTE = SolicitacaoTransferenciaPdv.STATUS_PENDENTE
 STATUS_ACEITO = SolicitacaoTransferenciaPdv.STATUS_ACEITO
@@ -31,10 +31,10 @@ STATUS_PRONTO = SolicitacaoTransferenciaPdv.STATUS_PRONTO
 STATUS_CONCLUIDO = SolicitacaoTransferenciaPdv.STATUS_CONCLUIDO
 STATUS_CANCELADO = SolicitacaoTransferenciaPdv.STATUS_CANCELADO
 
-# Após Aceitar: silêncio no bip por este tempo. Depois, se não transferir, volta a apitar.
+# Ap├│s Aceitar: sil├¬ncio no bip por este tempo. Depois, se n├úo transferir, volta a apitar.
 PEDIR_LOJA_BIP_GRACE = timedelta(minutes=30)
 
-# Item sem produto cadastro (sacola, café, recado…) — não move estoque.
+# Item sem produto cadastro (sacola, caf├®, recadoÔÇª) ÔÇö n├úo move estoque.
 PREFIXO_ITEM_LIVRE = "livre:"
 
 ACOES_STATUS = {
@@ -68,7 +68,7 @@ def qtd_decimal(valor) -> Decimal | None:
 
 
 def qtd_decimal_ou_zero(valor) -> Decimal | None:
-    """Aceita zero (ajuste de estoque furado). Vazio → 0."""
+    """Aceita zero (ajuste de estoque furado). Vazio ÔåÆ 0."""
     raw = str(valor if valor is not None else "").strip()
     if raw == "":
         return Decimal("0.000")
@@ -102,7 +102,7 @@ def _parse_decimal(valor) -> Decimal | None:
 
 
 def marcar_operador_pdv_fresco(request) -> None:
-    """Marca o instante do último PIN / ação autenticada (TTL curto)."""
+    """Marca o instante do ├║ltimo PIN / a├º├úo autenticada (TTL curto)."""
     try:
         request.session[PDV_OPERADOR_FRESCO_KEY] = float(time.time())
         request.session.modified = True
@@ -128,9 +128,9 @@ def limpar_operador_pdv_sessao(request) -> None:
 
 
 def expirar_operador_pdv_fresco(request) -> None:
-    """Após fechar venda: zera «ainda sou eu» — a próxima ação pede PIN de novo.
+    """Ap├│s fechar venda: zera ┬½ainda sou eu┬╗ ÔÇö a pr├│xima a├º├úo pede PIN de novo.
 
-    Mantém o nome na sessão só como lembrete; sem timestamp fresco o GET/garantir
+    Mant├®m o nome na sess├úo s├│ como lembrete; sem timestamp fresco o GET/garantir
     trata como vencido. (Bug #26 / pedido Renan 14/09.)
     """
     if request is None:
@@ -145,7 +145,7 @@ def expirar_operador_pdv_fresco(request) -> None:
 def operador_pdv_restante_fresco_s(
     request, ttl_s: int | None = None
 ) -> int:
-    """Segundos restantes da identidade «ainda sou eu». 0 = precisa PIN."""
+    """Segundos restantes da identidade ┬½ainda sou eu┬╗. 0 = precisa PIN."""
     if request is None:
         return 0
     label = str(request.session.get("pdv_operador_nome") or "").strip()
@@ -169,7 +169,7 @@ def operador_pdv_esta_fresco(request, ttl_s: int | None = None) -> bool:
 
 
 def renovar_operador_pdv_fresco(request, ttl_s: int | None = None) -> bool:
-    """Renova o TTL só se ainda estiver fresco (ação autenticada)."""
+    """Renova o TTL s├│ se ainda estiver fresco (a├º├úo autenticada)."""
     if not operador_pdv_esta_fresco(request, ttl_s):
         return False
     marcar_operador_pdv_fresco(request)
@@ -183,7 +183,7 @@ def gravar_operador_sessao_pdv(request, pin: str) -> tuple[bool, str, object | N
     user = usuario_django_de_pin(pin)
     rot = (label or "")[:120]
     request.session["pdv_operador_nome"] = rot
-    # Alinha «caixa gerido» ao PIN — evita Quem grudado no login Chrome (ex. Geraldo Hinnen).
+    # Alinha ┬½caixa gerido┬╗ ao PIN ÔÇö evita Quem grudado no login Chrome (ex. Geraldo Hinnen).
     if rot:
         request.session["pdv_caixa_gerido_operador"] = rot
     request.session["mobile_auth"] = True
@@ -197,7 +197,7 @@ def gravar_operador_sessao_pdv(request, pin: str) -> tuple[bool, str, object | N
 
 
 def peek_operador_pdv(request) -> tuple[bool, str]:
-    """Lê operador fresco **sem** renovar o TTL (poll/resumo)."""
+    """L├¬ operador fresco **sem** renovar o TTL (poll/resumo)."""
     label = str(request.session.get("pdv_operador_nome") or "").strip()
     if label and operador_pdv_esta_fresco(request):
         return True, label[:150]
@@ -205,7 +205,7 @@ def peek_operador_pdv(request) -> tuple[bool, str]:
 
 
 def resolver_operador_pdv(request, pin: str = "") -> tuple[bool, str, object | None, str]:
-    """PIN informado ou operador fresco no PDV (~45s desde PIN/ação). Renova TTL."""
+    """PIN informado ou operador fresco no PDV (~45s desde PIN/a├º├úo). Renova TTL."""
     pin = (pin or "").strip()
     if pin:
         return gravar_operador_sessao_pdv(request, pin)
@@ -237,9 +237,9 @@ def _normalizar_itens(itens_raw) -> tuple[list[dict], str]:
         nome = str(raw.get("nome") or raw.get("nome_produto") or raw.get("texto") or "").strip()[:255]
         if livre or eh_item_livre(pid):
             if not nome:
-                return [], "Escreva o que quer pedir (ex.: sacola, café)."
+                return [], "Escreva o que quer pedir (ex.: sacola, caf├®)."
             if not pid or not eh_item_livre(pid):
-                # id estável por texto evita duplicar a mesma linha no mesmo POST
+                # id est├ível por texto evita duplicar a mesma linha no mesmo POST
                 slug = "".join(ch if ch.isalnum() else "-" for ch in nome.lower())[:40].strip("-") or "txt"
                 pid = f"{PREFIXO_ITEM_LIVRE}{slug}"[:100]
             qtd = qtd_decimal(raw.get("quantidade") or raw.get("qtd") or raw.get("qty") or 1)
@@ -266,7 +266,7 @@ def _normalizar_itens(itens_raw) -> tuple[list[dict], str]:
             continue
         qtd = qtd_decimal(raw.get("quantidade") or raw.get("qtd") or raw.get("qty"))
         if qtd is None:
-            return [], "Quantidade inválida em um dos itens."
+            return [], "Quantidade inv├ílida em um dos itens."
         nome = nome or "Produto"
         codigo = str(raw.get("codigo_interno") or raw.get("codigo") or "").strip()[:100]
         vistos.add(pid)
@@ -286,7 +286,7 @@ def _normalizar_itens(itens_raw) -> tuple[list[dict], str]:
 def criar_solicitacao(*, loja_destino: str, itens_raw, observacao: str, operador_label: str, usuario):
     dest = normalizar_deposito(loja_destino)
     if dest not in DEPOSITOS_VALIDOS:
-        return None, "Loja inválida."
+        return None, "Loja inv├ílida."
     origem = loja_oposta(dest)
     itens, err = _normalizar_itens(itens_raw)
     if err:
@@ -330,16 +330,18 @@ def pode_agir(sol: SolicitacaoTransferenciaPdv, loja_atual: str, acao: str) -> t
     loja = normalizar_deposito(loja_atual)
     acao = (acao or "").strip().lower()
     if acao in ACOES_ORIGEM and loja != sol.loja_origem:
-        return False, f"Só a loja {rotulo_deposito(sol.loja_origem)} pode {acao} este pedido."
+        return False, f"S├│ a loja {rotulo_deposito(sol.loja_origem)} pode {acao} este pedido."
     if acao in ACOES_QUALQUER_LOJA and loja not in (sol.loja_origem, sol.loja_destino):
-        return False, "Esta loja não participa deste pedido."
+        return False, "Esta loja n├úo participa deste pedido."
     if acao == "transferir":
-        if sol.status not in (STATUS_ACEITO, STATUS_PRONTO):
-            return False, "Aceite o pedido (e, se quiser, marque Pronto) antes de transferir o estoque."
-        return True, ""
+        if sol.status == STATUS_PRONTO:
+            return True, ""
+        if sol.status == STATUS_ACEITO:
+            return False, "Marque Pronto antes de transferir o estoque."
+        return False, "Aceite o pedido e marque Pronto antes de transferir o estoque."
     destino = TRANSICOES.get((sol.status, acao))
     if not destino:
-        return False, "Esta ação não vale para o status atual."
+        return False, "Esta a├º├úo n├úo vale para o status atual."
     return True, ""
 
 
@@ -358,7 +360,7 @@ def aplicar_status(
         return False, err
     novo = TRANSICOES.get((sol.status, acao))
     if not novo:
-        return False, "Esta ação não vale para o status atual."
+        return False, "Esta a├º├úo n├úo vale para o status atual."
     agora = timezone.now()
     label = (operador_label or "")[:150]
     de = sol.status
@@ -413,7 +415,7 @@ def _aplicar_ajuste_absoluto_origem(
     produto_id = (produto_id or "").strip()[:100]
     deposito = normalizar_deposito(deposito)
     if not produto_id or deposito not in DEPOSITOS_VALIDOS:
-        return False, "Produto/depósito inválido para ajuste."
+        return False, "Produto/dep├│sito inv├ílido para ajuste."
     try:
         client_m, db = obter_conexao_mongo()
     except Exception:
@@ -444,9 +446,9 @@ def _resolver_qtds_envio(
     quantidades_envio=None,
 ) -> tuple[dict[int, Decimal], str]:
     """
-    Mapa item.pk → qtd a transferir.
+    Mapa item.pk ÔåÆ qtd a transferir.
     Aceita lista [{id|item_id|produto_id, quantidade}] ou dict {id: qtd}.
-    Sem payload → usa quantidade atual (pedida). Qtd 0 = pular item.
+    Sem payload ÔåÆ usa quantidade atual (pedida). Qtd 0 = pular item.
     """
     mapa: dict[int, Decimal] = {}
     por_pk: dict[str, Decimal] = {}
@@ -456,7 +458,7 @@ def _resolver_qtds_envio(
         for k, raw in quantidades_envio.items():
             q = qtd_decimal_ou_zero(raw)
             if q is None:
-                return {}, "Quantidade inválida em um dos itens."
+                return {}, "Quantidade inv├ílida em um dos itens."
             chave = str(k).strip()
             if chave.isdigit():
                 por_pk[chave] = q
@@ -470,7 +472,7 @@ def _resolver_qtds_envio(
                 raw.get("quantidade") if raw.get("quantidade") is not None else raw.get("qtd")
             )
             if q is None:
-                return {}, "Quantidade inválida em um dos itens."
+                return {}, "Quantidade inv├ílida em um dos itens."
             iid = raw.get("id") if raw.get("id") is not None else raw.get("item_id")
             if iid is not None and str(iid).strip() != "":
                 por_pk[str(iid).strip()] = q
@@ -527,7 +529,7 @@ def concluir_transferencia(
     adiar_item_ids=None,
 ) -> tuple[bool, str, list]:
     """
-    Transfere itens marcados. Qtd 0 = não enviou (fica no histórico).
+    Transfere itens marcados. Qtd 0 = n├úo enviou (fica no hist├│rico).
     Itens em adiar_item_ids saem pra um pedido novo (mesmo status) e ficam na fila.
     """
     ok, err = pode_agir(sol, loja_atual, "transferir")
@@ -555,12 +557,12 @@ def concluir_transferencia(
             for pid, raw in ajustes_por_produto.items():
                 q = qtd_decimal_ou_zero(raw)
                 if q is None:
-                    return False, "Quantidade de ajuste inválida.", []
+                    return False, "Quantidade de ajuste inv├ílida.", []
                 mapa_ajuste[str(pid).strip()] = q
         else:
             q_padrao = qtd_decimal_ou_zero(ajuste_quantidade)
             if q_padrao is None:
-                return False, "Quantidade de ajuste inválida.", []
+                return False, "Quantidade de ajuste inv├ílida.", []
             for it in itens:
                 mapa_ajuste[it.produto_externo_id] = q_padrao
 
@@ -570,26 +572,26 @@ def concluir_transferencia(
         pedida = it.quantidade_pedida if it.quantidade_pedida and it.quantidade_pedida > 0 else it.quantidade
         enviada = mapa_envio.get(it.pk, Decimal("0"))
         if enviada != pedida:
-            diffs.append(f"{it.nome_produto[:40]} {_fmt_qtd(pedida)}→{_fmt_qtd(enviada)}")
+            diffs.append(f"{it.nome_produto[:40]} {_fmt_qtd(pedida)}ÔåÆ{_fmt_qtd(enviada)}")
     obs_evento = ""
     if diffs:
         obs_evento = "Qtd " + "; ".join(diffs)[:360]
     if itens_adiar:
         nomes_adiar = ", ".join(it.nome_produto[:28] for it in itens_adiar[:4])
         marca_adiar = f"Restante ({len(itens_adiar)}): {nomes_adiar}"[:200]
-        obs_evento = f"{obs_evento} · {marca_adiar}".strip(" ·") if obs_evento else marca_adiar
+        obs_evento = f"{obs_evento} ┬À {marca_adiar}".strip(" ┬À") if obs_evento else marca_adiar
     if estoque_furado:
         marca = "Estoque furado"
         if ajustar_estoque:
-            marca += " · ajuste origem"
-        obs_evento = f"{obs_evento} · {marca}".strip(" ·") if obs_evento else marca
+            marca += " ┬À ajuste origem"
+        obs_evento = f"{obs_evento} ┬À {marca}".strip(" ┬À") if obs_evento else marca
     sol_resto_pk = None
     with transaction.atomic():
         if itens_adiar:
             status_resto = sol.status if sol.status in (STATUS_ACEITO, STATUS_PRONTO) else STATUS_ACEITO
             obs_base = (sol.observacao or "").strip()
             marca_resto = f"Restante do pedido #{sol.pk}"
-            obs_resto = (f"{obs_base} · {marca_resto}" if obs_base else marca_resto)[:400]
+            obs_resto = (f"{obs_base} ┬À {marca_resto}" if obs_base else marca_resto)[:400]
             sol_resto = SolicitacaoTransferenciaPdv.objects.create(
                 loja_origem=sol.loja_origem,
                 loja_destino=sol.loja_destino,
@@ -615,7 +617,7 @@ def concluir_transferencia(
                 status_para=status_resto,
                 operador_label=operador_label,
                 usuario=usuario,
-                observacao=f"Ficou pra depois · veio do #{sol.pk}"[:400],
+                observacao=f"Ficou pra depois ┬À veio do #{sol.pk}"[:400],
             )
         if mapa_ajuste:
             for it in itens:
@@ -631,7 +633,7 @@ def concluir_transferencia(
                     saldo_informado=q_aj,
                     nome_produto=it.nome_produto,
                     codigo_interno=it.codigo_interno,
-                    observacao=f"Estoque furado · Pedir loja #{sol.pk} · {operador_label}"[:500],
+                    observacao=f"Estoque furado ┬À Pedir loja #{sol.pk} ┬À {operador_label}"[:500],
                     usuario=usuario,
                 )
                 if not ok_a:
@@ -662,7 +664,7 @@ def concluir_transferencia(
                 q_env,
                 it.nome_produto,
                 it.codigo_interno,
-                f"PDV #{sol.pk} · {operador_label}"[:500],
+                f"PDV #{sol.pk} ┬À {operador_label}"[:500],
                 origem=sol.loja_origem,
                 destino=sol.loja_destino,
                 registrar_historico=True,
@@ -683,7 +685,7 @@ def concluir_transferencia(
             extra = (sol.observacao or "").strip()
             marca = "ESTOQUE FURADO"
             if marca not in extra.upper():
-                sol.observacao = (f"{extra} · {marca}" if extra else marca)[:400]
+                sol.observacao = (f"{extra} ┬À {marca}" if extra else marca)[:400]
         sol.save()
         _registrar_evento(
             sol,
@@ -763,7 +765,7 @@ def serializar_solicitacao(sol: SolicitacaoTransferenciaPdv, *, com_eventos: boo
         "cancelado_motivo": sol.cancelado_motivo,
         "itens": itens,
         "qtd_itens": len(itens),
-        "resumo": ", ".join(f"{i['nome']} × {i['quantidade_texto']}" for i in itens[:4]),
+        "resumo": ", ".join(f"{i['nome']} ├ù {i['quantidade_texto']}" for i in itens[:4]),
         "eh_resto": eh_resto,
         "parcialmente_enviado": parcialmente and sol.status == STATUS_CONCLUIDO,
     }
@@ -795,7 +797,7 @@ def solicitacao_deve_bipar(
     agora: datetime | None = None,
     grace: timedelta | None = None,
 ) -> bool:
-    """Pendente = bipa. Aceito/Pronto = bipa só depois da folga de 30 min (ou sem aceito_em)."""
+    """Pendente = bipa. Aceito/Pronto = bipa s├│ depois da folga de 30 min (ou sem aceito_em)."""
     st = (status or "").strip().lower()
     if st == STATUS_PENDENTE:
         return True

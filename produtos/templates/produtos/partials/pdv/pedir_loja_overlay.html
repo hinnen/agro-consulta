@@ -1,5 +1,5 @@
-<style>
-  /* Pedir loja — PC: tela cheia, tabela alinhada (padrão Uso loja). */
+﻿<style>
+  /* Pedir loja ÔÇö PC: tela cheia, tabela alinhada (padr├úo Uso loja). */
   #pdv-pedir-loja-overlay .pl-panel {
     display: flex;
     flex-direction: column;
@@ -739,10 +739,10 @@
       <details class="pl-help relative">
         <summary class="list-none inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 border-orange-500 bg-white text-lg font-black text-orange-900 hover:bg-orange-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda" title="Ajuda">?</summary>
         <div class="absolute right-0 top-full z-30 mt-1.5 w-[min(24rem,calc(100vw-2rem))] rounded-xl border border-orange-200 bg-white p-3 text-sm font-semibold text-slate-700 shadow-xl space-y-2 leading-snug">
-          <p>Peça produtos pela busca <strong>ou</strong> só o <strong>pedido escrito</strong> embaixo (sacola, café…) — <strong>não precisa</strong> de produto cadastro.</p>
-          <p>Lá: <strong>Aceitar</strong> (ou <strong>Aceitar todos</strong>) → <strong>Imprimir</strong> / <strong>Imprimir todos</strong> → marque o □ → <strong>Transferir</strong>.</p>
-          <p><strong>Qtd 0</strong> = não enviou (histórico). Desmarque o □ = fica na fila. Badge <strong>RESTANTE</strong> = o que sobrou de um envio parcial.</p>
-          <p><strong>Observação</strong> = mensagem opcional. Pedido pendente bipa a cada 1 min.</p>
+          <p>Pe├ºa produtos pela busca <strong>ou</strong> s├│ o <strong>pedido escrito</strong> embaixo (sacola, caf├®ÔÇª) ÔÇö <strong>n├úo precisa</strong> de produto cadastro.</p>
+          <p>L├í: <strong>Aceitar</strong> ÔåÆ <strong>Pronto</strong> ÔåÆ marque o Ôûí ÔåÆ <strong>Transferir</strong> (ou <strong>Transferir selecionados</strong> no topo).</p>
+          <p><strong>Qtd 0</strong> = n├úo enviou (hist├│rico). Desmarque o Ôûí = fica na fila. Badge <strong>RESTANTE</strong> = o que sobrou de um envio parcial.</p>
+          <p><strong>Observa├º├úo</strong> = mensagem opcional. Pendente bipa a cada 1 min; depois do <strong>Aceitar</strong> o bip para <strong>30 min em todos os PCs</strong> da loja.</p>
         </div>
       </details>
       <button type="button" id="pdv-pedir-loja-fechar" class="inline-flex min-h-[2.65rem] items-center rounded-xl border-2 border-teal-600 bg-teal-600 px-3.5 text-[11px] font-black uppercase text-white hover:bg-teal-700">Fechar</button>
@@ -752,7 +752,7 @@
       <button type="button" class="pl-tab is-on" data-pl-aba="pedir">Pedir</button>
       <button type="button" class="pl-tab" data-pl-aba="recebidos">Recebidos <span id="pdv-pedir-loja-badge-rec" class="pl-tab-n">0</span></button>
       <button type="button" class="pl-tab" data-pl-aba="enviados">Enviados</button>
-      <button type="button" class="pl-tab" data-pl-aba="historico">Histórico</button>
+      <button type="button" class="pl-tab" data-pl-aba="historico">Hist├│rico</button>
     </div>
 
     <p id="pdv-pedir-loja-pin-aviso" class="hidden mx-4 mt-2 rounded-xl border-2 border-amber-300 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-950">Entre com o PIN do PDV para gravar quem pediu. <button type="button" id="pdv-pedir-loja-abrir-pin" class="underline">Abrir PIN</button></p>
@@ -761,7 +761,7 @@
     <div class="pl-view-pedir pl-pedir-grid min-h-0 flex-1">
       <div class="pl-col pl-col--busca">
         <label class="sr-only" for="pdv-pedir-loja-busca">Buscar produto</label>
-        <input type="text" id="pdv-pedir-loja-busca" class="pl-field shrink-0" placeholder="Nome, GM ou código de barras" autocomplete="off" />
+        <input type="text" id="pdv-pedir-loja-busca" class="pl-field shrink-0" placeholder="Nome, GM ou c├│digo de barras" autocomplete="off" />
         <div class="pl-hits-wrap">
           <table class="pl-table">
             <colgroup>
@@ -774,25 +774,25 @@
             <thead>
               <tr>
                 <th>Produto</th>
-                <th>Código GM</th>
+                <th>C├│digo GM</th>
                 <th class="pl-th-n">Centro</th>
                 <th class="pl-th-n">Vila</th>
                 <th></th>
               </tr>
             </thead>
             <tbody id="pdv-pedir-loja-hits">
-              <tr class="pl-hint-row"><td colspan="5" class="pl-hint">Digite o nome, GM ou código.</td></tr>
+              <tr class="pl-hint-row"><td colspan="5" class="pl-hint">Digite o nome, GM ou c├│digo.</td></tr>
             </tbody>
           </table>
         </div>
         <div class="pl-escrito-bar">
-          <p class="pl-escrito-title">Pedido escrito / mensagem (não precisa de produto)</p>
+          <p class="pl-escrito-title">Pedido escrito / mensagem (n├úo precisa de produto)</p>
           <div class="pl-livre-row">
-            <input type="text" id="pdv-pedir-loja-livre" class="pl-field" maxlength="200" placeholder="Ex.: 2 sacolas · café · caixa" autocomplete="off" />
+            <input type="text" id="pdv-pedir-loja-livre" class="pl-field" maxlength="200" placeholder="Ex.: 2 sacolas ┬À caf├® ┬À caixa" autocomplete="off" />
             <button type="button" id="pdv-pedir-loja-livre-add" class="pl-btn pl-btn--ok" title="Incluir na lista">Incluir</button>
           </div>
-          <label class="sr-only" for="pdv-pedir-loja-obs">Observação / mensagem</label>
-          <textarea id="pdv-pedir-loja-obs" class="pl-field" maxlength="400" rows="2" placeholder="Observação / mensagem (opcional) — ex.: cliente esperando"></textarea>
+          <label class="sr-only" for="pdv-pedir-loja-obs">Observa├º├úo / mensagem</label>
+          <textarea id="pdv-pedir-loja-obs" class="pl-field" maxlength="400" rows="2" placeholder="Observa├º├úo / mensagem (opcional) ÔÇö ex.: cliente esperando"></textarea>
         </div>
       </div>
       <div class="pl-col pl-col--pedido">
@@ -809,6 +809,7 @@
       <div id="pdv-pedir-loja-lista-toolbar" class="pl-lista-toolbar">
         <button type="button" id="pdv-pedir-loja-imprimir-todos" class="pl-btn pl-btn--print">Imprimir todos</button>
         <button type="button" id="pdv-pedir-loja-aceitar-todos" class="pl-btn pl-btn--ok hidden">Aceitar todos</button>
+        <button type="button" id="pdv-pedir-loja-transferir-sel" class="pl-btn pl-btn--transf hidden">Transferir selecionados</button>
         <span id="pdv-pedir-loja-lista-count" class="pl-lista-count"></span>
       </div>
       <div id="pdv-pedir-loja-lista" class="space-y-2"></div>
@@ -828,7 +829,7 @@
               <input type="checkbox" id="pdv-pedir-loja-confirm-ajustar" checked />
               Ajustar estoque na origem
             </label>
-            <label for="pdv-pedir-loja-confirm-qtd" style="margin-top:0.55rem">Quantidade (saldo real · padrão 0)</label>
+            <label for="pdv-pedir-loja-confirm-qtd" style="margin-top:0.55rem">Quantidade (saldo real ┬À padr├úo 0)</label>
             <input type="number" id="pdv-pedir-loja-confirm-qtd" class="pl-field" min="0" step="0.001" value="0" />
           </div>
         </div>
@@ -864,6 +865,6 @@
   <div class="pl-aviso-box" role="alertdialog" aria-labelledby="pdv-pedir-loja-tem-pedido-msg">
     <p class="pl-aviso-msg" id="pdv-pedir-loja-tem-pedido-msg">Tem pedido da outra loja.</p>
     <button type="button" id="pdv-pedir-loja-tem-pedido-ok" class="pl-aviso-ok">Fechar</button>
-    <p class="pl-aviso-hint">Enter também fecha</p>
+    <p class="pl-aviso-hint">Enter tamb├®m fecha</p>
   </div>
 </div>
