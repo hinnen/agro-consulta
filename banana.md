@@ -1295,6 +1295,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-status/` 
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
+| 1 | **CREDITO-SCORE-TRAVAS** | ?? no PREP | **NÃO** | 98/98 |
+| 2 | **ETQ-PONTE-1CLIQUE** (+ NODE-FIX) | ?? cherry NODE-FIX | **NÃO** | — |
+
+### ? Deploy loja — ETQ-PRINT-ELGIN-MAP · **Live v26.40** · 05/10
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
 | 1 | **CREDITO-SCORE-TRAVAS** | ?? cherry PREP | **NÃO** | 98/98 (teste) |
 | 2 | **ETQ-PONTE-1CLIQUE** (+ NODE-FIX) | ?? cherry PREP | **NÃO** | 37/37 (teste) |
 
