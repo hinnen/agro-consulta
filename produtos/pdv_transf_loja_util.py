@@ -528,10 +528,13 @@ def concluir_transferencia(
     ajustes_por_produto: dict | None = None,
     quantidades_envio=None,
     adiar_item_ids=None,
+    deixar_resto=None,
 ) -> tuple[bool, str, list]:
     """
     Transfere itens marcados. Qtd 0 = não enviou (fica no histórico).
-    Itens em adiar_item_ids saem pra um pedido novo (mesmo status) e ficam na fila.
+    Itens em adiar_item_ids: se deixar_resto, vão pra pedido RESTANTE; senão, qtd enviada 0.
+    Qtd parcial (enviada < pedida) + deixar_resto: cria item RESTANTE com a diferença.
+    deixar_resto=None → True se houver adiar_item_ids (compat), senão False.
     """
     ok, err = pode_agir(sol, loja_atual, "transferir")
     if not ok:
@@ -543,6 +546,11 @@ def concluir_transferencia(
         return False, "Pedido sem itens.", []
 
     adiar_ids = _parse_adiar_ids(adiar_item_ids)
+    if deixar_resto is None:
+        deixar_resto = bool(adiar_ids)
+    else:
+        deixar_resto = bool(deixar_resto)
+
     itens_adiar = [it for it in itens_todos if it.pk in adiar_ids]
     itens = [it for it in itens_todos if it.pk not in adiar_ids]
     if not itens:
@@ -551,6 +559,14 @@ def concluir_transferencia(
     mapa_envio, err_q = _resolver_qtds_envio(itens, quantidades_envio)
     if err_q:
         return False, err_q, []
+
+    # Diffs parciais (mesmo item, qtd menor) → candidatos a resto
+    splits_resto: list[tuple[SolicitacaoTransferenciaPdvItem, Decimal]] = []
+    for it in itens:
+        pedida = it.quantidade_pedida if it.quantidade_pedida and it.quantidade_pedida > 0 else it.quantidade
+        enviada = mapa_envio.get(it.pk, Decimal("0"))
+        if deixar_resto and enviada > 0 and enviada < pedida:
+            splits_resto.append((it, (pedida - enviada).quantize(Decimal("0.001"))))
 
     mapa_ajuste: dict[str, Decimal] = {}
     if estoque_furado and ajustar_estoque:
@@ -577,10 +593,22 @@ def concluir_transferencia(
     obs_evento = ""
     if diffs:
         obs_evento = "Qtd " + "; ".join(diffs)[:360]
-    if itens_adiar:
+    n_resto_itens = 0
+    if deixar_resto and itens_adiar:
         nomes_adiar = ", ".join(it.nome_produto[:28] for it in itens_adiar[:4])
         marca_adiar = f"Restante ({len(itens_adiar)}): {nomes_adiar}"[:200]
         obs_evento = f"{obs_evento} · {marca_adiar}".strip(" ·") if obs_evento else marca_adiar
+        n_resto_itens += len(itens_adiar)
+    if deixar_resto and splits_resto:
+        marca_split = f"Parcial resto ({len(splits_resto)} item(ns))"[:200]
+        obs_evento = f"{obs_evento} · {marca_split}".strip(" ·") if obs_evento else marca_split
+        n_resto_itens += len(splits_resto)
+    if not deixar_resto and (itens_adiar or any(
+        mapa_envio.get(it.pk, Decimal("0"))
+        < (it.quantidade_pedida if it.quantidade_pedida and it.quantidade_pedida > 0 else it.quantidade)
+        for it in itens
+    )):
+        obs_evento = f"{obs_evento} · Encerrado sem resto".strip(" ·") if obs_evento else "Encerrado sem resto"
     if estoque_furado:
         marca = "Estoque furado"
         if ajustar_estoque:
@@ -588,7 +616,8 @@ def concluir_transferencia(
         obs_evento = f"{obs_evento} · {marca}".strip(" ·") if obs_evento else marca
     sol_resto_pk = None
     with transaction.atomic():
-        if itens_adiar:
+        criar_resto = deixar_resto and (itens_adiar or splits_resto)
+        if criar_resto:
             status_resto = sol.status if sol.status in (STATUS_ACEITO, STATUS_PRONTO) else STATUS_ACEITO
             obs_base = (sol.observacao or "").strip()
             marca_resto = f"Restante do pedido #{sol.pk}"
@@ -610,6 +639,15 @@ def concluir_transferencia(
             for it in itens_adiar:
                 it.solicitacao = sol_resto
                 it.save(update_fields=["solicitacao"])
+            for it, q_resto in splits_resto:
+                SolicitacaoTransferenciaPdvItem.objects.create(
+                    solicitacao=sol_resto,
+                    produto_externo_id=it.produto_externo_id,
+                    nome_produto=it.nome_produto,
+                    codigo_interno=it.codigo_interno or "",
+                    quantidade=q_resto,
+                    quantidade_pedida=q_resto,
+                )
             sol_resto_pk = sol_resto.pk
             _registrar_evento(
                 sol_resto,
@@ -620,6 +658,14 @@ def concluir_transferencia(
                 usuario=usuario,
                 observacao=f"Ficou pra depois · veio do #{sol.pk}"[:400],
             )
+        elif not deixar_resto and itens_adiar:
+            # Encerrar: produtos desmarcados ficam no histórico com enviada 0
+            for it in itens_adiar:
+                pedida = it.quantidade_pedida if it.quantidade_pedida and it.quantidade_pedida > 0 else it.quantidade
+                if not it.quantidade_pedida or it.quantidade_pedida <= 0:
+                    it.quantidade_pedida = pedida
+                it.quantidade = Decimal("0")
+                it.save(update_fields=["quantidade", "quantidade_pedida"])
         if mapa_ajuste:
             for it in itens:
                 if eh_item_livre(it.produto_externo_id):
@@ -704,7 +750,13 @@ def concluir_transferencia(
     except Exception:
         pass
     if sol_resto_pk:
-        resultados.append({"ok": True, "resto_solicitacao_id": sol_resto_pk, "adiados": len(itens_adiar)})
+        resultados.append(
+            {
+                "ok": True,
+                "resto_solicitacao_id": sol_resto_pk,
+                "adiados": n_resto_itens,
+            }
+        )
     return True, "", resultados
 
 

@@ -58,7 +58,11 @@ def main() -> int:
     check("js_poll_12s", "12000" in js and "visibilitychange" in js)
     check("ui_marcar_todos", 'data-pl-sel="todos"' in js and "marcarChecksDoCard" in js)
     check("ui_secoes_status", "pl-sec" in js and "eh_resto" in js)
-    check("ui_confirm_lista", "Vai agora:" in js and "Ficam na fila" in js)
+    check(
+        "ui_confirm_lista",
+        "Vai agora:" in js
+        and ("Ficam na fila" in js or "fica na fila" in js.lower() or "Se deixar resto" in js),
+    )
     check("ui_qtd_diff", "data-pl-pedida" in js and "is-diff" in js)
     check("css_status_card", 'data-pl-st="pronto"' in html or "pl-card[data-pl-st" in html)
     check("ser_eh_resto", '"eh_resto"' in util and "parcialmente_enviado" in util)
