@@ -1291,31 +1291,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚀 PREP deploy loja — Checklist 05/10d (deploy/prep-checklist-0510d · **v26.46**) · aguarda senha
+### ✅ Deploy loja — Checklist 05/10d · **Live v26.46** · 05/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha no próximo chat |
-| **O quê** | **CREDITO-SCORE-TRAVAS** (shadow_v1_1 · só lab) + **ETQ-PONTE-1CLIQUE** (ZIP CLIQUE-AQUI + Node embutido; absorve NODE-FIX) |
-| **Branch PREP** | deploy/prep-checklist-0510d · tip ac308f47 |
-| **Base Live** | **v26.40** @ 8be1f093 |
-| **Alvo loja** | **v26.46** |
+| **Status** | ✅ **enviado / Live v26.46** — producao @ 68ef04ce · Render dep-db21bsmgekts739g5sj0 · **não** foi merge do 	este |
+| **O quê** | **CREDITO-SCORE-TRAVAS** + **ETQ-PONTE-1CLIQUE** (+ NODE-FIX) |
+| **Branch PREP** | deploy/prep-checklist-0510d · tip 68ef04ce · base Live **v26.40** @ 8be1f093 |
 | **Migrate** | **NÃO** |
-| **Merge 	este?** | **NÃO** — cherry só destes 2 pacotes |
-| **Provas (revalidadas no PREP)** | shadow **98/98** · xlsx **90/90** · 1clique **37/37** · bridge **22/22** · full **79/79** · **PREP_FAILS=0** |
+| **Smoke** | healthz **ok** · deploy **live** |
+| **Provas (PREP)** | shadow **98/98** · xlsx **90/90** · 1clique **37/37** · **PREP_FAILS=0** |
 | **Rollback** | tag 
-ollback/pre-checklist-0510d-v26.40 @ 8be1f093 · branch producao-backup-pre-v2646-checklist-0510d · docs/ROLLBACK-CHECKLIST-0510d.md |
-| **Doc** | docs/DEPLOY-PREP-CHECKLIST-0510d.md |
-| **Na senha (rápido ~1–2 min)** | Lojas pausam vendas → 
-eset --hard origin/deploy/prep-checklist-0510d → push producao → Render Live → Ctrl+F5 · badge **v26.46** · PC etiqueta: baixar ZIP de novo se for usar ponte |
-| **Risco loja aberta** | **Baixo** — **não** mexe PDV venda · caixa · Point · NFC-e · financeiro. Só lab crédito (flag off) + ZIP/ponte etiquetas |
+ollback/pre-checklist-0510d-v26.40 @ 8be1f093 · branch producao-backup-pre-v2646-checklist-0510d · docs/ROLLBACK-CHECKLIST-0510d.md · **só** frase+senha |
+| **Você** | Ctrl+F5 · badge **v26.46** · liberar vendas · PC etiqueta: baixar ZIP de novo se for reinstalar ponte |
 
-### ✅ CHECKLIST ÚNICO — 05/10d · 🟢 PREP v26.46 · aguarda senha
+### ✅ CHECKLIST ÚNICO — 05/10d · ✅ Live v26.46
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CREDITO-SCORE-TRAVAS** | 🟢 **no PREP** · aguarda senha | **NÃO** | **98/98** · xlsx **90/90** |
-| 2 | **ETQ-PONTE-1CLIQUE** (+ NODE-FIX) | 🟢 **no PREP** · aguarda senha | **NÃO** | **37/37** |
+| 1 | **CREDITO-SCORE-TRAVAS** | ✅ **enviado / Live v26.46** | **NÃO** | **98/98** · xlsx **90/90** |
+| 2 | **ETQ-PONTE-1CLIQUE** (+ NODE-FIX) | ✅ **enviado / Live v26.46** | **NÃO** | **37/37** |
 
 ### ✅ Deploy loja — ETQ-PRINT-ELGIN-MAP · **Live v26.40** · 05/10
 
@@ -1361,7 +1356,7 @@ eset --hard origin/deploy/prep-checklist-0510d → push producao → Render Live
 
 ### 📦 PACOTES JÁ LIVE (05/10c · v26.35) — sem fila
 
-`PDV-PEDIR-PARCIAL-RESTO` · `PDV-PEDIR-PRONTO-TRANSF` · `META-MODO-AGORA` · `CREDITO-SCORE-XLSX-COLS` · `ETQ-PRESET-ESPELHO` · `ETQ-PRINT-DIRETO` · `PDV-PEDIR-PRINT-3` → ✅ **Live v26.35**. Fila atual = **PREP** deploy/prep-checklist-0510d · v26.46 (aguarda senha). ETQ-PRINT-ELGIN-MAP já Live v26.40.
+`PDV-PEDIR-PARCIAL-RESTO` · `PDV-PEDIR-PRONTO-TRANSF` · `META-MODO-AGORA` · `CREDITO-SCORE-XLSX-COLS` · `ETQ-PRESET-ESPELHO` · `ETQ-PRINT-DIRETO` · `PDV-PEDIR-PRINT-3` → ✅ **Live v26.35**. Fila atual = vazia. Último envio = **05/10d** Live **v26.46** (TRAVAS + PONTE-1CLIQUE). ETQ-PRINT-ELGIN-MAP Live v26.40.
 
 ### 🚀 PREP deploy loja — Checklist 05/10b (`deploy/prep-checklist-0510b` · **v26.24**) · aguarda senha
 
