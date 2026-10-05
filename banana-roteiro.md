@@ -766,7 +766,7 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 58. CHECKLIST ÚNICO — ETQ-PRINT-ELGIN-MAP · 🟢 pronto envio (alvo **v26.37**)
+## 58. CHECKLIST ÚNICO — ETQ-PRINT-ELGIN-MAP · 🟢 pronto envio (alvo **v26.40**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
