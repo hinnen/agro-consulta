@@ -10,6 +10,8 @@ node_modules/
 dist-electron/
 agro-print-bridge/node_modules/
 agro-print-bridge/dist/
+agro-print-bridge/vendor/
+.cache/
 config/build_stamp.json
 
 # Cópias de conflito do Windows/OneDrive (não versionar; Django usa os ficheiros sem sufixo)

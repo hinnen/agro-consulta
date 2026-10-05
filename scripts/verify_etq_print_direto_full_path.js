@@ -88,8 +88,9 @@ ok(vbs.includes(', 0, False'), 'vbs janela oculta');
 ok(exists('produtos/etiquetas_print_bridge_util.py'), 'util zip');
 ok(exists('produtos/static/produtos/js/agro_print_bridge.js'), 'cliente JS');
 const util = read('produtos/etiquetas_print_bridge_util.py');
-ok(util.includes('1-INSTALAR.bat'), 'zip com 1-INSTALAR');
-ok(util.includes('BAIXA SOZINHO'), 'LEIA-ME auto Node');
+ok(util.includes('CLIQUE-AQUI-INSTALAR.bat'), 'zip com CLIQUE-AQUI-INSTALAR');
+ok(util.includes('ensure_node_vendor') || util.includes('app/vendor'), 'Node embutido no ZIP');
+ok(util.includes('CLIQUE-AQUI') || util.includes('dois cliques'), 'LEIA-ME clique unico');
 ok(util.includes('node_modules'), 'exclui node_modules');
 ok(util.includes('_ascii_crlf') || util.includes('ASCII'), 'zip força bat ASCII');
 
@@ -102,7 +103,12 @@ ok(urls.includes('print-bridge/download'), 'rota download');
 
 const html = read('produtos/templates/produtos/produtos_etiquetas.html');
 ok(html.includes('etq-btn-bridge-download'), 'botão Baixar ponte');
-ok(html.includes('Baixa Node/Electron sozinho') || html.includes('Elgin: use 2 filas'), 'texto UI auto/Elgin');
+ok(
+  html.includes('CLIQUE-AQUI-INSTALAR.bat') ||
+    html.includes('Elgin: 2 filas') ||
+    html.includes('Elgin: use 2 filas'),
+  'texto UI auto/Elgin'
+);
 ok(html.includes('agro_print_bridge.js'), 'página puxa bridge client');
 ok(html.includes('etq-preset-print-modo'), 'modo impressão no preset');
 ok(html.includes('etq-size-map-box'), 'UI mapa tamanho');
@@ -185,16 +191,17 @@ try {
     'assert z[:2] == b"PK"',
     'names = zipfile.ZipFile(io.BytesIO(z)).namelist()',
     'need = [',
-    '  "Agro-Etiqueta-Print/1-INSTALAR.bat",',
+    '  "Agro-Etiqueta-Print/CLIQUE-AQUI-INSTALAR.bat",',
     '  "Agro-Etiqueta-Print/LEIA-ME.txt",',
-    '  "Agro-Etiqueta-Print/main.js",',
-    '  "Agro-Etiqueta-Print/ensure-node.bat",',
-    '  "Agro-Etiqueta-Print/Instalar-inicio-Windows.bat",',
-    '  "Agro-Etiqueta-Print/iniciar-silencioso.vbs",',
-    '  "Agro-Etiqueta-Print/Elgin-duas-filas.txt",',
+    '  "Agro-Etiqueta-Print/app/main.js",',
+    '  "Agro-Etiqueta-Print/app/ensure-node.bat",',
+    '  "Agro-Etiqueta-Print/app/Instalar-inicio-Windows.bat",',
+    '  "Agro-Etiqueta-Print/app/iniciar-silencioso.vbs",',
+    '  "Agro-Etiqueta-Print/app/Elgin-duas-filas.txt",',
     ']',
     'missing = [n for n in need if n not in names]',
     'assert not missing, missing',
+    'assert any(n.startswith("Agro-Etiqueta-Print/app/vendor/node-") and n.endswith(".zip") for n in names), "falta Node vendor"',
     'assert not any("node_modules" in n for n in names)',
     'print("ZIP_OK", len(z), len(names))',
   ].join('\n');

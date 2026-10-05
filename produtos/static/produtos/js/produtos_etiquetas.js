@@ -2060,7 +2060,7 @@
         dl.setAttribute('href', cfgUrl);
       }
       dl.addEventListener('click', function () {
-        setStatus('Baixando ZIP… Extraia e rode 1-INSTALAR.bat (uma vez neste PC).');
+        setStatus('Baixando ZIP… Extraia e dê dois cliques em CLIQUE-AQUI-INSTALAR.bat (uma vez neste PC).');
       });
     }
     $('etq-btn-bridge-test') &&
