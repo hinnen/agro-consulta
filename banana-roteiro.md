@@ -763,6 +763,6 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 **O quê:** laboratório `/fiado/analise-credito/` (shadow). **Não** mexe limite, venda, PDV, caixa. Flag default **off**.  
 **Não entra:** merge do `teste` · ligar flag no 1º deploy.  
-**Branch PREP:** `deploy/prep-credito-score-shadow` · base Live **v26.05** @ `41a6fdea`.  
+**Branch PREP:** `deploy/prep-credito-score-shadow` · tip `ce71fb0f` · base Live **v26.05** @ `41a6fdea`.  
 **Rollback:** tag `rollback/pre-credito-score-shadow-v26.05` · `docs/ROLLBACK-CREDITO-SCORE-SHADOW.md` · **só** frase+senha.  
 **Status:** 🟢 PREP · aguarda pausa + frase + senha. Loja ainda **v26.05**.

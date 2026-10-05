@@ -1294,7 +1294,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **PREP pronto** — **não** subiu · loja ainda **Live v26.05** |
-| **Branch PREP** | `deploy/prep-credito-score-shadow` |
+| **Branch PREP** | `deploy/prep-credito-score-shadow` · tip `ce71fb0f` |
 | **Antes** | `producao` @ `41a6fdea` · v**26.05** |
 | **Migrate** | **SIM** `0137` (só CREATE TABLE) — no build do Render |
 | **Não entra** | merge do `teste` · flag ligada · PDV/caixa/fiado operacional |
