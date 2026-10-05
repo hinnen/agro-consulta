@@ -119,6 +119,34 @@
   .meta-foto-hint {
     text-align: center; font-size: 0.85rem; font-weight: 700; color: #64748b;
   }
+  .meta-modo {
+    display: flex; flex-direction: column; gap: 0.45rem; min-width: 11rem;
+  }
+  .meta-modo-lbl {
+    font-size: 0.68rem; font-weight: 900; text-transform: uppercase;
+    letter-spacing: 0.06em; color: #64748b;
+  }
+  .meta-modo-btn {
+    min-height: 3rem; border-radius: 0.85rem; border: 3px solid #94a3b8;
+    background: #fff; color: #0f172a; font-weight: 900; text-transform: uppercase;
+    font-size: 0.78rem; padding: 0.35rem 0.75rem; text-align: left; line-height: 1.2;
+    cursor: pointer;
+  }
+  .meta-modo-btn.is-on {
+    border-color: #047857; background: #ecfdf5; color: #065f46;
+    box-shadow: 0 0 0 2px rgba(4, 120, 87, 0.2);
+  }
+  .meta-modo-btn small {
+    display: block; font-size: 0.65rem; font-weight: 700; text-transform: none;
+    color: #64748b; margin-top: 0.15rem;
+  }
+  .meta-modo-btn.is-on small { color: #047857; }
+  .meta-foto-row {
+    display: grid; gap: 0.85rem; align-items: start;
+  }
+  @media (min-width: 900px) {
+    .meta-foto-row { grid-template-columns: minmax(0, 1fr) 12rem; }
+  }
   .meta-toast {
     position: fixed; bottom: 1.25rem; right: 1.25rem; z-index: 80;
     background: #065f46; color: #fff; font-weight: 900; padding: 0.75rem 1.1rem;
@@ -138,6 +166,10 @@
       </label>
       <button type="button" id="meta-atualizar">Atualizar</button>
       <span class="meta-sub" id="meta-comp-lbl">{{ mostruario.competencia_fmt }}</span>
+      <div class="meta-modo" style="flex-direction:row;flex-wrap:wrap;align-items:stretch;min-width:0;">
+        <button type="button" class="meta-modo-btn is-on" data-modo="mes" id="meta-modo-mes">Meta do mês<small>falta pra bater a meta cheia</small></button>
+        <button type="button" class="meta-modo-btn" data-modo="agora" id="meta-modo-agora">Até agora<small>ritmo pela média esperada</small></button>
+      </div>
     </div>
   </div>
 
@@ -169,7 +201,7 @@
   </div>
 
   <div class="meta-card meta-span" id="meta-card-faixas">
-    <h2>Metas do mês · quanto falta</h2>
+    <h2 id="meta-faixas-titulo">Metas · quanto falta (meta do mês)</h2>
     <div id="meta-faixas-prog">
       {% for f in mostruario.faixas %}
       <div class="meta-faixa">
@@ -190,10 +222,17 @@
 
   <div class="meta-card meta-span">
     <h2>Foto da tabelinha (pro grupo)</h2>
-    <p class="meta-sub mb-2">Mesmo naipe da planilha — mais info. <strong>Copiar foto</strong> cola a imagem no Zap.</p>
-    <div class="meta-foto-wrap">
-      <div class="meta-foto-preview"><img id="meta-foto-img" alt="Prévia META" width="900" height="600"></div>
-      <div class="meta-foto-hint" id="meta-foto-hint">Gerando prévia…</div>
+    <p class="meta-sub mb-2">Mesmo naipe da planilha — mais info. <strong>Copiar foto</strong> cola a imagem no Zap. Troque o modo ao lado pra ver <strong>meta cheia</strong> ou <strong>ritmo até agora</strong>.</p>
+    <div class="meta-foto-row">
+      <div class="meta-foto-wrap">
+        <div class="meta-foto-preview"><img id="meta-foto-img" alt="Prévia META" width="900" height="600"></div>
+        <div class="meta-foto-hint" id="meta-foto-hint">Gerando prévia…</div>
+      </div>
+      <div class="meta-modo" id="meta-modo-foto">
+        <div class="meta-modo-lbl">Visão da foto</div>
+        <button type="button" class="meta-modo-btn is-on" data-modo="mes">Meta do mês<small>meta cheia</small></button>
+        <button type="button" class="meta-modo-btn" data-modo="agora">Até agora<small>média esperada</small></button>
+      </div>
     </div>
   </div>
 
@@ -235,6 +274,11 @@
   var csrf = (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || "";
   var lastMostruario = null;
   var lastFotoBlob = null;
+  var modoAtual = "mes";
+  try {
+    var savedModo = localStorage.getItem("agro_meta_modo_v1");
+    if (savedModo === "agora" || savedModo === "mes") modoAtual = savedModo;
+  } catch (e0) {}
 
   function toast(msg) {
     var el = document.getElementById("meta-toast");
@@ -256,6 +300,52 @@
     return "meta-bar";
   }
 
+  function isModoAgora() {
+    return modoAtual === "agora";
+  }
+
+  function progAtivo(f) {
+    if (isModoAgora() && f && f.agora) return f.agora;
+    return f || {};
+  }
+
+  function syncModoButtons() {
+    document.querySelectorAll(".meta-modo-btn").forEach(function (btn) {
+      var on = btn.getAttribute("data-modo") === modoAtual;
+      btn.classList.toggle("is-on", on);
+    });
+    var tit = document.getElementById("meta-faixas-titulo");
+    if (tit) {
+      tit.textContent = isModoAgora()
+        ? "Metas · ritmo até agora (pela média esperada)"
+        : "Metas · quanto falta (meta do mês)";
+    }
+  }
+
+  function setModo(modo) {
+    modoAtual = modo === "agora" ? "agora" : "mes";
+    try { localStorage.setItem("agro_meta_modo_v1", modoAtual); } catch (e1) {}
+    syncModoButtons();
+    if (lastMostruario) {
+      renderFaixasProg(lastMostruario.faixas || []);
+      atualizarFoto(lastMostruario);
+      carregarTextoZap();
+    }
+  }
+
+  function carregarTextoZap() {
+    if (!lastMostruario) return;
+    var url = apiResumo + "?competencia=" + encodeURIComponent(competencia()) + "&modo=" + encodeURIComponent(modoAtual);
+    fetch(url, { credentials: "same-origin", headers: { "Accept": "application/json" } })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data || !data.ok) return;
+        var zap = document.getElementById("meta-zap-txt");
+        if (zap && typeof data.texto_zap === "string") zap.value = data.texto_zap;
+      })
+      .catch(function () {});
+  }
+
   function roundRect(ctx, x, y, w, h, r) {
     var rr = Math.min(r, w / 2, h / 2);
     ctx.beginPath();
@@ -275,8 +365,13 @@
   }
 
   function statusFaixa(f) {
-    if (f.atingida) return "BATIDA  +" + (f.excedente_fmt || "");
-    return "faltam " + (f.falta_fmt || "—") + "  ·  " + (f.pct_fmt || "—");
+    var p = progAtivo(f);
+    if (isModoAgora()) {
+      if (p.atingida) return "NO RITMO  +" + (p.excedente_fmt || "");
+      return "faltam " + (p.falta_fmt || "—") + "  ·  " + (p.pct_fmt || "—");
+    }
+    if (p.atingida) return "BATIDA  +" + (p.excedente_fmt || "");
+    return "faltam " + (p.falta_fmt || "—") + "  ·  " + (p.pct_fmt || "—");
   }
 
   function vsLinha(vs) {
@@ -336,6 +431,9 @@
     ctx.font = "700 15px Inter, system-ui, sans-serif";
     ctx.fillStyle = "#a7f3d0";
     var subHead = (m.mes_atual ? "Mês até " : "Mês fechado · ") + (m.fim_vendido_fmt || "");
+    if (isModoAgora()) {
+      subHead = "Até agora · ritmo média · " + (m.fracao_ate_agora_pct_fmt || "") + " do mês";
+    }
     ctx.fillText(subHead, cx + 24, cy + 68);
     ctx.fillStyle = "#6ee7b7";
     ctx.font = "800 13px Inter, system-ui, sans-serif";
@@ -403,7 +501,7 @@
     ctx.font = "900 15px Inter, system-ui, sans-serif";
     ctx.fillText("VENDA (meta)", tx + 12, ty + 28);
     ctx.fillText("BÔNUS", tx + c1 + 12, ty + 28);
-    ctx.fillText("SITUAÇÃO", tx + c1 + c2 + 12, ty + 28);
+    ctx.fillText(isModoAgora() ? "RITMO ATÉ AGORA" : "SITUAÇÃO", tx + c1 + c2 + 12, ty + 28);
 
     var y = ty + colH;
     if (!faixas.length) {
@@ -418,6 +516,7 @@
     } else {
       for (var r = 0; r < faixas.length; r++) {
         var f = faixas[r];
+        var p = progAtivo(f);
         ctx.fillStyle = r % 2 === 0 ? "#ffffff" : "#fffbeb";
         ctx.fillRect(tx, y, tw, rowH);
         ctx.strokeStyle = "#0f172a";
@@ -437,7 +536,7 @@
         ctx.font = "700 14px Inter, system-ui, sans-serif";
         ctx.fillText(fitText(ctx, f.bonus_label || "—", c2 - 20), tx + c1 + 12, y + 30);
 
-        ctx.fillStyle = f.atingida ? "#047857" : "#b91c1c";
+        ctx.fillStyle = p.atingida ? "#047857" : "#b91c1c";
         ctx.font = "800 13px Inter, system-ui, sans-serif";
         ctx.fillText(fitText(ctx, statusFaixa(f), c3 - 20), tx + c1 + c2 + 12, y + 30);
         y += rowH;
@@ -448,10 +547,18 @@
     ctx.fillStyle = "#64748b";
     ctx.font = "700 12px Inter, system-ui, sans-serif";
     ctx.textAlign = "left";
-    var prox = m.proxima_meta;
-    var foot = prox
-      ? ("Próxima meta: " + (prox.valor_meta_fmt || "") + " — faltam " + (prox.falta_fmt || ""))
-      : (m.ultima_batida ? "Todas as metas batidas!" : "");
+    var prox = isModoAgora() ? m.proxima_meta_agora : m.proxima_meta;
+    var foot = "";
+    if (prox) {
+      if (isModoAgora()) {
+        var pa = prox.agora || {};
+        foot = "Próxima no ritmo: " + (prox.valor_meta_fmt || "") + " — faltam " + (pa.falta_fmt || "") + " da parcela";
+      } else {
+        foot = "Próxima meta: " + (prox.valor_meta_fmt || "") + " — faltam " + (prox.falta_fmt || "");
+      }
+    } else if (isModoAgora() ? m.ultima_batida_agora : m.ultima_batida) {
+      foot = isModoAgora() ? "No ritmo de todas as metas até agora!" : "Todas as metas batidas!";
+    }
     ctx.fillText(foot, cx + 24, cy + ch - 18);
     ctx.textAlign = "right";
     ctx.fillText("GM Agro", cx + cw - 24, cy + ch - 18);
@@ -534,19 +641,30 @@
       return;
     }
     box.innerHTML = faixas.map(function (f) {
-      var pct = Number(f.pct || 0);
+      var p = progAtivo(f);
+      var pct = Number(p.pct || 0);
       var w = Math.max(0, Math.min(100, pct));
-      var st = f.atingida
-        ? ('✅ +' + (f.excedente_fmt || "—"))
-        : ("faltam " + (f.falta_fmt || "—") + " · " + (f.pct_fmt || "—"));
-      var stCls = f.atingida ? "meta-acima" : "meta-abaixo";
+      var st;
+      if (isModoAgora()) {
+        st = p.atingida
+          ? ("✅ no ritmo · +" + (p.excedente_fmt || "—"))
+          : ("faltam " + (p.falta_fmt || "—") + " · " + (p.pct_fmt || "—") + " do esperado");
+      } else {
+        st = p.atingida
+          ? ("✅ +" + (p.excedente_fmt || "—"))
+          : ("faltam " + (p.falta_fmt || "—") + " · " + (p.pct_fmt || "—"));
+      }
+      var stCls = p.atingida ? "meta-acima" : "meta-abaixo";
+      var extra = isModoAgora() && f.meta_agora_fmt
+        ? ('<div class="bon">Parcela até agora: ' + f.meta_agora_fmt + "</div>")
+        : "";
       return (
         '<div class="meta-faixa">' +
           '<div><div class="tit">' + (f.valor_meta_fmt || "—") + '</div>' +
-          '<div class="bon">Bônus ' + (f.bonus_label || "—") + '</div></div>' +
-          '<div class="st ' + stCls + '">' + st + '</div>' +
+          '<div class="bon">Bônus ' + (f.bonus_label || "—") + "</div>" + extra + "</div>" +
+          '<div class="st ' + stCls + '">' + st + "</div>" +
           '<div class="' + barClass(pct) + '"><span style="width:' + w + '%"></span></div>' +
-        '</div>'
+        "</div>"
       );
     }).join("");
   }
@@ -609,6 +727,7 @@
     renderFaixasProg(m.faixas || []);
     var zap = document.getElementById("meta-zap-txt");
     if (zap && typeof texto === "string") zap.value = texto;
+    syncModoButtons();
     atualizarFoto(m);
   }
 
@@ -618,7 +737,7 @@
   }
 
   function carregar() {
-    var url = apiResumo + "?competencia=" + encodeURIComponent(competencia());
+    var url = apiResumo + "?competencia=" + encodeURIComponent(competencia()) + "&modo=" + encodeURIComponent(modoAtual);
     return fetch(url, { credentials: "same-origin", headers: { "Accept": "application/json" } })
       .then(function (r) { return r.json(); })
       .then(function (data) {
@@ -638,6 +757,12 @@
 
   document.getElementById("meta-atualizar").addEventListener("click", carregar);
   document.getElementById("meta-comp").addEventListener("change", carregar);
+
+  document.querySelectorAll(".meta-modo-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      setModo(btn.getAttribute("data-modo") || "mes");
+    });
+  });
 
   document.getElementById("meta-copiar-foto").addEventListener("click", copiarFoto);
 
@@ -736,9 +861,16 @@
     var elInit = document.getElementById("meta-inicial-json");
     if (elInit) {
       var init = JSON.parse(elInit.textContent || "{}");
-      if (init && init.competencia) atualizarFoto(init);
+      if (init && init.competencia) {
+        lastMostruario = init;
+        syncModoButtons();
+        renderFaixasProg(init.faixas || []);
+        atualizarFoto(init);
+        carregarTextoZap();
+      }
     }
   } catch (e0) {}
+  syncModoButtons();
 })();
 </script>
 {% endblock %}

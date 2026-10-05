@@ -84,6 +84,7 @@ def api_meta_vendas_resumo(request):
     deposito = (request.GET.get("deposito") or "").strip().lower() or None
     if deposito not in ("centro", "vila", None):
         deposito = None
+    modo = (request.GET.get("modo") or "mes").strip().lower()
     try:
         mostruario = meta_montar_mostruario(
             competencia=competencia, hoje=hoje, agora=agora, deposito=deposito
@@ -92,7 +93,8 @@ def api_meta_vendas_resumo(request):
             {
                 "ok": True,
                 "mostruario": mostruario,
-                "texto_zap": meta_texto_zap(mostruario),
+                "modo": modo,
+                "texto_zap": meta_texto_zap(mostruario, modo=modo),
             }
         )
     except Exception as exc:

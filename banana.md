@@ -1290,6 +1290,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — META visão Até agora (`META-MODO-AGORA` · tip **v26.21**) · 05/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **pronto para envio à produção** (aguarda frase + senha) |
+| **O quê** | Interruptor **Meta do mês** × **Até agora** (ritmo pela média esperada) — lista, foto Zap e texto |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_meta_mostruario_path.py` **112/112** · PIN **9973** |
+| **Tip** | `teste` **v26.21** |
+| **Você** | Ctrl+F5 META → **Até agora** → Copiar foto |
+
+### ✅ CHECKLIST ÚNICO — META-MODO-AGORA · 🟢 pronto envio
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **META-MODO-AGORA** | 🟢 **pronto para envio à produção** | **NÃO** | **112/112** |
+
 ### PACOTE PRONTO — Pedir loja Pronto + Transferir sel + bip multi-PC (`PDV-PEDIR-PRONTO-TRANSF`)
 
 | Campo | Valor |
