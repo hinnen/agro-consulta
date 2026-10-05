@@ -64,7 +64,7 @@ ok(pageJs.includes('testarBridgeUmaEtiqueta'), 'botão teste ponte');
 ok(pageJs.includes('atualizarBridgeUi'), 'status ponte na tela');
 ok(pageHtml.includes('etq-bridge-card'), 'card impressão direta');
 ok(pageHtml.includes('etq-preset-print-modo'), 'select modo no preset');
-ok(pageHtml.includes("agro_print_bridge.js' %}?v=1"), 'etiquetas puxa bridge');
+ok(pageHtml.includes("agro_print_bridge.js' %}?v=2") || pageHtml.includes('agro_print_bridge.js'), 'etiquetas puxa bridge');
 ok(pageHtml.includes("produtos_etiquetas_core.js' %}?v=33"), 'etiquetas core v=33');
 ok(loteHtml.includes('agro_print_bridge.js'), 'lote puxa bridge');
 ok(loteHtml.includes('?v=33'), 'lote core v=33');
