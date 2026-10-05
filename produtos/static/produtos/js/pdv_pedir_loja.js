@@ -48,6 +48,8 @@
     lista: document.getElementById('pdv-pedir-loja-lista'),
     listaToolbar: document.getElementById('pdv-pedir-loja-lista-toolbar'),
     imprimirTodos: document.getElementById('pdv-pedir-loja-imprimir-todos'),
+    aceitarTodos: document.getElementById('pdv-pedir-loja-aceitar-todos'),
+    listaCount: document.getElementById('pdv-pedir-loja-lista-count'),
     status: document.getElementById('pdv-pedir-loja-status'),
     pinAviso: document.getElementById('pdv-pedir-loja-pin-aviso'),
     abrirPin: document.getElementById('pdv-pedir-loja-abrir-pin'),
@@ -301,6 +303,71 @@
     if (!dom.listaToolbar) return;
     var show = aba === 'recebidos' || aba === 'enviados' || aba === 'historico';
     dom.listaToolbar.classList.toggle('is-show', show);
+    var rows = (dom.lista && dom.lista._rows) || [];
+    var n = rows.length;
+    if (dom.imprimirTodos) {
+      dom.imprimirTodos.disabled = n === 0;
+      dom.imprimirTodos.textContent =
+        n > 1 ? 'Imprimir todos (' + n + ')' : n === 1 ? 'Imprimir cupom' : 'Imprimir todos';
+    }
+    if (dom.listaCount) {
+      dom.listaCount.textContent = n
+        ? n + ' pedido' + (n === 1 ? '' : 's') + ' nesta lista'
+        : '';
+    }
+    var nPend = 0;
+    if (aba === 'recebidos') {
+      rows.forEach(function (r) {
+        if (r && r.status === 'pendente') nPend += 1;
+      });
+    }
+    if (dom.aceitarTodos) {
+      if (nPend > 0) {
+        dom.aceitarTodos.classList.remove('hidden');
+        dom.aceitarTodos.textContent =
+          nPend === 1 ? 'Aceitar 1 pendente' : 'Aceitar todos (' + nPend + ')';
+      } else {
+        dom.aceitarTodos.classList.add('hidden');
+      }
+    }
+  }
+
+  function atualizarBtnTransferir(card) {
+    if (!card) return;
+    var btn = card.querySelector('[data-pl-acao="transferir"]');
+    if (!btn) return;
+    var sel = lerSelecaoDoCard(card);
+    var n = sel.itens.length;
+    var total = card.querySelectorAll('.pl-item-row[data-pl-item-id]').length;
+    if (!total) {
+      btn.textContent = 'Transferir estoque';
+      return;
+    }
+    if (n === 0) btn.textContent = 'Transferir (marque □)';
+    else if (n < total) btn.textContent = 'Transferir ' + n + ' de ' + total;
+    else btn.textContent = 'Transferir estoque';
+  }
+
+  function marcarChecksDoCard(card, ligado) {
+    if (!card) return;
+    card.querySelectorAll('.pl-item-check').forEach(function (cb) {
+      cb.checked = !!ligado;
+      var row = cb.closest('.pl-item-row');
+      if (row) {
+        row.classList.toggle('is-off', !cb.checked);
+        var inp = row.querySelector('.pl-item-qtd');
+        if (inp) inp.disabled = !cb.checked;
+      }
+    });
+    atualizarBtnTransferir(card);
+  }
+
+  function syncQtdDiff(inp) {
+    if (!inp) return;
+    var ped = Number(inp.getAttribute('data-pl-pedida') || '');
+    var val = Number(inp.value);
+    var diff = !isNaN(ped) && !isNaN(val) && val !== ped;
+    inp.classList.toggle('is-diff', diff);
   }
 
   function applyBadge(n) {
@@ -904,6 +971,8 @@
         var qtdCell = edit
           ? '<input type="number" class="pl-item-qtd" min="0" step="0.001" data-pl-item-id="' +
             escapeHtml(String(it.id)) +
+            '" data-pl-pedida="' +
+            escapeHtml(String(pedida)) +
             '" value="' +
             escapeHtml(String(qtdAtual)) +
             '" aria-label="Quantidade a enviar" />'
@@ -920,7 +989,7 @@
           escapeHtml(String(it.id)) +
           '">' +
           checkCell +
-          '<div class="pl-item-meta">' +
+          '<div class="pl-item-meta" data-pl-toggle-check="1">' +
           '<p class="pl-item-nome">' +
           escapeHtml(it.nome || '') +
           (livre ? ' <span class="pl-livre-badge">Escrito</span>' : '') +
@@ -933,11 +1002,20 @@
         );
       })
       .join('');
+    var selBar = '';
+    if (edit && itens.length > 1) {
+      selBar =
+        '<div class="pl-sel-bar">' +
+        '<button type="button" class="pl-btn pl-btn--ghost" data-pl-sel="todos">Marcar todos</button>' +
+        '<button type="button" class="pl-btn pl-btn--ghost" data-pl-sel="nenhum">Só depois</button>' +
+        '</div>';
+    }
     return (
       '<div class="pl-itens">' +
       (edit
-        ? '<p class="m-0 text-[10px] font-black uppercase tracking-wide text-orange-800">□ = envia agora · qtd 0 = não enviou (histórico) · desmarque = fica pra depois</p>'
+        ? '<p class="m-0 text-[10px] font-black uppercase tracking-wide text-orange-800">□ = envia agora · qtd 0 = não enviou · desmarque = fica pra depois</p>'
         : '') +
+      selBar +
       lines +
       '</div>'
     );
@@ -1024,10 +1102,19 @@
       var bodyItens = '';
       itens.forEach(function (it) {
         var livre = !!it.livre || String(it.produto_id || '').indexOf('livre:') === 0;
-        var q =
+        var ped =
           it.quantidade_pedida != null && Number(it.quantidade_pedida) > 0
             ? it.quantidade_pedida
             : it.quantidade;
+        var env = it.quantidade;
+        var qLine =
+          row.status === 'concluido' && Number(ped) !== Number(env)
+            ? 'PEDIDO ' +
+              escapeHtml(fmtSaldo(ped)) +
+              ' · ENVIADO ' +
+              escapeHtml(fmtSaldo(env)) +
+              (Number(env) === 0 ? ' (NÃO ENVIADO)' : '')
+            : 'QTD ' + escapeHtml(fmtSaldo(ped));
         bodyItens +=
           '<div style="border-top:1px dashed #000;margin-top:6px;padding-top:4px;">' +
           (livre
@@ -1038,8 +1125,8 @@
           '<div style="font-weight:bold;font-size:13px;">' +
           escapeHtml(it.nome || '') +
           '</div>' +
-          '<div style="font-size:22px;font-weight:900;margin:4px 0;">QTD ' +
-          escapeHtml(fmtSaldo(q)) +
+          '<div style="font-size:18px;font-weight:900;margin:4px 0;">' +
+          qLine +
           '</div>' +
           '</div>';
       });
@@ -1197,38 +1284,68 @@
       dom.lista.innerHTML =
         '<p class="py-10 text-center text-base font-bold text-slate-500">Nada aqui agora.</p>';
       dom.lista._rows = [];
+      syncListaToolbar();
       return;
     }
     dom.lista._rows = itens;
-    dom.lista.innerHTML = itens
-      .map(function (row) {
-        return (
-          '<article class="pl-card" data-pl-id="' +
-          escapeHtml(String(row.id)) +
-          '">' +
-          '<p class="pl-st">' +
-          escapeHtml(row.status_label || row.status) +
-          ' · #' +
-          escapeHtml(String(row.id)) +
-          '</p>' +
-          '<p class="mt-1 text-sm font-bold text-slate-500">' +
-          escapeHtml(row.loja_origem_label) +
-          ' → ' +
-          escapeHtml(row.loja_destino_label) +
-          (row.criado_por ? ' · ' + escapeHtml(row.criado_por) : '') +
-          '</p>' +
-          (row.observacao
-            ? '<p class="mt-1 rounded-lg border border-orange-200 bg-orange-50 px-2 py-1.5 text-sm font-bold text-orange-950">💬 ' +
-              escapeHtml(row.observacao) +
-              '</p>'
-            : '') +
-          itensHtml(row) +
-          '<div class="pl-actions">' +
-          acoesHtml(row) +
-          '</div></article>'
-        );
-      })
-      .join('');
+    var labels = {
+      pendente: 'Pendente',
+      aceito: 'Aceito',
+      pronto: 'Pronto',
+      concluido: 'Concluído',
+      cancelado: 'Cancelado',
+    };
+    var html = '';
+    var lastSt = null;
+    var agrupa = aba === 'recebidos' || aba === 'enviados';
+    itens.forEach(function (row) {
+      var st = String(row.status || '');
+      if (agrupa && st !== lastSt) {
+        html +=
+          '<p class="pl-sec">' +
+          escapeHtml(labels[st] || row.status_label || st) +
+          '</p>';
+        lastSt = st;
+      }
+      var badges = '';
+      if (row.eh_resto) {
+        badges += '<span class="pl-badge-resto">RESTANTE</span>';
+      }
+      if (row.parcialmente_enviado) {
+        badges += '<span class="pl-badge-parcial">ENVIO PARCIAL</span>';
+      }
+      html +=
+        '<article class="pl-card" data-pl-id="' +
+        escapeHtml(String(row.id)) +
+        '" data-pl-st="' +
+        escapeHtml(st) +
+        '">' +
+        '<p class="pl-st pl-st--' +
+        escapeHtml(st) +
+        '">' +
+        escapeHtml(row.status_label || row.status) +
+        ' · #' +
+        escapeHtml(String(row.id)) +
+        badges +
+        '</p>' +
+        '<p class="mt-1 text-sm font-bold text-slate-500">' +
+        escapeHtml(row.loja_origem_label) +
+        ' → ' +
+        escapeHtml(row.loja_destino_label) +
+        (row.criado_por ? ' · ' + escapeHtml(row.criado_por) : '') +
+        '</p>' +
+        (row.observacao
+          ? '<p class="mt-1 rounded-lg border border-orange-200 bg-orange-50 px-2 py-1.5 text-sm font-bold text-orange-950">💬 ' +
+            escapeHtml(row.observacao) +
+            '</p>'
+          : '') +
+        itensHtml(row) +
+        '<div class="pl-actions">' +
+        acoesHtml(row) +
+        '</div></article>';
+    });
+    dom.lista.innerHTML = html;
+    syncListaToolbar();
   }
 
   function carregarLista(qual) {
@@ -1250,6 +1367,8 @@
       .then(function (d) {
         if (!d || !d.ok) {
           dom.lista.innerHTML = '<p class="text-sm font-bold text-red-700">Não carregou a lista.</p>';
+          dom.lista._rows = [];
+          syncListaToolbar();
           return;
         }
         applyResumoCounts(d);
@@ -1257,6 +1376,8 @@
       })
       .catch(function () {
         dom.lista.innerHTML = '<p class="text-sm font-bold text-red-700">Erro de rede.</p>';
+        if (dom.lista) dom.lista._rows = [];
+        syncListaToolbar();
       });
   }
 
@@ -1362,21 +1483,46 @@
         return Number(it.quantidade) > 0;
       });
       if (!temQtdPos) {
-        setStatus('Coloque quantidade > 0 em pelo menos um marcado (ou use 0 só se for misturar com outro > 0).', true);
+        setStatus(
+          'Coloque quantidade maior que zero em pelo menos um marcado. Qtd 0 sozinho não fecha o envio.',
+          true
+        );
         return;
       }
-      var bodyTxt =
-        'Some na origem e entra na loja que pediu. Confira as quantidades. Qtd 0 = não enviou (histórico).';
+      var rows = (dom.lista && dom.lista._rows) || [];
+      var rowData = rows.filter(function (r) {
+        return String(r.id) === String(id);
+      })[0];
+      var nomesPorId = {};
+      if (rowData && rowData.itens) {
+        rowData.itens.forEach(function (it) {
+          nomesPorId[String(it.id)] = it.nome || '#' + it.id;
+        });
+      }
+      var enviandoTxt = sel.itens
+        .map(function (it) {
+          var nome = nomesPorId[String(it.id)] || '#' + it.id;
+          var q = Number(it.quantidade);
+          if (q === 0) return '· ' + nome + ' — NÃO ENVIAR (0)';
+          return '· ' + nome + ' × ' + fmtSaldo(it.quantidade);
+        })
+        .join('\n');
+      var bodyTxt = 'Vai agora:\n' + enviandoTxt;
       if (sel.adiar_itens.length) {
+        var depoisTxt = sel.adiar_itens
+          .map(function (iid) {
+            return '· ' + (nomesPorId[String(iid)] || '#' + iid);
+          })
+          .join('\n');
         bodyTxt +=
-          ' ' +
-          sel.adiar_itens.length +
-          ' produto(s) desmarcado(s) ficam na fila pra enviar depois.';
+          '\n\nFicam na fila (' + sel.adiar_itens.length + '):\n' + depoisTxt;
       }
       abrirConfirm({
         title: 'Transferir estoque?',
         body: bodyTxt,
-        confirmLabel: 'Transferir',
+        confirmLabel: sel.adiar_itens.length
+          ? 'Transferir e deixar resto'
+          : 'Transferir',
         furado: true,
       }).then(function (r) {
         if (!r.ok) return;
@@ -1522,6 +1668,26 @@
   }
   if (dom.lista) {
     dom.lista.addEventListener('click', function (e) {
+      var selBtn = e.target.closest('[data-pl-sel]');
+      if (selBtn) {
+        e.preventDefault();
+        var cardSel = selBtn.closest('[data-pl-id]');
+        marcarChecksDoCard(cardSel, selBtn.getAttribute('data-pl-sel') === 'todos');
+        return;
+      }
+      var toggleMeta = e.target.closest('[data-pl-toggle-check]');
+      if (toggleMeta) {
+        var rowT = toggleMeta.closest('.pl-item-row');
+        var cbT = rowT && rowT.querySelector('.pl-item-check');
+        if (cbT) {
+          cbT.checked = !cbT.checked;
+          rowT.classList.toggle('is-off', !cbT.checked);
+          var inpT = rowT.querySelector('.pl-item-qtd');
+          if (inpT) inpT.disabled = !cbT.checked;
+          atualizarBtnTransferir(rowT.closest('[data-pl-id]'));
+        }
+        return;
+      }
       var btn = e.target.closest('[data-pl-acao]');
       if (!btn) return;
       var card = btn.closest('[data-pl-id]');
@@ -1530,17 +1696,121 @@
     });
     dom.lista.addEventListener('change', function (e) {
       var cb = e.target.closest('.pl-item-check');
-      if (!cb) return;
-      var row = cb.closest('.pl-item-row');
-      if (!row) return;
-      row.classList.toggle('is-off', !cb.checked);
-      var inp = row.querySelector('.pl-item-qtd');
-      if (inp) inp.disabled = !cb.checked;
+      if (cb) {
+        var row = cb.closest('.pl-item-row');
+        if (row) {
+          row.classList.toggle('is-off', !cb.checked);
+          var inp = row.querySelector('.pl-item-qtd');
+          if (inp) inp.disabled = !cb.checked;
+        }
+        atualizarBtnTransferir(cb.closest('[data-pl-id]'));
+        return;
+      }
+      var qInp = e.target.closest('.pl-item-qtd');
+      if (qInp) {
+        syncQtdDiff(qInp);
+        atualizarBtnTransferir(qInp.closest('[data-pl-id]'));
+      }
+    });
+    dom.lista.addEventListener('input', function (e) {
+      var qInp = e.target.closest('.pl-item-qtd');
+      if (qInp) syncQtdDiff(qInp);
     });
   }
   if (dom.imprimirTodos) {
     dom.imprimirTodos.addEventListener('click', function () {
       imprimirTodosCupons();
+    });
+  }
+  if (dom.aceitarTodos) {
+    dom.aceitarTodos.addEventListener('click', function () {
+      var rows = (dom.lista && dom.lista._rows) || [];
+      var pend = rows.filter(function (r) {
+        return r && r.status === 'pendente';
+      });
+      if (!pend.length) {
+        setStatus('Nenhum pendente pra aceitar.', true);
+        return;
+      }
+      abrirConfirm({
+        title: 'Aceitar todos os pendentes?',
+        body:
+          'Vai aceitar ' +
+          pend.length +
+          ' pedido(s). Depois você imprime / separa / transfere.',
+        confirmLabel: 'Aceitar todos',
+      }).then(function (r) {
+        if (!r.ok) return;
+        var idx = 0;
+        function runOne() {
+          if (idx >= pend.length) {
+            setStatus('Aceitos: ' + pend.length + ' pedido(s).');
+            carregarLista(aba);
+            refreshResumo();
+            return;
+          }
+          var pk = pend[idx].id;
+          idx += 1;
+          var pattern = urls.apiPdvTransfLojaAcaoPattern || '';
+          var url = pattern.replace('__pk__', String(pk));
+          if (!url) {
+            runOne();
+            return;
+          }
+          busy = true;
+          setStatus('Aceitando ' + idx + '/' + pend.length + '…');
+          fetch(url, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrf(),
+              Accept: 'application/json',
+            },
+            body: JSON.stringify({ acao: 'aceitar', loja: depositoAtual() }),
+          })
+            .then(function (resp) {
+              return resp.json().then(function (d) {
+                return { ok: resp.ok, data: d };
+              });
+            })
+            .then(function (res) {
+              busy = false;
+              if (res.data && res.data.precisa_pin) {
+                setPinAviso(true);
+                setStatus(res.data.erro || 'Entre com o PIN.', true);
+                if (typeof window.gmSspinGarantirOperador === 'function') {
+                  window.gmSspinGarantirOperador(function () {
+                    idx -= 1;
+                    runOne();
+                  }, { titulo: 'PIN para Pedir loja' });
+                }
+                return;
+              }
+              if (!res.ok || !res.data || !res.data.ok) {
+                setStatus(
+                  (res.data && res.data.erro) ||
+                    'Parou no pedido #' + pk + '.',
+                  true
+                );
+                carregarLista(aba);
+                return;
+              }
+              applyResumoCounts(res.data);
+              runOne();
+            })
+            .catch(function () {
+              busy = false;
+              setStatus('Erro de rede ao aceitar.', true);
+              carregarLista(aba);
+            });
+        }
+        if (typeof window.gmSspinGarantirOperador === 'function') {
+          window.gmSspinGarantirOperador(runOne, { titulo: 'PIN para Pedir loja' });
+        } else {
+          runOne();
+        }
+      });
     });
   }
 

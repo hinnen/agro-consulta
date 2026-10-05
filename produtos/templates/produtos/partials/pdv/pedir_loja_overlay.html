@@ -425,6 +425,85 @@
   #pdv-pedir-loja-overlay .pl-item-meta .pl-item-ped--zero {
     color: #b91c1c;
   }
+  #pdv-pedir-loja-overlay .pl-item-qtd.is-diff {
+    border-color: #dc2626;
+    background: #fef2f2;
+    color: #991b1b;
+  }
+  #pdv-pedir-loja-overlay .pl-item-meta {
+    cursor: pointer;
+  }
+  #pdv-pedir-loja-overlay .pl-item-row--ro .pl-item-meta {
+    cursor: default;
+  }
+  #pdv-pedir-loja-overlay .pl-card[data-pl-st="pendente"] {
+    border-color: #fdba74;
+    background: #fffbeb;
+  }
+  #pdv-pedir-loja-overlay .pl-card[data-pl-st="aceito"] {
+    border-color: #93c5fd;
+    background: #eff6ff;
+  }
+  #pdv-pedir-loja-overlay .pl-card[data-pl-st="pronto"] {
+    border-color: #86efac;
+    background: #f0fdf4;
+  }
+  #pdv-pedir-loja-overlay .pl-card[data-pl-st="concluido"] {
+    border-color: #cbd5e1;
+  }
+  #pdv-pedir-loja-overlay .pl-card[data-pl-st="cancelado"] {
+    border-color: #fca5a5;
+    background: #fef2f2;
+  }
+  #pdv-pedir-loja-overlay .pl-st--pendente { color: #c2410c; }
+  #pdv-pedir-loja-overlay .pl-st--aceito { color: #1d4ed8; }
+  #pdv-pedir-loja-overlay .pl-st--pronto { color: #15803d; }
+  #pdv-pedir-loja-overlay .pl-st--concluido { color: #475569; }
+  #pdv-pedir-loja-overlay .pl-st--cancelado { color: #b91c1c; }
+  #pdv-pedir-loja-overlay .pl-badge-resto {
+    display: inline-block;
+    margin-left: 0.35rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.35rem;
+    background: #ffedd5;
+    color: #9a3412;
+    font-size: 0.65rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+  }
+  #pdv-pedir-loja-overlay .pl-badge-parcial {
+    display: inline-block;
+    margin-left: 0.35rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.35rem;
+    background: #fee2e2;
+    color: #991b1b;
+    font-size: 0.65rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+  }
+  #pdv-pedir-loja-overlay .pl-sec {
+    margin: 0.85rem 0 0.4rem;
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+  #pdv-pedir-loja-overlay .pl-sec:first-child { margin-top: 0.15rem; }
+  #pdv-pedir-loja-overlay .pl-sel-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin: 0.35rem 0 0.15rem;
+  }
+  #pdv-pedir-loja-overlay .pl-sel-bar .pl-btn {
+    min-height: 2.15rem;
+    padding: 0.2rem 0.65rem;
+    font-size: 0.68rem;
+  }
   #pdv-pedir-loja-overlay .pl-lista-toolbar {
     display: none;
     flex-wrap: wrap;
@@ -434,6 +513,11 @@
   }
   #pdv-pedir-loja-overlay .pl-lista-toolbar.is-show {
     display: flex;
+  }
+  #pdv-pedir-loja-overlay .pl-lista-count {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #64748b;
   }
   #pdv-pedir-loja-overlay .pl-item-qtd {
     min-height: 2.55rem;
@@ -553,6 +637,7 @@
     font-weight: 700;
     color: #334155;
     line-height: 1.35;
+    white-space: pre-line;
   }
   #pdv-pedir-loja-confirm .pl-confirm-extra {
     margin-top: 0.85rem;
@@ -655,8 +740,8 @@
         <summary class="list-none inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 border-orange-500 bg-white text-lg font-black text-orange-900 hover:bg-orange-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda" title="Ajuda">?</summary>
         <div class="absolute right-0 top-full z-30 mt-1.5 w-[min(24rem,calc(100vw-2rem))] rounded-xl border border-orange-200 bg-white p-3 text-sm font-semibold text-slate-700 shadow-xl space-y-2 leading-snug">
           <p>Peça produtos pela busca <strong>ou</strong> só o <strong>pedido escrito</strong> embaixo (sacola, café…) — <strong>não precisa</strong> de produto cadastro.</p>
-          <p>Lá: <strong>Aceitar</strong> → <strong>Imprimir</strong> (ou <strong>Imprimir todos</strong>) → marque o que vai agora → <strong>Transferir</strong>.</p>
-          <p><strong>Qtd 0</strong> = não enviou (aparece no histórico). Desmarque o □ = fica na fila pra depois.</p>
+          <p>Lá: <strong>Aceitar</strong> (ou <strong>Aceitar todos</strong>) → <strong>Imprimir</strong> / <strong>Imprimir todos</strong> → marque o □ → <strong>Transferir</strong>.</p>
+          <p><strong>Qtd 0</strong> = não enviou (histórico). Desmarque o □ = fica na fila. Badge <strong>RESTANTE</strong> = o que sobrou de um envio parcial.</p>
           <p><strong>Observação</strong> = mensagem opcional. Pedido pendente bipa a cada 1 min.</p>
         </div>
       </details>
@@ -723,7 +808,8 @@
     <div class="pl-view-lista hidden min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-2">
       <div id="pdv-pedir-loja-lista-toolbar" class="pl-lista-toolbar">
         <button type="button" id="pdv-pedir-loja-imprimir-todos" class="pl-btn pl-btn--print">Imprimir todos</button>
-        <span class="text-xs font-bold text-slate-500">Um cupom com todos os pedidos da lista</span>
+        <button type="button" id="pdv-pedir-loja-aceitar-todos" class="pl-btn pl-btn--ok hidden">Aceitar todos</button>
+        <span id="pdv-pedir-loja-lista-count" class="pl-lista-count"></span>
       </div>
       <div id="pdv-pedir-loja-lista" class="space-y-2"></div>
     </div>

@@ -102,6 +102,8 @@ def api_pdv_transf_loja_resumo(request):
 @login_required(login_url="/entrar/")
 @require_GET
 def api_pdv_transf_loja_lista(request):
+    from django.db.models import Case, IntegerField, When
+
     loja = _loja_atual(request)
     aba = str(request.GET.get("aba") or "recebidos").strip().lower()
     qs = SolicitacaoTransferenciaPdv.objects.prefetch_related("itens")
@@ -120,6 +122,16 @@ def api_pdv_transf_loja_lista(request):
             loja_origem=loja,
             status__in=SolicitacaoTransferenciaPdv.STATUS_ABERTOS,
         )
+    if aba in ("recebidos", "enviados"):
+        qs = qs.annotate(
+            _st_ord=Case(
+                When(status="pendente", then=0),
+                When(status="aceito", then=1),
+                When(status="pronto", then=2),
+                default=3,
+                output_field=IntegerField(),
+            )
+        ).order_by("_st_ord", "criado_em", "id")
     qs = qs[:80]
     return JsonResponse(
         {

@@ -735,6 +735,15 @@ def serializar_item(it: SolicitacaoTransferenciaPdvItem) -> dict:
 
 def serializar_solicitacao(sol: SolicitacaoTransferenciaPdv, *, com_eventos: bool = False) -> dict:
     itens = [serializar_item(it) for it in sol.itens.all()]
+    obs = sol.observacao or ""
+    eh_resto = "restante do pedido #" in obs.lower()
+    parcialmente = False
+    for i in itens:
+        ped = float(i.get("quantidade_pedida") or 0)
+        env = float(i.get("quantidade") or 0)
+        if ped > 0 and env != ped:
+            parcialmente = True
+            break
     data = {
         "id": sol.pk,
         "loja_origem": sol.loja_origem,
@@ -755,6 +764,8 @@ def serializar_solicitacao(sol: SolicitacaoTransferenciaPdv, *, com_eventos: boo
         "itens": itens,
         "qtd_itens": len(itens),
         "resumo": ", ".join(f"{i['nome']} × {i['quantidade_texto']}" for i in itens[:4]),
+        "eh_resto": eh_resto,
+        "parcialmente_enviado": parcialmente and sol.status == STATUS_CONCLUIDO,
     }
     if com_eventos:
         data["eventos"] = [
