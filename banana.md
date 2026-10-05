@@ -1298,7 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Mexe** | `pdv_pedir_loja.js` · overlay · `pdv_transf_loja_util` · `views_pdv_transf_loja` |
 | **Prova** | path **30/30** · cupom-qtd **32/32** · etq53 **14/14** · Django **29/29** · smoke DB PIN **9973** (criar→aceitar→parcial→zero) |
-| **Status** | 🟢 **pronto para envio à produção** · tip `teste` **v26.18** @ `45ca33f2` |
+| **Status** | 🟢 **pronto para envio à produção** · tip `teste` **v26.18** @ `9bff3249` |
 | **Rollback** | `docs/ROLLBACK-PDV-PEDIR-PARCIAL-PRINT.md` · **só** frase+senha |
 | **Você** | frase+senha → deploy → Ctrl+F5 PDV · Pedir loja → Recebidos |
 
