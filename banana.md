@@ -1297,15 +1297,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | ZIP: na raiz só **CLIQUE-AQUI-INSTALAR.bat** (+ LEIA-ME). Resto em `app/`. Node portátil já vem em `app/vendor` (não depende de baixar Node na hora). |
 | **Migrate** | **NÃO** |
-| **Prova** | bridge **22/22** · full **79/79** · zip ~34 MB · **PREP_FAILS=0** |
+| **Prova** | `verify_etq_ponte_1clique_path.py` **37/37** · bridge **22/22** · full **79/79** · PIN **9973** · zip ~34 MB · HTTP download OK · **PREP_FAILS=0** |
 | **Status** | 🟢 **pronto para envio à produção** · tip abaixo após push |
+| **Rollback** | `docs/ROLLBACK-ETQ-PONTE-1CLIQUE.md` · **só** frase+senha |
 | **Você** | Baixar ponte → extrair → **só** CLIQUE-AQUI-INSTALAR.bat |
 
 ### ✅ CHECKLIST ÚNICO — ETQ-PONTE-1CLIQUE · 🟢 pronto para envio à produção
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-PONTE-1CLIQUE** | 🟢 **pronto para envio à produção** | **NÃO** | **79/79** |
+| 1 | **ETQ-PONTE-1CLIQUE** | 🟢 **pronto para envio à produção** | **NÃO** | **37/37** |
 
 ### PACOTE PRONTO — Ponte etiqueta Node 404 + bat (`ETQ-PONTE-NODE-FIX`)
 
