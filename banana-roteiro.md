@@ -755,14 +755,11 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 54. CHECKLIST ÚNICO — CREDITO-SCORE-SHADOW · 🟢 PREP (`deploy/prep-credito-score-shadow` · alvo **v26.07**)
+## 54. CHECKLIST ÚNICO — CREDITO-SCORE-SHADOW · ✅ **Live v26.07**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CREDITO-SCORE-SHADOW** | 🟢 **PREP pronto** · path **93/93** | **SIM** `0137` |
+| 1 | **CREDITO-SCORE-SHADOW** | ✅ **Live v26.07** · `producao` @ `d6c19c84` · prova **93/93** | **SIM** `0137` |
 
-**O quê:** laboratório `/fiado/analise-credito/` (shadow). **Não** mexe limite, venda, PDV, caixa. Flag default **off**.  
-**Não entra:** merge do `teste` · ligar flag no 1º deploy.  
-**Branch PREP:** `deploy/prep-credito-score-shadow` · tip `ce71fb0f` · base Live **v26.05** @ `41a6fdea`.  
-**Rollback:** tag `rollback/pre-credito-score-shadow-v26.05` · `docs/ROLLBACK-CREDITO-SCORE-SHADOW.md` · **só** frase+senha.  
-**Status:** 🟢 PREP · aguarda pausa + frase + senha. Loja ainda **v26.05**.
+**Rollback:** tag `rollback/pre-credito-score-shadow-v26.05` @ `41a6fdea` · `docs/ROLLBACK-CREDITO-SCORE-SHADOW.md` · **só** frase+senha.  
+**Flag:** ainda **OFF** na loja (ligar env depois, se quiser o laboratório).
