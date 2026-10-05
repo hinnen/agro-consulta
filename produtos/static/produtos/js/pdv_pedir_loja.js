@@ -55,6 +55,9 @@
     pinAviso: document.getElementById('pdv-pedir-loja-pin-aviso'),
     abrirPin: document.getElementById('pdv-pedir-loja-abrir-pin'),
     badgeRec: document.getElementById('pdv-pedir-loja-badge-rec'),
+    printChoice: document.getElementById('pdv-pedir-loja-print'),
+    printSub: document.getElementById('pdv-pedir-loja-print-sub'),
+    printCancel: document.getElementById('pdv-pedir-loja-print-cancel'),
     confirm: document.getElementById('pdv-pedir-loja-confirm'),
     confirmTitle: document.getElementById('pdv-pedir-loja-confirm-title'),
     confirmBody: document.getElementById('pdv-pedir-loja-confirm-body'),
@@ -76,6 +79,7 @@
     temPedidoOk: document.getElementById('pdv-pedir-loja-tem-pedido-ok'),
   };
   var ajusteProduto = null;
+  var printChoiceRows = null;
 
   function csrf() {
     var c = document.cookie.match(/csrftoken=([^;]+)/);
@@ -309,7 +313,7 @@
     if (dom.imprimirTodos) {
       dom.imprimirTodos.disabled = n === 0;
       dom.imprimirTodos.textContent =
-        n > 1 ? 'Imprimir todos (' + n + ')' : n === 1 ? 'Imprimir cupom' : 'Imprimir todos';
+        n > 1 ? 'Imprimir todos (' + n + ')' : n === 1 ? 'Imprimir (1)' : 'Imprimir todos';
     }
     if (dom.listaCount) {
       dom.listaCount.textContent = n
@@ -940,16 +944,12 @@
   function acoesHtml(row) {
     var st = row.status;
     var btns = [];
-    if (aba === 'recebidos' && (st === 'pendente' || st === 'aceito' || st === 'pronto')) {
-      btns.push('<button type="button" class="pl-btn pl-btn--print" data-pl-acao="imprimir">Imprimir cupom</button>');
+    if (
+      (aba === 'recebidos' || aba === 'enviados') &&
+      (st === 'pendente' || st === 'aceito' || st === 'pronto')
+    ) {
       btns.push(
-        '<button type="button" class="pl-btn pl-btn--etq" data-pl-acao="etiquetas" title="Lista compacta na térmica 53×30 (separar estoque)">Etiquetas 53</button>'
-      );
-    }
-    if (aba === 'enviados' && (st === 'pendente' || st === 'aceito' || st === 'pronto')) {
-      btns.push('<button type="button" class="pl-btn pl-btn--print" data-pl-acao="imprimir">Imprimir cupom</button>');
-      btns.push(
-        '<button type="button" class="pl-btn pl-btn--etq" data-pl-acao="etiquetas" title="Lista compacta na térmica 53×30 (separar estoque)">Etiquetas 53</button>'
+        '<button type="button" class="pl-btn pl-btn--print" data-pl-acao="imprimir" title="Cupom 80 mm · Folha A4 · Etiqueta 40×40">Imprimir</button>'
       );
     }
     if (aba === 'recebidos' && st === 'pendente') {
@@ -1129,13 +1129,85 @@
     }, 120);
   }
 
+  function fecharEscolhaImpressao() {
+    printChoiceRows = null;
+    if (dom.printChoice) {
+      dom.printChoice.classList.remove('is-open');
+      dom.printChoice.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  function abrirEscolhaImpressao(rows) {
+    rows = (rows || []).filter(Boolean);
+    if (!rows.length) {
+      setStatus('Nada pra imprimir.', true);
+      return;
+    }
+    printChoiceRows = rows;
+    if (dom.printSub) {
+      dom.printSub.textContent =
+        rows.length === 1
+          ? 'Pedido #' + String(rows[0].id || '') + ' · escolha o papel desta loja.'
+          : rows.length + ' pedidos · escolha o papel desta loja.';
+    }
+    if (dom.printChoice) {
+      dom.printChoice.classList.add('is-open');
+      dom.printChoice.setAttribute('aria-hidden', 'false');
+    }
+  }
+
+  function executarImpressaoEscolhida(modo) {
+    var rows = printChoiceRows || [];
+    fecharEscolhaImpressao();
+    if (!rows.length) return;
+    if (modo === 'cupom80') {
+      abrirPrintIframe(
+        montarHtmlCupomPedidos(rows),
+        'Cupom 80 mm',
+        'Não imprimiu. Confira a térmica 80 mm.'
+      );
+      setStatus(
+        rows.length === 1
+          ? 'Cupom 80 mm · pedido #' + String(rows[0].id || '')
+          : 'Cupom 80 mm · ' + rows.length + ' pedido(s).'
+      );
+      return;
+    }
+    if (modo === 'a4') {
+      abrirPrintIframe(
+        montarHtmlA4Separacao(rows),
+        'Folha A4',
+        'Não imprimiu. Escolha a impressora A4.'
+      );
+      setStatus(
+        rows.length === 1
+          ? 'Folha A4 · pedido #' + String(rows[0].id || '')
+          : 'Folha A4 · ' + rows.length + ' pedido(s).'
+      );
+      return;
+    }
+    if (modo === 'etq40') {
+      var res = montarHtmlEtiquetas40x40(rows);
+      if (!res || !res.html) {
+        setStatus('Pedido sem itens pra etiqueta.', true);
+        return;
+      }
+      abrirPrintIframe(
+        res.html,
+        'Etiqueta 40×40',
+        'Não imprimiu. Escolha a térmica 40×40.'
+      );
+      setStatus(
+        res.paginas === 1
+          ? '1 etiqueta 40×40 · ' + res.linhas + ' produto(s).'
+          : res.paginas + ' etiquetas 40×40 · ' + res.linhas + ' produto(s).'
+      );
+    }
+  }
+
   function imprimirCupomSeparacao(row) {
     if (!row) return;
-    abrirPrintIframe(
-      montarHtmlCupomPedidos([row]),
-      'Cupom separação',
-      'Não imprimiu. Confira a térmica 80mm.'
-    );
+    abrirEscolhaImpressao([row]);
   }
 
   function montarHtmlCupomPedidos(rows) {
@@ -1217,55 +1289,111 @@
     );
   }
 
-  function imprimirTodosCupons() {
-    var rows = (dom.lista && dom.lista._rows) || [];
-    if (!rows.length) {
-      setStatus('Nada pra imprimir nesta lista.', true);
-      return;
-    }
-    abrirPrintIframe(
-      montarHtmlCupomPedidos(rows),
-      'Cupom todos',
-      'Não imprimiu. Confira a térmica 80mm.'
+  function montarHtmlA4Separacao(rows) {
+    var dh = new Date().toLocaleString('pt-BR');
+    var blocos = '';
+    (rows || []).forEach(function (row, idx) {
+      if (!row) return;
+      var itens = row.itens || [];
+      var trs = itens
+        .map(function (it) {
+          var livre = !!it.livre || String(it.produto_id || '').indexOf('livre:') === 0;
+          var ped =
+            it.quantidade_pedida != null && Number(it.quantidade_pedida) > 0
+              ? it.quantidade_pedida
+              : it.quantidade;
+          var gm = livre ? 'ESCRITO' : String(it.codigo_interno || '—').trim() || '—';
+          return (
+            '<tr><td class="gm">' +
+            escapeHtml(gm) +
+            '</td><td class="nome">' +
+            escapeHtml(it.nome || '') +
+            '</td><td class="q">' +
+            escapeHtml(fmtSaldo(ped)) +
+            '</td></tr>'
+          );
+        })
+        .join('');
+      if (idx > 0) {
+        blocos += '<div class="sep"></div>';
+      }
+      blocos +=
+        '<div class="blk">' +
+        '<div class="hd"><b>PEDIR LOJA #' +
+        escapeHtml(String(row.id || '')) +
+        '</b> · ' +
+        escapeHtml(row.loja_origem_label || '') +
+        ' → ' +
+        escapeHtml(row.loja_destino_label || '') +
+        (row.criado_por ? ' · ' + escapeHtml(row.criado_por) : '') +
+        '</div>' +
+        (row.observacao
+          ? '<div class="obs">Obs: ' + escapeHtml(row.observacao) + '</div>'
+          : '') +
+        '<table><thead><tr><th class="gm">GM</th><th class="nome">Produto</th><th class="q">Qtd</th></tr></thead><tbody>' +
+        trs +
+        '</tbody></table></div>';
+    });
+    return (
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Separação A4</title>' +
+      '<style>@page{size:A4;margin:12mm}' +
+      'html,body{margin:0;padding:0;background:#fff;color:#000}' +
+      'body{font-family:Arial,Helvetica,sans-serif;font-size:11pt}' +
+      '.top{font-size:14pt;font-weight:900;margin:0 0 4mm;text-transform:uppercase}' +
+      '.meta{font-size:10pt;margin:0 0 6mm;color:#333}' +
+      '.blk{margin:0 0 5mm}.hd{font-size:11pt;font-weight:800;margin:0 0 2mm}' +
+      '.obs{font-size:10pt;margin:0 0 2mm;font-weight:700}' +
+      '.sep{border-top:2px solid #000;margin:5mm 0}' +
+      'table{width:100%;border-collapse:collapse}' +
+      'th,td{border-bottom:1px solid #ccc;padding:2.5mm 1.5mm;vertical-align:top}' +
+      'th{text-align:left;font-size:9pt;text-transform:uppercase;border-bottom:2px solid #000}' +
+      'td.gm,th.gm{width:18%;font-weight:800;white-space:nowrap}' +
+      'td.q,th.q{width:12%;text-align:right;font-weight:900;font-size:12pt}' +
+      'td.nome{font-weight:700}</style></head><body>' +
+      '<div class="top">Separação · Pedir loja</div>' +
+      '<div class="meta">' +
+      escapeHtml(dh) +
+      (rows && rows.length > 1 ? ' · ' + rows.length + ' pedido(s)' : '') +
+      '</div>' +
+      blocos +
+      '</body></html>'
     );
-    setStatus('Imprimindo ' + rows.length + ' pedido(s) em um cupom.');
   }
 
   /**
-   * Lista compacta na bobina 53×30 — gambiarra sem cupom 80mm.
-   * Várias linhas por etiqueta pra gastar o mínimo de papel.
+   * Etiqueta 40×40 — 3 produtos por etiqueta (GM + nome + qtd), legível.
    */
-  function imprimirEtiquetasSeparacao53(row) {
-    if (!row) return;
-    var itens = row.itens || [];
-    if (!itens.length) {
-      setStatus('Pedido sem itens pra etiqueta.', true);
-      return;
-    }
-    var LINHAS_POR_ETQ = 6;
-    var rota =
-      String(row.loja_origem_label || '').replace(/\s+/g, ' ').trim() +
-      '→' +
-      String(row.loja_destino_label || '').replace(/\s+/g, ' ').trim();
+  function montarHtmlEtiquetas40x40(rows) {
+    var LINHAS_POR_ETQ = 3;
     var linhas = [];
-    itens.forEach(function (it) {
-      var livre = !!it.livre || String(it.produto_id || '').indexOf('livre:') === 0;
-      var q =
-        it.quantidade_pedida != null && Number(it.quantidade_pedida) > 0
-          ? it.quantidade_pedida
-          : it.quantidade;
-      var gm = String(it.codigo_interno || '').trim();
-      var nome = String(it.nome || '')
-        .replace(/\s+/g, ' ')
-        .trim();
-      if (nome.length > 34) nome = nome.slice(0, 33) + '…';
-      var left = livre ? 'ESC' : gm ? gm : '—';
-      linhas.push({
-        q: fmtSaldo(q),
-        left: left,
-        nome: nome || (livre ? 'pedido escrito' : ''),
+    (rows || []).forEach(function (row) {
+      if (!row) return;
+      var rota =
+        String(row.loja_origem_label || '').replace(/\s+/g, ' ').trim() +
+        '→' +
+        String(row.loja_destino_label || '').replace(/\s+/g, ' ').trim();
+      var headBase = '#' + String(row.id || '') + ' ' + rota;
+      (row.itens || []).forEach(function (it) {
+        var livre = !!it.livre || String(it.produto_id || '').indexOf('livre:') === 0;
+        var q =
+          it.quantidade_pedida != null && Number(it.quantidade_pedida) > 0
+            ? it.quantidade_pedida
+            : it.quantidade;
+        var gm = String(it.codigo_interno || '').trim();
+        var nome = String(it.nome || '')
+          .replace(/\s+/g, ' ')
+          .trim();
+        if (nome.length > 28) nome = nome.slice(0, 27) + '…';
+        var left = livre ? 'ESC' : gm ? gm : '—';
+        linhas.push({
+          head: headBase,
+          q: fmtSaldo(q),
+          left: left,
+          nome: nome || (livre ? 'pedido escrito' : ''),
+        });
       });
     });
+    if (!linhas.length) return null;
     var pages = [];
     for (var i = 0; i < linhas.length; i += LINHAS_POR_ETQ) {
       pages.push(linhas.slice(i, i + LINHAS_POR_ETQ));
@@ -1273,12 +1401,7 @@
     var totalPg = pages.length;
     var body = pages
       .map(function (chunk, idx) {
-        var head =
-          '#' +
-          String(row.id || '') +
-          ' ' +
-          rota +
-          (totalPg > 1 ? ' ·' + (idx + 1) + '/' + totalPg : '');
+        var head = chunk[0].head + (totalPg > 1 ? ' ·' + (idx + 1) + '/' + totalPg : '');
         var rowsHtml = chunk
           .map(function (ln) {
             return (
@@ -1286,9 +1409,9 @@
               escapeHtml(ln.q) +
               '</b> <span class="gm">' +
               escapeHtml(ln.left) +
-              '</span> ' +
+              '</span><div class="nm">' +
               escapeHtml(ln.nome) +
-              '</div>'
+              '</div></div>'
             );
           })
           .join('');
@@ -1302,25 +1425,30 @@
       })
       .join('');
     var html =
-      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Etiquetas Pedir loja</title>' +
-      '<style>@page{margin:0;size:53mm 30mm}' +
-      'html,body{margin:0;padding:0;width:53mm;background:#fff}' +
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Etiquetas 40×40</title>' +
+      '<style>@page{margin:0;size:40mm 40mm}' +
+      'html,body{margin:0;padding:0;width:40mm;background:#fff}' +
       'body{font-family:Arial,Helvetica,sans-serif;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
-      '.pg{display:block;width:53mm;height:30mm;box-sizing:border-box;padding:1.2mm 1.4mm;overflow:hidden;' +
+      '.pg{display:block;width:40mm;height:40mm;box-sizing:border-box;padding:1.5mm 1.6mm;overflow:hidden;' +
       'page-break-inside:avoid;break-inside:avoid-page}' +
       '.pg + .pg{page-break-before:always;break-before:page}' +
-      '.hd{font-size:7.5pt;font-weight:900;line-height:1.1;margin:0 0 0.6mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' +
-      'border-bottom:0.3mm solid #000;padding-bottom:0.4mm}' +
-      '.ln{font-size:7pt;line-height:1.15;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
-      '.q{font-weight:900}.gm{font-weight:800}</style></head><body>' +
+      '.hd{font-size:8pt;font-weight:900;line-height:1.1;margin:0 0 1mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' +
+      'border-bottom:0.35mm solid #000;padding-bottom:0.5mm}' +
+      '.ln{margin:0 0 1.1mm;line-height:1.15}' +
+      '.q{font-size:11pt;font-weight:900}.gm{font-size:9pt;font-weight:800}' +
+      '.nm{font-size:8.5pt;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}</style></head><body>' +
       body +
       '</body></html>';
-    abrirPrintIframe(html, 'Etiquetas 53×30', 'Não imprimiu. Escolha a térmica 53×30.');
-    setStatus(
-      totalPg === 1
-        ? '1 etiqueta 53×30 · ' + linhas.length + ' produto(s).'
-        : totalPg + ' etiquetas 53×30 · ' + linhas.length + ' produto(s).'
-    );
+    return { html: html, paginas: totalPg, linhas: linhas.length };
+  }
+
+  function imprimirTodosPedidos() {
+    var rows = (dom.lista && dom.lista._rows) || [];
+    if (!rows.length) {
+      setStatus('Nada pra imprimir nesta lista.', true);
+      return;
+    }
+    abrirEscolhaImpressao(rows);
   }
 
   function renderLista(itens) {
@@ -1489,16 +1617,12 @@
   }
 
   function pedirAcao(id, acao, card) {
-    if (acao === 'imprimir' || acao === 'etiquetas') {
+    if (acao === 'imprimir') {
       var rows = (dom.lista && dom.lista._rows) || [];
       var row = rows.filter(function (r) {
         return String(r.id) === String(id);
       })[0];
-      if (acao === 'etiquetas') {
-        if (row) imprimirEtiquetasSeparacao53(row);
-      } else if (row) {
-        imprimirCupomSeparacao(row);
-      }
+      if (row) abrirEscolhaImpressao([row]);
       return;
     }
     if (acao === 'cancelar') {
@@ -1913,7 +2037,25 @@
   }
   if (dom.imprimirTodos) {
     dom.imprimirTodos.addEventListener('click', function () {
-      imprimirTodosCupons();
+      imprimirTodosPedidos();
+    });
+  }
+  if (dom.printChoice) {
+    dom.printChoice.addEventListener('click', function (e) {
+      var opt = e.target.closest('[data-pl-print]');
+      if (opt) {
+        e.preventDefault();
+        executarImpressaoEscolhida(opt.getAttribute('data-pl-print'));
+        return;
+      }
+      if (e.target === dom.printChoice) {
+        fecharEscolhaImpressao();
+      }
+    });
+  }
+  if (dom.printCancel) {
+    dom.printCancel.addEventListener('click', function () {
+      fecharEscolhaImpressao();
     });
   }
   if (dom.transferirSel) {

@@ -108,16 +108,17 @@ def main() -> int:
         "gm-sspin-operador" in js and "aposPin" not in _sspin_chunk,
     )
     check("js_abrir_pin_com_aviso", "abrirPin" in js and "refreshResumo({ aposPin: true })" in js)
-    check("js_cupom_80mm", "imprimirCupomSeparacao" in js and "SEPARAÇÃO" in js)
+    check("js_cupom_80mm", "imprimirCupomSeparacao" in js and "SEPARAÇÃO" in js and "size:80mm auto" in js)
     check(
-        "js_etq_53",
-        "imprimirEtiquetasSeparacao53" in js
-        and "size:53mm 30mm" in js
-        and "LINHAS_POR_ETQ = 6" in js
-        and 'data-pl-acao="etiquetas"' in js
-        and "Etiquetas 53" in js,
+        "js_print_3_layouts",
+        "abrirEscolhaImpressao" in js
+        and "montarHtmlA4Separacao" in js
+        and "montarHtmlEtiquetas40x40" in js
+        and "size:40mm 40mm" in js
+        and "LINHAS_POR_ETQ = 3" in js
+        and "Etiquetas 53" not in js,
     )
-    check("overlay_btn_etq", "pl-btn--etq" in html)
+    check("overlay_print_modal", "pdv-pedir-loja-print" in html and 'data-pl-print="cupom80"' in html)
     check("js_qtd_envio", "lerQtdsDoCard" in js and "pl-item-qtd" in js and "podeEditarQtd" in js)
     check("js_pedido_escrito", "addCartLivre" in js and "livre:" in js and "pdv-pedir-loja-livre" in html)
     check("js_escrito_embaixo", "pl-escrito-bar" in html and "garantirItensAntesDeEnviar" in js)
@@ -126,7 +127,7 @@ def main() -> int:
     check("overlay_confirm_furado", "pdv-pedir-loja-confirm-furado" in html)
     check("overlay_ajuste_modal", "pdv-pedir-loja-ajuste" in html and "pl-btn-aj" in html)
     check("overlay_aviso_pin", "pdv-pedir-loja-tem-pedido" in html and "Enter também fecha" in html)
-    check("overlay_btn_print", "pl-btn--print" in html or "Imprimir cupom" in js)
+    check("overlay_btn_print", "pl-btn--print" in html or ">Imprimir</button>" in js or "Imprimir</button>" in js)
     check("view_ajustar", "def api_pdv_transf_loja_ajustar" in views)
     check("util_ajuste_furado", "qtd_decimal_ou_zero" in util and "_aplicar_ajuste_absoluto_origem" in util)
     check("util_a_mais_b", "STATUS_ACEITO" in util and "concluir_transferencia" in util)

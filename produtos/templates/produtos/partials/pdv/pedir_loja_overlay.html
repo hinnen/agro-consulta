@@ -616,6 +616,80 @@
     padding: 1rem;
   }
   #pdv-pedir-loja-confirm.is-open { display: flex; }
+  #pdv-pedir-loja-print {
+    position: absolute;
+    inset: 0;
+    z-index: 42;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.5);
+    padding: 1rem;
+  }
+  #pdv-pedir-loja-print.is-open { display: flex; }
+  #pdv-pedir-loja-print .pl-print-box {
+    width: min(28rem, 100%);
+    border-radius: 1rem;
+    border: 3px solid #0f766e;
+    background: #fff;
+    padding: 1rem 1.1rem 1.1rem;
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.28);
+  }
+  #pdv-pedir-loja-print .pl-print-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: #0f172a;
+    text-transform: uppercase;
+  }
+  #pdv-pedir-loja-print .pl-print-sub {
+    margin: 0.4rem 0 0.85rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #475569;
+  }
+  #pdv-pedir-loja-print .pl-print-opts {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+  #pdv-pedir-loja-print .pl-print-opt {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+    width: 100%;
+    min-height: 3.25rem;
+    border-radius: 0.85rem;
+    border: 2px solid #cbd5e1;
+    background: #f8fafc;
+    padding: 0.7rem 0.9rem;
+    text-align: left;
+    cursor: pointer;
+  }
+  #pdv-pedir-loja-print .pl-print-opt:hover {
+    border-color: #0f766e;
+    background: #ecfdf5;
+  }
+  #pdv-pedir-loja-print .pl-print-opt-title {
+    font-size: 0.95rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #0f172a;
+  }
+  #pdv-pedir-loja-print .pl-print-opt-sub {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #64748b;
+  }
+  #pdv-pedir-loja-print .pl-print-opt--cupom { border-color: #0d9488; }
+  #pdv-pedir-loja-print .pl-print-opt--a4 { border-color: #2563eb; }
+  #pdv-pedir-loja-print .pl-print-opt--etq { border-color: #7c3aed; }
+  #pdv-pedir-loja-print .pl-print-cancel {
+    margin-top: 0.75rem;
+    width: 100%;
+  }
+
   #pdv-pedir-loja-confirm .pl-confirm-box {
     width: min(32rem, 100%);
     border-radius: 1rem;
@@ -815,6 +889,27 @@
       <div id="pdv-pedir-loja-lista" class="space-y-2"></div>
     </div>
 
+    <div id="pdv-pedir-loja-print" aria-hidden="true">
+      <div class="pl-print-box" role="document">
+        <p class="pl-print-title" id="pdv-pedir-loja-print-title">Como imprimir?</p>
+        <p class="pl-print-sub" id="pdv-pedir-loja-print-sub">Escolha o papel da impressora desta loja.</p>
+        <div class="pl-print-opts">
+          <button type="button" class="pl-print-opt pl-print-opt--cupom" data-pl-print="cupom80" id="pdv-pedir-loja-print-cupom">
+            <span class="pl-print-opt-title">Cupom 80 mm</span>
+            <span class="pl-print-opt-sub">Impressora térmica de cupom</span>
+          </button>
+          <button type="button" class="pl-print-opt pl-print-opt--a4" data-pl-print="a4" id="pdv-pedir-loja-print-a4">
+            <span class="pl-print-opt-title">Folha A4</span>
+            <span class="pl-print-opt-sub">Lista na impressora comum · vários na mesma folha</span>
+          </button>
+          <button type="button" class="pl-print-opt pl-print-opt--etq" data-pl-print="etq40" id="pdv-pedir-loja-print-etq">
+            <span class="pl-print-opt-title">Etiqueta 40×40</span>
+            <span class="pl-print-opt-sub">Térmica de etiqueta · 3 produtos por etiqueta</span>
+          </button>
+        </div>
+        <button type="button" id="pdv-pedir-loja-print-cancel" class="pl-btn pl-btn--ghost pl-print-cancel">Cancelar</button>
+      </div>
+    </div>
     <div id="pdv-pedir-loja-confirm" aria-hidden="true">
       <div class="pl-confirm-box" role="document">
         <p class="pl-confirm-title" id="pdv-pedir-loja-confirm-title">Confirmar</p>
