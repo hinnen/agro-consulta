@@ -5,13 +5,12 @@ Imprime etiquetas do SisVale **direto** na impressora, sem ficar escolhendo tama
 ## Como usar (loja)
 
 1. No PC da etiqueta, abra a pasta `agro-print-bridge`.
-2. Dê dois cliques em **`Iniciar-ponte-etiquetas.bat`** (primeira vez instala; demora um pouco).
+2. Dê dois cliques em **`Iniciar-ponte-etiquetas.bat`** (primeira vez baixa o Electron — demora um pouco).
 3. Deixe o ícone na bandeja do Windows (canto).
 4. No Chrome, abra **Etiquetas** → veja o cartão **Impressão direta** ficar **verde**.
-5. Em cada **preset**, escolha:
-   - **Impressora** (qual máquina física)
-   - **Modo**: Automático / Direto / Janela Windows
-6. Salve o preset. Imprimir.
+5. Em cada **preset**, escolha impressora + modo → **Salvar**.
+
+**Se der erro “Electron failed to install”:** feche a janela, rode o `.bat` de novo (ele conserta sozinho, instalando fora do OneDrive). Preferível Node **LTS 20/22** (não a versão mais nova).
 
 ## Cenários
 
