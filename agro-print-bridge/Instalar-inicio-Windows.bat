@@ -5,11 +5,18 @@ title Agro Etiqueta Print — inicio automatico
 echo.
 echo  Instala a ponte para ABRIR SOZINHA quando o Windows ligar.
 echo  Rode UMA VEZ em cada PC da etiqueta (Centro / Vila).
+echo  Se faltar Node/Electron, este instalador baixa sozinho.
 echo.
+
+call "%~dp0ensure-node.bat"
+if errorlevel 1 (
+  pause
+  exit /b 1
+)
 
 where node >nul 2>&1
 if errorlevel 1 (
-  echo ERRO: Node.js nao encontrado. Instale LTS em https://nodejs.org
+  echo ERRO interno: Node nao ficou no PATH.
   pause
   exit /b 1
 )

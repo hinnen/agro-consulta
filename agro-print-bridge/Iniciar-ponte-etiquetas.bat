@@ -8,9 +8,8 @@ echo  Deixe esta janela aberta (ou minimize). Depois imprima no Chrome.
 echo  Dica loja: use Instalar-inicio-Windows.bat ^(abre sozinho ao ligar o PC^).
 echo.
 
-where node >nul 2>&1
+call "%~dp0ensure-node.bat"
 if errorlevel 1 (
-  echo ERRO: Node.js nao encontrado. Instale em https://nodejs.org ^(versao LTS 20 ou 22^).
   pause
   exit /b 1
 )
@@ -31,13 +30,11 @@ if not exist "node_modules\electron\package.json" (
   )
 )
 
-REM Electron fora do OneDrive (LocalAppData) — extract na pasta do Git costuma falhar.
 echo Preparando Electron...
 call node ensure-electron.js
 if errorlevel 1 (
   echo.
   echo Falhou preparar o Electron.
-  echo Se o Node for v26, tente instalar o Node LTS 22 em https://nodejs.org
   pause
   exit /b 1
 )
