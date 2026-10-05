@@ -749,10 +749,23 @@
   }
   #pdv-pedir-loja-confirm .pl-confirm-btns {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.55rem;
     margin-top: 1rem;
   }
-  #pdv-pedir-loja-confirm .pl-confirm-btns .pl-btn { flex: 1; }
+  #pdv-pedir-loja-confirm .pl-confirm-btns .pl-btn { flex: 1; min-width: 7rem; }
+  #pdv-pedir-loja-confirm .pl-confirm-btns--resto {
+    flex-direction: column;
+  }
+  #pdv-pedir-loja-confirm .pl-confirm-btns--resto #pdv-pedir-loja-confirm-nao {
+    order: 3;
+  }
+  #pdv-pedir-loja-confirm .pl-confirm-btns--resto #pdv-pedir-loja-confirm-sim {
+    order: 1;
+  }
+  #pdv-pedir-loja-confirm .pl-confirm-btns--resto #pdv-pedir-loja-confirm-resto {
+    order: 2;
+  }
   #pdv-pedir-loja-tem-pedido {
     position: fixed;
     inset: 0;
@@ -928,9 +941,10 @@
             <input type="number" id="pdv-pedir-loja-confirm-qtd" class="pl-field" min="0" step="0.001" value="0" />
           </div>
         </div>
-        <div class="pl-confirm-btns">
+        <div class="pl-confirm-btns" id="pdv-pedir-loja-confirm-btns">
           <button type="button" id="pdv-pedir-loja-confirm-nao" class="pl-btn pl-btn--ghost">Voltar</button>
           <button type="button" id="pdv-pedir-loja-confirm-sim" class="pl-btn pl-btn--warn">Confirmar</button>
+          <button type="button" id="pdv-pedir-loja-confirm-resto" class="pl-btn pl-btn--ok hidden">Transferir e deixar resto</button>
         </div>
       </div>
     </div>

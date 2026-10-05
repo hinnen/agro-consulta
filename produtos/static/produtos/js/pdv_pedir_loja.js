@@ -68,6 +68,8 @@
     confirmQtd: document.getElementById('pdv-pedir-loja-confirm-qtd'),
     confirmSim: document.getElementById('pdv-pedir-loja-confirm-sim'),
     confirmNao: document.getElementById('pdv-pedir-loja-confirm-nao'),
+    confirmResto: document.getElementById('pdv-pedir-loja-confirm-resto'),
+    confirmBtns: document.getElementById('pdv-pedir-loja-confirm-btns'),
     ajuste: document.getElementById('pdv-pedir-loja-ajuste'),
     ajusteNome: document.getElementById('pdv-pedir-loja-ajuste-nome'),
     ajusteCentro: document.getElementById('pdv-pedir-loja-ajuste-centro'),
@@ -199,7 +201,7 @@
     else dom.confirmAjusteWrap.classList.remove('is-on');
   }
 
-  function fecharConfirm(ok) {
+  function fecharConfirm(ok, choice) {
     if (dom.confirm) {
       dom.confirm.classList.remove('is-open');
       dom.confirm.setAttribute('aria-hidden', 'true');
@@ -209,7 +211,7 @@
     }
     var cb = confirmCb;
     confirmCb = null;
-    if (cb) cb(!!ok);
+    if (cb) cb(!!ok, choice || null);
   }
 
   function abrirConfirm(opts) {
@@ -219,7 +221,7 @@
         resolve({ ok: false });
         return;
       }
-      confirmCb = function (ok) {
+      confirmCb = function (ok, choice) {
         if (!ok) {
           resolve({ ok: false });
           return;
@@ -227,11 +229,38 @@
         var furado = !!(dom.confirmFurado && dom.confirmFurado.checked);
         var ajustar = !!(furado && dom.confirmAjustar && dom.confirmAjustar.checked);
         var qtd = dom.confirmQtd ? String(dom.confirmQtd.value || '0') : '0';
-        resolve({ ok: true, estoque_furado: furado, ajustar_estoque: ajustar, ajuste_quantidade: qtd });
+        var out = {
+          ok: true,
+          estoque_furado: furado,
+          ajustar_estoque: ajustar,
+          ajuste_quantidade: qtd,
+        };
+        if (opts.duasOpcoesResto) {
+          out.deixar_resto = choice === 'resto';
+        }
+        resolve(out);
       };
       if (dom.confirmTitle) dom.confirmTitle.textContent = opts.title || 'Confirmar';
       if (dom.confirmBody) dom.confirmBody.textContent = opts.body || '';
-      if (dom.confirmSim) dom.confirmSim.textContent = opts.confirmLabel || 'Confirmar';
+      var duas = !!opts.duasOpcoesResto;
+      if (dom.confirmSim) {
+        dom.confirmSim.textContent = duas
+          ? opts.confirmLabelEncerrar || 'Transferir e encerrar'
+          : opts.confirmLabel || 'Confirmar';
+        dom.confirmSim.classList.remove('hidden');
+      }
+      if (dom.confirmResto) {
+        if (duas) {
+          dom.confirmResto.classList.remove('hidden');
+          dom.confirmResto.textContent =
+            opts.confirmLabelResto || 'Transferir e deixar resto';
+        } else {
+          dom.confirmResto.classList.add('hidden');
+        }
+      }
+      if (dom.confirmBtns) {
+        dom.confirmBtns.classList.toggle('pl-confirm-btns--resto', duas);
+      }
       if (dom.confirmExtra) {
         if (opts.furado) {
           dom.confirmExtra.classList.remove('hidden');
@@ -1097,6 +1126,55 @@
     return { itens: itens, adiar_itens: adiar };
   }
 
+  /** Tem algo pra depois? (desmarcado ou qtd < pedida) */
+  function selecaoTemResto(sel, rowData) {
+    if (!sel) return false;
+    if (sel.adiar_itens && sel.adiar_itens.length) return true;
+    var pedPorId = {};
+    if (rowData && rowData.itens) {
+      rowData.itens.forEach(function (it) {
+        var ped =
+          it.quantidade_pedida != null && Number(it.quantidade_pedida) > 0
+            ? Number(it.quantidade_pedida)
+            : Number(it.quantidade);
+        pedPorId[String(it.id)] = ped;
+      });
+    }
+    return (sel.itens || []).some(function (it) {
+      var env = Number(it.quantidade);
+      if (!(env > 0)) return false;
+      var ped = pedPorId[String(it.id)];
+      if (ped == null || !(ped > 0)) return false;
+      return env < ped - 0.0005;
+    });
+  }
+
+  function textoRestoSelecao(sel, nomesPorId, rowData) {
+    var linhas = [];
+    var pedPorId = {};
+    if (rowData && rowData.itens) {
+      rowData.itens.forEach(function (it) {
+        var ped =
+          it.quantidade_pedida != null && Number(it.quantidade_pedida) > 0
+            ? Number(it.quantidade_pedida)
+            : Number(it.quantidade);
+        pedPorId[String(it.id)] = ped;
+      });
+    }
+    (sel.itens || []).forEach(function (it) {
+      var env = Number(it.quantidade);
+      var ped = pedPorId[String(it.id)];
+      if (ped != null && env > 0 && env < ped - 0.0005) {
+        var nome = nomesPorId[String(it.id)] || '#' + it.id;
+        linhas.push('· ' + nome + ' × ' + fmtSaldo(ped - env));
+      }
+    });
+    (sel.adiar_itens || []).forEach(function (iid) {
+      linhas.push('· ' + (nomesPorId[String(iid)] || '#' + iid) + ' (inteiro)');
+    });
+    return linhas.join('\n');
+  }
+
   function lerQtdsDoCard(card) {
     return lerSelecaoDoCard(card).itens;
   }
@@ -1676,22 +1754,20 @@
           return '· ' + nome + ' × ' + fmtSaldo(it.quantidade);
         })
         .join('\n');
+      var temResto = selecaoTemResto(sel, rowData);
       var bodyTxt = 'Vai agora:\n' + enviandoTxt;
-      if (sel.adiar_itens.length) {
-        var depoisTxt = sel.adiar_itens
-          .map(function (iid) {
-            return '· ' + (nomesPorId[String(iid)] || '#' + iid);
-          })
-          .join('\n');
+      if (temResto) {
+        var depoisTxt = textoRestoSelecao(sel, nomesPorId, rowData);
         bodyTxt +=
-          '\n\nFicam na fila (' + sel.adiar_itens.length + '):\n' + depoisTxt;
+          '\n\nSe deixar resto, fica na fila:\n' +
+          depoisTxt +
+          '\n\nEncerrar = manda só o de agora e não cria pedido do resto.';
       }
       abrirConfirm({
         title: 'Transferir estoque?',
         body: bodyTxt,
-        confirmLabel: sel.adiar_itens.length
-          ? 'Transferir e deixar resto'
-          : 'Transferir',
+        confirmLabel: 'Transferir',
+        duasOpcoesResto: temResto,
         furado: true,
       }).then(function (r) {
         if (!r.ok) return;
@@ -1700,6 +1776,7 @@
           ajustar_estoque: !!r.ajustar_estoque,
           ajuste_quantidade: r.ajuste_quantidade,
           itens: sel.itens,
+          deixar_resto: temResto ? !!r.deixar_resto : false,
         };
         if (sel.adiar_itens.length) extra.adiar_itens = sel.adiar_itens;
         postAcao(id, 'transferir', extra);
@@ -1736,6 +1813,7 @@
           id: id,
           sel: { itens: sel.itens, adiar_itens: sel.adiar_itens },
           nomesPorId: nomesPorId,
+          rowData: rowData,
         });
       });
     return lotes;
@@ -1749,6 +1827,7 @@
     }
     var linhas = [];
     var totalItens = 0;
+    var temRestoLote = false;
     lotes.forEach(function (lote) {
       linhas.push('Pedido #' + lote.id + ':');
       lote.sel.itens.forEach(function (it) {
@@ -1760,22 +1839,36 @@
           totalItens += 1;
         }
       });
-      if (lote.sel.adiar_itens.length) {
-        linhas.push('  (ficam na fila: ' + lote.sel.adiar_itens.length + ')');
+      if (selecaoTemResto(lote.sel, lote.rowData)) {
+        temRestoLote = true;
+        var restoTxt = textoRestoSelecao(lote.sel, lote.nomesPorId, lote.rowData);
+        if (restoTxt) {
+          linhas.push('  resto possível:');
+          restoTxt.split('\n').forEach(function (ln) {
+            if (ln) linhas.push('  ' + ln);
+          });
+        }
       }
     });
+    var bodyTxt =
+      lotes.length +
+      ' pedido(s) · ' +
+      totalItens +
+      ' produto(s)\n\n' +
+      linhas.join('\n');
+    if (temRestoLote) {
+      bodyTxt +=
+        '\n\nEncerrar = manda só o de agora e não cria pedido do resto.';
+    }
     abrirConfirm({
       title: 'Transferir selecionados?',
-      body:
-        lotes.length +
-        ' pedido(s) · ' +
-        totalItens +
-        ' produto(s)\n\n' +
-        linhas.join('\n'),
+      body: bodyTxt,
       confirmLabel: 'Transferir tudo',
+      duasOpcoesResto: temRestoLote,
       furado: true,
     }).then(function (r) {
       if (!r.ok) return;
+      var deixarResto = temRestoLote ? !!r.deixar_resto : false;
       var idx = 0;
       var okN = 0;
       function runOne() {
@@ -1803,6 +1896,7 @@
           ajustar_estoque: !!r.ajustar_estoque,
           ajuste_quantidade: r.ajuste_quantidade,
           itens: lote.sel.itens,
+          deixar_resto: deixarResto,
         };
         if (lote.sel.adiar_itens.length) body.adiar_itens = lote.sel.adiar_itens;
         fetch(url, {
@@ -2155,7 +2249,16 @@
     });
   }
 
-  if (dom.confirmSim) dom.confirmSim.addEventListener('click', function () { fecharConfirm(true); });
+  if (dom.confirmSim) {
+    dom.confirmSim.addEventListener('click', function () {
+      fecharConfirm(true, 'encerrar');
+    });
+  }
+  if (dom.confirmResto) {
+    dom.confirmResto.addEventListener('click', function () {
+      fecharConfirm(true, 'resto');
+    });
+  }
   if (dom.confirmNao) dom.confirmNao.addEventListener('click', function () { fecharConfirm(false); });
   if (dom.confirm) {
     dom.confirm.addEventListener('click', function (e) {

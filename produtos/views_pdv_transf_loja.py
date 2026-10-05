@@ -209,6 +209,9 @@ def api_pdv_transf_loja_acao(request, pk: int):
         adiar_itens = payload.get("adiar_itens")
         if adiar_itens is None:
             adiar_itens = payload.get("adiar_item_ids")
+        deixar_resto = payload.get("deixar_resto")
+        if deixar_resto is None and payload.get("deixar_resto_fila") is not None:
+            deixar_resto = payload.get("deixar_resto_fila")
         ok_t, err_t, res_t = concluir_transferencia(
             request,
             sol,
@@ -223,6 +226,7 @@ def api_pdv_transf_loja_acao(request, pk: int):
             ajustes_por_produto=ajustes,
             quantidades_envio=qtds_envio,
             adiar_item_ids=adiar_itens,
+            deixar_resto=deixar_resto,
         )
         if not ok_t:
             return JsonResponse({"ok": False, "erro": err_t}, status=400)
