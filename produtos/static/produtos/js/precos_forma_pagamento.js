@@ -34,10 +34,72 @@
         return 'Cartão de crédito';
     }
 
-    function obterFormaDoState(state) {
-        if (state && state.pagamento && state.pagamento.forma) {
-            return String(state.pagamento.forma).trim();
+    /** Cashback/Vale não mandam tabela se houver forma de mercadoria (bug #31). */
+    var FORMAS_SKIP_PRECO = { Cashback: 1, 'Vale crédito': 1 };
+
+    /**
+     * Forma que manda no preço: maior valor entre mercadoria;
+     * só Cashback/Vale sozinho → essa forma.
+     * @param {object} state
+     * @param {string} [formaHint] forma recém-escolhida (antes/depois do state)
+     */
+    function formaPrincipalParaPreco(state, formaHint) {
+        var totals = {};
+        var order = [];
+        function add(forma, valor) {
+            var f = String(forma || '').trim();
+            if (!f) return;
+            if (!Object.prototype.hasOwnProperty.call(totals, f)) {
+                totals[f] = 0;
+                order.push(f);
+            }
+            totals[f] += toNum(valor, 0);
         }
+        var arr =
+            state && state.pagamento && Array.isArray(state.pagamento.lancamentos)
+                ? state.pagamento.lancamentos
+                : [];
+        for (var i = 0; i < arr.length; i++) {
+            var L = arr[i];
+            if (!L) continue;
+            add(L.forma, L.valor);
+        }
+        var cur = String(
+            formaHint != null && String(formaHint).trim() !== ''
+                ? formaHint
+                : (state && state.pagamento && state.pagamento.forma) || ''
+        ).trim();
+        if (cur) {
+            var curVal = 0;
+            if (state && state.pagamento) {
+                curVal = toNum(state.pagamento.valorDestaForma, 0);
+                if (!(curVal > 0.0001)) {
+                    curVal = toNum(state.pagamento.valorRecebido, 0);
+                }
+            }
+            add(cur, curVal);
+        }
+        if (!order.length) return '';
+        var merc = [];
+        for (var m = 0; m < order.length; m++) {
+            if (!FORMAS_SKIP_PRECO[order[m]]) merc.push(order[m]);
+        }
+        var pool = merc.length ? merc : order;
+        var best = pool[0];
+        var bestV = totals[best] || 0;
+        for (var p = 1; p < pool.length; p++) {
+            var v = totals[pool[p]] || 0;
+            if (v > bestV + 0.009) {
+                best = pool[p];
+                bestV = v;
+            }
+        }
+        return best;
+    }
+
+    function obterFormaDoState(state) {
+        var principal = formaPrincipalParaPreco(state);
+        if (principal) return principal;
         if (
             state &&
             state.entrega &&
@@ -412,6 +474,7 @@
         toNum: toNum,
         obterFormaPagamentoAtual: obterFormaPagamentoAtual,
         obterFormaDoState: obterFormaDoState,
+        formaPrincipalParaPreco: formaPrincipalParaPreco,
         formaFromMeioEntrega: formaFromMeioEntrega,
         precoBaseForma: precoBaseForma,
         precosGruposVisiveis: precosGruposVisiveis,

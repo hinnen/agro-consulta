@@ -449,12 +449,26 @@
         return item;
     }
 
+    function formaPrecoDoState(formaHint) {
+        if (
+            typeof window.AgroPrecosFormaPagamento !== 'undefined' &&
+            window.AgroPrecosFormaPagamento.formaPrincipalParaPreco
+        ) {
+            var p = window.AgroPrecosFormaPagamento.formaPrincipalParaPreco(state, formaHint);
+            if (p) return String(p).trim();
+        }
+        if (
+            typeof window.AgroPrecosFormaPagamento !== 'undefined' &&
+            window.AgroPrecosFormaPagamento.obterFormaDoState
+        ) {
+            return String(window.AgroPrecosFormaPagamento.obterFormaDoState(state) || '').trim();
+        }
+        return formaHint != null ? String(formaHint).trim() : '';
+    }
+
     function recalcularTodasPromocoes() {
         if (!state.itens || !state.itens.length) return;
-        var fp = '';
-        if (typeof window.AgroPrecosFormaPagamento !== 'undefined' && window.AgroPrecosFormaPagamento.obterFormaDoState) {
-            fp = window.AgroPrecosFormaPagamento.obterFormaDoState(state);
-        }
+        var fp = formaPrecoDoState();
         if (typeof window.AgroPdvPromocoes !== 'undefined' && window.AgroPdvPromocoes.recalcCarrinhoComForma) {
             window.AgroPdvPromocoes.recalcCarrinhoComForma(state.itens, fp);
             return;
@@ -474,10 +488,9 @@
     }
 
     function recalcularPrecosFormaItens(forma) {
-        var fp = forma != null ? String(forma).trim() : '';
-        if (!fp && typeof window.AgroPrecosFormaPagamento !== 'undefined' && window.AgroPrecosFormaPagamento.obterFormaDoState) {
-            fp = window.AgroPrecosFormaPagamento.obterFormaDoState(state);
-        }
+        // Bug #31: Cashback/Vale não podem puxar tabela cara se já houver mercadoria.
+        var fp = formaPrecoDoState(forma);
+        if (!fp && forma != null) fp = String(forma).trim();
         if (!state.itens || !state.itens.length) return;
         if (typeof window.AgroPdvPromocoes !== 'undefined' && window.AgroPdvPromocoes.recalcCarrinhoComForma) {
             window.AgroPdvPromocoes.recalcCarrinhoComForma(state.itens, fp);

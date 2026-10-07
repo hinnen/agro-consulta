@@ -1291,6 +1291,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE — Bug #31 cashback × tabela (`BUG31-CB-TABELA` · **v26.57** · 07/10)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ no `teste` · ⏳ aguarda prova local Renan · **não** loja |
+| **Bug** | Loja #31 — cashback (minoria) puxava tabela/crédito caro em vez da à vista |
+| **O quê** | Forma que manda no preço = **maior valor de mercadoria**; Cashback/Vale só mandam se sozinhos |
+| **Arquivos** | `precos_forma_pagamento_util.py` · `precos_forma_pagamento.js` · `pdv_state.js` · `pdv_wizard.js` |
+| **Prova** | `scripts/verify_bug31_cashback_tabela_forma.py` **13/13** · bug24 **15/15** |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 · PDV: produto com tabela à vista ≠ crédito · ~90% Dinheiro + Cashback → total na **à vista** |
+
 ### ✅ Deploy loja — Checklist 07/10b · **Live v26.56** · 07/10
 
 | Campo | Valor |

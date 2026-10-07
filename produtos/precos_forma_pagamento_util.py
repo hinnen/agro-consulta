@@ -208,22 +208,60 @@ def forma_principal_para_preco(
     forma_pagamento: str | None,
     pagamentos_json: list | None = None,
 ) -> str:
-    """Forma que manda no preço: 1ª de mercadoria (pula vale/cashback se houver outra)."""
+    """
+    Forma que manda no preço do carrinho (bug #31).
+
+    - Cashback / Vale crédito não definem tabela se existir outra forma de mercadoria.
+    - Entre formas de mercadoria, manda a de **maior valor** (soma por forma).
+    - Só Cashback/Vale → usa essa (maior valor entre elas).
+    """
     skip = {"Vale crédito", "Cashback"}
-    forms: list[str] = []
+    totals: dict[str, float] = {}
+    order: list[str] = []
+
+    def _add(forma: str, valor: float) -> None:
+        f = _forma_canonica(forma)
+        if not f:
+            return
+        if f not in totals:
+            totals[f] = 0.0
+            order.append(f)
+        totals[f] = float(totals[f]) + float(valor or 0)
+
     if isinstance(pagamentos_json, list):
         for row in pagamentos_json:
             if not isinstance(row, dict):
                 continue
-            f = _forma_canonica(str(row.get("forma") or ""))
-            if f:
-                forms.append(f)
-    if not forms:
-        return _forma_canonica(str(forma_pagamento or ""))
-    for f in forms:
-        if f not in skip:
-            return f
-    return forms[0]
+            f_raw = str(row.get("forma") or row.get("formaPagamento") or "")
+            v_raw = row.get("valor")
+            if v_raw is None:
+                v_raw = row.get("valorPagamento")
+            v = _dec_pos(v_raw)
+            _add(f_raw, float(v or 0))
+
+    if not totals:
+        # Ex.: "Cashback + Dinheiro" sem lista de pagamentos
+        parts = [
+            _forma_canonica(p.strip())
+            for p in str(forma_pagamento or "").split("+")
+            if str(p or "").strip()
+        ]
+        parts = [p for p in parts if p]
+        if not parts:
+            return ""
+        merc = [p for p in parts if p not in skip]
+        return (merc or parts)[0]
+
+    merc_order = [f for f in order if f not in skip]
+    pool = merc_order if merc_order else order
+    best = pool[0]
+    best_v = float(totals.get(best) or 0)
+    for f in pool[1:]:
+        v = float(totals.get(f) or 0)
+        if v > best_v + 0.009:
+            best = f
+            best_v = v
+    return best
 
 
 def corrigir_precos_itens_lista_sem_forma(
