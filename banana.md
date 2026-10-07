@@ -1296,7 +1296,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **no teste** — falta PREP / frase+senha |
-| **O quê** | Bloco ponte/mapa → botão **Ponte** (modal). Bip limpa busca+foco. **Rodapé** saiu da fila (só no preset). |
+| **O quê** | Ponte topbar · bip limpa busca · sem rodapé na fila · **fix busca SQLite** (JSON contains quebrava bip EAN no PC local). |
 | **Migrate** | **NÃO** |
 | **Prova** | path **51/51** · full **83/83** |
 | **Não mexe** | PDV venda · caixa · NFC-e |

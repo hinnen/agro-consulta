@@ -228,11 +228,28 @@ def q_icontains_cadastro(termo: str) -> Q:
     return q_obj
 
 
+def _json_contains_suportado() -> bool:
+    """``JSONField __contains`` (lista/string) — Postgres; SQLite local não."""
+    try:
+        from django.db import connection
+
+        return connection.vendor == "postgresql"
+    except Exception:
+        return False
+
+
 def q_overlay_json_barras_opcionais(digits: str) -> Q | None:
-    """JSONField do overlay: lista **e** string, nas duas chaves (opcional + alias)."""
+    """JSONField do overlay: lista **e** string, nas duas chaves (opcional + alias).
+
+    No SQLite (PC local) não usa ``__contains`` — senão a busca inteira 500
+    (*contains lookup is not supported*). Opcional cai no fallback ``has_key`` abaixo.
+    """
     d = str(digits or "").strip()
     if not d.isdigit() or len(d) < 8:
         return None
+    if not _json_contains_suportado():
+        # Texto no JSON ainda ajuda a achar; fallback has_key cobre lista.
+        return Q(cadastro_extras__icontains=d)
     q = Q()
     for k in CAD_EXTRAS_CB_OPCIONAIS_KEYS:
         q |= Q(**{f"cadastro_extras__{k}__contains": [d]})
@@ -320,12 +337,18 @@ def overlay_pids_por_codigo(termo: str, *, limit: int = 80) -> list[str]:
         out.append(pid)
         return True
 
-    for ov in ProdutoGestaoOverlayAgro.objects.filter(q_obj).only(
-        "produto_externo_id", "codigo_nfe", "codigo_barras", "cadastro_extras"
-    )[: max(limit * 3, 120)]:
-        _considerar(ov)
-        if len(out) >= limit:
-            break
+    try:
+        qs_main = ProdutoGestaoOverlayAgro.objects.filter(q_obj).only(
+            "produto_externo_id", "codigo_nfe", "codigo_barras", "cadastro_extras"
+        )[: max(limit * 3, 120)]
+        for ov in qs_main:
+            _considerar(ov)
+            if len(out) >= limit:
+                break
+    except Exception:
+        # SQLite / backend sem JSON contains: segue só pelo fallback abaixo.
+        out.clear()
+        seen.clear()
 
     # Fallback: JSON contains pode falhar no SQLite — varre quem tem a chave (ou o alias).
     if digits.isdigit() and len(digits) >= 8 and len(out) < limit:

@@ -171,9 +171,16 @@ class NormalizarCbOpcionaisTests(SimpleTestCase):
     def test_extras_q_overlay_duas_chaves_e_minimo_8(self):
         self.assertIsNone(q_overlay_json_barras_opcionais("1234567"))
         q = q_overlay_json_barras_opcionais("7896000000099")
+        self.assertIsNotNone(q)
         s = str(q)
-        self.assertIn("codigos_barras_opcionais", s)
-        self.assertIn("codigos_barras_alternativos", s)
+        # Postgres: __contains nas 2 chaves. SQLite local: só icontains (sem contains).
+        from produtos.cadastro_busca_codigo_util import _json_contains_suportado
+
+        if _json_contains_suportado():
+            self.assertIn("codigos_barras_opcionais", s)
+            self.assertIn("codigos_barras_alternativos", s)
+        else:
+            self.assertIn("icontains", s)
 
     def test_overlay_pids_q_inclui_duas_chaves(self):
         pid = "AGRO-TEST-CB-OPC-Q"
@@ -195,5 +202,10 @@ class NormalizarCbOpcionaisTests(SimpleTestCase):
             self.assertIn(pid, found)
             q = M.objects.filter.call_args_list[0][0][0]
             s = str(q)
-            self.assertIn("codigos_barras_opcionais", s)
-            self.assertIn("codigos_barras_alternativos", s)
+            from produtos.cadastro_busca_codigo_util import _json_contains_suportado
+
+            if _json_contains_suportado():
+                self.assertIn("codigos_barras_opcionais", s)
+                self.assertIn("codigos_barras_alternativos", s)
+            else:
+                self.assertTrue("icontains" in s or "codigo_barras" in s)
