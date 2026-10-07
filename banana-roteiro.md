@@ -818,3 +818,15 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 **Live:** producao @ `471a11a9` · Render `dep-db35p995efls73cmb2fg`.  
 **Rollback:** tag `rollback/pre-checklist-0710b-v26.53` @ `32198975` · `docs/ROLLBACK-CHECKLIST-0710b.md` · **só** frase+senha.
+
+---
+
+## 64. Checklist único — BUG31-CB-TABELA · 🟢 pronto para envio · alvo **v26.57**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **BUG31-CB-TABELA** | 🟢 **pronto para envio à produção** · path **38/38** · JS **6/6** | **NÃO** |
+
+**O quê:** cashback/vale não puxam tabela cara se houver forma de mercadoria (manda a de maior valor).  
+**Prova:** `scripts/verify_bug31_cashback_tabela_forma.py` · `scripts/verify_bug31_forma_principal_js.js`.  
+**Na senha:** cherry/push `producao` · **não** merge `teste` · Ctrl+F5 · badge **v26.57**.

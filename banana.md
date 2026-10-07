@@ -1291,17 +1291,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE — Bug #31 cashback × tabela (`BUG31-CB-TABELA` · **v26.57** · 07/10)
+### 📦 PACOTE PRONTO — Bug #31 cashback × tabela (`BUG31-CB-TABELA` · **v26.57** · 07/10)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ no `teste` · ⏳ aguarda prova local Renan · **não** loja |
-| **Bug** | Loja #31 — cashback (minoria) puxava tabela/crédito caro em vez da à vista |
-| **O quê** | Forma que manda no preço = **maior valor de mercadoria**; Cashback/Vale só mandam se sozinhos |
+| **Status** | 🟢 **pronto para envio à produção** · no `teste` @ tip · **não** loja |
+| **Bug** | Loja #31 — cashback (minoria) puxava tabela/crédito caro |
+| **O quê** | Forma do preço = **maior valor de mercadoria**; Cashback/Vale só se sozinhos |
 | **Arquivos** | `precos_forma_pagamento_util.py` · `precos_forma_pagamento.js` · `pdv_state.js` · `pdv_wizard.js` |
-| **Prova** | `scripts/verify_bug31_cashback_tabela_forma.py` **13/13** · bug24 **15/15** |
+| **Prova** | path **38/38** · JS VM **6/6** · bug24 **15/15** · PIN **9973** · HTTP PDV **200** |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 · PDV: produto com tabela à vista ≠ crédito · ~90% Dinheiro + Cashback → total na **à vista** |
+| **Você** | Ctrl+F5 · ~90% Dinheiro + Cashback → total na **à vista** · produção só frase+senha |
+
+### ✅ CHECKLIST ÚNICO — BUG31-CB-TABELA · 🟢 pronto para envio · alvo **v26.57**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **BUG31-CB-TABELA** | 🟢 **pronto para envio à produção** | **NÃO** | **38/38** · JS **6/6** |
 
 ### ✅ Deploy loja — Checklist 07/10b · **Live v26.56** · 07/10
 
