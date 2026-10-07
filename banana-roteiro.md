@@ -845,12 +845,12 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 66. Checklist único — NF-SEM-NUMERO · 🟢 no teste · alvo **v26.59**
+## 66. Checklist único — NF-SEM-NUMERO · 🟢 pronto para envio · alvo **v26.59**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **NF-SEM-NUMERO** | 🟢 **no teste** · **6/6** | **NÃO** |
+| 1 | **NF-SEM-NUMERO** | 🟢 **pronto para envio à produção** · **16/16** · PIN **9973** | **NÃO** |
 
-**O quê:** Nº NF em branco na entrada → gera **`SEM-DDMM-XXXX`** (confirmar + save/PIN/CP).  
-**Prova:** `scripts/verify_nf_sem_numero_path.py`.  
-**Você:** Ctrl+F5 · nota sem número → Confirmar → ver `SEM-…` · buscar no CP. Produção só frase+senha.
+**O quê:** Nº NF em branco → **`SEM-DDMM-XXXX`** (confirmar + save/PIN/CP).  
+**Prova:** `scripts/verify_nf_sem_numero_path.py` **16/16**.  
+**Na senha:** cherry/push `producao` · **não** merge `teste` · Ctrl+F5 · badge **v26.59**.

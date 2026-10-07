@@ -1295,20 +1295,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### 📦 PACOTE PRONTO — Nº NF vazio gera SEM- (`NF-SEM-NUMERO` · **v26.59** · 07/10)
 
-| | |
-| --- | --- |
-| **Problema** | Entrada sem número de nota (campo em branco) travava / ficava estranha no fechar; no CP não tinha o que buscar. |
-| **O quê** | Vazio → código **`SEM-DDMM-XXXX`** no confirmar fornecedor + rede no save/PIN/financeiro. Aparece no Contas a pagar. |
-| **Arquivos** | `nfe_entrada_util.py` · `views.py` · `entrada_nota.html` · `tests_entrada_nf_sem_numero.py` · `scripts/verify_nf_sem_numero_path.py` |
-| **Prova** | `verify_nf_sem_numero_path.py` **6/6** (+ unit) |
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **pronto para envio à produção** · no `teste` · **não** loja |
+| **O quê** | Nº NF em branco → **`SEM-DDMM-XXXX`** (confirmar + save/PIN/CP). Buscável no Contas a pagar. |
+| **Arquivos** | `nfe_entrada_util.py` · `views.py` · `entrada_nota.html` · prova + unit |
+| **Prova** | path **16/16** · unit **5/5** · PIN **9973** · `/entrada-nota/` **200** · regressão `NF-FIN-NAO-TEM` **15/15** |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 `/entrada-nota/` · deixar Nº NF em branco → Confirmar → deve aparecer `SEM-…` · concluir e buscar esse código no CP |
+| **Na senha** | cherry/push `producao` · **não** merge `teste` · Ctrl+F5 · badge **v26.59** |
 
-### ✅ CHECKLIST ÚNICO — NF-SEM-NUMERO · 🟢 no teste · alvo **v26.59**
+### ✅ CHECKLIST ÚNICO — NF-SEM-NUMERO · 🟢 pronto para envio · alvo **v26.59**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **NF-SEM-NUMERO** | 🟢 **no teste** · **6/6** | **NÃO** |
+| 1 | **NF-SEM-NUMERO** | 🟢 **pronto para envio à produção** · **16/16** · PIN **9973** | **NÃO** |
 
 ### 📦 PACOTE PRONTO — Presets etiqueta iguais em todos os PCs / nota (`ETQ-PRESET-NF-MEM` · **v26.58** · 07/10)
 
