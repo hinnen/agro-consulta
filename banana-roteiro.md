@@ -795,3 +795,16 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **Rollback:** tag `rollback/pre-checklist-0510c-v26.08` · `docs/ROLLBACK-CHECKLIST-0510c.md` · **só** frase+senha.  
 **Smoke:** healthz ok · Ctrl+F5 · badge **v26.35**.
 
+---
+
+## 60. Checklist único — lote 07/10 (deploy/prep-checklist-0710 · alvo loja **v26.53**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **ETQ-PONTE-TOPBAR-BIP** | 🟢 **PREP** · **23/23** + smoke **13/13** | **NÃO** |
+| 2 | **FIADO-LOJA-COMPRA** | 🟢 **PREP** · **39/39** | **SIM** 0139 |
+
+**Branch PREP:** deploy/prep-checklist-0710 · tip d0cc0413 · base Live **v26.46** @ 68ef04ce.  
+**Rollback:** tag rollback/pre-checklist-0710-v26.46 · docs/ROLLBACK-CHECKLIST-0710.md · **só** frase+senha.  
+**Na senha:** pausar vendas · tip PREP → producao → Ctrl+F5 · badge **v26.53**. **Não** merge teste.
+
