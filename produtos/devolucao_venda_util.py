@@ -29,9 +29,34 @@ def formas_pagamento_devolucao(venda: VendaAgro) -> list[str]:
     return [f for f in formas if f != "Fiado"]
 
 
+def frete_ja_devolvido(venda: VendaAgro, *, sync_campo: bool = True) -> Decimal:
+    """
+    Soma já devolvida do frete.
+
+    Usa o campo na venda e, se menor, a soma dos eventos (evita frete «preso»
+    quando o campo não foi persistido — bug #34 / refresh_from_db).
+    Com ``sync_campo``, grava o campo se os eventos estiverem à frente.
+    """
+    ja = _dec(getattr(venda, "frete_devolvido", 0) or 0)
+    try:
+        from django.db.models import Sum
+
+        ev = venda.devolucoes.aggregate(s=Sum("frete_valor")).get("s")
+        if ev is not None:
+            ev_d = _dec(ev)
+            if ev_d > ja:
+                ja = ev_d
+                if sync_campo and getattr(venda, "pk", None):
+                    venda.frete_devolvido = ja.quantize(Decimal("0.01"))
+                    venda.save(update_fields=["frete_devolvido"])
+    except Exception:
+        pass
+    return ja.quantize(Decimal("0.01")) if ja > 0 else Decimal("0.00")
+
+
 def frete_restante(venda: VendaAgro) -> Decimal:
     frete = _dec(getattr(venda, "frete", 0) or 0)
-    ja = _dec(getattr(venda, "frete_devolvido", 0) or 0)
+    ja = frete_ja_devolvido(venda)
     r = frete - ja
     return r if r > 0 else Decimal("0.00")
 
@@ -72,6 +97,23 @@ def valor_restante_venda(venda: VendaAgro) -> Decimal:
     return s.quantize(Decimal("0.01"))
 
 
+def _selecao_esgota_itens_restantes(
+    itens_venda: dict[int, ItemVendaAgro],
+    linhas: list[tuple[ItemVendaAgro, Decimal, Decimal]],
+) -> bool:
+    """True se esta seleção devolve 100% do restante de todos os itens (ou já não há itens)."""
+    qtd_por_id: dict[int, Decimal] = {}
+    for it, q, _v in linhas:
+        qtd_por_id[it.pk] = qtd_por_id.get(it.pk, Decimal("0")) + Decimal(str(q or 0))
+    for it in itens_venda.values():
+        rest = it.quantidade_restante
+        if rest <= Decimal("0.0001"):
+            continue
+        if qtd_por_id.get(it.pk, Decimal("0")) + Decimal("0.0001") < rest:
+            return False
+    return True
+
+
 def montar_selecao_devolucao(
     venda: VendaAgro,
     *,
@@ -82,6 +124,8 @@ def montar_selecao_devolucao(
     """
     Retorna (linhas [(item, qtd, valor)], frete_valor, erro).
     `devolver_tudo` ou ausência de `itens` no total clássico → restante inteiro.
+    Se a seleção zera todos os itens restantes, o frete restante entra junto
+    (entrega sem produto não fica como venda — bug loja #34).
     """
     itens_venda = {it.pk: it for it in venda.itens.all()}
     linhas: list[tuple[ItemVendaAgro, Decimal, Decimal]] = []
@@ -127,7 +171,11 @@ def montar_selecao_devolucao(
         q = min(q, rest)
         linhas.append((it, q, valor_linha_proporcional(it, q)))
 
-    frete_v = frete_restante(venda) if devolver_frete else Decimal("0.00")
+    # Zerar todos os itens restantes ⇒ frete acompanha (mesmo se checkbox veio desmarcado).
+    # Parcial de produto: frete só se marcado; só frete (itens já zero): frete se marcado ou auto.
+    esgota_itens = _selecao_esgota_itens_restantes(itens_venda, linhas)
+    incluir_frete = bool(devolver_frete) or esgota_itens
+    frete_v = frete_restante(venda) if incluir_frete else Decimal("0.00")
     if not linhas and frete_v <= 0:
         return None, Decimal("0"), "Selecione ao menos um item ou a taxa de entrega."
     return linhas, frete_v, None
@@ -314,4 +362,7 @@ def registrar_evento_devolucao(
         venda.frete_devolvido = (_dec(venda.frete_devolvido) + _dec(frete_v)).quantize(
             Decimal("0.01")
         )
+        # Persistir antes de qualquer refresh_from_db na view (senão frete «some»
+        # do campo e a venda nunca totaliza — bug loja #34).
+        venda.save(update_fields=["frete_devolvido"])
     return ev

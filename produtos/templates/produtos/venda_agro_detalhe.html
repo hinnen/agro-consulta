@@ -371,7 +371,7 @@
               Ajuda
             </summary>
             <div class="mt-2 space-y-2 text-base font-semibold leading-snug border-t border-amber-200 pt-2 text-slate-800">
-              <p>Marque os <strong>itens</strong> (e a taxa de entrega, se quiser devolver o frete).</p>
+              <p>Marque os <strong>itens</strong>. A <strong>taxa de entrega</strong> já vem marcada; se devolver <strong>todos</strong> os produtos, o frete sai junto.</p>
               <p>Forma <strong>Fiado</strong> só aparece se a venda foi no fiado — aí <strong>abate a dívida</strong>, sem tirar dinheiro do caixa.</p>
               <p>Dinheiro, PIX, cartão etc. → <strong>saída no caixa aberto</strong>.</p>
               <p>O valor das formas tem que ser <strong>igual</strong> aos itens marcados (não sobra nem falta centavo).</p>
@@ -392,10 +392,11 @@
           </div>
           <div id="devolucao-itens-list" class="space-y-3 max-h-[min(42vh,24rem)] overflow-y-auto"></div>
           {% if frete_venda and frete_restante %}
-          <label class="mt-3 flex items-center gap-3 rounded-2xl border-2 border-slate-300 bg-slate-50 px-4 py-3.5 min-h-[60px] cursor-pointer">
-            <input type="checkbox" id="devolucao-frete-chk" class="w-8 h-8 accent-rose-600 shrink-0">
-            <span class="text-xl font-bold text-slate-900">Taxa de entrega — R$ <span id="devolucao-frete-val" class="tabular-nums">{{ frete_restante }}</span></span>
+          <label class="mt-3 flex items-center gap-3 rounded-2xl border-2 border-rose-400 bg-rose-50 px-4 py-3.5 min-h-[60px] cursor-pointer ring-2 ring-rose-200">
+            <input type="checkbox" id="devolucao-frete-chk" class="w-8 h-8 accent-rose-600 shrink-0" checked>
+            <span class="text-xl font-bold text-rose-950">Taxa de entrega — R$ <span id="devolucao-frete-val" class="tabular-nums">{{ frete_restante }}</span></span>
           </label>
+          <p class="mt-1.5 text-sm font-bold text-rose-800 leading-snug">Já vem marcada. Se devolver <strong>todos</strong> os produtos, o frete sai junto (mesmo se desmarcar).</p>
           {% endif %}
         </div>
 
@@ -592,14 +593,38 @@
   var totalLabel = document.getElementById('devolucao-total-label');
   var freteChk = document.getElementById('devolucao-frete-chk');
 
+  /** True se todos os itens restantes estão marcados na qtd cheia (frete deve acompanhar). */
+  function selecaoEsgotaItens() {
+    if (!itensEl) return true;
+    var rows = itensEl.querySelectorAll('[data-item-id]');
+    var temRestante = false;
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      var qMax = parseFloat(row.getAttribute('data-qtd-restante') || '0') || 0;
+      if (qMax <= 0.0001) continue;
+      temRestante = true;
+      var chk = row.querySelector('.dev-item-chk');
+      var qInp = row.querySelector('.dev-item-qtd');
+      if (!chk || !chk.checked) return false;
+      var q = parseFloat(String(qInp && qInp.value || '0').replace(',', '.')) || 0;
+      if (q + 0.0001 < qMax) return false;
+    }
+    return true; // sem itens restantes (só frete) ou todos esgotados na seleção
+  }
+
+  function garantirFreteSeEsgotaItens() {
+    if (!freteChk || freteRestante <= 0.009) return;
+    if (selecaoEsgotaItens()) freteChk.checked = true;
+  }
+
   function totalSelecionado() {
+    garantirFreteSeEsgotaItens();
     var s = 0;
     if (itensEl) {
       itensEl.querySelectorAll('[data-item-id]').forEach(function (row) {
         var chk = row.querySelector('.dev-item-chk');
         var qInp = row.querySelector('.dev-item-qtd');
         if (!chk || !chk.checked) return;
-        var max = parseFloat(row.getAttribute('data-restante') || '0') || 0;
         var unitVal = parseFloat(row.getAttribute('data-valor-restante') || '0') || 0;
         var qMax = parseFloat(row.getAttribute('data-qtd-restante') || '0') || 0;
         var q = parseFloat(String(qInp && qInp.value || '0').replace(',', '.')) || 0;
@@ -647,7 +672,8 @@
       });
     }
     if (freteChk) {
-      freteChk.checked = false;
+      // Padrão: frete marcado (itens já vêm marcados). Bug #34: milho devolvido e frete ficava.
+      freteChk.checked = freteRestante > 0.009;
       freteChk.addEventListener('change', syncPagamentosAoTotal);
     }
   }
