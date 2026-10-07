@@ -813,8 +813,20 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **BUG34-DEVOL-FRETE** | 🟢 **PREP pronto** · **42/42** · PIN **9973** | **NÃO** |
+| 1 | **BUG34-DEVOL-FRETE** | 🟢 **pronto para envio à produção** · **42/42** · PIN **9973** | **NÃO** |
 
 **Branch PREP:** `deploy/prep-bug34-devol-frete` · base Live **v26.53**.  
 **Doc:** `docs/DEPLOY-PREP-BUG34-DEVOL-FRETE.md` · rollback `docs/ROLLBACK-BUG34-DEVOL-FRETE.md`.  
 **Na senha:** `reset --hard origin/deploy/prep-bug34-devol-frete` → push `producao`. **Não** merge `teste`.
+
+---
+
+## 62. CHECKLIST ÚNICO — FIADO-CUPOM-SALDO-MISTO · 🟢 PREP v26.56 · aguarda senha
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **FIADO-CUPOM-SALDO-MISTO** | 🟢 **pronto para envio à produção** · **34/34** · **48/48** | **NÃO** |
+
+**Branch PREP:** `deploy/prep-fiado-cupom-saldo-misto` · base Live **v26.53**.  
+**Doc:** `docs/DEPLOY-PREP-FIADO-CUPOM-SALDO-MISTO.md` · rollback `docs/ROLLBACK-FIADO-CUPOM-SALDO-MISTO.md`.  
+**Na senha:** `reset --hard origin/deploy/prep-fiado-cupom-saldo-misto` → push `producao`. **Não** merge `teste`.
