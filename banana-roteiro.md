@@ -821,48 +821,18 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 64. Checklist único — BUG31-CB-TABELA · 🟢 pronto para envio · alvo **v26.57**
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **BUG31-CB-TABELA** | 🟢 **pronto para envio à produção** · path **38/38** · JS **6/6** | **NÃO** |
-
-**O quê:** cashback/vale não puxam tabela cara se houver forma de mercadoria (manda a de maior valor).  
-**Prova:** `scripts/verify_bug31_cashback_tabela_forma.py` · `scripts/verify_bug31_forma_principal_js.js`.  
-**Na senha:** cherry/push `producao` · **não** merge `teste` · Ctrl+F5 · badge **v26.57**.
-
 ---
 
-## 65. Checklist único — ETQ-PRESET-NF-MEM · 🟢 pronto para envio · alvo **v26.58**
+## 67. Checklist único — lote 07/10c (deploy/prep-checklist-0710c · alvo loja **v26.60**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-PRESET-NF-MEM** | 🟢 **pronto para envio à produção** · espelho **51/51** · smoke **35/35**+**23/23** · PIN **9973** | **NÃO** |
+| 1 | **BUG31-CB-TABELA** | 🟢 **PREP** · **38/38** + JS **6/6** | **NÃO** |
+| 2 | **ETQ-PRESET-NF-MEM** | 🟢 **PREP** · **51/51** + sync **26/26** | **NÃO** |
+| 3 | **NF-SEM-NUMERO** | 🟢 **PREP** · **16/16** | **NÃO** |
+| 4 | **CP-CONTAS-LOJA-PG** | 🟢 **PREP** · **49/49** | **SIM** 0140 |
 
-**O quê:** etapa 6 da nota (e cadastro/PDV) mostra a **mesma** lista de presets da fila/loja; Chrome cheio não zera.  
-**Prova:** `scripts/verify_etq_preset_espelho_path.js` · smoke espelho/sync local.  
-**Na senha:** cherry/push `producao` · **não** merge `teste` · Ctrl+F5 · badge **v26.58**.
+**Branch PREP:** deploy/prep-checklist-0710c · tip 10b40523 · base Live **v26.56** @ d08617b0.  
+**Rollback:** tag rollback/pre-checklist-0710c-v26.56 · docs/ROLLBACK-CHECKLIST-0710c.md · **só** frase+senha.  
+**Na senha:** pausar vendas · tip PREP → producao → Ctrl+F5 · badge **v26.60**. **Não** merge teste.
 
----
-
-## 66. Checklist único — NF-SEM-NUMERO · 🟢 pronto para envio · alvo **v26.59**
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **NF-SEM-NUMERO** | 🟢 **pronto para envio à produção** · **16/16** · PIN **9973** | **NÃO** |
-
-**O quê:** Nº NF em branco → **`SEM-DDMM-XXXX`** (confirmar + save/PIN/CP).  
-**Prova:** `scripts/verify_nf_sem_numero_path.py` **16/16**.  
-**Na senha:** cherry/push `producao` · **não** merge `teste` · Ctrl+F5 · badge **v26.59**.
-
----
-
-## 67. Checklist único — CP-CONTAS-LOJA-PG · 🟢 pronto para envio · alvo **v26.60**
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **CP-CONTAS-LOJA-PG** | 🟢 **pronto para envio à produção** · **49/49** · PIN **9973** | **SIM** `0140` |
-
-**O quê:** contas/banco da baixa no Postgres da loja; lápis no pagamento CP (adicionar / renomear / desativar).  
-**Prova:** `scripts/verify_conta_bancaria_loja_path.py` **49/49**.  
-**Na senha:** cherry/push `producao` · migrate **0140** · **não** merge `teste` · Ctrl+F5 · badge **v26.60**.
