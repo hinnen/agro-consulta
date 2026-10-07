@@ -804,7 +804,7 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | 1 | **ETQ-PONTE-TOPBAR-BIP** | 🟢 **PREP** · **23/23** + smoke **13/13** | **NÃO** |
 | 2 | **FIADO-LOJA-COMPRA** | 🟢 **PREP** · **39/39** | **SIM** 0139 |
 
-**Branch PREP:** deploy/prep-checklist-0710 · tip 9278f94b · base Live **v26.46** @ 68ef04ce.  
+**Branch PREP:** deploy/prep-checklist-0710 · tip 993c0648 · base Live **v26.46** @ 68ef04ce.  
 **Rollback:** tag rollback/pre-checklist-0710-v26.46 · docs/ROLLBACK-CHECKLIST-0710.md · **só** frase+senha.  
 **Na senha:** pausar vendas · tip PREP → producao → Ctrl+F5 · badge **v26.53**. **Não** merge teste.
 
