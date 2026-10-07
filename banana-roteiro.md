@@ -816,7 +816,7 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | 1 | **BUG34-DEVOL-FRETE** | 🟢 **PREP** · **42/42** | **NÃO** |
 | 2 | **FIADO-CUPOM-SALDO-MISTO** | 🟢 **PREP** · **34/34** + **48/48** | **NÃO** |
 
-**Branch PREP:** deploy/prep-checklist-0710b · tip TIP_PLACEHOLDER · base Live **v26.53** @ 32198975.  
+**Branch PREP:** deploy/prep-checklist-0710b · tip 8ae85297 · base Live **v26.53** @ 32198975.  
 **Rollback:** tag rollback/pre-checklist-0710b-v26.53 · docs/ROLLBACK-CHECKLIST-0710b.md · **só** frase+senha.  
 **Na senha:** pausar vendas · tip PREP → producao → Ctrl+F5 · badge **v26.56**. **Não** merge teste.
 
