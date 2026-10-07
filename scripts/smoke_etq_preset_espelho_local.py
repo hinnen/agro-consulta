@@ -70,25 +70,44 @@ def main() -> int:
         encoding="utf-8"
     )
     check("function refreshPresetsFromServer" in core, "core tem refreshPresetsFromServer")
+    check("var _presetsMem" in core, "core tem memória multi-PC (NF-MEM)")
+    check("NUNCA zerar presets" in core, "quota não zera presets")
+    check(
+        "function fillPresetSelect(selectEl, activeId, presetsOpt)" in core,
+        "fill aceita lista da API",
+    )
     check("refreshPresetsFromServer" in cad_js, "cadastro JS chama refresh")
+    check("fillPresetSelect(cadEtqPreset, null, list)" in cad_js, "cadastro fill com lista")
     check("refreshPresetsFromServer" in pdv_js, "PDV JS chama refresh")
+    check("fillSelect(list)" in pdv_js, "PDV fill com lista")
     check("refreshPresetsFromServer" in nfe_html, "entrada NF chama refresh")
+    check(
+        "function entradaNfeEtiquetasPreencherPresets" in nfe_html,
+        "NF helper preencher presets",
+    )
+    check("migrateLocalPresetsToServerOnce" in nfe_html, "NF sobe preset só do PC")
+    check("produtos_etiquetas_core.js' %}?v=34" in nfe_html, "NF core cache v=34")
 
     a = Client(HTTP_HOST="127.0.0.1")
     if u:
         a.force_login(u)
 
     pages = [
-        ("/produtos/etiquetas/", "etiquetas_core", "fila"),
-        ("/produtos/cadastro-erp/", "etiquetas_core", "cadastro"),
-        ("/pdv/", "etiquetas_core", "PDV"),
-        ("/entrada-nota/", "etiquetas_core", "entrada NF"),
+        ("/produtos/etiquetas/", "produtos_etiquetas_core.js", "fila"),
+        ("/produtos/cadastro-erp/", "produtos_etiquetas_core.js", "cadastro"),
+        ("/pdv/", "produtos_etiquetas_core.js", "PDV"),
+        ("/entrada-nota/", "produtos_etiquetas_core.js", "entrada NF"),
     ]
     for url, needle, label_pg in pages:
         r = a.get(url)
         body = r.content.decode("utf-8", "replace")
         check(r.status_code == 200, f"{label_pg} HTTP {r.status_code}")
         check(needle in body, f"{label_pg} inclui core etiquetas")
+        if label_pg in ("fila", "cadastro", "entrada NF"):
+            check(
+                "produtos_etiquetas_core.js?v=34" in body,
+                f"{label_pg} cache core v=34",
+            )
 
     EtiquetaPresetAgro.objects.filter(client_key=TEST_KEY).delete()
     payload = {

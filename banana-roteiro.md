@@ -833,12 +833,12 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 65. Checklist único — ETQ-PRESET-NF-MEM · 🟢 no teste · alvo **v26.58**
+## 65. Checklist único — ETQ-PRESET-NF-MEM · 🟢 pronto para envio · alvo **v26.58**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-PRESET-NF-MEM** | 🟢 **no teste** · espelho **51/51** · quota **34/34** | **NÃO** |
+| 1 | **ETQ-PRESET-NF-MEM** | 🟢 **pronto para envio à produção** · espelho **51/51** · smoke **35/35**+**23/23** · PIN **9973** | **NÃO** |
 
 **O quê:** etapa 6 da nota (e cadastro/PDV) mostra a **mesma** lista de presets da fila/loja; Chrome cheio não zera.  
-**Prova:** `scripts/verify_etq_preset_espelho_path.js`.  
-**Você:** Ctrl+F5 · nota etapa 6 = presets da fila. Produção só frase+senha.
+**Prova:** `scripts/verify_etq_preset_espelho_path.js` · smoke espelho/sync local.  
+**Na senha:** cherry/push `producao` · **não** merge `teste` · Ctrl+F5 · badge **v26.58**.
