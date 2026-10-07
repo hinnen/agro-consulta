@@ -146,6 +146,10 @@ def serializar_venda_cupom_80mm(venda, *, segunda_via: bool = False) -> dict[str
     tem_parcial = (not getattr(venda, "devolvida_em", None)) and total_rest < total - Decimal("0.009")
     eh_fiado = _venda_eh_fiado_cupom(venda)
     fiado_dias = _fiado_dias_vencimento_cupom(venda) if eh_fiado else 0
+    dep = str(getattr(venda, "deposito", "") or "").strip().lower()
+    if dep not in ("centro", "vila"):
+        dep = ""
+    loja_label = "CENTRO" if dep == "centro" else ("VILA" if dep == "vila" else "")
     out: dict[str, Any] = {
         "venda_id": int(venda.pk),
         "criado_em": _formatar_data_venda(getattr(venda, "criado_em", None)),
@@ -165,6 +169,8 @@ def serializar_venda_cupom_80mm(venda, *, segunda_via: bool = False) -> dict[str
         "eh_fiado": eh_fiado,
         "fiado_dias": fiado_dias if eh_fiado else None,
         "vencimento": _vencimento_fiado_cupom(venda) if eh_fiado else "",
+        "deposito": dep,
+        "loja_label": loja_label,
         "itens": itens,
     }
     return out

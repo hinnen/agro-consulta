@@ -318,6 +318,18 @@
                 '<div style="font-size:14px;font-weight:900;margin-top:4px;">Vencimento: ' +
                 escHtml(vencimentoCupom(c)) +
                 '</div>';
+            var lojaFiado = String(c.loja_label || '').trim().toUpperCase();
+            if (!lojaFiado) {
+                var depFiado = String(c.deposito || '').trim().toLowerCase();
+                if (depFiado === 'centro') lojaFiado = 'CENTRO';
+                else if (depFiado === 'vila') lojaFiado = 'VILA';
+            }
+            if (lojaFiado) {
+                h +=
+                    '<div style="text-align:center;font-size:13px;font-weight:900;margin:5px 0 2px;border:2px solid #000;padding:4px 6px;letter-spacing:.06em;">LOJA: ' +
+                    escHtml(lojaFiado) +
+                    '</div>';
+            }
         }
         if (c.venda_id) {
             h += '<div style="font-size:9px;font-weight:700;margin-top:2px;">Venda #' + escHtml(String(c.venda_id)) + '</div>';

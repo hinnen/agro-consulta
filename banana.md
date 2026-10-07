@@ -1292,16 +1292,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### WIP — Loja da compra no fiado (`FIADO-LOJA-COMPRA`) · 07/10
+### 📦 PACOTE PRONTO — Loja da compra no fiado (`FIADO-LOJA-COMPRA` · **v26.53**) · 07/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **código local** — migrate `0139` · falta commit/`teste` + prova no PC |
-| **O quê** | Coluna **Loja** (CENTRO/VILA) · tira botão **Ver** · filtro Todas/Centro/Vila/Sem loja · grava `FiadoTituloAgro.deposito` na criação + backfill da venda · Editar corrige legado · cupom fiado (2 vias) com **LOJA:** |
+| **Status** | 🟢 **pronto para envio à produção** — aguarda frase + senha |
+| **O quê** | Coluna **Loja** CENTRO/VILA · sem **Ver** · filtro Todas/Centro/Vila/Sem loja · `deposito` no título + backfill · Editar legado · cupom fiado (2 vias) **LOJA:** |
 | **Migrate** | **SIM** `produtos.0139` |
-| **Prova** | `verify_fiado_loja_compra_path.py` **35/35** · `verify_fiado_ver_recibos_path.py` **68/68** |
-| **Não mexe** | recibo de **pagamento**/baixa · caixa · NFC-e |
-| **Você** | Ctrl+F5 `/fiado/` · migrate · filtrar Centro/Vila · marcar legado · imprimir fiado |
+| **Prova** | path **39/39** · recibos UX **68/68** · dual loja OK |
+| **Tip** | `teste` **v26.53** |
+| **Base loja** | Live **v26.46** |
+| **Não mexe** | recibo de pagamento/baixa · caixa · NFC-e |
+| **Você** | migrate · Ctrl+F5 `/fiado/` · filtrar · marcar legado · imprimir fiado |
 
 ### 📦 PACOTE PRONTO LOJA — Ponte topbar + bip → fila (`ETQ-PONTE-TOPBAR-BIP` · **v26.52**) · 07/10
 
@@ -1316,11 +1318,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Não mexe** | PDV venda · caixa · NFC-e · fiado |
 | **Você** | Ctrl+F5 Etiquetas · Ponte · bipar 2 EANs seguidos |
 
-### ✅ CHECKLIST ÚNICO — falta subir · 🟢 pronto para envio à produção
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção · 07/10
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-PONTE-TOPBAR-BIP** | 🟢 **pronto para envio à produção** | **NÃO** | path **23/23** · smoke **13/13** |
+| 1 | **FIADO-LOJA-COMPRA** | 🟢 **pronto para envio à produção** | **SIM** `0139` | **39/39** |
+| 2 | **ETQ-PONTE-TOPBAR-BIP** | 🟢 **pronto para envio à produção** | **NÃO** | path **23/23** · smoke **13/13** |
 
 ### ✅ Deploy loja — Checklist 05/10d · **Live v26.46** · 05/10
 

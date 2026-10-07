@@ -79,8 +79,10 @@ def test_arquivos() -> None:
     check("limite_css", ".fiado-limite-valor" in html and ".fiado-limite-input" in html)
 
     check("pedido_link_js", "fiado-link-pedido" in js and "abrirVendaOverlay" in js)
-    check("btn_ver_js", "fiado-btn-ver-tit" in js)
-    check("sistema_antigo", "Sistema antigo" in js)
+    check("btn_ver_removido", "fiado-btn-ver-tit" not in js)
+    check("loja_coluna_html", ">Loja<" in html or "Loja</th>" in html)
+    check("loja_filtro_html", 'id="fiado-filtro-loja"' in html)
+    check("loja_chip_js", "lojaChipHtml" in js and "fiado-btn-loja-tit" in js)
     check("venda_detalhe_url", "vendaDetalheBase" in html and "vendaDetalheUrl" in js)
     check("venda_overlay_modal", 'id="fiado-modal-venda"' in html and 'id="fiado-venda-frame"' in html)
     check("venda_overlay_js", "abrirVendaOverlay" in js and "fecharVendaOverlay" in js)

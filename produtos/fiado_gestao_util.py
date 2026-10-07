@@ -46,6 +46,34 @@ def _dec(val) -> Decimal:
         return Decimal("0")
 
 
+def normalizar_deposito_fiado(val: Any) -> str:
+    """centro | vila | '' (sem loja)."""
+    d = str(val or "").strip().lower().replace(" ", "")
+    if d in ("centro", "c"):
+        return "centro"
+    if d in ("vila", "vilaelias", "v"):
+        return "vila"
+    return ""
+
+
+def rotulo_deposito_fiado(val: Any) -> str:
+    d = normalizar_deposito_fiado(val)
+    if d == "centro":
+        return "CENTRO"
+    if d == "vila":
+        return "VILA"
+    return "—"
+
+
+def _filtrar_qs_deposito(qs, deposito: str = ""):
+    dep = (deposito or "").strip().lower()
+    if dep in ("centro", "vila"):
+        return qs.filter(deposito=dep)
+    if dep in ("sem", "vazio", "sem_loja", "—", "-"):
+        return qs.filter(Q(deposito="") | Q(deposito__isnull=True))
+    return qs
+
+
 def nome_para_consulta_fiado(
     cliente_nome: str = "",
     *,
@@ -138,6 +166,7 @@ def titulo_para_dict(t: FiadoTituloAgro) -> dict[str, Any]:
     vencido = titulo_fiado_vencido(t)
     situacao_resumo = "vencido" if vencido else t.situacao
     situacao_label = "Vencido" if vencido else t.get_situacao_display()
+    dep = normalizar_deposito_fiado(getattr(t, "deposito", "") or "")
     return {
         "id": t.pk,
         "cliente_agro_pk": t.cliente_agro_id,
@@ -156,6 +185,8 @@ def titulo_para_dict(t: FiadoTituloAgro) -> dict[str, Any]:
         "situacao_label": situacao_label,
         "vencido": vencido,
         "origem": t.origem,
+        "deposito": dep,
+        "loja_label": rotulo_deposito_fiado(dep),
         "descricao": t.descricao,
         "venda_agro_id": t.venda_agro_id,
         "atualizado_em": t.atualizado_em.isoformat() if t.atualizado_em else "",
@@ -337,6 +368,9 @@ def criar_titulos_de_venda(
         cliente_codigo = str(agro_pk or "")
 
     n_total = len(cron) if cron else 1
+    dep = normalizar_deposito_fiado(getattr(venda, "deposito", "") or "")
+    if not dep:
+        dep = "centro"
     titulos: list[FiadoTituloAgro] = []
     with transaction.atomic():
         for row in cron:
@@ -368,8 +402,13 @@ def criar_titulos_de_venda(
                 valor_pago=Decimal("0"),
                 situacao=FiadoTituloAgro.Situacao.ABERTO,
                 origem=FiadoTituloAgro.Origem.PDV,
+                deposito=dep,
                 descricao=desc[:500],
-                dados_snapshot_json={"venda_id": venda.pk, "cronograma": row},
+                dados_snapshot_json={
+                    "venda_id": venda.pk,
+                    "cronograma": row,
+                    "deposito": dep,
+                },
             )
             registrar_evento_fiado(
                 FiadoEventoAgro.Tipo.TITULO_CRIADO,
@@ -781,6 +820,7 @@ def listar_clientes_fiado(
     *,
     busca: str = "",
     apenas_com_saldo: bool = True,
+    deposito: str = "",
 ) -> list[dict[str, Any]]:
     qs = FiadoTituloAgro.objects.all()
     if apenas_com_saldo:
@@ -790,6 +830,7 @@ def listar_clientes_fiado(
                 FiadoTituloAgro.Situacao.CANCELADO,
             )
         )
+    qs = _filtrar_qs_deposito(qs, deposito)
     qtxt = (busca or "").strip()
     if qtxt:
         qs = qs.filter(
@@ -809,6 +850,7 @@ def listar_clientes_fiado(
         "valor_pago",
         "vencimento",
         "situacao",
+        "deposito",
         "cliente_agro__externo_id",
         "cliente_agro__limite_fiado_local",
         "cliente_agro__whatsapp",
@@ -966,6 +1008,7 @@ def listar_titulos(
     cliente_codigo: str = "",
     situacao: str = "abertos",
     busca: str = "",
+    deposito: str = "",
     limit: int = 200,
 ) -> list[dict[str, Any]]:
     qs = FiadoTituloAgro.objects.only(
@@ -981,6 +1024,7 @@ def listar_titulos(
         "valor_pago",
         "situacao",
         "origem",
+        "deposito",
         "descricao",
         "venda_agro_id",
         "atualizado_em",
@@ -1003,6 +1047,7 @@ def listar_titulos(
         ).filter(vencimento__lt=hoje)
     elif sit and sit != "todos":
         qs = qs.filter(situacao=sit)
+    qs = _filtrar_qs_deposito(qs, deposito)
     filtros_cli = _q_titulos_cliente_gestao(
         cliente_agro_pk=cliente_agro_pk,
         cliente_nome=cliente_nome,
@@ -1029,6 +1074,7 @@ def editar_titulo_fiado(
     valor_bruto: Decimal | float | None = None,
     numero_documento: str | None = None,
     descricao: str | None = None,
+    deposito: str | None = None,
     usuario: str = "",
 ) -> FiadoTituloAgro:
     with transaction.atomic():
@@ -1037,7 +1083,23 @@ def editar_titulo_fiado(
             FiadoTituloAgro.Situacao.QUITADO,
             FiadoTituloAgro.Situacao.CANCELADO,
         ):
-            raise ValueError("Não é possível editar título quitado ou cancelado.")
+            # Loja da compra ainda pode ser corrigida em título quitado (legado).
+            if deposito is None:
+                raise ValueError("Não é possível editar título quitado ou cancelado.")
+            snap_antes = titulo_snapshot(titulo)
+            novo_dep = normalizar_deposito_fiado(deposito)
+            if novo_dep == normalizar_deposito_fiado(titulo.deposito):
+                return titulo
+            titulo.deposito = novo_dep
+            titulo.save(update_fields=["deposito", "atualizado_em"])
+            registrar_evento_fiado(
+                "titulo_editado",
+                cliente_agro=titulo.cliente_agro,
+                titulo=titulo,
+                payload={"antes": snap_antes, "depois": titulo_snapshot(titulo)},
+                usuario=usuario,
+            )
+            return titulo
         snap_antes = titulo_snapshot(titulo)
         alterou = False
 
@@ -1070,6 +1132,12 @@ def editar_titulo_fiado(
                 titulo.descricao = desc
                 alterou = True
 
+        if deposito is not None:
+            novo_dep = normalizar_deposito_fiado(deposito)
+            if novo_dep != normalizar_deposito_fiado(titulo.deposito):
+                titulo.deposito = novo_dep
+                alterou = True
+
         if not alterou:
             return titulo
 
@@ -1080,6 +1148,7 @@ def editar_titulo_fiado(
                 "valor_bruto",
                 "numero_documento",
                 "descricao",
+                "deposito",
                 "situacao",
                 "atualizado_em",
             ]
