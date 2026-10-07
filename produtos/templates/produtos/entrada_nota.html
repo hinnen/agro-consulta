@@ -1451,7 +1451,7 @@
           <input type="text" id="m-emit-cnpj" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold" placeholder="Somente números"></label>
         <label class="block"><span class="text-xs font-black uppercase text-slate-600">Número / Série</span>
           <div class="flex gap-2 mt-1">
-            <input type="text" id="m-nf" class="flex-1 min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black" placeholder="Nº NF">
+            <input type="text" id="m-nf" class="flex-1 min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black" placeholder="Nº NF (vazio = SEM-…)" title="Se deixar em branco, o sistema gera um código SEM-DDMM-XXXX para buscar no Contas a pagar.">
             <input type="text" id="m-serie" class="w-24 min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black" placeholder="Sér.">
           </div></label>
         <label class="block"><span class="text-xs font-black uppercase text-slate-600">Chave (44 dígitos)</span>
@@ -3845,7 +3845,9 @@
     btn.classList.remove('opacity-80');
     btn.classList.toggle('opacity-50', !dOk);
     btn.classList.toggle('cursor-not-allowed', !dOk);
-    btn.title = dOk ? 'Avança para a etapa 2 · Produtos.' : 'Preencha fornecedor, número da NF, data de entrada e plano de contas.';
+    btn.title = dOk
+      ? 'Avança para a etapa 2 · Produtos. Nº NF em branco → gera SEM-…'
+      : 'Preencha fornecedor, data de entrada e plano de contas (Nº NF opcional).';
   }
 
   function entradaNfeFornecedorEtapaInvalidate() {
@@ -3883,11 +3885,16 @@
   }
 
   async function entradaNfeConfirmarFornecedorEtapa() {
+    const gerouSem = entradaNfeGarantirNumeroNfCampo();
     const d = entradaNfeWizardValidarEtapaDetalhe(1, { ignorarConfirmacaoFornecedor: true });
     if (!d.ok) {
       showMsg(d.erro || 'Revise fornecedor e plano de contas.', false);
       entradaNfeAtualizarUiBotaoConfirmarFornecedor();
       return;
+    }
+    if (gerouSem) {
+      const n = String(document.getElementById('m-nf')?.value || '').trim();
+      showMsg(`Sem número de nota — gerado ${n} (use esse código no Contas a pagar).`, true);
     }
     const iso = new Date().toISOString();
     entradaNfeFornecedorEtapaConfirmada = true;
@@ -4437,9 +4444,7 @@
       if (!cab.emit_nome) {
         return { ok: false, irPara: 1, erro: 'Informe o fornecedor / emitente (etapa 1 · Fornecedor).' };
       }
-      if (!String(cab.numero || '').trim()) {
-        return { ok: false, irPara: 1, erro: 'Informe o número da NF (etapa 1 · Fornecedor).' };
-      }
+      // Nº NF opcional: no «Confirmar» / backend gera SEM-DDMM-XXXX se vazio.
       if (!String(cab.data_entrada || '').trim()) {
         return { ok: false, irPara: 1, erro: 'Informe a data de entrada física (etapa 1 · Fornecedor).' };
       }
@@ -8696,6 +8701,39 @@
       });
     });
     return linhas;
+  }
+
+  /** Código interno único quando não há Nº NF (manual / sem nota). Formato SEM-DDMM-XXXX. */
+  function entradaNfeGerarNumeroSemNota() {
+    const agora = new Date();
+    const dd = String(agora.getDate()).padStart(2, '0');
+    const mm = String(agora.getMonth() + 1).padStart(2, '0');
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let suf = '';
+    try {
+      if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
+        const buf = new Uint32Array(4);
+        window.crypto.getRandomValues(buf);
+        for (let i = 0; i < 4; i++) suf += alphabet[buf[i] % alphabet.length];
+      } else {
+        for (let i = 0; i < 4; i++) suf += alphabet[Math.floor(Math.random() * alphabet.length)];
+      }
+    } catch (_) {
+      for (let i = 0; i < 4; i++) suf += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    return `SEM-${dd}${mm}-${suf}`;
+  }
+
+  /** Se Nº NF vazio, preenche SEM-… no campo. Retorna true se gerou agora. */
+  function entradaNfeGarantirNumeroNfCampo() {
+    const el = document.getElementById('m-nf');
+    if (!el) return false;
+    const cur = String(el.value || '').trim();
+    if (cur) return false;
+    el.value = entradaNfeGerarNumeroSemNota();
+    try { entradaNfeAtualizarBarraContextoNota(); } catch (_) {}
+    try { entradaNfeAgendarAutosaveRascunho(); } catch (_) {}
+    return true;
   }
 
   function coletarCabecalho() {

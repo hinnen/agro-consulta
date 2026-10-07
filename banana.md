@@ -611,6 +611,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 ### 4.7 Entrada de nota fiscal
 
 - `/entrada-nota/` â€” wizard 8 passos (fornecedor â†’ â€¦ â†’ financeiro â†’ finalizar PIN).
+- **Nº NF vazio (`NF-SEM-NUMERO` · 07/10):** ao confirmar fornecedor (ou no save/PIN/CP), gera código interno **`SEM-DDMM-XXXX`** — pesquisável no Contas a pagar; não parece NF real. «não tem» digitado continua válido.
 - **Dist DF-e (31/07):** certificado `NFE_DIST_DFE_*` **ou** `NFC_E_*`. Cursor PG só avança em **137/138**. Caixa de entrada PG (~80): Buscar grava · Pendentes antigas primeiro · Concluídas. Recuperar por chave se precisar. **XML** se nota antiga.
 - **Só resumo / Ciência (05/08):** evento oficial **210210** no Ambiente Nacional; grava protocolo no PG, não repete e tenta baixar o XML completo para Carregar na grade.
 - **XML vs Aguarde 1h (12/08):** Buscar lista (distNSU) continua com 1h após 137; **Buscar XML / chave** só trava no **656**. Após Buscar, sistema tenta Ciência+XML sozinho nas «Só resumo» — fica pronto para **Carregar na grade** (manual, uma nota por vez).
@@ -1291,6 +1292,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 📦 PACOTE PRONTO — Nº NF vazio gera SEM- (`NF-SEM-NUMERO` · **v26.59** · 07/10)
+
+| | |
+| --- | --- |
+| **Problema** | Entrada sem número de nota (campo em branco) travava / ficava estranha no fechar; no CP não tinha o que buscar. |
+| **O quê** | Vazio → código **`SEM-DDMM-XXXX`** no confirmar fornecedor + rede no save/PIN/financeiro. Aparece no Contas a pagar. |
+| **Arquivos** | `nfe_entrada_util.py` · `views.py` · `entrada_nota.html` · `tests_entrada_nf_sem_numero.py` · `scripts/verify_nf_sem_numero_path.py` |
+| **Prova** | `verify_nf_sem_numero_path.py` **6/6** (+ unit) |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 `/entrada-nota/` · deixar Nº NF em branco → Confirmar → deve aparecer `SEM-…` · concluir e buscar esse código no CP |
+
+### ✅ CHECKLIST ÚNICO — NF-SEM-NUMERO · 🟢 no teste · alvo **v26.59**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **NF-SEM-NUMERO** | 🟢 **no teste** · **6/6** | **NÃO** |
 
 ### 📦 PACOTE PRONTO — Presets etiqueta iguais em todos os PCs / nota (`ETQ-PRESET-NF-MEM` · **v26.58** · 07/10)
 
