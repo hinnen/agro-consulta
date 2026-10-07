@@ -88,12 +88,16 @@ def api_fiado_resumo(request):
 def api_fiado_clientes(request):
     busca = (request.GET.get("q") or request.GET.get("busca") or "").strip()
     apenas = (request.GET.get("apenas_saldo") or "1").strip() != "0"
-    clientes = listar_clientes_fiado(busca=busca, apenas_com_saldo=apenas)
+    deposito = (request.GET.get("deposito") or request.GET.get("loja") or "").strip()
+    clientes = listar_clientes_fiado(
+        busca=busca, apenas_com_saldo=apenas, deposito=deposito
+    )
     return JsonResponse(
         {
             "ok": True,
             "clientes": clientes,
             "resumo": resumo_from_clientes_fiado(clientes) if apenas else resumo_gestao_fiado(),
+            "deposito": deposito,
         }
     )
 
@@ -112,6 +116,7 @@ def api_fiado_titulos(request):
     cliente_codigo = (request.GET.get("cliente_codigo") or "").strip()
     situacao = (request.GET.get("situacao") or "abertos").strip()
     busca = (request.GET.get("q") or "").strip()
+    deposito = (request.GET.get("deposito") or request.GET.get("loja") or "").strip()
     try:
         limit = int(request.GET.get("limit") or 200)
     except (TypeError, ValueError):
@@ -122,9 +127,10 @@ def api_fiado_titulos(request):
         cliente_codigo=cliente_codigo,
         situacao=situacao,
         busca=busca,
+        deposito=deposito,
         limit=limit,
     )
-    return JsonResponse({"ok": True, "titulos": titulos})
+    return JsonResponse({"ok": True, "titulos": titulos, "deposito": deposito})
 
 
 @login_required(login_url="/entrar/")
@@ -353,6 +359,11 @@ def api_fiado_titulo_editar(request):
     except (TypeError, ValueError):
         return JsonResponse({"ok": False, "erro": "titulo_id inválido."}, status=400)
     try:
+        dep_raw = None
+        if "deposito" in data:
+            dep_raw = data.get("deposito")
+        elif "loja" in data:
+            dep_raw = data.get("loja")
         titulo = editar_titulo_fiado(
             titulo_id,
             vencimento=data.get("vencimento"),
@@ -361,6 +372,7 @@ def api_fiado_titulo_editar(request):
             else None,
             numero_documento=data.get("numero_documento"),
             descricao=data.get("descricao"),
+            deposito=dep_raw,
             usuario=_usuario_de_request(request),
         )
         return JsonResponse(

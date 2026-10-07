@@ -153,8 +153,64 @@
     .fiado-tit-table col.fiado-tit-c-parc { width: 5.2rem; }
     .fiado-tit-table col.fiado-tit-c-venc { width: 7.2rem; }
     .fiado-tit-table col.fiado-tit-c-val { width: 9.5%; }
-    .fiado-tit-table col.fiado-tit-c-sit { width: 7.5rem; }
-    .fiado-tit-table col.fiado-tit-c-acoes { width: 19.5rem; }
+    .fiado-tit-table col.fiado-tit-c-sit { width: 7.2rem; }
+    .fiado-tit-table col.fiado-tit-c-loja { width: 5.6rem; }
+    .fiado-tit-table col.fiado-tit-c-acoes { width: 13.5rem; }
+    .fiado-loja-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 1.85rem;
+      min-width: 4.4rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 0.55rem;
+      font-size: 0.72rem;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      border: 2px solid transparent;
+      line-height: 1.1;
+    }
+    .fiado-loja-chip--centro {
+      background: rgb(224 242 254);
+      border-color: rgb(125 211 252);
+      color: rgb(7 89 133);
+    }
+    .fiado-loja-chip--vila {
+      background: rgb(236 253 245);
+      border-color: rgb(110 231 183);
+      color: rgb(6 78 59);
+    }
+    .fiado-loja-chip--vazio {
+      background: rgb(248 250 252);
+      border-color: rgb(203 213 225);
+      color: rgb(100 116 139);
+    }
+    button.fiado-loja-chip { cursor: pointer; }
+    button.fiado-loja-chip:hover { filter: brightness(0.97); box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.25); }
+    .fiado-filtro-loja {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      align-items: center;
+    }
+    .fiado-filtro-loja button {
+      min-height: 40px;
+      padding: 0 0.75rem;
+      border-radius: 0.75rem;
+      border: 2px solid rgb(226 232 240);
+      background: white;
+      font-size: 0.68rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: rgb(51 65 85);
+    }
+    .fiado-filtro-loja button.is-on {
+      border-color: rgb(234 88 12);
+      background: rgb(255 247 237);
+      color: rgb(154 52 18);
+    }
     .fiado-tit-table th:not(:last-child),
     .fiado-tit-table td:not(:last-child) {
       border-right: 1px solid rgba(226, 232, 240, 0.95);
@@ -198,14 +254,13 @@
     }
     .fiado-tit-acoes {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 0.3rem;
       justify-content: stretch;
       margin-left: 0;
       width: 100%;
     }
-    .fiado-tit-acoes .fiado-acao-slot,
-    .fiado-tit-acoes .fiado-pill-legado {
+    .fiado-tit-acoes .fiado-acao-slot {
       width: 100%;
       min-width: 0;
       min-height: 2.35rem;
@@ -625,6 +680,12 @@
 
     <div class="flex flex-wrap gap-2 shrink-0 items-center">
       <input type="search" id="fiado-busca" placeholder="Buscar cliente ou código…" class="flex-1 min-w-[12rem] rounded-xl border-2 border-slate-200 px-3 py-1.5 font-bold text-sm min-h-[40px]" autocomplete="off">
+      <div class="fiado-filtro-loja" id="fiado-filtro-loja" role="group" aria-label="Filtrar por loja da compra">
+        <button type="button" data-loja="" class="is-on">Todas</button>
+        <button type="button" data-loja="centro">Centro</button>
+        <button type="button" data-loja="vila">Vila</button>
+        <button type="button" data-loja="sem">Sem loja</button>
+      </div>
       <button type="button" id="fiado-btn-atualizar" class="min-h-[40px] px-3 rounded-xl bg-slate-900 text-white text-[11px] font-black uppercase">Atualizar</button>
     </div>
 
@@ -701,6 +762,7 @@
           <col class="fiado-tit-c-val">
           <col class="fiado-tit-c-val">
           <col class="fiado-tit-c-sit">
+          <col class="fiado-tit-c-loja">
           <col class="fiado-tit-c-acoes">
         </colgroup>
         <thead class="sticky top-0 z-10">
@@ -713,6 +775,7 @@
             <th class="text-right">Pago</th>
             <th class="text-right">Saldo</th>
             <th>Situação</th>
+            <th>Loja</th>
             <th class="text-right">Ações</th>
           </tr>
         </thead>
@@ -781,6 +844,14 @@
           <label class="block text-[10px] font-black uppercase text-slate-500">
             Valor (R$)
             <input type="text" id="fiado-editar-valor" inputmode="decimal" required class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-black text-lg min-h-[48px]">
+          </label>
+          <label class="block text-[10px] font-black uppercase text-slate-500 sm:col-span-2">
+            Loja da compra
+            <select id="fiado-editar-loja" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-black text-sm min-h-[48px] uppercase">
+              <option value="">— Sem loja</option>
+              <option value="centro">CENTRO</option>
+              <option value="vila">VILA</option>
+            </select>
           </label>
         </div>
       </div>

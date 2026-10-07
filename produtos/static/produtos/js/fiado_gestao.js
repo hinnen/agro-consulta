@@ -68,12 +68,14 @@
     editarVenc: document.getElementById('fiado-editar-venc'),
     editarValor: document.getElementById('fiado-editar-valor'),
     editarDesc: document.getElementById('fiado-editar-desc'),
+    editarLoja: document.getElementById('fiado-editar-loja'),
     editarCancelar: document.getElementById('fiado-editar-cancelar'),
     emptyBanner: document.getElementById('fiado-empty-banner'),
     formImportar: document.getElementById('fiado-form-importar'),
     importArquivo: document.getElementById('fiado-import-arquivo'),
     btnImportar: document.getElementById('fiado-btn-importar'),
     importMsg: document.getElementById('fiado-import-msg'),
+    filtroLoja: document.getElementById('fiado-filtro-loja'),
   };
 
   let baixaCtx = null;
@@ -85,6 +87,32 @@
   let titulosCache = [];
   let selecionados = new Set();
   let limiteEditandoPk = null;
+  let filtroLojaAtual = '';
+
+  function lojaChipHtml(t) {
+    const dep = String((t && t.deposito) || '').trim().toLowerCase();
+    const label = String((t && t.loja_label) || '').trim() || (dep === 'centro' ? 'CENTRO' : dep === 'vila' ? 'VILA' : '—');
+    let cls = 'fiado-loja-chip fiado-loja-chip--vazio';
+    let title = 'Marcar loja da compra';
+    if (dep === 'centro') {
+      cls = 'fiado-loja-chip fiado-loja-chip--centro';
+      title = 'Compra no Centro · clique para alterar';
+    } else if (dep === 'vila') {
+      cls = 'fiado-loja-chip fiado-loja-chip--vila';
+      title = 'Compra na Vila · clique para alterar';
+    }
+    return (
+      '<button type="button" class="' +
+      cls +
+      ' fiado-btn-loja-tit" data-id="' +
+      esc(String((t && t.id) || '')) +
+      '" title="' +
+      esc(title) +
+      '">' +
+      esc(label) +
+      '</button>'
+    );
+  }
 
   function setModalBodyLock(on) {
     document.body.classList.toggle('fiado-modal-aberto', !!on);
@@ -390,7 +418,18 @@
     } else if (cli.codigo) {
       qs.set('cliente_codigo', cli.codigo);
     }
+    if (filtroLojaAtual) qs.set('deposito', filtroLojaAtual);
     return qs.toString();
+  }
+
+  function setFiltroLoja(loja) {
+    filtroLojaAtual = String(loja || '').trim().toLowerCase();
+    if (filtroLojaAtual === 'todas' || filtroLojaAtual === 'todos') filtroLojaAtual = '';
+    if (el.filtroLoja) {
+      el.filtroLoja.querySelectorAll('button[data-loja]').forEach(function (btn) {
+        btn.classList.toggle('is-on', String(btn.getAttribute('data-loja') || '') === filtroLojaAtual);
+      });
+    }
   }
 
   function clientePkMatch(a, b) {
@@ -590,7 +629,7 @@
     selecionados.clear();
     if (!el.tbodyTitulos) return;
     if (!titulosCache.length) {
-      el.tbodyTitulos.innerHTML = '<tr><td colspan="9" class="px-4 py-10 text-center text-sm font-bold text-slate-500">Nenhum lançamento em aberto.</td></tr>';
+      el.tbodyTitulos.innerHTML = '<tr><td colspan="10" class="px-4 py-10 text-center text-sm font-bold text-slate-500">Nenhum lançamento em aberto.</td></tr>';
       atualizarSelecaoUi();
       return;
     }
@@ -599,9 +638,6 @@
       const sit = t.situacao_resumo || t.situacao || '';
       const rowCls =
         sit === 'vencido' || t.vencido ? ' fiado-tit-vencido' : '';
-      const verSlot = t.venda_agro_id
-        ? '<button type="button" class="fiado-btn-ver-tit fiado-acao-slot border-2 border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100" data-venda-id="' + t.venda_agro_id + '">Ver</button>'
-        : '<span class="fiado-pill-legado">Sistema antigo</span>';
       return (
         '<tr class="border-b border-slate-100' + rowCls + '" data-id="' + t.id + '">' +
         '<td><input type="checkbox" class="fiado-tit-chk rounded border-slate-300" data-id="' + t.id + '" aria-label="Selecionar"></td>' +
@@ -620,10 +656,10 @@
         '<td class="text-right whitespace-nowrap text-slate-600">' + fmtMoedaHtml(t.valor_pago, 'text-slate-600') + '</td>' +
         '<td class="text-right whitespace-nowrap">' + fmtMoedaHtml(t.saldo_aberto, 'text-orange-800') + '</td>' +
         '<td><span class="inline-block rounded-lg px-2 py-0.5 text-[0.78rem] font-black uppercase ' + situacaoTituloClass(sit) + '">' + esc(t.situacao_label || '—') + '</span></td>' +
+        '<td class="text-center">' + lojaChipHtml(t) + '</td>' +
         '<td>' +
         '<div class="fiado-tit-acoes">' +
         '<button type="button" class="fiado-btn-baixa-tit fiado-acao-slot bg-orange-600 text-white shadow-sm hover:bg-orange-700" data-id="' + t.id + '" data-saldo="' + t.saldo_aberto + '" data-doc="' + esc(t.numero_documento || '') + '">Baixa</button>' +
-        verSlot +
         '<button type="button" class="fiado-btn-editar-tit fiado-acao-slot border-2 border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100" data-id="' + t.id + '">Editar</button>' +
         '</div></td></tr>'
       );
@@ -651,7 +687,7 @@
     } catch (e) {
       if (el.tbodyTitulos) {
         el.tbodyTitulos.innerHTML =
-          '<tr><td colspan="9" class="px-4 py-8 text-center text-sm font-bold text-red-700">' +
+          '<tr><td colspan="10" class="px-4 py-8 text-center text-sm font-bold text-red-700">' +
           esc(e.message || String(e)) +
           '</td></tr>';
       }
@@ -670,7 +706,7 @@
     pintarParCliente(cli);
     if (el.tbodyTitulos) {
       el.tbodyTitulos.innerHTML =
-        '<tr><td colspan="9" class="px-4 py-10 text-center text-sm font-bold text-slate-500">Carregando lançamentos…</td></tr>';
+        '<tr><td colspan="10" class="px-4 py-10 text-center text-sm font-bold text-slate-500">Carregando lançamentos…</td></tr>';
     }
     selecionados.clear();
     atualizarSelecaoUi();
@@ -684,6 +720,7 @@
   async function recarregar() {
     const q = el.busca ? el.busca.value.trim() : '';
     const qs = new URLSearchParams({ q: q, apenas_saldo: q ? '0' : '1' });
+    if (filtroLojaAtual) qs.set('deposito', filtroLojaAtual);
     try {
       if (window.gmLoadingBar) window.gmLoadingBar.show();
       const cli = await fetchJson(urls.clientes + '?' + qs.toString());
@@ -911,6 +948,10 @@
     if (el.editarVenc) el.editarVenc.value = isoToInputDate(t.vencimento);
     if (el.editarValor) el.editarValor.value = Number(t.valor_bruto || 0).toFixed(2).replace('.', ',');
     if (el.editarDesc) el.editarDesc.value = t.descricao || '';
+    if (el.editarLoja) {
+      const dep = String(t.deposito || '').trim().toLowerCase();
+      el.editarLoja.value = dep === 'centro' || dep === 'vila' ? dep : '';
+    }
     if (el.modalEditar && el.modalEditar.showModal) el.modalEditar.showModal();
   }
 
@@ -928,6 +969,7 @@
           vencimento: el.editarVenc ? el.editarVenc.value : '',
           valor_bruto: el.editarValor ? el.editarValor.value : '',
           descricao: el.editarDesc ? el.editarDesc.value : '',
+          deposito: el.editarLoja ? el.editarLoja.value : '',
         }),
       });
       if (el.modalEditar && el.modalEditar.close) el.modalEditar.close();
@@ -1136,9 +1178,16 @@
         });
         return;
       }
-      const bVer = ev.target.closest('.fiado-btn-ver-tit, .fiado-link-pedido');
+      const bVer = ev.target.closest('.fiado-link-pedido');
       if (bVer) {
         abrirVendaOverlay(parseInt(bVer.getAttribute('data-venda-id'), 10));
+        return;
+      }
+      const bLoja = ev.target.closest('.fiado-btn-loja-tit');
+      if (bLoja) {
+        const id = parseInt(bLoja.getAttribute('data-id'), 10);
+        const t = titulosCache.find(function (x) { return x.id === id; });
+        if (t) abrirEditar(t);
         return;
       }
       const bEdit = ev.target.closest('.fiado-btn-editar-tit');
@@ -1395,6 +1444,14 @@
     });
   }
   if (el.btnAtualizar) el.btnAtualizar.addEventListener('click', recarregar);
+  if (el.filtroLoja) {
+    el.filtroLoja.addEventListener('click', function (ev) {
+      const btn = ev.target.closest('button[data-loja]');
+      if (!btn) return;
+      setFiltroLoja(btn.getAttribute('data-loja') || '');
+      recarregar();
+    });
+  }
 
   if (el.formImportar && urls.importar) {
     el.formImportar.addEventListener('submit', async function (ev) {

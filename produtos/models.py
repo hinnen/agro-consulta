@@ -728,6 +728,13 @@ class FiadoTituloAgro(models.Model):
         default=Origem.PDV,
         db_index=True,
     )
+    deposito = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Loja da compra: centro | vila. Vazio = ainda sem loja (legado/importação).",
+    )
     descricao = models.CharField(max_length=500, blank=True, default="")
     dados_snapshot_json = models.JSONField(default=dict, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
