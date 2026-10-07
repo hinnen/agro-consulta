@@ -1291,6 +1291,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO LOJA — Ponte na topbar + bip limpa busca (`ETQ-PONTE-TOPBAR-BIP` · tip `teste`) · 07/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **no teste** — falta PREP / frase+senha |
+| **O quê** | Bloco ponte/mapa saiu da fila → botão **Ponte** na topbar (modal). Após bip/Enter/clique que adiciona na fila: **limpa busca** e mantém foco. |
+| **Migrate** | **NÃO** |
+| **Prova** | path **50/50** · dl **22/22** · full **83/83** |
+| **Não mexe** | PDV venda · caixa · NFC-e |
+| **Você** | Ctrl+F5 Etiquetas · botão Ponte · bipar 2 códigos seguidos |
+
+### ✅ CHECKLIST ÚNICO — falta subir · 🟢 no teste
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ETQ-PONTE-TOPBAR-BIP** | 🟢 **no teste** | **NÃO** | full **83/83** |
+
 ### ✅ Deploy loja — Checklist 05/10d · **Live v26.46** · 05/10
 
 | Campo | Valor |

@@ -793,8 +793,8 @@
     it.qtd = qtd > 0 ? qtd : 1;
     state.fila.push(it);
     renderFila();
-    /* FL-009: mantém lista da busca; só some em nova pesquisa */
-    if (opts.limparBusca === true) {
+    /* Bip/Enter/clique: limpa o campo e mantém foco pro próximo bip */
+    if (opts.limparBusca !== false) {
       limparBuscaVisual();
       var inpClear = $('etq-busca-input');
       if (inpClear) {
@@ -836,13 +836,11 @@
   function tentarAdicionarBuscaEnter() {
     var prods = state.buscaProdutos;
     if (prods.length === 1) {
-      adicionarProdutoFila(prods[0]);
-      return true;
+      return adicionarProdutoFila(prods[0], { limparBusca: true });
     }
     if (prods.length > 1) {
       if (state.buscaSelIdx >= 0 && prods[state.buscaSelIdx]) {
-        adicionarProdutoFila(prods[state.buscaSelIdx]);
-        return true;
+        return adicionarProdutoFila(prods[state.buscaSelIdx], { limparBusca: true });
       }
       setStatus('Vários resultados — use ↑ ↓ ou clique no produto.', true);
       return false;
@@ -866,8 +864,15 @@
     }
     renderFila();
     setStatus(prods.length + ' produto' + (prods.length === 1 ? '' : 's') + ' na fila.');
+    limparBuscaVisual();
     var inp = $('etq-busca-input');
-    if (inp) inp.focus();
+    if (inp) {
+      inp.value = '';
+      state.buscaQuery = '';
+      state.buscaProdutos = [];
+      state.buscaSelIdx = -1;
+      inp.focus();
+    }
   }
 
   function renderBusca(produtos, opts) {
@@ -913,7 +918,7 @@
           return String(x.id) === String(id);
         });
         if (!prod) return;
-        adicionarProdutoFila(prod);
+        adicionarProdutoFila(prod, { limparBusca: true });
       });
     });
   }
@@ -1727,6 +1732,8 @@
   function atualizarBridgeUi(info) {
     var el = $('etq-bridge-status');
     var portEl = $('etq-bridge-port');
+    var dot = $('etq-btn-ponte-dot');
+    var btnPonte = $('etq-btn-ponte');
     var bridge = window.agroPrintBridge;
     if (portEl && bridge && !portEl.dataset.bound) {
       portEl.dataset.bound = '1';
@@ -1742,8 +1749,19 @@
         bridge.probe && bridge.probe();
       });
     }
+    var ready = !!(info && info.ready);
+    if (dot) {
+      dot.className =
+        'inline-block h-2 w-2 rounded-full ' + (ready ? 'bg-emerald-400' : 'bg-amber-400');
+    }
+    if (btnPonte) {
+      btnPonte.title = ready
+        ? 'Ponte ligada · mapa Elgin 40×40 / 50×30'
+        : 'Ponte desligada — abrir para baixar/ligar';
+      btnPonte.classList.toggle('border-emerald-500', ready);
+      btnPonte.classList.toggle('text-emerald-200', ready);
+    }
     if (!el) return;
-    var ready = info && info.ready;
     if (ready) {
       el.className = 'text-xs font-bold text-emerald-300';
       el.textContent = 'Ponte ligada · impressão direta disponível';
@@ -1759,6 +1777,37 @@
       var box = $('etq-size-map-box');
       if (box) box.classList.add('hidden');
     }
+  }
+
+  function ensureBridgeModalOnBody() {
+    var m = $('etq-bridge-back');
+    if (m && m.parentElement !== document.body) document.body.appendChild(m);
+  }
+
+  function abrirModalPonte() {
+    ensureBridgeModalOnBody();
+    var m = $('etq-bridge-back');
+    if (!m) return;
+    m.classList.remove('hidden');
+    m.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+    if (window.agroPrintBridge && window.agroPrintBridge.probe) {
+      window.agroPrintBridge.probe().then(function () {
+        atualizarBridgeUi({
+          ready: window.agroPrintBridge.isReady && window.agroPrintBridge.isReady(),
+        });
+      });
+    } else {
+      atualizarBridgeUi({ ready: false });
+    }
+  }
+
+  function fecharModalPonte() {
+    var m = $('etq-bridge-back');
+    if (!m) return;
+    m.classList.add('hidden');
+    m.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
   }
 
   function testarBridgeUmaEtiqueta() {
@@ -1985,7 +2034,7 @@
           buscarProdutos(q, {
             onDone: function (prods) {
               if (prods.length === 1) {
-                adicionarProdutoFila(prods[0]);
+                adicionarProdutoFila(prods[0], { limparBusca: true });
               } else if (prods.length > 1) {
                 setStatus('Vários resultados — use ↑ ↓ ou clique no produto.', true);
               }
@@ -2099,6 +2148,12 @@
     $('etq-btn-salvar-preset') && $('etq-btn-salvar-preset').addEventListener('click', salvarPresetAtual);
     $('etq-btn-novo-preset') && $('etq-btn-novo-preset').addEventListener('click', criarNovoPreset);
     $('etq-btn-excluir-preset') && $('etq-btn-excluir-preset').addEventListener('click', excluirPresetAtual);
+    $('etq-btn-ponte') && $('etq-btn-ponte').addEventListener('click', abrirModalPonte);
+    $('etq-bridge-fechar') && $('etq-bridge-fechar').addEventListener('click', fecharModalPonte);
+    $('etq-bridge-back') &&
+      $('etq-bridge-back').addEventListener('click', function (ev) {
+        if (ev.target === $('etq-bridge-back')) fecharModalPonte();
+      });
     $('etq-btn-preset') && $('etq-btn-preset').addEventListener('click', abrirModalPreset);
     $('etq-btn-size-40') &&
       $('etq-btn-size-40').addEventListener('click', function () {
@@ -2250,6 +2305,7 @@
       if (ev.key === 'Escape') {
         fecharModalHistorico();
         fecharModalPreset();
+        fecharModalPonte();
       }
     });
   }
@@ -2258,6 +2314,7 @@
     try {
       ensureModalOnBody();
       ensureHistModalOnBody();
+      ensureBridgeModalOnBody();
     } catch (e0) {}
     try {
       reloadStorage();

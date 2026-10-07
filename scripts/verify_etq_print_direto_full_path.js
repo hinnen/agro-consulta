@@ -103,6 +103,8 @@ ok(urls.includes('print-bridge/download'), 'rota download');
 
 const html = read('produtos/templates/produtos/produtos_etiquetas.html');
 ok(html.includes('etq-btn-bridge-download'), 'botão Baixar ponte');
+ok(html.includes('etq-btn-ponte'), 'botão Ponte topbar');
+ok(html.includes('etq-bridge-back'), 'modal Ponte');
 ok(
   html.includes('CLIQUE-AQUI-INSTALAR.bat') ||
     html.includes('Elgin: 2 filas') ||
@@ -131,6 +133,8 @@ ok(pageJs.includes('etq-btn-bridge-download'), 'JS download');
 ok(pageJs.includes('testarBridgeUmaEtiqueta'), 'JS teste etiqueta');
 ok(pageJs.includes('atualizarBridgeUi'), 'JS status ponte');
 ok(pageJs.includes('salvarSizeMapUi'), 'JS salvar mapa');
+ok(pageJs.includes('abrirModalPonte'), 'JS modal Ponte');
+ok(pageJs.includes('limparBusca !== false'), 'bip limpa busca');
 
 // --- Core runtime ---
 const s = {
