@@ -1298,18 +1298,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **no `teste`** · prova path OK · validar no PC · **não** loja |
-| **O quê** | Contas/bancos da baixa no **Postgres da loja** (todos os PCs). No pagamento CP: lápis → popup adicionar / renomear / **desativar** (sem excluir). Select lê só contas ativas + «ADICIONAR CONTA». |
-| **Arquivos** | `ContaBancariaLojaAgro` · migrate `0140` · `conta_bancaria_loja_util.py` · `views_conta_bancaria_loja.py` · `views.py` (opções baixa) · `lancamentos_contas_pagar_teste.html` · backup registry |
-| **Prova** | `scripts/verify_conta_bancaria_loja_path.py` **FAILS=0** |
+| **Status** | 🟢 **pronto para envio à produção** · no `teste` · **não** loja |
+| **O quê** | Contas/bancos da baixa no **Postgres da loja** (todos os PCs). Pagamento CP: lápis → adicionar / renomear / **desativar** (sem excluir). Select = ativas + «ADICIONAR CONTA». |
+| **Prova** | path **49/49** · PIN **9973** · CP HTML **200** · `fonte_bancos=loja_pg` |
 | **Migrate** | **SIM** (`produtos.0140`) |
-| **Você** | Ctrl+F5 Contas a pagar → Pagar → ✎ · adicionar / desativar · outro PC vê igual |
+| **Na senha** | cherry/push `producao` · migrate **0140** · **não** merge `teste` · Ctrl+F5 · badge **v26.60** |
 
-### ✅ CHECKLIST ÚNICO — CP-CONTAS-LOJA-PG · 🟢 teste · alvo **v26.60**
+### ✅ CHECKLIST ÚNICO — CP-CONTAS-LOJA-PG · 🟢 pronto para envio · alvo **v26.60**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CP-CONTAS-LOJA-PG** | 🟢 **teste** · path OK · aguarda validação PC | **SIM** `0140` |
+| 1 | **CP-CONTAS-LOJA-PG** | 🟢 **pronto para envio à produção** · **49/49** · PIN **9973** | **SIM** `0140` |
 
 ### 📦 PACOTE PRONTO — Nº NF vazio gera SEM- (`NF-SEM-NUMERO` · **v26.59** · 07/10)
 
