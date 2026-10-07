@@ -806,3 +806,15 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 **Live:** producao @ `1f127019` · Render `dep-db3350eq1p3s73f1mvig`.  
 **Rollback:** tag `rollback/pre-checklist-0710-v26.46` @ `68ef04ce` · `docs/ROLLBACK-CHECKLIST-0710.md` · **só** frase+senha.
+
+---
+
+## 61. CHECKLIST ÚNICO — BUG34-DEVOL-FRETE · 🟢 PREP v26.55 · aguarda senha
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **BUG34-DEVOL-FRETE** | 🟢 **PREP pronto** · **42/42** · PIN **9973** | **NÃO** |
+
+**Branch PREP:** `deploy/prep-bug34-devol-frete` · base Live **v26.53**.  
+**Doc:** `docs/DEPLOY-PREP-BUG34-DEVOL-FRETE.md` · rollback `docs/ROLLBACK-BUG34-DEVOL-FRETE.md`.  
+**Na senha:** `reset --hard origin/deploy/prep-bug34-devol-frete` → push `producao`. **Não** merge `teste`.
