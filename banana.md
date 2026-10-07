@@ -1296,17 +1296,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **no teste** — falta PREP / frase+senha |
-| **O quê** | Bloco ponte/mapa saiu da fila → botão **Ponte** na topbar (modal). Após bip/Enter/clique que adiciona na fila: **limpa busca** e mantém foco. |
+| **O quê** | Bloco ponte/mapa → botão **Ponte** (modal). Bip limpa busca+foco. **Rodapé** saiu da fila (só no preset). |
 | **Migrate** | **NÃO** |
-| **Prova** | path **50/50** · dl **22/22** · full **83/83** |
+| **Prova** | path **51/51** · full **83/83** |
 | **Não mexe** | PDV venda · caixa · NFC-e |
-| **Você** | Ctrl+F5 Etiquetas · botão Ponte · bipar 2 códigos seguidos |
+| **Você** | Ctrl+F5 Etiquetas · botão Ponte · bipar 2 códigos · rodapé só em Presets |
 
 ### ✅ CHECKLIST ÚNICO — falta subir · 🟢 no teste
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-PONTE-TOPBAR-BIP** | 🟢 **no teste** | **NÃO** | full **83/83** |
+| 1 | **ETQ-PONTE-TOPBAR-BIP** | 🟢 **no teste** | **NÃO** | path **51/51** · full **83/83** |
 
 ### ✅ Deploy loja — Checklist 05/10d · **Live v26.46** · 05/10
 
