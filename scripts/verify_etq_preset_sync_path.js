@@ -30,9 +30,9 @@ function ok(cond, msg) {
   }
 }
 
-ok(page.includes("?v=33"), 'core cache v=32');
+ok(page.includes("?v=34"), 'core cache v=34');
 ok(coreCode.includes('function refreshPresetsFromServer'), 'core tem refreshPresetsFromServer');
-ok(page.includes("produtos_etiquetas.js' %}?v=28"), 'ui cache v=28');
+ok(page.includes("produtos_etiquetas.js' %}?v=33"), 'ui cache v=33');
 ok(coreCode.includes('Postgres manda') || coreCode.includes('servidor vence'), 'merge servidor manda');
 ok(coreCode.includes('!onServer[p.id]'), 'migrate não sobrescreve PG');
 ok(coreCode.includes("redirect: 'manual'"), 'fetch detecta login redirect');
