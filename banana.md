@@ -555,6 +555,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 - Contexto antigo detalhado: `docs/CONTEXTO_SESSAO_CLIENTES_PDV.md`.
 - **Fiado limite (`FIADO-LIMITE-LINHA`):** na lista `/fiado/`, clique no valor da coluna **Limite** para editar (sem botão Limite cliente).
 - **Limite no PDV sem reabrir (`PDV-FIADO-LIMITE-REFRESH` · Live v26.05):** ao mudar o limite, o wizard busca de novo o crédito (Fiado / lançar / confirmar / foco).
+- **Loja da compra (`FIADO-LOJA-COMPRA` · 07/10):** `FiadoTituloAgro.deposito` (centro/vila) · coluna Loja + filtro · sem botão Ver · cupom fiado mostra LOJA nas 2 vias · migrate `0139` backfill.
 
 ### 4.6 Cadastro / gestÃ£o de produtos
 
@@ -1291,12 +1292,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### WIP — Loja da compra no fiado (`FIADO-LOJA-COMPRA`) · 07/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 **código local** — migrate `0139` · falta commit/`teste` + prova no PC |
+| **O quê** | Coluna **Loja** (CENTRO/VILA) · tira botão **Ver** · filtro Todas/Centro/Vila/Sem loja · grava `FiadoTituloAgro.deposito` na criação + backfill da venda · Editar corrige legado · cupom fiado (2 vias) com **LOJA:** |
+| **Migrate** | **SIM** `produtos.0139` |
+| **Prova** | `verify_fiado_loja_compra_path.py` **35/35** · `verify_fiado_ver_recibos_path.py` **68/68** |
+| **Não mexe** | recibo de **pagamento**/baixa · caixa · NFC-e |
+| **Você** | Ctrl+F5 `/fiado/` · migrate · filtrar Centro/Vila · marcar legado · imprimir fiado |
+
 ### 📦 PACOTE PRONTO LOJA — Ponte na topbar + bip limpa busca (`ETQ-PONTE-TOPBAR-BIP` · tip `teste`) · 07/10
 
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **no teste** — falta PREP / frase+senha |
-| **O quê** | Ponte topbar · bip limpa busca · sem rodapé na fila · **fix busca SQLite** (JSON contains quebrava bip EAN no PC local). |
+| **O quê** | Ponte topbar · bip limpa+foco · sem rodapé na fila · fix SQLite · **bip código exato → fila sozinho** (sem clicar +). |
 | **Migrate** | **NÃO** |
 | **Prova** | path **51/51** · full **83/83** |
 | **Não mexe** | PDV venda · caixa · NFC-e |
