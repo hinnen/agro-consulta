@@ -766,6 +766,18 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
+## 59. CHECKLIST ÚNICO — ETQ-PONTE-TOPBAR-BIP · 🟢 pronto envio (alvo **v26.52**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **ETQ-PONTE-TOPBAR-BIP** | 🟢 **pronto para envio à produção** · path **23/23** · smoke **13/13** | **NÃO** |
+
+**O quê:** Ponte na topbar · bip EAN/GM → fila · sem rodapé na fila · fix SQLite.  
+**Prova:** `verify_etq_ponte_topbar_bip_path.js` **23/23** · smoke PIN **13/13** · full print **83/83**.  
+**Base:** Live **v26.46**. **Só** frase+senha.
+
+---
+
 ## 58. CHECKLIST ÚNICO — ETQ-PRINT-ELGIN-MAP · ✅ **Live v26.40**
 
 | # | Pacote | Status | Migrate |

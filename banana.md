@@ -1303,22 +1303,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Não mexe** | recibo de **pagamento**/baixa · caixa · NFC-e |
 | **Você** | Ctrl+F5 `/fiado/` · migrate · filtrar Centro/Vila · marcar legado · imprimir fiado |
 
-### 📦 PACOTE PRONTO LOJA — Ponte na topbar + bip limpa busca (`ETQ-PONTE-TOPBAR-BIP` · tip `teste`) · 07/10
+### 📦 PACOTE PRONTO LOJA — Ponte topbar + bip → fila (`ETQ-PONTE-TOPBAR-BIP` · **v26.52**) · 07/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **no teste** — falta PREP / frase+senha |
-| **O quê** | Ponte topbar · bip limpa+foco · sem rodapé na fila · fix SQLite · **bip código exato → fila sozinho** (sem clicar +). |
+| **Status** | 🟢 **pronto para envio à produção** — aguarda frase + senha |
+| **O quê** | Botão **Ponte** (modal/mapa) · sem rodapé na fila · fix busca SQLite · bip EAN/GM **exato** → fila + limpa campo |
 | **Migrate** | **NÃO** |
-| **Prova** | path **51/51** · full **83/83** |
-| **Não mexe** | PDV venda · caixa · NFC-e |
-| **Você** | Ctrl+F5 Etiquetas · botão Ponte · bipar 2 códigos · rodapé só em Presets |
+| **Prova** | path **23/23** · print **53/53** · dl **22/22** · full **83/83** · smoke PIN **13/13** · barras **17/17** |
+| **Tip** | `teste` **v26.52** |
+| **Base loja** | Live **v26.46** |
+| **Não mexe** | PDV venda · caixa · NFC-e · fiado |
+| **Você** | Ctrl+F5 Etiquetas · Ponte · bipar 2 EANs seguidos |
 
-### ✅ CHECKLIST ÚNICO — falta subir · 🟢 no teste
+### ✅ CHECKLIST ÚNICO — falta subir · 🟢 pronto para envio à produção
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-PONTE-TOPBAR-BIP** | 🟢 **no teste** | **NÃO** | path **51/51** · full **83/83** |
+| 1 | **ETQ-PONTE-TOPBAR-BIP** | 🟢 **pronto para envio à produção** | **NÃO** | path **23/23** · smoke **13/13** |
 
 ### ✅ Deploy loja — Checklist 05/10d · **Live v26.46** · 05/10
 
