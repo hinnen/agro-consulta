@@ -43,16 +43,16 @@ function ok(cond, msg) {
 }
 
 /* --- Cache-bust alinhado em todas as telas --- */
-ok(page.includes("produtos_etiquetas_core.js' %}?v=33"), 'etiquetas core v=33');
-ok(page.includes("produtos_etiquetas.js' %}?v=28"), 'etiquetas ui v=28');
-ok(lote.includes("produtos_etiquetas_core.js' %}?v=33"), 'lote core v=33');
-ok(cad.includes("produtos_etiquetas_core.js' %}?v=33"), 'cadastro core v=33');
-ok(nfe.includes("produtos_etiquetas_core.js' %}?v=33"), 'entrada NF core v=33');
+ok(page.includes("produtos_etiquetas_core.js' %}?v=34"), 'etiquetas core v=34');
+ok(page.includes("produtos_etiquetas.js' %}?v=33"), 'etiquetas ui v=33');
+ok(lote.includes("produtos_etiquetas_core.js' %}?v=34"), 'lote core v=34');
+ok(cad.includes("produtos_etiquetas_core.js' %}?v=34"), 'cadastro core v=34');
+ok(nfe.includes("produtos_etiquetas_core.js' %}?v=34"), 'entrada NF core v=34');
 ok(!page.includes('defer></script>'), 'sem defer (ordem Core→UI)');
 
 /* --- Código: ordem paint → persist + tolerância quota --- */
 ok(coreCode.includes('Quota') || /catch\s*\(\s*e1\s*\)/.test(coreCode), 'savePrefs catch quota');
-ok(coreCode.includes('presets: []'), 'fallback prefs leves (presets vazios)');
+ok(coreCode.includes('NUNCA zerar presets') || coreCode.includes('var keep'), 'fallback não zera presets');
 ok(ui.includes('pinta a tela ANTES') || ui.includes('ANTES de gravar'), 'comentário ordem paint');
 ok(ui.includes('garantirPresetsNaTela'), 'garantirPresetsNaTela existe');
 ok(ui.includes('bindEvents'), 'bindEvents existe');
@@ -149,8 +149,8 @@ Core.saveStorage({
 });
 ok(calls >= 2, 'quota: tenta prefs leves após falha (' + calls + ')');
 const saved = lightStore[Object.keys(lightStore)[0]];
-ok(saved && saved.includes('"presets":[]'), 'fallback grava presets=[]');
-ok(saved.includes('padrao-53x30'), 'fallback mantém preset_ativo');
+ok(saved && !saved.includes('"presets":[]'), 'fallback não grava presets vazios');
+ok(saved.includes('padrao-53x30'), 'fallback mantém preset_ativo / lista');
 ok(saved.includes('Rodape'), 'fallback mantém rodapé');
 
 /* loadStorage com cache vazio ainda entrega seeds */

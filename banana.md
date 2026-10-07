@@ -560,6 +560,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 
 - **Etiquetas `/produtos/etiquetas/`:** presets = **Postgres**. **Impressão direta** (`ETQ-PRINT-DIRETO` Live v26.35 + mapa Elgin `ETQ-PRINT-ELGIN-MAP` Live v26.40): 2 filas 40×40/50×30.
 - **Presets espelho gestão×PDV (`ETQ-PRESET-ESPELHO` · 05/10):** cadastro ERP, entrada NF e PDV passam a **puxar a API** ao abrir o dropdown (antes gestão/NF ficavam só no Chrome). Fila já puxava. Mudou num PC/tela → todos veem a mesma lista.
+- **Presets nota = fila (`ETQ-PRESET-NF-MEM` · 07/10 · v26.58):** se o Chrome estiver cheio, a nota não volta aos 4 padrões — usa memória/API; sobe preset que ainda estava só no PC; `?v=34`.
 
 **Duas telas â€” nÃ£o confundir:**
 
@@ -1290,6 +1291,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 📦 PACOTE — Presets etiqueta iguais em todos os PCs / nota (`ETQ-PRESET-NF-MEM` · **v26.58** · 07/10)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **no `teste`** · aguarda prova local · **não** loja |
+| **Problema** | Etapa 6 da entrada de nota (e cadastro/PDV) mostrava só os 4 padrões; a fila tinha REMEDIOS / A6 etc. Chrome cheio zerava o cache e a nota relia o cache morto. |
+| **O quê** | Lista da API fica na **memória**; select usa a lista retornada; quota **não** zera presets; nota também **sobe** preset que ainda estava só no PC; refresh ao focar o PRESET. |
+| **Arquivos** | `produtos_etiquetas_core.js` · `entrada_nota.html` · `cadastro_erp_panel.js` · `pdv_wizard.js` · templates core `?v=34` |
+| **Prova** | espelho **51/51** · quota **34/34** · sync **26/26** · UX **32/32** · térmica **39/39** · print-direto **53/53** |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 · entrada de nota etapa 6 · PRESET deve listar os mesmos da fila · outro PC igual |
+
+### ✅ CHECKLIST ÚNICO — ETQ-PRESET-NF-MEM · 🟢 no teste · alvo **v26.58**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ETQ-PRESET-NF-MEM** | 🟢 **no teste / aguarda prova local** | **NÃO** | **51/51** (+ quota/sync) |
 
 ### 📦 PACOTE PRONTO — Bug #31 cashback × tabela (`BUG31-CB-TABELA` · **v26.57** · 07/10)
 

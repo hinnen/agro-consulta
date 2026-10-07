@@ -4,6 +4,8 @@
   var LS_KEY = 'agro_etiquetas_presets_v1';
   var LS_MIGRATE_FLAG = 'agro_etiquetas_presets_pg_v1';
   var BUILTIN_IDS = { 'padrao-4x4': 1, 'padrao-53x30': 1, gondola: 1, 'bonus-a6': 1 };
+  /* Última lista boa em memória — sobrevive a quota cheia no Chrome (fila já pintava assim). */
+  var _presetsMem = null;
 
   var DEFAULT_PRESET = {
     id: 'padrao-4x4',
@@ -666,21 +668,25 @@
       texto_rodape_global:
         data.texto_rodape_global != null ? data.texto_rodape_global : prev.texto_rodape_global || '',
     };
+    if (Array.isArray(payload.presets) && payload.presets.length) {
+      _presetsMem = payload.presets.slice();
+    }
     try {
       localStorage.setItem(LS_KEY, JSON.stringify(payload));
     } catch (e1) {
-      /* Quota / Chrome app: não pode matar a tela. Tenta só prefs leves. */
+      /* Quota / Chrome app: NUNCA zerar presets — senão nota/PDV/cadastro ficam só nos 4 padrões. */
       try {
+        var keep = Array.isArray(prev.presets) && prev.presets.length ? prev.presets : payload.presets || [];
         localStorage.setItem(
           LS_KEY,
           JSON.stringify({
-            presets: [],
+            presets: keep,
             preset_ativo: payload.preset_ativo,
             texto_rodape_global: payload.texto_rodape_global,
           })
         );
       } catch (e2) {
-        /* Sem localStorage — segue só em memória. */
+        /* Sem localStorage — segue só em memória (_presetsMem). */
       }
     }
   }
@@ -697,8 +703,19 @@
     } catch (e) {
       cached = [];
     }
+    /* Memória (API/fila) manda se o Chrome estiver vazio/só seed; senão mescla (mem vence no id). */
+    if (_presetsMem && _presetsMem.length) {
+      var cacheSoSeed =
+        !cached.length ||
+        cached.every(function (p) {
+          return p && p.id && BUILTIN_IDS[p.id];
+        });
+      cached = cacheSoSeed ? _presetsMem.slice() : mergeServerPresets(cached, _presetsMem);
+    }
+    var presets = ensureSeedPresets(cached);
+    _presetsMem = presets.slice();
     return {
-      presets: ensureSeedPresets(cached),
+      presets: presets,
       preset_ativo: prefs.preset_ativo,
       texto_rodape_global: prefs.texto_rodape_global,
     };
@@ -764,11 +781,12 @@
       .then(function (serverList) {
         var st = loadStorage();
         st.presets = mergeServerPresets(st.presets, serverList || []);
+        _presetsMem = st.presets.slice();
         saveStorage(st);
-        return st.presets;
+        return st.presets.slice();
       })
       .catch(function () {
-        return loadStorage().presets;
+        return (_presetsMem && _presetsMem.length ? _presetsMem.slice() : null) || loadStorage().presets;
       });
   }
 
@@ -1606,11 +1624,21 @@
     });
   }
 
-  function fillPresetSelect(selectEl, activeId) {
+  function fillPresetSelect(selectEl, activeId, presetsOpt) {
     if (!selectEl) return activeId || '';
     var st = loadStorage();
-    var aid = activeId || st.preset_ativo || (st.presets[0] && st.presets[0].id) || '';
-    selectEl.innerHTML = st.presets
+    var list =
+      Array.isArray(presetsOpt) && presetsOpt.length
+        ? ensureSeedPresets(presetsOpt)
+        : st.presets;
+    if (Array.isArray(presetsOpt) && presetsOpt.length) {
+      _presetsMem = list.slice();
+    }
+    var aid = activeId || st.preset_ativo || (list[0] && list[0].id) || '';
+    if (aid && !list.some(function (p) { return p.id === aid; })) {
+      aid = (list[0] && list[0].id) || '';
+    }
+    selectEl.innerHTML = list
       .map(function (p) {
         return (
           '<option value="' +

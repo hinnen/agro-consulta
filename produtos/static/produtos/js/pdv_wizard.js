@@ -11191,13 +11191,13 @@
         }
         if (dom.peEtqQtd) dom.peEtqQtd.value = '1';
         if (dom.peEtqStatus) dom.peEtqStatus.textContent = '';
-        var fillSelect = function () {
-            if (dom.peEtqPreset) Core.fillPresetSelect(dom.peEtqPreset);
+        var fillSelect = function (list) {
+            if (dom.peEtqPreset) Core.fillPresetSelect(dom.peEtqPreset, null, list);
         };
         fillSelect();
         if (typeof Core.refreshPresetsFromServer === 'function') {
-            Core.refreshPresetsFromServer().then(function () {
-                fillSelect();
+            Core.refreshPresetsFromServer().then(function (list) {
+                fillSelect(list);
             });
         } else if (typeof Core.fetchPresetsFromServer === 'function') {
             Core.fetchPresetsFromServer()
@@ -11205,7 +11205,7 @@
                     var st = Core.loadStorage();
                     st.presets = Core.mergeServerPresets(st.presets, serverList || []);
                     Core.saveStorage(st);
-                    fillSelect();
+                    fillSelect(st.presets);
                 })
                 .catch(function () {
                     fillSelect();

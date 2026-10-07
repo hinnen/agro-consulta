@@ -2274,7 +2274,7 @@
   {% csrf_token %}
   {% include "produtos/_js_busca_produto_inteligente.html" %}
   <script src="{% static 'produtos/js/agro_print_bridge.js' %}?v=2"></script>
-  <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=33"></script>
+  <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=34"></script>
   <script src="{% static 'produtos/js/agro_busca_catalogo.js' %}{% if agro_pdv_assets_v %}?v={{ agro_pdv_assets_v }}{% endif %}"></script>
   <script>
 (function () {
@@ -6564,6 +6564,9 @@
   document.getElementById('nfe-etq-btn-continuar')?.addEventListener('click', () => {
     entradaNfeEtiquetasContinuarSemImprimir();
   });
+  document.getElementById('nfe-etq-preset')?.addEventListener('focus', () => {
+    void entradaNfeEtiquetasPreencherPresets();
+  });
   document.getElementById('nfe-wiz-next')?.addEventListener('click', () => {
     void entradaNfeWizardProximoComAutoConfirmacao();
   });
@@ -8735,19 +8738,35 @@
     return n.toFixed(2).replace('.', ',');
   }
 
-  function entradaNfeEtiquetasRenderLista() {
-    const host = document.getElementById('nfe-etq-lista');
+  function entradaNfeEtiquetasPreencherPresets() {
     const selPreset = document.getElementById('nfe-etq-preset');
     const Core = window.AgroEtiquetasCore;
-    if (!host) return;
-    if (Core && selPreset) {
-      Core.fillPresetSelect(selPreset);
-      if (typeof Core.refreshPresetsFromServer === 'function') {
-        Core.refreshPresetsFromServer().then(function () {
-          Core.fillPresetSelect(selPreset);
+    if (!Core || !selPreset) return Promise.resolve();
+    Core.fillPresetSelect(selPreset);
+    if (typeof Core.refreshPresetsFromServer !== 'function') return Promise.resolve();
+    return Core.refreshPresetsFromServer()
+      .then(function (list) {
+        Core.fillPresetSelect(selPreset, null, list);
+        if (typeof Core.migrateLocalPresetsToServerOnce !== 'function') return;
+        const onServer = {};
+        (list || []).forEach(function (p) {
+          if (p && p.id) onServer[p.id] = 1;
         });
-      }
-    }
+        return Core.migrateLocalPresetsToServerOnce(list || [], { onServer: onServer }).then(function (mig) {
+          if (!(mig && mig.migrated > 0)) return;
+          return Core.refreshPresetsFromServer().then(function (again) {
+            Core.fillPresetSelect(selPreset, null, again);
+          });
+        });
+      })
+      .catch(function () {});
+  }
+
+  function entradaNfeEtiquetasRenderLista() {
+    const host = document.getElementById('nfe-etq-lista');
+    const Core = window.AgroEtiquetasCore;
+    if (!host) return;
+    entradaNfeEtiquetasPreencherPresets();
     const linhas = coletarLinhas().filter((l) => entradaNfeProdutoIdErpValido(l.produto_id));
     if (!linhas.length) {
       host.innerHTML = '<p class="px-3 py-4 text-sm text-slate-500">Nenhum produto vinculado ao catálogo nesta nota.</p>';

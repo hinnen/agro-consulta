@@ -2458,8 +2458,8 @@
     if (cadEtqPreset) {
       Core.fillPresetSelect(cadEtqPreset);
       if (typeof Core.refreshPresetsFromServer === 'function') {
-        Core.refreshPresetsFromServer().then(function () {
-          Core.fillPresetSelect(cadEtqPreset);
+        Core.refreshPresetsFromServer().then(function (list) {
+          Core.fillPresetSelect(cadEtqPreset, null, list);
         });
       }
     }
