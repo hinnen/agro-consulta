@@ -12648,26 +12648,18 @@
         return injetarOperadorNoPayload(payload);
     }
 
-    /** Bug #20/#24: antes de gravar/imprimir, puxa A/B do catálogo e reaplica preço da forma. */
+    /** Bug #20/#24/#31: antes de gravar/imprimir, puxa A/B e reaplica preço da forma que manda. */
     function sincronizarPrecosFormaAntesGravar(state) {
         if (!state || !Array.isArray(state.itens) || !state.itens.length) return;
         var forma = '';
-        if (window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.obterFormaDoState) {
+        if (window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.formaPrincipalParaPreco) {
+            forma = String(window.AgroPrecosFormaPagamento.formaPrincipalParaPreco(state) || '').trim();
+        }
+        if (!forma && window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.obterFormaDoState) {
             forma = String(window.AgroPrecosFormaPagamento.obterFormaDoState(state) || '').trim();
         }
         if (!forma && state.pagamento && state.pagamento.forma) {
             forma = String(state.pagamento.forma || '').trim();
-        }
-        if (!forma && state.pagamento && Array.isArray(state.pagamento.lancamentos)) {
-            for (var li = 0; li < state.pagamento.lancamentos.length; li++) {
-                var ln = state.pagamento.lancamentos[li];
-                var ff = String((ln && ln.forma) || '').trim();
-                if (ff && ff !== 'Vale crédito' && ff !== 'Cashback') {
-                    forma = ff;
-                    break;
-                }
-                if (!forma && ff) forma = ff;
-            }
         }
         if (!forma) return;
         state.itens.forEach(function (item) {
