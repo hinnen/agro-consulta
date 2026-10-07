@@ -832,7 +832,7 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | 3 | **NF-SEM-NUMERO** | 🟢 **PREP** · **16/16** | **NÃO** |
 | 4 | **CP-CONTAS-LOJA-PG** | 🟢 **PREP** · **49/49** | **SIM** 0140 |
 
-**Branch PREP:** deploy/prep-checklist-0710c · tip 2f8f8930 · base Live **v26.56** @ d08617b0.  
+**Branch PREP:** deploy/prep-checklist-0710c · tip b886f4a4 · base Live **v26.56** @ d08617b0.  
 **Rollback:** tag rollback/pre-checklist-0710c-v26.56 · docs/ROLLBACK-CHECKLIST-0710c.md · **só** frase+senha.  
 **Na senha:** pausar vendas · tip PREP → producao → Ctrl+F5 · badge **v26.60**. **Não** merge teste.
 
