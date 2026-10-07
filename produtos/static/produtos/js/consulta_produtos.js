@@ -3703,8 +3703,22 @@ function executarBuscaLocal(termo, modo) {
             if (!bal.checkOk) {
                 mostrarBannerScanner('⚠️ Etiqueta inválida (dígito verificador)');
             } else {
-                /* Resolve mestre + preço no servidor (similares Mongo); auditoria no JSON */
-                executarBuscaAPI(digits, modo);
+                /* PLU 4 dígitos: catálogo local (overlay) costuma ter o código antes do index Mongo. */
+                const localBal = encontrarProdutoPorCodigoInternoBalanca(bal.codigo4, baseProdutos);
+                if (localBal) {
+                    processarResultadosBusca(
+                        [{
+                            ...localBal,
+                            preco_venda: bal.valorReais,
+                            preco_etiqueta_balanca: true,
+                            auditoria_codigo_bip: digits,
+                        }],
+                        modo,
+                        true
+                    );
+                    return;
+                }
+                executarBuscaAPIEtiquetaBalanca(digits, bal);
                 return;
             }
         }
@@ -3799,6 +3813,56 @@ function executarBuscaAPI(termo, modo) {
         .catch(err => {
             console.error('Erro na busca:', err);
             processarResultadosBusca([], modo, false);
+        })
+        .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
+}
+
+/** Etiqueta balança: API primeiro; se falhar, tenta PLU no catálogo local. */
+function executarBuscaAPIEtiquetaBalanca(digits, bal) {
+    mostrarStatusBusca('Buscando no banco online...', 'slate');
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
+    fetch('/api/buscar/?q=' + encodeURIComponent(digits))
+        .then((res) => res.json())
+        .then((data) => {
+            if (data.erro) throw new Error(data.erro);
+            const prods = data.produtos || [];
+            if (data.exact_barcode_match && prods.length === 1) {
+                processarResultadosBusca(prods, 'scanner', true);
+                return;
+            }
+            const localBal = encontrarProdutoPorCodigoInternoBalanca(bal.codigo4, baseProdutos);
+            if (localBal) {
+                processarResultadosBusca(
+                    [{
+                        ...localBal,
+                        preco_venda: bal.valorReais,
+                        preco_etiqueta_balanca: true,
+                        auditoria_codigo_bip: digits,
+                    }],
+                    'scanner',
+                    true
+                );
+                return;
+            }
+            processarResultadosBusca(prods, 'scanner', !!data.exact_barcode_match);
+        })
+        .catch((err) => {
+            console.error('Erro na busca (etiqueta balança):', err);
+            const localBal = encontrarProdutoPorCodigoInternoBalanca(bal.codigo4, baseProdutos);
+            if (localBal) {
+                processarResultadosBusca(
+                    [{
+                        ...localBal,
+                        preco_venda: bal.valorReais,
+                        preco_etiqueta_balanca: true,
+                        auditoria_codigo_bip: digits,
+                    }],
+                    'scanner',
+                    true
+                );
+                return;
+            }
+            processarResultadosBusca([], 'scanner', false);
         })
         .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
 }
