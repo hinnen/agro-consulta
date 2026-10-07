@@ -1291,19 +1291,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🩹 BUG #34 — devolução entrega sem frete · **teste v26.54** · 07/10
+### 📦 PACOTE PRONTO — devolução frete bug #34 (`BUG34-DEVOL-FRETE` · **v26.55**) · 07/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **teste** · commit+push `origin/teste` · **não** produção |
-| **Relato** | Gabriel · Caixa Centro · devolução entrega: milho saiu, frete ficou como venda |
-| **Causa** | Modal marcava itens e **deixava frete desmarcado**; backend respeitava o checkbox |
-| **O quê** | Frete **marcado por padrão** + destaque · se devolver **todos** os itens restantes, frete entra **junto** (UI e backend) · só frete restante também auto |
-| **Onde** | `devolucao_venda_util.py` · `venda_agro_detalhe.html` · `scripts/verify_bug34_devol_frete_path.py` |
-| **Prova** | **19/19** |
+| **Status** | 🟢 **PREP pronto / aguarda senha** · branch `deploy/prep-bug34-devol-frete` |
+| **Relato** | Gabriel · devolução entrega: milho saiu, frete ficou como venda |
+| **Causa** | (1) frete desmarcado por padrão · (2) `frete_devolvido` **não gravava** (refresh apagava) → venda nunca totalizava |
+| **O quê** | Frete marcado + auto ao zerar itens · **save** do frete · cura campo vs eventos · fecha venda presa ao abrir detalhe |
+| **Onde** | `devolucao_venda_util.py` · `venda_agro_detalhe.html` · `views.py` (só detalhe/devolver) |
+| **Prova** | **42/42** · PIN **9973** · HTTP Gabriel + só frete + parcial |
 | **Migrate** | **NÃO** |
-| **Venda presa** | Abrir a venda → **Continuar devolução** → confirmar frete (já marcado) |
-| **Você** | Ctrl+F5 · badge **v26.54** · devolver venda c/ frete (itens todos) → frete some · venda só frete → Continuar |
+| **Doc** | `docs/DEPLOY-PREP-BUG34-DEVOL-FRETE.md` · rollback `docs/ROLLBACK-BUG34-DEVOL-FRETE.md` |
+| **Você** | Ctrl+F5 local badge **v26.55** · depois senha sobe loja |
+
+### ✅ CHECKLIST ÚNICO — BUG34-DEVOL-FRETE · 🟢 PREP v26.55 · aguarda senha
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **BUG34-DEVOL-FRETE** | 🟢 **PREP pronto / aguarda senha** | **NÃO** | **42/42** |
+
+**Base Live:** v26.53 @ `32198975` · **Não** merge `teste`.
 
 ### ✅ Deploy loja — Checklist 07/10 · **Live v26.53** · 07/10
 

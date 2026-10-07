@@ -13398,14 +13398,27 @@ def venda_agro_detalhe(request, pk):
     from produtos.nfce_venda_util import painel_nfce_venda
     from produtos.devolucao_venda_util import (
         formas_pagamento_devolucao,
+        frete_ja_devolvido,
         frete_restante,
         serializar_historico_devolucoes,
         serializar_itens_devolucao_ui,
         valor_restante_venda,
+        venda_restante_zerada,
     )
     from produtos.fiado_credito_util import venda_local_tem_fiado
 
     nfce_painel = painel_nfce_venda(v)
+    # Cura frete_devolvido atraso vs eventos (bug #34) antes de calcular restante.
+    frete_ja_devolvido(v)
+    v.refresh_from_db()
+    if not v.devolvida_em and venda_restante_zerada(v):
+        # Evento já cobriu itens+frete mas campo/flag total não fechou.
+        from django.utils import timezone as _tz
+
+        v.devolvida_em = _tz.now()
+        if not (v.devolucao_usuario or "").strip():
+            v.devolucao_usuario = "sistema (cura devolução)"
+        v.save(update_fields=["devolvida_em", "devolucao_usuario", "frete_devolvido"])
     total_restante = valor_restante_venda(v)
     return render(
         request,

@@ -29,9 +29,34 @@ def formas_pagamento_devolucao(venda: VendaAgro) -> list[str]:
     return [f for f in formas if f != "Fiado"]
 
 
+def frete_ja_devolvido(venda: VendaAgro, *, sync_campo: bool = True) -> Decimal:
+    """
+    Soma já devolvida do frete.
+
+    Usa o campo na venda e, se menor, a soma dos eventos (evita frete «preso»
+    quando o campo não foi persistido — bug #34 / refresh_from_db).
+    Com ``sync_campo``, grava o campo se os eventos estiverem à frente.
+    """
+    ja = _dec(getattr(venda, "frete_devolvido", 0) or 0)
+    try:
+        from django.db.models import Sum
+
+        ev = venda.devolucoes.aggregate(s=Sum("frete_valor")).get("s")
+        if ev is not None:
+            ev_d = _dec(ev)
+            if ev_d > ja:
+                ja = ev_d
+                if sync_campo and getattr(venda, "pk", None):
+                    venda.frete_devolvido = ja.quantize(Decimal("0.01"))
+                    venda.save(update_fields=["frete_devolvido"])
+    except Exception:
+        pass
+    return ja.quantize(Decimal("0.01")) if ja > 0 else Decimal("0.00")
+
+
 def frete_restante(venda: VendaAgro) -> Decimal:
     frete = _dec(getattr(venda, "frete", 0) or 0)
-    ja = _dec(getattr(venda, "frete_devolvido", 0) or 0)
+    ja = frete_ja_devolvido(venda)
     r = frete - ja
     return r if r > 0 else Decimal("0.00")
 
@@ -337,4 +362,7 @@ def registrar_evento_devolucao(
         venda.frete_devolvido = (_dec(venda.frete_devolvido) + _dec(frete_v)).quantize(
             Decimal("0.01")
         )
+        # Persistir antes de qualquer refresh_from_db na view (senão frete «some»
+        # do campo e a venda nunca totaliza — bug loja #34).
+        venda.save(update_fields=["frete_devolvido"])
     return ev
