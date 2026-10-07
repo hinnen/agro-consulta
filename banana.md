@@ -1291,6 +1291,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🩹 BUG #34 — devolução entrega sem frete · **teste v26.54** · 07/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **teste** · commit+push `origin/teste` · **não** produção |
+| **Relato** | Gabriel · Caixa Centro · devolução entrega: milho saiu, frete ficou como venda |
+| **Causa** | Modal marcava itens e **deixava frete desmarcado**; backend respeitava o checkbox |
+| **O quê** | Frete **marcado por padrão** + destaque · se devolver **todos** os itens restantes, frete entra **junto** (UI e backend) · só frete restante também auto |
+| **Onde** | `devolucao_venda_util.py` · `venda_agro_detalhe.html` · `scripts/verify_bug34_devol_frete_path.py` |
+| **Prova** | **19/19** |
+| **Migrate** | **NÃO** |
+| **Venda presa** | Abrir a venda → **Continuar devolução** → confirmar frete (já marcado) |
+| **Você** | Ctrl+F5 · badge **v26.54** · devolver venda c/ frete (itens todos) → frete some · venda só frete → Continuar |
+
 ### ✅ Deploy loja — Checklist 07/10 · **Live v26.53** · 07/10
 
 | Campo | Valor |

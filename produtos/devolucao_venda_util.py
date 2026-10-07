@@ -72,6 +72,23 @@ def valor_restante_venda(venda: VendaAgro) -> Decimal:
     return s.quantize(Decimal("0.01"))
 
 
+def _selecao_esgota_itens_restantes(
+    itens_venda: dict[int, ItemVendaAgro],
+    linhas: list[tuple[ItemVendaAgro, Decimal, Decimal]],
+) -> bool:
+    """True se esta seleção devolve 100% do restante de todos os itens (ou já não há itens)."""
+    qtd_por_id: dict[int, Decimal] = {}
+    for it, q, _v in linhas:
+        qtd_por_id[it.pk] = qtd_por_id.get(it.pk, Decimal("0")) + Decimal(str(q or 0))
+    for it in itens_venda.values():
+        rest = it.quantidade_restante
+        if rest <= Decimal("0.0001"):
+            continue
+        if qtd_por_id.get(it.pk, Decimal("0")) + Decimal("0.0001") < rest:
+            return False
+    return True
+
+
 def montar_selecao_devolucao(
     venda: VendaAgro,
     *,
@@ -82,6 +99,8 @@ def montar_selecao_devolucao(
     """
     Retorna (linhas [(item, qtd, valor)], frete_valor, erro).
     `devolver_tudo` ou ausência de `itens` no total clássico → restante inteiro.
+    Se a seleção zera todos os itens restantes, o frete restante entra junto
+    (entrega sem produto não fica como venda — bug loja #34).
     """
     itens_venda = {it.pk: it for it in venda.itens.all()}
     linhas: list[tuple[ItemVendaAgro, Decimal, Decimal]] = []
@@ -127,7 +146,11 @@ def montar_selecao_devolucao(
         q = min(q, rest)
         linhas.append((it, q, valor_linha_proporcional(it, q)))
 
-    frete_v = frete_restante(venda) if devolver_frete else Decimal("0.00")
+    # Zerar todos os itens restantes ⇒ frete acompanha (mesmo se checkbox veio desmarcado).
+    # Parcial de produto: frete só se marcado; só frete (itens já zero): frete se marcado ou auto.
+    esgota_itens = _selecao_esgota_itens_restantes(itens_venda, linhas)
+    incluir_frete = bool(devolver_frete) or esgota_itens
+    frete_v = frete_restante(venda) if incluir_frete else Decimal("0.00")
     if not linhas and frete_v <= 0:
         return None, Decimal("0"), "Selecione ao menos um item ou a taxa de entrega."
     return linhas, frete_v, None
