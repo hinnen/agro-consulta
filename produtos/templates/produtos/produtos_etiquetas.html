@@ -130,6 +130,13 @@
 
     <div class="flex flex-wrap items-center gap-2">
 
+      <button type="button" id="etq-btn-ponte"
+        class="inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-xl border-2 border-slate-500 bg-slate-800 px-3 py-1.5 text-xs font-black uppercase text-slate-100 hover:border-sky-400"
+        title="Impressão direta Windows · mapa Elgin 40×40 / 50×30">
+        <i class="fas fa-print" aria-hidden="true"></i>Ponte
+        <span id="etq-btn-ponte-dot" class="inline-block h-2 w-2 rounded-full bg-amber-400" aria-hidden="true"></span>
+      </button>
+
       <button type="button" id="etq-btn-preset"
 
         class="inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-xl border-2 border-slate-500 bg-slate-800 px-3 py-1.5 text-xs font-black uppercase text-slate-100 hover:border-orange-500">
@@ -332,42 +339,6 @@
 
     </div>
 
-    <div class="mt-2 shrink-0 rounded-xl border border-slate-600 bg-slate-950/70 px-3 py-2" id="etq-bridge-card">
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <p class="text-[10px] font-black uppercase tracking-wide text-slate-500">Impressão direta (Windows)</p>
-          <p id="etq-bridge-status" class="text-xs font-bold text-amber-300">Verificando ponte…</p>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <a id="etq-btn-bridge-download" href="{{ api_etq_bridge_download_url|default:'/api/produtos/etiquetas/print-bridge/download/' }}"
-            class="inline-flex min-h-[36px] items-center justify-center rounded-lg border-2 border-orange-500 bg-orange-600 px-3 text-[10px] font-black uppercase text-white hover:bg-orange-500"
-            download="Agro-Etiqueta-Print-Windows.zip">Baixar ponte</a>
-          <button type="button" id="etq-btn-bridge-probe" class="min-h-[36px] rounded-lg border border-slate-500 px-3 text-[10px] font-black uppercase text-slate-200">Verificar</button>
-          <button type="button" id="etq-btn-bridge-test" class="min-h-[36px] rounded-lg border border-emerald-700 bg-emerald-900/40 px-3 text-[10px] font-black uppercase text-emerald-200">Testar 1 etiqueta</button>
-        </div>
-      </div>
-      <p class="mt-1 text-[11px] font-semibold text-slate-400">Baixe → extraia → dê dois cliques só em <strong class="text-slate-200">CLIQUE-AQUI-INSTALAR.bat</strong> (uma vez). Elgin: 2 filas no Windows (40×40 e 50×30) — ver mapa abaixo.</p>
-      <div id="etq-size-map-box" class="mt-2 hidden rounded-lg border border-slate-700 bg-slate-900/80 p-2">
-        <p class="text-[10px] font-black uppercase text-slate-500">Mapa tamanho → impressora (este PC)</p>
-        <p class="mt-0.5 text-[10px] font-semibold text-slate-400">Elgin guarda o último papel. Crie 2 impressoras no Windows (mesmo aparelho): uma USER 40×40 e outra GONDOLA 50×30. Depois escolha aqui.</p>
-        <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <label class="block text-[11px] font-bold text-slate-300">
-            <span class="mb-0.5 block text-[10px] uppercase text-slate-500">40×40 (USER)</span>
-            <select id="etq-map-40" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white"></select>
-          </label>
-          <label class="block text-[11px] font-bold text-slate-300">
-            <span class="mb-0.5 block text-[10px] uppercase text-slate-500">50×30 / 53×30</span>
-            <select id="etq-map-50" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white"></select>
-          </label>
-        </div>
-        <button type="button" id="etq-btn-save-size-map" class="mt-2 min-h-[36px] rounded-lg border border-emerald-700 bg-emerald-900/50 px-3 text-[10px] font-black uppercase text-emerald-200">Salvar mapa</button>
-      </div>
-      <label class="mt-1 inline-flex items-center gap-2 text-[11px] font-bold text-slate-300">
-        <span>Porta</span>
-        <input id="etq-bridge-port" type="number" min="1024" max="65535" class="w-20 min-h-[32px] rounded border border-slate-600 bg-slate-900 px-2 text-white" />
-      </label>
-    </div>
-
     <div class="mt-2 flex shrink-0 flex-wrap items-end gap-2">
 
       <label class="min-w-[8rem] flex-1">
@@ -448,6 +419,47 @@
 </div>
 
 
+
+<div id="etq-bridge-back" class="fixed inset-0 z-[200] hidden bg-slate-950/70" aria-hidden="true">
+  <div class="flex h-full items-start justify-center overflow-y-auto p-4 pt-[6vh]">
+    <div class="w-full max-w-lg rounded-2xl border border-slate-600 bg-slate-900 shadow-2xl" role="dialog" aria-labelledby="etq-bridge-titulo" id="etq-bridge-card">
+      <div class="flex items-center justify-between gap-2 border-b border-slate-700 px-4 py-3">
+        <h2 id="etq-bridge-titulo" class="text-sm font-black uppercase text-white">Impressão direta (Windows)</h2>
+        <button type="button" id="etq-bridge-fechar" class="min-h-[36px] min-w-[36px] rounded-lg border border-slate-600 text-slate-300 hover:text-white" aria-label="Fechar">✕</button>
+      </div>
+      <div class="space-y-3 p-4">
+        <p id="etq-bridge-status" class="text-xs font-bold text-amber-300">Verificando ponte…</p>
+        <div class="flex flex-wrap gap-2">
+          <a id="etq-btn-bridge-download" href="{{ api_etq_bridge_download_url|default:'/api/produtos/etiquetas/print-bridge/download/' }}"
+            class="inline-flex min-h-[40px] items-center justify-center rounded-lg border-2 border-orange-500 bg-orange-600 px-3 text-[10px] font-black uppercase text-white hover:bg-orange-500"
+            download="Agro-Etiqueta-Print-Windows.zip">Baixar ponte</a>
+          <button type="button" id="etq-btn-bridge-probe" class="min-h-[40px] rounded-lg border border-slate-500 px-3 text-[10px] font-black uppercase text-slate-200">Verificar</button>
+          <button type="button" id="etq-btn-bridge-test" class="min-h-[40px] rounded-lg border border-emerald-700 bg-emerald-900/40 px-3 text-[10px] font-black uppercase text-emerald-200">Testar 1 etiqueta</button>
+        </div>
+        <p class="text-[11px] font-semibold text-slate-400">Baixe → extraia → dê dois cliques só em <strong class="text-slate-200">CLIQUE-AQUI-INSTALAR.bat</strong> (uma vez). Elgin: 2 filas no Windows (40×40 e 50×30) — ver mapa abaixo.</p>
+        <div id="etq-size-map-box" class="hidden rounded-lg border border-slate-700 bg-slate-950/80 p-3">
+          <p class="text-[10px] font-black uppercase text-slate-500">Mapa tamanho → impressora (este PC)</p>
+          <p class="mt-0.5 text-[10px] font-semibold text-slate-400">Elgin guarda o último papel. Crie 2 impressoras no Windows (mesmo aparelho): uma USER 40×40 e outra GONDOLA 50×30. Depois escolha aqui.</p>
+          <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <label class="block text-[11px] font-bold text-slate-300">
+              <span class="mb-0.5 block text-[10px] uppercase text-slate-500">40×40 (USER)</span>
+              <select id="etq-map-40" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white"></select>
+            </label>
+            <label class="block text-[11px] font-bold text-slate-300">
+              <span class="mb-0.5 block text-[10px] uppercase text-slate-500">50×30 / 53×30</span>
+              <select id="etq-map-50" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white"></select>
+            </label>
+          </div>
+          <button type="button" id="etq-btn-save-size-map" class="mt-2 min-h-[36px] rounded-lg border border-emerald-700 bg-emerald-900/50 px-3 text-[10px] font-black uppercase text-emerald-200">Salvar mapa</button>
+        </div>
+        <label class="inline-flex items-center gap-2 text-[11px] font-bold text-slate-300">
+          <span>Porta</span>
+          <input id="etq-bridge-port" type="number" min="1024" max="65535" class="w-20 min-h-[32px] rounded border border-slate-600 bg-slate-900 px-2 text-white" />
+        </label>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div id="etq-modal-back" class="fixed inset-0 z-[200] hidden bg-slate-950/70" aria-hidden="true">
 
@@ -714,7 +726,7 @@ window.AGRO_ETQ_CFG = {
 </script>
 <script src="{% static 'produtos/js/agro_print_bridge.js' %}?v=2"></script>
 <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=33"></script>
-<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=30"></script>
+<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=31"></script>
 
 {% endblock %}
 
