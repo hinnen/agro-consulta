@@ -1296,7 +1296,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha |
-| **Branch PREP** | `deploy/prep-checklist-0710` · tip `993c0648` · base Live **v26.46** @ `68ef04ce` |
+| **Branch PREP** | `deploy/prep-checklist-0710` · tip `2f5d5186` · base Live **v26.46** @ `68ef04ce` |
 | **Alvo loja** | **v26.53** |
 | **Migrate** | **SIM** `0139` (AddField + backfill deposito — não apaga títulos) |
 | **Merge teste?** | **NÃO** |
