@@ -1291,48 +1291,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — cupom fiado misto saldo (`FIADO-CUPOM-SALDO-MISTO` · **v26.56**) · 07/10
+### 🚀 PREP deploy loja — Checklist 07/10b (`deploy/prep-checklist-0710b` · alvo **v26.56**) · aguarda senha
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **pronto para envio à produção** · branch `deploy/prep-fiado-cupom-saldo-misto` @ `97704250` |
-| **Problema** | Dinheiro+Fiado: TOTAL grande fazia parecer que a dívida era o total |
-| **O quê** | Só no misto: TOTAL menor · **Já pago** · caixa **SALDO FIADO** · 100% fiado igual |
-| **Onde** | `venda_cupom_80mm.js` · `pdv_wizard.js` · `venda_cupom_util.py` |
-| **Prova** | path **34/34** · loja compra **48/48** |
+| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha |
+| **Branch PREP** | `deploy/prep-checklist-0710b` · tip `471a11a9` · base Live **v26.53** @ `32198975` |
+| **Alvo loja** | **v26.56** |
 | **Migrate** | **NÃO** |
-| **Doc** | `docs/DEPLOY-PREP-FIADO-CUPOM-SALDO-MISTO.md` · rollback `docs/ROLLBACK-FIADO-CUPOM-SALDO-MISTO.md` |
-| **Você** | Ctrl+F5 local · venda mista · cupom 2 vias · depois senha sobe loja |
+| **Merge teste?** | **NÃO** |
+| **Provas (PREP)** | bug34 **42/42** · cupom misto **34/34** · loja compra **48/48** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-checklist-0710b-v26.53` @ `32198975` · branch `producao-backup-pre-v2656-checklist-20261007b` · `docs/ROLLBACK-CHECKLIST-0710b.md` |
+| **Na senha (rápido)** | pausar vendas → tip PREP em producao → Render Live → Ctrl+F5 · badge **v26.56** |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-0710b.md` |
 
-### ✅ CHECKLIST ÚNICO — FIADO-CUPOM-SALDO-MISTO · 🟢 PREP v26.56 · aguarda senha
+### ✅ CHECKLIST ÚNICO — 07/10b · 🟢 PREP v26.56 · aguarda senha
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **FIADO-CUPOM-SALDO-MISTO** | 🟢 **pronto para envio à produção** | **NÃO** | **34/34** · **48/48** |
+| 1 | **BUG34-DEVOL-FRETE** | 🟢 **no PREP** | **NÃO** | **42/42** |
+| 2 | **FIADO-CUPOM-SALDO-MISTO** | 🟢 **no PREP** | **NÃO** | **34/34** · **48/48** |
 
-**Base Live:** v26.53 @ `32198975` · PREP `97704250` · **Não** merge `teste`.
-
-### 📦 PACOTE PRONTO — devolução frete bug #34 (`BUG34-DEVOL-FRETE` · **v26.55**) · 07/10
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | 🟢 **PREP pronto / aguarda senha** · branch `deploy/prep-bug34-devol-frete` |
-| **Relato** | Gabriel · devolução entrega: milho saiu, frete ficou como venda |
-| **Causa** | (1) frete desmarcado por padrão · (2) `frete_devolvido` **não gravava** (refresh apagava) → venda nunca totalizava |
-| **O quê** | Frete marcado + auto ao zerar itens · **save** do frete · cura campo vs eventos · fecha venda presa ao abrir detalhe |
-| **Onde** | `devolucao_venda_util.py` · `venda_agro_detalhe.html` · `views.py` (só detalhe/devolver) |
-| **Prova** | **42/42** · PIN **9973** · HTTP Gabriel + só frete + parcial |
-| **Migrate** | **NÃO** |
-| **Doc** | `docs/DEPLOY-PREP-BUG34-DEVOL-FRETE.md` · rollback `docs/ROLLBACK-BUG34-DEVOL-FRETE.md` |
-| **Você** | Ctrl+F5 local badge **v26.55** · depois senha sobe loja |
-
-### ✅ CHECKLIST ÚNICO — BUG34-DEVOL-FRETE · 🟢 PREP v26.55 · aguarda senha
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **BUG34-DEVOL-FRETE** | 🟢 **pronto para envio à produção** | **NÃO** | **42/42** |
-
-**Base Live:** v26.53 @ `32198975` · **Não** merge `teste`.
+**Risco loja aberta:** baixo. Devolução frete + layout cupom misto. **Não** mexe finalizar venda · caixa · Point · NFC-e.
 
 ### ✅ Deploy loja — Checklist 07/10 · **Live v26.53** · 07/10
 
