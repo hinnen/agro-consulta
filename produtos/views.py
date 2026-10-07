@@ -23079,9 +23079,10 @@ def _parse_etiqueta_balanca_ean13_br(q: str):
 
 
 def _buscar_produto_por_codigo_interno_balanca(db, client, cod4: str):
-    """Resolve produto pelos 4 dígitos do código na etiqueta (via ``index_codigos``)."""
+    """Resolve produto pelos 4 dígitos do código na etiqueta (``index_codigos`` + overlay Agro)."""
     col = db[client.col_p]
     base = {"CadastroInativo": {"$ne": True}}
+    cod4 = str(cod4 or "").strip()
     variants = set()
     variants.add(cod4)
     variants.add(cod4.lstrip("0") or "0")
@@ -23091,9 +23092,24 @@ def _buscar_produto_por_codigo_interno_balanca(db, client, cod4: str):
     if not alvos:
         return None
     try:
-        return col.find_one({**base, INDEX_CODIGOS_CAMPO: {"$in": alvos}})
+        doc = col.find_one({**base, INDEX_CODIGOS_CAMPO: {"$in": alvos}})
     except Exception:
-        return None
+        doc = None
+    if doc:
+        return doc
+    # Código curto de balança (ex.: 0010) costuma estar só no overlay até ``index_codigos`` atualizar.
+    by_id: dict[str, dict] = {}
+    for termo in {cod4, cod4.zfill(4)}:
+        t = str(termo or "").strip()
+        if not t:
+            continue
+        for extra in _mongo_produtos_por_overlay_codigo_busca(t, db, client, set(by_id.keys())):
+            pid = str(extra.get("Id") or extra.get("_id") or "").strip()
+            if pid:
+                by_id[pid] = extra
+    if len(by_id) == 1:
+        return next(iter(by_id.values()))
+    return None
 
 
 # `_mapear_estoques_por_produto` só usa estes campos — projeção evita ler documentos grandes de estoque na busca PDV.
