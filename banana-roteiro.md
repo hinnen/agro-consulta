@@ -797,14 +797,12 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 60. Checklist único — lote 07/10 (deploy/prep-checklist-0710 · alvo loja **v26.53**)
+## 60. Checklist único — lote 07/10 · ✅ **Live v26.53** · 07/10
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-PONTE-TOPBAR-BIP** | 🟢 **PREP** · **23/23** + smoke **13/13** | **NÃO** |
-| 2 | **FIADO-LOJA-COMPRA** | 🟢 **PREP** · **39/39** | **SIM** 0139 |
+| 1 | **ETQ-PONTE-TOPBAR-BIP** | ✅ **Live v26.53** · **23/23** + smoke **13/13** | **NÃO** |
+| 2 | **FIADO-LOJA-COMPRA** | ✅ **Live v26.53** · **39/39** | **SIM** 0139 |
 
-**Branch PREP:** deploy/prep-checklist-0710 · tip 1f127019 · base Live **v26.46** @ 68ef04ce.  
-**Rollback:** tag rollback/pre-checklist-0710-v26.46 · docs/ROLLBACK-CHECKLIST-0710.md · **só** frase+senha.  
-**Na senha:** pausar vendas · tip PREP → producao → Ctrl+F5 · badge **v26.53**. **Não** merge teste.
-
+**Live:** producao @ `1f127019` · Render `dep-db3350eq1p3s73f1mvig`.  
+**Rollback:** tag `rollback/pre-checklist-0710-v26.46` @ `68ef04ce` · `docs/ROLLBACK-CHECKLIST-0710.md` · **só** frase+senha.

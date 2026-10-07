@@ -1291,28 +1291,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚀 PREP deploy loja — Checklist 07/10 (`deploy/prep-checklist-0710` · alvo **v26.53**) · aguarda senha
+### ✅ Deploy loja — Checklist 07/10 · **Live v26.53** · 07/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha |
+| **Status** | ✅ **enviado / Live v26.53** — `producao` @ `1f127019` · Render `dep-db3350eq1p3s73f1mvig` · **não** foi merge do `teste` |
+| **O quê** | **ETQ-PONTE-TOPBAR-BIP** + **FIADO-LOJA-COMPRA** (coluna Loja CENTRO/VILA) |
 | **Branch PREP** | `deploy/prep-checklist-0710` · tip `1f127019` · base Live **v26.46** @ `68ef04ce` |
-| **Alvo loja** | **v26.53** |
-| **Migrate** | **SIM** `0139` (AddField + backfill deposito — não apaga títulos) |
-| **Merge teste?** | **NÃO** |
-| **Provas (PREP)** | fiado loja **39/39** · recibos **68/68** · ponte **23/23** · smoke **13/13** · **PREP_FAILS=0** |
-| **Rollback** | tag `rollback/pre-checklist-0710-v26.46` @ `68ef04ce` · branch `producao-backup-pre-v2653-checklist-20261007` · `docs/ROLLBACK-CHECKLIST-0710.md` |
-| **Na senha (rápido)** | pausar vendas → tip PREP em producao → Render Live (migrate 0139) → Ctrl+F5 · badge **v26.53** |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-0710.md` |
+| **Migrate** | **SIM** `0139` (AddField + backfill deposito) |
+| **Provas** | fiado **39/39** · recibos **68/68** · ponte **23/23** · smoke **13/13** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-checklist-0710-v26.46` @ `68ef04ce` · branch `producao-backup-pre-v2653-checklist-20261007` · `docs/ROLLBACK-CHECKLIST-0710.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 · badge **v26.53** · fiado gestão: filtro Loja · etiquetas: Ponte na topbar |
 
-### ✅ CHECKLIST ÚNICO — 07/10 · 🟢 PREP v26.53 · aguarda senha
+### ✅ CHECKLIST ÚNICO — 07/10 · ✅ Live v26.53
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-PONTE-TOPBAR-BIP** | 🟢 **no PREP** | **NÃO** | **23/23** · smoke **13/13** |
-| 2 | **FIADO-LOJA-COMPRA** | 🟢 **no PREP** | **SIM** `0139` | **39/39** · recibos **68/68** |
-
-**Risco loja aberta:** baixo. Etiquetas (Ponte/bip) + gestão fiado (coluna Loja). **Não** mexe finalizar venda · caixa · Point · NFC-e.
+| 1 | **ETQ-PONTE-TOPBAR-BIP** | ✅ **enviado / Live v26.53** | **NÃO** | **23/23** · smoke **13/13** |
+| 2 | **FIADO-LOJA-COMPRA** | ✅ **enviado / Live v26.53** | **SIM** `0139` | **39/39** · recibos **68/68** |
 
 ### ✅ Deploy loja — Checklist 05/10d · **Live v26.46** · 05/10
 
