@@ -250,6 +250,7 @@ from .nfe_entrada_util import (
     auditar_entrada_nfe_financeiro_lote,
     enriquecer_lancamentos_entrada_nfe_rascunho,
     entrada_nfe_linhas_precos_catalogo_mudaram,
+    garantir_numero_nf_cabecalho,
     normalizar_cabecalho_emit_fornecedor_entrada_nfe,
     patch_rascunho_entrada_extra,
     salvar_rascunho_entrada,
@@ -18096,6 +18097,24 @@ def api_entrada_nota_aprovar_wizard(request):
             doc = col_rasc.find_one({"_id": _oid}) or doc
     except Exception:
         logger.exception("api_entrada_nota_aprovar_wizard sync financeiro pré-PIN")
+    # Sem Nº NF: gera SEM-DDMM-XXXX (mesma regra da etapa 1) antes de validar o PIN.
+    try:
+        cab_pin = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
+        if not str(cab_pin.get("numero") or "").strip():
+            cab_pin2 = garantir_numero_nf_cabecalho(cab_pin)
+            col_rasc.update_one(
+                {"_id": _oid},
+                {
+                    "$set": {
+                        "cabecalho": cab_pin2,
+                        "atualizado_em": agora,
+                        "usuario_ultima_alteracao": (usuario or "")[:200],
+                    }
+                },
+            )
+            doc = col_rasc.find_one({"_id": _oid}) or {**doc, "cabecalho": cab_pin2}
+    except Exception:
+        logger.exception("api_entrada_nota_aprovar_wizard garantir numero SEM")
     ok_r, err_r = rascunho_entrada_valido_para_aprovacao_wizard(doc)
     if not ok_r:
         return JsonResponse({"ok": False, "erro": err_r}, status=400)
@@ -18987,6 +19006,10 @@ def api_entrada_nota_financeiro(request):
         doc_nf = _entrada_nota_rascunho_store(db).find_one({"_id": _oid_up})
         if doc_nf:
             doc_nf = sanear_carimbo_financeiro_falso_rascunho(db, doc_nf, usuario=usuario) or doc_nf
+    cab_exist = ""
+    if doc_nf and isinstance(doc_nf.get("cabecalho"), dict):
+        cab_exist = str(doc_nf["cabecalho"].get("numero") or "").strip()
+    cab = garantir_numero_nf_cabecalho(cab, existente=cab_exist)
     rid_up = str(_oid_up) if _oid_up and doc_nf else ""
     if rid_up and doc_nf:
         ex_nf = doc_nf.get("extra") if isinstance(doc_nf.get("extra"), dict) else {}

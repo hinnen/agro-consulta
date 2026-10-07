@@ -842,3 +842,15 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **O quê:** etapa 6 da nota (e cadastro/PDV) mostra a **mesma** lista de presets da fila/loja; Chrome cheio não zera.  
 **Prova:** `scripts/verify_etq_preset_espelho_path.js` · smoke espelho/sync local.  
 **Na senha:** cherry/push `producao` · **não** merge `teste` · Ctrl+F5 · badge **v26.58**.
+
+---
+
+## 66. Checklist único — NF-SEM-NUMERO · 🟢 no teste · alvo **v26.59**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **NF-SEM-NUMERO** | 🟢 **no teste** · **6/6** | **NÃO** |
+
+**O quê:** Nº NF em branco na entrada → gera **`SEM-DDMM-XXXX`** (confirmar + save/PIN/CP).  
+**Prova:** `scripts/verify_nf_sem_numero_path.py`.  
+**Você:** Ctrl+F5 · nota sem número → Confirmar → ver `SEM-…` · buscar no CP. Produção só frase+senha.

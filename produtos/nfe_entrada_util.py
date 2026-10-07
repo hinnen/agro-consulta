@@ -8,6 +8,8 @@ import base64
 import gzip
 import logging
 import re
+import secrets
+import string
 import xml.etree.ElementTree as ET
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
@@ -1710,6 +1712,42 @@ def persistir_vinculos_c_prod_entrada_nfe_linhas(
     return n
 
 
+def gerar_numero_nf_sem_nota() -> str:
+    """Código interno único quando a entrada não tem número de NF (manual / sem nota)."""
+    try:
+        from django.utils import timezone as dj_tz
+
+        agora = dj_tz.localtime()
+    except Exception:
+        agora = datetime.now()
+    ddmm = agora.strftime("%d%m")
+    alphabet = string.ascii_uppercase + string.digits
+    suf = "".join(secrets.choice(alphabet) for _ in range(4))
+    return f"SEM-{ddmm}-{suf}"
+
+
+def garantir_numero_nf_cabecalho(
+    cab: dict[str, Any] | None,
+    *,
+    existente: str | None = None,
+) -> dict[str, Any]:
+    """
+    Se ``numero`` vier vazio: reusa o já gravado no rascunho; senão gera ``SEM-DDMM-XXXX``.
+    Assim a nota não trava no PIN e o Contas a pagar fica pesquisável.
+    """
+    out: dict[str, Any] = dict(cab) if isinstance(cab, dict) else {}
+    cur = str(out.get("numero") or "").strip()
+    if cur:
+        out["numero"] = cur
+        return out
+    prev = str(existente or "").strip()
+    if prev:
+        out["numero"] = prev
+        return out
+    out["numero"] = gerar_numero_nf_sem_nota()
+    return out
+
+
 def salvar_rascunho_entrada(
     db,
     *,
@@ -1727,6 +1765,7 @@ def salvar_rascunho_entrada(
     cab_norm = cabecalho
     if col_pessoa:
         cab_norm = normalizar_cabecalho_emit_fornecedor_entrada_nfe(db, col_pessoa, cabecalho)
+    cab_norm = garantir_numero_nf_cabecalho(cab_norm if isinstance(cab_norm, dict) else {})
     st = entrada_nfe_status_derivado_linhas(linhas)
     doc = {
         "criado_em": datetime.now(timezone.utc),
@@ -3575,6 +3614,11 @@ def atualizar_rascunho_entrada(
             atual = lazy_import_rascunho_mongo(db, str(_id))
         if not atual:
             return {"ok": False, "erro": "Rascunho não encontrado."}
+        cab_prev = atual.get("cabecalho") if isinstance(atual.get("cabecalho"), dict) else {}
+        cab_norm = garantir_numero_nf_cabecalho(
+            cab_norm if isinstance(cab_norm, dict) else {},
+            existente=str(cab_prev.get("numero") or ""),
+        )
         bloqueio_troca = entrada_nfe_bloqueio_troca_produto_com_estoque(atual, linhas)
         if bloqueio_troca:
             return {"ok": False, "erro": bloqueio_troca, "requer_estorno": True}
@@ -4326,13 +4370,18 @@ def _extrair_lote_agro_lancamento(linha: dict[str, Any]) -> str:
 
 
 _NF_PLACEHOLDER_RE = re.compile(r"\bNF\s*[.:]?\s*(n[aã]o\s+tem)\b", re.I)
+_NF_SEM_RE = re.compile(r"\bNF\s*[.:]?\s*(SEM-\d{4}-[A-Z0-9]{4})\b", re.I)
 _NF_DIGITS_RE = re.compile(r"\bNF\s*[.:]?\s*(\d{1,12})\b", re.I)
+_NF_SEM_NUMERO_RE = re.compile(r"^SEM-\d{4}-[A-Z0-9]{4}$", re.I)
 
 
 def _extrair_nf_numero_lancamento(linha: dict[str, Any]) -> str:
-    """Número da NF do título — «NF 76468» ou placeholder «NF não tem» (nota manual)."""
+    """Número da NF do título — «NF 76468», «NF SEM-0710-A3F2» ou placeholder «NF não tem»."""
     for key in ("descricao", "Descricao", "observacoes", "Observacao"):
         texto = str(linha.get(key) or "")
+        m_sem = _NF_SEM_RE.search(texto)
+        if m_sem:
+            return m_sem.group(1).strip().upper()
         m = _NF_DIGITS_RE.search(texto)
         if m:
             return m.group(1).strip()
@@ -4341,8 +4390,13 @@ def _extrair_nf_numero_lancamento(linha: dict[str, Any]) -> str:
             return m_ph.group(1).strip()
     nd = str(linha.get("numero_documento") or linha.get("NumeroDocumento") or "").strip()
     if nd and nd not in ("0", "000") and not _LOTE_AGRO_NUMDOC_RE.match(nd):
+        if _NF_SEM_NUMERO_RE.fullmatch(nd):
+            return nd.upper()
         if re.fullmatch(r"\d{1,12}", nd):
             return nd
+        m2_sem = _NF_SEM_RE.search(nd)
+        if m2_sem:
+            return m2_sem.group(1).strip().upper()
         m2 = _NF_DIGITS_RE.search(nd)
         if m2:
             return m2.group(1).strip()
