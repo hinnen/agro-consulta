@@ -12952,11 +12952,25 @@
         }
         var formaTxt = formaPagamentoResumoUi(state, computed);
         var fiadoDias = parseInt(state.pagamento.fiadoDiasVencimento, 10) || 30;
+        var lancamentosCupom = state.pagamento.lancamentos || [];
         var ehFiado =
             /fiado/i.test(formaTxt || '') ||
-            ((state.pagamento.lancamentos || []).some(function (L) {
+            lancamentosCupom.some(function (L) {
                 return String(L.forma || '').toLowerCase() === 'fiado';
-            }));
+            });
+        var valorFiadoCupom = 0;
+        var jaPagoPartsCupom = [];
+        lancamentosCupom.forEach(function (L) {
+            if (!L) return;
+            if (String(L.forma || '').toLowerCase() === 'fiado') {
+                valorFiadoCupom += State.toNumber(L.valor);
+            } else {
+                var lineJa = lancamentoFormaErpLine(L);
+                if (lineJa) jaPagoPartsCupom.push(lineJa);
+            }
+        });
+        valorFiadoCupom = Math.round((valorFiadoCupom + Number.EPSILON) * 100) / 100;
+        var fiadoMistoCupom = ehFiado && valorFiadoCupom > 0.009 && jaPagoPartsCupom.length > 0;
         var vencDt = new Date(agora.getTime());
         vencDt.setDate(vencDt.getDate() + fiadoDias);
         var vencStr = vencDt.toLocaleDateString('pt-BR', {
@@ -12978,6 +12992,10 @@
             eh_fiado: ehFiado,
             fiado_dias: fiadoDias,
             vencimento: ehFiado ? vencStr : '',
+            valor_fiado: valorFiadoCupom,
+            valor_fiado_texto: valorFiadoCupom > 0.009 ? formatMoney(valorFiadoCupom) : '',
+            ja_pago_texto: jaPagoPartsCupom.join(' + '),
+            fiado_misto: fiadoMistoCupom,
             itens: itens
         };
     }

@@ -95,6 +95,36 @@ def _forma_pagamento_cupom(venda) -> str:
     return str(getattr(venda, "forma_pagamento", "") or "").strip() or "—"
 
 
+def _fiado_misto_cupom_campos(venda) -> dict[str, Any]:
+    """Quando há fiado + outra forma: campos para destaque do saldo fiado no cupom 80mm."""
+    valor_fiado = Decimal("0")
+    ja_pago: list[str] = []
+    for row in pagamentos_lista_de_venda(venda):
+        if not isinstance(row, dict):
+            continue
+        fn = str(row.get("forma") or "").strip()
+        if not fn:
+            continue
+        try:
+            val = Decimal(str(row.get("valor") or 0)).quantize(Decimal("0.01"))
+        except Exception:
+            continue
+        if val <= Decimal("0.009"):
+            continue
+        if "fiado" in fn.lower():
+            valor_fiado += val
+        else:
+            ja_pago.append(f"{fn} R$ {format_moeda_br(val)}")
+    valor_fiado = valor_fiado.quantize(Decimal("0.01"))
+    misto = valor_fiado > Decimal("0.009") and bool(ja_pago)
+    return {
+        "valor_fiado": float(valor_fiado) if valor_fiado > Decimal("0.009") else 0.0,
+        "valor_fiado_texto": ("R$ " + format_moeda_br(valor_fiado)) if valor_fiado > Decimal("0.009") else "",
+        "ja_pago_texto": " · ".join(ja_pago) if ja_pago else "",
+        "fiado_misto": bool(misto),
+    }
+
+
 def serializar_venda_cupom_80mm(venda, *, segunda_via: bool = False) -> dict[str, Any]:
     """Payload JSON para impressão 80mm (lista de vendas, detalhe, PDV)."""
     from produtos.devolucao_venda_util import frete_restante, valor_restante_venda
@@ -146,6 +176,12 @@ def serializar_venda_cupom_80mm(venda, *, segunda_via: bool = False) -> dict[str
     tem_parcial = (not getattr(venda, "devolvida_em", None)) and total_rest < total - Decimal("0.009")
     eh_fiado = _venda_eh_fiado_cupom(venda)
     fiado_dias = _fiado_dias_vencimento_cupom(venda) if eh_fiado else 0
+    fiado_misto_campos = _fiado_misto_cupom_campos(venda) if eh_fiado else {
+        "valor_fiado": 0.0,
+        "valor_fiado_texto": "",
+        "ja_pago_texto": "",
+        "fiado_misto": False,
+    }
     dep = str(getattr(venda, "deposito", "") or "").strip().lower()
     if dep not in ("centro", "vila"):
         dep = ""
@@ -172,5 +208,6 @@ def serializar_venda_cupom_80mm(venda, *, segunda_via: bool = False) -> dict[str
         "deposito": dep,
         "loja_label": loja_label,
         "itens": itens,
+        **fiado_misto_campos,
     }
     return out

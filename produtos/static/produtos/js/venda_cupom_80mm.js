@@ -81,6 +81,70 @@
         return /fiado/i.test(String((c && c.forma_pagamento) || ''));
     }
 
+    function parseMoedaCupomToNumber(s) {
+        var t = String(s || '')
+            .replace(/R\$\s*/gi, '')
+            .replace(/\s/g, '')
+            .replace(/\./g, '')
+            .replace(',', '.');
+        var n = Number(t);
+        return isFinite(n) ? n : 0;
+    }
+
+    /**
+     * Fiado + outra forma: total menor + SALDO FIADO em destaque (evita achar que a dívida = total).
+     * Prefere campos do payload; senão parseia forma_pagamento ("Dinheiro R$ 44 + Fiado R$ 57").
+     */
+    function resolverFiadoMistoCupom(c) {
+        c = c || {};
+        if (!isFiadoCupom(c)) return null;
+        if (c.fiado_misto === false) return null;
+
+        var valorFiado = Number(c.valor_fiado);
+        var jaPagoTxt = String(c.ja_pago_texto || '').trim();
+        if (c.fiado_misto === true && isFinite(valorFiado) && valorFiado > 0.009 && jaPagoTxt) {
+            return {
+                valorFiado: valorFiado,
+                valorFiadoTexto: c.valor_fiado_texto || moedaCupom(valorFiado),
+                jaPagoTexto: jaPagoTxt
+            };
+        }
+
+        var raw = String(c.forma_pagamento || '').trim();
+        if (!raw) return null;
+        var parts = raw.split(/\s*[+·|]\s*/);
+        if (parts.length < 2) return null;
+        var fiadoParts = [];
+        var outrosParts = [];
+        var somaFiado = 0;
+        parts.forEach(function (p) {
+            var s = String(p || '').trim();
+            if (!s) return;
+            if (/fiado/i.test(s)) {
+                fiadoParts.push(s);
+                var m = s.match(/R\$\s*[\d.]+(?:,\d+)?/i) || s.match(/[\d.]+,\d{2}/);
+                if (m) somaFiado += parseMoedaCupomToNumber(m[0]);
+            } else {
+                outrosParts.push(s);
+            }
+        });
+        if (!fiadoParts.length || !outrosParts.length) return null;
+        if (!(somaFiado > 0.009)) {
+            var totalNum = Number(c.total);
+            if (isFinite(totalNum) && totalNum > 0.009) {
+                // Sem valor no texto do fiado: assume resto = total (não ideal, mas melhor que sumir)
+                somaFiado = totalNum;
+            } else {
+                return null;
+            }
+        }
+        return {
+            valorFiado: somaFiado,
+            valorFiadoTexto: c.valor_fiado_texto || moedaCupom(somaFiado),
+            jaPagoTexto: jaPagoTxt || outrosParts.join(' + ')
+        };
+    }
+
     function cupomEnsureFreteItem(c, itensRaw) {
         var itens = Array.isArray(itensRaw) ? itensRaw.slice() : [];
         var frete = Number((c && c.frete) || 0);
@@ -143,6 +207,11 @@
             '.total-linha{border-top:3px solid #000;margin:10px 0 6px;padding-top:6px;font-weight:900;font-size:22px;display:flex;justify-content:space-between;align-items:baseline;gap:4px}' +
             '.total-linha .total-valor{font-size:38px;line-height:1;letter-spacing:-0.03em}' +
             '.total-linha span:first-child{font-size:22px}' +
+            '.total-linha.total-linha-sec{font-size:14px;border-top-width:2px;margin:8px 0 4px;padding-top:4px}' +
+            '.total-linha.total-linha-sec .total-valor{font-size:20px;letter-spacing:-0.02em}' +
+            '.total-linha.total-linha-sec span:first-child{font-size:13px}' +
+            '.saldo-fiado-box{font-size:14px;font-weight:900;margin-top:8px;border:2px solid #000;padding:6px 5px;text-align:center;line-height:1.2}' +
+            '.saldo-fiado-box .saldo-fiado-valor{display:block;font-size:34px;line-height:1.05;letter-spacing:-0.03em;margin-top:3px}' +
             '.assinatura{margin-top:12px;border:2px solid #000;min-height:28mm;padding:5px 4px 3px;box-sizing:border-box}' +
             '.assinatura-titulo{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}' +
             '.assinatura-area{min-height:22mm}' +
@@ -364,21 +433,45 @@
                 '</div>';
         }
         h += lines;
-        h +=
-            '<div class="total-linha"><span>TOTAL</span><span class="total-valor">' +
-            escHtml(c.total_texto || moedaCupom(c.total)) +
-            '</span></div>';
-        if (c.tem_devolucao_parcial && c.total_original_texto) {
+        var fiadoMisto = resolverFiadoMistoCupom(c);
+        if (fiadoMisto) {
             h +=
-                '<div style="font-size:9px;font-weight:700;text-align:right;margin-top:2px;text-decoration:line-through;opacity:.7;">Original ' +
-                escHtml(c.total_original_texto) +
-                '</div>';
-        }
-        if (c.forma_pagamento) {
+                '<div class="total-linha total-linha-sec"><span>TOTAL</span><span class="total-valor">' +
+                escHtml(c.total_texto || moedaCupom(c.total)) +
+                '</span></div>';
+            if (c.tem_devolucao_parcial && c.total_original_texto) {
+                h +=
+                    '<div style="font-size:9px;font-weight:700;text-align:right;margin-top:2px;text-decoration:line-through;opacity:.7;">Original ' +
+                    escHtml(c.total_original_texto) +
+                    '</div>';
+            }
+            if (fiadoMisto.jaPagoTexto) {
+                h +=
+                    '<div style="font-size:11px;margin-top:4px;word-break:break-word;font-weight:800;"><strong>Já pago:</strong> ' +
+                    escHtml(fiadoMisto.jaPagoTexto) +
+                    '</div>';
+            }
             h +=
-                '<div style="font-size:11px;margin-top:4px;word-break:break-word;font-weight:800;"><strong>Pag.:</strong> ' +
-                escHtml(c.forma_pagamento) +
-                '</div>';
+                '<div class="saldo-fiado-box">SALDO FIADO<span class="saldo-fiado-valor">' +
+                escHtml(fiadoMisto.valorFiadoTexto) +
+                '</span></div>';
+        } else {
+            h +=
+                '<div class="total-linha"><span>TOTAL</span><span class="total-valor">' +
+                escHtml(c.total_texto || moedaCupom(c.total)) +
+                '</span></div>';
+            if (c.tem_devolucao_parcial && c.total_original_texto) {
+                h +=
+                    '<div style="font-size:9px;font-weight:700;text-align:right;margin-top:2px;text-decoration:line-through;opacity:.7;">Original ' +
+                    escHtml(c.total_original_texto) +
+                    '</div>';
+            }
+            if (c.forma_pagamento) {
+                h +=
+                    '<div style="font-size:11px;margin-top:4px;word-break:break-word;font-weight:800;"><strong>Pag.:</strong> ' +
+                    escHtml(c.forma_pagamento) +
+                    '</div>';
+            }
         }
         if (c.operador) {
             h += '<div style="font-size:9px;margin-top:3px;color:#334155;">Operador: ' + escHtml(c.operador) + '</div>';

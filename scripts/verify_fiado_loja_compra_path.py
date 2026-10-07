@@ -69,6 +69,7 @@ def test_arquivos() -> None:
     mig = _read("produtos/migrations/0139_fiadotituloagro_deposito.py")
     cupom_js = _read("produtos/static/produtos/js/venda_cupom_80mm.js")
     cupom_py = _read("produtos/venda_cupom_util.py")
+    wizard = _read("produtos/static/produtos/js/pdv_wizard.js")
 
     check("campo_deposito_modelo", 'name="deposito"' in models or "deposito = models.CharField" in models)
     check("migrate_0139", "fiadotituloagro" in mig.lower() and "backfill_deposito_fiado" in mig)
@@ -84,6 +85,10 @@ def test_arquivos() -> None:
     check("cupom_loja_py", '"loja_label"' in cupom_py and '"deposito"' in cupom_py)
     check("cupom_loja_js", "LOJA:" in cupom_js and "loja_label" in cupom_js)
     check("vias_fiado", "VIA DO CLIENTE" in cupom_js and "VIA DA LOJA" in cupom_js)
+    check("cupom_saldo_fiado_js", "SALDO FIADO" in cupom_js and "resolverFiadoMistoCupom" in cupom_js)
+    check("cupom_fiado_misto_py", "def _fiado_misto_cupom_campos" in cupom_py and '"fiado_misto"' in cupom_py)
+    check("cupom_ja_pago_js", "Já pago:" in cupom_js and "total-linha-sec" in cupom_js)
+    check("wizard_payload_misto", "fiado_misto:" in wizard and "ja_pago_texto:" in wizard)
 
 
 def test_logica() -> None:
@@ -212,6 +217,38 @@ def test_logica() -> None:
     cupom = serializar_venda_cupom_80mm(venda_v)
     check("cupom_eh_fiado", bool(cupom.get("eh_fiado")))
     check("cupom_loja_vila", cupom.get("loja_label") == "VILA" and cupom.get("deposito") == "vila")
+    check("cupom_so_fiado_nao_misto", cupom.get("fiado_misto") is False)
+
+    venda_mista = VendaAgro.objects.create(
+        cliente_nome=cli.nome,
+        cliente_id_erp=f"agro:{cli.pk}",
+        total=Decimal("101.00"),
+        forma_pagamento="Dinheiro + Fiado",
+        pagamentos_json=[
+            {"forma": "Dinheiro", "valor": 44},
+            {
+                "forma": "Fiado",
+                "valor": 57,
+                "fiado_parcelas": 1,
+                "fiado_dias_primeiro": 30,
+            },
+        ],
+        deposito="centro",
+        usuario_registro="prova-fiado-misto",
+    )
+    cupom_m = serializar_venda_cupom_80mm(venda_mista)
+    check("cupom_misto_flag", cupom_m.get("fiado_misto") is True)
+    check(
+        "cupom_misto_valor_fiado",
+        abs(float(cupom_m.get("valor_fiado") or 0) - 57.0) < 0.01,
+        str(cupom_m.get("valor_fiado")),
+    )
+    check(
+        "cupom_misto_ja_pago",
+        "Dinheiro" in str(cupom_m.get("ja_pago_texto") or "") and "44" in str(cupom_m.get("ja_pago_texto") or ""),
+        str(cupom_m.get("ja_pago_texto")),
+    )
+    check("cupom_misto_texto_fiado", "57" in str(cupom_m.get("valor_fiado_texto") or ""))
 
     User = get_user_model()
     user, _ = User.objects.get_or_create(username=f"prova_fiado_loja_{suf}", defaults={"is_staff": True})
