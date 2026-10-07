@@ -1567,6 +1567,43 @@ class OpcaoBaixaFinanceiroExtra(models.Model):
         return f"{self.get_tipo_display()}: {self.nome}{suf}"
 
 
+class ContaBancariaLojaAgro(models.Model):
+    """Cadastro de contas/bancos da loja (CP/baixa) — Postgres, compartilhado em todos os PCs.
+
+    Sem exclusão física: use ``ativo=False`` para ocultar do select. ``codigo`` é o
+    ``banco_id`` gravado nos títulos (estável ao renomear).
+    """
+
+    nome = models.CharField(max_length=300, unique=True, db_index=True)
+    codigo = models.CharField(
+        max_length=80,
+        unique=True,
+        db_index=True,
+        help_text="ID estável usado como banco_id nos títulos/baixas.",
+    )
+    ativo = models.BooleanField(default=True, db_index=True)
+    ordem = models.PositiveIntegerField(default=0, db_index=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["ordem", "nome"]
+        verbose_name = "Conta bancária (loja)"
+        verbose_name_plural = "Contas bancárias (loja)"
+
+    def save(self, *args, **kwargs):
+        self.nome = (self.nome or "").strip()[:300]
+        self.codigo = (self.codigo or "").strip()[:80]
+        if not self.codigo:
+            import uuid
+
+            self.codigo = f"loja-{uuid.uuid4().hex[:12]}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.nome
+
+
 class LancamentoAtalhoFiltro(models.Model):
     """
     Atalhos de filtro da lista de lançamentos (2 por usuário).

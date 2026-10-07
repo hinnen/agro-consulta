@@ -20594,37 +20594,44 @@ def api_lancamentos_opcoes_baixa(request):
         modo = "erp"
     _, db = obter_conexao_mongo()
     fonte = "mongo"
+    bancos_loja = False
     if agro_financeiro_usa_postgres():
         from produtos.lancamentos_financeiro_pg_util import listar_formas_e_bancos_distintos_pg
 
         formas, bancos = listar_formas_e_bancos_distintos_pg(modo=modo)
         fonte = "postgres"
         if db is not None and apenas_cadastro_erp:
-            from produtos.mongo_financeiro_util import (
-                _bancos_lista_com_placeholder_inicio,
-                listar_contas_bancarias_cadastro_mongo,
-                listar_formas_pagamento_cadastro_mongo,
-            )
+            from produtos.mongo_financeiro_util import listar_formas_pagamento_cadastro_mongo
 
             try:
-                bm = listar_contas_bancarias_cadastro_mongo(db, 400)
-                if len(bm) >= 2:
-                    bancos = _bancos_lista_com_placeholder_inicio(bm)
                 fm = listar_formas_pagamento_cadastro_mongo(db, 400)
                 if len(fm) >= 2:
                     formas = fm
                     fonte = "mongo_cadastro"
             except Exception:
-                logger.warning("api_lancamentos_opcoes_baixa cadastro mongo", exc_info=True)
+                logger.warning("api_lancamentos_opcoes_baixa cadastro mongo formas", exc_info=True)
     elif db is None:
-        return JsonResponse(
-            {"erro": "Mongo indisponível", "formas": [], "bancos": [], "modo": modo, "extras": []},
-            status=503,
-        )
+        formas, bancos = [], []
+        fonte = "sem_mongo"
     else:
         formas, bancos = listar_formas_e_bancos_distintos(
             db, modo=modo, fonte_cadastro_mestre=apenas_cadastro_erp
         )
+    # Contas da loja = Postgres (todos os PCs). Sem lista pessoal / sem cadastro Mongo.
+    try:
+        from produtos.conta_bancaria_loja_util import listar_bancos_para_baixa
+
+        bancos = listar_bancos_para_baixa()
+        bancos_loja = True
+        if fonte == "sem_mongo":
+            fonte = "loja_pg"
+    except Exception:
+        logger.warning("api_lancamentos_opcoes_baixa contas loja", exc_info=True)
+        if fonte == "sem_mongo":
+            return JsonResponse(
+                {"erro": "Mongo indisponível", "formas": [], "bancos": [], "modo": modo, "extras": []},
+                status=503,
+            )
     if apenas_cadastro_erp:
         det_f: list[dict] = []
         det_b: list[dict] = []
@@ -20633,9 +20640,12 @@ def api_lancamentos_opcoes_baixa(request):
         formas, det_f = _mesclar_opcoes_baixa_com_extras(
             formas, extras_q.filter(tipo=OpcaoBaixaFinanceiroExtra.Tipo.FORMA)
         )
-        bancos, det_b = _mesclar_opcoes_baixa_com_extras(
-            bancos, extras_q.filter(tipo=OpcaoBaixaFinanceiroExtra.Tipo.BANCO)
-        )
+        if bancos_loja:
+            det_b = []
+        else:
+            bancos, det_b = _mesclar_opcoes_baixa_com_extras(
+                bancos, extras_q.filter(tipo=OpcaoBaixaFinanceiroExtra.Tipo.BANCO)
+            )
     raw_cp = (request.GET.get("somente_dinheiro_banco") or "").strip().lower()
     somente_dinheiro_banco = raw_cp in ("1", "true", "yes", "sim", "on")
     if somente_dinheiro_banco:
@@ -20643,7 +20653,8 @@ def api_lancamentos_opcoes_baixa(request):
 
         formas = filtrar_formas_baixa_cp(formas)
     formas.sort(key=lambda x: (x.get("nome") or "").lower())
-    bancos.sort(key=lambda x: (x.get("nome") or "").lower())
+    if not bancos_loja:
+        bancos.sort(key=lambda x: (x.get("nome") or "").lower())
     return JsonResponse(
         {
             "formas": formas,
@@ -20651,6 +20662,7 @@ def api_lancamentos_opcoes_baixa(request):
             "modo": modo,
             "extras": det_f + det_b,
             "fonte": fonte,
+            "fonte_bancos": "loja_pg" if bancos_loja else fonte,
             "somente_dinheiro_banco": somente_dinheiro_banco,
         }
     )

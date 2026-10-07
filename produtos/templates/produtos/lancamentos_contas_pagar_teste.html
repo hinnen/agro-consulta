@@ -405,12 +405,42 @@
     background: rgba(15, 23, 42, 0.45);
   }
   .sv-modal.show { display: flex; }
+  .sv-modal.sv-modal-stack { z-index: 220; }
   @media (min-width: 640px) { .sv-modal { align-items: center; } }
   .sv-modal-card {
     width: 100%; max-width: 40rem; max-height: 90vh; overflow-y: auto;
     background: var(--cor-card); border-radius: var(--raio-borda);
     padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.15);
   }
+  .sv-modal-card.sv-modal-card-wide { max-width: 44rem; }
+  .sv-banco-label-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;
+  }
+  .sv-banco-label-row span { margin-bottom: 0 !important; }
+  .sv-btn-icon-pencil {
+    min-height: 40px; min-width: 40px; padding: 0 10px; border-radius: 10px;
+    border: 2px solid #cbd5e1; background: #fff; color: #0f172a; font-size: 1.05rem;
+    font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  }
+  .sv-btn-icon-pencil:hover { border-color: #059669; background: #ecfdf5; }
+  .sv-contas-lista { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; max-height: 48vh; overflow-y: auto; }
+  .sv-conta-row {
+    display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;
+    padding: 10px 12px; border: 2px solid var(--cor-borda); border-radius: 10px; background: #fafbfc;
+  }
+  .sv-conta-row.is-off { opacity: 0.55; background: #f1f5f9; }
+  .sv-conta-nome { font-weight: 700; font-size: 0.98rem; color: #0f172a; word-break: break-word; }
+  .sv-conta-meta { font-size: 0.75rem; font-weight: 700; color: #64748b; margin-top: 2px; text-transform: uppercase; }
+  .sv-conta-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+  .sv-conta-actions button {
+    min-height: 40px; padding: 0 12px; border-radius: 10px; border: 2px solid #cbd5e1;
+    background: #fff; font-weight: 800; font-size: 0.78rem; text-transform: uppercase; cursor: pointer;
+  }
+  .sv-conta-actions .sv-c-on { border-color: #059669; color: #047857; }
+  .sv-conta-actions .sv-c-off { border-color: #f59e0b; color: #b45309; }
+  .sv-conta-nova-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; margin-top: 14px; }
+  .sv-conta-nova-row label { flex: 1 1 220px; margin: 0; }
+  .sv-conta-nova-row button { min-height: 48px; }
   .sv-modal-card h2 { margin: 0 0 8px; font-size: 1.35rem; font-weight: 700; }
   .sv-modal-card label span { display: block; font-weight: 600; color: var(--cor-texto-secundario); margin-bottom: 6px; font-size: 0.95rem; }
   .sv-modal-card select, .sv-modal-card input[type="date"], .sv-modal-card input[type="text"] {
@@ -617,7 +647,13 @@
     <p id="sv-modal-baixa-resumo" class="sv-sub"></p>
     <label><span>Data do pagamento</span><input type="date" id="sv-bx-data"></label>
     <label style="display:block;margin-top:14px;"><span>Forma de pagamento</span><select id="sv-bx-forma"></select></label>
-    <label style="display:block;margin-top:14px;"><span>Conta / banco</span><select id="sv-bx-banco"></select></label>
+    <div style="display:block;margin-top:14px;">
+      <div class="sv-banco-label-row">
+        <span>Conta / banco</span>
+        <button type="button" class="sv-btn-icon-pencil" id="sv-bx-banco-gestao" title="Gerenciar contas da loja" aria-label="Gerenciar contas">✎</button>
+      </div>
+      <select id="sv-bx-banco"></select>
+    </div>
     <label id="sv-bx-retirar-wrap" style="display:none;margin-top:12px;align-items:flex-start;gap:10px;padding:10px;border:2px solid #fcd34d;border-radius:12px;background:#fffbeb;cursor:pointer;">
       <input type="checkbox" id="sv-bx-retirar-caixa" style="margin-top:3px;" autocomplete="off">
       <span style="font-size:12px;font-weight:700;color:#78350f;line-height:1.35;">Retirar do caixa do dia (gaveta)<br><span style="font-size:10px;font-weight:600;opacity:.9;">Só DINHEIRO. Marque se o valor sai da gaveta agora. BANCO = já saiu no depósito.</span></span>
@@ -633,6 +669,24 @@
     <div class="sv-modal-actions">
       <button type="button" class="sv-btn-action sv-btn-edit" id="sv-bx-cancel">Cancelar</button>
       <button type="button" class="sv-btn-action sv-btn-pay" id="sv-bx-ok">Confirmar pagamento</button>
+    </div>
+  </div>
+</div>
+
+<div id="sv-modal-contas-loja" class="sv-modal sv-modal-stack" role="dialog" aria-modal="true" aria-labelledby="sv-modal-contas-loja-titulo">
+  <div class="sv-modal-card sv-modal-card-wide">
+    <h2 id="sv-modal-contas-loja-titulo">Contas da loja</h2>
+    <p class="sv-sub">Lista do Postgres — vale em todos os PCs. Desativar some da lista de pagamento (não apaga histórico).</p>
+    <div class="sv-conta-nova-row">
+      <label>
+        <span>Nova conta</span>
+        <input type="text" id="sv-conta-nova-nome" maxlength="300" placeholder="Ex.: 001 — CPF | Banco Brasil ( Renan )" autocomplete="off">
+      </label>
+      <button type="button" class="sv-btn-action sv-btn-pay" id="sv-conta-nova-ok">Adicionar</button>
+    </div>
+    <div id="sv-contas-lista" class="sv-contas-lista" aria-live="polite"></div>
+    <div class="sv-modal-actions">
+      <button type="button" class="sv-btn-action sv-btn-edit" id="sv-contas-fechar">Fechar</button>
     </div>
   </div>
 </div>
@@ -773,6 +827,10 @@
   const API_PLANOS_CADASTRO = "{% url 'api_lancamentos_planos_cadastro' %}";
   const API_PLANOS_MAPEAR = "{% url 'api_lancamentos_planos_mapear' %}";
   const API_OPCOES = "{% url 'api_lancamentos_opcoes_baixa' %}";
+  const API_CONTAS_LOJA = "{% url 'api_contas_bancarias_loja_lista' %}";
+  const API_CONTAS_CRIAR = "{% url 'api_contas_bancarias_loja_criar' %}";
+  const API_CONTAS_RENOMEAR = "{% url 'api_contas_bancarias_loja_renomear' pk=0 %}".replace('/0/', '/__PK__/');
+  const API_CONTAS_TOGGLE = "{% url 'api_contas_bancarias_loja_toggle' pk=0 %}".replace('/0/', '/__PK__/');
   const API_BAIXA = "{% url 'api_lancamentos_baixa' %}";
   const API_BAIXA_PARCIAL = "{% url 'api_lancamentos_baixa_parcial' %}";
   const API_LANC_ALTERAR = "{% url 'api_lancamentos_alterar' %}";
@@ -1674,9 +1732,13 @@
     document.getElementById(id).classList.add('show');
   }
 
-  async function carregarOpcoesBaixa() {
+  async function carregarOpcoesBaixa(opts) {
+    const keepBanco = opts && opts.keepBanco != null ? String(opts.keepBanco) : '';
+    const selectBancoId = opts && opts.selectBancoId != null ? String(opts.selectBancoId) : '';
     const fs = document.getElementById('sv-bx-forma');
     const bs = document.getElementById('sv-bx-banco');
+    const prevForma = fs ? fs.value : '';
+    const prevBanco = keepBanco || (bs ? bs.value : '');
     fs.innerHTML = '<option value="">— Selecione —</option>';
     bs.innerHTML = '<option value="">— Selecione —</option>';
     try {
@@ -1695,12 +1757,110 @@
       (d.bancos || []).forEach((x) => {
         const o = document.createElement('option');
         const nome = String(x.nome || '');
-        o.value = `${String(x.id || '')}|||${nome}`;
-        o.textContent = x.origem === 'manual' ? `${nome} · lista pessoal` : nome;
+        const id = String(x.id || '');
+        o.value = `${id}|||${nome}`;
+        o.textContent = nome;
         bs.appendChild(o);
       });
+      const hasOpt = (sel, val) => Array.from(sel.options).some((o) => o.value === val);
+      if (prevForma && hasOpt(fs, prevForma)) fs.value = prevForma;
+      let escolhido = '';
+      if (selectBancoId) {
+        const hit = Array.from(bs.options).find((o) => o.value.startsWith(selectBancoId + '|||'));
+        if (hit) escolhido = hit.value;
+      }
+      if (!escolhido && prevBanco && hasOpt(bs, prevBanco)) escolhido = prevBanco;
+      if (escolhido) bs.value = escolhido;
     } catch (_) {}
     syncSvBxRetirar();
+  }
+
+  async function postContaJson(url, body) {
+    const r = await fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+      body: JSON.stringify(body || {}),
+    });
+    let d = {};
+    try { d = await r.json(); } catch (_) {}
+    if (!r.ok || d.ok === false) {
+      throw new Error(d.erro || ('Erro HTTP ' + r.status));
+    }
+    return d;
+  }
+
+  function renderContasLojaLista(itens) {
+    const box = document.getElementById('sv-contas-lista');
+    if (!box) return;
+    const rows = itens || [];
+    if (!rows.length) {
+      box.innerHTML = '<p class="sv-sub" style="margin:8px 0;">Nenhuma conta ainda. Adicione acima.</p>';
+      return;
+    }
+    box.innerHTML = rows.map((it) => {
+      const pk = Number(it.pk || 0);
+      const nome = esc(String(it.nome || ''));
+      const on = !!it.ativo;
+      return `<div class="sv-conta-row${on ? '' : ' is-off'}" data-pk="${pk}">
+        <div>
+          <div class="sv-conta-nome">${nome}</div>
+          <div class="sv-conta-meta">${on ? 'Ativa · aparece no pagamento' : 'Desativada · oculta no pagamento'}</div>
+        </div>
+        <div class="sv-conta-actions">
+          <button type="button" class="sv-c-ren" data-pk="${pk}">Renomear</button>
+          <button type="button" class="${on ? 'sv-c-off' : 'sv-c-on'}" data-pk="${pk}" data-ativo="${on ? '0' : '1'}">${on ? 'Desativar' : 'Ativar'}</button>
+        </div>
+      </div>`;
+    }).join('');
+    box.querySelectorAll('.sv-c-ren').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const pk = Number(btn.getAttribute('data-pk') || 0);
+        const row = rows.find((x) => Number(x.pk) === pk);
+        const atual = row ? String(row.nome || '') : '';
+        const novo = window.prompt('Novo nome da conta:', atual);
+        if (novo == null) return;
+        try {
+          await postContaJson(API_CONTAS_RENOMEAR.replace('__PK__', String(pk)), { nome: novo });
+          await carregarGestaoContasLoja();
+          await carregarOpcoesBaixa({ keepBanco: document.getElementById('sv-bx-banco')?.value || '' });
+        } catch (e) {
+          alert(e.message || 'Não foi possível renomear.');
+        }
+      });
+    });
+    box.querySelectorAll('.sv-c-on, .sv-c-off').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const pk = Number(btn.getAttribute('data-pk') || 0);
+        const ativo = String(btn.getAttribute('data-ativo') || '') === '1';
+        try {
+          await postContaJson(API_CONTAS_TOGGLE.replace('__PK__', String(pk)), { ativo });
+          await carregarGestaoContasLoja();
+          await carregarOpcoesBaixa({ keepBanco: document.getElementById('sv-bx-banco')?.value || '' });
+        } catch (e) {
+          alert(e.message || 'Não foi possível alterar.');
+        }
+      });
+    });
+  }
+
+  async function carregarGestaoContasLoja() {
+    const r = await fetch(API_CONTAS_LOJA + '?inativos=1', { credentials: 'same-origin' });
+    const d = await r.json();
+    if (!r.ok || d.ok === false) throw new Error(d.erro || 'Falha ao listar contas.');
+    renderContasLojaLista(d.itens || []);
+  }
+
+  async function abrirGestaoContasLoja() {
+    const inp = document.getElementById('sv-conta-nova-nome');
+    if (inp) inp.value = '';
+    abrirModal('sv-modal-contas-loja');
+    try {
+      await carregarGestaoContasLoja();
+    } catch (e) {
+      alert(e.message || 'Não foi possível abrir a gestão de contas.');
+      fecharModal('sv-modal-contas-loja');
+    }
   }
 
   function syncSvBxRetirar() {
@@ -2570,6 +2730,37 @@
   applyGridCols();
 
   document.getElementById('sv-bx-cancel').addEventListener('click', () => fecharModal('sv-modal-baixa'));
+  document.getElementById('sv-bx-banco-gestao')?.addEventListener('click', () => {
+    abrirGestaoContasLoja();
+  });
+  document.getElementById('sv-contas-fechar')?.addEventListener('click', () => fecharModal('sv-modal-contas-loja'));
+  document.getElementById('sv-conta-nova-ok')?.addEventListener('click', async () => {
+    const inp = document.getElementById('sv-conta-nova-nome');
+    const nome = (inp?.value || '').trim();
+    if (nome.length < 2) {
+      alert('Digite o nome da conta (mín. 2 letras).');
+      return;
+    }
+    const btn = document.getElementById('sv-conta-nova-ok');
+    if (btn) btn.disabled = true;
+    try {
+      const d = await postContaJson(API_CONTAS_CRIAR, { nome });
+      if (inp) inp.value = '';
+      await carregarGestaoContasLoja();
+      const novoId = d.item && d.item.id ? String(d.item.id) : '';
+      await carregarOpcoesBaixa({ selectBancoId: novoId });
+    } catch (e) {
+      alert(e.message || 'Não foi possível adicionar.');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  });
+  document.getElementById('sv-conta-nova-nome')?.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') {
+      ev.preventDefault();
+      document.getElementById('sv-conta-nova-ok')?.click();
+    }
+  });
   document.getElementById('sv-bxp-cancel').addEventListener('click', () => fecharModal('sv-modal-parcial'));
   document.getElementById('sv-edl-cancel')?.addEventListener('click', () => fecharModal('sv-modal-edit-lanc'));
   document.querySelectorAll('#sv-modal-edit-lanc .sv-sug-wrap').forEach(attachSuggest);
