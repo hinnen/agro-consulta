@@ -806,3 +806,17 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 **Live:** producao @ `1f127019` · Render `dep-db3350eq1p3s73f1mvig`.  
 **Rollback:** tag `rollback/pre-checklist-0710-v26.46` @ `68ef04ce` · `docs/ROLLBACK-CHECKLIST-0710.md` · **só** frase+senha.
+
+---
+
+## 63. Checklist único — lote 07/10b (deploy/prep-checklist-0710b · alvo loja **v26.56**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **BUG34-DEVOL-FRETE** | 🟢 **PREP** · **42/42** | **NÃO** |
+| 2 | **FIADO-CUPOM-SALDO-MISTO** | 🟢 **PREP** · **34/34** + **48/48** | **NÃO** |
+
+**Branch PREP:** deploy/prep-checklist-0710b · tip TIP_PLACEHOLDER · base Live **v26.53** @ 32198975.  
+**Rollback:** tag rollback/pre-checklist-0710b-v26.53 · docs/ROLLBACK-CHECKLIST-0710b.md · **só** frase+senha.  
+**Na senha:** pausar vendas · tip PREP → producao → Ctrl+F5 · badge **v26.56**. **Não** merge teste.
+
