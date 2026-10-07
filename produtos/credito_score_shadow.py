@@ -34,8 +34,9 @@ from produtos.models import (
     VendaAgro,
 )
 
-REGRA_VERSAO = "shadow_v1_1"
+REGRA_VERSAO = "shadow_v1_2"
 _Q2 = Decimal("0.01")
+_LIMITE_BLOQUEIO = Decimal("0.01")
 _ZERO = Decimal("0.00")
 
 # Alerta de título quitado sem baixas suficientes (inconsistência de pagamento).
@@ -51,13 +52,42 @@ def alerta_inconsistencia_pagamento(alertas: list | None) -> bool:
     return False
 
 
-def rotulo_candidato_revisao(*, candidato: bool, alertas: list | None) -> str:
+def _limite_fiado_bloqueado_001(limite_cad, limite_efet=None) -> bool:
+    """R$ 0,01 = bloqueio prático de fiado (decisão manual). Não desbloqueia nada."""
+    def _as_q2(val):
+        try:
+            if val is None:
+                return None
+            return Decimal(str(val).replace(",", ".")).quantize(_Q2)
+        except Exception:
+            return None
+
+    cad = _as_q2(limite_cad)
+    efet = _as_q2(limite_efet)
+    return cad == _LIMITE_BLOQUEIO or efet == _LIMITE_BLOQUEIO
+
+
+def rotulo_candidato_revisao(
+    *,
+    candidato: bool,
+    alertas: list | None,
+    limite_cadastrado=None,
+    limite_efetivo=None,
+) -> str:
     """
-    Regra provisória de apresentação:
-    inconsistência de baixas → «Revisar dados» (nunca «Sim»).
+    Apresentação (não altera limite/financeiro):
+    inconsistência → «Revisar dados»;
+    limite 0,01 → «Revisar bloqueio» (nunca «Sim»);
+    senão Sim/Não.
     """
     if alerta_inconsistencia_pagamento(alertas):
         return "Revisar dados"
+    if _limite_fiado_bloqueado_001(limite_cadastrado, limite_efetivo):
+        return "Revisar bloqueio"
+    for a in alertas or []:
+        txt = str(a)
+        if "0,01" in txt and "bloqueio" in txt.lower():
+            return "Revisar bloqueio"
     return "Sim" if candidato else "Não"
 
 
@@ -75,21 +105,21 @@ def _aplicar_travas_score(
 ) -> tuple[int, list[str]]:
     """
     Travas do score final (não altera pesos dos 5 componentes).
-    - % em dia < 50 → máx 79
-    - % em dia >= 50 e < 80 → máx 84
+    - % em dia < 50 → máx 69
+    - % em dia >= 50 e < 80 → máx 79
     - atraso > 30 dias (12m) → máx 79
     """
     travas: list[str] = []
     out = score
     if pct_em_dia is not None:
         if pct_em_dia < 50:
-            if out > 79:
-                travas.append("pct_em_dia<50→max79")
-            out = min(out, 79)
+            if out > 69:
+                travas.append("pct_em_dia<50→max69")
+            out = min(out, 69)
         elif pct_em_dia < 80:
-            if out > 84:
-                travas.append("pct_em_dia<80→max84")
-            out = min(out, 84)
+            if out > 79:
+                travas.append("pct_em_dia<80→max79")
+            out = min(out, 79)
     if maior_atraso_12m > 30:
         if out > 79:
             travas.append("atraso>30d→max79")
@@ -646,6 +676,7 @@ def analisar_cliente(
     )
     # Regra provisória: inconsistência quitado/baixas → «Revisar dados» (não candidato).
     revisar_dados = alerta_inconsistencia_pagamento(alertas)
+    bloqueio_001 = _limite_fiado_bloqueado_001(limite_cad, limite_efet)
     candidato = bool(
         score is not None
         and score >= 85
@@ -659,6 +690,7 @@ def analisar_cliente(
         and maior_atraso_12m <= 15
         and not tem_vencido
         and not revisar_dados
+        and not bloqueio_001
         and sugerido > limite_efet
     )
 
@@ -692,6 +724,7 @@ def analisar_cliente(
         "piso_operacional_sem_travar": float(max(sugerido, saldo_aberto).quantize(_Q2)),
         "candidato_revisao_limite": candidato,
         "revisar_dados_inconsistencia": revisar_dados,
+        "revisar_bloqueio_limite_001": bloqueio_001,
     }
 
     return ResultadoAnaliseCredito(
