@@ -1423,8 +1423,25 @@
     clearTimeout(state.buscaTimer);
     state.buscaTimer = setTimeout(function () {
       var inp = $('etq-busca-input');
-      buscarProdutos(inp ? inp.value.trim() : '');
+      buscarProdutos(inp ? inp.value.trim() : '', { autoAddBip: true });
     }, 280);
+  }
+
+  /** Bip/código GM: 1 resultado que casa exatamente → manda pra fila sem clicar no +. */
+  function produtoCasaCodigoBip(prod, q) {
+    if (!prod || !q) return false;
+    var digits = String(q).replace(/\D/g, '');
+    var cb = String(prod.codigo_barras || '').replace(/\D/g, '');
+    if (digits.length >= 8 && cb && cb === digits) return true;
+    var qn = String(q).trim().toUpperCase().replace(/\s+/g, '');
+    var cod = String(prod.codigo || prod.codigo_nfe || '')
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, '');
+    if (!cod) return false;
+    if (cod === qn) return true;
+    if (cod.replace(/-/g, '') === qn.replace(/-/g, '')) return true;
+    return false;
   }
 
   function buscarProdutos(q, opts) {
@@ -1456,6 +1473,17 @@
         var prods = filtrarOmitZero((data && data.produtos) || []);
         state.buscaQuery = q;
         state.buscaFiltrosKey = fkey;
+        /* Scanner sem Enter: 1 hit + código bate → fila + limpa campo */
+        if (
+          opts.autoAddBip &&
+          prods.length === 1 &&
+          produtoCasaCodigoBip(prods[0], q)
+        ) {
+          adicionarProdutoFila(prods[0], { limparBusca: true });
+          setStatus('Na fila: ' + (prods[0].nome || prods[0].codigo || 'produto'));
+          if (opts.onDone) opts.onDone([]);
+          return [];
+        }
         renderBusca(prods);
         if (meta) {
           meta.textContent = prods.length
@@ -2024,6 +2052,7 @@
             return;
           }
           buscarProdutos(q, {
+            autoAddBip: true,
             onDone: function (prods) {
               if (prods.length === 1) {
                 adicionarProdutoFila(prods[0], { limparBusca: true });
