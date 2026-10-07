@@ -94,6 +94,8 @@
               </a>
               {% if r.revisar_dados %}
               <span class="badge bg-orange-100 text-orange-900 ml-1">Revisar dados</span>
+              {% elif r.revisar_bloqueio %}
+              <span class="badge bg-rose-100 text-rose-900 ml-1">Revisar bloqueio</span>
               {% elif r.candidato_revisao %}
               <span class="badge bg-amber-100 text-amber-900 ml-1">Candidato revisão</span>
               {% endif %}

@@ -45,6 +45,8 @@
         <p class="mt-1 font-semibold">Confiança: <span class="text-emerald-800">{{ atual.confianca_label }}</span></p>
         {% if atual.revisar_dados %}
         <p class="mt-2 text-sm font-black text-orange-900 bg-orange-50 rounded-lg px-2 py-1 inline-block">Revisar dados (inconsistência de pagamento)</p>
+        {% elif atual.revisar_bloqueio %}
+        <p class="mt-2 text-sm font-black text-rose-900 bg-rose-50 rounded-lg px-2 py-1 inline-block">Revisar bloqueio (limite R$ 0,01 — fiado bloqueado; não desbloqueia)</p>
         {% elif atual.candidato_revisao %}
         <p class="mt-2 text-sm font-black text-amber-800 bg-amber-50 rounded-lg px-2 py-1 inline-block">Candidato para revisão de limite</p>
         {% endif %}
