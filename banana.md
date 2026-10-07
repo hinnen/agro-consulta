@@ -1295,7 +1295,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP pronto / aguarda senha** · branch `deploy/prep-fiado-cupom-saldo-misto` |
+| **Status** | 🟢 **pronto para envio à produção** · branch `deploy/prep-fiado-cupom-saldo-misto` @ `97704250` |
 | **Problema** | Dinheiro+Fiado: TOTAL grande fazia parecer que a dívida era o total |
 | **O quê** | Só no misto: TOTAL menor · **Já pago** · caixa **SALDO FIADO** · 100% fiado igual |
 | **Onde** | `venda_cupom_80mm.js` · `pdv_wizard.js` · `venda_cupom_util.py` |
@@ -1310,7 +1310,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- | ----- |
 | 1 | **FIADO-CUPOM-SALDO-MISTO** | 🟢 **pronto para envio à produção** | **NÃO** | **34/34** · **48/48** |
 
-**Base Live:** v26.53 · **Não** merge `teste`.
+**Base Live:** v26.53 @ `32198975` · PREP `97704250` · **Não** merge `teste`.
 
 ### 📦 PACOTE PRONTO — devolução frete bug #34 (`BUG34-DEVOL-FRETE` · **v26.55**) · 07/10
 

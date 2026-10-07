@@ -10,8 +10,8 @@
 
 **O quê:** no comprovante fiado com outra forma (ex. dinheiro + fiado), o TOTAL fica menor e o **SALDO FIADO** aparece em caixa grande. 100% fiado não muda.
 
-**Base Live:** v26.53 @ `1f127019` (ou tip atual de `producao` no PREP)  
-**Branch PREP:** `deploy/prep-fiado-cupom-saldo-misto`  
+**Base Live:** v26.53 @ `32198975`  
+**Branch PREP:** `deploy/prep-fiado-cupom-saldo-misto` · tip `97704250`  
 **Rollback:** tag `rollback/pre-fiado-cupom-saldo-misto-v26.53` · `docs/ROLLBACK-FIADO-CUPOM-SALDO-MISTO.md`
 
 **Não mexe:** finalizar venda, caixa, Point, NFC-e, títulos fiado (só layout do cupom 80mm + payload).
