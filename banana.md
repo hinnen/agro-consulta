@@ -1294,30 +1294,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚀 PREP deploy loja — Checklist 07/10c (`deploy/prep-checklist-0710c` · alvo **v26.60**) · aguarda senha
+### ✅ Deploy loja — Checklist 07/10c · **Live v26.60** · 07/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha |
+| **Status** | ✅ **enviado / Live v26.60** — `producao` @ `10b40523` · Render `dep-db3b287f3r2c738k1eig` · **não** foi merge do `teste` |
+| **O quê** | **BUG31-CB-TABELA** + **ETQ-PRESET-NF-MEM** + **NF-SEM-NUMERO** + **CP-CONTAS-LOJA-PG** (+ sync etiquetas restaurado) |
 | **Branch PREP** | `deploy/prep-checklist-0710c` · tip `10b40523` · base Live **v26.56** @ `d08617b0` |
-| **Alvo loja** | **v26.60** |
-| **Migrate** | **SIM** `0140` (ContaBancariaLojaAgro — não apaga títulos) |
-| **Merge teste?** | **NÃO** |
-| **Provas (PREP)** | bug31 **38/38**+JS **6/6** · bug24 **15/15** · etq espelho **51/51** · quota **34/34** · sync **26/26** · ponte **23/23** · NF-SEM **16/16** · NF-FIN **15/15** · CP **49/49** · **PREP_FAILS=0** |
-| **Rollback** | tag `rollback/pre-checklist-0710c-v26.56` @ `d08617b0` · branch `producao-backup-pre-v2660-checklist-20261007c` · `docs/ROLLBACK-CHECKLIST-0710c.md` |
-| **Na senha (rápido)** | pausar vendas → tip PREP em producao → Render Live (migrate 0140) → Ctrl+F5 · badge **v26.60** |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-0710c.md` |
+| **Migrate** | **SIM** `0140` |
+| **Provas** | bug31 **38/38**+JS **6/6** · etq **51/51**+sync **26/26** · NF **16/16** · CP **49/49** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-checklist-0710c-v26.56` @ `d08617b0` · branch `producao-backup-pre-v2660-checklist-20261007c` · `docs/ROLLBACK-CHECKLIST-0710c.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 · badge **v26.60** · cashback misto · presets nota · SEM-NF · CP contas loja |
 
-### ✅ CHECKLIST ÚNICO — 07/10c · 🟢 PREP v26.60 · aguarda senha
+### ✅ CHECKLIST ÚNICO — 07/10c · ✅ Live v26.60
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **BUG31-CB-TABELA** | 🟢 **no PREP** | **NÃO** | **38/38** · JS **6/6** |
-| 2 | **ETQ-PRESET-NF-MEM** | 🟢 **no PREP** | **NÃO** | **51/51** · sync **26/26** |
-| 3 | **NF-SEM-NUMERO** | 🟢 **no PREP** | **NÃO** | **16/16** |
-| 4 | **CP-CONTAS-LOJA-PG** | 🟢 **no PREP** | **SIM** `0140` | **49/49** |
-
-**Risco loja aberta:** baixo–médio. BUG31 só tabela no cashback misto. ETQ presets + sync. NF entrada. CP contas. **Não** mexe Point · NFC-e · finalizar caixa.
+| 1 | **BUG31-CB-TABELA** | ✅ **enviado / Live v26.60** | **NÃO** | **38/38** · JS **6/6** |
+| 2 | **ETQ-PRESET-NF-MEM** | ✅ **enviado / Live v26.60** | **NÃO** | **51/51** · sync **26/26** |
+| 3 | **NF-SEM-NUMERO** | ✅ **enviado / Live v26.60** | **NÃO** | **16/16** |
+| 4 | **CP-CONTAS-LOJA-PG** | ✅ **enviado / Live v26.60** | **SIM** `0140` | **49/49** |
 
 ### ✅ Deploy loja — Checklist 07/10b · **Live v26.56** · 07/10
 

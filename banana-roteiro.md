@@ -823,16 +823,14 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 67. Checklist único — lote 07/10c (deploy/prep-checklist-0710c · alvo loja **v26.60**)
+## 67. Checklist único — lote 07/10c · ✅ **Live v26.60** · 07/10
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **BUG31-CB-TABELA** | 🟢 **PREP** · **38/38** + JS **6/6** | **NÃO** |
-| 2 | **ETQ-PRESET-NF-MEM** | 🟢 **PREP** · **51/51** + sync **26/26** | **NÃO** |
-| 3 | **NF-SEM-NUMERO** | 🟢 **PREP** · **16/16** | **NÃO** |
-| 4 | **CP-CONTAS-LOJA-PG** | 🟢 **PREP** · **49/49** | **SIM** 0140 |
+| 1 | **BUG31-CB-TABELA** | ✅ **Live v26.60** · **38/38** + JS **6/6** | **NÃO** |
+| 2 | **ETQ-PRESET-NF-MEM** | ✅ **Live v26.60** · **51/51** + sync **26/26** | **NÃO** |
+| 3 | **NF-SEM-NUMERO** | ✅ **Live v26.60** · **16/16** | **NÃO** |
+| 4 | **CP-CONTAS-LOJA-PG** | ✅ **Live v26.60** · **49/49** | **SIM** 0140 |
 
-**Branch PREP:** deploy/prep-checklist-0710c · tip 10b40523 · base Live **v26.56** @ d08617b0.  
-**Rollback:** tag rollback/pre-checklist-0710c-v26.56 · docs/ROLLBACK-CHECKLIST-0710c.md · **só** frase+senha.  
-**Na senha:** pausar vendas · tip PREP → producao → Ctrl+F5 · badge **v26.60**. **Não** merge teste.
-
+**Live:** producao @ `10b40523` · Render `dep-db3b287f3r2c738k1eig`.  
+**Rollback:** tag `rollback/pre-checklist-0710c-v26.56` @ `d08617b0` · `docs/ROLLBACK-CHECKLIST-0710c.md` · **só** frase+senha.
