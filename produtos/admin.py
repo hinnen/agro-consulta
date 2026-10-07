@@ -4,6 +4,7 @@ from .models import (
     ClienteAgro,
     ClienteAgroEventoAgro,
     ClienteAnaliseCreditoAgro,
+    ContaBancariaLojaAgro,
     FiadoBaixaAgro,
     FiadoEventoAgro,
     FiadoTituloAgro,
@@ -322,3 +323,11 @@ class PlanoContaAgroAdmin(admin.ModelAdmin):
     list_filter = ("tipo", "exibir_pdv", "ativo")
     search_fields = ("nome", "grupo")
     list_editable = ("exibir_pdv", "ativo")
+
+
+@admin.register(ContaBancariaLojaAgro)
+class ContaBancariaLojaAgroAdmin(admin.ModelAdmin):
+    list_display = ("id", "nome", "codigo", "ativo", "ordem", "atualizado_em")
+    list_filter = ("ativo",)
+    search_fields = ("nome", "codigo")
+    list_editable = ("ativo", "ordem")

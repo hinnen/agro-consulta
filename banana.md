@@ -669,6 +669,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 ### 4.10 LanÃ§amentos / financeiro
 
 - `/lancamentos/` â€” redirect â†’ **Contas a pagar padrÃ£o:** `/lancamentos/contas-pagar/` (**layout novo**) Â· `/classico/` â†’ redirect Â· `/teste/` â†’ redirect
+- **Contas/banco da baixa (`CP-CONTAS-LOJA-PG` · v26.60):** cadastro Postgres `ContaBancariaLojaAgro` (loja inteira, todos os PCs). Modal pagamento CP: lápis → adicionar / renomear / desativar (sem excluir). API `api/lancamentos/contas-loja/*`; select da baixa usa lista ativa + placeholder.
 - Contas a receber: `/lancamentos/contas-receber/` (layout clÃ¡ssico)
 - PDF: `lancamentos_financeiro_pdf.py` (sem coluna observaÃ§Ãµes longas; forma pagamento; bruto destacado).
 - Busca na lista: termos com espaÃ§o; **valor** (bruto/pago/saldo); **número da NF**; **data** digitada; boleto; parcela; CPF/CNPJ. Ajuda: `includes/lancamentos_help_agents.html`.
@@ -1292,6 +1293,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 📦 PACOTE PRONTO — Contas banco loja no CP (`CP-CONTAS-LOJA-PG` · **v26.60** · 07/10)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **no `teste`** · prova path OK · validar no PC · **não** loja |
+| **O quê** | Contas/bancos da baixa no **Postgres da loja** (todos os PCs). No pagamento CP: lápis → popup adicionar / renomear / **desativar** (sem excluir). Select lê só contas ativas + «ADICIONAR CONTA». |
+| **Arquivos** | `ContaBancariaLojaAgro` · migrate `0140` · `conta_bancaria_loja_util.py` · `views_conta_bancaria_loja.py` · `views.py` (opções baixa) · `lancamentos_contas_pagar_teste.html` · backup registry |
+| **Prova** | `scripts/verify_conta_bancaria_loja_path.py` **FAILS=0** |
+| **Migrate** | **SIM** (`produtos.0140`) |
+| **Você** | Ctrl+F5 Contas a pagar → Pagar → ✎ · adicionar / desativar · outro PC vê igual |
+
+### ✅ CHECKLIST ÚNICO — CP-CONTAS-LOJA-PG · 🟢 teste · alvo **v26.60**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CP-CONTAS-LOJA-PG** | 🟢 **teste** · path OK · aguarda validação PC | **SIM** `0140` |
 
 ### 📦 PACOTE PRONTO — Nº NF vazio gera SEM- (`NF-SEM-NUMERO` · **v26.59** · 07/10)
 

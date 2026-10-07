@@ -24,6 +24,7 @@ from . import views_cliente_planilha
 from . import bug_report_views
 from . import ajuste_codigo_pendente_views
 from . import views_planos_conta
+from . import views_conta_bancaria_loja
 from . import contagem_ciclica_views
 from . import views_fotos_produto
 from . import views_meta_vendas
@@ -1381,6 +1382,26 @@ urlpatterns = [
         'api/lancamentos/opcoes-baixa/extra/<int:pk>/excluir/',
         views.api_lancamentos_opcoes_baixa_extra_excluir,
         name='api_lancamentos_opcoes_baixa_extra_excluir',
+    ),
+    path(
+        'api/lancamentos/contas-loja/',
+        views_conta_bancaria_loja.api_contas_bancarias_loja_lista,
+        name='api_contas_bancarias_loja_lista',
+    ),
+    path(
+        'api/lancamentos/contas-loja/criar/',
+        views_conta_bancaria_loja.api_contas_bancarias_loja_criar,
+        name='api_contas_bancarias_loja_criar',
+    ),
+    path(
+        'api/lancamentos/contas-loja/<int:pk>/renomear/',
+        views_conta_bancaria_loja.api_contas_bancarias_loja_renomear,
+        name='api_contas_bancarias_loja_renomear',
+    ),
+    path(
+        'api/lancamentos/contas-loja/<int:pk>/toggle/',
+        views_conta_bancaria_loja.api_contas_bancarias_loja_toggle,
+        name='api_contas_bancarias_loja_toggle',
     ),
     path(
         'api/lancamentos/baixa/',
