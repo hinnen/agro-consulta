@@ -555,7 +555,6 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 - Contexto antigo detalhado: `docs/CONTEXTO_SESSAO_CLIENTES_PDV.md`.
 - **Fiado limite (`FIADO-LIMITE-LINHA`):** na lista `/fiado/`, clique no valor da coluna **Limite** para editar (sem botão Limite cliente).
 - **Limite no PDV sem reabrir (`PDV-FIADO-LIMITE-REFRESH` · Live v26.05):** ao mudar o limite, o wizard busca de novo o crédito (Fiado / lançar / confirmar / foco).
-- **Loja da compra (`FIADO-LOJA-COMPRA` · 07/10):** `FiadoTituloAgro.deposito` (centro/vila) · coluna Loja + filtro · sem botão Ver · cupom fiado mostra LOJA nas 2 vias · migrate `0139` backfill.
 
 ### 4.6 Cadastro / gestÃ£o de produtos
 
@@ -1292,58 +1291,37 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — Loja da compra no fiado (`FIADO-LOJA-COMPRA` · **v26.53**) · 07/10
+### 🚀 PREP deploy loja — Checklist 07/10 (`deploy/prep-checklist-0710` · alvo **v26.53**) · aguarda senha
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **pronto para envio à produção** — aguarda frase + senha |
-| **O quê** | Coluna **Loja** CENTRO/VILA · sem **Ver** · filtro Todas/Centro/Vila/Sem loja · `deposito` no título + backfill · Editar legado · cupom fiado (2 vias) **LOJA:** |
-| **Migrate** | **SIM** `produtos.0139` |
-| **Prova** | path **39/39** · recibos UX **68/68** · dual loja OK |
-| **Tip** | `teste` **v26.53** |
-| **Base loja** | Live **v26.46** |
-| **Não mexe** | recibo de pagamento/baixa · caixa · NFC-e |
-| **Você** | migrate · Ctrl+F5 `/fiado/` · filtrar · marcar legado · imprimir fiado |
+| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha |
+| **Branch PREP** | `deploy/prep-checklist-0710` · tip `1f127019` · base Live **v26.46** @ `68ef04ce` |
+| **Alvo loja** | **v26.53** |
+| **Migrate** | **SIM** `0139` (AddField + backfill deposito — não apaga títulos) |
+| **Merge teste?** | **NÃO** |
+| **Provas (PREP)** | fiado loja **39/39** · recibos **68/68** · ponte **23/23** · smoke **13/13** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-checklist-0710-v26.46` @ `68ef04ce` · branch `producao-backup-pre-v2653-checklist-20261007` · `docs/ROLLBACK-CHECKLIST-0710.md` |
+| **Na senha (rápido)** | pausar vendas → tip PREP em producao → Render Live (migrate 0139) → Ctrl+F5 · badge **v26.53** |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-0710.md` |
 
-### 📦 PACOTE PRONTO LOJA — Ponte topbar + bip → fila (`ETQ-PONTE-TOPBAR-BIP` · **v26.52**) · 07/10
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | 🟢 **pronto para envio à produção** — aguarda frase + senha |
-| **O quê** | Botão **Ponte** (modal/mapa) · sem rodapé na fila · fix busca SQLite · bip EAN/GM **exato** → fila + limpa campo |
-| **Migrate** | **NÃO** |
-| **Prova** | path **23/23** · print **53/53** · dl **22/22** · full **83/83** · smoke PIN **13/13** · barras **17/17** |
-| **Tip** | `teste` **v26.52** |
-| **Base loja** | Live **v26.46** |
-| **Não mexe** | PDV venda · caixa · NFC-e · fiado |
-| **Você** | Ctrl+F5 Etiquetas · Ponte · bipar 2 EANs seguidos |
-
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção · 07/10
+### ✅ CHECKLIST ÚNICO — 07/10 · 🟢 PREP v26.53 · aguarda senha
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **FIADO-LOJA-COMPRA** | 🟢 **pronto para envio à produção** | **SIM** `0139` | **39/39** |
-| 2 | **ETQ-PONTE-TOPBAR-BIP** | 🟢 **pronto para envio à produção** | **NÃO** | path **23/23** · smoke **13/13** |
+| 1 | **ETQ-PONTE-TOPBAR-BIP** | 🟢 **no PREP** | **NÃO** | **23/23** · smoke **13/13** |
+| 2 | **FIADO-LOJA-COMPRA** | 🟢 **no PREP** | **SIM** `0139` | **39/39** · recibos **68/68** |
+
+**Risco loja aberta:** baixo. Etiquetas (Ponte/bip) + gestão fiado (coluna Loja). **Não** mexe finalizar venda · caixa · Point · NFC-e.
 
 ### ✅ Deploy loja — Checklist 05/10d · **Live v26.46** · 05/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v26.46** — producao @ 68ef04ce · Render dep-db21bsmgekts739g5sj0 · **não** foi merge do teste |
-| **O quê** | **CREDITO-SCORE-TRAVAS** + **ETQ-PONTE-1CLIQUE** (+ NODE-FIX) |
-| **Branch PREP** | deploy/prep-checklist-0510d · tip 68ef04ce · base Live **v26.40** @ 8be1f093 |
+| **Status** | ✅ **enviado / Live v26.46** — producao @ `68ef04ce` · **não** foi merge do teste |
+| **O quê** | CREDITO-SCORE-TRAVAS + ETQ-PONTE-1CLIQUE |
 | **Migrate** | **NÃO** |
-| **Smoke** | healthz **ok** · deploy **live** |
-| **Provas (PREP)** | shadow **98/98** · xlsx **90/90** · 1clique **37/37** · **PREP_FAILS=0** |
-| **Rollback** | tag rollback/pre-checklist-0510d-v26.40 @ 8be1f093 · branch producao-backup-pre-v2646-checklist-0510d · docs/ROLLBACK-CHECKLIST-0510d.md · **só** frase+senha |
-| **Você** | Ctrl+F5 · badge **v26.46** · liberar vendas · PC etiqueta: baixar ZIP de novo se for reinstalar ponte |
-
-### ✅ CHECKLIST ÚNICO — 05/10d · ✅ Live v26.46
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **CREDITO-SCORE-TRAVAS** | ✅ **enviado / Live v26.46** | **NÃO** | **98/98** · xlsx **90/90** |
-| 2 | **ETQ-PONTE-1CLIQUE** (+ NODE-FIX) | ✅ **enviado / Live v26.46** | **NÃO** | **37/37** |
+| **Rollback** | tag `rollback/pre-checklist-0510d-v26.40` · `docs/ROLLBACK-CHECKLIST-0510d.md` |
 
 ### ✅ Deploy loja — ETQ-PRINT-ELGIN-MAP · **Live v26.40** · 05/10
 
@@ -1389,7 +1367,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### 📦 PACOTES JÁ LIVE (05/10c · v26.35) — sem fila
 
-`PDV-PEDIR-PARCIAL-RESTO` · `PDV-PEDIR-PRONTO-TRANSF` · `META-MODO-AGORA` · `CREDITO-SCORE-XLSX-COLS` · `ETQ-PRESET-ESPELHO` · `ETQ-PRINT-DIRETO` · `PDV-PEDIR-PRINT-3` → ✅ **Live v26.35**. Fila atual = vazia. Último envio = **05/10d** Live **v26.46** (TRAVAS + PONTE-1CLIQUE). ETQ-PRINT-ELGIN-MAP Live v26.40.
+`PDV-PEDIR-PARCIAL-RESTO` · `PDV-PEDIR-PRONTO-TRANSF` · `META-MODO-AGORA` · `CREDITO-SCORE-XLSX-COLS` · `ETQ-PRESET-ESPELHO` · `ETQ-PRINT-DIRETO` · `PDV-PEDIR-PRINT-3` → ✅ **Live v26.35**. Fila atual = **PREP** deploy/prep-checklist-0510d · v26.46 (aguarda senha). ETQ-PRINT-ELGIN-MAP já Live v26.40.
 
 ### 🚀 PREP deploy loja — Checklist 05/10b (`deploy/prep-checklist-0510b` · **v26.24**) · aguarda senha
 

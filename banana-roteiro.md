@@ -766,27 +766,16 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 59. CHECKLIST ÚNICO — ETQ-PONTE-TOPBAR-BIP · 🟢 pronto envio (alvo **v26.52**)
+## 58. CHECKLIST ÚNICO — ETQ-PRINT-ELGIN-MAP · 🟢 PREP v26.40 · aguarda senha
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-PONTE-TOPBAR-BIP** | 🟢 **pronto para envio à produção** · path **23/23** · smoke **13/13** | **NÃO** |
+| 1 | **ETQ-PRINT-ELGIN-MAP** | 🟢 **no PREP** · full **74/74** | **NÃO** |
 
-**O quê:** Ponte na topbar · bip EAN/GM → fila · sem rodapé na fila · fix SQLite.  
-**Prova:** `verify_etq_ponte_topbar_bip_path.js` **23/23** · smoke PIN **13/13** · full print **83/83**.  
-**Base:** Live **v26.46**. **Só** frase+senha.
-
----
-
-## 58. CHECKLIST ÚNICO — ETQ-PRINT-ELGIN-MAP · ✅ **Live v26.40**
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **ETQ-PRINT-ELGIN-MAP** | ✅ **Live v26.40** · full **74/74** | **NÃO** |
-
-**Status:** ✅ enviado / Live **v26.40** — `producao` @ `8be1f093` · Render `dep-db20u9favr4c73a4ot70`. **Não** merge `teste`.  
-**Rollback:** tag `rollback/pre-etq-print-elgin-map-v26.35` · `docs/ROLLBACK-ETQ-PRINT-ELGIN-MAP.md` · **só** frase+senha.  
-**Smoke:** Ctrl+F5 · badge **v26.40** · reiniciar ponte · 1×40 + 1×50.
+**Branch PREP:** `deploy/prep-etq-print-elgin-map` · base Live **v26.35** @ `c517af0a`.  
+**Prova:** full **74/74** · print **40→Elgin 40x40** · **50→Elgin 50x30** · **PREP_FAILS=0**.  
+**Doc:** `docs/DEPLOY-PREP-ETQ-PRINT-ELGIN-MAP.md` · rollback `docs/ROLLBACK-ETQ-PRINT-ELGIN-MAP.md`.  
+**Na senha:** `reset --hard origin/deploy/prep-etq-print-elgin-map` → push `producao`. **Não** merge `teste`.
 
 ---
 
@@ -805,4 +794,17 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **Status:** ✅ enviado / Live **v26.35** — `producao` @ `c517af0a` · Render `dep-db201js9v7es73fuo7sg`. **Não** merge `teste`.  
 **Rollback:** tag `rollback/pre-checklist-0510c-v26.08` · `docs/ROLLBACK-CHECKLIST-0510c.md` · **só** frase+senha.  
 **Smoke:** healthz ok · Ctrl+F5 · badge **v26.35**.
+
+---
+
+## 60. Checklist único — lote 07/10 (deploy/prep-checklist-0710 · alvo loja **v26.53**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **ETQ-PONTE-TOPBAR-BIP** | 🟢 **PREP** · **23/23** + smoke **13/13** | **NÃO** |
+| 2 | **FIADO-LOJA-COMPRA** | 🟢 **PREP** · **39/39** | **SIM** 0139 |
+
+**Branch PREP:** deploy/prep-checklist-0710 · tip 1f127019 · base Live **v26.46** @ 68ef04ce.  
+**Rollback:** tag rollback/pre-checklist-0710-v26.46 · docs/ROLLBACK-CHECKLIST-0710.md · **só** frase+senha.  
+**Na senha:** pausar vendas · tip PREP → producao → Ctrl+F5 · badge **v26.53**. **Não** merge teste.
 
