@@ -1291,28 +1291,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚀 PREP deploy loja — Checklist 07/10b (`deploy/prep-checklist-0710b` · alvo **v26.56**) · aguarda senha
+### ✅ Deploy loja — Checklist 07/10b · **Live v26.56** · 07/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha |
-| **Branch PREP** | `deploy/prep-checklist-0710b` · tip `775e7235` · base Live **v26.53** @ `32198975` |
-| **Alvo loja** | **v26.56** |
+| **Status** | ✅ **enviado / Live v26.56** — `producao` @ `471a11a9` · Render `dep-db35p995efls73cmb2fg` · **não** foi merge do `teste` |
+| **O quê** | **BUG34-DEVOL-FRETE** + **FIADO-CUPOM-SALDO-MISTO** |
+| **Branch PREP** | `deploy/prep-checklist-0710b` · tip `471a11a9` · base Live **v26.53** @ `32198975` |
 | **Migrate** | **NÃO** |
-| **Merge teste?** | **NÃO** |
-| **Provas (PREP)** | bug34 **42/42** · cupom misto **34/34** · loja compra **48/48** · **PREP_FAILS=0** |
-| **Rollback** | tag `rollback/pre-checklist-0710b-v26.53` @ `32198975` · branch `producao-backup-pre-v2656-checklist-20261007b` · `docs/ROLLBACK-CHECKLIST-0710b.md` |
-| **Na senha (rápido)** | pausar vendas → tip PREP em producao → Render Live → Ctrl+F5 · badge **v26.56** |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-0710b.md` |
+| **Provas** | bug34 **42/42** · cupom misto **34/34** · loja compra **48/48** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-checklist-0710b-v26.53` @ `32198975` · branch `producao-backup-pre-v2656-checklist-20261007b` · `docs/ROLLBACK-CHECKLIST-0710b.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 · badge **v26.56** · devolução frete · cupom dinheiro+fiado |
 
-### ✅ CHECKLIST ÚNICO — 07/10b · 🟢 PREP v26.56 · aguarda senha
+### ✅ CHECKLIST ÚNICO — 07/10b · ✅ Live v26.56
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **BUG34-DEVOL-FRETE** | 🟢 **no PREP** | **NÃO** | **42/42** |
-| 2 | **FIADO-CUPOM-SALDO-MISTO** | 🟢 **no PREP** | **NÃO** | **34/34** · **48/48** |
-
-**Risco loja aberta:** baixo. Devolução frete + layout cupom misto. **Não** mexe finalizar venda · caixa · Point · NFC-e.
+| 1 | **BUG34-DEVOL-FRETE** | ✅ **enviado / Live v26.56** | **NÃO** | **42/42** |
+| 2 | **FIADO-CUPOM-SALDO-MISTO** | ✅ **enviado / Live v26.56** | **NÃO** | **34/34** · **48/48** |
 
 ### ✅ Deploy loja — Checklist 07/10 · **Live v26.53** · 07/10
 
