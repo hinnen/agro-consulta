@@ -1299,7 +1299,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha |
-| **Branch PREP** | `deploy/prep-checklist-0710c` · tip `TIP_PLACEHOLDER` · base Live **v26.56** @ `d08617b0` |
+| **Branch PREP** | `deploy/prep-checklist-0710c` · tip `10741798` · base Live **v26.56** @ `d08617b0` |
 | **Alvo loja** | **v26.60** |
 | **Migrate** | **SIM** `0140` (ContaBancariaLojaAgro — não apaga títulos) |
 | **Merge teste?** | **NÃO** |
