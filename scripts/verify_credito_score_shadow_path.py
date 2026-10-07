@@ -47,6 +47,7 @@ from produtos.credito_score_shadow import (
     analisar_cliente,
     analisar_clientes,
     persistir_analise,
+    rotulo_candidato_revisao,
 )
 from produtos.models import (
     ClienteAgro,
@@ -109,7 +110,7 @@ def test_arquivos_e_isolamento() -> None:
     check("arquivo_migration_0137", mig.is_file())
     check("rota_laboratorio", "fiado/analise-credito/" in urls)
     check("rota_detalhe", "fiado/analise-credito/cliente/<int:pk>/" in urls)
-    check("regra_versao", REGRA_VERSAO == "shadow_v1_1")
+    check("regra_versao", REGRA_VERSAO == "shadow_v1_2")
 
     src = motor.read_text(encoding="utf-8")
     tree = ast.parse(src)
@@ -164,7 +165,7 @@ def test_arquivos_e_isolamento() -> None:
 
 
 def test_formula_pura() -> None:
-    print("== 2) Fórmula shadow_v1_1 (puros) ==")
+    print("== 2) Fórmula shadow_v1_2 (puros) ==")
     check("fator_0", _fator_pontualidade(0) == Decimal("1.00"))
     check("fator_3", _fator_pontualidade(3) == Decimal("0.90"))
     check("fator_5", _fator_pontualidade(5) == Decimal("0.75"))
@@ -255,7 +256,7 @@ def test_db_cenarios() -> None:
             check("atrasos_pioram", scores[0] >= scores[1] > scores[2] > scores[3], str(scores))
             check("trava_atraso_40_max79", scores[3] is not None and scores[3] <= 79, str(scores[3]))
 
-            # Trava % em dia < 50 → score máx 79 (pesos intactos; só teto)
+            # Trava % em dia < 50 → score máx 69 (pesos intactos; só teto)
             late = ClienteAgro.objects.create(nome="ZZ Late Pct", limite_fiado_local=Decimal("300"))
             for i in range(4):
                 venc = hoje - timedelta(days=40 + 30 * i)
@@ -278,8 +279,36 @@ def test_db_cenarios() -> None:
             rl = analisar_cliente(late, hoje=hoje, media_3m=Decimal("100"))
             pct = rl.indicadores.get("pct_pago_em_dia")
             check("late_pct_lt_50", pct is not None and float(pct) < 50, str(pct))
-            check("late_score_max79", rl.score is not None and rl.score <= 79, str(rl.score))
+            check("late_score_max69", rl.score is not None and rl.score <= 69, str(rl.score))
             check("late_nao_candidato", rl.candidato_revisao is False)
+
+            # Limite 0,01 → nunca candidato; rótulo Revisar bloqueio
+            bloq = ClienteAgro.objects.create(nome="ZZ Bloq 001", limite_fiado_local=Decimal("0.01"))
+            for i in range(6):
+                venc = hoje - timedelta(days=30 + 20 * i)
+                t = _titulo(
+                    bloq,
+                    bruto="120.00",
+                    pago="120.00",
+                    situacao=FiadoTituloAgro.Situacao.QUITADO,
+                    vencimento=venc,
+                    chave=f"bloq-{bloq.pk}-{i}",
+                )
+                _baixa(
+                    t,
+                    "120.00",
+                    timezone.make_aware(datetime(venc.year, venc.month, venc.day, 10, 0, 0)),
+                )
+            rb001 = analisar_cliente(bloq, hoje=hoje, media_3m=Decimal("200"))
+            check("bloq001_limite_intact", bloq.limite_fiado_local == Decimal("0.01"))
+            check("bloq001_nao_candidato", rb001.candidato_revisao is False)
+            lab001 = rotulo_candidato_revisao(
+                candidato=False,
+                alertas=rb001.alertas,
+                limite_cadastrado=rb001.limite_cadastrado,
+                limite_efetivo=rb001.limite_efetivo,
+            )
+            check("bloq001_rotulo_revisar_bloqueio", lab001 == "Revisar bloqueio", lab001)
 
             # Candidato exige >=6 analisados, >=80% em dia, atraso hist <=15
             check(

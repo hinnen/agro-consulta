@@ -1294,6 +1294,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### PACOTE PRONTO — Travas crédito shadow_v1_2 (CREDITO-SCORE-TRAVAS-V12)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Travas % em dia máx **69** / **79**; limite **R\$ 0,01** → rótulo **Revisar bloqueio** (nunca candidato). Pesos/limite sugerido iguais. Só lab shadow. |
+| **Migrate** | **NÃO** |
+| **Prova** | shadow **101/101** · tip teste **v26.61** |
+| **Status** | 🟢 **pronto para envio** · aguarda frase+senha p/ loja + recalc/Excel |
+| **Rollback** | docs/ROLLBACK-CREDITO-SCORE-SHADOW.md · **só** frase+senha |
+
+### ✅ CHECKLIST ÚNICO — CREDITO-SCORE-TRAVAS-V12 · 🟢 pronto para envio
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CREDITO-SCORE-TRAVAS-V12** | 🟢 **pronto para envio** | **NÃO** | **101/101** |
+
 ### ✅ Deploy loja — Checklist 07/10c · **Live v26.60** · 07/10
 
 | Campo | Valor |

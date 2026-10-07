@@ -55,7 +55,12 @@ def _snapshot_row(s: ClienteAnaliseCreditoAgro) -> dict:
     ind = s.indicadores_json if isinstance(s.indicadores_json, dict) else {}
     alertas = s.alertas_json if isinstance(s.alertas_json, list) else []
     candidato_flag = bool(ind.get("candidato_revisao_limite"))
-    candidato_label = rotulo_candidato_revisao(candidato=candidato_flag, alertas=alertas)
+    candidato_label = rotulo_candidato_revisao(
+        candidato=candidato_flag,
+        alertas=alertas,
+        limite_cadastrado=s.limite_cadastrado_snapshot,
+        limite_efetivo=s.limite_efetivo_snapshot,
+    )
     return {
         "id": s.pk,
         "cliente_pk": s.cliente_id,
@@ -79,6 +84,7 @@ def _snapshot_row(s: ClienteAnaliseCreditoAgro) -> dict:
         "candidato_revisao": candidato_label == "Sim",
         "candidato_revisao_label": candidato_label,
         "revisar_dados": candidato_label == "Revisar dados",
+        "revisar_bloqueio": candidato_label == "Revisar bloqueio",
         "titulos_analisados": _ind_num(ind, "titulos_analisados_janela", 0),
         "titulos_quitados": _ind_num(ind, "titulos_quitados_avaliaveis", 0),
         "titulos_vencidos_qtd": _ind_num(ind, "titulos_vencidos_atualmente", 0),
@@ -219,6 +225,8 @@ def _montar_xlsx_laboratorio(rows: list[dict]) -> bytes:
             or rotulo_candidato_revisao(
                 candidato=bool(row.get("candidato_revisao")),
                 alertas=alertas,
+                limite_cadastrado=row.get("limite_cadastrado"),
+                limite_efetivo=row.get("limite_efetivo"),
             ),
             "alertas_txt": " | ".join(str(a) for a in alertas) if alertas else "",
         }
