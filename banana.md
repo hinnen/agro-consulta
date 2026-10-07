@@ -1294,74 +1294,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — Contas banco loja no CP (`CP-CONTAS-LOJA-PG` · **v26.60** · 07/10)
+### 🚀 PREP deploy loja — Checklist 07/10c (`deploy/prep-checklist-0710c` · alvo **v26.60**) · aguarda senha
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **pronto para envio à produção** · no `teste` · **não** loja |
-| **O quê** | Contas/bancos da baixa no **Postgres da loja** (todos os PCs). Pagamento CP: lápis → adicionar / renomear / **desativar** (sem excluir). Select = ativas + «ADICIONAR CONTA». |
-| **Prova** | path **49/49** · PIN **9973** · CP HTML **200** · `fonte_bancos=loja_pg` |
-| **Migrate** | **SIM** (`produtos.0140`) |
-| **Na senha** | cherry/push `producao` · migrate **0140** · **não** merge `teste` · Ctrl+F5 · badge **v26.60** |
+| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha |
+| **Branch PREP** | `deploy/prep-checklist-0710c` · tip `TIP_PLACEHOLDER` · base Live **v26.56** @ `d08617b0` |
+| **Alvo loja** | **v26.60** |
+| **Migrate** | **SIM** `0140` (ContaBancariaLojaAgro — não apaga títulos) |
+| **Merge teste?** | **NÃO** |
+| **Provas (PREP)** | bug31 **38/38**+JS **6/6** · bug24 **15/15** · etq espelho **51/51** · quota **34/34** · sync **26/26** · ponte **23/23** · NF-SEM **16/16** · NF-FIN **15/15** · CP **49/49** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-checklist-0710c-v26.56` @ `d08617b0` · branch `producao-backup-pre-v2660-checklist-20261007c` · `docs/ROLLBACK-CHECKLIST-0710c.md` |
+| **Na senha (rápido)** | pausar vendas → tip PREP em producao → Render Live (migrate 0140) → Ctrl+F5 · badge **v26.60** |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-0710c.md` |
 
-### ✅ CHECKLIST ÚNICO — CP-CONTAS-LOJA-PG · 🟢 pronto para envio · alvo **v26.60**
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **CP-CONTAS-LOJA-PG** | 🟢 **pronto para envio à produção** · **49/49** · PIN **9973** | **SIM** `0140` |
-
-### 📦 PACOTE PRONTO — Nº NF vazio gera SEM- (`NF-SEM-NUMERO` · **v26.59** · 07/10)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | 🟢 **pronto para envio à produção** · no `teste` · **não** loja |
-| **O quê** | Nº NF em branco → **`SEM-DDMM-XXXX`** (confirmar + save/PIN/CP). Buscável no Contas a pagar. |
-| **Arquivos** | `nfe_entrada_util.py` · `views.py` · `entrada_nota.html` · prova + unit |
-| **Prova** | path **16/16** · unit **5/5** · PIN **9973** · `/entrada-nota/` **200** · regressão `NF-FIN-NAO-TEM` **15/15** |
-| **Migrate** | **NÃO** |
-| **Na senha** | cherry/push `producao` · **não** merge `teste` · Ctrl+F5 · badge **v26.59** |
-
-### ✅ CHECKLIST ÚNICO — NF-SEM-NUMERO · 🟢 pronto para envio · alvo **v26.59**
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **NF-SEM-NUMERO** | 🟢 **pronto para envio à produção** · **16/16** · PIN **9973** | **NÃO** |
-
-### 📦 PACOTE PRONTO — Presets etiqueta iguais em todos os PCs / nota (`ETQ-PRESET-NF-MEM` · **v26.58** · 07/10)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | 🟢 **pronto para envio à produção** · no `teste` @ tip · **não** loja |
-| **Problema** | Etapa 6 da entrada de nota (e cadastro/PDV) mostrava só os 4 padrões; a fila tinha REMEDIOS / A6 etc. Chrome cheio zerava o cache e a nota relia o cache morto. |
-| **O quê** | Lista da API fica na **memória**; select usa a lista retornada; quota **não** zera presets; nota também **sobe** preset que ainda estava só no PC; refresh ao focar o PRESET. |
-| **Arquivos** | `produtos_etiquetas_core.js` · `entrada_nota.html` · `cadastro_erp_panel.js` · `pdv_wizard.js` · templates core `?v=34` |
-| **Prova** | espelho **51/51** · quota **34/34** · sync **26/26** · UX **32/32** · térmica **39/39** · smoke espelho **35/35** · smoke sync **23/23** · Django **3/3** · PIN **9973** · API local **8** presets |
-| **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 · entrada de nota etapa 6 · PRESET = fila · produção só frase+senha |
-
-### ✅ CHECKLIST ÚNICO — ETQ-PRESET-NF-MEM · 🟢 pronto para envio · alvo **v26.58**
+### ✅ CHECKLIST ÚNICO — 07/10c · 🟢 PREP v26.60 · aguarda senha
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-PRESET-NF-MEM** | 🟢 **pronto para envio à produção** | **NÃO** | **51/51** · smoke **35/35**+**23/23** |
+| 1 | **BUG31-CB-TABELA** | 🟢 **no PREP** | **NÃO** | **38/38** · JS **6/6** |
+| 2 | **ETQ-PRESET-NF-MEM** | 🟢 **no PREP** | **NÃO** | **51/51** · sync **26/26** |
+| 3 | **NF-SEM-NUMERO** | 🟢 **no PREP** | **NÃO** | **16/16** |
+| 4 | **CP-CONTAS-LOJA-PG** | 🟢 **no PREP** | **SIM** `0140` | **49/49** |
 
-### 📦 PACOTE PRONTO — Bug #31 cashback × tabela (`BUG31-CB-TABELA` · **v26.57** · 07/10)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | 🟢 **pronto para envio à produção** · no `teste` @ tip · **não** loja |
-| **Bug** | Loja #31 — cashback (minoria) puxava tabela/crédito caro |
-| **O quê** | Forma do preço = **maior valor de mercadoria**; Cashback/Vale só se sozinhos |
-| **Arquivos** | `precos_forma_pagamento_util.py` · `precos_forma_pagamento.js` · `pdv_state.js` · `pdv_wizard.js` |
-| **Prova** | path **38/38** · JS VM **6/6** · bug24 **15/15** · PIN **9973** · HTTP PDV **200** |
-| **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 · ~90% Dinheiro + Cashback → total na **à vista** · produção só frase+senha |
-
-### ✅ CHECKLIST ÚNICO — BUG31-CB-TABELA · 🟢 pronto para envio · alvo **v26.57**
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **BUG31-CB-TABELA** | 🟢 **pronto para envio à produção** | **NÃO** | **38/38** · JS **6/6** |
+**Risco loja aberta:** baixo–médio. BUG31 só tabela no cashback misto. ETQ presets + sync. NF entrada. CP contas. **Não** mexe Point · NFC-e · finalizar caixa.
 
 ### ✅ Deploy loja — Checklist 07/10b · **Live v26.56** · 07/10
 
