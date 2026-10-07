@@ -854,3 +854,15 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **O quê:** Nº NF em branco → **`SEM-DDMM-XXXX`** (confirmar + save/PIN/CP).  
 **Prova:** `scripts/verify_nf_sem_numero_path.py` **16/16**.  
 **Na senha:** cherry/push `producao` · **não** merge `teste` · Ctrl+F5 · badge **v26.59**.
+
+---
+
+## 67. Checklist único — CP-CONTAS-LOJA-PG · 🟢 pronto para envio · alvo **v26.60**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CP-CONTAS-LOJA-PG** | 🟢 **pronto para envio à produção** · **49/49** · PIN **9973** | **SIM** `0140` |
+
+**O quê:** contas/banco da baixa no Postgres da loja; lápis no pagamento CP (adicionar / renomear / desativar).  
+**Prova:** `scripts/verify_conta_bancaria_loja_path.py` **49/49**.  
+**Na senha:** cherry/push `producao` · migrate **0140** · **não** merge `teste` · Ctrl+F5 · badge **v26.60**.
