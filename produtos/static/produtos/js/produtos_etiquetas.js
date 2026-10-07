@@ -557,10 +557,6 @@
     renderResumoGondola(p);
     renderResumoTermica(p);
 
-    var tr = $('etq-texto-rodape-global');
-    if (tr && !tr.dataset.touched) {
-      tr.value = state.storage.texto_rodape_global || p.texto_rodape || '';
-    }
     carregarImpressoras(p.impressora || '');
   }
 
@@ -1487,14 +1483,10 @@
     var presetId = presetIdFila();
     state.storage.preset_ativo = presetId;
     persistStorage();
-    var textoRodape =
-      ($('etq-texto-rodape-global') && $('etq-texto-rodape-global').value.trim()) ||
-      state.storage.texto_rodape_global ||
-      getPresetAtivo().texto_rodape ||
-      '';
+    var pFila = getPresetAtivo();
     Core.imprimirItens(state.fila, {
       presetId: presetId,
-      textoRodape: textoRodape,
+      textoRodape: (pFila && pFila.texto_rodape) || '',
       origem: 'fila',
     }).then(function (res) {
       if (res && res.ok) {
@@ -2276,15 +2268,6 @@
         if (id === 'etq-preset-select') renderPresetForm();
       });
     });
-
-    var tr = $('etq-texto-rodape-global');
-    if (tr) {
-      tr.addEventListener('input', function () {
-        tr.dataset.touched = '1';
-        state.storage.texto_rodape_global = tr.value;
-        persistStorage();
-      });
-    }
 
     document.addEventListener('keydown', function (ev) {
       if (ev.key === 'Escape') {

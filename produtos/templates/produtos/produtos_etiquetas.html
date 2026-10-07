@@ -341,22 +341,12 @@
 
     <div class="mt-2 flex shrink-0 flex-wrap items-end gap-2">
 
-      <label class="min-w-[8rem] flex-1">
+      <label class="min-w-0 w-full flex-1">
 
         <span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Preset</span>
 
         <select id="etq-fila-preset" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white"></select>
-        <p class="mt-0.5 text-[10px] font-semibold text-slate-500">Pra bobina 53×30: escolha «53×30 térmica» aqui.</p>
-
-      </label>
-
-      <label class="min-w-0 flex-[2]">
-
-        <span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Rodapé</span>
-
-        <input id="etq-texto-rodape-global" type="text" maxlength="80" placeholder="Texto livre"
-
-          class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white focus:border-orange-500 focus:outline-none" />
+        <p class="mt-0.5 text-[10px] font-semibold text-slate-500">Rodapé vem do preset. Bobina 53×30: escolha «53×30 térmica».</p>
 
       </label>
 
@@ -726,7 +716,7 @@ window.AGRO_ETQ_CFG = {
 </script>
 <script src="{% static 'produtos/js/agro_print_bridge.js' %}?v=2"></script>
 <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=33"></script>
-<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=31"></script>
+<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=32"></script>
 
 {% endblock %}
 
