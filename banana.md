@@ -1291,6 +1291,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🔧 WIP — cupom fiado misto destaque saldo (`FIADO-CUPOM-SALDO-MISTO` · **v26.56**) · 07/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ no `teste` **v26.56** · prova local |
+| **Problema** | Dinheiro+Fiado: TOTAL grande (ex. 101) fazia parecer que a dívida era o total |
+| **O quê** | Só no misto: TOTAL menor · **Já pago** · caixa grande **SALDO FIADO** · 100% fiado igual |
+| **Onde** | `venda_cupom_80mm.js` · `pdv_wizard.js` · `venda_cupom_util.py` |
+| **Prova** | `verify_fiado_loja_compra_path.py` **48/48** |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 PDV · venda mista (ex. dinheiro + fiado) · conferir cupom 2 vias |
+
 ### 📦 PACOTE PRONTO — devolução frete bug #34 (`BUG34-DEVOL-FRETE` · **v26.55**) · 07/10
 
 | Campo | Valor |
