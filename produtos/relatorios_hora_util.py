@@ -512,6 +512,7 @@ def agregar_hora(
         "duas_lojas": loja == "ambos",
         "canal": canal,
         "aviso_visao": aviso_visao,
+        "rotulo_total": "Média do dia" if media else "Total do período",
         "total": round(grand / divisor, 2),
         "total_bruto": round(grand, 2),
         "total_fmt": fmt_brl(grand / divisor),

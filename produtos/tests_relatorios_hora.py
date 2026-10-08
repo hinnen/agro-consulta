@@ -78,6 +78,7 @@ class HoraGradeTests(SimpleTestCase):
             vendas, baseline, dias=dias, dias_base=base_dias, visao="media"
         )
         h10 = next(ln for ln in media["expediente"] if ln["hora"] == 10)
+        self.assertEqual(media["rotulo_total"], "Média do dia")
         self.assertEqual(h10["total"], 200.0)
         self.assertEqual(h10["base"], 20.0)
         self.assertEqual(h10["var_tom"], "acima")
@@ -85,6 +86,7 @@ class HoraGradeTests(SimpleTestCase):
             vendas, baseline, dias=dias, dias_base=base_dias, visao="soma"
         )
         h10s = next(ln for ln in soma["expediente"] if ln["hora"] == 10)
+        self.assertEqual(soma["rotulo_total"], "Total do período")
         self.assertEqual(h10s["total"], 400.0)
         self.assertEqual(h10s["base"], 40.0)
 
@@ -165,7 +167,17 @@ class RelatoriosHoraViewTests(SimpleTestCase):
             html = self.client.get(reverse("relatorios_hora"))
             self.assertEqual(html.status_code, 200)
             body = html.content.decode("utf-8", errors="ignore")
+            self.assertIn("Total do período", body)
             self.assertIn("Venda hora a hora", body)
+            media = self.client.get(
+                reverse("relatorios_hora")
+                + "?periodo=custom&de=2026-09-01&ate=2026-10-08&visao=media"
+            )
+            self.assertEqual(media.status_code, 200)
+            self.assertIn(
+                "Média do dia",
+                media.content.decode("utf-8", errors="ignore"),
+            )
             self.assertIn("Centro + Vila", body)
             self.assertIn("Só Vila", body)
             self.assertIn("Mapa da semana", body)
