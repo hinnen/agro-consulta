@@ -1294,31 +1294,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚀 PREP deploy loja — Checklist 08/10b (`deploy/prep-checklist-0810b` · alvo **v26.66**) · aguarda senha
+### ✅ Deploy loja — Checklist 08/10b · **Live v26.66** · 08/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha |
-| **Branch PREP** | `deploy/prep-checklist-0810b` · tip `35fa8a69` · base Live **v26.60** @ `e4206bbf` |
-| **Alvo loja** | **v26.66** |
+| **Status** | ✅ **enviado / Live v26.66** — `producao` @ `1fbe1a8e` · Render `dep-db3otbk9v7es73aj86c0` · **não** foi merge do `teste` |
+| **O quê** | **CREDITO-SCORE-TRAVAS-V12** + **PDV-BALANCA-ETQ-PLU** + **META-LOJAS** + **REL-HORA** |
+| **Branch PREP** | `deploy/prep-checklist-0810b` · tip `1fbe1a8e` · base Live **v26.60** @ `e4206bbf` |
 | **Migrate** | **NÃO** |
-| **Merge teste?** | **NÃO** |
-| **Provas (PREP)** | crédito **101/101** · xlsx **90/90** · lab **34/34** · balança **27/27** · META **154/154** · hora **67/67** · unit **12/12** · **PREP_FAILS=0** |
-| **Rollback** | tag `rollback/pre-checklist-0810b-v26.60` @ `e4206bbf` · branch `producao-backup-pre-v2666-checklist-20261008b` · `docs/ROLLBACK-CHECKLIST-0810b.md` |
-| **Na senha (rápido)** | pausar vendas → tip PREP em producao → Render Live → Ctrl+F5 · badge **v26.66** |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-0810b.md` |
-| **Atenção** | Substitui `deploy/prep-checklist-0810` (v26.62). **Não** usar `deploy/prep-credito-v12`. |
+| **Provas** | crédito **101/101** · xlsx **90/90** · lab **34/34** · balança **27/27** · META **154/154** · hora **67/67** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-checklist-0810b-v26.60` @ `e4206bbf` · branch `producao-backup-pre-v2666-checklist-20261008b` · `docs/ROLLBACK-CHECKLIST-0810b.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 · badge **v26.66** · lab crédito · etiqueta balança · META 3 lojas · Venda hora a hora |
 
-### ✅ CHECKLIST ÚNICO — 08/10b · 🟢 PREP v26.66 · aguarda senha
+### ✅ CHECKLIST ÚNICO — 08/10b · ✅ Live v26.66
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CREDITO-SCORE-TRAVAS-V12** | 🟢 **no PREP** | **NÃO** | **101/101** · xlsx **90/90** · lab **34/34** |
-| 2 | **PDV-BALANCA-ETQ-PLU** | 🟢 **no PREP** | **NÃO** | **27/27** |
-| 3 | **META-LOJAS** | 🟢 **no PREP** | **NÃO** | **154/154** |
-| 4 | **REL-HORA** | 🟢 **no PREP** | **NÃO** | **67/67** |
-
-**Risco loja aberta:** baixo. Lab de crédito, leitura da etiqueta de balança, tela META e relatório hora a hora. **Não** mexe finalizar venda · caixa · Point · NFC-e.
+| 1 | **CREDITO-SCORE-TRAVAS-V12** | ✅ **enviado / Live v26.66** | **NÃO** | **101/101** · xlsx **90/90** · lab **34/34** |
+| 2 | **PDV-BALANCA-ETQ-PLU** | ✅ **enviado / Live v26.66** | **NÃO** | **27/27** |
+| 3 | **META-LOJAS** | ✅ **enviado / Live v26.66** | **NÃO** | **154/154** |
+| 4 | **REL-HORA** | ✅ **enviado / Live v26.66** | **NÃO** | **67/67** |
 
 ### ✅ Deploy loja — Checklist 07/10c · **Live v26.60** · 07/10
 
