@@ -141,6 +141,42 @@
     color: #64748b; margin-top: 0.15rem;
   }
   .meta-modo-btn.is-on small { color: #047857; }
+  .meta-loja {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
+    width: 100%;
+  }
+  .meta-loja-btn {
+    min-height: 3.15rem;
+    border-radius: 0.85rem;
+    border: 3px solid #94a3b8;
+    background: #fff;
+    color: #0f172a;
+    font-weight: 900;
+    text-transform: uppercase;
+    font-size: clamp(0.78rem, 1.6vw, 0.95rem);
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    padding: 0.4rem 0.5rem;
+  }
+  .meta-loja-btn small {
+    display: block;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: none;
+    color: #64748b;
+    margin-top: 0.1rem;
+  }
+  .meta-loja-btn.is-on {
+    color: #fff;
+    border-color: #0f172a;
+    background: #0f172a;
+  }
+  .meta-loja-btn.is-on small { color: #cbd5e1; }
+  .meta-loja-btn[data-loja="centro"].is-on { background: #0369a1; border-color: #0369a1; }
+  .meta-loja-btn[data-loja="vila"].is-on { background: #c2410c; border-color: #c2410c; }
+  .meta-loja-btn[data-loja="todas"].is-on { background: #047857; border-color: #047857; }
   .meta-foto-row {
     display: grid; gap: 0.85rem; align-items: start;
   }
@@ -169,6 +205,11 @@
       <div class="meta-modo" style="flex-direction:row;flex-wrap:wrap;align-items:stretch;min-width:0;">
         <button type="button" class="meta-modo-btn is-on" data-modo="mes" id="meta-modo-mes">Meta do mês<small>falta pra bater a meta cheia</small></button>
         <button type="button" class="meta-modo-btn" data-modo="agora" id="meta-modo-agora">Até agora<small>ritmo pela média esperada</small></button>
+      </div>
+      <div class="meta-loja" id="meta-loja-bar" style="flex:1 1 100%;">
+        <button type="button" class="meta-loja-btn is-on" data-loja="todas">Centro + Vila<small>as duas juntas</small></button>
+        <button type="button" class="meta-loja-btn" data-loja="centro">Só Centro<small>venda e média do Centro</small></button>
+        <button type="button" class="meta-loja-btn" data-loja="vila">Só Vila<small>venda e média da Vila</small></button>
       </div>
     </div>
   </div>
@@ -222,7 +263,7 @@
 
   <div class="meta-card meta-span">
     <h2>Foto da tabelinha (pro grupo)</h2>
-    <p class="meta-sub mb-2">Mesmo naipe da planilha — mais info. <strong>Copiar foto</strong> cola a imagem no Zap. Troque o modo ao lado pra ver <strong>meta cheia</strong> ou <strong>ritmo até agora</strong>.</p>
+    <p class="meta-sub mb-2">Mesmo naipe da planilha. <strong>Copiar foto</strong> cola no Zap com a loja escolhida (Centro + Vila, só Centro ou só Vila).</p>
     <div class="meta-foto-row">
       <div class="meta-foto-wrap">
         <div class="meta-foto-preview"><img id="meta-foto-img" alt="Prévia META" width="900" height="600"></div>
@@ -275,9 +316,12 @@
   var lastMostruario = null;
   var lastFotoBlob = null;
   var modoAtual = "mes";
+  var lojaAtual = "todas";
   try {
     var savedModo = localStorage.getItem("agro_meta_modo_v1");
     if (savedModo === "agora" || savedModo === "mes") modoAtual = savedModo;
+    var savedLoja = localStorage.getItem("agro_meta_loja_v1");
+    if (savedLoja === "centro" || savedLoja === "vila" || savedLoja === "todas") lojaAtual = savedLoja;
   } catch (e0) {}
 
   function toast(msg) {
@@ -314,11 +358,19 @@
       var on = btn.getAttribute("data-modo") === modoAtual;
       btn.classList.toggle("is-on", on);
     });
+    document.querySelectorAll(".meta-loja-btn").forEach(function (btn) {
+      btn.classList.toggle("is-on", btn.getAttribute("data-loja") === lojaAtual);
+    });
+    var loja = (lastMostruario && lastMostruario.deposito_label) || "Centro + Vila";
     var tit = document.getElementById("meta-faixas-titulo");
     if (tit) {
-      tit.textContent = isModoAgora()
-        ? "Metas · ritmo até agora (pela média esperada)"
-        : "Metas · quanto falta (meta do mês)";
+      tit.textContent = (isModoAgora()
+        ? "Metas · ritmo até agora"
+        : "Metas · quanto falta") + " · " + loja;
+    }
+    var mesTit = document.getElementById("meta-mes-titulo");
+    if (mesTit && lastMostruario) {
+      mesTit.textContent = (lastMostruario.mes_atual ? "Mês até hoje" : "Mês fechado") + " · " + loja;
     }
   }
 
@@ -333,10 +385,22 @@
     }
   }
 
+  function setLoja(loja) {
+    lojaAtual = (loja === "centro" || loja === "vila") ? loja : "todas";
+    try { localStorage.setItem("agro_meta_loja_v1", lojaAtual); } catch (e2) {}
+    syncModoButtons();
+    carregar();
+  }
+
+  function urlResumo() {
+    var q = "?competencia=" + encodeURIComponent(competencia()) + "&modo=" + encodeURIComponent(modoAtual);
+    if (lojaAtual === "centro" || lojaAtual === "vila") q += "&deposito=" + encodeURIComponent(lojaAtual);
+    return apiResumo + q;
+  }
+
   function carregarTextoZap() {
     if (!lastMostruario) return;
-    var url = apiResumo + "?competencia=" + encodeURIComponent(competencia()) + "&modo=" + encodeURIComponent(modoAtual);
-    fetch(url, { credentials: "same-origin", headers: { "Accept": "application/json" } })
+    fetch(urlResumo(), { credentials: "same-origin", headers: { "Accept": "application/json" } })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data || !data.ok) return;
@@ -427,12 +491,12 @@
     ctx.fillRect(cx, cy, cw, headerH);
     ctx.fillStyle = "#ffffff";
     ctx.font = "900 28px Inter, system-ui, sans-serif";
-    ctx.fillText("META  ·  " + (m.competencia_fmt || ""), cx + 24, cy + 40);
+    ctx.fillText("META  ·  " + (m.deposito_label || "Centro + Vila"), cx + 24, cy + 40);
     ctx.font = "700 15px Inter, system-ui, sans-serif";
     ctx.fillStyle = "#a7f3d0";
-    var subHead = (m.mes_atual ? "Mês até " : "Mês fechado · ") + (m.fim_vendido_fmt || "");
+    var subHead = (m.competencia_fmt || "") + " · " + (m.mes_atual ? "mês até " : "mês fechado · ") + (m.fim_vendido_fmt || "");
     if (isModoAgora()) {
-      subHead = "Até agora · ritmo média · " + (m.fracao_ate_agora_pct_fmt || "") + " do mês";
+      subHead = (m.competencia_fmt || "") + " · até agora · " + (m.fracao_ate_agora_pct_fmt || "") + " do mês";
     }
     ctx.fillText(subHead, cx + 24, cy + 68);
     ctx.fillStyle = "#6ee7b7";
@@ -737,8 +801,7 @@
   }
 
   function carregar() {
-    var url = apiResumo + "?competencia=" + encodeURIComponent(competencia()) + "&modo=" + encodeURIComponent(modoAtual);
-    return fetch(url, { credentials: "same-origin", headers: { "Accept": "application/json" } })
+    return fetch(urlResumo(), { credentials: "same-origin", headers: { "Accept": "application/json" } })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data || !data.ok) throw new Error((data && data.erro) || "Falha");
@@ -761,6 +824,11 @@
   document.querySelectorAll(".meta-modo-btn").forEach(function (btn) {
     btn.addEventListener("click", function () {
       setModo(btn.getAttribute("data-modo") || "mes");
+    });
+  });
+  document.querySelectorAll(".meta-loja-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      setLoja(btn.getAttribute("data-loja") || "todas");
     });
   });
 
@@ -866,7 +934,8 @@
         syncModoButtons();
         renderFaixasProg(init.faixas || []);
         atualizarFoto(init);
-        carregarTextoZap();
+        if (lojaAtual === "todas") carregarTextoZap();
+        else carregar();
       }
     }
   } catch (e0) {}

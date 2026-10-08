@@ -393,7 +393,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 ### 4.1 Home / BI (`/`)
 
 - Dashboard gerencial SisVale BI; atalhos clÃ¡ssicos em `/atalhos/`.
-- **META mostruário (05/10 · `META-MOSTRUARIO`):** botão no menu Gestão → `/meta/` · faixas manuais (venda + bônus) no Postgres · vs média esperada Meta C · Copiar foto + texto Zap · 🟢 pronto envio.
+- **META mostruário (08/10 · `META-LOJAS` v26.63):** `/meta/` · 3 visões (Centro + Vila, Só Centro, Só Vila) · meta cadastrada única · venda e média por loja · foto e Zap com o nome da loja · 🟢 pronto envio.
 - VersÃ£o do commit no Render (nÃ£o hardcoded).
 - Card **Validade** destaca vermelho se produto vencido.
 - Card **Lucro LÃ­quido** (no lugar de Novos Clientes): vencimento Â· bruto + pago Â· mesmo DRE do Resumo.
@@ -1293,6 +1293,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 🟢 PACOTE PRONTO — META-LOJAS · **v26.63** · 08/10 · pronto para envio
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **pronto para envio à produção** — **não** entrou no PREP v26.62 · **não** subiu |
+| **O quê** | `/meta/` com 3 visões: **Centro + Vila**, **Só Centro**, **Só Vila**. A meta cadastrada é a mesma. Venda, média esperada, foto e texto do Zap mudam com a loja. |
+| **Migrate** | **NÃO** |
+| **Prova** | **136/136** (`verify_meta_mostruario_path.py` · PIN 9973) |
+| **Você** | No teste: Gestão → META → os 3 botões no topo. Foto e Zap levam o nome da loja. |
+
+### ✅ CHECKLIST ÚNICO — META-LOJAS · 🟢 pronto para envio · **v26.63**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **META-LOJAS** | 🟢 **pronto para envio** | **NÃO** | **136/136** |
 
 ### 🚀 PREP deploy loja — Checklist 08/10 (`deploy/prep-checklist-0810` · alvo **v26.62**) · aguarda senha
 

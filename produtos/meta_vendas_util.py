@@ -25,6 +25,14 @@ META_VENDA_PADRAO_FAIXAS: list[tuple[Decimal, Decimal, str]] = [
 ]
 
 
+def meta_deposito_label(deposito: str | None) -> str:
+    if deposito == "centro":
+        return "Centro"
+    if deposito == "vila":
+        return "Vila"
+    return "Centro + Vila"
+
+
 def meta_competencia_iso(d: date | None = None) -> str:
     alvo = d or date.today()
     return f"{alvo.year:04d}-{alvo.month:02d}"
@@ -357,6 +365,7 @@ def meta_montar_mostruario(
         "fim_vendido": fim_vendido.isoformat(),
         "fim_vendido_fmt": fim_vendido.strftime("%d/%m/%Y"),
         "deposito": dep or "todas",
+        "deposito_label": meta_deposito_label(dep),
         "vendido_mes": vendido_mes,
         "vendido_mes_fmt": meta_fmt_moeda(vendido_mes),
         "media_mes_cheia": meta_mes_cheia,
@@ -381,8 +390,9 @@ def meta_montar_mostruario(
 def meta_texto_zap(mostruario: dict, modo: str = "mes") -> str:
     """Texto pronto pra colar no grupo. ``modo``: mes | agora."""
     modo_agora = (modo or "mes").strip().lower() in ("agora", "ate_agora", "ritmo")
+    loja = mostruario.get("deposito_label") or "Centro + Vila"
     linhas = [
-        f"🎯 *META — {mostruario.get('competencia_fmt', '')}*",
+        f"🎯 *META — {mostruario.get('competencia_fmt', '')} · {loja}*",
         "",
     ]
     if modo_agora:
