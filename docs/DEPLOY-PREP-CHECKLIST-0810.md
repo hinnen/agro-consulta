@@ -10,7 +10,7 @@
 | 2 | **PDV-BALANCA-ETQ-PLU** | path **27/27** · unit **5/5** | **NÃO** |
 
 **Base Live:** v26.60 @ `e4206bbf` (já tem o bip overlay/catálogo da balança; este PREP só acrescenta preferência PLU **0010** + travas do lab).  
-**Branch PREP:** `deploy/prep-checklist-0810`  
+**Branch PREP:** `deploy/prep-checklist-0810` · tip `09b8ea61`  
 **Rollback:** tag `rollback/pre-checklist-0810-v26.60` · branch `producao-backup-pre-v2662-checklist-20261008` · `docs/ROLLBACK-CHECKLIST-0810.md`
 
 **Não usar** `deploy/prep-credito-v12` — essa branch é anterior ao bip da balança já na loja e apagaria esse fix.

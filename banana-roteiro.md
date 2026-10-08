@@ -844,7 +844,7 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | 1 | **CREDITO-SCORE-TRAVAS-V12** | 🟢 **PREP** · **101/101** + xlsx **90/90** + lab **34/34** | **NÃO** |
 | 2 | **PDV-BALANCA-ETQ-PLU** | 🟢 **PREP** · **27/27** + unit **5/5** | **NÃO** |
 
-**Branch PREP:** deploy/prep-checklist-0810 · tip TIP_PLACEHOLDER · base Live **v26.60** @ e4206bbf.  
+**Branch PREP:** deploy/prep-checklist-0810 · tip 09b8ea61 · base Live **v26.60** @ e4206bbf.  
 **Rollback:** tag rollback/pre-checklist-0810-v26.60 · docs/ROLLBACK-CHECKLIST-0810.md · **só** frase+senha.  
 **Na senha:** pausar vendas · tip PREP → producao → Ctrl+F5 · badge **v26.62**. **Não** merge teste. **Não** usar deploy/prep-credito-v12.
 
