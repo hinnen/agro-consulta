@@ -859,7 +859,7 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | 3 | **META-LOJAS** | 🟢 **PREP** · **154/154** | **NÃO** |
 | 4 | **REL-HORA** | 🟢 **PREP** · **67/67** | **NÃO** |
 
-**Branch PREP:** deploy/prep-checklist-0810b · tip TIP_PLACEHOLDER · base Live **v26.60** @ e4206bbf.  
+**Branch PREP:** deploy/prep-checklist-0810b · tip 35fa8a69 · base Live **v26.60** @ e4206bbf.  
 **Rollback:** tag rollback/pre-checklist-0810b-v26.60 · docs/ROLLBACK-CHECKLIST-0810b.md · **só** frase+senha.  
 **Na senha:** pausar vendas · tip PREP → producao → Ctrl+F5 · badge **v26.66**. **Não** merge teste. Substitui o PREP v26.62.
 

@@ -1299,7 +1299,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha |
-| **Branch PREP** | `deploy/prep-checklist-0810b` · tip `TIP_PLACEHOLDER` · base Live **v26.60** @ `e4206bbf` |
+| **Branch PREP** | `deploy/prep-checklist-0810b` · tip `35fa8a69` · base Live **v26.60** @ `e4206bbf` |
 | **Alvo loja** | **v26.66** |
 | **Migrate** | **NÃO** |
 | **Merge teste?** | **NÃO** |
