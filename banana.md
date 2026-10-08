@@ -1294,52 +1294,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### PACOTE NO TESTE — Revisar limite crédito (`CREDITO-LIMITE-REVISAO`) · 08/10
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | no `teste` — **não** sobe loja até você ver |
-| **O quê** | Botão **REVISAR ALTERAÇÕES DE LIMITE**. Novo = menor entre sugerido e atual+20%. Aprovar usa `definir_limite_fiado_cliente`. Ignorar não mexe. Sem Aprovar todos. |
-| **Fora da lista** | vencido · Revisar dados · Revisar bloqueio · limite 0,01 · confiança baixa |
-| **Migrate** | **SIM** `0141` (só tabela da decisão) |
-| **Prova** | path **20/20** |
-| **Você** | PC local → `/fiado/analise-credito/` → botão laranja |
-
-### PACOTE PRONTO — Enter/colar etiqueta balança (`PDV-BALANCA-ETQ-ENTER`)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Colar/`Enter` em EAN `2001000004812` não entrava: Enter ia pelo fluxo de **barras genérico** e buscava o EAN-13 inteiro. Agora: fluxo balança no Enter; fallback PLU **0010** / GM0010-*; preço da etiqueta. |
-| **Prova** | `scripts/verify_pdv_balanca_etq_plu_path.py` **35/35** · unit **7/7** · **PREP_FAILS=0** |
-| **Migrate** | **NÃO** |
-| **Mexe** | `consulta_produtos.js` · `views.py` · prova |
-| **Status** | 🟢 **pronto para envio à produção** |
-| **Tip teste** | `153df36c` |
-| **Rollback** | `docs/ROLLBACK-PDV-BALANCA-ETQ-PLU.md` · **só** frase+senha |
-| **Você** | Ctrl+F5 · colar `2001000004812` + Enter → **R$ 4,81** |
-
-### ✅ CHECKLIST ÚNICO — 08/10 · PDV-BALANCA-ETQ-ENTER · 🟢 pronto para envio
+### ✅ CHECKLIST ÚNICO — falta subir · 🟢 pronto para envio à produção · 08/10
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-BALANCA-ETQ-ENTER** | 🟢 **pronto para envio à produção** | **NÃO** | **35/35** · **7/7** |
+| 1 | **CREDITO-LIMITE-REVISAO** | 🟢 **pronto para envio à produção** | **SIM** `0141` | **38/38** · PIN **9973** |
+| 2 | **PDV-BALANCA-ETQ-ENTER** | 🟢 **pronto para envio à produção** | **NÃO** | **35/35** · **7/7** |
+| 3 | **REL-HORA-ROTULO** | 🟢 **pronto para envio à produção** | **NÃO** | **85/85** · **7/7** |
 
-### PACOTE PRONTO — REL-HORA-ROTULO · pronto para envio à produção · 08/10
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | 🟢 **pronto para envio à produção** — ainda **não** está na loja |
-| **O quê** | Cartão grande: **Média do dia** (filtro média) · **Total do período** (soma). O valor não muda. |
-| **Loja agora** | **v26.66** ainda mostra **TOTAL** |
-| **Migrate** | **NÃO** |
-| **Prova** | path **85/85** · unit **7/7** · PIN **9973** · ontem **R$ 3.634,00** = Vendas por loja · marcas apagadas |
-| **Não entra** | resto do `teste` (ex. PDV colar EAN) |
-
-### CHECKLIST ÚNICO — REL-HORA-ROTULO · pronto para envio à produção
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **REL-HORA-ROTULO** | 🟢 **pronto para envio à produção** | **NÃO** | **85/85** · unit **7/7** |
+Loja agora: **Live v26.66**. Estes 3 ainda não subiram.
 
 ### ✅ Deploy loja — Checklist 08/10b · **Live v26.66** · 08/10
 
