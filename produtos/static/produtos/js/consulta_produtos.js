@@ -3491,25 +3491,60 @@ function parseEtiquetaBalancaEan13(digits13) {
 }
 
 function produtoCombinaCodigoInternoBalanca4(cod4, p) {
-    const raw = [p.codigo_nfe, p.codigo, p.codigo_barras];
+    const plu = String(cod4 || '').replace(/\D/g, '').padStart(4, '0');
+    const raw = [p.codigo_nfe, p.codigo, p.codigo_barras, p.codigo_interno];
     if (Array.isArray(p.index_codigos)) {
         p.index_codigos.forEach((x) => raw.push(x));
     }
-    const candidatos = new Set([cod4, cod4.replace(/^0+/, '') || '0', cod4.padStart(5, '0'), cod4.padStart(6, '0')]);
+    const candidatos = new Set([
+        plu,
+        String(cod4 || ''),
+        plu.replace(/^0+/, '') || '0',
+        plu.padStart(5, '0'),
+        plu.padStart(6, '0'),
+    ]);
     for (const field of raw) {
-        const d = String(field ?? '').replace(/\D/g, '');
-        if (!d) continue;
+        const s = String(field ?? '').trim();
+        if (!s) continue;
+        const d = s.replace(/\D/g, '');
         for (const c of candidatos) {
-            if (d === c) return true;
-            if (d.length >= 4 && d.slice(-4) === cod4) return true;
-            if (c.length >= 4 && d.endsWith(c)) return true;
+            const cd = String(c).replace(/\D/g, '');
+            if (!cd) continue;
+            if (d === cd) return true;
+            if (d.length >= 4 && d.slice(-4) === plu) return true;
+            if (d.endsWith(cd)) return true;
         }
+        /* GM0010 / GM0010-1 / GM0010-S — PLU embutido no código sistema */
+        const mGm = s.match(/^GM0*(\d+)(?:[-_].*)?$/i);
+        if (mGm && String(mGm[1]).padStart(4, '0') === plu) return true;
     }
     return false;
 }
 
 function encontrarProdutoPorCodigoInternoBalanca(cod4, lista) {
-    return lista.find((p) => produtoCombinaCodigoInternoBalanca4(cod4, p)) || null;
+    const plu = String(cod4 || '').replace(/\D/g, '').padStart(4, '0');
+    const hits = (lista || []).filter((p) => produtoCombinaCodigoInternoBalanca4(cod4, p));
+    if (!hits.length) return null;
+    if (hits.length === 1) return hits[0];
+    const byCb = hits.find((p) => {
+        const d = String(p.codigo_barras ?? '').replace(/\D/g, '');
+        return d === plu || d === String(cod4 || '').replace(/\D/g, '');
+    });
+    if (byCb) return byCb;
+    const byGm1 = hits.find((p) =>
+        /^GM0*\d+-1$/i.test(String(p.codigo || p.codigo_nfe || '').trim())
+    );
+    if (byGm1) return byGm1;
+    return hits[0];
+}
+
+function montarProdutoPrecoEtiquetaBalanca(produto, bal, digits) {
+    return {
+        ...produto,
+        preco_venda: bal.valorReais,
+        preco_etiqueta_balanca: true,
+        auditoria_codigo_bip: digits,
+    };
 }
 
 function enriquecerProdutoBusca(p) {
@@ -3710,16 +3745,11 @@ function executarBuscaLocal(termo, modo) {
                 limparBuscaVisual();
                 return;
             }
-            /* PLU 4 dígitos: catálogo local (overlay) costuma ter o código antes do index Mongo. */
+            /* PLU 4 dígitos: catálogo local (overlay / GM0010-*) costuma ter o código antes do index Mongo. */
             const localBal = encontrarProdutoPorCodigoInternoBalanca(bal.codigo4, baseProdutos);
             if (localBal) {
                 processarResultadosBusca(
-                    [{
-                        ...localBal,
-                        preco_venda: bal.valorReais,
-                        preco_etiqueta_balanca: true,
-                        auditoria_codigo_bip: digits,
-                    }],
+                    [montarProdutoPrecoEtiquetaBalanca(localBal, bal, digits)],
                     modo,
                     true
                 );
@@ -3823,51 +3853,56 @@ function executarBuscaAPI(termo, modo) {
         .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
 }
 
-/** Etiqueta balança: API primeiro; se falhar, tenta PLU no catálogo local. */
+/** Etiqueta balança: API EAN → PLU 4 dígitos → catálogo local. */
 function executarBuscaAPIEtiquetaBalanca(digits, bal) {
-    mostrarStatusBusca('Buscando no banco online...', 'slate');
+    mostrarStatusBusca('Buscando etiqueta de balança…', 'slate');
     if (window.gmLoadingBar) window.gmLoadingBar.show();
+    const plu = String(bal.codigo4 || '').replace(/\D/g, '').padStart(4, '0');
+
+    function tentarLocalOuLista(prods, exact) {
+        if (exact && prods.length === 1) {
+            processarResultadosBusca(prods, 'scanner', true);
+            return true;
+        }
+        const hit = encontrarProdutoPorCodigoInternoBalanca(
+            bal.codigo4,
+            (prods || []).concat(baseProdutos || [])
+        );
+        if (hit) {
+            processarResultadosBusca(
+                [montarProdutoPrecoEtiquetaBalanca(hit, bal, digits)],
+                'scanner',
+                true
+            );
+            return true;
+        }
+        return false;
+    }
+
     fetch('/api/buscar/?q=' + encodeURIComponent(digits))
         .then((res) => res.json())
         .then((data) => {
             if (data.erro) throw new Error(data.erro);
-            const prods = data.produtos || [];
-            if (data.exact_barcode_match && prods.length === 1) {
-                processarResultadosBusca(prods, 'scanner', true);
-                return;
-            }
-            const localBal = encontrarProdutoPorCodigoInternoBalanca(bal.codigo4, baseProdutos);
-            if (localBal) {
-                processarResultadosBusca(
-                    [{
-                        ...localBal,
-                        preco_venda: bal.valorReais,
-                        preco_etiqueta_balanca: true,
-                        auditoria_codigo_bip: digits,
-                    }],
-                    'scanner',
-                    true
-                );
-                return;
-            }
-            processarResultadosBusca(prods, 'scanner', !!data.exact_barcode_match);
+            if (tentarLocalOuLista(data.produtos || [], !!data.exact_barcode_match)) return null;
+            /* EAN completo não acha cadastro: busca o PLU (ex. 0010) — mesmo termo da digitação manual. */
+            return fetch('/api/buscar/?q=' + encodeURIComponent(plu || bal.codigo4)).then((r) =>
+                r.json()
+            );
+        })
+        .then((data2) => {
+            if (data2 == null) return;
+            if (data2.erro) throw new Error(data2.erro);
+            if (tentarLocalOuLista(data2.produtos || [], false)) return;
+            tocarSom('erro');
+            mostrarStatusBusca(
+                'Etiqueta OK (PLU ' + (plu || bal.codigo4) + '), mas o produto não foi encontrado. Confira o cadastro.',
+                'red'
+            );
+            processarResultadosBusca([], 'scanner', false);
         })
         .catch((err) => {
             console.error('Erro na busca (etiqueta balança):', err);
-            const localBal = encontrarProdutoPorCodigoInternoBalanca(bal.codigo4, baseProdutos);
-            if (localBal) {
-                processarResultadosBusca(
-                    [{
-                        ...localBal,
-                        preco_venda: bal.valorReais,
-                        preco_etiqueta_balanca: true,
-                        auditoria_codigo_bip: digits,
-                    }],
-                    'scanner',
-                    true
-                );
-                return;
-            }
+            if (tentarLocalOuLista([], false)) return;
             processarResultadosBusca([], 'scanner', false);
         })
         .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
@@ -4127,6 +4162,37 @@ inputBusca.addEventListener('keydown', function(e) {
 
         const brutoEnter = removerSufixoQuantidade(inputBusca.value);
         const termoEnter = normalizarBuscaLocal(brutoEnter);
+        /* EAN-13 balança (flag 2): NÃO tratar como barras genérico — senão Enter chama API sem preço da etiqueta. */
+        const digitsEnter = String(brutoEnter || '').replace(/\D/g, '');
+        if (digitsEnter.length === 13 && digitsEnter[0] === '2') {
+            const balEnter = parseEtiquetaBalancaEan13(digitsEnter);
+            if (balEnter) {
+                if (!balEnter.checkOk) {
+                    tocarSom('erro');
+                    mostrarBannerScanner('⚠️ Etiqueta inválida (dígito verificador)');
+                    mostrarStatusBusca(
+                        'Etiqueta inválida (dígito verificador). Confira os 13 dígitos.',
+                        'red'
+                    );
+                    return;
+                }
+                pdvMarcarJanelaScannerAtiva(1500);
+                const localBalEnter = encontrarProdutoPorCodigoInternoBalanca(
+                    balEnter.codigo4,
+                    baseProdutos
+                );
+                if (localBalEnter) {
+                    processarResultadosBusca(
+                        [montarProdutoPrecoEtiquetaBalanca(localBalEnter, balEnter, digitsEnter)],
+                        'scanner',
+                        true
+                    );
+                    return;
+                }
+                executarBuscaAPIEtiquetaBalanca(digitsEnter, balEnter);
+                return;
+            }
+        }
         if (
             termoEnter
             && typeof pareceCodigoGmEtiqueta === 'function'
