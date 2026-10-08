@@ -1294,21 +1294,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### PACOTE PRONTO — Travas crédito shadow_v1_2 (CREDITO-SCORE-TRAVAS-V12)
+### 🚀 PREP deploy loja — Checklist 08/10 (`deploy/prep-checklist-0810` · alvo **v26.62**) · aguarda senha
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Travas % em dia máx **69** / **79**; limite **R\$ 0,01** → rótulo **Revisar bloqueio** (nunca candidato). Pesos/limite sugerido iguais. Só lab shadow. |
+| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha |
+| **Branch PREP** | `deploy/prep-checklist-0810` · tip `TIP_PLACEHOLDER` · base Live **v26.60** @ `e4206bbf` |
+| **Alvo loja** | **v26.62** |
 | **Migrate** | **NÃO** |
-| **Prova** | shadow **101/101** · tip teste **v26.61** |
-| **Status** | 🟢 **pronto para envio** · aguarda frase+senha p/ loja + recalc/Excel |
-| **Rollback** | docs/ROLLBACK-CREDITO-SCORE-SHADOW.md · **só** frase+senha |
+| **Merge teste?** | **NÃO** |
+| **Provas (PREP)** | shadow **101/101** · xlsx **90/90** · lab **34/34** · balança **27/27** · unit **5/5** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-checklist-0810-v26.60` @ `e4206bbf` · branch `producao-backup-pre-v2662-checklist-20261008` · `docs/ROLLBACK-CHECKLIST-0810.md` |
+| **Na senha (rápido)** | pausar vendas → tip PREP em producao → Render Live → Ctrl+F5 · badge **v26.62** |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-0810.md` |
+| **Atenção** | **Não** usar `deploy/prep-credito-v12` (base antiga — apagaria o bip da balança já na loja) |
 
-### ✅ CHECKLIST ÚNICO — CREDITO-SCORE-TRAVAS-V12 · 🟢 pronto para envio
+### ✅ CHECKLIST ÚNICO — 08/10 · 🟢 PREP v26.62 · aguarda senha
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CREDITO-SCORE-TRAVAS-V12** | 🟢 **pronto para envio** | **NÃO** | **101/101** |
+| 1 | **CREDITO-SCORE-TRAVAS-V12** | 🟢 **no PREP** | **NÃO** | **101/101** · xlsx **90/90** · lab **34/34** |
+| 2 | **PDV-BALANCA-ETQ-PLU** | 🟢 **no PREP** | **NÃO** | **27/27** · unit **5/5** |
+
+**Risco loja aberta:** baixo. Lab de crédito (não mexe venda) + leitura da etiqueta de balança no PDV. **Não** mexe finalizar venda · caixa · Point · NFC-e.
 
 ### ✅ Deploy loja — Checklist 07/10c · **Live v26.60** · 07/10
 
