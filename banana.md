@@ -1294,6 +1294,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### PACOTE PRONTO — Enter/colar etiqueta balança (`PDV-BALANCA-ETQ-ENTER`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Colar/`Enter` em EAN `2001000004812` não entrava: Enter ia pelo fluxo de **barras genérico** e buscava o EAN-13 inteiro. Agora: fluxo balança no Enter; fallback PLU **0010** / GM0010-*; preço da etiqueta. |
+| **Prova** | `scripts/verify_pdv_balanca_etq_plu_path.py` **35/35** · unit **7/7** · **PREP_FAILS=0** |
+| **Migrate** | **NÃO** |
+| **Mexe** | `consulta_produtos.js` · `views.py` · prova |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Tip teste** | `153df36c` |
+| **Rollback** | `docs/ROLLBACK-PDV-BALANCA-ETQ-PLU.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 · colar `2001000004812` + Enter → **R$ 4,81** |
+
+### ✅ CHECKLIST ÚNICO — 08/10 · PDV-BALANCA-ETQ-ENTER · 🟢 pronto para envio
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-BALANCA-ETQ-ENTER** | 🟢 **pronto para envio à produção** | **NÃO** | **35/35** · **7/7** |
+
 ### PACOTE PRONTO — REL-HORA-ROTULO · pronto para envio à produção · 08/10
 
 | Campo | Valor |
