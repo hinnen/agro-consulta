@@ -1294,46 +1294,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### ✅ CHECKLIST ÚNICO — falta subir · 🟢 pronto para envio à produção · 08/10
+### 🚀 PREP deploy loja — Checklist 08/10c (`deploy/prep-checklist-0810c` · alvo **v26.70**) · aguarda senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha |
+| **Branch PREP** | `deploy/prep-checklist-0810c` · tip `f0780162` · base Live **v26.66** @ `f29d3f8e` |
+| **Alvo loja** | **v26.70** |
+| **Migrate** | **SIM** `0141` (cria tabela de decisão do lab — não apaga limite) |
+| **Merge teste?** | **NÃO** |
+| **Provas (PREP)** | hora **85/85** · balança **35/35** · crédito revisão **38/38** · unit **14/14** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-checklist-0810c-v26.66` @ `f29d3f8e` · branch `producao-backup-pre-v2670-checklist-20261008c` · `docs/ROLLBACK-CHECKLIST-0810c.md` |
+| **Na senha (rápido)** | pausar vendas → tip PREP em producao → Render Live (migrate 0141) → Ctrl+F5 · badge **v26.70** |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-0810c.md` |
+
+### ✅ CHECKLIST ÚNICO — 08/10c · 🟢 PREP v26.70 · aguarda senha
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CREDITO-LIMITE-REVISAO** | 🟢 **pronto para envio à produção** | **SIM** `0141` | **38/38** · PIN **9973** |
-| 2 | **PDV-BALANCA-ETQ-ENTER** | 🟢 **pronto para envio à produção** | **NÃO** | **35/35** · **7/7** (revalidado) |
-| 3 | **REL-HORA-ROTULO** | 🟢 **pronto para envio à produção** | **NÃO** | **85/85** · **7/7** |
+| 1 | **REL-HORA-ROTULO** | 🟢 **no PREP** | **NÃO** | **85/85** |
+| 2 | **PDV-BALANCA-ETQ-ENTER** | 🟢 **no PREP** | **NÃO** | **35/35** · unit **7/7** |
+| 3 | **CREDITO-LIMITE-REVISAO** | 🟢 **no PREP** | **SIM** `0141` | **38/38** |
 
-Loja agora: **Live v26.66**. Estes 3 ainda não subiram.
-
-### PACOTE PRONTO — Enter/colar etiqueta balança (`PDV-BALANCA-ETQ-ENTER`)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Colar/`Enter` em EAN `2001000004812` não entrava (barras genérico). Agora: fluxo balança no Enter; fallback PLU **0010** / GM0010-*; preço da etiqueta. |
-| **Prova** | `scripts/verify_pdv_balanca_etq_plu_path.py` **35/35** · unit **7/7** · smoke parse/escolher OK · **PREP_FAILS=0** |
-| **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** |
-| **Tip teste** | `153df36c` |
-| **Rollback** | `docs/ROLLBACK-PDV-BALANCA-ETQ-PLU.md` · **só** frase+senha |
-| **Você** | Ctrl+F5 · colar `2001000004812` + Enter → **R$ 4,81** |
-
-### PACOTE PRONTO — REL-HORA-ROTULO
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Cartão: **Média do dia** · **Total do período**. |
-| **Prova** | **85/85** · unit **7/7** · PIN **9973** |
-| **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** |
-
-### PACOTE PRONTO — Revisar limite crédito (`CREDITO-LIMITE-REVISAO`)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Botão **REVISAR ALTERAÇÕES DE LIMITE** (teto +20%). |
-| **Prova** | **38/38** · PIN **9973** |
-| **Migrate** | **SIM** `0141` |
-| **Status** | 🟢 **pronto para envio à produção** |
-
+**Risco loja aberta:** baixo. Rótulo do relatório, Enter/colar da etiqueta de balança na busca, revisão de limite só no lab. **Não** mexe finalizar venda · caixa · Point · NFC-e.
 
 ### ✅ Deploy loja — Checklist 08/10b · **Live v26.66** · 08/10
 

@@ -872,3 +872,18 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 **O quê:** no hora a hora, o cartão grande diz **Média do dia** ou **Total do período**. Loja **v26.66** ainda mostra **TOTAL**.  
 **Não entra:** resto do `teste`. **Só** frase + senha.
+
+---
+
+## 71. Checklist único — lote 08/10c (deploy/prep-checklist-0810c · alvo loja **v26.70**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **REL-HORA-ROTULO** | 🟢 **PREP** · **85/85** | **NÃO** |
+| 2 | **PDV-BALANCA-ETQ-ENTER** | 🟢 **PREP** · **35/35** + unit **7/7** | **NÃO** |
+| 3 | **CREDITO-LIMITE-REVISAO** | 🟢 **PREP** · **38/38** | **SIM** 0141 |
+
+**Branch PREP:** deploy/prep-checklist-0810c · tip 3d8b95c7 · base Live **v26.66** @ f29d3f8e.  
+**Rollback:** tag rollback/pre-checklist-0810c-v26.66 · docs/ROLLBACK-CHECKLIST-0810c.md · **só** frase+senha.  
+**Na senha:** pausar vendas · tip PREP → producao → Ctrl+F5 · badge **v26.70**. **Não** merge teste.
+
