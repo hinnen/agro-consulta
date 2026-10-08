@@ -1,9 +1,14 @@
 """Etiqueta de balança EAN-13 (4 dígitos + preço total)."""
 from decimal import Decimal
+from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
-from produtos.views import _ean13_digito_verificador, _parse_etiqueta_balanca_ean13_br
+from produtos.views import (
+    _buscar_produto_por_codigo_interno_balanca,
+    _ean13_digito_verificador,
+    _parse_etiqueta_balanca_ean13_br,
+)
 
 
 class EtiquetaBalancaEan13Tests(SimpleTestCase):
@@ -19,3 +24,37 @@ class EtiquetaBalancaEan13Tests(SimpleTestCase):
 
     def test_dv_esperado(self):
         self.assertEqual(_ean13_digito_verificador("200100000481"), 2)
+
+    def test_busca_prefere_plu_4_digitos(self):
+        client = MagicMock()
+        client.col_p = "DtoProduto"
+        col = MagicMock()
+        db = {client.col_p: col}
+        calls = []
+
+        def find_one(q, *a, **k):
+            calls.append(q.get("index_codigos"))
+            if q.get("index_codigos") == "0010":
+                return {"Id": "ok", "index_codigos": ["0010"]}
+            if q.get("index_codigos") == "10":
+                return {"Id": "errado", "index_codigos": ["10"]}
+            return None
+
+        col.find_one.side_effect = find_one
+        got = _buscar_produto_por_codigo_interno_balanca(db, client, "0010")
+        self.assertEqual(got["Id"], "ok")
+        self.assertEqual(calls[0], "0010")
+
+    def test_busca_overlay_quando_sem_index(self):
+        client = MagicMock()
+        client.col_p = "DtoProduto"
+        col = MagicMock()
+        db = {client.col_p: col}
+        col.find_one.return_value = None
+        col.find.return_value.limit.return_value = []
+        with patch(
+            "produtos.views._mongo_produtos_por_overlay_codigo_busca",
+            return_value=[{"Id": "ov1", "Nome": "Racao"}],
+        ):
+            got = _buscar_produto_por_codigo_interno_balanca(db, client, "0010")
+        self.assertEqual(got["Id"], "ov1")

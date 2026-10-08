@@ -1294,6 +1294,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### PACOTE PRONTO — bip etiqueta balança PLU (`PDV-BALANCA-ETQ-PLU`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Etiqueta EAN-13 `2`+**CCCC**+`0`+preço+DV (ex. `2001000004812` → PLU **0010** · **R$ 4,81**) não entrava no carrinho: PLU só no overlay SisVale / catálogo local, fora do `index_codigos`. Agora: API resolve overlay; PDV usa catálogo local com preço da etiqueta; busca prefere **0010** antes de **10**. |
+| **Prova** | `scripts/verify_pdv_balanca_etq_plu_path.py` **27/27** · unit `produtos.tests_balanca_etiqueta` **5/5** · **PREP_FAILS=0** |
+| **Migrate** | **NÃO** |
+| **Mexe** | `produtos/views.py` · `consulta_produtos.js` · prova + testes |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Alvo loja** | **v26.62** (CREDITO-V12 continua **v26.61** PREP) |
+| **Rollback** | `docs/ROLLBACK-PDV-BALANCA-ETQ-PLU.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 no PDV · bipar etiqueta · item com valor da etiqueta (não R$ 9,40/kg) |
+
+### ✅ CHECKLIST ÚNICO — 08/10 · PDV-BALANCA-ETQ-PLU · 🟢 pronto para envio
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-BALANCA-ETQ-PLU** | 🟢 **pronto para envio à produção** | **NÃO** | **27/27** · unit **5/5** |
+
 ### 🚀 PREP deploy loja — CREDITO-SCORE-TRAVAS-V12 (deploy/prep-credito-v12 · **v26.61**) · aguarda senha
 
 | Campo | Valor |
