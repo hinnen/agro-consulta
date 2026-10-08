@@ -1294,22 +1294,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### PACOTE PRONTO — REL-HORA-ROTULO · pronto para envio à produção · 08/10
+### 🚀 PREP deploy loja — Checklist 08/10c (`deploy/prep-checklist-0810c` · alvo **v26.70**) · aguarda senha
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **pronto para envio à produção** — ainda **não** está na loja |
-| **O quê** | Cartão grande: **Média do dia** (filtro média) · **Total do período** (soma). O valor não muda. |
-| **Loja agora** | **v26.66** ainda mostra **TOTAL** |
-| **Migrate** | **NÃO** |
-| **Prova** | path **85/85** · unit **7/7** · PIN **9973** · ontem **R$ 3.634,00** = Vendas por loja · marcas apagadas |
-| **Não entra** | resto do `teste` (ex. PDV colar EAN) |
+| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha |
+| **Branch PREP** | `deploy/prep-checklist-0810c` · tip `TIP_PLACEHOLDER` · base Live **v26.66** @ `f29d3f8e` |
+| **Alvo loja** | **v26.70** |
+| **Migrate** | **SIM** `0141` (cria tabela de decisão do lab — não apaga limite) |
+| **Merge teste?** | **NÃO** |
+| **Provas (PREP)** | hora **85/85** · balança **35/35** · crédito revisão **38/38** · unit **14/14** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-checklist-0810c-v26.66` @ `f29d3f8e` · branch `producao-backup-pre-v2670-checklist-20261008c` · `docs/ROLLBACK-CHECKLIST-0810c.md` |
+| **Na senha (rápido)** | pausar vendas → tip PREP em producao → Render Live (migrate 0141) → Ctrl+F5 · badge **v26.70** |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-0810c.md` |
 
-### CHECKLIST ÚNICO — REL-HORA-ROTULO · pronto para envio à produção
+### ✅ CHECKLIST ÚNICO — 08/10c · 🟢 PREP v26.70 · aguarda senha
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **REL-HORA-ROTULO** | 🟢 **pronto para envio à produção** | **NÃO** | **85/85** · unit **7/7** |
+| 1 | **REL-HORA-ROTULO** | 🟢 **no PREP** | **NÃO** | **85/85** |
+| 2 | **PDV-BALANCA-ETQ-ENTER** | 🟢 **no PREP** | **NÃO** | **35/35** · unit **7/7** |
+| 3 | **CREDITO-LIMITE-REVISAO** | 🟢 **no PREP** | **SIM** `0141` | **38/38** |
+
+**Risco loja aberta:** baixo. Rótulo do relatório, Enter/colar da etiqueta de balança na busca, revisão de limite só no lab. **Não** mexe finalizar venda · caixa · Point · NFC-e.
 
 ### ✅ Deploy loja — Checklist 08/10b · **Live v26.66** · 08/10
 
