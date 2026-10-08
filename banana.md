@@ -1299,10 +1299,41 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
 | 1 | **CREDITO-LIMITE-REVISAO** | 🟢 **pronto para envio à produção** | **SIM** `0141` | **38/38** · PIN **9973** |
-| 2 | **PDV-BALANCA-ETQ-ENTER** | 🟢 **pronto para envio à produção** | **NÃO** | **35/35** · **7/7** |
+| 2 | **PDV-BALANCA-ETQ-ENTER** | 🟢 **pronto para envio à produção** | **NÃO** | **35/35** · **7/7** (revalidado) |
 | 3 | **REL-HORA-ROTULO** | 🟢 **pronto para envio à produção** | **NÃO** | **85/85** · **7/7** |
 
 Loja agora: **Live v26.66**. Estes 3 ainda não subiram.
+
+### PACOTE PRONTO — Enter/colar etiqueta balança (`PDV-BALANCA-ETQ-ENTER`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Colar/`Enter` em EAN `2001000004812` não entrava (barras genérico). Agora: fluxo balança no Enter; fallback PLU **0010** / GM0010-*; preço da etiqueta. |
+| **Prova** | `scripts/verify_pdv_balanca_etq_plu_path.py` **35/35** · unit **7/7** · smoke parse/escolher OK · **PREP_FAILS=0** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Tip teste** | `153df36c` |
+| **Rollback** | `docs/ROLLBACK-PDV-BALANCA-ETQ-PLU.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 · colar `2001000004812` + Enter → **R$ 4,81** |
+
+### PACOTE PRONTO — REL-HORA-ROTULO
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Cartão: **Média do dia** · **Total do período**. |
+| **Prova** | **85/85** · unit **7/7** · PIN **9973** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+
+### PACOTE PRONTO — Revisar limite crédito (`CREDITO-LIMITE-REVISAO`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Botão **REVISAR ALTERAÇÕES DE LIMITE** (teto +20%). |
+| **Prova** | **38/38** · PIN **9973** |
+| **Migrate** | **SIM** `0141` |
+| **Status** | 🟢 **pronto para envio à produção** |
+
 
 ### ✅ Deploy loja — Checklist 08/10b · **Live v26.66** · 08/10
 
