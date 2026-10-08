@@ -883,7 +883,7 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | 2 | **PDV-BALANCA-ETQ-ENTER** | 🟢 **PREP** · **35/35** + unit **7/7** | **NÃO** |
 | 3 | **CREDITO-LIMITE-REVISAO** | 🟢 **PREP** · **38/38** | **SIM** 0141 |
 
-**Branch PREP:** deploy/prep-checklist-0810c · tip TIP_PLACEHOLDER · base Live **v26.66** @ f29d3f8e.  
+**Branch PREP:** deploy/prep-checklist-0810c · tip f0780162 · base Live **v26.66** @ f29d3f8e.  
 **Rollback:** tag rollback/pre-checklist-0810c-v26.66 · docs/ROLLBACK-CHECKLIST-0810c.md · **só** frase+senha.  
 **Na senha:** pausar vendas · tip PREP → producao → Ctrl+F5 · badge **v26.70**. **Não** merge teste.
 
