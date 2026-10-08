@@ -1294,61 +1294,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PACOTE PRONTO — REL-HORA · **v26.66** · 08/10 · pronto para envio
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | 🟢 **pronto para envio à produção** — **não** subiu |
-| **O quê** | Central → **Venda hora a hora** (`/relatorios/hora/`). Centro + Vila, só Centro ou só Vila. Média ou soma. Balcão × entrega. Costume das 4 semanas. Mapa. Clique na hora. Quem atendeu. Meta. Excel. Total do dia = Vendas por loja (devolução sai na hora em que devolveu). |
-| **Migrate** | **NÃO** |
-| **Prova** | **67/67** (`verify_rel_hora_path.py`) · unit **7/7** · PIN **9973** |
-| **Você** | Central de Relatórios → Venda hora a hora. Ontem tem que bater com Vendas por loja. |
-
-### ✅ CHECKLIST ÚNICO — REL-HORA · 🟢 pronto para envio · **v26.66**
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **REL-HORA** | 🟢 **pronto para envio à produção** | **NÃO** | **67/67** |
-
-### 🟢 PACOTE PRONTO — META-LOJAS · **v26.64** · 08/10 · pronto para envio
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | 🟢 **pronto para envio à produção** — **não** entrou no PREP v26.62 · **não** subiu |
-| **O quê** | `/meta/` com 3 visões: **Centro + Vila**, **Só Centro**, **Só Vila**. A meta cadastrada é a mesma. Venda, média esperada, foto e texto do Zap mudam com a loja. |
-| **Migrate** | **NÃO** |
-| **Prova** | **154/154** (`verify_meta_mostruario_path.py` · PIN 9973) |
-| **Você** | No teste: Gestão → META → os 3 botões no topo. Foto e Zap levam o nome da loja. |
-
-### ✅ CHECKLIST ÚNICO — META-LOJAS · 🟢 pronto para envio · **v26.64**
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **META-LOJAS** | 🟢 **pronto para envio à produção** | **NÃO** | **154/154** |
-
-### 🚀 PREP deploy loja — Checklist 08/10 (`deploy/prep-checklist-0810` · alvo **v26.62**) · aguarda senha
+### 🚀 PREP deploy loja — Checklist 08/10b (`deploy/prep-checklist-0810b` · alvo **v26.66**) · aguarda senha
 
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha |
-| **Branch PREP** | `deploy/prep-checklist-0810` · tip `09b8ea61` · base Live **v26.60** @ `e4206bbf` |
-| **Alvo loja** | **v26.62** |
+| **Branch PREP** | `deploy/prep-checklist-0810b` · tip `35fa8a69` · base Live **v26.60** @ `e4206bbf` |
+| **Alvo loja** | **v26.66** |
 | **Migrate** | **NÃO** |
 | **Merge teste?** | **NÃO** |
-| **Provas (PREP)** | shadow **101/101** · xlsx **90/90** · lab **34/34** · balança **27/27** · unit **5/5** · **PREP_FAILS=0** |
-| **Rollback** | tag `rollback/pre-checklist-0810-v26.60` @ `e4206bbf` · branch `producao-backup-pre-v2662-checklist-20261008` · `docs/ROLLBACK-CHECKLIST-0810.md` |
-| **Na senha (rápido)** | pausar vendas → tip PREP em producao → Render Live → Ctrl+F5 · badge **v26.62** |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-0810.md` |
-| **Atenção** | **Não** usar `deploy/prep-credito-v12` (base antiga — apagaria o bip da balança já na loja) |
+| **Provas (PREP)** | crédito **101/101** · xlsx **90/90** · lab **34/34** · balança **27/27** · META **154/154** · hora **67/67** · unit **12/12** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-checklist-0810b-v26.60` @ `e4206bbf` · branch `producao-backup-pre-v2666-checklist-20261008b` · `docs/ROLLBACK-CHECKLIST-0810b.md` |
+| **Na senha (rápido)** | pausar vendas → tip PREP em producao → Render Live → Ctrl+F5 · badge **v26.66** |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-0810b.md` |
+| **Atenção** | Substitui `deploy/prep-checklist-0810` (v26.62). **Não** usar `deploy/prep-credito-v12`. |
 
-### ✅ CHECKLIST ÚNICO — 08/10 · 🟢 PREP v26.62 · aguarda senha
+### ✅ CHECKLIST ÚNICO — 08/10b · 🟢 PREP v26.66 · aguarda senha
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
 | 1 | **CREDITO-SCORE-TRAVAS-V12** | 🟢 **no PREP** | **NÃO** | **101/101** · xlsx **90/90** · lab **34/34** |
-| 2 | **PDV-BALANCA-ETQ-PLU** | 🟢 **no PREP** | **NÃO** | **27/27** · unit **5/5** |
+| 2 | **PDV-BALANCA-ETQ-PLU** | 🟢 **no PREP** | **NÃO** | **27/27** |
+| 3 | **META-LOJAS** | 🟢 **no PREP** | **NÃO** | **154/154** |
+| 4 | **REL-HORA** | 🟢 **no PREP** | **NÃO** | **67/67** |
 
-**Risco loja aberta:** baixo. Lab de crédito (não mexe venda) + leitura da etiqueta de balança no PDV. **Não** mexe finalizar venda · caixa · Point · NFC-e.
+**Risco loja aberta:** baixo. Lab de crédito, leitura da etiqueta de balança, tela META e relatório hora a hora. **Não** mexe finalizar venda · caixa · Point · NFC-e.
 
 ### ✅ Deploy loja — Checklist 07/10c · **Live v26.60** · 07/10
 
