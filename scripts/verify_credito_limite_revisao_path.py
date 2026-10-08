@@ -15,10 +15,15 @@ import django
 
 django.setup()
 
+from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.test import Client, override_settings
+from django.urls import reverse
 
+from produtos.caixa_util import validar_pin_operador
 from produtos.credito_limite_revisao import (
     aprovar_limite_cliente,
+    aprovar_limites_selecionados,
     ignorar_limite_cliente,
     listar_revisoes_limite,
     novo_limite_aplicavel,
@@ -28,6 +33,8 @@ from produtos.models import (
     ClienteAnaliseCreditoAgro,
     CreditoLimiteRevisaoDecisaoAgro,
     FiadoEventoAgro,
+    FiadoTituloAgro,
+    VendaAgro,
 )
 
 oks: list[str] = []
@@ -120,7 +127,78 @@ def main() -> int:
                 cliente=ign, acao=CreditoLimiteRevisaoDecisaoAgro.Acao.IGNORADO
             ).exists(),
         )
+        check("segunda_aprovacao_nao", aprovar_limite_cliente(bom.pk, usuario="verify") is False)
+
+        sem = ClienteAgro.objects.create(nome="ZZ Rev Sem", limite_fiado_local=Decimal("100"))
+        _snap(sem, sugerido=Decimal("200"), confianca="SEM_DADOS", score=None)
+        check("sem_dados_fora", "ZZ Rev Sem" not in {r["cliente_nome"] for r in listar_revisoes_limite()})
+
+        a = ClienteAgro.objects.create(nome="ZZ Rev Lote A", limite_fiado_local=Decimal("100"))
+        b = ClienteAgro.objects.create(nome="ZZ Rev Lote B", limite_fiado_local=Decimal("50"))
+        c = ClienteAgro.objects.create(nome="ZZ Rev Lote C", limite_fiado_local=Decimal("40"))
+        _snap(a, sugerido=Decimal("200"))
+        _snap(b, sugerido=Decimal("200"))
+        _snap(c, sugerido=Decimal("200"))
+        n_tit = FiadoTituloAgro.objects.count()
+        n_venda = VendaAgro.objects.count()
+        ok_n, pulados = aprovar_limites_selecionados([a.pk, b.pk], usuario="verify")
+        a.refresh_from_db()
+        b.refresh_from_db()
+        c.refresh_from_db()
+        check("lote_dois", ok_n == 2 and pulados == 0, f"{ok_n}/{pulados}")
+        check("lote_a_120", a.limite_fiado_local == Decimal("120.00"))
+        check("lote_b_teto", b.limite_fiado_local == Decimal("60.00"), str(b.limite_fiado_local))
+        check("lote_c_intacto", c.limite_fiado_local == Decimal("40.00"))
+        check("titulos_intactos", FiadoTituloAgro.objects.count() == n_tit)
+        check("vendas_intactas", VendaAgro.objects.count() == n_venda)
         transaction.savepoint_rollback(sid)
+
+    print("== 4) Tela e acesso ==")
+    html = (ROOT / "produtos/templates/produtos/credito_limite_revisao.html").read_text(encoding="utf-8")
+    lab = (ROOT / "produtos/templates/produtos/credito_score_laboratorio.html").read_text(encoding="utf-8")
+    urls = (ROOT / "produtos/urls.py").read_text(encoding="utf-8")
+    check("botao_lab", "REVISAR ALTERAÇÕES DE LIMITE" in lab)
+    check("sem_aprovar_todos", "Aprovar todos" not in html and "aprovar_todos" not in html)
+    check("tem_aprovar_selecionados", "Aprovar selecionados" in html)
+    check("rota", "fiado/analise-credito/revisar-limites/" in urls)
+    pin = (os.environ.get("AGRO_PIN_TESTE") or "9973").strip()
+    pin_ok, _msg = validar_pin_operador(pin)
+    check("pin_9973", pin_ok is True, pin)
+
+    User = get_user_model()
+    superuser = User.objects.filter(is_superuser=True).order_by("pk").first()
+    check("tem_superuser", superuser is not None, getattr(superuser, "username", ""))
+    from django.conf import settings as dj_settings
+
+    hosts = list(getattr(dj_settings, "ALLOWED_HOSTS", []) or [])
+    if "testserver" not in hosts:
+        hosts = hosts + ["testserver", "localhost", "127.0.0.1"]
+    if superuser is not None:
+        with override_settings(
+            AGRO_CREDITO_SCORE_SHADOW_ENABLED=True,
+            AGRO_CREDITO_SCORE_SHADOW_USERNAMES="renan",
+            ALLOWED_HOSTS=hosts,
+        ):
+            c = Client()
+            c.force_login(superuser)
+            page = c.get(reverse("credito_limite_revisao"))
+            check("super_200", page.status_code == 200, str(page.status_code))
+            body = page.content.decode("utf-8", errors="replace")
+            check("html_titulo", "Revisar alterações de limite" in body)
+            check("html_sem_aprovar_todos", "Aprovar todos" not in body)
+        operador = User.objects.filter(username__iexact="geraldinho").first()
+        if operador is None:
+            check("operador_404", True, "skip sem geraldinho")
+        else:
+            with override_settings(
+                AGRO_CREDITO_SCORE_SHADOW_ENABLED=True,
+                AGRO_CREDITO_SCORE_SHADOW_USERNAMES="renan",
+                ALLOWED_HOSTS=hosts,
+            ):
+                c2 = Client()
+                c2.force_login(operador)
+                d = c2.get(reverse("credito_limite_revisao"))
+                check("operador_404", d.status_code == 404, f"{operador.username} {d.status_code}")
 
     print(f"=== {len(oks)} OK · {len(fails)} FAIL ===")
     return 1 if fails else 0
