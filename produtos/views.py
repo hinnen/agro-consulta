@@ -23011,31 +23011,51 @@ def _parse_etiqueta_balanca_ean13_br(q: str):
 
 
 def _buscar_produto_por_codigo_interno_balanca(db, client, cod4: str):
-    """Resolve produto pelos 4 dígitos do código na etiqueta (``index_codigos`` + overlay Agro)."""
+    """Resolve produto pelos 4 dígitos do código na etiqueta (``index_codigos`` + overlay Agro).
+
+    Prefere o PLU de 4 dígitos (ex. ``0010``) antes de variantes curtas (``10``), para não
+    casar outro produto no ``find_one`` com ``$in``.
+    """
     col = db[client.col_p]
     base = {"CadastroInativo": {"$ne": True}}
     cod4 = str(cod4 or "").strip()
-    variants = set()
-    variants.add(cod4)
-    variants.add(cod4.lstrip("0") or "0")
-    for z in (5, 6, 7):
-        variants.add(cod4.zfill(z))
-    alvos = sorted({str(v).strip().lower() for v in variants if str(v).strip()})
-    if not alvos:
+    if not cod4:
         return None
-    try:
-        doc = col.find_one({**base, INDEX_CODIGOS_CAMPO: {"$in": alvos}})
-    except Exception:
-        doc = None
-    if doc:
-        return doc
+    plu4 = cod4.zfill(4) if cod4.isdigit() else cod4
+    preferidos: list[str] = []
+    for t in (plu4, cod4):
+        tl = str(t).strip().lower()
+        if tl and tl not in preferidos:
+            preferidos.append(tl)
+    secundarios: list[str] = []
+    short = (cod4.lstrip("0") or "0").lower()
+    if short and short not in preferidos:
+        secundarios.append(short)
+    for z in (5, 6, 7):
+        v = cod4.zfill(z).lower()
+        if v and v not in preferidos and v not in secundarios:
+            secundarios.append(v)
+
+    for alvo in preferidos:
+        try:
+            doc = col.find_one({**base, INDEX_CODIGOS_CAMPO: alvo})
+        except Exception:
+            doc = None
+        if doc:
+            return doc
+
+    if secundarios:
+        try:
+            docs = list(col.find({**base, INDEX_CODIGOS_CAMPO: {"$in": secundarios}}).limit(3))
+        except Exception:
+            docs = []
+        if len(docs) == 1:
+            return docs[0]
+
     # Código curto de balança (ex.: 0010) costuma estar só no overlay até ``index_codigos`` atualizar.
     by_id: dict[str, dict] = {}
-    for termo in {cod4, cod4.zfill(4)}:
-        t = str(termo or "").strip()
-        if not t:
-            continue
-        for extra in _mongo_produtos_por_overlay_codigo_busca(t, db, client, set(by_id.keys())):
+    for termo in preferidos:
+        for extra in _mongo_produtos_por_overlay_codigo_busca(termo, db, client, set(by_id.keys())):
             pid = str(extra.get("Id") or extra.get("_id") or "").strip()
             if pid:
                 by_id[pid] = extra
