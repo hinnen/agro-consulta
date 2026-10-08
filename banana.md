@@ -1294,6 +1294,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### REL-HORA rótulo do cartão · teste · ainda não na loja · 08/10
+
+Cartão grande: **Média do dia** quando Números = média · **Total do período** na soma. Loja **v26.66** ainda mostra **TOTAL**. Sem migrate.
+
 ### ✅ Deploy loja — Checklist 08/10b · **Live v26.66** · 08/10
 
 | Campo | Valor |
