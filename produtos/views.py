@@ -23064,6 +23064,57 @@ def _buscar_produto_por_codigo_interno_balanca(db, client, cod4: str):
     return None
 
 
+def _produto_casa_plu_balanca(doc: dict, plu4: str) -> bool:
+    """True se barras/index/código GM embutem o PLU de 4 dígitos da etiqueta."""
+    plu4 = str(plu4 or "").strip()
+    if not plu4:
+        return False
+    plu = plu4.zfill(4) if plu4.isdigit() else plu4
+    plu_l = plu.lower()
+    short = (plu.lstrip("0") or "0").lower()
+    idx = doc.get(INDEX_CODIGOS_CAMPO)
+    if isinstance(idx, list):
+        for x in idx:
+            xl = str(x or "").strip().lower()
+            if xl in (plu_l, short) or xl == plu4.lower():
+                return True
+    cb = str(_extrair_codigo_barras(doc) or "").strip()
+    if cb:
+        cbd = re.sub(r"\D", "", cb)
+        if cbd == plu or cbd == short or cbd == plu4:
+            return True
+    for fld in ("Codigo", "CodigoNFe", "CodigoInterno", "Sku", "SKU"):
+        raw = str(doc.get(fld) or "").strip()
+        if not raw:
+            continue
+        m = re.match(r"(?i)^GM0*(\d+)(?:[-_].*)?$", raw)
+        if m and m.group(1).zfill(4) == plu.zfill(4):
+            return True
+    return False
+
+
+def _escolher_produto_plu_balanca(candidatos: list, plu4: str):
+    """Escolhe 1 produto entre candidatos da busca pelo PLU (preferência barras → GM…-1)."""
+    plu = str(plu4 or "").strip()
+    if not plu:
+        return None
+    plu_z = plu.zfill(4) if plu.isdigit() else plu
+    hits = [p for p in (candidatos or []) if _produto_casa_plu_balanca(p, plu_z)]
+    if not hits:
+        return None
+    if len(hits) == 1:
+        return hits[0]
+    for p in hits:
+        cb = re.sub(r"\D", "", str(_extrair_codigo_barras(p) or ""))
+        if cb == plu_z or cb == plu:
+            return p
+    for p in hits:
+        cod = str(p.get("Codigo") or p.get("CodigoNFe") or "").strip()
+        if re.match(r"(?i)^GM0*\d+-1$", cod):
+            return p
+    return hits[0]
+
+
 # `_mapear_estoques_por_produto` só usa estes campos — projeção evita ler documentos grandes de estoque na busca PDV.
 _API_BUSCAR_ESTOQUE_PROJECTION = {"ProdutoID": 1, "DepositoID": 1, "Saldo": 1, "_id": 0}
 
@@ -23554,21 +23605,18 @@ def api_buscar_produtos(request):
                     if len(d_lido) == 13 and d_lido[0] == "2":
                         balanca_auditoria_q = d_lido
                     p_escolhido = _buscar_produto_por_codigo_interno_balanca(db, client, cod4)
-                    if p_escolhido:
-                        pid_b = str(p_escolhido.get("Id") or p_escolhido.get("_id"))
-                        preco_por_id[pid_b] = preco_etiqueta
-                        prods = _merge_produtos_overlay_codigo_consulta(q, [p_escolhido], db, client)
-                    else:
-                        # Com BCA (Postgres): nunca mongo-lite — senão Entrada NF diverge do cadastro.
+                    if not p_escolhido:
+                        # EAN completo não está no cadastro — buscar pelo PLU (ex. 0010), não pelo EAN-13.
+                        plu_q = cod4.zfill(4) if str(cod4).isdigit() else str(cod4)
                         if busca_lite and db is not None and not use_motor_unificado:
-                            prods = _buscar_mongo_lite_consulta(
-                                q, db, client, limit=lim_busca_req
+                            cand = _buscar_mongo_lite_consulta(
+                                plu_q, db, client, limit=lim_busca_req
                             )
                         else:
                             from produtos.motor_busca_unificado_util import buscar_documentos_unificado
 
-                            prods = buscar_documentos_unificado(
-                                q,
+                            cand = buscar_documentos_unificado(
+                                plu_q,
                                 db,
                                 client,
                                 limit=lim_busca_req,
@@ -23576,6 +23624,18 @@ def api_buscar_produtos(request):
                                 wizard_catalog=False,
                                 skip_mongo_complemento=skip_mongo_complemento,
                             )
+                        cand = _merge_produtos_overlay_codigo_consulta(
+                            plu_q, cand, db, client
+                        )
+                        p_escolhido = _escolher_produto_plu_balanca(cand, cod4)
+                    if p_escolhido:
+                        pid_b = str(p_escolhido.get("Id") or p_escolhido.get("_id"))
+                        preco_por_id[pid_b] = preco_etiqueta
+                        prods = _merge_produtos_overlay_codigo_consulta(
+                            str(cod4), [p_escolhido], db, client
+                        )
+                    else:
+                        prods = []
                 else:
                     if busca_lite and db is not None and not use_motor_unificado:
                         prods = _buscar_mongo_lite_consulta(
@@ -23605,14 +23665,25 @@ def api_buscar_produtos(request):
                     if len(d_lido) == 13 and d_lido[0] == "2":
                         balanca_auditoria_q = d_lido
                     p_escolhido = _buscar_produto_por_codigo_interno_balanca(db, client, cod4)
+                    if not p_escolhido:
+                        plu_q = cod4.zfill(4) if str(cod4).isdigit() else str(cod4)
+                        cand = motor_busca_consulta_documentos(
+                            plu_q,
+                            db,
+                            client,
+                            limit=80,
+                            include_inactive=False,
+                            projection=None,
+                        )
+                        p_escolhido = _escolher_produto_plu_balanca(cand, cod4)
                     if p_escolhido:
                         pid_b = str(p_escolhido.get("Id") or p_escolhido.get("_id"))
                         preco_por_id[pid_b] = preco_etiqueta
-                        prods = _merge_produtos_overlay_codigo_consulta(q, [p_escolhido], db, client)
-                    else:
-                        prods = motor_busca_consulta_documentos(
-                            q, db, client, limit=80, include_inactive=False, projection=None
+                        prods = _merge_produtos_overlay_codigo_consulta(
+                            str(cod4), [p_escolhido], db, client
                         )
+                    else:
+                        prods = []
                 else:
                     prods = motor_busca_consulta_documentos(
                         q, db, client, limit=80, include_inactive=False, projection=None

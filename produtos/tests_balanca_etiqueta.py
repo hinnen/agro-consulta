@@ -7,7 +7,9 @@ from django.test import SimpleTestCase
 from produtos.views import (
     _buscar_produto_por_codigo_interno_balanca,
     _ean13_digito_verificador,
+    _escolher_produto_plu_balanca,
     _parse_etiqueta_balanca_ean13_br,
+    _produto_casa_plu_balanca,
 )
 
 
@@ -58,3 +60,23 @@ class EtiquetaBalancaEan13Tests(SimpleTestCase):
         ):
             got = _buscar_produto_por_codigo_interno_balanca(db, client, "0010")
         self.assertEqual(got["Id"], "ov1")
+
+    def test_casa_plu_gm_e_barras(self):
+        self.assertTrue(
+            _produto_casa_plu_balanca({"Codigo": "GM0010-1", "index_codigos": []}, "0010")
+        )
+        self.assertTrue(
+            _produto_casa_plu_balanca({"CodigoBarras": "0010", "index_codigos": []}, "0010")
+        )
+        self.assertFalse(
+            _produto_casa_plu_balanca({"Codigo": "GM0143", "index_codigos": []}, "0010")
+        )
+
+    def test_escolhe_gm_menos_1_entre_varios(self):
+        cand = [
+            {"Id": "a", "Codigo": "GM0010-25", "CodigoBarras": ""},
+            {"Id": "b", "Codigo": "GM0010-1", "CodigoBarras": ""},
+            {"Id": "c", "Codigo": "GM0010-S", "CodigoBarras": ""},
+        ]
+        got = _escolher_produto_plu_balanca(cand, "0010")
+        self.assertEqual(got["Id"], "b")

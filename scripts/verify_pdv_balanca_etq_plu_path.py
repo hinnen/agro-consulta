@@ -57,6 +57,11 @@ def test_contratos_arquivo() -> None:
         "js_dv_return",
         "Etiqueta inválida (dígito verificador)" in js and "limparBuscaVisual()" in js,
     )
+    check("js_enter_balanca", "digitsEnter.length === 13 && digitsEnter[0] === '2'" in js)
+    check("js_gm_plu", "GM0*" in js and "padStart(4, '0')" in js)
+    check("js_fallback_plu_api", "encodeURIComponent(plu || bal.codigo4)" in js)
+    check("py_escolher_plu", "def _escolher_produto_plu_balanca" in views)
+    check("py_casa_plu", "def _produto_casa_plu_balanca" in views)
 
 
 def test_parse_e_busca() -> None:
