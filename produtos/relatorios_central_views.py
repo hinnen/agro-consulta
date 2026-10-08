@@ -1542,3 +1542,49 @@ def relatorios_quem_comprou(request):
             "periodo_label": sub_periodo or f["label"],
         },
     )
+
+
+def _href_hora(request, **override) -> str:
+    q = request.GET.copy()
+    q.pop("export", None)
+    for chave, valor in override.items():
+        if valor is None:
+            q.pop(chave, None)
+        else:
+            q[chave] = str(valor)
+    encoded = q.urlencode()
+    return "?" + encoded if encoded else "?"
+
+
+@require_GET
+def relatorios_hora(request):
+    from produtos import relatorios_hora_util as hu
+
+    filtros, grade = hu.montar_relatorio(request)
+    loja_txt = {"centro": "Só Centro", "vila": "Só Vila"}.get(filtros["loja"], "Centro + Vila")
+    canal_txt = {"balcao": "Só balcão", "entrega": "Só entrega"}.get(filtros["canal"], "Balcão + entrega")
+    subtitulo = f"{filtros['label']} · {loja_txt} · {canal_txt}"
+    if request.GET.get("export") == "xlsx":
+        return hu.xlsx_hora_response(grade, subtitulo)
+    for ln in (grade.get("expediente") or []) + (grade.get("fora") or []):
+        ln["href"] = _href_hora(request, hora=ln["hora"], wd=None)
+    for linha in grade.get("mapa") or []:
+        for cel in linha["celulas"]:
+            cel["href"] = _href_hora(request, hora=cel["hora"], wd=linha["wd"])
+    return render(
+        request,
+        "produtos/relatorios_hora.html",
+        {
+            "titulo": "Venda hora a hora",
+            "eyebrow": "Vendas",
+            "subtitulo": "Quanto entrou em cada hora, nas duas lojas.",
+            "filtros": filtros,
+            "grade": grade,
+            "rel_help": "hora",
+            "export_qs": _qs_export(request),
+            "limpar_href": _href_hora(request, hora=None, wd=None),
+            "loja_txt": loja_txt,
+            "canal_txt": canal_txt,
+            "periodo_label": subtitulo,
+        },
+    )

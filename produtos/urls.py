@@ -445,6 +445,7 @@ urlpatterns = [
     path('relatorios/quem-comprou/', relatorios_views.relatorios_quem_comprou, name='relatorios_quem_comprou'),
     path('relatorios/comparativo/', relatorios_views.relatorios_comparativo, name='relatorios_comparativo'),
     path('relatorios/formas-pagamento/', relatorios_views.relatorios_formas_pagamento, name='relatorios_formas_pagamento'),
+    path('relatorios/hora/', relatorios_views.relatorios_hora, name='relatorios_hora'),
     path('relatorios/ruptura/', relatorios_views.relatorios_ruptura, name='relatorios_ruptura'),
     path('relatorios/comissao/', relatorios_views.relatorios_comissao, name='relatorios_comissao'),
     path('relatorios/inventario/', relatorios_views.relatorios_inventario, name='relatorios_inventario'),

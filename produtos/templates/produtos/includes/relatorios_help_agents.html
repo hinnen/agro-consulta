@@ -24,7 +24,7 @@
     {% if rel_help == "hub" %}
     <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Aqui ficam os <span class="text-emerald-300">números da loja</span> em formato de lista. Cada cartão abre um tipo de análise. Use o período (quando tiver) e o botão <span class="text-orange-300">Atualizar</span>.</p>
     <div class="space-y-2 text-[12px] font-semibold leading-snug">
-      <div class="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-emerald-100"><span class="font-black text-emerald-300">Vendas</span> — o que mais saiu, curva ABC, grupos, marcas, margem, comparativo e formas de pagamento.</div>
+      <div class="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-emerald-100"><span class="font-black text-emerald-300">Vendas</span> — hora a hora, o que mais saiu, curva ABC, grupos, marcas, margem, comparativo e formas de pagamento.</div>
       <div class="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-amber-100"><span class="font-black text-amber-300">Estoque</span> — validade, giro/parado, ruptura, inventário valorizado, resumo, mín/máx, sem custo, zerados e etiquetas.</div>
       <div class="rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-cyan-100"><span class="font-black text-cyan-300">Equipe e clientes</span> — operador, ranking de clientes, <span class="text-emerald-300">quem já comprou</span> (oferta + Zap) e comissão estimada.</div>
     </div>
@@ -221,6 +221,19 @@
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-rose-500/30 px-1.5 py-0.5 text-[10px] font-black text-rose-200">ZERADOS</span><span>Saldo exatamente zero.</span></li>
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-red-500/30 px-1.5 py-0.5 text-[10px] font-black text-red-200">NEGATIVOS</span><span>Saldo abaixo de zero (erro de baixa / ajuste).</span></li>
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-amber-500/30 px-1.5 py-0.5 text-[10px] font-black text-amber-200">DEPÓSITO</span><span>Filtro Centro / Vila / C+V muda o que conta como zero.</span></li>
+    </ul>
+
+    {% elif rel_help == "hora" %}
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Mostra <span class="text-amber-300">quanto entrou em cada hora</span>. Serve para ver o pico, comparar Centro e Vila e saber se o dia está no costume.</p>
+    <ul class="space-y-2 text-[12px] font-semibold leading-snug text-slate-200">
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-orange-500/30 px-1.5 py-0.5 text-[10px] font-black text-orange-200">LOJA</span><span>Centro + Vila (as duas colunas), só Centro ou só Vila.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-amber-500/30 px-1.5 py-0.5 text-[10px] font-black text-amber-200">HORA</span><span>7h quer dizer de 7h00 até 7h59. Fora do expediente só aparece se teve venda.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-sky-500/30 px-1.5 py-0.5 text-[10px] font-black text-sky-200">MÉDIA</span><span>Em vários dias, o padrão é a média daquela hora. Dá para pedir a soma.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-violet-500/30 px-1.5 py-0.5 text-[10px] font-black text-violet-200">COSTUME</span><span>Mesma hora, mesmo dia da semana, nas 4 semanas anteriores. +12% = acima do costume.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-emerald-500/30 px-1.5 py-0.5 text-[10px] font-black text-emerald-200">MAPA</span><span>Dia da semana × hora. Toque no quadrado para ver as vendas.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-cyan-500/30 px-1.5 py-0.5 text-[10px] font-black text-cyan-200">QUEM</span><span>Quem registrou a venda naquela hora — ajuda na escala.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-teal-500/30 px-1.5 py-0.5 text-[10px] font-black text-teal-200">BALCÃO</span><span>Entrega é venda com pedido de entrega. O resto é balcão.</span></li>
+      <li class="flex gap-2 rounded-lg border border-lime-500/40 bg-lime-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-lime-500/40 px-1.5 py-0.5 text-[10px] font-black text-lime-100">META</span><span>Com balcão e entrega juntos, compara com a média da tela Meta. Devolução total não entra na tabela.</span></li>
     </ul>
 
     {% else %}
