@@ -309,6 +309,24 @@ def test_mostruario_consistencia() -> None:
     zap_a = meta_texto_zap(m, modo="agora")
     check("zap_modo_agora", "ATÉ AGORA" in zap_a or "até agora" in zap_a.lower())
     check("zap_modo_ritmo", "ritmo" in zap_a.lower() or "parcela" in zap_a.lower())
+    check("zap_loja_todas", "Centro + Vila" in zap)
+    check("deposito_label_todas", m.get("deposito_label") == "Centro + Vila")
+
+    m_c = meta_montar_mostruario(
+        competencia=comp, hoje=hoje, agora=agora, deposito="centro"
+    )
+    m_v = meta_montar_mostruario(
+        competencia=comp, hoje=hoje, agora=agora, deposito="vila"
+    )
+    check("deposito_centro", m_c.get("deposito") == "centro" and m_c.get("deposito_label") == "Centro")
+    check("deposito_vila", m_v.get("deposito") == "vila" and m_v.get("deposito_label") == "Vila")
+    check(
+        "soma_lojas",
+        abs(float(m["vendido_mes"]) - (float(m_c["vendido_mes"]) + float(m_v["vendido_mes"]))) < 0.05,
+        f"todas={m['vendido_mes']} c={m_c['vendido_mes']} v={m_v['vendido_mes']}",
+    )
+    zap_c = meta_texto_zap(m_c)
+    check("zap_loja_centro", "Centro" in zap_c and "Centro + Vila" not in zap_c)
 
     # mês fechado (competência prova — rollback)
     with transaction.atomic():
@@ -355,6 +373,9 @@ def test_http() -> None:
     check("painel_modo_mes_btn", 'data-modo="mes"' in body and "Meta do mês" in body)
     check("painel_js_setModo", "function setModo" in body or "setModo(" in body)
     check("painel_js_progAtivo", "progAtivo" in body)
+    check("painel_loja_centro", 'data-loja="centro"' in body and "Só Centro" in body)
+    check("painel_loja_vila", 'data-loja="vila"' in body and "Só Vila" in body)
+    check("painel_loja_todas", 'data-loja="todas"' in body and "Centro + Vila" in body)
 
     r2 = c.get(reverse("api_meta_vendas_resumo"), {"competencia": comp})
     check("api_resumo_200", r2.status_code == 200, str(r2.status_code))
@@ -397,6 +418,13 @@ def test_http() -> None:
                 abs(float(a0.get("pct") or 0) - exp_pct) < 0.2,
                 f"got={a0.get('pct')} exp≈{exp_pct}",
             )
+
+    r_c = c.get(reverse("api_meta_vendas_resumo"), {"competencia": comp, "deposito": "centro"})
+    d_c = r_c.json() if r_c.status_code == 200 else {}
+    mc = (d_c.get("mostruario") or {})
+    check("api_centro_ok", r_c.status_code == 200 and mc.get("deposito") == "centro")
+    check("api_centro_zap", "Centro" in (d_c.get("texto_zap") or "") and "Centro + Vila" not in (d_c.get("texto_zap") or ""))
+
 
     r3 = c.get(reverse("api_meta_vendas_faixas"), {"competencia": comp})
     check("api_faixas_200", r3.status_code == 200)
