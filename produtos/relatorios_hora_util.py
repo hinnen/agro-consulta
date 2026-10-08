@@ -1,6 +1,7 @@
 """Venda hora a hora — Central de Relatórios.
 
-Fonte: VendaAgro (devolução total fica de fora). Hora no fuso da loja.
+Fonte: VendaAgro na hora da venda. Devolução (parcial ou total) sai na hora em que devolveram.
+O total do dia fica igual a Vendas por loja.
 Expediente exibido: 7h–18h (a loja abre 7h30 e fecha 18h30).
 Costume: mesma hora, mesmos dias da semana, nas 4 semanas anteriores ao período.
 """
@@ -223,14 +224,18 @@ def _soma_venda(bucket: dict, venda: dict, valor: float) -> None:
     loja = _loja_de(venda.get("deposito"))
     if loja == "vila":
         bucket["vila"] += valor
-        bucket["n_vila"] += 1
     else:
         bucket["centro"] += valor
-        bucket["n_centro"] += 1
     if venda.get("entrega"):
         bucket["entrega"] += valor
     else:
         bucket["balcao"] += valor
+    if venda.get("devolucao"):
+        return
+    if loja == "vila":
+        bucket["n_vila"] += 1
+    else:
+        bucket["n_centro"] += 1
     op = (venda.get("operador") or "").strip() or "Sem nome"
     bucket["ops"][op] += 1
 
@@ -367,6 +372,10 @@ def agregar_hora(
     escala = max((ln["total"] for ln in linhas), default=0.0)
     for ln in linhas:
         ln["barra"] = int(round(ln["total"] / escala * 100)) if escala > 0 else 0
+        if ln["barra"] < 0:
+            ln["barra"] = 0
+        if ln["barra"] > 100:
+            ln["barra"] = 100
         ln["pico"] = bool(pico and ln["hora"] == pico["hora"])
         ln["fraca"] = bool(fraca and ln["hora"] == fraca["hora"])
         ln["total_fmt"] = fmt_brl(ln["total"])
@@ -452,7 +461,11 @@ def agregar_hora(
                     "loja": "Vila" if _loja_de(v.get("deposito")) == "vila" else "Centro",
                     "cliente": (v.get("cliente") or "").strip() or "Sem cliente",
                     "operador": (v.get("operador") or "").strip() or "Sem nome",
-                    "canal": "Entrega" if v.get("entrega") else "Balcão",
+                    "canal": (
+                        "Devolução"
+                        if v.get("devolucao")
+                        else ("Entrega" if v.get("entrega") else "Balcão")
+                    ),
                     "total": round(float(v["_valor"]), 2),
                     "total_fmt": fmt_brl(v["_valor"]),
                 }
@@ -513,7 +526,7 @@ def agregar_hora(
         "pico": _card(pico),
         "fraca": _card(fraca),
         "expediente": [ln for ln in linhas if ln["expediente"]],
-        "fora": [ln for ln in linhas if not ln["expediente"] and ln["total_bruto"] > 0],
+        "fora": [ln for ln in linhas if not ln["expediente"] and abs(ln["total_bruto"]) > 0.004],
         "linhas": linhas,
         "mapa": mapa,
         "detalhe": detalhe,
@@ -521,14 +534,35 @@ def agregar_hora(
     }
 
 
+def _ids_entrega(ids: list[int]) -> set[int]:
+    from produtos.models import PedidoEntrega
+
+    entregas: set[int] = set()
+    for i in range(0, len(ids), 2000):
+        bloco = ids[i : i + 2000]
+        if not bloco:
+            continue
+        entregas.update(
+            PedidoEntrega.objects.filter(venda_agro_id__in=bloco)
+            .exclude(status=PedidoEntrega.Status.CANCELADO)
+            .values_list("venda_agro_id", flat=True)
+        )
+    return entregas
+
+
 def carregar_vendas_intervalo(d0: date, d1: date) -> list[dict]:
-    """Vendas do PDV no intervalo, sem devolução total. Entrega = pedido não cancelado."""
-    from produtos.models import PedidoEntrega, VendaAgro
+    """Vendas na hora em que aconteceram, menos a devolução na hora em que devolveu.
+
+    O total do dia fica igual a Vendas por loja: a venda entra mesmo se devolver
+    depois; a devolução sai no dia e na hora do evento (parcial ou total).
+    """
+    from django.db.models import Exists, OuterRef
+
+    from produtos.models import DevolucaoVendaAgro, VendaAgro
 
     desde, ate = _aware(d0, d1)
     rows = list(
         VendaAgro.objects.filter(
-            devolvida_em__isnull=True,
             criado_em__gte=desde,
             criado_em__lte=ate,
         ).values(
@@ -540,16 +574,26 @@ def carregar_vendas_intervalo(d0: date, d1: date) -> list[dict]:
             "cliente_nome",
         )
     )
-    ids = [r["id"] for r in rows]
-    entregas: set[int] = set()
-    for i in range(0, len(ids), 2000):
-        bloco = ids[i : i + 2000]
-        entregas.update(
-            PedidoEntrega.objects.filter(venda_agro_id__in=bloco)
-            .exclude(status=PedidoEntrega.Status.CANCELADO)
-            .values_list("venda_agro_id", flat=True)
+    eventos = list(
+        DevolucaoVendaAgro.objects.filter(
+            criado_em__date__gte=d0,
+            criado_em__date__lte=d1,
+        ).select_related("venda")
+    )
+    has_ev = Exists(DevolucaoVendaAgro.objects.filter(venda_id=OuterRef("pk")))
+    legados = list(
+        VendaAgro.objects.filter(
+            devolvida_em__date__gte=d0,
+            devolvida_em__date__lte=d1,
         )
-    return [
+        .annotate(_tem_ev=has_ev)
+        .filter(_tem_ev=False)
+    )
+    ids = [r["id"] for r in rows]
+    ids.extend(ev.venda_id for ev in eventos if ev.venda_id)
+    ids.extend(v.pk for v in legados)
+    entregas = _ids_entrega(ids)
+    out = [
         {
             "id": r["id"],
             "quando": r["criado_em"],
@@ -558,9 +602,48 @@ def carregar_vendas_intervalo(d0: date, d1: date) -> list[dict]:
             "operador": r["usuario_registro"] or "",
             "cliente": r["cliente_nome"] or "",
             "entrega": r["id"] in entregas,
+            "devolucao": False,
         }
         for r in rows
     ]
+    for ev in eventos:
+        venda = ev.venda
+        if venda is None or not ev.criado_em:
+            continue
+        valor = float(ev.total or 0)
+        if valor == 0:
+            continue
+        out.append(
+            {
+                "id": venda.pk,
+                "quando": ev.criado_em,
+                "deposito": venda.deposito or "",
+                "total": -valor,
+                "operador": (ev.usuario or venda.usuario_registro or ""),
+                "cliente": venda.cliente_nome or "",
+                "entrega": venda.pk in entregas,
+                "devolucao": True,
+            }
+        )
+    for venda in legados:
+        if not venda.devolvida_em:
+            continue
+        valor = float(venda.total or 0)
+        if valor == 0:
+            continue
+        out.append(
+            {
+                "id": venda.pk,
+                "quando": venda.devolvida_em,
+                "deposito": venda.deposito or "",
+                "total": -valor,
+                "operador": venda.devolucao_usuario or venda.usuario_registro or "",
+                "cliente": venda.cliente_nome or "",
+                "entrega": venda.pk in entregas,
+                "devolucao": True,
+            }
+        )
+    return out
 
 
 def meta_card_hora(

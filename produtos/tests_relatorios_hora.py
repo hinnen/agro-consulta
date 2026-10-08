@@ -128,7 +128,29 @@ class HoraGradeTests(SimpleTestCase):
         self.assertEqual(hu.parse_visao_hora(req, 1), "soma")
         self.assertEqual(hu.parse_visao_hora(RequestFactory().get("/", {"visao": "soma"}), 5), "soma")
 
-    def test_periodo_personalizado_respeita_teto(self):
+    def test_devolucao_nao_conta_cupom(self):
+        vendas = [
+            _v(datetime(2026, 10, 8, 10, 0), 100, vid=1),
+            {
+                "id": 1,
+                "quando": datetime(2026, 10, 8, 16, 0),
+                "deposito": "centro",
+                "total": -30,
+                "operador": "Ana",
+                "cliente": "João",
+                "entrega": False,
+                "devolucao": True,
+            },
+        ]
+        grade = hu.agregar_hora(vendas, [], dias=[QUI], dias_base=[], visao="soma")
+        h10 = next(ln for ln in grade["expediente"] if ln["hora"] == 10)
+        h16 = next(ln for ln in grade["expediente"] if ln["hora"] == 16)
+        self.assertEqual(h10["total"], 100.0)
+        self.assertEqual(h10["n_bruto"], 1)
+        self.assertEqual(h16["total"], -30.0)
+        self.assertEqual(h16["n_bruto"], 0)
+        self.assertEqual(grade["total_bruto"], 70.0)
+        self.assertEqual(grade["n_vendas"], 1)
         req = RequestFactory().get("/", {"periodo": "custom", "de": "2020-01-01", "ate": "2026-10-08"})
         filtros = hu.parse_periodo_hora(req)
         self.assertLessEqual((filtros["d1"] - filtros["d0"]).days + 1, hu.PERIODO_MAX_DIAS)

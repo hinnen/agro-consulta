@@ -1294,14 +1294,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📊 REL-HORA — venda hora a hora · 08/10 · teste local
+### 🟢 PACOTE PRONTO — REL-HORA · **v26.66** · 08/10 · pronto para envio
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Central → **Venda hora a hora** (`/relatorios/hora/`). Loja Centro+Vila / só Centro / só Vila. Hoje, ontem, semana, 7/30 dias, mês. Média ou soma. Balcão × entrega. Costume = mesma hora nas 4 semanas anteriores. Mapa da semana. Clique na hora abre as vendas. Quem atendeu. Meta no ritmo (mesma média da tela Meta). Excel. Devolução total fica de fora. |
+| **Status** | 🟢 **pronto para envio à produção** — **não** subiu |
+| **O quê** | Central → **Venda hora a hora** (`/relatorios/hora/`). Centro + Vila, só Centro ou só Vila. Média ou soma. Balcão × entrega. Costume das 4 semanas. Mapa. Clique na hora. Quem atendeu. Meta. Excel. Total do dia = Vendas por loja (devolução sai na hora em que devolveu). |
 | **Migrate** | **NÃO** |
-| **Prova** | `produtos.tests_relatorios_hora` |
-| **Loja** | **não** subiu |
+| **Prova** | **67/67** (`verify_rel_hora_path.py`) · unit **7/7** · PIN **9973** |
+| **Você** | Central de Relatórios → Venda hora a hora. Ontem tem que bater com Vendas por loja. |
+
+### ✅ CHECKLIST ÚNICO — REL-HORA · 🟢 pronto para envio · **v26.66**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **REL-HORA** | 🟢 **pronto para envio à produção** | **NÃO** | **67/67** |
 
 ### 🟢 PACOTE PRONTO — META-LOJAS · **v26.64** · 08/10 · pronto para envio
 
