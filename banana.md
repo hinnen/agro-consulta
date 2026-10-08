@@ -1294,49 +1294,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### PACOTE PRONTO — bip etiqueta balança PLU (`PDV-BALANCA-ETQ-PLU`)
+### 🚀 PREP deploy loja — Checklist 08/10 (`deploy/prep-checklist-0810` · alvo **v26.62**) · aguarda senha
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Etiqueta EAN-13 `2`+**CCCC**+`0`+preço+DV (ex. `2001000004812` → PLU **0010** · **R$ 4,81**) não entrava no carrinho: PLU só no overlay SisVale / catálogo local, fora do `index_codigos`. Agora: API resolve overlay; PDV usa catálogo local com preço da etiqueta; busca prefere **0010** antes de **10**. |
-| **Prova** | `scripts/verify_pdv_balanca_etq_plu_path.py` **27/27** · unit `produtos.tests_balanca_etiqueta` **5/5** · **PREP_FAILS=0** |
+| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha |
+| **Branch PREP** | `deploy/prep-checklist-0810` · tip `09b8ea61` · base Live **v26.60** @ `e4206bbf` |
+| **Alvo loja** | **v26.62** |
 | **Migrate** | **NÃO** |
-| **Mexe** | `produtos/views.py` · `consulta_produtos.js` · prova + testes |
-| **Status** | 🟢 **pronto para envio à produção** |
-| **Tip teste** | `35a203eb` |
-| **Alvo loja** | **v26.62** (CREDITO-V12 continua **v26.61** PREP) |
-| **Rollback** | `docs/ROLLBACK-PDV-BALANCA-ETQ-PLU.md` · **só** frase+senha |
-| **Você** | Ctrl+F5 no PDV · bipar etiqueta · item com valor da etiqueta (não R$ 9,40/kg) |
+| **Merge teste?** | **NÃO** |
+| **Provas (PREP)** | shadow **101/101** · xlsx **90/90** · lab **34/34** · balança **27/27** · unit **5/5** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-checklist-0810-v26.60` @ `e4206bbf` · branch `producao-backup-pre-v2662-checklist-20261008` · `docs/ROLLBACK-CHECKLIST-0810.md` |
+| **Na senha (rápido)** | pausar vendas → tip PREP em producao → Render Live → Ctrl+F5 · badge **v26.62** |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-0810.md` |
+| **Atenção** | **Não** usar `deploy/prep-credito-v12` (base antiga — apagaria o bip da balança já na loja) |
 
-### ✅ CHECKLIST ÚNICO — 08/10 · PDV-BALANCA-ETQ-PLU · 🟢 pronto para envio
+### ✅ CHECKLIST ÚNICO — 08/10 · 🟢 PREP v26.62 · aguarda senha
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-BALANCA-ETQ-PLU** | 🟢 **pronto para envio à produção** | **NÃO** | **27/27** · unit **5/5** |
+| 1 | **CREDITO-SCORE-TRAVAS-V12** | 🟢 **no PREP** | **NÃO** | **101/101** · xlsx **90/90** · lab **34/34** |
+| 2 | **PDV-BALANCA-ETQ-PLU** | 🟢 **no PREP** | **NÃO** | **27/27** · unit **5/5** |
 
-### 🚀 PREP deploy loja — CREDITO-SCORE-TRAVAS-V12 (deploy/prep-credito-v12 · **v26.61**) · aguarda senha
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha no próximo chat |
-| **O quê** | shadow_v1_2: travas % em dia máx **69** (&lt;50) / **79** (50–80); limite **R$ 0,01** → **Revisar bloqueio** (nunca candidato). Pesos/limite sugerido iguais. Só lab. |
-| **Branch PREP** | deploy/prep-credito-v12 · tip 259d7528 |
-| **Base Live** | **v26.60** @ 14a4e769 |
-| **Alvo loja** | **v26.61** |
-| **Migrate** | **NÃO** |
-| **Merge 	este?** | **NÃO** — cherry só deste pacote |
-| **Provas** | shadow **101/101** · xlsx **90/90** · lab acesso **34/34** (+ PDV fiado refresh/card) · travas unit OK · **PREP_FAILS=0** |
-| **Rollback** | tag 
-ollback/pre-credito-v12-v26.60 @ 14a4e769 · docs/DEPLOY-PREP-CREDITO-V12.md |
-| **Na senha (~1–2 min)** | Lojas pausam → 
-eset --hard origin/deploy/prep-credito-v12 → push producao → Render Live → Ctrl+F5 · badge **v26.61** → lab Recalcular → Excel |
-| **Risco loja aberta** | **Baixo** — **não** mexe PDV venda · caixa · Point · NFC-e · financeiro · limites. Só lab shadow (flag). |
-
-### ✅ CHECKLIST ÚNICO — CREDITO-SCORE-TRAVAS-V12 · 🟢 PREP v26.61 · aguarda senha
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **CREDITO-SCORE-TRAVAS-V12** | 🟢 **no PREP** · aguarda senha | **NÃO** | **101/101** · xlsx **90/90** · acesso **34/34** |
+**Risco loja aberta:** baixo. Lab de crédito (não mexe venda) + leitura da etiqueta de balança no PDV. **Não** mexe finalizar venda · caixa · Point · NFC-e.
 
 ### ✅ Deploy loja — Checklist 07/10c · **Live v26.60** · 07/10
 

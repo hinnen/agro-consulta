@@ -834,3 +834,17 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 **Live:** producao @ `10b40523` · Render `dep-db3b287f3r2c738k1eig`.  
 **Rollback:** tag `rollback/pre-checklist-0710c-v26.56` @ `d08617b0` · `docs/ROLLBACK-CHECKLIST-0710c.md` · **só** frase+senha.
+
+---
+
+## 68. Checklist único — lote 08/10 (deploy/prep-checklist-0810 · alvo loja **v26.62**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CREDITO-SCORE-TRAVAS-V12** | 🟢 **PREP** · **101/101** + xlsx **90/90** + lab **34/34** | **NÃO** |
+| 2 | **PDV-BALANCA-ETQ-PLU** | 🟢 **PREP** · **27/27** + unit **5/5** | **NÃO** |
+
+**Branch PREP:** deploy/prep-checklist-0810 · tip 8fa113b6 · base Live **v26.60** @ e4206bbf.  
+**Rollback:** tag rollback/pre-checklist-0810-v26.60 · docs/ROLLBACK-CHECKLIST-0810.md · **só** frase+senha.  
+**Na senha:** pausar vendas · tip PREP → producao → Ctrl+F5 · badge **v26.62**. **Não** merge teste. **Não** usar deploy/prep-credito-v12.
+
