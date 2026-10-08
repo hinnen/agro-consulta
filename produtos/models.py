@@ -911,6 +911,39 @@ class ClienteAnaliseCreditoAgro(models.Model):
         return f"Análise #{self.pk} · cliente {self.cliente_id} · score {sc}"
 
 
+class CreditoLimiteRevisaoDecisaoAgro(models.Model):
+    """Decisão da tela Revisar alterações de limite. Não mexe em título/venda."""
+
+    class Acao(models.TextChoices):
+        APROVADO = "APROVADO", "Aprovado"
+        IGNORADO = "IGNORADO", "Ignorado"
+
+    cliente = models.ForeignKey(
+        ClienteAgro,
+        on_delete=models.CASCADE,
+        related_name="revisoes_limite_credito",
+    )
+    analise = models.ForeignKey(
+        ClienteAnaliseCreditoAgro,
+        on_delete=models.CASCADE,
+        related_name="decisoes_limite",
+    )
+    acao = models.CharField(max_length=16, choices=Acao.choices, db_index=True)
+    limite_anterior = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    limite_aplicado = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    usuario = models.CharField(max_length=150, blank=True, default="")
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = "Revisão de limite (crédito)"
+        constraints = [
+            models.UniqueConstraint(fields=["analise"], name="credito_limite_revisao_analise_uniq"),
+        ]
+
+    def __str__(self):
+        return f"{self.acao} · cliente {self.cliente_id} · análise {self.analise_id}"
+
+
 class TituloFinanceiroAgro(models.Model):
     """Título CP/CR no Postgres — espelho de ``DtoLancamento`` (desvinculação ERP).
 

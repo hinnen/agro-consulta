@@ -87,6 +87,16 @@ Limite sugerido = média fiado 3 meses × multiplicador do score (**só simulaç
 
 Se o laboratório falhar ou estiver desligado, o PDV e o fiado operacional continuam iguais.
 
+## Revisar alterações de limite
+
+Botão na mesma tela. Lista só quem tem sugerido diferente do atual **e** está apto (sem vencido, sem Revisar dados, sem Revisar bloqueio, sem limite R$ 0,01, confiança Média ou Alta).
+
+Novo limite = menor valor entre o sugerido e o atual + 20%.
+
+**Aprovar** grava o limite pela função `definir_limite_fiado_cliente` (o PDV passa a ver esse número). **Ignorar** não muda o limite. Não existe Aprovar todos.
+
+Migration `0141` (só a tabela da decisão).
+
 O score **nunca** é consultado em:
 
 - `api_enviar_pedido_erp`

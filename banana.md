@@ -1294,6 +1294,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### PACOTE NO TESTE — Revisar limite crédito (`CREDITO-LIMITE-REVISAO`) · 08/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | no `teste` — **não** sobe loja até você ver |
+| **O quê** | Botão **REVISAR ALTERAÇÕES DE LIMITE**. Novo = menor entre sugerido e atual+20%. Aprovar usa `definir_limite_fiado_cliente`. Ignorar não mexe. Sem Aprovar todos. |
+| **Fora da lista** | vencido · Revisar dados · Revisar bloqueio · limite 0,01 · confiança baixa |
+| **Migrate** | **SIM** `0141` (só tabela da decisão) |
+| **Prova** | path **20/20** |
+| **Você** | PC local → `/fiado/analise-credito/` → botão laranja |
+
 ### PACOTE PRONTO — Enter/colar etiqueta balança (`PDV-BALANCA-ETQ-ENTER`)
 
 | Campo | Valor |

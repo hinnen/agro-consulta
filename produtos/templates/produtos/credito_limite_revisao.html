@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Revisar alterações de limite | GM Agro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>
+    body { font-family: system-ui, sans-serif; }
+    .rev-table th, .rev-table td { padding: 0.55rem 0.6rem; font-size: 1rem; }
+  </style>
+</head>
+<body class="min-h-dvh bg-slate-100 text-slate-900">
+  <div class="max-w-[110rem] mx-auto px-3 py-4">
+    <header class="mb-4 flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <a href="{% url 'credito_score_laboratorio' %}" class="text-sm font-black text-emerald-800 underline">← Análise de crédito</a>
+        <h1 class="text-2xl font-black text-emerald-900 mt-1">Revisar alterações de limite</h1>
+        <p class="text-sm font-semibold text-orange-700">Aumento máximo de 20% por aprovação. Não desbloqueia R$ 0,01.</p>
+      </div>
+    </header>
+
+    {% if messages %}
+    <ul class="mb-3 space-y-1">
+      {% for m in messages %}
+      <li class="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-sm font-semibold text-emerald-900">{{ m }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    <p class="text-sm font-black text-slate-600 mb-2">{{ total }} cliente(s) apto(s)</p>
+
+    <form method="post" id="form-lote" onsubmit="return confirm('Aprovar os clientes marcados? O limite real muda agora.');">
+      {% csrf_token %}
+      <input type="hidden" name="acao" value="aprovar_selecionados">
+      <div class="mb-3">
+        <button type="submit" class="rounded-xl bg-emerald-700 text-white font-black px-5 py-3 text-base hover:bg-emerald-800">
+          Aprovar selecionados
+        </button>
+      </div>
+      <div class="overflow-auto bg-white border border-slate-200 rounded-xl shadow-sm max-h-[72dvh]">
+        <table class="rev-table w-full text-left">
+          <thead class="sticky top-0 bg-slate-800 text-white text-xs uppercase">
+            <tr>
+              <th></th>
+              <th>Cliente</th>
+              <th class="text-right">Limite atual</th>
+              <th class="text-right">Limite sugerido</th>
+              <th class="text-right">Novo limite</th>
+              <th>Score</th>
+              <th>Confiança</th>
+              <th class="text-right">Diferença</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in linhas %}
+            <tr class="border-t border-slate-100">
+              <td>
+                <input type="checkbox" name="cliente_pk" value="{{ r.cliente_pk }}" class="w-5 h-5" aria-label="Marcar {{ r.cliente_nome }}">
+              </td>
+              <td class="font-black">{{ r.cliente_nome }}</td>
+              <td class="text-right font-bold tabular-nums">{{ r.limite_atual|floatformat:2 }}</td>
+              <td class="text-right tabular-nums">{{ r.limite_sugerido|floatformat:2 }}</td>
+              <td class="text-right font-black tabular-nums text-emerald-800">{{ r.novo_limite|floatformat:2 }}</td>
+              <td class="font-black tabular-nums">{{ r.score }}</td>
+              <td class="font-semibold">{{ r.confianca_label }}</td>
+              <td class="text-right font-black tabular-nums {% if r.diferenca > 0 %}text-emerald-800{% else %}text-orange-800{% endif %}">{{ r.diferenca|floatformat:2 }}</td>
+              <td class="whitespace-nowrap">
+                <button type="submit" form="aprovar-{{ r.cliente_pk }}" class="rounded-lg bg-emerald-700 text-white font-black px-3 py-2 text-sm">Aprovar</button>
+                <button type="submit" form="ignorar-{{ r.cliente_pk }}" class="rounded-lg bg-slate-200 text-slate-900 font-black px-3 py-2 text-sm ml-1">Ignorar</button>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="9" class="py-8 text-center font-bold text-slate-500">Nenhum cliente apto agora.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </form>
+
+    {% for r in linhas %}
+    <form id="aprovar-{{ r.cliente_pk }}" method="post" class="hidden" onsubmit="return confirm('Aplicar o novo limite deste cliente?');">
+      {% csrf_token %}
+      <input type="hidden" name="acao" value="aprovar">
+      <input type="hidden" name="cliente_pk" value="{{ r.cliente_pk }}">
+    </form>
+    <form id="ignorar-{{ r.cliente_pk }}" method="post" class="hidden" onsubmit="return confirm('Ignorar este cliente nesta análise? O limite não muda.');">
+      {% csrf_token %}
+      <input type="hidden" name="acao" value="ignorar">
+      <input type="hidden" name="cliente_pk" value="{{ r.cliente_pk }}">
+    </form>
+    {% endfor %}
+  </div>
+</body>
+</html>
