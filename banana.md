@@ -8790,7 +8790,7 @@ ollback/pre-kardex-c1c3-zap-v10.62 @ bc911d5 Â· **faltando senha p/ push** |
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | âœ… push producao (este commit) Â· aguardar Live |
+| **Status** | âœ… push producao 153df36c Â· aguardar Live |
 | **Inclui** | GPS/Plus Code no finalizar pedido Â· esconde Plus do cliente Â· API /catalogo/api/localizacao/ |
 | **NÃƒO inclui** | Compras UI Â· merge inteiro teste Â· horÃ¡rio/agendamento FOOD |
 | **Base** | e38df10 (loja v10.61 aba 9) |
@@ -9429,7 +9429,7 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **Status** | âœ… **Live** Â· Render loja **v9.91** Â· commit 372bb70 |
 | **Inclui** | SÃ³ fix kardex: **Quem** = operador real Â· **Entrada NF** sem saÃ­da fantasma Â· fornecedor por nÂº NF |
 | **Arquivos** | `estoque_movimentos_cadastro_util.py` Â· `views.py` (+9 linhas) Â· **nÃ£o** merge inteiro |
-| **HEAD loja** | *(este commit)* Â· base **8418ba8** (v9.90) |
+| **HEAD loja** | *153df36c* Â· base **8418ba8** (v9.90) |
 | **Backup** | `producao-backup-pre-v991-kardex-20260718` @ **8418ba8** â€” reverter: `git push origin producao-backup-pre-v991-kardex-20260718:producao` |
 | **Risco** | Baixo â€” sÃ³ leitura/exibiÃ§Ã£o do histÃ³rico; nÃ£o altera estoque nem venda |
 | **AutorizaÃ§Ã£o** | *pode subir â€¦ correÃ§Ã£o* + **99738595** |
@@ -9452,7 +9452,7 @@ iews.py (compras enrich) |
 | ---- | ------- |
 | **Status** | âœ… **Live** Â· Render loja **v9.90** Â· commit e40e898 |
 | **Inclui** | **PDV Enviar WhatsApp** Â· **PDV lÃ¡pis/editor** Â· **Cadastro modal** (kardex + aba 9 + origem PDV) Â· **FL-056** NFC-e 963/225 Â· **RelatÃ³rios ajuda Â«?Â»** Â· layout PDV etapa 1 (atÃ© v9.90) |
-| **HEAD loja** | *(este commit)* Â· base **4113492** (v9.16) |
+| **HEAD loja** | *153df36c* Â· base **4113492** (v9.16) |
 | **Backup** | `producao-backup-pre-v990-fecha-pdv-cadastro-nfce-20260717` @ **4113492** â€” reverter: `git push origin producao-backup-pre-v990-fecha-pdv-cadastro-nfce-20260717:producao` |
 | **MÃ©todo** | worktree Â· checkout arquivos do `teste` Â· **nÃ£o** merge inteiro |
 | **Migration** | **0054** `ProdutoCadastroAlteracaoAgro` (Render migrate no deploy) |
