@@ -404,7 +404,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - **Topo BI compacto (10/08):** sem «Gestão Estratégica» · sem botão Orç. (F2 no teclado/Menu) · **Trava** embaixo de Loja.
 - Gastos por plano de conta: oculto por padrÃ£o (`AGRO_DASHBOARD_GASTOS_PLANO=true` no `.env`).
 - Template: `produtos/templates/produtos/dashboard_gerencial.html`.
-- **Central de Relatórios** (`/relatorios/`): mais vendidos · por grupo · ABC · margem · validade · **quem já comprou** (produto/categoria → clientes + Zap) · etc. Filtros cat/sub 1–4 (OR no campo, AND entre campos) · agrupar · Excel. Contrato: `vendas_por_grupo_relatorio()` (Central) vs `vendas_por_grupo()` lista (DRE/BI). **500 cat/sub (ago/26) → Live v18.26.1** — Renan OK 28/08 · CHECKPOINT `relatórios` · `REL-QUEM-COMPROU` (08/09).
+- **Central de Relatórios** (`/relatorios/`): **hora a hora** (`/relatorios/hora/`) · mais vendidos · por grupo · ABC · margem · validade · **quem já comprou** (produto/categoria → clientes + Zap) · etc. Filtros cat/sub 1–4 (OR no campo, AND entre campos) · agrupar · Excel. Contrato: `vendas_por_grupo_relatorio()` (Central) vs `vendas_por_grupo()` lista (DRE/BI). **500 cat/sub (ago/26) → Live v18.26.1** — Renan OK 28/08 · CHECKPOINT `relatórios` · `REL-QUEM-COMPROU` (08/09).
 
 ### 4.2 PDV â€” ponto de venda
 
@@ -1293,6 +1293,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 📊 REL-HORA — venda hora a hora · 08/10 · teste local
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Central → **Venda hora a hora** (`/relatorios/hora/`). Loja Centro+Vila / só Centro / só Vila. Hoje, ontem, semana, 7/30 dias, mês. Média ou soma. Balcão × entrega. Costume = mesma hora nas 4 semanas anteriores. Mapa da semana. Clique na hora abre as vendas. Quem atendeu. Meta no ritmo (mesma média da tela Meta). Excel. Devolução total fica de fora. |
+| **Migrate** | **NÃO** |
+| **Prova** | `produtos.tests_relatorios_hora` |
+| **Loja** | **não** subiu |
 
 ### 🟢 PACOTE PRONTO — META-LOJAS · **v26.64** · 08/10 · pronto para envio
 
