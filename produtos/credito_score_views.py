@@ -11,6 +11,12 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods
 
+from produtos.credito_limite_revisao import (
+    aprovar_limite_cliente,
+    aprovar_limites_selecionados,
+    ignorar_limite_cliente,
+    listar_revisoes_limite,
+)
 from produtos.credito_score_acesso_util import credito_score_shadow_required
 from produtos.credito_score_shadow import (
     analisar_cliente,
@@ -340,4 +346,55 @@ def credito_score_cliente_detalhe(request, pk: int):
             "historico": [_snapshot_row(s) for s in snaps],
             "fmt_money": _fmt_money,
         },
+    )
+
+
+def _usuario_revisao(request) -> str:
+    user = getattr(request, "user", None)
+    if user is not None and getattr(user, "is_authenticated", False):
+        return (user.get_username() or "")[:150]
+    return ""
+
+
+@credito_score_shadow_required
+@require_http_methods(["GET", "POST"])
+def credito_limite_revisao(request):
+    """Lista aptos e aplica limite só com Aprovar, via definir_limite_fiado_cliente."""
+    if request.method == "POST":
+        acao = (request.POST.get("acao") or "").strip()
+        usuario = _usuario_revisao(request)
+        if acao == "aprovar":
+            pk = (request.POST.get("cliente_pk") or "").strip()
+            if pk.isdigit() and aprovar_limite_cliente(int(pk), usuario=usuario):
+                messages.success(request, "Limite atualizado.")
+            else:
+                messages.warning(request, "Este cliente não está mais apto.")
+        elif acao == "ignorar":
+            pk = (request.POST.get("cliente_pk") or "").strip()
+            if pk.isdigit() and ignorar_limite_cliente(int(pk), usuario=usuario):
+                messages.success(request, "Cliente ignorado nesta análise.")
+            else:
+                messages.warning(request, "Este cliente não está mais apto.")
+        elif acao == "aprovar_selecionados":
+            pks = []
+            for raw in request.POST.getlist("cliente_pk"):
+                if str(raw).isdigit():
+                    pks.append(int(raw))
+            if not pks:
+                messages.warning(request, "Marque pelo menos um cliente.")
+            else:
+                ok, pulados = aprovar_limites_selecionados(pks, usuario=usuario)
+                messages.success(
+                    request,
+                    f"Aprovados: {ok}. Fora da lista: {pulados}.",
+                )
+        else:
+            return HttpResponseForbidden("Ação inválida.")
+        return redirect("credito_limite_revisao")
+
+    linhas = listar_revisoes_limite()
+    return render(
+        request,
+        "produtos/credito_limite_revisao.html",
+        {"linhas": linhas, "total": len(linhas)},
     )
