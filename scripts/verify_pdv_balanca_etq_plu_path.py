@@ -52,6 +52,11 @@ def test_contratos_arquivo() -> None:
         "js_caminho_scanner",
         "localBal" in js and "executarBuscaAPIEtiquetaBalanca(digits, bal)" in js,
     )
+    check("js_paste", "addEventListener('paste'" in js)
+    check(
+        "js_dv_return",
+        "Etiqueta inválida (dígito verificador)" in js and "limparBuscaVisual()" in js,
+    )
 
 
 def test_parse_e_busca() -> None:
@@ -74,6 +79,8 @@ def test_parse_e_busca() -> None:
         check("preco_4_81", preco == Decimal("4.81"), str(preco))
     check("dv", _ean13_digito_verificador("200100000481") == 2)
     check("dv_invalido", _parse_etiqueta_balanca_ean13_br("2001000004810") is None)
+    # Colagem tipográfica 418↔481: DV quebrado (loja rejeita — não é falha de PLU).
+    check("dv_cola_4182", _parse_etiqueta_balanca_ean13_br("2001000004182") is None)
     check("nao_13", _parse_etiqueta_balanca_ean13_br("200100000481") is None)
     check("flag_errado", _parse_etiqueta_balanca_ean13_br("1001000004812") is None)
 

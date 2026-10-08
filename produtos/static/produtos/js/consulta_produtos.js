@@ -3701,26 +3701,32 @@ function executarBuscaLocal(termo, modo) {
         const bal = parseEtiquetaBalancaEan13(digits);
         if (bal) {
             if (!bal.checkOk) {
+                tocarSom('erro');
                 mostrarBannerScanner('⚠️ Etiqueta inválida (dígito verificador)');
-            } else {
-                /* PLU 4 dígitos: catálogo local (overlay) costuma ter o código antes do index Mongo. */
-                const localBal = encontrarProdutoPorCodigoInternoBalanca(bal.codigo4, baseProdutos);
-                if (localBal) {
-                    processarResultadosBusca(
-                        [{
-                            ...localBal,
-                            preco_venda: bal.valorReais,
-                            preco_etiqueta_balanca: true,
-                            auditoria_codigo_bip: digits,
-                        }],
-                        modo,
-                        true
-                    );
-                    return;
-                }
-                executarBuscaAPIEtiquetaBalanca(digits, bal);
+                mostrarStatusBusca(
+                    'Etiqueta inválida (dígito verificador). Confira os 13 dígitos ou pressione Enter de novo após colar o código certo.',
+                    'red'
+                );
+                limparBuscaVisual();
                 return;
             }
+            /* PLU 4 dígitos: catálogo local (overlay) costuma ter o código antes do index Mongo. */
+            const localBal = encontrarProdutoPorCodigoInternoBalanca(bal.codigo4, baseProdutos);
+            if (localBal) {
+                processarResultadosBusca(
+                    [{
+                        ...localBal,
+                        preco_venda: bal.valorReais,
+                        preco_etiqueta_balanca: true,
+                        auditoria_codigo_bip: digits,
+                    }],
+                    modo,
+                    true
+                );
+                return;
+            }
+            executarBuscaAPIEtiquetaBalanca(digits, bal);
+            return;
         }
     }
 
@@ -3997,6 +4003,22 @@ inputBusca.addEventListener('input', function(e) {
     }
 
     buscarProdutos(q, 'normal');
+});
+
+/** Colar EAN (sem bipador): dispara busca scanner na hora. */
+inputBusca.addEventListener('paste', function () {
+    setTimeout(function () {
+        if (!inputBusca) return;
+        const q = String(inputBusca.value || '').trim();
+        const textoLimpo = removerSufixoQuantidade(q);
+        const digits = String(textoLimpo).replace(/\D/g, '');
+        const pareceCodigoOrc = /^GMORC\d{10,20}$/i.test(String(textoLimpo).replace(/\s/g, ''));
+        if (!(digits.length >= 8 || pareceCodigoOrc)) return;
+        clearTimeout(scannerTimer);
+        bufferScanner = '';
+        pdvMarcarJanelaScannerAtiva(1500);
+        buscarProdutos(q, 'scanner');
+    }, 0);
 });
 }
 
