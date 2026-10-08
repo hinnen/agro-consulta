@@ -1303,6 +1303,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Mexe** | `produtos/views.py` · `consulta_produtos.js` · prova + testes |
 | **Status** | 🟢 **pronto para envio à produção** |
+| **Tip teste** | `35a203eb` |
 | **Alvo loja** | **v26.62** (CREDITO-V12 continua **v26.61** PREP) |
 | **Rollback** | `docs/ROLLBACK-PDV-BALANCA-ETQ-PLU.md` · **só** frase+senha |
 | **Você** | Ctrl+F5 no PDV · bipar etiqueta · item com valor da etiqueta (não R$ 9,40/kg) |
