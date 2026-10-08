@@ -108,6 +108,8 @@ def test_arquivos_rotas() -> None:
     check("tpl_cols_venda_bonus", "VENDA (meta)" in tpl_txt and "BÔNUS" in tpl_txt)
     check("tpl_modo_agora", "data-modo=\"agora\"" in tpl_txt and "Até agora" in tpl_txt)
     check("tpl_modo_mes", "data-modo=\"mes\"" in tpl_txt and "Meta do mês" in tpl_txt)
+    check("tpl_loja_tres", 'data-loja="todas"' in tpl_txt and 'data-loja="centro"' in tpl_txt and 'data-loja="vila"' in tpl_txt)
+    check("tpl_setLoja_refetch", "function setLoja" in tpl_txt and "carregar();" in tpl_txt)
 
     mig_txt = mig.read_text(encoding="utf-8")
     check("mig_seed_padrao", "105000" in mig_txt and "moleton" in mig_txt)
@@ -327,6 +329,46 @@ def test_mostruario_consistencia() -> None:
     )
     zap_c = meta_texto_zap(m_c)
     check("zap_loja_centro", "Centro" in zap_c and "Centro + Vila" not in zap_c)
+    zap_v = meta_texto_zap(m_v, modo="agora")
+    check("zap_loja_vila", "· Vila" in zap_v and "Centro + Vila" not in zap_v and "Centro" not in zap_v)
+    check("zap_vila_agora", "até agora" in zap_v.lower() or "ATÉ AGORA" in zap_v)
+
+    ids_todas = [int(f["id"]) for f in (m.get("faixas") or [])]
+    ids_c = [int(f["id"]) for f in (m_c.get("faixas") or [])]
+    ids_v = [int(f["id"]) for f in (m_v.get("faixas") or [])]
+    check("faixas_mesma_lista", ids_todas == ids_c == ids_v and len(ids_todas) >= 1, str(ids_todas))
+    metas_ok = True
+    for a, b, cfx in zip(m.get("faixas") or [], m_c.get("faixas") or [], m_v.get("faixas") or []):
+        if float(a["valor_meta"]) != float(b["valor_meta"]) or float(a["valor_meta"]) != float(cfx["valor_meta"]):
+            metas_ok = False
+        if (a.get("bonus_label") or "") != (b.get("bonus_label") or "") or (a.get("bonus_label") or "") != (cfx.get("bonus_label") or ""):
+            metas_ok = False
+    check("meta_bonus_iguais", metas_ok)
+
+    check(
+        "soma_hoje",
+        abs(
+            float((m.get("hoje") or {}).get("vendido") or 0)
+            - (
+                float((m_c.get("hoje") or {}).get("vendido") or 0)
+                + float((m_v.get("hoje") or {}).get("vendido") or 0)
+            )
+        )
+        < 0.05,
+    )
+    check(
+        "soma_media_ref",
+        abs(float(m["media_mes_ref"]) - (float(m_c["media_mes_ref"]) + float(m_v["media_mes_ref"]))) < 0.05,
+        f"todas={m['media_mes_ref']} c={m_c['media_mes_ref']} v={m_v['media_mes_ref']}",
+    )
+    # lixo de loja cai em Centro + Vila
+    m_lixo = meta_montar_mostruario(
+        competencia=comp, hoje=hoje, agora=agora, deposito="xyz"
+    )
+    check("deposito_lixo_vira_todas", m_lixo.get("deposito") == "todas")
+    check("sem_coluna_loja_na_meta", not any(
+        f.name == "deposito" for f in MetaVendaFaixaAgro._meta.fields
+    ))
 
     # mês fechado (competência prova — rollback)
     with transaction.atomic():
@@ -376,6 +418,9 @@ def test_http() -> None:
     check("painel_loja_centro", 'data-loja="centro"' in body and "Só Centro" in body)
     check("painel_loja_vila", 'data-loja="vila"' in body and "Só Vila" in body)
     check("painel_loja_todas", 'data-loja="todas"' in body and "Centro + Vila" in body)
+    check("painel_js_setLoja", "function setLoja" in body and "carregar()" in body)
+    check("painel_js_deposito_query", "deposito=" in body and "agro_meta_loja_v1" in body)
+    check("painel_foto_loja", "deposito_label" in body)
 
     r2 = c.get(reverse("api_meta_vendas_resumo"), {"competencia": comp})
     check("api_resumo_200", r2.status_code == 200, str(r2.status_code))
@@ -424,6 +469,30 @@ def test_http() -> None:
     mc = (d_c.get("mostruario") or {})
     check("api_centro_ok", r_c.status_code == 200 and mc.get("deposito") == "centro")
     check("api_centro_zap", "Centro" in (d_c.get("texto_zap") or "") and "Centro + Vila" not in (d_c.get("texto_zap") or ""))
+    faixas_api = (data.get("mostruario") or {}).get("faixas") or []
+    faixas_c = mc.get("faixas") or []
+    check(
+        "api_meta_igual_centro",
+        [f.get("id") for f in faixas_api] == [f.get("id") for f in faixas_c]
+        and [f.get("valor_meta") for f in faixas_api] == [f.get("valor_meta") for f in faixas_c],
+    )
+
+    r_v = c.get(
+        reverse("api_meta_vendas_resumo"),
+        {"competencia": comp, "deposito": "vila", "modo": "agora"},
+    )
+    d_v = r_v.json() if r_v.status_code == 200 else {}
+    mv = d_v.get("mostruario") or {}
+    check("api_vila_agora_ok", r_v.status_code == 200 and mv.get("deposito") == "vila" and d_v.get("modo") == "agora")
+    check("api_vila_zap", "Vila" in (d_v.get("texto_zap") or "") and "Centro + Vila" not in (d_v.get("texto_zap") or ""))
+    vend_todas = float((data.get("mostruario") or {}).get("vendido_mes") or 0)
+    vend_c = float(mc.get("vendido_mes") or 0)
+    vend_v = float(mv.get("vendido_mes") or 0)
+    check("api_soma_lojas", abs(vend_todas - (vend_c + vend_v)) < 0.05, f"todas={vend_todas} c={vend_c} v={vend_v}")
+
+    r_lixo = c.get(reverse("api_meta_vendas_resumo"), {"competencia": comp, "deposito": "xyz"})
+    d_lixo = r_lixo.json() if r_lixo.status_code == 200 else {}
+    check("api_deposito_lixo", (d_lixo.get("mostruario") or {}).get("deposito") == "todas")
 
 
     r3 = c.get(reverse("api_meta_vendas_faixas"), {"competencia": comp})
