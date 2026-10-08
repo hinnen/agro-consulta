@@ -90,6 +90,12 @@ def check_static() -> None:
     check('name="deposito"' in tpl and "Centro + Vila" in tpl and "Só Vila" in tpl, "filtro loja")
     check('name="canal"' in tpl and "Só balcão" in tpl and "Só entrega" in tpl, "filtro canal")
     check('name="visao"' in tpl and "Média por dia" in tpl and "Soma do período" in tpl, "filtro media/soma")
+    check("grade.rotulo_total" in tpl, "cartao usa o rotulo da visao")
+    check(
+        '"Média do dia" if media else "Total do período"' in util,
+        "rotulo: media do dia ou total do periodo",
+    )
+    check("Média do dia" in help_a and "Total do período" in help_a, "ajuda explica o cartao")
     check("Mapa da semana" in tpl and "Quem atendeu" in tpl, "mapa e quem")
     check('rel_help == "hora"' in help_a and "COSTUME" in help_a, "ajuda ?")
     check("export=xlsx" in views or 'get("export") == "xlsx"' in views, "excel na view")
@@ -280,6 +286,7 @@ def check_http_excel() -> None:
         _c, _v, tot_dia = vendas_lojas_totais(DIA, DIA)
         tot_txt = fmt_brl(tot_dia).replace("R$ ", "")
         check(tot_txt in body, f"ontem mostra {tot_txt} na tela")
+        check(_cartao(body) == "Total do período", "um dia: cartao Total do período")
 
         rv = c.get(reverse("relatorios_hora"), {"periodo": "custom", "de": DIA.isoformat(), "ate": DIA.isoformat(), "deposito": "vila"})
         vb = rv.content.decode("utf-8", errors="replace")
@@ -325,6 +332,104 @@ def check_http_excel() -> None:
         check(hub.status_code == 200 and "Venda hora a hora" in hb and "/relatorios/hora/" in hb, "Central aponta o card")
 
 
+def _cartao(body: str) -> str:
+    marca = 'tracking-wider text-slate-400">'
+    i = body.find(marca)
+    if i < 0:
+        return ""
+    j = body.find("</p>", i)
+    return body[i + len(marca) : j].strip()
+
+
+def _valor_cartao(body: str) -> str:
+    i = body.find('tracking-wider text-slate-400">')
+    if i < 0:
+        return ""
+    marca = 'text-xl font-black text-white">'
+    j = body.find(marca, i)
+    if j < 0:
+        return ""
+    j += len(marca)
+    k = body.find("</p>", j)
+    return body[j:k].strip()
+
+
+def check_periodo_38_centro() -> None:
+    """O caso da tela: 01/09–08/10, só Centro. Média não é a soma."""
+    print("--- 38 dias so Centro ---")
+    from produtos.relatorios_vendas_util import fmt_brl
+    from produtos.vendas_lojas_util import vendas_lojas_totais
+
+    d0, d1 = date(2026, 9, 1), date(2026, 10, 8)
+    c_loja, v_loja, t_loja = vendas_lojas_totais(d0, d1)
+    rf = RequestFactory()
+    req_m = rf.get(
+        "/relatorios/hora/",
+        {
+            "periodo": "custom",
+            "de": d0.isoformat(),
+            "ate": d1.isoformat(),
+            "deposito": "centro",
+            "canal": "todos",
+            "visao": "media",
+        },
+    )
+    filtros, media = hu.montar_relatorio(req_m)
+    n = int(filtros["n_dias"] if "n_dias" in filtros else media["n_dias"])
+    check(n == 38, f"01/09 a 08/10 = {n} dias")
+    check(media["rotulo_total"] == "Média do dia", "38 dias: rotulo Média do dia")
+    check(abs(_q(media["total_bruto"]) - c_loja) < Decimal("0.01"), f"soma Centro {_q(media['total_bruto'])} = vendas por loja {c_loja}")
+    check(abs(_q(media["total"]) * n - _q(media["total_bruto"])) < Decimal("0.05"), "media x 38 = soma do periodo")
+    check(_q(media["total"]) < Decimal("20000"), "cartao da media nao e o total de 38 dias")
+    req_s = rf.get(
+        "/relatorios/hora/",
+        {
+            "periodo": "custom",
+            "de": d0.isoformat(),
+            "ate": d1.isoformat(),
+            "deposito": "centro",
+            "canal": "todos",
+            "visao": "soma",
+        },
+    )
+    _fs, soma = hu.montar_relatorio(req_s)
+    check(soma["rotulo_total"] == "Total do período", "soma: rotulo Total do período")
+    check(abs(_q(soma["total"]) - c_loja) < Decimal("0.01"), f"cartao da soma {_q(soma['total'])} = Centro {c_loja}")
+    check(abs(_q(soma["total_bruto"]) - _q(media["total_bruto"])) < Decimal("0.01"), "soma e media usam o mesmo bruto")
+    ambas = _q(c_loja + v_loja)
+    check(abs(ambas - t_loja) < Decimal("0.01"), f"Centro+Vila {ambas} = total lojas {t_loja}")
+
+    with override_settings(ALLOWED_HOSTS=["testserver", "127.0.0.1", "localhost", "*"]):
+        c = Client()
+        pagina = c.get(
+            reverse("relatorios_hora"),
+            {
+                "periodo": "custom",
+                "de": d0.isoformat(),
+                "ate": d1.isoformat(),
+                "deposito": "centro",
+                "visao": "media",
+            },
+        )
+        body = pagina.content.decode("utf-8", errors="replace")
+        check(pagina.status_code == 200, "pagina 38 dias abre")
+        check(_cartao(body) == "Média do dia", "tela 38 dias: cartao Média do dia")
+        check(_valor_cartao(body) == fmt_brl(media["total"]), f"numero do cartao e a media {fmt_brl(media['total'])}")
+        pagina_s = c.get(
+            reverse("relatorios_hora"),
+            {
+                "periodo": "custom",
+                "de": d0.isoformat(),
+                "ate": d1.isoformat(),
+                "deposito": "centro",
+                "visao": "soma",
+            },
+        )
+        bs = pagina_s.content.decode("utf-8", errors="replace")
+        check(_cartao(bs) == "Total do período", "tela soma: cartao Total do período")
+        check(_valor_cartao(bs) == fmt_brl(c_loja), f"numero da soma e o total Centro {fmt_brl(c_loja)}")
+
+
 def check_pin() -> None:
     print("--- pin ---")
     try:
@@ -341,6 +446,7 @@ def main() -> int:
     check_ontem_real()
     check_marcadas()
     check_http_excel()
+    check_periodo_38_centro()
     check_pin()
     print(f"--- {OKS} OK · {len(FAILS)} FAIL ---")
     for msg in FAILS:

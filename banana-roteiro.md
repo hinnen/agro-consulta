@@ -861,3 +861,14 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 **Live:** producao @ `1fbe1a8e` · Render `dep-db3otbk9v7es73aj86c0`.  
 **Rollback:** tag `rollback/pre-checklist-0810b-v26.60` @ `e4206bbf` · `docs/ROLLBACK-CHECKLIST-0810b.md` · **só** frase+senha.
+
+---
+
+## 70. Checklist único — REL-HORA-ROTULO · 🟢 pronto para envio · 08/10
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **REL-HORA-ROTULO** | 🟢 **pronto para envio à produção** · path **85/85** · unit **7/7** | **NÃO** |
+
+**O quê:** no hora a hora, o cartão grande diz **Média do dia** ou **Total do período**. Loja **v26.66** ainda mostra **TOTAL**.  
+**Não entra:** resto do `teste`. **Só** frase + senha.
