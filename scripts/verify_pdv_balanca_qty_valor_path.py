@@ -50,6 +50,7 @@ def test_contratos() -> None:
     js = (ROOT / "produtos/static/produtos/js/consulta_produtos.js").read_text(
         encoding="utf-8"
     )
+    wiz = (ROOT / "produtos/static/produtos/js/pdv_wizard.js").read_text(encoding="utf-8")
     check("api_valor_etiqueta_map", "valor_etiqueta_por_id" in views)
     check("api_campo_valor_etiqueta", 'row["valor_etiqueta_balanca"]' in views)
     check(
@@ -68,7 +69,17 @@ def test_contratos() -> None:
     check("js_limpar_atalhos", "function limparAtalhosBusca" in js)
     check("js_enter_balanca", "digitsEnter.length === 13 && digitsEnter[0] === '2'" in js)
     check("js_carrinho_step", 'step="0.001"' in js)
-    check("version_26_73", (ROOT / "VERSION").read_text(encoding="utf-8").strip() == "26.73")
+    # Loja usa o wizard — contratos obrigatórios
+    check("wiz_calcular_qtd", "function calcularQtdPorValorTotal" in wiz)
+    check("wiz_obter_valor", "function obterValorTotalRapido" in wiz)
+    check("wiz_qty_add", "function qtyParaAdicionarProduto" in wiz)
+    check("wiz_auto_barcode_qty", "qtyParaAdicionarProduto(product, { qty: 1 })" in wiz)
+    check("wiz_enter_valor", "valorTotalEnter" in wiz and "valorTotal:" in wiz)
+    check("wiz_igual_nao_bump", "buscaQty && event.key === '='" in wiz)
+    check(
+        "version_26_74",
+        (ROOT / "VERSION").read_text(encoding="utf-8").strip() == "26.74",
+    )
 
 
 def test_math_loja() -> None:
@@ -294,8 +305,51 @@ def test_api_mock_overlay() -> None:
         check("http_linha", abs(linha - 4.81) < 0.01, str(linha))
 
 
+def test_js_wizard_node() -> None:
+    print("== JS wizard (node) qty + R$ ==")
+    src = (ROOT / "produtos/static/produtos/js/pdv_wizard.js").read_text(encoding="utf-8")
+    parts = []
+    for pat in (
+        r"function calcularQtdPorValorTotal\(precoUnit, valorTotal\) \{[\s\S]*?\n    \}",
+        r"function obterValorTotalRapido\(texto\) \{[\s\S]*?\n    \}",
+        r"function removerSufixoValorTotal\(texto\) \{[\s\S]*?\n    \}",
+        r"function limparAtalhosBuscaProduto\(texto\) \{[\s\S]*?\n    \}",
+        r"function qtyParaAdicionarProduto\(produto, opts\) \{[\s\S]*?\n    \}",
+    ):
+        m = re.search(pat, src)
+        check(f"wiz_extract_{pat[9:28]}", bool(m))
+        if m:
+            parts.append(m.group(0))
+    if len(parts) < 5:
+        return
+    # qtyParaAdicionarProduto usa dom.productSearch — stub mínimo
+    snippet = (
+        "var dom = { productSearch: { value: '' } };\n"
+        + "\n".join(parts)
+        + """
+const q = calcularQtdPorValorTotal(9.40, 4.81);
+if (Math.abs(q - 0.512) > 0.0001) { console.error('FAIL q', q); process.exit(1); }
+if (Math.abs(obterValorTotalRapido('racao R$10') - 10) > 0.001) { console.error('FAIL R$'); process.exit(1); }
+if (limparAtalhosBuscaProduto('racao R$10') !== 'racao') { console.error('FAIL limpo'); process.exit(1); }
+const qAdd = qtyParaAdicionarProduto({ preco_venda: 9.40, valor_etiqueta_balanca: 4.81 }, {});
+if (Math.abs(qAdd - 0.512) > 0.0001) { console.error('FAIL qAdd', qAdd); process.exit(1); }
+const qDig = qtyParaAdicionarProduto({ preco_venda: 9.40 }, { valorTotal: 10 });
+if (Math.abs(qDig - 1.064) > 0.0001) { console.error('FAIL qDig', qDig); process.exit(1); }
+console.log('OK js_wizard_qty_valor');
+"""
+    )
+    with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False, encoding="utf-8") as f:
+        f.write(snippet)
+        tmp = f.name
+    try:
+        r = subprocess.run(["node", tmp], capture_output=True, text=True, timeout=10)
+        check("wiz_js_node", r.returncode == 0, (r.stdout + r.stderr).strip()[:220])
+    finally:
+        Path(tmp).unlink(missing_ok=True)
+
+
 def test_js_node() -> None:
-    print("== JS (node) atalhos R$ + qty ==")
+    print("== JS legado (node) atalhos R$ + qty ==")
     src = (ROOT / "produtos/static/produtos/js/consulta_produtos.js").read_text(
         encoding="utf-8"
     )
@@ -535,6 +589,7 @@ def main() -> int:
     test_math_loja()
     test_parse_overlay()
     test_api_mock_overlay()
+    test_js_wizard_node()
     test_js_node()
     test_pin_9973()
     test_client_http_login()
