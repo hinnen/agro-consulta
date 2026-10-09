@@ -1316,7 +1316,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Código **230… legado**: etiqueta com **DV EAN válido** (ex. cadastro `2300000001480` → barras `2300000001488`); busca/index bip↔cadastro |
+| **O quê** | Código **230… legado**: etiqueta **DV EAN válido** + busca bip↔cadastro · **botão 230** no cadastro (Postgres mesmo com Mongo off) |
 | **Prova** | etq-ean **74/74** · termica **69/69** · unit **4/4** · PIN **9973** · core **v=35** |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** · alvo **v26.75** |
