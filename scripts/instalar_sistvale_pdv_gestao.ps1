@@ -1,6 +1,8 @@
 # SisVale — instalador único: PDV + Gestão (Chrome PWA) · Windows 10/11
 #
-# Uso (recomendado): dois cliques em INSTALAR-SISVALE-PDV-GESTAO.bat
+# LOJA (1 link): baixe Clique-aqui-instalar-PDV-e-Gestao.zip em scripts/ no GitHub (teste)
+#   -> extraia -> CLIQUE-AQUI-INSTALAR-PDV-E-GESTAO.bat
+# Uso avancado: INSTALAR-SISVALE-PDV-GESTAO.bat
 # Ou:
 #   powershell -ExecutionPolicy Bypass -File .\instalar_sistvale_pdv_gestao.ps1
 #   powershell -ExecutionPolicy Bypass -File .\instalar_sistvale_pdv_gestao.ps1 -BaseUrl "https://agro-consulta-staging.onrender.com"

@@ -1,0 +1,15 @@
+SisVale - PDV + Gestao (Windows)
+================================
+
+1) Extraia ESTA PASTA inteira na Area de Trabalho (nao apague nenhum arquivo).
+
+2) Dois cliques em:
+   CLIQUE-AQUI-INSTALAR-PDV-E-GESTAO.bat
+
+3) Quando abrirem 2 janelas do Chrome, em cada uma:
+   menu (...) -> Instalar pagina como app
+   Nomes:  SisVale PDV   e   SisVale Gestao
+
+Pronto. Use os icones SisVale PDV e SisVale Gestao na barra.
+
+Pendrive: copie a pasta inteira para o proximo PC e repita o passo 2.
