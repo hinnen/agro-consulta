@@ -7,7 +7,7 @@
 
 | # | Pacote | Prova | Migrate |
 | - | ------ | ----- | ------- |
-| 1 | **PDV-VALOR-RS-MODAL** | path **13/13** | **NÃO** |
+| 1 | **PDV-VALOR-RS-MODAL** | path **39/39** · PIN 9973 · qty 1,064 | **NÃO** |
 
 **O quê:** após Enter/clique no produto no wizard → «Valor em R$?» · Enter vazio/Esc/Pular = qty normal · valor = qty÷preço.
 
@@ -24,3 +24,7 @@ git push origin producao
 ```
 
 Smoke: Ctrl+F5 `/pdv/checkout/` · badge **v26.76** · busca produto Enter → `10` ou Enter vazio.
+
+## Voltar (só frase + senha)
+
+Ver `docs/ROLLBACK-PDV-VALOR-RS-MODAL.md`.

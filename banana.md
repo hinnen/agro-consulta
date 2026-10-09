@@ -1299,11 +1299,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | **ETQ-EAN-LOJA-DV** (etiqueta 230… + botão **230** cadastro, **só Postgres**) · **PDV-VALOR-RS-MODAL** (Enter → valor R$ no wizard) |
-| **Prova** | etq **74/74** · gerador **15/15** · termica **69/69** · unit **5/5** · valor-rs **13/13** · **PREP_FAILS=0** |
+| **Prova** | etq **74/74** · gerador **15/15** · termica **69/69** · unit **5/5** · valor-rs **39/39** · PIN **9973** · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** · alvo **v26.76** (ETQ+gerador + modal R$) |
 | **Antes** | Live **v26.74** |
-| **Rollback** | `docs/ROLLBACK-ETQ-EAN-LOJA-DV.md` · valor-rs tip anterior · **só** frase+senha |
+| **Rollback** | `docs/ROLLBACK-ETQ-EAN-LOJA-DV.md` · `docs/ROLLBACK-PDV-VALOR-RS-MODAL.md` · **só** frase+senha |
 | **Você** | Ctrl+F5 · **v26.76** · botão **230** Fiscal · reimprimir 230… legado · wizard Enter → R$ |
 
 ### ✅ CHECKLIST ÚNICO — 09/10f · 🟢 pronto para envio
@@ -1311,22 +1311,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
 | 1 | **ETQ-EAN-LOJA-DV** (+ gerador 230 PG) | 🟢 **pronto para envio à produção** | **NÃO** | **74/74** · **15/15** |
-| 2 | **PDV-VALOR-RS-MODAL** | 🟢 **pronto para envio à produção** | **NÃO** | **13/13** |
+| 2 | **PDV-VALOR-RS-MODAL** | 🟢 **pronto para envio à produção** | **NÃO** | **39/39** · PIN 9973 |
 
 ### 📦 PACOTE PRONTO — valor em R$ no Enter (`PDV-VALOR-RS-MODAL` · 09/10)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Wizard `/pdv/checkout/`: após Enter/clique no produto → pergunta grande **«Valor em R$?»** · qty = valor÷preço · **Enter vazio / Esc / Pular** = lança sem valor |
-| **Prova** | path **13/13** · PIN n/a · **PREP_FAILS=0** |
+| **Prova** | path **39/39** · PIN **9973** · qty 10÷9,40=**1,064** · static wizard OK · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** · branch `cursor/pdv-valor-rs-modal-ca8a` · tip PREP `deploy/prep-pdv-valor-rs-modal` · alvo **v26.76** |
 | **Antes** | Live **v26.74** (QTY-VALOR) · teste também tem ETQ v26.75 |
-| **Rollback** | tip Live anterior · **só** frase+senha |
+| **Rollback** | tag `rollback/pre-pdv-valor-rs-modal-v26.74` · `docs/ROLLBACK-PDV-VALOR-RS-MODAL.md` · **só** frase+senha |
 | **Na senha** | `docs/DEPLOY-PREP-PDV-VALOR-RS-MODAL.md` |
 | **Você** | Ctrl+F5 · **v26.76** · busca produto Enter → digita `10` ou Enter vazio |
 
-### ~~CHECKLIST ÚNICO — 09/10e~~ · **absorvido em 09/10f**
+### ~~CHECKLIST ÚNICO — 09/10e~~ · **absorvido em 09/10f** (prova valor-rs **39/39**)
 
 ### 📦 PACOTE PRONTO — ETQ-EAN-LOJA-DV (`CHECKLIST 09/10d` · 09/10)
 
