@@ -23,7 +23,7 @@ Nada mais no checklist está «pronto para envio» — lotes anteriores já são
 
 | Item | Valor |
 | ---- | ----- |
-| Tip PREP = tip feature | `eb03f5a1` (ou tip atual do PREP) |
+| Tip PREP = tip feature | `53638a5d` |
 | Rollback tag | `rollback/pre-pdv-balanca-qty-valor-v26.71` → `2eab76c1` |
 | Backup branch | `producao-backup-pre-v2674-qty-valor` |
 | Doc rollback | `docs/ROLLBACK-PDV-BALANCA-QTY-VALOR.md` |
