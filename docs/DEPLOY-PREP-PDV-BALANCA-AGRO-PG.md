@@ -7,7 +7,7 @@
 
 | # | Pacote | Prova | Migrate |
 | - | ------ | ----- | ------- |
-| 1 | **PDV-BALANCA-QTY-VALOR** (wizard `/pdv/checkout/`) | qty-valor **63/63** · agro **56/56** · etq **41/41** · unit **11/11** | **NÃO** |
+| 1 | **PDV-BALANCA-QTY-VALOR** (wizard `/pdv/checkout/`) | **63/63** · agro **56/56** · etq **41/41** · unit **11/11** · PIN 9973 · API wizard qty 0,512 | **NÃO** |
 
 **O quê (tela da loja = wizard):**
 1. **Etiqueta balança** — bip EAN → preço unitário + qty = total÷unitário (estoque certo; total ≈ etiqueta).
