@@ -2440,13 +2440,20 @@
         }
         barrasEl.textContent = msg;
       } else if (bc.codigo_loja || (Core.ehCodigoBarrasLojaInterno && Core.ehCodigoBarrasLojaInterno(bc.valor))) {
-        barrasEl.textContent =
+        var msgLoja =
           'Barras interno loja: ' +
           bc.valor +
-          ' (EAN-13' +
-          (bc.ean_force ? ', legado — mesmo número' : '') +
-          ') — laser 1D bipa o número. Faixa 230… da loja.';
-        barrasEl.classList.add('text-emerald-700');
+          ' (EAN-13) — leitor bipa esse número. Faixa 230… da loja.';
+        if (bc.ean_corrigido && bc.valor_original) {
+          msgLoja +=
+            ' Cadastro: ' +
+            bc.valor_original +
+            ' (DV ajustado na etiqueta para o laser ler).';
+          barrasEl.classList.add('text-amber-900', 'bg-amber-50', 'rounded-lg', 'px-2', 'py-1.5');
+        } else {
+          barrasEl.classList.add('text-emerald-700');
+        }
+        barrasEl.textContent = msgLoja;
       } else {
         barrasEl.textContent =
           'Sem EAN no cadastro: a etiqueta sairá com código GM (' +
