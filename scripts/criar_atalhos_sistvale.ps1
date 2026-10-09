@@ -1,9 +1,12 @@
 # Atalhos Windows - SisVale PDV + Gestao (Chrome app instalado)
 #
+# LOJA (1 clique): scripts\INSTALAR-SISVALE-PDV-GESTAO.bat
+#   -> instalar_sistvale_pdv_gestao.ps1 (Chrome + limpeza + espera PWA + barra)
+#
 # IMPORTANTE: use apps INSTALADOS do Chrome (chrome_proxy), nao chrome.exe --app=.
 # Misturar perfis/ tipos faz abrir aba no Chrome generico (icone globo).
 #
-# Passo a passo loja:
+# Passo a passo manual (avancado):
 #   1) powershell -ExecutionPolicy Bypass -File .\scripts\criar_atalhos_sistvale.ps1 `
 #        -BaseUrl "https://sistvale.com.br" -AbrirParaInstalar
 #   2) Em cada janela: Chrome menu (3 pontos) -> Salvar e compartilhar ->

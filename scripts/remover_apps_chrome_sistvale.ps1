@@ -158,12 +158,19 @@ for name in ("Preferences", "Secure Preferences"):
     print("OK prefs", name)
 '@ | Set-Content -Path $pyScript -Encoding UTF8
 
-if ($appIds.Count -gt 0 -and (Test-Path -LiteralPath $PrefsPath)) {
-    & python $pyScript $ProfileDir @appIds
+$pythonCmd = $null
+foreach ($c in @("python", "python3", "py")) {
+    if (Get-Command $c -ErrorAction SilentlyContinue) { $pythonCmd = $c; break }
+}
+if ($appIds.Count -gt 0 -and (Test-Path -LiteralPath $PrefsPath) -and $pythonCmd) {
+    & $pythonCmd $pyScript $ProfileDir @appIds
+    Remove-Item -LiteralPath $pyScript -Force -ErrorAction SilentlyContinue
+} elseif ((Test-Path -LiteralPath $PrefsPath) -and $pythonCmd) {
+    # fallback: remove chgnfdn conhecido
+    & $pythonCmd $pyScript $ProfileDir "chgnfdnhdadneofjflhceelponcohfgc"
     Remove-Item -LiteralPath $pyScript -Force -ErrorAction SilentlyContinue
 } elseif (Test-Path -LiteralPath $PrefsPath) {
-    # fallback: remove chgnfdn conhecido
-    & python $pyScript $ProfileDir "chgnfdnhdadneofjflhceelponcohfgc"
+    Write-Host "Aviso: Python nao encontrado — pastas _crx_ e atalhos removidos; se sobrar fantasma, instale Python ou limpe chrome://apps" -ForegroundColor DarkYellow
     Remove-Item -LiteralPath $pyScript -Force -ErrorAction SilentlyContinue
 }
 
