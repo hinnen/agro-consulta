@@ -1364,6 +1364,7 @@
             codigo: rem.codigo || loc.codigo,
             codigo_barras: rem.codigo_barras || loc.codigo_barras,
             preco_venda: rem.preco_venda != null ? rem.preco_venda : loc.preco_venda,
+            unidade: rem.unidade || loc.unidade || rem.Unidade || loc.Unidade || '',
             imagem: rem.imagem || loc.imagem,
             index_codigos: Array.isArray(rem.index_codigos) && rem.index_codigos.length
                 ? rem.index_codigos
@@ -1409,6 +1410,22 @@
 
     function limparAtalhosBuscaProduto(texto) {
         return removerSufixoValorTotal(texto);
+    }
+
+    /** Modal «Valor em R$?» só para produtos com UNIDADE = KG (cadastro). */
+    function produtoUnidadeEhKg(produto) {
+        var u = String(
+            (produto &&
+                (produto.unidade ||
+                    produto.Unidade ||
+                    produto.sigla_unidade ||
+                    produto.SiglaUnidade)) ||
+                ''
+        )
+            .trim()
+            .toUpperCase()
+            .replace(/\./g, '');
+        return u === 'KG';
     }
 
     /**
@@ -1467,13 +1484,14 @@
             produto && produto.valor_etiqueta_balanca != null
                 ? Number(produto.valor_etiqueta_balanca)
                 : null;
-        /* Escolha manual (Enter/clique): pergunta «Valor em R$?» — Enter vazio pula. */
+        /* Escolha manual (Enter/clique) + UNIDADE=KG: pergunta «Valor em R$?» — Enter vazio pula. */
         var precisaPerguntarValor =
             explicitPick &&
             !opts.skipValorPrompt &&
             !opts.valorTotalAsked &&
             valorTotalOpt == null &&
-            !(valorEtiqueta > 0);
+            !(valorEtiqueta > 0) &&
+            produtoUnidadeEhKg(produto);
         if (precisaPerguntarValor) {
             return askValorReaisParaProduto(produto).then(function (valorEscolhido) {
                 var next = Object.assign({}, opts, {

@@ -1298,20 +1298,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Wizard `/pdv/checkout/`: após Enter/clique no produto → pergunta grande **«Valor em R$?»** · qty = valor÷preço · **Enter vazio / Esc / Pular** = lança sem valor |
-| **Prova** | path **39/39** · PIN **9973** · qty 10÷9,40=**1,064** · static wizard OK · **PREP_FAILS=0** |
+| **O quê** | Wizard `/pdv/checkout/`: após Enter/clique em produto **UNIDADE=KG** → **«Valor em R$?»** · demais unidades sem pergunta · Enter vazio/Esc/Pular = qty normal |
+| **Prova** | path **46/46** · PIN **9973** · só **KG** · static OK · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** · branch `cursor/pdv-valor-rs-modal-ca8a` · tip PREP `deploy/prep-pdv-valor-rs-modal` · alvo **v26.76** |
+| **Status** | 🟢 **pronto para envio à produção** · branch `cursor/pdv-valor-rs-modal-ca8a` · tip PREP `deploy/prep-pdv-valor-rs-modal` · alvo **v26.77** |
 | **Antes** | Live **v26.74** (QTY-VALOR) · teste também tem ETQ v26.75 |
 | **Rollback** | tag `rollback/pre-pdv-valor-rs-modal-v26.74` · `docs/ROLLBACK-PDV-VALOR-RS-MODAL.md` · **só** frase+senha |
 | **Na senha** | `docs/DEPLOY-PREP-PDV-VALOR-RS-MODAL.md` |
-| **Você** | Ctrl+F5 · **v26.76** · busca produto Enter → digita `10` ou Enter vazio |
+| **Você** | Ctrl+F5 · **v26.77** · produto **KG** Enter → `10` ou Enter vazio · UN não pergunta |
 
 ### ✅ CHECKLIST ÚNICO — 09/10e · PDV-VALOR-RS-MODAL · 🟢 pronto para envio
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-VALOR-RS-MODAL** | 🟢 **pronto para envio à produção** | **NÃO** | **39/39** · wizard |
+| 1 | **PDV-VALOR-RS-MODAL** | 🟢 **pronto para envio à produção** | **NÃO** | só **KG** · wizard |
 
 ### 📦 PACOTE PRONTO — ETQ-EAN-LOJA-DV (`CHECKLIST 09/10d` · 09/10)
 
