@@ -52,7 +52,10 @@ def test_contratos_arquivo() -> None:
     )
     check("exact_flag", '"exact_barcode_match"' in views or "'exact_barcode_match'" in views)
     motor = (ROOT / "produtos/motor_busca_unificado_util.py").read_text(encoding="utf-8")
-    check("motor_plu_complementa_mongo", "_plu_balanca" in motor)
+    check(
+        "motor_plu_complementa_mongo",
+        "_plu_balanca" in motor and "exact_plu" in motor,
+    )
     cad = (ROOT / "produtos/cadastro_busca_codigo_util.py").read_text(encoding="utf-8")
     check("overlay_plu_4d", "4 <= len(digits) <= 7" in cad)
     check("js_parse", "function parseEtiquetaBalancaEan13" in js)

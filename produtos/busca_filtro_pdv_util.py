@@ -222,7 +222,7 @@ def filtrar_documentos_estilo_pdv(docs: list[dict], termo: str) -> list[dict]:
         return list(docs or [])
 
     _dig_f = _RE_DIGITOS.sub("", termo)
-    _plu_curto = _dig_f.isdigit() and 4 <= len(_dig_f) <= 5
+    _plu_curto = _dig_f.isdigit() and len(_dig_f) == 4
     # PLU balança (0010) não passa em parece_codigo (≥8) — não filtrar fora GM0010-*.
     if (parece_codigo_cadastro(termo) or _plu_curto) and " " not in termo:
         return list(docs)

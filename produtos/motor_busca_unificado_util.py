@@ -315,14 +315,45 @@ def buscar_documentos_unificado(
         _pg_suficiente = False
     if skip_mongo_complemento and usa_pg and not _familia_gm:
         # Bip 8+ dígitos sem hit no PG: deixa o Mongo complementar (barra extra / legado).
-        # PLU balança 4–5 dígitos (ex. 0010): também complementar — não é «texto comum»
-        # e o overlay/código costuma estar só no Mongo até o espelho PG atualizar.
+        # PLU balança = exatamente 4 dígitos (ex. 0010): complementar Mongo se PG
+        # vazio OU se o hit PG for só ruído (icontains nome), não código PLU/GM.
         _dig_termo = re.sub(r"\D", "", str(termo or ""))
-        _plu_balanca = _dig_termo.isdigit() and 4 <= len(_dig_termo) <= 5
-        if pg_docs:
+        _plu_balanca = _dig_termo.isdigit() and len(_dig_termo) == 4
+        if _plu_balanca:
+            plu_z = _dig_termo.zfill(4)
+            exact_plu = False
+            for d in pg_docs or []:
+                cb = re.sub(
+                    r"\D",
+                    "",
+                    str(
+                        d.get("CodigoBarras")
+                        or d.get("EAN_NFe")
+                        or d.get("codigo_barras")
+                        or ""
+                    ),
+                )
+                if cb == plu_z or cb == _dig_termo:
+                    exact_plu = True
+                    break
+                for fld in ("Codigo", "CodigoNFe", "codigo", "codigo_nfe"):
+                    raw = str(d.get(fld) or "").strip()
+                    m = re.match(r"(?i)^GM0*(\d+)(?:[-_].*)?$", raw)
+                    if m and m.group(1).zfill(4) == plu_z:
+                        exact_plu = True
+                        break
+                if exact_plu:
+                    break
+            if exact_plu:
+                _pg_suficiente = True
+                mongo_docs = []
+            else:
+                # PG vazio ou só ruído (icontains nome) — força complemento Mongo
+                _pg_suficiente = False
+        elif pg_docs:
             _pg_suficiente = True
             mongo_docs = []
-        elif not parece_codigo_cadastro(termo) and not _plu_balanca:
+        elif not parece_codigo_cadastro(termo):
             _pg_suficiente = True
             mongo_docs = []
     if db is not None and client is not None and not somente_pg and not _pg_suficiente:

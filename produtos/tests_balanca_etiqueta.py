@@ -73,6 +73,10 @@ class EtiquetaBalancaEan13Tests(SimpleTestCase):
                 {"Codigo": "", "index_codigos": ["gm0010-1", "gm00101"]}, "0010"
             )
         )
+        # PLU 0010 NÃO casa barras só «10» (outro produto)
+        self.assertFalse(
+            _produto_casa_plu_balanca({"CodigoBarras": "10", "index_codigos": ["10"]}, "0010")
+        )
         self.assertFalse(
             _produto_casa_plu_balanca({"Codigo": "GM0143", "index_codigos": []}, "0010")
         )
@@ -93,12 +97,13 @@ class EtiquetaBalancaEan13Tests(SimpleTestCase):
             self.assertTrue(m_filter.called, "overlay deve consultar PLU 0010")
 
     def test_motor_plu_nao_pula_mongo_vazio(self):
-        """Sob agro_pg, PLU 0010 sem hit PG deve complementar Mongo (não zerar)."""
+        """Sob agro_pg, PLU 0010 sem hit PG / só ruído deve complementar Mongo."""
         import produtos.motor_busca_unificado_util as motor
 
         src = open(motor.__file__, encoding="utf-8").read()
         self.assertIn("_plu_balanca", src)
-        self.assertIn("4 <= len(_dig_termo) <= 5", src)
+        self.assertIn('len(_dig_termo) == 4', src)
+        self.assertIn("exact_plu", src)
 
     def test_escolhe_gm_menos_1_entre_varios(self):
         cand = [

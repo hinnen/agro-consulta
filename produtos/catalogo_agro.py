@@ -283,7 +283,8 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
             return
 
     _dig_plu = re.sub(r"\D", "", termo)
-    _plu_balanca_curto = _dig_plu.isdigit() and 4 <= len(_dig_plu) <= 5
+    # Só PLU 4 dígitos (etiqueta balança) — não reabrir path código p/ qualquer 5 dígitos.
+    _plu_balanca_curto = _dig_plu.isdigit() and len(_dig_plu) == 4
     if parece_codigo_cadastro(termo) or _plu_balanca_curto:
         pids = overlay_pids_por_codigo(termo, limit=lim)
         if pids:
