@@ -1294,27 +1294,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — PDV balança agro_pg (`PDV-BALANCA-AGRO-PG` · 09/10)
+### ✅ Deploy loja — PDV-BALANCA-AGRO-PG · **Live v26.71** · 09/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Live v26.70.1: EAN `2001000004812` (PLU `0010` · R$ 4,81) não ia ao carrinho sob `agro_pg`. Fix: overlay PLU 4d · motor complementa Mongo se PG vazio/ruído · API sem exigir `db` · sem cache BCA flag 2 · **não** casa short `10`. |
-| **Prova** | `scripts/verify_pdv_balanca_agro_pg_path.py` **49/49** · etq **39/39** · unit **9/9** · **PREP_FAILS=0** |
+| **Status** | ✅ **enviado / Live v26.71** — `producao` @ `d7e6fb5d` · **não** foi merge do `teste` |
+| **O quê** | Bip/colar EAN balança sob `agro_pg` (PLU `0010` · R$ 4,81) |
+| **Branch PREP** | `deploy/prep-pdv-balanca-agro-pg` · tip `d7e6fb5d` · base Live **v26.70** @ `f290c371` |
 | **Migrate** | **NÃO** |
-| **Mexe** | só busca (views/motor/overlay/catálogo/filtro) + provas — **sem** caixa/venda/Point |
-| **Status** | 🟢 **PREP pronto — aguarda senha** · `deploy/prep-pdv-balanca-agro-pg` · alvo **v26.71** · **não subiu** |
-| **Antes** | Live **v26.70** · `producao` @ `f290c371` |
-| **Rollback** | tag `rollback/pre-pdv-balanca-agro-pg-v26.70` · `docs/ROLLBACK-PDV-BALANCA-AGRO-PG.md` |
-| **Na senha** | `docs/DEPLOY-PREP-PDV-BALANCA-AGRO-PG.md` — `reset --hard origin/deploy/prep-pdv-balanca-agro-pg` → push `producao` (~1–2 min, sem migrate) |
-| **Você** | Ctrl+F5 · badge **v26.71** · colar `2001000004812` + Enter → **R$ 4,81** |
+| **Provas** | path **49/49** · etq **39/39** · unit **9/9** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-pdv-balanca-agro-pg-v26.70` @ `f290c371` · `docs/ROLLBACK-PDV-BALANCA-AGRO-PG.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 · badge **v26.71** · colar `2001000004812` + Enter → carrinho **R$ 4,81** |
 
-### ✅ CHECKLIST ÚNICO — 09/10 · PDV-BALANCA-AGRO-PG · 🟢 PREP aguarda senha
+### ✅ CHECKLIST ÚNICO — 09/10 · PDV-BALANCA-AGRO-PG · ✅ Live v26.71
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-BALANCA-AGRO-PG** | 🟢 **PREP pronto — aguarda senha** | **NÃO** | **49/49** |
-
-**Branch PREP:** `deploy/prep-pdv-balanca-agro-pg` · **não** merge `teste`. Doc: `docs/DEPLOY-PREP-PDV-BALANCA-AGRO-PG.md`.
+| 1 | **PDV-BALANCA-AGRO-PG** | ✅ **enviado / Live v26.71** | **NÃO** | **49/49** |
 
 ### ✅ Deploy loja — Checklist 08/10c · **Live v26.70** · 08/10
 
