@@ -1294,6 +1294,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — Valor R$ só KG (`PDV-VALOR-RS-KG` · 09/10)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Modal «Valor em R$?» **só** se UNIDADE=**KG** (wizard) · UN/PC sem pergunta |
+| **Prova** | path **46/46** · PIN **9973** · **PREP_FAILS=0** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** · tip PREP `deploy/prep-pdv-valor-rs-modal` · alvo **v26.77** |
+| **Antes** | Live **v26.76** (modal em todos) |
+| **Rollback** | tip Live v26.76 · **só** frase+senha |
+| **Na senha** | `docs/DEPLOY-PREP-PDV-VALOR-RS-MODAL.md` |
+| **Você** | Ctrl+F5 · **v26.77** · KG pergunta · UN não |
+
+### ✅ CHECKLIST ÚNICO — 09/10g · PDV-VALOR-RS-KG · 🟢 pronto para envio
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-VALOR-RS-KG** | 🟢 **pronto para envio à produção** | **NÃO** | **46/46** |
+
 ### ✅ Deploy loja — CHECKLIST 09/10f · **Live v26.76** · 09/10
 
 | Campo | Valor |
