@@ -1236,6 +1236,10 @@
         var pgLoc = loc.precos_grupos && typeof loc.precos_grupos === 'object' ? loc.precos_grupos : null;
         var ppfRem = rem.precos_por_forma && typeof rem.precos_por_forma === 'object' ? rem.precos_por_forma : null;
         var ppfLoc = loc.precos_por_forma && typeof loc.precos_por_forma === 'object' ? loc.precos_por_forma : null;
+        var valorEtq =
+            rem.valor_etiqueta_balanca != null
+                ? rem.valor_etiqueta_balanca
+                : loc.valor_etiqueta_balanca;
         return Object.assign({}, loc, rem, {
             id: id,
             nome: rem.nome || loc.nome,
@@ -1250,8 +1254,76 @@
                 : loc.index_codigos,
             precos_grupos: pgRem || pgLoc || undefined,
             precos_por_forma: ppfRem || ppfLoc || undefined,
-            precos_modo: rem.precos_modo || loc.precos_modo
+            precos_modo: rem.precos_modo || loc.precos_modo,
+            valor_etiqueta_balanca: valorEtq,
+            preco_etiqueta_balanca: !!(
+                rem.preco_etiqueta_balanca || loc.preco_etiqueta_balanca || valorEtq != null
+            ),
         });
+    }
+
+    /** qty = valor_total ÷ preço_unitário (3 casas — kg/peso). */
+    function calcularQtdPorValorTotal(precoUnit, valorTotal) {
+        var pu = Number(precoUnit);
+        var vt = Number(valorTotal);
+        if (!(pu > 0) || !(vt > 0)) return null;
+        var q = Math.round((vt / pu) * 1000) / 1000;
+        return q > 0 ? q : null;
+    }
+
+    /** Sufixo de valor total na busca: `R$10`, `$10`, `=10`, `10$`. */
+    function obterValorTotalRapido(texto) {
+        var t = String(texto || '').trim();
+        var m = t.match(/(?:[Rr]\$\s*|\$\s*|=\s*)(\d+(?:[.,]\d{1,2})?)\s*$/);
+        if (!m) m = t.match(/(?:^|\s)(\d+(?:[.,]\d{1,2})?)\$\s*$/);
+        if (!m) return null;
+        var n = parseFloat(String(m[1]).replace(',', '.'));
+        if (!isFinite(n) || n <= 0) return null;
+        return Math.round(n * 100) / 100;
+    }
+
+    function removerSufixoValorTotal(texto) {
+        return String(texto || '')
+            .trim()
+            .replace(/(?:\s*[Rr]\$\s*|\s*\$\s*|\s*=\s*)\d+(?:[.,]\d{1,2})?\s*$/i, '')
+            .replace(/\s+\d+(?:[.,]\d{1,2})?\$\s*$/, '')
+            .replace(/^\d+(?:[.,]\d{1,2})?\$\s*$/, '')
+            .trim();
+    }
+
+    function limparAtalhosBuscaProduto(texto) {
+        return removerSufixoValorTotal(texto);
+    }
+
+    /**
+     * Etiqueta balança (valor_etiqueta_balanca) ou digitar R$ na busca → qty.
+     * Preço unitário permanece; estoque baixa a quantidade correta.
+     */
+    function qtyParaAdicionarProduto(produto, opts) {
+        opts = opts || {};
+        var qtyBase = opts.qty != null ? Number(opts.qty) : 1;
+        if (!(qtyBase > 0)) qtyBase = 1;
+        var valorEtq =
+            produto && produto.valor_etiqueta_balanca != null
+                ? Number(produto.valor_etiqueta_balanca)
+                : null;
+        var valorDig = opts.valorTotal != null ? Number(opts.valorTotal) : null;
+        if (!(valorDig > 0) && dom.productSearch) {
+            valorDig = obterValorTotalRapido(dom.productSearch.value);
+        }
+        var valorAlvo =
+            valorEtq != null && valorEtq > 0
+                ? valorEtq
+                : valorDig != null && valorDig > 0
+                  ? valorDig
+                  : null;
+        if (valorAlvo == null) return qtyBase;
+        var preco = Number(
+            produto && (produto.preco_venda != null ? produto.preco_venda : produto.preco)
+        );
+        var qCalc = calcularQtdPorValorTotal(preco, valorAlvo);
+        if (qCalc) return qCalc;
+        return qtyBase;
     }
 
     function tryAddProductFromSearch(produto, opts) {
@@ -1262,13 +1334,18 @@
             return false;
         }
         invalidatePendingProductSearch();
-        var qty = opts.qty != null ? opts.qty : 1;
         var explicitPick = !!opts.explicitPick;
         var rowCode = productRowLookupCode(produto);
-        var queryHint = String(
-            opts.query != null ? opts.query : (dom.productSearch && dom.productSearch.value) || ''
-        ).trim();
+        var queryHint = limparAtalhosBuscaProduto(
+            String(
+                opts.query != null ? opts.query : (dom.productSearch && dom.productSearch.value) || ''
+            )
+        );
         var forceServer = !!opts.forceServer || (!explicitPick && looksLikeSkuCode(queryHint));
+        var valorTotalOpt =
+            opts.valorTotal != null ? Number(opts.valorTotal) : obterValorTotalRapido(
+                (dom.productSearch && dom.productSearch.value) || ''
+            );
 
         function finishOk(msg) {
             if (!opts.skipSearchUiReset) {
@@ -1281,6 +1358,10 @@
             var row = normalizeWizardCatalogProduct(p);
             if (!row) return false;
             if (!String(row.nome || '').trim()) return false;
+            var qty = qtyParaAdicionarProduto(row, {
+                qty: opts.qty,
+                valorTotal: valorTotalOpt,
+            });
             return !!State.addItem(row, qty);
         }
 
@@ -1926,8 +2007,23 @@
         invalidatePendingProductSearch();
         marcarWizardScannerAtivo(1500);
         var q = dom.productSearch ? String(dom.productSearch.value || '').trim() : '';
-        if (State.addItem(product, 1)) {
-            resetProductSearchUi(message || 'Item adicionado pela leitura do código.');
+        var qty = qtyParaAdicionarProduto(product, { qty: 1 });
+        if (State.addItem(product, qty)) {
+            var msgOk = message || 'Item adicionado pela leitura do código.';
+            if (
+                product.valor_etiqueta_balanca != null &&
+                Number(product.valor_etiqueta_balanca) > 0 &&
+                qty !== 1
+            ) {
+                msgOk =
+                    'Etiqueta · ' +
+                    (State.formatQtyDisplay ? State.formatQtyDisplay(qty) : String(qty)) +
+                    ' × ' +
+                    formatMoney(product.preco_venda) +
+                    ' ≈ ' +
+                    formatMoney(product.valor_etiqueta_balanca);
+            }
+            resetProductSearchUi(msgOk);
             return true;
         }
         tryAddProductFromSearch(product, {
@@ -12008,9 +12104,16 @@
     }
 
     function runProductSearch(term, mode) {
-        var query = String(term || '').trim();
+        var queryRaw = String(term || '').trim();
+        var valorTotalBusca = obterValorTotalRapido(queryRaw);
+        var query = limparAtalhosBuscaProduto(queryRaw);
         if (reopenBudgetFromBarcode(query)) return;
         if (!query) {
+            /* Só `R$10` com lista já aberta — não limpa resultados. */
+            if (valorTotalBusca != null && lastProducts && lastProducts.length) {
+                updateSearchAwaitingPulse();
+                return;
+            }
             renderProductResults([]);
             dom.productSearchMeta.textContent = 'Aguardando busca';
             dom.productSearchFeedback.textContent = 'Digite para filtrar o catálogo local.';
@@ -17509,25 +17612,42 @@
                 event.preventDefault();
                 clearTimeout(barcodeTimer);
                 clearTimeout(searchTimer);
-                var qEnter = String(dom.productSearch.value || '').trim();
-                if (qEnter) marcarWizardScannerAtivo(1500);
+                var qRawEnter = String(dom.productSearch.value || '').trim();
+                var valorTotalEnter = obterValorTotalRapido(qRawEnter);
+                var qEnter = limparAtalhosBuscaProduto(qRawEnter);
+                if (qEnter || valorTotalEnter != null) marcarWizardScannerAtivo(1500);
                 var pick = resolveEnterProductPick(qEnter);
+                if (
+                    !pick &&
+                    valorTotalEnter != null &&
+                    isProductAutocompleteOpen() &&
+                    lastProducts.length
+                ) {
+                    var idxVt = Math.max(productSelectionIndex, 0);
+                    if (idxVt >= lastProducts.length) idxVt = 0;
+                    pick = lastProducts[idxVt];
+                }
                 if (pick) {
                     tryAddProductFromSearch(pick, {
                         query: productRowLookupCode(pick) || qEnter,
                         explicitPick: true,
+                        valorTotal: valorTotalEnter,
                     });
                     return;
                 }
                 if (/^\d{8,}$/.test(qEnter) || pareceCodigoGmWizard(qEnter)) {
-                    runProductSearch(qEnter, 'barcode');
+                    runProductSearch(qRawEnter, 'barcode');
                     return;
                 }
                 if (reopenBudgetFromBarcode(qEnter)) return;
                 if (qEnter) {
-                    runProductSearch(qEnter, 'manual');
+                    runProductSearch(qRawEnter, 'manual');
                 }
             } else if (event.key === '+' || event.key === '=' || event.code === 'NumpadAdd') {
+                var buscaQty = String(dom.productSearch.value || '').trim();
+                /* Com texto na busca, `=` entra no campo (atalho =10 de valor total). */
+                if (buscaQty && event.key === '=') return;
+                if (obterValorTotalRapido(buscaQty) != null) return;
                 if (deveIgnorarAtalhoQtyBusca(dom.productSearch.value)) return;
                 event.preventDefault();
                 bumpLastCartItem(1);
@@ -17540,7 +17660,8 @@
 
         dom.productSearch.addEventListener('input', function () {
             var value = String(dom.productSearch.value || '');
-            var trimmed = value.trim();
+            var trimmedRaw = value.trim();
+            var trimmed = limparAtalhosBuscaProduto(trimmedRaw);
             var now = Date.now();
             var delta = now - lastInputAt;
             lastInputAt = now;
@@ -17553,19 +17674,19 @@
             if (/^\d{8,}$/.test(trimmed)) {
                 var waitMs = trimmed.length >= 13 ? 12 : 40;
                 barcodeTimer = setTimeout(function () {
-                    runProductSearch(trimmed, 'barcode');
+                    runProductSearch(trimmedRaw, 'barcode');
                 }, waitMs);
                 return;
             }
             if (/^\d{6,7}$/.test(trimmed) && delta < 40) {
                 barcodeTimer = setTimeout(function () {
-                    runProductSearch(trimmed, 'barcode');
+                    runProductSearch(trimmedRaw, 'barcode');
                 }, 35);
                 return;
             }
             if (pareceCodigoGmWizard(trimmed)) {
                 barcodeTimer = setTimeout(function () {
-                    runProductSearch(trimmed, 'barcode');
+                    runProductSearch(trimmedRaw, 'barcode');
                 }, 200);
                 return;
             }

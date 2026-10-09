@@ -1298,20 +1298,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | (1) Etiqueta mantém preço no EAN; PDV usa **preço unitário** + **qty = total÷unitário** (estoque certo; total ≈ etiqueta). (2) Sem balança: na busca `produto R$10` / `$10` / `=10` / `10$` → calcula qty sozinho. |
-| **Prova** | qty-valor **51/51** · agro_pg **56/56** · etq_plu **41/41** · unit **11/11** · PIN **9973** OK · Client HTTP login+API OK · JS smoke OK · UI `/consulta/` v26.73 · **PREP_FAILS=0** |
+| **O quê** | No **wizard** `/pdv/checkout/`: (1) etiqueta EAN → preço unitário + **qty = total÷unitário**; (2) sem balança: `produto R$10` / `$10` / `=10` / `10$` → qty sozinha. |
+| **Prova** | qty-valor **63/63** · agro_pg **56/56** · etq **41/41** · unit **11/11** · PIN **9973** · wizard JS OK · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** · branch `cursor/balanca-qty-por-valor-ca8a` · tip PREP `deploy/prep-pdv-balanca-agro-pg` · alvo **v26.73** |
-| **Antes** | Live **v26.71** · PREP preço-etq v26.72 (total virava unitário — errado p/ estoque) |
+| **Status** | 🟢 **pronto para envio à produção** · branch `cursor/balanca-qty-por-valor-ca8a` · tip PREP `deploy/prep-pdv-balanca-agro-pg` · alvo **v26.74** |
+| **Antes** | Live **v26.71** · v26.73 só legado `/consulta/` (loja não usa) |
 | **Rollback** | tip Live anterior · **só** frase+senha |
 | **Na senha** | `docs/DEPLOY-PREP-PDV-BALANCA-AGRO-PG.md` |
-| **Você** | Ctrl+F5 · **v26.73** · `2001000004812` → qty≈0,512 × unitário ≈ **R$ 4,81** · sem balança: `nome R$10` Enter |
+| **Você** | Ctrl+F5 no **PDV** · **v26.74** · bip `2001000004812` → qty≈0,512 · `nome R$10` Enter |
 
 ### ✅ CHECKLIST ÚNICO — 09/10c · PDV-BALANCA-QTY-VALOR · 🟢 pronto para envio
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-BALANCA-QTY-VALOR** | 🟢 **pronto para envio à produção** | **NÃO** | **51/51** · agro **56/56** |
+| 1 | **PDV-BALANCA-QTY-VALOR** | 🟢 **pronto para envio à produção** | **NÃO** | **63/63** · wizard |
 
 ### ~~PACOTE PRONTO — preço etiqueta balança (`PDV-BALANCA-PRECO-ETQ`)~~ · **superado por QTY-VALOR v26.73**
 
