@@ -293,9 +293,13 @@ def overlay_pids_por_codigo(termo: str, *, limit: int = 80) -> list[str]:
             esc_b = re.escape(base)
             _or(Q(codigo_nfe__iregex=rf"^{esc_b}(-|$)") | Q(codigo_barras__iregex=rf"^{esc_b}(-|$)"))
     elif digits.isdigit() and 4 <= len(digits) <= 7:
+        # PLU zero-padded (0010): NÃO incluir short «10» — evita produto errado.
         plu = digits.zfill(4) if len(digits) <= 4 else digits
+        cands = {digits, plu}
         short = digits.lstrip("0") or "0"
-        for cand in {digits, plu, short}:
+        if short == digits:
+            cands.add(short)
+        for cand in cands:
             _or(
                 Q(codigo_barras=cand)
                 | Q(codigo_barras__iexact=cand)

@@ -1298,23 +1298,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Live v26.70.1: EAN `2001000004812` (PLU `0010` · R$ 4,81) não ia ao carrinho. Overlay ignora PLU &lt;8 · motor agro_pg pulava Mongo no `0010` · API exigia Mongo · cache BCA podia congelar vazio. Fix: overlay PLU 4–7 · motor complementa Mongo · API sem exigir `db` · sem cache BCA em EAN flag 2 · casa `gm0010-*` no index. |
-| **Prova** | `scripts/verify_pdv_balanca_agro_pg_path.py` **45/45** · etq-plu **39/39** · unit **9/9** · **PREP_FAILS=0** · PIN **9973** (doc; SQLite cloud sem perfil) |
+| **O quê** | Live v26.70.1: EAN `2001000004812` (PLU `0010` · R$ 4,81) não ia ao carrinho sob `agro_pg`. Fix: overlay PLU 4d · motor complementa Mongo se PG vazio/ruído · API sem exigir `db` · sem cache BCA flag 2 · **não** casa short `10`. |
+| **Prova** | `scripts/verify_pdv_balanca_agro_pg_path.py` **49/49** · etq **39/39** · unit **9/9** · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
-| **Mexe** | `views.py` · `motor_busca_unificado_util.py` · `cadastro_busca_codigo_util.py` · `catalogo_agro.py` · `busca_filtro_pdv_util.py` · provas |
-| **Status** | 🟢 **pronto para envio à produção** · no `teste` · alvo **v26.71** · **não subiu** |
-| **Antes** | Live **v26.70** / **v26.70.1** · `producao` @ tip checklist 08/10c |
-| **Rollback** | `docs/ROLLBACK-PDV-BALANCA-AGRO-PG.md` · **só** frase+senha |
-| **Você** | Após deploy: Ctrl+F5 · colar `2001000004812` + Enter → carrinho **R$ 4,81** (CAIXA FECHADO não bloqueia bip na consulta) |
+| **Mexe** | só busca (views/motor/overlay/catálogo/filtro) + provas — **sem** caixa/venda/Point |
+| **Status** | 🟢 **PREP pronto — aguarda senha** · `deploy/prep-pdv-balanca-agro-pg` · alvo **v26.71** · **não subiu** |
+| **Antes** | Live **v26.70** · `producao` @ `f290c371` |
+| **Rollback** | tag `rollback/pre-pdv-balanca-agro-pg-v26.70` · `docs/ROLLBACK-PDV-BALANCA-AGRO-PG.md` |
+| **Na senha** | `docs/DEPLOY-PREP-PDV-BALANCA-AGRO-PG.md` — `reset --hard origin/deploy/prep-pdv-balanca-agro-pg` → push `producao` (~1–2 min, sem migrate) |
+| **Você** | Ctrl+F5 · badge **v26.71** · colar `2001000004812` + Enter → **R$ 4,81** |
 
-### ✅ CHECKLIST ÚNICO — 09/10 · PDV-BALANCA-AGRO-PG · 🟢 pronto para envio
+### ✅ CHECKLIST ÚNICO — 09/10 · PDV-BALANCA-AGRO-PG · 🟢 PREP aguarda senha
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-BALANCA-AGRO-PG** | 🟢 **pronto para envio à produção** | **NÃO** | **45/45** · etq **39/39** · unit **9/9** |
+| 1 | **PDV-BALANCA-AGRO-PG** | 🟢 **PREP pronto — aguarda senha** | **NÃO** | **49/49** |
 
-**Branch:** `teste` (via `cursor/balanca-plu-agro-pg-ca8a`) · **não** merge `teste`→`producao` sem frase+senha.  
-**Smoke na senha:** healthz · Ctrl+F5 · badge **v26.71** · bip/colar `2001000004812`.
+**Branch PREP:** `deploy/prep-pdv-balanca-agro-pg` · **não** merge `teste`. Doc: `docs/DEPLOY-PREP-PDV-BALANCA-AGRO-PG.md`.
 
 ### ✅ Deploy loja — Checklist 08/10c · **Live v26.70** · 08/10
 

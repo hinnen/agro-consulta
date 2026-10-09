@@ -23065,18 +23065,26 @@ def _buscar_produto_por_codigo_interno_balanca(db, client, cod4: str):
 
 
 def _produto_casa_plu_balanca(doc: dict, plu4: str) -> bool:
-    """True se barras/index/código GM embutem o PLU de 4 dígitos da etiqueta."""
+    """True se barras/index/código GM embutem o PLU de 4 dígitos da etiqueta.
+
+    PLU com zero à esquerda (ex. ``0010``): **não** casa barras/index só ``10`` —
+    evita pegar outro produto no bip da etiqueta.
+    """
     plu4 = str(plu4 or "").strip()
     if not plu4:
         return False
     plu = plu4.zfill(4) if plu4.isdigit() else plu4
     plu_l = plu.lower()
     short = (plu.lstrip("0") or "0").lower()
+    # Aceita short só se o PLU não era zero-padded (ex. 1234 → short 1234).
+    aceita_short = plu.isdigit() and short == plu_l
     idx = doc.get(INDEX_CODIGOS_CAMPO)
     if isinstance(idx, list):
         for x in idx:
             xl = str(x or "").strip().lower()
-            if xl in (plu_l, short) or xl == plu4.lower():
+            if xl == plu_l or xl == plu4.lower():
+                return True
+            if aceita_short and xl == short:
                 return True
             # index costuma ter gm0010-1 sem o PLU nu «0010»
             m_ix = re.match(r"^gm0*(\d+)(?:[-_].*)?$", xl)
@@ -23085,7 +23093,9 @@ def _produto_casa_plu_balanca(doc: dict, plu4: str) -> bool:
     cb = str(_extrair_codigo_barras(doc) or "").strip()
     if cb:
         cbd = re.sub(r"\D", "", cb)
-        if cbd == plu or cbd == short or cbd == plu4:
+        if cbd == plu or cbd == plu4:
+            return True
+        if aceita_short and cbd == short:
             return True
     for fld in ("Codigo", "CodigoNFe", "CodigoInterno", "Sku", "SKU"):
         raw = str(doc.get(fld) or "").strip()

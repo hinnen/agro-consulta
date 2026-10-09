@@ -50,10 +50,15 @@ def test_contratos() -> None:
     check("parse_fn", "def _parse_etiqueta_balanca_ean13_br" in views)
     check("api_balanca_sem_mongo", "Balança mesmo sem Mongo" in views)
     check("bca_skip_ean2", "_ean_balanca_bca" in views and "not _ean_balanca_bca" in views)
-    check("motor_plu", "_plu_balanca" in motor and "4 <= len(_dig_termo) <= 5" in motor)
+    check(
+        "motor_plu",
+        "_plu_balanca" in motor
+        and "len(_dig_termo) == 4" in motor
+        and "exact_plu" in motor,
+    )
     check("overlay_plu_4d", "4 <= len(digits) <= 7" in cad)
     check("catalogo_plu_curto", "_plu_balanca_curto" in cat)
-    check("filtro_plu_curto", "_plu_curto" in filt and "4 <= len(_dig_f) <= 5" in filt)
+    check("filtro_plu_curto", "_plu_curto" in filt and "len(_dig_f) == 4" in filt)
     check("casa_index_gm", "gm0*" in views and "index_codigos" in views)
     check("js_enter", "digitsEnter.length === 13 && digitsEnter[0] === '2'" in js)
     check("js_api_etiqueta", "function executarBuscaAPIEtiquetaBalanca" in js)
@@ -97,6 +102,12 @@ def test_parse_escolher_casa() -> None:
     check(
         "casa_barras",
         _produto_casa_plu_balanca({"CodigoBarras": "0010", "index_codigos": []}, "0010"),
+    )
+    check(
+        "casa_nao_short_10",
+        not _produto_casa_plu_balanca(
+            {"CodigoBarras": "10", "index_codigos": ["10"]}, "0010"
+        ),
     )
     check(
         "casa_nao_outro",
@@ -156,6 +167,12 @@ def test_overlay_plu_query() -> None:
                 "0010" in q_s,
                 q_s[:200],
             )
+            # short «10» não deve entrar na query do PLU 0010
+            check(
+                "overlay_q_sem_short_10",
+                "'10'" not in q_s and '"10"' not in q_s,
+                q_s[:200],
+            )
 
     # <4 dígitos continua vazio (sem varredura)
     with patch("produtos.models.ProdutoGestaoOverlayAgro.objects.filter") as m2:
@@ -209,6 +226,48 @@ def test_motor_plu_complementa() -> None:
             "motor_achou_plu",
             any(str(p.get("Id")) == "pid-gm" for p in (prods or [])),
             str([(p.get("Id"), p.get("Codigo")) for p in (prods or [])][:5]),
+        )
+
+    # Ruído PG (nome com 0010) NÃO deve bloquear Mongo
+    ruido = {
+        "Id": "pid-ruido",
+        "Nome": "Kit promocional 0010 unidades",
+        "Codigo": "GM9999-1",
+        "CodigoBarras": "",
+    }
+    with (
+        patch("produtos.agro_fonte_config.agro_catalogo_usa_postgres", return_value=True),
+        patch("produtos.agro_fonte_config.agro_pdv_catalogo_somente_postgres", return_value=False),
+        patch("produtos.agro_fonte_config.agro_pdv_merge_catalogo_postgres", return_value=False),
+        patch(
+            "produtos.catalogo_agro.buscar",
+            return_value=[{"id": "pid-ruido", "nome": ruido["Nome"]}],
+        ),
+        patch(
+            "produtos.catalogo_agro.row_para_doc_busca_pdv",
+            return_value=ruido,
+        ),
+        patch(
+            "produtos.views.motor_busca_consulta_documentos",
+            return_value=[mongo_doc],
+        ) as m_ruido,
+        patch(
+            "produtos.motor_busca_unificado_util._enriquecer_e_injetar_overlay_codigo",
+            side_effect=lambda termo, prods, *a, **k: prods,
+        ),
+    ):
+        prods_r = buscar_documentos_unificado(
+            "0010",
+            MagicMock(),
+            MagicMock(),
+            limit=20,
+            skip_mongo_complemento=True,
+        )
+        check("motor_ruido_pg_chama_mongo", m_ruido.called)
+        check(
+            "motor_ruido_ainda_plu",
+            any(str(p.get("Id")) == "pid-gm" for p in (prods_r or [])),
+            str([p.get("Id") for p in (prods_r or [])][:5]),
         )
 
     # Texto comum sem PG continua pulando Mongo (não regredir emergência)
