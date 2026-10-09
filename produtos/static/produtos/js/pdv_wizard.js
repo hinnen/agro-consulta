@@ -466,6 +466,122 @@
         });
     }
 
+    /**
+     * Pergunta grande «Valor em R$?» após escolher produto (Enter/clique).
+     * Enter vazio / Esc / × / «Pular» → null (lança qty normal).
+     * Digita valor + Enter / OK → número (qty = valor÷preço).
+     */
+    function parseValorReaisDigitado(raw) {
+        var t = String(raw || '')
+            .trim()
+            .replace(/[Rr]\$\s*/g, '')
+            .replace(/\s+/g, '');
+        if (!t) return null;
+        if (t.indexOf(',') >= 0) t = t.replace(/\./g, '').replace(',', '.');
+        var n = parseFloat(t);
+        if (!isFinite(n) || n <= 0) return null;
+        return Math.round(n * 100) / 100;
+    }
+
+    function askValorReaisParaProduto(produto) {
+        var nome = String((produto && produto.nome) || 'produto').trim() || 'produto';
+        var preco = Number(
+            produto && (produto.preco_venda != null ? produto.preco_venda : produto.preco)
+        );
+        var precoTxt =
+            preco > 0 && typeof formatMoney === 'function'
+                ? formatMoney(preco)
+                : preco > 0
+                  ? 'R$ ' + preco.toFixed(2).replace('.', ',')
+                  : '';
+        return new Promise(function (resolve) {
+            var host = document.getElementById('pdv-sale-toast');
+            if (!host) {
+                host = document.createElement('div');
+                host.id = 'pdv-sale-toast';
+                host.setAttribute('role', 'dialog');
+                host.setAttribute('aria-modal', 'true');
+                document.body.appendChild(host);
+            }
+            host.removeAttribute('aria-hidden');
+            host.className = 'pointer-events-auto fixed z-[9999] pdv-sale-toast--prominent';
+            host.innerHTML =
+                '<div class="pdv-sale-toast-panel rounded-3xl border-[3px] border-emerald-600 bg-emerald-50 text-emerald-950 shadow-2xl shadow-emerald-400/50" style="max-width:min(36rem,96vw)">' +
+                '<div class="pdv-sale-toast-prominent-inner" style="padding:1.25rem 1.35rem">' +
+                '<button type="button" data-pdv-valor-rs-close class="absolute right-3 top-3 inline-flex h-12 w-12 items-center justify-center rounded-2xl border-[3px] border-slate-300 bg-white text-3xl font-black leading-none text-slate-800 hover:border-red-400 hover:bg-red-50 hover:text-red-700" title="Fechar · Esc" aria-label="Fechar">×</button>' +
+                '<p class="pdv-sale-toast-title text-[clamp(1.35rem,2.5vw+0.8rem,1.85rem)] font-black leading-tight pr-14">Valor em R$?</p>' +
+                '<p class="pdv-sale-toast-body mt-2 text-[clamp(1rem,1.2vw+0.75rem,1.2rem)] font-bold leading-snug text-emerald-950">' +
+                escapeHtml(nome) +
+                (precoTxt
+                    ? ' <span class="font-black text-slate-700">· ' + escapeHtml(precoTxt) + '/un</span>'
+                    : '') +
+                '</p>' +
+                '<p class="mt-1 text-sm font-semibold text-emerald-900/80">Digite quanto o cliente pediu em reais. A quantidade é calculada sozinha.</p>' +
+                '<label class="mt-4 block text-left text-xs font-black uppercase tracking-wide text-emerald-900">Valor (R$)' +
+                '<input type="text" inputmode="decimal" autocomplete="off" data-pdv-valor-rs-input ' +
+                'class="mt-2 w-full rounded-2xl border-[3px] border-emerald-600 bg-white px-4 py-4 text-center text-[clamp(1.75rem,3vw+1rem,2.5rem)] font-black tabular-nums text-slate-900" ' +
+                'placeholder="ex.: 10 ou 10,50" /></label>' +
+                '<p class="mt-2 text-center text-sm font-bold text-slate-600">Enter vazio = lançar sem valor · Esc fecha</p>' +
+                '<div class="mt-4 flex flex-wrap justify-center gap-3">' +
+                '<button type="button" data-pdv-valor-rs-skip class="min-h-[3.25rem] rounded-2xl border-[3px] border-slate-300 bg-white px-5 py-3 text-sm font-black uppercase tracking-wide text-slate-800 hover:bg-slate-50">Pular <kbd class="ml-1 rounded border border-slate-300 bg-slate-50 px-1.5 font-mono normal-case">Enter</kbd></button>' +
+                '<button type="button" data-pdv-valor-rs-ok class="min-h-[3.25rem] rounded-2xl border-[3px] border-emerald-800 bg-emerald-600 px-6 py-3 text-sm font-black uppercase tracking-wide text-white hover:bg-emerald-700">Usar valor</button>' +
+                '</div></div></div>';
+            if (showSaleDoneFeedback._timer) clearTimeout(showSaleDoneFeedback._timer);
+            showSaleDoneFeedback._timer = null;
+            showSaleDoneFeedback._onDismiss = null;
+            var panel = host.querySelector('.pdv-sale-toast-panel');
+            if (panel) panel.style.position = 'relative';
+            var inp = host.querySelector('[data-pdv-valor-rs-input]');
+            var done = false;
+            var onKey = null;
+            var fechar = function (valor) {
+                if (done) return;
+                done = true;
+                if (onKey) document.removeEventListener('keydown', onKey, true);
+                hideSaleDoneToast();
+                resolve(valor);
+                try {
+                    if (dom.productSearch) dom.productSearch.focus();
+                } catch (eF) {}
+            };
+            var confirmar = function () {
+                var v = parseValorReaisDigitado(inp ? inp.value : '');
+                fechar(v);
+            };
+            var btnSkip = host.querySelector('[data-pdv-valor-rs-skip]');
+            var btnOk = host.querySelector('[data-pdv-valor-rs-ok]');
+            var btnClose = host.querySelector('[data-pdv-valor-rs-close]');
+            if (btnSkip) btnSkip.addEventListener('click', function () { fechar(null); });
+            if (btnClose) btnClose.addEventListener('click', function () { fechar(null); });
+            if (btnOk) btnOk.addEventListener('click', confirmar);
+            host.addEventListener('click', function (ev) {
+                if (ev.target === host) fechar(null);
+            });
+            onKey = function (ev) {
+                if (ev.key === 'Escape') {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    fechar(null);
+                    return;
+                }
+                if (ev.key === 'Enter') {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    confirmar();
+                }
+            };
+            document.addEventListener('keydown', onKey, true);
+            if (inp) {
+                setTimeout(function () {
+                    try {
+                        inp.focus();
+                        inp.select();
+                    } catch (eFocus) {}
+                }, 40);
+            }
+        });
+    }
+
     function forcarLiberarMpPointComPin(pin) {
         var url = String(urls.apiPdvMpPointForcarLiberar || '').trim();
         if (!url) {
@@ -1346,10 +1462,47 @@
             opts.valorTotal != null ? Number(opts.valorTotal) : obterValorTotalRapido(
                 (dom.productSearch && dom.productSearch.value) || ''
             );
+        if (!(valorTotalOpt > 0)) valorTotalOpt = null;
+        var valorEtiqueta =
+            produto && produto.valor_etiqueta_balanca != null
+                ? Number(produto.valor_etiqueta_balanca)
+                : null;
+        /* Escolha manual (Enter/clique): pergunta «Valor em R$?» — Enter vazio pula. */
+        var precisaPerguntarValor =
+            explicitPick &&
+            !opts.skipValorPrompt &&
+            !opts.valorTotalAsked &&
+            valorTotalOpt == null &&
+            !(valorEtiqueta > 0);
+        if (precisaPerguntarValor) {
+            return askValorReaisParaProduto(produto).then(function (valorEscolhido) {
+                var next = Object.assign({}, opts, {
+                    skipValorPrompt: true,
+                    valorTotalAsked: true,
+                    valorTotal: valorEscolhido != null ? valorEscolhido : null,
+                });
+                return tryAddProductFromSearch(produto, next);
+            });
+        }
 
         function finishOk(msg) {
             if (!opts.skipSearchUiReset) {
-                resetProductSearchUi(msg || opts.okMsg || 'Item adicionado à venda.');
+                var okMsg = msg || opts.okMsg || 'Item adicionado à venda.';
+                if (valorTotalOpt > 0) {
+                    var rowFin = normalizeWizardCatalogProduct(produto);
+                    var qFin = qtyParaAdicionarProduto(rowFin || produto, {
+                        qty: opts.qty,
+                        valorTotal: valorTotalOpt,
+                    });
+                    if (qFin && qFin !== 1) {
+                        okMsg =
+                            'Valor R$ · ' +
+                            (State.formatQtyDisplay ? State.formatQtyDisplay(qFin) : String(qFin)) +
+                            ' ≈ ' +
+                            formatMoney(valorTotalOpt);
+                    }
+                }
+                resetProductSearchUi(okMsg);
             }
             return true;
         }
