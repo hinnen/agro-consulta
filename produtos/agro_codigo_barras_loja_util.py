@@ -121,12 +121,12 @@ def variantes_busca_codigo_barras_loja(cb: str) -> list[str]:
     bip = ean13_para_bip_codigo_barras_loja(d)
     if bip:
         out.add(bip)
-    # Bip leu EAN válido → cadastro legado costuma ser body12 + último dígito “errado”.
+    # Bip leu EAN válido → cadastro legado (sem DV) que gera o mesmo EAN na etiqueta.
     if ean13_checksum_ok(d):
         body = d[:12]
         for tail in "0123456789":
             leg = f"{body}{tail}"
-            if leg != d and not ean13_checksum_ok(leg):
+            if leg != d and ean13_para_bip_codigo_barras_loja(leg) == d:
                 out.add(leg)
     return sorted(out)
 

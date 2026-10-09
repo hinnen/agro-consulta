@@ -32,4 +32,4 @@ class CodigoBarrasLojaEanTests(SimpleTestCase):
         cb = formatar_codigo_barras_loja(1572)
         self.assertTrue(ean13_checksum_ok(cb))
         self.assertEqual(ean13_para_bip_codigo_barras_loja(cb), cb)
-        self.assertEqual(variantes_busca_codigo_barras_loja(cb), [cb])
+        self.assertIn(cb, variantes_busca_codigo_barras_loja(cb))
