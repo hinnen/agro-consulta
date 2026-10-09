@@ -1301,9 +1301,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Wizard `/pdv/checkout/`: após Enter/clique no produto → pergunta grande **«Valor em R$?»** · qty = valor÷preço · **Enter vazio / Esc / Pular** = lança sem valor |
 | **Prova** | path **13/13** · PIN n/a · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** · branch `cursor/pdv-valor-rs-modal-ca8a` · alvo **v26.76** |
+| **Status** | 🟢 **pronto para envio à produção** · branch `cursor/pdv-valor-rs-modal-ca8a` · tip PREP `deploy/prep-pdv-valor-rs-modal` · alvo **v26.76** |
 | **Antes** | Live **v26.74** (QTY-VALOR) · teste também tem ETQ v26.75 |
 | **Rollback** | tip Live anterior · **só** frase+senha |
+| **Na senha** | `docs/DEPLOY-PREP-PDV-VALOR-RS-MODAL.md` |
 | **Você** | Ctrl+F5 · **v26.76** · busca produto Enter → digita `10` ou Enter vazio |
 
 ### ✅ CHECKLIST ÚNICO — 09/10e · PDV-VALOR-RS-MODAL · 🟢 pronto para envio
