@@ -69,13 +69,23 @@ def test_contratos() -> None:
         "montarProdutoPrecoEtiquetaBalanca(prods[0], bal, digits)" in js,
     )
     check(
-        "overlay_respeita_etiqueta",
-        "not row.get(\"preco_etiqueta_balanca\")" in views
-        or "not row.get('preco_etiqueta_balanca')" in views,
+        "js_valor_etiqueta_nao_vira_preco",
+        "valor_etiqueta_balanca: bal.valorReais" in js
+        and "preco_venda: bal.valorReais" not in js,
     )
     check(
-        "api_reaplica_preco_por_id",
-        'if pid in preco_por_id:' in views and 'preco_etiqueta_balanca' in views,
+        "js_qtd_por_valor",
+        "function calcularQtdPorValorTotal" in js
+        and "function obterValorTotalRapido" in js,
+    )
+    check(
+        "api_valor_etiqueta_por_id",
+        "valor_etiqueta_por_id" in views
+        and 'row["valor_etiqueta_balanca"]' in views,
+    )
+    check(
+        "api_nao_sobrescreve_preco_unitario",
+        'row["preco_venda"] = round(_float_api_json(preco_por_id' not in views,
     )
 
 
@@ -390,15 +400,22 @@ def test_api_buscar_mock() -> None:
         if prods:
             p0 = prods[0]
             check(
-                "http_preco_etiqueta",
-                abs(float(p0.get("preco_venda") or 0) - 4.81) < 0.001,
+                "http_preco_unitario",
+                abs(float(p0.get("preco_venda") or 0) - 10.0) < 0.001,
                 str(p0.get("preco_venda")),
+            )
+            check(
+                "http_valor_etiqueta",
+                abs(float(p0.get("valor_etiqueta_balanca") or 0) - 4.81) < 0.001,
+                str(p0.get("valor_etiqueta_balanca")),
             )
             check(
                 "http_flag_etiqueta",
                 bool(p0.get("preco_etiqueta_balanca")),
                 str(p0.get("preco_etiqueta_balanca")),
             )
+            q_esp = round(4.81 / 10.0, 3)
+            check("http_qty_calc", q_esp == 0.481, str(q_esp))
         if m_uni.called:
             args = m_uni.call_args[0]
             check("http_uni_plu", str(args[0]) in ("0010", "10"), str(args[0]))
@@ -452,10 +469,23 @@ def test_js_node() -> None:
         r"function encontrarProdutoPorCodigoInternoBalanca\(cod4, lista\) \{[\s\S]*?\n\}",
         src,
     )
-    check("js_extract_all", all(bool(x) for x in (m_dv, m_parse, m_comb, m_find)))
-    if not all((m_dv, m_parse, m_comb, m_find)):
+    m_qtd = re.search(
+        r"function calcularQtdPorValorTotal\(precoUnit, valorTotal\) \{[\s\S]*?\n\}",
+        src,
+    )
+    m_val = re.search(
+        r"function obterValorTotalRapido\(texto\) \{[\s\S]*?\n\}",
+        src,
+    )
+    check(
+        "js_extract_all",
+        all(bool(x) for x in (m_dv, m_parse, m_comb, m_find, m_qtd, m_val)),
+    )
+    if not all((m_dv, m_parse, m_comb, m_find, m_qtd, m_val)):
         return
-    snippet = "\n".join(m.group(0) for m in (m_dv, m_parse, m_comb, m_find))
+    snippet = "\n".join(
+        m.group(0) for m in (m_dv, m_parse, m_comb, m_find, m_qtd, m_val)
+    )
     snippet += """
 const bal = parseEtiquetaBalancaEan13('2001000004812');
 if (!bal || bal.codigo4 !== '0010' || Math.abs(bal.valorReais - 4.81) > 0.001 || !bal.checkOk) {
@@ -473,6 +503,12 @@ const hitGm = encontrarProdutoPorCodigoInternoBalanca('0010', [
   { id: 'x', codigo: 'GM0010-1', codigo_barras: '' },
 ]);
 if (!hitGm || hitGm.id !== 'x') { console.error('FAIL gm', hitGm); process.exit(1); }
+const q = calcularQtdPorValorTotal(9.40, 4.81);
+if (Math.abs(q - 0.512) > 0.0001) { console.error('FAIL qtd', q); process.exit(1); }
+const vt = obterValorTotalRapido('racao R$10');
+if (Math.abs(vt - 10) > 0.001) { console.error('FAIL valor', vt); process.exit(1); }
+const vt2 = obterValorTotalRapido('banana=10,50');
+if (Math.abs(vt2 - 10.5) > 0.001) { console.error('FAIL valor2', vt2); process.exit(1); }
 console.log('OK js_balanca_node');
 """
     import subprocess

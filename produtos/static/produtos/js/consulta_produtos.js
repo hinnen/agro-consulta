@@ -108,6 +108,8 @@ let ultimoInputTime = 0;
 let bufferScanner = '';
 let scannerTimer = null;
 let quantidadeRapida = 1;
+/** Total em R$ digitado (sufixo R$ / $ / =) — qty = total ÷ preço unitário. */
+let valorTotalRapido = null;
 let ultimoProdutoAdicionadoId = null;
 let tempoUltimaAdicao = 0;
 /** Evita F4/F8 do leitor logo após bip (alguns scanners enviam tecla de função). */
@@ -1176,6 +1178,47 @@ function removerSufixoQuantidade(texto) {
     return String(texto || '').trim().replace(/(?:\*|x)\d+$/i, '').trim();
 }
 
+/** Sufixo de valor total: `R$10`, `$10`, `=10`, `10$` (vírgula ok). */
+function obterValorTotalRapido(texto) {
+    const t = String(texto || '').trim();
+    let m = t.match(/(?:[Rr]\$\s*|\$\s*|=\s*)(\d+(?:[.,]\d{1,2})?)\s*$/);
+    if (!m) m = t.match(/(?:^|\s)(\d+(?:[.,]\d{1,2})?)\$\s*$/);
+    if (!m) return null;
+    const n = parseFloat(String(m[1]).replace(',', '.'));
+    if (!Number.isFinite(n) || n <= 0) return null;
+    return Math.round(n * 100) / 100;
+}
+
+function removerSufixoValorTotal(texto) {
+    return String(texto || '')
+        .trim()
+        .replace(/(?:\s*[Rr]\$\s*|\s*\$\s*|\s*=\s*)\d+(?:[.,]\d{1,2})?\s*$/i, '')
+        .replace(/\s+\d+(?:[.,]\d{1,2})?\$\s*$/, '')
+        .replace(/^\d+(?:[.,]\d{1,2})?\$\s*$/, '')
+        .trim();
+}
+
+/** Remove atalhos *N / xN e R$ / $ / = do termo de busca. */
+function limparAtalhosBusca(texto) {
+    return removerSufixoQuantidade(removerSufixoValorTotal(texto));
+}
+
+/** qty = valor_total ÷ preço_unitário (3 casas — kg/peso). */
+function calcularQtdPorValorTotal(precoUnit, valorTotal) {
+    const pu = Number(precoUnit);
+    const vt = Number(valorTotal);
+    if (!(pu > 0) || !(vt > 0)) return null;
+    const q = Math.round((vt / pu) * 1000) / 1000;
+    return q > 0 ? q : null;
+}
+
+function formatarQtdPdv(qtd) {
+    const n = Number(qtd);
+    if (!Number.isFinite(n)) return '1';
+    if (Math.abs(n - Math.round(n)) < 1e-9) return String(Math.round(n));
+    return n.toFixed(3).replace(/\.?0+$/, '');
+}
+
 function renderizarSugestoes() {
     if (!similaresContainer) return;
     similaresContainer.innerHTML = '';
@@ -1399,7 +1442,7 @@ function restaurarCarrinhoSessaoSeVazio() {
         carrinho = itens.map((it) => {
             const row = Object.assign({}, it);
             row.id = normalizarIdProdutoPdv(row.id);
-            row.qtd = Math.max(1, Number(row.qtd) || 1);
+            row.qtd = Math.max(0.001, Number(row.qtd) || 1);
             row.preco = Number(row.preco || 0);
             if (row.preco_padrao == null) row.preco_padrao = row.preco;
             return row;
@@ -1500,6 +1543,7 @@ function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
         if (cg && !item.codigo_gm) item.codigo_gm = cg;
         if (pr && !item.prateleira) item.prateleira = pr;
         if (aud && !item.auditoria_codigo_bip) item.auditoria_codigo_bip = aud;
+        if (opcoes.qtdPorValorTotal || opcoes.precoEtiquetaBalanca) item.qtdPorValorTotal = true;
     } else {
         const linha = {
             id: idNorm,
@@ -1516,6 +1560,7 @@ function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
             linha.precos_grupos = Object.assign({}, pgMeta);
         }
         if (aud) linha.auditoria_codigo_bip = aud;
+        if (opcoes.qtdPorValorTotal || opcoes.precoEtiquetaBalanca) linha.qtdPorValorTotal = true;
         carrinho.push(linha);
     }
     recalcularPromocoesCarrinho();
@@ -1531,9 +1576,10 @@ function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
     bufferScanner = '';
     clearTimeout(scannerTimer);
     quantidadeRapida = 1;
+    valorTotalRapido = null;
     focarBuscaProduto();
 
-    if (!opcoes.precoEtiquetaBalanca) {
+    if (!opcoes.precoEtiquetaBalanca && !opcoes.qtdPorValorTotal) {
         validarItemCarrinhoSilencioso(idNorm, preco);
     }
 }
@@ -1618,7 +1664,36 @@ function validarItemCarrinhoSilencioso(id, precoLocal) {
 
 function adicionarProdutoComQuantidade(id, nome, preco, qtd = 1, prodRef = null) {
     if (typeof agroProdutoIdProvaUnificada === 'function' && agroProdutoIdProvaUnificada(id)) return;
-    addCarrinho(id, nome, preco, qtd, prodRef ? metaOpcoesFromProd(prodRef) : {});
+    let q = Number(qtd);
+    let opts = prodRef ? metaOpcoesFromProd(prodRef) : {};
+    const valorEtq =
+        prodRef && prodRef.valor_etiqueta_balanca != null
+            ? Number(prodRef.valor_etiqueta_balanca)
+            : null;
+    const valorDig =
+        valorTotalRapido != null && Number(valorTotalRapido) > 0
+            ? Number(valorTotalRapido)
+            : null;
+    const valorAlvo = valorEtq != null && valorEtq > 0 ? valorEtq : valorDig;
+    if (valorAlvo != null) {
+        const qCalc = calcularQtdPorValorTotal(preco, valorAlvo);
+        if (qCalc) {
+            q = qCalc;
+            opts = {
+                ...opts,
+                qtdPorValorTotal: true,
+                ...(valorEtq != null ? { precoEtiquetaBalanca: true } : {}),
+            };
+        } else if (valorEtq != null && valorEtq > 0 && !(Number(preco) > 0)) {
+            /* Sem preço unitário: cobra o total da etiqueta com qty 1. */
+            return addCarrinho(id, nome, valorEtq, 1, {
+                ...opts,
+                precoEtiquetaBalanca: true,
+            });
+        }
+    }
+    if (!(q > 0)) q = 1;
+    addCarrinho(id, nome, preco, q, opts);
 }
 
 function removerItem(i) {
@@ -1629,25 +1704,28 @@ function removerItem(i) {
 function alterarQtdItem(index, delta) {
     const item = carrinho[index];
     if (!item) return;
-    item.qtd += delta;
-    if (item.qtd < 1) {
+    const fracionado = Math.abs(Number(item.qtd) % 1) > 1e-9 || !!item.qtdPorValorTotal;
+    const step = fracionado ? 0.1 : 1;
+    item.qtd = Math.round((Number(item.qtd) + delta * step) * 1000) / 1000;
+    if (item.qtd < 0.001) {
         carrinho.splice(index, 1);
         tocarSom('erro');
     } else {
         recalcularPromocoesCarrinho();
     }
     atualizarCarrinho();
-    if (item && item.qtd >= 1) tocarSom('add');
+    if (item && item.qtd >= 0.001) tocarSom('add');
 }
 
 function definirQtdItem(index, val) {
-    const n = parseInt(String(val || '1'), 10);
+    const raw = String(val || '').replace(',', '.').trim();
+    const n = parseFloat(raw);
     if (!carrinho[index]) return;
-    if (!n || n < 1) {
+    if (!Number.isFinite(n) || n < 0.001) {
         carrinho.splice(index, 1);
         tocarSom('erro');
     } else {
-        carrinho[index].qtd = n;
+        carrinho[index].qtd = Math.round(n * 1000) / 1000;
         recalcularPromocoesCarrinho();
     }
     atualizarCarrinho();
@@ -1712,7 +1790,7 @@ function atualizarCarrinho() {
                 <div class="flex flex-col items-end gap-1 shrink-0">
                     <div class="flex items-center gap-0.5">
                         <button type="button" onclick="alterarQtdItem(${index}, -1)" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 font-black text-base leading-none" aria-label="Menos">−</button>
-                        <input type="number" min="1" value="${item.qtd}" class="w-10 text-center font-black border border-slate-200 rounded-lg py-1 text-xs" onchange="definirQtdItem(${index}, this.value)" />
+                        <input type="number" min="0.001" step="0.001" value="${formatarQtdPdv(item.qtd)}" class="w-14 text-center font-black border border-slate-200 rounded-lg py-1 text-xs tabular-nums" onchange="definirQtdItem(${index}, this.value)" />
                         <button type="button" onclick="alterarQtdItem(${index}, 1)" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 font-black text-base leading-none" aria-label="Mais">+</button>
                     </div>
                     <span class="text-emerald-600 font-black text-xs tabular-nums">${formatarMoeda(item.preco * item.qtd)}</span>
@@ -3046,8 +3124,9 @@ function buscarProdutos(q, modo = 'normal') {
         pdvMarcarJanelaScannerAtiva(1500);
     }
 
-    quantidadeRapida = obterQuantidadeRapida(q);
-    const termoBruto = removerSufixoQuantidade(q);
+    valorTotalRapido = obterValorTotalRapido(q);
+    quantidadeRapida = valorTotalRapido != null ? 1 : obterQuantidadeRapida(q);
+    const termoBruto = limparAtalhosBusca(q);
     const termoDiagnostico = String(termoBruto || '').trim().indexOf('#') === 0;
     const rawOrc = String(termoBruto).replace(/\s/g, '').toUpperCase();
     const mOrc = rawOrc.match(/^GMORC(\d{10,20})$/);
@@ -3201,7 +3280,7 @@ function executarBuscaRapidaSoCategoria() {
 
 function pdvRapidoRefreshListaSeAtivo() {
     if (!pdvRapidoFiltroCategoria || !pdvRapidoFiltroCategoria.rotulo) return;
-    const bruto = inputBusca ? removerSufixoQuantidade(inputBusca.value) : '';
+    const bruto = inputBusca ? limparAtalhosBusca(inputBusca.value) : '';
     const t = normalizarBuscaLocal(bruto);
     if (!t || t.length < 2) executarBuscaRapidaSoCategoria();
     else buscarProdutos(inputBusca.value, 'normal');
@@ -3539,9 +3618,10 @@ function encontrarProdutoPorCodigoInternoBalanca(cod4, lista) {
 }
 
 function montarProdutoPrecoEtiquetaBalanca(produto, bal, digits) {
+    /* Mantém preco_venda unitário; total da etiqueta → qty = total ÷ unitário. */
     return {
         ...produto,
-        preco_venda: bal.valorReais,
+        valor_etiqueta_balanca: bal.valorReais,
         preco_etiqueta_balanca: true,
         auditoria_codigo_bip: digits,
     };
@@ -3561,6 +3641,8 @@ function enriquecerProdutoBusca(p) {
                 mediaApi != null && mediaApi !== '' ? mediaApi : 0
             ),
             preco_etiqueta_balanca: !!p.preco_etiqueta_balanca,
+            valor_etiqueta_balanca:
+                p.valor_etiqueta_balanca != null ? Number(p.valor_etiqueta_balanca) : null,
             qtd_separacao_transferencia: Number(p.qtd_separacao_transferencia || 0),
             auditoria_codigo_bip: p.auditoria_codigo_bip || null,
             index_codigos: Array.isArray(p.index_codigos) ? p.index_codigos : [],
@@ -3570,6 +3652,12 @@ function enriquecerProdutoBusca(p) {
         p.prateleira != null && String(p.prateleira).trim() !== ''
             ? String(p.prateleira).trim()
             : String(loc.prateleira || '').trim();
+    const valorEtq =
+        p.valor_etiqueta_balanca != null
+            ? Number(p.valor_etiqueta_balanca)
+            : loc.valor_etiqueta_balanca != null
+              ? Number(loc.valor_etiqueta_balanca)
+              : null;
     return {
         ...loc,
         ...p,
@@ -3592,6 +3680,7 @@ function enriquecerProdutoBusca(p) {
                 : loc.media_venda_diaria_30d || 0
         ),
         preco_etiqueta_balanca: !!(p.preco_etiqueta_balanca || loc.preco_etiqueta_balanca),
+        valor_etiqueta_balanca: valorEtq,
         auditoria_codigo_bip: p.auditoria_codigo_bip || loc.auditoria_codigo_bip || null,
         index_codigos:
             Array.isArray(p.index_codigos) && p.index_codigos.length
@@ -3603,7 +3692,7 @@ function enriquecerProdutoBusca(p) {
 }
 
 function extrairPalavrasParaHighlightDaBusca() {
-    const q = removerSufixoQuantidade(inputBusca ? inputBusca.value : '');
+    const q = limparAtalhosBusca(inputBusca ? inputBusca.value : '');
     const t = normalizarBuscaLocal(q);
     return t.split(/\s+/).filter(Boolean);
 }
@@ -3619,7 +3708,7 @@ function pdvPacoteCatalogoConfiavel() {
 }
 
 function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
-    const termoNorm = normalizarBuscaLocal(removerSufixoQuantidade(termoBrutoOriginal));
+    const termoNorm = normalizarBuscaLocal(limparAtalhosBusca(termoBrutoOriginal));
     if (modo === 'scanner') {
         const gmSemLocal =
             !locaisOrdenados.length
@@ -3729,7 +3818,7 @@ function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
 }
 
 function executarBuscaLocal(termo, modo) {
-    const termoBrutoApi = removerSufixoQuantidade(inputBusca ? inputBusca.value : '');
+    const termoBrutoApi = limparAtalhosBusca(inputBusca ? inputBusca.value : '');
     const digits = String(termo || '').replace(/\D/g, '');
 
     if (modo === 'scanner' && digits.length === 13 && digits[0] === '2') {
@@ -3933,23 +4022,52 @@ function processarResultadosBusca(produtosEncontrados, modo, matchExato = false,
             return;
         }
         flashScanner();
-        const precoEtiqueta = !!produto.preco_etiqueta_balanca;
-        const avisoPreco = precoEtiqueta ? ' (valor da etiqueta)' : '';
-        mostrarBannerScanner(`✅ Código lido • ${quantidadeRapida}x ${produto.nome}${avisoPreco}`);
+        const valorEtq =
+            produto.valor_etiqueta_balanca != null
+                ? Number(produto.valor_etiqueta_balanca)
+                : null;
+        const precoEtiqueta = !!produto.preco_etiqueta_balanca || (valorEtq != null && valorEtq > 0);
+        let qtdAdd = quantidadeRapida;
+        let precoAdd = Number(produto.preco_venda);
+        let optsExtra = {};
+        if (precoEtiqueta && valorEtq != null && valorEtq > 0) {
+            const qCalc = calcularQtdPorValorTotal(precoAdd, valorEtq);
+            if (qCalc) {
+                qtdAdd = qCalc;
+                optsExtra = { precoEtiquetaBalanca: true, qtdPorValorTotal: true };
+            } else if (!(precoAdd > 0)) {
+                qtdAdd = 1;
+                precoAdd = valorEtq;
+                optsExtra = { precoEtiquetaBalanca: true };
+            }
+        } else if (valorTotalRapido != null && Number(valorTotalRapido) > 0) {
+            const qCalc = calcularQtdPorValorTotal(precoAdd, valorTotalRapido);
+            if (qCalc) {
+                qtdAdd = qCalc;
+                optsExtra = { qtdPorValorTotal: true };
+            }
+        }
+        const avisoPreco = precoEtiqueta
+            ? ` · ${formatarQtdPdv(qtdAdd)} × ${formatarMoeda(precoAdd)} = ${formatarMoeda(valorEtq != null ? valorEtq : precoAdd * qtdAdd)}`
+            : '';
+        mostrarBannerScanner(`✅ Código lido • ${produto.nome}${avisoPreco}`);
         addCarrinho(
             pid,
             produto.nome,
-            produto.preco_venda,
-            quantidadeRapida,
+            precoAdd,
+            qtdAdd,
             {
-                ...(precoEtiqueta ? { precoEtiquetaBalanca: true } : {}),
+                ...optsExtra,
                 ...metaOpcoesFromProd(produto),
                 ...(produto.auditoria_codigo_bip
                     ? { auditoria_codigo_bip: String(produto.auditoria_codigo_bip) }
                     : {}),
             }
         );
-        mostrarStatusBusca(`Código lido: ${quantidadeRapida}x ${produto.nome}`, 'emerald');
+        mostrarStatusBusca(
+            `Código lido: ${formatarQtdPdv(qtdAdd)} × ${produto.nome}`,
+            'emerald'
+        );
         setTimeout(esconderStatusBusca, 1500);
         if (modo === 'scanner' && inputBusca) {
             inputBusca.value = '';
@@ -3960,7 +4078,7 @@ function processarResultadosBusca(produtosEncontrados, modo, matchExato = false,
 
     if (produtosEncontrados.length > 0) {
         const enriquecidos = produtosEncontrados.map(enriquecerProdutoBusca);
-        const termoOrd = normalizarBuscaLocal(removerSufixoQuantidade(inputBusca ? inputBusca.value : ''));
+        const termoOrd = normalizarBuscaLocal(limparAtalhosBusca(inputBusca ? inputBusca.value : ''));
         const ordenados = opcoes.preservarOrdem
             ? enriquecidos
             : ordenarSugestoesPdv(enriquecidos, termoOrd);
@@ -4022,7 +4140,7 @@ inputBusca.addEventListener('input', function(e) {
     const diff = agora - ultimoInputTime;
     ultimoInputTime = agora;
 
-    const textoLimpo = removerSufixoQuantidade(q);
+    const textoLimpo = limparAtalhosBusca(q);
     const pareceCodigoOrc = /^GMORC\d{10,20}$/i.test(String(textoLimpo).replace(/\s/g, ''));
     const pareceCodigoGm = /^GM[\dA-Za-z-]{3,}$/i.test(String(textoLimpo).replace(/\s/g, ''));
     const pareceCodigo = /^\d{6,}$/.test(textoLimpo) || pareceCodigoOrc || pareceCodigoGm;
@@ -4050,7 +4168,7 @@ inputBusca.addEventListener('paste', function () {
     setTimeout(function () {
         if (!inputBusca) return;
         const q = String(inputBusca.value || '').trim();
-        const textoLimpo = removerSufixoQuantidade(q);
+        const textoLimpo = limparAtalhosBusca(q);
         const digits = String(textoLimpo).replace(/\D/g, '');
         const pareceCodigoOrc = /^GMORC\d{10,20}$/i.test(String(textoLimpo).replace(/\s/g, ''));
         if (!(digits.length >= 8 || pareceCodigoOrc)) return;
@@ -4163,9 +4281,10 @@ inputBusca.addEventListener('keydown', function(e) {
         clearTimeout(scannerTimer); // Cancela o cronômetro do leitor
         bufferScanner = ''; // Limpa a memória do leitor
 
-        quantidadeRapida = obterQuantidadeRapida(inputBusca.value);
+        valorTotalRapido = obterValorTotalRapido(inputBusca.value);
+        quantidadeRapida = valorTotalRapido != null ? 1 : obterQuantidadeRapida(inputBusca.value);
 
-        const brutoEnter = removerSufixoQuantidade(inputBusca.value);
+        const brutoEnter = limparAtalhosBusca(inputBusca.value);
         const termoEnter = normalizarBuscaLocal(brutoEnter);
         /* EAN-13 balança (flag 2): NÃO tratar como barras genérico — senão Enter chama API sem preço da etiqueta. */
         const digitsEnter = String(brutoEnter || '').replace(/\D/g, '');
@@ -4229,6 +4348,7 @@ inputBusca.addEventListener('keydown', function(e) {
                 limparBuscaVisual();
                 esconderStatusBusca();
                 quantidadeRapida = 1;
+                valorTotalRapido = null;
                 return;
             }
             if (!window.AGRO_MANUAL_SYNC_ONLY) {
@@ -4277,6 +4397,7 @@ inputBusca.addEventListener('keydown', function(e) {
                 limparBuscaVisual();
                 esconderStatusBusca();
                 quantidadeRapida = 1;
+                valorTotalRapido = null;
                 return;
             }
             if (!window.AGRO_MANUAL_SYNC_ONLY) {
@@ -4324,6 +4445,7 @@ inputBusca.addEventListener('keydown', function(e) {
         inputBusca.value = '';
         esconderStatusBusca();
         quantidadeRapida = 1;
+        valorTotalRapido = null;
     }
 });
 }

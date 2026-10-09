@@ -1294,6 +1294,41 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+<<<<<<< HEAD
+=======
+### 📦 PACOTE PRONTO — qty por valor etiqueta + digitar R$ (`PDV-BALANCA-QTY-VALOR` · 09/10)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | (1) Etiqueta mantém preço no EAN; PDV usa **preço unitário** + **qty = total÷unitário** (estoque certo; total ≈ etiqueta). (2) Sem balança: na busca `produto R$10` / `$10` / `=10` / `10$` → calcula qty sozinho. |
+| **Prova** | path agro_pg **56/56** · etq_plu **41/41** · unit **11/11** · **PREP_FAILS=0** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **PREP pronto — aguarda senha** · branch `cursor/balanca-qty-por-valor-ca8a` · alvo **v26.73** |
+| **Antes** | Live **v26.71** · PREP preço-etq era v26.72 (total virava preço unitário — errado p/ estoque) |
+| **Rollback** | tip Live anterior · **só** frase+senha |
+| **Na senha** | `docs/DEPLOY-PREP-PDV-BALANCA-AGRO-PG.md` |
+| **Você** | Ctrl+F5 · badge **v26.73** · `2001000004812` → qty≈0,512 × R$9,40 ≈ **R$ 4,81** · `produto R$10` Enter |
+
+### ✅ CHECKLIST ÚNICO — 09/10c · PDV-BALANCA-QTY-VALOR · 🟢 PREP aguarda senha
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-BALANCA-QTY-VALOR** | 🟢 **PREP pronto — aguarda senha** | **NÃO** | **56/56** |
+
+### ~~PACOTE PRONTO — preço etiqueta balança (`PDV-BALANCA-PRECO-ETQ`)~~ · **superado por QTY-VALOR v26.73**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Era** | Total da etiqueta virava `preco_venda` (qty 1) — cobrava certo mas estoque/unitário errados |
+| **Status** | absorvido em **PDV-BALANCA-QTY-VALOR** |
+
+### ✅ CHECKLIST ÚNICO — 09/10b · PDV-BALANCA-PRECO-ETQ · ~~PREP~~ → superado
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-BALANCA-PRECO-ETQ** | ~~PREP~~ → **superado v26.73** | **NÃO** | **52/52** |
+
+>>>>>>> 6c7c46f0 (feat(pdv): qty = total÷preço unitário na etiqueta e atalho R$)
 ### ✅ Deploy loja — PDV-BALANCA-AGRO-PG · **Live v26.71** · 09/10
 
 | Campo | Valor |

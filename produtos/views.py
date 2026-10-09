@@ -818,8 +818,9 @@ def _aplicar_produto_gestao_overlay_em_dict(
         if ov.unidade.strip():
             row["unidade"] = ov.unidade.strip()
         row["peso_etiqueta"] = str(getattr(ov, "peso_etiqueta", "") or "").strip()
-        # Preço da etiqueta de balança (EAN 2+PLU+total) prevalece sobre overlay/cadastro.
-        if ov.preco_venda is not None and not row.get("preco_etiqueta_balanca"):
+        # Preço unitário do overlay (R$/kg). Total da etiqueta vai em valor_etiqueta_balanca —
+        # não misturar com preco_venda (qty = total ÷ unitário no PDV).
+        if ov.preco_venda is not None:
             row["preco_venda"] = round(float(ov.preco_venda), 2)
         if ov.codigo_barras.strip():
             row["codigo_barras"] = ov.codigo_barras.strip()
@@ -23657,7 +23658,9 @@ def api_buscar_produtos(request):
 
     try:
         balanca_auditoria_q: str | None = None
-        preco_por_id: dict[str, float] = {}
+        # Total impresso na etiqueta (centavos do EAN) — NÃO vira preco_venda.
+        # PDV calcula qty = valor_etiqueta ÷ preco_unitário (cadastro/overlay).
+        valor_etiqueta_por_id: dict[str, float] = {}
         use_motor_unificado = bool(getattr(request, "_motor_busca_v2", False)) or pdv_somente_pg or usa_pg_cat
 
         if wizard_catalog and db is not None and not pdv_somente_pg and not usa_pg_cat:
@@ -23722,7 +23725,7 @@ def api_buscar_produtos(request):
                         p_escolhido = _escolher_produto_plu_balanca(cand, cod4)
                     if p_escolhido:
                         pid_b = str(p_escolhido.get("Id") or p_escolhido.get("_id"))
-                        preco_por_id[pid_b] = preco_etiqueta
+                        valor_etiqueta_por_id[pid_b] = float(preco_etiqueta)
                         prods = _merge_produtos_overlay_codigo_consulta(
                             str(cod4), [p_escolhido], db, client
                         )
@@ -23746,7 +23749,7 @@ def api_buscar_produtos(request):
                             skip_mongo_complemento=skip_mongo_complemento,
                         )
         else:
-            preco_por_id = {}
+            valor_etiqueta_por_id = {}
             bal = _parse_etiqueta_balanca_ean13_br(q) if q else None
             if bal:
                 cod4, preco_etiqueta = bal
@@ -23788,7 +23791,7 @@ def api_buscar_produtos(request):
                     p_escolhido = _escolher_produto_plu_balanca(cand, cod4)
                 if p_escolhido:
                     pid_b = str(p_escolhido.get("Id") or p_escolhido.get("_id"))
-                    preco_por_id[pid_b] = preco_etiqueta
+                    valor_etiqueta_por_id[pid_b] = float(preco_etiqueta)
                     prods = _merge_produtos_overlay_codigo_consulta(
                         str(cod4), [p_escolhido], db, client
                     )
@@ -23957,11 +23960,7 @@ def api_buscar_produtos(request):
             codigo_nfe = (_valor_texto_campo(cod_nf) if cod_nf not in (None, "") else "") or codigo
             codigo_barras = _extrair_codigo_barras(p)
             media_d = _float_api_json(medias_map.get(pid, 0.0))
-            pv = (
-                _float_api_json(preco_por_id[pid])
-                if pid in preco_por_id
-                else _float_api_json(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
-            )
+            pv = _float_api_json(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
             prateleira_busca = (
                 p.get("Prateleira")
                 or p.get("Localizacao")
@@ -24032,7 +24031,7 @@ def api_buscar_produtos(request):
                     _float_api_json(pedido_sep_map.get(pid, 0.0)), 3
                 ),
                 "media_venda_diaria_30d": round(_float_api_json(media_d), 4),
-                "preco_etiqueta_balanca": bool(pid in preco_por_id) and not compras,
+                "preco_etiqueta_balanca": bool(pid in valor_etiqueta_por_id) and not compras,
             }
             if not wizard_mode:
                 row.update(
@@ -24050,7 +24049,7 @@ def api_buscar_produtos(request):
                         "saldo_erp_centro": round(saldo_centro_erp, 2),  # compatibilidade com mobile atual
                         "saldo_erp_vila": round(saldo_vila_erp, 2),
                         "auditoria_codigo_bip": balanca_auditoria_q
-                        if (balanca_auditoria_q and pid in preco_por_id)
+                        if (balanca_auditoria_q and pid in valor_etiqueta_por_id)
                         else None,
                         "referencia": _mongo_primeiro_texto(
                             p,
@@ -24070,11 +24069,12 @@ def api_buscar_produtos(request):
                 row["categoria"] = str(_cat_w or "").strip()
                 row["subcategoria"] = _sub_w or ""
             _aplicar_produto_gestao_overlay_em_dict(row, overlay_pdv_map.get(pid))
-            # Overlay não pode apagar o total impresso na etiqueta (centavos do EAN).
-            if pid in preco_por_id:
-                row["preco_venda"] = round(_float_api_json(preco_por_id[pid]), 2)
-                if not compras:
-                    row["preco_etiqueta_balanca"] = True
+            # Total da etiqueta fica em valor_etiqueta_balanca; preco_venda = unitário (overlay ok).
+            if pid in valor_etiqueta_por_id and not compras:
+                row["valor_etiqueta_balanca"] = round(
+                    _float_api_json(valor_etiqueta_por_id[pid]), 2
+                )
+                row["preco_etiqueta_balanca"] = True
             if compras:
                 try:
                     custo_pg = float(custo_pg_map.get(pid) or 0)
@@ -24156,7 +24156,7 @@ def api_buscar_produtos(request):
                     )
                 )
 
-        exact = bool(preco_por_id) and len(res) == 1 and not wizard_catalog
+        exact = bool(valor_etiqueta_por_id) and len(res) == 1 and not wizard_catalog
         if (
             wizard_mode
             and not wizard_catalog
