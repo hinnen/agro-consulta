@@ -43,7 +43,7 @@ def test_contratos() -> None:
     help_html = (ROOT / "produtos/templates/produtos/pdv_wizard.html").read_text(
         encoding="utf-8"
     )
-    prep = (ROOT / "docs/DEPLOY-PREP-PDV-VALOR-RS-MODAL.md").read_text(encoding="utf-8")
+    prep = (ROOT / "docs/DEPLOY-PREP-CHECKLIST-0910f.md").read_text(encoding="utf-8")
     check("fn_ask", "function askValorReaisParaProduto" in wiz)
     check("fn_parse", "function parseValorReaisDigitado" in wiz)
     check("titulo_modal", "Valor em R$?" in wiz)
@@ -65,7 +65,7 @@ def test_contratos() -> None:
     check("msg_ok_valor", "Valor R$ ·" in wiz)
     check("help_tela", "Valor em R$?" in help_html)
     check("prep_doc", "pronto para envio à produção" in prep and "26.76" in prep)
-    check("prep_sem_etq", "Não inclui" in prep and "ETQ-EAN-LOJA-DV" in prep)
+    check("prep_inclui_etq", "ETQ-EAN-LOJA-DV" in prep and "CHECKLIST 09/10f" in prep)
     check(
         "version_26_76",
         (ROOT / "VERSION").read_text(encoding="utf-8").strip() == "26.76",
@@ -78,7 +78,7 @@ def test_contratos() -> None:
                 "merge-base",
                 "--is-ancestor",
                 "origin/producao",
-                "origin/deploy/prep-pdv-valor-rs-modal",
+                "origin/deploy/prep-checklist-0910f",
             ],
             cwd=ROOT,
             capture_output=True,
@@ -90,7 +90,7 @@ def test_contratos() -> None:
             "git",
             "diff",
             "--name-only",
-            "origin/producao...origin/deploy/prep-pdv-valor-rs-modal",
+            "origin/producao...origin/deploy/prep-checklist-0910f",
         ],
         cwd=ROOT,
         capture_output=True,
