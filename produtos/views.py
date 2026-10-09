@@ -23078,6 +23078,10 @@ def _produto_casa_plu_balanca(doc: dict, plu4: str) -> bool:
             xl = str(x or "").strip().lower()
             if xl in (plu_l, short) or xl == plu4.lower():
                 return True
+            # index costuma ter gm0010-1 sem o PLU nu «0010»
+            m_ix = re.match(r"^gm0*(\d+)(?:[-_].*)?$", xl)
+            if m_ix and m_ix.group(1).zfill(4) == plu.zfill(4):
+                return True
     cb = str(_extrair_codigo_barras(doc) or "").strip()
     if cb:
         cbd = re.sub(r"\D", "", cb)
@@ -23550,8 +23554,12 @@ def api_buscar_produtos(request):
     from django.core.cache import cache
 
     # Cache curto da busca BCA (todas as telas) — alivia rush na loja.
+    # Etiqueta balança (EAN-13 flag 2): NÃO cachear — resposta vazia antiga travava o bip 30s
+    # e o parse/PLU precisa rodar sempre (preço da etiqueta + exact_barcode_match).
     bca_cache_key: str | None = None
-    if q and not wizard_catalog and (usa_pg_cat or pdv_somente_pg):
+    _q_digits_bca = re.sub(r"\D", "", str(q or ""))
+    _ean_balanca_bca = len(_q_digits_bca) == 13 and _q_digits_bca[:1] == "2"
+    if q and not wizard_catalog and (usa_pg_cat or pdv_somente_pg) and not _ean_balanca_bca:
         bca_cache_key = (
             f"bca_busca_v1:{q.lower()[:80]}:{lim_busca_req}:"
             f"{int(wizard_mode)}:{int(entrada_nfe_mode)}:{int(contexto_cadastro)}:{int(compras)}"
@@ -23599,12 +23607,17 @@ def api_buscar_produtos(request):
                 prods = []
             else:
                 bal = _parse_etiqueta_balanca_ean13_br(q)
-                if bal and db is not None:
+                # Balança mesmo sem Mongo (agro_pg / db None): resolve PLU via unificado+overlay.
+                if bal:
                     cod4, preco_etiqueta = bal
                     d_lido = re.sub(r"\D", "", str(q or ""))
                     if len(d_lido) == 13 and d_lido[0] == "2":
                         balanca_auditoria_q = d_lido
-                    p_escolhido = _buscar_produto_por_codigo_interno_balanca(db, client, cod4)
+                    p_escolhido = None
+                    if db is not None:
+                        p_escolhido = _buscar_produto_por_codigo_interno_balanca(
+                            db, client, cod4
+                        )
                     if not p_escolhido:
                         # EAN completo não está no cadastro — buscar pelo PLU (ex. 0010), não pelo EAN-13.
                         plu_q = cod4.zfill(4) if str(cod4).isdigit() else str(cod4)
@@ -23655,18 +23668,20 @@ def api_buscar_produtos(request):
                         )
         else:
             preco_por_id = {}
-            if db is None:
-                prods = []
-            else:
-                bal = _parse_etiqueta_balanca_ean13_br(q)
-                if bal:
-                    cod4, preco_etiqueta = bal
-                    d_lido = re.sub(r"\D", "", str(q or ""))
-                    if len(d_lido) == 13 and d_lido[0] == "2":
-                        balanca_auditoria_q = d_lido
-                    p_escolhido = _buscar_produto_por_codigo_interno_balanca(db, client, cod4)
-                    if not p_escolhido:
-                        plu_q = cod4.zfill(4) if str(cod4).isdigit() else str(cod4)
+            bal = _parse_etiqueta_balanca_ean13_br(q) if q else None
+            if bal:
+                cod4, preco_etiqueta = bal
+                d_lido = re.sub(r"\D", "", str(q or ""))
+                if len(d_lido) == 13 and d_lido[0] == "2":
+                    balanca_auditoria_q = d_lido
+                p_escolhido = None
+                if db is not None:
+                    p_escolhido = _buscar_produto_por_codigo_interno_balanca(
+                        db, client, cod4
+                    )
+                if not p_escolhido:
+                    plu_q = cod4.zfill(4) if str(cod4).isdigit() else str(cod4)
+                    if db is not None:
                         cand = motor_busca_consulta_documentos(
                             plu_q,
                             db,
@@ -23675,19 +23690,37 @@ def api_buscar_produtos(request):
                             include_inactive=False,
                             projection=None,
                         )
-                        p_escolhido = _escolher_produto_plu_balanca(cand, cod4)
-                    if p_escolhido:
-                        pid_b = str(p_escolhido.get("Id") or p_escolhido.get("_id"))
-                        preco_por_id[pid_b] = preco_etiqueta
-                        prods = _merge_produtos_overlay_codigo_consulta(
-                            str(cod4), [p_escolhido], db, client
-                        )
                     else:
-                        prods = []
-                else:
-                    prods = motor_busca_consulta_documentos(
-                        q, db, client, limit=80, include_inactive=False, projection=None
+                        from produtos.motor_busca_unificado_util import (
+                            buscar_documentos_unificado,
+                        )
+
+                        cand = buscar_documentos_unificado(
+                            plu_q,
+                            db,
+                            client,
+                            limit=80,
+                            include_inactive=False,
+                            wizard_catalog=False,
+                        )
+                    cand = _merge_produtos_overlay_codigo_consulta(
+                        plu_q, cand, db, client
                     )
+                    p_escolhido = _escolher_produto_plu_balanca(cand, cod4)
+                if p_escolhido:
+                    pid_b = str(p_escolhido.get("Id") or p_escolhido.get("_id"))
+                    preco_por_id[pid_b] = preco_etiqueta
+                    prods = _merge_produtos_overlay_codigo_consulta(
+                        str(cod4), [p_escolhido], db, client
+                    )
+                else:
+                    prods = []
+            elif db is None:
+                prods = []
+            else:
+                prods = motor_busca_consulta_documentos(
+                    q, db, client, limit=80, include_inactive=False, projection=None
+                )
         if (usa_pg_cat or pdv_merge_pg) and not pdv_somente_pg and not use_motor_unificado:
             from produtos import catalogo_agro as cat_agro
 

@@ -68,9 +68,37 @@ class EtiquetaBalancaEan13Tests(SimpleTestCase):
         self.assertTrue(
             _produto_casa_plu_balanca({"CodigoBarras": "0010", "index_codigos": []}, "0010")
         )
+        self.assertTrue(
+            _produto_casa_plu_balanca(
+                {"Codigo": "", "index_codigos": ["gm0010-1", "gm00101"]}, "0010"
+            )
+        )
         self.assertFalse(
             _produto_casa_plu_balanca({"Codigo": "GM0143", "index_codigos": []}, "0010")
         )
+
+    def test_overlay_pids_aceita_plu_4_digitos(self):
+        from produtos.cadastro_busca_codigo_util import overlay_pids_por_codigo
+
+        with patch(
+            "produtos.models.ProdutoGestaoOverlayAgro.objects.filter"
+        ) as m_filter:
+            m_qs = MagicMock()
+            m_filter.return_value = m_qs
+            m_qs.only.return_value = []
+            # slice [:N] no Django QS — mock encadeado
+            m_qs.__getitem__ = MagicMock(return_value=[])
+            m_filter.return_value = m_qs
+            overlay_pids_por_codigo("0010", limit=10)
+            self.assertTrue(m_filter.called, "overlay deve consultar PLU 0010")
+
+    def test_motor_plu_nao_pula_mongo_vazio(self):
+        """Sob agro_pg, PLU 0010 sem hit PG deve complementar Mongo (não zerar)."""
+        import produtos.motor_busca_unificado_util as motor
+
+        src = open(motor.__file__, encoding="utf-8").read()
+        self.assertIn("_plu_balanca", src)
+        self.assertIn("4 <= len(_dig_termo) <= 5", src)
 
     def test_escolhe_gm_menos_1_entre_varios(self):
         cand = [

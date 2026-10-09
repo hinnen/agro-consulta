@@ -42,7 +42,19 @@ def test_contratos_arquivo() -> None:
     check("prefer_plu4", "Prefere o PLU de 4 dígitos" in views or "plu4 = cod4.zfill(4)" in views)
     check("overlay_fallback", "_mongo_produtos_por_overlay_codigo_busca" in views)
     check("api_usa_balanca", "bal = _parse_etiqueta_balanca_ean13_br(q)" in views)
+    check(
+        "api_balanca_sem_exigir_mongo",
+        "Balança mesmo sem Mongo" in views or "p_escolhido = None" in views,
+    )
+    check(
+        "bca_nao_cacheia_ean_balanca",
+        "_ean_balanca_bca" in views and "not _ean_balanca_bca" in views,
+    )
     check("exact_flag", '"exact_barcode_match"' in views or "'exact_barcode_match'" in views)
+    motor = (ROOT / "produtos/motor_busca_unificado_util.py").read_text(encoding="utf-8")
+    check("motor_plu_complementa_mongo", "_plu_balanca" in motor)
+    cad = (ROOT / "produtos/cadastro_busca_codigo_util.py").read_text(encoding="utf-8")
+    check("overlay_plu_4d", "4 <= len(digits) <= 7" in cad)
     check("js_parse", "function parseEtiquetaBalancaEan13" in js)
     check("js_local_plu", "encontrarProdutoPorCodigoInternoBalanca" in js)
     check("js_api_etiqueta", "function executarBuscaAPIEtiquetaBalanca" in js)
