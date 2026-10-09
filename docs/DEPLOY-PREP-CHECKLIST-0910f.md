@@ -1,7 +1,6 @@
 # PREP deploy — CHECKLIST 09/10f · alvo **v26.76**
 
-**Status:** 🟢 **pronto para envio à produção**  
-**Não sobe sozinho.** Só com frase explícita + senha `99738595` na mesma mensagem.
+**Status:** ✅ **enviado / Live v26.76** — `producao` @ `896327e9` (09/10/2026).
 
 ## CHECKLIST ÚNICO (o que sobe)
 

@@ -910,14 +910,12 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 74. Checklist único — lote 09/10f · 🟢 PREP aguarda senha · alvo **v26.76**
+## 74. Checklist único — lote 09/10f · ✅ **Live v26.76** · 09/10
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-EAN-LOJA-DV** (+ gerador 230 PG) | 🟢 **pronto para envio à produção** | **NÃO** |
-| 2 | **PDV-VALOR-RS-MODAL** | 🟢 **pronto para envio à produção** | **NÃO** |
+| 1 | **ETQ-EAN-LOJA-DV** (+ gerador 230 PG) | ✅ **Live v26.76** | **NÃO** |
+| 2 | **PDV-VALOR-RS-MODAL** | ✅ **Live v26.76** | **NÃO** |
 
-**Prova:** etq **74/74** · gerador **15/15** · valor-rs **39/39** · PIN **9973** · **PREP_FAILS=0**.  
-**Branch PREP:** `deploy/prep-checklist-0910f` (alias `deploy/prep-pdv-valor-rs-modal`) · base Live **v26.74**.  
-**Na senha:** `./scripts/cutover_loja_checklist_0910f.sh --exec` · doc `docs/DEPLOY-PREP-CHECKLIST-0910f.md`.  
-**Rollback:** tag `rollback/pre-checklist-0910f-v26.74` · backup `producao-backup-pre-v2676-checklist-0910f`.
+**Live:** `producao` @ `896327e9`.  
+**Rollback:** tag `rollback/pre-checklist-0910f-v26.74` @ `61c164b1` · backup `producao-backup-pre-v2676-checklist-0910f`.
