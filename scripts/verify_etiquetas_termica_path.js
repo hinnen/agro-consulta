@@ -167,7 +167,7 @@ const html53 = Core.montarHtmlImpressao(Core.normalizarPreset(seed53), [
 ok(html53.includes('@page{size:53mm 30mm;'), 'página térmica 53×30');
 ok((html53.match(/class="pg"/g) || []).length === 1, '53×30 = 1 página por etiqueta');
 
-/* 230 legado: mesmo número, EAN-13 forçado (não CODE128). */
+/* 230 legado: imprime EAN-13 com DV GS1 (cadastro mantém número legado). */
 const legado = Core.valorBarcodeProduto({
   nome: 'teste',
   preco_venda: 1,
@@ -175,11 +175,13 @@ const legado = Core.valorBarcodeProduto({
   codigo_gm: 'GM1',
 });
 ok(legado.formato === 'EAN13', 'legado 230 formato EAN13');
-ok(legado.valor === '2300000001571', 'legado 230 mantem numero');
-ok(legado.ean_force === true, 'legado 230 ean_force');
+ok(legado.valor === '2300000001570', 'legado 230 DV corrigido na etiqueta');
+ok(legado.ean_corrigido === true, 'legado 230 ean_corrigido');
+ok(legado.valor_original === '2300000001571', 'legado 230 valor_original cadastro');
+ok(legado.ean_force !== true, 'legado 230 sem ean_force');
 ok(legado.codigo_loja === true, 'legado 230 codigo_loja');
-ok(Core.ean13ChecksumOk('2300000001571') === false, 'legado 230 DV invalido');
-ok(String(Core.encodeEan13Bits('2300000001571') || '').length === 95, 'EAN force 95 modulos');
+ok(Core.ean13ChecksumOk('2300000001571') === false, 'legado 230 DV invalido no cadastro');
+ok(Core.ean13ChecksumOk(legado.valor), 'legado 230 DV ok na etiqueta');
 
 /* 230 novo (DV ok): EAN13 sem force. */
 function eanDv(d12) {
@@ -204,9 +206,9 @@ const htmlLoja = Core.montarHtmlImpressao(
   [{ nome: 'loja', preco_venda: 2, codigo_barras: '2300000001571', codigo_gm: 'GM9', qtd: 1 }],
   'R'
 );
-ok(htmlLoja.includes('"ean_force":true'), 'html imprint ean_force legado');
-ok(htmlLoja.includes('_drawEanForce'), 'html tem desenho EAN forçado');
-ok(htmlLoja.includes('2300000001571'), 'html traz numero legado');
+ok(htmlLoja.includes('"valor":"2300000001570"') || htmlLoja.includes('"valor": "2300000001570"'), 'html imprint EAN corrigido');
+ok(!htmlLoja.includes('"ean_force":true'), 'html legado sem ean_force');
+ok(htmlLoja.includes('2300000001570'), 'html traz EAN bipavel');
 
 const htmlPath = path.join(root, 'tmp-etq-termica.html');
 fs.writeFileSync(htmlPath, html3);

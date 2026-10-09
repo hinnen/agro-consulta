@@ -1294,6 +1294,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — ETQ-EAN-LOJA-DV (`CHECKLIST 09/10d` · 09/10)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Código **230… legado**: etiqueta com **DV EAN válido** (ex. cadastro `2300000001480` → barras `2300000001488`); busca/index bip↔cadastro |
+| **Prova** | etq-ean **74/74** · termica **69/69** · unit **4/4** · PIN **9973** · core **v=35** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** · alvo **v26.75** |
+| **Antes** | Live **v26.74** @ `a7c72730` |
+| **Rollback** | `docs/ROLLBACK-ETQ-EAN-LOJA-DV.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 · **v26.75** · reimprimir etiquetas 230… legado · bip `2300000001488` → GM4046 |
+
+### ✅ CHECKLIST ÚNICO — 09/10d · 🟢 pronto para envio
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ETQ-EAN-LOJA-DV** | 🟢 **pronto para envio à produção** | **NÃO** | **74/74** |
+
 ### ✅ Deploy loja — PDV-BALANCA-QTY-VALOR · **Live v26.74** · 09/10
 
 | Campo | Valor |
