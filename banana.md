@@ -1294,23 +1294,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — preço etiqueta balança (`PDV-BALANCA-PRECO-ETQ` · 09/10)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Live v26.71: bip achava GM0010-1 mas ia a **R$ 9,40** (cadastro). Overlay apagava o total da etiqueta (**R$ 4,81**). Fix: overlay respeita flag · API reaplica preço · JS remonta valor da etiqueta. |
+| **Prova** | path **52/52** · unit **10/10** · **PREP_FAILS=0** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **PREP pronto — aguarda senha** · `deploy/prep-pdv-balanca-agro-pg` · alvo **v26.72** |
+| **Antes** | Live **v26.71** · `producao` @ `2eab76c1` |
+| **Rollback** | tag `rollback/pre-pdv-balanca-preco-v26.71` · **só** frase+senha |
+| **Na senha** | `docs/DEPLOY-PREP-PDV-BALANCA-AGRO-PG.md` |
+| **Você** | Ctrl+F5 · badge **v26.72** · `2001000004812` → **R$ 4,81** |
+
+### ✅ CHECKLIST ÚNICO — 09/10b · PDV-BALANCA-PRECO-ETQ · 🟢 PREP aguarda senha
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-BALANCA-PRECO-ETQ** | 🟢 **PREP pronto — aguarda senha** | **NÃO** | **52/52** |
+
 ### ✅ Deploy loja — PDV-BALANCA-AGRO-PG · **Live v26.71** · 09/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v26.71** — `producao` @ `d7e6fb5d` · **não** foi merge do `teste` |
-| **O quê** | Bip/colar EAN balança sob `agro_pg` (PLU `0010` · R$ 4,81) |
-| **Branch PREP** | `deploy/prep-pdv-balanca-agro-pg` · tip `d7e6fb5d` · base Live **v26.70** @ `f290c371` |
-| **Migrate** | **NÃO** |
-| **Provas** | path **49/49** · etq **39/39** · unit **9/9** · **PREP_FAILS=0** |
-| **Rollback** | tag `rollback/pre-pdv-balanca-agro-pg-v26.70` @ `f290c371` · `docs/ROLLBACK-PDV-BALANCA-AGRO-PG.md` · **só** frase+senha |
-| **Você** | Ctrl+F5 · badge **v26.71** · colar `2001000004812` + Enter → carrinho **R$ 4,81** |
-
-### ✅ CHECKLIST ÚNICO — 09/10 · PDV-BALANCA-AGRO-PG · ✅ Live v26.71
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-BALANCA-AGRO-PG** | ✅ **enviado / Live v26.71** | **NÃO** | **49/49** |
+| **Status** | ✅ **enviado / Live v26.71** — bip OK · preço etiqueta corrigido no PREP **v26.72** (aguarda senha) |
+| **Rollback pacote** | tag `rollback/pre-pdv-balanca-agro-pg-v26.70` |
 
 ### ✅ Deploy loja — Checklist 08/10c · **Live v26.70** · 08/10
 
