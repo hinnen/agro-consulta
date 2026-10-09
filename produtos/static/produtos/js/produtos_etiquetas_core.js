@@ -278,12 +278,25 @@
     for (var i = 0; i < cands.length; i++) {
       var cb = String(cands[i] || '').replace(/\D/g, '');
       if (ehCodigoBarrasLojaInterno(cb)) {
-        /* Sempre EAN-13 nas barras (laser 1D). Legado sem DV: ean_force mantém o mesmo número. */
+        /* EAN-13 com DV GS1 — leitores que validam checksum recusam legado 230… sem DV. */
+        if (ean13ChecksumOk(cb)) {
+          return { valor: cb, formato: 'EAN13', codigo_loja: true };
+        }
+        var normLoja = normalizarEan13(cb);
+        if (normLoja && normLoja.valor) {
+          return {
+            valor: normLoja.valor,
+            formato: 'EAN13',
+            codigo_loja: true,
+            ean_corrigido: true,
+            valor_original: cb,
+          };
+        }
         return {
           valor: cb,
           formato: 'EAN13',
           codigo_loja: true,
-          ean_force: !ean13ChecksumOk(cb),
+          ean_force: true,
         };
       }
     }

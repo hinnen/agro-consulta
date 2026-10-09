@@ -6,6 +6,7 @@ from typing import Any
 
 from django.db.models import Q
 
+from produtos.agro_codigo_barras_loja_util import variantes_busca_codigo_barras_loja
 from produtos.mongo_index_codigos import (
     CAD_EXTRAS_CB_OPCIONAIS_KEYS,
     mongo_query_so_index_codigo,
@@ -186,6 +187,10 @@ def q_codigo_exato_cadastro(termo: str) -> Q | None:
 
     if digits and len(digits) >= 4:
         _or(Q(codigo_barras=digits) | Q(codigo_barras__iexact=termo.strip()))
+        if digits.isdigit() and len(digits) == 13 and digits.startswith("230"):
+            for alt in variantes_busca_codigo_barras_loja(digits):
+                if alt != digits:
+                    _or(Q(codigo_barras=alt) | Q(codigo_barras__iexact=alt))
         if not termo_eh_codigo_gm(termo):
             _or(Q(codigo_interno__iexact=digits) | Q(codigo_nfe__iexact=digits))
     for v in variantes_gm_literal(termo):
@@ -307,6 +312,10 @@ def overlay_pids_por_codigo(termo: str, *, limit: int = 80) -> list[str]:
             )
     elif digits.isdigit() and len(digits) >= 8:
         _or(Q(codigo_barras=digits) | Q(codigo_barras__iexact=digits) | Q(codigo_nfe__iexact=digits))
+        if len(digits) == 13 and digits.startswith("230"):
+            for alt in variantes_busca_codigo_barras_loja(digits):
+                if alt != digits:
+                    _or(Q(codigo_barras=alt) | Q(codigo_barras__iexact=alt))
         q_json = q_overlay_json_barras_opcionais(digits)
         if q_json is not None:
             _or(q_json)
