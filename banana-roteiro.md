@@ -892,8 +892,18 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PDV-BALANCA-AGRO-PG** | ✅ **Live v26.71** · **49/49** | **NÃO** |
+| 1 | **PDV-BALANCA-AGRO-PG** | ✅ **Live v26.71** · bip OK | **NÃO** |
 
-**Live:** `producao` @ `d7e6fb5d`.  
-**Rollback:** tag `rollback/pre-pdv-balanca-agro-pg-v26.70` @ `f290c371` · `docs/ROLLBACK-PDV-BALANCA-AGRO-PG.md` · **só** frase+senha.  
-**Smoke:** Ctrl+F5 · badge **v26.71** · colar `2001000004812` + Enter → **R$ 4,81**.
+**Live:** `producao` @ `2eab76c1`. Preço etiqueta: ver §73.
+
+---
+
+## 73. Checklist único — PDV-BALANCA-PRECO-ETQ · 🟢 PREP aguarda senha · 09/10
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-BALANCA-PRECO-ETQ** | 🟢 **PREP pronto — aguarda senha** · **52/52** | **NÃO** |
+
+**Branch PREP:** `deploy/prep-pdv-balanca-agro-pg` · alvo **v26.72**.  
+**Na senha:** `reset --hard origin/deploy/prep-pdv-balanca-agro-pg` → push `producao` · **Ctrl+F5**.  
+**Smoke:** `2001000004812` → carrinho **R$ 4,81** (não 9,40).
