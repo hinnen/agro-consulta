@@ -1294,25 +1294,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — lote pendente loja (`CHECKLIST 09/10f` · 09/10)
+### ✅ Deploy loja — CHECKLIST 09/10f · **Live v26.76** · 09/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | **ETQ-EAN-LOJA-DV** (etiqueta 230… + botão **230** cadastro, **só Postgres**) · **PDV-VALOR-RS-MODAL** (Enter → valor R$ no wizard) |
-| **Prova** | etq **74/74** · gerador **15/15** · termica **69/69** · unit **5/5** · valor-rs **39/39** · PIN **9973** · **PREP_FAILS=0** |
+| **Status** | ✅ **enviado / Live v26.76** — `producao` @ `896327e9` · **não** foi merge do `teste` |
+| **O quê** | **ETQ-EAN-LOJA-DV** (etiqueta 230… + botão **230** cadastro Postgres) · **PDV-VALOR-RS-MODAL** (Enter → valor R$ no wizard) |
+| **Prova** | etq **74/74** · gerador **15/15** · valor-rs **39/39** · PIN **9973** · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** · tip PREP `deploy/prep-checklist-0910f` · alvo **v26.76** |
-| **Antes** | Live **v26.74** |
-| **Rollback** | tag `rollback/pre-checklist-0910f-v26.74` · `docs/ROLLBACK-ETQ-EAN-LOJA-DV.md` · `docs/ROLLBACK-PDV-VALOR-RS-MODAL.md` |
-| **Na senha** | `docs/DEPLOY-PREP-CHECKLIST-0910f.md` · `scripts/cutover_loja_checklist_0910f.sh --exec` |
-| **Você** | Ctrl+F5 · **v26.76** · botão **230** Fiscal · reimprimir 230… legado · wizard Enter → R$ |
+| **Branch PREP** | `deploy/prep-checklist-0910f` · base Live **v26.74** @ `61c164b1` |
+| **Rollback** | tag `rollback/pre-checklist-0910f-v26.74` · backup `producao-backup-pre-v2676-checklist-0910f` · **só** frase+senha |
+| **Você** | Ctrl+F5 · badge **v26.76** · botão **230** Fiscal · reimprimir 230… legado · wizard Enter → R$ |
 
-### ✅ CHECKLIST ÚNICO — 09/10f · 🟢 pronto para envio
+### ✅ CHECKLIST ÚNICO — 09/10f · ✅ Live v26.76
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-EAN-LOJA-DV** (+ gerador 230 PG) | 🟢 **pronto para envio à produção** | **NÃO** | **74/74** · **15/15** |
-| 2 | **PDV-VALOR-RS-MODAL** | 🟢 **pronto para envio à produção** | **NÃO** | **39/39** · PIN 9973 |
+| 1 | **ETQ-EAN-LOJA-DV** (+ gerador 230 PG) | ✅ **Live v26.76** | **NÃO** | **74/74** · **15/15** |
+| 2 | **PDV-VALOR-RS-MODAL** | ✅ **Live v26.76** | **NÃO** | **39/39** · PIN 9973 |
 
 ### 📦 PACOTE PRONTO — valor em R$ no Enter (`PDV-VALOR-RS-MODAL` · 09/10)
 
