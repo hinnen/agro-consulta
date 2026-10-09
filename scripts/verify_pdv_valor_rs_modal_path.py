@@ -103,13 +103,24 @@ def test_contratos() -> None:
         == 0
     )
     check("prep_ancestral", ancestral_ok)
+    # Delta do tip PREP (feature tip pode incluir histórico do teste).
     mig = subprocess.run(
-        ["git", "diff", "--name-only", "origin/producao...HEAD"],
+        [
+            "git",
+            "diff",
+            "--name-only",
+            "origin/producao...origin/deploy/prep-pdv-valor-rs-modal",
+        ],
         cwd=ROOT,
         capture_output=True,
         text=True,
     ).stdout
-    check("prep_sem_migrate", "migration" not in mig.lower(), mig.strip()[:80] or "ok")
+    mig_paths = [
+        ln.strip()
+        for ln in mig.splitlines()
+        if "/migrations/" in ln.replace("\\", "/")
+    ]
+    check("prep_sem_migrate", not mig_paths, ",".join(mig_paths[:3]) or "ok")
 
 
 def test_math() -> None:
