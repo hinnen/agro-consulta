@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from integracoes.texto import normalizar
@@ -314,7 +315,14 @@ def buscar_documentos_unificado(
         _pg_suficiente = False
     if skip_mongo_complemento and usa_pg and not _familia_gm:
         # Bip 8+ dígitos sem hit no PG: deixa o Mongo complementar (barra extra / legado).
-        if pg_docs or not parece_codigo_cadastro(termo):
+        # PLU balança 4–5 dígitos (ex. 0010): também complementar — não é «texto comum»
+        # e o overlay/código costuma estar só no Mongo até o espelho PG atualizar.
+        _dig_termo = re.sub(r"\D", "", str(termo or ""))
+        _plu_balanca = _dig_termo.isdigit() and 4 <= len(_dig_termo) <= 5
+        if pg_docs:
+            _pg_suficiente = True
+            mongo_docs = []
+        elif not parece_codigo_cadastro(termo) and not _plu_balanca:
             _pg_suficiente = True
             mongo_docs = []
     if db is not None and client is not None and not somente_pg and not _pg_suficiente:

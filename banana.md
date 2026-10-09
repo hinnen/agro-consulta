@@ -1294,6 +1294,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — PDV balança agro_pg (`PDV-BALANCA-AGRO-PG` · 09/10)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Live v26.70.1: EAN `2001000004812` (PLU `0010` · R$ 4,81) não ia ao carrinho. Overlay ignora PLU &lt;8 · motor agro_pg pulava Mongo no `0010` · API exigia Mongo · cache BCA podia congelar vazio. Fix: overlay PLU 4–7 · motor complementa Mongo · API sem exigir `db` · sem cache BCA em EAN flag 2 · casa `gm0010-*` no index. |
+| **Prova** | `scripts/verify_pdv_balanca_agro_pg_path.py` **45/45** · etq-plu **39/39** · unit **9/9** · **PREP_FAILS=0** · PIN **9973** (doc; SQLite cloud sem perfil) |
+| **Migrate** | **NÃO** |
+| **Mexe** | `views.py` · `motor_busca_unificado_util.py` · `cadastro_busca_codigo_util.py` · `catalogo_agro.py` · `busca_filtro_pdv_util.py` · provas |
+| **Status** | 🟢 **pronto para envio à produção** · no `teste` · alvo **v26.71** · **não subiu** |
+| **Antes** | Live **v26.70** / **v26.70.1** · `producao` @ tip checklist 08/10c |
+| **Rollback** | `docs/ROLLBACK-PDV-BALANCA-AGRO-PG.md` · **só** frase+senha |
+| **Você** | Após deploy: Ctrl+F5 · colar `2001000004812` + Enter → carrinho **R$ 4,81** (CAIXA FECHADO não bloqueia bip na consulta) |
+
+### ✅ CHECKLIST ÚNICO — 09/10 · PDV-BALANCA-AGRO-PG · 🟢 pronto para envio
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-BALANCA-AGRO-PG** | 🟢 **pronto para envio à produção** | **NÃO** | **45/45** · etq **39/39** · unit **9/9** |
+
+**Branch:** `teste` (via `cursor/balanca-plu-agro-pg-ca8a`) · **não** merge `teste`→`producao` sem frase+senha.  
+**Smoke na senha:** healthz · Ctrl+F5 · badge **v26.71** · bip/colar `2001000004812`.
+
 ### ✅ Deploy loja — Checklist 08/10c · **Live v26.70** · 08/10
 
 | Campo | Valor |

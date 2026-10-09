@@ -885,3 +885,15 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 **Live:** producao @ `3d8b95c7` · Render `dep-db3ppemgekts73e01ed0`.  
 **Rollback:** tag `rollback/pre-checklist-0810c-v26.66` @ `f29d3f8e` · `docs/ROLLBACK-CHECKLIST-0810c.md` · **só** frase+senha.
+
+---
+
+## 72. Checklist único — PDV-BALANCA-AGRO-PG · 🟢 pronto para envio · 09/10
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-BALANCA-AGRO-PG** | 🟢 **pronto para envio à produção** · **45/45** · etq **39/39** · unit **9/9** | **NÃO** |
+
+**O quê:** sob `agro_pg`, EAN `2001000004812` (PLU `0010` · R$ 4,81) volta a ir ao carrinho.  
+**Prova:** `scripts/verify_pdv_balanca_agro_pg_path.py`. **Rollback:** `docs/ROLLBACK-PDV-BALANCA-AGRO-PG.md`.  
+**Não entra:** resto do `teste`. **Só** frase + senha.
