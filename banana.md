@@ -1299,19 +1299,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | No **wizard** `/pdv/checkout/`: (1) etiqueta EAN → preço unitário + **qty = total÷unitário**; (2) sem balança: `produto R$10` / `$10` / `=10` / `10$` → qty sozinha. |
-| **Prova** | qty-valor **63/63** · agro **56/56** · etq **41/41** · unit **11/11** · PIN **9973** · API `?wizard=1` unit 9,40 + etq 4,81 → qty **0,512** · static `pdv_wizard.js` OK · **PREP_FAILS=0** |
+| **Prova** | qty-valor **63/63** · agro **56/56** · etq **41/41** · unit **11/11** · PIN **9973** · qty **0,512** · JS syntax OK · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** · branch `cursor/balanca-qty-por-valor-ca8a` · tip PREP `deploy/prep-pdv-balanca-agro-pg` · alvo **v26.74** |
-| **Antes** | Live **v26.71** · v26.73 só legado `/consulta/` (loja não usa) |
-| **Rollback** | tip Live anterior · **só** frase+senha |
-| **Na senha** | `docs/DEPLOY-PREP-PDV-BALANCA-AGRO-PG.md` |
-| **Você** | Ctrl+F5 no **PDV** (`/pdv/checkout/`) · **v26.74** · bip `2001000004812` → qty≈0,512 · `nome R$10` Enter |
+| **Status** | 🟢 **pronto para envio à produção** · tip PREP armado · cutover ~1–2 min · alvo **v26.74** |
+| **Antes** | Live **v26.71** @ `2eab76c1` |
+| **Rollback** | tag `rollback/pre-pdv-balanca-qty-valor-v26.71` · `docs/ROLLBACK-PDV-BALANCA-QTY-VALOR.md` · **só** frase+senha |
+| **Na senha** | `./scripts/cutover_loja_qty_valor.sh --exec` (ou `docs/DEPLOY-PREP-PDV-BALANCA-AGRO-PG.md`) |
+| **Você** | Ctrl+F5 `/pdv/checkout/` · **v26.74** · bip `2001000004812` → qty≈0,512 · `nome R$10` Enter |
 
 ### ✅ CHECKLIST ÚNICO — 09/10c · PDV-BALANCA-QTY-VALOR · 🟢 pronto para envio
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-BALANCA-QTY-VALOR** | 🟢 **pronto para envio à produção** | **NÃO** | **63/63** · wizard `/pdv/checkout/` |
+| 1 | **PDV-BALANCA-QTY-VALOR** | 🟢 **pronto para envio à produção** | **NÃO** | **63/63** · wizard · tip PREP armado |
 
 ### ~~PACOTE PRONTO — preço etiqueta balança (`PDV-BALANCA-PRECO-ETQ`)~~ · **superado por QTY-VALOR v26.73**
 
@@ -1324,9 +1324,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v26.71** — `producao` @ `d7e6fb5d` · **não** foi merge do `teste` |
+| **Status** | ✅ **enviado / Live v26.71** — bip OK · preço+qty absorvidos no PREP **QTY-VALOR v26.74** (pronto envio) |
 | **O quê** | Bip/colar EAN balança sob `agro_pg` (PLU `0010` · R$ 4,81) |
-| **Branch PREP** | `deploy/prep-pdv-balanca-agro-pg` · tip `d7e6fb5d` · base Live **v26.70** @ `f290c371` |
+| **Branch PREP** | `deploy/prep-pdv-balanca-agro-pg` · tip Live `d7e6fb5d` · base **v26.70** @ `f290c371` |
 | **Migrate** | **NÃO** |
 | **Provas** | path **49/49** · etq **39/39** · unit **9/9** · **PREP_FAILS=0** |
 | **Rollback** | tag `rollback/pre-pdv-balanca-agro-pg-v26.70` @ `f290c371` · `docs/ROLLBACK-PDV-BALANCA-AGRO-PG.md` · **só** frase+senha |
