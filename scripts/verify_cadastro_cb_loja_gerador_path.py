@@ -30,7 +30,8 @@ def read(rel: str) -> str:
 
 def main() -> int:
     views = read("produtos/views.py")
-    ok("alocar_proximo_codigo_barras_loja(db, col)" in views, "API usa alocador unificado")
+    ok("alocar_proximo_codigo_barras_loja_postgres()" in views, "API PG quando mongo off/agro_pg")
+    ok("alocar_proximo_codigo_barras_loja(db, col)" in views, "API fallback mongo legado")
     ok("Mongo indisponível" not in views.split("api_produtos_cadastro_proximo_cb_loja")[1][:800], "API nao retorna 503 mongo fixo")
     ok("@login_required" in views.split("def api_produtos_cadastro_proximo_cb_loja")[0][-120:], "API exige login")
 
@@ -43,12 +44,17 @@ def main() -> int:
     ok("def alocar_proximo_codigo_barras_loja(" in util, "util alocador unificado")
     ok("_cb_loja_ocupado_unificado" in util, "colisao PG + mongo opcional")
     ok("return False" in util.split("_cb_loja_ocupado_mongo")[1][:400], "mongo erro nao marca tudo ocupado")
+    ok("_seq_legado_10d_parece_cb_loja" in util, "filtro NCM nao infla max seq")
 
     from produtos.agro_codigo_barras_loja_util import (  # noqa: E402
+        _seqs_para_max_alocacao,
         alocar_proximo_codigo_barras_loja,
         ean13_checksum_ok,
         formatar_codigo_barras_loja,
     )
+
+    ok(_seqs_para_max_alocacao("2309902000000") == [], "NCM padded ignorado max")
+    ok(_seqs_para_max_alocacao("2300000001480") == [1480], "legado 1480 max ok")
 
     with patch("produtos.agro_codigo_barras_loja_util._cb_loja_ocupado_unificado", return_value=False):
         with patch("produtos.agro_codigo_barras_loja_util._max_seq_cb_loja_unificado", return_value=99):

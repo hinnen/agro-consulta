@@ -4,6 +4,7 @@ from unittest.mock import patch
 from django.test import SimpleTestCase
 
 from produtos.agro_codigo_barras_loja_util import (
+    _seqs_para_max_alocacao,
     alocar_proximo_codigo_barras_loja,
     ean13_checksum_ok,
     ean13_para_bip_codigo_barras_loja,
@@ -44,3 +45,16 @@ class CodigoBarrasLojaEanTests(SimpleTestCase):
         self.assertTrue(ean13_checksum_ok(cb))
         self.assertEqual(ean13_para_bip_codigo_barras_loja(cb), cb)
         self.assertIn(cb, variantes_busca_codigo_barras_loja(cb))
+
+    def test_ncm_padded_nao_infla_max_seq(self):
+        """NCM 23099020 em campo errado (13 dígitos) não deve esgotar faixa 230."""
+        self.assertEqual(_seqs_para_max_alocacao("2309902000000"), [])
+        self.assertEqual(_seqs_para_max_alocacao("2309902012345"), [])
+        self.assertEqual(_seqs_para_max_alocacao("2300000001480"), [1480])
+
+    @patch("produtos.agro_codigo_barras_loja_util._max_seq_cb_loja_postgres", return_value=999_999_998)
+    @patch("produtos.agro_codigo_barras_loja_util._cb_loja_ocupado_unificado", return_value=False)
+    def test_alocar_apos_max_seq_alto(self, _occ, _max_pg):
+        err, cb = alocar_proximo_codigo_barras_loja(None, None)
+        self.assertIsNone(err)
+        self.assertTrue(ean13_checksum_ok(str(cb or "")))

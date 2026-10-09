@@ -80,6 +80,26 @@ def parsear_seq_codigo_barras_loja(cb: str) -> int | None:
         return None
 
 
+def _seq_legado_10d_parece_cb_loja(d: str) -> bool:
+    """
+    Evita NCM/outros 13 dígitos que começam com 230 (ex. 23099020…000) inflarem max_seq.
+    Legado interno costuma ter zeros à esquerda no corpo (2300000001480).
+    """
+    if not _CB_LOJA_REGEX.match(d):
+        return False
+    if ean13_checksum_ok(d):
+        return True
+    corpo = d[len(CB_LOJA_PREFIX) :]
+    if not corpo.isdigit():
+        return False
+    # NCM comum no cadastro (23099020…) preenchido em campo errado → 23099020xxxxxx
+    if corpo.startswith("99020"):
+        return False
+    if int(corpo[:3]) >= 990:
+        return False
+    return True
+
+
 def _seqs_para_max_alocacao(cb: str) -> list[int]:
     """Candidatos de seq para achar o próximo livre (legado 10 + novo 9)."""
     d = re.sub(r"\D", "", str(cb or ""))
@@ -87,9 +107,10 @@ def _seqs_para_max_alocacao(cb: str) -> list[int]:
         return []
     out: list[int] = []
     try:
-        out.append(int(d[len(CB_LOJA_PREFIX) :]))  # leitura 10 dígitos (legado / DV incluso)
         if ean13_checksum_ok(d):
-            out.append(int(d[len(CB_LOJA_PREFIX) : 12]))  # payload novo 9
+            out.append(_cap_seq_loja(int(d[len(CB_LOJA_PREFIX) : 12])))
+        elif _seq_legado_10d_parece_cb_loja(d):
+            out.append(_cap_seq_loja(int(d[len(CB_LOJA_PREFIX) :])))
     except ValueError:
         return []
     return out

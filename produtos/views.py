@@ -25686,16 +25686,22 @@ def api_produtos_cadastro_detalhe(request, produto_id: str):
 @require_GET
 def api_produtos_cadastro_proximo_cb_loja(request):
     """Próximo código de barras interno 230… EAN-13 com DV (embalagem loja / bipar no caixa)."""
-    from produtos.agro_codigo_barras_loja_util import alocar_proximo_codigo_barras_loja
-    from produtos.agro_fonte_config import agro_mongo_erp_desligado
+    from produtos.agro_codigo_barras_loja_util import (
+        alocar_proximo_codigo_barras_loja,
+        alocar_proximo_codigo_barras_loja_postgres,
+    )
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_mongo_erp_desligado
 
-    db = None
-    col = None
-    if not agro_mongo_erp_desligado():
+    # Loja / agro_pg: só Postgres (Mongo opcional só em import legado com ERP ligado).
+    if agro_mongo_erp_desligado() or agro_catalogo_usa_postgres():
+        err, cb = alocar_proximo_codigo_barras_loja_postgres()
+    else:
+        db = None
+        col = None
         client, db = obter_conexao_mongo()
         if db is not None and client is not None:
             col = client.col_p
-    err, cb = alocar_proximo_codigo_barras_loja(db, col)
+        err, cb = alocar_proximo_codigo_barras_loja(db, col)
     if err is not None:
         return err
     return JsonResponse({"ok": True, "codigo_barras": cb})

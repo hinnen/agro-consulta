@@ -73,15 +73,14 @@ def main() -> int:
 
     # Colisão conhecida: New(1571)=2300000015713 == Old(15713)
     ok(formatar_codigo_barras_loja(1571) == "230" + f"{15713:010d}", "colisao teorica new1571/old15713")
-    # ocupado check usaria string; max considera ambos
     seqs_new = _seqs_para_max_alocacao(formatar_codigo_barras_loja(1571))
-    ok(1571 in seqs_new, f"max inclui payload 9 {seqs_new}")
-    ok(15713 in seqs_new, f"max inclui leitura 10 (DV) {seqs_new}")
+    ok(seqs_new == [1571], f"max EAN novo so payload 9 {seqs_new}")
 
     lucky = "2300000001570"
     ok(ean13_checksum_ok(lucky), "1570 legado DV ok por acaso")
     seqs_lucky = _seqs_para_max_alocacao(lucky)
-    ok(1570 in seqs_lucky and 157 in seqs_lucky, f"max lucky {seqs_lucky}")
+    ok(seqs_lucky == [157], f"max EAN valido payload 9 (157) {seqs_lucky}")
+    ok(_seqs_para_max_alocacao("2309902000000") == [], "NCM padded nao entra max")
 
     ok(not eh_codigo_barras_loja("7898752405197"), "789 nao loja")
     ok(not eh_codigo_barras_loja("0120125412229"), "012 nao loja")
