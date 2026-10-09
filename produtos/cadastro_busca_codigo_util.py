@@ -272,7 +272,9 @@ def overlay_pids_por_codigo(termo: str, *, limit: int = 80) -> list[str]:
     if termo_eh_codigo_gm(termo) and len(al) < 5:
         return []
     digits = _RE_NAO_ALNUM.sub("", termo)
-    if digits.isdigit() and len(digits) < 8:
+    # PLU balança (4 dígitos, ex. 0010) e códigos curtos: match EXATO no overlay.
+    # Antes retornava [] para <8 dígitos → bip de etiqueta nunca achava «Salvar no Agro».
+    if digits.isdigit() and len(digits) < 4:
         return []
 
     q_obj: Q | None = None
@@ -290,6 +292,15 @@ def overlay_pids_por_codigo(termo: str, *, limit: int = 80) -> list[str]:
         if base:
             esc_b = re.escape(base)
             _or(Q(codigo_nfe__iregex=rf"^{esc_b}(-|$)") | Q(codigo_barras__iregex=rf"^{esc_b}(-|$)"))
+    elif digits.isdigit() and 4 <= len(digits) <= 7:
+        plu = digits.zfill(4) if len(digits) <= 4 else digits
+        short = digits.lstrip("0") or "0"
+        for cand in {digits, plu, short}:
+            _or(
+                Q(codigo_barras=cand)
+                | Q(codigo_barras__iexact=cand)
+                | Q(codigo_nfe__iexact=cand)
+            )
     elif digits.isdigit() and len(digits) >= 8:
         _or(Q(codigo_barras=digits) | Q(codigo_barras__iexact=digits) | Q(codigo_nfe__iexact=digits))
         q_json = q_overlay_json_barras_opcionais(digits)

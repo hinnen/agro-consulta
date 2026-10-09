@@ -1294,6 +1294,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🔧 WIP teste — **PDV-BALANCA-AGRO-PG** · 09/10 (cloud)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | **só no teste** — branch `cursor/balanca-plu-agro-pg-ca8a` · **NÃO** produção (aguarda frase+senha) |
+| **Sintoma loja** | Live **v26.70.1** · EAN `2001000004812` (PLU `0010` · R$ 4,81) colado/bipado · carrinho vazio · banner CAIXA FECHADO (não bloqueia `addCarrinho`) |
+| **Causa** | Com `agro_pg`: (1) overlay ignorava PLU &lt;8 dígitos; (2) motor tratava `0010` como texto e **pulava Mongo** sem hit PG; (3) API balança exigia `db`; (4) cache BCA 30s podia congelar resposta vazia do EAN |
+| **Fix** | `overlay_pids` PLU 4–7 · motor `_plu_balanca` complementa Mongo · API balança sem exigir Mongo · sem cache BCA em EAN flag 2 · casa PLU em `index_codigos` gm0010-* · filtro PDV PLU curto |
+| **Provas** | unit balança **9/9** · `verify_pdv_balanca_etq_plu_path.py` **39/39** · **PREP_FAILS=0** |
+| **Migrate** | **NÃO** |
+| **Você (após merge teste)** | Ctrl+F5 · colar `2001000004812` + Enter · deve ir ao carrinho a **R$ 4,81** (mesmo com caixa fechado para consulta) |
+
 ### ✅ Deploy loja — Checklist 08/10c · **Live v26.70** · 08/10
 
 | Campo | Valor |
