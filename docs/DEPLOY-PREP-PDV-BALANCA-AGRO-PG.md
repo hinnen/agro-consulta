@@ -1,7 +1,7 @@
 # PREP deploy — PDV-BALANCA-QTY-VALOR · alvo **v26.74**
 
-**Status:** 🟢 **pronto para envio à produção** · tip armado · cutover mínimo  
-**Não sobe sozinho.** Só com frase explícita + senha `99738595` na mesma mensagem.
+**Status:** ✅ **enviado / Live v26.74** — `producao` @ `a7c72730`  
+Cutover feito com frase+senha. Rollback: `docs/ROLLBACK-PDV-BALANCA-QTY-VALOR.md`.
 
 ## CHECKLIST ÚNICO (o que sobe)
 
