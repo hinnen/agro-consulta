@@ -105,6 +105,40 @@ class EtiquetaBalancaEan13Tests(SimpleTestCase):
         self.assertIn('len(_dig_termo) == 4', src)
         self.assertIn("exact_plu", src)
 
+    def test_overlay_nao_apaga_preco_etiqueta(self):
+        from types import SimpleNamespace
+
+        from produtos.views import _aplicar_produto_gestao_overlay_em_dict
+
+        def _s(v=""):
+            return SimpleNamespace(strip=lambda: v)
+
+        ov = SimpleNamespace(
+            nome=_s(""),
+            marca=_s(""),
+            categoria=_s(""),
+            fornecedor_texto=_s(""),
+            unidade=_s(""),
+            peso_etiqueta="",
+            preco_venda=Decimal("9.40"),
+            codigo_barras=_s("0010"),
+            codigo_nfe=_s("GM0010-1"),
+            subcategoria=_s(""),
+            descricao=_s(""),
+            ativo_exibicao=None,
+            cadastro_extras={},
+        )
+        row = {"preco_venda": 4.81, "preco_etiqueta_balanca": True}
+        with (
+            patch("produtos.cashback_venda_util.cashback_percentual_de_overlay", return_value=0.0),
+            patch("produtos.views.extrair_precos_por_forma_overlay", return_value=None),
+            patch("produtos.views.extrair_precos_modo_overlay", return_value=None),
+            patch("produtos.views.extrair_precos_grupos_overlay", return_value=None),
+            patch("produtos.views._overlay_subcategorias_para_row"),
+        ):
+            _aplicar_produto_gestao_overlay_em_dict(row, ov)
+        self.assertEqual(float(row["preco_venda"]), 4.81)
+
     def test_escolhe_gm_menos_1_entre_varios(self):
         cand = [
             {"Id": "a", "Codigo": "GM0010-25", "CodigoBarras": ""},

@@ -64,6 +64,19 @@ def test_contratos() -> None:
     check("js_api_etiqueta", "function executarBuscaAPIEtiquetaBalanca" in js)
     check("js_fallback_plu", "encodeURIComponent(plu || bal.codigo4)" in js)
     check("js_paste", "addEventListener('paste'" in js)
+    check(
+        "js_exact_reaplica_preco_etiqueta",
+        "montarProdutoPrecoEtiquetaBalanca(prods[0], bal, digits)" in js,
+    )
+    check(
+        "overlay_respeita_etiqueta",
+        "not row.get(\"preco_etiqueta_balanca\")" in views
+        or "not row.get('preco_etiqueta_balanca')" in views,
+    )
+    check(
+        "api_reaplica_preco_por_id",
+        'if pid in preco_por_id:' in views and 'preco_etiqueta_balanca' in views,
+    )
 
 
 def test_parse_escolher_casa() -> None:
