@@ -818,7 +818,8 @@ def _aplicar_produto_gestao_overlay_em_dict(
         if ov.unidade.strip():
             row["unidade"] = ov.unidade.strip()
         row["peso_etiqueta"] = str(getattr(ov, "peso_etiqueta", "") or "").strip()
-        if ov.preco_venda is not None:
+        # Preço da etiqueta de balança (EAN 2+PLU+total) prevalece sobre overlay/cadastro.
+        if ov.preco_venda is not None and not row.get("preco_etiqueta_balanca"):
             row["preco_venda"] = round(float(ov.preco_venda), 2)
         if ov.codigo_barras.strip():
             row["codigo_barras"] = ov.codigo_barras.strip()
@@ -24069,6 +24070,11 @@ def api_buscar_produtos(request):
                 row["categoria"] = str(_cat_w or "").strip()
                 row["subcategoria"] = _sub_w or ""
             _aplicar_produto_gestao_overlay_em_dict(row, overlay_pdv_map.get(pid))
+            # Overlay não pode apagar o total impresso na etiqueta (centavos do EAN).
+            if pid in preco_por_id:
+                row["preco_venda"] = round(_float_api_json(preco_por_id[pid]), 2)
+                if not compras:
+                    row["preco_etiqueta_balanca"] = True
             if compras:
                 try:
                     custo_pg = float(custo_pg_map.get(pid) or 0)

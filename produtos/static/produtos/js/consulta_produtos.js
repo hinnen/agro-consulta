@@ -3860,8 +3860,13 @@ function executarBuscaAPIEtiquetaBalanca(digits, bal) {
     const plu = String(bal.codigo4 || '').replace(/\D/g, '').padStart(4, '0');
 
     function tentarLocalOuLista(prods, exact) {
+        /* Sempre reaplica valor da etiqueta — overlay/API pode ter trazido preço de cadastro. */
         if (exact && prods.length === 1) {
-            processarResultadosBusca(prods, 'scanner', true);
+            processarResultadosBusca(
+                [montarProdutoPrecoEtiquetaBalanca(prods[0], bal, digits)],
+                'scanner',
+                true
+            );
             return true;
         }
         const hit = encontrarProdutoPorCodigoInternoBalanca(
