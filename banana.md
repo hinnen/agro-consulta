@@ -1298,13 +1298,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-<<<<<<< HEAD
-| **O quê** | (1) Etiqueta mantém preço no EAN; PDV usa **preço unitário** + **qty = total÷unitário** (estoque certo; total ≈ etiqueta). (2) Sem balança: na busca `produto R$10` / `$10` / `=10` / `10$` → calcula qty sozinho. |
-| **Prova** | qty-valor **51/51** · agro_pg **56/56** · etq_plu **41/41** · unit **11/11** · PIN **9973** OK · Client HTTP OK · JS smoke OK · UI `/consulta/` v26.73 · **PREP_FAILS=0** |
-=======
 | **O quê** | No **wizard** `/pdv/checkout/`: (1) etiqueta EAN → preço unitário + **qty = total÷unitário**; (2) sem balança: `produto R$10` / `$10` / `=10` / `10$` → qty sozinha. |
 | **Prova** | qty-valor **63/63** · agro_pg **56/56** · etq **41/41** · unit **11/11** · PIN **9973** · wizard JS OK · **PREP_FAILS=0** |
->>>>>>> 3c2f0826 (feat(pdv): QTY-VALOR no wizard /pdv/checkout/ (v26.74))
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** · branch `cursor/balanca-qty-por-valor-ca8a` · tip PREP `deploy/prep-pdv-balanca-agro-pg` · alvo **v26.74** |
 | **Antes** | Live **v26.71** · v26.73 só legado `/consulta/` (loja não usa) |
