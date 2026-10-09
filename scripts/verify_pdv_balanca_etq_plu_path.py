@@ -62,6 +62,8 @@ def test_contratos_arquivo() -> None:
     check("js_local_plu", "encontrarProdutoPorCodigoInternoBalanca" in js)
     check("js_api_etiqueta", "function executarBuscaAPIEtiquetaBalanca" in js)
     check("js_preco_etiqueta", "preco_etiqueta_balanca: true" in js)
+    check("js_valor_etiqueta", "valor_etiqueta_balanca: bal.valorReais" in js)
+    check("js_qtd_por_valor", "function calcularQtdPorValorTotal" in js)
     check("js_auditoria", "auditoria_codigo_bip: digits" in js)
     check(
         "js_caminho_scanner",

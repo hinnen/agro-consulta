@@ -105,7 +105,8 @@ class EtiquetaBalancaEan13Tests(SimpleTestCase):
         self.assertIn('len(_dig_termo) == 4', src)
         self.assertIn("exact_plu", src)
 
-    def test_overlay_nao_apaga_preco_etiqueta(self):
+    def test_overlay_aplica_preco_unitario_com_flag_etiqueta(self):
+        """Flag de etiqueta não bloqueia preço unitário do overlay (qty = total÷unitário)."""
         from types import SimpleNamespace
 
         from produtos.views import _aplicar_produto_gestao_overlay_em_dict
@@ -128,7 +129,11 @@ class EtiquetaBalancaEan13Tests(SimpleTestCase):
             ativo_exibicao=None,
             cadastro_extras={},
         )
-        row = {"preco_venda": 4.81, "preco_etiqueta_balanca": True}
+        row = {
+            "preco_venda": 4.81,
+            "preco_etiqueta_balanca": True,
+            "valor_etiqueta_balanca": 4.81,
+        }
         with (
             patch("produtos.cashback_venda_util.cashback_percentual_de_overlay", return_value=0.0),
             patch("produtos.views.extrair_precos_por_forma_overlay", return_value=None),
@@ -137,7 +142,17 @@ class EtiquetaBalancaEan13Tests(SimpleTestCase):
             patch("produtos.views._overlay_subcategorias_para_row"),
         ):
             _aplicar_produto_gestao_overlay_em_dict(row, ov)
-        self.assertEqual(float(row["preco_venda"]), 4.81)
+        self.assertEqual(float(row["preco_venda"]), 9.40)
+        self.assertEqual(float(row["valor_etiqueta_balanca"]), 4.81)
+
+    def test_qty_por_valor_etiqueta(self):
+        """4,81 ÷ 9,40 ≈ 0,512 kg — estoque e total batem."""
+        total = Decimal("4.81")
+        unit = Decimal("9.40")
+        qtd = (total / unit).quantize(Decimal("0.001"))
+        self.assertEqual(qtd, Decimal("0.512"))
+        linha = (unit * qtd).quantize(Decimal("0.01"))
+        self.assertEqual(linha, Decimal("4.81"))
 
     def test_escolhe_gm_menos_1_entre_varios(self):
         cand = [
