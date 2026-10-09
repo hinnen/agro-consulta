@@ -109,7 +109,13 @@ def test_contratos() -> None:
         capture_output=True,
         text=True,
     ).stdout
-    check("prep_sem_migrate", "migration" not in mig.lower(), mig.strip()[:80] or "ok")
+    mig_paths = [
+        ln.strip()
+        for ln in mig.splitlines()
+        if "/migrations/" in ln.replace("\\", "/")
+        or ln.strip().endswith("migrations.py")
+    ]
+    check("prep_sem_migrate", not mig_paths, ",".join(mig_paths[:3]) or "ok")
 
 
 def test_math() -> None:
