@@ -1294,6 +1294,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — valor em R$ no Enter (`PDV-VALOR-RS-MODAL` · 09/10)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Wizard `/pdv/checkout/`: após Enter/clique no produto → pergunta grande **«Valor em R$?»** · qty = valor÷preço · **Enter vazio / Esc / Pular** = lança sem valor |
+| **Prova** | path **13/13** · PIN n/a · **PREP_FAILS=0** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** · branch `cursor/pdv-valor-rs-modal-ca8a` · alvo **v26.76** |
+| **Antes** | Live **v26.74** (QTY-VALOR) · teste também tem ETQ v26.75 |
+| **Rollback** | tip Live anterior · **só** frase+senha |
+| **Você** | Ctrl+F5 · **v26.76** · busca produto Enter → digita `10` ou Enter vazio |
+
+### ✅ CHECKLIST ÚNICO — 09/10e · PDV-VALOR-RS-MODAL · 🟢 pronto para envio
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-VALOR-RS-MODAL** | 🟢 **pronto para envio à produção** | **NÃO** | **13/13** |
+
 ### 📦 PACOTE PRONTO — ETQ-EAN-LOJA-DV (`CHECKLIST 09/10d` · 09/10)
 
 | Campo | Valor |
