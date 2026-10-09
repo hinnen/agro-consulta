@@ -581,10 +581,17 @@ def montar_index_codigos_final(
     extras_sqlite: list[str] | None = None,
 ) -> list[str]:
     """União: espelho ERP (incl. similares) + códigos Agro (overlay e variações SQLite)."""
+    from produtos.agro_codigo_barras_loja_util import variantes_busca_codigo_barras_loja
+
     base = extrair_index_codigos_de_documento_mongo(doc)
     out: set[str] = set(base)
     for x in extras_sqlite or []:
         _push_val(out, x)
+    for x in list(out):
+        dig = somente_alnum(str(x))
+        if len(dig) == 13 and dig.startswith("230"):
+            for v in variantes_busca_codigo_barras_loja(dig):
+                _push_val(out, v)
     ordered = sorted(out)
     return ordered[:_MAX_VALORES]
 
@@ -692,8 +699,17 @@ def produto_termo_bate_campos_principais(doc: dict, termo_limpo: str) -> bool:
 
 def mongo_query_so_index_codigo(termo_limpo: str) -> dict:
     """Uma única chave para find/$or mínimo."""
+    from produtos.agro_codigo_barras_loja_util import variantes_busca_codigo_barras_loja
+
     tl = somente_alnum(str(termo_limpo or "")).lower()
-    return {INDEX_CODIGOS_CAMPO: tl}
+    alts = {tl}
+    dig = somente_alnum(str(termo_limpo or ""))
+    if len(dig) == 13 and dig.startswith("230"):
+        for v in variantes_busca_codigo_barras_loja(dig):
+            alts.add(somente_alnum(v).lower())
+    if len(alts) == 1:
+        return {INDEX_CODIGOS_CAMPO: tl}
+    return {INDEX_CODIGOS_CAMPO: {"$in": sorted(alts)}}
 
 
 def encontrar_produto_casar_entrada_nfe(

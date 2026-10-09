@@ -5,8 +5,9 @@ Formato novo (EAN-13 válido): 230 + 9 dígitos de sequência + dígito verifica
 Ex.: seq 1572 → 2300000015728 (DV correto).
 
 Formato legado (ainda aceito no cadastro): 230 + 10 dígitos sequenciais sem DV EAN.
-Ex.: 2300000001571 — número NÃO muda; na etiqueta SisVale imprime EAN-13 forçado
-(mesmo dígitos) para o laser 1D ler, sem trocar etiqueta/cadastro em massa.
+Ex.: 2300000001571 — o cadastro NÃO muda; na **etiqueta** imprime EAN-13 com DV
+correto (12 primeiros + dígito verificador) para leitores que validam GS1.
+Ex.: 2300000001480 → barras 2300000001488; busca/index incluem os dois.
 """
 
 from __future__ import annotations
@@ -93,6 +94,41 @@ def eh_codigo_barras_loja(cb: str) -> bool:
     """True se for faixa interna 230… (13 dígitos da loja — legado ou EAN novo)."""
     d = re.sub(r"\D", "", str(cb or ""))
     return bool(_CB_LOJA_REGEX.match(d))
+
+
+def ean13_para_bip_codigo_barras_loja(cb: str) -> str | None:
+    """
+    EAN-13 que o leitor lê na etiqueta.
+    Legado: recalcula só o DV (corpo = 12 primeiros do cadastro).
+    """
+    d = re.sub(r"\D", "", str(cb or ""))
+    if not _CB_LOJA_REGEX.match(d):
+        return None
+    if ean13_checksum_ok(d):
+        return d
+    dv = ean13_digito_verificador(d[:12])
+    if dv is None:
+        return None
+    return f"{d[:12]}{dv}"
+
+
+def variantes_busca_codigo_barras_loja(cb: str) -> list[str]:
+    """Cadastro armazenado + EAN bipado (index / Postgres / overlay)."""
+    d = re.sub(r"\D", "", str(cb or ""))
+    if not _CB_LOJA_REGEX.match(d):
+        return []
+    out = {d}
+    bip = ean13_para_bip_codigo_barras_loja(d)
+    if bip:
+        out.add(bip)
+    # Bip leu EAN válido → cadastro legado (sem DV) que gera o mesmo EAN na etiqueta.
+    if ean13_checksum_ok(d):
+        body = d[:12]
+        for tail in "0123456789":
+            leg = f"{body}{tail}"
+            if leg != d and ean13_para_bip_codigo_barras_loja(leg) == d:
+                out.add(leg)
+    return sorted(out)
 
 
 def _cb_loja_ocupado_overlays(cb: str) -> bool:
