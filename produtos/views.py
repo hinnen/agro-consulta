@@ -257,10 +257,6 @@ from .nfe_entrada_util import (
     sanear_carimbo_financeiro_falso_rascunho,
     sincronizar_financeiro_rascunho_entrada_nfe,
 )
-from .agro_codigo_barras_loja_util import (
-    alocar_proximo_codigo_barras_loja_postgres,
-    mongo_alocar_proximo_codigo_barras_loja,
-)
 from .agro_produto_fiscal_defaults import (
     fiscal_padrao_ui_cadastro,
     merge_fiscal_padrao_cadastro_manual_sp_sn,
@@ -25747,18 +25743,20 @@ def api_produtos_cadastro_detalhe(request, produto_id: str):
     return JsonResponse({"ok": True, "produto": detalhe})
 
 
+@login_required(login_url="/entrar/")
 @require_GET
 def api_produtos_cadastro_proximo_cb_loja(request):
     """Próximo código de barras interno 230… EAN-13 com DV (embalagem loja / bipar no caixa)."""
-    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+    from produtos.agro_codigo_barras_loja_util import alocar_proximo_codigo_barras_loja
+    from produtos.agro_fonte_config import agro_mongo_erp_desligado
 
-    if agro_catalogo_usa_postgres():
-        err, cb = alocar_proximo_codigo_barras_loja_postgres()
-    else:
+    db = None
+    col = None
+    if not agro_mongo_erp_desligado():
         client, db = obter_conexao_mongo()
-        if db is None or client is None:
-            return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
-        err, cb = mongo_alocar_proximo_codigo_barras_loja(db, client.col_p)
+        if db is not None and client is not None:
+            col = client.col_p
+    err, cb = alocar_proximo_codigo_barras_loja(db, col)
     if err is not None:
         return err
     return JsonResponse({"ok": True, "codigo_barras": cb})

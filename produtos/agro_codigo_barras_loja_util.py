@@ -26,7 +26,12 @@ logger = logging.getLogger(__name__)
 CB_LOJA_PREFIX = "230"
 CB_LOJA_SEQ_LEN = 10  # corpo legado (10) / regex 13 dígitos totais
 CB_LOJA_SEQ_LEN_NOVO = 9  # payload EAN-13 novo
+CB_LOJA_SEQ_MAX = 999_999_999
 _CB_LOJA_REGEX = re.compile(rf"^{CB_LOJA_PREFIX}\d{{{CB_LOJA_SEQ_LEN}}}$")
+
+
+def _cap_seq_loja(n: int) -> int:
+    return max(1, min(int(n), CB_LOJA_SEQ_MAX))
 
 
 def ean13_digito_verificador(d12: str) -> int | None:
@@ -69,8 +74,8 @@ def parsear_seq_codigo_barras_loja(cb: str) -> int | None:
         return None
     try:
         if ean13_checksum_ok(d):
-            return int(d[len(CB_LOJA_PREFIX) : 12])
-        return int(d[len(CB_LOJA_PREFIX) :])
+            return _cap_seq_loja(int(d[len(CB_LOJA_PREFIX) : 12]))
+        return _cap_seq_loja(int(d[len(CB_LOJA_PREFIX) :]))
     except ValueError:
         return None
 
@@ -153,15 +158,37 @@ def _cb_loja_ocupado_postgres(cb: str) -> bool:
     return _cb_loja_ocupado_overlays(cb)
 
 
-def _cb_loja_ocupado(db: Database, col: str, cb: str) -> bool:
+def _cb_loja_ocupado_mongo(db: Database, col: str, cb: str) -> bool:
     or_dup = [{fld: cb} for fld in ("CodigoBarras", "CodigoBarrasProduto", "Codigo", "CodigoNFe", "EAN_NFe")]
     try:
-        if db[col].find_one({"$or": or_dup}):
-            return True
+        return bool(db[col].find_one({"$or": or_dup}, {"_id": 1}))
     except Exception:
         logger.warning("cb loja: colisão Mongo", exc_info=True)
+        return False
+
+
+def _cb_loja_ocupado(db: Database, col: str, cb: str) -> bool:
+    if _cb_loja_ocupado_mongo(db, col, cb):
         return True
     return _cb_loja_ocupado_overlays(cb)
+
+
+def _cb_loja_ocupado_unificado(db: Database | None, col: str | None, cb: str) -> bool:
+    if _cb_loja_ocupado_postgres(cb):
+        return True
+    if db is not None and col:
+        return _cb_loja_ocupado_mongo(db, col, cb)
+    return False
+
+
+def _max_seq_cb_loja_unificado(db: Database | None, col: str | None) -> int:
+    max_seq = _max_seq_cb_loja_postgres()
+    if db is not None and col:
+        try:
+            max_seq = max(max_seq, _max_seq_cb_loja_catalogo(db, col))
+        except Exception:
+            logger.warning("cb loja: max seq Mongo", exc_info=True)
+    return max_seq
 
 
 def _max_seq_cb_loja_catalogo(db: Database, col: str) -> int:
@@ -242,31 +269,39 @@ def _erro_cb_loja_esgotado() -> tuple[JsonResponse, None]:
     )
 
 
-def alocar_proximo_codigo_barras_loja_postgres() -> tuple[JsonResponse | None, str | None]:
-    """Próximo EAN-13 230… livre no catálogo Postgres + overlays Agro."""
-    n = max(1, _max_seq_cb_loja_postgres() + 1)
+def alocar_proximo_codigo_barras_loja(
+    db: Database | None = None,
+    col: str | None = None,
+) -> tuple[JsonResponse | None, str | None]:
+    """
+    Próximo EAN-13 230… livre.
+    Postgres + overlays sempre; Mongo complementa max/colisião quando disponível.
+    """
+    n = _cap_seq_loja(_max_seq_cb_loja_unificado(db, col) + 1)
     max_steps = 100_000
     steps = 0
+    ultimo_cb = ""
     while steps < max_steps:
         cb = formatar_codigo_barras_loja(n)
-        if not _cb_loja_ocupado_postgres(cb):
+        if cb == ultimo_cb and n >= CB_LOJA_SEQ_MAX:
+            break
+        ultimo_cb = cb
+        if not _cb_loja_ocupado_unificado(db, col, cb):
             return None, cb
+        if n >= CB_LOJA_SEQ_MAX:
+            break
         n += 1
         steps += 1
     return _erro_cb_loja_esgotado()
+
+
+def alocar_proximo_codigo_barras_loja_postgres() -> tuple[JsonResponse | None, str | None]:
+    """Atalho — só Postgres/overlays (sem Mongo)."""
+    return alocar_proximo_codigo_barras_loja(None, None)
 
 
 def mongo_alocar_proximo_codigo_barras_loja(
     db: Database, col: str
 ) -> tuple[JsonResponse | None, str | None]:
-    """Próximo EAN-13 230… livre no catálogo (Mongo + overlays Agro)."""
-    n = max(1, _max_seq_cb_loja_catalogo(db, col) + 1)
-    max_steps = 100_000
-    steps = 0
-    while steps < max_steps:
-        cb = formatar_codigo_barras_loja(n)
-        if not _cb_loja_ocupado(db, col, cb):
-            return None, cb
-        n += 1
-        steps += 1
-    return _erro_cb_loja_esgotado()
+    """Atalho legado — delega ao alocador unificado."""
+    return alocar_proximo_codigo_barras_loja(db, col)

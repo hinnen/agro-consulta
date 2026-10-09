@@ -4392,9 +4392,14 @@
       btnCb.classList.add('opacity-60');
     }
     return fetch(urlCb, { credentials: 'same-origin' })
-      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (r) {
+        return r.json().catch(function () { return { ok: false, erro: 'Resposta inválida (' + r.status + ')' }; });
+      })
       .then(function (j) {
-        if (!j || !j.ok || !j.codigo_barras) return false;
+        if (!j || !j.ok || !j.codigo_barras) {
+          gerarCodigoBarrasLojaCadastro._ultimoErro = (j && j.erro) ? String(j.erro) : '';
+          return false;
+        }
         setVal('edit-cb', String(j.codigo_barras));
         return true;
       })
@@ -5086,7 +5091,10 @@
   bindClick('btn-gerar-cb-loja', function () {
     gerarCodigoBarrasLojaCadastro().then(function (ok) {
       if (!ok) {
-        if (typeof alert !== 'undefined') alert('Não foi possível gerar o código de barras.');
+        var msg = (gerarCodigoBarrasLojaCadastro._ultimoErro || '').trim();
+        if (typeof alert !== 'undefined') {
+          alert(msg || 'Não foi possível gerar o código de barras. Confira se está logado e tente de novo.');
+        }
         return;
       }
       var cbEl = document.getElementById('edit-cb');
