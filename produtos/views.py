@@ -23269,6 +23269,9 @@ _WIZARD_CATALOG_MONGO_PROJECTION = {
     "SubGrupo": 1,
     "Subcategoria": 1,
     "NomeSubcategoria": 1,
+    "Unidade": 1,
+    "SiglaUnidade": 1,
+    "UnidadeMedida": 1,
     "UrlImagem": 1,
     "Imagem": 1,
     "CaminhoImagem": 1,
@@ -24028,6 +24031,10 @@ def api_buscar_produtos(request):
                 ),
                 "media_venda_diaria_30d": round(_float_api_json(media_d), 4),
                 "preco_etiqueta_balanca": bool(pid in valor_etiqueta_por_id) and not compras,
+                # Unidade (KG etc.) — PDV modal «Valor em R$?» só em KG; overlay pode sobrescrever depois.
+                "unidade": _valor_texto_campo(
+                    p.get("Unidade") or p.get("SiglaUnidade") or p.get("UnidadeMedida")
+                ),
             }
             if not wizard_mode:
                 row.update(

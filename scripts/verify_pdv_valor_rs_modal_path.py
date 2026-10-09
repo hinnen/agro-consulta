@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Prova detalhada — PDV-VALOR-RS-MODAL (v26.76).
+Prova detalhada — PDV-VALOR-RS-MODAL (v26.77).
 
-Wizard `/pdv/checkout/`: após Enter/clique no produto → «Valor em R$?».
+Wizard `/pdv/checkout/`: após Enter/clique em produto **UNIDADE=KG** → «Valor em R$?».
 Enter vazio / Esc / Pular → qty normal. Valor → qty = valor÷preço.
-Etiqueta balança / valor já na busca → não pergunta.
+Demais unidades / etiqueta balança / valor já na busca → não pergunta.
 
   .venv/bin/python scripts/verify_pdv_valor_rs_modal_path.py
 """
@@ -43,9 +43,11 @@ def test_contratos() -> None:
     help_html = (ROOT / "produtos/templates/produtos/pdv_wizard.html").read_text(
         encoding="utf-8"
     )
-    prep = (ROOT / "docs/DEPLOY-PREP-CHECKLIST-0910f.md").read_text(encoding="utf-8")
+    prep = (ROOT / "docs/DEPLOY-PREP-PDV-VALOR-RS-MODAL.md").read_text(encoding="utf-8")
+    views = (ROOT / "produtos/views.py").read_text(encoding="utf-8")
     check("fn_ask", "function askValorReaisParaProduto" in wiz)
     check("fn_parse", "function parseValorReaisDigitado" in wiz)
+    check("fn_unidade_kg", "function produtoUnidadeEhKg" in wiz)
     check("titulo_modal", "Valor em R$?" in wiz)
     check("enter_vazio_pula", "Enter vazio = lançar sem valor" in wiz)
     check("btn_pular", "data-pdv-valor-rs-skip" in wiz)
@@ -57,41 +59,52 @@ def test_contratos() -> None:
     check("click_backdrop", "ev.target === host" in wiz and "askValorReaisParaProduto" in wiz)
     check("hook_explicit", "precisaPerguntarValor" in wiz and "skipValorPrompt" in wiz)
     check("hook_valor_asked", "valorTotalAsked" in wiz)
+    check("hook_so_kg", "produtoUnidadeEhKg(produto)" in wiz and "precisaPerguntarValor" in wiz)
+    check("kg_exact", "return u === 'KG'" in wiz)
     check("pula_etiqueta", "valor_etiqueta_balanca" in wiz and "precisaPerguntarValor" in wiz)
     check("pula_se_ja_valor", "valorTotalOpt == null" in wiz and "precisaPerguntarValor" in wiz)
     check("explicit_only", "explicitPick &&" in wiz and "precisaPerguntarValor" in wiz)
     check("qty_calc_ainda", "function calcularQtdPorValorTotal" in wiz)
     check("qty_add_ainda", "function qtyParaAdicionarProduto" in wiz)
     check("msg_ok_valor", "Valor R$ ·" in wiz)
-    check("help_tela", "Valor em R$?" in help_html)
-    check("prep_doc", "pronto para envio à produção" in prep and "26.76" in prep)
-    check("prep_inclui_etq", "ETQ-EAN-LOJA-DV" in prep and "CHECKLIST 09/10f" in prep)
+    check("api_unidade_row", '"unidade": _valor_texto_campo(' in views)
+    check("api_proj_unidade", '"Unidade": 1' in views and "_WIZARD_CATALOG_MONGO_PROJECTION" in views)
+    check("help_tela", "UNIDADE=KG" in help_html and "Valor em R$?" in help_html)
+    check("prep_doc", "pronto para envio à produção" in prep and "26.77" in prep)
+    check("prep_so_kg", "UNIDADE=KG" in prep or "UNIDADE=**KG**" in prep)
     check(
-        "version_26_76",
-        (ROOT / "VERSION").read_text(encoding="utf-8").strip() == "26.76",
+        "version_26_77",
+        (ROOT / "VERSION").read_text(encoding="utf-8").strip() == "26.77",
     )
-    check(
-        "prep_ancestral",
+    ancestral_ok = (
         subprocess.run(
             [
                 "git",
                 "merge-base",
                 "--is-ancestor",
                 "origin/producao",
-                "origin/deploy/prep-checklist-0910f",
+                "HEAD",
             ],
             cwd=ROOT,
             capture_output=True,
         ).returncode
-        == 0,
+        == 0
+        or subprocess.run(
+            [
+                "git",
+                "merge-base",
+                "--is-ancestor",
+                "origin/producao",
+                "origin/deploy/prep-pdv-valor-rs-modal",
+            ],
+            cwd=ROOT,
+            capture_output=True,
+        ).returncode
+        == 0
     )
+    check("prep_ancestral", ancestral_ok)
     mig = subprocess.run(
-        [
-            "git",
-            "diff",
-            "--name-only",
-            "origin/producao...origin/deploy/prep-checklist-0910f",
-        ],
+        ["git", "diff", "--name-only", "origin/producao...HEAD"],
         cwd=ROOT,
         capture_output=True,
         text=True,
@@ -119,14 +132,21 @@ def test_parse_node() -> None:
         r"function calcularQtdPorValorTotal\(precoUnit, valorTotal\) \{[\s\S]*?\n    \}",
         wiz,
     )
+    ukg = re.search(
+        r"function produtoUnidadeEhKg\(produto\) \{[\s\S]*?\n    \}",
+        wiz,
+    )
     check("extract_parse", bool(m))
     check("extract_calc", bool(calc))
-    if not m or not calc:
+    check("extract_kg", bool(ukg))
+    if not m or not calc or not ukg:
         return
     js = (
         m.group(0)
         + "\n"
         + calc.group(0)
+        + "\n"
+        + ukg.group(0)
         + """
 const assert = (c, msg) => { if (!c) { console.error('FAIL', msg); process.exit(2); } };
 assert(parseValorReaisDigitado('') === null, 'vazio');
@@ -141,6 +161,13 @@ assert(calcularQtdPorValorTotal(9.4, 10) === 1.064, 'qty10');
 assert(calcularQtdPorValorTotal(9.4, 10.5) === 1.117, 'qty105');
 assert(calcularQtdPorValorTotal(0, 10) === null, 'preco0');
 assert(calcularQtdPorValorTotal(9.4, null) === null, 'valorNull');
+assert(produtoUnidadeEhKg({ unidade: 'KG' }) === true, 'kg');
+assert(produtoUnidadeEhKg({ unidade: 'kg' }) === true, 'kg_lower');
+assert(produtoUnidadeEhKg({ Unidade: 'Kg.' }) === true, 'kg_dot');
+assert(produtoUnidadeEhKg({ unidade: 'UN' }) === false, 'un');
+assert(produtoUnidadeEhKg({ unidade: 'PC' }) === false, 'pc');
+assert(produtoUnidadeEhKg({ unidade: '' }) === false, 'vazio_un');
+assert(produtoUnidadeEhKg(null) === false, 'null');
 console.log('OK js_valor_rs_modal');
 """
     )
@@ -230,9 +257,10 @@ def test_client_wizard_js() -> None:
             body = js.content
         txt = body.decode("utf-8", errors="replace")
         check("static_js_200", js.status_code == 200, str(js.status_code))
-        check("static_has_ask", "function askValorReaisParaProduto" in txt)
-        check("static_has_parse", "function parseValorReaisDigitado" in txt)
-        check("static_has_hook", "precisaPerguntarValor" in txt)
+    check("static_has_ask", "function askValorReaisParaProduto" in txt)
+    check("static_has_parse", "function parseValorReaisDigitado" in txt)
+    check("static_has_kg", "function produtoUnidadeEhKg" in txt)
+    check("static_has_hook", "precisaPerguntarValor" in txt and "produtoUnidadeEhKg(produto)" in txt)
 
 
 def main() -> int:
