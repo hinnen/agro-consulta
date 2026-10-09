@@ -1326,7 +1326,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Na senha** | `docs/DEPLOY-PREP-PDV-VALOR-RS-MODAL.md` |
 | **Você** | Ctrl+F5 · **v26.76** · busca produto Enter → digita `10` ou Enter vazio |
 
-### ~~CHECKLIST ÚNICO — 09/10e~~ · **absorvido em 09/10f**
+### ~~CHECKLIST ÚNICO — 09/10e~~ · **absorvido em 09/10f** (prova valor-rs **39/39**)
 
 ### 📦 PACOTE PRONTO — ETQ-EAN-LOJA-DV (`CHECKLIST 09/10d` · 09/10)
 
