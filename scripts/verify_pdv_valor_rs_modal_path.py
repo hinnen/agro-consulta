@@ -70,15 +70,26 @@ def test_contratos() -> None:
     check("api_unidade_row", '"unidade": _valor_texto_campo(' in views)
     check("api_proj_unidade", '"Unidade": 1' in views and "_WIZARD_CATALOG_MONGO_PROJECTION" in views)
     check("help_tela", "UNIDADE=KG" in help_html and "Valor em R$?" in help_html)
-    check("prep_doc", "pronto para envio à produção" in prep)
-    check("prep_sem_etq", "Não inclui" in prep and "ETQ-EAN-LOJA-DV" in prep)
+    check("prep_doc", "pronto para envio à produção" in prep and "26.77" in prep)
+    check("prep_so_kg", "UNIDADE=KG" in prep or "UNIDADE=**KG**" in prep)
     check(
         "version_26_77",
         (ROOT / "VERSION").read_text(encoding="utf-8").strip() == "26.77",
     )
-    check(
-        "prep_ancestral",
+    ancestral_ok = (
         subprocess.run(
+            [
+                "git",
+                "merge-base",
+                "--is-ancestor",
+                "origin/producao",
+                "HEAD",
+            ],
+            cwd=ROOT,
+            capture_output=True,
+        ).returncode
+        == 0
+        or subprocess.run(
             [
                 "git",
                 "merge-base",
@@ -89,15 +100,11 @@ def test_contratos() -> None:
             cwd=ROOT,
             capture_output=True,
         ).returncode
-        == 0,
+        == 0
     )
+    check("prep_ancestral", ancestral_ok)
     mig = subprocess.run(
-        [
-            "git",
-            "diff",
-            "--name-only",
-            "origin/producao...origin/deploy/prep-pdv-valor-rs-modal",
-        ],
+        ["git", "diff", "--name-only", "origin/producao...HEAD"],
         cwd=ROOT,
         capture_output=True,
         text=True,

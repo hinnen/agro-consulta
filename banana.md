@@ -1294,42 +1294,72 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — Valor R$ só KG (`PDV-VALOR-RS-KG` · 09/10)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Modal «Valor em R$?» **só** se UNIDADE=**KG** (wizard) · UN/PC sem pergunta |
+| **Prova** | path **46/46** · PIN **9973** · **PREP_FAILS=0** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** · tip PREP `deploy/prep-pdv-valor-rs-modal` · alvo **v26.77** |
+| **Antes** | Live **v26.76** (modal em todos) |
+| **Rollback** | tip Live v26.76 · **só** frase+senha |
+| **Na senha** | `docs/DEPLOY-PREP-PDV-VALOR-RS-MODAL.md` |
+| **Você** | Ctrl+F5 · **v26.77** · KG pergunta · UN não |
+
+### ✅ CHECKLIST ÚNICO — 09/10g · PDV-VALOR-RS-KG · 🟢 pronto para envio
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-VALOR-RS-KG** | 🟢 **pronto para envio à produção** | **NÃO** | **46/46** |
+
+### ✅ Deploy loja — CHECKLIST 09/10f · **Live v26.76** · 09/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v26.76** — `producao` @ `896327e9` · **não** foi merge do `teste` |
+| **O quê** | **ETQ-EAN-LOJA-DV** (etiqueta 230… + botão **230** cadastro Postgres) · **PDV-VALOR-RS-MODAL** (Enter → valor R$ no wizard) |
+| **Prova** | etq **74/74** · gerador **15/15** · valor-rs **39/39** · PIN **9973** · **PREP_FAILS=0** |
+| **Migrate** | **NÃO** |
+| **Branch PREP** | `deploy/prep-checklist-0910f` · base Live **v26.74** @ `61c164b1` |
+| **Rollback** | tag `rollback/pre-checklist-0910f-v26.74` · backup `producao-backup-pre-v2676-checklist-0910f` · **só** frase+senha |
+| **Você** | Ctrl+F5 · badge **v26.76** · botão **230** Fiscal · reimprimir 230… legado · wizard Enter → R$ |
+
+### ✅ CHECKLIST ÚNICO — 09/10f · ✅ Live v26.76
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ETQ-EAN-LOJA-DV** (+ gerador 230 PG) | ✅ **Live v26.76** | **NÃO** | **74/74** · **15/15** |
+| 2 | **PDV-VALOR-RS-MODAL** | ✅ **Live v26.76** | **NÃO** | **39/39** · PIN 9973 |
+
 ### 📦 PACOTE PRONTO — valor em R$ no Enter (`PDV-VALOR-RS-MODAL` · 09/10)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Wizard `/pdv/checkout/`: após Enter/clique em produto **UNIDADE=KG** → **«Valor em R$?»** · demais unidades sem pergunta · Enter vazio/Esc/Pular = qty normal |
-| **Prova** | path **46/46** · PIN **9973** · só **KG** · static OK · **PREP_FAILS=0** |
+| **O quê** | Wizard `/pdv/checkout/`: após Enter/clique no produto → pergunta grande **«Valor em R$?»** · qty = valor÷preço · **Enter vazio / Esc / Pular** = lança sem valor |
+| **Prova** | path **39/39** · PIN **9973** · qty 10÷9,40=**1,064** · static wizard OK · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** · branch `cursor/pdv-valor-rs-modal-ca8a` · tip PREP `deploy/prep-pdv-valor-rs-modal` · alvo **v26.77** |
-| **Antes** | Live **v26.74** (QTY-VALOR) · teste também tem ETQ v26.75 |
-| **Rollback** | tag `rollback/pre-pdv-valor-rs-modal-v26.74` · `docs/ROLLBACK-PDV-VALOR-RS-MODAL.md` · **só** frase+senha |
-| **Na senha** | `docs/DEPLOY-PREP-PDV-VALOR-RS-MODAL.md` |
-| **Você** | Ctrl+F5 · **v26.77** · produto **KG** Enter → `10` ou Enter vazio · UN não pergunta |
+| **Status** | 🟢 **absorvido no CHECKLIST 09/10f** (mesmo PREP) |
+| **Antes** | Live **v26.74** (QTY-VALOR) |
+| **Rollback** | tag `rollback/pre-checklist-0910f-v26.74` · **só** frase+senha |
+| **Na senha** | `docs/DEPLOY-PREP-CHECKLIST-0910f.md` |
+| **Você** | Ctrl+F5 · **v26.76** · busca produto Enter → digita `10` ou Enter vazio |
 
-### ✅ CHECKLIST ÚNICO — 09/10e · PDV-VALOR-RS-MODAL · 🟢 pronto para envio
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-VALOR-RS-MODAL** | 🟢 **pronto para envio à produção** | **NÃO** | só **KG** · wizard |
+### ~~CHECKLIST ÚNICO — 09/10e~~ · **absorvido em 09/10f** (prova valor-rs **39/39**)
 
 ### 📦 PACOTE PRONTO — ETQ-EAN-LOJA-DV (`CHECKLIST 09/10d` · 09/10)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Código **230… legado**: etiqueta com **DV EAN válido** (ex. cadastro `2300000001480` → barras `2300000001488`); busca/index bip↔cadastro |
-| **Prova** | etq-ean **74/74** · termica **69/69** · unit **4/4** · PIN **9973** · core **v=35** |
+| **O quê** | Código **230… legado**: etiqueta **DV EAN válido** + busca bip↔cadastro · **botão 230** no cadastro (Postgres mesmo com Mongo off) |
+| **Prova** | etq **74/74** · gerador **15/15** · termica **69/69** · unit **5/5** · core **v=35** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** · alvo **v26.75** |
+| **Status** | 🟢 **absorvido no CHECKLIST 09/10f** |
 | **Antes** | Live **v26.74** @ `a7c72730` |
 | **Rollback** | `docs/ROLLBACK-ETQ-EAN-LOJA-DV.md` · **só** frase+senha |
 | **Você** | Ctrl+F5 · **v26.75** · reimprimir etiquetas 230… legado · bip `2300000001488` → GM4046 |
 
-### ✅ CHECKLIST ÚNICO — 09/10d · 🟢 pronto para envio
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-EAN-LOJA-DV** | 🟢 **pronto para envio à produção** | **NÃO** | **74/74** |
+### ~~CHECKLIST ÚNICO — 09/10d~~ · **absorvido em 09/10f**
 
 ### ✅ Deploy loja — PDV-BALANCA-QTY-VALOR · **Live v26.74** · 09/10
 
@@ -1356,23 +1386,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Era** | Total da etiqueta virava `preco_venda` (qty 1) — cobrava certo mas estoque/unitário errados |
 | **Status** | absorvido em **PDV-BALANCA-QTY-VALOR** |
 
+### ✅ CHECKLIST ÚNICO — 09/10b · PDV-BALANCA-PRECO-ETQ · ~~PREP~~ → superado
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-BALANCA-PRECO-ETQ** | ~~PREP~~ → **superado v26.73** | **NÃO** | **52/52** |
+
 ### ✅ Deploy loja — PDV-BALANCA-AGRO-PG · **Live v26.71** · 09/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v26.71** — bip OK · preço+qty absorvidos no PREP **QTY-VALOR v26.74** (pronto envio) |
-| **O quê** | Bip/colar EAN balança sob `agro_pg` (PLU `0010` · R$ 4,81) |
-| **Branch PREP** | `deploy/prep-pdv-balanca-agro-pg` · tip Live `d7e6fb5d` · base **v26.70** @ `f290c371` |
-| **Migrate** | **NÃO** |
-| **Provas** | path **49/49** · etq **39/39** · unit **9/9** · **PREP_FAILS=0** |
-| **Rollback** | tag `rollback/pre-pdv-balanca-agro-pg-v26.70` @ `f290c371` · `docs/ROLLBACK-PDV-BALANCA-AGRO-PG.md` · **só** frase+senha |
-| **Você** | Ctrl+F5 · badge **v26.71** · colar `2001000004812` + Enter → carrinho **R$ 4,81** |
-
-### ✅ CHECKLIST ÚNICO — 09/10 · PDV-BALANCA-AGRO-PG · ✅ Live v26.71
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-BALANCA-AGRO-PG** | ✅ **enviado / Live v26.71** | **NÃO** | **49/49** |
+| **Status** | ✅ **enviado / Live v26.71** — bip OK · correção preço+qty absorvida no PREP **QTY-VALOR v26.74** (pronto envio) |
+| **Rollback pacote** | tag `rollback/pre-pdv-balanca-agro-pg-v26.70` |
 
 ### ✅ Deploy loja — Checklist 08/10c · **Live v26.70** · 08/10
 
