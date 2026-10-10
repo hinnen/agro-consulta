@@ -1303,7 +1303,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** · tip PREP `deploy/prep-checklist-0910h` · alvo **v26.78** |
 | **Antes** | Live **v26.76** @ `52da69c2` |
-| **Rollback** | tag `rollback/pre-checklist-0910h-v26.76` · **só** frase+senha |
+| **Rollback** | tag `rollback/pre-checklist-0910h-v26.76` · `docs/ROLLBACK-CHECKLIST-0910h.md` · **só** frase+senha |
 | **Na senha** | `docs/DEPLOY-PREP-CHECKLIST-0910h.md` · `scripts/cutover_loja_checklist_0910h.sh --exec` |
 | **Você** | Ctrl+F5 · **v26.78** · bip GM4045 `2300000001479` ou `2300000001471` · botão **230** · KG modal |
 
