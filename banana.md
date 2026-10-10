@@ -1294,26 +1294,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — lote pós v26.76 (`CHECKLIST 09/10h` · 09/10)
+### ✅ Deploy loja — CHECKLIST 09/10h · **Live v26.78** · 10/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | **ETQ-BIP-230-VARIANTES** (bip 1471↔1479 no PDV/index) · **CADASTRO-CB-230-MAX-NCM** · **PDV-VALOR-RS-KG** · cmd `migrar_cb_loja_legado` (opcional cadastro) |
-| **Prova** | bip **10/10** · gerador **19/19** · etq **74/74** · termica **69/69** · valor-rs-kg **46/46** · unit **10/10** · **PREP_FAILS=0** |
+| **Status** | ✅ **enviado / Live v26.78** — `producao` @ `13c4d896` · **não** foi merge do `teste` |
+| **O quê** | **ETQ-BIP-230-VARIANTES** · **CADASTRO-CB-230-MAX-NCM** · **PDV-VALOR-RS-KG** · cmd `migrar_cb_loja_legado` (opcional) |
+| **Prova** | bip **10/10** · gerador **19/19** · etq **74/74** · valor-rs **46/46** · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** · tip PREP `deploy/prep-checklist-0910h` · alvo **v26.78** |
-| **Antes** | Live **v26.76** @ `52da69c2` |
-| **Rollback** | tag `rollback/pre-checklist-0910h-v26.76` · `docs/ROLLBACK-CHECKLIST-0910h.md` · **só** frase+senha |
-| **Na senha** | `docs/DEPLOY-PREP-CHECKLIST-0910h.md` · `scripts/cutover_loja_checklist_0910h.sh --exec` |
-| **Você** | Ctrl+F5 · **v26.78** · bip GM4045 `2300000001479` ou `2300000001471` · botão **230** · KG modal |
+| **Branch PREP** | `deploy/prep-checklist-0910h` · base Live **v26.76** @ `52da69c2` |
+| **Rollback** | tag `rollback/pre-checklist-0910h-v26.76` · backup `producao-backup-pre-v2678-checklist-0910h` · **só** frase+senha |
+| **Você** | Ctrl+F5 · badge **v26.78** · bip GM4045 1479/1471 · KG modal · UN direto |
 
-### ✅ CHECKLIST ÚNICO — 09/10h · 🟢 pronto para envio
+### ✅ CHECKLIST ÚNICO — 09/10h · ✅ Live v26.78
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-BIP-230-VARIANTES** | 🟢 **pronto para envio à produção** | **NÃO** | **10/10** · **74/74** |
-| 2 | **CADASTRO-CB-230-MAX-NCM** | 🟢 **pronto para envio à produção** | **NÃO** | **19/19** |
-| 3 | **PDV-VALOR-RS-KG** | 🟢 **pronto para envio à produção** | **NÃO** | **46/46** |
+| 1 | **ETQ-BIP-230-VARIANTES** | ✅ **Live v26.78** | **NÃO** | **10/10** · **74/74** |
+| 2 | **CADASTRO-CB-230-MAX-NCM** | ✅ **Live v26.78** | **NÃO** | **19/19** |
+| 3 | **PDV-VALOR-RS-KG** | ✅ **Live v26.78** | **NÃO** | **46/46** |
 
 ### ~~CHECKLIST ÚNICO — 09/10g~~ · **absorvido em 09/10h**
 
@@ -1390,18 +1389,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Era** | Total da etiqueta virava `preco_venda` (qty 1) — cobrava certo mas estoque/unitário errados |
 | **Status** | absorvido em **PDV-BALANCA-QTY-VALOR** |
 
-### ✅ CHECKLIST ÚNICO — 09/10b · PDV-BALANCA-PRECO-ETQ · ~~PREP~~ → superado
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-BALANCA-PRECO-ETQ** | ~~PREP~~ → **superado v26.73** | **NÃO** | **52/52** |
-
 ### ✅ Deploy loja — PDV-BALANCA-AGRO-PG · **Live v26.71** · 09/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v26.71** — bip OK · correção preço+qty absorvida no PREP **QTY-VALOR v26.74** (pronto envio) |
-| **Rollback pacote** | tag `rollback/pre-pdv-balanca-agro-pg-v26.70` |
+| **Status** | ✅ **enviado / Live v26.71** — bip OK · preço+qty absorvidos no PREP **QTY-VALOR v26.74** (pronto envio) |
+| **O quê** | Bip/colar EAN balança sob `agro_pg` (PLU `0010` · R$ 4,81) |
+| **Branch PREP** | `deploy/prep-pdv-balanca-agro-pg` · tip Live `d7e6fb5d` · base **v26.70** @ `f290c371` |
+| **Migrate** | **NÃO** |
+| **Provas** | path **49/49** · etq **39/39** · unit **9/9** · **PREP_FAILS=0** |
+| **Rollback** | tag `rollback/pre-pdv-balanca-agro-pg-v26.70` @ `f290c371` · `docs/ROLLBACK-PDV-BALANCA-AGRO-PG.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 · badge **v26.71** · colar `2001000004812` + Enter → carrinho **R$ 4,81** |
+
+### ✅ CHECKLIST ÚNICO — 09/10 · PDV-BALANCA-AGRO-PG · ✅ Live v26.71
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-BALANCA-AGRO-PG** | ✅ **enviado / Live v26.71** | **NÃO** | **49/49** |
 
 ### ✅ Deploy loja — Checklist 08/10c · **Live v26.70** · 08/10
 
