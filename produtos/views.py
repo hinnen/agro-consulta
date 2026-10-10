@@ -23598,10 +23598,6 @@ def api_buscar_produtos(request):
         if agro_pdv_catalogo_full_desligado():
             return JsonResponse({"produtos": []})
     q = request.GET.get("q", "").strip()
-    # region agent log
-    import json as _agent_json, time as _agent_time
-    open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"A","location":"produtos/views.py:api_buscar_produtos:entry","message":"API search entry","data":{"q":q,"wizard":wizard_mode,"contextoCadastro":contexto_cadastro},"timestamp":int(_agent_time.time()*1000)})+"\n")
-    # endregion
     if q.strip().lower() == "#prova":
         return _api_buscar_json_prova_unificada(
             request,
@@ -23693,10 +23689,6 @@ def api_buscar_produtos(request):
                 prods = []
             else:
                 bal = _parse_etiqueta_balanca_ean13_br(q)
-                # region agent log
-                import json as _agent_json, time as _agent_time
-                open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"A","location":"produtos/views.py:api_buscar_produtos:balance-branch","message":"Balance parser decision","data":{"q":q,"parsed":bool(bal),"cod4":str(bal[0]) if bal else None,"value":float(bal[1]) if bal else None},"timestamp":int(_agent_time.time()*1000)})+"\n")
-                # endregion
                 # Balança mesmo sem Mongo (agro_pg / db None): resolve PLU via unificado+overlay.
                 if bal:
                     cod4, preco_etiqueta = bal
@@ -23731,10 +23723,6 @@ def api_buscar_produtos(request):
                             plu_q, cand, db, client
                         )
                         p_escolhido = _escolher_produto_plu_balanca(cand, cod4)
-                    # region agent log
-                    import json as _agent_json, time as _agent_time
-                    open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"A","location":"produtos/views.py:api_buscar_produtos:balance-result","message":"Balance lookup result","data":{"q":q,"cod4":str(cod4),"chosenId":str((p_escolhido or {}).get("Id") or (p_escolhido or {}).get("_id") or ""),"candidateCount":len(cand) if 'cand' in locals() else None},"timestamp":int(_agent_time.time()*1000)})+"\n")
-                    # endregion
                     if p_escolhido:
                         pid_b = str(p_escolhido.get("Id") or p_escolhido.get("_id"))
                         valor_etiqueta_por_id[pid_b] = float(preco_etiqueta)
@@ -24184,10 +24172,6 @@ def api_buscar_produtos(request):
             if _wizard_json_row_bate_query_exata(res[0], q_strip):
                 exact = True
         payload = {"produtos": res, "exact_barcode_match": exact}
-        # region agent log
-        import json as _agent_json, time as _agent_time
-        open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"A","location":"produtos/views.py:api_buscar_produtos:response","message":"API search response","data":{"q":q,"exact":exact,"resultCount":len(res),"resultIds":[str(r.get("id") or "") for r in res[:3]]},"timestamp":int(_agent_time.time()*1000)})+"\n")
-        # endregion
         if getattr(request, "_motor_busca_v2", False):
             payload["motor"] = "v2"
         elif use_motor_unificado:
@@ -25777,13 +25761,8 @@ def api_produtos_cadastro_proximo_cb_loja(request):
     )
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_mongo_erp_desligado
 
-    # region agent log
-    import json as _agent_json, time as _agent_time
-    _agent_mongo_off, _agent_pg = agro_mongo_erp_desligado(), agro_catalogo_usa_postgres()
-    open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"C","location":"produtos/views.py:api_produtos_cadastro_proximo_cb_loja:branch","message":"Generator source decision","data":{"mongoOff":_agent_mongo_off,"catalogPostgres":_agent_pg},"timestamp":int(_agent_time.time()*1000)})+"\n")
-    # endregion
     # Loja / agro_pg: só Postgres (Mongo opcional só em import legado com ERP ligado).
-    if _agent_mongo_off or _agent_pg:
+    if agro_mongo_erp_desligado() or agro_catalogo_usa_postgres():
         err, cb = alocar_proximo_codigo_barras_loja_postgres()
     else:
         db = None
