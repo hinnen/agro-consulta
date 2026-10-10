@@ -1,5 +1,5 @@
 """
-Bip 230… legado ↔ EAN válido (PDV / index / busca).
+Bip 230… legado e EAN válido permanecem literais distintos na busca.
 python scripts/verify_cb_loja_bip_variantes_path.py
 """
 from __future__ import annotations
@@ -31,10 +31,10 @@ def read(rel: str) -> str:
 def main() -> int:
     util = read("produtos/agro_codigo_barras_loja_util.py")
     busca = read("produtos/cadastro_busca_codigo_util.py")
-    ok("cb_loja_bip_equivalente" in busca, "helper equivalencia 230")
+    ok("cb_loja_bip_equivalente" in busca, "helper comparação literal 230")
     ok(
         "for v in variantes_busca_codigo_barras_loja(dig):" in busca,
-        "index expande variantes",
+        "index percorre variantes seguras",
     )
 
     from produtos.agro_codigo_barras_loja_util import (  # noqa: E402
@@ -50,13 +50,13 @@ def main() -> int:
     leg = "2300000001479"
     bip = ean13_para_bip_codigo_barras_loja(leg)
     ok(bip == "2300000001471", f"GM4045 bip {bip}")
-    ok(cb_loja_bip_equivalente(bip, leg), "equivalente 1471/1479")
+    ok(not cb_loja_bip_equivalente(bip, leg), "1471/1479 não equivalentes")
     ok(
-        termo_bate_codigos_produto(bip, codigo_barras=leg),
-        "termo_bate cadastro legado vs bip",
+        not termo_bate_codigos_produto(bip, codigo_barras=leg),
+        "bip válido não bate cadastro legado",
     )
     ix = index_codigos_de_campos(codigo_barras=leg)
-    ok(leg in ix and bip in ix, f"index {ix}")
+    ok(leg in ix and bip not in ix, f"index literal {ix}")
 
     ok("variantes_busca_codigo_barras_loja" in read("produtos/pdv_cadastro_rapido_util.py"), "cadastro rapido variantes")
     mongo = read("produtos/mongo_index_codigos.py")

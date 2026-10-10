@@ -81,7 +81,7 @@ def test_contratos() -> None:
     check("unit_test_file", test_py.is_file())
 
     ver = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
-    check("version_2681", ver == "26.81", ver)
+    check("version_min_2681", ver in ("26.81", "26.82"), ver)
 
 
 def test_logica_python() -> None:

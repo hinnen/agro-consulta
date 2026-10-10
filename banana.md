@@ -1294,22 +1294,32 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — **CADASTRO-BUSCA-MED** · 10/10
+### 📦 PACOTE PRONTO — **CB-230-EXCLUSIVO** · v26.82
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Gerador **230** só EAN-13 válido · bloqueio de colisão pelo valor bipado · busca literal (`1479` ≠ `1471`) · save com lock + revalidação |
+| **GM4045** | `python manage.py reatribuir_cb_loja_exclusivo --codigo-gm GM4045 --esperado-atual 2300000001479` (dry-run); aplicar só no deploy com `--aplicar --confirmar GM4045` |
+| **Migrate** | **NÃO** |
+| **Prova** | Django **30/30** · gerador **26/26** · busca **10/10** · etiqueta **74/74** · **PREP_FAILS=0** |
+| **Smoke** | Cadastro → **230** → salvar → etiqueta nova → bip no PDV acha o produto certo |
+
+### 📦 PACOTE PRONTO — **CADASTRO-BUSCA-MED** · v26.81
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Palavras-chave de busca (overlay + Mongo `AgroPalavrasChave`) · classes terapêuticas vet (checkboxes, taxonomia JSON) · aba **2. Busca** no cadastro SisVale · PDV/catálogo indexam texto extra · **não** grava sinônimos em `especificacao` ERP |
 | **Fora** | Filtro por botão de classe no PDV (fase 2) |
 | **Migrate** | **NÃO** |
-| **Branch** | `teste` @ `48ea288d` (feat `619a364e` + housekeeping **26.81**) |
 | **Prova** | path **37/37** · unit taxonomia **4/4** · API taxonomia **200** · PIN **9973** OK · **PREP_FAILS=0** |
 | **Smoke loja** | Cadastro → editar produto medicamento → aba Busca → salvar → PDV buscar sinônimo |
 
-### ✅ CHECKLIST ÚNICO — 10/10c · 🟢 pronto envio produção · tip **v26.81**
+### ✅ CHECKLIST ÚNICO — 10/10d · 🟢 pronto envio produção
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CADASTRO-BUSCA-MED** | 🟢 **pronto envio** | **NÃO** | **37/37** · **4/4** unit |
+| 1 | **CB-230-EXCLUSIVO** | 🟢 **pronto envio** | **NÃO** | **140/140** path CB |
+| 2 | **CADASTRO-BUSCA-MED** | 🟢 **pronto envio** | **NÃO** | **37/37** · **4/4** |
 
 ### ✅ Deploy loja — CHECKLIST 10/10b · **Live v26.80** · 10/10
 

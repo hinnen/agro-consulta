@@ -2067,7 +2067,11 @@ def api_cadastro_pendente_pdv_marcar_conferido(request):
 def api_produtos_gestao_overlay_salvar(request):
     """Overlay no Agro; ``Produtos/Salvar`` no ERP só com ``{"sincronizar_erp": true}`` no corpo."""
     try:
-        return _api_produtos_gestao_overlay_salvar_core(request)
+        with transaction.atomic():
+            response = _api_produtos_gestao_overlay_salvar_core(request)
+            if response.status_code >= 400:
+                transaction.set_rollback(True)
+            return response
     except Exception as exc:
         logger.exception("api_produtos_gestao_overlay_salvar não tratado")
         msg = "Erro interno ao salvar o cadastro. Tente de novo."
@@ -2648,6 +2652,20 @@ def _api_produtos_gestao_overlay_salvar_core(request):
     if not pid:
         return JsonResponse({"ok": False, "erro": "produto_id obrigatório"}, status=400)
 
+    from produtos.agro_codigo_barras_loja_util import (
+        bloquear_alocacao_codigo_barras_loja,
+        validar_codigo_barras_loja_para_salvar,
+    )
+
+    cb_salvar = str(payload.get("codigo_barras") or "").strip()
+    pid_validar = "" if pid.lower() in ("__novo__", "novo", "_novo") else pid
+    erro_cb_loja = validar_codigo_barras_loja_para_salvar(
+        cb_salvar,
+        produto_externo_id=pid_validar,
+    )
+    if erro_cb_loja:
+        return JsonResponse({"ok": False, "erro": erro_cb_loja}, status=409)
+
     if pid.lower() in ("__novo__", "novo", "_novo"):
         from produtos.agro_fonte_config import agro_catalogo_usa_postgres
 
@@ -2792,6 +2810,15 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         logger.warning("overlay salvar: Mongo indisponível — segue só Agro/Postgres", exc_info=True)
         client, db = None, None
         p_doc = None
+    if db is not None and client is not None:
+        erro_cb_mongo = validar_codigo_barras_loja_para_salvar(
+            cb_salvar,
+            produto_externo_id=pid,
+            db=db,
+            col=client.col_p,
+        )
+        if erro_cb_mongo:
+            return JsonResponse({"ok": False, "erro": erro_cb_mongo}, status=409)
     from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
 
     mongo_grava = db is not None and not agro_mongo_escrita_bloqueada()
@@ -3317,8 +3344,16 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             except Exception:
                 logger.warning("overlay salvar: sync Modelo Mongo", exc_info=True)
 
+    hist_depois = enriquecer_snapshot_antes_com_catalogo(pid, snapshot_overlay(ov))
     with transaction.atomic():
-        hist_depois = enriquecer_snapshot_antes_com_catalogo(pid, snapshot_overlay(ov))
+        bloquear_alocacao_codigo_barras_loja()
+        erro_cb_commit = validar_codigo_barras_loja_para_salvar(
+            cb_salvar,
+            produto_externo_id=pid,
+        )
+        if erro_cb_commit:
+            return JsonResponse({"ok": False, "erro": erro_cb_commit}, status=409)
+        ov.save()
         if variacoes_novas is not None:
             hist_depois["variacoes"] = snapshot_variacoes_resumo(variacoes_novas)
         else:
@@ -3333,7 +3368,6 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             )
         except Exception:
             logger.exception("overlay salvar: histórico alteração cadastro")
-        ov.save()
         if variacoes_novas is not None:
             ProdutoMarcaVariacaoAgro.objects.filter(produto_externo_id=pid[:64]).delete()
             if variacoes_novas:
@@ -25815,6 +25849,8 @@ def api_produtos_cadastro_proximo_cb_loja(request):
     from produtos.agro_codigo_barras_loja_util import (
         alocar_proximo_codigo_barras_loja,
         alocar_proximo_codigo_barras_loja_postgres,
+        ean13_checksum_ok,
+        eh_codigo_barras_loja,
     )
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_mongo_erp_desligado
 
@@ -25830,6 +25866,17 @@ def api_produtos_cadastro_proximo_cb_loja(request):
         err, cb = alocar_proximo_codigo_barras_loja(db, col)
     if err is not None:
         return err
+    if not cb or not eh_codigo_barras_loja(cb) or not ean13_checksum_ok(cb):
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": (
+                    "O gerador não produziu um EAN-13 válido. "
+                    "Nenhum código foi preenchido; tente novamente."
+                ),
+            },
+            status=500,
+        )
     return JsonResponse({"ok": True, "codigo_barras": cb})
 
 
@@ -28265,6 +28312,18 @@ def _try_criar_produto_mongo_somente_agro(request, payload: dict) -> tuple[JsonR
         )
 
     col = client.col_p
+
+    from produtos.agro_codigo_barras_loja_util import (
+        validar_codigo_barras_loja_para_salvar,
+    )
+
+    erro_cb_loja = validar_codigo_barras_loja_para_salvar(
+        cod_cb,
+        db=db,
+        col=col,
+    )
+    if erro_cb_loja:
+        return JsonResponse({"ok": False, "erro": erro_cb_loja}, status=409), None
 
     if not cod_int and not cod_nfe:
         err_al, c_sys, c_gm = _mongo_alocar_codigo_sequencial_novo_agro(db, col)
