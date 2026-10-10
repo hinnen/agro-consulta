@@ -2,11 +2,12 @@
 
 **Só** com frase explícita + senha `99738595` na mesma mensagem.
 
+**Checkpoint:** `735698c7` · tag `rollback/pre-checklist-1010b-v26.79`  
+**Backup:** `producao-backup-pre-v2680-checklist-1010b`
+
 ```bash
 git fetch origin
-git checkout producao
-git reset --hard origin/producao   # tip Live v26.79 antes do cutover; ou SHA do CHECKPOINT Live
-git push origin producao --force-with-lease
+git push origin rollback/pre-checklist-1010b-v26.79:producao --force-with-lease
 ```
 
-Migrate: nenhum. Reverter tip PREP / commits do pacote na `producao`.
+Migrate: nenhum. Ver também `docs/ROLLBACK-CHECKLIST-1010b.md`.

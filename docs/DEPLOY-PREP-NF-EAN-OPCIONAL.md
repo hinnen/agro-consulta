@@ -1,29 +1,22 @@
 # PREP deploy — NF-EAN-OPCIONAL · alvo **v26.80**
 
-**Status:** 🟢 **pronto para envio à produção**  
+**Status:** 🟢 **armado / pronto para envio** (CHECKLIST **10/10b**)  
 **Não sobe sozinho.** Só com frase explícita + senha `99738595` na mesma mensagem.
 
-## Conteúdo
+Canônico do cutover: **`docs/DEPLOY-PREP-CHECKLIST-1010b.md`**.
 
 | # | Pacote | Prova | Migrate |
 | - | ------ | ----- | ------- |
-| 1 | **NF-EAN-OPCIONAL** | path + Django **20/20** | **NÃO** |
+| 1 | **NF-EAN-OPCIONAL** | path **26/26** · Django **20/20** | **NÃO** |
 
-**O quê:** Entrada NF casa EAN do XML com `codigos_barras_opcionais`. EAN principal (PG/overlay) tem prioridade. Duplicidade não vincula.
-
-**Tip PREP:** `deploy/prep-nf-ean-opcional` · base Live **v26.79**
+**Tip PREP:** `deploy/prep-nf-ean-opcional` @ `a0c619c4` · base Live **v26.79** @ `735698c7`  
+**Rollback:** `rollback/pre-checklist-1010b-v26.79`
 
 ## Na senha
 
 ```bash
-git fetch origin
-git checkout producao
-git reset --hard origin/deploy/prep-nf-ean-opcional
-git push origin producao
+AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' \
+  ./scripts/cutover_loja_checklist_1010b.sh --exec
 ```
 
-Smoke: Entrada NF · item cujo EAN está só nos opcionais → vínculo `ean_overlay_opcional` · EAN principal continua ganhando · EAN em 2 produtos → sem vínculo automático.
-
-## Voltar (só frase + senha)
-
-Ver `docs/ROLLBACK-NF-EAN-OPCIONAL.md`.
+Smoke: Entrada NF · EAN só opcional → casa · principal ganha · duplicidade sem vínculo.
