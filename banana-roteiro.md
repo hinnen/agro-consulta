@@ -919,3 +919,18 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 **Live:** `producao` @ `896327e9`.  
 **Rollback:** tag `rollback/pre-checklist-0910f-v26.74` @ `61c164b1` · backup `producao-backup-pre-v2676-checklist-0910f`.
+
+---
+
+## 75. Checklist único — lote 09/10h · 🟢 PREP aguarda senha · alvo **v26.78**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **ETQ-BIP-230-VARIANTES** | 🟢 **pronto para envio** | **NÃO** |
+| 2 | **CADASTRO-CB-230-MAX-NCM** | 🟢 **pronto para envio** | **NÃO** |
+| 3 | **PDV-VALOR-RS-KG** | 🟢 **pronto para envio** | **NÃO** |
+
+**Prova:** bip **10/10** · gerador **19/19** · etq **74/74** · valor-rs **46/46** · **PREP_FAILS=0**.  
+**PREP:** `deploy/prep-checklist-0910h` · base Live **v26.76** @ `52da69c2`.  
+**Na senha:** `./scripts/cutover_loja_checklist_0910h.sh --exec` · `docs/DEPLOY-PREP-CHECKLIST-0910h.md`.  
+**Rollback:** tag `rollback/pre-checklist-0910h-v26.76` · backup `producao-backup-pre-v2678-checklist-0910h`.
