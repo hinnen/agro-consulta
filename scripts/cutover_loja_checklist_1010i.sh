@@ -36,8 +36,11 @@ git rev-parse "$ROLLBACK_TAG" >/dev/null 2>&1 \
   || { echo "FAIL: tag rollback ausente $ROLLBACK_TAG"; exit 2; }
 
 DELTA="$(git diff --name-only "$PROD_REF...$PREP_REF")"
-echo "$DELTA" | grep -q 'validar_codigo_barras_loja_pos_grupo_migracao' || {
+git show "$PREP_REF:produtos/agro_codigo_barras_loja_util.py" | grep -q 'validar_codigo_barras_loja_pos_grupo_migracao' || {
   echo "FAIL: delta sem validação pós-grupo"; exit 2;
+}
+git show "$PREP_REF:produtos/cb_loja_legado_migrate_util.py" | grep -q '_limpar_opcionais_grupo_bip_outros' || {
+  echo "FAIL: delta sem limpar opcionais grupo"; exit 2;
 }
 NFILES=$(echo "$DELTA" | wc -l | tr -d ' ')
 [[ "$NFILES" -le 14 ]] || {
