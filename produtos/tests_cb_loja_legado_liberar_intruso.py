@@ -42,14 +42,19 @@ class LiberarIntrusoMigrarTests(SimpleTestCase):
         self.assertIn("liberar_intruso", r)
         liberar.assert_called_once()
 
-    @patch("produtos.cb_loja_legado_migrate_util.migrar_cb_loja_legado_em_produto")
-    @patch("produtos.cb_loja_legado_migrate_util.iter_produtos_cb_loja_legado")
-    def test_lote_repassa_liberar_intruso(self, iter_mock, migrar_mock):
-        p = SimpleNamespace(produto_externo_id="a")
-        iter_mock.return_value = [(p, None)]
-        migrar_mock.return_value = {"produto_externo_id": "a"}
+    @patch("produtos.cb_loja_legado_migrate_util._migrar_cb_loja_legado_lote_por_grupo")
+    def test_lote_com_liberar_intruso_usa_migracao_por_grupo(self, por_grupo):
+        por_grupo.return_value = {
+            "dry_run": True,
+            "corrigidos": 2,
+            "colisoes": 0,
+            "colisoes_detalhe": [],
+            "grupos": 1,
+            "reatribuidos_grupo": 3,
+        }
 
-        migrar_cb_loja_legado_lote(dry_run=True, liberar_intruso=True)
+        r = migrar_cb_loja_legado_lote(dry_run=True, liberar_intruso=True)
 
-        _args, kwargs = migrar_mock.call_args
-        self.assertTrue(kwargs.get("liberar_intruso"))
+        por_grupo.assert_called_once()
+        self.assertEqual(r["corrigidos"], 2)
+        self.assertEqual(r["grupos"], 1)

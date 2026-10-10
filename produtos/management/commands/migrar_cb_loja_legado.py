@@ -81,9 +81,13 @@ class Command(BaseCommand):
                 )
             )
         done = int(res.get("corrigidos") or 0)
+        extra = ""
+        if res.get("grupos") is not None:
+            extra = f" | Grupos EAN: {res.get('grupos')} | Reatribuídos: {res.get('reatribuidos_grupo', 0)}"
         self.stdout.write(
             self.style.SUCCESS(
                 f"Corrigidos: {done} | Colisões (mexer só nestes): {res.get('colisoes', 0)}"
+                + extra
                 + (" (dry-run)" if dry else "")
             )
         )
