@@ -1301,8 +1301,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | **PDV-BIP-230-NAO-BALANCA** (`230…1471` busca GM4045, não R$ 1,47) · **CAD-230-SO-CLIQUE** (novo cadastro começa vazio; botão **230** gera sob demanda) |
 | **Prova** | unit **22/22** · balança/JS **41/41** · bip **10/10** · gerador **22/22** · etiqueta **74/74** · KG **46/46** · runtime matrix OK · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** |
+| **Status** | 🟢 **PREP pronto · aguarda senha** · `deploy/prep-checklist-1010` · alvo **v26.79** |
 | **Antes** | Live **v26.78.1** |
+| **Rollback** | tag `rollback/pre-checklist-1010-v26.78.1` · backup `producao-backup-pre-v2679-checklist-1010` |
+| **Na senha** | `scripts/cutover_loja_checklist_1010.sh --exec` |
 
 ### ✅ CHECKLIST ÚNICO — 10/10 · 🟢 pronto para envio
 
