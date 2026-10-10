@@ -1,6 +1,7 @@
 """Contrato do botão 230 e proteção atômica no salvamento."""
 import json
 from contextlib import nullcontext
+from inspect import getsource
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -140,3 +141,27 @@ class SalvarCbLojaProtecaoTests(SimpleTestCase):
         self.assertIsNone(produto_id)
         self.assertEqual(erro.status_code, 409)
         criar.assert_not_called()
+
+    def test_revalidacao_e_lock_ficam_no_mesmo_atomic_que_overlay_save(self):
+        source = getsource(_api_produtos_gestao_overlay_salvar_core)
+        bloco_commit = source.rsplit("with transaction.atomic():", 1)[1]
+
+        pos_lock = bloco_commit.index("bloquear_alocacao_codigo_barras_loja()")
+        pos_validar = bloco_commit.index("validar_codigo_barras_loja_para_salvar(")
+        pos_save = bloco_commit.index("ov.save()")
+
+        self.assertLess(pos_lock, pos_validar)
+        self.assertLess(pos_validar, pos_save)
+
+    def test_produto_novo_valida_e_cria_no_mesmo_atomic(self):
+        from produtos.catalogo_agro import try_criar_produto_postgres_somente_agro
+
+        source = getsource(try_criar_produto_postgres_somente_agro)
+        bloco_atomic = source.split("with transaction.atomic():", 1)[1]
+
+        pos_lock = bloco_atomic.index("bloquear_alocacao_codigo_barras_loja()")
+        pos_validar = bloco_atomic.index("validar_codigo_barras_loja_para_salvar(")
+        pos_create = bloco_atomic.index("Produto.objects.create(")
+
+        self.assertLess(pos_lock, pos_validar)
+        self.assertLess(pos_validar, pos_create)
