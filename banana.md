@@ -1294,21 +1294,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — vínculo da NF por EAN adicional (`NF-EAN-OPCIONAL`)
+### 📦 PACOTE PRONTO — vínculo da NF por EAN adicional (`NF-EAN-OPCIONAL` · 10/10)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Entrada NF reconhece o EAN do XML salvo em `cadastro_extras.codigos_barras_opcionais`; EAN principal mantém prioridade; duplicidade não vincula automaticamente |
-| **Status** | ✅ **pronto para envio à produção** · PR [#428](https://github.com/hinnen/agro-consulta/pull/428) · produção ainda não alterada |
-| **Prova** | regressão NF **3/3** · códigos adicionais **17/17** · `manage.py check` OK · `py_compile` OK |
+| **O quê** | Entrada NF casa EAN do XML em `codigos_barras_opcionais` · principal (PG/overlay) prioridade · duplicidade **não** vincula |
+| **Prova** | path + Django **20/20** · PIN **9973** n/a (unitário) · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
-| **Checkpoint / rollback** | commit `5074ce03` · reverter os commits do pacote antes de eventual deploy |
+| **Status** | 🟢 **pronto para envio à produção** · tip PREP `deploy/prep-nf-ean-opcional` · alvo **v26.80** · produção **não** alterada |
+| **Antes** | Live **v26.79** |
+| **Rollback** | tip Live v26.79 · **só** frase+senha |
+| **Na senha** | `docs/DEPLOY-PREP-NF-EAN-OPCIONAL.md` |
+| **Você** | Entrada NF · EAN só nos opcionais → casa · EAN principal ganha · EAN em 2 produtos → sem vínculo |
 
-### ✅ CHECKLIST ÚNICO — pendente de produção
+### ✅ CHECKLIST ÚNICO — 10/10b · NF-EAN-OPCIONAL · 🟢 pronto para envio
 
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **NF-EAN-OPCIONAL** | ✅ **pronto para produção** | **NÃO** |
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NF-EAN-OPCIONAL** | 🟢 **pronto para envio à produção** | **NÃO** | **20/20** |
 
 ### ✅ Deploy loja — correção bip + gerador 230 (`CHECKLIST 10/10` · **Live v26.79**)
 
