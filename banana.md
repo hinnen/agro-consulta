@@ -1301,9 +1301,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | **ETQ-BIP-230-VARIANTES** (bip 1471↔1479 no PDV/index) · **CADASTRO-CB-230-MAX-NCM** · **PDV-VALOR-RS-KG** · cmd `migrar_cb_loja_legado` (opcional cadastro) |
 | **Prova** | bip **10/10** · gerador **19/19** · etq **74/74** · termica **69/69** · valor-rs-kg **46/46** · unit **10/10** · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
+<<<<<<< HEAD
 | **Status** | 🟢 **pronto para envio à produção** · alvo **v26.78** |
 | **Antes** | Live **v26.76** @ `896327e9` |
 | **Rollback** | tag `rollback/pre-checklist-0910f-v26.74` · **só** frase+senha |
+=======
+| **Status** | 🟢 **pronto para envio à produção** · tip PREP `deploy/prep-checklist-0910h` · alvo **v26.78** |
+| **Antes** | Live **v26.76** @ `52da69c2` |
+| **Rollback** | tag `rollback/pre-checklist-0910h-v26.76` · `docs/ROLLBACK-CHECKLIST-0910h.md` · **só** frase+senha |
+| **Na senha** | `docs/DEPLOY-PREP-CHECKLIST-0910h.md` · `scripts/cutover_loja_checklist_0910h.sh --exec` |
+>>>>>>> 13c4d896 (docs(banana): rollback doc CHECKLIST 09/10h)
 | **Você** | Ctrl+F5 · **v26.78** · bip GM4045 `2300000001479` ou `2300000001471` · botão **230** · KG modal |
 
 ### ✅ CHECKLIST ÚNICO — 09/10h · 🟢 pronto para envio
