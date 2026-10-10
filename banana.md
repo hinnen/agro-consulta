@@ -1294,6 +1294,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — vínculo da NF por EAN adicional (`NF-EAN-OPCIONAL`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Entrada NF reconhece o EAN do XML salvo em `cadastro_extras.codigos_barras_opcionais`; EAN principal mantém prioridade; duplicidade não vincula automaticamente |
+| **Status** | ✅ **pronto para envio à produção** · PR [#428](https://github.com/hinnen/agro-consulta/pull/428) · produção ainda não alterada |
+| **Prova** | regressão NF **3/3** · códigos adicionais **17/17** · `manage.py check` OK · `py_compile` OK |
+| **Migrate** | **NÃO** |
+| **Checkpoint / rollback** | commit `5074ce03` · reverter os commits do pacote antes de eventual deploy |
+
+### ✅ CHECKLIST ÚNICO — pendente de produção
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **NF-EAN-OPCIONAL** | ✅ **pronto para produção** | **NÃO** |
+
 ### ✅ Deploy loja — correção bip + gerador 230 (`CHECKLIST 10/10` · **Live v26.79**)
 
 | Campo | Valor |
