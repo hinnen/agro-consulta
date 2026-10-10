@@ -1,6 +1,6 @@
 """Código de barras interno 230… — EAN bip vs cadastro legado."""
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
@@ -8,6 +8,7 @@ from produtos.agro_codigo_barras_loja_util import (
     _cb_loja_ocupado_overlays,
     _seqs_para_max_alocacao,
     alocar_proximo_codigo_barras_loja,
+    bloquear_alocacao_codigo_barras_loja,
     codigos_grupo_bip_canonico,
     ean13_checksum_ok,
     ean13_para_bip_codigo_barras_loja,
@@ -142,3 +143,17 @@ class CodigoBarrasLojaEanTests(SimpleTestCase):
         )
 
         self.assertIsNone(erro)
+
+    def test_save_postgres_adquire_lock_transacional_compartilhado(self):
+        conexao = MagicMock()
+        conexao.vendor = "postgresql"
+        cursor = conexao.cursor.return_value.__enter__.return_value
+
+        with patch(
+            "produtos.agro_codigo_barras_loja_util.connection",
+            conexao,
+        ):
+            bloquear_alocacao_codigo_barras_loja()
+
+        cursor.execute.assert_called_once()
+        self.assertIn("pg_advisory_xact_lock", cursor.execute.call_args.args[0])
