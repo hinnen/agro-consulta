@@ -1294,6 +1294,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ Deploy loja — CHECKLIST 10/10e · **Live v26.83** · 10/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v26.83** — `producao` @ `0c39a6e0` · **não** foi merge do `teste` |
+| **O quê** | **CB-230-GM4045-HOTFIX** — gerador 230 sem «faixa esgotada» |
+| **Prova** | cutover `--exec` OK · gerador **26/26** · bip **10/10** · etq **74/74** · Django **29/29** |
+| **Migrate** | **NÃO** |
+| **Antes** | Live **v26.82** @ `b7bdde7b` |
+| **Rollback** | tag `rollback/pre-checklist-1010e-v26.82` · backup `producao-backup-pre-v2683-checklist-1010e` |
+| **Você** | Ctrl+F5 · badge **v26.83** · **GM4045:** reatribuir ou botão **230** + nova etiqueta (obrigatório) |
+
 ### ✅ Deploy loja — CHECKLIST 10/10d · **Live v26.82** · 10/10
 
 | Campo | Valor |
@@ -1307,7 +1319,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 · badge **v26.82** · smoke 230 + aba Busca medicamento |
 | **GM4045** | v26.82 **não troca** o código sozinho — ver pacote **v26.83** abaixo |
 
-### 📦 PACOTE PRONTO — **CB-230-GM4045-HOTFIX** · v26.83
+### 📦 PACOTE — **CB-230-GM4045-HOTFIX** · ✅ Live v26.83
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1328,11 +1340,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | path **37/37** · unit taxonomia **4/4** · API taxonomia **200** · PIN **9973** OK · **PREP_FAILS=0** (VERSION **26.82** no `teste` após merge CB-230) |
 | **Smoke loja** | Cadastro → editar produto medicamento → aba Busca → salvar → PDV buscar sinônimo |
 
-### ✅ CHECKLIST ÚNICO — 10/10e · 🟢 no PREP (aguarda senha)
+### ✅ CHECKLIST ÚNICO — 10/10e · ✅ Live v26.83
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CB-230-GM4045-HOTFIX** v26.83 | 🟢 **no PREP** | **NÃO** | gerador **26/26** · bip **10/10** · etq **74/74** · Django **29/29** |
+| 1 | **CB-230-GM4045-HOTFIX** | ✅ **Live v26.83** | **NÃO** | gerador **26/26** · bip **10/10** · etq **74/74** |
 | 2 | **CADASTRO-BUSCA-MED** | ✅ **Live v26.82** | **NÃO** | **37/37** · **4/4** |
 
 ### ✅ CHECKLIST ÚNICO — 10/10d · ✅ Live v26.82
