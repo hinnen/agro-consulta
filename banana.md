@@ -1294,6 +1294,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — gerador 230 seguro + reatribuição GM4045 (`CB-230-EXCLUSIVO` · v26.81)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Gerador entrega somente EAN-13 válido; reserva todo o grupo físico bipado; busca não cruza mais `1479` com `1471`; salvamento revalida sob lock e rejeita concorrência |
+| **GM4045** | Comando `reatribuir_cb_loja_exclusivo` preparado: dry-run padrão, código esperado `2300000001479`, aplicação só com confirmação explícita |
+| **Status** | 🟢 **pronto para teste** · produção e cadastro da loja ainda não alterados |
+| **Prova** | Django **27/27** · gerador **26/26** · busca **10/10** · etiquetas **74/74** · **PREP_FAILS=0** |
+| **Migrate** | **NÃO** |
+| **Rollback** | reverter pacote `CB-230-EXCLUSIVO`; reatribuição do GM4045 só no deploy autorizado |
+
+### ✅ CHECKLIST ÚNICO — 10/10c · CB-230-EXCLUSIVO · 🟢 pronto para teste
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CB-230-EXCLUSIVO** | 🟢 **pronto para teste** | **NÃO** | **137/137** |
+| 2 | **NF-EAN-OPCIONAL** | 🟢 **pronto para envio à produção** | **NÃO** | **20/20** |
+
 ### 📦 PACOTE PRONTO — vínculo da NF por EAN adicional (`NF-EAN-OPCIONAL` · 10/10)
 
 | Campo | Valor |
