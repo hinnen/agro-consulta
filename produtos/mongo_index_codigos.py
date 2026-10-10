@@ -663,13 +663,15 @@ def produto_termo_bate_somente_codigo_barras(doc: dict, termo_limpo: str) -> boo
 
 
 def produto_termo_bate_campos_principais(doc: dict, termo_limpo: str) -> bool:
+    from produtos.cadastro_busca_codigo_util import termo_bate_valor_codigo
+
     tl = somente_alnum(termo_limpo).lower()
     if not tl:
         return False
     idx = doc.get(INDEX_CODIGOS_CAMPO)
     if isinstance(idx, list):
         for x in idx:
-            if str(x).lower() == tl or somente_alnum(str(x)).lower() == tl:
+            if termo_bate_valor_codigo(termo_limpo, x):
                 return True
     for fld in CAMPOS_CODIGO_RAIZ_MONGO:
         val = doc.get(fld)
@@ -692,7 +694,7 @@ def produto_termo_bate_campos_principais(doc: dict, termo_limpo: str) -> bool:
         or doc.get("GTIN")
         or ""
     )
-    if somente_alnum(str(cb)).lower() == tl:
+    if termo_bate_valor_codigo(termo_limpo, cb):
         return True
     return False
 

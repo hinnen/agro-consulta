@@ -1294,30 +1294,33 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — Valor R$ só KG (`PDV-VALOR-RS-KG` · 09/10)
+### 📦 PACOTE PRONTO — lote pós v26.76 (`CHECKLIST 09/10h` · 09/10)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Modal «Valor em R$?» **só** se UNIDADE=**KG** (wizard) · UN/PC sem pergunta |
-| **Prova** | path **46/46** · PIN **9973** · **PREP_FAILS=0** |
+| **O quê** | **ETQ-BIP-230-VARIANTES** (bip 1471↔1479 no PDV/index) · **CADASTRO-CB-230-MAX-NCM** · **PDV-VALOR-RS-KG** · cmd `migrar_cb_loja_legado` (opcional cadastro) |
+| **Prova** | bip **10/10** · gerador **19/19** · etq **74/74** · termica **69/69** · valor-rs-kg **46/46** · unit **10/10** · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** · tip PREP `deploy/prep-pdv-valor-rs-modal` · alvo **v26.77** |
-| **Antes** | Live **v26.76** (modal em todos) |
-| **Rollback** | tip Live v26.76 · **só** frase+senha |
-| **Na senha** | `docs/DEPLOY-PREP-PDV-VALOR-RS-MODAL.md` |
-| **Você** | Ctrl+F5 · **v26.77** · KG pergunta · UN não |
+| **Status** | 🟢 **pronto para envio à produção** · tip PREP `deploy/prep-checklist-0910h` · alvo **v26.78** |
+| **Antes** | Live **v26.76** @ `52da69c2` |
+| **Rollback** | tag `rollback/pre-checklist-0910h-v26.76` · **só** frase+senha |
+| **Na senha** | `docs/DEPLOY-PREP-CHECKLIST-0910h.md` · `scripts/cutover_loja_checklist_0910h.sh --exec` |
+| **Você** | Ctrl+F5 · **v26.78** · bip GM4045 `2300000001479` ou `2300000001471` · botão **230** · KG modal |
 
-### ✅ CHECKLIST ÚNICO — 09/10g · PDV-VALOR-RS-KG · 🟢 pronto para envio
+### ✅ CHECKLIST ÚNICO — 09/10h · 🟢 pronto para envio
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-VALOR-RS-KG** | 🟢 **pronto para envio à produção** | **NÃO** | **46/46** |
+| 1 | **ETQ-BIP-230-VARIANTES** | 🟢 **pronto para envio à produção** | **NÃO** | **10/10** · **74/74** |
+| 2 | **CADASTRO-CB-230-MAX-NCM** | 🟢 **pronto para envio à produção** | **NÃO** | **19/19** |
+| 3 | **PDV-VALOR-RS-KG** | 🟢 **pronto para envio à produção** | **NÃO** | **46/46** |
+
+### ~~CHECKLIST ÚNICO — 09/10g~~ · **absorvido em 09/10h**
 
 ### ✅ Deploy loja — CHECKLIST 09/10f · **Live v26.76** · 09/10
 
 | Campo | Valor |
 | ----- | ----- |
-<<<<<<< HEAD
 | **Status** | ✅ **enviado / Live v26.76** — `producao` @ `896327e9` · **não** foi merge do `teste` |
 | **O quê** | **ETQ-EAN-LOJA-DV** (etiqueta 230… + botão **230** cadastro Postgres) · **PDV-VALOR-RS-MODAL** (Enter → valor R$ no wizard) |
 | **Prova** | etq **74/74** · gerador **15/15** · valor-rs **39/39** · PIN **9973** · **PREP_FAILS=0** |
@@ -1325,27 +1328,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Branch PREP** | `deploy/prep-checklist-0910f` · base Live **v26.74** @ `61c164b1` |
 | **Rollback** | tag `rollback/pre-checklist-0910f-v26.74` · backup `producao-backup-pre-v2676-checklist-0910f` · **só** frase+senha |
 | **Você** | Ctrl+F5 · badge **v26.76** · botão **230** Fiscal · reimprimir 230… legado · wizard Enter → R$ |
-=======
-| **O quê** | **ETQ-EAN-LOJA-DV** (etiqueta 230… + botão **230** cadastro **só PG**; max_seq ignora NCM 230990… em campo errado) · **PDV-VALOR-RS-MODAL** |
-| **Prova** | etq **74/74** · gerador **19/19** · termica **69/69** · unit **7/7** · valor-rs **13/13** · **PREP_FAILS=0** |
-| **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** · alvo **v26.77** (ETQ+gerador + modal R$) |
-| **Antes** | Live **v26.74** |
-| **Rollback** | `docs/ROLLBACK-ETQ-EAN-LOJA-DV.md` · valor-rs tip anterior · **só** frase+senha |
-| **Você** | Ctrl+F5 · **v26.77** · botão **230** Fiscal · reimprimir 230… legado · wizard Enter → R$ |
->>>>>>> f2d4273e (fix(cadastro): gerador 230 sem esgotar por NCM 230990… em max_seq + API só PG)
 
 ### ✅ CHECKLIST ÚNICO — 09/10f · ✅ Live v26.76
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-<<<<<<< HEAD
 | 1 | **ETQ-EAN-LOJA-DV** (+ gerador 230 PG) | ✅ **Live v26.76** | **NÃO** | **74/74** · **15/15** |
 | 2 | **PDV-VALOR-RS-MODAL** | ✅ **Live v26.76** | **NÃO** | **39/39** · PIN 9973 |
-=======
-| 1 | **ETQ-EAN-LOJA-DV** (+ gerador 230 PG) | 🟢 **pronto para envio à produção** | **NÃO** | **74/74** · **19/19** |
-| 2 | **PDV-VALOR-RS-MODAL** | 🟢 **pronto para envio à produção** | **NÃO** | **13/13** |
->>>>>>> f2d4273e (fix(cadastro): gerador 230 sem esgotar por NCM 230990… em max_seq + API só PG)
 
 ### 📦 PACOTE PRONTO — valor em R$ no Enter (`PDV-VALOR-RS-MODAL` · 09/10)
 

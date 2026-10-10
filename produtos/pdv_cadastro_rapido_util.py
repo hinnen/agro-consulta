@@ -24,6 +24,7 @@ def ean_parece_valido(ean: str) -> bool:
 
 def buscar_produto_por_codigo(codigo: str) -> dict[str, Any] | None:
     """Retorna resumo do produto se EAN/GM/código já existir (Postgres + overlay)."""
+    from produtos.agro_codigo_barras_loja_util import variantes_busca_codigo_barras_loja
     from produtos.catalogo_agro import obter_produto_model, produto_agro_para_row
     from produtos.models import Produto, ProdutoGestaoOverlayAgro
 
@@ -31,30 +32,27 @@ def buscar_produto_por_codigo(codigo: str) -> dict[str, Any] | None:
     if not cb:
         return None
     ean = normalizar_ean(cb)
-    keys = [cb]
-    if ean and ean != cb:
-        keys.append(ean)
+    keys: list[str] = []
+    for k in (cb, ean):
+        if k and k not in keys:
+            keys.append(k)
+    if ean and len(ean) == 13 and ean.startswith("230"):
+        for alt in variantes_busca_codigo_barras_loja(ean):
+            if alt not in keys:
+                keys.append(alt)
+
+    q_keys = Q()
+    for k in keys:
+        q_keys |= Q(codigo_barras__iexact=k) | Q(codigo_interno__iexact=k) | Q(codigo_nfe__iexact=k)
 
     p = None
-    for k in keys:
-        p = (
-            Produto.objects.filter(
-                Q(codigo_barras__iexact=k)
-                | Q(codigo_interno__iexact=k)
-                | Q(codigo_nfe__iexact=k)
-            )
-            .order_by("id")
-            .first()
-        )
-        if p is not None:
-            break
-    if p is None and ean:
-        # Overlay com barras sem linha Produto (raro)
-        ov = (
-            ProdutoGestaoOverlayAgro.objects.filter(codigo_barras__iexact=ean)
-            .order_by("id")
-            .first()
-        )
+    if q_keys:
+        p = Produto.objects.filter(q_keys).order_by("id").first()
+    if p is None and keys:
+        q_ov = Q()
+        for k in keys:
+            q_ov |= Q(codigo_barras__iexact=k)
+        ov = ProdutoGestaoOverlayAgro.objects.filter(q_ov).order_by("id").first()
         if ov is not None:
             p = obter_produto_model(ov.produto_externo_id)
             if p is None:
