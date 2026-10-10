@@ -116,12 +116,14 @@ def test_git_sem_migrate() -> None:
         capture_output=True,
         text=True,
     ).stdout.strip()
-    check("commit_tip", tip == "619a364e" or "palavras-chave" in subprocess.run(
-        ["git", "log", "-1", "--oneline"],
+    log1 = subprocess.run(
+        ["git", "log", "-3", "--oneline"],
         cwd=ROOT,
         capture_output=True,
         text=True,
-    ).stdout, tip)
+    ).stdout
+    feat_ok = "619a364e" in log1 or "palavras-chave" in log1
+    check("commit_feat", feat_ok, tip)
     diff = subprocess.run(
         ["git", "diff", "--name-only", "619a364e^..619a364e"],
         cwd=ROOT,
