@@ -1,6 +1,6 @@
 # PREP — CHECKLIST 10/10d · alvo **v26.82**
 
-**Status:** 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha no próximo chat.
+**Status:** ✅ **enviado / Live v26.82** — `producao` @ `b7bdde7b` · 10/10/2026.
 
 | # | Pacote | Prova | Migrate |
 | - | ------ | ----- | ------- |
