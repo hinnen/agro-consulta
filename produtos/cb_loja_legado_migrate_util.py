@@ -463,6 +463,149 @@ def _limpar_opcionais_grupo_bip_outros(
     return alterados
 
 
+def _limpar_opcional_literal_bip_outros(
+    bip: str,
+    *,
+    vencedor_pid: str,
+    dry_run: bool,
+) -> int:
+    """Remove o EAN bipável literal dos opcionais de outros produtos."""
+    from produtos.models import ProdutoGestaoOverlayAgro
+    from produtos.mongo_index_codigos import (
+        CAD_EXTRAS_CB_OPCIONAIS_KEYS,
+        codigos_barras_opcionais_de_cadastro_extras,
+    )
+
+    bip = _digits(bip)
+    vencedor_pid = str(vencedor_pid or "").strip()[:64]
+    if not bip:
+        return 0
+    alterados = 0
+    for ov in ProdutoGestaoOverlayAgro.objects.exclude(
+        produto_externo_id=vencedor_pid
+    ).only("produto_externo_id", "cadastro_extras"):
+        ce = ov.cadastro_extras if isinstance(ov.cadastro_extras, dict) else {}
+        opc = codigos_barras_opcionais_de_cadastro_extras(ce)
+        if bip not in [_digits(c) for c in opc]:
+            continue
+        alterados += 1
+        if dry_run:
+            continue
+        nova_lista = [c for c in opc if _digits(c) != bip]
+        ce = dict(ce)
+        for key in CAD_EXTRAS_CB_OPCIONAIS_KEYS:
+            ce.pop(key, None)
+        if nova_lista:
+            ce["codigos_barras_opcionais"] = nova_lista
+        ov.cadastro_extras = ce
+        ov.save(update_fields=["cadastro_extras"])
+    return alterados
+
+
+def _liberar_slot_bip_antes_migracao(
+    *,
+    bip: str,
+    legado_ref: str,
+    vencedor_pid: str,
+    dry_run: bool,
+    db=None,
+    col: str | None = None,
+) -> list[dict[str, Any]]:
+    """Reatribui grupo + quem ocupa o EAN bipável literal (Postgres interno/overlay/variação)."""
+    from django.db.models import Q
+
+    from produtos.cb_loja_reatribuir_util import reatribuir_cb_loja_exclusivo
+    from produtos.models import Produto, ProdutoGestaoOverlayAgro, ProdutoMarcaVariacaoAgro
+
+    bip = _digits(bip)
+    vencedor_pid = str(vencedor_pid or "").strip()[:64]
+    feitos: list[dict[str, Any]] = []
+    if not bip or not vencedor_pid:
+        return feitos
+
+    feitos.extend(
+        _reatribuir_demais_do_grupo_bip(
+            legado_ref,
+            vencedor_pid=vencedor_pid,
+            dry_run=dry_run,
+            db=db,
+            col=col,
+        )
+    )
+    vistos_reatrib: set[str] = set()
+
+    def _try_reatribuir_produto(p, cb: str) -> None:
+        cb = _digits(cb)
+        if not p or not getattr(p, "pk", None) or not cb:
+            return
+        pid = str(getattr(p, "produto_externo_id", "") or "").strip()
+        if pid == vencedor_pid or pid in vistos_reatrib:
+            return
+        atual = _digits(getattr(p, "codigo_barras", "") or "")
+        if atual != cb:
+            ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).first()
+            if ov is not None and _digits(ov.codigo_barras) == cb:
+                if not dry_run:
+                    p.codigo_barras = cb
+                    p.save(update_fields=["codigo_barras"])
+            elif atual != cb:
+                return
+        try:
+            res = reatribuir_cb_loja_exclusivo(
+                p,
+                esperado_atual=cb,
+                dry_run=dry_run,
+                db=db,
+                col=col,
+            )
+            vistos_reatrib.add(pid)
+            feitos.append({"pid": pid, "reatribuir": res, "motivo": "literal_bip"})
+        except ValueError as exc:
+            logger.warning("cb loja migrar: reatribuir %s falhou: %s", pid, exc)
+
+    intruso = _intruso_com_cb_literal(bip, dono_pid=vencedor_pid)
+    if intruso is not None:
+        _try_reatribuir_produto(intruso, bip)
+
+    for p in Produto.objects.filter(codigo_barras=bip).exclude(
+        produto_externo_id=vencedor_pid
+    ).only("id", "produto_externo_id", "codigo_barras"):
+        _try_reatribuir_produto(p, bip)
+
+    for ov in ProdutoGestaoOverlayAgro.objects.filter(codigo_barras=bip).exclude(
+        produto_externo_id=vencedor_pid
+    ).only("produto_externo_id", "codigo_barras"):
+        p = Produto.objects.filter(produto_externo_id=ov.produto_externo_id).first()
+        if p is not None:
+            _try_reatribuir_produto(p, bip)
+
+    if not dry_run:
+        Produto.objects.filter(codigo_interno=bip).exclude(
+            produto_externo_id=vencedor_pid
+        ).update(codigo_interno="")
+        ProdutoMarcaVariacaoAgro.objects.filter(codigo_barras=bip).exclude(
+            produto_externo_id=vencedor_pid
+        ).update(codigo_barras="")
+        _limpar_opcionais_grupo_bip_outros(
+            legado_ref,
+            vencedor_pid=vencedor_pid,
+            dry_run=False,
+        )
+        _limpar_opcional_literal_bip_outros(
+            bip,
+            vencedor_pid=vencedor_pid,
+            dry_run=False,
+        )
+    else:
+        n_interno = Produto.objects.filter(codigo_interno=bip).exclude(
+            produto_externo_id=vencedor_pid
+        ).count()
+        if n_interno:
+            feitos.append({"acao": "limpar_codigo_interno", "n": n_interno})
+
+    return feitos
+
+
 def _migrar_cb_loja_legado_lote_por_grupo(
     *,
     limit: int = 5000,
@@ -486,7 +629,7 @@ def _migrar_cb_loja_legado_lote_por_grupo(
     colisoes: list[dict[str, Any]] = []
     reatribuidos = 0
 
-    for _bip_key, members in sorted(por_bip.items()):
+    for bip_alvo, members in sorted(por_bip.items()):
         p, overlay, atual, _bip = _escolher_vencedor_grupo_migracao(members)
         pid = str(getattr(p, "produto_externo_id", "") or "").strip()
         if not pid:
@@ -494,23 +637,18 @@ def _migrar_cb_loja_legado_lote_por_grupo(
 
         def _processar_grupo() -> dict[str, Any] | None:
             nonlocal reatribuidos
-            feitos: list[dict[str, Any]] = []
             if dry_run:
                 reatribuidos += max(0, len(members) - 1)
             else:
-                feitos = _reatribuir_demais_do_grupo_bip(
-                    atual,
+                feitos = _liberar_slot_bip_antes_migracao(
+                    bip=bip_alvo,
+                    legado_ref=atual,
                     vencedor_pid=pid,
                     dry_run=False,
                     db=db,
                     col=col,
                 )
                 reatribuidos += len(feitos)
-                _limpar_opcionais_grupo_bip_outros(
-                    atual,
-                    vencedor_pid=pid,
-                    dry_run=False,
-                )
             return migrar_cb_loja_legado_em_produto(
                 p,
                 overlay=overlay,

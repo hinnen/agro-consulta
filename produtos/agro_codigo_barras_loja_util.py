@@ -283,12 +283,34 @@ def validar_codigo_barras_loja_pos_grupo_migracao(
             "Este código 230 já está ocupado por outro produto, inclusive pelo "
             "valor físico bipado. Clique em 230 novamente e salve de novo."
         )
-    if db is not None and col and _cb_loja_ocupado_mongo_por_outro(db, col, d, pid):
+    if db is not None and col and _cb_loja_ocupado_mongo_por_outro_codigo_principal(
+        db, col, d, pid
+    ):
         return (
             "Este código 230 já está ocupado no catálogo ERP. "
             "Clique em 230 novamente e salve de novo."
         )
     return None
+
+
+def _cb_loja_ocupado_mongo_por_outro_codigo_principal(
+    db: Database,
+    col: str,
+    cb: str,
+    produto_externo_id: str = "",
+) -> bool:
+    """Colisão Mongo só em CodigoBarras / CodigoBarrasProduto (ignora index_codigos legado)."""
+    or_dup = [{"CodigoBarras": cb}, {"CodigoBarrasProduto": cb}]
+    pid = str(produto_externo_id or "").strip()
+    try:
+        for doc in db[col].find({"$or": or_dup}, {"_id": 1, "Id": 1}).limit(8):
+            ids = {str(doc.get("Id") or "").strip(), str(doc.get("_id") or "").strip()}
+            if not pid or pid not in ids:
+                return True
+        return False
+    except Exception:
+        logger.warning("cb loja: colisão Mongo código principal", exc_info=True)
+        return False
 
 
 def _cb_loja_ocupado_overlays(cb: str) -> bool:
