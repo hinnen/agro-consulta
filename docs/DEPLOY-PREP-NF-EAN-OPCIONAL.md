@@ -9,7 +9,7 @@ Canônico do cutover: **`docs/DEPLOY-PREP-CHECKLIST-1010b.md`**.
 | - | ------ | ----- | ------- |
 | 1 | **NF-EAN-OPCIONAL** | path **26/26** · Django **20/20** | **NÃO** |
 
-**Tip PREP:** `deploy/prep-nf-ean-opcional` @ `a0c619c4` · base Live **v26.79** @ `735698c7`  
+**Tip PREP:** `deploy/prep-nf-ean-opcional` @ `9562842f` · base Live **v26.79** @ `735698c7`  
 **Rollback:** `rollback/pre-checklist-1010b-v26.79`
 
 ## Na senha
