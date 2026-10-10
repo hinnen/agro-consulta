@@ -1294,6 +1294,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — correção bip + gerador 230 (`CHECKLIST 10/10` · alvo **v26.79**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | **PDV-BIP-230-NAO-BALANCA** (`230…1471` busca GM4045, não R$ 1,47) · **CAD-230-SO-CLIQUE** (novo cadastro começa vazio; botão **230** gera sob demanda) |
+| **Prova** | unit **22/22** · balança/JS **41/41** · bip **10/10** · gerador **22/22** · etiqueta **74/74** · KG **46/46** · runtime matrix OK · **PREP_FAILS=0** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Antes** | Live **v26.78.1** |
+
+### ✅ CHECKLIST ÚNICO — 10/10 · 🟢 pronto para envio
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-BIP-230-NAO-BALANCA** | 🟢 **pronto para envio à produção** | **NÃO** |
+| 2 | **CAD-230-SO-CLIQUE** | 🟢 **pronto para envio à produção** | **NÃO** |
+
 ### ✅ Deploy loja — CHECKLIST 09/10h · **Live v26.78** · 10/10
 
 | Campo | Valor |
