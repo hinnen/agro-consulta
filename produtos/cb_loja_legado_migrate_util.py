@@ -27,13 +27,17 @@ def preparar_codigo_barras_loja_legado(
     produto_externo_id: str = "",
     db=None,
     col: str | None = None,
+    pos_liberacao_grupo: bool = False,
 ) -> tuple[str, str | None, str | None]:
     """
     Legado 230… (DV inválido) → principal = EAN bipável; legado fica para opcionais.
 
     Retorna (principal, legado_opcional, erro). Sem alteração: (cb, None, None).
     """
-    from produtos.agro_codigo_barras_loja_util import validar_codigo_barras_loja_para_salvar
+    from produtos.agro_codigo_barras_loja_util import (
+        validar_codigo_barras_loja_para_salvar,
+        validar_codigo_barras_loja_pos_grupo_migracao,
+    )
 
     atual = _digits(cb)
     if not eh_codigo_barras_loja(atual) or ean13_checksum_ok(atual):
@@ -44,12 +48,20 @@ def preparar_codigo_barras_loja_legado(
         return atual, None, None
 
     pid = str(produto_externo_id or "").strip()[:64]
-    erro = validar_codigo_barras_loja_para_salvar(
-        novo,
-        produto_externo_id=pid,
-        db=db,
-        col=col,
-    )
+    if pos_liberacao_grupo:
+        erro = validar_codigo_barras_loja_pos_grupo_migracao(
+            novo,
+            produto_externo_id=pid,
+            db=db,
+            col=col,
+        )
+    else:
+        erro = validar_codigo_barras_loja_para_salvar(
+            novo,
+            produto_externo_id=pid,
+            db=db,
+            col=col,
+        )
     if erro:
         return (
             atual,
@@ -166,6 +178,7 @@ def migrar_cb_loja_legado_em_produto(
     overlay=None,
     dry_run: bool = False,
     liberar_intruso: bool = False,
+    pos_liberacao_grupo: bool = False,
     db=None,
     col: str | None = None,
 ) -> dict[str, Any] | None:
@@ -194,6 +207,7 @@ def migrar_cb_loja_legado_em_produto(
         produto_externo_id=pid,
         db=db,
         col=col,
+        pos_liberacao_grupo=pos_liberacao_grupo,
     )
     lib_meta: dict[str, Any] | None = None
     if erro and liberar_intruso and bip_alvo and bip_alvo != atual:
@@ -211,6 +225,7 @@ def migrar_cb_loja_legado_em_produto(
                 produto_externo_id=pid,
                 db=db,
                 col=col,
+                pos_liberacao_grupo=pos_liberacao_grupo,
             )
         else:
             intruso = _intruso_com_cb_literal(bip_alvo, dono_pid=pid)
@@ -409,6 +424,45 @@ def _reatribuir_demais_do_grupo_bip(
     return feitos
 
 
+def _limpar_opcionais_grupo_bip_outros(
+    legado_ref: str,
+    *,
+    vencedor_pid: str,
+    dry_run: bool,
+) -> int:
+    """Remove códigos do grupo físico dos opcionais de outros produtos (não bloqueia o bip)."""
+    from produtos.models import ProdutoGestaoOverlayAgro
+    from produtos.mongo_index_codigos import (
+        CAD_EXTRAS_CB_OPCIONAIS_KEYS,
+        codigos_barras_opcionais_de_cadastro_extras,
+    )
+
+    grupo = set(codigos_grupo_bip_canonico(legado_ref))
+    vencedor_pid = str(vencedor_pid or "").strip()[:64]
+    alterados = 0
+    for ov in ProdutoGestaoOverlayAgro.objects.exclude(
+        produto_externo_id=vencedor_pid
+    ).only("produto_externo_id", "cadastro_extras"):
+        ce = ov.cadastro_extras if isinstance(ov.cadastro_extras, dict) else {}
+        opc = codigos_barras_opcionais_de_cadastro_extras(ce)
+        if not opc:
+            continue
+        nova_lista = [c for c in opc if _digits(c) not in grupo]
+        if len(nova_lista) == len(opc):
+            continue
+        alterados += 1
+        if dry_run:
+            continue
+        ce = dict(ce)
+        for key in CAD_EXTRAS_CB_OPCIONAIS_KEYS:
+            ce.pop(key, None)
+        if nova_lista:
+            ce["codigos_barras_opcionais"] = nova_lista
+        ov.cadastro_extras = ce
+        ov.save(update_fields=["cadastro_extras"])
+    return alterados
+
+
 def _migrar_cb_loja_legado_lote_por_grupo(
     *,
     limit: int = 5000,
@@ -452,11 +506,17 @@ def _migrar_cb_loja_legado_lote_por_grupo(
                     col=col,
                 )
                 reatribuidos += len(feitos)
+                _limpar_opcionais_grupo_bip_outros(
+                    atual,
+                    vencedor_pid=pid,
+                    dry_run=False,
+                )
             return migrar_cb_loja_legado_em_produto(
                 p,
                 overlay=overlay,
                 dry_run=dry_run,
                 liberar_intruso=False,
+                pos_liberacao_grupo=True,
                 db=db,
                 col=col,
             )

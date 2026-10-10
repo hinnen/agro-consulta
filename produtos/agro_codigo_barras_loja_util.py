@@ -258,6 +258,39 @@ def validar_codigo_barras_loja_para_salvar(
     return None
 
 
+def validar_codigo_barras_loja_pos_grupo_migracao(
+    cb: str,
+    *,
+    produto_externo_id: str = "",
+    db: Database | None = None,
+    col: str | None = None,
+) -> str | None:
+    """
+    Após reatribuir o grupo na migração legado: só bloqueia o EAN bipável literal
+    (Postgres + Mongo principal), não os 10 dígitos «irmãos» nem index legado.
+    """
+    d = re.sub(r"\D", "", str(cb or ""))
+    if not _CB_LOJA_REGEX.match(d):
+        return None
+    pid = str(produto_externo_id or "").strip()[:64]
+    if not ean13_checksum_ok(d):
+        return (
+            "Código 230 inválido: gere um novo EAN-13 pelo botão 230 "
+            "antes de salvar."
+        )
+    if _cb_loja_ocupado_postgres_por_outro(d, pid):
+        return (
+            "Este código 230 já está ocupado por outro produto, inclusive pelo "
+            "valor físico bipado. Clique em 230 novamente e salve de novo."
+        )
+    if db is not None and col and _cb_loja_ocupado_mongo_por_outro(db, col, d, pid):
+        return (
+            "Este código 230 já está ocupado no catálogo ERP. "
+            "Clique em 230 novamente e salve de novo."
+        )
+    return None
+
+
 def _cb_loja_ocupado_overlays(cb: str) -> bool:
     from .models import ProdutoGestaoOverlayAgro, ProdutoMarcaVariacaoAgro
 
