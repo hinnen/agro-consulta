@@ -1305,16 +1305,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Antes** | Live **v26.80** @ `2ac4789c` |
 | **Rollback** | tag `rollback/pre-checklist-1010d-v26.80` · backup `producao-backup-pre-v2682-checklist-1010d` |
 | **Você** | Ctrl+F5 · badge **v26.82** · smoke 230 + aba Busca medicamento |
+| **GM4045** | v26.82 **não troca** o código sozinho — ver pacote **v26.83** abaixo |
 
-### 📦 PACOTE — **CB-230-EXCLUSIVO** · ✅ Live v26.82
+### 📦 PACOTE PRONTO — **CB-230-GM4045-HOTFIX** · v26.83
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Gerador **230** só EAN-13 válido · bloqueio de colisão pelo valor bipado · busca literal (`1479` ≠ `1471`) · save com lock + revalidação |
-| **GM4045** | `python manage.py reatribuir_cb_loja_exclusivo --codigo-gm GM4045 --esperado-atual 2300000001479` (dry-run); aplicar só no deploy com `--aplicar --confirmar GM4045` |
+| **O quê** | Gerador **230** só EAN-13 válido · bloqueio de colisão pelo valor bipado · busca literal (`1479` ≠ `1471`) · save com lock + revalidação · **v26.83** corrige gerador «faixa esgotada» (max_seq lixo / Mongo na alocação) |
+| **GM4045 (obrigatório na loja)** | O cadastro **2300000001479** é legado inválido: o leitor bipa **2300000001471** (outro produto). **Reimprimir etiqueta sem trocar o código não resolve.** Após deploy: `python manage.py reatribuir_cb_loja_exclusivo --codigo-gm GM4045 --esperado-atual 2300000001479 --aplicar --confirmar GM4045` → **Salvar** → **nova etiqueta** → bip no PDV |
+| **Ou na tela** | Botão **230** (gera EAN novo) → **Salvar no Agro** → reimprimir etiqueta |
 | **Migrate** | **NÃO** |
-| **Prova** | Django **30/30** · gerador **26/26** · busca **10/10** · etiqueta **74/74** · **PREP_FAILS=0** |
-| **Smoke** | Cadastro → **230** → salvar → etiqueta nova → bip no PDV acha o produto certo |
+| **Prova** | Django CB + NF · gerador/bip/etiqueta path · **PREP_FAILS=0** |
+| **Smoke** | GM4045 com código **novo** EAN-13 válido → etiqueta → bip acha **GM4045** |
 
 ### 📦 PACOTE — **CADASTRO-BUSCA-MED** · ✅ Live v26.82
 
@@ -1325,6 +1327,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Prova** | path **37/37** · unit taxonomia **4/4** · API taxonomia **200** · PIN **9973** OK · **PREP_FAILS=0** (VERSION **26.82** no `teste` após merge CB-230) |
 | **Smoke loja** | Cadastro → editar produto medicamento → aba Busca → salvar → PDV buscar sinônimo |
+
+### ✅ CHECKLIST ÚNICO — 10/10e · 🟢 pronto envio produção
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CB-230-GM4045-HOTFIX** v26.83 | 🟢 **pronto envio** | **NÃO** | gerador corrigido + passo GM4045 |
+| 2 | **CADASTRO-BUSCA-MED** | ✅ **Live v26.82** | **NÃO** | **37/37** · **4/4** |
 
 ### ✅ CHECKLIST ÚNICO — 10/10d · ✅ Live v26.82
 

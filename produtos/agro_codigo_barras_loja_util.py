@@ -28,6 +28,8 @@ CB_LOJA_PREFIX = "230"
 CB_LOJA_SEQ_LEN = 10  # corpo legado (10) / regex 13 dígitos totais
 CB_LOJA_SEQ_LEN_NOVO = 9  # payload EAN-13 novo
 CB_LOJA_SEQ_MAX = 999_999_999
+# Seq acima disso em campo 230… costuma ser NCM/outro lixo — não inflar max_seq do gerador.
+CB_LOJA_SEQ_MAX_RAZOAVEL = 2_000_000
 _CB_LOJA_REGEX = re.compile(rf"^{CB_LOJA_PREFIX}\d{{{CB_LOJA_SEQ_LEN}}}$")
 _ADVISORY_LOCK_CB_LOJA = 230_4045_147
 
@@ -115,7 +117,7 @@ def _seqs_para_max_alocacao(cb: str) -> list[int]:
             out.append(_cap_seq_loja(int(d[len(CB_LOJA_PREFIX) :])))
     except ValueError:
         return []
-    return out
+    return [s for s in out if s <= CB_LOJA_SEQ_MAX_RAZOAVEL]
 
 
 def eh_codigo_barras_loja(cb: str) -> bool:
@@ -330,7 +332,13 @@ def _cb_loja_ocupado(db: Database, col: str, cb: str) -> bool:
     return _cb_loja_ocupado_overlays(cb)
 
 
-def _cb_loja_ocupado_unificado(db: Database | None, col: str | None, cb: str) -> bool:
+def _cb_loja_ocupado_unificado(
+    db: Database | None,
+    col: str | None,
+    cb: str,
+    *,
+    para_alocacao: bool = False,
+) -> bool:
     exact_pg = _cb_loja_ocupado_postgres(cb)
     diagnostic_variants = codigos_grupo_bip_canonico(cb)
     occupied_pg_variants = [
@@ -339,6 +347,9 @@ def _cb_loja_ocupado_unificado(db: Database | None, col: str | None, cb: str) ->
     if exact_pg or occupied_pg_variants:
         return True
     if db is not None and col:
+        if para_alocacao:
+            # Índice Mongo pode ter legado ambíguo; na alocação só o literal bloqueia.
+            return _cb_loja_ocupado_mongo(db, col, cb)
         return any(_cb_loja_ocupado_mongo(db, col, alt) for alt in diagnostic_variants)
     return False
 
@@ -439,7 +450,14 @@ def alocar_proximo_codigo_barras_loja(
     Próximo EAN-13 230… livre.
     Postgres + overlays sempre; Mongo complementa max/colisião quando disponível.
     """
-    n = _cap_seq_loja(_max_seq_cb_loja_unificado(db, col) + 1)
+    max_seq = _max_seq_cb_loja_unificado(db, col)
+    if max_seq > CB_LOJA_SEQ_MAX_RAZOAVEL:
+        logger.warning(
+            "cb loja: max_seq %s acima do razoável; usa Postgres para próximo livre",
+            max_seq,
+        )
+        max_seq = min(_max_seq_cb_loja_postgres(), CB_LOJA_SEQ_MAX_RAZOAVEL)
+    n = _cap_seq_loja(max_seq + 1)
     max_steps = 100_000
     steps = 0
     ultimo_cb = ""
@@ -448,7 +466,7 @@ def alocar_proximo_codigo_barras_loja(
         if cb == ultimo_cb and n >= CB_LOJA_SEQ_MAX:
             break
         ultimo_cb = cb
-        occupied = _cb_loja_ocupado_unificado(db, col, cb)
+        occupied = _cb_loja_ocupado_unificado(db, col, cb, para_alocacao=True)
         if not occupied:
             return None, cb
         if n >= CB_LOJA_SEQ_MAX:
