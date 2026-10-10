@@ -1311,7 +1311,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Palavras-chave de busca (overlay + Mongo `AgroPalavrasChave`) · classes terapêuticas vet (checkboxes, taxonomia JSON) · aba **2. Busca** no cadastro SisVale · PDV/catálogo indexam texto extra · **não** grava sinônimos em `especificacao` ERP |
 | **Fora** | Filtro por botão de classe no PDV (fase 2) |
 | **Migrate** | **NÃO** |
-| **Prova** | path **37/37** · unit taxonomia **4/4** · API taxonomia **200** · PIN **9973** OK · **PREP_FAILS=0** |
+| **Prova** | path **37/37** · unit taxonomia **4/4** · API taxonomia **200** · PIN **9973** OK · **PREP_FAILS=0** (VERSION **26.82** no `teste` após merge CB-230) |
 | **Smoke loja** | Cadastro → editar produto medicamento → aba Busca → salvar → PDV buscar sinônimo |
 
 ### ✅ CHECKLIST ÚNICO — 10/10d · 🟢 pronto envio produção
