@@ -2658,10 +2658,6 @@ def _api_produtos_gestao_overlay_salvar_core(request):
 
     cb_salvar = str(payload.get("codigo_barras") or "").strip()
     pid_validar = "" if pid.lower() in ("__novo__", "novo", "_novo") else pid
-    # region agent log
-    import json as _agent_json, time as _agent_time
-    open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"A,B","location":"produtos/views.py:_api_produtos_gestao_overlay_salvar_core:preliminary-validation","message":"Preliminary barcode validation transaction state","data":{"inAtomic":bool(transaction.get_connection().in_atomic_block),"productId":pid_validar[:64]},"timestamp":int(_agent_time.time()*1000)})+"\n")
-    # endregion
     erro_cb_loja = validar_codigo_barras_loja_para_salvar(
         cb_salvar,
         produto_externo_id=pid_validar,
@@ -3316,19 +3312,11 @@ def _api_produtos_gestao_overlay_salvar_core(request):
 
     hist_depois = enriquecer_snapshot_antes_com_catalogo(pid, snapshot_overlay(ov))
     with transaction.atomic():
-        # region agent log
-        import json as _agent_json, time as _agent_time
-        open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"A,B,C","location":"produtos/views.py:_api_produtos_gestao_overlay_salvar_core:commit-validation-entry","message":"Commit barcode validation transaction state","data":{"inAtomic":bool(transaction.get_connection().in_atomic_block),"productId":pid[:64]},"timestamp":int(_agent_time.time()*1000)})+"\n")
-        # endregion
         bloquear_alocacao_codigo_barras_loja()
         erro_cb_commit = validar_codigo_barras_loja_para_salvar(
             cb_salvar,
             produto_externo_id=pid,
         )
-        # region agent log
-        import json as _agent_json, time as _agent_time
-        open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"B,C","location":"produtos/views.py:_api_produtos_gestao_overlay_salvar_core:commit-validation-result","message":"Commit barcode revalidation result","data":{"inAtomic":bool(transaction.get_connection().in_atomic_block),"rejected":bool(erro_cb_commit)},"timestamp":int(_agent_time.time()*1000)})+"\n")
-        # endregion
         if erro_cb_commit:
             return JsonResponse({"ok": False, "erro": erro_cb_commit}, status=409)
         ov.save()
