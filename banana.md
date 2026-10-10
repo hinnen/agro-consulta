@@ -1294,6 +1294,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ Deploy loja — CHECKLIST 10/10h · **Live v26.86** · 10/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v26.86** — `producao` @ `7ca04de5` |
+| **O quê** | **CB-230-LEGADO-GRUPO** — migração por grupo EAN (`--liberar-intruso`) |
+| **Antes** | Live **v26.85** @ `d4666994` |
+| **Rollback** | tag `rollback/pre-checklist-1010h-v26.85` · backup `producao-backup-pre-v2686-checklist-1010h` |
+| **Você** | Render Live → Shell (2 comandos abaixo) → bip GM0024-P |
+
 ### ✅ Deploy loja — CHECKLIST 10/10g · **Live v26.85** · 10/10
 
 | Campo | Valor |
