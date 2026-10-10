@@ -1,10 +1,10 @@
 # PREP — CHECKLIST 10/10h · alvo **v26.86**
 
-**Status:** 🟡 **armado** — Live **v26.85** (migração legado por intruso único).
+**Status:** 🟢 **armado / gates OK** — Live **v26.85** @ `d4666994` · PREP `deploy/prep-checklist-1010h`.
 
 | # | Pacote | Prova | Migrate |
 | - | ------ | ----- | ------- |
-| 1 | **CB-230-LEGADO-GRUPO** | legado **13/13** · bip **10/10** · Django **35/35** | **NÃO** |
+| 1 | **CB-230-LEGADO-GRUPO** | legado **13/13** · bip **10/10** · Django **38/38** | **NÃO** |
 
 **O quê:** `--liberar-intruso` passa a tratar **grupos** (vários cadastros legados no mesmo EAN bipável, ex. 1550–1559 → 1556): reatribui 230 novo nos demais, migra o vencedor (preferência código **GM**).
 
