@@ -1509,23 +1509,21 @@ def casar_produtos_mongo(
 
 def _produto_pg_por_ean_opcional(ean_dig: str):
     """Resolve EAN alternativo somente quando aponta para um único produto."""
-    from django.db.models import Q
-
     from produtos.models import Produto, ProdutoGestaoOverlayAgro
+    from produtos.cadastro_busca_codigo_util import q_overlay_json_barras_opcionais
     from produtos.mongo_index_codigos import (
-        CAD_EXTRAS_CB_OPCIONAIS_KEYS,
         codigos_barras_opcionais_de_cadastro_extras,
     )
 
     ean = re.sub(r"\D", "", str(ean_dig or ""))
     if len(ean) < 8:
         return None
-    q_keys = Q()
-    for key in CAD_EXTRAS_CB_OPCIONAIS_KEYS:
-        q_keys |= Q(**{f"cadastro_extras__has_key": key})
+    q_json = q_overlay_json_barras_opcionais(ean)
+    if q_json is None:
+        return None
     pids: list[str] = []
     seen: set[str] = set()
-    for ov in ProdutoGestaoOverlayAgro.objects.filter(q_keys).only(
+    for ov in ProdutoGestaoOverlayAgro.objects.filter(q_json).only(
         "produto_externo_id", "cadastro_extras"
     ):
         pid = str(ov.produto_externo_id or "").strip()
