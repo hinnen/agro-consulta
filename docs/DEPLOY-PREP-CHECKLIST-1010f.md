@@ -1,6 +1,6 @@
 # PREP — CHECKLIST 10/10f · alvo **v26.84**
 
-**Status:** 🟡 **armado** — aguarda cutover (Live hoje **v26.83** @ `0c39a6e0`).
+**Status:** ✅ **enviado / Live v26.84** — `producao` @ `35308cbf` · 10/10/2026.
 
 | # | Pacote | Prova | Migrate |
 | - | ------ | ----- | ------- |
