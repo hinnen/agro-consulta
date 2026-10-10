@@ -4,8 +4,8 @@ from __future__ import annotations
 from django.core.management.base import BaseCommand
 
 from produtos.cb_loja_legado_migrate_util import (
-    iter_produtos_cb_loja_legado,
     migrar_cb_loja_legado_em_produto,
+    migrar_cb_loja_legado_lote,
 )
 
 
@@ -36,18 +36,26 @@ class Command(BaseCommand):
                 return
             r = migrar_cb_loja_legado_em_produto(p, dry_run=dry)
             if r:
+                if r.get("erro"):
+                    self.stderr.write(self.style.ERROR(str(r["erro"])))
                 self.stdout.write(str(r))
-                done = 1
+                done = 0 if r.get("erro") else 1
             else:
                 self.stdout.write("Nada a migrar (já EAN válido ou não é 230… legado).")
             return
 
-        for p in iter_produtos_cb_loja_legado(limit=limit):
-            r = migrar_cb_loja_legado_em_produto(p, dry_run=dry)
-            if r:
-                done += 1
-                self.stdout.write(
-                    f"{r['produto_externo_id']}: {r['legado']} -> {r['principal_novo']}"
-                    + (" (dry-run)" if dry else "")
+        res = migrar_cb_loja_legado_lote(limit=limit, dry_run=dry)
+        for r in res.get("colisoes_detalhe") or []:
+            self.stderr.write(
+                self.style.ERROR(
+                    f"COLISÃO {r.get('produto_externo_id')}: {r.get('legado')} → "
+                    f"{r.get('principal_novo')} — {r.get('erro', '')[:120]}"
                 )
-        self.stdout.write(self.style.SUCCESS(f"Total: {done}"))
+            )
+        done = int(res.get("corrigidos") or 0)
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Corrigidos: {done} | Colisões (mexer só nestes): {res.get('colisoes', 0)}"
+                + (" (dry-run)" if dry else "")
+            )
+        )

@@ -1294,39 +1294,77 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚀 PREP deploy loja — CHECKLIST 10/10d (`deploy/prep-checklist-1010d` · **v26.82**) · aguarda senha
+### 🟡 PREP — CHECKLIST 10/10f · **CB-230-LEGADO-LOTE** · v26.84 · armado
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP pronto** — **não** subiu · checkpoint Live **v26.80** @ `2ac4789c` · **só** frase + senha no próximo chat |
-| **O quê** | **CB-230-EXCLUSIVO** + **CADASTRO-BUSCA-MED** (ver pacotes abaixo) |
-| **Prova** | gerador **24/24** · bip **10/10** · etq **74/74** · Django **27/27** · busca **37/37** · **PREP_FAILS=0** |
+| **Status** | 🟡 **armado** — aguarda cutover (Live **v26.83** @ `0c39a6e0`) |
+| **O quê** | Legado 230 DV errado → EAN bipável · **varredura em massa** `migrar_cb_loja_legado` · GM0024-P / zebra etiqueta |
+| **Prova** | legado **11/11** · bip **10/10** · gerador **26/26** · Django **26/26** · PIN **9973** · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
-| **Branch PREP** | `deploy/prep-checklist-1010d` |
+| **Rollback** | tag `rollback/pre-checklist-1010f-v26.83` · backup `producao-backup-pre-v2684-checklist-1010f` |
+| **Cutover** | `scripts/cutover_loja_checklist_1010f.sh` |
+| **Pós-deploy** | `migrar_cb_loja_legado --dry-run` → apply · só GM **COLISÃO** na mão |
+
+### ✅ Deploy loja — CHECKLIST 10/10e · **Live v26.83** · 10/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v26.83** — `producao` @ `0c39a6e0` · **não** foi merge do `teste` |
+| **O quê** | **CB-230-GM4045-HOTFIX** — gerador 230 sem «faixa esgotada» |
+| **Prova** | cutover `--exec` OK · gerador **26/26** · bip **10/10** · etq **74/74** · Django **29/29** |
+| **Migrate** | **NÃO** |
+| **Antes** | Live **v26.82** @ `b7bdde7b` |
+| **Rollback** | tag `rollback/pre-checklist-1010e-v26.82` · backup `producao-backup-pre-v2683-checklist-1010e` |
+| **Você** | Ctrl+F5 · badge **v26.83** · **GM4045:** reatribuir ou botão **230** + nova etiqueta (obrigatório) |
+
+### ✅ Deploy loja — CHECKLIST 10/10d · **Live v26.82** · 10/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v26.82** — `producao` @ `b7bdde7b` · **não** foi merge do `teste` |
+| **O quê** | **CB-230-EXCLUSIVO** + **CADASTRO-BUSCA-MED** |
+| **Prova** | cutover `--exec` OK · gerador **24/24** · bip **10/10** · etq **74/74** · busca **37/37** · Django **27/27** |
+| **Migrate** | **NÃO** |
+| **Antes** | Live **v26.80** @ `2ac4789c` |
 | **Rollback** | tag `rollback/pre-checklist-1010d-v26.80` · backup `producao-backup-pre-v2682-checklist-1010d` |
-| **Cutover** | `scripts/cutover_loja_checklist_1010d.sh` (dry-run OK) |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1010d.md` |
+| **Você** | Ctrl+F5 · badge **v26.82** · smoke 230 + aba Busca medicamento |
+| **GM4045** | v26.82 **não troca** o código sozinho — ver pacote **v26.83** abaixo |
 
-### 📦 PACOTE — **CB-230-EXCLUSIVO** · v26.82 (no PREP)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Gerador **230** só EAN-13 válido · busca literal · save com lock · cmd `reatribuir_cb_loja_exclusivo` (GM4045 opcional) |
-| **Smoke** | Cadastro → **230** → salvar → etiqueta → bip PDV |
-
-### 📦 PACOTE — **CADASTRO-BUSCA-MED** · v26.82 (no PREP)
+### 📦 PACOTE — **CB-230-GM4045-HOTFIX** · ✅ Live v26.83
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Palavras-chave + classes vet · aba **2. Busca** · PDV/catálogo indexam texto extra |
-| **Smoke** | Cadastro medicamento → aba Busca → sinônimo no PDV |
+| **O quê** | Gerador **230** só EAN-13 válido · bloqueio de colisão pelo valor bipado · busca literal (`1479` ≠ `1471`) · save com lock + revalidação · **v26.83** corrige gerador «faixa esgotada» (max_seq lixo / Mongo na alocação) |
+| **GM4045 (obrigatório na loja)** | O cadastro **2300000001479** é legado inválido: o leitor bipa **2300000001471** (outro produto). **Reimprimir etiqueta sem trocar o código não resolve.** Após deploy: `python manage.py reatribuir_cb_loja_exclusivo --codigo-gm GM4045 --esperado-atual 2300000001479 --aplicar --confirmar GM4045` → **Salvar** → **nova etiqueta** → bip no PDV |
+| **Ou na tela** | Botão **230** (gera EAN novo) → **Salvar no Agro** → reimprimir etiqueta |
+| **Migrate** | **NÃO** |
+| **Prova** | Django **32/32** · gerador **26/26** · bip **10/10** · etq **74/74** · PIN **9973** · **PREP_FAILS=0** |
+| **Smoke** | GM4045 com código **novo** EAN-13 válido → etiqueta → bip acha **GM4045** |
 
-### ✅ CHECKLIST ÚNICO — 10/10d · 🟢 no PREP (aguarda senha)
+### 📦 PACOTE — **CADASTRO-BUSCA-MED** · ✅ Live v26.82
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Palavras-chave de busca (overlay + Mongo `AgroPalavrasChave`) · classes terapêuticas vet (checkboxes, taxonomia JSON) · aba **2. Busca** no cadastro SisVale · PDV/catálogo indexam texto extra · **não** grava sinônimos em `especificacao` ERP |
+| **Fora** | Filtro por botão de classe no PDV (fase 2) |
+| **Migrate** | **NÃO** |
+| **Prova** | path **37/37** · unit taxonomia **4/4** · API taxonomia **200** · PIN **9973** OK · **PREP_FAILS=0** (VERSION **26.82** no `teste` após merge CB-230) |
+| **Smoke loja** | Cadastro → editar produto medicamento → aba Busca → salvar → PDV buscar sinônimo |
+
+### ✅ CHECKLIST ÚNICO — 10/10e · ✅ Live v26.83
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CB-230-EXCLUSIVO** | 🟢 **no PREP** | **NÃO** | gerador **24/24** · bip **10/10** · etq **74/74** |
-| 2 | **CADASTRO-BUSCA-MED** | 🟢 **no PREP** | **NÃO** | **37/37** · **4/4** |
+| 1 | **CB-230-GM4045-HOTFIX** | ✅ **Live v26.83** | **NÃO** | gerador **26/26** · bip **10/10** · etq **74/74** |
+| 2 | **CADASTRO-BUSCA-MED** | ✅ **Live v26.82** | **NÃO** | **37/37** · **4/4** |
+
+### ✅ CHECKLIST ÚNICO — 10/10d · ✅ Live v26.82
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CB-230-EXCLUSIVO** | ✅ **Live v26.82** | **NÃO** | gerador **24/24** · bip **10/10** · etq **74/74** |
+| 2 | **CADASTRO-BUSCA-MED** | ✅ **Live v26.82** | **NÃO** | **37/37** · **4/4** |
 
 ### ✅ Deploy loja — CHECKLIST 10/10b · **Live v26.80** · 10/10
 
