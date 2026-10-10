@@ -1294,17 +1294,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 PREP — CHECKLIST 10/10g · **CB-230-LEGADO-LIBERAR** · v26.85 · armado
+### ✅ Deploy loja — CHECKLIST 10/10g · **Live v26.85** · 10/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **armado** — Live **v26.84** @ `35308cbf` |
-| **O quê** | `migrar_cb_loja_legado --liberar-intruso` (93 colisões → lote automático) |
-| **Prova** | legado **12/12** · bip **10/10** · Django **35/35** · PIN **9973** · **PREP_FAILS=0** |
-| **Migrate** | **NÃO** |
+| **Status** | ✅ **enviado / Live v26.85** — `producao` @ `d4666994` |
+| **O quê** | **CB-230-LEGADO-LIBERAR** — `--liberar-intruso` na varredura |
+| **Antes** | Live **v26.84** @ `35308cbf` |
 | **Rollback** | tag `rollback/pre-checklist-1010g-v26.84` · backup `producao-backup-pre-v2685-checklist-1010g` |
-| **Cutover** | `scripts/cutover_loja_checklist_1010g.sh` |
-| **Pós-deploy** | `migrar_cb_loja_legado --liberar-intruso` (dry-run → apply) |
+| **Você** | Render Live → Shell (2 comandos abaixo) → bip GM0024-P |
 
 ### ✅ Deploy loja — CHECKLIST 10/10f · **Live v26.84** · 10/10
 
