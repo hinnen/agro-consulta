@@ -1294,17 +1294,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚀 PREP deploy loja — CHECKLIST 10/10d (`deploy/prep-checklist-1010d` · **v26.82**) · aguarda senha
+### ✅ Deploy loja — CHECKLIST 10/10d · **Live v26.82** · 10/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP pronto** — **não** subiu · checkpoint Live **v26.80** @ `2ac4789c` · dry-run cutover **OK** |
-| **Tip PREP** | `deploy/prep-checklist-1010d` @ `b7bdde7b` |
+| **Status** | ✅ **enviado / Live v26.82** — `producao` @ `b7bdde7b` · **não** foi merge do `teste` |
+| **O quê** | **CB-230-EXCLUSIVO** + **CADASTRO-BUSCA-MED** |
+| **Prova** | cutover `--exec` OK · gerador **24/24** · bip **10/10** · etq **74/74** · busca **37/37** · Django **27/27** |
+| **Migrate** | **NÃO** |
+| **Antes** | Live **v26.80** @ `2ac4789c` |
 | **Rollback** | tag `rollback/pre-checklist-1010d-v26.80` · backup `producao-backup-pre-v2682-checklist-1010d` |
-| **Cutover** | `scripts/cutover_loja_checklist_1010d.sh` |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1010d.md` |
+| **Você** | Ctrl+F5 · badge **v26.82** · smoke 230 + aba Busca medicamento |
 
-### 📦 PACOTE PRONTO — **CB-230-EXCLUSIVO** · v26.82
+### 📦 PACOTE — **CB-230-EXCLUSIVO** · ✅ Live v26.82
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1314,7 +1316,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | Django **30/30** · gerador **26/26** · busca **10/10** · etiqueta **74/74** · **PREP_FAILS=0** |
 | **Smoke** | Cadastro → **230** → salvar → etiqueta nova → bip no PDV acha o produto certo |
 
-### 📦 PACOTE PRONTO — **CADASTRO-BUSCA-MED** · v26.81
+### 📦 PACOTE — **CADASTRO-BUSCA-MED** · ✅ Live v26.82
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1324,12 +1326,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | path **37/37** · unit taxonomia **4/4** · API taxonomia **200** · PIN **9973** OK · **PREP_FAILS=0** (VERSION **26.82** no `teste` após merge CB-230) |
 | **Smoke loja** | Cadastro → editar produto medicamento → aba Busca → salvar → PDV buscar sinônimo |
 
-### ✅ CHECKLIST ÚNICO — 10/10d · 🟢 no PREP (aguarda senha)
+### ✅ CHECKLIST ÚNICO — 10/10d · ✅ Live v26.82
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CB-230-EXCLUSIVO** | 🟢 **no PREP** | **NÃO** | gerador **24/24** · bip **10/10** · etq **74/74** · Django **27/27** |
-| 2 | **CADASTRO-BUSCA-MED** | 🟢 **no PREP** | **NÃO** | **37/37** · **4/4** |
+| 1 | **CB-230-EXCLUSIVO** | ✅ **Live v26.82** | **NÃO** | gerador **24/24** · bip **10/10** · etq **74/74** |
+| 2 | **CADASTRO-BUSCA-MED** | ✅ **Live v26.82** | **NÃO** | **37/37** · **4/4** |
 
 ### ✅ Deploy loja — CHECKLIST 10/10b · **Live v26.80** · 10/10
 
