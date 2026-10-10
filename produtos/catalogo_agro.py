@@ -157,6 +157,9 @@ def produto_agro_para_row(
         )
         if x
     ).strip()
+    from produtos.medicamento_vet_taxonomia import anexar_texto_busca_extras
+
+    row["busca_texto"] = anexar_texto_busca_extras(row.get("busca_texto") or "", ce)
     from produtos.catalogo_nome_util import aplicar_nome_resolvido_em_row
 
     return aplicar_nome_resolvido_em_row(row, p, ov)
