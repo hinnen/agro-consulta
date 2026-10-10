@@ -4,10 +4,10 @@ Código de barras interno da loja (embalagem no balcão): prefixo 230.
 Formato novo (EAN-13 válido): 230 + 9 dígitos de sequência + dígito verificador.
 Ex.: seq 1572 → 2300000015728 (DV correto).
 
-Formato legado (ainda aceito no cadastro): 230 + 10 dígitos sequenciais sem DV EAN.
-Ex.: 2300000001571 — o cadastro NÃO muda; na **etiqueta** imprime EAN-13 com DV
-correto (12 primeiros + dígito verificador) para leitores que validam GS1.
-Ex.: 2300000001480 → barras 2300000001488; busca/index incluem os dois.
+Formato legado: 230 + 10 dígitos sequenciais sem DV EAN.
+Na etiqueta o DV era corrigido, mas a busca não trata mais legado e EAN corrigido como
+equivalentes: ambos podem pertencer a produtos distintos. Novas atribuições usam somente
+EAN-13 válido e reservam todo o grupo que produziria o mesmo valor físico bipado.
 """
 
 from __future__ import annotations
@@ -147,23 +147,24 @@ def ean13_para_bip_codigo_barras_loja(cb: str) -> str | None:
     return canonical
 
 
+def codigos_grupo_bip_canonico(cb: str) -> list[str]:
+    """Códigos armazenáveis que produzem o mesmo EAN efetivamente bipado."""
+    d = re.sub(r"\D", "", str(cb or ""))
+    if not _CB_LOJA_REGEX.match(d):
+        return [d] if d else []
+    canonical = ean13_para_bip_codigo_barras_loja(d)
+    if not canonical:
+        return [d]
+    body = canonical[:12]
+    return [f"{body}{tail}" for tail in "0123456789"]
+
+
 def variantes_busca_codigo_barras_loja(cb: str) -> list[str]:
-    """Cadastro armazenado + EAN bipado (index / Postgres / overlay)."""
+    """Busca literal segura; equivalência legado↔canônico causava colisões entre produtos."""
     d = re.sub(r"\D", "", str(cb or ""))
     if not _CB_LOJA_REGEX.match(d):
         return []
-    out = {d}
-    bip = ean13_para_bip_codigo_barras_loja(d)
-    if bip:
-        out.add(bip)
-    # Bip leu EAN válido → cadastro legado (sem DV) que gera o mesmo EAN na etiqueta.
-    if ean13_checksum_ok(d):
-        body = d[:12]
-        for tail in "0123456789":
-            leg = f"{body}{tail}"
-            if leg != d and ean13_para_bip_codigo_barras_loja(leg) == d:
-                out.add(leg)
-    result = sorted(out)
+    result = [d]
     # region agent log
     import json as _agent_json, time as _agent_time
     open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"A,B","location":"produtos/agro_codigo_barras_loja_util.py:variantes_busca:return","message":"Canonical search variants","data":{"input":d,"variants":result},"timestamp":int(_agent_time.time()*1000)})+"\n")
@@ -178,6 +179,13 @@ def _cb_loja_ocupado_overlays(cb: str) -> bool:
         return True
     if ProdutoMarcaVariacaoAgro.objects.filter(codigo_barras=cb).exists():
         return True
+    from .mongo_index_codigos import codigos_barras_opcionais_de_cadastro_extras
+
+    for ov in ProdutoGestaoOverlayAgro.objects.exclude(cadastro_extras={}).only(
+        "cadastro_extras"
+    ):
+        if cb in codigos_barras_opcionais_de_cadastro_extras(ov.cadastro_extras):
+            return True
     return False
 
 
@@ -195,6 +203,7 @@ def _cb_loja_ocupado_postgres(cb: str) -> bool:
 
 def _cb_loja_ocupado_mongo(db: Database, col: str, cb: str) -> bool:
     or_dup = [{fld: cb} for fld in ("CodigoBarras", "CodigoBarrasProduto", "Codigo", "CodigoNFe", "EAN_NFe")]
+    or_dup.append({"index_codigos": cb})
     try:
         return bool(db[col].find_one({"$or": or_dup}, {"_id": 1}))
     except Exception:
@@ -210,7 +219,7 @@ def _cb_loja_ocupado(db: Database, col: str, cb: str) -> bool:
 
 def _cb_loja_ocupado_unificado(db: Database | None, col: str | None, cb: str) -> bool:
     exact_pg = _cb_loja_ocupado_postgres(cb)
-    diagnostic_variants = variantes_busca_codigo_barras_loja(cb)
+    diagnostic_variants = codigos_grupo_bip_canonico(cb)
     occupied_pg_variants = [
         alt for alt in diagnostic_variants if alt != cb and _cb_loja_ocupado_postgres(alt)
     ]
@@ -218,10 +227,10 @@ def _cb_loja_ocupado_unificado(db: Database | None, col: str | None, cb: str) ->
     import json as _agent_json, time as _agent_time
     open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"B,C","location":"produtos/agro_codigo_barras_loja_util.py:_cb_loja_ocupado_unificado:postgres","message":"Literal versus canonical occupancy","data":{"candidate":cb,"exactOccupied":exact_pg,"canonicalOccupiedVariants":occupied_pg_variants},"timestamp":int(_agent_time.time()*1000)})+"\n")
     # endregion
-    if exact_pg:
+    if exact_pg or occupied_pg_variants:
         return True
     if db is not None and col:
-        return _cb_loja_ocupado_mongo(db, col, cb)
+        return any(_cb_loja_ocupado_mongo(db, col, alt) for alt in diagnostic_variants)
     return False
 
 

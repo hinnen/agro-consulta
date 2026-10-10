@@ -1,4 +1,4 @@
-"""Bip 230… legado ↔ EAN válido na busca."""
+"""Busca 230… não cruza cadastro legado com EAN válido de outro produto."""
 from django.test import SimpleTestCase
 
 from produtos.cadastro_busca_codigo_util import (
@@ -9,19 +9,19 @@ from produtos.cadastro_busca_codigo_util import (
 
 
 class CbLojaBipBuscaTests(SimpleTestCase):
-    def test_equivalente_1479_1471(self):
-        self.assertTrue(cb_loja_bip_equivalente("2300000001471", "2300000001479"))
-        self.assertTrue(cb_loja_bip_equivalente("2300000001479", "2300000001471"))
+    def test_1479_e_1471_nao_sao_equivalentes(self):
+        self.assertFalse(cb_loja_bip_equivalente("2300000001471", "2300000001479"))
+        self.assertFalse(cb_loja_bip_equivalente("2300000001479", "2300000001471"))
 
-    def test_termo_bate_cadastro_vs_bip(self):
-        self.assertTrue(
+    def test_bip_valido_nao_bate_cadastro_legado(self):
+        self.assertFalse(
             termo_bate_codigos_produto(
                 "2300000001471",
                 codigo_barras="2300000001479",
             )
         )
 
-    def test_index_inclui_variantes(self):
+    def test_index_nao_inclui_canonicalizacao_ambigua(self):
         ix = index_codigos_de_campos(codigo_barras="2300000001479")
         self.assertIn("2300000001479", ix)
-        self.assertIn("2300000001471", ix)
+        self.assertNotIn("2300000001471", ix)
