@@ -39,8 +39,8 @@ DELTA="$(git diff --name-only "$PROD_REF...$PREP_REF")"
 echo "$DELTA" | grep -q 'produtos/cb_loja_legado_migrate_util.py' || {
   echo "FAIL: delta sem cb_loja_legado_migrate_util.py"; exit 2;
 }
-echo "$DELTA" | grep -q 'liberar-intruso' || {
-  echo "FAIL: delta sem flag --liberar-intruso no comando"; exit 2;
+git show "$PREP_REF:produtos/management/commands/migrar_cb_loja_legado.py" | grep -q 'liberar-intruso' || {
+  echo "FAIL: comando migrar sem --liberar-intruso"; exit 2;
 }
 NFILES=$(echo "$DELTA" | wc -l | tr -d ' ')
 [[ "$NFILES" -le 10 ]] || {
