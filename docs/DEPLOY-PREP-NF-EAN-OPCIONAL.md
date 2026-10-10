@@ -1,6 +1,6 @@
 # PREP deploy — NF-EAN-OPCIONAL · alvo **v26.80**
 
-**Status:** 🟢 **armado / pronto para envio** (CHECKLIST **10/10b**)  
+**Status:** ✅ **enviado / Live v26.80** (CHECKLIST **10/10b**)  
 **Não sobe sozinho.** Só com frase explícita + senha `99738595` na mesma mensagem.
 
 Canônico do cutover: **`docs/DEPLOY-PREP-CHECKLIST-1010b.md`**.

@@ -1294,24 +1294,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — CHECKLIST 10/10b armado (`NF-EAN-OPCIONAL` · 10/10)
+### ✅ Deploy loja — CHECKLIST 10/10b · **Live v26.80** · 10/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Entrada NF casa EAN do XML em `codigos_barras_opcionais` · principal prioridade · duplicidade **não** vincula |
-| **Prova** | path **26/26** · Django **20/20** · cutover dry-run · **PREP_FAILS=0** |
+| **Status** | ✅ **enviado / Live v26.80** — `producao` @ `c81ec766` · **não** foi merge do `teste` |
+| **O quê** | **NF-EAN-OPCIONAL** — Entrada NF casa EAN adicional · principal prioridade · duplicidade sem vínculo |
+| **Prova** | path **26/26** · Django **20/20** · cutover `--exec` OK |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **armado / pronto para envio** · tip PREP `deploy/prep-nf-ean-opcional` @ `9562842f` · alvo **v26.80** · produção **não** alterada |
-| **Antes / checkpoint** | Live **v26.79** @ `735698c7` · tag `rollback/pre-checklist-1010b-v26.79` · backup `producao-backup-pre-v2680-checklist-1010b` |
-| **Rollback** | `git push origin rollback/pre-checklist-1010b-v26.79:producao --force-with-lease` · **só** frase+senha |
-| **Na senha** | `docs/DEPLOY-PREP-CHECKLIST-1010b.md` · `./scripts/cutover_loja_checklist_1010b.sh --exec` |
-| **Você** | Ctrl+F5 · **v26.80** · EAN opcional casa · principal ganha · duplicidade sem vínculo |
+| **Branch PREP** | `deploy/prep-nf-ean-opcional` · tip `c81ec766` · base Live **v26.79** @ `735698c7` |
+| **Rollback** | tag `rollback/pre-checklist-1010b-v26.79` · backup `producao-backup-pre-v2680-checklist-1010b` · **só** frase+senha |
+| **Você** | Ctrl+F5 · badge **v26.80** · smoke Entrada NF EAN opcional |
 
-### ✅ CHECKLIST ÚNICO — 10/10b · NF-EAN-OPCIONAL · 🟢 armado / pronto para envio
+### ✅ CHECKLIST ÚNICO — 10/10b · ✅ Live v26.80
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **NF-EAN-OPCIONAL** | 🟢 **armado / pronto para envio à produção** | **NÃO** | **26/26** · **20/20** |
+| 1 | **NF-EAN-OPCIONAL** | ✅ **Live v26.80** | **NÃO** | **26/26** · **20/20** |
 
 ### ✅ Deploy loja — correção bip + gerador 230 (`CHECKLIST 10/10` · **Live v26.79**)
 
