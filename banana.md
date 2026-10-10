@@ -1294,32 +1294,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — lote pós v26.76 (`CHECKLIST 09/10h` · 09/10)
+### ✅ Deploy loja — CHECKLIST 09/10h · **Live v26.78** · 10/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | **ETQ-BIP-230-VARIANTES** (bip 1471↔1479 no PDV/index) · **CADASTRO-CB-230-MAX-NCM** · **PDV-VALOR-RS-KG** · cmd `migrar_cb_loja_legado` (opcional cadastro) |
-| **Prova** | bip **10/10** · gerador **19/19** · etq **74/74** · termica **69/69** · valor-rs-kg **46/46** · unit **10/10** · **PREP_FAILS=0** |
+| **Status** | ✅ **enviado / Live v26.78** — `producao` @ `13c4d896` · **não** foi merge do `teste` |
+| **O quê** | **ETQ-BIP-230-VARIANTES** · **CADASTRO-CB-230-MAX-NCM** · **PDV-VALOR-RS-KG** · cmd `migrar_cb_loja_legado` (opcional) |
+| **Prova** | bip **10/10** · gerador **19/19** · etq **74/74** · valor-rs **46/46** · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
-<<<<<<< HEAD
-| **Status** | 🟢 **pronto para envio à produção** · alvo **v26.78** |
-| **Antes** | Live **v26.76** @ `896327e9` |
-| **Rollback** | tag `rollback/pre-checklist-0910f-v26.74` · **só** frase+senha |
-=======
-| **Status** | 🟢 **pronto para envio à produção** · tip PREP `deploy/prep-checklist-0910h` · alvo **v26.78** |
-| **Antes** | Live **v26.76** @ `52da69c2` |
-| **Rollback** | tag `rollback/pre-checklist-0910h-v26.76` · `docs/ROLLBACK-CHECKLIST-0910h.md` · **só** frase+senha |
-| **Na senha** | `docs/DEPLOY-PREP-CHECKLIST-0910h.md` · `scripts/cutover_loja_checklist_0910h.sh --exec` |
->>>>>>> 13c4d896 (docs(banana): rollback doc CHECKLIST 09/10h)
-| **Você** | Ctrl+F5 · **v26.78** · bip GM4045 `2300000001479` ou `2300000001471` · botão **230** · KG modal |
+| **Branch PREP** | `deploy/prep-checklist-0910h` · base Live **v26.76** @ `52da69c2` |
+| **Rollback** | tag `rollback/pre-checklist-0910h-v26.76` · backup `producao-backup-pre-v2678-checklist-0910h` · **só** frase+senha |
+| **Você** | Ctrl+F5 · badge **v26.78** · bip GM4045 1479/1471 · KG modal · UN direto |
 
-### ✅ CHECKLIST ÚNICO — 09/10h · 🟢 pronto para envio
+### ✅ CHECKLIST ÚNICO — 09/10h · ✅ Live v26.78
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-BIP-230-VARIANTES** | 🟢 **pronto para envio à produção** | **NÃO** | **10/10** · **74/74** |
-| 2 | **CADASTRO-CB-230-MAX-NCM** | 🟢 **pronto para envio à produção** | **NÃO** | **19/19** |
-| 3 | **PDV-VALOR-RS-KG** | 🟢 **pronto para envio à produção** | **NÃO** | **46/46** |
+| 1 | **ETQ-BIP-230-VARIANTES** | ✅ **Live v26.78** | **NÃO** | **10/10** · **74/74** |
+| 2 | **CADASTRO-CB-230-MAX-NCM** | ✅ **Live v26.78** | **NÃO** | **19/19** |
+| 3 | **PDV-VALOR-RS-KG** | ✅ **Live v26.78** | **NÃO** | **46/46** |
 
 ### ~~CHECKLIST ÚNICO — 09/10g~~ · **absorvido em 09/10h**
 
