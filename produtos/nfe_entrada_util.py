@@ -1530,8 +1530,13 @@ def casar_produtos_postgres(
         cprod = (it.get("c_prod") or "").strip()
         p = None
         mtipo = None
+        # region agent log
+        import json as _agent_json, time as _agent_time
+        open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"A,B,E","location":"produtos/nfe_entrada_util.py:casar_produtos_postgres:entry","message":"Postgres NF match entry","data":{"ean":ean,"hasCprod":bool(cprod)},"timestamp":int(_agent_time.time()*1000)})+"\n")
+        # endregion
         try:
             ean_dig = re.sub(r"\D", "", ean)
+            ov = None
             # EAN curto da NF (ex. «25») não casa produto — só GTIN ≥8.
             if len(ean_dig) >= 8:
                 p = (
@@ -1555,6 +1560,28 @@ def casar_produtos_postgres(
                         )
                         if p:
                             mtipo = "ean_overlay"
+                # region agent log
+                import json as _agent_json, time as _agent_time
+                open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"A","location":"produtos/nfe_entrada_util.py:casar_produtos_postgres:primary-ean","message":"Primary EAN lookup result","data":{"ean":ean_dig,"productPk":getattr(p,"pk",None),"overlayPid":str(getattr(ov,"produto_externo_id","") or "")},"timestamp":int(_agent_time.time()*1000)})+"\n")
+                # endregion
+                if not p:
+                    from produtos.mongo_index_codigos import codigos_barras_opcionais_de_cadastro_extras
+
+                    _agent_optional_pids = []
+                    for _agent_ov in ProdutoGestaoOverlayAgro.objects.exclude(cadastro_extras={}).only(
+                        "produto_externo_id", "cadastro_extras"
+                    )[:1000]:
+                        if ean_dig in codigos_barras_opcionais_de_cadastro_extras(
+                            getattr(_agent_ov, "cadastro_extras", None)
+                        ):
+                            _agent_optional_pids.append(str(_agent_ov.produto_externo_id or ""))
+                    _agent_resolved = Produto.objects.filter(
+                        produto_externo_id__in=_agent_optional_pids
+                    ).count()
+                    # region agent log
+                    import json as _agent_json, time as _agent_time
+                    open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"B,C,D","location":"produtos/nfe_entrada_util.py:casar_produtos_postgres:optional-diagnostic","message":"Optional EAN diagnostic","data":{"ean":ean_dig,"candidatePids":_agent_optional_pids,"candidateCount":len(_agent_optional_pids),"resolvedProducts":_agent_resolved},"timestamp":int(_agent_time.time()*1000)})+"\n")
+                    # endregion
             if not p and cprod:
                 p = (
                     Produto.objects.filter(
@@ -1619,6 +1646,10 @@ def casar_produtos_postgres(
             logger.warning("casar_produtos_postgres: %s", exc)
             continue
         if not p:
+            # region agent log
+            import json as _agent_json, time as _agent_time
+            open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"A,C,D,E","location":"produtos/nfe_entrada_util.py:casar_produtos_postgres:unmatched","message":"Postgres NF item unmatched","data":{"ean":ean,"matchType":mtipo},"timestamp":int(_agent_time.time()*1000)})+"\n")
+            # endregion
             continue
         _enriquecer_item_casado_pg(it, p, mtipo)
     return itens
