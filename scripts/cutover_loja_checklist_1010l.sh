@@ -34,7 +34,7 @@ git rev-parse "$ROLLBACK_TAG" >/dev/null 2>&1 \
   || { echo "FAIL: tag rollback ausente $ROLLBACK_TAG"; exit 2; }
 
 PREP_FULL="$(git rev-parse "$PREP_REF")"
-git show "${PREP_FULL}:produtos/static/produtos/js/pdv_wizard.js" | grep -q 'normalizarScanEanLojaParaBusca' || {
+git grep -q 'normalizarScanEanLojaParaBusca' "$PREP_FULL" -- produtos/static/produtos/js/pdv_wizard.js || {
   echo "FAIL: delta sem normalização scan PDV"; exit 2;
 }
 
