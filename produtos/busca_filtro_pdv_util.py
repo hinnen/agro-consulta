@@ -4,9 +4,21 @@ from __future__ import annotations
 import re
 
 from integracoes.texto import normalizar
-from produtos.mongo_index_codigos import INDEX_CODIGOS_CAMPO, somente_alnum
+from produtos.mongo_index_codigos import (
+    INDEX_CODIGOS_CAMPO,
+    produto_termo_bate_campos_principais,
+    somente_alnum,
+)
 
 _RE_DIGITOS = re.compile(r"\D")
+
+
+def termo_eh_ean_loja_bip_valido(termo: str) -> bool:
+    """EAN-13 230… com DV ok (valor lido na etiqueta / leitor)."""
+    from produtos.agro_codigo_barras_loja_util import ean13_checksum_ok
+
+    tl = somente_alnum(str(termo or ""))
+    return len(tl) == 13 and tl.startswith("230") and ean13_checksum_ok(tl)
 
 # Palavra que não identifica o produto (tamanho, cor, unidade). «milho grande» não pode
 # completar só com «grande» (bebedouro). Espelho no PDV: pdv_wizard.js PDV_BUSCA_TOKEN_FRACO.
@@ -223,6 +235,11 @@ def filtrar_documentos_estilo_pdv(docs: list[dict], termo: str) -> list[dict]:
 
     _dig_f = _RE_DIGITOS.sub("", termo)
     _plu_curto = _dig_f.isdigit() and len(_dig_f) == 4
+    # EAN loja bipado: só produto cujo cadastro raiz (ou overlay já aplicado) casa literalmente.
+    if termo_eh_ean_loja_bip_valido(termo) and " " not in termo:
+        tl = somente_alnum(termo)
+        filtrados = [d for d in docs if produto_termo_bate_campos_principais(d, tl)]
+        return filtrados
     # PLU balança (0010) não passa em parece_codigo (≥8) — não filtrar fora GM0010-*.
     if (parece_codigo_cadastro(termo) or _plu_curto) and " " not in termo:
         return list(docs)
@@ -244,6 +261,12 @@ def score_relevancia_doc(doc: dict, termo: str) -> int:
     """Espelho de ``relevanciaTextoBuscaPdv`` no cliente (+ bônus prefixo GM)."""
     t = _norm_termo(termo)
     if not t:
+        return 0
+
+    tl_raw = somente_alnum(str(termo or ""))
+    if termo_eh_ean_loja_bip_valido(termo):
+        if produto_termo_bate_campos_principais(doc, tl_raw):
+            return 2_100_000
         return 0
 
     ix = doc.get(INDEX_CODIGOS_CAMPO) or doc.get("index_codigos")
@@ -287,6 +310,18 @@ def score_relevancia_doc(doc: dict, termo: str) -> int:
 def score_relevancia_row_api(row: dict, termo: str) -> int:
     t = _norm_termo(termo)
     if not t:
+        return 0
+
+    if termo_eh_ean_loja_bip_valido(termo):
+        doc = {
+            "CodigoNFe": row.get("codigo_nfe"),
+            "CodigoBarras": row.get("codigo_barras"),
+            "Codigo": row.get("codigo"),
+            "index_codigos": row.get("index_codigos"),
+        }
+        tl_raw = somente_alnum(str(termo or ""))
+        if produto_termo_bate_campos_principais(doc, tl_raw):
+            return 2_100_000
         return 0
 
     ix = row.get("index_codigos")

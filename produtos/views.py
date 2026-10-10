@@ -23743,9 +23743,20 @@ def api_buscar_produtos(request):
     bca_cache_key: str | None = None
     _q_digits_bca = re.sub(r"\D", "", str(q or ""))
     _ean_balanca_bca = len(_q_digits_bca) == 13 and _q_digits_bca[:1] == "2"
-    if q and not wizard_catalog and (usa_pg_cat or pdv_somente_pg) and not _ean_balanca_bca:
+    from produtos.busca_filtro_pdv_util import termo_eh_ean_loja_bip_valido
+
+    _ean_loja_bca = termo_eh_ean_loja_bip_valido(q)
+    if (
+        q
+        and not wizard_catalog
+        and (usa_pg_cat or pdv_somente_pg)
+        and not _ean_balanca_bca
+        and not _ean_loja_bca
+    ):
+        from produtos.bca_busca_cache_util import BCA_BUSCA_CACHE_VERSION
+
         bca_cache_key = (
-            f"bca_busca_v1:{q.lower()[:80]}:{lim_busca_req}:"
+            f"bca_busca_v{BCA_BUSCA_CACHE_VERSION}:{q.lower()[:80]}:{lim_busca_req}:"
             f"{int(wizard_mode)}:{int(entrada_nfe_mode)}:{int(contexto_cadastro)}:{int(compras)}"
         )
         _bca_hit = cache.get(bca_cache_key)
