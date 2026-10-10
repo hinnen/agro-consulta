@@ -164,6 +164,34 @@
         return String(val ?? '').replace(/\D/g, '');
     }
 
+    function ean13ChecksumOk(d13) {
+        const d = digitosCodigoBusca(d13);
+        if (d.length !== 13 || !/^\d+$/.test(d)) return false;
+        let soma = 0;
+        for (let i = 0; i < 12; i++) {
+            const n = parseInt(d[i], 10);
+            soma += (i % 2 === 0) ? n : n * 3;
+        }
+        const dv = (10 - (soma % 10)) % 10;
+        return String(dv) === d[12];
+    }
+
+    function termoEhEanLojaBipValido(termoNorm) {
+        const d = digitosCodigoBusca(termoNorm);
+        return d.length === 13 && d.indexOf('230') === 0 && ean13ChecksumOk(d);
+    }
+
+    function produtoBateEanLojaCadastroRaiz(p, termoNorm) {
+        if (!termoEhEanLojaBipValido(termoNorm) || !p) return false;
+        const d = digitosCodigoBusca(termoNorm);
+        const campos = [p.codigo_barras, p.ean, p.codigo_nfe, p.codigo, p.codigo_interno];
+        for (const val of campos) {
+            if (val == null || val === '') continue;
+            if (digitosCodigoBusca(val) === d) return true;
+        }
+        return false;
+    }
+
     function somenteAlnumCodigoBusca(val) {
         return String(val ?? '').replace(/[^a-z0-9]/g, '');
     }
@@ -172,6 +200,9 @@
     function termoIgualCodigoBarrasNumericoExato(termoNorm, p) {
         const d = digitosCodigoBusca(termoNorm);
         if (!pareceCodigoBarrasNumerico(d) || !p) return false;
+        if (termoEhEanLojaBipValido(termoNorm)) {
+            return produtoBateEanLojaCadastroRaiz(p, termoNorm);
+        }
         const campos = [
             p.codigo_barras,
             p.ean,
@@ -467,6 +498,9 @@
         if (!termoNorm || typeof termoNorm !== 'string') return 0;
         const t = termoNorm.trim();
         if (!t) return 0;
+        if (termoEhEanLojaBipValido(t)) {
+            return produtoBateEanLojaCadastroRaiz(p, t) ? 2100000 : 0;
+        }
         if (Array.isArray(p.index_codigos) && p.index_codigos.some((x) => normalizarBuscaLocal(String(x ?? '')) === t)) {
             return 2000000;
         }

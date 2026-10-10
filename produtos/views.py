@@ -23411,6 +23411,15 @@ def _wizard_json_row_bate_query_exata(row: dict, q: str) -> bool:
     q_raw = str(q or "").strip()
     if not q_raw:
         return False
+    from produtos.busca_filtro_pdv_util import termo_eh_ean_loja_bip_valido
+
+    if termo_eh_ean_loja_bip_valido(q_raw):
+        doc = {
+            "CodigoNFe": row.get("codigo_nfe"),
+            "CodigoBarras": row.get("codigo_barras"),
+            "Codigo": row.get("codigo"),
+        }
+        return produto_termo_bate_campos_principais(doc, _somente_alnum(q_raw))
     q_wiz = q_raw.lower()
     q_al = _somente_alnum(q_raw).lower()
     if not q_al:
@@ -24188,6 +24197,23 @@ def api_buscar_produtos(request):
                 row["categoria"] = str(_cat_w or "").strip()
                 row["subcategoria"] = _sub_w or ""
             _aplicar_produto_gestao_overlay_em_dict(row, overlay_pdv_map.get(pid))
+            try:
+                from produtos.cadastro_busca_codigo_util import index_codigos_de_campos
+
+                _ov_ix = overlay_pdv_map.get(pid)
+                _ce_ix = (
+                    _ov_ix.cadastro_extras
+                    if _ov_ix and isinstance(getattr(_ov_ix, "cadastro_extras", None), dict)
+                    else None
+                )
+                row["index_codigos"] = index_codigos_de_campos(
+                    codigo=row.get("codigo"),
+                    codigo_nfe=row.get("codigo_nfe"),
+                    codigo_barras=row.get("codigo_barras"),
+                    cadastro_extras=_ce_ix,
+                )
+            except Exception:
+                pass
             # Total da etiqueta fica em valor_etiqueta_balanca; preco_venda = unitário (overlay ok).
             if pid in valor_etiqueta_por_id and not compras:
                 row["valor_etiqueta_balanca"] = round(
@@ -24248,6 +24274,20 @@ def api_buscar_produtos(request):
                     ]
             except Exception:
                 pass
+
+        if q and termo_eh_ean_loja_bip_valido(q):
+            _tl_bip = _somente_alnum(q)
+            _res_bip = []
+            for _rb in res:
+                _doc_b = {
+                    "CodigoNFe": _rb.get("codigo_nfe"),
+                    "CodigoBarras": _rb.get("codigo_barras"),
+                    "Codigo": _rb.get("codigo"),
+                }
+                if produto_termo_bate_campos_principais(_doc_b, _tl_bip):
+                    _res_bip.append(_rb)
+            if _res_bip:
+                res = _res_bip
 
         if wizard_catalog:
             res.sort(key=lambda r: str(r.get("nome") or "").lower())
