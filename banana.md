@@ -1294,24 +1294,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — correção bip + gerador 230 (`CHECKLIST 10/10` · alvo **v26.79**)
+### ✅ Deploy loja — correção bip + gerador 230 (`CHECKLIST 10/10` · **Live v26.79**)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | **PDV-BIP-230-NAO-BALANCA** (`230…1471` busca GM4045, não R$ 1,47) · **CAD-230-SO-CLIQUE** (novo cadastro começa vazio; botão **230** gera sob demanda) |
 | **Prova** | unit **22/22** · balança/JS **41/41** · bip **10/10** · gerador **22/22** · etiqueta **74/74** · KG **46/46** · runtime matrix OK · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **PREP pronto · aguarda senha** · `deploy/prep-checklist-1010` · alvo **v26.79** |
+| **Status** | ✅ **enviado / Live v26.79** · `producao` @ `d0351565` |
 | **Antes** | Live **v26.78.1** |
 | **Rollback** | tag `rollback/pre-checklist-1010-v26.78.1` · backup `producao-backup-pre-v2679-checklist-1010` |
-| **Na senha** | `scripts/cutover_loja_checklist_1010.sh --exec` |
+| **Prova final** | dry-run + cutover **OK** · **PREP_FAILS=0** |
 
-### ✅ CHECKLIST ÚNICO — 10/10 · 🟢 pronto para envio
+### ✅ CHECKLIST ÚNICO — 10/10 · ✅ Live v26.79
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PDV-BIP-230-NAO-BALANCA** | 🟢 **pronto para envio à produção** | **NÃO** |
-| 2 | **CAD-230-SO-CLIQUE** | 🟢 **pronto para envio à produção** | **NÃO** |
+| 1 | **PDV-BIP-230-NAO-BALANCA** | ✅ **Live v26.79** | **NÃO** |
+| 2 | **CAD-230-SO-CLIQUE** | ✅ **Live v26.79** | **NÃO** |
 
 ### ✅ Deploy loja — CHECKLIST 09/10h · **Live v26.78** · 10/10
 
