@@ -25798,6 +25798,8 @@ def api_produtos_cadastro_proximo_cb_loja(request):
     from produtos.agro_codigo_barras_loja_util import (
         alocar_proximo_codigo_barras_loja,
         alocar_proximo_codigo_barras_loja_postgres,
+        ean13_checksum_ok,
+        eh_codigo_barras_loja,
     )
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_mongo_erp_desligado
 
@@ -25817,6 +25819,17 @@ def api_produtos_cadastro_proximo_cb_loja(request):
         err, cb = alocar_proximo_codigo_barras_loja(db, col)
     if err is not None:
         return err
+    if not cb or not eh_codigo_barras_loja(cb) or not ean13_checksum_ok(cb):
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": (
+                    "O gerador não produziu um EAN-13 válido. "
+                    "Nenhum código foi preenchido; tente novamente."
+                ),
+            },
+            status=500,
+        )
     # region agent log
     import json as _agent_json, time as _agent_time
     open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"A,B,C","location":"produtos/views.py:api_produtos_cadastro_proximo_cb_loja:exit","message":"Generator endpoint response","data":{"barcode":str(cb or ""),"ok":bool(cb)},"timestamp":int(_agent_time.time()*1000)})+"\n")

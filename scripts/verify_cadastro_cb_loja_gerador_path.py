@@ -47,7 +47,13 @@ def main() -> int:
     util = read("produtos/agro_codigo_barras_loja_util.py")
     ok("def alocar_proximo_codigo_barras_loja(" in util, "util alocador unificado")
     ok("_cb_loja_ocupado_unificado" in util, "colisao PG + mongo opcional")
-    ok("return False" in util.split("_cb_loja_ocupado_mongo")[1][:400], "mongo erro nao marca tudo ocupado")
+    ok(
+        "return False"
+        in util.split("def _cb_loja_ocupado_mongo(", 1)[1].split(
+            "def _cb_loja_ocupado_mongo_por_outro", 1
+        )[0],
+        "falha Mongo do gerador nao esgota faixa",
+    )
     ok("_seq_legado_10d_parece_cb_loja" in util, "filtro NCM nao infla max seq")
     ok("validar_codigo_barras_loja_para_salvar" in util, "save revalida DV e grupo canonico")
     ok("pg_advisory_xact_lock" in util, "save serializa alocacao no Postgres")

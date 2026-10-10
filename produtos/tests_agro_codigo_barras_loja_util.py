@@ -118,7 +118,7 @@ class CodigoBarrasLojaEanTests(SimpleTestCase):
         ocupado.side_effect = lambda cb, _pid="": cb == "2300000014800"
 
         erro = validar_codigo_barras_loja_para_salvar(
-            "2300000014806",
+            "2300000014808",
             produto_externo_id="NOVO",
         )
 

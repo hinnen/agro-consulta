@@ -1,5 +1,6 @@
 """Contrato do botão 230 e proteção atômica no salvamento."""
 import json
+from contextlib import nullcontext
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -44,6 +45,25 @@ class GeradorCbLojaContratoTests(SimpleTestCase):
             reverse("api_produtos_cadastro_proximo_cb_loja"),
             "/api/produtos/cadastro/proximo-cb-loja/",
         )
+
+    @patch(
+        "produtos.agro_codigo_barras_loja_util.alocar_proximo_codigo_barras_loja_postgres",
+        return_value=(None, "2300000014806"),
+    )
+    @patch("produtos.agro_fonte_config.agro_catalogo_usa_postgres", return_value=True)
+    @patch("produtos.agro_fonte_config.agro_mongo_erp_desligado", return_value=True)
+    def test_endpoint_nao_entrega_codigo_com_dv_invalido(
+        self, _mongo_off, _catalogo_pg, _alocar
+    ):
+        request = self.rf.get(reverse("api_produtos_cadastro_proximo_cb_loja"))
+        request.user = self.user
+
+        response = api_produtos_cadastro_proximo_cb_loja(request)
+        data = json.loads(response.content)
+
+        self.assertEqual(response.status_code, 500)
+        self.assertFalse(data["ok"])
+        self.assertIn("EAN-13 válido", data["erro"])
 
     def test_template_liga_botao_url_e_campo(self):
         root = Path(__file__).resolve().parents[1]
@@ -93,6 +113,7 @@ class SalvarCbLojaProtecaoTests(SimpleTestCase):
         criar.assert_not_called()
 
     @patch("produtos.catalogo_agro.Produto.objects.create")
+    @patch("django.db.transaction.atomic", return_value=nullcontext())
     @patch(
         "produtos.agro_codigo_barras_loja_util.validar_codigo_barras_loja_para_salvar",
         return_value="Código ocupado. Clique em 230 novamente.",
@@ -101,7 +122,7 @@ class SalvarCbLojaProtecaoTests(SimpleTestCase):
         "produtos.agro_codigo_barras_loja_util.bloquear_alocacao_codigo_barras_loja"
     )
     def test_criacao_postgres_nao_deixa_produto_parcial_quando_codigo_colide(
-        self, _lock, _validar, criar
+        self, _lock, _validar, _atomic, criar
     ):
         from produtos.catalogo_agro import try_criar_produto_postgres_somente_agro
 
@@ -110,7 +131,7 @@ class SalvarCbLojaProtecaoTests(SimpleTestCase):
                 "nome": "Produto corrida",
                 "codigo": "1480",
                 "codigo_nfe": "GM1480",
-                "codigo_barras": "2300000014806",
+                "codigo_barras": "2300000014808",
                 "preco_venda": "1.00",
                 "preco_custo": "0.50",
             }
