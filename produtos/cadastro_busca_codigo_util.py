@@ -120,6 +120,21 @@ def _alnum_cmp(val: Any) -> str:
     return somente_alnum(str(val or "")).lower()
 
 
+def cb_loja_bip_equivalente(termo_digits: str, valor_digits: str) -> bool:
+    """Bip EAN válido ↔ cadastro legado 230… (ex. 1471 ↔ 1479)."""
+    a = _RE_NAO_ALNUM.sub("", str(termo_digits or ""))
+    b = _RE_NAO_ALNUM.sub("", str(valor_digits or ""))
+    if not a or not b or a == b:
+        return bool(a and a == b)
+    if len(a) == 13 and a.startswith("230"):
+        if b in variantes_busca_codigo_barras_loja(a):
+            return True
+    if len(b) == 13 and b.startswith("230"):
+        if a in variantes_busca_codigo_barras_loja(b):
+            return True
+    return False
+
+
 def termo_bate_valor_codigo(termo: str, val: Any) -> bool:
     if val is None or str(val).strip() == "":
         return False
@@ -133,9 +148,13 @@ def termo_bate_valor_codigo(termo: str, val: Any) -> bool:
         return True
     if tn and va and tn == va:
         return True
+    if tn and va and cb_loja_bip_equivalente(tn, va):
+        return True
     if t.isdigit():
         vd = _RE_NAO_ALNUM.sub("", str(val))
         if vd == t:
+            return True
+        if cb_loja_bip_equivalente(t, vd):
             return True
     if tn and len(tn) >= 5 and va and va == tn:
         return True
@@ -435,6 +454,14 @@ def index_codigos_de_campos(
             continue
         seen.add(key)
         out.append(s)
+    for raw in list(out):
+        dig = somente_alnum(str(raw))
+        if len(dig) == 13 and dig.startswith("230"):
+            for v in variantes_busca_codigo_barras_loja(dig):
+                key = somente_alnum(v).lower()
+                if key and key not in seen:
+                    seen.add(key)
+                    out.append(v)
     return out
 
 

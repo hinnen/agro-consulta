@@ -1298,20 +1298,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | **CADASTRO-CB-230-MAX-NCM** (botão **230**; max_seq ignora NCM `230990…`; API só PG) · **PDV-VALOR-RS-KG** (modal R$ só UN=KG) |
-| **Prova** | gerador **19/19** · etq **74/74** · valor-rs-kg **46/46** · **PREP_FAILS=0** |
+| **O quê** | **ETQ-BIP-230-VARIANTES** (bip 1471↔1479 no PDV/index) · **CADASTRO-CB-230-MAX-NCM** · **PDV-VALOR-RS-KG** · cmd `migrar_cb_loja_legado` (opcional cadastro) |
+| **Prova** | bip **3/3** · gerador **19/19** · etq **74/74** · valor-rs-kg **46/46** · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** · alvo **v26.77** |
+| **Status** | 🟢 **pronto para envio à produção** · alvo **v26.78** |
 | **Antes** | Live **v26.76** @ `896327e9` |
 | **Rollback** | tag `rollback/pre-checklist-0910f-v26.74` · **só** frase+senha |
-| **Você** | Ctrl+F5 · **v26.77** · GM0001-10 botão **230** · wizard KG pergunta R$ |
+| **Você** | Ctrl+F5 · **v26.78** · bip GM4045 `2300000001479` ou `2300000001471` · botão **230** · KG modal |
 
 ### ✅ CHECKLIST ÚNICO — 09/10h · 🟢 pronto para envio
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CADASTRO-CB-230-MAX-NCM** | 🟢 **pronto para envio à produção** | **NÃO** | **19/19** · **74/74** |
-| 2 | **PDV-VALOR-RS-KG** | 🟢 **pronto para envio à produção** | **NÃO** | **46/46** |
+| 1 | **ETQ-BIP-230-VARIANTES** | 🟢 **pronto para envio à produção** | **NÃO** | **3/3** · **74/74** |
+| 2 | **CADASTRO-CB-230-MAX-NCM** | 🟢 **pronto para envio à produção** | **NÃO** | **19/19** |
+| 3 | **PDV-VALOR-RS-KG** | 🟢 **pronto para envio à produção** | **NÃO** | **46/46** |
 
 ### ~~CHECKLIST ÚNICO — 09/10g~~ · **absorvido em 09/10h**
 
