@@ -298,7 +298,12 @@ def alocar_proximo_codigo_barras_loja(
     Próximo EAN-13 230… livre.
     Postgres + overlays sempre; Mongo complementa max/colisião quando disponível.
     """
-    n = _cap_seq_loja(_max_seq_cb_loja_unificado(db, col) + 1)
+    max_seq = _max_seq_cb_loja_unificado(db, col)
+    n = _cap_seq_loja(max_seq + 1)
+    # region agent log
+    import json as _agent_json, time as _agent_time
+    open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"B,C","location":"produtos/agro_codigo_barras_loja_util.py:alocar:start","message":"Generator allocation start","data":{"maxSeq":max_seq,"startSeq":n,"mongoIncluded":db is not None and bool(col)},"timestamp":int(_agent_time.time()*1000)})+"\n")
+    # endregion
     max_steps = 100_000
     steps = 0
     ultimo_cb = ""
@@ -308,6 +313,10 @@ def alocar_proximo_codigo_barras_loja(
             break
         ultimo_cb = cb
         if not _cb_loja_ocupado_unificado(db, col, cb):
+            # region agent log
+            import json as _agent_json, time as _agent_time
+            open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"B,D","location":"produtos/agro_codigo_barras_loja_util.py:alocar:return","message":"Generator allocation result","data":{"codigoBarras":cb,"sequence":n,"steps":steps},"timestamp":int(_agent_time.time()*1000)})+"\n")
+            # endregion
             return None, cb
         if n >= CB_LOJA_SEQ_MAX:
             break
