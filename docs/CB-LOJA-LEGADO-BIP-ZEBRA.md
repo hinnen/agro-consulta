@@ -8,15 +8,17 @@
 
 Mesmo padrão já visto em **GM4045** (1479 no cadastro vs 1471 no bip), com regra de busca que **não** troca legado por EAN de outro produto.
 
-## Correção na loja (ordem)
+## Correção em massa (loja não precisa abrir item por item)
 
-1. **Achar** quem está com o EAN bipável literal (ex. `2300000001556`) — gestão / cadastro / busca por barras.
-2. **Reatribuir 230** nesse produto (botão **230** na gestão ou `python manage.py reatribuir_cb_loja_exclusivo …`) para liberar o **1556**.
-3. No **GM0024-P** (ou produto com legado **1558**):
-   - Salvar de novo na gestão (promove **1558 → 1556** e guarda legado em opcionais), **ou**
-   - `python manage.py migrar_cb_loja_legado --pid=<produto_externo_id>` (sem `--dry-run` após conferir).
+Após subir a versão com este pacote, roda-se **uma vez** a varredura no servidor (equipe técnica / cutover):
 
-Se a migração ou o salvar retornar colisão, o **1556** ainda está em outro produto — volte ao passo 2.
+- Corrige sozinha **todos** os 230 legados que derem (cadastro + gestão).
+- No final aparece só a **lista de colisões** (poucos GM) — **só esses** pedem ajuste manual (reatribuir 230 no “intruso”, rodar de novo).
+
+## Se aparecer colisão (ex. GM0024-P)
+
+1. Reatribuir **230** no produto que já está com o código que a etiqueta bipa.
+2. Rodar a varredura de novo **ou** salvar o GM afetado na gestão.
 
 ## Comportamento do sistema (v26.84+)
 

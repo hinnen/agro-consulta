@@ -125,8 +125,13 @@ def migrar_cb_loja_legado_em_produto(
         return res
 
     with transaction.atomic():
-        produto.codigo_barras = novo
-        produto.save(update_fields=["codigo_barras"])
+        if getattr(produto, "pk", None):
+            produto.codigo_barras = novo
+            produto.save(update_fields=["codigo_barras"])
+        elif overlay is None:
+            overlay, _ = ProdutoGestaoOverlayAgro.objects.get_or_create(
+                produto_externo_id=pid[:64],
+            )
 
         if overlay is None:
             overlay = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).first()
@@ -144,17 +149,89 @@ def migrar_cb_loja_legado_em_produto(
     return res
 
 
-def iter_produtos_cb_loja_legado(*, limit: int = 5000):
-    from produtos.models import Produto
+def _cb_loja_legado_invalido(cb: str) -> bool:
+    d = _digits(cb)
+    return bool(eh_codigo_barras_loja(d) and not ean13_checksum_ok(d))
 
+
+def iter_produtos_cb_loja_legado(*, limit: int = 5000):
+    """Produtos com 230… legado (Postgres e/ou overlay da gestão). Yields (produto, overlay|None)."""
+    from produtos.models import Produto, ProdutoGestaoOverlayAgro
+
+    vistos: set[str] = set()
     n = 0
+
+    def _emit(p, overlay=None):
+        nonlocal n
+        pid = str(getattr(p, "produto_externo_id", "") or "").strip()
+        if not pid or pid in vistos:
+            return False
+        vistos.add(pid)
+        n += 1
+        return True
+
     qs = Produto.objects.exclude(codigo_barras="").only(
         "id", "produto_externo_id", "codigo_barras"
     )
     for p in qs.iterator(chunk_size=200):
-        d = _digits(p.codigo_barras)
-        if eh_codigo_barras_loja(d) and not ean13_checksum_ok(d):
-            yield p
-            n += 1
-            if n >= limit:
-                break
+        if not _cb_loja_legado_invalido(p.codigo_barras):
+            continue
+        if _emit(p):
+            yield p, None
+        if n >= limit:
+            return
+
+    for ov in (
+        ProdutoGestaoOverlayAgro.objects.exclude(codigo_barras="")
+        .only("produto_externo_id", "codigo_barras")
+        .iterator(chunk_size=200)
+    ):
+        if not _cb_loja_legado_invalido(ov.codigo_barras):
+            continue
+        pid = str(ov.produto_externo_id or "").strip()
+        if not pid or pid in vistos:
+            continue
+        p = (
+            Produto.objects.filter(produto_externo_id=pid)
+            .only("id", "produto_externo_id", "codigo_barras")
+            .first()
+        )
+        if p is None:
+            p = Produto(produto_externo_id=pid, codigo_barras="")
+        if _emit(p, ov):
+            yield p, ov
+        if n >= limit:
+            return
+
+
+def migrar_cb_loja_legado_lote(
+    *,
+    limit: int = 5000,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """Varredura única: corrige o que puder; devolve contagem e lista de colisões."""
+    ok = 0
+    colisoes: list[dict[str, Any]] = []
+    ignorados = 0
+
+    for item in iter_produtos_cb_loja_legado(limit=limit):
+        if isinstance(item, tuple):
+            p, overlay = item
+        else:
+            p, overlay = item, None
+        r = migrar_cb_loja_legado_em_produto(p, overlay=overlay, dry_run=dry_run)
+        if not r:
+            ignorados += 1
+            continue
+        if r.get("erro"):
+            colisoes.append(r)
+            continue
+        ok += 1
+
+    return {
+        "dry_run": dry_run,
+        "corrigidos": ok,
+        "colisoes": len(colisoes),
+        "colisoes_detalhe": colisoes,
+        "ignorados": ignorados,
+    }
