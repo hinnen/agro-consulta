@@ -52,6 +52,10 @@ def main() -> int:
         and "_limpar_opcionais_grupo_bip_outros" in mig,
         "validação pós-grupo + limpar opcionais",
     )
+    ok(
+        "_liberar_slot_bip_antes_migracao" in mig,
+        "liberar EAN bipável literal antes de migrar",
+    )
 
     import django
 

@@ -33,23 +33,21 @@ class EscolherVencedorGrupoTests(SimpleTestCase):
 
 
 class MigrarLotePorGrupoTests(SimpleTestCase):
-    @patch("produtos.cb_loja_legado_migrate_util._limpar_opcionais_grupo_bip_outros")
+    @patch("produtos.cb_loja_legado_migrate_util._liberar_slot_bip_antes_migracao")
     @patch("produtos.cb_loja_legado_migrate_util.transaction.atomic")
     @patch("produtos.cb_loja_legado_migrate_util.migrar_cb_loja_legado_em_produto")
-    @patch("produtos.cb_loja_legado_migrate_util._reatribuir_demais_do_grupo_bip")
     @patch("produtos.cb_loja_legado_migrate_util._escolher_vencedor_grupo_migracao")
     @patch("produtos.cb_loja_legado_migrate_util.iter_produtos_cb_loja_legado")
     def test_um_grupo_migra_vencedor_apos_reatribuir(
-        self, iter_mock, escolher, reatribuir, migrar, atomic_mock, _limpar
+        self, iter_mock, escolher, migrar, atomic_mock, liberar_slot
     ):
-        _limpar.return_value = 0
+        liberar_slot.return_value = [{"pid": "b"}]
         atomic_mock.return_value.__enter__ = MagicMock(return_value=None)
         atomic_mock.return_value.__exit__ = MagicMock(return_value=False)
         p1 = SimpleNamespace(produto_externo_id="a", codigo_barras="2300000001558")
         p2 = SimpleNamespace(produto_externo_id="b", codigo_barras="2300000001554")
         iter_mock.return_value = [(p1, None), (p2, None)]
         escolher.return_value = (p1, None, "2300000001558", "2300000001556")
-        reatribuir.return_value = [{"pid": "b"}]
         migrar.return_value = {"produto_externo_id": "a", "principal_novo": "2300000001556"}
 
         r = _migrar_cb_loja_legado_lote_por_grupo(dry_run=False)
@@ -57,7 +55,7 @@ class MigrarLotePorGrupoTests(SimpleTestCase):
         self.assertEqual(r["corrigidos"], 1)
         self.assertEqual(r["grupos"], 1)
         self.assertEqual(r["colisoes"], 0)
-        reatribuir.assert_called_once()
+        liberar_slot.assert_called_once()
         migrar.assert_called_once()
         self.assertFalse(migrar.call_args.kwargs.get("liberar_intruso"))
 
@@ -75,7 +73,7 @@ class MigrarLotePorGrupoTests(SimpleTestCase):
         migrar.return_value = {"ok": True}
 
         with patch(
-            "produtos.cb_loja_legado_migrate_util._reatribuir_demais_do_grupo_bip",
+            "produtos.cb_loja_legado_migrate_util._liberar_slot_bip_antes_migracao",
             return_value=[],
         ):
             r = _migrar_cb_loja_legado_lote_por_grupo(dry_run=True)
