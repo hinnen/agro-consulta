@@ -3,10 +3,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.db import connection, transaction
+from django.db import transaction
 
 from produtos.agro_codigo_barras_loja_util import (
     alocar_proximo_codigo_barras_loja,
+    bloquear_alocacao_codigo_barras_loja,
     codigos_grupo_bip_canonico,
     ean13_checksum_ok,
 )
@@ -15,18 +16,8 @@ from produtos.mongo_index_codigos import (
     codigos_barras_opcionais_de_cadastro_extras,
 )
 
-_ADVISORY_LOCK_CB_LOJA = 230_4045_147
-
-
 def _digits(raw: Any) -> str:
     return "".join(ch for ch in str(raw or "") if ch.isdigit())
-
-
-def _bloquear_alocador_cb_loja() -> None:
-    if connection.vendor != "postgresql":
-        return
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT pg_advisory_xact_lock(%s)", [_ADVISORY_LOCK_CB_LOJA])
 
 
 def _extras_sem_grupo_antigo(extras: Any, grupo_antigo: set[str], novo: str) -> dict:
@@ -76,7 +67,7 @@ def reatribuir_cb_loja_exclusivo(
         return resumo
 
     with transaction.atomic():
-        _bloquear_alocador_cb_loja()
+        bloquear_alocacao_codigo_barras_loja()
         atual_db = Produto.objects.select_for_update().get(pk=produto.pk)
         atual_db_cb = _digits(atual_db.codigo_barras)
         if atual_db_cb != esperado:

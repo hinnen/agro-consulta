@@ -1022,45 +1022,57 @@ def try_criar_produto_postgres_somente_agro(payload: dict) -> tuple[dict | None,
             None,
         )
 
-    for _ in range(16):
-        cand = "AGRO" + secrets.token_hex(12).upper()
-        if not Produto.objects.filter(produto_externo_id=cand).exists():
-            novo_id = cand
-            break
-    else:
-        return JsonResponse({"ok": False, "erro": "Não foi possível gerar Id único."}, status=500), None
-
     try:
         pv = _dec_opt(payload.get("preco_venda")) or Decimal("0")
         pc = _dec_opt(payload.get("preco_custo")) or Decimal("0")
     except Exception:
         return JsonResponse({"ok": False, "erro": "Preço inválido."}, status=400), None
 
-    codigo_interno_salvar = (cod_int or cod_cb or novo_id)[:50]
-    codigo_nfe_salvar = (cod_nfe or cod_int or cod_cb or novo_id)[:64]
+    from django.db import transaction
 
-    # region agent log
-    import json as _agent_json, time as _agent_time
-    open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"D,E","location":"produtos/catalogo_agro.py:try_criar_produto_postgres_somente_agro:before-create","message":"Creating product with barcode","data":{"productId":novo_id,"barcode":cod_cb[:50]},"timestamp":int(_agent_time.time()*1000)})+"\n")
-    # endregion
-    Produto.objects.create(
-        produto_externo_id=novo_id,
-        codigo_interno=codigo_interno_salvar,
-        codigo_nfe=codigo_nfe_salvar,
-        codigo_barras=cod_cb[:50] if cod_cb else None,
-        nome=nome,
-        marca=pt("marca", 120),
-        categoria=pt("categoria", 200) or None,
-        subcategoria=pt("subcategoria", 200),
-        fornecedor_texto=pt("fornecedor_texto", 300),
-        unidade=pt("unidade", 20) or "UN",
-        descricao=str(payload.get("descricao") or "")[:16000],
-        custo=pc,
-        preco_venda=pv,
-        cadastro_somente_agro=True,
-        cadastro_inativo=False,
-        ativo=True,
+    from produtos.agro_codigo_barras_loja_util import (
+        bloquear_alocacao_codigo_barras_loja,
+        validar_codigo_barras_loja_para_salvar,
     )
+
+    with transaction.atomic():
+        bloquear_alocacao_codigo_barras_loja()
+        erro_cb = validar_codigo_barras_loja_para_salvar(cod_cb)
+        if erro_cb:
+            return JsonResponse({"ok": False, "erro": erro_cb}, status=409), None
+        for _ in range(16):
+            cand = "AGRO" + secrets.token_hex(12).upper()
+            if not Produto.objects.filter(produto_externo_id=cand).exists():
+                novo_id = cand
+                break
+        else:
+            return JsonResponse({"ok": False, "erro": "Não foi possível gerar Id único."}, status=500), None
+
+        codigo_interno_salvar = (cod_int or cod_cb or novo_id)[:50]
+        codigo_nfe_salvar = (cod_nfe or cod_int or cod_cb or novo_id)[:64]
+
+        # region agent log
+        import json as _agent_json, time as _agent_time
+        open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"D,E","location":"produtos/catalogo_agro.py:try_criar_produto_postgres_somente_agro:before-create","message":"Creating product with barcode","data":{"productId":novo_id,"barcode":cod_cb[:50]},"timestamp":int(_agent_time.time()*1000)})+"\n")
+        # endregion
+        Produto.objects.create(
+            produto_externo_id=novo_id,
+            codigo_interno=codigo_interno_salvar,
+            codigo_nfe=codigo_nfe_salvar,
+            codigo_barras=cod_cb[:50] if cod_cb else None,
+            nome=nome,
+            marca=pt("marca", 120),
+            categoria=pt("categoria", 200) or None,
+            subcategoria=pt("subcategoria", 200),
+            fornecedor_texto=pt("fornecedor_texto", 300),
+            unidade=pt("unidade", 20) or "UN",
+            descricao=str(payload.get("descricao") or "")[:16000],
+            custo=pc,
+            preco_venda=pv,
+            cadastro_somente_agro=True,
+            cadastro_inativo=False,
+            ativo=True,
+        )
     return None, novo_id
 
 

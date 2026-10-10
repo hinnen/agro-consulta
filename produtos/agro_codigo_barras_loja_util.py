@@ -16,6 +16,7 @@ import logging
 import re
 from typing import TYPE_CHECKING
 
+from django.db import connection
 from django.http import JsonResponse
 
 if TYPE_CHECKING:
@@ -28,6 +29,7 @@ CB_LOJA_SEQ_LEN = 10  # corpo legado (10) / regex 13 dígitos totais
 CB_LOJA_SEQ_LEN_NOVO = 9  # payload EAN-13 novo
 CB_LOJA_SEQ_MAX = 999_999_999
 _CB_LOJA_REGEX = re.compile(rf"^{CB_LOJA_PREFIX}\d{{{CB_LOJA_SEQ_LEN}}}$")
+_ADVISORY_LOCK_CB_LOJA = 230_4045_147
 
 
 def _cap_seq_loja(n: int) -> int:
@@ -159,6 +161,101 @@ def variantes_busca_codigo_barras_loja(cb: str) -> list[str]:
     return [d]
 
 
+def bloquear_alocacao_codigo_barras_loja() -> None:
+    """Serializa validação + gravação de códigos 230 dentro da transação atual."""
+    if connection.vendor != "postgresql":
+        return
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT pg_advisory_xact_lock(%s)", [_ADVISORY_LOCK_CB_LOJA])
+
+
+def _cb_loja_pertence_ao_produto_postgres(cb: str, produto_externo_id: str) -> bool:
+    from django.db.models import Q
+
+    from .models import Produto, ProdutoGestaoOverlayAgro, ProdutoMarcaVariacaoAgro
+
+    pid = str(produto_externo_id or "").strip()[:64]
+    if not pid:
+        return False
+    if Produto.objects.filter(
+        Q(codigo_barras=cb) | Q(codigo_interno=cb) | Q(codigo_nfe=cb),
+        produto_externo_id=pid,
+    ).exists():
+        return True
+    if ProdutoGestaoOverlayAgro.objects.filter(
+        produto_externo_id=pid,
+        codigo_barras=cb,
+    ).exists():
+        return True
+    return ProdutoMarcaVariacaoAgro.objects.filter(
+        produto_externo_id=pid,
+        codigo_barras=cb,
+    ).exists()
+
+
+def _cb_loja_ocupado_postgres_por_outro(cb: str, produto_externo_id: str = "") -> bool:
+    from django.db.models import Q
+
+    from .models import Produto, ProdutoGestaoOverlayAgro, ProdutoMarcaVariacaoAgro
+    from .mongo_index_codigos import codigos_barras_opcionais_de_cadastro_extras
+
+    pid = str(produto_externo_id or "").strip()[:64]
+    produtos = Produto.objects.filter(
+        Q(codigo_barras=cb) | Q(codigo_interno=cb) | Q(codigo_nfe=cb)
+    )
+    overlays = ProdutoGestaoOverlayAgro.objects.filter(codigo_barras=cb)
+    variacoes = ProdutoMarcaVariacaoAgro.objects.filter(codigo_barras=cb)
+    if pid:
+        produtos = produtos.exclude(produto_externo_id=pid)
+        overlays = overlays.exclude(produto_externo_id=pid)
+        variacoes = variacoes.exclude(produto_externo_id=pid)
+    if produtos.exists() or overlays.exists() or variacoes.exists():
+        return True
+    opcionais = ProdutoGestaoOverlayAgro.objects.exclude(cadastro_extras={})
+    if pid:
+        opcionais = opcionais.exclude(produto_externo_id=pid)
+    for ov in opcionais.only("cadastro_extras"):
+        if cb in codigos_barras_opcionais_de_cadastro_extras(ov.cadastro_extras):
+            return True
+    return False
+
+
+def validar_codigo_barras_loja_para_salvar(
+    cb: str,
+    *,
+    produto_externo_id: str = "",
+    db: Database | None = None,
+    col: str | None = None,
+) -> str | None:
+    """Valida um 230 novo e impede colisão literal/canônica com outro produto."""
+    d = re.sub(r"\D", "", str(cb or ""))
+    if not _CB_LOJA_REGEX.match(d):
+        return None
+    pid = str(produto_externo_id or "").strip()[:64]
+    legado_do_mesmo_produto = bool(
+        pid and _cb_loja_pertence_ao_produto_postgres(d, pid)
+    )
+    if not ean13_checksum_ok(d) and not legado_do_mesmo_produto:
+        return (
+            "Código 230 inválido: gere um novo EAN-13 pelo botão 230 "
+            "antes de salvar."
+        )
+    for alt in codigos_grupo_bip_canonico(d):
+        if _cb_loja_ocupado_postgres_por_outro(alt, pid):
+            return (
+                "Este código 230 já está ocupado por outro produto, inclusive pelo "
+                "valor físico bipado. Clique em 230 novamente e salve de novo."
+            )
+        if db is not None and col and _cb_loja_ocupado_mongo_por_outro(
+            db, col, alt, pid
+        ):
+            return (
+                "Este código 230 já está ocupado no catálogo ERP. "
+                "Clique em 230 novamente e salve de novo."
+            )
+    return None
+
+
 def _cb_loja_ocupado_overlays(cb: str) -> bool:
     from .models import ProdutoGestaoOverlayAgro, ProdutoMarcaVariacaoAgro
 
@@ -196,6 +293,35 @@ def _cb_loja_ocupado_mongo(db: Database, col: str, cb: str) -> bool:
     except Exception:
         logger.warning("cb loja: colisão Mongo", exc_info=True)
         return False
+
+
+def _cb_loja_ocupado_mongo_por_outro(
+    db: Database,
+    col: str,
+    cb: str,
+    produto_externo_id: str = "",
+) -> bool:
+    or_dup = [
+        {fld: cb}
+        for fld in (
+            "CodigoBarras",
+            "CodigoBarrasProduto",
+            "Codigo",
+            "CodigoNFe",
+            "EAN_NFe",
+            "index_codigos",
+        )
+    ]
+    pid = str(produto_externo_id or "").strip()
+    try:
+        for doc in db[col].find({"$or": or_dup}, {"_id": 1, "Id": 1}).limit(8):
+            ids = {str(doc.get("Id") or "").strip(), str(doc.get("_id") or "").strip()}
+            if not pid or pid not in ids:
+                return True
+        return False
+    except Exception:
+        logger.warning("cb loja: colisão Mongo por outro produto", exc_info=True)
+        return True
 
 
 def _cb_loja_ocupado(db: Database, col: str, cb: str) -> bool:

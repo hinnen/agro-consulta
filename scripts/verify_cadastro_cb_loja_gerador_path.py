@@ -49,6 +49,13 @@ def main() -> int:
     ok("_cb_loja_ocupado_unificado" in util, "colisao PG + mongo opcional")
     ok("return False" in util.split("_cb_loja_ocupado_mongo")[1][:400], "mongo erro nao marca tudo ocupado")
     ok("_seq_legado_10d_parece_cb_loja" in util, "filtro NCM nao infla max seq")
+    ok("validar_codigo_barras_loja_para_salvar" in util, "save revalida DV e grupo canonico")
+    ok("pg_advisory_xact_lock" in util, "save serializa alocacao no Postgres")
+    ok("Clique em 230 novamente" in util, "conflito orienta gerar outro codigo")
+    ok(
+        "setVal('edit-cb', String(j.codigo_barras))" in modal,
+        "resposta do endpoint preenche campo de barras",
+    )
 
     from produtos.agro_codigo_barras_loja_util import (  # noqa: E402
         _seqs_para_max_alocacao,

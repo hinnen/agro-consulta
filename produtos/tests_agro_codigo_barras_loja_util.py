@@ -12,6 +12,7 @@ from produtos.agro_codigo_barras_loja_util import (
     ean13_checksum_ok,
     ean13_para_bip_codigo_barras_loja,
     formatar_codigo_barras_loja,
+    validar_codigo_barras_loja_para_salvar,
     variantes_busca_codigo_barras_loja,
 )
 
@@ -97,3 +98,47 @@ class CodigoBarrasLojaEanTests(SimpleTestCase):
 
         self.assertTrue(_cb_loja_ocupado_overlays("2300000001479"))
         self.assertFalse(_cb_loja_ocupado_overlays("2300000001488"))
+
+    def test_save_rejeita_codigo_230_novo_com_dv_invalido(self):
+        erro = validar_codigo_barras_loja_para_salvar("2300000014800")
+
+        self.assertIn("EAN-13", str(erro))
+        self.assertIn("botão 230", str(erro))
+
+    @patch(
+        "produtos.agro_codigo_barras_loja_util._cb_loja_pertence_ao_produto_postgres",
+        return_value=False,
+    )
+    @patch(
+        "produtos.agro_codigo_barras_loja_util._cb_loja_ocupado_postgres_por_outro"
+    )
+    def test_save_rejeita_grupo_fisico_ocupado_por_outro(
+        self, ocupado, _pertence
+    ):
+        ocupado.side_effect = lambda cb, _pid="": cb == "2300000014800"
+
+        erro = validar_codigo_barras_loja_para_salvar(
+            "2300000014806",
+            produto_externo_id="NOVO",
+        )
+
+        self.assertIn("valor físico bipado", str(erro))
+        self.assertIn("Clique em 230 novamente", str(erro))
+
+    @patch(
+        "produtos.agro_codigo_barras_loja_util._cb_loja_ocupado_postgres_por_outro",
+        return_value=False,
+    )
+    @patch(
+        "produtos.agro_codigo_barras_loja_util._cb_loja_pertence_ao_produto_postgres",
+        return_value=True,
+    )
+    def test_legado_inalterado_do_mesmo_produto_nao_bloqueia_edicao(
+        self, _pertence, _ocupado
+    ):
+        erro = validar_codigo_barras_loja_para_salvar(
+            "2300000001479",
+            produto_externo_id="4045",
+        )
+
+        self.assertIsNone(erro)
