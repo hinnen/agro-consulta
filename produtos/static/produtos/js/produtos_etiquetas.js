@@ -1,0 +1,2374 @@
+(function () {
+  'use strict';
+
+  var Core = window.AgroEtiquetasCore;
+  if (!Core) {
+    function showEtqBootErro() {
+      var box = document.getElementById('etq-busca-resultados');
+      if (box) {
+        box.innerHTML =
+          '<p class="px-3 py-3 text-sm text-red-400">Motor de etiquetas não carregou. Aperte <b>Ctrl+F5</b> e abra de novo.</p>';
+      }
+      var st = document.getElementById('etq-status');
+      if (st) {
+        st.textContent = 'Falha ao carregar etiquetas (Ctrl+F5).';
+        st.className = 'text-xs font-semibold text-red-400';
+      }
+      var sel = document.getElementById('etq-fila-preset');
+      if (sel && !sel.options.length) {
+        sel.innerHTML = '<option value="">(Recarregue Ctrl+F5)</option>';
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', showEtqBootErro);
+    } else {
+      showEtqBootErro();
+    }
+    return;
+  }
+
+  var CFG = window.AGRO_ETQ_CFG || {};
+  var URL_BUSCAR = '/api/produtos/cadastro/';
+  var URL_FACETAS = CFG.facetasUrl || '/api/produtos/gestao/facetas/';
+  var URL_PRESETS = CFG.presetsUrl || '/api/compras/folha-saldo-presets/';
+  var URL_HISTORICO = '/api/produtos/etiquetas/historico/';
+  var URL_RESOLVER = CFG.resolverUrl || '/api/produtos/etiquetas/resolver-codigos/';
+  var URL_MAIS_VENDIDOS = CFG.maisVendidosUrl || '/api/produtos/etiquetas/mais-vendidos/';
+  var HISTORICO_DIAS = 30;
+
+  var msFacetas = {
+    marca: [], categoria: [], subcategoria: [],
+    subcategoria_2: [], subcategoria_3: [], subcategoria_4: [],
+    fornecedor: [], unidade: [], modelo: []
+  };
+  var msSelected = {
+    marca: [], categoria: [], subcategoria: [],
+    subcategoria_2: [], subcategoria_3: [], subcategoria_4: [],
+    fornecedor: [], unidade: [], modelo: []
+  };
+  var msLabels = {
+    marca: 'Marca', categoria: 'Categoria', subcategoria: 'Sub',
+    subcategoria_2: 'Sub 2', subcategoria_3: 'Sub 3', subcategoria_4: 'Sub 4',
+    fornecedor: 'Fornecedor', unidade: 'Unidade', modelo: 'Modelo'
+  };
+  var presetsFiltroCache = [];
+
+  var state = {
+    fila: [],
+    storage: null,
+    buscaTimer: null,
+    buscaProdutos: [],
+    buscaSelIdx: -1,
+    buscaQuery: '',
+    buscaFiltrosKey: '',
+  };
+
+  function $(id) {
+    return document.getElementById(id);
+  }
+
+  function uid() {
+    return 'etq-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+  }
+
+  function produtoParaFilaItem(prod) {
+    var it = Core.produtoParaItem(prod, 1);
+    it.fila_id = uid();
+    return it;
+  }
+
+  function reloadStorage() {
+    state.storage = Core.loadStorage();
+  }
+
+  function persistStorage() {
+    Core.saveStorage(state.storage);
+  }
+
+  function syncPresetToServer(p, opts) {
+    opts = opts || {};
+    return Core.upsertPresetToServer(p)
+      .then(function () {
+        if (!opts.silent) setStatus('Preset gravado na loja.');
+      })
+      .catch(function (err) {
+        if (err && err.code === 'auth') {
+          setStatus('Faça login para gravar o preset em todos os PCs.', true);
+        } else {
+          setStatus('Não gravou no servidor — tente de novo (login).', true);
+        }
+      });
+  }
+
+  function enviarBuiltinsFaltantes(serverList) {
+    var onServer = {};
+    (serverList || []).forEach(function (p) {
+      if (p && p.id) onServer[p.id] = 1;
+    });
+    var builtins = Core.BUILTIN_IDS || {};
+    var missing = (state.storage.presets || []).filter(function (p) {
+      return p && p.id && builtins[p.id] && !onServer[p.id];
+    });
+    if (!missing.length) return Promise.resolve(0);
+    var i = 0;
+    var ok = 0;
+    function next() {
+      if (i >= missing.length) return Promise.resolve(ok);
+      var p = missing[i++];
+      return Core.upsertPresetToServer(p)
+        .then(function () {
+          ok += 1;
+        })
+        .catch(function () {})
+        .then(next);
+    }
+    return next();
+  }
+
+  function garantirPresetsNaTela() {
+    try {
+      if (!state.storage) reloadStorage();
+      if (!state.storage.presets || !state.storage.presets.length) {
+        state.storage.presets = Core.mergeServerPresets([], []);
+      } else {
+        state.storage.presets = Core.mergeServerPresets(state.storage.presets, []);
+      }
+      if (
+        !state.storage.preset_ativo ||
+        !Core.getPresetById(state.storage.presets, state.storage.preset_ativo)
+      ) {
+        state.storage.preset_ativo =
+          (state.storage.presets[0] && state.storage.presets[0].id) || Core.DEFAULT_PRESET.id;
+      }
+    } catch (e) {
+      state.storage = {
+        presets: Core.mergeServerPresets([], []),
+        preset_ativo: Core.DEFAULT_PRESET.id,
+        texto_rodape_global: Core.DEFAULT_PRESET.texto_rodape || '',
+      };
+    }
+    /* Sempre pinta a tela ANTES de gravar cache — setItem com quota cheia não pode deixar PRESET vazio. */
+    try {
+      renderPresetSelect();
+      renderPresetForm();
+    } catch (e2) {
+      setStatus('Erro ao montar presets — Ctrl+F5.', true);
+    }
+    try {
+      persistStorage();
+    } catch (e3) {}
+  }
+
+  function carregarPresetsDaLoja() {
+    return Core.fetchPresetsFromServer()
+      .then(function (serverList) {
+        var onServer = {};
+        (serverList || []).forEach(function (p) {
+          if (p && p.id) onServer[p.id] = 1;
+        });
+        /* Servidor manda; cache local não esconde alteração de outro PC. */
+        state.storage.presets = Core.mergeServerPresets(state.storage.presets, serverList);
+        garantirPresetsNaTela();
+        if ((serverList || []).length) {
+          setStatus('Presets da loja atualizados (' + serverList.length + ').');
+        }
+        return Core.migrateLocalPresetsToServerOnce(state.storage.presets, { onServer: onServer }).then(
+          function (mig) {
+            return enviarBuiltinsFaltantes(serverList).then(function (nBuiltin) {
+              var total = (mig && mig.migrated ? mig.migrated : 0) + (nBuiltin || 0);
+              if (total > 0) {
+                return Core.fetchPresetsFromServer().then(function (again) {
+                  state.storage.presets = Core.mergeServerPresets(state.storage.presets, again);
+                  garantirPresetsNaTela();
+                  setStatus(total + ' preset(s) enviados para a loja.');
+                });
+              }
+            });
+          }
+        );
+      })
+      .catch(function (err) {
+        if (err && err.code === 'auth') {
+          setStatus('Faça login — sem login o preset fica só neste PC.', true);
+        } else {
+          setStatus('Usando presets locais — servidor indisponível.', true);
+        }
+      })
+      .then(function () {
+        garantirPresetsNaTela();
+      });
+  }
+
+  function getPresetAtivo() {
+    return Core.normalizarPreset(Core.getPresetAtivo(state.storage));
+  }
+
+  var layoutDrag = null;
+
+  function bindLayoutEditor(stage) {
+    if (!stage || stage.dataset.layBound) return;
+    stage.dataset.layBound = '1';
+
+    function pctFromEvent(ev, rect) {
+      return {
+        x: ((ev.clientX - rect.left) / rect.width) * 100,
+        y: ((ev.clientY - rect.top) / rect.height) * 100,
+      };
+    }
+
+    stage.addEventListener('pointerdown', function (ev) {
+      var handle = ev.target.closest('.etq-lay-handle');
+      var item = ev.target.closest('.etq-lay-item');
+      if (!item || !stage.contains(item)) return;
+      ev.preventDefault();
+      var rect = stage.getBoundingClientRect();
+      var box = {
+        x: parseFloat(item.style.left) || 0,
+        y: parseFloat(item.style.top) || 0,
+        w: parseFloat(item.style.width) || 10,
+        h: parseFloat(item.style.height) || 10,
+      };
+      var pt = pctFromEvent(ev, rect);
+      layoutDrag = {
+        el: item,
+        mode: handle ? 'resize' : 'move',
+        start: pt,
+        box: box,
+        pointerId: ev.pointerId,
+      };
+      try {
+        stage.setPointerCapture(ev.pointerId);
+      } catch (e) {}
+    });
+
+    stage.addEventListener('pointermove', function (ev) {
+      if (!layoutDrag || layoutDrag.pointerId !== ev.pointerId) return;
+      var rect = stage.getBoundingClientRect();
+      var pt = pctFromEvent(ev, rect);
+      var dx = pt.x - layoutDrag.start.x;
+      var dy = pt.y - layoutDrag.start.y;
+      var b = layoutDrag.box;
+      var nx = b.x;
+      var ny = b.y;
+      var nw = b.w;
+      var nh = b.h;
+      if (layoutDrag.mode === 'move') {
+        nx = Math.max(0, Math.min(100 - b.w, b.x + dx));
+        ny = Math.max(0, Math.min(100 - b.h, b.y + dy));
+      } else {
+        nw = Math.max(8, Math.min(100 - b.x, b.w + dx));
+        nh = Math.max(8, Math.min(100 - b.y, b.h + dy));
+      }
+      layoutDrag.el.style.left = Math.round(nx * 10) / 10 + '%';
+      layoutDrag.el.style.top = Math.round(ny * 10) / 10 + '%';
+      layoutDrag.el.style.width = Math.round(nw * 10) / 10 + '%';
+      layoutDrag.el.style.height = Math.round(nh * 10) / 10 + '%';
+    });
+
+    function endDrag(ev) {
+      if (!layoutDrag || (ev && layoutDrag.pointerId !== ev.pointerId)) return;
+      layoutDrag = null;
+      var p = lerPresetForm();
+      var idx = state.storage.presets.findIndex(function (x) {
+        return x.id === p.id;
+      });
+      if (idx >= 0) state.storage.presets[idx] = p;
+      persistStorage();
+      /* Arrastar posição tem que ir pro Postgres — senão outro PC não vê. */
+      clearTimeout(state._presetSaveTimer);
+      state._presetSaveTimer = setTimeout(function () {
+        syncPresetToServer(p, { silent: true });
+      }, 400);
+    }
+    stage.addEventListener('pointerup', endDrag);
+    stage.addEventListener('pointercancel', endDrag);
+  }
+
+  function commitPresetFormLive() {
+    var p = lerPresetForm();
+    var idx = state.storage.presets.findIndex(function (x) {
+      return x.id === p.id;
+    });
+    if (idx >= 0) state.storage.presets[idx] = p;
+    persistStorage();
+    togglePresetFields(p.estilo || 'termica');
+    syncLayoutStageSize(p);
+    renderResumoGondola(p);
+    renderResumoTermica(p);
+    clearTimeout(state._presetSaveTimer);
+    state._presetSaveTimer = setTimeout(function () {
+      syncPresetToServer(p, { silent: true });
+    }, 600);
+  }
+
+  function ordenarPresetsParaSelect(list) {
+    var ordem = { 'padrao-4x4': 1, 'padrao-53x30': 2, gondola: 3, 'bonus-a6': 4 };
+    return (list || []).slice().sort(function (a, b) {
+      var oa = ordem[a.id] || 50;
+      var ob = ordem[b.id] || 50;
+      if (oa !== ob) return oa - ob;
+      return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
+    });
+  }
+
+  function renderPresetOptions(selectEl, activeId) {
+    if (!selectEl || !state.storage) return;
+    var list = ordenarPresetsParaSelect(state.storage.presets);
+    if (!list.length) {
+      selectEl.innerHTML = '<option value="">(Sem preset — Ctrl+F5)</option>';
+      return;
+    }
+    selectEl.innerHTML = list
+      .map(function (p) {
+        var mm =
+          p.estilo === 'termica'
+            ? ' · ' + (Number(p.largura_mm) || 40) + '×' + (Number(p.altura_mm) || 40) + ' mm'
+            : '';
+        return (
+          '<option value="' +
+          Core.esc(p.id) +
+          '"' +
+          (p.id === activeId ? ' selected' : '') +
+          '>' +
+          Core.esc(p.nome) +
+          Core.esc(mm) +
+          '</option>'
+        );
+      })
+      .join('');
+  }
+
+  function renderPresetSelect() {
+    renderPresetOptions($('etq-preset-select'), state.storage.preset_ativo);
+    renderPresetOptions($('etq-fila-preset'), state.storage.preset_ativo);
+  }
+
+  function togglePresetFields(estilo) {
+    var gondola = estilo === 'gondola';
+    document.querySelectorAll('.etq-field-gondola').forEach(function (el) {
+      el.classList.toggle('hidden', !gondola);
+    });
+    document.querySelectorAll('.etq-field-termica').forEach(function (el) {
+      el.classList.toggle('hidden', gondola);
+    });
+  }
+
+  function applyLayoutBoxes(layout, stage) {
+    if (!stage || !layout) return;
+    stage.querySelectorAll('.etq-lay-item').forEach(function (el) {
+      var id = el.getAttribute('data-lay');
+      var box = layout[id];
+      if (!box) return;
+      el.style.left = Number(box.x) + '%';
+      el.style.top = Number(box.y) + '%';
+      el.style.width = Number(box.w) + '%';
+      el.style.height = Number(box.h) + '%';
+    });
+  }
+
+  function readLayoutBoxes(stage) {
+    var out = {};
+    if (!stage) return out;
+    stage.querySelectorAll('.etq-lay-item').forEach(function (el) {
+      var id = el.getAttribute('data-lay');
+      out[id] = {
+        x: Math.round(parseFloat(el.style.left) * 10) / 10 || 0,
+        y: Math.round(parseFloat(el.style.top) * 10) / 10 || 0,
+        w: Math.round(parseFloat(el.style.width) * 10) / 10 || 10,
+        h: Math.round(parseFloat(el.style.height) * 10) / 10 || 10,
+      };
+    });
+    return out;
+  }
+
+  function syncLayoutStageSize(p) {
+    var wMm = Number(p.largura_mm) || 90;
+    var hMm = Number(p.altura_mm) || 30;
+    /* Limita largura e altura pra 53×30 ficar claramente mais largo que o 4×4. */
+    var maxW = 420;
+    var maxH = 260;
+    var scale = Math.min(maxW / Math.max(wMm, 1), maxH / Math.max(hMm, 1));
+    var cores = (p.cores && typeof p.cores === 'object') ? p.cores : {};
+    [$('etq-layout-stage'), $('etq-layout-stage-termica')].forEach(function (stage) {
+      if (!stage) return;
+      stage.style.width = Math.round(wMm * scale) + 'px';
+      stage.style.height = Math.round(Math.max(48, hMm * scale)) + 'px';
+      stage.style.background = cores.fundo || '#ffffff';
+      stage.style.borderColor = cores.borda || cores.faixa_bg || '#111111';
+      stage.style.borderWidth = (Number(p.borda_mm) > 0 ? Math.max(2, Number(p.borda_mm)) : 2) + 'px';
+      stage.style.borderStyle = 'solid';
+    });
+  }
+
+  /** Atalho: aplica mm + fontes do seed 4×4 ou 53×30 no preset térmico atual. */
+  function aplicarTamanhoTermicaRapido(kind) {
+    var src =
+      kind === '53'
+        ? Core.DEFAULT_TERMICA_53X30_PRESET
+        : Core.DEFAULT_PRESET;
+    if (!src) return;
+    var elW = $('etq-preset-largura');
+    var elH = $('etq-preset-altura');
+    var elEstilo = $('etq-preset-estilo');
+    if (elEstilo) elEstilo.value = 'termica';
+    if (elW) elW.value = String(src.largura_mm);
+    if (elH) elH.value = String(src.altura_mm);
+    var map = {
+      'etq-preset-nome-pt-1': src.nome_pt_1,
+      'etq-preset-nome-pt-2': src.nome_pt_2,
+      'etq-preset-nome-pt-3': src.nome_pt_3,
+      'etq-preset-nome-pt-4': src.nome_pt_4,
+      'etq-preset-nome-linhas': src.nome_linhas,
+      'etq-preset-preco-pt': src.preco_pt,
+      'etq-preset-centavos-pt': src.centavos_pt,
+      'etq-preset-codigo-pt': src.codigo_pt,
+      'etq-preset-rodape-pt': src.rodape_pt,
+      'etq-preset-bar-h': src.barcode_height,
+      'etq-preset-bar-w': src.barcode_width,
+      'etq-preset-borda-mm': src.borda_mm,
+    };
+    Object.keys(map).forEach(function (id) {
+      var el = $(id);
+      if (el && map[id] != null) el.value = String(map[id]);
+    });
+    commitPresetFormLive();
+    renderPresetForm();
+    setStatus(
+      kind === '53'
+        ? 'Tamanho 53×30 mm aplicado — salve o preset se quiser guardar.'
+        : 'Tamanho 4×4 mm aplicado — salve o preset se quiser guardar.'
+    );
+  }
+
+  function fmtMm(n) {
+    return Number(n).toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+  }
+
+  function renderResumoGondola(p) {
+    var el = $('etq-resumo-gondola');
+    if (!el || !Core.ehGondola(p)) return;
+    var grade = Core.calcularGradeFolha(
+      p.folha,
+      p.largura_mm,
+      p.altura_mm,
+      p.borda_mm,
+      p.cols_folha,
+      p.rows_folha
+    );
+    var folhaLbl = grade.page_label || (Core.normalizarFolha(p.folha) === 'a6' ? 'A6' : 'A4');
+    el.innerHTML =
+      'Impressão: folha <strong class="text-slate-200">' +
+      folhaLbl +
+      '</strong> · área útil <strong class="text-slate-200">' +
+      fmtMm(p.largura_mm) + ' × ' + fmtMm(p.altura_mm) + ' mm</strong> · borda <strong class="text-slate-200">' +
+      fmtMm(Number(p.borda_mm) || 0.5) + ' mm pra fora</strong> (total <strong class="text-slate-200">' +
+      fmtMm(grade.outer_w) + ' × ' + fmtMm(grade.outer_h) + ' mm</strong>) · grade <strong class="text-slate-200">' +
+      grade.cols + ' × ' + grade.rows + ' = ' + grade.per_page +
+      '</strong> · centralizada na ' +
+      folhaLbl +
+      ' · marcas de corte nos cantos. No Chrome: papel ' +
+      folhaLbl +
+      ' · margens «Nenhuma» + marcar «Gráficos de segundo plano».';
+  }
+
+  function renderPresetForm() {
+    var p = Core.normalizarPreset(getPresetAtivo());
+    var idx = state.storage.presets.findIndex(function (x) {
+      return x.id === p.id;
+    });
+    if (idx >= 0) state.storage.presets[idx] = p;
+
+    var map = {
+      'etq-preset-nome': p.nome,
+      'etq-preset-estilo': p.estilo || 'termica',
+      'etq-preset-folha': Core.normalizarFolha(p.folha),
+      'etq-preset-largura': p.largura_mm,
+      'etq-preset-altura': p.altura_mm,
+      'etq-preset-nome-pt': p.nome_pt,
+      'etq-preset-nome-pt-1': p.nome_pt_1 != null ? p.nome_pt_1 : p.nome_pt || 11,
+      'etq-preset-nome-pt-2': p.nome_pt_2 != null ? p.nome_pt_2 : 9,
+      'etq-preset-nome-pt-3': p.nome_pt_3 != null ? p.nome_pt_3 : 7.5,
+      'etq-preset-nome-pt-4': p.nome_pt_4 != null ? p.nome_pt_4 : 6,
+      'etq-preset-nome-linhas': p.nome_linhas != null ? p.nome_linhas : 2,
+      'etq-preset-borda-mm': p.borda_mm != null ? p.borda_mm : 0,
+      'etq-preset-preco-pt': p.preco_pt,
+      'etq-preset-centavos-pt': p.centavos_pt != null ? p.centavos_pt : p.preco_pt,
+      'etq-preset-rs-pt': p.rs_pt != null ? p.rs_pt : 11,
+      'etq-preset-peso-pt': p.peso_pt != null ? p.peso_pt : 7,
+      'etq-preset-gm-pt': p.gm_pt != null ? p.gm_pt : 8,
+      'etq-preset-codigo-pt': p.codigo_pt,
+      'etq-preset-rodape-pt': p.rodape_pt,
+      'etq-preset-bar-h': p.barcode_height,
+      'etq-preset-bar-w': p.barcode_width,
+      'etq-preset-texto-rodape': p.texto_rodape,
+      'etq-preset-print-modo': Core.normalizarPrintModo(p.print_modo),
+    };
+    Object.keys(map).forEach(function (k) {
+      var el = $(k);
+      if (el) el.value = map[k];
+    });
+    var cores = p.cores || {};
+    var corMap = {
+      'etq-cor-faixa-bg': cores.faixa_bg || '#1a4d2e',
+      'etq-cor-faixa-fg': cores.faixa_fg || '#ffffff',
+      'etq-cor-fundo': cores.fundo || '#ffffff',
+      'etq-cor-preco': cores.preco_fg || '#1a4d2e',
+      'etq-cor-rs': cores.rs_fg || cores.preco_fg || '#1a4d2e',
+      'etq-cor-peso': cores.peso_fg || '#1a4d2e',
+      'etq-cor-gm': cores.gm_fg || '#1a4d2e',
+      'etq-cor-borda': cores.borda || '#1a4d2e',
+      'etq-cor-corte': cores.marca_corte || '#94a3b8',
+    };
+    Object.keys(corMap).forEach(function (k) {
+      var el = $(k);
+      if (el) el.value = corMap[k];
+    });
+    var showLogo = $('etq-preset-show-logo');
+    if (showLogo) showLogo.checked = p.show_logo !== false;
+    var showNome = $('etq-show-nome');
+    if (showNome) showNome.checked = p.show_nome !== false;
+    var showRs = $('etq-show-rs');
+    if (showRs) showRs.checked = p.show_rs !== false;
+    var showPreco = $('etq-show-preco');
+    if (showPreco) showPreco.checked = p.show_preco !== false;
+    var showPeso = $('etq-show-peso');
+    if (showPeso) showPeso.checked = p.show_peso !== false;
+    var showGm = $('etq-show-gm');
+    if (showGm) showGm.checked = !!p.show_gm;
+
+    togglePresetFields(p.estilo || 'termica');
+    syncLayoutStageSize(p);
+    if (Core.ehGondola(p)) {
+      applyLayoutBoxes(p.layout || Core.DEFAULT_GONDOLA_LAYOUT, $('etq-layout-stage'));
+    } else {
+      applyLayoutBoxes(p.layout || Core.DEFAULT_TERMICA_LAYOUT, $('etq-layout-stage-termica'));
+      var tc = p.cores || {};
+      var tmap = {
+        'etq-term-cor-fundo': tc.fundo || '#ffffff',
+        'etq-term-cor-nome': tc.nome_fg || '#111111',
+        'etq-term-cor-preco': tc.preco_fg || '#111111',
+        'etq-term-cor-gm': tc.gm_fg || '#111111',
+        'etq-term-cor-rodape': tc.rodape_fg || '#111111',
+        'etq-term-cor-borda': tc.borda || '#111111',
+      };
+      Object.keys(tmap).forEach(function (k) {
+        var el = $(k);
+        if (el) el.value = tmap[k];
+      });
+      var tchecks = {
+        'etq-term-show-nome': p.show_nome !== false,
+        'etq-term-show-preco': p.show_preco !== false,
+        'etq-term-show-barcode': p.show_barcode !== false,
+        'etq-term-show-gm': p.show_gm !== false,
+        'etq-term-show-rodape': p.show_rodape !== false,
+      };
+      Object.keys(tchecks).forEach(function (k) {
+        var el = $(k);
+        if (el) el.checked = tchecks[k];
+      });
+    }
+    syncLayoutBoxesVisibility(p);
+    renderResumoGondola(p);
+    renderResumoTermica(p);
+
+    carregarImpressoras(p.impressora || '');
+  }
+
+  function lerPresetForm() {
+    var p = Core.normalizarPreset(getPresetAtivo());
+    p.nome = ($('etq-preset-nome') && $('etq-preset-nome').value.trim()) || p.nome;
+    p.estilo = ($('etq-preset-estilo') && $('etq-preset-estilo').value) || p.estilo || 'termica';
+    p.largura_mm = Number($('etq-preset-largura') && $('etq-preset-largura').value) || 40;
+    p.altura_mm = Number($('etq-preset-altura') && $('etq-preset-altura').value) || 40;
+    p.nome_pt_1 = Number($('etq-preset-nome-pt-1') && $('etq-preset-nome-pt-1').value) || Number(p.nome_pt) || 8;
+    p.nome_pt_2 = Number($('etq-preset-nome-pt-2') && $('etq-preset-nome-pt-2').value) || p.nome_pt_1;
+    p.nome_pt_3 = Number($('etq-preset-nome-pt-3') && $('etq-preset-nome-pt-3').value) || p.nome_pt_2;
+    p.nome_pt_4 = Number($('etq-preset-nome-pt-4') && $('etq-preset-nome-pt-4').value) || p.nome_pt_3;
+    p.nome_linhas = Math.max(1, Math.min(4, parseInt($('etq-preset-nome-linhas') && $('etq-preset-nome-linhas').value, 10) || p.nome_linhas || 2));
+    p.nome_pt = p.nome_pt_1;
+    p.preco_pt = Number($('etq-preset-preco-pt') && $('etq-preset-preco-pt').value) || 28;
+    p.centavos_pt = Number($('etq-preset-centavos-pt') && $('etq-preset-centavos-pt').value) || p.preco_pt;
+    p.rs_pt = Number($('etq-preset-rs-pt') && $('etq-preset-rs-pt').value) || 11;
+    p.peso_pt = Number($('etq-preset-peso-pt') && $('etq-preset-peso-pt').value) || 7;
+    p.gm_pt = Number($('etq-preset-gm-pt') && $('etq-preset-gm-pt').value) || 8;
+    p.codigo_pt = Number($('etq-preset-codigo-pt') && $('etq-preset-codigo-pt').value) || 7;
+    p.rodape_pt = Number($('etq-preset-rodape-pt') && $('etq-preset-rodape-pt').value) || 8;
+    p.barcode_height = Number($('etq-preset-bar-h') && $('etq-preset-bar-h').value) || 26;
+    p.barcode_width = Number($('etq-preset-bar-w') && $('etq-preset-bar-w').value) || 1.75;
+    p.texto_rodape = ($('etq-preset-texto-rodape') && $('etq-preset-texto-rodape').value) || '';
+    p.impressora = ($('etq-preset-impressora') && $('etq-preset-impressora').value.trim()) || '';
+    p.print_modo = Core.normalizarPrintModo(
+      ($('etq-preset-print-modo') && $('etq-preset-print-modo').value) || p.print_modo || 'auto'
+    );
+    if (Core.ehGondola(p)) {
+      p.show_logo = !($('etq-preset-show-logo') && !$('etq-preset-show-logo').checked);
+      p.show_nome = !($('etq-show-nome') && !$('etq-show-nome').checked);
+      p.show_rs = !($('etq-show-rs') && !$('etq-show-rs').checked);
+      p.show_preco = !($('etq-show-preco') && !$('etq-show-preco').checked);
+      p.show_peso = !($('etq-show-peso') && !$('etq-show-peso').checked);
+      p.show_gm = !!($('etq-show-gm') && $('etq-show-gm').checked);
+      p.cores = {
+        faixa_bg: ($('etq-cor-faixa-bg') && $('etq-cor-faixa-bg').value) || '#1a4d2e',
+        faixa_fg: ($('etq-cor-faixa-fg') && $('etq-cor-faixa-fg').value) || '#ffffff',
+        fundo: ($('etq-cor-fundo') && $('etq-cor-fundo').value) || '#ffffff',
+        preco_fg: ($('etq-cor-preco') && $('etq-cor-preco').value) || '#1a4d2e',
+        rs_fg: ($('etq-cor-rs') && $('etq-cor-rs').value) || '#1a4d2e',
+        peso_fg: ($('etq-cor-peso') && $('etq-cor-peso').value) || '#1a4d2e',
+        gm_fg: ($('etq-cor-gm') && $('etq-cor-gm').value) || '#1a4d2e',
+        borda: ($('etq-cor-borda') && $('etq-cor-borda').value) || '#1a4d2e',
+        marca_corte: ($('etq-cor-corte') && $('etq-cor-corte').value) || '#94a3b8',
+      };
+      p.layout = readLayoutBoxes($('etq-layout-stage'));
+      p.folha = Core.normalizarFolha(
+        ($('etq-preset-folha') && $('etq-preset-folha').value) || p.folha || 'a4'
+      );
+      var grade = Core.calcularGradeFolha(p.folha, p.largura_mm, p.altura_mm, p.borda_mm);
+      p.cols_folha = grade.cols;
+      p.rows_folha = grade.rows;
+    } else {
+      var bordaIn = Number($('etq-preset-borda-mm') && $('etq-preset-borda-mm').value);
+      p.borda_mm = isFinite(bordaIn) && bordaIn > 0 ? Math.min(8, bordaIn) : 0;
+      p.show_nome = !($('etq-term-show-nome') && !$('etq-term-show-nome').checked);
+      p.show_preco = !($('etq-term-show-preco') && !$('etq-term-show-preco').checked);
+      p.show_barcode = !($('etq-term-show-barcode') && !$('etq-term-show-barcode').checked);
+      p.show_gm = !($('etq-term-show-gm') && !$('etq-term-show-gm').checked);
+      p.show_rodape = !($('etq-term-show-rodape') && !$('etq-term-show-rodape').checked);
+      p.cores = {
+        fundo: ($('etq-term-cor-fundo') && $('etq-term-cor-fundo').value) || '#ffffff',
+        nome_fg: ($('etq-term-cor-nome') && $('etq-term-cor-nome').value) || '#111111',
+        preco_fg: ($('etq-term-cor-preco') && $('etq-term-cor-preco').value) || '#111111',
+        gm_fg: ($('etq-term-cor-gm') && $('etq-term-cor-gm').value) || '#111111',
+        rodape_fg: ($('etq-term-cor-rodape') && $('etq-term-cor-rodape').value) || '#111111',
+        borda: ($('etq-term-cor-borda') && $('etq-term-cor-borda').value) || '#111111',
+      };
+      p.layout = readLayoutBoxes($('etq-layout-stage-termica'));
+    }
+    return p;
+  }
+
+  function renderResumoTermica(p) {
+    var el = $('etq-resumo-termica');
+    if (!el || Core.ehGondola(p)) return;
+    var mold = Number(p.borda_mm) > 0 ? fmtMm(p.borda_mm) + ' mm' : 'sem moldura';
+    el.innerHTML =
+      'Uma etiqueta por folha · <strong class="text-slate-200">' +
+      fmtMm(p.largura_mm) + ' × ' + fmtMm(p.altura_mm) +
+      ' mm</strong> · nome até <strong class="text-slate-200">' +
+      (p.nome_linhas || 2) +
+      '</strong> linhas · moldura <strong class="text-slate-200">' +
+      mold +
+      '</strong>. Arraste nome, preço, barras, GM e rodapé.';
+  }
+
+  function syncLayoutBoxesVisibility(p) {
+    var gondola = Core.ehGondola(p);
+    var stage = $(gondola ? 'etq-layout-stage' : 'etq-layout-stage-termica');
+    if (!stage) return;
+    var map = gondola
+      ? {
+          nome: p.show_nome !== false,
+          rs: p.show_rs !== false,
+          preco: p.show_preco !== false,
+          peso: p.show_peso !== false,
+          logo: p.show_logo !== false,
+          gm: !!p.show_gm,
+        }
+      : {
+          nome: p.show_nome !== false,
+          preco: p.show_preco !== false,
+          barcode: p.show_barcode !== false,
+          gm: p.show_gm !== false,
+          rodape: p.show_rodape !== false,
+        };
+    stage.querySelectorAll('.etq-lay-item').forEach(function (el) {
+      var id = el.getAttribute('data-lay');
+      el.classList.toggle('is-off', map[id] === false);
+    });
+  }
+
+  function renderFila() {
+    var tbody = $('etq-fila-body');
+    var badge = $('etq-fila-total');
+    if (!tbody) return;
+    var totalEtq = state.fila.reduce(function (acc, it) {
+      return acc + Math.max(1, parseInt(it.qtd, 10) || 1);
+    }, 0);
+    if (badge) badge.textContent = String(totalEtq);
+
+    if (!state.fila.length) {
+      tbody.innerHTML =
+        '<tr><td colspan="6" class="px-3 py-4 text-center text-sm text-slate-500">Nenhum produto na fila.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = state.fila
+      .map(function (it) {
+        return (
+          '<tr class="border-t border-slate-700/80">' +
+          '<td class="px-3 py-1.5 text-sm font-semibold text-white truncate max-w-[14rem]">' +
+          Core.esc(it.nome || '—') +
+          '</td>' +
+          '<td class="px-3 py-1.5 text-xs font-mono text-slate-300">' +
+          Core.esc(it.codigo_gm || '—') +
+          '</td>' +
+          '<td class="px-3 py-1.5 text-sm font-bold text-emerald-400">' +
+          Core.esc(Core.fmtPreco(it.preco_venda)) +
+          '</td>' +
+          '<td class="px-3 py-1.5 text-xs font-semibold text-slate-300">' +
+          Core.esc(it.peso_etiqueta || '—') +
+          '</td>' +
+          '<td class="px-3 py-1.5">' +
+          '<input type="number" min="1" max="999" value="' +
+          Core.esc(it.qtd) +
+          '" data-fila-qtd="' +
+          Core.esc(it.fila_id) +
+          '" class="w-14 min-h-[36px] rounded-lg border border-slate-600 bg-slate-900 px-1 text-center text-sm font-bold text-white" />' +
+          '</td>' +
+          '<td class="px-3 py-1.5 text-right">' +
+          '<button type="button" data-fila-del="' +
+          Core.esc(it.fila_id) +
+          '" class="rounded-lg border border-red-700/60 px-2 py-1 text-[10px] font-bold uppercase text-red-300">×</button>' +
+          '</td>' +
+          '</tr>'
+        );
+      })
+      .join('');
+
+    tbody.querySelectorAll('[data-fila-qtd]').forEach(function (inp) {
+      inp.addEventListener('change', function () {
+        var id = inp.getAttribute('data-fila-qtd');
+        var it = state.fila.find(function (x) {
+          return x.fila_id === id;
+        });
+        if (!it) return;
+        var q = parseInt(inp.value, 10);
+        it.qtd = q > 0 ? q : 1;
+        inp.value = String(it.qtd);
+        renderFila();
+      });
+    });
+    tbody.querySelectorAll('[data-fila-del]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-fila-del');
+        state.fila = state.fila.filter(function (x) {
+          return x.fila_id !== id;
+        });
+        renderFila();
+      });
+    });
+  }
+
+  function syncBtnAddTodos() {
+    var btn = $('etq-btn-add-todos');
+    if (!btn) return;
+    var n = (state.buscaProdutos || []).length;
+    btn.disabled = n < 1;
+    btn.textContent = n > 1 ? ('Adicionar todos (' + n + ')') : 'Adicionar todos';
+  }
+
+  function limparBuscaVisual() {
+    state.buscaProdutos = [];
+    state.buscaSelIdx = -1;
+    state.buscaQuery = '';
+    state.buscaFiltrosKey = '';
+    var box = $('etq-busca-resultados');
+    if (box) {
+      box.innerHTML = '<p class="px-3 py-3 text-sm text-slate-500">Digite ao menos 2 caracteres ou use os filtros.</p>';
+    }
+    var meta = $('etq-busca-meta');
+    if (meta) meta.textContent = '';
+    syncBtnAddTodos();
+  }
+
+  function adicionarProdutoFila(prod, opts) {
+    opts = opts || {};
+    if (!prod) return false;
+    var qtdInp = $('etq-add-qtd');
+    var qtd = parseInt(qtdInp && qtdInp.value, 10) || 1;
+    var it = produtoParaFilaItem(prod);
+    it.qtd = qtd > 0 ? qtd : 1;
+    state.fila.push(it);
+    renderFila();
+    /* Bip/Enter/clique: limpa o campo e mantém foco pro próximo bip */
+    if (opts.limparBusca !== false) {
+      limparBuscaVisual();
+      var inpClear = $('etq-busca-input');
+      if (inpClear) {
+        inpClear.value = '';
+        inpClear.focus();
+      }
+    } else {
+      var inp = $('etq-busca-input');
+      if (inp) inp.focus();
+    }
+    return true;
+  }
+
+  function highlightBuscaSelecao() {
+    var box = $('etq-busca-resultados');
+    if (!box) return;
+    var items = box.querySelectorAll('.etq-busca-item');
+    items.forEach(function (btn, i) {
+      var sel = i === state.buscaSelIdx;
+      btn.classList.toggle('etq-busca-item--sel', sel);
+      btn.setAttribute('aria-selected', sel ? 'true' : 'false');
+    });
+    if (state.buscaSelIdx >= 0 && items[state.buscaSelIdx]) {
+      items[state.buscaSelIdx].scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  }
+
+  function moverSelecaoBusca(delta) {
+    var n = state.buscaProdutos.length;
+    if (!n) return;
+    if (state.buscaSelIdx < 0) {
+      state.buscaSelIdx = delta > 0 ? 0 : n - 1;
+    } else {
+      state.buscaSelIdx = Math.max(0, Math.min(n - 1, state.buscaSelIdx + delta));
+    }
+    highlightBuscaSelecao();
+  }
+
+  function tentarAdicionarBuscaEnter() {
+    var prods = state.buscaProdutos;
+    if (prods.length === 1) {
+      return adicionarProdutoFila(prods[0], { limparBusca: true });
+    }
+    if (prods.length > 1) {
+      if (state.buscaSelIdx >= 0 && prods[state.buscaSelIdx]) {
+        return adicionarProdutoFila(prods[state.buscaSelIdx], { limparBusca: true });
+      }
+      setStatus('Vários resultados — use ↑ ↓ ou clique no produto.', true);
+      return false;
+    }
+    return false;
+  }
+
+  function adicionarTodosBusca() {
+    var prods = state.buscaProdutos || [];
+    if (!prods.length) {
+      setStatus('Nada na busca para adicionar.', true);
+      return;
+    }
+    var qtdInp = $('etq-add-qtd');
+    var qtd = parseInt(qtdInp && qtdInp.value, 10) || 1;
+    if (qtd < 1) qtd = 1;
+    for (var i = 0; i < prods.length; i++) {
+      var it = produtoParaFilaItem(prods[i]);
+      it.qtd = qtd;
+      state.fila.push(it);
+    }
+    renderFila();
+    setStatus(prods.length + ' produto' + (prods.length === 1 ? '' : 's') + ' na fila.');
+    limparBuscaVisual();
+    var inp = $('etq-busca-input');
+    if (inp) {
+      inp.value = '';
+      state.buscaQuery = '';
+      state.buscaProdutos = [];
+      state.buscaSelIdx = -1;
+      inp.focus();
+    }
+  }
+
+  function renderBusca(produtos, opts) {
+    opts = opts || {};
+    var box = $('etq-busca-resultados');
+    if (!box) return;
+    var lim = opts.limit || 80;
+    state.buscaProdutos = (produtos || []).slice(0, lim);
+    state.buscaSelIdx = -1;
+    syncBtnAddTodos();
+    if (!state.buscaProdutos.length) {
+      box.innerHTML = '<p class="px-3 py-3 text-sm text-slate-500">Nenhum produto.</p>';
+      return;
+    }
+    box.innerHTML = state.buscaProdutos
+      .map(function (p, idx) {
+        var gm = String(p.codigo_nfe || p.codigo_gm || p.codigo || '').trim();
+        var rank = p.rank_pos != null ? ('#' + p.rank_pos + ' · ') : '';
+        return (
+          '<button type="button" role="option" aria-selected="false" class="etq-busca-item flex w-full items-center justify-between gap-2 border-b border-slate-700/70 px-3 py-2 text-left hover:bg-slate-700/40" data-prod-id="' +
+          Core.esc(p.id) +
+          '" data-busca-idx="' +
+          idx +
+          '">' +
+          '<span class="min-w-0 flex-1 truncate text-sm font-bold text-white">' +
+          Core.esc(p.nome || '—') +
+          '</span>' +
+          '<span class="shrink-0 text-xs text-slate-400">' +
+          Core.esc(rank + gm) +
+          ' · ' +
+          Core.esc(Core.fmtPreco(p.preco_venda)) +
+          '</span>' +
+          '<span class="shrink-0 rounded bg-emerald-600 px-1.5 py-0.5 text-[10px] font-black text-white">+</span>' +
+          '</button>'
+        );
+      })
+      .join('');
+
+    box.querySelectorAll('.etq-busca-item').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-prod-id');
+        var prod = state.buscaProdutos.find(function (x) {
+          return String(x.id) === String(id);
+        });
+        if (!prod) return;
+        adicionarProdutoFila(prod, { limparBusca: true });
+      });
+    });
+  }
+
+  function csrfToken() {
+    var m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  function abrirModalColar() {
+    var back = $('etq-colar-back');
+    if (!back) return;
+    back.classList.remove('hidden');
+    back.setAttribute('aria-hidden', 'false');
+    var ta = $('etq-colar-texto');
+    var res = $('etq-colar-resumo');
+    if (res) {
+      res.classList.add('hidden');
+      res.textContent = '';
+    }
+    if (ta) {
+      ta.focus();
+      try { ta.select(); } catch (e) {}
+    }
+  }
+
+  function fecharModalColar() {
+    var back = $('etq-colar-back');
+    if (!back) return;
+    back.classList.add('hidden');
+    back.setAttribute('aria-hidden', 'true');
+  }
+
+  function adicionarProdutosNaFila(prods) {
+    var qtdInp = $('etq-add-qtd');
+    var qtd = parseInt(qtdInp && qtdInp.value, 10) || 1;
+    if (qtd < 1) qtd = 1;
+    var n = 0;
+    (prods || []).forEach(function (p) {
+      if (!p || !p.id) return;
+      var it = produtoParaFilaItem(p);
+      it.qtd = qtd;
+      state.fila.push(it);
+      n += 1;
+    });
+    if (n) renderFila();
+    return n;
+  }
+
+  function confirmarColarCodigos() {
+    var ta = $('etq-colar-texto');
+    var texto = ta ? String(ta.value || '').trim() : '';
+    var resumo = $('etq-colar-resumo');
+    var btn = $('etq-colar-adicionar');
+    if (!texto) {
+      setStatus('Cole ao menos um código GM.', true);
+      return;
+    }
+    if (btn) btn.disabled = true;
+    if (resumo) {
+      resumo.classList.remove('hidden');
+      resumo.textContent = 'Resolvendo códigos…';
+    }
+    fetch(URL_RESOLVER, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken(),
+      },
+      body: JSON.stringify({
+        texto: texto,
+        inativos: !($('etq-somente-ativos') && $('etq-somente-ativos').checked),
+      }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (btn) btn.disabled = false;
+        if (!data || data.ok === false) {
+          if (resumo) resumo.textContent = (data && data.erro) || 'Falha ao resolver.';
+          setStatus((data && data.erro) || 'Falha ao resolver códigos.', true);
+          return;
+        }
+        var prods = data.produtos || [];
+        var n = adicionarProdutosNaFila(prods);
+        var miss = data.nao_encontrados || [];
+        var msg =
+          n + ' na fila' +
+          (data.pedidos ? ' de ' + data.pedidos + ' código(s)' : '') +
+          (miss.length ? ' · ' + miss.length + ' não achado(s)' : '');
+        if (resumo) {
+          resumo.textContent = msg + (miss.length ? ': ' + miss.slice(0, 12).join(', ') + (miss.length > 12 ? '…' : '') : '');
+        }
+        setStatus(msg + '.');
+        if (n && !miss.length) fecharModalColar();
+      })
+      .catch(function () {
+        if (btn) btn.disabled = false;
+        if (resumo) resumo.textContent = 'Erro de rede.';
+        setStatus('Erro ao resolver códigos.', true);
+      });
+  }
+
+  function syncMvDatasFromPeriodo() {
+    var sel = $('etq-mv-periodo');
+    var de = $('etq-mv-de');
+    var ate = $('etq-mv-ate');
+    if (!sel || !de || !ate) return;
+    var periodo = sel.value || '30d';
+    if (periodo === 'custom') return;
+    var hoje = new Date();
+    function iso(d) {
+      var y = d.getFullYear();
+      var m = String(d.getMonth() + 1).padStart(2, '0');
+      var day = String(d.getDate()).padStart(2, '0');
+      return y + '-' + m + '-' + day;
+    }
+    var d1 = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+    var d0 = new Date(d1);
+    if (periodo === 'hoje') {
+      /* same day */
+    } else if (periodo === '7d') {
+      d0.setDate(d0.getDate() - 6);
+    } else if (periodo === 'mes_atual') {
+      d0 = new Date(d1.getFullYear(), d1.getMonth(), 1);
+    } else {
+      d0.setDate(d0.getDate() - 29);
+    }
+    de.value = iso(d0);
+    ate.value = iso(d1);
+  }
+
+  function carregarMaisVendidos() {
+    var box = $('etq-busca-resultados');
+    var meta = $('etq-busca-meta');
+    var btn = $('etq-mv-carregar');
+    if (btn) btn.disabled = true;
+    if (box) box.innerHTML = '<p class="px-3 py-3 text-sm text-slate-400">Carregando ranking…</p>';
+    var params = new URLSearchParams();
+    var periodo = ($('etq-mv-periodo') && $('etq-mv-periodo').value) || '30d';
+    params.set('periodo', periodo);
+    if ($('etq-mv-de') && $('etq-mv-de').value) params.set('de', $('etq-mv-de').value);
+    if ($('etq-mv-ate') && $('etq-mv-ate').value) params.set('ate', $('etq-mv-ate').value);
+    params.set('limite', ($('etq-mv-limite') && $('etq-mv-limite').value) || '100');
+    params.set('ordenar', ($('etq-mv-ordenar') && $('etq-mv-ordenar').value) || 'valor');
+    params.set('sentido', ($('etq-mv-sentido') && $('etq-mv-sentido').value) || 'mais');
+    if (!($('etq-somente-ativos') && $('etq-somente-ativos').checked)) params.set('inativos', '1');
+    function appendMultiLocal(key, arr) {
+      (arr || []).forEach(function (v) {
+        if (v) params.append(key, v);
+      });
+    }
+    appendMultiLocal('categoria', msSelected.categoria);
+    appendMultiLocal('subcategoria', msSelected.subcategoria);
+    appendMultiLocal('subcategoria_2', msSelected.subcategoria_2);
+    appendMultiLocal('subcategoria_3', msSelected.subcategoria_3);
+    appendMultiLocal('subcategoria_4', msSelected.subcategoria_4);
+    fetch(URL_MAIS_VENDIDOS + '?' + params.toString(), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (btn) btn.disabled = false;
+        if (!data || data.ok === false) {
+          state.buscaProdutos = [];
+          syncBtnAddTodos();
+          if (box) box.innerHTML = '<p class="px-3 py-3 text-sm text-red-400">' + Core.esc((data && data.erro) || 'Erro no ranking.') + '</p>';
+          if (meta) meta.textContent = '';
+          setStatus((data && data.erro) || 'Erro ao carregar mais vendidos.', true);
+          return;
+        }
+        var prods = filtrarOmitZero(data.produtos || []);
+        renderBusca(prods, { limit: 200 });
+        if (meta) {
+          meta.textContent = prods.length
+            ? (prods.length + ' no ranking' + (data.label ? ' · ' + data.label : ''))
+            : '0 no período';
+        }
+        setStatus(
+          prods.length
+            ? (prods.length + ' mais vendidos carregados — Adicionar todos.')
+            : 'Nenhuma venda no período.'
+        );
+      })
+      .catch(function () {
+        if (btn) btn.disabled = false;
+        if (box) box.innerHTML = '<p class="px-3 py-3 text-sm text-red-400">Erro de rede.</p>';
+        setStatus('Erro ao carregar mais vendidos.', true);
+      });
+  }
+
+
+  function escFiltro(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function normFiltro(s) {
+    return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  }
+  function appendMulti(params, key, vals) {
+    (vals || []).forEach(function (v) { if (v) params.append(key, v); });
+  }
+  function msToggle(key, val, on) {
+    var list = msSelected[key] || [];
+    var v = String(val || '').trim();
+    if (!v) return;
+    var i = list.indexOf(v);
+    if (on === true || (on == null && i < 0)) {
+      if (i < 0) list.push(v);
+    } else if (i >= 0) {
+      list.splice(i, 1);
+    }
+    msSelected[key] = list;
+    msRenderBtn(key);
+    msRenderChips();
+  }
+  function msRenderBtn(key) {
+    var root = document.querySelector('.etq-ms[data-ms="' + key + '"]');
+    if (!root) return;
+    var btn = root.querySelector('.etq-ms-btn');
+    if (!btn) return;
+    var n = (msSelected[key] || []).length;
+    var label = msLabels[key] || key;
+    btn.classList.toggle('is-on', n > 0);
+    btn.innerHTML = escFiltro(label) + (n ? ' <span class="etq-ms-count">' + n + '</span>' : '');
+  }
+  function msRenderChips() {
+    var box = $('etq-f-chips');
+    if (!box) return;
+    var html = '';
+    Object.keys(msSelected).forEach(function (key) {
+      (msSelected[key] || []).forEach(function (v) {
+        html +=
+          '<span class="etq-f-chip" data-ms-key="' + escFiltro(key) + '" data-ms-val="' + escFiltro(v) + '">' +
+          escFiltro((msLabels[key] || key) + ': ' + v) +
+          ' <button type="button" aria-label="Remover">×</button></span>';
+      });
+    });
+    box.innerHTML = html;
+  }
+  function msCloseAll() {
+    document.querySelectorAll('.etq-ms-panel').forEach(function (p) { p.classList.add('hidden'); });
+  }
+  function msFillPanel(root, q) {
+    var key = root.getAttribute('data-ms');
+    var panel = root.querySelector('.etq-ms-panel');
+    if (!panel || !key) return;
+    var selected = {};
+    (msSelected[key] || []).forEach(function (v) { selected[v] = true; });
+    var nq = normFiltro(q);
+    var opts = (msFacetas[key] || []).filter(function (x) {
+      if (!nq) return true;
+      return normFiltro(x).indexOf(nq) >= 0;
+    }).slice(0, 120);
+    var listHtml = opts.map(function (x) {
+      return (
+        '<label class="etq-ms-opt"><input type="checkbox" data-val="' + escFiltro(x) + '"' +
+        (selected[x] ? ' checked' : '') + '/><span>' + escFiltro(x) + '</span></label>'
+      );
+    }).join('');
+    if (!listHtml) {
+      listHtml = '<p class="px-2 py-2 text-xs font-semibold text-slate-500">' +
+        ((msFacetas[key] || []).length ? 'Nada encontrado.' : 'Aguarde carregar…') + '</p>';
+    }
+    var searchVal = panel.querySelector('input[type="search"]');
+    var keepQ = searchVal ? searchVal.value : (q || '');
+    panel.innerHTML =
+      '<input type="search" placeholder="Buscar…" value="' + escFiltro(keepQ) + '" autocomplete="off" />' +
+      '<div class="etq-ms-list">' + listHtml + '</div>';
+    var inp = panel.querySelector('input[type="search"]');
+    if (inp) {
+      inp.addEventListener('input', function () {
+        msFillPanel(root, inp.value);
+        var again = panel.querySelector('input[type="search"]');
+        if (again) {
+          again.focus();
+          try { var len = again.value.length; again.setSelectionRange(len, len); } catch (e) {}
+        }
+      });
+    }
+    panel.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        msToggle(key, cb.getAttribute('data-val'), cb.checked);
+        scheduleBusca();
+      });
+    });
+  }
+  function msWire() {
+    document.querySelectorAll('.etq-ms').forEach(function (root) {
+      var btn = root.querySelector('.etq-ms-btn');
+      var panel = root.querySelector('.etq-ms-panel');
+      if (!btn || !panel) return;
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var open = !panel.classList.contains('hidden');
+        msCloseAll();
+        if (open) return;
+        panel.classList.remove('hidden');
+        msFillPanel(root, '');
+        var inp = panel.querySelector('input[type="search"]');
+        if (inp) setTimeout(function () { inp.focus(); }, 30);
+      });
+    });
+    var chips = $('etq-f-chips');
+    if (chips) {
+      chips.addEventListener('click', function (e) {
+        var btn = e.target.closest('button');
+        var chip = e.target.closest('.etq-f-chip');
+        if (!btn || !chip) return;
+        msToggle(chip.getAttribute('data-ms-key'), chip.getAttribute('data-ms-val'), false);
+        scheduleBusca();
+      });
+    }
+    document.addEventListener('mousedown', function (e) {
+      if (e.target && e.target.closest && e.target.closest('.etq-ms')) return;
+      msCloseAll();
+    });
+  }
+  function temFiltrosAtivos() {
+    var keys = Object.keys(msSelected);
+    for (var i = 0; i < keys.length; i++) {
+      if ((msSelected[keys[i]] || []).length) return true;
+    }
+    if ($('etq-f-estoque-sinal') && $('etq-f-estoque-sinal').value) return true;
+    if (($('etq-f-data-de') && $('etq-f-data-de').value) || ($('etq-f-data-ate') && $('etq-f-data-ate').value)) return true;
+    if ($('etq-omit-zero') && $('etq-omit-zero').checked) return true;
+    if ($('etq-f-custo-min') && $('etq-f-custo-min').value.trim()) return true;
+    if ($('etq-f-custo-max') && $('etq-f-custo-max').value.trim()) return true;
+    if ($('etq-f-venda-min') && $('etq-f-venda-min').value.trim()) return true;
+    if ($('etq-f-venda-max') && $('etq-f-venda-max').value.trim()) return true;
+    if ($('etq-f-ncm') && $('etq-f-ncm').value) return true;
+    if ($('etq-f-sem-marca') && $('etq-f-sem-marca').checked) return true;
+    if ($('etq-f-sem-cat') && $('etq-f-sem-cat').checked) return true;
+    if ($('etq-f-somente-agro') && $('etq-f-somente-agro').checked) return true;
+    var c = !$('etq-loja-centro') || $('etq-loja-centro').checked;
+    var v = !$('etq-loja-vila') || $('etq-loja-vila').checked;
+    if (!(c && v)) return true;
+    if ($('etq-somente-ativos') && !$('etq-somente-ativos').checked) return true;
+    return false;
+  }
+  function estoqueLojaParam() {
+    var c = !$('etq-loja-centro') || $('etq-loja-centro').checked;
+    var v = !$('etq-loja-vila') || $('etq-loja-vila').checked;
+    if (c && v) return 'total';
+    if (c) return 'centro';
+    if (v) return 'vila';
+    return 'total';
+  }
+  function buildBuscaParams(q) {
+    var params = new URLSearchParams();
+    params.set('incluir_saldo', '1');
+    if (!($('etq-somente-ativos') && $('etq-somente-ativos').checked)) {
+      params.set('inativos', '1');
+    }
+    q = String(q || '').trim();
+    if (q) {
+      params.set('q', q);
+      params.set('limit', '80');
+    } else {
+      params.set('pagina', '1');
+      params.set('por_pagina', '80');
+    }
+    params.set('estoque_loja', estoqueLojaParam());
+    if ($('etq-f-estoque-sinal') && $('etq-f-estoque-sinal').value) {
+      params.set('estoque_sinal', $('etq-f-estoque-sinal').value);
+    }
+    if (($('etq-f-data-de') && $('etq-f-data-de').value) || ($('etq-f-data-ate') && $('etq-f-data-ate').value)) {
+      params.set('data_tipo', ($('etq-f-data-tipo') && $('etq-f-data-tipo').value) || 'cadastro');
+      if ($('etq-f-data-de') && $('etq-f-data-de').value) params.set('data_de', $('etq-f-data-de').value);
+      if ($('etq-f-data-ate') && $('etq-f-data-ate').value) params.set('data_ate', $('etq-f-data-ate').value);
+    }
+    appendMulti(params, 'marca', msSelected.marca);
+    appendMulti(params, 'categoria', msSelected.categoria);
+    appendMulti(params, 'subcategoria', msSelected.subcategoria);
+    appendMulti(params, 'subcategoria_2', msSelected.subcategoria_2);
+    appendMulti(params, 'subcategoria_3', msSelected.subcategoria_3);
+    appendMulti(params, 'subcategoria_4', msSelected.subcategoria_4);
+    appendMulti(params, 'fornecedor', msSelected.fornecedor);
+    appendMulti(params, 'unidade', msSelected.unidade);
+    appendMulti(params, 'modelo', msSelected.modelo);
+    if ($('etq-f-custo-min') && $('etq-f-custo-min').value.trim()) params.set('custo_min', $('etq-f-custo-min').value.trim());
+    if ($('etq-f-custo-max') && $('etq-f-custo-max').value.trim()) params.set('custo_max', $('etq-f-custo-max').value.trim());
+    if ($('etq-f-venda-min') && $('etq-f-venda-min').value.trim()) params.set('venda_min', $('etq-f-venda-min').value.trim());
+    if ($('etq-f-venda-max') && $('etq-f-venda-max').value.trim()) params.set('venda_max', $('etq-f-venda-max').value.trim());
+    if ($('etq-f-ncm') && $('etq-f-ncm').value) params.set('ncm', $('etq-f-ncm').value);
+    if ($('etq-f-sem-marca') && $('etq-f-sem-marca').checked) params.set('sem_marca', '1');
+    if ($('etq-f-sem-cat') && $('etq-f-sem-cat').checked) params.set('sem_categoria', '1');
+    if ($('etq-f-somente-agro') && $('etq-f-somente-agro').checked) params.set('somente_agro', '1');
+    return params;
+  }
+  function filtrarOmitZero(prods) {
+    if (!($('etq-omit-zero') && $('etq-omit-zero').checked)) return prods;
+    var loja = estoqueLojaParam();
+    return (prods || []).filter(function (p) {
+      var sc = Number(p.saldo_centro || 0);
+      var sv = Number(p.saldo_vila || 0);
+      var s = loja === 'centro' ? sc : (loja === 'vila' ? sv : sc + sv);
+      if (p.saldo_total != null && loja === 'total') s = Number(p.saldo_total);
+      return Math.abs(s) >= 1e-9;
+    });
+  }
+  function limparFiltrosBusca() {
+    Object.keys(msSelected).forEach(function (k) {
+      msSelected[k] = [];
+      msRenderBtn(k);
+    });
+    msRenderChips();
+    if ($('etq-loja-centro')) $('etq-loja-centro').checked = true;
+    if ($('etq-loja-vila')) $('etq-loja-vila').checked = true;
+    if ($('etq-omit-zero')) $('etq-omit-zero').checked = false;
+    if ($('etq-somente-ativos')) $('etq-somente-ativos').checked = true;
+    if ($('etq-f-estoque-sinal')) $('etq-f-estoque-sinal').value = '';
+    if ($('etq-f-data-tipo')) $('etq-f-data-tipo').value = 'cadastro';
+    if ($('etq-f-data-de')) $('etq-f-data-de').value = '';
+    if ($('etq-f-data-ate')) $('etq-f-data-ate').value = '';
+    ['etq-f-custo-min','etq-f-custo-max','etq-f-venda-min','etq-f-venda-max'].forEach(function (id) {
+      if ($(id)) $(id).value = '';
+    });
+    if ($('etq-f-ncm')) $('etq-f-ncm').value = '';
+    if ($('etq-f-sem-marca')) $('etq-f-sem-marca').checked = false;
+    if ($('etq-f-sem-cat')) $('etq-f-sem-cat').checked = false;
+    if ($('etq-f-somente-agro')) $('etq-f-somente-agro').checked = false;
+    if ($('etq-preset-filtro-sel')) $('etq-preset-filtro-sel').value = '';
+    syncPresetFiltroBtns();
+  }
+  function applyFacetasPayload(j) {
+    if (!j) return 0;
+    msFacetas.marca = j.marcas || [];
+    msFacetas.categoria = j.categorias || [];
+    msFacetas.subcategoria = j.subcategorias || [];
+    msFacetas.subcategoria_2 = j.subcategorias_2 || [];
+    msFacetas.subcategoria_3 = j.subcategorias_3 || [];
+    msFacetas.subcategoria_4 = j.subcategorias_4 || [];
+    msFacetas.fornecedor = j.fornecedores || [];
+    msFacetas.unidade = j.unidades || [];
+    msFacetas.modelo = j.modelos || [];
+    var n = 0;
+    Object.keys(msFacetas).forEach(function (k) {
+      n += (msFacetas[k] || []).length;
+      msRenderBtn(k);
+    });
+    return n;
+  }
+  function carregarFacetas() {
+    if (!URL_FACETAS) return;
+    fetch(URL_FACETAS, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j && j.ok !== false) applyFacetasPayload(j);
+      })
+      .catch(function () {});
+  }
+  function syncPresetFiltroBtns() {
+    var sel = $('etq-preset-filtro-sel');
+    var btn = $('etq-preset-filtro-aplicar');
+    if (btn) btn.disabled = !(sel && sel.value);
+  }
+  function carregarPresetsFiltro() {
+    if (!URL_PRESETS) return;
+    fetch(URL_PRESETS, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        presetsFiltroCache = (j && j.presets) || [];
+        var sel = $('etq-preset-filtro-sel');
+        if (!sel) return;
+        var cur = sel.value;
+        sel.innerHTML = '<option value="">— escolher —</option>';
+        presetsFiltroCache.forEach(function (p) {
+          var o = document.createElement('option');
+          o.value = String(p.id);
+          o.textContent = (p.nome || 'Filtro') + (p.is_padrao ? ' ★' : '');
+          sel.appendChild(o);
+        });
+        if (cur) sel.value = cur;
+        syncPresetFiltroBtns();
+      })
+      .catch(function () {});
+  }
+  function aplicarPayloadFiltro(payload) {
+    if (!payload || typeof payload !== 'object') return;
+    limparFiltrosBusca();
+    if ($('etq-loja-centro')) $('etq-loja-centro').checked = payload.loja_centro !== false;
+    if ($('etq-loja-vila')) $('etq-loja-vila').checked = payload.loja_vila !== false;
+    if ($('etq-omit-zero')) $('etq-omit-zero').checked = !!payload.omit_zero;
+    if ($('etq-somente-ativos')) $('etq-somente-ativos').checked = payload.somente_ativos !== false;
+    if ($('etq-f-estoque-sinal')) $('etq-f-estoque-sinal').value = payload.estoque_sinal || '';
+    if ($('etq-f-data-tipo')) $('etq-f-data-tipo').value = payload.data_tipo || 'cadastro';
+    if ($('etq-f-data-de')) $('etq-f-data-de').value = payload.data_de || '';
+    if ($('etq-f-data-ate')) $('etq-f-data-ate').value = payload.data_ate || '';
+    if ($('etq-f-custo-min')) $('etq-f-custo-min').value = payload.custo_min || '';
+    if ($('etq-f-custo-max')) $('etq-f-custo-max').value = payload.custo_max || '';
+    if ($('etq-f-venda-min')) $('etq-f-venda-min').value = payload.venda_min || '';
+    if ($('etq-f-venda-max')) $('etq-f-venda-max').value = payload.venda_max || '';
+    if ($('etq-f-ncm')) $('etq-f-ncm').value = payload.ncm || '';
+    if ($('etq-f-sem-marca')) $('etq-f-sem-marca').checked = !!payload.sem_marca;
+    if ($('etq-f-sem-cat')) $('etq-f-sem-cat').checked = !!payload.sem_categoria;
+    if ($('etq-f-somente-agro')) $('etq-f-somente-agro').checked = !!payload.somente_agro;
+    Object.keys(msSelected).forEach(function (k) {
+      var arr = payload[k];
+      msSelected[k] = Array.isArray(arr) ? arr.slice() : [];
+      msRenderBtn(k);
+    });
+    msRenderChips();
+    if (payload.q && $('etq-busca-input')) $('etq-busca-input').value = payload.q;
+  }
+  function scheduleBusca() {
+    clearTimeout(state.buscaTimer);
+    state.buscaTimer = setTimeout(function () {
+      var inp = $('etq-busca-input');
+      buscarProdutos(inp ? inp.value.trim() : '', { autoAddBip: true });
+    }, 280);
+  }
+
+  /** Bip/código GM: 1 resultado que casa exatamente → manda pra fila sem clicar no +. */
+  function produtoCasaCodigoBip(prod, q) {
+    if (!prod || !q) return false;
+    var digits = String(q).replace(/\D/g, '');
+    var cb = String(prod.codigo_barras || '').replace(/\D/g, '');
+    if (digits.length >= 8 && cb && cb === digits) return true;
+    var qn = String(q).trim().toUpperCase().replace(/\s+/g, '');
+    var cod = String(prod.codigo || prod.codigo_nfe || '')
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, '');
+    if (!cod) return false;
+    if (cod === qn) return true;
+    if (cod.replace(/-/g, '') === qn.replace(/-/g, '')) return true;
+    return false;
+  }
+
+  function buscarProdutos(q, opts) {
+    opts = opts || {};
+    var box = $('etq-busca-resultados');
+    var meta = $('etq-busca-meta');
+    q = String(q == null ? (($('etq-busca-input') && $('etq-busca-input').value) || '') : q).trim();
+    var filtrosOk = temFiltrosAtivos();
+    if ((!q || q.length < 2) && !filtrosOk) {
+      limparBuscaVisual();
+      return Promise.resolve([]);
+    }
+    if (box) box.innerHTML = '<p class="px-3 py-3 text-sm text-slate-400">…</p>';
+    var params = buildBuscaParams(q.length >= 2 ? q : '');
+    var fkey = params.toString();
+    return fetch(URL_BUSCAR + '?' + fkey, { credentials: 'same-origin' })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data || data.ok === false) {
+          state.buscaProdutos = [];
+          state.buscaSelIdx = -1;
+          if (box) box.innerHTML = '<p class="px-3 py-3 text-sm text-red-400">Erro na busca.</p>';
+          if (meta) meta.textContent = '';
+          if (opts.onDone) opts.onDone([]);
+          return [];
+        }
+        var prods = filtrarOmitZero((data && data.produtos) || []);
+        state.buscaQuery = q;
+        state.buscaFiltrosKey = fkey;
+        /* Scanner sem Enter: 1 hit + código bate → fila + limpa campo */
+        if (
+          opts.autoAddBip &&
+          prods.length === 1 &&
+          produtoCasaCodigoBip(prods[0], q)
+        ) {
+          adicionarProdutoFila(prods[0], { limparBusca: true });
+          setStatus('Na fila: ' + (prods[0].nome || prods[0].codigo || 'produto'));
+          if (opts.onDone) opts.onDone([]);
+          return [];
+        }
+        renderBusca(prods);
+        if (meta) {
+          meta.textContent = prods.length
+            ? (prods.length + ' resultado' + (prods.length === 1 ? '' : 's') + (data.has_more ? '+' : ''))
+            : '0 resultados';
+        }
+        if (opts.onDone) opts.onDone(state.buscaProdutos);
+        return state.buscaProdutos;
+      })
+      .catch(function () {
+        state.buscaProdutos = [];
+        state.buscaSelIdx = -1;
+        if (box) box.innerHTML = '<p class="px-3 py-3 text-sm text-red-400">Erro na busca.</p>';
+        if (meta) meta.textContent = '';
+        if (opts.onDone) opts.onDone([]);
+        return [];
+      });
+  }
+
+
+  function setStatus(msg, isErr) {
+    var el = $('etq-status');
+    if (!el || !msg) {
+      if (el) el.textContent = '';
+      return;
+    }
+    el.textContent = msg;
+    el.className = 'text-xs font-semibold ' + (isErr ? 'text-red-400' : 'text-emerald-400');
+    if (!isErr) setTimeout(function () { if (el.textContent === msg) el.textContent = ''; }, 2500);
+  }
+
+  function presetIdFila() {
+    var sel = $('etq-fila-preset');
+    return (sel && sel.value) || state.storage.preset_ativo;
+  }
+
+  function imprimirFila() {
+    if (!state.fila.length) return;
+    var presetId = presetIdFila();
+    state.storage.preset_ativo = presetId;
+    persistStorage();
+    var pFila = getPresetAtivo();
+    Core.imprimirItens(state.fila, {
+      presetId: presetId,
+      textoRodape: (pFila && pFila.texto_rodape) || '',
+      origem: 'fila',
+    }).then(function (res) {
+      if (res && res.ok) {
+        setStatus(res.silent ? 'Impresso direto.' : 'Enviado (janela do Windows).');
+        if ($('etq-hist-back') && !$('etq-hist-back').classList.contains('hidden')) {
+          carregarHistorico();
+        }
+      } else if (res && res.reason === 'ponte_offline') {
+        setStatus(res.message || 'Ponte offline — abra Iniciar-ponte-etiquetas.bat.', true);
+      } else if (res && res.reason) setStatus('Falha: ' + res.reason, true);
+    });
+  }
+
+  function abrirLoteA4() {
+    var LOTE_URL = '/produtos/etiquetas/lote/';
+    var FILA_KEY = 'agro_etq_lote_fila_v1';
+    if (state.fila.length) {
+      var itens = state.fila.map(function (it) {
+        return {
+          id: it.id,
+          nome: it.nome,
+          codigo_gm: it.codigo_gm || it.codigo_nfe || it.codigo || '',
+          codigo_barras: it.codigo_barras || it.ean || '',
+          preco_venda: it.preco_venda,
+          peso_etiqueta: it.peso_etiqueta || '',
+          qtd: Math.max(1, parseInt(it.qtd, 10) || 1),
+        };
+      });
+      try {
+        sessionStorage.setItem(
+          FILA_KEY,
+          JSON.stringify({
+            itens: itens,
+            preset_id: presetIdFila() || state.storage.preset_ativo || '',
+            nome: '',
+          })
+        );
+      } catch (e) {
+        setStatus('Não gravou a fila no navegador. Abra o Lote sem fila.', true);
+      }
+    } else {
+      try {
+        sessionStorage.removeItem(FILA_KEY);
+      } catch (e2) {}
+    }
+    window.location.href = LOTE_URL;
+  }
+
+  function salvarPresetAtual() {
+    var p = lerPresetForm();
+    var nome = prompt('Nome do preset (ex.: OPE 7):', p.nome);
+    if (!nome) return;
+    p.nome = nome.trim() || p.nome;
+    var idx = state.storage.presets.findIndex(function (x) {
+      return x.id === p.id;
+    });
+    if (idx >= 0) state.storage.presets[idx] = p;
+    state.storage.preset_ativo = p.id;
+    persistStorage();
+    renderPresetSelect();
+    syncPresetToServer(p);
+  }
+
+  function criarNovoPreset() {
+    var nome = prompt('Nome do novo preset:', 'OPE 7');
+    if (!nome) return;
+    var np = Core.clonePreset(getPresetAtivo());
+    np.id = 'preset-' + Date.now().toString(36);
+    np.nome = nome.trim() || 'Novo';
+    state.storage.presets.push(np);
+    state.storage.preset_ativo = np.id;
+    persistStorage();
+    renderPresetSelect();
+    renderPresetForm();
+    syncPresetToServer(np);
+  }
+
+  function excluirPresetAtual() {
+    if (state.storage.presets.length <= 1) {
+      alert('Mantenha ao menos um preset.');
+      return;
+    }
+    var p = getPresetAtivo();
+    if (!confirm('Excluir «' + p.nome + '» em todos os PCs da loja?')) return;
+    var delId = p.id;
+    state.storage.presets = state.storage.presets.filter(function (x) {
+      return x.id !== delId;
+    });
+    state.storage.preset_ativo = state.storage.presets[0].id;
+    persistStorage();
+    renderPresetSelect();
+    renderPresetForm();
+    Core.deletePresetFromServer(delId)
+      .then(function () {
+        setStatus('Preset excluído na loja.');
+      })
+      .catch(function (err) {
+        if (err && err.code === 'auth') {
+          setStatus('Faça login para excluir na loja.', true);
+        } else {
+          setStatus('Excluiu neste PC; falha ao apagar no servidor.', true);
+        }
+      });
+  }
+
+  function carregarImpressoras(atual) {
+    var sel = $('etq-preset-impressora');
+    if (!sel) return;
+    var shell = null;
+    if (window.agroShell && typeof window.agroShell.listPrinters === 'function') {
+      shell = window.agroShell;
+    } else if (
+      window.agroPrintBridge &&
+      typeof window.agroPrintBridge.listPrinters === 'function' &&
+      (!window.agroPrintBridge.isReady || window.agroPrintBridge.isReady())
+    ) {
+      shell = window.agroPrintBridge;
+    }
+    if (!shell) {
+      sel.innerHTML = '<option value="">(Padrão do Windows)</option>';
+      if (atual) {
+        sel.innerHTML +=
+          '<option value="' + Core.esc(atual) + '" selected>' + Core.esc(atual) + '</option>';
+      }
+      return;
+    }
+    shell.listPrinters().then(function (res) {
+      if (!res || !res.ok) return;
+      var opts = ['<option value="">(Padrão do Windows)</option>'];
+      var found = false;
+      (res.printers || []).forEach(function (p) {
+        var name = p.name || p;
+        if (atual && name === atual) found = true;
+        opts.push(
+          '<option value="' +
+            Core.esc(name) +
+            '"' +
+            (atual === name || (!atual && p.isDefault) ? ' selected' : '') +
+            '>' +
+            Core.esc(name) +
+            '</option>'
+        );
+      });
+      if (atual && !found) {
+        opts.push(
+          '<option value="' + Core.esc(atual) + '" selected>' + Core.esc(atual) + ' (salva)</option>'
+        );
+      }
+      sel.innerHTML = opts.join('');
+    });
+  }
+
+  function fillSizeMapSelects(printers, map) {
+    var box = $('etq-size-map-box');
+    if (!box) return;
+    box.classList.remove('hidden');
+    map = map || {};
+    function fill(selId, key) {
+      var sel = $(selId);
+      if (!sel) return;
+      var cur = map[key] || '';
+      var opts = ['<option value="">(não usar mapa)</option>'];
+      (printers || []).forEach(function (p) {
+        var name = p.name || p;
+        opts.push(
+          '<option value="' +
+            Core.esc(name) +
+            '"' +
+            (cur === name ? ' selected' : '') +
+            '>' +
+            Core.esc(name) +
+            '</option>'
+        );
+      });
+      if (cur && !(printers || []).some(function (p) { return (p.name || p) === cur; })) {
+        opts.push(
+          '<option value="' + Core.esc(cur) + '" selected>' + Core.esc(cur) + ' (salva)</option>'
+        );
+      }
+      sel.innerHTML = opts.join('');
+    }
+    fill('etq-map-40', '40x40');
+    fill('etq-map-50', '50x30');
+    if (map['53x30'] && !map['50x30']) {
+      var s50 = $('etq-map-50');
+      if (s50) s50.value = map['53x30'];
+    }
+  }
+
+  function carregarSizeMapUi() {
+    var bridge = window.agroPrintBridge;
+    if (!bridge || !bridge.isReady || !bridge.isReady()) {
+      var box = $('etq-size-map-box');
+      if (box) box.classList.add('hidden');
+      return;
+    }
+    Promise.all([bridge.listPrinters(), bridge.getSizeMap()]).then(function (arr) {
+      var printers = (arr[0] && arr[0].ok && arr[0].printers) || [];
+      var map = (arr[1] && arr[1].ok && arr[1].map) || {};
+      fillSizeMapSelects(printers, map);
+    });
+  }
+
+  function salvarSizeMapUi() {
+    var bridge = window.agroPrintBridge;
+    if (!bridge || !bridge.setSizeMap) {
+      setStatus('Ponte offline.', true);
+      return;
+    }
+    var map = {
+      '40x40': ($('etq-map-40') && $('etq-map-40').value) || '',
+      '50x30': ($('etq-map-50') && $('etq-map-50').value) || '',
+      '53x30': ($('etq-map-50') && $('etq-map-50').value) || '',
+    };
+    bridge.setSizeMap(map).then(function (res) {
+      if (res && res.ok) setStatus('Mapa tamanho→impressora salvo neste PC.');
+      else setStatus('Falha ao salvar mapa.', true);
+    });
+  }
+
+  function atualizarBridgeUi(info) {
+    var el = $('etq-bridge-status');
+    var portEl = $('etq-bridge-port');
+    var dot = $('etq-btn-ponte-dot');
+    var btnPonte = $('etq-btn-ponte');
+    var bridge = window.agroPrintBridge;
+    if (portEl && bridge && !portEl.dataset.bound) {
+      portEl.dataset.bound = '1';
+      try {
+        portEl.value = String((bridge.loadCfg && bridge.loadCfg().port) || 19192);
+      } catch (_) {
+        portEl.value = '19192';
+      }
+      portEl.addEventListener('change', function () {
+        var p = parseInt(portEl.value, 10);
+        if (!(p >= 1024 && p <= 65535)) return;
+        bridge.saveCfg({ port: p });
+        bridge.probe && bridge.probe();
+      });
+    }
+    var ready = !!(info && info.ready);
+    if (dot) {
+      dot.className =
+        'inline-block h-2 w-2 rounded-full ' + (ready ? 'bg-emerald-400' : 'bg-amber-400');
+    }
+    if (btnPonte) {
+      btnPonte.title = ready
+        ? 'Ponte ligada · mapa Elgin 40×40 / 50×30'
+        : 'Ponte desligada — abrir para baixar/ligar';
+      btnPonte.classList.toggle('border-emerald-500', ready);
+      btnPonte.classList.toggle('text-emerald-200', ready);
+    }
+    if (!el) return;
+    if (ready) {
+      el.className = 'text-xs font-bold text-emerald-300';
+      el.textContent = 'Ponte ligada · impressão direta disponível';
+      try {
+        var p = getPresetAtivo();
+        carregarImpressoras((p && p.impressora) || '');
+      } catch (_) {}
+      carregarSizeMapUi();
+    } else {
+      el.className = 'text-xs font-bold text-amber-300';
+      el.textContent =
+        'Ponte desligada — rode agro-print-bridge/Iniciar-ponte-etiquetas.bat neste PC (ou use Janela do Windows).';
+      var box = $('etq-size-map-box');
+      if (box) box.classList.add('hidden');
+    }
+  }
+
+  function ensureBridgeModalOnBody() {
+    var m = $('etq-bridge-back');
+    if (m && m.parentElement !== document.body) document.body.appendChild(m);
+  }
+
+  function abrirModalPonte() {
+    ensureBridgeModalOnBody();
+    var m = $('etq-bridge-back');
+    if (!m) return;
+    m.classList.remove('hidden');
+    m.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+    if (window.agroPrintBridge && window.agroPrintBridge.probe) {
+      window.agroPrintBridge.probe().then(function () {
+        atualizarBridgeUi({
+          ready: window.agroPrintBridge.isReady && window.agroPrintBridge.isReady(),
+        });
+      });
+    } else {
+      atualizarBridgeUi({ ready: false });
+    }
+  }
+
+  function fecharModalPonte() {
+    var m = $('etq-bridge-back');
+    if (!m) return;
+    m.classList.add('hidden');
+    m.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
+  }
+
+  function testarBridgeUmaEtiqueta() {
+    var bridge = window.agroPrintBridge;
+    if (!bridge || !bridge.isReady || !bridge.isReady()) {
+      setStatus('Ponte offline. Abra Iniciar-ponte-etiquetas.bat neste PC.', true);
+      return;
+    }
+    var preset = Core.normalizarPreset(getPresetAtivo());
+    var item = {
+      id: 'teste-bridge',
+      nome: 'TESTE PONTE',
+      codigo_gm: 'GM-TESTE',
+      codigo_barras: '7891000100103',
+      preco_venda: 9.9,
+      qtd: 1,
+    };
+    Core.imprimirItens([item], {
+      preset: Object.assign({}, preset, { print_modo: 'direto' }),
+      textoRodape: 'teste ponte',
+      origem: 'teste-ponte',
+    }).then(function (res) {
+      if (res && res.ok) setStatus('Teste enviado direto.');
+      else setStatus((res && (res.message || res.reason)) || 'Falha no teste.', true);
+    });
+  }
+
+  function ensureHistModalOnBody() {
+    var m = $('etq-hist-back');
+    if (m && m.parentElement !== document.body) document.body.appendChild(m);
+  }
+
+  function fecharModalHistorico() {
+    var m = $('etq-hist-back');
+    if (!m) return;
+    m.classList.add('hidden');
+    m.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
+  }
+
+  function renderHistoricoLista(rows, meta) {
+    var box = $('etq-hist-lista');
+    var metaEl = $('etq-hist-meta');
+    if (metaEl && meta) {
+      metaEl.textContent =
+        'Últimos ' +
+        (meta.dias || HISTORICO_DIAS) +
+        ' dias · ' +
+        (meta.total != null ? meta.total : rows.length) +
+        ' impressão(ões)';
+    }
+    if (!box) return;
+    if (!rows || !rows.length) {
+      box.innerHTML = '<p class="px-4 py-6 text-center text-sm text-slate-400">Nenhuma impressão no período.</p>';
+      return;
+    }
+    box.innerHTML = rows
+      .map(function (h) {
+        return (
+          '<div class="flex flex-wrap items-center gap-2 border-b border-slate-700/80 px-3 py-2.5 hover:bg-slate-800/50">' +
+          '<div class="min-w-0 flex-1">' +
+          '<div class="truncate text-sm font-bold text-white">' +
+          Core.esc(h.resumo_nomes || '—') +
+          '</div>' +
+          '<div class="mt-0.5 text-[11px] text-slate-400">' +
+          Core.esc(h.criado_em_br || '') +
+          (h.usuario ? ' · ' + Core.esc(h.usuario) : '') +
+          ' · ' +
+          Core.esc(h.preset_nome || 'Preset') +
+          ' · ' +
+          Core.esc(String(h.total_etiquetas || 0)) +
+          ' etiqueta(s)' +
+          '</div>' +
+          '</div>' +
+          '<button type="button" class="etq-hist-reimp shrink-0 inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-xl border-2 border-emerald-600 bg-emerald-700/40 px-3 text-xs font-black uppercase text-emerald-200 hover:bg-emerald-600/30" data-hist-id="' +
+          Core.esc(h.id) +
+          '">' +
+          '<i class="fas fa-print" aria-hidden="true"></i>Reimprimir</button>' +
+          '</div>'
+        );
+      })
+      .join('');
+
+    box.querySelectorAll('.etq-hist-reimp').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-hist-id');
+        if (id) reimprimirHistorico(id, btn);
+      });
+    });
+  }
+
+  function carregarHistorico() {
+    var box = $('etq-hist-lista');
+    if (box) box.innerHTML = '<p class="px-4 py-6 text-center text-sm text-slate-400">Carregando…</p>';
+    fetch(URL_HISTORICO + '?dias=' + HISTORICO_DIAS + '&limit=300', { credentials: 'same-origin' })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data || !data.ok) {
+          if (box) box.innerHTML = '<p class="px-4 py-6 text-center text-sm text-red-400">Erro ao carregar histórico.</p>';
+          return;
+        }
+        renderHistoricoLista(data.historico || [], data);
+      })
+      .catch(function () {
+        if (box) box.innerHTML = '<p class="px-4 py-6 text-center text-sm text-red-400">Erro ao carregar histórico.</p>';
+      });
+  }
+
+  function reimprimirHistorico(id, btn) {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '…';
+    }
+    fetch(URL_HISTORICO + encodeURIComponent(id) + '/', { credentials: 'same-origin' })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data || !data.ok || !data.job) {
+          setStatus('Não foi possível reimprimir.', true);
+          return;
+        }
+        var job = data.job;
+        var itens = (job.itens || []).map(function (it) {
+          return {
+            id: it.id,
+            nome: it.nome,
+            codigo_gm: it.codigo_gm,
+            codigo_barras: it.codigo_barras,
+            preco_venda: it.preco_venda,
+            qtd: it.qtd,
+          };
+        });
+        if (!itens.length) {
+          setStatus('Job sem itens.', true);
+          return;
+        }
+        return Core.imprimirItens(itens, {
+          presetId: job.preset_id || state.storage.preset_ativo,
+          textoRodape: job.texto_rodape || '',
+          origem: 'historico',
+        }).then(function (res) {
+          if (res && res.ok) {
+            setStatus('Reimpresso.');
+            carregarHistorico();
+          } else {
+            setStatus('Falha na reimpressão.', true);
+          }
+        });
+      })
+      .catch(function () {
+        setStatus('Erro na reimpressão.', true);
+      })
+      .finally(function () {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-print" aria-hidden="true"></i>Reimprimir';
+        }
+      });
+  }
+
+  function abrirModalHistorico() {
+    ensureHistModalOnBody();
+    var m = $('etq-hist-back');
+    if (!m) return;
+    m.classList.remove('hidden');
+    m.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+    carregarHistorico();
+  }
+
+  function ensureModalOnBody() {
+    var m = $('etq-modal-back');
+    if (m && m.parentElement !== document.body) document.body.appendChild(m);
+  }
+
+  function abrirModalPreset() {
+    ensureModalOnBody();
+    var m = $('etq-modal-back');
+    if (!m) return;
+    m.classList.remove('hidden');
+    m.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+    garantirPresetsNaTela();
+    renderPresetForm();
+  }
+
+  function fecharModalPreset() {
+    var m = $('etq-modal-back');
+    if (!m) return;
+    m.classList.add('hidden');
+    m.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
+  }
+
+  function bindEvents() {
+    var inpBusca = $('etq-busca-input');
+    if (inpBusca) {
+      inpBusca.addEventListener('input', function () {
+        scheduleBusca();
+      });
+      inpBusca.addEventListener('keydown', function (ev) {
+        var q = inpBusca.value.trim();
+        if (ev.key === 'ArrowDown') {
+          ev.preventDefault();
+          if (state.buscaProdutos.length) moverSelecaoBusca(1);
+          return;
+        }
+        if (ev.key === 'ArrowUp') {
+          ev.preventDefault();
+          if (state.buscaProdutos.length) moverSelecaoBusca(-1);
+          return;
+        }
+        if (ev.key === 'Enter') {
+          ev.preventDefault();
+          clearTimeout(state.buscaTimer);
+          if (q.length < 2 && !temFiltrosAtivos()) return;
+          if (state.buscaProdutos.length && (state.buscaQuery === q || (!q && temFiltrosAtivos()))) {
+            tentarAdicionarBuscaEnter();
+            return;
+          }
+          buscarProdutos(q, {
+            autoAddBip: true,
+            onDone: function (prods) {
+              if (prods.length === 1) {
+                adicionarProdutoFila(prods[0], { limparBusca: true });
+              } else if (prods.length > 1) {
+                setStatus('Vários resultados — use ↑ ↓ ou clique no produto.', true);
+              }
+            },
+          });
+        }
+      });
+    }
+
+    msWire();
+    ['etq-loja-centro','etq-loja-vila','etq-omit-zero','etq-somente-ativos',
+     'etq-f-estoque-sinal','etq-f-data-tipo','etq-f-data-de','etq-f-data-ate',
+     'etq-f-custo-min','etq-f-custo-max','etq-f-venda-min','etq-f-venda-max',
+     'etq-f-ncm','etq-f-sem-marca','etq-f-sem-cat','etq-f-somente-agro'].forEach(function (id) {
+      var node = $(id);
+      if (!node) return;
+      var evName = (node.tagName === 'SELECT' || node.type === 'checkbox') ? 'change' : 'input';
+      node.addEventListener(evName, scheduleBusca);
+    });
+    $('etq-filtros-limpar') && $('etq-filtros-limpar').addEventListener('click', function () {
+      limparFiltrosBusca();
+      scheduleBusca();
+    });
+    $('etq-preset-filtro-sel') && $('etq-preset-filtro-sel').addEventListener('change', syncPresetFiltroBtns);
+    $('etq-preset-filtro-aplicar') && $('etq-preset-filtro-aplicar').addEventListener('click', function () {
+      var sel = $('etq-preset-filtro-sel');
+      if (!sel || !sel.value) return;
+      var p = presetsFiltroCache.find(function (x) { return String(x.id) === String(sel.value); });
+      if (!p) return;
+      if (p.payload) {
+        aplicarPayloadFiltro(p.payload);
+        scheduleBusca();
+        return;
+      }
+      fetch(URL_PRESETS.replace(/\/?$/, '/') + sel.value + '/', { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          var pr = (j && j.preset) || j;
+          if (pr && pr.payload) aplicarPayloadFiltro(pr.payload);
+          scheduleBusca();
+        })
+        .catch(function () {});
+    });
+
+    $('etq-btn-add-todos') &&
+      $('etq-btn-add-todos').addEventListener('click', adicionarTodosBusca);
+    $('etq-btn-colar-codigos') &&
+      $('etq-btn-colar-codigos').addEventListener('click', abrirModalColar);
+    $('etq-colar-fechar') && $('etq-colar-fechar').addEventListener('click', fecharModalColar);
+    $('etq-colar-cancelar') && $('etq-colar-cancelar').addEventListener('click', fecharModalColar);
+    $('etq-colar-adicionar') &&
+      $('etq-colar-adicionar').addEventListener('click', confirmarColarCodigos);
+    $('etq-colar-back') &&
+      $('etq-colar-back').addEventListener('click', function (e) {
+        if (e.target === $('etq-colar-back')) fecharModalColar();
+      });
+    syncMvDatasFromPeriodo();
+    $('etq-mv-periodo') &&
+      $('etq-mv-periodo').addEventListener('change', function () {
+        if ($('etq-mv-periodo').value !== 'custom') syncMvDatasFromPeriodo();
+      });
+    function markMvCustom() {
+      if ($('etq-mv-periodo')) $('etq-mv-periodo').value = 'custom';
+    }
+    $('etq-mv-de') && $('etq-mv-de').addEventListener('change', markMvCustom);
+    $('etq-mv-ate') && $('etq-mv-ate').addEventListener('change', markMvCustom);
+    $('etq-mv-carregar') &&
+      $('etq-mv-carregar').addEventListener('click', carregarMaisVendidos);
+    $('etq-btn-imprimir') && $('etq-btn-imprimir').addEventListener('click', imprimirFila);
+    $('etq-btn-bridge-probe') &&
+      $('etq-btn-bridge-probe').addEventListener('click', function () {
+        if (window.agroPrintBridge && window.agroPrintBridge.probe) {
+          window.agroPrintBridge.probe().then(function (ok) {
+            setStatus(ok ? 'Ponte OK.' : 'Ponte offline.', !ok);
+          });
+        } else {
+          setStatus('Script da ponte não carregou — Ctrl+F5.', true);
+        }
+      });
+    var dl = $('etq-btn-bridge-download');
+    if (dl) {
+      var cfgUrl =
+        (window.AGRO_ETQ_CFG && window.AGRO_ETQ_CFG.bridgeDownloadUrl) ||
+        '/api/produtos/etiquetas/print-bridge/download/';
+      if (!dl.getAttribute('href') || dl.getAttribute('href') === '#') {
+        dl.setAttribute('href', cfgUrl);
+      }
+      dl.addEventListener('click', function () {
+        setStatus('Baixando ZIP… Extraia e dê dois cliques em CLIQUE-AQUI-INSTALAR.bat (uma vez neste PC).');
+      });
+    }
+    $('etq-btn-bridge-test') &&
+      $('etq-btn-bridge-test').addEventListener('click', testarBridgeUmaEtiqueta);
+    $('etq-btn-save-size-map') &&
+      $('etq-btn-save-size-map').addEventListener('click', salvarSizeMapUi);
+    if (window.agroPrintBridge && window.agroPrintBridge.onChange) {
+      window.agroPrintBridge.onChange(atualizarBridgeUi);
+      atualizarBridgeUi({
+        ready: window.agroPrintBridge.isReady && window.agroPrintBridge.isReady(),
+      });
+    } else {
+      atualizarBridgeUi({ ready: false });
+    }
+    $('etq-btn-lote-a4') && $('etq-btn-lote-a4').addEventListener('click', abrirLoteA4);
+    $('etq-btn-limpar') &&
+      $('etq-btn-limpar').addEventListener('click', function () {
+        if (state.fila.length && !confirm('Limpar fila?')) return;
+        state.fila = [];
+        renderFila();
+      });
+    $('etq-btn-salvar-preset') && $('etq-btn-salvar-preset').addEventListener('click', salvarPresetAtual);
+    $('etq-btn-novo-preset') && $('etq-btn-novo-preset').addEventListener('click', criarNovoPreset);
+    $('etq-btn-excluir-preset') && $('etq-btn-excluir-preset').addEventListener('click', excluirPresetAtual);
+    $('etq-btn-ponte') && $('etq-btn-ponte').addEventListener('click', abrirModalPonte);
+    $('etq-bridge-fechar') && $('etq-bridge-fechar').addEventListener('click', fecharModalPonte);
+    $('etq-bridge-back') &&
+      $('etq-bridge-back').addEventListener('click', function (ev) {
+        if (ev.target === $('etq-bridge-back')) fecharModalPonte();
+      });
+    $('etq-btn-preset') && $('etq-btn-preset').addEventListener('click', abrirModalPreset);
+    $('etq-btn-size-40') &&
+      $('etq-btn-size-40').addEventListener('click', function () {
+        aplicarTamanhoTermicaRapido('40');
+      });
+    $('etq-btn-size-53') &&
+      $('etq-btn-size-53').addEventListener('click', function () {
+        aplicarTamanhoTermicaRapido('53');
+      });
+    $('etq-btn-historico') && $('etq-btn-historico').addEventListener('click', abrirModalHistorico);
+    $('etq-modal-fechar') && $('etq-modal-fechar').addEventListener('click', fecharModalPreset);
+    $('etq-hist-fechar') && $('etq-hist-fechar').addEventListener('click', fecharModalHistorico);
+    function resetLayoutAtivo() {
+      var p = getPresetAtivo();
+      if (Core.ehGondola(p)) {
+        p.layout = Core.clonePreset(Core.DEFAULT_GONDOLA_LAYOUT);
+        p.folha = Core.normalizarFolha(p.folha);
+        var grade = Core.calcularGradeFolha(p.folha, p.largura_mm, p.altura_mm, p.borda_mm);
+        p.cols_folha = grade.cols;
+        p.rows_folha = grade.rows;
+      } else {
+        p.layout = Core.clonePreset(Core.DEFAULT_TERMICA_LAYOUT);
+      }
+      var idx = state.storage.presets.findIndex(function (x) {
+        return x.id === p.id;
+      });
+      if (idx >= 0) state.storage.presets[idx] = p;
+      persistStorage();
+      renderPresetForm();
+      syncPresetToServer(p, { silent: true });
+      setStatus('Posições do layout restauradas (enviando à loja…).');
+    }
+    $('etq-btn-reset-layout') && $('etq-btn-reset-layout').addEventListener('click', resetLayoutAtivo);
+    $('etq-btn-reset-layout-termica') &&
+      $('etq-btn-reset-layout-termica').addEventListener('click', resetLayoutAtivo);
+
+    bindLayoutEditor($('etq-layout-stage'));
+    bindLayoutEditor($('etq-layout-stage-termica'));
+
+    var estiloSel = $('etq-preset-estilo');
+    if (estiloSel) {
+      estiloSel.addEventListener('change', function () {
+        commitPresetFormLive();
+        renderPresetForm();
+      });
+    }
+    var folhaSel = $('etq-preset-folha');
+    if (folhaSel) {
+      folhaSel.addEventListener('change', function () {
+        var p = getPresetAtivo();
+        if (Core.ehGondola(p) && folhaSel.value === 'a6') {
+          if (!(Number(p.largura_mm) > 0) || Number(p.largura_mm) === 90) {
+            var elW = $('etq-preset-largura');
+            if (elW) elW.value = '100';
+          }
+          if (!(Number(p.altura_mm) > 0) || Number(p.altura_mm) === 30) {
+            var elH = $('etq-preset-altura');
+            if (elH) elH.value = '45';
+          }
+        }
+        commitPresetFormLive();
+        renderPresetForm();
+      });
+    }
+    [
+      'etq-preset-largura',
+      'etq-preset-altura',
+      'etq-preset-nome-pt',
+      'etq-preset-nome-pt-1',
+      'etq-preset-nome-pt-2',
+      'etq-preset-nome-pt-3',
+      'etq-preset-nome-pt-4',
+      'etq-preset-nome-linhas',
+      'etq-preset-borda-mm',
+      'etq-preset-preco-pt',
+      'etq-preset-rs-pt',
+      'etq-preset-peso-pt',
+      'etq-preset-gm-pt',
+      'etq-cor-faixa-bg',
+      'etq-cor-faixa-fg',
+      'etq-cor-fundo',
+      'etq-cor-preco',
+      'etq-cor-rs',
+      'etq-cor-peso',
+      'etq-cor-gm',
+      'etq-cor-borda',
+      'etq-cor-corte',
+      'etq-preset-show-logo',
+      'etq-show-nome',
+      'etq-show-rs',
+      'etq-show-preco',
+      'etq-show-peso',
+      'etq-show-gm',
+      'etq-term-cor-fundo',
+      'etq-term-cor-nome',
+      'etq-term-cor-preco',
+      'etq-term-cor-gm',
+      'etq-term-cor-rodape',
+      'etq-term-cor-borda',
+      'etq-term-show-nome',
+      'etq-term-show-preco',
+      'etq-term-show-barcode',
+      'etq-term-show-gm',
+      'etq-term-show-rodape',
+    ].forEach(function (id) {
+      var el = $(id);
+      if (!el) return;
+      el.addEventListener('change', function () {
+        commitPresetFormLive();
+        syncLayoutBoxesVisibility(lerPresetForm());
+      });
+      el.addEventListener('input', function () {
+        if (id.indexOf('etq-cor-') === 0 || id.indexOf('etq-term-cor-') === 0 || id === 'etq-preset-largura' || id === 'etq-preset-altura' || id === 'etq-preset-borda-mm') {
+          commitPresetFormLive();
+        }
+      });
+    });
+
+    $('etq-modal-back') &&
+      $('etq-modal-back').addEventListener('click', function (ev) {
+        /* Fundo nao fecha — so X / FECHAR / Esc */
+      });
+    $('etq-hist-back') &&
+      $('etq-hist-back').addEventListener('click', function (ev) {
+        /* Fundo nao fecha — so X / FECHAR / Esc */
+      });
+
+    ['etq-preset-select', 'etq-fila-preset'].forEach(function (id) {
+      var sel = $(id);
+      if (!sel) return;
+      sel.addEventListener('change', function () {
+        state.storage.preset_ativo = sel.value;
+        persistStorage();
+        renderPresetSelect();
+        if (id === 'etq-preset-select') renderPresetForm();
+      });
+    });
+
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape') {
+        fecharModalHistorico();
+        fecharModalPreset();
+        fecharModalPonte();
+      }
+    });
+  }
+
+  function init() {
+    try {
+      ensureModalOnBody();
+      ensureHistModalOnBody();
+      ensureBridgeModalOnBody();
+    } catch (e0) {}
+    try {
+      reloadStorage();
+    } catch (e1) {
+      state.storage = {
+        presets: Core.mergeServerPresets([], []),
+        preset_ativo: Core.DEFAULT_PRESET.id,
+        texto_rodape_global: '',
+      };
+    }
+    /* Garante seed Gôndola / 53×30 e pinta selects mesmo se localStorage falhar. */
+    garantirPresetsNaTela();
+    try {
+      renderFila();
+    } catch (e2) {}
+    /* Busca/botões: ligar sempre, mesmo se algo acima falhou. */
+    try {
+      bindEvents();
+    } catch (e3) {
+      setStatus('Erro ao ligar a tela — Ctrl+F5.', true);
+    }
+    try {
+      carregarFacetas();
+    } catch (e4) {}
+    try {
+      carregarPresetsFiltro();
+    } catch (e5) {}
+    try {
+      carregarPresetsDaLoja();
+    } catch (e6) {}
+    var inp = $('etq-busca-input');
+    if (inp) {
+      try {
+        inp.focus();
+      } catch (e7) {}
+      if (inp.value && inp.value.trim().length >= 2) scheduleBusca();
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();

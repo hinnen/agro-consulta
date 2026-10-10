@@ -1,0 +1,76 @@
+{# Overlay Pesar (balança granel) — F10 · Urano USE-P2 via Web Serial #}
+<style>
+  #pdv-balanca-overlay .bl-peso {
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(3.2rem, 8vw + 1.2rem, 4.6rem);
+    font-weight: 900;
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    color: #0f172a;
+  }
+  #pdv-balanca-overlay .bl-peso.is-live { color: #047857; }
+  #pdv-balanca-overlay .bl-peso.is-wait { color: #94a3b8; }
+  #pdv-balanca-overlay .bl-field {
+    min-height: 4.6rem;
+    border-radius: 1rem;
+    border: 3px solid #94a3b8;
+    background: #fff;
+    padding: 0.35rem 0.9rem;
+    font-size: clamp(2.4rem, 6vw + 1rem, 3.4rem);
+    font-weight: 900;
+    color: #0f172a;
+    width: 100%;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.08em;
+  }
+  #pdv-balanca-overlay .bl-field:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.22);
+  }
+  #pdv-balanca-overlay .bl-chip { display: none; }
+  #pdv-balanca-overlay.is-disconnected #pdv-balanca-conectar { display: inline-flex; }
+  #pdv-balanca-overlay:not(.is-disconnected) #pdv-balanca-conectar { display: none; }
+</style>
+
+<div id="pdv-balanca-overlay" class="fixed inset-0 z-[142] hidden items-center justify-center bg-slate-950/55 p-2 sm:p-3 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="pdv-balanca-title">
+  <div class="relative flex w-[min(96vw,26rem)] max-w-full flex-col overflow-hidden rounded-2xl border-[3px] border-emerald-500 bg-white shadow-2xl" role="document" id="pdv-balanca-panel">
+    <header class="flex shrink-0 items-center gap-2 px-4 pt-3">
+      <h2 id="pdv-balanca-title" class="min-w-0 flex-1 text-lg font-black uppercase tracking-tight text-slate-900">Pesar</h2>
+      <button type="button" id="pdv-balanca-conectar" class="hidden min-h-[2.6rem] items-center rounded-xl border-2 border-sky-400 bg-sky-50 px-3 text-xs font-black uppercase text-sky-950" title="Escolher a balança (COM4)">Conectar</button>
+      <button type="button" id="pdv-balanca-fechar" class="inline-flex min-h-[2.6rem] items-center rounded-xl bg-teal-600 px-4 text-xs font-black uppercase text-white hover:bg-teal-700" title="Fechar · Esc">Fechar</button>
+    </header>
+
+    <div class="flex flex-col gap-4 px-4 pb-5 pt-2">
+      <section class="text-center" aria-label="Peso">
+        <div id="pdv-balanca-peso" class="bl-peso is-wait" aria-live="polite">—,— kg</div>
+        <div id="pdv-balanca-estavel" class="mt-1 text-sm font-bold text-slate-500"></div>
+        <div id="pdv-balanca-total" class="mt-2 text-2xl font-black tabular-nums text-emerald-800">R$ 0,00</div>
+      </section>
+
+      <section aria-label="Código do produto">
+        <label for="pdv-balanca-codigo" class="mb-1.5 block text-center text-sm font-black uppercase tracking-wide text-slate-600">Código</label>
+        <input type="text" id="pdv-balanca-codigo" class="bl-field" inputmode="numeric" autocomplete="off" placeholder="—" maxlength="4" />
+        <p id="pdv-balanca-produto" class="mt-2 min-h-[1.5rem] text-center text-base font-bold leading-snug text-slate-800"></p>
+      </section>
+
+      <p id="pdv-balanca-status" class="min-h-[1.25rem] text-center text-sm font-bold text-slate-600" role="status"></p>
+    </div>
+
+    {# Controles técnicos fora da vista do caixa (JS ainda usa os ids). #}
+    <span id="pdv-balanca-conn-chip" class="bl-chip hidden" hidden>Sem porta</span>
+    <button type="button" id="pdv-balanca-sem-porta" class="hidden" tabindex="-1" hidden>Sem porta</button>
+    <button type="button" id="pdv-balanca-add-manual" class="hidden" tabindex="-1" hidden>Adicionar agora</button>
+    <p id="pdv-balanca-rx" class="hidden" hidden></p>
+    <div id="pdv-balanca-sim-chips" class="hidden" hidden></div>
+    <label class="hidden">
+      Stop bits
+      <select id="pdv-balanca-stopbits" hidden>
+        <option value="2">2</option>
+        <option value="1" selected>1</option>
+      </select>
+    </label>
+    <span id="pdv-balanca-stopbits-label" class="hidden">1</span>
+  </div>
+</div>

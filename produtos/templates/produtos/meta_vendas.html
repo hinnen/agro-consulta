@@ -1,0 +1,945 @@
+{% extends "layouts/base_admin.html" %}
+{% load static %}
+
+{% block admin_title %}SisVale | META{% endblock %}
+{% block admin_header_title %}META{% endblock %}
+{% block admin_header_meta %}Mostruário · venda × meta × média esperada{% endblock %}
+
+{% block admin_shell_class %}min-h-screen bg-slate-100 flex flex-col{% endblock %}
+{% block admin_header_inner_class %}w-full max-w-none px-4 sm:px-6 lg:px-8 py-3 sm:py-4{% endblock %}
+{% block admin_section_class %}w-full max-w-none flex-1 min-h-0 px-3 py-2 sm:px-5 lg:px-6 sm:py-3 overflow-y-auto{% endblock %}
+
+{% block admin_header_actions %}
+  <button type="button" id="meta-copiar-foto" class="inline-flex min-h-[2.75rem] items-center justify-center rounded-xl bg-amber-500 px-4 text-sm font-black uppercase text-white shadow hover:bg-amber-600">Copiar foto</button>
+  <button type="button" id="meta-copiar-zap" class="inline-flex min-h-[2.75rem] items-center justify-center rounded-xl bg-emerald-600 px-4 text-sm font-black uppercase text-white shadow hover:bg-emerald-700">Copiar texto</button>
+  <a href="{% url 'home' %}" class="inline-flex min-h-[2.75rem] items-center justify-center rounded-xl bg-slate-800 px-4 text-sm font-black uppercase text-white shadow hover:bg-slate-900">Início</a>
+{% endblock %}
+
+{% block admin_content %}
+{% include "produtos/_gm_loading_bar.html" %}
+{% include "produtos/_agro_consulta_ui.html" %}
+
+<style>
+  .meta-shell { display: grid; gap: 0.85rem; max-width: 72rem; margin: 0 auto; }
+  @media (min-width: 1100px) {
+    .meta-shell { grid-template-columns: 1.35fr 1fr; align-items: start; }
+    .meta-span { grid-column: 1 / -1; }
+  }
+  .meta-card {
+    border: 3px solid #cbd5e1;
+    border-radius: 1rem;
+    background: #fff;
+    padding: 0.85rem 1rem;
+  }
+  .meta-card h2 {
+    margin: 0 0 0.55rem;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+  .meta-kpi {
+    font-size: clamp(1.55rem, 3.5vw, 2.1rem);
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: #0f172a;
+  }
+  .meta-sub { margin-top: 0.25rem; font-size: 0.95rem; font-weight: 700; color: #475569; }
+  .meta-acima { color: #047857; }
+  .meta-abaixo { color: #b91c1c; }
+  .meta-igual { color: #0369a1; }
+  .meta-toolbar {
+    display: flex; flex-wrap: wrap; gap: 0.55rem; align-items: end;
+  }
+  .meta-toolbar label {
+    display: flex; flex-direction: column; gap: 0.2rem;
+    font-size: 0.68rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b;
+  }
+  .meta-toolbar input, .meta-toolbar select {
+    min-height: 2.85rem; min-width: 9rem;
+    border: 3px solid #94a3b8; border-radius: 0.75rem;
+    padding: 0.35rem 0.65rem; font-size: 1.05rem; font-weight: 800; background: #fff;
+  }
+  .meta-toolbar button {
+    min-height: 2.85rem; border-radius: 0.75rem; border: 3px solid #0f172a;
+    background: #0f172a; color: #fff; font-weight: 900; text-transform: uppercase;
+    padding: 0 1rem; font-size: 0.8rem;
+  }
+  .meta-faixa {
+    display: grid; grid-template-columns: 1fr auto; gap: 0.35rem 0.75rem;
+    align-items: center; padding: 0.65rem 0; border-bottom: 2px solid #e2e8f0;
+  }
+  .meta-faixa:last-child { border-bottom: 0; }
+  .meta-faixa .tit { font-weight: 900; font-size: 1.05rem; color: #0f172a; }
+  .meta-faixa .bon { font-size: 0.85rem; font-weight: 700; color: #64748b; }
+  .meta-faixa .st { font-weight: 900; font-size: 0.95rem; text-align: right; }
+  .meta-bar {
+    grid-column: 1 / -1; height: 0.55rem; border-radius: 999px; background: #e2e8f0; overflow: hidden;
+  }
+  .meta-bar > span { display: block; height: 100%; background: #059669; border-radius: 999px; }
+  .meta-bar.is-low > span { background: #dc2626; }
+  .meta-bar.is-mid > span { background: #d97706; }
+  .meta-cfg-row {
+    display: grid; grid-template-columns: 1.2fr 1fr 1fr auto; gap: 0.45rem; align-items: center;
+    margin-bottom: 0.45rem;
+  }
+  @media (max-width: 720px) {
+    .meta-cfg-row { grid-template-columns: 1fr 1fr; }
+  }
+  .meta-cfg-row input {
+    min-height: 2.75rem; border: 2px solid #94a3b8; border-radius: 0.65rem;
+    padding: 0.3rem 0.55rem; font-weight: 800; font-size: 1rem;
+  }
+  .meta-cfg-row button {
+    min-height: 2.75rem; border-radius: 0.65rem; font-weight: 900; text-transform: uppercase;
+    padding: 0 0.75rem; font-size: 0.72rem; border: 2px solid transparent;
+  }
+  .meta-btn-save { background: #059669; color: #fff; }
+  .meta-btn-del { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+  .meta-btn-add { background: #0f172a; color: #fff; min-height: 3rem; width: 100%; border-radius: 0.75rem; font-weight: 900; text-transform: uppercase; }
+  .meta-zap {
+    width: 100%; min-height: 12rem; border: 3px solid #86efac; border-radius: 0.85rem;
+    background: #f0fdf4; padding: 0.75rem; font-family: ui-monospace, monospace;
+    font-size: 0.82rem; line-height: 1.45; white-space: pre-wrap; color: #14532d;
+  }
+  .meta-foto-wrap {
+    display: flex; flex-direction: column; gap: 0.55rem; align-items: stretch;
+  }
+  .meta-foto-preview {
+    width: 100%; max-width: 36rem; margin: 0 auto;
+    border: 3px solid #cbd5e1; border-radius: 0.85rem; background: #fff;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+    overflow: hidden;
+  }
+  .meta-foto-preview img {
+    display: block; width: 100%; height: auto;
+  }
+  .meta-foto-hint {
+    text-align: center; font-size: 0.85rem; font-weight: 700; color: #64748b;
+  }
+  .meta-modo {
+    display: flex; flex-direction: column; gap: 0.45rem; min-width: 11rem;
+  }
+  .meta-modo-lbl {
+    font-size: 0.68rem; font-weight: 900; text-transform: uppercase;
+    letter-spacing: 0.06em; color: #64748b;
+  }
+  .meta-modo-btn {
+    min-height: 3rem; border-radius: 0.85rem; border: 3px solid #94a3b8;
+    background: #fff; color: #0f172a; font-weight: 900; text-transform: uppercase;
+    font-size: 0.78rem; padding: 0.35rem 0.75rem; text-align: left; line-height: 1.2;
+    cursor: pointer;
+  }
+  .meta-modo-btn.is-on {
+    border-color: #047857; background: #ecfdf5; color: #065f46;
+    box-shadow: 0 0 0 2px rgba(4, 120, 87, 0.2);
+  }
+  .meta-modo-btn small {
+    display: block; font-size: 0.65rem; font-weight: 700; text-transform: none;
+    color: #64748b; margin-top: 0.15rem;
+  }
+  .meta-modo-btn.is-on small { color: #047857; }
+  .meta-loja {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
+    width: 100%;
+  }
+  .meta-loja-btn {
+    min-height: 3.15rem;
+    border-radius: 0.85rem;
+    border: 3px solid #94a3b8;
+    background: #fff;
+    color: #0f172a;
+    font-weight: 900;
+    text-transform: uppercase;
+    font-size: clamp(0.78rem, 1.6vw, 0.95rem);
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    padding: 0.4rem 0.5rem;
+  }
+  .meta-loja-btn small {
+    display: block;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: none;
+    color: #64748b;
+    margin-top: 0.1rem;
+  }
+  .meta-loja-btn.is-on {
+    color: #fff;
+    border-color: #0f172a;
+    background: #0f172a;
+  }
+  .meta-loja-btn.is-on small { color: #cbd5e1; }
+  .meta-loja-btn[data-loja="centro"].is-on { background: #0369a1; border-color: #0369a1; }
+  .meta-loja-btn[data-loja="vila"].is-on { background: #c2410c; border-color: #c2410c; }
+  .meta-loja-btn[data-loja="todas"].is-on { background: #047857; border-color: #047857; }
+  .meta-foto-row {
+    display: grid; gap: 0.85rem; align-items: start;
+  }
+  @media (min-width: 900px) {
+    .meta-foto-row { grid-template-columns: minmax(0, 1fr) 12rem; }
+  }
+  .meta-toast {
+    position: fixed; bottom: 1.25rem; right: 1.25rem; z-index: 80;
+    background: #065f46; color: #fff; font-weight: 900; padding: 0.75rem 1.1rem;
+    border-radius: 0.85rem; box-shadow: 0 10px 30px rgba(0,0,0,.25); display: none;
+  }
+</style>
+
+<div class="meta-shell" id="meta-root"
+     data-comp="{{ competencia }}"
+     data-api-resumo="{{ api_resumo_url }}"
+     data-api-faixas="{{ api_faixas_url }}">
+
+  <div class="meta-card meta-span">
+    <div class="meta-toolbar">
+      <label>Mês
+        <input type="month" id="meta-comp" value="{{ competencia }}">
+      </label>
+      <button type="button" id="meta-atualizar">Atualizar</button>
+      <span class="meta-sub" id="meta-comp-lbl">{{ mostruario.competencia_fmt }}</span>
+      <div class="meta-modo" style="flex-direction:row;flex-wrap:wrap;align-items:stretch;min-width:0;">
+        <button type="button" class="meta-modo-btn is-on" data-modo="mes" id="meta-modo-mes">Meta do mês<small>falta pra bater a meta cheia</small></button>
+        <button type="button" class="meta-modo-btn" data-modo="agora" id="meta-modo-agora">Até agora<small>ritmo pela média esperada</small></button>
+      </div>
+      <div class="meta-loja" id="meta-loja-bar" style="flex:1 1 100%;">
+        <button type="button" class="meta-loja-btn is-on" data-loja="todas">Centro + Vila<small>as duas juntas</small></button>
+        <button type="button" class="meta-loja-btn" data-loja="centro">Só Centro<small>venda e média do Centro</small></button>
+        <button type="button" class="meta-loja-btn" data-loja="vila">Só Vila<small>venda e média da Vila</small></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="meta-card" id="meta-card-mes">
+    <h2 id="meta-mes-titulo">{% if mostruario.mes_atual %}Mês até hoje{% else %}Mês fechado{% endif %}</h2>
+    <div class="meta-kpi" id="meta-vendido-mes">{{ mostruario.vendido_mes_fmt }}</div>
+    <div class="meta-sub">Vendido · até <span id="meta-fim-lbl">{{ mostruario.fim_vendido_fmt }}</span></div>
+    <div class="meta-sub mt-2">Média esperada: <strong id="meta-media-mes">{{ mostruario.media_mes_ref_fmt }}</strong></div>
+    <div class="meta-sub meta-{{ mostruario.vs_media_mes.sentido }}" id="meta-vs-media-mes">
+      {{ mostruario.vs_media_mes.diff_fmt }} · {{ mostruario.vs_media_mes.pct_signed_fmt }} {{ mostruario.vs_media_mes.sentido_label }}
+    </div>
+  </div>
+
+  <div class="meta-card" id="meta-card-hoje">
+    <h2>Hoje</h2>
+    {% if mostruario.hoje.ativo %}
+    <div class="meta-kpi" id="meta-vendido-hoje">{{ mostruario.hoje.vendido_fmt }}</div>
+    <div class="meta-sub">Vendido · <span id="meta-hoje-data">{{ mostruario.hoje.data_fmt }}</span></div>
+    <div class="meta-sub mt-2">Média esperada (até agora): <strong id="meta-media-hoje">{{ mostruario.hoje.media_ate_agora_fmt }}</strong></div>
+    <div class="meta-sub meta-{{ mostruario.hoje.vs_media.sentido }}" id="meta-vs-media-hoje">
+      {{ mostruario.hoje.vs_media.diff_fmt }} · {{ mostruario.hoje.vs_media.pct_signed_fmt }} {{ mostruario.hoje.vs_media.sentido_label }}
+    </div>
+    {% else %}
+    <div class="meta-kpi" id="meta-vendido-hoje">—</div>
+    <div class="meta-sub" id="meta-hoje-off">Só no mês corrente</div>
+    <div class="meta-sub mt-2 hidden" id="meta-media-hoje-wrap">Média esperada (até agora): <strong id="meta-media-hoje">—</strong></div>
+    <div class="meta-sub hidden" id="meta-vs-media-hoje">—</div>
+    {% endif %}
+  </div>
+
+  <div class="meta-card meta-span" id="meta-card-faixas">
+    <h2 id="meta-faixas-titulo">Metas · quanto falta (meta do mês)</h2>
+    <div id="meta-faixas-prog">
+      {% for f in mostruario.faixas %}
+      <div class="meta-faixa">
+        <div>
+          <div class="tit">{{ f.valor_meta_fmt }}</div>
+          <div class="bon">Bônus {{ f.bonus_label }}</div>
+        </div>
+        <div class="st {% if f.atingida %}meta-acima{% else %}meta-abaixo{% endif %}">
+          {% if f.atingida %}✅ +{{ f.excedente_fmt }}{% else %}faltam {{ f.falta_fmt }} · {{ f.pct_fmt }}{% endif %}
+        </div>
+        <div class="meta-bar {% if f.pct < 70 %}is-low{% elif f.pct < 100 %}is-mid{% endif %}"><span style="width: {% if f.pct > 100 %}100{% else %}{{ f.pct|floatformat:0 }}{% endif %}%;"></span></div>
+      </div>
+      {% empty %}
+      <p class="meta-sub">Nenhuma meta neste mês — cadastre abaixo.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="meta-card meta-span">
+    <h2>Foto da tabelinha (pro grupo)</h2>
+    <p class="meta-sub mb-2">Mesmo naipe da planilha. <strong>Copiar foto</strong> cola no Zap com a loja escolhida (Centro + Vila, só Centro ou só Vila).</p>
+    <div class="meta-foto-row">
+      <div class="meta-foto-wrap">
+        <div class="meta-foto-preview"><img id="meta-foto-img" alt="Prévia META" width="900" height="600"></div>
+        <div class="meta-foto-hint" id="meta-foto-hint">Gerando prévia…</div>
+      </div>
+      <div class="meta-modo" id="meta-modo-foto">
+        <div class="meta-modo-lbl">Visão da foto</div>
+        <button type="button" class="meta-modo-btn is-on" data-modo="mes">Meta do mês<small>meta cheia</small></button>
+        <button type="button" class="meta-modo-btn" data-modo="agora">Até agora<small>média esperada</small></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="meta-card meta-span">
+    <h2>Texto pro grupo (Zap)</h2>
+    <textarea class="meta-zap" id="meta-zap-txt" readonly>{{ texto_zap }}</textarea>
+  </div>
+
+  <div class="meta-card meta-span" id="meta-config">
+    <h2>Configurar metas · valor + bônus</h2>
+    <p class="meta-sub mb-3">Pode ter 1, 5 ou 20 — o que quiser. Bônus em R$ e, se precisar, texto extra (ex.: moleton).</p>
+    <div id="meta-cfg-lista">
+      {% for f in faixas %}
+      <div class="meta-cfg-row" data-id="{{ f.id }}">
+        <input type="text" inputmode="decimal" data-f="valor_meta" value="{{ f.valor_meta }}" placeholder="Meta venda R$" title="Meta de venda">
+        <input type="text" inputmode="decimal" data-f="bonus_valor" value="{{ f.bonus_valor }}" placeholder="Bônus R$" title="Bônus em R$">
+        <input type="text" data-f="bonus_extra" value="{{ f.bonus_extra }}" placeholder="Extra (moleton…)" title="Bônus extra">
+        <div class="flex gap-1">
+          <button type="button" class="meta-btn-save" data-act="save">Salvar</button>
+          <button type="button" class="meta-btn-del" data-act="del">Excluir</button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <button type="button" class="meta-btn-add mt-2" id="meta-add">+ Nova meta</button>
+  </div>
+</div>
+
+{{ mostruario|json_script:"meta-inicial-json" }}
+
+<div class="meta-toast" id="meta-toast">Copiado!</div>
+
+<script>
+(function () {
+  var root = document.getElementById("meta-root");
+  if (!root) return;
+  var apiResumo = root.getAttribute("data-api-resumo");
+  var apiFaixas = root.getAttribute("data-api-faixas");
+  var csrf = (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || "";
+  var lastMostruario = null;
+  var lastFotoBlob = null;
+  var modoAtual = "mes";
+  var lojaAtual = "todas";
+  try {
+    var savedModo = localStorage.getItem("agro_meta_modo_v1");
+    if (savedModo === "agora" || savedModo === "mes") modoAtual = savedModo;
+    var savedLoja = localStorage.getItem("agro_meta_loja_v1");
+    if (savedLoja === "centro" || savedLoja === "vila" || savedLoja === "todas") lojaAtual = savedLoja;
+  } catch (e0) {}
+
+  function toast(msg) {
+    var el = document.getElementById("meta-toast");
+    if (!el) return;
+    el.textContent = msg || "Ok";
+    el.style.display = "block";
+    clearTimeout(el._t);
+    el._t = setTimeout(function () { el.style.display = "none"; }, 2200);
+  }
+
+  function sentidoClass(s) {
+    return "meta-sub meta-" + (s || "sem");
+  }
+
+  function barClass(pct) {
+    if (pct == null) return "meta-bar";
+    if (pct < 70) return "meta-bar is-low";
+    if (pct < 100) return "meta-bar is-mid";
+    return "meta-bar";
+  }
+
+  function isModoAgora() {
+    return modoAtual === "agora";
+  }
+
+  function progAtivo(f) {
+    if (isModoAgora() && f && f.agora) return f.agora;
+    return f || {};
+  }
+
+  function syncModoButtons() {
+    document.querySelectorAll(".meta-modo-btn").forEach(function (btn) {
+      var on = btn.getAttribute("data-modo") === modoAtual;
+      btn.classList.toggle("is-on", on);
+    });
+    document.querySelectorAll(".meta-loja-btn").forEach(function (btn) {
+      btn.classList.toggle("is-on", btn.getAttribute("data-loja") === lojaAtual);
+    });
+    var loja = (lastMostruario && lastMostruario.deposito_label) || "Centro + Vila";
+    var tit = document.getElementById("meta-faixas-titulo");
+    if (tit) {
+      tit.textContent = (isModoAgora()
+        ? "Metas · ritmo até agora"
+        : "Metas · quanto falta") + " · " + loja;
+    }
+    var mesTit = document.getElementById("meta-mes-titulo");
+    if (mesTit && lastMostruario) {
+      mesTit.textContent = (lastMostruario.mes_atual ? "Mês até hoje" : "Mês fechado") + " · " + loja;
+    }
+  }
+
+  function setModo(modo) {
+    modoAtual = modo === "agora" ? "agora" : "mes";
+    try { localStorage.setItem("agro_meta_modo_v1", modoAtual); } catch (e1) {}
+    syncModoButtons();
+    if (lastMostruario) {
+      renderFaixasProg(lastMostruario.faixas || []);
+      atualizarFoto(lastMostruario);
+      carregarTextoZap();
+    }
+  }
+
+  function setLoja(loja) {
+    lojaAtual = (loja === "centro" || loja === "vila") ? loja : "todas";
+    try { localStorage.setItem("agro_meta_loja_v1", lojaAtual); } catch (e2) {}
+    syncModoButtons();
+    carregar();
+  }
+
+  function urlResumo() {
+    var q = "?competencia=" + encodeURIComponent(competencia()) + "&modo=" + encodeURIComponent(modoAtual);
+    if (lojaAtual === "centro" || lojaAtual === "vila") q += "&deposito=" + encodeURIComponent(lojaAtual);
+    return apiResumo + q;
+  }
+
+  function carregarTextoZap() {
+    if (!lastMostruario) return;
+    fetch(urlResumo(), { credentials: "same-origin", headers: { "Accept": "application/json" } })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data || !data.ok) return;
+        var zap = document.getElementById("meta-zap-txt");
+        if (zap && typeof data.texto_zap === "string") zap.value = data.texto_zap;
+      })
+      .catch(function () {});
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    var rr = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x, y + h, rr);
+    ctx.arcTo(x, y + h, x, y, rr);
+    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.closePath();
+  }
+
+  function fitText(ctx, text, maxW) {
+    var t = String(text || "");
+    if (ctx.measureText(t).width <= maxW) return t;
+    while (t.length > 1 && ctx.measureText(t + "…").width > maxW) t = t.slice(0, -1);
+    return t + "…";
+  }
+
+  function statusFaixa(f) {
+    var p = progAtivo(f);
+    if (isModoAgora()) {
+      if (p.atingida) return "NO RITMO  +" + (p.excedente_fmt || "");
+      return "faltam " + (p.falta_fmt || "—") + "  ·  " + (p.pct_fmt || "—");
+    }
+    if (p.atingida) return "BATIDA  +" + (p.excedente_fmt || "");
+    return "faltam " + (p.falta_fmt || "—") + "  ·  " + (p.pct_fmt || "—");
+  }
+
+  function vsLinha(vs) {
+    if (!vs) return "—";
+    return (vs.diff_fmt || "—") + "  ·  " + (vs.pct_signed_fmt || "—") + " " + (vs.sentido_label || "");
+  }
+
+  function corSentido(sentido) {
+    if (sentido === "acima") return "#047857";
+    if (sentido === "abaixo") return "#b91c1c";
+    if (sentido === "igual") return "#0369a1";
+    return "#334155";
+  }
+
+  /** Desenha a tabelinha (estilo planilha amarela + resumo). */
+  function desenharFotoMeta(m) {
+    var faixas = (m && m.faixas) || [];
+    var hoje = (m && m.hoje) || {};
+    var nResumo = hoje.ativo ? 4 : 3;
+    var W = 920;
+    var pad = 28;
+    var headerH = 92;
+    var resumoH = 22 + nResumo * 34 + 14;
+    var colH = 44;
+    var rowH = 48;
+    var footH = 36;
+    var H = pad + headerH + 16 + resumoH + 18 + colH + Math.max(faixas.length, 1) * rowH + 18 + footH + pad;
+
+    var canvas = document.createElement("canvas");
+    var scale = 2;
+    canvas.width = W * scale;
+    canvas.height = H * scale;
+    var ctx = canvas.getContext("2d");
+    ctx.scale(scale, scale);
+
+    // fundo
+    ctx.fillStyle = "#f1f5f9";
+    ctx.fillRect(0, 0, W, H);
+
+    // card
+    var cx = 16, cy = 16, cw = W - 32, ch = H - 32;
+    ctx.save();
+    roundRect(ctx, cx, cy, cw, ch, 18);
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+    ctx.strokeStyle = "#cbd5e1";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.clip();
+
+    // cabeçalho escuro
+    ctx.fillStyle = "#064e3b";
+    ctx.fillRect(cx, cy, cw, headerH);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 28px Inter, system-ui, sans-serif";
+    ctx.fillText("META  ·  " + (m.deposito_label || "Centro + Vila"), cx + 24, cy + 40);
+    ctx.font = "700 15px Inter, system-ui, sans-serif";
+    ctx.fillStyle = "#a7f3d0";
+    var subHead = (m.competencia_fmt || "") + " · " + (m.mes_atual ? "mês até " : "mês fechado · ") + (m.fim_vendido_fmt || "");
+    if (isModoAgora()) {
+      subHead = (m.competencia_fmt || "") + " · até agora · " + (m.fracao_ate_agora_pct_fmt || "") + " do mês";
+    }
+    ctx.fillText(subHead, cx + 24, cy + 68);
+    ctx.fillStyle = "#6ee7b7";
+    ctx.font = "800 13px Inter, system-ui, sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText("SisVale", cx + cw - 24, cy + 40);
+    ctx.textAlign = "left";
+
+    // bloco resumo
+    var rx = cx + 20, ry = cy + headerH + 16;
+    var rw = cw - 40, rh = resumoH;
+    roundRect(ctx, rx, ry, rw, rh, 12);
+    ctx.fillStyle = "#f8fafc";
+    ctx.fill();
+    ctx.strokeStyle = "#e2e8f0";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    var vsM = m.vs_media_mes || {};
+    var linhasResumo = [
+      { k: "Vendido no mês", v: m.vendido_mes_fmt || "—", c: "#0f172a" },
+      { k: "Média esperada", v: m.media_mes_ref_fmt || "—", c: "#0f172a" },
+      { k: "vs média", v: vsLinha(vsM), c: corSentido(vsM.sentido) },
+    ];
+    if (hoje.ativo) {
+      linhasResumo.push({
+        k: "Hoje (" + (hoje.data_fmt || "") + ")",
+        v: (hoje.vendido_fmt || "—") + "  ·  " + vsLinha(hoje.vs_media),
+        c: corSentido((hoje.vs_media || {}).sentido),
+      });
+    }
+
+    var ly = ry + 28;
+    for (var i = 0; i < linhasResumo.length; i++) {
+      var lr = linhasResumo[i];
+      ctx.font = "800 13px Inter, system-ui, sans-serif";
+      ctx.fillStyle = "#64748b";
+      ctx.fillText(lr.k.toUpperCase(), rx + 18, ly);
+      ctx.font = "900 18px Inter, system-ui, sans-serif";
+      ctx.fillStyle = lr.c;
+      ctx.fillText(fitText(ctx, lr.v, rw - 36), rx + 18, ly + 22);
+      ly += 34;
+    }
+
+    // tabela metas — cabeçalho amarelo (naipe da planilha)
+    var tx = cx + 20;
+    var ty = ry + rh + 18;
+    var tw = cw - 40;
+    var c1 = Math.round(tw * 0.28);
+    var c2 = Math.round(tw * 0.28);
+    var c3 = tw - c1 - c2;
+
+    ctx.fillStyle = "#facc15";
+    ctx.fillRect(tx, ty, tw, colH);
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(tx, ty, tw, colH);
+    ctx.beginPath();
+    ctx.moveTo(tx + c1, ty);
+    ctx.lineTo(tx + c1, ty + colH);
+    ctx.moveTo(tx + c1 + c2, ty);
+    ctx.lineTo(tx + c1 + c2, ty + colH);
+    ctx.stroke();
+
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "900 15px Inter, system-ui, sans-serif";
+    ctx.fillText("VENDA (meta)", tx + 12, ty + 28);
+    ctx.fillText("BÔNUS", tx + c1 + 12, ty + 28);
+    ctx.fillText(isModoAgora() ? "RITMO ATÉ AGORA" : "SITUAÇÃO", tx + c1 + c2 + 12, ty + 28);
+
+    var y = ty + colH;
+    if (!faixas.length) {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(tx, y, tw, rowH);
+      ctx.strokeStyle = "#0f172a";
+      ctx.strokeRect(tx, y, tw, rowH);
+      ctx.fillStyle = "#64748b";
+      ctx.font = "700 15px Inter, system-ui, sans-serif";
+      ctx.fillText("Nenhuma meta neste mês", tx + 12, y + 30);
+      y += rowH;
+    } else {
+      for (var r = 0; r < faixas.length; r++) {
+        var f = faixas[r];
+        var p = progAtivo(f);
+        ctx.fillStyle = r % 2 === 0 ? "#ffffff" : "#fffbeb";
+        ctx.fillRect(tx, y, tw, rowH);
+        ctx.strokeStyle = "#0f172a";
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(tx, y, tw, rowH);
+        ctx.beginPath();
+        ctx.moveTo(tx + c1, y);
+        ctx.lineTo(tx + c1, y + rowH);
+        ctx.moveTo(tx + c1 + c2, y);
+        ctx.lineTo(tx + c1 + c2, y + rowH);
+        ctx.stroke();
+
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "900 16px Inter, system-ui, sans-serif";
+        ctx.fillText(fitText(ctx, f.valor_meta_fmt || "—", c1 - 20), tx + 12, y + 30);
+
+        ctx.font = "700 14px Inter, system-ui, sans-serif";
+        ctx.fillText(fitText(ctx, f.bonus_label || "—", c2 - 20), tx + c1 + 12, y + 30);
+
+        ctx.fillStyle = p.atingida ? "#047857" : "#b91c1c";
+        ctx.font = "800 13px Inter, system-ui, sans-serif";
+        ctx.fillText(fitText(ctx, statusFaixa(f), c3 - 20), tx + c1 + c2 + 12, y + 30);
+        y += rowH;
+      }
+    }
+
+    // rodapé
+    ctx.fillStyle = "#64748b";
+    ctx.font = "700 12px Inter, system-ui, sans-serif";
+    ctx.textAlign = "left";
+    var prox = isModoAgora() ? m.proxima_meta_agora : m.proxima_meta;
+    var foot = "";
+    if (prox) {
+      if (isModoAgora()) {
+        var pa = prox.agora || {};
+        foot = "Próxima no ritmo: " + (prox.valor_meta_fmt || "") + " — faltam " + (pa.falta_fmt || "") + " da parcela";
+      } else {
+        foot = "Próxima meta: " + (prox.valor_meta_fmt || "") + " — faltam " + (prox.falta_fmt || "");
+      }
+    } else if (isModoAgora() ? m.ultima_batida_agora : m.ultima_batida) {
+      foot = isModoAgora() ? "No ritmo de todas as metas até agora!" : "Todas as metas batidas!";
+    }
+    ctx.fillText(foot, cx + 24, cy + ch - 18);
+    ctx.textAlign = "right";
+    ctx.fillText("GM Agro", cx + cw - 24, cy + ch - 18);
+    ctx.textAlign = "left";
+    ctx.restore();
+
+    return canvas;
+  }
+
+  function atualizarFoto(m) {
+    lastMostruario = m;
+    var hint = document.getElementById("meta-foto-hint");
+    var img = document.getElementById("meta-foto-img");
+    if (!m) {
+      if (hint) hint.textContent = "Sem dados pra foto.";
+      return;
+    }
+    try {
+      var canvas = desenharFotoMeta(m);
+      var dataUrl = canvas.toDataURL("image/png");
+      if (img) img.src = dataUrl;
+      if (hint) hint.textContent = "Prévia pronta · use Copiar foto";
+      canvas.toBlob(function (blob) {
+        lastFotoBlob = blob;
+      }, "image/png");
+    } catch (e) {
+      if (hint) hint.textContent = "Erro ao montar a foto";
+    }
+  }
+
+  function baixarPng(blob, nome) {
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = nome || "meta.png";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+      URL.revokeObjectURL(a.href);
+      a.remove();
+    }, 800);
+  }
+
+  function copiarFoto() {
+    var m = lastMostruario;
+    if (!m) {
+      toast("Atualize a tela primeiro");
+      return;
+    }
+    var canvas = desenharFotoMeta(m);
+    var nome = "meta-" + (m.competencia || "mes") + ".png";
+    canvas.toBlob(function (blob) {
+      if (!blob) {
+        toast("Não gerou a imagem");
+        return;
+      }
+      lastFotoBlob = blob;
+      var img = document.getElementById("meta-foto-img");
+      if (img) img.src = URL.createObjectURL(blob);
+
+      function okBaixar() {
+        baixarPng(blob, nome);
+        toast("Baixei a foto — manda no Zap");
+      }
+
+      if (navigator.clipboard && window.ClipboardItem) {
+        navigator.clipboard.write([new ClipboardItem({ "image/png": blob })])
+          .then(function () { toast("Foto copiada! Cola no Zap (Ctrl+V)"); })
+          .catch(function () { okBaixar(); });
+      } else {
+        okBaixar();
+      }
+    }, "image/png");
+  }
+
+  function renderFaixasProg(faixas) {
+    var box = document.getElementById("meta-faixas-prog");
+    if (!box) return;
+    if (!faixas || !faixas.length) {
+      box.innerHTML = '<p class="meta-sub">Nenhuma meta neste mês — cadastre abaixo.</p>';
+      return;
+    }
+    box.innerHTML = faixas.map(function (f) {
+      var p = progAtivo(f);
+      var pct = Number(p.pct || 0);
+      var w = Math.max(0, Math.min(100, pct));
+      var st;
+      if (isModoAgora()) {
+        st = p.atingida
+          ? ("✅ no ritmo · +" + (p.excedente_fmt || "—"))
+          : ("faltam " + (p.falta_fmt || "—") + " · " + (p.pct_fmt || "—") + " do esperado");
+      } else {
+        st = p.atingida
+          ? ("✅ +" + (p.excedente_fmt || "—"))
+          : ("faltam " + (p.falta_fmt || "—") + " · " + (p.pct_fmt || "—"));
+      }
+      var stCls = p.atingida ? "meta-acima" : "meta-abaixo";
+      var extra = isModoAgora() && f.meta_agora_fmt
+        ? ('<div class="bon">Parcela até agora: ' + f.meta_agora_fmt + "</div>")
+        : "";
+      return (
+        '<div class="meta-faixa">' +
+          '<div><div class="tit">' + (f.valor_meta_fmt || "—") + '</div>' +
+          '<div class="bon">Bônus ' + (f.bonus_label || "—") + "</div>" + extra + "</div>" +
+          '<div class="st ' + stCls + '">' + st + "</div>" +
+          '<div class="' + barClass(pct) + '"><span style="width:' + w + '%"></span></div>' +
+        "</div>"
+      );
+    }).join("");
+  }
+
+  function renderCfg(faixas) {
+    var box = document.getElementById("meta-cfg-lista");
+    if (!box) return;
+    box.innerHTML = (faixas || []).map(function (f) {
+      return (
+        '<div class="meta-cfg-row" data-id="' + f.id + '">' +
+          '<input type="text" inputmode="decimal" data-f="valor_meta" value="' + f.valor_meta + '" placeholder="Meta venda R$">' +
+          '<input type="text" inputmode="decimal" data-f="bonus_valor" value="' + f.bonus_valor + '" placeholder="Bônus R$">' +
+          '<input type="text" data-f="bonus_extra" value="' + (f.bonus_extra || "").replace(/"/g, "&quot;") + '" placeholder="Extra (moleton…)">' +
+          '<div class="flex gap-1">' +
+            '<button type="button" class="meta-btn-save" data-act="save">Salvar</button>' +
+            '<button type="button" class="meta-btn-del" data-act="del">Excluir</button>' +
+          '</div>' +
+        '</div>'
+      );
+    }).join("");
+  }
+
+  function applyMostruario(m, texto) {
+    if (!m) return;
+    root.setAttribute("data-comp", m.competencia || "");
+    var lbl = document.getElementById("meta-comp-lbl");
+    if (lbl) lbl.textContent = m.competencia_fmt || m.competencia || "";
+    var tit = document.getElementById("meta-mes-titulo");
+    if (tit) tit.textContent = (m.mes_atual ? "Mês até hoje" : "Mês fechado");
+    var vm = document.getElementById("meta-vendido-mes");
+    if (vm) vm.textContent = m.vendido_mes_fmt || "—";
+    var fim = document.getElementById("meta-fim-lbl");
+    if (fim) fim.textContent = m.fim_vendido_fmt || "";
+    var mm = document.getElementById("meta-media-mes");
+    if (mm) mm.textContent = m.media_mes_ref_fmt || "—";
+    var vs = document.getElementById("meta-vs-media-mes");
+    if (vs && m.vs_media_mes) {
+      vs.className = sentidoClass(m.vs_media_mes.sentido);
+      vs.textContent = (m.vs_media_mes.diff_fmt || "—") + " · " + (m.vs_media_mes.pct_signed_fmt || "—") + " " + (m.vs_media_mes.sentido_label || "");
+    }
+    var hoje = m.hoje || {};
+    var vh = document.getElementById("meta-vendido-hoje");
+    var mh = document.getElementById("meta-media-hoje");
+    var vsh = document.getElementById("meta-vs-media-hoje");
+    var off = document.getElementById("meta-hoje-off");
+    if (hoje.ativo) {
+      if (vh) vh.textContent = hoje.vendido_fmt || "—";
+      if (mh) mh.textContent = hoje.media_ate_agora_fmt || "—";
+      if (vsh && hoje.vs_media) {
+        vsh.className = sentidoClass(hoje.vs_media.sentido);
+        vsh.textContent = (hoje.vs_media.diff_fmt || "—") + " · " + (hoje.vs_media.pct_signed_fmt || "—") + " " + (hoje.vs_media.sentido_label || "");
+        vsh.classList.remove("hidden");
+      }
+      if (off) off.classList.add("hidden");
+    } else {
+      if (vh) vh.textContent = "—";
+      if (off) { off.classList.remove("hidden"); off.textContent = "Só no mês corrente"; }
+      if (vsh) vsh.classList.add("hidden");
+    }
+    renderFaixasProg(m.faixas || []);
+    var zap = document.getElementById("meta-zap-txt");
+    if (zap && typeof texto === "string") zap.value = texto;
+    syncModoButtons();
+    atualizarFoto(m);
+  }
+
+  function competencia() {
+    var inp = document.getElementById("meta-comp");
+    return (inp && inp.value) || root.getAttribute("data-comp") || "";
+  }
+
+  function carregar() {
+    return fetch(urlResumo(), { credentials: "same-origin", headers: { "Accept": "application/json" } })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data || !data.ok) throw new Error((data && data.erro) || "Falha");
+        applyMostruario(data.mostruario, data.texto_zap);
+        return fetch(apiFaixas + "?competencia=" + encodeURIComponent(competencia()), {
+          credentials: "same-origin",
+          headers: { "Accept": "application/json" }
+        });
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data && data.ok) renderCfg(data.faixas || []);
+      })
+      .catch(function () { toast("Erro ao atualizar"); });
+  }
+
+  document.getElementById("meta-atualizar").addEventListener("click", carregar);
+  document.getElementById("meta-comp").addEventListener("change", carregar);
+
+  document.querySelectorAll(".meta-modo-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      setModo(btn.getAttribute("data-modo") || "mes");
+    });
+  });
+  document.querySelectorAll(".meta-loja-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      setLoja(btn.getAttribute("data-loja") || "todas");
+    });
+  });
+
+  document.getElementById("meta-copiar-foto").addEventListener("click", copiarFoto);
+
+  document.getElementById("meta-copiar-zap").addEventListener("click", function () {
+    var zap = document.getElementById("meta-zap-txt");
+    var txt = zap ? zap.value : "";
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(function () { toast("Texto copiado!"); });
+    } else if (zap) {
+      zap.select();
+      document.execCommand("copy");
+      toast("Copiado!");
+    }
+  });
+
+  document.getElementById("meta-add").addEventListener("click", function () {
+    var box = document.getElementById("meta-cfg-lista");
+    var row = document.createElement("div");
+    row.className = "meta-cfg-row";
+    row.setAttribute("data-id", "");
+    row.innerHTML =
+      '<input type="text" inputmode="decimal" data-f="valor_meta" value="" placeholder="Meta venda R$">' +
+      '<input type="text" inputmode="decimal" data-f="bonus_valor" value="0" placeholder="Bônus R$">' +
+      '<input type="text" data-f="bonus_extra" value="" placeholder="Extra (moleton…)">' +
+      '<div class="flex gap-1">' +
+        '<button type="button" class="meta-btn-save" data-act="save">Salvar</button>' +
+        '<button type="button" class="meta-btn-del" data-act="del">Excluir</button>' +
+      '</div>';
+    box.appendChild(row);
+    row.querySelector('[data-f="valor_meta"]').focus();
+  });
+
+  document.getElementById("meta-cfg-lista").addEventListener("click", function (ev) {
+    var btn = ev.target.closest("[data-act]");
+    if (!btn) return;
+    var row = btn.closest(".meta-cfg-row");
+    if (!row) return;
+    var id = row.getAttribute("data-id") || "";
+    var act = btn.getAttribute("data-act");
+
+    if (act === "del") {
+      if (!id) { row.remove(); return; }
+      if (!confirm("Excluir esta meta?")) return;
+      fetch(apiFaixas, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrf,
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({ acao: "excluir", id: id, competencia: competencia() })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.ok) throw new Error(data.erro || "Erro");
+          renderCfg(data.faixas || []);
+          carregar();
+          toast("Excluída");
+        })
+        .catch(function (e) { toast(e.message || "Erro"); });
+      return;
+    }
+
+    if (act === "save") {
+      var payload = {
+        competencia: competencia(),
+        id: id || null,
+        valor_meta: (row.querySelector('[data-f="valor_meta"]') || {}).value,
+        bonus_valor: (row.querySelector('[data-f="bonus_valor"]') || {}).value,
+        bonus_extra: (row.querySelector('[data-f="bonus_extra"]') || {}).value
+      };
+      fetch(apiFaixas, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrf,
+          "Accept": "application/json"
+        },
+        body: JSON.stringify(payload)
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.ok) throw new Error(data.erro || "Erro");
+          renderCfg(data.faixas || []);
+          carregar();
+          toast("Salva");
+        })
+        .catch(function (e) { toast(e.message || "Erro"); });
+    }
+  });
+
+  // prévia já no load
+  try {
+    var elInit = document.getElementById("meta-inicial-json");
+    if (elInit) {
+      var init = JSON.parse(elInit.textContent || "{}");
+      if (init && init.competencia) {
+        lastMostruario = init;
+        syncModoButtons();
+        renderFaixasProg(init.faixas || []);
+        atualizarFoto(init);
+        if (lojaAtual === "todas") carregarTextoZap();
+        else carregar();
+      }
+    }
+  } catch (e0) {}
+  syncModoButtons();
+})();
+</script>
+{% endblock %}

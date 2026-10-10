@@ -1,0 +1,26 @@
+<article class="card-prod p-3 flex gap-3 produto-linha"
+  data-nome="{{ p.nome|lower }} {{ p.marca|lower }} {{ p.peso_texto|lower }}"
+  data-cat="{{ p.categoria_slug|default:'_sem' }}"
+  data-path="{{ p.path|default:'_sem' }}"
+  data-pesos="{{ p.peso_keys|join:',' }}">
+  <div class="w-[4.75rem] h-[4.75rem] shrink-0 rounded-xl bg-slate-100 overflow-hidden flex items-center justify-center text-xl font-black text-emerald-700">
+    {% if p.imagem %}
+    <img src="{{ p.imagem }}" alt="" class="w-full h-full object-cover">
+    {% else %}
+    {{ p.marca|default:p.nome|slice:":1" }}
+    {% endif %}
+  </div>
+  <div class="flex-1 min-w-0 flex flex-col">
+    {% if p.marca %}<p class="text-[0.65rem] font-black uppercase tracking-wide text-slate-500 truncate">{{ p.marca }}</p>{% endif %}
+    <h3 class="font-bold text-slate-900 leading-snug text-[0.92rem]">{{ p.nome }}</h3>
+    <div class="flex flex-wrap gap-1 mt-1">
+      {% if p.peso_texto %}<span class="badge-peso">{{ p.peso_texto }}</span>{% endif %}
+      {% if p.destaque %}<span class="badge-peso" style="background:#fff7ed;color:#c2410c;border-color:#fdba74">Destaque</span>{% endif %}
+    </div>
+    {% if p.descricao %}<p class="text-xs text-slate-500 mt-1 line-clamp-2">{{ p.descricao }}</p>{% endif %}
+    <div class="mt-auto pt-2 flex items-end justify-between gap-2">
+      <p class="text-primary font-black text-lg leading-none">R$ {{ p.preco|floatformat:2 }}</p>
+      <button type="button" class="btn-add bg-primary text-white text-sm font-black px-3.5 py-2.5 rounded-xl shadow min-h-[2.75rem]" data-id="{{ p.id }}">+ Add</button>
+    </div>
+  </div>
+</article>

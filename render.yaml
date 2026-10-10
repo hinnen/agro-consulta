@@ -10,27 +10,50 @@ services:
     name: agro-consulta
     branch: producao
     runtime: python
-    buildCommand: pip install -r requirements.txt && python manage.py migrate --noinput && python manage.py collectstatic --noinput
+    buildCommand: pip install -r requirements.txt && python scripts/record_deploy.py && python manage.py migrate --noinput && python manage.py collectstatic --noinput && python scripts/producao_financeiro_pg_bootstrap.py
     startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --preload --timeout 180 --graceful-timeout 45 --no-control-socket --access-logfile - --error-logfile -
     healthCheckPath: /healthz
     # Produção com domínio próprio: AGRO_CANONICAL_ORIGIN=https://www.example.com.br
     # Redis (opcional): REDIS_URL no mesmo env do web.
-    # Painel fechado: AGRO_PUBLIC_DASHBOARD=false
+    # Painel exige login (padrão). Abrir sem login: AGRO_PUBLIC_DASHBOARD=true
 
   # TESTE — commits do Cursor na branch `teste`.
   - type: web
     name: agro-consulta-teste
     branch: teste
     runtime: python
-    buildCommand: pip install -r requirements.txt && python manage.py migrate --noinput && python manage.py collectstatic --noinput
+    buildCommand: pip install -r requirements.txt && python scripts/record_deploy.py && python manage.py migrate --noinput && python manage.py collectstatic --noinput && python scripts/staging_financeiro_pg_bootstrap.py
     startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --preload --timeout 180 --graceful-timeout 45 --no-control-socket --access-logfile - --error-logfile -
     healthCheckPath: /healthz
-    # Ex.: AGRO_ERP_PEDIDOS_DRY_RUN=true, AGRO_FONTE_CATALOGO=legacy (homolog desvinculação ERP)
+    # Ex.: AGRO_ERP_PEDIDOS_DRY_RUN=true, AGRO_STAGING_READONLY=true
+    # Etapa 1 cadastro: AGRO_FONTE_CATALOGO=agro_pg (só staging; ver docs/DEPLOY-AMBIENTES.md)
 
   - type: cron
     name: agro-estoque-mongo-ping
     runtime: python
     # A cada 10 min: um find_one no Mongo + gravação em EstoqueSyncHealth (erros acumulam em falhas_sequenciais_mongo).
-    schedule: "*/10 * * * *"
+    schedule: "*/5 * * * *"
     buildCommand: pip install -r requirements.txt
     startCommand: python manage.py estoque_mongo_ping
+
+  # RH: títulos de salário no CP no dia configurado por funcionário (competência = mês anterior).
+  - type: cron
+    name: agro-rh-envio-cp-automatico
+    branch: producao
+    runtime: python
+    schedule: "15 6 * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python manage.py rh_envio_cp_automatico
+
+  # Ping /healthz do staging — mesma rotina no final de estoque_mongo_ping (evita serviço cron extra).
+  # Se o Blueprint não sincronizar sozinho, confira no painel Render que o cron existe e branch teste.
+
+  # Backup Postgres noturno (produção): anexe o Environment Group da LOJA.
+  # Habilitar: AGRO_PG_BACKUP_NIGHTLY_ENABLED=true + AGRO_PG_BACKUP_UPLOAD_MODE (webhook ou s3).
+  - type: cron
+    name: agro-pg-backup-nightly
+    branch: producao
+    runtime: python
+    schedule: "0 7 * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python manage.py pg_backup_nightly

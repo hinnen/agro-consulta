@@ -340,7 +340,18 @@
       <p class="min-w-0 truncate text-[10px] font-bold text-slate-500 sm:text-[11px]">Loja: <span class="text-slate-900">{{ empresa_atual.nome_fantasia }}</span></p>
     {% endif %}
   </div>
-  <div id="relogio-header" class="shrink-0 pl-1.5 font-mono text-[9px] text-slate-500 tabular-nums sm:text-[10px]" aria-live="polite"></div>
+  <div class="flex shrink-0 items-center gap-1.5 pl-1.5">
+    {% if agro_display_scale_habilitado %}
+    <button
+      type="button"
+      id="home-link-display-scale"
+      class="agro-scale-trigger agro-scale-trigger--header"
+      title="Ajustar tamanho da tela (textos e botões neste computador)"
+      aria-label="Ajustar tamanho da tela"
+    >Aa</button>
+    {% endif %}
+    <div id="relogio-header" class="font-mono text-[9px] text-slate-500 tabular-nums sm:text-[10px]" aria-live="polite"></div>
+  </div>
 </div>
 <script>
   (function () {
@@ -377,10 +388,11 @@
         </div>
         <div class="flex flex-wrap items-center gap-1.5 w-full mt-0.5 pt-1 border-t border-slate-200/90">
           <label class="text-[8px] font-black uppercase text-slate-600 shrink-0" for="home-agro-loja">Loja</label>
-          <select id="home-agro-loja" class="min-w-[9rem] max-w-full rounded-md border border-slate-300 bg-white px-1.5 py-1 text-[10px] font-bold text-slate-800" title="Unidade usada na consulta / PDV (preferência neste aparelho)">
+          <select id="home-agro-loja" class="min-w-[9rem] max-w-full rounded-md border border-slate-300 bg-white px-1.5 py-1 text-[10px] font-bold text-slate-800" title="Unidade deste aparelho — baixa de estoque do PDV (Centro ou Vila Elias)">
             <option value="1">SisVale — Principal (Centro)</option>
             <option value="2">SisVale — Vila Elias</option>
           </select>
+          <span id="home-agro-loja-badge" class="inline-flex items-center rounded-md border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-[8px] font-black uppercase text-emerald-900" title="Depósito que o PDV vai baixar neste computador">Estoque: Centro</span>
           <button type="button" id="home-link-lembretes" class="inline-flex items-center gap-0.5 rounded-md border border-amber-400/50 bg-amber-950/40 px-2 py-1 text-[9px] font-black uppercase text-amber-100 hover:bg-amber-900/50 cursor-pointer">⏰ Lembretes</button>
           <button type="button" id="home-link-orcamentos" class="inline-flex items-center gap-0.5 rounded-md border border-orange-300 bg-orange-50 px-2 py-1 text-[9px] font-black uppercase text-orange-900 hover:bg-orange-100/90 cursor-pointer">Orçamentos salvos</button>
         </div>
@@ -388,27 +400,158 @@
       <script src="{% static 'js/home_pdv_sync.js' %}"></script>
       {% include "produtos/partials/pdv/modals_home_strip.html" %}
       <script src="{% static 'js/home_modals_pdv.js' %}"></script>
+      {% include "produtos/includes/agro_loja_confirm.html" %}
       <script>
         (function () {
           var LS_LOJA = 'agro_pdv_loja_id';
+          var COOKIE_DEP = 'agro_pdv_deposito';
+          function csrfToken() {
+            try {
+              var el = document.getElementById('home-pdv-bootstrap');
+              if (el) {
+                var boot = JSON.parse(el.textContent || '{}');
+                if (boot && boot.csrfToken) return boot.csrfToken;
+              }
+            } catch (e0) {}
+            var m = document.querySelector('meta[name="csrfmiddlewaretoken"]');
+            return m ? m.getAttribute('content') : '';
+          }
+          function apiDepositoUrl() {
+            try {
+              var el = document.getElementById('home-pdv-bootstrap');
+              if (!el) return '/api/pdv/deposito/';
+              var boot = JSON.parse(el.textContent || '{}');
+              return (boot.urls && boot.urls.apiPdvDeposito) || '/api/pdv/deposito/';
+            } catch (e1) {
+              return '/api/pdv/deposito/';
+            }
+          }
+          function bootPdvDeposito() {
+            try {
+              var el = document.getElementById('home-pdv-bootstrap');
+              if (!el) return {};
+              var boot = JSON.parse(el.textContent || '{}');
+              return (boot && boot.pdvDeposito) || {};
+            } catch (e2) {
+              return {};
+            }
+          }
+          function setCookieDep(dep) {
+            try {
+              document.cookie = COOKIE_DEP + '=' + encodeURIComponent(dep) + ';path=/;max-age=34560000;SameSite=Lax';
+            } catch (e3) {}
+          }
+          function updateBadge(label, travado) {
+            var b = document.getElementById('home-agro-loja-badge');
+            if (!b) return;
+            b.textContent = label || 'Estoque: Centro';
+            var isVila = String(label || '').toLowerCase().indexOf('vila') >= 0;
+            if (travado) {
+              b.className = 'inline-flex items-center rounded-md border border-amber-400 bg-amber-50 px-1.5 py-0.5 text-[8px] font-black uppercase text-amber-900';
+              return;
+            }
+            b.className = isVila
+              ? 'inline-flex items-center rounded-md border border-slate-400 bg-slate-100 px-1.5 py-0.5 text-[8px] font-black uppercase text-slate-800'
+              : 'inline-flex items-center rounded-md border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-[8px] font-black uppercase text-emerald-900';
+          }
+          function aplicarTrava(sel, j) {
+            var travado = !!(j && (j.caixaTravado || (j.trava && j.trava.travado)));
+            var lojaId = String((j && j.lojaId) || (j && j.trava && j.trava.lojaId) || sel.value || '1');
+            sel.value = lojaId === '2' ? '2' : '1';
+            sel.disabled = travado;
+            sel.title = travado
+              ? ((j.trava && j.trava.rotulo) || 'Travado pelo caixa — feche o caixa para trocar')
+              : 'Unidade deste aparelho — baixa de estoque do PDV (Centro ou Vila Elias)';
+            updateBadge(
+              (j && j.estoqueAtivoLabel) || (sel.value === '2' ? 'Estoque: Vila Elias' : 'Estoque: Centro'),
+              travado
+            );
+            try { localStorage.setItem(LS_LOJA, sel.value); } catch (e4) {}
+            setCookieDep(sel.value === '2' ? 'vila' : 'centro');
+          }
+          function syncServer(lojaId, confirmacao, done) {
+            var url = apiDepositoUrl();
+            var body = { loja_id: String(lojaId || '1') };
+            if (confirmacao) body.confirmacao = confirmacao;
+            fetch(url, {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken(),
+              },
+              body: JSON.stringify(body),
+            })
+              .then(function (r) { return r.json().then(function (j) { return { j: j || {}, status: r.status }; }); })
+              .then(function (pack) {
+                if (typeof done === 'function') done(pack.j);
+              })
+              .catch(function () {
+                if (typeof done === 'function') done(null);
+              });
+          }
           function bootHomePdvLoja() {
             var sel = document.getElementById('home-agro-loja');
             if (!sel) return;
-            try {
-              var v = localStorage.getItem(LS_LOJA);
-              if (v) {
-                for (var i = 0; i < sel.options.length; i++) {
-                  if (String(sel.options[i].value) === String(v)) {
-                    sel.selectedIndex = i;
-                    break;
+            var bootDep = bootPdvDeposito();
+            var prev = sel.value;
+            if (bootDep.caixaTravado && bootDep.lojaId) {
+              aplicarTrava(sel, bootDep);
+              prev = sel.value;
+            } else {
+              if (bootDep.lojaId === '1' || bootDep.lojaId === '2') {
+                sel.value = bootDep.lojaId;
+              } else {
+                try {
+                  var v = localStorage.getItem(LS_LOJA);
+                  if (v) {
+                    for (var i = 0; i < sel.options.length; i++) {
+                      if (String(sel.options[i].value) === String(v)) {
+                        sel.selectedIndex = i;
+                        break;
+                      }
+                    }
                   }
-                }
+                } catch (e5) {}
               }
-            } catch (e2) {}
+              prev = sel.value;
+              updateBadge(sel.value === '2' ? 'Estoque: Vila Elias' : 'Estoque: Centro', false);
+              syncServer(sel.value, null, function (j) {
+                if (j && j.ok) {
+                  aplicarTrava(sel, j);
+                  prev = sel.value;
+                }
+              });
+            }
             sel.addEventListener('change', function () {
-              try {
-                localStorage.setItem(LS_LOJA, sel.value);
-              } catch (e4) {}
+              if (sel.disabled) {
+                sel.value = prev;
+                return;
+              }
+              var next = sel.value;
+              var esperado = next === '2' ? 'vila' : 'centro';
+              function reverter() { sel.value = prev; }
+              if (!window.AgroLojaConfirm) {
+                reverter();
+                return;
+              }
+              window.AgroLojaConfirm.pedir({
+                esperado: esperado,
+                onCancel: reverter,
+                onOk: function (texto) {
+                  syncServer(next, texto, function (j) {
+                    if (j && j.ok) {
+                      prev = next;
+                      aplicarTrava(sel, j);
+                      try { window.location.reload(); } catch (eRel) {}
+                    } else {
+                      alert((j && j.erro) || 'Não foi possível trocar a loja.');
+                      reverter();
+                      if (j && j.caixaTravado) aplicarTrava(sel, j);
+                    }
+                  });
+                }
+              });
             });
           }
           if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootHomePdvLoja);
