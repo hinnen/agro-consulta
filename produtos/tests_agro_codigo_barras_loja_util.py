@@ -62,9 +62,26 @@ class CodigoBarrasLojaEanTests(SimpleTestCase):
         self.assertEqual(_seqs_para_max_alocacao("2309902012345"), [])
         self.assertEqual(_seqs_para_max_alocacao("2300000001480"), [1480])
 
+    def test_seq_absurda_nao_conta_no_max(self):
+        self.assertEqual(_seqs_para_max_alocacao("2309999999999"), [])
+
     @patch("produtos.agro_codigo_barras_loja_util._max_seq_cb_loja_postgres", return_value=999_999_998)
     @patch("produtos.agro_codigo_barras_loja_util._cb_loja_ocupado_unificado", return_value=False)
     def test_alocar_apos_max_seq_alto(self, _occ, _max_pg):
+        err, cb = alocar_proximo_codigo_barras_loja(None, None)
+        self.assertIsNone(err)
+        self.assertTrue(ean13_checksum_ok(str(cb or "")))
+
+    @patch(
+        "produtos.agro_codigo_barras_loja_util._max_seq_cb_loja_unificado",
+        return_value=999_999_998,
+    )
+    @patch(
+        "produtos.agro_codigo_barras_loja_util._max_seq_cb_loja_postgres",
+        return_value=1480,
+    )
+    @patch("produtos.agro_codigo_barras_loja_util._cb_loja_ocupado_unificado", return_value=False)
+    def test_alocador_nao_esgota_quando_max_seq_envenenado(self, _occ, _max_pg, _max):
         err, cb = alocar_proximo_codigo_barras_loja(None, None)
         self.assertIsNone(err)
         self.assertTrue(ean13_checksum_ok(str(cb or "")))
