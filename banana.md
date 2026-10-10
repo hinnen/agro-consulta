@@ -1315,7 +1315,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **GM4045 (obrigatório na loja)** | O cadastro **2300000001479** é legado inválido: o leitor bipa **2300000001471** (outro produto). **Reimprimir etiqueta sem trocar o código não resolve.** Após deploy: `python manage.py reatribuir_cb_loja_exclusivo --codigo-gm GM4045 --esperado-atual 2300000001479 --aplicar --confirmar GM4045` → **Salvar** → **nova etiqueta** → bip no PDV |
 | **Ou na tela** | Botão **230** (gera EAN novo) → **Salvar no Agro** → reimprimir etiqueta |
 | **Migrate** | **NÃO** |
-| **Prova** | Django CB + NF · gerador/bip/etiqueta path · **PREP_FAILS=0** |
+| **Prova** | Django **32/32** · gerador **26/26** · bip **10/10** · etq **74/74** · PIN **9973** · **PREP_FAILS=0** |
 | **Smoke** | GM4045 com código **novo** EAN-13 válido → etiqueta → bip acha **GM4045** |
 
 ### 📦 PACOTE — **CADASTRO-BUSCA-MED** · ✅ Live v26.82
