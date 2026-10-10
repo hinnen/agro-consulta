@@ -2643,10 +2643,6 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         payload = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
         return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
-    # region agent log
-    import json as _agent_json, time as _agent_time
-    open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"D,E","location":"produtos/views.py:_api_produtos_gestao_overlay_salvar_core:entry","message":"Barcode save request","data":{"productId":str(payload.get("produto_id") or "")[:64],"barcode":str(payload.get("codigo_barras") or "")[:80],"newProduct":str(payload.get("produto_id") or "").lower() in ("__novo__","novo","_novo")},"timestamp":int(_agent_time.time()*1000)})+"\n")
-    # endregion
     if payload.get("validar_cadastro_minimo"):
         vmsg = _overlay_erro_validacao_cadastro_minimo(payload)
         if vmsg:
@@ -3316,10 +3312,6 @@ def _api_produtos_gestao_overlay_salvar_core(request):
                 logger.warning("overlay salvar: sync Modelo Mongo", exc_info=True)
 
     with transaction.atomic():
-        # region agent log
-        import json as _agent_json, time as _agent_time
-        open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"D,E","location":"produtos/views.py:_api_produtos_gestao_overlay_salvar_core:before-overlay-save","message":"Persisting overlay barcode","data":{"productId":pid[:64],"barcode":str(ov.codigo_barras or "")[:80]},"timestamp":int(_agent_time.time()*1000)})+"\n")
-        # endregion
         hist_depois = enriquecer_snapshot_antes_com_catalogo(pid, snapshot_overlay(ov))
         if variacoes_novas is not None:
             hist_depois["variacoes"] = snapshot_variacoes_resumo(variacoes_novas)
@@ -3336,10 +3328,6 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         except Exception:
             logger.exception("overlay salvar: histórico alteração cadastro")
         ov.save()
-        # region agent log
-        import json as _agent_json, time as _agent_time
-        open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"D,E","location":"produtos/views.py:_api_produtos_gestao_overlay_salvar_core:after-overlay-save","message":"Overlay barcode persisted","data":{"productId":pid[:64],"barcode":str(ov.codigo_barras or "")[:80]},"timestamp":int(_agent_time.time()*1000)})+"\n")
-        # endregion
         if variacoes_novas is not None:
             ProdutoMarcaVariacaoAgro.objects.filter(produto_externo_id=pid[:64]).delete()
             if variacoes_novas:
@@ -25803,10 +25791,6 @@ def api_produtos_cadastro_proximo_cb_loja(request):
     )
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_mongo_erp_desligado
 
-    # region agent log
-    import json as _agent_json, time as _agent_time
-    open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"A,B,C","location":"produtos/views.py:api_produtos_cadastro_proximo_cb_loja:entry","message":"Generator endpoint request","data":{"path":request.path,"authenticated":bool(request.user.is_authenticated),"mongoOff":bool(agro_mongo_erp_desligado()),"catalogPostgres":bool(agro_catalogo_usa_postgres())},"timestamp":int(_agent_time.time()*1000)})+"\n")
-    # endregion
     # Loja / agro_pg: só Postgres (Mongo opcional só em import legado com ERP ligado).
     if agro_mongo_erp_desligado() or agro_catalogo_usa_postgres():
         err, cb = alocar_proximo_codigo_barras_loja_postgres()
@@ -25830,10 +25814,6 @@ def api_produtos_cadastro_proximo_cb_loja(request):
             },
             status=500,
         )
-    # region agent log
-    import json as _agent_json, time as _agent_time
-    open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"A,B,C","location":"produtos/views.py:api_produtos_cadastro_proximo_cb_loja:exit","message":"Generator endpoint response","data":{"barcode":str(cb or ""),"ok":bool(cb)},"timestamp":int(_agent_time.time()*1000)})+"\n")
-    # endregion
     return JsonResponse({"ok": True, "codigo_barras": cb})
 
 
