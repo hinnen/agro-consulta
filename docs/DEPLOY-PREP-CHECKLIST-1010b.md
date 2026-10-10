@@ -1,6 +1,6 @@
 # PREP — CHECKLIST 10/10b · alvo **v26.80**
 
-**Status:** 🟢 **armado / pronto para envio** — **não** sobe sozinho.  
+**Status:** ✅ **enviado / Live v26.80** — **não** sobe sozinho.  
 Só com frase explícita + senha `99738595` na mesma mensagem.
 
 | # | Pacote | Prova | Migrate |
