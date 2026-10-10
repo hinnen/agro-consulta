@@ -1294,14 +1294,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ Deploy loja — CHECKLIST 10/10j · **Live v26.88** · 10/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v26.88** — `producao` @ `3d19e97b` |
+| **O quê** | **CB-230-LEGADO-LITERAL-BIP** — libera EAN da etiqueta (6 colisões finais) |
+| **Antes** | Live **v26.86** @ `7ca04de5` |
+| **Rollback** | tag `rollback/pre-checklist-1010j-v26.86` · backup `producao-backup-pre-v2688-checklist-1010j` |
+| **Você** | Render Live → Shell (comando abaixo) → bip na loja |
+
 ### 🟢 PREP loja — CHECKLIST 10/10j · **v26.88** (aguarda senha)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP armado** — Live hoje **v26.86** @ `7ca04de5` · branch `deploy/prep-checklist-1010j` |
-| **O quê** | **CB-230-LEGADO-LITERAL-BIP** — libera quem ocupa o EAN da etiqueta (6 colisões) |
-| **Rollback** | tag `rollback/pre-checklist-1010j-v26.86` |
-| **Você** | Senha cutover → Shell: `python manage.py migrar_cb_loja_legado --liberar-intruso` |
+| **Status** | ✅ substituído pelo deploy Live acima |
 
 ### ✅ Deploy loja — CHECKLIST 10/10h · **Live v26.86** · 10/10
 
