@@ -1282,6 +1282,24 @@
             .replace(/[^a-z0-9]/g, '');
     }
 
+    function ean13ChecksumOkPdv(d13) {
+        var d = String(d13 || '').replace(/\D/g, '');
+        if (d.length !== 13 || !/^\d+$/.test(d)) return false;
+        var soma = 0;
+        var i;
+        for (i = 0; i < 12; i++) {
+            var n = parseInt(d.charAt(i), 10);
+            soma += (i % 2 === 0) ? n : n * 3;
+        }
+        var dv = (10 - (soma % 10)) % 10;
+        return String(dv) === d.charAt(12);
+    }
+
+    function termoEhEanLojaBipPdv(query) {
+        var d = productQueryAlnum(query);
+        return d.length === 13 && d.indexOf('230') === 0 && ean13ChecksumOkPdv(d);
+    }
+
     function productMatchesQueryExact(p, query) {
         var ql = String(query || '').trim().toLowerCase();
         if (!ql || !p) return false;
@@ -1293,6 +1311,9 @@
             if (!v) continue;
             if (v === ql) return true;
             if (qAl && productQueryAlnum(v) === qAl) return true;
+        }
+        if (termoEhEanLojaBipPdv(ql)) {
+            return false;
         }
         if (Array.isArray(p.index_codigos)) {
             for (i = 0; i < p.index_codigos.length; i++) {
