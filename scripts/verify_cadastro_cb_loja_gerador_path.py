@@ -37,6 +37,10 @@ def main() -> int:
 
     modal = read("produtos/templates/produtos/_modal_editar_produto_cadastro_erp.inc.html")
     ok("gerarCodigoBarrasLojaCadastro" in modal, "modal tem gerador JS")
+    ok(
+        "gerarCodigoBarrasLojaCadastro();" not in modal,
+        "produto novo nao consome geracao antes do clique 230",
+    )
     ok("URL_PROXIMO_CB_LOJA" in read("produtos/templates/produtos/produtos_cadastro_erp.html"), "lista URL cb loja")
     ok("_ultimoErro" in modal, "modal guarda erro API")
 

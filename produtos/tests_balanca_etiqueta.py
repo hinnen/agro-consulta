@@ -24,6 +24,9 @@ class EtiquetaBalancaEan13Tests(SimpleTestCase):
     def test_dv_invalido_rejeita(self):
         self.assertIsNone(_parse_etiqueta_balanca_ean13_br("2001000004810"))
 
+    def test_ean_230_da_loja_nao_e_etiqueta_balanca(self):
+        self.assertIsNone(_parse_etiqueta_balanca_ean13_br("2300000001471"))
+
     def test_dv_esperado(self):
         self.assertEqual(_ean13_digito_verificador("200100000481"), 2)
 

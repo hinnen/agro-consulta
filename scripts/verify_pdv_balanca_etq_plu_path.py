@@ -188,6 +188,11 @@ if (!bad || bad.checkOk) {
   console.error('FAIL js_dv', bad);
   process.exit(1);
 }
+const loja230 = parseEtiquetaBalancaEan13('2300000001471');
+if (loja230 !== null) {
+  console.error('FAIL js_230_loja_nao_balanca', loja230);
+  process.exit(1);
+}
 console.log('OK js_parse_node');
 """
     import subprocess
