@@ -4,7 +4,7 @@
 
 | # | Pacote | Prova | Migrate |
 | - | ------ | ----- | ------- |
-| 1 | **CB-230-LEGADO-LOTE** | legado **11/11** · bip **10/10** · gerador **26/26** · Django **26/26** | **NÃO** |
+| 1 | **CB-230-LEGADO-LOTE** | legado **11/11** · bip **10/10** · gerador **26/26** · Django **33/33** | **NÃO** |
 
 **O quê:** corrige cadastro 230 legado (DV errado) → EAN que a etiqueta bipa; **varredura em massa** + normalização ao salvar na gestão. **Não** muda regra GM4045 (1479 ≠ 1471 na busca).
 
