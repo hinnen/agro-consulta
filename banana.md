@@ -1328,11 +1328,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | path **37/37** · unit taxonomia **4/4** · API taxonomia **200** · PIN **9973** OK · **PREP_FAILS=0** (VERSION **26.82** no `teste` após merge CB-230) |
 | **Smoke loja** | Cadastro → editar produto medicamento → aba Busca → salvar → PDV buscar sinônimo |
 
-### ✅ CHECKLIST ÚNICO — 10/10e · 🟢 pronto envio produção
+### ✅ CHECKLIST ÚNICO — 10/10e · 🟢 no PREP (aguarda senha)
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CB-230-GM4045-HOTFIX** v26.83 | 🟢 **pronto envio** | **NÃO** | gerador corrigido + passo GM4045 |
+| 1 | **CB-230-GM4045-HOTFIX** v26.83 | 🟢 **no PREP** | **NÃO** | gerador **26/26** · bip **10/10** · etq **74/74** · Django **29/29** |
 | 2 | **CADASTRO-BUSCA-MED** | ✅ **Live v26.82** | **NÃO** | **37/37** · **4/4** |
 
 ### ✅ CHECKLIST ÚNICO — 10/10d · ✅ Live v26.82
