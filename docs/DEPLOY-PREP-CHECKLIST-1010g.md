@@ -4,7 +4,7 @@
 
 | # | Pacote | Prova | Migrate |
 | - | ------ | ----- | ------- |
-| 1 | **CB-230-LEGADO-LIBERAR** | legado **12/12** · bip **10/10** · Django **37/37** | **NÃO** |
+| 1 | **CB-230-LEGADO-LIBERAR** | legado **12/12** · bip **10/10** · Django **35/35** | **NÃO** |
 
 **O quê:** `migrar_cb_loja_legado --liberar-intruso` — nas 93 colisões, gera 230 novo no intruso e promove legado → EAN bipável.
 

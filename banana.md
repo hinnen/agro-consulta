@@ -1300,7 +1300,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Status** | 🟡 **armado** — Live **v26.84** @ `35308cbf` |
 | **O quê** | `migrar_cb_loja_legado --liberar-intruso` (93 colisões → lote automático) |
-| **Prova** | legado **12/12** · bip **10/10** · Django **37/37** · PIN **9973** · **PREP_FAILS=0** |
+| **Prova** | legado **12/12** · bip **10/10** · Django **35/35** · PIN **9973** · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
 | **Rollback** | tag `rollback/pre-checklist-1010g-v26.84` · backup `producao-backup-pre-v2685-checklist-1010g` |
 | **Cutover** | `scripts/cutover_loja_checklist_1010g.sh` |

@@ -60,7 +60,8 @@ grep -q 'PREP_FAILS=0' /tmp/cutover-1010g-bip.log
 
 "$PY" manage.py test produtos.tests_cb_loja_legado_gm0024 produtos.tests_cb_loja_legado_lote \
   produtos.tests_cb_loja_legado_liberar_intruso produtos.tests_cb_loja_colisao_canonica \
-  produtos.tests_agro_codigo_barras_loja_util produtos.tests_cb_loja_bip_busca \
+  produtos.tests_cb_loja_gerador_save produtos.tests_agro_codigo_barras_loja_util \
+  produtos.tests_cb_loja_bip_busca \
   --settings=config.settings 2>&1 | tee /tmp/cutover-1010g-django.log
 grep -q 'OK$' /tmp/cutover-1010g-django.log || grep -q 'OK (' /tmp/cutover-1010g-django.log
 
