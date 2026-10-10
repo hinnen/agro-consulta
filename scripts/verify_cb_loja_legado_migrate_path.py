@@ -40,6 +40,11 @@ def main() -> int:
     ok("preparar_codigo_barras_loja_legado" in views, "overlay salvar prepara legado")
     ok("migrar_cb_loja_legado_lote" in cmd, "comando usa lote")
     ok("liberar-intruso" in cmd and "liberar_intruso" in mig, "flag liberar intruso")
+    ok(
+        "_migrar_cb_loja_legado_lote_por_grupo" in mig
+        and "_reatribuir_demais_do_grupo_bip" in mig,
+        "migração por grupo EAN (--liberar-intruso)",
+    )
 
     import django
 

@@ -321,6 +321,167 @@ def iter_produtos_cb_loja_legado(*, limit: int = 5000):
             return
 
 
+def _cb_atual_de_produto(produto, overlay=None) -> str:
+    atual = _digits(getattr(produto, "codigo_barras", "") or "")
+    if not atual and overlay is not None:
+        atual = _digits(getattr(overlay, "codigo_barras", "") or "")
+    return atual
+
+
+def _escolher_vencedor_grupo_migracao(members: list[tuple]) -> tuple:
+    """Preferir cadastro GM (ex. GM0024-P) quando vários legados bipam o mesmo EAN."""
+    from produtos.models import Produto
+
+    best: tuple | None = None
+    best_score = -1
+    for p, ov, _atual, _bip in members:
+        pid = str(getattr(p, "produto_externo_id", "") or "").strip()
+        row = (
+            Produto.objects.filter(produto_externo_id=pid)
+            .only("codigo_nfe", "nome", "produto_externo_id")
+            .first()
+            if pid
+            else None
+        )
+        gm = str(getattr(row, "codigo_nfe", "") or "").upper()
+        nome = str(getattr(row, "nome", "") or "").upper()
+        score = 0
+        if gm.startswith("GM"):
+            score += 100
+        if "-P" in gm or "-P" in nome:
+            score += 20
+        if score > best_score:
+            best_score = score
+            best = (p, ov, _atual, _bip)
+    return best or members[0]
+
+
+def _reatribuir_demais_do_grupo_bip(
+    legado_ref: str,
+    *,
+    vencedor_pid: str,
+    dry_run: bool,
+    db=None,
+    col: str | None = None,
+) -> list[dict[str, Any]]:
+    """Tira do grupo físico todos os outros (230 novo) para o vencedor ficar com o EAN bipável."""
+    from produtos.cb_loja_reatribuir_util import reatribuir_cb_loja_exclusivo
+    from produtos.models import Produto, ProdutoGestaoOverlayAgro
+
+    grupo = set(codigos_grupo_bip_canonico(legado_ref))
+    vencedor_pid = str(vencedor_pid or "").strip()[:64]
+    feitos: list[dict[str, Any]] = []
+    vistos: set[str] = set()
+
+    def _reatribuir_pid(pid: str, cb: str) -> None:
+        if not pid or pid in vistos or pid == vencedor_pid:
+            return
+        cb = _digits(cb)
+        if cb not in grupo:
+            return
+        p = Produto.objects.filter(produto_externo_id=pid).first()
+        if p is None or not getattr(p, "pk", None):
+            return
+        if _digits(p.codigo_barras) != cb:
+            ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).first()
+            if ov is None or _digits(ov.codigo_barras) != cb:
+                return
+        vistos.add(pid)
+        res = reatribuir_cb_loja_exclusivo(
+            p,
+            esperado_atual=cb,
+            dry_run=dry_run,
+            db=db,
+            col=col,
+        )
+        feitos.append({"pid": pid, "reatribuir": res})
+
+    for p in Produto.objects.filter(codigo_barras__in=grupo).only(
+        "id", "produto_externo_id", "codigo_barras"
+    ):
+        _reatribuir_pid(str(p.produto_externo_id or ""), p.codigo_barras)
+
+    for ov in ProdutoGestaoOverlayAgro.objects.filter(codigo_barras__in=grupo).only(
+        "produto_externo_id", "codigo_barras"
+    ):
+        _reatribuir_pid(str(ov.produto_externo_id or ""), ov.codigo_barras)
+
+    return feitos
+
+
+def _migrar_cb_loja_legado_lote_por_grupo(
+    *,
+    limit: int = 5000,
+    dry_run: bool = False,
+    db=None,
+    col: str | None = None,
+) -> dict[str, Any]:
+    """Um EAN bipável por grupo: reatribui os demais, migra o vencedor (GM preferido)."""
+    from collections import defaultdict
+
+    por_bip: dict[str, list[tuple]] = defaultdict(list)
+    for item in iter_produtos_cb_loja_legado(limit=limit):
+        p, overlay = item if isinstance(item, tuple) else (item, None)
+        atual = _cb_atual_de_produto(p, overlay)
+        bip = ean13_para_bip_codigo_barras_loja(atual)
+        if not bip or not atual:
+            continue
+        por_bip[bip].append((p, overlay, atual, bip))
+
+    ok = 0
+    colisoes: list[dict[str, Any]] = []
+    reatribuidos = 0
+
+    for _bip_key, members in sorted(por_bip.items()):
+        p, overlay, atual, _bip = _escolher_vencedor_grupo_migracao(members)
+        pid = str(getattr(p, "produto_externo_id", "") or "").strip()
+        if not pid:
+            continue
+
+        def _processar_grupo() -> dict[str, Any] | None:
+            nonlocal reatribuidos
+            feitos: list[dict[str, Any]] = []
+            if dry_run:
+                reatribuidos += max(0, len(members) - 1)
+            else:
+                feitos = _reatribuir_demais_do_grupo_bip(
+                    atual,
+                    vencedor_pid=pid,
+                    dry_run=False,
+                    db=db,
+                    col=col,
+                )
+                reatribuidos += len(feitos)
+            return migrar_cb_loja_legado_em_produto(
+                p,
+                overlay=overlay,
+                dry_run=dry_run,
+                liberar_intruso=False,
+                db=db,
+                col=col,
+            )
+
+        if dry_run:
+            r = _processar_grupo()
+        else:
+            with transaction.atomic():
+                r = _processar_grupo()
+
+        if r and r.get("erro"):
+            colisoes.append(r)
+        elif r:
+            ok += 1
+
+    return {
+        "dry_run": dry_run,
+        "corrigidos": ok,
+        "colisoes": len(colisoes),
+        "colisoes_detalhe": colisoes,
+        "reatribuidos_grupo": reatribuidos,
+        "grupos": len(por_bip),
+    }
+
+
 def migrar_cb_loja_legado_lote(
     *,
     limit: int = 5000,
@@ -330,6 +491,14 @@ def migrar_cb_loja_legado_lote(
     col: str | None = None,
 ) -> dict[str, Any]:
     """Varredura única: corrige o que puder; devolve contagem e lista de colisões."""
+    if liberar_intruso:
+        return _migrar_cb_loja_legado_lote_por_grupo(
+            limit=limit,
+            dry_run=dry_run,
+            db=db,
+            col=col,
+        )
+
     ok = 0
     colisoes: list[dict[str, Any]] = []
     ignorados = 0

@@ -10,15 +10,15 @@ Mesmo padrão já visto em **GM4045** (1479 no cadastro vs 1471 no bip), com reg
 
 ## Correção em massa (loja não precisa abrir item por item)
 
-Após **v26.85**, no Shell do servidor (uma vez):
+Após **v26.86**, no Shell do servidor (uma vez):
 
 ```bash
 python manage.py migrar_cb_loja_legado --liberar-intruso --dry-run
 python manage.py migrar_cb_loja_legado --liberar-intruso
 ```
 
-- **`--liberar-intruso`:** quando outro produto ocupa o EAN bipável, gera **230 novo** nele e corrige o legado (sem abrir item a item na loja).
-- Colisões restantes: lista curta no log — ajuste pontual.
+- **`--liberar-intruso`:** agrupa cadastros que **bipam o mesmo EAN** (ex. vários legados 1550–1559 → etiqueta 1556), gera **230 novo** nos demais e corrige o vencedor (preferência código **GM**).
+- Se ainda aparecer colisão: lista curta no log — ajuste pontual.
 
 ## Se aparecer colisão (ex. GM0024-P)
 
