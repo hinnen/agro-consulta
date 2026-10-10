@@ -1294,6 +1294,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — **CADASTRO-BUSCA-MED** · 10/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Palavras-chave de busca (overlay + Mongo `AgroPalavrasChave`) · classes terapêuticas vet (checkboxes, taxonomia JSON) · aba **2. Busca** no cadastro SisVale · PDV/catálogo indexam texto extra · **não** grava sinônimos em `especificacao` ERP |
+| **Fora** | Filtro por botão de classe no PDV (fase 2) |
+| **Migrate** | **NÃO** |
+| **Branch** | `teste` @ `619a364e` (+ housekeeping `VERSION` **26.81** + script verify) |
+| **Prova** | path **`scripts/verify_cadastro_busca_med_path.py`** · unit taxonomia **4/4** · **PREP_FAILS=0** |
+| **Smoke loja** | Cadastro → editar produto medicamento → aba Busca → salvar → PDV buscar sinônimo |
+
+### ✅ CHECKLIST ÚNICO — 10/10c · 🟢 pronto envio produção · tip **v26.81**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CADASTRO-BUSCA-MED** | 🟢 **pronto envio** | **NÃO** | verify path · **4/4** unit |
+
 ### ✅ Deploy loja — CHECKLIST 10/10b · **Live v26.80** · 10/10
 
 | Campo | Valor |
