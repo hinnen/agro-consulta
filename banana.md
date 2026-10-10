@@ -1301,7 +1301,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Entrada NF casa EAN do XML em `codigos_barras_opcionais` · principal prioridade · duplicidade **não** vincula |
 | **Prova** | path **26/26** · Django **20/20** · cutover dry-run · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **armado / pronto para envio** · tip PREP `deploy/prep-nf-ean-opcional` @ `362fec4c` · alvo **v26.80** · produção **não** alterada |
+| **Status** | 🟢 **armado / pronto para envio** · tip PREP `deploy/prep-nf-ean-opcional` @ `a0c619c4` · alvo **v26.80** · produção **não** alterada |
 | **Antes / checkpoint** | Live **v26.79** @ `735698c7` · tag `rollback/pre-checklist-1010b-v26.79` · backup `producao-backup-pre-v2680-checklist-1010b` |
 | **Rollback** | `git push origin rollback/pre-checklist-1010b-v26.79:producao --force-with-lease` · **só** frase+senha |
 | **Na senha** | `docs/DEPLOY-PREP-CHECKLIST-1010b.md` · `./scripts/cutover_loja_checklist_1010b.sh --exec` |

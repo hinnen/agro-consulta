@@ -11,7 +11,7 @@ Só com frase explícita + senha `99738595` na mesma mensagem.
 
 | Campo | Valor |
 | ----- | ----- |
-| **Tip PREP** | `deploy/prep-nf-ean-opcional` @ `362fec4c` |
+| **Tip PREP** | `deploy/prep-nf-ean-opcional` @ `a0c619c4` |
 | **Base Live** | **v26.79** @ `735698c7` |
 | **Rollback tag** | `rollback/pre-checklist-1010b-v26.79` → `735698c7` |
 | **Backup branch** | `producao-backup-pre-v2680-checklist-1010b` |
