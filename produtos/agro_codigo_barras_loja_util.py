@@ -131,19 +131,11 @@ def ean13_para_bip_codigo_barras_loja(cb: str) -> str | None:
     if not _CB_LOJA_REGEX.match(d):
         return None
     if ean13_checksum_ok(d):
-        # region agent log
-        import json as _agent_json, time as _agent_time
-        open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"A","location":"produtos/agro_codigo_barras_loja_util.py:ean13_para_bip:valid","message":"Canonical barcode normalization","data":{"input":d,"checksumValid":True,"canonical":d},"timestamp":int(_agent_time.time()*1000)})+"\n")
-        # endregion
         return d
     dv = ean13_digito_verificador(d[:12])
     if dv is None:
         return None
     canonical = f"{d[:12]}{dv}"
-    # region agent log
-    import json as _agent_json, time as _agent_time
-    open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"A","location":"produtos/agro_codigo_barras_loja_util.py:ean13_para_bip:legacy","message":"Canonical barcode normalization","data":{"input":d,"checksumValid":False,"canonical":canonical},"timestamp":int(_agent_time.time()*1000)})+"\n")
-    # endregion
     return canonical
 
 
@@ -164,12 +156,7 @@ def variantes_busca_codigo_barras_loja(cb: str) -> list[str]:
     d = re.sub(r"\D", "", str(cb or ""))
     if not _CB_LOJA_REGEX.match(d):
         return []
-    result = [d]
-    # region agent log
-    import json as _agent_json, time as _agent_time
-    open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"A,B","location":"produtos/agro_codigo_barras_loja_util.py:variantes_busca:return","message":"Canonical search variants","data":{"input":d,"variants":result},"timestamp":int(_agent_time.time()*1000)})+"\n")
-    # endregion
-    return result
+    return [d]
 
 
 def _cb_loja_ocupado_overlays(cb: str) -> bool:
@@ -223,10 +210,6 @@ def _cb_loja_ocupado_unificado(db: Database | None, col: str | None, cb: str) ->
     occupied_pg_variants = [
         alt for alt in diagnostic_variants if alt != cb and _cb_loja_ocupado_postgres(alt)
     ]
-    # region agent log
-    import json as _agent_json, time as _agent_time
-    open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"B,C","location":"produtos/agro_codigo_barras_loja_util.py:_cb_loja_ocupado_unificado:postgres","message":"Literal versus canonical occupancy","data":{"candidate":cb,"exactOccupied":exact_pg,"canonicalOccupiedVariants":occupied_pg_variants},"timestamp":int(_agent_time.time()*1000)})+"\n")
-    # endregion
     if exact_pg or occupied_pg_variants:
         return True
     if db is not None and col:
@@ -340,10 +323,6 @@ def alocar_proximo_codigo_barras_loja(
             break
         ultimo_cb = cb
         occupied = _cb_loja_ocupado_unificado(db, col, cb)
-        # region agent log
-        import json as _agent_json, time as _agent_time
-        open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"B,D","location":"produtos/agro_codigo_barras_loja_util.py:alocar:candidate","message":"Generator candidate decision","data":{"candidate":cb,"sequence":n,"literalOccupied":occupied,"steps":steps},"timestamp":int(_agent_time.time()*1000)})+"\n")
-        # endregion
         if not occupied:
             return None, cb
         if n >= CB_LOJA_SEQ_MAX:
