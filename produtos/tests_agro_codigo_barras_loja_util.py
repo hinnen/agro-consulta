@@ -145,7 +145,7 @@ class CodigoBarrasLojaEanTests(SimpleTestCase):
         self.assertIn("Clique em 230 novamente", str(erro))
 
     @patch(
-        "produtos.agro_codigo_barras_loja_util._cb_loja_ocupado_mongo_por_outro",
+        "produtos.agro_codigo_barras_loja_util._cb_loja_ocupado_mongo_por_outro_codigo_principal",
         return_value=False,
     )
     @patch(
