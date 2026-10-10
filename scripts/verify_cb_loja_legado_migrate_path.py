@@ -45,6 +45,13 @@ def main() -> int:
         and "_reatribuir_demais_do_grupo_bip" in mig,
         "migração por grupo EAN (--liberar-intruso)",
     )
+    ok(
+        "validar_codigo_barras_loja_pos_grupo_migracao" in read(
+            "produtos/agro_codigo_barras_loja_util.py"
+        )
+        and "_limpar_opcionais_grupo_bip_outros" in mig,
+        "validação pós-grupo + limpar opcionais",
+    )
 
     import django
 

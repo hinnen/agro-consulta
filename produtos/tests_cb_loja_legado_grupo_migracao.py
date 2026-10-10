@@ -33,14 +33,16 @@ class EscolherVencedorGrupoTests(SimpleTestCase):
 
 
 class MigrarLotePorGrupoTests(SimpleTestCase):
+    @patch("produtos.cb_loja_legado_migrate_util._limpar_opcionais_grupo_bip_outros")
     @patch("produtos.cb_loja_legado_migrate_util.transaction.atomic")
     @patch("produtos.cb_loja_legado_migrate_util.migrar_cb_loja_legado_em_produto")
     @patch("produtos.cb_loja_legado_migrate_util._reatribuir_demais_do_grupo_bip")
     @patch("produtos.cb_loja_legado_migrate_util._escolher_vencedor_grupo_migracao")
     @patch("produtos.cb_loja_legado_migrate_util.iter_produtos_cb_loja_legado")
     def test_um_grupo_migra_vencedor_apos_reatribuir(
-        self, iter_mock, escolher, reatribuir, migrar, atomic_mock
+        self, iter_mock, escolher, reatribuir, migrar, atomic_mock, _limpar
     ):
+        _limpar.return_value = 0
         atomic_mock.return_value.__enter__ = MagicMock(return_value=None)
         atomic_mock.return_value.__exit__ = MagicMock(return_value=False)
         p1 = SimpleNamespace(produto_externo_id="a", codigo_barras="2300000001558")
