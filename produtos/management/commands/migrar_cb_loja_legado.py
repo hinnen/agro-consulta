@@ -64,6 +64,13 @@ class Command(BaseCommand):
                 done = 0 if r.get("erro") else 1
             else:
                 self.stdout.write("Nada a migrar (já EAN válido ou não é 230… legado).")
+            if done and not dry:
+                try:
+                    from produtos.bca_busca_cache_util import bca_busca_cache_bump_invalidate
+
+                    bca_busca_cache_bump_invalidate()
+                except Exception:
+                    pass
             return
 
         if dry and liberar:
@@ -99,3 +106,11 @@ class Command(BaseCommand):
                 + (" (dry-run)" if dry else "")
             )
         )
+        if done and not dry:
+            try:
+                from produtos.bca_busca_cache_util import bca_busca_cache_bump_invalidate
+
+                bca_busca_cache_bump_invalidate()
+                self.stdout.write("Cache busca BCA invalidado (bip 230 no PDV).")
+            except Exception:
+                pass

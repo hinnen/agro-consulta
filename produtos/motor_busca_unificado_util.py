@@ -68,22 +68,26 @@ def _score_relevancia_unificado(termo_original: str, doc: dict) -> int:
             s += 6000
 
     if termo_limpo_lower:
+        from produtos.busca_filtro_pdv_util import termo_eh_ean_loja_bip_valido
+
+        _ean_loja_bip = termo_eh_ean_loja_bip_valido(termo_original)
         exact_ok = False
         pref_ok = False
-        idx = doc.get(INDEX_CODIGOS_CAMPO) or doc.get("index_codigos")
-        if isinstance(idx, list):
-            for x in idx:
-                xs = str(x).lower()
-                if xs == termo_limpo_lower:
-                    exact_ok = True
-                    break
-                if xs.startswith(termo_limpo_lower):
-                    pref_ok = True
+        if not _ean_loja_bip:
+            idx = doc.get(INDEX_CODIGOS_CAMPO) or doc.get("index_codigos")
+            if isinstance(idx, list):
+                for x in idx:
+                    xs = str(x).lower()
+                    if xs == termo_limpo_lower:
+                        exact_ok = True
+                        break
+                    if xs.startswith(termo_limpo_lower):
+                        pref_ok = True
         if not exact_ok:
             ext_b = somente_alnum(_extrair_codigo_barras_doc(doc)).lower()
             if ext_b == termo_limpo_lower:
                 exact_ok = True
-            elif ext_b.startswith(termo_limpo_lower):
+            elif ext_b.startswith(termo_limpo_lower) and not _ean_loja_bip:
                 pref_ok = True
         if exact_ok:
             s += 5000
