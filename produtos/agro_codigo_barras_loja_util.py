@@ -57,6 +57,20 @@ def ean13_checksum_ok(d13: str) -> bool:
     return dv is not None and str(dv) == d[12]
 
 
+def normalizar_scan_ean_loja_bip(termo: str) -> str:
+    """Corrige bip 12 dígitos (2 + corpo) quando o leitor omite o ``3`` da faixa ``230``."""
+    d = re.sub(r"\D", "", str(termo or ""))
+    if not d:
+        return str(termo or "").strip()
+    if len(d) == 13 and d.startswith("230") and ean13_checksum_ok(d):
+        return d
+    if len(d) == 12 and d.startswith("2") and d[1:2] != "3":
+        cand = "23" + d[1:]
+        if len(cand) == 13 and cand.startswith("230") and ean13_checksum_ok(cand):
+            return cand
+    return d
+
+
 def formatar_codigo_barras_loja(seq: int) -> str:
     """Próximo código novo: EAN-13 válido (230 + 9 dígitos + DV)."""
     n = max(1, int(seq))
