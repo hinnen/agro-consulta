@@ -663,11 +663,19 @@ def produto_termo_bate_somente_codigo_barras(doc: dict, termo_limpo: str) -> boo
 
 
 def produto_termo_bate_campos_principais(doc: dict, termo_limpo: str) -> bool:
+    from produtos.agro_codigo_barras_loja_util import ean13_checksum_ok
     from produtos.cadastro_busca_codigo_util import termo_bate_valor_codigo
 
     tl = somente_alnum(termo_limpo).lower()
     if not tl:
         return False
+    # EAN 230 válido deve casar literalmente no cadastro raiz. Índices antigos podem
+    # conter equivalências legadas ambíguas (ex.: 1471 também indexado para 1479).
+    if len(tl) == 13 and tl.startswith("230") and ean13_checksum_ok(tl):
+        return any(
+            somente_alnum(str(doc.get(fld) or "")).lower() == tl
+            for fld in CAMPOS_CODIGO_RAIZ_MONGO
+        )
     idx = doc.get(INDEX_CODIGOS_CAMPO)
     if isinstance(idx, list):
         for x in idx:

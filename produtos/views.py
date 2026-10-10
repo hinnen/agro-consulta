@@ -2067,7 +2067,11 @@ def api_cadastro_pendente_pdv_marcar_conferido(request):
 def api_produtos_gestao_overlay_salvar(request):
     """Overlay no Agro; ``Produtos/Salvar`` no ERP só com ``{"sincronizar_erp": true}`` no corpo."""
     try:
-        return _api_produtos_gestao_overlay_salvar_core(request)
+        with transaction.atomic():
+            response = _api_produtos_gestao_overlay_salvar_core(request)
+            if response.status_code >= 400:
+                transaction.set_rollback(True)
+            return response
     except Exception as exc:
         logger.exception("api_produtos_gestao_overlay_salvar não tratado")
         msg = "Erro interno ao salvar o cadastro. Tente de novo."
@@ -2648,6 +2652,20 @@ def _api_produtos_gestao_overlay_salvar_core(request):
     if not pid:
         return JsonResponse({"ok": False, "erro": "produto_id obrigatório"}, status=400)
 
+    from produtos.agro_codigo_barras_loja_util import (
+        bloquear_alocacao_codigo_barras_loja,
+        validar_codigo_barras_loja_para_salvar,
+    )
+
+    cb_salvar = str(payload.get("codigo_barras") or "").strip()
+    pid_validar = "" if pid.lower() in ("__novo__", "novo", "_novo") else pid
+    erro_cb_loja = validar_codigo_barras_loja_para_salvar(
+        cb_salvar,
+        produto_externo_id=pid_validar,
+    )
+    if erro_cb_loja:
+        return JsonResponse({"ok": False, "erro": erro_cb_loja}, status=409)
+
     if pid.lower() in ("__novo__", "novo", "_novo"):
         from produtos.agro_fonte_config import agro_catalogo_usa_postgres
 
@@ -2792,6 +2810,15 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         logger.warning("overlay salvar: Mongo indisponível — segue só Agro/Postgres", exc_info=True)
         client, db = None, None
         p_doc = None
+    if db is not None and client is not None:
+        erro_cb_mongo = validar_codigo_barras_loja_para_salvar(
+            cb_salvar,
+            produto_externo_id=pid,
+            db=db,
+            col=client.col_p,
+        )
+        if erro_cb_mongo:
+            return JsonResponse({"ok": False, "erro": erro_cb_mongo}, status=409)
     from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
 
     mongo_grava = db is not None and not agro_mongo_escrita_bloqueada()
@@ -3317,8 +3344,16 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             except Exception:
                 logger.warning("overlay salvar: sync Modelo Mongo", exc_info=True)
 
+    hist_depois = enriquecer_snapshot_antes_com_catalogo(pid, snapshot_overlay(ov))
     with transaction.atomic():
-        hist_depois = enriquecer_snapshot_antes_com_catalogo(pid, snapshot_overlay(ov))
+        bloquear_alocacao_codigo_barras_loja()
+        erro_cb_commit = validar_codigo_barras_loja_para_salvar(
+            cb_salvar,
+            produto_externo_id=pid,
+        )
+        if erro_cb_commit:
+            return JsonResponse({"ok": False, "erro": erro_cb_commit}, status=409)
+        ov.save()
         if variacoes_novas is not None:
             hist_depois["variacoes"] = snapshot_variacoes_resumo(variacoes_novas)
         else:
@@ -3333,7 +3368,6 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             )
         except Exception:
             logger.exception("overlay salvar: histórico alteração cadastro")
-        ov.save()
         if variacoes_novas is not None:
             ProdutoMarcaVariacaoAgro.objects.filter(produto_externo_id=pid[:64]).delete()
             if variacoes_novas:
@@ -8084,7 +8118,6 @@ def _home_admin_navegacao():
             "shortcut_key": "y",
             "pin_protected": True,
         },
-
         {
             "title": "Caixa",
             "href": reverse("caixa_painel"),
@@ -8137,8 +8170,8 @@ def _home_admin_navegacao():
             "title": "Estoque (Agro)",
             "href": reverse("estoque_sincronizacao"),
             "icon": "activity",
-            "shortcut": "Y",
-            "shortcut_key": "y",
+            "shortcut": "G",
+            "shortcut_key": "g",
             "pin_protected": True,
         },
     ]
@@ -8606,6 +8639,75 @@ def _dashboard_meta_c_vila_abertura() -> date:
         return date(2026, 7, 20)
 
 
+def _dashboard_meta_c_vila_ramp_dias() -> int:
+    """Dias após a abertura em que a Vila usa média recente (não Meta C clássica)."""
+    try:
+        n = int(getattr(settings, "AGRO_VILA_META_RAMP_DIAS", 90) or 90)
+    except (TypeError, ValueError):
+        n = 90
+    return max(1, min(n, 366))
+
+
+def _dashboard_meta_c_vila_ramp_janela() -> int:
+    """Quantos dias **com venda** entram na média recente da Vila no ramp-up."""
+    try:
+        n = int(getattr(settings, "AGRO_VILA_META_RAMP_JANELA", 14) or 14)
+    except (TypeError, ValueError):
+        n = 14
+    return max(3, min(n, 60))
+
+
+def _dashboard_meta_c_vila_em_ramp(d: date) -> bool:
+    """True enquanto ``d`` ainda está nos primeiros N dias após a abertura."""
+    ab = _dashboard_meta_c_vila_abertura()
+    return d < ab + timedelta(days=_dashboard_meta_c_vila_ramp_dias())
+
+
+def _dashboard_meta_c_vila_media_recente(d: date, por_dia: dict) -> float:
+    """
+    Média dos últimos N dias **com venda** antes de ``d`` (só ≥ abertura).
+    Usada no ramp-up da Vila; dias zerados não entram.
+    """
+    ab = _dashboard_meta_c_vila_abertura()
+    if d <= ab:
+        return 0.0
+    janela = _dashboard_meta_c_vila_ramp_janela()
+    vals: list[float] = []
+    cur = d - timedelta(days=1)
+    guard = 0
+    while len(vals) < janela and cur >= ab and guard < 240:
+        v = round(_dashboard_float(por_dia.get(cur.isoformat())), 2)
+        if v > 0.009:
+            vals.append(v)
+        cur -= timedelta(days=1)
+        guard += 1
+    if not vals:
+        return 0.0
+    return round(sum(vals) / len(vals), 2)
+
+
+def _dashboard_meta_c_vila_por_dia_ramp(
+    data_fim: date, cache: dict | None = None
+) -> dict:
+    """Carrega/atualiza ``por_dia`` Vila da abertura até ``data_fim`` (cache mutável)."""
+    ab = _dashboard_meta_c_vila_abertura()
+    if data_fim < ab:
+        return {}
+    key = "_vila_ramp_por_dia"
+    meta_key = "_vila_ramp_por_dia_fim"
+    if cache is not None:
+        pd = cache.get(key)
+        fim_ok = cache.get(meta_key)
+        if isinstance(pd, dict) and isinstance(fim_ok, date) and fim_ok >= data_fim:
+            return pd
+    ser = _dashboard_vendas_serie_meta_historico(ab, data_fim, deposito="vila")
+    pd = dict(ser.get("por_dia") or {})
+    if cache is not None:
+        cache[key] = pd
+        cache[meta_key] = data_fim
+    return pd
+
+
 def _dashboard_meta_c_data_min(deposito: str | None) -> date | None:
     """Piso da base histórica: Vila ≥ abertura; Centro / outras = sem piso."""
     if deposito == "vila":
@@ -8718,6 +8820,8 @@ def _dashboard_vendas_meta_c_valor(
     Meta C de um dia.
     ``deposito=centro|vila``: loja sozinha (Vila corta dias antes da abertura).
     ``deposito=None``: soma Centro + Vila (não Meta C do total misturado).
+    Vila nos primeiros ``AGRO_VILA_META_RAMP_DIAS`` (90): média dos últimos
+    ``AGRO_VILA_META_RAMP_JANELA`` (14) dias com venda; depois = Meta C do Centro.
     """
     if deposito not in ("centro", "vila"):
         return round(
@@ -8725,6 +8829,11 @@ def _dashboard_vendas_meta_c_valor(
             + _dashboard_vendas_meta_c_valor(d, cache, "vila"),
             2,
         )
+    if deposito == "vila" and _dashboard_meta_c_vila_em_ramp(d):
+        if cache is None:
+            cache = {}
+        por_dia = _dashboard_meta_c_vila_por_dia_ramp(d, cache)
+        return _dashboard_meta_c_vila_media_recente(d, por_dia)
     data_min = _dashboard_meta_c_data_min(deposito)
     return _dashboard_vendas_meta_c_para_dia(
         d,
@@ -8739,7 +8848,7 @@ def _dashboard_serie_meta_c_vendas(
     """
     Uma meta C por dia no intervalo (visão anual mensal não aplica esta regra).
     ``deposito=None`` (Centro+Vila) = soma das metas das duas lojas.
-    Vila: base histórica ignora dias antes de ``AGRO_VILA_ABERTURA`` (padrão 2026-07-20).
+    Vila: ramp 14d/90d após ``AGRO_VILA_ABERTURA``; depois Meta C clássica.
     """
     dias = (data_fim - data_ini).days + 1
     if dias < 1:
@@ -8747,7 +8856,7 @@ def _dashboard_serie_meta_c_vendas(
 
     # Centro + Vila: soma das metas (cada loja na sua regra).
     if deposito not in ("centro", "vila"):
-        ck = f"dash:metac:v2:todas-soma:{data_ini.isoformat()}:{data_fim.isoformat()}"
+        ck = f"dash:metac:v3:todas-soma:{data_ini.isoformat()}:{data_fim.isoformat()}"
         cached = cache.get(ck)
         if isinstance(cached, list) and len(cached) == dias:
             return cached
@@ -8760,8 +8869,7 @@ def _dashboard_serie_meta_c_vendas(
         return out
 
     dep_key = deposito
-    data_min = _dashboard_meta_c_data_min(dep_key)
-    ck = f"dash:metac:v2:{dep_key}:{data_ini.isoformat()}:{data_fim.isoformat()}"
+    ck = f"dash:metac:v3:{dep_key}:{data_ini.isoformat()}:{data_fim.isoformat()}"
     cached = cache.get(ck)
     if isinstance(cached, list) and len(cached) == dias:
         return cached
@@ -8769,13 +8877,7 @@ def _dashboard_serie_meta_c_vendas(
     out: list[float] = []
     for i in range(dias):
         d = data_ini + timedelta(days=i)
-        out.append(
-            _dashboard_vendas_meta_c_para_dia(
-                d,
-                _dashboard_meta_c_meses_por_dia(d, hist_cache, deposito=dep_key),
-                data_min=data_min,
-            )
-        )
+        out.append(_dashboard_vendas_meta_c_valor(d, hist_cache, deposito=dep_key))
     cache.set(ck, out, timeout=600)
     return out
 
@@ -25747,6 +25849,8 @@ def api_produtos_cadastro_proximo_cb_loja(request):
     from produtos.agro_codigo_barras_loja_util import (
         alocar_proximo_codigo_barras_loja,
         alocar_proximo_codigo_barras_loja_postgres,
+        ean13_checksum_ok,
+        eh_codigo_barras_loja,
     )
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_mongo_erp_desligado
 
@@ -25762,6 +25866,17 @@ def api_produtos_cadastro_proximo_cb_loja(request):
         err, cb = alocar_proximo_codigo_barras_loja(db, col)
     if err is not None:
         return err
+    if not cb or not eh_codigo_barras_loja(cb) or not ean13_checksum_ok(cb):
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": (
+                    "O gerador não produziu um EAN-13 válido. "
+                    "Nenhum código foi preenchido; tente novamente."
+                ),
+            },
+            status=500,
+        )
     return JsonResponse({"ok": True, "codigo_barras": cb})
 
 
@@ -28197,6 +28312,18 @@ def _try_criar_produto_mongo_somente_agro(request, payload: dict) -> tuple[JsonR
         )
 
     col = client.col_p
+
+    from produtos.agro_codigo_barras_loja_util import (
+        validar_codigo_barras_loja_para_salvar,
+    )
+
+    erro_cb_loja = validar_codigo_barras_loja_para_salvar(
+        cod_cb,
+        db=db,
+        col=col,
+    )
+    if erro_cb_loja:
+        return JsonResponse({"ok": False, "erro": erro_cb_loja}, status=409), None
 
     if not cod_int and not cod_nfe:
         err_al, c_sys, c_gm = _mongo_alocar_codigo_sequencial_novo_agro(db, col)

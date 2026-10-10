@@ -50,9 +50,15 @@ def main() -> int:
     bip_leg = ean13_para_bip_codigo_barras_loja(legado)
     ok(bip_leg == "2300000001570", f"legado bip EAN {bip_leg}")
     ok(ean13_checksum_ok(str(bip_leg)), "bip legado DV ok")
-    ok(legado in variantes_busca_codigo_barras_loja(legado), "variantes incluem cadastro")
-    ok(bip_leg in variantes_busca_codigo_barras_loja(legado), "variantes incluem bip")
-    ok(legado in variantes_busca_codigo_barras_loja(str(bip_leg)), "bip acha cadastro legado")
+    ok(variantes_busca_codigo_barras_loja(legado) == [legado], "busca legado literal")
+    ok(
+        variantes_busca_codigo_barras_loja(str(bip_leg)) == [bip_leg],
+        "busca EAN válido literal",
+    )
+    ok(
+        legado not in variantes_busca_codigo_barras_loja(str(bip_leg)),
+        "EAN válido não acha cadastro legado",
+    )
 
     gm4046 = "2300000001480"
     ok(ean13_para_bip_codigo_barras_loja(gm4046) == "2300000001488", "GM4046 bip 1488")

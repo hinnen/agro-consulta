@@ -1294,6 +1294,40 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🚀 PREP deploy loja — CHECKLIST 10/10d (`deploy/prep-checklist-1010d` · **v26.82**) · aguarda senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **PREP pronto** — **não** subiu · checkpoint Live **v26.80** @ `2ac4789c` · **só** frase + senha no próximo chat |
+| **O quê** | **CB-230-EXCLUSIVO** + **CADASTRO-BUSCA-MED** (ver pacotes abaixo) |
+| **Prova** | gerador **24/24** · bip **10/10** · etq **74/74** · Django **27/27** · busca **37/37** · **PREP_FAILS=0** |
+| **Migrate** | **NÃO** |
+| **Branch PREP** | `deploy/prep-checklist-1010d` |
+| **Rollback** | tag `rollback/pre-checklist-1010d-v26.80` · backup `producao-backup-pre-v2682-checklist-1010d` |
+| **Cutover** | `scripts/cutover_loja_checklist_1010d.sh` (dry-run OK) |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1010d.md` |
+
+### 📦 PACOTE — **CB-230-EXCLUSIVO** · v26.82 (no PREP)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Gerador **230** só EAN-13 válido · busca literal · save com lock · cmd `reatribuir_cb_loja_exclusivo` (GM4045 opcional) |
+| **Smoke** | Cadastro → **230** → salvar → etiqueta → bip PDV |
+
+### 📦 PACOTE — **CADASTRO-BUSCA-MED** · v26.82 (no PREP)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Palavras-chave + classes vet · aba **2. Busca** · PDV/catálogo indexam texto extra |
+| **Smoke** | Cadastro medicamento → aba Busca → sinônimo no PDV |
+
+### ✅ CHECKLIST ÚNICO — 10/10d · 🟢 no PREP (aguarda senha)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CB-230-EXCLUSIVO** | 🟢 **no PREP** | **NÃO** | gerador **24/24** · bip **10/10** · etq **74/74** |
+| 2 | **CADASTRO-BUSCA-MED** | 🟢 **no PREP** | **NÃO** | **37/37** · **4/4** |
+
 ### ✅ Deploy loja — CHECKLIST 10/10b · **Live v26.80** · 10/10
 
 | Campo | Valor |
