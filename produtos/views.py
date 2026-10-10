@@ -2659,6 +2659,28 @@ def _api_produtos_gestao_overlay_salvar_core(request):
 
     cb_salvar = str(payload.get("codigo_barras") or "").strip()
     pid_validar = "" if pid.lower() in ("__novo__", "novo", "_novo") else pid
+    legado_cb_promovido: str | None = None
+    if cb_salvar and pid_validar:
+        from produtos.cb_loja_legado_migrate_util import (
+            mesclar_legado_cb_em_cadastro_extras,
+            preparar_codigo_barras_loja_legado,
+        )
+
+        cb_prep, legado_cb_promovido, erro_prep = preparar_codigo_barras_loja_legado(
+            cb_salvar,
+            produto_externo_id=pid_validar,
+        )
+        if erro_prep:
+            return JsonResponse({"ok": False, "erro": erro_prep}, status=409)
+        if legado_cb_promovido:
+            cb_salvar = cb_prep
+            payload["codigo_barras"] = cb_salvar
+            ex_raw = payload.get("cadastro_extras")
+            payload["cadastro_extras"] = mesclar_legado_cb_em_cadastro_extras(
+                ex_raw if isinstance(ex_raw, dict) else {},
+                legado=legado_cb_promovido,
+                principal=cb_salvar,
+            )
     erro_cb_loja = validar_codigo_barras_loja_para_salvar(
         cb_salvar,
         produto_externo_id=pid_validar,
@@ -2889,6 +2911,14 @@ def _api_produtos_gestao_overlay_salvar_core(request):
     ex: dict = {}
     if isinstance(getattr(ov, "cadastro_extras", None), dict):
         ex = dict(ov.cadastro_extras)
+    if legado_cb_promovido and cb_salvar:
+        from produtos.cb_loja_legado_migrate_util import mesclar_legado_cb_em_cadastro_extras
+
+        ex = mesclar_legado_cb_em_cadastro_extras(
+            ex,
+            legado=legado_cb_promovido,
+            principal=cb_salvar,
+        )
     f_prev = dict(ex.get("fiscal") or {}) if isinstance(ex.get("fiscal"), dict) else {}
     if "fiscal" in payload and isinstance(payload.get("fiscal"), dict):
         f_in = payload["fiscal"]

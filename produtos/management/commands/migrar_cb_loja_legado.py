@@ -36,8 +36,10 @@ class Command(BaseCommand):
                 return
             r = migrar_cb_loja_legado_em_produto(p, dry_run=dry)
             if r:
+                if r.get("erro"):
+                    self.stderr.write(self.style.ERROR(str(r["erro"])))
                 self.stdout.write(str(r))
-                done = 1
+                done = 0 if r.get("erro") else 1
             else:
                 self.stdout.write("Nada a migrar (já EAN válido ou não é 230… legado).")
             return
@@ -45,6 +47,13 @@ class Command(BaseCommand):
         for p in iter_produtos_cb_loja_legado(limit=limit):
             r = migrar_cb_loja_legado_em_produto(p, dry_run=dry)
             if r:
+                if r.get("erro"):
+                    self.stderr.write(
+                        self.style.ERROR(
+                            f"{r['produto_externo_id']}: {r.get('erro')}"
+                        )
+                    )
+                    continue
                 done += 1
                 self.stdout.write(
                     f"{r['produto_externo_id']}: {r['legado']} -> {r['principal_novo']}"

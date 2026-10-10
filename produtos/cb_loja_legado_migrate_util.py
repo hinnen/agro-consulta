@@ -20,6 +20,62 @@ def _digits(cb: str) -> str:
     return "".join(ch for ch in str(cb or "") if ch.isdigit())
 
 
+def preparar_codigo_barras_loja_legado(
+    cb: str,
+    *,
+    produto_externo_id: str = "",
+    db=None,
+    col: str | None = None,
+) -> tuple[str, str | None, str | None]:
+    """
+    Legado 230… (DV inválido) → principal = EAN bipável; legado fica para opcionais.
+
+    Retorna (principal, legado_opcional, erro). Sem alteração: (cb, None, None).
+    """
+    from produtos.agro_codigo_barras_loja_util import validar_codigo_barras_loja_para_salvar
+
+    atual = _digits(cb)
+    if not eh_codigo_barras_loja(atual) or ean13_checksum_ok(atual):
+        return atual, None, None
+
+    novo = ean13_para_bip_codigo_barras_loja(atual)
+    if not novo or novo == atual or not ean13_checksum_ok(novo):
+        return atual, None, None
+
+    pid = str(produto_externo_id or "").strip()[:64]
+    erro = validar_codigo_barras_loja_para_salvar(
+        novo,
+        produto_externo_id=pid,
+        db=db,
+        col=col,
+    )
+    if erro:
+        return (
+            atual,
+            None,
+            f"{erro} (cadastro legado {atual} → bip {novo}). "
+            "Reatribua o código 230 no produto que já usa o EAN bipável e tente de novo.",
+        )
+    return novo, atual, None
+
+
+def mesclar_legado_cb_em_cadastro_extras(
+    cadastro_extras: dict | None,
+    *,
+    legado: str,
+    principal: str,
+) -> dict:
+    ce = dict(cadastro_extras) if isinstance(cadastro_extras, dict) else {}
+    merged = mesclar_codigos_barras_opcionais_adicionar(
+        ce,
+        [legado],
+        principal=principal,
+    )
+    if merged:
+        ce["codigos_barras_opcionais"] = merged
+    return ce
+
+
 def migrar_cb_loja_legado_em_produto(
     produto,
     *,
@@ -44,20 +100,30 @@ def migrar_cb_loja_legado_em_produto(
     if not eh_codigo_barras_loja(atual) or ean13_checksum_ok(atual):
         return None
 
-    novo = ean13_para_bip_codigo_barras_loja(atual)
-    if not novo or novo == atual or not ean13_checksum_ok(novo):
+    novo, legado, erro = preparar_codigo_barras_loja_legado(
+        atual,
+        produto_externo_id=pid,
+    )
+    if erro:
+        return {
+            "produto_externo_id": pid,
+            "legado": atual,
+            "principal_novo": novo,
+            "dry_run": dry_run,
+            "erro": erro,
+        }
+    if not legado or novo == atual:
         return None
 
     res = {
         "produto_externo_id": pid,
-        "legado": atual,
+        "legado": legado,
         "principal_novo": novo,
         "dry_run": dry_run,
     }
     if dry_run:
         return res
 
-    legado = atual
     with transaction.atomic():
         produto.codigo_barras = novo
         produto.save(update_fields=["codigo_barras"])
@@ -66,15 +132,11 @@ def migrar_cb_loja_legado_em_produto(
             overlay = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).first()
         if overlay is not None:
             overlay.codigo_barras = novo
-            ce = overlay.cadastro_extras if isinstance(overlay.cadastro_extras, dict) else {}
-            ce = dict(ce)
-            merged = mesclar_codigos_barras_opcionais_adicionar(
-                ce,
-                [legado],
+            ce = mesclar_legado_cb_em_cadastro_extras(
+                overlay.cadastro_extras,
+                legado=legado,
                 principal=novo,
             )
-            if merged:
-                ce["codigos_barras_opcionais"] = merged
             overlay.cadastro_extras = ce
             overlay.save(update_fields=["codigo_barras", "cadastro_extras"])
 
