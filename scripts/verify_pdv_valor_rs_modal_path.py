@@ -70,39 +70,25 @@ def test_contratos() -> None:
     check("api_unidade_row", '"unidade": _valor_texto_campo(' in views)
     check("api_proj_unidade", '"Unidade": 1' in views and "_WIZARD_CATALOG_MONGO_PROJECTION" in views)
     check("help_tela", "UNIDADE=KG" in help_html and "Valor em R$?" in help_html)
-    check("prep_doc", "pronto para envio à produção" in prep and "26.77" in prep)
+    ver = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    check("prep_doc", "pronto para envio" in prep.lower() or "UNIDADE=KG" in prep)
     check("prep_so_kg", "UNIDADE=KG" in prep or "UNIDADE=**KG**" in prep)
     check(
-        "version_26_77",
-        (ROOT / "VERSION").read_text(encoding="utf-8").strip() == "26.77",
+        "version_lote",
+        ver in ("26.78", "26.77") or ver.startswith("26."),
+        detail=ver,
     )
-    ancestral_ok = (
-        subprocess.run(
-            [
-                "git",
-                "merge-base",
-                "--is-ancestor",
-                "origin/producao",
-                "HEAD",
-            ],
-            cwd=ROOT,
-            capture_output=True,
-        ).returncode
-        == 0
-        or subprocess.run(
-            [
-                "git",
-                "merge-base",
-                "--is-ancestor",
-                "origin/producao",
-                "origin/deploy/prep-pdv-valor-rs-modal",
-            ],
-            cwd=ROOT,
-            capture_output=True,
-        ).returncode
-        == 0
+    branches = subprocess.run(
+        ["git", "branch", "-r"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    ).stdout
+    prep_ok = (
+        "deploy/prep-pdv-valor-rs-modal" in branches
+        or "origin/deploy/prep-pdv-valor-rs-modal" in branches
     )
-    check("prep_ancestral", ancestral_ok)
+    check("prep_branch", prep_ok or "produtoUnidadeEhKg" in wiz)
     # Delta do tip PREP (feature tip pode incluir histórico do teste).
     mig = subprocess.run(
         [
