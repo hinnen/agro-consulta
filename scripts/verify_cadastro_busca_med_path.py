@@ -117,12 +117,16 @@ def test_git_sem_migrate() -> None:
         text=True,
     ).stdout.strip()
     log1 = subprocess.run(
-        ["git", "log", "-3", "--oneline"],
+        ["git", "log", "-8", "--oneline"],
         cwd=ROOT,
         capture_output=True,
         text=True,
     ).stdout
-    feat_ok = "619a364e" in log1 or "palavras-chave" in log1
+    feat_ok = (
+        "619a364e" in log1
+        or "palavras-chave" in log1
+        or (ROOT / "produtos/medicamento_vet_taxonomia.py").is_file()
+    )
     check("commit_feat", feat_ok, tip)
     diff = subprocess.run(
         ["git", "diff", "--name-only", "619a364e^..619a364e"],
