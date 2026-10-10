@@ -21,11 +21,27 @@ class Command(BaseCommand):
             default="",
             help="Só um produto_externo_id (ex. id do GM4045).",
         )
+        parser.add_argument(
+            "--liberar-intruso",
+            action="store_true",
+            help="Colisão: gera 230 novo no produto que ocupa o EAN bipável e migra o legado.",
+        )
 
     def handle(self, *args, **options):
         dry = bool(options["dry_run"])
         limit = max(1, int(options["limit"] or 5000))
         pid = str(options.get("pid") or "").strip()
+        liberar = bool(options.get("liberar_intruso"))
+        db, col = None, None
+        try:
+            from produtos.mongo_util import obter_conexao_mongo
+
+            _c, db = obter_conexao_mongo()
+            if _c is not None:
+                col = _c.col_p
+        except Exception:
+            db, col = None, None
+
         done = 0
         if pid:
             from produtos.catalogo_agro import obter_produto_model
@@ -34,7 +50,13 @@ class Command(BaseCommand):
             if p is None:
                 self.stderr.write(f"Produto não encontrado: {pid}")
                 return
-            r = migrar_cb_loja_legado_em_produto(p, dry_run=dry)
+            r = migrar_cb_loja_legado_em_produto(
+                p,
+                dry_run=dry,
+                liberar_intruso=liberar,
+                db=db,
+                col=col,
+            )
             if r:
                 if r.get("erro"):
                     self.stderr.write(self.style.ERROR(str(r["erro"])))
@@ -44,12 +66,18 @@ class Command(BaseCommand):
                 self.stdout.write("Nada a migrar (já EAN válido ou não é 230… legado).")
             return
 
-        res = migrar_cb_loja_legado_lote(limit=limit, dry_run=dry)
+        res = migrar_cb_loja_legado_lote(
+            limit=limit,
+            dry_run=dry,
+            liberar_intruso=liberar,
+            db=db,
+            col=col,
+        )
         for r in res.get("colisoes_detalhe") or []:
             self.stderr.write(
                 self.style.ERROR(
-                    f"COLISÃO {r.get('produto_externo_id')}: {r.get('legado')} → "
-                    f"{r.get('principal_novo')} — {r.get('erro', '')[:120]}"
+                    f"COLISÃO {r.get('produto_externo_id')}: {r.get('legado')} → bip "
+                    f"{r.get('principal_novo')} — {str(r.get('erro', ''))[:160]}"
                 )
             )
         done = int(res.get("corrigidos") or 0)

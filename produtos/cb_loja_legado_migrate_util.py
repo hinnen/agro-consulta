@@ -7,6 +7,7 @@ from typing import Any
 from django.db import transaction
 
 from produtos.agro_codigo_barras_loja_util import (
+    codigos_grupo_bip_canonico,
     ean13_checksum_ok,
     ean13_para_bip_codigo_barras_loja,
     eh_codigo_barras_loja,
@@ -76,11 +77,88 @@ def mesclar_legado_cb_em_cadastro_extras(
     return ce
 
 
+def _rotulo_produto_cb(produto) -> str:
+    gm = str(getattr(produto, "codigo_nfe", "") or "").strip()
+    nome = str(getattr(produto, "nome", "") or "").strip()[:40]
+    if gm:
+        return gm if not nome else f"{gm} · {nome}"
+    return nome or str(getattr(produto, "produto_externo_id", "") or "")[:20]
+
+
+def _intruso_com_cb_literal(bip: str, *, dono_pid: str):
+    """Outro produto com o EAN bipável literal (bloqueia promoção do legado)."""
+    from produtos.models import Produto, ProdutoGestaoOverlayAgro
+
+    bip = _digits(bip)
+    pid = str(dono_pid or "").strip()[:64]
+    if not bip:
+        return None
+    p = (
+        Produto.objects.filter(codigo_barras=bip)
+        .exclude(produto_externo_id=pid)
+        .only("id", "produto_externo_id", "codigo_barras", "codigo_nfe", "nome")
+        .first()
+    )
+    if p is not None:
+        return p
+    ov = (
+        ProdutoGestaoOverlayAgro.objects.filter(codigo_barras=bip)
+        .exclude(produto_externo_id=pid)
+        .only("produto_externo_id")
+        .first()
+    )
+    if ov is None:
+        return None
+    return (
+        Produto.objects.filter(produto_externo_id=ov.produto_externo_id)
+        .only("id", "produto_externo_id", "codigo_barras", "codigo_nfe", "nome")
+        .first()
+    )
+
+
+def _liberar_intruso_grupo_bip(
+    bip: str,
+    *,
+    dono_pid: str,
+    legado: str,
+    dry_run: bool,
+    db=None,
+    col: str | None = None,
+) -> dict[str, Any] | None:
+    """Reatribui 230 no produto que ocupa o EAN bipável do mesmo grupo físico."""
+    from produtos.cb_loja_reatribuir_util import reatribuir_cb_loja_exclusivo
+
+    bip = _digits(bip)
+    legado = _digits(legado)
+    if not bip or not legado or bip not in set(codigos_grupo_bip_canonico(legado)):
+        return None
+    intruso = _intruso_com_cb_literal(bip, dono_pid=dono_pid)
+    if intruso is None or not getattr(intruso, "pk", None):
+        return None
+    if _digits(getattr(intruso, "codigo_barras", "")) != bip:
+        return None
+    res = reatribuir_cb_loja_exclusivo(
+        intruso,
+        esperado_atual=bip,
+        dry_run=dry_run,
+        db=db,
+        col=col,
+    )
+    return {
+        "intruso_id": str(intruso.produto_externo_id or intruso.pk),
+        "intruso_rotulo": _rotulo_produto_cb(intruso),
+        "reatribuir": res,
+    }
+
+
 def migrar_cb_loja_legado_em_produto(
     produto,
     *,
     overlay=None,
     dry_run: bool = False,
+    liberar_intruso: bool = False,
+    db=None,
+    col: str | None = None,
 ) -> dict[str, Any] | None:
     """
     Se ``codigo_barras`` for 230… legado sem DV: principal = EAN bipável; legado → opcional.
@@ -100,15 +178,43 @@ def migrar_cb_loja_legado_em_produto(
     if not eh_codigo_barras_loja(atual) or ean13_checksum_ok(atual):
         return None
 
+    bip_alvo = ean13_para_bip_codigo_barras_loja(atual) or atual
+
     novo, legado, erro = preparar_codigo_barras_loja_legado(
         atual,
         produto_externo_id=pid,
+        db=db,
+        col=col,
     )
+    lib_meta: dict[str, Any] | None = None
+    if erro and liberar_intruso and bip_alvo and bip_alvo != atual:
+        lib_meta = _liberar_intruso_grupo_bip(
+            bip_alvo,
+            dono_pid=pid,
+            legado=atual,
+            dry_run=dry_run,
+            db=db,
+            col=col,
+        )
+        if lib_meta:
+            novo, legado, erro = preparar_codigo_barras_loja_legado(
+                atual,
+                produto_externo_id=pid,
+                db=db,
+                col=col,
+            )
+        else:
+            intruso = _intruso_com_cb_literal(bip_alvo, dono_pid=pid)
+            extra = ""
+            if intruso:
+                extra = f" Ocupado por {_rotulo_produto_cb(intruso)} ({intruso.produto_externo_id})."
+            erro = f"{erro}{extra}"
+
     if erro:
         return {
             "produto_externo_id": pid,
             "legado": atual,
-            "principal_novo": novo,
+            "principal_novo": bip_alvo,
             "dry_run": dry_run,
             "erro": erro,
         }
@@ -121,6 +227,8 @@ def migrar_cb_loja_legado_em_produto(
         "principal_novo": novo,
         "dry_run": dry_run,
     }
+    if lib_meta:
+        res["liberar_intruso"] = lib_meta
     if dry_run:
         return res
 
@@ -208,6 +316,9 @@ def migrar_cb_loja_legado_lote(
     *,
     limit: int = 5000,
     dry_run: bool = False,
+    liberar_intruso: bool = False,
+    db=None,
+    col: str | None = None,
 ) -> dict[str, Any]:
     """Varredura única: corrige o que puder; devolve contagem e lista de colisões."""
     ok = 0
@@ -219,7 +330,14 @@ def migrar_cb_loja_legado_lote(
             p, overlay = item
         else:
             p, overlay = item, None
-        r = migrar_cb_loja_legado_em_produto(p, overlay=overlay, dry_run=dry_run)
+        r = migrar_cb_loja_legado_em_produto(
+            p,
+            overlay=overlay,
+            dry_run=dry_run,
+            liberar_intruso=liberar_intruso,
+            db=db,
+            col=col,
+        )
         if not r:
             ignorados += 1
             continue
