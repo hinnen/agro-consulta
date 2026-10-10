@@ -135,8 +135,17 @@ def _liberar_intruso_grupo_bip(
     intruso = _intruso_com_cb_literal(bip, dono_pid=dono_pid)
     if intruso is None or not getattr(intruso, "pk", None):
         return None
-    if _digits(getattr(intruso, "codigo_barras", "")) != bip:
-        return None
+    cb_intruso = _digits(getattr(intruso, "codigo_barras", ""))
+    if cb_intruso != bip:
+        from produtos.models import ProdutoGestaoOverlayAgro
+
+        ov_i = ProdutoGestaoOverlayAgro.objects.filter(
+            produto_externo_id=intruso.produto_externo_id
+        ).only("codigo_barras").first()
+        if ov_i is None or _digits(ov_i.codigo_barras) != bip:
+            return None
+        if cb_intruso != bip:
+            intruso.codigo_barras = bip
     res = reatribuir_cb_loja_exclusivo(
         intruso,
         esperado_atual=bip,

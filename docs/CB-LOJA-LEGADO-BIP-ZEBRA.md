@@ -10,10 +10,15 @@ Mesmo padrão já visto em **GM4045** (1479 no cadastro vs 1471 no bip), com reg
 
 ## Correção em massa (loja não precisa abrir item por item)
 
-Após subir a versão com este pacote, roda-se **uma vez** a varredura no servidor (equipe técnica / cutover):
+Após **v26.85**, no Shell do servidor (uma vez):
 
-- Corrige sozinha **todos** os 230 legados que derem (cadastro + gestão).
-- No final aparece só a **lista de colisões** (poucos GM) — **só esses** pedem ajuste manual (reatribuir 230 no “intruso”, rodar de novo).
+```bash
+python manage.py migrar_cb_loja_legado --liberar-intruso --dry-run
+python manage.py migrar_cb_loja_legado --liberar-intruso
+```
+
+- **`--liberar-intruso`:** quando outro produto ocupa o EAN bipável, gera **230 novo** nele e corrige o legado (sem abrir item a item na loja).
+- Colisões restantes: lista curta no log — ajuste pontual.
 
 ## Se aparecer colisão (ex. GM0024-P)
 
