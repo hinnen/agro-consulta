@@ -77,7 +77,11 @@ fi
 
 echo "== cutover producao → $PREP =="
 git push origin "$PROD_REF:refs/heads/$BACKUP_BR" || true
-git checkout producao 2>/dev/null || git checkout -b producao "$PROD_REF"
-git reset --hard "$PREP_REF"
-git push origin producao
+if git show-ref --verify --quiet refs/heads/producao; then
+  git checkout -f producao
+  git reset --hard "$PREP_REF"
+  git push origin producao
+else
+  git push origin "$PREP_REF:producao"
+fi
 echo "PUSH OK · Render · Ctrl+F5 · badge v26.78"
