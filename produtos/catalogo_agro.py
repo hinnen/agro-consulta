@@ -1039,6 +1039,10 @@ def try_criar_produto_postgres_somente_agro(payload: dict) -> tuple[dict | None,
     codigo_interno_salvar = (cod_int or cod_cb or novo_id)[:50]
     codigo_nfe_salvar = (cod_nfe or cod_int or cod_cb or novo_id)[:64]
 
+    # region agent log
+    import json as _agent_json, time as _agent_time
+    open("/opt/cursor/logs/debug.log", "a").write(_agent_json.dumps({"hypothesisId":"D,E","location":"produtos/catalogo_agro.py:try_criar_produto_postgres_somente_agro:before-create","message":"Creating product with barcode","data":{"productId":novo_id,"barcode":cod_cb[:50]},"timestamp":int(_agent_time.time()*1000)})+"\n")
+    # endregion
     Produto.objects.create(
         produto_externo_id=novo_id,
         codigo_interno=codigo_interno_salvar,
