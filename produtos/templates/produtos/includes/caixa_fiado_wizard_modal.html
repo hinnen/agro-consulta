@@ -1,0 +1,33 @@
+{# Popup conferência fiado (vendas ou pagamentos) — markup único para os 2 passos #}
+<div id="{{ modal_id }}" class="cf-modal-overlay cf-fiado-wizard hidden" role="dialog" aria-modal="true" aria-labelledby="{{ title_id }}">
+  <div class="cf-modal-panel cf-fiado-wizard-panel">
+    <div class="cf-fiado-wizard-head">
+      <div class="min-w-0">
+        <p class="cf-fiado-wizard-step">Passo {{ passo_num }} de {{ passo_total }} · Fiado</p>
+        <h3 id="{{ title_id }}" class="cf-fiado-wizard-title">{{ titulo }}</h3>
+      </div>
+    </div>
+    <div class="cf-fiado-wizard-body">
+      <p class="cf-fiado-wizard-intro">{{ intro }}</p>
+      <ul class="cf-fiado-wizard-list">
+        {% for item in fiado_items %}
+        <li>
+          <label class="cf-fiado-row is-pendente">
+            <span class="cf-fiado-check-wrap">
+              <input form="form-fechar-todos" type="checkbox" name="{{ checkbox_name }}_{{ item.id }}" value="1" data-fiado-id="{{ item.id }}" class="{{ checkbox_class }} shrink-0" aria-label="Conferir {{ item.cliente_nome }}"{% if item.operacional %} data-fiado-obrig="1"{% endif %}>
+              <span class="cf-fiado-check-hint cf-fiado-check-hint--off">Toque para conferir</span>
+              <span class="cf-fiado-check-hint cf-fiado-check-hint--on">Conferido</span>
+            </span>
+            <span class="cf-fiado-cliente">{{ item.cliente_nome }}</span>
+            <span class="cf-fiado-valor tabular-nums">R$ {{ item.valor }}</span>
+          </label>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="cf-fiado-wizard-foot">
+      <button type="button" id="{{ btn_pular_id }}" class="cf-fiado-wizard-btn cf-fiado-wizard-btn--pular">Pular conferência</button>
+      <button type="button" id="{{ btn_confirmar_id }}" class="cf-fiado-wizard-btn cf-fiado-wizard-btn--ok">Confirmar</button>
+    </div>
+  </div>
+</div>

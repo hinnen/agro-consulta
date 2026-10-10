@@ -15,6 +15,7 @@
     return (G.URL_GRUPO_EXCLUIR_TMPL || '').replace('999999', String(pk));
   }
   var API_ERP = G.API_ERP || '';
+  var URL_BUSCAR_PDV = (window.AgroCadastroErpLista && window.AgroCadastroErpLista.URL_BUSCAR_PDV) || '/api/buscar/';
 
   var tabErp = document.getElementById('tab-erp');
   var tabGrupos = document.getElementById('tab-grupos');
@@ -50,19 +51,19 @@
 
   function ativarTab(which) {
     var erpOn = which === 'erp';
-    tabErp.setAttribute('aria-selected', erpOn ? 'true' : 'false');
-    tabGrupos.setAttribute('aria-selected', erpOn ? 'false' : 'true');
+    if (tabErp) tabErp.setAttribute('aria-selected', erpOn ? 'true' : 'false');
+    if (tabGrupos) tabGrupos.setAttribute('aria-selected', erpOn ? 'false' : 'true');
     if (erpOn) {
-      tabErp.className = 'min-h-[44px] px-4 rounded-xl text-sm font-black uppercase border-2 border-emerald-600 bg-emerald-50 text-emerald-900 shadow-sm';
-      tabGrupos.className = 'min-h-[44px] px-4 rounded-xl text-sm font-black uppercase border-2 border-slate-200 bg-white text-slate-600 hover:border-orange-300 hover:text-orange-700 shadow-sm';
+      if (tabErp) tabErp.className = 'min-h-[44px] px-4 rounded-xl text-sm font-black uppercase border-2 border-emerald-600 bg-emerald-50 text-emerald-900 shadow-sm';
+      if (tabGrupos) tabGrupos.className = 'min-h-[44px] px-4 rounded-xl text-sm font-black uppercase border-2 border-slate-200 bg-white text-slate-600 hover:border-orange-300 hover:text-orange-700 shadow-sm';
       panelErp.classList.remove('hidden');
       panelErp.classList.add('flex');
       panelGrupos.classList.add('hidden');
       panelGrupos.classList.remove('flex');
       panelGrupos.setAttribute('aria-hidden', 'true');
     } else {
-      tabGrupos.className = 'min-h-[44px] px-4 rounded-xl text-sm font-black uppercase border-2 border-orange-500 bg-orange-50 text-orange-900 shadow-sm';
-      tabErp.className = 'min-h-[44px] px-4 rounded-xl text-sm font-black uppercase border-2 border-slate-200 bg-white text-slate-600 hover:border-emerald-400 hover:text-emerald-800 shadow-sm';
+      if (tabGrupos) tabGrupos.className = 'min-h-[44px] px-4 rounded-xl text-sm font-black uppercase border-2 border-orange-500 bg-orange-50 text-orange-900 shadow-sm';
+      if (tabErp) tabErp.className = 'min-h-[44px] px-4 rounded-xl text-sm font-black uppercase border-2 border-slate-200 bg-white text-slate-600 hover:border-emerald-400 hover:text-emerald-800 shadow-sm';
       panelGrupos.classList.remove('hidden');
       panelGrupos.classList.add('flex');
       panelErp.classList.add('hidden');
@@ -72,8 +73,8 @@
     }
   }
 
-  tabErp.addEventListener('click', function () { ativarTab('erp'); });
-  tabGrupos.addEventListener('click', function () { ativarTab('grupos'); });
+  if (tabErp) tabErp.addEventListener('click', function () { ativarTab('erp'); });
+  if (tabGrupos) tabGrupos.addEventListener('click', function () { ativarTab('grupos'); });
 
   function renderListaGrupos() {
     gruposLista.innerHTML = '';
@@ -337,7 +338,7 @@
     modalQ.value = '';
   }
   modalFechar.addEventListener('click', fecharModalErp);
-  modal.addEventListener('click', function (e) { if (e.target === modal) fecharModalErp(); });
+  /* Fundo nao fecha — so X / FECHAR / Esc */
 
   function abrirModalErp() {
     modal.classList.remove('hidden');
@@ -355,11 +356,11 @@
     var q = (modalQ.value || '').trim();
     modalLista.innerHTML = '<p class="p-3 text-sm text-slate-500 font-semibold">Digite para buscar…</p>';
     if (!q) return;
-    fetch(API_ERP + '?q=' + encodeURIComponent(q) + '&limit=40', { credentials: 'same-origin' })
+    fetch(URL_BUSCAR_PDV + '?contexto=cadastro&compras=1&q=' + encodeURIComponent(q) + '&limit=40', { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        if (!data.ok) throw new Error(data.erro || 'erro');
-        var prods = data.produtos || [];
+        if (data && data.erro) throw new Error(data.erro);
+        var prods = (data && data.produtos) ? data.produtos : [];
         modalLista.innerHTML = '';
         if (!prods.length) {
           modalLista.innerHTML = '<p class="p-3 text-sm text-slate-500">Nenhum resultado.</p>';

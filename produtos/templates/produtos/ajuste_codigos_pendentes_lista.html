@@ -1,0 +1,132 @@
+{% extends "layouts/base_pdv.html" %}
+
+{% block pdv_title %}Códigos pendentes | SisVale{% endblock %}
+{% block body_class %}min-h-screen bg-slate-100 text-slate-900{% endblock %}
+{% block pdv_shell_class %}min-h-screen bg-slate-100{% endblock %}
+{% block pdv_section_class %}mx-auto w-full max-w-[min(100rem,calc(100vw-1.25rem))] px-3 py-4 sm:px-5 sm:py-6{% endblock %}
+
+{% block pdv_header %}
+<header class="border-b border-slate-200 bg-white shadow-sm">
+  <div class="mx-auto flex max-w-[min(100rem,calc(100vw-1.25rem))] flex-wrap items-center justify-between gap-4 px-3 py-4 sm:px-5">
+    <div class="min-w-0">
+      <p class="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-600">Gestão</p>
+      <h1 class="mt-0.5 truncate text-2xl font-black tracking-tight text-slate-900">Códigos pendentes (ajuste)</h1>
+      <p class="mt-1 text-sm font-medium text-slate-500">{{ total_pendente }} pendente(s) · <strong class="font-semibold text-slate-700">Feito</strong> grava o bipado no cadastro como código opcional</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2 shrink-0">
+      <a href="{% url 'ajuste_mobile' %}" class="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border-2 border-emerald-600 bg-emerald-600 px-3 py-2 text-xs font-black uppercase text-white shadow-sm hover:bg-emerald-700">
+        ← Voltar ao Ajuste
+      </a>
+      {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-xs font-black uppercase text-slate-800 shadow-sm hover:border-emerald-500" %}
+    </div>
+  </div>
+</header>
+{% endblock %}
+
+{% block pdv_content %}
+<div class="mb-4 flex flex-wrap gap-2">
+  <a href="?status=pendente" class="min-h-[2.5rem] rounded-xl px-3 py-2 text-xs font-black uppercase {% if status_filtro == 'pendente' %}bg-emerald-600 text-white{% else %}bg-white border border-slate-200 text-slate-700{% endif %}">Pendentes</a>
+  <a href="?status=feito" class="min-h-[2.5rem] rounded-xl px-3 py-2 text-xs font-black uppercase {% if status_filtro == 'feito' %}bg-emerald-600 text-white{% else %}bg-white border border-slate-200 text-slate-700{% endif %}">Feitos</a>
+  <a href="?status=descartado" class="min-h-[2.5rem] rounded-xl px-3 py-2 text-xs font-black uppercase {% if status_filtro == 'descartado' %}bg-emerald-600 text-white{% else %}bg-white border border-slate-200 text-slate-700{% endif %}">Descartados</a>
+  <a href="{% url 'produtos_cadastro_erp' %}" class="min-h-[2.5rem] rounded-xl px-3 py-2 text-xs font-black uppercase bg-white border border-orange-300 text-orange-800">Abrir cadastro</a>
+  <a href="{% url 'ajuste_mobile' %}" class="min-h-[2.5rem] rounded-xl px-3 py-2 text-xs font-black uppercase bg-emerald-50 border border-emerald-300 text-emerald-800 sm:hidden">← Ajuste Mobile</a>
+</div>
+
+<div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+  <table class="min-w-full text-left text-sm">
+    <thead class="border-b border-slate-200 text-[10px] font-black uppercase tracking-wider text-slate-500">
+      <tr>
+        <th class="px-3 py-3">#</th>
+        <th class="px-3 py-3">Quando</th>
+        <th class="px-3 py-3">Código bipado</th>
+        <th class="px-3 py-3">Produto sugerido</th>
+        <th class="px-3 py-3">Operador</th>
+        <th class="px-3 py-3">Ações</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for r in rows %}
+      <tr class="hover:bg-slate-50" data-pk="{{ r.pk }}">
+        <td class="px-3 py-3 font-black text-emerald-700">#{{ r.pk }}</td>
+        <td class="px-3 py-3 whitespace-nowrap text-slate-600">{{ r.criado_em|date:"d/m/Y H:i" }}</td>
+        <td class="px-3 py-3 font-mono font-bold text-slate-900">{{ r.codigo_bipado }}</td>
+        <td class="px-3 py-3 text-slate-800">
+          <span class="font-semibold">{{ r.nome_produto|default:"—" }}</span>
+          <span class="block text-[10px] text-slate-400 truncate max-w-xs">{{ r.produto_externo_id }}</span>
+        </td>
+        <td class="px-3 py-3 text-slate-600">{{ r.operador|default:"—" }}</td>
+        <td class="px-3 py-3">
+          {% if r.status == "pendente" %}
+          <div class="flex flex-wrap gap-1.5">
+            <button type="button" class="acp-btn min-h-[2.25rem] rounded-lg bg-emerald-600 px-2.5 text-[10px] font-black uppercase text-white" data-st="feito" data-remove="1">Feito</button>
+            <button type="button" class="acp-btn min-h-[2.25rem] rounded-lg bg-slate-200 px-2.5 text-[10px] font-black uppercase text-slate-700" data-st="descartado" data-remove="1">Descartar</button>
+          </div>
+          {% elif r.status == "feito" %}
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-[10px] font-black uppercase text-emerald-600">feito</span>
+            <button type="button" class="acp-btn min-h-[2.25rem] rounded-lg border border-orange-400 bg-orange-50 px-2.5 text-[10px] font-black uppercase text-orange-900" data-st="feito" data-remove="0" title="Se o código não apareceu no cadastro, toque aqui de novo">Gravar no cadastro</button>
+          </div>
+          {% else %}
+          <span class="text-[10px] font-black uppercase text-slate-400">{{ r.status }}</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="px-3 py-10 text-center text-slate-400">Nenhum item neste filtro.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+(function () {
+  function csrf() {
+    const m = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+  document.querySelectorAll('.acp-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const tr = btn.closest('tr');
+      const pk = tr && tr.getAttribute('data-pk');
+      const st = btn.getAttribute('data-st');
+      const removeRow = btn.getAttribute('data-remove') === '1';
+      if (!pk || !st) return;
+      btn.disabled = true;
+      fetch('/api/ajuste-mobile/codigo-pendente/' + pk + '/status/', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrf(),
+        },
+        body: JSON.stringify({ status: st }),
+      })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d && d.ok) {
+            if (st === 'feito') {
+              const aviso = (d.cadastro && d.cadastro.aviso) || '';
+              const ja = d.cadastro && d.cadastro.ja_era;
+              alert(
+                aviso ||
+                  (ja
+                    ? 'Código já estava no cadastro como opcional.'
+                    : 'Código gravado no cadastro como opcional. Abra o produto e confira.')
+              );
+            }
+            if (removeRow) tr.remove();
+            else btn.disabled = false;
+          } else {
+            alert((d && d.erro) || 'Falha ao atualizar.');
+            btn.disabled = false;
+          }
+        })
+        .catch(() => {
+          alert('Falha na rede.');
+          btn.disabled = false;
+        });
+    });
+  });
+})();
+</script>
+{% endblock %}

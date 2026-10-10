@@ -95,41 +95,119 @@ def _forma_pagamento_cupom(venda) -> str:
     return str(getattr(venda, "forma_pagamento", "") or "").strip() or "—"
 
 
+def _fiado_misto_cupom_campos(venda) -> dict[str, Any]:
+    """Quando há fiado + outra forma: campos para destaque do saldo fiado no cupom 80mm."""
+    valor_fiado = Decimal("0")
+    ja_pago: list[str] = []
+    for row in pagamentos_lista_de_venda(venda):
+        if not isinstance(row, dict):
+            continue
+        fn = str(row.get("forma") or "").strip()
+        if not fn:
+            continue
+        try:
+            val = Decimal(str(row.get("valor") or 0)).quantize(Decimal("0.01"))
+        except Exception:
+            continue
+        if val <= Decimal("0.009"):
+            continue
+        if "fiado" in fn.lower():
+            valor_fiado += val
+        else:
+            ja_pago.append(f"{fn} R$ {format_moeda_br(val)}")
+    valor_fiado = valor_fiado.quantize(Decimal("0.01"))
+    misto = valor_fiado > Decimal("0.009") and bool(ja_pago)
+    return {
+        "valor_fiado": float(valor_fiado) if valor_fiado > Decimal("0.009") else 0.0,
+        "valor_fiado_texto": ("R$ " + format_moeda_br(valor_fiado)) if valor_fiado > Decimal("0.009") else "",
+        "ja_pago_texto": " · ".join(ja_pago) if ja_pago else "",
+        "fiado_misto": bool(misto),
+    }
+
+
 def serializar_venda_cupom_80mm(venda, *, segunda_via: bool = False) -> dict[str, Any]:
     """Payload JSON para impressão 80mm (lista de vendas, detalhe, PDV)."""
+    from produtos.devolucao_venda_util import frete_restante, valor_restante_venda
+
     itens: list[dict[str, Any]] = []
     for it in venda.itens.all().order_by("pk"):
         qtd = Decimal(str(it.quantidade or 0))
+        q_dev = Decimal(str(getattr(it, "quantidade_devolvida", 0) or 0))
+        rest = it.quantidade_restante if hasattr(it, "quantidade_restante") else max(qtd - q_dev, Decimal("0"))
         vu = Decimal(str(it.valor_unitario or 0))
         vt = Decimal(str(it.valor_total or 0))
         if vt <= 0 and qtd > 0:
             vt = (qtd * vu).quantize(Decimal("0.01"))
+        devolvido_total = q_dev > 0 and rest <= Decimal("0.0001")
+        devolvido_parcial = q_dev > Decimal("0.0001") and rest > Decimal("0.0001")
         itens.append(
             {
                 "nome": str(it.descricao or "").strip()[:500],
                 "codigo": str(it.codigo or "").strip()[:120],
                 "qtd": float(qtd),
+                "qtd_devolvida": float(q_dev),
+                "qtd_restante": float(rest),
                 "preco": float(vu.quantize(Decimal("0.0001"))),
                 "subtotal": float(vt.quantize(Decimal("0.01"))),
+                "devolvido_total": bool(devolvido_total),
+                "devolvido_parcial": bool(devolvido_parcial),
             }
         )
     total = Decimal(str(getattr(venda, "total", 0) or 0)).quantize(Decimal("0.01"))
+    frete = Decimal(str(getattr(venda, "frete", 0) or 0)).quantize(Decimal("0.01"))
+    frete_dev = Decimal(str(getattr(venda, "frete_devolvido", 0) or 0)).quantize(Decimal("0.01"))
+    frete_rest = frete_restante(venda)
+    if frete > 0:
+        itens.append(
+            {
+                "nome": "Taxa de entrega",
+                "codigo": "",
+                "qtd": 1.0,
+                "qtd_devolvida": 1.0 if frete_rest <= Decimal("0.009") and frete_dev > 0 else 0.0,
+                "qtd_restante": 0.0 if frete_rest <= Decimal("0.009") else 1.0,
+                "preco": float(frete),
+                "subtotal": float(frete),
+                "eh_frete": True,
+                "devolvido_total": bool(frete_rest <= Decimal("0.009") and frete_dev > 0),
+                "devolvido_parcial": False,
+            }
+        )
+    total_rest = valor_restante_venda(venda)
+    tem_parcial = (not getattr(venda, "devolvida_em", None)) and total_rest < total - Decimal("0.009")
     eh_fiado = _venda_eh_fiado_cupom(venda)
     fiado_dias = _fiado_dias_vencimento_cupom(venda) if eh_fiado else 0
+    fiado_misto_campos = _fiado_misto_cupom_campos(venda) if eh_fiado else {
+        "valor_fiado": 0.0,
+        "valor_fiado_texto": "",
+        "ja_pago_texto": "",
+        "fiado_misto": False,
+    }
+    dep = str(getattr(venda, "deposito", "") or "").strip().lower()
+    if dep not in ("centro", "vila"):
+        dep = ""
+    loja_label = "CENTRO" if dep == "centro" else ("VILA" if dep == "vila" else "")
     out: dict[str, Any] = {
         "venda_id": int(venda.pk),
         "criado_em": _formatar_data_venda(getattr(venda, "criado_em", None)),
         "segunda_via": bool(segunda_via),
         "cliente_nome": str(getattr(venda, "cliente_nome", "") or "").strip()[:300],
         "forma_pagamento": _forma_pagamento_cupom(venda),
-        "total": float(total),
-        "total_texto": "R$ " + format_moeda_br(total),
+        "total": float(total_rest),
+        "total_texto": "R$ " + format_moeda_br(total_rest),
+        "total_original": float(total),
+        "total_original_texto": "R$ " + format_moeda_br(total),
+        "tem_devolucao_parcial": bool(tem_parcial),
+        "frete": float(frete),
+        "frete_texto": ("R$ " + format_moeda_br(frete)) if frete > 0 else "",
         "operador": str(getattr(venda, "usuario_registro", "") or "").strip()[:150],
         "caixa_id": getattr(venda, "sessao_caixa_id", None),
         "devolvida": bool(getattr(venda, "devolvida_em", None)),
         "eh_fiado": eh_fiado,
         "fiado_dias": fiado_dias if eh_fiado else None,
         "vencimento": _vencimento_fiado_cupom(venda) if eh_fiado else "",
+        "deposito": dep,
+        "loja_label": loja_label,
         "itens": itens,
+        **fiado_misto_campos,
     }
     return out

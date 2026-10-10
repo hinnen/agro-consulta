@@ -18,8 +18,7 @@
     <button type="button" class="sv-cal-btn-top sv-cal-btn-top-accent" id="sv-cal-hoje" title="Ir para o mês atual">Hoje</button>
     <button type="button" class="sv-cal-btn-top" id="sv-cal-next" title="Próximo mês">▶</button>
     <span class="hidden sm:inline-block w-px h-8 bg-slate-300 mx-0.5" aria-hidden="true"></span>
-    <a href="{% url 'lancamentos_contas_pagar' %}" data-prefetch class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-3 text-xs font-black uppercase text-slate-800 hover:border-amber-400">Clássico</a>
-    <a href="/lancamentos/contas-pagar/teste/" data-prefetch class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-violet-500 bg-violet-600 px-3 text-xs font-black uppercase text-white hover:bg-violet-700">Lista</a>
+    <a href="{% url 'lancamentos_contas_pagar' %}" data-prefetch class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-violet-500 bg-violet-600 px-3 text-xs font-black uppercase text-white hover:bg-violet-700">Lista</a>
     {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-3 text-xs font-black uppercase text-slate-700 hover:border-amber-400" %}
   </div>
 {% endblock %}
@@ -180,7 +179,7 @@
 <script>
 (function () {
   const API = "/api/lancamentos/contas-pagar/calendario/";
-  const LIST_URL = "/lancamentos/contas-pagar/teste/";
+  const LIST_URL = "{% url 'lancamentos_contas_pagar' %}";
 
   const monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   let currentDate = new Date();
@@ -438,4 +437,5 @@
   })();
 })();
 </script>
+{% include "produtos/includes/lancamentos_pin_entrada.html" %}
 {% endblock %}

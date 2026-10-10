@@ -55,3 +55,27 @@ def merge_fiscal_padrao_cadastro_manual_sp_sn(fiscal: dict[str, Any] | None) -> 
         else:
             out[k] = defv
     return out
+
+
+def aplicar_fiscal_padrao_em_row_detalhe(row: dict[str, Any] | None) -> None:
+    """
+    Na abertura do modal: se NCM/CSOSN/CFOP/origem/CST vazios, preenche o padrão SP/SN.
+    Não apaga valor já gravado no produto/overlay.
+    """
+    if not isinstance(row, dict):
+        return
+    fis = {
+        "ncm": row.get("ncm"),
+        "cest": row.get("cest"),
+        "cfop": row.get("cfop_padrao") or row.get("cfop"),
+        "csosn": row.get("csosn"),
+        "origem": row.get("origem_mercadoria") if row.get("origem_mercadoria") is not None else row.get("origem"),
+        "cst_pis_cofins": row.get("cst_pis_cofins"),
+    }
+    mf = merge_fiscal_padrao_cadastro_manual_sp_sn(fis)
+    row["ncm"] = mf["ncm"]
+    row["cest"] = str(mf.get("cest") or row.get("cest") or "").strip()
+    row["cfop_padrao"] = mf["cfop"]
+    row["csosn"] = mf["csosn"]
+    row["origem_mercadoria"] = mf["origem"]
+    row["cst_pis_cofins"] = mf["cst_pis_cofins"]
