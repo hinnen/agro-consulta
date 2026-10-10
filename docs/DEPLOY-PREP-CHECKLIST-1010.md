@@ -1,6 +1,6 @@
 # PREP — CHECKLIST 10/10 · alvo **v26.79**
 
-**Status:** 🟢 pronto · aguarda frase + senha.
+**Status:** ✅ enviado / Live **v26.79** · `producao` @ `d0351565`.
 
 | Pacote | Prova | Migrate |
 | ------- | ----- | ------- |
