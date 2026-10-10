@@ -1299,7 +1299,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | **ETQ-BIP-230-VARIANTES** (bip 1471↔1479 no PDV/index) · **CADASTRO-CB-230-MAX-NCM** · **PDV-VALOR-RS-KG** · cmd `migrar_cb_loja_legado` (opcional cadastro) |
-| **Prova** | bip **3/3** · gerador **19/19** · etq **74/74** · valor-rs-kg **46/46** · **PREP_FAILS=0** |
+| **Prova** | bip **10/10** · gerador **19/19** · etq **74/74** · termica **69/69** · valor-rs-kg **46/46** · unit **10/10** · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
 | **Status** | 🟢 **pronto para envio à produção** · alvo **v26.78** |
 | **Antes** | Live **v26.76** @ `896327e9` |
@@ -1310,7 +1310,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-BIP-230-VARIANTES** | 🟢 **pronto para envio à produção** | **NÃO** | **3/3** · **74/74** |
+| 1 | **ETQ-BIP-230-VARIANTES** | 🟢 **pronto para envio à produção** | **NÃO** | **10/10** · **74/74** |
 | 2 | **CADASTRO-CB-230-MAX-NCM** | 🟢 **pronto para envio à produção** | **NÃO** | **19/19** |
 | 3 | **PDV-VALOR-RS-KG** | 🟢 **pronto para envio à produção** | **NÃO** | **46/46** |
 
