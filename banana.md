@@ -1294,6 +1294,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 PREP loja — CHECKLIST 10/10j · **v26.88** (aguarda senha)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **PREP armado** — Live hoje **v26.86** @ `7ca04de5` · branch `deploy/prep-checklist-1010j` |
+| **O quê** | **CB-230-LEGADO-LITERAL-BIP** — libera quem ocupa o EAN da etiqueta (6 colisões) |
+| **Rollback** | tag `rollback/pre-checklist-1010j-v26.86` |
+| **Você** | Senha cutover → Shell: `python manage.py migrar_cb_loja_legado --liberar-intruso` |
+
 ### ✅ Deploy loja — CHECKLIST 10/10h · **Live v26.86** · 10/10
 
 | Campo | Valor |
