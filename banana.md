@@ -1300,7 +1300,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Status** | 🟡 **armado** — aguarda cutover (Live **v26.83** @ `0c39a6e0`) |
 | **O quê** | Legado 230 DV errado → EAN bipável · **varredura em massa** `migrar_cb_loja_legado` · GM0024-P / zebra etiqueta |
-| **Prova** | legado **11/11** · bip **10/10** · gerador **26/26** · Django **26/26** · PIN **9973** · **PREP_FAILS=0** |
+| **Prova** | legado **11/11** · bip **10/10** · gerador **26/26** · Django **33/33** · PIN **9973** · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
 | **Rollback** | tag `rollback/pre-checklist-1010f-v26.83` · backup `producao-backup-pre-v2684-checklist-1010f` |
 | **Cutover** | `scripts/cutover_loja_checklist_1010f.sh` |
