@@ -66,6 +66,14 @@ class Command(BaseCommand):
                 self.stdout.write("Nada a migrar (já EAN válido ou não é 230… legado).")
             return
 
+        if dry and liberar:
+            self.stdout.write(
+                self.style.WARNING(
+                    "Dry-run com --liberar-intruso: não grava reatribuições; "
+                    "colisões listadas podem sumir ao rodar sem --dry-run."
+                )
+            )
+
         res = migrar_cb_loja_legado_lote(
             limit=limit,
             dry_run=dry,

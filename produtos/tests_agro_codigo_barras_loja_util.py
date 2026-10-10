@@ -14,6 +14,7 @@ from produtos.agro_codigo_barras_loja_util import (
     ean13_para_bip_codigo_barras_loja,
     formatar_codigo_barras_loja,
     validar_codigo_barras_loja_para_salvar,
+    validar_codigo_barras_loja_pos_grupo_migracao,
     variantes_busca_codigo_barras_loja,
 )
 
@@ -142,6 +143,23 @@ class CodigoBarrasLojaEanTests(SimpleTestCase):
 
         self.assertIn("valor físico bipado", str(erro))
         self.assertIn("Clique em 230 novamente", str(erro))
+
+    @patch(
+        "produtos.agro_codigo_barras_loja_util._cb_loja_ocupado_mongo_por_outro",
+        return_value=False,
+    )
+    @patch(
+        "produtos.agro_codigo_barras_loja_util._cb_loja_ocupado_postgres_por_outro"
+    )
+    def test_pos_grupo_migracao_ignora_irmao_legado_no_postgres(self, ocupado, _mongo):
+        ocupado.side_effect = lambda cb, _pid="": cb == "2300000001554"
+
+        erro = validar_codigo_barras_loja_pos_grupo_migracao(
+            "2300000001556",
+            produto_externo_id="GM0024",
+        )
+
+        self.assertIsNone(erro)
 
     @patch(
         "produtos.agro_codigo_barras_loja_util._cb_loja_ocupado_postgres_por_outro",
