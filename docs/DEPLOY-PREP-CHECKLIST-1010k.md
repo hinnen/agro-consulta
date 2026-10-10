@@ -4,7 +4,7 @@
 
 | # | Pacote | Prova | Migrate |
 | - | ------ | ----- | ------- |
-| 1 | **PDV-BUSCA-EAN230** | legado **15/15** · bip **10/10** · PDV **10/10** · Django **45/45** | **NÃO** |
+| 1 | **PDV-BUSCA-EAN230** | legado **15/15** · bip **10/10** · PDV **10/10** · Django **43/43** | **NÃO** |
 
 **O quê:** bip EAN-13 `230…` válido no **PDV** usa o mesmo critério da **Gestão** (cadastro raiz / overlay), não `index_codigos` Mongo stale; cache BCA não guarda bip 230; JSON da API recalcula `index_codigos` após overlay.
 

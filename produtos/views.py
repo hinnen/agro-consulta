@@ -23711,6 +23711,10 @@ def api_buscar_produtos(request):
         if agro_pdv_catalogo_full_desligado():
             return JsonResponse({"produtos": []})
     q = request.GET.get("q", "").strip()
+    if q:
+        from produtos.agro_codigo_barras_loja_util import normalizar_scan_ean_loja_bip
+
+        q = normalizar_scan_ean_loja_bip(q) or q
     if q.strip().lower() == "#prova":
         return _api_buscar_json_prova_unificada(
             request,
@@ -31318,7 +31322,7 @@ def api_pdv_catalogo_slim(request):
 
     hoje = timezone.localdate().isoformat()
     # v6: não manda modo=grupos sem precos_grupos (bug #24 milho/lista).
-    ck = f"pdv_catalogo_slim_v6:{hoje}"
+    ck = f"pdv_catalogo_slim_v7:{hoje}"
     hit = cache.get(ck)
     if isinstance(hit, dict) and isinstance(hit.get("produtos"), list) and hit["produtos"]:
         return JsonResponse(hit)

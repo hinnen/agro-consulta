@@ -1005,7 +1005,7 @@
     var MAX_LOCAL_RESULTS = 48;
     var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v12';
     /** Mesma chave da Consulta — sobrevive fechar o navegador. v3: inclui precos_grupos no slim. */
-    var PDV_SHARED_CATALOG_LS_KEY = 'agro_pdv_catalog_cache_v3';
+    var PDV_SHARED_CATALOG_LS_KEY = 'agro_pdv_catalog_cache_v4';
     var PDV_PATCH_QUEUE_KEY = 'agro_pdv_catalog_patch_queue_v1';
 
     function agroPdvEnqueuePatchesRespostaVenda(data) {
@@ -1295,9 +1295,33 @@
         return String(dv) === d.charAt(12);
     }
 
-    function termoEhEanLojaBipPdv(query) {
+    function normalizarScanEanLojaParaBusca(query) {
         var d = productQueryAlnum(query);
+        if (!d) return String(query || '').trim();
+        if (d.length === 13 && d.indexOf('230') === 0 && ean13ChecksumOkPdv(d)) return d;
+        if (d.length === 12 && d.charAt(0) === '2' && d.charAt(1) !== '3') {
+            var cand = '23' + d.substring(1);
+            if (ean13ChecksumOkPdv(cand)) return cand;
+        }
+        return String(query || '').trim();
+    }
+
+    function termoEhEanLojaBipPdv(query) {
+        var d = productQueryAlnum(normalizarScanEanLojaParaBusca(query));
         return d.length === 13 && d.indexOf('230') === 0 && ean13ChecksumOkPdv(d);
+    }
+
+    function produtoBateEanLojaRaizPdv(p, query) {
+        if (!termoEhEanLojaBipPdv(query) || !p) return false;
+        var d = productQueryAlnum(query);
+        var fields = [p.codigo_barras, p.codigo_nfe, p.codigo];
+        var i;
+        for (i = 0; i < fields.length; i++) {
+            var v = fields[i];
+            if (v == null || v === '') continue;
+            if (productQueryAlnum(v) === d) return true;
+        }
+        return false;
     }
 
     function productMatchesQueryExact(p, query) {
@@ -1354,6 +1378,12 @@
         }
         var ql = String(query || '').trim();
         var i;
+        if (ql && termoEhEanLojaBipPdv(ql)) {
+            for (i = 0; i < norm.length; i++) {
+                if (produtoBateEanLojaRaizPdv(norm[i], ql)) return norm[i];
+            }
+            return null;
+        }
         if (ql) {
             for (i = 0; i < norm.length; i++) {
                 if (productMatchesQueryExact(norm[i], ql)) return norm[i];
@@ -1562,7 +1592,9 @@
             return false;
         }
 
-        if (tryAdd(produto)) {
+        var eanLojaBip = termoEhEanLojaBipPdv(queryHint || rowCode);
+        if (eanLojaBip) forceServer = true;
+        if (!forceServer && tryAdd(produto)) {
             return Promise.resolve(finishOk());
         }
 
@@ -1586,6 +1618,16 @@
 
         return fetchWizardServerSearch(code).then(function (srv) {
             var picked = pickProductForQuery(srv.produtos, code, { preferProduto: produto });
+            if (termoEhEanLojaBipPdv(code) && Array.isArray(srv.produtos)) {
+                var j;
+                for (j = 0; j < srv.produtos.length; j++) {
+                    if (produtoBateEanLojaRaizPdv(srv.produtos[j], code)) {
+                        picked = srv.produtos[j];
+                        break;
+                    }
+                }
+                if (!picked || !produtoBateEanLojaRaizPdv(picked, code)) picked = null;
+            }
             if (explicitPick && produto && picked) {
                 var locId = resolveProdutoId(produto);
                 var pickId = resolveProdutoId(picked);
@@ -1918,6 +1960,9 @@
     }
 
     function matchQueryAgainstIndexCodigos(qt, qd, p) {
+        if (termoEhEanLojaBipPdv(qt)) {
+            return produtoBateEanLojaRaizPdv(p, qt);
+        }
         if (!Array.isArray(p.index_codigos) || !p.index_codigos.length) return false;
         var ql = String(qt || '').trim().toLowerCase();
         if (!ql) return false;
@@ -2026,7 +2071,9 @@
         var score = 0;
         if (nfe === q || cod === q || ean === q) score += 2500;
         if (qDigits.length >= 6 && eanD && eanD === qDigits) score += 2400;
-        if (matchQueryAgainstIndexCodigos(qRaw, qDigits, p)) score += 2600;
+        if (termoEhEanLojaBipPdv(qRaw)) {
+            if (produtoBateEanLojaRaizPdv(p, qRaw)) score += 2600;
+        } else if (matchQueryAgainstIndexCodigos(qRaw, qDigits, p)) score += 2600;
         if (barcodeMode) {
             if (ean.indexOf(q) !== -1 || nfe.indexOf(q) !== -1 || cod.indexOf(q) !== -1) score += 500;
         }
@@ -2144,8 +2191,10 @@
         }
         var barcodeMode = mode === 'barcode';
         if (barcodeMode) {
-            var oneBc = findUniqueBarcodeMatch(q);
-            if (oneBc) return { list: [], barcodeHit: oneBc, message: '' };
+            if (!termoEhEanLojaBipPdv(q)) {
+                var oneBc = findUniqueBarcodeMatch(q);
+                if (oneBc) return { list: [], barcodeHit: oneBc, message: '' };
+            }
         }
         var qDigitsOnly = onlyDigits(q);
         // EAN 8+ dígitos: busca no servidor (catálogo local pode não ter o item).
@@ -12299,6 +12348,7 @@
         var queryRaw = String(term || '').trim();
         var valorTotalBusca = obterValorTotalRapido(queryRaw);
         var query = limparAtalhosBuscaProduto(queryRaw);
+        query = normalizarScanEanLojaParaBusca(query);
         if (reopenBudgetFromBarcode(query)) return;
         if (!query) {
             /* Só `R$10` com lista já aberta — não limpa resultados. */
@@ -12392,8 +12442,19 @@
                 // Código de barras: tenta incluir na venda; se falhar (caixa fechado,
                 // produto incompleto), MOSTRA na lista — antes sumia e parecia "não achou".
                 if (payload.mode === 'barcode' && merged.length >= 1) {
-                    var hitBc =
-                        payload.exactBarcode || merged.length === 1 ? merged[0] : null;
+                    var hitBc = null;
+                    if (termoEhEanLojaBipPdv(query)) {
+                        var hb;
+                        for (hb = 0; hb < merged.length; hb++) {
+                            if (produtoBateEanLojaRaizPdv(merged[hb], query)) {
+                                hitBc = merged[hb];
+                                break;
+                            }
+                        }
+                    } else {
+                        hitBc =
+                            payload.exactBarcode || merged.length === 1 ? merged[0] : null;
+                    }
                     if (hitBc && tryAutoAddBarcodeHit(hitBc)) {
                         return;
                     }

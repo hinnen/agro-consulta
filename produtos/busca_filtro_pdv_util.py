@@ -15,9 +15,9 @@ _RE_DIGITOS = re.compile(r"\D")
 
 def termo_eh_ean_loja_bip_valido(termo: str) -> bool:
     """EAN-13 230… com DV ok (valor lido na etiqueta / leitor)."""
-    from produtos.agro_codigo_barras_loja_util import ean13_checksum_ok
+    from produtos.agro_codigo_barras_loja_util import ean13_checksum_ok, normalizar_scan_ean_loja_bip
 
-    tl = somente_alnum(str(termo or ""))
+    tl = somente_alnum(normalizar_scan_ean_loja_bip(str(termo or "")))
     return len(tl) == 13 and tl.startswith("230") and ean13_checksum_ok(tl)
 
 # Palavra que não identifica o produto (tamanho, cor, unidade). «milho grande» não pode

@@ -41,6 +41,9 @@ def main() -> int:
     ok("index_codigos_de_campos" in views and "termo_eh_ean_loja_bip_valido(q)" in views, "API rebuild index + filtro bip")
     ok("termoEhEanLojaBipValido" in js and "2100000" in js, "JS relevancia EAN loja")
     ok("termoEhEanLojaBipPdv" in wiz, "wizard não match index em 230 DV ok")
+    ok("normalizarScanEanLojaParaBusca" in wiz, "wizard normaliza bip 12 dígitos")
+    ok("produtoBateEanLojaRaizPdv" in wiz, "wizard match só cadastro raiz")
+    ok("findUniqueBarcodeMatch" in wiz and "termoEhEanLojaBipPdv(q)" in wiz, "EAN 230 não auto-hit cache")
 
     import django
 

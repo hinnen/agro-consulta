@@ -34,6 +34,12 @@ class CbLojaBipBuscaTests(SimpleTestCase):
     def test_ean_loja_bip_valido_1556(self):
         self.assertTrue(termo_eh_ean_loja_bip_valido("2300000001556"))
 
+    def test_scan_12_digitos_normaliza_para_230(self):
+        from produtos.agro_codigo_barras_loja_util import normalizar_scan_ean_loja_bip
+
+        self.assertEqual(normalizar_scan_ean_loja_bip("200000001556"), "2300000001556")
+        self.assertTrue(termo_eh_ean_loja_bip_valido("200000001556"))
+
     def test_pdv_score_prefere_cadastro_raiz_sobre_index_stale(self):
         bip = "2300000001556"
         errado = {
