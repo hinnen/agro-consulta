@@ -39,6 +39,7 @@ def main() -> int:
     ok("iter_produtos_cb_loja_legado" in mig and "ProdutoGestaoOverlayAgro" in mig, "iter overlay")
     ok("preparar_codigo_barras_loja_legado" in views, "overlay salvar prepara legado")
     ok("migrar_cb_loja_legado_lote" in cmd, "comando usa lote")
+    ok("liberar-intruso" in cmd and "liberar_intruso" in mig, "flag liberar intruso")
 
     import django
 

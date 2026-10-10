@@ -1294,17 +1294,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 PREP — CHECKLIST 10/10f · **CB-230-LEGADO-LOTE** · v26.84 · armado
+### 🟡 PREP — CHECKLIST 10/10g · **CB-230-LEGADO-LIBERAR** · v26.85 · armado
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **armado** — aguarda cutover (Live **v26.83** @ `0c39a6e0`) |
-| **O quê** | Legado 230 DV errado → EAN bipável · **varredura em massa** `migrar_cb_loja_legado` · GM0024-P / zebra etiqueta |
-| **Prova** | legado **11/11** · bip **10/10** · gerador **26/26** · Django **26/26** · PIN **9973** · **PREP_FAILS=0** |
+| **Status** | 🟡 **armado** — Live **v26.84** @ `35308cbf` |
+| **O quê** | `migrar_cb_loja_legado --liberar-intruso` (93 colisões → lote automático) |
+| **Prova** | legado **12/12** · bip **10/10** · Django **35/35** · PIN **9973** · **PREP_FAILS=0** |
 | **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-checklist-1010g-v26.84` · backup `producao-backup-pre-v2685-checklist-1010g` |
+| **Cutover** | `scripts/cutover_loja_checklist_1010g.sh` |
+| **Pós-deploy** | `migrar_cb_loja_legado --liberar-intruso` (dry-run → apply) |
+
+### ✅ Deploy loja — CHECKLIST 10/10f · **Live v26.84** · 10/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v26.84** — `producao` @ `35308cbf` · **não** foi merge do `teste` |
+| **O quê** | **CB-230-LEGADO-LOTE** — legado 230 → EAN bipável · varredura `migrar_cb_loja_legado` |
+| **Prova** | cutover `--exec` OK · legado **11/11** · bip **10/10** · gerador **26/26** · Django **33/33** |
+| **Migrate** | **NÃO** |
+| **Antes** | Live **v26.83** @ `0c39a6e0` |
 | **Rollback** | tag `rollback/pre-checklist-1010f-v26.83` · backup `producao-backup-pre-v2684-checklist-1010f` |
-| **Cutover** | `scripts/cutover_loja_checklist_1010f.sh` |
-| **Pós-deploy** | `migrar_cb_loja_legado --dry-run` → apply · só GM **COLISÃO** na mão |
+| **Você** | Ctrl+F5 · badge **v26.84** · aguardar Render · varredura legado (equipe) |
+| **Colisões** | Só GM listados após varredura — `docs/CB-LOJA-LEGADO-BIP-ZEBRA.md` |
 
 ### ✅ Deploy loja — CHECKLIST 10/10e · **Live v26.83** · 10/10
 
