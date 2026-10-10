@@ -1294,6 +1294,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — vínculo da NF por EAN adicional (`NF-EAN-OPCIONAL` · 10/10)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Entrada NF casa EAN do XML em `codigos_barras_opcionais` · principal (PG/overlay) prioridade · duplicidade **não** vincula |
+| **Prova** | path + Django **20/20** · PIN **9973** n/a (unitário) · **PREP_FAILS=0** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** · tip PREP `deploy/prep-nf-ean-opcional` · alvo **v26.80** · produção **não** alterada |
+| **Antes** | Live **v26.79** |
+| **Rollback** | tip Live v26.79 · **só** frase+senha |
+| **Na senha** | `docs/DEPLOY-PREP-NF-EAN-OPCIONAL.md` |
+| **Você** | Entrada NF · EAN só nos opcionais → casa · EAN principal ganha · EAN em 2 produtos → sem vínculo |
+
+### ✅ CHECKLIST ÚNICO — 10/10b · NF-EAN-OPCIONAL · 🟢 pronto para envio
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NF-EAN-OPCIONAL** | 🟢 **pronto para envio à produção** | **NÃO** | **20/20** |
+
 ### ✅ Deploy loja — correção bip + gerador 230 (`CHECKLIST 10/10` · **Live v26.79**)
 
 | Campo | Valor |

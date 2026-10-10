@@ -1507,6 +1507,39 @@ def casar_produtos_mongo(
     return itens
 
 
+def _produto_pg_por_ean_opcional(ean_dig: str):
+    """Resolve EAN alternativo somente quando aponta para um único produto."""
+    from produtos.models import Produto, ProdutoGestaoOverlayAgro
+    from produtos.cadastro_busca_codigo_util import q_overlay_json_barras_opcionais
+    from produtos.mongo_index_codigos import (
+        codigos_barras_opcionais_de_cadastro_extras,
+    )
+
+    ean = re.sub(r"\D", "", str(ean_dig or ""))
+    if len(ean) < 8:
+        return None
+    q_json = q_overlay_json_barras_opcionais(ean)
+    if q_json is None:
+        return None
+    pids: list[str] = []
+    seen: set[str] = set()
+    for ov in ProdutoGestaoOverlayAgro.objects.filter(q_json).only(
+        "produto_externo_id", "cadastro_extras"
+    ):
+        pid = str(ov.produto_externo_id or "").strip()
+        if not pid or pid in seen:
+            continue
+        if ean not in codigos_barras_opcionais_de_cadastro_extras(ov.cadastro_extras):
+            continue
+        seen.add(pid)
+        pids.append(pid)
+        if len(pids) > 1:
+            return None
+    if len(pids) != 1:
+        return None
+    return Produto.objects.filter(produto_externo_id=pids[0]).order_by("pk").first()
+
+
 def casar_produtos_postgres(
     itens: list[dict],
     *,
@@ -1555,6 +1588,10 @@ def casar_produtos_postgres(
                         )
                         if p:
                             mtipo = "ean_overlay"
+                if not p:
+                    p = _produto_pg_por_ean_opcional(ean_dig)
+                    if p:
+                        mtipo = "ean_overlay_opcional"
             if not p and cprod:
                 p = (
                     Produto.objects.filter(
