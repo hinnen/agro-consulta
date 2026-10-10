@@ -3554,7 +3554,8 @@ function digitoVerificadorEan13Primeiros12(d12) {
 }
 
 function parseEtiquetaBalancaEan13(digits13) {
-    if (!/^\d{13}$/.test(digits13) || digits13[0] !== '2') return null;
+    /* 230… é a faixa EAN interna da loja, não etiqueta de preço da balança. */
+    if (!/^\d{13}$/.test(digits13) || digits13[0] !== '2' || digits13.startsWith('230')) return null;
     const codigo4 = digits13.slice(1, 5);
     const valorCent = parseInt(digits13.slice(6, 12), 10);
     if (Number.isNaN(valorCent)) return null;

@@ -22991,9 +22991,10 @@ def _parse_etiqueta_balanca_ean13_br(q: str):
     Padrão comum de balança: 2 C C C C 0 T T T T T T DV (EAN-13).
     C = código interno (4 dígitos), T = valor total em centavos (6 dígitos, 2 decimais).
     Só aceita código com dígito verificador EAN-13 válido (evita preço arbitrário).
+    A faixa interna da loja ``230…`` é EAN comum, nunca etiqueta de balança.
     """
     d = re.sub(r"\D", "", str(q or ""))
-    if len(d) != 13 or d[0] != "2":
+    if len(d) != 13 or d[0] != "2" or d.startswith("230"):
         return None
     dv_exp = _ean13_digito_verificador(d[:12])
     if dv_exp is None or int(d[12]) != dv_exp:
