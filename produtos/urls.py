@@ -1283,6 +1283,11 @@ urlpatterns = [
         name='api_relatorio_validade_baixa',
     ),
     path(
+        'api/produtos/cadastro/taxonomia-medicamento-veterinario/',
+        views.api_taxonomia_medicamento_veterinario,
+        name='api_taxonomia_medicamento_veterinario',
+    ),
+    path(
         'api/produtos/cadastro/detalhe/<str:produto_id>/',
         views.api_produtos_cadastro_detalhe,
         name='api_produtos_cadastro_detalhe',

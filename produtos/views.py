@@ -2584,7 +2584,8 @@ def _montar_cadastro_erp_payload_produtos_salvar(
         out["unidadeComercial"] = un_sc
         out["estoqueUnidade"] = un_sc
 
-    desc_sc = (ov.descricao or _mongo_primeiro_texto(p, ("Descricao",), "") or "").strip()[:16000]
+    # Especificação ERP: só espelho Mongo (palavras-chave Agro ficam em cadastro_extras, não no ERP).
+    desc_sc = (_mongo_primeiro_texto(p, ("Descricao",), "") or "").strip()[:16000]
     if desc_sc:
         out["especificacao"] = desc_sc
 
@@ -3171,6 +3172,30 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             if al_cp:
                 c_prod_nf_payload = al_cp
                 overlay_cadastro_extras_adicionar_c_prod_nf(ex, raw_cp)
+    from produtos.medicamento_vet_taxonomia import (
+        aplicar_palavras_e_classes_em_extras,
+        sincronizar_busca_agro_no_mongo,
+    )
+
+    if "palavras_chave" in payload:
+        aplicar_palavras_e_classes_em_extras(
+            ex,
+            palavras_chave=str(payload.get("palavras_chave") or ""),
+            payload_tem_palavras=True,
+        )
+    elif "descricao" in payload and not pdv_rapida:
+        # Legado do modal: descrição resumida virou palavras-chave (não vai ao ERP).
+        aplicar_palavras_e_classes_em_extras(
+            ex,
+            palavras_chave=str(payload.get("descricao") or ""),
+            payload_tem_palavras=True,
+        )
+    if "classes_vet" in payload:
+        aplicar_palavras_e_classes_em_extras(
+            ex,
+            classes_vet=payload.get("classes_vet"),
+            payload_tem_classes=True,
+        )
     ov.cadastro_extras = ex
 
     if db is not None and client is not None and somente_agro_overlay and isinstance(ex.get("fiscal"), dict):
@@ -3265,6 +3290,15 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             except Exception:
                 logger.warning("overlay salvar: sync ValorVenda Mongo", exc_info=True)
                 aviso_preco_venda_mongo = "Não foi possível gravar o preço de venda no espelho Mongo."
+        if (
+            "palavras_chave" in payload
+            or "classes_vet" in payload
+            or "descricao" in payload
+        ):
+            try:
+                sincronizar_busca_agro_no_mongo(db, client.col_p, pid, ex)
+            except Exception:
+                logger.warning("overlay salvar: sync busca Agro (palavras/classes)", exc_info=True)
         # Modelo: mesmo padrão do custo — sem espelho Mongo o campo some ao reabrir
         # em caminhos que leem Modelo/NomeModelo do documento.
         if "modelo" in payload:
@@ -22861,6 +22895,8 @@ def motor_de_busca_agro(
                 {"Marca": {"$in": regex_tokens}},
                 {"NomeNormalizado": {"$in": regex_tokens}},
                 {INDEX_CODIGOS_CAMPO: {"$in": regex_tokens}},
+                {"AgroBuscaTextoExtra": {"$in": regex_tokens}},
+                {"AgroPalavrasChave": {"$in": regex_tokens}},
             ]
             condicoes_and.append({"$or": or_palavra})
 
@@ -22876,6 +22912,8 @@ def motor_de_busca_agro(
             {"Marca": termo_regex},
             {"NomeNormalizado": termo_regex},
             {INDEX_CODIGOS_CAMPO: termo_regex},
+            {"AgroBuscaTextoExtra": termo_regex},
+            {"AgroPalavrasChave": termo_regex},
         ]
         adicionar(find_prod({**base_filter, "$or": or_frase}, lim_s3))
 
@@ -22902,6 +22940,8 @@ def motor_de_busca_agro(
                 {"Nome": rx},
                 {"Marca": rx},
                 {"NomeNormalizado": rx},
+                {"AgroBuscaTextoExtra": rx},
+                {"AgroPalavrasChave": rx},
             ])
         if or_clauses:
             adicionar(find_prod({**base_filter, "$or": or_clauses}, lim_s3b))
@@ -25098,7 +25138,24 @@ def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
         _mongo_primeiro_bool(p, ("CadastroSomenteAgro", "cadastroSomenteAgro")) is True
     )
 
+    from produtos.medicamento_vet_taxonomia import ler_busca_de_cadastro_extras
+
+    pk_busca, cv_busca = ler_busca_de_cadastro_extras(ce_ov or {})
+    if not pk_busca and ov_det and str(ov_det.descricao or "").strip():
+        pk_busca = str(ov_det.descricao).strip()
+    row["palavras_chave"] = pk_busca
+    row["classes_vet"] = cv_busca
+
     return row
+
+
+@login_required(login_url="/entrar/")
+@require_GET
+def api_taxonomia_medicamento_veterinario(request):
+    """Lista fixa de classes terapêuticas (checkboxes no cadastro de medicamentos)."""
+    from produtos.medicamento_vet_taxonomia import taxonomia_para_api
+
+    return JsonResponse({"ok": True, **taxonomia_para_api()})
 
 
 @login_required(login_url="/entrar/")
@@ -30901,6 +30958,8 @@ def _catalogo_pdv_montar_produtos(db, client):
             prateleira_raw or None,
         ]
         partes.extend(index_codigos_list)
+        partes.append(p.get("AgroPalavrasChave"))
+        partes.append(p.get("AgroBuscaTextoExtra"))
         busca_texto_gerado = " ".join(normalizar(str(part)) for part in partes if part).strip()
         busca_texto_existente = normalizar(p.get("BuscaTexto") or "")
         texto_puro = " ".join(str(part) for part in partes if part)
