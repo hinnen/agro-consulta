@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-PREP_REF="origin/teste"
+PREP_REF="origin/deploy/prep-checklist-1110l"
 PROD_REF="origin/producao"
 ROLLBACK_TAG="rollback/pre-checklist-1110l-v27.03"
 BACKUP_BR="producao-backup-pre-v2704-checklist-1110l"
