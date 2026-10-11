@@ -1294,6 +1294,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — **ETQ-SOLIC-MOBILE** + **VL-HUB-PIN** (`CHECKLIST 11/10` · 11/10)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **PRONTO p/ produção** — branch `teste` (aguarda teste local + frase+senha) |
+| **VERSION** | **v26.91** |
+| **O quê** | **ETQ-SOLIC-MOBILE:** hub GM → **Etiquetas** (busca+bip) → pacote no Postgres → topbar **Solicitações** na tela etiquetas importa à fila · busca manual na fila **não some** (bip continua limpando). **VL-HUB-PIN:** **Vendas** e **Tarefas** só PIN **1,2,3,4,8**; **Fotos** e **Etiquetas** = qualquer PIN válido. Vendas PWA = PIN (`/vendas/lojas/pin/`). |
+| **Migrate** | **SIM** — `produtos.0142_etiqueta_solicitacao_pacote_agro` |
+| **Env** | `AGRO_VL_HUB_PINS_VENDAS_TAREFAS=1,2,3,4,8` (opcional; default já é esse). Teste local com Renan: incluir `9973` na lista se usar esse PIN no PG. |
+| **Prova** | `verify_etq_solicitacao_vl_pin_path.py` **19/19** · arquivos `verify_vl_hub_tarefas_path` / `verify_vendas_lojas_resumo_path` (estático + HTTP onde DB ok) · PIN teste **9973** na allowlist só em dev |
+| **Smoke loja** | Celular: hub → Etiquetas → sacola → Enviar · PC: `/produtos/etiquetas/` → Solicitações → Na fila · Hub: PIN 5 bloqueia Vendas/Tarefas; Fotos OK |
+| **PR** | `#433` → merge `teste` |
+
+### ✅ CHECKLIST ÚNICO — 11/10 · 🟢 **PRONTO envio produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ETQ-SOLIC-MOBILE** | 🟢 **PRONTO** (`teste`) | **SIM** `0142` | **19/19** path |
+| 2 | **VL-HUB-PIN-VENDAS-TAREFAS** | 🟢 **PRONTO** (`teste`) | **NÃO** | allowlist + PIN vendas |
+
 ### ✅ Deploy loja — CHECKLIST 10/10j · **Live v26.88** · 10/10
 
 | Campo | Valor |
