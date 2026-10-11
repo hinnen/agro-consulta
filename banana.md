@@ -1305,7 +1305,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Env** | `AGRO_VL_HUB_PINS_VENDAS_TAREFAS=1,2,3,4,8` (loja); staging/dev com PIN **9973**: incluir na env |
 | **Prova** | `verify_etq_solicitacao_vl_pin_path.py` **28/28** · `verify_gm_lojas_pin_runtime.py` **runtime OK** |
 | **Smoke** | Hub 4 cartões · PIN 5 → sem acesso Vendas/Tarefas · Fotos/Etiquetas · etiquetas PC fila |
-| **Cutover** | `scripts/cutover_loja_checklist_1110.sh` (VERSION **26.94**) · doc `docs/DEPLOY-PREP-CHECKLIST-1110.md` |
+| **Cutover** | `./scripts/cutover_loja_checklist_1110.sh` · rollback `docs/ROLLBACK-CHECKLIST-1110.md` |
 
 ### ✅ CHECKLIST ÚNICO — 11/10 · 🟢 **PRONTO envio produção**
 
