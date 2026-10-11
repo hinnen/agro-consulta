@@ -274,8 +274,11 @@ def vendas_lojas_meta_c_modos_de_serie(
     *,
     hoje: date,
     agora: datetime,
+    deposito: str | None = None,
 ) -> tuple[Decimal, Decimal, bool]:
     """(dia_todo, ate_agora, mostra_toggle) a partir de uma série Meta C já calculada."""
+    from produtos.vendas_lojas_ritmo_util import vendas_lojas_fracao_meta_ate_agora
+
     serie = list(serie or [])
     dia_todo = _q2(sum(float(x or 0) for x in serie))
     inclui_hoje = data_ini <= hoje <= data_fim
@@ -284,7 +287,9 @@ def vendas_lojas_meta_c_modos_de_serie(
     idx = (hoje - data_ini).days
     if idx < 0 or idx >= len(serie):
         return dia_todo, dia_todo, False
-    frac = vendas_lojas_fracao_expediente(agora)
+    frac = vendas_lojas_fracao_meta_ate_agora(
+        hoje=hoje, agora=agora, deposito=deposito
+    )
     hoje_val = _q2(serie[idx])
     resto = (dia_todo - hoje_val).quantize(Decimal("0.01"))
     ate_agora = (resto + (hoje_val * frac)).quantize(Decimal("0.01"))
@@ -302,14 +307,14 @@ def vendas_lojas_meta_c_modos(
 ) -> tuple[Decimal, Decimal, bool]:
     """
     (dia_todo, ate_agora, mostra_toggle).
-    Dias fechados entram 100 %. Só o dia de hoje é cortado pelo expediente.
+    Dias fechados entram 100 %. Só o dia de hoje usa ritmo por hora (PDV).
     """
     from produtos.views import _dashboard_serie_meta_c_vendas
 
     dep = deposito if deposito in ("centro", "vila") else None
     serie = _dashboard_serie_meta_c_vendas(data_ini, data_fim, deposito=dep)
     return vendas_lojas_meta_c_modos_de_serie(
-        serie, data_ini, data_fim, hoje=hoje, agora=agora
+        serie, data_ini, data_fim, hoje=hoje, agora=agora, deposito=dep
     )
 
 
@@ -405,11 +410,17 @@ def vendas_lojas_previsao_mes(
     n_ate = (hoje - mes_ini).days + 1
     serie_ate = serie_mes[: max(0, n_ate)]
     _dia_hoje, meta_ate_agora, _ = vendas_lojas_meta_c_modos_de_serie(
-        serie_ate, mes_ini, hoje, hoje=hoje, agora=agora
+        serie_ate, mes_ini, hoje, hoje=hoje, agora=agora, deposito=dep
     )
     meta_ate_agora = _q2(meta_ate_agora)
 
-    mes_fechado = hoje >= mes_fim and vendas_lojas_fracao_expediente(agora) >= Decimal("1")
+    from produtos.vendas_lojas_ritmo_util import vendas_lojas_fracao_meta_ate_agora
+
+    mes_fechado = (
+        hoje >= mes_fim
+        and vendas_lojas_fracao_meta_ate_agora(hoje=hoje, agora=agora, deposito=dep)
+        >= Decimal("1")
+    )
     if mes_fechado or meta_mes <= 0:
         return {
             "vendido": vendido,
@@ -513,6 +524,11 @@ def vendas_lojas_previsao_aviso_cedo(*, agora: datetime, fonte_total: str) -> bo
         return True
     if fonte_total == "fechado":
         return False
-    # Antes de ~11h20 (35 % do expediente 7h30–18h30) o ritmo ainda oscila muito.
-    return vendas_lojas_fracao_expediente(agora) < Decimal("0.35")
+    from django.utils import timezone
+
+    from produtos.vendas_lojas_ritmo_util import vendas_lojas_fracao_meta_ate_agora
+
+    hoje = timezone.localdate()
+    frac = vendas_lojas_fracao_meta_ate_agora(hoje=hoje, agora=agora, deposito=None)
+    return frac < Decimal("0.35")
 

@@ -11696,11 +11696,18 @@ def api_vendas_lojas_extras(request):
         logging.getLogger(__name__).exception("api_vendas_lojas_extras meta C")
         dia_c = agora_c = dia_v = agora_v = dia_t = agora_t = Decimal("0.00")
         toggle_c = toggle_v = toggle_t = False
+    from produtos.vendas_lojas_ritmo_util import (
+        vendas_lojas_hora_referencia_label,
+        vendas_lojas_nota_ate_agora,
+    )
+
     media = {
         "centro": _vendas_lojas_media_bloco(centro, dia_c, agora_c),
         "vila": _vendas_lojas_media_bloco(vila, dia_v, agora_v),
         "total": _vendas_lojas_media_bloco(total, dia_t, agora_t),
         "mostra_toggle": bool(toggle_c or toggle_v or toggle_t),
+        "hora_referencia_fmt": vendas_lojas_hora_referencia_label(agora),
+        "nota_ate_agora": vendas_lojas_nota_ate_agora(agora),
     }
     try:
         _, _, sem_fiado = vendas_lojas_sem_fiado_totais(data_ini, data_fim)
