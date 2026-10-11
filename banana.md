@@ -1298,26 +1298,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-<<<<<<< HEAD
-| **Status** | 🟢 **PRONTO envio produção** — `teste` · Live **v27.03** @ `db8cdf6f` |
-| **O quê** | **META-CENTRO-VILA-UNIFICADO** (`/meta/` Centro+Vila soma e configura) · **VL-RITMO-HORA** (média «até agora» = hora civil + **12** semanas mesmo weekday no **PDV**; dia todo/vendido iguais) |
-| **Migrate** | **NÃO** |
-| **Prova** | META `verify_meta_mostruario_path` · `verify_vendas_lojas_resumo_path` ritmo **172 OK** · `tests_vendas_lojas_ritmo` **3/3** · PWA **25/25** |
-=======
 | **Status** | ✅ **Live** — `producao` @ `b4e4fcc8` (sobre v27.03) |
 | **O quê** | Ajuste no SistApp (`/vendas/lojas/ajuste/`) sem sidebar Gestão |
 | **Migrate** | **NÃO** |
-| **Prova loja** | PIN → ajuste **200** · `__agroPathLookLikeAjusteMobile` · painel **Atualizar** OK |
+| **Prova loja** | PIN **9973** → hub/painel **200** · botão **Atualizar** (`vl-atualizar`) · ajuste **200** · `__agroPathLookLikeAjusteMobile` · manifest **SistApp** (reverificado 11/10) |
 
 ### 📦 PACOTE PRONTO — CHECKLIST **11/10l** · **v27.04** · 🟢 aguarda senha
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PRONTO envio produção** — PREP `deploy/prep-checklist-1110l` @ `676159f6` · Live **v27.03** @ `b4e4fcc8` |
-| **O quê** | **META-CENTRO-VILA-UNIFICADO** · **VL-RITMO-HORA** |
+| **Status** | 🟢 **PRONTO envio produção** — PREP `deploy/prep-checklist-1110l` @ `52e014c8` · Live **v27.03** @ `b4e4fcc8` |
+| **O quê** | **META-CENTRO-VILA-UNIFICADO** · **VL-RITMO-HORA** (média «até agora» hora civil + 12 semanas no PDV) |
 | **Migrate** | **NÃO** |
-| **Prova** | `cutover_loja_checklist_1110l.sh` **OK** · ritmo **3/3** · PWA **26/26** · loja ajuste/SistApp OK |
->>>>>>> e4ef97c9 (chore: verificação 11/10l + banana; cutover META DB skip)
+| **Prova** | path estático **OK** · `cutover_loja_checklist_1110l.sh` dry-run **OK** · ritmo **3/3** · PWA **26/26** · `www.sistvale.com.br` PIN+Atualizar+ajuste **OK** (11/10) |
 | **Cutover** | `./scripts/cutover_loja_checklist_1110l.sh` · `docs/DEPLOY-PREP-CHECKLIST-1110l.md` |
 | **Rollback** | tag `rollback/pre-checklist-1110l-v27.03` @ `b4e4fcc8` |
 

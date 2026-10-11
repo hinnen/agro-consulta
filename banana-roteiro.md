@@ -963,7 +963,7 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | 1 | **META-CENTRO-VILA-UNIFICADO** | 🟢 **PRONTO** | **NÃO** |
 | 2 | **VL-RITMO-HORA** | 🟢 **PRONTO** | **NÃO** |
 
-**PREP:** `deploy/prep-checklist-1110l` @ `676159f6` · dry-run cutover **OK** · Live base `b4e4fcc8`.  
+**PREP:** `deploy/prep-checklist-1110l` @ `52e014c8` · dry-run cutover **OK** · Live base `b4e4fcc8`.  
 **Cutover:** `./scripts/cutover_loja_checklist_1110l.sh` · rollback `rollback/pre-checklist-1110l-v27.03` @ `b4e4fcc8`.
 
 ---
