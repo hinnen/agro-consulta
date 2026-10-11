@@ -168,7 +168,7 @@ def test_math_e_format() -> None:
         },
         modo_agora=False,
     )
-    check("zap_linha_ok", l1 == "* R$ 105.000,00 · bônus R$ 100,00 ✅")
+    check("zap_linha_ok", l1 == "• R$ 105.000,00 · bônus R$ 100,00 ✅")
     l2 = _meta_linha_zap_enxuta(
         {
             "valor_meta_fmt": "R$ 110.000,00",
@@ -179,7 +179,7 @@ def test_math_e_format() -> None:
         },
         modo_agora=False,
     )
-    check("zap_linha_exc", l2 == "* R$ 110.000,00 · bônus R$ 150,00 ✅ +R$ 50,13")
+    check("zap_linha_exc", l2 == "• R$ 110.000,00 · bônus R$ 150,00 ✅ +R$ 50,13")
     l3 = _meta_linha_zap_enxuta(
         {
             "valor_meta_fmt": "R$ 115.000,00",
@@ -188,7 +188,7 @@ def test_math_e_format() -> None:
         },
         modo_agora=False,
     )
-    check("zap_linha_moleton", l3 == "* R$ 115.000,00 · bônus R$ 100,00 + moleton")
+    check("zap_linha_moleton", l3 == "• R$ 115.000,00 · bônus R$ 100,00 + moleton")
 
 
 def test_seed_e_crud() -> None:
@@ -360,11 +360,19 @@ def test_mostruario_consistencia() -> None:
         )
 
     zap = meta_texto_zap(m)
-    check("zap_enxuto_linha", zap.startswith("* R$") and "bônus" in zap)
-    check("zap_sem_vendido", "Vendido" not in zap and "parcela" not in zap.lower())
+    check("zap_enxuto_titulo", zap.startswith("🎯 META —") and "• R$" in zap and "bônus" in zap)
+    check(
+        "zap_sem_vendido",
+        "Vendido" not in zap
+        and "parcela" not in zap.lower()
+        and "faltam" not in zap.lower()
+        and "%" not in zap
+        and "HOJE" not in zap
+        and "MÊS" not in zap,
+    )
     check("zap_tem_faixa", "105" in zap)
     zap_a = meta_texto_zap(m, modo="agora")
-    check("zap_agora_mesmo_formato", zap_a.startswith("* R$") and "faltam" not in zap_a.lower())
+    check("zap_agora_ritmo", "Ritmo até agora" in zap_a and "• R$" in zap_a)
     check("zap_sem_rodape", "Próxima" not in zap and "👉" not in zap)
     check("deposito_label_todas", m.get("deposito_label") == "Centro + Vila")
 
@@ -382,9 +390,9 @@ def test_mostruario_consistencia() -> None:
         f"todas={m['vendido_mes']} c={m_c['vendido_mes']} v={m_v['vendido_mes']}",
     )
     zap_c = meta_texto_zap(m_c)
-    check("zap_centro_enxuto", zap_c.startswith("* R$") and len(zap_c.splitlines()) >= 1)
+    check("zap_centro_enxuto", "Centro" in zap_c and "• R$" in zap_c)
     zap_v = meta_texto_zap(m_v, modo="agora")
-    check("zap_vila_enxuto", zap_v.startswith("* R$"))
+    check("zap_vila_enxuto", "Vila" in zap_v and "• R$" in zap_v)
 
     check("faixas_todas_merged", (m.get("faixas") or [{}])[0].get("deposito") == "todas")
     check("faixas_centro_loja", (m_c.get("faixas") or [{}])[0].get("deposito") == "centro")

@@ -460,8 +460,30 @@ def meta_montar_mostruario(
     return _json_deep(out)
 
 
+def _meta_valor_curto_de_fmt(vm_fmt: str) -> str:
+    """``R$ 110.000,00`` → ``110.000`` (frase leiga no subtítulo)."""
+    s = (vm_fmt or "").replace("R$", "").strip()
+    if s.endswith(",00"):
+        s = s[:-3]
+    return s.strip() or "—"
+
+
+def _meta_subtitulo_zap(mostruario: dict, modo_agora: bool) -> str:
+    if not modo_agora:
+        return "🏁 Meta do mês"
+    prox = mostruario.get("proxima_meta_agora")
+    if prox and prox.get("valor_meta_fmt"):
+        curto = _meta_valor_curto_de_fmt(prox["valor_meta_fmt"])
+        return (
+            f"🏁 Ritmo até agora (ou seja, se mantemos esse ritmo a meta {curto} será batida)"
+        )
+    if mostruario.get("ultima_batida_agora"):
+        return "🏁 Ritmo até agora — metas no caminho ✅"
+    return "🏁 Ritmo até agora"
+
+
 def _meta_linha_zap_enxuta(f: dict, *, modo_agora: bool) -> str:
-    """Uma faixa no padrão enxuto do grupo (ex.: ``* R$ 105.000,00 · bônus R$ 100,00 ✅``)."""
+    """Uma faixa no padrão enxuto (ex.: ``• R$ 105.000,00 · bônus R$ 100,00 ✅``)."""
     vm = f.get("valor_meta_fmt") or "—"
     bl = (f.get("bonus_label") or "").strip()
     meio = f" · bônus {bl}" if bl and bl != "—" else ""
@@ -478,19 +500,21 @@ def _meta_linha_zap_enxuta(f: dict, *, modo_agora: bool) -> str:
             suf = f" ✅ +{ex_fmt}"
         else:
             suf = " ✅"
-    return f"* {vm}{meio}{suf}"
+    return f"• {vm}{meio}{suf}"
 
 
 def meta_texto_zap(mostruario: dict, modo: str = "mes") -> str:
-    """Texto enxuto pra colar no Zap — só as faixas. ``modo``: mes | agora."""
+    """Texto enxuto pro grupo Zap — cabeçalho + faixas (sem HOJE/MÊS/parcela/%)."""
     modo_agora = (modo or "mes").strip().lower() in ("agora", "ate_agora", "ritmo")
-    linhas = [
-        _meta_linha_zap_enxuta(f, modo_agora=modo_agora)
-        for f in (mostruario.get("faixas") or [])
-    ]
-    if not linhas:
+    faixas = mostruario.get("faixas") or []
+    if not faixas:
         return ""
-    return "\n".join(linhas).strip() + "\n"
+    comp = (mostruario.get("competencia_fmt") or "").strip()
+    loja = (mostruario.get("deposito_label") or "").strip()
+    titulo = f"🎯 META — {comp} · {loja}".strip(" ·")
+    partes = [titulo, "", _meta_subtitulo_zap(mostruario, modo_agora), ""]
+    partes.extend(_meta_linha_zap_enxuta(f, modo_agora=modo_agora) for f in faixas)
+    return "\n".join(partes).strip() + "\n"
 
 
 @transaction.atomic
