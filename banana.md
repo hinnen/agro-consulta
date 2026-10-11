@@ -1310,7 +1310,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PRONTO envio produção** — `teste` (tip após push) · Live **v27.01** |
+| **Status** | 🟢 **PRONTO envio produção** — `teste` @ `53f336d8` · Live **v27.01** |
 | **O quê** | **SISTAPP-PWA-AJUSTE-ATUALIZAR** (PWA **SistApp**, hub **Ajuste**, painel **Atualizar**) · **META-ZAP-ENXUTO** |
 | **Migrate** | **NÃO** (0144 já na loja) |
 | **Prova** | PWA **25/25** · GM runtime **19/19** · resumo estático **164/164** · loja PIN→hub+painel+extras **OK** · pós-deploy: **Atualizar**, manifest **SistApp**, `/ajuste/` |
