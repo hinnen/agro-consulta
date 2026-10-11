@@ -4,13 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#f97316">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Vendas">
   <title>PIN · GM Lojas</title>
-  <link rel="manifest" href="{% url 'vendas_lojas_manifest' %}">
-  <link rel="apple-touch-icon" href="/static/produtos/pwa/vendas-lojas-192.png">
+  {% include "produtos/includes/vendas_lojas_pwa_head.html" with vl_theme_color="#f97316" %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
