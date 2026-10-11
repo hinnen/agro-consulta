@@ -53,10 +53,14 @@ def main() -> int:
     check("manifest_scope", '"scope": "/vendas/lojas/"' in mf)
     check("manifest_icons_192_512", '"192x192"' in mf and '"512x512"' in mf)
     check("manifest_prefer_related", '"prefer_related_applications": False' in mf)
+    check("manifest_sistapp", '"name": "SistApp"' in mf and '"short_name": "SistApp"' in mf)
 
     check("pin_uses_head", "vendas_lojas_pwa_head.html" in pin)
     check("pin_uses_install", "vendas_lojas_pwa_install.html" in pin)
     check("hub_uses_install", "vendas_lojas_pwa_install.html" in hub)
+    check("hub_ajuste_btn", "vl-hub-ajuste" in hub and "vendas_lojas_ajuste_mobile" in hub)
+    check("url_ajuste_hub", "vendas_lojas_ajuste_mobile" in urls)
+    check("ajuste_sessao_util", (ROOT / "produtos/vendas_lojas_ajuste_sessao_util.py").is_file())
     check("icon_files", (ROOT / "produtos/static/produtos/pwa/vendas-lojas-512.png").is_file())
 
     print(f"\n{len(fails)} falha(s)")
