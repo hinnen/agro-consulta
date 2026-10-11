@@ -116,6 +116,9 @@
     .vl-hub-etiquetas {
       background: linear-gradient(145deg, #0284c7 0%, #0369a1 100%);
     }
+    .vl-hub-ajuste {
+      background: linear-gradient(145deg, #10b981 0%, #059669 100%);
+    }
     .vl-hub a strong {
       font-size: clamp(1.55rem, 6vw + 0.35rem, 1.95rem);
       font-weight: 900;
@@ -136,7 +139,7 @@
     {% include "produtos/includes/vendas_lojas_pwa_install.html" with vl_pwa_variant="hub" %}
     <p class="vl-kicker">GM Agro</p>
     <h1 class="vl-title">O que você quer?</h1>
-    <p class="vl-sub">Mesmo app do celular — Vendas, Tarefas, Fotos ou Etiquetas.</p>
+    <p class="vl-sub">SistApp — Vendas, Tarefas, Fotos, Etiquetas ou Ajuste de estoque.</p>
     {% if operador %}
     <p class="vl-user">
       <span>Olá, <strong>{{ operador }}</strong></span>
@@ -159,6 +162,10 @@
       <a class="vl-hub-etiquetas" href="{% url 'etiquetas_solicitacao_app' %}">
         <strong>Etiquetas</strong>
         <span>Buscar ou bipar e pedir impressão na loja</span>
+      </a>
+      <a class="vl-hub-ajuste" href="{% url 'vendas_lojas_ajuste_mobile' %}">
+        <strong>Ajuste</strong>
+        <span>Bipar, alterar saldo e contagem cíclica</span>
       </a>
     </div>
   </div>

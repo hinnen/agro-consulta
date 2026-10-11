@@ -8182,7 +8182,7 @@ def _home_admin_navegacao():
         },
         {
             "title": "Ajuste Mobile",
-            "href": reverse("ajuste_mobile"),
+            "href": reverse("vendas_lojas_ajuste_mobile"),
             "icon": "smartphone",
             "shortcut": "M",
             "shortcut_key": "m",
@@ -11481,12 +11481,45 @@ from produtos.vendas_lojas_hub_sessao_util import (
 @require_GET
 @exigir_hub_operador_html
 def vendas_lojas_hub(request):
-    """Entrada do PWA instalado: Vendas, Tarefas, Fotos ou Etiquetas."""
+    """Entrada do PWA instalado: Vendas, Tarefas, Fotos, Etiquetas ou Ajuste."""
     return render(
         request,
         "produtos/vendas_lojas_hub.html",
         {"operador": hub_operador_da_sessao(request)},
     )
+
+
+def _contexto_ajuste_mobile(request):
+    from produtos.pdv_deposito_util import bootstrap_deposito, rotulo_deposito
+    from produtos.vendas_lojas_ajuste_sessao_util import (
+        operador_ajuste_rotulo,
+        sincronizar_ajuste_mobile_desde_hub,
+    )
+
+    sincronizar_ajuste_mobile_desde_hub(request)
+    dep_boot = bootstrap_deposito(request)
+    dep = str(dep_boot.get("deposito") or "centro").strip().lower()
+    if dep not in ("centro", "vila"):
+        dep = "centro"
+    travado = bool(dep_boot.get("caixaTravado"))
+    pedir_loja = not travado
+    operador = operador_ajuste_rotulo(request)
+    return {
+        "ajuste_operador": operador,
+        "ajuste_deposito_inicial": dep,
+        "ajuste_deposito_inicial_label": rotulo_deposito(dep),
+        "ajuste_deposito_travado": travado,
+        "ajuste_pedir_loja": pedir_loja,
+    }
+
+
+@never_cache
+@exigir_hub_operador_html
+def vendas_lojas_ajuste_mobile(request):
+    """Ajuste de estoque no SistApp — qualquer operador com PIN do hub."""
+    ctx = _contexto_ajuste_mobile(request)
+    ctx["ajuste_via_sistapp"] = True
+    return render(request, "produtos/mobile_ajuste.html", ctx)
 
 
 @require_http_methods(["GET", "POST"])
@@ -11720,9 +11753,15 @@ def vendas_lojas_manifest(request):
     icon_512 = request.build_absolute_uri("/static/produtos/pwa/vendas-lojas-512.png")
     payload = {
         "id": "/vendas/lojas/",
+<<<<<<< HEAD
         "name": "GM Lojas",
         "short_name": "Vendas",
         "description": "Vendas das lojas e pendências / tarefas",
+=======
+        "name": "SistApp",
+        "short_name": "SistApp",
+        "description": "SistApp — vendas, tarefas, fotos, etiquetas e ajuste de estoque",
+>>>>>>> 621c82e4 (SistApp: Ajuste Mobile no hub (/vendas/lojas/ajuste/))
         "start_url": "/vendas/lojas/?utm_source=pwa",
         "scope": "/vendas/lojas/",
         "display": "standalone",
@@ -22820,41 +22859,18 @@ def ajuste_mobile_sw(request):
 
 
 def ajuste_mobile_view(request):
-    """
-    PIN obrigatório a cada abertura desta tela (não reaproveita o PIN do PDV/descanso).
-    O gate ``ajuste_mobile_gate`` é consumido no GET após o login — F5 ou reentrada pedem PIN de novo.
-    Depósito inicial = loja/estoque travado no PDV deste aparelho (Centro × Vila).
-    """
-    from produtos.pdv_deposito_util import (
-        bootstrap_deposito,
-        rotulo_deposito,
-    )
+    """Legado: redireciona para o Ajuste dentro do SistApp (PIN único do hub)."""
+    from urllib.parse import quote
 
-    dep_boot = bootstrap_deposito(request)
-    dep = str(dep_boot.get("deposito") or "centro").strip().lower()
-    if dep not in ("centro", "vila"):
-        dep = "centro"
-    travado = bool(dep_boot.get("caixaTravado"))
-    # Sempre pedir loja a cada entrada com PIN (mesmo funcionário pode ir à outra loja).
-    # Só não pede se o caixa do aparelho já travou Centro/Vila.
-    pedir_loja = not travado
-    if not request.session.pop("ajuste_mobile_gate", None):
-        request.session.pop("ajuste_mobile_operador", None)
-        request.session.pop("ajuste_mobile_user_id", None)
-        request.session.modified = True
-        return render(request, "produtos/ajuste_mobile_login.html")
-    operador = str(request.session.get("ajuste_mobile_operador") or "").strip()
-    return render(
-        request,
-        "produtos/mobile_ajuste.html",
-        {
-            "ajuste_operador": operador,
-            "ajuste_deposito_inicial": dep,
-            "ajuste_deposito_inicial_label": rotulo_deposito(dep),
-            "ajuste_deposito_travado": travado,
-            "ajuste_pedir_loja": pedir_loja,
-        },
-    )
+    from django.urls import reverse
+
+    from produtos.vendas_lojas_hub_sessao_util import operador_da_sessao
+
+    dest = reverse("vendas_lojas_ajuste_mobile")
+    if operador_da_sessao(request):
+        return redirect(dest)
+    nxt = quote(dest, safe="")
+    return redirect(f"{reverse('vendas_lojas_pin')}?next={nxt}")
 
 
 # --- MOTOR DE BUSCA ÚNICO ---
@@ -27936,19 +27952,26 @@ def api_ajustar_estoque(request):
             .filter(senha_rapida=pin, ativo=True)
             .first()
         )
-    sessao_ajuste = bool(
-        str(request.session.get("ajuste_mobile_operador") or "").strip()
-        or request.session.get("ajuste_mobile_user_id")
+    from produtos.vendas_lojas_ajuste_sessao_util import (
+        sincronizar_ajuste_mobile_desde_hub,
+        sessao_ajuste_mobile_ok,
     )
+
+    sincronizar_ajuste_mobile_desde_hub(request)
+    sessao_ajuste = sessao_ajuste_mobile_ok(request)
     if (pin == "SESSAO" and sessao_ajuste) or perfil_pin is not None:
         try:
             empresa = Empresa.objects.filter(nome_fantasia="Agro Mais").first()
             user_op = None
             rotulo = ""
             if pin == "SESSAO":
-                # Operador = quem abriu a tela com PIN (não o login Django do Chrome).
-                rotulo = str(request.session.get("ajuste_mobile_operador") or "").strip()
-                uid = request.session.get("ajuste_mobile_user_id")
+                from produtos.vendas_lojas_ajuste_sessao_util import (
+                    operador_ajuste_rotulo,
+                    user_id_ajuste_mobile,
+                )
+
+                rotulo = operador_ajuste_rotulo(request)
+                uid = user_id_ajuste_mobile(request)
                 if uid:
                     from django.contrib.auth import get_user_model
 
@@ -28034,10 +28057,13 @@ def _autorizar_pin_ajuste_request(request) -> tuple[bool, str]:
     pin = str(request.POST.get("pin") or "").strip()
     if not pin:
         return False, "Informe o PIN."
-    sessao_ajuste = bool(
-        str(request.session.get("ajuste_mobile_operador") or "").strip()
-        or request.session.get("ajuste_mobile_user_id")
+    from produtos.vendas_lojas_ajuste_sessao_util import (
+        sincronizar_ajuste_mobile_desde_hub,
+        sessao_ajuste_mobile_ok,
     )
+
+    sincronizar_ajuste_mobile_desde_hub(request)
+    sessao_ajuste = sessao_ajuste_mobile_ok(request)
     if pin == "SESSAO":
         if sessao_ajuste:
             return True, ""

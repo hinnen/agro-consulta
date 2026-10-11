@@ -29,8 +29,13 @@ def _dec(v) -> Decimal:
 
 
 def _operador_da_request(request) -> tuple[str, Any]:
-    rotulo = str(request.session.get("ajuste_mobile_operador") or "").strip()
-    uid = request.session.get("ajuste_mobile_user_id")
+    from produtos.vendas_lojas_ajuste_sessao_util import (
+        operador_ajuste_rotulo,
+        user_id_ajuste_mobile,
+    )
+
+    rotulo = operador_ajuste_rotulo(request)
+    uid = user_id_ajuste_mobile(request)
     user = None
     if uid:
         from django.contrib.auth import get_user_model
@@ -45,10 +50,9 @@ def _operador_da_request(request) -> tuple[str, Any]:
 
 
 def sessao_gate_ok(request) -> bool:
-    return bool(
-        str(request.session.get("ajuste_mobile_operador") or "").strip()
-        or request.session.get("ajuste_mobile_user_id")
-    )
+    from produtos.vendas_lojas_ajuste_sessao_util import sessao_ajuste_mobile_ok
+
+    return sessao_ajuste_mobile_ok(request)
 
 
 def _qs_produtos_escopo(escopo_tipo: str, escopo_valor: str):

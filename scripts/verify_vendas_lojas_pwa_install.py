@@ -31,6 +31,7 @@ def main() -> int:
     views = read("produtos/views.py")
     pin = read("produtos/templates/produtos/vendas_lojas_pin.html")
     hub = read("produtos/templates/produtos/vendas_lojas_hub.html")
+    urls = read("produtos/urls.py")
 
     check("head_manifest", "vendas_lojas_manifest" in head)
     check("head_apple_capable", "apple-mobile-web-app-capable" in head)

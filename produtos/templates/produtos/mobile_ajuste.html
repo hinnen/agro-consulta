@@ -9,6 +9,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  {% if ajuste_via_sistapp %}
+  {% include "produtos/includes/vendas_lojas_pwa_head.html" with vl_theme_color="#10b981" %}
+  {% else %}
   <meta name="apple-mobile-web-app-title" content="Ajuste">
   <meta name="theme-color" content="#10b981">
   <link rel="manifest" href="{% url 'ajuste_mobile_manifest' %}">
@@ -27,6 +30,7 @@
     }
   })();
   </script>
+  {% endif %}
   {% include "produtos/_head_perf_mpa.html" %}
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -782,7 +786,12 @@
     {% if ajuste_operador %}
     <div class="ma-head-row ma-head-row--op">
       <span class="ma-head-op-txt" title="Quem abriu com PIN — todos os ajustes desta sessão">Operador: {{ ajuste_operador }}</span>
+      {% if ajuste_via_sistapp %}
+      <a href="{% url 'vendas_lojas_hub' %}" class="ma-head-op-link" title="Voltar ao menu SistApp">Início</a>
+      <a href="{% url 'vendas_lojas_pin' %}?trocar=1&amp;next={{ request.path|urlencode }}" class="ma-head-op-link" title="Trocar operador">Trocar PIN</a>
+      {% else %}
       <a href="{% url 'ajuste_mobile' %}" class="ma-head-op-link" title="Trocar operador (pede PIN de novo)">Trocar</a>
+      {% endif %}
     </div>
     {% endif %}
     <div class="ma-head-row ma-head-row--sync">
@@ -3576,7 +3585,11 @@ try {
   }
 } catch (_) {}
   if ("serviceWorker" in navigator) {
+    {% if ajuste_via_sistapp %}
+    navigator.serviceWorker.register("{% url 'vendas_lojas_sw' %}", { scope: "/vendas/lojas/" }).catch(function () {});
+    {% else %}
     navigator.serviceWorker.register("{% url 'ajuste_mobile_sw' %}", { scope: "/ajuste-mobile/" }).catch(function () {});
+    {% endif %}
   }
 </script>
 
