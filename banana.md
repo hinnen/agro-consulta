@@ -1294,6 +1294,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — **VILA-ABERTURA-0108** (`CHECKLIST 11/10m` · 11/10) · 🟢 **PRONTO p/ produção**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **só no `teste`** — aguarda frase + senha loja |
+| **Versão** | **v27.05** |
+| **Commit** | `35737c12` — default `AGRO_VILA_ABERTURA` **01/08/2026** (ajuda BI + provas) |
+| **O quê** | Meta Vila: ignora jul/26 fraco; ramp 90d + 14d **inalterados** |
+| **Migrate** | **NÃO** |
+| **Render** | **Não precisa MCP** — após deploy, vale o default do código. **Só** se no painel existir `AGRO_VILA_ABERTURA=2026-07-20`, apagar ou `2026-08-01` (ver `docs/ROLLBACK-BI-META-C-VILA.md`) |
+| **Prova** | `verify_meta_c_vila_abertura.py` **62/64** (2× DB local sem `deposito`) · `verify_meta_c_vila_ramp_deep.py` **36/37** |
+
+### 🟢 CHECKLIST ÚNICO — **11/10m** · pronto para envio à produção
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **VILA-ABERTURA-0108** | 🟢 **PRONTO** (`teste` @ `35737c12` · v27.05) | **NÃO** |
+
 ### ✅ Deploy loja — hotfix **SISTAPP-AJUSTE-SHELL** · **Live** · 11/10
 
 | Campo | Valor |

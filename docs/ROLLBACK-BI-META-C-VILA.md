@@ -4,6 +4,8 @@
 **Env nova obrigatória:** NÃO  
 Opcionais: `AGRO_VILA_ABERTURA` (default `2026-08-01`) · `AGRO_VILA_META_RAMP_DIAS` (90) · `AGRO_VILA_META_RAMP_JANELA` (14)
 
+**Render:** se existir `AGRO_VILA_ABERTURA=2026-07-20` no Environment Group, **apague** a variável ou troque para `2026-08-01` — senão o painel ignora o default do código. Sem variável no Render = default do deploy basta.
+
 ## Regra Vila (ramp)
 
 - Até **90 dias** após a abertura: meta diária = média dos últimos **14 dias com venda**.
