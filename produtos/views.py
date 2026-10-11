@@ -11720,9 +11720,9 @@ def vendas_lojas_manifest(request):
     icon_512 = request.build_absolute_uri("/static/produtos/pwa/vendas-lojas-512.png")
     payload = {
         "id": "/vendas/lojas/",
-        "name": "GM Lojas",
-        "short_name": "Vendas",
-        "description": "Vendas das lojas e pendências / tarefas",
+        "name": "SistApp",
+        "short_name": "SistApp",
+        "description": "SistApp — vendas, tarefas, fotos e etiquetas das lojas",
         "start_url": "/vendas/lojas/?utm_source=pwa",
         "scope": "/vendas/lojas/",
         "display": "standalone",
