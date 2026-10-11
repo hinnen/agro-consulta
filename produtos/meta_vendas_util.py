@@ -33,6 +33,13 @@ def meta_deposito_label(deposito: str | None) -> str:
     return "Centro + Vila"
 
 
+def meta_normalizar_deposito(raw: str | None) -> str:
+    d = (raw or "").strip().lower()
+    if d in ("centro", "vila"):
+        return d
+    return "centro"
+
+
 def meta_competencia_iso(d: date | None = None) -> str:
     alvo = d or date.today()
     return f"{alvo.year:04d}-{alvo.month:02d}"
@@ -115,16 +122,18 @@ def meta_parse_decimal(raw) -> Decimal | None:
         return None
 
 
-def meta_ensure_faixas_padrao(competencia: str) -> int:
-    """Se a competência não tem faixa, cria o padrão. Retorna quantas criou."""
+def meta_ensure_faixas_padrao(competencia: str, deposito: str = "centro") -> int:
+    """Se a competência+loja não tem faixa, cria o padrão. Retorna quantas criou."""
     from produtos.models import MetaVendaFaixaAgro
 
     comp = meta_parse_competencia(competencia)
-    if MetaVendaFaixaAgro.objects.filter(competencia=comp).exists():
+    dep = meta_normalizar_deposito(deposito)
+    if MetaVendaFaixaAgro.objects.filter(competencia=comp, deposito=dep).exists():
         return 0
     objs = [
         MetaVendaFaixaAgro(
             competencia=comp,
+            deposito=dep,
             valor_meta=vm,
             bonus_valor=bv,
             bonus_extra=be,
@@ -136,29 +145,93 @@ def meta_ensure_faixas_padrao(competencia: str) -> int:
     return len(objs)
 
 
-def meta_listar_faixas(competencia: str) -> list[dict]:
+def _meta_faixa_row_dict(f) -> dict:
+    dep = meta_normalizar_deposito(getattr(f, "deposito", None))
+    return {
+        "id": f.id,
+        "competencia": f.competencia,
+        "deposito": dep,
+        "valor_meta": float(_q2(f.valor_meta)),
+        "valor_meta_fmt": meta_fmt_moeda(f.valor_meta),
+        "bonus_valor": float(_q2(f.bonus_valor)),
+        "bonus_valor_fmt": meta_fmt_moeda(f.bonus_valor),
+        "bonus_extra": (f.bonus_extra or "").strip(),
+        "bonus_label": meta_bonus_label(f.bonus_valor, f.bonus_extra),
+        "ordem": int(f.ordem or 0),
+    }
+
+
+def _meta_bonus_label_mesclado(fc, fv) -> str:
+    partes = []
+    if fc is not None:
+        lbl = meta_bonus_label(fc.bonus_valor, fc.bonus_extra)
+        if lbl != "—":
+            partes.append(f"Centro {lbl}")
+    if fv is not None:
+        lbl = meta_bonus_label(fv.bonus_valor, fv.bonus_extra)
+        if lbl != "—":
+            partes.append(f"Vila {lbl}")
+    if partes:
+        return " · ".join(partes)
+    return "—"
+
+
+def _meta_mesclar_faixas_lojas(c_rows: list, v_rows: list) -> list[dict]:
+    """Centro + Vila: soma metas por ordem; bônus exibidos por loja."""
+    by_c = {int(f.ordem or 0): f for f in c_rows}
+    by_v = {int(f.ordem or 0): f for f in v_rows}
+    ordens = sorted(set(by_c) | set(by_v))
+    out: list[dict] = []
+    for ordem in ordens:
+        fc = by_c.get(ordem)
+        fv = by_v.get(ordem)
+        vm = _q2(fc.valor_meta if fc else 0) + _q2(fv.valor_meta if fv else 0)
+        if vm <= 0 and fc is None and fv is None:
+            continue
+        bv = _q2(fc.bonus_valor if fc else 0) + _q2(fv.bonus_valor if fv else 0)
+        out.append(
+            {
+                "id": None,
+                "competencia": (fc or fv).competencia,
+                "deposito": "todas",
+                "valor_meta": float(vm),
+                "valor_meta_fmt": meta_fmt_moeda(vm),
+                "bonus_valor": float(bv),
+                "bonus_valor_fmt": meta_fmt_moeda(bv),
+                "bonus_extra": "",
+                "bonus_label": _meta_bonus_label_mesclado(fc, fv),
+                "ordem": ordem,
+            }
+        )
+    return out
+
+
+def meta_listar_faixas(competencia: str, deposito: str | None = None) -> list[dict]:
     from produtos.models import MetaVendaFaixaAgro
 
     comp = meta_parse_competencia(competencia)
-    meta_ensure_faixas_padrao(comp)
-    rows = []
-    for f in MetaVendaFaixaAgro.objects.filter(competencia=comp).order_by(
-        "ordem", "valor_meta", "id"
-    ):
-        rows.append(
-            {
-                "id": f.id,
-                "competencia": f.competencia,
-                "valor_meta": float(_q2(f.valor_meta)),
-                "valor_meta_fmt": meta_fmt_moeda(f.valor_meta),
-                "bonus_valor": float(_q2(f.bonus_valor)),
-                "bonus_valor_fmt": meta_fmt_moeda(f.bonus_valor),
-                "bonus_extra": (f.bonus_extra or "").strip(),
-                "bonus_label": meta_bonus_label(f.bonus_valor, f.bonus_extra),
-                "ordem": int(f.ordem or 0),
-            }
+    dep = deposito if deposito in ("centro", "vila") else None
+
+    if dep:
+        meta_ensure_faixas_padrao(comp, dep)
+        qs = MetaVendaFaixaAgro.objects.filter(competencia=comp, deposito=dep).order_by(
+            "ordem", "valor_meta", "id"
         )
-    return rows
+        return [_meta_faixa_row_dict(f) for f in qs]
+
+    meta_ensure_faixas_padrao(comp, "centro")
+    meta_ensure_faixas_padrao(comp, "vila")
+    c_rows = list(
+        MetaVendaFaixaAgro.objects.filter(competencia=comp, deposito="centro").order_by(
+            "ordem", "valor_meta", "id"
+        )
+    )
+    v_rows = list(
+        MetaVendaFaixaAgro.objects.filter(competencia=comp, deposito="vila").order_by(
+            "ordem", "valor_meta", "id"
+        )
+    )
+    return _meta_mesclar_faixas_lojas(c_rows, v_rows)
 
 
 def _cmp_bloco(cmp: dict) -> dict:
@@ -334,7 +407,7 @@ def meta_montar_mostruario(
         media_mes_dia = meta_mes_cheia
         bloco_hoje = {"ativo": False}
 
-    faixas_raw = meta_listar_faixas(comp)
+    faixas_raw = meta_listar_faixas(comp, dep)
     fracao = _fracao_ate_agora(media_mes_ref, meta_mes_cheia)
     faixas = []
     proxima = None
@@ -387,85 +460,36 @@ def meta_montar_mostruario(
     return _json_deep(out)
 
 
-def meta_texto_zap(mostruario: dict, modo: str = "mes") -> str:
-    """Texto pronto pra colar no grupo. ``modo``: mes | agora."""
-    modo_agora = (modo or "mes").strip().lower() in ("agora", "ate_agora", "ritmo")
-    loja = mostruario.get("deposito_label") or "Centro + Vila"
-    linhas = [
-        f"🎯 *META — {mostruario.get('competencia_fmt', '')} · {loja}*",
-        "",
-    ]
-    if modo_agora:
-        linhas.append(
-            f"⏱ *VISÃO ATÉ AGORA* (ritmo · {mostruario.get('fracao_ate_agora_pct_fmt', '—')} do mês pela média)"
-        )
-        linhas.append("")
-    hoje = mostruario.get("hoje") or {}
-    if hoje.get("ativo"):
-        vs = hoje.get("vs_media") or {}
-        linhas.extend(
-            [
-                f"📅 *HOJE ({hoje.get('data_fmt', '')})*",
-                f"Vendido: *{hoje.get('vendido_fmt', '—')}*",
-                f"Média esperada (até agora): {hoje.get('media_ate_agora_fmt', '—')}",
-                f"vs média: *{vs.get('diff_fmt', '—')}* ({vs.get('pct_signed_fmt', '—')} {vs.get('sentido_label', '')})",
-                "",
-            ]
-        )
-
-    rotulo_mes = "MÊS FECHADO" if mostruario.get("mes_fechado") and not mostruario.get("mes_atual") else "MÊS ATÉ HOJE"
-    vs_m = mostruario.get("vs_media_mes") or {}
-    linhas.extend(
-        [
-            f"🗓 *{rotulo_mes}* (até {mostruario.get('fim_vendido_fmt', '')})",
-            f"Vendido: *{mostruario.get('vendido_mes_fmt', '—')}*",
-            f"Média esperada: {mostruario.get('media_mes_ref_fmt', '—')}",
-            f"vs média: *{vs_m.get('diff_fmt', '—')}* ({vs_m.get('pct_signed_fmt', '—')} {vs_m.get('sentido_label', '')})",
-            "",
-            "🏁 *Metas*" + (" · ritmo até agora" if modo_agora else " · meta do mês"),
-        ]
-    )
-    for f in mostruario.get("faixas") or []:
-        if modo_agora:
-            a = f.get("agora") or {}
-            if a.get("atingida"):
-                status = f"✅ no ritmo · +{a.get('excedente_fmt', '—')}"
-            else:
-                status = f"faltam {a.get('falta_fmt', '—')} · {a.get('pct_fmt', '—')} do esperado"
-            linhas.append(
-                f"• {f.get('valor_meta_fmt', '—')} (parcela {f.get('meta_agora_fmt', '—')}) · bônus {f.get('bonus_label', '—')} — {status}"
-            )
+def _meta_linha_zap_enxuta(f: dict, *, modo_agora: bool) -> str:
+    """Uma faixa no padrão enxuto do grupo (ex.: ``* R$ 105.000,00 · bônus R$ 100,00 ✅``)."""
+    vm = f.get("valor_meta_fmt") or "—"
+    bl = (f.get("bonus_label") or "").strip()
+    meio = f" · bônus {bl}" if bl and bl != "—" else ""
+    prog = (f.get("agora") or {}) if modo_agora else f
+    suf = ""
+    if prog.get("atingida"):
+        ex_fmt = (prog.get("excedente_fmt") or "").strip()
+        ex = prog.get("excedente")
+        try:
+            tem_exc = ex is not None and float(ex) > 0.005
+        except (TypeError, ValueError):
+            tem_exc = bool(ex_fmt and ex_fmt != "—")
+        if tem_exc and ex_fmt:
+            suf = f" ✅ +{ex_fmt}"
         else:
-            if f.get("atingida"):
-                status = f"✅ batida · +{f.get('excedente_fmt', '—')}"
-            else:
-                status = f"faltam {f.get('falta_fmt', '—')} ({f.get('pct_fmt', '—')})"
-            linhas.append(
-                f"• {f.get('valor_meta_fmt', '—')} · bônus {f.get('bonus_label', '—')} — {status}"
-            )
-    if modo_agora:
-        prox = mostruario.get("proxima_meta_agora")
-        if prox:
-            a = prox.get("agora") or {}
-            linhas.extend(
-                [
-                    "",
-                    f"👉 Próxima no ritmo: *{prox.get('valor_meta_fmt')}* — faltam *{a.get('falta_fmt')}* da parcela",
-                ]
-            )
-        elif mostruario.get("ultima_batida_agora"):
-            linhas.extend(["", "🏆 No ritmo de todas as metas até agora!"])
-    else:
-        prox = mostruario.get("proxima_meta")
-        if prox:
-            linhas.extend(
-                [
-                    "",
-                    f"👉 Próxima: *{prox.get('valor_meta_fmt')}* — faltam *{prox.get('falta_fmt')}*",
-                ]
-            )
-        elif mostruario.get("ultima_batida"):
-            linhas.extend(["", "🏆 Todas as metas batidas!"])
+            suf = " ✅"
+    return f"* {vm}{meio}{suf}"
+
+
+def meta_texto_zap(mostruario: dict, modo: str = "mes") -> str:
+    """Texto enxuto pra colar no Zap — só as faixas. ``modo``: mes | agora."""
+    modo_agora = (modo or "mes").strip().lower() in ("agora", "ate_agora", "ritmo")
+    linhas = [
+        _meta_linha_zap_enxuta(f, modo_agora=modo_agora)
+        for f in (mostruario.get("faixas") or [])
+    ]
+    if not linhas:
+        return ""
     return "\n".join(linhas).strip() + "\n"
 
 
@@ -478,10 +502,12 @@ def meta_salvar_faixa(
     bonus_extra: str = "",
     faixa_id: int | None = None,
     ordem: int | None = None,
+    deposito: str = "centro",
 ) -> dict:
     from produtos.models import MetaVendaFaixaAgro
 
     comp = meta_parse_competencia(competencia)
+    dep = meta_normalizar_deposito(deposito)
     vm = meta_parse_decimal(valor_meta)
     if vm is None or vm <= 0:
         raise ValueError("Informe o valor da meta de venda.")
@@ -497,13 +523,14 @@ def meta_salvar_faixa(
         f.valor_meta = vm
         f.bonus_valor = bv
         f.bonus_extra = extra
+        f.deposito = dep
         if ordem is not None:
             f.ordem = max(0, int(ordem))
         f.save()
     else:
         if ordem is None:
             ult = (
-                MetaVendaFaixaAgro.objects.filter(competencia=comp)
+                MetaVendaFaixaAgro.objects.filter(competencia=comp, deposito=dep)
                 .order_by("-ordem")
                 .values_list("ordem", flat=True)
                 .first()
@@ -511,18 +538,21 @@ def meta_salvar_faixa(
             ordem = int(ult or 0) + 1
         f = MetaVendaFaixaAgro.objects.create(
             competencia=comp,
+            deposito=dep,
             valor_meta=vm,
             bonus_valor=bv,
             bonus_extra=extra,
             ordem=max(0, int(ordem)),
         )
+    row = _meta_faixa_row_dict(f)
     return {
-        "id": f.id,
-        "competencia": f.competencia,
-        "valor_meta": float(_q2(f.valor_meta)),
-        "bonus_valor": float(_q2(f.bonus_valor)),
-        "bonus_extra": f.bonus_extra,
-        "ordem": f.ordem,
+        "id": row["id"],
+        "competencia": row["competencia"],
+        "deposito": row["deposito"],
+        "valor_meta": row["valor_meta"],
+        "bonus_valor": row["bonus_valor"],
+        "bonus_extra": row["bonus_extra"],
+        "ordem": row["ordem"],
     }
 
 
