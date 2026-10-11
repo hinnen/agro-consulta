@@ -76,7 +76,14 @@
       font-weight: 700;
       color: var(--muted);
     }
-    .vl-voltar {
+    .vl-top-actions {
+      flex-shrink: 0;
+      display: flex;
+      align-items: stretch;
+      gap: 0.4rem;
+    }
+    .vl-voltar,
+    .vl-atualizar {
       flex-shrink: 0;
       min-height: 2.75rem;
       min-width: 2.75rem;
@@ -92,6 +99,18 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      cursor: pointer;
+      font-family: inherit;
+      line-height: 1.1;
+    }
+    .vl-atualizar {
+      border-color: #059669;
+      background: #ecfdf5;
+      color: #047857;
+    }
+    .vl-atualizar:disabled {
+      opacity: 0.65;
+      cursor: wait;
     }
     @media (display-mode: standalone) {
       /* Mantém Início visível — hub Vendas/Tarefas */
@@ -553,7 +572,10 @@
         <h1 class="vl-title">Vendas</h1>
         <p class="vl-periodo">{{ periodo_label }}</p>
       </div>
-      <a class="vl-voltar" href="{% url 'vendas_lojas_hub' %}">Início</a>
+      <div class="vl-top-actions">
+        <button type="button" class="vl-atualizar" id="vl-atualizar" aria-label="Atualizar vendas agora">Atualizar</button>
+        <a class="vl-voltar" href="{% url 'vendas_lojas_hub' %}">Início</a>
+      </div>
     </header>
 
     <form method="get" class="vl-filtros" aria-label="Filtrar período">
@@ -1050,6 +1072,15 @@
         .catch(function () {});
     }
     carregarExtras();
+
+    var btnAtualizar = document.getElementById("vl-atualizar");
+    if (btnAtualizar) {
+      btnAtualizar.addEventListener("click", function () {
+        btnAtualizar.disabled = true;
+        btnAtualizar.textContent = "…";
+        window.location.reload();
+      });
+    }
 
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("{% url 'vendas_lojas_sw' %}", { scope: "/vendas/lojas/" }).catch(function () {});

@@ -99,6 +99,7 @@ def test_arquivos() -> None:
     check("view_sw", "def vendas_lojas_sw" in views)
     check("view_pass_data", 'request.GET.get("data")' in views)
     check("tpl_voltar", "vl-voltar" in tpl and "vendas_lojas_hub" in tpl)
+    check("tpl_atualizar", "vl-atualizar" in tpl and "vl-atualizar" in tpl and "location.reload" in tpl)
     check("tpl_mobile_viewport", "viewport-fit=cover" in tpl)
     check("tpl_mobile_dvh", "100dvh" in tpl)
     check("tpl_mobile_safe", "safe-area-inset" in tpl)
