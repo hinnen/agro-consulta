@@ -1306,25 +1306,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | tag `rollback/pre-meta-por-loja-v27.00` · `docs/ROLLBACK-META-POR-LOJA.md` |
 | **Branch PREP** | `deploy/prep-meta-por-loja-fac0` |
 
-### 📦 PACOTE PRONTO — CHECKLIST **11/10k** (restante) · **v27.03** · 🟢 **ARMADO** (só senha)
+### ✅ Deploy loja — CHECKLIST **11/10k** (restante) · **Live v27.03** · 11/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **ARMADO** — PREP `deploy/prep-checklist-1110k` @ `db8cdf6f` · Live **v27.01** @ `d77cb17e` |
-| **O quê** | **SISTAPP-PWA-AJUSTE-ATUALIZAR** · **META-ZAP-ENXUTO** (META loja já Live) |
+| **Status** | ✅ **enviado / Live v27.03** — `producao` @ `db8cdf6f` |
+| **O quê** | **SISTAPP-PWA-AJUSTE-ATUALIZAR** + **META-ZAP-ENXUTO** |
 | **Migrate** | **NÃO** |
-| **Prova** | `./scripts/cutover_loja_checklist_1110k.sh` **OK** (dry-run) · delta **sem** PDV/caixa/230/migrate |
-| **Rollback** | tag `rollback/pre-checklist-1110k-restante-v27.01` (já no origin) |
-| **Próximo chat** | Pausar vendas → `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → cutover `--exec` → Shell `./scripts/post_deploy_checklist_1110k.sh` |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1110k.md` |
+| **Backup** | `producao-backup-pre-v2703-checklist-1110k-restante` @ `d77cb17e` |
+| **Rollback** | tag `rollback/pre-checklist-1110k-restante-v27.01` · `docs/ROLLBACK-CHECKLIST-1110k.md` |
+| **Prova loja** | manifest **SistApp** · painel **Atualizar** · `/vendas/lojas/ajuste/` **200** · extras **OK** |
 
-### ✅ CHECKLIST ÚNICO — 11/10k · 🟢 **PRONTO** (falta subir)
+### ✅ CHECKLIST ÚNICO — 11/10k · ✅ **Live**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **SISTAPP-PWA-AJUSTE-ATUALIZAR** | 🟢 pronto subir | **NÃO** |
+| 1 | **SISTAPP-PWA-AJUSTE-ATUALIZAR** | ✅ **Live v27.03** | **NÃO** |
 | 2 | **META-POR-LOJA** | ✅ **Live v27.01** | **0144** |
-| 3 | **META-ZAP-ENXUTO** | 🟢 pronto subir | **NÃO** |
+| 3 | **META-ZAP-ENXUTO** | ✅ **Live v27.03** | **NÃO** |
 
 ### ✅ Deploy loja — **GM-LOJAS-PIN-UI** · **Live v26.99** · 11/10
 

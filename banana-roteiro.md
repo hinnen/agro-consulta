@@ -945,17 +945,14 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 76b. Checklist **11/10k** (restante) · 🟢 **ARMADO v27.03** · só senha
+## 76b. Checklist **11/10k** · ✅ **Live v27.03** · 11/10
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **SISTAPP-PWA-AJUSTE-ATUALIZAR** | 🟢 ARMADO | **NÃO** |
-| 2 | **META-ZAP-ENXUTO** | 🟢 ARMADO | **NÃO** |
+| 1 | **SISTAPP-PWA-AJUSTE-ATUALIZAR** | ✅ **Live v27.03** | **NÃO** |
+| 2 | **META-ZAP-ENXUTO** | ✅ **Live v27.03** | **NÃO** |
 
-**PREP:** `deploy/prep-checklist-1110k` @ `db8cdf6f` (rebase em **v27.01**). **Dry-run cutover OK.**  
-**Na senha:** pausar vendas → `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → `./scripts/cutover_loja_checklist_1110k.sh --exec` → Shell `./scripts/post_deploy_checklist_1110k.sh` (~2 min, **sem migrate**).  
-**Rollback:** `rollback/pre-checklist-1110k-restante-v27.01` · `docs/ROLLBACK-CHECKLIST-1110k.md`.  
-**Não toca:** PDV · caixa · busca 230 · painel Vendas só ganha **Atualizar** (reload).
+**Live:** `producao` @ `db8cdf6f`. **Rollback:** `rollback/pre-checklist-1110k-restante-v27.01` @ `d77cb17e`.
 
 ---
 
