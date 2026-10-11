@@ -8660,13 +8660,13 @@ def _dashboard_label_mesmo_weekday_mes_ant(d: date, ref: date | None) -> dict[st
 
 def _dashboard_meta_c_vila_abertura() -> date:
     """1º dia com vendas na Vila Elias — base da Meta C nunca usa dias anteriores."""
-    raw = getattr(settings, "AGRO_VILA_ABERTURA", None) or "2026-07-20"
+    raw = getattr(settings, "AGRO_VILA_ABERTURA", None) or "2026-08-01"
     if isinstance(raw, date):
         return raw
     try:
         return date.fromisoformat(str(raw).strip()[:10])
     except ValueError:
-        return date(2026, 7, 20)
+        return date(2026, 8, 1)
 
 
 def _dashboard_meta_c_vila_ramp_dias() -> int:
@@ -8691,6 +8691,11 @@ def _dashboard_meta_c_vila_em_ramp(d: date) -> bool:
     """True enquanto ``d`` ainda está nos primeiros N dias após a abertura."""
     ab = _dashboard_meta_c_vila_abertura()
     return d < ab + timedelta(days=_dashboard_meta_c_vila_ramp_dias())
+
+
+def _dashboard_meta_c_vila_domingo_fechado(d: date) -> bool:
+    """Vila Elias não abre aos domingos — sem meta esperada nesse dia."""
+    return d.weekday() == 6
 
 
 def _dashboard_meta_c_vila_media_recente(d: date, por_dia: dict) -> float:
@@ -8859,6 +8864,8 @@ def _dashboard_vendas_meta_c_valor(
             + _dashboard_vendas_meta_c_valor(d, cache, "vila"),
             2,
         )
+    if deposito == "vila" and _dashboard_meta_c_vila_domingo_fechado(d):
+        return 0.0
     if deposito == "vila" and _dashboard_meta_c_vila_em_ramp(d):
         if cache is None:
             cache = {}

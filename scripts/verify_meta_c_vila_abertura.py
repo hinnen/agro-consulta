@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Prova path BI-META-C-VILA — corte 20/07 · soma Centro+Vila · filtro BI."""
+"""Prova path BI-META-C-VILA — corte 01/08 · soma Centro+Vila · filtro BI."""
 from __future__ import annotations
 
 import ast
@@ -49,13 +49,13 @@ def test_static() -> None:
     check("fn_data_min", "def _dashboard_meta_c_data_min" in views)
     check("fn_valor", "def _dashboard_vendas_meta_c_valor" in views)
     abert = _fn_src("produtos/views.py", "_dashboard_meta_c_vila_abertura")
-    check("abertura_iso", "2026-07-20" in abert)
+    check("abertura_iso", "2026-08-01" in abert)
     data_min_fn = _fn_src("produtos/views.py", "_dashboard_meta_c_data_min")
     check("data_min_so_vila", 'deposito == "vila"' in data_min_fn)
     check("data_min_centro_none", "return None" in data_min_fn)
 
     serie = _fn_src("produtos/views.py", "_dashboard_serie_meta_c_vendas")
-    check("serie_v2", "dash:metac:v2:" in serie)
+    check("serie_v3", "dash:metac:v3:" in serie)
     check("serie_soma_key", "todas-soma" in serie)
     check(
         "serie_recursao_lojas",
@@ -82,8 +82,22 @@ def test_static() -> None:
         ),
     )
 
-    check("ajuda_vila_2007", "20/07/2026" in body)
+    check("ajuda_vila_0108", "01/08/2026" in body)
+    check("ajuda_vila_ramp_90", "90 dias" in body)
+    check("ajuda_vila_ramp_14", "14 dias" in body)
     check("ajuda_soma", "soma" in body.lower() and "Centro + Vila" in body)
+
+    check("fn_ramp_dias", "def _dashboard_meta_c_vila_ramp_dias" in views)
+    check("fn_ramp_janela", "def _dashboard_meta_c_vila_ramp_janela" in views)
+    check("fn_em_ramp", "def _dashboard_meta_c_vila_em_ramp" in views)
+    check("fn_domingo_fechado", "def _dashboard_meta_c_vila_domingo_fechado" in views)
+    valor_fn = _fn_src("produtos/views.py", "_dashboard_vendas_meta_c_valor")
+    check("valor_vila_domingo_zero", "_dashboard_meta_c_vila_domingo_fechado" in valor_fn)
+    check("fn_media_recente", "def _dashboard_meta_c_vila_media_recente" in views)
+    ramp_d = _fn_src("produtos/views.py", "_dashboard_meta_c_vila_ramp_dias")
+    check("ramp_default_90", "90" in ramp_d)
+    jan = _fn_src("produtos/views.py", "_dashboard_meta_c_vila_ramp_janela")
+    check("ramp_default_14", "14" in jan)
 
     for rel, needle in (
         ("produtos/mongo_vendas_util.py", "_dashboard_vendas_meta_c_valor"),
@@ -133,26 +147,25 @@ def test_clip_unitario() -> None:
     )
 
     ab = _dashboard_meta_c_vila_abertura()
-    check("abertura_date", ab == date(2026, 7, 20))
+    check("abertura_date", ab == date(2026, 8, 1))
     check("data_min_vila", _dashboard_meta_c_data_min("vila") == ab)
     check("data_min_centro", _dashboard_meta_c_data_min("centro") is None)
     check("data_min_todas", _dashboard_meta_c_data_min(None) is None)
 
-    first_m, last_m = date(2026, 7, 1), date(2026, 7, 31)
+    first_m, last_m = date(2026, 8, 1), date(2026, 8, 31)
     por = {
-        "2026-07-06": 1000.0,
-        "2026-07-13": 2000.0,
-        "2026-07-20": 400.0,
-        "2026-07-27": 600.0,
+        "2026-08-03": 1000.0,
+        "2026-08-10": 2000.0,
+        "2026-08-17": 400.0,
+        "2026-08-24": 600.0,
     }
-    # clip: so 20 e 27; idx1=400; A=500; meta=450
+    # 5 segundas no mes; dia 31 sem venda entra 0 na media A
     m = _dashboard_meta_c_um_mes(0, 1, por, first_m, last_m, data_min=ab)
-    check("jul_clip_1a", m == 450.0, str(m))
-    # 2a ocorrencia no recorte = 27 (600); meta=(500+600)/2=550
+    check("ago_clip_1a", m == 900.0, str(m))
     m2 = _dashboard_meta_c_um_mes(0, 2, por, first_m, last_m, data_min=ab)
-    check("jul_clip_2a", m2 == 550.0, str(m2))
+    check("ago_clip_2a", m2 == 1400.0, str(m2))
     m0 = _dashboard_meta_c_um_mes(0, 1, por, first_m, last_m, data_min=None)
-    check("jul_sem_clip", m0 == 1000.0, str(m0))
+    check("ago_sem_clip", m0 == 900.0, str(m0))
 
     por_jun = {
         f"2026-06-{d:02d}": 50.0
@@ -169,9 +182,10 @@ def test_clip_unitario() -> None:
     z = _dashboard_vendas_meta_c_para_dia(date(2026, 7, 15), meses, data_min=ab)
     check("alvo_antes_abertura_zero", z == 0.0, str(z))
     # dia alvo apos abertura usa clip
-    ok_d = _dashboard_vendas_meta_c_para_dia(date(2026, 8, 3), meses, data_min=ab)
-    # 3/8/2026 = Monday, ocorrencia 1 → mesma 450
-    check("alvo_apos_usa_clip", ok_d == 450.0, str(ok_d))
+    meses_ago = [(first_m, last_m, por)]
+    ok_d = _dashboard_vendas_meta_c_para_dia(date(2026, 8, 3), meses_ago, data_min=ab)
+    # 3/8/2026 = Monday, ocorrencia 1 → 900
+    check("alvo_apos_usa_clip", ok_d == 900.0, str(ok_d))
 
 
 def test_soma_e_serie() -> None:
@@ -190,14 +204,15 @@ def test_soma_e_serie() -> None:
             return 100.0
         return 500.0
 
-    with patch("produtos.views._dashboard_vendas_meta_c_para_dia", side_effect=fake_para):
-        with patch(
-            "produtos.views._dashboard_meta_c_meses_por_dia",
-            return_value=[(date(2026, 7, 1), date(2026, 7, 31), {})],
-        ):
-            vc = _dashboard_vendas_meta_c_valor(d, {}, "centro")
-            vv = _dashboard_vendas_meta_c_valor(d, {}, "vila")
-            vt = _dashboard_vendas_meta_c_valor(d, {}, None)
+    with patch("produtos.views._dashboard_meta_c_vila_em_ramp", return_value=False):
+        with patch("produtos.views._dashboard_vendas_meta_c_para_dia", side_effect=fake_para):
+            with patch(
+                "produtos.views._dashboard_meta_c_meses_por_dia",
+                return_value=[(date(2026, 7, 1), date(2026, 7, 31), {})],
+            ):
+                vc = _dashboard_vendas_meta_c_valor(d, {}, "centro")
+                vv = _dashboard_vendas_meta_c_valor(d, {}, "vila")
+                vt = _dashboard_vendas_meta_c_valor(d, {}, None)
     check("valor_centro_mock", vc == 500.0, str(vc))
     check("valor_vila_mock", vv == 100.0, str(vv))
     check("valor_todas_soma", vt == 600.0, str(vt))
@@ -280,8 +295,67 @@ def test_ocorrencia_mes() -> None:
     check("seq_diferentes", m1 != m3)
 
 
+def test_ramp_vila() -> None:
+    print("== 6. Ramp Vila 14d / 90d ==")
+    from unittest.mock import patch
+
+    from produtos.views import (
+        _dashboard_meta_c_vila_abertura,
+        _dashboard_meta_c_vila_em_ramp,
+        _dashboard_meta_c_vila_media_recente,
+        _dashboard_vendas_meta_c_valor,
+    )
+
+    ab = _dashboard_meta_c_vila_abertura()
+    check("ramp_dia39", _dashboard_meta_c_vila_em_ramp(ab + timedelta(days=39)))
+    check("ramp_dia89", _dashboard_meta_c_vila_em_ramp(ab + timedelta(days=89)))
+    check("ramp_fim_dia90", not _dashboard_meta_c_vila_em_ramp(ab + timedelta(days=90)))
+    # 01/08 + 90 = 30/10/2026
+    check("ramp_ate_out", _dashboard_meta_c_vila_em_ramp(date(2026, 10, 29)))
+    check("ramp_pos_out", not _dashboard_meta_c_vila_em_ramp(date(2026, 10, 30)))
+
+    por = {
+        "2026-08-01": 100.0,
+        "2026-08-02": 0.0,
+        "2026-08-03": 200.0,
+        "2026-08-04": 300.0,
+    }
+    # últimos 3 com venda antes de 05 = 300,200,100 → média 200
+    m = _dashboard_meta_c_vila_media_recente(date(2026, 8, 5), por)
+    check("media_14_ignora_zero", m == 200.0, str(m))
+
+    with patch("produtos.views._dashboard_meta_c_vila_em_ramp", return_value=True):
+        with patch(
+            "produtos.views._dashboard_meta_c_vila_por_dia_ramp",
+            return_value=por,
+        ):
+            with patch(
+                "produtos.views._dashboard_meta_c_vila_media_recente",
+                return_value=777.0,
+            ) as mr:
+                v = _dashboard_vendas_meta_c_valor(date(2026, 8, 15), {}, "vila")
+                check("valor_vila_usa_ramp", v == 777.0, str(v))
+                check("valor_vila_chamou_media", mr.called)
+                n_calls = mr.call_count
+                v_dom = _dashboard_vendas_meta_c_valor(date(2026, 8, 16), {}, "vila")
+                check("vila_domingo_meta_zero", v_dom == 0.0, str(v_dom))
+                check("vila_domingo_sem_media", mr.call_count == n_calls)
+
+    with patch("produtos.views._dashboard_meta_c_vila_em_ramp", return_value=False):
+        with patch(
+            "produtos.views._dashboard_vendas_meta_c_para_dia",
+            return_value=55.0,
+        ):
+            with patch(
+                "produtos.views._dashboard_meta_c_meses_por_dia",
+                return_value=[],
+            ):
+                v2 = _dashboard_vendas_meta_c_valor(date(2026, 11, 2), {}, "vila")
+                check("valor_vila_pos_ramp_meta_c", v2 == 55.0, str(v2))
+
+
 def test_regressao_centro_e_rollback() -> None:
-    print("== 6. Regressao Centro + rollback ==")
+    print("== 7. Regressao Centro + rollback ==")
     from produtos.views import (
         _dashboard_meta_c_data_min,
         _dashboard_meta_c_um_mes,
@@ -326,6 +400,7 @@ def main() -> int:
     test_soma_e_serie()
     test_vendas_lojas_wiring()
     test_ocorrencia_mes()
+    test_ramp_vila()
     test_regressao_centro_e_rollback()
     total = _OK + _FAIL
     print(f"\nVERIFY {'OK' if _FAIL == 0 else 'FAIL'} {_OK}/{total}")
