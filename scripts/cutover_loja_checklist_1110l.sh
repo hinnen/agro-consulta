@@ -61,6 +61,33 @@ grep -q 'META core OK' /tmp/cutover-1110l-meta.log
 "$PY" manage.py test produtos.tests_vendas_lojas_ritmo -v0 2>&1 | tee /tmp/cutover-1110l-ritmo.log
 grep -qE 'OK|passed' /tmp/cutover-1110l-ritmo.log
 
+AGRO_PIN_TESTE=9973 "$PY" -c "
+import os, sys
+from pathlib import Path
+sys.path.insert(0, str(Path('.').resolve()))
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+import django
+django.setup()
+import scripts.verify_vendas_lojas_resumo_path as vlr
+vlr.test_arquivos()
+vlr.test_periodo()
+vlr.test_totais_mock()
+vlr.test_cmp_meta()
+vlr.test_fracao_expediente()
+vlr.test_previsao_mes()
+from produtos.caixa_util import validar_pin_operador
+_pin = (os.environ.get('AGRO_PIN_TESTE') or '9973').strip()
+_pin_ok, _ = validar_pin_operador(_pin)
+if _pin_ok:
+    vlr.test_fiado_math()
+else:
+    print('SKIP fiado_math (PIN/schema local — use PC loja para fiado)')
+vlr.test_ritmo_historico()
+vlr.test_versao()
+print('RESUMO ritmo OK')
+" | tee /tmp/cutover-1110l-resumo.log
+grep -q 'RESUMO ritmo OK' /tmp/cutover-1110l-resumo.log
+
 echo "OK: PREP v$VER_ESPERADA · 11/10l · rollback $ROLLBACK_TAG"
 if [[ "${1:-}" != "--exec" ]]; then exit 0; fi
 

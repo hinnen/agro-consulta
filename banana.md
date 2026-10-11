@@ -1307,12 +1307,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PRONTO envio produção** — PREP `deploy/prep-checklist-1110l` @ `52e014c8` · Live **v27.03** @ `b4e4fcc8` |
+| **Status** | 🟢 **PRONTO envio produção** — PREP `deploy/prep-checklist-1110l` @ `7c29f655` · Live **v27.03** @ `b4e4fcc8` |
 | **O quê** | **META-CENTRO-VILA-UNIFICADO** · **VL-RITMO-HORA** (média «até agora» hora civil + 12 semanas no PDV) |
 | **Migrate** | **NÃO** |
 | **Prova** | path estático **OK** · `cutover_loja_checklist_1110l.sh` dry-run **OK** · ritmo **3/3** · PWA **26/26** · `www.sistvale.com.br` PIN+Atualizar+ajuste **OK** (11/10) |
 | **Cutover** | `./scripts/cutover_loja_checklist_1110l.sh` · `docs/DEPLOY-PREP-CHECKLIST-1110l.md` |
-| **Rollback** | tag `rollback/pre-checklist-1110l-v27.03` @ `b4e4fcc8` |
+| **Rollback** | tag `rollback/pre-checklist-1110l-v27.03-b4e` @ `b4e4fcc8` |
 
 ### ✅ CHECKLIST ÚNICO — 11/10l · 🟢 **PRONTO envio produção**
 
