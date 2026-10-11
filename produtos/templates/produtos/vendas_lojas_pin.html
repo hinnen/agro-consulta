@@ -219,6 +219,8 @@
   <div class="agro-field" aria-hidden="true"></div>
   <div class="shell">
     <div class="card">
+      {% include "produtos/includes/vendas_lojas_pwa_install.html" with vl_pwa_variant="pin" %}
+
       <div class="brand">
         <div class="brand-mark">
           <img src="{% static 'produtos/img/logo_agro_mais.png' %}" width="120" height="120" alt="">
@@ -226,8 +228,6 @@
         <h1 class="brand-title"><span class="agro">AGRO</span> <span class="mais">M<span class="flame">A</span>IS</span></h1>
         <p>GM Lojas · PIN do operador</p>
       </div>
-
-      {% include "produtos/includes/vendas_lojas_pwa_install.html" with vl_pwa_variant="pin" %}
 
       {% if erro %}
       <p class="erro" role="alert">{{ erro }}</p>

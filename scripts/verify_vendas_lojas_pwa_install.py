@@ -38,9 +38,11 @@ def main() -> int:
     check("head_icons_png", "vendas-lojas-192.png" in head and "vendas-lojas-512.png" in head)
 
     check("install_beforeinstall", "beforeinstallprompt" in install)
-    check("install_ios_hint", "vl-pwa-ios" in install and "Adicionar" in install)
-    check("install_android_hint", "vl-pwa-android" in install)
-    check("install_inapp_hint", "vl-pwa-inapp" in install and "Abrir no navegador" in install)
+    check("install_shell", "vl-pwa-shell" in install)
+    check("install_ios_hint", "vl-pwa-steps-ios" in install and "Adicionar" in install)
+    check("install_android_hint", "vl-pwa-steps-android" in install)
+    check("install_inapp_hint", "vl-pwa-steps-inapp" in install and "Chrome" in install)
+    check("install_btn_visible", "vl-pwa-instalar" in install and "disabled" in install)
     check("install_sw", "vendas_lojas_sw" in install)
     check("install_standalone_hide", "ehStandalone" in install)
 
