@@ -9,7 +9,7 @@
 | 3 | **GM-LOJAS-LOG** | path + `/gestao/logs/` | **SIM** `0143` |
 
 **Live antes:** **v26.90** @ `b2a7b02d`  
-**PREP:** `deploy/prep-checklist-1110` (atualizar cherry-picks até `teste` @ v26.94 antes do cutover)  
+**PREP:** `deploy/prep-checklist-1110` @ **v26.94** (armado · dry-run cutover OK)  
 **Rollback:** `rollback/pre-checklist-1110-v26.90`  
 **Backup:** `producao-backup-pre-v2691-checklist-1110`  
 **Cutover:** `scripts/cutover_loja_checklist_1110.sh`
