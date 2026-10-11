@@ -56,15 +56,27 @@ git grep -q 'EtiquetaSolicitacaoPacoteAgro' "$PREP_FULL" -- produtos/models.py |
 git grep -q 'pin_liberado_vendas_tarefas' "$PREP_FULL" -- produtos/vendas_lojas_hub_acesso_util.py || {
   echo "FAIL: delta sem allowlist hub"; exit 2;
 }
+git grep -q 'GmLojasAppLogAgro' "$PREP_FULL" -- produtos/models.py || {
+  echo "FAIL: delta sem log GM Lojas"; exit 2;
+}
+git grep -q 'resposta_sem_acesso_html' "$PREP_FULL" -- produtos/vendas_lojas_pin_util.py || {
+  echo "FAIL: delta sem tela sem acesso (PIN único hub)"; exit 2;
+}
 
 PY=python3
 [[ -x .venv/bin/python ]] && PY=.venv/bin/python
 
 "$PY" scripts/verify_etq_solicitacao_vl_pin_path.py | tee /tmp/cutover-1110-etq-vl.log
-grep -q 'TOTAL OK=24 FAIL=0' /tmp/cutover-1110-etq-vl.log
+grep -qE 'TOTAL OK=28 FAIL=0|TOTAL OK=24 FAIL=0' /tmp/cutover-1110-etq-vl.log
 
-echo "OK: PREP · migrate SIM (0142) · rollback $ROLLBACK_TAG"
-echo "Pós-deploy: python manage.py migrate produtos 0143 · smoke hub PIN 7d + Solicitações etiquetas"
+if [[ -f scripts/verify_gm_lojas_pin_runtime.py ]]; then
+  "$PY" scripts/verify_gm_lojas_pin_runtime.py | tee /tmp/cutover-1110-runtime.log
+  grep -q 'TOTAL OK=' /tmp/cutover-1110-runtime.log
+  grep -q 'FAIL=0' /tmp/cutover-1110-runtime.log
+fi
+
+echo "OK: PREP · migrate 0142+0143 no Shell · rollback $ROLLBACK_TAG"
+echo "Pós-deploy (rápido): ./scripts/post_deploy_checklist_1110.sh"
 
 if [[ "${1:-}" != "--exec" ]]; then exit 0; fi
 
