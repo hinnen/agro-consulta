@@ -1294,25 +1294,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — **VILA-META** (`CHECKLIST 11/10m` · 11/10) · 🟢 **PREP armado**
+### ✅ Deploy loja — **VILA-META** (`CHECKLIST 11/10m` · 11/10) · **Live v27.06**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **aguarda senha** — PREP `deploy/prep-checklist-1110m` @ `84872d72` · Live **v27.04** @ `f590b14b` |
-| **Versão** | **v27.06** |
-| **O quê** | **VILA-ABERTURA-0108** (default 01/08/2026) + **VILA-DOMINGO-ZERO** (meta R$ 0 domingo) |
+| **Status** | ✅ **enviado / Live v27.06** — `producao` @ `84872d72` |
+| **O quê** | **VILA-ABERTURA-0108** + **VILA-DOMINGO-ZERO** |
 | **Migrate** | **NÃO** |
-| **Render** | Apagar `AGRO_VILA_ABERTURA=2026-07-20` se existir (`docs/ROLLBACK-BI-META-C-VILA.md`) |
-| **Cutover** | `./scripts/cutover_loja_checklist_1110m.sh` dry-run **OK** |
+| **Backup** | `producao-backup-pre-v2706-checklist-1110m` @ `f590b14b` |
 | **Rollback** | tag `rollback/pre-checklist-1110m-v27.04-f590` @ `f590b14b` |
-| **Prova** | META static + ramp static · ritmo **3/3** · PDV **13/13** · delta só Meta C Vila |
+| **Render** | Conferir `AGRO_VILA_ABERTURA` — remover `2026-07-20` se existir |
 
-### 🟢 CHECKLIST ÚNICO — **11/10m** · aguarda senha
+### ✅ CHECKLIST ÚNICO — **11/10m** · ✅ **Live**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **VILA-ABERTURA-0108** | 🟢 **PRONTO** (v27.06) | **NÃO** |
-| 2 | **VILA-DOMINGO-ZERO** | 🟢 **PRONTO** (v27.06) | **NÃO** |
+| 1 | **VILA-ABERTURA-0108** | ✅ **Live v27.06** | **NÃO** |
+| 2 | **VILA-DOMINGO-ZERO** | ✅ **Live v27.06** | **NÃO** |
 
 ### ✅ Deploy loja — hotfix **SISTAPP-AJUSTE-SHELL** · **Live** · 11/10
 
@@ -1345,6 +1343,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Versão | `producao` | Pacotes já na loja |
 | ------ | ---------- | ------------------ |
+| **v27.06** | `84872d72` | Vila abertura 01/08 · domingo meta zero |
 | **v27.04** | `dc19f805` | META Centro+Vila unificado · ritmo hora Vendas lojas |
 | **v27.03** | `b4e4fcc8` | SistApp/Atualizar · Zap · hotfix Ajuste shell |
 | **v27.01** | (base META) | META-POR-LOJA · migrate **0144** |
