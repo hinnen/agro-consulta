@@ -58,6 +58,9 @@ def main() -> int:
     check("pin_uses_head", "vendas_lojas_pwa_head.html" in pin)
     check("pin_uses_install", "vendas_lojas_pwa_install.html" in pin)
     check("hub_uses_install", "vendas_lojas_pwa_install.html" in hub)
+    check("hub_ajuste_btn", "vl-hub-ajuste" in hub and "vendas_lojas_ajuste_mobile" in hub)
+    check("url_ajuste_hub", "vendas_lojas_ajuste_mobile" in urls)
+    check("ajuste_sessao_util", (ROOT / "produtos/vendas_lojas_ajuste_sessao_util.py").is_file())
     check("icon_files", (ROOT / "produtos/static/produtos/pwa/vendas-lojas-512.png").is_file())
 
     print(f"\n{len(fails)} falha(s)")
