@@ -29,6 +29,7 @@
     .etq-scroll { flex: 1; min-height: 0; overflow-y: auto; border-radius: 0.75rem; border: 1px solid rgb(51 65 85); background: rgb(15 23 42 / 0.6); }
     #etq-modal-back { z-index: 9999; }
     #etq-hist-back { z-index: 9998; }
+    #etq-sol-back { z-index: 9997; }
     body.modal-open { overflow: hidden; }
     .etq-busca-item--sel { background: rgb(234 88 12 / 0.22); box-shadow: inset 0 0 0 2px rgb(249 115 22); }
     .etq-lay-item {
@@ -143,6 +144,13 @@
 
         <i class="fas fa-sliders-h" aria-hidden="true"></i>Presets
 
+      </button>
+
+      <button type="button" id="etq-btn-solicitacoes"
+        class="relative inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-xl border-2 border-slate-500 bg-slate-800 px-3 py-1.5 text-xs font-black uppercase text-slate-100 hover:border-sky-400"
+        title="Pedidos enviados pelo celular (GM Lojas)">
+        <i class="fas fa-mobile-screen-button" aria-hidden="true"></i>Solicitações
+        <span id="etq-sol-badge" class="hidden absolute -right-1 -top-1 min-w-[1.15rem] rounded-full bg-sky-500 px-1 text-center text-[10px] font-black leading-4 text-white" aria-hidden="true">0</span>
       </button>
 
       <button type="button" id="etq-btn-historico"
@@ -702,6 +710,21 @@
 
 </div>
 
+<div id="etq-sol-back" class="fixed inset-0 hidden items-center justify-center bg-black/70 p-3 sm:p-6" aria-hidden="true" role="dialog" aria-labelledby="etq-sol-titulo">
+  <div class="flex max-h-[min(92dvh,40rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-600 bg-slate-900 shadow-2xl">
+    <div class="flex shrink-0 items-center justify-between gap-2 border-b border-slate-700 px-4 py-3">
+      <div class="min-w-0">
+        <h2 id="etq-sol-titulo" class="text-sm font-black uppercase text-white">Solicitações do celular</h2>
+        <p id="etq-sol-meta" class="mt-0.5 text-[11px] font-semibold text-slate-400">Pacotes pendentes na loja</p>
+      </div>
+      <button type="button" id="etq-sol-fechar" class="min-h-[36px] min-w-[36px] shrink-0 rounded-lg border border-slate-600 text-slate-300 hover:text-white" aria-label="Fechar">✕</button>
+    </div>
+    <div id="etq-sol-lista" class="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#475569_#0f172a]">
+      <p class="px-4 py-6 text-center text-sm text-slate-400">Abra para carregar…</p>
+    </div>
+  </div>
+</div>
+
 
 
 <script>
@@ -711,12 +734,13 @@ window.AGRO_ETQ_CFG = {
   etqPresetsUrl: "{{ api_etq_presets_url|default:'/api/produtos/etiquetas/presets/'|escapejs }}",
   resolverUrl: "{{ api_etq_resolver_url|default:'/api/produtos/etiquetas/resolver-codigos/'|escapejs }}",
   maisVendidosUrl: "{{ api_etq_mais_vendidos_url|default:'/api/produtos/etiquetas/mais-vendidos/'|escapejs }}",
-  bridgeDownloadUrl: "{{ api_etq_bridge_download_url|default:'/api/produtos/etiquetas/print-bridge/download/'|escapejs }}"
+  bridgeDownloadUrl: "{{ api_etq_bridge_download_url|default:'/api/produtos/etiquetas/print-bridge/download/'|escapejs }}",
+  solicitacoesUrl: "{{ api_etq_solicitacoes_url|default:'/api/produtos/etiquetas/solicitacoes/'|escapejs }}"
 };
 </script>
 <script src="{% static 'produtos/js/agro_print_bridge.js' %}?v=2"></script>
 <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=35"></script>
-<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=33"></script>
+<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=34"></script>
 
 {% endblock %}
 

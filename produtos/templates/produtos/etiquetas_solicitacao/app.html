@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#0284c7">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Etiquetas">
+  <title>Solicitar etiquetas | GM</title>
+  <link rel="manifest" href="{% url 'vendas_lojas_manifest' %}">
+  <link rel="apple-touch-icon" href="/static/produtos/pwa/vendas-lojas-192.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    :root {
+      --ink: #0f172a; --muted: #64748b; --accent: #0284c7; --line: #e2e8f0; --bg: #f8fafc;
+      --safe-t: env(safe-area-inset-top, 0px);
+      --safe-b: env(safe-area-inset-bottom, 0px);
+      --safe-l: env(safe-area-inset-left, 0px);
+      --safe-r: env(safe-area-inset-right, 0px);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100dvh; background: var(--bg); color: var(--ink); font-family: Inter, system-ui, sans-serif; -webkit-text-size-adjust: 100%; }
+    .shell {
+      min-height: 100dvh; max-width: 28rem; margin: 0 auto;
+      padding: max(0.75rem, var(--safe-t)) max(0.85rem, var(--safe-r)) max(0.85rem, var(--safe-b)) max(0.85rem, var(--safe-l));
+      display: flex; flex-direction: column; gap: 0.65rem;
+    }
+    .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
+    .kicker { margin: 0; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+    .title { margin: 0.15rem 0 0; font-size: clamp(1.4rem, 5.5vw + 0.3rem, 1.85rem); font-weight: 900; letter-spacing: -0.04em; }
+    .ops { display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: flex-end; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; min-height: 2.55rem; padding: 0 0.85rem;
+      border-radius: 0.8rem; border: 2px solid var(--line); background: #fff; color: var(--ink);
+      font-weight: 800; font-size: 0.75rem; text-decoration: none; text-transform: uppercase; cursor: pointer;
+    }
+    .btn-accent { background: linear-gradient(145deg, #0284c7, #0369a1); border-color: transparent; color: #fff; }
+    .btn-scan { background: #0f172a; border-color: #0f172a; color: #fff; }
+    .who { margin: 0; font-size: 0.82rem; font-weight: 700; color: var(--muted); }
+    .who strong { color: var(--ink); }
+    .busca-row { display: flex; gap: 0.45rem; }
+    #busca {
+      flex: 1; min-height: 3.1rem; border: 2px solid var(--line); border-radius: 1rem; padding: 0 0.95rem;
+      font-size: 1rem; font-weight: 700; outline: none; background: #fff;
+    }
+    #busca:focus { border-color: var(--accent); }
+    #lista { flex: 1; overflow: auto; display: flex; flex-direction: column; gap: 0.45rem; min-height: 6rem; }
+    .card-p {
+      display: block; width: 100%; text-align: left; border: 2px solid var(--line); border-radius: 1rem;
+      background: #fff; padding: 0.85rem 0.95rem; cursor: pointer;
+    }
+    .card-p:active { transform: scale(0.99); }
+    .card-p strong { display: block; font-size: 0.98rem; font-weight: 900; line-height: 1.25; }
+    .card-p span { display: block; margin-top: 0.25rem; font-size: 0.78rem; font-weight: 700; color: var(--muted); }
+    .hint { margin: 0; font-size: 0.8rem; font-weight: 700; color: var(--muted); text-align: center; padding: 1rem 0.5rem; }
+    .sacola {
+      border: 2px solid var(--line); border-radius: 1rem; background: #fff; padding: 0.75rem;
+      display: flex; flex-direction: column; gap: 0.45rem;
+    }
+    .sacola h2 { margin: 0; font-size: 0.72rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    .sacola-item {
+      display: flex; align-items: center; gap: 0.45rem; border-top: 1px solid var(--line); padding-top: 0.45rem;
+    }
+    .sacola-item:first-of-type { border-top: 0; padding-top: 0; }
+    .sacola-item .nome { flex: 1; font-size: 0.85rem; font-weight: 800; line-height: 1.2; }
+    .qtd-row { display: flex; align-items: center; gap: 0.25rem; }
+    .qtd-row button {
+      min-width: 2.2rem; min-height: 2.2rem; border-radius: 0.55rem; border: 2px solid var(--line);
+      background: #f1f5f9; font-weight: 900; font-size: 1rem; cursor: pointer;
+    }
+    .qtd-row input {
+      width: 2.5rem; min-height: 2.2rem; text-align: center; border: 2px solid var(--line); border-radius: 0.55rem;
+      font-weight: 900; font-size: 0.95rem;
+    }
+    .sacola-item .rm { min-height: 2.2rem; padding: 0 0.5rem; border: 0; border-radius: 0.55rem; background: #fee2e2; color: #b91c1c; font-weight: 900; }
+    .status { margin: 0; min-height: 1.2rem; font-size: 0.78rem; font-weight: 800; color: var(--accent); }
+    .status.err { color: #b91c1c; }
+    #reader { position: fixed; inset: 0; z-index: 80; background: #000; display: none; }
+    #reader.on { display: block; }
+    #reader-box { position: absolute; inset: 0; }
+    .scan-bar {
+      position: absolute; top: 0; left: 0; right: 0; z-index: 2;
+      padding: max(0.6rem, var(--safe-t)) 0.75rem 0.75rem;
+      display: flex; justify-content: space-between; align-items: center;
+      background: linear-gradient(to bottom, rgba(0,0,0,.75), transparent);
+      color: #fff; font-weight: 900; font-size: 0.75rem; text-transform: uppercase;
+    }
+    .enviar-wrap { position: sticky; bottom: 0; padding-top: 0.25rem; background: linear-gradient(to top, var(--bg) 70%, transparent); }
+    .btn-enviar { width: 100%; min-height: 3.5rem; border: 0; border-radius: 1rem; font-size: 1rem; font-weight: 900; text-transform: uppercase; }
+    .btn-enviar:disabled { opacity: 0.45; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="top">
+      <div>
+        <p class="kicker">GM Agro</p>
+        <h1 class="title">Pedir etiquetas</h1>
+      </div>
+      <div class="ops">
+        <button type="button" class="btn btn-scan" id="btnScan">Bipar</button>
+        <a class="btn" href="{{ url_hub }}">Início</a>
+        <a class="btn" href="{{ url_sair }}">Sair</a>
+      </div>
+    </div>
+    <p class="who">Operador: <strong>{{ operador }}</strong></p>
+
+    <div class="busca-row">
+      <input type="search" id="busca" placeholder="Nome, GM ou código…" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false">
+    </div>
+    <div id="lista"><p class="hint">Carregando catálogo…</p></div>
+
+    <div class="sacola" id="sacolaBox">
+      <h2>Sacola · <span id="sacolaTotal">0</span> etiqueta(s)</h2>
+      <div id="sacolaItens"><p class="hint" style="padding:0.25rem 0;">Adicione produtos da busca ou do bip.</p></div>
+    </div>
+    <p class="status" id="statusMsg"></p>
+    <div class="enviar-wrap">
+      <button type="button" class="btn btn-accent btn-enviar" id="btnEnviar" disabled>Enviar para a loja</button>
+    </div>
+  </div>
+
+  <div id="reader" aria-hidden="true">
+    <div id="reader-box"></div>
+    <div class="scan-bar">
+      <span>Scan ativo</span>
+      <button type="button" class="btn" id="btnFechaScan" style="color:#fff;background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.35);">Fechar</button>
+    </div>
+  </div>
+
+  {% include "produtos/_js_busca_produto_inteligente.html" %}
+  <script>
+  (function () {
+    var URL_SLIM = "{{ url_catalogo_slim }}";
+    var URL_ENVIAR = "{{ url_api_solicitacao }}";
+    var PIN_URL = "{{ url_pin }}";
+    var baseProdutos = [];
+    var sacola = [];
+    var scanner = null;
+    var scanningActive = false;
+
+    function csrf() {
+      var m = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+      return m ? decodeURIComponent(m[1]) : "";
+    }
+    function setStatus(msg, isErr) {
+      var el = document.getElementById("statusMsg");
+      el.textContent = msg || "";
+      el.className = "status" + (isErr ? " err" : "");
+    }
+    function totalEtq() {
+      return sacola.reduce(function (s, it) { return s + (parseInt(it.qtd, 10) || 1); }, 0);
+    }
+    function renderSacola() {
+      document.getElementById("sacolaTotal").textContent = String(totalEtq());
+      var box = document.getElementById("sacolaItens");
+      var btn = document.getElementById("btnEnviar");
+      if (!sacola.length) {
+        box.innerHTML = '<p class="hint" style="padding:0.25rem 0;">Adicione produtos da busca ou do bip.</p>';
+        btn.disabled = true;
+        return;
+      }
+      btn.disabled = false;
+      box.innerHTML = sacola.map(function (it, idx) {
+        return '<div class="sacola-item" data-idx="' + idx + '">' +
+          '<div class="nome">' + String(it.nome || it.id).replace(/</g, "&lt;") + '</div>' +
+          '<div class="qtd-row">' +
+          '<button type="button" class="menos" data-idx="' + idx + '">−</button>' +
+          '<input type="number" min="1" max="999" value="' + (it.qtd || 1) + '" data-idx="' + idx + '">' +
+          '<button type="button" class="mais" data-idx="' + idx + '">+</button>' +
+          '</div>' +
+          '<button type="button" class="rm" data-idx="' + idx + '">×</button>' +
+          '</div>';
+      }).join("");
+      box.querySelectorAll(".menos").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var i = parseInt(b.getAttribute("data-idx"), 10);
+          if (sacola[i]) sacola[i].qtd = Math.max(1, (parseInt(sacola[i].qtd, 10) || 1) - 1);
+          renderSacola();
+        });
+      });
+      box.querySelectorAll(".mais").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var i = parseInt(b.getAttribute("data-idx"), 10);
+          if (sacola[i]) sacola[i].qtd = Math.min(999, (parseInt(sacola[i].qtd, 10) || 1) + 1);
+          renderSacola();
+        });
+      });
+      box.querySelectorAll("input").forEach(function (inp) {
+        inp.addEventListener("change", function () {
+          var i = parseInt(inp.getAttribute("data-idx"), 10);
+          var q = parseInt(inp.value, 10) || 1;
+          if (sacola[i]) sacola[i].qtd = Math.max(1, Math.min(999, q));
+          renderSacola();
+        });
+      });
+      box.querySelectorAll(".rm").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var i = parseInt(b.getAttribute("data-idx"), 10);
+          sacola.splice(i, 1);
+          renderSacola();
+        });
+      });
+    }
+    function addSacola(prod, qtd) {
+      if (!prod || !prod.id) return;
+      var id = String(prod.id);
+      var found = sacola.find(function (x) { return String(x.id) === id; });
+      var qq = qtd > 0 ? qtd : 1;
+      if (found) {
+        found.qtd = Math.min(999, (parseInt(found.qtd, 10) || 1) + qq);
+      } else {
+        sacola.push({
+          id: id,
+          nome: String(prod.nome || "").trim(),
+          qtd: qq,
+        });
+      }
+      renderSacola();
+      setStatus("Na sacola: " + (prod.nome || id));
+    }
+    function renderLista(rows) {
+      var box = document.getElementById("lista");
+      if (!rows || !rows.length) {
+        box.innerHTML = '<p class="hint">Nenhum produto. Digite ou bipar.</p>';
+        return;
+      }
+      var html = "";
+      rows.slice(0, 40).forEach(function (p) {
+        var id = String(p.id || "");
+        var nome = String(p.nome || "Sem nome");
+        var meta = [p.codigo || p.codigo_nfe || "", p.codigo_barras || ""].filter(Boolean).join(" · ");
+        html += '<button type="button" class="card-p" data-id="' + id.replace(/"/g, "") + '">' +
+          "<strong>" + nome.replace(/</g, "&lt;") + "</strong>" +
+          "<span>" + meta.replace(/</g, "&lt;") + "</span></button>";
+      });
+      box.innerHTML = html;
+      box.querySelectorAll(".card-p").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var id = btn.getAttribute("data-id");
+          var prod = baseProdutos.find(function (x) { return String(x.id) === String(id); });
+          if (prod) addSacola(prod, 1);
+        });
+      });
+    }
+    function buscar(termo) {
+      var t = String(termo || "").trim();
+      if (t.length < 2) {
+        document.getElementById("lista").innerHTML = '<p class="hint">Digite pelo menos 2 letras ou bipar o código.</p>';
+        return;
+      }
+      var termoN = (typeof normalizarBuscaLocal === "function") ? normalizarBuscaLocal(t) : t.toLowerCase();
+      var rows = (typeof filtrarProdutosBuscaInteligente === "function")
+        ? filtrarProdutosBuscaInteligente(baseProdutos, termoN, "normal")
+        : baseProdutos.filter(function (p) {
+            return String(p.busca_texto || p.nome || "").toLowerCase().indexOf(t.toLowerCase()) >= 0;
+          });
+      renderLista(rows);
+    }
+    function matchCodigoExato(codigo) {
+      var c = String(codigo || "").replace(/\D/g, "") || String(codigo || "").trim();
+      if (!c) return [];
+      return baseProdutos.filter(function (p) {
+        var bag = []
+          .concat(p.codigo_barras || "", p.codigo || "", p.codigo_nfe || "")
+          .concat(Array.isArray(p.index_codigos) ? p.index_codigos : []);
+        return bag.some(function (x) {
+          var s = String(x || "").trim();
+          return s === c || s.replace(/\D/g, "") === c;
+        });
+      });
+    }
+    function tentarBip(codigo) {
+      var hits = matchCodigoExato(codigo);
+      if (hits.length === 1) {
+        addSacola(hits[0], 1);
+        document.getElementById("busca").value = "";
+        document.getElementById("lista").innerHTML = '<p class="hint">Bipou — pode continuar bipando ou buscar.</p>';
+        return true;
+      }
+      if (hits.length > 1) {
+        renderLista(hits);
+        setStatus("Vários produtos — toque no certo.", true);
+        return true;
+      }
+      return false;
+    }
+    async function carregarCatalogo() {
+      try {
+        var res = await fetch(URL_SLIM, { credentials: "same-origin" });
+        var j = await res.json();
+        baseProdutos = (j && j.produtos) || [];
+        document.getElementById("lista").innerHTML = '<p class="hint">Busque ou toque em Bipar.</p>';
+      } catch (e) {
+        document.getElementById("lista").innerHTML = '<p class="hint">Falha ao carregar catálogo.</p>';
+      }
+    }
+    async function enviarSacola() {
+      if (!sacola.length) return;
+      var btn = document.getElementById("btnEnviar");
+      btn.disabled = true;
+      setStatus("Enviando…");
+      try {
+        var res = await fetch(URL_ENVIAR, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json", "X-CSRFToken": csrf() },
+          body: JSON.stringify({ itens: sacola }),
+        });
+        var j = await res.json().catch(function () { return {}; });
+        if (res.status === 401 && j.precisa_pin) {
+          location.href = PIN_URL;
+          return;
+        }
+        if (!res.ok || !j.ok) {
+          setStatus(j.erro || "Não enviou.", true);
+          btn.disabled = false;
+          return;
+        }
+        sacola = [];
+        renderSacola();
+        setStatus("Enviado! No PC: Etiquetas → Solicitações.");
+      } catch (e) {
+        setStatus("Erro de rede.", true);
+        btn.disabled = false;
+      }
+    }
+    function pararScan() {
+      scanningActive = false;
+      document.getElementById("reader").classList.remove("on");
+      if (scanner) {
+        scanner.stop().catch(function () {});
+        scanner.clear();
+        scanner = null;
+      }
+    }
+    function iniciarScan() {
+      if (!window.Html5Qrcode) {
+        setStatus("Leitor indisponível neste aparelho.", true);
+        return;
+      }
+      document.getElementById("reader").classList.add("on");
+      scanner = new Html5Qrcode("reader-box");
+      scanningActive = true;
+      scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 260, height: 160 } },
+        function (decoded) {
+          if (!scanningActive) return;
+          if (tentarBip(decoded)) pararScan();
+        },
+        function () {}
+      ).catch(function () {
+        setStatus("Não abriu a câmera.", true);
+        pararScan();
+      });
+    }
+    document.getElementById("busca").addEventListener("input", function () { buscar(this.value); });
+    document.getElementById("busca").addEventListener("keydown", function (ev) {
+      if (ev.key !== "Enter") return;
+      ev.preventDefault();
+      var t = this.value.trim();
+      if (tentarBip(t)) return;
+      buscar(t);
+    });
+    document.getElementById("btnScan").addEventListener("click", iniciarScan);
+    document.getElementById("btnFechaScan").addEventListener("click", pararScan);
+    document.getElementById("btnEnviar").addEventListener("click", enviarSacola);
+    carregarCatalogo();
+    renderSacola();
+  })();
+  </script>
+</body>
+</html>

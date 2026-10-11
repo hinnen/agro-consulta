@@ -2504,6 +2504,41 @@ class EtiquetaLoteAgro(models.Model):
         return len(itens)
 
 
+class EtiquetaSolicitacaoPacoteAgro(models.Model):
+    """Pacote de etiquetas pedido pelo app celular (GM Lojas) — importado na tela de etiquetas."""
+
+    class Status(models.TextChoices):
+        PENDENTE = "pendente", "Pendente"
+        IMPORTADO = "importado", "Importado"
+        CANCELADO = "cancelado", "Cancelado"
+
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.PENDENTE,
+        db_index=True,
+    )
+    operador_nome = models.CharField(max_length=120, blank=True, default="")
+    observacao = models.CharField(max_length=300, blank=True, default="")
+    itens_json = models.JSONField(default=list, blank=True)
+    total_etiquetas = models.PositiveIntegerField(default=0)
+    resumo_nomes = models.CharField(max_length=400, blank=True, default="")
+    importado_em = models.DateTimeField(null=True, blank=True)
+    importado_por = models.CharField(max_length=150, blank=True, default="")
+
+    class Meta:
+        verbose_name = "Solicitação etiquetas (celular)"
+        verbose_name_plural = "Solicitações etiquetas (celular)"
+        ordering = ["-criado_em"]
+        indexes = [
+            models.Index(fields=["status", "-criado_em"], name="etq_sol_status_criado_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.criado_em:%d/%m %H:%M} · {self.operador_nome or '—'} · {self.status}"
+
+
 class CadastroPlanilhaImportHistoricoAgro(models.Model):
     """Backup e histórico de importações Excel do cadastro (permite desfazer)."""
 

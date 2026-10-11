@@ -27,6 +27,7 @@ from . import views_planos_conta
 from . import views_conta_bancaria_loja
 from . import contagem_ciclica_views
 from . import views_fotos_produto
+from . import views_etiquetas_solicitacao
 from . import views_meta_vendas
 
 urlpatterns = [
@@ -429,6 +430,21 @@ urlpatterns = [
         views.api_etiquetas_lote_cancelar,
         name='api_etiquetas_lote_cancelar',
     ),
+    path(
+        'api/produtos/etiquetas/solicitacoes/',
+        views_etiquetas_solicitacao.api_etiquetas_solicitacoes_lista,
+        name='api_etiquetas_solicitacoes_lista',
+    ),
+    path(
+        'api/produtos/etiquetas/solicitacoes/<int:pk>/',
+        views_etiquetas_solicitacao.api_etiquetas_solicitacao_detalhe,
+        name='api_etiquetas_solicitacao_detalhe',
+    ),
+    path(
+        'api/produtos/etiquetas/solicitacoes/<int:pk>/importar/',
+        views_etiquetas_solicitacao.api_etiquetas_solicitacao_importar,
+        name='api_etiquetas_solicitacao_importar',
+    ),
     path('relatorios/', views.relatorios_hub, name='relatorios_hub'),
     path('contabilidade/login/', views_nfce.contabilidade_login, name='contabilidade_login'),
     path('contabilidade/logout/', views_nfce.contabilidade_logout, name='contabilidade_logout'),
@@ -704,6 +720,26 @@ urlpatterns = [
         'api/produtos/foto/<str:produto_id>/',
         views_fotos_produto.produto_foto_bytes,
         name='produto_foto_bytes',
+    ),
+    path(
+        'vendas/lojas/etiquetas/pin/',
+        views_etiquetas_solicitacao.etiquetas_solicitacao_pin,
+        name='etiquetas_solicitacao_pin',
+    ),
+    path(
+        'vendas/lojas/etiquetas/sair/',
+        views_etiquetas_solicitacao.etiquetas_solicitacao_logout,
+        name='etiquetas_solicitacao_logout',
+    ),
+    path(
+        'vendas/lojas/etiquetas/',
+        views_etiquetas_solicitacao.etiquetas_solicitacao_app,
+        name='etiquetas_solicitacao_app',
+    ),
+    path(
+        'api/vendas/lojas/etiquetas/solicitacoes/',
+        views_etiquetas_solicitacao.api_etiquetas_solicitacao_mobile_criar,
+        name='api_etiquetas_solicitacao_mobile_criar',
     ),
     path('vendas/lojas/', views.vendas_lojas_hub, name='vendas_lojas_hub'),
     path('vendas/', views.vendas_lista, name='vendas_lista'),
