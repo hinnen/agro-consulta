@@ -1306,15 +1306,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | tag `rollback/pre-meta-por-loja-v27.00` · `docs/ROLLBACK-META-POR-LOJA.md` |
 | **Branch PREP** | `deploy/prep-meta-por-loja-fac0` |
 
-### 📦 PACOTE PRONTO — CHECKLIST **11/10k** (restante) · **v27.03** · 🟢 aguarda senha
+### 📦 PACOTE PRONTO — CHECKLIST **11/10k** (restante) · **v27.03** · 🟢 **ARMADO** (só senha)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PRONTO envio produção** — `teste` @ `53f336d8` · Live **v27.01** |
-| **O quê** | **SISTAPP-PWA-AJUSTE-ATUALIZAR** (PWA **SistApp**, hub **Ajuste**, painel **Atualizar**) · **META-ZAP-ENXUTO** |
-| **Migrate** | **NÃO** (0144 já na loja) |
-| **Prova** | PWA **25/25** · GM runtime **19/19** · resumo estático **164/164** · loja PIN→hub+painel+extras **OK** · pós-deploy: **Atualizar**, manifest **SistApp**, `/ajuste/` |
-| **Cutover** | `./scripts/cutover_loja_checklist_1110k.sh` · `--exec` só com `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` |
+| **Status** | 🟢 **ARMADO** — PREP `deploy/prep-checklist-1110k` @ `db8cdf6f` · Live **v27.01** @ `d77cb17e` |
+| **O quê** | **SISTAPP-PWA-AJUSTE-ATUALIZAR** · **META-ZAP-ENXUTO** (META loja já Live) |
+| **Migrate** | **NÃO** |
+| **Prova** | `./scripts/cutover_loja_checklist_1110k.sh` **OK** (dry-run) · delta **sem** PDV/caixa/230/migrate |
+| **Rollback** | tag `rollback/pre-checklist-1110k-restante-v27.01` (já no origin) |
+| **Próximo chat** | Pausar vendas → `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → cutover `--exec` → Shell `./scripts/post_deploy_checklist_1110k.sh` |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1110k.md` |
 
 ### ✅ CHECKLIST ÚNICO — 11/10k · 🟢 **PRONTO** (falta subir)
 
