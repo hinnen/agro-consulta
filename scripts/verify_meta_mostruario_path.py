@@ -84,6 +84,7 @@ def test_arquivos_rotas() -> None:
     views = ROOT / "produtos/views_meta_vendas.py"
     tpl = ROOT / "produtos/templates/produtos/meta_vendas.html"
     mig = ROOT / "produtos/migrations/0138_metavendafaixaagro.py"
+    mig_dep = ROOT / "produtos/migrations/0144_metavendafaixaagro_deposito.py"
     urls = _read("produtos/urls.py")
     dash = _read("produtos/templates/produtos/dashboard_gerencial.html")
     models = _read("produtos/models.py")
@@ -92,6 +93,7 @@ def test_arquivos_rotas() -> None:
     check("arquivo_views", views.is_file())
     check("arquivo_template", tpl.is_file())
     check("arquivo_migration_0138", mig.is_file())
+    check("arquivo_migration_0144_deposito", mig_dep.is_file())
     check("modelo_MetaVendaFaixaAgro", "class MetaVendaFaixaAgro" in models)
     check("url_painel", "path('meta/', views_meta_vendas.meta_vendas_painel" in urls)
     check("url_api_resumo", "api/meta/resumo/" in urls)
@@ -110,6 +112,8 @@ def test_arquivos_rotas() -> None:
     check("tpl_modo_mes", "data-modo=\"mes\"" in tpl_txt and "Meta do mês" in tpl_txt)
     check("tpl_loja_tres", 'data-loja="todas"' in tpl_txt and 'data-loja="centro"' in tpl_txt and 'data-loja="vila"' in tpl_txt)
     check("tpl_setLoja_refetch", "function setLoja" in tpl_txt and "carregar();" in tpl_txt)
+    check("tpl_cfg_por_loja", "meta-cfg-loja-hint" in tpl_txt and "urlFaixas" in tpl_txt)
+    check("tpl_deposito_payload", "deposito: cfgDeposito" in tpl_txt)
 
     mig_txt = mig.read_text(encoding="utf-8")
     check("mig_seed_padrao", "105000" in mig_txt and "moleton" in mig_txt)
@@ -166,13 +170,16 @@ def test_seed_e_crud() -> None:
         sid = transaction.savepoint()
         try:
             MetaVendaFaixaAgro.objects.filter(competencia=comp).delete()
-            n = meta_ensure_faixas_padrao(comp)
+            n = meta_ensure_faixas_padrao(comp, "centro")
             check("seed_cria_5", n == 5, f"n={n}")
-            n2 = meta_ensure_faixas_padrao(comp)
+            n2 = meta_ensure_faixas_padrao(comp, "centro")
             check("seed_idempotente", n2 == 0)
+            n_v = meta_ensure_faixas_padrao(comp, "vila")
+            check("seed_vila_5", n_v == 5, f"n_v={n_v}")
 
-            faixas = meta_listar_faixas(comp)
+            faixas = meta_listar_faixas(comp, "centro")
             check("listar_5", len(faixas) == 5)
+            check("listar_tem_deposito", all(f.get("deposito") == "centro" for f in faixas))
             check(
                 "listar_ordem",
                 [f["valor_meta"] for f in faixas]
@@ -185,10 +192,11 @@ def test_seed_e_crud() -> None:
                 valor_meta="140000",
                 bonus_valor="750",
                 bonus_extra="jaqueta",
+                deposito="centro",
             )
             check("criar_faixa", saved["valor_meta"] == 140000.0)
             check("criar_bonus_extra", saved["bonus_extra"] == "jaqueta")
-            faixas2 = meta_listar_faixas(comp)
+            faixas2 = meta_listar_faixas(comp, "centro")
             check("listar_6", len(faixas2) == 6)
 
             edited = meta_salvar_faixa(
@@ -197,11 +205,23 @@ def test_seed_e_crud() -> None:
                 valor_meta="145000",
                 bonus_valor="800",
                 bonus_extra="",
+                deposito="centro",
             )
             check("editar_faixa", edited["valor_meta"] == 145000.0 and edited["bonus_extra"] == "")
 
             meta_excluir_faixa(competencia=comp, faixa_id=saved["id"])
-            check("excluir_faixa", len(meta_listar_faixas(comp)) == 5)
+            check("excluir_faixa", len(meta_listar_faixas(comp, "centro")) == 5)
+
+            meta_salvar_faixa(
+                competencia=comp,
+                valor_meta="50000",
+                bonus_valor="10",
+                deposito="vila",
+            )
+            c0 = meta_listar_faixas(comp, "centro")[0]["valor_meta"]
+            v0 = meta_listar_faixas(comp, "vila")[0]["valor_meta"]
+            t0 = meta_listar_faixas(comp, None)[0]["valor_meta"]
+            check("meta_soma_todas", abs(float(t0) - (float(c0) + float(v0))) < 0.01, f"t={t0} c={c0} v={v0}")
 
             # rejeita meta inválida
             bad = False
@@ -227,7 +247,8 @@ def test_mostruario_consistencia() -> None:
     mes_ini, mes_fim = meta_competencia_bounds(comp)
 
     # garante seed do mês corrente (produção/local)
-    meta_ensure_faixas_padrao(comp)
+    meta_ensure_faixas_padrao(comp, "centro")
+    meta_ensure_faixas_padrao(comp, "vila")
     m = meta_montar_mostruario(competencia=comp, hoje=hoje, agora=agora)
 
     check("mostr_comp", m["competencia"] == comp)
@@ -244,8 +265,9 @@ def test_mostruario_consistencia() -> None:
 
     # faixas ordenadas e progresso coerente
     prev = -1.0
-    for f in m["faixas"]:
-        check(f"faixa_ordem_{f['id']}", float(f["valor_meta"]) >= prev)
+    for i, f in enumerate(m["faixas"]):
+        tag = f.get("id") or f.get("ordem") or i
+        check(f"faixa_ordem_{tag}", float(f["valor_meta"]) >= prev)
         prev = float(f["valor_meta"])
         esperado_pct = (
             float(m["vendido_mes"]) / float(f["valor_meta"]) * 100.0
@@ -253,14 +275,14 @@ def test_mostruario_consistencia() -> None:
             else 0
         )
         check(
-            f"faixa_pct_{f['id']}",
+            f"faixa_pct_{tag}",
             abs(float(f["pct"]) - round(esperado_pct, 1)) < 0.15,
             f"got={f['pct']} exp≈{round(esperado_pct,1)}",
         )
         if float(m["vendido_mes"]) >= float(f["valor_meta"]):
-            check(f"faixa_batida_{f['id']}", f["atingida"] is True)
+            check(f"faixa_batida_{tag}", f["atingida"] is True)
         else:
-            check(f"faixa_falta_{f['id']}", f["atingida"] is False and float(f["falta"]) > 0)
+            check(f"faixa_falta_{tag}", f["atingida"] is False and float(f["falta"]) > 0)
 
     # média esperada presente (Meta C pode ser 0 em staging vazio — só exige chave)
     check("vs_media_keys", "vs_media_mes" in m and "sentido" in m["vs_media_mes"])
@@ -333,17 +355,13 @@ def test_mostruario_consistencia() -> None:
     check("zap_loja_vila", "· Vila" in zap_v and "Centro + Vila" not in zap_v and "Centro" not in zap_v)
     check("zap_vila_agora", "até agora" in zap_v.lower() or "ATÉ AGORA" in zap_v)
 
-    ids_todas = [int(f["id"]) for f in (m.get("faixas") or [])]
-    ids_c = [int(f["id"]) for f in (m_c.get("faixas") or [])]
-    ids_v = [int(f["id"]) for f in (m_v.get("faixas") or [])]
-    check("faixas_mesma_lista", ids_todas == ids_c == ids_v and len(ids_todas) >= 1, str(ids_todas))
-    metas_ok = True
+    check("faixas_todas_merged", (m.get("faixas") or [{}])[0].get("deposito") == "todas")
+    check("faixas_centro_loja", (m_c.get("faixas") or [{}])[0].get("deposito") == "centro")
+    soma_ok = True
     for a, b, cfx in zip(m.get("faixas") or [], m_c.get("faixas") or [], m_v.get("faixas") or []):
-        if float(a["valor_meta"]) != float(b["valor_meta"]) or float(a["valor_meta"]) != float(cfx["valor_meta"]):
-            metas_ok = False
-        if (a.get("bonus_label") or "") != (b.get("bonus_label") or "") or (a.get("bonus_label") or "") != (cfx.get("bonus_label") or ""):
-            metas_ok = False
-    check("meta_bonus_iguais", metas_ok)
+        if abs(float(a["valor_meta"]) - (float(b["valor_meta"]) + float(cfx["valor_meta"]))) > 0.02:
+            soma_ok = False
+    check("meta_soma_centro_vila", soma_ok)
 
     check(
         "soma_hoje",
@@ -366,7 +384,7 @@ def test_mostruario_consistencia() -> None:
         competencia=comp, hoje=hoje, agora=agora, deposito="xyz"
     )
     check("deposito_lixo_vira_todas", m_lixo.get("deposito") == "todas")
-    check("sem_coluna_loja_na_meta", not any(
+    check("coluna_deposito_na_meta", any(
         f.name == "deposito" for f in MetaVendaFaixaAgro._meta.fields
     ))
 
@@ -375,7 +393,8 @@ def test_mostruario_consistencia() -> None:
         sid = transaction.savepoint()
         try:
             MetaVendaFaixaAgro.objects.filter(competencia="2097-03").delete()
-            meta_ensure_faixas_padrao("2097-03")
+            meta_ensure_faixas_padrao("2097-03", "centro")
+            meta_ensure_faixas_padrao("2097-03", "vila")
             m_p = meta_montar_mostruario(
                 competencia="2097-03", hoje=hoje, agora=agora
             )
@@ -411,6 +430,7 @@ def test_http() -> None:
     check("painel_titulo", "META" in body)
     check("painel_copiar_foto", "meta-copiar-foto" in body)
     check("painel_cfg", "meta-cfg-lista" in body)
+    check("painel_cfg_loja_hint", "meta-cfg-loja-hint" in body)
     check("painel_modo_agora_btn", 'data-modo="agora"' in body and "Até agora" in body)
     check("painel_modo_mes_btn", 'data-modo="mes"' in body and "Meta do mês" in body)
     check("painel_js_setModo", "function setModo" in body or "setModo(" in body)
@@ -471,11 +491,6 @@ def test_http() -> None:
     check("api_centro_zap", "Centro" in (d_c.get("texto_zap") or "") and "Centro + Vila" not in (d_c.get("texto_zap") or ""))
     faixas_api = (data.get("mostruario") or {}).get("faixas") or []
     faixas_c = mc.get("faixas") or []
-    check(
-        "api_meta_igual_centro",
-        [f.get("id") for f in faixas_api] == [f.get("id") for f in faixas_c]
-        and [f.get("valor_meta") for f in faixas_api] == [f.get("valor_meta") for f in faixas_c],
-    )
 
     r_v = c.get(
         reverse("api_meta_vendas_resumo"),
@@ -485,6 +500,16 @@ def test_http() -> None:
     mv = d_v.get("mostruario") or {}
     check("api_vila_agora_ok", r_v.status_code == 200 and mv.get("deposito") == "vila" and d_v.get("modo") == "agora")
     check("api_vila_zap", "Vila" in (d_v.get("texto_zap") or "") and "Centro + Vila" not in (d_v.get("texto_zap") or ""))
+    faixas_v = mv.get("faixas") or []
+    if faixas_api and faixas_c and faixas_v:
+        check(
+            "api_meta_soma_centro_vila",
+            abs(
+                float(faixas_api[0]["valor_meta"])
+                - (float(faixas_c[0]["valor_meta"]) + float(faixas_v[0]["valor_meta"]))
+            )
+            < 0.05,
+        )
     vend_todas = float((data.get("mostruario") or {}).get("vendido_mes") or 0)
     vend_c = float(mc.get("vendido_mes") or 0)
     vend_v = float(mv.get("vendido_mes") or 0)
@@ -495,10 +520,13 @@ def test_http() -> None:
     check("api_deposito_lixo", (d_lixo.get("mostruario") or {}).get("deposito") == "todas")
 
 
-    r3 = c.get(reverse("api_meta_vendas_faixas"), {"competencia": comp})
+    r3 = c.get(reverse("api_meta_vendas_faixas"), {"competencia": comp, "deposito": "centro"})
     check("api_faixas_200", r3.status_code == 200)
     data3 = r3.json()
     check("api_faixas_ok", data3.get("ok") is True and len(data3.get("faixas") or []) >= 1)
+    check("api_faixas_deposito", data3.get("deposito") == "centro")
+    r3b = c.get(reverse("api_meta_vendas_faixas"), {"competencia": comp})
+    check("api_faixas_sem_loja_400", r3b.status_code == 400)
 
     # CRUD HTTP em competência prova + rollback
     comp_h = "2098-06"
@@ -514,6 +542,7 @@ def test_http() -> None:
                         "valor_meta": "99000",
                         "bonus_valor": "50",
                         "bonus_extra": "prova",
+                        "deposito": "centro",
                     }
                 ),
                 content_type="application/json",

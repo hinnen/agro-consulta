@@ -283,8 +283,9 @@
   </div>
 
   <div class="meta-card meta-span" id="meta-config">
-    <h2>Configurar metas · valor + bônus</h2>
-    <p class="meta-sub mb-3">Pode ter 1, 5 ou 20 — o que quiser. Bônus em R$ e, se precisar, texto extra (ex.: moleton).</p>
+    <h2 id="meta-cfg-titulo">Configurar metas · valor + bônus</h2>
+    <p class="meta-sub mb-2" id="meta-cfg-loja-hint">Escolha <strong>Só Centro</strong> ou <strong>Só Vila</strong> acima para cadastrar metas dessa loja. Em <strong>Centro + Vila</strong> a tela só mostra a soma das duas.</p>
+    <p class="meta-sub mb-3 hidden" id="meta-cfg-dica">Pode ter 1, 5 ou 20 faixas. Bônus em R$ e, se precisar, texto extra (ex.: moleton).</p>
     <div id="meta-cfg-lista">
       {% for f in faixas %}
       <div class="meta-cfg-row" data-id="{{ f.id }}">
@@ -298,7 +299,7 @@
       </div>
       {% endfor %}
     </div>
-    <button type="button" class="meta-btn-add mt-2" id="meta-add">+ Nova meta</button>
+    <button type="button" class="meta-btn-add mt-2 hidden" id="meta-add">+ Nova meta</button>
   </div>
 </div>
 
@@ -317,6 +318,7 @@
   var lastFotoBlob = null;
   var modoAtual = "mes";
   var lojaAtual = "todas";
+  var cfgDeposito = "{{ cfg_deposito|default:'centro' }}";
   try {
     var savedModo = localStorage.getItem("agro_meta_modo_v1");
     if (savedModo === "agora" || savedModo === "mes") modoAtual = savedModo;
@@ -353,6 +355,28 @@
     return f || {};
   }
 
+  function lojaCfgAtiva() {
+    return lojaAtual === "centro" || lojaAtual === "vila";
+  }
+
+  function syncCfgPainel() {
+    var hint = document.getElementById("meta-cfg-loja-hint");
+    var dica = document.getElementById("meta-cfg-dica");
+    var add = document.getElementById("meta-add");
+    var lista = document.getElementById("meta-cfg-lista");
+    var tit = document.getElementById("meta-cfg-titulo");
+    var on = lojaCfgAtiva();
+    if (tit) {
+      tit.textContent = on
+        ? ("Configurar metas · " + (lojaAtual === "vila" ? "Vila" : "Centro"))
+        : "Configurar metas · valor + bônus";
+    }
+    if (hint) hint.classList.toggle("hidden", on);
+    if (dica) dica.classList.toggle("hidden", !on);
+    if (add) add.classList.toggle("hidden", !on);
+    if (lista && !on) lista.innerHTML = "";
+  }
+
   function syncModoButtons() {
     document.querySelectorAll(".meta-modo-btn").forEach(function (btn) {
       var on = btn.getAttribute("data-modo") === modoAtual;
@@ -372,6 +396,7 @@
     if (mesTit && lastMostruario) {
       mesTit.textContent = (lastMostruario.mes_atual ? "Mês até hoje" : "Mês fechado") + " · " + loja;
     }
+    syncCfgPainel();
   }
 
   function setModo(modo) {
@@ -387,9 +412,17 @@
 
   function setLoja(loja) {
     lojaAtual = (loja === "centro" || loja === "vila") ? loja : "todas";
+    if (lojaAtual === "centro" || lojaAtual === "vila") cfgDeposito = lojaAtual;
     try { localStorage.setItem("agro_meta_loja_v1", lojaAtual); } catch (e2) {}
     syncModoButtons();
     carregar();
+  }
+
+  function urlFaixas() {
+    if (!lojaCfgAtiva()) return null;
+    var dep = lojaAtual === "vila" ? "vila" : "centro";
+    cfgDeposito = dep;
+    return apiFaixas + "?competencia=" + encodeURIComponent(competencia()) + "&deposito=" + encodeURIComponent(dep);
   }
 
   function urlResumo() {
@@ -806,12 +839,20 @@
       .then(function (data) {
         if (!data || !data.ok) throw new Error((data && data.erro) || "Falha");
         applyMostruario(data.mostruario, data.texto_zap);
-        return fetch(apiFaixas + "?competencia=" + encodeURIComponent(competencia()), {
+        var uFx = urlFaixas();
+        if (!uFx) {
+          syncCfgPainel();
+          return null;
+        }
+        return fetch(uFx, {
           credentials: "same-origin",
           headers: { "Accept": "application/json" }
         });
       })
-      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (!r) return null;
+        return r.json();
+      })
       .then(function (data) {
         if (data && data.ok) renderCfg(data.faixas || []);
       })
@@ -882,7 +923,7 @@
           "X-CSRFToken": csrf,
           "Accept": "application/json"
         },
-        body: JSON.stringify({ acao: "excluir", id: id, competencia: competencia() })
+        body: JSON.stringify({ acao: "excluir", id: id, competencia: competencia(), deposito: cfgDeposito })
       })
         .then(function (r) { return r.json(); })
         .then(function (data) {
@@ -896,8 +937,13 @@
     }
 
     if (act === "save") {
+      if (!lojaCfgAtiva()) {
+        toast("Escolha Só Centro ou Só Vila para salvar");
+        return;
+      }
       var payload = {
         competencia: competencia(),
+        deposito: cfgDeposito,
         id: id || null,
         valor_meta: (row.querySelector('[data-f="valor_meta"]') || {}).value,
         bonus_valor: (row.querySelector('[data-f="bonus_valor"]') || {}).value,
@@ -940,6 +986,12 @@
     }
   } catch (e0) {}
   syncModoButtons();
+  if (lojaAtual === "centro" || lojaAtual === "vila") {
+    cfgDeposito = lojaAtual;
+    carregar();
+  } else {
+    syncCfgPainel();
+  }
 })();
 </script>
 {% endblock %}
