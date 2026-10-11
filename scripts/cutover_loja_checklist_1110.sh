@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Cutover loja — CHECKLIST 11/10 · ETQ-SOLIC-MOBILE + VL-HUB-PIN · v26.91
+# Cutover loja — CHECKLIST 11/10 · ETQ-SOLIC + VL-HUB-PIN + LOG · v26.94
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -10,7 +10,7 @@ PROD_REF="origin/producao"
 ROLLBACK_TAG="rollback/pre-checklist-1110-v26.90"
 BACKUP_BR="producao-backup-pre-v2691-checklist-1110"
 SENHA_OK="99738595"
-VER_ESPERADA="26.92"
+VER_ESPERADA="26.94"
 MIG_OK=(
   "produtos/migrations/0142_etiqueta_solicitacao_pacote_agro.py"
   "produtos/migrations/0143_gm_lojas_app_log_agro.py"

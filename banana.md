@@ -1298,45 +1298,33 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-<<<<<<< HEAD
-| **Status** | 🟢 **PRONTO envio produção** — PREP `deploy/prep-checklist-1110` @ **v26.94** · aguarda frase+senha |
-| **VERSION** | **v26.94** |
-| **O quê** | **ETQ-SOLIC-MOBILE** · **VL-HUB-PIN** (PIN único 7d; Vendas/Tarefas no clique) · **GM-LOJAS-LOG** |
+| **Status** | 🟢 **PRONTO envio produção** — PREP @ **v26.94** · cutover aguarda frase+senha |
+| **VERSION** | **v26.94** (`40ccd2c3` + docs verify) |
+| **O quê** | **ETQ-SOLIC-MOBILE** (mobile + fila desktop) · **VL-HUB-PIN** (PIN único 7d; Vendas/Tarefas **1,2,3,4,8** só no clique) · **GM-LOJAS-LOG** (Gestão → LOG) |
 | **Migrate** | **SIM** — `0142` · `0143` |
-| **Env** | `AGRO_VL_HUB_PINS_VENDAS_TAREFAS=1,2,3,4,8` (loja) |
-| **Prova** | path **28/28** + runtime **18/18** · cutover dry-run OK |
-| **Smoke** | Hub 4 cartões · PIN 5 sem acesso Vendas/Tarefas · Etiquetas fila PC |
-| **Rollback** | `docs/ROLLBACK-CHECKLIST-1110.md` · tag `rollback/pre-checklist-1110-v26.90` |
-=======
-| **Status** | 🟢 **PRONTO** — PREP `deploy/prep-checklist-1110` armado (aguarda frase+senha) |
-| **VERSION** | **v26.94** |
-| **O quê** | **ETQ-SOLIC-MOBILE:** hub GM → **Etiquetas** (busca+bip) → pacote no Postgres → topbar **Solicitações** na tela etiquetas importa à fila · busca manual na fila **não some** (bip continua limpando). **VL-HUB-PIN:** um PIN na abertura (7 dias); hub mostra **os 4 cartões**; **Vendas**/**Tarefas** checam allowlist **1,2,3,4,8** só ao clicar (tela «sem acesso»); **Fotos**/**Etiquetas** = qualquer PIN válido. |
-| **Migrate** | **SIM** — `0142` etiquetas · `0143` log GM Lojas |
-| **Env** | `AGRO_VL_HUB_PINS_VENDAS_TAREFAS=1,2,3,4,8` (opcional; default já é esse). Teste local com Renan: incluir `9973` na lista se usar esse PIN no PG. |
-| **PIN app** | Uma vez ao abrir `/vendas/lojas/` · válido **7 dias** · ver **Gestão → LOG** (`/gestao/logs/`) |
-| **Prova** | `verify_etq_solicitacao_vl_pin_path.py` **24/24** · cutover `1110` |
-| **Smoke loja** | Celular: hub → Etiquetas → sacola → Enviar · PC: `/produtos/etiquetas/` → Solicitações → Na fila · Hub: PIN 5 → hub com 4 botões; Vendas/Tarefas = «sem acesso»; Fotos/Etiquetas OK |
-| **PR** | `#433` → merge `teste` |
->>>>>>> 40ccd2c3 (fix(gm-lojas): PIN único no hub; Vendas/Tarefas checam allowlist ao clicar (v26.94))
+| **Env** | `AGRO_VL_HUB_PINS_VENDAS_TAREFAS=1,2,3,4,8` (loja); staging/dev com PIN **9973**: incluir na env |
+| **Prova** | `verify_etq_solicitacao_vl_pin_path.py` **28/28** · `verify_gm_lojas_pin_runtime.py` **runtime OK** |
+| **Smoke** | Hub 4 cartões · PIN 5 → sem acesso Vendas/Tarefas · Fotos/Etiquetas · etiquetas PC fila |
+| **Cutover** | `scripts/cutover_loja_checklist_1110.sh` (VERSION **26.94**) · doc `docs/DEPLOY-PREP-CHECKLIST-1110.md` |
 
 ### ✅ CHECKLIST ÚNICO — 11/10 · 🟢 **PRONTO envio produção**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-SOLIC-MOBILE** | 🟢 **PRONTO** | **SIM** `0142` | **28/28** |
-| 2 | **VL-HUB-PIN-VENDAS-TAREFAS** | 🟢 **PRONTO** | **NÃO** | runtime |
-| 3 | **GM-LOJAS-LOG** | 🟢 **PRONTO** | **SIM** `0143` | `/gestao/logs/` |
+| 1 | **ETQ-SOLIC-MOBILE** | 🟢 **PRONTO** | **SIM** `0142` | path **28/28** |
+| 2 | **VL-HUB-PIN-VENDAS-TAREFAS** | 🟢 **PRONTO** | **NÃO** | path + runtime |
+| 3 | **GM-LOJAS-LOG** | 🟢 **PRONTO** | **SIM** `0143` | path + `/gestao/logs/` |
 
-### 🟢 PREP loja — CHECKLIST 11/10 · **v26.94** · armado
+### 🟢 PREP loja — CHECKLIST 11/10 · **v26.94** · atualizar PREP antes do cutover
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **armado** — Live **v26.90** @ `b2a7b02d` · PREP atualizado |
+| **Status** | 🟡 **armado** — PREP `deploy/prep-checklist-1110` @ v26.94 `teste` → `deploy/prep-checklist-1110` · Live **v26.90** @ `b2a7b02d` |
 | **Rollback** | tag `rollback/pre-checklist-1110-v26.90` |
-| **Backup branch** | `producao-backup-pre-v2691-checklist-1110` (criada no `--exec`) |
-| **Cutover** | `AGRO_LOJA_FRASE='…' AGRO_LOJA_SENHA='…' ./scripts/cutover_loja_checklist_1110.sh --exec` |
-| **Pós-deploy** | `./scripts/post_deploy_checklist_1110.sh` (Shell Render, imediato) |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1110.md` · `docs/ROLLBACK-CHECKLIST-1110.md` |
+| **Backup branch** | `producao-backup-pre-v2691-checklist-1110` |
+| **Cutover** | `scripts/cutover_loja_checklist_1110.sh` |
+| **Pós-deploy** | `python manage.py migrate produtos 0143` (Shell Render, logo após deploy) |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1110.md` |
 
 ### ✅ Deploy loja — CHECKLIST 10/10l · **Live v26.90** · 10/10
 
@@ -1346,30 +1334,41 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | **PDV-CACHE-EAN230** |
 | **Rollback** | `rollback/pre-checklist-1010l-v26.89` |
 
-### 🟢 PREP loja — CHECKLIST 11/10 · **v26.91** · armado
+### ✅ Deploy loja — CHECKLIST 10/10j · **Live v26.88** · 10/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **armado** — Live **v26.90** @ `b2a7b02d` · PREP `deploy/prep-checklist-1110` |
-| **Rollback** | tag `rollback/pre-checklist-1110-v26.90` → `b2a7b02d` |
-| **Backup branch** | `producao-backup-pre-v2691-checklist-1110` |
-| **Cutover** | `scripts/cutover_loja_checklist_1110.sh` |
-| **Pós-deploy (Shell Render, logo após badge v26.91)** | `python manage.py migrate produtos 0142` |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1110.md` |
+| **Status** | ✅ **enviado / Live v26.88** — `producao` @ `3d19e97b` |
+| **O quê** | **CB-230-LEGADO-LITERAL-BIP** — libera EAN da etiqueta (6 colisões finais) |
+| **Antes** | Live **v26.86** @ `7ca04de5` |
+| **Rollback** | tag `rollback/pre-checklist-1010j-v26.86` · backup `producao-backup-pre-v2688-checklist-1010j` |
+| **Você** | Render Live → Shell (comando abaixo) → bip na loja |
 
-### ✅ Deploy loja — CHECKLIST 10/10l · **Live v26.90** · 10/10
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | ✅ **enviado / Live v26.90** — `producao` @ `b2a7b02d` |
-| **O quê** | **PDV-CACHE-EAN230** — cache local + bip 12 dígitos |
-| **Rollback** | tag `rollback/pre-checklist-1010l-v26.89` |
-
-### 🟡 PREP — CHECKLIST 10/10g · **CB-230-LEGADO-LIBERAR** · v26.85 · substituído
+### 🟢 PREP loja — CHECKLIST 10/10j · **v26.88** (aguarda senha)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ histórico — ver deploys 10/10f–10/10l |
+| **Status** | ✅ substituído pelo deploy Live acima |
+
+### ✅ Deploy loja — CHECKLIST 10/10h · **Live v26.86** · 10/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v26.86** — `producao` @ `7ca04de5` |
+| **O quê** | **CB-230-LEGADO-GRUPO** — migração por grupo EAN (`--liberar-intruso`) |
+| **Antes** | Live **v26.85** @ `d4666994` |
+| **Rollback** | tag `rollback/pre-checklist-1010h-v26.85` · backup `producao-backup-pre-v2686-checklist-1010h` |
+| **Você** | Render Live → Shell (2 comandos abaixo) → bip GM0024-P |
+
+### ✅ Deploy loja — CHECKLIST 10/10g · **Live v26.85** · 10/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v26.85** — `producao` @ `d4666994` |
+| **O quê** | **CB-230-LEGADO-LIBERAR** — `--liberar-intruso` na varredura |
+| **Antes** | Live **v26.84** @ `35308cbf` |
+| **Rollback** | tag `rollback/pre-checklist-1010g-v26.84` · backup `producao-backup-pre-v2685-checklist-1010g` |
+| **Você** | Render Live → Shell (2 comandos abaixo) → bip GM0024-P |
 
 ### ✅ Deploy loja — CHECKLIST 10/10f · **Live v26.84** · 10/10
 
