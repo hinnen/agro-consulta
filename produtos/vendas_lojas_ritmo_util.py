@@ -16,8 +16,8 @@ from produtos.vendas_lojas_util import (
 
 logger = logging.getLogger(__name__)
 
-# Mesma ideia do relatório hora a hora: até 8 dias do mesmo weekday antes de ``hoje``.
-VL_RITMO_MAX_DIAS_HIST = 8
+# Até 12 ocorrências do mesmo weekday (~12 semanas) no PDV (VendaAgro).
+VL_RITMO_MAX_DIAS_HIST = 12
 VL_RITMO_MIN_TOTAL_DIA = Decimal("80.00")
 VL_RITMO_MIN_AMOSTRAS = 2
 VL_RITMO_CACHE_SEG = 3600
@@ -46,7 +46,7 @@ def _dias_mesmo_weekday_historico(anchor: date, max_n: int = VL_RITMO_MAX_DIAS_H
     wd = anchor.weekday()
     out: list[date] = []
     d = anchor - timedelta(days=1)
-    limite = anchor - timedelta(days=120)
+    limite = anchor - timedelta(days=100)
     while len(out) < max_n and d >= limite:
         if d.weekday() == wd:
             out.append(d)

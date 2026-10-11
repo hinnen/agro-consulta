@@ -160,6 +160,16 @@ def test_arquivos() -> None:
     check("util_ultimo_dia", "def vendas_lojas_ultimo_dia_mes" in util)
     check("util_fracao", "def vendas_lojas_fracao_expediente" in util)
     check("util_expediente", "VL_EXPEDIENTE_INI" in util and "VL_EXPEDIENTE_FIM" in util)
+    ritmo = _read("produtos/vendas_lojas_ritmo_util.py")
+    modos_fn = _fn_src("produtos/vendas_lojas_util.py", "vendas_lojas_meta_c_modos_de_serie")
+    check("ritmo_arquivo", "vendas_lojas_fracao_meta_ate_agora" in ritmo)
+    check("ritmo_12_semanas", "VL_RITMO_MAX_DIAS_HIST = 12" in ritmo)
+    check("ritmo_carrega_pdv", "carregar_vendas_intervalo" in ritmo)
+    check("modos_usa_ritmo", "vendas_lojas_fracao_meta_ate_agora" in modos_fn)
+    check("modos_passa_deposito", "deposito=deposito" in modos_fn)
+    check("api_nota_ate_agora", "nota_ate_agora" in api_fn)
+    check("api_hora_ref", "hora_referencia_fmt" in api_fn)
+    check("tpl_nota_dinamica", "vlMediaNotaAgora" in tpl and "nota_ate_agora" in tpl)
     check("util_meta_bi", "_dashboard_serie_meta_c_vendas" in util)
     meta_fn = _fn_src("produtos/views.py", "_dashboard_serie_meta_c_vendas")
     hist_fn = _fn_src("produtos/views.py", "_dashboard_vendas_serie_meta_historico")
@@ -394,16 +404,32 @@ def test_previsao_mes() -> None:
         )
         check("prev_mes_fechado", fim["fonte"] == "fechado" and fim["previsao"] == Decimal("280000.00"))
 
+    from unittest.mock import patch
+
     from produtos.vendas_lojas_util import vendas_lojas_previsao_aviso_cedo
 
-    check(
-        "aviso_manha",
-        vendas_lojas_previsao_aviso_cedo(agora=datetime(2026, 9, 6, 9, 0), fonte_total="ritmo") is True,
-    )
-    check(
-        "aviso_tarde_off",
-        vendas_lojas_previsao_aviso_cedo(agora=datetime(2026, 9, 6, 14, 0), fonte_total="ritmo") is False,
-    )
+    with patch(
+        "produtos.vendas_lojas_ritmo_util.vendas_lojas_fracao_meta_ate_agora",
+        return_value=Decimal("0.20"),
+    ):
+        check(
+            "aviso_manha",
+            vendas_lojas_previsao_aviso_cedo(
+                agora=datetime(2026, 9, 6, 9, 0), fonte_total="ritmo"
+            )
+            is True,
+        )
+    with patch(
+        "produtos.vendas_lojas_ritmo_util.vendas_lojas_fracao_meta_ate_agora",
+        return_value=Decimal("0.80"),
+    ):
+        check(
+            "aviso_tarde_off",
+            vendas_lojas_previsao_aviso_cedo(
+                agora=datetime(2026, 9, 6, 14, 0), fonte_total="ritmo"
+            )
+            is False,
+        )
     check(
         "aviso_fonte_media",
         vendas_lojas_previsao_aviso_cedo(agora=datetime(2026, 9, 6, 14, 0), fonte_total="media") is True,
@@ -514,6 +540,49 @@ def test_http() -> None:
         check("http_hub_link", "/vendas/lojas/" in hub.content.decode("utf-8", "replace"))
 
 
+def test_ritmo_historico() -> None:
+    print("== Ritmo até agora (PDV) ==")
+    import os
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+    import django
+
+    django.setup()
+
+    from datetime import datetime
+    from decimal import Decimal
+    from unittest.mock import patch
+
+    from django.utils import timezone
+
+    from produtos import vendas_lojas_ritmo_util as ritmo
+    from produtos.vendas_lojas_util import vendas_lojas_meta_c_modos_de_serie
+
+    tz = timezone.get_current_timezone()
+    agora = timezone.make_aware(datetime(2026, 10, 11, 15, 30), tz)
+    check("hora_ref_15", ritmo.vendas_lojas_hora_referencia(agora) == 15)
+    dias = ritmo._dias_mesmo_weekday_historico(date(2026, 10, 11))
+    check("hist_12_max", len(dias) <= 12 and len(dias) >= 4, str(len(dias)))
+    check("hist_somente_domingo", all(d.weekday() == 6 for d in dias))
+
+    serie = [Decimal("1000")]
+    with patch.object(
+        ritmo,
+        "vendas_lojas_fracao_meta_ate_agora",
+        return_value=Decimal("0.80"),
+    ):
+        dia, ate, toggle = vendas_lojas_meta_c_modos_de_serie(
+            serie,
+            date(2026, 10, 11),
+            date(2026, 10, 11),
+            hoje=date(2026, 10, 11),
+            agora=agora,
+            deposito="centro",
+        )
+    check("modos_frac_80", ate == Decimal("800.00"), f"{ate}")
+    check("modos_toggle", toggle is True)
+
+
 def test_versao() -> None:
     print("== Versão ==")
     ver = _read("VERSION").strip()
@@ -529,6 +598,7 @@ def main() -> int:
     test_fracao_expediente()
     test_previsao_mes()
     test_fiado_math()
+    test_ritmo_historico()
     test_http()
     test_versao()
     print(f"\nVERIFY {'OK' if not fails else 'FAIL'} {len(oks)}/{len(oks) + len(fails)}")
