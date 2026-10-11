@@ -1294,7 +1294,34 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PREP loja — CHECKLIST **11/10k** · **v27.03** · aguarda frase+senha
+### 🟢 PREP loja — CHECKLIST **11/10l** · **v27.04** · aguarda frase+senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **PRONTO envio produção** — `deploy/prep-checklist-1110l` @ `52e014c8` · Live **v27.03** @ `b4e4fcc8` |
+| **O quê** | **META-CENTRO-VILA-UNIFICADO** (`deposito=todas`, faixas somadas, config única, save 50/50) · **VL-RITMO-ATE-AGORA** (hora PDV + até 12 domingos/semana) |
+| **Migrate** | **NÃO** |
+| **Fora** | PDV wizard/busca · caixa · `mongo_financeiro` |
+| **Prova** | `cutover_loja_checklist_1110l.sh` (META core · `tests_vendas_lojas_ritmo` · resumo ritmo) |
+| **Cutover** | `./scripts/cutover_loja_checklist_1110l.sh` · `--exec` + frase + senha **99738595** |
+| **Rollback** | `rollback/pre-checklist-1110l-v27.03-b4e` @ `b4e4fcc8` |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1110l.md` |
+
+### ✅ CHECKLIST ÚNICO — 11/10l · 🟢 **PRONTO envio produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **META-CENTRO-VILA-UNIFICADO** | 🟢 **PRONTO** | **NÃO** | META core verify |
+| 2 | **VL-RITMO-ATE-AGORA** | 🟢 **PRONTO** | **NÃO** | `tests_vendas_lojas_ritmo` + resumo ritmo |
+
+### 📦 PACOTE PRONTO — **META-CENTRO-VILA** + **VL-RITMO** (`CHECKLIST 11/10l`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **PRONTO envio produção** — PREP @ **v27.04** `52e014c8` |
+| **Smoke pós-deploy** | `/meta/` Centro+Vila · Zap enxuto · Vendas lojas nota «até agora» |
+
+### 🟢 PREP loja — CHECKLIST **11/10k** · **v27.03** · *(meta 0144 já Live v27.01 — não repetir migrate)*
 
 | Campo | Valor |
 | ----- | ----- |

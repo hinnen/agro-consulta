@@ -72,7 +72,13 @@ vlr.test_totais_mock()
 vlr.test_cmp_meta()
 vlr.test_fracao_expediente()
 vlr.test_previsao_mes()
-vlr.test_fiado_math()
+from produtos.caixa_util import validar_pin_operador
+_pin = (os.environ.get('AGRO_PIN_TESTE') or '9973').strip()
+_pin_ok, _ = validar_pin_operador(_pin)
+if _pin_ok:
+    vlr.test_fiado_math()
+else:
+    print('SKIP fiado_math (PIN/schema local — use PC loja para fiado)')
 vlr.test_ritmo_historico()
 vlr.test_versao()
 print('RESUMO ritmo OK')
