@@ -29,6 +29,7 @@ from . import contagem_ciclica_views
 from . import views_fotos_produto
 from . import views_etiquetas_solicitacao
 from . import views_meta_vendas
+from . import views_gestao_logs
 
 urlpatterns = [
     # --- PÁGINAS ---
@@ -72,6 +73,7 @@ urlpatterns = [
         name="atendimento_whatsapp_bot",
     ),
     path("consulta/", views.consulta_produtos, name="consulta_produtos"),
+    path("gestao/logs/", views_gestao_logs.gestao_logs_painel, name="gestao_logs_painel"),
     path("gestao/bugs/", bug_report_views.bug_reports_lista_view, name="bug_reports_lista"),
     path("gestao/bugs/<int:pk>/", bug_report_views.bug_report_detalhe_view, name="bug_report_detalhe"),
     path("gestao/bugs/<int:pk>/print/", bug_report_views.bug_report_print_view, name="bug_report_print"),

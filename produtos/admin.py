@@ -1,18 +1,22 @@
 from django.contrib import admin
 
 from .models import (
+    CadastroPlanilhaImportHistoricoAgro,
     ClienteAgro,
     ClienteAgroEventoAgro,
     ClienteAnaliseCreditoAgro,
     ContaBancariaLojaAgro,
+    EtiquetaImpressaoHistoricoAgro,
     FiadoBaixaAgro,
     FiadoEventoAgro,
     FiadoTituloAgro,
+    GmLojasAppLogAgro,
     ItemVendaAgro,
     MovimentoCaixa,
     OpcaoBaixaFinanceiroExtra,
     PlanoContaAgro,
     Produto,
+    RepasseVilaReservaLogAgro,
     SessaoCaixa,
     VendaAgro,
 )
@@ -331,3 +335,38 @@ class ContaBancariaLojaAgroAdmin(admin.ModelAdmin):
     list_filter = ("ativo",)
     search_fields = ("nome", "codigo")
     list_editable = ("ativo", "ordem")
+
+
+@admin.register(GmLojasAppLogAgro)
+class GmLojasAppLogAgroAdmin(admin.ModelAdmin):
+    list_display = ("criado_em", "operador_nome", "acao", "metodo", "path", "status_http")
+    list_filter = ("acao", "metodo", "status_http")
+    search_fields = ("operador_nome", "acao", "path")
+    readonly_fields = ("criado_em", "operador_nome", "acao", "metodo", "path", "status_http", "detalhe_json")
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(EtiquetaImpressaoHistoricoAgro)
+class EtiquetaImpressaoHistoricoAgroAdmin(admin.ModelAdmin):
+    list_display = ("criado_em", "usuario", "origem", "total_etiquetas", "preset_nome")
+    search_fields = ("usuario", "preset_nome", "resumo_nomes")
+    readonly_fields = ("criado_em", "usuario", "origem", "preset_id", "preset_nome", "itens_json")
+
+
+@admin.register(RepasseVilaReservaLogAgro)
+class RepasseVilaReservaLogAgroAdmin(admin.ModelAdmin):
+    list_display = ("criado_em", "tipo", "operador", "valor_antes", "valor_depois", "data_ref")
+    list_filter = ("tipo",)
+    search_fields = ("operador", "mensagem")
+
+
+@admin.register(CadastroPlanilhaImportHistoricoAgro)
+class CadastroPlanilhaImportHistoricoAgroAdmin(admin.ModelAdmin):
+    list_display = ("criado_em", "usuario", "nome_arquivo", "tipo", "status", "n_produtos")
+    list_filter = ("tipo", "status")
+    search_fields = ("nome_arquivo",)
