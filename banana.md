@@ -1294,22 +1294,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — **VL-PWA-SISTAPP** (`CHECKLIST 11/10k` · 11/10)
+### 📦 PACOTE PRONTO — **SISTAPP-PWA-AJUSTE** (`CHECKLIST 11/10k` · 11/10)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PRONTO envio produção** — `teste` @ `235f1ace` · aguarda teste local + frase+senha |
-| **VERSION prep** | **v27.01** (loja Live **v27.00**) |
-| **O quê** | GM Lojas `/vendas/lojas/` — card **App no celular** sempre visível (some só app instalado) + nome PWA **SistApp** (manifest + ícone iOS) |
+| **Status** | 🟢 **PRONTO envio produção** — `teste` @ `621c82e4` · aguarda teste local + frase+senha |
+| **VERSION prep** | **v27.02** (loja Live **v27.00**) |
+| **O quê** | **SistApp** (`/vendas/lojas/`) — instalar no celular (card fixo) + PWA **SistApp** · **Ajuste Mobile** no hub (`/vendas/lojas/ajuste/`, qualquer PIN) · `/ajuste-mobile/` → PIN SistApp |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_vendas_lojas_pwa_install.py` **22/22** · loja: manifest/sw/pin/hub **200** · PIN→hub **OK** (11/10) · loja ainda **GM Lojas/Vendas** no manifest até deploy |
-| **Você** | PC local: Ctrl+F5 em `/vendas/lojas/pin/` → card no topo + **SistApp** no manifest (view-source `manifest.webmanifest`) |
+| **Prova** | `verify_vendas_lojas_pwa_install.py` **25/25** · loja: manifest/sw/pin/hub **200** · PIN→hub **OK** · `/vendas/lojas/ajuste/` **404** na loja até deploy |
+| **Você** | Local: hub → **Ajuste** verde · manifest **SistApp** · ajuste abre sem PIN extra |
 
 ### ✅ CHECKLIST ÚNICO — 11/10k · 🟢 **PRONTO**
 
 | # | Pacote | Status | Nota |
 | - | ------ | ------ | ---- |
-| 1 | **VL-PWA-SISTAPP** | 🟢 pronto subir | commits `716cf232` + `235f1ace` |
+| 1 | **SISTAPP-PWA-AJUSTE** | 🟢 pronto subir | `716cf232`…`621c82e4` |
 
 ---
 
