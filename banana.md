@@ -1307,24 +1307,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Smoke** | Hub 4 cartões · PIN 5 → sem acesso Vendas/Tarefas · Fotos/Etiquetas · etiquetas PC fila |
 | **Cutover** | `./scripts/cutover_loja_checklist_1110.sh` · rollback `docs/ROLLBACK-CHECKLIST-1110.md` |
 
-### ✅ CHECKLIST ÚNICO — 11/10 · 🟢 **PRONTO envio produção**
+### ✅ CHECKLIST ÚNICO — 11/10 · ✅ **Live v26.94**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-SOLIC-MOBILE** | 🟢 **PRONTO** | **SIM** `0142` | path **28/28** |
-| 2 | **VL-HUB-PIN-VENDAS-TAREFAS** | 🟢 **PRONTO** | **NÃO** | path + runtime |
-| 3 | **GM-LOJAS-LOG** | 🟢 **PRONTO** | **SIM** `0143` | path + `/gestao/logs/` |
+| 1 | **ETQ-SOLIC-MOBILE** | ✅ Live | `0142` | path **28/28** |
+| 2 | **VL-HUB-PIN-VENDAS-TAREFAS** | ✅ Live | — | runtime |
+| 3 | **GM-LOJAS-LOG** | ✅ Live | `0143` | `/gestao/logs/` |
 
-### 🟢 PREP loja — CHECKLIST 11/10 · **v26.94** · atualizar PREP antes do cutover
+### ✅ Deploy loja — CHECKLIST 11/10 · **Live v26.94** · 11/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **armado** — PREP `deploy/prep-checklist-1110` @ v26.94 `teste` → `deploy/prep-checklist-1110` · Live **v26.90** @ `b2a7b02d` |
-| **Rollback** | tag `rollback/pre-checklist-1110-v26.90` |
-| **Backup branch** | `producao-backup-pre-v2691-checklist-1110` |
-| **Cutover** | `scripts/cutover_loja_checklist_1110.sh` |
-| **Pós-deploy** | `python manage.py migrate produtos 0143` (Shell Render, logo após deploy) |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1110.md` |
+| **Status** | ✅ **enviado** — `producao` @ `da745c08` |
+| **Backup** | `producao-backup-pre-v2691-checklist-1110` @ `b2a7b02d` |
+| **Rollback** | `rollback/pre-checklist-1110-v26.90` · `docs/ROLLBACK-CHECKLIST-1110.md` |
 
 ### ✅ Deploy loja — CHECKLIST 10/10l · **Live v26.90** · 10/10
 
