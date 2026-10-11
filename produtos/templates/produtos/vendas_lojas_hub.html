@@ -133,10 +133,10 @@
 </head>
 <body>
   <div class="vl-shell">
+    {% include "produtos/includes/vendas_lojas_pwa_install.html" with vl_pwa_variant="hub" %}
     <p class="vl-kicker">GM Agro</p>
     <h1 class="vl-title">O que você quer?</h1>
     <p class="vl-sub">Mesmo app do celular — Vendas, Tarefas, Fotos ou Etiquetas.</p>
-    {% include "produtos/includes/vendas_lojas_pwa_install.html" with vl_pwa_variant="hub" %}
     {% if operador %}
     <p class="vl-user">
       <span>Olá, <strong>{{ operador }}</strong></span>
