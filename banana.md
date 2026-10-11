@@ -1303,29 +1303,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Prova loja** | PIN **9973** → hub/painel **200** · botão **Atualizar** (`vl-atualizar`) · ajuste **200** · `__agroPathLookLikeAjusteMobile` · manifest **SistApp** (reverificado 11/10) |
 
-### 📦 PACOTE PRONTO — CHECKLIST **11/10l** · **v27.04** · 🟢 aguarda senha
+### ✅ Deploy loja — CHECKLIST **11/10l** · **Live v27.04** · 11/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP armado — aguarda senha** — `deploy/prep-checklist-1110l` @ `dc19f805` · Live **v27.03** @ `b4e4fcc8` |
-| **O quê** | **META-CENTRO-VILA-UNIFICADO** · **VL-RITMO-HORA** (média «até agora» hora civil + 12 semanas no PDV) |
+| **Status** | ✅ **enviado / Live v27.04** — `producao` @ `dc19f805` |
+| **O quê** | **META-CENTRO-VILA-UNIFICADO** · **VL-RITMO-HORA** |
 | **Migrate** | **NÃO** |
-| **Prova** | `cutover_loja_checklist_1110l.sh` dry-run **OK** · ritmo **3/3** · META path core · **sem** migrate · PDV/caixa intocados |
-| **Pós-deploy** | `./scripts/post_deploy_checklist_1110l.sh` (opcional) |
-| **Cutover** | `./scripts/cutover_loja_checklist_1110l.sh` · `docs/DEPLOY-PREP-CHECKLIST-1110l.md` |
+| **Backup** | `producao-backup-pre-v2704-checklist-1110l` @ `b4e4fcc8` |
 | **Rollback** | tag `rollback/pre-checklist-1110l-v27.03-b4e` @ `b4e4fcc8` |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1110l.sh` (opcional) |
 
-### ✅ CHECKLIST ÚNICO — 11/10l · 🟢 **PRONTO envio produção**
+### ✅ CHECKLIST ÚNICO — 11/10l · ✅ **Live**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **META-CENTRO-VILA-UNIFICADO** | 🟢 **PRONTO** | **NÃO** |
-| 2 | **VL-RITMO-HORA** | 🟢 **PRONTO** | **NÃO** |
+| 1 | **META-CENTRO-VILA-UNIFICADO** | ✅ **Live v27.04** | **NÃO** |
+| 2 | **VL-RITMO-HORA** | ✅ **Live v27.04** | **NÃO** |
 
 ### ✅ Live hoje — referência rápida
 
 | Versão | `producao` | Pacotes já na loja |
 | ------ | ---------- | ------------------ |
+| **v27.04** | `dc19f805` | META Centro+Vila unificado · ritmo hora Vendas lojas |
 | **v27.03** | `b4e4fcc8` | SistApp/Atualizar · Zap · hotfix Ajuste shell |
 | **v27.01** | (base META) | META-POR-LOJA · migrate **0144** |
 

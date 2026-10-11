@@ -956,15 +956,14 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 78. Checklist **11/10l** · 🟢 PREP **v27.04** · aguarda senha
+## 78. Checklist **11/10l** · ✅ **Live v27.04** · 11/10
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **META-CENTRO-VILA-UNIFICADO** | 🟢 **PRONTO** | **NÃO** |
-| 2 | **VL-RITMO-HORA** | 🟢 **PRONTO** | **NÃO** |
+| 1 | **META-CENTRO-VILA-UNIFICADO** | ✅ **Live v27.04** | **NÃO** |
+| 2 | **VL-RITMO-HORA** | ✅ **Live v27.04** | **NÃO** |
 
-**PREP:** `deploy/prep-checklist-1110l` @ `dc19f805` · dry-run cutover **OK** · Live base `b4e4fcc8`.  
-**Cutover:** `./scripts/cutover_loja_checklist_1110l.sh` · rollback `rollback/pre-checklist-1110l-v27.03-b4e` @ `b4e4fcc8` · pós: `post_deploy_checklist_1110l.sh`.
+**Live:** `producao` @ `dc19f805`. **Rollback:** `rollback/pre-checklist-1110l-v27.03-b4e` @ `b4e4fcc8` · backup `producao-backup-pre-v2704-checklist-1110l`.
 
 ---
 
