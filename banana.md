@@ -1298,12 +1298,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PRONTO p/ produção** — branch `teste` (aguarda teste local + frase+senha) |
+| **Status** | 🟢 **PRONTO** — PREP `deploy/prep-checklist-1110` armado (aguarda frase+senha) |
 | **VERSION** | **v26.91** |
 | **O quê** | **ETQ-SOLIC-MOBILE:** hub GM → **Etiquetas** (busca+bip) → pacote no Postgres → topbar **Solicitações** na tela etiquetas importa à fila · busca manual na fila **não some** (bip continua limpando). **VL-HUB-PIN:** **Vendas** e **Tarefas** só PIN **1,2,3,4,8**; **Fotos** e **Etiquetas** = qualquer PIN válido. Vendas PWA = PIN (`/vendas/lojas/pin/`). |
 | **Migrate** | **SIM** — `produtos.0142_etiqueta_solicitacao_pacote_agro` |
 | **Env** | `AGRO_VL_HUB_PINS_VENDAS_TAREFAS=1,2,3,4,8` (opcional; default já é esse). Teste local com Renan: incluir `9973` na lista se usar esse PIN no PG. |
-| **Prova** | `verify_etq_solicitacao_vl_pin_path.py` **19/19** · arquivos `verify_vl_hub_tarefas_path` / `verify_vendas_lojas_resumo_path` (estático + HTTP onde DB ok) · PIN teste **9973** na allowlist só em dev |
+| **Prova** | `verify_etq_solicitacao_vl_pin_path.py` **19/19** · `cutover_loja_checklist_1110.sh` gates OK |
 | **Smoke loja** | Celular: hub → Etiquetas → sacola → Enviar · PC: `/produtos/etiquetas/` → Solicitações → Na fila · Hub: PIN 5 bloqueia Vendas/Tarefas; Fotos OK |
 | **PR** | `#433` → merge `teste` |
 
@@ -1311,8 +1311,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-SOLIC-MOBILE** | 🟢 **PRONTO** (`teste`) | **SIM** `0142` | **19/19** path |
-| 2 | **VL-HUB-PIN-VENDAS-TAREFAS** | 🟢 **PRONTO** (`teste`) | **NÃO** | allowlist + PIN vendas |
+| 1 | **ETQ-SOLIC-MOBILE** | 🟢 **PRONTO** (PREP) | **SIM** `0142` | **19/19** path |
+| 2 | **VL-HUB-PIN-VENDAS-TAREFAS** | 🟢 **PRONTO** (PREP) | **NÃO** | allowlist + PIN vendas |
+
+### 🟢 PREP loja — CHECKLIST 11/10 · **v26.91** · armado
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 **armado** — Live **v26.90** @ `b2a7b02d` · PREP `deploy/prep-checklist-1110` @ `68fd5136` |
+| **Rollback** | tag `rollback/pre-checklist-1110-v26.90` |
+| **Backup branch** | `producao-backup-pre-v2691-checklist-1110` |
+| **Cutover** | `scripts/cutover_loja_checklist_1110.sh` |
+| **Pós-deploy** | `python manage.py migrate produtos 0142` (Shell Render, logo após deploy) |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1110.md` |
+
+### ✅ Deploy loja — CHECKLIST 10/10l · **Live v26.90** · 10/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v26.90** — `producao` @ `b2a7b02d` |
+| **O quê** | **PDV-CACHE-EAN230** |
+| **Rollback** | `rollback/pre-checklist-1010l-v26.89` |
 
 ### ✅ Deploy loja — CHECKLIST 10/10j · **Live v26.88** · 10/10
 
