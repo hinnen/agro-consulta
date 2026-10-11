@@ -1,10 +1,10 @@
-# PREP — CHECKLIST 11/10 · alvo **v26.91**
+# PREP — CHECKLIST 11/10 · alvo **v26.92**
 
 **ETQ-SOLIC-MOBILE** + **VL-HUB-PIN-VENDAS-TAREFAS**
 
 | # | Pacote | Prova | Migrate |
 | - | ------ | ----- | ------- |
-| 1 | **ETQ-SOLIC-MOBILE** | `verify_etq_solicitacao_vl_pin_path.py` **19/19** | **SIM** `0142` |
+| 1 | **ETQ-SOLIC-MOBILE** | `verify_etq_solicitacao_vl_pin_path.py` **24/24** | **SIM** `0142`+`0143` |
 | 2 | **VL-HUB-PIN** | mesmo script + PIN vendas `/vendas/lojas/pin/` | **NÃO** |
 
 **Live antes:** **v26.90** @ `b2a7b02d`  
@@ -16,8 +16,10 @@
 ## Pós-deploy (obrigatório, Shell Render — logo após badge v26.91)
 
 ```bash
-python manage.py migrate produtos 0142
+python manage.py migrate produtos 0143
 ```
+
+**PIN:** uma vez na abertura do app (`/vendas/lojas/`) · válido **7 dias** · log em `GmLojasAppLogAgro`.
 
 ## Smoke rápido (loja)
 
