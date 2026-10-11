@@ -945,18 +945,17 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 76b. Checklist **11/10k** (restante) · 🟢 PREP **v27.03** · aguarda senha
+## 76b. Checklist **11/10k** (restante) · 🟢 **ARMADO v27.03** · só senha
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **SISTAPP-PWA-AJUSTE** | 🟢 PREP pronto | **NÃO** |
-| 2 | **META-ZAP-ENXUTO** | 🟢 PREP (`teste`) | **NÃO** |
+| 1 | **SISTAPP-PWA-AJUSTE-ATUALIZAR** | 🟢 ARMADO | **NÃO** |
+| 2 | **META-ZAP-ENXUTO** | 🟢 ARMADO | **NÃO** |
 
-**PREP:** `deploy/prep-checklist-1110k` (rebase em `producao` antes do cutover).  
-**Prova:** `verify_vendas_lojas_pwa_install.py` **25/25** · META core (`verify_meta_mostruario_path`).  
-**Na senha (vendas pausadas):** `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → `./scripts/cutover_loja_checklist_1110k.sh --exec` → Render Shell `./scripts/post_deploy_checklist_1110k.sh`.  
-**Rollback:** tag `rollback/pre-checklist-1110k-v27.00` · `docs/ROLLBACK-CHECKLIST-1110k.md`.  
-**Não toca:** PDV · caixa · busca 230.
+**PREP:** `deploy/prep-checklist-1110k` @ `db8cdf6f` (rebase em **v27.01**). **Dry-run cutover OK.**  
+**Na senha:** pausar vendas → `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → `./scripts/cutover_loja_checklist_1110k.sh --exec` → Shell `./scripts/post_deploy_checklist_1110k.sh` (~2 min, **sem migrate**).  
+**Rollback:** `rollback/pre-checklist-1110k-restante-v27.01` · `docs/ROLLBACK-CHECKLIST-1110k.md`.  
+**Não toca:** PDV · caixa · busca 230 · painel Vendas só ganha **Atualizar** (reload).
 
 ---
 
