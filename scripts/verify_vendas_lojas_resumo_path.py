@@ -89,7 +89,10 @@ def test_arquivos() -> None:
     check("tpl_filtro_mes_ant", 'value="mes_ant"' in tpl)
     check("tpl_calendario", "vl-abrir-cal" in tpl and "Calendário" in tpl)
     check("tpl_cal_sheet", "vl-sheet" in tpl and "vl-cal-grid" in tpl)
-    check("tpl_pwa_manifest", "vendas_lojas_manifest" in tpl)
+    check(
+        "tpl_pwa_manifest",
+        "vendas_lojas_manifest" in tpl or "vendas_lojas_pwa_head.html" in tpl,
+    )
     check("tpl_pwa_sw", "serviceWorker" in tpl and "vendas_lojas_sw" in tpl)
     check("url_manifest", "vendas_lojas_manifest" in urls)
     check("url_sw", "vendas_lojas_sw" in urls)
@@ -495,6 +498,8 @@ def test_http() -> None:
         check("http_prev_card", "vl-abrir-prev" in body and "Previsão mês" in body)
         check("http_prev_sheet", "vl-sheet-prev" in body)
         check("http_extras_url", "data-extras-url" in body and "carregarExtras" in body)
+        check("http_atualizar_btn", "vl-atualizar" in body and "id=\"vl-atualizar\"" in body)
+        check("http_atualizar_reload", "location.reload" in body)
         r3 = c.get("/api/vendas/lojas/extras/?periodo=hoje", follow=True)
         check("http_extras_200", r3.status_code == 200, str(r3.status_code))
         try:
