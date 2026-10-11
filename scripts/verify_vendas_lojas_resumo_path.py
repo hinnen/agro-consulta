@@ -61,7 +61,8 @@ def test_arquivos() -> None:
     check("url_antes_lista", urls.find("vendas/lojas/") < urls.find("path('vendas/', views.vendas_lista"))
     check("view_def", "def vendas_lojas_resumo" in views)
     check("view_hub", "def vendas_lojas_hub" in views)
-    check("view_login", "@login_required" in views.split("def vendas_lojas_resumo")[0][-400:])
+    check("view_pin_gate", "exigir_vendas_lojas_html" in views.split("def vendas_lojas_resumo")[0][-600:])
+    check("url_vendas_pin", "vendas_lojas_pin" in urls)
     check("view_get", "@require_GET" in views.split("def vendas_lojas_resumo")[0][-400:])
     check("view_nocache", "@never_cache" in views.split("def vendas_lojas_resumo")[0][-400:])
     check("view_usa_totais", "vendas_lojas_totais" in view_fn)
@@ -453,22 +454,26 @@ def test_http() -> None:
     import os
 
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+    pin_test = (os.environ.get("AGRO_TEST_PIN") or "9973").strip()
+    os.environ.setdefault("AGRO_VL_HUB_PINS_VENDAS_TAREFAS", f"9973,1,2,3,4,8")
     import django
 
     django.setup()
 
-    from django.contrib.auth import get_user_model
     from django.test import Client, override_settings
     from django.urls import reverse
 
-    User = get_user_model()
-    user = User.objects.filter(is_active=True).order_by("id").first()
-    if not user:
-        check("http_user", False, "sem usuario")
-        return
     with override_settings(ALLOWED_HOSTS=["testserver", "127.0.0.1", "localhost", "*"]):
         c = Client()
-        c.force_login(user)
+        r_pin_page = c.get("/vendas/lojas/pin/")
+        csrf = c.cookies.get("csrftoken").value if c.cookies.get("csrftoken") else ""
+        pin_post = c.post(
+            "/vendas/lojas/pin/",
+            {"pin": pin_test},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+            HTTP_X_CSRFTOKEN=csrf,
+        )
+        check("http_vendas_pin_ok", pin_post.status_code == 200, str(pin_post.status_code))
         r_hub = c.get("/vendas/lojas/", follow=True)
         b_hub = r_hub.content.decode("utf-8", "replace")
         check("http_hub_200", r_hub.status_code == 200, str(r_hub.status_code))

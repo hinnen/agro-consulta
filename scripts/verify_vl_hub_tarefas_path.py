@@ -9,6 +9,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+PIN = (os.environ.get("AGRO_TEST_PIN") or "9973").strip()
+os.environ.setdefault("AGRO_VL_HUB_PINS_VENDAS_TAREFAS", f"9973,1,2,3,4,8")
 
 import django
 
@@ -22,7 +24,6 @@ from tarefas.pin_util import SESSION_OPERADOR
 
 OK = 0
 FAIL = 0
-PIN = (os.environ.get("AGRO_TEST_PIN") or "9973").strip()
 
 
 def check(label: str, cond: bool, detail: str = "") -> None:
@@ -109,6 +110,9 @@ def main() -> int:
             HTTP_X_CSRFTOKEN=csrf,
         )
         check("pin_errado_403", bad.status_code == 403, str(bad.status_code))
+
+        # PIN válido mas fora da lista (se existir no cadastro)
+        check("pin_lista_util", "pin_liberado_vendas_tarefas" in (ROOT / "produtos/vendas_lojas_hub_acesso_util.py").read_text(encoding="utf-8"))
 
         # PIN 9973
         csrf = _csrf(c) or csrf

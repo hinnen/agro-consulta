@@ -10,13 +10,23 @@ from django.shortcuts import redirect
 
 from base.models import PerfilUsuario
 from produtos.caixa_util import rotulo_operador_pin, validar_pin_operador
+from produtos.vendas_lojas_hub_acesso_util import (
+    mensagem_pin_sem_acesso_vendas_tarefas,
+    pin_liberado_vendas_tarefas,
+)
 
 SESSION_OPERADOR = "tarefas_operador_nome"
 SESSION_USER_ID = "tarefas_operador_user_id"
+SESSION_PIN = "tarefas_operador_pin"
 
 
 def operador_da_sessao(request: HttpRequest) -> str:
     try:
+        pin = str(request.session.get(SESSION_PIN) or "").strip()
+        if not pin or not pin_liberado_vendas_tarefas(pin):
+            if request.session.get(SESSION_OPERADOR):
+                limpar_operador_sessao(request)
+            return ""
         return str(request.session.get(SESSION_OPERADOR) or "").strip()
     except Exception:
         return ""
@@ -24,13 +34,17 @@ def operador_da_sessao(request: HttpRequest) -> str:
 
 def gravar_operador_sessao(request: HttpRequest, pin: str) -> tuple[bool, str, str]:
     """Valida PIN e grava nome na sessão. Retorno: (ok, nome, erro)."""
+    pin = (pin or "").strip()
     ok, err = validar_pin_operador(pin)
     if not ok:
         return False, "", err or "PIN incorreto."
+    if not pin_liberado_vendas_tarefas(pin):
+        return False, "", mensagem_pin_sem_acesso_vendas_tarefas()
     nome = (rotulo_operador_pin(pin) or "").strip()
     if not nome:
         return False, "", "PIN sem nome no cadastro."
     request.session[SESSION_OPERADOR] = nome[:120]
+    request.session[SESSION_PIN] = pin[:32]
     perfil = (
         PerfilUsuario.objects.select_related("user")
         .filter(senha_rapida=(pin or "").strip(), ativo=True)
@@ -48,6 +62,7 @@ def gravar_operador_sessao(request: HttpRequest, pin: str) -> tuple[bool, str, s
 def limpar_operador_sessao(request: HttpRequest) -> None:
     request.session.pop(SESSION_OPERADOR, None)
     request.session.pop(SESSION_USER_ID, None)
+    request.session.pop(SESSION_PIN, None)
     request.session.modified = True
 
 
