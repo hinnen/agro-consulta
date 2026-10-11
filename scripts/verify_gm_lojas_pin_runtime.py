@@ -87,10 +87,10 @@ def main() -> int:
     print("== Allowlist (código operador, não PIN pessoal) ==")
     with override_settings(AGRO_VL_HUB_PINS_VENDAS_TAREFAS="1,2,3,4,8"):
         with patch(
-            "produtos.vendas_lojas_hub_acesso_util.codigo_operador_por_pin_digitado",
-            return_value="1",
+            "produtos.vendas_lojas_hub_acesso_util.operador_liberado_vendas_tarefas",
+            return_value=True,
         ):
-            check("pin_pessoal_9973_codigo_1", pin_liberado_vendas_tarefas("9973"))
+            check("gerencia_liberada_mock", pin_liberado_vendas_tarefas("9973"))
         check("pin_5_bloqueado", not pin_liberado_vendas_tarefas("5"))
 
     print("== Sessão hub ==")
@@ -115,8 +115,8 @@ def main() -> int:
         return HttpResponse("OK-TAREFAS")
 
     with patch(
-        "produtos.vendas_lojas_hub_acesso_util.codigo_operador_por_pin_digitado",
-        return_value="6",
+        "produtos.vendas_lojas_hub_acesso_util.operador_liberado_vendas_tarefas",
+        return_value=False,
     ):
         t_resp = _tarefas_stub(r5)
     check("tarefas_pin5_sem_acesso", b"sem acesso" in t_resp.content.lower() and b"Tarefas" in t_resp.content)
@@ -127,11 +127,11 @@ def main() -> int:
     print("== PIN pessoal + código #1 passa guard tarefas ==")
     r9973b = _req_session("9973")
     with patch(
-        "produtos.vendas_lojas_hub_acesso_util.codigo_operador_por_pin_digitado",
-        return_value="1",
+        "produtos.vendas_lojas_hub_acesso_util.operador_liberado_vendas_tarefas",
+        return_value=True,
     ):
         t_ok = _tarefas_stub(r9973b)
-    check("tarefas_codigo_1_ok", t_ok.content == b"OK-TAREFAS")
+    check("tarefas_gerencia_ok", t_ok.content == b"OK-TAREFAS")
 
     print(f"\nTOTAL OK={OK} FAIL={FAIL}")
     return 0 if FAIL == 0 else 1
