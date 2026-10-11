@@ -2539,6 +2539,29 @@ class EtiquetaSolicitacaoPacoteAgro(models.Model):
         return f"{self.criado_em:%d/%m %H:%M} · {self.operador_nome or '—'} · {self.status}"
 
 
+class GmLojasAppLogAgro(models.Model):
+    """Auditoria do PWA GM Lojas (hub — vendas, tarefas, fotos, etiquetas)."""
+
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+    operador_nome = models.CharField(max_length=120, blank=True, default="")
+    acao = models.CharField(max_length=80, db_index=True)
+    metodo = models.CharField(max_length=12, blank=True, default="")
+    path = models.CharField(max_length=300, blank=True, default="")
+    status_http = models.PositiveSmallIntegerField(default=0)
+    detalhe_json = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        verbose_name = "Log app GM Lojas"
+        verbose_name_plural = "Logs app GM Lojas"
+        ordering = ["-criado_em"]
+        indexes = [
+            models.Index(fields=["acao", "-criado_em"], name="gm_lojas_log_acao_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.criado_em:%d/%m %H:%M} · {self.operador_nome or '—'} · {self.acao}"
+
+
 class CadastroPlanilhaImportHistoricoAgro(models.Model):
     """Backup e histórico de importações Excel do cadastro (permite desfazer)."""
 

@@ -74,36 +74,17 @@ def _payload_json(request) -> dict:
 
 @require_http_methods(["GET", "POST"])
 def tarefas_pin(request):
-    if request.method == "GET":
-        if operador_da_sessao(request) and request.GET.get("trocar") != "1":
-            return redirect("tarefas_lista")
-        return render(
-            request,
-            "tarefas/pin.html",
-            {"operador": operador_da_sessao(request)},
-        )
-    pin = str(request.POST.get("pin") or "").strip()
-    ok, nome, err = gravar_operador_sessao(request, pin)
-    if not ok:
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or (
-            request.content_type and "json" in (request.content_type or "")
-        ):
-            return JsonResponse({"ok": False, "erro": err}, status=403)
-        return render(
-            request,
-            "tarefas/pin.html",
-            {"erro": err, "operador": ""},
-            status=403,
-        )
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return JsonResponse({"ok": True, "operador": nome, "next": reverse("tarefas_lista")})
-    return redirect("tarefas_lista")
+    from produtos.vendas_lojas_hub_sessao_util import redirect_para_pin
+
+    if operador_da_sessao(request) and request.GET.get("trocar") != "1":
+        return redirect("tarefas_lista")
+    return redirect_para_pin(request)
 
 
 @require_POST
 def tarefas_logout(request):
     limpar_operador_sessao(request)
-    return redirect("tarefas_pin")
+    return redirect("vendas_lojas_pin")
 
 
 @require_GET

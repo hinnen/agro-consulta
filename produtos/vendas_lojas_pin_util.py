@@ -1,4 +1,4 @@
-"""Sessão PIN — tela Vendas por loja (hub GM Lojas)."""
+"""Vendas lojas — exige PIN da gerência (sessão hub compartilhada, 7 dias)."""
 
 from __future__ import annotations
 
@@ -7,69 +7,37 @@ from typing import Any
 
 from django.http import HttpRequest, JsonResponse
 from django.shortcuts import redirect
+from django.urls import reverse
 
-from base.models import PerfilUsuario
-from produtos.caixa_util import rotulo_operador_pin, validar_pin_operador
 from produtos.vendas_lojas_hub_acesso_util import (
     mensagem_pin_sem_acesso_vendas_tarefas,
     pin_liberado_vendas_tarefas,
 )
+from produtos.vendas_lojas_hub_sessao_util import (
+    gravar_operador_sessao,
+    limpar_operador_sessao,
+    operador_da_sessao,
+    pin_da_sessao,
+    redirect_para_pin,
+)
 
-SESSION_OPERADOR = "vendas_lojas_operador_nome"
-SESSION_USER_ID = "vendas_lojas_operador_user_id"
-SESSION_PIN = "vendas_lojas_operador_pin"
-
-
-def operador_da_sessao(request: HttpRequest) -> str:
-    try:
-        pin = str(request.session.get(SESSION_PIN) or "").strip()
-        if not pin or not pin_liberado_vendas_tarefas(pin):
-            if request.session.get(SESSION_OPERADOR):
-                limpar_operador_sessao(request)
-            return ""
-        return str(request.session.get(SESSION_OPERADOR) or "").strip()
-    except Exception:
-        return ""
+SESSION_OPERADOR = "gm_lojas_operador_nome"
+SESSION_USER_ID = "gm_lojas_operador_user_id"
+SESSION_PIN = "gm_lojas_operador_pin"
 
 
-def gravar_operador_sessao(request: HttpRequest, pin: str) -> tuple[bool, str, str]:
-    pin = (pin or "").strip()
-    ok, err = validar_pin_operador(pin)
-    if not ok:
-        return False, "", err or "PIN incorreto."
-    if not pin_liberado_vendas_tarefas(pin):
-        return False, "", mensagem_pin_sem_acesso_vendas_tarefas()
-    nome = (rotulo_operador_pin(pin) or "").strip()
-    if not nome:
-        return False, "", "PIN sem nome no cadastro."
-    request.session[SESSION_OPERADOR] = nome[:120]
-    request.session[SESSION_PIN] = pin[:32]
-    perfil = (
-        PerfilUsuario.objects.select_related("user")
-        .filter(senha_rapida=pin, ativo=True)
-        .first()
-    )
-    uid = getattr(getattr(perfil, "user", None), "pk", None) if perfil else None
-    if uid:
-        request.session[SESSION_USER_ID] = int(uid)
-    else:
-        request.session.pop(SESSION_USER_ID, None)
-    request.session.modified = True
-    return True, nome[:120], ""
-
-
-def limpar_operador_sessao(request: HttpRequest) -> None:
-    request.session.pop(SESSION_OPERADOR, None)
-    request.session.pop(SESSION_USER_ID, None)
-    request.session.pop(SESSION_PIN, None)
-    request.session.modified = True
+def _gerencia_liberada(request: HttpRequest) -> bool:
+    pin = pin_da_sessao(request)
+    return bool(pin and pin_liberado_vendas_tarefas(pin))
 
 
 def exigir_operador_html(view_func):
     @wraps(view_func)
     def _wrap(request: HttpRequest, *args: Any, **kwargs: Any):
         if not operador_da_sessao(request):
-            return redirect("vendas_lojas_pin")
+            return redirect_para_pin(request)
+        if not _gerencia_liberada(request):
+            return redirect(f"{reverse('vendas_lojas_hub')}?acesso=vendas_negado")
         return view_func(request, *args, **kwargs)
 
     return _wrap
@@ -84,7 +52,28 @@ def exigir_operador_api(view_func):
                 {"ok": False, "erro": "Informe o PIN para continuar.", "precisa_pin": True},
                 status=401,
             )
+        if not _gerencia_liberada(request):
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": mensagem_pin_sem_acesso_vendas_tarefas(),
+                    "sem_acesso_gerencia": True,
+                },
+                status=403,
+            )
         request.vendas_lojas_operador = nome  # type: ignore[attr-defined]
         return view_func(request, *args, **kwargs)
 
     return _wrap
+
+
+__all__ = [
+    "SESSION_OPERADOR",
+    "SESSION_PIN",
+    "SESSION_USER_ID",
+    "exigir_operador_api",
+    "exigir_operador_html",
+    "gravar_operador_sessao",
+    "limpar_operador_sessao",
+    "operador_da_sessao",
+]

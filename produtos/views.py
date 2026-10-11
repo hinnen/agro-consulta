@@ -11471,52 +11471,71 @@ from produtos.vendas_lojas_pin_util import (
 )
 
 
+from produtos.vendas_lojas_hub_sessao_util import (
+    exigir_hub_operador_html,
+    operador_da_sessao as hub_operador_da_sessao,
+)
+
+
 @never_cache
 @require_GET
+@exigir_hub_operador_html
 def vendas_lojas_hub(request):
-    """Entrada do PWA instalado: Vendas ou Tarefas (sem login)."""
-    return render(request, "produtos/vendas_lojas_hub.html")
+    """Entrada do PWA instalado: Vendas, Tarefas, Fotos ou Etiquetas."""
+    return render(
+        request,
+        "produtos/vendas_lojas_hub.html",
+        {"operador": hub_operador_da_sessao(request)},
+    )
 
 
 @require_http_methods(["GET", "POST"])
 @ensure_csrf_cookie
 def vendas_lojas_pin(request):
-    from produtos.vendas_lojas_pin_util import (
+    from produtos.gm_lojas_app_log_util import registrar_gm_lojas_log
+    from produtos.vendas_lojas_hub_sessao_util import (
         gravar_operador_sessao,
         limpar_operador_sessao,
+        next_url_seguro,
         operador_da_sessao,
     )
 
     if request.method == "GET":
         if operador_da_sessao(request) and request.GET.get("trocar") != "1":
-            return redirect("vendas_lojas_resumo")
+            return redirect(next_url_seguro(request))
         return render(
             request,
             "produtos/vendas_lojas_pin.html",
-            {"operador": operador_da_sessao(request)},
+            {
+                "operador": operador_da_sessao(request),
+                "next_url": next_url_seguro(request),
+            },
         )
     pin = str(request.POST.get("pin") or "").strip()
     ok, nome, err = gravar_operador_sessao(request, pin)
+    dest = next_url_seguro(request)
     if not ok:
+        registrar_gm_lojas_log(request, "pin_falha", detalhe={"erro": err[:200]}, status_http=403)
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return JsonResponse({"ok": False, "erro": err}, status=403)
         return render(
             request,
             "produtos/vendas_lojas_pin.html",
-            {"erro": err, "operador": ""},
+            {"erro": err, "operador": "", "next_url": dest},
             status=403,
         )
+    registrar_gm_lojas_log(request, "pin_ok", detalhe={"operador": nome}, status_http=200)
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return JsonResponse(
-            {"ok": True, "operador": nome, "next": reverse("vendas_lojas_resumo")}
-        )
-    return redirect("vendas_lojas_resumo")
+        return JsonResponse({"ok": True, "operador": nome, "next": dest})
+    return redirect(dest)
 
 
 @require_GET
 def vendas_lojas_logout(request):
-    from produtos.vendas_lojas_pin_util import limpar_operador_sessao
+    from produtos.gm_lojas_app_log_util import registrar_gm_lojas_log
+    from produtos.vendas_lojas_hub_sessao_util import limpar_operador_sessao
 
+    registrar_gm_lojas_log(request, "logout", status_http=302)
     limpar_operador_sessao(request)
     return redirect("vendas_lojas_pin")
 

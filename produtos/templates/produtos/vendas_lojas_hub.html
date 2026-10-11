@@ -67,6 +67,39 @@
       color: var(--muted);
       line-height: 1.35;
     }
+    .vl-user {
+      margin: 0 0 1rem;
+      padding: 0.65rem 1rem;
+      border-radius: 1rem;
+      background: #ecfdf5;
+      border: 2px solid #6ee7b7;
+      font-size: 0.88rem;
+      font-weight: 800;
+      color: #065f46;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .vl-user a {
+      color: #047857;
+      text-decoration: none;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .vl-aviso {
+      margin: 0 0 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 1rem;
+      background: #fff7ed;
+      border: 2px solid #fdba74;
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: #9a3412;
+      line-height: 1.35;
+    }
     .vl-hub {
       display: flex;
       flex-direction: column;
@@ -120,14 +153,21 @@
     <p class="vl-kicker">GM Agro</p>
     <h1 class="vl-title">O que você quer?</h1>
     <p class="vl-sub">Mesmo app do celular — Vendas, Tarefas, Fotos ou Etiquetas.</p>
+    {% if operador %}
+    <p class="vl-user">
+      <span>Olá, <strong>{{ operador }}</strong></span>
+      <a href="{% url 'vendas_lojas_pin' %}?trocar=1&amp;next={{ request.path|urlencode }}">Trocar PIN</a>
+    </p>
+    {% endif %}
+    <div id="vl-acesso-aviso" class="vl-aviso" hidden></div>
     <div class="vl-hub">
       <a class="vl-hub-vendas" href="{% url 'vendas_lojas_resumo' %}">
         <strong>Vendas</strong>
-        <span>Faturamento Centro e Vila Elias · PIN da gerência</span>
+        <span>Faturamento Centro e Vila Elias</span>
       </a>
       <a class="vl-hub-tarefas" href="{% url 'tarefas_lista' %}">
         <strong>Tarefas</strong>
-        <span>Pendências e linha do tempo · PIN da gerência</span>
+        <span>Pendências e linha do tempo</span>
       </a>
       <a class="vl-hub-fotos" href="{% url 'fotos_produto_app' %}">
         <strong>Fotos</strong>
@@ -140,6 +180,17 @@
     </div>
   </div>
   <script>
+  (function () {
+    var p = new URLSearchParams(window.location.search);
+    var av = document.getElementById("vl-acesso-aviso");
+    if (av && p.get("acesso") === "vendas_negado") {
+      av.hidden = false;
+      av.textContent = "Seu PIN não libera Vendas. Use um PIN da gerência (Renan, Geraldinho, Geraldo, Isabela ou Zuleide).";
+    } else if (av && p.get("acesso") === "tarefas_negado") {
+      av.hidden = false;
+      av.textContent = "Seu PIN não libera Tarefas. Use um PIN da gerência.";
+    }
+  })();
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("{% url 'vendas_lojas_sw' %}", { scope: "/vendas/lojas/" }).catch(function () {});
   }

@@ -58,36 +58,17 @@ def _nome_produto(pid: str, ov) -> str:
 @require_http_methods(["GET", "POST"])
 @ensure_csrf_cookie
 def fotos_produto_pin(request):
-    if request.method == "GET":
-        if operador_da_sessao(request) and request.GET.get("trocar") != "1":
-            return redirect("fotos_produto_app")
-        return render(
-            request,
-            "produtos/fotos_produto/pin.html",
-            {"operador": operador_da_sessao(request)},
-        )
-    pin = str(request.POST.get("pin") or "").strip()
-    ok, nome, err = gravar_operador_sessao(request, pin)
-    if not ok:
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or (
-            request.content_type and "json" in (request.content_type or "")
-        ):
-            return JsonResponse({"ok": False, "erro": err}, status=403)
-        return render(
-            request,
-            "produtos/fotos_produto/pin.html",
-            {"erro": err, "operador": ""},
-            status=403,
-        )
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return JsonResponse({"ok": True, "operador": nome, "next": reverse("fotos_produto_app")})
-    return redirect("fotos_produto_app")
+    from produtos.vendas_lojas_hub_sessao_util import redirect_para_pin
+
+    if operador_da_sessao(request) and request.GET.get("trocar") != "1":
+        return redirect("fotos_produto_app")
+    return redirect_para_pin(request)
 
 
 @require_GET
 def fotos_produto_logout(request):
     limpar_operador_sessao(request)
-    return redirect("fotos_produto_pin")
+    return redirect("vendas_lojas_pin")
 
 
 @never_cache
@@ -104,8 +85,8 @@ def fotos_produto_app(request):
             "url_api_foto": reverse("api_fotos_produto_slot", kwargs={"produto_id": "__ID__"}),
             "url_catalogo_slim": reverse("api_pdv_catalogo_slim"),
             "url_hub": reverse("vendas_lojas_hub"),
-            "url_sair": reverse("fotos_produto_logout"),
-            "url_pin": reverse("fotos_produto_pin"),
+            "url_sair": reverse("vendas_lojas_logout"),
+            "url_pin": reverse("vendas_lojas_pin"),
         },
     )
 

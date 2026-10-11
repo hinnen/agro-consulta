@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Vendas">
-  <title>PIN — Vendas | GM</title>
+  <title>PIN — GM Lojas</title>
   <link rel="manifest" href="{% url 'vendas_lojas_manifest' %}">
   <link rel="apple-touch-icon" href="/static/produtos/pwa/vendas-lojas-192.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
@@ -53,11 +53,10 @@
     <div class="top">
       <div>
         <p class="kicker">GM Agro</p>
-        <h1 class="title">Vendas</h1>
+        <h1 class="title">GM Lojas</h1>
       </div>
-      <a class="link" href="{% url 'vendas_lojas_hub' %}">Início</a>
     </div>
-    <p class="sub">Digite o PIN da gerência — só operadores autorizados veem faturamento Centro e Vila.</p>
+    <p class="sub">Digite seu PIN de operador. Vale por <strong>7 dias</strong> neste celular — depois pedimos de novo. Vendas e Tarefas exigem PIN da gerência (1, 2, 3, 4, 8).</p>
     {% if erro %}<div class="err">{{ erro }}</div>{% endif %}
     <div class="card">
       <label for="pin">PIN</label>
@@ -76,6 +75,7 @@
     async function entrar() {
       var fd = new FormData();
       fd.append("pin", pin.value || "");
+      fd.append("next", "{{ next_url|escapejs }}");
       btn.disabled = true;
       try {
         var res = await fetch("{% url 'vendas_lojas_pin' %}", {
