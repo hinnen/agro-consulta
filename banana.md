@@ -1299,9 +1299,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **PRONTO envio produção** — `teste` · Live **v27.03** @ `db8cdf6f` |
-| **O quê** | **META-CENTRO-VILA-UNIFICADO** (`/meta/` Centro+Vila soma e configura) · **VL-RITMO-HORA** (média «até agora») |
+| **O quê** | **META-CENTRO-VILA-UNIFICADO** (`/meta/` Centro+Vila soma e configura) · **VL-RITMO-HORA** (média «até agora» = hora civil + **12** semanas mesmo weekday no **PDV**; dia todo/vendido iguais) |
 | **Migrate** | **NÃO** |
-| **Prova** | META core `verify_meta_mostruario_path` · `tests_vendas_lojas_ritmo` **3/3** · PWA verify **25/25** (inalterado) |
+| **Prova** | META `verify_meta_mostruario_path` · `verify_vendas_lojas_resumo_path` ritmo **172 OK** · `tests_vendas_lojas_ritmo` **3/3** · PWA **25/25** |
 | **Cutover** | `./scripts/cutover_loja_checklist_1110l.sh` · `docs/DEPLOY-PREP-CHECKLIST-1110l.md` |
 | **Rollback** | tag `rollback/pre-checklist-1110l-v27.03` @ `db8cdf6f` |
 
