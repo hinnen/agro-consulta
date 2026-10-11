@@ -3933,11 +3933,23 @@ class MetaVendaFaixaAgro(models.Model):
     Postgres multi-PC — valor da meta + bônus (R$ e/ou texto, ex. moleton).
     """
 
+    DEPOSITO_CHOICES = (
+        ("centro", "Centro"),
+        ("vila", "Vila"),
+    )
+
     competencia = models.CharField(
         "Competência",
         max_length=7,
         db_index=True,
         help_text="YYYY-MM",
+    )
+    deposito = models.CharField(
+        "Loja",
+        max_length=8,
+        choices=DEPOSITO_CHOICES,
+        default="centro",
+        db_index=True,
     )
     valor_meta = models.DecimalField("Meta de venda (R$)", max_digits=14, decimal_places=2)
     bonus_valor = models.DecimalField(
@@ -3960,10 +3972,13 @@ class MetaVendaFaixaAgro(models.Model):
     class Meta:
         verbose_name = "Faixa de meta de venda"
         verbose_name_plural = "Faixas de meta de venda"
-        ordering = ["competencia", "ordem", "valor_meta", "id"]
+        ordering = ["competencia", "deposito", "ordem", "valor_meta", "id"]
         indexes = [
-            models.Index(fields=["competencia", "ordem"], name="meta_venda_comp_ord_idx"),
+            models.Index(
+                fields=["competencia", "deposito", "ordem"],
+                name="meta_venda_comp_dep_ord_idx",
+            ),
         ]
 
     def __str__(self):
-        return f"{self.competencia} · R$ {self.valor_meta}"
+        return f"{self.competencia} · {self.deposito} · R$ {self.valor_meta}"
