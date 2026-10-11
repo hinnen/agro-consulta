@@ -67,6 +67,18 @@ def main() -> int:
         check("pin_1", pin_liberado_vendas_tarefas("1"))
         check("pin_5_block", not pin_liberado_vendas_tarefas("5"))
 
+    print("== Hub sessão 7d + log ==")
+    hub_sess = (ROOT / "produtos/vendas_lojas_hub_sessao_util.py").read_text(encoding="utf-8")
+    check("pin_ttl_7d", "PIN_TTL_SEGUNDOS = 7 * 24 * 3600" in hub_sess)
+    views_py = (ROOT / "produtos/views.py").read_text(encoding="utf-8")
+    check(
+        "hub_exigir_pin",
+        "@exigir_hub_operador_html" in views_py.split("def vendas_lojas_hub", 1)[0],
+    )
+    check("hub_pin_central", "vendas_lojas_pin" in urls and "redirect_para_pin" in (ROOT / "produtos/views_fotos_produto.py").read_text(encoding="utf-8"))
+    check("model_log", "GmLojasAppLogAgro" in (ROOT / "produtos/models.py").read_text(encoding="utf-8"))
+    check("middleware_log", "GmLojasAppLogMiddleware" in (ROOT / "config/settings.py").read_text(encoding="utf-8"))
+
     print(f"\nTOTAL OK={OK} FAIL={FAIL}")
     return 0 if FAIL == 0 else 1
 

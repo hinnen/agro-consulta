@@ -186,6 +186,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # Mongo ERP off: não exibir a palavra «Mongo» em erros/JSON (Entrada NF / PDV / etc.)
     'base.agro_sem_mencao_mongo_middleware.AgroSemMencaoMongoMiddleware',
+    'produtos.middleware_gm_lojas_log.GmLojasAppLogMiddleware',
 ]
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = config('DATA_UPLOAD_MAX_MEMORY_SIZE', default=10485760, cast=int)  # 10 MB

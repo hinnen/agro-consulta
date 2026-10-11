@@ -10,8 +10,11 @@ PROD_REF="origin/producao"
 ROLLBACK_TAG="rollback/pre-checklist-1110-v26.90"
 BACKUP_BR="producao-backup-pre-v2691-checklist-1110"
 SENHA_OK="99738595"
-VER_ESPERADA="26.91"
-MIG_OK="produtos/migrations/0142_etiqueta_solicitacao_pacote_agro.py"
+VER_ESPERADA="26.92"
+MIG_OK=(
+  "produtos/migrations/0142_etiqueta_solicitacao_pacote_agro.py"
+  "produtos/migrations/0143_gm_lojas_app_log_agro.py"
+)
 
 git fetch origin producao deploy/prep-checklist-1110 "$ROLLBACK_TAG" 2>/dev/null \
   || git fetch origin producao deploy/prep-checklist-1110
@@ -32,8 +35,12 @@ MIG="$(git diff --name-only "$PROD_REF...$PREP_REF" | grep -E '/migrations/[0-9]
 if [[ -n "$MIG" ]]; then
   while IFS= read -r f; do
     [[ -z "$f" ]] && continue
-    [[ "$f" == "$MIG_OK" ]] || {
-      echo "FAIL: migration inesperada: $f (esperado só $MIG_OK)"; exit 2;
+    ok_mig=0
+    for allowed in "${MIG_OK[@]}"; do
+      [[ "$f" == "$allowed" ]] && ok_mig=1
+    done
+    [[ "$ok_mig" == 1 ]] || {
+      echo "FAIL: migration inesperada: $f"; exit 2;
     }
   done <<< "$MIG"
 fi
@@ -54,10 +61,10 @@ PY=python3
 [[ -x .venv/bin/python ]] && PY=.venv/bin/python
 
 "$PY" scripts/verify_etq_solicitacao_vl_pin_path.py | tee /tmp/cutover-1110-etq-vl.log
-grep -q 'TOTAL OK=19 FAIL=0' /tmp/cutover-1110-etq-vl.log
+grep -q 'TOTAL OK=24 FAIL=0' /tmp/cutover-1110-etq-vl.log
 
 echo "OK: PREP · migrate SIM (0142) · rollback $ROLLBACK_TAG"
-echo "Pós-deploy: python manage.py migrate produtos 0142 · smoke hub PIN + Solicitações etiquetas"
+echo "Pós-deploy: python manage.py migrate produtos 0143 · smoke hub PIN 7d + Solicitações etiquetas"
 
 if [[ "${1:-}" != "--exec" ]]; then exit 0; fi
 
@@ -69,4 +76,4 @@ echo "$FRASE" | grep -Eiq 'pode.*(produ[cç][aã]o|producao)|sobe.*(produ[cç][a
 
 git push origin "$PROD_REF:refs/heads/$BACKUP_BR" || true
 git push origin "$PREP_REF:producao"
-echo "PUSH OK · badge v$VER_ESPERADA · migrate 0142 no Shell"
+echo "PUSH OK · badge v$VER_ESPERADA · migrate 0143 no Shell"

@@ -22,7 +22,6 @@ from produtos.etiquetas_solicitacao_util import (
 from produtos.etiquetas_solicitacao_pin_util import (
     exigir_operador_api,
     exigir_operador_html,
-    gravar_operador_sessao,
     limpar_operador_sessao,
     operador_da_sessao,
 )
@@ -50,36 +49,19 @@ def _usuario_etiquetas(request) -> str:
 @require_http_methods(["GET", "POST"])
 @ensure_csrf_cookie
 def etiquetas_solicitacao_pin(request):
+    from produtos.vendas_lojas_hub_sessao_util import redirect_para_pin
+
     if request.method == "GET":
         if operador_da_sessao(request) and request.GET.get("trocar") != "1":
             return redirect("etiquetas_solicitacao_app")
-        return render(
-            request,
-            "produtos/etiquetas_solicitacao/pin.html",
-            {"operador": operador_da_sessao(request)},
-        )
-    pin = str(request.POST.get("pin") or "").strip()
-    ok, nome, err = gravar_operador_sessao(request, pin)
-    if not ok:
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return JsonResponse({"ok": False, "erro": err}, status=403)
-        return render(
-            request,
-            "produtos/etiquetas_solicitacao/pin.html",
-            {"erro": err, "operador": ""},
-            status=403,
-        )
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return JsonResponse(
-            {"ok": True, "operador": nome, "next": reverse("etiquetas_solicitacao_app")}
-        )
-    return redirect("etiquetas_solicitacao_app")
+        return redirect_para_pin(request)
+    return redirect_para_pin(request)
 
 
 @require_GET
 def etiquetas_solicitacao_logout(request):
     limpar_operador_sessao(request)
-    return redirect("etiquetas_solicitacao_pin")
+    return redirect("vendas_lojas_pin")
 
 
 @never_cache
@@ -95,8 +77,8 @@ def etiquetas_solicitacao_app(request):
             "url_catalogo_slim": reverse("api_pdv_catalogo_slim"),
             "url_api_solicitacao": reverse("api_etiquetas_solicitacao_mobile_criar"),
             "url_hub": reverse("vendas_lojas_hub"),
-            "url_sair": reverse("etiquetas_solicitacao_logout"),
-            "url_pin": reverse("etiquetas_solicitacao_pin"),
+            "url_sair": reverse("vendas_lojas_logout"),
+            "url_pin": reverse("vendas_lojas_pin"),
         },
     )
 
@@ -105,7 +87,11 @@ def etiquetas_solicitacao_app(request):
 @exigir_operador_api
 def api_etiquetas_solicitacao_mobile_criar(request):
     body = _payload_json(request)
-    operador = getattr(request, "fotos_operador", "") or operador_da_sessao(request)
+    operador = (
+        getattr(request, "gm_lojas_operador", "")
+        or getattr(request, "fotos_operador", "")
+        or operador_da_sessao(request)
+    )
     try:
         pac = criar_pacote_solicitacao(
             operador_nome=operador,
@@ -117,6 +103,14 @@ def api_etiquetas_solicitacao_mobile_criar(request):
     except Exception:
         logger.exception("api_etiquetas_solicitacao_mobile_criar")
         return JsonResponse({"ok": False, "erro": "Falha ao gravar solicitação."}, status=500)
+    from produtos.gm_lojas_app_log_util import registrar_gm_lojas_log
+
+    registrar_gm_lojas_log(
+        request,
+        "etiqueta_pacote_criar",
+        detalhe={"pacote_id": pac.pk, "total": pac.total_etiquetas},
+        status_http=200,
+    )
     return JsonResponse({"ok": True, "pacote": serializar_pacote(pac)})
 
 
