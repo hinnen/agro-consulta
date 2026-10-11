@@ -1,0 +1,119 @@
+{# Botão Instalar (Chrome) + dica iOS + registro do service worker GM Lojas. #}
+<style>
+  .vl-pwa-instalar {
+    display: none;
+    width: 100%;
+    min-height: 2.85rem;
+    margin: 0 0 0.85rem;
+    padding: 0 1rem;
+    border-radius: 0.95rem;
+    border: 2px solid #fdba74;
+    background: linear-gradient(180deg, #fff7ed, #ffedd5);
+    color: #9a3412;
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    box-shadow: 0 0.35rem 0.85rem rgba(234, 88, 12, 0.18);
+  }
+  .vl-pwa-instalar:active { transform: translateY(1px); }
+  .vl-pwa-instalar--hub {
+    margin-bottom: 1rem;
+    border-color: #fed7aa;
+    background: #fff;
+    color: #c2410c;
+  }
+  .vl-pwa-ios {
+    display: none;
+    margin: 0 0 0.85rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 0.9rem;
+    background: #064e3b;
+    color: #ecfdf5;
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.35;
+    position: relative;
+    padding-right: 2rem;
+  }
+  .vl-pwa-ios--pin {
+    margin-top: 0.25rem;
+  }
+  .vl-pwa-ios-ok {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.45rem;
+    border: 0;
+    background: transparent;
+    color: #fff;
+    font-weight: 900;
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0.15rem 0.35rem;
+    cursor: pointer;
+  }
+</style>
+<button type="button" id="vl-pwa-instalar" class="vl-pwa-instalar{% if vl_pwa_variant == 'hub' %} vl-pwa-instalar--hub{% endif %}">
+  Instalar no celular
+</button>
+<p id="vl-pwa-ios" class="vl-pwa-ios{% if vl_pwa_variant == 'pin' %} vl-pwa-ios--pin{% endif %}">
+  <button type="button" id="vl-pwa-ios-ok" class="vl-pwa-ios-ok" aria-label="Fechar">×</button>
+  No iPhone: toque em <strong>Compartilhar</strong> (quadrado com setinha) e depois em <strong>Adicionar à Tela de Início</strong>. O ícone <strong>Vendas</strong> abre o GM Lojas em tela cheia.
+</p>
+<script>
+(function () {
+  var IOS_KEY = "agro_vl_ios_hint_v1";
+  var deferred;
+  var btn = document.getElementById("vl-pwa-instalar");
+  var ios = document.getElementById("vl-pwa-ios");
+  var iosOk = document.getElementById("vl-pwa-ios-ok");
+  function ehStandalone() {
+    try {
+      if (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) return true;
+      if (window.navigator && window.navigator.standalone) return true;
+    } catch (_) {}
+    return false;
+  }
+  function ehIos() {
+    return /iPhone|iPad|iPod/i.test(String(navigator.userAgent || ""));
+  }
+  if (btn && ehStandalone()) btn.style.display = "none";
+  if (ios && ehStandalone()) ios.style.display = "none";
+  if (btn) {
+    window.addEventListener("beforeinstallprompt", function (e) {
+      e.preventDefault();
+      deferred = e;
+      btn.style.display = "block";
+    });
+    btn.addEventListener("click", function () {
+      if (!deferred) return;
+      deferred.prompt();
+      deferred.userChoice.finally(function () {
+        deferred = null;
+        btn.style.display = "none";
+      });
+    });
+  }
+  window.addEventListener("appinstalled", function () {
+    if (btn) btn.style.display = "none";
+  });
+  if (ios && ehIos() && !ehStandalone()) {
+    try {
+      if (localStorage.getItem(IOS_KEY) !== "1") ios.style.display = "block";
+    } catch (_) {
+      ios.style.display = "block";
+    }
+  }
+  if (iosOk) {
+    iosOk.addEventListener("click", function () {
+      if (ios) ios.style.display = "none";
+      try { localStorage.setItem(IOS_KEY, "1"); } catch (_) {}
+    });
+  }
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("{% url 'vendas_lojas_sw' %}", { scope: "/vendas/lojas/" }).catch(function () {});
+  }
+})();
+</script>

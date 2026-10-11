@@ -232,6 +232,8 @@
         <p>GM Lojas · PIN do operador</p>
       </div>
 
+      {% include "produtos/includes/vendas_lojas_pwa_install.html" with vl_pwa_variant="pin" %}
+
       {% if erro %}
       <p class="erro" role="alert">{{ erro }}</p>
       {% endif %}
