@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
-os.environ.setdefault("AGRO_VL_HUB_PINS_VENDAS_TAREFAS", "9973,1,2,3,4,8")
+os.environ.setdefault("AGRO_VL_HUB_PINS_VENDAS_TAREFAS", "1,2,3,4,8")
 
 import django
 
@@ -69,14 +69,11 @@ def main() -> int:
     )
     check("settings_env", "AGRO_VL_HUB_PINS_VENDAS_TAREFAS" in (ROOT / "config/settings.py").read_text(encoding="utf-8"))
     acc = (ROOT / "produtos/vendas_lojas_hub_acesso_util.py").read_text(encoding="utf-8")
-    check("allowlist_slot_codigo", "_slot_operador_por_senha_rapida" in acc and "codigo_vendedor" in acc)
+    check("allowlist_codigo_vendedor", "codigo_vendedor" in acc and "codigo_operador_por_pin_digitado" in acc)
 
     print("== Util PIN ==")
-    with override_settings(AGRO_VL_HUB_PINS_VENDAS_TAREFAS="1,2,3,4,8,9973"):
-        check("pin_9973_dev", pin_liberado_vendas_tarefas("9973"))
-        check("pin_1", pin_liberado_vendas_tarefas("1"))
+    with override_settings(AGRO_VL_HUB_PINS_VENDAS_TAREFAS="1,2,3,4,8"):
         check("pin_5_block", not pin_liberado_vendas_tarefas("5"))
-
     print("== Hub sessão 7d + log ==")
     hub_sess = (ROOT / "produtos/vendas_lojas_hub_sessao_util.py").read_text(encoding="utf-8")
     check("pin_ttl_7d", "PIN_TTL_SEGUNDOS = 7 * 24 * 3600" in hub_sess)

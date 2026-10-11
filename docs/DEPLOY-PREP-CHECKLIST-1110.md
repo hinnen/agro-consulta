@@ -20,7 +20,7 @@
 python manage.py migrate produtos 0143
 ```
 
-**PIN:** uma vez em `/vendas/lojas/pin/` · **7 dias** · hub com 4 cartões; Vendas/Tarefas só allowlist **1,2,3,4,8** ao clicar · log `GmLojasAppLogAgro` · **Gestão → LOG**.
+**PIN:** uma vez em `/vendas/lojas/pin/` · **7 dias** · hub com 4 cartões; Vendas/Tarefas liberados pelos **códigos de operador** (#1, #2…) em `AGRO_VL_HUB_PINS_VENDAS_TAREFAS` (default `1,2,3,4,8`) — **não** é o PIN pessoal de 4 dígitos · log · **Gestão → LOG**.
 
 ## Smoke rápido (loja)
 
