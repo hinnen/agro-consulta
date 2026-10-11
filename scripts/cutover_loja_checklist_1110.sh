@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Cutover loja — CHECKLIST 11/10 · ETQ-SOLIC + VL-HUB-PIN + LOG · v26.94
+# Cutover loja — CHECKLIST 11/10 · pacote + hotfix gerência VL-HUB · v26.97
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -7,10 +7,11 @@ cd "$ROOT"
 
 PREP_REF="origin/deploy/prep-checklist-1110"
 PROD_REF="origin/producao"
-ROLLBACK_TAG="rollback/pre-checklist-1110-v26.90"
-BACKUP_BR="producao-backup-pre-v2691-checklist-1110"
+ROLLBACK_TAG="rollback/pre-checklist-1110-v26.94"
+ROLLBACK_TAG_PACOTE="rollback/pre-checklist-1110-v26.90"
+BACKUP_BR="producao-backup-pre-v2697-checklist-1110"
 SENHA_OK="99738595"
-VER_ESPERADA="26.94"
+VER_ESPERADA="26.97"
 MIG_OK=(
   "produtos/migrations/0142_etiqueta_solicitacao_pacote_agro.py"
   "produtos/migrations/0143_gm_lojas_app_log_agro.py"
@@ -62,6 +63,12 @@ git grep -q 'GmLojasAppLogAgro' "$PREP_FULL" -- produtos/models.py || {
 git grep -q 'resposta_sem_acesso_html' "$PREP_FULL" -- produtos/vendas_lojas_pin_util.py || {
   echo "FAIL: delta sem tela sem acesso (PIN único hub)"; exit 2;
 }
+git grep -q 'Renan Hinnen' "$PREP_FULL" -- produtos/vendas_lojas_hub_acesso_util.py || {
+  echo "FAIL: delta sem allowlist por nomes da gerência"; exit 2;
+}
+git grep -q 'nomes_vendas_tarefas_hub' "$PREP_FULL" -- produtos/vendas_lojas_hub_acesso_util.py || {
+  echo "FAIL: delta sem nomes_vendas_tarefas_hub"; exit 2;
+}
 
 PY=python3
 [[ -x .venv/bin/python ]] && PY=.venv/bin/python
@@ -74,9 +81,11 @@ if [[ -f scripts/verify_gm_lojas_pin_runtime.py ]]; then
   grep -q 'TOTAL OK=' /tmp/cutover-1110-runtime.log
   grep -q 'FAIL=0' /tmp/cutover-1110-runtime.log
 fi
+[[ -f scripts/verify_vl_hub_gerencia_allowlist.py ]] && "$PY" scripts/verify_vl_hub_gerencia_allowlist.py | tee /tmp/cutover-1110-gerencia.log
+[[ -f /tmp/cutover-1110-gerencia.log ]] && grep -q 'FAIL=0' /tmp/cutover-1110-gerencia.log
 
-echo "OK: PREP · migrate 0142+0143 no Shell · rollback $ROLLBACK_TAG"
-echo "Pós-deploy (rápido): ./scripts/post_deploy_checklist_1110.sh"
+echo "OK: PREP v$VER_ESPERADA · rollback imediato $ROLLBACK_TAG (pacote $ROLLBACK_TAG_PACOTE)"
+echo "Pós-deploy: ./scripts/post_deploy_checklist_1110.sh (migrate idempotente)"
 
 if [[ "${1:-}" != "--exec" ]]; then exit 0; fi
 
