@@ -1298,6 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
+<<<<<<< HEAD
 | **Status** | 🟢 **PRONTO envio produção** — PREP `deploy/prep-checklist-1110` @ **v26.94** · aguarda frase+senha |
 | **VERSION** | **v26.94** |
 | **O quê** | **ETQ-SOLIC-MOBILE** · **VL-HUB-PIN** (PIN único 7d; Vendas/Tarefas no clique) · **GM-LOJAS-LOG** |
@@ -1306,6 +1307,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | path **28/28** + runtime **18/18** · cutover dry-run OK |
 | **Smoke** | Hub 4 cartões · PIN 5 sem acesso Vendas/Tarefas · Etiquetas fila PC |
 | **Rollback** | `docs/ROLLBACK-CHECKLIST-1110.md` · tag `rollback/pre-checklist-1110-v26.90` |
+=======
+| **Status** | 🟢 **PRONTO** — PREP `deploy/prep-checklist-1110` armado (aguarda frase+senha) |
+| **VERSION** | **v26.94** |
+| **O quê** | **ETQ-SOLIC-MOBILE:** hub GM → **Etiquetas** (busca+bip) → pacote no Postgres → topbar **Solicitações** na tela etiquetas importa à fila · busca manual na fila **não some** (bip continua limpando). **VL-HUB-PIN:** um PIN na abertura (7 dias); hub mostra **os 4 cartões**; **Vendas**/**Tarefas** checam allowlist **1,2,3,4,8** só ao clicar (tela «sem acesso»); **Fotos**/**Etiquetas** = qualquer PIN válido. |
+| **Migrate** | **SIM** — `0142` etiquetas · `0143` log GM Lojas |
+| **Env** | `AGRO_VL_HUB_PINS_VENDAS_TAREFAS=1,2,3,4,8` (opcional; default já é esse). Teste local com Renan: incluir `9973` na lista se usar esse PIN no PG. |
+| **PIN app** | Uma vez ao abrir `/vendas/lojas/` · válido **7 dias** · ver **Gestão → LOG** (`/gestao/logs/`) |
+| **Prova** | `verify_etq_solicitacao_vl_pin_path.py` **24/24** · cutover `1110` |
+| **Smoke loja** | Celular: hub → Etiquetas → sacola → Enviar · PC: `/produtos/etiquetas/` → Solicitações → Na fila · Hub: PIN 5 → hub com 4 botões; Vendas/Tarefas = «sem acesso»; Fotos/Etiquetas OK |
+| **PR** | `#433` → merge `teste` |
+>>>>>>> 40ccd2c3 (fix(gm-lojas): PIN único no hub; Vendas/Tarefas checam allowlist ao clicar (v26.94))
 
 ### ✅ CHECKLIST ÚNICO — 11/10 · 🟢 **PRONTO envio produção**
 

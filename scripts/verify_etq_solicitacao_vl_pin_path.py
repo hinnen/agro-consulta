@@ -59,6 +59,14 @@ def main() -> int:
     check("vendas_exigir_pin", "exigir_vendas_lojas_html" in views.split("def vendas_lojas_resumo")[0][-800:])
     t_pin = (ROOT / "tarefas/pin_util.py").read_text(encoding="utf-8")
     check("tarefas_allowlist", "pin_liberado_vendas_tarefas" in t_pin)
+    v_pin = (ROOT / "produtos/vendas_lojas_pin_util.py").read_text(encoding="utf-8")
+    check("vendas_sem_acesso_click", "resposta_sem_acesso_html" in v_pin)
+    check("tarefas_sem_acesso_click", "resposta_sem_acesso_html" in t_pin)
+    check("hub_sem_aviso_pin", "vl-acesso" not in hub and "acesso=vendas" not in hub)
+    check(
+        "sem_acesso_template",
+        (ROOT / "produtos/templates/produtos/vendas_lojas_sem_acesso.html").is_file(),
+    )
     check("settings_env", "AGRO_VL_HUB_PINS_VENDAS_TAREFAS" in (ROOT / "config/settings.py").read_text(encoding="utf-8"))
 
     print("== Util PIN ==")

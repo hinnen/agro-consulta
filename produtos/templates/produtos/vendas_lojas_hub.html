@@ -89,17 +89,6 @@
       text-transform: uppercase;
       letter-spacing: 0.06em;
     }
-    .vl-aviso {
-      margin: 0 0 1rem;
-      padding: 0.75rem 1rem;
-      border-radius: 1rem;
-      background: #fff7ed;
-      border: 2px solid #fdba74;
-      font-size: 0.85rem;
-      font-weight: 800;
-      color: #9a3412;
-      line-height: 1.35;
-    }
     .vl-hub {
       display: flex;
       flex-direction: column;
@@ -159,7 +148,6 @@
       <a href="{% url 'vendas_lojas_pin' %}?trocar=1&amp;next={{ request.path|urlencode }}">Trocar PIN</a>
     </p>
     {% endif %}
-    <div id="vl-acesso-aviso" class="vl-aviso" hidden></div>
     <div class="vl-hub">
       <a class="vl-hub-vendas" href="{% url 'vendas_lojas_resumo' %}">
         <strong>Vendas</strong>
@@ -180,17 +168,6 @@
     </div>
   </div>
   <script>
-  (function () {
-    var p = new URLSearchParams(window.location.search);
-    var av = document.getElementById("vl-acesso-aviso");
-    if (av && p.get("acesso") === "vendas_negado") {
-      av.hidden = false;
-      av.textContent = "Seu PIN não libera Vendas. Use um PIN da gerência (Renan, Geraldinho, Geraldo, Isabela ou Zuleide).";
-    } else if (av && p.get("acesso") === "tarefas_negado") {
-      av.hidden = false;
-      av.textContent = "Seu PIN não libera Tarefas. Use um PIN da gerência.";
-    }
-  })();
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("{% url 'vendas_lojas_sw' %}", { scope: "/vendas/lojas/" }).catch(function () {});
   }
