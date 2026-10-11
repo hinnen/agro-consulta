@@ -892,6 +892,7 @@
     var sheetMedia = document.getElementById("vl-sheet-media");
     var mediaBtn = null;
     var LS_MODO = "vl_media_modo_v1";
+    var vlMediaNotaAgora = "O que já deveria ter saído até agora";
     function modoSalvo() {
       try {
         var m = localStorage.getItem(LS_MODO);
@@ -936,7 +937,7 @@
       }
       document.getElementById("vl-media-nota").textContent = modo === "dia"
         ? "Média do período inteiro (igual o BI)"
-        : "O que já deveria ter saído até agora";
+        : vlMediaNotaAgora;
     }
     function abrirMedia(btn) {
       mediaBtn = btn;
@@ -1028,6 +1029,7 @@
           if (cards[2]) aplicarMediaAttrs(cards[2], media.total);
           var modos = document.getElementById("vl-media-modos");
           if (modos) modos.hidden = !media.mostra_toggle;
+          if (media.nota_ate_agora) vlMediaNotaAgora = media.nota_ate_agora;
           var fiado = data.fiado || {};
           var elSem = document.getElementById("vl-fiado-sem");
           var elQuit = document.getElementById("vl-fiado-quit");
