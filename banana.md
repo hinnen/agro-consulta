@@ -1294,24 +1294,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — **VL-PWA-INSTALL** (`CHECKLIST 11/10i` · 11/10)
+### 📦 PACOTE PRONTO — **ETQ-SOL-IMPORT-ALL** + **VL-PWA-INSTALL** (`CHECKLIST 11/10j` · 11/10)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PRONTO envio produção** — `teste` @ `78f0fb87` · aguarda teste local + frase+senha |
-| **VERSION prep** | **v26.98** (loja hoje **v26.97**) |
-| **O quê** | GM Lojas `/vendas/lojas/` — **Instalar no celular** (Chrome) + faixas **iOS** / **Android** / **WhatsApp (abrir no navegador)**; head PWA unificado; manifest `prefer_related_applications` + `utm_source=pwa` |
+| **Status** | 🟢 **PRONTO envio produção** — `teste` (após push) · loja Live **v26.99** (`producao` @ `fd1cd028`) |
+| **VERSION prep** | **v27.00** |
 | **Migrate** | **NÃO** |
-| **Prova** | `python3 scripts/verify_vendas_lojas_pwa_install.py` **19/19** · loja: manifest/sw/pin/hub **HTTP 200** · PIN→hub sessão **OK** (11/10) |
-| **Ainda falta** | `git push origin teste` (backup) · Renan valida no **PC local** (`docs/TESTE-LOCAL.md`) · merge `teste`→`producao` + deploy **só** com frase+senha |
+| **O quê** | (1) Desktop `/produtos/etiquetas/` — modal **Solicitações do celular** → **Adicionar todas na fila** (todos os pacotes pendentes → fila de impressão). (2) GM Lojas — **Instalar no celular** (PWA) + dicas iOS/Android/Zap. |
+| **Caminhos verificados** | Celular: `POST /api/vendas/lojas/etiquetas/solicitacoes/` (PIN sessão) → Postgres `EtiquetaSolicitacaoPacoteAgro` **pendente**. Desktop: `GET /api/produtos/etiquetas/solicitacoes/?status=pendente` · `POST …/<pk>/importar/` (login Django) · JS `postImportarSolicitacao` / `importarTodasSolicitacoesParaFila` (sequencial, até **80** pacotes por tela). |
+| **Prova estática** | `verify_etq_solicitacao_vl_pin_path.py` **31/31** (incl. bulk + `?v=35`) · `verify_vendas_lojas_pwa_install.py` **19/19** · `verify_gm_lojas_pin_runtime.py` rotas importar OK |
+| **Prova runtime loja** | PIN **9973** → hub GM Lojas + app celular etiquetas **OK** (11/10) · desktop etiquetas exige login Agro (validar no **PC local** após deploy) |
+| **Ainda falta** | Renan: `/produtos/etiquetas/` local → **Solicitações** → **Adicionar todas na fila** · merge `teste`→`producao` **só** frase+senha |
 
-### ✅ CHECKLIST ÚNICO — 11/10i · 🟢 **PRONTO**
+### ✅ CHECKLIST ÚNICO — 11/10j · 🟢 **PRONTO**
 
 | # | Pacote | Status | Nota |
 | - | ------ | ------ | ---- |
-| 1 | **VL-PWA-INSTALL** | 🟢 pronto subir | link `https://www.sistvale.com.br/vendas/lojas/` |
+| 1 | **ETQ-SOL-IMPORT-ALL** | 🟢 pronto subir | commit `3ca32946` · não está na loja ainda |
+| 2 | **VL-PWA-INSTALL** | 🟢 pronto subir | `78f0fb87` · `/vendas/lojas/` |
 
-**Você após deploy:** Android **Chrome** (fora do Zap) → Instalar · iPhone **Safari** → Compartilhar → Adicionar à Tela de Início.
+**Você após deploy:** Etiquetas desktop — badge solicitações → **Adicionar todas na fila** · GM Lojas — Instalar PWA (Chrome/Safari).
 
 ---
 
