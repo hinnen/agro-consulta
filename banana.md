@@ -1298,7 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PRONTO envio produção** — PREP @ **v26.94** · cutover aguarda frase+senha |
+| **Status** | ✅ **Live v26.94** — `producao` @ `da745c08` (11/10 · 11/10) |
 | **VERSION** | **v26.94** (`40ccd2c3` + docs verify) |
 | **O quê** | **ETQ-SOLIC-MOBILE** (mobile + fila desktop) · **VL-HUB-PIN** (PIN único 7d; Vendas/Tarefas **1,2,3,4,8** só no clique) · **GM-LOJAS-LOG** (Gestão → LOG) |
 | **Migrate** | **SIM** — `0142` · `0143` |
