@@ -399,7 +399,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - Card **Lucro LÃ­quido** (no lugar de Novos Clientes): vencimento Â· bruto + pago Â· mesmo DRE do Resumo.
 - **Resumo — fatia OUTROS (07/09):** no donut/KPIs, o bucket interno `despesas_financeiras` aparece como **OUTROS** (não «Financeiras») — ativo / tarifa / «a conferir»; juro e pagamento de empréstimo ficam fora.
 - **Filtro Números** (10/08): **Centro + Vila** (padrão) · Centro · Vila — independente do seletor PDV (Centro/Vila do caixa).
-- **Meta C / média base (29/08):** mesma fórmula do Centro (3 meses + dia da semana + ocorrência). **Vila** ignora dias antes de **20/07/2026**. **Centro + Vila** = **soma** das metas. BI passa filtro Números na série compare. Prova: `scripts/verify_meta_c_vila_abertura.py`.
+- **Meta C / média base (29/08):** mesma fórmula do Centro (3 meses + dia da semana + ocorrência). **Vila** ignora dias antes de **01/08/2026** (default código; ver **VILA-ABERTURA-0108**). **Centro + Vila** = **soma** das metas. BI passa filtro Números na série compare. Prova: `scripts/verify_meta_c_vila_abertura.py`.
 - **Card Validade BI (18/08):** vencidos / no mês / conferir **iguais** nas 3 opções do filtro Números (contagem empresa); clique **Conferir vencidos** abre relatório **Todas + vencidos**. Baixa por loja = passo 2 pendente.
 - **Topo BI compacto (10/08):** sem «Gestão Estratégica» · sem botão Orç. (F2 no teclado/Menu) · **Trava** embaixo de Loja.
 - Gastos por plano de conta: oculto por padrÃ£o (`AGRO_DASHBOARD_GASTOS_PLANO=true` no `.env`).
@@ -1294,23 +1294,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — **VILA-ABERTURA-0108** (`CHECKLIST 11/10m` · 11/10) · 🟢 **PRONTO p/ produção**
+### 📦 PACOTE PRONTO — **VILA-META** (`CHECKLIST 11/10m` · 11/10) · 🟢 **PRONTO p/ produção**
 
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **só no `teste`** — aguarda frase + senha loja |
-| **Versão** | **v27.05** |
-| **Commit** | `35737c12` — default `AGRO_VILA_ABERTURA` **01/08/2026** (ajuda BI + provas) |
-| **O quê** | Meta Vila: ignora jul/26 fraco; ramp 90d + 14d **inalterados** |
+| **Versão** | **v27.06** |
+| **O quê** | **VILA-ABERTURA-0108** (default 01/08/2026) + **VILA-DOMINGO-ZERO** (meta R$ 0 domingo) |
 | **Migrate** | **NÃO** |
-| **Render** | **Não precisa MCP** — após deploy, vale o default do código. **Só** se no painel existir `AGRO_VILA_ABERTURA=2026-07-20`, apagar ou `2026-08-01` (ver `docs/ROLLBACK-BI-META-C-VILA.md`) |
-| **Prova** | `verify_meta_c_vila_abertura.py` **62/64** (2× DB local sem `deposito`) · `verify_meta_c_vila_ramp_deep.py` **36/37** |
+| **Render** | Default código basta; só apagar `AGRO_VILA_ABERTURA=2026-07-20` se existir (`docs/ROLLBACK-BI-META-C-VILA.md`) |
+| **Prova** | `verify_meta_c_vila_abertura.py` (+ domingo zero) |
 
 ### 🟢 CHECKLIST ÚNICO — **11/10m** · pronto para envio à produção
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **VILA-ABERTURA-0108** | 🟢 **PRONTO** (`teste` @ `35737c12` · v27.05) | **NÃO** |
+| 1 | **VILA-ABERTURA-0108** | 🟢 **PRONTO** (v27.06) | **NÃO** |
+| 2 | **VILA-DOMINGO-ZERO** | 🟢 **PRONTO** (v27.06) | **NÃO** |
 
 ### ✅ Deploy loja — hotfix **SISTAPP-AJUSTE-SHELL** · **Live** · 11/10
 

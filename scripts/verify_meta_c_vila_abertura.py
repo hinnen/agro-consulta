@@ -333,6 +333,10 @@ def test_ramp_vila() -> None:
                 v = _dashboard_vendas_meta_c_valor(date(2026, 8, 15), {}, "vila")
                 check("valor_vila_usa_ramp", v == 777.0, str(v))
                 check("valor_vila_chamou_media", mr.called)
+                n_calls = mr.call_count
+                v_dom = _dashboard_vendas_meta_c_valor(date(2026, 8, 16), {}, "vila")
+                check("vila_domingo_meta_zero", v_dom == 0.0, str(v_dom))
+                check("vila_domingo_sem_media", mr.call_count == n_calls)
 
     with patch("produtos.views._dashboard_meta_c_vila_em_ramp", return_value=False):
         with patch(
@@ -343,7 +347,7 @@ def test_ramp_vila() -> None:
                 "produtos.views._dashboard_meta_c_meses_por_dia",
                 return_value=[],
             ):
-                v2 = _dashboard_vendas_meta_c_valor(date(2026, 11, 1), {}, "vila")
+                v2 = _dashboard_vendas_meta_c_valor(date(2026, 11, 2), {}, "vila")
                 check("valor_vila_pos_ramp_meta_c", v2 == 55.0, str(v2))
 
 

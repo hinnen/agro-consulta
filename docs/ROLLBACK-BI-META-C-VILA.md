@@ -6,6 +6,8 @@ Opcionais: `AGRO_VILA_ABERTURA` (default `2026-08-01`) · `AGRO_VILA_META_RAMP_D
 
 **Render:** se existir `AGRO_VILA_ABERTURA=2026-07-20` no Environment Group, **apague** a variável ou troque para `2026-08-01` — senão o painel ignora o default do código. Sem variável no Render = default do deploy basta.
 
+**Domingo Vila:** meta diária **R$ 0** (loja fechada) — BI e SistApp (`_dashboard_meta_c_vila_domingo_fechado`).
+
 ## Regra Vila (ramp)
 
 - Até **90 dias** após a abertura: meta diária = média dos últimos **14 dias com venda**.

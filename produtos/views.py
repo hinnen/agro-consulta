@@ -8693,6 +8693,11 @@ def _dashboard_meta_c_vila_em_ramp(d: date) -> bool:
     return d < ab + timedelta(days=_dashboard_meta_c_vila_ramp_dias())
 
 
+def _dashboard_meta_c_vila_domingo_fechado(d: date) -> bool:
+    """Vila Elias não abre aos domingos — sem meta esperada nesse dia."""
+    return d.weekday() == 6
+
+
 def _dashboard_meta_c_vila_media_recente(d: date, por_dia: dict) -> float:
     """
     Média dos últimos N dias **com venda** antes de ``d`` (só ≥ abertura).
@@ -8859,6 +8864,8 @@ def _dashboard_vendas_meta_c_valor(
             + _dashboard_vendas_meta_c_valor(d, cache, "vila"),
             2,
         )
+    if deposito == "vila" and _dashboard_meta_c_vila_domingo_fechado(d):
+        return 0.0
     if deposito == "vila" and _dashboard_meta_c_vila_em_ramp(d):
         if cache is None:
             cache = {}
