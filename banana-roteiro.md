@@ -932,3 +932,17 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 **Live:** `producao` @ `5f460cb6` (código **v26.78** @ `13c4d896`).  
 **Rollback:** tag `rollback/pre-checklist-0910h-v26.76` · backup `producao-backup-pre-v2678-checklist-0910h`.
+
+---
+
+## 76. Checklist único — **11/10j** · 🟢 PREP aguarda senha · 11/10
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **ETQ-SOL-IMPORT-ALL** | 🟢 PREP **v27.00** | **NÃO** |
+| 2 | **VL-PWA-INSTALL** | 🟢 PREP **v27.00** | **NÃO** |
+
+**Live hoje:** `producao` @ **v26.99** `fd1cd028`. **Não** fazer merge de `teste` inteiro (127 arquivos) — só `deploy/prep-checklist-1110j`.  
+**Prova:** ETQ path **31/31** · PWA **19/19** · GM runtime **19/19** · PDV CB-230 **13/13** (cutover dry-run).  
+**Doc:** `docs/DEPLOY-PREP-CHECKLIST-1110j.md` · **Rollback:** `rollback/pre-checklist-1110j-v26.99`.  
+**Na senha:** `./scripts/cutover_loja_checklist_1110j.sh --exec` → `./scripts/post_deploy_checklist_1110j.sh`.

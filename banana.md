@@ -1298,14 +1298,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PRONTO envio produção** — `teste` (após push) · loja Live **v26.99** (`producao` @ `fd1cd028`) |
+| **Status** | 🟢 **PREP armado — aguarda senha** (lojas abertas · **não** merge `teste` inteiro) · Live **v26.99** @ `fd1cd028` |
+| **PREP branch** | `deploy/prep-checklist-1110j` · cherry só ETQ bulk + PWA |
 | **VERSION prep** | **v27.00** |
+| **Cutover** | `./scripts/cutover_loja_checklist_1110j.sh` · dry-run OK 11/10 |
+| **Rollback** | tag `rollback/pre-checklist-1110j-v26.99` @ `fd1cd028` |
 | **Migrate** | **NÃO** |
 | **O quê** | (1) Desktop `/produtos/etiquetas/` — modal **Solicitações do celular** → **Adicionar todas na fila** (todos os pacotes pendentes → fila de impressão). (2) GM Lojas — **Instalar no celular** (PWA) + dicas iOS/Android/Zap. |
 | **Caminhos verificados** | Celular: `POST /api/vendas/lojas/etiquetas/solicitacoes/` (PIN sessão) → Postgres `EtiquetaSolicitacaoPacoteAgro` **pendente**. Desktop: `GET /api/produtos/etiquetas/solicitacoes/?status=pendente` · `POST …/<pk>/importar/` (login Django) · JS `postImportarSolicitacao` / `importarTodasSolicitacoesParaFila` (sequencial, até **80** pacotes por tela). |
 | **Prova estática** | `verify_etq_solicitacao_vl_pin_path.py` **31/31** (incl. bulk + `?v=35`) · `verify_vendas_lojas_pwa_install.py` **19/19** · `verify_gm_lojas_pin_runtime.py` rotas importar OK |
 | **Prova runtime loja** | PIN **9973** → hub GM Lojas + app celular etiquetas **OK** (11/10) · desktop etiquetas exige login Agro (validar no **PC local** após deploy) |
-| **Ainda falta** | Renan: `/produtos/etiquetas/` local → **Solicitações** → **Adicionar todas na fila** · merge `teste`→`producao` **só** frase+senha |
+| **Na senha** | Pausar vendas → `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → `cutover_loja_checklist_1110j.sh --exec` → `./scripts/post_deploy_checklist_1110j.sh` · Ctrl+F5 opcional |
 
 ### ✅ CHECKLIST ÚNICO — 11/10j · 🟢 **PRONTO**
 
