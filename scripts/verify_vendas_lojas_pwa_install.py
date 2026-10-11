@@ -52,6 +52,7 @@ def main() -> int:
     check("manifest_scope", '"scope": "/vendas/lojas/"' in mf)
     check("manifest_icons_192_512", '"192x192"' in mf and '"512x512"' in mf)
     check("manifest_prefer_related", '"prefer_related_applications": False' in mf)
+    check("manifest_sistapp", '"name": "SistApp"' in mf and '"short_name": "SistApp"' in mf)
 
     check("pin_uses_head", "vendas_lojas_pwa_head.html" in pin)
     check("pin_uses_install", "vendas_lojas_pwa_install.html" in pin)

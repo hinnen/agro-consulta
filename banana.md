@@ -1294,6 +1294,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — **VL-PWA-SISTAPP** (`CHECKLIST 11/10k` · 11/10)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **PRONTO envio produção** — `teste` @ `235f1ace` · aguarda teste local + frase+senha |
+| **VERSION prep** | **v27.01** (loja Live **v27.00**) |
+| **O quê** | GM Lojas `/vendas/lojas/` — card **App no celular** sempre visível (some só app instalado) + nome PWA **SistApp** (manifest + ícone iOS) |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_vendas_lojas_pwa_install.py` **22/22** · loja: manifest/sw/pin/hub **200** · PIN→hub **OK** (11/10) · loja ainda **GM Lojas/Vendas** no manifest até deploy |
+| **Você** | PC local: Ctrl+F5 em `/vendas/lojas/pin/` → card no topo + **SistApp** no manifest (view-source `manifest.webmanifest`) |
+
+### ✅ CHECKLIST ÚNICO — 11/10k · 🟢 **PRONTO**
+
+| # | Pacote | Status | Nota |
+| - | ------ | ------ | ---- |
+| 1 | **VL-PWA-SISTAPP** | 🟢 pronto subir | commits `716cf232` + `235f1ace` |
+
+---
+
 ### ✅ Deploy loja — **CHECKLIST 11/10j** · **Live v27.00** · 11/10
 
 | Campo | Valor |
