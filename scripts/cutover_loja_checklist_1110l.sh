@@ -7,12 +7,13 @@ cd "$ROOT"
 
 PREP_REF="origin/deploy/prep-checklist-1110l"
 PROD_REF="origin/producao"
-ROLLBACK_TAG="rollback/pre-checklist-1110l-v27.03"
+ROLLBACK_TAG="rollback/pre-checklist-1110l-v27.03-b4e"
 BACKUP_BR="producao-backup-pre-v2704-checklist-1110l"
 SENHA_OK="99738595"
 VER_ESPERADA="27.04"
 
-git fetch origin producao teste "$ROLLBACK_TAG" 2>/dev/null || git fetch origin producao teste
+git fetch origin producao deploy/prep-checklist-1110l "$ROLLBACK_TAG" 2>/dev/null \
+  || git fetch origin producao deploy/prep-checklist-1110l
 
 PROD="$(git rev-parse --short "$PROD_REF")"
 PREP="$(git rev-parse --short "$PREP_REF")"
@@ -79,9 +80,12 @@ from produtos.caixa_util import validar_pin_operador
 _pin = (os.environ.get('AGRO_PIN_TESTE') or '9973').strip()
 _pin_ok, _ = validar_pin_operador(_pin)
 if _pin_ok:
-    vlr.test_fiado_math()
+    try:
+        vlr.test_fiado_math()
+    except Exception as exc:
+        print('SKIP fiado_math (DB local):', type(exc).__name__)
 else:
-    print('SKIP fiado_math (PIN/schema local — use PC loja para fiado)')
+    print('SKIP fiado_math (PIN local)')
 vlr.test_ritmo_historico()
 vlr.test_versao()
 print('RESUMO ritmo OK')

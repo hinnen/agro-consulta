@@ -10,4 +10,17 @@
 **Cutover:** `./scripts/cutover_loja_checklist_1110l.sh`  
 **Rollback:** tag `rollback/pre-checklist-1110l-v27.03-b4e` @ `b4e4fcc8`
 
-**Prova:** `verify_meta_mostruario_path` core · `manage.py test produtos.tests_vendas_lojas_ritmo`
+**Prova:** `verify_meta_mostruario_path` core · `manage.py test produtos.tests_vendas_lojas_ritmo` · `./scripts/cutover_loja_checklist_1110l.sh` (dry-run)
+
+## Na senha
+
+```bash
+AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' \
+  ./scripts/cutover_loja_checklist_1110l.sh --exec
+```
+
+Render Shell (opcional):
+
+```bash
+./scripts/post_deploy_checklist_1110l.sh
+```
