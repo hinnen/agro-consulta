@@ -1298,30 +1298,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **Live v26.94** — `producao` @ `da745c08` (11/10 · 11/10) |
-| **VERSION** | **v26.94** (`40ccd2c3` + docs verify) |
-| **O quê** | **ETQ-SOLIC-MOBILE** (mobile + fila desktop) · **VL-HUB-PIN** (PIN único 7d; Vendas/Tarefas **1,2,3,4,8** só no clique) · **GM-LOJAS-LOG** (Gestão → LOG) |
-| **Migrate** | **SIM** — `0142` · `0143` |
-| **Env** | `AGRO_VL_HUB_PINS_VENDAS_TAREFAS=1,2,3,4,8` (loja); staging/dev com PIN **9973**: incluir na env |
-| **Prova** | `verify_etq_solicitacao_vl_pin_path.py` **28/28** · `verify_gm_lojas_pin_runtime.py` **runtime OK** |
-| **Smoke** | Hub 4 cartões · PIN 5 → sem acesso Vendas/Tarefas · Fotos/Etiquetas · etiquetas PC fila |
-| **Cutover** | `./scripts/cutover_loja_checklist_1110.sh` · rollback `docs/ROLLBACK-CHECKLIST-1110.md` |
+| **Status** | 🟡 **Live v26.94** + **hotfix v26.97 PREP armado** (gerência por nome · aguarda senha) |
+| **VERSION alvo** | **v26.97** |
+| **O quê** | Hotfix: Vendas/Tarefas para **Geraldinho, Geraldo, Renan, Isabela, Zuleide** (PIN pessoal qualquer) + códigos **#1–#4, #8** |
+| **Migrate hotfix** | **NÃO** (já `0142`/`0143` na loja) |
+| **Prova** | path **28/28** · runtime **19/19** · `verify_vl_hub_gerencia_allowlist.py` **10/10** |
+| **Rollback hotfix** | tag `rollback/pre-checklist-1110-v26.94` @ `da745c08` |
+| **Cutover** | `./scripts/cutover_loja_checklist_1110.sh --exec` |
 
-### ✅ CHECKLIST ÚNICO — 11/10 · ✅ **Live v26.94**
+### ✅ CHECKLIST ÚNICO — 11/10 · pacote Live · hotfix 🟢 **PRONTO**
 
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-SOLIC-MOBILE** | ✅ Live | `0142` | path **28/28** |
-| 2 | **VL-HUB-PIN-VENDAS-TAREFAS** | ✅ Live | — | runtime |
-| 3 | **GM-LOJAS-LOG** | ✅ Live | `0143` | `/gestao/logs/` |
+| # | Pacote | Status | Nota |
+| - | ------ | ------ | ---- |
+| 1 | **ETQ-SOLIC-MOBILE** | ✅ Live v26.94 | — |
+| 2 | **VL-HUB-PIN** | 🟢 hotfix **v26.97** PREP | nomes gerência |
+| 3 | **GM-LOJAS-LOG** | ✅ Live v26.94 | — |
 
-### ✅ Deploy loja — CHECKLIST 11/10 · **Live v26.94** · 11/10
+### 🟢 PREP loja — hotfix **v26.97** · armado
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado** — `producao` @ `da745c08` |
-| **Backup** | `producao-backup-pre-v2691-checklist-1110` @ `b2a7b02d` |
-| **Rollback** | `rollback/pre-checklist-1110-v26.90` · `docs/ROLLBACK-CHECKLIST-1110.md` |
+| **Live agora** | **v26.94** @ `da745c08` |
+| **PREP** | `deploy/prep-checklist-1110` (rebuild) |
+| **Rollback** | `rollback/pre-checklist-1110-v26.94` |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1110.sh` (migrate idempotente) |
 
 ### ✅ Deploy loja — CHECKLIST 10/10l · **Live v26.90** · 10/10
 
