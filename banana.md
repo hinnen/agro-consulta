@@ -1307,7 +1307,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PRONTO envio produção** — PREP `deploy/prep-checklist-1110l` @ `7c29f655` · Live **v27.03** @ `b4e4fcc8` |
+| **Status** | 🟢 **PREP armado — aguarda senha** — `deploy/prep-checklist-1110l` @ `dc19f805` · Live **v27.03** @ `b4e4fcc8` |
 | **O quê** | **META-CENTRO-VILA-UNIFICADO** · **VL-RITMO-HORA** (média «até agora» hora civil + 12 semanas no PDV) |
 | **Migrate** | **NÃO** |
 | **Prova** | `cutover_loja_checklist_1110l.sh` dry-run **OK** · ritmo **3/3** · META path core · **sem** migrate · PDV/caixa intocados |
