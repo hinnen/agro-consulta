@@ -61,6 +61,11 @@ def main() -> int:
     check("hub_ajuste_btn", "vl-hub-ajuste" in hub and "vendas_lojas_ajuste_mobile" in hub)
     check("url_ajuste_hub", "vendas_lojas_ajuste_mobile" in urls)
     check("ajuste_sessao_util", (ROOT / "produtos/vendas_lojas_ajuste_sessao_util.py").is_file())
+    ext = read("produtos/templates/produtos/_agro_open_external.html")
+    check(
+        "ajuste_sistapp_sem_shell_gestao",
+        "/vendas/lojas/ajuste" in ext and "__agroPathLookLikeAjusteMobile" in ext,
+    )
     check("icon_files", (ROOT / "produtos/static/produtos/pwa/vendas-lojas-512.png").is_file())
 
     print(f"\n{len(fails)} falha(s)")

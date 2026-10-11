@@ -11,6 +11,19 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   {% if ajuste_via_sistapp %}
   {% include "produtos/includes/vendas_lojas_pwa_head.html" with vl_theme_color="#10b981" %}
+  <script>
+  (function () {
+    try {
+      if (window.top === window.self) return;
+      var u = new URL(window.location.href);
+      u.searchParams.delete('agro_inapp_embed');
+      u.searchParams.delete('embed');
+      window.top.location.replace(u.pathname + u.search + u.hash);
+    } catch (e) {
+      try { window.top.location.href = '/vendas/lojas/ajuste/'; } catch (_) {}
+    }
+  })();
+  </script>
   {% else %}
   <meta name="apple-mobile-web-app-title" content="Ajuste">
   <meta name="theme-color" content="#10b981">
