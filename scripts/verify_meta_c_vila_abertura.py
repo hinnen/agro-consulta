@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Prova path BI-META-C-VILA — corte 20/07 · soma Centro+Vila · filtro BI."""
+"""Prova path BI-META-C-VILA — corte 01/08 · soma Centro+Vila · filtro BI."""
 from __future__ import annotations
 
 import ast
@@ -49,7 +49,7 @@ def test_static() -> None:
     check("fn_data_min", "def _dashboard_meta_c_data_min" in views)
     check("fn_valor", "def _dashboard_vendas_meta_c_valor" in views)
     abert = _fn_src("produtos/views.py", "_dashboard_meta_c_vila_abertura")
-    check("abertura_iso", "2026-07-20" in abert)
+    check("abertura_iso", "2026-08-01" in abert)
     data_min_fn = _fn_src("produtos/views.py", "_dashboard_meta_c_data_min")
     check("data_min_so_vila", 'deposito == "vila"' in data_min_fn)
     check("data_min_centro_none", "return None" in data_min_fn)
@@ -82,7 +82,7 @@ def test_static() -> None:
         ),
     )
 
-    check("ajuda_vila_2007", "20/07/2026" in body)
+    check("ajuda_vila_0108", "01/08/2026" in body)
     check("ajuda_vila_ramp_90", "90 dias" in body)
     check("ajuda_vila_ramp_14", "14 dias" in body)
     check("ajuda_soma", "soma" in body.lower() and "Centro + Vila" in body)
@@ -144,26 +144,25 @@ def test_clip_unitario() -> None:
     )
 
     ab = _dashboard_meta_c_vila_abertura()
-    check("abertura_date", ab == date(2026, 7, 20))
+    check("abertura_date", ab == date(2026, 8, 1))
     check("data_min_vila", _dashboard_meta_c_data_min("vila") == ab)
     check("data_min_centro", _dashboard_meta_c_data_min("centro") is None)
     check("data_min_todas", _dashboard_meta_c_data_min(None) is None)
 
-    first_m, last_m = date(2026, 7, 1), date(2026, 7, 31)
+    first_m, last_m = date(2026, 8, 1), date(2026, 8, 31)
     por = {
-        "2026-07-06": 1000.0,
-        "2026-07-13": 2000.0,
-        "2026-07-20": 400.0,
-        "2026-07-27": 600.0,
+        "2026-08-03": 1000.0,
+        "2026-08-10": 2000.0,
+        "2026-08-17": 400.0,
+        "2026-08-24": 600.0,
     }
-    # clip: so 20 e 27; idx1=400; A=500; meta=450
+    # 5 segundas no mes; dia 31 sem venda entra 0 na media A
     m = _dashboard_meta_c_um_mes(0, 1, por, first_m, last_m, data_min=ab)
-    check("jul_clip_1a", m == 450.0, str(m))
-    # 2a ocorrencia no recorte = 27 (600); meta=(500+600)/2=550
+    check("ago_clip_1a", m == 900.0, str(m))
     m2 = _dashboard_meta_c_um_mes(0, 2, por, first_m, last_m, data_min=ab)
-    check("jul_clip_2a", m2 == 550.0, str(m2))
+    check("ago_clip_2a", m2 == 1400.0, str(m2))
     m0 = _dashboard_meta_c_um_mes(0, 1, por, first_m, last_m, data_min=None)
-    check("jul_sem_clip", m0 == 1000.0, str(m0))
+    check("ago_sem_clip", m0 == 900.0, str(m0))
 
     por_jun = {
         f"2026-06-{d:02d}": 50.0
@@ -180,9 +179,10 @@ def test_clip_unitario() -> None:
     z = _dashboard_vendas_meta_c_para_dia(date(2026, 7, 15), meses, data_min=ab)
     check("alvo_antes_abertura_zero", z == 0.0, str(z))
     # dia alvo apos abertura usa clip
-    ok_d = _dashboard_vendas_meta_c_para_dia(date(2026, 8, 3), meses, data_min=ab)
-    # 3/8/2026 = Monday, ocorrencia 1 → mesma 450
-    check("alvo_apos_usa_clip", ok_d == 450.0, str(ok_d))
+    meses_ago = [(first_m, last_m, por)]
+    ok_d = _dashboard_vendas_meta_c_para_dia(date(2026, 8, 3), meses_ago, data_min=ab)
+    # 3/8/2026 = Monday, ocorrencia 1 → 900
+    check("alvo_apos_usa_clip", ok_d == 900.0, str(ok_d))
 
 
 def test_soma_e_serie() -> None:
@@ -307,9 +307,9 @@ def test_ramp_vila() -> None:
     check("ramp_dia39", _dashboard_meta_c_vila_em_ramp(ab + timedelta(days=39)))
     check("ramp_dia89", _dashboard_meta_c_vila_em_ramp(ab + timedelta(days=89)))
     check("ramp_fim_dia90", not _dashboard_meta_c_vila_em_ramp(ab + timedelta(days=90)))
-    # 20/07 + 90 = 18/10/2026
-    check("ramp_ate_out", _dashboard_meta_c_vila_em_ramp(date(2026, 10, 17)))
-    check("ramp_pos_out", not _dashboard_meta_c_vila_em_ramp(date(2026, 10, 18)))
+    # 01/08 + 90 = 30/10/2026
+    check("ramp_ate_out", _dashboard_meta_c_vila_em_ramp(date(2026, 10, 29)))
+    check("ramp_pos_out", not _dashboard_meta_c_vila_em_ramp(date(2026, 10, 30)))
 
     por = {
         "2026-08-01": 100.0,

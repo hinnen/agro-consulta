@@ -75,7 +75,7 @@ def test_wiring() -> None:
 
     check("ajuda_90", "90 dias" in body)
     check("ajuda_14", "14 dias" in body)
-    check("ajuda_2007", "20/07/2026" in body)
+    check("ajuda_0108", "01/08/2026" in body)
     check("ajuda_soma", "soma" in body.lower())
 
     rb = (ROOT / "docs/ROLLBACK-BI-META-C-VILA.md").read_text(encoding="utf-8")
@@ -100,14 +100,14 @@ def test_unit_ramp() -> None:
     )
 
     ab = _dashboard_meta_c_vila_abertura()
-    check("abertura", ab == date(2026, 7, 20))
+    check("abertura", ab == date(2026, 8, 1))
     check("ramp_dias_90", _dashboard_meta_c_vila_ramp_dias() == 90)
     check("janela_14", _dashboard_meta_c_vila_ramp_janela() == 14)
     switch = ab + timedelta(days=90)
-    check("switch_1810", switch == date(2026, 10, 18), str(switch))
+    check("switch_3010", switch == date(2026, 10, 30), str(switch))
     check("em_ramp_hoje", _dashboard_meta_c_vila_em_ramp(date(2026, 8, 29)))
-    check("em_ramp_1710", _dashboard_meta_c_vila_em_ramp(date(2026, 10, 17)))
-    check("fora_ramp_1810", not _dashboard_meta_c_vila_em_ramp(date(2026, 10, 18)))
+    check("em_ramp_2910", _dashboard_meta_c_vila_em_ramp(date(2026, 10, 29)))
+    check("fora_ramp_3010", not _dashboard_meta_c_vila_em_ramp(date(2026, 10, 30)))
 
     por = {f"2026-08-{d:02d}": float(100 * d) for d in range(1, 15)}
     por["2026-08-10"] = 0.0  # zero não conta

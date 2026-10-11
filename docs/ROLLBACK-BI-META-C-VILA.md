@@ -2,7 +2,7 @@
 
 **Migrate:** NÃO  
 **Env nova obrigatória:** NÃO  
-Opcionais: `AGRO_VILA_ABERTURA` (default `2026-07-20`) · `AGRO_VILA_META_RAMP_DIAS` (90) · `AGRO_VILA_META_RAMP_JANELA` (14)
+Opcionais: `AGRO_VILA_ABERTURA` (default `2026-08-01`) · `AGRO_VILA_META_RAMP_DIAS` (90) · `AGRO_VILA_META_RAMP_JANELA` (14)
 
 ## Regra Vila (ramp)
 

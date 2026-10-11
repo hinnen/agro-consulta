@@ -8660,13 +8660,13 @@ def _dashboard_label_mesmo_weekday_mes_ant(d: date, ref: date | None) -> dict[st
 
 def _dashboard_meta_c_vila_abertura() -> date:
     """1º dia com vendas na Vila Elias — base da Meta C nunca usa dias anteriores."""
-    raw = getattr(settings, "AGRO_VILA_ABERTURA", None) or "2026-07-20"
+    raw = getattr(settings, "AGRO_VILA_ABERTURA", None) or "2026-08-01"
     if isinstance(raw, date):
         return raw
     try:
         return date.fromisoformat(str(raw).strip()[:10])
     except ValueError:
-        return date(2026, 7, 20)
+        return date(2026, 8, 1)
 
 
 def _dashboard_meta_c_vila_ramp_dias() -> int:
