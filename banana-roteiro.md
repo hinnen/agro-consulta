@@ -967,6 +967,17 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
+## 79. Checklist **11/10m** · 🟢 PREP **v27.06** · aguarda senha
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **VILA-ABERTURA-0108** | 🟢 **PRONTO** | **NÃO** |
+| 2 | **VILA-DOMINGO-ZERO** | 🟢 **PRONTO** | **NÃO** |
+
+**PREP:** `deploy/prep-checklist-1110m` @ `84872d72` · Live base `f590b14b`. **Cutover:** `cutover_loja_checklist_1110m.sh` · rollback `rollback/pre-checklist-1110m-v27.04-f590`.
+
+---
+
 ## 77. Checklist único — **11/10j** · ✅ **Live v27.00** · 11/10
 
 | # | Pacote | Status | Migrate |

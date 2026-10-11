@@ -1294,19 +1294,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — **VILA-META** (`CHECKLIST 11/10m` · 11/10) · 🟢 **PRONTO p/ produção**
+### 📦 PACOTE PRONTO — **VILA-META** (`CHECKLIST 11/10m` · 11/10) · 🟢 **PREP armado**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **só no `teste`** — aguarda frase + senha loja |
+| **Status** | 🟢 **aguarda senha** — PREP `deploy/prep-checklist-1110m` @ `84872d72` · Live **v27.04** @ `f590b14b` |
 | **Versão** | **v27.06** |
 | **O quê** | **VILA-ABERTURA-0108** (default 01/08/2026) + **VILA-DOMINGO-ZERO** (meta R$ 0 domingo) |
 | **Migrate** | **NÃO** |
-| **Render** | Default código basta; só apagar `AGRO_VILA_ABERTURA=2026-07-20` se existir (`docs/ROLLBACK-BI-META-C-VILA.md`) |
-| **Commit** | `teste` @ `358e8baa` (+ provas script) |
-| **Prova** | `verify_meta_c_vila_abertura` **66/68** · `verify_meta_c_vila_ramp_deep` **37/38** · `verify_vendas_lojas_resumo_path` (meta/ritmo OK; PIN 9973 só com DB loja) · `tests_vendas_lojas_ritmo` **3/3** |
+| **Render** | Apagar `AGRO_VILA_ABERTURA=2026-07-20` se existir (`docs/ROLLBACK-BI-META-C-VILA.md`) |
+| **Cutover** | `./scripts/cutover_loja_checklist_1110m.sh` dry-run **OK** |
+| **Rollback** | tag `rollback/pre-checklist-1110m-v27.04-f590` @ `f590b14b` |
+| **Prova** | META static + ramp static · ritmo **3/3** · PDV **13/13** · delta só Meta C Vila |
 
-### 🟢 CHECKLIST ÚNICO — **11/10m** · pronto para envio à produção
+### 🟢 CHECKLIST ÚNICO — **11/10m** · aguarda senha
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
