@@ -1298,14 +1298,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PRONTO envio produção** — `teste` @ **v26.94** · cutover aguarda frase+senha |
+| **Status** | 🟢 **PRONTO envio produção** — PREP @ **v26.94** · cutover aguarda frase+senha |
 | **VERSION** | **v26.94** (`40ccd2c3` + docs verify) |
 | **O quê** | **ETQ-SOLIC-MOBILE** (mobile + fila desktop) · **VL-HUB-PIN** (PIN único 7d; Vendas/Tarefas **1,2,3,4,8** só no clique) · **GM-LOJAS-LOG** (Gestão → LOG) |
 | **Migrate** | **SIM** — `0142` · `0143` |
 | **Env** | `AGRO_VL_HUB_PINS_VENDAS_TAREFAS=1,2,3,4,8` (loja); staging/dev com PIN **9973**: incluir na env |
 | **Prova** | `verify_etq_solicitacao_vl_pin_path.py` **28/28** · `verify_gm_lojas_pin_runtime.py` **runtime OK** |
 | **Smoke** | Hub 4 cartões · PIN 5 → sem acesso Vendas/Tarefas · Fotos/Etiquetas · etiquetas PC fila |
-| **Cutover** | `scripts/cutover_loja_checklist_1110.sh` (VERSION **26.94**) · doc `docs/DEPLOY-PREP-CHECKLIST-1110.md` |
+| **Cutover** | `./scripts/cutover_loja_checklist_1110.sh` · rollback `docs/ROLLBACK-CHECKLIST-1110.md` |
 
 ### ✅ CHECKLIST ÚNICO — 11/10 · 🟢 **PRONTO envio produção**
 
@@ -1319,7 +1319,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **PREP desatualizado** (v26.92) — refazer cherry-pick `teste` → `deploy/prep-checklist-1110` · Live **v26.90** @ `b2a7b02d` |
+| **Status** | 🟡 **armado** — PREP `deploy/prep-checklist-1110` @ v26.94 `teste` → `deploy/prep-checklist-1110` · Live **v26.90** @ `b2a7b02d` |
 | **Rollback** | tag `rollback/pre-checklist-1110-v26.90` |
 | **Backup branch** | `producao-backup-pre-v2691-checklist-1110` |
 | **Cutover** | `scripts/cutover_loja_checklist_1110.sh` |
