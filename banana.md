@@ -1303,7 +1303,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | **VILA-ABERTURA-0108** (default 01/08/2026) + **VILA-DOMINGO-ZERO** (meta R$ 0 domingo) |
 | **Migrate** | **NÃO** |
 | **Render** | Default código basta; só apagar `AGRO_VILA_ABERTURA=2026-07-20` se existir (`docs/ROLLBACK-BI-META-C-VILA.md`) |
-| **Prova** | `verify_meta_c_vila_abertura.py` (+ domingo zero) |
+| **Commit** | `teste` @ `358e8baa` (+ provas script) |
+| **Prova** | `verify_meta_c_vila_abertura` **66/68** · `verify_meta_c_vila_ramp_deep` **37/38** · `verify_vendas_lojas_resumo_path` (meta/ritmo OK; PIN 9973 só com DB loja) · `tests_vendas_lojas_ritmo` **3/3** |
 
 ### 🟢 CHECKLIST ÚNICO — **11/10m** · pronto para envio à produção
 

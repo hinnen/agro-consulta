@@ -55,6 +55,7 @@ def test_wiring() -> None:
         check(f"fn_{fn}", f"def {fn}" in views)
 
     valor = _fn_src("produtos/views.py", "_dashboard_vendas_meta_c_valor")
+    check("valor_branch_domingo", "_dashboard_meta_c_vila_domingo_fechado" in valor)
     check("valor_branch_ramp", "_dashboard_meta_c_vila_em_ramp" in valor)
     check("valor_branch_media", "_dashboard_meta_c_vila_media_recente" in valor)
     check("valor_soma_c_v", '"centro"' in valor and '"vila"' in valor)
@@ -134,7 +135,7 @@ def test_unit_ramp() -> None:
             with patch("produtos.views._dashboard_meta_c_meses_por_dia", return_value=[]):
                 check(
                     "valor_pos_ramp",
-                    _dashboard_vendas_meta_c_valor(date(2026, 11, 1), {}, "vila") == 42.0,
+                    _dashboard_vendas_meta_c_valor(date(2026, 11, 2), {}, "vila") == 42.0,
                 )
 
     # soma C+V
