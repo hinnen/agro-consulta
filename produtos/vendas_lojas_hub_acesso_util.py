@@ -6,8 +6,8 @@ import os
 
 from django.conf import settings
 
-# Slots de operador (codigo_vendedor 0001→1 … 0008→8) com acesso Vendas/Tarefas no celular.
-# Também aceita senha_rapida literal na lista (ex.: quem usa PIN curto «1»).
+# Códigos de operador (RH → Operadores do caixa, ex. «Renan #1» = codigo_vendedor «1»).
+# Quem está na lista entra em Vendas/Tarefas com o PIN pessoal dele (senha_rapida), sem colocar o PIN na env.
 _DEFAULT_PINS = frozenset({"1", "2", "3", "4", "8"})
 
 _MSG_SEM_ACESSO = (
@@ -29,8 +29,8 @@ def pins_vendas_tarefas_hub() -> frozenset[str]:
     return frozenset(out) if out else _DEFAULT_PINS
 
 
-def _slot_operador_por_senha_rapida(pin: str) -> str:
-    """Número do operador (ex. 0001 → «1») para o PIN digitado no hub."""
+def codigo_operador_por_pin_digitado(pin: str) -> str:
+    """codigo_vendedor do operador que digitou o PIN (mesmo # da tela RH)."""
     from base.models import PerfilUsuario
 
     pin = (pin or "").strip()
@@ -43,22 +43,22 @@ def _slot_operador_por_senha_rapida(pin: str) -> str:
     )
     if not perfil:
         return ""
-    cv = (perfil.codigo_vendedor or "").strip()
-    if cv.isdigit():
-        return str(int(cv))
-    stripped = cv.lstrip("0")
-    return stripped or cv
+    return (perfil.codigo_vendedor or "").strip()
+
+
+# alias interno (testes / scripts)
+_slot_operador_por_senha_rapida = codigo_operador_por_pin_digitado
 
 
 def pin_liberado_vendas_tarefas(pin: str) -> bool:
+    """Libera pelo código do operador (#1, #2…), não pelo valor do PIN pessoal."""
     pin = (pin or "").strip()
     if not pin:
         return False
-    allowed = pins_vendas_tarefas_hub()
-    if pin in allowed:
-        return True
-    slot = _slot_operador_por_senha_rapida(pin)
-    return bool(slot and slot in allowed)
+    codigo = codigo_operador_por_pin_digitado(pin)
+    if not codigo:
+        return False
+    return codigo in pins_vendas_tarefas_hub()
 
 
 def mensagem_pin_sem_acesso_vendas_tarefas() -> str:
@@ -68,7 +68,7 @@ def mensagem_pin_sem_acesso_vendas_tarefas() -> str:
 def mensagem_sem_acesso_modulo(modulo: str) -> str:
     nome = "Vendas" if (modulo or "").strip().lower() == "vendas" else "Tarefas"
     return (
-        f"Seu PIN não tem permissão para abrir {nome} no celular. "
-        "Você pode usar Fotos e Etiquetas. Para Vendas ou Tarefas, use um PIN autorizado "
-        "(gerência) ou fale com o responsável."
+        f"Seu operador não está liberado para {nome} no celular "
+        "(só códigos configurados na gerência, ex. #1, #2…). "
+        "Você pode usar Fotos e Etiquetas. Fale com o responsável se precisar de acesso."
     )

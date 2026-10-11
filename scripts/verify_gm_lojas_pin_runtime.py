@@ -10,7 +10,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
-os.environ.setdefault("AGRO_VL_HUB_PINS_VENDAS_TAREFAS", "9973,1,2,3,4,8")
+os.environ.setdefault("AGRO_VL_HUB_PINS_VENDAS_TAREFAS", "1,2,3,4,8")
 
 import django
 
@@ -84,9 +84,13 @@ def main() -> int:
     except Exception as e:
         check("reverse_api_etiquetas_importar", False, str(e))
 
-    print("== Allowlist (PIN 9973 no env de teste) ==")
-    with override_settings(AGRO_VL_HUB_PINS_VENDAS_TAREFAS="9973,1,2,3,4,8"):
-        check("pin_9973_liberado", pin_liberado_vendas_tarefas("9973"))
+    print("== Allowlist (código operador, não PIN pessoal) ==")
+    with override_settings(AGRO_VL_HUB_PINS_VENDAS_TAREFAS="1,2,3,4,8"):
+        with patch(
+            "produtos.vendas_lojas_hub_acesso_util.codigo_operador_por_pin_digitado",
+            return_value="1",
+        ):
+            check("pin_pessoal_9973_codigo_1", pin_liberado_vendas_tarefas("9973"))
         check("pin_5_bloqueado", not pin_liberado_vendas_tarefas("5"))
 
     print("== Sessão hub ==")
@@ -110,16 +114,24 @@ def main() -> int:
 
         return HttpResponse("OK-TAREFAS")
 
-    t_resp = _tarefas_stub(r5)
+    with patch(
+        "produtos.vendas_lojas_hub_acesso_util.codigo_operador_por_pin_digitado",
+        return_value="6",
+    ):
+        t_resp = _tarefas_stub(r5)
     check("tarefas_pin5_sem_acesso", b"sem acesso" in t_resp.content.lower() and b"Tarefas" in t_resp.content)
 
     sa = resposta_sem_acesso_html(r5, "vendas")
     check("vendas_sem_acesso_page", b"Vendas" in sa.content and b"sem acesso" in sa.content.lower())
 
-    print("== PIN 9973 passa guard tarefas ==")
+    print("== PIN pessoal + código #1 passa guard tarefas ==")
     r9973b = _req_session("9973")
-    t_ok = _tarefas_stub(r9973b)
-    check("tarefas_pin9973_ok", t_ok.content == b"OK-TAREFAS")
+    with patch(
+        "produtos.vendas_lojas_hub_acesso_util.codigo_operador_por_pin_digitado",
+        return_value="1",
+    ):
+        t_ok = _tarefas_stub(r9973b)
+    check("tarefas_codigo_1_ok", t_ok.content == b"OK-TAREFAS")
 
     print(f"\nTOTAL OK={OK} FAIL={FAIL}")
     return 0 if FAIL == 0 else 1
