@@ -1,29 +1,43 @@
-# PREP — CHECKLIST 11/10k · **v27.03**
+# PREP — CHECKLIST 11/10k (restante) · **v27.03**
 
 | # | Pacote | Prova | Migrate |
 | - | ------ | ----- | ------- |
-| 1 | **SISTAPP-PWA-AJUSTE** | `verify_vendas_lojas_pwa_install.py` **25/25** | **NÃO** |
-| 2 | **META-POR-LOJA** | `verify_meta_mostruario_path.py` core (arquivos + CRUD + Zap) | **SIM** `0144` |
-| 3 | **META-ZAP-ENXUTO** | (mesmo script · linhas `* R$ … bônus … ✅`) | **NÃO** |
+| 1 | **SISTAPP-PWA-AJUSTE-ATUALIZAR** | PWA **25/25** · resumo estático **164/164** | **NÃO** |
+| 2 | **META-ZAP-ENXUTO** | `verify_meta_mostruario_path` core | **NÃO** |
 
-**Live antes:** **v27.00** @ `14f5cad7`  
-**PREP:** `deploy/prep-checklist-1110k`  
-**Rollback:** tag `rollback/pre-checklist-1110k-v27.00` @ `14f5cad7`  
-**Cutover:** `scripts/cutover_loja_checklist_1110k.sh`
+**META-POR-LOJA** já **Live v27.01** (`d77cb17e`) — **não** repetir migrate 0144.
 
-**Não inclui** merge de `teste` inteiro — delta só GM Lojas / Ajuste / META. **PDV, caixa e busca 230 intocados.**
+**Live antes deste envio:** **v27.01**  
+**PREP:** `deploy/prep-checklist-1110k` (rebase em `producao` antes do cutover)  
+**Rollback:** tag `rollback/pre-checklist-1110k-restante-v27.01` @ tip `producao` pré-push  
+**Cutover (dry-run):** `./scripts/cutover_loja_checklist_1110k.sh`
 
-## Pós-deploy (Shell Render)
+**Não inclui** merge de `teste` inteiro — delta só GM Lojas / SistApp / Zap. **PDV, caixa e busca 230 intocados.**
+
+## Antes de pausar vendas (~1 min)
 
 ```bash
-./scripts/post_deploy_checklist_1110k.sh
+git fetch origin producao deploy/prep-checklist-1110k
+./scripts/cutover_loja_checklist_1110k.sh
 ```
 
-## Na senha (lojas pausadas ~2–3 min)
+Tudo `OK` → pausar vendas no Zap.
+
+## Na senha (janela curta ~2 min)
 
 ```bash
 AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' \
   ./scripts/cutover_loja_checklist_1110k.sh --exec
 ```
 
-Depois: conferir badge **v27.03** · `/meta/` (escolher Só Centro/Vila para cadastrar) · hub **Ajuste** verde · manifest **SistApp**.
+Render Shell (opcional, rápido):
+
+```bash
+./scripts/post_deploy_checklist_1110k.sh
+```
+
+## Conferir na loja
+
+- Badge **v27.03** · manifest **SistApp**  
+- Hub → **Ajuste** verde · Vendas → **Atualizar** (reload)  
+- `/meta/` Zap com linhas enxutas (`* R$ … bônus … ✅`)

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Cutover loja — CHECKLIST 11/10k · SistApp Ajuste + META por loja · v27.03 · migrate 0144
+# Cutover loja — CHECKLIST 11/10k (restante) · SistApp + Atualizar + Zap enxuto · v27.03 · SEM migrate
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -7,14 +7,14 @@ cd "$ROOT"
 
 PREP_REF="origin/deploy/prep-checklist-1110k"
 PROD_REF="origin/producao"
-ROLLBACK_TAG="rollback/pre-checklist-1110k-v27.00"
-BACKUP_BR="producao-backup-pre-v2703-checklist-1110k"
+ROLLBACK_TAG="rollback/pre-checklist-1110k-restante-v27.01"
+BACKUP_BR="producao-backup-pre-v2703-checklist-1110k-restante"
 SENHA_OK="99738595"
 VER_ESPERADA="27.03"
-MIG_ESPERADA="produtos/migrations/0144_metavendafaixaagro_deposito.py"
 
-git fetch origin producao deploy/prep-checklist-1110k "$ROLLBACK_TAG" 2>/dev/null \
+git fetch origin producao deploy/prep-checklist-1110k 2>/dev/null \
   || git fetch origin producao deploy/prep-checklist-1110k
+git fetch origin "refs/tags/${ROLLBACK_TAG}:refs/tags/${ROLLBACK_TAG}" 2>/dev/null || true
 
 PROD="$(git rev-parse --short "$PROD_REF")"
 PREP="$(git rev-parse --short "$PREP_REF")"
@@ -22,7 +22,7 @@ VER="$(git show "$PREP_REF:VERSION" | tr -d '[:space:]')"
 echo "producao=$PROD PREP=$PREP VERSION=$VER"
 
 git merge-base --is-ancestor "$PROD_REF" "$PREP_REF" || {
-  echo "FAIL: produção não é ancestral do PREP"; exit 2;
+  echo "FAIL: produção não é ancestral do PREP (rebase deploy/prep-checklist-1110k em producao)"; exit 2;
 }
 [[ "$VER" == "$VER_ESPERADA" ]] || {
   echo "FAIL: VERSION=$VER (esperado $VER_ESPERADA)"; exit 2;
@@ -30,12 +30,8 @@ git merge-base --is-ancestor "$PROD_REF" "$PREP_REF" || {
 
 MIG="$(git diff --name-only "$PROD_REF...$PREP_REF" | grep -E '/migrations/[0-9]+_' || true)"
 echo "migrations no delta: ${MIG:-nenhuma}"
-echo "$MIG" | grep -q "0144_metavendafaixaagro_deposito" || {
-  echo "FAIL: falta migration 0144 no pacote"; exit 2;
-}
-EXTRA_MIG="$(echo "$MIG" | grep -v '0144_metavendafaixaagro_deposito' || true)"
-[[ -z "$EXTRA_MIG" ]] || {
-  echo "FAIL: migrations extras no pacote: $EXTRA_MIG"; exit 2;
+[[ -z "$MIG" ]] || {
+  echo "FAIL: pacote restante não pode levar migration nova: $MIG"; exit 2;
 }
 
 FORBIDDEN="$(git diff --name-only "$PROD_REF...$PREP_REF" | grep -E \
@@ -52,11 +48,11 @@ PREP_FULL="$(git rev-parse "$PREP_REF")"
 git cat-file -e "$PREP_FULL:produtos/vendas_lojas_ajuste_sessao_util.py" || {
   echo "FAIL: delta sem SistApp ajuste sessão"; exit 2;
 }
-git cat-file -e "$PREP_FULL:$MIG_ESPERADA" || {
-  echo "FAIL: delta sem migration META loja"; exit 2;
+git grep -q 'vl-atualizar' "$PREP_FULL" -- produtos/templates/produtos/vendas_lojas_resumo.html || {
+  echo "FAIL: delta sem botão Atualizar no painel Vendas"; exit 2;
 }
-git grep -q 'meta_normalizar_deposito' "$PREP_FULL" -- produtos/meta_vendas_util.py || {
-  echo "FAIL: delta sem META por loja"; exit 2;
+git grep -q '"short_name": "SistApp"' "$PREP_FULL" -- produtos/views.py || {
+  echo "FAIL: delta sem manifest SistApp"; exit 2;
 }
 git grep -q '_meta_linha_zap_enxuta' "$PREP_FULL" -- produtos/meta_vendas_util.py || {
   echo "FAIL: delta sem Zap enxuto"; exit 2;
@@ -67,6 +63,19 @@ PY=python3
 
 "$PY" scripts/verify_vendas_lojas_pwa_install.py | tee /tmp/cutover-1110k-pwa.log
 grep -qE '0 falha\(s\)|FAIL=0' /tmp/cutover-1110k-pwa.log
+
+"$PY" -c "
+import importlib.util
+from pathlib import Path
+spec = importlib.util.spec_from_file_location('v', 'scripts/verify_vendas_lojas_resumo_path.py')
+v = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(v)
+for fn in ('test_arquivos', 'test_periodo', 'test_totais_mock', 'test_cmp_meta', 'test_fracao_expediente', 'test_previsao_mes', 'test_versao'):
+    getattr(v, fn)()
+assert not v.fails, v.fails
+print('resumo estático OK', len(v.oks))
+" | tee /tmp/cutover-1110k-resumo.log
+grep -q 'resumo estático OK' /tmp/cutover-1110k-resumo.log
 
 AGRO_PIN_TESTE=9973 "$PY" -c "
 import os, sys
@@ -84,13 +93,9 @@ print('META core OK')
 " | tee /tmp/cutover-1110k-meta.log
 grep -q 'META core OK' /tmp/cutover-1110k-meta.log
 
-if [[ -f scripts/verify_cb_loja_pdv_busca_path.py ]]; then
-  "$PY" scripts/verify_cb_loja_pdv_busca_path.py | tee /tmp/cutover-1110k-pdv.log
-  grep -qE 'FAIL=0|PREP_FAILS=0' /tmp/cutover-1110k-pdv.log
-fi
-
-echo "OK: PREP v$VER_ESPERADA · migrate 0144 · rollback $ROLLBACK_TAG"
-echo "Pós-deploy: python manage.py migrate produtos 0144 --noinput && ./scripts/post_deploy_checklist_1110k.sh"
+echo "OK: PREP v$VER_ESPERADA · sem migrate · rollback $ROLLBACK_TAG @ produção atual"
+echo "Pós-deploy (rápido): ./scripts/post_deploy_checklist_1110k.sh"
+echo "Exec: AGRO_LOJA_FRASE='…' AGRO_LOJA_SENHA='…' $0 --exec"
 
 if [[ "${1:-}" != "--exec" ]]; then exit 0; fi
 
@@ -102,4 +107,4 @@ echo "$FRASE" | grep -Eiq 'pode.*(produ[cç][aã]o|producao)|sobe.*(produ[cç][a
 
 git push origin "$PROD_REF:refs/heads/$BACKUP_BR" || true
 git push origin "$PREP_REF:producao"
-echo "PUSH OK · Render migrate 0144 · badge v$VER_ESPERADA · Ctrl+F5 opcional"
+echo "PUSH OK · Render auto-deploy · badge v$VER_ESPERADA · Shell: ./scripts/post_deploy_checklist_1110k.sh"
