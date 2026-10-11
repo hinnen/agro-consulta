@@ -17,6 +17,7 @@ from produtos.meta_vendas_util import (
     meta_excluir_faixa,
     meta_listar_faixas,
     meta_montar_mostruario,
+    meta_normalizar_deposito,
     meta_parse_competencia,
     meta_salvar_faixa,
     meta_texto_zap,
@@ -59,6 +60,9 @@ def meta_vendas_painel(request):
             "vs_media_mes": {"sentido": "sem", "diff_fmt": "—", "pct_signed_fmt": "—"},
         }
     texto_zap = meta_texto_zap(mostruario) if mostruario.get("faixas") is not None else ""
+    dep_cfg = (request.GET.get("deposito") or "centro").strip().lower()
+    if dep_cfg not in ("centro", "vila"):
+        dep_cfg = "centro"
     return render(
         request,
         "produtos/meta_vendas.html",
@@ -66,7 +70,8 @@ def meta_vendas_painel(request):
             "competencia": competencia,
             "mostruario": mostruario,
             "texto_zap": texto_zap,
-            "faixas": meta_listar_faixas(competencia),
+            "faixas": meta_listar_faixas(competencia, dep_cfg),
+            "cfg_deposito": dep_cfg,
             "api_resumo_url": reverse("api_meta_vendas_resumo"),
             "api_faixas_url": reverse("api_meta_vendas_faixas"),
             "home_url": reverse("home"),
@@ -109,14 +114,26 @@ def api_meta_vendas_faixas(request):
     hoje = timezone.localdate()
     if request.method == "GET":
         competencia = meta_parse_competencia(request.GET.get("competencia"), hoje)
+        dep_get = (request.GET.get("deposito") or "").strip().lower()
+        if dep_get not in ("centro", "vila"):
+            return JsonResponse(
+                {"ok": False, "erro": "Informe deposito=centro ou deposito=vila."},
+                status=400,
+            )
         return JsonResponse(
-            {"ok": True, "competencia": competencia, "faixas": meta_listar_faixas(competencia)}
+            {
+                "ok": True,
+                "competencia": competencia,
+                "deposito": dep_get,
+                "faixas": meta_listar_faixas(competencia, dep_get),
+            }
         )
 
     body = _payload_json(request)
     competencia = meta_parse_competencia(
         body.get("competencia") or request.GET.get("competencia"), hoje
     )
+    dep_body = meta_normalizar_deposito(body.get("deposito"))
 
     if request.method == "DELETE" or (
         request.method == "POST" and str(body.get("acao") or "").lower() == "excluir"
@@ -130,7 +147,12 @@ def api_meta_vendas_faixas(request):
             logger.exception("api_meta_vendas_faixas excluir")
             return JsonResponse({"ok": False, "erro": str(exc)[:200]}, status=500)
         return JsonResponse(
-            {"ok": True, "faixas": meta_listar_faixas(competencia), "competencia": competencia}
+            {
+                "ok": True,
+                "faixas": meta_listar_faixas(competencia, dep_body),
+                "competencia": competencia,
+                "deposito": dep_body,
+            }
         )
 
     # POST salvar (criar/editar)
@@ -144,6 +166,7 @@ def api_meta_vendas_faixas(request):
             bonus_extra=body.get("bonus_extra") or "",
             faixa_id=faixa_id,
             ordem=body.get("ordem"),
+            deposito=dep_body,
         )
     except ValueError as exc:
         return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
@@ -154,7 +177,8 @@ def api_meta_vendas_faixas(request):
         {
             "ok": True,
             "faixa": saved,
-            "faixas": meta_listar_faixas(competencia),
+            "faixas": meta_listar_faixas(competencia, dep_body),
             "competencia": competencia,
+            "deposito": dep_body,
         }
     )
