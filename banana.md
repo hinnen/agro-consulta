@@ -1298,8 +1298,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **Live v26.94** + **hotfix v26.97 PREP armado** (gerência por nome · aguarda senha) |
-| **VERSION alvo** | **v26.97** |
+| **Status** | ✅ **Live v26.97** — hotfix gerência VL-HUB (`producao` @ `db620370`) |
+| **VERSION** | **v26.97** |
 | **O quê** | Hotfix: Vendas/Tarefas para **Geraldinho, Geraldo, Renan, Isabela, Zuleide** (PIN pessoal qualquer) + códigos **#1–#4, #8** |
 | **Migrate hotfix** | **NÃO** (já `0142`/`0143` na loja) |
 | **Prova** | path **28/28** · runtime **19/19** · `verify_vl_hub_gerencia_allowlist.py` **10/10** |
@@ -1311,17 +1311,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status | Nota |
 | - | ------ | ------ | ---- |
 | 1 | **ETQ-SOLIC-MOBILE** | ✅ Live v26.94 | — |
-| 2 | **VL-HUB-PIN** | 🟢 hotfix **v26.97** PREP | nomes gerência |
+| 2 | **VL-HUB-PIN** | ✅ Live **v26.97** | nomes gerência |
 | 3 | **GM-LOJAS-LOG** | ✅ Live v26.94 | — |
 
-### 🟢 PREP loja — hotfix **v26.97** · armado
+### ✅ Deploy loja — hotfix **v26.97** · 11/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Live agora** | **v26.94** @ `da745c08` |
-| **PREP** | `deploy/prep-checklist-1110` (rebuild) |
+| **Status** | ✅ enviado — backup `producao-backup-pre-v2697-checklist-1110` @ `da745c08` |
 | **Rollback** | `rollback/pre-checklist-1110-v26.94` |
-| **Pós-deploy** | `./scripts/post_deploy_checklist_1110.sh` (migrate idempotente) |
 
 ### ✅ Deploy loja — CHECKLIST 10/10l · **Live v26.90** · 10/10
 
