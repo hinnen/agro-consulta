@@ -626,10 +626,14 @@ LOJA_MAPS_ORIGEM_VILA = config("LOJA_MAPS_ORIGEM_VILA", default="").strip() or "
 # Legado: se você só definia uma origem, ela vira fallback do Centro (acima).
 LOJA_MAPS_ORIGEM_TEXTO = _legacy_loja_maps
 
-# Hub GM Lojas (celular): PINs com acesso a Vendas + Tarefas (senha_rapida). Fotos/Etiquetas = todos os PINs.
+# Hub GM Lojas: quem abre Vendas/Tarefas — códigos # (1,2…) e/ou nomes (ver vendas_lojas_hub_acesso_util).
 AGRO_VL_HUB_PINS_VENDAS_TAREFAS = config(
     "AGRO_VL_HUB_PINS_VENDAS_TAREFAS",
     default="1,2,3,4,8",
+).strip()
+AGRO_VL_HUB_NOMES_VENDAS_TAREFAS = config(
+    "AGRO_VL_HUB_NOMES_VENDAS_TAREFAS",
+    default="",
 ).strip()
 
 # Ordenação de entregas: matriz de distâncias por estrada (Distance Matrix API — faturamento no Google Cloud).

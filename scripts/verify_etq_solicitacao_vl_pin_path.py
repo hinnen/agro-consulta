@@ -69,7 +69,8 @@ def main() -> int:
     )
     check("settings_env", "AGRO_VL_HUB_PINS_VENDAS_TAREFAS" in (ROOT / "config/settings.py").read_text(encoding="utf-8"))
     acc = (ROOT / "produtos/vendas_lojas_hub_acesso_util.py").read_text(encoding="utf-8")
-    check("allowlist_codigo_vendedor", "codigo_vendedor" in acc and "codigo_operador_por_pin_digitado" in acc)
+    check("allowlist_codigo_vendedor", "codigo_operador_por_pin_digitado" in acc)
+    check("allowlist_nomes_gerencia", "Renan Hinnen" in acc and "nomes_vendas_tarefas_hub" in acc)
 
     print("== Util PIN ==")
     with override_settings(AGRO_VL_HUB_PINS_VENDAS_TAREFAS="1,2,3,4,8"):
