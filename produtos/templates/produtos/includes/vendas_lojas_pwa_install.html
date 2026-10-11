@@ -1,4 +1,4 @@
-{# Botão Instalar (Chrome) + dica iOS + registro do service worker GM Lojas. #}
+{# Instalar: Chrome (Android), Safari (iOS), aviso navegador embutido + service worker. #}
 <style>
   .vl-pwa-instalar {
     display: none;
@@ -25,50 +25,79 @@
     background: #fff;
     color: #c2410c;
   }
-  .vl-pwa-ios {
+  .vl-pwa-hint {
     display: none;
     margin: 0 0 0.85rem;
     padding: 0.65rem 0.85rem;
     border-radius: 0.9rem;
-    background: #064e3b;
-    color: #ecfdf5;
     font-size: 0.8rem;
     font-weight: 700;
     line-height: 1.35;
     position: relative;
     padding-right: 2rem;
   }
-  .vl-pwa-ios--pin {
+  .vl-pwa-hint--ios {
+    background: #064e3b;
+    color: #ecfdf5;
+  }
+  .vl-pwa-hint--android {
+    background: #1e3a8a;
+    color: #eff6ff;
+  }
+  .vl-pwa-hint--inapp {
+    background: #7c2d12;
+    color: #fff7ed;
+    border: 2px solid #fdba74;
+  }
+  .vl-pwa-hint--pin {
     margin-top: 0.25rem;
   }
-  .vl-pwa-ios-ok {
+  .vl-pwa-hint-ok {
     position: absolute;
     top: 0.35rem;
     right: 0.45rem;
     border: 0;
     background: transparent;
-    color: #fff;
+    color: inherit;
     font-weight: 900;
     font-size: 1.1rem;
     line-height: 1;
     padding: 0.15rem 0.35rem;
     cursor: pointer;
+    opacity: 0.85;
   }
 </style>
 <button type="button" id="vl-pwa-instalar" class="vl-pwa-instalar{% if vl_pwa_variant == 'hub' %} vl-pwa-instalar--hub{% endif %}">
   Instalar no celular
 </button>
-<p id="vl-pwa-ios" class="vl-pwa-ios{% if vl_pwa_variant == 'pin' %} vl-pwa-ios--pin{% endif %}">
-  <button type="button" id="vl-pwa-ios-ok" class="vl-pwa-ios-ok" aria-label="Fechar">×</button>
-  No iPhone: toque em <strong>Compartilhar</strong> (quadrado com setinha) e depois em <strong>Adicionar à Tela de Início</strong>. O ícone <strong>Vendas</strong> abre o GM Lojas em tela cheia.
+<p id="vl-pwa-inapp" class="vl-pwa-hint vl-pwa-hint--inapp{% if vl_pwa_variant == 'pin' %} vl-pwa-hint--pin{% endif %}">
+  <button type="button" class="vl-pwa-hint-ok" data-vl-pwa-dismiss="inapp" aria-label="Fechar">×</button>
+  Para instalar, abra no <strong>Chrome</strong> (Android) ou no <strong>Safari</strong> (iPhone): toque <strong>⋮</strong> ou <strong>Compartilhar</strong> e escolha <strong>Abrir no navegador</strong> / <strong>Abrir no Chrome</strong>. Depois use Instalar ou Adicionar à Tela de Início.
+</p>
+<p id="vl-pwa-ios" class="vl-pwa-hint vl-pwa-hint--ios{% if vl_pwa_variant == 'pin' %} vl-pwa-hint--pin{% endif %}">
+  <button type="button" class="vl-pwa-hint-ok" data-vl-pwa-dismiss="ios" aria-label="Fechar">×</button>
+  No iPhone ou iPad (Safari): toque <strong>Compartilhar</strong> (quadrado com setinha) e depois <strong>Adicionar à Tela de Início</strong>. O ícone <strong>Vendas</strong> abre o GM Lojas em tela cheia.
+</p>
+<p id="vl-pwa-android" class="vl-pwa-hint vl-pwa-hint--android{% if vl_pwa_variant == 'pin' %} vl-pwa-hint--pin{% endif %}">
+  <button type="button" class="vl-pwa-hint-ok" data-vl-pwa-dismiss="android" aria-label="Fechar">×</button>
+  No Android (Chrome): toque o botão <strong>Instalar no celular</strong> acima quando aparecer, ou menu <strong>⋮</strong> → <strong>Instalar app</strong> / <strong>Adicionar à tela inicial</strong>.
 </p>
 <script>
 (function () {
-  var IOS_KEY = "agro_vl_ios_hint_v1";
+  var KEYS = {
+    ios: "agro_vl_ios_hint_v2",
+    android: "agro_vl_android_hint_v1",
+    inapp: "agro_vl_inapp_hint_v1",
+  };
   var deferred;
   var btn = document.getElementById("vl-pwa-instalar");
+  var inapp = document.getElementById("vl-pwa-inapp");
   var ios = document.getElementById("vl-pwa-ios");
-  var iosOk = document.getElementById("vl-pwa-ios-ok");
+  var android = document.getElementById("vl-pwa-android");
+
+  function ua() {
+    return String(navigator.userAgent || "");
+  }
   function ehStandalone() {
     try {
       if (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) return true;
@@ -77,41 +106,106 @@
     return false;
   }
   function ehIos() {
-    return /iPhone|iPad|iPod/i.test(String(navigator.userAgent || ""));
+    return /iPhone|iPad|iPod/i.test(ua()) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   }
-  if (btn && ehStandalone()) btn.style.display = "none";
-  if (ios && ehStandalone()) ios.style.display = "none";
+  function ehAndroid() {
+    return /Android/i.test(ua());
+  }
+  function ehInAppBrowser() {
+    var u = ua();
+    if (/WhatsApp|FBAN|FBAV|Instagram|Line\//i.test(u)) return true;
+    if (/wv\)/i.test(u) && ehAndroid()) return true;
+    if (ehIos() && /AppleWebKit/i.test(u) && !/CriOS|FxiOS|EdgiOS/i.test(u) && !/Safari/i.test(u)) return true;
+    return false;
+  }
+  function show(el) {
+    if (el) el.style.display = "block";
+  }
+  function hide(el) {
+    if (el) el.style.display = "none";
+  }
+  function dismissed(key) {
+    try {
+      return localStorage.getItem(key) === "1";
+    } catch (_) {
+      return false;
+    }
+  }
+  function dismiss(key) {
+    try {
+      localStorage.setItem(key, "1");
+    } catch (_) {}
+  }
+  function hintVisible(el) {
+    return el && el.style.display === "block";
+  }
+  function refreshHints() {
+    if (ehStandalone()) {
+      hide(btn);
+      hide(inapp);
+      hide(ios);
+      hide(android);
+      return;
+    }
+    if (ehInAppBrowser()) {
+      hide(ios);
+      hide(android);
+      if (!dismissed(KEYS.inapp)) show(inapp);
+      return;
+    }
+    hide(inapp);
+    if (ehIos()) {
+      hide(android);
+      if (!dismissed(KEYS.ios)) show(ios);
+      return;
+    }
+    hide(ios);
+    if (ehAndroid() && deferred) {
+      hide(android);
+      return;
+    }
+    if (ehAndroid() && !hintVisible(btn) && !dismissed(KEYS.android)) {
+      show(android);
+    }
+  }
+
+  document.querySelectorAll("[data-vl-pwa-dismiss]").forEach(function (node) {
+    node.addEventListener("click", function () {
+      var kind = node.getAttribute("data-vl-pwa-dismiss");
+      if (kind === "ios") hide(ios);
+      if (kind === "android") hide(android);
+      if (kind === "inapp") hide(inapp);
+      if (KEYS[kind]) dismiss(KEYS[kind]);
+    });
+  });
+
   if (btn) {
     window.addEventListener("beforeinstallprompt", function (e) {
       e.preventDefault();
       deferred = e;
-      btn.style.display = "block";
+      show(btn);
+      hide(android);
     });
     btn.addEventListener("click", function () {
       if (!deferred) return;
       deferred.prompt();
       deferred.userChoice.finally(function () {
         deferred = null;
-        btn.style.display = "none";
+        hide(btn);
+        refreshHints();
       });
     });
   }
   window.addEventListener("appinstalled", function () {
-    if (btn) btn.style.display = "none";
+    hide(btn);
+    hide(android);
   });
-  if (ios && ehIos() && !ehStandalone()) {
-    try {
-      if (localStorage.getItem(IOS_KEY) !== "1") ios.style.display = "block";
-    } catch (_) {
-      ios.style.display = "block";
-    }
-  }
-  if (iosOk) {
-    iosOk.addEventListener("click", function () {
-      if (ios) ios.style.display = "none";
-      try { localStorage.setItem(IOS_KEY, "1"); } catch (_) {}
-    });
-  }
+
+  refreshHints();
+  window.setTimeout(function () {
+    if (!deferred && btn && btn.style.display !== "block") refreshHints();
+  }, 2500);
+
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("{% url 'vendas_lojas_sw' %}", { scope: "/vendas/lojas/" }).catch(function () {});
   }
