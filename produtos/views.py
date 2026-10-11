@@ -11465,6 +11465,12 @@ def _vendas_lojas_prev_ctx(bloco: dict) -> dict:
     }
 
 
+from produtos.vendas_lojas_pin_util import (
+    exigir_operador_api as exigir_vendas_lojas_api,
+    exigir_operador_html as exigir_vendas_lojas_html,
+)
+
+
 @never_cache
 @require_GET
 def vendas_lojas_hub(request):
@@ -11472,9 +11478,52 @@ def vendas_lojas_hub(request):
     return render(request, "produtos/vendas_lojas_hub.html")
 
 
-@never_cache
-@login_required(login_url="/entrar/")
+@require_http_methods(["GET", "POST"])
+@ensure_csrf_cookie
+def vendas_lojas_pin(request):
+    from produtos.vendas_lojas_pin_util import (
+        gravar_operador_sessao,
+        limpar_operador_sessao,
+        operador_da_sessao,
+    )
+
+    if request.method == "GET":
+        if operador_da_sessao(request) and request.GET.get("trocar") != "1":
+            return redirect("vendas_lojas_resumo")
+        return render(
+            request,
+            "produtos/vendas_lojas_pin.html",
+            {"operador": operador_da_sessao(request)},
+        )
+    pin = str(request.POST.get("pin") or "").strip()
+    ok, nome, err = gravar_operador_sessao(request, pin)
+    if not ok:
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"ok": False, "erro": err}, status=403)
+        return render(
+            request,
+            "produtos/vendas_lojas_pin.html",
+            {"erro": err, "operador": ""},
+            status=403,
+        )
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return JsonResponse(
+            {"ok": True, "operador": nome, "next": reverse("vendas_lojas_resumo")}
+        )
+    return redirect("vendas_lojas_resumo")
+
+
 @require_GET
+def vendas_lojas_logout(request):
+    from produtos.vendas_lojas_pin_util import limpar_operador_sessao
+
+    limpar_operador_sessao(request)
+    return redirect("vendas_lojas_pin")
+
+
+@never_cache
+@require_GET
+@exigir_vendas_lojas_html
 def vendas_lojas_resumo(request):
     """Tela simples: totais na hora; média / previsão / fiado vêm no extras (async)."""
     from produtos.vendas_lojas_util import vendas_lojas_totais
@@ -11564,8 +11613,8 @@ def _vendas_lojas_media_bloco(vendido, dia_todo, ate_agora) -> dict:
 
 
 @never_cache
-@login_required(login_url="/entrar/")
 @require_GET
+@exigir_vendas_lojas_api
 def api_vendas_lojas_extras(request):
     """Média Meta C + previsão do mês + fiado — pesado; tela carrega depois."""
     from produtos.vendas_lojas_util import (
