@@ -1294,36 +1294,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### ✅ Deploy loja — **META-POR-LOJA** · **Live v27.01** · 11/10
+### 📦 PACOTE PRONTO — CHECKLIST **11/10l** · **v27.04** · aguarda senha
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v27.01** — `producao` @ `d77cb17e` |
-| **O quê** | Metas e bônus **Centro** e **Vila** separados em `/meta/` |
-| **Migrate** | **SIM** — `produtos` **0144** (Render Shell: `./scripts/post_deploy_meta_por_loja.sh`) |
-| **Antes** | Live **v27.00** @ `14f5cad7` |
-| **Backup** | `producao-backup-pre-v2701-meta-por-loja` |
-| **Rollback** | tag `rollback/pre-meta-por-loja-v27.00` · `docs/ROLLBACK-META-POR-LOJA.md` |
-| **Branch PREP** | `deploy/prep-meta-por-loja-fac0` |
-
-### ✅ Deploy loja — CHECKLIST **11/10k** (restante) · **Live v27.03** · 11/10
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | ✅ **enviado / Live v27.03** — `producao` @ `db8cdf6f` |
-| **O quê** | **SISTAPP-PWA-AJUSTE-ATUALIZAR** + **META-ZAP-ENXUTO** |
+| **Status** | 🟢 **PRONTO envio produção** — `teste` · Live **v27.03** @ `db8cdf6f` |
+| **O quê** | **META-CENTRO-VILA-UNIFICADO** (`/meta/` Centro+Vila soma e configura) · **VL-RITMO-HORA** (média «até agora») |
 | **Migrate** | **NÃO** |
-| **Backup** | `producao-backup-pre-v2703-checklist-1110k-restante` @ `d77cb17e` |
-| **Rollback** | tag `rollback/pre-checklist-1110k-restante-v27.01` · `docs/ROLLBACK-CHECKLIST-1110k.md` |
-| **Prova loja** | manifest **SistApp** · painel **Atualizar** · `/vendas/lojas/ajuste/` **200** · extras **OK** |
+| **Prova** | META core `verify_meta_mostruario_path` · `tests_vendas_lojas_ritmo` **3/3** · PWA verify **25/25** (inalterado) |
+| **Cutover** | `./scripts/cutover_loja_checklist_1110l.sh` · `docs/DEPLOY-PREP-CHECKLIST-1110l.md` |
+| **Rollback** | tag `rollback/pre-checklist-1110l-v27.03` @ `db8cdf6f` |
 
-### ✅ CHECKLIST ÚNICO — 11/10k · ✅ **Live**
+### ✅ CHECKLIST ÚNICO — 11/10l · 🟢 **PRONTO envio produção**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **SISTAPP-PWA-AJUSTE-ATUALIZAR** | ✅ **Live v27.03** | **NÃO** |
-| 2 | **META-POR-LOJA** | ✅ **Live v27.01** | **0144** |
-| 3 | **META-ZAP-ENXUTO** | ✅ **Live v27.03** | **NÃO** |
+| 1 | **META-CENTRO-VILA-UNIFICADO** | 🟢 **PRONTO** | **NÃO** |
+| 2 | **VL-RITMO-HORA** | 🟢 **PRONTO** | **NÃO** |
+
+### ✅ Live hoje — referência rápida
+
+| Versão | `producao` | Pacotes já na loja |
+| ------ | ---------- | ------------------ |
+| **v27.03** | `db8cdf6f` | SistApp/Atualizar · Zap enxuto (base) |
+| **v27.01** | (base META) | META-POR-LOJA · migrate **0144** |
 
 ### ✅ Deploy loja — **GM-LOJAS-PIN-UI** · **Live v26.99** · 11/10
 

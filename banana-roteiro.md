@@ -952,7 +952,18 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | 1 | **SISTAPP-PWA-AJUSTE-ATUALIZAR** | ✅ **Live v27.03** | **NÃO** |
 | 2 | **META-ZAP-ENXUTO** | ✅ **Live v27.03** | **NÃO** |
 
-**Live:** `producao` @ `db8cdf6f`. **Rollback:** `rollback/pre-checklist-1110k-restante-v27.01` @ `d77cb17e`.
+**Live:** `producao` @ `db8cdf6f`.
+
+---
+
+## 78. Checklist **11/10l** · 🟢 PREP **v27.04** · aguarda senha
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **META-CENTRO-VILA-UNIFICADO** | 🟢 **PRONTO** | **NÃO** |
+| 2 | **VL-RITMO-HORA** | 🟢 **PRONTO** | **NÃO** |
+
+**Cutover:** `./scripts/cutover_loja_checklist_1110l.sh` · rollback `rollback/pre-checklist-1110l-v27.03` @ `db8cdf6f`.
 
 ---
 
