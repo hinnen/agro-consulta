@@ -493,6 +493,95 @@ def meta_texto_zap(mostruario: dict, modo: str = "mes") -> str:
     return "\n".join(linhas).strip() + "\n"
 
 
+def _meta_dividir_meio_lojas(total: Decimal) -> tuple[Decimal, Decimal]:
+    """Metade para Centro e resto para Vila (centavos)."""
+    t = _q2(total)
+    if t <= 0:
+        return Decimal("0.00"), Decimal("0.00")
+    metade = (t / Decimal("2")).quantize(Decimal("0.01"))
+    return metade, t - metade
+
+
+def _meta_proxima_ordem(comp: str) -> int:
+    from produtos.models import MetaVendaFaixaAgro
+
+    ult_c = (
+        MetaVendaFaixaAgro.objects.filter(competencia=comp, deposito="centro")
+        .order_by("-ordem")
+        .values_list("ordem", flat=True)
+        .first()
+    )
+    ult_v = (
+        MetaVendaFaixaAgro.objects.filter(competencia=comp, deposito="vila")
+        .order_by("-ordem")
+        .values_list("ordem", flat=True)
+        .first()
+    )
+    return max(int(ult_c or 0), int(ult_v or 0)) + 1
+
+
+def _meta_upsert_faixa_loja(
+    comp: str,
+    deposito: str,
+    ordem: int,
+    vm: Decimal,
+    bv: Decimal,
+    extra: str,
+) -> None:
+    from produtos.models import MetaVendaFaixaAgro
+
+    dep = meta_normalizar_deposito(deposito)
+    f = (
+        MetaVendaFaixaAgro.objects.select_for_update()
+        .filter(competencia=comp, deposito=dep, ordem=ordem)
+        .first()
+    )
+    if f:
+        f.valor_meta = vm
+        f.bonus_valor = bv
+        f.bonus_extra = extra
+        f.save()
+    else:
+        MetaVendaFaixaAgro.objects.create(
+            competencia=comp,
+            deposito=dep,
+            valor_meta=vm,
+            bonus_valor=bv,
+            bonus_extra=extra,
+            ordem=ordem,
+        )
+
+
+@transaction.atomic
+def meta_salvar_faixa_todas(
+    *,
+    competencia: str,
+    valor_meta,
+    bonus_valor=0,
+    bonus_extra: str = "",
+    ordem: int | None = None,
+) -> dict:
+    """Salva meta somada: divide valor e bônus em 50/50 entre Centro e Vila."""
+    comp = meta_parse_competencia(competencia)
+    vm = meta_parse_decimal(valor_meta)
+    if vm is None or vm <= 0:
+        raise ValueError("Informe o valor da meta de venda.")
+    bv = meta_parse_decimal(bonus_valor)
+    if bv is None:
+        bv = Decimal("0.00")
+    if bv < 0:
+        raise ValueError("Bônus em R$ não pode ser negativo.")
+    extra = (bonus_extra or "").strip()[:120]
+    ord = int(ordem) if ordem is not None else _meta_proxima_ordem(comp)
+    ord = max(0, ord)
+    c_vm, v_vm = _meta_dividir_meio_lojas(vm)
+    c_bv, v_bv = _meta_dividir_meio_lojas(bv)
+    _meta_upsert_faixa_loja(comp, "centro", ord, c_vm, c_bv, extra)
+    _meta_upsert_faixa_loja(comp, "vila", ord, v_vm, v_bv, extra)
+    merged = [x for x in meta_listar_faixas(comp, None) if int(x.get("ordem") or 0) == ord]
+    return merged[0] if merged else {"competencia": comp, "deposito": "todas", "ordem": ord}
+
+
 @transaction.atomic
 def meta_salvar_faixa(
     *,
@@ -507,7 +596,16 @@ def meta_salvar_faixa(
     from produtos.models import MetaVendaFaixaAgro
 
     comp = meta_parse_competencia(competencia)
-    dep = meta_normalizar_deposito(deposito)
+    dep_raw = (deposito or "centro").strip().lower()
+    if dep_raw == "todas":
+        return meta_salvar_faixa_todas(
+            competencia=competencia,
+            valor_meta=valor_meta,
+            bonus_valor=bonus_valor,
+            bonus_extra=bonus_extra,
+            ordem=ordem,
+        )
+    dep = meta_normalizar_deposito(dep_raw)
     vm = meta_parse_decimal(valor_meta)
     if vm is None or vm <= 0:
         raise ValueError("Informe o valor da meta de venda.")
@@ -557,8 +655,24 @@ def meta_salvar_faixa(
 
 
 @transaction.atomic
-def meta_excluir_faixa(*, competencia: str, faixa_id: int) -> None:
+def meta_excluir_faixa(
+    *,
+    competencia: str,
+    faixa_id: int | None = None,
+    deposito: str | None = None,
+    ordem: int | None = None,
+) -> None:
     from produtos.models import MetaVendaFaixaAgro
 
     comp = meta_parse_competencia(competencia)
+    dep_raw = (deposito or "").strip().lower()
+    if dep_raw == "todas":
+        if ordem is None:
+            raise ValueError("Informe a ordem da faixa.")
+        MetaVendaFaixaAgro.objects.filter(
+            competencia=comp, ordem=max(0, int(ordem))
+        ).delete()
+        return
+    if faixa_id is None:
+        raise ValueError("Faixa inválida.")
     MetaVendaFaixaAgro.objects.filter(pk=int(faixa_id), competencia=comp).delete()

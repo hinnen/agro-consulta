@@ -60,9 +60,12 @@ def meta_vendas_painel(request):
             "vs_media_mes": {"sentido": "sem", "diff_fmt": "—", "pct_signed_fmt": "—"},
         }
     texto_zap = meta_texto_zap(mostruario) if mostruario.get("faixas") is not None else ""
-    dep_cfg = (request.GET.get("deposito") or "centro").strip().lower()
-    if dep_cfg not in ("centro", "vila"):
-        dep_cfg = "centro"
+    dep_cfg = (request.GET.get("deposito") or "todas").strip().lower()
+    if dep_cfg not in ("centro", "vila", "todas"):
+        dep_cfg = "todas"
+    faixas_cfg = meta_listar_faixas(
+        competencia, None if dep_cfg == "todas" else dep_cfg
+    )
     return render(
         request,
         "produtos/meta_vendas.html",
@@ -70,7 +73,7 @@ def meta_vendas_painel(request):
             "competencia": competencia,
             "mostruario": mostruario,
             "texto_zap": texto_zap,
-            "faixas": meta_listar_faixas(competencia, dep_cfg),
+            "faixas": faixas_cfg,
             "cfg_deposito": dep_cfg,
             "api_resumo_url": reverse("api_meta_vendas_resumo"),
             "api_faixas_url": reverse("api_meta_vendas_faixas"),
@@ -115,9 +118,16 @@ def api_meta_vendas_faixas(request):
     if request.method == "GET":
         competencia = meta_parse_competencia(request.GET.get("competencia"), hoje)
         dep_get = (request.GET.get("deposito") or "").strip().lower()
-        if dep_get not in ("centro", "vila"):
+        if dep_get == "todas":
+            lista = meta_listar_faixas(competencia, None)
+        elif dep_get in ("centro", "vila"):
+            lista = meta_listar_faixas(competencia, dep_get)
+        else:
             return JsonResponse(
-                {"ok": False, "erro": "Informe deposito=centro ou deposito=vila."},
+                {
+                    "ok": False,
+                    "erro": "Informe deposito=centro, deposito=vila ou deposito=todas.",
+                },
                 status=400,
             )
         return JsonResponse(
@@ -125,7 +135,7 @@ def api_meta_vendas_faixas(request):
                 "ok": True,
                 "competencia": competencia,
                 "deposito": dep_get,
-                "faixas": meta_listar_faixas(competencia, dep_get),
+                "faixas": lista,
             }
         )
 
@@ -133,23 +143,40 @@ def api_meta_vendas_faixas(request):
     competencia = meta_parse_competencia(
         body.get("competencia") or request.GET.get("competencia"), hoje
     )
-    dep_body = meta_normalizar_deposito(body.get("deposito"))
+    dep_body = (body.get("deposito") or "").strip().lower()
+    if dep_body not in ("centro", "vila", "todas"):
+        dep_body = meta_normalizar_deposito(body.get("deposito"))
+
+    def _faixas_resposta():
+        if dep_body == "todas":
+            return meta_listar_faixas(competencia, None)
+        return meta_listar_faixas(competencia, dep_body)
 
     if request.method == "DELETE" or (
         request.method == "POST" and str(body.get("acao") or "").lower() == "excluir"
     ):
         faixa_id = body.get("id") or body.get("faixa_id") or request.GET.get("id")
+        ordem = body.get("ordem")
         try:
-            meta_excluir_faixa(competencia=competencia, faixa_id=int(faixa_id))
-        except (TypeError, ValueError):
-            return JsonResponse({"ok": False, "erro": "Faixa inválida."}, status=400)
+            fid = int(faixa_id) if faixa_id not in (None, "", 0, "0") else None
+            ord_i = int(ordem) if ordem not in (None, "", 0, "0") else None
+            meta_excluir_faixa(
+                competencia=competencia,
+                faixa_id=fid,
+                deposito=dep_body,
+                ordem=ord_i,
+            )
+        except (TypeError, ValueError) as exc:
+            return JsonResponse(
+                {"ok": False, "erro": str(exc) or "Faixa inválida."}, status=400
+            )
         except Exception as exc:
             logger.exception("api_meta_vendas_faixas excluir")
             return JsonResponse({"ok": False, "erro": str(exc)[:200]}, status=500)
         return JsonResponse(
             {
                 "ok": True,
-                "faixas": meta_listar_faixas(competencia, dep_body),
+                "faixas": _faixas_resposta(),
                 "competencia": competencia,
                 "deposito": dep_body,
             }
@@ -159,13 +186,15 @@ def api_meta_vendas_faixas(request):
     try:
         faixa_id = body.get("id") or body.get("faixa_id")
         faixa_id = int(faixa_id) if faixa_id not in (None, "", 0, "0") else None
+        ordem_raw = body.get("ordem")
+        ordem = int(ordem_raw) if ordem_raw not in (None, "", 0, "0") else None
         saved = meta_salvar_faixa(
             competencia=competencia,
             valor_meta=body.get("valor_meta"),
             bonus_valor=body.get("bonus_valor", 0),
             bonus_extra=body.get("bonus_extra") or "",
-            faixa_id=faixa_id,
-            ordem=body.get("ordem"),
+            faixa_id=faixa_id if dep_body != "todas" else None,
+            ordem=ordem,
             deposito=dep_body,
         )
     except ValueError as exc:
@@ -177,7 +206,7 @@ def api_meta_vendas_faixas(request):
         {
             "ok": True,
             "faixa": saved,
-            "faixas": meta_listar_faixas(competencia, dep_body),
+            "faixas": _faixas_resposta(),
             "competencia": competencia,
             "deposito": dep_body,
         }

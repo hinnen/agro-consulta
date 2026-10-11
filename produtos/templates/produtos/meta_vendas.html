@@ -284,11 +284,11 @@
 
   <div class="meta-card meta-span" id="meta-config">
     <h2 id="meta-cfg-titulo">Configurar metas · valor + bônus</h2>
-    <p class="meta-sub mb-2" id="meta-cfg-loja-hint">Escolha <strong>Só Centro</strong> ou <strong>Só Vila</strong> acima para cadastrar metas dessa loja. Em <strong>Centro + Vila</strong> a tela só mostra a soma das duas.</p>
-    <p class="meta-sub mb-3 hidden" id="meta-cfg-dica">Pode ter 1, 5 ou 20 faixas. Bônus em R$ e, se precisar, texto extra (ex.: moleton).</p>
+    <p class="meta-sub mb-2 hidden" id="meta-cfg-loja-hint"></p>
+    <p class="meta-sub mb-3" id="meta-cfg-dica">Pode ter 1, 5 ou 20 faixas. Bônus em R$ e, se precisar, texto extra (ex.: moleton).</p>
     <div id="meta-cfg-lista">
       {% for f in faixas %}
-      <div class="meta-cfg-row" data-id="{{ f.id }}">
+      <div class="meta-cfg-row" data-id="{{ f.id|default:'' }}" data-ordem="{{ f.ordem }}">
         <input type="text" inputmode="decimal" data-f="valor_meta" value="{{ f.valor_meta }}" placeholder="Meta venda R$" title="Meta de venda">
         <input type="text" inputmode="decimal" data-f="bonus_valor" value="{{ f.bonus_valor }}" placeholder="Bônus R$" title="Bônus em R$">
         <input type="text" data-f="bonus_extra" value="{{ f.bonus_extra }}" placeholder="Extra (moleton…)" title="Bônus extra">
@@ -318,7 +318,7 @@
   var lastFotoBlob = null;
   var modoAtual = "mes";
   var lojaAtual = "todas";
-  var cfgDeposito = "{{ cfg_deposito|default:'centro' }}";
+  var cfgDeposito = "{{ cfg_deposito|default:'todas' }}";
   try {
     var savedModo = localStorage.getItem("agro_meta_modo_v1");
     if (savedModo === "agora" || savedModo === "mes") modoAtual = savedModo;
@@ -356,25 +356,30 @@
   }
 
   function lojaCfgAtiva() {
-    return lojaAtual === "centro" || lojaAtual === "vila";
+    return lojaAtual === "centro" || lojaAtual === "vila" || lojaAtual === "todas";
   }
 
   function syncCfgPainel() {
     var hint = document.getElementById("meta-cfg-loja-hint");
     var dica = document.getElementById("meta-cfg-dica");
     var add = document.getElementById("meta-add");
-    var lista = document.getElementById("meta-cfg-lista");
     var tit = document.getElementById("meta-cfg-titulo");
-    var on = lojaCfgAtiva();
     if (tit) {
-      tit.textContent = on
-        ? ("Configurar metas · " + (lojaAtual === "vila" ? "Vila" : "Centro"))
-        : "Configurar metas · valor + bônus";
+      if (lojaAtual === "vila") tit.textContent = "Configurar metas · Vila";
+      else if (lojaAtual === "centro") tit.textContent = "Configurar metas · Centro";
+      else tit.textContent = "Configurar metas · Centro + Vila (soma)";
     }
-    if (hint) hint.classList.toggle("hidden", on);
-    if (dica) dica.classList.toggle("hidden", !on);
-    if (add) add.classList.toggle("hidden", !on);
-    if (lista && !on) lista.innerHTML = "";
+    if (hint) {
+      if (lojaAtual === "todas") {
+        hint.textContent =
+          "Metas e médias somadas das duas lojas. Ao salvar, divide metade do valor e do bônus para Centro e metade para Vila.";
+        hint.classList.remove("hidden");
+      } else {
+        hint.classList.add("hidden");
+      }
+    }
+    if (dica) dica.classList.remove("hidden");
+    if (add) add.classList.remove("hidden");
   }
 
   function syncModoButtons() {
@@ -412,7 +417,7 @@
 
   function setLoja(loja) {
     lojaAtual = (loja === "centro" || loja === "vila") ? loja : "todas";
-    if (lojaAtual === "centro" || lojaAtual === "vila") cfgDeposito = lojaAtual;
+    cfgDeposito = lojaAtual;
     try { localStorage.setItem("agro_meta_loja_v1", lojaAtual); } catch (e2) {}
     syncModoButtons();
     carregar();
@@ -420,7 +425,7 @@
 
   function urlFaixas() {
     if (!lojaCfgAtiva()) return null;
-    var dep = lojaAtual === "vila" ? "vila" : "centro";
+    var dep = lojaAtual === "vila" ? "vila" : (lojaAtual === "centro" ? "centro" : "todas");
     cfgDeposito = dep;
     return apiFaixas + "?competencia=" + encodeURIComponent(competencia()) + "&deposito=" + encodeURIComponent(dep);
   }
@@ -771,7 +776,7 @@
     if (!box) return;
     box.innerHTML = (faixas || []).map(function (f) {
       return (
-        '<div class="meta-cfg-row" data-id="' + f.id + '">' +
+        '<div class="meta-cfg-row" data-id="' + (f.id || "") + '" data-ordem="' + (f.ordem != null ? f.ordem : "") + '">' +
           '<input type="text" inputmode="decimal" data-f="valor_meta" value="' + f.valor_meta + '" placeholder="Meta venda R$">' +
           '<input type="text" inputmode="decimal" data-f="bonus_valor" value="' + f.bonus_valor + '" placeholder="Bônus R$">' +
           '<input type="text" data-f="bonus_extra" value="' + (f.bonus_extra || "").replace(/"/g, "&quot;") + '" placeholder="Extra (moleton…)">' +
@@ -892,6 +897,7 @@
     var row = document.createElement("div");
     row.className = "meta-cfg-row";
     row.setAttribute("data-id", "");
+    row.setAttribute("data-ordem", "");
     row.innerHTML =
       '<input type="text" inputmode="decimal" data-f="valor_meta" value="" placeholder="Meta venda R$">' +
       '<input type="text" inputmode="decimal" data-f="bonus_valor" value="0" placeholder="Bônus R$">' +
@@ -913,7 +919,8 @@
     var act = btn.getAttribute("data-act");
 
     if (act === "del") {
-      if (!id) { row.remove(); return; }
+      var ordem = row.getAttribute("data-ordem") || "";
+      if (!id && !ordem) { row.remove(); return; }
       if (!confirm("Excluir esta meta?")) return;
       fetch(apiFaixas, {
         method: "POST",
@@ -923,7 +930,13 @@
           "X-CSRFToken": csrf,
           "Accept": "application/json"
         },
-        body: JSON.stringify({ acao: "excluir", id: id, competencia: competencia(), deposito: cfgDeposito })
+        body: JSON.stringify({
+          acao: "excluir",
+          id: id || null,
+          ordem: ordem || null,
+          competencia: competencia(),
+          deposito: cfgDeposito
+        })
       })
         .then(function (r) { return r.json(); })
         .then(function (data) {
@@ -937,14 +950,12 @@
     }
 
     if (act === "save") {
-      if (!lojaCfgAtiva()) {
-        toast("Escolha Só Centro ou Só Vila para salvar");
-        return;
-      }
+      var ordemSave = row.getAttribute("data-ordem") || "";
       var payload = {
         competencia: competencia(),
         deposito: cfgDeposito,
-        id: id || null,
+        id: cfgDeposito === "todas" ? null : (id || null),
+        ordem: ordemSave || null,
         valor_meta: (row.querySelector('[data-f="valor_meta"]') || {}).value,
         bonus_valor: (row.querySelector('[data-f="bonus_valor"]') || {}).value,
         bonus_extra: (row.querySelector('[data-f="bonus_extra"]') || {}).value
@@ -980,18 +991,13 @@
         syncModoButtons();
         renderFaixasProg(init.faixas || []);
         atualizarFoto(init);
-        if (lojaAtual === "todas") carregarTextoZap();
-        else carregar();
+        carregar();
       }
     }
   } catch (e0) {}
   syncModoButtons();
-  if (lojaAtual === "centro" || lojaAtual === "vila") {
-    cfgDeposito = lojaAtual;
-    carregar();
-  } else {
-    syncCfgPainel();
-  }
+  cfgDeposito = lojaAtual;
+  carregar();
 })();
 </script>
 {% endblock %}

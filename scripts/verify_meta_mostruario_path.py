@@ -256,6 +256,34 @@ def test_seed_e_crud() -> None:
             t0 = meta_listar_faixas(comp, None)[0]["valor_meta"]
             check("meta_soma_todas", abs(float(t0) - (float(c0) + float(v0))) < 0.01, f"t={t0} c={c0} v={v0}")
 
+            ord0 = int(meta_listar_faixas(comp, "centro")[0]["ordem"])
+            meta_salvar_faixa(
+                competencia=comp,
+                valor_meta="100000",
+                bonus_valor="200",
+                deposito="todas",
+                ordem=ord0,
+            )
+            c1 = float(
+                next(
+                    x["valor_meta"]
+                    for x in meta_listar_faixas(comp, "centro")
+                    if int(x["ordem"]) == ord0
+                )
+            )
+            v1 = float(
+                next(
+                    x["valor_meta"]
+                    for x in meta_listar_faixas(comp, "vila")
+                    if int(x["ordem"]) == ord0
+                )
+            )
+            check("salvar_todas_divide_meta", abs(c1 - 50000) < 0.02 and abs(v1 - 50000) < 0.02)
+            check(
+                "salvar_todas_divide_bonus",
+                abs(float(meta_listar_faixas(comp, "centro")[0]["bonus_valor"]) - 100) < 0.02,
+            )
+
             # rejeita meta inválida
             bad = False
             try:
