@@ -1299,13 +1299,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **PRONTO** — PREP `deploy/prep-checklist-1110` armado (aguarda frase+senha) |
-| **VERSION** | **v26.92** |
-| **O quê** | **ETQ-SOLIC-MOBILE:** hub GM → **Etiquetas** (busca+bip) → pacote no Postgres → topbar **Solicitações** na tela etiquetas importa à fila · busca manual na fila **não some** (bip continua limpando). **VL-HUB-PIN:** **Vendas** e **Tarefas** só PIN **1,2,3,4,8**; **Fotos** e **Etiquetas** = qualquer PIN válido. |
+| **VERSION** | **v26.94** |
+| **O quê** | **ETQ-SOLIC-MOBILE:** hub GM → **Etiquetas** (busca+bip) → pacote no Postgres → topbar **Solicitações** na tela etiquetas importa à fila · busca manual na fila **não some** (bip continua limpando). **VL-HUB-PIN:** um PIN na abertura (7 dias); hub mostra **os 4 cartões**; **Vendas**/**Tarefas** checam allowlist **1,2,3,4,8** só ao clicar (tela «sem acesso»); **Fotos**/**Etiquetas** = qualquer PIN válido. |
 | **Migrate** | **SIM** — `0142` etiquetas · `0143` log GM Lojas |
 | **Env** | `AGRO_VL_HUB_PINS_VENDAS_TAREFAS=1,2,3,4,8` (opcional; default já é esse). Teste local com Renan: incluir `9973` na lista se usar esse PIN no PG. |
-| **PIN app** | Uma vez ao abrir `/vendas/lojas/` · válido **7 dias** · ações registradas em `GmLojasAppLogAgro` |
+| **PIN app** | Uma vez ao abrir `/vendas/lojas/` · válido **7 dias** · ver **Gestão → LOG** (`/gestao/logs/`) |
 | **Prova** | `verify_etq_solicitacao_vl_pin_path.py` **24/24** · cutover `1110` |
-| **Smoke loja** | Celular: hub → Etiquetas → sacola → Enviar · PC: `/produtos/etiquetas/` → Solicitações → Na fila · Hub: PIN 5 bloqueia Vendas/Tarefas; Fotos OK |
+| **Smoke loja** | Celular: hub → Etiquetas → sacola → Enviar · PC: `/produtos/etiquetas/` → Solicitações → Na fila · Hub: PIN 5 → hub com 4 botões; Vendas/Tarefas = «sem acesso»; Fotos/Etiquetas OK |
 | **PR** | `#433` → merge `teste` |
 
 ### ✅ CHECKLIST ÚNICO — 11/10 · 🟢 **PRONTO envio produção**

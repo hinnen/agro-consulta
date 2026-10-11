@@ -6,13 +6,11 @@ from functools import wraps
 from typing import Any
 
 from django.http import HttpRequest, JsonResponse
-from django.shortcuts import redirect
-from django.urls import reverse
-
 from produtos.vendas_lojas_hub_acesso_util import (
     mensagem_pin_sem_acesso_vendas_tarefas,
     pin_liberado_vendas_tarefas,
 )
+from produtos.vendas_lojas_sem_acesso_util import resposta_sem_acesso_html
 from produtos.vendas_lojas_hub_sessao_util import (
     gravar_operador_sessao,
     limpar_operador_sessao,
@@ -37,7 +35,7 @@ def exigir_operador_html(view_func):
         if not operador_da_sessao(request):
             return redirect_para_pin(request)
         if not _gerencia_liberada(request):
-            return redirect(f"{reverse('vendas_lojas_hub')}?acesso=tarefas_negado")
+            return resposta_sem_acesso_html(request, "tarefas")
         return view_func(request, *args, **kwargs)
 
     return _wrap

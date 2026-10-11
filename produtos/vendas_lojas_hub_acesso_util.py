@@ -34,3 +34,12 @@ def pin_liberado_vendas_tarefas(pin: str) -> bool:
 
 def mensagem_pin_sem_acesso_vendas_tarefas() -> str:
     return _MSG_SEM_ACESSO
+
+
+def mensagem_sem_acesso_modulo(modulo: str) -> str:
+    nome = "Vendas" if (modulo or "").strip().lower() == "vendas" else "Tarefas"
+    return (
+        f"Seu PIN não tem permissão para abrir {nome} no celular. "
+        "Você pode usar Fotos e Etiquetas. Para Vendas ou Tarefas, use um PIN autorizado "
+        "(gerência) ou fale com o responsável."
+    )
