@@ -3,8 +3,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-echo "== migrate produtos 0143 =="
-python manage.py migrate produtos 0143 --noinput
+echo "== migrate produtos (até 0143, idempotente) =="
+python manage.py migrate produtos 0143 --noinput 2>/dev/null || python manage.py migrate --noinput
 
 echo "== healthz =="
 if [[ -n "${PORT:-}" ]]; then

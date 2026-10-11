@@ -1,27 +1,22 @@
-# Rollback — CHECKLIST 11/10 · v26.94
+# Rollback — CHECKLIST 11/10
 
-| Item | Valor |
-| ---- | ----- |
-| **Live antes** | **v26.90** @ `b2a7b02d` |
-| **Tag rollback** | `rollback/pre-checklist-1110-v26.90` |
-| **Backup branch** (criada no cutover) | `producao-backup-pre-v2691-checklist-1110` |
-| **PREP** | `deploy/prep-checklist-1110` → `producao` |
-| **Migrate** | `0142` etiquetas · `0143` log GM Lojas |
+| Cenário | Tag / branch | Commit live |
+| ------- | ------------ | ----------- |
+| **Antes do hotfix gerência (v26.97)** | `rollback/pre-checklist-1110-v26.94` | `da745c08` · pacote 11/10 já na loja |
+| **Antes do pacote 11/10 inteiro** | `rollback/pre-checklist-1110-v26.90` | `b2a7b02d` |
 
-**Merge `teste` inteiro?** **NÃO** — só o PREP (cherry-picks do pacote).
+**Backup no cutover `--exec`:** `producao-backup-pre-v2697-checklist-1110` (aponta para produção imediatamente antes do push).
 
-## Reverter produção (emergência)
+## Reverter hotfix VL-PIN (volta v26.94)
+
+```bash
+git push origin rollback/pre-checklist-1110-v26.94:producao
+```
+
+## Reverter pacote inteiro (volta v26.90)
 
 ```bash
 git push origin rollback/pre-checklist-1110-v26.90:producao
-# ou
-git push origin producao-backup-pre-v2691-checklist-1110:producao
 ```
 
-Migrações **não** revertem sozinhas; tabelas novas (`EtiquetaSolicitacaoPacoteAgro`, `GmLojasAppLogAgro`) podem ficar vazias — aceitável para rollback de código.
-
-## O que o pacote muda na loja
-
-- PWA GM Lojas: PIN único 7d; Vendas/Tarefas só PIN 1,2,3,4,8 **ao clicar**
-- Etiquetas: solicitação celular + fila desktop
-- Gestão → LOG (`/gestao/logs/`)
+Migrate **não** desfaz tabelas `0142`/`0143` — aceitável para rollback só de código.
