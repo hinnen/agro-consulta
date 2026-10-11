@@ -535,7 +535,10 @@
   }
   function pathLookLikeAjusteMobile(pathStr) {
     var p = String(pathStr || '').split('?')[0].toLowerCase().replace(/\/+$/, '') || '/';
-    return p === '/ajuste-mobile' || p.indexOf('/ajuste-mobile/') === 0;
+    if (p === '/ajuste-mobile' || p.indexOf('/ajuste-mobile/') === 0) return true;
+    /* SistApp: hub abre Ajuste em /vendas/lojas/ajuste/ — mesma tela cheia, sem sidebar Gestão. */
+    if (p === '/vendas/lojas/ajuste' || p.indexOf('/vendas/lojas/ajuste/') === 0) return true;
+    return false;
   }
   function pathLookLikeHistoricoAjustes(pathStr) {
     var p = String(pathStr || '').split('?')[0].toLowerCase().replace(/\/+$/, '') || '/';
@@ -546,6 +549,7 @@
     return p === '/atendimento-whatsapp/celular' || p.indexOf('/atendimento-whatsapp/celular/') === 0;
   }
   window.__agroPathLookLikeFolhaPlanilha = pathLookLikeFolhaPlanilha;
+  window.__agroPathLookLikeAjusteMobile = pathLookLikeAjusteMobile;
   window.__agroIsPaginaAuxiliarSemShell = function () {
     try {
       var sp = new URLSearchParams(location.search || '');
@@ -812,6 +816,7 @@
   if (window.__agroInAppTabsBootstrap) return;
   window.__agroInAppTabsBootstrap = true;
   if (window.top !== window.self) return;
+  if (window.__agroIsPaginaAuxiliarSemShell && window.__agroIsPaginaAuxiliarSemShell()) return;
   /**
    * Shell lateral + iframes: Electron (agroShell) ou app instalado / PWA (display-mode standalone).
    * Aba comum do Chrome (sem app) fica sem shell — evita duplicar PDV+Dashboard+URL em background.
@@ -1934,6 +1939,10 @@
             return;
           }
           if (pNorm === '/atendimento-whatsapp/celular' || pNorm.indexOf('/atendimento-whatsapp/celular/') === 0) {
+            (window.top || window).location.assign(href);
+            return;
+          }
+          if (window.__agroPathLookLikeAjusteMobile && window.__agroPathLookLikeAjusteMobile(pNorm)) {
             (window.top || window).location.assign(href);
             return;
           }
