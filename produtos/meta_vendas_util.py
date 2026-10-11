@@ -460,85 +460,36 @@ def meta_montar_mostruario(
     return _json_deep(out)
 
 
-def meta_texto_zap(mostruario: dict, modo: str = "mes") -> str:
-    """Texto pronto pra colar no grupo. ``modo``: mes | agora."""
-    modo_agora = (modo or "mes").strip().lower() in ("agora", "ate_agora", "ritmo")
-    loja = mostruario.get("deposito_label") or "Centro + Vila"
-    linhas = [
-        f"🎯 *META — {mostruario.get('competencia_fmt', '')} · {loja}*",
-        "",
-    ]
-    if modo_agora:
-        linhas.append(
-            f"⏱ *VISÃO ATÉ AGORA* (ritmo · {mostruario.get('fracao_ate_agora_pct_fmt', '—')} do mês pela média)"
-        )
-        linhas.append("")
-    hoje = mostruario.get("hoje") or {}
-    if hoje.get("ativo"):
-        vs = hoje.get("vs_media") or {}
-        linhas.extend(
-            [
-                f"📅 *HOJE ({hoje.get('data_fmt', '')})*",
-                f"Vendido: *{hoje.get('vendido_fmt', '—')}*",
-                f"Média esperada (até agora): {hoje.get('media_ate_agora_fmt', '—')}",
-                f"vs média: *{vs.get('diff_fmt', '—')}* ({vs.get('pct_signed_fmt', '—')} {vs.get('sentido_label', '')})",
-                "",
-            ]
-        )
-
-    rotulo_mes = "MÊS FECHADO" if mostruario.get("mes_fechado") and not mostruario.get("mes_atual") else "MÊS ATÉ HOJE"
-    vs_m = mostruario.get("vs_media_mes") or {}
-    linhas.extend(
-        [
-            f"🗓 *{rotulo_mes}* (até {mostruario.get('fim_vendido_fmt', '')})",
-            f"Vendido: *{mostruario.get('vendido_mes_fmt', '—')}*",
-            f"Média esperada: {mostruario.get('media_mes_ref_fmt', '—')}",
-            f"vs média: *{vs_m.get('diff_fmt', '—')}* ({vs_m.get('pct_signed_fmt', '—')} {vs_m.get('sentido_label', '')})",
-            "",
-            "🏁 *Metas*" + (" · ritmo até agora" if modo_agora else " · meta do mês"),
-        ]
-    )
-    for f in mostruario.get("faixas") or []:
-        if modo_agora:
-            a = f.get("agora") or {}
-            if a.get("atingida"):
-                status = f"✅ no ritmo · +{a.get('excedente_fmt', '—')}"
-            else:
-                status = f"faltam {a.get('falta_fmt', '—')} · {a.get('pct_fmt', '—')} do esperado"
-            linhas.append(
-                f"• {f.get('valor_meta_fmt', '—')} (parcela {f.get('meta_agora_fmt', '—')}) · bônus {f.get('bonus_label', '—')} — {status}"
-            )
+def _meta_linha_zap_enxuta(f: dict, *, modo_agora: bool) -> str:
+    """Uma faixa no padrão enxuto do grupo (ex.: ``* R$ 105.000,00 · bônus R$ 100,00 ✅``)."""
+    vm = f.get("valor_meta_fmt") or "—"
+    bl = (f.get("bonus_label") or "").strip()
+    meio = f" · bônus {bl}" if bl and bl != "—" else ""
+    prog = (f.get("agora") or {}) if modo_agora else f
+    suf = ""
+    if prog.get("atingida"):
+        ex_fmt = (prog.get("excedente_fmt") or "").strip()
+        ex = prog.get("excedente")
+        try:
+            tem_exc = ex is not None and float(ex) > 0.005
+        except (TypeError, ValueError):
+            tem_exc = bool(ex_fmt and ex_fmt != "—")
+        if tem_exc and ex_fmt:
+            suf = f" ✅ +{ex_fmt}"
         else:
-            if f.get("atingida"):
-                status = f"✅ batida · +{f.get('excedente_fmt', '—')}"
-            else:
-                status = f"faltam {f.get('falta_fmt', '—')} ({f.get('pct_fmt', '—')})"
-            linhas.append(
-                f"• {f.get('valor_meta_fmt', '—')} · bônus {f.get('bonus_label', '—')} — {status}"
-            )
-    if modo_agora:
-        prox = mostruario.get("proxima_meta_agora")
-        if prox:
-            a = prox.get("agora") or {}
-            linhas.extend(
-                [
-                    "",
-                    f"👉 Próxima no ritmo: *{prox.get('valor_meta_fmt')}* — faltam *{a.get('falta_fmt')}* da parcela",
-                ]
-            )
-        elif mostruario.get("ultima_batida_agora"):
-            linhas.extend(["", "🏆 No ritmo de todas as metas até agora!"])
-    else:
-        prox = mostruario.get("proxima_meta")
-        if prox:
-            linhas.extend(
-                [
-                    "",
-                    f"👉 Próxima: *{prox.get('valor_meta_fmt')}* — faltam *{prox.get('falta_fmt')}*",
-                ]
-            )
-        elif mostruario.get("ultima_batida"):
-            linhas.extend(["", "🏆 Todas as metas batidas!"])
+            suf = " ✅"
+    return f"* {vm}{meio}{suf}"
+
+
+def meta_texto_zap(mostruario: dict, modo: str = "mes") -> str:
+    """Texto enxuto pra colar no Zap — só as faixas. ``modo``: mes | agora."""
+    modo_agora = (modo or "mes").strip().lower() in ("agora", "ate_agora", "ritmo")
+    linhas = [
+        _meta_linha_zap_enxuta(f, modo_agora=modo_agora)
+        for f in (mostruario.get("faixas") or [])
+    ]
+    if not linhas:
+        return ""
     return "\n".join(linhas).strip() + "\n"
 
 
