@@ -47,10 +47,10 @@ PREP_FULL="$(git rev-parse "$PREP_REF")"
 git grep -q 'importarTodasSolicitacoesParaFila' "$PREP_FULL" -- produtos/static/produtos/js/produtos_etiquetas.js || {
   echo "FAIL: delta sem importar todas etiquetas"; exit 2;
 }
-git grep -q 'vendas_lojas_pwa_install' "$PREP_FULL" -- produtos/templates/produtos/includes/ || {
-  echo "FAIL: delta sem PWA install"; exit 2;
+git cat-file -e "$PREP_FULL:produtos/templates/produtos/includes/vendas_lojas_pwa_install.html" 2>/dev/null || {
+  echo "FAIL: delta sem PWA install template"; exit 2;
 }
-git grep -q 'verify_vendas_lojas_pwa_install' "$PREP_FULL" -- scripts/ || {
+git cat-file -e "$PREP_FULL:scripts/verify_vendas_lojas_pwa_install.py" 2>/dev/null || {
   echo "FAIL: delta sem verify PWA"; exit 2;
 }
 
