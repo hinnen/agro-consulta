@@ -1294,6 +1294,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ Deploy loja — **GM-LOJAS-PIN-UI** · **Live v26.98** · 11/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v26.98** — cherry-pick `80d8d511` em `producao` (não merge `teste`) |
+| **O quê** | Tela `/vendas/lojas/pin/` — remove texto longo; visual estilo login Django Admin |
+| **Migrate** | **NÃO** |
+| **Rollback** | `producao-backup-pre-v2698-gm-lojas-pin-ui-20261011` (= `db620370` / v26.97) |
+
 ### 📦 PACOTE PRONTO — **ETQ-SOLIC-MOBILE** + **VL-HUB-PIN** (`CHECKLIST 11/10` · 11/10)
 
 | Campo | Valor |
