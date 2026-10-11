@@ -934,3 +934,20 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **PREP:** `deploy/prep-checklist-0910h` · base Live **v26.76** @ `52da69c2`.  
 **Na senha:** `./scripts/cutover_loja_checklist_0910h.sh --exec` · `docs/DEPLOY-PREP-CHECKLIST-0910h.md`.  
 **Rollback:** tag `rollback/pre-checklist-0910h-v26.76` · backup `producao-backup-pre-v2678-checklist-0910h`.
+
+---
+
+## 76. Checklist único — lote **11/10k** · 🟢 PREP **v27.03** · aguarda senha
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **SISTAPP-PWA-AJUSTE** | 🟢 PREP pronto | **NÃO** |
+| 2 | **META-POR-LOJA** | 🟢 PREP pronto | **SIM** `0144` |
+| 3 | **META-ZAP-ENXUTO** | 🟢 PREP pronto | **NÃO** |
+
+**Live antes:** **v27.00** @ `14f5cad7`.  
+**PREP:** `deploy/prep-checklist-1110k` · alvo **v27.03**.  
+**Prova:** `verify_vendas_lojas_pwa_install.py` **25/25** · META core (`verify_meta_mostruario_path`).  
+**Na senha (vendas pausadas):** `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → `./scripts/cutover_loja_checklist_1110k.sh --exec` → Render Shell `./scripts/post_deploy_checklist_1110k.sh`.  
+**Rollback:** tag `rollback/pre-checklist-1110k-v27.00` · `docs/ROLLBACK-CHECKLIST-1110k.md`.  
+**Não toca:** PDV · caixa · busca 230.

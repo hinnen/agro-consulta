@@ -1294,6 +1294,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 PREP loja — CHECKLIST **11/10k** · **v27.03** · aguarda frase+senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **armado** — `deploy/prep-checklist-1110k` · Live **v27.00** @ `14f5cad7` |
+| **O quê** | **SISTAPP-PWA-AJUSTE** (hub `/vendas/lojas/ajuste/`, PWA install, manifest **SistApp**) · **META-POR-LOJA** (Centro/Vila) · **META-ZAP-ENXUTO** |
+| **Migrate** | **SIM** — só `produtos` **0144** (`MetaVendaFaixaAgro.deposito`) |
+| **Fora do pacote** | PDV wizard/busca 230 · caixa · `mongo_financeiro` (cutover bloqueia delta) |
+| **Prova (PREP)** | `verify_vendas_lojas_pwa_install.py` **25/25** · META core (`verify_meta_mostruario_path` arquivos+CRUD+Zap) |
+| **Cutover** | `./scripts/cutover_loja_checklist_1110k.sh` · `--exec` só com `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1110k.sh` (Render Shell → `migrate produtos 0144`) |
+| **Rollback** | tag `rollback/pre-checklist-1110k-v27.00` @ `14f5cad7` · `docs/ROLLBACK-CHECKLIST-1110k.md` |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1110k.md` |
+
+### ✅ CHECKLIST ÚNICO — 11/10k · 🟢 PREP v27.03 · aguarda senha
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **SISTAPP-PWA-AJUSTE** | 🟢 PREP | **NÃO** | PWA verify **25/25** |
+| 2 | **META-POR-LOJA** | 🟢 PREP | **SIM** `0144` | META core verify |
+| 3 | **META-ZAP-ENXUTO** | 🟢 PREP | **NÃO** | linhas `* R$ … bônus … ✅` |
+
 ### ✅ Deploy loja — **GM-LOJAS-PIN-UI** · **Live v26.99** · 11/10
 
 | Campo | Valor |
