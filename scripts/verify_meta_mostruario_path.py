@@ -40,6 +40,7 @@ from django.utils import timezone
 
 from produtos.meta_vendas_util import (
     META_VENDA_PADRAO_FAIXAS,
+    _meta_linha_zap_enxuta,
     _progresso_meta,
     meta_bonus_label,
     meta_competencia_bounds,
@@ -156,6 +157,38 @@ def test_math_e_format() -> None:
     check("cmp_acima", cmp_["sentido"] == "acima" and cmp_["pct"] == Decimal("10.0"))
     cmp_b = vendas_lojas_cmp_meta(Decimal("90"), Decimal("100"))
     check("cmp_abaixo", cmp_b["sentido"] == "abaixo")
+
+    l1 = _meta_linha_zap_enxuta(
+        {
+            "valor_meta_fmt": "R$ 105.000,00",
+            "bonus_label": "R$ 100,00",
+            "atingida": True,
+            "excedente": 0,
+            "excedente_fmt": "R$ 0,00",
+        },
+        modo_agora=False,
+    )
+    check("zap_linha_ok", l1 == "* R$ 105.000,00 · bônus R$ 100,00 ✅")
+    l2 = _meta_linha_zap_enxuta(
+        {
+            "valor_meta_fmt": "R$ 110.000,00",
+            "bonus_label": "R$ 150,00",
+            "atingida": True,
+            "excedente": 50.13,
+            "excedente_fmt": "R$ 50,13",
+        },
+        modo_agora=False,
+    )
+    check("zap_linha_exc", l2 == "* R$ 110.000,00 · bônus R$ 150,00 ✅ +R$ 50,13")
+    l3 = _meta_linha_zap_enxuta(
+        {
+            "valor_meta_fmt": "R$ 115.000,00",
+            "bonus_label": "R$ 100,00 + moleton",
+            "atingida": False,
+        },
+        modo_agora=False,
+    )
+    check("zap_linha_moleton", l3 == "* R$ 115.000,00 · bônus R$ 100,00 + moleton")
 
 
 def test_seed_e_crud() -> None:
@@ -327,13 +360,12 @@ def test_mostruario_consistencia() -> None:
         )
 
     zap = meta_texto_zap(m)
-    check("zap_tem_meta", "META" in zap)
-    check("zap_tem_vendido", "Vendido" in zap)
-    check("zap_tem_faixa", "105" in zap or "Meta" in zap or "meta" in zap.lower())
+    check("zap_enxuto_linha", zap.startswith("* R$") and "bônus" in zap)
+    check("zap_sem_vendido", "Vendido" not in zap and "parcela" not in zap.lower())
+    check("zap_tem_faixa", "105" in zap)
     zap_a = meta_texto_zap(m, modo="agora")
-    check("zap_modo_agora", "ATÉ AGORA" in zap_a or "até agora" in zap_a.lower())
-    check("zap_modo_ritmo", "ritmo" in zap_a.lower() or "parcela" in zap_a.lower())
-    check("zap_loja_todas", "Centro + Vila" in zap)
+    check("zap_agora_mesmo_formato", zap_a.startswith("* R$") and "faltam" not in zap_a.lower())
+    check("zap_sem_rodape", "Próxima" not in zap and "👉" not in zap)
     check("deposito_label_todas", m.get("deposito_label") == "Centro + Vila")
 
     m_c = meta_montar_mostruario(
@@ -350,10 +382,9 @@ def test_mostruario_consistencia() -> None:
         f"todas={m['vendido_mes']} c={m_c['vendido_mes']} v={m_v['vendido_mes']}",
     )
     zap_c = meta_texto_zap(m_c)
-    check("zap_loja_centro", "Centro" in zap_c and "Centro + Vila" not in zap_c)
+    check("zap_centro_enxuto", zap_c.startswith("* R$") and len(zap_c.splitlines()) >= 1)
     zap_v = meta_texto_zap(m_v, modo="agora")
-    check("zap_loja_vila", "· Vila" in zap_v and "Centro + Vila" not in zap_v and "Centro" not in zap_v)
-    check("zap_vila_agora", "até agora" in zap_v.lower() or "ATÉ AGORA" in zap_v)
+    check("zap_vila_enxuto", zap_v.startswith("* R$"))
 
     check("faixas_todas_merged", (m.get("faixas") or [{}])[0].get("deposito") == "todas")
     check("faixas_centro_loja", (m_c.get("faixas") or [{}])[0].get("deposito") == "centro")
@@ -463,10 +494,7 @@ def test_http() -> None:
     d2a = r2a.json()
     check("api_resumo_agora_ok", d2a.get("ok") is True and d2a.get("modo") == "agora")
     zap_http = d2a.get("texto_zap") or ""
-    check(
-        "api_resumo_agora_zap",
-        "até agora" in zap_http.lower() or "ATÉ AGORA" in zap_http or "ritmo" in zap_http.lower(),
-    )
+    check("api_resumo_agora_zap_enxuto", zap_http.startswith("* R$") or zap_http == "")
     m_http = d2a.get("mostruario") or {}
     check("api_resumo_agora_fracao", "fracao_ate_agora" in m_http)
     faixas_http = m_http.get("faixas") or []
@@ -488,7 +516,7 @@ def test_http() -> None:
     d_c = r_c.json() if r_c.status_code == 200 else {}
     mc = (d_c.get("mostruario") or {})
     check("api_centro_ok", r_c.status_code == 200 and mc.get("deposito") == "centro")
-    check("api_centro_zap", "Centro" in (d_c.get("texto_zap") or "") and "Centro + Vila" not in (d_c.get("texto_zap") or ""))
+    check("api_centro_zap_enxuto", (d_c.get("texto_zap") or "").startswith("* R$"))
     faixas_api = (data.get("mostruario") or {}).get("faixas") or []
     faixas_c = mc.get("faixas") or []
 
@@ -499,7 +527,7 @@ def test_http() -> None:
     d_v = r_v.json() if r_v.status_code == 200 else {}
     mv = d_v.get("mostruario") or {}
     check("api_vila_agora_ok", r_v.status_code == 200 and mv.get("deposito") == "vila" and d_v.get("modo") == "agora")
-    check("api_vila_zap", "Vila" in (d_v.get("texto_zap") or "") and "Centro + Vila" not in (d_v.get("texto_zap") or ""))
+    check("api_vila_zap_enxuto", (d_v.get("texto_zap") or "").startswith("* R$"))
     faixas_v = mv.get("faixas") or []
     if faixas_api and faixas_c and faixas_v:
         check(
