@@ -68,6 +68,8 @@ def main() -> int:
         (ROOT / "produtos/templates/produtos/vendas_lojas_sem_acesso.html").is_file(),
     )
     check("settings_env", "AGRO_VL_HUB_PINS_VENDAS_TAREFAS" in (ROOT / "config/settings.py").read_text(encoding="utf-8"))
+    acc = (ROOT / "produtos/vendas_lojas_hub_acesso_util.py").read_text(encoding="utf-8")
+    check("allowlist_slot_codigo", "_slot_operador_por_senha_rapida" in acc and "codigo_vendedor" in acc)
 
     print("== Util PIN ==")
     with override_settings(AGRO_VL_HUB_PINS_VENDAS_TAREFAS="1,2,3,4,8,9973"):
