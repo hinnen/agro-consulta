@@ -703,6 +703,7 @@ urlpatterns = [
     path('vendas/lojas/pin/', views.vendas_lojas_pin, name='vendas_lojas_pin'),
     path('vendas/lojas/sair/', views.vendas_lojas_logout, name='vendas_lojas_logout'),
     path('vendas/lojas/painel/', views.vendas_lojas_resumo, name='vendas_lojas_resumo'),
+    path('vendas/lojas/ajuste/', views.vendas_lojas_ajuste_mobile, name='vendas_lojas_ajuste_mobile'),
     path('meta/', views_meta_vendas.meta_vendas_painel, name='meta_vendas_painel'),
     path('api/meta/resumo/', views_meta_vendas.api_meta_vendas_resumo, name='api_meta_vendas_resumo'),
     path('api/meta/faixas/', views_meta_vendas.api_meta_vendas_faixas, name='api_meta_vendas_faixas'),

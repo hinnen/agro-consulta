@@ -19,10 +19,9 @@ from produtos.mongo_index_codigos import (
 
 
 def _sessao_ajuste_ok(request) -> bool:
-    return bool(
-        str(request.session.get("ajuste_mobile_operador") or "").strip()
-        or request.session.get("ajuste_mobile_user_id")
-    )
+    from produtos.vendas_lojas_ajuste_sessao_util import sessao_ajuste_mobile_ok
+
+    return sessao_ajuste_mobile_ok(request)
 
 
 def _pode_gravar(request) -> bool:
@@ -33,7 +32,9 @@ def _pode_gravar(request) -> bool:
 
 
 def _operador_rotulo(request) -> str:
-    rotulo = str(request.session.get("ajuste_mobile_operador") or "").strip()
+    from produtos.vendas_lojas_ajuste_sessao_util import operador_ajuste_rotulo
+
+    rotulo = operador_ajuste_rotulo(request)
     if rotulo:
         return rotulo[:120]
     u = getattr(request, "user", None)
