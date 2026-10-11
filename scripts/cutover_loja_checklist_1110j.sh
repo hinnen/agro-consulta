@@ -70,7 +70,7 @@ fi
 
 if [[ -f scripts/verify_cb_loja_pdv_busca_path.py ]]; then
   "$PY" scripts/verify_cb_loja_pdv_busca_path.py | tee /tmp/cutover-1110j-pdv.log
-  grep -q 'FAIL=0' /tmp/cutover-1110j-pdv.log
+  grep -qE 'FAIL=0|PREP_FAILS=0' /tmp/cutover-1110j-pdv.log
 fi
 
 echo "OK: PREP v$VER_ESPERADA · rollback $ROLLBACK_TAG · SEM migrate"

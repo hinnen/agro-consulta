@@ -1294,30 +1294,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — **ETQ-SOL-IMPORT-ALL** + **VL-PWA-INSTALL** (`CHECKLIST 11/10j` · 11/10)
+### ✅ Deploy loja — **CHECKLIST 11/10j** · **Live v27.00** · 11/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP armado — aguarda senha** (lojas abertas · **não** merge `teste` inteiro) · Live **v26.99** @ `fd1cd028` |
-| **PREP branch** | `deploy/prep-checklist-1110j` · cherry só ETQ bulk + PWA |
-| **VERSION prep** | **v27.00** |
-| **Cutover** | `./scripts/cutover_loja_checklist_1110j.sh` · dry-run OK 11/10 |
-| **Rollback** | tag `rollback/pre-checklist-1110j-v26.99` @ `fd1cd028` |
+| **Status** | ✅ **enviado / Live v27.00** — `producao` @ `48d376be` |
+| **O quê** | **ETQ-SOL-IMPORT-ALL** + **VL-PWA-INSTALL** |
 | **Migrate** | **NÃO** |
+| **Backup** | `producao-backup-pre-v2700-checklist-1110j` @ `fd1cd028` |
+| **Rollback** | tag `rollback/pre-checklist-1110j-v26.99` @ `fd1cd028` |
 | **O quê** | (1) Desktop `/produtos/etiquetas/` — modal **Solicitações do celular** → **Adicionar todas na fila** (todos os pacotes pendentes → fila de impressão). (2) GM Lojas — **Instalar no celular** (PWA) + dicas iOS/Android/Zap. |
 | **Caminhos verificados** | Celular: `POST /api/vendas/lojas/etiquetas/solicitacoes/` (PIN sessão) → Postgres `EtiquetaSolicitacaoPacoteAgro` **pendente**. Desktop: `GET /api/produtos/etiquetas/solicitacoes/?status=pendente` · `POST …/<pk>/importar/` (login Django) · JS `postImportarSolicitacao` / `importarTodasSolicitacoesParaFila` (sequencial, até **80** pacotes por tela). |
 | **Prova estática** | `verify_etq_solicitacao_vl_pin_path.py` **31/31** (incl. bulk + `?v=35`) · `verify_vendas_lojas_pwa_install.py` **19/19** · `verify_gm_lojas_pin_runtime.py` rotas importar OK |
 | **Prova runtime loja** | PIN **9973** → hub GM Lojas + app celular etiquetas **OK** (11/10) · desktop etiquetas exige login Agro (validar no **PC local** após deploy) |
-| **Na senha** | Pausar vendas → `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → `cutover_loja_checklist_1110j.sh --exec` → `./scripts/post_deploy_checklist_1110j.sh` · Ctrl+F5 opcional |
+| **Você** | Render Live → badge **v27.00** · Shell: `./scripts/post_deploy_checklist_1110j.sh` (opcional) · Ctrl+F5 opcional |
 
-### ✅ CHECKLIST ÚNICO — 11/10j · 🟢 **PRONTO**
+### ✅ CHECKLIST ÚNICO — 11/10j · ✅ **Live**
 
 | # | Pacote | Status | Nota |
 | - | ------ | ------ | ---- |
-| 1 | **ETQ-SOL-IMPORT-ALL** | 🟢 pronto subir | commit `3ca32946` · não está na loja ainda |
-| 2 | **VL-PWA-INSTALL** | 🟢 pronto subir | `78f0fb87` · `/vendas/lojas/` |
-
-**Você após deploy:** Etiquetas desktop — badge solicitações → **Adicionar todas na fila** · GM Lojas — Instalar PWA (Chrome/Safari).
+| 1 | **ETQ-SOL-IMPORT-ALL** | ✅ Live v27.00 | desktop etiquetas |
+| 2 | **VL-PWA-INSTALL** | ✅ Live v27.00 | `/vendas/lojas/` |
 
 ---
 
