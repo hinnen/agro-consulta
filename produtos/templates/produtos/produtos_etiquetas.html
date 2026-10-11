@@ -719,6 +719,13 @@
       </div>
       <button type="button" id="etq-sol-fechar" class="min-h-[36px] min-w-[36px] shrink-0 rounded-lg border border-slate-600 text-slate-300 hover:text-white" aria-label="Fechar">✕</button>
     </div>
+    <div class="flex shrink-0 border-b border-slate-700/80 px-4 py-2">
+      <button type="button" id="etq-sol-add-todas" disabled
+        class="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border-2 border-emerald-600 bg-emerald-700/35 px-4 text-xs font-black uppercase tracking-wide text-emerald-50 hover:bg-emerald-600/30 disabled:cursor-not-allowed disabled:border-slate-600 disabled:bg-slate-800/50 disabled:text-slate-500">
+        <i class="fas fa-layer-group" aria-hidden="true"></i>
+        Adicionar todas na fila
+      </button>
+    </div>
     <div id="etq-sol-lista" class="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#475569_#0f172a]">
       <p class="px-4 py-6 text-center text-sm text-slate-400">Abra para carregar…</p>
     </div>
@@ -740,7 +747,7 @@ window.AGRO_ETQ_CFG = {
 </script>
 <script src="{% static 'produtos/js/agro_print_bridge.js' %}?v=2"></script>
 <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=35"></script>
-<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=34"></script>
+<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=35"></script>
 
 {% endblock %}
 

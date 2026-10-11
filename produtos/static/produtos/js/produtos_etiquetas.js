@@ -1909,13 +1909,28 @@
     document.body.classList.remove('modal-open');
   }
 
+  function atualizarBotaoSolAddTodas(count) {
+    var btn = $('etq-sol-add-todas');
+    if (!btn) return;
+    var n = parseInt(count, 10) || 0;
+    btn.disabled = n < 1;
+  }
+
   function renderSolicitacoesLista(rows, meta) {
     var box = $('etq-sol-lista');
     var metaEl = $('etq-sol-meta');
+    var pendentes = 0;
     if (metaEl && meta) {
-      var p = parseInt(meta.pendentes, 10) || 0;
+      pendentes = parseInt(meta.pendentes, 10) || 0;
       metaEl.textContent =
-        p === 0 ? 'Nenhum pacote pendente' : p + ' pacote' + (p === 1 ? '' : 's') + ' aguardando';
+        pendentes === 0
+          ? 'Nenhum pacote pendente'
+          : pendentes + ' pacote' + (pendentes === 1 ? '' : 's') + ' aguardando';
+    }
+    if (!rows || !rows.length) {
+      atualizarBotaoSolAddTodas(0);
+    } else {
+      atualizarBotaoSolAddTodas(rows.length);
     }
     if (!box) return;
     if (!rows || !rows.length) {
@@ -1968,12 +1983,8 @@
     return n;
   }
 
-  function importarSolicitacaoParaFila(pk, btn) {
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = '…';
-    }
-    fetch(URL_SOLIC + encodeURIComponent(pk) + '/importar/', {
+  function postImportarSolicitacao(pk) {
+    return fetch(URL_SOLIC + encodeURIComponent(pk) + '/importar/', {
       method: 'POST',
       credentials: 'same-origin',
       headers: {
@@ -1987,29 +1998,120 @@
       })
       .then(function (data) {
         if (!data || !data.ok) {
-          setStatus((data && data.erro) || 'Não importou a solicitação.', true);
+          return { ok: false, erro: (data && data.erro) || 'Não importou a solicitação.' };
+        }
+        var n = adicionarItensJsonNaFila(data.itens || []);
+        return { ok: true, n: n };
+      });
+  }
+
+  function importarSolicitacaoParaFila(pk, btn, opts) {
+    opts = opts || {};
+    var btnHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '…';
+    }
+    postImportarSolicitacao(pk)
+      .then(function (res) {
+        if (!res.ok) {
+          if (!opts.suppressStatus) setStatus(res.erro || 'Não importou a solicitação.', true);
           if (btn) {
             btn.disabled = false;
-            btn.textContent = 'Na fila';
+            btn.innerHTML = btnHtml;
           }
           return;
         }
-        var n = adicionarItensJsonNaFila(data.itens || []);
-        if (!n) {
-          setStatus('Pacote sem itens válidos.', true);
-        } else {
-          setStatus(n + ' produto(s) na fila (celular).');
-          fecharModalSolicitacoes();
+        if (!res.n) {
+          if (!opts.suppressStatus) setStatus('Pacote sem itens válidos.', true);
+        } else if (!opts.suppressStatus) {
+          setStatus(res.n + ' produto(s) na fila (celular).');
         }
+        if (res.n && opts.fecharModal !== false) fecharModalSolicitacoes();
         pollSolicitacoesPendentes();
-        carregarSolicitacoes();
+        if (opts.reloadList !== false) carregarSolicitacoes();
+        if (btn && opts.reloadList === false) {
+          btn.disabled = false;
+          btn.innerHTML = btnHtml;
+        }
       })
       .catch(function () {
-        setStatus('Erro ao importar solicitação.', true);
+        if (!opts.suppressStatus) setStatus('Erro ao importar solicitação.', true);
         if (btn) {
           btn.disabled = false;
-          btn.textContent = 'Na fila';
+          btn.innerHTML = btnHtml;
         }
+      });
+  }
+
+  function importarTodasSolicitacoesParaFila() {
+    var box = $('etq-sol-lista');
+    var ids = [];
+    if (box) {
+      box.querySelectorAll('.etq-sol-import').forEach(function (b) {
+        var id = b.getAttribute('data-sol-id');
+        if (id) ids.push(id);
+      });
+    }
+    if (!ids.length) {
+      setStatus('Nenhum pacote pendente.', true);
+      return;
+    }
+    var bulkBtn = $('etq-sol-add-todas');
+    var bulkHtml = bulkBtn ? bulkBtn.innerHTML : '';
+    if (bulkBtn) {
+      bulkBtn.disabled = true;
+      bulkBtn.textContent = 'Importando…';
+    }
+    if (box) {
+      box.querySelectorAll('.etq-sol-import').forEach(function (b) {
+        b.disabled = true;
+      });
+    }
+    var totalItens = 0;
+    var falhas = 0;
+    var chain = Promise.resolve();
+    ids.forEach(function (id) {
+      chain = chain.then(function () {
+        return postImportarSolicitacao(id).then(function (res) {
+          if (res.ok && res.n) totalItens += res.n;
+          else if (!res.ok) falhas += 1;
+        });
+      });
+    });
+    chain
+      .then(function () {
+        if (bulkBtn) {
+          bulkBtn.disabled = false;
+          bulkBtn.innerHTML = bulkHtml;
+        }
+        if (totalItens) {
+          setStatus(
+            totalItens +
+              ' produto(s) na fila (' +
+              ids.length +
+              ' pacote' +
+              (ids.length === 1 ? '' : 's') +
+              ' do celular).'
+          );
+          fecharModalSolicitacoes();
+        } else if (falhas) {
+          setStatus('Falha ao importar ' + falhas + ' pacote(s).', true);
+          carregarSolicitacoes();
+        } else {
+          setStatus('Pacotes sem itens válidos.', true);
+          carregarSolicitacoes();
+        }
+        pollSolicitacoesPendentes();
+        atualizarBotaoSolAddTodas(0);
+      })
+      .catch(function () {
+        setStatus('Erro ao importar solicitações.', true);
+        if (bulkBtn) {
+          bulkBtn.disabled = false;
+          bulkBtn.innerHTML = bulkHtml;
+        }
+        carregarSolicitacoes();
       });
   }
 
@@ -2371,6 +2473,8 @@
     $('etq-btn-solicitacoes') &&
       $('etq-btn-solicitacoes').addEventListener('click', abrirModalSolicitacoes);
     $('etq-sol-fechar') && $('etq-sol-fechar').addEventListener('click', fecharModalSolicitacoes);
+    $('etq-sol-add-todas') &&
+      $('etq-sol-add-todas').addEventListener('click', importarTodasSolicitacoesParaFila);
     $('etq-btn-historico') && $('etq-btn-historico').addEventListener('click', abrirModalHistorico);
     $('etq-modal-fechar') && $('etq-modal-fechar').addEventListener('click', fecharModalPreset);
     $('etq-hist-fechar') && $('etq-hist-fechar').addEventListener('click', fecharModalHistorico);
