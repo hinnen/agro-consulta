@@ -1294,7 +1294,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — **ETQ-SOLIC-MOBILE** + **VL-HUB-PIN** (`CHECKLIST 11/10` · 11/10)
+### 📦 PACOTE PRONTO — **VL-PWA-INSTALL** (`CHECKLIST 11/10i` · 11/10)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **PRONTO envio produção** — `teste` @ `78f0fb87` · aguarda teste local + frase+senha |
+| **VERSION prep** | **v26.98** (loja hoje **v26.97**) |
+| **O quê** | GM Lojas `/vendas/lojas/` — **Instalar no celular** (Chrome) + faixas **iOS** / **Android** / **WhatsApp (abrir no navegador)**; head PWA unificado; manifest `prefer_related_applications` + `utm_source=pwa` |
+| **Migrate** | **NÃO** |
+| **Prova** | `python3 scripts/verify_vendas_lojas_pwa_install.py` **19/19** · loja: manifest/sw/pin/hub **HTTP 200** · PIN→hub sessão **OK** (11/10) |
+| **Ainda falta** | `git push origin teste` (backup) · Renan valida no **PC local** (`docs/TESTE-LOCAL.md`) · merge `teste`→`producao` + deploy **só** com frase+senha |
+
+### ✅ CHECKLIST ÚNICO — 11/10i · 🟢 **PRONTO**
+
+| # | Pacote | Status | Nota |
+| - | ------ | ------ | ---- |
+| 1 | **VL-PWA-INSTALL** | 🟢 pronto subir | link `https://www.sistvale.com.br/vendas/lojas/` |
+
+**Você após deploy:** Android **Chrome** (fora do Zap) → Instalar · iPhone **Safari** → Compartilhar → Adicionar à Tela de Início.
+
+---
+
+### 📦 PACOTE PRONTO — **ETQ-SOLIC-MOBILE** + **VL-HUB-PIN** (`CHECKLIST 11/10` · 11/10) · ✅ Live
 
 | Campo | Valor |
 | ----- | ----- |
