@@ -14364,6 +14364,7 @@ def produtos_etiquetas_view(request):
             "api_etq_resolver_url": reverse("api_etiquetas_resolver_codigos"),
             "api_etq_mais_vendidos_url": reverse("api_etiquetas_mais_vendidos"),
             "api_etq_bridge_download_url": reverse("api_etiquetas_print_bridge_download"),
+            "api_etq_solicitacoes_url": reverse("api_etiquetas_solicitacoes_lista"),
         },
     )
 

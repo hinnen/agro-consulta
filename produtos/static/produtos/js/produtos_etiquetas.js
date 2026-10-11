@@ -32,6 +32,7 @@
   var URL_FACETAS = CFG.facetasUrl || '/api/produtos/gestao/facetas/';
   var URL_PRESETS = CFG.presetsUrl || '/api/compras/folha-saldo-presets/';
   var URL_HISTORICO = '/api/produtos/etiquetas/historico/';
+  var URL_SOLIC = CFG.solicitacoesUrl || '/api/produtos/etiquetas/solicitacoes/';
   var URL_RESOLVER = CFG.resolverUrl || '/api/produtos/etiquetas/resolver-codigos/';
   var URL_MAIS_VENDIDOS = CFG.maisVendidosUrl || '/api/produtos/etiquetas/mais-vendidos/';
   var HISTORICO_DIAS = 30;
@@ -832,11 +833,14 @@
   function tentarAdicionarBuscaEnter() {
     var prods = state.buscaProdutos;
     if (prods.length === 1) {
-      return adicionarProdutoFila(prods[0], { limparBusca: true });
+      return adicionarProdutoFila(prods[0], optsLimparBuscaAoAdicionar(prods[0]));
     }
     if (prods.length > 1) {
       if (state.buscaSelIdx >= 0 && prods[state.buscaSelIdx]) {
-        return adicionarProdutoFila(prods[state.buscaSelIdx], { limparBusca: true });
+        return adicionarProdutoFila(
+          prods[state.buscaSelIdx],
+          optsLimparBuscaAoAdicionar(prods[state.buscaSelIdx])
+        );
       }
       setStatus('Vários resultados — use ↑ ↓ ou clique no produto.', true);
       return false;
@@ -914,7 +918,7 @@
           return String(x.id) === String(id);
         });
         if (!prod) return;
-        adicionarProdutoFila(prod, { limparBusca: true });
+        adicionarProdutoFila(prod, optsLimparBuscaAoAdicionar(prod));
       });
     });
   }
@@ -1444,6 +1448,14 @@
     return false;
   }
 
+  /** Bip limpa o campo; busca manual (nome / GM na lista) mantém os resultados. */
+  function optsLimparBuscaAoAdicionar(prod, q) {
+    q = String(
+      q == null ? (($('etq-busca-input') && $('etq-busca-input').value) || '') : q
+    ).trim();
+    return { limparBusca: produtoCasaCodigoBip(prod, q) };
+  }
+
   function buscarProdutos(q, opts) {
     opts = opts || {};
     var box = $('etq-busca-resultados');
@@ -1860,6 +1872,178 @@
     if (m && m.parentElement !== document.body) document.body.appendChild(m);
   }
 
+  function ensureSolModalOnBody() {
+    var m = $('etq-sol-back');
+    if (m && m.parentElement !== document.body) document.body.appendChild(m);
+  }
+
+  function atualizarBadgeSolicitacoes(n) {
+    var badge = $('etq-sol-badge');
+    if (!badge) return;
+    var num = parseInt(n, 10) || 0;
+    if (num > 0) {
+      badge.textContent = num > 99 ? '99+' : String(num);
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+  }
+
+  function pollSolicitacoesPendentes() {
+    fetch(URL_SOLIC + '?status=pendente&limit=1', { credentials: 'same-origin' })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (data) {
+        if (data && data.ok) atualizarBadgeSolicitacoes(data.pendentes);
+      })
+      .catch(function () {});
+  }
+
+  function fecharModalSolicitacoes() {
+    var m = $('etq-sol-back');
+    if (!m) return;
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+    m.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
+  }
+
+  function renderSolicitacoesLista(rows, meta) {
+    var box = $('etq-sol-lista');
+    var metaEl = $('etq-sol-meta');
+    if (metaEl && meta) {
+      var p = parseInt(meta.pendentes, 10) || 0;
+      metaEl.textContent =
+        p === 0 ? 'Nenhum pacote pendente' : p + ' pacote' + (p === 1 ? '' : 's') + ' aguardando';
+    }
+    if (!box) return;
+    if (!rows || !rows.length) {
+      box.innerHTML =
+        '<p class="px-4 py-6 text-center text-sm text-slate-400">Nenhuma solicitação pendente.</p>';
+      return;
+    }
+    box.innerHTML = rows
+      .map(function (p) {
+        return (
+          '<div class="flex flex-wrap items-center gap-2 border-b border-slate-700/80 px-3 py-2.5 hover:bg-slate-800/50">' +
+          '<div class="min-w-0 flex-1">' +
+          '<div class="truncate text-sm font-bold text-white">' +
+          Core.esc(p.resumo_nomes || '—') +
+          '</div>' +
+          '<div class="mt-0.5 text-[11px] text-slate-400">' +
+          Core.esc(p.criado_em_br || '') +
+          (p.operador_nome ? ' · ' + Core.esc(p.operador_nome) : '') +
+          ' · ' +
+          Core.esc(String(p.total_etiquetas || 0)) +
+          ' etiqueta(s)' +
+          '</div>' +
+          '</div>' +
+          '<button type="button" class="etq-sol-import shrink-0 inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-xl border-2 border-sky-600 bg-sky-700/40 px-3 text-xs font-black uppercase text-sky-100 hover:bg-sky-600/30" data-sol-id="' +
+          Core.esc(p.id) +
+          '">' +
+          '<i class="fas fa-plus" aria-hidden="true"></i>Na fila</button>' +
+          '</div>'
+        );
+      })
+      .join('');
+    box.querySelectorAll('.etq-sol-import').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-sol-id');
+        if (id) importarSolicitacaoParaFila(id, btn);
+      });
+    });
+  }
+
+  function adicionarItensJsonNaFila(itens) {
+    var n = 0;
+    (itens || []).forEach(function (it) {
+      if (!it || !it.id) return;
+      var filaIt = produtoParaFilaItem(it);
+      filaIt.qtd = parseInt(it.qtd, 10) || 1;
+      state.fila.push(filaIt);
+      n += 1;
+    });
+    if (n) renderFila();
+    return n;
+  }
+
+  function importarSolicitacaoParaFila(pk, btn) {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '…';
+    }
+    fetch(URL_SOLIC + encodeURIComponent(pk) + '/importar/', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken(),
+      },
+      body: '{}',
+    })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data || !data.ok) {
+          setStatus((data && data.erro) || 'Não importou a solicitação.', true);
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Na fila';
+          }
+          return;
+        }
+        var n = adicionarItensJsonNaFila(data.itens || []);
+        if (!n) {
+          setStatus('Pacote sem itens válidos.', true);
+        } else {
+          setStatus(n + ' produto(s) na fila (celular).');
+          fecharModalSolicitacoes();
+        }
+        pollSolicitacoesPendentes();
+        carregarSolicitacoes();
+      })
+      .catch(function () {
+        setStatus('Erro ao importar solicitação.', true);
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Na fila';
+        }
+      });
+  }
+
+  function carregarSolicitacoes() {
+    var box = $('etq-sol-lista');
+    if (box) box.innerHTML = '<p class="px-4 py-6 text-center text-sm text-slate-400">Carregando…</p>';
+    fetch(URL_SOLIC + '?status=pendente&limit=80', { credentials: 'same-origin' })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data || !data.ok) {
+          if (box) box.innerHTML = '<p class="px-4 py-6 text-center text-sm text-red-400">Erro ao carregar.</p>';
+          return;
+        }
+        atualizarBadgeSolicitacoes(data.pendentes);
+        renderSolicitacoesLista(data.pacotes || [], data);
+      })
+      .catch(function () {
+        if (box) box.innerHTML = '<p class="px-4 py-6 text-center text-sm text-red-400">Erro ao carregar.</p>';
+      });
+  }
+
+  function abrirModalSolicitacoes() {
+    ensureSolModalOnBody();
+    var m = $('etq-sol-back');
+    if (!m) return;
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+    m.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+    carregarSolicitacoes();
+  }
+
   function fecharModalHistorico() {
     var m = $('etq-hist-back');
     if (!m) return;
@@ -2055,7 +2239,7 @@
             autoAddBip: true,
             onDone: function (prods) {
               if (prods.length === 1) {
-                adicionarProdutoFila(prods[0], { limparBusca: true });
+                adicionarProdutoFila(prods[0], optsLimparBuscaAoAdicionar(prods[0], q));
               } else if (prods.length > 1) {
                 setStatus('Vários resultados — use ↑ ↓ ou clique no produto.', true);
               }
@@ -2184,6 +2368,9 @@
       $('etq-btn-size-53').addEventListener('click', function () {
         aplicarTamanhoTermicaRapido('53');
       });
+    $('etq-btn-solicitacoes') &&
+      $('etq-btn-solicitacoes').addEventListener('click', abrirModalSolicitacoes);
+    $('etq-sol-fechar') && $('etq-sol-fechar').addEventListener('click', fecharModalSolicitacoes);
     $('etq-btn-historico') && $('etq-btn-historico').addEventListener('click', abrirModalHistorico);
     $('etq-modal-fechar') && $('etq-modal-fechar').addEventListener('click', fecharModalPreset);
     $('etq-hist-fechar') && $('etq-hist-fechar').addEventListener('click', fecharModalHistorico);
@@ -2315,6 +2502,7 @@
 
     document.addEventListener('keydown', function (ev) {
       if (ev.key === 'Escape') {
+        fecharModalSolicitacoes();
         fecharModalHistorico();
         fecharModalPreset();
         fecharModalPonte();
@@ -2326,6 +2514,7 @@
     try {
       ensureModalOnBody();
       ensureHistModalOnBody();
+      ensureSolModalOnBody();
       ensureBridgeModalOnBody();
     } catch (e0) {}
     try {
@@ -2357,6 +2546,10 @@
     try {
       carregarPresetsDaLoja();
     } catch (e6) {}
+    try {
+      pollSolicitacoesPendentes();
+      setInterval(pollSolicitacoesPendentes, 60000);
+    } catch (e8) {}
     var inp = $('etq-busca-input');
     if (inp) {
       try {
