@@ -1433,8 +1433,10 @@
   }
 
   modalEdit._taxonomiaVet = null;
+  modalEdit._taxonomiaVetStatus = 'idle'; // idle | loading | ok | erro
   modalEdit._classesVetSel = [];
   modalEdit._especiesVetSel = [];
+  modalEdit._buscaMedVetUsuarioEditou = false;
 
   function categoriaEhMedicamentoVet(cat) {
     var c = String(cat || '')
@@ -1446,20 +1448,52 @@
     return c.indexOf('veneno') >= 0 && c.indexOf('medic') >= 0;
   }
 
+  function taxonomiaVetRespostaOk(j) {
+    return !!(
+      j
+      && j.ok
+      && Array.isArray(j.grupos)
+      && j.grupos.length
+      && Array.isArray(j.especies)
+      && j.especies.length
+    );
+  }
+
   function carregarTaxonomiaVet(cb) {
     var cfg = window.AgroCadastroErpLista || {};
     var url = cfg.URL_TAXONOMIA_MED_VET || '/api/produtos/cadastro/taxonomia-medicamento-veterinario/';
-    if (modalEdit._taxonomiaVet) {
+    if (modalEdit._taxonomiaVetStatus === 'ok' && modalEdit._taxonomiaVet) {
       if (cb) cb(modalEdit._taxonomiaVet);
       return;
     }
+    modalEdit._taxonomiaVetStatus = 'loading';
     fetch(url, { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (j) {
-        if (j && j.ok) modalEdit._taxonomiaVet = j;
+        if (taxonomiaVetRespostaOk(j)) {
+          modalEdit._taxonomiaVet = j;
+          modalEdit._taxonomiaVetStatus = 'ok';
+        } else {
+          modalEdit._taxonomiaVetStatus = 'erro';
+        }
         if (cb) cb(modalEdit._taxonomiaVet);
       })
-      .catch(function () { if (cb) cb(null); });
+      .catch(function () {
+        modalEdit._taxonomiaVetStatus = 'erro';
+        if (cb) cb(null);
+      });
+  }
+
+  function marcarBuscaMedVetEditadoPeloUsuario() {
+    modalEdit._buscaMedVetUsuarioEditou = true;
+  }
+
+  /** Só envia classes/espécies se taxonomia OK e usuário alterou a aba Busca (evita apagar com lista vazia acidental). */
+  function anexarBuscaMedVetAoBody(body) {
+    if (!body || modalEdit._taxonomiaVetStatus !== 'ok') return;
+    if (!modalEdit._buscaMedVetUsuarioEditou) return;
+    body.classes_vet = coletarClassesVetSelecionadas();
+    body.especies_vet = coletarEspeciesVetSelecionadas();
   }
 
   function atualizarVisibilidadeBuscaMedicamento() {
@@ -1549,16 +1583,28 @@
     }
   }
 
-  function coletarClassesVetSelecionadas() {
+  function sincronizarClassesVetDoDomVisivel() {
     var grade = document.getElementById('edit-classes-vet-grade');
-    if (!grade) return modalEdit._classesVetSel || [];
-    var out = [];
-    grade.querySelectorAll('input[type="checkbox"][data-classe-vet]:checked').forEach(function (cb) {
-      var sid = String(cb.getAttribute('data-classe-vet') || '').trim();
-      if (sid) out.push(sid);
+    var sel = {};
+    (modalEdit._classesVetSel || []).forEach(function (s) {
+      var k = String(s || '').trim();
+      if (k) sel[k] = true;
     });
+    if (grade) {
+      grade.querySelectorAll('input[type="checkbox"][data-classe-vet]').forEach(function (cb) {
+        var sid = String(cb.getAttribute('data-classe-vet') || '').trim();
+        if (!sid) return;
+        if (cb.checked) sel[sid] = true;
+        else delete sel[sid];
+      });
+    }
+    return Object.keys(sel);
+  }
+
+  function coletarClassesVetSelecionadas() {
+    var out = sincronizarClassesVetDoDomVisivel();
     modalEdit._classesVetSel = out;
-    return out;
+    return out.slice();
   }
 
   function renderClassesVetGrade() {
@@ -1595,7 +1641,10 @@
         cb.className = 'w-5 h-5 mt-0.5 rounded border-slate-300 text-emerald-600 shrink-0';
         cb.setAttribute('data-classe-vet', sid);
         cb.checked = !!sel[sid];
-        cb.addEventListener('change', function () { coletarClassesVetSelecionadas(); });
+        cb.addEventListener('change', function () {
+          coletarClassesVetSelecionadas();
+          marcarBuscaMedVetEditadoPeloUsuario();
+        });
         var span = document.createElement('span');
         span.className = 'text-sm font-bold text-slate-800 leading-snug';
         span.textContent = String(it.label || sid);
@@ -1606,16 +1655,28 @@
     });
   }
 
-  function coletarEspeciesVetSelecionadas() {
+  function sincronizarEspeciesVetDoDomVisivel() {
     var grade = document.getElementById('edit-especies-vet-grade');
-    if (!grade) return modalEdit._especiesVetSel || [];
-    var out = [];
-    grade.querySelectorAll('input[type="checkbox"][data-especie-vet]:checked').forEach(function (cb) {
-      var sid = String(cb.getAttribute('data-especie-vet') || '').trim();
-      if (sid) out.push(sid);
+    var sel = {};
+    (modalEdit._especiesVetSel || []).forEach(function (s) {
+      var k = String(s || '').trim();
+      if (k) sel[k] = true;
     });
+    if (grade) {
+      grade.querySelectorAll('input[type="checkbox"][data-especie-vet]').forEach(function (cb) {
+        var sid = String(cb.getAttribute('data-especie-vet') || '').trim();
+        if (!sid) return;
+        if (cb.checked) sel[sid] = true;
+        else delete sel[sid];
+      });
+    }
+    return Object.keys(sel);
+  }
+
+  function coletarEspeciesVetSelecionadas() {
+    var out = sincronizarEspeciesVetDoDomVisivel();
     modalEdit._especiesVetSel = out;
-    return out;
+    return out.slice();
   }
 
   function atualizarResumoEspeciesVet() {
@@ -1664,6 +1725,7 @@
       cb.addEventListener('change', function () {
         coletarEspeciesVetSelecionadas();
         atualizarResumoEspeciesVet();
+        marcarBuscaMedVetEditadoPeloUsuario();
       });
       var span = document.createElement('span');
       span.className = 'text-sm font-bold text-slate-800 leading-snug';
@@ -1680,6 +1742,7 @@
     setVal('edit-palavras-chave', pk);
     modalEdit._classesVetSel = Array.isArray(produto.classes_vet) ? produto.classes_vet.slice() : [];
     modalEdit._especiesVetSel = Array.isArray(produto.especies_vet) ? produto.especies_vet.slice() : [];
+    modalEdit._buscaMedVetUsuarioEditou = false;
     atualizarVisibilidadeBuscaMedicamento();
     carregarTaxonomiaVet(function () {
       renderEspeciesVetGrade();
@@ -3523,8 +3586,6 @@
       subcategoria_3: gv('edit-subcategoria-3'),
       subcategoria_4: gv('edit-subcategoria-4'),
       palavras_chave: gv('edit-palavras-chave'),
-      classes_vet: coletarClassesVetSelecionadas(),
-      especies_vet: coletarEspeciesVetSelecionadas(),
       modelo: gv('edit-modelo'),
       preco_venda: gv('edit-venda'),
       preco_custo: gv('edit-custo'),
@@ -3575,6 +3636,7 @@
         };
       })
     };
+    anexarBuscaMedVetAoBody(body);
     if (syncErp) body.sincronizar_erp = true;
     if (chkEx) body.ativo_exibicao = chkEx.checked;
     if (chkInativoErp) body.inativar_erp = !!chkInativoErp.checked;
@@ -4739,8 +4801,6 @@
     var snap = {
       nome: nome,
       palavras_chave: gvForm('edit-palavras-chave'),
-      classes_vet: coletarClassesVetSelecionadas(),
-      especies_vet: coletarEspeciesVetSelecionadas(),
       marca: gvForm('edit-marca'),
       modelo: gvForm('edit-modelo'),
       categoria: gvForm('edit-categoria'),

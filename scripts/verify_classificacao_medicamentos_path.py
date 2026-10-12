@@ -22,7 +22,8 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
 fails: list[str] = []
 oks: list[str] = []
-PIN = (os.environ.get("AGRO_PIN_TESTE") or "9973").strip()
+skipped: list[str] = []
+PIN_ENV = (os.environ.get("AGRO_PIN_TESTE") or "").strip()
 
 
 def check(name: str, cond: bool, detail: str = "") -> None:
@@ -32,6 +33,11 @@ def check(name: str, cond: bool, detail: str = "") -> None:
     else:
         fails.append(name)
         print(f"  FAIL {name}" + (f" — {detail}" if detail else ""))
+
+
+def skip(name: str, detail: str = "") -> None:
+    skipped.append(name)
+    print(f"  SKIP {name}" + (f" — {detail}" if detail else ""))
 
 
 def test_arquivos_e_contratos() -> None:
@@ -58,7 +64,10 @@ def test_arquivos_e_contratos() -> None:
     check("erp_sem_especies", "especies_vet" not in views.split("def _montar_cadastro_erp_payload_produtos_salvar", 1)[1][:4000])
 
     check("modal_especies_secao", 'id="bloco-especies-vet"' in modal)
-    check("modal_especies_save", "especies_vet: coletarEspeciesVetSelecionadas()" in modal)
+    check("modal_anexar_busca_seguro", "anexarBuscaMedVetAoBody(body)" in modal)
+    check("modal_merge_classes", "sincronizarClassesVetDoDomVisivel" in modal)
+    check("modal_merge_especies", "sincronizarEspeciesVetDoDomVisivel" in modal)
+    check("modal_nao_envia_vet_sempre", "classes_vet: coletarClassesVetSelecionadas()" not in modal)
     check("modal_prateleira_select", 'id="edit-subcategoria-med-prateleira"' in modal)
     check("modal_ordem_busca", modal.find("edit-palavras-chave") < modal.find("bloco-especies-vet") < modal.find("bloco-classes-vet"))
 
@@ -145,47 +154,39 @@ def test_http_e_pin() -> None:
     except Exception as exc:  # noqa: BLE001
         check("django_http", False, str(exc)[:140])
 
-    try:
-        import django
+    if not PIN_ENV:
+        skip("pin_operador", "defina AGRO_PIN_TESTE no ambiente (sem PIN embutido no script)")
+    else:
+        try:
+            import django
 
-        django.setup()
-        from base.models import PerfilUsuario
-        from django.contrib.auth import get_user_model
-        from produtos.caixa_util import validar_pin_operador
+            django.setup()
+            from produtos.caixa_util import validar_pin_operador
 
-        User = get_user_model()
-        user, _ = User.objects.get_or_create(
-            username="pin9973_medclass",
-            defaults={"is_staff": True, "is_superuser": True, "is_active": True},
-        )
-        user.set_password("local-pin")
-        user.save()
-        perfil = PerfilUsuario.objects.filter(senha_rapida=PIN).first()
-        if perfil:
-            perfil.senha_rapida = PIN
-            perfil.save()
-        ok, msg = validar_pin_operador(PIN)
-        if ok:
-            check("pin_9973_vivo", True, msg or "ok")
-        else:
-            check("pin_9973_skip", True, msg or "local sem perfil PG")
-    except Exception as exc:  # noqa: BLE001
-        check("pin_9973_skip", True, str(exc)[:100])
+            ok, msg = validar_pin_operador(PIN_ENV)
+            check("pin_operador_validado", ok, msg or "")
+        except Exception as exc:  # noqa: BLE001
+            skip("pin_operador", str(exc)[:100])
 
 
-def test_unit_tests_file() -> None:
-    print("== test_medicamento_vet_taxonomia.py ==")
+def _run_test_module(rel_path: str, label: str, min_tests: int) -> None:
     import importlib.util
 
-    p = ROOT / "produtos/tests/test_medicamento_vet_taxonomia.py"
-    spec = importlib.util.spec_from_file_location("tmed", p)
+    p = ROOT / rel_path
+    spec = importlib.util.spec_from_file_location(label, p)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     n = 0
     for name in sorted(x for x in dir(mod) if x.startswith("test_")):
         getattr(mod, name)()
         n += 1
-    check("unit_tests", n >= 8, str(n))
+    check(f"unit_{label}", n >= min_tests, str(n))
+
+
+def test_unit_tests_file() -> None:
+    print("== testes unitários Python ==")
+    _run_test_module("produtos/tests/test_medicamento_vet_taxonomia.py", "taxonomia", 8)
+    _run_test_module("produtos/tests/test_med_classificacao_regressao.py", "regressao", 6)
 
 
 def main() -> int:
@@ -194,7 +195,9 @@ def main() -> int:
     test_logica_seguranca_dados()
     test_http_e_pin()
     test_unit_tests_file()
-    print(f"\nOK={len(oks)} FAIL={len(fails)}")
+    print(f"\nOK={len(oks)} FAIL={len(fails)} SKIP={len(skipped)}")
+    if skipped:
+        print("SKIP_LIST=" + ",".join(skipped))
     print("PREP_FAILS=" + str(len(fails)))
     return 1 if fails else 0
 
