@@ -28,14 +28,15 @@ git merge-base --is-ancestor "$PROD_REF" "$PREP_REF" || {
 }
 
 DELTA="$(git diff --name-only "$PROD_REF...$PREP_REF" | sort)"
-ALLOWED="VERSION
-docs/DEPLOY-PREP-CHECKLIST-1210q-gv.md
-produtos/templates/produtos/_modal_editar_produto_cadastro_erp.inc.html
-produtos/templates/produtos/produtos_gestao.html
-produtos/tests/test_med_classificacao_regressao.py
-scripts/cutover_loja_checklist_1210q_gv.sh
-scripts/post_deploy_checklist_1210q_gv.sh
-scripts/verify_classificacao_medicamentos_path.py"
+ALLOWED="$(printf '%s\n' \
+  VERSION \
+  docs/DEPLOY-PREP-CHECKLIST-1210q-gv.md \
+  produtos/templates/produtos/_modal_editar_produto_cadastro_erp.inc.html \
+  produtos/templates/produtos/produtos_gestao.html \
+  produtos/tests/test_med_classificacao_regressao.py \
+  scripts/cutover_loja_checklist_1210q_gv.sh \
+  scripts/post_deploy_checklist_1210q_gv.sh \
+  scripts/verify_classificacao_medicamentos_path.py | sort)"
 [[ "$DELTA" == "$ALLOWED" ]] || {
   echo "FAIL: delta inesperado:"; echo "$DELTA"; exit 2;
 }
