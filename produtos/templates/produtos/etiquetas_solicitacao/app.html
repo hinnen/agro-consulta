@@ -3,145 +3,389 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
-  <meta name="theme-color" content="#0284c7">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="SistApp">
+  {% include "produtos/includes/vendas_lojas_pwa_head.html" with vl_theme_color="#0284c7" %}
   <title>Solicitar etiquetas | GM</title>
-  <link rel="manifest" href="{% url 'vendas_lojas_manifest' %}">
-  <link rel="apple-touch-icon" href="/static/produtos/pwa/vendas-lojas-192.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
     :root {
-      --ink: #0f172a; --muted: #64748b; --accent: #0284c7; --line: #e2e8f0; --bg: #f8fafc;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --accent: #0284c7;
+      --accent-deep: #0369a1;
+      --line: #e2e8f0;
+      --bg: #f1f5f9;
+      --pad-x: max(0.85rem, env(safe-area-inset-left, 0px));
+      --pad-x-r: max(0.85rem, env(safe-area-inset-right, 0px));
       --safe-t: env(safe-area-inset-top, 0px);
       --safe-b: env(safe-area-inset-bottom, 0px);
-      --safe-l: env(safe-area-inset-left, 0px);
-      --safe-r: env(safe-area-inset-right, 0px);
+      --app-h: 100dvh;
+      --touch: 2.75rem;
     }
     * { box-sizing: border-box; }
-    html, body { margin: 0; height: 100dvh; max-height: 100dvh; overflow: hidden; background: var(--bg); color: var(--ink); font-family: Inter, system-ui, sans-serif; -webkit-text-size-adjust: 100%; }
+    html, body {
+      margin: 0;
+      height: var(--app-h);
+      max-height: var(--app-h);
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, system-ui, sans-serif;
+      -webkit-text-size-adjust: 100%;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body.scan-open { overflow: hidden; }
     .shell {
-      height: 100dvh; max-height: 100dvh; max-width: 28rem; margin: 0 auto;
-      padding: max(0.75rem, var(--safe-t)) max(0.85rem, var(--safe-r)) 0 max(0.85rem, var(--safe-l));
-      display: flex; flex-direction: column; gap: 0.55rem; overflow: hidden;
+      height: var(--app-h);
+      max-height: var(--app-h);
+      width: 100%;
+      max-width: 32rem;
+      margin: 0 auto;
+      padding: max(0.65rem, var(--safe-t)) var(--pad-x-r) 0 var(--pad-x);
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      overflow: hidden;
     }
     .scroll-main {
-      flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
-      display: flex; flex-direction: column; gap: 0.55rem;
-      padding-bottom: 0.35rem;
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding-bottom: 0.25rem;
+      overscroll-behavior: contain;
       -webkit-overflow-scrolling: touch;
     }
-    .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
-    .kicker { margin: 0; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
-    .title { margin: 0.15rem 0 0; font-size: clamp(1.4rem, 5.5vw + 0.3rem, 1.85rem); font-weight: 900; letter-spacing: -0.04em; }
-    .ops { display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: flex-end; }
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.45rem;
+      flex-shrink: 0;
+    }
+    .kicker {
+      margin: 0;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .title {
+      margin: 0.12rem 0 0;
+      font-size: clamp(1.25rem, 4.5vw + 0.35rem, 1.75rem);
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+    }
+    .ops {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      justify-content: flex-end;
+      max-width: 52%;
+    }
     .btn {
-      display: inline-flex; align-items: center; justify-content: center; min-height: 2.55rem; padding: 0 0.85rem;
-      border-radius: 0.8rem; border: 2px solid var(--line); background: #fff; color: var(--ink);
-      font-weight: 800; font-size: 0.75rem; text-decoration: none; text-transform: uppercase; cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: var(--touch);
+      min-width: var(--touch);
+      padding: 0 0.7rem;
+      border-radius: 0.75rem;
+      border: 2px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font-weight: 800;
+      font-size: 0.7rem;
+      text-decoration: none;
+      text-transform: uppercase;
+      cursor: pointer;
+      touch-action: manipulation;
+      user-select: none;
     }
-    .btn-accent { background: linear-gradient(145deg, #0284c7, #0369a1); border-color: transparent; color: #fff; }
+    .btn:active { transform: scale(0.98); }
+    .btn:focus-visible { outline: 3px solid #7dd3fc; outline-offset: 2px; }
+    .btn-accent {
+      background: linear-gradient(145deg, var(--accent), var(--accent-deep));
+      border-color: transparent;
+      color: #fff;
+    }
     .btn-scan { background: #0f172a; border-color: #0f172a; color: #fff; }
-    .who { margin: 0; font-size: 0.82rem; font-weight: 700; color: var(--muted); }
+    .who {
+      margin: 0;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--muted);
+      flex-shrink: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     .who strong { color: var(--ink); }
-    .busca-row { display: flex; gap: 0.45rem; }
+    .busca-sticky {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      padding-bottom: 0.15rem;
+      background: linear-gradient(var(--bg) 75%, transparent);
+      flex-shrink: 0;
+    }
     #busca {
-      flex: 1; min-height: 3.1rem; border: 2px solid var(--line); border-radius: 1rem; padding: 0 0.95rem;
-      font-size: 1rem; font-weight: 700; outline: none; background: #fff;
+      width: 100%;
+      min-height: var(--touch);
+      border: 2px solid var(--line);
+      border-radius: 0.9rem;
+      padding: 0 0.9rem;
+      font-size: 16px;
+      font-weight: 700;
+      outline: none;
+      background: #fff;
     }
-    #busca:focus { border-color: var(--accent); }
-    #lista { flex: 1; min-height: 4rem; display: flex; flex-direction: column; gap: 0.45rem; }
+    #busca:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2); }
+    #lista {
+      flex: 1;
+      min-height: 3rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
     .card-p {
-      display: block; width: 100%; text-align: left; border: 2px solid var(--line); border-radius: 1rem;
-      background: #fff; padding: 0.85rem 0.95rem; cursor: pointer;
+      display: block;
+      width: 100%;
+      text-align: left;
+      border: 2px solid var(--line);
+      border-radius: 0.9rem;
+      background: #fff;
+      padding: 0.8rem 0.9rem;
+      cursor: pointer;
+      touch-action: manipulation;
     }
-    .card-p:active { transform: scale(0.99); }
-    .card-p strong { display: block; font-size: 0.98rem; font-weight: 900; line-height: 1.25; }
-    .card-p span { display: block; margin-top: 0.25rem; font-size: 0.78rem; font-weight: 700; color: var(--muted); }
-    .hint { margin: 0; font-size: 0.8rem; font-weight: 700; color: var(--muted); text-align: center; padding: 1rem 0.5rem; }
+    .card-p:active { transform: scale(0.99); border-color: #7dd3fc; }
+    .card-p strong {
+      display: block;
+      font-size: clamp(0.92rem, 3.5vw + 0.4rem, 1.02rem);
+      font-weight: 900;
+      line-height: 1.28;
+    }
+    .card-p span {
+      display: block;
+      margin-top: 0.2rem;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--muted);
+      word-break: break-word;
+    }
+    .hint {
+      margin: 0;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-align: center;
+      padding: 0.85rem 0.5rem;
+      line-height: 1.35;
+    }
+    .hint-more {
+      font-size: 0.72rem;
+      color: var(--accent-deep);
+      font-weight: 800;
+      text-align: center;
+      margin: 0;
+      padding: 0 0.5rem 0.35rem;
+    }
     .dock {
       flex-shrink: 0;
+      width: calc(100% + var(--pad-x) + var(--pad-x-r));
+      margin-left: calc(-1 * var(--pad-x));
+      margin-right: calc(-1 * var(--pad-x-r));
       border-top: 2px solid var(--line);
-      background: linear-gradient(to top, #fff 88%, rgba(248, 250, 252, 0.98));
-      padding: 0.55rem max(0.85rem, var(--safe-r)) max(0.65rem, var(--safe-b)) max(0.85rem, var(--safe-l));
-      margin: 0 max(-0.85rem, calc(-1 * var(--safe-l))) 0 max(-0.85rem, calc(-1 * var(--safe-l)));
-      box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.08);
-      display: flex; flex-direction: column; gap: 0.4rem;
+      background: #fff;
+      padding: 0.5rem var(--pad-x-r) max(0.55rem, var(--safe-b)) var(--pad-x);
+      box-shadow: 0 -10px 28px rgba(15, 23, 42, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
     }
-    .sacola {
-      display: flex; flex-direction: column; gap: 0.35rem; min-height: 0;
+    .sacola { display: flex; flex-direction: column; gap: 0.3rem; min-height: 0; }
+    .sacola-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
     }
-    .sacola h2 { margin: 0; font-size: 0.72rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    .sacola h2 {
+      margin: 0;
+      font-size: 0.7rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+    .sacola-hint {
+      margin: 0;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+    .sacola:not(.vazia) .sacola-hint { display: none; }
     #sacolaItens {
-      max-height: min(38dvh, 14rem);
+      max-height: min(36dvh, 13.5rem);
       overflow-y: auto;
+      overscroll-behavior: contain;
       -webkit-overflow-scrolling: touch;
-      border: 2px solid var(--line); border-radius: 0.85rem; background: #fff; padding: 0.5rem 0.65rem;
+      border: 2px solid var(--line);
+      border-radius: 0.85rem;
+      background: #f8fafc;
+      padding: 0.45rem 0.55rem;
     }
-    #sacolaItens:empty { display: none; }
     .sacola.vazia #sacolaItens { display: none; }
     .sacola-item {
-      display: flex; align-items: center; gap: 0.45rem; border-top: 1px solid var(--line); padding-top: 0.45rem;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+      gap: 0.35rem 0.5rem;
+      align-items: center;
+      border-top: 1px solid var(--line);
+      padding: 0.5rem 0.15rem;
     }
-    .sacola-item:first-of-type { border-top: 0; padding-top: 0; }
-    .sacola-item .nome { flex: 1; font-size: 0.85rem; font-weight: 800; line-height: 1.2; }
-    .qtd-row { display: flex; align-items: center; gap: 0.25rem; }
+    .sacola-item:first-child { border-top: 0; padding-top: 0.15rem; }
+    .sacola-item .nome {
+      grid-column: 1 / -1;
+      font-size: 0.88rem;
+      font-weight: 800;
+      line-height: 1.25;
+      word-break: break-word;
+    }
+    .qtd-row {
+      display: flex;
+      align-items: center;
+      gap: 0.2rem;
+    }
     .qtd-row button {
-      min-width: 2.2rem; min-height: 2.2rem; border-radius: 0.55rem; border: 2px solid var(--line);
-      background: #f1f5f9; font-weight: 900; font-size: 1rem; cursor: pointer;
+      min-width: var(--touch);
+      min-height: var(--touch);
+      border-radius: 0.6rem;
+      border: 2px solid var(--line);
+      background: #fff;
+      font-weight: 900;
+      font-size: 1.1rem;
+      cursor: pointer;
+      touch-action: manipulation;
+      padding: 0;
     }
     .qtd-row input {
-      width: 2.5rem; min-height: 2.2rem; text-align: center; border: 2px solid var(--line); border-radius: 0.55rem;
-      font-weight: 900; font-size: 0.95rem;
+      width: 2.85rem;
+      min-height: var(--touch);
+      text-align: center;
+      border: 2px solid var(--line);
+      border-radius: 0.6rem;
+      font-weight: 900;
+      font-size: 16px;
+      background: #fff;
+      -moz-appearance: textfield;
     }
-    .sacola-item .rm { min-height: 2.2rem; padding: 0 0.5rem; border: 0; border-radius: 0.55rem; background: #fee2e2; color: #b91c1c; font-weight: 900; }
-    .status { margin: 0; min-height: 1.2rem; font-size: 0.78rem; font-weight: 800; color: var(--accent); }
+    .qtd-row input::-webkit-outer-spin-button,
+    .qtd-row input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .sacola-item .rm {
+      min-height: var(--touch);
+      min-width: var(--touch);
+      padding: 0;
+      border: 0;
+      border-radius: 0.6rem;
+      background: #fee2e2;
+      color: #b91c1c;
+      font-weight: 900;
+      font-size: 1.25rem;
+      line-height: 1;
+      touch-action: manipulation;
+    }
+    .status {
+      margin: 0;
+      min-height: 1rem;
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: var(--accent-deep);
+      line-height: 1.3;
+      word-break: break-word;
+    }
     .status.err { color: #b91c1c; }
+    .btn-enviar {
+      width: 100%;
+      min-height: 3.25rem;
+      border: 0;
+      border-radius: 0.9rem;
+      font-size: clamp(0.82rem, 3.2vw + 0.35rem, 0.95rem);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      touch-action: manipulation;
+    }
+    .btn-enviar:disabled { opacity: 0.42; }
+    .btn-enviar.enviando { opacity: 0.75; }
     #reader { position: fixed; inset: 0; z-index: 80; background: #000; display: none; }
     #reader.on { display: block; }
     #reader-box { position: absolute; inset: 0; }
     .scan-bar {
-      position: absolute; top: 0; left: 0; right: 0; z-index: 2;
-      padding: max(0.6rem, var(--safe-t)) 0.75rem 0.75rem;
-      display: flex; justify-content: space-between; align-items: center;
-      background: linear-gradient(to bottom, rgba(0,0,0,.75), transparent);
-      color: #fff; font-weight: 900; font-size: 0.75rem; text-transform: uppercase;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 2;
+      padding: max(0.55rem, var(--safe-t)) 0.75rem 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+      background: linear-gradient(to bottom, rgba(0, 0, 0, 0.78), transparent);
+      color: #fff;
+      font-weight: 900;
+      font-size: 0.72rem;
+      text-transform: uppercase;
     }
-    .btn-enviar { width: 100%; min-height: 3.35rem; border: 0; border-radius: 1rem; font-size: 0.95rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.02em; }
-    .btn-enviar:disabled { opacity: 0.45; }
-    .dock .status { min-height: 1rem; }
+    @media (prefers-reduced-motion: reduce) {
+      .btn:active, .card-p:active { transform: none; }
+    }
+    @media (max-height: 520px) {
+      #sacolaItens { max-height: min(28dvh, 9rem); }
+      .ops { max-width: 100%; }
+    }
   </style>
 </head>
 <body>
-  <div class="shell">
-    <div class="scroll-main">
+  <div class="shell" id="appShell">
+    <div class="scroll-main" id="scrollMain">
       <div class="top">
         <div>
           <p class="kicker">GM Agro</p>
           <h1 class="title">Pedir etiquetas</h1>
         </div>
         <div class="ops">
-          <button type="button" class="btn btn-scan" id="btnScan">Bipar</button>
+          <button type="button" class="btn btn-scan" id="btnScan" aria-label="Bipar código de barras">Bipar</button>
           <a class="btn" href="{{ url_hub }}">Início</a>
           <a class="btn" href="{{ url_sair }}">Sair</a>
         </div>
       </div>
       <p class="who">Operador: <strong>{{ operador }}</strong></p>
 
-      <div class="busca-row">
-        <input type="search" id="busca" placeholder="Nome, GM ou código…" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false">
+      <div class="busca-sticky">
+        <input type="search" id="busca" placeholder="Nome, GM ou código…" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Buscar produto">
       </div>
-      <div id="lista"><p class="hint">Carregando catálogo…</p></div>
+      <div id="lista" role="list" aria-live="polite"><p class="hint">Carregando catálogo…</p></div>
     </div>
 
     <div class="dock" id="dockSacola">
       <div class="sacola vazia" id="sacolaBox">
-        <h2>Sacola · <span id="sacolaTotal">0</span> etiqueta(s)</h2>
+        <div class="sacola-head">
+          <h2>Sacola · <span id="sacolaTotal">0</span> etiqueta(s)</h2>
+        </div>
+        <p class="sacola-hint" id="sacolaHint">Toque nos produtos acima ou use Bipar.</p>
         <div id="sacolaItens"></div>
       </div>
-      <p class="status" id="statusMsg"></p>
+      <p class="status" id="statusMsg" role="status" aria-live="polite"></p>
       <button type="button" class="btn btn-accent btn-enviar" id="btnEnviar" disabled>Enviar para a loja</button>
     </div>
   </div>
@@ -149,8 +393,8 @@
   <div id="reader" aria-hidden="true">
     <div id="reader-box"></div>
     <div class="scan-bar">
-      <span>Scan ativo</span>
-      <button type="button" class="btn" id="btnFechaScan" style="color:#fff;background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.35);">Fechar</button>
+      <span>Aponte para o código</span>
+      <button type="button" class="btn" id="btnFechaScan" aria-label="Fechar câmera" style="color:#fff;background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.35);">Fechar</button>
     </div>
   </div>
 
@@ -160,14 +404,25 @@
     var URL_SLIM = "{{ url_catalogo_slim }}";
     var URL_ENVIAR = "{{ url_api_solicitacao }}";
     var PIN_URL = "{{ url_pin }}";
+    var LISTA_MAX = 40;
     var baseProdutos = [];
     var sacola = [];
     var scanner = null;
     var scanningActive = false;
+    var enviando = false;
+    var buscaTimer = null;
 
     function csrf() {
       var m = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
       return m ? decodeURIComponent(m[1]) : "";
+    }
+    function esc(s) {
+      return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+    }
+    function ajustarAlturaApp() {
+      var vv = window.visualViewport;
+      var h = vv ? vv.height : window.innerHeight;
+      document.documentElement.style.setProperty("--app-h", Math.round(h) + "px");
     }
     function setStatus(msg, isErr) {
       var el = document.getElementById("statusMsg");
@@ -176,6 +431,10 @@
     }
     function totalEtq() {
       return sacola.reduce(function (s, it) { return s + (parseInt(it.qtd, 10) || 1); }, 0);
+    }
+    function labelEnviar(total) {
+      if (!sacola.length) return "Enviar para a loja";
+      return "Enviar " + total + " etiqueta" + (total === 1 ? "" : "s") + " para a loja";
     }
     function renderSacola() {
       var total = totalEtq();
@@ -187,52 +446,66 @@
         box.innerHTML = "";
         if (sacolaBox) sacolaBox.classList.add("vazia");
         btn.disabled = true;
-        btn.textContent = "Enviar para a loja";
+        if (!enviando) btn.textContent = labelEnviar(0);
+        btn.classList.remove("enviando");
         return;
       }
       if (sacolaBox) sacolaBox.classList.remove("vazia");
-      btn.disabled = false;
-      btn.textContent = "Enviar " + total + " etiqueta" + (total === 1 ? "" : "s") + " para a loja";
+      if (!enviando) {
+        btn.disabled = false;
+        btn.textContent = labelEnviar(total);
+      }
       box.innerHTML = sacola.map(function (it, idx) {
-        return '<div class="sacola-item" data-idx="' + idx + '">' +
-          '<div class="nome">' + String(it.nome || it.id).replace(/</g, "&lt;") + '</div>' +
+        var q = parseInt(it.qtd, 10) || 1;
+        return (
+          '<div class="sacola-item" data-idx="' + idx + '">' +
+          '<div class="nome">' + esc(it.nome || it.id) + "</div>" +
           '<div class="qtd-row">' +
-          '<button type="button" class="menos" data-idx="' + idx + '">−</button>' +
-          '<input type="number" min="1" max="999" value="' + (it.qtd || 1) + '" data-idx="' + idx + '">' +
-          '<button type="button" class="mais" data-idx="' + idx + '">+</button>' +
-          '</div>' +
-          '<button type="button" class="rm" data-idx="' + idx + '">×</button>' +
-          '</div>';
+          '<button type="button" class="menos" data-idx="' + idx + '" aria-label="Menos quantidade">−</button>' +
+          '<input type="number" min="1" max="999" inputmode="numeric" value="' + q + '" data-idx="' + idx + '" aria-label="Quantidade">' +
+          '<button type="button" class="mais" data-idx="' + idx + '" aria-label="Mais quantidade">+</button>' +
+          "</div>" +
+          '<button type="button" class="rm" data-idx="' + idx + '" aria-label="Remover">×</button>' +
+          "</div>"
+        );
       }).join("");
-      box.querySelectorAll(".menos").forEach(function (b) {
-        b.addEventListener("click", function () {
-          var i = parseInt(b.getAttribute("data-idx"), 10);
-          if (sacola[i]) sacola[i].qtd = Math.max(1, (parseInt(sacola[i].qtd, 10) || 1) - 1);
+    }
+    function bindSacolaOnce() {
+      var box = document.getElementById("sacolaItens");
+      if (!box || box._delegated) return;
+      box._delegated = true;
+      box.addEventListener("click", function (ev) {
+        var t = ev.target;
+        if (!t || !t.getAttribute) return;
+        var idx = parseInt(t.getAttribute("data-idx"), 10);
+        if (isNaN(idx) || !sacola[idx]) return;
+        if (t.classList.contains("menos")) {
+          sacola[idx].qtd = Math.max(1, (parseInt(sacola[idx].qtd, 10) || 1) - 1);
           renderSacola();
-        });
-      });
-      box.querySelectorAll(".mais").forEach(function (b) {
-        b.addEventListener("click", function () {
-          var i = parseInt(b.getAttribute("data-idx"), 10);
-          if (sacola[i]) sacola[i].qtd = Math.min(999, (parseInt(sacola[i].qtd, 10) || 1) + 1);
+        } else if (t.classList.contains("mais")) {
+          sacola[idx].qtd = Math.min(999, (parseInt(sacola[idx].qtd, 10) || 1) + 1);
           renderSacola();
-        });
-      });
-      box.querySelectorAll("input").forEach(function (inp) {
-        inp.addEventListener("change", function () {
-          var i = parseInt(inp.getAttribute("data-idx"), 10);
-          var q = parseInt(inp.value, 10) || 1;
-          if (sacola[i]) sacola[i].qtd = Math.max(1, Math.min(999, q));
+        } else if (t.classList.contains("rm")) {
+          sacola.splice(idx, 1);
           renderSacola();
-        });
+        }
       });
-      box.querySelectorAll(".rm").forEach(function (b) {
-        b.addEventListener("click", function () {
-          var i = parseInt(b.getAttribute("data-idx"), 10);
-          sacola.splice(i, 1);
+      box.addEventListener("change", function (ev) {
+        var inp = ev.target;
+        if (!inp || inp.tagName !== "INPUT") return;
+        var idx = parseInt(inp.getAttribute("data-idx"), 10);
+        var q = parseInt(inp.value, 10) || 1;
+        if (!isNaN(idx) && sacola[idx]) {
+          sacola[idx].qtd = Math.max(1, Math.min(999, q));
           renderSacola();
-        });
+        }
       });
+      box.addEventListener("blur", function (ev) {
+        var inp = ev.target;
+        if (!inp || inp.tagName !== "INPUT") return;
+        var idx = parseInt(inp.getAttribute("data-idx"), 10);
+        if (!isNaN(idx) && sacola[idx]) inp.value = String(sacola[idx].qtd);
+      }, true);
     }
     function addSacola(prod, qtd) {
       if (!prod || !prod.id) return;
@@ -251,46 +524,64 @@
       renderSacola();
       setStatus("Na sacola: " + (prod.nome || id));
     }
+    function bindListaOnce() {
+      var lista = document.getElementById("lista");
+      if (!lista || lista._delegated) return;
+      lista._delegated = true;
+      lista.addEventListener("click", function (ev) {
+        var btn = ev.target && ev.target.closest ? ev.target.closest(".card-p") : null;
+        if (!btn) return;
+        var id = btn.getAttribute("data-id");
+        if (!id) return;
+        var prod = baseProdutos.find(function (x) { return String(x.id) === String(id); });
+        if (prod) addSacola(prod, 1);
+      });
+    }
     function renderLista(rows) {
       var box = document.getElementById("lista");
       if (!rows || !rows.length) {
         box.innerHTML = '<p class="hint">Nenhum produto. Digite ou bipar.</p>';
         return;
       }
+      var slice = rows.slice(0, LISTA_MAX);
       var html = "";
-      rows.slice(0, 40).forEach(function (p) {
+      slice.forEach(function (p) {
         var id = String(p.id || "");
         var nome = String(p.nome || "Sem nome");
         var meta = [p.codigo || p.codigo_nfe || "", p.codigo_barras || ""].filter(Boolean).join(" · ");
-        html += '<button type="button" class="card-p" data-id="' + id.replace(/"/g, "") + '">' +
-          "<strong>" + nome.replace(/</g, "&lt;") + "</strong>" +
-          "<span>" + meta.replace(/</g, "&lt;") + "</span></button>";
+        html +=
+          '<button type="button" class="card-p" role="listitem" data-id="' + esc(id) + '">' +
+          "<strong>" + esc(nome) + "</strong>" +
+          "<span>" + esc(meta) + "</span></button>";
       });
+      if (rows.length > LISTA_MAX) {
+        html += '<p class="hint-more">+' + (rows.length - LISTA_MAX) + " — refine a busca</p>";
+      }
       box.innerHTML = html;
-      box.querySelectorAll(".card-p").forEach(function (btn) {
-        btn.addEventListener("click", function () {
-          var id = btn.getAttribute("data-id");
-          var prod = baseProdutos.find(function (x) { return String(x.id) === String(id); });
-          if (prod) addSacola(prod, 1);
-        });
-      });
     }
     function buscar(termo) {
       var t = String(termo || "").trim();
       if (t.length < 2) {
-        document.getElementById("lista").innerHTML = '<p class="hint">Digite pelo menos 2 letras ou bipar o código.</p>';
+        document.getElementById("lista").innerHTML =
+          '<p class="hint">Digite pelo menos 2 letras ou bipar o código.</p>';
         return;
       }
-      var termoN = (typeof normalizarBuscaLocal === "function") ? normalizarBuscaLocal(t) : t.toLowerCase();
-      var rows = (typeof filtrarProdutosBuscaInteligente === "function")
-        ? filtrarProdutosBuscaInteligente(baseProdutos, termoN, "normal")
-        : baseProdutos.filter(function (p) {
-            return String(p.busca_texto || p.nome || "").toLowerCase().indexOf(t.toLowerCase()) >= 0;
-          });
+      var termoN = typeof normalizarBuscaLocal === "function" ? normalizarBuscaLocal(t) : t.toLowerCase();
+      var rows =
+        typeof filtrarProdutosBuscaInteligente === "function"
+          ? filtrarProdutosBuscaInteligente(baseProdutos, termoN, "normal")
+          : baseProdutos.filter(function (p) {
+              return String(p.busca_texto || p.nome || "").toLowerCase().indexOf(t.toLowerCase()) >= 0;
+            });
       renderLista(rows);
     }
+    function buscarDebounced(termo) {
+      if (buscaTimer) clearTimeout(buscaTimer);
+      buscaTimer = setTimeout(function () { buscar(termo); }, 180);
+    }
     function matchCodigoExato(codigo) {
-      var c = String(codigo || "").replace(/\D/g, "") || String(codigo || "").trim();
+      var raw = String(codigo || "").trim();
+      var c = raw.replace(/\D/g, "") || raw;
       if (!c) return [];
       return baseProdutos.filter(function (p) {
         var bag = []
@@ -298,16 +589,21 @@
           .concat(Array.isArray(p.index_codigos) ? p.index_codigos : []);
         return bag.some(function (x) {
           var s = String(x || "").trim();
-          return s === c || s.replace(/\D/g, "") === c;
+          return s === raw || s === c || s.replace(/\D/g, "") === c;
         });
       });
     }
     function tentarBip(codigo) {
+      if (!baseProdutos.length) {
+        setStatus("Aguarde o catálogo carregar.", true);
+        return false;
+      }
       var hits = matchCodigoExato(codigo);
       if (hits.length === 1) {
         addSacola(hits[0], 1);
         document.getElementById("busca").value = "";
-        document.getElementById("lista").innerHTML = '<p class="hint">Bipou — pode continuar bipando ou buscar.</p>';
+        document.getElementById("lista").innerHTML =
+          '<p class="hint">Bipou — pode continuar bipando ou buscar.</p>';
         return true;
       }
       if (hits.length > 1) {
@@ -320,17 +616,23 @@
     async function carregarCatalogo() {
       try {
         var res = await fetch(URL_SLIM, { credentials: "same-origin" });
+        if (!res.ok) throw new Error("http");
         var j = await res.json();
         baseProdutos = (j && j.produtos) || [];
         document.getElementById("lista").innerHTML = '<p class="hint">Busque ou toque em Bipar.</p>';
       } catch (e) {
-        document.getElementById("lista").innerHTML = '<p class="hint">Falha ao carregar catálogo.</p>';
+        document.getElementById("lista").innerHTML =
+          '<p class="hint">Falha ao carregar catálogo. Toque em Sair e entre de novo.</p>';
+        setStatus("Sem catálogo — verifique a rede.", true);
       }
     }
     async function enviarSacola() {
-      if (!sacola.length) return;
+      if (!sacola.length || enviando) return;
       var btn = document.getElementById("btnEnviar");
+      enviando = true;
       btn.disabled = true;
+      btn.classList.add("enviando");
+      btn.textContent = "Enviando…";
       setStatus("Enviando…");
       try {
         var res = await fetch(URL_ENVIAR, {
@@ -346,51 +648,84 @@
         }
         if (!res.ok || !j.ok) {
           setStatus(j.erro || "Não enviou.", true);
+          enviando = false;
           renderSacola();
           return;
         }
         sacola = [];
+        enviando = false;
         renderSacola();
         setStatus("Enviado! No PC: Etiquetas → Solicitações.");
+        document.getElementById("busca").focus();
       } catch (e) {
         setStatus("Erro de rede.", true);
+        enviando = false;
         renderSacola();
       }
     }
     function pararScan() {
       scanningActive = false;
-      document.getElementById("reader").classList.remove("on");
+      document.body.classList.remove("scan-open");
+      var reader = document.getElementById("reader");
+      reader.classList.remove("on");
+      reader.setAttribute("aria-hidden", "true");
       if (scanner) {
         scanner.stop().catch(function () {});
         scanner.clear();
         scanner = null;
       }
     }
+    function qrBoxSize() {
+      var w = window.innerWidth || 320;
+      var boxW = Math.min(280, Math.max(200, w - 48));
+      return { width: boxW, height: Math.round(boxW * 0.55) };
+    }
     function iniciarScan() {
       if (!window.Html5Qrcode) {
         setStatus("Leitor indisponível neste aparelho.", true);
         return;
       }
-      document.getElementById("reader").classList.add("on");
+      if (!baseProdutos.length) {
+        setStatus("Aguarde o catálogo carregar.", true);
+        return;
+      }
+      pararScan();
+      document.body.classList.add("scan-open");
+      var reader = document.getElementById("reader");
+      reader.classList.add("on");
+      reader.setAttribute("aria-hidden", "false");
       scanner = new Html5Qrcode("reader-box");
       scanningActive = true;
-      scanner.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 260, height: 160 } },
-        function (decoded) {
-          if (!scanningActive) return;
-          if (tentarBip(decoded)) pararScan();
-        },
-        function () {}
-      ).catch(function () {
-        setStatus("Não abriu a câmera.", true);
-        pararScan();
-      });
+      var box = qrBoxSize();
+      scanner
+        .start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: box },
+          function (decoded) {
+            if (!scanningActive) return;
+            if (tentarBip(decoded)) pararScan();
+          },
+          function () {}
+        )
+        .catch(function () {
+          setStatus("Não abriu a câmera — veja permissões.", true);
+          pararScan();
+        });
     }
-    document.getElementById("busca").addEventListener("input", function () { buscar(this.value); });
+    document.getElementById("busca").addEventListener("input", function () {
+      var v = this.value;
+      if (String(v).trim().length < 2) {
+        if (buscaTimer) clearTimeout(buscaTimer);
+        document.getElementById("lista").innerHTML =
+          '<p class="hint">Digite pelo menos 2 letras ou bipar o código.</p>';
+        return;
+      }
+      buscarDebounced(v);
+    });
     document.getElementById("busca").addEventListener("keydown", function (ev) {
       if (ev.key !== "Enter") return;
       ev.preventDefault();
+      if (buscaTimer) clearTimeout(buscaTimer);
       var t = this.value.trim();
       if (tentarBip(t)) return;
       buscar(t);
@@ -398,6 +733,18 @@
     document.getElementById("btnScan").addEventListener("click", iniciarScan);
     document.getElementById("btnFechaScan").addEventListener("click", pararScan);
     document.getElementById("btnEnviar").addEventListener("click", enviarSacola);
+
+    ajustarAlturaApp();
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", ajustarAlturaApp);
+      window.visualViewport.addEventListener("scroll", ajustarAlturaApp);
+    }
+    window.addEventListener("orientationchange", function () {
+      setTimeout(ajustarAlturaApp, 120);
+    });
+
+    bindSacolaOnce();
+    bindListaOnce();
     carregarCatalogo();
     renderSacola();
   })();
