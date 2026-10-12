@@ -181,6 +181,7 @@ def listar_revisoes_limite(pct_max: int = _PCT_AUMENTO_PADRAO) -> list[dict]:
             continue
         sugerido = _q2(snap.limite_sugerido)
         novo = novo_limite_aplicavel(atual, sugerido, pct_max=pct_max)
+        teto = teto_aumento_limite(atual, pct_max=pct_max)
         saldo_fiado, saldo_vencido, situacao_label, tem_vencido_atual = _situacao_fiado_cliente(
             cliente_id
         )
@@ -189,6 +190,7 @@ def listar_revisoes_limite(pct_max: int = _PCT_AUMENTO_PADRAO) -> list[dict]:
                 "cliente_pk": cliente_id,
                 "analise_id": snap.pk,
                 "cliente_nome": (snap.cliente.nome if snap.cliente_id else "") or "—",
+                "teto_limite": teto,
                 "saldo_fiado": saldo_fiado,
                 "saldo_vencido": saldo_vencido,
                 "situacao_label": situacao_label,
