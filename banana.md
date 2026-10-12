@@ -1294,30 +1294,33 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PREP loja — CHECKLIST **12/10n** · **v27.08** · armado · aguarda frase+senha
+### ✅ Deploy loja — CHECKLIST **12/10n** (itens **1+2**) · **Live v27.09** · 12/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **ARMADO** — branch `deploy/prep-checklist-1210n` (tip `c963e814`) · Live **v27.06** @ `b539c712` |
-| **O quê** | **ETQ-MOBILE-POLISH** · **CREDITO-REVISAR-LIMITE** · **MED-CLASSIFICACAO-SISVALE** |
+| **Status** | ✅ **enviado / Live v27.09** — `producao` @ `f6a4fa31` |
+| **O quê** | **ETQ-MOBILE-POLISH** · **CREDITO-REVISAR-LIMITE** (export XLSX) — **sem** MED |
 | **Migrate** | **NÃO** |
-| **Fora** | PDV wizard/busca 230 · caixa · `mongo_financeiro` · `meta_vendas_util` |
-| **Prova** | `./scripts/cutover_loja_checklist_1210n.sh` dry-run OK |
-| **Cutover** | `--exec` + frase + senha **99738595** |
-| **Rollback** | `rollback/pre-checklist-1210n-v27.06-b539` @ `b539c712` |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1210n.md` · roteiro **§77** |
+| **Antes** | **v27.06** @ `b539c712` |
+| **Backup** | `producao-backup-pre-v2709-checklist-1210n-etq-cred` |
+| **Rollback** | `git push origin rollback/pre-checklist-1210n-v27.06-b539:producao` (@ `b539c712`) |
+| **Cutover usado** | `./scripts/cutover_loja_checklist_1210n_etq_cred.sh` |
+| **PREP** | `deploy/prep-checklist-1210n-etq-cred` @ `f6a4fa31` |
 
-**1 · ETQ-MOBILE-POLISH** — dock/sacola/`visualViewport` em `/vendas/lojas/etiquetas/`  
-**2 · CREDITO-REVISAR-LIMITE** — `/fiado/analise-credito/revisar-limites/` + export XLSX  
-**3 · MED-CLASSIFICACAO-SISVALE** — cadastro ERP medicamentos (9 prateleiras, espécies Mongo)
+### 🟡 Pendente loja — **12/10n** item **3** · **MED-CLASSIFICACAO-SISVALE**
 
-### ✅ CHECKLIST ÚNICO — **12/10n** · 🟢 **ARMADO envio produção**
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 **só teste / PREP completo** — `deploy/prep-checklist-1210n` (pacote 3) |
+| **Migrate** | **NÃO** |
+
+### ✅ CHECKLIST ÚNICO — **12/10n**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-MOBILE-POLISH** | 🟢 **PREP** | **NÃO** |
-| 2 | **CREDITO-REVISAR-LIMITE** | 🟢 **PREP** | **NÃO** |
-| 3 | **MED-CLASSIFICACAO-SISVALE** | 🟢 **PREP** v27.08 | **NÃO** |
+| 1 | **ETQ-MOBILE-POLISH** | ✅ **Live v27.09** | **NÃO** |
+| 2 | **CREDITO-REVISAR-LIMITE** | ✅ **Live v27.09** | **NÃO** |
+| 3 | **MED-CLASSIFICACAO-SISVALE** | 🟡 **pendente** | **NÃO** |
 
 ### ✅ Deploy loja — **VILA-META** (`CHECKLIST 11/10m` · 11/10) · **Live v27.06**
 
