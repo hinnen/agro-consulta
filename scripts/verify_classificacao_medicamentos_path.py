@@ -63,8 +63,9 @@ def test_arquivos_e_contratos() -> None:
     check("modal_ordem_busca", modal.find("edit-palavras-chave") < modal.find("bloco-especies-vet") < modal.find("bloco-classes-vet"))
 
     base = os.environ.get("AGRO_VERIFY_DIFF_BASE", "origin/producao")
+    tip = os.environ.get("AGRO_VERIFY_DIFF_TIP", "HEAD")
     mig_diff = subprocess.run(
-        ["git", "diff", "--name-only", f"{base}...HEAD"],
+        ["git", "diff", "--name-only", f"{base}...{tip}"],
         cwd=ROOT,
         capture_output=True,
         text=True,

@@ -35,6 +35,7 @@ FORBIDDEN="$(git diff --name-only "$PROD_REF...$PREP_REF" | grep -E \
 [[ -z "$FORBIDDEN" ]] || { echo "FAIL: sensível: $FORBIDDEN"; exit 2; }
 
 PREP_FULL="$(git rev-parse "$PREP_REF")"
+export AGRO_VERIFY_DIFF_TIP="$PREP_FULL"
 git grep -q 'visualViewport' "$PREP_FULL" -- produtos/templates/produtos/etiquetas_solicitacao/app.html || {
   echo "FAIL: delta sem ETQ mobile polish"; exit 2;
 }
@@ -58,7 +59,7 @@ grep -q 'TOTAL OK=13 FAIL=0' /tmp/cutover-1210n-etqmob.log
 grep -qE '0 FAIL ===|· 0 FAIL ===' /tmp/cutover-1210n-cred.log
 
 "$PY" scripts/verify_classificacao_medicamentos_path.py | tee /tmp/cutover-1210n-med.log
-grep -qE '0 FAIL ===|PREP_FAILS=0|TOTAL OK=29 FAIL=0' /tmp/cutover-1210n-med.log
+grep -q '^PREP_FAILS=0$' /tmp/cutover-1210n-med.log
 
 if [[ -f scripts/verify_cb_loja_pdv_busca_path.py ]]; then
   "$PY" scripts/verify_cb_loja_pdv_busca_path.py | tee /tmp/cutover-1210n-pdv.log
