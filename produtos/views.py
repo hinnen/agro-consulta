@@ -26528,6 +26528,13 @@ def _cadastro_enriquecer_saldo_nas_rows(rows: list[dict]) -> list[dict]:
 
 def _cadastro_finalizar_payload_rows(payload: dict, incluir_saldo: bool) -> dict:
     out = dict(payload)
+    if isinstance(out.get("produtos"), list):
+        try:
+            from produtos.cadastro_overlay_orfao_util import remover_cadastro_duplicatas_agro_vn
+
+            out["produtos"] = remover_cadastro_duplicatas_agro_vn(list(out["produtos"]))
+        except Exception:
+            pass
     if incluir_saldo and isinstance(out.get("produtos"), list):
         out["produtos"] = _cadastro_enriquecer_saldo_nas_rows(list(out["produtos"]))
     return out
@@ -26569,6 +26576,12 @@ def _api_buscar_json_contexto_cadastro(request, rows: list[dict]) -> JsonRespons
                 r["saldo_total"] = round(sc + sv, 2)
     if filtros.get("estoque_sinal"):
         out = [r for r in out if row_passa_filtros_cadastro(r, filtros)]
+    try:
+        from produtos.cadastro_overlay_orfao_util import remover_cadastro_duplicatas_agro_vn
+
+        out = remover_cadastro_duplicatas_agro_vn(out)
+    except Exception:
+        pass
     _sort_cadastro_rows_inplace(out, sort_key, sort_direction)
 
     return JsonResponse(

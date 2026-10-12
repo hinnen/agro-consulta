@@ -1599,9 +1599,22 @@ def preview_importacao_cadastro(
     erros: list[dict] = []
     pendentes: list[dict] = []
 
+    hdr_gm = colmap.get(COL_CODIGO_GM)
+    hdr_nome = colmap.get(COL_NOME)
+
     for i, raw in enumerate(rows_slice, start=2):
         pid = _cel_str(raw.get(hdr_id or ""))[:64]
         if not pid:
+            continue
+        from produtos.cadastro_overlay_orfao_util import remapear_id_planilha_agro_vn
+
+        cod_gm_linha = _cel_str(raw.get(hdr_gm or "")) if hdr_gm else ""
+        nome_linha = _cel_str(raw.get(hdr_nome or "")) if hdr_nome else ""
+        pid, aviso_remap = remapear_id_planilha_agro_vn(
+            pid, codigo_gm=cod_gm_linha, nome=nome_linha
+        )
+        if aviso_remap and not _id_produto_planilha_valido(pid):
+            erros.append({"linha": i, "id": _id_planilha_resumo(pid), "erro": aviso_remap})
             continue
         if not _id_produto_planilha_valido(pid):
             erros.append(
