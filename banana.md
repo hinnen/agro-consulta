@@ -1294,6 +1294,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — **GESTAO-MED-MODAL-GV** (hotfix pós **MED** · 12/10) · 🟢 **PRONTO envio produção**
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Cadastro ERP / gestão: **modal de edição** voltava a abrir (`gv()` no escopo do modal) · gestão operacional: clique na linha + lápis com try/catch |
+| **Migrate** | **NÃO** |
+| **Prova** | `AGRO_PIN_TESTE=9973 python scripts/verify_classificacao_medicamentos_path.py` → **38/38** · PIN ok · Playwright `abrirModalProduto` sem `gv is not defined` |
+| **Status** | 🟢 **`teste`** — aguarda frase + senha produção (correção do v27.11 MED) |
+
+### ✅ CHECKLIST ÚNICO — **12/10q** · 🟢 **PRONTO envio produção**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **GESTAO-MED-MODAL-GV** (hotfix) | 🟢 **PRONTO** `teste` | **NÃO** |
+| 2 | **CLIENTE-LISTA-DESC-PDV** | 🟢 **PRONTO** `teste` | **SIM** `0145` |
+
 ### ✅ Deploy loja — CHECKLIST **12/10p** (itens **1+2**) · **Live v27.11** · 12/10
 
 | Campo | Valor |

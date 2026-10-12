@@ -70,6 +70,19 @@ def test_arquivos_e_contratos() -> None:
     check("modal_nao_envia_vet_sempre", "classes_vet: coletarClassesVetSelecionadas()" not in modal)
     check("modal_prateleira_select", 'id="edit-subcategoria-med-prateleira"' in modal)
     check("modal_ordem_busca", modal.find("edit-palavras-chave") < modal.find("bloco-especies-vet") < modal.find("bloco-classes-vet"))
+    idx_gv = modal.find("function gv(id)")
+    idx_prat = modal.find("function preencherSelectPrateleiraMed")
+    check(
+        "modal_gv_escopo_global",
+        idx_gv >= 0 and idx_prat >= 0 and idx_gv < idx_prat,
+        "gv antes da UI medicamento (abrir modal)",
+    )
+    check("modal_abrirModalProduto", "window.abrirModalProduto = function" in modal)
+
+    gestao = (ROOT / "produtos/templates/produtos/produtos_gestao.html").read_text(encoding="utf-8")
+    check("gestao_abrir_drawer", "function abrirDrawer" in gestao)
+    check("gestao_click_linha", "mainTr.addEventListener('click'" in gestao)
+    check("gestao_edit_try", "abrirDrawerSeguro" in gestao)
 
     med_paths = [
         "produtos/medicamento_vet_taxonomia.py",
@@ -77,6 +90,7 @@ def test_arquivos_e_contratos() -> None:
         "produtos/templates/produtos/_modal_editar_produto_cadastro_erp.inc.html",
         "produtos/tests/test_medicamento_vet_taxonomia.py",
         "produtos/tests/test_med_classificacao_regressao.py",
+        "produtos/templates/produtos/produtos_gestao.html",
         "scripts/verify_classificacao_medicamentos_path.py",
     ]
     mig_log = subprocess.run(
@@ -221,7 +235,7 @@ def _run_test_module(rel_path: str, label: str, min_tests: int) -> None:
 def test_unit_tests_file() -> None:
     print("== testes unitários Python ==")
     _run_test_module("produtos/tests/test_medicamento_vet_taxonomia.py", "taxonomia", 8)
-    _run_test_module("produtos/tests/test_med_classificacao_regressao.py", "regressao", 6)
+    _run_test_module("produtos/tests/test_med_classificacao_regressao.py", "regressao", 7)
 
 
 def main() -> int:
