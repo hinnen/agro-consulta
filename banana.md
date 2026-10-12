@@ -1294,22 +1294,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — **CREDITO-REVISAR-LIMITE** (`CHECKLIST 12/10` · 12/10) · 🟢 **PRONTO envio**
+### 📦 PACOTE PRONTO — pendente loja (`CHECKLIST 12/10` · 12/10) · 🟢 **PRONTO envio**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **`teste`** — aguarda frase + senha produção |
-| **O quê** | `/fiado/analise-credito/revisar-limites/` — saldo fiado/vencido, Em dia/Vencido, % 20–100%, limite editável, Excel da tela, UX polish |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_credito_limite_revisao_path.py` **27/27** · PIN **9973** + HTTP no PC local |
-| **Você** | Laboratório crédito → Revisar alterações · aprovar/Excel |
+| **Loja Live** | **v27.06+** (`producao` — etiquetas **mobile** ainda sem dock polish) |
+| **Migrate** | **NÃO** (itens abaixo) |
+
+**1 · ETQ-MOBILE-POLISH** — `teste` @ `e8b41744`  
+App `/vendas/lojas/etiquetas/`: dock fixo · sacola rolável · `visualViewport` · toques 44px · delegação eventos.  
+Fluxo: `POST /api/vendas/lojas/etiquetas/solicitacoes/` (PIN) → pacote **pendente** → desktop `GET/POST /api/produtos/etiquetas/solicitacoes/…/importar/`.  
+Prova: `verify_etq_solicitacao_vl_pin_path.py` **35/35** · `verify_etiquetas_mobile_flow_path.py` **13/13** · runtime GM **19/19**. Loja (pré-deploy): PIN **9973** + toque na lista **adiciona** sacola; dock novo **só após deploy**.
+
+**2 · CREDITO-REVISAR-LIMITE** — `teste`  
+`/fiado/analise-credito/revisar-limites/` — colunas saldo, % limite, Excel, UX.  
+Prova: `verify_credito_limite_revisao_path.py` **27/27**.
 
 ### ✅ CHECKLIST ÚNICO — **12/10** · 🟢 **PRONTO envio produção**
 
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **ETQ-MOBILE-DOCK** | 🟢 **teste** | **NÃO** |
-| 2 | **CREDITO-REVISAR-LIMITE** | 🟢 **teste** | **NÃO** |
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | **ETQ-MOBILE-POLISH** | 🟢 teste |
+| 2 | **CREDITO-REVISAR-LIMITE** | 🟢 teste |
 
 ### ✅ Deploy loja — **VILA-META** (`CHECKLIST 11/10m` · 11/10) · **Live v27.06**
 
@@ -1328,22 +1334,6 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- |
 | 1 | **VILA-ABERTURA-0108** | ✅ **Live v27.06** | **NÃO** |
 | 2 | **VILA-DOMINGO-ZERO** | ✅ **Live v27.06** | **NÃO** |
-
-### 📦 PACOTE PRONTO — **ETQ-MOBILE-DOCK** (`CHECKLIST 11/10n` · 12/10)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | 🟢 **PRONTO envio produção** — `teste` (commit dock fixo) · loja Live **v27.06** |
-| **VERSION prep** | **v27.07** (sugestão) |
-| **O quê** | App celular `/vendas/lojas/etiquetas/` — dock fixo · sacola rolável · toques 44px · busca sticky · teclado (`visualViewport`) · bip responsivo · delegação eventos (sem bug de foco no qtd) |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_etq_solicitacao_vl_pin_path.py` **35/35** |
-
-### ✅ CHECKLIST ÚNICO — 11/10n · 🟢 **PRONTO**
-
-| # | Pacote | Status | Nota |
-| - | ------ | ------ | ---- |
-| 1 | **ETQ-MOBILE-DOCK** | 🟢 pronto subir | validar no celular após deploy |
 
 ### ✅ Deploy loja — hotfix **SISTAPP-AJUSTE-SHELL** · **Live** · 11/10
 
