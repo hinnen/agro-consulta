@@ -932,6 +932,26 @@ def _mongo_produtos_por_overlay_codigo_busca(
                 out.append(cat_agro.row_para_doc_busca_pdv(cat_agro.produto_agro_para_row(p)))
                 continue
             ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=ps[:64]).first()
+            if ov:
+                from produtos.cadastro_overlay_orfao_util import (
+                    dissolver_fantasma_agro_vn_por_nome,
+                    eh_id_overlay_sintetico_validade,
+                )
+
+                if eh_id_overlay_sintetico_validade(ps):
+                    canon = dissolver_fantasma_agro_vn_por_nome(ov.nome or "", codigo=ov.codigo_nfe or "")
+                    if canon and canon != ps:
+                        p = cat_agro.obter_produto_model(canon)
+                        if p is not None:
+                            out.append(
+                                cat_agro.row_para_doc_busca_pdv(cat_agro.produto_agro_para_row(p))
+                            )
+                            continue
+                        ps = canon
+                        ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=ps[:64]).first()
+                if ov and eh_id_overlay_sintetico_validade(ps):
+                    if dissolver_fantasma_agro_vn_por_nome(ov.nome or "", codigo=ov.codigo_nfe or ""):
+                        continue
             if ov and (ov.codigo_nfe.strip() or ov.codigo_barras.strip() or ov.nome.strip()):
                 out.append(
                     {
