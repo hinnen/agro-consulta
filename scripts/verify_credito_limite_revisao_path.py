@@ -27,6 +27,7 @@ from produtos.credito_limite_revisao import (
     ignorar_limite_cliente,
     listar_revisoes_limite,
     novo_limite_aplicavel,
+    resolver_limite_aprovacao,
 )
 from produtos.models import (
     ClienteAgro,
@@ -73,6 +74,9 @@ def main() -> int:
     check("cap_100pct", novo_limite_aplicavel("100", "200", pct_max=100) == Decimal("200.00"))
     check("abaixo_do_teto", novo_limite_aplicavel("100", "110") == Decimal("110.00"))
     check("reducao", novo_limite_aplicavel("100", "50") == Decimal("50.00"))
+    check("manual_ok", resolver_limite_aprovacao("100", "200", "115", pct_max=20) == Decimal("115.00"))
+    check("manual_teto", resolver_limite_aprovacao("100", "200", "150", pct_max=20) is None)
+    check("manual_001", resolver_limite_aprovacao("100", "200", "0.01", pct_max=20) is None)
     src = (ROOT / "produtos/credito_limite_revisao.py").read_text(encoding="utf-8")
     check("usa_definir", "definir_limite_fiado_cliente(" in src)
     check("nao_grava_campo_direto", "limite_fiado_local =" not in src)
@@ -165,6 +169,7 @@ def main() -> int:
     check("col_situacao", "Situação" in html)
     check("pct_config", 'name="pct"' in html)
     check("excel_btn", "Excel" in html)
+    check("limite_manual_input", "limite_manual_" in html and "Limite a aplicar" in html)
     check("rota", "fiado/analise-credito/revisar-limites/" in urls)
     check("rota_export", "revisar-limites/export-xlsx" in urls)
     pin = (os.environ.get("AGRO_PIN_TESTE") or "9973").strip()

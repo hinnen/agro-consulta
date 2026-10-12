@@ -70,6 +70,39 @@ def novo_limite_aplicavel(limite_atual, limite_sugerido, *, pct_max: int = _PCT_
     return min(sugerido, teto)
 
 
+def teto_aumento_limite(limite_atual, *, pct_max: int = _PCT_AUMENTO_PADRAO) -> Decimal:
+    atual = _q2(limite_atual)
+    mult = _cap_multiplier(pct_max)
+    return (atual * mult).quantize(_Q2, rounding=ROUND_HALF_UP)
+
+
+def resolver_limite_aprovacao(
+    limite_atual,
+    limite_sugerido,
+    limite_manual_raw=None,
+    *,
+    pct_max: int = _PCT_AUMENTO_PADRAO,
+) -> Decimal | None:
+    """Valor a gravar na aprovação (automático ou editado na tela)."""
+    atual = _q2(limite_atual)
+    sugerido = _q2(limite_sugerido)
+    padrao = novo_limite_aplicavel(atual, sugerido, pct_max=pct_max)
+    if limite_manual_raw is None or str(limite_manual_raw).strip() == "":
+        return padrao
+    manual = _q2(limite_manual_raw)
+    if manual == _LIMITE_BLOQUEIO:
+        return None
+    if manual < Decimal("0"):
+        return None
+    if manual == atual:
+        return None
+    if manual > atual:
+        teto = teto_aumento_limite(atual, pct_max=pct_max)
+        if manual > teto:
+            return None
+    return manual
+
+
 def _ultimo_snapshot_por_cliente() -> dict[int, ClienteAnaliseCreditoAgro]:
     vistos: dict[int, ClienteAnaliseCreditoAgro] = {}
     qs = ClienteAnaliseCreditoAgro.objects.select_related("cliente").order_by(
@@ -192,8 +225,9 @@ def _snap_apto_vivo(
     atual = _limite_efetivo_local(_q2(snap.cliente.limite_fiado_local))
     if not _apto(snap, atual, pct_max=pct_max):
         return None
-    novo = novo_limite_aplicavel(atual, snap.limite_sugerido, pct_max=pct_max)
-    return snap, atual, novo
+    sugerido = _q2(snap.limite_sugerido)
+    padrao = novo_limite_aplicavel(atual, sugerido, pct_max=pct_max)
+    return snap, atual, padrao
 
 
 @transaction.atomic
@@ -202,11 +236,20 @@ def aprovar_limite_cliente(
     *,
     usuario: str = "",
     pct_max: int = _PCT_AUMENTO_PADRAO,
+    limite_manual_raw=None,
 ) -> bool:
     achado = _snap_apto_vivo(int(cliente_pk), pct_max=pct_max)
     if achado is None:
         return False
-    snap, atual, novo = achado
+    snap, atual, _padrao = achado
+    novo = resolver_limite_aprovacao(
+        atual,
+        snap.limite_sugerido,
+        limite_manual_raw,
+        pct_max=pct_max,
+    )
+    if novo is None:
+        return False
     definir_limite_fiado_cliente(int(cliente_pk), novo, usuario=(usuario or "")[:150])
     CreditoLimiteRevisaoDecisaoAgro.objects.create(
         cliente_id=int(cliente_pk),
@@ -250,11 +293,18 @@ def aprovar_limites_selecionados(
     *,
     usuario: str = "",
     pct_max: int = _PCT_AUMENTO_PADRAO,
+    limites_manuais: dict[int, str] | None = None,
 ) -> tuple[int, int]:
     ok = 0
     pulados = 0
+    manuais = limites_manuais or {}
     for pk in cliente_pks:
-        if aprovar_limite_cliente(int(pk), usuario=usuario, pct_max=pct_max):
+        if aprovar_limite_cliente(
+            int(pk),
+            usuario=usuario,
+            pct_max=pct_max,
+            limite_manual_raw=manuais.get(int(pk)),
+        ):
             ok += 1
         else:
             pulados += 1

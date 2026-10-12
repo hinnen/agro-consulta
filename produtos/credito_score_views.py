@@ -426,6 +426,21 @@ def _pct_revisao_request(request) -> int:
     return normalizar_pct_aumento_max(raw)
 
 
+def _limites_manuais_post(request) -> dict[int, str]:
+    out: dict[int, str] = {}
+    for key, val in request.POST.items():
+        if not key.startswith("limite_manual_"):
+            continue
+        pk_s = key[len("limite_manual_") :]
+        if pk_s.isdigit():
+            out[int(pk_s)] = (val or "").strip()
+    solo = (request.POST.get("limite_manual") or "").strip()
+    pk_solo = (request.POST.get("cliente_pk") or "").strip()
+    if solo and pk_solo.isdigit():
+        out[int(pk_solo)] = solo
+    return out
+
+
 def _redirect_revisao_limite(pct_max: int):
     from django.urls import reverse
 
@@ -445,12 +460,21 @@ def credito_limite_revisao(request):
         usuario = _usuario_revisao(request)
         if acao == "aprovar":
             pk = (request.POST.get("cliente_pk") or "").strip()
+            manuais = _limites_manuais_post(request)
+            limite_raw = manuais.get(int(pk)) if pk.isdigit() else None
             if pk.isdigit() and aprovar_limite_cliente(
-                int(pk), usuario=usuario, pct_max=pct_max
+                int(pk),
+                usuario=usuario,
+                pct_max=pct_max,
+                limite_manual_raw=limite_raw,
             ):
                 messages.success(request, "Limite atualizado.")
             else:
-                messages.warning(request, "Este cliente não está mais apto.")
+                messages.warning(
+                    request,
+                    "Não foi possível aprovar: cliente fora da lista, limite igual ao atual, "
+                    "acima do teto da % ou valor inválido.",
+                )
         elif acao == "ignorar":
             pk = (request.POST.get("cliente_pk") or "").strip()
             if pk.isdigit() and ignorar_limite_cliente(
@@ -468,7 +492,10 @@ def credito_limite_revisao(request):
                 messages.warning(request, "Marque pelo menos um cliente.")
             else:
                 ok, pulados = aprovar_limites_selecionados(
-                    pks, usuario=usuario, pct_max=pct_max
+                    pks,
+                    usuario=usuario,
+                    pct_max=pct_max,
+                    limites_manuais=_limites_manuais_post(request),
                 )
                 messages.success(
                     request,

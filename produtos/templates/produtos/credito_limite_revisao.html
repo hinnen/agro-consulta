@@ -9,6 +9,7 @@
   <style>
     body { font-family: system-ui, sans-serif; }
     .rev-table th, .rev-table td { padding: 0.55rem 0.6rem; font-size: 1rem; }
+    .limite-manual-input { width: 6.5rem; }
   </style>
 </head>
 <body class="min-h-dvh bg-slate-100 text-slate-900">
@@ -17,7 +18,7 @@
       <div>
         <a href="{% url 'credito_score_laboratorio' %}" class="text-sm font-black text-emerald-800 underline">← Análise de crédito</a>
         <h1 class="text-2xl font-black text-emerald-900 mt-1">Revisar alterações de limite</h1>
-        <p class="text-sm font-semibold text-orange-700">Aumento máximo configurável por aprovação (padrão 20%, até 100%). Não desbloqueia R$ 0,01.</p>
+        <p class="text-sm font-semibold text-orange-700">Aumento máximo configurável por aprovação (padrão 20%, até 100%). Edite o limite a aplicar antes de aprovar. Não desbloqueia R$ 0,01.</p>
       </div>
       <form method="get" class="flex flex-wrap items-end gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm">
         <label class="block">
@@ -66,7 +67,7 @@
               <th>Situação</th>
               <th class="text-right">Limite atual</th>
               <th class="text-right">Limite sugerido</th>
-              <th class="text-right">Novo limite</th>
+              <th class="text-right">Limite a aplicar</th>
               <th>Score</th>
               <th>Confiança</th>
               <th class="text-right">Diferença</th>
@@ -75,7 +76,7 @@
           </thead>
           <tbody>
             {% for r in linhas %}
-            <tr class="border-t border-slate-100">
+            <tr class="border-t border-slate-100" data-limite-atual="{{ r.limite_atual }}">
               <td>
                 <input type="checkbox" name="cliente_pk" value="{{ r.cliente_pk }}" class="w-5 h-5" aria-label="Marcar {{ r.cliente_nome }}">
               </td>
@@ -83,14 +84,21 @@
               <td class="text-right font-bold tabular-nums">{{ r.saldo_fiado|floatformat:2 }}</td>
               <td class="text-right font-bold tabular-nums {% if r.tem_vencido_atual %}text-red-700{% endif %}">{{ r.saldo_vencido|floatformat:2 }}</td>
               <td class="font-semibold {% if r.tem_vencido_atual %}text-red-700{% else %}text-emerald-900{% endif %}">{{ r.situacao_label }}</td>
-              <td class="text-right font-bold tabular-nums">{{ r.limite_atual|floatformat:2 }}</td>
+              <td class="text-right font-bold tabular-nums limite-atual-cell">{{ r.limite_atual|floatformat:2 }}</td>
               <td class="text-right tabular-nums">{{ r.limite_sugerido|floatformat:2 }}</td>
-              <td class="text-right font-black tabular-nums text-emerald-800">{{ r.novo_limite|floatformat:2 }}</td>
+              <td class="text-right">
+                <input type="text" inputmode="decimal" autocomplete="off"
+                  name="limite_manual_{{ r.cliente_pk }}"
+                  class="limite-manual-input rounded-lg border-2 border-emerald-600 px-2 py-1.5 text-right font-black tabular-nums text-emerald-900"
+                  value="{{ r.novo_limite|floatformat:2 }}"
+                  aria-label="Limite a aplicar para {{ r.cliente_nome }}"
+                  data-pk="{{ r.cliente_pk }}">
+              </td>
               <td class="font-black tabular-nums">{{ r.score }}</td>
               <td class="font-semibold">{{ r.confianca_label }}</td>
-              <td class="text-right font-black tabular-nums {% if r.diferenca > 0 %}text-emerald-800{% else %}text-orange-800{% endif %}">{{ r.diferenca|floatformat:2 }}</td>
+              <td class="text-right font-black tabular-nums diff-cell {% if r.diferenca > 0 %}text-emerald-800{% else %}text-orange-800{% endif %}">{{ r.diferenca|floatformat:2 }}</td>
               <td class="whitespace-nowrap">
-                <button type="submit" form="aprovar-{{ r.cliente_pk }}" class="rounded-lg bg-emerald-700 text-white font-black px-3 py-2 text-sm">Aprovar</button>
+                <button type="button" class="btn-aprovar-um rounded-lg bg-emerald-700 text-white font-black px-3 py-2 text-sm" data-pk="{{ r.cliente_pk }}">Aprovar</button>
                 <button type="submit" form="ignorar-{{ r.cliente_pk }}" class="rounded-lg bg-slate-200 text-slate-900 font-black px-3 py-2 text-sm ml-1">Ignorar</button>
               </td>
             </tr>
@@ -103,11 +111,12 @@
     </form>
 
     {% for r in linhas %}
-    <form id="aprovar-{{ r.cliente_pk }}" method="post" class="hidden" onsubmit="return confirm('Aplicar o novo limite deste cliente?');">
+    <form id="aprovar-{{ r.cliente_pk }}" method="post" class="hidden">
       {% csrf_token %}
       <input type="hidden" name="acao" value="aprovar">
       <input type="hidden" name="cliente_pk" value="{{ r.cliente_pk }}">
       <input type="hidden" name="pct_aumento_max" value="{{ pct_aumento_max }}">
+      <input type="hidden" name="limite_manual" value="">
     </form>
     <form id="ignorar-{{ r.cliente_pk }}" method="post" class="hidden" onsubmit="return confirm('Ignorar este cliente nesta análise? O limite não muda.');">
       {% csrf_token %}
@@ -117,5 +126,47 @@
     </form>
     {% endfor %}
   </div>
+  <script>
+    (function () {
+      function parseBrNum(s) {
+        if (!s) return NaN;
+        var t = String(s).trim().replace(/\s/g, '');
+        if (t.indexOf(',') >= 0) {
+          t = t.replace(/\./g, '').replace(',', '.');
+        }
+        return parseFloat(t);
+      }
+      function fmtBr(n) {
+        if (!isFinite(n)) return '—';
+        return n.toFixed(2).replace('.', ',');
+      }
+      function atualizarDiff(row) {
+        var inp = row.querySelector('.limite-manual-input');
+        var atual = parseBrNum(row.getAttribute('data-limite-atual'));
+        var novo = parseBrNum(inp && inp.value);
+        var cell = row.querySelector('.diff-cell');
+        if (!cell || !isFinite(atual) || !isFinite(novo)) return;
+        var d = novo - atual;
+        cell.textContent = fmtBr(d);
+        cell.classList.toggle('text-emerald-800', d > 0);
+        cell.classList.toggle('text-orange-800', d <= 0);
+      }
+      document.querySelectorAll('tr[data-limite-atual]').forEach(function (row) {
+        var inp = row.querySelector('.limite-manual-input');
+        if (inp) inp.addEventListener('input', function () { atualizarDiff(row); });
+      });
+      document.querySelectorAll('.btn-aprovar-um').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var pk = btn.getAttribute('data-pk');
+          if (!pk || !confirm('Aplicar o limite informado deste cliente?')) return;
+          var vis = document.querySelector('input[name="limite_manual_' + pk + '"]');
+          var form = document.getElementById('aprovar-' + pk);
+          if (!vis || !form) return;
+          form.querySelector('input[name="limite_manual"]').value = vis.value;
+          form.submit();
+        });
+      });
+    })();
+  </script>
 </body>
 </html>
