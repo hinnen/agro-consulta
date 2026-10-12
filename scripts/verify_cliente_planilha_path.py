@@ -20,6 +20,7 @@ from django.contrib.auth import get_user_model
 from django.test import Client
 
 from produtos.cliente_planilha_util import (
+    COL_DESCONTO_PDV,
     COL_FIADO_USADO,
     COL_ID,
     COL_LIMITE_FIADO,
@@ -99,6 +100,9 @@ def test_arquivos() -> None:
     check("valores_so_leitura", COL_VALOR_MES_MAIS in EXPORT_ONLY and COL_VALOR_MES_ANTERIOR in EXPORT_ONLY)
     check("valores_nao_editaveis", COL_VALOR_MES_MAIS not in IMPORT_EDIT_KEYS and COL_VALOR_MES_ANTERIOR not in IMPORT_EDIT_KEYS)
     check("limite_editavel", COL_LIMITE_FIADO in IMPORT_EDIT_KEYS)
+    check("col_desconto_pdv", COL_DESCONTO_PDV in util)
+    check("desconto_import_edit", COL_DESCONTO_PDV in IMPORT_EDIT_KEYS)
+    check("lista_shell_largo", "cli-lista-shell" in html)
     check("aba_como_usar", '"Como usar"' in util or "'Como usar'" in util)
     check("analise_importacao", "def analise_importacao_clientes" in util)
     check("aplicar_usa_analise", "analise_importacao_clientes(path)" in util and "alteracoes[:400]" not in util.split("def aplicar_importacao_clientes")[1].split("def ")[0])
@@ -137,6 +141,7 @@ def test_export_xlsx_bytes() -> None:
     check("hdr_valor_mes", "Valor do mês que mais comprou" in hdrs)
     check("hdr_valor_ant", "Valor mês anterior" in hdrs)
     check("hdr_limite", "Limite fiado" in hdrs)
+    check("hdr_desconto_pdv", "% desconto PDV" in hdrs)
     check("aba_instr", "Como usar" in wb.sheetnames)
     wb.close()
     tmp.unlink(missing_ok=True)

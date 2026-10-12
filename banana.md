@@ -1294,35 +1294,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE — lista clientes layout + desconto % PDV (`CLIENTE-LISTA-DESC-PDV` · 12/10)
+### ✅ PACOTE PRONTO — lista clientes + desconto % PDV (`CLIENTE-LISTA-DESC-PDV` · 12/10)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | `/clientes/` shell largo (clamp, tabela, 100dvh) alinhado §4.14/§11 · campo opcional **`desconto_pdv_percentual`** no cadastro (vazio = sem desconto) · PDV aplica % no subtotal ao escolher cliente (recalcula com itens; editar desconto manual no PDV mantém valor) |
+| **O quê** | `/clientes/` shell largo (clamp, tabela, 100dvh) · **`desconto_pdv_percentual`** opcional no cadastro (vazio = sem desconto) · PDV aplica % no subtotal (recalcula itens; desconto manual no PDV preservado) |
+| **Prova** | `verify_cliente_lista_desc_pdv_path.py` **18/18** · `verify_cliente_planilha_path.py` **61/61** |
 | **Migrate** | **SIM** `0145_clienteagro_desconto_pdv_percentual` |
-| **Mexe** | `clientes_lista.html` · `cliente_form.html` · `ClienteAgro` · `forms.py` · `cliente_planilha_util.py` · `pdv_state.js` · `_linha_clienteagro_pdv` |
-| **Status** | 🟡 **teste** — aguardando validação local Renan |
-| **Você** | `migrate` · Ctrl+F5 `/clientes/` · Editar cliente → % desconto PDV em branco ou ex. 5 · PDV: cliente com % → desconto geral preenchido automaticamente |
+| **Status** | 🟢 **teste** — pronto envio loja (com checklist **12/10n**) |
+| **Você** | `migrate` · Ctrl+F5 `/clientes/` · % só quem você cadastrar · PDV smoke com cliente teste |
 
 ### 📦 PACOTE PRONTO — pendente loja (`CHECKLIST 12/10n` · 12/10) · 🟢 **PRONTO envio**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Loja Live** | **v27.06+** (`producao` — etiquetas **mobile** ainda sem dock polish) |
-| **Migrate** | **NÃO** (itens abaixo) |
+| **Loja Live** | **v27.06+** (`producao`) |
+| **Migrate** | **SIM** só item **4** (`0145`) · demais **NÃO** |
 
-**1 · ETQ-MOBILE-POLISH** — `teste` @ `e8b41744`  
-App `/vendas/lojas/etiquetas/`: dock fixo · sacola rolável · `visualViewport` · toques 44px · delegação eventos.  
-Fluxo: `POST /api/vendas/lojas/etiquetas/solicitacoes/` (PIN) → pacote **pendente** → desktop `GET/POST /api/produtos/etiquetas/solicitacoes/…/importar/`.  
-Prova: `verify_etq_solicitacao_vl_pin_path.py` **35/35** · `verify_etiquetas_mobile_flow_path.py` **13/13** · runtime GM **19/19**. Loja (pré-deploy): PIN **9973** + toque na lista **adiciona** sacola; dock novo **só após deploy**.
+**1 · ETQ-MOBILE-POLISH** — `teste` @ `e8b41744` · prova **35/35** + **13/13** · PIN loja **9973**.
 
-**2 · CREDITO-REVISAR-LIMITE** — `teste`  
-`/fiado/analise-credito/revisar-limites/` — colunas saldo, % limite, Excel, UX.  
-Prova: `verify_credito_limite_revisao_path.py` **27/27**.
+**2 · CREDITO-REVISAR-LIMITE** — prova **27/27**.
 
-**3 · MED-CLASSIFICACAO-SISVALE** — `teste` v**27.08**  
-Cadastro SisVale — medicamentos: **9 prateleiras** (subcat 1, legado preservado); aba Busca (palavras-chave → espécies → classes); `cadastro_extras` + Mongo `AgroEspeciesVet`; **sem** busca PDV nova nem ERP automático.  
-Prova: `verify_classificacao_medicamentos_path.py` **29/29**.
+**3 · MED-CLASSIFICACAO-SISVALE** — v**27.08** · prova **29/29**.
+
+**4 · CLIENTE-LISTA-DESC-PDV** — prova **18/18** + planilha **61/61** · migrate **0145**.
 
 ### ✅ CHECKLIST ÚNICO — **12/10n** · 🟢 **PRONTO envio produção**
 
@@ -1331,6 +1326,7 @@ Prova: `verify_classificacao_medicamentos_path.py` **29/29**.
 | 1 | **ETQ-MOBILE-POLISH** | 🟢 **teste** | **NÃO** |
 | 2 | **CREDITO-REVISAR-LIMITE** | 🟢 **teste** | **NÃO** |
 | 3 | **MED-CLASSIFICACAO-SISVALE** | 🟢 **teste** v27.08 | **NÃO** |
+| 4 | **CLIENTE-LISTA-DESC-PDV** | 🟢 **teste** | **SIM** `0145` |
 
 ### ✅ Deploy loja — **VILA-META** (`CHECKLIST 11/10m` · 11/10) · **Live v27.06**
 
