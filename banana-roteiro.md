@@ -922,67 +922,49 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 75. Checklist único — lote 09/10h · ✅ **Live v26.78** · 10/10
+## 75. Checklist único — lote 09/10h · 🟢 PREP aguarda senha · alvo **v26.78**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-BIP-230-VARIANTES** | ✅ **Live v26.78** | **NÃO** |
-| 2 | **CADASTRO-CB-230-MAX-NCM** | ✅ **Live v26.78** | **NÃO** |
-| 3 | **PDV-VALOR-RS-KG** | ✅ **Live v26.78** | **NÃO** |
+| 1 | **ETQ-BIP-230-VARIANTES** | 🟢 **pronto para envio** | **NÃO** |
+| 2 | **CADASTRO-CB-230-MAX-NCM** | 🟢 **pronto para envio** | **NÃO** |
+| 3 | **PDV-VALOR-RS-KG** | 🟢 **pronto para envio** | **NÃO** |
 
-**Live:** `producao` @ `5f460cb6` (código **v26.78** @ `13c4d896`).  
+**Prova:** bip **10/10** · gerador **19/19** · etq **74/74** · valor-rs **46/46** · **PREP_FAILS=0**.  
+**PREP:** `deploy/prep-checklist-0910h` · base Live **v26.76** @ `52da69c2`.  
+**Na senha:** `./scripts/cutover_loja_checklist_0910h.sh --exec` · `docs/DEPLOY-PREP-CHECKLIST-0910h.md`.  
 **Rollback:** tag `rollback/pre-checklist-0910h-v26.76` · backup `producao-backup-pre-v2678-checklist-0910h`.
 
 ---
 
-## 76. META-POR-LOJA · ✅ **Live v27.01** · 11/10
+## 76. Checklist único — lote **11/10k** · 🟢 PREP **v27.03** · aguarda senha
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **META-POR-LOJA** | ✅ **Live v27.01** @ `d77cb17e` | **0144** |
+| 1 | **SISTAPP-PWA-AJUSTE** | 🟢 PREP pronto | **NÃO** |
+| 2 | **META-POR-LOJA** | 🟢 PREP pronto | **SIM** `0144` |
+| 3 | **META-ZAP-ENXUTO** | 🟢 PREP pronto | **NÃO** |
 
-**Shell Render:** `./scripts/post_deploy_meta_por_loja.sh` · rollback `rollback/pre-meta-por-loja-v27.00`.
+**Live antes:** **v27.00** @ `14f5cad7`.  
+**PREP:** `deploy/prep-checklist-1110k` · alvo **v27.03**.  
+**Prova:** `verify_vendas_lojas_pwa_install.py` **25/25** · META core (`verify_meta_mostruario_path`).  
+**Na senha (vendas pausadas):** `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → `./scripts/cutover_loja_checklist_1110k.sh --exec` → Render Shell `./scripts/post_deploy_checklist_1110k.sh`.  
+**Rollback:** tag `rollback/pre-checklist-1110k-v27.00` · `docs/ROLLBACK-CHECKLIST-1110k.md`.  
+**Não toca:** PDV · caixa · busca 230.
 
 ---
 
-## 76b. Checklist **11/10k** · ✅ **Live v27.03** · 11/10
+## 77. Checklist único — **12/10n** · 🟢 PREP **v27.08** · armado · aguarda senha
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **SISTAPP-PWA-AJUSTE-ATUALIZAR** | ✅ **Live v27.03** | **NÃO** |
-| 2 | **META-ZAP-ENXUTO** | ✅ **Live v27.03** | **NÃO** |
+| 1 | **ETQ-MOBILE-POLISH** | 🟢 PREP pronto | **NÃO** |
+| 2 | **CREDITO-REVISAR-LIMITE** | 🟢 PREP pronto | **NÃO** |
+| 3 | **MED-CLASSIFICACAO-SISVALE** | 🟢 PREP pronto | **NÃO** |
 
-**Live:** `producao` @ `db8cdf6f`.
-
----
-
-## 78. Checklist **11/10l** · ✅ **Live v27.04** · 11/10
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **META-CENTRO-VILA-UNIFICADO** | ✅ **Live v27.04** | **NÃO** |
-| 2 | **VL-RITMO-HORA** | ✅ **Live v27.04** | **NÃO** |
-
-**Live:** `producao` @ `dc19f805`. **Rollback:** `rollback/pre-checklist-1110l-v27.03-b4e` @ `b4e4fcc8` · backup `producao-backup-pre-v2704-checklist-1110l`.
-
----
-
-## 79. Checklist **11/10m** · ✅ **Live v27.06** · 11/10
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **VILA-ABERTURA-0108** | ✅ **Live v27.06** | **NÃO** |
-| 2 | **VILA-DOMINGO-ZERO** | ✅ **Live v27.06** | **NÃO** |
-
-**Live:** `producao` @ `84872d72`. **Rollback:** `rollback/pre-checklist-1110m-v27.04-f590` @ `f590b14b`.
-
----
-
-## 77. Checklist único — **11/10j** · ✅ **Live v27.00** · 11/10
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **ETQ-SOL-IMPORT-ALL** | ✅ **Live v27.00** | **NÃO** |
-| 2 | **VL-PWA-INSTALL** | ✅ **Live v27.00** | **NÃO** |
-
-**Live:** `producao` @ `48d376be`. **Rollback:** `rollback/pre-checklist-1110j-v26.99` @ `fd1cd028` · backup `producao-backup-pre-v2700-checklist-1110j`.
+**Live antes:** **v27.06** @ `b539c712`.  
+**PREP:** `deploy/prep-checklist-1210n` · **v27.08** · dry-run `cutover_loja_checklist_1210n.sh` OK.  
+**Prova:** ETQ **35/35** · mobile **13/13** · crédito revisão · med **29/29** · regressão CB-230 + GM PIN.  
+**Na senha (vendas pausadas):** `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → `./scripts/cutover_loja_checklist_1210n.sh --exec` → `./scripts/post_deploy_checklist_1210n.sh`.  
+**Rollback:** tag `rollback/pre-checklist-1210n-v27.06-b539`.  
+**Não toca:** PDV checkout · caixa · busca 230 · META.

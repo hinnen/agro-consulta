@@ -62,8 +62,9 @@ def test_arquivos_e_contratos() -> None:
     check("modal_prateleira_select", 'id="edit-subcategoria-med-prateleira"' in modal)
     check("modal_ordem_busca", modal.find("edit-palavras-chave") < modal.find("bloco-especies-vet") < modal.find("bloco-classes-vet"))
 
+    base = os.environ.get("AGRO_VERIFY_DIFF_BASE", "origin/producao")
     mig_diff = subprocess.run(
-        ["git", "diff", "--name-only", "origin/teste...HEAD"],
+        ["git", "diff", "--name-only", f"{base}...HEAD"],
         cwd=ROOT,
         capture_output=True,
         text=True,
