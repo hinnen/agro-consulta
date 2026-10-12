@@ -1294,33 +1294,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — pendente loja (`CHECKLIST 12/10n` · 12/10) · 🟢 **PRONTO envio**
+### 🟢 PREP loja — CHECKLIST **12/10n** · **v27.08** · armado · aguarda frase+senha
 
 | Campo | Valor |
 | ----- | ----- |
-| **Loja Live** | **v27.06+** (`producao` — etiquetas **mobile** ainda sem dock polish) |
-| **Migrate** | **NÃO** (itens abaixo) |
+| **Status** | 🟢 **ARMADO** — branch `deploy/prep-checklist-1210n` (tip `c963e814`) · Live **v27.06** @ `b539c712` |
+| **O quê** | **ETQ-MOBILE-POLISH** · **CREDITO-REVISAR-LIMITE** · **MED-CLASSIFICACAO-SISVALE** |
+| **Migrate** | **NÃO** |
+| **Fora** | PDV wizard/busca 230 · caixa · `mongo_financeiro` · `meta_vendas_util` |
+| **Prova** | `./scripts/cutover_loja_checklist_1210n.sh` dry-run OK |
+| **Cutover** | `--exec` + frase + senha **99738595** |
+| **Rollback** | `rollback/pre-checklist-1210n-v27.06-b539` @ `b539c712` |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1210n.md` · roteiro **§77** |
 
-**1 · ETQ-MOBILE-POLISH** — `teste` @ `e8b41744`  
-App `/vendas/lojas/etiquetas/`: dock fixo · sacola rolável · `visualViewport` · toques 44px · delegação eventos.  
-Fluxo: `POST /api/vendas/lojas/etiquetas/solicitacoes/` (PIN) → pacote **pendente** → desktop `GET/POST /api/produtos/etiquetas/solicitacoes/…/importar/`.  
-Prova: `verify_etq_solicitacao_vl_pin_path.py` **35/35** · `verify_etiquetas_mobile_flow_path.py` **13/13** · runtime GM **19/19**. Loja (pré-deploy): PIN **9973** + toque na lista **adiciona** sacola; dock novo **só após deploy**.
+**1 · ETQ-MOBILE-POLISH** — dock/sacola/`visualViewport` em `/vendas/lojas/etiquetas/`  
+**2 · CREDITO-REVISAR-LIMITE** — `/fiado/analise-credito/revisar-limites/` + export XLSX  
+**3 · MED-CLASSIFICACAO-SISVALE** — cadastro ERP medicamentos (9 prateleiras, espécies Mongo)
 
-**2 · CREDITO-REVISAR-LIMITE** — `teste`  
-`/fiado/analise-credito/revisar-limites/` — colunas saldo, % limite, Excel, UX.  
-Prova: `verify_credito_limite_revisao_path.py` **27/27**.
-
-**3 · MED-CLASSIFICACAO-SISVALE** — `teste` v**27.08**  
-Cadastro SisVale — medicamentos: **9 prateleiras** (subcat 1, legado preservado); aba Busca (palavras-chave → espécies → classes); `cadastro_extras` + Mongo `AgroEspeciesVet`; **sem** busca PDV nova nem ERP automático.  
-Prova: `verify_classificacao_medicamentos_path.py` **29/29**.
-
-### ✅ CHECKLIST ÚNICO — **12/10n** · 🟢 **PRONTO envio produção**
+### ✅ CHECKLIST ÚNICO — **12/10n** · 🟢 **ARMADO envio produção**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-MOBILE-POLISH** | 🟢 **teste** | **NÃO** |
-| 2 | **CREDITO-REVISAR-LIMITE** | 🟢 **teste** | **NÃO** |
-| 3 | **MED-CLASSIFICACAO-SISVALE** | 🟢 **teste** v27.08 | **NÃO** |
+| 1 | **ETQ-MOBILE-POLISH** | 🟢 **PREP** | **NÃO** |
+| 2 | **CREDITO-REVISAR-LIMITE** | 🟢 **PREP** | **NÃO** |
+| 3 | **MED-CLASSIFICACAO-SISVALE** | 🟢 **PREP** v27.08 | **NÃO** |
 
 ### ✅ Deploy loja — **VILA-META** (`CHECKLIST 11/10m` · 11/10) · **Live v27.06**
 
