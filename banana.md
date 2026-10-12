@@ -1294,6 +1294,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE — lista clientes layout + desconto % PDV (`CLIENTE-LISTA-DESC-PDV` · 12/10)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `/clientes/` shell largo (clamp, tabela, 100dvh) alinhado §4.14/§11 · campo opcional **`desconto_pdv_percentual`** no cadastro (vazio = sem desconto) · PDV aplica % no subtotal ao escolher cliente (recalcula com itens; editar desconto manual no PDV mantém valor) |
+| **Migrate** | **SIM** `0145_clienteagro_desconto_pdv_percentual` |
+| **Mexe** | `clientes_lista.html` · `cliente_form.html` · `ClienteAgro` · `forms.py` · `cliente_planilha_util.py` · `pdv_state.js` · `_linha_clienteagro_pdv` |
+| **Status** | 🟡 **teste** — aguardando validação local Renan |
+| **Você** | `migrate` · Ctrl+F5 `/clientes/` · Editar cliente → % desconto PDV em branco ou ex. 5 · PDV: cliente com % → desconto geral preenchido automaticamente |
+
 ### 📦 PACOTE PRONTO — pendente loja (`CHECKLIST 12/10n` · 12/10) · 🟢 **PRONTO envio**
 
 | Campo | Valor |
