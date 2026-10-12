@@ -1324,21 +1324,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Cutover usado** | `./scripts/cutover_loja_checklist_1210n_etq_cred.sh` |
 | **PREP** | `deploy/prep-checklist-1210n-etq-cred` @ `f6a4fa31` |
 
-### 🟡 Pendente loja — **12/10n** item **3** · **MED-CLASSIFICACAO-SISVALE**
+### 📦 PACOTE PRONTO — **MED-CLASSIFICACAO-SISVALE** (`CHECKLIST 12/10n` · item **3**) · 🟢 **PRONTO envio produção**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **só teste / PREP completo** — `deploy/prep-checklist-1210n` (pacote 3) |
+| **Status** | 🟢 **`teste` v27.09** — aguarda frase + senha produção |
 | **Migrate** | **NÃO** |
-| **Prova teste** | `verify_classificacao_medicamentos_path.py` **32 OK** |
+| **O quê** | Cadastro medicamentos: 9 prateleiras · Busca (espécies/classes) · fix filtro + envio seguro |
+| **Prova** | `AGRO_PIN_TESTE=… python scripts/verify_classificacao_medicamentos_path.py` → **33/33** (PIN validado se perfil existir no PG) |
 
-### ✅ CHECKLIST ÚNICO — **12/10n**
+### ✅ CHECKLIST ÚNICO — **12/10n** · pendente item **3**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **ETQ-MOBILE-POLISH** | ✅ **Live v27.09** | **NÃO** |
 | 2 | **CREDITO-REVISAR-LIMITE** | ✅ **Live v27.09** | **NÃO** |
-| 3 | **MED-CLASSIFICACAO-SISVALE** | 🟡 **pendente** | **NÃO** |
+| 3 | **MED-CLASSIFICACAO-SISVALE** | 🟢 **PRONTO envio** v27.09 | **NÃO** |
 
 ### ✅ Deploy loja — **VILA-META** (`CHECKLIST 11/10m` · 11/10) · **Live v27.06**
 
