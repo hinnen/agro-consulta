@@ -286,6 +286,7 @@ def _montar_xlsx_revisao_limite(rows: list[dict], *, pct_max: int) -> bytes:
         ("ID cliente", "cliente_pk"),
         ("Cliente", "cliente_nome"),
         ("Saldo fiado (atual)", "saldo_fiado"),
+        ("Saldo vencido", "saldo_vencido"),
         ("Situação", "situacao_label"),
         ("Limite atual", "limite_atual"),
         ("Limite sugerido", "limite_sugerido"),
@@ -299,6 +300,7 @@ def _montar_xlsx_revisao_limite(rows: list[dict], *, pct_max: int) -> bytes:
     font_hdr = Font(bold=True, color="FFFFFF")
     money_keys = {
         "saldo_fiado",
+        "saldo_vencido",
         "limite_atual",
         "limite_sugerido",
         "novo_limite",

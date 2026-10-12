@@ -115,22 +115,18 @@ def _apto(
     return novo != limite_atual
 
 
-def _situacao_fiado_cliente(cliente_pk: int) -> tuple[Decimal, str, bool]:
+def _situacao_fiado_cliente(cliente_pk: int) -> tuple[Decimal, Decimal, str, bool]:
     from produtos.fiado_credito_util import resumo_credito_fiado_cliente
 
     try:
         cred = resumo_credito_fiado_cliente(cliente_agro_pk=int(cliente_pk))
     except Exception:
-        return Decimal("0.00"), "—", False
+        return Decimal("0.00"), Decimal("0.00"), "Em dia", False
     usado = _q2(cred.get("usado"))
+    saldo_vencido = _q2(cred.get("total_vencido"))
     tem_vencido = bool(cred.get("tem_vencido"))
-    if tem_vencido:
-        label = "Com vencidas"
-    elif usado > Decimal("0.009"):
-        label = "Em dia"
-    else:
-        label = "Sem saldo aberto"
-    return usado, label, tem_vencido
+    label = "Vencido" if tem_vencido else "Em dia"
+    return usado, saldo_vencido, label, tem_vencido
 
 
 def listar_revisoes_limite(pct_max: int = _PCT_AUMENTO_PADRAO) -> list[dict]:
@@ -152,13 +148,16 @@ def listar_revisoes_limite(pct_max: int = _PCT_AUMENTO_PADRAO) -> list[dict]:
             continue
         sugerido = _q2(snap.limite_sugerido)
         novo = novo_limite_aplicavel(atual, sugerido, pct_max=pct_max)
-        saldo_fiado, situacao_label, tem_vencido_atual = _situacao_fiado_cliente(cliente_id)
+        saldo_fiado, saldo_vencido, situacao_label, tem_vencido_atual = _situacao_fiado_cliente(
+            cliente_id
+        )
         linhas.append(
             {
                 "cliente_pk": cliente_id,
                 "analise_id": snap.pk,
                 "cliente_nome": (snap.cliente.nome if snap.cliente_id else "") or "—",
                 "saldo_fiado": saldo_fiado,
+                "saldo_vencido": saldo_vencido,
                 "situacao_label": situacao_label,
                 "tem_vencido_atual": tem_vencido_atual,
                 "limite_atual": atual,

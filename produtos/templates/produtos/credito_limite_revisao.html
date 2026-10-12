@@ -62,6 +62,7 @@
               <th></th>
               <th>Cliente</th>
               <th class="text-right">Saldo fiado</th>
+              <th class="text-right">Saldo vencido</th>
               <th>Situação</th>
               <th class="text-right">Limite atual</th>
               <th class="text-right">Limite sugerido</th>
@@ -80,6 +81,7 @@
               </td>
               <td class="font-black">{{ r.cliente_nome }}</td>
               <td class="text-right font-bold tabular-nums">{{ r.saldo_fiado|floatformat:2 }}</td>
+              <td class="text-right font-bold tabular-nums {% if r.tem_vencido_atual %}text-red-700{% endif %}">{{ r.saldo_vencido|floatformat:2 }}</td>
               <td class="font-semibold {% if r.tem_vencido_atual %}text-red-700{% else %}text-emerald-900{% endif %}">{{ r.situacao_label }}</td>
               <td class="text-right font-bold tabular-nums">{{ r.limite_atual|floatformat:2 }}</td>
               <td class="text-right tabular-nums">{{ r.limite_sugerido|floatformat:2 }}</td>
@@ -93,7 +95,7 @@
               </td>
             </tr>
             {% empty %}
-            <tr><td colspan="11" class="py-8 text-center font-bold text-slate-500">Nenhum cliente apto agora.</td></tr>
+            <tr><td colspan="12" class="py-8 text-center font-bold text-slate-500">Nenhum cliente apto agora.</td></tr>
             {% endfor %}
           </tbody>
         </table>
