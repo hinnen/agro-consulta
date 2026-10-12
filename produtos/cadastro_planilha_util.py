@@ -51,6 +51,17 @@ COL_DEL_SUB3 = "delivery_sub3"
 COL_DEL_SUB4 = "delivery_sub4"
 COL_DEL_EMBALAGENS = "delivery_embalagens"
 
+# Busca medicamentos (overlay `cadastro_extras` + espelho Mongo Agro*)
+COL_MED_PALAVRAS = "palavras_chave"
+COL_MED_CLASSES = "classes_vet"
+COL_MED_ESPECIES = "especies_vet"
+
+MED_IMPORT_KEYS = (
+    COL_MED_PALAVRAS,
+    COL_MED_CLASSES,
+    COL_MED_ESPECIES,
+)
+
 # Só Excel ↓ (Entrada NF) — import ignora
 COL_FORN_COMPRA_1 = "fornecedor_compra_1"
 COL_FORN_COMPRA_2 = "fornecedor_compra_2"
@@ -94,6 +105,9 @@ EXPORT_HEADERS: list[tuple[str, str]] = [
     ("Código barras", COL_CODIGO_BARRAS),
     ("Preço custo", COL_PRECO_CUSTO),
     ("Preço venda", COL_PRECO_VENDA),
+    ("Med palavras-chave", COL_MED_PALAVRAS),
+    ("Med classes (slugs)", COL_MED_CLASSES),
+    ("Med espécies (slugs)", COL_MED_ESPECIES),
     ("Delivery ativo", COL_DEL_ATIVO),
     ("Delivery título", COL_DEL_TITULO),
     ("Delivery descrição", COL_DEL_DESCRICAO),
@@ -124,6 +138,9 @@ _COLS_TEXTO_EXCEL = frozenset(
         COL_SUBCATEGORIA_2,
         COL_SUBCATEGORIA_3,
         COL_SUBCATEGORIA_4,
+        COL_MED_PALAVRAS,
+        COL_MED_CLASSES,
+        COL_MED_ESPECIES,
         COL_DEL_ATIVO,
         COL_DEL_TITULO,
         COL_DEL_DESCRICAO,
@@ -156,6 +173,9 @@ _MAX_TXT_IMPORT = {
     COL_PESO: 40,
     COL_MODELO: 200,
     COL_MARCA: 120,
+    COL_MED_PALAVRAS: 8000,
+    COL_MED_CLASSES: 500,
+    COL_MED_ESPECIES: 500,
     COL_DEL_TITULO: 200,
     COL_DEL_DESCRICAO: 2000,
     COL_DEL_PESO: 40,
@@ -479,6 +499,7 @@ IMPORT_KEYS = {
     COL_PRECO_CUSTO,
     COL_PRECO_VENDA,
     *DELIVERY_IMPORT_KEYS,
+    *MED_IMPORT_KEYS,
 }
 
 OVERLAY_IMPORT_KEYS = (
@@ -785,6 +806,110 @@ def _enriquecer_rows_delivery_batch(rows: list[dict], ovs: dict) -> None:
         _enriquecer_row_delivery_planilha(r, ovs.get(pid), mapa_cats=mapa)
 
 
+def _format_lista_slugs_planilha(slugs: list[str] | None) -> str:
+    return ", ".join(str(s) for s in (slugs or []) if str(s).strip())
+
+
+def _med_planilha_de_extras(ex: dict | None, ov: ProdutoGestaoOverlayAgro | None = None) -> dict[str, str]:
+    from produtos.medicamento_vet_taxonomia import ler_busca_de_cadastro_extras
+
+    pk, cv, ev = ler_busca_de_cadastro_extras(ex if isinstance(ex, dict) else {})
+    if not pk and ov is not None and str(getattr(ov, "descricao", "") or "").strip():
+        pk = str(ov.descricao).strip()
+    return {
+        COL_MED_PALAVRAS: pk,
+        COL_MED_CLASSES: _format_lista_slugs_planilha(cv),
+        COL_MED_ESPECIES: _format_lista_slugs_planilha(ev),
+    }
+
+
+def _enriquecer_row_med_planilha(
+    row: dict,
+    ov: ProdutoGestaoOverlayAgro | None = None,
+) -> None:
+    fields = _med_planilha_de_extras(_extras_dict(ov), ov=ov)
+    row.update(fields)
+    row["palavras_chave"] = fields[COL_MED_PALAVRAS]
+    row["classes_vet"] = [
+        s.strip() for s in fields[COL_MED_CLASSES].split(",") if s.strip()
+    ]
+    row["especies_vet"] = [
+        s.strip() for s in fields[COL_MED_ESPECIES].split(",") if s.strip()
+    ]
+
+
+def _enriquecer_rows_med_batch(rows: list[dict], ovs: dict) -> None:
+    for r in rows:
+        pid = str(r.get("id") or "")
+        _enriquecer_row_med_planilha(r, ovs.get(pid))
+
+
+def _parse_slugs_planilha(raw: str, valid: set[str]) -> tuple[list[str] | None, str | None]:
+    s = str(raw or "").strip()
+    if not s:
+        return None, None
+    if _eh_limpar_planilha(s):
+        return [], None
+    invalid: list[str] = []
+    seen: set[str] = set()
+    out: list[str] = []
+    for part in re.split(r"[,;|]+", s):
+        sid = part.strip().lower().replace(" ", "_")
+        if not sid:
+            continue
+        if sid not in valid:
+            invalid.append(part.strip())
+        elif sid not in seen:
+            seen.add(sid)
+            out.append(sid)
+    if invalid:
+        amostra = ", ".join(invalid[:5])
+        sufixo = "…" if len(invalid) > 5 else ""
+        return None, f"Slug inválido: {amostra}{sufixo}"
+    return out, None
+
+
+def _aplicar_patch_med(ov: ProdutoGestaoOverlayAgro, patch: dict) -> str | None:
+    if not any(k in patch for k in MED_IMPORT_KEYS):
+        return None
+    from produtos.medicamento_vet_taxonomia import (
+        aplicar_palavras_e_classes_em_extras,
+        normalizar_palavras_chave,
+    )
+
+    ex = _extras_dict(ov)
+    if COL_MED_PALAVRAS in patch:
+        pk = normalizar_palavras_chave(str(patch[COL_MED_PALAVRAS] or ""))
+        aplicar_palavras_e_classes_em_extras(ex, palavras_chave=pk, payload_tem_palavras=True)
+    if COL_MED_CLASSES in patch:
+        aplicar_palavras_e_classes_em_extras(
+            ex,
+            classes_vet=patch[COL_MED_CLASSES],
+            payload_tem_classes=True,
+        )
+    if COL_MED_ESPECIES in patch:
+        aplicar_palavras_e_classes_em_extras(
+            ex,
+            especies_vet=patch[COL_MED_ESPECIES],
+            payload_tem_especies=True,
+        )
+    ov.cadastro_extras = ex
+    return None
+
+
+def _validar_patch_med(atual: dict, patch: dict) -> str | None:
+    if not any(k in patch for k in MED_IMPORT_KEYS):
+        return None
+    pid = str(atual.get("id") or "").strip()[:64]
+    ov = ProdutoGestaoOverlayAgro(produto_externo_id=pid or "tmp")
+    real = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).first() if pid else None
+    if real and isinstance(real.cadastro_extras, dict):
+        ov.cadastro_extras = dict(real.cadastro_extras)
+    else:
+        ov.cadastro_extras = {}
+    return _aplicar_patch_med(ov, patch)
+
+
 def _aplicar_patch_delivery(ov: ProdutoGestaoOverlayAgro, patch: dict) -> str | None:
     """Aplica colunas Delivery no overlay. Retorna mensagem de erro ou None."""
     from produtos.catalogo_delivery_util import delivery_de_extras, normalizar_delivery
@@ -1003,6 +1128,18 @@ def _valor_atual_campo_import(atual: dict, key: str):
         return atual.get(key)
     if key == COL_CODIGO_GM:
         return str(atual.get("codigo_gm") or atual.get("codigo_nfe") or "").strip()
+    if key == COL_MED_CLASSES:
+        cv = atual.get("classes_vet")
+        if isinstance(cv, list):
+            return _format_lista_slugs_planilha(cv)
+        return str(atual.get(key) or "").strip()
+    if key == COL_MED_ESPECIES:
+        ev = atual.get("especies_vet")
+        if isinstance(ev, list):
+            return _format_lista_slugs_planilha(ev)
+        return str(atual.get(key) or "").strip()
+    if key == COL_MED_PALAVRAS:
+        return str(atual.get("palavras_chave") or atual.get(key) or "").strip()
     return str(atual.get(key) or "").strip()
 
 
@@ -1049,6 +1186,28 @@ def _map_headers(headers: list[str]) -> dict[str, str | None]:
         COL_DEL_SUB3: ("delivery sub 3", "delivery sub3"),
         COL_DEL_SUB4: ("delivery sub 4", "delivery sub4"),
         COL_DEL_EMBALAGENS: ("delivery embalagens", "embalagens delivery", "embalagens catalogo"),
+        COL_MED_PALAVRAS: (
+            "med palavras-chave",
+            "med palavras chave",
+            "palavras-chave medicamento",
+            "palavras chave busca",
+            "palavras_chave",
+        ),
+        COL_MED_CLASSES: (
+            "med classes (slugs)",
+            "med classes",
+            "classes vet",
+            "classes_vet",
+            "classes medicamento",
+        ),
+        COL_MED_ESPECIES: (
+            "med especies (slugs)",
+            "med espécies (slugs)",
+            "med especies",
+            "med espécies",
+            "especies vet",
+            "especies_vet",
+        ),
     }
     out: dict[str, str | None] = {}
     for key, keys in aliases.items():
@@ -1284,6 +1443,15 @@ def linha_export_planilha(row: dict) -> dict[str, Any]:
         COL_PRECO_CUSTO: float(row.get("preco_custo") or 0),
         COL_PRECO_VENDA: float(row.get("preco_venda") or 0),
     }
+    med_empty = _med_planilha_de_extras({})
+    for k in MED_IMPORT_KEYS:
+        if k in row:
+            if k in (COL_MED_CLASSES, COL_MED_ESPECIES) and isinstance(row.get(k), list):
+                out[k] = _format_lista_slugs_planilha(row.get(k))
+            else:
+                out[k] = str(row.get(k) or "")
+        else:
+            out[k] = med_empty.get(k, "")
     for k in DELIVERY_IMPORT_KEYS:
         if k in row:
             out[k] = str(row.get(k) or "")
@@ -1391,6 +1559,7 @@ def _mapa_estado_atual_produtos(
             row = catalogo_agro.produto_agro_para_row(p, ovs.get(pid_key) or ovs.get(pid))
             out[pid] = row
         _enriquecer_rows_delivery_batch(list(out.values()), ovs)
+        _enriquecer_rows_med_batch(list(out.values()), ovs)
         return out
 
     client, db = obter_conexao_mongo()
@@ -1475,6 +1644,7 @@ def _mapa_estado_atual_produtos(
         _aplicar_produto_gestao_overlay_em_dict(row, ovs.get(pid))
         out[pid] = row
     _enriquecer_rows_delivery_batch(list(out.values()), ovs)
+    _enriquecer_rows_med_batch(list(out.values()), ovs)
     return out
 
 
@@ -1516,6 +1686,25 @@ def _patch_da_linha(raw: dict, colmap: dict[str, str | None]) -> dict[str, Any]:
     txt(COL_CODIGO_BARRAS, 80)
     dec(COL_PRECO_CUSTO)
     dec(COL_PRECO_VENDA)
+    txt(COL_MED_PALAVRAS, _max_txt_import(COL_MED_PALAVRAS))
+
+    def med_lista(key: str, valid: set[str]) -> None:
+        hdr = colmap.get(key)
+        if not hdr or hdr not in raw:
+            return
+        v = _cel_opt_str(raw.get(hdr))
+        if v is None:
+            return
+        parsed, err = _parse_slugs_planilha(v, valid)
+        if err:
+            patch[f"__erro_{key}"] = err
+        elif parsed is not None:
+            patch[key] = parsed
+
+    from produtos.medicamento_vet_taxonomia import especies_slugs_validos, slugs_validos
+
+    med_lista(COL_MED_CLASSES, slugs_validos())
+    med_lista(COL_MED_ESPECIES, especies_slugs_validos())
     txt(COL_DEL_ATIVO, 10)
     txt(COL_DEL_TITULO, 200)
     txt(COL_DEL_DESCRICAO, 2000)
@@ -1542,6 +1731,13 @@ def _merged_row(atual: dict, patch: dict) -> dict:
         elif k == COL_CODIGO_GM:
             out["codigo_gm"] = v
             out["codigo_nfe"] = v
+        elif k in (COL_MED_CLASSES, COL_MED_ESPECIES):
+            out[k] = v
+            if isinstance(v, list):
+                out["classes_vet" if k == COL_MED_CLASSES else "especies_vet"] = v
+        elif k == COL_MED_PALAVRAS:
+            out[k] = v
+            out["palavras_chave"] = v
         else:
             out[k] = v
     return out
@@ -1573,6 +1769,14 @@ def _tem_alteracao(atual: dict, patch: dict) -> bool:
             continue
         if k in (COL_PRECO_CUSTO, COL_PRECO_VENDA):
             if round(float(atual.get(k) or 0), 2) != round(float(patch[k]), 2):
+                return True
+        elif k in (COL_MED_CLASSES, COL_MED_ESPECIES):
+            atual_fmt = _valor_atual_campo_import(atual, k)
+            para_fmt = _format_lista_slugs_planilha(patch[k] if isinstance(patch[k], list) else [])
+            if atual_fmt != para_fmt:
+                return True
+        elif k == COL_MED_PALAVRAS:
+            if _valor_atual_campo_import(atual, k) != str(patch[k] or "").strip():
                 return True
         elif _valor_atual_campo_import(atual, k) != str(patch[k] or "").strip():
             return True
@@ -1693,6 +1897,10 @@ def preview_importacao_cadastro(
         if verr_del:
             erros.append({"linha": i, "id": pid, "erro": verr_del})
             continue
+        verr_med = _validar_patch_med(atual, patch_res)
+        if verr_med:
+            erros.append({"linha": i, "id": pid, "erro": verr_med})
+            continue
 
         merged = _merged_row(atual, patch_res)
         vmsg = _validar_merged(merged)
@@ -1793,6 +2001,15 @@ def _snapshot_antes_import(db, client, pid: str, patch: dict, nome: str = "") ->
 
     if any(k in patch for k in DELIVERY_IMPORT_KEYS):
         overlay["_delivery_blob"] = delivery_de_extras(_extras_dict(ov) if ov else {})
+    if any(k in patch for k in MED_IMPORT_KEYS):
+        from produtos.medicamento_vet_taxonomia import ler_busca_de_cadastro_extras
+
+        pk, cv, ev = ler_busca_de_cadastro_extras(_extras_dict(ov) if ov else {})
+        overlay["_med_busca_blob"] = {
+            "palavras_chave": pk,
+            "classes_vet": list(cv),
+            "especies_vet": list(ev),
+        }
 
     mongo: dict[str, Any] = {}
     if db is not None:
@@ -1801,6 +2018,22 @@ def _snapshot_antes_import(db, client, pid: str, patch: dict, nome: str = "") ->
             for mk in ("PrecoCusto", "ValorCusto", "ValorVenda", "PrecoVenda"):
                 if mk in doc and doc[mk] is not None:
                     mongo[mk] = float(doc[mk])
+            if any(k in patch for k in MED_IMPORT_KEYS):
+                from produtos.medicamento_vet_taxonomia import (
+                    AGRO_BUSCA_TEXTO_EXTRA_CAMPO,
+                    AGRO_CLASSES_VET_CAMPO,
+                    AGRO_ESPECIES_VET_CAMPO,
+                    AGRO_PALAVRAS_CHAVE_CAMPO,
+                )
+
+                for mk in (
+                    AGRO_PALAVRAS_CHAVE_CAMPO,
+                    AGRO_CLASSES_VET_CAMPO,
+                    AGRO_ESPECIES_VET_CAMPO,
+                    AGRO_BUSCA_TEXTO_EXTRA_CAMPO,
+                ):
+                    if mk in doc:
+                        mongo[mk] = doc[mk]
 
     produto_pg: dict[str, Any] = {}
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres
@@ -1818,6 +2051,8 @@ def _snapshot_antes_import(db, client, pid: str, patch: dict, nome: str = "") ->
         v = patch[k]
         if k in (COL_PRECO_CUSTO, COL_PRECO_VENDA):
             para[k] = float(v)
+        elif k in (COL_MED_CLASSES, COL_MED_ESPECIES) and isinstance(v, list):
+            para[k] = _format_lista_slugs_planilha(v)
         else:
             para[k] = v
 
@@ -1883,6 +2118,32 @@ def _reverter_item_import(item: dict, db, client, user) -> None:
             else:
                 ex.pop("delivery", None)
             ov.cadastro_extras = ex
+        if any(k in MED_IMPORT_KEYS for k in patch_keys):
+            from produtos.medicamento_vet_taxonomia import aplicar_palavras_e_classes_em_extras
+
+            ex = _extras_dict(ov)
+            blob = overlay_antes.get("_med_busca_blob")
+            if isinstance(blob, dict):
+                aplicar_palavras_e_classes_em_extras(
+                    ex,
+                    palavras_chave=str(blob.get("palavras_chave") or ""),
+                    payload_tem_palavras=True,
+                )
+                aplicar_palavras_e_classes_em_extras(
+                    ex,
+                    classes_vet=blob.get("classes_vet"),
+                    payload_tem_classes=True,
+                )
+                aplicar_palavras_e_classes_em_extras(
+                    ex,
+                    especies_vet=blob.get("especies_vet"),
+                    payload_tem_especies=True,
+                )
+            else:
+                ex.pop("palavras_chave", None)
+                ex.pop("classes_vet", None)
+                ex.pop("especies_vet", None)
+            ov.cadastro_extras = ex
         ov.save()
     elif ov:
         for k in patch_keys:
@@ -1895,6 +2156,12 @@ def _reverter_item_import(item: dict, db, client, user) -> None:
             ex = _extras_dict(ov)
             ex.pop("delivery", None)
             ov.cadastro_extras = ex
+        if any(k in MED_IMPORT_KEYS for k in patch_keys):
+            ex = _extras_dict(ov)
+            ex.pop("palavras_chave", None)
+            ex.pop("classes_vet", None)
+            ex.pop("especies_vet", None)
+            ov.cadastro_extras = ex
         if _overlay_import_esta_vazio(ov):
             ov.delete()
         else:
@@ -1902,7 +2169,7 @@ def _reverter_item_import(item: dict, db, client, user) -> None:
 
     mongo_antes = item.get("mongo") or {}
     if db is not None and mongo_antes:
-        mongo_set: dict[str, float] = {}
+        mongo_set: dict[str, Any] = {}
         if COL_PRECO_CUSTO in patch_keys:
             for mk in ("PrecoCusto", "ValorCusto"):
                 if mk in mongo_antes:
@@ -1911,6 +2178,22 @@ def _reverter_item_import(item: dict, db, client, user) -> None:
             for mk in ("ValorVenda", "PrecoVenda"):
                 if mk in mongo_antes:
                     mongo_set[mk] = float(mongo_antes[mk])
+        if any(k in MED_IMPORT_KEYS for k in patch_keys):
+            from produtos.medicamento_vet_taxonomia import (
+                AGRO_BUSCA_TEXTO_EXTRA_CAMPO,
+                AGRO_CLASSES_VET_CAMPO,
+                AGRO_ESPECIES_VET_CAMPO,
+                AGRO_PALAVRAS_CHAVE_CAMPO,
+            )
+
+            for mk in (
+                AGRO_PALAVRAS_CHAVE_CAMPO,
+                AGRO_CLASSES_VET_CAMPO,
+                AGRO_ESPECIES_VET_CAMPO,
+                AGRO_BUSCA_TEXTO_EXTRA_CAMPO,
+            ):
+                if mk in mongo_antes:
+                    mongo_set[mk] = mongo_antes[mk]
         if mongo_set:
             from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
 
@@ -2042,6 +2325,9 @@ def _gravar_patch_produto(db, client, pid: str, patch: dict, user) -> None:
     err_del = _aplicar_patch_delivery(ov, patch)
     if err_del:
         raise ValueError(err_del)
+    err_med = _aplicar_patch_med(ov, patch)
+    if err_med:
+        raise ValueError(err_med)
     ex = _extras_dict(ov)
     if COL_PRECO_CUSTO in patch:
         ex["preco_custo_overlay"] = float(patch[COL_PRECO_CUSTO])
@@ -2080,6 +2366,16 @@ def _gravar_patch_produto(db, client, pid: str, patch: dict, user) -> None:
 
         if not agro_mongo_escrita_bloqueada():
             db[client.col_p].update_one(_mongo_filtro_id_produto_externo(pid), {"$set": mongo_set})
+
+    if any(k in patch for k in MED_IMPORT_KEYS) and db is not None:
+        from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
+        from produtos.medicamento_vet_taxonomia import sincronizar_busca_agro_no_mongo
+
+        if not agro_mongo_escrita_bloqueada():
+            try:
+                sincronizar_busca_agro_no_mongo(db, client.col_p, pid, _extras_dict(ov))
+            except Exception:
+                pass
 
     if COL_PRECO_CUSTO in patch and custo_payload is not None:
         try:
@@ -2134,7 +2430,7 @@ def aplicar_importacao_cadastro(
             continue
         vistos.add(pid)
         patch = _patch_da_linha(raw, colmap)
-        if patch.get("__erro_preco_custo") or patch.get("__erro_preco_venda"):
+        if any(str(k).startswith("__erro_") for k in patch):
             continue
         if not any(k in patch for k in IMPORT_KEYS):
             continue
@@ -2164,6 +2460,8 @@ def aplicar_importacao_cadastro(
             continue
         verr_del = _validar_patch_delivery(atual, patch_res)
         if verr_del:
+            continue
+        if _validar_patch_med(atual, patch_res):
             continue
         merged = _merged_row(atual, patch_res)
         vmsg = _validar_merged(merged)

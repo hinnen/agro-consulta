@@ -142,6 +142,45 @@ def test_logica_seguranca_dados() -> None:
     check("especies_norm", normalizar_especies_vet(["caes", "x"]) == ["caes"])
 
 
+def test_planilha_excel_med() -> None:
+    print("== Planilha Excel — colunas MED ==")
+    plan = (ROOT / "produtos/cadastro_planilha_util.py").read_text(encoding="utf-8")
+    js = (ROOT / "produtos/static/produtos/js/cadastro_erp_panel.js").read_text(encoding="utf-8")
+    for needle in (
+        "MED_IMPORT_KEYS",
+        "COL_MED_PALAVRAS",
+        "_aplicar_patch_med",
+        "_enriquecer_rows_med_batch",
+        "sincronizar_busca_agro_no_mongo",
+        "Med palavras-chave",
+        "Med classes (slugs)",
+    ):
+        check(f"planilha_{needle}", needle in plan)
+    check("panel_export_med_cols", "palavras_chave', label: 'Med palavras-chave'" in js)
+    try:
+        import django
+
+        django.setup()
+        from produtos.cadastro_planilha_util import (
+            COL_MED_CLASSES,
+            MED_IMPORT_KEYS,
+            _patch_da_linha,
+            _map_headers,
+        )
+
+        colmap = _map_headers(["ID", "Med classes (slugs)"])
+        patch = _patch_da_linha({"ID": "1", "Med classes (slugs)": "foo-bar"}, colmap)
+        check("planilha_slug_rejeita", "__erro_classes_vet" in patch)
+        patch_ok = _patch_da_linha(
+            {"ID": "1", "Med classes (slugs)": "antibiotico"},
+            colmap,
+        )
+        check("planilha_slug_ok", patch_ok.get(COL_MED_CLASSES) == ["antibiotico"])
+        check("planilha_import_keys", len(MED_IMPORT_KEYS) == 3)
+    except Exception as exc:  # noqa: BLE001
+        check("planilha_runtime", False, str(exc)[:120])
+
+
 def test_http_e_pin() -> None:
     print("== HTTP + PIN ==")
     try:
@@ -242,6 +281,7 @@ def main() -> int:
     print("CLASSIFICACAO-MED-SISVALE — prova detalhada\n")
     test_arquivos_e_contratos()
     test_logica_seguranca_dados()
+    test_planilha_excel_med()
     test_http_e_pin()
     test_unit_tests_file()
     print(f"\nOK={len(oks)} FAIL={len(fails)} SKIP={len(skipped)}")
