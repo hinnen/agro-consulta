@@ -206,6 +206,36 @@ def listar_revisoes_limite(pct_max: int = _PCT_AUMENTO_PADRAO) -> list[dict]:
     return linhas
 
 
+def aplicar_limites_manuais_lista(
+    linhas: list[dict],
+    *,
+    pct_max: int,
+    limites_manuais: dict[int, str] | None = None,
+) -> list[dict]:
+    """Preenche limite_a_aplicar e diferença para export/tela (valores editados)."""
+    pct_max = normalizar_pct_aumento_max(pct_max)
+    manuais = limites_manuais or {}
+    saida: list[dict] = []
+    for row in linhas:
+        r = dict(row)
+        pk = int(r["cliente_pk"])
+        raw = manuais.get(pk)
+        if raw is None or str(raw).strip() == "":
+            raw = r.get("novo_limite")
+        aplicar = resolver_limite_aprovacao(
+            r["limite_atual"],
+            r["limite_sugerido"],
+            raw,
+            pct_max=pct_max,
+        )
+        if aplicar is None:
+            aplicar = _q2(r["novo_limite"])
+        r["limite_a_aplicar"] = aplicar
+        r["diferenca"] = (aplicar - _q2(r["limite_atual"])).quantize(_Q2)
+        saida.append(r)
+    return saida
+
+
 def _snap_apto_vivo(
     cliente_pk: int,
     *,

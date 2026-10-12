@@ -41,10 +41,12 @@
 
     <div class="flex flex-wrap items-center gap-3 mb-2">
       <p class="text-sm font-black text-slate-600">{{ total }} cliente(s) apto(s) · teto {{ pct_aumento_max }}%</p>
-      <a href="{% url 'credito_limite_revisao_export_xlsx' %}?pct={{ pct_aumento_max }}"
+      <button type="button" id="btn-excel-export"
+        data-export-base="{% url 'credito_limite_revisao_export_xlsx' %}"
+        data-pct="{{ pct_aumento_max }}"
         class="rounded-xl bg-white border-2 border-emerald-700 text-emerald-900 font-black px-4 py-2 text-sm hover:bg-emerald-50">
         Excel ↓
-      </a>
+      </button>
     </div>
 
     <form method="post" id="form-lote" onsubmit="return confirm('Aprovar os clientes marcados? O limite real muda agora.');">
@@ -155,6 +157,19 @@
         var inp = row.querySelector('.limite-manual-input');
         if (inp) inp.addEventListener('input', function () { atualizarDiff(row); });
       });
+      var btnExcel = document.getElementById('btn-excel-export');
+      if (btnExcel) {
+        btnExcel.addEventListener('click', function () {
+          var base = btnExcel.getAttribute('data-export-base') || '';
+          var pct = btnExcel.getAttribute('data-pct') || '20';
+          var params = new URLSearchParams();
+          params.set('pct', pct);
+          document.querySelectorAll('.limite-manual-input').forEach(function (inp) {
+            if (inp.name) params.set(inp.name, inp.value);
+          });
+          window.location.href = base + '?' + params.toString();
+        });
+      }
       document.querySelectorAll('.btn-aprovar-um').forEach(function (btn) {
         btn.addEventListener('click', function () {
           var pk = btn.getAttribute('data-pk');

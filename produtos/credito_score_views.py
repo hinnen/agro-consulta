@@ -12,6 +12,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods
 
 from produtos.credito_limite_revisao import (
+    aplicar_limites_manuais_lista,
     aprovar_limite_cliente,
     aprovar_limites_selecionados,
     ignorar_limite_cliente,
@@ -290,7 +291,8 @@ def _montar_xlsx_revisao_limite(rows: list[dict], *, pct_max: int) -> bytes:
         ("Situação", "situacao_label"),
         ("Limite atual", "limite_atual"),
         ("Limite sugerido", "limite_sugerido"),
-        ("Novo limite", "novo_limite"),
+        ("Limite calculado", "novo_limite"),
+        ("Limite a aplicar", "limite_a_aplicar"),
         ("Diferença", "diferenca"),
         ("Score", "score"),
         ("Confiança", "confianca_label"),
@@ -304,6 +306,7 @@ def _montar_xlsx_revisao_limite(rows: list[dict], *, pct_max: int) -> bytes:
         "limite_atual",
         "limite_sugerido",
         "novo_limite",
+        "limite_a_aplicar",
         "diferenca",
     }
 
@@ -313,7 +316,11 @@ def _montar_xlsx_revisao_limite(rows: list[dict], *, pct_max: int) -> bytes:
         cell.fill = fill_hdr
 
     for r_idx, row in enumerate(rows, start=2):
-        payload = {**row, "pct_export": pct_max}
+        payload = {
+            **row,
+            "pct_export": pct_max,
+            "limite_a_aplicar": row.get("limite_a_aplicar", row.get("novo_limite")),
+        }
         for col, (_label, key) in enumerate(headers, start=1):
             val = payload.get(key)
             if key in money_keys:
@@ -426,19 +433,30 @@ def _pct_revisao_request(request) -> int:
     return normalizar_pct_aumento_max(raw)
 
 
-def _limites_manuais_post(request) -> dict[int, str]:
+def _limites_manuais_de_query(source) -> dict[int, str]:
     out: dict[int, str] = {}
-    for key, val in request.POST.items():
-        if not key.startswith("limite_manual_"):
+    for key in source:
+        if not str(key).startswith("limite_manual_"):
             continue
-        pk_s = key[len("limite_manual_") :]
+        pk_s = str(key)[len("limite_manual_") :]
         if pk_s.isdigit():
-            out[int(pk_s)] = (val or "").strip()
+            out[int(pk_s)] = (source.get(key) or "").strip()
+    return out
+
+
+def _limites_manuais_post(request) -> dict[int, str]:
+    out = _limites_manuais_de_query(request.POST)
     solo = (request.POST.get("limite_manual") or "").strip()
     pk_solo = (request.POST.get("cliente_pk") or "").strip()
     if solo and pk_solo.isdigit():
         out[int(pk_solo)] = solo
     return out
+
+
+def _limites_manuais_request(request) -> dict[int, str]:
+    if request.method == "POST":
+        return _limites_manuais_post(request)
+    return _limites_manuais_de_query(request.GET)
 
 
 def _redirect_revisao_limite(pct_max: int):
@@ -518,10 +536,15 @@ def credito_limite_revisao(request):
 
 
 @credito_score_shadow_required
-@require_GET
+@require_http_methods(["GET", "POST"])
 def credito_limite_revisao_export_xlsx(request):
-    pct_max = normalizar_pct_aumento_max(request.GET.get("pct"))
+    pct_max = _pct_revisao_request(request)
     linhas = listar_revisoes_limite(pct_max=pct_max)
+    linhas = aplicar_limites_manuais_lista(
+        linhas,
+        pct_max=pct_max,
+        limites_manuais=_limites_manuais_request(request),
+    )
     payload = _montar_xlsx_revisao_limite(linhas, pct_max=pct_max)
     agora = timezone.localtime()
     fname = f"revisao_limite_{agora.strftime('%Y%m%d_%H%M')}.xlsx"
