@@ -166,10 +166,12 @@ def produto_agro_para_row(
 
 
 def queryset_catalogo_ativos(*, inativos: bool = False):
+    from produtos.cadastro_overlay_orfao_util import queryset_produto_sem_fantasmas_agro_vn
+
     qs = Produto.objects.all()
     if not inativos:
         qs = qs.filter(cadastro_inativo=False, ativo=True)
-    return qs
+    return queryset_produto_sem_fantasmas_agro_vn(qs)
 
 
 def _rows_de_produtos(produtos: list[Produto]) -> list[dict]:
@@ -686,6 +688,25 @@ def sincronizar_modelo_produto_de_overlay(
 
     pid64 = str(pid or "").strip()[:64]
     payload = payload or {}
+    from produtos.cadastro_overlay_orfao_util import (
+        eh_id_overlay_sintetico_validade,
+        fundir_overlay_agro_vn_no_canonico,
+        overlay_produto_externo_id_canonico,
+    )
+
+    if eh_id_overlay_sintetico_validade(pid64):
+        canon = overlay_produto_externo_id_canonico(
+            codigo=(ov.codigo_nfe or "").strip(), nome=(ov.nome or "").strip()
+        )
+        if canon and canon != pid64:
+            fundir_overlay_agro_vn_no_canonico(pid64, canon, nome=ov.nome or "")
+            pid64 = canon
+            ov = (
+                ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=canon).first()
+                or ov
+            )
+        elif not canon:
+            return None
     p = obter_produto_model(pid64)
     if p is not None and not payload_overlay_deve_sincronizar_produto(payload, custo_payload):
         return p
@@ -955,6 +976,8 @@ def sincronizar_modelo_produto_de_overlay(
             "cadastro_inativo": cad_inativo,
         }
     if p is None:
+        if eh_id_overlay_sintetico_validade(pid64):
+            return None
         p = Produto.objects.create(produto_externo_id=pid64, **defaults)
     else:
         for k, v in defaults.items():

@@ -1,0 +1,53 @@
+{
+  "versao": 1,
+  "grupos_prateleira": [
+    {
+      "id": "med_prat_01",
+      "label": "01 - Vermífugos e antiparasitários internos"
+    },
+    {
+      "id": "med_prat_02",
+      "label": "02 - Antiparasitários externos — pulgas, carrapatos e sarnas"
+    },
+    {
+      "id": "med_prat_03",
+      "label": "03 - Antibióticos"
+    },
+    {
+      "id": "med_prat_04",
+      "label": "04 - Anti-inflamatórios e analgésicos"
+    },
+    {
+      "id": "med_prat_05",
+      "label": "05 - Vitaminas, minerais e suplementos"
+    },
+    {
+      "id": "med_prat_06",
+      "label": "06 - Cicatrizantes e dermatológicos"
+    },
+    {
+      "id": "med_prat_07",
+      "label": "07 - Controle de pragas — venenos, inseticidas e raticidas"
+    },
+    {
+      "id": "med_prat_08",
+      "label": "08 - Materiais de aplicação"
+    },
+    {
+      "id": "med_prat_09",
+      "label": "09 - Outros medicamentos"
+    }
+  ],
+  "especies": [
+    { "id": "caes", "label": "Cães" },
+    { "id": "gatos", "label": "Gatos" },
+    { "id": "bovinos", "label": "Bovinos" },
+    { "id": "equinos", "label": "Equinos" },
+    { "id": "suinos", "label": "Suínos" },
+    { "id": "ovinos", "label": "Ovinos" },
+    { "id": "caprinos", "label": "Caprinos" },
+    { "id": "aves", "label": "Aves" },
+    { "id": "peixes", "label": "Peixes" },
+    { "id": "outras_especies", "label": "Outras espécies" }
+  ]
+}
