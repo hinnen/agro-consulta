@@ -1294,6 +1294,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — **CREDITO-REVISAR-LIMITE** (`CHECKLIST 12/10` · 12/10) · 🟢 **PRONTO envio**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **`teste`** — aguarda frase + senha produção |
+| **O quê** | `/fiado/analise-credito/revisar-limites/` — saldo fiado/vencido, Em dia/Vencido, % 20–100%, limite editável, Excel da tela, UX polish |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_credito_limite_revisao_path.py` **27/27** · PIN **9973** + HTTP no PC local |
+| **Você** | Laboratório crédito → Revisar alterações · aprovar/Excel |
+
+### ✅ CHECKLIST ÚNICO — **12/10** · 🟢 **PRONTO envio produção**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **ETQ-MOBILE-DOCK** | 🟢 **teste** | **NÃO** |
+| 2 | **CREDITO-REVISAR-LIMITE** | 🟢 **teste** | **NÃO** |
+
 ### ✅ Deploy loja — **VILA-META** (`CHECKLIST 11/10m` · 11/10) · **Live v27.06**
 
 | Campo | Valor |
