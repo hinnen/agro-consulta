@@ -128,10 +128,10 @@
         <table class="rev-table w-full text-left">
           <thead class="bg-slate-800 text-white text-[0.7rem] sm:text-xs uppercase">
             <tr>
-              <th class="col-sticky w-10 text-center">
+              <th class="w-10 text-center">
                 <input type="checkbox" id="chk-todos" class="w-5 h-5" aria-label="Marcar todos os clientes" title="Marcar todos">
               </th>
-              <th class="col-sticky min-w-[9rem]">Cliente</th>
+              <th class="min-w-[9rem]">Cliente</th>
               <th class="text-right">Saldo fiado</th>
               <th class="text-right">Vencido</th>
               <th>Situação</th>
@@ -149,10 +149,10 @@
             <tr class="border-t border-slate-100 {% if r.tem_vencido_atual %}row-vencido{% endif %}"
               data-limite-atual="{{ r.limite_atual }}"
               data-teto="{{ r.teto_limite }}">
-              <td class="col-sticky text-center bg-inherit">
+              <td class="text-center">
                 <input type="checkbox" name="cliente_pk" value="{{ r.cliente_pk }}" class="chk-cliente w-5 h-5" aria-label="Marcar {{ r.cliente_nome }}">
               </td>
-              <td class="col-sticky font-black bg-inherit max-w-[14rem]">
+              <td class="font-black max-w-[14rem]">
                 <a href="{% url 'credito_score_cliente_detalhe' r.cliente_pk %}" class="text-emerald-800 underline decoration-emerald-300 hover:text-emerald-950 break-words">
                   {{ r.cliente_nome }}
                 </a>
