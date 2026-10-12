@@ -1294,6 +1294,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — **CADASTRO-AGRO-VN-FANTASMA** (`CHECKLIST 12/10o` · 12/10) · 🟢 **PRONTO envio produção**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **PRONTO** — `teste` · `ee22dcdf` · `34f6a1a0` · `fbaf139c` |
+| **O quê** | Cadastro: sem duplicata **agro:vn:** vs GM · Excel ↑ remapeia ID · `limpar_overlays_agro_vn_fantasma` |
+| **Migrate** | **NÃO** |
+| **Prova** | `python scripts/verify_cadastro_agro_vn_path.py` (**VERIFY_OK=19**) |
+| **Pós-deploy loja** | `python manage.py limpar_overlays_agro_vn_fantasma` (uma vez) |
+| **Doc** | `docs/DEPLOY-PREP-CADASTRO-AGRO-VN-FANTASMA.md` |
+
+### ✅ CHECKLIST ÚNICO — **12/10o** · 🟢 **PRONTO envio produção**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CADASTRO-AGRO-VN-FANTASMA** | 🟢 **PRONTO** v27.09 | **NÃO** |
+
 ### ✅ Deploy loja — CHECKLIST **12/10n** (itens **1+2**) · **Live v27.09** · 12/10
 
 | Campo | Valor |
@@ -1313,8 +1330,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Status** | 🟡 **só teste / PREP completo** — `deploy/prep-checklist-1210n` (pacote 3) |
 | **Migrate** | **NÃO** |
+| **Prova teste** | `verify_classificacao_medicamentos_path.py` **32 OK** |
 
-<<<<<<< HEAD
 ### ✅ CHECKLIST ÚNICO — **12/10n**
 
 | # | Pacote | Status | Migrate |
@@ -1322,20 +1339,6 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | **ETQ-MOBILE-POLISH** | ✅ **Live v27.09** | **NÃO** |
 | 2 | **CREDITO-REVISAR-LIMITE** | ✅ **Live v27.09** | **NÃO** |
 | 3 | **MED-CLASSIFICACAO-SISVALE** | 🟡 **pendente** | **NÃO** |
-=======
-**3 · MED-CLASSIFICACAO-SISVALE** — `teste` v**27.09** (fix PR #438)  
-Cadastro SisVale — medicamentos: **9 prateleiras**; Busca (palavras-chave → espécies → classes); merge de seleção com filtro; **não** envia classes/espécies vazias se taxonomia falhou ou usuário não editou Busca.  
-Prova: `verify_classificacao_medicamentos_path.py` **32 OK** (+ **1 SKIP** PIN — só com `AGRO_PIN_TESTE` no ambiente).  
-**Segurança PIN:** script deste pacote **não** embute PIN; se `9973` entrou no histórico git do script, **trocar `senha_rapida`** do operador no Admin/RH e usar só env local.
-
-### ✅ CHECKLIST ÚNICO — **12/10n** · 🟢 **PRONTO envio produção**
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **ETQ-MOBILE-POLISH** | 🟢 **teste** | **NÃO** |
-| 2 | **CREDITO-REVISAR-LIMITE** | 🟢 **teste** | **NÃO** |
-| 3 | **MED-CLASSIFICACAO-SISVALE** | 🟢 **teste** v27.09 | **NÃO** |
->>>>>>> 1b013e834 (docs(banana): MED-CLASSIFICACAO v27.09 + CHECKLIST 12/10n)
 
 ### ✅ Deploy loja — **VILA-META** (`CHECKLIST 11/10m` · 11/10) · **Live v27.06**
 

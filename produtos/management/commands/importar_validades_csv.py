@@ -301,9 +301,10 @@ def _resolver_overlay(
             return o
 
     if nome_produto or code_ok:
-        from produtos.cadastro_overlay_orfao_util import overlay_produto_externo_id_canonico
-
-        from produtos.cadastro_overlay_orfao_util import dissolver_fantasma_agro_vn_por_nome
+        from produtos.cadastro_overlay_orfao_util import (
+            dissolver_fantasma_agro_vn_por_nome,
+            overlay_produto_externo_id_canonico,
+        )
 
         dissolver_fantasma_agro_vn_por_nome(nome_produto, codigo=codigo)
         canon = overlay_produto_externo_id_canonico(codigo=codigo, nome=nome_produto)
