@@ -32864,6 +32864,9 @@ def _linha_clienteagro_pdv(c: ClienteAgro) -> dict:
         "saldo_vale_credito": float(c.saldo_vale_credito or 0),
         "saldo_cashback": float(c.saldo_cashback or 0),
         "limite_fiado_local": float(c.limite_fiado_local or 0),
+        "desconto_pdv_percentual": float(c.desconto_pdv_percentual or 0)
+        if c.desconto_pdv_percentual is not None
+        else 0,
     }
 
 

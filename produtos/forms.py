@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django import forms
+from django.core.exceptions import ValidationError
 
 from .models import ClienteAgro
 
@@ -21,6 +22,16 @@ class ClienteAgroForm(forms.ModelForm):
             return fiado_limite_inicial_novo_cliente()
         return val
 
+    def clean_desconto_pdv_percentual(self):
+        val = self.cleaned_data.get("desconto_pdv_percentual")
+        if val is None or val == "":
+            return None
+        if val < 0 or val > 100:
+            raise ValidationError("Informe um percentual entre 0 e 100, ou deixe em branco.")
+        if val == 0:
+            return None
+        return val
+
     class Meta:
         model = ClienteAgro
         fields = (
@@ -30,6 +41,7 @@ class ClienteAgroForm(forms.ModelForm):
             "saldo_cashback",
             "saldo_vale_credito",
             "limite_fiado_local",
+            "desconto_pdv_percentual",
             "cep",
             "uf",
             "cidade",
@@ -77,6 +89,16 @@ class ClienteAgroForm(forms.ModelForm):
                     "class": "w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-slate-800",
                     "step": "0.01",
                     "min": "0",
+                }
+            ),
+            "desconto_pdv_percentual": forms.NumberInput(
+                attrs={
+                    "class": "w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-slate-800",
+                    "step": "0.01",
+                    "min": "0",
+                    "max": "100",
+                    "placeholder": "Vazio = sem desconto",
+                    "inputmode": "decimal",
                 }
             ),
             "cep": forms.TextInput(
