@@ -1294,21 +1294,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — **GESTAO-MED-MODAL-GV** (hotfix pós **MED** · 12/10) · 🟢 **PRONTO envio produção**
+### 🟢 PREP loja — hotfix **GESTAO-MED-MODAL-GV** · **v27.12** · CHECKLIST **12/10q** · armado
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Cadastro ERP / gestão: **modal de edição** voltava a abrir (`gv()` no escopo do modal) · gestão operacional: clique na linha + lápis com try/catch |
+| **Status** | 🟢 **ARMADO** — `deploy/prep-checklist-1210q-gv` @ `ac38739e` |
+| **Live hoje** | **v27.11** @ `4f122337` |
+| **O quê** | Modal cadastro ERP: `gv()` no escopo · gestão: clique na linha + lápis (`abrirDrawerSeguro`) |
 | **Migrate** | **NÃO** |
-| **Prova** | `AGRO_PIN_TESTE=9973 python scripts/verify_classificacao_medicamentos_path.py` → **38/38** · PIN ok · Playwright `abrirModalProduto` sem `gv is not defined` |
-| **Status** | 🟢 **`teste`** — aguarda frase + senha produção (correção do v27.11 MED) |
+| **Prova** | `./scripts/cutover_loja_checklist_1210q_gv.sh` · **38/38** · CB-230 **13/13** |
+| **Cutover** | `--exec` + frase + senha **99738595** |
+| **Rollback** | `rollback/pre-hf-gestao-med-modal-gv-v2711` @ `4f122337` |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1210q-gv.md` · roteiro **§79** |
 
-### ✅ CHECKLIST ÚNICO — **12/10q** · 🟢 **PRONTO envio produção**
+### ✅ CHECKLIST ÚNICO — **12/10q**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **GESTAO-MED-MODAL-GV** (hotfix) | 🟢 **PRONTO** `teste` | **NÃO** |
-| 2 | **CLIENTE-LISTA-DESC-PDV** | 🟢 **PRONTO** `teste` | **SIM** `0145` |
+| 1 | **GESTAO-MED-MODAL-GV** (hotfix) | 🟢 **ARMADO** | **NÃO** |
+| 2 | **CLIENTE-LISTA-DESC-PDV** | 🟡 **pendente** (outro cutover) | **SIM** `0145` |
 
 ### ✅ Deploy loja — CHECKLIST **12/10p** (itens **1+2**) · **Live v27.11** · 12/10
 
