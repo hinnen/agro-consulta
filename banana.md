@@ -1294,7 +1294,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — pendente loja (`CHECKLIST 12/10` · 12/10) · 🟢 **PRONTO envio**
+### 📦 PACOTE PRONTO — pendente loja (`CHECKLIST 12/10n` · 12/10) · 🟢 **PRONTO envio**
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1310,12 +1310,17 @@ Prova: `verify_etq_solicitacao_vl_pin_path.py` **35/35** · `verify_etiquetas_mo
 `/fiado/analise-credito/revisar-limites/` — colunas saldo, % limite, Excel, UX.  
 Prova: `verify_credito_limite_revisao_path.py` **27/27**.
 
-### ✅ CHECKLIST ÚNICO — **12/10** · 🟢 **PRONTO envio produção**
+**3 · MED-CLASSIFICACAO-SISVALE** — `teste` v**27.08**  
+Cadastro SisVale — medicamentos: **9 prateleiras** (subcat 1, legado preservado); aba Busca (palavras-chave → espécies → classes); `cadastro_extras` + Mongo `AgroEspeciesVet`; **sem** busca PDV nova nem ERP automático.  
+Prova: `verify_classificacao_medicamentos_path.py` **29/29**.
 
-| # | Pacote | Status |
-| - | ------ | ------ |
-| 1 | **ETQ-MOBILE-POLISH** | 🟢 teste |
-| 2 | **CREDITO-REVISAR-LIMITE** | 🟢 teste |
+### ✅ CHECKLIST ÚNICO — **12/10n** · 🟢 **PRONTO envio produção**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **ETQ-MOBILE-POLISH** | 🟢 **teste** | **NÃO** |
+| 2 | **CREDITO-REVISAR-LIMITE** | 🟢 **teste** | **NÃO** |
+| 3 | **MED-CLASSIFICACAO-SISVALE** | 🟢 **teste** v27.08 | **NÃO** |
 
 ### ✅ Deploy loja — **VILA-META** (`CHECKLIST 11/10m` · 11/10) · **Live v27.06**
 
