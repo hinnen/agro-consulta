@@ -1298,7 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **ARMADO** — `deploy/prep-checklist-1210p` @ `14d843f1` (+ verify banana skip) |
+| **Status** | 🟢 **ARMADO** — `deploy/prep-checklist-1210p` @ `9f7df2a5` |
 | **Live hoje** | **v27.09** @ `f6a4fa31` |
 | **O quê** | **CADASTRO-AGRO-VN-FANTASMA** · **MED-CLASSIFICACAO-SISVALE** · **CLIENTE-LISTA-DESC-PDV** |
 | **Migrate** | **SIM** só `produtos` **0145** (`desconto_pdv_percentual`) |
