@@ -968,16 +968,14 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 78. Checklist único — **12/10p** · 🟢 PREP **v27.10** · armado · aguarda senha
+## 78. Checklist único — **12/10p** · ✅ Live **v27.11** (itens 1+2) · item 3 pendente
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CADASTRO-AGRO-VN-FANTASMA** | 🟢 PREP pronto | **NÃO** |
-| 2 | **MED-CLASSIFICACAO-SISVALE** | 🟢 PREP pronto | **NÃO** |
-| 3 | **CLIENTE-LISTA-DESC-PDV** | 🟢 PREP pronto | **SIM** `0145` |
+| 1 | **CADASTRO-AGRO-VN-FANTASMA** | ✅ **Live v27.11** | **NÃO** |
+| 2 | **MED-CLASSIFICACAO-SISVALE** | ✅ **Live v27.11** | **NÃO** |
+| 3 | **CLIENTE-LISTA-DESC-PDV** | 🟡 pendente (`deploy/prep-checklist-1210p`) | **SIM** `0145` |
 
-**Live antes:** **v27.09** @ `f6a4fa31`.  
-**PREP:** `deploy/prep-checklist-1210p` · dry-run `cutover_loja_checklist_1210p.sh` OK.  
-**Na senha:** `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → cutover `--exec` → `post_deploy_checklist_1210p.sh` → `limpar_overlays_agro_vn_fantasma`.  
-**Rollback:** tag `rollback/pre-checklist-1210p-v27.09-f6a4`.  
-**Cuidado PDV:** só % desconto no subtotal (`pdv_state.js`); CB-230 verificado no gate.
+**Live:** `producao` @ `4f122337` · backup `producao-backup-pre-v2711-checklist-1210p-vn-med`.  
+**Rollback 1+2:** `rollback/pre-checklist-1210p-v27.09-f6a4` → `f6a4fa31`.  
+**Shell:** `limpar_overlays_agro_vn_fantasma` · Ctrl+F5 cadastro ERP medicamentos.
