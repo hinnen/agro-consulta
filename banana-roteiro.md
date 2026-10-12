@@ -982,14 +982,12 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 79. Checklist único — hotfix **GESTAO-MED-MODAL-GV** · 🟢 PREP **v27.12** · armado
+## 79. Checklist único — hotfix **GESTAO-MED-MODAL-GV** · ✅ Live **v27.12**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **GESTAO-MED-MODAL-GV** | 🟢 PREP pronto | **NÃO** |
+| 1 | **GESTAO-MED-MODAL-GV** | ✅ **Live v27.12** | **NÃO** |
 
-**Live antes:** **v27.11** @ `4f122337`.  
-**PREP:** `deploy/prep-checklist-1210q-gv` @ `ac38739e` · dry-run OK (**38/38**).  
-**Na senha:** `./scripts/cutover_loja_checklist_1210q_gv.sh --exec` · Ctrl+F5 gestão + modal ERP.  
-**Rollback:** `rollback/pre-hf-gestao-med-modal-gv-v2711`.  
-**Fora:** PDV · caixa · busca 230 · cliente % PDV (12/10q item 2).
+**Live:** `producao` @ `ac38739e` · backup `producao-backup-pre-v2712-hf-gestao-med-modal-gv`.  
+**Rollback:** `rollback/pre-hf-gestao-med-modal-gv-v2711` → `4f122337`.  
+**Ctrl+F5:** `/produtos/gestao/` · modal cadastro ERP medicamentos.
