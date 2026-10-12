@@ -1294,32 +1294,41 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PREP loja — CHECKLIST **11/10l** · **v27.04** · aguarda frase+senha
+### 🟢 PREP loja — CHECKLIST **12/10n** · **v27.08** · armado · aguarda frase+senha
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PRONTO envio produção** — `deploy/prep-checklist-1110l` @ `52e014c8` · Live **v27.03** @ `b4e4fcc8` |
-| **O quê** | **META-CENTRO-VILA-UNIFICADO** (`deposito=todas`, faixas somadas, config única, save 50/50) · **VL-RITMO-ATE-AGORA** (hora PDV + até 12 domingos/semana) |
+| **Status** | 🟢 **ARMADO** — `deploy/prep-checklist-1210n` · Live **v27.06** @ `b539c712` |
+| **O quê** | **ETQ-MOBILE-POLISH** · **CREDITO-REVISAR-LIMITE** · **MED-CLASSIFICACAO-SISVALE** |
 | **Migrate** | **NÃO** |
-| **Fora** | PDV wizard/busca · caixa · `mongo_financeiro` |
-| **Prova** | `cutover_loja_checklist_1110l.sh` (META core · `tests_vendas_lojas_ritmo` · resumo ritmo) |
-| **Cutover** | `./scripts/cutover_loja_checklist_1110l.sh` · `--exec` + frase + senha **99738595** |
-| **Rollback** | `rollback/pre-checklist-1110l-v27.03-b4e` @ `b4e4fcc8` |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1110l.md` |
+| **Fora** | PDV wizard/busca 230 · caixa · `mongo_financeiro` · `meta_vendas_util` |
+| **Prova** | `cutover_loja_checklist_1210n.sh` dry-run OK (ETQ **35/35** · mobile **13/13** · crédito · med · CB-230 · GM PIN **19/19**) |
+| **Cutover** | `./scripts/cutover_loja_checklist_1210n.sh` · `--exec` + frase + senha **99738595** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1210n.sh` (sem migrate) |
+| **Rollback** | `rollback/pre-checklist-1210n-v27.06-b539` @ `b539c712` |
+| **Backup** | `producao-backup-pre-v2708-checklist-1210n` |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1210n.md` |
 
-### ✅ CHECKLIST ÚNICO — 11/10l · 🟢 **PRONTO envio produção**
+### ✅ CHECKLIST ÚNICO — **12/10n** · 🟢 **ARMADO envio produção**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **META-CENTRO-VILA-UNIFICADO** | 🟢 **PRONTO** | **NÃO** | META core verify |
-| 2 | **VL-RITMO-ATE-AGORA** | 🟢 **PRONTO** | **NÃO** | `tests_vendas_lojas_ritmo` + resumo ritmo |
+| 1 | **ETQ-MOBILE-POLISH** | 🟢 **PREP** | **NÃO** | **35/35** + **13/13** |
+| 2 | **CREDITO-REVISAR-LIMITE** | 🟢 **PREP** | **NÃO** | `verify_credito_limite_revisao_path` |
+| 3 | **MED-CLASSIFICACAO-SISVALE** | 🟢 **PREP** v27.08 | **NÃO** | **29/29** |
 
-### 📦 PACOTE PRONTO — **META-CENTRO-VILA** + **VL-RITMO** (`CHECKLIST 11/10l`)
+### 📦 PACOTE PRONTO — pendente loja (`CHECKLIST 12/10n` · 12/10) · 🟢 **ARMADO**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PRONTO envio produção** — PREP @ **v27.04** `52e014c8` |
-| **Smoke pós-deploy** | `/meta/` Centro+Vila · Zap enxuto · Vendas lojas nota «até agora» |
+| **Smoke pós-deploy** | Ctrl+F5 GM etiquetas mobile (dock/sacola) · `/fiado/analise-credito/revisar-limites/` · cadastro ERP medicamentos (9 prateleiras) |
+
+### ✅ Deploy loja — CHECKLIST **11/10l** · **Live v27.04** · 11/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v27.04** — `producao` @ `dc19f805` |
+| **Rollback** | `rollback/pre-checklist-1110l-v27.03-b4e` @ `b4e4fcc8` |
 
 ### 🟢 PREP loja — CHECKLIST **11/10k** · **v27.03** · *(meta 0144 já Live v27.01 — não repetir migrate)*
 

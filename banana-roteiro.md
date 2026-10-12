@@ -951,3 +951,20 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **Na senha (vendas pausadas):** `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → `./scripts/cutover_loja_checklist_1110k.sh --exec` → Render Shell `./scripts/post_deploy_checklist_1110k.sh`.  
 **Rollback:** tag `rollback/pre-checklist-1110k-v27.00` · `docs/ROLLBACK-CHECKLIST-1110k.md`.  
 **Não toca:** PDV · caixa · busca 230.
+
+---
+
+## 77. Checklist único — **12/10n** · 🟢 PREP **v27.08** · armado · aguarda senha
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **ETQ-MOBILE-POLISH** | 🟢 PREP pronto | **NÃO** |
+| 2 | **CREDITO-REVISAR-LIMITE** | 🟢 PREP pronto | **NÃO** |
+| 3 | **MED-CLASSIFICACAO-SISVALE** | 🟢 PREP pronto | **NÃO** |
+
+**Live antes:** **v27.06** @ `b539c712`.  
+**PREP:** `deploy/prep-checklist-1210n` · **v27.08** · dry-run `cutover_loja_checklist_1210n.sh` OK.  
+**Prova:** ETQ **35/35** · mobile **13/13** · crédito revisão · med **29/29** · regressão CB-230 + GM PIN.  
+**Na senha (vendas pausadas):** `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → `./scripts/cutover_loja_checklist_1210n.sh --exec` → `./scripts/post_deploy_checklist_1210n.sh`.  
+**Rollback:** tag `rollback/pre-checklist-1210n-v27.06-b539`.  
+**Não toca:** PDV checkout · caixa · busca 230 · META.

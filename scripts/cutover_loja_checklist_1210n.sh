@@ -55,10 +55,10 @@ grep -q 'TOTAL OK=35 FAIL=0' /tmp/cutover-1210n-etq.log
 grep -q 'TOTAL OK=13 FAIL=0' /tmp/cutover-1210n-etqmob.log
 
 "$PY" scripts/verify_credito_limite_revisao_path.py | tee /tmp/cutover-1210n-cred.log
-grep -qE 'OK=27 FAIL=0|FAIL=0' /tmp/cutover-1210n-cred.log
+grep -qE '0 FAIL ===|· 0 FAIL ===' /tmp/cutover-1210n-cred.log
 
 "$PY" scripts/verify_classificacao_medicamentos_path.py | tee /tmp/cutover-1210n-med.log
-grep -qE 'OK=29 FAIL=0|PREP_FAILS=0' /tmp/cutover-1210n-med.log
+grep -qE '0 FAIL ===|PREP_FAILS=0|TOTAL OK=29 FAIL=0' /tmp/cutover-1210n-med.log
 
 if [[ -f scripts/verify_cb_loja_pdv_busca_path.py ]]; then
   "$PY" scripts/verify_cb_loja_pdv_busca_path.py | tee /tmp/cutover-1210n-pdv.log

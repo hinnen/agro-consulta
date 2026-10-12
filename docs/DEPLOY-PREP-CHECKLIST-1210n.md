@@ -7,7 +7,8 @@
 | 3 | **MED-CLASSIFICACAO-SISVALE** | `verify_classificacao_medicamentos_path` **29/29** | **NÃO** |
 
 **Live antes:** **v27.06** @ `b539c712`  
-**PREP:** `deploy/prep-checklist-1210n`  
+**PREP:** `deploy/prep-checklist-1210n` @ `28edc4c8`  
+**Dry-run:** `./scripts/cutover_loja_checklist_1210n.sh` → linha `OK: PREP v27.08`  
 **Rollback:** tag `rollback/pre-checklist-1210n-v27.06-b539` @ `b539c712`  
 **Cutover:** `./scripts/cutover_loja_checklist_1210n.sh`
 
