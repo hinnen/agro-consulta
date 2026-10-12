@@ -4,8 +4,10 @@ from django.test import TestCase
 from produtos.cadastro_overlay_orfao_util import (
     AGRO_VN_PREFIX,
     eh_id_overlay_sintetico_validade,
+    fundir_overlay_agro_vn_no_canonico,
     overlay_produto_externo_id_canonico,
     produto_externo_id_catalogo_por_codigo_ou_nome,
+    queryset_produto_sem_fantasmas_agro_vn,
     remapear_id_planilha_agro_vn,
     remover_cadastro_duplicatas_agro_vn,
 )
@@ -75,3 +77,35 @@ class CadastroOverlayOrfaoUtilTests(TestCase):
         out = remover_cadastro_duplicatas_agro_vn(rows)
         self.assertEqual(len(out), 1)
         self.assertEqual(out[0]["id"], "pid-real")
+
+    def test_queryset_esconde_fantasma_pg(self):
+        Produto.objects.create(
+            produto_externo_id="real-1",
+            nome="colosso pulverizacao 100ml",
+            codigo_nfe="GM0443",
+            ativo=True,
+        )
+        Produto.objects.create(
+            produto_externo_id=f"{AGRO_VN_PREFIX}ghost",
+            nome="colosso pulverizacao 100ml",
+            ativo=True,
+        )
+        qs = queryset_produto_sem_fantasmas_agro_vn(Produto.objects.all())
+        self.assertEqual(qs.count(), 1)
+        self.assertEqual(qs.first().produto_externo_id, "real-1")
+
+    def test_fundir_remove_fantasma(self):
+        ghost_id = f"{AGRO_VN_PREFIX}9446c6f51e7a72514cbf"
+        Produto.objects.create(
+            produto_externo_id="pid-real",
+            nome="colosso pulverizacao 100ml",
+            codigo_nfe="GM0443",
+            ativo=True,
+        )
+        Produto.objects.create(produto_externo_id=ghost_id, nome="colosso pulverizacao 100ml", ativo=True)
+        ProdutoGestaoOverlayAgro.objects.create(
+            produto_externo_id=ghost_id, nome="colosso pulverizacao 100ml"
+        )
+        self.assertTrue(fundir_overlay_agro_vn_no_canonico(ghost_id, "pid-real"))
+        self.assertFalse(ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=ghost_id).exists())
+        self.assertFalse(Produto.objects.filter(produto_externo_id=ghost_id).exists())
