@@ -1305,11 +1305,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Pós-deploy loja** | `python manage.py limpar_overlays_agro_vn_fantasma` (uma vez) |
 | **Doc** | `docs/DEPLOY-PREP-CADASTRO-AGRO-VN-FANTASMA.md` |
 
-### ✅ CHECKLIST ÚNICO — **12/10o** · 🟢 **PRONTO envio produção**
+### ✅ PACOTE PRONTO — **CLIENTE-LISTA-DESC-PDV** (`CHECKLIST 12/10p` · 12/10) · 🟢 **PRONTO envio produção**
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `/clientes/` shell largo · **`desconto_pdv_percentual`** opcional (vazio = sem desconto) · PDV aplica % no subtotal |
+| **Prova** | `verify_cliente_lista_desc_pdv_path.py` **18/18** · `verify_cliente_planilha_path.py` **61/61** |
+| **Migrate** | **SIM** `0145_clienteagro_desconto_pdv_percentual` |
+| **Status** | 🟢 **`teste`** — aguarda frase + senha produção |
+| **Você** | `migrate` · Ctrl+F5 `/clientes/` · % só no cliente que você cadastrar · PDV smoke |
+
+### ✅ CHECKLIST ÚNICO — **12/10p** · 🟢 **PRONTO envio produção**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **CADASTRO-AGRO-VN-FANTASMA** | 🟢 **PRONTO** v27.09 | **NÃO** |
+| 2 | **MED-CLASSIFICACAO-SISVALE** | 🟢 **PRONTO** v27.09 | **NÃO** |
+| 3 | **CLIENTE-LISTA-DESC-PDV** | 🟢 **PRONTO** `teste` | **SIM** `0145` |
 
 ### ✅ Deploy loja — CHECKLIST **12/10n** (itens **1+2**) · **Live v27.09** · 12/10
 

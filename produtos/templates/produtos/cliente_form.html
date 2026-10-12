@@ -9,7 +9,13 @@
   {% include "produtos/_agro_consulta_ui.html" %}
   {% load static %}
   <style>
-    body { font-family: 'Inter', sans-serif; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(16px, 0.35vw + 15px, 19px);
+      min-height: 100dvh;
+      max-height: 100dvh;
+    }
     html.agro-cli-in-overlay,
     html.agro-cli-in-overlay body {
       min-height: 100% !important;
@@ -101,6 +107,7 @@
       .cli-form-f-vale { grid-column: 1 / 3; }
       .cli-form-f-cash { grid-column: 3 / 5; }
       .cli-form-f-fiado { grid-column: 5 / 7; }
+      .cli-form-f-desc { grid-column: 1 / 3; }
       .cli-form-f-log { grid-column: 1 / 5; }
       .cli-form-f-num { grid-column: 5 / 7; }
       .cli-form-f-bai { grid-column: 1 / 3; }
@@ -214,6 +221,12 @@
             <span class="cli-form-label block font-black uppercase text-slate-500">{{ form.limite_fiado_local.label }}</span>
             {{ form.limite_fiado_local }}
             {% if form.limite_fiado_local.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.limite_fiado_local.errors.0 }}</p>{% endif %}
+          </label>
+          <label class="cli-form-field cli-form-f-desc" for="{{ form.desconto_pdv_percentual.id_for_label }}">
+            <span class="cli-form-label block font-black uppercase text-slate-500">{{ form.desconto_pdv_percentual.label }}</span>
+            {{ form.desconto_pdv_percentual }}
+            {% if form.desconto_pdv_percentual.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.desconto_pdv_percentual.errors.0 }}</p>{% endif %}
+            <p class="text-[10px] text-slate-400 font-semibold mt-0.5 leading-snug">Deixe em branco para não aplicar desconto automático no PDV. Ex.: 5 = 5% no subtotal dos itens.</p>
           </label>
 
           <p class="cli-form-section-title font-black uppercase tracking-wide text-slate-600">Endereço</p>
