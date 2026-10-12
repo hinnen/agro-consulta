@@ -932,6 +932,26 @@ def _mongo_produtos_por_overlay_codigo_busca(
                 out.append(cat_agro.row_para_doc_busca_pdv(cat_agro.produto_agro_para_row(p)))
                 continue
             ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=ps[:64]).first()
+            if ov:
+                from produtos.cadastro_overlay_orfao_util import (
+                    dissolver_fantasma_agro_vn_por_nome,
+                    eh_id_overlay_sintetico_validade,
+                )
+
+                if eh_id_overlay_sintetico_validade(ps):
+                    canon = dissolver_fantasma_agro_vn_por_nome(ov.nome or "", codigo=ov.codigo_nfe or "")
+                    if canon and canon != ps:
+                        p = cat_agro.obter_produto_model(canon)
+                        if p is not None:
+                            out.append(
+                                cat_agro.row_para_doc_busca_pdv(cat_agro.produto_agro_para_row(p))
+                            )
+                            continue
+                        ps = canon
+                        ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=ps[:64]).first()
+                if ov and eh_id_overlay_sintetico_validade(ps):
+                    if dissolver_fantasma_agro_vn_por_nome(ov.nome or "", codigo=ov.codigo_nfe or ""):
+                        continue
             if ov and (ov.codigo_nfe.strip() or ov.codigo_barras.strip() or ov.nome.strip()):
                 out.append(
                     {
@@ -26528,6 +26548,13 @@ def _cadastro_enriquecer_saldo_nas_rows(rows: list[dict]) -> list[dict]:
 
 def _cadastro_finalizar_payload_rows(payload: dict, incluir_saldo: bool) -> dict:
     out = dict(payload)
+    if isinstance(out.get("produtos"), list):
+        try:
+            from produtos.cadastro_overlay_orfao_util import remover_cadastro_duplicatas_agro_vn
+
+            out["produtos"] = remover_cadastro_duplicatas_agro_vn(list(out["produtos"]))
+        except Exception:
+            pass
     if incluir_saldo and isinstance(out.get("produtos"), list):
         out["produtos"] = _cadastro_enriquecer_saldo_nas_rows(list(out["produtos"]))
     return out
@@ -26569,6 +26596,12 @@ def _api_buscar_json_contexto_cadastro(request, rows: list[dict]) -> JsonRespons
                 r["saldo_total"] = round(sc + sv, 2)
     if filtros.get("estoque_sinal"):
         out = [r for r in out if row_passa_filtros_cadastro(r, filtros)]
+    try:
+        from produtos.cadastro_overlay_orfao_util import remover_cadastro_duplicatas_agro_vn
+
+        out = remover_cadastro_duplicatas_agro_vn(out)
+    except Exception:
+        pass
     _sort_cadastro_rows_inplace(out, sort_key, sort_direction)
 
     return JsonResponse(
