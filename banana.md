@@ -1298,7 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PRONTO** — `teste` · `ee22dcdf` · `34f6a1a0` · `fbaf139c` |
+| **Status** | 🟢 **PRONTO** — `teste` · `901e7418` · `91de6519` · `fbd4f5e6` |
 | **O quê** | Cadastro: sem duplicata **agro:vn:** vs GM · Excel ↑ remapeia ID · `limpar_overlays_agro_vn_fantasma` |
 | **Migrate** | **NÃO** |
 | **Prova** | `python scripts/verify_cadastro_agro_vn_path.py` (**VERIFY_OK=19**) |
