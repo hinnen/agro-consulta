@@ -91,7 +91,10 @@ def test_arquivos_e_contratos() -> None:
         "produtos/tests/test_medicamento_vet_taxonomia.py",
         "produtos/tests/test_med_classificacao_regressao.py",
         "produtos/templates/produtos/produtos_gestao.html",
+        "produtos/cadastro_planilha_util.py",
+        "produtos/tests_cadastro_planilha_med.py",
         "scripts/verify_classificacao_medicamentos_path.py",
+        "scripts/verify_planilha_med_path.py",
     ]
     mig_log = subprocess.run(
         ["git", "log", "-25", "--name-only", "--pretty=format:", "--", *med_paths],

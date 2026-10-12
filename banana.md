@@ -1294,6 +1294,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — **PLANILHA-MED-EXCEL** · **v27.13** · CHECKLIST **12/10r** · 🟢 **PRONTO envio produção**
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Cadastro **Excel ↓/↑**: colunas **Med palavras-chave**, **Med classes (slugs)**, **Med espécies (slugs)** · célula vazia **não apaga** · slug inválido → erro na prévia · sync Mongo Agro* |
+| **Migrate** | **NÃO** |
+| **Prova** | `AGRO_PIN_TESTE=9973 .venv/bin/python scripts/verify_planilha_med_path.py` → **0 FAIL** · `verify_classificacao_medicamentos_path.py` → **49/49** · `verify_planilha_delivery_path.py` → **VERIFY_OK** · Django `tests_cadastro_planilha_med` **10/10** |
+| **Status** | 🟢 **`teste`** — após merge deste pacote |
+
+### ✅ CHECKLIST ÚNICO — **12/10r** · 🟢 **PRONTO envio produção** (pendente na loja)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **GESTAO-MED-MODAL-GV** (hotfix) | 🟢 **ARMADO** v27.12 | **NÃO** |
+| 2 | **CLIENTE-LISTA-DESC-PDV** | 🟢 **PRONTO** `teste` | **SIM** `0145` |
+| 3 | **PLANILHA-MED-EXCEL** | 🟢 **PRONTO** `teste` v27.13 | **NÃO** |
+
 ### 🟢 PREP loja — hotfix **GESTAO-MED-MODAL-GV** · **v27.12** · CHECKLIST **12/10q** · armado
 
 | Campo | Valor |
