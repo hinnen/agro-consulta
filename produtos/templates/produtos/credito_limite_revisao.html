@@ -17,8 +17,17 @@
       <div>
         <a href="{% url 'credito_score_laboratorio' %}" class="text-sm font-black text-emerald-800 underline">← Análise de crédito</a>
         <h1 class="text-2xl font-black text-emerald-900 mt-1">Revisar alterações de limite</h1>
-        <p class="text-sm font-semibold text-orange-700">Aumento máximo de 20% por aprovação. Não desbloqueia R$ 0,01.</p>
+        <p class="text-sm font-semibold text-orange-700">Aumento máximo configurável por aprovação (padrão 20%, até 100%). Não desbloqueia R$ 0,01.</p>
       </div>
+      <form method="get" class="flex flex-wrap items-end gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm">
+        <label class="block">
+          <span class="text-xs font-black uppercase text-slate-600">% máx. por aprovação</span>
+          <input type="number" name="pct" min="20" max="100" step="1" value="{{ pct_aumento_max }}"
+            class="mt-1 w-24 rounded-lg border-2 border-slate-300 px-2 py-2 text-lg font-black tabular-nums"
+            aria-label="Percentual máximo de aumento por aprovação">
+        </label>
+        <button type="submit" class="rounded-lg bg-slate-800 text-white font-black px-4 py-2 text-sm hover:bg-slate-900">Aplicar %</button>
+      </form>
     </header>
 
     {% if messages %}
@@ -29,11 +38,18 @@
     </ul>
     {% endif %}
 
-    <p class="text-sm font-black text-slate-600 mb-2">{{ total }} cliente(s) apto(s)</p>
+    <div class="flex flex-wrap items-center gap-3 mb-2">
+      <p class="text-sm font-black text-slate-600">{{ total }} cliente(s) apto(s) · teto {{ pct_aumento_max }}%</p>
+      <a href="{% url 'credito_limite_revisao_export_xlsx' %}?pct={{ pct_aumento_max }}"
+        class="rounded-xl bg-white border-2 border-emerald-700 text-emerald-900 font-black px-4 py-2 text-sm hover:bg-emerald-50">
+        Excel ↓
+      </a>
+    </div>
 
     <form method="post" id="form-lote" onsubmit="return confirm('Aprovar os clientes marcados? O limite real muda agora.');">
       {% csrf_token %}
       <input type="hidden" name="acao" value="aprovar_selecionados">
+      <input type="hidden" name="pct_aumento_max" value="{{ pct_aumento_max }}">
       <div class="mb-3">
         <button type="submit" class="rounded-xl bg-emerald-700 text-white font-black px-5 py-3 text-base hover:bg-emerald-800">
           Aprovar selecionados
@@ -45,6 +61,8 @@
             <tr>
               <th></th>
               <th>Cliente</th>
+              <th class="text-right">Saldo fiado</th>
+              <th>Situação</th>
               <th class="text-right">Limite atual</th>
               <th class="text-right">Limite sugerido</th>
               <th class="text-right">Novo limite</th>
@@ -61,6 +79,8 @@
                 <input type="checkbox" name="cliente_pk" value="{{ r.cliente_pk }}" class="w-5 h-5" aria-label="Marcar {{ r.cliente_nome }}">
               </td>
               <td class="font-black">{{ r.cliente_nome }}</td>
+              <td class="text-right font-bold tabular-nums">{{ r.saldo_fiado|floatformat:2 }}</td>
+              <td class="font-semibold {% if r.tem_vencido_atual %}text-red-700{% else %}text-emerald-900{% endif %}">{{ r.situacao_label }}</td>
               <td class="text-right font-bold tabular-nums">{{ r.limite_atual|floatformat:2 }}</td>
               <td class="text-right tabular-nums">{{ r.limite_sugerido|floatformat:2 }}</td>
               <td class="text-right font-black tabular-nums text-emerald-800">{{ r.novo_limite|floatformat:2 }}</td>
@@ -73,7 +93,7 @@
               </td>
             </tr>
             {% empty %}
-            <tr><td colspan="9" class="py-8 text-center font-bold text-slate-500">Nenhum cliente apto agora.</td></tr>
+            <tr><td colspan="11" class="py-8 text-center font-bold text-slate-500">Nenhum cliente apto agora.</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -85,11 +105,13 @@
       {% csrf_token %}
       <input type="hidden" name="acao" value="aprovar">
       <input type="hidden" name="cliente_pk" value="{{ r.cliente_pk }}">
+      <input type="hidden" name="pct_aumento_max" value="{{ pct_aumento_max }}">
     </form>
     <form id="ignorar-{{ r.cliente_pk }}" method="post" class="hidden" onsubmit="return confirm('Ignorar este cliente nesta análise? O limite não muda.');">
       {% csrf_token %}
       <input type="hidden" name="acao" value="ignorar">
       <input type="hidden" name="cliente_pk" value="{{ r.cliente_pk }}">
+      <input type="hidden" name="pct_aumento_max" value="{{ pct_aumento_max }}">
     </form>
     {% endfor %}
   </div>

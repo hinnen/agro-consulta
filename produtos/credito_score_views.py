@@ -16,6 +16,7 @@ from produtos.credito_limite_revisao import (
     aprovar_limites_selecionados,
     ignorar_limite_cliente,
     listar_revisoes_limite,
+    normalizar_pct_aumento_max,
 )
 from produtos.credito_score_acesso_util import credito_score_shadow_required
 from produtos.credito_score_shadow import (
@@ -273,6 +274,65 @@ def _montar_xlsx_laboratorio(rows: list[dict]) -> bytes:
     return buf.getvalue()
 
 
+def _montar_xlsx_revisao_limite(rows: list[dict], *, pct_max: int) -> bytes:
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill
+    from openpyxl.utils import get_column_letter
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Revisao limite"
+    headers = [
+        ("ID cliente", "cliente_pk"),
+        ("Cliente", "cliente_nome"),
+        ("Saldo fiado (atual)", "saldo_fiado"),
+        ("Situação", "situacao_label"),
+        ("Limite atual", "limite_atual"),
+        ("Limite sugerido", "limite_sugerido"),
+        ("Novo limite", "novo_limite"),
+        ("Diferença", "diferenca"),
+        ("Score", "score"),
+        ("Confiança", "confianca_label"),
+        ("% teto aprovação", "pct_export"),
+    ]
+    fill_hdr = PatternFill("solid", fgColor="064E3B")
+    font_hdr = Font(bold=True, color="FFFFFF")
+    money_keys = {
+        "saldo_fiado",
+        "limite_atual",
+        "limite_sugerido",
+        "novo_limite",
+        "diferenca",
+    }
+
+    for col, (label, _key) in enumerate(headers, start=1):
+        cell = ws.cell(row=1, column=col, value=label)
+        cell.font = font_hdr
+        cell.fill = fill_hdr
+
+    for r_idx, row in enumerate(rows, start=2):
+        payload = {**row, "pct_export": pct_max}
+        for col, (_label, key) in enumerate(headers, start=1):
+            val = payload.get(key)
+            if key in money_keys:
+                val = _money_cell(val)
+            cell = ws.cell(row=r_idx, column=col, value=val if val != "" else None)
+            if key in money_keys:
+                cell.number_format = "#,##0.00"
+
+    for col in range(1, len(headers) + 1):
+        letter = get_column_letter(col)
+        ws.column_dimensions[letter].width = 16 if col > 2 else 14
+    ws.column_dimensions["B"].width = 36
+
+    ws.auto_filter.ref = f"A1:{get_column_letter(len(headers))}{max(1, len(rows) + 1)}"
+    ws.freeze_panes = "A2"
+
+    buf = BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
 @credito_score_shadow_required
 @require_http_methods(["GET", "POST"])
 def credito_score_laboratorio(request):
@@ -356,22 +416,44 @@ def _usuario_revisao(request) -> str:
     return ""
 
 
+def _pct_revisao_request(request) -> int:
+    if request.method == "POST":
+        raw = request.POST.get("pct_aumento_max")
+    else:
+        raw = request.GET.get("pct")
+    return normalizar_pct_aumento_max(raw)
+
+
+def _redirect_revisao_limite(pct_max: int):
+    from django.urls import reverse
+
+    base = reverse("credito_limite_revisao")
+    if pct_max != 20:
+        return redirect(f"{base}?pct={pct_max}")
+    return redirect("credito_limite_revisao")
+
+
 @credito_score_shadow_required
 @require_http_methods(["GET", "POST"])
 def credito_limite_revisao(request):
     """Lista aptos e aplica limite só com Aprovar, via definir_limite_fiado_cliente."""
+    pct_max = _pct_revisao_request(request)
     if request.method == "POST":
         acao = (request.POST.get("acao") or "").strip()
         usuario = _usuario_revisao(request)
         if acao == "aprovar":
             pk = (request.POST.get("cliente_pk") or "").strip()
-            if pk.isdigit() and aprovar_limite_cliente(int(pk), usuario=usuario):
+            if pk.isdigit() and aprovar_limite_cliente(
+                int(pk), usuario=usuario, pct_max=pct_max
+            ):
                 messages.success(request, "Limite atualizado.")
             else:
                 messages.warning(request, "Este cliente não está mais apto.")
         elif acao == "ignorar":
             pk = (request.POST.get("cliente_pk") or "").strip()
-            if pk.isdigit() and ignorar_limite_cliente(int(pk), usuario=usuario):
+            if pk.isdigit() and ignorar_limite_cliente(
+                int(pk), usuario=usuario, pct_max=pct_max
+            ):
                 messages.success(request, "Cliente ignorado nesta análise.")
             else:
                 messages.warning(request, "Este cliente não está mais apto.")
@@ -383,18 +465,40 @@ def credito_limite_revisao(request):
             if not pks:
                 messages.warning(request, "Marque pelo menos um cliente.")
             else:
-                ok, pulados = aprovar_limites_selecionados(pks, usuario=usuario)
+                ok, pulados = aprovar_limites_selecionados(
+                    pks, usuario=usuario, pct_max=pct_max
+                )
                 messages.success(
                     request,
                     f"Aprovados: {ok}. Fora da lista: {pulados}.",
                 )
         else:
             return HttpResponseForbidden("Ação inválida.")
-        return redirect("credito_limite_revisao")
+        return _redirect_revisao_limite(pct_max)
 
-    linhas = listar_revisoes_limite()
+    linhas = listar_revisoes_limite(pct_max=pct_max)
     return render(
         request,
         "produtos/credito_limite_revisao.html",
-        {"linhas": linhas, "total": len(linhas)},
+        {
+            "linhas": linhas,
+            "total": len(linhas),
+            "pct_aumento_max": pct_max,
+        },
     )
+
+
+@credito_score_shadow_required
+@require_GET
+def credito_limite_revisao_export_xlsx(request):
+    pct_max = normalizar_pct_aumento_max(request.GET.get("pct"))
+    linhas = listar_revisoes_limite(pct_max=pct_max)
+    payload = _montar_xlsx_revisao_limite(linhas, pct_max=pct_max)
+    agora = timezone.localtime()
+    fname = f"revisao_limite_{agora.strftime('%Y%m%d_%H%M')}.xlsx"
+    resp = HttpResponse(
+        payload,
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    resp["Content-Disposition"] = f'attachment; filename="{fname}"'
+    return resp

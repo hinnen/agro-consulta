@@ -24,11 +24,30 @@ from produtos.models import (
     CreditoLimiteRevisaoDecisaoAgro,
 )
 
-_CAP_AUMENTO = Decimal("1.20")
+_PCT_AUMENTO_MIN = 20
+_PCT_AUMENTO_MAX = 100
+_PCT_AUMENTO_PADRAO = 20
 _CONFIANCA_OK = {
     ClienteAnaliseCreditoAgro.Confianca.MEDIA,
     ClienteAnaliseCreditoAgro.Confianca.ALTA,
 }
+
+
+def normalizar_pct_aumento_max(val) -> int:
+    """Teto de aumento por aprovação (20–100 %). Padrão 20."""
+    try:
+        if val is None or val == "":
+            n = _PCT_AUMENTO_PADRAO
+        else:
+            n = int(Decimal(str(val).replace(",", ".")).quantize(Decimal("1")))
+    except Exception:
+        n = _PCT_AUMENTO_PADRAO
+    return max(_PCT_AUMENTO_MIN, min(_PCT_AUMENTO_MAX, n))
+
+
+def _cap_multiplier(pct_max: int) -> Decimal:
+    pct = normalizar_pct_aumento_max(pct_max)
+    return (Decimal("1") + Decimal(pct) / Decimal("100")).quantize(Decimal("0.0001"))
 
 
 def _q2(val) -> Decimal:
@@ -40,11 +59,14 @@ def _q2(val) -> Decimal:
         return Decimal("0.00")
 
 
-def novo_limite_aplicavel(limite_atual, limite_sugerido) -> Decimal:
-    """Teto de +20% sobre o atual. Redução segue o sugerido."""
+def novo_limite_aplicavel(limite_atual, limite_sugerido, *, pct_max: int = _PCT_AUMENTO_PADRAO) -> Decimal:
+    """Teto de +pct_max % sobre o atual. Redução segue o sugerido."""
     atual = _q2(limite_atual)
     sugerido = _q2(limite_sugerido)
-    teto = (atual * _CAP_AUMENTO).quantize(_Q2, rounding=ROUND_HALF_UP)
+    if sugerido <= atual:
+        return sugerido
+    mult = _cap_multiplier(pct_max)
+    teto = (atual * mult).quantize(_Q2, rounding=ROUND_HALF_UP)
     return min(sugerido, teto)
 
 
@@ -60,7 +82,12 @@ def _ultimo_snapshot_por_cliente() -> dict[int, ClienteAnaliseCreditoAgro]:
     return vistos
 
 
-def _apto(snap: ClienteAnaliseCreditoAgro, limite_atual: Decimal) -> bool:
+def _apto(
+    snap: ClienteAnaliseCreditoAgro,
+    limite_atual: Decimal,
+    *,
+    pct_max: int = _PCT_AUMENTO_PADRAO,
+) -> bool:
     if snap.score is None:
         return False
     if snap.tem_vencido_snapshot:
@@ -84,11 +111,30 @@ def _apto(snap: ClienteAnaliseCreditoAgro, limite_atual: Decimal) -> bool:
     sugerido = _q2(snap.limite_sugerido)
     if sugerido == limite_atual:
         return False
-    novo = novo_limite_aplicavel(limite_atual, sugerido)
+    novo = novo_limite_aplicavel(limite_atual, sugerido, pct_max=pct_max)
     return novo != limite_atual
 
 
-def listar_revisoes_limite() -> list[dict]:
+def _situacao_fiado_cliente(cliente_pk: int) -> tuple[Decimal, str, bool]:
+    from produtos.fiado_credito_util import resumo_credito_fiado_cliente
+
+    try:
+        cred = resumo_credito_fiado_cliente(cliente_agro_pk=int(cliente_pk))
+    except Exception:
+        return Decimal("0.00"), "—", False
+    usado = _q2(cred.get("usado"))
+    tem_vencido = bool(cred.get("tem_vencido"))
+    if tem_vencido:
+        label = "Com vencidas"
+    elif usado > Decimal("0.009"):
+        label = "Em dia"
+    else:
+        label = "Sem saldo aberto"
+    return usado, label, tem_vencido
+
+
+def listar_revisoes_limite(pct_max: int = _PCT_AUMENTO_PADRAO) -> list[dict]:
+    pct_max = normalizar_pct_aumento_max(pct_max)
     snaps = _ultimo_snapshot_por_cliente()
     if not snaps:
         return []
@@ -102,15 +148,19 @@ def listar_revisoes_limite() -> list[dict]:
         if snap.pk in decididos:
             continue
         atual = _limite_efetivo_local(_q2(getattr(snap.cliente, "limite_fiado_local", 0)))
-        if not _apto(snap, atual):
+        if not _apto(snap, atual, pct_max=pct_max):
             continue
         sugerido = _q2(snap.limite_sugerido)
-        novo = novo_limite_aplicavel(atual, sugerido)
+        novo = novo_limite_aplicavel(atual, sugerido, pct_max=pct_max)
+        saldo_fiado, situacao_label, tem_vencido_atual = _situacao_fiado_cliente(cliente_id)
         linhas.append(
             {
                 "cliente_pk": cliente_id,
                 "analise_id": snap.pk,
                 "cliente_nome": (snap.cliente.nome if snap.cliente_id else "") or "—",
+                "saldo_fiado": saldo_fiado,
+                "situacao_label": situacao_label,
+                "tem_vencido_atual": tem_vencido_atual,
                 "limite_atual": atual,
                 "limite_sugerido": sugerido,
                 "novo_limite": novo,
@@ -124,7 +174,12 @@ def listar_revisoes_limite() -> list[dict]:
     return linhas
 
 
-def _snap_apto_vivo(cliente_pk: int) -> tuple[ClienteAnaliseCreditoAgro, Decimal, Decimal] | None:
+def _snap_apto_vivo(
+    cliente_pk: int,
+    *,
+    pct_max: int = _PCT_AUMENTO_PADRAO,
+) -> tuple[ClienteAnaliseCreditoAgro, Decimal, Decimal] | None:
+    pct_max = normalizar_pct_aumento_max(pct_max)
     snap = (
         ClienteAnaliseCreditoAgro.objects.select_related("cliente")
         .filter(cliente_id=cliente_pk)
@@ -136,15 +191,20 @@ def _snap_apto_vivo(cliente_pk: int) -> tuple[ClienteAnaliseCreditoAgro, Decimal
     if CreditoLimiteRevisaoDecisaoAgro.objects.filter(analise_id=snap.pk).exists():
         return None
     atual = _limite_efetivo_local(_q2(snap.cliente.limite_fiado_local))
-    if not _apto(snap, atual):
+    if not _apto(snap, atual, pct_max=pct_max):
         return None
-    novo = novo_limite_aplicavel(atual, snap.limite_sugerido)
+    novo = novo_limite_aplicavel(atual, snap.limite_sugerido, pct_max=pct_max)
     return snap, atual, novo
 
 
 @transaction.atomic
-def aprovar_limite_cliente(cliente_pk: int, *, usuario: str = "") -> bool:
-    achado = _snap_apto_vivo(int(cliente_pk))
+def aprovar_limite_cliente(
+    cliente_pk: int,
+    *,
+    usuario: str = "",
+    pct_max: int = _PCT_AUMENTO_PADRAO,
+) -> bool:
+    achado = _snap_apto_vivo(int(cliente_pk), pct_max=pct_max)
     if achado is None:
         return False
     snap, atual, novo = achado
@@ -161,8 +221,13 @@ def aprovar_limite_cliente(cliente_pk: int, *, usuario: str = "") -> bool:
 
 
 @transaction.atomic
-def ignorar_limite_cliente(cliente_pk: int, *, usuario: str = "") -> bool:
-    achado = _snap_apto_vivo(int(cliente_pk))
+def ignorar_limite_cliente(
+    cliente_pk: int,
+    *,
+    usuario: str = "",
+    pct_max: int = _PCT_AUMENTO_PADRAO,
+) -> bool:
+    achado = _snap_apto_vivo(int(cliente_pk), pct_max=pct_max)
     if achado is None:
         return False
     snap, atual, _novo = achado
@@ -181,11 +246,16 @@ def ignorar_limite_cliente(cliente_pk: int, *, usuario: str = "") -> bool:
     return True
 
 
-def aprovar_limites_selecionados(cliente_pks: list[int], *, usuario: str = "") -> tuple[int, int]:
+def aprovar_limites_selecionados(
+    cliente_pks: list[int],
+    *,
+    usuario: str = "",
+    pct_max: int = _PCT_AUMENTO_PADRAO,
+) -> tuple[int, int]:
     ok = 0
     pulados = 0
     for pk in cliente_pks:
-        if aprovar_limite_cliente(int(pk), usuario=usuario):
+        if aprovar_limite_cliente(int(pk), usuario=usuario, pct_max=pct_max):
             ok += 1
         else:
             pulados += 1

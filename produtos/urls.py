@@ -765,6 +765,11 @@ urlpatterns = [
         name='credito_limite_revisao',
     ),
     path(
+        'fiado/analise-credito/revisar-limites/export-xlsx/',
+        credito_score_views.credito_limite_revisao_export_xlsx,
+        name='credito_limite_revisao_export_xlsx',
+    ),
+    path(
         'fiado/analise-credito/cliente/<int:pk>/',
         credito_score_views.credito_score_cliente_detalhe,
         name='credito_score_cliente_detalhe',
