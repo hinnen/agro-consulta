@@ -3253,6 +3253,12 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             classes_vet=payload.get("classes_vet"),
             payload_tem_classes=True,
         )
+    if "especies_vet" in payload:
+        aplicar_palavras_e_classes_em_extras(
+            ex,
+            especies_vet=payload.get("especies_vet"),
+            payload_tem_especies=True,
+        )
     ov.cadastro_extras = ex
 
     if db is not None and client is not None and somente_agro_overlay and isinstance(ex.get("fiscal"), dict):
@@ -3350,6 +3356,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         if (
             "palavras_chave" in payload
             or "classes_vet" in payload
+            or "especies_vet" in payload
             or "descricao" in payload
         ):
             try:
@@ -25422,11 +25429,12 @@ def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
 
     from produtos.medicamento_vet_taxonomia import ler_busca_de_cadastro_extras
 
-    pk_busca, cv_busca = ler_busca_de_cadastro_extras(ce_ov or {})
+    pk_busca, cv_busca, ev_busca = ler_busca_de_cadastro_extras(ce_ov or {})
     if not pk_busca and ov_det and str(ov_det.descricao or "").strip():
         pk_busca = str(ov_det.descricao).strip()
     row["palavras_chave"] = pk_busca
     row["classes_vet"] = cv_busca
+    row["especies_vet"] = ev_busca
 
     return row
 
