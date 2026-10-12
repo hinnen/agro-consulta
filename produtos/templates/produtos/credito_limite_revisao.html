@@ -1,79 +1,198 @@
 <!DOCTYPE html>
-<html lang="pt-br" class="h-full">
+<html lang="pt-br" class="h-full overflow-hidden">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
   <title>Revisar alterações de limite | GM Agro</title>
   <script src="https://cdn.tailwindcss.com"></script>
   {% include "produtos/_agro_consulta_ui.html" %}
   <style>
-    body { font-family: system-ui, sans-serif; }
-    .rev-table th, .rev-table td { padding: 0.55rem 0.6rem; font-size: 1rem; }
+    html, body { height: 100%; }
+    body {
+      font-family: system-ui, sans-serif;
+      font-size: clamp(15px, 0.32vw + 14px, 17px);
+      min-height: 100dvh;
+      max-height: 100dvh;
+    }
+    .rev-shell { width: 100%; max-width: min(110rem, 100%); }
+    .rev-table { border-collapse: separate; border-spacing: 0; min-width: 72rem; }
+    .rev-table th, .rev-table td {
+      padding: 0.45rem 0.5rem;
+      font-size: clamp(0.88rem, 0.2vw + 0.82rem, 1rem);
+      vertical-align: middle;
+    }
+    .rev-table th { white-space: nowrap; }
+    .rev-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.08);
+    }
+    tbody tr:nth-child(even) { background: #f8fafc; }
+    tbody tr:hover { background: #ecfdf5; }
+    tbody tr.row-vencido { background: #fef2f2; }
+    tbody tr.row-vencido:hover { background: #fee2e2; }
+    .limite-manual-input {
+      width: 7.25rem;
+      max-width: 100%;
+      font-size: clamp(0.95rem, 0.25vw + 0.9rem, 1.05rem);
+    }
+    .limite-manual-input.limite-invalido {
+      border-color: #dc2626 !important;
+      background: #fef2f2;
+    }
+    .rev-help summary { cursor: pointer; list-style: none; }
+    .rev-help summary::-webkit-details-marker { display: none; }
+    .badge-sit {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      border-radius: 0.45rem;
+      font-weight: 800;
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+    .btn-row {
+      min-height: 2.5rem;
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+    }
   </style>
 </head>
-<body class="min-h-dvh bg-slate-100 text-slate-900">
-  <div class="max-w-[110rem] mx-auto px-3 py-4">
-    <header class="mb-4 flex flex-wrap items-start justify-between gap-3">
-      <div>
+<body class="bg-slate-100 text-slate-900 flex flex-col overflow-hidden">
+  <div class="rev-shell mx-auto px-2 sm:px-3 py-2 sm:py-3 flex flex-col flex-1 min-h-0 w-full">
+    <header class="shrink-0 mb-2 flex flex-wrap items-start justify-between gap-2 sm:gap-3">
+      <div class="min-w-0 flex-1">
         <a href="{% url 'credito_score_laboratorio' %}" class="text-sm font-black text-emerald-800 underline">← Análise de crédito</a>
-        <h1 class="text-2xl font-black text-emerald-900 mt-1">Revisar alterações de limite</h1>
-        <p class="text-sm font-semibold text-orange-700">Aumento máximo de 20% por aprovação. Não desbloqueia R$ 0,01.</p>
+        <h1 class="text-xl sm:text-2xl font-black text-emerald-900 mt-0.5 leading-tight">Revisar alterações de limite</h1>
+        <p class="text-xs sm:text-sm font-semibold text-slate-600 mt-0.5">
+          Ajuste o limite a aplicar e aprove só quem conferir. Teto atual: <strong class="text-emerald-900">{{ pct_aumento_max }}%</strong> por aprovação.
+        </p>
+        <details class="rev-help mt-1">
+          <summary class="text-xs font-black text-orange-800 underline">Ajuda rápida</summary>
+          <p class="mt-1 text-xs font-semibold text-slate-600 max-w-3xl leading-relaxed">
+            O campo <strong>Limite a aplicar</strong> vem pré-preenchido (sugerido + teto da %). Você pode editar antes de aprovar.
+            Aumento acima do teto da % não é aceito. Não desbloqueia limite <strong>R$ 0,01</strong>.
+            <strong>Excel ↓</strong> exporta os valores que estão na tela.
+          </p>
+        </details>
       </div>
+      <form method="get" class="shrink-0 flex flex-wrap items-end gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm">
+        <label class="block">
+          <span class="text-xs font-black uppercase text-slate-600">% máx.</span>
+          <input type="number" name="pct" min="20" max="100" step="1" value="{{ pct_aumento_max }}"
+            class="mt-0.5 w-[4.5rem] sm:w-24 rounded-lg border-2 border-slate-300 px-2 py-2 text-lg font-black tabular-nums"
+            aria-label="Percentual máximo de aumento por aprovação">
+        </label>
+        <button type="submit" class="rounded-lg bg-slate-800 text-white font-black px-3 sm:px-4 py-2 text-sm hover:bg-slate-900 min-h-[2.75rem]">
+          Aplicar %
+        </button>
+      </form>
     </header>
 
     {% if messages %}
-    <ul class="mb-3 space-y-1">
+    <ul class="shrink-0 mb-2 space-y-1">
       {% for m in messages %}
       <li class="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-sm font-semibold text-emerald-900">{{ m }}</li>
       {% endfor %}
     </ul>
     {% endif %}
 
-    <p class="text-sm font-black text-slate-600 mb-2">{{ total }} cliente(s) apto(s)</p>
-
-    <form method="post" id="form-lote" onsubmit="return confirm('Aprovar os clientes marcados? O limite real muda agora.');">
+    <form method="post" id="form-lote" class="flex flex-col flex-1 min-h-0" onsubmit="return window.revLimiteConfirmarLote && window.revLimiteConfirmarLote();">
       {% csrf_token %}
       <input type="hidden" name="acao" value="aprovar_selecionados">
-      <div class="mb-3">
-        <button type="submit" class="rounded-xl bg-emerald-700 text-white font-black px-5 py-3 text-base hover:bg-emerald-800">
+      <input type="hidden" name="pct_aumento_max" value="{{ pct_aumento_max }}">
+
+      <div class="shrink-0 mb-2 flex flex-wrap items-center gap-2 sm:gap-3 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm">
+        <p class="text-sm font-black text-slate-700 tabular-nums">
+          <span id="rev-total-aptos">{{ total }}</span> apto(s)
+          <span class="text-slate-400 font-bold">·</span>
+          <span id="rev-selecionados" class="text-emerald-800">0 marcados</span>
+        </p>
+        <button type="button" id="btn-marcar-todos" class="rounded-lg border-2 border-slate-300 bg-slate-50 text-slate-900 font-black px-3 py-2 text-sm min-h-[2.5rem] hover:bg-slate-100">
+          Marcar todos
+        </button>
+        <button type="submit" class="rounded-xl bg-emerald-700 text-white font-black px-4 sm:px-5 py-2.5 text-sm sm:text-base hover:bg-emerald-800 min-h-[2.75rem]">
           Aprovar selecionados
         </button>
+        <button type="button" id="btn-excel-export"
+          data-export-base="{% url 'credito_limite_revisao_export_xlsx' %}"
+          data-pct="{{ pct_aumento_max }}"
+          class="rounded-xl bg-amber-500 text-white font-black px-4 py-2.5 text-sm hover:bg-amber-600 min-h-[2.75rem]"
+          title="Baixa Excel com os limites da tela">
+          Excel ↓
+        </button>
       </div>
-      <div class="overflow-auto bg-white border border-slate-200 rounded-xl shadow-sm max-h-[72dvh]">
+
+      <div class="flex-1 min-h-0 overflow-auto bg-white border border-slate-200 rounded-xl shadow-sm">
         <table class="rev-table w-full text-left">
-          <thead class="sticky top-0 bg-slate-800 text-white text-xs uppercase">
+          <thead class="bg-slate-800 text-white text-[0.7rem] sm:text-xs uppercase">
             <tr>
-              <th></th>
-              <th>Cliente</th>
-              <th class="text-right">Limite atual</th>
-              <th class="text-right">Limite sugerido</th>
-              <th class="text-right">Novo limite</th>
-              <th>Score</th>
-              <th>Confiança</th>
-              <th class="text-right">Diferença</th>
-              <th></th>
+              <th class="w-10 text-center">
+                <input type="checkbox" id="chk-todos" class="w-5 h-5" aria-label="Marcar todos os clientes" title="Marcar todos">
+              </th>
+              <th class="min-w-[9rem]">Cliente</th>
+              <th class="text-right">Saldo fiado</th>
+              <th class="text-right">Vencido</th>
+              <th>Situação</th>
+              <th class="text-right">Atual</th>
+              <th class="text-right">Sugerido</th>
+              <th class="text-right bg-emerald-900/40">A aplicar</th>
+              <th class="text-center">Score</th>
+              <th>Conf.</th>
+              <th class="text-right">Dif.</th>
+              <th class="text-right min-w-[10.5rem]">Ações</th>
             </tr>
           </thead>
           <tbody>
             {% for r in linhas %}
-            <tr class="border-t border-slate-100">
-              <td>
-                <input type="checkbox" name="cliente_pk" value="{{ r.cliente_pk }}" class="w-5 h-5" aria-label="Marcar {{ r.cliente_nome }}">
+            <tr class="border-t border-slate-100 {% if r.tem_vencido_atual %}row-vencido{% endif %}"
+              data-limite-atual="{{ r.limite_atual }}"
+              data-teto="{{ r.teto_limite }}">
+              <td class="text-center">
+                <input type="checkbox" name="cliente_pk" value="{{ r.cliente_pk }}" class="chk-cliente w-5 h-5" aria-label="Marcar {{ r.cliente_nome }}">
               </td>
-              <td class="font-black">{{ r.cliente_nome }}</td>
-              <td class="text-right font-bold tabular-nums">{{ r.limite_atual|floatformat:2 }}</td>
-              <td class="text-right tabular-nums">{{ r.limite_sugerido|floatformat:2 }}</td>
-              <td class="text-right font-black tabular-nums text-emerald-800">{{ r.novo_limite|floatformat:2 }}</td>
-              <td class="font-black tabular-nums">{{ r.score }}</td>
-              <td class="font-semibold">{{ r.confianca_label }}</td>
-              <td class="text-right font-black tabular-nums {% if r.diferenca > 0 %}text-emerald-800{% else %}text-orange-800{% endif %}">{{ r.diferenca|floatformat:2 }}</td>
-              <td class="whitespace-nowrap">
-                <button type="submit" form="aprovar-{{ r.cliente_pk }}" class="rounded-lg bg-emerald-700 text-white font-black px-3 py-2 text-sm">Aprovar</button>
-                <button type="submit" form="ignorar-{{ r.cliente_pk }}" class="rounded-lg bg-slate-200 text-slate-900 font-black px-3 py-2 text-sm ml-1">Ignorar</button>
+              <td class="font-black max-w-[14rem]">
+                <a href="{% url 'credito_score_cliente_detalhe' r.cliente_pk %}" class="text-emerald-800 underline decoration-emerald-300 hover:text-emerald-950 break-words">
+                  {{ r.cliente_nome }}
+                </a>
+              </td>
+              <td class="text-right font-bold tabular-nums whitespace-nowrap">{{ r.saldo_fiado|floatformat:2 }}</td>
+              <td class="text-right font-bold tabular-nums whitespace-nowrap {% if r.tem_vencido_atual %}text-red-700{% else %}text-slate-500{% endif %}">{{ r.saldo_vencido|floatformat:2 }}</td>
+              <td>
+                {% if r.tem_vencido_atual %}
+                <span class="badge-sit bg-red-100 text-red-800">Vencido</span>
+                {% else %}
+                <span class="badge-sit bg-emerald-100 text-emerald-900">Em dia</span>
+                {% endif %}
+              </td>
+              <td class="text-right font-bold tabular-nums whitespace-nowrap">{{ r.limite_atual|floatformat:2 }}</td>
+              <td class="text-right tabular-nums whitespace-nowrap text-slate-600">{{ r.limite_sugerido|floatformat:2 }}</td>
+              <td class="text-right bg-emerald-50/80">
+                <input type="text" inputmode="decimal" autocomplete="off"
+                  name="limite_manual_{{ r.cliente_pk }}"
+                  class="limite-manual-input rounded-lg border-2 border-emerald-600 px-2 py-1.5 text-right font-black tabular-nums text-emerald-900"
+                  value="{{ r.novo_limite|floatformat:2 }}"
+                  aria-label="Limite a aplicar para {{ r.cliente_nome }}"
+                  title="Teto +{{ pct_aumento_max }}%: até {{ r.teto_limite|floatformat:2 }}"
+                  data-pk="{{ r.cliente_pk }}">
+              </td>
+              <td class="text-center font-black tabular-nums">{{ r.score }}</td>
+              <td class="font-semibold text-sm whitespace-nowrap">{{ r.confianca_label }}</td>
+              <td class="text-right font-black tabular-nums whitespace-nowrap diff-cell {% if r.diferenca > 0 %}text-emerald-800{% else %}text-orange-800{% endif %}">{{ r.diferenca|floatformat:2 }}</td>
+              <td class="text-right whitespace-nowrap">
+                <button type="button" class="btn-aprovar-um btn-row rounded-lg bg-emerald-700 text-white font-black text-sm hover:bg-emerald-800" data-pk="{{ r.cliente_pk }}">Aprovar</button>
+                <button type="submit" form="ignorar-{{ r.cliente_pk }}" class="btn-row rounded-lg bg-slate-200 text-slate-900 font-black text-sm ml-1 hover:bg-slate-300">Ignorar</button>
               </td>
             </tr>
             {% empty %}
-            <tr><td colspan="9" class="py-8 text-center font-bold text-slate-500">Nenhum cliente apto agora.</td></tr>
+            <tr>
+              <td colspan="12" class="py-12 text-center">
+                <p class="font-black text-slate-600 text-lg">Nenhum cliente apto agora.</p>
+                <p class="text-sm font-semibold text-slate-500 mt-2">Volte ao laboratório, recalcule as análises ou ajuste a % máxima.</p>
+                <a href="{% url 'credito_score_laboratorio' %}" class="inline-block mt-4 rounded-xl bg-emerald-700 text-white font-black px-5 py-3 hover:bg-emerald-800">Análise de crédito</a>
+              </td>
+            </tr>
             {% endfor %}
           </tbody>
         </table>
@@ -81,17 +200,170 @@
     </form>
 
     {% for r in linhas %}
-    <form id="aprovar-{{ r.cliente_pk }}" method="post" class="hidden" onsubmit="return confirm('Aplicar o novo limite deste cliente?');">
+    <form id="aprovar-{{ r.cliente_pk }}" method="post" class="hidden">
       {% csrf_token %}
       <input type="hidden" name="acao" value="aprovar">
       <input type="hidden" name="cliente_pk" value="{{ r.cliente_pk }}">
+      <input type="hidden" name="pct_aumento_max" value="{{ pct_aumento_max }}">
+      <input type="hidden" name="limite_manual" value="">
     </form>
     <form id="ignorar-{{ r.cliente_pk }}" method="post" class="hidden" onsubmit="return confirm('Ignorar este cliente nesta análise? O limite não muda.');">
       {% csrf_token %}
       <input type="hidden" name="acao" value="ignorar">
       <input type="hidden" name="cliente_pk" value="{{ r.cliente_pk }}">
+      <input type="hidden" name="pct_aumento_max" value="{{ pct_aumento_max }}">
     </form>
     {% endfor %}
   </div>
+  <script>
+    (function () {
+      var LIMITE_BLOQUEIO = 0.01;
+
+      function parseBrNum(s) {
+        if (!s) return NaN;
+        var t = String(s).trim().replace(/\s/g, '');
+        if (t.indexOf(',') >= 0) {
+          t = t.replace(/\./g, '').replace(',', '.');
+        }
+        return parseFloat(t);
+      }
+      function fmtBr(n) {
+        if (!isFinite(n)) return '—';
+        return n.toFixed(2).replace('.', ',');
+      }
+      function rowEl(el) {
+        return el && el.closest ? el.closest('tr[data-limite-atual]') : null;
+      }
+      function validarLinha(row, silent) {
+        if (!row) return { ok: false, msg: 'Linha inválida.' };
+        var inp = row.querySelector('.limite-manual-input');
+        var atual = parseBrNum(row.getAttribute('data-limite-atual'));
+        var teto = parseBrNum(row.getAttribute('data-teto'));
+        var novo = parseBrNum(inp && inp.value);
+        if (!isFinite(novo) || novo < 0) {
+          if (!silent && inp) inp.classList.add('limite-invalido');
+          return { ok: false, msg: 'Informe um limite válido.' };
+        }
+        if (Math.abs(novo - LIMITE_BLOQUEIO) < 0.001) {
+          if (!silent && inp) inp.classList.add('limite-invalido');
+          return { ok: false, msg: 'Não é permitido usar R$ 0,01 (bloqueio).' };
+        }
+        if (isFinite(atual) && Math.abs(novo - atual) < 0.001) {
+          if (!silent && inp) inp.classList.add('limite-invalido');
+          return { ok: false, msg: 'O limite precisa ser diferente do atual.' };
+        }
+        if (isFinite(atual) && isFinite(teto) && novo > atual && novo > teto + 0.001) {
+          if (!silent && inp) inp.classList.add('limite-invalido');
+          return { ok: false, msg: 'Acima do teto de +' + (document.querySelector('[name="pct_aumento_max"]')?.value || '') + '% (máx. ' + fmtBr(teto) + ').' };
+        }
+        if (inp) inp.classList.remove('limite-invalido');
+        return { ok: true, msg: '' };
+      }
+      function atualizarDiff(row) {
+        var inp = row.querySelector('.limite-manual-input');
+        var atual = parseBrNum(row.getAttribute('data-limite-atual'));
+        var novo = parseBrNum(inp && inp.value);
+        var cell = row.querySelector('.diff-cell');
+        if (!cell || !isFinite(atual) || !isFinite(novo)) return;
+        var d = novo - atual;
+        cell.textContent = fmtBr(d);
+        cell.classList.toggle('text-emerald-800', d > 0.001);
+        cell.classList.toggle('text-orange-800', d <= 0.001);
+        validarLinha(row, true);
+      }
+      function atualizarContagem() {
+        var n = document.querySelectorAll('.chk-cliente:checked').length;
+        var el = document.getElementById('rev-selecionados');
+        if (el) el.textContent = n + ' marcado' + (n === 1 ? '' : 's');
+        var todos = document.getElementById('chk-todos');
+        var total = document.querySelectorAll('.chk-cliente').length;
+        if (todos && total) todos.checked = n > 0 && n === total;
+      }
+
+      document.querySelectorAll('tr[data-limite-atual]').forEach(function (row) {
+        var inp = row.querySelector('.limite-manual-input');
+        if (inp) {
+          inp.addEventListener('input', function () { atualizarDiff(row); });
+          inp.addEventListener('blur', function () { validarLinha(row, false); });
+        }
+      });
+
+      var chkTodos = document.getElementById('chk-todos');
+      if (chkTodos) {
+        chkTodos.addEventListener('change', function () {
+          var on = chkTodos.checked;
+          document.querySelectorAll('.chk-cliente').forEach(function (c) { c.checked = on; });
+          atualizarContagem();
+        });
+      }
+      document.querySelectorAll('.chk-cliente').forEach(function (c) {
+        c.addEventListener('change', atualizarContagem);
+      });
+      atualizarContagem();
+
+      var btnMarcar = document.getElementById('btn-marcar-todos');
+      if (btnMarcar) {
+        btnMarcar.addEventListener('click', function () {
+          var boxes = document.querySelectorAll('.chk-cliente');
+          var algumOff = false;
+          boxes.forEach(function (c) { if (!c.checked) algumOff = true; });
+          boxes.forEach(function (c) { c.checked = algumOff; });
+          atualizarContagem();
+        });
+      }
+
+      window.revLimiteConfirmarLote = function () {
+        var marcados = document.querySelectorAll('.chk-cliente:checked');
+        if (!marcados.length) {
+          alert('Marque pelo menos um cliente.');
+          return false;
+        }
+        for (var i = 0; i < marcados.length; i++) {
+          var row = rowEl(marcados[i]);
+          var v = validarLinha(row, false);
+          if (!v.ok) {
+            alert(v.msg);
+            if (row) row.querySelector('.limite-manual-input')?.focus();
+            return false;
+          }
+        }
+        return confirm('Aprovar ' + marcados.length + ' cliente(s)? O limite real muda agora.');
+      };
+
+      var btnExcel = document.getElementById('btn-excel-export');
+      if (btnExcel) {
+        btnExcel.addEventListener('click', function () {
+          var base = btnExcel.getAttribute('data-export-base') || '';
+          var pct = btnExcel.getAttribute('data-pct') || '20';
+          var params = new URLSearchParams();
+          params.set('pct', pct);
+          document.querySelectorAll('.limite-manual-input').forEach(function (inp) {
+            if (inp.name) params.set(inp.name, inp.value);
+          });
+          window.location.href = base + '?' + params.toString();
+        });
+      }
+
+      document.querySelectorAll('.btn-aprovar-um').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var pk = btn.getAttribute('data-pk');
+          if (!pk) return;
+          var vis = document.querySelector('input[name="limite_manual_' + pk + '"]');
+          var row = rowEl(vis);
+          var v = validarLinha(row, false);
+          if (!v.ok) {
+            alert(v.msg);
+            vis && vis.focus();
+            return;
+          }
+          if (!confirm('Aplicar o limite ' + (vis ? vis.value : '') + ' neste cliente?')) return;
+          var form = document.getElementById('aprovar-' + pk);
+          if (!vis || !form) return;
+          form.querySelector('input[name="limite_manual"]').value = vis.value;
+          form.submit();
+        });
+      });
+    })();
+  </script>
 </body>
 </html>
