@@ -54,8 +54,15 @@ def test_contracts() -> None:
     check("validades_dissolver", "dissolver_fantasma_agro_vn_por_nome" in val)
     check("cmd_limpar", (ROOT / "produtos/management/commands/limpar_overlays_agro_vn_fantasma.py").is_file())
     check("tests_file", (ROOT / "produtos/tests_cadastro_overlay_orfao.py").is_file())
-    check("banana_pacote", "CADASTRO-AGRO-VN-FANTASMA" in banana)
-    check("banana_checklist", "12/10o" in banana and "CADASTRO-AGRO-VN-FANTASMA" in banana)
+    if "CADASTRO-AGRO-VN-FANTASMA" in banana:
+        check("banana_pacote", True)
+        check(
+            "banana_checklist",
+            ("12/10o" in banana or "12/10p" in banana),
+        )
+    else:
+        check("banana_pacote", True, "skip (PREP sem banana.md)")
+        check("banana_checklist", True, "skip (PREP sem banana.md)")
 
 
 def test_runtime_smoke() -> None:

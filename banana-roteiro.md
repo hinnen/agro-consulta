@@ -965,3 +965,19 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **Live:** `producao` @ `f6a4fa31` · backup `producao-backup-pre-v2709-checklist-1210n-etq-cred`.  
 **Rollback 1+2:** `rollback/pre-checklist-1210n-v27.06-b539` → `b539c712`.  
 **Ctrl+F5:** GM etiquetas mobile · `/fiado/analise-credito/revisar-limites/`.
+
+---
+
+## 78. Checklist único — **12/10p** · 🟢 PREP **v27.10** · armado · aguarda senha
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CADASTRO-AGRO-VN-FANTASMA** | 🟢 PREP pronto | **NÃO** |
+| 2 | **MED-CLASSIFICACAO-SISVALE** | 🟢 PREP pronto | **NÃO** |
+| 3 | **CLIENTE-LISTA-DESC-PDV** | 🟢 PREP pronto | **SIM** `0145` |
+
+**Live antes:** **v27.09** @ `f6a4fa31`.  
+**PREP:** `deploy/prep-checklist-1210p` · dry-run `cutover_loja_checklist_1210p.sh` OK.  
+**Na senha:** `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → cutover `--exec` → `post_deploy_checklist_1210p.sh` → `limpar_overlays_agro_vn_fantasma`.  
+**Rollback:** tag `rollback/pre-checklist-1210p-v27.09-f6a4`.  
+**Cuidado PDV:** só % desconto no subtotal (`pdv_state.js`); CB-230 verificado no gate.
