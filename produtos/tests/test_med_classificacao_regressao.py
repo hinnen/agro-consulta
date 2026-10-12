@@ -1,11 +1,23 @@
 """Regressão MED-CLASSIFICACAO-SISVALE — persistência segura no overlay."""
 
+from pathlib import Path
+
 from produtos.medicamento_vet_taxonomia import (
     aplicar_palavras_e_classes_em_extras,
     ler_busca_de_cadastro_extras,
     montar_texto_busca_denormalizado,
     taxonomia_para_api,
 )
+
+
+def test_modal_cadastro_define_gv_antes_da_ui_medicamento():
+    """abrirModalProduto chama atualizarUISubcategoriaMedicamento, que usa gv()."""
+    modal = Path("produtos/templates/produtos/_modal_editar_produto_cadastro_erp.inc.html").read_text(
+        encoding="utf-8"
+    )
+    idx_gv = modal.find("function gv(id)")
+    idx_med = modal.find("function preencherSelectPrateleiraMed")
+    assert idx_gv >= 0 and idx_med >= 0 and idx_gv < idx_med
 
 
 def test_ler_busca_retorna_tres_valores():

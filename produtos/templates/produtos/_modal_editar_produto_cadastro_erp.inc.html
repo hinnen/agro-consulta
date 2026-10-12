@@ -1422,6 +1422,11 @@
     }
   }
 
+  function gv(id) {
+    var el = document.getElementById(id);
+    return el ? el.value : '';
+  }
+
   function setMoeda(id, v) {
     setVal(id, asMoedaInput(v));
   }

@@ -378,6 +378,14 @@
 
   function bindRow(mainTr, p) {
     var pid = String(p.id);
+    function abrirDrawerSeguro() {
+      try {
+        abrirDrawer(p);
+      } catch (eDrawer) {
+        console.error('gestao abrirDrawer', eDrawer);
+        showBan('Não foi possível abrir a edição. Recarregue a página (Ctrl+F5).');
+      }
+    }
     function findExp(kind) {
       return Array.prototype.find.call(listEl.querySelectorAll('tr[data-expand="' + kind + '"]'), function (r) {
         return r.getAttribute('data-pid') === pid;
@@ -393,7 +401,15 @@
       expandMm = expandMm === p.id ? null : p.id;
       carregar();
     });
-    mainTr.querySelector('[data-act="edit"]').addEventListener('click', function () { abrirDrawer(p); });
+    mainTr.querySelector('[data-act="edit"]').addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      abrirDrawerSeguro();
+    });
+    mainTr.addEventListener('click', function (e) {
+      if (e.target.closest('a, button, [data-act]')) return;
+      abrirDrawerSeguro();
+    });
     var ajR = findExp('aj');
     var mmR = findExp('mm');
     if (ajR) {
