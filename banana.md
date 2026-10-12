@@ -1312,6 +1312,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | **VILA-ABERTURA-0108** | ✅ **Live v27.06** | **NÃO** |
 | 2 | **VILA-DOMINGO-ZERO** | ✅ **Live v27.06** | **NÃO** |
 
+### 📦 PACOTE PRONTO — **ETQ-MOBILE-DOCK** (`CHECKLIST 11/10n` · 12/10)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **PRONTO envio produção** — `teste` (commit dock fixo) · loja Live **v27.06** |
+| **VERSION prep** | **v27.07** (sugestão) |
+| **O quê** | App celular `/vendas/lojas/etiquetas/` — **dock fixo** no rodapé: sacola (qtd ±) rola dentro do painel; **Enviar N etiquetas** sempre visível; busca/lista só na área de cima |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_etq_solicitacao_vl_pin_path.py` **32/32** (`mobile_dock_fixo`) |
+
+### ✅ CHECKLIST ÚNICO — 11/10n · 🟢 **PRONTO**
+
+| # | Pacote | Status | Nota |
+| - | ------ | ------ | ---- |
+| 1 | **ETQ-MOBILE-DOCK** | 🟢 pronto subir | validar no celular após deploy |
+
 ### ✅ Deploy loja — hotfix **SISTAPP-AJUSTE-SHELL** · **Live** · 11/10
 
 | Campo | Valor |
@@ -1366,11 +1382,6 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Backup** | `producao-backup-pre-v2700-checklist-1110j` @ `fd1cd028` |
 | **Rollback** | tag `rollback/pre-checklist-1110j-v26.99` @ `fd1cd028` |
-| **O quê** | (1) Desktop `/produtos/etiquetas/` — modal **Solicitações do celular** → **Adicionar todas na fila** (todos os pacotes pendentes → fila de impressão). (2) GM Lojas — **Instalar no celular** (PWA) + dicas iOS/Android/Zap. |
-| **Caminhos verificados** | Celular: `POST /api/vendas/lojas/etiquetas/solicitacoes/` (PIN sessão) → Postgres `EtiquetaSolicitacaoPacoteAgro` **pendente**. Desktop: `GET /api/produtos/etiquetas/solicitacoes/?status=pendente` · `POST …/<pk>/importar/` (login Django) · JS `postImportarSolicitacao` / `importarTodasSolicitacoesParaFila` (sequencial, até **80** pacotes por tela). |
-| **Prova estática** | `verify_etq_solicitacao_vl_pin_path.py` **31/31** (incl. bulk + `?v=35`) · `verify_vendas_lojas_pwa_install.py` **19/19** · `verify_gm_lojas_pin_runtime.py` rotas importar OK |
-| **Prova runtime loja** | PIN **9973** → hub GM Lojas + app celular etiquetas **OK** (11/10) · desktop etiquetas exige login Agro (validar no **PC local** após deploy) |
-| **Você** | Render Live → badge **v27.00** · Shell: `./scripts/post_deploy_checklist_1110j.sh` (opcional) · Ctrl+F5 opcional |
 
 ### ✅ CHECKLIST ÚNICO — 11/10j · ✅ **Live**
 

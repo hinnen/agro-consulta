@@ -21,11 +21,17 @@
       --safe-r: env(safe-area-inset-right, 0px);
     }
     * { box-sizing: border-box; }
-    html, body { margin: 0; min-height: 100dvh; background: var(--bg); color: var(--ink); font-family: Inter, system-ui, sans-serif; -webkit-text-size-adjust: 100%; }
+    html, body { margin: 0; height: 100dvh; max-height: 100dvh; overflow: hidden; background: var(--bg); color: var(--ink); font-family: Inter, system-ui, sans-serif; -webkit-text-size-adjust: 100%; }
     .shell {
-      min-height: 100dvh; max-width: 28rem; margin: 0 auto;
-      padding: max(0.75rem, var(--safe-t)) max(0.85rem, var(--safe-r)) max(0.85rem, var(--safe-b)) max(0.85rem, var(--safe-l));
-      display: flex; flex-direction: column; gap: 0.65rem;
+      height: 100dvh; max-height: 100dvh; max-width: 28rem; margin: 0 auto;
+      padding: max(0.75rem, var(--safe-t)) max(0.85rem, var(--safe-r)) 0 max(0.85rem, var(--safe-l));
+      display: flex; flex-direction: column; gap: 0.55rem; overflow: hidden;
+    }
+    .scroll-main {
+      flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
+      display: flex; flex-direction: column; gap: 0.55rem;
+      padding-bottom: 0.35rem;
+      -webkit-overflow-scrolling: touch;
     }
     .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
     .kicker { margin: 0; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
@@ -46,7 +52,7 @@
       font-size: 1rem; font-weight: 700; outline: none; background: #fff;
     }
     #busca:focus { border-color: var(--accent); }
-    #lista { flex: 1; overflow: auto; display: flex; flex-direction: column; gap: 0.45rem; min-height: 6rem; }
+    #lista { flex: 1; min-height: 4rem; display: flex; flex-direction: column; gap: 0.45rem; }
     .card-p {
       display: block; width: 100%; text-align: left; border: 2px solid var(--line); border-radius: 1rem;
       background: #fff; padding: 0.85rem 0.95rem; cursor: pointer;
@@ -55,11 +61,27 @@
     .card-p strong { display: block; font-size: 0.98rem; font-weight: 900; line-height: 1.25; }
     .card-p span { display: block; margin-top: 0.25rem; font-size: 0.78rem; font-weight: 700; color: var(--muted); }
     .hint { margin: 0; font-size: 0.8rem; font-weight: 700; color: var(--muted); text-align: center; padding: 1rem 0.5rem; }
+    .dock {
+      flex-shrink: 0;
+      border-top: 2px solid var(--line);
+      background: linear-gradient(to top, #fff 88%, rgba(248, 250, 252, 0.98));
+      padding: 0.55rem max(0.85rem, var(--safe-r)) max(0.65rem, var(--safe-b)) max(0.85rem, var(--safe-l));
+      margin: 0 max(-0.85rem, calc(-1 * var(--safe-l))) 0 max(-0.85rem, calc(-1 * var(--safe-l)));
+      box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.08);
+      display: flex; flex-direction: column; gap: 0.4rem;
+    }
     .sacola {
-      border: 2px solid var(--line); border-radius: 1rem; background: #fff; padding: 0.75rem;
-      display: flex; flex-direction: column; gap: 0.45rem;
+      display: flex; flex-direction: column; gap: 0.35rem; min-height: 0;
     }
     .sacola h2 { margin: 0; font-size: 0.72rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    #sacolaItens {
+      max-height: min(38dvh, 14rem);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      border: 2px solid var(--line); border-radius: 0.85rem; background: #fff; padding: 0.5rem 0.65rem;
+    }
+    #sacolaItens:empty { display: none; }
+    .sacola.vazia #sacolaItens { display: none; }
     .sacola-item {
       display: flex; align-items: center; gap: 0.45rem; border-top: 1px solid var(--line); padding-top: 0.45rem;
     }
@@ -87,37 +109,39 @@
       background: linear-gradient(to bottom, rgba(0,0,0,.75), transparent);
       color: #fff; font-weight: 900; font-size: 0.75rem; text-transform: uppercase;
     }
-    .enviar-wrap { position: sticky; bottom: 0; padding-top: 0.25rem; background: linear-gradient(to top, var(--bg) 70%, transparent); }
-    .btn-enviar { width: 100%; min-height: 3.5rem; border: 0; border-radius: 1rem; font-size: 1rem; font-weight: 900; text-transform: uppercase; }
+    .btn-enviar { width: 100%; min-height: 3.35rem; border: 0; border-radius: 1rem; font-size: 0.95rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.02em; }
     .btn-enviar:disabled { opacity: 0.45; }
+    .dock .status { min-height: 1rem; }
   </style>
 </head>
 <body>
   <div class="shell">
-    <div class="top">
-      <div>
-        <p class="kicker">GM Agro</p>
-        <h1 class="title">Pedir etiquetas</h1>
+    <div class="scroll-main">
+      <div class="top">
+        <div>
+          <p class="kicker">GM Agro</p>
+          <h1 class="title">Pedir etiquetas</h1>
+        </div>
+        <div class="ops">
+          <button type="button" class="btn btn-scan" id="btnScan">Bipar</button>
+          <a class="btn" href="{{ url_hub }}">Início</a>
+          <a class="btn" href="{{ url_sair }}">Sair</a>
+        </div>
       </div>
-      <div class="ops">
-        <button type="button" class="btn btn-scan" id="btnScan">Bipar</button>
-        <a class="btn" href="{{ url_hub }}">Início</a>
-        <a class="btn" href="{{ url_sair }}">Sair</a>
+      <p class="who">Operador: <strong>{{ operador }}</strong></p>
+
+      <div class="busca-row">
+        <input type="search" id="busca" placeholder="Nome, GM ou código…" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false">
       </div>
+      <div id="lista"><p class="hint">Carregando catálogo…</p></div>
     </div>
-    <p class="who">Operador: <strong>{{ operador }}</strong></p>
 
-    <div class="busca-row">
-      <input type="search" id="busca" placeholder="Nome, GM ou código…" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false">
-    </div>
-    <div id="lista"><p class="hint">Carregando catálogo…</p></div>
-
-    <div class="sacola" id="sacolaBox">
-      <h2>Sacola · <span id="sacolaTotal">0</span> etiqueta(s)</h2>
-      <div id="sacolaItens"><p class="hint" style="padding:0.25rem 0;">Adicione produtos da busca ou do bip.</p></div>
-    </div>
-    <p class="status" id="statusMsg"></p>
-    <div class="enviar-wrap">
+    <div class="dock" id="dockSacola">
+      <div class="sacola vazia" id="sacolaBox">
+        <h2>Sacola · <span id="sacolaTotal">0</span> etiqueta(s)</h2>
+        <div id="sacolaItens"></div>
+      </div>
+      <p class="status" id="statusMsg"></p>
       <button type="button" class="btn btn-accent btn-enviar" id="btnEnviar" disabled>Enviar para a loja</button>
     </div>
   </div>
@@ -154,15 +178,21 @@
       return sacola.reduce(function (s, it) { return s + (parseInt(it.qtd, 10) || 1); }, 0);
     }
     function renderSacola() {
-      document.getElementById("sacolaTotal").textContent = String(totalEtq());
+      var total = totalEtq();
+      document.getElementById("sacolaTotal").textContent = String(total);
       var box = document.getElementById("sacolaItens");
+      var sacolaBox = document.getElementById("sacolaBox");
       var btn = document.getElementById("btnEnviar");
       if (!sacola.length) {
-        box.innerHTML = '<p class="hint" style="padding:0.25rem 0;">Adicione produtos da busca ou do bip.</p>';
+        box.innerHTML = "";
+        if (sacolaBox) sacolaBox.classList.add("vazia");
         btn.disabled = true;
+        btn.textContent = "Enviar para a loja";
         return;
       }
+      if (sacolaBox) sacolaBox.classList.remove("vazia");
       btn.disabled = false;
+      btn.textContent = "Enviar " + total + " etiqueta" + (total === 1 ? "" : "s") + " para a loja";
       box.innerHTML = sacola.map(function (it, idx) {
         return '<div class="sacola-item" data-idx="' + idx + '">' +
           '<div class="nome">' + String(it.nome || it.id).replace(/</g, "&lt;") + '</div>' +
@@ -316,7 +346,7 @@
         }
         if (!res.ok || !j.ok) {
           setStatus(j.erro || "Não enviou.", true);
-          btn.disabled = false;
+          renderSacola();
           return;
         }
         sacola = [];
@@ -324,7 +354,7 @@
         setStatus("Enviado! No PC: Etiquetas → Solicitações.");
       } catch (e) {
         setStatus("Erro de rede.", true);
-        btn.disabled = false;
+        renderSacola();
       }
     }
     function pararScan() {
