@@ -52,7 +52,12 @@ def main() -> int:
     check("js_etq_cache_v35", "produtos_etiquetas.js' %}?v=35" in etq_html)
     check("js_manter_busca", "optsLimparBuscaAoAdicionar" in etq_js)
     check("migrate_model", "EtiquetaSolicitacaoPacoteAgro" in mig)
+    app_mob = (ROOT / "produtos/templates/produtos/etiquetas_solicitacao/app.html").read_text(encoding="utf-8")
     check("template_mobile", (ROOT / "produtos/templates/produtos/etiquetas_solicitacao/app.html").is_file())
+    check("mobile_dock_fixo", "dockSacola" in app_mob and "scroll-main" in app_mob and "#sacolaItens" in app_mob)
+    check("mobile_viewport_teclado", "--app-h" in app_mob and "visualViewport" in app_mob)
+    check("mobile_sacola_delegate", "bindSacolaOnce" in app_mob and "bindListaOnce" in app_mob)
+    check("mobile_pwa_head", "vendas_lojas_pwa_head.html" in app_mob)
 
     print("== Hub PIN Vendas/Tarefas ==")
     check("url_vendas_pin", "vendas_lojas_pin" in urls)
