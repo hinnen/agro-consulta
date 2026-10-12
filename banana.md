@@ -1294,31 +1294,33 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PREP loja — CHECKLIST **12/10p** · **v27.10** · armado · aguarda frase+senha
+### ✅ Deploy loja — CHECKLIST **12/10p** (itens **1+2**) · **Live v27.11** · 12/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **ARMADO** — `deploy/prep-checklist-1210p` @ `9f7df2a5` |
-| **Live hoje** | **v27.09** @ `f6a4fa31` |
-| **O quê** | **CADASTRO-AGRO-VN-FANTASMA** · **MED-CLASSIFICACAO-SISVALE** · **CLIENTE-LISTA-DESC-PDV** |
-| **Migrate** | **SIM** só `produtos` **0145** (`desconto_pdv_percentual`) |
-| **Fora** | PDV wizard/busca 230 · caixa · `meta_vendas_util` · merge `teste` inteiro |
-| **Prova** | `./scripts/cutover_loja_checklist_1210p.sh` dry-run OK |
-| **Cutover** | `--exec` + frase + senha **99738595** |
-| **Pós-deploy** | `./scripts/post_deploy_checklist_1210p.sh` · Shell: `limpar_overlays_agro_vn_fantasma` |
-| **Rollback** | `rollback/pre-checklist-1210p-v27.09-f6a4` @ `f6a4fa31` |
-| **Backup** | `producao-backup-pre-v2710-checklist-1210p` |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1210p.md` · roteiro **§78** |
+| **Status** | ✅ **enviado / Live v27.11** — `producao` @ `4f122337` |
+| **O quê** | **CADASTRO-AGRO-VN-FANTASMA** · **MED-CLASSIFICACAO-SISVALE** — **sem** cliente % PDV |
+| **Migrate** | **NÃO** |
+| **Antes** | **v27.09** @ `f6a4fa31` |
+| **Backup** | `producao-backup-pre-v2711-checklist-1210p-vn-med` |
+| **Rollback** | `git push origin rollback/pre-checklist-1210p-v27.09-f6a4:producao` (@ `f6a4fa31`) |
+| **Cutover** | `./scripts/cutover_loja_checklist_1210p_vn_med.sh` |
+| **Pós-deploy** | Shell Render: `python manage.py limpar_overlays_agro_vn_fantasma` (uma vez) |
 
-### ✅ CHECKLIST ÚNICO — **12/10p** · 🟢 **ARMADO envio produção**
+### 🟡 Pendente — **12/10p** item **3** · **CLIENTE-LISTA-DESC-PDV**
 
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **CADASTRO-AGRO-VN-FANTASMA** | 🟢 **PREP** | **NÃO** | verify **19/19** |
-| 2 | **MED-CLASSIFICACAO-SISVALE** | 🟢 **PREP** | **NÃO** | **PREP_FAILS=0** |
-| 3 | **CLIENTE-LISTA-DESC-PDV** | 🟢 **PREP** | **SIM** `0145` | **18/18** + planilha estática |
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 **só `teste`** — PREP completo `deploy/prep-checklist-1210p` |
+| **Migrate** | **SIM** `0145` · `pdv_state.js` |
 
-**PDV:** apenas `pdv_state.js` (% no subtotal se cliente tiver campo) — regressão CB-230 no cutover.
+### ✅ CHECKLIST ÚNICO — **12/10p**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CADASTRO-AGRO-VN-FANTASMA** | ✅ **Live v27.11** | **NÃO** |
+| 2 | **MED-CLASSIFICACAO-SISVALE** | ✅ **Live v27.11** | **NÃO** |
+| 3 | **CLIENTE-LISTA-DESC-PDV** | 🟡 **pendente** | **SIM** `0145` |
 
 ### 📦 PACOTE PRONTO — **CADASTRO-AGRO-VN-FANTASMA** (`CHECKLIST 12/10o` · 12/10) · 🟢 **PRONTO envio produção**
 
