@@ -1298,7 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **ARMADO** — `deploy/prep-checklist-1210n` @ `168151a2` · Live **v27.06** @ `b539c712` |
+| **Status** | 🟢 **ARMADO** — `deploy/prep-checklist-1210n` @ `7a8bbb94` · Live **v27.06** @ `b539c712` |
 | **O quê** | **ETQ-MOBILE-POLISH** · **CREDITO-REVISAR-LIMITE** · **MED-CLASSIFICACAO-SISVALE** |
 | **Migrate** | **NÃO** |
 | **Fora** | PDV wizard/busca 230 · caixa · `mongo_financeiro` · `meta_vendas_util` |
