@@ -1335,9 +1335,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Status** | 🟢 **PRONTO envio produção** — `teste` (commit dock fixo) · loja Live **v27.06** |
 | **VERSION prep** | **v27.07** (sugestão) |
-| **O quê** | App celular `/vendas/lojas/etiquetas/` — **dock fixo** no rodapé: sacola (qtd ±) rola dentro do painel; **Enviar N etiquetas** sempre visível; busca/lista só na área de cima |
+| **O quê** | App celular `/vendas/lojas/etiquetas/` — dock fixo · sacola rolável · toques 44px · busca sticky · teclado (`visualViewport`) · bip responsivo · delegação eventos (sem bug de foco no qtd) |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_etq_solicitacao_vl_pin_path.py` **32/32** (`mobile_dock_fixo`) |
+| **Prova** | `verify_etq_solicitacao_vl_pin_path.py` **35/35** |
 
 ### ✅ CHECKLIST ÚNICO — 11/10n · 🟢 **PRONTO**
 
