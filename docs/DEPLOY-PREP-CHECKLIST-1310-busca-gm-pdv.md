@@ -1,15 +1,15 @@
-# PREP — **CADASTRO-BUSCA-GM-PDV** · CHECKLIST **13/10** · **v27.14**
+# PREP — **CADASTRO-BUSCA-GM-PDV** hotfix · CHECKLIST **13/10** · **v27.14.2**
 
-**Live antes:** **v27.13** @ `904a6031`
+**Live hoje:** **v27.14** @ `697ac790` (busca cadastro ainda incorreta) · base rollback **v27.13** @ `904a6031`
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | GM com hífen exato · filtro/relevância cadastro = PDV · API cadastro não reordena A–Z sem `sort` |
+| **O quê** | Complemento **Mongo** no cadastro · PG filtrado · GM hífen estrito · frase com espaço · cache BCA **v3** |
 | **Migrate** | **NÃO** |
-| **PREP** | `deploy/prep-checklist-1310-busca-gm-pdv` |
+| **PREP** | `deploy/prep-checklist-1310-busca-gm-pdv` (atualizar de `teste` antes do `--exec`) |
 | **Rollback** | `rollback/pre-busca-gm-pdv-v2713` @ `904a6031` |
 
-**Toca busca PDV** (`busca_filtro_pdv_util`, `motor_busca_unificado`) — alinhamento intencional; cutover exige `verify_pdv_busca_coerente_path` **30/30** + CB-230.
+**Pós-deploy:** Ctrl+F5 Cadastro ERP · `GM0037-1` · `ibiuna 5kg`
 
 ```bash
 ./scripts/cutover_loja_checklist_1310_busca_gm_pdv.sh

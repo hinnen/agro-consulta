@@ -1,6 +1,7 @@
 """Busca cadastro — GM com hífen (ex. GM0037-1) não deve casar barras «00371» de outro produto."""
 from django.test import SimpleTestCase
 
+from produtos.busca_filtro_pdv_util import filtrar_documentos_estilo_pdv
 from produtos.cadastro_busca_codigo_util import (
     digitos_somente_barras_cadastro,
     q_codigo_exato_cadastro,
@@ -43,6 +44,17 @@ class CadastroBuscaGmVarianteTests(SimpleTestCase):
                 codigo_barras=None,
             )
         )
+
+    def test_filtrar_gm_etiqueta_remove_ivomec(self):
+        docs = [
+            {
+                "Nome": "med. ivomec injetavel 1ml",
+                "CodigoNFe": "GM1097-1",
+                "CodigoBarras": "00371",
+            }
+        ]
+        out = filtrar_documentos_estilo_pdv(docs, "GM0037-1")
+        self.assertEqual(out, [])
 
     def test_gm0037_1_nao_bate_gm0037_10(self):
         self.assertFalse(

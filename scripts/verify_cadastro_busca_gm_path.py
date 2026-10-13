@@ -42,6 +42,8 @@ def test_arquivos() -> None:
     check("catalogo_filtra_ordenar", "filtrar_rows_api_estilo_pdv" in cat and "ordenar_rows_api_estilo_pdv" in cat)
     check("cadastro_sort_explicit", "_parse_sort_cadastro_request_explicit" in views)
     check("gm_estrito_sem_fallback", "return filtrados if filtrados else docs" not in motor)
+    check("cadastro_complemento_mongo", "contexto_cadastro" in motor and "contexto_cadastro" in views)
+    check("bca_cache_v3", "BCA_BUSCA_CACHE_VERSION = 3" in (ROOT / "produtos/bca_busca_cache_util.py").read_text())
     check("api_cadastro_contexto", "contexto=cadastro" in js and "fetchBuscaCadastroApi" in js)
     check("test_gm_variante", (ROOT / "produtos/tests_cadastro_busca_gm_variante.py").is_file())
     check("test_pdv_alinhada", (ROOT / "produtos/tests_cadastro_busca_pdv_alinhada.py").is_file())

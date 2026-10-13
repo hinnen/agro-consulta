@@ -277,6 +277,28 @@ def filtrar_documentos_estilo_pdv(docs: list[dict], termo: str) -> list[dict]:
         return filtrados
     # PLU balança (0010) não passa em parece_codigo (≥8) — não filtrar fora GM0010-*.
     if (parece_codigo_cadastro(termo) or _plu_curto) and " " not in termo:
+        from produtos.cadastro_busca_codigo_util import (
+            termo_bate_codigos_produto,
+            termo_gm_etiqueta_completa,
+        )
+
+        if termo_gm_etiqueta_completa(termo):
+            out_gm: list[dict] = []
+            for d in docs:
+                cnfe, cbarr, cint = _campos_codigo_doc(d)
+                ix = d.get(INDEX_CODIGOS_CAMPO) or d.get("index_codigos")
+                extras = (d.get("Id"), d.get("_id"), d.get("id"))
+                if isinstance(ix, list):
+                    extras = (*extras, *ix)
+                if termo_bate_codigos_produto(
+                    termo,
+                    codigo_interno=cint,
+                    codigo_nfe=cnfe,
+                    codigo_barras=cbarr,
+                    extras=extras,
+                ):
+                    out_gm.append(d)
+            return out_gm
         return list(docs)
 
     palavras = [p for p in termo.split() if p]

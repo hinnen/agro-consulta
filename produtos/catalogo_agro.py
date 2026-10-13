@@ -362,7 +362,8 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
             if len(found) < 3:
                 _append_overlay_modelo_matches(termo)
             limiar_or = min(8, lim)
-        if len(found) < limiar_or:
+        # Frase com espaço: OR em 9 colunas traz ruído (ex. «ibiuna 5kg» → 500g). Mongo no cadastro.
+        if len(found) < limiar_or and " " not in termo.strip():
             _cadastro_pg_append_unicos(
                 found,
                 seen_pk,

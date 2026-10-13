@@ -254,6 +254,7 @@ def buscar_documentos_unificado(
     include_inactive: bool = False,
     wizard_catalog: bool = False,
     skip_mongo_complemento: bool = False,
+    contexto_cadastro: bool = False,
 ) -> list[dict]:
     """
     Busca produtos (documentos estilo Mongo) com pipeline único.
@@ -301,14 +302,18 @@ def buscar_documentos_unificado(
         except Exception:
             logger.warning("motor_busca_unificado: buscar Postgres falhou", exc_info=True)
 
+    from produtos.busca_filtro_pdv_util import filtrar_documentos_estilo_pdv
     from produtos.cadastro_busca_codigo_util import gm_base_familia, parece_codigo_cadastro
+
+    if pg_docs:
+        pg_docs = filtrar_documentos_estilo_pdv(pg_docs, termo)
 
     # Família GM: NÃO pular Mongo só porque o PG trouxe 1 item (ex. GM0024-1 no PG
     # e GM0024-10/15 só no Mongo sem index — loja via agro_pg). Sempre complementar.
     _familia_gm = bool(gm_base_familia(termo))
     mongo_docs: list[dict] = []
-    # EMERGÊNCIA: agro_pg + texto comum → NUNCA Mongo (satura loja). Só família GM.
-    if usa_pg and not _familia_gm:
+    # EMERGÊNCIA PDV: agro_pg + texto → não Mongo a cada tecla. Cadastro: pode complementar.
+    if usa_pg and not _familia_gm and not contexto_cadastro:
         skip_mongo_complemento = True
     # PDV/wizard (skip_mongo_complemento): com agro_pg, 1+ hit no Postgres BASTA.
     _pg_suficiente = skip_mongo_complemento and bool(pg_docs) and (
@@ -353,10 +358,10 @@ def buscar_documentos_unificado(
             else:
                 # PG vazio ou só ruído (icontains nome) — força complemento Mongo
                 _pg_suficiente = False
-        elif pg_docs:
+        elif pg_docs and not contexto_cadastro:
             _pg_suficiente = True
             mongo_docs = []
-        elif not parece_codigo_cadastro(termo):
+        elif not pg_docs and not parece_codigo_cadastro(termo) and not contexto_cadastro:
             _pg_suficiente = True
             mongo_docs = []
     if db is not None and client is not None and not somente_pg and not _pg_suficiente:
