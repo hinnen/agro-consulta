@@ -225,6 +225,41 @@ def _palavra_casa_no_doc(palavra: str, doc: dict, blob: str, nome: str) -> bool:
     return False
 
 
+def _row_api_para_doc_filtro_pdv(row: dict) -> dict:
+    """Espelho mínimo de documento para ``filtrar_documentos_estilo_pdv``."""
+    return {
+        "Nome": row.get("nome"),
+        "nome": row.get("nome"),
+        "Marca": row.get("marca"),
+        "marca": row.get("marca"),
+        "CodigoNFe": row.get("codigo_nfe") or row.get("codigo_gm"),
+        "codigo_nfe": row.get("codigo_nfe") or row.get("codigo_gm"),
+        "CodigoBarras": row.get("codigo_barras"),
+        "codigo_barras": row.get("codigo_barras"),
+        "Codigo": row.get("codigo"),
+        "codigo": row.get("codigo"),
+        "busca_texto": row.get("busca_texto"),
+        "BuscaTexto": row.get("busca_texto"),
+        INDEX_CODIGOS_CAMPO: row.get("index_codigos"),
+        "index_codigos": row.get("index_codigos"),
+        "Id": row.get("id"),
+        "id": row.get("id"),
+    }
+
+
+def filtrar_rows_api_estilo_pdv(rows: list[dict], termo: str) -> list[dict]:
+    """Mesmo AND/coerência do PDV, sobre linhas ``catalogo_agro`` / API cadastro."""
+    termo = str(termo or "").strip()
+    if not termo or not rows:
+        return list(rows or [])
+    out: list[dict] = []
+    for row in rows:
+        doc = _row_api_para_doc_filtro_pdv(row)
+        if filtrar_documentos_estilo_pdv([doc], termo):
+            out.append(row)
+    return out
+
+
 def filtrar_documentos_estilo_pdv(docs: list[dict], termo: str) -> list[dict]:
     """Todas as palavras do termo devem casar (AND) — igual filtro local do PDV."""
     from produtos.cadastro_busca_codigo_util import parece_codigo_cadastro

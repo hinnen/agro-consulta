@@ -386,7 +386,15 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                 )
             ]
         if rows:
-            return rows[:lim]
+            from produtos.busca_filtro_pdv_util import (
+                filtrar_rows_api_estilo_pdv,
+                ordenar_rows_api_estilo_pdv,
+            )
+
+            rows = filtrar_rows_api_estilo_pdv(rows, termo)
+            rows = ordenar_rows_api_estilo_pdv(rows, termo)
+            if rows:
+                return rows[:lim]
 
     if parece_codigo_cadastro(termo):
         from produtos.agro_fonte_config import agro_catalogo_usa_postgres

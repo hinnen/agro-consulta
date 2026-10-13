@@ -26461,6 +26461,13 @@ def _parse_sort_cadastro_request(request) -> tuple[str, int]:
     return raw, direction
 
 
+def _parse_sort_cadastro_request_explicit(request) -> tuple[str | None, int]:
+    """Só ordena por coluna se a tela mandou ``sort`` — busca com ``q`` mantém relevância PDV."""
+    if not str(request.GET.get("sort") or "").strip():
+        return None, 1
+    return _parse_sort_cadastro_request(request)
+
+
 def _sort_cadastro_rows_inplace(rows: list[dict], sort_key: str, direction: int) -> None:
     """Ordena linhas já com overlay (mesmas chaves do JSON de cadastro)."""
     if sort_key not in _ALLOWED_SORT_CADASTRO:
@@ -26573,7 +26580,7 @@ def _api_buscar_json_contexto_cadastro(request, rows: list[dict]) -> JsonRespons
     incluir_saldo = bool(filtros.get("incluir_saldo", True))
     if filtros.get("estoque_sinal"):
         incluir_saldo = True
-    sort_key, sort_direction = _parse_sort_cadastro_request(request)
+    sort_key, sort_direction = _parse_sort_cadastro_request_explicit(request)
     q_raw = str(request.GET.get("q") or "").strip()
 
     out: list[dict] = []
@@ -26602,7 +26609,12 @@ def _api_buscar_json_contexto_cadastro(request, rows: list[dict]) -> JsonRespons
         out = remover_cadastro_duplicatas_agro_vn(out)
     except Exception:
         pass
-    _sort_cadastro_rows_inplace(out, sort_key, sort_direction)
+    if sort_key:
+        _sort_cadastro_rows_inplace(out, sort_key, sort_direction)
+    elif q_raw:
+        from produtos.busca_filtro_pdv_util import ordenar_rows_api_estilo_pdv
+
+        out = ordenar_rows_api_estilo_pdv(out, q_raw)
 
     return JsonResponse(
         {
@@ -26614,7 +26626,7 @@ def _api_buscar_json_contexto_cadastro(request, rows: list[dict]) -> JsonRespons
             "q": q_raw,
             "produtos": out,
             "total_retornado": len(out),
-            "sort": sort_key,
+            "sort": sort_key or "",
             "dir": "desc" if sort_direction < 0 else "asc",
         }
     )
