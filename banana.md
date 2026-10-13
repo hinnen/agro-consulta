@@ -1294,35 +1294,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PREP loja — **CADASTRO-BUSCA-GM-PDV** hotfix · **v27.14.2** · CHECKLIST **13/10** · armado
-
-> **Contexto:** **v27.14** (`697ac790`) na loja **não** corrigiu o Cadastro (`GM0037-1` / `ibiuna 5kg`). PREP **27.14.2** atualizado em `deploy/prep-checklist-1310-busca-gm-pdv` @ **`0a37a031`**.
+### ✅ Deploy loja — **CADASTRO-BUSCA-GM-PDV** hotfix · **Live v27.14.2** · CHECKLIST **13/10** · 13/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **ARMADO** — `deploy/prep-checklist-1310-busca-gm-pdv` @ `0a37a031` |
-| **Live hoje** | **v27.14** @ `697ac790` |
+| **Status** | ✅ **enviado / Live v27.14.2** — `producao` @ `0a37a031` |
 | **O quê** | Mongo no cadastro · PG filtrado · GM hífen estrito · frase com espaço · cache BCA **v3** |
 | **Migrate** | **NÃO** |
-| **Fora** | `0145` / clientes % PDV · caixa · `pdv_wizard.js` |
-| **Prova** | `./scripts/cutover_loja_checklist_1310_busca_gm_pdv.sh` · **18/18** · **30/30** · CB-230 |
-| **Cutover** | `--exec` + frase + senha **99738595** |
-| **Rollback** | `rollback/pre-busca-gm-pdv-v2713` @ `904a6031` |
-| **Pós-deploy** | Ctrl+F5 Cadastro ERP · `GM0037-1` · `ibiuna 5kg` |
-
-### ✅ Deploy loja — **CADASTRO-BUSCA-GM-PDV** (parcial) · **Live v27.14** · 13/10
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | ⚠️ **Live v27.14** @ `697ac790` — busca cadastro **ainda incorreta** → usar **v27.14.2** |
-| **Rollback** | `rollback/pre-busca-gm-pdv-v2713` @ `904a6031` |
+| **Antes** | **v27.14** @ `697ac790` (parcial, busca errada) |
+| **Backup** | `producao-backup-pre-v27142-busca-gm-pdv` |
+| **Rollback** | `git push origin rollback/pre-busca-gm-pdv-v2713:producao` (@ `904a6031`) |
+| **Cutover** | `./scripts/cutover_loja_checklist_1310_busca_gm_pdv.sh` (executado) |
+| **Conferir loja** | Ctrl+F5 Cadastro ERP · `GM0037-1` · `ibiuna 5kg` |
 
 ### ✅ CHECKLIST ÚNICO — **13/10**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **CLIENTE-LISTA-DESC-PDV** | 🟡 **pendente** (outro cutover) | **SIM** `0145` |
-| 2 | **CADASTRO-BUSCA-GM-PDV** | 🟢 **ARMADO** (**v27.14.2**) | **NÃO** |
+| 2 | **CADASTRO-BUSCA-GM-PDV** | ✅ **Live v27.14.2** | **NÃO** |
 
 ### ✅ Deploy loja — **PLANILHA-MED-EXCEL** · CHECKLIST **12/10r** · **Live v27.13** · 12/10
 

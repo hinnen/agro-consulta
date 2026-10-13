@@ -994,14 +994,12 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 80. Checklist único — **CADASTRO-BUSCA-GM-PDV** hotfix · 🟢 PREP **v27.14.2** · armado
+## 80. Checklist único — **CADASTRO-BUSCA-GM-PDV** hotfix · ✅ Live **v27.14.2**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CADASTRO-BUSCA-GM-PDV** (hotfix 27.14.2) | 🟢 PREP pronto | **NÃO** |
+| 1 | **CADASTRO-BUSCA-GM-PDV** (hotfix 27.14.2) | ✅ **Live v27.14.2** | **NÃO** |
 
-**Live hoje:** **v27.14** @ `697ac790` (busca cadastro ainda errada).  
-**PREP:** `deploy/prep-checklist-1310-busca-gm-pdv` @ `0a37a031` · dry-run OK (**18/18** + **30/30**).  
-**Na senha:** `./scripts/cutover_loja_checklist_1310_busca_gm_pdv.sh --exec`.  
+**Live:** `producao` @ `0a37a031` · backup `producao-backup-pre-v27142-busca-gm-pdv`.  
 **Rollback:** `rollback/pre-busca-gm-pdv-v2713` → `904a6031`.  
-**Pós-deploy:** Ctrl+F5 · Cadastro `GM0037-1` · `ibiuna 5kg`.
+**Conferir:** Ctrl+F5 · Cadastro `GM0037-1` · `ibiuna 5kg`.
