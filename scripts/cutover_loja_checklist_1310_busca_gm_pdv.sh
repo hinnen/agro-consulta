@@ -10,7 +10,7 @@ PROD_REF="origin/producao"
 ROLLBACK_TAG="rollback/pre-busca-gm-pdv-v2713"
 BACKUP_BR="producao-backup-pre-v27142-busca-gm-pdv"
 SENHA_OK="99738595"
-VER_ESPERADA="27.14.3"
+VER_ESPERADA="27.14.4"
 
 git fetch origin producao deploy/prep-checklist-1310-busca-gm-pdv "$ROLLBACK_TAG" 2>/dev/null \
   || git fetch origin producao deploy/prep-checklist-1310-busca-gm-pdv
@@ -31,6 +31,7 @@ DELTA="$(git diff --name-only "$PROD_REF...$PREP_REF" | sort)"
 ALLOWED="$(printf '%s\n' \
   VERSION \
   docs/DEPLOY-PREP-CHECKLIST-1310-busca-gm-pdv.md \
+  produtos/agro_codigo_barras_loja_util.py \
   produtos/bca_busca_cache_util.py \
   produtos/busca_filtro_pdv_util.py \
   produtos/cadastro_busca_codigo_util.py \
