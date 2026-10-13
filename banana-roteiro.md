@@ -994,12 +994,14 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 80. Checklist único — **CADASTRO-BUSCA-GM-PDV** · ✅ Live **v27.14**
+## 80. Checklist único — **CADASTRO-BUSCA-GM-PDV** hotfix · 🟢 PREP **v27.14.2** · armado
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CADASTRO-BUSCA-GM-PDV** | ✅ **Live v27.14** | **NÃO** |
+| 1 | **CADASTRO-BUSCA-GM-PDV** (hotfix 27.14.2) | 🟢 PREP pronto | **NÃO** |
 
-**Live:** `producao` @ `697ac790` · backup `producao-backup-pre-v2714-busca-gm-pdv`.  
+**Live hoje:** **v27.14** @ `697ac790` (busca cadastro ainda errada).  
+**PREP:** `deploy/prep-checklist-1310-busca-gm-pdv` @ `0a37a031` · dry-run OK (**18/18** + **30/30**).  
+**Na senha:** `./scripts/cutover_loja_checklist_1310_busca_gm_pdv.sh --exec`.  
 **Rollback:** `rollback/pre-busca-gm-pdv-v2713` → `904a6031`.  
-**Ctrl+F5:** cadastro ERP + gestão — busca GM hífen e termos comuns; PDV smoke bip.
+**Pós-deploy:** Ctrl+F5 · Cadastro `GM0037-1` · `ibiuna 5kg`.

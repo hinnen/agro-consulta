@@ -8,7 +8,7 @@ cd "$ROOT"
 PREP_REF="origin/deploy/prep-checklist-1310-busca-gm-pdv"
 PROD_REF="origin/producao"
 ROLLBACK_TAG="rollback/pre-busca-gm-pdv-v2713"
-BACKUP_BR="producao-backup-pre-v2714-busca-gm-pdv"
+BACKUP_BR="producao-backup-pre-v27142-busca-gm-pdv"
 SENHA_OK="99738595"
 VER_ESPERADA="27.14.2"
 
@@ -31,17 +31,13 @@ DELTA="$(git diff --name-only "$PROD_REF...$PREP_REF" | sort)"
 ALLOWED="$(printf '%s\n' \
   VERSION \
   docs/DEPLOY-PREP-CHECKLIST-1310-busca-gm-pdv.md \
+  produtos/bca_busca_cache_util.py \
   produtos/busca_filtro_pdv_util.py \
-  produtos/cadastro_busca_codigo_util.py \
   produtos/catalogo_agro.py \
   produtos/motor_busca_unificado_util.py \
   produtos/tests_cadastro_busca_gm_variante.py \
-  produtos/tests_cadastro_busca_pdv_alinhada.py \
-  produtos/bca_busca_cache_util.py \
   produtos/views.py \
-  banana.md \
   scripts/cutover_loja_checklist_1310_busca_gm_pdv.sh \
-  scripts/post_deploy_checklist_1310_busca_gm_pdv.sh \
   scripts/verify_cadastro_busca_gm_path.py | sort)"
 [[ "$DELTA" == "$ALLOWED" ]] || {
   echo "FAIL: delta inesperado:"; echo "$DELTA"; exit 2;

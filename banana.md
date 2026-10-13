@@ -1294,18 +1294,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — **CADASTRO-BUSCA-GM-PDV** hotfix · **v27.14.2** · CHECKLIST **13/10** · 🟢 **PRONTO envio produção**
+### 🟢 PREP loja — **CADASTRO-BUSCA-GM-PDV** hotfix · **v27.14.2** · CHECKLIST **13/10** · armado
 
-> **⚠️ OBSERVAÇÃO (chat só de produção — ler antes de subir):** A loja já recebeu **v27.14** (`697ac790`) e a busca no **Cadastro de produtos** **continuou errada** (ex.: `GM0037-1` → Ivomec; `ibiuna 5kg` ≠ PDV). **Não** considerar v27.14 encerrado. Subir **`teste` @ `122c2755`** (VERSION **27.14.2**): hotfix **complementa Mongo** no cadastro, filtra PG, GM com hífen estrito, cache BCA **v3**. **Migrate: NÃO.** **`origin/deploy/prep-checklist-1310-busca-gm-pdv` ainda está em v27.14 (`697ac790`)** — recriar/atualizar PREP a partir de `teste` **antes** de `./scripts/cutover_loja_checklist_1310_busca_gm_pdv.sh --exec`. Após deploy: **Ctrl+F5** no Cadastro · testar `GM0037-1` + `ibiuna 5kg`. Rollback: `rollback/pre-busca-gm-pdv-v2713` @ `904a6031`.
+> **Contexto:** **v27.14** (`697ac790`) na loja **não** corrigiu o Cadastro (`GM0037-1` / `ibiuna 5kg`). PREP **27.14.2** atualizado em `deploy/prep-checklist-1310-busca-gm-pdv` @ **`0a37a031`**.
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PRONTO envio produção** — `teste` @ `122c2755` · substitui **v27.14** parcial na loja |
-| **O quê** | Cadastro **complementa Mongo** · PG filtrado antes de «1 hit basta» · GM etiqueta não passa Ivomec · frase com espaço sem OR `icontains` · cache BCA **v3** |
+| **Status** | 🟢 **ARMADO** — `deploy/prep-checklist-1310-busca-gm-pdv` @ `0a37a031` |
+| **Live hoje** | **v27.14** @ `697ac790` |
+| **O quê** | Mongo no cadastro · PG filtrado · GM hífen estrito · frase com espaço · cache BCA **v3** |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_cadastro_busca_gm_path` **18/18** · `verify_pdv_busca_coerente_path` **30/30** · tests cadastro_busca_* **9/9** · revalidado cloud **13/10** |
-| **Cutover** | merge `teste`→`producao` · **frase + senha** · script ref. `./scripts/cutover_loja_checklist_1310_busca_gm_pdv.sh` (revalidar VERSION **27.14.2**) |
-| **Pós-deploy loja** | Ctrl+F5 · Cadastro: `GM0037-1` (ração Estimação) · `ibiuna 5kg` (como PDV) |
+| **Fora** | `0145` / clientes % PDV · caixa · `pdv_wizard.js` |
+| **Prova** | `./scripts/cutover_loja_checklist_1310_busca_gm_pdv.sh` · **18/18** · **30/30** · CB-230 |
+| **Cutover** | `--exec` + frase + senha **99738595** |
+| **Rollback** | `rollback/pre-busca-gm-pdv-v2713` @ `904a6031` |
+| **Pós-deploy** | Ctrl+F5 Cadastro ERP · `GM0037-1` · `ibiuna 5kg` |
 
 ### ✅ Deploy loja — **CADASTRO-BUSCA-GM-PDV** (parcial) · **Live v27.14** · 13/10
 
@@ -1319,7 +1322,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **CLIENTE-LISTA-DESC-PDV** | 🟡 **pendente** (outro cutover) | **SIM** `0145` |
-| 2 | **CADASTRO-BUSCA-GM-PDV** | 🟢 **PRONTO envio produção** (**v27.14.2**) | **NÃO** |
+| 2 | **CADASTRO-BUSCA-GM-PDV** | 🟢 **ARMADO** (**v27.14.2**) | **NÃO** |
 
 ### ✅ Deploy loja — **PLANILHA-MED-EXCEL** · CHECKLIST **12/10r** · **Live v27.13** · 12/10
 
