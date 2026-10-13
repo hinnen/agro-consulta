@@ -1294,22 +1294,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — **MED-SUBCATEGORIA-DICAS** · **v27.15** · CHECKLIST **13/10b** · 🟢 **PRONTO envio produção**
+### 🟢 PREP loja — **MED-SUBCATEGORIA-DICAS** · **v27.15** · CHECKLIST **13/10b** · armado
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Cadastro ERP / Gerais: textos + ⓘ nas **Subcategorias 1–4** só em **Medicamentos E Venenos** (prateleira preservada) |
+| **Status** | 🟢 **ARMADO** — `deploy/prep-checklist-1310b-med-sub-dicas` @ `ada10a36` |
+| **Live hoje** | **v27.14.4** @ `dc357d31` |
+| **O quê** | Modal cadastro ERP: dicas ⓘ **Subcategorias 1–4** só **Medicamentos E Venenos** (só UI) |
 | **Migrate** | **NÃO** |
-| **Prova** | `AGRO_PIN_TESTE=9973 .venv/bin/python scripts/verify_med_subcategoria_dicas_path.py` → **0 FAIL** · `verify_classificacao_medicamentos_path.py` |
-| **Status** | 🟢 **`teste`** @ `f4f8a5202`+ · aguarda frase + senha produção |
-| **Smoke** | Ctrl+F5 cadastro → medicamento: dicas visíveis · ração: sem dicas · salvar sem mudar subs |
+| **Fora** | PDV · caixa · busca · `0145` clientes |
+| **Prova** | `./scripts/cutover_loja_checklist_1310b_med_sub_dicas.sh` · SUB-DICAS **0 FAIL** · MED **49/49** |
+| **Cutover** | `--exec` + frase + senha **99738595** |
+| **Rollback** | `rollback/pre-med-sub-v27144` @ `dc357d31` |
+| **Smoke loja** | Ctrl+F5 cadastro → medicamento: dicas · ração: sem dicas |
 
-### ✅ CHECKLIST ÚNICO — **13/10b** · 🟢 **PRONTO envio produção** (pendente na loja)
+### ✅ CHECKLIST ÚNICO — **13/10b**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CLIENTE-LISTA-DESC-PDV** | 🟡 **só `teste`** | **SIM** `0145` |
-| 2 | **MED-SUBCATEGORIA-DICAS** | 🟢 **PRONTO** `teste` v27.15 | **NÃO** |
+| 1 | **CLIENTE-LISTA-DESC-PDV** | 🟡 **pendente** | **SIM** `0145` |
+| 2 | **MED-SUBCATEGORIA-DICAS** | 🟢 **ARMADO** v27.15 | **NÃO** |
 
 ### ✅ Deploy loja — **CADASTRO-BUSCA-GM-PDV** hotfix · **Live v27.14.2** · CHECKLIST **13/10** · 13/10
 
