@@ -24436,6 +24436,10 @@ def api_buscar_produtos(request):
             lim_wiz = 48 if _termo_parece_codigo(q_wiz_strip) else 24
             res = res[:lim_wiz]
         else:
+            if q and not wizard_catalog:
+                from produtos.busca_filtro_pdv_util import filtrar_rows_api_estilo_pdv
+
+                res = filtrar_rows_api_estilo_pdv(res, q)
             if use_motor_unificado and q:
                 from produtos.busca_filtro_pdv_util import ordenar_rows_api_estilo_pdv
 

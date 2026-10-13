@@ -7,6 +7,7 @@ from produtos.cadastro_busca_codigo_util import (
     q_codigo_exato_cadastro,
     termo_bate_codigos_produto,
     termo_gm_etiqueta_completa,
+    variantes_gm_literal,
 )
 
 
@@ -18,6 +19,11 @@ class CadastroBuscaGmVarianteTests(SimpleTestCase):
     def test_etiqueta_completa(self):
         self.assertTrue(termo_gm_etiqueta_completa("GM0037-1"))
         self.assertFalse(termo_gm_etiqueta_completa("GM0037"))
+
+    def test_variantes_etiqueta_sem_gm00371_colapsado(self):
+        v = variantes_gm_literal("GM0037-1")
+        self.assertIn("gm0037-1", v)
+        self.assertNotIn("gm00371", v)
 
     def test_q_codigo_exato_nao_busca_barras_so_digitos(self):
         q = q_codigo_exato_cadastro("GM0037-1")
