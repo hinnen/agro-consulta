@@ -1294,6 +1294,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — **CADASTRO-BUSCA-GM-PDV** · CHECKLIST **13/10** · 🟢 **PRONTO envio produção**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **só `teste`** — validar local (`docs/TESTE-LOCAL.md`) · Cadastro/Gestão busca |
+| **Versão** | **v27.14** (`teste`) |
+| **O quê** | GM com hífen exato (`GM0037-1` ≠ barras `00371` / outro GM) · filtro + relevância **igual PDV** no `catalogo_agro.buscar` · API cadastro não reordena A–Z sem `sort` |
+| **Migrate** | **NÃO** |
+| **Prova** | `./scripts/verify_cadastro_busca_gm_path.py` **16/16** · `verify_pdv_busca_coerente_path` **30/30** · tests `cadastro_busca_gm_variante` + `cadastro_busca_pdv_alinhada` |
+| **Commits** | `56f85af8` · `dca85dda` (+ script verify no `teste`) |
+| **Cutover** | cherry-pick/merge `teste`→`producao` · **frase + senha** |
+
+### ✅ CHECKLIST ÚNICO — **13/10**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CLIENTE-LISTA-DESC-PDV** | 🟡 **só `teste`** | **SIM** `0145` |
+| 2 | **CADASTRO-BUSCA-GM-PDV** | 🟢 **PRONTO envio produção** | **NÃO** |
+
 ### ✅ Deploy loja — **PLANILHA-MED-EXCEL** · CHECKLIST **12/10r** · **Live v27.13** · 12/10
 
 | Campo | Valor |
