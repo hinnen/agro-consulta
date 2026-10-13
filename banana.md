@@ -1298,6 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
+<<<<<<< HEAD
 | **Status** | ✅ **enviado / Live v27.14** — `producao` @ `697ac790` |
 | **O quê** | GM hífen exato · busca cadastro/gestão = filtro+relevância PDV · sem sort A–Z com `q` |
 | **Migrate** | **NÃO** |
@@ -1305,6 +1306,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Backup** | `producao-backup-pre-v2714-busca-gm-pdv` |
 | **Rollback** | `git push origin rollback/pre-busca-gm-pdv-v2713:producao` (@ `904a6031`) |
 | **Cutover** | `./scripts/cutover_loja_checklist_1310_busca_gm_pdv.sh` (executado) |
+=======
+| **Status** | 🟢 **só `teste`** — validar local (`docs/TESTE-LOCAL.md`) · Cadastro/Gestão busca |
+| **Versão** | **v27.14.2** (`teste`) |
+| **O quê** | GM etiqueta filtra Ivomec · cadastro **complementa Mongo** (PDV usa BCA local) · PG filtrado antes de «1 hit basta» · sem OR `icontains` em frase com espaço · cache BCA **v3** |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_cadastro_busca_gm_path` **18/18** · Ctrl+F5 cadastro · `GM0037-1` · `ibiuna 5kg` |
+| **Commits** | `56f85af8` · `dca85dda` (+ script verify no `teste`) |
+| **Cutover** | cherry-pick/merge `teste`→`producao` · **frase + senha** |
+>>>>>>> cc578e3d (test: filtro GM etiqueta + banana v27.14.2)
 
 ### ✅ CHECKLIST ÚNICO — **13/10**
 
