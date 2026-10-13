@@ -1294,26 +1294,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PREP loja — **CADASTRO-BUSCA-GM-PDV** · CHECKLIST **13/10** · **v27.14** · armado
+### ✅ Deploy loja — **CADASTRO-BUSCA-GM-PDV** · CHECKLIST **13/10** · **Live v27.14** · 13/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **ARMADO** — `deploy/prep-checklist-1310-busca-gm-pdv` @ `697ac790` |
-| **Live hoje** | **v27.13** @ `904a6031` |
+| **Status** | ✅ **enviado / Live v27.14** — `producao` @ `697ac790` |
 | **O quê** | GM hífen exato · busca cadastro/gestão = filtro+relevância PDV · sem sort A–Z com `q` |
 | **Migrate** | **NÃO** |
-| **Fora** | `pdv_wizard.js` · caixa · `0145` / clientes % PDV · `pdv_state.js` |
-| **Prova** | `./scripts/cutover_loja_checklist_1310_busca_gm_pdv.sh` · **16/16** · **30/30** · CB-230 |
-| **Cutover** | `--exec` + frase + senha **99738595** |
-| **Rollback** | `rollback/pre-busca-gm-pdv-v2713` @ `904a6031` |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1310-busca-gm-pdv.md` · roteiro **§80** |
+| **Antes** | **v27.13** @ `904a6031` |
+| **Backup** | `producao-backup-pre-v2714-busca-gm-pdv` |
+| **Rollback** | `git push origin rollback/pre-busca-gm-pdv-v2713:producao` (@ `904a6031`) |
+| **Cutover** | `./scripts/cutover_loja_checklist_1310_busca_gm_pdv.sh` (executado) |
 
 ### ✅ CHECKLIST ÚNICO — **13/10**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **CLIENTE-LISTA-DESC-PDV** | 🟡 **pendente** (outro cutover) | **SIM** `0145` |
-| 2 | **CADASTRO-BUSCA-GM-PDV** | 🟢 **ARMADO** | **NÃO** |
+| 2 | **CADASTRO-BUSCA-GM-PDV** | ✅ **Live v27.14** | **NÃO** |
 
 ### ✅ Deploy loja — **PLANILHA-MED-EXCEL** · CHECKLIST **12/10r** · **Live v27.13** · 12/10
 

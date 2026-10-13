@@ -994,14 +994,12 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 80. Checklist único — **CADASTRO-BUSCA-GM-PDV** · 🟢 PREP **v27.14** · armado
+## 80. Checklist único — **CADASTRO-BUSCA-GM-PDV** · ✅ Live **v27.14**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CADASTRO-BUSCA-GM-PDV** | 🟢 PREP pronto | **NÃO** |
+| 1 | **CADASTRO-BUSCA-GM-PDV** | ✅ **Live v27.14** | **NÃO** |
 
-**Live antes:** **v27.13** @ `904a6031` (PLANILHA-MED-EXCEL já Live).  
-**PREP:** `deploy/prep-checklist-1310-busca-gm-pdv` @ `697ac790` · dry-run OK (**16/16** + **30/30**).  
-**Na senha:** `./scripts/cutover_loja_checklist_1310_busca_gm_pdv.sh --exec`.  
-**Rollback:** `rollback/pre-busca-gm-pdv-v2713`.  
-**Cuidado:** altera `busca_filtro_pdv_util` / motor — gate CB-230 no cutover. **Fora:** clientes % PDV (`0145`).
+**Live:** `producao` @ `697ac790` · backup `producao-backup-pre-v2714-busca-gm-pdv`.  
+**Rollback:** `rollback/pre-busca-gm-pdv-v2713` → `904a6031`.  
+**Ctrl+F5:** cadastro ERP + gestão — busca GM hífen e termos comuns; PDV smoke bip.
