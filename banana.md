@@ -1294,6 +1294,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — **MED-SUBCATEGORIA-DICAS** · **v27.15** · CHECKLIST **13/10b** · 🟢 **PRONTO envio produção**
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Cadastro ERP / Gerais: textos + ⓘ nas **Subcategorias 1–4** só em **Medicamentos E Venenos** (prateleira preservada) |
+| **Migrate** | **NÃO** |
+| **Prova** | `AGRO_PIN_TESTE=9973 .venv/bin/python scripts/verify_med_subcategoria_dicas_path.py` → **0 FAIL** · `verify_classificacao_medicamentos_path.py` |
+| **Status** | 🟢 **`teste`** @ `f4f8a5202`+ · aguarda frase + senha produção |
+| **Smoke** | Ctrl+F5 cadastro → medicamento: dicas visíveis · ração: sem dicas · salvar sem mudar subs |
+
+### ✅ CHECKLIST ÚNICO — **13/10b** · 🟢 **PRONTO envio produção** (pendente na loja)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CLIENTE-LISTA-DESC-PDV** | 🟡 **só `teste`** | **SIM** `0145` |
+| 2 | **MED-SUBCATEGORIA-DICAS** | 🟢 **PRONTO** `teste` v27.15 | **NÃO** |
+
 ### ✅ Deploy loja — **CADASTRO-BUSCA-GM-PDV** hotfix · **Live v27.14.2** · CHECKLIST **13/10** · 13/10
 
 | Campo | Valor |
