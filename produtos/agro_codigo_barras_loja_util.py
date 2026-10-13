@@ -59,9 +59,13 @@ def ean13_checksum_ok(d13: str) -> bool:
 
 def normalizar_scan_ean_loja_bip(termo: str) -> str:
     """Corrige bip 12 dígitos (2 + corpo) quando o leitor omite o ``3`` da faixa ``230``."""
-    d = re.sub(r"\D", "", str(termo or ""))
+    s = str(termo or "").strip()
+    d = re.sub(r"\D", "", s)
     if not d:
-        return str(termo or "").strip()
+        return s
+    # GM / etiqueta mista: não reduzir a só dígitos (GM0037-1 → 00371 colide com EAN de outro SKU).
+    if re.search(r"[a-zA-Z]", s):
+        return s
     if len(d) == 13 and d.startswith("230") and ean13_checksum_ok(d):
         return d
     if len(d) == 12 and d.startswith("2") and d[1:2] != "3":

@@ -40,6 +40,11 @@ class CbLojaBipBuscaTests(SimpleTestCase):
         self.assertEqual(normalizar_scan_ean_loja_bip("200000001556"), "2300000001556")
         self.assertTrue(termo_eh_ean_loja_bip_valido("200000001556"))
 
+    def test_gm_etiqueta_nao_colapsa_para_digitos_soltos(self):
+        from produtos.agro_codigo_barras_loja_util import normalizar_scan_ean_loja_bip
+
+        self.assertEqual(normalizar_scan_ean_loja_bip("GM0037-1"), "GM0037-1")
+
     def test_pdv_score_prefere_cadastro_raiz_sobre_index_stale(self):
         bip = "2300000001556"
         errado = {
