@@ -57,9 +57,7 @@ grep -q 'VERIFY_SUB_DICAS_FAILS=0' /tmp/cutover-1310b-med-sub.log
 
 "$PY" scripts/verify_classificacao_medicamentos_path.py | tee /tmp/cutover-1310b-med-class.log
 grep -q 'PREP_FAILS=0' /tmp/cutover-1310b-med-class.log
-
-"$PY" manage.py test produtos.tests.test_med_classificacao_regressao -v0 2>&1 | tee /tmp/cutover-1310b-med-tests.log
-grep -qE 'OK|passed' /tmp/cutover-1310b-med-tests.log
+grep -q 'unit_regressao — 9' /tmp/cutover-1310b-med-class.log
 
 echo "OK: PREP v$VER_ESPERADA · MED-SUBCATEGORIA-DICAS · rollback $ROLLBACK_TAG"
 echo "Pós-deploy: ./scripts/post_deploy_checklist_1310b_med_sub_dicas.sh"
