@@ -1296,11 +1296,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### 📦 PACOTE PRONTO — **CADASTRO-BUSCA-GM-PDV** hotfix · **v27.14.2** · CHECKLIST **13/10** · 🟢 **PRONTO envio produção**
 
-> **⚠️ OBSERVAÇÃO (chat só de produção — ler antes de subir):** A loja já recebeu **v27.14** (`697ac790`) e a busca no **Cadastro de produtos** **continuou errada** (ex.: `GM0037-1` → Ivomec; `ibiuna 5kg` ≠ PDV). **Não** considerar v27.14 encerrado. Subir **`teste` @ `615f1403`** (VERSION **27.14.2**): hotfix **complementa Mongo** no cadastro, filtra PG, GM com hífen estrito, cache BCA **v3**. **Migrate: NÃO.** **`origin/deploy/prep-checklist-1310-busca-gm-pdv` ainda está em v27.14 (`697ac790`)** — recriar/atualizar PREP a partir de `teste` **antes** de `./scripts/cutover_loja_checklist_1310_busca_gm_pdv.sh --exec`. Após deploy: **Ctrl+F5** no Cadastro · testar `GM0037-1` + `ibiuna 5kg`. Rollback: `rollback/pre-busca-gm-pdv-v2713` @ `904a6031`.
+> **⚠️ OBSERVAÇÃO (chat só de produção — ler antes de subir):** A loja já recebeu **v27.14** (`697ac790`) e a busca no **Cadastro de produtos** **continuou errada** (ex.: `GM0037-1` → Ivomec; `ibiuna 5kg` ≠ PDV). **Não** considerar v27.14 encerrado. Subir **`teste` @ `2cd9f607`** (VERSION **27.14.2**): hotfix **complementa Mongo** no cadastro, filtra PG, GM com hífen estrito, cache BCA **v3**. **Migrate: NÃO.** **`origin/deploy/prep-checklist-1310-busca-gm-pdv` ainda está em v27.14 (`697ac790`)** — recriar/atualizar PREP a partir de `teste` **antes** de `./scripts/cutover_loja_checklist_1310_busca_gm_pdv.sh --exec`. Após deploy: **Ctrl+F5** no Cadastro · testar `GM0037-1` + `ibiuna 5kg`. Rollback: `rollback/pre-busca-gm-pdv-v2713` @ `904a6031`.
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PRONTO envio produção** — `teste` @ `615f1403` · substitui **v27.14** parcial na loja |
+| **Status** | 🟢 **PRONTO envio produção** — `teste` @ `2cd9f607` · substitui **v27.14** parcial na loja |
 | **O quê** | Cadastro **complementa Mongo** · PG filtrado antes de «1 hit basta» · GM etiqueta não passa Ivomec · frase com espaço sem OR `icontains` · cache BCA **v3** |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_cadastro_busca_gm_path` **18/18** · `verify_pdv_busca_coerente_path` **30/30** · tests cadastro_busca_* **9/9** · revalidado cloud **13/10** |
