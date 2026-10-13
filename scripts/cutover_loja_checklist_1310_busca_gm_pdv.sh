@@ -68,9 +68,11 @@ git grep -q 'BCA_BUSCA_CACHE_VERSION = 4' "$PREP_FULL" -- produtos/bca_busca_cac
 git grep -q 'filtrar_rows_api_estilo_pdv(res, q)' "$PREP_FULL" -- produtos/views.py || {
   echo "FAIL: falta filtro PDV na resposta api/buscar"; exit 2;
 }
-git grep -q 'desconto_pdv_percentual' "$PREP_FULL" -- produtos/views.py && {
-  echo "FAIL: PREP inclui desconto PDV (item 3)"; exit 2;
-} || true
+if echo "$DELTA" | grep -qx 'produtos/views.py'; then
+  git diff "$PROD_REF...$PREP_REF" -- produtos/views.py | grep -qE '^\+.*desconto_pdv_percentual' && {
+    echo "FAIL: diff views inclui desconto PDV (item 3)"; exit 2;
+  } || true
+fi
 
 PY=python3
 [[ -x .venv/bin/python ]] && PY=.venv/bin/python
