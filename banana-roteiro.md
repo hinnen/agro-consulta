@@ -1002,4 +1002,18 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 **Live:** `producao` @ `0a37a031` · backup `producao-backup-pre-v27142-busca-gm-pdv`.  
 **Rollback:** `rollback/pre-busca-gm-pdv-v2713` → `904a6031`.  
-**Conferir:** Ctrl+F5 · Cadastro `GM0037-1` · `ibiuna 5kg`.
+**Conferir:** Ctrl+F5 · Cadastro `GM0037-1` · `ibiuna 5kg`. (Busca evoluiu para **v27.14.4** na loja.)
+
+---
+
+## 81. Checklist único — **MED-SUBCATEGORIA-DICAS** · 🟢 PREP **v27.15** · armado
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **MED-SUBCATEGORIA-DICAS** | 🟢 PREP pronto | **NÃO** |
+
+**Live hoje:** **v27.14.4** @ `dc357d31`.  
+**PREP:** `deploy/prep-checklist-1310b-med-sub-dicas` @ `ada10a36`.  
+**Na senha:** `./scripts/cutover_loja_checklist_1310b_med_sub_dicas.sh --exec`.  
+**Rollback:** `rollback/pre-med-sub-v27144` → `dc357d31`.  
+**Não toca:** PDV · caixa · busca.
