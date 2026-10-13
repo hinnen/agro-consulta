@@ -121,6 +121,12 @@ def variantes_gm_literal(raw: str) -> set[str]:
     out: set[str] = set()
     if not n or not n.startswith("gm"):
         return out
+    # Etiqueta com hífen (GM0037-1): não emitir «gm00371» solto — colide com index/barras de outro SKU.
+    if termo_gm_etiqueta_completa(raw):
+        out.add(n)
+        if n.upper() != n:
+            out.add(n.upper())
+        return out
     out.add(n)
     al = somente_alnum(n).lower()
     if len(al) >= 5:
@@ -220,7 +226,12 @@ def q_nome_tokens_cadastro(termo: str) -> Q | None:
         return None
     q_obj = Q()
     for pl in parts:
-        q_obj &= Q(nome__icontains=pl) | Q(marca__icontains=pl) | Q(modelo__icontains=pl)
+        q_pl = Q(nome__icontains=pl) | Q(marca__icontains=pl) | Q(modelo__icontains=pl)
+        m_kg = re.match(r"^(\d+)\s*kg$", pl, re.I)
+        if m_kg:
+            n = m_kg.group(1)
+            q_pl |= Q(nome__icontains=f"{n} kg") | Q(nome__icontains=f"{n}kg")
+        q_obj &= q_pl
     return q_obj
 
 
@@ -236,6 +247,13 @@ def q_codigo_exato_cadastro(termo: str) -> Q | None:
         nonlocal q_obj
         q_obj = q_new if q_obj is None else (q_obj | q_new)
 
+    if termo_gm_etiqueta_completa(termo):
+        t_lo = termo.strip().lower()
+        t_up = termo.strip().upper()
+        _or(Q(codigo_interno__iexact=t_lo) | Q(codigo_nfe__iexact=t_lo))
+        if t_up != t_lo:
+            _or(Q(codigo_interno__iexact=t_up) | Q(codigo_nfe__iexact=t_up))
+        return q_obj
     if digits:
         _or(Q(codigo_barras=digits) | Q(codigo_barras__iexact=termo.strip()))
         if len(digits) == 13 and digits.startswith("230"):

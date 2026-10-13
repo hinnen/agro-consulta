@@ -371,6 +371,19 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                 lim,
             )
 
+    if found and termo_eh_codigo_gm(termo):
+        found = [
+            p
+            for p in found
+            if termo_bate_codigos_produto(
+                termo,
+                codigo_interno=p.codigo_interno,
+                codigo_nfe=p.codigo_nfe,
+                codigo_barras=p.codigo_barras,
+                extras=(p.produto_externo_id, p.erp_produto_id),
+            )
+        ]
+
     if found:
         rows = _rows_de_produtos(found[: lim * 2 if lim < 80 else lim])
         if termo_eh_codigo_gm(termo):
@@ -398,32 +411,50 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                 return rows[:lim]
 
     if parece_codigo_cadastro(termo):
-        from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+        try:
+            from produtos.views import obter_conexao_mongo
 
-        if not agro_catalogo_usa_postgres():
-            try:
-                from produtos.views import obter_conexao_mongo
+            client, db = obter_conexao_mongo()
+            if db is not None and client is not None:
+                from produtos.cadastro_busca_codigo_util import cadastro_mongo_busca_por_codigo
 
-                client, db = obter_conexao_mongo()
-                if db is not None and client is not None:
-                    from produtos.cadastro_busca_codigo_util import cadastro_mongo_busca_por_codigo
+                docs = cadastro_mongo_busca_por_codigo(
+                    db,
+                    client,
+                    termo,
+                    limit=lim,
+                    include_inactive=inativos,
+                    projection={"Id": 1, "_id": 1},
+                )
+                ext_ids = [str(d.get("Id") or d.get("_id") or "").strip() for d in docs]
+                ext_ids = [x for x in ext_ids if x]
+                if ext_ids:
+                    chunk = list(qs.filter(produto_externo_id__in=ext_ids).order_by("nome", "pk")[:lim])
+                    if chunk:
+                        rows = _rows_de_produtos(chunk)
+                        if termo_eh_codigo_gm(termo):
+                            rows = [
+                                r
+                                for r in rows
+                                if termo_bate_codigos_produto(
+                                    termo,
+                                    codigo_interno=r.get("codigo"),
+                                    codigo_nfe=r.get("codigo_nfe") or r.get("codigo_gm"),
+                                    codigo_barras=r.get("codigo_barras"),
+                                    extras=(r.get("id"),),
+                                )
+                            ]
+                        if rows:
+                            from produtos.busca_filtro_pdv_util import (
+                                filtrar_rows_api_estilo_pdv,
+                                ordenar_rows_api_estilo_pdv,
+                            )
 
-                    docs = cadastro_mongo_busca_por_codigo(
-                        db,
-                        client,
-                        termo,
-                        limit=lim,
-                        include_inactive=inativos,
-                        projection={"Id": 1, "_id": 1},
-                    )
-                    ext_ids = [str(d.get("Id") or d.get("_id") or "").strip() for d in docs]
-                    ext_ids = [x for x in ext_ids if x]
-                    if ext_ids:
-                        chunk = list(qs.filter(produto_externo_id__in=ext_ids).order_by("nome", "pk")[:lim])
-                        if chunk:
-                            return _rows_de_produtos(chunk)
-            except Exception:
-                pass
+                            rows = filtrar_rows_api_estilo_pdv(rows, termo)
+                            rows = ordenar_rows_api_estilo_pdv(rows, termo)
+                            return rows[:lim]
+        except Exception:
+            pass
 
     return []
 

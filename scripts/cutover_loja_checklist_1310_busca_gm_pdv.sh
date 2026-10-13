@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Cutover loja — CADASTRO-BUSCA-GM-PDV · CHECKLIST 13/10 · v27.14.2 hotfix · SEM migrate
+# Cutover loja — CADASTRO-BUSCA-GM-PDV · CHECKLIST 13/10 · v27.14.3 hotfix · SEM migrate
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -10,7 +10,7 @@ PROD_REF="origin/producao"
 ROLLBACK_TAG="rollback/pre-busca-gm-pdv-v2713"
 BACKUP_BR="producao-backup-pre-v27142-busca-gm-pdv"
 SENHA_OK="99738595"
-VER_ESPERADA="27.14.2"
+VER_ESPERADA="27.14.3"
 
 git fetch origin producao deploy/prep-checklist-1310-busca-gm-pdv "$ROLLBACK_TAG" 2>/dev/null \
   || git fetch origin producao deploy/prep-checklist-1310-busca-gm-pdv
@@ -33,11 +33,16 @@ ALLOWED="$(printf '%s\n' \
   docs/DEPLOY-PREP-CHECKLIST-1310-busca-gm-pdv.md \
   produtos/bca_busca_cache_util.py \
   produtos/busca_filtro_pdv_util.py \
+  produtos/cadastro_busca_codigo_util.py \
   produtos/catalogo_agro.py \
+  produtos/mongo_index_codigos.py \
   produtos/motor_busca_unificado_util.py \
   produtos/tests_cadastro_busca_gm_variante.py \
+  produtos/tests_cadastro_busca_pdv_alinhada.py \
   produtos/views.py \
+  banana.md \
   scripts/cutover_loja_checklist_1310_busca_gm_pdv.sh \
+  scripts/post_deploy_checklist_1310_busca_gm_pdv.sh \
   scripts/verify_cadastro_busca_gm_path.py | sort)"
 [[ "$DELTA" == "$ALLOWED" ]] || {
   echo "FAIL: delta inesperado:"; echo "$DELTA"; exit 2;
@@ -57,8 +62,11 @@ git grep -q '_parse_sort_cadastro_request_explicit' "$PREP_FULL" -- produtos/vie
 git grep -q 'contexto_cadastro' "$PREP_FULL" -- produtos/motor_busca_unificado_util.py || {
   echo "FAIL: falta complemento Mongo cadastro"; exit 2;
 }
-git grep -q 'BCA_BUSCA_CACHE_VERSION = 3' "$PREP_FULL" -- produtos/bca_busca_cache_util.py || {
-  echo "FAIL: cache BCA v3"; exit 2;
+git grep -q 'BCA_BUSCA_CACHE_VERSION = 4' "$PREP_FULL" -- produtos/bca_busca_cache_util.py || {
+  echo "FAIL: cache BCA v4"; exit 2;
+}
+git grep -q 'filtrar_rows_api_estilo_pdv(res, q)' "$PREP_FULL" -- produtos/views.py || {
+  echo "FAIL: falta filtro PDV na resposta api/buscar"; exit 2;
 }
 git grep -q 'desconto_pdv_percentual' "$PREP_FULL" -- produtos/views.py && {
   echo "FAIL: PREP inclui desconto PDV (item 3)"; exit 2;

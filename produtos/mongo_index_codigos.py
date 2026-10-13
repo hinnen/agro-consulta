@@ -710,6 +710,13 @@ def produto_termo_bate_campos_principais(doc: dict, termo_limpo: str) -> bool:
 def mongo_query_so_index_codigo(termo_limpo: str) -> dict:
     """Uma única chave para find/$or mínimo."""
     from produtos.agro_codigo_barras_loja_util import variantes_busca_codigo_barras_loja
+    from produtos.cadastro_busca_codigo_util import termo_gm_etiqueta_completa, variantes_gm_literal
+
+    if termo_gm_etiqueta_completa(termo_limpo):
+        alts = {v.lower() for v in variantes_gm_literal(termo_limpo)}
+        if len(alts) == 1:
+            return {INDEX_CODIGOS_CAMPO: next(iter(alts))}
+        return {INDEX_CODIGOS_CAMPO: {"$in": sorted(alts)}}
 
     tl = somente_alnum(str(termo_limpo or "")).lower()
     alts = {tl}
