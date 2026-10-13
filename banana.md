@@ -1294,24 +1294,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — **CADASTRO-BUSCA-GM-PDV** · CHECKLIST **13/10** · 🟢 **PRONTO envio produção**
+### 🟢 PREP loja — **CADASTRO-BUSCA-GM-PDV** · CHECKLIST **13/10** · **v27.14** · armado
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **só `teste`** — validar local (`docs/TESTE-LOCAL.md`) · Cadastro/Gestão busca |
-| **Versão** | **v27.14** (`teste`) |
-| **O quê** | GM com hífen exato (`GM0037-1` ≠ barras `00371` / outro GM) · filtro + relevância **igual PDV** no `catalogo_agro.buscar` · API cadastro não reordena A–Z sem `sort` |
+| **Status** | 🟢 **ARMADO** — `deploy/prep-checklist-1310-busca-gm-pdv` @ `697ac790` |
+| **Live hoje** | **v27.13** @ `904a6031` |
+| **O quê** | GM hífen exato · busca cadastro/gestão = filtro+relevância PDV · sem sort A–Z com `q` |
 | **Migrate** | **NÃO** |
-| **Prova** | `./scripts/verify_cadastro_busca_gm_path.py` **16/16** · `verify_pdv_busca_coerente_path` **30/30** · tests `cadastro_busca_gm_variante` + `cadastro_busca_pdv_alinhada` |
-| **Commits** | `56f85af8` · `dca85dda` (+ script verify no `teste`) |
-| **Cutover** | cherry-pick/merge `teste`→`producao` · **frase + senha** |
+| **Fora** | `pdv_wizard.js` · caixa · `0145` / clientes % PDV · `pdv_state.js` |
+| **Prova** | `./scripts/cutover_loja_checklist_1310_busca_gm_pdv.sh` · **16/16** · **30/30** · CB-230 |
+| **Cutover** | `--exec` + frase + senha **99738595** |
+| **Rollback** | `rollback/pre-busca-gm-pdv-v2713` @ `904a6031` |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1310-busca-gm-pdv.md` · roteiro **§80** |
 
 ### ✅ CHECKLIST ÚNICO — **13/10**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CLIENTE-LISTA-DESC-PDV** | 🟡 **só `teste`** | **SIM** `0145` |
-| 2 | **CADASTRO-BUSCA-GM-PDV** | 🟢 **PRONTO envio produção** | **NÃO** |
+| 1 | **CLIENTE-LISTA-DESC-PDV** | 🟡 **pendente** (outro cutover) | **SIM** `0145` |
+| 2 | **CADASTRO-BUSCA-GM-PDV** | 🟢 **ARMADO** | **NÃO** |
 
 ### ✅ Deploy loja — **PLANILHA-MED-EXCEL** · CHECKLIST **12/10r** · **Live v27.13** · 12/10
 
