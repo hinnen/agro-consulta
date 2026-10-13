@@ -20,6 +20,19 @@ def test_modal_cadastro_define_gv_antes_da_ui_medicamento():
     assert idx_gv >= 0 and idx_med >= 0 and idx_gv < idx_med
 
 
+def test_modal_subcategorias_med_dicas_ui_somente_visual():
+    modal = Path("produtos/templates/produtos/_modal_editar_produto_cadastro_erp.inc.html").read_text(
+        encoding="utf-8"
+    )
+    assert "atualizarDicasSubcategoriaMedicamento" in modal
+    assert modal.count("data-agro-med-sub-nivel=") >= 8
+    assert "Grupo da prateleira" in modal
+    assert "Princípio ativo / detalhamento" in modal
+    assert 'id="edit-subcategoria-2"' in modal
+    assert "subcategoria_2: gv('edit-subcategoria-2')" in modal
+    assert "function abrirAgroMedSubTip" in modal
+
+
 def test_ler_busca_retorna_tres_valores():
     pk, cv, ev = ler_busca_de_cadastro_extras(
         {"palavras_chave": "A", "classes_vet": ["antibiotico"], "especies_vet": ["caes"]}

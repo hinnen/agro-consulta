@@ -78,6 +78,9 @@ def test_arquivos_e_contratos() -> None:
         "gv antes da UI medicamento (abrir modal)",
     )
     check("modal_abrirModalProduto", "window.abrirModalProduto = function" in modal)
+    check("modal_sub_dicas_fn", "atualizarDicasSubcategoriaMedicamento" in modal)
+    check("modal_sub_dicas_4", modal.count("agro-med-sub-tip-panel-") >= 4)
+    check("modal_sub_prateleira", 'id="edit-subcategoria-med-prateleira"' in modal)
 
     gestao = (ROOT / "produtos/templates/produtos/produtos_gestao.html").read_text(encoding="utf-8")
     check("gestao_abrir_drawer", "function abrirDrawer" in gestao)
@@ -95,6 +98,7 @@ def test_arquivos_e_contratos() -> None:
         "produtos/tests_cadastro_planilha_med.py",
         "scripts/verify_classificacao_medicamentos_path.py",
         "scripts/verify_planilha_med_path.py",
+        "scripts/verify_med_subcategoria_dicas_path.py",
     ]
     mig_log = subprocess.run(
         ["git", "log", "-25", "--name-only", "--pretty=format:", "--", *med_paths],
@@ -277,7 +281,7 @@ def _run_test_module(rel_path: str, label: str, min_tests: int) -> None:
 def test_unit_tests_file() -> None:
     print("== testes unitários Python ==")
     _run_test_module("produtos/tests/test_medicamento_vet_taxonomia.py", "taxonomia", 8)
-    _run_test_module("produtos/tests/test_med_classificacao_regressao.py", "regressao", 7)
+    _run_test_module("produtos/tests/test_med_classificacao_regressao.py", "regressao", 9)
 
 
 def main() -> int:
@@ -285,7 +289,20 @@ def main() -> int:
     test_arquivos_e_contratos()
     test_logica_seguranca_dados()
     test_planilha_excel_med()
-    test_http_e_pin()
+    print("== Subcategorias MED — dicas UI ==")
+    import subprocess
+
+    r = subprocess.run(
+        [sys.executable, str(ROOT / "scripts/verify_med_subcategoria_dicas_path.py")],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        env={**os.environ, "AGRO_PIN_TESTE": PIN_ENV or os.environ.get("AGRO_PIN_TESTE", "")},
+    )
+    if r.returncode != 0:
+        check("verify_sub_dicas", False, (r.stdout or r.stderr)[-200:])
+    else:
+        check("verify_sub_dicas", "VERIFY_SUB_DICAS_FAILS=0" in (r.stdout or ""))
     test_unit_tests_file()
     print(f"\nOK={len(oks)} FAIL={len(fails)} SKIP={len(skipped)}")
     if skipped:

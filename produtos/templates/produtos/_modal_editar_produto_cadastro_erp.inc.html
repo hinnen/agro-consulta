@@ -113,6 +113,16 @@
       background: #fff;
       box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
     }
+    /* Dicas Subcategoria 1–4 (somente Medicamentos E Venenos) */
+    #modal-editar-produto .cadastro-subcategoria-label {
+      line-height: 1.25;
+    }
+    #modal-editar-produto .agro-med-sub-hint {
+      letter-spacing: 0;
+    }
+    #modal-editar-produto .agro-med-sub-tip-panel.is-open {
+      pointer-events: auto;
+    }
     #modal-editar-produto .tab-custos-footer {
       gap: 0.75rem;
       padding: 1rem;
@@ -430,7 +440,14 @@
         </div>
 
         <div class="flex flex-col" id="wrap-subcategoria-field">
-          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Subcategoria</span>
+          <span class="cadastro-subcategoria-label text-base font-black uppercase text-slate-600 mb-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <span>Subcategoria</span>
+            <span class="agro-med-sub-hint hidden text-xs font-semibold normal-case tracking-normal text-emerald-800" data-agro-med-sub-nivel="1">Grupo da prateleira</span>
+            <span class="agro-med-sub-tip-wrap hidden relative inline-flex shrink-0 align-middle" data-agro-med-sub-nivel="1">
+              <button type="button" class="agro-med-sub-tip-btn min-h-[28px] min-w-[28px] rounded-full border border-slate-300 bg-white text-sm font-black leading-none text-slate-600 hover:bg-emerald-50 hover:border-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500" aria-expanded="false" aria-controls="agro-med-sub-tip-panel-1" aria-label="Ajuda: Subcategoria — grupo da prateleira">ⓘ</button>
+              <span id="agro-med-sub-tip-panel-1" class="agro-med-sub-tip-panel hidden fixed z-[200] max-w-[min(20rem,calc(100vw-1.5rem))] rounded-lg border-2 border-emerald-200 bg-white px-3 py-2.5 text-sm font-semibold normal-case text-slate-800 leading-snug shadow-lg" role="tooltip">Define o grupo principal em que o produto fica organizado fisicamente na loja. Utiliza os 9 grupos de prateleira já cadastrados.</span>
+            </span>
+          </span>
           <p id="subcategoria-med-legado-aviso" class="hidden text-sm font-semibold text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-2 leading-snug"></p>
           <div id="wrap-subcategoria-med-prateleira" class="hidden mb-2">
             <label class="block">
@@ -448,15 +465,36 @@
         </div>
 
         <label class="block">
-          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Subcategoria 2</span>
+          <span class="cadastro-subcategoria-label text-base font-black uppercase text-slate-600 mb-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <span>Subcategoria 2</span>
+            <span class="agro-med-sub-hint hidden text-xs font-semibold normal-case tracking-normal text-emerald-800" data-agro-med-sub-nivel="2">Tipo principal</span>
+            <span class="agro-med-sub-tip-wrap hidden relative inline-flex shrink-0 align-middle" data-agro-med-sub-nivel="2">
+              <button type="button" class="agro-med-sub-tip-btn min-h-[28px] min-w-[28px] rounded-full border border-slate-300 bg-white text-sm font-black leading-none text-slate-600 hover:bg-emerald-50 hover:border-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500" aria-expanded="false" aria-controls="agro-med-sub-tip-panel-2" aria-label="Ajuda: Subcategoria 2 — tipo principal">ⓘ</button>
+              <span id="agro-med-sub-tip-panel-2" class="agro-med-sub-tip-panel hidden fixed z-[200] max-w-[min(20rem,calc(100vw-1.5rem))] rounded-lg border-2 border-emerald-200 bg-white px-3 py-2.5 text-sm font-semibold normal-case text-slate-800 leading-snug shadow-lg" role="tooltip">Identifica o tipo ou finalidade principal do produto dentro do grupo da prateleira. Permite uma classificação mais específica sem alterar sua localização física.</span>
+            </span>
+          </span>
           <input type="text" id="edit-subcategoria-2" maxlength="200" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" autocomplete="off" />
         </label>
         <label class="block">
-          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Subcategoria 3</span>
+          <span class="cadastro-subcategoria-label text-base font-black uppercase text-slate-600 mb-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <span>Subcategoria 3</span>
+            <span class="agro-med-sub-hint hidden text-xs font-semibold normal-case tracking-normal text-emerald-800" data-agro-med-sub-nivel="3">Grupo específico / família</span>
+            <span class="agro-med-sub-tip-wrap hidden relative inline-flex shrink-0 align-middle" data-agro-med-sub-nivel="3">
+              <button type="button" class="agro-med-sub-tip-btn min-h-[28px] min-w-[28px] rounded-full border border-slate-300 bg-white text-sm font-black leading-none text-slate-600 hover:bg-emerald-50 hover:border-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500" aria-expanded="false" aria-controls="agro-med-sub-tip-panel-3" aria-label="Ajuda: Subcategoria 3 — grupo específico ou família">ⓘ</button>
+              <span id="agro-med-sub-tip-panel-3" class="agro-med-sub-tip-panel hidden fixed z-[200] max-w-[min(20rem,calc(100vw-1.5rem))] rounded-lg border-2 border-emerald-200 bg-white px-3 py-2.5 text-sm font-semibold normal-case text-slate-800 leading-snug shadow-lg" role="tooltip">Detalha a classificação do produto, como família farmacológica, família química ou outro agrupamento técnico aplicável.</span>
+            </span>
+          </span>
           <input type="text" id="edit-subcategoria-3" maxlength="200" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" autocomplete="off" />
         </label>
         <label class="block">
-          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Subcategoria 4</span>
+          <span class="cadastro-subcategoria-label text-base font-black uppercase text-slate-600 mb-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <span>Subcategoria 4</span>
+            <span class="agro-med-sub-hint hidden text-xs font-semibold normal-case tracking-normal text-emerald-800" data-agro-med-sub-nivel="4">Princípio ativo / detalhamento</span>
+            <span class="agro-med-sub-tip-wrap hidden relative inline-flex shrink-0 align-middle" data-agro-med-sub-nivel="4">
+              <button type="button" class="agro-med-sub-tip-btn min-h-[28px] min-w-[28px] rounded-full border border-slate-300 bg-white text-sm font-black leading-none text-slate-600 hover:bg-emerald-50 hover:border-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500" aria-expanded="false" aria-controls="agro-med-sub-tip-panel-4" aria-label="Ajuda: Subcategoria 4 — princípio ativo ou detalhamento">ⓘ</button>
+              <span id="agro-med-sub-tip-panel-4" class="agro-med-sub-tip-panel hidden fixed z-[200] max-w-[min(20rem,calc(100vw-1.5rem))] rounded-lg border-2 border-emerald-200 bg-white px-3 py-2.5 text-sm font-semibold normal-case text-slate-800 leading-snug shadow-lg" role="tooltip">Permite identificar o princípio ativo ou outra característica técnica relevante. Preencher somente quando fizer sentido para o produto.</span>
+            </span>
+          </span>
           <input type="text" id="edit-subcategoria-4" maxlength="200" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" autocomplete="off" />
         </label>
 
@@ -1560,6 +1598,65 @@
     }
   }
 
+  var agroMedSubTipAberto = null;
+
+  function fecharAgroMedSubTip(excecaoBtn) {
+    document.querySelectorAll('#modal-editar-produto .agro-med-sub-tip-panel.is-open').forEach(function (panel) {
+      var btn = panel.previousElementSibling;
+      if (btn && btn === excecaoBtn) return;
+      panel.classList.remove('is-open');
+      panel.classList.add('hidden');
+      if (btn && btn.classList && btn.classList.contains('agro-med-sub-tip-btn')) {
+        btn.setAttribute('aria-expanded', 'false');
+      }
+    });
+    if (!excecaoBtn) agroMedSubTipAberto = null;
+  }
+
+  function posicionarAgroMedSubTip(btn, panel) {
+    if (!btn || !panel) return;
+    var r = btn.getBoundingClientRect();
+    var margem = 8;
+    var largura = Math.min(320, window.innerWidth - margem * 2);
+    panel.style.width = largura + 'px';
+    var left = r.left;
+    if (left + largura > window.innerWidth - margem) {
+      left = window.innerWidth - margem - largura;
+    }
+    if (left < margem) left = margem;
+    var top = r.bottom + 6;
+    var panelH = panel.offsetHeight || 120;
+    if (top + panelH > window.innerHeight - margem) {
+      top = Math.max(margem, r.top - panelH - 6);
+    }
+    panel.style.left = left + 'px';
+    panel.style.top = top + 'px';
+  }
+
+  function abrirAgroMedSubTip(btn) {
+    if (!btn) return;
+    var panelId = btn.getAttribute('aria-controls');
+    var panel = panelId ? document.getElementById(panelId) : null;
+    if (!panel) return;
+    var jaAberto = panel.classList.contains('is-open');
+    fecharAgroMedSubTip(null);
+    if (jaAberto && agroMedSubTipAberto === btn) return;
+    panel.classList.remove('hidden');
+    panel.classList.add('is-open');
+    btn.setAttribute('aria-expanded', 'true');
+    agroMedSubTipAberto = btn;
+    posicionarAgroMedSubTip(btn, panel);
+  }
+
+  function atualizarDicasSubcategoriaMedicamento() {
+    var catEl = document.getElementById('edit-categoria');
+    var med = categoriaEhMedicamentoVet(catEl ? catEl.value : '');
+    document.querySelectorAll('#modal-editar-produto [data-agro-med-sub-nivel]').forEach(function (el) {
+      el.classList.toggle('hidden', !med);
+    });
+    if (!med) fecharAgroMedSubTip(null);
+  }
+
   function atualizarUISubcategoriaMedicamento() {
     var catEl = document.getElementById('edit-categoria');
     var cat = catEl ? catEl.value : '';
@@ -1586,6 +1683,7 @@
     if (med) {
       preencherSelectPrateleiraMed();
     }
+    atualizarDicasSubcategoriaMedicamento();
   }
 
   function sincronizarClassesVetDoDomVisivel() {
@@ -1781,6 +1879,63 @@
     carregarTaxonomiaVet(function () {
       preencherSelectPrateleiraMed();
     });
+    if (!window._agroMedSubTipsInited) {
+      window._agroMedSubTipsInited = true;
+      var modalRoot = document.getElementById('modal-editar-produto');
+      if (modalRoot) {
+        modalRoot.addEventListener('click', function (ev) {
+          var btn = ev.target && ev.target.closest ? ev.target.closest('.agro-med-sub-tip-btn') : null;
+          if (btn) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            abrirAgroMedSubTip(btn);
+            return;
+          }
+          if (!ev.target.closest || !ev.target.closest('.agro-med-sub-tip-panel')) {
+            fecharAgroMedSubTip(null);
+          }
+        });
+        modalRoot.addEventListener('mouseenter', function (ev) {
+          var btn = ev.target && ev.target.closest ? ev.target.closest('.agro-med-sub-tip-btn') : null;
+          if (!btn || window.matchMedia('(hover: none)').matches) return;
+          abrirAgroMedSubTip(btn);
+        }, true);
+        modalRoot.addEventListener('mouseleave', function (ev) {
+          if (window.matchMedia('(hover: none)').matches) return;
+          var wrap = ev.target && ev.target.closest ? ev.target.closest('.agro-med-sub-tip-wrap') : null;
+          if (!wrap) return;
+          var rel = ev.relatedTarget;
+          if (rel && wrap.contains(rel)) return;
+          fecharAgroMedSubTip(null);
+        }, true);
+        modalRoot.addEventListener('focusin', function (ev) {
+          var btn = ev.target && ev.target.closest ? ev.target.closest('.agro-med-sub-tip-btn') : null;
+          if (btn) abrirAgroMedSubTip(btn);
+        });
+        modalRoot.addEventListener('focusout', function (ev) {
+          var wrap = ev.target && ev.target.closest ? ev.target.closest('.agro-med-sub-tip-wrap') : null;
+          if (!wrap) return;
+          var rel = ev.relatedTarget;
+          if (rel && wrap.contains(rel)) return;
+          setTimeout(function () {
+            if (!wrap.contains(document.activeElement)) fecharAgroMedSubTip(null);
+          }, 0);
+        });
+      }
+      document.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Escape') fecharAgroMedSubTip(null);
+      });
+      window.addEventListener('resize', function () {
+        if (agroMedSubTipAberto) {
+          var panelId = agroMedSubTipAberto.getAttribute('aria-controls');
+          var panel = panelId ? document.getElementById(panelId) : null;
+          if (panel && panel.classList.contains('is-open')) {
+            posicionarAgroMedSubTip(agroMedSubTipAberto, panel);
+          }
+        }
+      });
+    }
+    atualizarDicasSubcategoriaMedicamento();
   })();
 
   function normCbOpcionalDigits(raw) {
