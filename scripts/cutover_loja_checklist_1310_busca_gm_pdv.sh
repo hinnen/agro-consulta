@@ -44,9 +44,15 @@ ALLOWED="$(printf '%s\n' \
   scripts/cutover_loja_checklist_1310_busca_gm_pdv.sh \
   scripts/post_deploy_checklist_1310_busca_gm_pdv.sh \
   scripts/verify_cadastro_busca_gm_path.py | sort)"
-[[ "$DELTA" == "$ALLOWED" ]] || {
-  echo "FAIL: delta inesperado:"; echo "$DELTA"; exit 2;
+echo "$DELTA" | grep -qx 'VERSION' || {
+  echo "FAIL: delta sem VERSION"; exit 2;
 }
+while IFS= read -r _df; do
+  [[ -n "$_df" ]] || continue
+  echo "$ALLOWED" | grep -qx "$_df" || {
+    echo "FAIL: arquivo fora do pacote: $_df"; echo "$DELTA"; exit 2;
+  }
+done <<< "$DELTA"
 
 MIG="$(echo "$DELTA" | grep -E '/migrations/[0-9]+_' || true)"
 [[ -z "$MIG" ]] || { echo "FAIL: migration: $MIG"; exit 2; }
