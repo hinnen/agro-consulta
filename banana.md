@@ -1307,6 +1307,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Cutover** | `./scripts/cutover_loja_checklist_1310b_med_sub_dicas.sh` (executado) |
 | **Smoke loja** | Ctrl+F5 cadastro → medicamento: dicas · ração: sem dicas |
 
+### 📦 PACOTE PRONTO — **ETQ-MOBILE-BIP** · 🟢 **teste** (ainda não na loja)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `/vendas/lojas/etiquetas/` — bip **várias vezes** (câmera fica aberta ou reabre após envio); opção **Bipar e enviar direto**; código **sem cadastro** → painel buscar/bipar de novo |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_etiquetas_mobile_flow_path.py` **16/16** |
+
 ### ✅ CHECKLIST ÚNICO — **13/10b**
 
 | # | Pacote | Status | Migrate |
