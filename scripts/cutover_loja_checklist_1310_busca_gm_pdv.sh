@@ -38,6 +38,7 @@ ALLOWED="$(printf '%s\n' \
   produtos/catalogo_agro.py \
   produtos/mongo_index_codigos.py \
   produtos/motor_busca_unificado_util.py \
+  produtos/tests_cb_loja_bip_busca.py \
   produtos/tests_cadastro_busca_gm_variante.py \
   produtos/tests_cadastro_busca_pdv_alinhada.py \
   produtos/views.py \
