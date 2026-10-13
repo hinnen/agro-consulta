@@ -31,16 +31,13 @@ DELTA="$(git diff --name-only "$PROD_REF...$PREP_REF" | sort)"
 ALLOWED="$(printf '%s\n' \
   VERSION \
   docs/DEPLOY-PREP-CHECKLIST-1310-busca-gm-pdv.md \
+  produtos/bca_busca_cache_util.py \
   produtos/busca_filtro_pdv_util.py \
-  produtos/cadastro_busca_codigo_util.py \
   produtos/catalogo_agro.py \
   produtos/motor_busca_unificado_util.py \
   produtos/tests_cadastro_busca_gm_variante.py \
-  produtos/tests_cadastro_busca_pdv_alinhada.py \
-  produtos/bca_busca_cache_util.py \
   produtos/views.py \
   scripts/cutover_loja_checklist_1310_busca_gm_pdv.sh \
-  scripts/post_deploy_checklist_1310_busca_gm_pdv.sh \
   scripts/verify_cadastro_busca_gm_path.py | sort)"
 [[ "$DELTA" == "$ALLOWED" ]] || {
   echo "FAIL: delta inesperado:"; echo "$DELTA"; exit 2;
