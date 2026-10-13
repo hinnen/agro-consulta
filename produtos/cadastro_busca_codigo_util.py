@@ -22,6 +22,30 @@ def termo_eh_codigo_gm(termo: str) -> bool:
     return bool(re.match(r"^gm", str(termo or "").strip(), re.I))
 
 
+def termo_gm_etiqueta_completa(termo: str) -> bool:
+    """GM com sufixo de variante (ex. ``GM0037-1``) — busca exata, não família nem dígitos soltos."""
+    t = str(termo or "").strip()
+    return bool(re.match(r"^gm\d+-.+", t, re.I))
+
+
+def digitos_somente_barras_cadastro(termo: str) -> str | None:
+    """
+    Dígitos do termo para casar ``codigo_barras`` (EAN/PLU).
+
+    Códigos GM (``GM0037-1``) viram ``00371`` se só tirar letras — isso colide com barras
+    de outros produtos; retorna ``None`` nesses casos.
+    """
+    t = str(termo or "").strip()
+    if not t or termo_eh_codigo_gm(t):
+        return None
+    digits = _RE_NAO_ALNUM.sub("", t)
+    if not digits.isdigit():
+        return None
+    if len(digits) < 4:
+        return None
+    return digits
+
+
 def gm_base_familia(termo: str) -> str | None:
     """
     Prefixo de família GM sem variante: ``GM0024`` / ``gm0024`` → ``GM0024``.
@@ -159,6 +183,14 @@ def termo_bate_valor_codigo(termo: str, val: Any) -> bool:
     if tn and len(tn) >= 5 and va and va == tn:
         return True
     if t.startswith("gm") and len(t) >= 3:
+        # Etiqueta completa (GM0037-1): só igualdade — evita GM0037-1 casar GM0037-10 e barras «00371».
+        if termo_gm_etiqueta_completa(termo):
+            if vn == t or (tn and va == tn):
+                return True
+            for v in variantes_gm_literal(t):
+                if vn == v or va == somente_alnum(v).lower():
+                    return True
+            return False
         if vn.startswith(t):
             return True
         if tn and len(tn) >= 3 and va.startswith(tn):
@@ -198,31 +230,31 @@ def q_codigo_exato_cadastro(termo: str) -> Q | None:
     if not termo:
         return None
     q_obj: Q | None = None
-    digits = _RE_NAO_ALNUM.sub("", termo)
+    digits = digitos_somente_barras_cadastro(termo)
 
     def _or(q_new: Q) -> None:
         nonlocal q_obj
         q_obj = q_new if q_obj is None else (q_obj | q_new)
 
-    if digits and len(digits) >= 4:
+    if digits:
         _or(Q(codigo_barras=digits) | Q(codigo_barras__iexact=termo.strip()))
-        if digits.isdigit() and len(digits) == 13 and digits.startswith("230"):
+        if len(digits) == 13 and digits.startswith("230"):
             for alt in variantes_busca_codigo_barras_loja(digits):
                 if alt != digits:
                     _or(Q(codigo_barras=alt) | Q(codigo_barras__iexact=alt))
-        if not termo_eh_codigo_gm(termo):
-            _or(Q(codigo_interno__iexact=digits) | Q(codigo_nfe__iexact=digits))
+        _or(Q(codigo_interno__iexact=digits) | Q(codigo_nfe__iexact=digits))
     for v in variantes_gm_literal(termo):
         _or(Q(codigo_interno__iexact=v) | Q(codigo_nfe__iexact=v))
     if termo_eh_codigo_gm(termo):
-        esc = termo.strip()
-        _or(q_prefixo_codigo_ci("codigo_interno", "codigo_nfe", prefixo=esc))
-        fam = q_familia_gm_cadastro(termo)
-        if fam is not None:
-            _or(fam)
-        al_gm = somente_alnum(termo).lower()
-        if al_gm.startswith("gm") and len(al_gm) >= 5:
-            _or(Q(codigo_nfe__icontains=al_gm) | Q(codigo_interno__icontains=al_gm))
+        if not termo_gm_etiqueta_completa(termo):
+            esc = termo.strip()
+            _or(q_prefixo_codigo_ci("codigo_interno", "codigo_nfe", prefixo=esc))
+            fam = q_familia_gm_cadastro(termo)
+            if fam is not None:
+                _or(fam)
+            al_gm = somente_alnum(termo).lower()
+            if al_gm.startswith("gm") and len(al_gm) >= 5:
+                _or(Q(codigo_nfe__icontains=al_gm) | Q(codigo_interno__icontains=al_gm))
     tl = somente_alnum(termo).lower()
     if tl and len(tl) >= 3:
         _or(Q(produto_externo_id__iexact=termo) | Q(erp_produto_id__iexact=termo))
@@ -231,7 +263,7 @@ def q_codigo_exato_cadastro(termo: str) -> Q | None:
 
 def q_icontains_cadastro(termo: str) -> Q:
     termo = (termo or "").strip()
-    digits = _RE_NAO_ALNUM.sub("", termo)
+    digits = digitos_somente_barras_cadastro(termo) or ""
     q_obj = (
         Q(nome__icontains=termo)
         | Q(marca__icontains=termo)
@@ -295,7 +327,7 @@ def overlay_pids_por_codigo(termo: str, *, limit: int = 80) -> list[str]:
     al = somente_alnum(termo).lower()
     if termo_eh_codigo_gm(termo) and len(al) < 5:
         return []
-    digits = _RE_NAO_ALNUM.sub("", termo)
+    digits = digitos_somente_barras_cadastro(termo) or ""
     # PLU balança (4 dígitos, ex. 0010) e códigos curtos: match EXATO no overlay.
     # Antes retornava [] para <8 dígitos → bip de etiqueta nunca achava «Salvar no Agro».
     if digits.isdigit() and len(digits) < 4:
@@ -310,8 +342,9 @@ def overlay_pids_por_codigo(termo: str, *, limit: int = 80) -> list[str]:
     if termo_eh_codigo_gm(termo):
         for v in variantes_gm_literal(termo):
             _or(Q(codigo_nfe__iexact=v) | Q(codigo_barras__iexact=v))
-        esc = termo.strip()
-        _or(q_prefixo_codigo_ci("codigo_nfe", "codigo_barras", prefixo=esc))
+        if not termo_gm_etiqueta_completa(termo):
+            esc = termo.strip()
+            _or(q_prefixo_codigo_ci("codigo_nfe", "codigo_barras", prefixo=esc))
         base = gm_base_familia(termo)
         if base:
             esc_b = re.escape(base)
@@ -509,8 +542,8 @@ def cadastro_mongo_busca_por_codigo(
             esc = re.escape(termo.strip())
             ors.append({"CodigoNFe": {"$regex": f"^{esc}", "$options": "i"}})
             ors.append({"Codigo": {"$regex": f"^{esc}", "$options": "i"}})
-        digits = _RE_NAO_ALNUM.sub("", termo)
-        if digits and len(digits) >= 4:
+        digits = digitos_somente_barras_cadastro(termo)
+        if digits:
             for fld in ("CodigoBarras", "EAN_NFe", "EAN", "CodigoDeBarras", "GTIN"):
                 ors.append({fld: digits})
                 ors.append({fld: termo.strip()})

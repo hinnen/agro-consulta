@@ -251,6 +251,7 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
         q_nome_tokens_cadastro,
         termo_bate_codigos_produto,
         termo_eh_codigo_gm,
+        termo_gm_etiqueta_completa,
     )
 
     termo = (q or "").strip()
@@ -316,7 +317,8 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                 lim,
             )
         digits_only = re.sub(r"\D", "", termo)
-        if len(found) < lim:
+        # GM com variante (GM0037-1): não usar icontains — dígitos soltos (00371) colidem com barras.
+        if len(found) < lim and not termo_gm_etiqueta_completa(termo):
             _cadastro_pg_append_unicos(
                 found,
                 seen_pk,
