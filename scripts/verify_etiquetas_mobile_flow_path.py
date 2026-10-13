@@ -56,6 +56,9 @@ def main() -> int:
     check("delegacao_sacola", "bindSacolaOnce" in app and "box._delegated" in app)
     check("delegacao_lista", "bindListaOnce" in app)
     check("enviar_guard", "enviando" in app and "Enviando" in app)
+    check("bip_reabrir_camera", "limparReaderBox" in app and "processarBipScan" in app)
+    check("bip_enviar_direto_opcao", "chkBipEnviar" in app and "agro_etq_bip_enviar_direto" in app)
+    check("sem_cadastro_painel", "panelSemCadastro" in app and "sem_cadastro" in app)
     check("pwa_head", "vendas_lojas_pwa_head.html" in app)
     check("catalogo_slim", "url_catalogo_slim" in app or "URL_SLIM" in app)
 

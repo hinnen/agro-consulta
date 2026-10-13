@@ -1294,6 +1294,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ Deploy loja — **ETQ-MOBILE-BIP** · **Live v27.16** · CHECKLIST **13/10c** · 13/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v27.16** — cherry-pick `ef655773` sobre **v27.15** |
+| **O quê** | App `/vendas/lojas/etiquetas/` — bip **contínuo** · **Bipar e enviar direto** · sem cadastro → painel |
+| **Migrate** | **NÃO** |
+| **Antes** | **v27.15** @ `ada10a36` |
+| **Backup** | `producao-backup-pre-v2716-etq-mobile-bip` @ `ada10a36` |
+| **Rollback** | `git push origin ada10a36:producao` |
+| **Prova** | `verify_etiquetas_mobile_flow_path.py` **16/16** · ETQ path **35/35** |
+| **Você** | Celular → Etiquetas → bip várias vezes · Ctrl+F5 se cache PWA |
+
 ### 🟢 PREP loja — CHECKLIST **11/10l** · **v27.04** · aguarda frase+senha
 
 | Campo | Valor |

@@ -326,6 +326,53 @@
     }
     .btn-enviar:disabled { opacity: 0.42; }
     .btn-enviar.enviando { opacity: 0.75; }
+    .scan-opts {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      padding: 0.35rem 0.1rem 0.15rem;
+      border-radius: 0.65rem;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+    }
+    .scan-opts label {
+      flex: 1;
+      font-size: 0.78rem;
+      font-weight: 800;
+      line-height: 1.25;
+      color: var(--ink);
+      cursor: pointer;
+      user-select: none;
+    }
+    .scan-opts input {
+      width: 1.35rem;
+      height: 1.35rem;
+      accent-color: var(--accent);
+      flex-shrink: 0;
+    }
+    .panel-sem-cad {
+      display: none;
+      flex-direction: column;
+      gap: 0.45rem;
+      border: 2px solid #fecaca;
+      border-radius: 0.9rem;
+      background: #fff;
+      padding: 0.75rem 0.85rem;
+    }
+    .panel-sem-cad.on { display: flex; }
+    .panel-sem-cad strong { font-size: 0.88rem; font-weight: 900; color: #b91c1c; }
+    .panel-sem-cad p { margin: 0; font-size: 0.78rem; font-weight: 700; color: var(--muted); line-height: 1.35; }
+    .panel-sem-cad code {
+      display: block;
+      margin-top: 0.25rem;
+      padding: 0.35rem 0.5rem;
+      border-radius: 0.45rem;
+      background: #f1f5f9;
+      font-size: 0.82rem;
+      word-break: break-all;
+    }
+    .panel-sem-cad .row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .panel-sem-cad .btn { flex: 1; min-width: 7rem; }
     #reader { position: fixed; inset: 0; z-index: 80; background: #000; display: none; }
     #reader.on { display: block; }
     #reader-box { position: absolute; inset: 0; }
@@ -374,6 +421,15 @@
       <div class="busca-sticky">
         <input type="search" id="busca" placeholder="Nome, GM ou código…" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Buscar produto">
       </div>
+      <div id="panelSemCadastro" class="panel-sem-cad" aria-live="polite">
+        <strong>Código sem cadastro</strong>
+        <p>Não achamos este código no catálogo. Busque pelo nome ou GM, ou bipe outro produto.</p>
+        <code id="semCadCodigo"></code>
+        <div class="row">
+          <button type="button" class="btn" id="btnSemCadBusca">Buscar este código</button>
+          <button type="button" class="btn btn-scan" id="btnSemCadBip">Bipar de novo</button>
+        </div>
+      </div>
       <div id="lista" role="list" aria-live="polite"><p class="hint">Carregando catálogo…</p></div>
     </div>
 
@@ -384,6 +440,10 @@
         </div>
         <p class="sacola-hint" id="sacolaHint">Toque nos produtos acima ou use Bipar.</p>
         <div id="sacolaItens"></div>
+      </div>
+      <div class="scan-opts">
+        <input type="checkbox" id="chkBipEnviar" aria-describedby="lblBipEnviar">
+        <label for="chkBipEnviar" id="lblBipEnviar">Bipar e enviar direto (1 etiqueta por bip, se achar no cadastro)</label>
       </div>
       <p class="status" id="statusMsg" role="status" aria-live="polite"></p>
       <button type="button" class="btn btn-accent btn-enviar" id="btnEnviar" disabled>Enviar para a loja</button>
@@ -405,12 +465,16 @@
     var URL_ENVIAR = "{{ url_api_solicitacao }}";
     var PIN_URL = "{{ url_pin }}";
     var LISTA_MAX = 40;
+    var LS_BIP_ENVIAR = "agro_etq_bip_enviar_direto";
     var baseProdutos = [];
     var sacola = [];
     var scanner = null;
     var scanningActive = false;
     var enviando = false;
     var buscaTimer = null;
+    var lastBipCodigo = "";
+    var lastBipAt = 0;
+    var reabrirScanAposEnvio = false;
 
     function csrf() {
       var m = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
@@ -593,25 +657,168 @@
         });
       });
     }
-    function tentarBip(codigo) {
-      if (!baseProdutos.length) {
-        setStatus("Aguarde o catálogo carregar.", true);
+    function bipEnviarDiretoAtivo() {
+      var el = document.getElementById("chkBipEnviar");
+      return !!(el && el.checked);
+    }
+    function salvarPrefBipEnviar() {
+      try {
+        localStorage.setItem(LS_BIP_ENVIAR, bipEnviarDiretoAtivo() ? "1" : "0");
+      } catch (e) {}
+    }
+    function carregarPrefBipEnviar() {
+      var el = document.getElementById("chkBipEnviar");
+      if (!el) return;
+      try {
+        el.checked = localStorage.getItem(LS_BIP_ENVIAR) === "1";
+      } catch (e) {
+        el.checked = false;
+      }
+    }
+    function esconderPanelSemCadastro() {
+      var p = document.getElementById("panelSemCadastro");
+      if (p) p.classList.remove("on");
+    }
+    function mostrarPanelSemCadastro(codigo) {
+      var p = document.getElementById("panelSemCadastro");
+      var c = document.getElementById("semCadCodigo");
+      if (c) c.textContent = String(codigo || "").trim() || "—";
+      if (p) p.classList.add("on");
+      setStatus("Código não cadastrado — busque ou bipe outro.", true);
+    }
+    function debounceMesmoCodigo(codigo) {
+      var c = String(codigo || "").trim();
+      var now = Date.now();
+      if (c && c === lastBipCodigo && now - lastBipAt < 1400) return true;
+      lastBipCodigo = c;
+      lastBipAt = now;
+      return false;
+    }
+    function itemPayload(prod, qtd) {
+      return {
+        id: String(prod.id),
+        nome: String(prod.nome || "").trim(),
+        qtd: Math.max(1, Math.min(999, parseInt(qtd, 10) || 1)),
+      };
+    }
+    async function enviarItens(itens, opts) {
+      opts = opts || {};
+      if (!itens || !itens.length || enviando) return false;
+      enviando = true;
+      var btn = document.getElementById("btnEnviar");
+      if (btn && !opts.silentBtn) {
+        btn.disabled = true;
+        btn.classList.add("enviando");
+        btn.textContent = "Enviando…";
+      }
+      setStatus("Enviando…");
+      try {
+        var res = await fetch(URL_ENVIAR, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json", "X-CSRFToken": csrf() },
+          body: JSON.stringify({ itens: itens }),
+        });
+        var j = await res.json().catch(function () { return {}; });
+        if (res.status === 401 && j.precisa_pin) {
+          location.href = PIN_URL;
+          return false;
+        }
+        if (!res.ok || !j.ok) {
+          setStatus(j.erro || "Não enviou.", true);
+          enviando = false;
+          renderSacola();
+          return false;
+        }
+        enviando = false;
+        renderSacola();
+        var msg = opts.msgOk || "Enviado! No PC: Etiquetas → Solicitações.";
+        setStatus(msg);
+        return true;
+      } catch (e) {
+        setStatus("Erro de rede.", true);
+        enviando = false;
+        renderSacola();
         return false;
       }
+    }
+    /** @returns {'ok_sacola'|'ok_enviado'|'varios'|'sem_cadastro'|'aguarde'} */
+    function processarCodigoBip(codigo, opts) {
+      opts = opts || {};
+      var fromScan = !!opts.fromScan;
+      if (!baseProdutos.length) {
+        setStatus("Aguarde o catálogo carregar.", true);
+        return "aguarde";
+      }
+      if (debounceMesmoCodigo(codigo)) return "ok_sacola";
       var hits = matchCodigoExato(codigo);
       if (hits.length === 1) {
-        addSacola(hits[0], 1);
+        esconderPanelSemCadastro();
+        var prod = hits[0];
+        if (bipEnviarDiretoAtivo()) {
+          return "enviar_direto";
+        }
+        addSacola(prod, 1);
         document.getElementById("busca").value = "";
-        document.getElementById("lista").innerHTML =
-          '<p class="hint">Bipou — pode continuar bipando ou buscar.</p>';
-        return true;
+        if (!fromScan) {
+          document.getElementById("lista").innerHTML =
+            '<p class="hint">Bipou — pode continuar bipando ou buscar.</p>';
+        }
+        return "ok_sacola";
       }
       if (hits.length > 1) {
+        esconderPanelSemCadastro();
         renderLista(hits);
         setStatus("Vários produtos — toque no certo.", true);
+        return "varios";
+      }
+      mostrarPanelSemCadastro(codigo);
+      var inp = document.getElementById("busca");
+      if (inp) inp.value = String(codigo || "").trim();
+      return "sem_cadastro";
+    }
+    async function processarBipScan(decoded) {
+      var codigo = decoded;
+      var r = processarCodigoBip(codigo, { fromScan: true });
+      if (r === "enviar_direto") {
+        scanningActive = false;
+        var hits = matchCodigoExato(codigo);
+        if (hits.length !== 1) return;
+        var ok = await enviarItens([itemPayload(hits[0], 1)], {
+          silentBtn: true,
+          msgOk: "Enviado: " + (hits[0].nome || hits[0].id) + ". Bipe o próximo.",
+        });
+        await pararScan();
+        if (ok) {
+          reabrirScanAposEnvio = true;
+          setTimeout(function () {
+            if (reabrirScanAposEnvio) iniciarScan();
+          }, 350);
+        }
+        return;
+      }
+      if (r === "ok_sacola") {
+        setStatus("Na sacola — bipe o próximo.");
+        return;
+      }
+      if (r === "varios" || r === "sem_cadastro") {
+        await pararScan();
+        if (r === "sem_cadastro") buscar(String(codigo || "").trim());
+        return;
+      }
+    }
+    function tentarBip(codigo) {
+      var r = processarCodigoBip(codigo, { fromScan: false });
+      if (r === "enviar_direto") {
+        var hits = matchCodigoExato(codigo);
+        if (hits.length === 1) {
+          enviarItens([itemPayload(hits[0], 1)], {
+            msgOk: "Enviado: " + (hits[0].nome || hits[0].id) + ".",
+          });
+        }
         return true;
       }
-      return false;
+      return r === "ok_sacola" || r === "varios";
     }
     async function carregarCatalogo() {
       try {
@@ -628,59 +835,47 @@
     }
     async function enviarSacola() {
       if (!sacola.length || enviando) return;
-      var btn = document.getElementById("btnEnviar");
-      enviando = true;
-      btn.disabled = true;
-      btn.classList.add("enviando");
-      btn.textContent = "Enviando…";
-      setStatus("Enviando…");
-      try {
-        var res = await fetch(URL_ENVIAR, {
-          method: "POST",
-          credentials: "same-origin",
-          headers: { "Content-Type": "application/json", "X-CSRFToken": csrf() },
-          body: JSON.stringify({ itens: sacola }),
-        });
-        var j = await res.json().catch(function () { return {}; });
-        if (res.status === 401 && j.precisa_pin) {
-          location.href = PIN_URL;
-          return;
-        }
-        if (!res.ok || !j.ok) {
-          setStatus(j.erro || "Não enviou.", true);
-          enviando = false;
-          renderSacola();
-          return;
-        }
+      reabrirScanAposEnvio = false;
+      var ok = await enviarItens(sacola.slice(), {});
+      if (ok) {
         sacola = [];
-        enviando = false;
         renderSacola();
-        setStatus("Enviado! No PC: Etiquetas → Solicitações.");
         document.getElementById("busca").focus();
-      } catch (e) {
-        setStatus("Erro de rede.", true);
-        enviando = false;
-        renderSacola();
       }
     }
+    function limparReaderBox() {
+      var box = document.getElementById("reader-box");
+      if (box) box.innerHTML = "";
+    }
     function pararScan() {
+      reabrirScanAposEnvio = false;
       scanningActive = false;
       document.body.classList.remove("scan-open");
       var reader = document.getElementById("reader");
       reader.classList.remove("on");
       reader.setAttribute("aria-hidden", "true");
-      if (scanner) {
-        scanner.stop().catch(function () {});
-        scanner.clear();
-        scanner = null;
+      var inst = scanner;
+      scanner = null;
+      if (!inst) {
+        limparReaderBox();
+        return Promise.resolve();
       }
+      return inst
+        .stop()
+        .catch(function () {})
+        .then(function () {
+          try {
+            inst.clear();
+          } catch (e) {}
+          limparReaderBox();
+        });
     }
     function qrBoxSize() {
       var w = window.innerWidth || 320;
       var boxW = Math.min(280, Math.max(200, w - 48));
       return { width: boxW, height: Math.round(boxW * 0.55) };
     }
-    function iniciarScan() {
+    async function iniciarScan() {
       if (!window.Html5Qrcode) {
         setStatus("Leitor indisponível neste aparelho.", true);
         return;
@@ -689,21 +884,29 @@
         setStatus("Aguarde o catálogo carregar.", true);
         return;
       }
-      pararScan();
+      if (enviando) return;
+      reabrirScanAposEnvio = false;
+      await pararScan();
+      await new Promise(function (r) {
+        setTimeout(r, 200);
+      });
+      limparReaderBox();
+      esconderPanelSemCadastro();
       document.body.classList.add("scan-open");
       var reader = document.getElementById("reader");
       reader.classList.add("on");
       reader.setAttribute("aria-hidden", "false");
       scanner = new Html5Qrcode("reader-box");
       scanningActive = true;
+      setStatus(bipEnviarDiretoAtivo() ? "Bipe — envia direto se achar." : "Bipe — câmera fica aberta.");
       var box = qrBoxSize();
       scanner
         .start(
           { facingMode: "environment" },
           { fps: 10, qrbox: box },
           function (decoded) {
-            if (!scanningActive) return;
-            if (tentarBip(decoded)) pararScan();
+            if (!scanningActive || enviando) return;
+            processarBipScan(decoded);
           },
           function () {}
         )
@@ -730,10 +933,28 @@
       if (tentarBip(t)) return;
       buscar(t);
     });
-    document.getElementById("btnScan").addEventListener("click", iniciarScan);
-    document.getElementById("btnFechaScan").addEventListener("click", pararScan);
+    document.getElementById("btnScan").addEventListener("click", function () {
+      iniciarScan();
+    });
+    document.getElementById("btnFechaScan").addEventListener("click", function () {
+      pararScan();
+    });
     document.getElementById("btnEnviar").addEventListener("click", enviarSacola);
+    document.getElementById("chkBipEnviar").addEventListener("change", salvarPrefBipEnviar);
+    document.getElementById("btnSemCadBusca").addEventListener("click", function () {
+      esconderPanelSemCadastro();
+      var inp = document.getElementById("busca");
+      if (inp) {
+        inp.focus();
+        buscar(inp.value);
+      }
+    });
+    document.getElementById("btnSemCadBip").addEventListener("click", function () {
+      esconderPanelSemCadastro();
+      iniciarScan();
+    });
 
+    carregarPrefBipEnviar();
     ajustarAlturaApp();
     if (window.visualViewport) {
       window.visualViewport.addEventListener("resize", ajustarAlturaApp);
