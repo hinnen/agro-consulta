@@ -1294,6 +1294,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — **ETQ-MOBILE-BIP** (`CHECKLIST 13/10c` · 13/10) · 🟢 **PRONTO envio produção**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **`teste` @ `ef655773`** — loja Live **v27.15** (app etiquetas **sem** este pacote) |
+| **Migrate** | **NÃO** |
+| **Paths** | App `GET /vendas/lojas/etiquetas/` · `POST /api/vendas/lojas/etiquetas/solicitacoes/` (PIN) → Postgres **pendente** · PC `GET/POST /api/produtos/etiquetas/solicitacoes/…/importar/` |
+| **O quê** | Bip **contínuo** (câmera aberta / reabre após envio) · checkbox **Bipar e enviar direto** · sem cadastro → painel buscar/bipar · dock fixo (commits anteriores no mesmo fio) |
+| **Prova repo** | `verify_etiquetas_mobile_flow_path.py` **16/16** · `verify_etq_solicitacao_vl_pin_path.py` **35/35** · GM runtime **19/19** |
+| **Prova loja** | PIN **9973** → hub/etiquetas **OK** · HTML loja **sem** `chkBipEnviar` (confirma falta deploy) · Bipar no desktop VM: permissão câmera (esperado) |
+
+### ✅ CHECKLIST ÚNICO — **13/10c** · 🟢 **PRONTO envio produção**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **ETQ-MOBILE-BIP** | 🟢 teste | **NÃO** |
+| 2 | **CLIENTE-LISTA-DESC-PDV** | 🟡 teste | **SIM** `0145` |
+
+**Você após deploy:** celular → Etiquetas → bip várias vezes · marque **enviar direto** se quiser 1 etiqueta por bip sem tocar Enviar.
+
+---
+
 ### ✅ Deploy loja — **MED-SUBCATEGORIA-DICAS** · **Live v27.15** · CHECKLIST **13/10b** · 13/10
 
 | Campo | Valor |
@@ -1307,15 +1329,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Cutover** | `./scripts/cutover_loja_checklist_1310b_med_sub_dicas.sh` (executado) |
 | **Smoke loja** | Ctrl+F5 cadastro → medicamento: dicas · ração: sem dicas |
 
-### 📦 PACOTE PRONTO — **ETQ-MOBILE-BIP** · 🟢 **teste** (ainda não na loja)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | `/vendas/lojas/etiquetas/` — bip **várias vezes** (câmera fica aberta ou reabre após envio); opção **Bipar e enviar direto**; código **sem cadastro** → painel buscar/bipar de novo |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_etiquetas_mobile_flow_path.py` **16/16** |
-
-### ✅ CHECKLIST ÚNICO — **13/10b**
+### ✅ CHECKLIST ÚNICO — **13/10b** (histórico)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
