@@ -1294,18 +1294,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PREP loja — **MED-SUBCATEGORIA-DICAS** · **v27.15** · CHECKLIST **13/10b** · armado
+### ✅ Deploy loja — **MED-SUBCATEGORIA-DICAS** · **Live v27.15** · CHECKLIST **13/10b** · 13/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **ARMADO** — `deploy/prep-checklist-1310b-med-sub-dicas` @ `ada10a36` |
-| **Live hoje** | **v27.14.4** @ `dc357d31` |
+| **Status** | ✅ **enviado / Live v27.15** — `producao` @ `ada10a36` |
 | **O quê** | Modal cadastro ERP: dicas ⓘ **Subcategorias 1–4** só **Medicamentos E Venenos** (só UI) |
 | **Migrate** | **NÃO** |
-| **Fora** | PDV · caixa · busca · `0145` clientes |
-| **Prova** | `./scripts/cutover_loja_checklist_1310b_med_sub_dicas.sh` · SUB-DICAS **0 FAIL** · MED **49/49** |
-| **Cutover** | `--exec` + frase + senha **99738595** |
-| **Rollback** | `rollback/pre-med-sub-v27144` @ `dc357d31` |
+| **Antes** | **v27.14.4** @ `dc357d31` |
+| **Backup** | `producao-backup-pre-v2715-med-sub-dicas` |
+| **Rollback** | `git push origin rollback/pre-med-sub-v27144:producao` (@ `dc357d31`) |
+| **Cutover** | `./scripts/cutover_loja_checklist_1310b_med_sub_dicas.sh` (executado) |
 | **Smoke loja** | Ctrl+F5 cadastro → medicamento: dicas · ração: sem dicas |
 
 ### ✅ CHECKLIST ÚNICO — **13/10b**
@@ -1313,7 +1312,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **CLIENTE-LISTA-DESC-PDV** | 🟡 **pendente** | **SIM** `0145` |
-| 2 | **MED-SUBCATEGORIA-DICAS** | 🟢 **ARMADO** v27.15 | **NÃO** |
+| 2 | **MED-SUBCATEGORIA-DICAS** | ✅ **Live v27.15** | **NÃO** |
 
 ### ✅ Deploy loja — **CADASTRO-BUSCA-GM-PDV** hotfix · **Live v27.14.2** · CHECKLIST **13/10** · 13/10
 
