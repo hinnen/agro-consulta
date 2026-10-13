@@ -23863,7 +23863,12 @@ def api_buscar_produtos(request):
     # EMERGÊNCIA loja (22/07): com agro_pg, BCA NÃO complementa Mongo em texto.
     # Mongo regex + estoque em toda tecla saturava o servidor (PDV/gestão/CP minutos).
     # Família GM ainda pode complementar (motor trata).
-    skip_mongo_complemento = True if (usa_pg_cat or pdv_somente_pg) else (busca_lite or contexto_cadastro)
+    if contexto_cadastro:
+        skip_mongo_complemento = False
+    elif usa_pg_cat or pdv_somente_pg:
+        skip_mongo_complemento = True
+    else:
+        skip_mongo_complemento = busca_lite
     client, db = obter_conexao_mongo()
     if db is None and not usa_pg_cat and not pdv_somente_pg:
         return JsonResponse({"produtos": []})
@@ -23968,6 +23973,7 @@ def api_buscar_produtos(request):
                                 include_inactive=False,
                                 wizard_catalog=False,
                                 skip_mongo_complemento=skip_mongo_complemento,
+                                contexto_cadastro=contexto_cadastro,
                             )
                         cand = _merge_produtos_overlay_codigo_consulta(
                             plu_q, cand, db, client
@@ -23997,6 +24003,7 @@ def api_buscar_produtos(request):
                             include_inactive=False,
                             wizard_catalog=False,
                             skip_mongo_complemento=skip_mongo_complemento,
+                            contexto_cadastro=contexto_cadastro,
                         )
         else:
             valor_etiqueta_por_id = {}
