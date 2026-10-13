@@ -251,6 +251,7 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
         q_nome_tokens_cadastro,
         termo_bate_codigos_produto,
         termo_eh_codigo_gm,
+        termo_gm_etiqueta_completa,
     )
 
     termo = (q or "").strip()
@@ -316,7 +317,8 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                 lim,
             )
         digits_only = re.sub(r"\D", "", termo)
-        if len(found) < lim:
+        # GM com variante (GM0037-1): não usar icontains — dígitos soltos (00371) colidem com barras.
+        if len(found) < lim and not termo_gm_etiqueta_completa(termo):
             _cadastro_pg_append_unicos(
                 found,
                 seen_pk,
@@ -384,7 +386,15 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                 )
             ]
         if rows:
-            return rows[:lim]
+            from produtos.busca_filtro_pdv_util import (
+                filtrar_rows_api_estilo_pdv,
+                ordenar_rows_api_estilo_pdv,
+            )
+
+            rows = filtrar_rows_api_estilo_pdv(rows, termo)
+            rows = ordenar_rows_api_estilo_pdv(rows, termo)
+            if rows:
+                return rows[:lim]
 
     if parece_codigo_cadastro(termo):
         from produtos.agro_fonte_config import agro_catalogo_usa_postgres

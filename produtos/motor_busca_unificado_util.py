@@ -131,8 +131,7 @@ def _filtrar_gm_estrito(termo: str, docs: list[dict]) -> list[dict]:
 
     if not termo_eh_codigo_gm(termo):
         return docs
-    filtrados = [d for d in docs if _doc_bate_codigo_gm(termo, d)]
-    return filtrados if filtrados else docs
+    return [d for d in docs if _doc_bate_codigo_gm(termo, d)]
 
 
 def _pid_doc(doc: dict) -> str:
