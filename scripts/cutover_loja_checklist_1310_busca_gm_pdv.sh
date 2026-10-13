@@ -35,7 +35,6 @@ ALLOWED="$(printf '%s\n' \
   produtos/cadastro_busca_codigo_util.py \
   produtos/catalogo_agro.py \
   produtos/motor_busca_unificado_util.py \
-  produtos/static/produtos/js/cadastro_erp_panel.js \
   produtos/tests_cadastro_busca_gm_variante.py \
   produtos/tests_cadastro_busca_pdv_alinhada.py \
   produtos/views.py \
