@@ -76,7 +76,7 @@ PY=python3
 [[ -x .venv/bin/python ]] && PY=.venv/bin/python
 
 "$PY" scripts/verify_cadastro_busca_gm_path.py | tee /tmp/cutover-1310-busca-gm.log
-grep -qE '18/18|16/16' /tmp/cutover-1310-busca-gm.log
+grep -qE '18/18|19/19|16/16' /tmp/cutover-1310-busca-gm.log
 
 "$PY" scripts/verify_pdv_busca_coerente_path.py | tee /tmp/cutover-1310-busca-pdv.log
 grep -q '30/30' /tmp/cutover-1310-busca-pdv.log
