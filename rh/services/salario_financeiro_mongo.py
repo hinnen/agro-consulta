@@ -34,7 +34,10 @@ from rh.services.fechamento import (
     ultimo_dia_mes,
 )
 from rh.services.vale_manual_financeiro import _split_id_nome
-from rh.utils import resolver_empresa_por_nome_fantasia, resolver_perfil_rh_para_vale
+from rh.utils import (
+    resolver_empresa_por_nome_fantasia,
+    resolver_perfil_rh_para_vale_operacao_caixa,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -632,24 +635,20 @@ def tentar_caixa_adiant_vale_como_baixa_parcial(
     banco_id: str | None,
     usuario,
     observacao_desc: str,
+    cliente_agro_id: int | None = None,
 ) -> dict[str, Any] | None:
     """
     Se houver perfil RH + título de salário na competência, aplica baixa parcial e cria Vale CAIXAS.
     Retorna dict de resultado; None = não aplicável (delegar fluxo antigo).
     """
-    empresa = resolver_empresa_por_nome_fantasia(empresa_nome.strip())
-    if not empresa:
-        return {
-            "ok": False,
-            "erro": f"Empresa '{empresa_nome}' não encontrada — não foi possível vincular vale ao salário.",
-            "ids": [],
-        }
-
-    funcionario, _modo = resolver_perfil_rh_para_vale(
-        empresa,
+    funcionario, _modo, err_resolve = resolver_perfil_rh_para_vale_operacao_caixa(
+        empresa_nome,
         mongo_cliente_id=(pessoa_id or "").strip() or None,
+        cliente_agro_id=cliente_agro_id,
         texto_quem=(pessoa_nome or "").strip() or None,
     )
+    if err_resolve:
+        return {"ok": False, "erro": err_resolve, "ids": []}
     if not funcionario:
         return None
 

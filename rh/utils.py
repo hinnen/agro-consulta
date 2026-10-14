@@ -55,6 +55,90 @@ def resolver_perfil_rh_por_empresa_e_cliente(
     )
 
 
+def resolver_perfil_rh_por_cliente_agro_qualquer_empresa(
+    cliente_agro: ClienteAgro,
+) -> tuple[Funcionario | None, str | None]:
+    """
+    Perfil RH ativo para a pessoa, em qualquer empresa (vale no caixa da outra loja).
+    Retorna (perfil, erro) — erro só se houver ambiguidade.
+    """
+    qs = (
+        Funcionario.objects.filter(cliente_agro=cliente_agro, ativo=True)
+        .select_related("cliente_agro", "empresa")
+        .order_by("empresa_id", "pk")
+    )
+    rows = list(qs[:5])
+    if not rows:
+        return None, None
+    if len(rows) > 1:
+        nomes = ", ".join(
+            sorted({(r.empresa.nome_fantasia or "").strip() or f"#{r.empresa_id}" for r in rows})
+        )
+        return (
+            None,
+            f"Mais de um perfil RH ativo para esta pessoa ({nomes}). Ajuste no cadastro RH.",
+        )
+    return rows[0], None
+
+
+def resolver_perfil_rh_para_vale_operacao_caixa(
+    empresa_nome_caixa: str | None,
+    *,
+    mongo_cliente_id: str | None = None,
+    cliente_agro_id: int | None = None,
+    texto_quem: str | None = None,
+) -> tuple[Funcionario | None, str, str | None]:
+    """
+    Vale / salário no caixa: prioriza perfil RH da pessoa (ClienteAgro), não a empresa
+    do turno (Centro × Vila). Filial pode descontar da gaveta Vila com funcionário
+    cadastrado na empresa Centro.
+
+    Retorna (perfil, modo, erro). erro preenchido = falha definitiva; perfil None e
+    erro None = delegar fluxo antigo.
+    """
+    nome_caixa = (empresa_nome_caixa or "").strip()
+    empresa_turno = resolver_empresa_por_nome_fantasia(nome_caixa) if nome_caixa else None
+    if empresa_turno:
+        f, modo = resolver_perfil_rh_para_vale(
+            empresa_turno,
+            mongo_cliente_id=mongo_cliente_id,
+            texto_quem=texto_quem,
+        )
+        if f:
+            return f, modo, None
+
+    ca: ClienteAgro | None = None
+    if cliente_agro_id:
+        ca = ClienteAgro.objects.filter(pk=int(cliente_agro_id), ativo=True).first()
+    cid = (mongo_cliente_id or "").strip()
+    if ca is None and cid:
+        ca = resolver_cliente_agro_por_mongo_cliente_id(cid)
+    if ca:
+        f, err = resolver_perfil_rh_por_cliente_agro_qualquer_empresa(ca)
+        if err:
+            return None, "none", err
+        if f:
+            return f, "id_loja", None
+
+    raw = (texto_quem or "").strip()
+    if raw:
+        vistos: dict[int, Funcionario] = {}
+        for emp in Empresa.objects.filter(ativo=True).only("pk", "nome_fantasia"):
+            hit = resolver_perfil_rh_por_nome_legado(emp, raw)
+            if hit:
+                vistos[hit.pk] = hit
+        if len(vistos) == 1:
+            return next(iter(vistos.values())), "nome_loja", None
+        if len(vistos) > 1:
+            return (
+                None,
+                "none",
+                "Nome ambíguo entre empresas — escolha a pessoa na lista «Quem está levando».",
+            )
+
+    return None, "none", None
+
+
 def resolver_perfil_rh_para_vale(
     empresa: Empresa,
     *,
