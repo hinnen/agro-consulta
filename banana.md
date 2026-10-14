@@ -1294,16 +1294,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 **RH-VALE-VILA** · branch `cursor/rh-vale-vila-881d` · **teste**
+### 🟢 PREP loja — **RH-VALE-VILA** · **v27.18** · armado (`teste`)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Sintoma** | Vale no caixa Vila: *«Empresa 'Agro Mais Vila Elias' não encontrada…»* |
-| **Causa** | Saída forçava empresa do turno Vila antes de vincular RH; perfil costuma ser **Agro Mais Centro** |
-| **Fix** | Resolver **Quem está levando** (ClienteAgro) em qualquer empresa · folha/título na empresa do RH · retirada no caixa **Vila** |
-| **Prova** | `scripts/verify_rh_vale_caixa_vila_path.py` |
+| **Status** | 🟢 **ARMADO** — aguarda frase+senha produção (próximo chat) |
+| **Live hoje** | **v27.17** (14/10d planilha+etq PC) |
+| **Sintoma** | Vale caixa Vila: *«Empresa 'Agro Mais Vila Elias' não encontrada…»* |
+| **Fix** | Perfil RH pela pessoa (ClienteAgro), não pela empresa do turno · folha na empresa do cadastro · gaveta **Vila** |
+| **Prova** | `verify_rh_vale_caixa_vila_path.py` **8/8** + `verify_saida_empresa_loja` **10/10** |
+| **Cutover** | `./scripts/cutover_loja_rh_vale_vila.sh` · doc `docs/DEPLOY-PREP-RH-VALE-VILA.md` |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 · caixa **Vila** aberto · Retirada · plano **Adiantamento de Salário (Vale)** · funcionário da lista |
+| **Rollback** | `rollback/pre-v2717-rh-vale-vila` (tag após merge em `teste`) |
+| **Smoke loja** | Ctrl+F5 · caixa **Vila** · Retirada · **Adiantamento (Vale)** · lista + PIN **9973** · vale na ficha RH |
+| **Zap (opcional)** | *«Atualização ~2 min — vale funcionário na Vila. Não finalize venda no meio.»* |
 
 ### 🟢 PREP loja — CHECKLIST **14/10d** itens **1+2** · **v27.17** · armado
 
