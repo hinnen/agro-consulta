@@ -1294,6 +1294,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟡 **RH-VALE-VILA** · branch `cursor/rh-vale-vila-881d` · **teste**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Sintoma** | Vale no caixa Vila: *«Empresa 'Agro Mais Vila Elias' não encontrada…»* |
+| **Causa** | Saída forçava empresa do turno Vila antes de vincular RH; perfil costuma ser **Agro Mais Centro** |
+| **Fix** | Resolver **Quem está levando** (ClienteAgro) em qualquer empresa · folha/título na empresa do RH · retirada no caixa **Vila** |
+| **Prova** | `scripts/verify_rh_vale_caixa_vila_path.py` |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 · caixa **Vila** aberto · Retirada · plano **Adiantamento de Salário (Vale)** · funcionário da lista |
+
 ### 🟢 PREP loja — CHECKLIST **14/10d** itens **1+2** · **v27.17** · armado
 
 | Campo | Valor |
