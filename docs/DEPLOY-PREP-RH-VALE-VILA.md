@@ -16,6 +16,19 @@ export AGRO_PIN_TESTE=9973
 ./scripts/cutover_loja_rh_vale_vila.sh
 ```
 
+## Git ≠ Render (importante)
+
+O script só faz **`git push` → branch `producao`**. A loja só muda quando o serviço **Sistvale - Produção** no Render **termina um build** dessa branch.
+
+Se após o push **não aparecer deploy novo** no painel (ou o vale continuar com erro de empresa Vila), faça:
+
+1. Render → projeto **SistVale** → **Production** → serviço **Sistvale - Produção**
+2. **Manual Deploy** → **Deploy latest commit** (branch `producao`)
+3. Aguarde status **Live** / verde (~3–8 min)
+4. **Ctrl+F5** no Chrome da Vila e repita o smoke
+
+Conferência: commit esperado **`9f18d10f4`** (v27.18 RH-VALE-VILA). Erro antigo *«Empresa 'Agro Mais Vila Elias' não encontrada — não foi possível vincular vale…»* = ainda no commit **`39337d12`**.
+
 ## Cutover produção
 
 Renan: frase + senha no chat, depois:

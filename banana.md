@@ -1298,13 +1298,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **Live v27.18** @ `9f18d10f4` — cutover autorizado Renan 14/10 |
-| **Antes** | **v27.17** @ `39337d12` |
+| **Status** | ⚠️ **Git produção OK** @ `9f18d10f4` · **Render pode ainda estar em v27.17** @ `39337d12` (14/10 — push sem build novo) |
+| **Sintoma loja** | Mesmo erro vale Vila = **código antigo no ar** · não é cache do Ctrl+F5 sozinho |
 | **O quê** | Vale no caixa **Vila** para funcionário RH **Centro** (perfil por ClienteAgro · gaveta Vila) |
 | **Migrate** | **NÃO** |
 | **Backup** | `producao-backup-pre-v2718-rh-vale-vila` @ `39337d12` |
-| **Rollback** | `git push origin 39337d12:producao` |
-| **Smoke pendente** | Ctrl+F5 · caixa Vila · Retirada · **Adiantamento (Vale)** · lista + PIN · ficha RH |
+| **Rollback git** | `git push origin 39337d12:producao` (+ Manual Deploy Render se necessário) |
+| **Subir de verdade** | Render → **Sistvale - Produção** → **Manual Deploy** (latest `producao`) → aguardar verde → Ctrl+F5 |
+| **Smoke pendente** | Caixa Vila · Retirada · **Adiantamento (Vale)** · lista + PIN · ficha RH |
 | **Doc** | `docs/DEPLOY-PREP-RH-VALE-VILA.md` |
 
 ### ✅ Deploy loja — **ETQ-MOBILE-BIP** · **Live v27.16** · CHECKLIST **13/10c** · 13/10

@@ -64,4 +64,10 @@ echo "$FRASE" | grep -Eiq 'pode.*(produ[cç][aã]o|producao)|sobe.*(produ[cç][a
 
 git push origin "$PROD_REF:refs/heads/$BACKUP_BR" || true
 git push origin "$PREP_REF:producao"
-echo "PUSH OK · badge v$VER_ESPERADA · Ctrl+F5 caixa Vila vale"
+PREP_FULL="$(git rev-parse --short "$PREP_REF")"
+echo "PUSH OK · git producao @ $PREP_FULL · VERSION v$VER_ESPERADA"
+echo ""
+echo ">>> RENDER: confira se iniciou build NOVO em «Sistvale - Produção» (branch producao)."
+echo ">>> Se o painel não mostrar deploy após ~1 min: Manual Deploy → Deploy latest commit."
+echo ">>> Só depois do build verde: Ctrl+F5 na Vila e smoke vale."
+echo ">>> Doc: docs/DEPLOY-PREP-RH-VALE-VILA.md § Render"
