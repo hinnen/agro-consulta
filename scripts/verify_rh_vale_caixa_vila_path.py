@@ -44,9 +44,33 @@ def main() -> None:
     ok("tentar_caixa_adiant sem bloqueio empresa turno")
 
     views = open(os.path.join(ROOT, "produtos", "views.py"), encoding="utf-8").read()
-    if "cliente_agro_id=cliente_agro_id_rh" not in views:
-        fail("views não repassa cliente_agro_id ao vale")
-    ok("views repassa cliente_agro_id")
+    if "cliente_agro_id_rh" not in views:
+        fail("views sem cliente_agro_id_rh")
+    if views.count("cliente_agro_id=cliente_agro_id_rh") < 2:
+        fail("views não repassa cliente_agro_id ao vale e salário")
+    if "Fonte da verdade = loja do caixa" not in views:
+        fail("views perdeu forçar empresa loja em despesas comuns")
+    ok("views vale+salário + empresa loja intacta")
+
+    pg = open(os.path.join(ROOT, "rh", "services", "pagamento_salario.py"), encoding="utf-8").read()
+    if "resolver_perfil_rh_para_vale_operacao_caixa" not in pg:
+        fail("pagamento_salario não usa helper caixa")
+    if "Empresa '" in pg and "não encontrada" in pg and "resolver_empresa" in pg:
+        fail("pagamento_salario ainda bloqueia empresa turno")
+    ok("pagamento_salario alinhado")
+
+    imp = open(os.path.join(ROOT, "rh", "services", "importador_vales_caixa.py"), encoding="utf-8").read()
+    if "resolver_perfil_rh_para_vale_operacao_caixa" in imp:
+        fail("importador não deve usar resolver de caixa (empresa do lançamento Mongo)")
+    if "resolver_perfil_rh_para_vale" not in imp:
+        fail("importador perdeu resolver clássico")
+    ok("importador vales Mongo inalterado")
+
+    if "registrar_vale_como_baixa_parcial_salario" not in mongo:
+        fail("fluxo baixa parcial ausente")
+    if "_anexar_retirada_turno_caixa_saida" not in views:
+        fail("views sem retirada turno após vale")
+    ok("fluxo RH + retirada turno referenciado")
 
     try:
         emp_centro = Empresa.objects.filter(nome_fantasia__icontains="Centro").first()
@@ -86,10 +110,10 @@ def main() -> None:
         if err2 or not f2 or f2.pk != f.pk:
             fail("fallback mongo local: não resolveu")
         ok("resolve por pessoa_id local")
-        print("VERIFY_OK 6/6")
+        print("VERIFY_OK 10/10")
     except Exception as exc:
         print(f"  SKIP ORM ({exc.__class__.__name__}: {exc})")
-        print("VERIFY_OK 3/3 (estático; ORM exige migrate)")
+        print("VERIFY_OK 8/8 (estático; ORM exige migrate)")
 
 
 if __name__ == "__main__":

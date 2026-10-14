@@ -1294,6 +1294,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 PREP loja — **RH-VALE-VILA** · **v27.18** · armado
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **ARMADO** — branch `deploy/prep-rh-vale-vila` (cherry sobre **produção** atual) |
+| **Live hoje** | **v27.17** @ `39337d12` |
+| **Sintoma** | Vale caixa Vila: *«Empresa 'Agro Mais Vila Elias' não encontrada…»* |
+| **Fix** | Perfil RH pela pessoa (ClienteAgro) · folha na empresa do cadastro · gaveta **Vila** |
+| **Prova** | `verify_rh_vale_caixa_vila_path.py` **8/8** + `verify_saida_empresa_loja` **10/10** |
+| **Cutover** | `PREP_REF=origin/deploy/prep-rh-vale-vila ./scripts/cutover_loja_rh_vale_vila.sh` |
+| **Doc** | `docs/DEPLOY-PREP-RH-VALE-VILA.md` |
+| **Migrate** | **NÃO** |
+| **Backup** | `producao-backup-pre-v2718-rh-vale-vila` @ `39337d12` |
+| **Rollback** | `git push origin 39337d12:producao` |
+| **Smoke** | Ctrl+F5 · caixa **Vila** · **Adiantamento (Vale)** · lista + PIN · ficha RH |
+| **Zap (opcional)** | *«Atualização ~2 min — vale na Vila. Não finalize venda no meio.»* |
+
 ### ✅ Deploy loja — **ETQ-MOBILE-BIP** · **Live v27.16** · CHECKLIST **13/10c** · 13/10
 
 | Campo | Valor |
