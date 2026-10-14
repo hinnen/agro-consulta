@@ -358,6 +358,20 @@
 
       </label>
 
+      <div class="flex shrink-0 flex-wrap items-end gap-1.5">
+        <label class="min-w-[4.5rem]">
+          <span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Qtd p/ todos</span>
+          <input id="etq-fila-qtd-todos" type="number" min="1" max="999" value="1"
+            class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-900 px-2 text-center text-sm font-bold text-white"
+            title="Quantidade para todas as linhas da fila">
+        </label>
+        <button type="button" id="etq-fila-aplicar-qtd-todos"
+          class="inline-flex min-h-[36px] items-center justify-center rounded-lg border-2 border-sky-600 bg-sky-900/50 px-2.5 text-[10px] font-black uppercase text-sky-100 hover:bg-sky-800/50"
+          title="Aplica a mesma quantidade em cada produto da fila">
+          Aplicar
+        </button>
+      </div>
+
     </div>
 
     <div class="etq-scroll mt-2 overflow-x-auto">
@@ -747,7 +761,7 @@ window.AGRO_ETQ_CFG = {
 </script>
 <script src="{% static 'produtos/js/agro_print_bridge.js' %}?v=2"></script>
 <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=35"></script>
-<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=35"></script>
+<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=36"></script>
 
 {% endblock %}
 

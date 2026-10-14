@@ -1965,9 +1965,28 @@
     box.querySelectorAll('.etq-sol-import').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var id = btn.getAttribute('data-sol-id');
-        if (id) importarSolicitacaoParaFila(id, btn);
+        if (id) importarSolicitacaoParaFila(id, btn, { fecharModal: false });
       });
     });
+  }
+
+  function aplicarQtdEmTodaFila() {
+    var inp = $('etq-fila-qtd-todos');
+    if (!inp || !state.fila.length) {
+      setStatus('Nada na fila para alterar.', true);
+      return;
+    }
+    var q = parseInt(inp.value, 10);
+    if (!q || q < 1) q = 1;
+    if (q > 999) q = 999;
+    inp.value = String(q);
+    for (var i = 0; i < state.fila.length; i++) {
+      state.fila[i].qtd = q;
+    }
+    renderFila();
+    setStatus(
+      'Qtd ' + q + ' em ' + state.fila.length + ' produto' + (state.fila.length === 1 ? '' : 's') + ' da fila.'
+    );
   }
 
   function adicionarItensJsonNaFila(itens) {
@@ -2027,10 +2046,10 @@
         } else if (!opts.suppressStatus) {
           setStatus(res.n + ' produto(s) na fila (celular).');
         }
-        if (res.n && opts.fecharModal !== false) fecharModalSolicitacoes();
+        if (res.n && opts.fecharModal === true) fecharModalSolicitacoes();
         pollSolicitacoesPendentes();
         if (opts.reloadList !== false) carregarSolicitacoes();
-        if (btn && opts.reloadList === false) {
+        else if (btn) {
           btn.disabled = false;
           btn.innerHTML = btnHtml;
         }
@@ -2411,6 +2430,15 @@
     $('etq-mv-carregar') &&
       $('etq-mv-carregar').addEventListener('click', carregarMaisVendidos);
     $('etq-btn-imprimir') && $('etq-btn-imprimir').addEventListener('click', imprimirFila);
+    $('etq-fila-aplicar-qtd-todos') &&
+      $('etq-fila-aplicar-qtd-todos').addEventListener('click', aplicarQtdEmTodaFila);
+    $('etq-fila-qtd-todos') &&
+      $('etq-fila-qtd-todos').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          aplicarQtdEmTodaFila();
+        }
+      });
     $('etq-btn-bridge-probe') &&
       $('etq-btn-bridge-probe').addEventListener('click', function () {
         if (window.agroPrintBridge && window.agroPrintBridge.probe) {
