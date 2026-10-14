@@ -12,6 +12,7 @@ Vale no caixa da **Vila Elias** para funcionário com perfil RH na empresa **Cen
 
 ```bash
 export AGRO_PIN_TESTE=9973
+# default PREP = origin/deploy/prep-rh-vale-vila (não usar origin/teste — não é ancestral de producao)
 ./scripts/cutover_loja_rh_vale_vila.sh
 ```
 
