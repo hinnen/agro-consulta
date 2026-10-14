@@ -1303,13 +1303,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Sintoma** | Vale caixa Vila: *«Empresa 'Agro Mais Vila Elias' não encontrada…»* |
 | **Fix** | Perfil RH pela pessoa (ClienteAgro) · folha na empresa do cadastro · gaveta **Vila** |
 | **Prova** | `verify_rh_vale_caixa_vila_path.py` **8/8** + `verify_saida_empresa_loja` **10/10** |
-| **Cutover** | `PREP_REF=origin/deploy/prep-rh-vale-vila ./scripts/cutover_loja_rh_vale_vila.sh` |
+| **Cutover dry-run** | `./scripts/cutover_loja_rh_vale_vila.sh` (PREP default `deploy/prep-rh-vale-vila`) |
+| **Cutover loja** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_rh_vale_vila.sh --exec` |
 | **Doc** | `docs/DEPLOY-PREP-RH-VALE-VILA.md` |
 | **Migrate** | **NÃO** |
 | **Backup** | `producao-backup-pre-v2718-rh-vale-vila` @ `39337d12` |
 | **Rollback** | `git push origin 39337d12:producao` |
-| **Smoke** | Ctrl+F5 · caixa **Vila** · **Adiantamento (Vale)** · lista + PIN · ficha RH |
+| **Smoke** | Ctrl+F5 · caixa **Vila** · **Adiantamento (Vale)** · lista + PIN **9973** · ficha RH |
 | **Zap (opcional)** | *«Atualização ~2 min — vale na Vila. Não finalize venda no meio.»* |
+| **Prova cloud 14/10** | `verify_rh_vale` **8/8** + `verify_saida_empresa_loja` **10/10** · cutover dry-run OK @ `1b775dbfe` |
+| **Nota** | **`teste` ≠ ancestral de `producao`** — push loja só via `deploy/prep-rh-vale-vila`, não `origin/teste` |
 
 ### ✅ Deploy loja — **ETQ-MOBILE-BIP** · **Live v27.16** · CHECKLIST **13/10c** · 13/10
 

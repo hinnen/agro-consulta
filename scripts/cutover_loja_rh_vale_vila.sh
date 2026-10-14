@@ -5,14 +5,16 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-PREP_REF="${PREP_REF:-origin/teste}"
+# Produção divergiu de `teste` — pacote loja = cherry sobre producao em deploy/prep-rh-vale-vila.
+PREP_REF="${PREP_REF:-origin/deploy/prep-rh-vale-vila}"
 PROD_REF="origin/producao"
 ROLLBACK_TAG="${ROLLBACK_TAG:-rollback/pre-v2717-rh-vale-vila}"
 BACKUP_BR="${BACKUP_BR:-producao-backup-pre-v2718-rh-vale-vila}"
 SENHA_OK="99738595"
 VER_ESPERADA="27.18"
 
-git fetch origin producao teste "$ROLLBACK_TAG" 2>/dev/null || git fetch origin producao teste
+git fetch origin producao teste deploy/prep-rh-vale-vila "$ROLLBACK_TAG" 2>/dev/null \
+  || git fetch origin producao teste deploy/prep-rh-vale-vila
 
 PROD="$(git rev-parse --short "$PROD_REF")"
 PREP="$(git rev-parse --short "$PREP_REF")"
