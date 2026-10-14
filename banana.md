@@ -1298,7 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ⚠️ **Git produção OK** @ `9f18d10f4` · **Render pode ainda estar em v27.17** @ `39337d12` (14/10 — push sem build novo) |
+| **Status** | ⚠️ **Git produção OK** @ `9f18d10f4` · **Loja Live ainda v27.17** @ `39337d12` (14/10 — builds cancelados; Renan pausa deploy hoje) |
 | **Sintoma loja** | Mesmo erro vale Vila = **código antigo no ar** · não é cache do Ctrl+F5 sozinho |
 | **O quê** | Vale no caixa **Vila** para funcionário RH **Centro** (perfil por ClienteAgro · gaveta Vila) |
 | **Migrate** | **NÃO** |
