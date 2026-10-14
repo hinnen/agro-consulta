@@ -1294,25 +1294,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PREP loja — **RH-VALE-VILA** · **v27.18** · armado
+### ✅ Deploy loja — **RH-VALE-VILA** · **Live v27.18** · 14/10/2026
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **ARMADO** — branch `deploy/prep-rh-vale-vila` (cherry sobre **produção** atual) |
-| **Live hoje** | **v27.17** @ `39337d12` |
-| **Sintoma** | Vale caixa Vila: *«Empresa 'Agro Mais Vila Elias' não encontrada…»* |
-| **Fix** | Perfil RH pela pessoa (ClienteAgro) · folha na empresa do cadastro · gaveta **Vila** |
-| **Prova** | `verify_rh_vale_caixa_vila_path.py` **8/8** + `verify_saida_empresa_loja` **10/10** |
-| **Cutover dry-run** | `./scripts/cutover_loja_rh_vale_vila.sh` (PREP default `deploy/prep-rh-vale-vila`) |
-| **Cutover loja** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_rh_vale_vila.sh --exec` |
-| **Doc** | `docs/DEPLOY-PREP-RH-VALE-VILA.md` |
+| **Status** | ✅ **Live v27.18** @ `9f18d10f4` — cutover autorizado Renan 14/10 |
+| **Antes** | **v27.17** @ `39337d12` |
+| **O quê** | Vale no caixa **Vila** para funcionário RH **Centro** (perfil por ClienteAgro · gaveta Vila) |
 | **Migrate** | **NÃO** |
 | **Backup** | `producao-backup-pre-v2718-rh-vale-vila` @ `39337d12` |
 | **Rollback** | `git push origin 39337d12:producao` |
-| **Smoke** | Ctrl+F5 · caixa **Vila** · **Adiantamento (Vale)** · lista + PIN **9973** · ficha RH |
-| **Zap (opcional)** | *«Atualização ~2 min — vale na Vila. Não finalize venda no meio.»* |
-| **Prova cloud 14/10** | `verify_rh_vale` **8/8** + `verify_saida_empresa_loja` **10/10** · cutover dry-run OK @ `1b775dbfe` |
-| **Nota** | **`teste` ≠ ancestral de `producao`** — push loja só via `deploy/prep-rh-vale-vila`, não `origin/teste` |
+| **Smoke pendente** | Ctrl+F5 · caixa Vila · Retirada · **Adiantamento (Vale)** · lista + PIN · ficha RH |
+| **Doc** | `docs/DEPLOY-PREP-RH-VALE-VILA.md` |
 
 ### ✅ Deploy loja — **ETQ-MOBILE-BIP** · **Live v27.16** · CHECKLIST **13/10c** · 13/10
 
