@@ -1298,25 +1298,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **`teste` @ `892eed5f`** — loja Live **v27.15** (sem este pacote) |
+| **Status** | 🟢 **`teste` @ `892eed5f`** — loja **v27.16** @ `78a867a0` **sem** este pacote |
 | **Migrate** | **NÃO** |
 | **Paths** | `produtos/cadastro_planilha_util.py` (Excel ↓ Med · import só colunas MED · ID planilha) · `produtos/mongo_produto_id_util.py` · `produtos/views.py` (`_pid_doc_produto_gestao`) · `produtos_cadastro_erp.html` (ajuda import) |
 | **O quê** | Export Excel volta a trazer **Med classes/espécies**; import planilha **só MED** grava sem exigir nome/EAN; **Id** Mongo corrompido («PRODUTO ALTERADO…») → ObjectId na exportação/importação; gestão casa overlay pelo id certo |
-| **Prova repo** | `manage.py test` planilha_med + mongo_id + planilha_id_erp (**16 OK**) · `test_med_classificacao_regressao.py` (**9/9**) · grep `_enriquecer_rows_med_batch` em `coletar_linhas_export_cadastro` |
-| **Prova loja** | Após deploy: **reimportar** planilha Med (ex. GM1219) · exportar de novo · Cadastro ERP → conferir classes/espécies · PIN **9973** se usar `verify_planilha_med_path.py` no PC |
+| **Prova repo** | `manage.py test` planilha_med + mongo_id + planilha_id_erp (**16 OK**) · `test_med_classificacao_regressao.py` (**9/9**) · `verify_planilha_med_path.py` **FAIL=0** (estático; PIN no PC) |
+| **Prova loja** | Após deploy: **reimportar** planilha Med (ex. GM1219) · exportar de novo · Cadastro ERP → conferir classes/espécies · PIN **9973** no `verify_planilha_med_path.py` (PC migrado) |
 
 ### 📦 PACOTE PRONTO — **ETQ-FILA-MODAL-QTD** (`CHECKLIST 14/10` · 14/10) · 🟢 **PRONTO envio produção**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **`teste` @ `17dffa2c`** — loja **v27.16** **sem** este pacote |
+| **Status** | 🟢 **`teste` @ `17dffa2c`** — loja **v27.16** @ `78a867a0` **sem** este pacote |
 | **Migrate** | **NÃO** |
 | **Paths** | PC `GET /produtos/etiquetas/` · modal `#etq-sol-back` · `POST …/api/produtos/etiquetas/solicitacoes/<id>/importar/` · **app celular inalterado** |
 | **O quê** | Overlay **Solicitações do celular** (SisVale PC): **+ Na fila** não fecha o modal · **Qtd p/ todos** + **Aplicar** na fila de impressão |
-| **Prova** | `verify_etq_solicitacao_vl_pin_path.py` **38/38** · `verify_etiquetas_mobile_flow_path.py` **16/16** |
-| **Você** | Deploy → Ctrl+F5 etiquetas · 2× **+ Na fila** (overlay aberto) · Qtd 20 → **Aplicar** |
+| **Prova** | `verify_etiquetas_mobile_flow_path.py` **16/16** · `verify_etq_solicitacao_vl_pin_path.py` (estático OK; runtime PIN no PC migrado) |
+| **Você** | Deploy loja → Ctrl+F5 etiquetas · 2× **+ Na fila** (overlay aberto) · Qtd 20 → **Aplicar** |
 
-### ✅ CHECKLIST ÚNICO — **14/10d** · 🟢 **PRONTO envio produção**
+### ✅ CHECKLIST ÚNICO — **14/10d** · 🟢 **PRONTO envio produção** (só falta na loja)
 
 | # | Pacote | Status | Migrate | Commit teste |
 | - | ------ | ------ | ------- | ------------ |
