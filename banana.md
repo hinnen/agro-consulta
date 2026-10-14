@@ -1298,17 +1298,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **`teste` @ commit deste pacote** — loja ainda sem |
+| **Status** | 🟢 **`teste` @ `17dffa2c`** (+ banana `f8f1c7e5`) · loja **v27.16** @ `78a867a0` **sem** este pacote |
 | **Migrate** | **NÃO** |
-| **O quê** | PC `/produtos/etiquetas/`: overlay **Solicitações celular** permanece aberto ao **+ Na fila** · **Qtd p/ todos** + **Aplicar** na fila de impressão |
-| **Prova** | `verify_etq_solicitacao_vl_pin_path.py` **38/38** |
-| **Você** | Ctrl+F5 · importar 2+ pacotes sem fechar overlay · Qtd 20 → Aplicar em todos |
+| **Paths** | PC `GET /produtos/etiquetas/` · modal `#etq-sol-back` · `POST …/api/produtos/etiquetas/solicitacoes/<id>/importar/` · **app celular inalterado** |
+| **O quê** | Overlay **Solicitações do celular** (SisVale PC): **+ Na fila** não fecha o modal · **Qtd p/ todos** + **Aplicar** na fila de impressão |
+| **Prova** | `verify_etq_solicitacao_vl_pin_path.py` **38/38** · `verify_etiquetas_mobile_flow_path.py` **16/16** (celular igual) |
+| **Você** | Deploy loja → Ctrl+F5 etiquetas · 2× **+ Na fila** (overlay aberto) · Qtd 20 → **Aplicar** |
 
-### ✅ CHECKLIST ÚNICO — **14/10** · 🟢 **PRONTO envio produção**
+### ✅ CHECKLIST ÚNICO — **14/10** · 🟢 **PRONTO envio produção** (só falta na loja)
 
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **ETQ-FILA-MODAL-QTD** | 🟢 teste | **NÃO** |
+| # | Pacote | Status | Migrate | Commit teste |
+| - | ------ | ------ | ------- | ------------ |
+| 1 | **ETQ-FILA-MODAL-QTD** | 🟢 **PRONTO** | **NÃO** | `17dffa2c` |
 
 ---
 
