@@ -399,7 +399,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - Card **Lucro LÃ­quido** (no lugar de Novos Clientes): vencimento Â· bruto + pago Â· mesmo DRE do Resumo.
 - **Resumo — fatia OUTROS (07/09):** no donut/KPIs, o bucket interno `despesas_financeiras` aparece como **OUTROS** (não «Financeiras») — ativo / tarifa / «a conferir»; juro e pagamento de empréstimo ficam fora.
 - **Filtro Números** (10/08): **Centro + Vila** (padrão) · Centro · Vila — independente do seletor PDV (Centro/Vila do caixa).
-- **Meta C / média base (29/08):** mesma fórmula do Centro (3 meses + dia da semana + ocorrência). **Vila** ignora dias antes de **01/08/2026** (default código; ver **VILA-ABERTURA-0108**). **Centro + Vila** = **soma** das metas. BI passa filtro Números na série compare. Prova: `scripts/verify_meta_c_vila_abertura.py`.
+- **Meta C / média base (29/08):** mesma fórmula do Centro (3 meses + dia da semana + ocorrência). **Vila** ignora dias antes de **20/07/2026**. **Centro + Vila** = **soma** das metas. BI passa filtro Números na série compare. Prova: `scripts/verify_meta_c_vila_abertura.py`.
 - **Card Validade BI (18/08):** vencidos / no mês / conferir **iguais** nas 3 opções do filtro Números (contagem empresa); clique **Conferir vencidos** abre relatório **Todas + vencidos**. Baixa por loja = passo 2 pendente.
 - **Topo BI compacto (10/08):** sem «Gestão Estratégica» · sem botão Orç. (F2 no teclado/Menu) · **Trava** embaixo de Loja.
 - Gastos por plano de conta: oculto por padrÃ£o (`AGRO_DASHBOARD_GASTOS_PLANO=true` no `.env`).
@@ -1294,288 +1294,84 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PREP loja — **RH-VALE-VILA** · **v27.18** · armado (`teste`)
+### 🟢 PREP loja — **RH-VALE-VILA** · **v27.18** · armado
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **ARMADO** — aguarda frase+senha produção (próximo chat) |
-| **Live hoje** | **v27.17** (14/10d planilha+etq PC) |
+| **Status** | 🟢 **ARMADO** — branch `deploy/prep-rh-vale-vila` (cherry sobre **produção** atual) |
+| **Live hoje** | **v27.17** @ `39337d12` |
 | **Sintoma** | Vale caixa Vila: *«Empresa 'Agro Mais Vila Elias' não encontrada…»* |
-| **Fix** | Perfil RH pela pessoa (ClienteAgro), não pela empresa do turno · folha na empresa do cadastro · gaveta **Vila** |
+| **Fix** | Perfil RH pela pessoa (ClienteAgro) · folha na empresa do cadastro · gaveta **Vila** |
 | **Prova** | `verify_rh_vale_caixa_vila_path.py` **8/8** + `verify_saida_empresa_loja` **10/10** |
-| **Cutover** | `./scripts/cutover_loja_rh_vale_vila.sh` · doc `docs/DEPLOY-PREP-RH-VALE-VILA.md` |
+| **Cutover** | `PREP_REF=origin/deploy/prep-rh-vale-vila ./scripts/cutover_loja_rh_vale_vila.sh` |
+| **Doc** | `docs/DEPLOY-PREP-RH-VALE-VILA.md` |
 | **Migrate** | **NÃO** |
-| **Rollback** | `rollback/pre-v2717-rh-vale-vila` (tag após merge em `teste`) |
-| **Smoke loja** | Ctrl+F5 · caixa **Vila** · Retirada · **Adiantamento (Vale)** · lista + PIN **9973** · vale na ficha RH |
-| **Zap (opcional)** | *«Atualização ~2 min — vale funcionário na Vila. Não finalize venda no meio.»* |
+| **Backup** | `producao-backup-pre-v2718-rh-vale-vila` @ `39337d12` |
+| **Rollback** | `git push origin 39337d12:producao` |
+| **Smoke** | Ctrl+F5 · caixa **Vila** · **Adiantamento (Vale)** · lista + PIN · ficha RH |
+| **Zap (opcional)** | *«Atualização ~2 min — vale na Vila. Não finalize venda no meio.»* |
 
-### 🟢 PREP loja — CHECKLIST **14/10d** itens **1+2** · **v27.17** · armado
+### ✅ Deploy loja — **ETQ-MOBILE-BIP** · **Live v27.16** · CHECKLIST **13/10c** · 13/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **ARMADO** — `deploy/prep-checklist-1410d-planilha-etq-pc` @ `39337d12` |
-| **Live hoje** | **v27.16** @ `78a867a0` (**ETQ-MOBILE-BIP** item 3 já Live) |
-| **O quê** | **1** Planilha Med/ID Mongo · **2** Etiquetas PC modal fila + qtd em massa |
+| **Status** | ✅ **enviado / Live v27.16** — cherry-pick `ef655773` sobre **v27.15** |
+| **O quê** | App `/vendas/lojas/etiquetas/` — bip **contínuo** · **Bipar e enviar direto** · sem cadastro → painel |
 | **Migrate** | **NÃO** |
-| **Fora** | `0145` clientes % PDV · PDV wizard · caixa · busca |
-| **Prova** | `./scripts/cutover_loja_checklist_1410d_planilha_etq_pc.sh` · planilha **0 FAIL** · etq **16+38** · tests **16** |
-| **Cutover** | `--exec` + frase + senha **99738595** |
-| **Rollback** | `rollback/pre-1410d-v2716` @ `78a867a0` |
-| **Pós-deploy** | Reimport/export planilha Med · Ctrl+F5 etiquetas PC |
+| **Antes** | **v27.15** @ `ada10a36` |
+| **Backup** | `producao-backup-pre-v2716-etq-mobile-bip` @ `ada10a36` |
+| **Rollback** | `git push origin ada10a36:producao` |
+| **Prova** | `verify_etiquetas_mobile_flow_path.py` **16/16** · ETQ path **35/35** |
+| **Você** | Celular → Etiquetas → bip várias vezes · Ctrl+F5 se cache PWA |
 
-### ✅ CHECKLIST ÚNICO — **14/10d**
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **PLANILHA-MED-ID-HOTFIX** | 🟢 **ARMADO** v27.17 | **NÃO** |
-| 2 | **ETQ-FILA-MODAL-QTD** | 🟢 **ARMADO** v27.17 | **NÃO** |
-| 3 | **ETQ-MOBILE-BIP** | ✅ **Live v27.16** | **NÃO** |
-| 4 | **CLIENTE-LISTA-DESC-PDV** | 🟡 pendente | **SIM** `0145` |
-
----
-
-### ✅ **ETQ-MOBILE-BIP** · **Live v27.16** (`CHECKLIST 13/10c`)
+### 🟢 PREP loja — CHECKLIST **11/10l** · **v27.04** · aguarda frase+senha
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **Live v27.16** @ `78a867a0` |
+| **Status** | 🟢 **PRONTO envio produção** — `deploy/prep-checklist-1110l` @ `52e014c8` · Live **v27.03** @ `b4e4fcc8` |
+| **O quê** | **META-CENTRO-VILA-UNIFICADO** (`deposito=todas`, faixas somadas, config única, save 50/50) · **VL-RITMO-ATE-AGORA** (hora PDV + até 12 domingos/semana) |
 | **Migrate** | **NÃO** |
-| **Paths** | App `GET /vendas/lojas/etiquetas/` · `POST /api/vendas/lojas/etiquetas/solicitacoes/` (PIN) → Postgres **pendente** · PC `GET/POST /api/produtos/etiquetas/solicitacoes/…/importar/` |
-| **O quê** | Bip **contínuo** (câmera aberta / reabre após envio) · checkbox **Bipar e enviar direto** · sem cadastro → painel buscar/bipar · dock fixo (commits anteriores no mesmo fio) |
-| **Prova repo** | `verify_etiquetas_mobile_flow_path.py` **16/16** · `verify_etq_solicitacao_vl_pin_path.py` **35/35** · GM runtime **19/19** |
-| **Prova loja** | PIN **9973** → hub/etiquetas **OK** · HTML loja **sem** `chkBipEnviar` (confirma falta deploy) · Bipar no desktop VM: permissão câmera (esperado) |
+| **Fora** | PDV wizard/busca · caixa · `mongo_financeiro` |
+| **Prova** | `cutover_loja_checklist_1110l.sh` (META core · `tests_vendas_lojas_ritmo` · resumo ritmo) |
+| **Cutover** | `./scripts/cutover_loja_checklist_1110l.sh` · `--exec` + frase + senha **99738595** |
+| **Rollback** | `rollback/pre-checklist-1110l-v27.03-b4e` @ `b4e4fcc8` |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1110l.md` |
 
-### ✅ CHECKLIST ÚNICO — **13/10c** · 🟢 **PRONTO envio produção**
+### ✅ CHECKLIST ÚNICO — 11/10l · 🟢 **PRONTO envio produção**
 
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **ETQ-MOBILE-BIP** | ✅ **Live v27.16** | **NÃO** |
-| 2 | **CLIENTE-LISTA-DESC-PDV** | 🟡 teste | **SIM** `0145` |
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **META-CENTRO-VILA-UNIFICADO** | 🟢 **PRONTO** | **NÃO** | META core verify |
+| 2 | **VL-RITMO-ATE-AGORA** | 🟢 **PRONTO** | **NÃO** | `tests_vendas_lojas_ritmo` + resumo ritmo |
 
-**Você após deploy:** celular → Etiquetas → bip várias vezes · marque **enviar direto** se quiser 1 etiqueta por bip sem tocar Enviar.
-
----
-
-### ✅ Deploy loja — **MED-SUBCATEGORIA-DICAS** · **Live v27.15** · CHECKLIST **13/10b** · 13/10
+### 📦 PACOTE PRONTO — **META-CENTRO-VILA** + **VL-RITMO** (`CHECKLIST 11/10l`)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v27.15** — `producao` @ `ada10a36` |
-| **O quê** | Modal cadastro ERP: dicas ⓘ **Subcategorias 1–4** só **Medicamentos E Venenos** (só UI) |
-| **Migrate** | **NÃO** |
-| **Antes** | **v27.14.4** @ `dc357d31` |
-| **Backup** | `producao-backup-pre-v2715-med-sub-dicas` |
-| **Rollback** | `git push origin rollback/pre-med-sub-v27144:producao` (@ `dc357d31`) |
-| **Cutover** | `./scripts/cutover_loja_checklist_1310b_med_sub_dicas.sh` (executado) |
-| **Smoke loja** | Ctrl+F5 cadastro → medicamento: dicas · ração: sem dicas |
+| **Status** | 🟢 **PRONTO envio produção** — PREP @ **v27.04** `52e014c8` |
+| **Smoke pós-deploy** | `/meta/` Centro+Vila · Zap enxuto · Vendas lojas nota «até agora» |
 
-### ✅ CHECKLIST ÚNICO — **13/10b** (histórico)
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **CLIENTE-LISTA-DESC-PDV** | 🟡 **pendente** | **SIM** `0145` |
-| 2 | **MED-SUBCATEGORIA-DICAS** | ✅ **Live v27.15** | **NÃO** |
-
-### ✅ Deploy loja — **CADASTRO-BUSCA-GM-PDV** hotfix · **Live v27.14.2** · CHECKLIST **13/10** · 13/10
+### 🟢 PREP loja — CHECKLIST **11/10k** · **v27.03** · *(meta 0144 já Live v27.01 — não repetir migrate)*
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v27.14.2** — `producao` @ `0a37a031` |
-| **O quê** | Mongo no cadastro · PG filtrado · GM hífen estrito · frase com espaço · cache BCA **v3** |
-| **Migrate** | **NÃO** |
-| **Antes** | **v27.14** @ `697ac790` (parcial, busca errada) |
-| **Backup** | `producao-backup-pre-v27142-busca-gm-pdv` |
-| **Rollback** | `git push origin rollback/pre-busca-gm-pdv-v2713:producao` (@ `904a6031`) |
-| **Cutover** | `./scripts/cutover_loja_checklist_1310_busca_gm_pdv.sh` (executado) |
-| **Conferir loja** | Ctrl+F5 Cadastro ERP · `GM0037-1` · `ibiuna 5kg` |
+| **Status** | 🟢 **armado** — `deploy/prep-checklist-1110k` · Live **v27.00** @ `14f5cad7` |
+| **O quê** | **SISTAPP-PWA-AJUSTE** (hub `/vendas/lojas/ajuste/`, PWA install, manifest **SistApp**) · **META-POR-LOJA** (Centro/Vila) · **META-ZAP-ENXUTO** |
+| **Migrate** | **SIM** — só `produtos` **0144** (`MetaVendaFaixaAgro.deposito`) |
+| **Fora do pacote** | PDV wizard/busca 230 · caixa · `mongo_financeiro` (cutover bloqueia delta) |
+| **Prova (PREP)** | `verify_vendas_lojas_pwa_install.py` **25/25** · META core (`verify_meta_mostruario_path` arquivos+CRUD+Zap) |
+| **Cutover** | `./scripts/cutover_loja_checklist_1110k.sh` · `--exec` só com `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1110k.sh` (Render Shell → `migrate produtos 0144`) |
+| **Rollback** | tag `rollback/pre-checklist-1110k-v27.00` @ `14f5cad7` · `docs/ROLLBACK-CHECKLIST-1110k.md` |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1110k.md` |
 
-### ✅ CHECKLIST ÚNICO — **13/10**
+### ✅ CHECKLIST ÚNICO — 11/10k · 🟢 PREP v27.03 · aguarda senha
 
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **CLIENTE-LISTA-DESC-PDV** | 🟡 **pendente** (outro cutover) | **SIM** `0145` |
-| 2 | **CADASTRO-BUSCA-GM-PDV** | ✅ **Live v27.14.2** | **NÃO** |
-
-### ✅ Deploy loja — **PLANILHA-MED-EXCEL** · CHECKLIST **12/10r** · **Live v27.13** · 12/10
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | ✅ **enviado / Live v27.13** — `producao` @ `904a60315` |
-| **O quê** | Cadastro Excel ↓/↑: **Med palavras-chave**, **Med classes (slugs)**, **Med espécies (slugs)** |
-| **Migrate** | **NÃO** |
-| **Antes** | **v27.12** @ `ac38739ed` |
-| **Backup** | `producao-backup-pre-v2713-planilha-med-excel` |
-| **Rollback** | `git push origin rollback/pre-planilha-med-v2712:producao` (@ `ac38739ed`) |
-| **Cutover** | `./scripts/cutover_loja_checklist_1210r_planilha_med.sh` (já executado) |
-
-### ✅ CHECKLIST ÚNICO — **12/10r** · pendente item **2**
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **GESTAO-MED-MODAL-GV** | ✅ **Live v27.12** | **NÃO** |
-| 2 | **CLIENTE-LISTA-DESC-PDV** | 🟡 **só `teste`** | **SIM** `0145` |
-| 3 | **PLANILHA-MED-EXCEL** | ✅ **Live v27.13** | **NÃO** |
-
-### 🟢 PREP loja — hotfix **GESTAO-MED-MODAL-GV** · **v27.12** · CHECKLIST **12/10q** · armado
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | 🟢 **ARMADO** — `deploy/prep-checklist-1210q-gv` @ `ac38739e` |
-| **Live hoje** | **v27.11** @ `4f122337` |
-| **O quê** | Modal cadastro ERP: `gv()` no escopo · gestão: clique na linha + lápis (`abrirDrawerSeguro`) |
-| **Migrate** | **NÃO** |
-| **Prova** | `./scripts/cutover_loja_checklist_1210q_gv.sh` · **38/38** · CB-230 **13/13** |
-| **Cutover** | `--exec` + frase + senha **99738595** |
-| **Rollback** | `rollback/pre-hf-gestao-med-modal-gv-v2711` @ `4f122337` |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1210q-gv.md` · roteiro **§79** |
-
-### ✅ CHECKLIST ÚNICO — **12/10q**
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **GESTAO-MED-MODAL-GV** (hotfix) | 🟢 **ARMADO** | **NÃO** |
-| 2 | **CLIENTE-LISTA-DESC-PDV** | 🟡 **pendente** (outro cutover) | **SIM** `0145` |
-
-### ✅ Deploy loja — CHECKLIST **12/10p** (itens **1+2**) · **Live v27.11** · 12/10
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | ✅ **enviado / Live v27.11** — `producao` @ `4f122337` |
-| **O quê** | **CADASTRO-AGRO-VN-FANTASMA** · **MED-CLASSIFICACAO-SISVALE** — **sem** cliente % PDV |
-| **Migrate** | **NÃO** |
-| **Antes** | **v27.09** @ `f6a4fa31` |
-| **Backup** | `producao-backup-pre-v2711-checklist-1210p-vn-med` |
-| **Rollback** | `git push origin rollback/pre-checklist-1210p-v27.09-f6a4:producao` (@ `f6a4fa31`) |
-| **Cutover** | `./scripts/cutover_loja_checklist_1210p_vn_med.sh` |
-| **Pós-deploy** | Shell Render: `python manage.py limpar_overlays_agro_vn_fantasma` (uma vez) |
-
-### 🟡 Pendente — **12/10p** item **3** · **CLIENTE-LISTA-DESC-PDV**
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | 🟡 **só `teste`** — PREP completo `deploy/prep-checklist-1210p` |
-| **Migrate** | **SIM** `0145` · `pdv_state.js` |
-
-### ✅ CHECKLIST ÚNICO — **12/10p**
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **CADASTRO-AGRO-VN-FANTASMA** | ✅ **Live v27.11** | **NÃO** |
-| 2 | **MED-CLASSIFICACAO-SISVALE** | ✅ **Live v27.11** | **NÃO** |
-| 3 | **CLIENTE-LISTA-DESC-PDV** | 🟡 **pendente** | **SIM** `0145` |
-
-### 📦 PACOTE PRONTO — **CADASTRO-AGRO-VN-FANTASMA** (`CHECKLIST 12/10o` · 12/10) · 🟢 **PRONTO envio produção**
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | 🟢 **PRONTO** — `teste` · `901e7418` · `91de6519` · `fbd4f5e6` |
-| **O quê** | Cadastro: sem duplicata **agro:vn:** vs GM · Excel ↑ remapeia ID · `limpar_overlays_agro_vn_fantasma` |
-| **Migrate** | **NÃO** |
-| **Prova** | `python scripts/verify_cadastro_agro_vn_path.py` (**VERIFY_OK=19**) |
-| **Pós-deploy loja** | `python manage.py limpar_overlays_agro_vn_fantasma` (uma vez) |
-| **Doc** | `docs/DEPLOY-PREP-CADASTRO-AGRO-VN-FANTASMA.md` |
-
-### ✅ PACOTE PRONTO — **CLIENTE-LISTA-DESC-PDV** (`CHECKLIST 12/10p` · 12/10) · 🟢 **PRONTO envio produção**
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | `/clientes/` shell largo · **`desconto_pdv_percentual`** opcional (vazio = sem desconto) · PDV aplica % no subtotal |
-| **Prova** | `verify_cliente_lista_desc_pdv_path.py` **18/18** · `verify_cliente_planilha_path.py` **61/61** |
-| **Migrate** | **SIM** `0145_clienteagro_desconto_pdv_percentual` |
-| **Status** | 🟢 **`teste`** — aguarda frase + senha produção |
-| **Você** | `migrate` · Ctrl+F5 `/clientes/` · % só no cliente que você cadastrar · PDV smoke |
-
-### ✅ CHECKLIST ÚNICO — **12/10p** · 🟢 **PRONTO envio produção**
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **CADASTRO-AGRO-VN-FANTASMA** | 🟢 **PRONTO** v27.09 | **NÃO** |
-| 2 | **MED-CLASSIFICACAO-SISVALE** | 🟢 **PRONTO** v27.09 | **NÃO** |
-| 3 | **CLIENTE-LISTA-DESC-PDV** | 🟢 **PRONTO** `teste` | **SIM** `0145` |
-
-### ✅ Deploy loja — CHECKLIST **12/10n** (itens **1+2**) · **Live v27.09** · 12/10
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | ✅ **enviado / Live v27.09** — `producao` @ `f6a4fa31` |
-| **O quê** | **ETQ-MOBILE-POLISH** · **CREDITO-REVISAR-LIMITE** (export XLSX) — **sem** MED |
-| **Migrate** | **NÃO** |
-| **Antes** | **v27.06** @ `b539c712` |
-| **Backup** | `producao-backup-pre-v2709-checklist-1210n-etq-cred` |
-| **Rollback** | `git push origin rollback/pre-checklist-1210n-v27.06-b539:producao` (@ `b539c712`) |
-| **Cutover usado** | `./scripts/cutover_loja_checklist_1210n_etq_cred.sh` |
-| **PREP** | `deploy/prep-checklist-1210n-etq-cred` @ `f6a4fa31` |
-
-### 📦 PACOTE PRONTO — **MED-CLASSIFICACAO-SISVALE** (`CHECKLIST 12/10n` · item **3**) · 🟢 **PRONTO envio produção**
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | 🟢 **`teste` v27.09** — aguarda frase + senha produção |
-| **Migrate** | **NÃO** |
-| **O quê** | Cadastro medicamentos: 9 prateleiras · Busca (espécies/classes) · fix filtro + envio seguro |
-| **Prova** | `AGRO_PIN_TESTE=… python scripts/verify_classificacao_medicamentos_path.py` → **33/33** (PIN validado se perfil existir no PG) |
-
-### ✅ CHECKLIST ÚNICO — **12/10n** · pendente item **3**
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **ETQ-MOBILE-POLISH** | ✅ **Live v27.09** | **NÃO** |
-| 2 | **CREDITO-REVISAR-LIMITE** | ✅ **Live v27.09** | **NÃO** |
-| 3 | **MED-CLASSIFICACAO-SISVALE** | 🟢 **PRONTO envio** v27.09 | **NÃO** |
-
-### ✅ Deploy loja — **VILA-META** (`CHECKLIST 11/10m` · 11/10) · **Live v27.06**
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | ✅ **enviado / Live v27.06** — `producao` @ `84872d72` |
-| **O quê** | **VILA-ABERTURA-0108** + **VILA-DOMINGO-ZERO** |
-| **Migrate** | **NÃO** |
-| **Backup** | `producao-backup-pre-v2706-checklist-1110m` @ `f590b14b` |
-| **Rollback** | tag `rollback/pre-checklist-1110m-v27.04-f590` @ `f590b14b` |
-| **Render** | Conferir `AGRO_VILA_ABERTURA` — remover `2026-07-20` se existir |
-
-### ✅ CHECKLIST ÚNICO — **11/10m** · ✅ **Live**
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **VILA-ABERTURA-0108** | ✅ **Live v27.06** | **NÃO** |
-| 2 | **VILA-DOMINGO-ZERO** | ✅ **Live v27.06** | **NÃO** |
-
-### ✅ Deploy loja — hotfix **SISTAPP-AJUSTE-SHELL** · **Live** · 11/10
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | ✅ **Live** — `producao` @ `b4e4fcc8` (sobre v27.03) |
-| **O quê** | Ajuste no SistApp (`/vendas/lojas/ajuste/`) sem sidebar Gestão |
-| **Migrate** | **NÃO** |
-| **Prova loja** | PIN **9973** → hub/painel **200** · botão **Atualizar** (`vl-atualizar`) · ajuste **200** · `__agroPathLookLikeAjusteMobile` · manifest **SistApp** (reverificado 11/10) |
-
-### ✅ Deploy loja — CHECKLIST **11/10l** · **Live v27.04** · 11/10
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | ✅ **enviado / Live v27.04** — `producao` @ `dc19f805` |
-| **O quê** | **META-CENTRO-VILA-UNIFICADO** · **VL-RITMO-HORA** |
-| **Migrate** | **NÃO** |
-| **Backup** | `producao-backup-pre-v2704-checklist-1110l` @ `b4e4fcc8` |
-| **Rollback** | tag `rollback/pre-checklist-1110l-v27.03-b4e` @ `b4e4fcc8` |
-| **Pós-deploy** | `./scripts/post_deploy_checklist_1110l.sh` (opcional) |
-
-### ✅ CHECKLIST ÚNICO — 11/10l · ✅ **Live**
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **META-CENTRO-VILA-UNIFICADO** | ✅ **Live v27.04** | **NÃO** |
-| 2 | **VL-RITMO-HORA** | ✅ **Live v27.04** | **NÃO** |
-
-### ✅ Live hoje — referência rápida
-
-| Versão | `producao` | Pacotes já na loja |
-| ------ | ---------- | ------------------ |
-| **v27.06** | `84872d72` | Vila abertura 01/08 · domingo meta zero |
-| **v27.04** | `dc19f805` | META Centro+Vila unificado · ritmo hora Vendas lojas |
-| **v27.03** | `b4e4fcc8` | SistApp/Atualizar · Zap · hotfix Ajuste shell |
-| **v27.01** | (base META) | META-POR-LOJA · migrate **0144** |
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **SISTAPP-PWA-AJUSTE** | 🟢 PREP | **NÃO** | PWA verify **25/25** |
+| 2 | **META-POR-LOJA** | 🟢 PREP | **SIM** `0144` | META core verify |
+| 3 | **META-ZAP-ENXUTO** | 🟢 PREP | **NÃO** | linhas `* R$ … bônus … ✅` |
 
 ### ✅ Deploy loja — **GM-LOJAS-PIN-UI** · **Live v26.99** · 11/10
 
@@ -1586,51 +1382,44 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Rollback** | `producao-backup-pre-v2699-gm-lojas-pin-agro-20261011` (= v26.98 @ `0607cdb8`) |
 
-### ✅ Deploy loja — **CHECKLIST 11/10j** · **Live v27.00** · 11/10
+### ✅ Deploy loja — **GM-LOJAS-PIN-UI** · **Live v26.98** · 11/10 *(substituído por v26.99)*
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v27.00** — `producao` @ `48d376be` |
-| **O quê** | **ETQ-SOL-IMPORT-ALL** + **VL-PWA-INSTALL** |
-| **Migrate** | **NÃO** |
-| **Backup** | `producao-backup-pre-v2700-checklist-1110j` @ `fd1cd028` |
-| **Rollback** | tag `rollback/pre-checklist-1110j-v26.99` @ `fd1cd028` |
+| **Status** | ✅ enviado — visual Django Admin (corrigido na v26.99) |
+| **Rollback** | `producao-backup-pre-v2698-gm-lojas-pin-ui-20261011` |
 
-### ✅ CHECKLIST ÚNICO — 11/10j · ✅ **Live**
-
-| # | Pacote | Status | Nota |
-| - | ------ | ------ | ---- |
-| 1 | **ETQ-SOL-IMPORT-ALL** | ✅ Live v27.00 | desktop etiquetas |
-| 2 | **VL-PWA-INSTALL** | ✅ Live v27.00 | `/vendas/lojas/` |
-
----
-
-### 📦 PACOTE PRONTO — **ETQ-SOLIC-MOBILE** + **VL-HUB-PIN** (`CHECKLIST 11/10` · 11/10) · ✅ Live
+### 📦 PACOTE PRONTO — **ETQ-SOLIC-MOBILE** + **VL-HUB-PIN** (`CHECKLIST 11/10` · 11/10)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **Live v26.97** — hotfix gerência VL-HUB (`producao` @ `db620370`) |
-| **VERSION** | **v26.97** |
-| **O quê** | Hotfix: Vendas/Tarefas para **Geraldinho, Geraldo, Renan, Isabela, Zuleide** (PIN pessoal qualquer) + códigos **#1–#4, #8** |
-| **Migrate hotfix** | **NÃO** (já `0142`/`0143` na loja) |
-| **Prova** | path **28/28** · runtime **19/19** · `verify_vl_hub_gerencia_allowlist.py` **10/10** |
-| **Rollback hotfix** | tag `rollback/pre-checklist-1110-v26.94` @ `da745c08` |
-| **Cutover** | `./scripts/cutover_loja_checklist_1110.sh --exec` |
+| **Status** | 🟢 **PRONTO envio produção** — PREP @ **v26.94** · cutover aguarda frase+senha |
+| **VERSION** | **v26.94** (`40ccd2c3` + docs verify) |
+| **O quê** | **ETQ-SOLIC-MOBILE** (mobile + fila desktop) · **VL-HUB-PIN** (PIN único 7d; Vendas/Tarefas **1,2,3,4,8** só no clique) · **GM-LOJAS-LOG** (Gestão → LOG) |
+| **Migrate** | **SIM** — `0142` · `0143` |
+| **Env** | `AGRO_VL_HUB_PINS_VENDAS_TAREFAS=1,2,3,4,8` (loja); staging/dev com PIN **9973**: incluir na env |
+| **Prova** | `verify_etq_solicitacao_vl_pin_path.py` **28/28** · `verify_gm_lojas_pin_runtime.py` **runtime OK** |
+| **Smoke** | Hub 4 cartões · PIN 5 → sem acesso Vendas/Tarefas · Fotos/Etiquetas · etiquetas PC fila |
+| **Cutover** | `./scripts/cutover_loja_checklist_1110.sh` · rollback `docs/ROLLBACK-CHECKLIST-1110.md` |
 
-### ✅ CHECKLIST ÚNICO — 11/10 · pacote Live · hotfix 🟢 **PRONTO**
+### ✅ CHECKLIST ÚNICO — 11/10 · 🟢 **PRONTO envio produção**
 
-| # | Pacote | Status | Nota |
-| - | ------ | ------ | ---- |
-| 1 | **ETQ-SOLIC-MOBILE** | ✅ Live v26.94 | — |
-| 2 | **VL-HUB-PIN** | ✅ Live **v26.97** | nomes gerência |
-| 3 | **GM-LOJAS-LOG** | ✅ Live v26.94 | — |
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ETQ-SOLIC-MOBILE** | 🟢 **PRONTO** | **SIM** `0142` | path **28/28** |
+| 2 | **VL-HUB-PIN-VENDAS-TAREFAS** | 🟢 **PRONTO** | **NÃO** | path + runtime |
+| 3 | **GM-LOJAS-LOG** | 🟢 **PRONTO** | **SIM** `0143` | path + `/gestao/logs/` |
 
-### ✅ Deploy loja — hotfix **v26.97** · 11/10
+### 🟢 PREP loja — CHECKLIST 11/10 · **v26.94** · atualizar PREP antes do cutover
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ enviado — backup `producao-backup-pre-v2697-checklist-1110` @ `da745c08` |
-| **Rollback** | `rollback/pre-checklist-1110-v26.94` |
+| **Status** | 🟡 **armado** — PREP `deploy/prep-checklist-1110` @ v26.94 `teste` → `deploy/prep-checklist-1110` · Live **v26.90** @ `b2a7b02d` |
+| **Rollback** | tag `rollback/pre-checklist-1110-v26.90` |
+| **Backup branch** | `producao-backup-pre-v2691-checklist-1110` |
+| **Cutover** | `scripts/cutover_loja_checklist_1110.sh` |
+| **Pós-deploy** | `python manage.py migrate produtos 0143` (Shell Render, logo após deploy) |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1110.md` |
 
 ### ✅ Deploy loja — CHECKLIST 10/10l · **Live v26.90** · 10/10
 
