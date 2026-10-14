@@ -1266,6 +1266,82 @@ def _id_produto_planilha_valido(pid: str) -> bool:
     return False
 
 
+_RE_GM_EMBUTIDO_CELULA = re.compile(r"(?i)\bGM\s*0*(\d{3,6})\b")
+_RE_NOME_APOS_PRODUTO_GM = re.compile(r"(?i)produto\s+GM\s*0*\d{3,6}\s*[-–—]\s*(.+)")
+
+
+def _codigo_gm_extraido_de_texto(s: str) -> str:
+    m = _RE_GM_EMBUTIDO_CELULA.search(str(s or ""))
+    if not m:
+        return ""
+    digits = re.sub(r"\D", "", m.group(1) or "")
+    if not digits:
+        return ""
+    return f"GM{digits}"
+
+
+def _recuperar_id_planilha_texto_erp(
+    pid: str,
+    *,
+    codigo_gm: str = "",
+    nome: str = "",
+) -> tuple[str, str | None]:
+    """
+    Célula ID às vezes traz mensagem do ERP («PRODUTO ALTERADO COM SUCESSO. Produto GM…»)
+    em vez do ObjectId exportado pelo Agro — tenta achar o produto pelo GM/nome no texto.
+    """
+    s = str(pid or "").strip().strip('"\'').strip()[:256]
+    if _id_produto_planilha_valido(s):
+        return s, None
+    cod = str(codigo_gm or "").strip()
+    if not cod:
+        cod = _codigo_gm_extraido_de_texto(s)
+    nome_eff = str(nome or "").strip()
+    if not nome_eff:
+        m_nome = _RE_NOME_APOS_PRODUTO_GM.search(s)
+        if m_nome:
+            nome_eff = str(m_nome.group(1) or "").strip().strip('"').strip()[:300]
+    if not cod and not nome_eff:
+        return s[:64], None
+    from produtos.cadastro_overlay_orfao_util import produto_externo_id_catalogo_por_codigo_ou_nome
+
+    canon = produto_externo_id_catalogo_por_codigo_ou_nome(codigo=cod, nome=nome_eff)
+    if canon and _id_produto_planilha_valido(canon):
+        return str(canon)[:64], (
+            "ID recuperado pelo código GM/nome na célula (havia texto do ERP no lugar do ID da exportação Agro)."
+        )
+    return s[:64], None
+
+
+def _resolver_pid_linha_importacao(
+    raw: dict[str, Any],
+    colmap: dict[str, str],
+) -> tuple[str, str | None]:
+    """ID efetivo da linha (remapeia agro:vn e recupera lixo ERP na coluna ID)."""
+    hdr_id = colmap.get(COL_ID)
+    hdr_gm = colmap.get(COL_CODIGO_GM)
+    hdr_nome = colmap.get(COL_NOME)
+    pid = _cel_str(raw.get(hdr_id or ""))[:256]
+    if not pid:
+        return "", None
+    cod_gm_linha = _cel_str(raw.get(hdr_gm or "")) if hdr_gm else ""
+    nome_linha = _cel_str(raw.get(hdr_nome or "")) if hdr_nome else ""
+    from produtos.cadastro_overlay_orfao_util import remapear_id_planilha_agro_vn
+
+    pid, aviso = remapear_id_planilha_agro_vn(
+        pid, codigo_gm=cod_gm_linha, nome=nome_linha
+    )
+    if not _id_produto_planilha_valido(pid):
+        pid_rec, aviso_rec = _recuperar_id_planilha_texto_erp(
+            pid, codigo_gm=cod_gm_linha, nome=nome_linha
+        )
+        if _id_produto_planilha_valido(pid_rec):
+            return pid_rec, aviso_rec or aviso
+    if _id_produto_planilha_valido(pid):
+        return pid[:64], aviso
+    return pid[:64], aviso
+
+
 def _id_planilha_resumo(pid: str, max_len: int = 28) -> str:
     s = str(pid or "").strip()
     if len(s) <= max_len:
@@ -1795,7 +1871,6 @@ def preview_importacao_cadastro(
     if not colmap.get(COL_ID):
         raise ValueError("Coluna «ID» não encontrada na planilha.")
 
-    hdr_id = colmap[COL_ID]
     rows_slice = rows_raw[:IMPORT_MAX_ROWS]
     vistos: set[str] = set()
     alteracoes: list[dict] = []
@@ -1803,20 +1878,10 @@ def preview_importacao_cadastro(
     erros: list[dict] = []
     pendentes: list[dict] = []
 
-    hdr_gm = colmap.get(COL_CODIGO_GM)
-    hdr_nome = colmap.get(COL_NOME)
-
     for i, raw in enumerate(rows_slice, start=2):
-        pid = _cel_str(raw.get(hdr_id or ""))[:64]
+        pid, aviso_remap = _resolver_pid_linha_importacao(raw, colmap)
         if not pid:
             continue
-        from produtos.cadastro_overlay_orfao_util import remapear_id_planilha_agro_vn
-
-        cod_gm_linha = _cel_str(raw.get(hdr_gm or "")) if hdr_gm else ""
-        nome_linha = _cel_str(raw.get(hdr_nome or "")) if hdr_nome else ""
-        pid, aviso_remap = remapear_id_planilha_agro_vn(
-            pid, codigo_gm=cod_gm_linha, nome=nome_linha
-        )
         if aviso_remap and not _id_produto_planilha_valido(pid):
             erros.append({"linha": i, "id": _id_planilha_resumo(pid), "erro": aviso_remap})
             continue
@@ -2425,7 +2490,7 @@ def aplicar_importacao_cadastro(
     candidatos: list[dict] = []
     vistos: set[str] = set()
     for i, raw in enumerate(rows_raw[:IMPORT_MAX_ROWS], start=2):
-        pid = _cel_str(raw.get(hdr_id or ""))[:64]
+        pid, _aviso = _resolver_pid_linha_importacao(raw, colmap)
         if not pid or not _id_produto_planilha_valido(pid) or pid in vistos:
             continue
         vistos.add(pid)
