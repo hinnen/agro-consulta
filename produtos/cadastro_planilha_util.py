@@ -841,7 +841,14 @@ def _enriquecer_row_med_planilha(
 def _enriquecer_rows_med_batch(rows: list[dict], ovs: dict) -> None:
     for r in rows:
         pid = str(r.get("id") or "")
-        _enriquecer_row_med_planilha(r, ovs.get(pid))
+        ov = ovs.get(pid)
+        if ov is None:
+            cod = str(r.get("codigo_nfe") or r.get("codigo") or "").strip()
+            if cod:
+                alt = _pid_de_codigo_gm_ou_id(cod)
+                if alt:
+                    ov = ovs.get(alt)
+        _enriquecer_row_med_planilha(r, ov)
 
 
 def _parse_slugs_planilha(raw: str, valid: set[str]) -> tuple[list[str] | None, str | None]:
@@ -1446,6 +1453,7 @@ def coletar_linhas_export_cadastro(
                 _aplicar_produto_gestao_overlay_em_dict(r, ovs.get(str(r.get("id") or "")))
                 rows.append(r)
             _enriquecer_rows_delivery_batch(chunk, ovs)
+            _enriquecer_rows_med_batch(chunk, ovs)
             if not has_more:
                 break
             pagina += 1
@@ -1472,6 +1480,7 @@ def coletar_linhas_export_cadastro(
     for r in rows:
         _aplicar_produto_gestao_overlay_em_dict(r, ovs.get(str(r.get("id") or "")))
     _enriquecer_rows_delivery_batch(rows, ovs)
+    _enriquecer_rows_med_batch(rows, ovs)
     rows = _filtrar_rows_categorias(rows, categorias or [])
     return rows, truncado
 
@@ -1660,15 +1669,21 @@ def _mapa_estado_atual_produtos(
     n_chunks = max(1, (len(uniq) + chunk_sz - 1) // chunk_sz)
 
     def _registrar_doc(doc: dict, chunk_set: set[str]) -> None:
+        from produtos.mongo_produto_id_util import id_externo_de_doc_mongo
+
+        chaves: set[str] = set()
+        canon = id_externo_de_doc_mongo(doc)
+        if canon:
+            chaves.add(canon[:64])
         id_val = doc.get("Id")
         if id_val is not None:
-            sid = str(id_val).strip()[:64]
-            if sid in chunk_set:
+            chaves.add(str(id_val).strip()[:64])
+        oid = str(doc.get("_id") or "").strip()[:64]
+        if oid:
+            chaves.add(oid)
+        for sid in chaves:
+            if sid and sid in chunk_set:
                 doc_map[sid] = doc
-                return
-        sid = str(doc.get("_id") or "").strip()[:64]
-        if sid in chunk_set:
-            doc_map[sid] = doc
 
     for ci, start in enumerate(range(0, len(uniq), chunk_sz)):
         if on_progress:
@@ -1832,7 +1847,14 @@ def _merged_row(atual: dict, patch: dict) -> dict:
     return out
 
 
-def _validar_merged(row: dict) -> str | None:
+def _patch_somente_campos_med(patch: dict) -> bool:
+    keys = {k for k in patch if not str(k).startswith("__")}
+    return bool(keys) and keys <= set(MED_IMPORT_KEYS)
+
+
+def _validar_merged(row: dict, patch: dict | None = None) -> str | None:
+    if patch is not None and _patch_somente_campos_med(patch):
+        return None
     if not str(row.get("nome") or "").strip():
         return "Nome obrigatório."
     if not str(row.get("marca") or "").strip():
@@ -1981,7 +2003,7 @@ def preview_importacao_cadastro(
             continue
 
         merged = _merged_row(atual, patch_res)
-        vmsg = _validar_merged(merged)
+        vmsg = _validar_merged(merged, patch_res)
         if vmsg:
             erros.append({"linha": i, "id": pid, "erro": vmsg})
             continue
@@ -2542,7 +2564,7 @@ def aplicar_importacao_cadastro(
         if _validar_patch_med(atual, patch_res):
             continue
         merged = _merged_row(atual, patch_res)
-        vmsg = _validar_merged(merged)
+        vmsg = _validar_merged(merged, patch_res)
         if vmsg:
             continue
         fila.append({"linha": i, "id": pid, "patch": patch_res, "atual": atual})

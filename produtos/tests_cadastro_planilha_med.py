@@ -4,6 +4,7 @@ from produtos.cadastro_planilha_util import (
     COL_MED_CLASSES,
     COL_MED_ESPECIES,
     COL_MED_PALAVRAS,
+    COL_NOME,
     EXPORT_COL_KEYS,
     IMPORT_KEYS,
     MED_IMPORT_KEYS,
@@ -14,6 +15,7 @@ from produtos.cadastro_planilha_util import (
     _parse_slugs_planilha,
     _patch_da_linha,
     _tem_alteracao,
+    _validar_merged,
     headers_export,
     linha_export_planilha,
 )
@@ -135,3 +137,9 @@ class CadastroPlanilhaMedTests(SimpleTestCase):
         _enriquecer_row_med_planilha(row, ov)
         self.assertEqual(row[COL_MED_PALAVRAS], "Palavra")
         self.assertEqual(_format_lista_slugs_planilha(row["classes_vet"]), "antibiotico")
+
+    def test_validar_merged_pula_obrigatorios_somente_med(self):
+        merged = {"nome": "", "marca": "", "categoria": "", "codigo_barras": ""}
+        patch = {COL_MED_CLASSES: ["antibiotico"]}
+        self.assertIsNone(_validar_merged(merged, patch))
+        self.assertIsNotNone(_validar_merged(merged, {COL_NOME: "X"}))
