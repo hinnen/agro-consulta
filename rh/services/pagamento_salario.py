@@ -22,7 +22,7 @@ from rh.constants import (
 )
 from rh.models import FechamentoFolhaSimplificado, PagamentoSalarioFuncionario
 from rh.services.fechamento import money_two_decimals, recalcular_fechamento
-from rh.utils import resolver_empresa_por_nome_fantasia, resolver_perfil_rh_para_vale
+from rh.utils import resolver_perfil_rh_para_vale_operacao_caixa
 
 logger = logging.getLogger(__name__)
 
@@ -348,6 +348,7 @@ def tentar_caixa_pagamento_salario(
     banco_id: str | None,
     usuario,
     observacao_desc: str,
+    cliente_agro_id: int | None = None,
 ) -> dict[str, Any] | None:
     """
     Saída caixa plano Salários: baixa parcial/total no título + registro RH (sem vale).
@@ -355,19 +356,14 @@ def tentar_caixa_pagamento_salario(
     """
     from rh.services.salario_financeiro_mongo import registrar_pagamento_salario_com_baixa_titulo
 
-    empresa = resolver_empresa_por_nome_fantasia(empresa_nome.strip())
-    if not empresa:
-        return {
-            "ok": False,
-            "erro": f"Empresa '{empresa_nome}' não encontrada.",
-            "ids": [],
-        }
-
-    funcionario, _modo = resolver_perfil_rh_para_vale(
-        empresa,
+    funcionario, _modo, err_resolve = resolver_perfil_rh_para_vale_operacao_caixa(
+        empresa_nome,
         mongo_cliente_id=(pessoa_id or "").strip() or None,
+        cliente_agro_id=cliente_agro_id,
         texto_quem=(pessoa_nome or "").strip() or None,
     )
+    if err_resolve:
+        return {"ok": False, "erro": err_resolve, "ids": []}
     if not funcionario:
         return None
 

@@ -21631,6 +21631,7 @@ def api_lancamentos_saida_caixa(request):
     motivo = str(payload.get("motivo") or "").strip()[:200]
     pessoa_id_final = str(payload.get("pessoa_id") or "").strip() or None
     pessoa_nome = ""
+    cliente_agro_id_rh: int | None = None
     if plano_id_req and not is_deposito:
         if is_outros:
             if len(motivo) < 15:
@@ -21652,6 +21653,7 @@ def api_lancamentos_saida_caixa(request):
                 )
             pessoa_nome = (ca.nome or "")[:300]
             pessoa_id_final = ((ca.externo_id or "").strip() or f"local:{ca.pk}")[:120]
+            cliente_agro_id_rh = ca_pk
         else:
             quem = str(payload.get("quem_leva") or "").strip()
             quem_outro = str(payload.get("quem_leva_outro_nome") or "").strip()[:200]
@@ -21772,6 +21774,7 @@ def api_lancamentos_saida_caixa(request):
             empresa_nome=empresa_nome,
             pessoa_nome=pessoa_nome,
             pessoa_id=pessoa_id_final,
+            cliente_agro_id=cliente_agro_id_rh,
             valor=valor,
             forma_nome=forma_nome,
             forma_id=str(payload.get("forma_id") or "").strip() or None,
@@ -21826,6 +21829,7 @@ def api_lancamentos_saida_caixa(request):
             empresa_nome=empresa_nome,
             pessoa_nome=pessoa_nome,
             pessoa_id=pessoa_id_final,
+            cliente_agro_id=cliente_agro_id_rh,
             valor=valor,
             forma_nome=forma_nome,
             forma_id=str(payload.get("forma_id") or "").strip() or None,
