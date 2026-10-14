@@ -94,7 +94,23 @@ def produto_agro_para_row(
     *,
     resolver_overlay_faltante: bool = True,
 ) -> dict:
+    from produtos.cadastro_planilha_util import _id_produto_planilha_valido
+
     pid = (p.produto_externo_id or p.erp_produto_id or str(p.pk)).strip()
+    if not _id_produto_planilha_valido(pid):
+        alt = (p.erp_produto_id or "").strip()
+        if _id_produto_planilha_valido(alt):
+            pid = alt
+        else:
+            from produtos.cadastro_planilha_util import _recuperar_id_planilha_texto_erp
+
+            fixed, _ = _recuperar_id_planilha_texto_erp(
+                pid,
+                codigo_gm=(p.codigo_nfe or p.codigo_interno or "").strip(),
+                nome=(p.nome or "").strip(),
+            )
+            if _id_produto_planilha_valido(fixed):
+                pid = fixed
     row = {
         "id": pid,
         "nome": (p.nome or "").strip(),

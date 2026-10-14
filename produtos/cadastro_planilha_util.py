@@ -1500,10 +1500,23 @@ def enriquecer_rows_ultimos_fornecedores(rows: list[dict], colunas: list[str] | 
         r[COL_FORN_COMPRA_3] = nomes[2] if len(nomes) > 2 else ""
 
 
+def _id_export_planilha_de_row(row: dict) -> str:
+    """Garante ID exportável; corrige linhas cujo ``id`` veio corrompido do espelho Mongo."""
+    raw = str(row.get("id") or "").strip()
+    if _id_produto_planilha_valido(raw):
+        return raw
+    cod = str(row.get("codigo_nfe") or row.get("codigo") or "").strip()
+    nome = str(row.get("nome") or "").strip()
+    fixed, _ = _recuperar_id_planilha_texto_erp(raw, codigo_gm=cod, nome=nome)
+    if _id_produto_planilha_valido(fixed):
+        return fixed
+    return raw
+
+
 def linha_export_planilha(row: dict) -> dict[str, Any]:
     empty = _delivery_planilha_de_dict({})
     out = {
-        COL_ID: str(row.get("id") or ""),
+        COL_ID: _id_export_planilha_de_row(row),
         COL_CODIGO_GM: str(row.get("codigo_nfe") or row.get("codigo") or ""),
         COL_NOME: str(row.get("nome") or ""),
         COL_MARCA: str(row.get("marca") or ""),

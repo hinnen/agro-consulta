@@ -24515,7 +24515,9 @@ def api_buscar_compras(request):
 
 def _produto_mongo_para_cadastro_row(p: dict) -> dict:
     """Monta JSON de cadastro (sem estoque) a partir de um documento da coleção de produtos Mongo."""
-    pid = str(p.get("Id") or p["_id"])
+    from produtos.mongo_produto_id_util import id_externo_de_doc_mongo
+
+    pid = id_externo_de_doc_mongo(p)
     codigo_s = _valor_texto_campo(p.get("Codigo"))
     codigo_nfe_s = codigo_s
     cn_try = _valor_texto_campo(p.get("CodigoNFe"))
