@@ -1015,3 +1015,19 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **Live:** `producao` @ `ada10a36` · backup `producao-backup-pre-v2715-med-sub-dicas`.  
 **Rollback:** `rollback/pre-med-sub-v27144` → `dc357d31`.  
 **Conferir:** Ctrl+F5 · medicamento com dicas · ração sem dicas.
+
+---
+
+## 82. Checklist único — **14/10d** itens **1+2** · 🟢 PREP **v27.17** · armado
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PLANILHA-MED-ID-HOTFIX** | 🟢 PREP pronto | **NÃO** |
+| 2 | **ETQ-FILA-MODAL-QTD** | 🟢 PREP pronto | **NÃO** |
+| 3 | **ETQ-MOBILE-BIP** | ✅ **Live v27.16** | **NÃO** |
+
+**Live hoje:** **v27.16** @ `78a867a0`.  
+**PREP:** `deploy/prep-checklist-1410d-planilha-etq-pc` @ `39337d12`.  
+**Na senha:** `./scripts/cutover_loja_checklist_1410d_planilha_etq_pc.sh --exec`.  
+**Rollback:** `rollback/pre-1410d-v2716`.  
+**Pós-deploy:** planilha Med reimport · etiquetas PC Ctrl+F5.

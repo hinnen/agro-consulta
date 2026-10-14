@@ -1294,42 +1294,32 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — **PLANILHA-MED-ID-HOTFIX** (`CHECKLIST 14/10d` · 14/10) · 🟢 **PRONTO envio produção**
+### 🟢 PREP loja — CHECKLIST **14/10d** itens **1+2** · **v27.17** · armado
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **`teste` @ `892eed5f`** — loja **v27.16** @ `78a867a0` **sem** este pacote |
+| **Status** | 🟢 **ARMADO** — `deploy/prep-checklist-1410d-planilha-etq-pc` @ `39337d12` |
+| **Live hoje** | **v27.16** @ `78a867a0` (**ETQ-MOBILE-BIP** item 3 já Live) |
+| **O quê** | **1** Planilha Med/ID Mongo · **2** Etiquetas PC modal fila + qtd em massa |
 | **Migrate** | **NÃO** |
-| **Paths** | `produtos/cadastro_planilha_util.py` (Excel ↓ Med · import só colunas MED · ID planilha) · `produtos/mongo_produto_id_util.py` · `produtos/views.py` (`_pid_doc_produto_gestao`) · `produtos_cadastro_erp.html` (ajuda import) |
-| **O quê** | Export Excel volta a trazer **Med classes/espécies**; import planilha **só MED** grava sem exigir nome/EAN; **Id** Mongo corrompido («PRODUTO ALTERADO…») → ObjectId na exportação/importação; gestão casa overlay pelo id certo |
-| **Prova repo** | `manage.py test` planilha_med + mongo_id + planilha_id_erp (**16 OK**) · `test_med_classificacao_regressao.py` (**9/9**) · `verify_planilha_med_path.py` **FAIL=0** (estático; PIN no PC) |
-| **Prova loja** | Após deploy: **reimportar** planilha Med (ex. GM1219) · exportar de novo · Cadastro ERP → conferir classes/espécies · PIN **9973** no `verify_planilha_med_path.py` (PC migrado) |
+| **Fora** | `0145` clientes % PDV · PDV wizard · caixa · busca |
+| **Prova** | `./scripts/cutover_loja_checklist_1410d_planilha_etq_pc.sh` · planilha **0 FAIL** · etq **16+38** · tests **16** |
+| **Cutover** | `--exec` + frase + senha **99738595** |
+| **Rollback** | `rollback/pre-1410d-v2716` @ `78a867a0` |
+| **Pós-deploy** | Reimport/export planilha Med · Ctrl+F5 etiquetas PC |
 
-### 📦 PACOTE PRONTO — **ETQ-FILA-MODAL-QTD** (`CHECKLIST 14/10` · 14/10) · 🟢 **PRONTO envio produção**
+### ✅ CHECKLIST ÚNICO — **14/10d**
 
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | 🟢 **`teste` @ `17dffa2c`** — loja **v27.16** @ `78a867a0` **sem** este pacote |
-| **Migrate** | **NÃO** |
-| **Paths** | PC `GET /produtos/etiquetas/` · modal `#etq-sol-back` · `POST …/api/produtos/etiquetas/solicitacoes/<id>/importar/` · **app celular inalterado** |
-| **O quê** | Overlay **Solicitações do celular** (SisVale PC): **+ Na fila** não fecha o modal · **Qtd p/ todos** + **Aplicar** na fila de impressão |
-| **Prova** | `verify_etiquetas_mobile_flow_path.py` **16/16** · `verify_etq_solicitacao_vl_pin_path.py` (estático OK; runtime PIN no PC migrado) |
-| **Você** | Deploy loja → Ctrl+F5 etiquetas · 2× **+ Na fila** (overlay aberto) · Qtd 20 → **Aplicar** |
-
-### ✅ CHECKLIST ÚNICO — **14/10d** · 🟢 **PRONTO envio produção** (só falta na loja)
-
-| # | Pacote | Status | Migrate | Commit teste |
-| - | ------ | ------ | ------- | ------------ |
-| 1 | **PLANILHA-MED-ID-HOTFIX** | 🟢 **PRONTO** | **NÃO** | `892eed5f` |
-| 2 | **ETQ-FILA-MODAL-QTD** | 🟢 **PRONTO** | **NÃO** | `17dffa2c` |
-| 3 | **ETQ-MOBILE-BIP** | 🟢 **PRONTO** | **NÃO** | `ef655773` |
-| 4 | **CLIENTE-LISTA-DESC-PDV** | 🟡 pendente | **SIM** `0145` | — |
-
-**Você após deploy:** Cadastro → **reimportar** planilha Med → **Exportar** Med · Etiquetas PC (fila/modal) · celular bip contínuo.
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PLANILHA-MED-ID-HOTFIX** | 🟢 **ARMADO** v27.17 | **NÃO** |
+| 2 | **ETQ-FILA-MODAL-QTD** | 🟢 **ARMADO** v27.17 | **NÃO** |
+| 3 | **ETQ-MOBILE-BIP** | ✅ **Live v27.16** | **NÃO** |
+| 4 | **CLIENTE-LISTA-DESC-PDV** | 🟡 pendente | **SIM** `0145` |
 
 ---
 
-### 📦 PACOTE PRONTO — **ETQ-MOBILE-BIP** (`CHECKLIST 13/10c` · 13/10) · 🟢 **PRONTO envio produção**
+### ✅ **ETQ-MOBILE-BIP** · **Live v27.16** (`CHECKLIST 13/10c`)
 
 | Campo | Valor |
 | ----- | ----- |
