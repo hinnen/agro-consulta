@@ -1323,7 +1323,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **`teste` @ `ef655773`** — loja Live **v27.15** (app etiquetas **sem** este pacote) |
+| **Status** | ✅ **Live v27.16** @ `78a867a0` |
 | **Migrate** | **NÃO** |
 | **Paths** | App `GET /vendas/lojas/etiquetas/` · `POST /api/vendas/lojas/etiquetas/solicitacoes/` (PIN) → Postgres **pendente** · PC `GET/POST /api/produtos/etiquetas/solicitacoes/…/importar/` |
 | **O quê** | Bip **contínuo** (câmera aberta / reabre após envio) · checkbox **Bipar e enviar direto** · sem cadastro → painel buscar/bipar · dock fixo (commits anteriores no mesmo fio) |
@@ -1334,7 +1334,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-MOBILE-BIP** | 🟢 teste | **NÃO** |
+| 1 | **ETQ-MOBILE-BIP** | ✅ **Live v27.16** | **NÃO** |
 | 2 | **CLIENTE-LISTA-DESC-PDV** | 🟡 teste | **SIM** `0145` |
 
 **Você após deploy:** celular → Etiquetas → bip várias vezes · marque **enviar direto** se quiser 1 etiqueta por bip sem tocar Enviar.
