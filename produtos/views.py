@@ -657,10 +657,16 @@ def _overlay_mapa_por_ids(ids: list[str]) -> dict[str, ProdutoGestaoOverlayAgro]
     return {o.produto_externo_id: o for o in ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id__in=ids)}
 
 
+def _pid_doc_produto_gestao(p: dict) -> str:
+    from produtos.mongo_produto_id_util import id_externo_de_doc_mongo
+
+    return id_externo_de_doc_mongo(p) or str(p.get("Id") or p.get("_id") or "").strip()
+
+
 def _linha_gestao_produto_json(
     p: dict, saldos: dict[str, dict], ov: ProdutoGestaoOverlayAgro | None
 ) -> dict:
-    pid = str(p.get("Id") or p.get("_id") or "").strip()
+    pid = _pid_doc_produto_gestao(p)
     s = saldos.get(pid) or {}
     sc = _float_api_json(s.get("saldo_centro"), 0.0)
     sv = _float_api_json(s.get("saldo_vila"), 0.0)
@@ -1187,11 +1193,11 @@ def api_produtos_gestao_lista(request):
                     fornecedor=forn_f,
                 )
             chunk = [cat_agro.row_para_doc_gestao_lista(r) for r in chunk_rows]
-            p_ids = [str(p.get("Id") or p.get("_id") or "") for p in chunk if p.get("Id") or p.get("_id")]
+            p_ids = [_pid_doc_produto_gestao(p) for p in chunk if _pid_doc_produto_gestao(p)]
             saldos = mapa_saldos_operacionais_agro(p_ids, db=db, client=client)
             ovs = _overlay_mapa_por_ids(p_ids)
             rows = [
-                _linha_gestao_produto_json(p, saldos, ovs.get(str(p.get("Id") or p.get("_id") or "")))
+                _linha_gestao_produto_json(p, saldos, ovs.get(_pid_doc_produto_gestao(p)))
                 for p in chunk
             ]
             return JsonResponse(
@@ -1290,10 +1296,10 @@ def api_produtos_gestao_lista(request):
             chunk = chunk[:por_pagina]
             total = None
 
-        p_ids = [str(p.get("Id") or p["_id"]) for p in chunk]
+        p_ids = [_pid_doc_produto_gestao(p) for p in chunk]
         saldos = _mapa_saldos_finais_por_produtos(db, client, p_ids)
         ovs = _overlay_mapa_por_ids(p_ids)
-        rows = [_linha_gestao_produto_json(p, saldos, ovs.get(str(p.get("Id") or p["_id"]))) for p in chunk]
+        rows = [_linha_gestao_produto_json(p, saldos, ovs.get(_pid_doc_produto_gestao(p))) for p in chunk]
         return JsonResponse(
             {
                 "ok": True,
@@ -24515,7 +24521,9 @@ def api_buscar_compras(request):
 
 def _produto_mongo_para_cadastro_row(p: dict) -> dict:
     """Monta JSON de cadastro (sem estoque) a partir de um documento da coleção de produtos Mongo."""
-    pid = str(p.get("Id") or p["_id"])
+    from produtos.mongo_produto_id_util import id_externo_de_doc_mongo
+
+    pid = id_externo_de_doc_mongo(p)
     codigo_s = _valor_texto_campo(p.get("Codigo"))
     codigo_nfe_s = codigo_s
     cn_try = _valor_texto_campo(p.get("CodigoNFe"))
@@ -32920,6 +32928,9 @@ def _linha_clienteagro_pdv(c: ClienteAgro) -> dict:
         "saldo_vale_credito": float(c.saldo_vale_credito or 0),
         "saldo_cashback": float(c.saldo_cashback or 0),
         "limite_fiado_local": float(c.limite_fiado_local or 0),
+        "desconto_pdv_percentual": float(c.desconto_pdv_percentual or 0)
+        if c.desconto_pdv_percentual is not None
+        else 0,
     }
 
 
