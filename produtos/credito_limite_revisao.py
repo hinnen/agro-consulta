@@ -15,6 +15,7 @@ from produtos.credito_score_shadow import (
     _LIMITE_BLOQUEIO,
     _Q2,
     _limite_efetivo_local,
+    alerta_inconsistencia_pagamento,
     rotulo_candidato_revisao,
 )
 from produtos.fiado_gestao_util import definir_limite_fiado_cliente
@@ -59,10 +60,16 @@ def _q2(val) -> Decimal:
         return Decimal("0.00")
 
 
+def _limite_operacao_bloqueado(limite_atual) -> bool:
+    return _q2(limite_atual) == _LIMITE_BLOQUEIO
+
+
 def novo_limite_aplicavel(limite_atual, limite_sugerido, *, pct_max: int = _PCT_AUMENTO_PADRAO) -> Decimal:
     """Teto de +pct_max % sobre o atual. Redução segue o sugerido."""
     atual = _q2(limite_atual)
     sugerido = _q2(limite_sugerido)
+    if _limite_operacao_bloqueado(atual) and sugerido > _LIMITE_BLOQUEIO:
+        return sugerido
     if sugerido <= atual:
         return sugerido
     mult = _cap_multiplier(pct_max)
@@ -96,6 +103,10 @@ def resolver_limite_aprovacao(
         return None
     if manual == atual:
         return None
+    if _limite_operacao_bloqueado(atual):
+        if manual <= _LIMITE_BLOQUEIO:
+            return None
+        return manual
     if manual > atual:
         teto = teto_aumento_limite(atual, pct_max=pct_max)
         if manual > teto:
@@ -115,21 +126,53 @@ def _ultimo_snapshot_por_cliente() -> dict[int, ClienteAnaliseCreditoAgro]:
     return vistos
 
 
-def _apto(
-    snap: ClienteAnaliseCreditoAgro,
-    limite_atual: Decimal,
-    *,
-    pct_max: int = _PCT_AUMENTO_PADRAO,
-) -> bool:
+def _gates_comuns_apto(snap: ClienteAnaliseCreditoAgro) -> bool:
     if snap.score is None:
         return False
     if snap.tem_vencido_snapshot:
         return False
     if snap.confianca not in _CONFIANCA_OK:
         return False
+    alertas = snap.alertas_json if isinstance(snap.alertas_json, list) else []
+    if alerta_inconsistencia_pagamento(alertas):
+        return False
+    return True
+
+
+def _apto_desbloqueio(
+    snap: ClienteAnaliseCreditoAgro,
+    limite_atual: Decimal,
+) -> bool:
+    if not _gates_comuns_apto(snap):
+        return False
+    if not _limite_operacao_bloqueado(limite_atual):
+        return False
     cad = _q2(snap.limite_cadastrado_snapshot)
     efet = _q2(snap.limite_efetivo_snapshot)
-    if limite_atual == _LIMITE_BLOQUEIO or cad == _LIMITE_BLOQUEIO or efet == _LIMITE_BLOQUEIO:
+    alertas = snap.alertas_json if isinstance(snap.alertas_json, list) else []
+    rotulo = rotulo_candidato_revisao(
+        candidato=False,
+        alertas=alertas,
+        limite_cadastrado=cad,
+        limite_efetivo=efet,
+    )
+    if rotulo != "Revisar bloqueio":
+        return False
+    sugerido = _q2(snap.limite_sugerido)
+    return sugerido > _LIMITE_BLOQUEIO
+
+
+def _apto(
+    snap: ClienteAnaliseCreditoAgro,
+    limite_atual: Decimal,
+    *,
+    pct_max: int = _PCT_AUMENTO_PADRAO,
+) -> bool:
+    if not _gates_comuns_apto(snap):
+        return False
+    cad = _q2(snap.limite_cadastrado_snapshot)
+    efet = _q2(snap.limite_efetivo_snapshot)
+    if _limite_operacao_bloqueado(limite_atual) or cad == _LIMITE_BLOQUEIO or efet == _LIMITE_BLOQUEIO:
         return False
     alertas = snap.alertas_json if isinstance(snap.alertas_json, list) else []
     ind = snap.indicadores_json if isinstance(snap.indicadores_json, dict) else {}
@@ -162,7 +205,11 @@ def _situacao_fiado_cliente(cliente_pk: int) -> tuple[Decimal, Decimal, str, boo
     return usado, saldo_vencido, label, tem_vencido
 
 
-def listar_revisoes_limite(pct_max: int = _PCT_AUMENTO_PADRAO) -> list[dict]:
+def listar_revisoes_limite(
+    pct_max: int = _PCT_AUMENTO_PADRAO,
+    *,
+    apenas_desbloqueio: bool = False,
+) -> list[dict]:
     pct_max = normalizar_pct_aumento_max(pct_max)
     snaps = _ultimo_snapshot_por_cliente()
     if not snaps:
@@ -177,11 +224,20 @@ def listar_revisoes_limite(pct_max: int = _PCT_AUMENTO_PADRAO) -> list[dict]:
         if snap.pk in decididos:
             continue
         atual = _limite_efetivo_local(_q2(getattr(snap.cliente, "limite_fiado_local", 0)))
-        if not _apto(snap, atual, pct_max=pct_max):
+        desbloqueio = _apto_desbloqueio(snap, atual)
+        aumento = _apto(snap, atual, pct_max=pct_max)
+        if apenas_desbloqueio:
+            if not desbloqueio:
+                continue
+        elif not desbloqueio and not aumento:
             continue
         sugerido = _q2(snap.limite_sugerido)
         novo = novo_limite_aplicavel(atual, sugerido, pct_max=pct_max)
-        teto = teto_aumento_limite(atual, pct_max=pct_max)
+        teto = (
+            sugerido
+            if desbloqueio
+            else teto_aumento_limite(atual, pct_max=pct_max)
+        )
         saldo_fiado, saldo_vencido, situacao_label, tem_vencido_atual = _situacao_fiado_cliente(
             cliente_id
         )
@@ -202,6 +258,7 @@ def listar_revisoes_limite(pct_max: int = _PCT_AUMENTO_PADRAO) -> list[dict]:
                 "confianca": snap.confianca,
                 "confianca_label": snap.get_confianca_display(),
                 "diferenca": (novo - atual).quantize(_Q2),
+                "desbloqueio": desbloqueio,
             }
         )
     linhas.sort(key=lambda r: (-abs(r["diferenca"]), r["cliente_nome"]))
@@ -255,7 +312,9 @@ def _snap_apto_vivo(
     if CreditoLimiteRevisaoDecisaoAgro.objects.filter(analise_id=snap.pk).exists():
         return None
     atual = _limite_efetivo_local(_q2(snap.cliente.limite_fiado_local))
-    if not _apto(snap, atual, pct_max=pct_max):
+    desbloqueio = _apto_desbloqueio(snap, atual)
+    aumento = _apto(snap, atual, pct_max=pct_max)
+    if not desbloqueio and not aumento:
         return None
     sugerido = _q2(snap.limite_sugerido)
     padrao = novo_limite_aplicavel(atual, sugerido, pct_max=pct_max)
