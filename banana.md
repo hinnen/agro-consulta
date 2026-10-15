@@ -1294,16 +1294,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 Teste — **CAIXA-FECHAR-PERF** · demora ao abrir Fechar caixa · 15/10
+### ✅ CHECKLIST ÚNICO — **15/10** · 🟢 **PRONTO envio produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CAIXA-FECHAR-PERF** | 🟢 **PRONTO** | **NÃO** | `verify_caixa_fechar_loja_path` **46/46** · `verify_caixa_fechar_repasse_path` **68/68** · `verify_caixa_devolucao_dinheiro_mp_path` **171/171** |
+
+### 📦 PACOTE PRONTO — **CAIXA-FECHAR-PERF** (`CHECKLIST 15/10`)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 só **`teste`** (branch `cursor/caixa-fechar-perf-01d8` → merge `teste`) |
-| **O quê** | Cache por requisição (`CaixaFecharPrep`): 1× query Point MP · agregação por sessão · não recalcula cartões no `serializar_estado` do GET |
-| **Arquivos** | `produtos/caixa_util.py` · `produtos/views.py` (`caixa_fechar`, `api_caixa_conferencia_estado`) |
+| **Status** | 🟢 **PRONTO envio produção** — branch **`teste`** (após merge 15/10) · loja hoje **v27.18** |
+| **O quê** | Abrir **Fechar caixa** sem recalcular conferência em triplicata (`CaixaFecharPrep`) |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 · Painel caixa → **Fechar caixa** (Vila com 2 turnos) — deve abrir sem travar longo |
-| **Prova** | smoke `CaixaFecharPrep` local · `verify_caixa_fechar_loja_path.py` 34/35 (1 fail SQLite repasse config no cloud agent) |
+| **Cutover** | cherry-pick / merge `teste`→`producao` + frase + senha · Manual Deploy Render |
+| **Smoke** | Ctrl+F5 · Caixa → **Fechar caixa** (Vila · 2 turnos) — abre rápido · valores iguais ao antes |
+
+### ✅ Teste — **CAIXA-FECHAR-PERF** · 15/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **`teste`** — código + provas path |
+| **Arquivos** | `produtos/caixa_util.py` · `produtos/views.py` · scripts `verify_caixa_fechar_*` / `verify_caixa_devolucao_*` |
 
 ### ✅ Deploy loja — **RH-VALE-VILA** · **Live v27.18** · validado 15/10
 
