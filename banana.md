@@ -1294,7 +1294,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### ✅ Deploy loja — **RH-VALE-VILA** · **Live v27.18** · 14/10/2026
+### ✅ Deploy loja — **RH-VALE-VILA** · **Live v27.18** · validado 15/10
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1304,7 +1304,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Backup** | `producao-backup-pre-v2718-rh-vale-vila` @ `39337d12` |
 | **Rollback git** | `git push origin 39337d12:producao` (+ Manual Deploy Render se necessário) |
-| **Smoke pendente** | **Ctrl+F5** Vila · caixa Vila · Retirada · **Adiantamento (Vale)** · lista + PIN · ficha RH |
+| **Smoke** | ✅ Renan 15/10 — vale caixa **Vila** + conferência **gestão RH** |
 | **Render MCP cloud** | Secret `RENDER_API_KEY` no ambiente Cursor · doc `docs/CURSOR-RENDER-MCP-CLOUD.md` |
 | **Doc** | `docs/DEPLOY-PREP-RH-VALE-VILA.md` |
 
