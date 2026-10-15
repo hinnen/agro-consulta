@@ -1298,7 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CREDITO-DESBLOQUEIO-LAB** | 🟢 **PRONTO** `teste` | **NÃO** | `verify_credito_limite_revisao_path` **38+/38+** · `tests_credito_limite_revisao` **5/5** |
+| 1 | **CREDITO-DESBLOQUEIO-LAB** | 🟢 **PRONTO** `teste` | **NÃO** | `verify_credito_limite_revisao_path` **34/34** · `tests_credito_limite_revisao` **5/5** |
 
 ### 📦 PACOTE PRONTO — **CREDITO-DESBLOQUEIO-LAB** (`CHECKLIST 15/10b` · 15/10)
 
