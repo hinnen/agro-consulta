@@ -352,6 +352,7 @@
           var pct = btnExcel.getAttribute('data-pct') || '20';
           var params = new URLSearchParams();
           params.set('pct', pct);
+          {% if apenas_desbloqueio %}params.set('desbloqueio', '1');{% endif %}
           document.querySelectorAll('.limite-manual-input').forEach(function (inp) {
             if (inp.name) params.set(inp.name, inp.value);
           });

@@ -22,6 +22,7 @@ from django.urls import reverse
 
 from produtos.caixa_util import validar_pin_operador
 from produtos.credito_limite_revisao import (
+    _apto_desbloqueio,
     aplicar_limites_manuais_lista,
     aprovar_limite_cliente,
     aprovar_limites_selecionados,
@@ -95,6 +96,25 @@ def main() -> int:
     src = (ROOT / "produtos/credito_limite_revisao.py").read_text(encoding="utf-8")
     check("usa_definir", "definir_limite_fiado_cliente(" in src)
     check("nao_grava_campo_direto", "limite_fiado_local =" not in src)
+    check("func_desbloqueio", "_apto_desbloqueio" in src and "apenas_desbloqueio" in src)
+
+    print("== 1b) Filtro só desbloqueio (lógica pura) ==")
+    snap_fake = type(
+        "Snap",
+        (),
+        {
+            "score": 80,
+            "tem_vencido_snapshot": False,
+            "confianca": ClienteAnaliseCreditoAgro.Confianca.MEDIA,
+            "alertas_json": [],
+            "limite_cadastrado_snapshot": Decimal("0.01"),
+            "limite_efetivo_snapshot": Decimal("0.01"),
+            "limite_sugerido": Decimal("180"),
+        },
+    )()
+    check("apto_desbloqueio_ok", _apto_desbloqueio(snap_fake, Decimal("0.01")) is True)
+    snap_fake.limite_sugerido = Decimal("0.01")
+    check("apto_desbloqueio_sug_001", _apto_desbloqueio(snap_fake, Decimal("0.01")) is False)
 
     print("== 2) Quem entra na lista (ORM · savepoint) ==")
     try:
@@ -135,6 +155,8 @@ def _secao_orm_integracao() -> None:
         bloq.refresh_from_db()
         check("bloq_aprovou", ok_bloq is True)
         check("bloq_limite_200", bloq.limite_fiado_local == Decimal("200.00"))
+        nomes_des = {r["cliente_nome"] for r in listar_revisoes_limite(apenas_desbloqueio=True)}
+        check("filtro_desbloq_so_bloq", "ZZ Rev Bom" not in nomes_des)
         check("dados_fora", "ZZ Rev Dados" not in nomes)
         check("igual_fora", "ZZ Rev Igual" not in nomes)
         linha = next(r for r in listar_revisoes_limite() if r["cliente_pk"] == bom.pk)
@@ -198,6 +220,8 @@ def _secao_tela_acesso() -> None:
     lab = (ROOT / "produtos/templates/produtos/credito_score_laboratorio.html").read_text(encoding="utf-8")
     urls = (ROOT / "produtos/urls.py").read_text(encoding="utf-8")
     check("botao_lab", "REVISAR ALTERAÇÕES DE LIMITE" in lab)
+    check("botao_desbloquear_lab", "DESBLOQUEAR" in lab and "desbloqueio=1" in lab)
+    check("html_desbloqueio_flag", "data-desbloqueio" in html and "Desbloqueio" in html)
     check("sem_aprovar_todos", "Aprovar todos" not in html and "aprovar_todos" not in html)
     check("tem_aprovar_selecionados", "Aprovar selecionados" in html)
     check("col_saldo_fiado", "Saldo fiado" in html)
@@ -244,6 +268,10 @@ def _secao_tela_acesso() -> None:
                 check("super_200", page.status_code == 200, str(page.status_code))
                 body = page.content.decode("utf-8", errors="replace")
                 check("html_titulo", "Revisar alterações de limite" in body)
+                page_d = c.get(reverse("credito_limite_revisao") + "?desbloqueio=1")
+                check("desbloq_200", page_d.status_code == 200, str(page_d.status_code))
+                body_d = page_d.content.decode("utf-8", errors="replace")
+                check("desbloq_titulo", "Desbloquear limite" in body_d)
                 check("html_sem_aprovar_todos", "Aprovar todos" not in body)
                 xlsx = c.get(reverse("credito_limite_revisao_export_xlsx") + "?pct=20")
                 check(

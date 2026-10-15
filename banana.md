@@ -1294,7 +1294,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-<<<<<<< HEAD
+### ✅ CHECKLIST ÚNICO — **15/10b** · 🟢 **PRONTO envio produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CREDITO-DESBLOQUEIO-LAB** | 🟢 **PRONTO** `teste` | **NÃO** | `verify_credito_limite_revisao_path` **38+/38+** · `tests_credito_limite_revisao` **5/5** |
+
+### 📦 PACOTE PRONTO — **CREDITO-DESBLOQUEIO-LAB** (`CHECKLIST 15/10b` · 15/10)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Análise de crédito: **DESBLOQUEAR (R$ 0,01)** + aprovar **limite sugerido** em Revisar alterações (tag Desbloqueio) |
+| **Migrate** | **NÃO** |
+| **Loja** | Live **v27.18** — **ainda sem** este pacote |
+| **Smoke** | Ctrl+F5 · Gestão → Análise de crédito → **DESBLOQUEAR** → **Aprovar** (cliente «Revisar bloqueio») |
+
 ### ✅ CHECKLIST ÚNICO — **15/10** · 🟢 **PRONTO envio produção**
 
 | # | Pacote | Status | Migrate | Prova |
@@ -1305,35 +1319,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PRONTO envio produção** — branch **`teste`** (após merge 15/10) · loja hoje **v27.18** |
+| **Status** | 🟢 **PRONTO envio produção** — branch **`teste`** · loja **v27.18** |
 | **O quê** | Abrir **Fechar caixa** sem recalcular conferência em triplicata (`CaixaFecharPrep`) |
 | **Migrate** | **NÃO** |
-| **Cutover** | cherry-pick / merge `teste`→`producao` + frase + senha · Manual Deploy Render |
-| **Smoke** | Ctrl+F5 · Caixa → **Fechar caixa** (Vila · 2 turnos) — abre rápido · valores iguais ao antes |
+| **Smoke** | Caixa → **Fechar caixa** — abre rápido |
 
-### ✅ Teste — **CAIXA-FECHAR-PERF** · 15/10
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | ✅ **`teste`** — código + provas path |
-| **Arquivos** | `produtos/caixa_util.py` · `produtos/views.py` · scripts `verify_caixa_fechar_*` / `verify_caixa_devolucao_*` |
-=======
 ### ✅ PACOTE PRONTO — **CLIENTE-LISTA-DESC-PDV** (`CHECKLIST 15/10a` · 15/10) · 🟢 **PRONTO envio produção**
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | `/clientes/` shell largo · **`desconto_pdv_percentual`** opcional (vazio = sem %) · PDV aplica % no subtotal |
-| **Prova** | `verify_cliente_lista_desc_pdv_path.py` **18/18** · `verify_cliente_planilha_path.py` **61/61** (revalidado 15/10 cloud) |
-| **Migrate** | **SIM** `0145_clienteagro_desconto_pdv_percentual` |
-| **Loja** | Live **v27.18** — **ainda sem** este pacote (`producao` sem campo no model) |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1210p.md` · cutover `1210p` — **revalidar** ancestral após v27.18 antes de `--exec` |
+| **O quê** | `/clientes/` · **`desconto_pdv_percentual`** opcional · PDV aplica % no subtotal |
+| **Prova** | `verify_cliente_lista_desc_pdv_path` **18/18** · `verify_cliente_planilha_path` **61/61** |
+| **Migrate** | **SIM** `0145` |
 
 ### ✅ CHECKLIST ÚNICO — **15/10a** · 🟢 **PRONTO envio produção**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **CLIENTE-LISTA-DESC-PDV** | 🟢 **PRONTO** `teste` | **SIM** `0145` |
->>>>>>> aeae363e (docs(banana): CHECKLIST 15/10a CLIENTE-LISTA-DESC-PDV pronto produção)
 
 ### ✅ Deploy loja — **RH-VALE-VILA** · **Live v27.18** · validado 15/10
 
