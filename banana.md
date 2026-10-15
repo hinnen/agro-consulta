@@ -1294,6 +1294,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟡 Teste — **CAIXA-FECHAR-PERF** · demora ao abrir Fechar caixa · 15/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 só **`teste`** (branch `cursor/caixa-fechar-perf-01d8` → merge `teste`) |
+| **O quê** | Cache por requisição (`CaixaFecharPrep`): 1× query Point MP · agregação por sessão · não recalcula cartões no `serializar_estado` do GET |
+| **Arquivos** | `produtos/caixa_util.py` · `produtos/views.py` (`caixa_fechar`, `api_caixa_conferencia_estado`) |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 · Painel caixa → **Fechar caixa** (Vila com 2 turnos) — deve abrir sem travar longo |
+| **Prova** | smoke `CaixaFecharPrep` local · `verify_caixa_fechar_loja_path.py` 34/35 (1 fail SQLite repasse config no cloud agent) |
+
 ### ✅ Deploy loja — **RH-VALE-VILA** · **Live v27.18** · validado 15/10
 
 | Campo | Valor |

@@ -390,7 +390,118 @@ def linha_retirada_devolucao_conferencia(
     return fn
 
 
-def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, Decimal], dict[str, Decimal], dict[str, Decimal]]:
+class CaixaFecharPrep:
+    """Cache por requisição (Fechar caixa): vendas, Point MP e agregação por sessão."""
+
+    __slots__ = (
+        "sessoes",
+        "_vendas",
+        "_movimentos",
+        "_mp_ids",
+        "_mp_loaded",
+        "_agreg",
+        "_linhas_conf",
+        "_totais",
+    )
+
+    def __init__(self, sessoes) -> None:
+        self.sessoes = tuple(sessoes or ())
+        self._vendas: dict[int, list] = {}
+        self._movimentos: dict[int, list] = {}
+        self._mp_ids: set[int] = set()
+        self._mp_loaded = False
+        self._agreg: dict[int, tuple[dict[str, Decimal], dict[str, Decimal], dict[str, Decimal], dict[str, Decimal]]] = {}
+        self._linhas_conf: dict[int, list[dict[str, Any]]] = {}
+        self._totais: dict[int, tuple[int, Decimal]] = {}
+
+    def vendas_list(self, sessao) -> list:
+        pk = int(sessao.pk)
+        if pk not in self._vendas:
+            rel = getattr(sessao, "vendas", None)
+            self._vendas[pk] = list(rel.all()) if rel is not None else []
+        return self._vendas[pk]
+
+    def movimentos_list(self, sessao) -> list:
+        pk = int(sessao.pk)
+        if pk not in self._movimentos:
+            rel = getattr(sessao, "movimentos", None)
+            self._movimentos[pk] = list(rel.all()) if rel is not None else []
+        return self._movimentos[pk]
+
+    def totais_vendas_sessao(self, sessao) -> tuple[int, Decimal]:
+        pk = int(sessao.pk)
+        if pk not in self._totais:
+            vendas = self.vendas_list(sessao)
+            qtd = len(vendas)
+            tot = sum((_dec(v.total) for v in vendas), Decimal("0")).quantize(Decimal("0.01"))
+            self._totais[pk] = (qtd, tot)
+        return self._totais[pk]
+
+    def _carregar_mp_point_ids(self) -> set[int]:
+        if self._mp_loaded:
+            return self._mp_ids
+        pks: list[int] = []
+        for s in self.sessoes:
+            for v in self.vendas_list(s):
+                vp = getattr(v, "pk", None)
+                if vp is not None:
+                    pks.append(int(vp))
+        if pks:
+            from produtos.models import PdvMercadoPagoPointOrder
+
+            self._mp_ids = set(
+                PdvMercadoPagoPointOrder.objects.filter(
+                    venda_id__in=pks,
+                    status=PdvMercadoPagoPointOrder.Status.FINALIZED,
+                ).values_list("venda_id", flat=True)
+            )
+        else:
+            self._mp_ids = set()
+        self._mp_loaded = True
+        return self._mp_ids
+
+    def vendas_mp_point_sessao(self, sessao) -> set[int]:
+        mp = self._carregar_mp_point_ids()
+        if not mp:
+            return set()
+        loc = {int(v.pk) for v in self.vendas_list(sessao) if getattr(v, "pk", None)}
+        return {vid for vid in mp if vid in loc}
+
+    def agregacao_sessao(
+        self, sessao
+    ) -> tuple[dict[str, Decimal], dict[str, Decimal], dict[str, Decimal], dict[str, Decimal]]:
+        pk = int(sessao.pk)
+        if pk not in self._agreg:
+            self._agreg[pk] = _agregar_resumo_turno_sessao_core(
+                sessao,
+                self.vendas_list(sessao),
+                self.movimentos_list(sessao),
+                self.vendas_mp_point_sessao(sessao),
+            )
+        return self._agreg[pk]
+
+    def linhas_conferencia_sessao(self, sessao) -> list[dict[str, Any]]:
+        pk = int(sessao.pk)
+        if pk not in self._linhas_conf:
+            self._linhas_conf[pk] = linhas_conferencia_fechar(sessao, prep=self)
+        return self._linhas_conf[pk]
+
+    def vendas_por_pk(self) -> dict[int, Any]:
+        out: dict[int, Any] = {}
+        for s in self.sessoes:
+            for v in self.vendas_list(s):
+                vp = getattr(v, "pk", None)
+                if vp is not None:
+                    out[int(vp)] = v
+        return out
+
+
+def _agregar_resumo_turno_sessao_core(
+    sessao,
+    vendas_list: list,
+    mov_list: list,
+    vendas_mp_point: set[int],
+) -> tuple[dict[str, Decimal], dict[str, Decimal], dict[str, Decimal], dict[str, Decimal]]:
     """Uma passagem no turno: esperado, vendas, reforços e retiradas por forma.
 
     Vendas devolvidas do mesmo turno continuam em «vendas»: o dinheiro entrou na
@@ -407,21 +518,8 @@ def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, 
     retirada_por: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
     esperado["Dinheiro"] += _dec(getattr(sessao, "valor_abertura", 0))
 
-    vendas_list: list = []
-    vendas_mp_point: set[int] = set()
     vendas_by_pk: dict[int, Any] = {}
-    vendas_rel = getattr(sessao, "vendas", None)
-    if vendas_rel is not None:
-        vendas_list = list(vendas_rel.all())
-        if vendas_list:
-            from produtos.models import PdvMercadoPagoPointOrder
-
-            vendas_mp_point = set(
-                PdvMercadoPagoPointOrder.objects.filter(
-                    venda_id__in=[v.pk for v in vendas_list],
-                    status=PdvMercadoPagoPointOrder.Status.FINALIZED,
-                ).values_list("venda_id", flat=True)
-            )
+    if vendas_list:
         for v in vendas_list:
             pk = getattr(v, "pk", None)
             if pk is not None:
@@ -435,9 +533,7 @@ def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, 
                 vendas_por[fn_caixa] += val
                 esperado[fn_caixa] += val
 
-    movimentos = getattr(sessao, "movimentos", None)
-    if movimentos is not None:
-        mov_list = list(movimentos.all())
+    if mov_list:
         for m in mov_list:
             fn = normalizar_forma_pagamento_caixa(m.forma_pagamento)
             obs_m = str(getattr(m, "observacao", "") or "")
@@ -488,15 +584,41 @@ def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, 
     return esperado_out, q(vendas_por), q(reforco_por), q(retirada_por)
 
 
-def resumo_esperado_por_forma(sessao) -> dict[str, Decimal]:
+def _agregar_resumo_turno_sessao(
+    sessao, *, prep: CaixaFecharPrep | None = None
+) -> tuple[dict[str, Decimal], dict[str, Decimal], dict[str, Decimal], dict[str, Decimal]]:
+    if prep is not None:
+        return prep.agregacao_sessao(sessao)
+    vendas_list: list = []
+    vendas_mp_point: set[int] = set()
+    vendas_rel = getattr(sessao, "vendas", None)
+    if vendas_rel is not None:
+        vendas_list = list(vendas_rel.all())
+        if vendas_list:
+            from produtos.models import PdvMercadoPagoPointOrder
+
+            vendas_mp_point = set(
+                PdvMercadoPagoPointOrder.objects.filter(
+                    venda_id__in=[v.pk for v in vendas_list],
+                    status=PdvMercadoPagoPointOrder.Status.FINALIZED,
+                ).values_list("venda_id", flat=True)
+            )
+    mov_list: list = []
+    movimentos = getattr(sessao, "movimentos", None)
+    if movimentos is not None:
+        mov_list = list(movimentos.all())
+    return _agregar_resumo_turno_sessao_core(sessao, vendas_list, mov_list, vendas_mp_point)
+
+
+def resumo_esperado_por_forma(sessao, *, prep: CaixaFecharPrep | None = None) -> dict[str, Decimal]:
     """Esperado no turno: abertura (Dinheiro) + vendas + reforços − retiradas."""
-    esperado, _, _, _ = _agregar_resumo_turno_sessao(sessao)
+    esperado, _, _, _ = _agregar_resumo_turno_sessao(sessao, prep=prep)
     return esperado
 
 
-def linhas_resumo_caixa(sessao) -> list[dict[str, Any]]:
+def linhas_resumo_caixa(sessao, *, prep: CaixaFecharPrep | None = None) -> list[dict[str, Any]]:
     """Lista ordenada para tela: forma, esperado, vendas, reforços, retiradas."""
-    esperado, vendas_por, reforco_por, retirada_por = _agregar_resumo_turno_sessao(sessao)
+    esperado, vendas_por, reforco_por, retirada_por = _agregar_resumo_turno_sessao(sessao, prep=prep)
     formas = set(FORMAS_CONFERENCIA_CAIXA) | set(esperado.keys()) | set(vendas_por.keys())
     linhas: list[dict[str, Any]] = []
     abertura = _dec(sessao.valor_abertura)
@@ -536,11 +658,16 @@ def linhas_resumo_caixa(sessao) -> list[dict[str, Any]]:
     return linhas
 
 
-def linhas_conferencia_fechar(sessao) -> list[dict[str, Any]]:
+def linhas_conferencia_fechar(sessao, *, prep: CaixaFecharPrep | None = None) -> list[dict[str, Any]]:
     """Formas com movimento no turno (para tela de fechamento)."""
+    if prep is not None:
+        pk = int(sessao.pk)
+        cached = prep._linhas_conf.get(pk)
+        if cached is not None:
+            return cached
     out: list[dict[str, Any]] = []
     abertura = _dec(getattr(sessao, "valor_abertura", 0))
-    for L in linhas_resumo_caixa(sessao):
+    for L in linhas_resumo_caixa(sessao, prep=prep):
         tem_mov = (
             L["esperado"] != 0
             or L["vendas"] != 0
@@ -550,14 +677,23 @@ def linhas_conferencia_fechar(sessao) -> list[dict[str, Any]]:
         if not tem_mov and not (L["forma"] == "Dinheiro" and abertura > 0):
             continue
         out.append(L)
+    if prep is not None:
+        prep._linhas_conf[int(sessao.pk)] = out
     return out
 
 
-def linhas_conferencia_agregada(sessoes, *, todas_formas: bool = False) -> list[dict[str, Any]]:
+def linhas_conferencia_agregada(
+    sessoes, *, todas_formas: bool = False, prep: CaixaFecharPrep | None = None
+) -> list[dict[str, Any]]:
     """Soma esperado/vendas/reforços/retiradas por forma em várias sessões abertas."""
     merged: dict[str, dict[str, Any]] = {}
     for sessao in sessoes:
-        for L in linhas_conferencia_fechar(sessao):
+        linhas_sess = (
+            prep.linhas_conferencia_sessao(sessao)
+            if prep is not None
+            else linhas_conferencia_fechar(sessao)
+        )
+        for L in linhas_sess:
             fn = L["forma"]
             if fn not in merged:
                 merged[fn] = {
@@ -698,7 +834,9 @@ def _fmt_moeda_aviso_caixa(val: Decimal) -> str:
     return f"{_dec(val).quantize(Decimal('0.01')):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
-def resumo_cartao_entrega_dia_anterior(sessoes) -> dict[str, Any]:
+def resumo_cartao_entrega_dia_anterior(
+    sessoes, *, prep: CaixaFecharPrep | None = None
+) -> dict[str, Any]:
     """Cartão de entrega marcado como dia anterior — fora do relatório da máquina de hoje."""
     vazio = {
         "tem": False,
@@ -710,28 +848,16 @@ def resumo_cartao_entrega_dia_anterior(sessoes) -> dict[str, Any]:
     }
     if not sessoes:
         return vazio
+    if prep is None:
+        prep = CaixaFecharPrep(sessoes)
     por: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
     qtd = 0
     dias: set = set()
     for sessao in sessoes:
-        rel = getattr(sessao, "vendas", None)
-        if rel is None:
-            continue
-        vendas = list(rel.all())
+        vendas = prep.vendas_list(sessao)
         if not vendas:
             continue
-        vendas_mp: set[int] = set()
-        try:
-            from produtos.models import PdvMercadoPagoPointOrder
-
-            vendas_mp = set(
-                PdvMercadoPagoPointOrder.objects.filter(
-                    venda_id__in=[v.pk for v in vendas if getattr(v, "pk", None)],
-                    status=PdvMercadoPagoPointOrder.Status.FINALIZED,
-                ).values_list("venda_id", flat=True)
-            )
-        except Exception:
-            vendas_mp = set()
+        vendas_mp = prep.vendas_mp_point_sessao(sessao)
         for v in vendas:
             if not getattr(v, "cartao_maquina_dia_anterior", False):
                 continue
@@ -784,24 +910,19 @@ def resumo_cartao_entrega_dia_anterior(sessoes) -> dict[str, Any]:
     }
 
 
-def resumo_devolucao_dinheiro_maquina(sessoes) -> dict[str, Any]:
+def resumo_devolucao_dinheiro_maquina(
+    sessoes, *, prep: CaixaFecharPrep | None = None
+) -> dict[str, Any]:
     """Aviso na contagem: devolução em dinheiro de venda no cartão/Pix (maquininha não muda)."""
     vazio = {"tem": False, "valor": "0.00", "qtd": 0, "texto": ""}
     if not sessoes:
         return vazio
+    if prep is None:
+        prep = CaixaFecharPrep(sessoes)
     movs_cash: list[tuple[int, Decimal]] = []
-    vendas_mem: dict[int, Any] = {}
+    vendas_mem = prep.vendas_por_pk()
     for sessao in sessoes:
-        rel_v = getattr(sessao, "vendas", None)
-        if rel_v is not None:
-            for v in rel_v.all():
-                pk = getattr(v, "pk", None)
-                if pk is not None:
-                    vendas_mem[int(pk)] = v
-        rel_m = getattr(sessao, "movimentos", None)
-        if rel_m is None:
-            continue
-        for m in rel_m.all():
+        for m in prep.movimentos_list(sessao):
             if getattr(m, "tipo", None) != "retirada":
                 continue
             if not eh_movimento_retirada_devolucao(getattr(m, "observacao", None)):
@@ -843,13 +964,19 @@ def resumo_devolucao_dinheiro_maquina(sessoes) -> dict[str, Any]:
 
 
 def serializar_estado_conferencia_fechar(
-    sessoes, *, deposito: str | None = None
+    sessoes,
+    *,
+    deposito: str | None = None,
+    prep: CaixaFecharPrep | None = None,
+    incluir_cards: bool = True,
 ) -> dict[str, Any]:
     """JSON para tela Fechar caixa (valores esperados após reforço/retirada)."""
     dep = str(deposito or "centro").strip().lower()
     if dep not in ("centro", "vila"):
         dep = "centro"
-    linhas_todos_raw = linhas_conferencia_agregada(sessoes, todas_formas=True)
+    if prep is None:
+        prep = CaixaFecharPrep(sessoes)
+    linhas_todos_raw = linhas_conferencia_agregada(sessoes, todas_formas=True, prep=prep)
     tot_esperado_din = Decimal("0")
     for L in linhas_todos_raw:
         if L["forma"] == "Dinheiro":
@@ -866,36 +993,39 @@ def serializar_estado_conferencia_fechar(
         row["grupo_oculto"] = auto
         linhas.append(row)
     cards: list[dict[str, Any]] = []
-    for c in montar_cards_caixas_abertos(sessoes):
-        cards.append(
-            {
-                "sessao_id": c["sessao"].pk,
-                "usuario": c["usuario"],
-                "qtd_vendas": c["qtd_vendas"],
-                "total_vendas": c["total_vendas"],
-                "esperado_dinheiro": c["esperado_dinheiro"],
-                "linhas": c["linhas"],
-            }
-        )
+    if incluir_cards:
+        for c in montar_cards_caixas_abertos(sessoes, prep=prep):
+            cards.append(
+                {
+                    "sessao_id": c["sessao"].pk,
+                    "usuario": c["usuario"],
+                    "qtd_vendas": c["qtd_vendas"],
+                    "total_vendas": c["total_vendas"],
+                    "esperado_dinheiro": c["esperado_dinheiro"],
+                    "linhas": c["linhas"],
+                }
+            )
     return {
         "qtd_caixas": len(sessoes),
         "tot_esperado_dinheiro": str(tot_esperado_din.quantize(Decimal("0.01"))),
         "linhas": linhas,
         "deposito": dep,
-        "aviso_devolucao_dinheiro": resumo_devolucao_dinheiro_maquina(sessoes),
-        "aviso_cartao_entrega_ontem": resumo_cartao_entrega_dia_anterior(sessoes),
+        "aviso_devolucao_dinheiro": resumo_devolucao_dinheiro_maquina(sessoes, prep=prep),
+        "aviso_cartao_entrega_ontem": resumo_cartao_entrega_dia_anterior(sessoes, prep=prep),
         "cards": cards,
     }
 
 
-def montar_cards_caixas_abertos(sessoes) -> list[dict[str, Any]]:
+def montar_cards_caixas_abertos(
+    sessoes, *, prep: CaixaFecharPrep | None = None
+) -> list[dict[str, Any]]:
     """Resumo por sessão aberta (painel «todos» e fechamento individual)."""
+    if prep is None:
+        prep = CaixaFecharPrep(sessoes)
     cards: list[dict[str, Any]] = []
     for s in sessoes:
-        vendas = s.vendas.all()
-        qtd = len(vendas)
-        tot = sum((_dec(v.total) for v in vendas), Decimal("0")).quantize(Decimal("0.01"))
-        linhas_sess = linhas_conferencia_fechar(s)
+        qtd, tot = prep.totais_vendas_sessao(s)
+        linhas_sess = prep.linhas_conferencia_sessao(s)
         esp_din = Decimal("0")
         for L in linhas_sess:
             if L["forma"] == "Dinheiro":

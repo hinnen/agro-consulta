@@ -49,6 +49,7 @@ from estoque.models import (
 )
 from .forms import ClienteAgroForm
 from .caixa_util import (
+    CaixaFecharPrep,
     FORMAS_PAGAMENTO_CAIXA,
     _dec,
     linhas_resumo_caixa,
@@ -12554,7 +12555,10 @@ def api_caixa_conferencia_estado(request):
                 "cards": [],
             }
         )
-    estado = serializar_estado_conferencia_fechar(alvo, deposito=dep_browser)
+    prep_estado = CaixaFecharPrep(sessoes)
+    estado = serializar_estado_conferencia_fechar(
+        alvo, deposito=dep_browser, prep=prep_estado
+    )
     if dep_browser == "vila":
         from produtos.repasse_vila_util import (
             aplicar_reserva_virtual_estado_caixa,
@@ -13377,7 +13381,8 @@ def caixa_fechar(request):
         # Fallback: se não há sessão do depósito atual, mantém lista vazia no lote
         # (operador fecha a outra loja trocando Loja no BI ou fecha um a um)
         pass
-    cards = montar_cards_caixas_abertos(sessoes)
+    prep_fechar = CaixaFecharPrep(sessoes)
+    cards = montar_cards_caixas_abertos(sessoes, prep=prep_fechar)
 
     ids_lote = [s.pk for s in sessoes_lote]
     entregas_pendentes_fechar = listar_entregas_bloqueando_fechamento_caixa(
@@ -13515,6 +13520,8 @@ def caixa_fechar(request):
     estado_conf = serializar_estado_conferencia_fechar(
         sessoes_lote if sessoes_lote else [],
         deposito=dep_fechar,
+        prep=prep_fechar,
+        incluir_cards=False,
     )
     if dep_fechar == "vila":
         from produtos.repasse_vila_util import (
