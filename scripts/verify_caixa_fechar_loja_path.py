@@ -22,11 +22,14 @@ from unittest.mock import MagicMock, patch
 from django.test import RequestFactory
 
 from produtos.caixa_util import (
+    CaixaFecharPrep,
     FORMAS_CONFERENCIA_CAIXA,
     FORMAS_MP_POINT_AUTO_CONFERENCIA,
     filtrar_sessoes_por_deposito,
     forma_fechamento_auto_ocultavel,
     linha_conferencia_caixa_de_pagamento,
+    linhas_conferencia_agregada,
+    montar_cards_caixas_abertos,
     pagamento_linha_eh_mp_point_auto,
     pagamentos_por_linha_conferencia_venda,
     serializar_estado_conferencia_fechar,
@@ -100,25 +103,121 @@ def _prova_api_estado_nao_mistura_lojas() -> None:
         ):
             return api_caixa_conferencia_estado(r)
 
-    try:
-        resp = _chama("vila", "loja")
-        data = json.loads(resp.content.decode())
-        ids = {int(c.get("sessao_id") or 0) for c in (data.get("cards") or [])}
-        tot = Decimal(str(data.get("tot_esperado_dinheiro") or "0"))
-        check(data.get("ok") is True, "api loja vila ok")
-        check(s_v.pk in ids, "api loja vila inclui sessao vila")
-        check(s_c.pk not in ids, "api loja vila nao inclui gaveta centro")
-        check(tot == Decimal("333.33"), "api vila esperado so 333.33")
+    vazio_reserva = {
+        "tem": False,
+        "valor": "0.00",
+        "saldo": "0.00",
+        "saldo_vila_elias": "0.00",
+        "dias": [],
+        "texto": "",
+        "pendente_salario": "0.00",
+        "pendente_vila_elias": "0.00",
+    }
 
-        resp2 = _chama("centro", "operacional")
-        data2 = json.loads(resp2.content.decode())
-        ids2 = {int(c.get("sessao_id") or 0) for c in (data2.get("cards") or [])}
-        tot2 = Decimal(str(data2.get("tot_esperado_dinheiro") or "0"))
-        check(s_c.pk in ids2, "api operacional centro inclui gaveta")
-        check(s_v.pk not in ids2, "api operacional centro nao inclui vila")
-        check(tot2 == Decimal("777.77"), "api centro esperado so 777.77")
+    try:
+        with patch(
+            "produtos.repasse_vila_util.resumo_reserva_fechamento_vila",
+            return_value=vazio_reserva,
+        ), patch(
+            "produtos.repasse_vila_util.aplicar_reserva_virtual_estado_caixa",
+            side_effect=lambda estado, _reserva: estado,
+        ):
+            resp = _chama("vila", "loja")
+            data = json.loads(resp.content.decode())
+            ids = {int(c.get("sessao_id") or 0) for c in (data.get("cards") or [])}
+            tot = Decimal(str(data.get("tot_esperado_dinheiro") or "0"))
+            check(data.get("ok") is True, "api loja vila ok")
+            check(s_v.pk in ids, "api loja vila inclui sessao vila")
+            check(s_c.pk not in ids, "api loja vila nao inclui gaveta centro")
+            check(tot == Decimal("333.33"), "api vila esperado so 333.33")
+
+            resp2 = _chama("centro", "operacional")
+            data2 = json.loads(resp2.content.decode())
+            ids2 = {int(c.get("sessao_id") or 0) for c in (data2.get("cards") or [])}
+            tot2 = Decimal(str(data2.get("tot_esperado_dinheiro") or "0"))
+            check(s_c.pk in ids2, "api operacional centro inclui gaveta")
+            check(s_v.pk not in ids2, "api operacional centro nao inclui vila")
+            check(tot2 == Decimal("777.77"), "api centro esperado so 777.77")
     except Exception as exc:
         fail(f"api estado loja: {exc}")
+
+
+def _prova_caixa_fechar_prep_equivalente() -> None:
+    """Prep não altera totais; reduz consultas Point MP no mesmo request."""
+
+    class _Rel:
+        def __init__(self, items):
+            self._items = items
+
+        def all(self):
+            return self._items
+
+    class _V:
+        def __init__(self, pk, total, pagamentos_json):
+            self.pk = pk
+            self.total = total
+            self.pagamentos_json = pagamentos_json
+            self.forma_pagamento = "PIX"
+            self.devolvida_em = None
+            self.cartao_maquina_dia_anterior = False
+
+    v1 = _V(10, "25.50", [{"forma": "Dinheiro", "valor": 25.5}])
+    v2 = _V(11, "10.00", [{"forma": "PIX", "valor": 10, "maquinaId": "pix_mp_qr"}])
+    s_v = SimpleNamespace(
+        pk=101,
+        ponto_caixa="vila",
+        valor_abertura=Decimal("100"),
+        usuario=None,
+        usuario_id=None,
+        vendas=_Rel([v1]),
+        movimentos=_Rel([]),
+        fechado_em=None,
+    )
+    s_c = SimpleNamespace(
+        pk=202,
+        ponto_caixa="gaveta",
+        valor_abertura=Decimal("50"),
+        usuario=None,
+        usuario_id=None,
+        vendas=_Rel([v2]),
+        movimentos=_Rel([]),
+        fechado_em=None,
+    )
+    sessoes = [s_v, s_c]
+
+    sem_prep_agg_v = linhas_conferencia_agregada([s_v], todas_formas=True)
+    sem_prep_agg_c = linhas_conferencia_agregada([s_c], todas_formas=True)
+    sem_prep_cards = montar_cards_caixas_abertos(sessoes)
+    sem_prep_est_v = serializar_estado_conferencia_fechar([s_v], deposito="vila")
+
+    prep = CaixaFecharPrep(sessoes)
+    with patch("produtos.models.PdvMercadoPagoPointOrder") as mp:
+        mp.objects.filter.return_value.values_list.return_value = [11]
+        com_prep_agg_v = linhas_conferencia_agregada([s_v], todas_formas=True, prep=prep)
+        com_prep_agg_c = linhas_conferencia_agregada([s_c], todas_formas=True, prep=prep)
+        com_prep_cards = montar_cards_caixas_abertos(sessoes, prep=prep)
+        com_prep_est_v = serializar_estado_conferencia_fechar(
+            [s_v], deposito="vila", prep=prep, incluir_cards=False
+        )
+        calls_mp = mp.objects.filter.call_count
+
+    def _din(Linhas):
+        for L in Linhas:
+            if L["forma"] == "Dinheiro":
+                return Decimal(str(L["esperado"]))
+        return Decimal("0")
+
+    check(_din(sem_prep_agg_v) == _din(com_prep_agg_v), "prep agg vila dinheiro igual")
+    check(_din(sem_prep_agg_c) == _din(com_prep_agg_c), "prep agg centro dinheiro igual")
+    check(
+        sem_prep_cards[0]["esperado_dinheiro"] == com_prep_cards[0]["esperado_dinheiro"],
+        "prep cards esperado dinheiro igual",
+    )
+    check(
+        sem_prep_est_v["tot_esperado_dinheiro"] == com_prep_est_v["tot_esperado_dinheiro"],
+        "prep serializar tot dinheiro igual",
+    )
+    check(calls_mp <= 1, f"prep no max 1 query Point MP (foi {calls_mp})")
 
 
 def main() -> int:
@@ -210,6 +309,7 @@ def main() -> int:
     check(any(L["forma"] == "PIX" and not L.get("grupo_oculto") for L in st_c["linhas"]), "centro PIX visivel")
 
     _prova_api_estado_nao_mistura_lojas()
+    _prova_caixa_fechar_prep_equivalente()
 
     print(f"---\noks={OKS} fails={len(FAILS)}")
     if FAILS:

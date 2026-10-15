@@ -109,9 +109,27 @@ def _chama_api(sessoes, dep: str, escopo: str):
     req = rf.get("/api/caixa/conferencia-estado/", {"escopo": escopo})
     req.user = SimpleNamespace(is_authenticated=True, pk=1)
     req.session = {}
+    vazio_reserva = {
+        "tem": False,
+        "valor": "0.00",
+        "saldo": "0.00",
+        "saldo_vila_elias": "0.00",
+        "dias": [],
+        "texto": "",
+        "pendente_salario": "0.00",
+        "pendente_vila_elias": "0.00",
+    }
     with (
         patch("produtos.views.SessaoCaixa.objects.filter", return_value=qs),
         patch("produtos.views.deposito_caixa_browser", return_value=dep),
+        patch(
+            "produtos.repasse_vila_util.resumo_reserva_fechamento_vila",
+            return_value=vazio_reserva,
+        ),
+        patch(
+            "produtos.repasse_vila_util.aplicar_reserva_virtual_estado_caixa",
+            side_effect=lambda estado, _reserva: estado,
+        ),
     ):
         resp = api_caixa_conferencia_estado(req)
     return json.loads(resp.content.decode())
