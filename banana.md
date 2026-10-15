@@ -1298,14 +1298,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ⚠️ **Git produção OK** @ `9f18d10f4` · **Loja Live ainda v27.17** @ `39337d12` (14/10 — builds cancelados; Renan pausa deploy hoje) |
-| **Sintoma loja** | Mesmo erro vale Vila = **código antigo no ar** · não é cache do Ctrl+F5 sozinho |
+| **Status** | ✅ **Live v27.18** @ `9f18d10f4` — Render deploy **live** 15/10 (~2 min, API + clear cache) · `dep-db8hpirncjis73b3gmgg` |
+| **Antes** | v27.17 @ `39337d12` |
 | **O quê** | Vale no caixa **Vila** para funcionário RH **Centro** (perfil por ClienteAgro · gaveta Vila) |
 | **Migrate** | **NÃO** |
 | **Backup** | `producao-backup-pre-v2718-rh-vale-vila` @ `39337d12` |
 | **Rollback git** | `git push origin 39337d12:producao` (+ Manual Deploy Render se necessário) |
-| **Subir de verdade** | Render → **Sistvale - Produção** → **Manual Deploy** (latest `producao`) → aguardar verde → Ctrl+F5 |
-| **Smoke pendente** | Caixa Vila · Retirada · **Adiantamento (Vale)** · lista + PIN · ficha RH |
+| **Smoke pendente** | **Ctrl+F5** Vila · caixa Vila · Retirada · **Adiantamento (Vale)** · lista + PIN · ficha RH |
+| **Render MCP cloud** | Secret `RENDER_API_KEY` no ambiente Cursor · doc `docs/CURSOR-RENDER-MCP-CLOUD.md` |
 | **Doc** | `docs/DEPLOY-PREP-RH-VALE-VILA.md` |
 
 ### ✅ Deploy loja — **ETQ-MOBILE-BIP** · **Live v27.16** · CHECKLIST **13/10c** · 13/10
