@@ -1513,8 +1513,18 @@
     });
   }
 
+  function palavrasChaveDoProduto(produto) {
+    produto = produto || {};
+    var pk = String(produto.palavras_chave || '').trim();
+    if (!pk && produto.cadastro_extras && produto.cadastro_extras.palavras_chave) {
+      pk = String(produto.cadastro_extras.palavras_chave || '').trim();
+    }
+    if (!pk) pk = String(produto.descricao || '').trim();
+    return pk;
+  }
+
   function aplicarBuscaTabDoProduto(produto) {
-    var pk = produto.palavras_chave || produto.descricao || '';
+    var pk = palavrasChaveDoProduto(produto);
     setVal('edit-palavras-chave', pk);
     modalEdit._classesVetSel = Array.isArray(produto.classes_vet) ? produto.classes_vet.slice() : [];
     atualizarVisibilidadeClassesVet();
@@ -3489,6 +3499,7 @@
         }
         seedFacetasDoProduto(j.produto);
         loadFacetasDatalists();
+        aplicarBuscaTabDoProduto(j.produto);
       }
     }).catch(function (e) {
       mostrarStatusModalSalvo(e.message || 'Erro ao salvar', 'erro');

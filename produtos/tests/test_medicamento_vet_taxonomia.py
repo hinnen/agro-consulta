@@ -1,4 +1,5 @@
 from produtos.medicamento_vet_taxonomia import (
+    anexar_campos_busca_em_row_cadastro,
     categoria_eh_medicamento,
     montar_texto_busca_denormalizado,
     normalizar_classes_vet,
@@ -27,3 +28,13 @@ def test_montar_texto_busca_inclui_label():
     txt = montar_texto_busca_denormalizado("Dexon", ["antibiotico"])
     assert "dexon" in txt
     assert "antibiotico" in txt
+
+
+def test_anexar_campos_busca_em_row():
+    row = {}
+    anexar_campos_busca_em_row_cadastro(
+        row,
+        {"palavras_chave": "Dexon, Biodex", "classes_vet": ["antibiotico"]},
+    )
+    assert row["palavras_chave"] == "Dexon Biodex"
+    assert "antibiotico" in row["classes_vet"]
