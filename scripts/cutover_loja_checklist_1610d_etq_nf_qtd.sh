@@ -47,6 +47,7 @@ ALLOWED="$(printf '%s\n' \
   produtos/views.py \
   scripts/cutover_loja_checklist_1610d_etq_nf_qtd.sh \
   scripts/post_deploy_checklist_1610d_etq_nf_qtd.sh \
+  scripts/prep_checkpoint_checklist_1610d_etq_nf_qtd.sh \
   scripts/verify_etq_filtro_nf_entrada_path.py | sort)"
 [[ "$DELTA" == "$ALLOWED" ]] || {
   echo "FAIL: delta inesperado:"; echo "$DELTA"; exit 2;
@@ -54,6 +55,20 @@ ALLOWED="$(printf '%s\n' \
 
 MIG="$(echo "$DELTA" | grep -E '/migrations/[0-9]+_' || true)"
 [[ -z "$MIG" ]] || { echo "FAIL: migration: $MIG"; exit 2; }
+
+PROD_SHA="$(git rev-parse "$PROD_REF")"
+if git show-ref --verify --quiet "refs/remotes/origin/$ROLLBACK_TAG"; then
+  RB_SHA="$(git rev-parse "origin/$ROLLBACK_TAG")"
+  [[ "$RB_SHA" == "$PROD_SHA" ]] || {
+    echo "FAIL: $ROLLBACK_TAG ($(git rev-parse --short origin/$ROLLBACK_TAG)) != produção ($PROD)";
+    echo "Rode: ./scripts/prep_checkpoint_checklist_1610d_etq_nf_qtd.sh";
+    exit 2;
+  }
+  echo "OK rollback $ROLLBACK_TAG @ $PROD"
+else
+  echo "FAIL: branch $ROLLBACK_TAG ausente — rode ./scripts/prep_checkpoint_checklist_1610d_etq_nf_qtd.sh"
+  exit 2
+fi
 
 PY=python3
 [[ -x .venv/bin/python ]] && PY=.venv/bin/python
@@ -72,6 +87,7 @@ SENHA="${AGRO_LOJA_SENHA:-}"
 echo "$FRASE" | grep -Eiq 'pode.*(produ[cç][aã]o|producao|enviar)|sobe.*(produ[cç][aã]o|producao)|subir.*(produ[cç][aã]o|producao)|enviar.*(produ[cç][aã]o|producao)' \
   || { echo "FAIL: autorização"; exit 3; }
 
+git push origin "$PROD_REF:refs/heads/$ROLLBACK_TAG" || true
 git push origin "$PROD_REF:refs/heads/$BACKUP_BR" || true
 git push origin "$PREP_REF:producao"
 echo "PUSH OK · badge v$VER_ESPERADA · Ctrl+F5 Etiquetas → qtd NF"
