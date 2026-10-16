@@ -59,7 +59,7 @@ FORBIDDEN="$(echo "$DELTA" | grep -E \
 [[ -z "$FORBIDDEN" ]] || { echo "FAIL: sensível: $FORBIDDEN"; exit 2; }
 
 PREP_FULL="$(git rev-parse "$PREP_REF")"
-git grep -q 'reserva_leve_estado_caixa_fechar' "$PREP_FULL" -- produtos/caixa_util.py || {
+git grep -q 'reserva_leve_estado_caixa_fechar' "$PREP_FULL" -- produtos/repasse_vila_util.py || {
   echo "FAIL: falta reserva_leve_estado_caixa_fechar"; exit 2;
 }
 
