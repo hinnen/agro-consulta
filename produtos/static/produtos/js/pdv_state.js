@@ -79,8 +79,43 @@
             cliente_agro_pk: raw.cliente_agro_pk != null ? raw.cliente_agro_pk : null,
             saldo_vale_credito: toNumber(raw.saldo_vale_credito),
             saldo_cashback: toNumber(raw.saldo_cashback),
-            limite_fiado_local: toNumber(raw.limite_fiado_local)
+            limite_fiado_local: toNumber(raw.limite_fiado_local),
+            desconto_pdv_percentual: toNumber(raw.desconto_pdv_percentual)
         };
+    }
+
+    function subtotalItensBruto() {
+        var subtotal = 0;
+        (state.itens || []).forEach(function (item) {
+            var qtd = toNumber(item.qtd);
+            var preco = toNumber(item.preco);
+            var descontoItem = toNumber(item.desconto || 0);
+            subtotal += Math.max(0, qtd * preco - descontoItem);
+        });
+        return subtotal;
+    }
+
+    function clienteDescontoPercentualAtivo() {
+        if (state.clienteMode === 'consumidor_final' || !state.cliente) return 0;
+        return Math.max(0, toNumber(state.cliente.desconto_pdv_percentual));
+    }
+
+    function recalcDescontoPercentualCliente() {
+        if (!state.pagamento) return;
+        var pct = clienteDescontoPercentualAtivo();
+        var origem = state.pagamento.descontoGeralOrigem || '';
+        if (pct <= 0) {
+            if (origem === 'cliente') {
+                state.pagamento.descontoGeral = 0;
+                state.pagamento.descontoGeralOrigem = '';
+            }
+            return;
+        }
+        if (origem === 'manual') return;
+        var sub = subtotalItensBruto();
+        var desc = Math.round((sub * pct / 100) * 100) / 100;
+        state.pagamento.descontoGeral = desc;
+        state.pagamento.descontoGeralOrigem = 'cliente';
     }
 
     function defaultState() {
@@ -132,6 +167,8 @@
             pagamento: {
                 forma: '',
                 descontoGeral: 0,
+                /** '' | 'cliente' | 'manual' — desconto automático por % do cadastro */
+                descontoGeralOrigem: '',
                 frete: 0,
                 valorRecebido: '',
                 trocoCalculado: '',
@@ -251,6 +288,7 @@
     }
 
     function notify() {
+        recalcDescontoPercentualCliente();
         saveState();
         listeners.forEach(function (listener) {
             try {
@@ -387,11 +425,26 @@
         var nextKey = clienteIdentityKey(state.cliente);
         if (prevKey !== nextKey) {
             aplicarEnderecoEntregaDoCliente(state.cliente);
+            if (state.pagamento) {
+                var pctNovo = Math.max(0, toNumber(state.cliente && state.cliente.desconto_pdv_percentual));
+                if (pctNovo > 0) {
+                    state.pagamento.descontoGeralOrigem = '';
+                } else if (state.pagamento.descontoGeralOrigem === 'cliente') {
+                    state.pagamento.descontoGeral = 0;
+                    state.pagamento.descontoGeralOrigem = '';
+                }
+            }
         }
         if (state.cliente && state.clienteMode !== 'consumidor_final') {
             try {
                 localStorage.setItem(LAST_CLIENT_KEY, JSON.stringify(state.cliente));
             } catch (err) {}
+        }
+        if (state.clienteMode === 'consumidor_final' && state.pagamento) {
+            if (state.pagamento.descontoGeralOrigem === 'cliente') {
+                state.pagamento.descontoGeral = 0;
+                state.pagamento.descontoGeralOrigem = '';
+            }
         }
         notify();
     }
@@ -416,8 +469,13 @@
             cliente_agro_pk: null,
             saldo_vale_credito: 0,
             saldo_cashback: 0,
-            limite_fiado_local: 0
+            limite_fiado_local: 0,
+            desconto_pdv_percentual: 0
         };
+        if (state.pagamento && state.pagamento.descontoGeralOrigem === 'cliente') {
+            state.pagamento.descontoGeral = 0;
+            state.pagamento.descontoGeralOrigem = '';
+        }
         notify();
     }
 
@@ -796,6 +854,9 @@
         var defPg = defaultState().pagamento;
         if (!(field in defPg)) return;
         state.pagamento[field] = value;
+        if (field === 'descontoGeral') {
+            state.pagamento.descontoGeralOrigem = 'manual';
+        }
         if (field === 'forma') recalcularPrecosFormaItens(value);
         notify();
     }
@@ -807,6 +868,9 @@
         Object.keys(patch).forEach(function (k) {
             if (k in defPg) state.pagamento[k] = patch[k];
         });
+        if (Object.prototype.hasOwnProperty.call(patch, 'descontoGeral')) {
+            state.pagamento.descontoGeralOrigem = 'manual';
+        }
         if (formaMudou) recalcularPrecosFormaItens(state.pagamento.forma);
         notify();
     }

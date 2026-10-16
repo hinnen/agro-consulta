@@ -197,6 +197,18 @@ class ClienteAgro(models.Model):
             "Outro valor = limite fixo em reais."
         ),
     )
+    desconto_pdv_percentual = models.DecimalField(
+        "% desconto PDV (fixo)",
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        default=None,
+        help_text=(
+            "Opcional. Ex.: 5 = 5%% sobre o subtotal dos itens no PDV. "
+            "Vazio = nenhum desconto automático."
+        ),
+    )
     relacionamento_extras_json = models.JSONField(
         "Relacionamento (pets, saúde, anotações)",
         default=dict,
