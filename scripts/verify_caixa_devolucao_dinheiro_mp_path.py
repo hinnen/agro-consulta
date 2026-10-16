@@ -30,6 +30,7 @@ from django.test import RequestFactory
 from produtos.caixa_util import (  # noqa: E402
     FORMAS_MP_POINT_AUTO_CONFERENCIA,
     _agregar_resumo_turno_sessao,
+    _agregar_resumo_turno_sessao_core,
     eh_movimento_retirada_devolucao,
     forma_fechamento_auto_ocultavel,
     resumo_devolucao_dinheiro_maquina,
@@ -169,7 +170,7 @@ def _catalogo_fonte() -> None:
     check('"aviso_devolucao_dinheiro": resumo_devolucao_dinheiro_maquina' in util, "fonte: serialize inclui aviso")
     check("linha_retirada_devolucao_conferencia" in util, "fonte: helper retirada MP mesma forma")
 
-    src_ag = inspect.getsource(_agregar_resumo_turno_sessao)
+    src_ag = inspect.getsource(_agregar_resumo_turno_sessao_core)
     check(
         "linha_retirada_devolucao_conferencia" in src_ag,
         "fonte: agregar remapeia retirada devolucao MP",

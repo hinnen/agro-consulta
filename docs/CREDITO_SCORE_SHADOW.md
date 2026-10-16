@@ -77,7 +77,7 @@ Versão: **`shadow_v1_2`** (pesos dos 5 componentes iguais ao v1; travas no scor
 
 **Candidato à revisão** exige: score ≥ 85 · confiança Média/Alta · ≥ 6 títulos analisados · ≥ 80% em dia · maior atraso histórico ≤ 15 dias · sem vencido atual · sem inconsistência crítica (quitado sem baixas → **Revisar dados**) · sugerido > limite atual · **não** limite cadastrado/efetivo **R$ 0,01**.
 
-Limite **R$ 0,01** (bloqueio prático): nunca «Candidato revisão» — rótulo **Revisar bloqueio**. Não altera nem desbloqueia o limite.
+Limite **R$ 0,01** (bloqueio prático): rótulo **Revisar bloqueio** na grade. Desbloqueio só com **Aprovar** em Revisar alterações / Desbloquear.
 
 Sem histórico suficiente → `score = null`, classificação `SEM_HISTORICO`.
 
@@ -89,9 +89,10 @@ Se o laboratório falhar ou estiver desligado, o PDV e o fiado operacional conti
 
 ## Revisar alterações de limite
 
-Botão na mesma tela. Lista só quem tem sugerido diferente do atual **e** está apto (sem vencido, sem Revisar dados, sem Revisar bloqueio, sem limite R$ 0,01, confiança Média ou Alta).
+Botão na mesma tela. Lista quem está apto (sem vencido, sem Revisar dados, confiança Média ou Alta):
 
-Novo limite = menor valor entre o sugerido e o atual + 20%.
+- **Aumento:** sugerido diferente do atual, limite **≠** R$ 0,01. Novo limite = menor entre sugerido e atual + 20% (ajustável).
+- **Desbloqueio (R$ 0,01):** botão **DESBLOQUEAR (R$ 0,01)** ou tag «Desbloqueio» na lista mista. Aprovar aplica o **limite sugerido** (editável antes).
 
 **Aprovar** grava o limite pela função `definir_limite_fiado_cliente` (o PDV passa a ver esse número). **Ignorar** não muda o limite. Não existe Aprovar todos.
 

@@ -46,7 +46,10 @@
         {% if atual.revisar_dados %}
         <p class="mt-2 text-sm font-black text-orange-900 bg-orange-50 rounded-lg px-2 py-1 inline-block">Revisar dados (inconsistência de pagamento)</p>
         {% elif atual.revisar_bloqueio %}
-        <p class="mt-2 text-sm font-black text-rose-900 bg-rose-50 rounded-lg px-2 py-1 inline-block">Revisar bloqueio (limite R$ 0,01 — fiado bloqueado; não desbloqueia)</p>
+        <p class="mt-2 text-sm font-black text-rose-900 bg-rose-50 rounded-lg px-2 py-1 inline-block">
+          Revisar bloqueio (limite R$ 0,01).
+          <a href="{% url 'credito_limite_revisao' %}?desbloqueio=1&amp;q={{ cliente.nome|urlencode }}" class="underline">Aprovar limite sugerido aqui</a>
+        </p>
         {% elif atual.candidato_revisao %}
         <p class="mt-2 text-sm font-black text-amber-800 bg-amber-50 rounded-lg px-2 py-1 inline-block">Candidato para revisão de limite</p>
         {% endif %}

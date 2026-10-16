@@ -459,13 +459,23 @@ def _limites_manuais_request(request) -> dict[int, str]:
     return _limites_manuais_de_query(request.GET)
 
 
-def _redirect_revisao_limite(pct_max: int):
+def _redirect_revisao_limite(pct_max: int, *, apenas_desbloqueio: bool = False):
     from django.urls import reverse
+    from urllib.parse import urlencode
 
     base = reverse("credito_limite_revisao")
+    q: dict[str, str] = {}
     if pct_max != 20:
-        return redirect(f"{base}?pct={pct_max}")
+        q["pct"] = str(pct_max)
+    if apenas_desbloqueio:
+        q["desbloqueio"] = "1"
+    if q:
+        return redirect(f"{base}?{urlencode(q)}")
     return redirect("credito_limite_revisao")
+
+
+def _apenas_desbloqueio_request(request) -> bool:
+    return (request.GET.get("desbloqueio") or "").strip() in ("1", "true", "sim")
 
 
 @credito_score_shadow_required
@@ -473,7 +483,10 @@ def _redirect_revisao_limite(pct_max: int):
 def credito_limite_revisao(request):
     """Lista aptos e aplica limite só com Aprovar, via definir_limite_fiado_cliente."""
     pct_max = _pct_revisao_request(request)
+    apenas_desbloqueio = _apenas_desbloqueio_request(request)
     if request.method == "POST":
+        if (request.POST.get("desbloqueio") or "").strip() in ("1", "true", "sim"):
+            apenas_desbloqueio = True
         acao = (request.POST.get("acao") or "").strip()
         usuario = _usuario_revisao(request)
         if acao == "aprovar":
@@ -521,9 +534,12 @@ def credito_limite_revisao(request):
                 )
         else:
             return HttpResponseForbidden("Ação inválida.")
-        return _redirect_revisao_limite(pct_max)
+        return _redirect_revisao_limite(pct_max, apenas_desbloqueio=apenas_desbloqueio)
 
-    linhas = listar_revisoes_limite(pct_max=pct_max)
+    linhas = listar_revisoes_limite(pct_max=pct_max, apenas_desbloqueio=apenas_desbloqueio)
+    q_busca = (request.GET.get("q") or "").strip().lower()
+    if q_busca:
+        linhas = [r for r in linhas if q_busca in (r.get("cliente_nome") or "").lower()]
     return render(
         request,
         "produtos/credito_limite_revisao.html",
@@ -531,6 +547,7 @@ def credito_limite_revisao(request):
             "linhas": linhas,
             "total": len(linhas),
             "pct_aumento_max": pct_max,
+            "apenas_desbloqueio": apenas_desbloqueio,
         },
     )
 
@@ -539,7 +556,8 @@ def credito_limite_revisao(request):
 @require_http_methods(["GET", "POST"])
 def credito_limite_revisao_export_xlsx(request):
     pct_max = _pct_revisao_request(request)
-    linhas = listar_revisoes_limite(pct_max=pct_max)
+    apenas_desbloqueio = _apenas_desbloqueio_request(request)
+    linhas = listar_revisoes_limite(pct_max=pct_max, apenas_desbloqueio=apenas_desbloqueio)
     linhas = aplicar_limites_manuais_lista(
         linhas,
         pct_max=pct_max,
