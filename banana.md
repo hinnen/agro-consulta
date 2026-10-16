@@ -1294,29 +1294,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 ARMADO · **PREP v27.24** · **CHECKLIST 16/10e** · CADASTRO-PALAVRAS-REABRE
+### ✅ Deploy loja — **CADASTRO-PALAVRAS-REABRE** · **Live v27.24** · CHECKLIST **16/10e** · 16/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Pacote** | Palavras-chave aba **2. Busca** persistem ao **reabrir** modal cadastro |
-| **Status** | 🟡 **Checkpoint OK** · cutover **1 comando** (próximo chat) · Live **v27.23** @ **`37ad1354`** |
-| **PREP** | `deploy/prep-checklist-1610e-cadastro-palavras-reabre` @ **`d0df4700`** |
+| **Status** | ✅ **Live v27.24** @ **`d0df4700`** |
 | **Migrate** | **NÃO** |
-| **Prova** | `prep_checkpoint` **OK** · verify **42/42** · **PREP_FAILS=0** |
-| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1610e_cadastro_palavras_reabre.sh` ✅ |
-| **Rollback** | `rollback/pre-v2723-cadastro-palavras-reabre` @ **`37ad1354`** |
-| **Backup** | `producao-backup-pre-v2724-cadastro-palavras-reabre` @ **`37ad1354`** |
-| **Revert** | `git push origin rollback/pre-v2723-cadastro-palavras-reabre:producao` → **v27.23** |
-| **Cutover loja** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1610e_cadastro_palavras_reabre.sh --exec` |
-| **Pós-deploy** | `./scripts/post_deploy_checklist_1610e_cadastro_palavras_reabre.sh` |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1610e-cadastro-palavras-reabre.md` |
+| **Pós-deploy** | `post_deploy_checklist_1610e` **OK** · verify **42/42** |
+| **Revert** | `git push origin rollback/pre-v2723-cadastro-palavras-reabre:producao` → **v27.23** @ **`37ad1354`** |
+| **Backup pré-subida** | `producao-backup-pre-v2724-cadastro-palavras-reabre` @ **`37ad1354`** |
 | **Smoke** | Cadastro → produto **não med** → **2. Busca** → salvar → reabrir |
 
-### ✅ CHECKLIST ÚNICO — **16/10e** · 🟡 **aguarda senha** (PREP armado)
+### ✅ CHECKLIST ÚNICO — **16/10e** · ✅ Live **v27.24**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CADASTRO-PALAVRAS-REABRE** | 🟡 **aguarda senha** | **NÃO** | **42/42** |
+| 1 | **CADASTRO-PALAVRAS-REABRE** | ✅ **Live** | **NÃO** | **42/42** |
 
 ### ✅ Deploy loja — **ETQ-NF-QTD-FILA** · **Live v27.23** · CHECKLIST **16/10d** · 16/10
 
