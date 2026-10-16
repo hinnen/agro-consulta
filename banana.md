@@ -1299,11 +1299,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **Pacote** | **ETQ-NF-QTD-FILA** — NF na etiqueta: **1 por produto** ou **qtd da nota** |
-| **Status** | 🟢 **PRONTO envio produção** · `teste` @ `f7b048c4` |
+| **Status** | 🟢 **PRONTO envio produção** · `teste` @ `ef77b7bf` · PREP @ `2ca58d85` |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_etq_filtro_nf_entrada_path.py` **VERIFY_OK 27/27** |
-| **PREP** | `deploy/prep-checklist-1610d-etq-nf-qtd` |
-| **Cutover dry-run** | `./scripts/cutover_loja_checklist_1610d_etq_nf_qtd.sh` |
+| **Prova** | `verify_etq_filtro_nf_entrada_path.py` **VERIFY_OK 27/27** · cutover dry-run **OK** (16/10) |
+| **PREP** | `deploy/prep-checklist-1610d-etq-nf-qtd` @ `2ca58d85` |
+| **Cutover dry-run** | `./scripts/cutover_loja_checklist_1610d_etq_nf_qtd.sh` ✅ |
 | **Cutover loja** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1610d_etq_nf_qtd.sh --exec` |
 | **Pós-deploy** | `./scripts/post_deploy_checklist_1610d_etq_nf_qtd.sh` |
 | **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1610d-etq-nf-qtd.md` |
