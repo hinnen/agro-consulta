@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Prova detalhada — CADASTRO-BUSCA-MED (v26.81).
+Prova detalhada — CADASTRO-BUSCA-MED + hotfix reabrir palavras (agro_pg).
 
 Palavras-chave + classes vet no overlay/cadastro_extras; sync Mongo Agro*; busca PDV/catálogo.
 Especificação ERP continua só Descricao Mongo (não palavras-chave Agro).
@@ -73,20 +73,33 @@ def test_contratos() -> None:
     check("especificacao_desc_mongo", 'out["especificacao"] = desc_sc' in views)
 
     check("catalogo_anexar", "anexar_texto_busca_extras" in cat)
+    check(
+        "catalogo_detalhe_pk",
+        "anexar_campos_busca_em_row_cadastro" in cat
+        and "produto_model_para_detalhe" in cat,
+    )
+    check(
+        "catalogo_salvar_pk",
+        "produto_model_para_resposta_salvar" in cat
+        and "anexar_campos_busca_em_row_cadastro" in cat,
+    )
     check("modal_aba_busca", 'data-tab="tab-busca"' in modal and "2. Busca" in modal)
     check("modal_palavras", 'id="edit-palavras-chave"' in modal)
     check("modal_save_pk", "palavras_chave: gv('edit-palavras-chave')" in modal)
-    check("modal_save_cv", "classes_vet: coletarClassesVetSelecionadas()" in modal)
+    check("modal_fix_ler", "function palavrasChaveDoProduto" in modal)
+    check("modal_fix_pos_salvar", "aplicarBuscaTabDoProduto(j.produto)" in modal)
+    check("modal_med_vet_anexar", "anexarBuscaMedVetAoBody" in modal)
     check("modal_url_cfg", "URL_TAXONOMIA_MED_VET" in cad_html)
     check("unit_test_file", test_py.is_file())
 
     ver = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
-    check("version_min_2681", ver in ("26.81", "26.82", "26.83"), ver)
+    check("version_prep", ver in ("27.24", "27.23", "26.82", "26.81"), ver)
 
 
 def test_logica_python() -> None:
     print("== Lógica Python (4 asserts) ==")
     from produtos.medicamento_vet_taxonomia import (
+        anexar_campos_busca_em_row_cadastro,
         categoria_eh_medicamento,
         documento_mongo_set_busca_agro,
         montar_texto_busca_denormalizado,
@@ -106,6 +119,9 @@ def test_logica_python() -> None:
     check("mongo_set", doc.get("AgroPalavrasChave") == "Dexon" and doc.get("AgroClassesVet"))
     api = taxonomia_para_api()
     check("api_grupos", isinstance(api.get("grupos"), list) and len(api.get("grupos") or []) >= 3)
+    row_fix: dict = {}
+    anexar_campos_busca_em_row_cadastro(row_fix, {"palavras_chave": "Dexon, teste"})
+    check("row_pk_agro_pg", row_fix.get("palavras_chave") == "Dexon teste")
 
 
 def test_git_sem_migrate() -> None:
@@ -124,8 +140,10 @@ def test_git_sem_migrate() -> None:
     ).stdout
     feat_ok = (
         "619a364e" in log1
+        or "0a0e824f" in log1
+        or "5010eab4" in log1
         or "palavras-chave" in log1
-        or (ROOT / "produtos/medicamento_vet_taxonomia.py").is_file()
+        or "reabrir" in log1.lower()
     )
     check("commit_feat", feat_ok, tip)
     diff = subprocess.run(
