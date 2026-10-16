@@ -26582,7 +26582,12 @@ def _cadastro_enriquecer_saldo_nas_rows(rows: list[dict]) -> list[dict]:
     return rows
 
 
-def _cadastro_finalizar_payload_rows(payload: dict, incluir_saldo: bool) -> dict:
+def _cadastro_finalizar_payload_rows(
+    payload: dict,
+    incluir_saldo: bool,
+    *,
+    numero_nf: str = "",
+) -> dict:
     out = dict(payload)
     if isinstance(out.get("produtos"), list):
         try:
@@ -26593,6 +26598,10 @@ def _cadastro_finalizar_payload_rows(payload: dict, incluir_saldo: bool) -> dict
             pass
     if incluir_saldo and isinstance(out.get("produtos"), list):
         out["produtos"] = _cadastro_enriquecer_saldo_nas_rows(list(out["produtos"]))
+    if numero_nf and isinstance(out.get("produtos"), list):
+        from produtos.cadastro_filtros_util import enriquecer_rows_entrada_nf_qtd
+
+        enriquecer_rows_entrada_nf_qtd(out["produtos"], numero_nf)
     return out
 
 
@@ -26692,6 +26701,7 @@ def api_produtos_cadastro(request):
     tem_filtros_dim = filtros_cadastro_ativos(filtros)
     status_q = "todos" if inativos else "ativos"
     fkey = filtros_cadastro_cache_key(filtros)
+    nf_filtro = str(filtros.get("numero_nf") or "").strip()
 
     try:
         lim_busca = int(request.GET.get("limit") or 80)
@@ -26728,7 +26738,7 @@ def api_produtos_cadastro(request):
                 _cad_pg_hit = cache.get(_cad_pg_key)
                 if _cad_pg_hit is not None:
                     return JsonResponse(
-                        _cadastro_finalizar_payload_rows(dict(_cad_pg_hit), incluir_saldo)
+                        _cadastro_finalizar_payload_rows(dict(_cad_pg_hit), incluir_saldo, numero_nf=nf_filtro)
                     )
 
                 if tem_filtros_dim:
@@ -26760,7 +26770,7 @@ def api_produtos_cadastro(request):
                 except Exception:
                     pass
                 return JsonResponse(
-                    _cadastro_finalizar_payload_rows(_cad_pg_payload, incluir_saldo)
+                    _cadastro_finalizar_payload_rows(_cad_pg_payload, incluir_saldo, numero_nf=nf_filtro)
                 )
             rows, has_more = cat_agro.listar_paginado(
                 pagina=pagina,
@@ -26787,6 +26797,7 @@ def api_produtos_cadastro(request):
                         "dir": "desc" if sort_direction < 0 else "asc",
                     },
                     incluir_saldo,
+                    numero_nf=nf_filtro,
                 )
             )
         except Exception as e:
@@ -26808,7 +26819,7 @@ def api_produtos_cadastro(request):
             _cad_hit = cache.get(_cad_cache_key)
             if _cad_hit is not None:
                 return JsonResponse(
-                    _cadastro_finalizar_payload_rows(dict(_cad_hit), incluir_saldo)
+                    _cadastro_finalizar_payload_rows(dict(_cad_hit), incluir_saldo, numero_nf=nf_filtro)
                 )
 
             prods: list = []
@@ -26868,7 +26879,7 @@ def api_produtos_cadastro(request):
                 cache.set(_cad_cache_key, _cad_payload, 45)
             except Exception:
                 pass
-            payload_out = _cadastro_finalizar_payload_rows(_cad_payload, incluir_saldo)
+            payload_out = _cadastro_finalizar_payload_rows(_cad_payload, incluir_saldo, numero_nf=nf_filtro)
             if filtros.get("estoque_sinal") and isinstance(payload_out.get("produtos"), list):
                 payload_out["produtos"] = [
                     r for r in payload_out["produtos"] if row_passa_filtros_cadastro(r, filtros)
@@ -26914,6 +26925,7 @@ def api_produtos_cadastro(request):
                             "dir": "desc" if sort_direction < 0 else "asc",
                         },
                         incluir_saldo,
+                        numero_nf=nf_filtro,
                     )
                 )
             clauses.append({"$or": [{"Id": {"$in": nf_ids}}, {"_id": {"$in": nf_ids}}]})
@@ -26947,6 +26959,7 @@ def api_produtos_cadastro(request):
                     "dir": "desc" if sort_direction < 0 else "asc",
                 },
                 incluir_saldo,
+                numero_nf=nf_filtro,
             )
         )
     except Exception as e:

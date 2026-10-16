@@ -1294,38 +1294,142 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 Falta subir · **PREP v27.23** · **CHECKLIST 16/10d** (16/10)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Pacote** | **ETQ-NF-QTD-FILA** — NF na etiqueta: **1 por produto** ou **qtd da nota** |
+| **Status** | 🟢 **PRONTO envio produção** · `teste` @ `f7b048c4` |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_etq_filtro_nf_entrada_path.py` **VERIFY_OK 27/27** |
+| **PREP** | `deploy/prep-checklist-1610d-etq-nf-qtd` |
+| **Cutover dry-run** | `./scripts/cutover_loja_checklist_1610d_etq_nf_qtd.sh` |
+| **Cutover loja** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1610d_etq_nf_qtd.sh --exec` |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1610d_etq_nf_qtd.sh` |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1610d-etq-nf-qtd.md` |
+| **Smoke** | Ctrl+F5 · Etiquetas → NF → alternar modo → **Adicionar todos** |
+
+### ✅ CHECKLIST ÚNICO — **16/10d** · 🟢 **PRONTO envio produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ETQ-NF-QTD-FILA** | 🟢 **PRONTO** | **NÃO** | `verify_etq_filtro_nf_entrada_path.py` **27/27** |
+
+### 📦 PACOTE PRONTO — **ETQ-NF-QTD-FILA** (`CHECKLIST 16/10d`) · **PREP v27.23**
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `entrada_nf_qtd` na API + radios **1 etiqueta** / **qtd NF** · JS **v37** |
+| **Base** | Live **v27.22** (filtro NF já na loja) |
+| **Rollback** | `rollback/pre-v2722-etq-nf-qtd` → **v27.22** |
+
 ### ✅ Deploy loja — **ETQ-FILTRO-NF-ENTRADA** · **Live v27.22** · CHECKLIST **16/10c** · 16/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v27.22** @ **`aecf3a9a`** · antes **v27.21** @ **`56b60ea9`** |
-| **Pacote** | Etiquetas → **Nº NF entrada** (`numero_nf` → `api/produtos/cadastro/`) |
-| **Migrate** | **NÃO** |
-| **Backup** | `producao-backup-pre-v2722-etq-filtro-nf` @ `56b60ea9` |
-| **Rollback** | `git push origin 56b60ea9:producao` |
-| **Prova** | `verify_etq_filtro_nf_entrada_path.py` **VERIFY_OK 21/21** |
-| **Smoke** | Ctrl+F5 · **Etiquetas** → **Mais opções** → número NF → fila |
+| **Status** | ✅ **Live v27.22** @ **`aecf3a9a`** |
+| **Smoke** | Etiquetas → **Nº NF entrada** → lista produtos |
 
 ### ✅ CHECKLIST ÚNICO — **16/10c** · ✅ Live **v27.22**
 
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-FILTRO-NF-ENTRADA** | ✅ **Live** | **NÃO** | `verify_etq_filtro_nf_entrada_path.py` **21/21** |
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | **ETQ-FILTRO-NF-ENTRADA** | ✅ **Live** |
 
-### 📦 PACOTE PRONTO — **ETQ-FILTRO-NF-ENTRADA** (`CHECKLIST 16/10c`) · ✅ **Live v27.22**
+### ✅ Loja · **Live v27.22** (16/10)
 
-### 🟢 PREP loja — **RH-VALE-VILA** · **v27.18** · armado
+**15/10 + 15/10b + 15/10a** na loja · prova cloud **`./scripts/verify_checklist_v2720_path.sh`** OK (PIN teste **9973**).
+
+### ✅ Deploy loja — CHECKLIST **16/10** · **Live v27.21** · 16/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **ARMADO** — branch `deploy/prep-rh-vale-vila` (cherry sobre **produção** atual) |
-| **Live hoje** | **v27.17** @ `39337d12` |
-| **Sintoma** | Vale caixa Vila: *«Empresa 'Agro Mais Vila Elias' não encontrada…»* |
-| **Fix** | Perfil RH pela pessoa (ClienteAgro) · folha na empresa do cadastro · gaveta **Vila** |
-| **Prova** | `verify_rh_vale_caixa_vila_path.py` **8/8** + `verify_saida_empresa_loja` **10/10** |
-| **Cutover dry-run** | `./scripts/cutover_loja_rh_vale_vila.sh` (PREP default `deploy/prep-rh-vale-vila`) |
-| **Cutover loja** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_rh_vale_vila.sh --exec` |
-| **Doc** | `docs/DEPLOY-PREP-RH-VALE-VILA.md` |
+| **Status** | ✅ **enviado / Live v27.21** @ **`56b60ea9`** · antes **v27.20** @ **`2721cec2`** |
+| **Pacote** | **CAIXA-FECHAR-PERF-2** — só caixa/repasse/Vila (sem PDV · sem migrate · sem `pdv_state` / **0145**) |
+| **Migrate** | **NÃO** |
+| **Prova (cloud 16/10)** | cutover dry-run OK · fechar **54/54** · repasse **68/68** · dev MP **171/171** · `verify_checklist_v2720_path.sh` OK |
+| **Cutover dry-run** | `./scripts/cutover_loja_checklist_1610_caixa_perf2.sh` |
+| **Cutover loja** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1610_caixa_perf2.sh --exec` |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1610_caixa_perf2.sh` · Render **Live** + Ctrl+F5 |
+| **Backup** | `producao-backup-pre-v2721-caixa-perf2` @ `2721cec2` |
+| **Rollback** | `git push origin rollback/pre-v2720-caixa-perf2:producao` → **`2721cec2`** |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1610-caixa-perf2.md` |
+| **Smoke** | Caixa **Vila** → **Fechar caixa** (2 turnos) — poucos segundos |
+| **Zap (opcional)** | *«Atualização ~2 min — só Fechar caixa Vila. Não finalize venda no meio.»* |
+
+### ✅ CHECKLIST ÚNICO — **16/10** · ✅ Live **v27.21**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CAIXA-FECHAR-PERF-2** | ✅ **Live** | **NÃO** | fechar **54/54** · repasse **68/68** · dev MP **171/171** |
+
+### 📦 PACOTE PRONTO — **CAIXA-FECHAR-PERF-2** (`CHECKLIST 16/10`) · ✅ **Live v27.21**
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Fechar caixa **Vila** sem reserva pesada no GET (`reserva_leve_estado_caixa_fechar`) |
+| **Backup** | `producao-backup-pre-v2721-caixa-perf2` @ `2721cec2` |
+| **Rollback** | `git push origin rollback/pre-v2720-caixa-perf2:producao` |
+
+### ✅ CHECKLIST ÚNICO — **15/10** · ✅ Live **v27.20**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CAIXA-FECHAR-PERF** | ✅ Live | **NÃO** |
+| 2 | **CREDITO-DESBLOQUEIO-LAB** | ✅ Live | **NÃO** |
+| 3 | **CLIENTE-LISTA-DESC-PDV** | ✅ Live | **SIM** `0145` |
+
+### ✅ CHECKLIST ÚNICO — **15/10b** · ✅ Live **v27.20**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CREDITO-DESBLOQUEIO-LAB** | ✅ **Live** | **NÃO** | `verify_credito_limite_revisao_path` **34/34** · `tests_credito_limite_revisao` **5/5** |
+
+### 📦 PACOTE PRONTO — **CREDITO-DESBLOQUEIO-LAB** (`CHECKLIST 15/10b` · 15/10)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Análise de crédito: **DESBLOQUEAR (R$ 0,01)** + aprovar **limite sugerido** em Revisar alterações (tag Desbloqueio) |
+| **Migrate** | **NÃO** |
+| **Loja** | ✅ **Live v27.20** |
+| **Smoke** | Ctrl+F5 · Gestão → Análise de crédito → **DESBLOQUEAR** → **Aprovar** (cliente «Revisar bloqueio») |
+
+### ✅ CHECKLIST ÚNICO — **15/10** · ✅ Live **v27.20**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CAIXA-FECHAR-PERF** | ✅ **Live** | **NÃO** | `verify_caixa_fechar_loja_path` **46/46** · `verify_caixa_fechar_repasse_path` **68/68** · `verify_caixa_devolucao_dinheiro_mp_path` **171/171** |
+
+### 📦 PACOTE PRONTO — **CAIXA-FECHAR-PERF** (`CHECKLIST 15/10`)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live v27.20** |
+| **O quê** | Abrir **Fechar caixa** sem recalcular conferência em triplicata (`CaixaFecharPrep`) — **Vila:** ver **CAIXA-FECHAR-PERF-2** (16/10) |
+| **Migrate** | **NÃO** |
+| **Smoke** | Caixa → **Fechar caixa** — abre rápido (**Centro** OK; **Vila** aguarda v2) |
+
+### ✅ PACOTE PRONTO — **CLIENTE-LISTA-DESC-PDV** (`CHECKLIST 15/10a` · 15/10) · ✅ **Live v27.20**
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `/clientes/` · **`desconto_pdv_percentual`** opcional · PDV aplica % no subtotal |
+| **Prova** | `verify_cliente_lista_desc_pdv_path` **18/18** · `verify_cliente_planilha_path` **61/61** |
+| **Migrate** | **SIM** `0145` |
+
+### ✅ CHECKLIST ÚNICO — **15/10a** · ✅ Live **v27.20**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CLIENTE-LISTA-DESC-PDV** | ✅ **Live** @ **`ad199569`** | **SIM** `0145` |
+
+### ✅ Deploy loja — **RH-VALE-VILA** · **Live v27.18** · validado 15/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live v27.18** @ `9f18d10f4` — Render deploy **live** 15/10 (~2 min, API + clear cache) · `dep-db8hpirncjis73b3gmgg` |
+| **Antes** | v27.17 @ `39337d12` |
+| **O quê** | Vale no caixa **Vila** para funcionário RH **Centro** (perfil por ClienteAgro · gaveta Vila) |
 | **Migrate** | **NÃO** |
 | **Backup** | `producao-backup-pre-v2718-rh-vale-vila` @ `39337d12` |
 | **Rollback** | `git push origin 39337d12:producao` |

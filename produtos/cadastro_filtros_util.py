@@ -547,22 +547,22 @@ def _cabecalho_casa_numero_nf_filtro(cab: dict, needle: str) -> bool:
     return False
 
 
-def produto_ids_por_numero_entrada_nf(numero_nf: str) -> set[str]:
+def mapa_quantidade_entrada_nf_por_produto(numero_nf: str) -> dict[str, float]:
     """
-    Produtos (``produto_id`` ERP) presentes em Entrada NF Agro com o número informado.
-    Considera notas com estoque aplicado / encerradas (mesmo recorte do mapa de datas NF).
+    Soma das quantidades por ``produto_id`` nas Entradas NF Agro com o número informado.
+    Mesmo recorte de notas com estoque aplicado / encerradas que o filtro de lista.
     """
     from django.core.cache import cache
 
     nf = str(numero_nf or "").strip()
     if not nf:
-        return set()
-    cache_key = f"cadastro_nf_num_ids_v1:{hashlib.md5(nf.casefold().encode('utf-8')).hexdigest()[:20]}"
+        return {}
+    cache_key = f"cadastro_nf_qtd_map_v1:{hashlib.md5(nf.casefold().encode('utf-8')).hexdigest()[:20]}"
     hit = cache.get(cache_key)
-    if isinstance(hit, (list, tuple, set)):
-        return set(str(x) for x in hit if str(x).strip())
+    if isinstance(hit, dict):
+        return {str(k): float(v) for k, v in hit.items() if str(k).strip()}
 
-    out: set[str] = set()
+    out: dict[str, float] = {}
     try:
         from produtos.compras_ultimas_compras_util import (
             _doc_conta_como_compra_entrada_nf,
@@ -601,16 +601,38 @@ def produto_ids_por_numero_entrada_nf(numero_nf: str) -> set[str]:
             for ln in doc["linhas"]:
                 if not isinstance(ln, dict):
                     continue
-                if _qtd_linha_entrada_nf_agro(ln) <= 0:
+                qtd = float(_qtd_linha_entrada_nf_agro(ln))
+                if qtd <= 0:
                     continue
                 pid = str(ln.get("produto_id") or "").strip()
                 if pid:
-                    out.add(pid)
+                    out[pid] = out.get(pid, 0.0) + qtd
     except Exception as exc:
-        logger.warning("produto_ids_por_numero_entrada_nf: %s", exc)
+        logger.warning("mapa_quantidade_entrada_nf_por_produto: %s", exc)
 
     try:
-        cache.set(cache_key, list(out), 120)
+        cache.set(cache_key, out, 120)
     except Exception:
         pass
     return out
+
+
+def enriquecer_rows_entrada_nf_qtd(rows: list, numero_nf: str) -> None:
+    """Preenche ``entrada_nf_qtd`` nas linhas do JSON de cadastro (filtro etiquetas)."""
+    nf = str(numero_nf or "").strip()
+    if not nf or not rows:
+        return
+    mapa = mapa_quantidade_entrada_nf_por_produto(nf)
+    if not mapa:
+        return
+    for r in rows:
+        if not isinstance(r, dict):
+            continue
+        pid = str(r.get("id") or r.get("produto_externo_id") or "").strip()
+        if pid in mapa:
+            r["entrada_nf_qtd"] = round(mapa[pid], 3)
+
+
+def produto_ids_por_numero_entrada_nf(numero_nf: str) -> set[str]:
+    """Produtos presentes na NF (chaves do mapa de quantidade)."""
+    return set(mapa_quantidade_entrada_nf_por_produto(numero_nf).keys())

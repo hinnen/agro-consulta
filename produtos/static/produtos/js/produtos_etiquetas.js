@@ -36,6 +36,44 @@
   var URL_RESOLVER = CFG.resolverUrl || '/api/produtos/etiquetas/resolver-codigos/';
   var URL_MAIS_VENDIDOS = CFG.maisVendidosUrl || '/api/produtos/etiquetas/mais-vendidos/';
   var HISTORICO_DIAS = 30;
+  var ETQ_NF_QTD_LS = 'etq_nf_qtd_modo_v1';
+
+  function nfNumeroAtivo() {
+    return String(($('etq-f-numero-nf') && $('etq-f-numero-nf').value) || '').trim();
+  }
+
+  function syncNfQtdWrap() {
+    var wrap = $('etq-nf-qtd-wrap');
+    if (!wrap) return;
+    wrap.classList.toggle('hidden', !nfNumeroAtivo());
+  }
+
+  function nfQtdModo() {
+    var r = document.querySelector('input[name="etq-nf-qtd-modo"]:checked');
+    return r && r.value === 'nota' ? 'nota' : 'uma';
+  }
+
+  function aplicarNfQtdModoSalvo() {
+    try {
+      var m = localStorage.getItem(ETQ_NF_QTD_LS);
+      if (m === 'nota' && $('etq-nf-qtd-nota')) $('etq-nf-qtd-nota').checked = true;
+      else if ($('etq-nf-qtd-uma')) $('etq-nf-qtd-uma').checked = true;
+    } catch (e) {}
+    syncNfQtdWrap();
+  }
+
+  function qtdFilaParaProduto(prod) {
+    if (nfNumeroAtivo()) {
+      if (nfQtdModo() === 'nota') {
+        var qn = Number(prod && prod.entrada_nf_qtd);
+        if (qn > 0) return Math.min(999, Math.max(1, Math.round(qn)));
+      }
+      return 1;
+    }
+    var qtdInp = $('etq-add-qtd');
+    var q = parseInt(qtdInp && qtdInp.value, 10) || 1;
+    return q > 0 ? q : 1;
+  }
 
   var msFacetas = {
     marca: [], categoria: [], subcategoria: [],
@@ -765,6 +803,13 @@
     var n = (state.buscaProdutos || []).length;
     btn.disabled = n < 1;
     btn.textContent = n > 1 ? ('Adicionar todos (' + n + ')') : 'Adicionar todos';
+    if (nfNumeroAtivo() && nfQtdModo() === 'nota') {
+      btn.title = 'Manda todos para a fila com a quantidade de cada linha na NF';
+    } else if (nfNumeroAtivo()) {
+      btn.title = 'Manda todos para a fila — 1 etiqueta por produto';
+    } else {
+      btn.title = 'Manda todos os resultados da busca para a fila (usa a Qtd ao lado)';
+    }
   }
 
   function limparBuscaVisual() {
@@ -784,10 +829,9 @@
   function adicionarProdutoFila(prod, opts) {
     opts = opts || {};
     if (!prod) return false;
-    var qtdInp = $('etq-add-qtd');
-    var qtd = parseInt(qtdInp && qtdInp.value, 10) || 1;
+    var qtd = qtdFilaParaProduto(prod);
     var it = produtoParaFilaItem(prod);
-    it.qtd = qtd > 0 ? qtd : 1;
+    it.qtd = qtd;
     state.fila.push(it);
     renderFila();
     /* Bip/Enter/clique: limpa o campo e mantém foco pro próximo bip */
@@ -854,12 +898,9 @@
       setStatus('Nada na busca para adicionar.', true);
       return;
     }
-    var qtdInp = $('etq-add-qtd');
-    var qtd = parseInt(qtdInp && qtdInp.value, 10) || 1;
-    if (qtd < 1) qtd = 1;
     for (var i = 0; i < prods.length; i++) {
       var it = produtoParaFilaItem(prods[i]);
-      it.qtd = qtd;
+      it.qtd = qtdFilaParaProduto(prods[i]);
       state.fila.push(it);
     }
     renderFila();
@@ -891,6 +932,10 @@
       .map(function (p, idx) {
         var gm = String(p.codigo_nfe || p.codigo_gm || p.codigo || '').trim();
         var rank = p.rank_pos != null ? ('#' + p.rank_pos + ' · ') : '';
+        var qnf =
+          nfNumeroAtivo() && p.entrada_nf_qtd != null && Number(p.entrada_nf_qtd) > 0
+            ? ' · NF ' + Core.esc(String(p.entrada_nf_qtd)) + ' un'
+            : '';
         return (
           '<button type="button" role="option" aria-selected="false" class="etq-busca-item flex w-full items-center justify-between gap-2 border-b border-slate-700/70 px-3 py-2 text-left hover:bg-slate-700/40" data-prod-id="' +
           Core.esc(p.id) +
@@ -904,6 +949,7 @@
           Core.esc(rank + gm) +
           ' · ' +
           Core.esc(Core.fmtPreco(p.preco_venda)) +
+          Core.esc(qnf) +
           '</span>' +
           '<span class="shrink-0 rounded bg-emerald-600 px-1.5 py-0.5 text-[10px] font-black text-white">+</span>' +
           '</button>'
@@ -1345,6 +1391,7 @@
     if ($('etq-f-sem-cat')) $('etq-f-sem-cat').checked = false;
     if ($('etq-f-somente-agro')) $('etq-f-somente-agro').checked = false;
     if ($('etq-f-numero-nf')) $('etq-f-numero-nf').value = '';
+    syncNfQtdWrap();
     if ($('etq-preset-filtro-sel')) $('etq-preset-filtro-sel').value = '';
     syncPresetFiltroBtns();
   }
@@ -2390,6 +2437,21 @@
       limparFiltrosBusca();
       scheduleBusca();
     });
+    if ($('etq-f-numero-nf')) {
+      $('etq-f-numero-nf').addEventListener('input', function () {
+        syncNfQtdWrap();
+        syncBtnAddTodos();
+      });
+    }
+    document.querySelectorAll('input[name="etq-nf-qtd-modo"]').forEach(function (rb) {
+      rb.addEventListener('change', function () {
+        try {
+          localStorage.setItem(ETQ_NF_QTD_LS, nfQtdModo());
+        } catch (e) {}
+        syncBtnAddTodos();
+        if (state.buscaProdutos.length) renderBusca(state.buscaProdutos);
+      });
+    });
     $('etq-preset-filtro-sel') && $('etq-preset-filtro-sel').addEventListener('change', syncPresetFiltroBtns);
     $('etq-preset-filtro-aplicar') && $('etq-preset-filtro-aplicar').addEventListener('click', function () {
       var sel = $('etq-preset-filtro-sel');
@@ -2671,6 +2733,7 @@
     } catch (e2) {}
     /* Busca/botões: ligar sempre, mesmo se algo acima falhou. */
     try {
+      aplicarNfQtdModoSalvo();
       bindEvents();
     } catch (e3) {
       setStatus('Erro ao ligar a tela — Ctrl+F5.', true);
