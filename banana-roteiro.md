@@ -1029,3 +1029,34 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **Live:** `producao` @ `39337d12` · backup `producao-backup-pre-v2717-checklist-1410d`.  
 **Rollback:** `rollback/pre-1410d-v2716` → `78a867a0`.  
 **Conferir:** planilha Med reimport · etiquetas PC Ctrl+F5.
+
+---
+
+## 83. Checklist único — **15/10 + 15/10b** · 🟢 PREP **v27.19** · **ARMADO**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CAIXA-FECHAR-PERF** | 🟢 **ARMADO** | **NÃO** |
+| 2 | **CREDITO-DESBLOQUEIO-LAB** | 🟢 **ARMADO** | **NÃO** |
+
+**Live antes:** **v27.18** @ `9f18d10f`.  
+**PREP:** `deploy/prep-checklist-1510-caixa-credito` @ **`355ed0d9`**.  
+**Prova:** fechar loja **46/46** · repasse **68/68** · dev MP **171/171** · crédito **34/34** + tests **5/5** · cutover dry-run OK.  
+**Na senha (passo 1 — vendas pausadas):** `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → `./scripts/cutover_loja_checklist_1510_caixa_credito.sh --exec` → `./scripts/post_deploy_checklist_1510_caixa_credito.sh`.  
+**Rollback:** tag `rollback/pre-v2718-caixa-credito` → `9f18d10f`.  
+**Doc:** `docs/DEPLOY-PREP-CHECKLIST-1510-caixa-credito.md`.  
+**Não inclui:** `0145` · `pdv_state` desconto · wizard/busca PDV.
+
+---
+
+## 84. Checklist único — **15/10a** · 🟢 PREP **v27.20** · **ARMADO** (passo 2)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CLIENTE-LISTA-DESC-PDV** | 🟢 **ARMADO** | **SIM** `0145` |
+
+**PREP:** `deploy/prep-checklist-1510a-cliente-desc-pdv` @ **`77ea3981`**.  
+**Prova:** lista/PDV **18/18** · planilha **61/61** · cutover dry-run OK (HTTP export na loja após migrate).  
+**Na senha (passo 2 — mesma pausa):** cutover `./scripts/cutover_loja_checklist_1510a_cliente_desc_pdv.sh --exec` → Render Shell `./scripts/post_deploy_checklist_1510a_cliente_desc_pdv.sh`.  
+**Rollback:** tag `rollback/pre-v2719-cliente-desc-pdv` (base pós v27.19).  
+**Doc:** `docs/DEPLOY-PREP-CHECKLIST-1510a-cliente-desc-pdv.md`.
