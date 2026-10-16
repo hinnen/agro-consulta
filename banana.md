@@ -1294,11 +1294,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PREP loja — CHECKLIST **15/10 + 15/10b** · **v27.19** · **ARMADO** (aguarda frase+senha)
+### ✅ Deploy loja — CHECKLIST **15/10 + 15/10b + 15/10a** · **Live v27.20** · 16/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **ARMADO** — `deploy/prep-checklist-1510-caixa-credito` @ **`355ed0d9`** · Live **v27.18** @ **`9f18d10f`** |
+| **Status** | ✅ **enviado / Live v27.20** @ **`ad199569`** — passo 1 cutover **`355ed0d9`** · passo 2 merge **`ad199569`** (15/10a sobre v27.19) |
+| **Antes** | **v27.18** @ `9f18d10f` |
+| **Pacotes** | **CAIXA-FECHAR-PERF** · **CREDITO-DESBLOQUEIO-LAB** · **CLIENTE-LISTA-DESC-PDV** |
+| **Migrate** | **0145** (`desconto_pdv_percentual`) — **build Render** (`manage.py migrate` no deploy) |
+| **Backup** | `producao-backup-pre-v2719-caixa-credito` @ `9f18d10f` · `producao-backup-pre-v2720-cliente-desc-pdv` @ `355ed0d9` |
+| **Rollback total → v27.18** | `git push origin rollback/pre-v2718-caixa-credito:producao` → `9f18d10f` |
+| **Rollback só 15/10a → v27.19** | `git push origin producao-backup-pre-v2720-cliente-desc-pdv:producao` → `355ed0d9` |
+| **Smoke** | Ctrl+F5 · **Fechar caixa** · crédito **DESBLOQUEAR** · `/clientes/` + Excel · PDV % desconto |
+| **Nota cutover** | Passo 2: PREP standalone não era ancestral de v27.19 — merge **`ad199569`** na hora (caixa+credito preservados) |
+
+### ~~PREP~~ — CHECKLIST **15/10 + 15/10b** · **v27.19** · ✅ Live (16/10)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live v27.19** @ **`355ed0d9`** (incluído no tip **v27.20**) |
 | **Pacotes** | **CAIXA-FECHAR-PERF** + **CREDITO-DESBLOQUEIO-LAB** (sem `desconto_pdv` / **0145** — pacote **15/10a** separado) |
 | **Migrate** | **NÃO** |
 | **Prova (cloud 16/10)** | cutover dry-run OK · fechar loja/repasse/dev MP · crédito **34/34** + tests **5/5** |
@@ -1310,11 +1324,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Smoke** | Caixa → **Fechar caixa** (rápido) · Gestão → Análise crédito → **DESBLOQUEAR** + **Aprovar** |
 | **Zap (opcional)** | *«Atualização ~2 min — fechar caixa + crédito. Não finalize venda no meio.»* |
 
-### 🟢 PREP loja — CHECKLIST **15/10a** · **v27.20** · **ARMADO** (passo 2 · migrate **0145**)
+### ~~PREP~~ — CHECKLIST **15/10a** · **v27.20** · ✅ Live (16/10)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **ARMADO** — `deploy/prep-checklist-1510a-cliente-desc-pdv` @ **`77ea3981`** · base lógica pós **v27.19** |
+| **Status** | ✅ **Live** — merge **`ad199569`** em `producao` |
 | **Pacote** | **CLIENTE-LISTA-DESC-PDV** (`pdv_state.js`, clientes, planilha Excel) |
 | **Migrate** | **SIM** — `0145_clienteagro_desconto_pdv_percentual` (**obrigatório** Render Shell após push) |
 | **Prova (cloud 16/10)** | `verify_cliente_lista_desc_pdv_path` **18/18** · `verify_cliente_planilha_path` **61/61** (HTTP export após migrate na loja) |
@@ -1326,11 +1340,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Smoke** | Ctrl+F5 `/clientes/` · PDV — % desconto só no cliente cadastrado |
 | **Ordem** | Preferir **passo 1 (v27.19)** → Render live → **passo 2 (v27.20)** + migrate na **mesma pausa** de vendas |
 
-### ✅ CHECKLIST ÚNICO — **15/10b** · 🟢 **ARMADO** (no PREP v27.19)
+### ✅ CHECKLIST ÚNICO — **15/10b** · ✅ Live **v27.20**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CREDITO-DESBLOQUEIO-LAB** | 🟢 **ARMADO** PREP v27.19 | **NÃO** | `verify_credito_limite_revisao_path` **34/34** · `tests_credito_limite_revisao` **5/5** |
+| 1 | **CREDITO-DESBLOQUEIO-LAB** | ✅ **Live** | **NÃO** | `verify_credito_limite_revisao_path` **34/34** · `tests_credito_limite_revisao` **5/5** |
 
 ### 📦 PACOTE PRONTO — **CREDITO-DESBLOQUEIO-LAB** (`CHECKLIST 15/10b` · 15/10)
 
@@ -1338,25 +1352,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | Análise de crédito: **DESBLOQUEAR (R$ 0,01)** + aprovar **limite sugerido** em Revisar alterações (tag Desbloqueio) |
 | **Migrate** | **NÃO** |
-| **Loja** | Live **v27.18** — cutover **ARMADO** (ver bloco PREP v27.19 acima) |
+| **Loja** | ✅ **Live v27.20** |
 | **Smoke** | Ctrl+F5 · Gestão → Análise de crédito → **DESBLOQUEAR** → **Aprovar** (cliente «Revisar bloqueio») |
 
-### ✅ CHECKLIST ÚNICO — **15/10** · 🟢 **ARMADO** (no PREP v27.19)
+### ✅ CHECKLIST ÚNICO — **15/10** · ✅ Live **v27.20**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CAIXA-FECHAR-PERF** | 🟢 **ARMADO** PREP v27.19 | **NÃO** | `verify_caixa_fechar_loja_path` **46/46** · `verify_caixa_fechar_repasse_path` **68/68** · `verify_caixa_devolucao_dinheiro_mp_path` **171/171** |
+| 1 | **CAIXA-FECHAR-PERF** | ✅ **Live** | **NÃO** | `verify_caixa_fechar_loja_path` **46/46** · `verify_caixa_fechar_repasse_path` **68/68** · `verify_caixa_devolucao_dinheiro_mp_path` **171/171** |
 
 ### 📦 PACOTE PRONTO — **CAIXA-FECHAR-PERF** (`CHECKLIST 15/10`)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **ARMADO** — PREP **`355ed0d9`** · código também em **`teste`** · loja **v27.18** |
+| **Status** | ✅ **Live v27.20** |
 | **O quê** | Abrir **Fechar caixa** sem recalcular conferência em triplicata (`CaixaFecharPrep`) |
 | **Migrate** | **NÃO** |
 | **Smoke** | Caixa → **Fechar caixa** — abre rápido |
 
-### ✅ PACOTE PRONTO — **CLIENTE-LISTA-DESC-PDV** (`CHECKLIST 15/10a` · 15/10) · 🟢 **ARMADO** PREP v27.20
+### ✅ PACOTE PRONTO — **CLIENTE-LISTA-DESC-PDV** (`CHECKLIST 15/10a` · 15/10) · ✅ **Live v27.20**
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1364,11 +1378,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `verify_cliente_lista_desc_pdv_path` **18/18** · `verify_cliente_planilha_path` **61/61** |
 | **Migrate** | **SIM** `0145` |
 
-### ✅ CHECKLIST ÚNICO — **15/10a** · 🟢 **ARMADO** PREP v27.20
+### ✅ CHECKLIST ÚNICO — **15/10a** · ✅ Live **v27.20**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CLIENTE-LISTA-DESC-PDV** | 🟢 **ARMADO** PREP **`77ea3981`** | **SIM** `0145` |
+| 1 | **CLIENTE-LISTA-DESC-PDV** | ✅ **Live** @ **`ad199569`** | **SIM** `0145` |
 
 ### ✅ Deploy loja — **RH-VALE-VILA** · **Live v27.18** · validado 15/10
 

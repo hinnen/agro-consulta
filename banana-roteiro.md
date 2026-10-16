@@ -1032,31 +1032,23 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 83. Checklist único — **15/10 + 15/10b** · 🟢 PREP **v27.19** · **ARMADO**
+## 83. Checklist único — **15/10 + 15/10b** · ✅ Live **v27.20** (base v27.19 @ `355ed0d9`)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CAIXA-FECHAR-PERF** | 🟢 **ARMADO** | **NÃO** |
-| 2 | **CREDITO-DESBLOQUEIO-LAB** | 🟢 **ARMADO** | **NÃO** |
+| 1 | **CAIXA-FECHAR-PERF** | ✅ **Live** | **NÃO** |
+| 2 | **CREDITO-DESBLOQUEIO-LAB** | ✅ **Live** | **NÃO** |
 
-**Live antes:** **v27.18** @ `9f18d10f`.  
-**PREP:** `deploy/prep-checklist-1510-caixa-credito` @ **`355ed0d9`**.  
-**Prova:** fechar loja **46/46** · repasse **68/68** · dev MP **171/171** · crédito **34/34** + tests **5/5** · cutover dry-run OK.  
-**Na senha (passo 1 — vendas pausadas):** `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → `./scripts/cutover_loja_checklist_1510_caixa_credito.sh --exec` → `./scripts/post_deploy_checklist_1510_caixa_credito.sh`.  
-**Rollback:** tag `rollback/pre-v2718-caixa-credito` → `9f18d10f`.  
-**Doc:** `docs/DEPLOY-PREP-CHECKLIST-1510-caixa-credito.md`.  
-**Não inclui:** `0145` · `pdv_state` desconto · wizard/busca PDV.
+**Live:** `producao` @ **`ad199569`** · backup v2719 @ `9f18d10f`.  
+**Rollback total:** `rollback/pre-v2718-caixa-credito` → `9f18d10f`.
 
 ---
 
-## 84. Checklist único — **15/10a** · 🟢 PREP **v27.20** · **ARMADO** (passo 2)
+## 84. Checklist único — **15/10a** · ✅ Live **v27.20**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CLIENTE-LISTA-DESC-PDV** | 🟢 **ARMADO** | **SIM** `0145` |
+| 1 | **CLIENTE-LISTA-DESC-PDV** | ✅ **Live** | **SIM** `0145` |
 
-**PREP:** `deploy/prep-checklist-1510a-cliente-desc-pdv` @ **`77ea3981`**.  
-**Prova:** lista/PDV **18/18** · planilha **61/61** · cutover dry-run OK (HTTP export na loja após migrate).  
-**Na senha (passo 2 — mesma pausa):** cutover `./scripts/cutover_loja_checklist_1510a_cliente_desc_pdv.sh --exec` → Render Shell `./scripts/post_deploy_checklist_1510a_cliente_desc_pdv.sh`.  
-**Rollback:** tag `rollback/pre-v2719-cliente-desc-pdv` (base pós v27.19).  
-**Doc:** `docs/DEPLOY-PREP-CHECKLIST-1510a-cliente-desc-pdv.md`.
+**Live:** tip **`ad199569`** (merge 15/10a sobre v27.19) · backup v2720 @ `355ed0d9`.  
+**Rollback só cliente/desconto:** `producao-backup-pre-v2720-cliente-desc-pdv:producao`.
