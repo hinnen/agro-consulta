@@ -1294,66 +1294,33 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### ✅ CHECKLIST ÚNICO — **16/10** · pronto envio produção (**v27.21**)
+### ✅ Loja · **Live v27.20** @ `2721cec2` (16/10)
+
+**15/10 + 15/10b + 15/10a** na loja · prova cloud **`./scripts/verify_checklist_v2720_path.sh`** OK (PIN teste **9973**).
+
+### ✅ CHECKLIST ÚNICO — **16/10** · 🟢 **PRONTO envio produção**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CAIXA-FECHAR-PERF-2** | 🟢 **PRONTO envio** @ `teste` | **NÃO** | `verify_caixa_fechar_loja_path` **53/53** · `verify_caixa_fechar_repasse_path` **68/68** · `verify_caixa_devolucao_dinheiro_mp_path` **171/171** |
+| 1 | **CAIXA-FECHAR-PERF-2** | 🟢 **PRONTO** | **NÃO** | fechar **54/54** · repasse **68/68** · dev MP **171/171** |
 
-### 📦 PACOTE PRONTO — **CAIXA-FECHAR-PERF-2** (`CHECKLIST 16/10`)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Loja hoje** | **v27.20** — PERF v1 só; **Vila ainda lenta** até este pacote |
-| **O quê** | Fechar caixa Vila: `reserva_leve` (sem loop reserva) · prefetch enxuto · fiado GET `criar_titulos=False` · cards só loja atual |
-| **Smoke** | Ctrl+F5 · Caixa **Vila** → **Fechar caixa** (2 turnos) |
-| **Você** | Teste local OK → frase + senha → hotfix **v27.21** |
-
-### ✅ Deploy loja — CHECKLIST **15/10 + 15/10b + 15/10a** · **Live v27.20** · 16/10
+### 📦 PACOTE PRONTO — **CAIXA-FECHAR-PERF-2** (`CHECKLIST 16/10` · **v27.21**)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v27.20** @ **`2721cec2`** (hotfix VERSION) · cutover **`355ed0d9`** · merge **`ad199569`** |
-| **Antes** | **v27.18** @ `9f18d10f` |
-| **Pacotes** | **CAIXA-FECHAR-PERF** · **CREDITO-DESBLOQUEIO-LAB** · **CLIENTE-LISTA-DESC-PDV** |
-| **Migrate** | **0145** (`desconto_pdv_percentual`) — **build Render** (`manage.py migrate` no deploy) |
-| **Backup** | `producao-backup-pre-v2719-caixa-credito` @ `9f18d10f` · `producao-backup-pre-v2720-cliente-desc-pdv` @ `355ed0d9` |
-| **Rollback total → v27.18** | `git push origin rollback/pre-v2718-caixa-credito:producao` → `9f18d10f` |
-| **Rollback só 15/10a → v27.19** | `git push origin producao-backup-pre-v2720-cliente-desc-pdv:producao` → `355ed0d9` |
-| **Smoke** | Ctrl+F5 · **Fechar caixa** · crédito **DESBLOQUEAR** · `/clientes/` + Excel · PDV % desconto |
-| **Nota cutover** | Passo 2: PREP standalone não era ancestral de v27.19 — merge **`ad199569`** na hora (caixa+credito preservados) |
+| **PREP** | `deploy/prep-checklist-1610-caixa-perf2` @ **`27740dae`** |
+| **O quê** | Fechar caixa **Vila** sem reserva pesada no GET (`reserva_leve_estado_caixa_fechar`) |
+| **Cutover** | `./scripts/cutover_loja_checklist_1610_caixa_perf2.sh` |
+| **Rollback** | `rollback/pre-v2720-caixa-perf2` → `2721cec2` |
+| **Smoke** | Ctrl+F5 · Caixa **Vila** → **Fechar caixa** |
 
-### ~~PREP~~ — CHECKLIST **15/10 + 15/10b** · **v27.19** · ✅ Live (16/10)
+### ✅ CHECKLIST ÚNICO — **15/10** · ✅ Live **v27.20**
 
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | ✅ **Live v27.19** @ **`355ed0d9`** (incluído no tip **v27.20**) |
-| **Pacotes** | **CAIXA-FECHAR-PERF** + **CREDITO-DESBLOQUEIO-LAB** (sem `desconto_pdv` / **0145** — pacote **15/10a** separado) |
-| **Migrate** | **NÃO** |
-| **Prova (cloud 16/10)** | cutover dry-run OK · fechar loja/repasse/dev MP · crédito **34/34** + tests **5/5** |
-| **Cutover dry-run** | `./scripts/cutover_loja_checklist_1510_caixa_credito.sh` |
-| **Cutover loja (passo 1)** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1510_caixa_credito.sh --exec` |
-| **Pós-deploy** | `./scripts/post_deploy_checklist_1510_caixa_credito.sh` |
-| **Rollback** | tag `rollback/pre-v2718-caixa-credito` → **`9f18d10f`** |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1510-caixa-credito.md` |
-| **Smoke** | Caixa → **Fechar caixa** (rápido) · Gestão → Análise crédito → **DESBLOQUEAR** + **Aprovar** |
-| **Zap (opcional)** | *«Atualização ~2 min — fechar caixa + crédito. Não finalize venda no meio.»* |
-
-### ~~PREP~~ — CHECKLIST **15/10a** · **v27.20** · ✅ Live (16/10)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | ✅ **Live** — merge **`ad199569`** em `producao` |
-| **Pacote** | **CLIENTE-LISTA-DESC-PDV** (`pdv_state.js`, clientes, planilha Excel) |
-| **Migrate** | **SIM** — `0145_clienteagro_desconto_pdv_percentual` (**obrigatório** Render Shell após push) |
-| **Prova (cloud 16/10)** | `verify_cliente_lista_desc_pdv_path` **18/18** · `verify_cliente_planilha_path` **61/61** (HTTP export após migrate na loja) |
-| **Cutover dry-run** | `./scripts/cutover_loja_checklist_1510a_cliente_desc_pdv.sh` |
-| **Cutover loja (passo 2)** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1510a_cliente_desc_pdv.sh --exec` |
-| **Pós-deploy** | `./scripts/post_deploy_checklist_1510a_cliente_desc_pdv.sh` → `python manage.py migrate --noinput` |
-| **Rollback** | tag `rollback/pre-v2719-cliente-desc-pdv` (tip **355ed0d9** se só este pacote precisar voltar após v27.19) |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1510a-cliente-desc-pdv.md` |
-| **Smoke** | Ctrl+F5 `/clientes/` · PDV — % desconto só no cliente cadastrado |
-| **Ordem** | Preferir **passo 1 (v27.19)** → Render live → **passo 2 (v27.20)** + migrate na **mesma pausa** de vendas |
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CAIXA-FECHAR-PERF** | ✅ Live | **NÃO** |
+| 2 | **CREDITO-DESBLOQUEIO-LAB** | ✅ Live | **NÃO** |
+| 3 | **CLIENTE-LISTA-DESC-PDV** | ✅ Live | **SIM** `0145` |
 
 ### ✅ CHECKLIST ÚNICO — **15/10b** · ✅ Live **v27.20**
 
@@ -1408,10 +1375,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Vale no caixa **Vila** para funcionário RH **Centro** (perfil por ClienteAgro · gaveta Vila) |
 | **Migrate** | **NÃO** |
 | **Backup** | `producao-backup-pre-v2718-rh-vale-vila` @ `39337d12` |
-| **Rollback git** | `git push origin 39337d12:producao` (+ Manual Deploy Render se necessário) |
-| **Smoke** | ✅ Renan 15/10 — vale caixa **Vila** + conferência **gestão RH** |
-| **Render MCP cloud** | Secret `RENDER_API_KEY` no ambiente Cursor · doc `docs/CURSOR-RENDER-MCP-CLOUD.md` |
-| **Doc** | `docs/DEPLOY-PREP-RH-VALE-VILA.md` |
+| **Rollback** | `git push origin 39337d12:producao` |
+| **Smoke** | Ctrl+F5 · caixa **Vila** · **Adiantamento (Vale)** · lista + PIN **9973** · ficha RH |
+| **Zap (opcional)** | *«Atualização ~2 min — vale na Vila. Não finalize venda no meio.»* |
+| **Prova cloud 14/10** | `verify_rh_vale` **8/8** + `verify_saida_empresa_loja` **10/10** · cutover dry-run OK @ `1b775dbfe` |
+| **Nota** | **`teste` ≠ ancestral de `producao`** — push loja só via `deploy/prep-rh-vale-vila`, não `origin/teste` |
 
 ### ✅ Deploy loja — **ETQ-MOBILE-BIP** · **Live v27.16** · CHECKLIST **13/10c** · 13/10
 

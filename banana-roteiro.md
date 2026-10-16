@@ -1039,7 +1039,7 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | 1 | **CAIXA-FECHAR-PERF** | ✅ **Live** | **NÃO** |
 | 2 | **CREDITO-DESBLOQUEIO-LAB** | ✅ **Live** | **NÃO** |
 
-**Live:** `producao` @ **`ad199569`** · backup v2719 @ `9f18d10f`.  
+**Live:** `producao` @ **`2721cec2`** (v27.20).  
 **Rollback total:** `rollback/pre-v2718-caixa-credito` → `9f18d10f`.
 
 ---
@@ -1050,5 +1050,16 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | - | ------ | ------ | ------- |
 | 1 | **CLIENTE-LISTA-DESC-PDV** | ✅ **Live** | **SIM** `0145` |
 
-**Live:** tip **`ad199569`** (merge 15/10a sobre v27.19) · backup v2720 @ `355ed0d9`.  
-**Rollback só cliente/desconto:** `producao-backup-pre-v2720-cliente-desc-pdv:producao`.
+**Live:** tip **`2721cec2`**.
+
+---
+
+## 85. Checklist único — **16/10** · 🟢 PREP **v27.21** · aguarda senha
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CAIXA-FECHAR-PERF-2** | 🟢 **PRONTO** | **NÃO** |
+
+**PREP:** `deploy/prep-checklist-1610-caixa-perf2` · base **`2721cec2`**.  
+**Prova:** `verify_checklist_v2720_path.sh` · fechar **49/49**.  
+**Cutover:** `./scripts/cutover_loja_checklist_1610_caixa_perf2.sh --exec` + frase + senha.
