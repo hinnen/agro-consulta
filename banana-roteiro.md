@@ -1075,3 +1075,17 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **Live:** `producao` @ **`d0df4700`**.  
 **Revert:** `git push origin rollback/pre-v2723-cadastro-palavras-reabre:producao` → **v27.23** @ `37ad1354`.  
 **Smoke:** Cadastro → produto **não med** → aba **2. Busca** → salvar → reabrir.
+
+---
+
+## 87. Checklist único — **16/10f** · 🟡 PREP **v27.25** · aguarda senha
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CADASTRO-PALAVRAS-PDV** | 🟡 **checkpoint OK** | **NÃO** | **48/48** + **5/5** |
+
+**Base loja:** **v27.24** @ **`d0df4700`**.  
+**PREP:** `deploy/prep-checklist-1610f-cadastro-palavras-pdv` @ **`b60a3f5b`**.  
+**Na senha:** `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → `./scripts/cutover_loja_checklist_1610f_cadastro_palavras_pdv.sh --exec` → `./scripts/post_deploy_checklist_1610f_cadastro_palavras_pdv.sh`.  
+**Revert:** `git push origin rollback/pre-v2724-cadastro-palavras-pdv:producao`.  
+**Smoke:** Cadastro apelidos → PDV busca **2 tempo**.
