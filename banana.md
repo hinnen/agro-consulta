@@ -1294,29 +1294,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 ARMADO · **PREP v27.25** · **CHECKLIST 16/10f** · CADASTRO-PALAVRAS-PDV
+### ✅ Deploy loja — **CADASTRO-PALAVRAS-PDV** · **Live v27.25** · CHECKLIST **16/10f** · 16/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Pacote** | Vírgulas/linhas em palavras-chave · busca PDV por apelido no overlay |
-| **Status** | 🟡 **Checkpoint OK** · cutover **1 comando** · Live **v27.24** @ **`d0df4700`** |
-| **PREP** | `deploy/prep-checklist-1610f-cadastro-palavras-pdv` @ **`b60a3f5b`** |
+| **Status** | ✅ **Live v27.25** @ **`b60a3f5b`** |
 | **Migrate** | **NÃO** |
-| **Prova** | `prep_checkpoint` **OK** · verify **48/48** · tests PDV **5/5** |
-| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1610f_cadastro_palavras_pdv.sh` ✅ |
-| **Rollback** | `rollback/pre-v2724-cadastro-palavras-pdv` @ **`d0df4700`** |
-| **Backup** | `producao-backup-pre-v2725-cadastro-palavras-pdv` @ **`d0df4700`** |
-| **Revert** | `git push origin rollback/pre-v2724-cadastro-palavras-pdv:producao` → **v27.24** |
-| **Cutover loja** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1610f_cadastro_palavras_pdv.sh --exec` |
-| **Pós-deploy** | `./scripts/post_deploy_checklist_1610f_cadastro_palavras_pdv.sh` |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1610f-cadastro-palavras-pdv.md` |
-| **Smoke** | Óleo 2T → **2. Busca** apelidos → PDV **2 tempo** (F5 se cache) |
+| **Pós-deploy** | `post_deploy_checklist_1610f` **OK** · verify **48/48** · tests **5/5** |
+| **Revert** | `git push origin rollback/pre-v2724-cadastro-palavras-pdv:producao` → **v27.24** @ **`d0df4700`** |
+| **Backup pré-subida** | `producao-backup-pre-v2725-cadastro-palavras-pdv` @ **`d0df4700`** |
+| **Smoke** | Cadastro apelidos → PDV buscar **2 tempo** (F5 se cache) |
 
-### ✅ CHECKLIST ÚNICO — **16/10f** · 🟡 **aguarda senha** (PREP armado)
+### ✅ CHECKLIST ÚNICO — **16/10f** · ✅ Live **v27.25**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CADASTRO-PALAVRAS-PDV** | 🟡 **aguarda senha** | **NÃO** | **48/48** |
+| 1 | **CADASTRO-PALAVRAS-PDV** | ✅ **Live** | **NÃO** | **48/48** |
 
 ### ✅ Deploy loja — **CADASTRO-PALAVRAS-REABRE** · **Live v27.24** · CHECKLIST **16/10e** · 16/10
 
