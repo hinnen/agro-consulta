@@ -7,6 +7,7 @@ import os
 import sys
 from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parent.parent
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
@@ -16,7 +17,6 @@ import django
 
 django.setup()
 
-from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from django.test import RequestFactory
@@ -225,6 +225,52 @@ def _prova_caixa_fechar_prep_equivalente() -> None:
     check(calls_mp <= 1, f"prep no max 1 query Point MP (foi {calls_mp})")
 
 
+def _prova_reserva_leve_sem_loop_pendente() -> None:
+    """GET Fechar caixa (Vila): reserva leve não chama pendente_reserva / calcular_disponivel."""
+
+    from produtos.repasse_vila_util import (
+        reserva_leve_estado_caixa_fechar,
+        resumo_reserva_fechamento_vila,
+    )
+
+    cfg = SimpleNamespace(saldo_reserva_vila=Decimal("0"), saldo_cofre_vila_elias=Decimal("0"))
+    sess = SimpleNamespace(pk=1, ponto_caixa="vila")
+    calls = {"calc": 0, "pend": 0}
+
+    def _fake_calc(*_a, **_k):
+        calls["calc"] += 1
+        return {}
+
+    def _fake_pend(*_a, **_k):
+        calls["pend"] += 1
+        return {"pendente": Decimal("1")}
+
+    def _fake_saldo(*_a, **_k):
+        return Decimal("9.99")
+
+    try:
+        with (
+            patch("produtos.repasse_vila_util.obter_config", return_value=cfg),
+            patch("produtos.repasse_vila_util.saldo_cofrinho_vila", side_effect=_fake_saldo),
+            patch("produtos.repasse_vila_util.calcular_disponivel", _fake_calc),
+            patch("produtos.repasse_vila_util.pendente_reserva_cofrinho_ate", _fake_pend),
+        ):
+            leve = reserva_leve_estado_caixa_fechar()
+            calls_leve = dict(calls)
+            calls = {"calc": 0, "pend": 0}
+            pesado = resumo_reserva_fechamento_vila([sess])
+            calls_pesado = dict(calls)
+        check(
+            calls_leve["pend"] == 0 and calls_leve["calc"] == 0,
+            "reserva leve zero pendente/calc",
+        )
+        check(calls_pesado["pend"] >= 2, "resumo pesado ainda usa pendente (referencia)")
+        check("saldo" in leve and "saldo_vila_elias" in leve, "reserva leve retorna saldos")
+        check(pesado.get("tem") is True, "resumo pesado detecta pendente mock")
+    except Exception as exc:
+        fail(f"reserva leve: {exc}")
+
+
 def main() -> int:
     html = (ROOT / "produtos/templates/produtos/caixa_fechar.html").read_text(encoding="utf-8")
     inc = (ROOT / "produtos/templates/produtos/includes/caixa_fechar_linha_conf.html").read_text(
@@ -247,7 +293,11 @@ def main() -> int:
     check("filtrar_sessoes_por_deposito" in views, "api estado filtra deposito")
     check(
         "reserva_leve_estado_caixa_fechar" in views,
-        "fechar caixa nao chama resumo_reserva pesado",
+        "fechar caixa usa reserva leve",
+    )
+    check(
+        "resumo_reserva_fechamento_vila" not in views,
+        "views sem resumo_reserva pesado",
     )
     check(
         "criar_titulos=False" in views,
@@ -327,6 +377,7 @@ def main() -> int:
 
     _prova_api_estado_nao_mistura_lojas()
     _prova_caixa_fechar_prep_equivalente()
+    _prova_reserva_leve_sem_loop_pendente()
 
     print(f"---\noks={OKS} fails={len(FAILS)}")
     if FAILS:

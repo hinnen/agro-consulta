@@ -1294,17 +1294,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PREP loja — CHECKLIST **16/10** · **CAIXA-FECHAR-PERF-2** · aguarda teste local + frase+senha
+### ✅ CHECKLIST ÚNICO — **16/10** · pronto envio produção (**v27.21**)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CAIXA-FECHAR-PERF-2** | 🟢 **PRONTO envio** @ `teste` | **NÃO** | `verify_caixa_fechar_loja_path` **53/53** · `verify_caixa_fechar_repasse_path` **68/68** · `verify_caixa_devolucao_dinheiro_mp_path` **171/171** |
+
+### 📦 PACOTE PRONTO — **CAIXA-FECHAR-PERF-2** (`CHECKLIST 16/10`)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PRONTO em `teste`** — **não** está na loja ainda |
-| **Live hoje** | **v27.20** @ `2721cec2` — tem **CAIXA-FECHAR-PERF v1** (`CaixaFecharPrep`) **mas** ainda chama `resumo_reserva_fechamento_vila` no GET Fechar caixa → **Vila continua lenta** (Renan 16/10) |
-| **O quê (v2)** | `reserva_leve_estado_caixa_fechar` (só saldo cofrinho) · prefetch enxuto sessões · fiado conferência no GET com `criar_titulos=False` · cards aside só lote+teste da loja |
-| **Migrate** | **NÃO** |
-| **Prova (cloud)** | `verify_caixa_fechar_loja_path` **49/49** · `verify_caixa_fechar_repasse_path` **68/68** · `verify_caixa_devolucao_dinheiro_mp_path` **171/171** |
-| **Smoke** | Ctrl+F5 · Caixa **Vila** → **Fechar caixa** (2 turnos abertos) — deve abrir em poucos segundos |
-| **Próximo tip** | **v27.21** hotfix (só este pacote) após OK local |
+| **Loja hoje** | **v27.20** — PERF v1 só; **Vila ainda lenta** até este pacote |
+| **O quê** | Fechar caixa Vila: `reserva_leve` (sem loop reserva) · prefetch enxuto · fiado GET `criar_titulos=False` · cards só loja atual |
+| **Smoke** | Ctrl+F5 · Caixa **Vila** → **Fechar caixa** (2 turnos) |
+| **Você** | Teste local OK → frase + senha → hotfix **v27.21** |
 
 ### ✅ Deploy loja — CHECKLIST **15/10 + 15/10b + 15/10a** · **Live v27.20** · 16/10
 
