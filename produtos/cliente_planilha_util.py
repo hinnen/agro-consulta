@@ -49,6 +49,7 @@ COL_ENDERECO = "endereco"
 COL_SALDO_CASHBACK = "saldo_cashback"
 COL_SALDO_VALE = "saldo_vale_credito"
 COL_LIMITE_FIADO = "limite_fiado_local"
+COL_DESCONTO_PDV = "desconto_pdv_percentual"
 COL_QTD_FIADO_3M = "qtd_compras_fiado_3m"
 COL_MEDIA_FIADO_3M = "media_fiado_3m"
 COL_MES_MAIS_FIADO = "mes_mais_comprou_fiado"
@@ -77,6 +78,7 @@ EXPORT_HEADERS: list[tuple[str, str]] = [
     ("Saldo cashback", COL_SALDO_CASHBACK),
     ("Saldo vale", COL_SALDO_VALE),
     ("Limite fiado", COL_LIMITE_FIADO),
+    ("% desconto PDV", COL_DESCONTO_PDV),
     ("Qtd compras fiado (3 meses)", COL_QTD_FIADO_3M),
     ("Média fiado/mês (3 meses)", COL_MEDIA_FIADO_3M),
     ("Mês que mais comprou fiado", COL_MES_MAIS_FIADO),
@@ -118,6 +120,7 @@ IMPORT_EDIT_KEYS = frozenset(
         COL_SALDO_CASHBACK,
         COL_SALDO_VALE,
         COL_LIMITE_FIADO,
+        COL_DESCONTO_PDV,
     }
 )
 
@@ -152,6 +155,12 @@ def _map_headers(headers: list[str]) -> dict[str, str | None]:
         COL_SALDO_CASHBACK: ("saldo cashback", "cashback"),
         COL_SALDO_VALE: ("saldo vale", "vale credito", "vale crédito"),
         COL_LIMITE_FIADO: ("limite fiado", "limite_fiado_local", "limite de fiado"),
+        COL_DESCONTO_PDV: (
+            "% desconto pdv",
+            "desconto pdv",
+            "desconto_pdv_percentual",
+            "percentual desconto pdv",
+        ),
         COL_QTD_FIADO_3M: ("qtd compras fiado 3m", "qtd compras fiado (3 meses)"),
         COL_MEDIA_FIADO_3M: (
             "media fiado 3m",
@@ -420,6 +429,9 @@ def coletar_linhas_export_clientes() -> list[dict[str, Any]]:
                 COL_SALDO_CASHBACK: float(cli.saldo_cashback or 0),
                 COL_SALDO_VALE: float(cli.saldo_vale_credito or 0),
                 COL_LIMITE_FIADO: float(cli.limite_fiado_local or 0),
+                COL_DESCONTO_PDV: float(cli.desconto_pdv_percentual or 0)
+                if cli.desconto_pdv_percentual is not None
+                else "",
                 COL_QTD_FIADO_3M: int(st.get("qtd") or 0),
                 COL_MEDIA_FIADO_3M: float(st.get("media") or 0),
                 COL_MES_MAIS_FIADO: st.get("mes_mais") or "",
@@ -522,6 +534,9 @@ def _cliente_para_dict(cli: ClienteAgro) -> dict[str, Any]:
         COL_SALDO_CASHBACK: _json_safe(cli.saldo_cashback),
         COL_SALDO_VALE: _json_safe(cli.saldo_vale_credito),
         COL_LIMITE_FIADO: _json_safe(cli.limite_fiado_local),
+        COL_DESCONTO_PDV: _json_safe(cli.desconto_pdv_percentual)
+        if cli.desconto_pdv_percentual is not None
+        else None,
     }
 
 
@@ -569,6 +584,7 @@ def _patch_da_linha(raw: dict, colmap: dict[str, str | None]) -> dict[str, Any]:
     dec(COL_SALDO_CASHBACK)
     dec(COL_SALDO_VALE)
     dec(COL_LIMITE_FIADO)
+    dec(COL_DESCONTO_PDV)
 
     hdr_ativo = colmap.get(COL_ATIVO)
     if hdr_ativo and hdr_ativo in raw:
@@ -628,9 +644,24 @@ def analise_importacao_clientes(path: Path) -> dict[str, Any]:
         campos = []
         for k, novo in edit.items():
             ant = atual.get(k)
-            if k in (COL_SALDO_CASHBACK, COL_SALDO_VALE, COL_LIMITE_FIADO):
-                a = _parse_decimal_br(ant) or Decimal("0")
-                n = _parse_decimal_br(novo) or Decimal("0")
+            if k in (COL_SALDO_CASHBACK, COL_SALDO_VALE, COL_LIMITE_FIADO, COL_DESCONTO_PDV):
+                a = _parse_decimal_br(ant) if ant is not None and ant != "" else None
+                n = _parse_decimal_br(novo) if novo is not None and novo != "" else None
+                if k == COL_DESCONTO_PDV:
+                    if a is None and n is None:
+                        continue
+                    if a is not None and n is not None and a == n:
+                        continue
+                    campos.append(
+                        {
+                            "campo": k,
+                            "de": float(a) if a is not None else "",
+                            "para": float(n) if n is not None else "",
+                        }
+                    )
+                    continue
+                a = a or Decimal("0")
+                n = n or Decimal("0")
                 if a == n:
                     continue
                 campos.append({"campo": k, "de": float(a), "para": float(n)})
@@ -740,6 +771,16 @@ def _aplicar_patch_cliente(cli: ClienteAgro, patch: dict[str, Any], user) -> lis
     if COL_SALDO_VALE in patch:
         cli.saldo_vale_credito = patch[COL_SALDO_VALE]
         alterados.append(COL_SALDO_VALE)
+    if COL_DESCONTO_PDV in patch:
+        raw_desc = patch[COL_DESCONTO_PDV]
+        if raw_desc is None or raw_desc == "":
+            cli.desconto_pdv_percentual = None
+        else:
+            d = _parse_decimal_br(raw_desc) if not isinstance(raw_desc, Decimal) else raw_desc
+            if d is not None and (d < 0 or d > 100):
+                raise ValueError("% desconto PDV deve estar entre 0 e 100.")
+            cli.desconto_pdv_percentual = None if d is None or d == 0 else d
+        alterados.append(COL_DESCONTO_PDV)
 
     limite_patch = patch.get(COL_LIMITE_FIADO)
     if COL_LIMITE_FIADO in patch:
