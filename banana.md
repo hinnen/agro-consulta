@@ -1308,7 +1308,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **PREP** | `deploy/prep-checklist-1610-caixa-perf2` @ **`27740dae`** |
+| **PREP** | `deploy/prep-checklist-1610-caixa-perf2` @ **`56b60ea9`** · cutover dry-run OK |
 | **O quê** | Fechar caixa **Vila** sem reserva pesada no GET (`reserva_leve_estado_caixa_fechar`) |
 | **Cutover** | `./scripts/cutover_loja_checklist_1610_caixa_perf2.sh` |
 | **Rollback** | `rollback/pre-v2720-caixa-perf2` → `2721cec2` |

@@ -1060,6 +1060,6 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | - | ------ | ------ | ------- |
 | 1 | **CAIXA-FECHAR-PERF-2** | 🟢 **PRONTO** | **NÃO** |
 
-**PREP:** `deploy/prep-checklist-1610-caixa-perf2` · base **`2721cec2`**.  
+**PREP:** `deploy/prep-checklist-1610-caixa-perf2` @ **`56b60ea9`** · base **`2721cec2`**.  
 **Prova:** `verify_checklist_v2720_path.sh` · fechar **49/49**.  
 **Cutover:** `./scripts/cutover_loja_checklist_1610_caixa_perf2.sh --exec` + frase + senha.
