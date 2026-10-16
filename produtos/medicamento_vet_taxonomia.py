@@ -308,6 +308,21 @@ def anexar_texto_busca_extras(busca_texto: str, ex: dict | None) -> str:
     return f"{base} {sufixo}".strip()
 
 
+def anexar_campos_busca_em_row_cadastro(
+    row: dict,
+    ex: dict | None,
+    *,
+    descricao_overlay: str | None = None,
+) -> None:
+    """Expõe busca do overlay no JSON do modal (agro_pg + Mongo)."""
+    pk, cv, ev = ler_busca_de_cadastro_extras(ex)
+    if not pk and str(descricao_overlay or "").strip():
+        pk = str(descricao_overlay).strip()
+    row["palavras_chave"] = pk
+    row["classes_vet"] = cv
+    row["especies_vet"] = ev
+
+
 def taxonomia_para_api() -> dict[str, Any]:
     data = carregar_taxonomia()
     clf = carregar_classificacao()

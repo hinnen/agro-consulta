@@ -1,4 +1,5 @@
 from produtos.medicamento_vet_taxonomia import (
+    anexar_campos_busca_em_row_cadastro,
     aplicar_palavras_e_classes_em_extras,
     categoria_eh_medicamento,
     documento_mongo_set_busca_agro,
@@ -62,3 +63,13 @@ def test_api_taxonomia_inclui_prateleira_e_especies():
     api = taxonomia_para_api()
     assert len(api.get("grupos_prateleira") or []) == 9
     assert len(api.get("especies") or []) == 10
+
+
+def test_anexar_campos_busca_em_row():
+    row = {}
+    anexar_campos_busca_em_row_cadastro(
+        row,
+        {"palavras_chave": "Dexon, Biodex", "classes_vet": ["antibiotico"]},
+    )
+    assert row["palavras_chave"] == "Dexon Biodex"
+    assert "antibiotico" in row["classes_vet"]
