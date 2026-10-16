@@ -1294,34 +1294,37 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 Falta subir · **PREP v27.23** · **CHECKLIST 16/10d** (16/10)
+### 🟡 Aguarda senha · **PREP v27.23** · **CHECKLIST 16/10d** (16/10)
 
 | Campo | Valor |
 | ----- | ----- |
 | **Pacote** | **ETQ-NF-QTD-FILA** — NF na etiqueta: **1 por produto** ou **qtd da nota** |
-| **Status** | 🟢 **PRONTO envio produção** · `teste` @ `f7b048c4` |
+| **Status** | 🟡 **Checkpoint OK** · cutover **1 comando** (próximo chat) · Live **v27.22** @ **`553e8a4c`** |
+| **PREP** | `deploy/prep-checklist-1610d-etq-nf-qtd` @ **`d97c4db9`** |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_etq_filtro_nf_entrada_path.py` **VERIFY_OK 27/27** |
-| **PREP** | `deploy/prep-checklist-1610d-etq-nf-qtd` |
-| **Cutover dry-run** | `./scripts/cutover_loja_checklist_1610d_etq_nf_qtd.sh` |
-| **Cutover loja** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1610d_etq_nf_qtd.sh --exec` |
+| **Prova** | `prep_checkpoint` **OK** · verify **27/27** · `tests_pdv_cadastro_rapido` **23/23** |
+| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1610d_etq_nf_qtd.sh` ✅ |
+| **Rollback** | `rollback/pre-v2722-etq-nf-qtd` @ **`553e8a4c`** |
+| **Backup** | `producao-backup-pre-v2723-etq-nf-qtd` @ **`553e8a4c`** |
+| **Revert** | `git push origin rollback/pre-v2722-etq-nf-qtd:producao` |
+| **Cutover loja** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='…' ./scripts/cutover_loja_checklist_1610d_etq_nf_qtd.sh --exec` |
 | **Pós-deploy** | `./scripts/post_deploy_checklist_1610d_etq_nf_qtd.sh` |
 | **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1610d-etq-nf-qtd.md` |
-| **Smoke** | Ctrl+F5 · Etiquetas → NF → alternar modo → **Adicionar todos** |
+| **Smoke** | Ctrl+F5 · Etiquetas → NF → modo qtd → **Adicionar todos** |
 
-### ✅ CHECKLIST ÚNICO — **16/10d** · 🟢 **PRONTO envio produção**
+### ✅ CHECKLIST ÚNICO — **16/10d** · 🟡 **aguarda senha** (checkpoint pronto)
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-NF-QTD-FILA** | 🟢 **PRONTO** | **NÃO** | `verify_etq_filtro_nf_entrada_path.py` **27/27** |
+| 1 | **ETQ-NF-QTD-FILA** | 🟡 **aguarda senha** | **NÃO** | `prep_checkpoint` + verify **27/27** |
 
 ### 📦 PACOTE PRONTO — **ETQ-NF-QTD-FILA** (`CHECKLIST 16/10d`) · **PREP v27.23**
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | `entrada_nf_qtd` na API + radios **1 etiqueta** / **qtd NF** · JS **v37** |
-| **Base** | Live **v27.22** (filtro NF já na loja) |
-| **Rollback** | `rollback/pre-v2722-etq-nf-qtd` → **v27.22** |
+| **Base** | Live **v27.22** @ **`553e8a4c`** |
+| **Rollback** | `rollback/pre-v2722-etq-nf-qtd` @ **`553e8a4c`** |
 
 ### ✅ Deploy loja — **ETQ-FILTRO-NF-ENTRADA** · **Live v27.22** · CHECKLIST **16/10c** · 16/10
 
