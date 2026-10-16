@@ -1298,21 +1298,35 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 **15/10 + 15/10b + 15/10a** na loja · prova cloud **`./scripts/verify_checklist_v2720_path.sh`** OK (PIN teste **9973**).
 
-### ✅ CHECKLIST ÚNICO — **16/10** · 🟢 **PRONTO envio produção**
+### 🟢 PREP loja — CHECKLIST **16/10** · **v27.21** · **ARMADO** (aguarda frase+senha)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **ARMADO** — `deploy/prep-checklist-1610-caixa-perf2` @ **`56b60ea9`** · Live **v27.20** @ **`2721cec2`** |
+| **Pacote** | **CAIXA-FECHAR-PERF-2** — só caixa/repasse/Vila (sem PDV · sem migrate · sem `pdv_state` / **0145**) |
+| **Migrate** | **NÃO** |
+| **Prova (cloud 16/10)** | cutover dry-run OK · fechar **54/54** · repasse **68/68** · dev MP **171/171** · `verify_checklist_v2720_path.sh` OK |
+| **Cutover dry-run** | `./scripts/cutover_loja_checklist_1610_caixa_perf2.sh` |
+| **Cutover loja** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1610_caixa_perf2.sh --exec` |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1610_caixa_perf2.sh` · Render **Live** + Ctrl+F5 |
+| **Backup** | `producao-backup-pre-v2721-caixa-perf2` @ `2721cec2` |
+| **Rollback** | `git push origin rollback/pre-v2720-caixa-perf2:producao` → **`2721cec2`** |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1610-caixa-perf2.md` |
+| **Smoke** | Caixa **Vila** → **Fechar caixa** (2 turnos) — poucos segundos |
+| **Zap (opcional)** | *«Atualização ~2 min — só Fechar caixa Vila. Não finalize venda no meio.»* |
+
+### ✅ CHECKLIST ÚNICO — **16/10** · 🟢 **ARMADO** (no PREP v27.21)
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CAIXA-FECHAR-PERF-2** | 🟢 **PRONTO** | **NÃO** | fechar **54/54** · repasse **68/68** · dev MP **171/171** |
+| 1 | **CAIXA-FECHAR-PERF-2** | 🟢 **ARMADO** | **NÃO** | fechar **54/54** · repasse **68/68** · dev MP **171/171** |
 
 ### 📦 PACOTE PRONTO — **CAIXA-FECHAR-PERF-2** (`CHECKLIST 16/10` · **v27.21**)
 
 | Campo | Valor |
 | ----- | ----- |
-| **PREP** | `deploy/prep-checklist-1610-caixa-perf2` @ **`56b60ea9`** · cutover dry-run OK |
 | **O quê** | Fechar caixa **Vila** sem reserva pesada no GET (`reserva_leve_estado_caixa_fechar`) |
-| **Cutover** | `./scripts/cutover_loja_checklist_1610_caixa_perf2.sh` |
-| **Rollback** | `rollback/pre-v2720-caixa-perf2` → `2721cec2` |
-| **Smoke** | Ctrl+F5 · Caixa **Vila** → **Fechar caixa** |
+| **Loja hoje** | **v27.20** — PERF v1; **Vila lenta** até este pacote |
 
 ### ✅ CHECKLIST ÚNICO — **15/10** · ✅ Live **v27.20**
 
