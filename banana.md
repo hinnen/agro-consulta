@@ -1294,6 +1294,35 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 Falta subir · **PREP v27.22** · **CHECKLIST 16/10c** (16/10)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Pacote** | **ETQ-FILTRO-NF-ENTRADA** — Etiquetas → **Nº NF entrada** (produtos da nota com estoque aplicado) |
+| **Status** | 🟢 **PRONTO envio produção** em `teste` / PR **#448** |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_etq_filtro_nf_entrada_path.py` **VERIFY_OK 21/21** |
+| **PREP** | `deploy/prep-checklist-1610c-etq-filtro-nf` |
+| **Cutover dry-run** | `./scripts/cutover_loja_checklist_1610c_etq_filtro_nf.sh` |
+| **Cutover loja** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1610c_etq_filtro_nf.sh --exec` |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1610c_etq_filtro_nf.sh` |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1610c-etq-filtro-nf.md` |
+| **Smoke** | Ctrl+F5 · **Etiquetas** → número NF real → **Adicionar todos** / fila |
+
+### ✅ CHECKLIST ÚNICO — **16/10c** · 🟢 **PRONTO envio produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ETQ-FILTRO-NF-ENTRADA** | 🟢 **PRONTO** (`teste`) | **NÃO** | `verify_etq_filtro_nf_entrada_path.py` **21/21** |
+
+### 📦 PACOTE PRONTO — **ETQ-FILTRO-NF-ENTRADA** (`CHECKLIST 16/10c`) · 🟢 **PREP v27.22**
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Filtro **Nº NF entrada** na busca de etiquetas (`numero_nf` → `api/produtos/cadastro/`) |
+| **Arquivos** | `cadastro_filtros_util.py` · `produtos_etiquetas.html/js` · `views.py` |
+| **Rollback** | tag `rollback/pre-v2721-etq-filtro-nf` → produção **v27.21** |
+
 ### ✅ Loja · **Live v27.21** @ `56b60ea9` (16/10)
 
 **15/10 + 15/10b + 15/10a** na loja · prova cloud **`./scripts/verify_checklist_v2720_path.sh`** OK (PIN teste **9973**).
