@@ -636,6 +636,14 @@ def produto_model_para_detalhe(p: Produto) -> dict:
         row.setdefault("composicao", [])
         row.setdefault("eh_kit", False)
 
+    from produtos.medicamento_vet_taxonomia import anexar_campos_busca_em_row_cadastro
+
+    anexar_campos_busca_em_row_cadastro(
+        row,
+        ce,
+        descricao_overlay=str(getattr(ov, "descricao", None) or "") if ov else "",
+    )
+
     return {
         **row,
         "preco_custo_com_acrescimos": pc,
@@ -657,6 +665,14 @@ def produto_model_para_resposta_salvar(p: Produto, ov: ProdutoGestaoOverlayAgro 
         row["modelo"] = str(ov.cadastro_extras.get("modelo") or "").strip()[:200]
     if not str(row.get("modelo") or "").strip():
         row["modelo"] = str(getattr(p, "modelo", None) or "").strip()[:200]
+    ce = ov.cadastro_extras if ov and isinstance(ov.cadastro_extras, dict) else {}
+    from produtos.medicamento_vet_taxonomia import anexar_campos_busca_em_row_cadastro
+
+    anexar_campos_busca_em_row_cadastro(
+        row,
+        ce,
+        descricao_overlay=str(getattr(ov, "descricao", None) or "") if ov else "",
+    )
     return row
 
 
