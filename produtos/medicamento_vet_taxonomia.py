@@ -314,12 +314,13 @@ def anexar_campos_busca_em_row_cadastro(
     *,
     descricao_overlay: str | None = None,
 ) -> None:
-    """Expõe ``palavras_chave`` / ``classes_vet`` no JSON do modal (agro_pg + Mongo)."""
-    pk, cv = ler_busca_de_cadastro_extras(ex)
+    """Expõe busca do overlay no JSON do modal (agro_pg + Mongo)."""
+    pk, cv, ev = ler_busca_de_cadastro_extras(ex)
     if not pk and str(descricao_overlay or "").strip():
         pk = str(descricao_overlay).strip()
     row["palavras_chave"] = pk
     row["classes_vet"] = cv
+    row["especies_vet"] = ev
 
 
 def taxonomia_para_api() -> dict[str, Any]:
