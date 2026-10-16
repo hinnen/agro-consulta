@@ -49,7 +49,6 @@ from estoque.models import (
 )
 from .forms import ClienteAgroForm
 from .caixa_util import (
-    CaixaFecharPrep,
     FORMAS_PAGAMENTO_CAIXA,
     _dec,
     linhas_resumo_caixa,
@@ -12555,10 +12554,7 @@ def api_caixa_conferencia_estado(request):
                 "cards": [],
             }
         )
-    prep_estado = CaixaFecharPrep(sessoes)
-    estado = serializar_estado_conferencia_fechar(
-        alvo, deposito=dep_browser, prep=prep_estado
-    )
+    estado = serializar_estado_conferencia_fechar(alvo, deposito=dep_browser)
     if dep_browser == "vila":
         from produtos.repasse_vila_util import (
             aplicar_reserva_virtual_estado_caixa,
@@ -13381,8 +13377,7 @@ def caixa_fechar(request):
         # Fallback: se não há sessão do depósito atual, mantém lista vazia no lote
         # (operador fecha a outra loja trocando Loja no BI ou fecha um a um)
         pass
-    prep_fechar = CaixaFecharPrep(sessoes)
-    cards = montar_cards_caixas_abertos(sessoes, prep=prep_fechar)
+    cards = montar_cards_caixas_abertos(sessoes)
 
     ids_lote = [s.pk for s in sessoes_lote]
     entregas_pendentes_fechar = listar_entregas_bloqueando_fechamento_caixa(
@@ -13520,8 +13515,6 @@ def caixa_fechar(request):
     estado_conf = serializar_estado_conferencia_fechar(
         sessoes_lote if sessoes_lote else [],
         deposito=dep_fechar,
-        prep=prep_fechar,
-        incluir_cards=False,
     )
     if dep_fechar == "vila":
         from produtos.repasse_vila_util import (
@@ -32939,9 +32932,6 @@ def _linha_clienteagro_pdv(c: ClienteAgro) -> dict:
         "saldo_vale_credito": float(c.saldo_vale_credito or 0),
         "saldo_cashback": float(c.saldo_cashback or 0),
         "limite_fiado_local": float(c.limite_fiado_local or 0),
-        "desconto_pdv_percentual": float(c.desconto_pdv_percentual or 0)
-        if c.desconto_pdv_percentual is not None
-        else 0,
     }
 
 
