@@ -1063,3 +1063,18 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **Live:** `producao` @ **`56b60ea9`**.  
 **Rollback:** `rollback/pre-v2720-caixa-perf2` → `2721cec2`.  
 **Smoke:** Ctrl+F5 · Caixa **Vila** → **Fechar caixa**.
+
+---
+
+## 86. Checklist único — **16/10e** · 🟡 PREP **v27.24** · aguarda senha
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CADASTRO-PALAVRAS-REABRE** | 🟡 **checkpoint OK** | **NÃO** | **42/42** |
+
+**Base loja:** **v27.23** @ **`37ad1354`**.  
+**PREP:** `deploy/prep-checklist-1610e-cadastro-palavras-reabre` @ **`d0df4700`**.  
+**Checkpoint:** `./scripts/prep_checkpoint_checklist_1610e_cadastro_palavras_reabre.sh` ✅  
+**Na senha:** `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → `./scripts/cutover_loja_checklist_1610e_cadastro_palavras_reabre.sh --exec` → `./scripts/post_deploy_checklist_1610e_cadastro_palavras_reabre.sh`.  
+**Revert:** `git push origin rollback/pre-v2723-cadastro-palavras-reabre:producao`.  
+**Smoke:** Cadastro → produto **não med** → aba **2. Busca** → salvar → reabrir.
