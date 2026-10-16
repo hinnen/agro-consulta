@@ -26895,6 +26895,28 @@ def api_produtos_cadastro(request):
             clauses.append(
                 {"NomeFornecedor": {"$regex": re.escape(forn_f), "$options": "i"}}
             )
+        nf_num_lista = str(filtros.get("numero_nf") or "").strip()
+        if nf_num_lista:
+            from produtos.cadastro_filtros_util import produto_ids_por_numero_entrada_nf
+
+            nf_ids = list(produto_ids_por_numero_entrada_nf(nf_num_lista))
+            if not nf_ids:
+                return JsonResponse(
+                    _cadastro_finalizar_payload_rows(
+                        {
+                            "ok": True,
+                            "modo": "lista",
+                            "pagina": pagina,
+                            "por_pagina": por_pagina,
+                            "has_more": False,
+                            "produtos": [],
+                            "sort": sort_key,
+                            "dir": "desc" if sort_direction < 0 else "asc",
+                        },
+                        incluir_saldo,
+                    )
+                )
+            clauses.append({"$or": [{"Id": {"$in": nf_ids}}, {"_id": {"$in": nf_ids}}]})
         filtro = {"$and": clauses} if len(clauses) > 1 else (clauses[0] if clauses else {})
         skip = (pagina - 1) * por_pagina
         mongo_field = _MONGO_SORT_CADASTRO.get(sort_key, "Nome")
