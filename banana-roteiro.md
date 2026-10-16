@@ -1054,15 +1054,12 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 85. Checklist único — **16/10** · 🟢 **ARMADO** · **v27.21**
+## 85. Checklist único — **16/10** · ✅ Live **v27.21**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CAIXA-FECHAR-PERF-2** | 🟢 **ARMADO** | **NÃO** |
+| 1 | **CAIXA-FECHAR-PERF-2** | ✅ **Live** | **NÃO** |
 
-**Live antes:** **v27.20** @ `2721cec2`.  
-**PREP:** `deploy/prep-checklist-1610-caixa-perf2` @ **`56b60ea9`**.  
-**Prova:** cutover dry-run OK · fechar **54/54** · repasse **68/68** · dev MP **171/171**.  
-**Na senha (vendas pausadas):** `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → `./scripts/cutover_loja_checklist_1610_caixa_perf2.sh --exec` → `./scripts/post_deploy_checklist_1610_caixa_perf2.sh`.  
-**Rollback:** tag `rollback/pre-v2720-caixa-perf2` → `2721cec2`.  
-**Não toca:** PDV wizard/busca · clientes **0145** · crédito (já Live v27.20).
+**Live:** `producao` @ **`56b60ea9`**.  
+**Rollback:** `rollback/pre-v2720-caixa-perf2` → `2721cec2`.  
+**Smoke:** Ctrl+F5 · Caixa **Vila** → **Fechar caixa**.
