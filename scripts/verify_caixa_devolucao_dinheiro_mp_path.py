@@ -593,8 +593,8 @@ def _caso_api_aviso_e_loja() -> None:
             patch("produtos.views.deposito_caixa_browser", return_value=dep),
             patch("produtos.models.PdvMercadoPagoPointOrder.objects") as objs,
             patch(
-                "produtos.repasse_vila_util.resumo_reserva_fechamento_vila",
-                return_value={"tem": False, "valor": Decimal("0"), "texto": ""},
+                "produtos.repasse_vila_util.reserva_leve_estado_caixa_fechar",
+                return_value={"saldo": "0.00", "saldo_vila_elias": "0.00"},
             ),
             patch(
                 "produtos.repasse_vila_util.aplicar_reserva_virtual_estado_caixa",

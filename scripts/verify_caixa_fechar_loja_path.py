@@ -114,10 +114,15 @@ def _prova_api_estado_nao_mistura_lojas() -> None:
         "pendente_vila_elias": "0.00",
     }
 
+    cfg_mock = SimpleNamespace(saldo_reserva_vila=Decimal("0"), saldo_cofre_vila_elias=Decimal("0"))
+
     try:
         with patch(
-            "produtos.repasse_vila_util.resumo_reserva_fechamento_vila",
-            return_value=vazio_reserva,
+            "produtos.repasse_vila_util.obter_config",
+            return_value=cfg_mock,
+        ), patch(
+            "produtos.repasse_vila_util.reserva_leve_estado_caixa_fechar",
+            return_value={"saldo": "0.00", "saldo_vila_elias": "0.00"},
         ), patch(
             "produtos.repasse_vila_util.aplicar_reserva_virtual_estado_caixa",
             side_effect=lambda estado, _reserva: estado,
@@ -240,6 +245,18 @@ def main() -> int:
     check("Fiado" in FORMAS_CONFERENCIA_CAIXA, "Fiado na lista conferencia")
     check("escopo=loja" in html, "refresh conferencia filtra loja")
     check("filtrar_sessoes_por_deposito" in views, "api estado filtra deposito")
+    check(
+        "reserva_leve_estado_caixa_fechar" in views,
+        "fechar caixa nao chama resumo_reserva pesado",
+    )
+    check(
+        "criar_titulos=False" in views,
+        "fechar caixa GET sem criar titulos fiado",
+    )
+    check(
+        "queryset_sessoes_caixa_fechar_abertas" in views,
+        "fechar caixa prefetch enxuto",
+    )
     js_repasse = (ROOT / "produtos/static/produtos/js/pdv_repasse_vila.js").read_text(
         encoding="utf-8"
     )

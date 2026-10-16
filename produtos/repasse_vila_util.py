@@ -1150,6 +1150,19 @@ def registrar_saldo_inicial_cofrinho(
     )
 
 
+def reserva_leve_estado_caixa_fechar() -> dict[str, str]:
+    """Saldos dos cofrinhos (config) — sem varrer dias de obrigação.
+
+    Na tela Fechar caixa o aviso de «separar reserva» está desligado
+    (`aplicar_reserva_virtual_estado_caixa`); chamar `resumo_reserva_fechamento_vila`
+    aqui só gastava CPU (loop dia a dia + `calcular_disponivel`).
+    """
+    return {
+        "saldo": str(saldo_cofrinho_vila(cofre=COFRE_SALARIO)),
+        "saldo_vila_elias": str(saldo_cofrinho_vila(cofre=COFRE_VILA_ELIAS)),
+    }
+
+
 def resumo_reserva_fechamento_vila(sessoes) -> dict[str, Any]:
     """Reservas ainda não separadas (salário + Vila Elias) no turno aberto da Vila."""
     sessoes = [s for s in (sessoes or []) if getattr(s, "ponto_caixa", "") == "vila"]

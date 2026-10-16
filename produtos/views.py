@@ -56,6 +56,7 @@ from .caixa_util import (
     linhas_conferencia_fechar,
     linhas_conferencia_agregada,
     montar_cards_caixas_abertos,
+    queryset_sessoes_caixa_fechar_abertas,
     fmt_linhas_caixa_template,
     serializar_estado_conferencia_fechar,
     validar_pin_operador,
@@ -12519,13 +12520,7 @@ def api_caixa_conferencia_estado(request):
     ``escopo=loja`` / ``operacional``: só a loja deste aparelho (Centro ou Vila),
     igual ao lote do Fechar caixa. ``todos`` mistura as duas; ``teste`` só teste.
     """
-    sessoes_qs = (
-        SessaoCaixa.objects.filter(fechado_em__isnull=True)
-        .select_related("usuario")
-        .prefetch_related("vendas", "movimentos")
-        .order_by("aberto_em")
-    )
-    sessoes = list(sessoes_qs)
+    sessoes = list(queryset_sessoes_caixa_fechar_abertas())
     if not sessoes:
         return JsonResponse(
             {
@@ -12562,11 +12557,12 @@ def api_caixa_conferencia_estado(request):
     if dep_browser == "vila":
         from produtos.repasse_vila_util import (
             aplicar_reserva_virtual_estado_caixa,
-            resumo_reserva_fechamento_vila,
+            reserva_leve_estado_caixa_fechar,
         )
 
-        reserva_fecha = resumo_reserva_fechamento_vila(alvo)
-        estado = aplicar_reserva_virtual_estado_caixa(estado, reserva_fecha)
+        estado = aplicar_reserva_virtual_estado_caixa(
+            estado, reserva_leve_estado_caixa_fechar()
+        )
     return JsonResponse({"ok": True, **estado})
 
 
@@ -13328,13 +13324,7 @@ def caixa_abrir(request):
 @login_required(login_url="/entrar/")
 @ensure_csrf_cookie
 def caixa_fechar(request):
-    sessoes_qs = (
-        SessaoCaixa.objects.filter(fechado_em__isnull=True)
-        .select_related("usuario")
-        .prefetch_related("vendas", "movimentos")
-        .order_by("aberto_em")
-    )
-    sessoes = list(sessoes_qs)
+    sessoes = list(queryset_sessoes_caixa_fechar_abertas())
     if not sessoes:
         messages.info(request, "Nenhum caixa aberto no sistema.")
         return _redirect_caixa(request, "caixa_painel")
@@ -13382,7 +13372,13 @@ def caixa_fechar(request):
         # (operador fecha a outra loja trocando Loja no BI ou fecha um a um)
         pass
     prep_fechar = CaixaFecharPrep(sessoes)
-    cards = montar_cards_caixas_abertos(sessoes, prep=prep_fechar)
+    cards_sessoes = list(sessoes_lote)
+    _card_pks = {s.pk for s in cards_sessoes}
+    for _st in sessoes_teste:
+        if _st.pk not in _card_pks:
+            cards_sessoes.append(_st)
+            _card_pks.add(_st.pk)
+    cards = montar_cards_caixas_abertos(cards_sessoes, prep=prep_fechar)
 
     ids_lote = [s.pk for s in sessoes_lote]
     entregas_pendentes_fechar = listar_entregas_bloqueando_fechamento_caixa(
@@ -13526,11 +13522,12 @@ def caixa_fechar(request):
     if dep_fechar == "vila":
         from produtos.repasse_vila_util import (
             aplicar_reserva_virtual_estado_caixa,
-            resumo_reserva_fechamento_vila,
+            reserva_leve_estado_caixa_fechar,
         )
 
-        reserva_fecha = resumo_reserva_fechamento_vila(sessoes_lote)
-        estado_conf = aplicar_reserva_virtual_estado_caixa(estado_conf, reserva_fecha)
+        estado_conf = aplicar_reserva_virtual_estado_caixa(
+            estado_conf, reserva_leve_estado_caixa_fechar()
+        )
     tot_esperado_din = Decimal(str(estado_conf.get("tot_esperado_dinheiro") or "0"))
     # Ordem fixa FORMAS_CONFERENCIA_CAIXA — bloco auto (Vale/Cashback/Fiado/Point) no final.
     linhas_conferencia = []
@@ -13572,7 +13569,9 @@ def caixa_fechar(request):
             rasc = {}
         raw_ced = request.session.get(CAIXA_CONFERENCIA_CEDULAS_SESSION_KEY) or {}
         cedulas_rasc = raw_ced if isinstance(raw_ced, dict) else {}
-    fiado_vendas_wizard = listar_fiado_vendas_conferencia_caixa(sessoes_lote)
+    fiado_vendas_wizard = listar_fiado_vendas_conferencia_caixa(
+        sessoes_lote, criar_titulos=False
+    )
     fiado_baixas_wizard = listar_fiado_baixas_conferencia_caixa(sessoes_lote)
     fiado_vendas_conferencia, fiado_baixas_conferencia = fiado_conferencia_operacional(
         fiado_vendas_wizard,
