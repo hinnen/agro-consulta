@@ -1298,7 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v27.20** @ **`ad199569`** — passo 1 cutover **`355ed0d9`** · passo 2 merge **`ad199569`** (15/10a sobre v27.19) |
+| **Status** | ✅ **enviado / Live v27.20** @ **`2721cec2`** (hotfix VERSION) · cutover **`355ed0d9`** · merge **`ad199569`** |
 | **Antes** | **v27.18** @ `9f18d10f` |
 | **Pacotes** | **CAIXA-FECHAR-PERF** · **CREDITO-DESBLOQUEIO-LAB** · **CLIENTE-LISTA-DESC-PDV** |
 | **Migrate** | **0145** (`desconto_pdv_percentual`) — **build Render** (`manage.py migrate` no deploy) |
