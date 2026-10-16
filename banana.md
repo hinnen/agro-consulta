@@ -1302,14 +1302,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Problema** | Gravava no Postgres overlay, mas detalhe não expunha `palavras_chave` → campo vazio |
 | **Migrate** | **NÃO** |
 | **Branch** | `teste` @ **`5010eab4`** (fix `0a0e824f`) |
-| **Prova** | `scripts/verify_cadastro_busca_med_path.py` · **PREP_FAILS=0** |
+| **Prova** | verify path **42/42** · **PREP_FAILS=0** |
 | **Smoke loja** | Produto **não medicamento** → aba **2. Busca** → salvar → fechar → reabrir (texto permanece) |
 
 ### ✅ CHECKLIST ÚNICO — **16/10e** · 🟢 **pronto envio produção** · tip **v27.24**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CADASTRO-PALAVRAS-REABRE** | 🟢 **pronto envio** | **NÃO** | verify path · unit taxonomia |
+| 1 | **CADASTRO-PALAVRAS-REABRE** | 🟢 **pronto envio** | **NÃO** | **42/42** |
 
 ### ✅ Deploy loja — **ETQ-NF-QTD-FILA** · **Live v27.23** · CHECKLIST **16/10d** · 16/10
 
