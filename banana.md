@@ -1294,30 +1294,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 Falta subir → **cutover autorizado** · **ETQ-FILTRO-NF-ENTRADA** · **v27.22** · 16/10c
+### ✅ Deploy loja — **ETQ-FILTRO-NF-ENTRADA** · **Live v27.22** · CHECKLIST **16/10c** · 16/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Pacote** | Etiquetas → **Nº NF entrada** (`numero_nf` na busca cadastro) |
-| **PREP** | `deploy/prep-checklist-1610c-etq-filtro-nf` (cherry sobre **produção** `56b60ea9`) |
+| **Status** | ✅ **enviado / Live v27.22** @ **`aecf3a9a`** · antes **v27.21** @ **`56b60ea9`** |
+| **Pacote** | Etiquetas → **Nº NF entrada** (`numero_nf` → `api/produtos/cadastro/`) |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_etq_filtro_nf_entrada_path.py` **VERIFY_OK** |
-| **Backup** | `producao-backup-pre-v2722-etq-filtro-nf` |
-| **Rollback** | `rollback/pre-v2721-etq-filtro-nf` → **v27.21** |
-| **Smoke** | Ctrl+F5 · Etiquetas → NF real → fila |
+| **Backup** | `producao-backup-pre-v2722-etq-filtro-nf` @ `56b60ea9` |
+| **Rollback** | `git push origin 56b60ea9:producao` |
+| **Prova** | `verify_etq_filtro_nf_entrada_path.py` **VERIFY_OK 21/21** |
+| **Smoke** | Ctrl+F5 · **Etiquetas** → **Mais opções** → número NF → fila |
 
-### ✅ CHECKLIST ÚNICO — **16/10c** · 🟢 **PRONTO envio produção**
+### ✅ CHECKLIST ÚNICO — **16/10c** · ✅ Live **v27.22**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-FILTRO-NF-ENTRADA** | 🟢 **cutover** | **NÃO** | `verify_etq_filtro_nf_entrada_path.py` |
+| 1 | **ETQ-FILTRO-NF-ENTRADA** | ✅ **Live** | **NÃO** | `verify_etq_filtro_nf_entrada_path.py` **21/21** |
 
-### 📦 PACOTE PRONTO — **ETQ-FILTRO-NF-ENTRADA** (`CHECKLIST 16/10c`) · **PREP v27.22**
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Filtro por número da NF de entrada na tela Etiquetas |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1610c-etq-filtro-nf.md` |
+### 📦 PACOTE PRONTO — **ETQ-FILTRO-NF-ENTRADA** (`CHECKLIST 16/10c`) · ✅ **Live v27.22**
 
 ### 🟢 PREP loja — **RH-VALE-VILA** · **v27.18** · armado
 
