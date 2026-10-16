@@ -67,7 +67,7 @@ PY=python3
 [[ -x .venv/bin/python ]] && PY=.venv/bin/python
 export AGRO_PIN_TESTE="${AGRO_PIN_TESTE:-9973}"
 
-"$PY" manage.py migrate produtos 0145 --noinput 2>/dev/null || true
+# migrate 0145 só em produção — ./scripts/post_deploy_checklist_1510a_cliente_desc_pdv.sh (Render Shell)
 
 "$PY" scripts/verify_cliente_lista_desc_pdv_path.py | tee /tmp/cutover-1510a-cli.log
 grep -qE '18/18|0 FAIL' /tmp/cutover-1510a-cli.log
