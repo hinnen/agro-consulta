@@ -1294,6 +1294,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟡 ARMADO · **PREP v27.24** · **CHECKLIST 16/10e** · CADASTRO-PALAVRAS-REABRE
+
+| Campo | Valor |
+| ----- | ----- |
+| **Pacote** | Palavras-chave aba **2. Busca** persistem ao **reabrir** modal cadastro |
+| **Status** | 🟡 **Checkpoint pronto** · Live loja **v27.23** @ **`37ad1354`** |
+| **PREP** | `deploy/prep-checklist-1610e-cadastro-palavras-reabre` |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_cadastro_busca_med_path.py` → **PREP_FAILS=0** (42/42) |
+| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1610e_cadastro_palavras_reabre.sh` |
+| **Rollback** | `rollback/pre-v2723-cadastro-palavras-reabre` @ produção atual |
+| **Backup** | `producao-backup-pre-v2724-cadastro-palavras-reabre` |
+| **Revert** | `git push origin rollback/pre-v2723-cadastro-palavras-reabre:producao` → **v27.23** |
+| **Cutover loja** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1610e_cadastro_palavras_reabre.sh --exec` |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1610e_cadastro_palavras_reabre.sh` |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1610e-cadastro-palavras-reabre.md` |
+| **Smoke** | Cadastro → produto **não med** → **2. Busca** → salvar → reabrir |
+
+### ✅ CHECKLIST ÚNICO — **16/10e** · 🟡 **aguarda senha** (PREP armado)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CADASTRO-PALAVRAS-REABRE** | 🟡 **aguarda senha** | **NÃO** | **42/42** |
+
 ### 🟡 Aguarda senha · **PREP v27.23** · **CHECKLIST 16/10d** (16/10)
 
 | Campo | Valor |
