@@ -1301,7 +1301,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Palavras-chave **vírgula/linha** preservadas no campo · busca PDV/API por apelido no overlay (`2 tempo`, `2tempo`) mesmo sem «tempo» no nome |
 | **Paths** | `medicamento_vet_taxonomia.py` · `cadastro_busca_codigo_util.py` (`tokens_termo_busca_cadastro`) · `catalogo_agro.buscar` (`_append_overlay_palavras_chave_matches`) · `busca_filtro_pdv_util` · cache PDV invalida no save overlay (`views`) |
 | **Migrate** | **NÃO** |
-| **Branch** | `teste` @ **`98739666`** (fix `f1389e1a`) |
+| **Branch** | `teste` @ **`c6df7711`** (fix `f1389e1a`) |
 | **Prova** | `verify_cadastro_busca_med_path.py` **48/48** · `tests_cadastro_busca_pdv_alinhada` **5/5** · PIN **9973** OK |
 | **Smoke loja** | Óleo 2T → **2. Busca** `oleo, 2 tempo, 2tempo` → salvar → PDV buscar **2 tempo** (F5 PDV se cache antigo) |
 
