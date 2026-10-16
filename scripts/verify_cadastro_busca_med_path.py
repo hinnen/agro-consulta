@@ -40,6 +40,7 @@ def test_contratos() -> None:
     views = (ROOT / "produtos/views.py").read_text(encoding="utf-8")
     urls = (ROOT / "produtos/urls.py").read_text(encoding="utf-8")
     cat = (ROOT / "produtos/catalogo_agro.py").read_text(encoding="utf-8")
+    cad_util = (ROOT / "produtos/cadastro_busca_codigo_util.py").read_text(encoding="utf-8")
     modal = (
         ROOT / "produtos/templates/produtos/_modal_editar_produto_cadastro_erp.inc.html"
     ).read_text(encoding="utf-8")
@@ -74,6 +75,13 @@ def test_contratos() -> None:
 
     check("catalogo_anexar", "anexar_texto_busca_extras" in cat)
     check(
+        "catalogo_busca_palavras_overlay",
+        "_append_overlay_palavras_chave_matches" in cat
+        and "cadastro_extras__palavras_chave__icontains" in cat,
+    )
+    check("tokens_digito_busca", "def tokens_termo_busca_cadastro" in cad_util)
+    check("partes_palavras_chave", "def partes_palavras_chave" in mod_txt)
+    check(
         "catalogo_detalhe_pk",
         "anexar_campos_busca_em_row_cadastro" in cat
         and "produto_model_para_detalhe" in cat,
@@ -93,7 +101,7 @@ def test_contratos() -> None:
     check("unit_test_file", test_py.is_file())
 
     ver = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
-    check("version_prep", ver in ("27.24", "27.23", "26.82", "26.81"), ver)
+    check("version_prep", ver in ("27.25", "27.24", "27.23", "26.82", "26.81"), ver)
 
 
 def test_logica_python() -> None:
@@ -110,7 +118,11 @@ def test_logica_python() -> None:
 
     check("cat_med", categoria_eh_medicamento("Medicamentos E Venenos"))
     check("cat_nao", not categoria_eh_medicamento("Ração"))
-    check("pk_norm", normalizar_palavras_chave("Dexon, Biodex") == "Dexon Biodex")
+    check("pk_norm", normalizar_palavras_chave("Dexon, Biodex") == "Dexon, Biodex")
+    check(
+        "pk_norm_quebra",
+        normalizar_palavras_chave("oleo\n2 tempo") == "oleo, 2 tempo",
+    )
     cv = normalizar_classes_vet(["antibiotico", "foo", "anti-inflamatorio"])
     check("cv_slugs", "antibiotico" in cv and "foo" not in cv)
     txt = montar_texto_busca_denormalizado("Dexon", ["antibiotico"])
@@ -121,7 +133,20 @@ def test_logica_python() -> None:
     check("api_grupos", isinstance(api.get("grupos"), list) and len(api.get("grupos") or []) >= 3)
     row_fix: dict = {}
     anexar_campos_busca_em_row_cadastro(row_fix, {"palavras_chave": "Dexon, teste"})
-    check("row_pk_agro_pg", row_fix.get("palavras_chave") == "Dexon teste")
+    check("row_pk_agro_pg", row_fix.get("palavras_chave") == "Dexon, teste")
+    from produtos.busca_filtro_pdv_util import filtrar_rows_api_estilo_pdv
+    from produtos.cadastro_busca_codigo_util import tokens_termo_busca_cadastro
+
+    check("tokens_2_tempo", tokens_termo_busca_cadastro("2 tempo") == ["2", "tempo"])
+    rows_pdv = [
+        {
+            "id": "x",
+            "nome": "OLEO CASTROL 2T",
+            "busca_texto": "oleo castrol 2t oleo 2 tempo 2tempo",
+        }
+    ]
+    hit = filtrar_rows_api_estilo_pdv(rows_pdv, "2 tempo")
+    check("pdv_filtro_2_tempo", len(hit) == 1)
 
 
 def test_git_sem_migrate() -> None:
