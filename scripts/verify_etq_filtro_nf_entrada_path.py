@@ -59,16 +59,22 @@ def check_arquivos() -> None:
     util = read("produtos/cadastro_filtros_util.py")
     check('out["numero_nf"]' in util, "parse numero_nf")
     check("def produto_ids_por_numero_entrada_nf" in util, "produto_ids_por_numero_entrada_nf")
+    check("def mapa_quantidade_entrada_nf_por_produto" in util, "mapa qtd NF")
+    check("def enriquecer_rows_entrada_nf_qtd" in util, "enriquecer entrada_nf_qtd")
     check("def _cabecalho_casa_numero_nf_filtro" in util, "casamento cabecalho NF")
     check("produto_ids_por_numero_entrada_nf(nf_num)" in util, "QS filtra por numero_nf")
 
     js = read("produtos/static/produtos/js/produtos_etiquetas.js")
     check("etq-f-numero-nf" in js, "JS id campo NF")
+    check("qtdFilaParaProduto" in js, "JS qtd fila NF")
+    check("etq-nf-qtd-modo" in js, "JS modo qtd NF")
+    check("entrada_nf_qtd" in js, "JS usa entrada_nf_qtd")
     check("params.set('numero_nf'" in js, "JS envia numero_nf")
     check("temFiltrosAtivos" in js and "etq-f-numero-nf" in js, "JS temFiltrosAtivos NF")
 
     html = read("produtos/templates/produtos/produtos_etiquetas.html")
     check("etq-f-numero-nf" in html, "HTML campo NF")
+    check("etq-nf-qtd-modo" in html, "HTML modo qtd NF")
     check("Nº NF entrada" in html or "NF entrada" in html, "HTML label NF")
 
     views = read("produtos/views.py")

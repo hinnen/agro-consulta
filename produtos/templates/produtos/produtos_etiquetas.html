@@ -304,6 +304,11 @@
               placeholder="Ex.: 76468"
               title="Produtos da nota fiscal já lançada na Entrada de nota (estoque aplicado)." />
           </label>
+          <div id="etq-nf-qtd-wrap" class="etq-filtros-row etq-nf-qtd-wrap hidden" aria-label="Quantidade na fila (NF)">
+            <span class="text-[10px] font-bold uppercase text-slate-500 w-full">Ao adicionar da NF</span>
+            <label class="etq-chk"><input type="radio" name="etq-nf-qtd-modo" id="etq-nf-qtd-uma" value="uma" checked /> 1 etiqueta por produto</label>
+            <label class="etq-chk"><input type="radio" name="etq-nf-qtd-modo" id="etq-nf-qtd-nota" value="nota" /> Qtd da nota (NF)</label>
+          </div>
           <label class="etq-f-field">
             <span>Tipo de data</span>
             <select id="etq-f-data-tipo">
@@ -767,7 +772,7 @@ window.AGRO_ETQ_CFG = {
 </script>
 <script src="{% static 'produtos/js/agro_print_bridge.js' %}?v=2"></script>
 <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=35"></script>
-<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=36"></script>
+<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=37"></script>
 
 {% endblock %}
 
