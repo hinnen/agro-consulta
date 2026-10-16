@@ -1300,7 +1300,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Pacote** | **ETQ-NF-QTD-FILA** — NF na etiqueta: **1 por produto** ou **qtd da nota** |
 | **Status** | 🟡 **Checkpoint OK** · cutover **1 comando** (próximo chat) · Live **v27.22** @ **`553e8a4c`** |
-| **PREP** | `deploy/prep-checklist-1610d-etq-nf-qtd` @ **`d97c4db9`** |
+| **PREP** | `deploy/prep-checklist-1610d-etq-nf-qtd` @ **`9d4dbec5`** |
 | **Migrate** | **NÃO** |
 | **Prova** | `prep_checkpoint` **OK** · verify **27/27** · `tests_pdv_cadastro_rapido` **23/23** |
 | **Checkpoint** | `./scripts/prep_checkpoint_checklist_1610d_etq_nf_qtd.sh` ✅ |
