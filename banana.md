@@ -1294,22 +1294,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — **CADASTRO-PALAVRAS-REABRE** (hotfix **CADASTRO-BUSCA-MED**) · 16/10
+### 🟡 ARMADO · **PREP v27.24** · **CHECKLIST 16/10e** · CADASTRO-PALAVRAS-REABRE
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Palavras-chave **2. Busca** voltam ao **reabrir** o modal (detalhe `agro_pg` + JSON após salvar); fallback `cadastro_extras` no JS |
-| **Problema** | Gravava no Postgres overlay, mas detalhe não expunha `palavras_chave` → campo vazio |
+| **Pacote** | Palavras-chave aba **2. Busca** persistem ao **reabrir** modal cadastro |
+| **Status** | 🟡 **Checkpoint OK** · cutover **1 comando** (próximo chat) · Live **v27.23** @ **`37ad1354`** |
+| **PREP** | `deploy/prep-checklist-1610e-cadastro-palavras-reabre` @ **`d0df4700`** |
 | **Migrate** | **NÃO** |
-| **Branch** | `teste` @ **`5010eab4`** (fix `0a0e824f`) |
-| **Prova** | verify path **42/42** · **PREP_FAILS=0** |
-| **Smoke loja** | Produto **não medicamento** → aba **2. Busca** → salvar → fechar → reabrir (texto permanece) |
+| **Prova** | `prep_checkpoint` **OK** · verify **42/42** · **PREP_FAILS=0** |
+| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1610e_cadastro_palavras_reabre.sh` ✅ |
+| **Rollback** | `rollback/pre-v2723-cadastro-palavras-reabre` @ **`37ad1354`** |
+| **Backup** | `producao-backup-pre-v2724-cadastro-palavras-reabre` @ **`37ad1354`** |
+| **Revert** | `git push origin rollback/pre-v2723-cadastro-palavras-reabre:producao` → **v27.23** |
+| **Cutover loja** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1610e_cadastro_palavras_reabre.sh --exec` |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1610e_cadastro_palavras_reabre.sh` |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1610e-cadastro-palavras-reabre.md` |
+| **Smoke** | Cadastro → produto **não med** → **2. Busca** → salvar → reabrir |
 
-### ✅ CHECKLIST ÚNICO — **16/10e** · 🟢 **pronto envio produção** · tip **v27.24**
+### ✅ CHECKLIST ÚNICO — **16/10e** · 🟡 **aguarda senha** (PREP armado)
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CADASTRO-PALAVRAS-REABRE** | 🟢 **pronto envio** | **NÃO** | **42/42** |
+| 1 | **CADASTRO-PALAVRAS-REABRE** | 🟡 **aguarda senha** | **NÃO** | **42/42** |
 
 ### ✅ Deploy loja — **ETQ-NF-QTD-FILA** · **Live v27.23** · CHECKLIST **16/10d** · 16/10
 
