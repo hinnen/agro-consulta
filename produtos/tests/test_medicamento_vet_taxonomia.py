@@ -19,7 +19,8 @@ def test_categoria_medicamento():
 
 
 def test_palavras_chave_normaliza():
-    assert normalizar_palavras_chave("Dexon, Biodex") == "Dexon Biodex"
+    assert normalizar_palavras_chave("Dexon, Biodex") == "Dexon, Biodex"
+    assert normalizar_palavras_chave("oleo\n2 tempo") == "oleo, 2 tempo"
 
 
 def test_classes_vet_valida_slugs():
@@ -71,5 +72,5 @@ def test_anexar_campos_busca_em_row():
         row,
         {"palavras_chave": "Dexon, Biodex", "classes_vet": ["antibiotico"]},
     )
-    assert row["palavras_chave"] == "Dexon Biodex"
+    assert row["palavras_chave"] == "Dexon, Biodex"
     assert "antibiotico" in row["classes_vet"]

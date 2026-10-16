@@ -278,11 +278,38 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
     found: list[Produto] = []
     seen_pk: set[int] = set()
 
-    def _append_overlay_modelo_matches(raw_termo: str) -> None:
+    def _append_overlay_palavras_chave_matches(raw_termo: str) -> None:
+        from produtos.cadastro_busca_codigo_util import tokens_termo_busca_cadastro
+
         termo_txt = str(raw_termo or "").strip()
         if not termo_txt or len(found) >= lim:
             return
-        partes = [p.strip() for p in termo_txt.split() if len(p.strip()) >= 2]
+        partes = tokens_termo_busca_cadastro(termo_txt)
+        if not partes:
+            return
+        try:
+            ovs = ProdutoGestaoOverlayAgro.objects.all()
+            for pl in partes:
+                ovs = ovs.filter(cadastro_extras__palavras_chave__icontains=pl[:200])
+            pids = list(ovs.values_list("produto_externo_id", flat=True)[:lim])
+            if not pids:
+                return
+            _cadastro_pg_append_unicos(
+                found,
+                seen_pk,
+                qs.filter(produto_externo_id__in=pids).order_by("nome", "pk")[:lim],
+                lim,
+            )
+        except Exception:
+            return
+
+    def _append_overlay_modelo_matches(raw_termo: str) -> None:
+        from produtos.cadastro_busca_codigo_util import tokens_termo_busca_cadastro
+
+        termo_txt = str(raw_termo or "").strip()
+        if not termo_txt or len(found) >= lim:
+            return
+        partes = tokens_termo_busca_cadastro(termo_txt)
         if not partes:
             partes = [termo_txt]
         try:
@@ -345,6 +372,8 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
         from produtos.agro_fonte_config import agro_busca_leve_cpu
 
         leve = agro_busca_leve_cpu()
+        # Palavras-chave no overlay antes do nome — evita lotar o limite só com homônimos.
+        _append_overlay_palavras_chave_matches(termo)
         q_nome = q_nome_tokens_cadastro(termo)
         if q_nome is not None:
             _cadastro_pg_append_unicos(

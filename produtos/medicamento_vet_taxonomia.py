@@ -134,14 +134,28 @@ def categoria_eh_medicamento(categoria: str | None) -> bool:
     return "medicamentos e venenos" in c or c.startswith("medicamentos ")
 
 
-def normalizar_palavras_chave(raw: str | None) -> str:
+def partes_palavras_chave(raw: str | None) -> list[str]:
+    """Fragmentos digitados (vírgula, ; ou quebra de linha) — cada um é uma palavra-chave."""
     s = str(raw or "").strip()
     if not s:
+        return []
+    if re.search(r"[,;\n\r]", s):
+        bruto = re.split(r"[,;\n\r]+", s)
+    else:
+        bruto = [s]
+    out: list[str] = []
+    for p in bruto:
+        p = re.sub(r"\s+", " ", p).strip()
+        if p:
+            out.append(p)
+    return out
+
+
+def normalizar_palavras_chave(raw: str | None) -> str:
+    partes = partes_palavras_chave(raw)
+    if not partes:
         return ""
-    # Vírgula, ponto-e-vírgula e quebra de linha viram espaço; colapsa espaços.
-    s = re.sub(r"[,;\n\r]+", " ", s)
-    s = re.sub(r"\s+", " ", s).strip()
-    return s[:8000]
+    return ", ".join(partes)[:8000]
 
 
 def normalizar_especies_vet(raw: Any) -> list[str]:
@@ -206,9 +220,8 @@ def ler_busca_de_cadastro_extras(ex: dict | None) -> tuple[str, list[str], list[
 def montar_texto_busca_denormalizado(palavras_chave: str, classes_vet: list[str]) -> str:
     """Texto plano (rótulos + palavras) para índice de busca — normalizado."""
     partes: list[str] = []
-    pk = normalizar_palavras_chave(palavras_chave)
-    if pk:
-        partes.append(pk)
+    for frag in partes_palavras_chave(palavras_chave):
+        partes.append(frag)
     labels = mapa_slug_para_label()
     for sid in classes_vet or []:
         lab = labels.get(sid)

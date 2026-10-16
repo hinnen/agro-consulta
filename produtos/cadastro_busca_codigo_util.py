@@ -219,9 +219,21 @@ def termo_bate_codigos_produto(
     return any(termo_bate_valor_codigo(termo, c) for c in campos if c)
 
 
+def tokens_termo_busca_cadastro(termo: str) -> list[str]:
+    """Tokens do termo para AND no cadastro (inclui dígito solto, ex. «2 tempo»)."""
+    out: list[str] = []
+    for p in (termo or "").split():
+        p = p.strip()
+        if not p:
+            continue
+        if len(p) >= 2 or p.isdigit():
+            out.append(p)
+    return out
+
+
 def q_nome_tokens_cadastro(termo: str) -> Q | None:
     """Busca textual leve (nome/marca por token) — evita OR em 8 colunas."""
-    parts = [p.strip() for p in (termo or "").split() if len(p.strip()) >= 2]
+    parts = tokens_termo_busca_cadastro(termo)
     if not parts:
         return None
     q_obj = Q()
