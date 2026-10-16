@@ -1294,6 +1294,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 PREP loja — CHECKLIST **16/10** · **CAIXA-FECHAR-PERF-2** · aguarda teste local + frase+senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **PRONTO em `teste`** — **não** está na loja ainda |
+| **Live hoje** | **v27.20** @ `2721cec2` — tem **CAIXA-FECHAR-PERF v1** (`CaixaFecharPrep`) **mas** ainda chama `resumo_reserva_fechamento_vila` no GET Fechar caixa → **Vila continua lenta** (Renan 16/10) |
+| **O quê (v2)** | `reserva_leve_estado_caixa_fechar` (só saldo cofrinho) · prefetch enxuto sessões · fiado conferência no GET com `criar_titulos=False` · cards aside só lote+teste da loja |
+| **Migrate** | **NÃO** |
+| **Prova (cloud)** | `verify_caixa_fechar_loja_path` **49/49** · `verify_caixa_fechar_repasse_path` **68/68** · `verify_caixa_devolucao_dinheiro_mp_path` **171/171** |
+| **Smoke** | Ctrl+F5 · Caixa **Vila** → **Fechar caixa** (2 turnos abertos) — deve abrir em poucos segundos |
+| **Próximo tip** | **v27.21** hotfix (só este pacote) após OK local |
+
 ### ✅ Deploy loja — CHECKLIST **15/10 + 15/10b + 15/10a** · **Live v27.20** · 16/10
 
 | Campo | Valor |
@@ -1366,9 +1378,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | ✅ **Live v27.20** |
-| **O quê** | Abrir **Fechar caixa** sem recalcular conferência em triplicata (`CaixaFecharPrep`) |
+| **O quê** | Abrir **Fechar caixa** sem recalcular conferência em triplicata (`CaixaFecharPrep`) — **Vila:** ver **CAIXA-FECHAR-PERF-2** (16/10) |
 | **Migrate** | **NÃO** |
-| **Smoke** | Caixa → **Fechar caixa** — abre rápido |
+| **Smoke** | Caixa → **Fechar caixa** — abre rápido (**Centro** OK; **Vila** aguarda v2) |
 
 ### ✅ PACOTE PRONTO — **CLIENTE-LISTA-DESC-PDV** (`CHECKLIST 15/10a` · 15/10) · ✅ **Live v27.20**
 

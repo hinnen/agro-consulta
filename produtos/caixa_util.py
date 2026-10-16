@@ -390,6 +390,41 @@ def linha_retirada_devolucao_conferencia(
     return fn
 
 
+def queryset_sessoes_caixa_fechar_abertas():
+    """Sessões abertas com prefetch enxuto (Fechar caixa / API conferência)."""
+    from django.db.models import Prefetch
+
+    from produtos.models import MovimentoCaixa, SessaoCaixa, VendaAgro
+
+    vendas_qs = VendaAgro.objects.only(
+        "id",
+        "total",
+        "pagamentos_json",
+        "forma_pagamento",
+        "devolvida_em",
+        "cartao_maquina_dia_anterior",
+        "cartao_maquina_dia",
+        "sessao_caixa_id",
+    )
+    mov_qs = MovimentoCaixa.objects.only(
+        "id",
+        "tipo",
+        "forma_pagamento",
+        "valor",
+        "observacao",
+        "sessao_caixa_id",
+    )
+    return (
+        SessaoCaixa.objects.filter(fechado_em__isnull=True)
+        .select_related("usuario")
+        .prefetch_related(
+            Prefetch("vendas", queryset=vendas_qs),
+            Prefetch("movimentos", queryset=mov_qs),
+        )
+        .order_by("aberto_em")
+    )
+
+
 class CaixaFecharPrep:
     """Cache por requisição (Fechar caixa): vendas, Point MP e agregação por sessão."""
 
@@ -2078,7 +2113,9 @@ def normalizar_pagamentos_devolucao(
     return out, None
 
 
-def listar_fiado_vendas_conferencia_caixa(sessoes) -> list[dict[str, Any]]:
+def listar_fiado_vendas_conferencia_caixa(
+    sessoes, *, criar_titulos: bool = True
+) -> list[dict[str, Any]]:
     """Vendas fiado do turno (uma linha por pedido) para conferência no fechamento."""
     from produtos.fiado_credito_util import valor_fiado_venda_local, venda_local_tem_fiado
     from produtos.fiado_gestao_util import criar_titulos_de_venda
@@ -2104,10 +2141,11 @@ def listar_fiado_vendas_conferencia_caixa(sessoes) -> list[dict[str, Any]]:
         valor = valor_fiado_venda_local(venda)
         if valor <= 0 or venda.pk in vistos:
             continue
-        try:
-            criar_titulos_de_venda(venda)
-        except Exception:
-            pass
+        if criar_titulos:
+            try:
+                criar_titulos_de_venda(venda)
+            except Exception:
+                pass
         vistos.add(venda.pk)
         titulo = (
             FiadoTituloAgro.objects.filter(

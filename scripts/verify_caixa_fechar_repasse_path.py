@@ -119,12 +119,14 @@ def _chama_api(sessoes, dep: str, escopo: str):
         "pendente_salario": "0.00",
         "pendente_vila_elias": "0.00",
     }
+    cfg_mock = SimpleNamespace(saldo_reserva_vila=Decimal("0"), saldo_cofre_vila_elias=Decimal("0"))
     with (
         patch("produtos.views.SessaoCaixa.objects.filter", return_value=qs),
         patch("produtos.views.deposito_caixa_browser", return_value=dep),
+        patch("produtos.repasse_vila_util.obter_config", return_value=cfg_mock),
         patch(
-            "produtos.repasse_vila_util.resumo_reserva_fechamento_vila",
-            return_value=vazio_reserva,
+            "produtos.repasse_vila_util.reserva_leve_estado_caixa_fechar",
+            return_value={"saldo": "0.00", "saldo_vila_elias": "0.00"},
         ),
         patch(
             "produtos.repasse_vila_util.aplicar_reserva_virtual_estado_caixa",
