@@ -132,6 +132,8 @@ def parse_filtros_cadastro(request) -> dict[str, Any]:
     out["custo_max"] = _parse_money(str(get.get("custo_max") or ""))
     out["venda_min"] = _parse_money(str(get.get("venda_min") or ""))
     out["venda_max"] = _parse_money(str(get.get("venda_max") or ""))
+    numero_nf = str(get.get("numero_nf") or get.get("entrada_nf_numero") or "").strip()
+    out["numero_nf"] = numero_nf[:80]
     return out
 
 
@@ -154,6 +156,8 @@ def filtros_cadastro_ativos(f: dict[str, Any]) -> bool:
     ):
         return True
     if any(f.get(k) is not None for k in ("custo_min", "custo_max", "venda_min", "venda_max")):
+        return True
+    if str(f.get("numero_nf") or "").strip():
         return True
     return False
 
@@ -259,6 +263,13 @@ def aplicar_filtros_cadastro_qs(qs, f: dict[str, Any]):
         if not ids:
             return qs.none()
         qs = qs.filter(produto_externo_id__in=list(ids))
+
+    nf_num = str(f.get("numero_nf") or "").strip()
+    if nf_num:
+        ids_nf = produto_ids_por_numero_entrada_nf(nf_num)
+        if not ids_nf:
+            return qs.none()
+        qs = qs.filter(produto_externo_id__in=list(ids_nf))
 
     sinal = f.get("estoque_sinal") or ""
     if sinal:
@@ -375,6 +386,16 @@ def row_passa_filtros_cadastro(r: dict, f: dict[str, Any]) -> bool:
             f["_nf_ids_cache"] = ids_ok
         pid = str(r.get("id") or "").strip()
         if pid not in ids_ok:
+            return False
+
+    nf_num = str(f.get("numero_nf") or "").strip()
+    if nf_num:
+        ids_nf = f.get("_nf_numero_ids_cache")
+        if ids_nf is None:
+            ids_nf = produto_ids_por_numero_entrada_nf(nf_num)
+            f["_nf_numero_ids_cache"] = ids_nf
+        pid_nf = str(r.get("id") or r.get("produto_externo_id") or "").strip()
+        if pid_nf not in ids_nf:
             return False
 
     sinal = f.get("estoque_sinal") or ""
@@ -499,4 +520,97 @@ def produto_ids_por_data_entrada_nf(
         if data_ate and d > data_ate:
             continue
         out.add(pid)
+    return out
+
+
+def _cabecalho_casa_numero_nf_filtro(cab: dict, needle: str) -> bool:
+    """Mesma lógica da busca de rascunhos Entrada NF (número parcial ou normalizado)."""
+    from produtos.nfe_entrada_util import _entrada_nfe_norm_busca_txt, _nf_numero_norm
+
+    nf = str(needle or "").strip()
+    if not nf:
+        return True
+    cab_num = str((cab or {}).get("numero") or "").strip()
+    if not cab_num:
+        return False
+    n_needle = _entrada_nfe_norm_busca_txt(nf)
+    if n_needle and n_needle in _entrada_nfe_norm_busca_txt(cab_num):
+        return True
+    n_cab = _nf_numero_norm(cab_num)
+    n_in = _nf_numero_norm(nf)
+    if n_in and n_cab and n_cab == n_in:
+        return True
+    dig_nf = "".join(ch for ch in nf if ch.isdigit())
+    dig_cab = "".join(ch for ch in cab_num if ch.isdigit())
+    if dig_nf and len(dig_nf) >= 3 and dig_nf in dig_cab:
+        return True
+    return False
+
+
+def produto_ids_por_numero_entrada_nf(numero_nf: str) -> set[str]:
+    """
+    Produtos (``produto_id`` ERP) presentes em Entrada NF Agro com o número informado.
+    Considera notas com estoque aplicado / encerradas (mesmo recorte do mapa de datas NF).
+    """
+    from django.core.cache import cache
+
+    nf = str(numero_nf or "").strip()
+    if not nf:
+        return set()
+    cache_key = f"cadastro_nf_num_ids_v1:{hashlib.md5(nf.casefold().encode('utf-8')).hexdigest()[:20]}"
+    hit = cache.get(cache_key)
+    if isinstance(hit, (list, tuple, set)):
+        return set(str(x) for x in hit if str(x).strip())
+
+    out: set[str] = set()
+    try:
+        from produtos.compras_ultimas_compras_util import (
+            _doc_conta_como_compra_entrada_nf,
+            _qtd_linha_entrada_nf_agro,
+        )
+        from produtos.models import EntradaNotaRascunhoAgro
+        from produtos.nfe_entrada_util import (
+            ENTRADA_NFE_STATUS_DESCARTADA,
+            ENTRADA_NFE_STATUS_ENCERRADA,
+            ENTRADA_NFE_STATUS_ESTOQUE_APLICADO,
+        )
+
+        qs = (
+            EntradaNotaRascunhoAgro.objects.exclude(status=ENTRADA_NFE_STATUS_DESCARTADA)
+            .filter(
+                Q(status__in=[ENTRADA_NFE_STATUS_ENCERRADA, ENTRADA_NFE_STATUS_ESTOQUE_APLICADO])
+                | Q(estoque_aplicado_em__isnull=False)
+            )
+            .only("cabecalho", "linhas", "extra", "criado_em", "estoque_aplicado_em", "status")
+            .order_by("-criado_em")[:2500]
+        )
+        for row in qs.iterator(chunk_size=100):
+            doc = {
+                "cabecalho": row.cabecalho if isinstance(row.cabecalho, dict) else {},
+                "linhas": row.linhas if isinstance(row.linhas, list) else [],
+                "extra": row.extra if isinstance(row.extra, dict) else {},
+                "criado_em": row.criado_em,
+                "estoque_aplicado_em": row.estoque_aplicado_em,
+                "status": row.status,
+            }
+            if not _doc_conta_como_compra_entrada_nf(doc):
+                continue
+            cab = doc["cabecalho"]
+            if not _cabecalho_casa_numero_nf_filtro(cab, nf):
+                continue
+            for ln in doc["linhas"]:
+                if not isinstance(ln, dict):
+                    continue
+                if _qtd_linha_entrada_nf_agro(ln) <= 0:
+                    continue
+                pid = str(ln.get("produto_id") or "").strip()
+                if pid:
+                    out.add(pid)
+    except Exception as exc:
+        logger.warning("produto_ids_por_numero_entrada_nf: %s", exc)
+
+    try:
+        cache.set(cache_key, list(out), 120)
+    except Exception:
+        pass
     return out

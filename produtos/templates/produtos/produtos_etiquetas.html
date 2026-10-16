@@ -296,8 +296,14 @@
         <div class="etq-ms" data-ms="modelo" data-label="Modelo"><button type="button" class="etq-ms-btn" aria-haspopup="listbox">Modelo</button><div class="etq-ms-panel hidden" role="listbox"></div></div>
       </div>
       <details id="etq-filtros-mais">
-        <summary>Mais opções · datas, preço, NCM</summary>
+        <summary>Mais opções · NF, datas, preço, NCM</summary>
         <div class="etq-filtros-row mt-1">
+          <label class="etq-f-field etq-f-field--nf">
+            <span>Nº NF entrada</span>
+            <input type="text" id="etq-f-numero-nf" inputmode="numeric" autocomplete="off"
+              placeholder="Ex.: 76468"
+              title="Produtos da nota fiscal já lançada na Entrada de nota (estoque aplicado)." />
+          </label>
           <label class="etq-f-field">
             <span>Tipo de data</span>
             <select id="etq-f-data-tipo">

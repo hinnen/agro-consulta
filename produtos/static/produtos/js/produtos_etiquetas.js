@@ -1252,6 +1252,7 @@
     if ($('etq-f-sem-marca') && $('etq-f-sem-marca').checked) return true;
     if ($('etq-f-sem-cat') && $('etq-f-sem-cat').checked) return true;
     if ($('etq-f-somente-agro') && $('etq-f-somente-agro').checked) return true;
+    if ($('etq-f-numero-nf') && $('etq-f-numero-nf').value.trim()) return true;
     var c = !$('etq-loja-centro') || $('etq-loja-centro').checked;
     var v = !$('etq-loja-vila') || $('etq-loja-vila').checked;
     if (!(c && v)) return true;
@@ -1306,6 +1307,9 @@
     if ($('etq-f-sem-marca') && $('etq-f-sem-marca').checked) params.set('sem_marca', '1');
     if ($('etq-f-sem-cat') && $('etq-f-sem-cat').checked) params.set('sem_categoria', '1');
     if ($('etq-f-somente-agro') && $('etq-f-somente-agro').checked) params.set('somente_agro', '1');
+    if ($('etq-f-numero-nf') && $('etq-f-numero-nf').value.trim()) {
+      params.set('numero_nf', $('etq-f-numero-nf').value.trim());
+    }
     return params;
   }
   function filtrarOmitZero(prods) {
@@ -1340,6 +1344,7 @@
     if ($('etq-f-sem-marca')) $('etq-f-sem-marca').checked = false;
     if ($('etq-f-sem-cat')) $('etq-f-sem-cat').checked = false;
     if ($('etq-f-somente-agro')) $('etq-f-somente-agro').checked = false;
+    if ($('etq-f-numero-nf')) $('etq-f-numero-nf').value = '';
     if ($('etq-preset-filtro-sel')) $('etq-preset-filtro-sel').value = '';
     syncPresetFiltroBtns();
   }
@@ -1415,6 +1420,7 @@
     if ($('etq-f-sem-marca')) $('etq-f-sem-marca').checked = !!payload.sem_marca;
     if ($('etq-f-sem-cat')) $('etq-f-sem-cat').checked = !!payload.sem_categoria;
     if ($('etq-f-somente-agro')) $('etq-f-somente-agro').checked = !!payload.somente_agro;
+    if ($('etq-f-numero-nf')) $('etq-f-numero-nf').value = payload.numero_nf || '';
     Object.keys(msSelected).forEach(function (k) {
       var arr = payload[k];
       msSelected[k] = Array.isArray(arr) ? arr.slice() : [];
@@ -2372,7 +2378,7 @@
 
     msWire();
     ['etq-loja-centro','etq-loja-vila','etq-omit-zero','etq-somente-ativos',
-     'etq-f-estoque-sinal','etq-f-data-tipo','etq-f-data-de','etq-f-data-ate',
+     'etq-f-estoque-sinal','etq-f-numero-nf','etq-f-data-tipo','etq-f-data-de','etq-f-data-ate',
      'etq-f-custo-min','etq-f-custo-max','etq-f-venda-min','etq-f-venda-max',
      'etq-f-ncm','etq-f-sem-marca','etq-f-sem-cat','etq-f-somente-agro'].forEach(function (id) {
       var node = $(id);

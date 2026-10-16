@@ -294,3 +294,27 @@ class ArquivosPathTests(SimpleTestCase):
         f = parse_filtros_cadastro(req)
         self.assertTrue(f["pendente_pdv"])
         self.assertTrue(filtros_cadastro_ativos(f))
+
+    def test_filtro_parse_numero_nf_entrada(self):
+        from produtos.cadastro_filtros_util import (
+            _cabecalho_casa_numero_nf_filtro,
+            filtros_cadastro_ativos,
+            parse_filtros_cadastro,
+        )
+
+        class _Get(dict):
+            def getlist(self, key):
+                v = self.get(key)
+                if v is None:
+                    return []
+                if isinstance(v, (list, tuple)):
+                    return list(v)
+                return [v]
+
+        req = SimpleNamespace(GET=_Get(numero_nf=" 76468 "))
+        f = parse_filtros_cadastro(req)
+        self.assertEqual(f["numero_nf"], "76468")
+        self.assertTrue(filtros_cadastro_ativos(f))
+        self.assertTrue(_cabecalho_casa_numero_nf_filtro({"numero": "76468"}, "76468"))
+        self.assertTrue(_cabecalho_casa_numero_nf_filtro({"numero": "NF 76468-A"}, "76468"))
+        self.assertFalse(_cabecalho_casa_numero_nf_filtro({"numero": "99999"}, "76468"))

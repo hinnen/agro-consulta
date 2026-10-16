@@ -1294,6 +1294,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 Falta subir → **cutover autorizado** · **ETQ-FILTRO-NF-ENTRADA** · **v27.22** · 16/10c
+
+| Campo | Valor |
+| ----- | ----- |
+| **Pacote** | Etiquetas → **Nº NF entrada** (`numero_nf` na busca cadastro) |
+| **PREP** | `deploy/prep-checklist-1610c-etq-filtro-nf` (cherry sobre **produção** `56b60ea9`) |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_etq_filtro_nf_entrada_path.py` **VERIFY_OK** |
+| **Backup** | `producao-backup-pre-v2722-etq-filtro-nf` |
+| **Rollback** | `rollback/pre-v2721-etq-filtro-nf` → **v27.21** |
+| **Smoke** | Ctrl+F5 · Etiquetas → NF real → fila |
+
+### ✅ CHECKLIST ÚNICO — **16/10c** · 🟢 **PRONTO envio produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ETQ-FILTRO-NF-ENTRADA** | 🟢 **cutover** | **NÃO** | `verify_etq_filtro_nf_entrada_path.py` |
+
+### 📦 PACOTE PRONTO — **ETQ-FILTRO-NF-ENTRADA** (`CHECKLIST 16/10c`) · **PREP v27.22**
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Filtro por número da NF de entrada na tela Etiquetas |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1610c-etq-filtro-nf.md` |
+
 ### 🟢 PREP loja — **RH-VALE-VILA** · **v27.18** · armado
 
 | Campo | Valor |
