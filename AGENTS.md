@@ -120,6 +120,11 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 
 ## 7. Decisões e implementações já registradas (changelog resumido)
 
+**NF-e saída (nota grande) — plano, ainda não implementado**
+
+- Documento: **modelo 55** (DANFE A4). NFC-e 65 (cupom) fica fora desta tela. Spec completa: `docs/PLANO_TELA_EMISSAO_NFE_55.md`.
+- Certificado A1 Dist-DFe (`NFE_DIST_DFE_*`) é e-CNPJ e assina NF-e 55; o modelo **não** vem no PFX.
+
 **Repasse Vila — cofrinho físico acumulado (28/08/2026)**
 
 - O **cofrinho da Vila** é um saldo acumulado próprio no PostgreSQL, separado do caixa normal e do indicador histórico **Lucro ficou**. A reserva diária mantém vigência funcional em **18/08/2026** e continua entrando **antes dos 50%** na fórmula do lucro; não há segundo desconto no total sugerido.
