@@ -68,6 +68,9 @@ def test_arquivos() -> None:
         check(f"urls_{needle[:28]}", needle in urls)
 
     check("util_col", "COL_NFE_SAIDA = \"AgroNfeSaida\"" in _read("produtos/nfe_saida_util.py"))
+    check("pg_model", "class NfeSaidaRascunhoAgro" in _read("produtos/models.py"))
+    check("pg_flag", "agro_nfe_saida_rascunho_postgres" in _read("produtos/agro_fonte_config.py"))
+    check("views_persistencia", "nfe_saida_persistencia_ok" in _read("produtos/views_nfe_saida.py"))
     check("views_nfe_saida_view", "def nfe_saida_view" in _read("produtos/views_nfe_saida.py"))
     check("emissao_sim", "def emitir_nfe_saida_documento" in _read("produtos/nfe_saida_emissao_util.py"))
     check("tpl_lista_editor", "nfe-saida-view-lista" in tpl and "nfe-saida-view-editor" in tpl)

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, TestCase
 
 
 class NfeSaidaCfopTests(SimpleTestCase):
@@ -37,6 +37,42 @@ class NfeSaidaDestinatarioTests(SimpleTestCase):
         self.assertTrue(any("Inscrição" in e for e in erros))
         dest["ie"] = "ISENTO"
         self.assertEqual(validar_destinatario(dest), [])
+
+
+class NfeSaidaPostgresDbTests(TestCase):
+    def test_criar_e_listar_postgres(self):
+        from unittest.mock import patch
+
+        from produtos.nfe_saida_util import criar_nfe_saida_vazia, listar_nfe_saida, obter_documento_nfe_saida
+
+        with patch("produtos.nfe_saida_util.nfe_saida_usa_postgres", return_value=True):
+            r = criar_nfe_saida_vazia(None, usuario="pytest")
+            self.assertTrue(r.get("ok"))
+            doc_id = r["id"]
+            self.assertEqual(len(doc_id), 24)
+            doc = obter_documento_nfe_saida(None, doc_id)
+            self.assertIsNotNone(doc)
+            self.assertEqual(doc.get("status"), "rascunho")
+            itens = listar_nfe_saida(None, filtro="rascunho")
+            self.assertTrue(any(x.get("id") == doc_id for x in itens))
+
+
+class NfeSaidaPostgresStoreTests(SimpleTestCase):
+    def test_persistencia_ok_sem_mongo(self):
+        from unittest.mock import patch
+
+        from produtos.nfe_saida_util import criar_nfe_saida_vazia, listar_nfe_saida, nfe_saida_persistencia_ok
+
+        with patch("produtos.nfe_saida_util.nfe_saida_usa_postgres", return_value=True):
+            with patch("produtos.nfe_saida_rascunho_pg_util.pg_insert", return_value="aabbccddeeff001122334455"):
+                self.assertTrue(nfe_saida_persistencia_ok(None))
+                r = criar_nfe_saida_vazia(None, usuario="teste")
+                self.assertTrue(r.get("ok"))
+                self.assertEqual(r.get("id"), "aabbccddeeff001122334455")
+
+        with patch("produtos.nfe_saida_util.nfe_saida_usa_postgres", return_value=True):
+            with patch("produtos.nfe_saida_rascunho_pg_util.pg_find_filter", return_value=[]):
+                self.assertEqual(listar_nfe_saida(None), [])
 
 
 class NfeSaidaPagamentoTests(SimpleTestCase):

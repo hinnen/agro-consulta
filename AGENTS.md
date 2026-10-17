@@ -125,7 +125,7 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 
 - Documento: **modelo 55** (DANFE A4). NFC-e 65 (cupom) fica fora desta tela. Spec: `docs/PLANO_TELA_EMISSAO_NFE_55.md`; ajuda «?» em `produtos/templates/produtos/includes/nfe_saida_help_agents.html`.
 - Dois caminhos: **manual** (Nova) e **a partir da venda** (`?venda=<pk>`, API `POST api/nfe-saida/de-venda/`); **não** emite 55 automaticamente ao salvar venda no PDV (link «NF-e A4 (55)» no toast pós-venda).
-- Rascunhos Mongo `AgroNfeSaida`; emissão SEFAZ produção ainda pendente — homologação pode **simular** (`NFE_SAIDA_SIMULAR_EMIT` / `tp_amb=2`).
+- Rascunhos em Postgres `NfeSaidaRascunhoAgro` quando Mongo ERP off (`agro_nfe_saida_rascunho_postgres`); legado Mongo `AgroNfeSaida` se ainda conectado. Emissão SEFAZ produção ainda pendente — homologação pode **simular** (`NFE_SAIDA_SIMULAR_EMIT` / `tp_amb=2`).
 - Certificado A1 Dist-DFe (`NFE_DIST_DFE_*`) é e-CNPJ e assina NF-e 55; o modelo **não** vem no PFX.
 
 **Repasse Vila — cofrinho físico acumulado (28/08/2026)**

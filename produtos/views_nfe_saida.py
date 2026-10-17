@@ -21,12 +21,14 @@ from produtos.nfe_saida_util import (
     NFE_SAIDA_STATUS_REJEITADA,
     autorizada_por_venda,
     checklist_conferencia,
+    criar_nfe_saida_vazia,
     criar_ou_reabrir_de_venda,
-    doc_novo_vazio,
     listar_nfe_saida,
-    nfe_saida_col,
+    nfe_saida_atualizar_campos,
+    nfe_saida_persistencia_ok,
     nfe_saida_tp_amb_default,
     obter_documento_nfe_saida,
+    obter_nfe_saida_bruto,
     painel_nfe_saida_venda,
     salvar_documento_nfe_saida,
     salvar_fiscal_cliente_agro,
@@ -95,8 +97,10 @@ def api_nfe_saida_status_cert(request):
 @require_GET
 def api_nfe_saida_listar(request):
     db = _mongo_db()
-    if nfe_saida_col(db) is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível.", "itens": []}, status=503)
+    if not nfe_saida_persistencia_ok(db):
+        return JsonResponse(
+            {"ok": False, "erro": "Persistência NF-e saída indisponível.", "itens": []}, status=503
+        )
     try:
         lim = min(int(request.GET.get("limit") or 40), 100)
     except ValueError:
@@ -146,12 +150,9 @@ def api_nfe_saida_salvar(request):
 @require_POST
 def api_nfe_saida_nova(request):
     db = _mongo_db()
-    if nfe_saida_col(db) is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
-    doc = doc_novo_vazio(usuario=_usuario(request))
-    col = nfe_saida_col(db)
-    ins = col.insert_one(doc)
-    return JsonResponse({"ok": True, "id": str(ins.inserted_id)})
+    r = criar_nfe_saida_vazia(db, usuario=_usuario(request))
+    st = 200 if r.get("ok") else 503
+    return JsonResponse(r, status=st)
 
 
 @login_required(login_url="/entrar/")
@@ -239,18 +240,11 @@ def api_nfe_saida_emitir(request, doc_id: str):
         return JsonResponse({"ok": False, "erro": err_pin}, status=403)
 
     db = _mongo_db()
-    col = nfe_saida_col(db)
-    if col is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
-    from bson import ObjectId
-    from bson.errors import InvalidId
+    if not nfe_saida_persistencia_ok(db):
+        return JsonResponse({"ok": False, "erro": "Persistência NF-e saída indisponível."}, status=503)
 
-    try:
-        oid = ObjectId(str(doc_id).strip())
-    except (InvalidId, TypeError):
-        return JsonResponse({"ok": False, "erro": "ID inválido."}, status=400)
-
-    doc = col.find_one({"_id": oid})
+    doc_id_norm = str(doc_id).strip()
+    doc = obter_nfe_saida_bruto(db, doc_id_norm)
     if not doc:
         return JsonResponse({"ok": False, "erro": "Documento não encontrado."}, status=404)
     if str(doc.get("status") or "") == NFE_SAIDA_STATUS_AUTORIZADA:
@@ -259,7 +253,7 @@ def api_nfe_saida_emitir(request, doc_id: str):
     vid = doc.get("venda_agro_id")
     if vid:
         aut = autorizada_por_venda(db, int(vid))
-        if aut and aut.get("id") != str(oid):
+        if aut and aut.get("id") != doc_id_norm:
             return JsonResponse(
                 {
                     "ok": False,
@@ -269,9 +263,10 @@ def api_nfe_saida_emitir(request, doc_id: str):
                 status=409,
             )
 
-    col.update_one(
-        {"_id": oid},
-        {"$set": {"status": NFE_SAIDA_STATUS_ENVIANDO, "updated_at": datetime.now(timezone.utc)}},
+    nfe_saida_atualizar_campos(
+        db,
+        doc_id_norm,
+        {"status": NFE_SAIDA_STATUS_ENVIANDO, "updated_at": datetime.now(timezone.utc)},
     )
 
     cnpj = re.sub(r"\D", "", config("NFE_DIST_DFE_CNPJ", default="") or "")[:14]
@@ -290,9 +285,9 @@ def api_nfe_saida_emitir(request, doc_id: str):
         upd["serie"] = out.get("serie")
         upd["xml_autorizado"] = out.get("xml_autorizado") or ""
         upd["simulado"] = bool(out.get("simulado"))
-    col.update_one({"_id": oid}, {"$set": upd})
+    nfe_saida_atualizar_campos(db, doc_id_norm, upd)
 
-    refreshed = obter_documento_nfe_saida(db, str(oid))
+    refreshed = obter_documento_nfe_saida(db, doc_id_norm)
     body = {"ok": bool(out.get("ok")), "doc": refreshed, **{k: out[k] for k in ("erro", "simulado", "chave") if k in out}}
     st = 200 if out.get("ok") else 400
     return JsonResponse(body, status=st)
@@ -314,17 +309,9 @@ def api_nfe_saida_danfe(request, doc_id: str):
 @require_GET
 def api_nfe_saida_xml(request, doc_id: str):
     db = _mongo_db()
-    col = nfe_saida_col(db)
-    if col is None:
+    if not nfe_saida_persistencia_ok(db):
         return HttpResponse("Indisponível", status=503)
-    from bson import ObjectId
-    from bson.errors import InvalidId
-
-    try:
-        oid = ObjectId(str(doc_id).strip())
-    except (InvalidId, TypeError):
-        return HttpResponse("ID inválido", status=400)
-    doc = col.find_one({"_id": oid})
+    doc = obter_nfe_saida_bruto(db, str(doc_id).strip())
     if not doc:
         return HttpResponse("Não encontrado", status=404)
     xml = str(doc.get("xml_autorizado") or "").strip()
@@ -344,23 +331,17 @@ def api_nfe_saida_descartar(request, doc_id: str):
     if not ok_pin:
         return JsonResponse({"ok": False, "erro": err_pin}, status=403)
     db = _mongo_db()
-    col = nfe_saida_col(db)
-    if col is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
-    from bson import ObjectId
-    from bson.errors import InvalidId
-
-    try:
-        oid = ObjectId(str(doc_id).strip())
-    except (InvalidId, TypeError):
-        return JsonResponse({"ok": False, "erro": "ID inválido."}, status=400)
-    doc = col.find_one({"_id": oid})
+    if not nfe_saida_persistencia_ok(db):
+        return JsonResponse({"ok": False, "erro": "Persistência NF-e saída indisponível."}, status=503)
+    doc_id_norm = str(doc_id).strip()
+    doc = obter_nfe_saida_bruto(db, doc_id_norm)
     if not doc:
         return JsonResponse({"ok": False, "erro": "Não encontrado."}, status=404)
     if str(doc.get("status") or "") == NFE_SAIDA_STATUS_AUTORIZADA:
         return JsonResponse({"ok": False, "erro": "Nota autorizada não pode ser descartada."}, status=400)
-    col.update_one(
-        {"_id": oid},
-        {"$set": {"status": NFE_SAIDA_STATUS_DESCARTADA, "updated_at": datetime.now(timezone.utc)}},
+    nfe_saida_atualizar_campos(
+        db,
+        doc_id_norm,
+        {"status": NFE_SAIDA_STATUS_DESCARTADA, "updated_at": datetime.now(timezone.utc)},
     )
     return JsonResponse({"ok": True})
