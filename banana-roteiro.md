@@ -1091,15 +1091,12 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 88. CHECKLIST ÚNICO — **17/10** · 🟡 PREP **v27.26** · aguarda senha
+## 88. CHECKLIST ÚNICO — **17/10** · ✅ Live **v27.26**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **NFE-SAIDA-55** | 🟡 **checkpoint OK** | **NÃO** | **27/27** + **4/4** |
+| 1 | **NFE-SAIDA-55** | ✅ **Live** | **NÃO** | **27/27** + **4/4** |
 
-**Base loja:** **v27.25** @ **`b60a3f5b`**.  
-**PREP:** `deploy/prep-checklist-1710-nfe-saida-55` @ **`f82f5be1`**.  
-**Na senha:** `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → `./scripts/cutover_loja_checklist_1710_nfe_saida_55.sh --exec` → `./scripts/post_deploy_checklist_1710_nfe_saida_55.sh`.  
-**Revert:** `git push origin rollback/pre-v2725-nfe-saida-55:producao`.  
-**Smoke:** `/nfe/saida/` · Nova · emitir (homolog) · `?venda=<pk>`.  
-**Doc:** `docs/DEPLOY-PREP-CHECKLIST-1710-nfe-saida-55.md`.
+**Live:** `producao` @ **`f82f5be1`**.  
+**Revert:** `git push origin rollback/pre-v2725-nfe-saida-55:producao` → **v27.25** @ `b60a3f5b`.  
+**Smoke:** `/nfe/saida/` · Nova · `?venda=<pk>`.
