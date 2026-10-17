@@ -63,6 +63,7 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 | `/compras/relatorio-planilha-categoria/` | `compras_relatorio_planilha_categoria` | Lista por **categoria** · impressão A4 ou A6; sem coluna GM; «Contagem» e «Pedir» em branco |
 | `/compras/relatorio-planilha-unidade/`   | `compras_relatorio_planilha_unidade`   | Lista por **unidade** · mesmo layout e opções de papel que a planilha por categoria         |
 | `/entrada-nota/`                         | `entrada_nota`                         |                                                                                             |
+| `/nfe/saida/`                            | `nfe_saida`                            | NF-e saída modelo 55 (lista + editor); `?venda=` ou `?doc=`                                 |
 | `/lancamentos/`                          | `lancamentos_financeiros`              | Contas a pagar/receber                                                                      |
 | `/financeiro/resumo-gerencial/`          | `resumo_financeiro_gerencial`          |                                                                                             |
 | `/lancamentos/dre/`                      | `lancamentos_dre`                      |                                                                                             |
@@ -119,6 +120,13 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 ---
 
 ## 7. Decisões e implementações já registradas (changelog resumido)
+
+**NF-e saída (nota grande) — tela `/nfe/saida/`**
+
+- Documento: **modelo 55** (DANFE A4). NFC-e 65 (cupom) fica fora desta tela. Spec: `docs/PLANO_TELA_EMISSAO_NFE_55.md`; ajuda «?» em `produtos/templates/produtos/includes/nfe_saida_help_agents.html`.
+- Dois caminhos: **manual** (Nova) e **a partir da venda** (`?venda=<pk>`, API `POST api/nfe-saida/de-venda/`); **não** emite 55 automaticamente ao salvar venda no PDV (link «NF-e A4 (55)» no toast pós-venda).
+- Rascunhos Mongo `AgroNfeSaida`; emissão SEFAZ produção ainda pendente — homologação pode **simular** (`NFE_SAIDA_SIMULAR_EMIT` / `tp_amb=2`).
+- Certificado A1 Dist-DFe (`NFE_DIST_DFE_*`) é e-CNPJ e assina NF-e 55; o modelo **não** vem no PFX.
 
 **Repasse Vila — cofrinho físico acumulado (28/08/2026)**
 

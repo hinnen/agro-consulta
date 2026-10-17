@@ -13506,9 +13506,17 @@
         if (opts.keepNewlines) bodyClass += ' whitespace-pre-line';
         var bodyHtml =
             '<p class="' + bodyClass + '">' + escapeHtml(msg || 'Venda confirmada.') + '</p>';
+        var actionBtn =
+            opts.actionUrl && opts.actionLabel
+                ? '<a href="' +
+                  escapeHtml(opts.actionUrl) +
+                  '" class="pdv-sale-toast-action mt-3 inline-flex w-full items-center justify-center rounded-xl border-2 border-orange-500 bg-orange-500 px-4 py-2.5 text-center text-xs font-black uppercase tracking-wide text-white shadow-md hover:bg-orange-600">' +
+                  escapeHtml(opts.actionLabel) +
+                  '</a>'
+                : '';
         var dismissBtn =
-            tone === 'warn' || tone === 'error' || tone === 'info' || persistent
-                ? '<button type="button" class="pdv-sale-toast-dismiss mt-3 rounded-xl border-2 border-current/25 bg-white px-4 py-2 font-black uppercase tracking-wide hover:bg-white/80" data-pdv-toast-dismiss>Entendi</button>'
+            tone === 'warn' || tone === 'error' || tone === 'info' || persistent || actionBtn
+                ? '<button type="button" class="pdv-sale-toast-dismiss mt-3 rounded-xl border-2 border-current/25 bg-white px-4 py-2.5 font-black uppercase tracking-wide hover:bg-white/80" data-pdv-toast-dismiss>Entendi</button>'
                 : '';
         if (prominent) {
             host.innerHTML =
@@ -13521,6 +13529,7 @@
                 '</span>' +
                 titleHtml +
                 bodyHtml +
+                actionBtn +
                 dismissBtn +
                 '</div></div>';
         } else {
@@ -13544,6 +13553,7 @@
                 '">' +
                 escapeHtml(msg || 'Venda confirmada.') +
                 '</p>' +
+                actionBtn +
                 (dismissBtn
                     ? dismissBtn.replace(
                           'pdv-sale-toast-dismiss mt-3',
@@ -14076,7 +14086,13 @@
                 } else {
                     var msg = saleDoneMessage(opts);
                     var kind = opts.erpPendente ? 'info' : 'success';
-                    showSaleDoneFeedback(msg, kind);
+                    var toastOpts = {};
+                    if (opts.vendaId) {
+                        toastOpts.actionUrl = '/nfe/saida/?venda=' + encodeURIComponent(String(opts.vendaId));
+                        toastOpts.actionLabel = 'NF-e A4 (55)';
+                        toastOpts.durationMs = 14000;
+                    }
+                    showSaleDoneFeedback(msg, kind, toastOpts);
                 }
             })
             .finally(function () {

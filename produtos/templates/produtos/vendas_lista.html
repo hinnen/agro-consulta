@@ -276,6 +276,12 @@
                   <button type="button" class="vendas-acao-slot js-venda-nfce-reemitir border-2 border-amber-400 bg-amber-500 text-white shadow-sm hover:bg-amber-600" data-venda-id="{{ v.id }}" title="Tentar emitir NFC-e novamente">Reemitir</button>
                   {% elif nfce_cfg.ativo and v.nfce_painel.autorizada %}
                   <button type="button" class="vendas-acao-slot js-venda-imprimir-fiscal border-2 border-emerald-500 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700" data-venda-id="{{ v.id }}" title="Imprimir DANFE NFC-e">Fiscal</button>
+                  {% elif v.nfe_saida_painel.tem_autorizada and v.nfe_saida_painel.doc_id %}
+                  <a href="{% url 'nfe_saida' %}?doc={{ v.nfe_saida_painel.doc_id|urlencode }}" class="vendas-acao-slot border-2 border-sky-500 bg-sky-600 text-white shadow-sm hover:bg-sky-700" title="NF-e 55 autorizada">NF-e 55</a>
+                  {% elif not v.devolvida_em and v.nfe_saida_painel.pode_emitir %}
+                  <a href="{% url 'nfe_saida' %}?venda={{ v.id }}" class="vendas-acao-slot border-2 border-orange-400 bg-orange-500 text-white shadow-sm hover:bg-orange-600" title="Emitir NF-e modelo 55">NF-e 55</a>
+                  {% elif v.nfe_saida_painel.tem_rascunho and v.nfe_saida_painel.doc_id %}
+                  <a href="{% url 'nfe_saida' %}?doc={{ v.nfe_saida_painel.doc_id|urlencode }}" class="vendas-acao-slot border-2 border-amber-400 bg-amber-100 text-amber-950 shadow-sm hover:bg-amber-200" title="Rascunho NF-e 55">NF-e …</a>
                   {% else %}
                   <span class="vendas-acao-slot border border-slate-200 bg-slate-50 text-slate-400">Interno</span>
                   {% endif %}

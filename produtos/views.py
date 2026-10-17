@@ -7986,6 +7986,9 @@ def _venda_lista_preparar_linha(v, *, nfce_cfg: dict, tem_fiado: bool) -> None:
     v.lista_total_restante = rest
     v.lista_mostra_restante = (not v.devolvida_em) and rest < tot - Decimal("0.009")
     v.nfce_painel = painel_nfce_venda(v, _cfg=nfce_cfg)
+    from produtos.nfe_saida_util import painel_nfe_saida_venda
+
+    v.nfe_saida_painel = painel_nfe_saida_venda(v.pk)
 
 
 def _obter_sessao_caixa_aberta(request):
@@ -13661,6 +13664,9 @@ def venda_agro_detalhe(request, pk):
     from produtos.fiado_credito_util import venda_local_tem_fiado
 
     nfce_painel = painel_nfce_venda(v)
+    from produtos.nfe_saida_util import painel_nfe_saida_venda
+
+    nfe_saida_painel = painel_nfe_saida_venda(v.pk)
     # Cura frete_devolvido atraso vs eventos (bug #34) antes de calcular restante.
     frete_ja_devolvido(v)
     v.refresh_from_db()
@@ -13682,6 +13688,7 @@ def venda_agro_detalhe(request, pk):
             "erp_resposta_text": erp_txt,
             "erp_painel": erp_painel,
             "nfce_painel": nfce_painel,
+            "nfe_saida_painel": nfe_saida_painel,
             "nfce_cfg": nfce_config_resumo(),
             "erp_logs_json": json.dumps(
                 erp_painel.get("logs") or [],
