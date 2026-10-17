@@ -3,7 +3,10 @@ from django.test import SimpleTestCase
 
 from produtos.busca_filtro_pdv_util import filtrar_rows_api_estilo_pdv, ordenar_rows_api_estilo_pdv
 from produtos.cadastro_busca_codigo_util import tokens_termo_busca_cadastro
-from produtos.medicamento_vet_taxonomia import normalizar_palavras_chave
+from produtos.medicamento_vet_taxonomia import (
+    indice_busca_palavras_chave,
+    normalizar_palavras_chave,
+)
 
 
 class CadastroBuscaPdvAlinhadaTests(SimpleTestCase):
@@ -12,6 +15,11 @@ class CadastroBuscaPdvAlinhadaTests(SimpleTestCase):
 
     def test_palavras_chave_preserva_virgula(self):
         self.assertEqual(normalizar_palavras_chave("oleo, 2 tempo"), "oleo, 2 tempo")
+
+    def test_indice_busca_palavras_sem_acento(self):
+        idx = indice_busca_palavras_chave("óleo, 2 tempo, 2tempo")
+        self.assertIn("oleo", idx)
+        self.assertIn("2 tempo", idx)
 
     def test_filtra_oleo_2_tempo_com_busca_texto(self):
         rows = [

@@ -26,6 +26,8 @@ AGRO_ESPECIES_VET_CAMPO = "AgroEspeciesVet"
 AGRO_BUSCA_TEXTO_EXTRA_CAMPO = "AgroBuscaTextoExtra"
 
 _CHAVES_EXTRAS_PALAVRAS = ("palavras_chave", "palavrasChave")
+# Índice plano sem acento/pontuação — busca Postgres (overlay JSON).
+BUSCA_PALAVRAS_AGRO_CAMPO = "busca_palavras_agro"
 _CHAVES_EXTRAS_CLASSES = ("classes_vet", "classesVet", "classes_medicamento")
 _CHAVES_EXTRAS_ESPECIES = ("especies_vet", "especiesVet", "especies_atendidas")
 
@@ -158,6 +160,13 @@ def normalizar_palavras_chave(raw: str | None) -> str:
     return ", ".join(partes)[:8000]
 
 
+def indice_busca_palavras_chave(palavras_norm: str) -> str:
+    """Texto normalizado (sem acento) para ``icontains`` no overlay."""
+    frags = partes_palavras_chave(palavras_norm) or [str(palavras_norm or "").strip()]
+    joined = " ".join(x for x in frags if x)
+    return normalizar(joined)[:4000] if joined else ""
+
+
 def normalizar_especies_vet(raw: Any) -> list[str]:
     valid = especies_slugs_validos()
     seen: set[str] = set()
@@ -251,8 +260,14 @@ def aplicar_palavras_e_classes_em_extras(
         pk = normalizar_palavras_chave(palavras_chave)
         if pk:
             ex["palavras_chave"] = pk
+            idx = indice_busca_palavras_chave(pk)
+            if idx:
+                ex[BUSCA_PALAVRAS_AGRO_CAMPO] = idx
+            else:
+                ex.pop(BUSCA_PALAVRAS_AGRO_CAMPO, None)
         else:
             ex.pop("palavras_chave", None)
+            ex.pop(BUSCA_PALAVRAS_AGRO_CAMPO, None)
     if payload_tem_classes:
         cv = normalizar_classes_vet(classes_vet)
         if cv:
