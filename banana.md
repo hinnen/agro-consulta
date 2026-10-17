@@ -1294,6 +1294,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — **CADASTRO-PALAVRAS-PDV-2** (hotfix busca **2 tempo**) · 17/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Busca BCA/PDV/gestão por apelido no overlay: `overlay_pids_por_palavras_busca` (ORM + SQL `ILIKE` JSON Postgres), índice `busca_palavras_agro` ao salvar, fallback se filtro PDV zerar; **BCA cache v5** |
+| **Branch** | `teste` @ **`c76dd168`** · `VERSION` **27.26.2** |
+| **Migrate** | **NÃO** |
+| **Prova** | verify **50/50** · tests busca **6/6** |
+| **Smoke** | Reabrir óleo 2T → **2. Busca** já salvo → BCA/PDV **2 tempo** (Ctrl+F5 uma vez após deploy) |
+
+### ✅ CHECKLIST ÚNICO — **17/10b** · 🟢 **pronto envio produção** · prep **v27.26.2**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CADASTRO-PALAVRAS-PDV-2** | 🟢 **pronto envio** | **NÃO** | **50/50** |
+
 ### ✅ Deploy loja — **NFE-SAIDA-55** · **Live v27.26** · CHECKLIST **17/10** · 17/10
 
 | Campo | Valor |
