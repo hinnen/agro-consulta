@@ -1,4 +1,4 @@
-"""NF-e saída (modelo 55) — rascunhos Mongo, prefill de VendaAgro, validação e listagem."""
+"""NF-e saída (modelo 55) — rascunhos Postgres ou Mongo, prefill de VendaAgro, validação e listagem."""
 from __future__ import annotations
 
 import logging
@@ -38,6 +38,18 @@ def nfe_saida_col(db):
     if db is None:
         return None
     return db[COL_NFE_SAIDA]
+
+
+def nfe_saida_usa_postgres() -> bool:
+    from produtos.agro_fonte_config import agro_nfe_saida_rascunho_postgres
+
+    return agro_nfe_saida_rascunho_postgres()
+
+
+def nfe_saida_persistencia_ok(db) -> bool:
+    if nfe_saida_usa_postgres():
+        return True
+    return nfe_saida_col(db) is not None
 
 
 def _digits_doc(raw: Any, max_len: int = 14) -> str:
@@ -370,10 +382,58 @@ def _serialize_doc(doc: dict) -> dict[str, Any]:
 
 
 def salvar_documento_nfe_saida(db, doc_id: str | None, payload: dict, *, usuario: str = "") -> dict[str, Any]:
+    if not nfe_saida_persistencia_ok(db):
+        return {"ok": False, "erro": "Persistência NF-e saída indisponível."}
+    now = datetime.now(timezone.utc)
+    if nfe_saida_usa_postgres():
+        from produtos.nfe_saida_rascunho_pg_util import (
+            nfe_saida_doc_id_valido,
+            pg_find_one,
+            pg_insert,
+            pg_replace,
+        )
+
+        if doc_id:
+            rid = str(doc_id).strip()
+            if not nfe_saida_doc_id_valido(rid):
+                return {"ok": False, "erro": "ID inválido."}
+            existing = pg_find_one(rid)
+            if not existing:
+                return {"ok": False, "erro": "Rascunho não encontrado."}
+            if str(existing.get("status") or "") == NFE_SAIDA_STATUS_AUTORIZADA:
+                return {"ok": False, "erro": "Nota autorizada não pode ser editada."}
+        else:
+            existing = None
+            rid = ""
+
+        base = dict(existing) if existing else doc_novo_vazio(usuario=usuario)
+        for key in (
+            "destinatario",
+            "itens",
+            "pagamento",
+            "fiscal",
+            "inf_complementar",
+            "venda_agro_id",
+            "venda_total_ref",
+            "tp_amb",
+            "serie",
+        ):
+            if key in payload:
+                base[key] = payload[key]
+        if usuario:
+            base["usuario"] = usuario[:200]
+        base["updated_at"] = now
+        base.pop("_id", None)
+        if existing is None:
+            base["created_at"] = now
+            new_id = pg_insert(base)
+            return {"ok": True, "id": new_id}
+        pg_replace(rid, base)
+        return {"ok": True, "id": rid}
+
     col = nfe_saida_col(db)
     if col is None:
         return {"ok": False, "erro": "Mongo indisponível para NF-e saída."}
-    now = datetime.now(timezone.utc)
     if doc_id:
         oid = _oid(doc_id)
         if oid is None:
@@ -413,40 +473,99 @@ def salvar_documento_nfe_saida(db, doc_id: str | None, payload: dict, *, usuario
     return {"ok": True, "id": str(oid)}
 
 
-def obter_documento_nfe_saida(db, doc_id: str) -> dict[str, Any] | None:
+def obter_nfe_saida_bruto(db, doc_id: str) -> dict[str, Any] | None:
+    if nfe_saida_usa_postgres():
+        from produtos.nfe_saida_rascunho_pg_util import pg_find_one
+
+        return pg_find_one(doc_id)
     col = nfe_saida_col(db)
     if col is None:
         return None
     oid = _oid(doc_id)
     if oid is None:
         return None
-    doc = col.find_one({"_id": oid})
+    return col.find_one({"_id": oid})
+
+
+def nfe_saida_atualizar_campos(db, doc_id: str, campos: dict) -> bool:
+    if not campos:
+        return False
+    if nfe_saida_usa_postgres():
+        from produtos.nfe_saida_rascunho_pg_util import pg_update_set
+
+        return pg_update_set(doc_id, campos)
+    col = nfe_saida_col(db)
+    if col is None:
+        return False
+    oid = _oid(doc_id)
+    if oid is None:
+        return False
+    col.update_one({"_id": oid}, {"$set": campos})
+    return True
+
+
+def criar_nfe_saida_vazia(db, *, usuario: str = "") -> dict[str, Any]:
+    if not nfe_saida_persistencia_ok(db):
+        return {"ok": False, "erro": "Persistência NF-e saída indisponível."}
+    doc = doc_novo_vazio(usuario=usuario)
+    if nfe_saida_usa_postgres():
+        from produtos.nfe_saida_rascunho_pg_util import pg_insert
+
+        return {"ok": True, "id": pg_insert(doc)}
+    col = nfe_saida_col(db)
+    ins = col.insert_one(doc)
+    return {"ok": True, "id": str(ins.inserted_id)}
+
+
+def obter_documento_nfe_saida(db, doc_id: str) -> dict[str, Any] | None:
+    doc = obter_nfe_saida_bruto(db, doc_id)
     if not doc:
         return None
     return _serialize_doc(doc)
 
 
 def listar_nfe_saida(db, *, limit: int = 40, filtro: str | None = None, busca: str = "") -> list[dict]:
-    col = nfe_saida_col(db)
-    if col is None:
+    if not nfe_saida_persistencia_ok(db):
         return []
-    q: dict[str, Any] = {}
     f = (filtro or "todas").strip().lower()
-    if f == "rascunho":
-        q["status"] = NFE_SAIDA_STATUS_RASCUNHO
-    elif f == "autorizada":
-        q["status"] = NFE_SAIDA_STATUS_AUTORIZADA
-    elif f == "rejeitada":
-        q["status"] = NFE_SAIDA_STATUS_REJEITADA
-    elif f == "descartada":
-        q["status"] = NFE_SAIDA_STATUS_DESCARTADA
-    elif f == "em_aberto":
-        q["status"] = {"$nin": [NFE_SAIDA_STATUS_DESCARTADA, NFE_SAIDA_STATUS_CANCELADA]}
-
     term = (busca or "").strip().lower()
-    cursor = col.find(q).sort("updated_at", -1).limit(min(limit, 100))
+    lim = min(limit, 100)
+    docs: list[dict]
+
+    if nfe_saida_usa_postgres():
+        from produtos.nfe_saida_rascunho_pg_util import pg_find_filter
+
+        kwargs: dict[str, Any] = {"limit": lim}
+        if f == "rascunho":
+            kwargs["status"] = NFE_SAIDA_STATUS_RASCUNHO
+        elif f == "autorizada":
+            kwargs["status"] = NFE_SAIDA_STATUS_AUTORIZADA
+        elif f == "rejeitada":
+            kwargs["status"] = NFE_SAIDA_STATUS_REJEITADA
+        elif f == "descartada":
+            kwargs["status"] = NFE_SAIDA_STATUS_DESCARTADA
+        elif f == "em_aberto":
+            kwargs["status_nin"] = [NFE_SAIDA_STATUS_DESCARTADA, NFE_SAIDA_STATUS_CANCELADA]
+        docs = pg_find_filter(**kwargs)
+    else:
+        col = nfe_saida_col(db)
+        if col is None:
+            return []
+        q: dict[str, Any] = {}
+        if f == "rascunho":
+            q["status"] = NFE_SAIDA_STATUS_RASCUNHO
+        elif f == "autorizada":
+            q["status"] = NFE_SAIDA_STATUS_AUTORIZADA
+        elif f == "rejeitada":
+            q["status"] = NFE_SAIDA_STATUS_REJEITADA
+        elif f == "descartada":
+            q["status"] = NFE_SAIDA_STATUS_DESCARTADA
+        elif f == "em_aberto":
+            q["status"] = {"$nin": [NFE_SAIDA_STATUS_DESCARTADA, NFE_SAIDA_STATUS_CANCELADA]}
+        docs = list(col.find(q).sort("updated_at", -1).limit(lim))
+
     out: list[dict] = []
-    for doc in cursor:
+    for doc in docs:
         ser = _serialize_doc(doc)
         if term:
             blob = " ".join(
@@ -464,24 +583,44 @@ def listar_nfe_saida(db, *, limit: int = 40, filtro: str | None = None, busca: s
 
 
 def rascunho_aberto_por_venda(db, venda_id: int) -> dict[str, Any] | None:
-    col = nfe_saida_col(db)
-    if col is None:
+    if not nfe_saida_persistencia_ok(db):
         return None
     for st in (NFE_SAIDA_STATUS_RASCUNHO, NFE_SAIDA_STATUS_REJEITADA, NFE_SAIDA_STATUS_ENVIANDO):
-        doc = col.find_one(
-            {"venda_agro_id": int(venda_id), "status": st},
-            sort=[("updated_at", -1)],
-        )
+        doc = None
+        if nfe_saida_usa_postgres():
+            from produtos.nfe_saida_rascunho_pg_util import pg_find_filter
+
+            rows = pg_find_filter(venda_agro_id=int(venda_id), status=st, limit=1)
+            doc = rows[0] if rows else None
+        else:
+            col = nfe_saida_col(db)
+            if col is None:
+                return None
+            doc = col.find_one(
+                {"venda_agro_id": int(venda_id), "status": st},
+                sort=[("updated_at", -1)],
+            )
         if doc:
             return _serialize_doc(doc)
     return None
 
 
 def autorizada_por_venda(db, venda_id: int) -> dict[str, Any] | None:
-    col = nfe_saida_col(db)
-    if col is None:
+    if not nfe_saida_persistencia_ok(db):
         return None
-    doc = col.find_one({"venda_agro_id": int(venda_id), "status": NFE_SAIDA_STATUS_AUTORIZADA})
+    doc = None
+    if nfe_saida_usa_postgres():
+        from produtos.nfe_saida_rascunho_pg_util import pg_find_filter
+
+        rows = pg_find_filter(
+            venda_agro_id=int(venda_id), status=NFE_SAIDA_STATUS_AUTORIZADA, limit=1
+        )
+        doc = rows[0] if rows else None
+    else:
+        col = nfe_saida_col(db)
+        if col is None:
+            return None
+        doc = col.find_one({"venda_agro_id": int(venda_id), "status": NFE_SAIDA_STATUS_AUTORIZADA})
     if doc:
         return _serialize_doc(doc)
     return None
@@ -506,6 +645,18 @@ def criar_ou_reabrir_de_venda(db, venda_id: int, *, usuario: str = "") -> dict[s
     if aberto:
         return {"ok": True, "id": aberto["id"], "reaberto": True, "rascunho": aberto}
     doc = prefill_de_venda_agro(v, usuario=usuario)
+    if not nfe_saida_persistencia_ok(db):
+        return {"ok": False, "erro": "Persistência NF-e saída indisponível."}
+    if nfe_saida_usa_postgres():
+        from produtos.nfe_saida_rascunho_pg_util import pg_insert
+
+        rid = pg_insert(doc)
+        return {
+            "ok": True,
+            "id": rid,
+            "criado": True,
+            "rascunho": _serialize_doc({**doc, "_id": rid}),
+        }
     col = nfe_saida_col(db)
     if col is None:
         return {"ok": False, "erro": "Mongo indisponível."}
@@ -514,22 +665,25 @@ def criar_ou_reabrir_de_venda(db, venda_id: int, *, usuario: str = "") -> dict[s
 
 
 def painel_nfe_saida_venda(venda_id: int, db=None) -> dict[str, Any]:
-    """Resumo para lista/ficha de venda (sem abrir Mongo se db None — tenta conectar)."""
+    """Resumo para lista/ficha de venda."""
     out = {
         "tem_autorizada": False,
         "doc_id": "",
         "tem_rascunho": False,
         "pode_emitir": True,
     }
-    if db is None:
-        try:
-            from produtos.views import obter_conexao_mongo
+    if not nfe_saida_usa_postgres():
+        if db is None:
+            try:
+                from produtos.views import obter_conexao_mongo
 
-            _c, db = obter_conexao_mongo()
-        except Exception:
-            db = None
-    if db is None:
-        return out
+                _c, db = obter_conexao_mongo()
+            except Exception:
+                db = None
+        if db is None:
+            return out
+    elif db is None:
+        db = object()  # sentinel: persistência PG não usa Mongo
     aut = autorizada_por_venda(db, venda_id)
     if aut:
         out["tem_autorizada"] = True

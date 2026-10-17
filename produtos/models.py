@@ -1168,6 +1168,30 @@ class EntradaNotaRascunhoAgro(models.Model):
         return f"Entrada NF {nf} · {self.rascunho_id[:8]}…"
 
 
+class NfeSaidaRascunhoAgro(models.Model):
+    """Rascunho NF-e saída modelo 55; substitui ``AgroNfeSaida`` no Mongo quando ERP off."""
+
+    doc_id = models.CharField(max_length=24, primary_key=True)
+    status = models.CharField(max_length=40, db_index=True, default="rascunho")
+    venda_agro_id = models.IntegerField(null=True, blank=True, db_index=True)
+    usuario = models.CharField(max_length=200, blank=True, default="")
+    corpo = models.JSONField(default=dict, blank=True)
+    criado_em = models.DateTimeField(db_index=True)
+    atualizado_em = models.DateTimeField(db_index=True)
+
+    class Meta:
+        ordering = ["-atualizado_em"]
+        verbose_name = "Rascunho NF-e saída Agro"
+        verbose_name_plural = "Rascunhos NF-e saída Agro"
+        indexes = [
+            models.Index(fields=["status", "-atualizado_em"]),
+            models.Index(fields=["venda_agro_id", "status", "-atualizado_em"]),
+        ]
+
+    def __str__(self):
+        return f"NF-e saída · {self.doc_id[:8]}… · {self.status}"
+
+
 class AgroNfeDistDfeCursor(models.Model):
     """Cursor ultNSU da Dist DF-e (SEFAZ) por CNPJ — sobrevive a restart (Postgres)."""
 

@@ -220,6 +220,16 @@ def agro_entrada_nota_rascunho_postgres() -> bool:
     return agro_financeiro_usa_postgres()
 
 
+def agro_nfe_saida_rascunho_postgres() -> bool:
+    """NF-e saída 55 — rascunhos no Postgres. Default: ligado quando Mongo ERP off ou catálogo PG."""
+    raw = getattr(settings, "AGRO_NFE_SAIDA_RASCUNHO_PG", None)
+    if raw is not None:
+        return bool(raw)
+    if agro_mongo_erp_desligado() or agro_catalogo_usa_postgres():
+        return True
+    return agro_financeiro_usa_postgres()
+
+
 def agro_erp_pedidos_dry_run() -> bool:
     return bool(getattr(settings, "AGRO_ERP_PEDIDOS_DRY_RUN", False))
 
@@ -296,6 +306,7 @@ def agro_fonte_status_dict() -> dict:
         "cadastro_produto_erp_sync": agro_cadastro_produto_erp_sync_habilitado(),
         "financeiro_mongo_congelado": agro_financeiro_mongo_congelado(),
         "entrada_nota_rascunho_postgres": agro_entrada_nota_rascunho_postgres(),
+        "nfe_saida_rascunho_postgres": agro_nfe_saida_rascunho_postgres(),
     }
 
 
