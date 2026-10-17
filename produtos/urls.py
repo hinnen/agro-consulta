@@ -6,7 +6,7 @@ from financeiro.views import (
     dashboard_financeiro_restrito,
 )
 
-from . import promocoes_views, views, views_mp_point, views_nfce, pg_backup_views
+from . import promocoes_views, views, views_mp_point, views_nfce, views_nfe_saida, pg_backup_views
 from . import fiado_gestao_views as fiado_views
 from . import credito_score_views
 from . import relatorios_central_views as relatorios_views
@@ -477,6 +477,7 @@ urlpatterns = [
         views.entrada_nota_view,
         name='entrada_nota',
     ),
+    path('nfe/saida/', views_nfe_saida.nfe_saida_view, name='nfe_saida'),
     path(
         'lancamentos/',
         views.lancamentos_financeiros_view,
@@ -1747,6 +1748,19 @@ urlpatterns = [
         name='api_pdv_mp_point_forcar_liberar',
     ),
     path('api/buscar-produto-id/<str:id>/', views.api_buscar_produto_id, name='api_buscar_produto_id'),
+    path('api/nfe-saida/status-cert/', views_nfe_saida.api_nfe_saida_status_cert, name='api_nfe_saida_status_cert'),
+    path('api/nfe-saida/listar/', views_nfe_saida.api_nfe_saida_listar, name='api_nfe_saida_listar'),
+    path('api/nfe-saida/nova/', views_nfe_saida.api_nfe_saida_nova, name='api_nfe_saida_nova'),
+    path('api/nfe-saida/salvar/', views_nfe_saida.api_nfe_saida_salvar, name='api_nfe_saida_salvar'),
+    path('api/nfe-saida/de-venda/', views_nfe_saida.api_nfe_saida_de_venda, name='api_nfe_saida_de_venda'),
+    path('api/nfe-saida/buscar-vendas/', views_nfe_saida.api_nfe_saida_buscar_vendas, name='api_nfe_saida_buscar_vendas'),
+    path('api/nfe-saida/cliente-fiscal/', views_nfe_saida.api_nfe_saida_cliente_fiscal, name='api_nfe_saida_cliente_fiscal'),
+    path('api/nfe-saida/venda/<int:venda_id>/painel/', views_nfe_saida.api_nfe_saida_painel_venda, name='api_nfe_saida_painel_venda'),
+    path('api/nfe-saida/<str:doc_id>/', views_nfe_saida.api_nfe_saida_obter, name='api_nfe_saida_obter'),
+    path('api/nfe-saida/<str:doc_id>/emitir/', views_nfe_saida.api_nfe_saida_emitir, name='api_nfe_saida_emitir'),
+    path('api/nfe-saida/<str:doc_id>/danfe/', views_nfe_saida.api_nfe_saida_danfe, name='api_nfe_saida_danfe'),
+    path('api/nfe-saida/<str:doc_id>/xml/', views_nfe_saida.api_nfe_saida_xml, name='api_nfe_saida_xml'),
+    path('api/nfe-saida/<str:doc_id>/descartar/', views_nfe_saida.api_nfe_saida_descartar, name='api_nfe_saida_descartar'),
     path(
         'api/entrada-nota/sefaz-status/',
         views.api_entrada_nota_sefaz_status,

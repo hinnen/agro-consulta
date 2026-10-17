@@ -1,0 +1,185 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <title>SisVale | NF-e saída (55)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>
+    html, body { height: 100%; font-family: 'Inter', sans-serif; }
+    .caixa-shell { width: 100%; max-width: min(96rem, 100%); margin: 0 auto; }
+    .nfe-in { border-radius: 0.75rem; border: 2px solid #e2e8f0; padding: 0.65rem 0.85rem; font-weight: 700; width: 100%; min-height: 48px; }
+    .nfe-in:focus { border-color: #10b981; outline: none; box-shadow: 0 0 0 3px rgba(16,185,129,.15); }
+    .nfe-wiz-on { border-color: #f97316 !important; background: #fff7ed !important; color: #7c2d12 !important; }
+    .nfe-chip-on { border-color: #f97316; background: #fff7ed; color: #7c2d12; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900 h-full overflow-hidden flex flex-col">
+{% include "produtos/_gm_loading_bar.html" %}
+{% csrf_token %}
+
+<div id="nfe-homolog-band" class="hidden shrink-0 bg-orange-600 text-white text-center text-sm font-black uppercase py-2 px-3">
+  TESTE SEFAZ — homologação · DANFE sem valor fiscal
+</div>
+
+<div id="nfe-saida-view-lista" class="caixa-shell flex-1 min-h-0 flex flex-col px-3 sm:px-5 py-3 gap-3 overflow-hidden">
+  <header class="shrink-0 flex flex-wrap items-center justify-between gap-2">
+    <div class="flex items-center gap-2 min-w-0">
+      <h1 class="text-xl font-black uppercase text-slate-900">NF-e saída <span class="text-orange-600">55</span></h1>
+      <button type="button" class="min-h-[44px] min-w-[44px] rounded-xl border-2 border-slate-300 bg-white font-black" onclick="document.getElementById('nfe-help-modal').classList.remove('hidden')" title="Ajuda">?</button>
+    </div>
+    <div class="flex flex-wrap gap-2 items-center">
+      {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center min-h-[44px] px-3 rounded-xl border-2 border-emerald-200 bg-white text-xs font-black uppercase text-emerald-900" %}
+      <button type="button" id="btn-nfe-nova" class="min-h-[44px] px-4 rounded-xl bg-emerald-700 text-white font-black text-xs uppercase">Nova <span class="opacity-80">F4</span></button>
+      <button type="button" id="btn-nfe-refresh" class="min-h-[44px] px-3 rounded-xl border-2 border-slate-300 bg-white font-black text-xs uppercase">Atualizar</button>
+    </div>
+  </header>
+  <div class="shrink-0 flex flex-wrap gap-2 items-center">
+    <input type="search" id="nfe-lista-busca" placeholder="Buscar destinatário, chave, venda…" class="nfe-in flex-1 min-w-[12rem]">
+    <button type="button" data-nfe-filtro="em_aberto" class="nfe-chip-on min-h-[40px] px-3 rounded-lg border-2 font-black text-xs uppercase">Em aberto</button>
+    <button type="button" data-nfe-filtro="rascunho" class="min-h-[40px] px-3 rounded-lg border-2 font-black text-xs uppercase">Rascunho</button>
+    <button type="button" data-nfe-filtro="autorizada" class="min-h-[40px] px-3 rounded-lg border-2 font-black text-xs uppercase">Autorizada</button>
+    <button type="button" data-nfe-filtro="rejeitada" class="min-h-[40px] px-3 rounded-lg border-2 font-black text-xs uppercase">Rejeitada</button>
+    <button type="button" data-nfe-filtro="todas" class="min-h-[40px] px-3 rounded-lg border-2 font-black text-xs uppercase">Todas</button>
+  </div>
+  <div id="nfe-lista-body" class="flex-1 min-h-0 overflow-y-auto space-y-2"></div>
+</div>
+
+<div id="nfe-saida-view-editor" class="hidden fixed inset-0 z-40 flex flex-col bg-slate-100">
+  <div class="shrink-0 border-b border-slate-200 bg-white px-3 py-2 flex flex-wrap items-center gap-2">
+    <button type="button" id="btn-nfe-voltar-lista" class="min-h-[44px] px-3 rounded-xl border-2 border-slate-400 font-black text-xs uppercase">← Lista</button>
+    <span class="font-black uppercase text-sm text-slate-700">Editor · <span id="editor-venda-tag">—</span></span>
+    <span class="rounded-full bg-orange-100 border-2 border-orange-400 px-3 py-1 text-xs font-black uppercase text-orange-950">NF-e 55 · DANFE A4</span>
+    <span id="nfe-autosave-hint" class="text-xs font-bold text-slate-500 ml-auto"></span>
+    {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center min-h-[40px] px-3 rounded-lg border border-slate-200 text-xs font-black uppercase" %}
+  </div>
+  <div class="shrink-0 px-3 py-2 flex flex-wrap gap-1 bg-white border-b border-slate-100">
+    {% for s in "123456" %}
+    <button type="button" data-nfe-w-go="{{ forloop.counter }}" class="min-h-[40px] px-2 rounded-lg border-2 border-slate-200 text-[10px] font-black uppercase">{{ forloop.counter }}
+      {% if forloop.counter == 1 %}Dest{% elif forloop.counter == 2 %}Itens{% elif forloop.counter == 3 %}Fiscal{% elif forloop.counter == 4 %}Pagto{% elif forloop.counter == 5 %}Conf{% else %}SEFAZ{% endif %}
+    </button>
+    {% endfor %}
+  </div>
+  <div class="flex-1 min-h-0 flex flex-col lg:flex-row gap-3 px-3 py-3 overflow-hidden">
+    <div class="flex-1 min-h-0 overflow-y-auto bg-white rounded-2xl border-2 border-slate-200 p-4">
+      <div data-nfe-step-panel="1">
+        <h2 class="text-lg font-black uppercase mb-3">Destinatário</h2>
+        <div class="flex flex-wrap gap-2 mb-3">
+          <input type="search" id="nfe-busca-cli" class="nfe-in flex-1" placeholder="Buscar cliente Agro…">
+          <button type="button" id="btn-nfe-busca-cli" class="min-h-[48px] px-4 rounded-xl bg-sky-600 text-white font-black text-xs uppercase">Buscar F3</button>
+        </div>
+        <p id="dest-tipo-doc" class="text-sm font-bold text-orange-800 mb-2"></p>
+        <div class="grid sm:grid-cols-2 gap-3">
+          <label class="block sm:col-span-2"><span class="text-xs font-black uppercase text-slate-500">Nome</span><input id="dest-nome" class="dest-field nfe-in mt-1"></label>
+          <label><span class="text-xs font-black uppercase text-slate-500">CPF / CNPJ</span><input id="dest-documento" class="dest-field nfe-in mt-1" inputmode="numeric"></label>
+          <label><span class="text-xs font-black uppercase text-slate-500">IE (ou ISENTO)</span><input id="dest-ie" class="dest-field nfe-in mt-1"></label>
+          <label><span class="text-xs font-black uppercase text-slate-500">E-mail</span><input id="dest-email" class="dest-field nfe-in mt-1"></label>
+          <label><span class="text-xs font-black uppercase text-slate-500">CEP</span><input id="dest-cep" class="dest-field nfe-in mt-1"></label>
+          <label><span class="text-xs font-black uppercase text-slate-500">UF</span><input id="dest-uf" maxlength="2" class="dest-field nfe-in mt-1 uppercase"></label>
+          <label class="sm:col-span-2"><span class="text-xs font-black uppercase text-slate-500">Cidade</span><input id="dest-cidade" class="dest-field nfe-in mt-1"></label>
+          <label><span class="text-xs font-black uppercase text-slate-500">Bairro</span><input id="dest-bairro" class="dest-field nfe-in mt-1"></label>
+          <label class="sm:col-span-2"><span class="text-xs font-black uppercase text-slate-500">Logradouro</span><input id="dest-logradouro" class="dest-field nfe-in mt-1"></label>
+          <label><span class="text-xs font-black uppercase text-slate-500">Número</span><input id="dest-numero" class="dest-field nfe-in mt-1"></label>
+          <label><span class="text-xs font-black uppercase text-slate-500">Complemento</span><input id="dest-complemento" class="dest-field nfe-in mt-1"></label>
+        </div>
+        <label class="mt-3 flex items-center gap-2 font-bold"><input type="checkbox" id="dest-ind-final" class="w-5 h-5"> Consumidor final</label>
+      </div>
+      <div data-nfe-step-panel="2" class="hidden">
+        <h2 class="text-lg font-black uppercase mb-3">Itens</h2>
+        <div class="flex gap-2 mb-3">
+          <input type="search" id="nfe-busca-prod" class="nfe-in flex-1" placeholder="Código, barras ou nome…" autocomplete="off">
+          <button type="button" id="btn-nfe-busca-prod" class="min-h-[48px] px-4 rounded-xl bg-emerald-700 text-white font-black text-xs uppercase">Add F2</button>
+        </div>
+        <table class="w-full text-sm">
+          <thead class="text-xs font-black uppercase text-slate-500"><tr>
+            <th>Descrição</th><th>Qtd</th><th>V.Unit</th><th>NCM</th><th>CFOP</th><th>CSOSN</th><th>Total</th><th></th>
+          </tr></thead>
+          <tbody id="nfe-itens-body"></tbody>
+        </table>
+      </div>
+      <div data-nfe-step-panel="3" class="hidden">
+        <h2 class="text-lg font-black uppercase mb-3">Fiscal da nota</h2>
+        <label class="block mb-3"><span class="text-xs font-black uppercase">Natureza</span><input id="fiscal-natureza" class="nfe-in mt-1" value="VENDA"></label>
+        <p class="text-sm font-semibold text-slate-600">Modelo <strong>55</strong> fixo · série e número na autorização.</p>
+        <label class="block mt-3"><span class="text-xs font-black uppercase">Informações complementares</span><textarea id="fiscal-inf-compl" class="nfe-in mt-1 min-h-[100px]"></textarea></label>
+      </div>
+      <div data-nfe-step-panel="4" class="hidden">
+        <h2 class="text-lg font-black uppercase mb-3">Pagamento</h2>
+        <div id="nfe-pagamentos" class="space-y-2"></div>
+        <button type="button" id="btn-nfe-add-pag" class="mt-3 min-h-[44px] px-4 rounded-xl border-2 border-slate-300 font-black text-xs uppercase">+ Parcela</button>
+      </div>
+      <div data-nfe-step-panel="5" class="hidden">
+        <h2 class="text-lg font-black uppercase mb-3">Conferir</h2>
+        <ul id="checklist-ul" class="space-y-2"></ul>
+        <button type="button" id="btn-nfe-danfe" class="mt-4 min-h-[48px] px-5 rounded-xl border-2 border-sky-500 bg-sky-600 text-white font-black uppercase text-sm">Prévia DANFE F8</button>
+      </div>
+      <div data-nfe-step-panel="6" class="hidden">
+        <h2 class="text-lg font-black uppercase mb-3">PIN e SEFAZ</h2>
+        <p id="emit-status" class="text-sm font-bold text-slate-700 mb-3"></p>
+        <label class="block max-w-xs"><span class="text-xs font-black uppercase">PIN</span><input type="password" id="nfe-pin-emitir" class="nfe-in mt-1" inputmode="numeric" autocomplete="one-time-code"></label>
+        <button type="button" id="btn-nfe-emitir" class="mt-4 min-h-[56px] w-full max-w-md rounded-2xl bg-emerald-700 text-white font-black uppercase text-lg shadow-lg">Transmitir NF-e F10</button>
+      </div>
+    </div>
+    <aside class="lg:w-[22rem] shrink-0 bg-white rounded-2xl border-2 border-slate-200 p-4 flex flex-col gap-3 overflow-y-auto">
+      <div>
+        <div class="text-xs font-black uppercase text-slate-400">Destinatário</div>
+        <div id="rail-dest-nome" class="text-lg font-black text-slate-900">—</div>
+        <div id="rail-dest-doc" class="text-sm font-bold text-slate-600"></div>
+      </div>
+      <div class="flex justify-between items-baseline border-t border-slate-100 pt-3">
+        <span class="font-black uppercase text-slate-500">Total</span>
+        <span id="rail-total" class="text-2xl font-black text-emerald-700 tabular-nums">R$ 0,00</span>
+      </div>
+      <div class="text-sm font-bold text-slate-600"><span id="rail-itens">0</span> itens · Ambiente <span id="rail-amb">—</span></div>
+      <div id="rail-venda-diff" class="hidden text-sm font-black text-amber-800 bg-amber-50 border-2 border-amber-300 rounded-xl p-2"></div>
+      <div id="rail-nfce-chip" class="hidden text-xs font-black uppercase text-violet-900 bg-violet-50 border-2 border-violet-300 rounded-xl p-2">Esta venda tem NFC-e autorizada</div>
+      <ul id="rail-semaforo" class="text-xs font-semibold space-y-1"></ul>
+      <button type="button" id="btn-nfe-salvar" class="min-h-[48px] rounded-xl border-2 border-emerald-500 text-emerald-900 font-black uppercase">Salvar rascunho</button>
+      <div class="border-t border-slate-100 pt-3">
+        <div class="text-xs font-black uppercase text-slate-500 mb-1">Puxar venda PDV</div>
+        <div class="flex gap-2">
+          <input type="number" id="nfe-puxar-venda-id" class="nfe-in" placeholder="Nº venda">
+          <button type="button" id="btn-nfe-puxar-venda" class="min-h-[48px] px-3 rounded-xl bg-orange-500 text-white font-black text-xs uppercase">Puxar</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+  <footer class="shrink-0 border-t border-slate-200 bg-white px-3 py-3 flex flex-wrap gap-2 justify-between">
+    <button type="button" id="btn-nfe-prev" class="min-h-[48px] px-5 rounded-xl border-2 border-slate-300 font-black uppercase">← Voltar</button>
+    <button type="button" id="btn-nfe-next" class="min-h-[48px] px-5 rounded-xl bg-emerald-700 text-white font-black uppercase">Continuar →</button>
+  </footer>
+</div>
+
+<div id="nfe-saida-msg" class="hidden" role="status"></div>
+
+<div id="nfe-help-modal" class="hidden fixed inset-0 z-[70] bg-slate-900/60 flex items-center justify-center p-4" onclick="if(event.target===this)this.classList.add('hidden')">
+  <div class="max-w-lg w-full bg-white rounded-2xl p-4 max-h-[85vh] overflow-y-auto" onclick="event.stopPropagation()">
+    {% include "produtos/includes/nfe_saida_help_agents.html" %}
+    <button type="button" class="mt-4 w-full min-h-[48px] rounded-xl border-2 font-black uppercase" onclick="document.getElementById('nfe-help-modal').classList.add('hidden')">Fechar</button>
+  </div>
+</div>
+
+{% include "produtos/_screensaver_pin.html" with sspin_idle_min=8 %}
+
+<script>
+window.NFE_SAIDA_CFG = {
+  vendaId: {% if nfe_saida_venda_id %}{{ nfe_saida_venda_id }}{% else %}null{% endif %},
+  docId: "{{ nfe_saida_doc_id|escapejs }}",
+  urlApi: "/api/nfe-saida/",
+  urlListar: "{% url 'api_nfe_saida_listar' %}",
+  urlNova: "{% url 'api_nfe_saida_nova' %}",
+  urlSalvar: "{% url 'api_nfe_saida_salvar' %}",
+  urlDeVenda: "{% url 'api_nfe_saida_de_venda' %}",
+  urlCert: "{% url 'api_nfe_saida_status_cert' %}",
+  urlBuscar: "{% url 'api_buscar_mobile' %}",
+  urlBuscarClientes: "{% url 'api_buscar_clientes' %}",
+};
+</script>
+<script src="{% static 'produtos/js/nfe_saida.js' %}?v=1"></script>
+{% include "produtos/_atalho_voltar_pdv.html" %}
+</body>
+</html>
