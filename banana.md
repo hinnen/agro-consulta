@@ -1294,29 +1294,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 ARMADO · **PREP v27.25** · **CHECKLIST 16/10f** · CADASTRO-PALAVRAS-PDV
+### 🟡 ARMADO · **PREP v27.26** · **CHECKLIST 17/10** · **NFE-SAIDA-55**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Pacote** | Vírgulas/linhas em palavras-chave · busca PDV por apelido no overlay |
-| **Status** | 🟡 **Checkpoint pronto** · Live **v27.24** @ **`d0df4700`** |
-| **PREP** | `deploy/prep-checklist-1610f-cadastro-palavras-pdv` |
+| **Pacote** | `/nfe/saida/` · NF-e modelo **55** (lista + editor · Mongo `AgroNfeSaida`) |
+| **Status** | 🟡 **Checkpoint pronto** · Live **v27.25** @ **`b60a3f5b`** |
+| **PREP** | `deploy/prep-checklist-1710-nfe-saida-55` |
 | **Migrate** | **NÃO** |
-| **Prova** | verify **48/48** · `tests_cadastro_busca_pdv_alinhada` **5/5** |
-| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1610f_cadastro_palavras_pdv.sh` |
-| **Rollback** | `rollback/pre-v2724-cadastro-palavras-pdv` @ **`d0df4700`** |
-| **Backup** | `producao-backup-pre-v2725-cadastro-palavras-pdv` |
-| **Revert** | `git push origin rollback/pre-v2724-cadastro-palavras-pdv:producao` → **v27.24** |
-| **Cutover loja** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1610f_cadastro_palavras_pdv.sh --exec` |
-| **Pós-deploy** | `./scripts/post_deploy_checklist_1610f_cadastro_palavras_pdv.sh` |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1610f-cadastro-palavras-pdv.md` |
-| **Smoke** | Óleo 2T → **2. Busca** apelidos → PDV **2 tempo** |
+| **Prova** | verify **27/27** · `tests_nfe_saida_util` **4/4** |
+| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1710_nfe_saida_55.sh` |
+| **Rollback** | `rollback/pre-v2725-nfe-saida-55` @ **`b60a3f5b`** |
+| **Backup** | `producao-backup-pre-v2726-nfe-saida-55` |
+| **Revert** | `git push origin rollback/pre-v2725-nfe-saida-55:producao` → **v27.25** |
+| **Cutover loja** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1710_nfe_saida_55.sh --exec` |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1710_nfe_saida_55.sh` |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1710-nfe-saida-55.md` |
+| **Smoke** | Menu **NF-e saída** · **Nova** · emitir (homolog) · `?venda=` |
 
-### ✅ CHECKLIST ÚNICO — **16/10f** · 🟡 **aguarda senha** (PREP armado)
+### ✅ CHECKLIST ÚNICO — **17/10** · 🟡 **aguarda senha** (PREP armado)
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CADASTRO-PALAVRAS-PDV** | 🟡 **aguarda senha** | **NÃO** | **48/48** |
+| 1 | **NFE-SAIDA-55** | 🟡 **aguarda senha** | **NÃO** | **27/27** |
+
+### ✅ Deploy loja — **CADASTRO-PALAVRAS-PDV** · **Live v27.25** · **16/10f** @ **`b60a3f5b`**
 
 ### ✅ Deploy loja — **CADASTRO-PALAVRAS-REABRE** · **Live v27.24** · **16/10e** @ **`d0df4700`**
 
