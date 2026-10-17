@@ -99,6 +99,13 @@
         {% elif nfce_painel.ativo and nfce_painel.pendente and not v.devolvida %}
         <button type="button" id="btn-nfce-reemitir-venda" class="inline-flex items-center min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-amber-400 bg-amber-500 text-white shadow-md hover:bg-amber-600">Reemitir NFC-e</button>
         {% endif %}
+        {% if nfe_saida_painel.tem_autorizada and nfe_saida_painel.doc_id %}
+        <a href="{% url 'nfe_saida' %}?doc={{ nfe_saida_painel.doc_id|urlencode }}" class="inline-flex items-center min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-sky-500 bg-sky-600 text-white shadow-md hover:bg-sky-700" title="DANFE NF-e modelo 55">DANFE NF-e 55</a>
+        {% elif not v.devolvida and nfe_saida_painel.pode_emitir %}
+        <a href="{% url 'nfe_saida' %}?venda={{ v.id }}" class="inline-flex items-center min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-orange-400 bg-orange-500 text-white shadow-md hover:bg-orange-600" title="Emitir nota fiscal eletrônica A4 (modelo 55)">Emitir NF-e 55</a>
+        {% elif nfe_saida_painel.tem_rascunho and nfe_saida_painel.doc_id %}
+        <a href="{% url 'nfe_saida' %}?doc={{ nfe_saida_painel.doc_id|urlencode }}" class="inline-flex items-center min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-amber-400 bg-amber-100 text-amber-950 shadow-sm hover:bg-amber-200" title="Continuar rascunho da NF-e 55">NF-e 55 (rascunho)</a>
+        {% endif %}
 
         {% if not v.devolvida %}
 

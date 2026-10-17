@@ -1,6 +1,6 @@
 # Plano de tela — Emissão de NF-e (modelo 55, DANFE A4)
 
-**Status:** só planejamento. **Não implementar nesta entrega.** O Composer deve usar este arquivo como spec.
+**Status:** implementado (UI + rascunho Mongo + emissão simulada em homologação). SOAP autorização produção: fase 2. Este arquivo continua como spec de referência.
 
 **Público:** loja GM Agro / SisVale, telas 14–19", operadores idosos, teclado/scanner primeiro.
 
