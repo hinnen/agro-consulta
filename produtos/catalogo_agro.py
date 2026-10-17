@@ -279,29 +279,20 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
     seen_pk: set[int] = set()
 
     def _append_overlay_palavras_chave_matches(raw_termo: str) -> None:
-        from produtos.cadastro_busca_codigo_util import tokens_termo_busca_cadastro
+        from produtos.cadastro_busca_codigo_util import overlay_pids_por_palavras_busca
 
         termo_txt = str(raw_termo or "").strip()
         if not termo_txt or len(found) >= lim:
             return
-        partes = tokens_termo_busca_cadastro(termo_txt)
-        if not partes:
+        pids = overlay_pids_por_palavras_busca(termo_txt, lim)
+        if not pids:
             return
-        try:
-            ovs = ProdutoGestaoOverlayAgro.objects.all()
-            for pl in partes:
-                ovs = ovs.filter(cadastro_extras__palavras_chave__icontains=pl[:200])
-            pids = list(ovs.values_list("produto_externo_id", flat=True)[:lim])
-            if not pids:
-                return
-            _cadastro_pg_append_unicos(
-                found,
-                seen_pk,
-                qs.filter(produto_externo_id__in=pids).order_by("nome", "pk")[:lim],
-                lim,
-            )
-        except Exception:
-            return
+        _cadastro_pg_append_unicos(
+            found,
+            seen_pk,
+            qs.filter(produto_externo_id__in=pids).order_by("nome", "pk")[:lim],
+            lim,
+        )
 
     def _append_overlay_modelo_matches(raw_termo: str) -> None:
         from produtos.cadastro_busca_codigo_util import tokens_termo_busca_cadastro
@@ -454,6 +445,21 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
             rows = ordenar_rows_api_estilo_pdv(rows, termo)
             if rows:
                 return rows[:lim]
+            from produtos.cadastro_busca_codigo_util import overlay_pids_por_palavras_busca
+
+            pids_pk = overlay_pids_por_palavras_busca(termo, lim)
+            if pids_pk:
+                chunk_pk = list(
+                    qs.filter(produto_externo_id__in=pids_pk).order_by("nome", "pk")[
+                        : lim * 2 if lim < 80 else lim
+                    ]
+                )
+                if chunk_pk:
+                    rows_pk = _rows_de_produtos(chunk_pk)
+                    rows_pk = filtrar_rows_api_estilo_pdv(rows_pk, termo)
+                    rows_pk = ordenar_rows_api_estilo_pdv(rows_pk, termo)
+                    if rows_pk:
+                        return rows_pk[:lim]
 
     if parece_codigo_cadastro(termo):
         try:

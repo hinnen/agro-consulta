@@ -77,9 +77,11 @@ def test_contratos() -> None:
     check(
         "catalogo_busca_palavras_overlay",
         "_append_overlay_palavras_chave_matches" in cat
-        and "cadastro_extras__palavras_chave__icontains" in cat,
+        and "overlay_pids_por_palavras_busca" in cat,
     )
     check("tokens_digito_busca", "def tokens_termo_busca_cadastro" in cad_util)
+    check("overlay_pids_palavras", "def overlay_pids_por_palavras_busca" in cad_util)
+    check("indice_busca_palavras", "busca_palavras_agro" in mod_txt and "indice_busca_palavras_chave" in mod_txt)
     check("partes_palavras_chave", "def partes_palavras_chave" in mod_txt)
     check(
         "catalogo_detalhe_pk",
@@ -101,7 +103,7 @@ def test_contratos() -> None:
     check("unit_test_file", test_py.is_file())
 
     ver = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
-    check("version_prep", ver in ("27.25", "27.24", "27.23", "26.82", "26.81"), ver)
+    check("version_prep", ver in ("27.26.2", "27.26.1", "27.26", "27.25", "27.24"), ver)
 
 
 def test_logica_python() -> None:
@@ -167,7 +169,10 @@ def test_git_sem_migrate() -> None:
         "619a364e" in log1
         or "0a0e824f" in log1
         or "5010eab4" in log1
+        or "f1389e1a" in log1
         or "palavras-chave" in log1
+        or "palavras_chave" in log1
+        or "busca_palavras" in log1
         or "reabrir" in log1.lower()
     )
     check("commit_feat", feat_ok, tip)

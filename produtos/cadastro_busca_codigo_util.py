@@ -219,6 +219,86 @@ def termo_bate_codigos_produto(
     return any(termo_bate_valor_codigo(termo, c) for c in campos if c)
 
 
+def overlay_pids_por_palavras_busca(termo: str, limit: int = 80) -> list[str]:
+    """Produtos cujo overlay tem apelido em palavras-chave (Postgres JSON + descrição)."""
+    import logging
+
+    from django.db import connection
+    from django.db.models import Q
+
+    from integracoes.texto import normalizar
+    from produtos.medicamento_vet_taxonomia import BUSCA_PALAVRAS_AGRO_CAMPO
+    from produtos.models import ProdutoGestaoOverlayAgro
+
+    logger = logging.getLogger(__name__)
+    termo_txt = str(termo or "").strip()
+    partes = tokens_termo_busca_cadastro(termo_txt)
+    if not partes:
+        return []
+    lim = max(1, min(int(limit or 80), 200))
+
+    def _q_token(pl: str) -> Q:
+        pr = pl[:200]
+        pn = normalizar(pr)[:200]
+        return (
+            Q(cadastro_extras__palavras_chave__icontains=pr)
+            | Q(cadastro_extras__palavras_chave__icontains=pn)
+            | Q(**{f"cadastro_extras__{BUSCA_PALAVRAS_AGRO_CAMPO}__icontains": pn})
+            | Q(descricao__icontains=pr)
+            | Q(descricao__icontains=pn)
+        )
+
+    try:
+        qs = ProdutoGestaoOverlayAgro.objects.all()
+        for pl in partes:
+            qs = qs.filter(_q_token(pl))
+        pids = [
+            str(x).strip()
+            for x in qs.values_list("produto_externo_id", flat=True)[:lim]
+            if x
+        ]
+        if pids:
+            return pids
+    except Exception:
+        logger.warning("overlay_pids_por_palavras_busca ORM", exc_info=True)
+
+    if connection.vendor != "postgresql":
+        return []
+
+    try:
+        tbl = ProdutoGestaoOverlayAgro._meta.db_table
+        clauses: list[str] = []
+        params: list[object] = []
+        for pl in partes:
+            pr = f"%{pl[:200]}%"
+            pn = f"%{normalizar(pl)[:200]}%"
+            clauses.append(
+                "("
+                "COALESCE(cadastro_extras->>'palavras_chave','') ILIKE %s "
+                f"OR COALESCE(cadastro_extras->>'{BUSCA_PALAVRAS_AGRO_CAMPO}','') ILIKE %s "
+                "OR COALESCE(descricao,'') ILIKE %s "
+                "OR COALESCE(descricao,'') ILIKE %s"
+                ")"
+            )
+            params.extend([pr, pn, pr, pn])
+        sql = (
+            f"SELECT produto_externo_id FROM {tbl} WHERE "
+            + " AND ".join(clauses)
+            + " LIMIT %s"
+        )
+        params.append(lim)
+        with connection.cursor() as cur:
+            cur.execute(sql, params)
+            return [
+                str(r[0]).strip()
+                for r in cur.fetchall()
+                if r and r[0]
+            ]
+    except Exception:
+        logger.warning("overlay_pids_por_palavras_busca SQL", exc_info=True)
+    return []
+
+
 def tokens_termo_busca_cadastro(termo: str) -> list[str]:
     """Tokens do termo para AND no cadastro (inclui dígito solto, ex. «2 tempo»)."""
     out: list[str] = []
