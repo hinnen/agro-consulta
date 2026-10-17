@@ -123,6 +123,7 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 **NF-e saída (nota grande) — plano, ainda não implementado**
 
 - Documento: **modelo 55** (DANFE A4). NFC-e 65 (cupom) fica fora desta tela. Spec completa: `docs/PLANO_TELA_EMISSAO_NFE_55.md`.
+- Dois caminhos: **manual** (Nova) e **a partir da venda/pedido do PDV** (prefill `VendaAgro`; não transmite sozinho).
 - Certificado A1 Dist-DFe (`NFE_DIST_DFE_*`) é e-CNPJ e assina NF-e 55; o modelo **não** vem no PFX.
 
 **Repasse Vila — cofrinho físico acumulado (28/08/2026)**

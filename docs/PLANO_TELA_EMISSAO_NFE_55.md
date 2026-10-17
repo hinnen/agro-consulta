@@ -182,13 +182,46 @@ Igual Entrada NF: PIN de confirmação **antes** de transmitir. Estados:
 
 ---
 
-## 5. Origens da nota (como a tela é aberta)
+## 5. Origens da nota (obrigatório: manual **e** a partir do PDV)
 
-1. **Avulsa** — launchpad Gestão ou Comercial: “NF-e saída (A4)”. Rota: `/nfe/saida/` name `nfe_saida_lista`.
-2. **A partir de venda** — em `venda_agro_detalhe.html`, botão laranja “Emitir NF-e 55” se a venda não estiver devolvida. Prefill dest + itens; venda fica vinculada (`venda_agro_id` no rascunho).
-3. **A partir do PDV** — **não** no fechamento de cupom (checkout continua orçamento). Atalho só na ficha da venda / lista de vendas.
+A tela **tem que** servir os dois jeitos. Não é “só avulsa” nem “só se achar a ficha da venda”.
 
-Não emitir 55 automaticamente no PDV.
+### 5.1 Manual (avulsa, sem venda)
+
+- Launchpad Comercial: **«NF-e saída (A4)»** → `/nfe/saida/` (`nfe_saida`).
+- Na lista, botão **Nova (F4)** abre o editor vazio.
+- Operador busca cliente e produtos na mão (scanner/teclado), igual Entrada NF / PDV.
+- `venda_agro_id` fica vazio.
+- No editor, atalho **«Puxar venda/pedido»** (busca por nº, cliente, data) — se escolher uma `VendaAgro`, vira o fluxo 5.2 (prefill + vínculo). Assim o caixa não precisa sair da tela de NF-e.
+
+### 5.2 A partir de pedido/venda do PDV (prefill + vínculo)
+
+Fonte: `VendaAgro` + `ItemVendaAgro` (a venda **já registrada** no Agro). Orçamento só no carrinho **não** vira NF-e 55: primeiro registra a venda (estoque/caixa), depois emite a nota grande.
+
+Pontos de entrada (todos obrigatórios no v1):
+
+| Onde | O que aparece |
+| ---- | ------------- |
+| **PDV, depois de gravar a venda** | Botão grande **«NF-e A4 (55)»** no comprovante / passo final do wizard (ao lado do cupom 80 mm e da NFC-e 65, se existir). Abre `/nfe/saida/?venda=<pk>` com editor já preenchido. **Não** transmite sozinho (diferente da NFC-e automática). |
+| **Lista de vendas** | Ação **«NF-e 55»** na grade (venda não devolvida). Se já houver NF-e autorizada para aquela venda: vira **«DANFE»** (abre a nota, não duplica). |
+| **Ficha da venda** | Botão laranja **«Emitir NF-e 55»** no header (`venda_agro_detalhe.html`). Se autorizada: **«Ver DANFE»**. |
+
+Prefill:
+
+- Destinatário: nome, documento (`cliente_documento` / CPF/CNPJ do cliente Agro), endereço se existir.
+- Itens: qtd, nome, unitário, NCM/CFOP/CSOSN do cadastro/overlay.
+- Pagamento: `forma_pagamento` / `pagamentos_json` → `tPag`.
+- Totais iguais aos da venda; se o operador mudar preço/qtd, o rail avisa **«diferente da venda #id»** mas não bloqueia (nota pode divergir; vínculo permanece).
+
+Regras:
+
+- Uma NF-e **autorizada** por venda. Segunda emissão: avisa e oferece a existente.
+- Venda **devolvida total**: não emite 55; se já autorizada, só consulta/cancelamento (fase 2).
+- NFC-e 65 da mesma venda **pode coexistir** no v1 (aviso no «?»: cupom ≠ DANFE A4). Não bloquear 55 só porque tem 65 — o Composer mostra chip «esta venda tem NFC-e» e segue.
+- Query: `/nfe/saida/?venda=123` cria rascunho (ou reabre o rascunho aberto daquela venda) e já entra no editor.
+- API: `POST api/nfe-saida/de-venda/` `{venda_id}` → `{ok, id}` do rascunho.
+
+**Não** emitir 55 em background no `salvar venda` do PDV (NFC-e já faz isso no cupom). A 55 sempre passa pela tela de conferência + PIN.
 
 ---
 
@@ -281,11 +314,12 @@ Slug `nfe_saida_sefaz`: o certificado da loja (A1) assina a nota. Homologação 
 1. Spec já está neste arquivo — **não redesenhar o produto**.
 2. Página lista + editor + wizard 6 passos + rail direito + «?» + F1.
 3. Mongo rascunho + listar/salvar/abrir.
-4. Prefill a partir de `VendaAgro`.
-5. Semáforo e prévia DANFE HTML.
-6. API emitir: stub claro **ou** SOAP se o PFX estiver no `.env` de teste.
-7. Launchpad + botão na venda.
-8. Atualizar `AGENTS.md` §3 (rota) e §7 (decisão: saída 55).
+4. Prefill a partir de `VendaAgro` (`?venda=` + `POST de-venda` + botões no PDV, lista e ficha).
+5. Emissão **manual** (Nova) na mesma tela.
+6. Semáforo e prévia DANFE HTML.
+7. API emitir: stub claro **ou** SOAP se o PFX estiver no `.env` de teste.
+8. Launchpad + PDV pós-venda + lista + ficha.
+9. Atualizar `AGENTS.md` §3 (rota) e §7 (decisão: saída 55).
 
 **Fora:** NFC-e 65, cancelamento, carta de correção, contingência, cálculo de ST, múltiplas séries na UI.
 
@@ -295,9 +329,11 @@ Slug `nfe_saida_sefaz`: o certificado da loja (A1) assina a nota. Homologação 
 
 ```
 Implemente a tela de emissão de NF-e modelo 55 conforme docs/PLANO_TELA_EMISSAO_NFE_55.md.
-Não invente NFC-e 65 nesta tela. Reuse o padrão visual e o fluxo lista+editor de
-produtos/templates/produtos/entrada_nota.html e a shell larga de caixa (AGENTS.md §5).
-Primeiro PR: UI completa + rascunho Mongo + prévia DANFE + emitir com feedback
-(stub SEFAZ ok se certificado não estiver no ambiente). Não altere Entrada NF-e
-além de um link opcional. Branch de trabalho: teste.
+Dois caminhos obrigatórios: (1) manual — Nova na lista /nfe/saida/; (2) a partir
+de VendaAgro do PDV — botão no fim da venda, na lista de vendas e na ficha,
+com /nfe/saida/?venda=<pk> e POST api/nfe-saida/de-venda/. Não emitir 55
+automaticamente no salvar venda. Não invente NFC-e 65 nesta tela. Reuse o
+padrão lista+editor de entrada_nota.html e a shell larga de caixa (AGENTS.md §5).
+Primeiro PR: UI completa + rascunho + prefill de venda + prévia DANFE + emitir
+com feedback (stub SEFAZ ok se certificado não estiver no ambiente). Branch: teste.
 ```
