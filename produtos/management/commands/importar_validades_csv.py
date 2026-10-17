@@ -300,8 +300,30 @@ def _resolver_overlay(
                 o.save(update_fields=["nome"])
             return o
 
+    if nome_produto or code_ok:
+        from produtos.cadastro_overlay_orfao_util import (
+            dissolver_fantasma_agro_vn_por_nome,
+            overlay_produto_externo_id_canonico,
+        )
+
+        dissolver_fantasma_agro_vn_por_nome(nome_produto, codigo=codigo)
+        canon = overlay_produto_externo_id_canonico(codigo=codigo, nome=nome_produto)
+        if canon:
+            o = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=canon).first()
+            if o is None:
+                o = ProdutoGestaoOverlayAgro(produto_externo_id=canon, nome=nome_produto)
+                o.save()
+            elif nome_produto and not (o.nome or "").strip():
+                o.nome = nome_produto
+                o.save(update_fields=["nome"])
+            return o
+
     if nome_produto:
-        o = ProdutoGestaoOverlayAgro.objects.filter(nome__iexact=nome_produto).first()
+        o = (
+            ProdutoGestaoOverlayAgro.objects.filter(nome__iexact=nome_produto)
+            .exclude(produto_externo_id__startswith="agro:vn:")
+            .first()
+        )
         if o:
             return o
 
@@ -311,6 +333,15 @@ def _resolver_overlay(
         return o
 
     if nome_produto:
+        from produtos.cadastro_overlay_orfao_util import dissolver_fantasma_agro_vn_por_nome
+
+        canon_final = dissolver_fantasma_agro_vn_por_nome(nome_produto, codigo=codigo)
+        if canon_final:
+            o = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=canon_final).first()
+            if o is None:
+                o = ProdutoGestaoOverlayAgro(produto_externo_id=canon_final, nome=nome_produto)
+                o.save()
+            return o
         sid = _id_sintetico_por_nome(nome_produto)
         o, created = ProdutoGestaoOverlayAgro.objects.get_or_create(
             produto_externo_id=sid,

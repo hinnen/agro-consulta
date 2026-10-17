@@ -1,0 +1,255 @@
+{# Overlay de carga para Central de Relatórios (MPA — feedback no clique / Excel / impressão). #}
+<style>
+  @keyframes agro-rel-spin {
+    to { transform: rotate(360deg); }
+  }
+  #agro-relatorio-loading {
+    position: fixed;
+    inset: 0;
+    z-index: 10050;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(2, 6, 23, 0.72);
+    backdrop-filter: blur(2px);
+  }
+  #agro-relatorio-loading.agro-rel-on {
+    display: flex;
+  }
+  #agro-relatorio-loading .agro-rel-card {
+    max-width: min(22rem, calc(100vw - 2rem));
+    padding: 1.25rem 1.5rem;
+    border-radius: 1rem;
+    border: 2px solid #475569;
+    background: #0f172a;
+    box-shadow: 0 20px 40px rgba(0,0,0,.45);
+    text-align: center;
+  }
+  #agro-relatorio-loading .agro-rel-spin {
+    width: 2.5rem;
+    height: 2.5rem;
+    margin: 0 auto 0.85rem;
+    border: 3px solid #334155;
+    border-top-color: #f97316;
+    border-radius: 9999px;
+    animation: agro-rel-spin 0.75s linear infinite;
+  }
+  #agro-relatorio-loading .agro-rel-msg {
+    font-size: 0.8rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #f8fafc;
+  }
+  #agro-relatorio-loading .agro-rel-sub {
+    margin-top: 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #94a3b8;
+  }
+  @media print {
+    #agro-relatorio-loading { display: none !important; }
+  }
+</style>
+<div id="agro-relatorio-loading" role="status" aria-live="polite" aria-busy="false" hidden>
+  <div class="agro-rel-card">
+    <div class="agro-rel-spin" aria-hidden="true"></div>
+    <p class="agro-rel-msg" id="agro-relatorio-loading-msg">Carregando relatório…</p>
+    <p class="agro-rel-sub" id="agro-relatorio-loading-sub">Aguarde — pode levar alguns segundos</p>
+  </div>
+</div>
+<script>
+(function () {
+  if (window.agroRelatorioLoading) return;
+  var root = null;
+  var msgEl = null;
+  var subEl = null;
+  function els() {
+    if (!root) root = document.getElementById("agro-relatorio-loading");
+    if (!msgEl) msgEl = document.getElementById("agro-relatorio-loading-msg");
+    if (!subEl) subEl = document.getElementById("agro-relatorio-loading-sub");
+    return root;
+  }
+  function show(msg, sub) {
+    var e = els();
+    if (!e) return;
+    if (msgEl && msg) msgEl.textContent = msg;
+    if (subEl) {
+      subEl.textContent = sub || "Aguarde — pode levar alguns segundos";
+    }
+    e.hidden = false;
+    e.classList.add("agro-rel-on");
+    e.setAttribute("aria-busy", "true");
+    try {
+      if (window.gmLoadingBar && typeof window.gmLoadingBar.show === "function") {
+        window.GM_LOADING_BAR_SHOW_DELAY_MS = 0;
+        window.gmLoadingBar.show();
+      }
+    } catch (_) {}
+  }
+  function hide() {
+    var e = els();
+    if (!e) return;
+    e.classList.remove("agro-rel-on");
+    e.hidden = true;
+    e.setAttribute("aria-busy", "false");
+    try {
+      if (window.gmLoadingBar && typeof window.gmLoadingBar.hide === "function") {
+        window.gmLoadingBar.hide();
+      }
+    } catch (_) {}
+  }
+  window.agroRelatorioLoading = { show: show, hide: hide };
+
+  function tituloDoLink(a) {
+    var h = a.querySelector("h3");
+    if (h && h.textContent) return "Abrindo: " + h.textContent.trim();
+    return "Carregando relatório…";
+  }
+
+  function isNavClick(ev) {
+    if (ev.defaultPrevented) return false;
+    if (ev.button !== 0) return false;
+    if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return false;
+    return true;
+  }
+
+  function linkEhXlsx(a) {
+    var href = a.getAttribute("href") || "";
+    if (href.indexOf("export=xlsx") >= 0) return true;
+    try {
+      return new URL(a.href, window.location.origin).searchParams.get("export") === "xlsx";
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function nomeArquivoDisposition(cd, fallback) {
+    if (!cd) return fallback;
+    var m = /filename\*=UTF-8''([^;]+)|filename="([^"]+)"|filename=([^;]+)/i.exec(cd);
+    if (!m) return fallback;
+    var raw = (m[1] || m[2] || m[3] || "").trim();
+    try {
+      return decodeURIComponent(raw);
+    } catch (_) {
+      return raw || fallback;
+    }
+  }
+
+  function baixarExcel(url) {
+    show("Gerando Excel…", "Montando a planilha — aguarde");
+    fetch(url, { credentials: "same-origin", headers: { Accept: "*/*" } })
+      .then(function (r) {
+        if (!r.ok) throw new Error("http_" + r.status);
+        var nome = nomeArquivoDisposition(
+          r.headers.get("Content-Disposition"),
+          "relatorio.xlsx"
+        );
+        return r.blob().then(function (blob) {
+          return { blob: blob, nome: nome };
+        });
+      })
+      .then(function (pack) {
+        var obj = URL.createObjectURL(pack.blob);
+        var a = document.createElement("a");
+        a.href = obj;
+        a.download = pack.nome;
+        a.rel = "noopener";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () {
+          try {
+            URL.revokeObjectURL(obj);
+          } catch (_) {}
+        }, 2000);
+        hide();
+      })
+      .catch(function () {
+        hide();
+        window.location.href = url;
+      });
+  }
+
+  function prepararImpressao() {
+    show("Preparando impressão…", "Abrindo a caixa de impressão");
+    var fechou = false;
+    function fim() {
+      if (fechou) return;
+      fechou = true;
+      hide();
+      window.removeEventListener("afterprint", fim);
+    }
+    window.addEventListener("afterprint", fim);
+    // Deixa o overlay pintar antes do diálogo
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        try {
+          window.print();
+        } catch (_) {
+          fim();
+          return;
+        }
+        // Alguns Chrome não disparam afterprint de forma confiável
+        setTimeout(fim, 1500);
+      });
+    });
+  }
+
+  document.addEventListener(
+    "click",
+    function (ev) {
+      if (!isNavClick(ev)) return;
+
+      var btnPrint =
+        ev.target && ev.target.closest
+          ? ev.target.closest("[data-agro-rel-print]")
+          : null;
+      if (btnPrint) {
+        ev.preventDefault();
+        prepararImpressao();
+        return;
+      }
+
+      var a = ev.target && ev.target.closest ? ev.target.closest("a[href]") : null;
+      if (!a) return;
+      var href = a.getAttribute("href") || "";
+      if (!href || href.charAt(0) === "#" || href.indexOf("javascript:") === 0) return;
+
+      if (linkEhXlsx(a)) {
+        ev.preventDefault();
+        baixarExcel(a.href);
+        return;
+      }
+
+      var path = "";
+      try {
+        path = new URL(a.href, window.location.origin).pathname || "";
+      } catch (_) {
+        return;
+      }
+      var ehRel =
+        path.indexOf("/relatorios/") === 0 ||
+        path.indexOf("/produtos/etiquetas") === 0 ||
+        (a.getAttribute("href") || "").indexOf("todos=1") >= 0;
+      if (!ehRel) return;
+      show(tituloDoLink(a));
+    },
+    true
+  );
+
+  document.addEventListener(
+    "submit",
+    function (ev) {
+      var form = ev.target;
+      if (!form || form.id !== "form-relatorio-filtros") return;
+      show("Atualizando relatório…");
+    },
+    true
+  );
+
+  window.addEventListener("pageshow", function (ev) {
+    if (ev.persisted) hide();
+  });
+})();
+</script>

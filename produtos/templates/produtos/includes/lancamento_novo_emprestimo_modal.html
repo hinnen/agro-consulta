@@ -1,0 +1,946 @@
+{% load static %}
+{# Modal «Novo empréstimo» — Contas a pagar: Externo/Interno → formulário entrada + dívida. #}
+{% include "produtos/includes/agro_date_picker_styles.html" %}
+<div id="agro-ne-overlay"
+     class="hidden fixed inset-0 z-[260] flex flex-col bg-slate-900/60 backdrop-blur-sm"
+     role="dialog" aria-modal="true" aria-labelledby="agro-ne-titulo" aria-hidden="true">
+  <div class="bg-white flex flex-col flex-1 min-h-0 w-full max-h-[100dvh] overflow-hidden">
+
+    <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 border-b-2 border-indigo-500 bg-indigo-50 px-4 py-3 sm:px-6">
+      <div class="min-w-0">
+        <h2 id="agro-ne-titulo" class="text-xl sm:text-2xl font-black uppercase tracking-tight text-slate-900">Novo empréstimo</h2>
+        <p id="agro-ne-subtitulo" class="mt-0.5 text-base font-bold text-slate-600">Escolha o tipo</p>
+      </div>
+      <button type="button" id="agro-ne-fechar" class="inline-flex h-12 w-12 items-center justify-center rounded-xl text-slate-500 hover:text-red-600 hover:bg-red-50" aria-label="Fechar">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
+
+    {# Passo 1 — tipo (cards largos; título sem quebra no meio da palavra) #}
+    <div id="agro-ne-passo-tipo" class="flex-1 min-h-0 overflow-y-auto px-4 py-8 sm:px-10 sm:py-14">
+      <div class="mx-auto w-full max-w-5xl grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-8">
+        <button type="button" id="agro-ne-btn-externo"
+                class="min-h-[11rem] sm:min-h-[14rem] rounded-2xl border-4 border-emerald-500 bg-emerald-50 px-8 py-10 sm:px-10 sm:py-12 text-left shadow-md hover:bg-emerald-100 active:scale-[0.99] transition-transform">
+          <span class="block whitespace-nowrap text-3xl sm:text-4xl font-black uppercase tracking-wide text-emerald-900">Externo</span>
+          <span class="mt-3 block text-xl font-bold leading-snug text-emerald-800/80">Banco, financeira ou pessoa de fora</span>
+        </button>
+        <button type="button" id="agro-ne-btn-interno"
+                class="min-h-[11rem] sm:min-h-[14rem] rounded-2xl border-4 border-indigo-500 bg-indigo-50 px-8 py-10 sm:px-10 sm:py-12 text-left shadow-md hover:bg-indigo-100 active:scale-[0.99] transition-transform">
+          <span class="block whitespace-nowrap text-3xl sm:text-4xl font-black uppercase tracking-wide text-indigo-900">Interno</span>
+          <span class="mt-3 block text-xl font-bold leading-snug text-indigo-800/80">Sócio / dinheiro da casa</span>
+        </button>
+      </div>
+    </div>
+
+    {# Passo 2 — formulário #}
+    <form id="agro-ne-form" class="hidden flex flex-col flex-1 min-h-0 overflow-hidden">
+      {% csrf_token %}
+      <input type="hidden" id="ne-variante" value="externo">
+
+      <div class="flex-1 min-h-0 overflow-y-auto px-4 py-4 sm:px-6 space-y-5">
+        <div id="agro-ne-msg" class="hidden rounded-2xl border-2 px-4 py-3 text-lg font-bold"></div>
+
+        <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <label class="ne-field ne-field--sug">
+            <span class="ne-field-label">Empresa *</span>
+            <div class="ne-field-body relative ne-sug-wrap" data-sug-campo="empresa">
+              <input type="text" id="ne-empresa-nome" autocomplete="chrome-off" autocorrect="off" spellcheck="false"
+                     class="ne-field-control font-semibold" placeholder="Buscar empresa…" role="combobox" aria-autocomplete="list">
+              <input type="hidden" id="ne-empresa-id" value="">
+              <ul class="ne-sug-dd hidden absolute left-0 right-0 top-full z-50 mt-1 bg-white border-2 border-slate-600 rounded-xl shadow-lg max-h-56 overflow-y-auto"></ul>
+            </div>
+          </label>
+          <label class="ne-field ne-field--sug">
+            <span class="ne-field-label">Credor *</span>
+            <div class="ne-field-body relative ne-sug-wrap" data-sug-campo="cliente">
+              <input type="text" id="ne-credor-nome" autocomplete="chrome-off" autocorrect="off" spellcheck="false"
+                     class="ne-field-control font-semibold" placeholder="Quem emprestou…" role="combobox" aria-autocomplete="list">
+              <input type="hidden" id="ne-credor-id" value="">
+              <ul class="ne-sug-dd hidden absolute left-0 right-0 top-full z-50 mt-1 bg-white border-2 border-slate-600 rounded-xl shadow-lg max-h-56 overflow-y-auto"></ul>
+            </div>
+          </label>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+          <label class="ne-field">
+            <span class="ne-field-label">Valor recebido *</span>
+            <input type="text" id="ne-valor-rec" required class="ne-field-control font-black tabular-nums" placeholder="0,00" inputmode="decimal">
+          </label>
+          <label class="ne-field">
+            <span class="ne-field-label">Total a pagar *</span>
+            <input type="text" id="ne-valor-tot" required class="ne-field-control font-black tabular-nums" placeholder="0,00" inputmode="decimal">
+          </label>
+          <label class="ne-field">
+            <span class="ne-field-label">Data da entrada *</span>
+            <input type="date" id="ne-data-entrada" required class="ne-field-control agro-date-picker font-bold">
+          </label>
+          <label class="ne-field">
+            <span class="ne-field-label">1º vencimento *</span>
+            <input type="date" id="ne-primeiro-ven" required class="ne-field-control agro-date-picker font-bold">
+          </label>
+        </div>
+
+        <div class="ne-parc-panel space-y-3">
+          <div class="flex flex-wrap items-end gap-3">
+            <label class="ne-field min-w-[5.5rem]">
+              <span class="ne-field-label">Nº parcelas *</span>
+              <input type="number" id="ne-parcelas" min="1" max="48" value="1" required class="ne-field-control font-black">
+            </label>
+            <label class="ne-field flex-1 min-w-[12rem]">
+              <span class="ne-field-label">Intervalo *</span>
+              <div class="ne-field-body">
+                <select id="ne-intervalo" required class="ne-field-control font-bold">
+                  <option value="7">7 dias — semanal</option>
+                  <option value="15">15 dias — quinzenal</option>
+                  <option value="30" selected>Mensal — mesmo dia do mês</option>
+                  <option value="60">Bimestral — a cada 2 meses</option>
+                  <option value="90">Trimestral — a cada 3 meses</option>
+                  <option value="__outro__">Outros — informar dias</option>
+                </select>
+                <div id="ne-intervalo-outro-wrap" class="hidden ne-intervalo-outro">
+                  <span class="ne-intervalo-outro-label">Dias entre parcelas</span>
+                  <input type="number" id="ne-intervalo-dias" min="1" max="366" step="1" value="30"
+                         class="ne-field-control font-black"
+                         title="Quantidade de dias entre cada parcela (1 a 366).">
+                </div>
+              </div>
+            </label>
+            <button type="button" id="ne-gerar-parcelas"
+                    class="min-h-[52px] shrink-0 rounded-xl border-2 border-indigo-600 bg-indigo-600 hover:bg-indigo-700 px-5 py-3 text-base font-black uppercase tracking-wide text-white shadow-sm">
+              Atualizar lista
+            </button>
+            <details class="ne-parc-ajuda shrink-0 self-end mb-1">
+              <summary class="ne-parc-ajuda-btn" title="Ajuda — parcelas e juros" aria-label="Ajuda parcelas">?</summary>
+              <div class="ne-parc-ajuda-panel">
+                <p><strong>Nº parcelas</strong> monta a lista sozinha (também ao mudar intervalo, 1º vencimento ou total).</p>
+                <p><strong>1º vencimento</strong> = campo acima.</p>
+                <p><strong>Mensal</strong> = mesmo dia no mês (24/08 → 24/09).</p>
+                <p><strong>Outros</strong> = informe quantos dias entre cada parcela.</p>
+                <p><strong>Juros</strong> = total a pagar − valor recebido, rateado em cada parcela (como na Nova saída).</p>
+              </div>
+            </details>
+          </div>
+          <p id="ne-juros-hint" class="hidden text-base font-bold text-orange-900 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2"></p>
+          <div id="ne-parc-preview" class="hidden ne-parc-preview-inner">
+            <div id="ne-parc-grid" class="ne-parc-grid"></div>
+          </div>
+        </div>
+
+        <label class="ne-field ne-field--check cursor-pointer select-none">
+          <span class="ne-field-label">Entrada</span>
+          <span class="ne-field-check-row">
+            <input type="checkbox" id="ne-entrada-quitada" checked class="ne-field-check">
+            <span class="text-lg font-bold text-slate-900 leading-snug">Entrada já quitada (dinheiro já entrou no caixa / banco)</span>
+          </span>
+        </label>
+
+        <label class="ne-field">
+          <span class="ne-field-label">Observação</span>
+          <textarea id="ne-obs" rows="2" class="ne-field-control ne-field-control--area font-semibold resize-y"></textarea>
+        </label>
+      </div>
+
+      <div class="shrink-0 border-t-2 border-slate-200 bg-white px-4 py-3 sm:px-6 flex flex-wrap items-center justify-between gap-2">
+        <button type="button" id="agro-ne-voltar" class="min-h-[48px] rounded-xl px-5 font-bold text-slate-600 hover:bg-slate-100">← Voltar</button>
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" id="agro-ne-cancelar" class="min-h-[48px] rounded-xl px-5 font-bold text-slate-600 hover:bg-slate-100">Cancelar</button>
+          <button type="submit" id="agro-ne-submit" class="min-h-[52px] rounded-xl bg-indigo-600 hover:bg-indigo-700 px-8 py-3 text-lg font-black text-white shadow-md uppercase tracking-wide border-2 border-indigo-700">Registrar</button>
+        </div>
+      </div>
+    </form>
+
+    {# Sucesso — fica na tela até o operador apertar OK #}
+    <div id="agro-ne-sucesso" class="hidden flex flex-col flex-1 min-h-0 items-center justify-center px-6 py-10 text-center" role="status" aria-live="polite">
+      <div class="max-w-md w-full rounded-2xl border-2 border-emerald-200 bg-gradient-to-b from-emerald-50 to-white px-6 py-8 shadow-xl">
+        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-600 text-white text-3xl font-black shadow-lg" aria-hidden="true">✓</div>
+        <h3 id="agro-ne-sucesso-titulo" class="text-2xl font-black text-slate-900 mb-2">Empréstimo registrado</h3>
+        <p id="agro-ne-sucesso-msg" class="text-lg font-bold text-emerald-900 mb-2"></p>
+        <p id="agro-ne-sucesso-detalhe" class="text-sm font-semibold text-slate-600 mb-6"></p>
+        <button type="button" id="agro-ne-sucesso-ok" class="w-full max-w-xs mx-auto min-h-[52px] rounded-xl bg-indigo-600 hover:bg-indigo-700 px-8 py-3 text-lg font-black text-white shadow-md uppercase tracking-wide border-2 border-indigo-700">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Campo = rótulo + valor no mesmo contorno (contraste forte) */
+  #agro-ne-overlay .ne-field {
+    display: block;
+    border: 2.5px solid #334155;
+    border-radius: 0.75rem;
+    background: #fff;
+    overflow: visible;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  #agro-ne-overlay .ne-field:not(.ne-field--sug) {
+    overflow: hidden;
+  }
+  #agro-ne-overlay .ne-field--sug {
+    position: relative;
+    z-index: 1;
+  }
+  #agro-ne-overlay .ne-field--sug:focus-within {
+    z-index: 40;
+  }
+  #agro-ne-overlay .ne-field--sug .ne-field-label {
+    border-radius: 0.65rem 0.65rem 0 0;
+  }
+  #agro-ne-overlay .ne-field--sug .ne-field-control {
+    border-radius: 0 0 0.65rem 0.65rem !important;
+  }
+  #agro-ne-overlay .ne-field:focus-within {
+    border-color: #4338ca;
+    box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.28);
+  }
+  #agro-ne-overlay .ne-field-label {
+    display: block;
+    padding: 0.45rem 0.85rem 0.4rem;
+    font-size: 0.8125rem;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #0f172a;
+    background: #cbd5e1;
+    border-bottom: 2.5px solid #334155;
+    line-height: 1.25;
+  }
+  #agro-ne-overlay .ne-field:focus-within .ne-field-label {
+    background: #a5b4fc;
+    border-bottom-color: #4338ca;
+    color: #1e1b4b;
+  }
+  #agro-ne-overlay .ne-field-body { position: relative; }
+  #agro-ne-overlay .ne-field-control {
+    display: block;
+    width: 100%;
+    min-height: 3.25rem;
+    border: none !important;
+    border-radius: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    padding: 0.65rem 0.85rem;
+    font-size: 1.125rem;
+    line-height: 1.35;
+    background: #fff;
+    color: #0f172a;
+  }
+  #agro-ne-overlay .ne-field-control--area {
+    min-height: 5rem;
+    resize: vertical;
+  }
+  #agro-ne-overlay .ne-intervalo-outro {
+    border-top: 2.5px solid #334155;
+    background: #fffbeb;
+  }
+  #agro-ne-overlay .ne-intervalo-outro-label {
+    display: block;
+    padding: 0.4rem 0.85rem 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #78350f;
+    background: #fcd34d;
+    border-bottom: 2px solid #b45309;
+  }
+  #agro-ne-overlay .ne-field--check .ne-field-check-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 0.85rem;
+    min-height: 3.25rem;
+  }
+  #agro-ne-overlay .ne-field-check {
+    margin-top: 0.15rem;
+    width: 1.75rem;
+    height: 1.75rem;
+    flex-shrink: 0;
+    border: 2px solid #334155;
+    border-radius: 0.375rem;
+    accent-color: #4338ca;
+  }
+  #agro-ne-overlay .ne-parc-panel {
+    border: 2.5px solid #334155;
+    border-radius: 1rem;
+    background: #f8fafc;
+    padding: 1rem;
+  }
+  #agro-ne-overlay .ne-parc-preview-inner {
+    border: 2.5px solid #475569;
+    border-radius: 0.75rem;
+    background: #fff;
+    padding: 0.5rem 0.65rem;
+  }
+  #agro-ne-overlay .ne-sug-dd { list-style: none; margin: 0; padding: 0; }
+  #agro-ne-overlay .ne-parc-ajuda { position: relative; }
+  #agro-ne-overlay .ne-parc-ajuda > summary { list-style: none; }
+  #agro-ne-overlay .ne-parc-ajuda > summary::-webkit-details-marker { display: none; }
+  #agro-ne-overlay .ne-parc-ajuda-btn {
+    cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+    width: 2.5rem; height: 2.5rem; border-radius: 999px; border: 2px solid #a5b4fc;
+    background: #eef2ff; color: #4338ca; font-size: 1.125rem; font-weight: 900;
+  }
+  #agro-ne-overlay .ne-parc-ajuda-btn:hover { background: #e0e7ff; border-color: #818cf8; }
+  #agro-ne-overlay .ne-parc-ajuda-panel {
+    position: absolute; right: 0; bottom: calc(100% + 0.4rem); z-index: 30;
+    width: min(22rem, 85vw); padding: 0.75rem 0.9rem; border-radius: 0.75rem;
+    background: #eef2ff; border: 2px solid #c7d2fe; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+    font-size: 0.875rem; font-weight: 700; color: #312e81; line-height: 1.35;
+  }
+  #agro-ne-overlay .ne-parc-ajuda-panel p + p { margin-top: 0.4rem; }
+  #agro-ne-overlay .ne-parc-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  @media (min-width: 640px) {
+    #agro-ne-overlay .ne-parc-grid { grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+  }
+  #agro-ne-overlay .ne-parc-card {
+    display: grid;
+    grid-template-columns: 1.75rem minmax(0, 1fr) minmax(4.25rem, 5.25rem);
+    gap: 0.4rem;
+    align-items: center;
+    padding: 0.5rem 0.55rem;
+    border-radius: 0.75rem;
+    border: 2.5px solid #475569;
+    background: #fff;
+  }
+  #agro-ne-overlay .ne-parc-card input {
+    border: 2px solid #64748b !important;
+    border-radius: 0.5rem !important;
+    background: #fff;
+  }
+  #agro-ne-overlay .ne-parc-card input:focus {
+    border-color: #4338ca !important;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(67, 56, 202, 0.25);
+  }
+  #agro-ne-overlay .ne-parc-card-n {
+    font-weight: 900; color: #64748b; line-height: 2.75rem; text-align: center;
+  }
+  #agro-ne-overlay .ne-parc-card-mid {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+  }
+  #agro-ne-overlay .ne-parc-dv {
+    width: auto !important;
+    max-width: 10.5rem;
+    flex: 0 0 auto;
+    padding-right: 0.35rem !important;
+  }
+  #agro-ne-overlay .ne-parc-dv::-webkit-calendar-picker-indicator {
+    margin-left: 0.1rem;
+    width: 1.35rem;
+    height: 1.35rem;
+  }
+  #agro-ne-overlay .ne-parc-card-val-wrap { text-align: right; }
+  #agro-ne-overlay .ne-parc-composicao {
+    display: flex; align-items: center; justify-content: flex-start; gap: 0.3rem;
+    margin-top: 0; font-size: 0.8125rem; font-weight: 800; color: #4338ca; line-height: 1.2;
+    flex: 1 1 auto; min-width: 0; white-space: nowrap;
+  }
+  #agro-ne-overlay .ne-parc-composicao-q {
+    all: unset; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+    width: 1.1rem; height: 1.1rem; border-radius: 999px; border: 1.5px solid #a5b4fc;
+    background: #eef2ff; color: #4338ca; font-size: 0.6875rem; font-weight: 900;
+  }
+  #agro-ne-overlay .ne-parc-composicao-pop {
+    margin-top: 0.35rem; padding: 0.45rem 0.55rem; border-radius: 0.5rem;
+    background: #eef2ff; border: 1px solid #c7d2fe; font-size: 0.75rem; font-weight: 700; color: #312e81;
+    text-align: left; max-width: 14rem;
+  }
+</style>
+<script src="{% static 'produtos/js/agro_date_picker.js' %}"></script>
+<script>
+(function () {
+  const API_SUG = "{% url 'api_lancamentos_sugestoes' %}";
+  const API_CRIAR = "{% url 'api_emprestimos_criar' %}";
+  const overlay = document.getElementById('agro-ne-overlay');
+  if (!overlay) return;
+
+  let neDefaults = {};
+  try {
+    const elDef = document.getElementById('emprestimos-defaults-data');
+    if (elDef) neDefaults = JSON.parse(elDef.textContent || '{}') || {};
+  } catch (e0) {
+    neDefaults = {};
+  }
+
+  function bindNeDatePickers() {
+    if (!window.AgroDatePicker || typeof window.AgroDatePicker.bind !== 'function') return;
+    window.AgroDatePicker.bind(overlay, { accent: '#4f46e5', accentSoft: '#eef2ff' });
+  }
+
+  function getCookie(name) {
+    const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return v ? decodeURIComponent(v.pop()) : '';
+  }
+
+  function todayISO() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function parseValorBr(raw) {
+    const s = String(raw || '').trim().replace(/[R$\s]/g, '');
+    if (!s) return null;
+    const n = parseFloat(s.replace(/\./g, '').replace(',', '.'));
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function formatValorBr(n) {
+    if (!Number.isFinite(n)) return '';
+    return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function splitEmParcelas(total, n) {
+    const nn = Math.max(1, Math.min(48, parseInt(n, 10) || 1));
+    const cents = Math.round((Number(total) || 0) * 100);
+    const base = Math.floor(cents / nn);
+    const rem = cents % nn;
+    const out = [];
+    for (let i = 0; i < nn; i += 1) {
+      out.push((base + (i < rem ? 1 : 0)) / 100);
+    }
+    return out;
+  }
+
+  function addDiasIso(iso, dias) {
+    const s = String(iso || '').trim().slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const d = new Date(s + 'T12:00:00');
+    d.setDate(d.getDate() + (parseInt(dias, 10) || 0));
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function addMesesIso(iso, meses) {
+    const s = String(iso || '').trim().slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const parts = s.split('-').map(Number);
+    const dia = parts[2];
+    let y = parts[0];
+    let m = parts[1] - 1 + (parseInt(meses, 10) || 0);
+    y += Math.floor(m / 12);
+    m = ((m % 12) + 12) % 12;
+    const ultimo = new Date(y, m + 1, 0).getDate();
+    const d = Math.min(dia, ultimo);
+    return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+  }
+
+  function neIntervaloDias() {
+    const preset = document.getElementById('ne-intervalo');
+    const custom = document.getElementById('ne-intervalo-dias');
+    if (preset && String(preset.value) === '__outro__') {
+      let n = parseInt(String(custom?.value || '30'), 10);
+      if (!Number.isFinite(n) || n < 1) n = 30;
+      if (n > 366) n = 366;
+      return n;
+    }
+    if (preset && preset.value && preset.value !== '__outro__') {
+      const n = parseInt(String(preset.value), 10);
+      if (Number.isFinite(n) && n >= 1 && n <= 366) return n;
+    }
+    let n = parseInt(String(custom?.value || '30'), 10);
+    if (!Number.isFinite(n) || n < 1) n = 30;
+    if (n > 366) n = 366;
+    return n;
+  }
+
+  function neIntervaloUiSync() {
+    const preset = document.getElementById('ne-intervalo');
+    const wrap = document.getElementById('ne-intervalo-outro-wrap');
+    if (!preset || !wrap) return;
+    if (String(preset.value) === '__outro__') wrap.classList.remove('hidden');
+    else wrap.classList.add('hidden');
+  }
+
+  function vencimentoParcela(dv0, indice, intDias) {
+    const i = parseInt(indice, 10) || 0;
+    const iv = parseInt(intDias, 10) || 30;
+    if (iv === 30) return addMesesIso(dv0, i);
+    if (iv === 60) return addMesesIso(dv0, i * 2);
+    if (iv === 90) return addMesesIso(dv0, i * 3);
+    return addDiasIso(dv0, i * iv);
+  }
+
+  function jurosTotal() {
+    const rec = parseValorBr(document.getElementById('ne-valor-rec')?.value);
+    const tot = parseValorBr(document.getElementById('ne-valor-tot')?.value);
+    if (rec == null || tot == null) return 0;
+    return Math.max(0, Math.round((tot - rec) * 100) / 100);
+  }
+
+  function composicaoParcela(valorParc) {
+    const tot = parseValorBr(document.getElementById('ne-valor-tot')?.value);
+    const jTot = jurosTotal();
+    if (tot == null || tot <= 0 || jTot <= 0.009 || valorParc == null || valorParc <= 0) return null;
+    const juros = Math.round((valorParc / tot) * jTot * 100) / 100;
+    const principal = Math.round((valorParc - juros) * 100) / 100;
+    if (juros <= 0.009) return null;
+    return { principal: Math.max(0, principal), juros: Math.max(0, juros) };
+  }
+
+  function htmlComposicao(valorParc) {
+    const c = composicaoParcela(valorParc);
+    if (!c) return '';
+    return '<div class="ne-parc-composicao">' +
+      '<span>' + formatValorBr(c.principal) + ' + ' + formatValorBr(c.juros) + '</span>' +
+      '<details><summary class="ne-parc-composicao-q" aria-label="Composição">?</summary>' +
+      '<div class="ne-parc-composicao-pop">' +
+      '<strong>Dívida</strong> ' + formatValorBr(c.principal) + '<br>' +
+      '<strong>Juros</strong> ' + formatValorBr(c.juros) + '<br>' +
+      '<span class="text-slate-500">Juros = total − recebido, rateado.</span>' +
+      '</div></details></div>';
+  }
+
+  function syncJurosHint() {
+    const box = document.getElementById('ne-juros-hint');
+    if (!box) return;
+    const j = jurosTotal();
+    if (j > 0.009) {
+      box.classList.remove('hidden');
+      box.textContent = 'Juros totais: R$ ' + formatValorBr(j) + ' (rateados nas parcelas).';
+    } else {
+      box.classList.add('hidden');
+      box.textContent = '';
+    }
+  }
+
+  function limparPreviewParcelas() {
+    const preview = document.getElementById('ne-parc-preview');
+    const grid = document.getElementById('ne-parc-grid');
+    if (preview) preview.classList.add('hidden');
+    if (grid) grid.innerHTML = '';
+  }
+
+  function gerarParcelasPreview(opts) {
+    opts = opts || {};
+    const silent = !!opts.silent;
+    const preview = document.getElementById('ne-parc-preview');
+    const grid = document.getElementById('ne-parc-grid');
+    if (!preview || !grid) return false;
+    const n = Math.max(1, Math.min(48, parseInt(document.getElementById('ne-parcelas')?.value, 10) || 1));
+    if (n <= 1) {
+      limparPreviewParcelas();
+      syncJurosHint();
+      return true;
+    }
+    const tot = parseValorBr(document.getElementById('ne-valor-tot')?.value);
+    if (tot == null || tot <= 0) {
+      limparPreviewParcelas();
+      syncJurosHint();
+      if (!silent) showMsg('Informe o total a pagar antes de gerar as parcelas.', false);
+      return false;
+    }
+    const dv0 = document.getElementById('ne-primeiro-ven')?.value || '';
+    if (!dv0) {
+      limparPreviewParcelas();
+      syncJurosHint();
+      if (!silent) showMsg('Informe o 1º vencimento.', false);
+      return false;
+    }
+    const intD = neIntervaloDias();
+    const vals = splitEmParcelas(tot, n);
+    grid.innerHTML = vals.map(function (val, i) {
+      const dv = vencimentoParcela(dv0, i, intD);
+      const comp = htmlComposicao(val);
+      return '<div class="ne-parc-card" data-ne-parc="' + (i + 1) + '">' +
+        '<div class="ne-parc-card-n">' + (i + 1) + '</div>' +
+        '<div class="ne-parc-card-mid">' +
+        '<input type="date" class="ne-parc-dv agro-date-picker min-h-[44px] px-2 py-1 font-bold" value="' + dv + '" aria-label="Vencimento parcela ' + (i + 1) + '">' +
+        (comp || '') +
+        '</div>' +
+        '<div class="ne-parc-card-val-wrap">' +
+        '<input type="text" inputmode="decimal" class="ne-parc-val w-full min-h-[44px] px-2 py-1 font-black text-right tabular-nums" value="' + formatValorBr(val) + '" aria-label="Valor parcela ' + (i + 1) + '">' +
+        '</div></div>';
+    }).join('');
+    preview.classList.remove('hidden');
+    syncJurosHint();
+    bindNeDatePickers();
+    grid.querySelectorAll('.ne-parc-val').forEach(function (el) {
+      el.addEventListener('input', function () {
+        const card = el.closest('.ne-parc-card');
+        const mid = card && card.querySelector('.ne-parc-card-mid');
+        if (!mid) return;
+        const old = mid.querySelector('.ne-parc-composicao');
+        if (old) old.remove();
+        const html = htmlComposicao(parseValorBr(el.value));
+        if (html) mid.insertAdjacentHTML('beforeend', html);
+      });
+    });
+    if (!silent) preview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    return true;
+  }
+
+  let neParcAutoTimer = null;
+  function agendarParcelasAuto() {
+    clearTimeout(neParcAutoTimer);
+    neParcAutoTimer = setTimeout(function () {
+      gerarParcelasPreview({ silent: true });
+    }, 180);
+  }
+
+  function coletarParcelasManual() {
+    const n = Math.max(1, Math.min(48, parseInt(document.getElementById('ne-parcelas')?.value, 10) || 1));
+    if (n <= 1) return null;
+    const rows = document.querySelectorAll('#ne-parc-grid .ne-parc-card');
+    if (!rows.length) return null;
+    const out = [];
+    for (let i = 0; i < rows.length; i += 1) {
+      const card = rows[i];
+      const dv = String(card.querySelector('.ne-parc-dv')?.value || '').trim();
+      const val = parseValorBr(card.querySelector('.ne-parc-val')?.value);
+      if (!dv || val == null || val <= 0) return null;
+      out.push({ data_vencimento: dv, valor: formatValorBr(val) });
+    }
+    return out.length === n ? out : null;
+  }
+
+  const passoTipo = document.getElementById('agro-ne-passo-tipo');
+  const form = document.getElementById('agro-ne-form');
+  const subtitulo = document.getElementById('agro-ne-subtitulo');
+  const msgBox = document.getElementById('agro-ne-msg');
+  const varianteInp = document.getElementById('ne-variante');
+  const sucessoEl = document.getElementById('agro-ne-sucesso');
+  let sucessoPendenteRefresh = false;
+
+  function showMsg(text, ok) {
+    msgBox.textContent = text;
+    msgBox.classList.remove('hidden', 'border-red-300', 'bg-red-50', 'text-red-900', 'border-emerald-300', 'bg-emerald-50', 'text-emerald-950');
+    if (ok) msgBox.classList.add('border-emerald-300', 'bg-emerald-50', 'text-emerald-950');
+    else msgBox.classList.add('border-red-300', 'bg-red-50', 'text-red-900');
+  }
+
+  function hideMsg() {
+    msgBox.classList.add('hidden');
+    msgBox.textContent = '';
+  }
+
+  function hideSucesso() {
+    if (sucessoEl) sucessoEl.classList.add('hidden');
+  }
+
+  function showSucesso(j, body) {
+    passoTipo.classList.add('hidden');
+    form.classList.add('hidden');
+    form.classList.remove('flex');
+    hideMsg();
+    subtitulo.textContent = 'Concluído';
+    const msg = document.getElementById('agro-ne-sucesso-msg');
+    const det = document.getElementById('agro-ne-sucesso-detalhe');
+    const tipoLbl = body.variante === 'interno' ? 'Interno' : 'Externo';
+    if (msg) {
+      msg.textContent = 'Ref ' + (j.ref || '—') + ' · ' + tipoLbl;
+    }
+    if (det) {
+      let d = body.entrada_ja_quitada ? 'Entrada quitada.' : 'Entrada em aberto.';
+      if (j.aviso_api) d += ' ERP: ' + j.aviso_api;
+      det.textContent = d;
+    }
+    if (sucessoEl) sucessoEl.classList.remove('hidden');
+    sucessoPendenteRefresh = true;
+    try {
+      document.getElementById('agro-ne-sucesso-ok')?.focus();
+    } catch (e0) {}
+  }
+
+  function refreshListaAposSucesso() {
+    try {
+      if (typeof window.recarregarPreservandoVista === 'function') {
+        window.recarregarPreservandoVista({});
+      } else if (typeof window.carregar === 'function') {
+        window.carregar();
+      }
+    } catch (e2) {}
+  }
+
+  function concluirSucesso() {
+    hideSucesso();
+    closeOverlay();
+    if (sucessoPendenteRefresh) {
+      sucessoPendenteRefresh = false;
+      refreshListaAposSucesso();
+    }
+  }
+
+  function resetFormFields() {
+    ['ne-empresa-nome', 'ne-credor-nome', 'ne-valor-rec', 'ne-valor-tot', 'ne-obs'].forEach(function (id) {
+      var n = document.getElementById(id);
+      if (n) n.value = '';
+    });
+    ['ne-empresa-id', 'ne-credor-id'].forEach(function (id) {
+      var n = document.getElementById(id);
+      if (n) n.value = '';
+    });
+    document.getElementById('ne-parcelas').value = '1';
+    document.getElementById('ne-intervalo').value = '30';
+    const neIntDias = document.getElementById('ne-intervalo-dias');
+    if (neIntDias) neIntDias.value = '30';
+    neIntervaloUiSync();
+    document.getElementById('ne-data-entrada').value = todayISO();
+    document.getElementById('ne-primeiro-ven').value = '';
+    document.getElementById('ne-entrada-quitada').checked = true;
+    limparPreviewParcelas();
+    syncJurosHint();
+    hideMsg();
+    preencherEmpresaPadrao();
+  }
+
+  function preencherEmpresaPadrao() {
+    const nomePad = String(neDefaults.empresa_padrao || '').trim();
+    const idPad = String(neDefaults.empresa_padrao_id || '').trim();
+    const nomeEl = document.getElementById('ne-empresa-nome');
+    const idEl = document.getElementById('ne-empresa-id');
+    if (!nomeEl || !nomePad) return;
+    nomeEl.value = nomePad;
+    if (idEl) idEl.value = idPad;
+    if (idPad) return;
+    // Resolve ID na busca se o servidor não mandou
+    (async function () {
+      try {
+        const u = new URL(API_SUG, window.location.origin);
+        u.searchParams.set('campo', 'empresa');
+        u.searchParams.set('q', nomePad);
+        const r = await fetch(u.toString(), { credentials: 'same-origin' });
+        const j = await r.json();
+        const ql = nomePad.toLowerCase();
+        const hit = (j.itens || []).find(function (it) {
+          return String(it.nome || '').trim().toLowerCase() === ql;
+        }) || (j.itens || [])[0];
+        if (hit && idEl && !idEl.value) idEl.value = hit.id || '';
+        if (hit && hit.nome && nomeEl.value === nomePad) nomeEl.value = hit.nome;
+      } catch (e1) {}
+    })();
+  }
+
+  function openOverlay() {
+    hideSucesso();
+    sucessoPendenteRefresh = false;
+    overlay.classList.remove('hidden');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('overflow-hidden');
+    showPassoTipo();
+  }
+
+  function closeOverlay() {
+    hideSucesso();
+    overlay.classList.add('hidden');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('overflow-hidden');
+  }
+
+  function showPassoTipo() {
+    hideSucesso();
+    passoTipo.classList.remove('hidden');
+    form.classList.add('hidden');
+    form.classList.remove('flex');
+    subtitulo.textContent = 'Escolha o tipo';
+    hideMsg();
+  }
+
+  function showPassoForm(variante) {
+    hideSucesso();
+    varianteInp.value = variante;
+    resetFormFields();
+    passoTipo.classList.add('hidden');
+    form.classList.remove('hidden');
+    form.classList.add('flex');
+    subtitulo.textContent = variante === 'interno' ? 'Interno — entrada + dívida' : 'Externo — entrada + dívida';
+    bindNeDatePickers();
+  }
+
+  function attachSuggest(wrap) {
+    if (!wrap || wrap.dataset.sugBound === '1') return;
+    wrap.dataset.sugBound = '1';
+    const campo = wrap.getAttribute('data-sug-campo');
+    const inp = wrap.querySelector('input[type="text"]');
+    const hid = wrap.querySelector('input[type="hidden"]');
+    const dd = wrap.querySelector('.ne-sug-dd');
+    if (!inp || !dd) return;
+    let timer = null;
+    inp.addEventListener('input', function () {
+      if (hid) hid.value = '';
+      clearTimeout(timer);
+      timer = setTimeout(async function () {
+        try {
+          const u = new URL(API_SUG, window.location.origin);
+          u.searchParams.set('campo', campo);
+          u.searchParams.set('q', inp.value.trim());
+          const r = await fetch(u.toString(), { credentials: 'same-origin' });
+          const j = await r.json();
+          dd.innerHTML = '';
+          (j.itens || []).forEach(function (it) {
+            const li = document.createElement('li');
+            li.textContent = it.nome;
+            li.className = 'px-4 py-3 cursor-pointer hover:bg-indigo-50 text-lg font-semibold border-b border-slate-100 last:border-0 min-h-[48px] flex items-center';
+            li.addEventListener('mousedown', function (e) {
+              e.preventDefault();
+              inp.value = it.nome;
+              if (hid) hid.value = it.id || '';
+              dd.classList.add('hidden');
+            });
+            dd.appendChild(li);
+          });
+          dd.classList.toggle('hidden', dd.children.length === 0);
+        } catch (e) {
+          dd.classList.add('hidden');
+        }
+      }, 280);
+    });
+    inp.addEventListener('blur', function () {
+      setTimeout(function () { dd.classList.add('hidden'); }, 200);
+    });
+    inp.addEventListener('focus', function () {
+      if (dd.children.length) dd.classList.remove('hidden');
+    });
+  }
+
+  document.querySelectorAll('#agro-ne-form .ne-sug-wrap').forEach(attachSuggest);
+
+  document.querySelectorAll('[data-agro-novo-emprestimo-open]').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      openOverlay();
+    });
+  });
+
+  window.AgroNovoEmprestimo = { open: openOverlay, close: closeOverlay };
+
+  try {
+    const qs = new URLSearchParams(window.location.search || '');
+    if (qs.get('novo_emprestimo') === '1') {
+      openOverlay();
+      qs.delete('novo_emprestimo');
+      const clean = qs.toString();
+      const path = window.location.pathname || '';
+      window.history.replaceState({}, '', clean ? (path + '?' + clean) : path);
+    }
+  } catch (eQs) {}
+
+  document.getElementById('agro-ne-btn-externo').addEventListener('click', function () { showPassoForm('externo'); });
+  document.getElementById('agro-ne-btn-interno').addEventListener('click', function () { showPassoForm('interno'); });
+  document.getElementById('agro-ne-voltar').addEventListener('click', showPassoTipo);
+  document.getElementById('agro-ne-fechar').addEventListener('click', closeOverlay);
+  document.getElementById('agro-ne-cancelar').addEventListener('click', closeOverlay);
+
+  const btnGerar = document.getElementById('ne-gerar-parcelas');
+  if (btnGerar) btnGerar.addEventListener('click', function () {
+    hideMsg();
+    gerarParcelasPreview();
+  });
+
+  ['ne-valor-rec', 'ne-valor-tot'].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', function () {
+      syncJurosHint();
+      if (id === 'ne-valor-tot') agendarParcelasAuto();
+    });
+  });
+  const elParc = document.getElementById('ne-parcelas');
+  if (elParc) {
+    elParc.addEventListener('input', agendarParcelasAuto);
+    elParc.addEventListener('change', agendarParcelasAuto);
+  }
+  const elInt = document.getElementById('ne-intervalo');
+  if (elInt) {
+    elInt.addEventListener('change', function () {
+      neIntervaloUiSync();
+      agendarParcelasAuto();
+    });
+  }
+  const elIntDias = document.getElementById('ne-intervalo-dias');
+  if (elIntDias) {
+    elIntDias.addEventListener('input', agendarParcelasAuto);
+    elIntDias.addEventListener('change', agendarParcelasAuto);
+  }
+  const elPrimVen = document.getElementById('ne-primeiro-ven');
+  if (elPrimVen) {
+    elPrimVen.addEventListener('change', agendarParcelasAuto);
+    elPrimVen.addEventListener('input', agendarParcelasAuto);
+  }
+
+  overlay.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeOverlay();
+    }
+  });
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const variante = varianteInp.value === 'interno' ? 'interno' : 'externo';
+    const nParc = Math.max(1, Math.min(48, parseInt(document.getElementById('ne-parcelas').value, 10) || 1));
+    let parcelasManual = null;
+    if (nParc > 1) {
+      parcelasManual = coletarParcelasManual();
+      if (!parcelasManual) {
+        if (!gerarParcelasPreview()) return;
+        parcelasManual = coletarParcelasManual();
+      }
+      if (!parcelasManual) {
+        showMsg('Preencha total a pagar e 1º vencimento — as parcelas montam sozinhas. Confira vencimentos e valores.', false);
+        return;
+      }
+    }
+    const jTot = jurosTotal();
+    const body = {
+      tipo: 'externo',
+      variante: variante,
+      empresa_nome: document.getElementById('ne-empresa-nome').value.trim(),
+      empresa_id: document.getElementById('ne-empresa-id').value.trim(),
+      credor_nome: document.getElementById('ne-credor-nome').value.trim(),
+      credor_id: document.getElementById('ne-credor-id').value.trim(),
+      valor_recebido: document.getElementById('ne-valor-rec').value.trim(),
+      valor_total_devido: document.getElementById('ne-valor-tot').value.trim(),
+      data_entrada: document.getElementById('ne-data-entrada').value,
+      primeiro_vencimento: document.getElementById('ne-primeiro-ven').value,
+      parcelas: nParc,
+      intervalo_dias: neIntervaloDias(),
+      banco_nome: '',
+      banco_id: '',
+      forma_nome: '',
+      forma_id: '',
+      plano_entrada_nome: '',
+      plano_entrada_id: '',
+      plano_divida_nome: '',
+      plano_divida_id: '',
+      grupo_nome: '',
+      grupo_id: '',
+      observacao: document.getElementById('ne-obs').value.trim(),
+      entrada_ja_quitada: document.getElementById('ne-entrada-quitada').checked,
+      valor_juros: jTot > 0.009 ? formatValorBr(jTot) : '',
+      plano_juros_nome: '',
+      plano_juros_id: ''
+    };
+    if (parcelasManual) body.parcelas_manual = parcelasManual;
+    const btn = document.getElementById('agro-ne-submit');
+    btn.disabled = true;
+    try {
+      const r = await fetch(API_CRIAR, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(body)
+      });
+      const j = await r.json();
+      if (j.ok) {
+        showSucesso(j, body);
+      } else {
+        showMsg(j.erro || JSON.stringify(j.erros || j) || 'Falha ao salvar.', false);
+      }
+    } catch (err) {
+      showMsg('Erro de rede.', false);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById('agro-ne-sucesso-ok')?.addEventListener('click', concluirSucesso);
+})();
+</script>

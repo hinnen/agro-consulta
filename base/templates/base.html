@@ -17,5 +17,12 @@
         {% block content %}{% endblock %}
     </main>
 
+    {# Teclado PIN global — evita alert «modo descanso» em qualquer tela que herda base. #}
+    {% block agro_sspin %}
+    {% if user.is_authenticated %}
+    {% include "produtos/_screensaver_pin.html" %}
+    {% endif %}
+    {% endblock %}
+
 </body>
 </html>

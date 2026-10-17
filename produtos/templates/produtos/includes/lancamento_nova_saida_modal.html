@@ -1,0 +1,493 @@
+{% load static %}
+{# Modal «Nova saída» — um card por lançamento; tema vermelho (pagar) / verde (receber). #}
+<div id="agro-nova-saida-overlay"
+     class="agro-ns-overlay hidden fixed inset-0 z-[250] flex flex-col bg-slate-900/60 backdrop-blur-sm"
+     role="dialog" aria-modal="true" aria-labelledby="agro-ns-titulo" aria-hidden="true">
+  <div id="agro-ns-panel" class="agro-ns-panel agro-ns-panel--pagar bg-white flex flex-col flex-1 min-h-0 w-full max-h-[100dvh] overflow-hidden">
+
+    <div class="agro-ns-header shrink-0 flex flex-wrap items-center justify-between gap-2 border-b-2 border-[var(--ns-accent)] bg-[var(--ns-accent-soft)]">
+      <div class="flex flex-wrap items-center gap-3 min-w-0">
+        <div class="min-w-0">
+          <h2 id="agro-ns-titulo" class="agro-ns-title font-black uppercase tracking-tight text-slate-900">Novo Lançamento</h2>
+          <p id="agro-ns-subtitulo" class="mt-0.5 text-base font-bold text-slate-600">Escolha o tipo</p>
+        </div>
+        <div id="agro-ns-tipo-grp" class="agro-ns-tipo-grp hidden flex items-center gap-1 bg-white/80 p-1 rounded-xl border-2 border-slate-200" role="group" aria-label="Tipo">
+          <label class="cursor-pointer">
+            <input type="radio" name="agro-ns-tipo" value="pagar" class="sr-only peer" checked>
+            <span class="agro-ns-tipo-btn block rounded-lg font-black uppercase peer-checked:bg-red-600 peer-checked:text-white text-slate-600">Pagar</span>
+          </label>
+          <label class="cursor-pointer">
+            <input type="radio" name="agro-ns-tipo" value="receber" class="sr-only peer">
+            <span class="agro-ns-tipo-btn block rounded-lg font-black uppercase peer-checked:bg-emerald-600 peer-checked:text-white text-slate-600">Receber</span>
+          </label>
+        </div>
+        <details id="agro-ns-emprestimo-ajuda" class="agro-ns-emprestimo-ajuda hidden shrink-0">
+          <summary class="agro-ns-ajuda-btn" title="Ajuda — Empréstimo (entrada + pagamento)" aria-label="Ajuda empréstimo">?</summary>
+          <div class="agro-ns-ajuda-panel">
+            <p class="font-black text-indigo-950 mb-2">Empréstimo (entrada + pagamento)</p>
+            <ul class="space-y-1.5 list-disc pl-4">
+              <li>Gera <strong>receita quitada hoje</strong> (entrada) + <strong>saída(s)</strong> no mesmo envio.</li>
+              <li><strong>Entrada:</strong> loja, pessoa e <strong>forma de pagamento (obrigatória)</strong>; sem conta bancária; competência e vencimento = hoje; <strong>sempre quitada</strong>.</li>
+              <li><strong>Saída:</strong> loja, pessoa, conta e forma de pagamento <strong>opcional</strong> (campos separados da entrada). <strong>Vencido ≠ quitado</strong>.</li>
+              <li>Modo <strong>Total</strong>: chip <strong>Quitado</strong> ao lado do vencimento (título único).</li>
+              <li>Modo <strong>Parcela</strong>: botão <strong>Quitado</strong> em <strong>cada linha</strong> da grade (individual; o chip do vencimento some).</li>
+              <li>Se <strong>saída &gt; entrada</strong>, a diferença vira <strong>Juros de Empréstimos</strong> — <strong>em cada parcela</strong>, proporcional (ex.: 250 = 231,85 pagamento + 18,15 juros).</li>
+              <li>Recorrência desligada. Pagar / Receber no topo não alteram este modo.</li>
+            </ul>
+          </div>
+        </details>
+      </div>
+      <button type="button" id="agro-ns-fechar" class="agro-ns-btn-icon text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl" aria-label="Fechar">
+        <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
+
+    {# Passo 0 — escolha Novo Lançamento × Empréstimo (cards em coluna; descrição horizontal) #}
+    <div id="agro-ns-passo-escolha" class="flex-1 min-h-0 overflow-y-auto px-4 py-8 sm:px-10 sm:py-14">
+      <div class="mx-auto w-full max-w-5xl grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-8">
+        <button type="button" id="agro-ns-btn-escolha-lancamento"
+                class="flex w-full min-w-0 flex-col items-start justify-center gap-2 min-h-[7.5rem] sm:min-h-[9rem] rounded-2xl border-4 border-red-500 bg-red-50 px-6 py-5 sm:px-8 sm:py-6 text-left shadow-md hover:bg-red-100 active:scale-[0.99] transition-transform">
+          <span class="block w-full text-3xl sm:text-4xl font-black uppercase tracking-wide text-red-900 leading-tight">Novo Lançamento</span>
+          <span class="block w-full text-xl font-bold leading-snug text-red-800/80 whitespace-normal">Despesa ou receita normal</span>
+        </button>
+        <button type="button" id="agro-ns-btn-escolha-emprestimo"
+                class="flex w-full min-w-0 flex-col items-start justify-center gap-2 min-h-[7.5rem] sm:min-h-[9rem] rounded-2xl border-4 border-indigo-500 bg-indigo-50 px-6 py-5 sm:px-8 sm:py-6 text-left shadow-md hover:bg-indigo-100 active:scale-[0.99] transition-transform">
+          <span class="block w-full text-3xl sm:text-4xl font-black uppercase tracking-wide text-indigo-900 leading-tight">Empréstimo</span>
+          <span class="block w-full text-xl font-bold leading-snug text-indigo-800/80 whitespace-normal">Externo ou interno (sócio)</span>
+        </button>
+      </div>
+    </div>
+
+    <form id="agro-ns-form" class="hidden flex-col flex-1 min-h-0 overflow-hidden">
+      {% csrf_token %}
+
+      <div class="agro-ns-itens-wrap flex-1 min-h-0 overflow-y-auto">
+        <div id="agro-ns-linhas" class="agro-ns-linhas-host"></div>
+      </div>
+
+      <details class="agro-ns-details shrink-0 border-t border-slate-200 bg-slate-50 overflow-hidden">
+        <summary class="agro-ns-details-sum cursor-pointer flex items-center gap-2 font-bold text-slate-700 hover:bg-slate-100 list-none">
+          <span class="text-slate-400 inline-block" aria-hidden="true">▸</span>
+          Preencher pela frase (opcional)
+        </summary>
+        <div class="agro-ns-details-body border-t border-slate-200 space-y-2">
+          <div class="flex flex-col sm:flex-row gap-2 sm:items-end">
+            <label class="flex-1 min-w-0">
+              <span class="agro-ns-label block mb-1">Frase</span>
+              <input type="text" id="agro-ns-nlp-texto" autocomplete="off" placeholder="Ex.: energia 479,03 venc 22/04/2026" class="agro-ns-input">
+            </label>
+            <button type="button" id="agro-ns-btn-nlp" class="agro-ns-btn-secondary shrink-0">Preencher 1º lançamento</button>
+          </div>
+          <div id="agro-ns-nlp-escl" class="hidden rounded-xl border-2 border-indigo-200 bg-indigo-50 px-3 py-3 space-y-2">
+            <p id="agro-ns-nlp-motivo" class="agro-ns-body font-bold text-indigo-950"></p>
+            <div id="agro-ns-nlp-campos" class="space-y-2"></div>
+            <button type="button" id="agro-ns-nlp-aplicar" class="agro-ns-btn-secondary bg-indigo-600 text-white border-indigo-600">Responder e preencher</button>
+          </div>
+        </div>
+      </details>
+
+      <div class="agro-ns-footer shrink-0 border-t-2 border-slate-200 bg-white flex flex-wrap items-center justify-between gap-2">
+        <button type="button" id="agro-ns-cancelar" class="agro-ns-btn-ghost agro-ns-footer-btn font-bold text-slate-600 hover:bg-slate-100 rounded-xl">Cancelar</button>
+        <div class="flex flex-wrap items-center justify-end gap-2 min-w-0">
+          <button type="button" id="agro-ns-add-linha" class="agro-ns-btn-add-compact flex items-center gap-1.5">
+            <svg class="shrink-0 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+            Outro lançamento
+          </button>
+          <button type="submit" id="agro-ns-submit" class="agro-ns-btn-primary agro-ns-footer-btn text-white font-black rounded-xl shadow-md">Finalizar</button>
+        </div>
+      </div>
+    </form>
+    <div id="agro-ns-sucesso" class="agro-ns-sucesso hidden flex flex-col flex-1 min-h-0 items-center justify-center px-6 py-10 text-center" role="status" aria-live="polite">
+      <div class="agro-ns-sucesso-card max-w-md w-full rounded-2xl border-2 border-emerald-200 bg-gradient-to-b from-emerald-50 to-white px-6 py-8 shadow-xl">
+        <div class="agro-ns-sucesso-ico mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-600 text-white text-3xl font-black shadow-lg" aria-hidden="true">✓</div>
+        <h3 id="agro-ns-sucesso-titulo" class="text-2xl font-black text-slate-900 mb-2">Lançamento gravado</h3>
+        <p id="agro-ns-sucesso-msg" class="text-lg font-bold text-emerald-900 mb-2"></p>
+        <p id="agro-ns-sucesso-detalhe" class="text-sm font-semibold text-slate-600 mb-6 hidden"></p>
+        <button type="button" id="agro-ns-sucesso-ok" class="agro-ns-btn-primary agro-ns-footer-btn w-full max-w-xs mx-auto text-white font-black rounded-xl shadow-md">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .agro-ns-panel {
+    --ns-pad: clamp(0.55rem, 1.2vw, 1.05rem);
+    --ns-fs-label: clamp(1.0625rem, 0.45vw + 0.92rem, 1.3125rem);
+    --ns-fs-body: clamp(1.125rem, 0.55vw + 0.98rem, 1.375rem);
+    --ns-fs-title: clamp(1.375rem, 1.1vw + 1.05rem, 1.75rem);
+    --ns-fs-sub: clamp(1.125rem, 0.55vw + 0.95rem, 1.3125rem);
+    --ns-footer-h: clamp(2.65rem, 3.8vh + 1.55rem, 3.15rem);
+    --ns-input-h: clamp(3.65rem, 4.2vh + 2.45rem, 4.5rem);
+    --ns-gap: clamp(0.6rem, 0.85vw, 0.9rem);
+    --ns-accent: #dc2626;
+    --ns-accent-hover: #b91c1c;
+    --ns-accent-soft: #fef2f2;
+    --ns-accent-ring: rgba(220, 38, 38, 0.2);
+    --ns-head-bg: #7f1d1d;
+    font-size: var(--ns-fs-body);
+  }
+  .agro-ns-panel--receber {
+    --ns-accent: #059669;
+    --ns-accent-hover: #047857;
+    --ns-accent-soft: #ecfdf5;
+    --ns-accent-ring: rgba(5, 150, 105, 0.2);
+    --ns-head-bg: #065f46;
+  }
+  .agro-ns-header, .agro-ns-footer { padding: 0.45rem calc(var(--ns-pad) * 1.25); }
+  .agro-ns-itens-wrap {
+    flex: 1 1 0;
+    min-height: 0;
+    background: #f8fafc;
+  }
+  .agro-ns-linhas-host {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--ns-gap) * 0.85);
+    min-height: 100%;
+    padding: var(--ns-pad) calc(var(--ns-pad) * 1.25);
+    box-sizing: border-box;
+  }
+  .agro-ns-title { font-size: var(--ns-fs-title); line-height: 1.15; }
+  .agro-ns-subtitle { font-size: var(--ns-fs-sub); line-height: 1.25; }
+  .agro-ns-label { font-size: var(--ns-fs-label); font-weight: 800; color: #334155; line-height: 1.2; }
+  .agro-ns-hint { font-size: clamp(0.875rem, 0.3vw + 0.78rem, 1rem); font-weight: 600; }
+  .agro-ns-body { font-size: var(--ns-fs-body); }
+  .agro-ns-footer-btn, .agro-ns-btn-add-compact {
+    min-height: var(--ns-footer-h);
+    padding: 0.35rem 0.9rem;
+    font-size: clamp(0.8125rem, 0.35vw + 0.72rem, 0.9375rem);
+    border-radius: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .agro-ns-btn-add-compact {
+    background: #fff;
+    color: var(--ns-accent);
+    border: 2px solid var(--ns-accent);
+  }
+  .agro-ns-btn-add-compact:hover { background: var(--ns-accent-soft); }
+  .agro-ns-tipo-btn {
+    padding: 0.45rem 0.85rem;
+    font-size: clamp(0.8125rem, 0.35vw + 0.72rem, 1rem);
+    min-height: calc(var(--ns-input-h) * 0.85);
+    display: flex; align-items: center;
+  }
+  .agro-ns-emprestimo-ajuda { position: relative; }
+  .agro-ns-emprestimo-ajuda > summary { list-style: none; }
+  .agro-ns-emprestimo-ajuda > summary::-webkit-details-marker { display: none; }
+  .agro-ns-ajuda-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 2.65rem; height: 2.65rem; border-radius: 0.75rem;
+    border: 2px solid #c7d2fe; background: #eef2ff; color: #3730a3;
+    font-size: 1.125rem; font-weight: 900; cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .agro-ns-emprestimo-ajuda[open] .agro-ns-ajuda-btn,
+  .agro-ns-ajuda-btn:hover { background: #e0e7ff; border-color: #818cf8; }
+  .agro-ns-ajuda-panel {
+    position: absolute; right: 0; top: calc(100% + 0.35rem); z-index: 60;
+    width: min(22rem, 92vw); padding: 0.85rem 1rem;
+    border: 2px solid #c7d2fe; border-radius: 0.85rem; background: #fff;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+    font-size: clamp(0.875rem, 0.35vw + 0.78rem, 1rem);
+    font-weight: 600; color: #334155; line-height: 1.45;
+  }
+  .agro-ns-input {
+    width: 100%; min-height: var(--ns-input-h);
+    padding: 0.65rem 0.95rem;
+    font-size: var(--ns-fs-body); font-weight: 700; color: #0f172a;
+    border: 2px solid #cbd5e1; border-radius: 0.75rem; background: #fff;
+    transition: border-color 0.12s, box-shadow 0.12s;
+  }
+  .agro-ns-input:focus {
+    outline: none; border-color: var(--ns-accent);
+    box-shadow: 0 0 0 4px var(--ns-accent-ring);
+  }
+  .agro-ns-input-icon { padding-left: 2.85rem; }
+  .agro-ns-ico {
+    position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%);
+    width: 1.4rem; height: 1.4rem; color: #94a3b8; pointer-events: none;
+  }
+  .agro-ns-btn-icon { width: 3rem; height: 3rem; padding: 0.35rem; }
+  .agro-ns-chk { width: 1.35rem; height: 1.35rem; accent-color: var(--ns-accent); }
+  .agro-ns-quitado-chip-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: var(--ns-input-h); padding: 0.35rem 0.75rem;
+    font-size: clamp(0.8125rem, 0.3vw + 0.75rem, 0.9375rem);
+    font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em;
+    border: 2px solid #cbd5e1; border-radius: 0.75rem; background: #fff; color: #64748b;
+    white-space: nowrap; transition: background 0.12s, color 0.12s, border-color 0.12s;
+  }
+  .agro-ns-in-quitado:checked + .agro-ns-quitado-chip-btn {
+    background: var(--ns-accent); border-color: var(--ns-accent); color: #fff;
+  }
+  .agro-ns-wrap-ven.is-quitado .agro-ns-in-ven { opacity: 0.55; }
+  .agro-ns-details-sum { padding: 0.4rem calc(var(--ns-pad) * 1.25); font-size: clamp(0.875rem, 0.32vw + 0.78rem, 1rem); }
+  .agro-ns-details-body { padding: 0.5rem calc(var(--ns-pad) * 1.25) 0.65rem; }
+  .agro-ns-btn-secondary, .agro-ns-btn-ghost, .agro-ns-btn-primary {
+    min-height: var(--ns-input-h); padding: 0.5rem 1.15rem;
+    font-size: clamp(0.9375rem, 0.4vw + 0.82rem, 1.125rem);
+    border-radius: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em;
+  }
+  .agro-ns-btn-primary { background: var(--ns-accent); padding-left: 1.15rem; padding-right: 1.15rem; }
+  .agro-ns-btn-primary:hover { background: var(--ns-accent-hover); }
+  .agro-ns-btn-secondary { border: 2px solid #cbd5e1; background: #fff; color: #334155; }
+  .agro-ns-card {
+    background: #fff; border: 2px solid #e2e8f0; border-radius: 1rem;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    overflow: hidden;
+    flex: 0 0 auto;
+  }
+  .agro-ns-card--expandido {
+    padding: calc(var(--ns-pad) * 1.45);
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .agro-ns-card--retraido { padding: 0; flex: 0 0 auto; }
+  .agro-ns-card:last-child { margin-bottom: 0; }
+  .agro-ns-panel--pagar .agro-ns-card { border-left: 4px solid var(--ns-accent); }
+  .agro-ns-panel--receber .agro-ns-card { border-left: 4px solid var(--ns-accent); }
+  .agro-ns-card-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: var(--ns-gap); padding-bottom: 0.35rem;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .agro-ns-card-num { font-size: var(--ns-fs-label); font-weight: 800; color: #64748b; text-transform: uppercase; white-space: nowrap; }
+  .agro-ns-card--retraido .agro-ns-card-inner { display: none !important; }
+  .agro-ns-card--expandido .agro-ns-card-resumo { display: none !important; }
+  .agro-ns-card--expandido .agro-ns-card-inner {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .agro-ns-card-resumo {
+    display: none;
+    align-items: center; gap: 0.65rem; width: 100%;
+    min-height: clamp(2.5rem, 3.5vh + 1.5rem, 3rem);
+    padding: 0.45rem 0.85rem; border: none; background: #f8fafc; cursor: pointer; text-align: left;
+  }
+  .agro-ns-card--retraido .agro-ns-card-resumo { display: flex; }
+  .agro-ns-card-resumo:hover { background: var(--ns-accent-soft); }
+  .agro-ns-card-resumo-txt {
+    flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: clamp(0.9375rem, 0.32vw + 0.82rem, 1.0625rem); font-weight: 700; color: #475569;
+  }
+  .agro-ns-card-resumo-edit {
+    flex-shrink: 0; font-size: clamp(0.75rem, 0.25vw + 0.68rem, 0.8125rem);
+    font-weight: 800; text-transform: uppercase; color: var(--ns-accent);
+  }
+  .agro-ns-card-row {
+    display: grid; grid-template-columns: 1fr; gap: var(--ns-gap);
+    margin-bottom: var(--ns-gap);
+  }
+  .agro-ns-valor-normal.hidden,
+  .agro-ns-valor-dual.hidden,
+  .agro-ns-valor-lbl-normal.hidden,
+  .agro-ns-valor-lbl-dual.hidden,
+  .agro-ns-forma-normal.hidden,
+  .agro-ns-forma-dual.hidden,
+  .agro-ns-label-conta-normal.hidden,
+  .agro-ns-label-conta-dual.hidden { display: none !important; }
+  .agro-ns-forma-col { align-self: stretch; }
+  .agro-ns-card--emprestimo-dual .agro-ns-forma-col { justify-content: flex-start; }
+  .agro-ns-field { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+  .agro-ns-valor-lbl-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.25rem; min-width: 0; height: 1.35rem; max-height: 1.35rem;
+  }
+  .agro-ns-valor-lbl-row > .agro-ns-label { margin: 0; flex: 0 1 auto; min-width: 0; line-height: 1.1; }
+  .agro-ns-parc-seg {
+    display: inline-flex; flex-shrink: 0; height: 1.15rem;
+    border: 1.5px solid #cbd5e1; border-radius: 0.4rem; overflow: hidden; background: #fff;
+  }
+  .agro-ns-parc-seg-btn {
+    all: unset; box-sizing: border-box; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 1.15rem; min-height: 0 !important; max-height: 1.15rem !important;
+    padding: 0 0.38rem; font-size: 0.5625rem; font-weight: 900;
+    text-transform: uppercase; letter-spacing: 0.02em; line-height: 1;
+    color: #64748b; background: #f8fafc; white-space: nowrap;
+  }
+  .agro-ns-parc-seg-btn + .agro-ns-parc-seg-btn { border-left: 1.5px solid #cbd5e1; }
+  .agro-ns-parc-seg-btn.is-on { background: var(--ns-accent); color: #fff; }
+  .agro-ns-parc-seg-btn:hover:not(.is-on) { background: #f1f5f9; }
+  .agro-ns-cel-valor { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+  .agro-ns-valor-dual-grid {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.35rem 0.5rem; min-width: 0; width: 100%;
+  }
+  .agro-ns-valor-dual-grid > .agro-ns-label { margin: 0; line-height: 1.1; min-height: 1.35rem; display: flex; align-items: center; }
+  .agro-ns-valor-dual-grid > .agro-ns-valor-lbl-row { min-width: 0; }
+  .agro-ns-parc-wrap {
+    margin-bottom: var(--ns-gap); padding: 0.65rem 0.75rem;
+    border: 1px dashed #cbd5e1; border-radius: 0.75rem; background: #f8fafc;
+  }
+  .agro-ns-parc-wrap.hidden { display: none !important; }
+  .agro-ns-input-date,
+  .agro-ns-input[type="date"] {
+    font-size: clamp(1.1875rem, 0.65vw + 1rem, 1.4375rem);
+    font-weight: 800; font-variant-numeric: tabular-nums;
+    padding-right: 0.65rem; cursor: pointer;
+  }
+  .agro-ns-input-date::-webkit-calendar-picker-indicator,
+  .agro-ns-input[type="date"]::-webkit-calendar-picker-indicator {
+    width: 2.25rem; height: 2.25rem; margin-left: 0.25rem; cursor: pointer; opacity: 0.85;
+  }
+  .agro-ns-cal-pop {
+    position: fixed; z-index: 400; width: min(22.5rem, calc(100vw - 1.5rem));
+    padding: 0.85rem 0.95rem 0.75rem; border-radius: 1rem;
+    border: 2px solid #cbd5e1; background: #fff;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.22);
+    font-size: clamp(1rem, 0.45vw + 0.88rem, 1.1875rem);
+  }
+  .agro-ns-cal-pop-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+    margin-bottom: 0.65rem; padding-bottom: 0.5rem; border-bottom: 2px solid #f1f5f9;
+  }
+  .agro-ns-cal-pop-title { font-size: clamp(1.0625rem, 0.5vw + 0.92rem, 1.25rem); font-weight: 900; color: #0f172a; }
+  .agro-ns-cal-pop-nav {
+    min-width: 2.75rem; min-height: 2.75rem; border-radius: 0.75rem;
+    border: 2px solid #e2e8f0; background: #f8fafc; color: #334155;
+    font-size: 1.35rem; font-weight: 900; line-height: 1; cursor: pointer;
+  }
+  .agro-ns-cal-pop-nav:hover { border-color: var(--ns-accent); color: var(--ns-accent); background: var(--ns-accent-soft); }
+  .agro-ns-cal-pop-dow {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.2rem;
+    margin-bottom: 0.35rem; text-align: center;
+    font-size: clamp(0.75rem, 0.3vw + 0.65rem, 0.875rem); font-weight: 900;
+    text-transform: uppercase; color: #64748b;
+  }
+  .agro-ns-cal-pop-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.25rem;
+  }
+  .agro-ns-cal-pop-day {
+    min-height: 2.85rem; border-radius: 0.65rem; border: 2px solid transparent;
+    background: #f8fafc; color: #0f172a; font-size: clamp(1.0625rem, 0.45vw + 0.92rem, 1.25rem);
+    font-weight: 800; cursor: pointer; transition: background 0.1s, border-color 0.1s, color 0.1s;
+  }
+  .agro-ns-cal-pop-day:hover { border-color: var(--ns-accent); background: var(--ns-accent-soft); }
+  .agro-ns-cal-pop-day.is-out { color: #94a3b8; background: #fff; }
+  .agro-ns-cal-pop-day.is-today { border-color: #86efac; background: #ecfdf5; color: #047857; }
+  .agro-ns-cal-pop-day.is-sel { background: var(--ns-accent); border-color: var(--ns-accent); color: #fff; }
+  .agro-ns-cal-pop-foot {
+    display: flex; justify-content: space-between; gap: 0.5rem; margin-top: 0.65rem;
+    padding-top: 0.55rem; border-top: 2px solid #f1f5f9;
+  }
+  .agro-ns-cal-pop-foot button {
+    min-height: 2.65rem; padding: 0 1rem; border-radius: 0.65rem; border: none; cursor: pointer;
+    font-size: clamp(0.875rem, 0.35vw + 0.78rem, 1rem); font-weight: 800;
+  }
+  .agro-ns-cal-pop-clear { background: transparent; color: #64748b; }
+  .agro-ns-cal-pop-clear:hover { color: #dc2626; background: #fef2f2; }
+  .agro-ns-cal-pop-today { background: var(--ns-accent-soft); color: var(--ns-accent); border: 2px solid var(--ns-accent) !important; }
+  .agro-ns-cal-pop-today:hover { background: var(--ns-accent); color: #fff; }
+  .agro-ns-parc-preview { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .agro-ns-parc-preview table { width: 100%; min-width: 28rem; border-collapse: collapse; }
+  .agro-ns-parc-preview th, .agro-ns-parc-preview td {
+    padding: 0.35rem 0.45rem; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: middle;
+  }
+  .agro-ns-parc-preview th:last-child,
+  .agro-ns-parc-preview td:last-child { text-align: right; }
+  .agro-ns-parc-composicao {
+    display: flex; align-items: center; justify-content: flex-end; gap: 0.35rem;
+    margin-top: 0.25rem; font-size: clamp(0.6875rem, 0.28vw + 0.62rem, 0.8125rem);
+    font-weight: 800; color: #4338ca; line-height: 1.2;
+  }
+  .agro-ns-parc-composicao-q {
+    all: unset; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+    width: 1.1rem; height: 1.1rem; border-radius: 999px; border: 1.5px solid #a5b4fc;
+    background: #eef2ff; color: #4338ca; font-size: 0.6875rem; font-weight: 900;
+  }
+  .agro-ns-parc-composicao-pop {
+    margin-top: 0.35rem; padding: 0.45rem 0.55rem; border-radius: 0.5rem;
+    background: #eef2ff; border: 1px solid #c7d2fe; font-size: 0.75rem; font-weight: 700; color: #312e81;
+    text-align: left; max-width: 14rem;
+  }
+  .agro-ns-dual-total-hint.hidden { display: none !important; }
+  .agro-ns-parc-preview th.agro-ns-parc-th-quit,
+  .agro-ns-parc-preview td.agro-ns-parc-td-quit { text-align: center; width: 6.5rem; }
+  .agro-ns-parc-preview th { font-size: 0.65rem; font-weight: 900; text-transform: uppercase; color: #64748b; }
+  .agro-ns-parc-preview input { min-height: 2.75rem; font-size: clamp(1rem, 0.4vw + 0.88rem, 1.125rem); font-weight: 800; }
+  .agro-ns-parc-quit-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 2.25rem; padding: 0 0.65rem; border-radius: 0.5rem;
+    font-size: 0.625rem; font-weight: 900; text-transform: uppercase;
+    border: 2px solid #cbd5e1; background: #f8fafc; color: #64748b;
+    white-space: nowrap; line-height: 1;
+  }
+  .agro-ns-parc-quit:checked + .agro-ns-parc-quit-btn,
+  .agro-ns-parc-quit-btn.is-on { background: var(--ns-accent); border-color: var(--ns-accent); color: #fff; }
+  .agro-ns-card--parc-multi .agro-ns-quitado-chip { display: none !important; }
+  @media (min-width: 640px) {
+    .agro-ns-card-row--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (min-width: 1024px) {
+    .agro-ns-card-row--4,
+    .agro-ns-card-row--plano { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .agro-ns-card-row--plano {
+      grid-template-rows: auto auto;
+      row-gap: 0.35rem;
+      column-gap: var(--ns-gap);
+    }
+    .agro-ns-card-row--plano > .agro-ns-field { display: contents; }
+    .agro-ns-card-row--plano .agro-ns-field-lbl { grid-row: 1; align-self: end; min-height: 1.35rem; display: flex; align-items: center; }
+    .agro-ns-card-row--plano .agro-ns-field-inp { grid-row: 2; min-width: 0; }
+    .agro-ns-field--plano .agro-ns-field-lbl,
+    .agro-ns-field--plano .agro-ns-field-inp { grid-column: 1; }
+    .agro-ns-field--valor .agro-ns-field-lbl,
+    .agro-ns-field--valor .agro-ns-field-inp { grid-column: 2; }
+    .agro-ns-field--comp .agro-ns-field-lbl,
+    .agro-ns-field--comp .agro-ns-field-inp { grid-column: 3; }
+    .agro-ns-field--ven .agro-ns-field-lbl,
+    .agro-ns-field--ven .agro-ns-field-inp { grid-column: 4; }
+    .agro-ns-card-row--plano .agro-ns-label { margin: 0; line-height: 1.1; }
+  }
+  .agro-ns-card-row-desc { margin-bottom: var(--ns-gap); }
+  .agro-ns-card-rec {
+    border: 1px solid #e2e8f0; border-radius: 0.75rem; background: #f8fafc; overflow: hidden;
+  }
+  .agro-ns-card-rec > summary {
+    padding: 0.5rem 0.75rem; cursor: pointer; font-weight: 700;
+    font-size: var(--ns-fs-label); color: #475569; list-style: none;
+  }
+  .agro-ns-card-rec-body { padding: 0.65rem 0.75rem 0.85rem; border-top: 1px solid #e2e8f0; }
+  .agro-ns-rm-linha {
+    min-height: 2.25rem; padding: 0.25rem 0.75rem;
+    border-radius: 0.5rem; font-size: var(--ns-fs-label); font-weight: 800;
+    color: #64748b; border: 2px solid #e2e8f0; background: #fff;
+  }
+  .agro-ns-rm-linha:hover { color: #dc2626; border-color: #fecaca; background: #fef2f2; }
+  .agro-ns-in-valor { text-align: right; font-weight: 900; font-size: clamp(1.1875rem, 0.6vw + 1rem, 1.4375rem); font-variant-numeric: tabular-nums; }
+  .agro-ns-sug-dd { max-height: min(40vh, 16rem); z-index: 80; }
+  .agro-ns-sug-dd li {
+    padding: 0.75rem 1rem; font-size: var(--ns-fs-body); font-weight: 700;
+    cursor: pointer; border-bottom: 1px solid #f1f5f9;
+  }
+  .agro-ns-panel--pagar .agro-ns-sug-dd li:hover { background: #fef2f2; color: #991b1b; }
+  .agro-ns-panel--receber .agro-ns-sug-dd li:hover { background: #ecfdf5; color: #065f46; }
+  .agro-ns-itens-wrap::-webkit-scrollbar { width: 8px; }
+  .agro-ns-itens-wrap::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 8px; }
+  .agro-ns-sucesso.hidden { display: none !important; }
+  .agro-ns-sucesso-card.agro-ns-sucesso--parcial { border-color: #fcd34d; background: linear-gradient(180deg, #fffbeb 0%, #fff 100%); }
+  .agro-ns-sucesso--parcial .agro-ns-sucesso-ico { background: #d97706; }
+  .agro-ns-sucesso--parcial #agro-ns-sucesso-titulo { color: #92400e; }
+</style>
+
+<script>
+  window.AGRO_NOVA_SAIDA_CFG = {
+    apiSug: "{% url 'api_lancamentos_sugestoes' %}",
+    apiTexto: "{% url 'api_lancamentos_interpretar_texto' %}",
+    apiCriar: "{% url 'api_lancamentos_criar_manual_lote' %}",
+    apiCriarPlano: "{% url 'api_lancamentos_planos_cadastro_criar' %}",
+    urlListaPagar: "{% url 'lancamentos_contas_pagar' %}",
+    urlListaReceber: "{% url 'lancamentos_contas_receber' %}",
+    bancoPlaceholderId: "{{ agro_banco_placeholder_id|default:'6990cf726c4d856abaa670c6' }}"
+  };
+</script>
+{% include "produtos/includes/lancamento_emprestimo_dual_cfg.html" %}
+<script src="{% static 'produtos/js/lancamento_emprestimo_dual.js' %}" defer></script>
+<script src="{% static 'produtos/js/lancamento_nova_saida.js' %}" defer></script>

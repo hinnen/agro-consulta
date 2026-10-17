@@ -95,6 +95,41 @@ def criterio_promocao_atendido(
     return False
 
 
+def calcular_total_linha_promocional(
+    *,
+    tipo: str,
+    qtd_x: float | Decimal | None,
+    preco_y: float | Decimal | None,
+    quantidade: float,
+    preco_padrao: float,
+    preco_produto_promo: float | Decimal | None = None,
+) -> float:
+    """Total da linha no carrinho (grupos completos + resto ao preço normal)."""
+    qtd = _float_val(quantidade)
+    padrao = _float_val(preco_padrao)
+    if qtd <= 0:
+        return 0.0
+
+    if tipo == PromocaoAgro.Tipo.VALOR_DIRETO:
+        unit = _float_val(preco_produto_promo, 0) or _float_val(preco_y, 0) or padrao
+        return round(qtd * unit, 2)
+
+    lim = _float_val(qtd_x)
+    py = _float_val(preco_y)
+    if lim <= 0 or py <= 0:
+        return round(qtd * padrao, 2)
+
+    if tipo == PromocaoAgro.Tipo.LEVE_PAGUE:
+        grupos = int(qtd // lim)
+        resto = qtd - (grupos * lim)
+        return round((grupos * lim * py) + (resto * padrao), 2)
+
+    if tipo == PromocaoAgro.Tipo.ACIMA_UNIDADES and criterio_promocao_atendido(tipo, lim, qtd):
+        return round(qtd * py, 2)
+
+    return round(qtd * padrao, 2)
+
+
 def calcular_preco_promocional(
     *,
     tipo: str,
@@ -104,14 +139,27 @@ def calcular_preco_promocional(
     preco_padrao: float,
     preco_produto_promo: float | Decimal | None = None,
 ) -> float:
-    """Retorna o preço unitário a aplicar no carrinho."""
+    """Retorna preço unitário efetivo (total da linha ÷ quantidade) para exibição no PDV."""
     padrao = _float_val(preco_padrao)
+    qtd = _float_val(quantidade)
+    if qtd <= 0:
+        return padrao
     if tipo == PromocaoAgro.Tipo.VALOR_DIRETO:
         pp = _float_val(preco_produto_promo, 0)
         if pp > 0:
             return round(pp, 4)
         py = _float_val(preco_y, 0)
         return round(py, 4) if py > 0 else padrao
+
+    if tipo == PromocaoAgro.Tipo.LEVE_PAGUE:
+        total = calcular_total_linha_promocional(
+            tipo=tipo,
+            qtd_x=qtd_x,
+            preco_y=preco_y,
+            quantidade=qtd,
+            preco_padrao=padrao,
+        )
+        return round(total / qtd, 4)
 
     lim = _float_val(qtd_x)
     py = _float_val(preco_y)
@@ -126,6 +174,8 @@ def _promo_para_dict(
     promo: PromocaoAgro,
     *,
     preco_produto_promo: float | None = None,
+    preco_produto_promo_t1: float | None = None,
+    preco_produto_promo_t2: float | None = None,
 ) -> dict[str, Any]:
     return {
         "id": promo.pk,
@@ -134,7 +184,13 @@ def _promo_para_dict(
         "tipo_label": promocao_tipo_label(promo.tipo),
         "qtd_x": _float_val(promo.qtd_x),
         "preco_y": _float_val(promo.preco_y),
+        "preco_y_t1": _float_val(getattr(promo, "preco_y_t1", None)),
+        "preco_y_t2": _float_val(getattr(promo, "preco_y_t2", None)),
         "preco_produto_promo": _float_val(preco_produto_promo),
+        "preco_produto_promo_t1": _float_val(preco_produto_promo_t1),
+        "preco_produto_promo_t2": _float_val(preco_produto_promo_t2),
+        "regra_vs_tabela": str(getattr(promo, "regra_vs_tabela", None) or "maior"),
+        "resolucoes_vs_tabela": dict(getattr(promo, "resolucoes_vs_tabela", None) or {}),
     }
 
 
@@ -166,9 +222,22 @@ def buscar_promocoes_pdv_ativas(
             if not pid:
                 continue
             pp = None
+            pp_t1 = None
+            pp_t2 = None
             if promo.tipo == PromocaoAgro.Tipo.VALOR_DIRETO:
                 pp = _float_val(linha.preco_promocional, 0) or None
-            out[pid] = _promo_para_dict(promo, preco_produto_promo=pp)
+                pp_t1 = _float_val(getattr(linha, "preco_promocional_t1", None), 0) or None
+                pp_t2 = _float_val(getattr(linha, "preco_promocional_t2", None), 0) or None
+            d = _promo_para_dict(
+                promo,
+                preco_produto_promo=pp,
+                preco_produto_promo_t1=pp_t1,
+                preco_produto_promo_t2=pp_t2,
+            )
+            out[pid] = d
+            codigo = str(linha.codigo or "").strip()
+            if codigo and codigo not in out:
+                out[codigo] = d
     return out
 
 
@@ -180,9 +249,12 @@ def aplicar_promocao_em_produto_dict(
 ) -> dict[str, Any]:
     """Ajusta preco_venda e anexa metadados de promoção no dict do produto."""
     pid = str(row.get("id") or row.get("Id") or "").strip()
-    if not pid or pid not in promo_map:
+    codigo = str(
+        row.get("codigo_nfe") or row.get("CodigoNFe") or row.get("codigo") or row.get("Codigo") or ""
+    ).strip()
+    promo = promo_map.get(pid) or (promo_map.get(codigo) if codigo else None)
+    if not promo:
         return row
-    promo = promo_map[pid]
     preco_padrao = _float_val(row.get("preco_venda") or row.get("preco") or 0)
     preco = calcular_preco_promocional(
         tipo=promo["tipo"],
@@ -214,23 +286,30 @@ def telas_promocao_labels(ids: list) -> str:
 
 
 def buscar_produtos_para_promocao(q: str, *, limit: int = 24) -> list[dict[str, Any]]:
-    """Busca produtos no Mongo (mesmo motor da Consulta) para a tela de promoções."""
-    from produtos.busca_produtos_mongo import buscar_produtos_motor_pdv
-    from produtos.views import (
-        _float_api_json,
-        _merge_produtos_overlay_codigo_consulta,
-        _valor_texto_campo,
-        obter_conexao_mongo,
+    """Busca produtos (mesmo catálogo do PDV) para a tela de promoções."""
+    from produtos.agro_fonte_config import (
+        agro_catalogo_usa_postgres,
+        agro_pdv_catalogo_somente_postgres,
     )
+    from produtos.busca_produtos_mongo import buscar_produtos_motor_pdv
+    from produtos.views import _float_api_json, _valor_texto_campo
 
     q = str(q or "").strip()
     if len(q) < 2:
         return []
-    client, db = obter_conexao_mongo()
-    if db is None or client is None:
-        return []
-    prods = buscar_produtos_motor_pdv(q, limit=max(limit, 40))
-    prods = _merge_produtos_overlay_codigo_consulta(q, prods, db, client)
+    lim = max(limit, 40)
+    usa_pg = agro_catalogo_usa_postgres() or agro_pdv_catalogo_somente_postgres()
+    if usa_pg:
+        # Loja agro_pg: não depende de Mongo (antes a API voltava [] sem conexão).
+        prods = buscar_produtos_motor_pdv(q, limit=lim)
+    else:
+        from produtos.views import _merge_produtos_overlay_codigo_consulta, obter_conexao_mongo
+
+        client, db = obter_conexao_mongo()
+        if db is None or client is None:
+            return []
+        prods = buscar_produtos_motor_pdv(q, limit=lim)
+        prods = _merge_produtos_overlay_codigo_consulta(q, prods, db, client)
     out: list[dict[str, Any]] = []
     for p in prods:
         pid = str(p.get("Id") or p.get("_id") or "").strip()
