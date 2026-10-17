@@ -65,6 +65,7 @@ Escolha o ramo que mais se aproxima. Leia **na ordem**; pare quando tiver contex
 | **Vendas / devolução** | `### 4.3` (devolução) + `### 4.4` | CHECKPOINT: `devolução`, `FL-017` |
 | **Clientes / fiado** | `### 4.5` + trecho fiado em `### 4.2` se PDV | CHECKPOINT: `fiado`, `cliente`, `F8` |
 | **Entrada NF** | `### 4.7` | `AGENTS.md` §7 entrada NF se XML/modal |
+| **NF-e saída 55 (DANFE A4)** | CHECKPOINT: `NFE-SAIDA`, `nfe/saida` | `docs/PLANO_TELA_EMISSAO_NFE_55.md` · **§88** |
 | **Estoque / ajuste / sync** | `### 4.8` | `docs/ESTOQUE_AGRO_FONTE_DA_VERDADE.md` |
 | **Compras** | `### 4.9` | `AGENTS.md` §7 compras se relatório/planilha |
 | **Lançamentos / CP / CR / DRE** | `### 4.10` | Se corte Mongo/PG: `### WIP` lançamentos (~L771–1020) · CHECKPOINT: `Lançamentos`, `CP`, `Postgres` |

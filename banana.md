@@ -1294,6 +1294,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 Pacote **NFE-SAIDA-55** · pronto envio produção · CHECKLIST **§88 banana-roteiro** · 17/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **Pronto para envio à produção** (aguarda frase + senha loja) |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_nfe_saida_path.py` **27/27** · `tests_nfe_saida_util` **4/4** |
+| **O quê** | `/nfe/saida/` + APIs `api/nfe-saida/*` · manual + `?venda=` · emissão simulada homolog |
+| **Pendente fase 2** | SOAP `NFeAutorizacao4` em `tp_amb=1` |
+| **Backup Git** | branch `teste` após merge do pacote |
+
 ### ✅ Deploy loja — **CADASTRO-PALAVRAS-PDV** · **Live v27.25** · CHECKLIST **16/10f** · 16/10
 
 | Campo | Valor |
