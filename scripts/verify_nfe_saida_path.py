@@ -170,6 +170,7 @@ def main() -> int:
     test_pin()
     test_http()
     print(f"\n{'=' * 40}\nOK {len(oks)}/{len(oks) + len(fails)}")
+    print("PREP_FAILS=" + str(len(fails)))
     if fails:
         print("FAIL:", ", ".join(fails))
         return 1

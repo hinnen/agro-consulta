@@ -1091,18 +1091,15 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 88. CHECKLIST ÚNICO — **NFE-SAIDA-55** · 🟢 **pronto para envio à produção** · 17/10
+## 88. CHECKLIST ÚNICO — **17/10** · 🟡 PREP **v27.26** · aguarda senha
 
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **NFE-SAIDA-55** | 🟢 **pronto para envio à produção** | **NÃO** |
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NFE-SAIDA-55** | 🟡 **checkpoint OK** | **NÃO** | **27/27** + **4/4** |
 
-**O quê:** `/nfe/saida/` — NF-e **55** (lista + editor, Mongo `AgroNfeSaida`, prefill venda, launchpad + ficha + lista + toast PDV). Homolog: emissão simulada; produção: SOAP **pendente** (mensagem clara).
-
-**Prova:** `scripts/verify_nfe_saida_path.py` **27/27** · `produtos.tests_nfe_saida_util` **4/4**.
-
-**Doc:** `docs/DEPLOY-PREP-NFE-SAIDA-55.md` · spec `docs/PLANO_TELA_EMISSAO_NFE_55.md`.
-
-**Smoke PC:** Menu NF-e saída · Nova · Emitir PIN **9973** (homolog) · `?venda=<pk>`.
-
-**Na senha loja:** subir de `teste` → `producao` (frase + senha). **Não** merge automático.
+**Base loja:** **v27.25** @ **`b60a3f5b`**.  
+**PREP:** `deploy/prep-checklist-1710-nfe-saida-55` @ **`f82f5be1`**.  
+**Na senha:** `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → `./scripts/cutover_loja_checklist_1710_nfe_saida_55.sh --exec` → `./scripts/post_deploy_checklist_1710_nfe_saida_55.sh`.  
+**Revert:** `git push origin rollback/pre-v2725-nfe-saida-55:producao`.  
+**Smoke:** `/nfe/saida/` · Nova · emitir (homolog) · `?venda=<pk>`.  
+**Doc:** `docs/DEPLOY-PREP-CHECKLIST-1710-nfe-saida-55.md`.

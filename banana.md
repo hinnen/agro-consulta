@@ -1294,16 +1294,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 Pacote **NFE-SAIDA-55** · pronto envio produção · CHECKLIST **§88 banana-roteiro** · 17/10
+### 🟡 ARMADO · **PREP v27.26** · **CHECKLIST 17/10** · **NFE-SAIDA-55**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **Pronto para envio à produção** (aguarda frase + senha loja) |
+| **Status** | 🟡 **Checkpoint OK** · cutover **1 comando** · Live **v27.25** @ **`b60a3f5b`** |
+| **PREP** | `deploy/prep-checklist-1710-nfe-saida-55` @ **`f82f5be1`** |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_nfe_saida_path.py` **27/27** · `tests_nfe_saida_util` **4/4** |
-| **O quê** | `/nfe/saida/` + APIs `api/nfe-saida/*` · manual + `?venda=` · emissão simulada homolog |
-| **Pendente fase 2** | SOAP `NFeAutorizacao4` em `tp_amb=1` |
-| **Backup Git** | branch `teste` após merge do pacote |
+| **Prova** | `prep_checkpoint` **OK** · verify **27/27** · tests **4/4** |
+| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1710_nfe_saida_55.sh` ✅ |
+| **Rollback** | `rollback/pre-v2725-nfe-saida-55` @ **`b60a3f5b`** |
+| **Backup** | `producao-backup-pre-v2726-nfe-saida-55` @ **`b60a3f5b`** |
+| **Revert** | `git push origin rollback/pre-v2725-nfe-saida-55:producao` → **v27.25** |
+| **Cutover loja** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1710_nfe_saida_55.sh --exec` |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1710_nfe_saida_55.sh` |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1710-nfe-saida-55.md` |
+| **Smoke** | Menu **NF-e saída** · **Nova** · emitir (homolog) · `?venda=` |
+| **Pendente fase 2** | SOAP SEFAZ produção (`tp_amb=1`) |
+
+### ✅ CHECKLIST ÚNICO — **17/10** · 🟡 **aguarda senha** (PREP armado)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NFE-SAIDA-55** | 🟡 **aguarda senha** | **NÃO** | **27/27** |
 
 ### ✅ Deploy loja — **CADASTRO-PALAVRAS-PDV** · **Live v27.25** · CHECKLIST **16/10f** · 16/10
 
