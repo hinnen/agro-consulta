@@ -43,6 +43,15 @@ class NfeSaidaDanfeLayoutTests(SimpleTestCase):
         self.assertIn("Recebemos de", html)
         self.assertIn("SEM VALOR FISCAL", html)
         self.assertIn("Produto", html)
+        self.assertIn("data:image/png;base64", html)
+        self.assertIn("Folha", html)
+
+    def test_danfe_exemplo(self):
+        from produtos.nfe_saida_danfe_html import gerar_html_danfe_exemplo
+
+        html = gerar_html_danfe_exemplo()
+        self.assertIn("AGRO MAIS", html.upper())
+        self.assertNotIn("SEM VALOR FISCAL", html)
 
 
 class NfeSaidaCfopTests(SimpleTestCase):
@@ -124,3 +133,64 @@ class NfeSaidaPagamentoTests(SimpleTestCase):
         self.assertEqual(validar_pagamentos(ok, total), [])
         bad = [{"forma": "Dinheiro", "valor": 50}]
         self.assertTrue(validar_pagamentos(bad, total))
+
+
+class NfeSaidaXmlMontagemTests(SimpleTestCase):
+    def test_xml_mod_55(self):
+        from datetime import datetime
+
+        from produtos.nfe_saida_sp_emissao_util import _montar_xml_nfe_saida
+        from produtos.nfe_saida_util import doc_novo_vazio
+
+        doc = doc_novo_vazio()
+        doc["destinatario"].update(
+            {
+                "nome": "Cliente Teste",
+                "documento": "39053344705",
+                "uf": "SP",
+                "cidade": "Jacupiranga",
+                "logradouro": "Rua A",
+                "numero": "1",
+                "bairro": "Centro",
+                "cep": "11940000",
+            }
+        )
+        doc["itens"] = [
+            {
+                "descricao": "Produto",
+                "qtd": 1,
+                "v_unit": 10,
+                "v_total": 10,
+                "ncm": "23099020",
+                "cfop": "5102",
+                "csosn": "102",
+            }
+        ]
+        doc["pagamento"] = [{"forma": "Dinheiro", "tPag": "01", "valor": 10}]
+        cfg = {
+            "tp_amb": 2,
+            "cnpj": "11222333000181",
+            "razao_social": "Emitente Teste",
+            "fantasia": "Emitente",
+            "logradouro": "Rua B",
+            "numero": "10",
+            "bairro": "Centro",
+            "cmun": "3524600",
+            "cidade": "Jacupiranga",
+            "uf": "SP",
+            "cep": "11940000",
+            "ie": "123456789012",
+            "fone": "",
+        }
+        chave = "3" * 43 + "5"
+        xml = _montar_xml_nfe_saida(
+            doc,
+            cfg,
+            serie=1,
+            numero=99,
+            chave=chave,
+            dh_emi=datetime(2026, 3, 18, 12, 0, 0),
+        )
+        self.assertIn("<mod>55</mod>", xml)
+        self.assertIn("<tpImp>1</tpImp>", xml)
+        self.assertIn("NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO", xml)

@@ -2,7 +2,10 @@
 from django.test import SimpleTestCase
 
 from produtos.busca_filtro_pdv_util import filtrar_rows_api_estilo_pdv, ordenar_rows_api_estilo_pdv
-from produtos.cadastro_busca_codigo_util import tokens_termo_busca_cadastro
+from produtos.cadastro_busca_codigo_util import (
+    tokens_termo_busca_cadastro,
+    variantes_token_busca_apelido,
+)
 from produtos.medicamento_vet_taxonomia import (
     indice_busca_palavras_chave,
     normalizar_palavras_chave,
@@ -15,6 +18,13 @@ class CadastroBuscaPdvAlinhadaTests(SimpleTestCase):
 
     def test_palavras_chave_preserva_virgula(self):
         self.assertEqual(normalizar_palavras_chave("oleo, 2 tempo"), "oleo, 2 tempo")
+
+    def test_variantes_token_2tempo_espaco(self):
+        v = variantes_token_busca_apelido("2tempo")
+        self.assertIn("2 tempo", v)
+        self.assertIn("2tempo", v)
+        v2 = variantes_token_busca_apelido("2 tempo")
+        self.assertIn("2tempo", v2)
 
     def test_indice_busca_palavras_sem_acento(self):
         idx = indice_busca_palavras_chave("óleo, 2 tempo, 2tempo")
@@ -31,6 +41,35 @@ class CadastroBuscaPdvAlinhadaTests(SimpleTestCase):
         ]
         out = filtrar_rows_api_estilo_pdv(rows, "2 tempo")
         self.assertEqual(len(out), 1)
+
+    def test_filtra_oleo_2tempo_nome_mais_apelido(self):
+        rows = [
+            {
+                "id": "1",
+                "nome": "Oleo unix dt 2t 200ml",
+                "busca_texto": "oleo unix 2t oleo 2 tempo 2tempo cursor",
+            },
+        ]
+        out = filtrar_rows_api_estilo_pdv(rows, "oleo 2tempo")
+        self.assertEqual(len(out), 1)
+
+    def test_filtra_permutacoes_nome_apelido_e_espacos(self):
+        rows = [
+            {
+                "id": "1",
+                "nome": "Oleo unix dt 2t 200ml",
+                "busca_texto": "oleo unix 2t oleo 2 tempo 2tempo cursor",
+            },
+        ]
+        for termo in (
+            "2tempo oleo",
+            "oleo 2 tempo",
+            "2 tempo oleo",
+            "tempo 2 oleo",
+            "oleo2tempo",
+        ):
+            out = filtrar_rows_api_estilo_pdv(rows, termo)
+            self.assertEqual(len(out), 1, msg=f"falhou: {termo}")
 
     def test_filtra_oleo_2_tempo_com_busca_texto(self):
         rows = [

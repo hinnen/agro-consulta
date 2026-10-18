@@ -1192,6 +1192,34 @@ class NfeSaidaRascunhoAgro(models.Model):
         return f"NF-e saída · {self.doc_id[:8]}… · {self.status}"
 
 
+class NfeNumeracaoAgro(models.Model):
+    """Controle sequencial NF-e modelo 55 — um contador por CNPJ emitente + série."""
+
+    emitente_cnpj = models.CharField(
+        max_length=14,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="CNPJ do emitente. Numeração independente por CNPJ.",
+    )
+    serie = models.PositiveSmallIntegerField(default=1)
+    proximo_numero = models.PositiveIntegerField(default=1)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Numeração NF-e saída"
+        verbose_name_plural = "Numerações NF-e saída"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["emitente_cnpj", "serie"],
+                name="nfe_numeracao_cnpj_serie_uniq",
+            ),
+        ]
+
+    def __str__(self):
+        return f"NF-e {self.emitente_cnpj or '?'} · Série {self.serie} — próximo nº {self.proximo_numero}"
+
+
 class AgroNfeDistDfeCursor(models.Model):
     """Cursor ultNSU da Dist DF-e (SEFAZ) por CNPJ — sobrevive a restart (Postgres)."""
 
