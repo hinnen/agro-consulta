@@ -193,6 +193,7 @@ class NfeSaidaXmlMontagemTests(SimpleTestCase):
         )
         self.assertIn("<mod>55</mod>", xml)
         self.assertIn("<tpImp>1</tpImp>", xml)
+        self.assertIn("<indIntermed>0</indIntermed>", xml)
         self.assertIn("NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO", xml)
         import re
 
