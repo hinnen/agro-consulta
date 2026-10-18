@@ -1294,6 +1294,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+<<<<<<< HEAD
 ### 🟡 ARMADO · **PREP v27.26.5** · **CHECKLIST 18/10e** · DANFE + PALAVRAS-PDV-3
 
 | Campo | Valor |
@@ -1315,6 +1316,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Inclui** | **NFE-SAIDA-55-PG** (`0146`) · DANFE A4 · **CADASTRO-PALAVRAS-PDV-3** |
 | **Branch** | `teste` @ **`e279cedb`**+ |
+=======
+### 📦 PACOTE PRONTO — **LOJA-18/10e** · **v27.26.6**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Inclui** | **NFE-SAIDA-55-PG** (`0146`) · DANFE A4 · **CADASTRO-PALAVRAS-PDV-3** (+ fix PDV `busca_texto` / **2 tempo**) |
+| **Branch** | `teste` (após push **v27.26.6**) |
+>>>>>>> 0e772ec9 (fix(pdv): busca «2 tempo» — busca_texto no wizard + frase no refinar JS (v27.26.6))
 | **Paths PDV-3** | `cadastro_busca_codigo_util` · `catalogo_agro.buscar` · `motor_busca_unificado_util` · `busca_filtro_pdv_util` · overlay salvar · `backfill_busca_palavras_overlay` |
 | **Migrate** | **SIM** só **0146** se loja &lt; **v27.26.3** |
 | **Pós-deploy PDV-3** | `python manage.py backfill_busca_palavras_overlay` (1×) · `scripts/post_deploy_checklist_1810e_cadastro_palavras_pdv3.sh` |

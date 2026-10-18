@@ -24307,9 +24307,19 @@ def api_buscar_produtos(request):
                 p.get("NomeCategoria"),
                 p.get("Categoria"),
             ]
+            _bt_motor = str(p.get("BuscaTexto") or p.get("busca_texto") or "").strip()
             if wizard_catalog:
                 _busca_wiz_parts.extend(_ix_out)
-                _busca_wiz_parts.append(str(p.get("BuscaTexto") or ""))
+                _busca_wiz_parts.append(_bt_motor)
+            if wizard_catalog:
+                _busca_txt_row = normalizar(" ".join(str(x) for x in _busca_wiz_parts if x))
+            elif wizard_mode or busca_lite:
+                # PDV/entrada NF: palavras-chave do motor (apelidos) — sem isso «2 tempo» zera no refinar JS.
+                _busca_txt_row = _bt_motor or normalizar(
+                    " ".join(str(x) for x in _busca_wiz_parts if x)
+                )
+            else:
+                _busca_txt_row = ""
             row = {
                 "id": pid,
                 "nome": p.get("Nome"),
@@ -24318,11 +24328,7 @@ def api_buscar_produtos(request):
                 "codigo_nfe": codigo_nfe,
                 "codigo_barras": codigo_barras,
                 "index_codigos": _ix_out,
-                "busca_texto": normalizar(
-                    " ".join(str(x) for x in _busca_wiz_parts if x)
-                )
-                if wizard_catalog
-                else "",
+                "busca_texto": _busca_txt_row,
                 "preco_venda": round(_float_api_json(pv), 2),
                 "imagem": _formatar_url_imagem(_extrair_imagem_produto(p, {}, pid)),
                 "saldo_centro": round(_float_api_json(saldo_centro), 2),

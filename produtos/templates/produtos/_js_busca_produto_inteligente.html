@@ -454,9 +454,23 @@
             }
         }
 
+        if (palavras.length > 1 && termo.length >= 3) {
+            const fraseHits = pool.filter((p) => {
+                const hay = blobTextoBuscaRelevancia(p);
+                if (hay.includes(termo)) return true;
+                const hayBt = textoBuscaProdutoNormalizado(p);
+                return hayBt && hayBt.includes(termo);
+            });
+            if (fraseHits.length) return fraseHits;
+        }
+
         const tentar = (fuzzy) => pool.filter(p => {
-            const hay = textoBuscaProdutoNormalizado(p);
-            const tokens = tokensBuscaProduto(p);
+            const hayBt = textoBuscaProdutoNormalizado(p);
+            const nomeMarca = normalizarBuscaLocal(
+                [p.nome, p.marca].filter(Boolean).join(' ')
+            );
+            const hay = (hayBt + ' ' + nomeMarca).trim();
+            const tokens = hayBt ? hayBt.split(/\s+/).filter(Boolean) : tokensBuscaProduto(p);
             return palavras.every(pl => palavraCasaNoProduto(pl, tokens, hay, fuzzy, p));
         });
 

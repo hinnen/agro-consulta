@@ -2165,6 +2165,19 @@
         var q = String(query || '').trim();
         var tokens = tokensBuscaQuery(q);
         if (!list || !list.length || tokens.length < 2 || looksLikeSkuCode(q)) return list || [];
+        var qFrase = stripAccents(q);
+        if (qFrase.length >= 3 && q.indexOf(' ') >= 0) {
+            var porFrase = list.filter(function (p) {
+                var blob =
+                    stripAccents(String((p && p.nome) || '')) +
+                    ' ' +
+                    stripAccents(String((p && p.marca) || '')) +
+                    ' ' +
+                    stripAccents(String((p && p.busca_texto) || ''));
+                return blob.indexOf(qFrase) !== -1;
+            });
+            if (porFrase.length) return porFrase;
+        }
         var fortes = tokens.filter(function (t) { return !pdvTokenBuscaFraco(t); });
         var obrigatorios = fortes.length ? fortes : tokens;
         function casaTodos(p, arr) {

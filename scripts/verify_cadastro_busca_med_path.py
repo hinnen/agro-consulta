@@ -110,7 +110,17 @@ def test_contratos() -> None:
     ver = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
     check(
         "version_prep",
-        ver in ("27.26.5", "27.26.4", "27.26.3", "27.26.2", "27.26.1", "27.26", "27.25", "27.24"),
+        ver in (
+            "27.26.6",
+            "27.26.5",
+            "27.26.4",
+            "27.26.3",
+            "27.26.2",
+            "27.26.1",
+            "27.26",
+            "27.25",
+            "27.24",
+        ),
         ver,
     )
     check(
@@ -118,6 +128,11 @@ def test_contratos() -> None:
         "backfill_busca_palavras_overlay" in (ROOT / "produtos/management/commands/backfill_busca_palavras_overlay.py").read_text(),
     )
     check("canonical_overlay_id", "def canonical_overlay_produto_externo_id" in cad_util)
+    views_txt = (ROOT / "produtos/views.py").read_text()
+    check(
+        "api_buscar_wizard_busca_texto",
+        "_bt_motor" in views_txt and "PDV/entrada NF: palavras-chave do motor" in views_txt,
+    )
 
 
 def test_logica_python() -> None:
