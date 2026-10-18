@@ -1319,7 +1319,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | Rascunhos NF-e 55 em `NfeSaidaRascunhoAgro` quando Mongo ERP off; **Nova**/lista/emitir sem Mongo |
 | **Paths** | `nfe_saida_util` · `nfe_saida_rascunho_pg_util` · `views_nfe_saida` · migration **0146** |
-| **Branch** | `teste` @ **`7847b1fc`**+ · `VERSION` **27.26.3** |
+| **Branch** | `teste` @ **`7847b1fc`**+ · `VERSION` **27.26.4** (botões DANFE/XML) |
 | **Migrate** | **SIM** (`0146_nfe_saida_rascunho_agro`) |
 | **Prova** | verify **41/41** · tests **6/6** · HTTP **Nova**+listar **200** |
 | **Smoke** | `/nfe/saida/` · **Nova** · sem alerta vermelho · homolog emit (PIN **9973**) |
