@@ -45,13 +45,25 @@ Se o backfill já rodou antes, é seguro rodar de novo.
 
 No **Environment** do Render (Sistvale - Produção), conferir:
 
-| Variável | Valor |
-|----------|--------|
+| Variável | Valor (GM Agro — produção) |
+|----------|----------------------------|
 | `NFE_DIST_DFE_TP_AMB` | **1** |
-| `NFC_E_TP_AMB` | **1** (mesmo certificado da NFC-e) |
-| `NFE_SAIDA_SIMULAR_EMIT` | **0** ou vazio (não force simulação) |
-| `NFE_EMISSAO_SERIE` | série cadastrada na SEFAZ para NF-e 55 (ex. **1**) |
-| `NFE_EMISSAO_PROXIMO_NUMERO` | próximo nNF liberado pelo contador |
+| `NFC_E_TP_AMB` | **1** |
+| `NFE_SAIDA_SIMULAR_EMIT` | **0** (ou deixe vazio) |
+| `NFE_EMISSAO_SERIE` | **2** |
+| `NFE_EMISSAO_PROXIMO_NUMERO` | **1** |
+
+Copiar no Render → **Environment** (uma linha por variável):
+
+```
+NFE_DIST_DFE_TP_AMB=1
+NFC_E_TP_AMB=1
+NFE_SAIDA_SIMULAR_EMIT=0
+NFE_EMISSAO_SERIE=2
+NFE_EMISSAO_PROXIMO_NUMERO=1
+```
+
+A **1ª NF-e autorizada** em produção será **nº 1 / série 2**; o sistema incrementa o contador no Postgres (`NfeNumeracaoAgro`) depois disso.
 
 Mesmo **certificado A1** e dados do emitente (`NFC_E_*` / `NFE_DIST_DFE_*`) da NFC-e.
 
