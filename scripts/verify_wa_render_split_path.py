@@ -43,7 +43,8 @@ def main() -> int:
     check("settings AGRO_WA_PUBLIC_ORIGIN", hasattr(settings, "AGRO_WA_PUBLIC_ORIGIN"))
     check("middleware wa_split", "base.wa_split_middleware.AgroWhatsAppSplitMiddleware" in settings.MIDDLEWARE)
     check("context agro_wa_public_urls", "produtos.context_processors.agro_wa_public_urls" in str(settings.TEMPLATES))
-    check("render.yaml agro-consulta-wa", "agro-consulta-wa" in read("render.yaml"))
+    check("render.yaml agro-consulta-teste WA", "agro-consulta-teste" in read("render.yaml"))
+    check("doc reaproveita staging", "agro-consulta-staging" in read("docs/DEPLOY-WHATSAPP-RENDER.md"))
     check("doc deploy", (ROOT / "docs/DEPLOY-WHATSAPP-RENDER.md").is_file())
 
     util = read("produtos/agro_wa_origin_util.py")
