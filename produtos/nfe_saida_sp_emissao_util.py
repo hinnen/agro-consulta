@@ -38,6 +38,13 @@ _NFE_RETRY_CSTAT_DUPLICIDADE = frozenset({"539", "204"})
 _HOMOLOG_NOME_DEST = "NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL"
 
 
+def _texto_endereco(val: Any, *, fallback: str = "NAO INFORMADO", max_len: int = 60) -> str:
+    t = _sanitizar_texto_xml(str(val or "").strip())
+    if not t:
+        t = fallback
+    return t[:max_len]
+
+
 def _dv_chave(chave43: str) -> str:
     pesos = [2, 3, 4, 5, 6, 7, 8, 9]
     soma = sum(int(d) * pesos[i % len(pesos)] for i, d in enumerate(reversed(chave43)))
@@ -151,26 +158,27 @@ def _preencher_dest_nfe(
     if len(doc) not in (11, 14):
         return
     dest_el = _sub(inf, "dest")
+    if len(doc) == 14:
+        _sub(dest_el, "CNPJ", doc[:14])
+    else:
+        _sub(dest_el, "CPF", doc[:11])
     nome = _sanitizar_texto_xml(str(dest.get("nome") or "").strip())[:60]
     if tp_amb == 2:
         nome = _HOMOLOG_NOME_DEST
     elif not nome:
         nome = "DESTINATARIO"
     _sub(dest_el, "xNome", nome)
-    if len(doc) == 14:
-        _sub(dest_el, "CNPJ", doc[:14])
-    else:
-        _sub(dest_el, "CPF", doc[:11])
     ender = _sub(dest_el, "enderDest")
-    _sub(ender, "xLgr", _sanitizar_texto_xml(str(dest.get("logradouro") or ""))[:60])
-    _sub(ender, "nro", _sanitizar_texto_xml(str(dest.get("numero") or "S/N"))[:60])
-    _sub(ender, "xBairro", _sanitizar_texto_xml(str(dest.get("bairro") or ""))[:60])
+    _sub(ender, "xLgr", _texto_endereco(dest.get("logradouro"), fallback="S/N"))
+    _sub(ender, "nro", _texto_endereco(dest.get("numero"), fallback="S/N", max_len=60))
+    _sub(ender, "xBairro", _texto_endereco(dest.get("bairro")))
     _sub(ender, "cMun", _cmun_destino(dest, cfg_emit) or "3524600")
-    _sub(ender, "xMun", _sanitizar_texto_xml(str(dest.get("cidade") or ""))[:60])
+    _sub(ender, "xMun", _texto_endereco(dest.get("cidade"), fallback="MUNICIPIO"))
     _sub(ender, "UF", str(dest.get("uf") or "SP").strip().upper()[:2])
     cep = re.sub(r"\D", "", str(dest.get("cep") or ""))[:8]
-    if cep:
-        _sub(ender, "CEP", cep.zfill(8))
+    _sub(ender, "CEP", (cep or "00000000").zfill(8))
+    _sub(ender, "cPais", "1058")
+    _sub(ender, "xPais", "BRASIL")
     ie = str(dest.get("ie") or "").strip().upper()
     if len(doc) == 14:
         if ie in ("", "ISENTO"):
@@ -252,7 +260,9 @@ def _montar_xml_nfe_saida(
     _sub(ender, "cMun", cfg["cmun"] or "3524600")
     _sub(ender, "xMun", cfg["cidade"])
     _sub(ender, "UF", cfg["uf"])
-    _sub(ender, "CEP", (cfg.get("cep") or "").zfill(8))
+    _sub(ender, "CEP", (cfg.get("cep") or "00000000").zfill(8))
+    _sub(ender, "cPais", "1058")
+    _sub(ender, "xPais", "BRASIL")
     if cfg.get("fone"):
         _sub(ender, "fone", cfg["fone"])
     _sub(emit, "IE", cfg["ie"])
@@ -297,7 +307,8 @@ def _montar_xml_nfe_saida(
         icms = _sub(imposto, "ICMS")
         icmssn = _sub(icms, "ICMSSN102")
         _sub(icmssn, "orig", str(ln.get("origem") or "0")[:1])
-        _sub(icmssn, "CSOSN", re.sub(r"\D", "", str(ln.get("csosn") or "102"))[:3] or "102")
+        csosn = re.sub(r"\D", "", str(ln.get("csosn") or "102"))[:3] or "102"
+        _sub(icmssn, "CSOSN", csosn.zfill(3))
         pis = _sub(imposto, "PIS")
         pisnt = _sub(pis, "PISNT")
         _sub(pisnt, "CST", "07")
