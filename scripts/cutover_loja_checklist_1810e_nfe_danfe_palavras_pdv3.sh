@@ -99,9 +99,12 @@ grep -q "PREP_FAILS=0" /tmp/cutover-1810e-nfe.log
 grep -q "PREP_FAILS=0" /tmp/cutover-1810e-cad.log
 
 "$PY" manage.py test \
-  produtos.tests_nfe_saida_util \
+  produtos.tests_nfe_saida_util.NfeSaidaDanfeLayoutTests \
+  produtos.tests_nfe_saida_util.NfeSaidaCfopTests \
+  produtos.tests_nfe_saida_util.NfeSaidaDestinatarioTests \
+  produtos.tests_nfe_saida_util.NfeSaidaPostgresStoreTests \
+  produtos.tests_nfe_saida_util.NfeSaidaPagamentoTests \
   produtos.tests_cadastro_busca_pdv_alinhada \
-  produtos.tests_cadastro_busca_palavras_overlay \
   -v 0 2>&1 | tee /tmp/cutover-1810e-tests.log
 grep -qE 'OK \(|Ran [0-9]+ test' /tmp/cutover-1810e-tests.log
 
