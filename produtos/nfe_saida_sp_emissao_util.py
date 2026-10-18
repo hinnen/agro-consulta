@@ -151,6 +151,11 @@ def _id_dest(uf_emit: str, uf_dest: str) -> str:
     return "2" if ud and ue and ud != ue else "1"
 
 
+def _ind_intermed_obrigatorio(ind_pres: int) -> bool:
+    """NT 2020.006 — indIntermed quando indPres ∈ {1,2,3,4,9} (saída NF normal)."""
+    return ind_pres in (1, 2, 3, 4, 9)
+
+
 def _preencher_dest_nfe(
     inf: ET.Element, dest: dict, cfg_emit: dict[str, Any], *, tp_amb: int
 ) -> None:
@@ -245,6 +250,8 @@ def _montar_xml_nfe_saida(
     _sub(ide, "finNFe", "1")
     _sub(ide, "indFinal", str(ind_final))
     _sub(ide, "indPres", str(ind_pres))
+    if _ind_intermed_obrigatorio(ind_pres):
+        _sub(ide, "indIntermed", "0")
     _sub(ide, "procEmi", "0")
     _sub(ide, "verProc", "AgroConsulta1.0")
 
