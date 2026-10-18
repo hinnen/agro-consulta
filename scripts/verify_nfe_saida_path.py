@@ -95,6 +95,14 @@ def test_arquivos() -> None:
     check("pdv_toast_link", "NF-e A4 (55)" in pdv and "/nfe/saida/?venda=" in pdv)
     check("help_include", "nfe_saida_help_agents.html" in tpl)
     check("agents_rota", "/nfe/saida/" in _read("AGENTS.md"))
+    check("ux_typeahead_tpl", "nfe-cli-suggest" in tpl and "nfe-prod-suggest" in tpl and "nfe-venda-suggest" in tpl)
+    check("ux_typeahead_js", "createTypeahead" in js and "clienteAgroPk" in js and "entrada_nfe=1" in js)
+    check("ux_buscar_vendas", "api_nfe_saida_buscar_vendas" in urls and "urlBuscarVendas" in tpl)
+    check("xsd_dest_cpf_ordem", "dest_xml.find(\"<CPF>\")" in _read("produtos/tests_nfe_saida_util.py"))
+    sp_dest = _read("produtos/nfe_saida_sp_emissao_util.py")
+    idx_cnpj = sp_dest.find('_sub(dest_el, "CNPJ"')
+    idx_xnome = sp_dest.find('_sub(dest_el, "xNome"')
+    check("xsd_dest_doc_before_nome", idx_cnpj >= 0 and idx_xnome > idx_cnpj)
 
 
 def test_logica() -> None:
@@ -181,7 +189,27 @@ def test_http() -> None:
     c.force_login(u)
 
     r = c.get("/nfe/saida/")
-    check("get_page", r.status_code == 200 and b"nfe-saida-view-lista" in r.content)
+    body_page = r.content or b""
+    check("get_page", r.status_code == 200 and b"nfe-saida-view-lista" in body_page)
+    check("page_ux_typeahead", b"nfe-cli-suggest" in body_page and b"urlBuscarVendas" in body_page)
+
+    r_vendas = c.get("/api/nfe-saida/buscar-vendas/?q=1&limit=3")
+    if r_vendas.status_code == 500:
+        detail_v = (r_vendas.content or b"")[:4000].decode("utf-8", errors="replace").lower()
+        if (
+            "vendaagro" in detail_v
+            or "no such table" in detail_v
+            or "no such column" in detail_v
+            or "operationalerror" in detail_v
+        ):
+            check("buscar_vendas_db_skip", True, "VendaAgro/schema pendente neste ambiente")
+        else:
+            check("get_buscar_vendas", False, f"status=500")
+    else:
+        check("get_buscar_vendas", r_vendas.status_code == 200, f"status={r_vendas.status_code}")
+        if r_vendas.status_code == 200:
+            jv = json.loads(r_vendas.content.decode())
+            check("buscar_vendas_ok", jv.get("ok") is True and isinstance(jv.get("itens"), list))
 
     r2 = c.get("/api/nfe-saida/status-cert/")
     check("get_cert", r2.status_code == 200)

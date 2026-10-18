@@ -1294,14 +1294,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 Prep teste — **NF-e manual UX** · **v27.26.10** · 18/10
+### 📦 PACOTE PRONTO — **LOJA-18/10g** · **v27.26.10**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Commit** | **`1f22ce50`** (`teste`) |
-| **O quê** | `/nfe/saida/` emissão manual: lista ao digitar (cliente, produto, puxar venda), ↑↓ Enter Esc, F2/F3; `cliente_agro_pk` correto; busca produto `entrada_nfe=1` |
-| **Prova** | `verify_nfe_saida_path` **59/59** |
-| **Produção** | Ainda **v27.26.9** live — subir só com frase+senha quando validar local |
+| **Subir** | **`teste` → `producao`** @ ponta **`teste`** (após pull) |
+| **Conteúdo** | **NFE-55-XSD-DEST** (ordem CPF/CNPJ no XML, CEP/endereço) · **NFE-MANUAL-UX** (lista cliente/produto/venda, F2/F3) |
+| **Paths** | `nfe_saida_sp_emissao_util.py` · `nfe_saida.js` · `nfe_saida.html` · `verify_nfe_saida_path.py` |
+| **Migrate** | **NÃO** (0147 já na loja com 18/10f) |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1810g_nfe_xsd_ux.sh` |
+| **Prova** | `verify_nfe_saida_path` **66/66** · unit NF-e SimpleTestCase **9 OK** |
+| **Smoke** | `/nfe/saida/` listas na busca · 1ª NF produção série **2** (se rejeição schema, conferir `cStat`) |
+
+### ✅ CHECKLIST ÚNICO — **18/10g** · 🟢 **pronto envio produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NFE-55-XSD-DEST** | 🟢 pronto | **NÃO** | **66/66** |
+| 2 | **NFE-MANUAL-UX** | 🟢 pronto | **NÃO** | HTTP typeahead + `buscar-vendas` |
+
+**Produção atual:** **v27.26.9** (18/10f live). Cutover **18/10g** só com frase + senha após smoke local.
 
 ### ✅ Deploy loja — **CHECKLIST 18/10f** · **Live v27.26.9** · 18/10
 
