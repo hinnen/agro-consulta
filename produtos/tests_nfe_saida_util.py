@@ -40,7 +40,7 @@ class NfeSaidaDanfeLayoutTests(SimpleTestCase):
         }
         html = montar_html_danfe(doc, emitente={"razao": "Loja", "cnpj": "11222333000181", "uf": "SP"})
         self.assertIn("DANFE", html)
-        self.assertIn("Recebemos de", html)
+        self.assertIn("RECEBEMOS DE", html)
         self.assertIn("SEM VALOR FISCAL", html)
         self.assertIn("Produto", html)
         self.assertIn("data:image/png;base64", html)
