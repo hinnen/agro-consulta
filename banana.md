@@ -1300,7 +1300,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Pacotes** | **NFE-SAIDA-55** (DANFE A4 + botões) + **CADASTRO-PALAVRAS-PDV-3** |
 | **Status** | 🟡 **Checkpoint pronto** · Live **v27.26.3** @ **`8d01908c`** |
-| **PREP** | `deploy/prep-checklist-1810e-nfe-danfe-palavras3` (push após commit PREP) |
+| **PREP** | `deploy/prep-checklist-1810e-nfe-danfe-palavras3` @ **`5e16d701`**+ |
 | **Migrate** | **NÃO** (0146 já na loja) |
 | **Checkpoint** | `./scripts/prep_checkpoint_checklist_1810e_nfe_danfe_palavras_pdv3.sh` |
 | **Rollback** | `rollback/pre-v27263-1810e-danfe-palavras3` @ **`8d01908c`** |
