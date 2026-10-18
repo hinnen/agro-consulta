@@ -73,10 +73,17 @@ def test_arquivos() -> None:
     check("views_persistencia", "nfe_saida_persistencia_ok" in _read("produtos/views_nfe_saida.py"))
     check("views_nfe_saida_view", "def nfe_saida_view" in _read("produtos/views_nfe_saida.py"))
     check("emissao_sim", "def emitir_nfe_saida_documento" in _read("produtos/nfe_saida_emissao_util.py"))
+    sp = _read("produtos/nfe_saida_sp_emissao_util.py")
+    check("sefaz_sp_emit", "def emitir_nfe_saida_sefaz" in sp and "URL_AUTORIZACAO_NFE_SP" in _read("produtos/nfce_sp_emissao_util.py"))
+    check("emissao_chama_sp", "emitir_nfe_saida_sefaz" in _read("produtos/nfe_saida_emissao_util.py"))
     check("danfe_padrao", "def montar_html_danfe" in _read("produtos/nfe_saida_danfe_html.py"))
     danfe = _read("produtos/nfe_saida_danfe_html.py")
-    check("danfe_canhoto", "danfe-canhoto" in danfe or "Recebemos de" in danfe)
+    check("danfe_canhoto", "canhoto" in danfe and "Recebemos de" in danfe)
     check("danfe_barcode", "JsBarcode" in danfe and "CODE128" in danfe)
+    check("danfe_logo", (ROOT / "produtos/static/produtos/img/logo_agro_mais_danfe.png").is_file())
+    check("danfe_pagina", "danfe-page" in danfe and "Folha" in danfe)
+    check("danfe_emit_cnpj", "cnpj_emitente_da_chave" in danfe)
+    check("views_emitente_doc", "carregar_emitente_danfe(doc=doc)" in _read("produtos/views_nfe_saida.py"))
     check("tpl_lista_editor", "nfe-saida-view-lista" in tpl and "nfe-saida-view-editor" in tpl)
     check("js_de_venda", "deVenda" in js and "CFG.vendaId" in js)
     check("js_xml_btn", "btn-nfe-xml-baixar" in tpl and "baixarXml" in js)
@@ -208,36 +215,43 @@ def test_http() -> None:
         check("nova_ok", j4.get("ok") is True and len(str(j4.get("id") or "")) == 24)
         doc_id = str(j4.get("id") or "")
 
-    if doc_id:
-        r5 = c.get(f"/api/nfe-saida/{doc_id}/")
-        check("get_doc", r5.status_code == 200)
-        if r5.status_code == 200:
-            j5 = json.loads(r5.content.decode())
-            check("doc_rascunho", j5.get("ok") and j5.get("doc", {}).get("status") == "rascunho")
+        if doc_id:
+            r5 = c.get(f"/api/nfe-saida/{doc_id}/")
+            check("get_doc", r5.status_code == 200)
+            if r5.status_code == 200:
+                j5 = json.loads(r5.content.decode())
+                check("doc_rascunho", j5.get("ok") and j5.get("doc", {}).get("status") == "rascunho")
 
-        body_emit = json.dumps({"pin": "9973"})
-        try:
-            r6 = c.post(
-                f"/api/nfe-saida/{doc_id}/emitir/",
-                data=body_emit,
-                content_type="application/json",
-            )
-        except Exception as exc:
-            check("post_emitir", "ativo" in str(exc) or "no such table" in str(exc), "PIN DB local incompleto")
-        else:
-            check("post_emitir", r6.status_code in (200, 400, 403, 500), f"status={r6.status_code}")
-            if r6.status_code == 500:
-                check("emit_pin_db", True, "migrate/base_perfilusuario pendente neste ambiente")
-            elif r6.status_code == 403:
-                j6 = json.loads(r6.content.decode())
-                check("emit_pin", j6.get("erro") in ("PIN incorreto.", "Informe o PIN."), j6.get("erro", ""))
-            elif r6.status_code in (200, 400):
-                j6 = json.loads(r6.content.decode())
-                check(
-                    "emit_resposta",
-                    "ok" in j6,
-                    "autorizada" if j6.get("ok") else (j6.get("erro") or "")[:80],
+            r_danfe = c.get(f"/api/nfe-saida/{doc_id}/danfe/")
+            check("get_danfe", r_danfe.status_code == 200, f"status={r_danfe.status_code}")
+            if r_danfe.status_code == 200:
+                body = r_danfe.content or b""
+                check("danfe_html_danfe", b"DANFE" in body)
+                check("danfe_html_previa", b"PR\xc9VIA" in body or b"previa" in body.lower())
+
+            body_emit = json.dumps({"pin": "9973"})
+            try:
+                r6 = c.post(
+                    f"/api/nfe-saida/{doc_id}/emitir/",
+                    data=body_emit,
+                    content_type="application/json",
                 )
+            except Exception as exc:
+                check("post_emitir", "ativo" in str(exc) or "no such table" in str(exc), "PIN DB local incompleto")
+            else:
+                check("post_emitir", r6.status_code in (200, 400, 403, 500), f"status={r6.status_code}")
+                if r6.status_code == 500:
+                    check("emit_pin_db", True, "migrate/base_perfilusuario pendente neste ambiente")
+                elif r6.status_code == 403:
+                    j6 = json.loads(r6.content.decode())
+                    check("emit_pin", j6.get("erro") in ("PIN incorreto.", "Informe o PIN."), j6.get("erro", ""))
+                elif r6.status_code in (200, 400):
+                    j6 = json.loads(r6.content.decode())
+                    check(
+                        "emit_resposta",
+                        "ok" in j6,
+                        "autorizada" if j6.get("ok") else (j6.get("erro") or "")[:80],
+                    )
 
 
 def test_pg_flag() -> None:
@@ -254,10 +268,14 @@ def test_pg_flag() -> None:
 
 
 def test_migration_file() -> None:
-    print("== Migration 0146 ==")
+    print("== Migrations NF-e ==")
     mig = ROOT / "produtos/migrations/0146_nfe_saida_rascunho_agro.py"
     check("mig_0146_exists", mig.is_file())
     check("mig_model_name", "NfeSaidaRascunhoAgro" in mig.read_text(encoding="utf-8"))
+    mig7 = ROOT / "produtos/migrations/0147_nfe_numeracao_agro.py"
+    check("mig_0147_exists", mig7.is_file())
+    check("mig_nfe_numeracao", "NfeNumeracaoAgro" in mig7.read_text(encoding="utf-8"))
+    check("model_nfe_numeracao", "class NfeNumeracaoAgro" in _read("produtos/models.py"))
 
 
 def main() -> int:

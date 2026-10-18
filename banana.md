@@ -1294,26 +1294,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — **LOJA-18/10e** · **v27.26.8**
+### 📦 PACOTE PRONTO — **LOJA-18/10f** · **v27.26.9**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Subir** | **`teste` → `producao`** @ **`8d627d51`** |
-| **Conteúdo** | **NFE-SAIDA-55** (DANFE/XML) + **CADASTRO-PALAVRAS-PDV-3** (apelidos PDV: ordem livre, `2tempo`/`2 tempo`, nome+palavra-chave) |
-| **Paths** | `cadastro_busca_codigo_util` · `catalogo_agro` · `motor_busca_unificado_util` · `busca_filtro_pdv_util` · `views` (api_buscar `busca_texto`) · `pdv_wizard.js` · `_js_busca_produto_inteligente.html` · BCA **v10** |
-| **Migrate** | **NÃO** se loja ≥ **v27.26.3** |
-| **Pós-deploy** | `python manage.py backfill_busca_palavras_overlay` (1×) · `./scripts/post_deploy_checklist_1810e_nfe_danfe_palavras_pdv3.sh` |
-| **Prova** | `verify_cadastro_busca_med_path` **56/56** · unit busca PDV **10/10** · PIN **9973** ok |
-| **Smoke** | PDV **Ctrl+F5**: `oleo 2tempo` · `2 tempo` · `2tempo` · NF-e DANFE |
+| **Subir** | **`teste` → `producao`** @ ***`7927f036`*** |
+| **Conteúdo** | **NF-e 55** SEFAZ-SP produção (`nfe_saida_sp_emissao_util`) · **DANFE Agro Mais** (logo, A4, paginação) · **CADASTRO-PALAVRAS-PDV-3** |
+| **Paths** | `nfe_saida_*` · `nfce_sp` (`URL_AUTORIZACAO_NFE_SP`) · `logo_agro_mais_danfe.png` · `cadastro_busca_*` · `pdv_wizard.js` |
+| **Migrate** | **SIM `0147`** (`NfeNumeracaoAgro`) — **0146** já na loja |
+| **Render** | Vars NF-e produção já no painel (série **2**, nNF **1**, `TP_AMB=1`) |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1810e_nfe_danfe_palavras_pdv3.sh` · backfill palavras se ainda não rodou |
+| **Prova** | `verify_nfe_saida_path` **59/59** · `verify_cadastro_busca_med_path` **56/56** · unit NF-e OK |
+| **Smoke** | `/nfe/saida/` DANFE+logo · 1ª NF real série 2 · PDV `oleo 2tempo` |
 
-### 🟢 CHECKLIST ÚNICO — **18/10e** · **pronto envio produção**
+### 🟢 CHECKLIST ÚNICO — **18/10f** · **pronto envio produção**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **NFE-SAIDA-55** (PG+UI+DANFE) | 🟢 **pronto envio** | **NÃO**† | **47/47** |
-| 2 | **CADASTRO-PALAVRAS-PDV-3** | 🟢 **pronto envio** | **NÃO** | **56/56** + backfill |
+| 1 | **NFE-55-SEFAZ+DANFE-AGRO** | 🟢 **pronto envio** | **SIM 0147** | **59/59** |
+| 2 | **CADASTRO-PALAVRAS-PDV-3** | 🟢 **pronto envio** | **NÃO** | **56/56** |
 
-† **0146** já na loja. Cutover: `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='…' ./scripts/cutover_loja_checklist_1810e_nfe_danfe_palavras_pdv3.sh --exec` · Doc: `docs/DEPLOY-PREP-CHECKLIST-1810e-nfe-danfe-palavras3.md`
+Cutover: `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='…' ./scripts/cutover_loja_checklist_1810e_nfe_danfe_palavras_pdv3.sh --exec` · Doc: `docs/DEPLOY-PREP-CHECKLIST-1810e-nfe-danfe-palavras3.md`
 
 ### ✅ Deploy loja — **CHECKLIST 18/10** · **Live v27.26.3** · 18/10
 
