@@ -81,6 +81,11 @@ def test_contratos() -> None:
     )
     check("tokens_digito_busca", "def tokens_termo_busca_cadastro" in cad_util)
     check("overlay_pids_palavras", "def overlay_pids_por_palavras_busca" in cad_util)
+    check(
+        "qs_produtos_ids_externos",
+        "def qs_produtos_catalogo_por_ids_externos" in cad_util
+        and "qs_produtos_catalogo_por_ids_externos" in cat,
+    )
     check("indice_busca_palavras", "busca_palavras_agro" in mod_txt and "indice_busca_palavras_chave" in mod_txt)
     check("partes_palavras_chave", "def partes_palavras_chave" in mod_txt)
     check(
@@ -103,7 +108,7 @@ def test_contratos() -> None:
     check("unit_test_file", test_py.is_file())
 
     ver = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
-    check("version_prep", ver in ("27.26.3", "27.26.2", "27.26.1", "27.26", "27.25", "27.24"), ver)
+    check("version_prep", ver in ("27.26.4", "27.26.3", "27.26.2", "27.26.1", "27.26", "27.25", "27.24"), ver)
 
 
 def test_logica_python() -> None:

@@ -219,6 +219,32 @@ def termo_bate_codigos_produto(
     return any(termo_bate_valor_codigo(termo, c) for c in campos if c)
 
 
+def qs_produtos_catalogo_por_ids_externos(qs, pids: list[str]):
+    """Resolve IDs do overlay (Mongo/ERP/PK) para linhas ``Produto``."""
+    from produtos.models import Produto
+
+    ids: list[str] = []
+    seen: set[str] = set()
+    pk_cand: list[int] = []
+    for raw in pids or []:
+        s = str(raw or "").strip()[:64]
+        if not s or s in seen:
+            continue
+        seen.add(s)
+        ids.append(s)
+        if s.isdigit():
+            try:
+                pk_cand.append(int(s))
+            except ValueError:
+                pass
+    if not ids:
+        return Produto.objects.none()
+    q_obj = Q(produto_externo_id__in=ids) | Q(erp_produto_id__in=ids)
+    if pk_cand:
+        q_obj |= Q(pk__in=pk_cand)
+    return qs.filter(q_obj)
+
+
 def overlay_pids_por_palavras_busca(termo: str, limit: int = 80) -> list[str]:
     """Produtos cujo overlay tem apelido em palavras-chave (Postgres JSON + descrição)."""
     import logging
@@ -232,10 +258,13 @@ def overlay_pids_por_palavras_busca(termo: str, limit: int = 80) -> list[str]:
 
     logger = logging.getLogger(__name__)
     termo_txt = str(termo or "").strip()
+    if not termo_txt:
+        return []
     partes = tokens_termo_busca_cadastro(termo_txt)
     if not partes:
-        return []
+        partes = [termo_txt]
     lim = max(1, min(int(limit or 80), 200))
+    frase_n = normalizar(termo_txt)[:200]
 
     def _q_token(pl: str) -> Q:
         pr = pl[:200]
@@ -248,9 +277,21 @@ def overlay_pids_por_palavras_busca(termo: str, limit: int = 80) -> list[str]:
             | Q(descricao__icontains=pn)
         )
 
+    def _q_frase() -> Q:
+        fr = termo_txt[:200]
+        return (
+            Q(cadastro_extras__palavras_chave__icontains=fr)
+            | Q(cadastro_extras__palavras_chave__icontains=frase_n)
+            | Q(**{f"cadastro_extras__{BUSCA_PALAVRAS_AGRO_CAMPO}__icontains": frase_n})
+            | Q(descricao__icontains=fr)
+            | Q(descricao__icontains=frase_n)
+        )
+
     try:
-        qs = ProdutoGestaoOverlayAgro.objects.all()
+        qs = ProdutoGestaoOverlayAgro.objects.filter(_q_frase())
         for pl in partes:
+            if pl.lower() == termo_txt.lower() and len(partes) == 1:
+                continue
             qs = qs.filter(_q_token(pl))
         pids = [
             str(x).strip()
@@ -269,7 +310,20 @@ def overlay_pids_por_palavras_busca(termo: str, limit: int = 80) -> list[str]:
         tbl = ProdutoGestaoOverlayAgro._meta.db_table
         clauses: list[str] = []
         params: list[object] = []
+        fr = f"%{termo_txt[:200]}%"
+        fn = f"%{frase_n}%"
+        clauses.append(
+            "("
+            "COALESCE(cadastro_extras->>'palavras_chave','') ILIKE %s "
+            f"OR COALESCE(cadastro_extras->>'{BUSCA_PALAVRAS_AGRO_CAMPO}','') ILIKE %s "
+            "OR COALESCE(descricao,'') ILIKE %s "
+            "OR COALESCE(descricao,'') ILIKE %s"
+            ")"
+        )
+        params.extend([fr, fn, fr, fn])
         for pl in partes:
+            if pl.lower() == termo_txt.lower() and len(partes) == 1:
+                continue
             pr = f"%{pl[:200]}%"
             pn = f"%{normalizar(pl)[:200]}%"
             clauses.append(
