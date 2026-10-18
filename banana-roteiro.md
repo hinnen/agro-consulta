@@ -1091,12 +1091,12 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 88. CHECKLIST ÚNICO — **17/10** · ✅ Live **v27.26**
+## 88. CHECKLIST ÚNICO — **18/10** · 🟢 **pronto envio** · prep **v27.26.3**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **NFE-SAIDA-55** | ✅ **Live** | **NÃO** | **27/27** + **4/4** |
+| 1 | **NFE-SAIDA-55-PG** | 🟢 **pronto envio** | **SIM** | **41/41** + **6/6** |
+| 2 | **CADASTRO-PALAVRAS-PDV-2** | 🟢 **pronto envio** | **NÃO** | **50/50** |
 
-**Live:** `producao` @ **`f82f5be1`**.  
-**Revert:** `git push origin rollback/pre-v2725-nfe-saida-55:producao` → **v27.25** @ `b60a3f5b`.  
-**Smoke:** `/nfe/saida/` · Nova · `?venda=<pk>`.
+**Loja:** `producao` @ **`f82f5be1`** (v27.26). **Smoke:** `/nfe/saida/` · **Nova** sem «legado indisponível».  
+**Doc:** `docs/DEPLOY-PREP-CHECKLIST-1810-nfe-saida-pg.md`.

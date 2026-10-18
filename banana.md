@@ -1294,6 +1294,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — **NFE-SAIDA-55-PG** (rascunho Postgres · fix «legado indisponível») · 18/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Rascunhos NF-e 55 em `NfeSaidaRascunhoAgro` quando Mongo ERP off; **Nova**/lista/emitir sem Mongo |
+| **Paths** | `nfe_saida_util` · `nfe_saida_rascunho_pg_util` · `views_nfe_saida` · migration **0146** |
+| **Branch** | `teste` @ **`7847b1fc`**+ · `VERSION` **27.26.3** |
+| **Migrate** | **SIM** (`0146_nfe_saida_rascunho_agro`) |
+| **Prova** | verify **41/41** · tests **6/6** · HTTP **Nova**+listar **200** |
+| **Smoke** | `/nfe/saida/` · **Nova** · sem alerta vermelho · homolog emit (PIN **9973**) |
+
+### ✅ CHECKLIST ÚNICO — **18/10** · 🟢 **pronto envio produção** · prep **v27.26.3**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NFE-SAIDA-55-PG** | 🟢 **pronto envio** | **SIM** | **41/41** + **6/6** |
+| 2 | **CADASTRO-PALAVRAS-PDV-2** | 🟢 **pronto envio** | **NÃO** | **50/50** |
+
+**Loja hoje:** `producao` @ **`f82f5be1`** · **v27.26** · NF-e 55 live com bug Mongo.  
+**Subir:** merge `teste`→`producao` + migrate **SIM** + smoke acima.  
+**Revert NF-e PG:** `producao` → **`f82f5be1`**.
+
 ### 📦 PACOTE PRONTO — **CADASTRO-PALAVRAS-PDV-2** (hotfix busca **2 tempo**) · 17/10
 
 | Campo | Valor |

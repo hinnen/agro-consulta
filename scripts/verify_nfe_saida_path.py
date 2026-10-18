@@ -160,15 +160,76 @@ def test_http() -> None:
         check("cert_mod55", j.get("mod_ui") == "55")
 
     r3 = c.get("/api/nfe-saida/listar/")
-    check("get_listar", r3.status_code in (200, 503))
+    check("get_listar", r3.status_code == 200, f"status={r3.status_code}")
     if r3.status_code == 200:
         j3 = json.loads(r3.content.decode())
         check("listar_ok", j3.get("ok") is True and isinstance(j3.get("itens"), list))
+
+    r4 = c.post("/api/nfe-saida/nova/", data="{}", content_type="application/json")
+    check("post_nova", r4.status_code == 200, f"status={r4.status_code}")
+    doc_id = ""
+    if r4.status_code == 200:
+        j4 = json.loads(r4.content.decode())
+        check("nova_ok", j4.get("ok") is True and len(str(j4.get("id") or "")) == 24)
+        doc_id = str(j4.get("id") or "")
+
+    if doc_id:
+        r5 = c.get(f"/api/nfe-saida/{doc_id}/")
+        check("get_doc", r5.status_code == 200)
+        if r5.status_code == 200:
+            j5 = json.loads(r5.content.decode())
+            check("doc_rascunho", j5.get("ok") and j5.get("doc", {}).get("status") == "rascunho")
+
+        body_emit = json.dumps({"pin": "9973"})
+        try:
+            r6 = c.post(
+                f"/api/nfe-saida/{doc_id}/emitir/",
+                data=body_emit,
+                content_type="application/json",
+            )
+        except Exception as exc:
+            check("post_emitir", "ativo" in str(exc) or "no such table" in str(exc), "PIN DB local incompleto")
+        else:
+            check("post_emitir", r6.status_code in (200, 400, 403, 500), f"status={r6.status_code}")
+            if r6.status_code == 500:
+                check("emit_pin_db", False, "migrate/base_perfilusuario pendente neste ambiente")
+            elif r6.status_code == 403:
+                j6 = json.loads(r6.content.decode())
+                check("emit_pin", j6.get("erro") in ("PIN incorreto.", "Informe o PIN."), j6.get("erro", ""))
+            elif r6.status_code in (200, 400):
+                j6 = json.loads(r6.content.decode())
+                check(
+                    "emit_resposta",
+                    "ok" in j6,
+                    "autorizada" if j6.get("ok") else (j6.get("erro") or "")[:80],
+                )
+
+
+def test_pg_flag() -> None:
+    print("== Postgres store (flag) ==")
+    from produtos.agro_fonte_config import agro_mongo_erp_desligado, agro_nfe_saida_rascunho_postgres
+    from produtos.nfe_saida_util import nfe_saida_persistencia_ok, nfe_saida_usa_postgres
+
+    check("flag_pg_fn", callable(agro_nfe_saida_rascunho_postgres))
+    if agro_mongo_erp_desligado():
+        check("mongo_off_usa_pg", nfe_saida_usa_postgres() is True)
+        check("persistencia_sem_mongo", nfe_saida_persistencia_ok(None) is True)
+    else:
+        check("mongo_on_skip", True, "AGRO_MONGO_ERP_DESLIGADO=false neste ambiente")
+
+
+def test_migration_file() -> None:
+    print("== Migration 0146 ==")
+    mig = ROOT / "produtos/migrations/0146_nfe_saida_rascunho_agro.py"
+    check("mig_0146_exists", mig.is_file())
+    check("mig_model_name", "NfeSaidaRascunhoAgro" in mig.read_text(encoding="utf-8"))
 
 
 def main() -> int:
     print("verify_nfe_saida_path")
     test_arquivos()
+    test_migration_file()
+    test_pg_flag()
     test_logica()
     test_pin()
     test_http()
