@@ -1298,7 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **PREP** | `deploy/prep-checklist-1810g-nfe-xsd-ux` (ponta após cherry-pick em `producao`) |
+| **PREP** | `deploy/prep-checklist-1810g-nfe-xsd-ux` |
 | **Base loja** | **v27.26.9** @ **`18046efd`** |
 | **Migrate** | **NÃO** |
 | **Checkpoint** | `./scripts/prep_checkpoint_checklist_1810g_nfe_xsd_ux.sh` |
@@ -1306,22 +1306,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Pós-deploy** | `./scripts/post_deploy_checklist_1810g_nfe_xsd_ux.sh` |
 | **Rollback** | `git push origin rollback/pre-v272610-1810g-nfe-xsd:producao` → **v27.26.9** @ **`18046efd`** |
 | **Backup** | `producao-backup-pre-v272610-1810g` @ **`18046efd`** |
-| **Smoke** | `/nfe/saida/` typeahead · 1ª NF série **2** (sem rejeição schema) |
+| **Smoke** | `/nfe/saida/` listas na busca · 1ª NF série **2** (schema OK) |
 
 ### 📦 PACOTE PRONTO — **LOJA-18/10g** · **v27.26.10**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Conteúdo** | **NFE-55-XSD-DEST** · **NFE-MANUAL-UX** |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_nfe_saida_path` **56/56+** · unit NF-e XML |
+| **Subir** | **`deploy/prep-checklist-1810g-nfe-xsd-ux` → `producao`** |
+| **Conteúdo** | **NFE-55-XSD-DEST** (ordem CPF/CNPJ no XML, CEP/endereço) · **NFE-MANUAL-UX** (lista cliente/produto/venda, F2/F3) |
+| **Paths** | `nfe_saida_sp_emissao_util.py` · `nfe_saida.js` · `nfe_saida.html` · `verify_nfe_saida_path.py` |
+| **Migrate** | **NÃO** (0147 já na loja com 18/10f) |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1810g_nfe_xsd_ux.sh` |
+| **Prova** | `verify_nfe_saida_path` **66/66** · unit NF-e SimpleTestCase **9 OK** |
+| **Smoke** | `/nfe/saida/` listas na busca · 1ª NF produção série **2** |
 
 ### ✅ CHECKLIST ÚNICO — **18/10g** · 🟢 **pronto envio produção**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **NFE-55-XSD-DEST** | 🟢 pronto | **NÃO** | verify XSD dest |
-| 2 | **NFE-MANUAL-UX** | 🟢 pronto | **NÃO** | typeahead + buscar-vendas |
+| 1 | **NFE-55-XSD-DEST** | 🟢 pronto | **NÃO** | **66/66** |
+| 2 | **NFE-MANUAL-UX** | 🟢 pronto | **NÃO** | HTTP typeahead + `buscar-vendas` |
+
+**Produção atual:** **v27.26.9** (18/10f live). Cutover **18/10g** só com frase + senha após smoke local.
 
 ### ✅ Deploy loja — **CHECKLIST 18/10f** · **Live v27.26.9** · 18/10
 
