@@ -8,4 +8,9 @@
 **Smoke NF-e:** `/nfe/saida/` · Nova · autorizar (PIN) · **Imprimir DANFE** (canhoto + código barras) · **Baixar XML**.  
 **Smoke cadastro:** PDV **`2 tempo`** / **`oleo`** após `backfill_busca_palavras_overlay` (uma vez).
 
-**Base git loja:** `producao` @ **`f82f5be1`** · **v27.26**.
+**Base git loja:** `producao` @ **`8d01908c`** · **v27.26.3**.
+
+**Cutover (dry-run):** `./scripts/cutover_loja_checklist_1810e_nfe_danfe_palavras_pdv3.sh`  
+**Checkpoint:** `./scripts/prep_checkpoint_checklist_1810e_nfe_danfe_palavras_pdv3.sh`  
+**Pós-deploy Shell:** `./scripts/post_deploy_checklist_1810e_nfe_danfe_palavras_pdv3.sh` (inclui `backfill_busca_palavras_overlay`)  
+**Revert:** `git push origin rollback/pre-v27263-1810e-danfe-palavras3:producao` → **v27.26.3** @ **`8d01908c`**
