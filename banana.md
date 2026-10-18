@@ -1294,20 +1294,43 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 ARMADO · **PREP v27.26.9** · **CHECKLIST 18/10f** · SEFAZ + DANFE + PDV
+### 🟡 ARMADO · **PREP v27.26.10** · **CHECKLIST 18/10g** · XSD dest + NF-e manual UX
 
 | Campo | Valor |
 | ----- | ----- |
-| **Pacotes** | **NFE-55-SEFAZ+DANFE-AGRO** + **CADASTRO-PALAVRAS-PDV-3** (busca mista) |
-| **Status** | 🟡 **Checkpoint pronto** · Live **v27.26.5** @ **`5e16d701`** |
-| **PREP** | `deploy/prep-checklist-1810f-nfe-sefaz-danfe-pdv` @ **`0945ef79`** |
-| **Migrate** | **SIM** `0147` |
-| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1810f_nfe_sefaz_danfe_pdv.sh` |
-| **Rollback** | `rollback/pre-v27265-1810f-nfe-sefaz` @ **`5e16d701`** |
-| **Backup** | `producao-backup-pre-v27269-1810f` |
-| **Cutover** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1810f_nfe_sefaz_danfe_pdv.sh --exec` |
+| **PREP** | `deploy/prep-checklist-1810g-nfe-xsd-ux` (ponta após cherry-pick em `producao`) |
+| **Base loja** | **v27.26.9** @ **`18046efd`** |
+| **Migrate** | **NÃO** |
+| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1810g_nfe_xsd_ux.sh` |
+| **Cutover** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1810g_nfe_xsd_ux.sh --exec` |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1810g_nfe_xsd_ux.sh` |
+| **Rollback** | `git push origin rollback/pre-v272610-1810g-nfe-xsd:producao` → **v27.26.9** @ **`18046efd`** |
+| **Backup** | `producao-backup-pre-v272610-1810g` @ **`18046efd`** |
+| **Smoke** | `/nfe/saida/` typeahead · 1ª NF série **2** (sem rejeição schema) |
+
+### 📦 PACOTE PRONTO — **LOJA-18/10g** · **v27.26.10**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Conteúdo** | **NFE-55-XSD-DEST** · **NFE-MANUAL-UX** |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_nfe_saida_path` **56/56+** · unit NF-e XML |
+
+### ✅ CHECKLIST ÚNICO — **18/10g** · 🟢 **pronto envio produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NFE-55-XSD-DEST** | 🟢 pronto | **NÃO** | verify XSD dest |
+| 2 | **NFE-MANUAL-UX** | 🟢 pronto | **NÃO** | typeahead + buscar-vendas |
+
+### ✅ Deploy loja — **CHECKLIST 18/10f** · **Live v27.26.9** · 18/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Pacotes** | **NFE-55-SEFAZ+DANFE-AGRO** + **CADASTRO-PALAVRAS-PDV-3** |
+| **Status** | ✅ **Live v27.26.9** @ **`18046efd`** |
+| **Revert** | `git push origin rollback/pre-v27265-1810f-nfe-sefaz:producao` → **v27.26.5** @ **`5e16d701`** |
 | **Pós-deploy** | `./scripts/post_deploy_checklist_1810f_nfe_sefaz_danfe_pdv.sh` |
-| **Smoke** | DANFE logo · NF série **2** · PDV `oleo 2tempo` |
 
 ### 📦 PACOTE PRONTO — **LOJA-18/10f** · **v27.26.9**
 
