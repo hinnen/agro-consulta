@@ -219,42 +219,109 @@ def termo_bate_codigos_produto(
     return any(termo_bate_valor_codigo(termo, c) for c in campos if c)
 
 
-def overlay_pids_por_palavras_busca(termo: str, limit: int = 80) -> list[str]:
-    """Produtos cujo overlay tem apelido em palavras-chave (Postgres JSON + descrição)."""
-    import logging
+def canonical_overlay_produto_externo_id(pid: str) -> str:
+    """Chave estável do overlay = ``Produto.produto_externo_id`` quando existir."""
+    from produtos.catalogo_agro import obter_produto_model
 
-    from django.db import connection
-    from django.db.models import Q
+    s = str(pid or "").strip()[:64]
+    if not s:
+        return s
+    p = obter_produto_model(s)
+    if p is None:
+        return s
+    pe = str(p.produto_externo_id or "").strip()[:64]
+    if pe:
+        return pe
+    erp = str(p.erp_produto_id or "").strip()[:64]
+    if erp:
+        return erp
+    return str(p.pk)
 
+
+def qs_produtos_catalogo_por_ids_externos(qs, pids: list[str]):
+    """Resolve IDs do overlay (Mongo/ERP/PK) para linhas ``Produto``."""
+    from produtos.models import Produto
+
+    ids: list[str] = []
+    seen: set[str] = set()
+    pk_cand: list[int] = []
+    for raw in pids or []:
+        s = str(raw or "").strip()[:64]
+        if not s or s in seen:
+            continue
+        seen.add(s)
+        ids.append(s)
+        if s.isdigit():
+            try:
+                pk_cand.append(int(s))
+            except ValueError:
+                pass
+    if not ids:
+        return Produto.objects.none()
+    q_obj = Q(produto_externo_id__in=ids) | Q(erp_produto_id__in=ids)
+    if pk_cand:
+        q_obj |= Q(pk__in=pk_cand)
+    return qs.filter(q_obj)
+
+
+def _q_overlay_palavras_busca(termo_txt: str) -> Q:
+    """OR: frase no índice OU todos os tokens no índice/palavras (não exige frase literal)."""
     from integracoes.texto import normalizar
     from produtos.medicamento_vet_taxonomia import BUSCA_PALAVRAS_AGRO_CAMPO
-    from produtos.models import ProdutoGestaoOverlayAgro
 
-    logger = logging.getLogger(__name__)
-    termo_txt = str(termo or "").strip()
-    partes = tokens_termo_busca_cadastro(termo_txt)
-    if not partes:
-        return []
-    lim = max(1, min(int(limit or 80), 200))
+    frase_n = normalizar(termo_txt)[:200]
+    compact = re.sub(r"\s+", "", frase_n)
+    idx = f"cadastro_extras__{BUSCA_PALAVRAS_AGRO_CAMPO}__icontains"
+    partes = tokens_termo_busca_cadastro(termo_txt) or [termo_txt]
 
-    def _q_token(pl: str) -> Q:
+    def _campo_palavras(pl: str) -> Q:
         pr = pl[:200]
         pn = normalizar(pr)[:200]
         return (
             Q(cadastro_extras__palavras_chave__icontains=pr)
             | Q(cadastro_extras__palavras_chave__icontains=pn)
-            | Q(**{f"cadastro_extras__{BUSCA_PALAVRAS_AGRO_CAMPO}__icontains": pn})
+            | Q(**{idx: pn})
             | Q(descricao__icontains=pr)
             | Q(descricao__icontains=pn)
         )
 
+    fr = termo_txt[:200]
+    match_frase = (
+        Q(cadastro_extras__palavras_chave__icontains=fr)
+        | Q(cadastro_extras__palavras_chave__icontains=frase_n)
+        | Q(**{idx: frase_n})
+        | Q(descricao__icontains=fr)
+        | Q(descricao__icontains=frase_n)
+    )
+    if compact and compact != frase_n:
+        match_frase |= Q(**{idx: compact}) | Q(cadastro_extras__palavras_chave__icontains=compact)
+
+    match_tokens = Q()
+    for pl in partes:
+        match_tokens &= _campo_palavras(pl)
+
+    return match_frase | match_tokens
+
+
+def overlay_pids_por_palavras_busca(termo: str, limit: int = 80) -> list[str]:
+    """Produtos cujo overlay tem apelido em palavras-chave (Postgres JSON + descrição)."""
+    import logging
+
+    from django.db import connection
+
+    from produtos.models import ProdutoGestaoOverlayAgro
+
+    logger = logging.getLogger(__name__)
+    termo_txt = str(termo or "").strip()
+    if not termo_txt:
+        return []
+    lim = max(1, min(int(limit or 80), 200))
+
     try:
-        qs = ProdutoGestaoOverlayAgro.objects.all()
-        for pl in partes:
-            qs = qs.filter(_q_token(pl))
         pids = [
             str(x).strip()
-            for x in qs.values_list("produto_externo_id", flat=True)[:lim]
+            for x in ProdutoGestaoOverlayAgro.objects.filter(_q_overlay_palavras_busca(termo_txt))
+            .values_list("produto_externo_id", flat=True)[:lim]
             if x
         ]
         if pids:
@@ -266,29 +333,39 @@ def overlay_pids_por_palavras_busca(termo: str, limit: int = 80) -> list[str]:
         return []
 
     try:
+        from integracoes.texto import normalizar
+        from produtos.medicamento_vet_taxonomia import BUSCA_PALAVRAS_AGRO_CAMPO
+
         tbl = ProdutoGestaoOverlayAgro._meta.db_table
-        clauses: list[str] = []
-        params: list[object] = []
+        frase_n = normalizar(termo_txt)[:200]
+        compact = re.sub(r"\s+", "", frase_n)
+        partes = tokens_termo_busca_cadastro(termo_txt) or [termo_txt]
+        fr = f"%{termo_txt[:200]}%"
+        fn = f"%{frase_n}%"
+        fc = f"%{compact}%" if compact else fn
+        pal = "COALESCE(cadastro_extras->>'palavras_chave','')"
+        idx = f"COALESCE(cadastro_extras->>'{BUSCA_PALAVRAS_AGRO_CAMPO}','')"
+        desc = "COALESCE(descricao,'')"
+        match_frase = (
+            f"({pal} ILIKE %s OR {pal} ILIKE %s OR {idx} ILIKE %s OR {desc} ILIKE %s OR {desc} ILIKE %s "
+            f"OR {idx} ILIKE %s OR {pal} ILIKE %s)"
+        )
+        params_frase = [fr, fn, fn, fr, fn, fc, fc]
+        token_clauses: list[str] = []
+        token_params: list[object] = []
         for pl in partes:
             pr = f"%{pl[:200]}%"
             pn = f"%{normalizar(pl)[:200]}%"
-            clauses.append(
-                "("
-                "COALESCE(cadastro_extras->>'palavras_chave','') ILIKE %s "
-                f"OR COALESCE(cadastro_extras->>'{BUSCA_PALAVRAS_AGRO_CAMPO}','') ILIKE %s "
-                "OR COALESCE(descricao,'') ILIKE %s "
-                "OR COALESCE(descricao,'') ILIKE %s"
-                ")"
+            token_clauses.append(
+                f"({pal} ILIKE %s OR {pal} ILIKE %s OR {idx} ILIKE %s OR {desc} ILIKE %s OR {desc} ILIKE %s)"
             )
-            params.extend([pr, pn, pr, pn])
-        sql = (
-            f"SELECT produto_externo_id FROM {tbl} WHERE "
-            + " AND ".join(clauses)
-            + " LIMIT %s"
-        )
-        params.append(lim)
+            token_params.extend([pr, pn, pn, pr, pn])
+        where = f"({match_frase})"
+        if token_clauses:
+            where += " OR (" + " AND ".join(token_clauses) + ")"
+        sql = f"SELECT produto_externo_id FROM {tbl} WHERE {where} LIMIT %s"
         with connection.cursor() as cur:
-            cur.execute(sql, params)
+            cur.execute(sql, [*params_frase, *token_params, lim])
             return [
                 str(r[0]).strip()
                 for r in cur.fetchall()

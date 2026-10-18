@@ -118,45 +118,6 @@ def emitir_nfe_saida_documento(doc: dict, *, cnpj_emit: str) -> dict[str, Any]:
 
 
 def montar_html_danfe_previa(doc: dict, *, emitente_nome: str = "", emitente_cnpj: str = "") -> str:
-    dest = doc.get("destinatario") if isinstance(doc.get("destinatario"), dict) else {}
-    itens = doc.get("itens") if isinstance(doc.get("itens"), list) else []
-    total = total_itens(itens)
-    chave = doc.get("chave") or "— (prévia — ainda não autorizada)"
-    rows = ""
-    for ln in itens:
-        if not isinstance(ln, dict):
-            continue
-        rows += (
-            f"<tr><td>{ln.get('descricao','')}</td>"
-            f"<td class='r'>{ln.get('qtd','')}</td>"
-            f"<td class='r'>{ln.get('v_unit','')}</td>"
-            f"<td class='r'>{ln.get('v_total','')}</td></tr>"
-        )
-    amb = "HOMOLOGAÇÃO" if int(doc.get("tp_amb") or 2) == 2 else "PRODUÇÃO"
-    return f"""<!DOCTYPE html><html lang="pt-br"><head><meta charset="utf-8"><title>DANFE NF-e 55</title>
-<style>
-body{{font-family:Arial,sans-serif;font-size:12px;color:#111;margin:16px}}
-h1{{font-size:18px;margin:0 0 8px}}
-.box{{border:2px solid #111;padding:8px;margin-bottom:8px}}
-table{{width:100%;border-collapse:collapse}}
-th,td{{border:1px solid #333;padding:4px}}
-th{{background:#eee;text-align:left}}
-.r{{text-align:right}}
-.chave{{font-family:monospace;font-size:11px;word-break:break-all}}
-.warn{{background:#ffedd5;border:2px solid #ea580c;padding:8px;font-weight:bold;margin-bottom:8px}}
-</style></head><body>
-<div class="warn">PRÉVIA / DANFE — modelo 55 · {amb}</div>
-<h1>DANFE — Documento Auxiliar da NF-e</h1>
-<div class="box"><strong>Emitente</strong><br>{emitente_nome or 'GM Agro'} · CNPJ {emitente_cnpj or '—'}</div>
-<div class="box"><strong>Destinatário</strong><br>
-{dest.get('nome','')}<br>
-Doc: {dest.get('documento','')} · {dest.get('uf','')}/{dest.get('cidade','')}<br>
-{dest.get('logradouro','')} {dest.get('numero','')}
-</div>
-<p class="chave">Chave: {chave}</p>
-<table><thead><tr><th>Descrição</th><th>Qtd</th><th>V.Unit</th><th>Total</th></tr></thead>
-<tbody>{rows}</tbody>
-<tfoot><tr><td colspan="3"><strong>Total</strong></td><td class="r"><strong>R$ {total}</strong></td></tr></tfoot>
-</table>
-<p style="margin-top:12px;font-size:10px">Simples Nacional — CSOSN por item. Conferência interna; não substitui XML autorizado.</p>
-</body></html>"""
+    from produtos.nfe_saida_danfe_html import montar_html_danfe_previa as _montar
+
+    return _montar(doc, emitente_nome=emitente_nome, emitente_cnpj=emitente_cnpj)

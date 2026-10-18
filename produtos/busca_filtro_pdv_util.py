@@ -305,10 +305,14 @@ def filtrar_documentos_estilo_pdv(docs: list[dict], termo: str) -> list[dict]:
     if not palavras:
         return list(docs)
 
+    termo_norm = _norm_termo(termo)
     out: list[dict] = []
     for doc in docs:
         blob = blob_busca_de_doc(doc)
         nome = _norm_termo(str(doc.get("Nome") or doc.get("nome") or ""))
+        if termo_norm and len(termo_norm) >= 3 and termo_norm in blob:
+            out.append(doc)
+            continue
         if all(_palavra_casa_no_doc(pl, doc, blob, nome) for pl in palavras):
             out.append(doc)
     return out

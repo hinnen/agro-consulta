@@ -300,8 +300,9 @@ def api_nfe_saida_danfe(request, doc_id: str):
     doc = obter_documento_nfe_saida(db, doc_id)
     if not doc:
         return HttpResponse("Não encontrado", status=404)
-    cnpj = _mascarar_cnpj(config("NFE_DIST_DFE_CNPJ", default=""))
-    html = montar_html_danfe_previa(doc, emitente_nome="GM Agro / SisVale", emitente_cnpj=cnpj)
+    from produtos.nfe_saida_danfe_html import carregar_emitente_danfe, montar_html_danfe
+
+    html = montar_html_danfe(doc, emitente=carregar_emitente_danfe())
     return HttpResponse(html, content_type="text/html; charset=utf-8")
 
 

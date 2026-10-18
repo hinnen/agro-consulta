@@ -21,6 +21,17 @@ class CadastroBuscaPdvAlinhadaTests(SimpleTestCase):
         self.assertIn("oleo", idx)
         self.assertIn("2 tempo", idx)
 
+    def test_filtra_frase_inteira_no_blob(self):
+        rows = [
+            {
+                "id": "1",
+                "nome": "OLEO CASTROL 2T",
+                "busca_texto": "oleo castrol 2t oleo 2 tempo 2tempo",
+            },
+        ]
+        out = filtrar_rows_api_estilo_pdv(rows, "2 tempo")
+        self.assertEqual(len(out), 1)
+
     def test_filtra_oleo_2_tempo_com_busca_texto(self):
         rows = [
             {

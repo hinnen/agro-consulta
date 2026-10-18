@@ -65,13 +65,67 @@ def _dec_opt(v) -> Decimal | None:
 
 
 def _overlay_mapa_por_ids(ids: list[str]) -> dict[str, ProdutoGestaoOverlayAgro]:
-    ids_u = [str(x)[:64] for x in ids if x]
+    """Overlay por ``produto_externo_id`` do overlay, com alias ERP/PK da linha ``Produto``."""
+    ids_u: list[str] = []
+    seen: set[str] = set()
+    for x in ids or []:
+        s = str(x or "").strip()[:64]
+        if s and s not in seen:
+            seen.add(s)
+            ids_u.append(s)
     if not ids_u:
         return {}
-    return {
+
+    pk_cand: list[int] = []
+    for s in ids_u:
+        if s.isdigit():
+            try:
+                pk_cand.append(int(s))
+            except ValueError:
+                pass
+    prod_q = Q(produto_externo_id__in=ids_u) | Q(erp_produto_id__in=ids_u)
+    if pk_cand:
+        prod_q |= Q(pk__in=pk_cand)
+    produtos = list(
+        Produto.objects.filter(prod_q).only("pk", "produto_externo_id", "erp_produto_id")
+    )
+    overlay_keys: set[str] = set(ids_u)
+    for p in produtos:
+        for v in (p.produto_externo_id, p.erp_produto_id, str(p.pk)):
+            vs = str(v or "").strip()[:64]
+            if vs:
+                overlay_keys.add(vs)
+
+    by_ext: dict[str, ProdutoGestaoOverlayAgro] = {
         o.produto_externo_id: o
-        for o in ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id__in=ids_u)
+        for o in ProdutoGestaoOverlayAgro.objects.filter(
+            produto_externo_id__in=list(overlay_keys)
+        )
     }
+    omap: dict[str, ProdutoGestaoOverlayAgro] = dict(by_ext)
+    for p in produtos:
+        ov = None
+        for key in (
+            str(p.produto_externo_id or "").strip()[:64],
+            str(p.erp_produto_id or "").strip()[:64],
+        ):
+            if key and key in by_ext:
+                ov = by_ext[key]
+                break
+        if not ov:
+            continue
+        for alias in (
+            str(p.produto_externo_id or p.erp_produto_id or p.pk).strip()[:64],
+            str(p.produto_externo_id or "").strip()[:64],
+            str(p.erp_produto_id or "").strip()[:64],
+            str(p.pk),
+        ):
+            if alias:
+                omap[alias] = ov
+    for uid in ids_u:
+        if uid in by_ext:
+            omap[uid] = by_ext[uid]
+    return omap
 
 
 def _aplicar_overlay_em_row(row: dict, ov: ProdutoGestaoOverlayAgro | None) -> dict:
@@ -94,7 +148,23 @@ def produto_agro_para_row(
     *,
     resolver_overlay_faltante: bool = True,
 ) -> dict:
+    from produtos.cadastro_planilha_util import _id_produto_planilha_valido
+
     pid = (p.produto_externo_id or p.erp_produto_id or str(p.pk)).strip()
+    if not _id_produto_planilha_valido(pid):
+        alt = (p.erp_produto_id or "").strip()
+        if _id_produto_planilha_valido(alt):
+            pid = alt
+        else:
+            from produtos.cadastro_planilha_util import _recuperar_id_planilha_texto_erp
+
+            fixed, _ = _recuperar_id_planilha_texto_erp(
+                pid,
+                codigo_gm=(p.codigo_nfe or p.codigo_interno or "").strip(),
+                nome=(p.nome or "").strip(),
+            )
+            if _id_produto_planilha_valido(fixed):
+                pid = fixed
     row = {
         "id": pid,
         "nome": (p.nome or "").strip(),
@@ -244,11 +314,13 @@ def _cadastro_pg_append_unicos(found: list, seen: set, items, lim: int) -> None:
 def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
     from produtos.cadastro_busca_codigo_util import (
         overlay_pids_por_codigo,
+        overlay_pids_por_palavras_busca,
         parece_codigo_cadastro,
         q_codigo_exato_cadastro,
         q_familia_gm_cadastro,
         q_icontains_cadastro,
         q_nome_tokens_cadastro,
+        qs_produtos_catalogo_por_ids_externos,
         termo_bate_codigos_produto,
         termo_eh_codigo_gm,
         termo_gm_etiqueta_completa,
@@ -263,8 +335,6 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
     seen_pk: set[int] = set()
 
     def _append_overlay_palavras_chave_matches(raw_termo: str) -> None:
-        from produtos.cadastro_busca_codigo_util import overlay_pids_por_palavras_busca
-
         termo_txt = str(raw_termo or "").strip()
         if not termo_txt or len(found) >= lim:
             return
@@ -274,7 +344,7 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
         _cadastro_pg_append_unicos(
             found,
             seen_pk,
-            qs.filter(produto_externo_id__in=pids).order_by("nome", "pk")[:lim],
+            qs_produtos_catalogo_por_ids_externos(qs, pids).order_by("nome", "pk")[:lim],
             lim,
         )
 
@@ -300,7 +370,7 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
             _cadastro_pg_append_unicos(
                 found,
                 seen_pk,
-                qs.filter(produto_externo_id__in=pids).order_by("nome", "pk")[:lim],
+                qs_produtos_catalogo_por_ids_externos(qs, pids).order_by("nome", "pk")[:lim],
                 lim,
             )
         except Exception:
@@ -315,7 +385,7 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
             _cadastro_pg_append_unicos(
                 found,
                 seen_pk,
-                qs.filter(produto_externo_id__in=pids).order_by("nome", "pk")[:lim],
+                qs_produtos_catalogo_por_ids_externos(qs, pids).order_by("nome", "pk")[:lim],
                 lim,
             )
         fam = q_familia_gm_cadastro(termo)
@@ -429,14 +499,12 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
             rows = ordenar_rows_api_estilo_pdv(rows, termo)
             if rows:
                 return rows[:lim]
-            from produtos.cadastro_busca_codigo_util import overlay_pids_por_palavras_busca
-
             pids_pk = overlay_pids_por_palavras_busca(termo, lim)
             if pids_pk:
                 chunk_pk = list(
-                    qs.filter(produto_externo_id__in=pids_pk).order_by("nome", "pk")[
-                        : lim * 2 if lim < 80 else lim
-                    ]
+                    qs_produtos_catalogo_por_ids_externos(qs, pids_pk).order_by(
+                        "nome", "pk"
+                    )[: lim * 2 if lim < 80 else lim]
                 )
                 if chunk_pk:
                     rows_pk = _rows_de_produtos(chunk_pk)
@@ -464,7 +532,11 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                 ext_ids = [str(d.get("Id") or d.get("_id") or "").strip() for d in docs]
                 ext_ids = [x for x in ext_ids if x]
                 if ext_ids:
-                    chunk = list(qs.filter(produto_externo_id__in=ext_ids).order_by("nome", "pk")[:lim])
+                    chunk = list(
+                        qs_produtos_catalogo_por_ids_externos(qs, ext_ids).order_by(
+                            "nome", "pk"
+                        )[:lim]
+                    )
                     if chunk:
                         rows = _rows_de_produtos(chunk)
                         if termo_eh_codigo_gm(termo):
@@ -490,6 +562,27 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                             return rows[:lim]
         except Exception:
             pass
+
+    if not found:
+        pids_solo = overlay_pids_por_palavras_busca(termo, lim)
+        if pids_solo:
+            chunk_solo = list(
+                qs_produtos_catalogo_por_ids_externos(qs, pids_solo).order_by("nome", "pk")[
+                    : lim * 2 if lim < 80 else lim
+                ]
+            )
+            if chunk_solo:
+                rows_solo = _rows_de_produtos(chunk_solo)
+                from produtos.busca_filtro_pdv_util import (
+                    filtrar_rows_api_estilo_pdv,
+                    ordenar_rows_api_estilo_pdv,
+                )
+
+                rows_solo = filtrar_rows_api_estilo_pdv(rows_solo, termo)
+                rows_solo = ordenar_rows_api_estilo_pdv(rows_solo, termo)
+                if rows_solo:
+                    return rows_solo[:lim]
+                return _rows_de_produtos(chunk_solo)[:lim]
 
     return []
 

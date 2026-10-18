@@ -1294,29 +1294,62 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 ARMADO · **PREP v27.26.3** · **CHECKLIST 18/10** · NF-e PG + palavras PDV
+### 🟡 ARMADO · **PREP v27.26.5** · **CHECKLIST 18/10e** · DANFE + PALAVRAS-PDV-3
+
+| Campo | Valor |
+| ----- | ----- |
+| **Pacotes** | **NFE-SAIDA-55** (DANFE A4 + botões) + **CADASTRO-PALAVRAS-PDV-3** |
+| **Status** | 🟡 **Checkpoint pronto** · Live **v27.26.3** @ **`8d01908c`** |
+| **PREP** | `deploy/prep-checklist-1810e-nfe-danfe-palavras3` (push após commit PREP) |
+| **Migrate** | **NÃO** (0146 já na loja) |
+| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1810e_nfe_danfe_palavras_pdv3.sh` |
+| **Rollback** | `rollback/pre-v27263-1810e-danfe-palavras3` @ **`8d01908c`** |
+| **Backup** | `producao-backup-pre-v27265-1810e` |
+| **Cutover** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1810e_nfe_danfe_palavras_pdv3.sh --exec` |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1810e_nfe_danfe_palavras_pdv3.sh` (**backfill** obrigatório) |
+| **Smoke** | NF-e **Imprimir DANFE** · PDV **2 tempo** (Ctrl+F5) |
+
+### 📦 PACOTE PRONTO — **LOJA-18/10e** · **v27.26.5**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Inclui** | **NFE-SAIDA-55-PG** (`0146`) · DANFE A4 · **CADASTRO-PALAVRAS-PDV-3** |
+| **Branch** | `teste` @ **`e279cedb`**+ |
+| **Paths PDV-3** | `cadastro_busca_codigo_util` · `catalogo_agro.buscar` · `motor_busca_unificado_util` · `busca_filtro_pdv_util` · overlay salvar · `backfill_busca_palavras_overlay` |
+| **Migrate** | **SIM** só **0146** se loja &lt; **v27.26.3** |
+| **Pós-deploy PDV-3** | `python manage.py backfill_busca_palavras_overlay` (1×) · `scripts/post_deploy_checklist_1810e_cadastro_palavras_pdv3.sh` |
+| **Prova** | NF-e **47/47** · `verify_cadastro_busca_med_path` **53/53** · PIN **9973** |
+| **Smoke** | NF-e Nova/DANFE · PDV **2 tempo** / **2tempo** |
+
+### ✅ CHECKLIST ÚNICO — **18/10e** · 🟡 **aguarda senha** (PREP armado)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NFE-SAIDA-55** (PG+UI+DANFE) | 🟡 **aguarda senha** | **NÃO**† | **47/47** |
+| 2 | **CADASTRO-PALAVRAS-PDV-3** | 🟡 **aguarda senha** | **NÃO** | **53/53** + backfill |
+
+† **0146** já aplicada se loja ≥ **v27.26.3**.
+
+**Doc:** `docs/DEPLOY-PREP-CHECKLIST-1810e-nfe-danfe-palavras3.md`
+
+### ✅ Deploy loja — **CHECKLIST 18/10** · **Live v27.26.3** · 18/10
 
 | Campo | Valor |
 | ----- | ----- |
 | **Pacotes** | **NFE-SAIDA-55-PG** (migrate **0146**) + **CADASTRO-PALAVRAS-PDV-2** |
-| **Status** | 🟡 **Checkpoint pronto** · Live **v27.26** @ **`f82f5be1`** |
-| **PREP** | `deploy/prep-checklist-1810-nfe-pg-palavras-pdv2` |
-| **Prova** | verify NF-e **35/35** (HTTP PG após migrate) · cadastro **50/50** · tests **11/11** dry-run |
-| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1810_nfe_pg_palavras_pdv2.sh` ✅ |
-| **Rollback** | `rollback/pre-v2726-1810-nfe-pg-palavras` @ **`f82f5be1`** |
-| **Backup** | `producao-backup-pre-v2726-3-1810` |
-| **Revert** | `git push origin rollback/pre-v2726-1810-nfe-pg-palavras:producao` → **v27.26** |
-| **Cutover loja** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1810_nfe_pg_palavras_pdv2.sh --exec` |
-| **Pós-deploy (Render Shell)** | `./scripts/post_deploy_checklist_1810_nfe_pg_palavras_pdv2.sh` (**migrate obrigatório**) |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1810-nfe-pg-palavras-pdv2.md` |
+| **Status** | ✅ **Live v27.26.3** @ **`8d01908c`** (cutover 18/10) |
+| **Anterior** | **v27.26** @ **`f82f5be1`** |
+| **Pós-deploy** | Render build inclui `migrate`; conferir Shell: `./scripts/post_deploy_checklist_1810_nfe_pg_palavras_pdv2.sh` |
+| **Revert** | `git push origin rollback/pre-v2726-1810-nfe-pg-palavras:producao` → **v27.26** @ **`f82f5be1`** |
+| **Backup** | `producao-backup-pre-v2726-3-1810` @ **`f82f5be1`** |
 | **Smoke** | `/nfe/saida/` **Nova** sem legado · PDV **2 tempo** (Ctrl+F5) |
 
-### ✅ CHECKLIST ÚNICO — **18/10** · 🟡 **aguarda senha** (PREP armado)
+### ✅ CHECKLIST ÚNICO — **18/10** · ✅ **Live v27.26.3**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **NFE-SAIDA-55-PG** | 🟡 **aguarda senha** | **SIM** `0146` | **41/41** loja |
-| 2 | **CADASTRO-PALAVRAS-PDV-2** | 🟡 **aguarda senha** | **NÃO** | **50/50** |
+| 1 | **NFE-SAIDA-55-PG** | ✅ **Live** | **SIM** `0146` | **41/41** loja |
+| 2 | **CADASTRO-PALAVRAS-PDV-2** | ✅ **Live** | **NÃO** | **50/50** |
 
 ### 📦 PACOTE PRONTO — **NFE-SAIDA-55-PG** (rascunho Postgres · fix «legado indisponível») · 18/10
 
@@ -1324,21 +1357,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | Rascunhos NF-e 55 em `NfeSaidaRascunhoAgro` quando Mongo ERP off; **Nova**/lista/emitir sem Mongo |
 | **Paths** | `nfe_saida_util` · `nfe_saida_rascunho_pg_util` · `views_nfe_saida` · migration **0146** |
-| **Branch** | `teste` @ **`7847b1fc`**+ · `VERSION` **27.26.3** |
+| **Branch** | `teste` @ **`7847b1fc`**+ · `VERSION` **27.26.4** (botões DANFE/XML) |
 | **Migrate** | **SIM** (`0146_nfe_saida_rascunho_agro`) |
 | **Prova** | verify **41/41** · tests **6/6** · HTTP **Nova**+listar **200** |
 | **Smoke** | `/nfe/saida/` · **Nova** · sem alerta vermelho · homolog emit (PIN **9973**) |
+| **Validação Renan** | **18/10** · venda **#10337** · etapa **6 SEFAZ** · **Autorizada** (homolog · chave OK) |
 
-### ✅ CHECKLIST ÚNICO — **18/10** · 🟢 **pronto envio produção** · prep **v27.26.3**
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **NFE-SAIDA-55-PG** | 🟢 **pronto envio** | **SIM** | **41/41** + **6/6** |
-| 2 | **CADASTRO-PALAVRAS-PDV-2** | 🟢 **pronto envio** | **NÃO** | **50/50** |
-
-**Loja hoje:** `producao` @ **`f82f5be1`** · **v27.26** · NF-e 55 live com bug Mongo.  
-**Subir:** merge `teste`→`producao` + migrate **SIM** + smoke acima.  
-**Revert NF-e PG:** `producao` → **`f82f5be1`**.
 
 ### 📦 PACOTE PRONTO — **CADASTRO-PALAVRAS-PDV-2** (hotfix busca **2 tempo**) · 17/10
 

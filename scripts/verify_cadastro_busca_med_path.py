@@ -81,6 +81,11 @@ def test_contratos() -> None:
     )
     check("tokens_digito_busca", "def tokens_termo_busca_cadastro" in cad_util)
     check("overlay_pids_palavras", "def overlay_pids_por_palavras_busca" in cad_util)
+    check(
+        "qs_produtos_ids_externos",
+        "def qs_produtos_catalogo_por_ids_externos" in cad_util
+        and "qs_produtos_catalogo_por_ids_externos" in cat,
+    )
     check("indice_busca_palavras", "busca_palavras_agro" in mod_txt and "indice_busca_palavras_chave" in mod_txt)
     check("partes_palavras_chave", "def partes_palavras_chave" in mod_txt)
     check(
@@ -103,7 +108,16 @@ def test_contratos() -> None:
     check("unit_test_file", test_py.is_file())
 
     ver = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
-    check("version_prep", ver in ("27.26.3", "27.26.2", "27.26.1", "27.26", "27.25", "27.24"), ver)
+    check(
+        "version_prep",
+        ver in ("27.26.5", "27.26.4", "27.26.3", "27.26.2", "27.26.1", "27.26", "27.25", "27.24"),
+        ver,
+    )
+    check(
+        "backfill_busca_palavras_cmd",
+        "backfill_busca_palavras_overlay" in (ROOT / "produtos/management/commands/backfill_busca_palavras_overlay.py").read_text(),
+    )
+    check("canonical_overlay_id", "def canonical_overlay_produto_externo_id" in cad_util)
 
 
 def test_logica_python() -> None:
@@ -170,6 +184,11 @@ def test_git_sem_migrate() -> None:
         or "0a0e824f" in log1
         or "5010eab4" in log1
         or "f1389e1a" in log1
+        or "d55f7910" in log1
+        or "4c54d87e" in log1
+        or "CADASTRO-PALAVRAS-PDV-3" in log1
+        or "backfill_busca_palavras" in log1
+        or "busca apelido" in log1.lower()
         or "palavras-chave" in log1
         or "palavras_chave" in log1
         or "busca_palavras" in log1

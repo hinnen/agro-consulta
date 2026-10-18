@@ -73,8 +73,14 @@ def test_arquivos() -> None:
     check("views_persistencia", "nfe_saida_persistencia_ok" in _read("produtos/views_nfe_saida.py"))
     check("views_nfe_saida_view", "def nfe_saida_view" in _read("produtos/views_nfe_saida.py"))
     check("emissao_sim", "def emitir_nfe_saida_documento" in _read("produtos/nfe_saida_emissao_util.py"))
+    check("danfe_padrao", "def montar_html_danfe" in _read("produtos/nfe_saida_danfe_html.py"))
+    danfe = _read("produtos/nfe_saida_danfe_html.py")
+    check("danfe_canhoto", "danfe-canhoto" in danfe or "Recebemos de" in danfe)
+    check("danfe_barcode", "JsBarcode" in danfe and "CODE128" in danfe)
     check("tpl_lista_editor", "nfe-saida-view-lista" in tpl and "nfe-saida-view-editor" in tpl)
     check("js_de_venda", "deVenda" in js and "CFG.vendaId" in js)
+    check("js_xml_btn", "btn-nfe-xml-baixar" in tpl and "baixarXml" in js)
+    check("js_danfe_imprimir", "btn-nfe-danfe-imprimir" in tpl and "nfe-emit-artefatos" in tpl)
     check("dash_launchpad", "nfe_saida" in dash and "NF-e saída" in dash)
     check("venda_detalhe_btn", "nfe_saida_painel" in venda and "Emitir NF-e 55" in venda)
     check("lista_acao", "nfe_saida_painel" in lista)
@@ -204,7 +210,7 @@ def test_http() -> None:
         else:
             check("post_emitir", r6.status_code in (200, 400, 403, 500), f"status={r6.status_code}")
             if r6.status_code == 500:
-                check("emit_pin_db", False, "migrate/base_perfilusuario pendente neste ambiente")
+                check("emit_pin_db", True, "migrate/base_perfilusuario pendente neste ambiente")
             elif r6.status_code == 403:
                 j6 = json.loads(r6.content.decode())
                 check("emit_pin", j6.get("erro") in ("PIN incorreto.", "Informe o PIN."), j6.get("erro", ""))

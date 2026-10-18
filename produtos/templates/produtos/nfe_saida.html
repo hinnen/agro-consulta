@@ -122,6 +122,14 @@
         <p id="emit-status" class="text-sm font-bold text-slate-700 mb-3"></p>
         <label class="block max-w-xs"><span class="text-xs font-black uppercase">PIN</span><input type="password" id="nfe-pin-emitir" class="nfe-in mt-1" inputmode="numeric" autocomplete="one-time-code"></label>
         <button type="button" id="btn-nfe-emitir" class="mt-4 min-h-[56px] w-full max-w-md rounded-2xl bg-emerald-700 text-white font-black uppercase text-lg shadow-lg">Transmitir NF-e F10</button>
+        <div id="nfe-emit-artefatos" class="hidden mt-5 max-w-xl space-y-2">
+          <p class="text-xs font-black uppercase text-emerald-800">Nota autorizada</p>
+          <div class="flex flex-col sm:flex-row flex-wrap gap-3">
+            <button type="button" id="btn-nfe-danfe-imprimir" class="min-h-[52px] flex-1 min-w-[11rem] px-5 rounded-xl border-2 border-sky-600 bg-sky-600 text-white font-black uppercase text-sm shadow-md">Imprimir DANFE</button>
+            <button type="button" id="btn-nfe-xml-baixar" class="min-h-[52px] flex-1 min-w-[11rem] px-5 rounded-xl border-2 border-violet-700 bg-violet-700 text-white font-black uppercase text-sm shadow-md">Baixar XML</button>
+          </div>
+          <p class="text-xs font-semibold text-slate-600">DANFE abre em nova aba — use <strong>Ctrl+P</strong>. XML salva o arquivo da nota.</p>
+        </div>
       </div>
     </div>
     <aside class="lg:w-[22rem] shrink-0 bg-white rounded-2xl border-2 border-slate-200 p-4 flex flex-col gap-3 overflow-y-auto">
@@ -138,6 +146,10 @@
       <div id="rail-venda-diff" class="hidden text-sm font-black text-amber-800 bg-amber-50 border-2 border-amber-300 rounded-xl p-2"></div>
       <div id="rail-nfce-chip" class="hidden text-xs font-black uppercase text-violet-900 bg-violet-50 border-2 border-violet-300 rounded-xl p-2">Esta venda tem NFC-e autorizada</div>
       <ul id="rail-semaforo" class="text-xs font-semibold space-y-1"></ul>
+      <div id="rail-artefatos" class="hidden flex flex-col gap-2">
+        <button type="button" id="btn-nfe-rail-danfe" class="min-h-[48px] rounded-xl border-2 border-sky-600 bg-sky-600 text-white font-black uppercase text-sm">Imprimir DANFE</button>
+        <button type="button" id="btn-nfe-rail-xml" class="min-h-[48px] rounded-xl border-2 border-violet-700 bg-violet-700 text-white font-black uppercase text-sm">Baixar XML</button>
+      </div>
       <button type="button" id="btn-nfe-salvar" class="min-h-[48px] rounded-xl border-2 border-emerald-500 text-emerald-900 font-black uppercase">Salvar rascunho</button>
       <div class="border-t border-slate-100 pt-3">
         <div class="text-xs font-black uppercase text-slate-500 mb-1">Puxar venda PDV</div>

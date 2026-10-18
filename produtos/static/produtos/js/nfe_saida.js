@@ -68,6 +68,63 @@
     return state.doc && state.doc.status === 'autorizada';
   }
 
+  function urlDanfe(docId) {
+    var id = docId || state.docId;
+    return id ? CFG.urlApi + encodeURIComponent(id) + '/danfe/' : '';
+  }
+
+  function urlXml(docId) {
+    var id = docId || state.docId;
+    return id ? CFG.urlApi + encodeURIComponent(id) + '/xml/' : '';
+  }
+
+  function abrirDanfe(docId) {
+    var u = urlDanfe(docId);
+    if (u) window.open(u, '_blank');
+  }
+
+  function baixarXml(docId, chaveOpt) {
+    var id = docId || state.docId;
+    if (!id) return;
+    var chave = chaveOpt || (state.doc && state.doc.chave) || '';
+    fetch(urlXml(id), { credentials: 'same-origin' })
+      .then(function (r) {
+        if (!r.ok) {
+          return r.text().then(function (t) {
+            setMsg(t || 'XML não disponível (nota não autorizada).', 'err');
+          });
+        }
+        return r.blob().then(function (blob) {
+          var a = document.createElement('a');
+          var nome = 'NFe-' + (onlyDigits(chave, 44) || id) + '.xml';
+          a.href = URL.createObjectURL(blob);
+          a.download = nome;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+          setMsg('XML salvo: ' + nome, 'ok');
+        });
+      })
+      .catch(function () {
+        setMsg('Falha ao baixar XML.', 'err');
+      });
+  }
+
+  function syncEmitArtifatos() {
+    var on = docTravado();
+    var box = $('nfe-emit-artefatos');
+    if (box) box.classList.toggle('hidden', !on);
+    var rail = $('rail-artefatos');
+    if (rail) rail.classList.toggle('hidden', !on);
+    var salvar = $('btn-nfe-salvar');
+    if (salvar) salvar.classList.toggle('hidden', on);
+    var emit = $('btn-nfe-emitir');
+    if (emit) emit.classList.toggle('hidden', on);
+    var pinLbl = $('nfe-pin-emitir');
+    if (pinLbl && pinLbl.closest('label')) pinLbl.closest('label').classList.toggle('hidden', on);
+  }
+
   function renderRail() {
     var dest = (state.doc && state.doc.destinatario) || {};
     $('rail-dest-nome').textContent = dest.nome || '—';
@@ -101,6 +158,7 @@
     } else if (nf) {
       nf.classList.add('hidden');
     }
+    syncEmitArtifatos();
   }
 
   function bindDestForm() {
@@ -260,9 +318,12 @@
     if (n === 5) refreshChecklist();
     if (n === 6) {
       var st = $('emit-status');
-      if (st && state.doc.status === 'autorizada') {
+      if (st && state.doc && state.doc.status === 'autorizada') {
         st.textContent = 'Autorizada · chave ' + (state.doc.chave || '');
+      } else if (st && state.doc) {
+        st.textContent = '';
       }
+      syncEmitArtifatos();
     }
     var btnNext = $('btn-nfe-next');
     var btnEmit = $('btn-nfe-emitir');
@@ -364,13 +425,26 @@
           '<div class="text-right font-black tabular-nums">' + fmtMoeda(row.lista_total) + '<div class="text-xs text-slate-500">' + row.lista_numero_serie + '</div></div>' +
           '<div class="flex flex-wrap gap-2 justify-end">' +
           '<button type="button" class="min-h-[44px] px-3 rounded-xl bg-emerald-700 text-white font-black text-xs uppercase" data-open="' + row.id + '">Abrir</button>' +
-          (row.status === 'autorizada' ? '<a class="min-h-[44px] px-3 inline-flex items-center rounded-xl border-2 border-sky-500 text-sky-800 font-black text-xs uppercase" href="' + CFG.urlApi + row.id + '/danfe/" target="_blank">DANFE</a>' : '') +
+          (row.status === 'autorizada'
+            ? '<button type="button" class="min-h-[44px] px-3 rounded-xl border-2 border-sky-500 bg-sky-600 text-white font-black text-xs uppercase" data-nfe-danfe="' + row.id + '">DANFE</button>' +
+              '<button type="button" class="min-h-[44px] px-3 rounded-xl border-2 border-violet-600 bg-violet-700 text-white font-black text-xs uppercase" data-nfe-xml="' + row.id + '" data-nfe-chave="' + (row.chave || '') + '">XML</button>'
+            : '') +
           '</div>';
         box.appendChild(div);
       });
       box.querySelectorAll('[data-open]').forEach(function (btn) {
         btn.addEventListener('click', function () {
           openEditor(btn.getAttribute('data-open'));
+        });
+      });
+      box.querySelectorAll('[data-nfe-danfe]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          abrirDanfe(btn.getAttribute('data-nfe-danfe'));
+        });
+      });
+      box.querySelectorAll('[data-nfe-xml]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          baixarXml(btn.getAttribute('data-nfe-xml'), btn.getAttribute('data-nfe-chave'));
         });
       });
     });
@@ -531,7 +605,19 @@
       if (id) deVenda(parseInt(id, 10));
     });
     $('btn-nfe-danfe') && $('btn-nfe-danfe').addEventListener('click', function () {
-      if (state.docId) window.open(CFG.urlApi + state.docId + '/danfe/', '_blank');
+      abrirDanfe();
+    });
+    $('btn-nfe-danfe-imprimir') && $('btn-nfe-danfe-imprimir').addEventListener('click', function () {
+      abrirDanfe();
+    });
+    $('btn-nfe-xml-baixar') && $('btn-nfe-xml-baixar').addEventListener('click', function () {
+      baixarXml();
+    });
+    $('btn-nfe-rail-danfe') && $('btn-nfe-rail-danfe').addEventListener('click', function () {
+      abrirDanfe();
+    });
+    $('btn-nfe-rail-xml') && $('btn-nfe-rail-xml').addEventListener('click', function () {
+      baixarXml();
     });
     $('btn-nfe-emitir') && $('btn-nfe-emitir').addEventListener('click', emitirComPin);
     $('nfe-lista-busca') && $('nfe-lista-busca').addEventListener('input', function () {
@@ -556,7 +642,7 @@
       }
       if (e.key === 'F8' && state.docId) {
         e.preventDefault();
-        window.open(CFG.urlApi + state.docId + '/danfe/', '_blank');
+        abrirDanfe();
       }
       if (e.key === 'F10' && state.step === 6) {
         e.preventDefault();
