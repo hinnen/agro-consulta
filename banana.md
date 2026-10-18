@@ -1294,36 +1294,33 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-<<<<<<< HEAD
-### 🟡 ARMADO · **PREP v27.26.5** · **CHECKLIST 18/10e** · DANFE + PALAVRAS-PDV-3
+### 📋 NF-e na loja — passos (Renan)
+
+| # | Ação |
+| - | ---- |
+| 1 | Render deploy **`producao`** (migrate automático) |
+| 2 | Shell **1×**: `./scripts/post_deploy_checklist_1810e_nfe_danfe_palavras_pdv3.sh` |
+| 3 | Smoke: `/nfe/saida/` · DANFE + XML (homolog) |
+| 4 | Push git: frase + senha **99738595** no chat → cutover `--exec` |
+
+**Guia:** `docs/NFE-EM-PRODUCAO-PASSO-A-PASSO.md` · Homolog ≠ SEFAZ fiscal produção (fase 2).
+
+### 🟡 ARMADO · **PREP v27.26.6** · **CHECKLIST 18/10e**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Pacotes** | **NFE-SAIDA-55** (DANFE A4 + botões) + **CADASTRO-PALAVRAS-PDV-3** |
-| **Status** | 🟡 **Checkpoint pronto** · Live **v27.26.3** @ **`8d01908c`** |
-| **PREP** | `deploy/prep-checklist-1810e-nfe-danfe-palavras3` @ **`5e16d701`**+ |
-| **Migrate** | **NÃO** (0146 já na loja) |
-| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1810e_nfe_danfe_palavras_pdv3.sh` |
-| **Rollback** | `rollback/pre-v27263-1810e-danfe-palavras3` @ **`8d01908c`** |
-| **Backup** | `producao-backup-pre-v27265-1810e` |
+| **Pacotes** | **NFE-SAIDA-55** (DANFE + XML) + **CADASTRO-PALAVRAS-PDV-3** (+ PDV **2 tempo**) |
+| **Live hoje** | **v27.26.3**+ (NF-e PG homolog OK no print Renan) |
+| **PREP** | `deploy/prep-checklist-1810e-nfe-danfe-palavras-pdv3` |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1810e_nfe_danfe_palavras_pdv3.sh` |
 | **Cutover** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1810e_nfe_danfe_palavras_pdv3.sh --exec` |
-| **Pós-deploy** | `./scripts/post_deploy_checklist_1810e_nfe_danfe_palavras_pdv3.sh` (**backfill** obrigatório) |
-| **Smoke** | NF-e **Imprimir DANFE** · PDV **2 tempo** (Ctrl+F5) |
 
-### 📦 PACOTE PRONTO — **LOJA-18/10e** · **v27.26.5**
-
-| Campo | Valor |
-| ----- | ----- |
-| **Inclui** | **NFE-SAIDA-55-PG** (`0146`) · DANFE A4 · **CADASTRO-PALAVRAS-PDV-3** |
-| **Branch** | `teste` @ **`e279cedb`**+ |
-=======
 ### 📦 PACOTE PRONTO — **LOJA-18/10e** · **v27.26.6**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Inclui** | **NFE-SAIDA-55-PG** (`0146`) · DANFE A4 · **CADASTRO-PALAVRAS-PDV-3** (+ fix PDV `busca_texto` / **2 tempo**) |
-| **Branch** | `teste` (após push **v27.26.6**) |
->>>>>>> 0e772ec9 (fix(pdv): busca «2 tempo» — busca_texto no wizard + frase no refinar JS (v27.26.6))
+| **Inclui** | **NFE-SAIDA-55-PG** (`0146`) · DANFE A4 · **CADASTRO-PALAVRAS-PDV-3** (+ PDV **2 tempo**) |
+| **Branch** | `teste` @ **`4c52b3dd`**+ |
 | **Paths PDV-3** | `cadastro_busca_codigo_util` · `catalogo_agro.buscar` · `motor_busca_unificado_util` · `busca_filtro_pdv_util` · overlay salvar · `backfill_busca_palavras_overlay` |
 | **Migrate** | **SIM** só **0146** se loja &lt; **v27.26.3** |
 | **Pós-deploy PDV-3** | `python manage.py backfill_busca_palavras_overlay` (1×) · `scripts/post_deploy_checklist_1810e_cadastro_palavras_pdv3.sh` |
