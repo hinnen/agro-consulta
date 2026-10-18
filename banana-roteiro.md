@@ -1091,12 +1091,15 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 88. CHECKLIST ÚNICO — **18/10** · 🟢 **pronto envio** · prep **v27.26.3**
+## 88. CHECKLIST ÚNICO — **18/10** · 🟡 PREP **v27.26.3** · aguarda senha
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **NFE-SAIDA-55-PG** | 🟢 **pronto envio** | **SIM** | **41/41** + **6/6** |
-| 2 | **CADASTRO-PALAVRAS-PDV-2** | 🟢 **pronto envio** | **NÃO** | **50/50** |
+| 1 | **NFE-SAIDA-55-PG** | 🟡 **checkpoint OK** | **SIM** `0146` | **41/41** |
+| 2 | **CADASTRO-PALAVRAS-PDV-2** | 🟡 **checkpoint OK** | **NÃO** | **50/50** |
 
-**Loja:** `producao` @ **`f82f5be1`** (v27.26). **Smoke:** `/nfe/saida/` · **Nova** sem «legado indisponível».  
-**Doc:** `docs/DEPLOY-PREP-CHECKLIST-1810-nfe-saida-pg.md`.
+**Base loja:** **v27.26** @ **`f82f5be1`**.  
+**PREP:** `deploy/prep-checklist-1810-nfe-pg-palavras-pdv2`.  
+**Na senha:** cutover `--exec` → **Render Shell** `post_deploy_checklist_1810_nfe_pg_palavras_pdv2.sh` (migrate).  
+**Revert:** `git push origin rollback/pre-v2726-1810-nfe-pg-palavras:producao`.  
+**Doc:** `docs/DEPLOY-PREP-CHECKLIST-1810-nfe-pg-palavras-pdv2.md`.

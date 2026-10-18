@@ -1294,6 +1294,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟡 ARMADO · **PREP v27.26.3** · **CHECKLIST 18/10** · NF-e PG + palavras PDV
+
+| Campo | Valor |
+| ----- | ----- |
+| **Pacotes** | **NFE-SAIDA-55-PG** (migrate **0146**) + **CADASTRO-PALAVRAS-PDV-2** |
+| **Status** | 🟡 **Checkpoint pronto** · Live **v27.26** @ **`f82f5be1`** |
+| **PREP** | `deploy/prep-checklist-1810-nfe-pg-palavras-pdv2` |
+| **Prova** | verify NF-e **35/35** (HTTP PG após migrate) · cadastro **50/50** · tests **11/11** dry-run |
+| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1810_nfe_pg_palavras_pdv2.sh` ✅ |
+| **Rollback** | `rollback/pre-v2726-1810-nfe-pg-palavras` @ **`f82f5be1`** |
+| **Backup** | `producao-backup-pre-v2726-3-1810` |
+| **Revert** | `git push origin rollback/pre-v2726-1810-nfe-pg-palavras:producao` → **v27.26** |
+| **Cutover loja** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1810_nfe_pg_palavras_pdv2.sh --exec` |
+| **Pós-deploy (Render Shell)** | `./scripts/post_deploy_checklist_1810_nfe_pg_palavras_pdv2.sh` (**migrate obrigatório**) |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1810-nfe-pg-palavras-pdv2.md` |
+| **Smoke** | `/nfe/saida/` **Nova** sem legado · PDV **2 tempo** (Ctrl+F5) |
+
+### ✅ CHECKLIST ÚNICO — **18/10** · 🟡 **aguarda senha** (PREP armado)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NFE-SAIDA-55-PG** | 🟡 **aguarda senha** | **SIM** `0146` | **41/41** loja |
+| 2 | **CADASTRO-PALAVRAS-PDV-2** | 🟡 **aguarda senha** | **NÃO** | **50/50** |
+
 ### 📦 PACOTE PRONTO — **NFE-SAIDA-55-PG** (rascunho Postgres · fix «legado indisponível») · 18/10
 
 | Campo | Valor |
