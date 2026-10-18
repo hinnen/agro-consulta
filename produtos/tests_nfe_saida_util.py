@@ -123,6 +123,17 @@ class NfeSaidaPostgresStoreTests(SimpleTestCase):
                 self.assertEqual(listar_nfe_saida(None), [])
 
 
+class NfeSaidaEmailTests(SimpleTestCase):
+    def test_email_destinatario_valido(self):
+        from produtos.nfe_saida_email_util import email_destinatario_valido, mesclar_destinatario_emit
+
+        self.assertTrue(email_destinatario_valido("a@b.com.br"))
+        self.assertFalse(email_destinatario_valido("invalido"))
+        doc = {"destinatario": {"nome": "X", "email": ""}}
+        out = mesclar_destinatario_emit(doc, {"email": " Renan@exemplo.com "})
+        self.assertEqual(out["destinatario"]["email"], "renan@exemplo.com")
+
+
 class NfeSaidaPagamentoTests(SimpleTestCase):
     def test_validar_pagamentos_total(self):
         from produtos.nfe_saida_util import validar_pagamentos

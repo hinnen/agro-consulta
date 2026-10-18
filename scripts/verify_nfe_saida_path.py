@@ -76,6 +76,8 @@ def test_arquivos() -> None:
     sp = _read("produtos/nfe_saida_sp_emissao_util.py")
     check("sefaz_sp_emit", "def emitir_nfe_saida_sefaz" in sp and "URL_AUTORIZACAO_NFE_SP" in _read("produtos/nfce_sp_emissao_util.py"))
     check("emissao_chama_sp", "emitir_nfe_saida_sefaz" in _read("produtos/nfe_saida_emissao_util.py"))
+    check("email_util", "enviar_nfe_saida_por_email" in _read("produtos/nfe_saida_email_util.py"))
+    check("emit_email_hook", "enviar_nfe_saida_por_email" in _read("produtos/views_nfe_saida.py"))
     check("danfe_padrao", "def montar_html_danfe" in _read("produtos/nfe_saida_danfe_html.py"))
     danfe = _read("produtos/nfe_saida_danfe_html.py")
     check("danfe_canhoto", "canhoto" in danfe and "RECEBEMOS DE" in danfe)

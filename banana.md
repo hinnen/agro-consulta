@@ -1298,11 +1298,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
+<<<<<<< HEAD
 | **PREP** | `deploy/prep-checklist-1810h-nfe-danfe-erp` |
 | **Base loja** | **v27.26.10** @ **`05a871df`** |
 | **Checkpoint** | `./scripts/prep_checkpoint_checklist_1810h_nfe_danfe_erp.sh` |
 | **Cutover** | `AGRO_LOJA_FRASE='pode enviar para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1810h_nfe_danfe_erp.sh --exec` |
 | **Rollback** | `rollback/pre-v272611-1810h-danfe-erp` → **v27.26.10** @ **`05a871df`** |
+=======
+| **Subir** | **`teste` → `producao`** @ **`1c914dd8`** |
+| **Conteúdo** | **NFE-55-XSD-DEST** · **NFE-MANUAL-UX** · **NFE-EMAIL-DEST** (salva e-mail + envia XML/DANFE após autorizar; `EMAIL_HOST` no Render) |
+| **Paths** | `nfe_saida_sp_emissao_util.py` · `nfe_saida.js` · `nfe_saida.html` · `verify_nfe_saida_path.py` |
+| **Migrate** | **NÃO** (0147 já na loja com 18/10f) |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1810g_nfe_xsd_ux.sh` |
+| **Prova** | `verify_nfe_saida_path` **66/66** · unit NF-e SimpleTestCase **9 OK** |
+| **Smoke** | `/nfe/saida/` listas na busca · 1ª NF produção série **2** (se rejeição schema, conferir `cStat`) |
+>>>>>>> c111924b (NF-e saída: salvar e-mail do destinatário e enviar XML/DANFE)
 
 ### 📦 PACOTE PRONTO — **LOJA-18/10h** · **v27.26.11**
 

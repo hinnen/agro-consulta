@@ -355,6 +355,17 @@
     var dest = (state.doc && state.doc.destinatario) || {};
     $('rail-dest-nome').textContent = dest.nome || '—';
     $('rail-dest-doc').textContent = dest.documento ? (dest.tipo_doc || '').toUpperCase() + ' ' + dest.documento : 'Sem documento';
+    var emRail = $('rail-dest-email');
+    if (emRail) {
+      var em = (dest.email || '').trim();
+      if (em) {
+        emRail.textContent = 'E-mail: ' + em;
+        emRail.classList.remove('hidden');
+      } else {
+        emRail.textContent = '';
+        emRail.classList.add('hidden');
+      }
+    }
     $('rail-total').textContent = fmtMoeda(totalDoc());
     $('rail-itens').textContent = String((state.doc && state.doc.itens || []).length);
     var amb = Number((state.doc && state.doc.tp_amb) || (state.cert && state.cert.tp_amb) || 2);
@@ -789,10 +800,11 @@
   function emitirComPin() {
     if (docTravado()) return;
     var pin = ($('nfe-pin-emitir') || {}).value || '';
+    readDestForm();
     function tentar(p) {
       fetchJson(CFG.urlApi + encodeURIComponent(state.docId) + '/emitir/', {
         method: 'POST',
-        body: JSON.stringify({ pin: p }),
+        body: JSON.stringify({ pin: p, destinatario: state.doc.destinatario }),
       }).then(function (res) {
         if (res.status === 403 && window.gmSspinErroPedePin && window.gmSspinErroPedePin(res.json.erro)) {
           if (window.gmSspinGarantirOperador) {
@@ -804,8 +816,16 @@
         }
         if (res.json.ok) {
           state.doc = res.json.doc;
-          setMsg('NF-e autorizada' + (res.json.simulado ? ' (simulação homologação)' : ''), 'ok');
+          var ev = res.json.email_envio || {};
+          var msgOk = 'NF-e autorizada' + (res.json.simulado ? ' (simulação homologação)' : '');
+          if (ev.enviado && ev.email) {
+            msgOk += ' · E-mail enviado para ' + ev.email;
+          } else if (ev.erro) {
+            msgOk += ' · E-mail não enviado: ' + ev.erro;
+          }
+          setMsg(msgOk, ev.erro && !ev.enviado ? 'warn' : 'ok');
           showStep(6);
+          bindDestForm();
           renderRail();
           renderItens();
         } else {
@@ -888,6 +908,8 @@
     });
     document.querySelectorAll('.dest-field').forEach(function (el) {
       el.addEventListener('change', function () { readDestForm(); });
+      el.addEventListener('input', function () { readDestForm(); });
+      el.addEventListener('blur', function () { readDestForm(); });
     });
     $('btn-nfe-add-pag') && $('btn-nfe-add-pag').addEventListener('click', function () {
       state.doc.pagamento = state.doc.pagamento || [];
