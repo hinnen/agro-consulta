@@ -194,3 +194,68 @@ class NfeSaidaXmlMontagemTests(SimpleTestCase):
         self.assertIn("<mod>55</mod>", xml)
         self.assertIn("<tpImp>1</tpImp>", xml)
         self.assertIn("NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO", xml)
+        import re
+
+        dest_blk = re.search(r"<dest>.*?</dest>", xml)
+        self.assertIsNotNone(dest_blk)
+        dest_xml = dest_blk.group(0)
+        self.assertLess(dest_xml.find("<CPF>"), dest_xml.find("<xNome>"))
+
+    def test_xml_dest_ordem_cnpj(self):
+        from datetime import datetime
+
+        from produtos.nfe_saida_sp_emissao_util import _montar_xml_nfe_saida
+        from produtos.nfe_saida_util import doc_novo_vazio
+
+        doc = doc_novo_vazio()
+        doc["tp_amb"] = 1
+        doc["destinatario"].update(
+            {
+                "nome": "Empresa",
+                "documento": "11222333000181",
+                "ie": "ISENTO",
+                "uf": "SP",
+                "cidade": "Jacupiranga",
+                "logradouro": "Rua A",
+                "numero": "1",
+                "bairro": "Centro",
+                "cep": "11940000",
+            }
+        )
+        doc["itens"] = [
+            {
+                "descricao": "P",
+                "qtd": 1,
+                "v_unit": 1,
+                "v_total": 1,
+                "ncm": "23099020",
+                "cfop": "5102",
+                "csosn": "102",
+            }
+        ]
+        doc["pagamento"] = [{"tPag": "01", "valor": 1}]
+        cfg = {
+            "tp_amb": 1,
+            "cnpj": "48900774000110",
+            "razao_social": "Emitente",
+            "fantasia": "Emitente",
+            "logradouro": "Rua B",
+            "numero": "10",
+            "bairro": "Centro",
+            "cmun": "3524600",
+            "cidade": "Jacupiranga",
+            "uf": "SP",
+            "cep": "11940000",
+            "ie": "123456789012",
+            "fone": "",
+        }
+        chave = "3" * 43 + "5"
+        xml = _montar_xml_nfe_saida(
+            doc, cfg, serie=2, numero=1, chave=chave, dh_emi=datetime(2026, 3, 18, 12, 0, 0)
+        )
+        import re
+
+        dest_blk = re.search(r"<dest>.*?</dest>", xml)
+        self.assertIsNotNone(dest_blk)
+        dest_xml = dest_blk.group(0)
+        self.assertLess(dest_xml.find("<CNPJ>"), dest_xml.find("<xNome>"))
