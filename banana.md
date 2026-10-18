@@ -1294,16 +1294,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 ARMADO · **PREP v27.26.10** · **CHECKLIST 18/10g** · XSD dest + NF-e manual UX
+### ✅ Deploy loja — **CHECKLIST 18/10g** · **Live v27.26.10** · 18/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **PREP** | `deploy/prep-checklist-1810g-nfe-xsd-ux` @ **`05a871df`** |
-| **Base loja** | **v27.26.9** @ **`18046efd`** |
-| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1810g_nfe_xsd_ux.sh` → **PREP_CHECKPOINT_OK** |
-| **Cutover** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1810g_nfe_xsd_ux.sh --exec` |
-| **Rollback** | `git push origin rollback/pre-v272610-1810g-nfe-xsd:producao` → **v27.26.9** @ **`18046efd`** |
+| **Pacotes** | **NFE-55-XSD-DEST** + **NFE-MANUAL-UX** |
+| **Status** | ✅ **Live v27.26.10** @ **`05a871df`** (cutover 18/10 · frase+senha Renan) |
+| **Anterior** | **v27.26.9** @ **`18046efd`** |
+| **Pós-deploy Shell** | `./scripts/post_deploy_checklist_1810g_nfe_xsd_ux.sh` |
+| **Revert** | `git push origin rollback/pre-v272610-1810g-nfe-xsd:producao` → **v27.26.9** @ **`18046efd`** |
 | **Backup** | `producao-backup-pre-v272610-1810g` @ **`18046efd`** |
+| **Smoke** | `/nfe/saida/` typeahead · NF série **2** (schema) |
 
 ### 📦 PACOTE PRONTO — **LOJA-18/10g** · **v27.26.10**
 
@@ -1317,14 +1318,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `verify_nfe_saida_path` **66/66** · unit NF-e SimpleTestCase **9 OK** |
 | **Smoke** | `/nfe/saida/` listas na busca · 1ª NF produção série **2** (se rejeição schema, conferir `cStat`) |
 
-### ✅ CHECKLIST ÚNICO — **18/10g** · 🟢 **pronto envio produção**
+### ✅ CHECKLIST ÚNICO — **18/10g** · ✅ **Live v27.26.10**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **NFE-55-XSD-DEST** | 🟢 pronto | **NÃO** | **66/66** |
-| 2 | **NFE-MANUAL-UX** | 🟢 pronto | **NÃO** | HTTP typeahead + `buscar-vendas` |
-
-**Produção atual:** **v27.26.9** (18/10f live). Cutover **18/10g** só com frase + senha após smoke local.
+| 1 | **NFE-55-XSD-DEST** | ✅ **Live** | **NÃO** | verify + SEFAZ schema |
+| 2 | **NFE-MANUAL-UX** | ✅ **Live** | **NÃO** | typeahead + `buscar-vendas` |
 
 ### ✅ Deploy loja — **CHECKLIST 18/10f** · **Live v27.26.9** · 18/10
 
