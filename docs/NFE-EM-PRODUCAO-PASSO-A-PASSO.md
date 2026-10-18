@@ -1,16 +1,18 @@
 # NF-e 55 na loja — passo a passo (simples)
 
-## O que já funciona hoje (homologação)
+## O que já funciona hoje
 
-Com **faixa preta** «SEM VALOR FISCAL» = **teste SEFAZ**, igual ao print que você mandou.  
-**Nova** · emitir com PIN · **DANFE** · **XML** — isso é o esperado até ligar SEFAZ **produção** (fase 2).
+**Nova** · emitir com PIN · **DANFE** · **XML**.
+
+- **Homologação** (`NFE_DIST_DFE_TP_AMB=2`): por padrão ainda **simula** a autorização (rápido para conferir tela). Para testar SOAP real em homolog, use `NFE_SAIDA_SIMULAR_EMIT=0`.
+- **Produção** (`NFE_DIST_DFE_TP_AMB=1`): emite de verdade na SEFAZ-SP (**NFeAutorizacao4**, modelo **55**). Faixa «SEM VALOR FISCAL» some quando o ambiente é produção.
 
 ---
 
 ## 1. Deploy do código (Render)
 
 - Branch do site da loja: **`producao`**
-- Cada deploy já roda **`migrate`** (inclui tabela **`NfeSaidaRascunhoAgro`** — migration **0146**)
+- Cada deploy já roda **`migrate`** (rascunhos **0146** · numeração NF-e **0147**)
 - Se o DANFE novo já apareceu no **sistvale.com.br**, o código **já subiu**
 
 ---
@@ -39,13 +41,21 @@ Se o backfill já rodou antes, é seguro rodar de novo.
 
 ---
 
-## 4. O que ainda NÃO é «nota fiscal de verdade» na SEFAZ
+## 4. Ligar emissão **real** (produção SEFAZ)
 
-| Hoje | Depois (fase 2) |
-|------|------------------|
-| Ambiente **homologação** (`NFE_DIST_DFE_TP_AMB=2`) | `TP_AMB=1` produção |
-| Autorização **simulada** | Webservice **NFeAutorizacao4** real |
-| DANFE para conferência | DANFE com valor fiscal |
+No **Environment** do Render (Sistvale - Produção), conferir:
+
+| Variável | Valor |
+|----------|--------|
+| `NFE_DIST_DFE_TP_AMB` | **1** |
+| `NFC_E_TP_AMB` | **1** (mesmo certificado da NFC-e) |
+| `NFE_SAIDA_SIMULAR_EMIT` | **0** ou vazio (não force simulação) |
+| `NFE_EMISSAO_SERIE` | série cadastrada na SEFAZ para NF-e 55 (ex. **1**) |
+| `NFE_EMISSAO_PROXIMO_NUMERO` | próximo nNF liberado pelo contador |
+
+Mesmo **certificado A1** e dados do emitente (`NFC_E_*` / `NFE_DIST_DFE_*`) da NFC-e.
+
+**Antes da 1ª nota real:** faça **uma** nota em homolog com `NFE_SAIDA_SIMULAR_EMIT=0` e `TP_AMB=2` para validar XML (opcional).
 
 **PDV / NFC-e 65** não mudam por causa da NF-e 55.
 

@@ -136,7 +136,7 @@ PG_BACKUP_CATEGORIES: tuple[PgBackupCategory, ...] = (
         slug="nfe_saida",
         label="NF-e saída 55 (rascunhos)",
         warning="Substitui rascunhos de NF-e saída salvos no Postgres.",
-        models=("produtos.NfeSaidaRascunhoAgro",),
+        models=("produtos.NfeSaidaRascunhoAgro", "produtos.NfeNumeracaoAgro"),
     ),
     PgBackupCategory(
         slug="rh",

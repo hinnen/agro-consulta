@@ -125,12 +125,29 @@ def test_logica() -> None:
         check("emit_sim_homolog", out.get("ok") is True and out.get("simulado") is True, str(out.get("c_stat")))
         doc["tp_amb"] = 1
         os.environ["NFE_SAIDA_SIMULAR_EMIT"] = "0"
-        out_prod = emitir_nfe_saida_documento(doc, cnpj_emit="11222333000181")
-        bloqueio = (out_prod.get("erro") or "") + (out_prod.get("x_motivo") or "")
-        check(
-            "emit_prod_bloqueada",
-            out_prod.get("ok") is False and ("soap" in bloqueio.lower() or "pendente" in bloqueio.lower()),
-        )
+        with patch(
+            "produtos.nfe_saida_sp_emissao_util.emitir_nfe_saida_sefaz",
+            return_value={
+                "ok": True,
+                "status": "autorizada",
+                "chave": "3" * 44,
+                "protocolo": "135000000000000",
+                "c_stat": 100,
+                "x_motivo": "Autorizado o uso da NF-e",
+                "nNF": 1,
+                "serie": 1,
+                "xml_autorizado": "<nfeProc/>",
+                "simulado": False,
+            },
+        ) as sefaz_mock:
+            out_prod = emitir_nfe_saida_documento(doc, cnpj_emit="11222333000181")
+            check(
+                "emit_prod_sefaz",
+                out_prod.get("ok") is True
+                and sefaz_mock.called
+                and out_prod.get("simulado") is False,
+                str(out_prod),
+            )
         os.environ.pop("NFE_SAIDA_SIMULAR_EMIT", None)
 
 

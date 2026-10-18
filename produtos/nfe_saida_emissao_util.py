@@ -1,4 +1,4 @@
-"""Emissão NF-e 55 — homologação simulada ou mensagem até SOAP NFeAutorizacao4 dedicado."""
+"""Emissão NF-e 55 — homologação simulada (opcional) ou SOAP NFeAutorizacao4 SP."""
 from __future__ import annotations
 
 import logging
@@ -105,16 +105,9 @@ def emitir_nfe_saida_documento(doc: dict, *, cnpj_emit: str) -> dict[str, Any]:
             "simulado": True,
         }
 
-    return {
-        "ok": False,
-        "status": NFE_SAIDA_STATUS_REJEITADA,
-        "erro": (
-            "Emissão NF-e 55 em produção ainda não está ligada ao webservice NFeAutorizacao4. "
-            "Use homologação (NFE_DIST_DFE_TP_AMB=2) com simulação automática ou aguarde integração SOAP."
-        ),
-        "c_stat": 0,
-        "x_motivo": "Integração SEFAZ NF-e 55 pendente.",
-    }
+    from produtos.nfe_saida_sp_emissao_util import emitir_nfe_saida_sefaz
+
+    return emitir_nfe_saida_sefaz(doc, cnpj_emit=cnpj_emit)
 
 
 def montar_html_danfe_previa(doc: dict, *, emitente_nome: str = "", emitente_cnpj: str = "") -> str:

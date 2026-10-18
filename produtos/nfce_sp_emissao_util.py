@@ -59,6 +59,12 @@ URL_AUTORIZACAO = {
     2: "https://homologacao.nfce.fazenda.sp.gov.br/ws/NFeAutorizacao4.asmx",
 }
 
+# NF-e modelo 55 — autorização SEFAZ-SP (não usar host nfce.*)
+URL_AUTORIZACAO_NFE_SP = {
+    1: "https://nfe.fazenda.sp.gov.br/ws/NFeAutorizacao4.asmx",
+    2: "https://homologacao.nfe.fazenda.sp.gov.br/ws/NFeAutorizacao4.asmx",
+}
+
 URL_RECEPCAO_EVENTO = {
     1: "https://nfce.fazenda.sp.gov.br/ws/NFeRecepcaoEvento4.asmx",
     2: "https://homologacao.nfce.fazenda.sp.gov.br/ws/NFeRecepcaoEvento4.asmx",
@@ -708,9 +714,10 @@ def _enviar_autorizacao(
     *,
     retry_delays: tuple[float, ...] | None = None,
     http_timeout: tuple[int, int] | None = None,
+    url_autorizacao: str | None = None,
 ) -> tuple[dict[str, Any] | None, str | None]:
     tp_amb = int(cfg["tp_amb"])
-    url = URL_AUTORIZACAO.get(tp_amb, URL_AUTORIZACAO[2])
+    url = (url_autorizacao or "").strip() or URL_AUTORIZACAO.get(tp_amb, URL_AUTORIZACAO[2])
     id_lote = str(int(datetime.now().timestamp()))[-15:]
     nfe_xml = normalizar_xml_envio(xml_assinado)
     envi_nfe = (
