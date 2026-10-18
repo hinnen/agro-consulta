@@ -35,6 +35,20 @@ class CadastroBuscaPalavrasOverlayIdTests(TestCase):
                 msg=f"termo={termo!r} rows={nomes}",
             )
 
+    def test_overlay_pids_2tempo_sem_frase_com_espaco(self):
+        from produtos.cadastro_busca_codigo_util import overlay_pids_por_palavras_busca
+
+        ProdutoGestaoOverlayAgro.objects.create(
+            produto_externo_id="ov-2t-only-compact",
+            cadastro_extras={
+                "palavras_chave": "oleo, 2tempo",
+            },
+        )
+        pids = overlay_pids_por_palavras_busca("2 tempo", limit=10)
+        self.assertIn("ov-2t-only-compact", pids)
+        pids2 = overlay_pids_por_palavras_busca("2tempo", limit=10)
+        self.assertIn("ov-2t-only-compact", pids2)
+
     def test_qs_produtos_catalogo_por_ids_externos_erp(self):
         from produtos.cadastro_busca_codigo_util import qs_produtos_catalogo_por_ids_externos
         from produtos.catalogo_agro import queryset_catalogo_ativos

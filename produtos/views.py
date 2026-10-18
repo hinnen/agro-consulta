@@ -2679,6 +2679,15 @@ def _api_produtos_gestao_overlay_salvar_core(request):
     pid = str(payload.get("produto_id") or "").strip()
     if not pid:
         return JsonResponse({"ok": False, "erro": "produto_id obrigatório"}, status=400)
+    pid_recebido = pid
+    from produtos.cadastro_busca_codigo_util import canonical_overlay_produto_externo_id
+
+    pid_canon = canonical_overlay_produto_externo_id(pid)
+    if pid_canon:
+        pid = pid_canon
+    if pid_canon and pid_canon != pid_recebido:
+        payload = dict(payload)
+        payload["produto_id"] = pid
 
     from produtos.agro_codigo_barras_loja_util import (
         bloquear_alocacao_codigo_barras_loja,
@@ -2747,6 +2756,17 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         produto_externo_id=pid[:64],
         defaults={"usuario": request.user if request.user.is_authenticated else None},
     )
+    if pid_recebido[:64] != pid[:64]:
+        ov_alt = ProdutoGestaoOverlayAgro.objects.filter(
+            produto_externo_id=pid_recebido[:64]
+        ).first()
+        if ov_alt and ov_alt.pk != ov.pk:
+            alt_ex = ov_alt.cadastro_extras if isinstance(ov_alt.cadastro_extras, dict) else {}
+            ov_ex = ov.cadastro_extras if isinstance(ov.cadastro_extras, dict) else {}
+            merged_ex = dict(alt_ex)
+            merged_ex.update(ov_ex)
+            ov.cadastro_extras = merged_ex
+            ov_alt.delete()
     from produtos.cadastro_alteracao_historico_util import (
         enriquecer_snapshot_antes_com_catalogo,
         inferir_origem_payload,

@@ -108,7 +108,16 @@ def test_contratos() -> None:
     check("unit_test_file", test_py.is_file())
 
     ver = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
-    check("version_prep", ver in ("27.26.4", "27.26.3", "27.26.2", "27.26.1", "27.26", "27.25", "27.24"), ver)
+    check(
+        "version_prep",
+        ver in ("27.26.5", "27.26.4", "27.26.3", "27.26.2", "27.26.1", "27.26", "27.25", "27.24"),
+        ver,
+    )
+    check(
+        "backfill_busca_palavras_cmd",
+        "backfill_busca_palavras_overlay" in (ROOT / "produtos/management/commands/backfill_busca_palavras_overlay.py").read_text(),
+    )
+    check("canonical_overlay_id", "def canonical_overlay_produto_externo_id" in cad_util)
 
 
 def test_logica_python() -> None:

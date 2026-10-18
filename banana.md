@@ -1294,22 +1294,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — **CADASTRO-PALAVRAS-PDV-3** (vínculo overlay ↔ Produto · **2 tempo**) · 18/10
+### 📦 PACOTE PRONTO — **CADASTRO-PALAVRAS-PDV-3** (busca apelido **definitiva**) · 18/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | `qs_produtos_catalogo_por_ids_externos` (externo + `erp_produto_id` + PK); `_overlay_mapa_por_ids` com alias; fallback final só palavras-chave; **BCA cache v6** |
-| **Motivo** | v27.26.3.1: overlay achava apelido mas `Produto` não casava só em `produto_externo_id` → 0 na busca |
-| **Branch** | `teste` · `VERSION` **27.26.4** |
+| **O quê** | Vínculo overlay↔`Produto` (externo/ERP/PK) · busca apelido **OR** frase/compact/tokens (não AND frase+token) · filtro PDV aceita **frase inteira** no `busca_texto` · ID canônico + merge overlay ao salvar · motor PG fallback apelido · comando **`backfill_busca_palavras_overlay`** · **BCA v7** |
+| **Motivo** | v27.26.3.1: três falhas juntas — ID errado, overlay em chave ERP, índice/`ILIKE` exigindo «2 tempo» literal quando só «2tempo» cadastrado |
+| **Branch** | `teste` · `VERSION` **27.26.5** |
 | **Migrate** | **NÃO** |
-| **Prova** | verify **51/51** · tests cadastro busca + overlay **2** |
-| **Smoke** | Ctrl+F5 cadastro + PDV → **`2 tempo`** e **`2tempo`** |
+| **Pós-deploy** | Render Shell: `python manage.py backfill_busca_palavras_overlay` (uma vez) |
+| **Prova** | verify **53/53** |
+| **Smoke** | Ctrl+F5 → **`2 tempo`** · **`2tempo`** · **`oleo`** no PDV e cadastro |
 
-### 🟢 CHECKLIST ÚNICO — **18/10c** · **pronto envio** · prep **v27.26.4**
+### 🟢 CHECKLIST ÚNICO — **18/10d** · **pronto envio** · prep **v27.26.5**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CADASTRO-PALAVRAS-PDV-3** | 🟢 **pronto envio** | **NÃO** | verify + tests |
+| 1 | **CADASTRO-PALAVRAS-PDV-3** | 🟢 **pronto envio** | **NÃO** | verify + backfill |
 
 ### ✅ Deploy loja — **CHECKLIST 18/10** · **Live v27.26.3** · 18/10
 

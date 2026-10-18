@@ -301,6 +301,31 @@ def buscar_documentos_unificado(
             pg_docs = [cat_agro.row_para_doc_busca_pdv(r) for r in rows]
         except Exception:
             logger.warning("motor_busca_unificado: buscar Postgres falhou", exc_info=True)
+        if not pg_docs and termo:
+            from produtos.cadastro_busca_codigo_util import (
+                overlay_pids_por_palavras_busca,
+                qs_produtos_catalogo_por_ids_externos,
+            )
+
+            pids_ap = overlay_pids_por_palavras_busca(termo, min(lim * 2, 160))
+            if pids_ap:
+                try:
+                    qs_cat = cat_agro.queryset_catalogo_ativos(inativos=include_inactive)
+                    chunk = list(
+                        qs_produtos_catalogo_por_ids_externos(qs_cat, pids_ap).order_by(
+                            "nome", "pk"
+                        )[: min(lim * 2, 160)]
+                    )
+                    if chunk:
+                        pg_docs = [
+                            cat_agro.row_para_doc_busca_pdv(r)
+                            for r in cat_agro._rows_de_produtos(chunk)
+                        ]
+                except Exception:
+                    logger.warning(
+                        "motor_busca_unificado: apelido overlay Postgres falhou",
+                        exc_info=True,
+                    )
 
     from produtos.busca_filtro_pdv_util import filtrar_documentos_estilo_pdv
     from produtos.cadastro_busca_codigo_util import gm_base_familia, parece_codigo_cadastro
