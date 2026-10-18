@@ -1097,12 +1097,11 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 89. CHECKLIST ÚNICO — **18/10f** · 🟡 **aguarda senha** · **v27.26.9**
+## 89. CHECKLIST ÚNICO — **18/10f** · ✅ **Live v27.26.9**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **NFE-55-SEFAZ+DANFE-AGRO** | 🟡 **aguarda senha** | **SIM 0147** | **59/59** |
-| 2 | **CADASTRO-PALAVRAS-PDV-3** | 🟡 **aguarda senha** | **NÃO** | **56/56** |
+| 1 | **NFE-55-SEFAZ+DANFE-AGRO** | ✅ **Live** | **SIM 0147** | **59/59** |
+| 2 | **CADASTRO-PALAVRAS-PDV-3** | ✅ **Live** | **NÃO** | **56/56** |
 
-**PREP:** `deploy/prep-checklist-1810f-nfe-sefaz-danfe-pdv` @ **`0945ef79`**.  
-**Doc:** `docs/DEPLOY-PREP-CHECKLIST-1810f-nfe-sefaz-danfe-pdv.md`.
+**Loja git:** `producao` @ **`18046efd`**. **Shell:** `post_deploy_checklist_1810f_nfe_sefaz_danfe_pdv.sh`.
