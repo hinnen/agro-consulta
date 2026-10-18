@@ -1294,11 +1294,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟡 ARMADO · **PREP v27.26.10** · **CHECKLIST 18/10g** · XSD dest + NF-e manual UX
+
+| Campo | Valor |
+| ----- | ----- |
+| **PREP** | `deploy/prep-checklist-1810g-nfe-xsd-ux` @ **`05a871df`** |
+| **Base loja** | **v27.26.9** @ **`18046efd`** |
+| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1810g_nfe_xsd_ux.sh` → **PREP_CHECKPOINT_OK** |
+| **Cutover** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1810g_nfe_xsd_ux.sh --exec` |
+| **Rollback** | `git push origin rollback/pre-v272610-1810g-nfe-xsd:producao` → **v27.26.9** @ **`18046efd`** |
+| **Backup** | `producao-backup-pre-v272610-1810g` @ **`18046efd`** |
+
 ### 📦 PACOTE PRONTO — **LOJA-18/10g** · **v27.26.10**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Subir** | **`teste` → `producao`** @ ponta **`teste`** (após pull) |
+| **Subir** | **`deploy/prep-checklist-1810g-nfe-xsd-ux` → `producao`** (não merge `teste` inteiro) |
 | **Conteúdo** | **NFE-55-XSD-DEST** (ordem CPF/CNPJ no XML, CEP/endereço) · **NFE-MANUAL-UX** (lista cliente/produto/venda, F2/F3) |
 | **Paths** | `nfe_saida_sp_emissao_util.py` · `nfe_saida.js` · `nfe_saida.html` · `verify_nfe_saida_path.py` |
 | **Migrate** | **NÃO** (0147 já na loja com 18/10f) |
