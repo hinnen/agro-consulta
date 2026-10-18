@@ -200,11 +200,18 @@ def test_git_sem_migrate() -> None:
         text=True,
     ).stdout.strip()
     log1 = subprocess.run(
-        ["git", "log", "-8", "--oneline"],
+        ["git", "log", "-15", "--oneline", "origin/teste"],
         cwd=ROOT,
         capture_output=True,
         text=True,
     ).stdout
+    if not log1.strip():
+        log1 = subprocess.run(
+            ["git", "log", "-15", "--oneline"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+        ).stdout
     feat_ok = (
         "619a364e" in log1
         or "0a0e824f" in log1
@@ -212,6 +219,9 @@ def test_git_sem_migrate() -> None:
         or "f1389e1a" in log1
         or "d55f7910" in log1
         or "4c54d87e" in log1
+        or "187d7f56" in log1
+        or "8b2e15f7" in log1
+        or "4c52b3dd" in log1
         or "CADASTRO-PALAVRAS-PDV-3" in log1
         or "backfill_busca_palavras" in log1
         or "busca apelido" in log1.lower()

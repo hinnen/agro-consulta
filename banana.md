@@ -1300,7 +1300,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Pacotes** | **NFE-55-SEFAZ+DANFE-AGRO** + **CADASTRO-PALAVRAS-PDV-3** (busca mista) |
 | **Status** | 🟡 **Checkpoint pronto** · Live **v27.26.5** @ **`5e16d701`** |
-| **PREP** | `deploy/prep-checklist-1810f-nfe-sefaz-danfe-pdv` @ **`0945ef79`** |
+| **PREP** | `deploy/prep-checklist-1810f-nfe-sefaz-danfe-pdv` @ **`18046efd`** |
 | **Migrate** | **SIM** `0147` |
 | **Checkpoint** | `./scripts/prep_checkpoint_checklist_1810f_nfe_sefaz_danfe_pdv.sh` |
 | **Rollback** | `rollback/pre-v27265-1810f-nfe-sefaz` @ **`5e16d701`** |
