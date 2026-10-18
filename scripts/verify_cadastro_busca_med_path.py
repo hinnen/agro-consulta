@@ -184,6 +184,11 @@ def test_git_sem_migrate() -> None:
         or "0a0e824f" in log1
         or "5010eab4" in log1
         or "f1389e1a" in log1
+        or "d55f7910" in log1
+        or "4c54d87e" in log1
+        or "CADASTRO-PALAVRAS-PDV-3" in log1
+        or "backfill_busca_palavras" in log1
+        or "busca apelido" in log1.lower()
         or "palavras-chave" in log1
         or "palavras_chave" in log1
         or "busca_palavras" in log1

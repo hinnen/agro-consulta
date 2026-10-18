@@ -1294,44 +1294,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — **LOJA-18/10e** · **v27.26.5** · NF-e 55 + apelidos PDV
+### 📦 PACOTE PRONTO — **LOJA-18/10e** · **v27.26.5**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Inclui** | **NFE-SAIDA-55-PG** (`0146`) · botões DANFE/XML · **DANFE A4 padrão** · **CADASTRO-PALAVRAS-PDV-3** |
-| **Branch** | `teste` @ **`9df737a6`** |
-| **Migrate** | **SIM** só **0146** (se loja ainda em **v27.26** @ `f82f5be1`) |
-| **Prova** | NF-e **47/47** · cadastro **53/53** (loja) |
-| **Smoke** | NF-e: Nova · homolog · DANFE+XML · PDV: **2 tempo** / **oleo** |
+| **Inclui** | **NFE-SAIDA-55-PG** (`0146`) · DANFE A4 · **CADASTRO-PALAVRAS-PDV-3** |
+| **Branch** | `teste` @ **`e279cedb`**+ |
+| **Paths PDV-3** | `cadastro_busca_codigo_util` · `catalogo_agro.buscar` · `motor_busca_unificado_util` · `busca_filtro_pdv_util` · overlay salvar · `backfill_busca_palavras_overlay` |
+| **Migrate** | **SIM** só **0146** se loja &lt; **v27.26.3** |
+| **Pós-deploy PDV-3** | `python manage.py backfill_busca_palavras_overlay` (1×) · `scripts/post_deploy_checklist_1810e_cadastro_palavras_pdv3.sh` |
+| **Prova** | NF-e **47/47** · `verify_cadastro_busca_med_path` **53/53** · PIN **9973** |
+| **Smoke** | NF-e Nova/DANFE · PDV **2 tempo** / **2tempo** |
 
-### 🟢 CHECKLIST ÚNICO — **18/10e** · **pronto envio produção** · **v27.26.5**
+### 🟢 CHECKLIST ÚNICO — **18/10e** · **pronto envio produção**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
 | 1 | **NFE-SAIDA-55** (PG+UI+DANFE) | 🟢 **pronto envio** | **SIM**† | **47/47** |
-| 2 | **CADASTRO-PALAVRAS-PDV-3** | 🟢 **pronto envio** | **NÃO** | **53/53** |
+| 2 | **CADASTRO-PALAVRAS-PDV-3** | 🟢 **pronto envio** | **NÃO** | **53/53** + backfill |
 
-† **0146** já aplicada se loja ≥ **v27.26.3** com migrate OK.
+† **0146** já aplicada se loja ≥ **v27.26.3**.
 
-**Doc:** `docs/DEPLOY-PREP-CHECKLIST-1810e-nfe-danfe-palavras3.md` · **Revert NF-e:** `producao` → **`f82f5be1`**.
-
-### 📦 PACOTE PRONTO — **CADASTRO-PALAVRAS-PDV-3** (busca apelido **definitiva**) · 18/10
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Vínculo overlay↔`Produto` (externo/ERP/PK) · busca apelido **OR** frase/compact/tokens (não AND frase+token) · filtro PDV aceita **frase inteira** no `busca_texto` · ID canônico + merge overlay ao salvar · motor PG fallback apelido · comando **`backfill_busca_palavras_overlay`** · **BCA v7** |
-| **Motivo** | v27.26.3.1: três falhas juntas — ID errado, overlay em chave ERP, índice/`ILIKE` exigindo «2 tempo» literal quando só «2tempo» cadastrado |
-| **Branch** | `teste` · `VERSION` **27.26.5** |
-| **Migrate** | **NÃO** |
-| **Pós-deploy** | Render Shell: `python manage.py backfill_busca_palavras_overlay` (uma vez) |
-| **Prova** | verify **53/53** |
-| **Smoke** | Ctrl+F5 → **`2 tempo`** · **`2tempo`** · **`oleo`** no PDV e cadastro |
-
-### 🟢 CHECKLIST ÚNICO — **18/10d** · **pronto envio** · prep **v27.26.5**
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **CADASTRO-PALAVRAS-PDV-3** | 🟢 **pronto envio** | **NÃO** | verify + backfill |
+**Doc:** `docs/DEPLOY-PREP-CHECKLIST-1810e-nfe-danfe-palavras3.md`
 
 ### ✅ Deploy loja — **CHECKLIST 18/10** · **Live v27.26.3** · 18/10
 
