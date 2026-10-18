@@ -6,6 +6,45 @@ from decimal import Decimal
 from django.test import SimpleTestCase, TestCase
 
 
+class NfeSaidaDanfeLayoutTests(SimpleTestCase):
+    def test_html_danfe_padrao(self):
+        from produtos.nfe_saida_danfe_html import montar_html_danfe
+
+        doc = {
+            "status": "autorizada",
+            "tp_amb": 2,
+            "chave": "35261011222333000181550010000000011234567890",
+            "nNF": 1,
+            "serie": 1,
+            "protocolo": "SIM123",
+            "destinatario": {
+                "nome": "Cliente",
+                "documento": "52998224725",
+                "uf": "SP",
+                "cidade": "Jacupiranga",
+                "logradouro": "Rua A",
+                "numero": "1",
+            },
+            "fiscal": {"natureza": "VENDA"},
+            "itens": [
+                {
+                    "descricao": "Produto",
+                    "qtd": 1,
+                    "v_unit": 10,
+                    "v_total": 10,
+                    "ncm": "23099020",
+                    "cfop": "5102",
+                    "csosn": "102",
+                }
+            ],
+        }
+        html = montar_html_danfe(doc, emitente={"razao": "Loja", "cnpj": "11222333000181", "uf": "SP"})
+        self.assertIn("DANFE", html)
+        self.assertIn("Recebemos de", html)
+        self.assertIn("SEM VALOR FISCAL", html)
+        self.assertIn("Produto", html)
+
+
 class NfeSaidaCfopTests(SimpleTestCase):
     def test_cfop_interno_e_interestadual(self):
         from produtos.nfe_saida_util import cfop_padrao_destino
