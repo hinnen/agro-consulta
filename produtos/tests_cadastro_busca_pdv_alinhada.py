@@ -32,6 +32,17 @@ class CadastroBuscaPdvAlinhadaTests(SimpleTestCase):
         out = filtrar_rows_api_estilo_pdv(rows, "2 tempo")
         self.assertEqual(len(out), 1)
 
+    def test_filtra_oleo_2tempo_nome_mais_apelido(self):
+        rows = [
+            {
+                "id": "1",
+                "nome": "Oleo unix dt 2t 200ml",
+                "busca_texto": "oleo unix 2t oleo 2 tempo 2tempo cursor",
+            },
+        ]
+        out = filtrar_rows_api_estilo_pdv(rows, "oleo 2tempo")
+        self.assertEqual(len(out), 1)
+
     def test_filtra_oleo_2_tempo_com_busca_texto(self):
         rows = [
             {

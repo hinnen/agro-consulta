@@ -125,9 +125,12 @@ def _norm_termo(termo: str) -> str:
 
 
 def blob_busca_de_doc(doc: dict) -> str:
+    """Texto para AND de tokens: nome/marca + apelidos (não só ``busca_texto``)."""
     bt = doc.get("BuscaTexto") or doc.get("busca_texto")
+    nome_m = _norm_termo(str(doc.get("Nome") or doc.get("nome") or ""))
+    marca_m = _norm_termo(str(doc.get("Marca") or doc.get("marca") or ""))
     if bt:
-        return _norm_termo(str(bt))
+        return _norm_termo(" ".join(x for x in (nome_m, marca_m, str(bt)) if x))
     partes: list[str] = []
     for k in (
         "Nome",
@@ -156,8 +159,10 @@ def blob_busca_de_doc(doc: dict) -> str:
 
 def blob_busca_de_row_api(row: dict) -> str:
     bt = row.get("busca_texto")
+    nome_m = _norm_termo(str(row.get("nome") or ""))
+    marca_m = _norm_termo(str(row.get("marca") or ""))
     if bt:
-        return _norm_termo(str(bt))
+        return _norm_termo(" ".join(x for x in (nome_m, marca_m, str(bt)) if x))
     partes: list[str] = []
     for k in ("nome", "marca", "codigo_nfe", "codigo_barras", "codigo", "categoria", "fornecedor"):
         v = row.get(k)

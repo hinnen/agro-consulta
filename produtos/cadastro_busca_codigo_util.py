@@ -303,6 +303,36 @@ def _q_overlay_palavras_busca(termo_txt: str) -> Q:
     return match_frase | match_tokens
 
 
+def overlay_pids_union_por_tokens_apelido(termo: str, limit: int = 80) -> list[str]:
+    """
+    União de overlays por token (ex. «oleo 2tempo»): apelido num token + nome no outro.
+    O filtro PDV (AND) roda depois em nome + busca_texto.
+    """
+    from integracoes.texto import normalizar
+
+    termo_txt = str(termo or "").strip()
+    partes = tokens_termo_busca_cadastro(termo_txt)
+    if len(partes) < 2:
+        return []
+    lim = max(1, min(int(limit or 80), 200))
+    per = max(12, lim // max(1, len(partes)))
+    out: list[str] = []
+    seen: set[str] = set()
+    for pl in partes:
+        pn = normalizar(pl)
+        if len(pn) < 3 and not pl.isdigit():
+            continue
+        for pid in overlay_pids_por_palavras_busca(pl, per):
+            pid = str(pid or "").strip()
+            if not pid or pid in seen:
+                continue
+            seen.add(pid)
+            out.append(pid)
+            if len(out) >= lim:
+                return out
+    return out
+
+
 def overlay_pids_por_palavras_busca(termo: str, limit: int = 80) -> list[str]:
     """Produtos cujo overlay tem apelido em palavras-chave (Postgres JSON + descrição)."""
     import logging

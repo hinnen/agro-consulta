@@ -2139,10 +2139,14 @@
         var marca = stripAccents(String((p && p.marca) || ''));
         var busca = stripAccents(String((p && p.busca_texto) || ''));
         var blob = nome + ' ' + marca + ' ' + busca;
-        if (/^\d+$/.test(tok)) {
-            return new RegExp('(?:^|[^0-9])' + tok + '(?:[^0-9]|$)').test(blob);
+        function hitTexto(s) {
+            if (!s) return false;
+            if (/^\d+$/.test(tok)) {
+                return new RegExp('(?:^|[^0-9])' + tok + '(?:[^0-9]|$)').test(s);
+            }
+            return s.indexOf(tok) !== -1;
         }
-        return blob.indexOf(tok) !== -1;
+        return hitTexto(nome) || hitTexto(busca) || hitTexto(blob);
     }
 
     function tokensBuscaQuery(query) {

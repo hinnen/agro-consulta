@@ -1294,6 +1294,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+<<<<<<< HEAD
 ### 📋 NF-e na loja — passos (Renan)
 
 | # | Ação |
@@ -1321,10 +1322,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Inclui** | **NFE-SAIDA-55-PG** (`0146`) · DANFE A4 · **CADASTRO-PALAVRAS-PDV-3** (+ PDV **2 tempo**) |
 | **Branch** | `teste` @ **`4c52b3dd`**+ |
+=======
+### 🟡 ARMADO · **PREP v27.26.7** · **CHECKLIST 18/10e** · DANFE + PALAVRAS-PDV-3
+
+| Campo | Valor |
+| ----- | ----- |
+| **Pacotes** | **NFE-SAIDA-55** (DANFE A4) + **CADASTRO-PALAVRAS-PDV-3** (+ fix PDV **2 tempo**) |
+| **Status** | 🟡 **Checkpoint pronto** · Live **v27.26.3** @ **`8d01908c`** |
+| **PREP** | `deploy/prep-checklist-1810e-nfe-danfe-palavras3` @ **`5e16d701`**+ |
+| **Migrate** | **NÃO** (0146 já na loja) |
+| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1810e_nfe_danfe_palavras_pdv3.sh` |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1810e_nfe_danfe_palavras_pdv3.sh` (**backfill** obrigatório) |
+| **Smoke** | NF-e DANFE · PDV **oleo 2tempo** / **2 tempo** (Ctrl+F5) |
+
+### 📦 PACOTE PRONTO — **LOJA-18/10e** · **v27.26.7**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Inclui** | **NFE-SAIDA-55-PG** (`0146`) · DANFE A4 · **CADASTRO-PALAVRAS-PDV-3** |
+| **Branch** | `teste` @ **`v27.26.7`**+ |
+>>>>>>> 9576ee5c (fix(pdv): busca mista nome + palavra-chave (oleo 2tempo) v27.26.7)
 | **Paths PDV-3** | `cadastro_busca_codigo_util` · `catalogo_agro.buscar` · `motor_busca_unificado_util` · `busca_filtro_pdv_util` · overlay salvar · `backfill_busca_palavras_overlay` |
 | **Migrate** | **SIM** só **0146** se loja &lt; **v27.26.3** |
 | **Pós-deploy PDV-3** | `python manage.py backfill_busca_palavras_overlay` (1×) · `scripts/post_deploy_checklist_1810e_cadastro_palavras_pdv3.sh` |
-| **Prova** | NF-e **47/47** · `verify_cadastro_busca_med_path` **53/53** · PIN **9973** |
+| **Prova** | NF-e **47/47** · `verify_cadastro_busca_med_path` **54/54** · PIN **9973** |
 | **Smoke** | NF-e Nova/DANFE · PDV **2 tempo** / **2tempo** |
 
 ### ✅ CHECKLIST ÚNICO — **18/10e** · 🟡 **aguarda senha** (PREP armado)

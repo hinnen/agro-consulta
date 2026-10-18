@@ -335,10 +335,18 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
     seen_pk: set[int] = set()
 
     def _append_overlay_palavras_chave_matches(raw_termo: str) -> None:
+        from produtos.cadastro_busca_codigo_util import (
+            overlay_pids_por_palavras_busca,
+            overlay_pids_union_por_tokens_apelido,
+            tokens_termo_busca_cadastro,
+        )
+
         termo_txt = str(raw_termo or "").strip()
         if not termo_txt or len(found) >= lim:
             return
         pids = overlay_pids_por_palavras_busca(termo_txt, lim)
+        if not pids and len(tokens_termo_busca_cadastro(termo_txt)) >= 2:
+            pids = overlay_pids_union_por_tokens_apelido(termo_txt, lim)
         if not pids:
             return
         _cadastro_pg_append_unicos(
@@ -427,6 +435,21 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                 qs.filter(q_nome).order_by("nome", "pk")[:lim],
                 lim,
             )
+        # «oleo 2tempo»: nome não tem apelido — candidatos por qualquer token no nome/marca.
+        if len(found) < lim and " " in termo.strip():
+            from produtos.cadastro_busca_codigo_util import tokens_termo_busca_cadastro
+
+            partes_m = tokens_termo_busca_cadastro(termo)
+            if len(partes_m) >= 2:
+                q_or = Q()
+                for pl in partes_m:
+                    q_or |= Q(nome__icontains=pl) | Q(marca__icontains=pl) | Q(modelo__icontains=pl)
+                _cadastro_pg_append_unicos(
+                    found,
+                    seen_pk,
+                    qs.filter(q_or).order_by("nome", "pk")[: min(lim * 4, 160)],
+                    min(lim * 4, 160),
+                )
         # Frase longa (ex. "ração estima carne"): AND de todos os tokens pode zerar.
         # Fallback: token que identifica o produto (estima, milho) — não «grande»/cor.
         if not found:
@@ -499,7 +522,15 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
             rows = ordenar_rows_api_estilo_pdv(rows, termo)
             if rows:
                 return rows[:lim]
+            from produtos.cadastro_busca_codigo_util import (
+                overlay_pids_por_palavras_busca,
+                overlay_pids_union_por_tokens_apelido,
+                tokens_termo_busca_cadastro,
+            )
+
             pids_pk = overlay_pids_por_palavras_busca(termo, lim)
+            if not pids_pk and len(tokens_termo_busca_cadastro(termo)) >= 2:
+                pids_pk = overlay_pids_union_por_tokens_apelido(termo, lim)
             if pids_pk:
                 chunk_pk = list(
                     qs_produtos_catalogo_por_ids_externos(qs, pids_pk).order_by(
@@ -564,7 +595,15 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
             pass
 
     if not found:
+        from produtos.cadastro_busca_codigo_util import (
+            overlay_pids_por_palavras_busca,
+            overlay_pids_union_por_tokens_apelido,
+            tokens_termo_busca_cadastro,
+        )
+
         pids_solo = overlay_pids_por_palavras_busca(termo, lim)
+        if not pids_solo and len(tokens_termo_busca_cadastro(termo)) >= 2:
+            pids_solo = overlay_pids_union_por_tokens_apelido(termo, lim)
         if pids_solo:
             chunk_solo = list(
                 qs_produtos_catalogo_por_ids_externos(qs, pids_solo).order_by("nome", "pk")[

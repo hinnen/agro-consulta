@@ -333,6 +333,39 @@ def buscar_documentos_unificado(
     if pg_docs:
         pg_docs = filtrar_documentos_estilo_pdv(pg_docs, termo)
 
+    if not pg_docs and termo:
+        from produtos.cadastro_busca_codigo_util import (
+            overlay_pids_por_palavras_busca,
+            overlay_pids_union_por_tokens_apelido,
+            qs_produtos_catalogo_por_ids_externos,
+            tokens_termo_busca_cadastro,
+        )
+
+        pids_fb = overlay_pids_por_palavras_busca(termo, min(lim * 2, 160))
+        if not pids_fb and len(tokens_termo_busca_cadastro(termo)) >= 2:
+            pids_fb = overlay_pids_union_por_tokens_apelido(termo, min(lim * 2, 160))
+        if pids_fb:
+            try:
+                qs_cat = cat_agro.queryset_catalogo_ativos(inativos=include_inactive)
+                chunk = list(
+                    qs_produtos_catalogo_por_ids_externos(qs_cat, pids_fb).order_by(
+                        "nome", "pk"
+                    )[: min(lim * 2, 160)]
+                )
+                if chunk:
+                    pg_docs = filtrar_documentos_estilo_pdv(
+                        [
+                            cat_agro.row_para_doc_busca_pdv(r)
+                            for r in cat_agro._rows_de_produtos(chunk)
+                        ],
+                        termo,
+                    )
+            except Exception:
+                logger.warning(
+                    "motor_busca_unificado: apelido misto após filtro falhou",
+                    exc_info=True,
+                )
+
     # Família GM: NÃO pular Mongo só porque o PG trouxe 1 item (ex. GM0024-1 no PG
     # e GM0024-10/15 só no Mongo sem index — loja via agro_pg). Sempre complementar.
     _familia_gm = bool(gm_base_familia(termo))
