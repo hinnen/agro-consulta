@@ -1298,36 +1298,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-<<<<<<< HEAD
 | **PREP** | `deploy/prep-checklist-1810h-nfe-danfe-erp` |
 | **Base loja** | **v27.26.10** @ **`05a871df`** |
 | **Checkpoint** | `./scripts/prep_checkpoint_checklist_1810h_nfe_danfe_erp.sh` |
 | **Cutover** | `AGRO_LOJA_FRASE='pode enviar para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1810h_nfe_danfe_erp.sh --exec` |
 | **Rollback** | `rollback/pre-v272611-1810h-danfe-erp` → **v27.26.10** @ **`05a871df`** |
-=======
-| **Subir** | **`teste` → `producao`** @ **`1c914dd8`** |
-| **Conteúdo** | **NFE-55-XSD-DEST** · **NFE-MANUAL-UX** · **NFE-EMAIL-DEST** (salva e-mail + envia XML/DANFE após autorizar; `EMAIL_HOST` no Render) |
-| **Paths** | `nfe_saida_sp_emissao_util.py` · `nfe_saida.js` · `nfe_saida.html` · `verify_nfe_saida_path.py` |
-| **Migrate** | **NÃO** (0147 já na loja com 18/10f) |
-| **Pós-deploy** | `./scripts/post_deploy_checklist_1810g_nfe_xsd_ux.sh` |
-| **Prova** | `verify_nfe_saida_path` **66/66** · unit NF-e SimpleTestCase **9 OK** |
-| **Smoke** | `/nfe/saida/` listas na busca · 1ª NF produção série **2** (se rejeição schema, conferir `cStat`) |
->>>>>>> c111924b (NF-e saída: salvar e-mail do destinatário e enviar XML/DANFE)
+| **Extra teste** | **NFE-EMAIL-DEST** — e-mail salvo + XML/DANFE após autorizar (`EMAIL_HOST` Render) |
 
 ### 📦 PACOTE PRONTO — **LOJA-18/10h** · **v27.26.11**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Conteúdo** | **NFE-DANFE-ERP-LAYOUT** — visual ERP + logo Agro Mais |
-| **Paths** | `nfe_saida_danfe_html.py` · `verify_nfe_saida_path.py` |
+| **Conteúdo** | **NFE-DANFE-ERP-LAYOUT** · **NFE-EMAIL-DEST** (salva e-mail + envia XML/DANFE) |
+| **Paths** | `nfe_saida_danfe_html.py` · `nfe_saida_email_util.py` · `nfe_saida.js` · `verify_nfe_saida_path.py` |
 | **Migrate** | **NÃO** |
-| **Prova** | verify **57/57** · `NfeSaidaDanfeLayoutTests` + XML OK (PIN **9973**) |
+| **Prova** | verify **68/68** · `NfeSaidaDanfeLayoutTests` + `NfeSaidaEmailTests` |
 
 ### ✅ CHECKLIST ÚNICO — **18/10h** · 🟢 **pronto envio produção**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
 | 1 | **NFE-DANFE-ERP-LAYOUT** | 🟢 pronto | **NÃO** | verify + DANFE |
+| 2 | **NFE-EMAIL-DEST** | 🟢 pronto | **NÃO** | **68/68** |
 
 ### ✅ Deploy loja — **CHECKLIST 18/10g** · **Live v27.26.10** · 18/10
 
