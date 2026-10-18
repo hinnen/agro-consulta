@@ -1294,19 +1294,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 ARMADO · **PREP v27.26.9** · **CHECKLIST 18/10f** · SEFAZ + DANFE + PDV
+### ✅ Deploy loja — **CHECKLIST 18/10f** · **Live v27.26.9** · 18/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Pacotes** | **NFE-55-SEFAZ+DANFE-AGRO** + **CADASTRO-PALAVRAS-PDV-3** (busca mista) |
-| **Status** | 🟡 **Checkpoint pronto** · Live **v27.26.5** @ **`5e16d701`** |
-| **PREP** | `deploy/prep-checklist-1810f-nfe-sefaz-danfe-pdv` @ **`18046efd`** |
-| **Migrate** | **SIM** `0147` |
-| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1810f_nfe_sefaz_danfe_pdv.sh` |
-| **Rollback** | `rollback/pre-v27265-1810f-nfe-sefaz` @ **`5e16d701`** |
-| **Backup** | `producao-backup-pre-v27269-1810f` |
-| **Cutover** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1810f_nfe_sefaz_danfe_pdv.sh --exec` |
-| **Pós-deploy** | `./scripts/post_deploy_checklist_1810f_nfe_sefaz_danfe_pdv.sh` |
+| **Pacotes** | **NFE-55-SEFAZ+DANFE-AGRO** + **CADASTRO-PALAVRAS-PDV-3** |
+| **Status** | ✅ **Live v27.26.9** @ **`18046efd`** (cutover 18/10) |
+| **Anterior** | **v27.26.5** @ **`5e16d701`** |
+| **Pós-deploy Shell** | `./scripts/post_deploy_checklist_1810f_nfe_sefaz_danfe_pdv.sh` (**migrate 0147**) |
+| **Revert** | `git push origin rollback/pre-v27265-1810f-nfe-sefaz:producao` → **v27.26.5** @ **`5e16d701`** |
+| **Backup** | `producao-backup-pre-v27269-1810f` @ **`5e16d701`** |
 | **Smoke** | DANFE logo · NF série **2** · PDV `oleo 2tempo` |
 
 ### 📦 PACOTE PRONTO — **LOJA-18/10f** · **v27.26.9**
@@ -1322,12 +1319,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `verify_nfe_saida_path` **59/59** · `verify_cadastro_busca_med_path` **56/56** · unit NF-e OK |
 | **Smoke** | `/nfe/saida/` DANFE+logo · 1ª NF real série 2 · PDV `oleo 2tempo` |
 
-### ✅ CHECKLIST ÚNICO — **18/10f** · 🟡 **aguarda senha** (PREP armado)
+### ✅ CHECKLIST ÚNICO — **18/10f** · ✅ **Live v27.26.9**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **NFE-55-SEFAZ+DANFE-AGRO** | 🟡 **aguarda senha** | **SIM 0147** | **59/59** |
-| 2 | **CADASTRO-PALAVRAS-PDV-3** | 🟡 **aguarda senha** | **NÃO** | **56/56** |
+| 1 | **NFE-55-SEFAZ+DANFE-AGRO** | ✅ **Live** | **SIM 0147** | **59/59** |
+| 2 | **CADASTRO-PALAVRAS-PDV-3** | ✅ **Live** | **NÃO** | **56/56** |
 
 **Doc:** `docs/DEPLOY-PREP-CHECKLIST-1810f-nfe-sefaz-danfe-pdv.md`
 
