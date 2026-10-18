@@ -1294,6 +1294,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟡 ARMADO · **PREP v27.26.11** · **CHECKLIST 18/10h** · DANFE layout ERP
+
+| Campo | Valor |
+| ----- | ----- |
+| **PREP** | `deploy/prep-checklist-1810h-nfe-danfe-erp` |
+| **Base loja** | **v27.26.10** @ **`05a871df`** |
+| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1810h_nfe_danfe_erp.sh` |
+| **Cutover** | `AGRO_LOJA_FRASE='pode enviar para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1810h_nfe_danfe_erp.sh --exec` |
+| **Rollback** | `rollback/pre-v272611-1810h-danfe-erp` → **v27.26.10** @ **`05a871df`** |
+
+### 📦 PACOTE PRONTO — **LOJA-18/10h** · **v27.26.11**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Conteúdo** | **NFE-DANFE-ERP-LAYOUT** — visual ERP + logo Agro Mais |
+| **Paths** | `nfe_saida_danfe_html.py` · `verify_nfe_saida_path.py` |
+| **Migrate** | **NÃO** |
+| **Prova** | verify **57/57** · `NfeSaidaDanfeLayoutTests` + XML OK (PIN **9973**) |
+
+### ✅ CHECKLIST ÚNICO — **18/10h** · 🟢 **pronto envio produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NFE-DANFE-ERP-LAYOUT** | 🟢 pronto | **NÃO** | verify + DANFE |
+
 ### ✅ Deploy loja — **CHECKLIST 18/10g** · **Live v27.26.10** · 18/10
 
 | Campo | Valor |
