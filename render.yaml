@@ -14,8 +14,19 @@ services:
     startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --preload --timeout 180 --graceful-timeout 45 --no-control-socket --access-logfile - --error-logfile -
     healthCheckPath: /healthz
     # Produção com domínio próprio: AGRO_CANONICAL_ORIGIN=https://www.example.com.br
+    # WhatsApp em serviço à parte: AGRO_WA_PUBLIC_ORIGIN=https://<agro-consulta-wa>.onrender.com
     # Redis (opcional): REDIS_URL no mesmo env do web.
     # Painel exige login (padrão). Abrir sem login: AGRO_PUBLIC_DASHBOARD=true
+
+  # PRODUÇÃO — WhatsApp (ponte + telas /atendimento-whatsapp/). Mesmo Postgres/env da loja;
+  # NÃO definir AGRO_WA_PUBLIC_ORIGIN aqui. Ponte no PC: AGRO_WA_DJANGO_URL = URL deste serviço.
+  - type: web
+    name: agro-consulta-wa
+    branch: producao
+    runtime: python
+    buildCommand: pip install -r requirements.txt && python scripts/record_deploy.py && python manage.py migrate --noinput && python manage.py collectstatic --noinput && python scripts/producao_financeiro_pg_bootstrap.py
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --preload --timeout 180 --graceful-timeout 45 --no-control-socket --access-logfile - --error-logfile -
+    healthCheckPath: /healthz
 
   # TESTE — commits do Cursor na branch `teste`.
   - type: web

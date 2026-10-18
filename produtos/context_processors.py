@@ -51,6 +51,25 @@ def agro_display_scale_ui(request):
     }
 
 
+def agro_wa_public_urls(request):
+    """Links absolutos do Zap quando AGRO_WA_PUBLIC_ORIGIN está no serviço PDV."""
+    try:
+        from produtos.agro_wa_origin_util import agro_wa_absolute
+
+        return {
+            "agro_wa_chat_url": agro_wa_absolute(request, "atendimento_whatsapp"),
+            "agro_wa_celular_url": agro_wa_absolute(request, "atendimento_whatsapp_celular"),
+            "agro_wa_bot_url": agro_wa_absolute(request, "atendimento_whatsapp_bot"),
+        }
+    except Exception:
+        logger.exception("agro_wa_public_urls")
+        return {
+            "agro_wa_chat_url": "/atendimento-whatsapp/",
+            "agro_wa_celular_url": "/atendimento-whatsapp/celular/",
+            "agro_wa_bot_url": "/atendimento-whatsapp/bot/",
+        }
+
+
 def agro_app_build(request):
     try:
         from django.conf import settings
