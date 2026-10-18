@@ -111,6 +111,7 @@ def test_contratos() -> None:
     check(
         "version_prep",
         ver in (
+            "27.26.8",
             "27.26.7",
             "27.26.6",
             "27.26.5",
@@ -132,6 +133,10 @@ def test_contratos() -> None:
     check(
         "overlay_pids_union_tokens",
         "def overlay_pids_union_por_tokens_apelido" in cad_util,
+    )
+    check(
+        "variantes_token_busca_apelido",
+        "def variantes_token_busca_apelido" in cad_util,
     )
     views_txt = (ROOT / "produtos/views.py").read_text()
     check(

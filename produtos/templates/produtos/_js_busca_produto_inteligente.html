@@ -87,11 +87,35 @@
         return out;
     }
 
-    function variantesPalavraBusca(palavraBruta) {
-        const n = normalizarBuscaLocal(palavraBruta);
+    function variantesTokenBuscaApelido(tok) {
+        const n = normalizarBuscaLocal(String(tok || '').trim());
         const out = new Set();
-        if (n) out.add(n);
-        if (n.length < 2) return [...out];
+        if (!n) return [];
+        out.add(n);
+        const compact = n.replace(/\s+/g, '');
+        if (compact) out.add(compact);
+        const m = n.match(/^(\d+)\s+(.+)$/);
+        if (m) out.add(m[1] + m[2]);
+        const m2 = compact.match(/^(\d+)([a-z].+)$/);
+        if (m2) out.add(m2[1] + ' ' + m2[2]);
+        return [...out].filter(Boolean);
+    }
+
+    function fraseBuscaCasaNoTexto(termo, texto) {
+        const tn = normalizarBuscaLocal(String(termo || '').trim());
+        const bl = normalizarBuscaLocal(String(texto || ''));
+        if (tn.length < 3 || !bl) return false;
+        if (bl.includes(tn)) return true;
+        const tc = tn.replace(/\s+/g, '');
+        const bc = bl.replace(/\s+/g, '');
+        return tc.length >= 3 && bc.includes(tc);
+    }
+
+    function variantesPalavraBusca(palavraBruta) {
+        const out = new Set(variantesTokenBuscaApelido(palavraBruta));
+        const n = normalizarBuscaLocal(palavraBruta);
+        if (!n) return [...out].filter(Boolean);
+        if (n.length < 2) return [...out].filter(Boolean);
         const extra = SINONIMOS_BUSCA_PRODUTO[n];
         if (extra) extra.forEach(x => out.add(normalizarBuscaLocal(x)));
         for (const [k, arr] of Object.entries(SINONIMOS_BUSCA_PRODUTO)) {
@@ -457,9 +481,7 @@
         if (palavras.length > 1 && termo.length >= 3) {
             const fraseHits = pool.filter((p) => {
                 const hay = blobTextoBuscaRelevancia(p);
-                if (hay.includes(termo)) return true;
-                const hayBt = textoBuscaProdutoNormalizado(p);
-                return hayBt && hayBt.includes(termo);
+                return fraseBuscaCasaNoTexto(termo, hay);
             });
             if (fraseHits.length) return fraseHits;
         }

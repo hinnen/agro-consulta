@@ -2134,19 +2134,41 @@
         return false;
     }
 
+    function variantesTokenBuscaApelidoPdv(tok) {
+        var n = stripAccents(String(tok || '').trim()).toLowerCase();
+        var out = [];
+        var seen = {};
+        function add(x) {
+            x = String(x || '').trim();
+            if (!x || seen[x]) return;
+            seen[x] = 1;
+            out.push(x);
+        }
+        add(n);
+        var compact = n.replace(/\s+/g, '');
+        add(compact);
+        var m = n.match(/^(\d+)\s+(.+)$/);
+        if (m) add(m[1] + m[2]);
+        var m2 = compact.match(/^(\d+)([a-z].+)$/);
+        if (m2) add(m2[1] + ' ' + m2[2]);
+        return out;
+    }
+
     function produtoCasaTokenBusca(p, tok) {
         var nome = stripAccents(String((p && p.nome) || ''));
         var marca = stripAccents(String((p && p.marca) || ''));
         var busca = stripAccents(String((p && p.busca_texto) || ''));
         var blob = nome + ' ' + marca + ' ' + busca;
-        function hitTexto(s) {
+        function hitTexto(s, t) {
             if (!s) return false;
-            if (/^\d+$/.test(tok)) {
-                return new RegExp('(?:^|[^0-9])' + tok + '(?:[^0-9]|$)').test(s);
+            if (/^\d+$/.test(t)) {
+                return new RegExp('(?:^|[^0-9])' + t + '(?:[^0-9]|$)').test(s);
             }
-            return s.indexOf(tok) !== -1;
+            return s.indexOf(t) !== -1;
         }
-        return hitTexto(nome) || hitTexto(busca) || hitTexto(blob);
+        return variantesTokenBuscaApelidoPdv(tok).some(function (v) {
+            return hitTexto(nome, v) || hitTexto(busca, v) || hitTexto(blob, v);
+        });
     }
 
     function tokensBuscaQuery(query) {
@@ -2178,7 +2200,10 @@
                     stripAccents(String((p && p.marca) || '')) +
                     ' ' +
                     stripAccents(String((p && p.busca_texto) || ''));
-                return blob.indexOf(qFrase) !== -1;
+                if (blob.indexOf(qFrase) !== -1) return true;
+                var tc = qFrase.replace(/\s+/g, '');
+                var bc = blob.replace(/\s+/g, '');
+                return tc.length >= 3 && bc.indexOf(tc) !== -1;
             });
             if (porFrase.length) return porFrase;
         }

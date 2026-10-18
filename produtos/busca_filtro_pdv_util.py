@@ -220,13 +220,15 @@ def _palavra_casa_no_doc(palavra: str, doc: dict, blob: str, nome: str) -> bool:
         ):
             return True
 
-    if pn in nome or pn in blob:
-        return True
+    from produtos.cadastro_busca_codigo_util import variantes_token_busca_apelido
 
-    tokens = blob.split()
-    for tk in tokens:
-        if tk == pn or tk.startswith(pn) or (len(pn) >= 3 and pn in tk):
+    for vn in variantes_token_busca_apelido(palavra):
+        if vn in nome or vn in blob:
             return True
+        tokens = blob.split()
+        for tk in tokens:
+            if tk == vn or tk.startswith(vn) or (len(vn) >= 3 and vn in tk):
+                return True
     return False
 
 
@@ -306,16 +308,20 @@ def filtrar_documentos_estilo_pdv(docs: list[dict], termo: str) -> list[dict]:
             return out_gm
         return list(docs)
 
-    palavras = [p for p in termo.split() if p]
+    from produtos.cadastro_busca_codigo_util import (
+        frase_busca_casa_no_texto,
+        tokens_termo_busca_cadastro,
+    )
+
+    palavras = tokens_termo_busca_cadastro(termo) or [p for p in termo.split() if p]
     if not palavras:
         return list(docs)
 
-    termo_norm = _norm_termo(termo)
     out: list[dict] = []
     for doc in docs:
         blob = blob_busca_de_doc(doc)
         nome = _norm_termo(str(doc.get("Nome") or doc.get("nome") or ""))
-        if termo_norm and len(termo_norm) >= 3 and termo_norm in blob:
+        if frase_busca_casa_no_texto(termo, blob):
             out.append(doc)
             continue
         if all(_palavra_casa_no_doc(pl, doc, blob, nome) for pl in palavras):

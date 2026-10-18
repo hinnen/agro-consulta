@@ -15,6 +15,54 @@ from produtos.mongo_index_codigos import (
 )
 
 _RE_NAO_ALNUM = re.compile(r"[^a-zA-Z0-9]")
+_RE_DIGIT_ALPHA_SPACED = re.compile(r"^(\d+)\s+(.+)$")
+_RE_DIGIT_ALPHA_COMPACT = re.compile(r"^(\d+)([a-z].+)$")
+
+
+def variantes_token_busca_apelido(termo_token: str) -> list[str]:
+    """
+    Formas equivalentes de um token de apelido (ex. ``2tempo`` ↔ ``2 tempo``).
+    Usado no overlay Postgres e no filtro PDV.
+    """
+    from integracoes.texto import normalizar
+
+    pn = normalizar(str(termo_token or "").strip())[:200]
+    if not pn:
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+
+    def add(x: str) -> None:
+        x = (x or "").strip()[:200]
+        if x and x not in seen:
+            seen.add(x)
+            out.append(x)
+
+    add(pn)
+    compact = re.sub(r"\s+", "", pn)
+    add(compact)
+    m = _RE_DIGIT_ALPHA_SPACED.match(pn)
+    if m:
+        add(f"{m.group(1)}{m.group(2)}")
+    m2 = _RE_DIGIT_ALPHA_COMPACT.match(compact)
+    if m2:
+        add(f"{m2.group(1)} {m2.group(2)}")
+    return out
+
+
+def frase_busca_casa_no_texto(termo: str, texto: str) -> bool:
+    """Frase com espaços opcionais (ordem fixa); tokens em qualquer ordem vão no AND depois."""
+    from integracoes.texto import normalizar
+
+    tn = normalizar(str(termo or "").strip())
+    bl = normalizar(str(texto or ""))
+    if len(tn) < 3 or not bl:
+        return False
+    if tn in bl:
+        return True
+    tc = re.sub(r"\s+", "", tn)
+    bc = re.sub(r"\s+", "", bl)
+    return bool(tc and len(tc) >= 3 and tc in bc)
 
 
 def termo_eh_codigo_gm(termo: str) -> bool:
@@ -275,15 +323,19 @@ def _q_overlay_palavras_busca(termo_txt: str) -> Q:
     partes = tokens_termo_busca_cadastro(termo_txt) or [termo_txt]
 
     def _campo_palavras(pl: str) -> Q:
-        pr = pl[:200]
-        pn = normalizar(pr)[:200]
-        return (
-            Q(cadastro_extras__palavras_chave__icontains=pr)
-            | Q(cadastro_extras__palavras_chave__icontains=pn)
-            | Q(**{idx: pn})
-            | Q(descricao__icontains=pr)
-            | Q(descricao__icontains=pn)
-        )
+        q = Q()
+        pr_raw = str(pl or "")[:200]
+        if pr_raw:
+            q |= Q(cadastro_extras__palavras_chave__icontains=pr_raw) | Q(
+                descricao__icontains=pr_raw
+            )
+        for vn in variantes_token_busca_apelido(pl):
+            q |= (
+                Q(cadastro_extras__palavras_chave__icontains=vn)
+                | Q(**{idx: vn})
+                | Q(descricao__icontains=vn)
+            )
+        return q
 
     fr = termo_txt[:200]
     match_frase = (
@@ -384,12 +436,23 @@ def overlay_pids_por_palavras_busca(termo: str, limit: int = 80) -> list[str]:
         token_clauses: list[str] = []
         token_params: list[object] = []
         for pl in partes:
-            pr = f"%{pl[:200]}%"
-            pn = f"%{normalizar(pl)[:200]}%"
-            token_clauses.append(
-                f"({pal} ILIKE %s OR {pal} ILIKE %s OR {idx} ILIKE %s OR {desc} ILIKE %s OR {desc} ILIKE %s)"
-            )
-            token_params.extend([pr, pn, pn, pr, pn])
+            vars_tok: list[str] = []
+            seen_v: set[str] = set()
+            if pl:
+                vars_tok.append(f"%{pl[:200]}%")
+            for vn in variantes_token_busca_apelido(pl):
+                pvn = f"%{vn}%"
+                if pvn not in seen_v:
+                    seen_v.add(pvn)
+                    vars_tok.append(pvn)
+            or_bits: list[str] = []
+            for _ in vars_tok:
+                or_bits.append(
+                    f"({pal} ILIKE %s OR {idx} ILIKE %s OR {desc} ILIKE %s)"
+                )
+            token_clauses.append("(" + " OR ".join(or_bits) + ")")
+            for pvn in vars_tok:
+                token_params.extend([pvn, pvn, pvn])
         where = f"({match_frase})"
         if token_clauses:
             where += " OR (" + " AND ".join(token_clauses) + ")"
