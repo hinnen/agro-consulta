@@ -1091,12 +1091,18 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 88. CHECKLIST ÚNICO — **18/10e** · 🟢 **pronto envio** · **v27.26.5**
+## 88. CHECKLIST ÚNICO — **18/10e** · ✅ **Live v27.26.5**
+
+**Loja git:** `producao` @ **`5e16d701`**.
+
+---
+
+## 89. CHECKLIST ÚNICO — **18/10f** · 🟡 **aguarda senha** · **v27.26.9**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **NFE-SAIDA-55** (PG+UI+DANFE) | 🟢 **pronto envio** | **SIM**† | **47/47** |
-| 2 | **CADASTRO-PALAVRAS-PDV-3** | 🟢 **pronto envio** | **NÃO** | **53/53** |
+| 1 | **NFE-55-SEFAZ+DANFE-AGRO** | 🟡 **aguarda senha** | **SIM 0147** | **59/59** |
+| 2 | **CADASTRO-PALAVRAS-PDV-3** | 🟡 **aguarda senha** | **NÃO** | **56/56** |
 
-**Loja git:** `producao` @ **`f82f5be1`**. **Smoke Renan:** NF-e #10337 homolog · DANFE padrão.  
-**Doc:** `docs/DEPLOY-PREP-CHECKLIST-1810e-nfe-danfe-palavras3.md`.
+**PREP:** `deploy/prep-checklist-1810f-nfe-sefaz-danfe-pdv` @ **`0945ef79`**.  
+**Doc:** `docs/DEPLOY-PREP-CHECKLIST-1810f-nfe-sefaz-danfe-pdv.md`.
