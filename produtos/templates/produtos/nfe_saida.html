@@ -16,6 +16,25 @@
     .nfe-in:focus { border-color: #10b981; outline: none; box-shadow: 0 0 0 3px rgba(16,185,129,.15); }
     .nfe-wiz-on { border-color: #f97316 !important; background: #fff7ed !important; color: #7c2d12 !important; }
     .nfe-chip-on { border-color: #f97316; background: #fff7ed; color: #7c2d12; }
+    .nfe-typeahead-wrap { position: relative; flex: 1; min-width: 12rem; }
+    .nfe-typeahead-panel {
+      position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 55;
+      max-height: min(22rem, 50vh); overflow-y: auto;
+      border: 2px solid #10b981; border-radius: 0.75rem; background: #fff;
+      box-shadow: 0 12px 28px rgba(15,23,42,.18);
+    }
+    .nfe-typeahead-panel.hidden { display: none; }
+    .nfe-typeahead-item {
+      display: block; width: 100%; text-align: left; padding: 0.65rem 0.85rem;
+      border-bottom: 1px solid #f1f5f9; font-weight: 700; font-size: 0.95rem;
+      min-height: 52px; cursor: pointer;
+    }
+    .nfe-typeahead-item:last-child { border-bottom: none; }
+    .nfe-typeahead-item:hover, .nfe-typeahead-item.nfe-ta-active {
+      background: #ecfdf5; color: #065f46;
+    }
+    .nfe-typeahead-sub { font-size: 0.75rem; font-weight: 600; color: #64748b; margin-top: 0.15rem; }
+    .nfe-typeahead-hint { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: #94a3b8; padding: 0.4rem 0.85rem; }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-900 h-full overflow-hidden flex flex-col">
@@ -68,10 +87,14 @@
     <div class="flex-1 min-h-0 overflow-y-auto bg-white rounded-2xl border-2 border-slate-200 p-4">
       <div data-nfe-step-panel="1">
         <h2 class="text-lg font-black uppercase mb-3">Destinatário</h2>
-        <div class="flex flex-wrap gap-2 mb-3">
-          <input type="search" id="nfe-busca-cli" class="nfe-in flex-1" placeholder="Buscar cliente Agro…">
-          <button type="button" id="btn-nfe-busca-cli" class="min-h-[48px] px-4 rounded-xl bg-sky-600 text-white font-black text-xs uppercase">Buscar F3</button>
+        <div class="flex flex-wrap gap-2 mb-1 items-stretch">
+          <div class="nfe-typeahead-wrap">
+            <input type="search" id="nfe-busca-cli" class="nfe-in" placeholder="Nome, CPF, WhatsApp… (lista ao digitar)" autocomplete="off" aria-autocomplete="list" aria-controls="nfe-cli-suggest">
+            <div id="nfe-cli-suggest" class="nfe-typeahead-panel hidden" role="listbox"></div>
+          </div>
+          <button type="button" id="btn-nfe-busca-cli" class="min-h-[48px] px-4 rounded-xl bg-sky-600 text-white font-black text-xs uppercase shrink-0">Buscar F3</button>
         </div>
+        <p class="text-xs font-bold text-slate-500 mb-3">↑↓ escolher · Enter confirmar · Esc fechar</p>
         <p id="dest-tipo-doc" class="text-sm font-bold text-orange-800 mb-2"></p>
         <div class="grid sm:grid-cols-2 gap-3">
           <label class="block sm:col-span-2"><span class="text-xs font-black uppercase text-slate-500">Nome</span><input id="dest-nome" class="dest-field nfe-in mt-1"></label>
@@ -90,10 +113,14 @@
       </div>
       <div data-nfe-step-panel="2" class="hidden">
         <h2 class="text-lg font-black uppercase mb-3">Itens</h2>
-        <div class="flex gap-2 mb-3">
-          <input type="search" id="nfe-busca-prod" class="nfe-in flex-1" placeholder="Código, barras ou nome…" autocomplete="off">
-          <button type="button" id="btn-nfe-busca-prod" class="min-h-[48px] px-4 rounded-xl bg-emerald-700 text-white font-black text-xs uppercase">Add F2</button>
+        <div class="flex gap-2 mb-1 items-stretch">
+          <div class="nfe-typeahead-wrap">
+            <input type="search" id="nfe-busca-prod" class="nfe-in" placeholder="Código, barras ou nome… (lista ao digitar)" autocomplete="off" aria-autocomplete="list" aria-controls="nfe-prod-suggest">
+            <div id="nfe-prod-suggest" class="nfe-typeahead-panel hidden" role="listbox"></div>
+          </div>
+          <button type="button" id="btn-nfe-busca-prod" class="min-h-[48px] px-4 rounded-xl bg-emerald-700 text-white font-black text-xs uppercase shrink-0">Add F2</button>
         </div>
+        <p class="text-xs font-bold text-slate-500 mb-3">Enter adiciona o destacado · duplo clique na linha também</p>
         <table class="w-full text-sm">
           <thead class="text-xs font-black uppercase text-slate-500"><tr>
             <th>Descrição</th><th>Qtd</th><th>V.Unit</th><th>NCM</th><th>CFOP</th><th>CSOSN</th><th>Total</th><th></th>
@@ -153,8 +180,12 @@
       <button type="button" id="btn-nfe-salvar" class="min-h-[48px] rounded-xl border-2 border-emerald-500 text-emerald-900 font-black uppercase">Salvar rascunho</button>
       <div class="border-t border-slate-100 pt-3">
         <div class="text-xs font-black uppercase text-slate-500 mb-1">Puxar venda PDV</div>
+        <div class="nfe-typeahead-wrap mb-2">
+          <input type="search" id="nfe-puxar-venda-q" class="nfe-in" placeholder="Nº venda ou nome do cliente…" autocomplete="off" aria-controls="nfe-venda-suggest">
+          <div id="nfe-venda-suggest" class="nfe-typeahead-panel hidden" role="listbox"></div>
+        </div>
         <div class="flex gap-2">
-          <input type="number" id="nfe-puxar-venda-id" class="nfe-in" placeholder="Nº venda">
+          <input type="number" id="nfe-puxar-venda-id" class="nfe-in" placeholder="Nº venda (manual)">
           <button type="button" id="btn-nfe-puxar-venda" class="min-h-[48px] px-3 rounded-xl bg-orange-500 text-white font-black text-xs uppercase">Puxar</button>
         </div>
       </div>
@@ -189,9 +220,10 @@ window.NFE_SAIDA_CFG = {
   urlCert: "{% url 'api_nfe_saida_status_cert' %}",
   urlBuscar: "{% url 'api_buscar_mobile' %}",
   urlBuscarClientes: "{% url 'api_buscar_clientes' %}",
+  urlBuscarVendas: "{% url 'api_nfe_saida_buscar_vendas' %}",
 };
 </script>
-<script src="{% static 'produtos/js/nfe_saida.js' %}?v=1"></script>
+<script src="{% static 'produtos/js/nfe_saida.js' %}?v=2"></script>
 {% include "produtos/_atalho_voltar_pdv.html" %}
 </body>
 </html>

@@ -42,6 +42,232 @@
     return String(s || '').replace(/\D/g, '').slice(0, max || 20);
   }
 
+  function escHtml(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  /** Lista suspensa reutilizável: debounce, clique, ↑↓ Enter Esc. */
+  function createTypeahead(opts) {
+    var input = opts.input;
+    var panel = opts.panel;
+    if (!input || !panel) return { close: function () {}, refresh: function () {} };
+
+    var stateTa = { items: [], idx: -1, timer: null, seq: 0, open: false };
+
+    function closeTa() {
+      stateTa.open = false;
+      stateTa.idx = -1;
+      panel.classList.add('hidden');
+      panel.innerHTML = '';
+    }
+
+    function setActive(idx) {
+      stateTa.idx = idx;
+      var btns = panel.querySelectorAll('.nfe-typeahead-item');
+      btns.forEach(function (b, i) {
+        b.classList.toggle('nfe-ta-active', i === idx);
+        if (i === idx) b.scrollIntoView({ block: 'nearest' });
+      });
+    }
+
+    function pick(idx) {
+      if (!stateTa.items.length) return;
+      var i = idx >= 0 ? idx : 0;
+      if (i >= stateTa.items.length) i = stateTa.items.length - 1;
+      var item = stateTa.items[i];
+      closeTa();
+      if (opts.onPick) opts.onPick(item, i);
+    }
+
+    function renderTa(items, meta) {
+      stateTa.items = items || [];
+      stateTa.idx = stateTa.items.length ? 0 : -1;
+      if (!stateTa.items.length) {
+        panel.innerHTML = '<div class="nfe-typeahead-hint">' + escHtml(meta && meta.empty || 'Nenhum resultado') + '</div>';
+        panel.classList.remove('hidden');
+        stateTa.open = true;
+        return;
+      }
+      var html = '';
+      if (meta && meta.hint) {
+        html += '<div class="nfe-typeahead-hint">' + escHtml(meta.hint) + '</div>';
+      }
+      stateTa.items.forEach(function (row, i) {
+        var title = (opts.formatTitle && opts.formatTitle(row)) || String(row);
+        var sub = opts.formatSub ? opts.formatSub(row) : '';
+        html += '<button type="button" class="nfe-typeahead-item' + (i === 0 ? ' nfe-ta-active' : '') + '" data-ta-i="' + i + '">' +
+          escHtml(title) + (sub ? '<div class="nfe-typeahead-sub">' + escHtml(sub) + '</div>' : '') + '</button>';
+      });
+      panel.innerHTML = html;
+      panel.classList.remove('hidden');
+      stateTa.open = true;
+      panel.querySelectorAll('.nfe-typeahead-item').forEach(function (btn) {
+        btn.addEventListener('mousedown', function (e) {
+          e.preventDefault();
+          pick(parseInt(btn.getAttribute('data-ta-i'), 10));
+        });
+      });
+    }
+
+    function runSearch() {
+      var term = (input.value || '').trim();
+      var minLen = opts.minChars || 2;
+      if (term.length < minLen) {
+        closeTa();
+        return;
+      }
+      var mySeq = ++stateTa.seq;
+      if (opts.fetch) {
+        opts.fetch(term).then(function (res) {
+          if (mySeq !== stateTa.seq) return;
+          if (res && res.cancel) return;
+          renderTa(res.items || [], res.meta);
+        }).catch(function () {
+          if (mySeq !== stateTa.seq) return;
+          renderTa([], { empty: 'Falha na busca. Tente de novo.' });
+        });
+      }
+    }
+
+    function schedule() {
+      clearTimeout(stateTa.timer);
+      stateTa.timer = setTimeout(runSearch, opts.debounceMs || 280);
+    }
+
+    input.addEventListener('input', schedule);
+    input.addEventListener('focus', function () {
+      if ((input.value || '').trim().length >= (opts.minChars || 2)) schedule();
+    });
+    input.addEventListener('keydown', function (e) {
+      if (!stateTa.open && e.key === 'Enter') {
+        e.preventDefault();
+        runSearch();
+        return;
+      }
+      if (!stateTa.open) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeTa();
+        return;
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (!stateTa.items.length) return;
+        setActive(Math.min(stateTa.idx + 1, stateTa.items.length - 1));
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!stateTa.items.length) return;
+        setActive(Math.max(stateTa.idx - 1, 0));
+        return;
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (stateTa.items.length) pick(stateTa.idx);
+        else runSearch();
+      }
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!stateTa.open) return;
+      if (panel.contains(e.target) || input.contains(e.target)) return;
+      closeTa();
+    });
+
+    return {
+      close: closeTa,
+      refresh: runSearch,
+      pickFirst: function () {
+        if (stateTa.items.length) pick(stateTa.idx >= 0 ? stateTa.idx : 0);
+        else runSearch();
+      },
+    };
+  }
+
+  var taCliente;
+  var taProduto;
+  var taVenda;
+
+  function clienteAgroPk(c) {
+    if (!c) return null;
+    if (c.cliente_agro_pk != null) return parseInt(c.cliente_agro_pk, 10);
+    var id = String(c.id || '');
+    var m = id.match(/^local:(\d+)$/);
+    if (m) return parseInt(m[1], 10);
+    return null;
+  }
+
+  function linhaProdutoFromApi(p) {
+    var preco = parseFloat(p.preco_venda || p.preco || p.valor || p.preco_unitario || 0) || 0;
+    var qtd = 1;
+    if (p.qty_sugerida != null) qtd = parseFloat(p.qty_sugerida) || 1;
+    if (p.quantidade_sugerida != null) qtd = parseFloat(p.quantidade_sugerida) || qtd;
+    var vTotal = preco * qtd;
+    if (p.valor_etiqueta != null && preco > 0) {
+      vTotal = parseFloat(p.valor_etiqueta) || vTotal;
+      qtd = preco > 0 ? vTotal / preco : qtd;
+    }
+    return {
+      produto_id: String(p.id || p.produto_id || p._id || ''),
+      codigo: p.codigo || p.codigo_interno || p.sku || '',
+      descricao: p.nome || p.descricao || p.Nome || '',
+      qtd: qtd,
+      un: p.unidade || p.un || 'UN',
+      ncm: (p.ncm || p.NCM || '23099020').toString().replace(/\D/g, '').slice(0, 8) || '23099020',
+      cfop: p.cfop || '5102',
+      csosn: String(p.csosn || p.CSOSN || '102').replace(/\D/g, '').slice(0, 3) || '102',
+      origem: String(p.origem || '0').slice(0, 1),
+      v_unit: preco,
+      v_total: Math.round(vTotal * 100) / 100,
+    };
+  }
+
+  function aplicarCliente(c) {
+    if (!state.doc) return;
+    var pk = clienteAgroPk(c);
+    state.doc.destinatario = state.doc.destinatario || {};
+    if (pk) state.doc.destinatario.cliente_agro_id = pk;
+    state.doc.destinatario.nome = c.nome || '';
+    state.doc.destinatario.documento = onlyDigits(c.cpf || c.documento, 14);
+    state.doc.destinatario.email = (c.email || '').trim();
+    state.doc.destinatario.ie = (c.ie || state.doc.destinatario.ie || '').trim();
+    state.doc.destinatario.cep = c.cep || '';
+    state.doc.destinatario.uf = (c.uf || '').toUpperCase().slice(0, 2);
+    state.doc.destinatario.cidade = c.cidade || '';
+    state.doc.destinatario.bairro = c.bairro || '';
+    state.doc.destinatario.logradouro = c.logradouro || '';
+    state.doc.destinatario.numero = c.numero || '';
+    state.doc.destinatario.complemento = c.complemento || '';
+    bindDestForm();
+    state.dirty = true;
+    renderRail();
+    setMsg('Cliente: ' + (c.nome || ''), 'ok');
+  }
+
+  function adicionarProduto(p) {
+    if (!state.doc || docTravado()) return;
+    var ln = linhaProdutoFromApi(p);
+    if (!ln.descricao) {
+      setMsg('Produto sem descrição.', 'warn');
+      return;
+    }
+    state.doc.itens = state.doc.itens || [];
+    state.doc.itens.push(ln);
+    state.dirty = true;
+    var inp = $('nfe-busca-prod');
+    if (inp) inp.value = '';
+    if (taProduto) taProduto.close();
+    renderItens();
+    renderRail();
+    setMsg('Item: ' + ln.descricao, 'ok');
+    if (inp) inp.focus();
+  }
+
   function totalDoc() {
     var t = 0;
     (state.doc && state.doc.itens || []).forEach(function (ln) {
@@ -465,60 +691,98 @@
   }
 
   function buscarProduto() {
-    var term = ($('nfe-busca-prod') || {}).value || '';
-    if (!term.trim()) return;
-    fetchJson(CFG.urlBuscar + '?q=' + encodeURIComponent(term.trim())).then(function (res) {
-      var data = res.json;
-      var list = data.produtos || data.results || data.itens || [];
-      if (!list.length) {
-        setMsg('Nenhum produto.', 'warn');
-        return;
-      }
-      var p = list[0];
-      var ln = {
-        produto_id: String(p.id || p.produto_id || p._id || ''),
-        codigo: p.codigo || p.codigo_interno || '',
-        descricao: p.nome || p.descricao || '',
-        qtd: 1,
-        un: p.unidade || 'UN',
-        ncm: p.ncm || '23099020',
-        cfop: p.cfop || '5102',
-        csosn: p.csosn || '102',
-        origem: '0',
-        v_unit: parseFloat(p.preco_venda || p.preco || p.valor || 0) || 0,
-        v_total: parseFloat(p.preco_venda || p.preco || p.valor || 0) || 0,
-      };
-      state.doc.itens = state.doc.itens || [];
-      state.doc.itens.push(ln);
-      state.dirty = true;
-      $('nfe-busca-prod').value = '';
-      renderItens();
-      renderRail();
-    });
+    if (taProduto) taProduto.pickFirst();
   }
 
   function buscarCliente() {
-    var term = ($('nfe-busca-cli') || {}).value || '';
-    fetchJson(CFG.urlBuscarClientes + '?q=' + encodeURIComponent(term)).then(function (res) {
-      var list = res.json.clientes || res.json.itens || [];
-      if (!list.length) {
-        setMsg('Cliente não encontrado.', 'warn');
-        return;
-      }
-      var c = list[0];
-      state.doc.destinatario = state.doc.destinatario || {};
-      state.doc.destinatario.cliente_agro_id = c.id;
-      state.doc.destinatario.nome = c.nome || '';
-      state.doc.destinatario.documento = onlyDigits(c.cpf || c.documento, 14);
-      state.doc.destinatario.cep = c.cep || '';
-      state.doc.destinatario.uf = c.uf || '';
-      state.doc.destinatario.cidade = c.cidade || '';
-      state.doc.destinatario.bairro = c.bairro || '';
-      state.doc.destinatario.logradouro = c.logradouro || '';
-      state.doc.destinatario.numero = c.numero || '';
-      bindDestForm();
-      state.dirty = true;
-      renderRail();
+    if (taCliente) taCliente.pickFirst();
+  }
+
+  function setupTypeaheads() {
+    taCliente = createTypeahead({
+      input: $('nfe-busca-cli'),
+      panel: $('nfe-cli-suggest'),
+      minChars: 2,
+      debounceMs: 300,
+      formatTitle: function (c) { return c.nome || '—'; },
+      formatSub: function (c) {
+        var doc = onlyDigits(c.cpf || c.documento, 14);
+        var parts = [];
+        if (doc) parts.push(doc.length === 11 ? 'CPF ' + doc : 'CNPJ ' + doc);
+        if (c.telefone) parts.push(c.telefone);
+        if (c.cidade && c.uf) parts.push(c.cidade + '/' + c.uf);
+        else if (c.endereco) parts.push(String(c.endereco).slice(0, 80));
+        return parts.join(' · ');
+      },
+      fetch: function (term) {
+        return fetchJson(CFG.urlBuscarClientes + '?q=' + encodeURIComponent(term)).then(function (res) {
+          var list = res.json.clientes || res.json.itens || [];
+          return {
+            items: list.slice(0, 20),
+            meta: { hint: list.length ? list.length + ' cliente(s) — clique ou Enter' : undefined, empty: 'Nenhum cliente. Tente outro termo.' },
+          };
+        });
+      },
+      onPick: function (c) {
+        aplicarCliente(c);
+        var inp = $('nfe-busca-cli');
+        if (inp) inp.value = '';
+      },
+    });
+
+    taProduto = createTypeahead({
+      input: $('nfe-busca-prod'),
+      panel: $('nfe-prod-suggest'),
+      minChars: 1,
+      debounceMs: 260,
+      formatTitle: function (p) { return p.nome || p.descricao || p.Nome || '—'; },
+      formatSub: function (p) {
+        var cod = p.codigo || p.codigo_interno || '';
+        var preco = parseFloat(p.preco_venda || p.preco || p.valor || 0) || 0;
+        var est = p.estoque != null ? 'Est. ' + p.estoque : '';
+        return [cod ? 'Cód. ' + cod : '', fmtMoeda(preco), est].filter(Boolean).join(' · ');
+      },
+      fetch: function (term) {
+        var url = CFG.urlBuscar + '?q=' + encodeURIComponent(term) + '&entrada_nfe=1&limit=24';
+        return fetchJson(url).then(function (res) {
+          var data = res.json;
+          var list = data.produtos || data.results || data.itens || [];
+          return {
+            items: list.slice(0, 24),
+            meta: { hint: list.length ? 'Enter adiciona o destacado' : undefined, empty: 'Nenhum produto.' },
+          };
+        });
+      },
+      onPick: function (p) { adicionarProduto(p); },
+    });
+
+    taVenda = createTypeahead({
+      input: $('nfe-puxar-venda-q'),
+      panel: $('nfe-venda-suggest'),
+      minChars: 1,
+      debounceMs: 320,
+      formatTitle: function (v) { return 'Venda #' + v.id + ' — ' + (v.cliente || 'Sem nome'); },
+      formatSub: function (v) {
+        return fmtMoeda(v.total) + (v.documento ? ' · ' + v.documento : '');
+      },
+      fetch: function (term) {
+        if (!CFG.urlBuscarVendas) return Promise.resolve({ items: [] });
+        return fetchJson(CFG.urlBuscarVendas + '?q=' + encodeURIComponent(term) + '&limit=12').then(function (res) {
+          var list = (res.json.ok && res.json.itens) ? res.json.itens : [];
+          return {
+            items: list,
+            meta: { hint: 'Selecione para importar itens da venda', empty: 'Nenhuma venda encontrada.' },
+          };
+        });
+      },
+      onPick: function (v) {
+        var idInp = $('nfe-puxar-venda-id');
+        if (idInp) idInp.value = String(v.id);
+        if (taVenda) taVenda.close();
+        deVenda(v.id);
+        var q = $('nfe-puxar-venda-q');
+        if (q) q.value = '';
+      },
     });
   }
 
@@ -595,10 +859,8 @@
         showStep(parseInt(b.getAttribute('data-nfe-w-go'), 10));
       });
     });
+    setupTypeaheads();
     $('btn-nfe-busca-prod') && $('btn-nfe-busca-prod').addEventListener('click', buscarProduto);
-    $('nfe-busca-prod') && $('nfe-busca-prod').addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') { e.preventDefault(); buscarProduto(); }
-    });
     $('btn-nfe-busca-cli') && $('btn-nfe-busca-cli').addEventListener('click', buscarCliente);
     $('btn-nfe-puxar-venda') && $('btn-nfe-puxar-venda').addEventListener('click', function () {
       var id = ($('nfe-puxar-venda-id') || {}).value;
@@ -647,6 +909,16 @@
       if (e.key === 'F10' && state.step === 6) {
         e.preventDefault();
         emitirComPin();
+      }
+      if (e.key === 'F2' && state.docId && state.step === 2) {
+        e.preventDefault();
+        var pi = $('nfe-busca-prod');
+        if (pi) pi.focus();
+      }
+      if (e.key === 'F3' && state.docId && state.step === 1) {
+        e.preventDefault();
+        var ci = $('nfe-busca-cli');
+        if (ci) ci.focus();
       }
     });
     loadLista();
