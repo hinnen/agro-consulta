@@ -1300,7 +1300,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Pacotes** | **NFE-55-SEFAZ+DANFE-AGRO** + **CADASTRO-PALAVRAS-PDV-3** (busca mista) |
 | **Status** | 🟡 **Checkpoint pronto** · Live **v27.26.5** @ **`5e16d701`** |
-| **PREP** | `deploy/prep-checklist-1810f-nfe-sefaz-danfe-pdv` (após push) |
+| **PREP** | `deploy/prep-checklist-1810f-nfe-sefaz-danfe-pdv` @ **`0945ef79`** |
 | **Migrate** | **SIM** `0147` |
 | **Checkpoint** | `./scripts/prep_checkpoint_checklist_1810f_nfe_sefaz_danfe_pdv.sh` |
 | **Rollback** | `rollback/pre-v27265-1810f-nfe-sefaz` @ **`5e16d701`** |
@@ -1318,7 +1318,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Paths** | `nfe_saida_*` · `nfce_sp` (`URL_AUTORIZACAO_NFE_SP`) · `logo_agro_mais_danfe.png` · `cadastro_busca_*` · `pdv_wizard.js` |
 | **Migrate** | **SIM `0147`** (`NfeNumeracaoAgro`) — **0146** já na loja |
 | **Render** | Vars NF-e produção já no painel (série **2**, nNF **1**, `TP_AMB=1`) |
-| **Pós-deploy** | `./scripts/post_deploy_checklist_1810e_nfe_danfe_palavras_pdv3.sh` · backfill palavras se ainda não rodou |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1810f_nfe_sefaz_danfe_pdv.sh` |
 | **Prova** | `verify_nfe_saida_path` **59/59** · `verify_cadastro_busca_med_path` **56/56** · unit NF-e OK |
 | **Smoke** | `/nfe/saida/` DANFE+logo · 1ª NF real série 2 · PDV `oleo 2tempo` |
 
@@ -1330,6 +1330,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 2 | **CADASTRO-PALAVRAS-PDV-3** | 🟡 **aguarda senha** | **NÃO** | **56/56** |
 
 **Doc:** `docs/DEPLOY-PREP-CHECKLIST-1810f-nfe-sefaz-danfe-pdv.md`
+
+### ✅ Deploy loja — **CHECKLIST 18/10e** · **Live v27.26.5** · 18/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live v27.26.5** @ **`5e16d701`** |
+| **Revert** | `git push origin rollback/pre-v27263-1810e-danfe-palavras3:producao` → **v27.26.3** |
 
 ### ✅ Deploy loja — **CHECKLIST 18/10** · **Live v27.26.3** · 18/10
 
