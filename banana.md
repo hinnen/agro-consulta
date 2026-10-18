@@ -1305,7 +1305,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 **Guia:** `docs/NFE-EM-PRODUCAO-PASSO-A-PASSO.md` · Homolog ≠ SEFAZ fiscal produção (fase 2).
 
-### 🟡 ARMADO · **PREP v27.26.7** · **CHECKLIST 18/10e**
+### 🟡 ARMADO · **PREP v27.26.8** · **CHECKLIST 18/10e**
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1315,7 +1315,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Pós-deploy** | `./scripts/post_deploy_checklist_1810e_nfe_danfe_palavras_pdv3.sh` |
 | **Cutover** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1810e_nfe_danfe_palavras_pdv3.sh --exec` |
 
-### 📦 PACOTE PRONTO — **LOJA-18/10e** · **v27.26.7**
+### 📦 PACOTE PRONTO — **LOJA-18/10e** · **v27.26.8**
 
 | Campo | Valor |
 | ----- | ----- |
