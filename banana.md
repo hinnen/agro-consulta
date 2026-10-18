@@ -1323,6 +1323,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **SIM** (`0146_nfe_saida_rascunho_agro`) |
 | **Prova** | verify **41/41** · tests **6/6** · HTTP **Nova**+listar **200** |
 | **Smoke** | `/nfe/saida/` · **Nova** · sem alerta vermelho · homolog emit (PIN **9973**) |
+| **Validação Renan** | **18/10** · venda **#10337** · etapa **6 SEFAZ** · **Autorizada** (homolog · chave OK) |
 
 
 ### 📦 PACOTE PRONTO — **CADASTRO-PALAVRAS-PDV-2** (hotfix busca **2 tempo**) · 17/10
