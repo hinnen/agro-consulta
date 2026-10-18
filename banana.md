@@ -1294,6 +1294,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟡 ARMADO · **PREP v27.26.3** · **CHECKLIST 18/10** · NF-e PG + palavras PDV
+
+| Campo | Valor |
+| ----- | ----- |
+| **Pacotes** | **NFE-SAIDA-55-PG** (migrate **0146**) + **CADASTRO-PALAVRAS-PDV-2** |
+| **Status** | 🟡 **Checkpoint pronto** · Live **v27.26** @ **`f82f5be1`** |
+| **PREP** | `deploy/prep-checklist-1810-nfe-pg-palavras-pdv2` @ **`8d01908c`** |
+| **Prova** | verify NF-e **35/35** (HTTP PG após migrate) · cadastro **50/50** · tests **11/11** dry-run |
+| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1810_nfe_pg_palavras_pdv2.sh` ✅ |
+| **Rollback** | `rollback/pre-v2726-1810-nfe-pg-palavras` @ **`f82f5be1`** |
+| **Backup** | `producao-backup-pre-v2726-3-1810` |
+| **Revert** | `git push origin rollback/pre-v2726-1810-nfe-pg-palavras:producao` → **v27.26** |
+| **Cutover loja** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1810_nfe_pg_palavras_pdv2.sh --exec` |
+| **Pós-deploy (Render Shell)** | `./scripts/post_deploy_checklist_1810_nfe_pg_palavras_pdv2.sh` (**migrate obrigatório**) |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1810-nfe-pg-palavras-pdv2.md` |
+| **Smoke** | `/nfe/saida/` **Nova** sem legado · PDV **2 tempo** (Ctrl+F5) |
+
+### ✅ CHECKLIST ÚNICO — **18/10** · 🟡 **aguarda senha** (PREP armado)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NFE-SAIDA-55-PG** | 🟡 **aguarda senha** | **SIM** `0146` | **41/41** loja |
+| 2 | **CADASTRO-PALAVRAS-PDV-2** | 🟡 **aguarda senha** | **NÃO** | **50/50** |
+
 ### 📦 PACOTE PRONTO — **NFE-SAIDA-55-PG** (rascunho Postgres · fix «legado indisponível») · 18/10
 
 | Campo | Valor |
@@ -1305,16 +1329,6 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | verify **41/41** · tests **6/6** · HTTP **Nova**+listar **200** |
 | **Smoke** | `/nfe/saida/` · **Nova** · sem alerta vermelho · homolog emit (PIN **9973**) |
 
-### ✅ CHECKLIST ÚNICO — **18/10** · 🟢 **pronto envio produção** · prep **v27.26.3**
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **NFE-SAIDA-55-PG** | 🟢 **pronto envio** | **SIM** | **41/41** + **6/6** |
-| 2 | **CADASTRO-PALAVRAS-PDV-2** | 🟢 **pronto envio** | **NÃO** | **50/50** |
-
-**Loja hoje:** `producao` @ **`f82f5be1`** · **v27.26** · NF-e 55 live com bug Mongo.  
-**Subir:** merge `teste`→`producao` + migrate **SIM** + smoke acima.  
-**Revert NF-e PG:** `producao` → **`f82f5be1`**.
 
 ### 📦 PACOTE PRONTO — **CADASTRO-PALAVRAS-PDV-2** (hotfix busca **2 tempo**) · 17/10
 
