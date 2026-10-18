@@ -1294,6 +1294,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟡 Prep teste — **NF-e manual UX** · **v27.26.10** · 18/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Commit** | **`1f22ce50`** (`teste`) |
+| **O quê** | `/nfe/saida/` emissão manual: lista ao digitar (cliente, produto, puxar venda), ↑↓ Enter Esc, F2/F3; `cliente_agro_pk` correto; busca produto `entrada_nfe=1` |
+| **Prova** | `verify_nfe_saida_path` **59/59** |
+| **Produção** | Ainda **v27.26.9** live — subir só com frase+senha quando validar local |
+
 ### ✅ Deploy loja — **CHECKLIST 18/10f** · **Live v27.26.9** · 18/10
 
 | Campo | Valor |
