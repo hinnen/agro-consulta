@@ -1298,7 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Subir** | **`teste` → `producao`** @ **`d78c8735`** |
+| **Subir** | **`teste` → `producao`** @ **`0d26fe36`** |
 | **Conteúdo** | **NF-e 55** SEFAZ-SP produção (`nfe_saida_sp_emissao_util`) · **DANFE Agro Mais** (logo, A4, paginação) · **CADASTRO-PALAVRAS-PDV-3** |
 | **Paths** | `nfe_saida_*` · `nfce_sp` (`URL_AUTORIZACAO_NFE_SP`) · `logo_agro_mais_danfe.png` · `cadastro_busca_*` · `pdv_wizard.js` |
 | **Migrate** | **SIM `0147`** (`NfeNumeracaoAgro`) — **0146** já na loja |
