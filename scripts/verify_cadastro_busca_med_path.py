@@ -111,6 +111,7 @@ def test_contratos() -> None:
     check(
         "version_prep",
         ver in (
+            "27.26.9",
             "27.26.8",
             "27.26.7",
             "27.26.6",
