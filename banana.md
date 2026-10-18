@@ -1323,44 +1323,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Pacotes** | **NFE-55-XSD-DEST** + **NFE-MANUAL-UX** |
-| **Status** | ✅ **Live v27.26.10** @ **`05a871df`** (cutover 18/10 · frase+senha Renan) |
-| **Anterior** | **v27.26.9** @ **`18046efd`** |
-| **Pós-deploy Shell** | `./scripts/post_deploy_checklist_1810g_nfe_xsd_ux.sh` |
-| **Revert** | `git push origin rollback/pre-v272610-1810g-nfe-xsd:producao` → **v27.26.9** @ **`18046efd`** |
-| **Backup** | `producao-backup-pre-v272610-1810g` @ **`18046efd`** |
-| **Smoke** | `/nfe/saida/` typeahead · NF série **2** (schema) |
-
-### 📦 PACOTE PRONTO — **LOJA-18/10g** · **v27.26.10**
-
-| Campo | Valor |
-| ----- | ----- |
-| **Subir** | **`deploy/prep-checklist-1810g-nfe-xsd-ux` → `producao`** (não merge `teste` inteiro) |
-| **Conteúdo** | **NFE-55-XSD-DEST** (ordem CPF/CNPJ no XML, CEP/endereço) · **NFE-MANUAL-UX** (lista cliente/produto/venda, F2/F3) |
-| **Paths** | `nfe_saida_sp_emissao_util.py` · `nfe_saida.js` · `nfe_saida.html` · `verify_nfe_saida_path.py` |
-| **Migrate** | **NÃO** (0147 já na loja com 18/10f) |
-| **Pós-deploy** | `./scripts/post_deploy_checklist_1810g_nfe_xsd_ux.sh` |
-| **Prova** | `verify_nfe_saida_path` **66/66** · unit NF-e SimpleTestCase **9 OK** |
-| **Smoke** | `/nfe/saida/` listas na busca · 1ª NF produção série **2** (se rejeição schema, conferir `cStat`) |
-
-### ✅ CHECKLIST ÚNICO — **18/10g** · ✅ **Live v27.26.10**
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **NFE-55-XSD-DEST** | ✅ **Live** | **NÃO** | verify + SEFAZ schema |
-| 2 | **NFE-MANUAL-UX** | ✅ **Live** | **NÃO** | typeahead + `buscar-vendas` |
+| **Status** | ✅ **Live** @ **`05a871df`** |
 
 ### ✅ Deploy loja — **CHECKLIST 18/10f** · **Live v27.26.9** · 18/10
 
 | Campo | Valor |
 | ----- | ----- |
 | **Pacotes** | **NFE-55-SEFAZ+DANFE-AGRO** + **CADASTRO-PALAVRAS-PDV-3** |
-| **Status** | ✅ **Live v27.26.9** @ **`18046efd`** (cutover 18/10) |
-| **Anterior** | **v27.26.5** @ **`5e16d701`** |
-| **Pós-deploy Shell** | `./scripts/post_deploy_checklist_1810f_nfe_sefaz_danfe_pdv.sh` (**migrate 0147**) |
+| **Status** | ✅ **Live v27.26.9** @ **`18046efd`** |
 | **Revert** | `git push origin rollback/pre-v27265-1810f-nfe-sefaz:producao` → **v27.26.5** @ **`5e16d701`** |
-| **Backup** | `producao-backup-pre-v27269-1810f` @ **`5e16d701`** |
-| **Smoke** | DANFE logo · NF série **2** · PDV `oleo 2tempo` |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1810f_nfe_sefaz_danfe_pdv.sh` |
 
 ### 📦 PACOTE PRONTO — **LOJA-18/10f** · **v27.26.9**
 
@@ -1375,12 +1347,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `verify_nfe_saida_path` **59/59** · `verify_cadastro_busca_med_path` **56/56** · unit NF-e OK |
 | **Smoke** | `/nfe/saida/` DANFE+logo · 1ª NF real série 2 · PDV `oleo 2tempo` |
 
-### ✅ CHECKLIST ÚNICO — **18/10f** · ✅ **Live v27.26.9**
+### ✅ CHECKLIST ÚNICO — **18/10f** · 🟡 **aguarda senha** (PREP armado)
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **NFE-55-SEFAZ+DANFE-AGRO** | ✅ **Live** | **SIM 0147** | **59/59** |
-| 2 | **CADASTRO-PALAVRAS-PDV-3** | ✅ **Live** | **NÃO** | **56/56** |
+| 1 | **NFE-55-SEFAZ+DANFE-AGRO** | 🟡 **aguarda senha** | **SIM 0147** | **59/59** |
+| 2 | **CADASTRO-PALAVRAS-PDV-3** | 🟡 **aguarda senha** | **NÃO** | **56/56** |
 
 **Doc:** `docs/DEPLOY-PREP-CHECKLIST-1810f-nfe-sefaz-danfe-pdv.md`
 
