@@ -65,6 +65,7 @@ Escolha o ramo que mais se aproxima. Leia **na ordem**; pare quando tiver contex
 | **Vendas / devolução** | `### 4.3` (devolução) + `### 4.4` | CHECKPOINT: `devolução`, `FL-017` |
 | **Clientes / fiado** | `### 4.5` + trecho fiado em `### 4.2` se PDV | CHECKPOINT: `fiado`, `cliente`, `F8` |
 | **Entrada NF** | `### 4.7` | `AGENTS.md` §7 entrada NF se XML/modal |
+| **NF-e saída 55 (DANFE A4)** | CHECKPOINT: `NFE-SAIDA`, `nfe/saida` | `docs/PLANO_TELA_EMISSAO_NFE_55.md` · **§88** |
 | **Estoque / ajuste / sync** | `### 4.8` | `docs/ESTOQUE_AGRO_FONTE_DA_VERDADE.md` |
 | **Compras** | `### 4.9` | `AGENTS.md` §7 compras se relatório/planilha |
 | **Lançamentos / CP / CR / DRE** | `### 4.10` | Se corte Mongo/PG: `### WIP` lançamentos (~L771–1020) · CHECKPOINT: `Lançamentos`, `CP`, `Postgres` |
@@ -951,3 +952,151 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 **Na senha (vendas pausadas):** `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → `./scripts/cutover_loja_checklist_1110k.sh --exec` → Render Shell `./scripts/post_deploy_checklist_1110k.sh`.  
 **Rollback:** tag `rollback/pre-checklist-1110k-v27.00` · `docs/ROLLBACK-CHECKLIST-1110k.md`.  
 **Não toca:** PDV · caixa · busca 230.
+
+---
+
+## 77. Checklist único — **12/10n** · ✅ Live **v27.09** (itens 1+2) · MED pendente
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **ETQ-MOBILE-POLISH** | ✅ **Live v27.09** | **NÃO** |
+| 2 | **CREDITO-REVISAR-LIMITE** | ✅ **Live v27.09** | **NÃO** |
+| 3 | **MED-CLASSIFICACAO-SISVALE** | 🟡 pendente (`deploy/prep-checklist-1210n`) | **NÃO** |
+
+**Live:** `producao` @ `f6a4fa31` · backup `producao-backup-pre-v2709-checklist-1210n-etq-cred`.  
+**Rollback 1+2:** `rollback/pre-checklist-1210n-v27.06-b539` → `b539c712`.  
+**Ctrl+F5:** GM etiquetas mobile · `/fiado/analise-credito/revisar-limites/`.
+
+---
+
+## 78. Checklist único — **12/10p** · ✅ Live **v27.11** (itens 1+2) · item 3 pendente
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CADASTRO-AGRO-VN-FANTASMA** | ✅ **Live v27.11** | **NÃO** |
+| 2 | **MED-CLASSIFICACAO-SISVALE** | ✅ **Live v27.11** | **NÃO** |
+| 3 | **CLIENTE-LISTA-DESC-PDV** | 🟡 pendente (`deploy/prep-checklist-1210p`) | **SIM** `0145` |
+
+**Live:** `producao` @ `4f122337` · backup `producao-backup-pre-v2711-checklist-1210p-vn-med`.  
+**Rollback 1+2:** `rollback/pre-checklist-1210p-v27.09-f6a4` → `f6a4fa31`.  
+**Shell:** `limpar_overlays_agro_vn_fantasma` · Ctrl+F5 cadastro ERP medicamentos.
+
+---
+
+## 79. Checklist único — hotfix **GESTAO-MED-MODAL-GV** · ✅ Live **v27.12**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **GESTAO-MED-MODAL-GV** | ✅ **Live v27.12** | **NÃO** |
+
+**Live:** `producao` @ `ac38739e` · backup `producao-backup-pre-v2712-hf-gestao-med-modal-gv`.  
+**Rollback:** `rollback/pre-hf-gestao-med-modal-gv-v2711` → `4f122337`.  
+**Ctrl+F5:** `/produtos/gestao/` · modal cadastro ERP medicamentos.
+
+---
+
+## 80. Checklist único — **CADASTRO-BUSCA-GM-PDV** hotfix · ✅ Live **v27.14.2**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CADASTRO-BUSCA-GM-PDV** (hotfix 27.14.2) | ✅ **Live v27.14.2** | **NÃO** |
+
+**Live:** `producao` @ `0a37a031` · backup `producao-backup-pre-v27142-busca-gm-pdv`.  
+**Rollback:** `rollback/pre-busca-gm-pdv-v2713` → `904a6031`.  
+**Conferir:** Ctrl+F5 · Cadastro `GM0037-1` · `ibiuna 5kg`. (Busca evoluiu para **v27.14.4** na loja.)
+
+---
+
+## 81. Checklist único — **MED-SUBCATEGORIA-DICAS** · ✅ Live **v27.15**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **MED-SUBCATEGORIA-DICAS** | ✅ **Live v27.15** | **NÃO** |
+
+**Live:** `producao` @ `ada10a36` · backup `producao-backup-pre-v2715-med-sub-dicas`.  
+**Rollback:** `rollback/pre-med-sub-v27144` → `dc357d31`.  
+**Conferir:** Ctrl+F5 · medicamento com dicas · ração sem dicas.
+
+---
+
+## 82. Checklist único — **14/10d** itens **1+2** · ✅ Live **v27.17**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PLANILHA-MED-ID-HOTFIX** | ✅ **Live v27.17** | **NÃO** |
+| 2 | **ETQ-FILA-MODAL-QTD** | ✅ **Live v27.17** | **NÃO** |
+| 3 | **ETQ-MOBILE-BIP** | ✅ **Live v27.16** | **NÃO** |
+
+**Live:** `producao` @ `39337d12` · backup `producao-backup-pre-v2717-checklist-1410d`.  
+**Rollback:** `rollback/pre-1410d-v2716` → `78a867a0`.  
+**Conferir:** planilha Med reimport · etiquetas PC Ctrl+F5.
+
+---
+
+## 83. Checklist único — **15/10 + 15/10b** · ✅ Live **v27.20** (base v27.19 @ `355ed0d9`)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CAIXA-FECHAR-PERF** | ✅ **Live** | **NÃO** |
+| 2 | **CREDITO-DESBLOQUEIO-LAB** | ✅ **Live** | **NÃO** |
+
+**Live:** `producao` @ **`2721cec2`** (v27.20).  
+**Rollback total:** `rollback/pre-v2718-caixa-credito` → `9f18d10f`.
+
+---
+
+## 84. Checklist único — **15/10a** · ✅ Live **v27.20**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CLIENTE-LISTA-DESC-PDV** | ✅ **Live** | **SIM** `0145` |
+
+**Live:** tip **`2721cec2`**.
+
+---
+
+## 85. Checklist único — **16/10** · ✅ Live **v27.21**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CAIXA-FECHAR-PERF-2** | ✅ **Live** | **NÃO** |
+
+**Live:** `producao` @ **`56b60ea9`**.  
+**Rollback:** `rollback/pre-v2720-caixa-perf2` → `2721cec2`.  
+**Smoke:** Ctrl+F5 · Caixa **Vila** → **Fechar caixa**.
+
+---
+
+## 86. Checklist único — **16/10e** · ✅ Live **v27.24**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CADASTRO-PALAVRAS-REABRE** | ✅ **Live** | **NÃO** | **42/42** |
+
+**Live:** `producao` @ **`d0df4700`**.  
+**Revert:** `git push origin rollback/pre-v2723-cadastro-palavras-reabre:producao` → **v27.23** @ `37ad1354`.  
+**Smoke:** Cadastro → produto **não med** → aba **2. Busca** → salvar → reabrir.
+
+---
+
+## 87. Checklist único — **16/10f** · ✅ Live **v27.25**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CADASTRO-PALAVRAS-PDV** | ✅ **Live** | **NÃO** | **48/48** + **5/5** |
+
+**Live:** `producao` @ **`b60a3f5b`**.  
+**Revert:** `git push origin rollback/pre-v2724-cadastro-palavras-pdv:producao` → **v27.24** @ `d0df4700`.  
+**Smoke:** Cadastro apelidos → PDV busca **2 tempo**.
+
+---
+
+## 88. CHECKLIST ÚNICO — **18/10** · 🟢 **pronto envio** · prep **v27.26.3**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NFE-SAIDA-55-PG** | 🟢 **pronto envio** | **SIM** | **41/41** + **6/6** |
+| 2 | **CADASTRO-PALAVRAS-PDV-2** | 🟢 **pronto envio** | **NÃO** | **50/50** |
+
+**Loja:** `producao` @ **`f82f5be1`** (v27.26). **Smoke:** `/nfe/saida/` · **Nova** sem «legado indisponível».  
+**Doc:** `docs/DEPLOY-PREP-CHECKLIST-1810-nfe-saida-pg.md`.

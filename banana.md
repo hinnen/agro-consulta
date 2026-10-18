@@ -1294,67 +1294,113 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 ARMADO · **PREP v27.26** · **CHECKLIST 17/10** · **NFE-SAIDA-55**
+### 📦 PACOTE PRONTO — **NFE-SAIDA-55-PG** (rascunho Postgres · fix «legado indisponível») · 18/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Pacote** | `/nfe/saida/` · NF-e modelo **55** (lista + editor · Mongo `AgroNfeSaida`) |
-| **Status** | 🟡 **Checkpoint pronto** · Live **v27.25** @ **`b60a3f5b`** |
-| **PREP** | `deploy/prep-checklist-1710-nfe-saida-55` |
-| **Migrate** | **NÃO** |
-| **Prova** | verify **27/27** · `tests_nfe_saida_util` **4/4** |
-| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1710_nfe_saida_55.sh` |
-| **Rollback** | `rollback/pre-v2725-nfe-saida-55` @ **`b60a3f5b`** |
-| **Backup** | `producao-backup-pre-v2726-nfe-saida-55` |
-| **Revert** | `git push origin rollback/pre-v2725-nfe-saida-55:producao` → **v27.25** |
-| **Cutover loja** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1710_nfe_saida_55.sh --exec` |
-| **Pós-deploy** | `./scripts/post_deploy_checklist_1710_nfe_saida_55.sh` |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1710-nfe-saida-55.md` |
-| **Smoke** | Menu **NF-e saída** · **Nova** · emitir (homolog) · `?venda=` |
+| **O quê** | Rascunhos NF-e 55 em `NfeSaidaRascunhoAgro` quando Mongo ERP off; **Nova**/lista/emitir sem Mongo |
+| **Paths** | `nfe_saida_util` · `nfe_saida_rascunho_pg_util` · `views_nfe_saida` · migration **0146** |
+| **Branch** | `teste` @ **`7847b1fc`**+ · `VERSION` **27.26.3** |
+| **Migrate** | **SIM** (`0146_nfe_saida_rascunho_agro`) |
+| **Prova** | verify **41/41** · tests **6/6** · HTTP **Nova**+listar **200** |
+| **Smoke** | `/nfe/saida/` · **Nova** · sem alerta vermelho · homolog emit (PIN **9973**) |
 
-### ✅ CHECKLIST ÚNICO — **17/10** · 🟡 **aguarda senha** (PREP armado)
+### ✅ CHECKLIST ÚNICO — **18/10** · 🟢 **pronto envio produção** · prep **v27.26.3**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **NFE-SAIDA-55** | 🟡 **aguarda senha** | **NÃO** | **27/27** |
+| 1 | **NFE-SAIDA-55-PG** | 🟢 **pronto envio** | **SIM** | **41/41** + **6/6** |
+| 2 | **CADASTRO-PALAVRAS-PDV-2** | 🟢 **pronto envio** | **NÃO** | **50/50** |
 
-### ✅ Deploy loja — **CADASTRO-PALAVRAS-PDV** · **Live v27.25** · **16/10f** @ **`b60a3f5b`**
+**Loja hoje:** `producao` @ **`f82f5be1`** · **v27.26** · NF-e 55 live com bug Mongo.  
+**Subir:** merge `teste`→`producao` + migrate **SIM** + smoke acima.  
+**Revert NF-e PG:** `producao` → **`f82f5be1`**.
 
-### ✅ Deploy loja — **CADASTRO-PALAVRAS-REABRE** · **Live v27.24** · **16/10e** @ **`d0df4700`**
+### 📦 PACOTE PRONTO — **CADASTRO-PALAVRAS-PDV-2** (hotfix busca **2 tempo**) · 17/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Busca BCA/PDV/gestão por apelido no overlay: `overlay_pids_por_palavras_busca` (ORM + SQL `ILIKE` JSON Postgres), índice `busca_palavras_agro` ao salvar, fallback se filtro PDV zerar; **BCA cache v5** |
+| **Paths** | save overlay → `busca_palavras_agro` · `catalogo_agro.buscar` · `motor_busca_unificado` · `/api/buscar/` (BCA+PDV) · `buscar_gestao` |
+| **Branch** | `teste` @ **`59702e8c`** · `VERSION` **27.26.2** |
+| **Migrate** | **NÃO** |
+| **Prova** | verify **50/50** · tests **6/6** · PIN **9973** OK |
+| **Smoke** | Reabrir óleo 2T → **2. Busca** já salvo → BCA/PDV **2 tempo** (Ctrl+F5 uma vez após deploy) |
+
+### ✅ CHECKLIST ÚNICO — **17/10b** · 🟢 **pronto envio produção** · prep **v27.26.2**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CADASTRO-PALAVRAS-PDV-2** | 🟢 **pronto envio** | **NÃO** | **50/50** |
+
+### ✅ Deploy loja — **NFE-SAIDA-55** · **Live v27.26** · CHECKLIST **17/10** · 17/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live v27.26** @ **`f82f5be1`** |
+| **Migrate** | **NÃO** |
+| **Pós-deploy** | `post_deploy_checklist_1710` **OK** · verify **27/27** · tests **4/4** |
+| **Revert** | `git push origin rollback/pre-v2725-nfe-saida-55:producao` → **v27.25** @ **`b60a3f5b`** |
+| **Backup pré-subida** | `producao-backup-pre-v2726-nfe-saida-55` @ **`b60a3f5b`** |
+| **Smoke** | Menu **NF-e saída** · **Nova** · `?venda=` |
+| **Pendente fase 2** | SOAP SEFAZ produção (`tp_amb=1`) — **não** bloqueia PDV |
+
+### ✅ CHECKLIST ÚNICO — **17/10** · ✅ Live **v27.26**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NFE-SAIDA-55** | ✅ **Live** | **NÃO** | **27/27** |
+
+### ✅ Deploy loja — **CADASTRO-PALAVRAS-PDV** · **Live v27.25** · CHECKLIST **16/10f** · 16/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live v27.25** @ **`b60a3f5b`** |
+| **Migrate** | **NÃO** |
+| **Pós-deploy** | `post_deploy_checklist_1610f` **OK** · verify **48/48** · tests **5/5** |
+| **Revert** | `git push origin rollback/pre-v2724-cadastro-palavras-pdv:producao` → **v27.24** @ **`d0df4700`** |
+| **Backup pré-subida** | `producao-backup-pre-v2725-cadastro-palavras-pdv` @ **`d0df4700`** |
+| **Smoke** | Cadastro apelidos → PDV buscar **2 tempo** (F5 se cache) |
+
+### ✅ CHECKLIST ÚNICO — **16/10f** · ✅ Live **v27.25**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CADASTRO-PALAVRAS-PDV** | ✅ **Live** | **NÃO** | **48/48** |
+
+### ✅ Deploy loja — **CADASTRO-PALAVRAS-REABRE** · **Live v27.24** · CHECKLIST **16/10e** · 16/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live v27.24** @ **`d0df4700`** |
+| **Migrate** | **NÃO** |
+| **Pós-deploy** | `post_deploy_checklist_1610e` **OK** · verify **42/42** |
+| **Revert** | `git push origin rollback/pre-v2723-cadastro-palavras-reabre:producao` → **v27.23** @ **`37ad1354`** |
+| **Backup pré-subida** | `producao-backup-pre-v2724-cadastro-palavras-reabre` @ **`37ad1354`** |
+| **Smoke** | Cadastro → produto **não med** → **2. Busca** → salvar → reabrir |
 
 ### ✅ CHECKLIST ÚNICO — **16/10e** · ✅ Live **v27.24**
 
-### 🟡 Aguarda senha · **PREP v27.23** · **CHECKLIST 16/10d** (16/10)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Pacote** | **ETQ-NF-QTD-FILA** — NF na etiqueta: **1 por produto** ou **qtd da nota** |
-| **Status** | 🟡 **Checkpoint OK** · cutover **1 comando** (próximo chat) · Live **v27.22** @ **`553e8a4c`** |
-| **PREP** | `deploy/prep-checklist-1610d-etq-nf-qtd` @ **`9d4dbec5`** |
-| **Migrate** | **NÃO** |
-| **Prova** | `prep_checkpoint` **OK** · verify **27/27** · `tests_pdv_cadastro_rapido` **23/23** |
-| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1610d_etq_nf_qtd.sh` ✅ |
-| **Rollback** | `rollback/pre-v2722-etq-nf-qtd` @ **`553e8a4c`** |
-| **Backup** | `producao-backup-pre-v2723-etq-nf-qtd` @ **`553e8a4c`** |
-| **Revert** | `git push origin rollback/pre-v2722-etq-nf-qtd:producao` |
-| **Cutover loja** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='…' ./scripts/cutover_loja_checklist_1610d_etq_nf_qtd.sh --exec` |
-| **Pós-deploy** | `./scripts/post_deploy_checklist_1610d_etq_nf_qtd.sh` |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1610d-etq-nf-qtd.md` |
-| **Smoke** | Ctrl+F5 · Etiquetas → NF → modo qtd → **Adicionar todos** |
-
-### ✅ CHECKLIST ÚNICO — **16/10d** · 🟡 **aguarda senha** (checkpoint pronto)
-
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-NF-QTD-FILA** | 🟡 **aguarda senha** | **NÃO** | `prep_checkpoint` + verify **27/27** |
+| 1 | **CADASTRO-PALAVRAS-REABRE** | ✅ **Live** | **NÃO** | **42/42** |
 
-### 📦 PACOTE PRONTO — **ETQ-NF-QTD-FILA** (`CHECKLIST 16/10d`) · **PREP v27.23**
+### ✅ Deploy loja — **ETQ-NF-QTD-FILA** · **Live v27.23** · CHECKLIST **16/10d** · 16/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | `entrada_nf_qtd` na API + radios **1 etiqueta** / **qtd NF** · JS **v37** |
-| **Base** | Live **v27.22** @ **`553e8a4c`** |
-| **Rollback** | `rollback/pre-v2722-etq-nf-qtd` @ **`553e8a4c`** |
+| **Status** | ✅ **Live v27.23** @ **`37ad1354`** |
+| **Migrate** | **NÃO** |
+| **Pós-deploy** | `post_deploy_checklist_1610d` **OK** · verify **27/27** |
+| **Revert** | `git push origin rollback/pre-v2722-etq-nf-qtd:producao` → **v27.22** @ `553e8a4c` |
+| **Backup pré-subida** | `producao-backup-pre-v2723-etq-nf-qtd` @ `553e8a4c` |
+| **Smoke** | Ctrl+F5 · Etiquetas → NF → **1 etiqueta** / **Qtd da nota** → **Adicionar todos** |
+
+### ✅ CHECKLIST ÚNICO — **16/10d** · ✅ Live **v27.23**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **ETQ-NF-QTD-FILA** | ✅ **Live** | **NÃO** |
 
 ### ✅ Deploy loja — **ETQ-FILTRO-NF-ENTRADA** · **Live v27.22** · CHECKLIST **16/10c** · 16/10
 
