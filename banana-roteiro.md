@@ -1098,5 +1098,5 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | 1 | **NFE-SAIDA-55-PG** | 🟢 **pronto envio** | **SIM** | **41/41** + **6/6** |
 | 2 | **CADASTRO-PALAVRAS-PDV-2** | 🟢 **pronto envio** | **NÃO** | **50/50** |
 
-**Loja:** `producao` @ **`f82f5be1`** (v27.26). **Smoke:** `/nfe/saida/` · **Nova** sem «legado indisponível».  
+**Loja:** `producao` @ **`f82f5be1`** (v27.26). **Smoke Renan OK 18/10:** #10337 · homolog autorizada (PIN 9973).  
 **Doc:** `docs/DEPLOY-PREP-CHECKLIST-1810-nfe-saida-pg.md`.
