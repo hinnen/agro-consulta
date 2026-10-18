@@ -15,7 +15,8 @@ PREP_SHORT="$(git rev-parse --short "$PREP_REF" 2>/dev/null || echo missing)"
 VER="$(git show "$PREP_REF:VERSION" 2>/dev/null | tr -d '[:space:]' || echo ?)"
 echo "checkpoint produção=$PROD_SHORT PREP=$PREP_SHORT VERSION=$VER"
 _ensure_ref_matches_prod() {
-  local ref_name="$1" remote="origin/$ref_name"
+  local ref_name="$1"
+  local remote="origin/$ref_name"
   if git show-ref --verify --quiet "refs/remotes/$remote"; then
     local got; got="$(git rev-parse "$remote")"
     if [[ "$got" != "$PROD_SHA" ]]; then

@@ -107,6 +107,7 @@ grep -q "PREP_FAILS=0" /tmp/cutover-1810f-cad.log
   produtos.tests_nfe_saida_util.NfeSaidaDestinatarioTests \
   produtos.tests_nfe_saida_util.NfeSaidaPostgresStoreTests \
   produtos.tests_nfe_saida_util.NfeSaidaPagamentoTests \
+  produtos.tests_nfe_saida_util.NfeSaidaXmlMontagemTests \
   produtos.tests_cadastro_busca_pdv_alinhada \
   -v 0 2>&1 | tee /tmp/cutover-1810f-tests.log
 grep -qE 'OK \(|Ran [0-9]+ test' /tmp/cutover-1810f-tests.log
