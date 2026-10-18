@@ -1091,12 +1091,12 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 88. CHECKLIST ÚNICO — **18/10** · 🟢 **pronto envio** · prep **v27.26.3**
+## 88. CHECKLIST ÚNICO — **18/10e** · 🟢 **pronto envio** · **v27.26.5**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **NFE-SAIDA-55-PG** | 🟢 **pronto envio** | **SIM** | **41/41** + **6/6** |
-| 2 | **CADASTRO-PALAVRAS-PDV-2** | 🟢 **pronto envio** | **NÃO** | **50/50** |
+| 1 | **NFE-SAIDA-55** (PG+UI+DANFE) | 🟢 **pronto envio** | **SIM**† | **47/47** |
+| 2 | **CADASTRO-PALAVRAS-PDV-3** | 🟢 **pronto envio** | **NÃO** | **53/53** |
 
-**Loja:** `producao` @ **`f82f5be1`** (v27.26). **Smoke Renan OK 18/10:** #10337 · homolog autorizada (PIN 9973).  
-**Doc:** `docs/DEPLOY-PREP-CHECKLIST-1810-nfe-saida-pg.md`.
+**Loja git:** `producao` @ **`f82f5be1`**. **Smoke Renan:** NF-e #10337 homolog · DANFE padrão.  
+**Doc:** `docs/DEPLOY-PREP-CHECKLIST-1810e-nfe-danfe-palavras3.md`.

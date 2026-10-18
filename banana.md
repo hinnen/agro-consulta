@@ -1294,6 +1294,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — **LOJA-18/10e** · **v27.26.5** · NF-e 55 + apelidos PDV
+
+| Campo | Valor |
+| ----- | ----- |
+| **Inclui** | **NFE-SAIDA-55-PG** (`0146`) · botões DANFE/XML · **DANFE A4 padrão** · **CADASTRO-PALAVRAS-PDV-3** |
+| **Branch** | `teste` @ **`9df737a6`** |
+| **Migrate** | **SIM** só **0146** (se loja ainda em **v27.26** @ `f82f5be1`) |
+| **Prova** | NF-e **47/47** · cadastro **53/53** (loja) |
+| **Smoke** | NF-e: Nova · homolog · DANFE+XML · PDV: **2 tempo** / **oleo** |
+
+### 🟢 CHECKLIST ÚNICO — **18/10e** · **pronto envio produção** · **v27.26.5**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NFE-SAIDA-55** (PG+UI+DANFE) | 🟢 **pronto envio** | **SIM**† | **47/47** |
+| 2 | **CADASTRO-PALAVRAS-PDV-3** | 🟢 **pronto envio** | **NÃO** | **53/53** |
+
+† **0146** já aplicada se loja ≥ **v27.26.3** com migrate OK.
+
+**Doc:** `docs/DEPLOY-PREP-CHECKLIST-1810e-nfe-danfe-palavras3.md` · **Revert NF-e:** `producao` → **`f82f5be1`**.
+
 ### 📦 PACOTE PRONTO — **CADASTRO-PALAVRAS-PDV-3** (busca apelido **definitiva**) · 18/10
 
 | Campo | Valor |
