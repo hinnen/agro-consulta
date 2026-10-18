@@ -40,6 +40,7 @@ DELTA="$(git diff --name-only "$PROD_REF...$PREP_REF" | sort)"
 ALLOWED="$(printf '%s\n' \
   VERSION \
   banana.md \
+  banana-roteiro.md \
   docs/DEPLOY-PREP-CHECKLIST-1810f-nfe-sefaz-danfe-pdv.md \
   docs/NFE-EM-PRODUCAO-PASSO-A-PASSO.md \
   produtos/bca_busca_cache_util.py \
