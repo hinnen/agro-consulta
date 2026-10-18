@@ -302,7 +302,8 @@ def api_nfe_saida_danfe(request, doc_id: str):
         return HttpResponse("Não encontrado", status=404)
     from produtos.nfe_saida_danfe_html import carregar_emitente_danfe, montar_html_danfe
 
-    html = montar_html_danfe(doc, emitente=carregar_emitente_danfe())
+    em = carregar_emitente_danfe(doc=doc)
+    html = montar_html_danfe(doc, emitente=em)
     return HttpResponse(html, content_type="text/html; charset=utf-8")
 
 

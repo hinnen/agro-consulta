@@ -43,6 +43,15 @@ class NfeSaidaDanfeLayoutTests(SimpleTestCase):
         self.assertIn("Recebemos de", html)
         self.assertIn("SEM VALOR FISCAL", html)
         self.assertIn("Produto", html)
+        self.assertIn("data:image/png;base64", html)
+        self.assertIn("Folha", html)
+
+    def test_danfe_exemplo(self):
+        from produtos.nfe_saida_danfe_html import gerar_html_danfe_exemplo
+
+        html = gerar_html_danfe_exemplo()
+        self.assertIn("AGRO MAIS", html.upper())
+        self.assertNotIn("SEM VALOR FISCAL", html)
 
 
 class NfeSaidaCfopTests(SimpleTestCase):
