@@ -1320,7 +1320,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Checkpoint** | `./scripts/prep_checkpoint_checklist_1810h_nfe_danfe_erp.sh` |
 | **Cutover** | `AGRO_LOJA_FRASE='pode enviar para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1810h_nfe_danfe_erp.sh --exec` |
 | **Rollback** | `rollback/pre-v272611-1810h-danfe-erp` → **v27.26.10** @ **`05a871df`** |
-| **Extra teste** | **NFE-EMAIL-DEST** — e-mail salvo + XML/DANFE após autorizar (`EMAIL_HOST` Render) |
+| **Extra teste** | **NFE-EMAIL-DEST** — código no `teste` · envio real = **FL-059** (P3, checklist pendências) |
 
 ### 📦 PACOTE PRONTO — **LOJA-18/10h** · **v27.26.11**
 
@@ -1337,6 +1337,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- | ----- |
 | 1 | **NFE-DANFE-ERP-LAYOUT** | 🟢 pronto | **NÃO** | verify + DANFE |
 | 2 | **NFE-EMAIL-DEST** | 🟢 pronto | **NÃO** | **68/68** |
+| 3 | **FL-059** (ops) | 📋 **P3 pendente** | **NÃO** | Gmail `@gmail.com` → Render `EMAIL_*` |
 
 ### ✅ Deploy loja — **CHECKLIST 18/10g** · **Live v27.26.10** · 18/10
 
@@ -10827,6 +10828,7 @@ iews.py (compras enrich) |
 | **P1,9** | **FL-034** | Histórico F8 filtra cliente | ⚠️ **código filtro na loja** — confirmar se fecha o pedido |
 | **P2** | **Zap #19** · **FL-053** | Histórico de custo tick 2× | 📋 **ainda aberto** |
 | **P3** | **Zap #21** · **FL-033** | BI comparativo N-ésimo dia semana | 📋 **ainda aberto** |
+| **P3** | **FL-059** | NF-e saída: **Gmail da loja** no Render (`EMAIL_HOST` + senha de app Google) → cliente recebe XML+DANFE ao emitir | 📋 **pendente** · Renan Google+Render |
 | **P2+** | FL-005… | Resto P2/P3 na «Fila loja» completa | 📋 |
 
 #### Checklist concluÃ­do (jÃ¡ na loja)
@@ -13320,6 +13322,7 @@ Dry-run do import tambÃ©m lista **quantos itens** ficaram sem match no catÃ¡
 | **FL-056** | **P0** | NFC-e / SEFAZ | RejeiÃ§Ãµes **963** (fiado+card) + **225** (CFOP/CEST pontuaÃ§Ã£o) â€” vendas #2812/#3347 | ðŸ“¦ **pronto pra envio** Â· teste **v9.21** | 17/07 |
 | **FL-057** | **P0,1** | Ops / Render / Postgres | **PgBouncer** na loja — `agro-db` pooling + `DATABASE_URL` porta **6432** + restart web | 📋 Pendente · Renan no painel | 21/07 |
 | **FL-058** | **P0,2** | PDV / Clientes / crédito | **Adicionar vale crédito** ao cliente **pelo PDV** (lançar crédito na conta do cliente na loja) · liga FL-029 crédito | ✅ **PDV-CLI-CADASTRO** 17/08 | 01/08 |
+| **FL-059** | **P3** | NF-e saída / Ops | **E-mail ao emitir NF-e 55** — configurar **Gmail `@gmail.com`** no Render: verificação 2 etapas + **senha de app** → `EMAIL_HOST` `smtp.gmail.com` · `EMAIL_PORT` `587` · `EMAIL_USE_TLS` `True` · `EMAIL_HOST_USER` · `EMAIL_HOST_PASSWORD` · `DEFAULT_FROM_EMAIL` · smoke: emitir NF-e com e-mail no destinatário | 📋 Pendente · Renan | 19/10 |
 | **FL-034** | **P1,9** | PDV / Clientes | BotÃ£o **HistÃ³rico** nÃ£o filtra vendas do **cliente selecionado** â€” deve filtrar (relacionamento / devoluÃ§Ã£o) | ðŸ”„ **F8 modal rascunho** teste Â· fila loja | 29/06 16:20 |
 | **FL-035** | **P2** | DevoluÃ§Ã£o | **DevoluÃ§Ã£o parcial** da venda â€” ou **itens especÃ­ficos** | ðŸ“¦ **#12** pronto loja (fecha) Â· âœ… teste Renan | 29/06 16:20 |
 | **FL-036** | **P3** | PDV / Promo | **Faixa vertical** ou chaves ligando selos do **mesmo mix** no carrinho (opÃ§Ã£o visual 2) | ðŸ“‹ Pendente | 29/06 |
@@ -13380,6 +13383,7 @@ Dry-run do import tambÃ©m lista **quantos itens** ficaram sem match no catÃ¡
 | FL-056 | `nfce-963-card-fiado-225-fiscal-digitos` | **963:** sem `card` em tPag 05 Â· **225:** NCM/CFOP/CEST sÃ³ dÃ­gitos |
 | FL-057 | `render-pgbouncer-agro-db-6432` | Render: Info do Postgres → Connection pooling · web loja `DATABASE_URL` pooled **:6432** · redeploy · conferir healthz |
 | FL-058 | `pdv-vale-credito-cliente` | PDV: lançar / adicionar **vale crédito** ao cliente selecionado (Postgres) · uso depois na venda · overlap FL-029 crédito |
+| FL-059 | `nfe-saida-email-gmail-render` | Ops Renan: Gmail 2FA + senha de app → vars Render `EMAIL_*` · `nfe_saida_email_util` já envia pós-autorizar · doc passo a passo no chat 19/10 |
 | FL-034 | `pdv-historico-cliente-filtro` | HistÃ³rico vendas deve respeitar **cliente selecionado** no PDV |
 | FL-035 | `devolucao-parcial-itens` | DevoluÃ§Ã£o por itens / parcial â€” hoje provavelmente venda inteira |
 | FL-036 | `pdv-mix-selo-faixa-vertical` | Faixa/chaves CSS ligando coluna promo entre linhas do mesmo mix (opÃ§Ã£o 2) |
