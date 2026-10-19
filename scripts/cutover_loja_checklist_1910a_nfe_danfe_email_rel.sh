@@ -86,7 +86,7 @@ export AGRO_PIN_TESTE="${AGRO_PIN_TESTE:-9973}"
 grep -q "PREP_FAILS=0" /tmp/cutover-1910a-nfe.log
 
 "$PY" scripts/verify_rel_cat_sub_excel_path.py | tee /tmp/cutover-1910a-rel.log
-grep -q "PREP_FAILS=0" /tmp/cutover-1910a-rel.log
+grep -qE 'PREP_FAILS=0|TOTAL OK=[0-9]+ FAIL=0' /tmp/cutover-1910a-rel.log
 
 "$PY" manage.py test \
   produtos.tests_nfe_saida_util.NfeSaidaDanfeLayoutTests \
