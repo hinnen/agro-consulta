@@ -1309,18 +1309,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
 | 1 | **REL-CAT-SUB-EXCEL** | 🟢 pronto | **NÃO** | verify **30/30** + tests **15** |
-| 2 | **NFE-DANFE-ERP-LAYOUT** + **NFE-EMAIL-DEST** (`18/10h` · v27.26.11) | 🟢 pronto | **NÃO** | verify **68/68** — *ainda na fila se loja não subiu* |
+| 2 | **NFE-DANFE-ERP-LAYOUT** + **NFE-EMAIL-DEST** | 🟢 pronto | **NÃO** | verify NF-e **59/59** + e-mail (unit) |
 
-### 🟡 ARMADO · **PREP v27.26.11** · **CHECKLIST 18/10h** · DANFE layout ERP
+### 🟡 ARMADO · **PREP v27.26.12** · **CHECKLIST 19/10a** · DANFE + e-mail NF-e + REL cat/sub
 
 | Campo | Valor |
 | ----- | ----- |
-| **PREP** | `deploy/prep-checklist-1810h-nfe-danfe-erp` |
+| **PREP** | `deploy/prep-checklist-1910a` @ **`f33ee5cd`** |
 | **Base loja** | **v27.26.10** @ **`05a871df`** |
-| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1810h_nfe_danfe_erp.sh` |
-| **Cutover** | `AGRO_LOJA_FRASE='pode enviar para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1810h_nfe_danfe_erp.sh --exec` |
-| **Rollback** | `rollback/pre-v272611-1810h-danfe-erp` → **v27.26.10** @ **`05a871df`** |
-| **Extra teste** | **NFE-EMAIL-DEST** — código no `teste` · envio real = **FL-059** (P3, checklist pendências) |
+| **Migrate** | **NÃO** |
+| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1910a_nfe_danfe_email_rel.sh` → **`PREP_CHECKPOINT_OK`** |
+| **Cutover** | `AGRO_LOJA_FRASE='pode enviar para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1910a_nfe_danfe_email_rel.sh --exec` |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1910a_nfe_danfe_email_rel.sh` (Render Shell) |
+| **Rollback** | `git push origin rollback/pre-v272612-1910a-checklist:producao` → **v27.26.10** @ **`05a871df`** |
+| **Backup** | `producao-backup-pre-v272612-1910a` @ **`05a871df`** |
+| **Prova cloud** | NF-e **59/59** · REL **30/30** · unit **20** OK (SQLite incompleto = skips HTTP esperados) |
+| **Ops** | **FL-059** — Gmail no Render (`EMAIL_*`) para **envio real** de e-mail NF-e (não bloqueia cutover) |
+| **Smoke** | `/nfe/saida/` reimprimir DANFE (layout ERP) · Central `/relatorios/` cat/sub + Excel · **Ctrl+F5** |
+
+### ~~ARMADO 18/10h~~ · **substituído pelo PREP 19/10a** (pacote único acima)
 
 ### 📦 PACOTE PRONTO — **LOJA-18/10h** · **v27.26.11**
 

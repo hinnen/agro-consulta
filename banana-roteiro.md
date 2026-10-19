@@ -1105,3 +1105,15 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | 2 | **CADASTRO-PALAVRAS-PDV-3** | ✅ **Live** | **NÃO** | **56/56** |
 
 **Loja git:** `producao` @ **`18046efd`**. **Shell:** `post_deploy_checklist_1810f_nfe_sefaz_danfe_pdv.sh`.
+
+---
+
+## 90. CHECKLIST ÚNICO — **19/10a** · 🟡 **ARMADO** · aguarda frase+senha
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **REL-CAT-SUB-EXCEL** | 🟢 no PREP | **NÃO** | verify **30/30** |
+| 2 | **NFE-DANFE-ERP-LAYOUT** + **NFE-EMAIL-DEST** | 🟢 no PREP | **NÃO** | NF-e **59/59** + unit |
+
+**Live hoje:** **v27.26.10** @ **`05a871df`**. **PREP:** `deploy/prep-checklist-1910a` @ **`f33ee5cd`** · **v27.26.12**.  
+**Cutover:** `cutover_loja_checklist_1910a_nfe_danfe_email_rel.sh --exec` · **rollback** `rollback/pre-v272612-1910a-checklist`.
