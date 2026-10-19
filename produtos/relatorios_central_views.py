@@ -201,66 +201,244 @@ def _relatorios_mais_vendidos_impl(request):
     )
 
 
+def _fmt_var_grupo(v: float | None, novo: bool = False) -> str:
+    if novo:
+        return "novo"
+    if v is None:
+        return "—"
+    return f"{v:+.1f}%"
+
+
+def _grupo_kw(request, deposito, agrupar, gopts: dict) -> dict:
+    return {
+        "agrupar": agrupar,
+        "deposito": deposito,
+        "ordenar": gopts["ordenar"],
+        "min_valor": gopts.get("min_valor"),
+        "margem_pct_min": gopts.get("margem_pct_min"),
+        "margem_pct_max": gopts.get("margem_pct_max"),
+        "so_sem_custo": gopts.get("so_sem_custo"),
+        **ru.filtros_catalogo_request(request),
+    }
+
+
 @require_GET
 def relatorios_vendas_grupo(request):
-    f = _periodo_filtros(request)
+    gopts = ru.parse_vendas_grupo_request(request)
     deposito = ru.parse_deposito_relatorio(request)
     agrupar = (request.GET.get("agrupar") or "categoria").strip().lower()
     if agrupar not in (
         "categoria", "subcategoria", "subcategoria_2", "subcategoria_3", "subcategoria_4"
     ):
         agrupar = "categoria"
-    rows, meta = ru.vendas_por_grupo_relatorio(
-        f["desde"],
-        f["ate_dt"],
-        agrupar=agrupar,
-        deposito=deposito,
-        **ru.filtros_catalogo_request(request),
-    )
-    headers = ["#", meta.get("col_grupo") or "Grupo", "SKUs", "Qtd", "Total R$", "%"]
-    sub_periodo = _subtitulo_catalogo(
-        f"{f['label']} · {ru.rotulo_deposito_relatorio(deposito)}", meta
-    )
+    kw = _grupo_kw(request, deposito, agrupar, gopts)
+    visao = gopts["visao"]
+    dep_label = ru.rotulo_deposito_relatorio(deposito)
+
+    if visao == "comparativo":
+        meses = ru.meses_comparativo_grupo(gopts)
+        rows, meta = ru.vendas_grupo_comparativo_meses(meses, **kw)
+        mes_labels = meta.get("meses") or []
+        headers = ["#", meta.get("col_grupo") or "Grupo"]
+        for lab in mes_labels:
+            headers.extend([f"{lab} Venda", f"{lab} Margem", f"{lab} Δ%"])
+        headers.extend(["Δ% venda 1º→últ", "Δ% margem 1º→últ"])
+        sub_periodo = _subtitulo_catalogo(
+            f"Comparativo {len(mes_labels)} meses · {dep_label}", meta
+        )
+        display_rows: list[list] = []
+        row_alertas: list[bool] = []
+        for r in rows:
+            line = [r["pos"], r["grupo"]]
+            for c in r["meses"]:
+                line.append(ru.fmt_brl(c["valor"]))
+                line.append(ru.fmt_brl(c["margem_rs"]))
+                line.append(
+                    _fmt_var_grupo(
+                        c.get("var_venda_pct"),
+                        novo=bool(c.get("novo_venda")),
+                    )
+                )
+            line.append(
+                _fmt_var_grupo(r.get("var_total_venda_pct"))
+            )
+            line.append(
+                _fmt_var_grupo(r.get("var_total_margem_pct"))
+            )
+            display_rows.append(line)
+            row_alertas.append(False)
+        if request.GET.get("export") == "xlsx":
+            return ru.xlsx_http_response(
+                "vendas-grupo-comparativo.xlsx",
+                ru.montar_xlsx(
+                    "Vendas por grupo — comparativo",
+                    headers,
+                    display_rows,
+                    subtitulo=sub_periodo,
+                ),
+            )
+        f_stub = {"label": " · ".join(mes_labels), "periodo": "comparativo"}
+        return render(
+            request,
+            "produtos/relatorios_generico.html",
+            _ctx_vendas_grupo(
+                request,
+                f=f_stub,
+                gopts=gopts,
+                agrupar=agrupar,
+                deposito=deposito,
+                meta=meta,
+                headers=headers,
+                rows=display_rows,
+                row_alertas=row_alertas,
+                totais=[],
+                aviso_sem_custo="",
+                comparativo=True,
+            ),
+        )
+
+    f = _periodo_filtros(request)
+    rows, meta = ru.vendas_por_grupo_relatorio(f["desde"], f["ate_dt"], **kw)
+    totais_num = meta.get("totais") or {}
+    headers = [
+        "#",
+        meta.get("col_grupo") or "Grupo",
+        "SKUs",
+        "Qtd",
+        "Ticket méd.",
+        "Venda R$",
+        "% venda",
+        "Custo R$",
+        "Margem R$",
+        "Margem %",
+        "% lucro",
+    ]
+    sub_periodo = _subtitulo_catalogo(f"{f['label']} · {dep_label}", meta)
     if agrupar != "categoria":
         sub_periodo = f"{sub_periodo} · por {meta.get('col_grupo') or agrupar}"
+    display_rows = []
+    row_alertas = []
+    for r in rows:
+        display_rows.append(
+            [
+                r["pos"],
+                r["grupo"],
+                r["skus"],
+                f'{r["qtd"]:.3f}'.rstrip("0").rstrip("."),
+                ru.fmt_brl(r["ticket"]),
+                ru.fmt_brl(r["valor"]),
+                f'{r["pct"]}%',
+                ru.fmt_brl(r["custo"]),
+                ru.fmt_brl(r["margem_rs"]),
+                f'{r["margem_pct"]}%',
+                f'{r["pct_margem"]}%',
+            ]
+        )
+        row_alertas.append(bool(r.get("alerta")))
     if request.GET.get("export") == "xlsx":
         data = [
-            [r["pos"], r["grupo"], r["skus"], r["qtd"], r["valor"], r["pct"]]
+            [
+                r["pos"],
+                r["grupo"],
+                r["skus"],
+                r["qtd"],
+                r["ticket"],
+                r["valor"],
+                r["pct"],
+                r["custo"],
+                r["margem_rs"],
+                r["margem_pct"],
+                r["pct_margem"],
+            ]
             for r in rows
         ]
         return ru.xlsx_http_response(
             "vendas-por-grupo.xlsx",
             ru.montar_xlsx("Vendas por grupo", headers, data, subtitulo=sub_periodo),
         )
+    sk = int(totais_num.get("skus_sem_custo") or 0)
+    aviso = (
+        f"{sk} SKU(s) no período sem custo no cadastro — margem pode estar errada."
+        if sk
+        else ""
+    )
+    totais_txt = [
+        f"Venda {ru.fmt_brl(totais_num.get('valor', 0))}",
+        f"Margem {ru.fmt_brl(totais_num.get('margem_rs', 0))}",
+    ]
     return render(
         request,
         "produtos/relatorios_generico.html",
-        {
-            "titulo": "Vendas por grupo",
-            "eyebrow": "Categoria",
-            "subtitulo": "Loja · categoria ou sub · combine filtros · Atualizar.",
-            "filtros": f,
-            "filtro_parcial": "vendas_grupo",
-            "rel_help": "vendas_grupo",
-            "extra_filtros": _extra_filtros_catalogo(
-                meta, agrupar=agrupar, deposito=ru.deposito_ui_value(deposito)
-            ),
-            "limpar_catalogo_qs": _qs_limpar_catalogo(request),
-            "headers": headers,
-            "rows": [
-                [
-                    r["pos"], r["grupo"], r["skus"],
-                    f'{r["qtd"]:.3f}'.rstrip("0").rstrip("."),
-                    ru.fmt_brl(r["valor"]),
-                    f'{r["pct"]}%',
-                ]
-                for r in rows
-            ],
-            "totais": [ru.fmt_brl(sum(r["valor"] for r in rows))],
-            "export_qs": _qs_export(request),
-            "vazio_msg": "Nenhuma venda neste período (ou nestes filtros).",
-        },
+        _ctx_vendas_grupo(
+            request,
+            f=f,
+            gopts=gopts,
+            agrupar=agrupar,
+            deposito=deposito,
+            meta=meta,
+            headers=headers,
+            rows=display_rows,
+            row_alertas=row_alertas,
+            totais=totais_txt,
+            aviso_sem_custo=aviso,
+            comparativo=False,
+        ),
     )
+
+
+def _ctx_vendas_grupo(
+    request,
+    *,
+    f,
+    gopts,
+    agrupar,
+    deposito,
+    meta,
+    headers,
+    rows,
+    row_alertas,
+    totais,
+    aviso_sem_custo,
+    comparativo,
+) -> dict:
+    mes_esc = list(gopts.get("meses_escolhidos") or [])
+    while len(mes_esc) < 4:
+        mes_esc.append("")
+    return {
+        "titulo": "Vendas por grupo",
+        "eyebrow": "Categoria",
+        "subtitulo": "Venda e lucro · filtros cat/sub · comparativo mensal opcional.",
+        "filtros": f,
+        "filtro_parcial": "vendas_grupo",
+        "rel_help": "vendas_grupo",
+        "extra_filtros": _extra_filtros_catalogo(
+            meta,
+            agrupar=agrupar,
+            deposito=ru.deposito_ui_value(deposito),
+            visao=gopts["visao"],
+            ordenar=gopts["ordenar"],
+            min_valor=gopts.get("min_valor") or "",
+            margem_pct_min=gopts.get("margem_pct_min") or "",
+            margem_pct_max=gopts.get("margem_pct_max") or "",
+            so_sem_custo=gopts.get("so_sem_custo"),
+            n_meses=gopts["n_meses"],
+            mes_modo=gopts["mes_modo"],
+            mes_fim=gopts.get("mes_fim") or "",
+            mes_1=mes_esc[0],
+            mes_2=mes_esc[1],
+            mes_3=mes_esc[2],
+            mes_4=mes_esc[3],
+        ),
+        "limpar_catalogo_qs": _qs_limpar_catalogo(request),
+        "headers": headers,
+        "rows": rows,
+        "row_alertas": row_alertas,
+        "totais": totais,
+        "aviso_sem_custo": aviso_sem_custo,
+        "vendas_grupo_comparativo": comparativo,
+        "export_qs": _qs_export(request),
+        "vazio_msg": "Nenhuma venda neste período (ou nestes filtros).",
+    }
 
 
 @require_GET

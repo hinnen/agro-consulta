@@ -54,6 +54,7 @@
 <div class="print-root min-w-0 p-1 sm:p-2">
   <form method="get" id="form-relatorio-filtros" class="no-print mb-4 flex flex-wrap items-end gap-2 sm:gap-3 rounded-2xl border border-slate-700 bg-slate-800/90 p-3 sm:p-4">
     {% if filtro_parcial != 'giro' and filtro_parcial != 'ruptura' and filtro_parcial != 'inventario' and filtro_parcial != 'estoque_min_max' and filtro_parcial != 'estoque_resumo' and filtro_parcial != 'estoque_sem_custo' and filtro_parcial != 'estoque_zerados' %}
+    {% if filtro_parcial != 'vendas_grupo' or extra_filtros.visao != 'comparativo' %}
     <div>
       <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Período</label>
       <select name="periodo" id="filtro-periodo" class="min-h-[44px] min-w-[10rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white focus:border-orange-500 focus:outline-none" onchange="this.form.submit()">
@@ -72,6 +73,7 @@
       <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Até</label>
       <input type="date" name="ate" id="filtro-ate" value="{{ filtros.ate }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
     </div>
+    {% endif %}
     {% endif %}
 
     {% if filtro_parcial == 'inventario' or filtro_parcial == 'estoque_min_max' or filtro_parcial == 'estoque_resumo' or filtro_parcial == 'estoque_sem_custo' or filtro_parcial == 'estoque_zerados' %}
@@ -194,6 +196,13 @@
 
     {% if filtro_parcial == 'vendas_grupo' %}
     <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Visão</label>
+      <select name="visao" class="min-h-[44px] min-w-[10rem] rounded-xl border-2 border-sky-500/60 bg-slate-900 px-3 text-sm font-bold text-white" onchange="this.form.submit()" title="Período único ou comparar meses lado a lado">
+        <option value="periodo" {% if extra_filtros.visao != 'comparativo' %}selected{% endif %}>Período</option>
+        <option value="comparativo" {% if extra_filtros.visao == 'comparativo' %}selected{% endif %}>Comparativo mensal</option>
+      </select>
+    </div>
+    <div>
       <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Agrupar por</label>
       <select name="agrupar" class="min-h-[44px] min-w-[11rem] rounded-xl border-2 border-sky-500/60 bg-slate-900 px-3 text-sm font-bold text-white focus:border-sky-400 focus:outline-none" onchange="this.form.submit()" title="Soma por categoria ou por cada nível de subcategoria">
         <option value="categoria" {% if extra_filtros.agrupar == 'categoria' or not extra_filtros.agrupar %}selected{% endif %}>Categoria</option>
@@ -203,6 +212,74 @@
         <option value="subcategoria_4" {% if extra_filtros.agrupar == 'subcategoria_4' %}selected{% endif %}>Subcategoria 4</option>
       </select>
     </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Ordenar</label>
+      <select name="ordenar" class="min-h-[44px] min-w-[11rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white" title="Ranking da tabela">
+        <option value="valor" {% if extra_filtros.ordenar == 'valor' or not extra_filtros.ordenar %}selected{% endif %}>Venda R$</option>
+        <option value="qtd" {% if extra_filtros.ordenar == 'qtd' %}selected{% endif %}>Quantidade</option>
+        <option value="margem_rs" {% if extra_filtros.ordenar == 'margem_rs' %}selected{% endif %}>Margem R$</option>
+        <option value="margem_pct" {% if extra_filtros.ordenar == 'margem_pct' %}selected{% endif %}>Margem %</option>
+        <option value="ticket" {% if extra_filtros.ordenar == 'ticket' %}selected{% endif %}>Ticket médio</option>
+        <option value="pct_margem" {% if extra_filtros.ordenar == 'pct_margem' %}selected{% endif %}>% do lucro total</option>
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Venda mín. R$</label>
+      <input type="text" name="min_valor" value="{{ extra_filtros.min_valor }}" inputmode="decimal" placeholder="ex. 500" class="min-h-[44px] w-[7rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" title="Esconde grupos abaixo deste faturamento no período (ou no último mês no comparativo)" />
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Margem %</label>
+      <div class="flex items-center gap-1">
+        <input type="text" name="margem_pct_min" value="{{ extra_filtros.margem_pct_min }}" inputmode="decimal" placeholder="mín" class="min-h-[44px] w-[4.5rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
+        <span class="text-slate-500 font-bold">–</span>
+        <input type="text" name="margem_pct_max" value="{{ extra_filtros.margem_pct_max }}" inputmode="decimal" placeholder="máx" class="min-h-[44px] w-[4.5rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
+      </div>
+    </div>
+    <label class="flex min-h-[44px] cursor-pointer items-center gap-2 rounded-xl border-2 border-amber-500/40 bg-slate-900 px-3 text-sm font-bold text-amber-100" title="Só grupos com pelo menos um SKU sem custo no cadastro">
+      <input type="checkbox" name="so_sem_custo" value="1" class="h-5 w-5 accent-amber-500" {% if extra_filtros.so_sem_custo %}checked{% endif %} />
+      Só grupos c/ SKU sem custo
+    </label>
+    {% if extra_filtros.visao == 'comparativo' %}
+    <p class="mb-1 w-full basis-full text-[11px] font-bold uppercase tracking-wide text-sky-400">Comparativo · 2 a 4 meses · Δ% mês a mês e do 1º ao último</p>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Meses</label>
+      <select name="mes_modo" class="min-h-[44px] rounded-xl border-2 border-sky-500/50 bg-slate-900 px-3 text-sm font-bold text-white" onchange="this.form.submit()">
+        <option value="ultimos" {% if extra_filtros.mes_modo != 'escolher' %}selected{% endif %}>Últimos N meses</option>
+        <option value="escolher" {% if extra_filtros.mes_modo == 'escolher' %}selected{% endif %}>Escolher meses</option>
+      </select>
+    </div>
+    {% if extra_filtros.mes_modo != 'escolher' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Quantos</label>
+      <select name="n_meses" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white">
+        <option value="2" {% if extra_filtros.n_meses == 2 %}selected{% endif %}>2 meses</option>
+        <option value="3" {% if extra_filtros.n_meses == 3 or not extra_filtros.n_meses %}selected{% endif %}>3 meses</option>
+        <option value="4" {% if extra_filtros.n_meses == 4 %}selected{% endif %}>4 meses</option>
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Até o mês</label>
+      <input type="month" name="mes_fim" value="{{ extra_filtros.mes_fim }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" title="Vazio = mês atual" />
+    </div>
+    {% else %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Mês 1</label>
+      <input type="month" name="mes_1" value="{{ extra_filtros.mes_1 }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Mês 2</label>
+      <input type="month" name="mes_2" value="{{ extra_filtros.mes_2 }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Mês 3</label>
+      <input type="month" name="mes_3" value="{{ extra_filtros.mes_3 }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Mês 4</label>
+      <input type="month" name="mes_4" value="{{ extra_filtros.mes_4 }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
+    </div>
+    {% endif %}
+    {% endif %}
     {% endif %}
 
     {% if filtro_parcial == 'mais_vendidos' or filtro_parcial == 'curva_abc' or filtro_parcial == 'margem' or filtro_parcial == 'vendas_grupo' %}
@@ -363,9 +440,13 @@
     {% endif %}
   </form>
 
+  {% if aviso_sem_custo %}
+  <p class="mb-3 rounded-xl border-2 border-amber-500/50 bg-amber-500/10 px-4 py-3 text-sm font-bold text-amber-100">{{ aviso_sem_custo }}</p>
+  {% endif %}
+
   {% if filtros.label %}
   <p class="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">
-    Período: <span class="text-slate-300">{{ filtros.label }}</span>
+    {% if vendas_grupo_comparativo %}Comparativo{% else %}Período{% endif %}: <span class="text-slate-300">{{ filtros.label }}</span>
     {% if extra_filtros.tem_filtro_catalogo %}
       {% for rotulo, vals in extra_filtros.resumo_filtros_catalogo %}
         · {{ rotulo }}: <span class="text-emerald-300">{{ vals }}</span>
@@ -375,7 +456,7 @@
   {% endif %}
 
   <div class="overflow-x-auto rounded-2xl border border-slate-700 bg-slate-900/80">
-    <table class="print-table min-w-full text-left text-sm">
+    <table class="print-table min-w-full text-left {% if vendas_grupo_comparativo %}text-xs sm:text-sm{% else %}text-sm{% endif %}">
       <thead class="bg-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400">
         <tr>
           {% for h in headers %}
@@ -385,9 +466,9 @@
       </thead>
       <tbody class="divide-y divide-slate-800">
         {% for row in rows %}
-        <tr class="hover:bg-slate-800/50">
+        <tr class="hover:bg-slate-800/50{% if row_alertas %}{% for flag in row_alertas %}{% if forloop.parentloop.counter0 == forloop.counter0 and flag %} border-l-4 border-amber-400 bg-amber-500/10{% endif %}{% endfor %}{% endif %}">
           {% for cell in row %}
-          <td class="px-3 py-2 font-semibold text-slate-200 {% if forloop.counter == 3 %}max-w-[18rem] truncate{% endif %}">{{ cell }}</td>
+          <td class="px-3 py-2 font-semibold text-slate-200 {% if forloop.counter == 2 and not vendas_grupo_comparativo %}max-w-[18rem] truncate{% endif %}">{{ cell }}</td>
           {% endfor %}
         </tr>
         {% empty %}

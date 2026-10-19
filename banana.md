@@ -1294,6 +1294,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — **REL-GRUPO-MARGEM-COMP** · **v27.26.13** · 19/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | **Vendas por grupo:** colunas venda/custo/margem/ticket/% · ordenação · filtros investimento (venda mín., margem %, SKU sem custo) · destaque linha alerta · visão **comparativo 2–4 meses** (Δ% mês a mês e 1º→último) · Excel nas duas visões |
+| **Paths** | `relatorios_vendas_util.py` · `relatorios_central_views.py` · `relatorios_generico.html` · `relatorios_help_agents.html` · `relatorios_hub.html` |
+| **Migrate** | **NÃO** |
+| **Prova** | `python scripts/verify_rel_grupo_margem_path.py` · `produtos.tests_relatorios_central_filtros` |
+| **Branch** | `cursor/rel-grupo-margem-comp-af21` → merge **`teste`** |
+| **Produção** | **NÃO** — só após teste staging + frase + senha |
+
 ### 📦 PACOTE PRONTO — **REL-CAT-SUB-EXCEL** · **v27.26.12** · 19/10
 
 | Campo | Valor |
