@@ -1294,6 +1294,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — **REL-CAT-SUB-EXCEL** · **v27.26.12** · 19/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Central Relatórios: filtro **categoria + sub 1–4** (mais vendidos, vendas por grupo, ABC, margem) · resumo ativo · **Limpar catálogo** · **Excel ↓** com filtros do formulário (lista completa no recorte em mais/margem) |
+| **Paths** | `relatorios_central_views.py` · `relatorios_vendas_util.py` · `relatorios_generico.html` · `relatorios_help_agents.html` |
+| **Migrate** | **NÃO** |
+| **Prova** | `python scripts/verify_rel_cat_sub_excel_path.py` · `produtos.tests_relatorios_central_filtros` (**15** OK) |
+| **Branch** | `teste` @ merge `cursor/relatorios-filtro-subcategoria-af21` |
+
+### ✅ CHECKLIST ÚNICO — **19/10a** · 🟢 **pronto envio produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **REL-CAT-SUB-EXCEL** | 🟢 pronto | **NÃO** | verify **30/30** + tests **15** |
+| 2 | **NFE-DANFE-ERP-LAYOUT** + **NFE-EMAIL-DEST** (`18/10h` · v27.26.11) | 🟢 pronto | **NÃO** | verify **68/68** — *ainda na fila se loja não subiu* |
+
 ### 🟡 ARMADO · **PREP v27.26.11** · **CHECKLIST 18/10h** · DANFE layout ERP
 
 | Campo | Valor |
