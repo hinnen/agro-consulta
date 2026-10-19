@@ -145,6 +145,7 @@ def _relatorios_mais_vendidos_impl(request):
         f"{f['label']} · {ru.rotulo_deposito_relatorio(deposito)}", facetas
     )
     if request.GET.get("export") == "xlsx":
+        export_rows = ru.limitar_ranking(rows_all, 0)
         data = [
             [
                 r["pos"], r["codigo"], r["nome"],
@@ -153,7 +154,7 @@ def _relatorios_mais_vendidos_impl(request):
                 r.get("subcategoria_4") or "",
                 r["qtd"], r["ticket_medio"], r["valor"],
             ]
-            for r in rows
+            for r in export_rows
         ]
         return ru.xlsx_http_response(
             "mais-vendidos.xlsx",
@@ -554,6 +555,9 @@ def relatorios_margem(request):
     ]
     sub_periodo = _subtitulo_catalogo(f["label"], facetas)
     if request.GET.get("export") == "xlsx":
+        export_rows = ru.margem_produtos(
+            f["desde"], f["ate_dt"], ordenar=ordenar, limite=0, rows=rows_all
+        )
         data = [
             [
                 r["pos"], r["codigo"], r["nome"],
@@ -562,7 +566,7 @@ def relatorios_margem(request):
                 r.get("subcategoria_4") or "",
                 r["qtd"], r["valor"], r["custo_total"], r["margem_rs"], r["margem_pct"],
             ]
-            for r in rows
+            for r in export_rows
         ]
         return ru.xlsx_http_response(
             "margem-produtos.xlsx",

@@ -1,8 +1,10 @@
 from datetime import datetime
+from io import BytesIO
 from unittest.mock import patch
 
 from django.test import RequestFactory, SimpleTestCase
 from django.urls import reverse
+from openpyxl import load_workbook
 
 from produtos import relatorios_central_views as views
 from produtos import relatorios_vendas_util as ru
@@ -136,6 +138,30 @@ class RelatoriosCentralRoutesTests(SimpleTestCase):
                 self.assertEqual(response.status_code, 200, (nome, query))
                 if "export=xlsx" in query:
                     self.assertIn("spreadsheetml", response["Content-Type"])
+
+    def test_vendas_grupo_xlsx_respeita_filtro_subcategoria(self):
+        response = self.client.get(
+            reverse("relatorios_vendas_grupo")
+            + "?categoria=Racoes&subcategoria=Gato&export=xlsx"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("spreadsheetml", response["Content-Type"])
+        wb = load_workbook(BytesIO(response.content))
+        ws = wb.active
+        linhas_dados = [
+            row
+            for row in ws.iter_rows(min_row=1, values_only=True)
+            if row and row[0] == 1
+        ]
+        self.assertEqual(len(linhas_dados), 1)
+        self.assertEqual(linhas_dados[0][1], "Racoes")
+
+    def test_generico_excel_usa_submit_do_formulario(self):
+        response = self.client.get(reverse("relatorios_vendas_grupo"))
+        body = response.content.decode("utf-8", errors="ignore")
+        self.assertIn('form="form-relatorio-filtros"', body)
+        self.assertIn('name="export"', body)
+        self.assertIn('value="xlsx"', body)
 
     def test_vendas_grupo_resumo_filtro_catalogo_no_html(self):
         response = self.client.get(

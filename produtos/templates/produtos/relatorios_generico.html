@@ -34,10 +34,11 @@
         class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border-2 border-blue-500 bg-blue-600 px-4 py-2 text-xs font-black uppercase text-white hover:bg-blue-700">
         <i class="fas fa-print" aria-hidden="true"></i>Imprimir A4
       </button>
-      <a href="{{ export_qs }}"
-        class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border-2 border-emerald-500 bg-emerald-600 px-4 py-2 text-xs font-black uppercase text-white hover:bg-emerald-500">
+      <button type="submit" form="form-relatorio-filtros" name="export" value="xlsx"
+        class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border-2 border-emerald-500 bg-emerald-600 px-4 py-2 text-xs font-black uppercase text-white hover:bg-emerald-500"
+        title="Baixa Excel com período, loja e filtros de categoria/sub marcados no formulário">
         <i class="fas fa-file-excel" aria-hidden="true"></i>Excel ↓
-      </a>
+      </button>
       {% if link_extra %}
       <a href="{% url link_extra.url_name %}"
         class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-amber-500 bg-amber-500/20 px-4 py-2 text-xs font-black uppercase text-amber-300 hover:bg-amber-500/30">{{ link_extra.label }}</a>
