@@ -49,7 +49,6 @@ ALLOWED="$(printf '%s\n' \
   produtos/templates/produtos/includes/nfe_saida_help_agents.html \
   produtos/tests_nfe_saida_util.py \
   produtos/relatorios_central_views.py \
-  produtos/relatorios_vendas_util.py \
   produtos/templates/produtos/relatorios_generico.html \
   produtos/templates/produtos/includes/relatorios_help_agents.html \
   produtos/tests_relatorios_central_filtros.py \
