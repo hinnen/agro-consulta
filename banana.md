@@ -1300,12 +1300,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Loja agora** | **v27.26.12** @ **`f33ee5cd`** |
 | **Sobe** | **REL-GRUPO-MARGEM-COMP** (`dfabcf9f`) — **só** `/relatorios/vendas-grupo/` (+ hub/ajuda) · **sem migrate** · **não** merge `teste` |
-| **PREP** | `deploy/prep-checklist-1910b` |
-| **Revert** | `git push origin rollback/pre-v272613-1910b-rel-grupo:producao` |
-| **Prep** | `./scripts/prep_checkpoint_checklist_1910b_rel_grupo_margem_comp.sh` |
-| **Cutover** | `./scripts/cutover_loja_checklist_1910b_rel_grupo_margem_comp.sh --exec` (frase + senha) |
-| **Pós** | `./scripts/post_deploy_checklist_1910b_rel_grupo_margem_comp.sh` |
-| **Prova** | verify grupo **14/14** · verify cat/sub **30/30** (regressão) |
+| **PREP** | `deploy/prep-checklist-1910b` @ **`5fee79dc`** |
+| **Checkpoint** | **`PREP_CHECKPOINT_OK`** · rollback `rollback/pre-v272613-1910b-rel-grupo` · backup `producao-backup-pre-v272613-1910b` @ **`f33ee5cd`** |
+| **Cutover** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1910b_rel_grupo_margem_comp.sh --exec` |
+| **Pós** | `./scripts/post_deploy_checklist_1910b_rel_grupo_margem_comp.sh` (Render Shell) |
+| **Revert** | `git push origin rollback/pre-v272613-1910b-rel-grupo:producao` → **v27.26.12** @ **`f33ee5cd`** |
+| **Prova cloud** | grupo **14/14** · cat/sub **30/30** · `tests_relatorios_central_filtros` **19** OK |
+| **Risco loja** | Só GET Central Relatórios — **não** PDV / caixa / vendas |
 | **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1910b-rel-grupo-margem-comp.md` |
 
 ### ✅ CHECKLIST ÚNICO — **19/10b** · 🟢 **pronto envio produção**

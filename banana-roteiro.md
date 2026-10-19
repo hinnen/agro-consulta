@@ -1116,3 +1116,14 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | 2 | **NFE-DANFE-ERP-LAYOUT** + **NFE-EMAIL-DEST** | ✅ **Live** | **NÃO** | NF-e **59/59** + unit |
 
 **Loja git:** `producao` @ **`f33ee5cd`**. **Revert:** `rollback/pre-v272612-1910a-checklist` → **v27.26.10** @ **`05a871df`**. **Shell:** `post_deploy_checklist_1910a_nfe_danfe_email_rel.sh`.
+
+---
+
+## 91. CHECKLIST ÚNICO — **19/10b** · 🟡 **ARMADO** · aguarda frase+senha
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **REL-GRUPO-MARGEM-COMP** | 🟢 no PREP | **NÃO** | **14/14** + cat/sub **30/30** |
+
+**Live hoje:** **v27.26.12** @ **`f33ee5cd`**. **PREP:** `deploy/prep-checklist-1910b` @ **`5fee79dc`**.  
+**Cutover:** `cutover_loja_checklist_1910b_rel_grupo_margem_comp.sh --exec` · **rollback** `rollback/pre-v272613-1910b-rel-grupo`.
