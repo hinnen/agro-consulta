@@ -1294,16 +1294,33 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟡 ARMADO — **CHECKLIST 19/10b** · **v27.26.13** · aguardando senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Loja agora** | **v27.26.12** @ **`f33ee5cd`** |
+| **Sobe** | **REL-GRUPO-MARGEM-COMP** (`dfabcf9f`) — **só** `/relatorios/vendas-grupo/` (+ hub/ajuda) · **sem migrate** · **não** merge `teste` |
+| **PREP** | `deploy/prep-checklist-1910b` |
+| **Revert** | `git push origin rollback/pre-v272613-1910b-rel-grupo:producao` |
+| **Prep** | `./scripts/prep_checkpoint_checklist_1910b_rel_grupo_margem_comp.sh` |
+| **Cutover** | `./scripts/cutover_loja_checklist_1910b_rel_grupo_margem_comp.sh --exec` (frase + senha) |
+| **Pós** | `./scripts/post_deploy_checklist_1910b_rel_grupo_margem_comp.sh` |
+| **Prova** | verify grupo **14/14** · verify cat/sub **30/30** (regressão) |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1910b-rel-grupo-margem-comp.md` |
+
+### ✅ CHECKLIST ÚNICO — **19/10b** · 🟢 **pronto envio produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **REL-GRUPO-MARGEM-COMP** | 🟢 pronto | **NÃO** | verify **14/14** + cat/sub **30/30** |
+
 ### 📦 PACOTE PRONTO — **REL-GRUPO-MARGEM-COMP** · **v27.26.13** · 19/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | **Vendas por grupo:** colunas venda/custo/margem/ticket/% · ordenação · filtros investimento (venda mín., margem %, SKU sem custo) · destaque linha alerta · visão **comparativo 2–4 meses** (Δ% mês a mês e 1º→último) · Excel nas duas visões |
-| **Paths** | `relatorios_vendas_util.py` · `relatorios_central_views.py` · `relatorios_generico.html` · `relatorios_help_agents.html` · `relatorios_hub.html` |
-| **Migrate** | **NÃO** |
-| **Prova** | `python scripts/verify_rel_grupo_margem_path.py` · `produtos.tests_relatorios_central_filtros` |
-| **Branch** | `cursor/rel-grupo-margem-comp-af21` → merge **`teste`** |
-| **Produção** | **NÃO** — só após teste staging + frase + senha |
+| **O quê** | **Vendas por grupo:** margem/ticket/% · filtros investimento · comparativo 2–4 meses · Excel |
+| **Commit** | `dfabcf9f` · merge **`teste`** |
+| **PDV/vendas** | **Não mexe** — só relatórios GET |
 
 ### 📦 PACOTE PRONTO — **REL-CAT-SUB-EXCEL** · **v27.26.12** · 19/10
 
@@ -1315,12 +1332,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `python scripts/verify_rel_cat_sub_excel_path.py` · `produtos.tests_relatorios_central_filtros` (**15** OK) |
 | **Branch** | `teste` @ merge `cursor/relatorios-filtro-subcategoria-af21` |
 
-### ✅ CHECKLIST ÚNICO — **19/10a** · 🟢 **pronto envio produção**
+### ✅ CHECKLIST ÚNICO — **19/10a** · ✅ **enviado** (ver Live)
 
+<<<<<<< HEAD
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
 | 1 | **REL-CAT-SUB-EXCEL** | 🟢 pronto | **NÃO** | verify **30/30** + tests **15** |
 | 2 | **NFE-DANFE-ERP-LAYOUT** + **NFE-EMAIL-DEST** (`18/10h` · v27.26.11) | 🟢 pronto | **NÃO** | verify **68/68** — *ainda na fila se loja não subiu* |
+=======
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | **REL-CAT-SUB-EXCEL** + **NFE-DANFE** + **NFE-EMAIL** | ✅ Live **v27.26.12** |
+>>>>>>> 240885fd (docs(prep): CHECKLIST 19/10b ARMADO v27.26.13 REL-GRUPO-MARGEM-COMP)
 
 ### 🟡 ARMADO · **PREP v27.26.11** · **CHECKLIST 18/10h** · DANFE layout ERP
 
