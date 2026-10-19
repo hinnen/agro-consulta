@@ -25,6 +25,21 @@ def _qs_get(q) -> str:
     return "?" + q.urlencode()
 
 
+def _qs_limpar_catalogo(request) -> str:
+    """Remove categoria/sub 1–4 da query; mantém período, loja, agrupar, etc."""
+    q = request.GET.copy()
+    for key in (
+        "categoria",
+        "subcategoria",
+        "subcategoria_2",
+        "subcategoria_3",
+        "subcategoria_4",
+    ):
+        while key in q:
+            del q[key]
+    return "?" + q.urlencode() if q else "?"
+
+
 def _periodo_filtros(request, padrao: str = "mes_atual") -> dict:
     return ru.parse_periodo_request(request, padrao=padrao)
 
@@ -43,6 +58,19 @@ def _extra_filtros_catalogo(facetas: dict, **extra) -> dict:
         "subcategorias_4": facetas.get("subcategorias_4") or [],
     }
     out.update(extra)
+    resumo: list[tuple[str, str]] = []
+    for campo, rotulo in (
+        ("categoria", "Categoria"),
+        ("subcategoria", "Sub"),
+        ("subcategoria_2", "Sub 2"),
+        ("subcategoria_3", "Sub 3"),
+        ("subcategoria_4", "Sub 4"),
+    ):
+        vals = out.get(campo) or []
+        if vals:
+            resumo.append((rotulo, " + ".join(vals)))
+    out["resumo_filtros_catalogo"] = resumo
+    out["tem_filtro_catalogo"] = bool(resumo)
     return out
 
 
@@ -147,6 +175,7 @@ def _relatorios_mais_vendidos_impl(request):
                 sentido=sentido,
                 deposito=ru.deposito_ui_value(deposito),
             ),
+            "limpar_catalogo_qs": _qs_limpar_catalogo(request),
             "filtro_parcial": "mais_vendidos",
             "rel_help": "mais_vendidos",
             "headers": headers,
@@ -215,6 +244,7 @@ def relatorios_vendas_grupo(request):
             "extra_filtros": _extra_filtros_catalogo(
                 meta, agrupar=agrupar, deposito=ru.deposito_ui_value(deposito)
             ),
+            "limpar_catalogo_qs": _qs_limpar_catalogo(request),
             "headers": headers,
             "rows": [
                 [
@@ -346,6 +376,7 @@ def relatorios_curva_abc(request):
             "filtro_parcial": "curva_abc",
             "rel_help": "curva_abc",
             "extra_filtros": _extra_filtros_catalogo(meta),
+            "limpar_catalogo_qs": _qs_limpar_catalogo(request),
             "headers": headers,
             "rows": [
                 [
@@ -548,6 +579,7 @@ def relatorios_margem(request):
             "filtro_parcial": "margem",
             "rel_help": "margem",
             "extra_filtros": _extra_filtros_catalogo(facetas, ordenar=ordenar),
+            "limpar_catalogo_qs": _qs_limpar_catalogo(request),
             "headers": headers,
             "rows": [
                 [
