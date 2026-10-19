@@ -1311,23 +1311,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | **REL-CAT-SUB-EXCEL** | 🟢 pronto | **NÃO** | verify **30/30** + tests **15** |
 | 2 | **NFE-DANFE-ERP-LAYOUT** + **NFE-EMAIL-DEST** | 🟢 pronto | **NÃO** | verify NF-e **59/59** + e-mail (unit) |
 
-### 🟡 ARMADO · **PREP v27.26.12** · **CHECKLIST 19/10a** · DANFE + e-mail NF-e + REL cat/sub
+### ✅ Deploy loja — **CHECKLIST 19/10a** · **Live v27.26.12** · 19/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **PREP** | `deploy/prep-checklist-1910a` @ **`f33ee5cd`** |
-| **Base loja** | **v27.26.10** @ **`05a871df`** |
+| **Status** | ✅ **Live** @ **`f33ee5cd`** |
+| **Pacotes** | **REL-CAT-SUB-EXCEL** · **NFE-DANFE-ERP-LAYOUT** · **NFE-EMAIL-DEST** |
 | **Migrate** | **NÃO** |
-| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1910a_nfe_danfe_email_rel.sh` → **`PREP_CHECKPOINT_OK`** |
-| **Cutover** | `AGRO_LOJA_FRASE='pode enviar para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1910a_nfe_danfe_email_rel.sh --exec` |
+| **Revert** | `git push origin rollback/pre-v272612-1910a-checklist:producao` → **v27.26.10** @ **`05a871df`** |
 | **Pós-deploy** | `./scripts/post_deploy_checklist_1910a_nfe_danfe_email_rel.sh` (Render Shell) |
-| **Rollback** | `git push origin rollback/pre-v272612-1910a-checklist:producao` → **v27.26.10** @ **`05a871df`** |
-| **Backup** | `producao-backup-pre-v272612-1910a` @ **`05a871df`** |
-| **Prova cloud** | NF-e **59/59** · REL **30/30** · unit **20** OK (SQLite incompleto = skips HTTP esperados) |
-| **Ops** | **FL-059** — Gmail no Render (`EMAIL_*`) para **envio real** de e-mail NF-e (não bloqueia cutover) |
-| **Smoke** | `/nfe/saida/` reimprimir DANFE (layout ERP) · Central `/relatorios/` cat/sub + Excel · **Ctrl+F5** |
+| **Ops** | **FL-059** — `EMAIL_*` no Render para envio real de e-mail NF-e |
 
-### ~~ARMADO 18/10h~~ · **substituído pelo PREP 19/10a** (pacote único acima)
+### ~~ARMADO 19/10a~~ · **enviado** · ver Live acima
 
 ### 📦 PACOTE PRONTO — **LOJA-18/10h** · **v27.26.11**
 

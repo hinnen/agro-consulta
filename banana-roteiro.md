@@ -1108,12 +1108,11 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 90. CHECKLIST ÚNICO — **19/10a** · 🟡 **ARMADO** · aguarda frase+senha
+## 90. CHECKLIST ÚNICO — **19/10a** · ✅ **Live v27.26.12**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **REL-CAT-SUB-EXCEL** | 🟢 no PREP | **NÃO** | verify **30/30** |
-| 2 | **NFE-DANFE-ERP-LAYOUT** + **NFE-EMAIL-DEST** | 🟢 no PREP | **NÃO** | NF-e **59/59** + unit |
+| 1 | **REL-CAT-SUB-EXCEL** | ✅ **Live** | **NÃO** | verify **30/30** |
+| 2 | **NFE-DANFE-ERP-LAYOUT** + **NFE-EMAIL-DEST** | ✅ **Live** | **NÃO** | NF-e **59/59** + unit |
 
-**Live hoje:** **v27.26.10** @ **`05a871df`**. **PREP:** `deploy/prep-checklist-1910a` @ **`f33ee5cd`** · **v27.26.12**.  
-**Cutover:** `cutover_loja_checklist_1910a_nfe_danfe_email_rel.sh --exec` · **rollback** `rollback/pre-v272612-1910a-checklist`.
+**Loja git:** `producao` @ **`f33ee5cd`**. **Revert:** `rollback/pre-v272612-1910a-checklist` → **v27.26.10** @ **`05a871df`**. **Shell:** `post_deploy_checklist_1910a_nfe_danfe_email_rel.sh`.
