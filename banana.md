@@ -1334,16 +1334,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### ✅ CHECKLIST ÚNICO — **19/10a** · ✅ **enviado** (ver Live)
 
-<<<<<<< HEAD
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **REL-CAT-SUB-EXCEL** | 🟢 pronto | **NÃO** | verify **30/30** + tests **15** |
-| 2 | **NFE-DANFE-ERP-LAYOUT** + **NFE-EMAIL-DEST** (`18/10h` · v27.26.11) | 🟢 pronto | **NÃO** | verify **68/68** — *ainda na fila se loja não subiu* |
-=======
 | # | Pacote | Status |
 | - | ------ | ------ |
 | 1 | **REL-CAT-SUB-EXCEL** + **NFE-DANFE** + **NFE-EMAIL** | ✅ Live **v27.26.12** |
->>>>>>> 240885fd (docs(prep): CHECKLIST 19/10b ARMADO v27.26.13 REL-GRUPO-MARGEM-COMP)
 
 ### 🟡 ARMADO · **PREP v27.26.11** · **CHECKLIST 18/10h** · DANFE layout ERP
 
