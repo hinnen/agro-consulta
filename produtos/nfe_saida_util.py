@@ -770,6 +770,14 @@ def checklist_conferencia(doc: dict, *, cert_ok: bool) -> list[dict[str, Any]]:
 
     er_dest = validar_destinatario(dest)
     row(len(er_dest) == 0, "Destinatário completo", "; ".join(er_dest)[:200])
+    from produtos.nfe_saida_email_util import email_destinatario_valido, normalizar_email_destinatario
+
+    em = normalizar_email_destinatario(dest)
+    row(
+        email_destinatario_valido(em),
+        "E-mail para envio (XML + DANFE)",
+        em if em else "Opcional — preencha para receber após autorizar",
+    )
     er_it = validar_itens(itens)
     row(len(er_it) == 0, "Itens e NCM", "; ".join(er_it)[:200])
     ue = nfe_saida_emitente_uf_default()

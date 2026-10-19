@@ -142,6 +142,14 @@ def api_nfe_saida_salvar(request):
     doc_id = str(payload.get("id") or "").strip() or None
     body = payload.get("doc") if isinstance(payload.get("doc"), dict) else payload
     r = salvar_documento_nfe_saida(db, doc_id, body, usuario=_usuario(request))
+    if r.get("ok"):
+        dest = body.get("destinatario") if isinstance(body.get("destinatario"), dict) else {}
+        cid = dest.get("cliente_agro_id")
+        if cid:
+            try:
+                salvar_fiscal_cliente_agro(int(cid), dest)
+            except Exception:
+                pass
     st = 200 if r.get("ok") else 400
     return JsonResponse(r, status=st)
 
@@ -247,6 +255,19 @@ def api_nfe_saida_emitir(request, doc_id: str):
     doc = obter_nfe_saida_bruto(db, doc_id_norm)
     if not doc:
         return JsonResponse({"ok": False, "erro": "Documento não encontrado."}, status=404)
+
+    patch_dest = payload.get("destinatario")
+    if isinstance(patch_dest, dict):
+        from produtos.nfe_saida_email_util import mesclar_destinatario_emit
+
+        doc = mesclar_destinatario_emit(doc, patch_dest)
+        nfe_saida_atualizar_campos(db, doc_id_norm, {"destinatario": doc.get("destinatario")})
+        cid = (doc.get("destinatario") or {}).get("cliente_agro_id")
+        if cid:
+            try:
+                salvar_fiscal_cliente_agro(int(cid), doc.get("destinatario") or {})
+            except Exception:
+                pass
     if str(doc.get("status") or "") == NFE_SAIDA_STATUS_AUTORIZADA:
         return JsonResponse({"ok": True, "ja_autorizada": True, "chave": doc.get("chave")})
 
@@ -287,8 +308,34 @@ def api_nfe_saida_emitir(request, doc_id: str):
         upd["simulado"] = bool(out.get("simulado"))
     nfe_saida_atualizar_campos(db, doc_id_norm, upd)
 
+    email_envio: dict | None = None
+    if out.get("ok"):
+        from produtos.nfe_saida_email_util import enviar_nfe_saida_por_email
+
+        doc_email = dict(doc)
+        doc_email.update({k: v for k, v in upd.items() if k != "updated_at"})
+        site_base = request.build_absolute_uri("/").rstrip("/")
+        email_envio = enviar_nfe_saida_por_email(doc_email, doc_id_norm, site_base=site_base)
+        meta_email: dict = {}
+        if email_envio.get("enviado"):
+            meta_email = {
+                "email_enviado_em": email_envio.get("enviado_em"),
+                "email_enviado_para": email_envio.get("email"),
+                "email_envio_erro": "",
+            }
+        elif email_envio.get("erro"):
+            meta_email = {"email_envio_erro": str(email_envio.get("erro") or "")[:500]}
+        if meta_email:
+            nfe_saida_atualizar_campos(db, doc_id_norm, meta_email)
+
     refreshed = obter_documento_nfe_saida(db, doc_id_norm)
-    body = {"ok": bool(out.get("ok")), "doc": refreshed, **{k: out[k] for k in ("erro", "simulado", "chave") if k in out}}
+    body = {
+        "ok": bool(out.get("ok")),
+        "doc": refreshed,
+        **{k: out[k] for k in ("erro", "simulado", "chave") if k in out},
+    }
+    if email_envio is not None:
+        body["email_envio"] = email_envio
     st = 200 if out.get("ok") else 400
     return JsonResponse(body, status=st)
 

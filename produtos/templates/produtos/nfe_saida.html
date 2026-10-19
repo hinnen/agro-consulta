@@ -164,6 +164,7 @@
         <div class="text-xs font-black uppercase text-slate-400">Destinatário</div>
         <div id="rail-dest-nome" class="text-lg font-black text-slate-900">—</div>
         <div id="rail-dest-doc" class="text-sm font-bold text-slate-600"></div>
+        <div id="rail-dest-email" class="text-xs font-bold text-sky-800 hidden"></div>
       </div>
       <div class="flex justify-between items-baseline border-t border-slate-100 pt-3">
         <span class="font-black uppercase text-slate-500">Total</span>
@@ -221,9 +222,10 @@ window.NFE_SAIDA_CFG = {
   urlBuscar: "{% url 'api_buscar_mobile' %}",
   urlBuscarClientes: "{% url 'api_buscar_clientes' %}",
   urlBuscarVendas: "{% url 'api_nfe_saida_buscar_vendas' %}",
+  urlClienteFiscal: "{% url 'api_nfe_saida_cliente_fiscal' %}",
 };
 </script>
-<script src="{% static 'produtos/js/nfe_saida.js' %}?v=2"></script>
+<script src="{% static 'produtos/js/nfe_saida.js' %}?v=3"></script>
 {% include "produtos/_atalho_voltar_pdv.html" %}
 </body>
 </html>

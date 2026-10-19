@@ -30,7 +30,7 @@
     </div>
 
     {% elif rel_help == "curva_abc" %}
-    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">A <span class="text-violet-300">Curva ABC</span> ordena os produtos do que mais faturou para o que menos faturou. Serve para ver o que <strong class="text-white">segura a loja</strong> e o que é “resto”.</p>
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">A <span class="text-violet-300">Curva ABC</span> ordena os produtos do que mais faturou para o que menos faturou. Use os filtros de <strong class="text-white">categoria e sub 1–4</strong> para analisar só um recorte (ex.: Rações › Gato) — depois <span class="text-orange-300">Atualizar</span>.</p>
     <div class="mb-3 grid grid-cols-3 gap-2 text-center text-[11px] font-black">
       <div class="rounded-xl border-2 border-emerald-400 bg-emerald-500/20 px-2 py-2 text-emerald-200"><span class="block text-lg text-emerald-300">A</span>~80% do $</div>
       <div class="rounded-xl border-2 border-amber-400 bg-amber-500/20 px-2 py-2 text-amber-200"><span class="block text-lg text-amber-300">B</span>~15% do $</div>
@@ -47,7 +47,7 @@
     </ul>
 
     {% elif rel_help == "mais_vendidos" %}
-    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Lista o que <span class="text-emerald-300">mais</span> (ou menos) saiu no período. Dá para filtrar por <strong class="text-white">loja</strong> (as duas, só Centro ou só Vila) e ordenar por dinheiro ou quantidade.</p>
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Lista o que <span class="text-emerald-300">mais</span> (ou menos) saiu no período. Filtre <strong class="text-white">categoria e sub 1–4</strong> (várias de cada), <strong class="text-white">loja</strong> e ordene por dinheiro ou quantidade — <span class="text-orange-300">Atualizar</span> para ver na tela; <span class="text-emerald-300">Excel ↓</span> baixa <strong class="text-white">todos</strong> os produtos do recorte (não só os 100 da lista).</p>
     <ul class="space-y-2 text-[12px] font-semibold leading-snug text-slate-200">
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-orange-500/30 px-1.5 py-0.5 text-[10px] font-black text-orange-200">LOJA</span><span>Centro + Vila, só Centro ou só Vila.</span></li>
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-emerald-500/30 px-1.5 py-0.5 text-[10px] font-black text-emerald-200">#</span><span>Colocação no ranking.</span></li>
@@ -58,7 +58,7 @@
     </ul>
 
     {% elif rel_help == "vendas_grupo" %}
-    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Mostra o faturamento <span class="text-sky-300">por categoria</span> (ex.: Rações, Sacaria) — com filtro de <strong class="text-white">loja</strong> (as duas, Centro ou Vila).</p>
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Mostra o faturamento <span class="text-sky-300">por grupo</span> (categoria ou sub 1–4 no «Agrupar por»). Marque <strong class="text-white">categoria/sub</strong> para recortar antes de somar · filtro de <strong class="text-white">loja</strong> · <span class="text-orange-300">Atualizar</span> · <span class="text-emerald-300">Excel</span> com o mesmo recorte.</p>
     <ul class="space-y-2 text-[12px] font-semibold leading-snug text-slate-200">
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-orange-500/30 px-1.5 py-0.5 text-[10px] font-black text-orange-200">LOJA</span><span>Centro + Vila, só Centro ou só Vila.</span></li>
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-sky-500/30 px-1.5 py-0.5 text-[10px] font-black text-sky-200">GRUPO</span><span>Categoria do cadastro.</span></li>

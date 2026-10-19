@@ -5,9 +5,11 @@ import base64
 import html
 import re
 import xml.etree.ElementTree as ET
+from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from decouple import config
 from django.conf import settings
@@ -63,6 +65,54 @@ def _fmt_cep(cep: str) -> str:
     if len(d) != 8:
         return d or "—"
     return f"{d[:5]}-{d[5:]}"
+
+
+def _fmt_nnf(nnf: Any) -> str:
+    try:
+        n = int(nnf)
+    except (TypeError, ValueError):
+        return str(nnf or "—")
+    s = str(n).zfill(9)
+    return f"{s[0:3]}.{s[3:6]}.{s[6:9]}"
+
+
+def _fmt_serie(serie: Any) -> str:
+    try:
+        return str(int(serie)).zfill(3)
+    except (TypeError, ValueError):
+        return str(serie or "—")
+
+
+def _fmt_data_br(val: str) -> str:
+    raw = (val or "").strip()
+    if not raw:
+        return "—"
+    m = re.match(r"(\d{4})-(\d{2})-(\d{2})", raw)
+    if m:
+        return f"{m.group(3)}/{m.group(2)}/{m.group(1)}"
+    if re.match(r"\d{2}/\d{2}/\d{4}", raw):
+        return raw[:10]
+    return raw[:10]
+
+
+def _fmt_hora_br(val: str) -> str:
+    raw = (val or "").strip()
+    m = re.search(r"T(\d{2}:\d{2}:\d{2})", raw)
+    if m:
+        return m.group(1)
+    m = re.search(r"(\d{2}:\d{2}:\d{2})", raw)
+    return m.group(1) if m else "—"
+
+
+def _dest_resumo_canhoto(dest: dict) -> str:
+    nome = str(dest.get("nome") or "").strip()
+    log = str(dest.get("logradouro") or "").strip()
+    nro = str(dest.get("numero") or "").strip()
+    bairro = str(dest.get("bairro") or "").strip()
+    cid = str(dest.get("cidade") or "").strip()
+    uf = str(dest.get("uf") or "").strip().upper()
+    partes = [p for p in (nome, f"{log}, {nro}".strip(", "), bairro, f"{cid}-{uf}".strip("-")) if p]
+    return " - ".join(partes) if partes else "—"
 
 
 def cnpj_emitente_da_chave(chave: str | None) -> str:
@@ -161,20 +211,26 @@ def carregar_emitente_danfe(cnpj: str | None = None, *, doc: dict | None = None)
 
 
 def _linha_produto(ln: dict) -> str:
-    csosn = _esc(ln.get("csosn") or "102")
+    orig = _esc(str(ln.get("origem") or "0")[:1])
+    csosn = _esc(re.sub(r"\D", "", str(ln.get("csosn") or "102"))[:3] or "102")
+    qtd = ln.get("qtd", "")
+    try:
+        qtd_fmt = f"{Decimal(str(qtd or 0)).quantize(Decimal('0.0001')):,.4f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    except Exception:
+        qtd_fmt = _esc(qtd)
     return (
         "<tr>"
         f"<td class='c cod'>{_esc(ln.get('codigo') or ln.get('produto_id') or '')}</td>"
         f"<td class='desc'>{_esc(ln.get('descricao', ''))}</td>"
         f"<td class='c'>{_esc(ln.get('ncm', ''))}</td>"
-        f"<td class='c'>{csosn}</td>"
+        f"<td class='c'>{orig}/{csosn}</td>"
         f"<td class='c'>{_esc(ln.get('cfop', ''))}</td>"
         f"<td class='c'>{_esc(ln.get('un', 'UN'))}</td>"
-        f"<td class='r'>{_esc(ln.get('qtd', ''))}</td>"
+        f"<td class='r'>{qtd_fmt}</td>"
         f"<td class='r'>{_fmt_moeda(ln.get('v_unit'))}</td>"
         f"<td class='r'>{_fmt_moeda(ln.get('v_total'))}</td>"
         "<td class='r'>0,00</td><td class='r'>0,00</td><td class='r'>0,00</td>"
-        "<td class='r'>0,00</td><td class='r'>0,00</td>"
+        "<td class='r'>0,00</td><td class='r'>0,00</td><td class='r'>0,00</td>"
         "</tr>"
     )
 
@@ -183,43 +239,55 @@ def _tabela_produtos_head() -> str:
     return """
 <thead>
 <tr>
-  <th>Cód.</th>
+  <th>Código produto</th>
   <th>Descrição do produto / serviço</th>
-  <th>NCM</th>
-  <th>CST</th>
+  <th>NCM/SH</th>
+  <th>O/CSOSN</th>
   <th>CFOP</th>
   <th>UN</th>
-  <th>Qtd.</th>
-  <th>V. unit.</th>
-  <th>V. total</th>
-  <th>BC ICMS</th>
-  <th>V. ICMS</th>
-  <th>V. IPI</th>
-  <th>% ICMS</th>
-  <th>% IPI</th>
+  <th>Quant</th>
+  <th>Valor unit</th>
+  <th>Valor total</th>
+  <th>Valor desc</th>
+  <th>B.Cálc ICMS</th>
+  <th>Valor ICMS</th>
+  <th>Valor IPI</th>
+  <th>Alíq. ICMS</th>
+  <th>Alíq. IPI</th>
 </tr>
 </thead>"""
 
 
-def _bloco_canhoto(em: dict, nnf: Any, serie: Any, razao: str) -> str:
+def _bloco_canhoto(
+    em: dict,
+    nnf: Any,
+    serie: Any,
+    razao: str,
+    *,
+    dest: dict,
+    dh_emi: str,
+    total_nf: Decimal,
+) -> str:
+    nnf_f = _fmt_nnf(nnf)
+    ser_f = _fmt_serie(serie)
+    texto = (
+        f"RECEBEMOS DE {_esc(razao.upper())} OS PRODUTOS E/OU SERVIÇOS CONSTANTES DA NOTA FISCAL "
+        f"ELETRÔNICA INDICADA ABAIXO. EMISSÃO: {_esc(_fmt_data_br(dh_emi))} "
+        f"VALOR TOTAL: R$ {_esc(_fmt_moeda(total_nf))} DESTINATÁRIO: {_esc(_dest_resumo_canhoto(dest))}"
+    )
     return f"""
 <table class="danfe canhoto">
 <tr>
-  <td colspan="2" class="canhoto-txt">
-    <span class="lbl">Recebemos de {_esc(razao)} os produtos e/ou serviços constantes da NF-e indicada ao lado.
-    Emissão: ______/______/______ · Valor total: ______________________</span>
-  </td>
-  <td class="canhoto-nf c">
-    <span class="lbl">NF-e</span>
-    <span class="val">Nº {_esc(nnf)}</span>
-    <span class="lbl">Série</span>
-    <span class="val">{_esc(serie)}</span>
+  <td class="canhoto-txt" colspan="2">{texto}</td>
+  <td class="canhoto-nf c" rowspan="2">
+    <div class="canhoto-nfe-tit">NF-e</div>
+    <div>Nº. {nnf_f}</div>
+    <div>Série {ser_f}</div>
   </td>
 </tr>
 <tr>
-  <td style="width:35%"><span class="lbl">Data do recebimento</span></td>
-  <td style="width:35%"><span class="lbl">Identificação e assinatura do recebedor</span></td>
-  <td style="width:30%"><span class="lbl">NF-e nº {_esc(nnf)} · Série {_esc(serie)}</span></td>
+  <td style="width:50%"><span class="lbl">Data de recebimento</span></td>
+  <td style="width:50%"><span class="lbl">Identificação e assinatura do recebedor</span></td>
 </tr>
 </table>
 <div class="corte" aria-hidden="true"></div>"""
@@ -236,83 +304,71 @@ def _bloco_cabecalho(
     protocolo: str,
     logo_uri: str,
     folha: str,
+    dh_emi: str,
 ) -> str:
-    em_end = ", ".join(
-        x
-        for x in (
-            f"{em.get('logradouro', '')}, {em.get('numero', '')}".strip(", "),
-            em.get("bairro"),
-            f"{em.get('cidade', '')} — {em.get('uf', '')}",
-            f"CEP {_fmt_cep(em.get('cep', ''))}" if em.get("cep") else "",
-        )
-        if x
-    )
+    nnf_f = _fmt_nnf(nnf)
+    ser_f = _fmt_serie(serie)
     logo_html = (
         f"<img src='{_esc(logo_uri)}' alt='Agro Mais' class='logo-emitente'/>"
         if logo_uri
-        else "<div class='logo-placeholder'>AGRO MAIS</div>"
+        else ""
     )
     barcode = (
         f"<svg class='barcode' data-chave='{_esc(chave_raw)}'></svg>"
         if len(chave_raw) == 44
         else ""
     )
+    prot_txt = _esc(protocolo or "—")
+    if protocolo and dh_emi:
+        prot_txt = _esc(f"{protocolo} - {_fmt_data_br(dh_emi)} {_fmt_hora_br(dh_emi)}")
     return f"""
 <table class="danfe">
+<tr><td colspan="3" class="sec-title">Identificação do emitente</td></tr>
 <tr class="row-emit">
   <td class="col-emit">
     {logo_html}
-    <div class="emit-dados">
-      <span class="lbl">Identificação do emitente</span>
-      <span class="val emit-fantasia">{_esc(em.get('fantasia') or em.get('razao'))}</span>
-      <span class="emit-razao">{_esc(em.get('razao'))}</span>
-      <span class="emit-end">{_esc(em_end)}</span>
-      <span class="emit-fone">Fone/Fax: {_esc(em.get('fone') or '—')}</span>
-    </div>
+    <div class="emit-razao">{_esc(em.get('razao') or em.get('fantasia'))}</div>
+    <div class="emit-linha">{_esc(f"{em.get('logradouro', '')}, {em.get('numero', '')}".strip(', '))}</div>
+    <div class="emit-linha">{_esc(f"{em.get('bairro', '')} - {_fmt_cep(em.get('cep', ''))}".strip(' -'))}</div>
+    <div class="emit-linha">{_esc(f"{em.get('cidade', '')} - {em.get('uf', '')}".strip(' -'))} Fone/Fax: {_esc(em.get('fone') or '—')}</div>
   </td>
   <td class="col-danfe c">
     <div class="danfe-tit">DANFE</div>
-    <div class="danfe-sub">Documento Auxiliar da<br>Nota Fiscal Eletrônica</div>
+    <div class="danfe-sub">Documento Auxiliar da Nota<br>Fiscal Eletrônica</div>
     <div class="danfe-ent-sai">
-      <span>0 — ENTRADA</span>
-      <span>1 — SAÍDA</span>
+      <div>0 - ENTRADA</div>
+      <div>1 - SAÍDA <span class="danfe-saida-mark">1</span></div>
     </div>
-    <div class="danfe-saida-mark">1</div>
-    <div class="danfe-nf">Nº {_esc(nnf)}<br>Série {_esc(serie)}<br>Folha {folha}</div>
+    <div class="danfe-nf">Nº. {nnf_f}<br>Série {ser_f}<br>Folha {folha}</div>
   </td>
   <td class="col-chave">
     {barcode}
     <div class="chave-lbl">CHAVE DE ACESSO</div>
     <div class="chave-val">{_esc(chave_fmt)}</div>
-    <div class="chave-hint">Consulta de autenticidade no portal nacional da NF-e www.nfe.fazenda.gov.br</div>
+    <div class="chave-hint">Consulta de autenticidade no portal nacional da NF-e<br>
+    www.nfe.fazenda.gov.br/portal ou no site da Sefaz Autorizadora</div>
   </td>
 </tr>
 </table>
-<table class="danfe">
+<table class="danfe quad">
 <tr>
-  <td colspan="2"><span class="lbl">Natureza da operação</span><span class="val">{_esc(natureza)}</span></td>
-  <td><span class="lbl">Protocolo de autorização de uso</span><span class="val">{_esc(protocolo or '—')}</span></td>
+  <td colspan="2"><span class="lbl">Natureza da operação</span><span class="val">{_esc(natureza.upper())}</span></td>
+  <td colspan="2"><span class="lbl">Protocolo de autorização de uso</span><span class="val">{prot_txt}</span></td>
 </tr>
 <tr>
   <td><span class="lbl">Inscrição estadual</span><span class="val">{_esc(em.get('ie') or '—')}</span></td>
-  <td><span class="lbl">CNPJ</span><span class="val">{_esc(_fmt_cnpj(em.get('cnpj', '')))}</span></td>
+  <td><span class="lbl">Inscrição municipal</span><span class="val">—</span></td>
   <td><span class="lbl">Inscrição estadual do subst. trib.</span><span class="val">—</span></td>
+  <td><span class="lbl">CNPJ / CPF</span><span class="val">{_esc(_fmt_cnpj(em.get('cnpj', '')))}</span></td>
 </tr>
 </table>"""
 
 
 def _bloco_destinatario(dest: dict, dh_emi: str) -> str:
-    dest_end = ", ".join(
-        x
-        for x in (
-            f"{dest.get('logradouro', '')}, {dest.get('numero', '')}".strip(", "),
-            dest.get("bairro"),
-            f"{dest.get('cidade', '')} — {dest.get('uf', '')}",
-        )
-        if x
-    )
+    dest_end = f"{dest.get('logradouro', '')}, {dest.get('numero', '')}".strip(", ")
+    email = str(dest.get("email") or "").strip()
     return f"""
-<table class="danfe">
+<table class="danfe quad">
 <tr><td colspan="4" class="sec-title">Destinatário / Remetente</td></tr>
 <tr>
   <td colspan="3"><span class="lbl">Nome / Razão social</span><span class="val">{_esc(dest.get('nome', ''))}</span></td>
@@ -326,8 +382,14 @@ def _bloco_destinatario(dest: dict, dh_emi: str) -> str:
 <tr>
   <td><span class="lbl">Município</span><span class="val">{_esc(dest.get('cidade', ''))}</span></td>
   <td><span class="lbl">UF</span><span class="val">{_esc(dest.get('uf', ''))}</span></td>
+  <td><span class="lbl">Fone / Fax</span><span class="val">—</span></td>
   <td><span class="lbl">Inscrição estadual</span><span class="val">{_esc(dest.get('ie') or '—')}</span></td>
-  <td><span class="lbl">Data emissão</span><span class="val">{_esc(dh_emi or '—')}</span></td>
+</tr>
+<tr>
+  <td><span class="lbl">Data da emissão</span><span class="val">{_esc(_fmt_data_br(dh_emi))}</span></td>
+  <td><span class="lbl">Data da saída/entrada</span><span class="val">—</span></td>
+  <td><span class="lbl">Hora da saída/entrada</span><span class="val">{_esc(_fmt_hora_br(dh_emi))}</span></td>
+  <td><span class="lbl">Email</span><span class="val">{_esc(email) if email else '—'}</span></td>
 </tr>
 </table>"""
 
@@ -341,53 +403,83 @@ def _bloco_impostos(totais: dict[str, str], total_prod: Decimal, total_nf: Decim
         return _fmt_moeda(fallback)
 
     return f"""
-<table class="danfe impostos">
+<table class="danfe impostos quad">
+<tr><td colspan="4" class="sec-title">Cálculo do imposto</td></tr>
 <tr>
-  <td><span class="lbl">Base cálc. ICMS</span><span class="val r">{t('vBC', 0)}</span></td>
-  <td><span class="lbl">Valor ICMS</span><span class="val r">{t('vICMS', 0)}</span></td>
-  <td><span class="lbl">Base cálc. ICMS ST</span><span class="val r">{t('vBCST', 0)}</span></td>
-  <td><span class="lbl">Valor ICMS ST</span><span class="val r">{t('vST', 0)}</span></td>
-  <td><span class="lbl">Valor total produtos</span><span class="val r">{t('vProd', total_prod)}</span></td>
+  <td><span class="lbl">Base de cálc. do ICMS</span><span class="val r">{t('vBC', 0)}</span></td>
+  <td><span class="lbl">Valor do ICMS</span><span class="val r">{t('vICMS', 0)}</span></td>
+  <td><span class="lbl">Base de cálc. ICMS S.T.</span><span class="val r">{t('vBCST', 0)}</span></td>
+  <td><span class="lbl">Valor do ICMS subst.</span><span class="val r">{t('vST', 0)}</span></td>
 </tr>
 <tr>
-  <td><span class="lbl">Valor frete</span><span class="val r">{t('vFrete', 0)}</span></td>
-  <td><span class="lbl">Valor seguro</span><span class="val r">{t('vSeg', 0)}</span></td>
+  <td><span class="lbl">V. imp. importação</span><span class="val r">0,00</span></td>
+  <td><span class="lbl">V. ICMS UF remet.</span><span class="val r">{t('vICMSUFRemet', 0)}</span></td>
+  <td><span class="lbl">V. FCP UF dest.</span><span class="val r">{t('vFCPUFDest', 0)}</span></td>
+  <td><span class="lbl">Valor do PIS</span><span class="val r">{t('vPIS', 0)}</span></td>
+</tr>
+<tr>
+  <td><span class="lbl">V. total produtos</span><span class="val r">{t('vProd', total_prod)}</span></td>
+  <td><span class="lbl">Valor do frete</span><span class="val r">{t('vFrete', 0)}</span></td>
+  <td><span class="lbl">Valor do seguro</span><span class="val r">{t('vSeg', 0)}</span></td>
   <td><span class="lbl">Desconto</span><span class="val r">{t('vDesc', 0)}</span></td>
+</tr>
+<tr>
   <td><span class="lbl">Outras despesas</span><span class="val r">{t('vOutro', 0)}</span></td>
-  <td><span class="lbl">Valor total da nota</span><span class="val r">{t('vNF', total_nf)}</span></td>
+  <td><span class="lbl">Valor total IPI</span><span class="val r">{t('vIPI', 0)}</span></td>
+  <td><span class="lbl">V. ICMS UF dest.</span><span class="val r">{t('vICMSUFDest', 0)}</span></td>
+  <td><span class="lbl">V. tot. trib.</span><span class="val r">{t('vTotTrib', 0)}</span></td>
+</tr>
+<tr>
+  <td><span class="lbl">Valor da COFINS</span><span class="val r">{t('vCOFINS', 0)}</span></td>
+  <td colspan="3"><span class="lbl">V. total da nota</span><span class="val r destaque">{t('vNF', total_nf)}</span></td>
 </tr>
 </table>"""
 
 
 def _bloco_transporte() -> str:
     return """
-<table class="danfe">
-<tr><td colspan="6" class="sec-title">Transportador / Volumes transportados</td></tr>
+<table class="danfe quad">
+<tr><td colspan="4" class="sec-title">Transportador / Volumes transportados</td></tr>
 <tr>
-  <td colspan="2"><span class="lbl">Razão social</span></td>
-  <td><span class="lbl">Frete por conta</span><span class="val">9 — Sem frete</span></td>
+  <td colspan="2"><span class="lbl">Nome / Razão social</span></td>
+  <td><span class="lbl">Frete</span><span class="val">9-Sem Transporte</span></td>
   <td><span class="lbl">Código ANTT</span></td>
-  <td><span class="lbl">Placa</span></td>
-  <td><span class="lbl">UF</span></td>
 </tr>
 <tr>
   <td colspan="2"><span class="lbl">Endereço</span></td>
   <td><span class="lbl">Município</span></td>
   <td><span class="lbl">UF</span></td>
+</tr>
+<tr>
+  <td><span class="lbl">Placa do veículo</span></td>
+  <td><span class="lbl">UF</span></td>
   <td colspan="2"><span class="lbl">CNPJ / CPF</span></td>
 </tr>
-</table>"""
-
-
-def _bloco_dados_adicionais(inf_compl: str) -> str:
-    return f"""
-<table class="danfe">
-<tr><td class="sec-title">Dados adicionais</td></tr>
 <tr>
-  <td class="inf-compl"><span class="lbl">Informações complementares</span>
-  <div class="inf-txt">{_esc(inf_compl) or '—'}</div></td>
+  <td><span class="lbl">Quantidade</span></td>
+  <td><span class="lbl">Espécie</span></td>
+  <td><span class="lbl">Marca</span></td>
+  <td><span class="lbl">Numeração</span></td>
 </tr>
 </table>"""
+
+
+def _bloco_dados_adicionais(inf_compl: str, *, impresso_em: str) -> str:
+    return f"""
+<table class="danfe quad">
+<tr><td colspan="2" class="sec-title">Dados adicionais</td></tr>
+<tr>
+  <td class="inf-compl" style="width:65%">
+    <span class="lbl">Informações complementares</span>
+    <div class="inf-txt">{_esc(inf_compl) or '—'}</div>
+  </td>
+  <td class="inf-fisco">
+    <span class="lbl">Reservado ao fisco</span>
+    <div class="inf-txt">—</div>
+  </td>
+</tr>
+</table>
+<div class="rodape-impresso">Impresso em {_esc(impresso_em)}</div>"""
 
 
 def montar_html_danfe(
@@ -452,11 +544,19 @@ def montar_html_danfe(
     pages_html = ""
     for idx, chunk in enumerate(paginas, start=1):
         folha = f"{idx}/{n_pag}"
-        rows = "".join(_linha_produto(ln) for ln in chunk) or "<tr><td colspan='14' class='c'>—</td></tr>"
+        rows = "".join(_linha_produto(ln) for ln in chunk) or "<tr><td colspan='15' class='c'>—</td></tr>"
         cab = ""
         if idx == 1:
             cab = (
-                _bloco_canhoto(em, nnf, serie, razao_canhoto)
+                _bloco_canhoto(
+                    em,
+                    nnf,
+                    serie,
+                    razao_canhoto,
+                    dest=dest,
+                    dh_emi=dh_emi,
+                    total_nf=total_nf,
+                )
                 + _bloco_cabecalho(
                     em,
                     nnf=nnf,
@@ -467,6 +567,7 @@ def montar_html_danfe(
                     protocolo=protocolo,
                     logo_uri=logo_uri,
                     folha=folha,
+                    dh_emi=dh_emi,
                 )
                 + _bloco_destinatario(dest, dh_emi)
                 + _bloco_impostos(xml_totais, total_prod, total_nf)
@@ -480,12 +581,18 @@ def montar_html_danfe(
 
         rodape = ""
         if idx == n_pag:
-            rodape = _bloco_transporte() + _bloco_dados_adicionais(inf_compl)
+            try:
+                tz = ZoneInfo("America/Sao_Paulo")
+                agora = datetime.now(tz).strftime("%d/%m/%Y as %H:%M:%S")
+            except Exception:
+                agora = datetime.now().strftime("%d/%m/%Y as %H:%M:%S")
+            rodape = _bloco_transporte() + _bloco_dados_adicionais(inf_compl, impresso_em=agora)
 
         pages_html += f"""
 <section class="danfe-page" data-folha="{idx}">
 {cab}
 <table class="danfe prod">
+<tr><td colspan="15" class="sec-title">Dados dos produtos / serviços</td></tr>
 {_tabela_produtos_head()}
 <tbody>{rows}</tbody>
 </table>
@@ -511,47 +618,50 @@ document.querySelectorAll('svg.barcode[data-chave]').forEach(function(el) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DANFE NF-e {_esc(nnf)} — Agro Mais</title>
 <style>
-@page {{ size: A4 portrait; margin: 6mm; }}
+@page {{ size: A4 portrait; margin: 5mm; }}
 * {{ box-sizing: border-box; }}
-body {{ font-family: 'Segoe UI', Arial, Helvetica, sans-serif; font-size: 7.5pt; color: #111; margin: 0; padding: 0; background: #e8e8e8; }}
-.danfe-page {{ background: #fff; width: 198mm; min-height: 285mm; margin: 0 auto 8mm; padding: 4mm 5mm; box-shadow: 0 1px 4px rgba(0,0,0,.12); page-break-after: always; }}
+body {{ font-family: Arial, Helvetica, sans-serif; font-size: 7pt; color: #000; margin: 0; padding: 0; background: #e8e8e8; }}
+.danfe-page {{ background: #fff; width: 200mm; min-height: 287mm; margin: 0 auto 8mm; padding: 3mm 4mm; box-shadow: 0 1px 4px rgba(0,0,0,.12); page-break-after: always; }}
 .danfe-page:last-child {{ page-break-after: auto; margin-bottom: 0; }}
-table.danfe {{ width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 2px; }}
-table.danfe td, table.danfe th {{ border: 1px solid #222; padding: 2px 4px; vertical-align: top; word-wrap: break-word; }}
-.lbl {{ font-size: 5.5pt; text-transform: uppercase; color: #333; display: block; line-height: 1.15; margin-bottom: 1px; }}
-.val {{ font-size: 7.5pt; font-weight: 600; color: #000; }}
-.sec-title {{ font-size: 6pt; font-weight: 700; text-transform: uppercase; background: #f4f4f4; }}
+table.danfe {{ width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 1px; }}
+table.danfe td, table.danfe th {{ border: 1px solid #000; padding: 1px 3px; vertical-align: top; word-wrap: break-word; }}
+.lbl {{ font-size: 5pt; text-transform: uppercase; color: #000; display: block; line-height: 1.1; margin-bottom: 0; }}
+.val {{ font-size: 7pt; font-weight: 700; color: #000; display: block; }}
+.val.destaque {{ font-size: 8pt; }}
+.sec-title {{ font-size: 5.5pt; font-weight: 700; text-transform: uppercase; background: #fff; padding: 2px 3px !important; }}
 .r {{ text-align: right; }}
 .c {{ text-align: center; }}
-.corte {{ border: none; border-top: 1px dashed #444; margin: 3mm 0; height: 0; }}
+.corte {{ border: none; border-top: 1px dashed #000; margin: 2mm 0; height: 0; }}
 .faixa {{ text-align: center; font-weight: 800; font-size: 9pt; padding: 5px 4px; margin-bottom: 3mm; letter-spacing: 0.3px; }}
 .faixa.homolog {{ background: #000; color: #fff; }}
 .faixa.previa {{ background: #fff7ed; color: #9a3412; border: 2px solid #ea580c; }}
-.col-emit {{ width: 48%; }}
-.col-danfe {{ width: 17%; border-left: 2px solid #222 !important; border-right: 2px solid #222 !important; }}
-.col-chave {{ width: 35%; }}
-.logo-emitente {{ max-width: 42mm; max-height: 22mm; display: block; margin-bottom: 3px; object-fit: contain; }}
-.logo-placeholder {{ font-weight: 900; font-size: 11pt; color: #c2410c; margin-bottom: 4px; }}
-.emit-fantasia {{ font-size: 8.5pt; }}
-.emit-razao, .emit-end, .emit-fone {{ font-size: 6.5pt; font-weight: 400; display: block; line-height: 1.25; }}
-.danfe-tit {{ font-size: 13pt; font-weight: 800; letter-spacing: 1px; }}
-.danfe-sub {{ font-size: 5.5pt; font-weight: 700; line-height: 1.2; margin-top: 2px; }}
-.danfe-ent-sai {{ font-size: 5pt; margin-top: 6px; line-height: 1.3; }}
-.danfe-saida-mark {{ font-size: 14pt; font-weight: 900; margin: 4px 0; border: 1px solid #222; display: inline-block; padding: 2px 10px; }}
-.danfe-nf {{ font-size: 7pt; font-weight: 700; margin-top: 4px; }}
-.chave-lbl {{ font-size: 5.5pt; font-weight: 700; text-align: center; margin-top: 2px; }}
-.chave-val {{ font-size: 7pt; font-weight: 700; text-align: center; letter-spacing: 0.4px; line-height: 1.35; }}
-.chave-hint {{ font-size: 5pt; text-align: center; margin-top: 3px; color: #444; }}
-svg.barcode {{ width: 100%; max-height: 46px; display: block; }}
-table.prod thead th {{ font-size: 5.5pt; text-align: center; background: #f0f0f0; font-weight: 700; padding: 3px 2px; }}
-table.prod td {{ font-size: 6.5pt; }}
-table.prod td.desc {{ font-size: 7pt; line-height: 1.2; }}
-table.prod td.cod {{ font-size: 6pt; }}
-.continuacao {{ font-size: 7pt; font-weight: 700; text-align: center; margin-bottom: 2mm; padding: 2px; border: 1px solid #222; }}
+.col-emit {{ width: 50%; }}
+.col-danfe {{ width: 16%; border-left: 2px solid #000 !important; border-right: 2px solid #000 !important; }}
+.col-chave {{ width: 34%; }}
+.logo-emitente {{ max-width: 38mm; max-height: 26mm; display: block; margin: 0 auto 4px; object-fit: contain; }}
+.emit-razao {{ font-size: 8pt; font-weight: 700; text-transform: uppercase; line-height: 1.2; margin-bottom: 2px; }}
+.emit-linha {{ font-size: 6.5pt; line-height: 1.25; }}
+.danfe-tit {{ font-size: 12pt; font-weight: 800; letter-spacing: 0.5px; }}
+.danfe-sub {{ font-size: 5pt; font-weight: 700; line-height: 1.15; margin-top: 2px; }}
+.danfe-ent-sai {{ font-size: 5pt; margin-top: 5px; line-height: 1.25; text-align: left; padding-left: 4px; }}
+.danfe-saida-mark {{ font-size: 12pt; font-weight: 900; border: 1px solid #000; display: inline-block; padding: 0 8px; margin-left: 4px; }}
+.danfe-nf {{ font-size: 6.5pt; font-weight: 700; margin-top: 6px; line-height: 1.3; }}
+.chave-lbl {{ font-size: 5pt; font-weight: 700; text-align: center; margin-top: 2px; }}
+.chave-val {{ font-size: 6.5pt; font-weight: 700; text-align: center; letter-spacing: 0.35px; line-height: 1.3; }}
+.chave-hint {{ font-size: 4.5pt; text-align: center; margin-top: 2px; line-height: 1.2; }}
+svg.barcode {{ width: 100%; max-height: 42px; display: block; margin-bottom: 2px; }}
+table.prod thead th {{ font-size: 4.5pt; text-align: center; background: #fff; font-weight: 700; padding: 2px 1px; }}
+table.prod td {{ font-size: 6pt; }}
+table.prod td.desc {{ font-size: 6.5pt; line-height: 1.15; }}
+table.prod td.cod {{ font-size: 5.5pt; }}
+.continuacao {{ font-size: 7pt; font-weight: 700; text-align: center; margin-bottom: 2mm; padding: 2px; border: 1px solid #000; }}
 .chave-mini {{ font-size: 6.5pt; letter-spacing: 0.3px; }}
-.inf-compl {{ min-height: 18mm; }}
-.inf-txt {{ font-size: 6.5pt; white-space: pre-wrap; line-height: 1.3; }}
-.canhoto-txt .lbl {{ font-size: 6pt; }}
+.inf-compl, .inf-fisco {{ min-height: 16mm; vertical-align: top; }}
+.inf-txt {{ font-size: 6pt; white-space: pre-wrap; line-height: 1.25; margin-top: 2px; }}
+.canhoto-txt {{ font-size: 5.5pt; line-height: 1.25; text-transform: uppercase; font-weight: 600; }}
+.canhoto-nf {{ font-size: 7pt; font-weight: 700; vertical-align: middle; }}
+.canhoto-nfe-tit {{ font-size: 8pt; font-weight: 800; margin-bottom: 4px; }}
+.rodape-impresso {{ font-size: 5.5pt; text-align: right; margin-top: 2mm; color: #333; }}
 .no-print {{ font-size: 8pt; text-align: center; padding: 8px; color: #444; }}
 @media print {{
   body {{ background: #fff; }}

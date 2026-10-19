@@ -1,8 +1,10 @@
 from datetime import datetime
+from io import BytesIO
 from unittest.mock import patch
 
 from django.test import RequestFactory, SimpleTestCase
 from django.urls import reverse
+from openpyxl import load_workbook
 
 from produtos import relatorios_central_views as views
 from produtos import relatorios_vendas_util as ru
@@ -82,6 +84,38 @@ class RelatoriosCatalogoUtilTests(SimpleTestCase):
             self.assertEqual(mock_agg.call_args.kwargs.get("deposito"), "vila")
 
 
+class RelatoriosCentralViewsHelperTests(SimpleTestCase):
+    def test_limpar_catalogo_preserva_periodo_e_loja(self):
+        req = RequestFactory().get(
+            "/",
+            {
+                "periodo": "30d",
+                "deposito": "centro",
+                "categoria": ["Racoes", "Jardim"],
+                "subcategoria": "Gato",
+                "agrupar": "subcategoria",
+            },
+        )
+        qs = views._qs_limpar_catalogo(req)
+        self.assertIn("periodo=30d", qs)
+        self.assertIn("deposito=centro", qs)
+        self.assertIn("agrupar=subcategoria", qs)
+        self.assertNotIn("categoria=", qs)
+        self.assertNotIn("subcategoria=", qs)
+
+    def test_extra_filtros_catalogo_resumo(self):
+        ef = views._extra_filtros_catalogo(
+            {
+                "categorias": ["Racoes"],
+                "categoria": ["Racoes"],
+                "subcategorias": ["Gato"],
+                "subcategoria": ["Gato", "Cachorro"],
+            }
+        )
+        self.assertTrue(ef["tem_filtro_catalogo"])
+        self.assertEqual(len(ef["resumo_filtros_catalogo"]), 2)
+
+
 class RelatoriosCentralRoutesTests(SimpleTestCase):
     def setUp(self):
         self.rf = RequestFactory()
@@ -104,6 +138,41 @@ class RelatoriosCentralRoutesTests(SimpleTestCase):
                 self.assertEqual(response.status_code, 200, (nome, query))
                 if "export=xlsx" in query:
                     self.assertIn("spreadsheetml", response["Content-Type"])
+
+    def test_vendas_grupo_xlsx_respeita_filtro_subcategoria(self):
+        response = self.client.get(
+            reverse("relatorios_vendas_grupo")
+            + "?categoria=Racoes&subcategoria=Gato&export=xlsx"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("spreadsheetml", response["Content-Type"])
+        wb = load_workbook(BytesIO(response.content))
+        ws = wb.active
+        linhas_dados = [
+            row
+            for row in ws.iter_rows(min_row=1, values_only=True)
+            if row and row[0] == 1
+        ]
+        self.assertEqual(len(linhas_dados), 1)
+        self.assertEqual(linhas_dados[0][1], "Racoes")
+
+    def test_generico_excel_usa_submit_do_formulario(self):
+        response = self.client.get(reverse("relatorios_vendas_grupo"))
+        body = response.content.decode("utf-8", errors="ignore")
+        self.assertIn('form="form-relatorio-filtros"', body)
+        self.assertIn('name="export"', body)
+        self.assertIn('value="xlsx"', body)
+
+    def test_vendas_grupo_resumo_filtro_catalogo_no_html(self):
+        response = self.client.get(
+            reverse("relatorios_vendas_grupo")
+            + "?categoria=Racoes&categoria=Jardim&subcategoria=Gato"
+        )
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode("utf-8", errors="ignore")
+        self.assertIn('name="subcategoria"', body)
+        self.assertIn("Limpar catálogo", body)
+        self.assertIn("Gato", body)
 
     def test_mais_vendidos_e_grupo_filtro_loja_html(self):
         for nome, dep in (
