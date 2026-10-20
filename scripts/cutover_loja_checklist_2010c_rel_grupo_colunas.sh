@@ -45,6 +45,9 @@ ALLOWED="$(printf '%s\n' \
 MIG="$(echo "$DELTA" | grep -E '/migrations/[0-9]+_' || true)"
 [[ -z "$MIG" ]] || { echo "FAIL: migration: $MIG"; exit 2; }
 
+PDV_TOUCH="$(echo "$DELTA" | grep -Ei 'pdv|checkout|caixa|consulta_produtos|wizard' || true)"
+[[ -z "$PDV_TOUCH" ]] || { echo "FAIL: path PDV no delta: $PDV_TOUCH"; exit 2; }
+
 PROD_SHA="$(git rev-parse "$PROD_REF")"
 git show-ref --verify --quiet "refs/remotes/origin/$ROLLBACK_TAG" || {
   echo "FAIL: rode ./scripts/prep_checkpoint_checklist_2010c_rel_grupo_colunas.sh"; exit 2;
@@ -60,6 +63,8 @@ export AGRO_PIN_TESTE="${AGRO_PIN_TESTE:-9973}"
 grep -qE '=== [0-9]+ OK, 0 FAIL ===' /tmp/cutover-2010c-colunas.log
 "$PY" scripts/verify_rel_grupo_margem_path.py | tee /tmp/cutover-2010c-margem.log
 grep -qE '=== [0-9]+ OK, 0 FAIL ===' /tmp/cutover-2010c-margem.log
+"$PY" scripts/verify_rel_cat_sub_excel_path.py | tee /tmp/cutover-2010c-cat.log
+grep -qE 'TOTAL OK=[0-9]+ FAIL=0' /tmp/cutover-2010c-cat.log
 
 echo "OK: PREP v$VER_ESPERADA · 20/10c REL-GRUPO-COLUNAS · rollback $ROLLBACK_TAG"
 echo "Pós: ./scripts/post_deploy_checklist_2010c_rel_grupo_colunas.sh"

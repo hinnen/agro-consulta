@@ -1294,18 +1294,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PREP ARMADO — **CHECKLIST 20/10c** · **REL-GRUPO-COLUNAS** · **v27.26.16** · 20/10
+### 🟡 ARMADO — **CHECKLIST 20/10c** · **v27.26.16** · aguardando senha
 
 | Campo | Valor |
 | ----- | ----- |
-| **Branch PREP** | `deploy/prep-checklist-2010c-rel-grupo-colunas` (só delta da loja) |
-| **O quê** | Vendas por grupo: **colunas escolhíveis** (venda R$, margem R$, lucro bruto %) · **ordenar no cabeçalho** · atalho Período/Comparativo |
-| **Migrate** | **NÃO** |
-| **PDV** | **Não alterado** |
-| **Prova** | `verify_rel_grupo_colunas_path.py` **22** · `verify_rel_grupo_margem_path.py` **17** · `verify_rel_cat_sub_excel_path.py` **30** |
-| **Prep** | `./scripts/prep_checkpoint_checklist_2010c_rel_grupo_colunas.sh` |
-| **Cutover** | `./scripts/cutover_loja_checklist_2010c_rel_grupo_colunas.sh` · `--exec` + frase + senha |
-| **Revert** | `rollback/pre-v272616-2010c-rel-grupo-colunas` → **v27.26.15** @ **`93912908`** |
+| **Loja agora** | **v27.26.15** @ **`93912908`** |
+| **Pacote** | **REL-GRUPO-COLUNAS** — vendas por grupo: colunas escolhíveis · sort no cabeçalho · atalho Período/Comparativo |
+| **PREP** | `deploy/prep-checklist-2010c-rel-grupo-colunas` @ **`2e47116f`** |
+| **Checkpoint** | **`PREP_CHECKPOINT_OK`** · rollback `rollback/pre-v272616-2010c-rel-grupo-colunas` · backup @ **`93912908`** |
+| **Cutover** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_2010c_rel_grupo_colunas.sh --exec` |
+| **Pós** | `./scripts/post_deploy_checklist_2010c_rel_grupo_colunas.sh` (Render Shell) |
+| **Revert** | `git push origin rollback/pre-v272616-2010c-rel-grupo-colunas:producao` → **v27.26.15** @ **`93912908`** |
+| **Prova cloud** | colunas **22/22** · margem **17/17** · cat/sub **30/30** (PIN **9973**) |
+| **PDV** | **Fora do delta** — só `/relatorios/vendas-grupo/` |
 
 ### ✅ CHECKLIST ÚNICO — **20/10c** · 🟢 **pronto envio produção**
 
