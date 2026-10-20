@@ -1139,11 +1139,10 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 93. CHECKLIST ÚNICO — **20/10b** · 🟡 **ARMADO** · aguarda frase+senha
+## 93. CHECKLIST ÚNICO — **20/10b** · ✅ **Live v27.26.15**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-NF-SEM-EXATO** | 🟢 no PREP | **NÃO** | **VERIFY_OK 30/30** |
+| 1 | **ETQ-NF-SEM-EXATO** | ✅ **Live** | **NÃO** | **VERIFY_OK 30/30** |
 
-**Live hoje:** **v27.26.14** @ **`e4c308dd`**. **PREP:** `deploy/prep-checklist-2010b-etq-nf-sem-exato` @ **`93912908`**.  
-**Cutover:** `cutover_loja_checklist_2010b_etq_nf_sem_exato.sh --exec` · **PDV não no delta**.
+**Loja git:** `producao` @ **`93912908`**. **Revert:** `rollback/pre-v272615-2010b-etq-nf-sem-exato` → **v27.26.14** @ **`e4c308dd`**. **Shell:** `post_deploy_checklist_2010b_etq_nf_sem_exato.sh`.
