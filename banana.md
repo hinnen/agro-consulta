@@ -1318,7 +1318,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **Paths** | `vendas_grupo_table.py` · `vendas_grupo_table.js` · `vendas_grupo_tabela.html` · `relatorios_central_views.py` · `relatorios_vendas_util.py` · `relatorios_generico.html` |
-| **Branch** | `teste` (após merge colunas) · PREP `deploy/prep-checklist-2010c-rel-grupo-colunas` |
+| **PREP** | **`2e47116f`** · `deploy/prep-checklist-2010c-rel-grupo-colunas` |
+| **teste** | **`7d98f73d`** · prep_checkpoint **OK** |
 
 ### ✅ Deploy loja — **CHECKLIST 20/10b** · **Live v27.26.15** · 20/10
 
