@@ -1294,20 +1294,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 ARMADO — **CHECKLIST 19/10b** · **v27.26.13** · aguardando senha
+### ✅ Deploy loja — **CHECKLIST 19/10b** · **Live v27.26.13** · 20/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Loja agora** | **v27.26.12** @ **`f33ee5cd`** |
-| **Sobe** | **REL-GRUPO-MARGEM-COMP** (`dfabcf9f`) — **só** `/relatorios/vendas-grupo/` (+ hub/ajuda) · **sem migrate** · **não** merge `teste` |
-| **PREP** | `deploy/prep-checklist-1910b` @ **`5fee79dc`** |
-| **Checkpoint** | **`PREP_CHECKPOINT_OK`** · rollback `rollback/pre-v272613-1910b-rel-grupo` · backup `producao-backup-pre-v272613-1910b` @ **`f33ee5cd`** |
-| **Cutover** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1910b_rel_grupo_margem_comp.sh --exec` |
-| **Pós** | `./scripts/post_deploy_checklist_1910b_rel_grupo_margem_comp.sh` (Render Shell) |
+| **Status** | ✅ **Live** @ **`5fee79dc`** |
+| **Pacote** | **REL-GRUPO-MARGEM-COMP** — vendas por grupo (margem, comparativo, Excel) |
+| **Migrate** | **NÃO** |
+| **PDV** | **Não alterado** (delta só relatórios) |
 | **Revert** | `git push origin rollback/pre-v272613-1910b-rel-grupo:producao` → **v27.26.12** @ **`f33ee5cd`** |
-| **Prova cloud** | grupo **14/14** · cat/sub **30/30** · `tests_relatorios_central_filtros` **19** OK |
-| **Risco loja** | Só GET Central Relatórios — **não** PDV / caixa / vendas |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1910b-rel-grupo-margem-comp.md` |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1910b_rel_grupo_margem_comp.sh` (Render Shell) |
+
+### ~~ARMADO 19/10b~~ · **enviado** · ver Live acima
 
 ### ✅ CHECKLIST ÚNICO — **19/10b** · 🟢 **pronto envio produção**
 
