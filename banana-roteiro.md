@@ -1136,3 +1136,14 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | 1 | **REL-EXCEL-PRINT** | ✅ **Live** | **NÃO** | **16/16** + cat/sub **30/30** |
 
 **Loja git:** `producao` @ **`e4c308dd`**. **Revert:** `rollback/pre-v272614-2010a-rel-excel-print` → **v27.26.13** @ **`5fee79dc`**. **Shell:** `post_deploy_checklist_2010a_rel_excel_print.sh`.
+
+---
+
+## 93. CHECKLIST ÚNICO — **20/10b** · 🟡 **ARMADO** · aguarda frase+senha
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ETQ-NF-SEM-EXATO** | 🟢 no PREP | **NÃO** | **VERIFY_OK 30/30** |
+
+**Live hoje:** **v27.26.14** @ **`e4c308dd`**. **PREP:** `deploy/prep-checklist-2010b-etq-nf-sem-exato` @ **`4b3368fa`**.  
+**Cutover:** `cutover_loja_checklist_2010b_etq_nf_sem_exato.sh --exec` · **PDV não no delta**.

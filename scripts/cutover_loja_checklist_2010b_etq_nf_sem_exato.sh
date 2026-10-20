@@ -53,6 +53,18 @@ ALLOWED="$(printf '%s\n' \
 MIG="$(echo "$DELTA" | grep -E '/migrations/[0-9]+_' || true)"
 [[ -z "$MIG" ]] || { echo "FAIL: migration: $MIG"; exit 2; }
 
+PROD_SHA="$(git rev-parse "$PROD_REF")"
+if git show-ref --verify --quiet "refs/remotes/origin/$ROLLBACK_TAG"; then
+  RB_SHA="$(git rev-parse "origin/$ROLLBACK_TAG")"
+  [[ "$RB_SHA" == "$PROD_SHA" ]] || {
+    echo "FAIL: $ROLLBACK_TAG != produção ($PROD) — rode prep_checkpoint"; exit 2;
+  }
+  echo "OK rollback $ROLLBACK_TAG @ $PROD"
+else
+  echo "FAIL: $ROLLBACK_TAG ausente — rode ./scripts/prep_checkpoint_checklist_2010b_etq_nf_sem_exato.sh"
+  exit 2
+fi
+
 PY=python3
 [[ -x .venv/bin/python ]] && PY=.venv/bin/python
 export AGRO_PIN_TESTE="${AGRO_PIN_TESTE:-9973}"
@@ -71,6 +83,7 @@ SENHA="${AGRO_LOJA_SENHA:-}"
 echo "$FRASE" | grep -Eiq 'pode.*(produ[cç][aã]o|producao|enviar)|sobe.*(produ[cç][aã]o|producao)|subir.*(produ[cç][aã]o|producao)|enviar.*(produ[cç][aã]o|producao)' \
   || { echo "FAIL: autorização"; exit 3; }
 
+git push origin "$PROD_REF:refs/heads/$ROLLBACK_TAG" || true
 git push origin "$PROD_REF:refs/heads/$BACKUP_BR" || true
 git push origin "$PREP_REF:producao"
 echo "PUSH OK · badge v$VER_ESPERADA · Etiquetas → Nº NF (SEM completo)"

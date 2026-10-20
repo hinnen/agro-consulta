@@ -1294,21 +1294,32 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟡 ARMADO — **CHECKLIST 20/10b** · **v27.26.15** · aguardando senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Loja agora** | **v27.26.14** @ **`e4c308dd`** |
+| **Pacote** | **ETQ-NF-SEM-EXATO** — filtro Nº NF entrada match exato `SEM-DDMM-XXXX` (não mistura TJAI/UPS7) |
+| **PREP** | `deploy/prep-checklist-2010b-etq-nf-sem-exato` @ **`4b3368fa`** |
+| **Checkpoint** | **`PREP_CHECKPOINT_OK`** · rollback `rollback/pre-v272615-2010b-etq-nf-sem-exato` · backup @ **`e4c308dd`** |
+| **Cutover** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_2010b_etq_nf_sem_exato.sh --exec` |
+| **Pós** | `./scripts/post_deploy_checklist_2010b_etq_nf_sem_exato.sh` (Render Shell) |
+| **Revert** | `git push origin rollback/pre-v272615-2010b-etq-nf-sem-exato:producao` → **v27.26.14** @ **`e4c308dd`** |
+| **Prova cloud** | **VERIFY_OK 30/30** · PIN **9973** · unit SEM exato |
+| **PDV** | **Não alterado** — só `cadastro_filtros_util` (cadastro/etiquetas NF) |
+
 ### ✅ CHECKLIST ÚNICO — **20/10b** · 🟢 **pronto envio produção**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-NF-SEM-EXATO** | 🟢 pronto | **NÃO** | `verify_etq_filtro_nf_entrada_path.py` **VERIFY_OK 30/30** |
+| 1 | **ETQ-NF-SEM-EXATO** | 🟢 pronto | **NÃO** | **VERIFY_OK 30/30** |
 
 ### 📦 PACOTE PRONTO — **ETQ-NF-SEM-EXATO** · **v27.26.15** · 20/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Etiquetas / cadastro: filtro **Nº NF entrada** não mistura `SEM-1410-TJAI` com `SEM-1410-UPS7` (match exato `SEM-DDMM-XXXX`) |
-| **Arquivos** | `cadastro_filtros_util.py` · teste · `verify_etq_filtro_nf_entrada_path.py` |
-| **PREP** | `deploy/prep-checklist-2010b-etq-nf-sem-exato` · `./scripts/prep_checkpoint_checklist_2010b_etq_nf_sem_exato.sh` |
-| **Cutover** | `./scripts/cutover_loja_checklist_2010b_etq_nf_sem_exato.sh` |
-| **Revert** | `rollback/pre-v272615-2010b-etq-nf-sem-exato` → **v27.26.14** @ **`e4c308dd`** |
+| **O quê** | Etiquetas / cadastro: filtro **Nº NF entrada** não mistura `SEM-1410-TJAI` com `SEM-1410-UPS7` |
+| **Arquivos** | `cadastro_filtros_util.py` · `tests_pdv_cadastro_rapido.py` · `verify_etq_filtro_nf_entrada_path.py` |
 
 ### ✅ Deploy loja — **CHECKLIST 20/10a** · **Live v27.26.14** · 20/10
 
