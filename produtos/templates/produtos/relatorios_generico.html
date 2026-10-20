@@ -7,12 +7,39 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script>window.GM_LOADING_BAR_SHOW_DELAY_MS = 0;</script>
   <style>
+    {% if headers|length >= 9 or vendas_grupo_comparativo %}
+    @page { size: A4 landscape; margin: 4mm; }
+    {% else %}
     @page { size: A4; margin: 10mm; }
+    {% endif %}
     @media print {
       .no-print { display: none !important; }
       body, .print-root { background: #fff !important; color: #0f172a !important; }
-      .print-table { border: 1px solid #cbd5e1 !important; }
-      .print-table th, .print-table td { color: #0f172a !important; border-color: #e2e8f0 !important; }
+      .print-root,
+      .print-root .overflow-x-auto {
+        overflow: visible !important;
+        max-width: none !important;
+        width: 100% !important;
+      }
+      .print-table {
+        border: 1px solid #cbd5e1 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        table-layout: auto;
+        font-size: {% if headers|length >= 12 %}6pt{% elif headers|length >= 9 %}6.5pt{% else %}8pt{% endif %};
+      }
+      .print-table th,
+      .print-table td {
+        color: #0f172a !important;
+        border: 1px solid #e2e8f0 !important;
+        white-space: nowrap;
+        padding: 1px 3px !important;
+        max-width: none !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+      }
+      .print-table thead { display: table-header-group; }
+      .print-table tr { page-break-inside: avoid; }
     }
   </style>
 {% endblock %}
@@ -34,9 +61,9 @@
         class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border-2 border-blue-500 bg-blue-600 px-4 py-2 text-xs font-black uppercase text-white hover:bg-blue-700">
         <i class="fas fa-print" aria-hidden="true"></i>Imprimir A4
       </button>
-      <button type="submit" form="form-relatorio-filtros" name="export" value="xlsx"
+      <button type="button" form="form-relatorio-filtros" data-agro-rel-excel
         class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border-2 border-emerald-500 bg-emerald-600 px-4 py-2 text-xs font-black uppercase text-white hover:bg-emerald-500"
-        title="Baixa Excel com período, loja e filtros de categoria/sub marcados no formulário">
+        title="Baixa Excel com período, loja e filtros marcados no formulário (sem precisar clicar Atualizar antes)">
         <i class="fas fa-file-excel" aria-hidden="true"></i>Excel ↓
       </button>
       {% if link_extra %}

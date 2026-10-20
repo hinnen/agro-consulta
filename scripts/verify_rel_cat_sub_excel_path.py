@@ -91,7 +91,10 @@ def check_static() -> None:
     check("resumo_filtros_catalogo" in v, "views resumo filtros")
     check("export_rows = ru.limitar_ranking(rows_all, 0)" in v, "mais vendidos excel lista completa")
     check("limite=0, rows=rows_all" in v, "margem excel lista completa")
-    check('form="form-relatorio-filtros"' in tpl and 'name="export"' in tpl, "excel submit form")
+    check(
+        'form="form-relatorio-filtros"' in tpl and "data-agro-rel-excel" in tpl,
+        "excel via form atual (data-agro-rel-excel)",
+    )
     check('name="subcategoria"' in tpl and "subcategorias_2" in tpl, "tpl checkboxes sub")
     check("test_vendas_grupo_xlsx_respeita_filtro_subcategoria" in tests, "test xlsx filtro")
     check("test_generico_excel_usa_submit_do_formulario" in tests, "test excel form")

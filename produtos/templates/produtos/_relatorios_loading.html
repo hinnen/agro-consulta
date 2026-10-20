@@ -238,12 +238,53 @@
     true
   );
 
+  function urlExportXlsxDoForm(form) {
+    var fd = new FormData(form);
+    var qs = new URLSearchParams();
+    fd.forEach(function (valor, chave) {
+      qs.append(chave, valor);
+    });
+    qs.set("export", "xlsx");
+    var base = form.getAttribute("action") || window.location.pathname || "";
+    try {
+      base = new URL(base, window.location.origin).pathname;
+    } catch (_) {}
+    return base + "?" + qs.toString();
+  }
+
   document.addEventListener(
     "submit",
     function (ev) {
       var form = ev.target;
       if (!form || form.id !== "form-relatorio-filtros") return;
+      var sub = ev.submitter;
+      if (sub && sub.name === "export" && sub.value === "xlsx") {
+        ev.preventDefault();
+        baixarExcel(urlExportXlsxDoForm(form));
+        return;
+      }
       show("Atualizando relatório…");
+    },
+    true
+  );
+
+  document.addEventListener(
+    "click",
+    function (ev) {
+      var btn =
+        ev.target && ev.target.closest
+          ? ev.target.closest("[data-agro-rel-excel]")
+          : null;
+      if (!btn || !isNavClick(ev)) return;
+      ev.preventDefault();
+      var formId = btn.getAttribute("form") || "form-relatorio-filtros";
+      var form = document.getElementById(formId);
+      if (form) {
+        baixarExcel(urlExportXlsxDoForm(form));
+        return;
+      }
+      var href = btn.getAttribute("href");
+      if (href) baixarExcel(href);
     },
     true
   );
