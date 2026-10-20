@@ -1155,5 +1155,5 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | - | ------ | ------ | ------- | ----- |
 | 1 | **REL-GRUPO-COLUNAS** | 🟢 no PREP | **NÃO** | **22+17+30** |
 
-**Live hoje:** **v27.26.15** @ **`93912908`**. **PREP:** `deploy/prep-checklist-2010c-rel-grupo-colunas` @ **`2e47116f`**.  
+**Live hoje:** **v27.26.15** @ **`93912908`**. **PREP:** `deploy/prep-checklist-2010c-rel-grupo-colunas` @ **`09c4d28f`**.  
 **Cutover:** `cutover_loja_checklist_2010c_rel_grupo_colunas.sh --exec` · **PDV fora do delta**.

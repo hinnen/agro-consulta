@@ -1300,7 +1300,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Loja agora** | **v27.26.15** @ **`93912908`** |
 | **Pacote** | **REL-GRUPO-COLUNAS** — vendas por grupo: colunas escolhíveis · sort no cabeçalho · atalho Período/Comparativo |
-| **PREP** | `deploy/prep-checklist-2010c-rel-grupo-colunas` @ **`2e47116f`** |
+| **PREP** | `deploy/prep-checklist-2010c-rel-grupo-colunas` @ **`09c4d28f`** |
 | **Checkpoint** | **`PREP_CHECKPOINT_OK`** · rollback `rollback/pre-v272616-2010c-rel-grupo-colunas` · backup @ **`93912908`** |
 | **Cutover** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_2010c_rel_grupo_colunas.sh --exec` |
 | **Pós** | `./scripts/post_deploy_checklist_2010c_rel_grupo_colunas.sh` (Render Shell) |
