@@ -318,6 +318,12 @@ class ArquivosPathTests(SimpleTestCase):
         self.assertTrue(_cabecalho_casa_numero_nf_filtro({"numero": "76468"}, "76468"))
         self.assertTrue(_cabecalho_casa_numero_nf_filtro({"numero": "NF 76468-A"}, "76468"))
         self.assertFalse(_cabecalho_casa_numero_nf_filtro({"numero": "99999"}, "76468"))
+        self.assertTrue(
+            _cabecalho_casa_numero_nf_filtro({"numero": "SEM-1410-TJAI"}, "SEM-1410-TJAI")
+        )
+        self.assertFalse(
+            _cabecalho_casa_numero_nf_filtro({"numero": "SEM-1410-UPS7"}, "SEM-1410-TJAI")
+        )
 
     def test_produto_ids_deriva_do_mapa_qtd(self):
         from produtos.cadastro_filtros_util import produto_ids_por_numero_entrada_nf
