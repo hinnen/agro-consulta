@@ -1294,19 +1294,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 ARMADO — **CHECKLIST 20/10a** · **v27.26.14** · aguardando senha
+### ✅ Deploy loja — **CHECKLIST 20/10a** · **Live v27.26.14** · 20/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Loja agora** | **v27.26.13** @ **`5fee79dc`** |
-| **Sobe** | **REL-EXCEL-PRINT** (`32e7c517`) — Excel ↓ download real · impressão **paisagem** (tabelas largas) |
-| **PREP** | `deploy/prep-checklist-2010a` @ **`e4c308dd`** |
-| **Checkpoint** | **`PREP_CHECKPOINT_OK`** · rollback `rollback/pre-v272614-2010a-rel-excel-print` · backup `producao-backup-pre-v272614-2010a` @ **`5fee79dc`** |
-| **Cutover** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_2010a_rel_excel_print.sh --exec` |
-| **Pós** | `./scripts/post_deploy_checklist_2010a_rel_excel_print.sh` (Render Shell) |
+| **Status** | ✅ **Live** @ **`e4c308dd`** |
+| **Pacote** | **REL-EXCEL-PRINT** — Excel ↓ download real · impressão **paisagem** |
+| **Migrate** | **NÃO** |
+| **PDV** | **Não alterado** |
 | **Revert** | `git push origin rollback/pre-v272614-2010a-rel-excel-print:producao` → **v27.26.13** @ **`5fee79dc`** |
-| **Prova cloud** | grupo **16/16** · cat/sub **30/30** · tests **19** OK (PIN teste **9973**) |
-| **PDV** | **Não alterado** — só templates/JS relatórios |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2010a_rel_excel_print.sh` (Render Shell) |
+
+### ~~ARMADO 20/10a~~ · **enviado** · ver Live acima
 
 ### ✅ CHECKLIST ÚNICO — **20/10a** · 🟢 **pronto envio produção**
 
