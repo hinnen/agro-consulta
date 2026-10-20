@@ -1294,19 +1294,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 ARMADO — **CHECKLIST 20/10c** · **v27.26.16** · aguardando senha
+### ✅ Deploy loja — **CHECKLIST 20/10c** · **Live v27.26.16** · 20/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Loja agora** | **v27.26.15** @ **`93912908`** |
-| **Pacote** | **REL-GRUPO-COLUNAS** — vendas por grupo: colunas escolhíveis · sort no cabeçalho · atalho Período/Comparativo |
-| **PREP** | `deploy/prep-checklist-2010c-rel-grupo-colunas` @ **`09c4d28f`** |
-| **Checkpoint** | **`PREP_CHECKPOINT_OK`** · rollback `rollback/pre-v272616-2010c-rel-grupo-colunas` · backup @ **`93912908`** |
-| **Cutover** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_2010c_rel_grupo_colunas.sh --exec` |
-| **Pós** | `./scripts/post_deploy_checklist_2010c_rel_grupo_colunas.sh` (Render Shell) |
+| **Status** | ✅ **Live** @ **`09c4d28f`** |
+| **Pacote** | **REL-GRUPO-COLUNAS** — colunas escolhíveis · sort cabeçalho · Período/Comparativo |
+| **Migrate** | **NÃO** |
+| **PDV** | **Não alterado** |
 | **Revert** | `git push origin rollback/pre-v272616-2010c-rel-grupo-colunas:producao` → **v27.26.15** @ **`93912908`** |
-| **Prova cloud** | colunas **22/22** · margem **17/17** · cat/sub **30/30** (PIN **9973**) |
-| **PDV** | **Fora do delta** — só `/relatorios/vendas-grupo/` |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2010c_rel_grupo_colunas.sh` (Render Shell) |
+
+### ~~ARMADO 20/10c~~ · **enviado** · ver Live acima
 
 ### ✅ CHECKLIST ÚNICO — **20/10c** · 🟢 **pronto envio produção**
 

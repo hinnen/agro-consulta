@@ -1149,11 +1149,10 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 94. CHECKLIST ÚNICO — **20/10c** · 🟡 **ARMADO** · aguarda frase+senha
+## 94. CHECKLIST ÚNICO — **20/10c** · ✅ **Live v27.26.16**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **REL-GRUPO-COLUNAS** | 🟢 no PREP | **NÃO** | **22+17+30** |
+| 1 | **REL-GRUPO-COLUNAS** | ✅ **Live** | **NÃO** | **22+17+30** |
 
-**Live hoje:** **v27.26.15** @ **`93912908`**. **PREP:** `deploy/prep-checklist-2010c-rel-grupo-colunas` @ **`09c4d28f`**.  
-**Cutover:** `cutover_loja_checklist_2010c_rel_grupo_colunas.sh --exec` · **PDV fora do delta**.
+**Loja git:** `producao` @ **`09c4d28f`**. **Revert:** `rollback/pre-v272616-2010c-rel-grupo-colunas` → **v27.26.15** @ **`93912908`**. **Shell:** `post_deploy_checklist_2010c_rel_grupo_colunas.sh`.
