@@ -242,12 +242,12 @@ class RelatoriosCentralRoutesTests(SimpleTestCase):
         self.assertIn("Comparativo mensal", body2)
         self.assertIn("Δ%", body2)
 
-    def test_generico_excel_usa_submit_do_formulario(self):
+    def test_generico_excel_usa_formulario_atual(self):
         response = self.client.get(reverse("relatorios_vendas_grupo"))
         body = response.content.decode("utf-8", errors="ignore")
+        self.assertIn('id="form-relatorio-filtros"', body)
+        self.assertIn("data-agro-rel-excel", body)
         self.assertIn('form="form-relatorio-filtros"', body)
-        self.assertIn('name="export"', body)
-        self.assertIn('value="xlsx"', body)
 
     def test_vendas_grupo_resumo_filtro_catalogo_no_html(self):
         response = self.client.get(
