@@ -241,6 +241,7 @@ class RelatoriosCentralRoutesTests(SimpleTestCase):
         body2 = response2.content.decode("utf-8", errors="ignore")
         self.assertIn("Comparativo mensal", body2)
         self.assertIn("Δ%", body2)
+        self.assertIn("Lucro bruto %", body2)
 
     def test_generico_excel_usa_formulario_atual(self):
         response = self.client.get(reverse("relatorios_vendas_grupo"))
