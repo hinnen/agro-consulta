@@ -59,6 +59,8 @@ def check_static() -> None:
         check(f"def {nome}" in util, f"util {nome}")
     check("def relatorios_vendas_grupo" in v and 'visao == "comparativo"' in v, "view comparativo")
     check('name="visao"' in tpl and "Comparativo mensal" in tpl, "tpl visao")
+    check("data-agro-rel-excel" in tpl and "urlExportXlsxDoForm" in read("produtos/templates/produtos/_relatorios_loading.html"), "excel fetch form")
+    check("A4 landscape" in tpl, "print paisagem tabela larga")
     check("row_alertas" in tpl and "aviso_sem_custo" in tpl, "tpl alertas")
     check("test_vendas_grupo_margem_ordenacao_e_filtros" in tests, "test margem")
     check("test_vendas_grupo_comparativo_agrega_variacao" in tests, "test comparativo")
