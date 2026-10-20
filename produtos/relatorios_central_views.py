@@ -7,6 +7,7 @@ from django.shortcuts import render
 from django.views.decorators.http import require_GET
 
 from produtos import relatorios_vendas_util as ru
+from produtos import vendas_grupo_table as vgt
 
 logger = logging.getLogger(__name__)
 
@@ -214,6 +215,7 @@ def _grupo_kw(request, deposito, agrupar, gopts: dict) -> dict:
         "agrupar": agrupar,
         "deposito": deposito,
         "ordenar": gopts["ordenar"],
+        "ord_dir": gopts.get("ord_dir") or "desc",
         "min_valor": gopts.get("min_valor"),
         "margem_pct_min": gopts.get("margem_pct_min"),
         "margem_pct_max": gopts.get("margem_pct_max"),
@@ -239,34 +241,21 @@ def relatorios_vendas_grupo(request):
         meses = ru.meses_comparativo_grupo(gopts)
         rows, meta = ru.vendas_grupo_comparativo_meses(meses, **kw)
         mes_labels = meta.get("meses") or []
-        headers = ["#", meta.get("col_grupo") or "Grupo"]
-        for lab in mes_labels:
-            headers.extend([f"{lab} Venda", f"{lab} Margem", f"{lab} Δ%"])
-        headers.extend(["Δ% venda 1º→últ", "Δ% margem 1º→últ"])
+        col_grupo = meta.get("col_grupo") or "Grupo"
+        vg_columns, vg_rows = vgt.comparativo_table_from_rows(
+            rows,
+            mes_labels,
+            col_grupo,
+            lambda v, novo=False: _fmt_var_grupo(v, novo=novo),
+        )
+        headers = vgt.period_flat_headers(vg_columns)
         sub_periodo = _subtitulo_catalogo(
             f"Comparativo {len(mes_labels)} meses · {dep_label}", meta
         )
-        display_rows: list[list] = []
-        row_alertas: list[bool] = []
-        for r in rows:
-            line = [r["pos"], r["grupo"]]
-            for c in r["meses"]:
-                line.append(ru.fmt_brl(c["valor"]))
-                line.append(ru.fmt_brl(c["margem_rs"]))
-                line.append(
-                    _fmt_var_grupo(
-                        c.get("var_venda_pct"),
-                        novo=bool(c.get("novo_venda")),
-                    )
-                )
-            line.append(
-                _fmt_var_grupo(r.get("var_total_venda_pct"))
-            )
-            line.append(
-                _fmt_var_grupo(r.get("var_total_margem_pct"))
-            )
-            display_rows.append(line)
-            row_alertas.append(False)
+        display_rows: list[list] = [
+            vgt.comparativo_flat_row(r["cells"], vg_columns) for r in vg_rows
+        ]
+        row_alertas: list[bool] = [bool(r.get("alerta")) for r in vg_rows]
         if request.GET.get("export") == "xlsx":
             return ru.xlsx_http_response(
                 "vendas-grupo-comparativo.xlsx",
@@ -294,47 +283,24 @@ def relatorios_vendas_grupo(request):
                 totais=[],
                 aviso_sem_custo="",
                 comparativo=True,
+                vg_columns=vg_columns,
+                vg_rows=vg_rows,
             ),
         )
 
     f = _periodo_filtros(request)
     rows, meta = ru.vendas_por_grupo_relatorio(f["desde"], f["ate_dt"], **kw)
     totais_num = meta.get("totais") or {}
-    headers = [
-        "#",
-        meta.get("col_grupo") or "Grupo",
-        "SKUs",
-        "Qtd",
-        "Ticket méd.",
-        "Venda R$",
-        "% venda",
-        "Custo R$",
-        "Margem R$",
-        "Margem %",
-        "% lucro",
-    ]
+    col_grupo = meta.get("col_grupo") or "Grupo"
+    vg_columns, vg_rows = vgt.period_table_from_rows(rows, col_grupo)
+    headers = vgt.period_flat_headers(vg_columns)
     sub_periodo = _subtitulo_catalogo(f"{f['label']} · {dep_label}", meta)
     if agrupar != "categoria":
-        sub_periodo = f"{sub_periodo} · por {meta.get('col_grupo') or agrupar}"
-    display_rows = []
-    row_alertas = []
-    for r in rows:
-        display_rows.append(
-            [
-                r["pos"],
-                r["grupo"],
-                r["skus"],
-                f'{r["qtd"]:.3f}'.rstrip("0").rstrip("."),
-                ru.fmt_brl(r["ticket"]),
-                ru.fmt_brl(r["valor"]),
-                f'{r["pct"]}%',
-                ru.fmt_brl(r["custo"]),
-                ru.fmt_brl(r["margem_rs"]),
-                f'{r["margem_pct"]}%',
-                f'{r["pct_margem"]}%',
-            ]
-        )
-        row_alertas.append(bool(r.get("alerta")))
+        sub_periodo = f"{sub_periodo} · por {col_grupo}"
+    display_rows = [
+        vgt.period_flat_row(r["cells"], vg_columns) for r in vg_rows
+    ]
+    row_alertas = [bool(r.get("alerta")) for r in vg_rows]
     if request.GET.get("export") == "xlsx":
         data = [
             [
@@ -382,6 +348,8 @@ def relatorios_vendas_grupo(request):
             totais=totais_txt,
             aviso_sem_custo=aviso,
             comparativo=False,
+            vg_columns=vg_columns,
+            vg_rows=vg_rows,
         ),
     )
 
@@ -400,6 +368,8 @@ def _ctx_vendas_grupo(
     totais,
     aviso_sem_custo,
     comparativo,
+    vg_columns=None,
+    vg_rows=None,
 ) -> dict:
     mes_esc = list(gopts.get("meses_escolhidos") or [])
     while len(mes_esc) < 4:
@@ -417,6 +387,7 @@ def _ctx_vendas_grupo(
             deposito=ru.deposito_ui_value(deposito),
             visao=gopts["visao"],
             ordenar=gopts["ordenar"],
+            ord_dir=gopts.get("ord_dir") or "desc",
             min_valor=gopts.get("min_valor") or "",
             margem_pct_min=gopts.get("margem_pct_min") or "",
             margem_pct_max=gopts.get("margem_pct_max") or "",
@@ -436,6 +407,9 @@ def _ctx_vendas_grupo(
         "totais": totais,
         "aviso_sem_custo": aviso_sem_custo,
         "vendas_grupo_comparativo": comparativo,
+        "vg_columns": vg_columns or [],
+        "vg_rows": vg_rows or [],
+        "vg_picker_groups": vgt.picker_groups_comparativo() if comparativo else [],
         "export_qs": _qs_export(request),
         "vazio_msg": "Nenhuma venda neste período (ou nestes filtros).",
     }

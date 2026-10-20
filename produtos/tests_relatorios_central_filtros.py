@@ -101,6 +101,7 @@ class RelatoriosCatalogoUtilTests(SimpleTestCase):
         )
         g = ru.parse_vendas_grupo_request(req)
         self.assertEqual(g["visao"], "comparativo")
+        self.assertEqual(g["ord_dir"], "desc")
         self.assertEqual(g["n_meses"], 4)
         self.assertEqual(g["meses_escolhidos"], ["2026-06", "2026-08"])
         self.assertTrue(g["so_sem_custo"])
@@ -228,11 +229,19 @@ class RelatoriosCentralRoutesTests(SimpleTestCase):
         self.assertEqual(len(linhas_dados), 1)
         self.assertEqual(linhas_dados[0][1], "Racoes")
 
+    def test_vendas_grupo_html_colunas_interativas(self):
+        response = self.client.get(reverse("relatorios_vendas_grupo"))
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn("vg-table-root", html)
+        self.assertIn("vendas_grupo_table.js", html)
+        self.assertIn("data-vg-sort-key", html)
+
     def test_vendas_grupo_html_margem_e_comparativo(self):
         response = self.client.get(reverse("relatorios_vendas_grupo"))
         body = response.content.decode("utf-8", errors="ignore")
         self.assertIn('name="visao"', body)
-        self.assertIn("Margem R$", body)
+        self.assertIn("Lucro bruto %", body)
         self.assertIn('name="min_valor"', body)
         response2 = self.client.get(
             reverse("relatorios_vendas_grupo") + "?visao=comparativo&n_meses=2"
@@ -241,6 +250,7 @@ class RelatoriosCentralRoutesTests(SimpleTestCase):
         body2 = response2.content.decode("utf-8", errors="ignore")
         self.assertIn("Comparativo mensal", body2)
         self.assertIn("Δ%", body2)
+        self.assertIn("Lucro bruto %", body2)
 
     def test_generico_excel_usa_formulario_atual(self):
         response = self.client.get(reverse("relatorios_vendas_grupo"))

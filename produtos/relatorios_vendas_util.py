@@ -723,6 +723,9 @@ def parse_vendas_grupo_request(request) -> dict[str, Any]:
     ordenar = (request.GET.get("ordenar") or "valor").strip().lower()
     if ordenar not in _ORDENAR_GRUPO_OK:
         ordenar = "valor"
+    ord_dir = (request.GET.get("ord_dir") or "desc").strip().lower()
+    if ord_dir not in ("asc", "desc"):
+        ord_dir = "desc"
     n_meses = int(_parse_float_get(request.GET.get("n_meses")) or 3)
     n_meses = max(2, min(4, n_meses))
     mes_modo = (request.GET.get("mes_modo") or "ultimos").strip().lower()
@@ -737,6 +740,7 @@ def parse_vendas_grupo_request(request) -> dict[str, Any]:
     return {
         "visao": visao,
         "ordenar": ordenar,
+        "ord_dir": ord_dir,
         "min_valor": _parse_float_get(request.GET.get("min_valor")),
         "margem_pct_min": _parse_float_get(request.GET.get("margem_pct_min")),
         "margem_pct_max": _parse_float_get(request.GET.get("margem_pct_max")),
@@ -868,6 +872,7 @@ def _finalize_grupo_rows(
     buckets: dict[str, dict],
     *,
     ordenar: str = "valor",
+    ord_dir: str = "desc",
     min_valor: float | None = None,
     margem_pct_min: float | None = None,
     margem_pct_max: float | None = None,
@@ -912,18 +917,21 @@ def _finalize_grupo_rows(
     for r in raw_rows:
         r["pct_margem"] = round(100.0 * r["margem_rs"] / total_m, 1) if total_m else 0.0
 
+    rev = (ord_dir or "desc").strip().lower() != "asc"
     if ordenar == "pct_margem":
-        raw_rows.sort(key=lambda x: x["pct_margem"], reverse=True)
+        raw_rows.sort(key=lambda x: x["pct_margem"], reverse=rev)
     elif ordenar == "margem_pct":
-        raw_rows.sort(key=lambda x: x["margem_pct"], reverse=True)
+        raw_rows.sort(key=lambda x: x["margem_pct"], reverse=rev)
     elif ordenar == "margem_rs":
-        raw_rows.sort(key=lambda x: x["margem_rs"], reverse=True)
+        raw_rows.sort(key=lambda x: x["margem_rs"], reverse=rev)
     elif ordenar == "ticket":
-        raw_rows.sort(key=lambda x: x["ticket"], reverse=True)
+        raw_rows.sort(key=lambda x: x["ticket"], reverse=rev)
     elif ordenar == "qtd":
-        raw_rows.sort(key=lambda x: x["qtd"], reverse=True)
+        raw_rows.sort(key=lambda x: x["qtd"], reverse=rev)
+    elif ordenar == "grupo":
+        raw_rows.sort(key=lambda x: (x["grupo"] or "").casefold(), reverse=rev)
     else:
-        raw_rows.sort(key=lambda x: x["valor"], reverse=True)
+        raw_rows.sort(key=lambda x: x["valor"], reverse=rev)
 
     out: list[dict] = []
     for i, r in enumerate(raw_rows, start=1):
@@ -965,6 +973,7 @@ def vendas_por_grupo_relatorio(
     subcategoria_4: object = None,
     deposito: str | None = None,
     ordenar: str = "valor",
+    ord_dir: str = "desc",
     min_valor: float | None = None,
     margem_pct_min: float | None = None,
     margem_pct_max: float | None = None,
@@ -1006,6 +1015,7 @@ def vendas_por_grupo_relatorio(
     rows, totais = _finalize_grupo_rows(
         buckets,
         ordenar=ordenar,
+        ord_dir=ord_dir,
         min_valor=min_valor,
         margem_pct_min=margem_pct_min,
         margem_pct_max=margem_pct_max,
@@ -1032,6 +1042,7 @@ def vendas_grupo_comparativo_meses(
     subcategoria_3: object = None,
     subcategoria_4: object = None,
     ordenar: str = "valor",
+    ord_dir: str = "desc",
     min_valor: float | None = None,
     margem_pct_min: float | None = None,
     margem_pct_max: float | None = None,
@@ -1133,30 +1144,33 @@ def vendas_grupo_comparativo_meses(
                 continue
         out.append(row)
 
+    rev = (ord_dir or "desc").strip().lower() != "asc"
     if ordenar == "margem_rs":
-        out.sort(key=lambda x: x["margem_ultimo"], reverse=True)
+        out.sort(key=lambda x: x["margem_ultimo"], reverse=rev)
     elif ordenar == "margem_pct":
         out.sort(
             key=lambda x: (por_mes[-1].get(x["grupo"]) or {}).get("margem_pct", 0),
-            reverse=True,
+            reverse=rev,
         )
     elif ordenar == "qtd":
         out.sort(
             key=lambda x: (por_mes[-1].get(x["grupo"]) or {}).get("qtd", 0),
-            reverse=True,
+            reverse=rev,
         )
     elif ordenar == "ticket":
         out.sort(
             key=lambda x: (por_mes[-1].get(x["grupo"]) or {}).get("ticket", 0),
-            reverse=True,
+            reverse=rev,
         )
     elif ordenar == "pct_margem":
         out.sort(
             key=lambda x: (por_mes[-1].get(x["grupo"]) or {}).get("pct_margem", 0),
-            reverse=True,
+            reverse=rev,
         )
+    elif ordenar == "grupo":
+        out.sort(key=lambda x: (x["grupo"] or "").casefold(), reverse=rev)
     else:
-        out.sort(key=lambda x: x["valor_ultimo"], reverse=True)
+        out.sort(key=lambda x: x["valor_ultimo"], reverse=rev)
     for i, r in enumerate(out, start=1):
         r["pos"] = i
     labels = [m["label"] for m in meses]
