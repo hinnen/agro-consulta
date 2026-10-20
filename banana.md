@@ -1307,11 +1307,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### ~~ARMADO 20/10c~~ · **enviado** · ver Live acima
 
-### ✅ CHECKLIST ÚNICO — **20/10c** · 🟢 **pronto envio produção**
+### ✅ CHECKLIST ÚNICO — **20/10c** · ✅ **enviado** (ver Live)
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **REL-GRUPO-COLUNAS** | 🟢 pronto | **NÃO** | verify **22+17+30** |
+| 1 | **REL-GRUPO-COLUNAS** | ✅ Live | **NÃO** | **22+17+30** |
 
 ### 📦 PACOTE PRONTO — **REL-GRUPO-COLUNAS** · **v27.26.16** · 20/10
 
