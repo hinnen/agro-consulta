@@ -101,6 +101,7 @@ class RelatoriosCatalogoUtilTests(SimpleTestCase):
         )
         g = ru.parse_vendas_grupo_request(req)
         self.assertEqual(g["visao"], "comparativo")
+        self.assertEqual(g["ord_dir"], "desc")
         self.assertEqual(g["n_meses"], 4)
         self.assertEqual(g["meses_escolhidos"], ["2026-06", "2026-08"])
         self.assertTrue(g["so_sem_custo"])
@@ -227,6 +228,14 @@ class RelatoriosCentralRoutesTests(SimpleTestCase):
         ]
         self.assertEqual(len(linhas_dados), 1)
         self.assertEqual(linhas_dados[0][1], "Racoes")
+
+    def test_vendas_grupo_html_colunas_interativas(self):
+        response = self.client.get(reverse("relatorios_vendas_grupo"))
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn("vg-table-root", html)
+        self.assertIn("vendas_grupo_table.js", html)
+        self.assertIn("data-vg-sort-key", html)
 
     def test_vendas_grupo_html_margem_e_comparativo(self):
         response = self.client.get(reverse("relatorios_vendas_grupo"))

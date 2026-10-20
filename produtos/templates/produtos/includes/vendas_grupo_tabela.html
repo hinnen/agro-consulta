@@ -1,0 +1,82 @@
+{% load agro_exibir %}
+<style>
+  #vg-table-root .vg-col-hidden { display: none !important; }
+  @media print {
+    #vg-table-root .vg-col-hidden { display: table-cell !important; }
+  }
+</style>
+
+<div id="vg-col-picker" class="no-print mb-3 rounded-2xl border border-slate-700 bg-slate-900/80 p-3">
+  <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+    <p class="text-xs font-black uppercase tracking-wide text-sky-400">Colunas na tela</p>
+    <div class="flex flex-wrap gap-2">
+      <button type="button" data-vg-visao-pill="periodo"
+        class="min-h-[40px] rounded-xl border-2 px-3 text-xs font-black uppercase {% if extra_filtros.visao != 'comparativo' %}border-sky-500 bg-sky-500/20 text-sky-100{% else %}border-slate-600 bg-slate-800 text-slate-300 hover:border-sky-500/50{% endif %}"
+        title="Um período (filtro de datas de cima)">Período</button>
+      <button type="button" data-vg-visao-pill="comparativo"
+        class="min-h-[40px] rounded-xl border-2 px-3 text-xs font-black uppercase {% if extra_filtros.visao == 'comparativo' %}border-sky-500 bg-sky-500/20 text-sky-100{% else %}border-slate-600 bg-slate-800 text-slate-300 hover:border-sky-500/50{% endif %}"
+        title="2 a 4 meses lado a lado">Comparativo</button>
+      <button type="button" data-vg-preset-venda-margem
+        class="min-h-[40px] rounded-xl border-2 border-lime-500/60 bg-lime-500/15 px-3 text-xs font-black uppercase text-lime-100 hover:border-lime-400"
+        title="Só venda R$, margem R$ e lucro bruto % (+ grupo)">Venda · margem R$ · %</button>
+      <button type="button" data-vg-reset-cols
+        class="min-h-[40px] rounded-xl border-2 border-slate-600 bg-slate-800 px-3 text-xs font-black uppercase text-slate-300 hover:border-slate-500"
+        title="Limpa preferências salvas e recarrega o padrão">Limpar salvo</button>
+    </div>
+  </div>
+  <p class="mb-2 text-[11px] font-semibold text-slate-500">Ex.: marque <span class="text-lime-300">Venda R$</span>, <span class="text-lime-300">Margem R$</span> e <span class="text-lime-300">Lucro bruto %</span> — o navegador guarda sua escolha. <span class="text-sky-300">Clique no título da coluna</span> para ordenar (clique de novo inverte).</p>
+  {% if vendas_grupo_comparativo %}
+  <div class="flex flex-wrap gap-x-4 gap-y-2">
+    {% for g in vg_picker_groups %}
+    <label class="flex min-h-[40px] cursor-pointer items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/80 px-3 text-sm font-bold text-white">
+      <input type="checkbox" data-vg-group-toggle="{{ g.id }}" class="h-5 w-5 accent-sky-500" />
+      {{ g.label }}
+    </label>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="flex flex-wrap gap-x-3 gap-y-2">
+    {% for c in vg_columns %}
+    <label class="flex min-h-[40px] cursor-pointer items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/80 px-2.5 text-sm font-bold text-white {% if c.locked %}opacity-80{% endif %}">
+      <input type="checkbox" data-vg-col-toggle="{{ c.id }}" class="h-5 w-5 accent-sky-500" {% if c.locked %}checked disabled{% endif %} />
+      <span class="truncate max-w-[10rem]">{{ c.label }}</span>
+    </label>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<div id="vg-table-root" class="overflow-x-auto rounded-2xl border border-slate-700 bg-slate-900/80" data-vg-comparativo="{% if vendas_grupo_comparativo %}1{% else %}0{% endif %}">
+  <table class="print-table min-w-full text-left {% if vendas_grupo_comparativo %}text-xs sm:text-sm{% else %}text-sm{% endif %}" id="vg-data-table">
+    <thead class="bg-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400">
+      <tr>
+        {% for c in vg_columns %}
+        <th class="px-3 py-2.5 whitespace-nowrap"
+          data-vg-col="{{ c.id }}"
+          {% if c.group %}data-vg-group="{{ c.group }}"{% endif %}
+          {% if c.locked %}data-vg-locked="1"{% endif %}
+          {% if c.sort_key %}data-vg-sort-key="{{ c.sort_key }}"{% endif %}
+          data-vg-label="{{ c.label }}">{{ c.label }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-800">
+      {% for row in vg_rows %}
+      <tr class="hover:bg-slate-800/50{% if row.alerta %} border-l-4 border-amber-400 bg-amber-500/10{% endif %}">
+        {% for c in vg_columns %}
+        {% with cell=row.cells|get_item:c.id %}
+        <td class="px-3 py-2 font-semibold text-slate-200 {% if c.id == 'grupo' and not vendas_grupo_comparativo %}max-w-[18rem] truncate{% endif %}"
+          data-vg-col="{{ c.id }}"
+          {% if c.group %}data-vg-group="{{ c.group }}"{% endif %}
+          {% if cell.sort != None %}data-sort-val="{{ cell.sort }}"{% endif %}>{{ cell.text }}</td>
+        {% endwith %}
+        {% endfor %}
+      </tr>
+      {% empty %}
+      <tr class="vg-empty-row">
+        <td colspan="{{ vg_columns|length }}" class="px-3 py-8 text-center text-slate-500 font-semibold">{{ vazio_msg|default:"Sem dados." }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
