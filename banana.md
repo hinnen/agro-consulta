@@ -1294,6 +1294,32 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 PREP ARMADO — **CHECKLIST 20/10c** · **REL-GRUPO-COLUNAS** · **v27.26.16** · 20/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Branch PREP** | `deploy/prep-checklist-2010c-rel-grupo-colunas` (só delta da loja) |
+| **O quê** | Vendas por grupo: **colunas escolhíveis** (venda R$, margem R$, lucro bruto %) · **ordenar no cabeçalho** · atalho Período/Comparativo |
+| **Migrate** | **NÃO** |
+| **PDV** | **Não alterado** |
+| **Prova** | `verify_rel_grupo_colunas_path.py` **22** · `verify_rel_grupo_margem_path.py` **17** · `verify_rel_cat_sub_excel_path.py` **30** |
+| **Prep** | `./scripts/prep_checkpoint_checklist_2010c_rel_grupo_colunas.sh` |
+| **Cutover** | `./scripts/cutover_loja_checklist_2010c_rel_grupo_colunas.sh` · `--exec` + frase + senha |
+| **Revert** | `rollback/pre-v272616-2010c-rel-grupo-colunas` → **v27.26.15** @ **`93912908`** |
+
+### ✅ CHECKLIST ÚNICO — **20/10c** · 🟢 **pronto envio produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **REL-GRUPO-COLUNAS** | 🟢 pronto | **NÃO** | verify **22+17+30** |
+
+### 📦 PACOTE PRONTO — **REL-GRUPO-COLUNAS** · **v27.26.16** · 20/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Paths** | `vendas_grupo_table.py` · `vendas_grupo_table.js` · `vendas_grupo_tabela.html` · `relatorios_central_views.py` · `relatorios_vendas_util.py` · `relatorios_generico.html` |
+| **Branch** | `teste` (após merge colunas) · PREP `deploy/prep-checklist-2010c-rel-grupo-colunas` |
+
 ### ✅ Deploy loja — **CHECKLIST 20/10b** · **Live v27.26.15** · 20/10
 
 | Campo | Valor |
@@ -1307,11 +1333,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### ~~ARMADO 20/10b~~ · **enviado** · ver Live acima
 
-### ✅ CHECKLIST ÚNICO — **20/10b** · 🟢 **pronto envio produção**
+### ✅ CHECKLIST ÚNICO — **20/10b** · ✅ **enviado** (ver Live)
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ETQ-NF-SEM-EXATO** | 🟢 pronto | **NÃO** | **VERIFY_OK 30/30** |
+| 1 | **ETQ-NF-SEM-EXATO** | ✅ Live | **NÃO** | **VERIFY_OK 30/30** |
 
 ### 📦 PACOTE PRONTO — **ETQ-NF-SEM-EXATO** · **v27.26.15** · 20/10
 
