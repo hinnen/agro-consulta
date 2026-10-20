@@ -1294,6 +1294,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ CHECKLIST ÚNICO — **20/10b** · 🟢 **pronto envio produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ETQ-NF-SEM-EXATO** | 🟢 pronto | **NÃO** | `verify_etq_filtro_nf_entrada_path.py` **VERIFY_OK 30/30** |
+
+### 📦 PACOTE PRONTO — **ETQ-NF-SEM-EXATO** · **v27.26.15** · 20/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Etiquetas / cadastro: filtro **Nº NF entrada** não mistura `SEM-1410-TJAI` com `SEM-1410-UPS7` (match exato `SEM-DDMM-XXXX`) |
+| **Arquivos** | `cadastro_filtros_util.py` · teste · `verify_etq_filtro_nf_entrada_path.py` |
+| **PREP** | `deploy/prep-checklist-2010b-etq-nf-sem-exato` · `./scripts/prep_checkpoint_checklist_2010b_etq_nf_sem_exato.sh` |
+| **Cutover** | `./scripts/cutover_loja_checklist_2010b_etq_nf_sem_exato.sh` |
+| **Revert** | `rollback/pre-v272615-2010b-etq-nf-sem-exato` → **v27.26.14** @ **`e4c308dd`** |
+
 ### ✅ Deploy loja — **CHECKLIST 20/10a** · **Live v27.26.14** · 20/10
 
 | Campo | Valor |
@@ -1307,11 +1323,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### ~~ARMADO 20/10a~~ · **enviado** · ver Live acima
 
-### ✅ CHECKLIST ÚNICO — **20/10a** · 🟢 **pronto envio produção**
+### ✅ CHECKLIST ÚNICO — **20/10a** · ✅ **enviado** (ver Live)
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **REL-EXCEL-PRINT** | 🟢 pronto | **NÃO** | verify **16+30** |
+| 1 | **REL-EXCEL-PRINT** | ✅ Live | **NÃO** | verify **16+30** |
 
 ### 📦 PACOTE PRONTO — **REL-EXCEL-PRINT** · **v27.26.14** · 20/10
 

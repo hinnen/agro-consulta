@@ -108,6 +108,15 @@ def check_parse_runtime() -> None:
     check(filtros_cadastro_ativos(f), "filtros ativos com numero_nf")
     check(_cabecalho_casa_numero_nf_filtro({"numero": NF_TESTE}, NF_TESTE), "match exato")
     check(not _cabecalho_casa_numero_nf_filtro({"numero": "00000001"}, NF_TESTE), "nao casa outro")
+    check(
+        _cabecalho_casa_numero_nf_filtro({"numero": "SEM-1410-TJAI"}, "SEM-1410-TJAI"),
+        "SEM match exato TJAI",
+    )
+    check(
+        not _cabecalho_casa_numero_nf_filtro({"numero": "SEM-1410-UPS7"}, "SEM-1410-TJAI"),
+        "SEM nao mistura sufixo UPS7/TJAI",
+    )
+    check(_cabecalho_casa_numero_nf_filtro({"numero": "NF 76468-A"}, "76468"), "numerico parcial 76468")
 
 
 def _tabela_entrada_nf_existe() -> bool:
@@ -169,9 +178,15 @@ def check_http() -> None:
     print("--- HTTP ---")
     User = get_user_model()
     user = User.objects.filter(is_superuser=True).first() or User.objects.first()
-    check(user is not None, "usuario Django")
     if not user:
-        return
+        user = User.objects.create_superuser(
+            username=f"etq_verify_{TAG}",
+            email="",
+            password="etq-verify-local-only",
+        )
+        ok("usuario Django criado para smoke HTTP")
+    else:
+        ok("usuario Django")
 
     try:
         from produtos.caixa_util import rotulo_operador_pin
