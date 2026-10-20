@@ -29,6 +29,7 @@ ALLOWED="$(printf '%s\n' \
   produtos/templates/produtos/relatorios_generico.html \
   produtos/tests_relatorios_central_filtros.py \
   scripts/verify_rel_cat_sub_excel_path.py \
+  scripts/verify_rel_grupo_margem_path.py \
   scripts/cutover_loja_checklist_2010a_rel_excel_print.sh \
   scripts/post_deploy_checklist_2010a_rel_excel_print.sh \
   scripts/prep_checkpoint_checklist_2010a_rel_excel_print.sh | sort)"
