@@ -1294,19 +1294,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 ARMADO — **CHECKLIST 20/10b** · **v27.26.15** · aguardando senha
+### ✅ Deploy loja — **CHECKLIST 20/10b** · **Live v27.26.15** · 20/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Loja agora** | **v27.26.14** @ **`e4c308dd`** |
-| **Pacote** | **ETQ-NF-SEM-EXATO** — filtro Nº NF entrada match exato `SEM-DDMM-XXXX` (não mistura TJAI/UPS7) |
-| **PREP** | `deploy/prep-checklist-2010b-etq-nf-sem-exato` @ **`93912908`** |
-| **Checkpoint** | **`PREP_CHECKPOINT_OK`** · rollback `rollback/pre-v272615-2010b-etq-nf-sem-exato` · backup @ **`e4c308dd`** |
-| **Cutover** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_2010b_etq_nf_sem_exato.sh --exec` |
-| **Pós** | `./scripts/post_deploy_checklist_2010b_etq_nf_sem_exato.sh` (Render Shell) |
+| **Status** | ✅ **Live** @ **`93912908`** |
+| **Pacote** | **ETQ-NF-SEM-EXATO** — filtro NF entrada match exato `SEM-DDMM-XXXX` |
+| **Migrate** | **NÃO** |
+| **PDV** | **Não alterado** |
 | **Revert** | `git push origin rollback/pre-v272615-2010b-etq-nf-sem-exato:producao` → **v27.26.14** @ **`e4c308dd`** |
-| **Prova cloud** | **VERIFY_OK 30/30** · PIN **9973** · unit SEM exato |
-| **PDV** | **Não alterado** — só `cadastro_filtros_util` (cadastro/etiquetas NF) |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2010b_etq_nf_sem_exato.sh` (Render Shell) |
+
+### ~~ARMADO 20/10b~~ · **enviado** · ver Live acima
 
 ### ✅ CHECKLIST ÚNICO — **20/10b** · 🟢 **pronto envio produção**
 
