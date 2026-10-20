@@ -1294,24 +1294,39 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 PREP ARMADO — **CHECKLIST 20/10d** · **COMPRAS-FOLHA-MULTI-FORN** · **v27.26.17** · 20/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Branch PREP** | `deploy/prep-checklist-2010d-compras-folha-multi-forn` @ **`bb7a01a3`** (delta sobre **`producao`** @ **`09c4d28f`**) |
+| **O quê** | Folha Compras **por fornecedor**: **vários cadastros** na mesma impressão (chips + `fornecedores[]`) |
+| **Migrate** | **NÃO** |
+| **PDV / caixa** | **Não alterado** (gate cutover OK) |
+| **Prova** | `verify_compras_folha_multi_forn_path.py` **VERIFY_OK 17** · `tests_compras_relatorio_fornecedor_multi` **6 OK** · **`prep_checkpoint` OK** |
+| **Prep** | `./scripts/prep_checkpoint_checklist_2010d_compras_folha_multi_forn.sh` ✅ |
+| **Cutover (senha)** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_2010d_compras_folha_multi_forn.sh --exec` |
+| **Revert** | `git push origin rollback/pre-v272617-2010d-compras-folha-multi-forn:producao` → **v27.26.16** @ **`09c4d28f`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2010d_compras_folha_multi_forn.sh` (Render Shell) |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-2010d-compras-folha-multi-forn.md` |
+
+**Status:** 🟢 **PREP pronto** — **não** subiu · lojas abertas · **só** frase + senha no próximo chat.
+
 ### 📦 PACOTE PRONTO — **COMPRAS-FOLHA-MULTI-FORN** · **v27.26.17** · 20/10
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Folha Compras **por fornecedor** (PDV/Compras, `embed=1`): **vários cadastros** na mesma impressão (chips + API `fornecedores[]`). |
-| **teste** | **`3987c8f4`** (+ verificação **`verify_compras_folha_multi_forn_path.py`**) |
+| **teste** | **`3987c8f4`** · **`bb25601d`** (verify) |
 | **Migrate** | **NÃO** |
 | **PDV** | Só modal Folha Compras / link planilha — **não** mexe em venda/caixa |
 | **Prova** | `scripts/verify_compras_folha_multi_forn_path.py` · `produtos.tests_compras_relatorio_fornecedor_multi` |
-| **Smoke loja** | Folha → Por fornecedor → adicionar 2+ cadastros do mesmo fornecedor → imprimir → lista única + rótulo `A + B` |
+| **Smoke loja** | Folha → Por fornecedor → adicionar 2+ cadastros → imprimir → lista única + rótulo `A + B` |
 
-### ✅ CHECKLIST ÚNICO — **20/10d** · 🟢 **pronto envio produção**
+### ✅ CHECKLIST ÚNICO — **20/10d** · 🟢 **pronto envio produção** · PREP armado
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **COMPRAS-FOLHA-MULTI-FORN** | 🟢 **pronto envio** | **NÃO** | verify multi-forn + unit |
-
-**Na senha:** cherry/commits do pacote na `teste` → `producao` · Ctrl+F5 · conferir folha fornecedor multi. **Não** merge `teste` inteiro.
+| 1 | **COMPRAS-FOLHA-MULTI-FORN** | 🟢 **aguarda senha** | **NÃO** | **VERIFY_OK 17** + **6** unit |
 
 ### ✅ Deploy loja — **CHECKLIST 20/10c** · **Live v27.26.16** · 20/10
 
