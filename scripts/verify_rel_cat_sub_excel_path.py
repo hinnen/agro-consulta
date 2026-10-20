@@ -97,7 +97,7 @@ def check_static() -> None:
     )
     check('name="subcategoria"' in tpl and "subcategorias_2" in tpl, "tpl checkboxes sub")
     check("test_vendas_grupo_xlsx_respeita_filtro_subcategoria" in tests, "test xlsx filtro")
-    check("test_generico_excel_usa_submit_do_formulario" in tests, "test excel form")
+    check("test_generico_excel_usa_formulario_atual" in tests, "test excel form")
 
 
 def check_util_or() -> None:
