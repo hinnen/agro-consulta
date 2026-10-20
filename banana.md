@@ -1299,14 +1299,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **Loja agora** | **v27.26.13** @ **`5fee79dc`** |
-| **Sobe** | **REL-EXCEL-PRINT** — Excel ↓ download real · impressão/PDF **paisagem** (tabelas largas) |
-| **PREP** | `deploy/prep-checklist-2010a` @ **`d26f11c6`** |
-| **Revert** | `git push origin rollback/pre-v272614-2010a-rel-excel-print:producao` |
-| **Prep** | `./scripts/prep_checkpoint_checklist_2010a_rel_excel_print.sh` |
-| **Cutover** | `./scripts/cutover_loja_checklist_2010a_rel_excel_print.sh --exec` |
-| **Pós** | `./scripts/post_deploy_checklist_2010a_rel_excel_print.sh` |
-| **Prova** | grupo **16/16** · cat/sub **30/30** · tests **19** |
-| **PDV** | **Não alterado** |
+| **Sobe** | **REL-EXCEL-PRINT** (`32e7c517`) — Excel ↓ download real · impressão **paisagem** (tabelas largas) |
+| **PREP** | `deploy/prep-checklist-2010a` @ **`e4c308dd`** |
+| **Checkpoint** | **`PREP_CHECKPOINT_OK`** · rollback `rollback/pre-v272614-2010a-rel-excel-print` · backup `producao-backup-pre-v272614-2010a` @ **`5fee79dc`** |
+| **Cutover** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_2010a_rel_excel_print.sh --exec` |
+| **Pós** | `./scripts/post_deploy_checklist_2010a_rel_excel_print.sh` (Render Shell) |
+| **Revert** | `git push origin rollback/pre-v272614-2010a-rel-excel-print:producao` → **v27.26.13** @ **`5fee79dc`** |
+| **Prova cloud** | grupo **16/16** · cat/sub **30/30** · tests **19** OK (PIN teste **9973**) |
+| **PDV** | **Não alterado** — só templates/JS relatórios |
 
 ### ✅ CHECKLIST ÚNICO — **20/10a** · 🟢 **pronto envio produção**
 
