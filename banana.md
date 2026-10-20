@@ -1294,33 +1294,54 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 ARMADO — **CHECKLIST 19/10b** · **v27.26.13** · aguardando senha
-
-| Campo | Valor |
-| ----- | ----- |
-| **Loja agora** | **v27.26.12** @ **`f33ee5cd`** |
-| **Sobe** | **REL-GRUPO-MARGEM-COMP** (`dfabcf9f`) — **só** `/relatorios/vendas-grupo/` (+ hub/ajuda) · **sem migrate** · **não** merge `teste` |
-| **PREP** | `deploy/prep-checklist-1910b` |
-| **Revert** | `git push origin rollback/pre-v272613-1910b-rel-grupo:producao` |
-| **Prep** | `./scripts/prep_checkpoint_checklist_1910b_rel_grupo_margem_comp.sh` |
-| **Cutover** | `./scripts/cutover_loja_checklist_1910b_rel_grupo_margem_comp.sh --exec` (frase + senha) |
-| **Pós** | `./scripts/post_deploy_checklist_1910b_rel_grupo_margem_comp.sh` |
-| **Prova** | verify grupo **14/14** · verify cat/sub **30/30** (regressão) |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1910b-rel-grupo-margem-comp.md` |
-
-### ✅ CHECKLIST ÚNICO — **19/10b** · 🟢 **pronto envio produção**
+### ✅ CHECKLIST ÚNICO — **20/10b** · 🟢 **pronto envio produção**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **REL-GRUPO-MARGEM-COMP** | 🟢 pronto | **NÃO** | verify **14/14** + cat/sub **30/30** |
+| 1 | **ETQ-NF-SEM-EXATO** | 🟢 pronto | **NÃO** | `verify_etq_filtro_nf_entrada_path.py` **VERIFY_OK 30/30** |
 
-### 📦 PACOTE PRONTO — **REL-GRUPO-MARGEM-COMP** · **v27.26.13** · 19/10
+### 📦 PACOTE PRONTO — **ETQ-NF-SEM-EXATO** · **v27.26.15** · 20/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | **Vendas por grupo:** margem/ticket/% · filtros investimento · comparativo 2–4 meses · Excel |
-| **Commit** | `dfabcf9f` · merge **`teste`** |
-| **PDV/vendas** | **Não mexe** — só relatórios GET |
+| **O quê** | Etiquetas / cadastro: filtro **Nº NF entrada** não mistura `SEM-1410-TJAI` com `SEM-1410-UPS7` (match exato `SEM-DDMM-XXXX`) |
+| **Arquivos** | `cadastro_filtros_util.py` · teste · `verify_etq_filtro_nf_entrada_path.py` |
+| **PREP** | `deploy/prep-checklist-2010b-etq-nf-sem-exato` · `./scripts/prep_checkpoint_checklist_2010b_etq_nf_sem_exato.sh` |
+| **Cutover** | `./scripts/cutover_loja_checklist_2010b_etq_nf_sem_exato.sh` |
+| **Revert** | `rollback/pre-v272615-2010b-etq-nf-sem-exato` → **v27.26.14** @ **`e4c308dd`** |
+
+### ✅ Deploy loja — **CHECKLIST 20/10a** · **Live v27.26.14** · 20/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live** @ **`e4c308dd`** |
+| **Pacote** | **REL-EXCEL-PRINT** — Excel ↓ download real · impressão **paisagem** |
+| **Migrate** | **NÃO** |
+| **PDV** | **Não alterado** |
+| **Revert** | `git push origin rollback/pre-v272614-2010a-rel-excel-print:producao` → **v27.26.13** @ **`5fee79dc`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2010a_rel_excel_print.sh` (Render Shell) |
+
+### ~~ARMADO 20/10a~~ · **enviado** · ver Live acima
+
+### ✅ CHECKLIST ÚNICO — **20/10a** · ✅ **enviado** (ver Live)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **REL-EXCEL-PRINT** | ✅ Live | **NÃO** | verify **16+30** |
+
+### 📦 PACOTE PRONTO — **REL-EXCEL-PRINT** · **v27.26.14** · 20/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `data-agro-rel-excel` + `fetch` · `@page` landscape ≥9 colunas / comparativo grupo |
+| **Commit** | `32e7c517` · **`teste`** |
+
+### ✅ Deploy loja — **CHECKLIST 19/10b** · **Live v27.26.13** · 20/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live** @ **`5fee79dc`** · REL-GRUPO-MARGEM-COMP |
+| **Revert** | `rollback/pre-v272613-1910b-rel-grupo` → **v27.26.12** @ **`f33ee5cd`** |
 
 ### 📦 PACOTE PRONTO — **REL-CAT-SUB-EXCEL** · **v27.26.12** · 19/10
 
@@ -1338,16 +1359,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ |
 | 1 | **REL-CAT-SUB-EXCEL** + **NFE-DANFE** + **NFE-EMAIL** | ✅ Live **v27.26.12** |
 
-### 🟡 ARMADO · **PREP v27.26.11** · **CHECKLIST 18/10h** · DANFE layout ERP
+### ✅ Deploy loja — **CHECKLIST 19/10a** · **Live v27.26.12** · 19/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **PREP** | `deploy/prep-checklist-1810h-nfe-danfe-erp` |
-| **Base loja** | **v27.26.10** @ **`05a871df`** |
-| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1810h_nfe_danfe_erp.sh` |
-| **Cutover** | `AGRO_LOJA_FRASE='pode enviar para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1810h_nfe_danfe_erp.sh --exec` |
-| **Rollback** | `rollback/pre-v272611-1810h-danfe-erp` → **v27.26.10** @ **`05a871df`** |
-| **Extra teste** | **NFE-EMAIL-DEST** — código no `teste` · envio real = **FL-059** (P3, checklist pendências) |
+| **Status** | ✅ **Live** @ **`f33ee5cd`** |
+| **Pacotes** | **REL-CAT-SUB-EXCEL** · **NFE-DANFE-ERP-LAYOUT** · **NFE-EMAIL-DEST** |
+| **Migrate** | **NÃO** |
+| **Revert** | `git push origin rollback/pre-v272612-1910a-checklist:producao` → **v27.26.10** @ **`05a871df`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1910a_nfe_danfe_email_rel.sh` (Render Shell) |
+| **Ops** | **FL-059** — `EMAIL_*` no Render para envio real de e-mail NF-e |
+
+### ~~ARMADO 19/10a~~ · **enviado** · ver Live acima
 
 ### 📦 PACOTE PRONTO — **LOJA-18/10h** · **v27.26.11**
 
