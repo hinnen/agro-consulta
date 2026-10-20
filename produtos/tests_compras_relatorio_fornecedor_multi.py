@@ -48,3 +48,12 @@ class ResolverUltimaCompraMapTest(SimpleTestCase):
         hit = _resolver_ultima_compra_por_pid_map(por_pid, "999", ["100", "200"])
         self.assertIsNotNone(hit)
         self.assertEqual(hit["qtd"], 3.0)
+
+    def test_limite_12_fornecedores_no_parse(self):
+        body = {
+            "fornecedores": [
+                {"fornecedor_nome": f"F{i}", "fornecedor_id": str(i)} for i in range(20)
+            ]
+        }
+        out = _parse_fornecedores_relatorio_compras(body)
+        self.assertEqual(len(out), 12)

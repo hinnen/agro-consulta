@@ -7223,7 +7223,8 @@ def _api_compras_relatorio_fornecedor_impl(request):
             )
         p_ids = local_ids
 
-        if use_pg:
+        # Vários fornecedores: métricas de compra vêm da Entrada NF Agro (Postgres).
+        if use_pg or len(fornecedores_list) > 1:
             return _api_compras_relatorio_fornecedor_pg(
                 p_ids,
                 nomes_forn=nomes_forn,

@@ -1294,6 +1294,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — **COMPRAS-FOLHA-MULTI-FORN** · **v27.26.17** · 20/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Folha Compras **por fornecedor** (PDV/Compras, `embed=1`): **vários cadastros** na mesma impressão (chips + API `fornecedores[]`). |
+| **teste** | **`3987c8f4`** (+ verificação **`verify_compras_folha_multi_forn_path.py`**) |
+| **Migrate** | **NÃO** |
+| **PDV** | Só modal Folha Compras / link planilha — **não** mexe em venda/caixa |
+| **Prova** | `scripts/verify_compras_folha_multi_forn_path.py` · `produtos.tests_compras_relatorio_fornecedor_multi` |
+| **Smoke loja** | Folha → Por fornecedor → adicionar 2+ cadastros do mesmo fornecedor → imprimir → lista única + rótulo `A + B` |
+
+### ✅ CHECKLIST ÚNICO — **20/10d** · 🟢 **pronto envio produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **COMPRAS-FOLHA-MULTI-FORN** | 🟢 **pronto envio** | **NÃO** | verify multi-forn + unit |
+
+**Na senha:** cherry/commits do pacote na `teste` → `producao` · Ctrl+F5 · conferir folha fornecedor multi. **Não** merge `teste` inteiro.
+
 ### ✅ Deploy loja — **CHECKLIST 20/10c** · **Live v27.26.16** · 20/10
 
 | Campo | Valor |

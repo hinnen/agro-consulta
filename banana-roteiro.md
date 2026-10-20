@@ -1149,6 +1149,16 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
+## 95. CHECKLIST ÚNICO — **20/10d** · 🟢 **pronto envio produção** · **v27.26.17**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **COMPRAS-FOLHA-MULTI-FORN** | 🟢 **pronto envio** | **NÃO** | `verify_compras_folha_multi_forn_path.py` + unit |
+
+**teste:** `3987c8f4` (folha fornecedor · vários cadastros na mesma impressão). **Na senha:** cherry só deste pacote → `producao` · Ctrl+F5 · Folha Compras → Por fornecedor.
+
+---
+
 ## 94. CHECKLIST ÚNICO — **20/10c** · ✅ **Live v27.26.16**
 
 | # | Pacote | Status | Migrate | Prova |
