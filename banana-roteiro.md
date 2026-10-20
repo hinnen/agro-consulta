@@ -1145,5 +1145,5 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | - | ------ | ------ | ------- | ----- |
 | 1 | **ETQ-NF-SEM-EXATO** | 🟢 no PREP | **NÃO** | **VERIFY_OK 30/30** |
 
-**Live hoje:** **v27.26.14** @ **`e4c308dd`**. **PREP:** `deploy/prep-checklist-2010b-etq-nf-sem-exato` @ **`4b3368fa`**.  
+**Live hoje:** **v27.26.14** @ **`e4c308dd`**. **PREP:** `deploy/prep-checklist-2010b-etq-nf-sem-exato` @ **`93912908`**.  
 **Cutover:** `cutover_loja_checklist_2010b_etq_nf_sem_exato.sh --exec` · **PDV não no delta**.

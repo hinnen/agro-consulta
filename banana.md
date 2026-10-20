@@ -1300,7 +1300,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Loja agora** | **v27.26.14** @ **`e4c308dd`** |
 | **Pacote** | **ETQ-NF-SEM-EXATO** — filtro Nº NF entrada match exato `SEM-DDMM-XXXX` (não mistura TJAI/UPS7) |
-| **PREP** | `deploy/prep-checklist-2010b-etq-nf-sem-exato` @ **`4b3368fa`** |
+| **PREP** | `deploy/prep-checklist-2010b-etq-nf-sem-exato` @ **`93912908`** |
 | **Checkpoint** | **`PREP_CHECKPOINT_OK`** · rollback `rollback/pre-v272615-2010b-etq-nf-sem-exato` · backup @ **`e4c308dd`** |
 | **Cutover** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_2010b_etq_nf_sem_exato.sh --exec` |
 | **Pós** | `./scripts/post_deploy_checklist_2010b_etq_nf_sem_exato.sh` (Render Shell) |
