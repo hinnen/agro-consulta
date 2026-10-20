@@ -25,7 +25,6 @@ git merge-base --is-ancestor "$PROD_REF" "$PREP_REF" || { echo "FAIL: PREP não 
 DELTA="$(git diff --name-only "$PROD_REF...$PREP_REF" | sort)"
 ALLOWED="$(printf '%s\n' \
   VERSION \
-  banana.md \
   produtos/templates/produtos/_relatorios_loading.html \
   produtos/templates/produtos/relatorios_generico.html \
   produtos/tests_relatorios_central_filtros.py \
