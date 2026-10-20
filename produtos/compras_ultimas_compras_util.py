@@ -622,6 +622,99 @@ def ultimo_documento_entrada_nf_agro_por_fornecedor(
     return best
 
 
+def metricas_compra_entrada_nf_agro_fornecedores(
+    fornecedores: list[tuple[str, str | None]],
+    *,
+    scan_limit: int = 400,
+) -> dict | None:
+    """
+    Agrega Entrada NF Agro de vários cadastros de fornecedor (mesmo fornecedor físico).
+    Retorno: dt/documento/origem do documento mais recente; hist_pids; por_pid {pid: {dt, qtd}}.
+    """
+    pairs: list[tuple[str, str | None]] = []
+    seen_f: set[str] = set()
+    for nome, fid in fornecedores or []:
+        fn = str(nome or "").strip()
+        fi = str(fid or "").strip() or None
+        if not fn and not fi:
+            continue
+        key = f"id:{fi}" if fi else f"n:{fn.lower()}"
+        if key in seen_f:
+            continue
+        seen_f.add(key)
+        pairs.append((fn, fi))
+    if not pairs:
+        return None
+    try:
+        from produtos.nfe_entrada_util import _entrada_nfe_nomes_fornecedor_batem
+    except Exception as exc:
+        logger.warning("metricas_compra_fornecedores import: %s", exc)
+        return None
+
+    hist_pids: set[str] = set()
+    por_pid: dict[str, dict[str, Any]] = {}
+    global_best: dict | None = None
+    global_dt: datetime | None = None
+    seen_docs: set[str] = set()
+
+    for fn, fid in pairs:
+        docs = _docs_entrada_nf_agro_por_fornecedor(fn, fid, scan_limit=scan_limit)
+        for doc in docs:
+            if not isinstance(doc, dict) or not _doc_conta_como_compra_entrada_nf(doc):
+                continue
+            cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
+            if not _fornecedor_casa_doc_entrada_nf(
+                cab,
+                fornecedor_nome=fn,
+                fornecedor_id=fid or "",
+                nomes_batem=_entrada_nfe_nomes_fornecedor_batem,
+            ):
+                continue
+            doc_key = str(
+                doc.get("rascunho_id")
+                or doc.get("id")
+                or cab.get("chave_nfe")
+                or cab.get("ChaveNFe")
+                or ""
+            ).strip()
+            if doc_key and doc_key in seen_docs:
+                continue
+            if doc_key:
+                seen_docs.add(doc_key)
+            dt = _data_doc_entrada_nf_agro(cab, doc)
+            if dt is None:
+                continue
+            linhas = doc.get("linhas") if isinstance(doc.get("linhas"), list) else []
+            for ln in linhas:
+                if not isinstance(ln, dict):
+                    continue
+                pid = str(ln.get("produto_id") or ln.get("ProdutoID") or "").strip()
+                if not pid or pid == "None":
+                    continue
+                qtd = _qtd_linha_entrada_nf_agro(ln)
+                if qtd <= 0:
+                    continue
+                hist_pids.add(pid)
+                if pid.isdigit():
+                    hist_pids.add(str(int(pid)))
+                prev = por_pid.get(pid)
+                if prev is None or dt > prev["dt"]:
+                    por_pid[pid] = {"dt": dt, "qtd": float(qtd)}
+            if global_dt is None or dt > global_dt:
+                global_dt = dt
+                global_best = {
+                    "dt": dt,
+                    "documento": _numero_doc_entrada_nf_agro(cab),
+                    "origem": "entrada_nf_agro",
+                }
+    if not hist_pids and not por_pid:
+        return None
+    out = dict(global_best or {})
+    out["hist_pids"] = hist_pids
+    out["por_pid"] = por_pid
+    return out
+
+
 def _docs_entrada_nf_agro_recentes(*, scan_limit: int = 2500) -> list[dict]:
     """Rascunhos PG concluídos (mais recentes primeiro) — scan em lote p/ export Excel."""
     try:

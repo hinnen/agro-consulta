@@ -7018,6 +7018,139 @@ def api_compras_relatorio_unidade(request):
     )
 
 
+def _parse_fornecedores_relatorio_compras(body: dict) -> list[tuple[str, str | None]]:
+    """Normaliza fornecedor único ou lista ``fornecedores`` do JSON do relatório."""
+    out: list[tuple[str, str | None]] = []
+    seen: set[str] = set()
+    raw = body.get("fornecedores")
+    if isinstance(raw, list):
+        for item in raw[:12]:
+            if isinstance(item, dict):
+                nome = str(item.get("fornecedor_nome") or item.get("nome") or "").strip()
+                fid = str(item.get("fornecedor_id") or item.get("id") or "").strip() or None
+            elif isinstance(item, str):
+                nome = item.strip()
+                fid = None
+            else:
+                continue
+            if not nome and not fid:
+                continue
+            key = f"id:{fid}" if fid else f"n:{nome.lower()}"
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append((nome, fid))
+    if not out:
+        nome = str(body.get("fornecedor_nome") or "").strip()
+        fid = str(body.get("fornecedor_id") or "").strip() or None
+        if nome or fid:
+            out.append((nome, fid))
+    return out
+
+
+def _rotulo_fornecedores_relatorio(fornecedores: list[tuple[str, str | None]], *, max_len: int = 400) -> str:
+    partes: list[str] = []
+    for nome, fid in fornecedores:
+        n = str(nome or "").strip()
+        if n:
+            partes.append(n[:120])
+        elif fid:
+            partes.append(f"ID {fid}"[:80])
+    if not partes:
+        return ""
+    txt = " + ".join(partes)
+    if len(txt) > max_len:
+        return txt[: max_len - 1].rstrip() + "…"
+    return txt
+
+
+def _resolver_ultima_compra_por_pid_map(
+    por_pid: dict[str, dict],
+    canon: str,
+    chaves: list[str] | None = None,
+) -> dict | None:
+    if not por_pid:
+        return None
+    for k in [canon] + list(chaves or []):
+        ks = str(k or "").strip()
+        if not ks:
+            continue
+        hit = por_pid.get(ks)
+        if hit:
+            return hit
+        if ks.isdigit():
+            hit = por_pid.get(str(int(ks)))
+            if hit:
+                return hit
+    return None
+
+
+def _coletar_pids_relatorio_fornecedores(
+    fornecedores: list[tuple[str, str | None]],
+    *,
+    use_pg: bool,
+    db,
+    client,
+    limit: int = 800,
+) -> tuple[list[str], dict[str, str]]:
+    """União de produtos (cadastro + histórico NF) para cada fornecedor da lista."""
+    local_ids: list[str] = []
+    nomes_forn: dict[str, str] = {}
+    seen_u: set[str] = set()
+    lim = max(1, min(int(limit), 1200))
+
+    for fornecedor_nome, fornecedor_id in fornecedores:
+        ids_f: list[str] = []
+        nomes_f: dict[str, str] = {}
+        if use_pg:
+            from produtos import catalogo_agro as cat_agro
+
+            ids_f, nomes_f = cat_agro.lista_produto_externo_ids_por_fornecedor(
+                fornecedor_nome, fornecedor_id, limit=lim
+            )
+            try:
+                from produtos.compras_ultimas_compras_util import (
+                    produto_ids_entrada_nf_agro_por_fornecedor,
+                )
+
+                hist_ids, hist_nomes = produto_ids_entrada_nf_agro_por_fornecedor(
+                    fornecedor_nome, fornecedor_id, scan_limit=lim, limit=lim
+                )
+                for hid in hist_ids:
+                    hs = str(hid or "").strip()
+                    if hs and hs not in seen_u and len(local_ids) < lim:
+                        seen_u.add(hs)
+                        local_ids.append(hs)
+                for k, v in (hist_nomes or {}).items():
+                    ks = str(k or "").strip()
+                    if ks and ks not in nomes_forn and str(v or "").strip():
+                        nomes_forn[ks] = str(v).strip()[:500]
+            except Exception:
+                logger.warning(
+                    "relatorio fornecedores: união histórico NF falhou",
+                    exc_info=True,
+                )
+        else:
+            ids_f, nomes_f = _lista_produto_ids_catalogo_por_fornecedor(
+                db, client, fornecedor_nome, fornecedor_id, limit=lim
+            )
+        for pid in ids_f:
+            ps = str(pid or "").strip()
+            if not ps or ps in seen_u:
+                continue
+            seen_u.add(ps)
+            local_ids.append(ps)
+            if len(local_ids) >= lim:
+                break
+        for k, v in (nomes_f or {}).items():
+            ks = str(k or "").strip()
+            if ks and ks not in nomes_forn and str(v or "").strip():
+                nomes_forn[ks] = str(v).strip()[:500]
+        if len(local_ids) >= lim:
+            break
+    return local_ids, nomes_forn
+
+
 @never_cache
 @require_POST
 def api_compras_relatorio_fornecedor(request):
@@ -7044,11 +7177,12 @@ def _api_compras_relatorio_fornecedor_impl(request):
         body = json.loads((request.body or b"").decode("utf-8") or "{}")
     except Exception:
         return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
-    fornecedor_nome = str(body.get("fornecedor_nome") or "").strip()
-    fornecedor_id = str(body.get("fornecedor_id") or "").strip() or None
-    raw_ids = body.get("produto_ids")
-    if not fornecedor_nome and not fornecedor_id:
+    fornecedores_list = _parse_fornecedores_relatorio_compras(body)
+    if not fornecedores_list:
         return JsonResponse({"ok": False, "erro": "Informe o fornecedor."}, status=400)
+    fornecedor_nome = str(fornecedores_list[0][0] or "").strip()
+    fornecedor_id = fornecedores_list[0][1]
+    raw_ids = body.get("produto_ids")
 
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres
 
@@ -7072,45 +7206,13 @@ def _api_compras_relatorio_fornecedor_impl(request):
                 seen_l.add(s)
                 local_ids.append(s)
         if not local_ids:
-            if use_pg:
-                from produtos import catalogo_agro as cat_agro
-
-                local_ids, nomes_forn = cat_agro.lista_produto_externo_ids_por_fornecedor(
-                    fornecedor_nome, fornecedor_id, limit=800
-                )
-            else:
-                local_ids, nomes_forn = _lista_produto_ids_catalogo_por_fornecedor(
-                    db, client, fornecedor_nome, fornecedor_id, limit=800
-                )
-            # Folha = cadastro do fornecedor **+** tudo que já entrou em NF Agro dele
-            # (antes: só cadastro → na prática parecia «só o último pedido»).
-            if use_pg:
-                try:
-                    from produtos.compras_ultimas_compras_util import (
-                        produto_ids_entrada_nf_agro_por_fornecedor,
-                    )
-
-                    hist_ids, hist_nomes = produto_ids_entrada_nf_agro_por_fornecedor(
-                        fornecedor_nome, fornecedor_id, scan_limit=800, limit=800
-                    )
-                    seen_u = {str(x).strip() for x in local_ids if str(x).strip()}
-                    for hid in hist_ids:
-                        hs = str(hid or "").strip()
-                        if not hs or hs in seen_u:
-                            continue
-                        seen_u.add(hs)
-                        local_ids.append(hs)
-                        if len(local_ids) >= 800:
-                            break
-                    for k, v in (hist_nomes or {}).items():
-                        ks = str(k or "").strip()
-                        if ks and ks not in nomes_forn and str(v or "").strip():
-                            nomes_forn[ks] = str(v).strip()[:500]
-                except Exception:
-                    logger.warning(
-                        "relatorio fornecedor: união histórico NF falhou",
-                        exc_info=True,
-                    )
+            local_ids, nomes_forn = _coletar_pids_relatorio_fornecedores(
+                fornecedores_list,
+                use_pg=use_pg,
+                db=db,
+                client=client,
+                limit=800,
+            )
         if not local_ids:
             return JsonResponse(
                 {
@@ -7121,12 +7223,14 @@ def _api_compras_relatorio_fornecedor_impl(request):
             )
         p_ids = local_ids
 
-        if use_pg:
+        # Vários fornecedores: métricas de compra vêm da Entrada NF Agro (Postgres).
+        if use_pg or len(fornecedores_list) > 1:
             return _api_compras_relatorio_fornecedor_pg(
                 p_ids,
                 nomes_forn=nomes_forn,
                 fornecedor_nome=fornecedor_nome,
                 fornecedor_id=fornecedor_id,
+                fornecedores=fornecedores_list,
             )
 
         from produtos.compras_familia_folha_util import (
@@ -7377,6 +7481,7 @@ def _api_compras_relatorio_fornecedor_pg(
     nomes_forn: dict[str, str],
     fornecedor_nome: str,
     fornecedor_id: str | None,
+    fornecedores: list[tuple[str, str | None]] | None = None,
 ) -> JsonResponse:
     """Folha por fornecedor 100% Postgres (catálogo + Entrada NF Agro + vendas PDV)."""
     from produtos.compras_familia_folha_util import (
@@ -7389,8 +7494,14 @@ def _api_compras_relatorio_fornecedor_pg(
         vendas_qtd_apos_ref_compra_postgres,
         vendas_qtd_por_produto_intervalo_postgres,
     )
-    from produtos.compras_ultimas_compras_util import ultimo_documento_entrada_nf_agro_por_fornecedor
+    from produtos.compras_ultimas_compras_util import (
+        metricas_compra_entrada_nf_agro_fornecedores,
+        ultimo_documento_entrada_nf_agro_por_fornecedor,
+    )
     from produtos import catalogo_agro as cat_agro
+
+    forn_list = fornecedores if fornecedores else [(fornecedor_nome, fornecedor_id)]
+    multi_forn = len(forn_list) > 1
 
     display_pids, sales_pids, filhos_map, nomes_forn = preparar_pids_folha_familia(
         p_ids, nomes_hints=nomes_forn
@@ -7399,7 +7510,14 @@ def _api_compras_relatorio_fornecedor_pg(
 
     now = datetime.now()
     t56 = now - timedelta(days=56)
-    ultimo = ultimo_documento_entrada_nf_agro_por_fornecedor(fornecedor_nome, fornecedor_id)
+    por_pid_multi: dict[str, dict] = {}
+    ultimo = None
+    if multi_forn:
+        ultimo = metricas_compra_entrada_nf_agro_fornecedores(forn_list)
+        if ultimo:
+            por_pid_multi = dict(ultimo.get("por_pid") or {})
+    else:
+        ultimo = ultimo_documento_entrada_nf_agro_por_fornecedor(fornecedor_nome, fornecedor_id)
     sem_doc = ultimo is None
     ref_dt: datetime | None = None
     ultimo_iso = ""
@@ -7454,7 +7572,15 @@ def _api_compras_relatorio_fornecedor_pg(
     )
 
     ref_por_canon: dict[str, datetime] = {}
-    if ref_dt is not None:
+    if multi_forn and por_pid_multi:
+        for pid0 in p_ids:
+            p0 = _catalogo_pmap_resolve(pmap, pid0)
+            canon0 = str(p0.get("Id") or p0.get("_id") or pid0) if p0 else str(pid0)
+            chs0 = _chaves_produto(p0) if p0 else [str(pid0)]
+            info = _resolver_ultima_compra_por_pid_map(por_pid_multi, str(canon0), chs0)
+            if info and isinstance(info.get("dt"), datetime):
+                ref_por_canon[str(canon0)] = info["dt"]
+    elif ref_dt is not None:
         for pid0 in p_ids:
             p0 = _catalogo_pmap_resolve(pmap, pid0)
             canon0 = str(p0.get("Id") or p0.get("_id") or pid0) if p0 else str(pid0)
@@ -7520,7 +7646,13 @@ def _api_compras_relatorio_fornecedor_pg(
                         break
 
             qtd_ult: int | None
-            if sem_doc:
+            if multi_forn and por_pid_multi:
+                info_u = _resolver_ultima_compra_por_pid_map(por_pid_multi, str(canon), chaves)
+                if info_u is None:
+                    qtd_ult = None
+                else:
+                    qtd_ult = arred_qtd_folha_compras(float(info_u.get("qtd") or 0))
+            elif sem_doc:
                 qtd_ult = None
             elif _linhas_doc_mapa_contem_produto(linhas_doc, str(canon), chaves):
                 qtd_ult = _arred_int_meio_para_cima(_resolver_qtd_por_pid(linhas_doc, str(canon)))
@@ -7531,7 +7663,10 @@ def _api_compras_relatorio_fornecedor_pg(
 
             cs_f = str(canon)
             qtd_pos = None
-            if not sem_doc:
+            if multi_forn:
+                if ref_por_canon.get(cs_f) is not None:
+                    qtd_pos = arred_qtd_folha_compras(float(vendas_pos.get(cs_f, 0.0)))
+            elif not sem_doc:
                 qtd_pos = arred_qtd_folha_compras(float(vendas_pos.get(cs_f, 0.0)))
             t56p = float(tot56_canon.get(cs_f, 0.0))
             first_dt = first56_canon.get(cs_f)
@@ -7584,7 +7719,11 @@ def _api_compras_relatorio_fornecedor_pg(
             str(r.get("nome") or "").strip().lower(),
         )
     )
-    rotulo_forn = (fornecedor_nome or fornecedor_id or "")[:200]
+    rotulo_forn = (
+        _rotulo_fornecedores_relatorio(forn_list)
+        if multi_forn
+        else (fornecedor_nome or fornecedor_id or "")[:200]
+    )
     return JsonResponse(
         {
             "ok": True,
@@ -7592,6 +7731,7 @@ def _api_compras_relatorio_fornecedor_pg(
             "filtro_rotulo": rotulo_forn,
             "fornecedor_nome": rotulo_forn,
             "fornecedor_id": fornecedor_id or "",
+            "fornecedores_qtd": len(forn_list),
             "total_produtos": len(rows_out),
             "sem_ultimo_documento": sem_doc,
             "ultimo_documento": {
