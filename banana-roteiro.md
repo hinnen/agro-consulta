@@ -1149,17 +1149,13 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 95. CHECKLIST ÚNICO — **20/10d** · 🟢 **PREP armado** · **v27.26.17**
+## 95. CHECKLIST ÚNICO — **20/10d** · ✅ **Live v27.26.17**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **COMPRAS-FOLHA-MULTI-FORN** | 🟡 **aguarda senha** | **NÃO** | **VERIFY_OK 17** + unit **6** |
+| 1 | **COMPRAS-FOLHA-MULTI-FORN** | ✅ **Live** | **NÃO** | **VERIFY_OK 17** + unit **6** |
 
-**PREP:** `deploy/prep-checklist-2010d-compras-folha-multi-forn` @ **`bb7a01a3`** (base **`producao`** @ **`09c4d28f`**).  
-**Checkpoint:** `./scripts/prep_checkpoint_checklist_2010d_compras_folha_multi_forn.sh` ✅  
-**Cutover:** `./scripts/cutover_loja_checklist_2010d_compras_folha_multi_forn.sh --exec` + frase + senha.  
-**Revert:** `rollback/pre-v272617-2010d-compras-folha-multi-forn` → **v27.26.16** @ **`09c4d28f`**.  
-**Doc:** `docs/DEPLOY-PREP-CHECKLIST-2010d-compras-folha-multi-forn.md` · **Shell pós:** `post_deploy_checklist_2010d_compras_folha_multi_forn.sh`.
+**Loja git:** `producao` @ **`bb7a01a3`**. **Revert:** `rollback/pre-v272617-2010d-compras-folha-multi-forn` → **v27.26.16** @ **`09c4d28f`**. **Shell:** `post_deploy_checklist_2010d_compras_folha_multi_forn.sh`.
 
 ---
 
