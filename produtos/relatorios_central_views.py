@@ -241,7 +241,9 @@ def relatorios_vendas_grupo(request):
         mes_labels = meta.get("meses") or []
         headers = ["#", meta.get("col_grupo") or "Grupo"]
         for lab in mes_labels:
-            headers.extend([f"{lab} Venda", f"{lab} Margem", f"{lab} Δ%"])
+            headers.extend(
+                [f"{lab} Venda", f"{lab} Margem R$", f"{lab} Lucro bruto %", f"{lab} Δ% venda"]
+            )
         headers.extend(["Δ% venda 1º→últ", "Δ% margem 1º→últ"])
         sub_periodo = _subtitulo_catalogo(
             f"Comparativo {len(mes_labels)} meses · {dep_label}", meta
@@ -253,6 +255,8 @@ def relatorios_vendas_grupo(request):
             for c in r["meses"]:
                 line.append(ru.fmt_brl(c["valor"]))
                 line.append(ru.fmt_brl(c["margem_rs"]))
+                mp = c.get("margem_pct")
+                line.append(f"{mp}%" if mp is not None else "—")
                 line.append(
                     _fmt_var_grupo(
                         c.get("var_venda_pct"),
@@ -310,8 +314,8 @@ def relatorios_vendas_grupo(request):
         "% venda",
         "Custo R$",
         "Margem R$",
-        "Margem %",
-        "% lucro",
+        "Lucro bruto %",
+        "% do lucro total",
     ]
     sub_periodo = _subtitulo_catalogo(f"{f['label']} · {dep_label}", meta)
     if agrupar != "categoria":

@@ -232,7 +232,7 @@ class RelatoriosCentralRoutesTests(SimpleTestCase):
         response = self.client.get(reverse("relatorios_vendas_grupo"))
         body = response.content.decode("utf-8", errors="ignore")
         self.assertIn('name="visao"', body)
-        self.assertIn("Margem R$", body)
+        self.assertIn("Lucro bruto %", body)
         self.assertIn('name="min_valor"', body)
         response2 = self.client.get(
             reverse("relatorios_vendas_grupo") + "?visao=comparativo&n_meses=2"

@@ -245,7 +245,7 @@
         <option value="valor" {% if extra_filtros.ordenar == 'valor' or not extra_filtros.ordenar %}selected{% endif %}>Venda R$</option>
         <option value="qtd" {% if extra_filtros.ordenar == 'qtd' %}selected{% endif %}>Quantidade</option>
         <option value="margem_rs" {% if extra_filtros.ordenar == 'margem_rs' %}selected{% endif %}>Margem R$</option>
-        <option value="margem_pct" {% if extra_filtros.ordenar == 'margem_pct' %}selected{% endif %}>Margem %</option>
+        <option value="margem_pct" {% if extra_filtros.ordenar == 'margem_pct' %}selected{% endif %}>Lucro bruto %</option>
         <option value="ticket" {% if extra_filtros.ordenar == 'ticket' %}selected{% endif %}>Ticket médio</option>
         <option value="pct_margem" {% if extra_filtros.ordenar == 'pct_margem' %}selected{% endif %}>% do lucro total</option>
       </select>
@@ -255,9 +255,9 @@
       <input type="text" name="min_valor" value="{{ extra_filtros.min_valor }}" inputmode="decimal" placeholder="ex. 500" class="min-h-[44px] w-[7rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" title="Esconde grupos abaixo deste faturamento no período (ou no último mês no comparativo)" />
     </div>
     <div>
-      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Margem %</label>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500" title="Lucro bruto em % da venda do grupo">Lucro bruto %</label>
       <div class="flex items-center gap-1">
-        <input type="text" name="margem_pct_min" value="{{ extra_filtros.margem_pct_min }}" inputmode="decimal" placeholder="mín" class="min-h-[44px] w-[4.5rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
+        <input type="text" name="margem_pct_min" value="{{ extra_filtros.margem_pct_min }}" inputmode="decimal" placeholder="mín" class="min-h-[44px] w-[4.5rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" title="Ex.: 20 = só grupos com lucro bruto ≥ 20% da venda" />
         <span class="text-slate-500 font-bold">–</span>
         <input type="text" name="margem_pct_max" value="{{ extra_filtros.margem_pct_max }}" inputmode="decimal" placeholder="máx" class="min-h-[44px] w-[4.5rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
       </div>
@@ -469,6 +469,15 @@
 
   {% if aviso_sem_custo %}
   <p class="mb-3 rounded-xl border-2 border-amber-500/50 bg-amber-500/10 px-4 py-3 text-sm font-bold text-amber-100">{{ aviso_sem_custo }}</p>
+  {% endif %}
+
+  {% if filtro_parcial == 'vendas_grupo' %}
+  <p class="no-print mb-2 text-xs font-semibold leading-snug text-slate-400">
+    <span class="font-black uppercase text-lime-400/90">Lucro bruto %</span> = quanto do faturamento do grupo sobrou depois do custo (margem ÷ venda).
+    <span class="text-slate-500">·</span>
+    <span class="font-black uppercase text-orange-400/80">% do lucro total</span> = participação desse grupo no lucro de todos os grupos listados.
+    {% if vendas_grupo_comparativo %}No comparativo, o <strong class="text-lime-300">Lucro bruto %</strong> aparece em cada mês.{% else %}Role a tabela à direita se não ver a coluna.{% endif %}
+  </p>
   {% endif %}
 
   {% if filtros.label %}
