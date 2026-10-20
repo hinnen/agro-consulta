@@ -1294,32 +1294,39 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟡 ARMADO — **CHECKLIST 20/10a** · **v27.26.14** · aguardando senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Loja agora** | **v27.26.13** @ **`5fee79dc`** |
+| **Sobe** | **REL-EXCEL-PRINT** — Excel ↓ download real · impressão/PDF **paisagem** (tabelas largas) |
+| **PREP** | `deploy/prep-checklist-2010a` @ **`d26f11c6`** |
+| **Revert** | `git push origin rollback/pre-v272614-2010a-rel-excel-print:producao` |
+| **Prep** | `./scripts/prep_checkpoint_checklist_2010a_rel_excel_print.sh` |
+| **Cutover** | `./scripts/cutover_loja_checklist_2010a_rel_excel_print.sh --exec` |
+| **Pós** | `./scripts/post_deploy_checklist_2010a_rel_excel_print.sh` |
+| **Prova** | grupo **16/16** · cat/sub **30/30** · tests **19** |
+| **PDV** | **Não alterado** |
+
+### ✅ CHECKLIST ÚNICO — **20/10a** · 🟢 **pronto envio produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **REL-EXCEL-PRINT** | 🟢 pronto | **NÃO** | verify **16+30** |
+
+### 📦 PACOTE PRONTO — **REL-EXCEL-PRINT** · **v27.26.14** · 20/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `data-agro-rel-excel` + `fetch` · `@page` landscape ≥9 colunas / comparativo grupo |
+| **Commit** | `32e7c517` · **`teste`** |
+
 ### ✅ Deploy loja — **CHECKLIST 19/10b** · **Live v27.26.13** · 20/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **Live** @ **`5fee79dc`** |
-| **Pacote** | **REL-GRUPO-MARGEM-COMP** — vendas por grupo (margem, comparativo, Excel) |
-| **Migrate** | **NÃO** |
-| **PDV** | **Não alterado** (delta só relatórios) |
-| **Revert** | `git push origin rollback/pre-v272613-1910b-rel-grupo:producao` → **v27.26.12** @ **`f33ee5cd`** |
-| **Pós-deploy** | `./scripts/post_deploy_checklist_1910b_rel_grupo_margem_comp.sh` (Render Shell) |
-
-### ~~ARMADO 19/10b~~ · **enviado** · ver Live acima
-
-### ✅ CHECKLIST ÚNICO — **19/10b** · 🟢 **pronto envio produção**
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **REL-GRUPO-MARGEM-COMP** | 🟢 pronto | **NÃO** | verify **14/14** + cat/sub **30/30** |
-
-### 📦 PACOTE PRONTO — **REL-GRUPO-MARGEM-COMP** · **v27.26.13** · 19/10
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | **Vendas por grupo:** margem/ticket/% · filtros investimento · comparativo 2–4 meses · Excel |
-| **Commit** | `dfabcf9f` · merge **`teste`** |
-| **PDV/vendas** | **Não mexe** — só relatórios GET |
+| **Status** | ✅ **Live** @ **`5fee79dc`** · REL-GRUPO-MARGEM-COMP |
+| **Revert** | `rollback/pre-v272613-1910b-rel-grupo` → **v27.26.12** @ **`f33ee5cd`** |
 
 ### 📦 PACOTE PRONTO — **REL-CAT-SUB-EXCEL** · **v27.26.12** · 19/10
 
