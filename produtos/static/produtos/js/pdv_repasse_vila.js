@@ -17,6 +17,7 @@
   var busy = false;
   var pendingConfirmar = false;
   var pctFromPadraoApplied = false;
+  var modoSentido = 'vila_centro'; // vila_centro | centro_vila
 
   function pctAtual() {
     if (!dom.pct) return '0';
@@ -62,6 +63,15 @@
     quemGrid: document.getElementById('pdv-rp-quem-grid'),
     quemOutros: document.getElementById('pdv-rp-quem-outros'),
     formaGrid: document.getElementById('pdv-rp-forma-grid'),
+    title: document.getElementById('pdv-repasse-title'),
+    toggleSentido: document.getElementById('pdv-rp-toggle-sentido'),
+    corpoVc: document.getElementById('pdv-rp-corpo-vila-centro'),
+    corpoCv: document.getElementById('pdv-rp-corpo-centro-vila'),
+    cvValor: document.getElementById('pdv-rp-cv-valor'),
+    cvCaixaDin: document.getElementById('pdv-rp-cv-caixa-din'),
+    cvCaixaHint: document.getElementById('pdv-rp-cv-caixa-hint'),
+    cvVilaStatus: document.getElementById('pdv-rp-cv-vila-status'),
+    dataWrap: document.querySelector('#pdv-repasse-overlay .pdv-rp-data-wrap'),
   };
 
   var quemModal = document.getElementById('pdv-rp-quem-modal');
@@ -842,13 +852,153 @@
       return;
     }
     pendingConfirmar = false;
+    if (modoSentido === 'centro_vila') {
+      confirmarCentroVila();
+      return;
+    }
     confirmar();
+  }
+
+  function setModoSentido(modo) {
+    modoSentido = modo === 'centro_vila' ? 'centro_vila' : 'vila_centro';
+    overlay.classList.toggle('rp-modo-centro-vila', modoSentido === 'centro_vila');
+    if (dom.title) {
+      dom.title.textContent =
+        modoSentido === 'centro_vila' ? 'Repasse Centro → Vila' : 'Repasse Vila → Centro';
+    }
+    if (dom.toggleSentido) {
+      dom.toggleSentido.textContent =
+        modoSentido === 'centro_vila' ? 'Vila → Centro' : 'Centro → Vila';
+      dom.toggleSentido.setAttribute(
+        'aria-pressed',
+        modoSentido === 'centro_vila' ? 'true' : 'false'
+      );
+    }
+    if (dom.confirmar) {
+      dom.confirmar.textContent =
+        modoSentido === 'centro_vila'
+          ? 'Confirmar envio à Vila'
+          : 'Confirmar transferência';
+    }
+    if (dom.dataWrap) {
+      dom.dataWrap.style.display = modoSentido === 'centro_vila' ? 'none' : '';
+    }
+    if (modoSentido === 'centro_vila') {
+      hideStatusFlash();
+      setStatus('');
+      focusSoon(dom.cvValor);
+    } else {
+      focusSoon(dom.manual);
+    }
+  }
+
+  function updateMetaCentroVila(j) {
+    if (!j) return;
+    var cc = j.caixa_centro || {};
+    if (dom.cvCaixaDin) {
+      if (cc.aberto) {
+        dom.cvCaixaDin.textContent = money(cc.saldo_dinheiro);
+        dom.cvCaixaDin.className = 'text-3xl font-black tabular-nums text-slate-950';
+        if (dom.cvCaixaHint) {
+          dom.cvCaixaHint.textContent = 'Gaveta Centro aberta · dinheiro esperado agora';
+        }
+      } else {
+        dom.cvCaixaDin.textContent = 'Fechado';
+        dom.cvCaixaDin.className = 'text-3xl font-black tabular-nums text-red-800';
+        if (dom.cvCaixaHint) {
+          dom.cvCaixaHint.textContent =
+            'Gaveta Centro fechada na loja — abra no Centro (pode fazer o repasse da Vila depois)';
+        }
+      }
+    }
+    if (dom.cvVilaStatus) {
+      dom.cvVilaStatus.textContent = j.caixa_vila_aberto
+        ? 'Aberto — reforço na hora'
+        : 'Fechado — entra ao abrir o caixa Vila';
+    }
+    if (dom.sub && modoSentido === 'centro_vila') {
+      if (!cc.aberto) {
+        dom.sub.textContent =
+          'Gaveta Centro fechada — abra no Centro; pode usar este PDV na Vila ou no Centro';
+        dom.sub.classList.add('text-red-700');
+      } else {
+        dom.sub.textContent =
+          'Sai da Gaveta Centro · entra na Vila — vale na Vila ou no Centro';
+        dom.sub.classList.remove('text-red-700');
+      }
+    }
+  }
+
+  function confirmarCentroVila() {
+    sanitizeMoneyField(dom.cvValor);
+    var q = quemAtual();
+    if (q.length < 2) {
+      openAvisoModal('Informe quem levou o dinheiro.');
+      return;
+    }
+    var pin = pinAtual();
+    if (!pin) {
+      pendingConfirmar = true;
+      openPinModal();
+      return;
+    }
+    var v = parseMoneyInput(dom.cvValor);
+    if (!isFinite(v) || v <= 0) {
+      openAvisoModal('Informe o valor a levar para a Vila.');
+      return;
+    }
+    var body = {
+      quem_levou: q,
+      pin: pin,
+      valor: String(v),
+      forma_pagamento: 'Dinheiro',
+    };
+    if (busy) return;
+    busy = true;
+    setStatus('Transferindo Centro → Vila…', 'busy');
+    fetch('/api/repasse-vila/confirmar-centro-vila/', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrf(),
+      },
+      body: JSON.stringify(body),
+    })
+      .then(function (r) {
+        return r.json().then(function (j) {
+          return { okHttp: r.ok, j: j };
+        });
+      })
+      .then(function (pack) {
+        busy = false;
+        var j = pack.j || {};
+        if (!j.ok) {
+          hideStatusFlash();
+          openAvisoModal(j.erro || 'Não foi possível transferir');
+          return;
+        }
+        var tot = (j.repasse && j.repasse.valor_total) || 0;
+        var pend = j.pendente_vila ? ' (entrada na Vila ao abrir o caixa)' : '';
+        setStatus('OK — enviado ' + money(tot) + ' à Vila' + pend, 'ok');
+        if (dom.pin) dom.pin.value = '';
+        if (dom.cvValor) dom.cvValor.value = '';
+        updateMetaCentroVila(j);
+        notifyParentFecharAtualizar();
+        setTimeout(closeOverlay, 1100);
+      })
+      .catch(function () {
+        busy = false;
+        hideStatusFlash();
+        openAvisoModal('Falha de rede');
+      });
   }
 
   function openOverlay() {
     overlay.classList.remove('hidden');
     overlay.classList.add('flex');
     document.body.classList.add('modal-open');
+    setModoSentido('vila_centro');
     try {
       if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(overlay, true);
     } catch (_) {}
@@ -865,6 +1015,7 @@
     if (dom.manual) dom.manual.value = '';
     if (dom.inputCofreSal) dom.inputCofreSal.value = '';
     if (dom.inputCofreVe) dom.inputCofreVe.value = '';
+    if (dom.cvValor) dom.cvValor.value = '';
     if (dom.pin) dom.pin.value = '';
     quem = '';
     formaPag = 'Dinheiro';
@@ -923,7 +1074,8 @@
         if (j.caixa_vila && !calc) {
           calc = { caixa_vila: j.caixa_vila };
         }
-        if (dom.sub) {
+        updateMetaCentroVila(j);
+        if (dom.sub && modoSentido !== 'centro_vila') {
           if (!j.caixa_vila_aberto) {
             dom.sub.textContent = 'Caixa da Vila FECHADO — abra antes de transferir';
             dom.sub.classList.add('text-red-700');
@@ -1289,6 +1441,19 @@
     document.getElementById('pdv-topbar-repasse-btn') ||
     document.getElementById('crh-btn-repasse');
   if (btnOpen) btnOpen.addEventListener('click', openOverlay);
+  if (dom.toggleSentido) {
+    dom.toggleSentido.addEventListener('click', function () {
+      setModoSentido(modoSentido === 'centro_vila' ? 'vila_centro' : 'centro_vila');
+      fetch('/api/repasse-vila/meta/', { credentials: 'same-origin' })
+        .then(function (r) {
+          return r.json();
+        })
+        .then(function (j) {
+          if (j && j.ok) updateMetaCentroVila(j);
+        })
+        .catch(function () {});
+    });
+  }
   if (dom.fechar) dom.fechar.addEventListener('click', requestCloseOverlay);
   if (dom.cancelar) dom.cancelar.addEventListener('click', requestCloseOverlay);
   if (dom.confirmar) {

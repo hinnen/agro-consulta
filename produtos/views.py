@@ -13430,6 +13430,7 @@ def caixa_abrir(request):
                 if aviso:
                     request.session["repasse_aviso_abertura"] = {
                         "texto": aviso,
+                        "titulo": "Repasse da Vila",
                         "ids": [r.pk for r in aplicados],
                         "total": float(
                             sum((_dec(r.valor_total) for r in aplicados), Decimal("0"))
@@ -13438,6 +13439,34 @@ def caixa_abrir(request):
                     request.session.modified = True
             except Exception:
                 logger.exception("repasse_vila: falha ao aplicar pendentes na abertura Centro")
+        elif ponto == PONTO_CAIXA_VILA:
+            try:
+                from produtos.repasse_vila_util import (
+                    aplicar_repasses_centro_vila_pendentes_vila,
+                    texto_aviso_abertura_centro_vila,
+                )
+
+                aplicados_cv = aplicar_repasses_centro_vila_pendentes_vila(
+                    sessao_vila=s,
+                    usuario=request.user
+                    if getattr(request, "user", None) and request.user.is_authenticated
+                    else None,
+                )
+                aviso_cv = texto_aviso_abertura_centro_vila(aplicados_cv)
+                if aviso_cv:
+                    request.session["repasse_aviso_abertura"] = {
+                        "texto": aviso_cv,
+                        "titulo": "Repasse do Centro",
+                        "ids": [r.pk for r in aplicados_cv],
+                        "total": float(
+                            sum((_dec(r.valor_total) for r in aplicados_cv), Decimal("0"))
+                        ),
+                    }
+                    request.session.modified = True
+            except Exception:
+                logger.exception(
+                    "repasse_centro_vila: falha ao aplicar pendentes na abertura Vila"
+                )
         definir_ponto_operacao_browser(request, ponto, s.pk)
         sincronizar_deposito_com_ponto_caixa(request, ponto)
         if ponto in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_TESTE):

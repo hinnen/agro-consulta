@@ -661,6 +661,11 @@ urlpatterns = [
         name='api_repasse_vila_confirmar',
     ),
     path(
+        'api/repasse-vila/confirmar-centro-vila/',
+        views_repasse_vila.api_repasse_centro_vila_confirmar,
+        name='api_repasse_centro_vila_confirmar',
+    ),
+    path(
         'api/repasse-vila/acumulado/',
         views_repasse_vila.api_repasse_vila_acumulado,
         name='api_repasse_vila_acumulado',
