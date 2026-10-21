@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
 import django
@@ -24,6 +27,12 @@ DUP2 = "cccccccccccccccccccccccc"
 
 
 def main() -> int:
+    from django.db import connection
+
+    if "produtos_fornecedorentradanfealiasagro" not in connection.introspection.table_names():
+        print("SKIP alias DB (migrate 0149 pendente neste ambiente)")
+        return 0
+
     FornecedorEntradaNfeAliasAgro.objects.filter(
         fornecedor_duplicado_id__in=[DUP1, DUP2]
     ).delete()
