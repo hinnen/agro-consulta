@@ -25,6 +25,8 @@ def main() -> int:
         "modal-unificar-forn",
         "nfe-ajuste-manual-aplicar",
         "entradaNfeCalcularVUnitLinhaRateios",
+        "entradaNfeLinhaQtdCustoUnit",
+        "entradaNfeLinhaValorLinhaRateio",
         "manual_ajuste_custo_tipo",
         "api_entrada_nota_fornecedores_unificar",
     ]
