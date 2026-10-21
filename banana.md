@@ -1294,23 +1294,36 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### ✅ CHECKLIST ÚNICO — **21/10** · 🟢 **pronto envio produção**
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **REPASSE-CENTRO-VILA-PDV** | 🟢 **pronto envio** | **SIM** `produtos.0148` | path **280+190+regressão** · overlay V→C intocado |
-
-**O quê:** PDV Repasse → botão **Centro → Vila** (raro). Vale na **Vila ou no Centro**; saída **Gaveta Centro** + entrada **caixa Vila** (ou pendente na abertura Vila). Fluxo **Vila → Centro** inalterado.
-
-**Branch:** `teste` · commits `REPASSE-CENTRO-VILA-PDV` · **Smoke:** Ctrl+F5 → Repasse → Centro→Vila · valor · PIN · conferir movimentos nos dois caixas.
-
-### 📦 PACOTE PRONTO — **REPASSE-CENTRO-VILA-PDV** · alvo **v27.26.18** · 21/10
+### 🟢 PREP ARMADO — **CHECKLIST 21/10** · **REPASSE-CENTRO-VILA-PDV** · **v27.26.18** · 21/10
 
 | Campo | Valor |
 | ----- | ----- |
+| **Branch PREP** | `deploy/prep-checklist-2110-repasse-centro-vila-pdv` @ **`f4808353`** (base **`producao`** @ **`bb7a01a3`**) |
+| **O quê** | PDV Repasse → **Centro → Vila** (raro). V→C **inalterado** (regressão no verify). |
+| **Migrate** | **SIM** `0148_repasse_centro_vila` — **obrigatório** no Render Shell após deploy |
+| **Prova** | centro-vila **PATH OK** · `verify_repasse_vila_path` **280** · overlay **190** · **`prep_checkpoint` OK** |
+| **Prep** | `./scripts/prep_checkpoint_checklist_2110_repasse_centro_vila_pdv.sh` ✅ |
+| **Cutover (senha)** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_2110_repasse_centro_vila_pdv.sh --exec` |
+| **Revert** | `git push origin rollback/pre-v272618-2110-repasse-centro-vila-pdv:producao` → **v27.26.17** @ **`bb7a01a3`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2110_repasse_centro_vila_pdv.sh` (**migrate** + provas) |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-2110-repasse-centro-vila-pdv.md` |
+
+**Status:** 🟢 **PREP pronto** — **não** subiu · **só** frase + senha no próximo chat · na pausa: cutover → Render → **migrate no Shell** → smoke Repasse.
+
+### ✅ CHECKLIST ÚNICO — **21/10** · 🟡 **aguarda senha** · PREP armado
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **REPASSE-CENTRO-VILA-PDV** | 🟡 **aguarda senha** | **SIM** `0148` | **280+190+PATH** |
+
+### 📦 PACOTE PRONTO — **REPASSE-CENTRO-VILA-PDV** · **v27.26.18** · 21/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **teste** | **`056b6aaa`** · **`a4b84e78`** · **`8e13faa9`** · **`c57dddf0`** |
 | **Migrate** | **SIM** `0148_repasse_centro_vila` |
-| **PDV repasse V→C** | **Sem mudança de regra** (API `confirmar` + `confirmar_repasse` idênticos `teste`) |
-| **Prova** | `verify_repasse_vila_path` · `verify_repasse_pdv_overlay_path` · `verify_repasse_centro_vila_path` |
+| **PDV repasse V→C** | **Sem mudança de regra** (blocos idênticos no verify) |
+| **Smoke loja** | Ctrl+F5 → Repasse → **Centro→Vila** · valor · PIN · saída Gaveta + entrada/pendente Vila |
 
 ### ✅ Deploy loja — **CHECKLIST 20/10d** · **Live v27.26.17** · 20/10
 

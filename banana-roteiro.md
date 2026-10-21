@@ -1149,13 +1149,17 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 96. CHECKLIST ÚNICO — **21/10** · 🟢 **pronto envio produção**
+## 96. CHECKLIST ÚNICO — **21/10** · 🟢 **PREP armado** · **v27.26.18**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **REPASSE-CENTRO-VILA-PDV** | 🟢 **pronto envio** | **SIM** `0148` |
+| 1 | **REPASSE-CENTRO-VILA-PDV** | 🟡 **aguarda senha** | **SIM** `0148` |
 
-**Prova:** `verify_repasse_centro_vila_path` + `verify_repasse_vila_path` + `verify_repasse_pdv_overlay_path`. **Não** merge `producao` sem frase+senha.
+**PREP:** `deploy/prep-checklist-2110-repasse-centro-vila-pdv` @ **`f4808353`**.  
+**Checkpoint:** `./scripts/prep_checkpoint_checklist_2110_repasse_centro_vila_pdv.sh` ✅  
+**Cutover:** `./scripts/cutover_loja_checklist_2110_repasse_centro_vila_pdv.sh --exec` + frase + senha.  
+**Pós:** `post_deploy_checklist_2110_repasse_centro_vila_pdv.sh` (**migrate 0148**).  
+**Revert:** `rollback/pre-v272618-2110-repasse-centro-vila-pdv` → **v27.26.17** @ **`bb7a01a3`**.
 
 ---
 
