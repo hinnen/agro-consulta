@@ -73,6 +73,64 @@ def main() -> int:
         "model loaded",
     )
 
+    # —— Regressão: fluxo Vila → Centro intocado ——
+    import re
+    import subprocess
+
+    def _py_fn_block(src: str, name: str) -> str:
+        m = re.search(rf"^def {name}\(", src, re.MULTILINE)
+        if not m:
+            return ""
+        start = m.start()
+        rest = src[m.end() :]
+        nxt = re.search(r"\n(?:@\w+[^\n]*\n)*def [a-zA-Z_]", rest)
+        end = m.end() + (nxt.start() if nxt else len(rest))
+        return src[start:end].strip()
+
+    old_util = subprocess.check_output(
+        ["git", "show", "teste:produtos/repasse_vila_util.py"], text=True
+    )
+    block_old = _py_fn_block(old_util, "confirmar_repasse")
+    block_new = _py_fn_block(util, "confirmar_repasse")
+    check(
+        block_old == block_new and block_old,
+        "confirmar_repasse (Vila→Centro) idêntico ao teste",
+    )
+
+    old_views = subprocess.check_output(
+        ["git", "show", "teste:produtos/views_repasse_vila.py"], text=True
+    )
+
+    check(
+        _py_fn_block(old_views, "api_repasse_vila_confirmar")
+        == _py_fn_block(views, "api_repasse_vila_confirmar"),
+        "api_repasse_vila_confirmar idêntica ao teste",
+    )
+
+    old_js = subprocess.check_output(
+        ["git", "show", "teste:produtos/static/produtos/js/pdv_repasse_vila.js"],
+        text=True,
+    )
+    new_js = js
+
+    def _js_fn(src: str, name: str) -> str:
+        m = re.search(rf"function {name}\(\) \{{", src)
+        if not m:
+            return ""
+        start = m.start()
+        i = m.end()
+        depth = 1
+        while i < len(src) and depth:
+            if src[i] == "{":
+                depth += 1
+            elif src[i] == "}":
+                depth -= 1
+            i += 1
+        return src[start:i]
+
+    for fn in ("confirmar", "enviarConfirmacao", "renderCalc", "fetchCalc"):
+        check(_js_fn(old_js, fn) == _js_fn(new_js, fn), f"JS {fn} idêntico ao teste")
+
     if failures:
         print("VERIFY_REPASSE_CENTRO_VILA_PATH_FAIL")
         for f in failures:
