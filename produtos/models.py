@@ -3410,6 +3410,70 @@ class RepasseVilaCentroAgro(models.Model):
         return f"Repasse #{self.pk} {self.data_ref} R$ {self.valor_total}"
 
 
+class RepasseCentroVilaAgro(models.Model):
+    """Envio manual de dinheiro do Centro para a Vila (uso raro; não entra no cálculo diário)."""
+
+    class StatusVila(models.TextChoices):
+        PENDENTE = "pendente", "Pendente na Vila"
+        APLICADO = "aplicado", "Aplicado no caixa Vila"
+
+    valor_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    quem_levou = models.CharField(max_length=120)
+    forma_pagamento = models.CharField(max_length=80, default="Dinheiro")
+    operador = models.CharField(max_length=120, blank=True, default="")
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="repasses_centro_vila",
+    )
+    sessao_centro = models.ForeignKey(
+        SessaoCaixa,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="repasses_centro_saida",
+    )
+    sessao_vila = models.ForeignKey(
+        SessaoCaixa,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="repasses_vila_entrada_centro",
+    )
+    movimento_saida = models.ForeignKey(
+        MovimentoCaixa,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="repasse_centro_vila_saida",
+    )
+    movimento_entrada = models.ForeignKey(
+        MovimentoCaixa,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="repasse_centro_vila_entrada",
+    )
+    status_vila = models.CharField(
+        max_length=16,
+        choices=StatusVila.choices,
+        default=StatusVila.PENDENTE,
+        db_index=True,
+    )
+    observacao = models.CharField(max_length=500, blank=True, default="")
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = "Repasse Centro → Vila"
+        verbose_name_plural = "Repasses Centro → Vila"
+        ordering = ["-criado_em", "-pk"]
+
+    def __str__(self):
+        return f"Repasse C→V #{self.pk} R$ {self.valor_total}"
+
+
 class RepasseVilaReservaLogAgro(models.Model):
     """Histórico do valor manual que fica na Vila (config + aplicação no envio)."""
 

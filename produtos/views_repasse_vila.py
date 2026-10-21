@@ -19,9 +19,13 @@ from produtos.caixa_util import (
     operador_label_de_pin,
     usuario_django_de_pin,
 )
+from produtos.models import RepasseCentroVilaAgro
 from produtos.repasse_vila_util import (
     calcular_disponivel,
     confirmar_repasse,
+    confirmar_repasse_centro_vila,
+    saldo_dinheiro_caixa_centro,
+    serializar_repasse_centro_vila,
     fundo_troco_vila_config,
     historico_mes,
     listar_acumulado_detalhe,
@@ -503,6 +507,7 @@ def api_repasse_vila_meta(request):
     cfg = obter_config()
     caixa = obter_sessao_caixa_aberta_request(request)
     vila = obter_caixa_vila_aberto()
+    caixa_centro = saldo_dinheiro_caixa_centro()
     funcionarios = []
     qs = Funcionario.objects.filter(ativo=True).order_by("nome_cache", "id")[:200]
     for f in qs:
@@ -522,6 +527,8 @@ def api_repasse_vila_meta(request):
             "caixa_aberto": bool(caixa),
             "caixa_vila_aberto": bool(vila),
             "caixa_vila": saldo_dinheiro_caixa_vila(),
+            "caixa_centro": caixa_centro,
+            "gaveta_centro_aberta": bool(caixa_centro.get("aberto")),
             "percentual_padrao": float(cfg.percentual_lucro_padrao),
             "reserva_vila": float(cfg.reserva_vila),
             "fundo_troco_vila": float(fundo_troco_vila_config(cfg)),
@@ -635,4 +642,50 @@ def api_repasse_vila_confirmar(request):
         "repasse": serializar_repasse(rep),
         "cofrinho": resumo_cofrinho_vila(dia_out, limit=10, cofre="salario"),
         "cofre_vila_elias": resumo_cofrinho_vila(dia_out, limit=10, cofre="vila_elias"),
+    })
+
+
+@login_required(login_url="/entrar/")
+@require_POST
+def api_repasse_centro_vila_confirmar(request):
+    """Transferência manual Centro → Vila (não altera acumulado do repasse diário)."""
+    payload = _payload(request)
+    if payload is None:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+
+    pin = str(payload.get("pin") or "").strip()
+    operador = str(payload.get("operador") or "").strip()
+    if pin:
+        ok_pin, label, err_pin = operador_label_de_pin(pin)
+        if not ok_pin:
+            return JsonResponse({"ok": False, "erro": err_pin or label or "PIN inválido"}, status=400)
+        operador = label or operador
+        user_dj = usuario_django_de_pin(pin)
+        if user_dj is not None:
+            request.user = user_dj  # type: ignore[attr-defined]
+
+    quem = str(payload.get("quem_levou") or "").strip()
+    try:
+        v_raw = payload.get("valor")
+        valor = Decimal(str(v_raw).replace(",", ".")) if v_raw not in (None, "") else None
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "Valor inválido"}, status=400)
+    if valor is None:
+        return JsonResponse({"ok": False, "erro": "Informe o valor."}, status=400)
+
+    rep, err = confirmar_repasse_centro_vila(
+        request=request,
+        quem_levou=quem,
+        valor=valor,
+        forma_pagamento=str(payload.get("forma_pagamento") or "Dinheiro"),
+        operador=operador,
+    )
+    if err:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse({
+        "ok": True,
+        "repasse": serializar_repasse_centro_vila(rep),
+        "pendente_vila": rep.status_vila == "pendente",
+        "caixa_centro": saldo_dinheiro_caixa_centro(),
+        "caixa_vila": saldo_dinheiro_caixa_vila(),
     })

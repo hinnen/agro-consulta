@@ -71,6 +71,7 @@ PG_BACKUP_CATEGORIES: tuple[PgBackupCategory, ...] = (
             "produtos.CaixaConferenciaRascunhoAgro",
             "produtos.RepasseVilaConfigAgro",
             "produtos.RepasseVilaCentroAgro",
+            "produtos.RepasseCentroVilaAgro",
             "produtos.RepasseVilaAcumuladoAjusteAgro",
             "produtos.RepasseVilaDeltaDiaAgro",
         ),
