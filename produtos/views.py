@@ -18214,9 +18214,47 @@ def api_entrada_nota_fornecedores(request):
     if pg_rows and mongo_rows:
         base_rows = pg_rows + [r for r in mongo_rows if r not in pg_rows]
     merged = _entrada_nota_mesclar_itens_fornecedor(base_rows, extras, agro_rows, lim=lim)
+    try:
+        from produtos.fornecedor_entrada_nfe_util import filtrar_itens_fornecedor_entrada_nfe
+
+        merged = filtrar_itens_fornecedor_entrada_nfe(merged)
+    except Exception:
+        pass
     return JsonResponse(
         {"itens": merged, "fonte": "postgres" if pg_rows else "mongo"}
     )
+
+
+@login_required(login_url="/entrar/")
+@require_POST
+def api_entrada_nota_fornecedores_unificar(request):
+    """
+    Unifica cadastros duplicados para a busca da Entrada NF (alias Postgres).
+    Não altera contas a pagar / títulos já lançados.
+    """
+    import json
+
+    from produtos.fornecedor_entrada_nfe_util import registrar_unificacao_fornecedores_entrada_nfe
+
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    if not isinstance(data, dict):
+        return JsonResponse({"ok": False, "erro": "Corpo inválido"}, status=400)
+    canon_id = str(data.get("fornecedor_canonico_id") or data.get("canonico_id") or "").strip()
+    canon_nome = str(data.get("canonico_nome") or "").strip()
+    dups = data.get("duplicados_ids") or data.get("duplicados") or []
+    if not isinstance(dups, list):
+        dups = []
+    resultado = registrar_unificacao_fornecedores_entrada_nfe(
+        fornecedor_canonico_id=canon_id,
+        duplicados_ids=[str(x) for x in dups],
+        canonico_nome=canon_nome,
+        usuario=request.user,
+    )
+    st = 200 if resultado.get("ok") else 400
+    return JsonResponse(resultado, status=st)
 
 
 def _entrada_nfe_ean_digitos(s) -> str:

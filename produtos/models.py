@@ -1136,6 +1136,33 @@ class PlanoContaAliasAgro(models.Model):
         return f"{self.grafia} → {self.plano_id}"
 
 
+class FornecedorEntradaNfeAliasAgro(models.Model):
+    """
+    Cadastro duplicado no Mongo (DtoPessoa) → id canônico para busca na Entrada NF.
+    Não reescreve lançamentos financeiros já existentes.
+    """
+
+    fornecedor_duplicado_id = models.CharField(max_length=32, unique=True, db_index=True)
+    fornecedor_canonico_id = models.CharField(max_length=32, db_index=True)
+    canonico_nome = models.CharField(max_length=300, blank=True, default="")
+    criado_em = models.DateTimeField(auto_now_add=True)
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="fornecedor_entrada_nfe_aliases",
+    )
+
+    class Meta:
+        ordering = ["-criado_em"]
+        verbose_name = "Alias fornecedor Entrada NF"
+        verbose_name_plural = "Aliases fornecedor Entrada NF"
+
+    def __str__(self):
+        return f"{self.fornecedor_duplicado_id[:8]}… → {self.fornecedor_canonico_id[:8]}…"
+
+
 class EntradaNotaRascunhoAgro(models.Model):
     """Rascunho do assistente Entrada NF (etapas 1–6); substitui ``AgroEntradaNotaRascunho`` no Mongo."""
 

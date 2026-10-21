@@ -1446,6 +1446,7 @@
             <input type="hidden" id="m-emit-forn-id" value="">
             <ul id="forn-sug" class="forn-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg text-sm z-20"></ul>
           </div>
+          <button type="button" id="nfe-btn-unificar-forn" class="mt-2 min-h-[44px] px-3 rounded-xl border-2 border-slate-400 bg-white text-[10px] sm:text-xs font-black uppercase text-slate-800 hover:bg-slate-50 shadow-sm" title="Escolhe um cadastro principal e oculta duplicados na busca. Não altera boletos já lançados.">Unificar cadastros duplicados</button>
         </label>
         <label class="block"><span class="text-xs font-black uppercase text-slate-600">CNPJ emitente</span>
           <input type="text" id="m-emit-cnpj" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold" placeholder="Somente números"></label>
@@ -1500,6 +1501,15 @@
               <span id="nfe-rateio-acrescimos-hint" class="text-[10px] font-semibold text-amber-900/90 truncate max-w-full">Leia o XML primeiro — se houver frete/ST, rateia no custo.</span>
             </span>
           </label>
+          <div id="nfe-ajuste-manual-custo-wrap" class="flex flex-wrap items-center gap-2 px-2.5 py-1.5 rounded-lg border-2 border-sky-300 bg-sky-50/90 flex-1 min-w-[16rem] max-w-3xl">
+            <span class="text-[10px] sm:text-[11px] font-black uppercase text-sky-950 whitespace-nowrap shrink-0">Ajuste manual</span>
+            <label class="inline-flex items-center gap-1 cursor-pointer text-[10px] font-bold text-sky-950"><input type="radio" name="nfe-ajuste-manual-tipo" value="desconto" class="accent-sky-600"> Desconto</label>
+            <label class="inline-flex items-center gap-1 cursor-pointer text-[10px] font-bold text-sky-950"><input type="radio" name="nfe-ajuste-manual-tipo" value="acrescimo" class="accent-sky-600"> Acréscimo</label>
+            <input type="text" id="nfe-ajuste-manual-valor" inputmode="decimal" autocomplete="off" placeholder="R$ valor" class="min-h-[2rem] w-[6.5rem] px-2 rounded-lg border-2 border-sky-200 text-xs font-bold tabular-nums" title="Valor total a diluir nas linhas (proporcional ao total de cada item).">
+            <button type="button" id="nfe-ajuste-manual-aplicar" class="min-h-[2rem] px-2.5 rounded-lg border-2 border-sky-600 bg-sky-600 text-[10px] font-black uppercase text-white hover:bg-sky-700">Aplicar</button>
+            <button type="button" id="nfe-ajuste-manual-reverter" class="min-h-[2rem] px-2.5 rounded-lg border-2 border-slate-400 bg-white text-[10px] font-black uppercase text-slate-800 hover:bg-slate-100">Reverter</button>
+            <span id="nfe-ajuste-manual-hint" class="text-[10px] font-semibold text-sky-900/90 min-w-[8rem]">Separado do frete/ST do XML.</span>
+          </div>
           <button type="button" id="nfe-btn-toggle-emb-cols" aria-expanded="false" aria-controls="entrada-nfe-grade-scroll"
             title="Mostra ou esconde Un/emb, Qtd est. e R$ pacote — pouco usados no dia a dia.">
             <span class="nfe-emb-arrow" aria-hidden="true">▸</span>
@@ -2002,6 +2012,28 @@
       </div>
     </div>
 
+    <div id="modal-unificar-forn" class="hidden fixed inset-0 z-[68] flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/55" role="dialog" aria-modal="true" aria-labelledby="modal-unificar-forn-titulo">
+      <div class="bg-white rounded-2xl shadow-2xl max-w-[min(40rem,97vw)] w-full max-h-[min(90vh,44rem)] overflow-hidden flex flex-col border-2 border-orange-400">
+        <div class="px-4 py-3 border-b border-orange-200 bg-orange-50/90 flex items-start justify-between gap-3 shrink-0">
+          <div class="min-w-0">
+            <h3 id="modal-unificar-forn-titulo" class="text-base font-black uppercase text-slate-900">Unificar fornecedores</h3>
+            <p class="text-[11px] font-semibold text-slate-700 mt-1 leading-snug">Escolha <strong>um principal</strong> e marque <strong>todos os duplicados</strong>. Só afeta buscas e notas <strong>novas</strong> — <strong>não mexe</strong> em contas a pagar já lançadas.</p>
+          </div>
+          <button type="button" id="modal-unificar-forn-fechar" class="shrink-0 min-h-[44px] px-4 rounded-xl border-2 border-slate-300 text-xs font-black uppercase bg-white">Fechar</button>
+        </div>
+        <div class="p-4 space-y-3 overflow-y-auto min-h-0 flex-1">
+          <label class="block"><span class="text-xs font-black uppercase text-slate-600">Buscar cadastro</span>
+            <input type="search" id="modal-unificar-forn-q" autocomplete="off" class="mt-1 w-full min-h-[44px] px-3 rounded-xl border-2 border-slate-200 font-bold" placeholder="Nome ou CNPJ…"></label>
+          <div id="modal-unificar-forn-lista" class="rounded-xl border-2 border-slate-200 divide-y divide-slate-100 max-h-[min(50vh,22rem)] overflow-y-auto text-sm"></div>
+          <p id="modal-unificar-forn-erro" class="hidden text-xs font-bold text-red-800"></p>
+        </div>
+        <div class="px-4 py-3 border-t border-slate-200 flex flex-wrap gap-2 justify-end shrink-0 bg-slate-50/80">
+          <button type="button" id="modal-unificar-forn-cancelar" class="min-h-[48px] px-4 rounded-xl border-2 border-slate-400 bg-white text-xs font-black uppercase">Cancelar</button>
+          <button type="button" id="modal-unificar-forn-confirmar" class="min-h-[48px] px-5 rounded-xl border-2 border-emerald-800 bg-emerald-600 text-white text-xs font-black uppercase hover:bg-emerald-700">Unificar</button>
+        </div>
+      </div>
+    </div>
+
     <div id="modal-nfe-bip-vinculo" class="hidden fixed inset-0 z-[65] flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="modal-nfe-bip-vinculo-titulo">
       <div class="bg-white rounded-2xl shadow-2xl max-w-[min(62rem,97vw)] w-full max-h-[min(88vh,50rem)] overflow-hidden flex flex-col border-2 border-slate-300">
         <div class="px-4 py-3 border-b border-slate-200 flex items-start justify-between gap-3 shrink-0 bg-slate-50/90">
@@ -2233,6 +2265,7 @@
           <p class="text-xs font-black uppercase text-slate-500">Colunas da grade</p>
           <p><strong>Rateio Un/emb:</strong> Un/emb = unidades por embalagem na NF (ex.: 10). <strong>Qtd est.</strong> = Qtd NF × Un/emb (editável).</p>
           <p><strong>Acréscimos no custo:</strong> na etapa 2, marque <strong>«Incluir no custo os acréscimos da nota»</strong> para ratear frete, ICMS ST, seguro, outras e IPI (menos desconto) no custo unitário. Sem esses valores no XML, a opção não muda nada. Pode marcar/desmarcar depois — a grade recalcula sem ler o XML de novo.</p>
+          <p><strong>Desconto / acréscimo manual (etapa 2):</strong> valor em reais diluído entre os itens na mesma proporção do total de cada linha (quantidade × custo). Independente do frete/ST do XML. Use <strong>Reverter</strong> para desfazer. <strong>Unificar fornecedores (etapa 1):</strong> oculta cadastros duplicados na busca; não altera contas a pagar antigas.</p>
         </div>
         <div class="border-l-4 border-violet-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">EAN da nota (caixa) × unidade no Agro</p>
@@ -2284,6 +2317,7 @@
   const URL_FIN = "{% url 'api_entrada_nota_financeiro' %}";
   const URL_ESTOQUE_AGRO = "{% url 'api_entrada_nota_estoque_agro' %}";
   const URL_FORN = "{% url 'api_entrada_nota_fornecedores' %}";
+  const URL_FORN_UNIF = "{% url 'api_entrada_nota_fornecedores_unificar' %}";
   const URL_RASC = "{% url 'api_entrada_nota_rascunhos' %}";
   const URL_AUDITORIA_FIN = "{% url 'api_entrada_nota_auditoria_financeiro' %}";
   const URL_DFE = "{% url 'api_entrada_nota_dist_dfe' %}";
@@ -6968,26 +7002,123 @@
     setHint(curto, completo);
   }
 
+  function entradaNfeManualAjusteCustoAtivo() {
+    const ex = entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {};
+    const tipo = String(ex.manual_ajuste_custo_tipo || '').trim().toLowerCase();
+    const valor = Number(ex.manual_ajuste_custo_valor) || 0;
+    if ((tipo === 'desconto' || tipo === 'acrescimo') && valor > 0) return { tipo, valor };
+    return { tipo: '', valor: 0 };
+  }
+
+  function entradaNfeLinhaBaseUnit(tr) {
+    if (!tr) return null;
+    const bNf = entradaNfeParseDecimalApi(tr.dataset.nfeVunBaseNf || '');
+    if (bNf != null && Number.isFinite(bNf) && bNf >= 0) return bNf;
+    const bMan = entradaNfeParseDecimalApi(tr.dataset.nfeVunBaseManual || '');
+    if (bMan != null && Number.isFinite(bMan) && bMan >= 0) return bMan;
+    return null;
+  }
+
+  function entradaNfeLinhaVProdRateio(tr) {
+    if (!tr) return 0;
+    const vpNf = Number(tr.dataset.nfeVprodNf);
+    if (Number.isFinite(vpNf) && vpNf > 0) return vpNf;
+    const q = entradaNfeLinhaQtyEstoqueCalculo(tr);
+    const base = entradaNfeLinhaBaseUnit(tr);
+    if (base != null && q > 0) return entradaNfeRoundHalfUp(base * q, 2);
+    return 0;
+  }
+
+  function entradaNfeSomaVProdGrade(nota) {
+    let s = entradaNfeNotaSomaVProd(nota);
+    if (s > 0) return s;
+    let tot = 0;
+    document.querySelectorAll('#tbody-itens tr').forEach((tr) => {
+      if (tr.dataset.nfeLinhaModo === 'compact') return;
+      tot += entradaNfeLinhaVProdRateio(tr);
+    });
+    return tot > 0 ? entradaNfeRoundHalfUp(tot, 2) : 0;
+  }
+
+  function entradaNfeCalcularVUnitLinhaRateios(tr, nota) {
+    const base = entradaNfeLinhaBaseUnit(tr);
+    if (base == null || !Number.isFinite(base) || base < 0) return null;
+    const q = Number(tr.dataset.nfeQComNf) || Number(tr.querySelector('.in-qtd')?.value) || entradaNfeLinhaQtyEstoqueCalculo(tr) || 0;
+    const vp = entradaNfeLinhaVProdRateio(tr);
+    const somaProd = entradaNfeSomaVProdGrade(nota);
+    let unit = base;
+    const incluirXml = !!(document.getElementById('nfe-chk-rateio-acrescimos')?.checked);
+    const acrescXml = incluirXml ? entradaNfeNotaAcrescimosCusto(nota) : 0;
+    if (acrescXml > 0 && somaProd > 0 && vp > 0 && q > 0) {
+      unit = entradaNfeRoundHalfUp(base + (acrescXml * (vp / somaProd)) / q, 6);
+    }
+    const man = entradaNfeManualAjusteCustoAtivo();
+    if (man.tipo && man.valor > 0 && somaProd > 0 && vp > 0 && q > 0) {
+      const sign = man.tipo === 'desconto' ? -1 : 1;
+      unit = entradaNfeRoundHalfUp(unit + (sign * man.valor * (vp / somaProd)) / q, 6);
+      if (unit < 0) unit = 0;
+    }
+    return { base, unit };
+  }
+
+  function entradaNfeSnapshotBasesParaAjusteManual() {
+    document.querySelectorAll('#tbody-itens tr').forEach((tr) => {
+      if (tr.dataset.nfeLinhaModo === 'compact') return;
+      if (tr.dataset.nfeVunBaseNf != null && tr.dataset.nfeVunBaseNf !== '') return;
+      if (tr.dataset.nfeVunBaseManual != null && tr.dataset.nfeVunBaseManual !== '') return;
+      const inp = tr.querySelector('.in-vun');
+      const v = entradaNfeParseDecimalApi(inp && inp.value);
+      if (v != null && Number.isFinite(v) && v >= 0) tr.dataset.nfeVunBaseManual = String(v);
+    });
+  }
+
+  function entradaNfeAtualizarUiAjusteManualCusto() {
+    const hint = document.getElementById('nfe-ajuste-manual-hint');
+    const man = entradaNfeManualAjusteCustoAtivo();
+    if (!hint) return;
+    if (!man.tipo) {
+      hint.textContent = 'Separado do frete/ST do XML.';
+      return;
+    }
+    const lbl = man.tipo === 'desconto' ? 'Desconto' : 'Acréscimo';
+    hint.textContent = `${lbl} ${entradaNfeFmtMoedaHint(man.valor)} ativo na grade.`;
+  }
+
+  function entradaNfeRestaurarAjusteManualUiFromExtra() {
+    const ex = entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {};
+    const tipo = String(ex.manual_ajuste_custo_tipo || '').trim().toLowerCase();
+    const valor = Number(ex.manual_ajuste_custo_valor) || 0;
+    const radios = document.querySelectorAll('input[name="nfe-ajuste-manual-tipo"]');
+    radios.forEach((r) => { r.checked = r.value === tipo; });
+    const inp = document.getElementById('nfe-ajuste-manual-valor');
+    if (inp) inp.value = tipo && valor > 0 ? String(valor).replace('.', ',') : '';
+    entradaNfeAtualizarUiAjusteManualCusto();
+  }
+
   /**
-   * Custo unitário da linha XML: puro (vUnCom) ou + fatia proporcional dos acréscimos.
+   * Custo unitário da linha XML: puro (vUnCom) ou + fatia proporcional dos acréscimos + ajuste manual.
    * @returns {{ base: number, unit: number }|null}
    */
   function entradaNfeCalcularVUnComComRateio(xmlItem, nota, incluir) {
     if (!xmlItem || typeof xmlItem !== 'object') return null;
     const base = entradaNfeXmlMergeVUnNfDoItem(xmlItem);
     if (base == null || !Number.isFinite(base)) return null;
-    if (!incluir) return { base, unit: base };
-    const acresc = entradaNfeNotaAcrescimosCusto(nota);
-    if (!(acresc > 0)) return { base, unit: base };
-    const somaProd = entradaNfeNotaSomaVProd(nota);
-    if (!(somaProd > 0)) return { base, unit: base };
     const vp = Number(xmlItem.v_prod);
     const q = Number(xmlItem.q_com);
-    if (!(Number.isFinite(vp) && vp > 0 && Number.isFinite(q) && q > 0)) {
-      return { base, unit: base };
+    let somaProd = entradaNfeNotaSomaVProd(nota);
+    if (!(somaProd > 0) && Number.isFinite(vp) && vp > 0) somaProd = vp;
+    let unit = base;
+    const acresc = incluir ? entradaNfeNotaAcrescimosCusto(nota) : 0;
+    if (acresc > 0 && somaProd > 0 && vp > 0 && q > 0) {
+      unit = entradaNfeRoundHalfUp(base + (acresc * (vp / somaProd)) / q, 6);
     }
-    const share = acresc * (vp / somaProd);
-    return { base, unit: entradaNfeRoundHalfUp(base + share / q, 6) };
+    const man = entradaNfeManualAjusteCustoAtivo();
+    if (man.tipo && man.valor > 0 && somaProd > 0 && vp > 0 && q > 0) {
+      const sign = man.tipo === 'desconto' ? -1 : 1;
+      unit = entradaNfeRoundHalfUp(unit + (sign * man.valor * (vp / somaProd)) / q, 6);
+      if (unit < 0) unit = 0;
+    }
+    return { base, unit };
   }
 
   function entradaNfeAplicarVUnNaLinhaTr(tr, unit) {
@@ -7003,46 +7134,39 @@
     entradaNfeLinhaAtualizarTotalProduto(tr);
   }
 
-  /** Reaplica base ± rateio nas linhas que guardam custo puro da NF (sem ler XML de novo). */
-  function entradaNfeReaplicarRateioAcrescimosNaGrade() {
+  /** Reaplica base ± rateio XML e ajuste manual nas linhas (sem ler XML de novo). */
+  function entradaNfeReaplicarRateioAcrescimosNaGrade(silent) {
     if (entradaNfeEditorCongeladoAtivo()) return;
-    /* Com o modal de pareamento aberto, a opção só vale no «Confirmar na grade». */
     const mergeEl = document.getElementById('modal-xml-merge');
     if (mergeEl && !mergeEl.classList.contains('hidden')) {
       entradaNfeAtualizarUiRateioAcrescimos(entradaNfeXmlMergeCtx?.nota || ultimaNotaParse);
       return;
     }
     const nota = ultimaNotaParse;
-    const incluir = !!(document.getElementById('nfe-chk-rateio-acrescimos')?.checked);
-    const acresc = incluir ? entradaNfeNotaAcrescimosCusto(nota) : 0;
-    let somaProd = entradaNfeNotaSomaVProd(nota);
     const rows = [];
     document.querySelectorAll('#tbody-itens tr').forEach((tr) => {
       if (tr.dataset.nfeLinhaModo === 'compact') return;
-      if (tr.dataset.nfeVunBaseNf == null || tr.dataset.nfeVunBaseNf === '') return;
+      if (entradaNfeLinhaBaseUnit(tr) == null) return;
       rows.push(tr);
     });
     if (!rows.length) {
       entradaNfeAtualizarUiRateioAcrescimos();
+      entradaNfeAtualizarUiAjusteManualCusto();
       return;
     }
-    if (!(somaProd > 0)) {
-      somaProd = rows.reduce((s, tr) => s + (Number(tr.dataset.nfeVprodNf) || 0), 0);
-    }
     rows.forEach((tr) => {
-      const base = Number(tr.dataset.nfeVunBaseNf);
-      if (!Number.isFinite(base) || base < 0) return;
-      const q = Number(tr.dataset.nfeQComNf) || Number(tr.querySelector('.in-qtd')?.value) || 0;
-      const vp = Number(tr.dataset.nfeVprodNf) || 0;
-      let unit = base;
-      if (acresc > 0 && somaProd > 0 && vp > 0 && q > 0) {
-        unit = entradaNfeRoundHalfUp(base + (acresc * (vp / somaProd)) / q, 6);
-      }
-      entradaNfeAplicarVUnNaLinhaTr(tr, unit);
+      const calc = entradaNfeCalcularVUnitLinhaRateios(tr, nota);
+      if (calc) entradaNfeAplicarVUnNaLinhaTr(tr, calc.unit);
     });
     atualizarPainelTotalNfe();
     entradaNfeAgendarAutosaveRascunho();
     entradaNfeAtualizarUiRateioAcrescimos();
+    entradaNfeAtualizarUiAjusteManualCusto();
+    if (silent) return;
+    const incluir = !!(document.getElementById('nfe-chk-rateio-acrescimos')?.checked);
+    const acresc = incluir ? entradaNfeNotaAcrescimosCusto(nota) : 0;
+    const man = entradaNfeManualAjusteCustoAtivo();
+    if (man.tipo && man.valor > 0) return;
     if (acresc > 0 && incluir) {
       showMsg(`Custos atualizados com acréscimos da nota (${entradaNfeFmtMoedaHint(acresc)}).`, true);
     } else if (nota && entradaNfeNotaAcrescimosCusto(nota) > 0) {
@@ -7999,6 +8123,10 @@
         chkRateio.checked = false;
         chkRateio.disabled = true;
       }
+      document.querySelectorAll('input[name="nfe-ajuste-manual-tipo"]').forEach((r) => { r.checked = false; });
+      const ajVal = document.getElementById('nfe-ajuste-manual-valor');
+      if (ajVal) ajVal.value = '';
+      entradaNfeAtualizarUiAjusteManualCusto();
       entradaNfeDepositoDefinir('', true);
       tbodyClear();
       try {
@@ -9142,6 +9270,10 @@
         entradaNfeFinEmpresaRestaurar('', '', cab.deposito_entrada);
       }
       entradaNfeEnsureTrailingCompactRow();
+      try {
+        entradaNfeRestaurarAjusteManualUiFromExtra();
+        entradaNfeReaplicarRateioAcrescimosNaGrade(true);
+      } catch (_) {}
       entradaNfeAtualizarUiBotaoEstoqueAgro(rz);
       entradaNfeAtualizarUiBotaoFinanceiro(rz);
       entradaNfeAtualizarUiBotaoWizardFinalizar();
@@ -10568,29 +10700,12 @@
     } catch (_) {}
   }
 
-  /** Reaplica V. unit a partir do custo puro da NF (± rateio do checkbox) — 1 linha. */
+  /** Reaplica V. unit a partir do custo base (± rateio XML e ajuste manual) — 1 linha. */
   function entradaNfeReaplicarRateioAcrescimosNaLinha(tr) {
     if (!tr || entradaNfeEditorCongeladoAtivo()) return;
     if (tr.dataset.nfeLinhaModo === 'compact') return;
-    const base = Number(tr.dataset.nfeVunBaseNf);
-    if (!Number.isFinite(base) || base < 0) return;
-    const nota = ultimaNotaParse;
-    const incluir = !!(document.getElementById('nfe-chk-rateio-acrescimos')?.checked);
-    const acresc = incluir ? entradaNfeNotaAcrescimosCusto(nota) : 0;
-    let somaProd = entradaNfeNotaSomaVProd(nota);
-    if (!(somaProd > 0)) {
-      somaProd = [...document.querySelectorAll('#tbody-itens tr')].reduce(
-        (s, row) => s + (Number(row.dataset.nfeVprodNf) || 0),
-        0
-      );
-    }
-    const q = Number(tr.dataset.nfeQComNf) || Number(tr.querySelector('.in-qtd')?.value) || 0;
-    const vp = Number(tr.dataset.nfeVprodNf) || 0;
-    let unit = base;
-    if (acresc > 0 && somaProd > 0 && vp > 0 && q > 0) {
-      unit = entradaNfeRoundHalfUp(base + (acresc * (vp / somaProd)) / q, 6);
-    }
-    entradaNfeAplicarVUnNaLinhaTr(tr, unit);
+    const calc = entradaNfeCalcularVUnitLinhaRateios(tr, ultimaNotaParse);
+    if (calc) entradaNfeAplicarVUnNaLinhaTr(tr, calc.unit);
   }
 
   /** via: 'scan' = leitor (EAN 8+) na sentinela, Mudar ou campo EAN — Ok na etapa 3; 'lookup'/'modal' = nome/GM — fica PEND. */
@@ -11606,6 +11721,186 @@
 
   document.getElementById('nfe-chk-rateio-acrescimos')?.addEventListener('change', () => {
     entradaNfeReaplicarRateioAcrescimosNaGrade();
+  });
+
+  document.getElementById('nfe-ajuste-manual-aplicar')?.addEventListener('click', () => { void entradaNfeAplicarAjusteManualCusto(); });
+  document.getElementById('nfe-ajuste-manual-reverter')?.addEventListener('click', () => { void entradaNfeReverterAjusteManualCusto(); });
+
+  async function entradaNfeAplicarAjusteManualCusto() {
+    const tipoEl = document.querySelector('input[name="nfe-ajuste-manual-tipo"]:checked');
+    const tipo = tipoEl ? String(tipoEl.value || '').trim().toLowerCase() : '';
+    const valInp = document.getElementById('nfe-ajuste-manual-valor');
+    const valor = entradaNfeParseDecimalApi(valInp && valInp.value);
+    if (tipo !== 'desconto' && tipo !== 'acrescimo') {
+      showMsg('Escolha desconto ou acréscimo.', false);
+      return;
+    }
+    if (!(valor > 0)) {
+      showMsg('Informe um valor maior que zero.', false);
+      return;
+    }
+    entradaNfeSnapshotBasesParaAjusteManual();
+    const soma = entradaNfeSomaVProdGrade(ultimaNotaParse);
+    if (!(soma > 0)) {
+      showMsg('Inclua itens na grade com quantidade e valor antes do ajuste.', false);
+      return;
+    }
+    const v2 = entradaNfeRoundHalfUp(valor, 2);
+    entradaNfeExtraUltimo = {
+      ...(entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {}),
+      manual_ajuste_custo_tipo: tipo,
+      manual_ajuste_custo_valor: v2,
+    };
+    await entradaNfeWizardPersistExtraPatch({ manual_ajuste_custo_tipo: tipo, manual_ajuste_custo_valor: v2 });
+    entradaNfeReaplicarRateioAcrescimosNaGrade(true);
+    const lbl = tipo === 'desconto' ? 'Desconto' : 'Acréscimo';
+    showMsg(`${lbl} de ${entradaNfeFmtMoedaHint(v2)} diluído nos itens (proporcional ao total de cada linha).`, true);
+  }
+
+  async function entradaNfeReverterAjusteManualCusto() {
+    entradaNfeExtraUltimo = {
+      ...(entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {}),
+      manual_ajuste_custo_tipo: '',
+      manual_ajuste_custo_valor: 0,
+    };
+    await entradaNfeWizardPersistExtraPatch({ manual_ajuste_custo_tipo: '', manual_ajuste_custo_valor: 0 });
+    document.querySelectorAll('#tbody-itens tr').forEach((tr) => {
+      if (tr.dataset.nfeVunBaseNf == null || tr.dataset.nfeVunBaseNf === '') delete tr.dataset.nfeVunBaseManual;
+    });
+    document.querySelectorAll('input[name="nfe-ajuste-manual-tipo"]').forEach((r) => { r.checked = false; });
+    const valInp = document.getElementById('nfe-ajuste-manual-valor');
+    if (valInp) valInp.value = '';
+    entradaNfeReaplicarRateioAcrescimosNaGrade(true);
+    showMsg('Ajuste manual removido — custos recalculados.', true);
+  }
+
+  const modalUnifForn = document.getElementById('modal-unificar-forn');
+  const modalUnifFornLista = document.getElementById('modal-unificar-forn-lista');
+  let modalUnifFornItens = [];
+  let modalUnifFornCanonId = '';
+
+  function entradaNfeFecharModalUnificarForn() {
+    modalUnifForn?.classList.add('hidden');
+    const err = document.getElementById('modal-unificar-forn-erro');
+    if (err) { err.classList.add('hidden'); err.textContent = ''; }
+  }
+
+  function entradaNfeRenderModalUnificarFornLista() {
+    if (!modalUnifFornLista) return;
+    modalUnifFornLista.innerHTML = '';
+    const mongoItens = modalUnifFornItens.filter((it) => /^[a-fA-F0-9]{24}$/.test(String(it.id || '')));
+    if (!mongoItens.length) {
+      modalUnifFornLista.innerHTML = '<p class="p-3 text-xs font-semibold text-slate-600">Busque e aguarde a lista. Só cadastros com Id ERP entram na unificação.</p>';
+      return;
+    }
+    mongoItens.forEach((it) => {
+      const id = String(it.id || '');
+      const row = document.createElement('div');
+      row.className = 'flex flex-wrap items-start gap-2 px-3 py-2.5 hover:bg-orange-50/60';
+      row.innerHTML = `
+        <label class="inline-flex items-center gap-1.5 cursor-pointer shrink-0" title="Principal (fica na busca)">
+          <input type="radio" name="unif-forn-canon" value="${entradaNfeFornEsc(id)}" class="accent-emerald-600" ${modalUnifFornCanonId === id ? 'checked' : ''}>
+          <span class="text-[9px] font-black uppercase text-emerald-800">Principal</span>
+        </label>
+        <label class="inline-flex items-center gap-1.5 cursor-pointer shrink-0">
+          <input type="checkbox" class="unif-forn-dup accent-orange-600" value="${entradaNfeFornEsc(id)}" data-forn-id="${entradaNfeFornEsc(id)}">
+          <span class="text-[9px] font-black uppercase text-orange-900">Duplicado</span>
+        </label>
+        <div class="min-w-0 flex-1">${entradaNfeFornItemHtml(it)}</div>`;
+      modalUnifFornLista.appendChild(row);
+    });
+    modalUnifFornLista.querySelectorAll('input[name="unif-forn-canon"]').forEach((r) => {
+      r.addEventListener('change', () => {
+        if (r.checked) {
+          modalUnifFornCanonId = String(r.value || '');
+          const dup = modalUnifFornLista.querySelector(`.unif-forn-dup[data-forn-id="${modalUnifFornCanonId}"]`);
+          if (dup) dup.checked = false;
+        }
+      });
+    });
+    modalUnifFornLista.querySelectorAll('.unif-forn-dup').forEach((cb) => {
+      cb.addEventListener('change', () => {
+        if (cb.checked && modalUnifFornCanonId === cb.value) {
+          cb.checked = false;
+          showMsg('O principal não pode ser duplicado.', false);
+        }
+      });
+    });
+  }
+
+  async function entradaNfeCarregarModalUnificarForn(q) {
+    const u = new URL(URL_FORN, window.location.origin);
+    const termo = String(q || '').trim();
+    if (termo) u.searchParams.set('q', termo);
+    else u.searchParams.set('inicial', '1');
+    u.searchParams.set('limit', '60');
+    const r = await fetch(u.toString(), { credentials: 'same-origin' });
+    const j = await r.json();
+    modalUnifFornItens = Array.isArray(j.itens) ? j.itens : [];
+    entradaNfeRenderModalUnificarFornLista();
+  }
+
+  async function entradaNfeConfirmarUnificarForn() {
+    const err = document.getElementById('modal-unificar-forn-erro');
+    const canonEl = modalUnifFornLista?.querySelector('input[name="unif-forn-canon"]:checked');
+    const canonId = canonEl ? String(canonEl.value || '').trim() : '';
+    const dups = [];
+    modalUnifFornLista?.querySelectorAll('.unif-forn-dup:checked').forEach((cb) => {
+      const id = String(cb.value || '').trim();
+      if (id && id !== canonId) dups.push(id);
+    });
+    if (!canonId) {
+      if (err) { err.textContent = 'Marque qual cadastro é o principal.'; err.classList.remove('hidden'); }
+      return;
+    }
+    if (!dups.length) {
+      if (err) { err.textContent = 'Marque ao menos um duplicado (diferente do principal).'; err.classList.remove('hidden'); }
+      return;
+    }
+    const pick = modalUnifFornItens.find((it) => String(it.id) === canonId);
+    const tok = getCookie('csrftoken');
+    if (!tok) {
+      showMsg('Sessão expirada — atualize a página.', false);
+      return;
+    }
+    const r = await fetch(URL_FORN_UNIF, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': tok },
+      body: JSON.stringify({
+        fornecedor_canonico_id: canonId,
+        canonico_nome: pick ? pick.nome : '',
+        duplicados_ids: dups,
+      }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) {
+      const msg = j.erro || 'Não foi possível unificar.';
+      if (err) { err.textContent = msg; err.classList.remove('hidden'); }
+      else showMsg(msg, false);
+      return;
+    }
+    fornCache.clear();
+    entradaNfeFecharModalUnificarForn();
+    showMsg((j.aviso || 'Fornecedores unificados.') + ' Busca atualizada.', true);
+    void carregarFornecedores(fornInp?.value?.trim() || '', false);
+  }
+
+  document.getElementById('nfe-btn-unificar-forn')?.addEventListener('click', () => {
+    modalUnifForn?.classList.remove('hidden');
+    modalUnifFornCanonId = String(fornHid?.value || '').trim();
+    const qInp = document.getElementById('modal-unificar-forn-q');
+    if (qInp) qInp.value = fornInp?.value?.trim() || '';
+    void entradaNfeCarregarModalUnificarForn(qInp?.value || '');
+  });
+  document.getElementById('modal-unificar-forn-fechar')?.addEventListener('click', entradaNfeFecharModalUnificarForn);
+  document.getElementById('modal-unificar-forn-cancelar')?.addEventListener('click', entradaNfeFecharModalUnificarForn);
+  document.getElementById('modal-unificar-forn-confirmar')?.addEventListener('click', () => { void entradaNfeConfirmarUnificarForn(); });
+  let modalUnifFornTimer = null;
+  document.getElementById('modal-unificar-forn-q')?.addEventListener('input', (e) => {
+    clearTimeout(modalUnifFornTimer);
+    const q = e.target && e.target.value;
+    modalUnifFornTimer = setTimeout(() => { void entradaNfeCarregarModalUnificarForn(q); }, 380);
   });
 
   const ENTRADA_NFE_LS_EMB_COLS = 'agro_nfe_emb_cols_abertas_v1';

@@ -5299,6 +5299,15 @@ def normalizar_cabecalho_emit_fornecedor_entrada_nfe(
         out["emit_fornecedor_id"] = pid_can
     if doc_cnpj:
         out["emit_cnpj"] = doc_cnpj
+    try:
+        from produtos.fornecedor_entrada_nfe_util import resolver_fornecedor_canonico_id
+
+        pid_out = str(out.get("emit_fornecedor_id") or "").strip()
+        pid_res = resolver_fornecedor_canonico_id(pid_out)
+        if pid_res and pid_res != pid_out:
+            out["emit_fornecedor_id"] = pid_res
+    except Exception:
+        pass
     return out
 
 
