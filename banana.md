@@ -1294,38 +1294,32 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PREP ARMADO — **CHECKLIST 21/10b** · **NF-ENTRADA-FORN-AJUSTE** · **v27.26.19** · 21/10
+### ✅ Deploy loja — **CHECKLIST 21/10b** · **Live v27.26.19** · 21/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Branch PREP** | `deploy/prep-checklist-2110b-nf-forn-unif-ajuste` @ **`3c2b5117`** (base **`producao`** @ **`f4808353`**) |
-| **Pacotes** | **NF-FORN-UNIF-ALIAS** + **NF-AJUSTE-CUSTO-MANUAL** (só `/entrada-nota/`) |
-| **Migrate** | **SIM** `0149` — **obrigatório** no Render Shell após deploy |
-| **PDV / caixa** | **Não alterados** (gate cutover OK) |
-| **Prova** | path + rateio **VERIFY_OK** · alias OK pós-migrate · **`prep_checkpoint` OK** |
-| **Prep** | `./scripts/prep_checkpoint_checklist_2110b_nf_forn_unif_ajuste.sh` ✅ |
-| **Cutover (senha)** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_2110b_nf_forn_unif_ajuste.sh --exec` |
+| **Status** | ✅ **Live** @ **`3c2b5117`** · cutover autorizado **21/10** |
+| **Pacotes** | **NF-FORN-UNIF-ALIAS** + **NF-AJUSTE-CUSTO-MANUAL** (só Entrada NF) |
+| **Migrate** | **SIM** `0149` — rodar **agora** no Render Shell se ainda não rodou |
+| **PDV / caixa** | **Não alterados** |
 | **Revert** | `git push origin rollback/pre-v272619-2110b-nf-forn-unif-ajuste:producao` → **v27.26.18** @ **`f4808353`** |
 | **Pós-deploy** | `./scripts/post_deploy_checklist_2110b_nf_forn_unif_ajuste.sh` |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-2110b-nf-forn-unif-ajuste.md` |
+| **Smoke** | **Ctrl+F5** → `/entrada-nota/` → unificar fornecedores → ajuste manual → Reverter |
 
-**Status:** 🟢 **PREP pronto** — **não** subiu · **só** frase + senha no próximo chat.
+### ~~ARMADO 21/10b~~ · **enviado** · ver Live acima
 
-### ✅ CHECKLIST ÚNICO — **21/10b** · 🟡 **aguarda senha** · PREP armado
+### ✅ CHECKLIST ÚNICO — **21/10b** · ✅ **enviado** (ver Live)
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **NF-FORN-UNIF-ALIAS** | 🟡 **aguarda senha** | **SIM** `0149` | verify path + alias |
-| 2 | **NF-AJUSTE-CUSTO-MANUAL** | 🟡 **aguarda senha** | **NÃO** | verify rateio |
+| 1 | **NF-FORN-UNIF-ALIAS** | ✅ Live | **SIM** `0149` | path + alias |
+| 2 | **NF-AJUSTE-CUSTO-MANUAL** | ✅ Live | **NÃO** | rateio |
 
 ### 📦 PACOTE PRONTO — **NF-ENTRADA-FORN-AJUSTE** · **v27.26.19** · 21/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **teste** | **`fd2a3ff9`** · **`da4ab448`** · verify fix **`8959721a`** |
-| **Migrate** | **SIM** `0149_fornecedor_entrada_nfe_alias_agro` |
-| **CP / boletos antigos** | **Não alterados** |
-| **Smoke** | Ctrl+F5 → `/entrada-nota/` → unificar fornecedores → ajuste manual → Reverter |
+| **PREP / loja** | `deploy/prep-checklist-2110b-nf-forn-unif-ajuste` · **`producao`** @ **`3c2b5117`** |
 
 ### ✅ Deploy loja — **CHECKLIST 21/10** · **Live v27.26.18** · 21/10
 
