@@ -1312,8 +1312,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
+<<<<<<< HEAD
 | 1 | **NF-FORN-UNIF-ALIAS** | ✅ Live | **SIM** `0149` | path + alias |
 | 2 | **NF-AJUSTE-CUSTO-MANUAL** | ✅ Live | **NÃO** | rateio |
+=======
+| 1 | **NF-FORN-UNIF-ALIAS** | 🟢 PREP | **SIM** `0149` | `verify_fornecedor_entrada_nfe_alias_path` + `verify_nf_forn_unif_ajuste_path` |
+| 2 | **NF-AJUSTE-CUSTO-MANUAL** | 🟢 PREP | **NÃO** | `verify_nf_ajuste_manual_rateio_path` |
+
+**O quê:** Entrada NF etapa 1 — unificar fornecedores duplicados (alias Postgres; **não** altera CP antigo). Etapa 2 — desconto/acréscimo manual em R$ diluído por linha (proporcional ao total do item); **Reverter**; independente do frete/ST do XML.
+
+**Smoke:** Ctrl+F5 → `/entrada-nota/` → unificar 2+ cadastros fornecedor → nota teste com 2 itens → desconto R$ e acréscimo R$ → **Reverter** (V. unit volta; Total = Qtd est. × unit).
+
+**Fix 21/10 (pós-teste):** rateio manual divide por **Qtd est.** (não Qtd NF); rascunho restaura `v_prod` + `v_un_com_base_nf`; Reverter não apaga base.
+
+**Revert (só frase+senha):** remover migrate `0149` na loja **não** — tag após merge em `teste` se Renan pedir rollback doc.
+>>>>>>> e1ece2c6 (fix(entrada-nf): rascunho compras OC com base NF; banana smoke revert)
 
 ### 📦 PACOTE PRONTO — **NF-ENTRADA-FORN-AJUSTE** · **v27.26.19** · 21/10
 

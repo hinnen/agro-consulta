@@ -13112,12 +13112,15 @@
               un_por_embalagem: row.un_por_embalagem != null ? row.un_por_embalagem : 1,
               q_estoque: row.q_estoque != null ? row.q_estoque : null,
               v_un_com: row.v_un_com != null ? row.v_un_com : 0,
+              v_un_com_base_nf: row.v_un_com_base_nf != null ? row.v_un_com_base_nf : null,
+              v_prod: row.v_prod != null ? row.v_prod : null,
               preco_venda: row.preco_venda != null ? row.preco_venda : 0,
               cfop: row.cfop || '',
               produto_id: row.produto_id || '',
               nome_catalogo: row.nome_catalogo || row.x_prod || '',
               match_tipo: row.match_tipo || 'compras',
               catalogo_via: row.catalogo_via || '',
+              preservar_custo_nf: row.preservar_custo_nf != null ? !!row.preservar_custo_nf : true,
             });
           });
         } else {
