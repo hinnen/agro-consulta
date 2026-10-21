@@ -1294,6 +1294,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 CHECKLIST ÚNICO — **21/10b** · **pronto envio produção** · prep **v27.26.19**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NF-FORN-UNIF-ALIAS** | 🟢 PREP | **SIM** `0149` | `verify_fornecedor_entrada_nfe_alias_path` + `verify_nf_forn_unif_ajuste_path` |
+| 2 | **NF-AJUSTE-CUSTO-MANUAL** | 🟢 PREP | **NÃO** | `verify_nf_ajuste_manual_rateio_path` |
+
+**O quê:** Entrada NF etapa 1 — unificar fornecedores duplicados (alias Postgres; **não** altera CP antigo). Etapa 2 — desconto/acréscimo manual em R$ diluído por linha (proporcional ao total do item); **Reverter**; independente do frete/ST do XML.
+
+**Smoke:** Ctrl+F5 → `/entrada-nota/` → unificar 2+ cadastros fornecedor → nota teste com 2 itens → desconto R$ e acréscimo R$ → Reverter.
+
+**Revert (só frase+senha):** remover migrate `0149` na loja **não** — tag após merge em `teste` se Renan pedir rollback doc.
+
+### 📦 PACOTE PRONTO — **NF-ENTRADA-FORN-AJUSTE** · **v27.26.19** · 21/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Branch** | `teste` (merge pacote **21/10b**) |
+| **Migrate** | **SIM** `0149_fornecedor_entrada_nfe_alias_agro` |
+| **CP / boletos antigos** | **Não alterados** |
+
 ### ✅ Deploy loja — **CHECKLIST 21/10** · **Live v27.26.18** · 21/10
 
 | Campo | Valor |
