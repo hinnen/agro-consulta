@@ -906,7 +906,8 @@
         dom.cvCaixaDin.textContent = 'Fechado';
         dom.cvCaixaDin.className = 'text-3xl font-black tabular-nums text-red-800';
         if (dom.cvCaixaHint) {
-          dom.cvCaixaHint.textContent = 'Abra a Gaveta do Centro neste PC para transferir';
+          dom.cvCaixaHint.textContent =
+            'Gaveta Centro fechada na loja — abra no Centro (pode fazer o repasse da Vila depois)';
         }
       }
     }
@@ -917,10 +918,12 @@
     }
     if (dom.sub && modoSentido === 'centro_vila') {
       if (!cc.aberto) {
-        dom.sub.textContent = 'Gaveta Centro FECHADA — abra antes de transferir';
+        dom.sub.textContent =
+          'Gaveta Centro fechada — abra no Centro; pode usar este PDV na Vila ou no Centro';
         dom.sub.classList.add('text-red-700');
       } else {
-        dom.sub.textContent = 'Sai do Centro · entra na Vila (manual)';
+        dom.sub.textContent =
+          'Sai da Gaveta Centro · entra na Vila — vale na Vila ou no Centro';
         dom.sub.classList.remove('text-red-700');
       }
     }

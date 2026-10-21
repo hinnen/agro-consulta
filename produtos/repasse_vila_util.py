@@ -2750,16 +2750,21 @@ def confirmar_repasse_centro_vila(
     sessao_req = obter_sessao_caixa_aberta_request(request)
     sessao_centro = obter_caixa_gaveta_aberto()
     if not sessao_centro:
-        return None, "Abra o caixa Gaveta (Centro) para transferir."
+        return None, (
+            "A Gaveta do Centro precisa estar aberta na loja para registrar a saída. "
+            "Abra o caixa Gaveta (Centro) e tente de novo."
+        )
     if not sessao_req:
-        return None, "Abra o caixa do Centro neste computador para transferir."
+        return None, (
+            "Abra o caixa neste computador (Centro ou Vila) para registrar o repasse."
+        )
     ponto_req = getattr(sessao_req, "ponto_caixa", "")
-    if ponto_req not in ("gaveta", "notebook"):
-        return None, "Troque a loja para Centro (caixa Gaveta) para transferir."
+    if ponto_req == "teste":
+        return None, "Caixa teste não registra repasse entre Centro e Vila."
     if ponto_req == "notebook":
         pai = getattr(sessao_req, "sessao_principal", None)
-        if not pai or getattr(pai, "ponto_caixa", "") != "gaveta":
-            return None, "Notebook precisa estar vinculado ao caixa Gaveta do Centro."
+        if not pai or getattr(pai, "ponto_caixa", "") not in ("gaveta", "vila"):
+            return None, "Notebook precisa estar vinculado ao caixa Gaveta ou Vila."
 
     fn = normalizar_forma_pagamento_caixa(forma_pagamento or "Dinheiro")
     if fn == "Dinheiro":

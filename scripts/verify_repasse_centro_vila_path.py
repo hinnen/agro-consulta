@@ -38,6 +38,14 @@ def main() -> int:
         "def saldo_dinheiro_caixa_centro",
     ):
         check(needle in util, f"util {needle}")
+    check(
+        "Troque a loja para Centro" not in util,
+        "centro_vila não exige PDV no Centro",
+    )
+    check(
+        "Centro ou Vila" in util,
+        "centro_vila aceita caixa aberto em qualquer loja no PC",
+    )
 
     models = (ROOT / "produtos/models.py").read_text(encoding="utf-8")
     check("class RepasseCentroVilaAgro" in models, "model RepasseCentroVilaAgro")
