@@ -1294,26 +1294,38 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 CHECKLIST ÚNICO — **21/10b** · **pronto envio produção** · prep **v27.26.19**
+### 🟢 PREP ARMADO — **CHECKLIST 21/10b** · **NF-ENTRADA-FORN-AJUSTE** · **v27.26.19** · 21/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Branch PREP** | `deploy/prep-checklist-2110b-nf-forn-unif-ajuste` @ **`3c2b5117`** (base **`producao`** @ **`f4808353`**) |
+| **Pacotes** | **NF-FORN-UNIF-ALIAS** + **NF-AJUSTE-CUSTO-MANUAL** (só `/entrada-nota/`) |
+| **Migrate** | **SIM** `0149` — **obrigatório** no Render Shell após deploy |
+| **PDV / caixa** | **Não alterados** (gate cutover OK) |
+| **Prova** | path + rateio **VERIFY_OK** · alias OK pós-migrate · **`prep_checkpoint` OK** |
+| **Prep** | `./scripts/prep_checkpoint_checklist_2110b_nf_forn_unif_ajuste.sh` ✅ |
+| **Cutover (senha)** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_2110b_nf_forn_unif_ajuste.sh --exec` |
+| **Revert** | `git push origin rollback/pre-v272619-2110b-nf-forn-unif-ajuste:producao` → **v27.26.18** @ **`f4808353`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2110b_nf_forn_unif_ajuste.sh` |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-2110b-nf-forn-unif-ajuste.md` |
+
+**Status:** 🟢 **PREP pronto** — **não** subiu · **só** frase + senha no próximo chat.
+
+### ✅ CHECKLIST ÚNICO — **21/10b** · 🟡 **aguarda senha** · PREP armado
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **NF-FORN-UNIF-ALIAS** | 🟢 PREP | **SIM** `0149` | `verify_fornecedor_entrada_nfe_alias_path` + `verify_nf_forn_unif_ajuste_path` |
-| 2 | **NF-AJUSTE-CUSTO-MANUAL** | 🟢 PREP | **NÃO** | `verify_nf_ajuste_manual_rateio_path` |
-
-**O quê:** Entrada NF etapa 1 — unificar fornecedores duplicados (alias Postgres; **não** altera CP antigo). Etapa 2 — desconto/acréscimo manual em R$ diluído por linha (proporcional ao total do item); **Reverter**; independente do frete/ST do XML.
-
-**Smoke:** Ctrl+F5 → `/entrada-nota/` → unificar 2+ cadastros fornecedor → nota teste com 2 itens → desconto R$ e acréscimo R$ → Reverter.
-
-**Revert (só frase+senha):** remover migrate `0149` na loja **não** — tag após merge em `teste` se Renan pedir rollback doc.
+| 1 | **NF-FORN-UNIF-ALIAS** | 🟡 **aguarda senha** | **SIM** `0149` | verify path + alias |
+| 2 | **NF-AJUSTE-CUSTO-MANUAL** | 🟡 **aguarda senha** | **NÃO** | verify rateio |
 
 ### 📦 PACOTE PRONTO — **NF-ENTRADA-FORN-AJUSTE** · **v27.26.19** · 21/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Branch** | `teste` (merge pacote **21/10b**) |
+| **teste** | **`fd2a3ff9`** · **`da4ab448`** · verify fix **`8959721a`** |
 | **Migrate** | **SIM** `0149_fornecedor_entrada_nfe_alias_agro` |
 | **CP / boletos antigos** | **Não alterados** |
+| **Smoke** | Ctrl+F5 → `/entrada-nota/` → unificar fornecedores → ajuste manual → Reverter |
 
 ### ✅ Deploy loja — **CHECKLIST 21/10** · **Live v27.26.18** · 21/10
 

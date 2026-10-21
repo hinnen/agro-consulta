@@ -1149,14 +1149,18 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 97. CHECKLIST ÚNICO — **21/10b** · 🟢 **pronto envio produção** · prep **v27.26.19**
+## 97. CHECKLIST ÚNICO — **21/10b** · 🟢 **PREP armado** · **v27.26.19**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **NF-FORN-UNIF-ALIAS** | 🟢 PREP | **SIM** `0149` | alias + path |
-| 2 | **NF-AJUSTE-CUSTO-MANUAL** | 🟢 PREP | **NÃO** | rateio path |
+| 1 | **NF-FORN-UNIF-ALIAS** | 🟡 **aguarda senha** | **SIM** `0149` | alias + path |
+| 2 | **NF-AJUSTE-CUSTO-MANUAL** | 🟡 **aguarda senha** | **NÃO** | rateio path |
 
-**Smoke:** Entrada NF → unificar fornecedor → etapa 2 desconto/acréscimo manual + Reverter · **Ctrl+F5**.
+**PREP:** `deploy/prep-checklist-2110b-nf-forn-unif-ajuste` @ **`3c2b5117`**.  
+**Checkpoint:** `./scripts/prep_checkpoint_checklist_2110b_nf_forn_unif_ajuste.sh` ✅  
+**Cutover:** `./scripts/cutover_loja_checklist_2110b_nf_forn_unif_ajuste.sh --exec` + frase + senha.  
+**Pós:** `post_deploy_checklist_2110b_nf_forn_unif_ajuste.sh` (**migrate 0149**).  
+**Revert:** `rollback/pre-v272619-2110b-nf-forn-unif-ajuste` → **v27.26.18** @ **`f4808353`**.
 
 ---
 
