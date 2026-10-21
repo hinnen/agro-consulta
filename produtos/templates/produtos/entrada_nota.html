@@ -7046,18 +7046,18 @@
     const q = Number(tr.dataset.nfeQComNf) || Number(tr.querySelector('.in-qtd')?.value) || entradaNfeLinhaQtyEstoqueCalculo(tr) || 0;
     const vp = entradaNfeLinhaVProdRateio(tr);
     const somaProd = entradaNfeSomaVProdGrade(nota);
-    let unit = base;
+    if (!(q > 0) || !(vp > 0) || !(somaProd > 0)) return { base, unit: base };
     const incluirXml = !!(document.getElementById('nfe-chk-rateio-acrescimos')?.checked);
     const acrescXml = incluirXml ? entradaNfeNotaAcrescimosCusto(nota) : 0;
-    if (acrescXml > 0 && somaProd > 0 && vp > 0 && q > 0) {
-      unit = entradaNfeRoundHalfUp(base + (acrescXml * (vp / somaProd)) / q, 6);
-    }
+    let lineVal = vp;
+    if (acrescXml > 0) lineVal += acrescXml * (vp / somaProd);
     const man = entradaNfeManualAjusteCustoAtivo();
-    if (man.tipo && man.valor > 0 && somaProd > 0 && vp > 0 && q > 0) {
-      const sign = man.tipo === 'desconto' ? -1 : 1;
-      unit = entradaNfeRoundHalfUp(unit + (sign * man.valor * (vp / somaProd)) / q, 6);
-      if (unit < 0) unit = 0;
+    if (man.tipo && man.valor > 0) {
+      const sh = man.valor * (vp / somaProd);
+      if (man.tipo === 'desconto') lineVal = Math.max(0, lineVal - sh);
+      else lineVal += sh;
     }
+    const unit = entradaNfeRoundHalfUp(lineVal / q, 6);
     return { base, unit };
   }
 
@@ -7107,18 +7107,17 @@
     const q = Number(xmlItem.q_com);
     let somaProd = entradaNfeNotaSomaVProd(nota);
     if (!(somaProd > 0) && Number.isFinite(vp) && vp > 0) somaProd = vp;
-    let unit = base;
+    if (!(q > 0) || !(vp > 0) || !(somaProd > 0)) return { base, unit: base };
+    let lineVal = vp;
     const acresc = incluir ? entradaNfeNotaAcrescimosCusto(nota) : 0;
-    if (acresc > 0 && somaProd > 0 && vp > 0 && q > 0) {
-      unit = entradaNfeRoundHalfUp(base + (acresc * (vp / somaProd)) / q, 6);
-    }
+    if (acresc > 0) lineVal += acresc * (vp / somaProd);
     const man = entradaNfeManualAjusteCustoAtivo();
-    if (man.tipo && man.valor > 0 && somaProd > 0 && vp > 0 && q > 0) {
-      const sign = man.tipo === 'desconto' ? -1 : 1;
-      unit = entradaNfeRoundHalfUp(unit + (sign * man.valor * (vp / somaProd)) / q, 6);
-      if (unit < 0) unit = 0;
+    if (man.tipo && man.valor > 0) {
+      const sh = man.valor * (vp / somaProd);
+      if (man.tipo === 'desconto') lineVal = Math.max(0, lineVal - sh);
+      else lineVal += sh;
     }
-    return { base, unit };
+    return { base, unit: entradaNfeRoundHalfUp(lineVal / q, 6) };
   }
 
   function entradaNfeAplicarVUnNaLinhaTr(tr, unit) {

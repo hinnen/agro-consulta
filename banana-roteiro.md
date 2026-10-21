@@ -1149,6 +1149,17 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
+## 97. CHECKLIST ÚNICO — **21/10b** · 🟢 **pronto envio produção** · prep **v27.26.19**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NF-FORN-UNIF-ALIAS** | 🟢 PREP | **SIM** `0149` | alias + path |
+| 2 | **NF-AJUSTE-CUSTO-MANUAL** | 🟢 PREP | **NÃO** | rateio path |
+
+**Smoke:** Entrada NF → unificar fornecedor → etapa 2 desconto/acréscimo manual + Reverter · **Ctrl+F5**.
+
+---
+
 ## 96. CHECKLIST ÚNICO — **21/10** · ✅ **Live v27.26.18**
 
 | # | Pacote | Status | Migrate |
