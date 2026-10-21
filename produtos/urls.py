@@ -1812,6 +1812,11 @@ urlpatterns = [
         name='api_entrada_nota_fornecedores',
     ),
     path(
+        'api/entrada-nota/fornecedores/unificar/',
+        views.api_entrada_nota_fornecedores_unificar,
+        name='api_entrada_nota_fornecedores_unificar',
+    ),
+    path(
         'api/entrada-nota/auditoria-financeiro/',
         views.api_entrada_nota_auditoria_financeiro,
         name='api_entrada_nota_auditoria_financeiro',
