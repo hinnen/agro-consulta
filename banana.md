@@ -1316,7 +1316,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Subir** | **`teste`** → **`producao`** @ **`feca9cc7`** (+ PREP **`deploy/prep-checklist-2110c-nf-ajuste-manual-hotfix`**) |
+| **Subir** | **`teste`** → **`producao`** @ **`24a4688f`** (+ PREP **`deploy/prep-checklist-2110c-nf-ajuste-manual-hotfix`**) |
 | **Paths** | `entrada_nota.html` · `verify_nf_ajuste_manual_rateio_path.py` |
 | **Cutover** | `./scripts/cutover_loja_checklist_2110c_nf_ajuste_manual_hotfix.sh` |
 
