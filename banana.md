@@ -1294,6 +1294,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ CHECKLIST ÚNICO — **21/10** · 🟢 **pronto envio produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **REPASSE-CENTRO-VILA-PDV** | 🟢 **pronto envio** | **SIM** `produtos.0148` | path **280+190+regressão** · overlay V→C intocado |
+
+**O quê:** PDV Repasse → botão **Centro → Vila** (raro). Vale na **Vila ou no Centro**; saída **Gaveta Centro** + entrada **caixa Vila** (ou pendente na abertura Vila). Fluxo **Vila → Centro** inalterado.
+
+**Branch:** `teste` · commits `REPASSE-CENTRO-VILA-PDV` · **Smoke:** Ctrl+F5 → Repasse → Centro→Vila · valor · PIN · conferir movimentos nos dois caixas.
+
+### 📦 PACOTE PRONTO — **REPASSE-CENTRO-VILA-PDV** · alvo **v27.26.18** · 21/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Migrate** | **SIM** `0148_repasse_centro_vila` |
+| **PDV repasse V→C** | **Sem mudança de regra** (API `confirmar` + `confirmar_repasse` idênticos `teste`) |
+| **Prova** | `verify_repasse_vila_path` · `verify_repasse_pdv_overlay_path` · `verify_repasse_centro_vila_path` |
+
 ### ✅ Deploy loja — **CHECKLIST 20/10d** · **Live v27.26.17** · 20/10
 
 | Campo | Valor |

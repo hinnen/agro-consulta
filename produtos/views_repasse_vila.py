@@ -685,7 +685,7 @@ def api_repasse_centro_vila_confirmar(request):
     return JsonResponse({
         "ok": True,
         "repasse": serializar_repasse_centro_vila(rep),
-        "pendente_vila": rep.status_vila == "pendente",
+        "pendente_vila": rep.status_vila == RepasseCentroVilaAgro.StatusVila.PENDENTE,
         "caixa_centro": saldo_dinheiro_caixa_centro(),
         "caixa_vila": saldo_dinheiro_caixa_vila(),
     })

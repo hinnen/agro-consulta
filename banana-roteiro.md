@@ -1149,6 +1149,16 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
+## 96. CHECKLIST ÚNICO — **21/10** · 🟢 **pronto envio produção**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **REPASSE-CENTRO-VILA-PDV** | 🟢 **pronto envio** | **SIM** `0148` |
+
+**Prova:** `verify_repasse_centro_vila_path` + `verify_repasse_vila_path` + `verify_repasse_pdv_overlay_path`. **Não** merge `producao` sem frase+senha.
+
+---
+
 ## 95. CHECKLIST ÚNICO — **20/10d** · ✅ **Live v27.26.17**
 
 | # | Pacote | Status | Migrate | Prova |
