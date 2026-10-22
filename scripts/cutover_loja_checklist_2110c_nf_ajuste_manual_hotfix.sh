@@ -24,8 +24,6 @@ git merge-base --is-ancestor "$PROD_REF" "$PREP_REF" || { echo "FAIL: PREP não 
 DELTA="$(git diff --name-only "$PROD_REF...$PREP_REF" | sort)"
 ALLOWED="$(printf '%s\n' \
   VERSION \
-  banana.md \
-  banana-roteiro.md \
   docs/DEPLOY-PREP-CHECKLIST-2110c-nf-ajuste-manual-hotfix.md \
   produtos/templates/produtos/entrada_nota.html \
   scripts/cutover_loja_checklist_2110c_nf_ajuste_manual_hotfix.sh \
