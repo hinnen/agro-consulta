@@ -6,7 +6,16 @@ from django.contrib.auth import get_user_model
 from django.test import RequestFactory, TestCase
 from PIL import Image
 
-from produtos.pdv_rapidos_util import gravar_foto, listar_slots, preparar_foto, resposta_foto, salvar_slots
+from produtos.pdv_rapidos_util import (
+    gravar_foto,
+    listar_slots,
+    normalizar_layout_rapido,
+    obter_layout,
+    preparar_foto,
+    resposta_foto,
+    salvar_layout,
+    salvar_slots,
+)
 from produtos.pdv_topbar_layout_util import QUENTE_DEFAULT, normalizar_layout
 from produtos.views_pdv_rapidos import api_pdv_rapidos, api_pdv_rapidos_foto
 
@@ -100,6 +109,15 @@ class PdvRapidosTests(TestCase):
         up.user = self.user
         resp = api_pdv_rapidos_foto(up, 4)
         self.assertEqual(resp.status_code, 200)
+
+    def test_proporcao_unica_vale_para_os_nove(self):
+        fora = normalizar_layout_rapido({"foto_pct": 99, "nome_escala": 1, "preco_escala": "x"})
+        self.assertEqual(fora["foto_pct"], 70)
+        self.assertEqual(fora["nome_escala"], 55)
+        self.assertEqual(fora["preco_escala"], 100)
+        salvo = salvar_layout({"foto_pct": 55, "nome_escala": 140, "preco_escala": 80}, usuario=self.user)
+        self.assertEqual(obter_layout(), salvo)
+        self.assertEqual(len(listar_slots()), 9)
 
     def test_layout_rapidos_entra_no_quente(self):
         self.assertIn("rapidos", QUENTE_DEFAULT)

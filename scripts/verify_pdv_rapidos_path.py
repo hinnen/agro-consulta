@@ -39,8 +39,13 @@ def main():
     check("js_nao_f6", "F6" not in js)
     check("wiz_f6_orcamento", "if (event.code === 'F6')" in wiz and "openBudgetHistory" in wiz)
     check("wiz_bridge", "AgroPdvRapidosBridge" in wiz)
-    check("url", "api_pdv_rapidos" in urls and "api_pdv_rapidos_foto" in urls)
+    check("url", "api_pdv_rapidos" in urls and "api_pdv_rapidos_foto" in urls and "api_pdv_rapidos_layout" in urls)
     check("mig", (ROOT / "produtos/migrations/0150_pdv_rapido_slot.py").exists())
+    check("mig_layout", (ROOT / "produtos/migrations/0151_pdv_rapido_layout.py").exists())
+    check("html_proporcao", 'id="pdv-rapidos-proporcao"' in html)
+    check("js_dica_arraste", "Nome e Valor" in js and "Os 9 copiam" in js)
+    check("js_alcas", 'data-alca="foto"' in js and 'data-alca="nome"' in js and 'data-alca="preco"' in js)
+    check("js_esc_ainda_fecha", "ev.key === 'Escape'" in js and "fechar();" in js)
 
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
     import django
@@ -58,16 +63,35 @@ def main():
     from django.contrib.auth import get_user_model
     from django.db import connection, transaction
 
-    from produtos.models import PdvRapidoSlotAgro
-    from produtos.pdv_rapidos_util import gravar_foto, listar_slots, preparar_foto, resposta_foto, salvar_slots
+    from produtos.models import PdvRapidoLayoutAgro, PdvRapidoSlotAgro
+    from produtos.pdv_rapidos_util import (
+        gravar_foto,
+        listar_slots,
+        normalizar_layout_rapido,
+        obter_layout,
+        preparar_foto,
+        resposta_foto,
+        salvar_layout,
+        salvar_slots,
+    )
     from produtos.tests_pdv_rapidos import _jpeg
+
+    fora = normalizar_layout_rapido({"foto_pct": 99, "nome_escala": 1, "preco_escala": "x"})
+    check("faixa_foto", fora["foto_pct"] == 70)
+    check("faixa_nome", fora["nome_escala"] == 55)
+    check("faixa_preco", fora["preco_escala"] == 100)
 
     tabelas = set(connection.introspection.table_names())
     nome_tab = PdvRapidoSlotAgro._meta.db_table
+    nome_lay = PdvRapidoLayoutAgro._meta.db_table
     criou = nome_tab not in tabelas
+    criou_lay = nome_lay not in tabelas
     if criou:
         with connection.schema_editor() as editor:
             editor.create_model(PdvRapidoSlotAgro)
+    if criou_lay:
+        with connection.schema_editor() as editor:
+            editor.create_model(PdvRapidoLayoutAgro)
     try:
         with transaction.atomic():
             user, _ = get_user_model().objects.get_or_create(username="verify_pdv_rapidos")
@@ -88,8 +112,13 @@ def main():
             check("db_foto_ruim", ruim is None and bool(msg))
             ok_limpa, err_limpa = salvar_slots([{"posicao": 1, "limpar": True}])
             check("db_limpar", ok_limpa and resposta_foto(1).status_code == 404, err_limpa)
+            salvo = salvar_layout({"foto_pct": 55, "nome_escala": 140, "preco_escala": 80}, usuario=user)
+            check("db_proporcao", obter_layout() == salvo and salvo["foto_pct"] == 55)
             transaction.set_rollback(True)
     finally:
+        if criou_lay:
+            with connection.schema_editor() as editor:
+                editor.delete_model(PdvRapidoLayoutAgro)
         if criou:
             with connection.schema_editor() as editor:
                 editor.delete_model(PdvRapidoSlotAgro)

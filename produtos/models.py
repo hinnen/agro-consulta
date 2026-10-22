@@ -3871,6 +3871,30 @@ class PdvRapidoSlotAgro(models.Model):
         return f"rápido {self.posicao}: {self.nome or 'vazio'}"
 
 
+class PdvRapidoLayoutAgro(models.Model):
+    """Proporção única dos 9 slots (foto, apelido e preço)."""
+
+    chave = models.CharField(max_length=32, unique=True, default="default")
+    foto_pct = models.PositiveSmallIntegerField(default=40)
+    nome_escala = models.PositiveSmallIntegerField(default=100)
+    preco_escala = models.PositiveSmallIntegerField(default=100)
+    atualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="pdv_rapido_layouts",
+    )
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Proporção dos rápidos do PDV"
+        verbose_name_plural = "Proporções dos rápidos do PDV"
+
+    def __str__(self):
+        return f"rápidos:{self.chave}"
+
+
 class WhatsAppPonteEstadoAgro(models.Model):
     """Singleton da ponte QR (PC da loja ↔ Django)."""
 
