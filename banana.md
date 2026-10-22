@@ -1294,22 +1294,33 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### ✅ CHECKLIST ÚNICO — **22/10** · 🟢 **pronto envio produção**
+### 🟢 PREP ARMADO — **CHECKLIST 22/10** · **DFE-VILA-BUSCAR** · **v27.26.21** · 22/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Loja atual** | **`25844530`** · **v27.26.20** |
+| **Branch PREP** | `deploy/prep-checklist-2210-dfe-vila-buscar` @ **`b70a67b9`** |
+| **O quê** | Entrada NF aba SEFAZ: **Buscar notas novas** puxa Dist DF-e **Centro + Vila fiscal** (`48900774000286`), `ultNSU` por CNPJ, caixa unificada · etiqueta **Vila Elias** |
+| **Migrate** | **NÃO** |
+| **PDV / caixa** | **Não alterados** |
+| **Prova** | `verify_dfe_multi_cnpj.py` **8/8** · `verify_dfe_nsu_656.py` **12/12** |
+| **Checkpoint** | `rollback/pre-v272621-2210-dfe-vila-buscar` · backup `producao-backup-pre-v272621-2210-dfe-vila-buscar` → **`25844530`** |
+| **Cutover** | `./scripts/cutover_loja_checklist_2210_dfe_vila_buscar.sh` · `--exec` + frase + senha |
+| **Revert** | `git push origin rollback/pre-v272621-2210-dfe-vila-buscar:producao` → **v27.26.20** @ **`25844530`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2210_dfe_vila_buscar.sh` (sem migrate) |
+| **Smoke** | **Ctrl+F5** `/entrada-nota/` → SEFAZ → **Atualizar status** (2 CNPJs) → **Buscar notas novas** |
+
+### ✅ CHECKLIST ÚNICO — **22/10** · 🟢 **PREP ARMADO — aguarda senha**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **DFE-VILA-BUSCAR** | 🟢 pronto | **NÃO** | `scripts/verify_dfe_multi_cnpj.py` · `verify_dfe_nsu_656.py` |
+| 1 | **DFE-VILA-BUSCAR** | 🟢 aguarda senha | **NÃO** | verify multi-CNPJ + NSU 656 |
 
 ### 📦 PACOTE PRONTO — **DFE-VILA-BUSCAR** · **v27.26.21** · 22/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **PREP / teste** | **`785a0f7d`** |
-| **O quê** | Entrada NF aba SEFAZ: **Buscar notas novas** puxa Dist DF-e da **matriz e da Vila Elias** (CNPJ fiscal `48900774000286`), cursor `ultNSU` por CNPJ, caixa PG unificada · chave/ciência no CNPJ certo |
-| **Migrate** | **NÃO** |
-| **PDV / caixa** | **Não alterados** |
-| **Smoke** | **Ctrl+F5** `/entrada-nota/` → SEFAZ → **Atualizar status** (2 cursores) → **Buscar notas novas** → nota Vila em Pendentes com etiqueta **Vila Elias** |
-| **Prova local** | `.venv/bin/python scripts/verify_dfe_multi_cnpj.py` · `verify_dfe_nsu_656.py` |
+| **PREP / loja** | **`b70a67b9`** sobre **`25844530`** |
 
 ### ✅ Deploy loja — **CHECKLIST 21/10c** · **Live v27.26.20** · 21/10
 

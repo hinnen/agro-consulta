@@ -1149,6 +1149,18 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
+## 99. CHECKLIST ÚNICO — **22/10** · 🟢 **PREP ARMADO v27.26.21 — aguarda senha**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **DFE-VILA-BUSCAR** | 🟢 aguarda senha | **NÃO** | multi-CNPJ **8/8** · NSU 656 **12/12** |
+
+**Loja git:** `producao` @ **`25844530`** (v27.26.20). **PREP:** `deploy/prep-checklist-2210-dfe-vila-buscar` @ **`b70a67b9`**.  
+**Cutover:** `./scripts/cutover_loja_checklist_2210_dfe_vila_buscar.sh --exec` + senha.  
+**Revert:** `rollback/pre-v272621-2210-dfe-vila-buscar` → **`25844530`**. **Shell:** `post_deploy_checklist_2210_dfe_vila_buscar.sh` (sem migrate).
+
+---
+
 ## 98. CHECKLIST ÚNICO — **21/10c** · ✅ **Live v27.26.20**
 
 | # | Pacote | Status | Migrate | Prova |
