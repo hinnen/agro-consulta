@@ -539,6 +539,9 @@
     background: #065f46;
   }
   #pdv-rapidos-overlay {
+    --rap-foto: 40%;
+    --rap-nome: 100;
+    --rap-preco: 100;
     position: fixed;
     inset: 0;
     z-index: 200;
@@ -638,10 +641,10 @@
   .pdv-rapidos-card.is-vazio { background: #f8fafc; border-style: dashed; }
   .pdv-rapidos-foto {
     position: relative;
-    flex: 0 0 auto;
-    height: 100%;
-    aspect-ratio: 3 / 4;
-    max-width: 42%;
+    flex: 0 0 var(--rap-foto);
+    width: var(--rap-foto);
+    min-width: 0;
+    align-self: stretch;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -708,19 +711,62 @@
     justify-content: center;
     gap: 0.2rem;
   }
+  .pdv-rapidos-nome,
+  .pdv-rapidos-preco { position: relative; }
   .pdv-rapidos-nome {
-    font-size: clamp(1.15rem, 1.7vw, 1.85rem);
+    font-size: calc(var(--rap-nome) * 0.018rem);
     font-weight: 900;
     line-height: 1.12;
     color: #0f172a;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
   }
   .pdv-rapidos-preco {
-    font-size: clamp(1.2rem, 1.8vw, 2rem);
+    font-size: calc(var(--rap-preco) * 0.02rem);
     font-weight: 900;
     line-height: 1.1;
     color: #047857;
     font-variant-numeric: tabular-nums;
   }
+  .pdv-rapidos-card.is-amostra .pdv-rapidos-nome,
+  .pdv-rapidos-card.is-amostra .pdv-rapidos-preco { color: #94a3b8; }
+  .pdv-rapidos-card.is-modelo { position: relative; z-index: 2; border-color: #ea580c; border-width: 3px; }
+  .pdv-rapidos-alcas {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.35rem;
+    bottom: 0.35rem;
+    width: 4.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.28rem;
+    z-index: 4;
+  }
+  .pdv-rapidos-card.is-modelo { padding-right: 5.2rem; }
+  .pdv-rapidos-alca {
+    position: static;
+    flex: 1;
+    min-height: 2.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+    border: 2px solid #9a3412;
+    border-radius: 0.65rem;
+    background: #ea580c;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .pdv-rapidos-alca--foto { cursor: ew-resize; }
+  .pdv-rapidos-alca[data-alca='nome'],
+  .pdv-rapidos-alca[data-alca='preco'] { cursor: ns-resize; }
+  #pdv-rapidos-overlay.is-arrastando,
+  #pdv-rapidos-overlay.is-arrastando * { cursor: grabbing; user-select: none; }
   .pdv-rapidos-card.is-edit { cursor: default; }
   .pdv-rapidos-nome-input,
   .pdv-rapidos-busca {
@@ -5201,7 +5247,7 @@
         'Histórico do cliente: botão Hist. ou F8 (relacionamento). F5 recarrega a página.',
         'Painel direito mostra vale crédito, cashback e fiado quando existirem.',
         '“Orçamento” salva/recupera rascunho neste aparelho (F6 histórico).',
-        'Rápidos (Alt+6): nove produtos fixos em tela cheia. Tecla 1 a 9 ou clique lança 1 unidade e fecha. Esc fecha. Em Definir, o apelido e a foto são seus; o preço vem do cadastro.',
+        'Rápidos (Alt+6): nove produtos fixos em tela cheia. Tecla 1 a 9 ou clique lança 1 unidade e fecha. Esc fecha. Em Definir, o apelido e a foto são seus; o preço vem do cadastro. Em Proporção, arraste as faixas do primeiro quadro: foto, nome e valor valem para os nove.',
       ],
     },
     entrega: {
@@ -5430,6 +5476,7 @@ window.AGRO_ETQ_CFG = window.AGRO_ETQ_CFG || {
     <h2 id="pdv-rapidos-titulo">Rápidos</h2>
     <p id="pdv-rapidos-dica" class="pdv-rapidos-dica">1 a 9 adiciona e fecha · Esc sai</p>
     <button type="button" id="pdv-rapidos-definir" class="pdv-rapidos-head-btn">Definir</button>
+    <button type="button" id="pdv-rapidos-proporcao" class="pdv-rapidos-head-btn">Proporção</button>
     <button type="button" id="pdv-rapidos-voltar" class="pdv-rapidos-head-btn hidden">Voltar</button>
     <button type="button" id="pdv-rapidos-salvar" class="pdv-rapidos-head-btn pdv-rapidos-head-btn--ok hidden">Salvar</button>
     <button type="button" id="pdv-rapidos-fechar" class="pdv-rapidos-x" title="Fechar · Esc" aria-label="Fechar">×</button>

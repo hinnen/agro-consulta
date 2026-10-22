@@ -1172,6 +1172,11 @@ urlpatterns = [
         name='api_pdv_rapidos',
     ),
     path(
+        'api/pdv/rapidos/layout/',
+        views_pdv_rapidos.api_pdv_rapidos_layout,
+        name='api_pdv_rapidos_layout',
+    ),
+    path(
         'api/pdv/rapidos/<int:posicao>/foto/',
         views_pdv_rapidos.api_pdv_rapidos_foto,
         name='api_pdv_rapidos_foto',
