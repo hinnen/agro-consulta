@@ -185,6 +185,31 @@ def classificar_xml_dfe(xml_txt: str) -> dict[str, Any]:
     return {"schema": "outro", "chave": "", "parse_ok": False, "xml": ""}
 
 
+def dfe_inbox_listar_configurados(
+    *, aba: str = "pendentes", limit: int = 80
+) -> list[dict[str, Any]]:
+    """Une a caixa de entrada de todos os CNPJs Dist DF-e (Centro + Vila)."""
+    from produtos.sefaz_dfe_client import dist_dfe_cnpjs_destino, dist_dfe_rotulo_cnpj
+
+    cnpjs = dist_dfe_cnpjs_destino()
+    if not cnpjs:
+        return []
+    lim = max(1, min(int(limit or 80), 120))
+    merged: list[dict[str, Any]] = []
+    for cnpj in cnpjs:
+        for item in dfe_inbox_listar(cnpj, aba=aba, limit=lim):
+            rot = dist_dfe_rotulo_cnpj(cnpj)
+            if rot and not item.get("destino_loja"):
+                item = {**item, "destino_loja": rot, "destino_cnpj": cnpj}
+            merged.append(item)
+    aba_n = (aba or "pendentes").strip().lower()
+    if aba_n in ("concluidas", "concluídas", "processadas"):
+        merged.sort(key=lambda x: x.get("criado_em") or "", reverse=True)
+    else:
+        merged.sort(key=lambda x: x.get("criado_em") or "")
+    return merged[:lim]
+
+
 def dfe_inbox_listar(cnpj: str, *, aba: str = "pendentes", limit: int = 80) -> list[dict[str, Any]]:
     from produtos.models import AgroNfeDistDfeDocumento
 
@@ -419,66 +444,33 @@ def dfe_cron_marcar_hoje(cnpj: str) -> None:
     )
 
 
-def dfe_executar_consulta_e_gravar(
+def _dfe_processar_resposta_nsu(
+    cnpj: str,
+    res: dict[str, Any],
     *,
-    ult_nsu: str | None = None,
-    origem: str = "manual",
+    origem: str,
 ) -> dict[str, Any]:
-    """
-    Consulta SEFAZ (respeitando cooldown do client) e grava inbox.
-    origem: manual | cron
-    """
+    """Grava cursor NSU e inbox para um CNPJ após distNSU."""
     from produtos.nfe_entrada_util import gravar_ult_nsu, obter_ult_nsu
-    from produtos.sefaz_dfe_client import (
-        _cfg_dist_dfe,
-        distribuicao_dfe_configurada,
-        nfe_distribuicao_dfe_interesse,
-    )
 
-    cfg = _cfg_dist_dfe()
-    cnpj = _cnpj14(str(cfg.get("cnpj") or ""))
-    out: dict[str, Any] = {
-        "ok": False,
+    cnpj = _cnpj14(cnpj)
+    parte: dict[str, Any] = {
         "cnpj": cnpj,
-        "origem": origem,
+        "c_stat": res.get("c_stat"),
+        "x_motivo": res.get("x_motivo"),
+        "ult_nsu": res.get("ult_nsu"),
+        "max_nsu": res.get("max_nsu"),
+        "aguardar_segundos": res.get("aguardar_segundos"),
+        "erro": res.get("erro"),
+        "ok": bool(res.get("ok")),
+        "n_docs_retorno": len(res.get("notas_xml") or []),
         "inbox": {"novas": 0, "atualizadas": 0, "resumos": 0},
-        "itens_pendentes": [],
     }
-    if not distribuicao_dfe_configurada() or len(cnpj) != 14:
-        out["erro"] = "Dist DF-e não configurada."
-        return out
-    if origem == "cron" and dfe_cron_ja_rodou_hoje(cnpj):
-        out["ok"] = True
-        out["pulado"] = True
-        out["motivo"] = "Cron já rodou hoje para este CNPJ."
-        out["itens_pendentes"] = dfe_inbox_listar(cnpj, aba="pendentes")
-        return out
-
-    if ult_nsu is not None and str(ult_nsu).strip() != "":
-        ult = re.sub(r"\D", "", str(ult_nsu))[:15] or "0"
-    else:
-        ult = obter_ult_nsu(None, cnpj)
-
-    res = nfe_distribuicao_dfe_interesse(ult)
-    out.update(
-        {
-            "c_stat": res.get("c_stat"),
-            "x_motivo": res.get("x_motivo"),
-            "ult_nsu": res.get("ult_nsu"),
-            "max_nsu": res.get("max_nsu"),
-            "aguardar_segundos": res.get("aguardar_segundos"),
-            "erro": res.get("erro"),
-        }
-    )
     try:
         c_stat_i = int(res.get("c_stat")) if res.get("c_stat") is not None else None
     except (TypeError, ValueError):
         c_stat_i = None
     ult_salvo = obter_ult_nsu(None, cnpj)
-    # 137/138: avança com o retorno da SEFAZ.
-    # 656 (só resposta real da Receita): se devolver ultNSU *maior* que o da loja,
-    # adota (NT: «use o ultNSU nas solicitações subsequentes»). Nunca usa maxNSU.
-    # Nunca anda pra trás. Bloqueio local (Aguarde) NÃO grava NSU.
     if res.get("ult_nsu") and c_stat_i in (137, 138):
         gravar_ult_nsu(None, cnpj, str(res["ult_nsu"]))
         ult_salvo = str(res["ult_nsu"]).zfill(15)[:15]
@@ -492,45 +484,134 @@ def dfe_executar_consulta_e_gravar(
             n_sefaz = int(sefaz_u or "0") if sefaz_u else 0
         except ValueError:
             n_salvo, n_sefaz = 0, 0
-        out["ult_nsu_sefaz"] = None if bloqueio_local else res.get("ult_nsu")
-        out["bloqueio_local"] = bloqueio_local
+        parte["ult_nsu_sefaz"] = None if bloqueio_local else res.get("ult_nsu")
+        parte["bloqueio_local"] = bloqueio_local
         if (not bloqueio_local) and sefaz_u and n_sefaz > n_salvo:
             gravar_ult_nsu(None, cnpj, sefaz_u)
             ult_salvo = sefaz_u.zfill(15)[:15]
-            aviso = (out.get("x_motivo") or out.get("erro") or "").strip()
-            out["x_motivo"] = (
-                f"{aviso} Cursor da loja atualizado para {ult_salvo.lstrip('0') or '0'} "
-                "(ordem da Receita no 656). Aguarde 1h e Buscar de novo."
-            ).strip()
-        else:
-            aviso = (out.get("x_motivo") or out.get("erro") or "").strip()
-            out["x_motivo"] = (
-                f"{aviso} Cursor da loja permanece {ult_salvo.lstrip('0') or '0'}."
-            ).strip()
-        out["ult_nsu"] = ult_salvo
-    out["ult_nsu_salvo"] = ult_salvo
+        parte["ult_nsu"] = ult_salvo
+    parte["ult_nsu_salvo"] = ult_salvo
     if res.get("ok"):
-        inbox = dfe_inbox_upsert_xmls(
+        parte["inbox"] = dfe_inbox_upsert_xmls(
             cnpj,
             list(res.get("notas_xml") or []),
             nsu_ret=str(res.get("ult_nsu") or ""),
         )
-        out["inbox"] = inbox
-        out["ok"] = True
         if origem == "cron":
             dfe_cron_marcar_hoje(cnpj)
-    elif res.get("aguardar_segundos"):
-        out["ok"] = False
-    # Após Buscar (ou mesmo no Aguarde da lista): libera XML das «Só resumo»
-    # via Ciência + chave — sem carregar na grade.
-    try:
-        auto = dfe_completar_resumos_pendentes(cnpj)
-    except Exception:
-        logger.exception("dfe_completar_resumos_pendentes")
-        auto = {"tentadas": 0, "xml_completos": 0, "ainda_resumo": 0, "falhas": 1}
-    out["auto_xml"] = auto
-    out["itens_pendentes"] = dfe_inbox_listar(cnpj, aba="pendentes")
-    out["n_docs_retorno"] = len(res.get("notas_xml") or [])
+    return parte
+
+
+def dfe_executar_consulta_e_gravar(
+    *,
+    ult_nsu: str | None = None,
+    origem: str = "manual",
+) -> dict[str, Any]:
+    """
+    Consulta SEFAZ (respeitando cooldown do client) e grava inbox.
+    origem: manual | cron
+    """
+    from produtos.nfe_entrada_util import obter_ult_nsu
+    from produtos.sefaz_dfe_client import (
+        _cfg_dist_dfe,
+        distribuicao_dfe_configurada,
+        dist_dfe_cnpjs_destino,
+        dist_dfe_rotulo_cnpj,
+        nfe_distribuicao_dfe_interesse,
+    )
+
+    cfg = _cfg_dist_dfe()
+    cnpj_principal = _cnpj14(str(cfg.get("cnpj") or ""))
+    cnpjs = dist_dfe_cnpjs_destino() or ([cnpj_principal] if len(cnpj_principal) == 14 else [])
+    out: dict[str, Any] = {
+        "ok": False,
+        "cnpj": cnpj_principal,
+        "cnpjs": cnpjs,
+        "origem": origem,
+        "inbox": {"novas": 0, "atualizadas": 0, "resumos": 0},
+        "itens_pendentes": [],
+        "por_cnpj": [],
+    }
+    if not distribuicao_dfe_configurada() or not cnpjs:
+        out["erro"] = "Dist DF-e não configurada."
+        return out
+
+    if origem == "cron":
+        pendentes_cron = [c for c in cnpjs if not dfe_cron_ja_rodou_hoje(c)]
+        if not pendentes_cron:
+            out["ok"] = True
+            out["pulado"] = True
+            out["motivo"] = "Cron já rodou hoje para todos os CNPJs configurados."
+            out["itens_pendentes"] = dfe_inbox_listar_configurados(aba="pendentes")
+            return out
+        cnpjs = pendentes_cron
+
+    ult_manual = None
+    if ult_nsu is not None and str(ult_nsu).strip() != "":
+        ult_manual = re.sub(r"\D", "", str(ult_nsu))[:15] or "0"
+
+    motivos: list[str] = []
+    total_docs = 0
+    inbox_acc = {"novas": 0, "atualizadas": 0, "resumos": 0}
+    auto_acc = {"tentadas": 0, "xml_completos": 0, "ainda_resumo": 0, "falhas": 0}
+
+    for idx, cnpj in enumerate(cnpjs):
+        if idx == 0 and ult_manual is not None:
+            ult = ult_manual
+        else:
+            ult = obter_ult_nsu(None, cnpj)
+
+        res = nfe_distribuicao_dfe_interesse(ult, cnpj_dest=cnpj)
+        parte = _dfe_processar_resposta_nsu(cnpj, res, origem=origem)
+        out["por_cnpj"].append(parte)
+        rot = dist_dfe_rotulo_cnpj(cnpj)
+        ib = parte.get("inbox") or {}
+        for k in inbox_acc:
+            inbox_acc[k] += int(ib.get(k) or 0)
+        total_docs += int(parte.get("n_docs_retorno") or 0)
+        if parte.get("erro") or parte.get("x_motivo"):
+            pref = f"{rot}: " if rot else ""
+            txt = str(parte.get("erro") or parte.get("x_motivo") or "").strip()
+            if txt:
+                motivos.append(f"{pref}{txt}")
+
+        try:
+            auto = dfe_completar_resumos_pendentes(cnpj)
+        except Exception:
+            logger.exception("dfe_completar_resumos_pendentes")
+            auto = {"tentadas": 0, "xml_completos": 0, "ainda_resumo": 0, "falhas": 1}
+        for k in auto_acc:
+            auto_acc[k] += int(auto.get(k) or 0)
+
+    out["inbox"] = inbox_acc
+    out["auto_xml"] = auto_acc
+    out["n_docs_retorno"] = total_docs
+    out["itens_pendentes"] = dfe_inbox_listar_configurados(aba="pendentes")
+
+    # Resposta principal espelha o CNPJ matriz (compat. UI / ultNSU avançado).
+    principal_parte = next((p for p in out["por_cnpj"] if p.get("cnpj") == cnpj_principal), None)
+    if not principal_parte and out["por_cnpj"]:
+        principal_parte = out["por_cnpj"][0]
+    if principal_parte:
+        for k in (
+            "c_stat",
+            "x_motivo",
+            "ult_nsu",
+            "ult_nsu_salvo",
+            "ult_nsu_sefaz",
+            "max_nsu",
+            "aguardar_segundos",
+            "erro",
+            "bloqueio_local",
+        ):
+            if k in principal_parte:
+                out[k] = principal_parte[k]
+
+    out["ok"] = any(p.get("ok") for p in out["por_cnpj"])
+    if motivos and not out.get("x_motivo"):
+        out["x_motivo"] = " · ".join(motivos[:4])
+    elif motivos:
+        out["x_motivo"] = str(out.get("x_motivo") or "") + " · " + " · ".join(motivos[:4])
     return out
 
 
@@ -543,12 +624,13 @@ def dfe_executar_download_por_chave(chave: str) -> dict[str, Any]:
     )
 
     cfg = _cfg_dist_dfe()
-    cnpj = _cnpj14(str(cfg.get("cnpj") or ""))
-    out: dict[str, Any] = {"ok": False, "cnpj": cnpj, "inbox": {"novas": 0}}
-    if not distribuicao_dfe_configurada() or len(cnpj) != 14:
+    cnpj_cfg = _cnpj14(str(cfg.get("cnpj") or ""))
+    out: dict[str, Any] = {"ok": False, "cnpj": cnpj_cfg, "inbox": {"novas": 0}}
+    if not distribuicao_dfe_configurada() or len(cnpj_cfg) != 14:
         out["erro"] = "Dist DF-e não configurada."
         return out
     res = nfe_distribuicao_dfe_por_chave(chave)
+    cnpj_grava = _cnpj14(str(res.get("cnpj_dest") or cnpj_cfg))
     out.update(
         {
             "c_stat": res.get("c_stat"),
@@ -559,13 +641,14 @@ def dfe_executar_download_por_chave(chave: str) -> dict[str, Any]:
     )
     if res.get("ok"):
         inbox = dfe_inbox_upsert_xmls(
-            cnpj,
+            cnpj_grava,
             list(res.get("notas_xml") or []),
             nsu_ret="",
         )
         out["inbox"] = inbox
+        out["cnpj"] = cnpj_grava
         out["ok"] = True
-    out["itens_pendentes"] = dfe_inbox_listar(cnpj, aba="pendentes")
+    out["itens_pendentes"] = dfe_inbox_listar_configurados(aba="pendentes")
     return out
 
 
@@ -631,28 +714,24 @@ def dfe_completar_resumos_pendentes(
 def dfe_manifestar_ciencia_e_baixar(doc_id: int) -> dict[str, Any]:
     """Registra Ciência (uma vez) e tenta trocar o resumo pelo XML completo."""
     from produtos.models import AgroNfeDistDfeDocumento
-    from produtos.sefaz_dfe_client import (
-        _cfg_dist_dfe,
-        nfe_manifestar_ciencia_operacao,
-    )
+    from produtos.sefaz_dfe_client import nfe_manifestar_ciencia_operacao
 
-    cfg = _cfg_dist_dfe()
-    cnpj = _cnpj14(str(cfg.get("cnpj") or ""))
-    row = dfe_inbox_obter(doc_id, cnpj if len(cnpj) == 14 else None)
+    row = dfe_inbox_obter(doc_id, None)
     if not row:
         return {"ok": False, "erro": "Nota não encontrada na caixa de entrada."}
+    cnpj = _cnpj14(str(row.cnpj or ""))
     if row.schema == AgroNfeDistDfeDocumento.Schema.NFE and (row.xml or "").strip():
         return {
             "ok": True,
             "xml_completo": True,
             "mensagem": "XML completo já está disponível.",
-            "itens_pendentes": dfe_inbox_listar(cnpj, aba="pendentes"),
+            "itens_pendentes": dfe_inbox_listar_configurados(aba="pendentes"),
         }
 
     ciencia_ja_registrada = row.manifestacao_status == "ciencia"
     ciencia: dict[str, Any] = {"ok": True, "reutilizada": True}
     if not ciencia_ja_registrada:
-        ciencia = nfe_manifestar_ciencia_operacao(row.chave)
+        ciencia = nfe_manifestar_ciencia_operacao(row.chave, cnpj_dest=cnpj)
         row.manifestacao_mensagem = str(
             ciencia.get("x_motivo") or ciencia.get("erro") or ""
         )[:500]
@@ -677,7 +756,7 @@ def dfe_manifestar_ciencia_e_baixar(doc_id: int) -> dict[str, Any]:
                 "erro": ciencia.get("erro") or "A Receita não aceitou a Ciência da Operação.",
                 "c_stat": ciencia.get("c_stat"),
                 "x_motivo": ciencia.get("x_motivo"),
-                "itens_pendentes": dfe_inbox_listar(cnpj, aba="pendentes"),
+                "itens_pendentes": dfe_inbox_listar_configurados(aba="pendentes"),
             }
 
     download = dfe_executar_download_por_chave(row.chave)
@@ -714,5 +793,5 @@ def dfe_manifestar_ciencia_e_baixar(doc_id: int) -> dict[str, Any]:
         "mensagem": mensagem,
         "c_stat": download.get("c_stat"),
         "aguardar_segundos": download.get("aguardar_segundos"),
-        "itens_pendentes": dfe_inbox_listar(cnpj, aba="pendentes"),
+        "itens_pendentes": dfe_inbox_listar_configurados(aba="pendentes"),
     }

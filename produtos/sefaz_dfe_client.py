@@ -162,7 +162,7 @@ def dfe_bloqueio_pc_local() -> dict[str, Any] | None:
     }
 
 
-def nfe_manifestar_ciencia_operacao(chave: str) -> dict[str, Any]:
+def nfe_manifestar_ciencia_operacao(chave: str, *, cnpj_dest: str | None = None) -> dict[str, Any]:
     """Registra evento 210210 no Ambiente Nacional para liberar o XML completo."""
     import os
     from datetime import datetime
@@ -199,6 +199,14 @@ def nfe_manifestar_ciencia_operacao(chave: str) -> dict[str, Any]:
         return out
 
     cfg = _cfg_dist_dfe()
+    cnpj_evt = re.sub(
+        r"\D",
+        "",
+        str(cnpj_dest or cfg.get("cnpj") or ""),
+    )[:14]
+    if len(cnpj_evt) != 14:
+        out["erro"] = "CNPJ do destinatário inválido para Ciência da Operação."
+        return out
     tp_amb = 1 if int(cfg.get("tp_amb") or 2) == 1 else 2
     id_evento = f"ID210210{ch}01"
     dh_evento = datetime.now().astimezone().isoformat(timespec="seconds")
@@ -215,7 +223,7 @@ def nfe_manifestar_ciencia_operacao(chave: str) -> dict[str, Any]:
     inf = etree.SubElement(evento, etree.QName(NS_NFE, "infEvento"), Id=id_evento)
     _el(inf, "cOrgao", "91")
     _el(inf, "tpAmb", str(tp_amb))
-    _el(inf, "CNPJ", cfg["cnpj"])
+    _el(inf, "CNPJ", cnpj_evt)
     _el(inf, "chNFe", ch)
     _el(inf, "dhEvento", dh_evento)
     _el(inf, "tpEvento", "210210")
@@ -326,6 +334,52 @@ def _assinar_dist_dfe_xml(xml_unsigned: str, cert_path: str, cert_password: str)
 
 def _dfe_cnpj_cfg() -> str:
     return str(_cfg_dist_dfe().get("cnpj") or "")
+
+
+def dist_dfe_cnpjs_destino() -> list[str]:
+    """
+    CNPJs destinatário na Dist DF-e (notas destinadas a cada filial fiscal).
+    Padrão GM: matriz (NFC_E_CNPJ / NFE_DIST_DFE_CNPJ) + filial Vila (NFC_E_VILA_CNPJ).
+    Override: NFE_DIST_DFE_CNPJS=14dig,14dig (vírgula).
+    """
+    extra = (config("NFE_DIST_DFE_CNPJS", default="") or "").strip()
+    if extra:
+        out: list[str] = []
+        for part in extra.split(","):
+            c = re.sub(r"\D", "", part)[:14]
+            if len(c) == 14 and c not in out:
+                out.append(c)
+        if out:
+            return out
+
+    cfg = _cfg_dist_dfe()
+    out = []
+    principal = re.sub(r"\D", "", str(cfg.get("cnpj") or ""))[:14]
+    if len(principal) == 14:
+        out.append(principal)
+    try:
+        from produtos.nfce_config_util import nfce_cfg
+
+        vila = re.sub(r"\D", "", str(nfce_cfg("vila").get("cnpj") or ""))[:14]
+        if len(vila) == 14 and vila not in out:
+            out.append(vila)
+    except Exception:
+        pass
+    return out
+
+
+def dist_dfe_rotulo_cnpj(cnpj: str) -> str:
+    """Nome curto para mensagens (Centro / Vila)."""
+    c = re.sub(r"\D", "", str(cnpj or ""))[:14]
+    if len(c) != 14:
+        return ""
+    try:
+        from produtos.nfce_config_util import nfce_loja_de_cnpj
+
+        loja = nfce_loja_de_cnpj(c)
+        return "Vila Elias" if loja == "vila" else "Centro"
+    except Exception:
+        return c[:8] + "…"
 
 
 def _dfe_cooldown_key(cnpj: str) -> str:
@@ -515,7 +569,7 @@ def dfe_aplicar_cooldown_apos_resposta(
     )
 
 
-def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
+def nfe_distribuicao_dfe_interesse(ult_nsu: str, *, cnpj_dest: str | None = None) -> dict[str, Any]:
     """
     Consulta documentos destinados ao CNPJ (iteração por ultNSU).
     Retorno: ok, c_stat, x_motivo, ult_nsu, max_nsu, notas_xml (lista de XML string), erro
@@ -532,6 +586,8 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
         "erro": None,
     }
     cfg = _cfg_dist_dfe()
+    cnpj_req = re.sub(r"\D", "", str(cnpj_dest or cfg.get("cnpj") or ""))[:14]
+    out["cnpj_dest"] = cnpj_req
     if not distribuicao_dfe_configurada():
         out["erro"] = (
             "Certificado DF-e/NFC-e incompleto. Use o mesmo A1 da NFC-e "
@@ -545,7 +601,11 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
         out.update(bloqueio_pc)
         return out
 
-    bloqueio = dfe_checar_limite_consulta(cfg["cnpj"], modo="dist_nsu")
+    if len(cnpj_req) != 14:
+        out["erro"] = "CNPJ destinatário inválido para Dist DF-e."
+        return out
+
+    bloqueio = dfe_checar_limite_consulta(cnpj_req, modo="dist_nsu")
     if bloqueio:
         # Trava local (cache) — NÃO ecoar o ultNSU pedido como se viesse da SEFAZ
         # (senão o Buscar no Aguarde podia gravar NSU digitado à toa).
@@ -571,7 +631,7 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
         f'<distDFeInt xmlns="http://www.portalfiscal.inf.br/nfe" versao="1.01">'
         f"<tpAmb>{tp_amb}</tpAmb>"
         f"<cUFAutor>{c_uf}</cUFAutor>"
-        f"<CNPJ>{cfg['cnpj']}</CNPJ>"
+        f"<CNPJ>{cnpj_req}</CNPJ>"
         f"<distNSU><ultNSU>{ult_nsu}</ultNSU></distNSU>"
         f"</distDFeInt>"
     )
@@ -602,7 +662,7 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
         from produtos.nfce_sp_emissao_util import _cert_pem_temporario
 
         cert_file, key_file, cleanup = _cert_pem_temporario(cfg["cert_path"], cfg["cert_password"])
-        dfe_registrar_consulta_enviada(cfg["cnpj"], modo="dist_nsu")
+        dfe_registrar_consulta_enviada(cnpj_req, modo="dist_nsu")
         r = requests.post(
             url,
             data=soap.encode("utf-8"),
@@ -684,7 +744,7 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
     out["notas_xml"] = notas
 
     dfe_aplicar_cooldown_apos_resposta(
-        cfg["cnpj"],
+        cnpj_req,
         c_stat=c_stat,
         ult_nsu=str(ult_nsu_ret or ult_nsu),
         max_nsu=str(max_nsu or ""),
@@ -721,11 +781,13 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
     return out
 
 
-def nfe_distribuicao_dfe_por_chave(chave: str) -> dict[str, Any]:
-    """
-    Baixa documento pela chave de acesso (consChNFe).
-    Não altera o cursor ultNSU da loja — uso para recuperar nota já “passada” na fila.
-    """
+def _nfe_distribuicao_dfe_por_chave_um_cnpj(
+    ch: str,
+    *,
+    cnpj_req: str,
+    cfg: dict[str, Any],
+) -> dict[str, Any]:
+    """Uma tentativa consChNFe para o CNPJ destinatário informado."""
     import os
 
     out: dict[str, Any] = {
@@ -736,26 +798,13 @@ def nfe_distribuicao_dfe_por_chave(chave: str) -> dict[str, Any]:
         "max_nsu": None,
         "notas_xml": [],
         "erro": None,
+        "cnpj_dest": cnpj_req,
     }
-    cfg = _cfg_dist_dfe()
-    if not distribuicao_dfe_configurada():
-        out["erro"] = "Certificado DF-e/NFC-e incompleto."
-        return out
 
-    bloqueio_pc = dfe_bloqueio_pc_local()
-    if bloqueio_pc:
-        out.update(bloqueio_pc)
-        return out
-
-    bloqueio = dfe_checar_limite_consulta(cfg["cnpj"], modo="cons_chave")
+    bloqueio = dfe_checar_limite_consulta(cnpj_req, modo="cons_chave")
     if bloqueio:
         out.update(bloqueio)
         out["bloqueio_local"] = True
-        return out
-
-    ch = re.sub(r"\D", "", str(chave or ""))[:44]
-    if len(ch) != 44:
-        out["erro"] = "Chave NF-e inválida (44 dígitos)."
         return out
 
     c_uf = UF_PARA_COD.get(cfg["uf"])
@@ -769,7 +818,7 @@ def nfe_distribuicao_dfe_por_chave(chave: str) -> dict[str, Any]:
         f'<distDFeInt xmlns="http://www.portalfiscal.inf.br/nfe" versao="1.01">'
         f"<tpAmb>{tp_amb}</tpAmb>"
         f"<cUFAutor>{c_uf}</cUFAutor>"
-        f"<CNPJ>{cfg['cnpj']}</CNPJ>"
+        f"<CNPJ>{cnpj_req}</CNPJ>"
         f"<consChNFe><chNFe>{ch}</chNFe></consChNFe>"
         f"</distDFeInt>"
     )
@@ -800,7 +849,7 @@ def nfe_distribuicao_dfe_por_chave(chave: str) -> dict[str, Any]:
         from produtos.nfce_sp_emissao_util import _cert_pem_temporario
 
         cert_file, key_file, cleanup = _cert_pem_temporario(cfg["cert_path"], cfg["cert_password"])
-        dfe_registrar_consulta_enviada(cfg["cnpj"], modo="cons_chave")
+        dfe_registrar_consulta_enviada(cnpj_req, modo="cons_chave")
         r = requests.post(
             url,
             data=soap.encode("utf-8"),
@@ -860,7 +909,7 @@ def nfe_distribuicao_dfe_por_chave(chave: str) -> dict[str, Any]:
     out["notas_xml"] = notas
 
     dfe_aplicar_cooldown_apos_resposta(
-        cfg["cnpj"],
+        cnpj_req,
         c_stat=c_stat,
         ult_nsu=str(ult_nsu_ret or ""),
         max_nsu=str(max_nsu or ""),
@@ -878,3 +927,54 @@ def nfe_distribuicao_dfe_por_chave(chave: str) -> dict[str, Any]:
         out["ok"] = False
         out["erro"] = f"cStat={c_stat} {x_motivo}".strip()
     return out
+
+
+def nfe_distribuicao_dfe_por_chave(chave: str, *, cnpj_dest: str | None = None) -> dict[str, Any]:
+    """
+    Baixa documento pela chave de acesso (consChNFe).
+    Não altera o cursor ultNSU da loja — uso para recuperar nota já “passada” na fila.
+    Tenta cada CNPJ configurado (Centro + Vila) até obter XML ou esgotar opções.
+    """
+    out: dict[str, Any] = {
+        "ok": False,
+        "c_stat": None,
+        "x_motivo": "",
+        "ult_nsu": None,
+        "max_nsu": None,
+        "notas_xml": [],
+        "erro": None,
+    }
+    cfg = _cfg_dist_dfe()
+    if not distribuicao_dfe_configurada():
+        out["erro"] = "Certificado DF-e/NFC-e incompleto."
+        return out
+
+    bloqueio_pc = dfe_bloqueio_pc_local()
+    if bloqueio_pc:
+        out.update(bloqueio_pc)
+        return out
+
+    ch = re.sub(r"\D", "", str(chave or ""))[:44]
+    if len(ch) != 44:
+        out["erro"] = "Chave NF-e inválida (44 dígitos)."
+        return out
+
+    candidatos: list[str] = []
+    if cnpj_dest:
+        c0 = re.sub(r"\D", "", str(cnpj_dest))[:14]
+        if len(c0) == 14:
+            candidatos.append(c0)
+    for c in dist_dfe_cnpjs_destino():
+        if c not in candidatos:
+            candidatos.append(c)
+
+    ultimo: dict[str, Any] = out
+    for cnpj_req in candidatos:
+        ultimo = _nfe_distribuicao_dfe_por_chave_um_cnpj(ch, cnpj_req=cnpj_req, cfg=cfg)
+        if ultimo.get("notas_xml"):
+            return ultimo
+        if ultimo.get("ok") and ultimo.get("c_stat") == 138:
+            return ultimo
+        if ultimo.get("bloqueio_local") and ultimo.get("aguardar_segundos"):
+            return ultimo
+    return ultimo

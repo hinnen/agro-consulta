@@ -12026,7 +12026,11 @@
     const btnChave = document.getElementById('btn-dfe-chave');
     if (!btn) return;
     const pcLocalOff = !!(s && (s.bloqueio_pc_local || s.consulta_sefaz_habilitada === false));
-    const liberadoLista = s && s.configurada && !pcLocalOff && s.consulta_liberada !== false && !(Number(s.aguardar_segundos) > 0);
+    const destsLim = Array.isArray(s && s.cnpjs_destino) ? s.cnpjs_destino : [];
+    const algumLiberadoLista = destsLim.length
+      ? destsLim.some((d) => d.consulta_liberada !== false && !(Number(d.aguardar_segundos) > 0))
+      : (s.consulta_liberada !== false && !(Number(s.aguardar_segundos) > 0));
+    const liberadoLista = s && s.configurada && !pcLocalOff && algumLiberadoLista;
     const liberadoXml = s && s.configurada && !pcLocalOff && s.xml_liberado !== false && !(Number(s.aguardar_xml_segundos) > 0);
     const falta = Math.max(0, Math.floor(Number(s && s.aguardar_segundos) || 0));
     const setChave = (on) => {
@@ -12171,6 +12175,9 @@
       const div = document.createElement('div');
       div.className = 'rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm';
       const valor = Number(pv.valor_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const lojaDest = pv.destino_loja
+        ? `<span class="inline-flex items-center mr-1 px-1.5 py-0.5 rounded-md border border-slate-300 bg-slate-100 text-[0.6rem] font-black uppercase text-slate-700">${pv.destino_loja}</span>`
+        : '';
       const pode = !!pv.pode_carregar;
       const statusLbl = String(pv.status || '');
       let acoes = '<div class="mt-2 flex flex-wrap items-center gap-2">';
@@ -12188,7 +12195,7 @@
       }
       acoes += '</div>';
       div.innerHTML =
-        `<div class="font-black text-slate-900 text-sm leading-snug">${pv.emit_nome || '—'} · NF ${pv.numero || '—'} · R$ ${valor}</div>`
+        `<div class="font-black text-slate-900 text-sm leading-snug">${lojaDest}${pv.emit_nome || '—'} · NF ${pv.numero || '—'} · R$ ${valor}</div>`
         + `<div class="mt-0.5 text-[0.7rem] font-mono text-slate-500 break-all">${pv.chave || '—'}</div>`
         + acoes;
       const btnLoad = div.querySelector('.btn-dfe-carregar');
@@ -12319,7 +12326,14 @@
         if (s.bloqueio_pc_local || s.consulta_sefaz_habilitada === false) {
           el.innerHTML = `<span class="inline-flex items-center gap-2 font-black text-amber-950"><span class="h-2 w-2 rounded-full bg-amber-500 shrink-0" aria-hidden="true"></span>Local · SEFAZ off</span><span class="text-[0.7rem] font-semibold text-slate-600">Cursor ${s.ult_nsu || '—'}</span>`;
         } else {
-          el.innerHTML = `<span class="inline-flex items-center gap-2 font-black text-emerald-800"><span class="h-2 w-2 rounded-full bg-emerald-500 shrink-0" aria-hidden="true"></span>Pronto</span><span class="text-[0.7rem] font-semibold text-slate-600">UF ${s.uf || '—'} · CNPJ ${s.cnpj_mascarado || '—'} · Amb ${s.tp_amb} · Cursor ${s.ult_nsu || '—'}</span>`;
+          const dests = Array.isArray(s.cnpjs_destino) ? s.cnpjs_destino : [];
+          const cursorTxt = dests.length > 1
+            ? dests.map((d) => `${d.loja || 'CNPJ'} cursor ${d.ult_nsu || '—'}`).join(' · ')
+            : `Cursor ${s.ult_nsu || '—'}`;
+          const cnpjTxt = dests.length > 1
+            ? dests.map((d) => `${d.loja || ''} ${d.cnpj_mascarado || ''}`.trim()).filter(Boolean).join(' · ')
+            : (s.cnpj_mascarado || '—');
+          el.innerHTML = `<span class="inline-flex items-center gap-2 font-black text-emerald-800"><span class="h-2 w-2 rounded-full bg-emerald-500 shrink-0" aria-hidden="true"></span>Pronto</span><span class="text-[0.7rem] font-semibold text-slate-600">UF ${s.uf || '—'} · ${cnpjTxt} · Amb ${s.tp_amb} · ${cursorTxt}</span>`;
         }
       } else {
         el.innerHTML = `<span class="inline-flex items-center gap-2 font-black text-amber-900"><span class="h-2 w-2 rounded-full bg-amber-500 shrink-0" aria-hidden="true"></span>Não configurado</span>`;
@@ -12364,7 +12378,11 @@
       const stR = await fetch(URL_SEFAZ, { credentials: 'same-origin' });
       const st = await stR.json();
       entradaNfeSefazAplicarLimiteUi(st);
-      if (st.configurada && st.consulta_liberada === false) {
+      const destsSt = Array.isArray(st.cnpjs_destino) ? st.cnpjs_destino : [];
+      const podeBuscar = destsSt.length
+        ? destsSt.some((d) => d.consulta_liberada !== false && !(Number(d.aguardar_segundos) > 0))
+        : st.consulta_liberada !== false;
+      if (st.configurada && !podeBuscar) {
         showMsg(st.limite_motivo || 'Fora do intervalo permitido — consulta não enviada.', false);
         return;
       }

@@ -19,13 +19,13 @@ class Command(BaseCommand):
         from produtos.sefaz_dfe_client import _cfg_dist_dfe
 
         if options.get("force"):
-            import re
             from datetime import date
 
             from django.core.cache import cache
 
-            cnpj = re.sub(r"\D", "", str(_cfg_dist_dfe().get("cnpj") or ""))[:14]
-            if len(cnpj) == 14:
+            from produtos.sefaz_dfe_client import dist_dfe_cnpjs_destino
+
+            for cnpj in dist_dfe_cnpjs_destino():
                 cache.delete(f"agro_dfe_cron_day:{cnpj}:{date.today().isoformat()}")
 
         res = dfe_executar_consulta_e_gravar(origem="cron")
