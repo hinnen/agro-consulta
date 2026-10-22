@@ -612,7 +612,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 
 - `/entrada-nota/` â€” wizard 8 passos (fornecedor â†’ â€¦ â†’ financeiro â†’ finalizar PIN).
 - **Nº NF vazio (`NF-SEM-NUMERO` · 07/10):** ao confirmar fornecedor (ou no save/PIN/CP), gera código interno **`SEM-DDMM-XXXX`** — pesquisável no Contas a pagar; não parece NF real. «não tem» digitado continua válido.
-- **Dist DF-e (31/07):** certificado `NFE_DIST_DFE_*` **ou** `NFC_E_*`. Cursor PG só avança em **137/138**. Caixa de entrada PG (~80): Buscar grava · Pendentes antigas primeiro · Concluídas. Recuperar por chave se precisar. **XML** se nota antiga.
+- **Dist DF-e (31/07):** certificado `NFE_DIST_DFE_*` **ou** `NFC_E_*`. Cursor PG só avança em **137/138**. Caixa de entrada PG (~80): Buscar grava · Pendentes antigas primeiro · Concluídas. Recuperar por chave se precisar. **XML** se nota antiga. **Buscar notas novas (22/10):** consulta **Centro + Vila fiscal** (`NFC_E_CNPJ` + `NFC_E_VILA_CNPJ`) — lista unificada com etiqueta da loja; override `NFE_DIST_DFE_CNPJS`.
 - **Só resumo / Ciência (05/08):** evento oficial **210210** no Ambiente Nacional; grava protocolo no PG, não repete e tenta baixar o XML completo para Carregar na grade.
 - **XML vs Aguarde 1h (12/08):** Buscar lista (distNSU) continua com 1h após 137; **Buscar XML / chave** só trava no **656**. Após Buscar, sistema tenta Ciência+XML sozinho nas «Só resumo» — fica pronto para **Carregar na grade** (manual, uma nota por vez).
 - **UI aba SEFAZ (04/08):** tela limpa (ações + lista); textos longos no **«?»** (contexto `sefaz` + bloco no modal). Status compacto (Pronto / Local off / Cursor).
@@ -1293,6 +1293,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### ✅ CHECKLIST ÚNICO — **22/10** · 🟢 **pronto envio produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **DFE-VILA-BUSCAR** | 🟢 pronto | **NÃO** | `scripts/verify_dfe_multi_cnpj.py` · `verify_dfe_nsu_656.py` |
+
+### 📦 PACOTE PRONTO — **DFE-VILA-BUSCAR** · **v27.26.21** · 22/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Branch** | `teste` (merge `cursor/sefaz-dfe-vila-filial-43bb`) |
+| **O quê** | Entrada NF aba SEFAZ: **Buscar notas novas** puxa Dist DF-e da **matriz e da Vila Elias** (CNPJ fiscal `48900774000286`), cursor `ultNSU` por CNPJ, caixa PG unificada · chave/ciência no CNPJ certo |
+| **Migrate** | **NÃO** |
+| **PDV / caixa** | **Não alterados** |
+| **Smoke** | **Ctrl+F5** `/entrada-nota/` → SEFAZ → **Atualizar status** (2 cursores) → **Buscar notas novas** → nota Vila em Pendentes com etiqueta **Vila Elias** |
+| **Prova local** | `.venv/bin/python scripts/verify_dfe_multi_cnpj.py` · `verify_dfe_nsu_656.py` |
 
 ### ✅ Deploy loja — **CHECKLIST 21/10c** · **Live v27.26.20** · 21/10
 
