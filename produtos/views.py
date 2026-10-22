@@ -16622,19 +16622,35 @@ def api_entrada_nota_sefaz_status(request):
     from produtos.sefaz_dfe_client import (
         _cfg_dist_dfe,
         distribuicao_dfe_configurada,
+        dist_dfe_cnpjs_destino,
+        dist_dfe_rotulo_cnpj,
         dfe_status_limite,
     )
 
     cfg = _cfg_dist_dfe()
     cnpj = re.sub(r"\D", "", str(cfg.get("cnpj") or ""))[:14]
-    lim = dfe_status_limite(cnpj)
+    cnpjs = dist_dfe_cnpjs_destino() or ([cnpj] if len(cnpj) == 14 else [])
+    lim = dfe_status_limite(cnpj) if len(cnpj) == 14 else {"liberado": False}
     client, db = _entrada_nfe_conexao()
     ult = obter_ult_nsu(db, cnpj) if len(cnpj) == 14 else "0"
+    destinos = []
+    for c in cnpjs:
+        lim_c = dfe_status_limite(c)
+        destinos.append(
+            {
+                "cnpj_mascarado": _mascarar_cnpj(c),
+                "loja": dist_dfe_rotulo_cnpj(c),
+                "ult_nsu": obter_ult_nsu(db, c) if db is not None else obter_ult_nsu(None, c),
+                "consulta_liberada": bool(lim_c.get("liberado")),
+                "aguardar_segundos": int(lim_c.get("aguardar_segundos") or 0),
+            }
+        )
     return JsonResponse(
         {
             "configurada": distribuicao_dfe_configurada(),
             "uf": cfg.get("uf") or "",
             "cnpj_mascarado": _mascarar_cnpj(cfg.get("cnpj") or ""),
+            "cnpjs_destino": destinos,
             "tp_amb": str(cfg.get("tp_amb") or "2"),
             "consulta_liberada": bool(lim.get("liberado")),
             "aguardar_segundos": int(lim.get("aguardar_segundos") or 0),
@@ -20240,7 +20256,7 @@ def api_entrada_nota_financeiro(request):
 @login_required(login_url="/entrar/")
 @require_POST
 def api_entrada_nota_dist_dfe(request):
-    from produtos.dfe_inbox_util import dfe_executar_consulta_e_gravar, dfe_inbox_listar
+    from produtos.dfe_inbox_util import dfe_executar_consulta_e_gravar, dfe_inbox_listar_configurados
     from produtos.sefaz_dfe_client import _cfg_dist_dfe, distribuicao_dfe_configurada
 
     try:
@@ -20260,7 +20276,7 @@ def api_entrada_nota_dist_dfe(request):
                     "ou NFE_DIST_DFE_*. Instale: pip install cryptography lxml signxml"
                 ),
                 "ult_nsu": ult_pedido or "",
-                "itens": dfe_inbox_listar(cnpj_cfg, aba="pendentes") if len(cnpj_cfg) == 14 else [],
+                "itens": dfe_inbox_listar_configurados(aba="pendentes") if len(cnpj_cfg) == 14 else [],
             },
             status=400,
         )
@@ -20303,7 +20319,7 @@ def api_entrada_nota_dist_dfe(request):
         "msg_ui": msg_ui,
         "inbox": inbox,
         "auto_xml": auto,
-        "itens": res.get("itens_pendentes") or dfe_inbox_listar(cnpj_cfg, aba="pendentes"),
+        "itens": res.get("itens_pendentes") or dfe_inbox_listar_configurados(aba="pendentes"),
         "previews": [],
     }
     if not out["ok"] and out.get("erro"):
@@ -20315,7 +20331,7 @@ def api_entrada_nota_dist_dfe(request):
 @require_POST
 def api_entrada_nota_dfe_por_chave(request):
     """Baixa XML pela chave (44 dígitos) e grava na caixa — não mexe no ultNSU."""
-    from produtos.dfe_inbox_util import dfe_executar_download_por_chave, dfe_inbox_listar
+    from produtos.dfe_inbox_util import dfe_executar_download_por_chave, dfe_inbox_listar_configurados
     from produtos.sefaz_dfe_client import _cfg_dist_dfe, distribuicao_dfe_configurada
 
     try:
@@ -20331,7 +20347,7 @@ def api_entrada_nota_dfe_por_chave(request):
             {
                 "ok": False,
                 "erro": "Certificado DF-e/NFC-e incompleto no servidor.",
-                "itens": dfe_inbox_listar(cnpj_cfg, aba="pendentes") if len(cnpj_cfg) == 14 else [],
+                "itens": dfe_inbox_listar_configurados(aba="pendentes") if len(cnpj_cfg) == 14 else [],
             },
             status=400,
         )
@@ -20361,7 +20377,7 @@ def api_entrada_nota_dfe_por_chave(request):
         "msg_ui": msg_ui,
         "inbox": inbox,
         "itens": res.get("itens_pendentes")
-        or (dfe_inbox_listar(cnpj_cfg, aba="pendentes") if len(cnpj_cfg) == 14 else []),
+        or (dfe_inbox_listar_configurados(aba="pendentes") if len(cnpj_cfg) == 14 else []),
         "chave": chave,
     }
     if not out["ok"] and out.get("erro"):
@@ -20373,8 +20389,8 @@ def api_entrada_nota_dfe_por_chave(request):
 @require_GET
 def api_entrada_nota_dfe_inbox(request):
     """Lista caixa de entrada DF-e do Postgres (sem falar com a SEFAZ)."""
-    from produtos.dfe_inbox_util import dfe_inbox_listar
-    from produtos.sefaz_dfe_client import _cfg_dist_dfe
+    from produtos.dfe_inbox_util import dfe_inbox_listar_configurados
+    from produtos.sefaz_dfe_client import _cfg_dist_dfe, distribuicao_dfe_configurada
 
     cfg = _cfg_dist_dfe()
     cnpj = re.sub(r"\D", "", str(cfg.get("cnpj") or ""))[:14]
@@ -20383,13 +20399,13 @@ def api_entrada_nota_dfe_inbox(request):
         lim = min(int(request.GET.get("limit") or 80), 120)
     except ValueError:
         lim = 80
-    if len(cnpj) != 14:
+    if not distribuicao_dfe_configurada() or len(cnpj) != 14:
         return JsonResponse({"ok": False, "erro": "CNPJ DF-e não configurado.", "itens": []}, status=400)
     return JsonResponse(
         {
             "ok": True,
             "aba": aba,
-            "itens": dfe_inbox_listar(cnpj, aba=aba, limit=lim),
+            "itens": dfe_inbox_listar_configurados(aba=aba, limit=lim),
         }
     )
 
@@ -20401,9 +20417,7 @@ def api_entrada_nota_dfe_inbox_detalhe(request, doc_id: int):
     from produtos.dfe_inbox_util import dfe_inbox_marcar, dfe_inbox_obter
     from produtos.sefaz_dfe_client import _cfg_dist_dfe
 
-    cfg = _cfg_dist_dfe()
-    cnpj = re.sub(r"\D", "", str(cfg.get("cnpj") or ""))[:14]
-    row = dfe_inbox_obter(doc_id, cnpj if len(cnpj) == 14 else None)
+    row = dfe_inbox_obter(doc_id, None)
     if not row:
         return JsonResponse({"ok": False, "erro": "Nota não encontrada na caixa de entrada."}, status=404)
     if row.schema != "nfe" or not (row.xml or "").strip():
@@ -20449,11 +20463,8 @@ def api_entrada_nota_dfe_inbox_detalhe(request, doc_id: int):
 @require_POST
 def api_entrada_nota_dfe_inbox_ignorar(request, doc_id: int):
     from produtos.dfe_inbox_util import dfe_inbox_marcar, dfe_inbox_obter
-    from produtos.sefaz_dfe_client import _cfg_dist_dfe
 
-    cfg = _cfg_dist_dfe()
-    cnpj = re.sub(r"\D", "", str(cfg.get("cnpj") or ""))[:14]
-    row = dfe_inbox_obter(doc_id, cnpj if len(cnpj) == 14 else None)
+    row = dfe_inbox_obter(doc_id, None)
     if not row:
         return JsonResponse({"ok": False, "erro": "Nota não encontrada."}, status=404)
     r = dfe_inbox_marcar(doc_id=row.pk, status="ignorada")
@@ -20479,14 +20490,13 @@ def api_cron_dfe_consultar_inbox(request):
 
     force = str(request.GET.get("force") or "").strip() in ("1", "true", "yes")
     if force:
-        from produtos.sefaz_dfe_client import _cfg_dist_dfe
+        from produtos.sefaz_dfe_client import dist_dfe_cnpjs_destino
 
-        cnpj = re.sub(r"\D", "", str(_cfg_dist_dfe().get("cnpj") or ""))[:14]
-        if len(cnpj) == 14:
-            from datetime import date as _date
+        from datetime import date as _date
 
-            from django.core.cache import cache
+        from django.core.cache import cache
 
+        for cnpj in dist_dfe_cnpjs_destino():
             cache.delete(f"agro_dfe_cron_day:{cnpj}:{_date.today().isoformat()}")
     res = dfe_executar_consulta_e_gravar(origem="cron")
     st = 200 if res.get("ok") or res.get("pulado") else (429 if res.get("aguardar_segundos") else 502)

@@ -384,3 +384,20 @@ class NfceDescontoRateioTests(SimpleTestCase):
         self.assertEqual(v_frete, Decimal("0.00"))
         self.assertEqual(v_nf, Decimal("0.00"))
 
+
+class DistDfeCnpjsDestinoTests(SimpleTestCase):
+    def test_inclui_centro_e_vila_fiscal(self):
+        from unittest.mock import patch
+
+        from produtos.sefaz_dfe_client import dist_dfe_cnpjs_destino, dist_dfe_rotulo_cnpj
+
+        with patch(
+            "produtos.sefaz_dfe_client._cfg_dist_dfe",
+            return_value={"cnpj": "48900774000103", "uf": "SP", "tp_amb": 1},
+        ):
+            cnpjs = dist_dfe_cnpjs_destino()
+        self.assertIn("48900774000103", cnpjs)
+        self.assertIn("48900774000286", cnpjs)
+        self.assertEqual(dist_dfe_rotulo_cnpj("48900774000286"), "Vila Elias")
+        self.assertEqual(dist_dfe_rotulo_cnpj("48900774000103"), "Centro")
+
