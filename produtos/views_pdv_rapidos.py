@@ -12,7 +12,9 @@ from produtos.pdv_rapidos_util import (
     gravar_foto,
     limpar_foto,
     listar_slots,
+    obter_layout,
     resposta_foto,
+    salvar_layout,
     salvar_slots,
 )
 
@@ -30,14 +32,24 @@ def _json(request) -> dict | None:
 @require_http_methods(["GET", "POST"])
 def api_pdv_rapidos(request):
     if request.method == "GET":
-        return JsonResponse({"ok": True, "slots": listar_slots()})
+        return JsonResponse({"ok": True, "slots": listar_slots(), "layout": obter_layout()})
     data = _json(request)
     if data is None:
         return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
     ok, err = salvar_slots(data.get("slots"), usuario=request.user)
     if not ok:
         return JsonResponse({"ok": False, "erro": err or "Falha ao salvar."}, status=400)
-    return JsonResponse({"ok": True, "slots": listar_slots()})
+    return JsonResponse({"ok": True, "slots": listar_slots(), "layout": obter_layout()})
+
+
+@login_required(login_url="/entrar/")
+@require_http_methods(["POST"])
+def api_pdv_rapidos_layout(request):
+    data = _json(request)
+    if data is None:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    layout = salvar_layout(data.get("layout") or data, usuario=request.user)
+    return JsonResponse({"ok": True, "layout": layout})
 
 
 @login_required(login_url="/entrar/")

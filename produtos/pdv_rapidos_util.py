@@ -7,7 +7,7 @@ from typing import Any
 from PIL import Image, UnidentifiedImageError
 from django.http import HttpResponse
 
-from produtos.models import PdvRapidoSlotAgro
+from produtos.models import PdvRapidoLayoutAgro, PdvRapidoSlotAgro
 
 SLOTS = 9
 NOME_MAX = 32
@@ -15,6 +15,57 @@ FOTO_MAX_BYTES = 6_000_000
 FOTO_MAX_LADO = (720, 1100)
 
 _TIPOS_OK = {"image/jpeg", "image/png", "image/webp", "image/jpg"}
+
+FOTO_PCT_MIN, FOTO_PCT_MAX, FOTO_PCT_PADRAO = 22, 70, 40
+ESCALA_MIN, ESCALA_MAX, ESCALA_PADRAO = 55, 170, 100
+
+
+def _faixa(valor: Any, minimo: int, maximo: int, padrao: int) -> int:
+    try:
+        n = int(valor)
+    except (TypeError, ValueError):
+        return padrao
+    return max(minimo, min(maximo, n))
+
+
+def layout_padrao() -> dict[str, int]:
+    return {
+        "foto_pct": FOTO_PCT_PADRAO,
+        "nome_escala": ESCALA_PADRAO,
+        "preco_escala": ESCALA_PADRAO,
+    }
+
+
+def normalizar_layout_rapido(data: Any) -> dict[str, int]:
+    src = data if isinstance(data, dict) else {}
+    return {
+        "foto_pct": _faixa(src.get("foto_pct"), FOTO_PCT_MIN, FOTO_PCT_MAX, FOTO_PCT_PADRAO),
+        "nome_escala": _faixa(src.get("nome_escala"), ESCALA_MIN, ESCALA_MAX, ESCALA_PADRAO),
+        "preco_escala": _faixa(src.get("preco_escala"), ESCALA_MIN, ESCALA_MAX, ESCALA_PADRAO),
+    }
+
+
+def obter_layout() -> dict[str, int]:
+    row = PdvRapidoLayoutAgro.objects.filter(chave="default").first()
+    if not row:
+        return layout_padrao()
+    return normalizar_layout_rapido(
+        {"foto_pct": row.foto_pct, "nome_escala": row.nome_escala, "preco_escala": row.preco_escala}
+    )
+
+
+def salvar_layout(data: Any, usuario=None) -> dict[str, int]:
+    layout = normalizar_layout_rapido(data)
+    row, _ = PdvRapidoLayoutAgro.objects.get_or_create(chave="default", defaults=layout)
+    row.foto_pct = layout["foto_pct"]
+    row.nome_escala = layout["nome_escala"]
+    row.preco_escala = layout["preco_escala"]
+    update = ["foto_pct", "nome_escala", "preco_escala", "atualizado_em"]
+    if usuario is not None and getattr(usuario, "is_authenticated", False):
+        row.atualizado_por = usuario
+        update.append("atualizado_por")
+    row.save(update_fields=update)
+    return layout
 
 
 def _vazio(posicao: int) -> dict[str, Any]:

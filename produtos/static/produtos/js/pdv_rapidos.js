@@ -10,6 +10,7 @@
   var grid = document.getElementById('pdv-rapidos-grid');
   var btnAbrir = document.getElementById('pdv-topbar-rapidos-btn');
   var btnDefinir = document.getElementById('pdv-rapidos-definir');
+  var btnProporcao = document.getElementById('pdv-rapidos-proporcao');
   var btnVoltar = document.getElementById('pdv-rapidos-voltar');
   var btnSalvar = document.getElementById('pdv-rapidos-salvar');
   var btnFechar = document.getElementById('pdv-rapidos-fechar');
@@ -24,9 +25,13 @@
 
   var slots = [];
   var modoDefinir = false;
+  var modoProporcao = false;
   var drafts = [];
   var carregado = false;
   var salvando = false;
+  var layout = { foto_pct: 40, nome_escala: 100, preco_escala: 100 };
+  var arraste = null;
+  var ignorarClique = false;
 
   function bridge() {
     return window.AgroPdvRapidosBridge || null;
@@ -107,6 +112,41 @@
     return '';
   }
 
+  function faixa(v, min, max, padrao) {
+    var n = parseInt(v, 10);
+    if (!isFinite(n)) return padrao;
+    if (n < min) return min;
+    if (n > max) return max;
+    return n;
+  }
+
+  function aplicarLayout() {
+    overlay.style.setProperty('--rap-foto', layout.foto_pct + '%');
+    overlay.style.setProperty('--rap-nome', String(layout.nome_escala));
+    overlay.style.setProperty('--rap-preco', String(layout.preco_escala));
+  }
+
+  function lerLayout(raw) {
+    var src = raw || {};
+    layout = {
+      foto_pct: faixa(src.foto_pct, 22, 70, 40),
+      nome_escala: faixa(src.nome_escala, 55, 170, 100),
+      preco_escala: faixa(src.preco_escala, 55, 170, 100),
+    };
+    aplicarLayout();
+  }
+
+  function alcasHtml(pos) {
+    if (!modoProporcao || pos !== 1) return '';
+    return (
+      '<span class="pdv-rapidos-alcas">' +
+      '<span class="pdv-rapidos-alca pdv-rapidos-alca--foto" data-alca="foto">foto</span>' +
+      '<span class="pdv-rapidos-alca" data-alca="nome">nome</span>' +
+      '<span class="pdv-rapidos-alca" data-alca="preco">valor</span>' +
+      '</span>'
+    );
+  }
+
   function codigoDe(p) {
     return String((p && (p.codigo || p.codigo_nfe || p.codigo_barras || p.ean)) || '').trim();
   }
@@ -117,32 +157,41 @@
         var cheio = !!(s.produto_id && s.nome);
         var src = fotoSrc(s, null);
         var preco = cheio ? precoDe(s.produto_id) : '';
+        var amostra = modoProporcao && !cheio;
+        var alcas = alcasHtml(s.posicao);
         var fotoHtml = src
           ? '<img src="' + esc(src) + '" alt="">'
           : '<span class="pdv-rapidos-vazio-ico" aria-hidden="true"></span>';
+        var nomeTxt = cheio ? esc(s.nome) : amostra ? 'Apelido' : '';
+        var precoTxt = preco ? esc(preco) : amostra ? 'R$ 0,00' : '';
+        var tag = modoProporcao ? 'div' : 'button';
         return (
-          '<button type="button" class="pdv-rapidos-card' +
+          '<' + tag + ' type="button" class="pdv-rapidos-card' +
           (cheio ? '' : ' is-vazio') +
+          (amostra ? ' is-amostra' : '') +
+          (modoProporcao && s.posicao === 1 ? ' is-modelo' : '') +
           '" data-pos="' +
           s.posicao +
           '"' +
-          (cheio ? '' : ' disabled') +
+          (!modoProporcao && !cheio ? ' disabled' : '') +
           '>' +
           '<span class="pdv-rapidos-foto">' +
           '<span class="pdv-rapidos-num">' +
           s.posicao +
           '</span>' +
           fotoHtml +
-          (cheio ? '' : '<span class="pdv-rapidos-vazio-txt">vazio</span>') +
+          (cheio || amostra ? '' : '<span class="pdv-rapidos-vazio-txt">vazio</span>') +
           '</span>' +
           '<span class="pdv-rapidos-corpo">' +
           '<span class="pdv-rapidos-nome">' +
-          (cheio ? esc(s.nome) : '') +
+          nomeTxt +
           '</span>' +
           '<span class="pdv-rapidos-preco">' +
-          (preco ? esc(preco) : '') +
+          precoTxt +
           '</span>' +
-          '</span></button>'
+          '</span>' +
+          alcas +
+          '</' + tag + '>'
         );
       })
       .join('');
@@ -206,15 +255,22 @@
   }
 
   function aplicarModo() {
+    var especial = modoDefinir || modoProporcao;
     overlay.classList.toggle('is-definir', modoDefinir);
-    if (titulo) titulo.textContent = modoDefinir ? 'Definir rápidos' : 'Rápidos';
+    overlay.classList.toggle('is-proporcao', modoProporcao);
+    if (titulo) {
+      titulo.textContent = modoDefinir ? 'Definir rápidos' : modoProporcao ? 'Proporção' : 'Rápidos';
+    }
     if (dica) {
       dica.textContent = modoDefinir
         ? 'Apelido e foto são seus. O preço vem do cadastro. Esc fecha sem salvar.'
-        : '1 a 9 adiciona e fecha · Esc sai';
+        : modoProporcao
+          ? 'No primeiro quadro: arraste Foto para os lados, Nome e Valor para cima ou para baixo. Os 9 copiam. Esc sai.'
+          : '1 a 9 adiciona e fecha · Esc sai';
     }
-    if (btnDefinir) btnDefinir.classList.toggle('hidden', modoDefinir);
-    if (btnVoltar) btnVoltar.classList.toggle('hidden', !modoDefinir);
+    if (btnDefinir) btnDefinir.classList.toggle('hidden', especial);
+    if (btnProporcao) btnProporcao.classList.toggle('hidden', especial);
+    if (btnVoltar) btnVoltar.classList.toggle('hidden', !especial);
     if (btnSalvar) btnSalvar.classList.toggle('hidden', !modoDefinir);
   }
 
@@ -249,6 +305,7 @@
       .then(function (d) {
         if (!d || !d.ok) throw new Error((d && d.erro) || 'falha');
         slots = normalizarLista(d.slots);
+        if (d.layout) lerLayout(d.layout);
         carregado = true;
         if (aberto() && !modoDefinir) render();
       })
@@ -259,6 +316,7 @@
 
   function abrir() {
     modoDefinir = false;
+    modoProporcao = false;
     aplicarModo();
     setMsg('');
     overlay.classList.remove('hidden');
@@ -278,6 +336,9 @@
 
   function fechar() {
     modoDefinir = false;
+    modoProporcao = false;
+    arraste = null;
+    overlay.classList.remove('is-arrastando');
     aplicarModo();
     setMsg('');
     overlay.classList.add('hidden');
@@ -299,14 +360,51 @@
 
   function entrarDefinir() {
     clonarDrafts();
+    modoProporcao = false;
     modoDefinir = true;
     aplicarModo();
     setMsg('');
     render();
   }
 
+  function entrarProporcao() {
+    modoDefinir = false;
+    modoProporcao = true;
+    aplicarModo();
+    setMsg('');
+    render();
+  }
+
+  function sairEspecial() {
+    modoDefinir = false;
+    modoProporcao = false;
+    aplicarModo();
+    setMsg('');
+    render();
+  }
+
+  function salvarLayout() {
+    fetch('/api/pdv/rapidos/layout/', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+      body: JSON.stringify({ layout: layout }),
+    })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (d) {
+        if (!d || !d.ok) throw new Error((d && d.erro) || 'Falha ao salvar a proporção.');
+        if (d.layout) lerLayout(d.layout);
+        setMsg('Proporção salva para os 9.');
+      })
+      .catch(function (err) {
+        setMsg((err && err.message) || 'Não foi possível salvar a proporção.', 'erro');
+      });
+  }
+
   function vender(pos) {
-    if (modoDefinir || salvando) return;
+    if (modoDefinir || modoProporcao || salvando) return;
     var slot = null;
     slots.forEach(function (s) {
       if (s.posicao === pos) slot = s;
@@ -508,15 +606,60 @@
   if (btnAbrir) btnAbrir.addEventListener('click', abrir);
   if (btnFechar) btnFechar.addEventListener('click', fechar);
   if (btnDefinir) btnDefinir.addEventListener('click', entrarDefinir);
-  if (btnVoltar) {
-    btnVoltar.addEventListener('click', function () {
-      modoDefinir = false;
-      aplicarModo();
-      setMsg('');
-      render();
-    });
-  }
+  if (btnProporcao) btnProporcao.addEventListener('click', entrarProporcao);
+  if (btnVoltar) btnVoltar.addEventListener('click', sairEspecial);
   if (btnSalvar) btnSalvar.addEventListener('click', salvar);
+
+  grid.addEventListener('pointerdown', function (ev) {
+    var alca = ev.target.closest('[data-alca]');
+    if (!alca || !modoProporcao) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    var card = alca.closest('.pdv-rapidos-card');
+    if (!card) return;
+    arraste = {
+      tipo: alca.getAttribute('data-alca'),
+      pointerId: ev.pointerId,
+      startX: ev.clientX,
+      startY: ev.clientY,
+      card: card,
+      foto: layout.foto_pct,
+      nome: layout.nome_escala,
+      preco: layout.preco_escala,
+      moved: false,
+    };
+    overlay.classList.add('is-arrastando');
+    try {
+      alca.setPointerCapture(ev.pointerId);
+    } catch (eCap) {}
+  });
+
+  document.addEventListener('pointermove', function (ev) {
+    if (!arraste || ev.pointerId !== arraste.pointerId) return;
+    var rect = arraste.card.getBoundingClientRect();
+    if (Math.abs(ev.clientX - arraste.startX) + Math.abs(ev.clientY - arraste.startY) > 3) {
+      arraste.moved = true;
+    }
+    if (arraste.tipo === 'foto') {
+      layout.foto_pct = faixa(((ev.clientX - rect.left) / Math.max(rect.width, 1)) * 100, 22, 70, 40);
+    } else {
+      var delta = Math.round(((ev.clientY - arraste.startY) / Math.max(rect.height, 1)) * 140);
+      if (arraste.tipo === 'nome') layout.nome_escala = faixa(arraste.nome + delta, 55, 170, 100);
+      else layout.preco_escala = faixa(arraste.preco + delta, 55, 170, 100);
+    }
+    aplicarLayout();
+  });
+
+  document.addEventListener('pointerup', function (ev) {
+    if (!arraste || ev.pointerId !== arraste.pointerId) return;
+    var moved = arraste.moved;
+    arraste = null;
+    overlay.classList.remove('is-arrastando');
+    if (moved) {
+      ignorarClique = true;
+      salvarLayout();
+    }
+  });
 
   grid.addEventListener('click', function (ev) {
     var limpar = ev.target.closest('[data-limpar]');
@@ -532,7 +675,12 @@
       escolherProduto(parseInt(hit.getAttribute('data-hit-pos'), 10), prod);
       return;
     }
-    if (modoDefinir) return;
+    if (modoDefinir || modoProporcao) return;
+    if (ignorarClique) {
+      ignorarClique = false;
+      return;
+    }
+    if (ev.target.closest('[data-alca]')) return;
     var card = ev.target.closest('.pdv-rapidos-card[data-pos]');
     if (!card || card.disabled) return;
     vender(parseInt(card.getAttribute('data-pos'), 10));
@@ -597,7 +745,7 @@
         fechar();
         return;
       }
-      if (modoDefinir) return;
+      if (modoDefinir || modoProporcao) return;
       if (ev.altKey || ev.ctrlKey || ev.metaKey) return;
       var mapa = {
         Digit1: 1,
@@ -630,5 +778,6 @@
     true
   );
 
+  aplicarLayout();
   carregar();
 })();
