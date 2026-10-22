@@ -7019,14 +7019,30 @@
     return null;
   }
 
-  function entradaNfeLinhaVProdRateio(tr) {
+  /** Quantidade que multiplica o V. unit da grade (Qtd est. = Qtd NF × Un/emb). */
+  function entradaNfeLinhaQtdCustoUnit(tr) {
     if (!tr) return 0;
+    const qEst = entradaNfeLinhaQtyEstoqueCalculo(tr);
+    if (qEst > 0) return qEst;
+    const qNf = Number(tr.dataset.nfeQComNf) || Number(tr.querySelector('.in-qtd')?.value) || 0;
+    return qNf > 0 ? qNf : 0;
+  }
+
+  /** Valor total da linha para rateio (alinhado ao «Total» da grade: base × Qtd est.). */
+  function entradaNfeLinhaValorLinhaRateio(tr) {
+    if (!tr) return 0;
+    const qEst = entradaNfeLinhaQtdCustoUnit(tr);
+    const base = entradaNfeLinhaBaseUnit(tr);
+    if (base != null && qEst > 0) return entradaNfeRoundHalfUp(base * qEst, 2);
     const vpNf = Number(tr.dataset.nfeVprodNf);
     if (Number.isFinite(vpNf) && vpNf > 0) return vpNf;
-    const q = entradaNfeLinhaQtyEstoqueCalculo(tr);
-    const base = entradaNfeLinhaBaseUnit(tr);
-    if (base != null && q > 0) return entradaNfeRoundHalfUp(base * q, 2);
+    const v = entradaNfeLinhaValorUnitarioCalculo(tr);
+    if (qEst > 0 && v > 0) return entradaNfeRoundHalfUp(v * qEst, 2);
     return 0;
+  }
+
+  function entradaNfeLinhaVProdRateio(tr) {
+    return entradaNfeLinhaValorLinhaRateio(tr);
   }
 
   function entradaNfeSomaVProdGrade(nota) {
@@ -7043,10 +7059,10 @@
   function entradaNfeCalcularVUnitLinhaRateios(tr, nota) {
     const base = entradaNfeLinhaBaseUnit(tr);
     if (base == null || !Number.isFinite(base) || base < 0) return null;
-    const q = Number(tr.dataset.nfeQComNf) || Number(tr.querySelector('.in-qtd')?.value) || entradaNfeLinhaQtyEstoqueCalculo(tr) || 0;
-    const vp = entradaNfeLinhaVProdRateio(tr);
+    const qEst = entradaNfeLinhaQtdCustoUnit(tr);
+    const vp = entradaNfeLinhaValorLinhaRateio(tr);
     const somaProd = entradaNfeSomaVProdGrade(nota);
-    if (!(q > 0) || !(vp > 0) || !(somaProd > 0)) return { base, unit: base };
+    if (!(qEst > 0) || !(vp > 0) || !(somaProd > 0)) return { base, unit: base };
     const incluirXml = !!(document.getElementById('nfe-chk-rateio-acrescimos')?.checked);
     const acrescXml = incluirXml ? entradaNfeNotaAcrescimosCusto(nota) : 0;
     let lineVal = vp;
@@ -7057,17 +7073,17 @@
       if (man.tipo === 'desconto') lineVal = Math.max(0, lineVal - sh);
       else lineVal += sh;
     }
-    const unit = entradaNfeRoundHalfUp(lineVal / q, 6);
+    const unit = entradaNfeRoundHalfUp(lineVal / qEst, 6);
     return { base, unit };
   }
 
   function entradaNfeSnapshotBasesParaAjusteManual() {
+    if (entradaNfeManualAjusteCustoAtivo().tipo) return;
     document.querySelectorAll('#tbody-itens tr').forEach((tr) => {
       if (tr.dataset.nfeLinhaModo === 'compact') return;
       if (tr.dataset.nfeVunBaseNf != null && tr.dataset.nfeVunBaseNf !== '') return;
       if (tr.dataset.nfeVunBaseManual != null && tr.dataset.nfeVunBaseManual !== '') return;
-      const inp = tr.querySelector('.in-vun');
-      const v = entradaNfeParseDecimalApi(inp && inp.value);
+      const v = entradaNfeLinhaValorUnitarioCalculo(tr);
       if (v != null && Number.isFinite(v) && v >= 0) tr.dataset.nfeVunBaseManual = String(v);
     });
   }
@@ -7101,23 +7117,26 @@
    */
   function entradaNfeCalcularVUnComComRateio(xmlItem, nota, incluir) {
     if (!xmlItem || typeof xmlItem !== 'object') return null;
-    const base = entradaNfeXmlMergeVUnNfDoItem(xmlItem);
-    if (base == null || !Number.isFinite(base)) return null;
+    const vunNf = entradaNfeXmlMergeVUnNfDoItem(xmlItem);
+    if (vunNf == null || !Number.isFinite(vunNf)) return null;
+    const qCom = Number(xmlItem.q_com) || 1;
+    const unEmb = Number(xmlItem.un_por_embalagem) || 1;
+    const qEst = qCom * unEmb;
     const vp = Number(xmlItem.v_prod);
-    const q = Number(xmlItem.q_com);
+    let lineVal = Number.isFinite(vp) && vp > 0 ? vp : entradaNfeRoundHalfUp(vunNf * qEst, 2);
+    const base = qEst > 0 ? entradaNfeRoundHalfUp(lineVal / qEst, 6) : vunNf;
     let somaProd = entradaNfeNotaSomaVProd(nota);
-    if (!(somaProd > 0) && Number.isFinite(vp) && vp > 0) somaProd = vp;
-    if (!(q > 0) || !(vp > 0) || !(somaProd > 0)) return { base, unit: base };
-    let lineVal = vp;
+    if (!(somaProd > 0)) somaProd = lineVal;
+    if (!(qEst > 0) || !(lineVal > 0) || !(somaProd > 0)) return { base, unit: base };
     const acresc = incluir ? entradaNfeNotaAcrescimosCusto(nota) : 0;
-    if (acresc > 0) lineVal += acresc * (vp / somaProd);
+    if (acresc > 0) lineVal += acresc * (lineVal / somaProd);
     const man = entradaNfeManualAjusteCustoAtivo();
     if (man.tipo && man.valor > 0) {
-      const sh = man.valor * (vp / somaProd);
+      const sh = man.valor * (lineVal / somaProd);
       if (man.tipo === 'desconto') lineVal = Math.max(0, lineVal - sh);
       else lineVal += sh;
     }
-    return { base, unit: entradaNfeRoundHalfUp(lineVal / q, 6) };
+    return { base, unit: entradaNfeRoundHalfUp(lineVal / qEst, 6) };
   }
 
   function entradaNfeAplicarVUnNaLinhaTr(tr, unit) {
@@ -9243,6 +9262,9 @@
           un_por_embalagem: row.un_por_embalagem != null ? row.un_por_embalagem : 1,
           q_estoque: row.q_estoque != null ? row.q_estoque : null,
           v_un_com: row.v_un_com != null ? row.v_un_com : 0,
+          v_un_com_base_nf: row.v_un_com_base_nf != null ? row.v_un_com_base_nf : null,
+          v_prod: row.v_prod != null ? row.v_prod : null,
+          n_item: row.n_item != null ? row.n_item : '',
           margem_percentual: row.margem_percentual != null ? row.margem_percentual : null,
           preco_venda: row.preco_venda != null ? row.preco_venda : 0,
           cfop: row.cfop || '',
@@ -11762,14 +11784,15 @@
       manual_ajuste_custo_tipo: '',
       manual_ajuste_custo_valor: 0,
     };
-    await entradaNfeWizardPersistExtraPatch({ manual_ajuste_custo_tipo: '', manual_ajuste_custo_valor: 0 });
-    document.querySelectorAll('#tbody-itens tr').forEach((tr) => {
-      if (tr.dataset.nfeVunBaseNf == null || tr.dataset.nfeVunBaseNf === '') delete tr.dataset.nfeVunBaseManual;
-    });
     document.querySelectorAll('input[name="nfe-ajuste-manual-tipo"]').forEach((r) => { r.checked = false; });
     const valInp = document.getElementById('nfe-ajuste-manual-valor');
     if (valInp) valInp.value = '';
+    entradaNfeAtualizarUiAjusteManualCusto();
     entradaNfeReaplicarRateioAcrescimosNaGrade(true);
+    try {
+      await entradaNfeWizardPersistExtraPatch({ manual_ajuste_custo_tipo: '', manual_ajuste_custo_valor: 0 });
+    } catch (_) {}
+    entradaNfeAgendarAutosaveRascunho();
     showMsg('Ajuste manual removido — custos recalculados.', true);
   }
 
@@ -13089,12 +13112,15 @@
               un_por_embalagem: row.un_por_embalagem != null ? row.un_por_embalagem : 1,
               q_estoque: row.q_estoque != null ? row.q_estoque : null,
               v_un_com: row.v_un_com != null ? row.v_un_com : 0,
+              v_un_com_base_nf: row.v_un_com_base_nf != null ? row.v_un_com_base_nf : null,
+              v_prod: row.v_prod != null ? row.v_prod : null,
               preco_venda: row.preco_venda != null ? row.preco_venda : 0,
               cfop: row.cfop || '',
               produto_id: row.produto_id || '',
               nome_catalogo: row.nome_catalogo || row.x_prod || '',
               match_tipo: row.match_tipo || 'compras',
               catalogo_via: row.catalogo_via || '',
+              preservar_custo_nf: row.preservar_custo_nf != null ? !!row.preservar_custo_nf : true,
             });
           });
         } else {
