@@ -1149,15 +1149,13 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 98. CHECKLIST ÚNICO — **21/10c** · 🟢 **PREP armado** · **v27.26.20**
+## 98. CHECKLIST ÚNICO — **21/10c** · ✅ **Live v27.26.20**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **NF-AJUSTE-CUSTO-MANUAL-HOTFIX** | 🟡 **aguarda senha** | **NÃO** | rateio · Qtd est. |
+| 1 | **NF-AJUSTE-CUSTO-MANUAL-HOTFIX** | ✅ **Live** | **NÃO** | rateio · Qtd est. |
 
-**PREP:** `deploy/prep-checklist-2110c-nf-ajuste-manual-hotfix` @ **`25844530`**.  
-**Checkpoint:** `./scripts/prep_checkpoint_checklist_2110c_nf_ajuste_manual_hotfix.sh` ✅  
-**Cutover:** `./scripts/cutover_loja_checklist_2110c_nf_ajuste_manual_hotfix.sh --exec` + frase + senha.  
+**Loja git:** `producao` @ **`25844530`**. **Shell:** `post_deploy_checklist_2110c_nf_ajuste_manual_hotfix.sh`.  
 **Revert:** `rollback/pre-v272620-2110c-nf-ajuste-manual-hotfix` → **v27.26.19** @ **`3c2b5117`**.
 
 ---
