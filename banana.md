@@ -1304,7 +1304,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Branch** | `teste` (merge `cursor/sefaz-dfe-vila-filial-43bb`) |
+| **PREP / teste** | **`785a0f7d`** |
 | **O quê** | Entrada NF aba SEFAZ: **Buscar notas novas** puxa Dist DF-e da **matriz e da Vila Elias** (CNPJ fiscal `48900774000286`), cursor `ultNSU` por CNPJ, caixa PG unificada · chave/ciência no CNPJ certo |
 | **Migrate** | **NÃO** |
 | **PDV / caixa** | **Não alterados** |
