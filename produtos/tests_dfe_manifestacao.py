@@ -118,7 +118,7 @@ class DfeManifestacaoFluxoTests(TestCase):
         self.assertEqual(self.row.manifestacao_status, "ciencia")
         self.assertEqual(self.row.manifestacao_protocolo, "135260000000001")
         self.assertIsNotNone(self.row.manifestacao_em)
-        manifestar.assert_called_once_with(CHAVE)
+        manifestar.assert_called_once_with(CHAVE, cnpj=CNPJ)
 
     def test_ciencia_ja_registrada_nao_reenvia_evento(self):
         self.row.manifestacao_status = "ciencia"

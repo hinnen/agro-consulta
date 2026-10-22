@@ -2289,7 +2289,7 @@
         </div>
         <div class="border-l-4 border-emerald-300 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">SEFAZ (DF-e)</p>
-          <p><strong>Buscar notas novas</strong> puxa só o que ainda não passou no cursor e grava na caixa (até ~80, todos os PCs). Processe as <strong>mais antigas primeiro</strong>.</p>
+          <p><strong>Buscar notas novas</strong> consulta <strong>Centro e Vila Elias</strong> (cada uma com o próprio cursor NSU) e grava na caixa (até ~80, todos os PCs). Processe as <strong>mais antigas primeiro</strong>.</p>
           <p><strong>Baixar pela chave</strong> e <strong>Buscar XML</strong> liberam a nota na caixa mesmo com o «Aguarde 1h» do Buscar lista — só o <strong>656</strong> trava o XML. Não carrega na grade sozinho.</p>
           <p>Se a SEFAZ devolver <strong>656</strong> ou <strong>137</strong> no Buscar lista, aguarde ~1h antes de buscar notas novas de novo.</p>
           <p>Após o Buscar, o sistema tenta sozinho Ciência + XML nas «Só resumo». Quando ficar <strong>Carregar na grade</strong>, clique na que for dar entrada (uma de cada vez).</p>
@@ -6748,7 +6748,7 @@
         titulo: 'Ajuda rápida · SEFAZ (DF-e)',
         resumo: 'Puxe notas da Receita para a caixa salva no banco (todos os PCs) e carregue na grade.',
         itens: [
-          'Buscar notas novas: só puxa o que ainda não passou no cursor (até ~80). Processe as mais antigas primeiro.',
+          'Buscar notas novas: consulta Centro e Vila Elias (cursor NSU separado). Processe as mais antigas primeiro.',
           'Baixar pela chave / Buscar XML: liberam a nota na caixa mesmo no Aguarde 1h da lista — só 656 trava. Não joga na grade sozinho.',
           'Se aparecer Aguarde / 656 / 137 no Buscar lista: espere ~1h para buscar notas novas de novo.',
           'Após o Buscar, o sistema tenta Ciência + XML sozinho. Carregar na grade = você escolhe qual nota dar entrada.',
@@ -12189,6 +12189,9 @@
       acoes += '</div>';
       div.innerHTML =
         `<div class="font-black text-slate-900 text-sm leading-snug">${pv.emit_nome || '—'} · NF ${pv.numero || '—'} · R$ ${valor}</div>`
+        + (pv.loja
+          ? `<div class="mt-0.5 text-[0.65rem] font-black uppercase tracking-wide text-emerald-800">${pv.loja}</div>`
+          : '')
         + `<div class="mt-0.5 text-[0.7rem] font-mono text-slate-500 break-all">${pv.chave || '—'}</div>`
         + acoes;
       const btnLoad = div.querySelector('.btn-dfe-carregar');
@@ -12319,7 +12322,7 @@
         if (s.bloqueio_pc_local || s.consulta_sefaz_habilitada === false) {
           el.innerHTML = `<span class="inline-flex items-center gap-2 font-black text-amber-950"><span class="h-2 w-2 rounded-full bg-amber-500 shrink-0" aria-hidden="true"></span>Local · SEFAZ off</span><span class="text-[0.7rem] font-semibold text-slate-600">Cursor ${s.ult_nsu || '—'}</span>`;
         } else {
-          el.innerHTML = `<span class="inline-flex items-center gap-2 font-black text-emerald-800"><span class="h-2 w-2 rounded-full bg-emerald-500 shrink-0" aria-hidden="true"></span>Pronto</span><span class="text-[0.7rem] font-semibold text-slate-600">UF ${s.uf || '—'} · CNPJ ${s.cnpj_mascarado || '—'} · Amb ${s.tp_amb} · Cursor ${s.ult_nsu || '—'}</span>`;
+          el.innerHTML = `<span class="inline-flex items-center gap-2 font-black text-emerald-800"><span class="h-2 w-2 rounded-full bg-emerald-500 shrink-0" aria-hidden="true"></span>Pronto</span><span class="text-[0.7rem] font-semibold text-slate-600">UF ${s.uf || '—'} · CNPJ ${s.cnpjs_mascarados || s.cnpj_mascarado || '—'} · Amb ${s.tp_amb} · Cursor ${s.ult_nsu || '—'}</span>`;
         }
       } else {
         el.innerHTML = `<span class="inline-flex items-center gap-2 font-black text-amber-900"><span class="h-2 w-2 rounded-full bg-amber-500 shrink-0" aria-hidden="true"></span>Não configurado</span>`;

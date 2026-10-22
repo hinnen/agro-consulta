@@ -162,7 +162,7 @@ def dfe_bloqueio_pc_local() -> dict[str, Any] | None:
     }
 
 
-def nfe_manifestar_ciencia_operacao(chave: str) -> dict[str, Any]:
+def nfe_manifestar_ciencia_operacao(chave: str, cnpj: str | None = None) -> dict[str, Any]:
     """Registra evento 210210 no Ambiente Nacional para liberar o XML completo."""
     import os
     from datetime import datetime
@@ -199,6 +199,7 @@ def nfe_manifestar_ciencia_operacao(chave: str) -> dict[str, Any]:
         return out
 
     cfg = _cfg_dist_dfe()
+    cnpj_req = _cnpj_consulta(cnpj)
     tp_amb = 1 if int(cfg.get("tp_amb") or 2) == 1 else 2
     id_evento = f"ID210210{ch}01"
     dh_evento = datetime.now().astimezone().isoformat(timespec="seconds")
@@ -215,7 +216,7 @@ def nfe_manifestar_ciencia_operacao(chave: str) -> dict[str, Any]:
     inf = etree.SubElement(evento, etree.QName(NS_NFE, "infEvento"), Id=id_evento)
     _el(inf, "cOrgao", "91")
     _el(inf, "tpAmb", str(tp_amb))
-    _el(inf, "CNPJ", cfg["cnpj"])
+    _el(inf, "CNPJ", cnpj_req)
     _el(inf, "chNFe", ch)
     _el(inf, "dhEvento", dh_evento)
     _el(inf, "tpEvento", "210210")
@@ -324,8 +325,59 @@ def _assinar_dist_dfe_xml(xml_unsigned: str, cert_path: str, cert_password: str)
         return None, str(exc)[:400]
 
 
+def _cnpj14(cnpj: str | None) -> str:
+    return re.sub(r"\D", "", str(cnpj or ""))[:14]
+
+
 def _dfe_cnpj_cfg() -> str:
-    return str(_cfg_dist_dfe().get("cnpj") or "")
+    return _cnpj14(str(_cfg_dist_dfe().get("cnpj") or ""))
+
+
+def _cnpj_consulta(cnpj: str | None = None) -> str:
+    d = _cnpj14(cnpj)
+    return d if len(d) == 14 else _dfe_cnpj_cfg()
+
+
+def dfe_cnpjs_interessados() -> list[str]:
+    """
+    CNPJs Dist DF-e: matriz + filiais da mesma raiz (mesmo A1).
+
+    O NSU da SEFAZ é por CNPJ — consultar só a matriz não traz notas da Vila Elias.
+    ``consChNFe`` (baixar pela chave) às vezes ainda acha a filial; a busca por
+    ultNSU precisa de um pedido por estabelecimento.
+    Extra: ``NFE_DIST_DFE_CNPJS`` (vírgula), mesmo se a raiz for outra
+    (procuração). CNPJ ``03230457…`` (empresa financeira Vila) não entra
+    sozinho — certificado GM não assina essa pessoa jurídica.
+    """
+    cfg = _cfg_dist_dfe()
+    principal = _cnpj14(str(cfg.get("cnpj") or ""))
+    ordered: list[str] = []
+
+    def add(raw: str | None) -> None:
+        d = _cnpj14(raw)
+        if len(d) == 14 and d not in ordered:
+            ordered.append(d)
+
+    add(principal)
+    extras_raw = (config("NFE_DIST_DFE_CNPJS", default="") or "").strip()
+    extras: list[str] = []
+    for part in re.split(r"[,\s;]+", extras_raw):
+        e = _cnpj14(part)
+        if len(e) == 14:
+            extras.append(e)
+            add(e)
+    try:
+        from produtos.nfce_config_util import nfce_cfg
+
+        add(str((nfce_cfg("centro") or {}).get("cnpj") or ""))
+        add(str((nfce_cfg("vila") or {}).get("cnpj") or ""))
+    except Exception:
+        add("48900774000286")
+    extra_set = set(extras)
+    raiz = principal[:8] if len(principal) == 14 else ""
+    if raiz:
+        ordered = [c for c in ordered if c.startswith(raiz) or c in extra_set]
+    return ordered
 
 
 def _dfe_cooldown_key(cnpj: str) -> str:
@@ -442,6 +494,43 @@ def dfe_status_limite(cnpj: str) -> dict[str, Any]:
     }
 
 
+def dfe_status_limite_conjunto(cnpjs: list[str] | None = None) -> dict[str, Any]:
+    """Lista liberada se *algum* CNPJ puder consultar (matriz em 1h não trava a filial)."""
+    lista = [_cnpj14(c) for c in (cnpjs or dfe_cnpjs_interessados())]
+    lista = [c for c in lista if len(c) == 14]
+    if not lista:
+        p = _dfe_cnpj_cfg()
+        if len(p) == 14:
+            lista = [p]
+    any_lista = False
+    any_xml = False
+    wait_lista = 0
+    wait_xml = 0
+    motivo = ""
+    por: list[dict[str, Any]] = []
+    for c in lista:
+        st = dfe_status_limite(c)
+        por.append({"cnpj": c, **st})
+        if st.get("liberado"):
+            any_lista = True
+        else:
+            wait_lista = max(wait_lista, int(st.get("aguardar_segundos") or 0))
+            if not motivo:
+                motivo = str(st.get("motivo") or "")
+        if st.get("xml_liberado"):
+            any_xml = True
+        else:
+            wait_xml = max(wait_xml, int(st.get("aguardar_xml_segundos") or 0))
+    return {
+        "liberado": any_lista,
+        "xml_liberado": any_xml,
+        "aguardar_segundos": 0 if any_lista else wait_lista,
+        "aguardar_xml_segundos": 0 if any_xml else wait_xml,
+        "motivo": "" if (any_lista and any_xml) else motivo,
+        "por_cnpj": por,
+    }
+
+
 def dfe_registrar_consulta_enviada(cnpj: str, *, modo: str = "dist_nsu") -> None:
     import time
 
@@ -515,7 +604,7 @@ def dfe_aplicar_cooldown_apos_resposta(
     )
 
 
-def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
+def nfe_distribuicao_dfe_interesse(ult_nsu: str, cnpj: str | None = None) -> dict[str, Any]:
     """
     Consulta documentos destinados ao CNPJ (iteração por ultNSU).
     Retorno: ok, c_stat, x_motivo, ult_nsu, max_nsu, notas_xml (lista de XML string), erro
@@ -532,6 +621,8 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
         "erro": None,
     }
     cfg = _cfg_dist_dfe()
+    cnpj_req = _cnpj_consulta(cnpj)
+    out["cnpj"] = cnpj_req
     if not distribuicao_dfe_configurada():
         out["erro"] = (
             "Certificado DF-e/NFC-e incompleto. Use o mesmo A1 da NFC-e "
@@ -545,7 +636,7 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
         out.update(bloqueio_pc)
         return out
 
-    bloqueio = dfe_checar_limite_consulta(cfg["cnpj"], modo="dist_nsu")
+    bloqueio = dfe_checar_limite_consulta(cnpj_req, modo="dist_nsu")
     if bloqueio:
         # Trava local (cache) — NÃO ecoar o ultNSU pedido como se viesse da SEFAZ
         # (senão o Buscar no Aguarde podia gravar NSU digitado à toa).
@@ -571,7 +662,7 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
         f'<distDFeInt xmlns="http://www.portalfiscal.inf.br/nfe" versao="1.01">'
         f"<tpAmb>{tp_amb}</tpAmb>"
         f"<cUFAutor>{c_uf}</cUFAutor>"
-        f"<CNPJ>{cfg['cnpj']}</CNPJ>"
+        f"<CNPJ>{cnpj_req}</CNPJ>"
         f"<distNSU><ultNSU>{ult_nsu}</ultNSU></distNSU>"
         f"</distDFeInt>"
     )
@@ -602,7 +693,7 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
         from produtos.nfce_sp_emissao_util import _cert_pem_temporario
 
         cert_file, key_file, cleanup = _cert_pem_temporario(cfg["cert_path"], cfg["cert_password"])
-        dfe_registrar_consulta_enviada(cfg["cnpj"], modo="dist_nsu")
+        dfe_registrar_consulta_enviada(cnpj_req, modo="dist_nsu")
         r = requests.post(
             url,
             data=soap.encode("utf-8"),
@@ -684,7 +775,7 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
     out["notas_xml"] = notas
 
     dfe_aplicar_cooldown_apos_resposta(
-        cfg["cnpj"],
+        cnpj_req,
         c_stat=c_stat,
         ult_nsu=str(ult_nsu_ret or ult_nsu),
         max_nsu=str(max_nsu or ""),
@@ -721,7 +812,7 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
     return out
 
 
-def nfe_distribuicao_dfe_por_chave(chave: str) -> dict[str, Any]:
+def nfe_distribuicao_dfe_por_chave(chave: str, cnpj: str | None = None) -> dict[str, Any]:
     """
     Baixa documento pela chave de acesso (consChNFe).
     Não altera o cursor ultNSU da loja — uso para recuperar nota já “passada” na fila.
@@ -738,6 +829,8 @@ def nfe_distribuicao_dfe_por_chave(chave: str) -> dict[str, Any]:
         "erro": None,
     }
     cfg = _cfg_dist_dfe()
+    cnpj_req = _cnpj_consulta(cnpj)
+    out["cnpj"] = cnpj_req
     if not distribuicao_dfe_configurada():
         out["erro"] = "Certificado DF-e/NFC-e incompleto."
         return out
@@ -747,7 +840,7 @@ def nfe_distribuicao_dfe_por_chave(chave: str) -> dict[str, Any]:
         out.update(bloqueio_pc)
         return out
 
-    bloqueio = dfe_checar_limite_consulta(cfg["cnpj"], modo="cons_chave")
+    bloqueio = dfe_checar_limite_consulta(cnpj_req, modo="cons_chave")
     if bloqueio:
         out.update(bloqueio)
         out["bloqueio_local"] = True
@@ -769,7 +862,7 @@ def nfe_distribuicao_dfe_por_chave(chave: str) -> dict[str, Any]:
         f'<distDFeInt xmlns="http://www.portalfiscal.inf.br/nfe" versao="1.01">'
         f"<tpAmb>{tp_amb}</tpAmb>"
         f"<cUFAutor>{c_uf}</cUFAutor>"
-        f"<CNPJ>{cfg['cnpj']}</CNPJ>"
+        f"<CNPJ>{cnpj_req}</CNPJ>"
         f"<consChNFe><chNFe>{ch}</chNFe></consChNFe>"
         f"</distDFeInt>"
     )
@@ -800,7 +893,7 @@ def nfe_distribuicao_dfe_por_chave(chave: str) -> dict[str, Any]:
         from produtos.nfce_sp_emissao_util import _cert_pem_temporario
 
         cert_file, key_file, cleanup = _cert_pem_temporario(cfg["cert_path"], cfg["cert_password"])
-        dfe_registrar_consulta_enviada(cfg["cnpj"], modo="cons_chave")
+        dfe_registrar_consulta_enviada(cnpj_req, modo="cons_chave")
         r = requests.post(
             url,
             data=soap.encode("utf-8"),
@@ -860,7 +953,7 @@ def nfe_distribuicao_dfe_por_chave(chave: str) -> dict[str, Any]:
     out["notas_xml"] = notas
 
     dfe_aplicar_cooldown_apos_resposta(
-        cfg["cnpj"],
+        cnpj_req,
         c_stat=c_stat,
         ult_nsu=str(ult_nsu_ret or ""),
         max_nsu=str(max_nsu or ""),

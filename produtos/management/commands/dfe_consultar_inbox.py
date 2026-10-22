@@ -16,17 +16,18 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         from produtos.dfe_inbox_util import dfe_executar_consulta_e_gravar
-        from produtos.sefaz_dfe_client import _cfg_dist_dfe
 
         if options.get("force"):
             import re
             from datetime import date
 
             from django.core.cache import cache
+            from produtos.sefaz_dfe_client import dfe_cnpjs_interessados
 
-            cnpj = re.sub(r"\D", "", str(_cfg_dist_dfe().get("cnpj") or ""))[:14]
-            if len(cnpj) == 14:
-                cache.delete(f"agro_dfe_cron_day:{cnpj}:{date.today().isoformat()}")
+            for cnpj in dfe_cnpjs_interessados():
+                cnpj_n = re.sub(r"\D", "", str(cnpj or ""))[:14]
+                if len(cnpj_n) == 14:
+                    cache.delete(f"agro_dfe_cron_day:{cnpj_n}:{date.today().isoformat()}")
 
         res = dfe_executar_consulta_e_gravar(origem="cron")
         if res.get("pulado"):
