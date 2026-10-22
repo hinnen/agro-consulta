@@ -16,6 +16,7 @@ from . import views_uso_loja
 from . import views_pdv_transf_loja
 from . import views_pdv_chat_loja
 from . import views_atendimento_whatsapp
+from . import views_pdv_rapidos
 from . import views_pdv_topbar
 from . import views_repasse_vila
 from . import views_tabela_preco_forma
@@ -1164,6 +1165,16 @@ urlpatterns = [
         'api/pdv/topbar-layout/',
         views_pdv_topbar.api_pdv_topbar_layout,
         name='api_pdv_topbar_layout',
+    ),
+    path(
+        'api/pdv/rapidos/',
+        views_pdv_rapidos.api_pdv_rapidos,
+        name='api_pdv_rapidos',
+    ),
+    path(
+        'api/pdv/rapidos/<int:posicao>/foto/',
+        views_pdv_rapidos.api_pdv_rapidos_foto,
+        name='api_pdv_rapidos_foto',
     ),
     path(
         'api/pdv/transf-loja/resumo/',
