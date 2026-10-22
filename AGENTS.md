@@ -121,6 +121,12 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 
 ## 7. Decisões e implementações já registradas (changelog resumido)
 
+**PDV — produtos rápidos (9 slots)**
+
+- Botão **Rápido** na topbar (quente, organizável) e ao lado de **Rações**. Atalho **F11**. Overlay ~90% da tela, grade **3×3**.
+- Clique ou tecla **1–9** adiciona 1 unidade ao carrinho e fecha. Nome e foto do slot são **manuais** (apelido curto + upload); o **preço** vem do cadastro. Vínculo do produto do sistema em «Definir».
+- Persistência Postgres `PdvRapidoSlotAgro` (todos os PCs). APIs `api/pdv/rapido/slots/`, `salvar/`, `foto/<n>/`.
+
 **NF-e saída (nota grande) — tela `/nfe/saida/`**
 
 - Documento: **modelo 55** (DANFE A4). NFC-e 65 (cupom) fica fora desta tela. Spec: `docs/PLANO_TELA_EMISSAO_NFE_55.md`; ajuda «?» em `produtos/templates/produtos/includes/nfe_saida_help_agents.html`.

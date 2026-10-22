@@ -19726,6 +19726,25 @@
         return refreshCaixaBootstrap();
     };
 
+    window.AgroPdvAddProductById = function (id, qty) {
+        var pid = String(id || '').trim();
+        if (!pid) return Promise.resolve(false);
+        var q = qty != null ? qty : 1;
+        var picked = findProductInListById(wizardProductCatalog, { id: pid });
+        if (picked) {
+            return Promise.resolve(
+                tryAddProductFromSearch(picked, {
+                    qty: q,
+                    explicitPick: true,
+                    forceServer: false,
+                    okMsg: '',
+                    skipSearchUiReset: true,
+                })
+            );
+        }
+        return window.AgroPdvAddProductByCode(pid, { qty: q });
+    };
+
     window.AgroPdvAddProductByCode = function (code, opts) {
         opts = opts || {};
         var c = String(code || '').trim();

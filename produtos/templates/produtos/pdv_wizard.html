@@ -443,6 +443,141 @@
     max-height: min(94dvh, 40rem);
     width: min(44rem, 96vw);
   }
+  #pdv-rapido-overlay {
+    z-index: 146;
+  }
+  .pdv-rapido-panel {
+    width: 90vw;
+    height: 90dvh;
+    max-width: 90vw;
+    max-height: 90dvh;
+  }
+  .pdv-rapido-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+    height: 100%;
+    min-height: 0;
+  }
+  .pdv-rapido-slot {
+    position: relative;
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 1rem;
+    border: 3px solid #cbd5e1;
+    background: #fff;
+    text-align: left;
+    cursor: pointer;
+  }
+  .pdv-rapido-slot:hover {
+    border-color: #059669;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  }
+  .pdv-rapido-slot.is-empty {
+    border-style: dashed;
+    background: #f8fafc;
+    align-items: center;
+    justify-content: center;
+  }
+  .pdv-rapido-slot-foto {
+    flex: 1 1 auto;
+    min-height: 0;
+    background: #e2e8f0 center/cover no-repeat;
+  }
+  .pdv-rapido-slot-foto.is-blank {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: clamp(1.4rem, 1.2vw + 1rem, 2rem);
+    font-weight: 900;
+  }
+  .pdv-rapido-slot-meta {
+    flex: 0 0 auto;
+    padding: 0.4rem 0.55rem 0.5rem;
+    background: #fff;
+  }
+  .pdv-rapido-slot-nome {
+    font-size: clamp(1.05rem, 0.55vw + 0.92rem, 1.45rem);
+    font-weight: 900;
+    line-height: 1.15;
+    color: #0f172a;
+  }
+  .pdv-rapido-slot-preco {
+    margin-top: 0.15rem;
+    font-size: clamp(1.15rem, 0.5vw + 1rem, 1.55rem);
+    font-weight: 900;
+    color: #047857;
+    font-variant-numeric: tabular-nums;
+  }
+  .pdv-rapido-slot-num {
+    position: absolute;
+    top: 0.4rem;
+    left: 0.4rem;
+    z-index: 2;
+    min-width: 1.85rem;
+    height: 1.85rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    background: #0f172a;
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 900;
+  }
+  .pdv-rapido-slot-cfg {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.35rem;
+    z-index: 3;
+    min-width: 2.4rem;
+    min-height: 2.4rem;
+    border-radius: 0.65rem;
+    border: 2px solid #cbd5e1;
+    background: #fff;
+    font-size: 1.05rem;
+    font-weight: 900;
+    color: #334155;
+  }
+  .pdv-rapido-editor {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    background: #fff;
+    z-index: 4;
+  }
+  .pdv-rapido-editor.is-open {
+    display: flex;
+  }
+  .pdv-rapido-busca-item {
+    display: flex;
+    width: 100%;
+    min-height: 3.4rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0.55rem 0.25rem;
+    text-align: left;
+    background: transparent;
+    cursor: pointer;
+  }
+  .pdv-rapido-busca-item:hover {
+    background: #ecfdf5;
+  }
+  #pdv-step1-search-wrap .pdv-btn-rapido {
+    min-height: 5rem !important;
+    height: 5rem !important;
+    min-width: 5.25rem;
+    font-size: clamp(0.72rem, 0.28vw + 0.64rem, 0.92rem);
+    letter-spacing: 0.04em;
+  }
   #pdv-racoes-overlay.is-lista .pdv-racoes-panel {
     max-height: min(96dvh, 70rem);
     width: min(96rem, 99vw);
@@ -3897,7 +4032,8 @@
     #pdv-step1-search-wrap .pdv-step1-block-title--search { font-size: 1.2rem !important; }
     #pdv-step1-search-wrap #pdv-product-search { height: 4.4rem !important; min-height: 4.4rem !important; font-size: 1.65rem !important; font-weight: 900 !important; }
     #pdv-step1-search-wrap .pdv-btn-cadastro-rapido,
-    #pdv-step1-search-wrap .pdv-btn-racoes { height: 4.4rem !important; min-height: 4.4rem !important; }
+    #pdv-step1-search-wrap .pdv-btn-racoes,
+    #pdv-step1-search-wrap .pdv-btn-rapido { height: 4.4rem !important; min-height: 4.4rem !important; }
     #pdv-product-autocomplete[data-pdv-ac-layout] { max-height: unset !important; }
     #pdv-product-autocomplete .pdv-ac-head,
     #pdv-product-autocomplete .pdv-ac-row {
@@ -4232,6 +4368,7 @@
               </button>
               <a href="{% url 'caixa_painel' %}" id="pdv-topbar-caixa-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" data-pdv-topbar-key="caixa" data-pdv-topbar-node="caixa" title="{% if caixa_aberto %}Painel do caixa — turno aberto{% else %}Caixa fechado — abra o turno para vender{% endif %}">{% if caixa_aberto %}{{ caixa_rotulo|default:"Caixa aberto" }}{% else %}Caixa fechado{% endif %}</a>
               <a href="{% url 'fiado_gestao' %}?from=pdv" id="pdv-topbar-fiado-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" data-pdv-topbar-key="fiado" data-pdv-topbar-node="fiado" title="Gestão crédito loja — saldos em aberto e baixa">Fiado</a>
+              <button type="button" id="pdv-topbar-rapido-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--emerald" data-pdv-topbar-key="rapido" data-pdv-topbar-node="rapido" title="Produtos rápidos — 9 slots · F11">Rápido <kbd class="ml-0.5 rounded border border-emerald-400 bg-white px-1 font-mono text-[9px]">F11</kbd></button>
             </div>
             <div class="pdv-wiz-topbar-actions" id="pdv-topbar-actions">
               <button type="button" id="pdv-topbar-whatsapp-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--wa" data-pdv-topbar-key="whatsapp" data-wa-chat-url="{% url 'atendimento_whatsapp' %}" title="WhatsApp das lojas — atendimento">
@@ -4568,6 +4705,60 @@
   <p id="pdv-pe-etq-status" class="mt-2 text-xs font-semibold text-slate-500" role="status"></p>
 </div>
 
+<div id="pdv-rapido-overlay" class="fixed inset-0 z-[146] hidden items-center justify-center bg-slate-950/60 p-2 backdrop-blur-[2px] sm:p-3" role="dialog" aria-modal="true" aria-labelledby="pdv-rapido-titulo" data-agro-stack="auto">
+  <div class="pdv-rapido-panel relative flex w-full flex-col overflow-hidden rounded-2xl border-[3px] border-emerald-400 bg-white shadow-2xl" role="document">
+    <header class="flex shrink-0 items-center justify-between gap-2 border-b-2 border-emerald-100 bg-emerald-50 px-3 py-2 sm:px-4">
+      <div class="min-w-0">
+        <h2 id="pdv-rapido-titulo" class="text-[clamp(1.2rem,0.55vw+1.05rem,1.7rem)] font-black leading-tight text-slate-900">Produtos rápidos</h2>
+        <p class="text-[12px] font-bold text-slate-600">F11 abre · 1 a 9 escolhe · Esc fecha</p>
+      </div>
+      <div class="flex shrink-0 items-center gap-2">
+        <button type="button" id="pdv-rapido-definir" class="pdv-action-btn min-h-[3rem] rounded-xl border-2 border-orange-400 bg-orange-50 px-3 text-[0.85rem] font-black uppercase text-orange-950 hover:bg-orange-100">Definir</button>
+        <button type="button" id="pdv-rapido-fechar" class="inline-flex min-h-[3.25rem] min-w-[3.25rem] items-center justify-center rounded-xl border-2 border-slate-300 bg-white text-[2rem] font-black leading-none text-slate-700 hover:border-red-300 hover:bg-red-50" title="Fechar · Esc" aria-label="Fechar">×</button>
+      </div>
+    </header>
+    <p id="pdv-rapido-msg" class="hidden shrink-0 border-b-2 border-amber-200 bg-amber-50 px-4 py-2 text-[14px] font-bold text-amber-950" role="status"></p>
+    <div class="min-h-0 flex-1 p-2 sm:p-3">
+      <div id="pdv-rapido-grid" class="pdv-rapido-grid"></div>
+    </div>
+    <div id="pdv-rapido-editor" class="pdv-rapido-editor" hidden>
+      <div class="flex shrink-0 items-center justify-between gap-2 border-b-2 border-orange-200 bg-orange-50 px-3 py-2">
+        <p id="pdv-rapido-editor-titulo" class="text-[clamp(1.1rem,0.4vw+1rem,1.4rem)] font-black text-slate-900">Definir slot</p>
+        <button type="button" id="pdv-rapido-editor-fechar" class="inline-flex min-h-[3rem] min-w-[3rem] items-center justify-center rounded-xl border-2 border-slate-300 bg-white text-[1.75rem] font-black text-slate-700">×</button>
+      </div>
+      <div class="pdv-wizard-scroll min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-4">
+        <div class="grid gap-3 lg:grid-cols-2">
+          <label class="block">
+            <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Nome no slot (apelido)</span>
+            <input id="pdv-rapido-apelido" type="text" maxlength="32" class="pdv-input" placeholder="Ex.: Milho G" autocomplete="off">
+          </label>
+          <div>
+            <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Foto do slot</span>
+            <div class="flex items-center gap-2">
+              <img id="pdv-rapido-foto-prev" alt="" class="h-16 w-16 rounded-xl border-2 border-slate-200 object-cover bg-slate-100">
+              <label class="pdv-action-btn min-h-[3rem] cursor-pointer rounded-xl border-2 border-slate-300 bg-white px-3 text-[0.8rem] font-black uppercase text-slate-800">
+                Enviar foto
+                <input id="pdv-rapido-foto" type="file" accept="image/*" class="sr-only">
+              </label>
+              <button type="button" id="pdv-rapido-foto-limpar" class="pdv-action-btn min-h-[3rem] rounded-xl border-2 border-slate-200 bg-white px-3 text-[0.75rem] font-black uppercase text-slate-600">Tirar foto</button>
+            </div>
+          </div>
+        </div>
+        <label class="mt-3 block">
+          <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Produto do cadastro (preço vem daqui)</span>
+          <input id="pdv-rapido-busca" type="text" class="pdv-input" placeholder="Nome, GM ou código de barras" autocomplete="off">
+        </label>
+        <p id="pdv-rapido-produto-atual" class="mt-1 text-[13px] font-bold text-slate-600"></p>
+        <div id="pdv-rapido-busca-lista" class="mt-2 max-h-[12rem] overflow-y-auto rounded-xl border-2 border-slate-200"></div>
+      </div>
+      <footer class="flex shrink-0 flex-wrap gap-2 border-t-2 border-slate-200 bg-slate-50 px-3 py-2 sm:px-4">
+        <button type="button" id="pdv-rapido-slot-limpar" class="pdv-action-btn min-h-[3.1rem] rounded-xl border-2 border-red-300 bg-white px-3 text-[0.85rem] font-black uppercase text-red-700">Esvaziar slot</button>
+        <button type="button" id="pdv-rapido-editor-cancelar" class="pdv-action-btn min-h-[3.1rem] flex-1 rounded-xl border-2 border-slate-300 bg-white px-3 text-[0.85rem] font-black uppercase text-slate-700">Cancelar</button>
+        <button type="button" id="pdv-rapido-editor-salvar" class="pdv-action-btn min-h-[3.1rem] flex-[1.4] rounded-xl bg-emerald-600 px-3 text-[0.9rem] font-black uppercase text-white hover:bg-emerald-700">Salvar slot</button>
+      </footer>
+    </div>
+  </div>
+</div>
 <div id="pdv-racoes-overlay" class="fixed inset-0 z-[140] hidden items-center justify-center bg-slate-950/55 p-2 backdrop-blur-[2px] sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-racoes-titulo">
   <div class="pdv-racoes-panel flex w-full flex-col overflow-hidden rounded-2xl border-2 border-emerald-300 bg-white shadow-2xl" role="document" onclick="event.stopPropagation()">
     <header class="flex shrink-0 items-start justify-between gap-2 border-b-2 border-emerald-100 bg-emerald-50 px-4 py-3 sm:px-5">
@@ -5171,6 +5362,7 @@ window.AGRO_ETQ_CFG = window.AGRO_ETQ_CFG || {
 <script src="{% static 'produtos/js/agro_print_bridge.js' %}?v=1"></script>
 <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_wizard.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_rapido.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_topbar_mais.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_topbar_whatsapp.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_topbar_layout.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>

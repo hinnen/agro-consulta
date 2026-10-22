@@ -108,7 +108,12 @@ def main():
         frio=["vendas", "uso_loja", "entregas", "caixa", "saldo_vila", "repasse", "pesar", "pin"],
         usuario=user,
     )
-    check("salvar_quente", salvo["quente"][:3] == ["pedir_loja", "fiado", "nova_venda"])
+    check(
+        "salvar_quente",
+        salvo["quente"][:2] == ["pedir_loja", "fiado"]
+        and "nova_venda" in salvo["quente"]
+        and "rapido" in salvo["quente"],
+    )
     check("row_pg", PdvTopbarLayoutAgro.objects.filter(chave="default").exists())
 
     rf = RequestFactory()

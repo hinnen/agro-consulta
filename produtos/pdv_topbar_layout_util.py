@@ -15,6 +15,7 @@ QUENTE_DEFAULT: list[str] = [
     "entregas",
     "caixa",
     "fiado",
+    "rapido",
     "nova_venda",
 ]
 FRIO_DEFAULT: list[str] = [
@@ -33,6 +34,7 @@ LABELS: dict[str, str] = {
     "entregas": "Entregas",
     "caixa": "Caixa/loja",
     "fiado": "Fiado",
+    "rapido": "Rápido",
     "nova_venda": "Nova venda",
     "saldo_vila": "Saldo Vila",
     "repasse": "Repasse",
@@ -64,7 +66,13 @@ def normalizar_layout(*, quente: Any = None, frio: Any = None) -> dict[str, list
     usados = set(q) | set(f)
     for k in QUENTE_DEFAULT + FRIO_DEFAULT:
         if k not in usados:
-            f.append(k)
+            if k == "rapido":
+                if "fiado" in q:
+                    q.insert(q.index("fiado") + 1, k)
+                else:
+                    q.append(k)
+            else:
+                f.append(k)
             usados.add(k)
     if not q:
         q = list(QUENTE_DEFAULT)

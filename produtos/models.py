@@ -3844,6 +3844,42 @@ class PdvTopbarLayoutAgro(models.Model):
         return f"topbar:{self.chave}"
 
 
+class PdvRapidoSlotAgro(models.Model):
+    """9 atalhos de produto no overlay rápido do PDV (loja inteira · multi-PC)."""
+
+    chave = models.CharField(max_length=32, default="default", db_index=True)
+    slot = models.PositiveSmallIntegerField()
+    produto_id = models.CharField(max_length=64, blank=True, default="")
+    apelido = models.CharField(max_length=40, blank=True, default="")
+    foto = models.BinaryField(null=True, blank=True)
+    foto_mime = models.CharField(max_length=40, blank=True, default="")
+    foto_versao = models.PositiveIntegerField(default=0)
+    atualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="pdv_rapido_slots",
+    )
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Slot rápido PDV"
+        verbose_name_plural = "Slots rápidos PDV"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["chave", "slot"],
+                name="pdv_rapido_slot_chave_slot_uq",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["chave", "slot"], name="pdv_rapido_chave_slot_idx"),
+        ]
+
+    def __str__(self):
+        return f"rapido:{self.chave}#{self.slot} {self.apelido or self.produto_id or 'vazio'}"
+
+
 class WhatsAppPonteEstadoAgro(models.Model):
     """Singleton da ponte QR (PC da loja ↔ Django)."""
 

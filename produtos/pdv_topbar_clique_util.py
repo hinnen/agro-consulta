@@ -17,6 +17,7 @@ BOTAO_KEYS = frozenset(
         "caixa",
         "vendas",
         "fiado",
+        "rapido",
         "uso_loja",
         "repasse",
         "entregas",
