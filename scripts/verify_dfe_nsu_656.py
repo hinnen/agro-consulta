@@ -47,6 +47,7 @@ def _run_consulta(mock_res: dict, *, cursor_antes: str = "2086") -> tuple[dict, 
     with (
         patch("produtos.sefaz_dfe_client.distribuicao_dfe_configurada", return_value=True),
         patch("produtos.sefaz_dfe_client._cfg_dist_dfe", return_value={"cnpj": CNPJ}),
+        patch("produtos.sefaz_dfe_client.dist_dfe_cnpjs_destino", return_value=[CNPJ]),
         patch("produtos.nfe_entrada_util.obter_ult_nsu", return_value=str(cursor_antes).zfill(15)),
         patch("produtos.nfe_entrada_util.gravar_ult_nsu", side_effect=_gravar),
         patch(
@@ -54,6 +55,8 @@ def _run_consulta(mock_res: dict, *, cursor_antes: str = "2086") -> tuple[dict, 
             return_value=mock_res,
         ),
         patch.object(inbox, "dfe_inbox_listar", return_value=[]),
+        patch.object(inbox, "dfe_inbox_listar_configurados", return_value=[]),
+        patch.object(inbox, "dfe_completar_resumos_pendentes", return_value={"tentadas": 0}),
         patch.object(
             inbox,
             "dfe_inbox_upsert_xmls",
@@ -168,6 +171,7 @@ def main() -> int:
             },
         ),
         patch.object(inbox, "dfe_inbox_listar", return_value=[]),
+        patch.object(inbox, "dfe_inbox_listar_configurados", return_value=[]),
         patch.object(
             inbox,
             "dfe_inbox_upsert_xmls",
