@@ -1294,35 +1294,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PREP ARMADO — **CHECKLIST 21/10c** · **NF-AJUSTE-MANUAL-HOTFIX** · **v27.26.20** · 21/10
+### ✅ Deploy loja — **CHECKLIST 21/10c** · **Live v27.26.20** · 21/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Branch PREP** | `deploy/prep-checklist-2110c-nf-ajuste-manual-hotfix` @ **`25844530`** (base **`producao`** @ **`3c2b5117`**) |
-| **Pacote** | Rateio manual por **Qtd est.** · **Reverter** · rascunho `v_prod` / `v_un_com_base_nf` |
+| **Status** | ✅ **Live** @ **`25844530`** · cutover autorizado **22/10** |
+| **Pacote** | **NF-AJUSTE-CUSTO-MANUAL-HOTFIX** — rateio **Qtd est.** · Reverter · rascunho |
 | **Migrate** | **NÃO** |
-| **PDV / caixa** | **Não alterados** (gate cutover · só Entrada NF) |
-| **Prova** | path + rateio **VERIFY_OK** · **`prep_checkpoint` OK** |
-| **Prep** | `./scripts/prep_checkpoint_checklist_2110c_nf_ajuste_manual_hotfix.sh` ✅ |
-| **Cutover (senha)** | `AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_2110c_nf_ajuste_manual_hotfix.sh --exec` |
+| **PDV / caixa** | **Não alterados** |
 | **Revert** | `git push origin rollback/pre-v272620-2110c-nf-ajuste-manual-hotfix:producao` → **v27.26.19** @ **`3c2b5117`** |
-| **Pós-deploy** | `./scripts/post_deploy_checklist_2110c_nf_ajuste_manual_hotfix.sh` |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-2110c-nf-ajuste-manual-hotfix.md` |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2110c_nf_ajuste_manual_hotfix.sh` (opcional, sem migrate) |
+| **Smoke** | **Ctrl+F5** em `/entrada-nota/` → desconto → **Reverter** |
 
-**Status:** 🟢 **PREP pronto** — **não** subiu · vendas/PDV **sem mudança de código** · pausa curta no deploy.
+### ~~ARMADO 21/10c~~ · **enviado** · ver Live acima
 
-### ✅ CHECKLIST ÚNICO — **21/10c** · 🟡 **aguarda senha** · PREP armado
+### ✅ CHECKLIST ÚNICO — **21/10c** · ✅ **enviado** (ver Live)
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **NF-AJUSTE-CUSTO-MANUAL-HOTFIX** | 🟡 **aguarda senha** | **NÃO** | rateio · Qtd est. |
+| 1 | **NF-AJUSTE-CUSTO-MANUAL-HOTFIX** | ✅ Live | **NÃO** | rateio · Qtd est. |
 
 ### 📦 PACOTE PRONTO — **NF-AJUSTE-MANUAL-HOTFIX** · **v27.26.20** · 21/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **teste** | **`4b4fc997`** · **`feca9cc7`** · PREP **`25844530`** |
-| **Smoke** | Ctrl+F5 → `/entrada-nota/` → desconto R$ → V. unit ≠ total → **Reverter** |
+| **PREP / loja** | **`producao`** @ **`25844530`** |
 
 ### ✅ Deploy loja — **CHECKLIST 21/10b** · **Live v27.26.19** · 21/10
 
