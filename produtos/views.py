@@ -20415,7 +20415,6 @@ def api_entrada_nota_dfe_inbox(request):
 def api_entrada_nota_dfe_inbox_detalhe(request, doc_id: int):
     """Parseia XML salvo no PG para «Carregar na grade»."""
     from produtos.dfe_inbox_util import dfe_inbox_marcar, dfe_inbox_obter
-    from produtos.sefaz_dfe_client import _cfg_dist_dfe
 
     row = dfe_inbox_obter(doc_id, None)
     if not row:
