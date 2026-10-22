@@ -1693,6 +1693,9 @@
         if (!silent && catalogReady) {
             updateSearchAwaitingPulse();
         }
+        try {
+            document.dispatchEvent(new CustomEvent('agro-pdv-catalogo'));
+        } catch (eCatRap) {}
         return catalogReady;
     }
 
@@ -19760,6 +19763,28 @@
             {},
             { query: c, forceServer: true, okMsg: '', skipSearchUiReset: true, qty: qty }
         );
+    };
+
+    window.AgroPdvRapidosBridge = {
+        find: function (id) {
+            var want = String(id || '').trim();
+            if (!want) return null;
+            for (var iRap = 0; iRap < wizardProductCatalog.length; iRap++) {
+                if (String(wizardProductCatalog[iRap].id) === want) return wizardProductCatalog[iRap];
+            }
+            return null;
+        },
+        buscar: function (q) {
+            var rRap = filterCatalogLocal(q, 'text');
+            return (rRap && rRap.list) || [];
+        },
+        add: function (produto) {
+            return window.AgroPdvAddResolvedProduct(produto, 1);
+        },
+        formatMoney: formatMoney,
+        csrf: function () {
+            return (bootstrap && bootstrap.csrfToken) || '';
+        },
     };
 
     window.AgroPdvAddResolvedProduct = function (produto, qty) {

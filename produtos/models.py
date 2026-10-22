@@ -3844,6 +3844,33 @@ class PdvTopbarLayoutAgro(models.Model):
         return f"topbar:{self.chave}"
 
 
+class PdvRapidoSlotAgro(models.Model):
+    """Atalho de produto do PDV (9 slots · apelido e foto manuais · loja inteira)."""
+
+    posicao = models.PositiveSmallIntegerField(unique=True)
+    produto_id = models.CharField(max_length=64, blank=True, default="")
+    codigo = models.CharField(max_length=40, blank=True, default="")
+    nome = models.CharField(max_length=32, blank=True, default="")
+    foto = models.BinaryField(null=True, blank=True)
+    foto_tipo = models.CharField(max_length=40, blank=True, default="")
+    atualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="pdv_rapido_slots",
+    )
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Slot rápido do PDV"
+        verbose_name_plural = "Slots rápidos do PDV"
+        ordering = ["posicao"]
+
+    def __str__(self):
+        return f"rápido {self.posicao}: {self.nome or 'vazio'}"
+
+
 class WhatsAppPonteEstadoAgro(models.Model):
     """Singleton da ponte QR (PC da loja ↔ Django)."""
 
