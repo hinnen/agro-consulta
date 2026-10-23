@@ -119,13 +119,11 @@ class PdvRapidosTests(TestCase):
         self.assertEqual(obter_layout(), salvo)
         self.assertEqual(len(listar_slots()), 9)
 
-    def test_layout_rapidos_entra_no_quente(self):
-        self.assertIn("rapidos", QUENTE_DEFAULT)
-        self.assertLess(QUENTE_DEFAULT.index("fiado"), QUENTE_DEFAULT.index("rapidos"))
+    def test_layout_rapidos_fora_da_faixa(self):
+        self.assertNotIn("rapidos", QUENTE_DEFAULT)
         n = normalizar_layout(
-            quente=["pedir_loja", "fiado", "nova_venda"],
-            frio=["pin"],
+            quente=["pedir_loja", "fiado", "nova_venda", "rapidos"],
+            frio=["pin", "rapidos"],
         )
-        self.assertIn("rapidos", n["quente"])
-        self.assertLess(n["quente"].index("rapidos"), n["quente"].index("nova_venda"))
-        self.assertEqual(n["quente"].count("rapidos"), 1)
+        self.assertNotIn("rapidos", n["quente"])
+        self.assertNotIn("rapidos", n["frio"])
