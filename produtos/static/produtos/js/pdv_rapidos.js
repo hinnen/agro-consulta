@@ -1,5 +1,6 @@
 /**
- * PDV — Rápidos (F5). Nove slots, apelido e foto manuais, preço do cadastro.
+ * PDV — Rápidos (Insert). Nove slots, apelido e foto manuais, preço do cadastro.
+ * F5 continua atualizando a página no Chrome.
  * Esc fecha. 1–9 (ou clique) lança 1 unidade e fecha.
  */
 (function () {
@@ -741,7 +742,7 @@
     'keydown',
     function (ev) {
       if (pinAberto()) return;
-      if (ev.code === 'F5' && !ev.altKey && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey && !ev.repeat) {
+      if (ev.code === 'Insert' && !ev.altKey && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey && !ev.repeat) {
         ev.preventDefault();
         ev.stopPropagation();
         toggle();
