@@ -1294,6 +1294,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — **PDV-RAPIDOS** · **v27.26.21** · 23/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **pronto para envio à produção** — ainda não é Live |
+| **Pacote** | Rápidos no PDV: **Alt+6**, 9 slots, apelido e foto manuais, preço do cadastro, proporção arrastável |
+| **Subir** | `cursor/pdv-rapidos-ac2d` → `teste` → `producao` (só com senha) |
+| **Migrate** | **SIM** `0150` + `0151` |
+| **PDV** | F6 de orçamento intacto · Esc fecha · PIN aberto não come 1–9 |
+| **Prova** | `verify_pdv_rapidos_path.py` **34/34** · harness tecla/Esc/PIN/arraste **16/16** |
+| **Smoke** | Ctrl+F5 no PDV → Alt+6 → 1–9 → Esc → Definir → Proporção |
+
+### ✅ CHECKLIST ÚNICO — **23/10** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-RAPIDOS** | 🟢 pronto para envio à produção | **SIM** `0150`+`0151` | **34/34** + harness **16/16** |
+
 ### ✅ Deploy loja — **CHECKLIST 21/10c** · **Live v27.26.20** · 21/10
 
 | Campo | Valor |
