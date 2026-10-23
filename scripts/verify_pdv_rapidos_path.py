@@ -129,6 +129,8 @@ def main():
             with connection.schema_editor() as editor:
                 editor.delete_model(PdvRapidoSlotAgro)
     print(f"\n{ok} ok, {fail} fail")
+    if fail == 0:
+        print("VERIFY_OK")
     return 0 if fail == 0 else 1
 
 
