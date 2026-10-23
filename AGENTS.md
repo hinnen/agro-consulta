@@ -188,7 +188,7 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 - Botão na faixa quente (dá para ir para o menu Mais em Organizar atalhos). Tela cheia, grade 3×3.
 - Tecla **1–9** ou clique lança **1 unidade** e fecha. **Esc** fecha. **F6** continua sendo o histórico de orçamento.
 - Cada slot: produto do cadastro + **apelido** e **foto** manuais (não usa o nome longo do cadastro). O preço de venda vem do sistema. Vale para todos os PCs. Foto fica no Postgres (não no disco do Render).
-- **Proporção:** no próprio overlay, arraste as faixas do primeiro quadro (largura da foto, tamanho do nome, tamanho do valor). Os nove usam o mesmo desenho. `PdvRapidoLayoutAgro`.
+- **Proporção:** no primeiro quadro, arraste Foto, Nome e Valor. Os nove copiam. `PdvRapidoLayoutAgro`. Com o PIN do caixa aberto, 1–9 não lançam produto.
 
 **Caixa — Gaveta / Notebook / Teste**  
 

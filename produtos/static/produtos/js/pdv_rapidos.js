@@ -334,10 +334,16 @@
     }
   }
 
+  function pinAberto() {
+    var pin = document.getElementById('modal-caixa-pin');
+    return !!(pin && !pin.classList.contains('hidden'));
+  }
+
   function fechar() {
     modoDefinir = false;
     modoProporcao = false;
     arraste = null;
+    ignorarClique = false;
     overlay.classList.remove('is-arrastando');
     aplicarModo();
     setMsg('');
@@ -378,6 +384,7 @@
   function sairEspecial() {
     modoDefinir = false;
     modoProporcao = false;
+    ignorarClique = false;
     aplicarModo();
     setMsg('');
     render();
@@ -641,7 +648,8 @@
       arraste.moved = true;
     }
     if (arraste.tipo === 'foto') {
-      layout.foto_pct = faixa(((ev.clientX - rect.left) / Math.max(rect.width, 1)) * 100, 22, 70, 40);
+      var deltaFoto = ((ev.clientX - arraste.startX) / Math.max(rect.width, 1)) * 100;
+      layout.foto_pct = faixa(Math.round(arraste.foto + deltaFoto), 22, 70, 40);
     } else {
       var delta = Math.round(((ev.clientY - arraste.startY) / Math.max(rect.height, 1)) * 140);
       if (arraste.tipo === 'nome') layout.nome_escala = faixa(arraste.nome + delta, 55, 170, 100);
@@ -650,15 +658,23 @@
     aplicarLayout();
   });
 
-  document.addEventListener('pointerup', function (ev) {
+  function soltarArraste(ev, salvar) {
     if (!arraste || ev.pointerId !== arraste.pointerId) return;
     var moved = arraste.moved;
     arraste = null;
     overlay.classList.remove('is-arrastando');
-    if (moved) {
+    if (salvar && moved) {
       ignorarClique = true;
       salvarLayout();
     }
+  }
+
+  document.addEventListener('pointerup', function (ev) {
+    soltarArraste(ev, true);
+  });
+
+  document.addEventListener('pointercancel', function (ev) {
+    soltarArraste(ev, false);
   });
 
   grid.addEventListener('click', function (ev) {
@@ -675,11 +691,11 @@
       escolherProduto(parseInt(hit.getAttribute('data-hit-pos'), 10), prod);
       return;
     }
-    if (modoDefinir || modoProporcao) return;
     if (ignorarClique) {
       ignorarClique = false;
       return;
     }
+    if (modoDefinir || modoProporcao) return;
     if (ev.target.closest('[data-alca]')) return;
     var card = ev.target.closest('.pdv-rapidos-card[data-pos]');
     if (!card || card.disabled) return;
@@ -724,6 +740,7 @@
   document.addEventListener(
     'keydown',
     function (ev) {
+      if (pinAberto()) return;
       if (ev.altKey && ev.code === 'Digit6' && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey && !ev.repeat) {
         ev.preventDefault();
         ev.stopPropagation();
