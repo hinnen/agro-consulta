@@ -1149,6 +1149,17 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
+## 101. CHECKLIST ÚNICO — **23/10b** · ✅ **Live v27.26.23**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-RAPIDOS Home** | ✅ **Live** | **NÃO** | **35/35** |
+
+**Loja git:** `producao` @ **`d37449e6`**. Sem migrate nova.  
+**Revert:** `rollback/pre-v272623-2310b-pdv-rapidos-home` → **v27.26.22** @ **`c8695c5d`**.
+
+---
+
 ## 100. CHECKLIST ÚNICO — **23/10** · ✅ **Live v27.26.22**
 
 | # | Pacote | Status | Migrate | Prova |

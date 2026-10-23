@@ -1294,6 +1294,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 PREP ARMADO — **CHECKLIST 23/10b** · **PDV-RAPIDOS Home** · **v27.26.23** · 23/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Loja atual** | **`c8695c5d`** · **v27.26.22** |
+| **Branch PREP** | `deploy/prep-checklist-2310b-pdv-rapidos-home` @ **`d37449e6`** |
+| **Origem** | `cursor/pdv-rapidos-ac2d` @ **`b83c9dde`** |
+| **O quê** | Botão **Rápidos** na busca · tecla **Home** · **F5** atualiza a página · **Insert** livre |
+| **Migrate** | **NÃO** (0150+0151 já no Live 23/10) |
+| **Caixa / checkout** | **Não alterados** |
+| **Prova** | `verify_pdv_rapidos_path.py` **35/35** |
+| **Checkpoint** | `rollback/pre-v272623-2310b-pdv-rapidos-home` → **`c8695c5d`** |
+| **Cutover** | `./scripts/cutover_loja_checklist_2310b_pdv_rapidos_home.sh` · `--exec` + frase + senha |
+| **Smoke** | **Ctrl+F5** PDV → **F5** recarrega → **Home** abre Rápidos → 1–9 → Esc |
+
+### ✅ CHECKLIST ÚNICO — **23/10b** · 🟢 **PREP ARMADO — aguarda senha**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-RAPIDOS Home** | 🟢 aguarda senha | **NÃO** | **35/35** |
+
 ### ✅ Deploy loja — **CHECKLIST 23/10** · **Live v27.26.22** · 23/10
 
 | Campo | Valor |
