@@ -1,9 +1,37 @@
+from decimal import Decimal
+
 from django import forms
+from django.core.exceptions import ValidationError
 
 from .models import ClienteAgro
 
 
 class ClienteAgroForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from produtos.fiado_credito_util import fiado_limite_inicial_novo_cliente
+
+        if not self.instance.pk and self.initial.get("limite_fiado_local") in (None, ""):
+            self.initial["limite_fiado_local"] = fiado_limite_inicial_novo_cliente()
+
+    def clean_limite_fiado_local(self):
+        from produtos.fiado_credito_util import fiado_limite_inicial_novo_cliente
+
+        val = self.cleaned_data.get("limite_fiado_local")
+        if not self.instance.pk and (val is None or val == Decimal("0")):
+            return fiado_limite_inicial_novo_cliente()
+        return val
+
+    def clean_desconto_pdv_percentual(self):
+        val = self.cleaned_data.get("desconto_pdv_percentual")
+        if val is None or val == "":
+            return None
+        if val < 0 or val > 100:
+            raise ValidationError("Informe um percentual entre 0 e 100, ou deixe em branco.")
+        if val == 0:
+            return None
+        return val
+
     class Meta:
         model = ClienteAgro
         fields = (
@@ -13,6 +41,7 @@ class ClienteAgroForm(forms.ModelForm):
             "saldo_cashback",
             "saldo_vale_credito",
             "limite_fiado_local",
+            "desconto_pdv_percentual",
             "cep",
             "uf",
             "cidade",
@@ -60,6 +89,16 @@ class ClienteAgroForm(forms.ModelForm):
                     "class": "w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-slate-800",
                     "step": "0.01",
                     "min": "0",
+                }
+            ),
+            "desconto_pdv_percentual": forms.NumberInput(
+                attrs={
+                    "class": "w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-slate-800",
+                    "step": "0.01",
+                    "min": "0",
+                    "max": "100",
+                    "placeholder": "Vazio = sem desconto",
+                    "inputmode": "decimal",
                 }
             ),
             "cep": forms.TextInput(
@@ -127,4 +166,14 @@ class ClienteAgroForm(forms.ModelForm):
             ),
             "ativo": forms.CheckboxInput(attrs={"class": "rounded border-slate-300 w-5 h-5"}),
         }
+
+    def clean_whatsapp(self):
+        from produtos.cliente_whatsapp_util import validar_whatsapp_unico_cliente
+
+        raw = self.cleaned_data.get("whatsapp") or ""
+        pk = self.instance.pk if self.instance and self.instance.pk else None
+        digits, err = validar_whatsapp_unico_cliente(raw, excluir_pk=pk, obrigatorio=False)
+        if err:
+            raise forms.ValidationError(err)
+        return digits
 

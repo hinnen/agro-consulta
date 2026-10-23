@@ -1,0 +1,49 @@
+{
+  "name": "agro-print-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Ponte local SisVale — imprime etiquetas direto no Windows (Chrome).",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "ensure": "node ensure-electron.js",
+    "build": "electron-builder --win --publish never"
+  },
+  "devDependencies": {
+    "electron": "33.4.11",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "br.com.sistvale.agro-print-bridge",
+    "productName": "Agro Etiqueta Print",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "package.json",
+      "assets/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerLanguages": [
+        "pt_BR"
+      ],
+      "language": "1046"
+    }
+  },
+  "allowScripts": {
+    "electron@33.4.11": true
+  }
+}

@@ -1,0 +1,291 @@
+from datetime import datetime
+from io import BytesIO
+from unittest.mock import patch
+
+from django.test import RequestFactory, SimpleTestCase
+from django.urls import reverse
+from openpyxl import load_workbook
+
+from produtos import relatorios_central_views as views
+from produtos import relatorios_vendas_util as ru
+
+
+AGG = [
+    {"produto_id_externo": "1", "qtd": 2, "valor": 100},
+    {"produto_id_externo": "2", "qtd": 1, "valor": 50},
+    {"produto_id_externo": "3", "qtd": 3, "valor": 30},
+]
+META = {
+    "1": {"nome": "Racao A", "codigo": "GM1", "categoria": "Racoes", "subcategoria": "Gato", "subcategoria_2": "Premium", "subcategoria_3": "Adulto", "subcategoria_4": "Frango", "custo": 20},
+    "2": {"nome": "Racao B", "codigo": "GM2", "categoria": "Racoes", "subcategoria": "Cachorro", "subcategoria_2": "Premium", "subcategoria_3": "Filhote", "subcategoria_4": "Carne", "custo": 10},
+    "3": {"nome": "Vaso", "codigo": "GM3", "categoria": "Jardim", "subcategoria": "Vasos", "subcategoria_2": "Plastico", "subcategoria_3": "Grande", "subcategoria_4": "Preto", "custo": 5},
+}
+
+
+class RelatoriosCatalogoUtilTests(SimpleTestCase):
+    def setUp(self):
+        self.desde = self.ate = datetime(2026, 8, 1)
+        self.patches = [
+            patch.object(ru, "_agg_itens_por_produto", return_value=[dict(x) for x in AGG]),
+            patch.object(ru, "mapa_produtos_meta", return_value=META),
+        ]
+        for p in self.patches:
+            p.start()
+            self.addCleanup(p.stop)
+
+    def test_api_necessaria_existe_e_request_normaliza_multi_casefold(self):
+        for nome in ("_as_filtro_lista", "filtros_catalogo_request", "facetas_categoria_sub", "limitar_ranking"):
+            self.assertTrue(hasattr(ru, nome), nome)
+        req = RequestFactory().get("/", {"categoria": ["Racoes", "", "racoes", "Jardim"]})
+        self.assertEqual(ru.filtros_catalogo_request(req)["categoria"], ["Racoes", "Jardim"])
+
+    def test_or_no_campo_e_and_entre_campos(self):
+        facetas, rows = ru.facetas_categoria_sub(
+            self.desde, self.ate, categoria=["racoes", "JARDIM"], subcategoria=["gato", "cachorro"]
+        )
+        self.assertEqual([r["produto_id"] for r in rows], ["1", "2"])
+        self.assertEqual(facetas["categoria"], ["Racoes", "Jardim"])
+        self.assertIn("Vasos", facetas["subcategorias"])
+
+    def test_agrupar_categoria_e_subcategorias_1_a_4(self):
+        for campo in ("categoria", "subcategoria", "subcategoria_2", "subcategoria_3", "subcategoria_4"):
+            rows, meta = ru.vendas_por_grupo_relatorio(self.desde, self.ate, agrupar=campo)
+            self.assertEqual(meta["agrupar"], campo)
+            self.assertTrue(rows)
+
+    def test_curva_abc_recalcula_percentuais_no_recorte(self):
+        rows, meta = ru.curva_abc(self.desde, self.ate, todos=True, categoria=["racoes"])
+        self.assertEqual(meta["total_periodo"], 150)
+        self.assertAlmostEqual(sum(r["pct"] for r in rows), 100, places=1)
+        self.assertEqual(rows[-1]["pct_acum"], 100)
+
+    def test_margem_reaproveita_linhas_filtradas(self):
+        filtradas = ru.ranking_produtos(self.desde, self.ate, categoria=["Jardim"], limite=0)
+        with patch.object(ru, "ranking_produtos", side_effect=AssertionError("nao deve consultar de novo")):
+            rows = ru.margem_produtos(self.desde, self.ate, rows=filtradas)
+        self.assertEqual([r["produto_id"] for r in rows], ["3"])
+
+    def test_contrato_legado_vendas_por_grupo_e_receita(self):
+        self.assertIsInstance(ru.vendas_por_grupo(self.desde, self.ate), list)
+        receita = ru.receita_categorias_pdv(self.desde.date(), self.ate.date())
+        self.assertEqual(receita["total"], 180)
+
+    def test_vendas_grupo_margem_ordenacao_e_filtros(self):
+        rows, meta = ru.vendas_por_grupo_relatorio(self.desde, self.ate, agrupar="categoria")
+        racoes = next(r for r in rows if r["grupo"] == "Racoes")
+        self.assertAlmostEqual(racoes["valor"], 150.0)
+        self.assertAlmostEqual(racoes["custo"], 50.0)
+        self.assertAlmostEqual(racoes["margem_rs"], 100.0)
+        self.assertIn("totais", meta)
+        rows_min, _ = ru.vendas_por_grupo_relatorio(
+            self.desde, self.ate, agrupar="categoria", min_valor=120.0
+        )
+        self.assertEqual([r["grupo"] for r in rows_min], ["Racoes"])
+        rows_ord, _ = ru.vendas_por_grupo_relatorio(
+            self.desde, self.ate, agrupar="categoria", ordenar="margem_pct"
+        )
+        self.assertEqual(rows_ord[0]["grupo"], "Racoes")
+
+    def test_parse_vendas_grupo_e_meses_comparativo(self):
+        req = RequestFactory().get(
+            "/",
+            {
+                "visao": "comparativo",
+                "n_meses": "4",
+                "mes_modo": "escolher",
+                "mes_1": "2026-06",
+                "mes_2": "2026-08",
+                "ordenar": "margem_rs",
+                "so_sem_custo": "1",
+            },
+        )
+        g = ru.parse_vendas_grupo_request(req)
+        self.assertEqual(g["visao"], "comparativo")
+        self.assertEqual(g["ord_dir"], "desc")
+        self.assertEqual(g["n_meses"], 4)
+        self.assertEqual(g["meses_escolhidos"], ["2026-06", "2026-08"])
+        self.assertTrue(g["so_sem_custo"])
+        meses = ru.meses_comparativo_grupo(g)
+        self.assertEqual(len(meses), 2)
+        self.assertEqual(meses[0]["label"], "Jun/26")
+
+    def test_vendas_grupo_comparativo_agrega_variacao(self):
+        meses = [
+            {
+                "label": "Jan/26",
+                "desde": self.desde,
+                "ate": self.ate,
+            },
+            {
+                "label": "Fev/26",
+                "desde": self.desde,
+                "ate": self.ate,
+            },
+        ]
+        call = 0
+
+        def fake_grupo(*_a, **_k):
+            nonlocal call
+            call += 1
+            if call == 1:
+                return (
+                    [{"grupo": "Racoes", "valor": 100.0, "margem_rs": 40.0, "margem_pct": 40.0, "qtd": 1, "ticket": 100.0, "pct_margem": 100.0, "skus_sem_custo": 0}],
+                    {},
+                )
+            return (
+                [{"grupo": "Racoes", "valor": 150.0, "margem_rs": 60.0, "margem_pct": 40.0, "qtd": 2, "ticket": 75.0, "pct_margem": 100.0, "skus_sem_custo": 0}],
+                {},
+            )
+
+        with patch.object(ru, "vendas_por_grupo_relatorio", side_effect=fake_grupo):
+            rows, meta = ru.vendas_grupo_comparativo_meses(meses, agrupar="categoria")
+        self.assertEqual(len(rows), 1)
+        self.assertAlmostEqual(rows[0]["var_total_venda_pct"], 50.0)
+        self.assertEqual(meta["meses"], ["Jan/26", "Fev/26"])
+
+    def test_parse_deposito_e_passa_no_ranking(self):
+        req = RequestFactory().get("/", {"deposito": "vila"})
+        self.assertEqual(ru.parse_deposito_relatorio(req), "vila")
+        self.assertEqual(ru.deposito_ui_value(None), "ambos")
+        self.assertEqual(ru.rotulo_deposito_relatorio("centro"), "Só Centro")
+        with patch.object(ru, "_agg_itens_por_produto", return_value=[dict(x) for x in AGG]) as mock_agg:
+            ru.ranking_produtos(self.desde, self.ate, deposito="centro", limite=0)
+            mock_agg.assert_called_once()
+            self.assertEqual(mock_agg.call_args.kwargs.get("deposito"), "centro")
+        with patch.object(ru, "_agg_itens_por_produto", return_value=[dict(x) for x in AGG]) as mock_agg:
+            ru.vendas_por_grupo_relatorio(self.desde, self.ate, deposito="vila")
+            self.assertEqual(mock_agg.call_args.kwargs.get("deposito"), "vila")
+
+
+class RelatoriosCentralViewsHelperTests(SimpleTestCase):
+    def test_limpar_catalogo_preserva_periodo_e_loja(self):
+        req = RequestFactory().get(
+            "/",
+            {
+                "periodo": "30d",
+                "deposito": "centro",
+                "categoria": ["Racoes", "Jardim"],
+                "subcategoria": "Gato",
+                "agrupar": "subcategoria",
+            },
+        )
+        qs = views._qs_limpar_catalogo(req)
+        self.assertIn("periodo=30d", qs)
+        self.assertIn("deposito=centro", qs)
+        self.assertIn("agrupar=subcategoria", qs)
+        self.assertNotIn("categoria=", qs)
+        self.assertNotIn("subcategoria=", qs)
+
+    def test_extra_filtros_catalogo_resumo(self):
+        ef = views._extra_filtros_catalogo(
+            {
+                "categorias": ["Racoes"],
+                "categoria": ["Racoes"],
+                "subcategorias": ["Gato"],
+                "subcategoria": ["Gato", "Cachorro"],
+            }
+        )
+        self.assertTrue(ef["tem_filtro_catalogo"])
+        self.assertEqual(len(ef["resumo_filtros_catalogo"]), 2)
+
+
+class RelatoriosCentralRoutesTests(SimpleTestCase):
+    def setUp(self):
+        self.rf = RequestFactory()
+        self.agg = patch.object(ru, "_agg_itens_por_produto", return_value=[dict(x) for x in AGG])
+        self.meta = patch.object(ru, "mapa_produtos_meta", return_value=META)
+        self.agg.start(); self.meta.start()
+        self.addCleanup(self.agg.stop); self.addCleanup(self.meta.stop)
+
+    def test_reverse_e_quatro_relatorios_html_multi_e_xlsx(self):
+        casos = (
+            "relatorios_mais_vendidos",
+            "relatorios_vendas_grupo",
+            "relatorios_curva_abc",
+            "relatorios_margem",
+        )
+        for nome in casos:
+            url = reverse(nome)
+            for query in ("", "categoria=Racoes&categoria=Jardim&subcategoria=Gato", "categoria=Racoes&subcategoria=Gato&export=xlsx"):
+                response = self.client.get(url + ("?" + query if query else ""))
+                self.assertEqual(response.status_code, 200, (nome, query))
+                if "export=xlsx" in query:
+                    self.assertIn("spreadsheetml", response["Content-Type"])
+
+    def test_vendas_grupo_xlsx_respeita_filtro_subcategoria(self):
+        response = self.client.get(
+            reverse("relatorios_vendas_grupo")
+            + "?categoria=Racoes&subcategoria=Gato&export=xlsx"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("spreadsheetml", response["Content-Type"])
+        wb = load_workbook(BytesIO(response.content))
+        ws = wb.active
+        linhas_dados = [
+            row
+            for row in ws.iter_rows(min_row=1, values_only=True)
+            if row and row[0] == 1
+        ]
+        self.assertEqual(len(linhas_dados), 1)
+        self.assertEqual(linhas_dados[0][1], "Racoes")
+
+    def test_vendas_grupo_html_colunas_interativas(self):
+        response = self.client.get(reverse("relatorios_vendas_grupo"))
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn("vg-table-root", html)
+        self.assertIn("vendas_grupo_table.js", html)
+        self.assertIn("data-vg-sort-key", html)
+
+    def test_vendas_grupo_html_margem_e_comparativo(self):
+        response = self.client.get(reverse("relatorios_vendas_grupo"))
+        body = response.content.decode("utf-8", errors="ignore")
+        self.assertIn('name="visao"', body)
+        self.assertIn("Lucro bruto %", body)
+        self.assertIn('name="min_valor"', body)
+        response2 = self.client.get(
+            reverse("relatorios_vendas_grupo") + "?visao=comparativo&n_meses=2"
+        )
+        self.assertEqual(response2.status_code, 200)
+        body2 = response2.content.decode("utf-8", errors="ignore")
+        self.assertIn("Comparativo mensal", body2)
+        self.assertIn("Δ%", body2)
+        self.assertIn("Lucro bruto %", body2)
+
+    def test_generico_excel_usa_formulario_atual(self):
+        response = self.client.get(reverse("relatorios_vendas_grupo"))
+        body = response.content.decode("utf-8", errors="ignore")
+        self.assertIn('id="form-relatorio-filtros"', body)
+        self.assertIn("data-agro-rel-excel", body)
+        self.assertIn('form="form-relatorio-filtros"', body)
+
+    def test_vendas_grupo_resumo_filtro_catalogo_no_html(self):
+        response = self.client.get(
+            reverse("relatorios_vendas_grupo")
+            + "?categoria=Racoes&categoria=Jardim&subcategoria=Gato"
+        )
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode("utf-8", errors="ignore")
+        self.assertIn('name="subcategoria"', body)
+        self.assertIn("Limpar catálogo", body)
+        self.assertIn("Gato", body)
+
+    def test_mais_vendidos_e_grupo_filtro_loja_html(self):
+        for nome, dep in (
+            ("relatorios_mais_vendidos", "centro"),
+            ("relatorios_vendas_grupo", "vila"),
+            ("relatorios_mais_vendidos", "ambos"),
+        ):
+            response = self.client.get(reverse(nome) + f"?deposito={dep}")
+            self.assertEqual(response.status_code, 200, (nome, dep))
+            body = response.content.decode("utf-8", errors="ignore")
+            self.assertIn('name="deposito"', body)
+            self.assertIn("Só Centro", body)
+            self.assertIn("Só Vila", body)
+
+    def test_todos_ru_usados_pela_view_existem(self):
+        import ast
+        from pathlib import Path
+        tree = ast.parse(Path(views.__file__).read_text(encoding="utf-8"))
+        nomes = {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute) and isinstance(n.value, ast.Name) and n.value.id == "ru"}
+        self.assertFalse(sorted(nome for nome in nomes if not hasattr(ru, nome)))

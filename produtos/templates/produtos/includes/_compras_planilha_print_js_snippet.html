@@ -153,14 +153,14 @@ function planilhaFmtInt(v) {
   if (v === null || v === undefined) return '—';
   const n = Number(v);
   if (!Number.isFinite(n)) return '—';
-  return n.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+  return n.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 1 });
 }
 
 function planilhaFmtDesdeUlt(v) {
   if (v === null || v === undefined) return '*';
   const n = Number(v);
   if (!Number.isFinite(n)) return '*';
-  return n.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+  return n.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 1 });
 }
 
 /**
@@ -341,16 +341,15 @@ function planilhaImprimir() {
   let body = {};
   let fornecedorId = '';
   if (PLANILHA_DIM === 'fornecedor') {
-    const fn = document.getElementById('planilha-forn-nome');
-    const fid = document.getElementById('planilha-forn-id');
-    const fornNome = String(fn?.value || '').trim();
-    fornecedorId = String(fid?.value || '').trim();
-    if (!fornNome && !fornecedorId) {
-      window.alert('Selecione ou digite o fornecedor.');
-      fn?.focus();
+    const payloadForn = planilhaFornPayloadImpressao();
+    if (!payloadForn) {
+      window.alert('Adicione pelo menos um fornecedor (busque e toque na lista).');
+      document.getElementById('planilha-forn-nome')?.focus();
       return;
     }
-    body = { fornecedor_nome: fornNome, fornecedor_id: fornecedorId };
+    body = payloadForn;
+    const prim = planilhaFornSelecionados[0] || {};
+    fornecedorId = String(prim.id || document.getElementById('planilha-forn-id')?.value || '').trim();
   } else {
     const sel = document.getElementById('planilha-filtro-select');
     const val = String(sel?.value || '').trim();
@@ -504,14 +503,94 @@ async function planilhaPreencherSelect() {
 }
 
 let planilhaFornDdTimer = null;
+const planilhaFornSelecionados = [];
 
-function planilhaFornDdSelecionar(nome, id) {
+function planilhaFornItemChave(f) {
+  const id = String(f?.id || '').trim();
+  if (id) return 'id:' + id;
+  return 'n:' + String(f?.nome || '').trim().toLowerCase();
+}
+
+function planilhaFornRenderChips() {
+  const host = document.getElementById('planilha-forn-chips');
+  if (!host) return;
+  host.innerHTML = '';
+  planilhaFornSelecionados.forEach((f, idx) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className =
+      'inline-flex max-w-full items-center gap-1.5 rounded-xl border-2 border-violet-300 bg-violet-50 px-3 py-2 text-left text-sm font-bold text-violet-950 min-h-[44px] hover:bg-violet-100 touch-manipulation';
+    const label = String(f.nome || f.id || '—').trim();
+    btn.title = 'Remover da folha';
+    btn.innerHTML =
+      '<span class="truncate">' +
+      label.replace(/&/g, '&amp;').replace(/</g, '&lt;') +
+      '</span><span class="shrink-0 text-violet-700 font-black" aria-hidden="true">✕</span>';
+    btn.addEventListener('click', () => {
+      planilhaFornSelecionados.splice(idx, 1);
+      planilhaFornRenderChips();
+    });
+    host.appendChild(btn);
+  });
+}
+
+function planilhaFornAdicionar(nome, id) {
+  const nomeT = String(nome || '').trim();
+  const idT = String(id || '').trim();
+  if (!nomeT && !idT) return false;
+  const item = { nome: nomeT, id: idT };
+  const ch = planilhaFornItemChave(item);
+  if (planilhaFornSelecionados.some((x) => planilhaFornItemChave(x) === ch)) {
+    return false;
+  }
+  if (planilhaFornSelecionados.length >= 12) {
+    window.alert('Máximo de 12 fornecedores na mesma folha.');
+    return false;
+  }
+  planilhaFornSelecionados.push(item);
+  planilhaFornRenderChips();
   const fn = document.getElementById('planilha-forn-nome');
   const fid = document.getElementById('planilha-forn-id');
+  if (fn) fn.value = '';
+  if (fid) fid.value = '';
+  return true;
+}
+
+function planilhaFornDdSelecionar(nome, id) {
   const dd = document.getElementById('planilha-forn-dd');
-  if (fn) fn.value = nome || '';
-  if (fid) fid.value = id || '';
+  planilhaFornAdicionar(nome, id);
   if (dd) dd.classList.add('hidden');
+}
+
+function planilhaFornPayloadImpressao() {
+  const lista = planilhaFornSelecionados.slice();
+  const fn = document.getElementById('planilha-forn-nome');
+  const fid = document.getElementById('planilha-forn-id');
+  const fornNome = String(fn?.value || '').trim();
+  const fornId = String(fid?.value || '').trim();
+  if (!lista.length && (fornNome || fornId)) {
+    lista.push({ nome: fornNome, id: fornId });
+  } else if (lista.length && (fornNome || fornId)) {
+    const pend = { nome: fornNome, id: fornId };
+    if (!lista.some((x) => planilhaFornItemChave(x) === planilhaFornItemChave(pend))) {
+      lista.push(pend);
+    }
+  }
+  if (!lista.length) {
+    return null;
+  }
+  if (lista.length === 1) {
+    return {
+      fornecedor_nome: lista[0].nome,
+      fornecedor_id: lista[0].id,
+    };
+  }
+  return {
+    fornecedores: lista.map((f) => ({
+      fornecedor_nome: f.nome,
+      fornecedor_id: f.id,
+    })),
+  };
 }
 
 async function planilhaBuscarFornecedoresDd(q) {

@@ -1,0 +1,41 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Contabilidade | Entrar</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  {% include "produtos/_agro_consulta_ui.html" %}
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center px-4 py-8">
+  <div class="w-full max-w-md rounded-2xl border-2 border-slate-700 bg-slate-900/95 p-6 sm:p-8 shadow-xl">
+    <p class="text-[10px] font-black uppercase tracking-[0.24em] text-purple-400">Escritório</p>
+    <h1 class="mt-1 text-2xl font-black text-white">Contabilidade</h1>
+    <p class="mt-2 text-sm text-slate-400">Entre com o usuário criado para exportar NFC-e do mês.</p>
+
+    {% if erro %}
+    <p class="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-300">{{ erro }}</p>
+    {% endif %}
+
+    <form method="post" class="mt-6 space-y-4" autocomplete="on">
+      {% csrf_token %}
+      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+      <label class="block">
+        <span class="mb-1 block text-[10px] font-black uppercase text-slate-500">Usuário</span>
+        <input type="text" name="username" required autofocus autocapitalize="none" autocomplete="username"
+          class="w-full min-h-[48px] rounded-xl border-2 border-slate-600 bg-slate-950 px-3 text-base font-bold text-white focus:border-emerald-500 focus:outline-none">
+      </label>
+      <label class="block">
+        <span class="mb-1 block text-[10px] font-black uppercase text-slate-500">Senha</span>
+        <input type="password" name="password" required autocomplete="current-password"
+          class="w-full min-h-[48px] rounded-xl border-2 border-slate-600 bg-slate-950 px-3 text-base font-bold text-white focus:border-emerald-500 focus:outline-none">
+      </label>
+      <button type="submit" class="w-full min-h-[52px] rounded-xl border-2 border-emerald-500 bg-emerald-600 px-4 py-3 text-sm font-black uppercase text-white shadow-lg hover:bg-emerald-700">
+        Entrar
+      </button>
+    </form>
+  </div>
+</body>
+</html>

@@ -1,0 +1,461 @@
+{% extends "layouts/base_pdv.html" %}
+
+{% block pdv_title %}Contabilidade | SisVale{% endblock %}
+{% block body_class %}min-h-screen bg-slate-950 text-slate-100 overflow-hidden agro-page-contabilidade{% endblock %}
+
+{% block head_extra %}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    .ctb-shell { width: 100%; max-width: min(96rem, 100%); margin-left: auto; margin-right: auto; }
+    .ctb-page { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+    .ctb-main { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+    .ctb-dash { display: flex; flex-direction: column; gap: clamp(0.65rem, 1.2vw, 1rem); width: 100%; }
+    @media (min-width: 1024px) {
+      .ctb-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem); gap: clamp(0.75rem, 1.5vw, 1.25rem); align-items: stretch; }
+      .ctb-export-card { position: sticky; top: 0; }
+    }
+    .ctb-kpi { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; }
+    @media (min-width: 640px) { .ctb-kpi { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    .ctb-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.65rem; }
+    .ctb-toolbar label { flex: 1 1 auto; min-width: 5.5rem; max-width: 9rem; }
+    .ctb-toolbar .ctb-toolbar__btn { flex: 0 0 auto; }
+    .ctb-loja-bar {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.55rem;
+      width: 100%;
+    }
+    .ctb-loja-btn {
+      min-height: 3.5rem;
+      border-radius: 0.85rem;
+      border: 2px solid rgb(71 85 105);
+      background: rgb(15 23 42);
+      color: rgb(226 232 240);
+      font-weight: 900;
+      font-size: clamp(0.95rem, 2.2vw, 1.2rem);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 0.65rem 0.5rem;
+      line-height: 1.15;
+      transition: border-color 0.12s, background 0.12s, color 0.12s, box-shadow 0.12s;
+    }
+    .ctb-loja-btn small {
+      display: block;
+      margin-top: 0.2rem;
+      font-size: 0.7em;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: none;
+      opacity: 0.75;
+    }
+    .ctb-loja-btn:hover { border-color: rgb(16 185 129); }
+    .ctb-loja-btn.is-on {
+      border-color: rgb(16 185 129);
+      background: rgb(6 78 59);
+      color: #fff;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.35);
+    }
+    .ctb-loja-btn[data-loja="vila"].is-on {
+      border-color: rgb(249 115 22);
+      background: rgb(124 45 18);
+      box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.35);
+    }
+    .ctb-loja-btn[data-loja="todas"].is-on {
+      border-color: rgb(148 163 184);
+      background: rgb(51 65 85);
+      box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.3);
+    }
+    @media (min-width: 640px) {
+      .ctb-loja-btn { min-height: 4rem; }
+    }
+    .ctb-pend-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+    .ctb-pend-table th, .ctb-pend-table td { padding: 0.35rem 0.5rem; text-align: left; border-bottom: 1px solid rgb(51 65 85); vertical-align: top; }
+    .ctb-pend-table th { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: rgb(148 163 184); }
+    .ctb-pend-scroll { max-height: min(14rem, 32vh); overflow: auto; margin-top: 0.5rem; }
+    .ctb-pend-table .ctb-msg { max-width: 18rem; word-break: break-word; color: rgb(253 224 71); }
+  </style>
+{% endblock %}
+
+{% block pdv_shell_class %}ctb-page bg-slate-950{% endblock %}
+{% block pdv_section_class %}ctb-shell ctb-main w-full px-3 py-3 sm:px-5 sm:py-4{% endblock %}
+
+{% block pdv_header %}
+<header class="shrink-0 border-b border-slate-800 bg-slate-900/90 shadow-sm">
+  <div class="ctb-shell flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3 py-2.5 sm:px-5 sm:py-3">
+    <div class="min-w-0 flex-1">
+      <div class="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+        <h1 class="text-xl font-black tracking-tight text-white sm:text-2xl">Contabilidade</h1>
+        {% if nfce.ativo %}
+        <span class="text-[10px] font-bold uppercase text-emerald-400 sm:text-xs">
+          NFC-e série {{ nfce.serie|default:"—" }}{% if nfce.tp_amb == 1 %} · produção{% endif %}
+        </span>
+        {% endif %}
+      </div>
+      <p class="text-xs font-medium text-slate-500 sm:text-sm">
+        {% if somente_contabilidade %}Exportações do mês · escritório{% else %}NFC-e e XML para o escritório{% endif %}
+      </p>
+    </div>
+    <div class="flex shrink-0 items-center gap-2">
+      {% if somente_contabilidade %}
+      <a href="{% url 'contabilidade_logout' %}" class="inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-[10px] font-black uppercase text-slate-100 hover:border-red-500 sm:min-h-[44px] sm:text-xs">
+        <i class="fas fa-right-from-bracket" aria-hidden="true"></i> Sair
+      </a>
+      {% else %}
+      {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-[10px] font-black uppercase text-slate-100 hover:border-purple-500 sm:min-h-[44px] sm:text-xs" %}
+      {% endif %}
+    </div>
+  </div>
+</header>
+{% endblock %}
+
+{% block pdv_content %}
+<div class="ctb-dash">
+
+  <section class="rounded-xl border-2 border-emerald-500/50 bg-slate-800/90 px-3 py-3 sm:px-4 sm:py-3.5">
+    <p class="mb-2 text-xs font-black uppercase tracking-wide text-emerald-300 sm:text-sm">
+      Qual loja baixar?
+    </p>
+    <input type="hidden" id="ctb-loja" value="centro">
+    <div class="ctb-loja-bar" role="group" aria-label="Loja NFC-e">
+      <button type="button" class="ctb-loja-btn is-on" data-loja="centro" id="ctb-loja-centro">
+        Centro
+        <small>CNPJ /0001</small>
+      </button>
+      <button type="button" class="ctb-loja-btn" data-loja="vila" id="ctb-loja-vila">
+        Vila
+        <small>CNPJ /0002</small>
+      </button>
+      <button type="button" class="ctb-loja-btn" data-loja="todas" id="ctb-loja-todas">
+        Ambas
+        <small>só conferência</small>
+      </button>
+    </div>
+    <p class="mt-2.5 text-[11px] font-semibold leading-snug text-slate-300 sm:text-xs">
+      Escritório: um ZIP do <strong class="text-white">Centro</strong> e outro da <strong class="text-orange-300">Vila</strong> (CNPJs diferentes).
+    </p>
+    <div class="ctb-toolbar mt-3 border-t border-slate-700/80 pt-3">
+      <label>
+        <span class="mb-0.5 block text-[9px] font-black uppercase text-slate-500">Mês</span>
+        <select id="ctb-mes" class="w-full min-h-[42px] rounded-lg border border-slate-600 bg-slate-900 px-2.5 text-sm font-bold text-white focus:border-emerald-500 focus:outline-none sm:min-h-[44px] sm:text-base">
+          <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
+          <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
+          <option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option>
+          <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+        </select>
+      </label>
+      <label>
+        <span class="mb-0.5 block text-[9px] font-black uppercase text-slate-500">Ano</span>
+        <input type="number" id="ctb-ano" min="2020" max="2099" value="{{ ano_default }}"
+          class="w-full min-h-[42px] rounded-lg border border-slate-600 bg-slate-900 px-2.5 text-sm font-bold tabular-nums text-white focus:border-emerald-500 focus:outline-none sm:min-h-[44px] sm:text-base" inputmode="numeric">
+      </label>
+      <button type="button" id="btn-ctb-atualizar" class="ctb-toolbar__btn inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg border border-slate-500 bg-slate-700 px-4 py-2 text-xs font-black uppercase text-white hover:bg-slate-600 sm:min-h-[44px]">
+        <i class="fas fa-sync-alt" aria-hidden="true"></i> Atualizar
+      </button>
+    </div>
+  </section>
+
+  <div class="ctb-body">
+    <section id="ctb-resumo-wrap" class="flex min-h-0 flex-col rounded-xl border border-emerald-500/35 bg-slate-800/90 p-3 sm:p-4">
+      <h2 class="text-sm font-black uppercase tracking-wide text-white sm:text-base">
+        Resumo NFC-e · <span id="ctb-resumo-loja" class="text-emerald-400">Centro</span>
+      </h2>
+      {% if not nfce.ativo %}
+      <p class="mt-1 text-xs font-bold text-amber-400">NFC-e não configurada no servidor.</p>
+      {% endif %}
+      <div id="ctb-resumo-loading" class="mt-3 text-sm font-bold text-slate-400">Carregando…</div>
+      <div id="ctb-resumo-grid" class="ctb-kpi mt-3 hidden">
+        <div class="rounded-lg border border-slate-600 bg-slate-900/80 p-2.5 sm:p-3">
+          <p class="text-[9px] font-black uppercase text-slate-500 sm:text-[10px]">Autorizadas</p>
+          <p id="ctb-r-aut" class="mt-0.5 text-2xl font-black tabular-nums leading-none text-emerald-400 sm:text-3xl">—</p>
+        </div>
+        <div class="rounded-lg border border-slate-600 bg-slate-900/80 p-2.5 sm:p-3">
+          <p class="text-[9px] font-black uppercase text-slate-500 sm:text-[10px]">Canceladas</p>
+          <p id="ctb-r-can" class="mt-0.5 text-2xl font-black tabular-nums leading-none text-amber-400 sm:text-3xl">—</p>
+        </div>
+        <div class="rounded-lg border border-slate-600 bg-slate-900/80 p-2.5 sm:p-3">
+          <p class="text-[9px] font-black uppercase text-slate-500 sm:text-[10px]">Total R$</p>
+          <p id="ctb-r-rs" class="mt-0.5 text-lg font-black tabular-nums leading-tight text-white sm:text-xl">—</p>
+        </div>
+        <div class="rounded-lg border border-slate-600 bg-slate-900/80 p-2.5 sm:p-3">
+          <p class="text-[9px] font-black uppercase text-slate-500 sm:text-[10px]">Numeração</p>
+          <p id="ctb-r-num" class="mt-1 text-xs font-bold leading-snug text-slate-200 sm:text-sm">—</p>
+        </div>
+      </div>
+      <p id="ctb-resumo-erro" class="mt-2 hidden text-sm font-bold text-red-400"></p>
+
+      <details id="ctb-pendencias-wrap" class="mt-3 hidden rounded-lg border border-amber-500/40 bg-slate-900/60">
+        <summary class="cursor-pointer list-none px-3 py-2.5 text-xs font-black uppercase tracking-wide text-amber-300 sm:text-sm">
+          <span id="ctb-pend-summary">Pendências fiscais</span>
+        </summary>
+        <div class="border-t border-amber-500/20 px-3 pb-3 pt-2">
+          <p class="text-[10px] leading-snug text-slate-400 sm:text-xs">
+            Rejeitadas ou erro — <strong class="text-slate-300">não entram no ZIP</strong> fiscal. Use para conferência interna.
+          </p>
+          <p id="ctb-pend-trunc" class="mt-1 hidden text-[10px] font-semibold text-amber-200"></p>
+          <div class="ctb-pend-scroll">
+            <table class="ctb-pend-table">
+              <thead>
+                <tr>
+                  <th>Venda</th>
+                  <th>Data</th>
+                  <th>Nº</th>
+                  <th>Status</th>
+                  <th>Valor</th>
+                  <th>Motivo SEFAZ / erro</th>
+                </tr>
+              </thead>
+              <tbody id="ctb-pend-tbody"></tbody>
+            </table>
+          </div>
+          <button type="button" id="btn-nfce-pend-csv"
+            class="mt-2 inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-lg border border-amber-600/60 bg-amber-900/40 px-3 py-2 text-[10px] font-black uppercase text-amber-100 hover:bg-amber-900/70 sm:text-xs">
+            <i class="fas fa-file-csv" aria-hidden="true"></i> CSV pendências
+          </button>
+        </div>
+      </details>
+    </section>
+
+    <article class="ctb-export-card flex flex-col rounded-xl border border-emerald-500/40 bg-slate-800/90 p-3 sm:p-4">
+      <h2 class="text-sm font-black uppercase tracking-wide text-white sm:text-base">Baixar arquivos</h2>
+      <p class="mt-1 text-[11px] leading-snug text-slate-400 sm:text-xs">
+        ZIP (<code class="text-slate-300">index.csv</code> + XML autorizadas/canceladas) ou planilha.
+      </p>
+      <div class="mt-3 flex flex-1 flex-col gap-2 sm:gap-2.5">
+        <button type="button" id="btn-nfce-xml-export"
+          class="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-lg border-2 border-emerald-500 bg-emerald-600 px-4 py-3 text-sm font-black uppercase text-white shadow-md hover:bg-emerald-700 lg:min-h-[52px]"
+          {% if not nfce.ativo %}disabled data-nfce-off="1"{% endif %}>
+          <i class="fas fa-download" aria-hidden="true"></i> ZIP XML
+        </button>
+        <button type="button" id="btn-nfce-csv"
+          class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-slate-500 bg-slate-700 px-4 py-2.5 text-sm font-black uppercase text-white hover:bg-slate-600"
+          {% if not nfce.ativo %}disabled{% endif %}>
+          <i class="fas fa-table" aria-hidden="true"></i> CSV
+        </button>
+        <button type="button" id="btn-nfce-xlsx"
+          class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-slate-500 bg-slate-700 px-4 py-2.5 text-sm font-black uppercase text-white hover:bg-slate-600"
+          {% if not nfce.ativo %}disabled{% endif %}>
+          <i class="fas fa-file-excel" aria-hidden="true"></i> Excel
+        </button>
+      </div>
+      <p id="nfce-export-erro" class="mt-2 hidden text-xs font-bold text-red-400"></p>
+    </article>
+  </div>
+
+  {% if mostrar_outros_exports %}
+  <article class="rounded-xl border border-orange-500/30 bg-slate-800/90 p-3 sm:p-4 hidden">
+    {# oculto — Renan #}
+    <div id="ctb-links"></div>
+  </article>
+  {% endif %}
+</div>
+
+<script>
+(function () {
+  var mesEl = document.getElementById('ctb-mes');
+  var anoEl = document.getElementById('ctb-ano');
+  var lojaEl = document.getElementById('ctb-loja');
+  var resumoUrl = '{{ resumo_url|escapejs }}';
+  var exportXmlBase = '{{ export_xml_url|escapejs }}';
+  var exportPlanBase = '{{ export_planilha_url|escapejs }}';
+  var exportPendBase = '{{ export_pendencias_url|escapejs }}';
+  var somenteContabilidade = {{ somente_contabilidade|yesno:"true,false" }};
+  if (!mesEl || !anoEl || !lojaEl) return;
+
+  mesEl.value = String({{ mes_default }});
+  lojaEl.value = 'centro';
+
+  function setLoja(loja) {
+    var v = (loja || 'centro').toLowerCase();
+    if (v !== 'centro' && v !== 'vila' && v !== 'todas') v = 'centro';
+    lojaEl.value = v;
+    document.querySelectorAll('.ctb-loja-btn').forEach(function (btn) {
+      btn.classList.toggle('is-on', btn.getAttribute('data-loja') === v);
+    });
+  }
+
+  function periodo() {
+    var mes = parseInt(mesEl.value, 10);
+    var ano = parseInt(anoEl.value, 10);
+    var loja = (lojaEl.value || 'centro').toLowerCase();
+    if (!mes || mes < 1 || mes > 12 || !ano) return null;
+    if (loja !== 'centro' && loja !== 'vila' && loja !== 'todas') loja = 'centro';
+    return { mes: mes, ano: ano, loja: loja };
+  }
+
+  function qsPeriodo(p) {
+    return 'ano=' + p.ano + '&mes=' + p.mes + '&loja=' + encodeURIComponent(p.loja);
+  }
+
+  function nomeArquivo(prefix, p, ext) {
+    var suf = p.loja === 'todas' ? '' : '-' + p.loja;
+    return prefix + suf + '-' + p.ano + '-' + String(p.mes).padStart(2, '0') + '.' + ext;
+  }
+
+  function fmtRs(n) {
+    if (n == null || isNaN(n)) return '—';
+    return 'R$ ' + Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function escHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function renderPendencias(pend) {
+    var wrap = document.getElementById('ctb-pendencias-wrap');
+    var tbody = document.getElementById('ctb-pend-tbody');
+    var summary = document.getElementById('ctb-pend-summary');
+    var trunc = document.getElementById('ctb-pend-trunc');
+    if (!wrap || !tbody) return;
+    var total = pend && pend.total ? pend.total : 0;
+    if (!total) {
+      wrap.classList.add('hidden');
+      tbody.innerHTML = '';
+      return;
+    }
+    wrap.classList.remove('hidden');
+    if (summary) {
+      summary.textContent = 'Pendências fiscais (' + total + ' — rejeitada / erro)';
+    }
+    if (trunc) {
+      if (pend.truncado) {
+        trunc.textContent = 'Mostrando ' + pend.mostrando + ' de ' + total + '. Baixe o CSV para a lista completa.';
+        trunc.classList.remove('hidden');
+      } else {
+        trunc.classList.add('hidden');
+        trunc.textContent = '';
+      }
+    }
+    var html = '';
+    (pend.linhas || []).forEach(function (row) {
+      var vendaCell = somenteContabilidade
+        ? escHtml(row.venda_id)
+        : '<a href="/venda/' + encodeURIComponent(row.venda_id) + '/" class="font-bold text-emerald-400 hover:underline" target="_blank" rel="noopener">#' + escHtml(row.venda_id) + '</a>';
+      html += '<tr>'
+        + '<td class="tabular-nums">' + vendaCell + '</td>'
+        + '<td class="tabular-nums whitespace-nowrap">' + escHtml(row.data_emissao) + '</td>'
+        + '<td class="tabular-nums">' + escHtml(row.numero) + '</td>'
+        + '<td>' + escHtml(row.status) + '</td>'
+        + '<td class="tabular-nums whitespace-nowrap">' + escHtml(fmtRs(row.valor)) + '</td>'
+        + '<td class="ctb-msg">' + escHtml(row.mensagem_sefaz || '—') + '</td>'
+        + '</tr>';
+    });
+    tbody.innerHTML = html;
+  }
+
+  function carregarResumo() {
+    var p = periodo();
+    var loadEl = document.getElementById('ctb-resumo-loading');
+    var gridEl = document.getElementById('ctb-resumo-grid');
+    var errEl = document.getElementById('ctb-resumo-erro');
+    var lojaTit = document.getElementById('ctb-resumo-loja');
+    if (!p) {
+      if (errEl) { errEl.textContent = 'Informe mês e ano válidos.'; errEl.classList.remove('hidden'); }
+      return;
+    }
+    if (loadEl) loadEl.classList.remove('hidden');
+    if (gridEl) gridEl.classList.add('hidden');
+    if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
+    var pendWrap = document.getElementById('ctb-pendencias-wrap');
+    if (pendWrap) pendWrap.classList.add('hidden');
+
+    fetch(resumoUrl + '?' + qsPeriodo(p), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.ok || !d.resumo) throw new Error((d && d.erro) || 'Resumo indisponível.');
+        var r = d.resumo;
+        if (lojaTit) lojaTit.textContent = r.loja_rotulo || '—';
+        document.getElementById('ctb-r-aut').textContent = String(r.autorizadas || 0);
+        document.getElementById('ctb-r-can').textContent = String(r.canceladas || 0);
+        document.getElementById('ctb-r-rs').textContent = fmtRs(r.total_autorizado_rs);
+        var numTxt = '—';
+        if (r.numero_min != null && r.numero_max != null) {
+          numTxt = 'Série ' + (r.serie || '—') + ' · nº ' + r.numero_min + ' – ' + r.numero_max;
+        } else if (r.serie) {
+          numTxt = 'Série ' + r.serie;
+        }
+        if (r.emitente_cnpj) {
+          numTxt += (numTxt === '—' ? '' : ' · ') + 'CNPJ …' + String(r.emitente_cnpj).slice(-6);
+        }
+        document.getElementById('ctb-r-num').textContent = numTxt;
+        renderPendencias(r.pendencias);
+        if (loadEl) loadEl.classList.add('hidden');
+        if (gridEl) gridEl.classList.remove('hidden');
+      })
+      .catch(function (err) {
+        if (loadEl) loadEl.classList.add('hidden');
+        if (errEl) {
+          errEl.textContent = err && err.message ? err.message : 'Falha ao carregar resumo.';
+          errEl.classList.remove('hidden');
+        }
+      });
+  }
+
+  function baixarBlob(url, filename, btn) {
+    var errEl = document.getElementById('nfce-export-erro');
+    if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
+    if (btn) btn.disabled = true;
+    fetch(url, { credentials: 'same-origin' })
+      .then(function (r) {
+        var ct = (r.headers.get('content-type') || '').toLowerCase();
+        if (r.ok && (ct.indexOf('zip') >= 0 || ct.indexOf('csv') >= 0 || ct.indexOf('sheet') >= 0 || ct.indexOf('octet') >= 0)) {
+          return r.blob().then(function (blob) {
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(function () { URL.revokeObjectURL(a.href); }, 500);
+          });
+        }
+        return r.json().then(function (d) {
+          throw new Error((d && d.erro) || 'Nenhum arquivo para este período.');
+        });
+      })
+      .catch(function (err) {
+        if (errEl) {
+          errEl.textContent = err && err.message ? err.message : 'Falha ao baixar.';
+          errEl.classList.remove('hidden');
+        }
+      })
+      .finally(function () {
+        if (btn && !btn.hasAttribute('data-nfce-off')) btn.disabled = false;
+      });
+  }
+
+  document.getElementById('btn-ctb-atualizar').addEventListener('click', carregarResumo);
+  mesEl.addEventListener('change', carregarResumo);
+  anoEl.addEventListener('change', carregarResumo);
+  document.querySelectorAll('.ctb-loja-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      setLoja(btn.getAttribute('data-loja'));
+      carregarResumo();
+    });
+  });
+  setLoja('centro');
+
+  document.getElementById('btn-nfce-xml-export').addEventListener('click', function () {
+    var p = periodo();
+    if (!p) return;
+    baixarBlob(exportXmlBase + '?' + qsPeriodo(p), nomeArquivo('nfce-xml', p, 'zip'), this);
+  });
+  document.getElementById('btn-nfce-csv').addEventListener('click', function () {
+    var p = periodo();
+    if (!p) return;
+    baixarBlob(exportPlanBase + '?' + qsPeriodo(p) + '&formato=csv', nomeArquivo('nfce-planilha', p, 'csv'), this);
+  });
+  document.getElementById('btn-nfce-xlsx').addEventListener('click', function () {
+    var p = periodo();
+    if (!p) return;
+    baixarBlob(exportPlanBase + '?' + qsPeriodo(p) + '&formato=xlsx', nomeArquivo('nfce-planilha', p, 'xlsx'), this);
+  });
+  document.getElementById('btn-nfce-pend-csv').addEventListener('click', function () {
+    var p = periodo();
+    if (!p) return;
+    baixarBlob(exportPendBase + '?' + qsPeriodo(p), nomeArquivo('nfce-pendencias', p, 'csv'), this);
+  });
+
+  carregarResumo();
+})();
+</script>
+{% endblock %}

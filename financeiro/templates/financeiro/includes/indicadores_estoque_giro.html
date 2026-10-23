@@ -1,0 +1,99 @@
+<div id="ig-estoque-shell" class="space-y-4">
+  <div id="ig-estoque-loading" class="ig-card p-8 text-center">
+    <p class="text-sm font-black uppercase text-slate-700 m-0">Carregando estoque e giro…</p>
+    <p class="text-xs text-slate-500 font-semibold mt-2 m-0">Pode levar até 1 minuto — consulta vendas PDV + saldo C+V.</p>
+  </div>
+  <div id="ig-estoque-erro" class="ig-card p-6 text-center text-rose-800 font-semibold hidden" role="alert"></div>
+  <div id="ig-estoque-conteudo" class="hidden space-y-4"></div>
+</div>
+
+<script>
+(function () {
+  var apiUrl = "{{ api_estoque_url|escapejs }}";
+  var brl = function (n) {
+    var v = Number(n);
+    if (!isFinite(v)) v = 0;
+    return "R$ " + v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+  var num = function (n) {
+    var v = Number(n);
+    if (!isFinite(v)) v = 0;
+    return v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+  function esc(s) {
+    return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+  }
+  function fmtGerado(iso) {
+    if (!iso) return "—";
+    try {
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return iso;
+      return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    } catch (_) { return iso; }
+  }
+  function render(data) {
+    var parado = data.estoque_parado || [];
+    var giro = data.top_giro || [];
+    var rowsParado = parado.map(function (row) {
+      return "<tr>"
+        + "<td><span class=\"font-bold text-slate-900\">" + esc(row.nome) + "</span>"
+        + "<span class=\"block text-[10px] text-slate-400 font-mono\">" + esc(row.produto_id) + "</span></td>"
+        + "<td class=\"text-right tabular-nums font-bold\">" + num(row.estoque_atual) + "</td>"
+        + "<td class=\"text-right tabular-nums font-bold\">" + brl(row.custo) + "</td>"
+        + "<td class=\"text-right tabular-nums font-bold text-orange-800\">" + brl(row.valor_parado) + "</td>"
+        + "</tr>";
+    }).join("");
+    if (!rowsParado) {
+      rowsParado = "<tr><td colspan=\"4\" class=\"text-center text-slate-500 py-8\">Nenhum produto parado com estoque no critério.</td></tr>";
+    }
+    var rowsGiro = giro.map(function (row, i) {
+      return "<tr>"
+        + "<td class=\"font-black text-emerald-700\">" + (i + 1) + "</td>"
+        + "<td><span class=\"font-bold text-slate-900\">" + esc(row.nome) + "</span></td>"
+        + "<td class=\"text-right tabular-nums font-bold\">" + num(row.total_vendido) + "</td>"
+        + "<td class=\"text-right tabular-nums font-bold text-emerald-800\">" + brl(row.receita_gerada) + "</td>"
+        + "</tr>";
+    }).join("");
+    if (!rowsGiro) {
+      rowsGiro = "<tr><td colspan=\"4\" class=\"text-center text-slate-500 py-8\">Sem vendas no período.</td></tr>";
+    }
+    document.getElementById("ig-estoque-conteudo").innerHTML =
+      "<p class=\"text-xs font-semibold text-slate-600 m-0\">Vendas PDV (Agro) · estoque operacional C+V · gerado " + esc(fmtGerado(data.gerado_em)) + "</p>"
+      + "<div class=\"grid grid-cols-1 xl:grid-cols-2 gap-4\">"
+      + "<section class=\"ig-card overflow-hidden\">"
+      + "<div class=\"px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-orange-50 to-white flex flex-wrap items-end justify-between gap-2\">"
+      + "<div><h2 class=\"text-sm font-black uppercase text-slate-800 m-0\">Estoque parado</h2>"
+      + "<p class=\"text-xs text-slate-500 m-0 mt-1\">Sem venda PDV há mais de 90 dias · com saldo C+V</p></div>"
+      + "<div class=\"text-right\"><p class=\"ig-muted m-0\">Total listado</p>"
+      + "<p class=\"text-lg font-black text-orange-700 ig-kpi m-0\">" + brl(data.estoque_parado_total) + "</p></div></div>"
+      + "<div class=\"ig-table-wrap max-h-[32rem] overflow-y-auto\"><table class=\"ig-table min-w-[32rem] w-full\">"
+      + "<thead class=\"sticky top-0 bg-slate-50 border-b border-slate-200\"><tr>"
+      + "<th>Produto</th><th class=\"text-right\">Estoque</th><th class=\"text-right\">Custo</th><th class=\"text-right\">Valor parado</th>"
+      + "</tr></thead><tbody>" + rowsParado + "</tbody></table></div></section>"
+      + "<section class=\"ig-card overflow-hidden\">"
+      + "<div class=\"px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-emerald-50 to-white\">"
+      + "<h2 class=\"text-sm font-black uppercase text-slate-800 m-0\">Maior giro</h2>"
+      + "<p class=\"text-xs text-slate-500 m-0 mt-1\">Top 5 itens · últimos 30 dias (PDV)</p></div>"
+      + "<div class=\"ig-table-wrap\"><table class=\"ig-table min-w-[28rem] w-full\">"
+      + "<thead class=\"sticky top-0 bg-slate-50 border-b border-slate-200\"><tr>"
+      + "<th>#</th><th>Produto</th><th class=\"text-right\">Qtd vendida</th><th class=\"text-right\">Receita</th>"
+      + "</tr></thead><tbody>" + rowsGiro + "</tbody></table></div></section></div>";
+    document.getElementById("ig-estoque-loading").classList.add("hidden");
+    document.getElementById("ig-estoque-conteudo").classList.remove("hidden");
+  }
+  fetch(apiUrl, { credentials: "same-origin", headers: { Accept: "application/json" } })
+    .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
+    .then(function (res) {
+      if (!res.ok || !res.body || !res.body.ok) {
+        throw new Error((res.body && res.body.erro) || "Falha ao carregar dados.");
+      }
+      render(res.body);
+    })
+    .catch(function (err) {
+      document.getElementById("ig-estoque-loading").classList.add("hidden");
+      var el = document.getElementById("ig-estoque-erro");
+      el.textContent = (err && err.message) ? err.message : "Não foi possível carregar estoque e giro.";
+      el.classList.remove("hidden");
+    });
+})();
+</script>
