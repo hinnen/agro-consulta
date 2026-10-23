@@ -46,6 +46,12 @@ def main():
     check("js_dica_arraste", "Nome e Valor" in js and "Os 9 copiam" in js)
     check("js_alcas", 'data-alca="foto"' in js and 'data-alca="nome"' in js and 'data-alca="preco"' in js)
     check("js_esc_ainda_fecha", "ev.key === 'Escape'" in js and "fechar();" in js)
+    check("js_foto_delta", "arraste.foto + deltaFoto" in js)
+    check("js_pin_antes", "function pinAberto()" in js and "if (pinAberto()) return;" in js)
+    idx_pin = js.find("if (pinAberto()) return;")
+    idx_alt = js.find("ev.altKey && ev.code === 'Digit6'")
+    check("js_pin_antes_atalho", idx_pin != -1 and idx_alt != -1 and idx_pin < idx_alt)
+    check("js_ignorar_limpo", js.count("ignorarClique = false") >= 2)
 
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
     import django
