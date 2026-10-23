@@ -101,6 +101,25 @@
   }
   .sv-backup-item:hover { background: #fef3c7; }
   .sv-backup-meta { margin: 0.15rem 0 0; font-size: 0.72rem; font-weight: 700; color: #92400e; line-height: 1.3; }
+  .sv-export-wrap { position: relative; }
+  .sv-btn-export { background-color: #059669; color: #fff; }
+  .sv-btn-export:hover { background-color: #047857; }
+  .sv-export-menu {
+    position: absolute; right: 0; top: calc(100% + 6px); z-index: 40;
+    min-width: 15.5rem; padding: 0.5rem; border-radius: 0.75rem;
+    border: 2px solid #6ee7b7; background: #ecfdf5; box-shadow: 0 8px 24px rgba(0,0,0,.12);
+    display: flex; flex-direction: column; gap: 0.35rem;
+  }
+  .sv-export-menu[hidden] { display: none; }
+  .sv-export-item {
+    display: block; width: 100%; min-height: 2.75rem; padding: 0.55rem 0.75rem; border-radius: 0.55rem;
+    background: #fff; border: 1px solid #a7f3d0; color: #065f46;
+    font-weight: 800; font-size: 0.78rem; text-transform: uppercase; text-align: left; cursor: pointer;
+    font-family: inherit;
+  }
+  .sv-export-item:hover { background: #d1fae5; }
+  .sv-export-item:disabled { opacity: 0.45; cursor: not-allowed; }
+  .sv-export-meta { margin: 0.15rem 0 0; font-size: 0.72rem; font-weight: 700; color: #047857; line-height: 1.3; }
   .sv-filters-panel {
     background-color: var(--cor-card); border-radius: var(--raio-borda); padding: 24px;
     margin-bottom: 24px; box-shadow: var(--sombra-suave); display: none; opacity: 0;
@@ -501,6 +520,17 @@
           <p class="sv-backup-meta" id="sv-backup-ultimo">Último backup: —</p>
         </div>
       </div>
+      <div class="sv-export-wrap" id="sv-export-wrap">
+        <button type="button" class="sv-btn sv-btn-export" id="sv-btn-export" aria-expanded="false" aria-controls="sv-export-menu" title="Exportar lista filtrada (CSV, Excel ou PDF)">
+          <span aria-hidden="true">📊</span> Exportar
+        </button>
+        <div class="sv-export-menu" id="sv-export-menu" hidden>
+          <button type="button" class="sv-export-item" id="sv-export-csv">CSV — dados completos</button>
+          <button type="button" class="sv-export-item" id="sv-export-xlsx">Excel — relatório</button>
+          <button type="button" class="sv-export-item" id="sv-export-pdf">PDF — relatório</button>
+          <p class="sv-export-meta">Mesmos filtros da lista · até 5.000 títulos</p>
+        </div>
+      </div>
       <a href="/lancamentos/contas-pagar/calendario/" data-prefetch class="sv-btn sv-btn-cal" title="Calendário mensal por vencimento">
         <span aria-hidden="true">📅</span> Calendário
       </a>
@@ -836,6 +866,9 @@
   const API_LANC_ALTERAR = "{% url 'api_lancamentos_alterar' %}";
   const API_LANC_EXCLUIR = "{% url 'api_lancamentos_excluir' %}";
   const API_SUG = "{% url 'api_lancamentos_sugestoes' %}";
+  const API_EXPORT_CSV = "{% url 'api_lancamentos_export_csv' %}";
+  const API_EXPORT_XLSX = "{% url 'api_lancamentos_export_financeiro_xlsx' %}";
+  const API_EXPORT_PDF = "{% url 'api_lancamentos_export_financeiro_pdf' %}";
   const LS_FIN_LISTA = 'gm_fin_sv_teste_lista_v1';
   const LS_FIN_DIA = 'gm_fin_sv_cp_dia_v1';
   const LS_COLS_PIN = 'gm_fin_sv_cp_cols_v1';
@@ -1975,6 +2008,72 @@
     return p;
   }
 
+  function montarParamsExport() {
+    const p = montarParamsBaseLista();
+    getExcludedSet().forEach((nome) => {
+      p.append('excluir_plano', nome);
+    });
+    return p;
+  }
+
+  function parseFilenameContentDisposition(cd) {
+    if (!cd || typeof cd !== 'string') return null;
+    const utf = cd.match(/filename\*=UTF-8''([^;\s]+)/i);
+    if (utf) {
+      try {
+        return decodeURIComponent(utf[1]);
+      } catch (_) {
+        /* ignore */
+      }
+    }
+    const quoted = cd.match(/filename="([^"]+)"/i);
+    if (quoted) return quoted[1].trim();
+    const plain = cd.match(/filename=([^;\s]+)/i);
+    if (plain) return plain[1].trim().replace(/^["']|["']$/g, '');
+    return null;
+  }
+
+  async function baixarExportLancamentos(url, btnId, fallbackNome) {
+    const btn = btnId ? document.getElementById(btnId) : null;
+    if (btn && btn.disabled) return;
+    const fullUrl = `${url}?${montarParamsExport()}`;
+    if (btn) btn.disabled = true;
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
+    try {
+      const r = await fetch(fullUrl, { credentials: 'same-origin', cache: 'no-store' });
+      const fn =
+        parseFilenameContentDisposition(r.headers.get('Content-Disposition'))
+        || fallbackNome;
+      if (!r.ok) {
+        const ct = (r.headers.get('content-type') || '').toLowerCase();
+        let msg = `Falha ao exportar (${r.status}).`;
+        if (ct.includes('text')) {
+          try {
+            const t = await r.text();
+            if (t && t.length < 400) msg = t;
+          } catch (_) {}
+        }
+        alert(msg);
+        return;
+      }
+      const blob = await r.blob();
+      const u = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = u;
+      a.download = fn;
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(u);
+    } catch (_) {
+      alert('Falha de rede ao baixar o arquivo.');
+    } finally {
+      if (btn) btn.disabled = false;
+      if (window.gmLoadingBar) window.gmLoadingBar.hide();
+    }
+  }
+
   async function carregarPlanos() {
     const cont = document.getElementById('sv-plano-chks');
     if (!cont) return;
@@ -2968,6 +3067,46 @@
   });
 
   document.getElementById('sv-btn-filtros').addEventListener('click', toggleFiltros);
+
+  (function initExportCp() {
+    const btn = document.getElementById('sv-btn-export');
+    const menu = document.getElementById('sv-export-menu');
+    if (!btn || !menu) return;
+
+    function fecharMenu() {
+      menu.setAttribute('hidden', '');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const abrir = menu.hasAttribute('hidden');
+      if (abrir) {
+        menu.removeAttribute('hidden');
+        btn.setAttribute('aria-expanded', 'true');
+      } else {
+        fecharMenu();
+      }
+    });
+    document.addEventListener('click', fecharMenu);
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape') fecharMenu();
+    });
+    menu.addEventListener('click', (ev) => ev.stopPropagation());
+
+    const dia = hojeYmd();
+    document.getElementById('sv-export-csv')?.addEventListener('click', () => {
+      fecharMenu();
+      baixarExportLancamentos(API_EXPORT_CSV, 'sv-export-csv', `lancamentos_pagar_${dia}.csv`);
+    });
+    document.getElementById('sv-export-xlsx')?.addEventListener('click', () => {
+      fecharMenu();
+      baixarExportLancamentos(API_EXPORT_XLSX, 'sv-export-xlsx', `Financeiro_${dia}.xlsx`);
+    });
+    document.getElementById('sv-export-pdf')?.addEventListener('click', () => {
+      fecharMenu();
+      baixarExportLancamentos(API_EXPORT_PDF, 'sv-export-pdf', `Financeiro_${dia}.pdf`);
+    });
+  })();
 
   (function initBackupCp() {
     const KEY = 'agro_lancamentos_backup_ultimo_v1';
