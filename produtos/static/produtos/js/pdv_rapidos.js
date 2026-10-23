@@ -1,5 +1,5 @@
 /**
- * PDV — Rápidos (Alt+6). Nove slots, apelido e foto manuais, preço do cadastro.
+ * PDV — Rápidos (F5). Nove slots, apelido e foto manuais, preço do cadastro.
  * Esc fecha. 1–9 (ou clique) lança 1 unidade e fecha.
  */
 (function () {
@@ -8,7 +8,7 @@
   var URL_SLOTS = '/api/pdv/rapidos/';
   var overlay = document.getElementById('pdv-rapidos-overlay');
   var grid = document.getElementById('pdv-rapidos-grid');
-  var btnAbrir = document.getElementById('pdv-topbar-rapidos-btn');
+  var btnAbrir = document.getElementById('pdv-btn-rapidos');
   var btnDefinir = document.getElementById('pdv-rapidos-definir');
   var btnProporcao = document.getElementById('pdv-rapidos-proporcao');
   var btnVoltar = document.getElementById('pdv-rapidos-voltar');
@@ -741,7 +741,7 @@
     'keydown',
     function (ev) {
       if (pinAberto()) return;
-      if (ev.altKey && ev.code === 'Digit6' && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey && !ev.repeat) {
+      if (ev.code === 'F5' && !ev.altKey && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey && !ev.repeat) {
         ev.preventDefault();
         ev.stopPropagation();
         toggle();
