@@ -1294,6 +1294,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — **CP-EXPORT-LISTA** · **v27.26.24** · 23/10c
+
+| Campo | Valor |
+| ----- | ----- |
+| **PREP / `teste`** | @ **`a09f6863`** (+ doc/verify abaixo) |
+| **Escopo** | **Exportar** na lista CP: CSV · Excel · PDF · mesmos filtros da grade · até 5.000 títulos |
+| **Migrate** | **NÃO** |
+| **Smoke loja** | **Ctrl+F5** `/lancamentos/contas-pagar/` → **Exportar** → Excel |
+
+### ✅ CHECKLIST ÚNICO — **23/10c** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CP-EXPORT-LISTA** | 🟢 Pronto | **NÃO** | `scripts/verify_cp_export_button_path.py` |
+
 ### ✅ Deploy loja — **CHECKLIST 23/10b** · **Live v27.26.23** · 23/10
 
 | Campo | Valor |
