@@ -26,14 +26,22 @@ def check(name: str, cond: bool, detail: str = ""):
 def main():
     print("=== PDV-RAPIDOS ===")
     html = (ROOT / "produtos/templates/produtos/pdv_wizard.html").read_text(encoding="utf-8")
+    step = (ROOT / "produtos/templates/produtos/partials/pdv/step_produtos.html").read_text(encoding="utf-8")
     js = (ROOT / "produtos/static/produtos/js/pdv_rapidos.js").read_text(encoding="utf-8")
     wiz = (ROOT / "produtos/static/produtos/js/pdv_wizard.js").read_text(encoding="utf-8")
     urls = (ROOT / "produtos/urls.py").read_text(encoding="utf-8")
-    check("html_botao", 'id="pdv-topbar-rapidos-btn"' in html and "Alt+6" in html)
+    check(
+        "html_botao",
+        'id="pdv-btn-rapidos"' in step
+        and ">Home<" in step
+        and 'id="pdv-btn-racoes"' in step
+        and step.find('id="pdv-btn-rapidos"') < step.find('id="pdv-btn-racoes"'),
+    )
+    check("html_sem_faixa", "pdv-topbar-rapidos-btn" not in html and "Alt+6" not in html)
     check("html_overlay", 'id="pdv-rapidos-overlay"' in html and 'id="pdv-rapidos-fechar"' in html)
     check("html_esc_dica", "Esc sai" in html)
     check("html_js", "pdv_rapidos.js" in html)
-    check("js_alt6", "ev.code === 'Digit6'" in js and "ev.altKey" in js)
+    check("js_home", "ev.code === 'Home'" in js and "ev.code === 'F5'" not in js and "ev.code === 'Insert'" not in js)
     check("js_esc", "ev.key === 'Escape'" in js and "fechar()" in js)
     check("js_num", "Numpad9" in js and "vender(pos)" in js)
     check("js_nao_f6", "F6" not in js)
@@ -49,8 +57,8 @@ def main():
     check("js_foto_delta", "arraste.foto + deltaFoto" in js)
     check("js_pin_antes", "function pinAberto()" in js and "if (pinAberto()) return;" in js)
     idx_pin = js.find("if (pinAberto()) return;")
-    idx_alt = js.find("ev.altKey && ev.code === 'Digit6'")
-    check("js_pin_antes_atalho", idx_pin != -1 and idx_alt != -1 and idx_pin < idx_alt)
+    idx_home = js.find("ev.code === 'Home'")
+    check("js_pin_antes_atalho", idx_pin != -1 and idx_home != -1 and idx_pin < idx_home)
     check("js_ignorar_limpo", js.count("ignorarClique = false") >= 2)
 
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
@@ -59,12 +67,9 @@ def main():
     django.setup()
     from produtos.pdv_topbar_layout_util import QUENTE_DEFAULT, normalizar_layout
 
-    check("quente_default", "rapidos" in QUENTE_DEFAULT)
-    n = normalizar_layout(quente=["fiado", "nova_venda"], frio=["pin"])
-    check(
-        "layout_insere_antes_nova",
-        "rapidos" in n["quente"] and n["quente"].index("rapidos") < n["quente"].index("nova_venda"),
-    )
+    check("quente_default", "rapidos" not in QUENTE_DEFAULT)
+    n = normalizar_layout(quente=["fiado", "nova_venda", "rapidos"], frio=["pin"])
+    check("layout_sem_rapidos", "rapidos" not in n["quente"] and "rapidos" not in n["frio"])
 
     from django.contrib.auth import get_user_model
     from django.db import connection, transaction

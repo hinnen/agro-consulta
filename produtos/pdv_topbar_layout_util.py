@@ -15,7 +15,6 @@ QUENTE_DEFAULT: list[str] = [
     "entregas",
     "caixa",
     "fiado",
-    "rapidos",
     "nova_venda",
 ]
 FRIO_DEFAULT: list[str] = [
@@ -35,7 +34,6 @@ LABELS: dict[str, str] = {
     "caixa": "Caixa/loja",
     "fiado": "Fiado",
     "nova_venda": "Nova venda",
-    "rapidos": "Rápidos",
     "saldo_vila": "Saldo Vila",
     "repasse": "Repasse",
     "pesar": "Pesar",

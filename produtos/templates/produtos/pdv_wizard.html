@@ -404,8 +404,8 @@
     font-size: 0.875rem;
   }
   #pdv-step1-search-wrap #pdv-product-search-wrap {
-    flex: 1 1 auto;
-    min-width: 8rem;
+    flex: 1 1 0;
+    min-width: 7rem;
     max-width: none;
   }
   #pdv-step1-search-wrap #pdv-product-search {
@@ -429,9 +429,15 @@
     box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.25) !important;
   }
   #pdv-step1-search-wrap .pdv-btn-cadastro-rapido,
-  #pdv-step1-search-wrap .pdv-btn-racoes {
+  #pdv-step1-search-wrap .pdv-btn-racoes,
+  #pdv-step1-search-wrap .pdv-btn-rapidos {
     min-height: 5rem !important;
     height: 5rem !important;
+  }
+  #pdv-step1-search-wrap .pdv-btn-rapidos {
+    min-width: 7.4rem;
+    font-size: clamp(0.78rem, 0.3vw + 0.68rem, 0.98rem);
+    letter-spacing: 0.03em;
   }
   #pdv-step1-search-wrap .pdv-btn-racoes {
     min-width: 5.25rem;
@@ -1625,8 +1631,8 @@
     font-size: 0.875rem;
   }
   #pdv-step1-search-wrap #pdv-product-search-wrap {
-    flex: 1 1 auto;
-    min-width: 8rem;
+    flex: 1 1 0;
+    min-width: 7rem;
     max-width: none;
   }
   #pdv-step1-search-wrap #pdv-product-search {
@@ -4196,7 +4202,8 @@
     #pdv-step1-search-wrap .pdv-step1-block-title--search { font-size: 1.2rem !important; }
     #pdv-step1-search-wrap #pdv-product-search { height: 4.4rem !important; min-height: 4.4rem !important; font-size: 1.65rem !important; font-weight: 900 !important; }
     #pdv-step1-search-wrap .pdv-btn-cadastro-rapido,
-    #pdv-step1-search-wrap .pdv-btn-racoes { height: 4.4rem !important; min-height: 4.4rem !important; }
+    #pdv-step1-search-wrap .pdv-btn-racoes,
+    #pdv-step1-search-wrap .pdv-btn-rapidos { height: 4.4rem !important; min-height: 4.4rem !important; }
     #pdv-product-autocomplete[data-pdv-ac-layout] { max-height: unset !important; }
     #pdv-product-autocomplete .pdv-ac-head,
     #pdv-product-autocomplete .pdv-ac-row {
@@ -4531,7 +4538,6 @@
               </button>
               <a href="{% url 'caixa_painel' %}" id="pdv-topbar-caixa-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" data-pdv-topbar-key="caixa" data-pdv-topbar-node="caixa" title="{% if caixa_aberto %}Painel do caixa — turno aberto{% else %}Caixa fechado — abra o turno para vender{% endif %}">{% if caixa_aberto %}{{ caixa_rotulo|default:"Caixa aberto" }}{% else %}Caixa fechado{% endif %}</a>
               <a href="{% url 'fiado_gestao' %}?from=pdv" id="pdv-topbar-fiado-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" data-pdv-topbar-key="fiado" data-pdv-topbar-node="fiado" title="Gestão crédito loja — saldos em aberto e baixa">Fiado</a>
-              <button type="button" id="pdv-topbar-rapidos-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--emerald" data-pdv-topbar-key="rapidos" data-pdv-topbar-node="rapidos" title="Produtos rápidos do balcão · Alt+6">Rápidos <kbd class="ml-0.5 rounded border border-emerald-400 bg-white px-1 font-mono text-[9px]">Alt+6</kbd></button>
             </div>
             <div class="pdv-wiz-topbar-actions" id="pdv-topbar-actions">
               <button type="button" id="pdv-topbar-whatsapp-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--wa" data-pdv-topbar-key="whatsapp" data-wa-chat-url="{% url 'atendimento_whatsapp' %}" title="WhatsApp das lojas — atendimento">
@@ -5247,7 +5253,7 @@
         'Histórico do cliente: botão Hist. ou F8 (relacionamento). F5 recarrega a página.',
         'Painel direito mostra vale crédito, cashback e fiado quando existirem.',
         '“Orçamento” salva/recupera rascunho neste aparelho (F6 histórico).',
-        'Rápidos (Alt+6): nove produtos fixos em tela cheia. Tecla 1 a 9 ou clique lança 1 unidade e fecha. Esc fecha. Em Definir, o apelido e a foto são seus; o preço vem do cadastro. Em Proporção, no primeiro quadro arraste Foto, Nome e Valor; os nove copiam.',
+        'Rápidos (tecla Home): nove produtos fixos em tela cheia, botão ao lado da busca. Tecla 1 a 9 ou clique lança 1 unidade e fecha. Esc fecha. F5 continua atualizando a página. Em Definir, o apelido e a foto são seus; o preço vem do cadastro. Em Proporção, no primeiro quadro arraste Foto, Nome e Valor; os nove copiam.',
       ],
     },
     entrega: {
