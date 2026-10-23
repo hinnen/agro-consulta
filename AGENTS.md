@@ -183,10 +183,10 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 - A tela abre o lote só da loja do aparelho. Depois de retirada/reforço/repasse, o refresh (`api_caixa_conferencia_estado`) também filtra por depósito (`escopo=loja`). Sem isso, Centro + Vila somavam no esperado — e no repasse o −X da Vila + +X do Centro se anulavam.
 - O overlay do repasse avisa a tela de fechar (`agro-caixa-fechar-atualizar`) ao confirmar, não só ao fechar o iframe.
 
-**PDV — Rápidos (Insert)**
+**PDV — Rápidos (Home)**
 
 - Botão na linha da busca, antes de Rações. Mesma altura dos vizinhos, verde mais forte. A faixa de cima não leva mais esse atalho.
-- Tecla **Insert** (Ins) abre e fecha. **F5** continua atualizando a página no Chrome. **1–9** ou clique lança **1 unidade** e fecha. **Esc** fecha. **F6** continua sendo o histórico de orçamento.
+- Tecla **Home** abre e fecha. **F5** continua atualizando a página no Chrome. **Insert** fica livre. **1–9** ou clique lança **1 unidade** e fecha. **Esc** fecha. **F6** continua sendo o histórico de orçamento.
 - Cada slot: produto do cadastro + **apelido** e **foto** manuais (não usa o nome longo do cadastro). O preço de venda vem do sistema. Vale para todos os PCs. Foto fica no Postgres (não no disco do Render).
 - **Proporção:** no primeiro quadro, arraste Foto, Nome e Valor. Os nove copiam. `PdvRapidoLayoutAgro`. Com o PIN do caixa aberto, 1–9 não lançam produto.
 
