@@ -1149,6 +1149,18 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
+## 100. CHECKLIST ÚNICO — **23/10** · 🟢 **PREP ARMADO v27.26.22 — aguarda senha**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-RAPIDOS** | 🟢 aguarda senha | **SIM** `0150`+`0151` | **34/34** |
+
+**Loja git:** `producao` @ **`b70a67b9`** (v27.26.21). **PREP:** `deploy/prep-checklist-2310-pdv-rapidos` @ **`c8695c5d`**.  
+**Cutover:** `./scripts/cutover_loja_checklist_2310_pdv_rapidos.sh --exec` + senha.  
+**Revert:** `rollback/pre-v272622-2310-pdv-rapidos` → **`b70a67b9`**. **Shell:** `post_deploy_checklist_2310_pdv_rapidos.sh`.
+
+---
+
 ## 99. CHECKLIST ÚNICO — **22/10** · ✅ **Live v27.26.21**
 
 | # | Pacote | Status | Migrate | Prova |

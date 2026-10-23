@@ -1294,6 +1294,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 PREP ARMADO — **CHECKLIST 23/10** · **PDV-RAPIDOS** · **v27.26.22** · 23/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Loja atual** | **`b70a67b9`** · **v27.26.21** |
+| **Branch PREP** | `deploy/prep-checklist-2310-pdv-rapidos` @ **`c8695c5d`** |
+| **Origem** | `cursor/pdv-rapidos-ac2d` · correção **`4274dec4`** |
+| **O quê** | PDV **Alt+6** · 9 slots · apelido/foto · proporção arrastável · PIN não come 1–9 |
+| **Migrate** | **SIM** `0150` + `0151` |
+| **Caixa / checkout** | **Não alterados** |
+| **Prova** | `verify_pdv_rapidos_path.py` **34/34** |
+| **Checkpoint** | `rollback/pre-v272622-2310-pdv-rapidos` → **`b70a67b9`** |
+| **Cutover** | `./scripts/cutover_loja_checklist_2310_pdv_rapidos.sh` · `--exec` + frase + senha |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2310_pdv_rapidos.sh` (migrate 0151) |
+| **Smoke** | **Ctrl+F5** PDV → **Alt+6** → 1–9 → Esc → F6 de orçamento igual |
+
+### ✅ CHECKLIST ÚNICO — **23/10** · 🟢 **PREP ARMADO — aguarda senha**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-RAPIDOS** | 🟢 aguarda senha | **SIM** `0150`+`0151` | **34/34** |
+
 ### ✅ Deploy loja — **CHECKLIST 22/10** · **Live v27.26.21** · 22/10
 
 | Campo | Valor |
