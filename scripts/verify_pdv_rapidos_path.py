@@ -33,7 +33,7 @@ def main():
     check(
         "html_botao",
         'id="pdv-btn-rapidos"' in step
-        and ">F5<" in step
+        and ">Ins<" in step
         and 'id="pdv-btn-racoes"' in step
         and step.find('id="pdv-btn-rapidos"') < step.find('id="pdv-btn-racoes"'),
     )
@@ -41,7 +41,7 @@ def main():
     check("html_overlay", 'id="pdv-rapidos-overlay"' in html and 'id="pdv-rapidos-fechar"' in html)
     check("html_esc_dica", "Esc sai" in html)
     check("html_js", "pdv_rapidos.js" in html)
-    check("js_f5", "ev.code === 'F5'" in js and "ev.altKey && ev.code === 'Digit6'" not in js)
+    check("js_insert", "ev.code === 'Insert'" in js and "ev.code === 'F5'" not in js)
     check("js_esc", "ev.key === 'Escape'" in js and "fechar()" in js)
     check("js_num", "Numpad9" in js and "vender(pos)" in js)
     check("js_nao_f6", "F6" not in js)
@@ -57,8 +57,8 @@ def main():
     check("js_foto_delta", "arraste.foto + deltaFoto" in js)
     check("js_pin_antes", "function pinAberto()" in js and "if (pinAberto()) return;" in js)
     idx_pin = js.find("if (pinAberto()) return;")
-    idx_f5 = js.find("ev.code === 'F5'")
-    check("js_pin_antes_atalho", idx_pin != -1 and idx_f5 != -1 and idx_pin < idx_f5)
+    idx_ins = js.find("ev.code === 'Insert'")
+    check("js_pin_antes_atalho", idx_pin != -1 and idx_ins != -1 and idx_pin < idx_ins)
     check("js_ignorar_limpo", js.count("ignorarClique = false") >= 2)
 
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")

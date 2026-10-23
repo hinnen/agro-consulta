@@ -1299,18 +1299,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **pronto para envio à produção** — ainda não é Live |
-| **Pacote** | Rápidos no PDV: **F5**, botão na busca (antes de Rações), 9 slots, apelido e foto manuais, preço do cadastro, proporção arrastável |
+| **Pacote** | Rápidos no PDV: tecla **Insert**, botão na busca (antes de Rações), 9 slots, apelido e foto manuais, preço do cadastro, proporção arrastável. **F5** segue atualizando o Chrome |
 | **Subir** | `cursor/pdv-rapidos-ac2d` → `teste` → `producao` (só com senha) |
 | **Migrate** | **SIM** `0150` + `0151` |
 | **PDV** | F6 de orçamento intacto · Esc fecha · PIN aberto não come 1–9 |
 | **Prova** | `verify_pdv_rapidos_path.py` **35/35** · harness F5/Esc/PIN/arraste **17/17** |
-| **Smoke** | Ctrl+F5 no PDV → **F5** abre → 1–9 → Esc → Definir → Proporção |
+| **Smoke** | F5 atualiza a página → tecla **Insert** abre → 1–9 → Esc → Definir → Proporção |
 
 ### ✅ CHECKLIST ÚNICO — **23/10** · 🟢 **pronto para envio à produção**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-RAPIDOS** | 🟢 pronto para envio à produção | **SIM** `0150`+`0151` | **35/35** · F5 na busca |
+| 1 | **PDV-RAPIDOS** | 🟢 pronto para envio à produção | **SIM** `0150`+`0151` | **35/35** · Insert na busca · F5 atualiza |
 
 ### ✅ Deploy loja — **CHECKLIST 21/10c** · **Live v27.26.20** · 21/10
 
