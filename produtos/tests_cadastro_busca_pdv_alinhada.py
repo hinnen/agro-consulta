@@ -1,8 +1,11 @@
 """Cadastro — filtro e ordenação alinhados ao motor PDV."""
+import re
+
 from django.test import SimpleTestCase
 
 from produtos.busca_filtro_pdv_util import filtrar_rows_api_estilo_pdv, ordenar_rows_api_estilo_pdv
 from produtos.cadastro_busca_codigo_util import (
+    padrao_iregex_busca_texto_pt,
     tokens_termo_busca_cadastro,
     variantes_token_busca_apelido,
 )
@@ -70,6 +73,45 @@ class CadastroBuscaPdvAlinhadaTests(SimpleTestCase):
         ):
             out = filtrar_rows_api_estilo_pdv(rows, termo)
             self.assertEqual(len(out), 1, msg=f"falhou: {termo}")
+
+    def test_iregex_cao_casa_cao_acentuado(self):
+        pat = padrao_iregex_busca_texto_pt("CAO")
+        self.assertTrue(pat)
+        self.assertTrue(re.search(pat, "Shampoo Cão | Antiparasitario", re.I))
+
+    def test_filtra_shampo_cao_sem_acento_no_nome(self):
+        rows = [
+            {
+                "id": "1",
+                "nome": "Shampoo Cão | Antiparasitario | 500ml",
+                "busca_texto": "",
+            },
+        ]
+        out = filtrar_rows_api_estilo_pdv(rows, "SHAMPO CAO")
+        self.assertEqual(len(out), 1)
+
+    def test_filtra_shampo_pulga_nome_apelido(self):
+        rows = [
+            {
+                "id": "1",
+                "nome": "shampoo antiparasitario doctor animal 500ml",
+                "busca_texto": "shampoo antiparasitario pulga carrapato",
+            },
+        ]
+        out = filtrar_rows_api_estilo_pdv(rows, "shampo pulga")
+        self.assertEqual(len(out), 1)
+
+    def test_filtra_shampo_pulga_exige_busca_texto(self):
+        """Sem apelidos no blob, «pulga» não casa só no nome (cadastro zerava antes do fix na API)."""
+        rows = [
+            {
+                "id": "1",
+                "nome": "shampoo antiparasitario doctor animal 500ml",
+                "busca_texto": "",
+            },
+        ]
+        out = filtrar_rows_api_estilo_pdv(rows, "shampo pulga")
+        self.assertEqual(len(out), 0)
 
     def test_filtra_oleo_2_tempo_com_busca_texto(self):
         rows = [

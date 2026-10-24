@@ -1294,6 +1294,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — **CADASTRO-BUSCA-PALAVRAS** · **v27.26.26** · 24/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **PREP / branch** | `cursor/gestao-busca-palavras-e6db` @ **`d9fae958`** · PR **#460** → `teste` |
+| **Escopo** | BCA unificado: `busca_texto` em `contexto=cadastro` · apelidos (**shampo pulga**) · acento PG (**SHAMPO CAO** = **CÃO**) · cache **v12** |
+| **Migrate** | **NÃO** |
+| **Smoke loja** | **Ctrl+F5** Cadastro e PDV: **SHAMPO CAO** · **shampo pulga** · **oleo 2tempo** |
+
+### ✅ CHECKLIST ÚNICO — **24/10** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CADASTRO-BUSCA-PALAVRAS** | 🟢 Pronto | **NÃO** | `scripts/verify_cadastro_busca_med_path.py` (57+ OK) · `produtos.tests_cadastro_busca_pdv_alinhada` (14) |
+
 ### 📦 PACOTE PRONTO — **CP-EXPORT-LISTA** · **v27.26.24** · 23/10c
 
 | Campo | Valor |
