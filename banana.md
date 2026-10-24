@@ -1294,6 +1294,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 PREP ARMADO — **23/10c + 24/10** · **v27.26.26** · 24/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Loja atual** | **`d37449e6`** · **v27.26.23** |
+| **Branch PREP** | `deploy/prep-checklist-2410-cp-busca` @ **`6fff97bb`** |
+| **Pacotes** | **CP-EXPORT-LISTA** · **CADASTRO-BUSCA-PALAVRAS** · gaveta da busca (nome mais largo) |
+| **Migrate** | **NÃO** |
+| **Caixa / checkout** | **Não alterados** |
+| **Prova** | export **VERIFY_OK** · busca **60/60** · testes alinhados **14/14** · PIN 9973 ok |
+| **Checkpoint** | `rollback/pre-v272626-2410-cp-busca` → **`d37449e6`** |
+| **Cutover** | `./scripts/cutover_loja_checklist_2410_cp_busca.sh` · `--exec` + frase + senha |
+| **Smoke** | CP **Exportar** · Cadastro/PDV **SHAMPO CAO** · gaveta da busca |
+
+### ✅ CHECKLIST ÚNICO — **24/10** · 🟢 **PREP ARMADO — aguarda senha**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CADASTRO-BUSCA-PALAVRAS** | 🟢 aguarda senha | **NÃO** | **60/60** |
+| 2 | **CP-EXPORT-LISTA** | 🟢 aguarda senha | **NÃO** | verify export |
+| 3 | **PDV gaveta busca** | 🟢 aguarda senha | **NÃO** | nome largo · GM/preço fixos |
+
 ### 📦 PACOTE PRONTO — **CP-EXPORT-LISTA** · **v27.26.24** · 23/10c
 
 | Campo | Valor |
