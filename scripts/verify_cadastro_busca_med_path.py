@@ -265,6 +265,7 @@ def test_git_sem_migrate() -> None:
         or "CADASTRO-BUSCA-PALAVRAS" in log1
         or "contexto=cadastro" in log1
         or "SHAMPO CAO" in log1
+        or "CP-EXPORT + busca" in log1
     )
     head = subprocess.run(
         ["git", "log", "-5", "--oneline"],
