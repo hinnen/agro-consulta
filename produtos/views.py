@@ -8201,6 +8201,8 @@ def _empresa_home_atual():
 
 
 def _home_admin_navegacao():
+    from produtos.agro_wa_origin_util import agro_wa_absolute_path
+
     dre_ativo = getattr(settings, "LANCAMENTOS_DRE_ATIVO", False)
     agro_legado_url = reverse("consulta_produtos")
     # Teclas únicas (sem modificador), priorizando F2–F12 + letras para o restante — ver AGENTS.md §5 (teclado primeiro, fonte grande).
@@ -8332,7 +8334,7 @@ def _home_admin_navegacao():
         },
         {
             "title": "WhatsApp lojas",
-            "href": reverse("atendimento_whatsapp"),
+            "href": agro_wa_absolute_path(reverse("atendimento_whatsapp")),
             "icon": "message-circle",
             "shortcut": "Z",
             "shortcut_key": "z",
@@ -8340,7 +8342,7 @@ def _home_admin_navegacao():
         },
         {
             "title": "WhatsApp celular",
-            "href": reverse("atendimento_whatsapp_celular"),
+            "href": agro_wa_absolute_path(reverse("atendimento_whatsapp_celular")),
             "icon": "smartphone",
             "shortcut": "Y",
             "shortcut_key": "y",
