@@ -1149,17 +1149,16 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 102. CHECKLIST ÚNICO — **24/10** · 🟢 **PREP ARMADO v27.26.26 — aguarda senha**
+## 102. CHECKLIST ÚNICO — **24/10** · ✅ **Live v27.26.26**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CADASTRO-BUSCA-PALAVRAS** | 🟢 aguarda senha | **NÃO** | **60/60** |
-| 2 | **CP-EXPORT-LISTA** | 🟢 aguarda senha | **NÃO** | verify export |
-| 3 | **PDV gaveta busca** | 🟢 aguarda senha | **NÃO** | nome largo |
+| 1 | **CADASTRO-BUSCA-PALAVRAS** | ✅ **Live** | **NÃO** | **60/60** |
+| 2 | **CP-EXPORT-LISTA** | ✅ **Live** | **NÃO** | verify export |
+| 3 | **PDV gaveta busca** | ✅ **Live** | **NÃO** | nome largo |
 
-**Loja git:** `producao` @ **`d37449e6`** (v27.26.23). **PREP:** `deploy/prep-checklist-2410-cp-busca` @ **`6fff97bb`**.  
-**Cutover:** `./scripts/cutover_loja_checklist_2410_cp_busca.sh --exec` + senha.  
-**Revert:** `rollback/pre-v272626-2410-cp-busca` → **`d37449e6`**. Sem migrate.
+**Loja git:** `producao` @ **`6081553c`**. Sem migrate.  
+**Revert:** `rollback/pre-v272626-2410-cp-busca` → **v27.26.23** @ **`d37449e6`**.
 
 ---
 
