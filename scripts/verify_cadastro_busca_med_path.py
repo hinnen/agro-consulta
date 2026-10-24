@@ -139,6 +139,11 @@ def test_contratos() -> None:
         "variantes_token_busca_apelido",
         "def variantes_token_busca_apelido" in cad_util,
     )
+    check(
+        "busca_texto_sem_acento_iregex",
+        "def padrao_iregex_busca_texto_pt" in cad_util
+        and "def q_campos_texto_token_busca" in cad_util,
+    )
     views_txt = (ROOT / "produtos/views.py").read_text()
     check(
         "api_buscar_wizard_busca_texto",

@@ -6,7 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Chave em views: f"bca_busca_v{BCA_BUSCA_CACHE_VERSION}:..."
-BCA_BUSCA_CACHE_VERSION = 11
+BCA_BUSCA_CACHE_VERSION = 12
 
 
 def bca_busca_cache_bump_invalidate() -> None:

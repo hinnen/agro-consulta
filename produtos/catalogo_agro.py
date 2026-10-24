@@ -441,9 +441,11 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
 
             partes_m = tokens_termo_busca_cadastro(termo)
             if len(partes_m) >= 2:
+                from produtos.cadastro_busca_codigo_util import q_campos_texto_token_busca
+
                 q_or = Q()
                 for pl in partes_m:
-                    q_or |= Q(nome__icontains=pl) | Q(marca__icontains=pl) | Q(modelo__icontains=pl)
+                    q_or |= q_campos_texto_token_busca("nome", "marca", "modelo", token=pl)
                 _cadastro_pg_append_unicos(
                     found,
                     seen_pk,

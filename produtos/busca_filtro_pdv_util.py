@@ -220,9 +220,18 @@ def _palavra_casa_no_doc(palavra: str, doc: dict, blob: str, nome: str) -> bool:
         ):
             return True
 
+    from integracoes.texto import expandir_tokens
     from produtos.cadastro_busca_codigo_util import variantes_token_busca_apelido
 
+    variantes: set[str] = set()
     for vn in variantes_token_busca_apelido(palavra):
+        variantes.add(vn)
+    for ex in expandir_tokens(palavra):
+        if ex:
+            variantes.add(ex)
+    variantes.add(pn)
+
+    for vn in variantes:
         if vn in nome or vn in blob:
             return True
         tokens = blob.split()

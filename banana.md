@@ -1294,14 +1294,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO — **CADASTRO-BUSCA-PALAVRAS** · **v27.26.25** · 24/10
+### 📦 PACOTE PRONTO — **CADASTRO-BUSCA-PALAVRAS** · **v27.26.26** · 24/10
 
 | Campo | Valor |
 | ----- | ----- |
 | **PREP / `teste`** | após merge deste pacote |
-| **Escopo** | Cadastro/gestão SisVale: `/api/buscar/?contexto=cadastro` passa `busca_texto` (apelidos) como no PDV — ex. **shampo pulga** |
+| **Escopo** | Busca unificada BCA: apelidos no cadastro (`busca_texto`) + **acento** (ex. **SHAMPO CAO** = **SHAMPO CÃO**) em Postgres/API — PDV, cadastro, entrada NF |
 | **Migrate** | **NÃO** |
-| **Smoke loja** | **Ctrl+F5** Cadastro produtos → buscar **shampo pulga** (mesmos hits do PDV) · BCA cache **v11** |
+| **Smoke loja** | **Ctrl+F5** Cadastro → **SHAMPO CAO** e **shampo pulga** · BCA cache **v12** |
 
 ### ✅ CHECKLIST ÚNICO — **24/10** · 🟢 **pronto para envio à produção**
 
