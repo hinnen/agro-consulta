@@ -109,6 +109,92 @@ def gm_base_familia(termo: str) -> str | None:
     return m.group(1).upper()
 
 
+_VOGAL_IREGEX_PT = {
+    "a": "[aáàâã]",
+    "e": "[eéê]",
+    "i": "[iíî]",
+    "o": "[oóôõ]",
+    "u": "[uúû]",
+    "c": "[cç]",
+}
+
+
+def padrao_iregex_busca_texto_pt(token: str) -> str:
+    """Padrão ``iregex`` (case-insensitive) para casar acentos PT sem extensão unaccent."""
+    from integracoes.texto import normalizar
+
+    n = normalizar(str(token or "").strip())
+    if not n:
+        return ""
+    if len(n) < 2 and not n.isdigit():
+        return ""
+    out: list[str] = []
+    for ch in n:
+        if ch in _VOGAL_IREGEX_PT:
+            out.append(_VOGAL_IREGEX_PT[ch])
+        elif ch.isdigit():
+            out.append(ch)
+        else:
+            out.append(re.escape(ch))
+    return "".join(out)
+
+
+def literais_icontains_busca_token(termo_token: str) -> list[str]:
+    """Grafias extras para ``icontains`` (sinônimos do PDV + forma digitada)."""
+    from integracoes.texto import SINONIMOS, normalizar
+
+    raw = str(termo_token or "").strip()
+    if not raw:
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+
+    def add(s: str) -> None:
+        s = str(s or "").strip()
+        if not s:
+            return
+        key = s.casefold()
+        if key in seen:
+            return
+        seen.add(key)
+        out.append(s[:200])
+
+    add(raw)
+    n = normalizar(raw)
+    if n:
+        add(n)
+    if n in SINONIMOS:
+        for v in SINONIMOS[n]:
+            add(v)
+    for chave, vals in SINONIMOS.items():
+        if normalizar(chave) == n:
+            add(chave)
+            for v in vals:
+                add(v)
+        for v in vals:
+            if normalizar(v) == n:
+                add(chave)
+                for v2 in vals:
+                    add(v2)
+    return out
+
+
+def q_campos_texto_token_busca(*campos: str, token: str) -> Q:
+    """OR em campos de texto: ``iregex`` sem acento + literais/sinônimos."""
+    token = str(token or "").strip()
+    if not token or not campos:
+        return Q(pk__in=[])
+    q = Q()
+    pat = padrao_iregex_busca_texto_pt(token)
+    if pat:
+        for c in campos:
+            q |= Q(**{f"{c}__iregex": pat})
+    for lit in literais_icontains_busca_token(token):
+        for c in campos:
+            q |= Q(**{f"{c}__icontains": lit})
+    return q
+
+
 def q_prefixo_codigo_ci(*campos: str, prefixo: str) -> Q:
     """Prefixo case-insensitive (Postgres: ``istartswith`` é case-sensitive)."""
     p = str(prefixo or "").strip()
@@ -323,17 +409,18 @@ def _q_overlay_palavras_busca(termo_txt: str) -> Q:
     partes = tokens_termo_busca_cadastro(termo_txt) or [termo_txt]
 
     def _campo_palavras(pl: str) -> Q:
-        q = Q()
-        pr_raw = str(pl or "")[:200]
-        if pr_raw:
-            q |= Q(cadastro_extras__palavras_chave__icontains=pr_raw) | Q(
-                descricao__icontains=pr_raw
-            )
+        q = q_campos_texto_token_busca(
+            "cadastro_extras__palavras_chave",
+            "descricao",
+            f"cadastro_extras__{BUSCA_PALAVRAS_AGRO_CAMPO}",
+            token=pl,
+        )
         for vn in variantes_token_busca_apelido(pl):
-            q |= (
-                Q(cadastro_extras__palavras_chave__icontains=vn)
-                | Q(**{idx: vn})
-                | Q(descricao__icontains=vn)
+            q |= q_campos_texto_token_busca(
+                "cadastro_extras__palavras_chave",
+                "descricao",
+                f"cadastro_extras__{BUSCA_PALAVRAS_AGRO_CAMPO}",
+                token=vn,
             )
         return q
 
@@ -488,7 +575,7 @@ def q_nome_tokens_cadastro(termo: str) -> Q | None:
         return None
     q_obj = Q()
     for pl in parts:
-        q_pl = Q(nome__icontains=pl) | Q(marca__icontains=pl) | Q(modelo__icontains=pl)
+        q_pl = q_campos_texto_token_busca("nome", "marca", "modelo", token=pl)
         m_kg = re.match(r"^(\d+)\s*kg$", pl, re.I)
         if m_kg:
             n = m_kg.group(1)
@@ -544,12 +631,19 @@ def q_codigo_exato_cadastro(termo: str) -> Q | None:
 def q_icontains_cadastro(termo: str) -> Q:
     termo = (termo or "").strip()
     digits = digitos_somente_barras_cadastro(termo) or ""
-    q_obj = (
-        Q(nome__icontains=termo)
-        | Q(marca__icontains=termo)
-        | Q(modelo__icontains=termo)
-        | Q(categoria__icontains=termo)
-        | Q(codigo_interno__icontains=termo)
+    partes = tokens_termo_busca_cadastro(termo) or ([termo] if termo else [])
+    q_obj = Q()
+    if partes:
+        for pl in partes:
+            q_obj &= q_campos_texto_token_busca(
+                "nome",
+                "marca",
+                "modelo",
+                "categoria",
+                token=pl,
+            )
+    q_obj |= (
+        Q(codigo_interno__icontains=termo)
         | Q(codigo_nfe__icontains=termo)
         | Q(codigo_barras__icontains=termo)
         | Q(produto_externo_id__icontains=termo)
