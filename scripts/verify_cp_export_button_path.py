@@ -31,6 +31,7 @@ def main() -> int:
         print("FAIL montarParamsExport not used in download")
         return 1
     print("OK verify_cp_export_button_path")
+    print("VERIFY_OK")
     return 0
 
 

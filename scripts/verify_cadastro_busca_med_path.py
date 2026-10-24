@@ -381,6 +381,8 @@ def main() -> int:
     test_pin_9973()
     print(f"\nOK={len(oks)} FAIL={len(fails)}")
     print("PREP_FAILS=" + str(len(fails)))
+    if not fails:
+        print("VERIFY_OK")
     return 1 if fails else 0
 
 
