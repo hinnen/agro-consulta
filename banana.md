@@ -1294,6 +1294,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — **CADASTRO-BUSCA-PALAVRAS** · **v27.26.25** · 24/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **PREP / `teste`** | após merge deste pacote |
+| **Escopo** | Cadastro/gestão SisVale: `/api/buscar/?contexto=cadastro` passa `busca_texto` (apelidos) como no PDV — ex. **shampo pulga** |
+| **Migrate** | **NÃO** |
+| **Smoke loja** | **Ctrl+F5** Cadastro produtos → buscar **shampo pulga** (mesmos hits do PDV) · BCA cache **v11** |
+
+### ✅ CHECKLIST ÚNICO — **24/10** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CADASTRO-BUSCA-PALAVRAS** | 🟢 Pronto | **NÃO** | `scripts/verify_cadastro_busca_med_path.py` · `produtos.tests_cadastro_busca_pdv_alinhada` |
+
 ### 📦 PACOTE PRONTO — **CP-EXPORT-LISTA** · **v27.26.24** · 23/10c
 
 | Campo | Valor |
