@@ -1615,6 +1615,7 @@
     background: #fff !important;
     overflow: visible;
     position: relative;
+    container-type: inline-size;
     z-index: 20;
   }
   #pdv-step1-search-wrap::before,
@@ -1660,6 +1661,12 @@
   }
   #pdv-step1-search-wrap #pdv-product-autocomplete {
     background: #fff;
+    left: 0;
+    right: auto !important;
+    /* A busca fica curta. A gaveta segue até quase a coluna de orçamentos.
+       GM e preço não mudam de largura: o espaço extra cai na coluna do nome. */
+    width: calc(100cqw - 2.35rem) !important;
+    max-width: none;
   }
   #pdv-step1-cart-wrap {
     display: flex;
