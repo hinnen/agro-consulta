@@ -24529,8 +24529,9 @@ def api_buscar_produtos(request):
                 _busca_wiz_parts.append(_bt_motor)
             if wizard_catalog:
                 _busca_txt_row = normalizar(" ".join(str(x) for x in _busca_wiz_parts if x))
-            elif wizard_mode or busca_lite:
-                # PDV/entrada NF: palavras-chave do motor (apelidos) — sem isso «2 tempo» zera no refinar JS.
+            elif wizard_mode or busca_lite or contexto_cadastro:
+                # PDV/entrada NF/cadastro ERP: apelidos do motor — sem isso o filtro final zera
+                # (ex. «shampo pulga» com «pulga» só em palavras-chave).
                 _busca_txt_row = _bt_motor or normalizar(
                     " ".join(str(x) for x in _busca_wiz_parts if x)
                 )

@@ -71,6 +71,29 @@ class CadastroBuscaPdvAlinhadaTests(SimpleTestCase):
             out = filtrar_rows_api_estilo_pdv(rows, termo)
             self.assertEqual(len(out), 1, msg=f"falhou: {termo}")
 
+    def test_filtra_shampo_pulga_nome_apelido(self):
+        rows = [
+            {
+                "id": "1",
+                "nome": "shampoo antiparasitario doctor animal 500ml",
+                "busca_texto": "shampoo antiparasitario pulga carrapato",
+            },
+        ]
+        out = filtrar_rows_api_estilo_pdv(rows, "shampo pulga")
+        self.assertEqual(len(out), 1)
+
+    def test_filtra_shampo_pulga_exige_busca_texto(self):
+        """Sem apelidos no blob, «pulga» não casa só no nome (cadastro zerava antes do fix na API)."""
+        rows = [
+            {
+                "id": "1",
+                "nome": "shampoo antiparasitario doctor animal 500ml",
+                "busca_texto": "",
+            },
+        ]
+        out = filtrar_rows_api_estilo_pdv(rows, "shampo pulga")
+        self.assertEqual(len(out), 0)
+
     def test_filtra_oleo_2_tempo_com_busca_texto(self):
         rows = [
             {

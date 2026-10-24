@@ -142,7 +142,8 @@ def test_contratos() -> None:
     views_txt = (ROOT / "produtos/views.py").read_text()
     check(
         "api_buscar_wizard_busca_texto",
-        "_bt_motor" in views_txt and "PDV/entrada NF: palavras-chave do motor" in views_txt,
+        "_bt_motor" in views_txt
+        and "wizard_mode or busca_lite or contexto_cadastro" in views_txt,
     )
 
 
