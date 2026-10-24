@@ -1298,7 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **PREP / branch** | `cursor/gestao-busca-palavras-e6db` @ **`a63d66fe`** (+ doc verify) · PR **#460** → `teste` |
+| **PREP / branch** | `cursor/gestao-busca-palavras-e6db` @ **`d9fae958`** · PR **#460** → `teste` |
 | **Escopo** | BCA unificado: `busca_texto` em `contexto=cadastro` · apelidos (**shampo pulga**) · acento PG (**SHAMPO CAO** = **CÃO**) · cache **v12** |
 | **Migrate** | **NÃO** |
 | **Smoke loja** | **Ctrl+F5** Cadastro e PDV: **SHAMPO CAO** · **shampo pulga** · **oleo 2tempo** |
