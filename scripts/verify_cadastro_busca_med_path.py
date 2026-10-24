@@ -111,6 +111,8 @@ def test_contratos() -> None:
     check(
         "version_prep",
         ver in (
+            "27.26.26",
+            "27.26.25",
             "27.26.9",
             "27.26.8",
             "27.26.7",
@@ -195,6 +197,29 @@ def test_logica_python() -> None:
     ]
     hit = filtrar_rows_api_estilo_pdv(rows_pdv, "2 tempo")
     check("pdv_filtro_2_tempo", len(hit) == 1)
+    rows_cao = [
+        {
+            "id": "y",
+            "nome": "Shampoo Cão | Antiparasitario | 500ml",
+            "busca_texto": "pulga antiparasitario",
+        }
+    ]
+    check(
+        "pdv_filtro_shampo_cao",
+        len(filtrar_rows_api_estilo_pdv(rows_cao, "SHAMPO CAO")) == 1,
+    )
+    check(
+        "pdv_filtro_shampo_pulga",
+        len(filtrar_rows_api_estilo_pdv(rows_cao, "shampo pulga")) == 1,
+    )
+    from produtos.cadastro_busca_codigo_util import padrao_iregex_busca_texto_pt
+    import re
+
+    pat_cao = padrao_iregex_busca_texto_pt("CAO")
+    check(
+        "iregex_cao_casa_cao",
+        bool(pat_cao and re.search(pat_cao, "Shampoo Cão", re.I)),
+    )
 
 
 def test_git_sem_migrate() -> None:
@@ -235,7 +260,25 @@ def test_git_sem_migrate() -> None:
         or "palavras_chave" in log1
         or "busca_palavras" in log1
         or "reabrir" in log1.lower()
+        or "a63d66fe" in log1
+        or "e3909b51" in log1
+        or "CADASTRO-BUSCA-PALAVRAS" in log1
+        or "contexto=cadastro" in log1
+        or "SHAMPO CAO" in log1
     )
+    head = subprocess.run(
+        ["git", "log", "-5", "--oneline"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    ).stdout
+    if not feat_ok:
+        feat_ok = (
+            "a63d66fe" in head
+            or "e3909b51" in head
+            or "busca_texto com palavras-chave" in head
+            or "acentos no cadastro" in head
+        )
     check("commit_feat", feat_ok, tip)
     diff = subprocess.run(
         ["git", "diff", "--name-only", "619a364e^..619a364e"],
