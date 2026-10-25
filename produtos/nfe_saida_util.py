@@ -134,38 +134,53 @@ def pagamento_vazio() -> list[dict[str, Any]]:
 
 
 def _fiscal_produto_buscar(produto_id: str) -> dict[str, str]:
-    """NCM/CFOP/CSOSN do catálogo ou defaults SP."""
-    base = fiscal_padrao_ui_cadastro()
+    """
+    Fiscal para pré-preenchimento NF-e 55 — sem NCM/CFOP genéricos do padrão NFC-e (23099020/5102).
+    Preserva NCM cadastrado (incl. 23099020 quando confirmado no produto/overlay/Mongo).
+    """
     pid = str(produto_id or "").strip()
+    out: dict[str, str] = {
+        "ncm": "",
+        "cfop": "",
+        "csosn": "",
+        "origem": "0",
+        "cest": "",
+        "cst_pis_cofins": "",
+    }
     if not pid:
-        return base
+        return out
+    try:
+        from produtos.nfce_fiscal_produto_util import fiscal_por_produto_id
+
+        cat = fiscal_por_produto_id(pid, aplicar_defaults_sn=False)
+        for k in out:
+            v = str(cat.get(k) or "").strip()
+            if v:
+                out[k] = v
+    except Exception:
+        pass
     try:
         from produtos.catalogo_agro import obter_produto_model
 
         p = obter_produto_model(pid)
         if p is not None and (p.ncm or "").strip():
-            base["ncm"] = normalizar_ncm_somente_digitos(p.ncm) or base["ncm"]
+            ncm = normalizar_ncm_somente_digitos(p.ncm)
+            if len(ncm) == 8:
+                out["ncm"] = ncm
     except Exception:
         pass
-    try:
-        from produtos.models import ProdutoGestaoOverlayAgro
+    return out
 
-        ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).first()
-        if ov and isinstance(ov.cadastro_extras, dict):
-            fis = ov.cadastro_extras.get("fiscal")
-            if isinstance(fis, dict):
-                for k, row_k in (
-                    ("ncm", "ncm"),
-                    ("cfop", "cfop"),
-                    ("csosn", "csosn"),
-                    ("origem", "origem"),
-                ):
-                    v = str(fis.get(k) or "").strip()
-                    if v:
-                        base[row_k if row_k != "cfop" else "cfop"] = v
-    except Exception:
-        pass
-    return base
+
+def _cfop_item_prefill_venda(fis: dict[str, str], *, uf_dest: str, uf_emit: str | None = None) -> str:
+    """CFOP inicial do item: cadastro explícito ou sugestão por UF (nunca 5102 em interestadual sem cadastro)."""
+    ue = (uf_emit or nfe_saida_emitente_uf_default() or "SP").upper()[:2]
+    ud = (uf_dest or ue).upper()[:2]
+    inter = bool(ud and ue and ud != ue)
+    cfop_cat = re.sub(r"\D", "", str(fis.get("cfop") or ""))[:4]
+    if len(cfop_cat) == 4:
+        return cfop_cat
+    return cfop_padrao_destino(ud, ue)
 
 
 def _mapear_tpag_forma(forma: str) -> str:
@@ -241,8 +256,9 @@ def destinatario_de_venda(v) -> dict[str, Any]:
 
 
 def itens_de_venda(v) -> list[dict[str, Any]]:
-    uf = (destinatario_de_venda(v).get("uf") or nfe_saida_emitente_uf_default())[:2]
-    cfop_def = cfop_padrao_destino(uf)
+    dest = destinatario_de_venda(v)
+    uf_dest = (dest.get("uf") or nfe_saida_emitente_uf_default())[:2]
+    uf_emit = nfe_saida_emitente_uf_default()
     out: list[dict[str, Any]] = []
     for it in v.itens.all():
         pid = str(it.produto_id_externo or "").strip()
@@ -252,6 +268,7 @@ def itens_de_venda(v) -> list[dict[str, Any]]:
         vt = float(it.valor_total or 0)
         if vt <= 0 and qtd > 0:
             vt = round(qtd * vu, 2)
+        ncm = normalizar_ncm_somente_digitos(fis.get("ncm"))
         out.append(
             {
                 "produto_id": pid,
@@ -259,10 +276,11 @@ def itens_de_venda(v) -> list[dict[str, Any]]:
                 "descricao": str(it.descricao or "").strip(),
                 "qtd": qtd,
                 "un": str(it.unidade or "UN").strip()[:12] or "UN",
-                "ncm": fis.get("ncm") or "",
-                "cfop": fis.get("cfop") or cfop_def,
-                "csosn": fis.get("csosn") or "102",
-                "origem": fis.get("origem") or "0",
+                "ncm": ncm if len(ncm) == 8 else "",
+                "cfop": _cfop_item_prefill_venda(fis, uf_dest=uf_dest, uf_emit=uf_emit),
+                "csosn": str(fis.get("csosn") or "").strip() or "",
+                "origem": str(fis.get("origem") or "0").strip()[:1] or "0",
+                "cst_pis_cofins": re.sub(r"\D", "", str(fis.get("cst_pis_cofins") or ""))[:2],
                 "v_unit": vu,
                 "v_total": vt,
             }
