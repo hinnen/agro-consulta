@@ -698,6 +698,22 @@ class NfeSaidaPrefillVendaTests(SimpleTestCase):
             fis = _fiscal_produto_buscar("42")
         self.assertEqual(fis["ncm"], "23099020")
 
+    def test_overlay_ncm_sobre_modelo_legado(self):
+        from unittest.mock import MagicMock, patch
+
+        from produtos.nfe_saida_util import _fiscal_produto_buscar
+
+        with patch(
+            "produtos.nfce_fiscal_produto_util.fiscal_por_produto_id",
+            return_value={"ncm": "12345678", "cfop": "5102", "csosn": "102", "origem": "0"},
+        ):
+            with patch("produtos.catalogo_agro.obter_produto_model") as obter:
+                p = MagicMock()
+                p.ncm = "23099020"
+                obter.return_value = p
+                fis = _fiscal_produto_buscar("99")
+        self.assertEqual(fis["ncm"], "12345678")
+
     def test_prefill_venda_xml_xsd(self):
         from datetime import datetime
         from unittest.mock import patch
@@ -767,6 +783,86 @@ class NfeSaidaPrefillVendaTests(SimpleTestCase):
         ok, det = validar_xml_nfe_xsd(xml)
         self.assertTrue(ok, det)
         self.assertIn("<NCM>23099020</NCM>", xml)
+
+
+class NfeSaidaXsdValidationTests(SimpleTestCase):
+    def test_pacote_pl010f_presente(self):
+        from pathlib import Path
+
+        from django.conf import settings
+
+        from produtos.nfe_saida_xml_validate_util import xsd_nfe_disponivel, xsd_nfe_v4_path
+
+        self.assertTrue(xsd_nfe_disponivel())
+        p = xsd_nfe_v4_path()
+        self.assertIsNotNone(p)
+        self.assertIn("PL_010f", str(p))
+        ver = Path(settings.BASE_DIR) / "produtos/schemas/nfe/PL_010f/VERSION.txt"
+        self.assertTrue(ver.is_file())
+
+    def test_xml_invalido_rejeitado_xsd(self):
+        from produtos.nfe_saida_xml_validate_util import validar_xml_nfe_xsd
+
+        ok, det = validar_xml_nfe_xsd("<NFe xmlns='http://www.portalfiscal.inf.br/nfe'><x/></NFe>")
+        self.assertFalse(ok)
+        self.assertTrue(det.startswith("xsd_invalid:") or det.startswith("xsd_error:"))
+
+    def test_xml_montado_valida_pl010f(self):
+        from datetime import datetime
+
+        from produtos.nfe_saida_sp_emissao_util import _montar_xml_nfe_saida
+        from produtos.nfe_saida_util import doc_novo_vazio
+        from produtos.nfe_saida_xml_validate_util import _xml_para_validacao_xsd, validar_xml_nfe_xsd
+
+        doc = doc_novo_vazio()
+        doc["destinatario"].update(
+            {
+                "nome": "C",
+                "documento": "39053344705",
+                "uf": "SP",
+                "cidade": "Ja",
+                "logradouro": "Ru",
+                "numero": "1",
+                "bairro": "Ce",
+                "cep": "11940000",
+            }
+        )
+        doc["itens"] = [
+            {
+                "descricao": "P",
+                "qtd": 1,
+                "v_unit": 10,
+                "v_total": 10,
+                "ncm": "23099020",
+                "cfop": "5102",
+                "csosn": "102",
+                "cst_pis_cofins": "49",
+            }
+        ]
+        doc["pagamento"] = [{"tPag": "01", "valor": 10}]
+        cfg = {
+            "tp_amb": 2,
+            "cnpj": "11222333000181",
+            "razao_social": "Em",
+            "fantasia": "Em",
+            "logradouro": "Ru",
+            "numero": "1",
+            "bairro": "Ce",
+            "cmun": "3524600",
+            "cidade": "Ja",
+            "uf": "SP",
+            "cep": "11940000",
+            "ie": "123456789012",
+            "fone": "",
+        }
+        xml = _montar_xml_nfe_saida(
+            doc, cfg, serie=1, numero=8, chave="3" * 43 + "5", dh_emi=datetime(2026, 8, 31, 10, 0, 0)
+        )
+        ok, det = validar_xml_nfe_xsd(xml)
+        self.assertTrue(ok, det)
+        assinado = _xml_para_validacao_xsd(xml).decode("utf-8")
+        ok2, det2 = validar_xml_nfe_xsd(assinado)
+        self.assertTrue(ok2, det2)
 
 
 class NfeSaidaSimulacaoEmitTests(SimpleTestCase):

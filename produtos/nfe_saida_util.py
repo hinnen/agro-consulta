@@ -159,16 +159,18 @@ def _fiscal_produto_buscar(produto_id: str) -> dict[str, str]:
                 out[k] = v
     except Exception:
         pass
-    try:
-        from produtos.catalogo_agro import obter_produto_model
+    # NCM do modelo legado só se overlay/Mongo não trouxer classificação corrigida.
+    if not out.get("ncm"):
+        try:
+            from produtos.catalogo_agro import obter_produto_model
 
-        p = obter_produto_model(pid)
-        if p is not None and (p.ncm or "").strip():
-            ncm = normalizar_ncm_somente_digitos(p.ncm)
-            if len(ncm) == 8:
-                out["ncm"] = ncm
-    except Exception:
-        pass
+            p = obter_produto_model(pid)
+            if p is not None and (p.ncm or "").strip():
+                ncm = normalizar_ncm_somente_digitos(p.ncm)
+                if len(ncm) == 8:
+                    out["ncm"] = ncm
+        except Exception:
+            pass
     return out
 
 

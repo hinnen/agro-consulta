@@ -109,7 +109,8 @@ def test_arquivos() -> None:
     trib = _read("produtos/nfe_saida_tributacao_util.py")
     check("motor_tributacao", "def apurar_nfe_saida" in trib and "_grupo_xml_icms_csosn" in trib)
     check("fiscal_cst_cadastro", '"cst_pis_cofins"' in _read("produtos/nfce_fiscal_produto_util.py"))
-    check("xsd_bundle", (ROOT / "produtos/schemas/nfe/nfe_v4.00.xsd").is_file())
+    check("xsd_bundle", (ROOT / "produtos/schemas/nfe/PL_010f/nfe_v4.00.xsd").is_file())
+    check("xsd_pl010f_version", (ROOT / "produtos/schemas/nfe/PL_010f/VERSION.txt").is_file())
     check("nfe_prefill_sem_ncm_generico", "aplicar_defaults_sn=False" in _read("produtos/nfe_saida_util.py"))
     check(
         "simulacao_opt_in",

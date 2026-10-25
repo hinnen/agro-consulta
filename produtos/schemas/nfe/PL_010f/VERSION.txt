@@ -1,0 +1,6 @@
+pacote=PL_010f
+espelho=PL_010_V1.30
+fonte=Portal Nacional da NF-e (pacote PL 010) / espelho nfephp-org/sped-nfe
+data_publicacao_referencia=2026-08-31
+arquivos_xsd=212
+entrada_validacao=nfe_v4.00.xsd
