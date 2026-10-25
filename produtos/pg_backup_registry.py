@@ -141,6 +141,21 @@ PG_BACKUP_CATEGORIES: tuple[PgBackupCategory, ...] = (
         models=("produtos.NfeSaidaRascunhoAgro", "produtos.NfeNumeracaoAgro"),
     ),
     PgBackupCategory(
+        slug="nfe_fiscal_config",
+        label="NF-e 55 — configuração fiscal",
+        warning="Substitui parâmetros fiscais, questionário e logs (não altera XML já autorizado).",
+        models=(
+            "produtos.NfeEstabelecimentoFiscal",
+            "produtos.NfeAliquotaCreditoSn",
+            "produtos.NfeParametroPisCofins",
+            "produtos.NfeParametroIbpt",
+            "produtos.NfeRegraOperacao",
+            "produtos.NfeExcecaoIcmsSt",
+            "produtos.NfeQuestionarioResposta",
+            "produtos.NfeAlteracaoFiscalLog",
+        ),
+    ),
+    PgBackupCategory(
         slug="rh",
         label="RH",
         warning="Substitui funcionários, folhas, vales e pagamentos de salário.",
