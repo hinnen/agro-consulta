@@ -1149,6 +1149,16 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
+## 103. CHECKLIST ÚNICO — **25/10** · ✅ **Live v27.26.27** (já em `producao`)
+
+| # | Item | Status | Migrate | Prova |
+| - | ---- | ------ | ------- | ----- |
+| 1 | **NFE-55-FISCAL-PL010f** | ✅ **Live** | **NÃO** | **68/68** |
+
+**Loja git:** `producao` @ **`d9d8a370`**. **Revert:** `producao-backup-pre-v272627-nfe-fiscal` → **`6081553c`**.
+
+---
+
 ## 102. CHECKLIST ÚNICO — **24/10** · ✅ **Live v27.26.26**
 
 | # | Pacote | Status | Migrate | Prova |
