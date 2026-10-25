@@ -2823,6 +2823,9 @@
     margem_percentual: null,
     preco_venda: 0,
     cfop: '',
+    ncm: '',
+    csosn: '',
+    origem: '',
     produto_id: '',
     nome_catalogo: '',
     match_tipo: '',
@@ -7384,6 +7387,9 @@
       codigo_nfe: entradaNfeStrCampo(it.codigo_nfe || it.codigo_gm || it.codigo),
       codigo_barras_catalogo: entradaNfeStrCampo(it.codigo_barras_catalogo || it.ean_catalogo),
       cfop: entradaNfeStrCampo(it.cfop),
+      ncm: entradaNfeStrCampo(it.ncm),
+      csosn: entradaNfeStrCampo(it.csosn),
+      origem: entradaNfeStrCampo(it.origem),
       produto_id: entradaNfeStrCampo(it.produto_id),
       nome_catalogo: entradaNfeStrCampo(it.nome_catalogo),
       match_tipo: entradaNfeStrCampo(it.match_tipo),
@@ -8407,6 +8413,9 @@
       c_prod: entradaNfeStrCampo(merged.c_prod),
       ean: entradaNfeStrCampo(merged.ean),
       cfop: entradaNfeStrCampo(merged.cfop),
+      ncm: entradaNfeStrCampo(merged.ncm),
+      csosn: entradaNfeStrCampo(merged.csosn),
+      origem: entradaNfeStrCampo(merged.origem),
       produto_id: entradaNfeStrCampo(merged.produto_id),
       nome_catalogo: entradaNfeStrCampo(merged.nome_catalogo),
       match_tipo: entradaNfeStrCampo(merged.match_tipo),
@@ -8513,6 +8522,9 @@
       <td class="px-2 py-1 align-middle text-right">
         <span class="nfe-total-linha block tabular-nums text-sm font-black text-slate-900 whitespace-nowrap" title="Qtd est. × V. unit">0,00</span>
         <input type="hidden" class="in-cfop" value="">
+        <input type="hidden" class="in-ncm" value="">
+        <input type="hidden" class="in-csosn" value="">
+        <input type="hidden" class="in-origem" value="">
       </td>
       <td class="px-1 py-1 text-center align-middle"><span class="in-match inline-block min-w-[1.1rem] text-sm font-black leading-none">—</span></td>
       <td class="px-1 py-1 text-center"><button type="button" class="btn-edit-prod-erp min-h-[40px] min-w-[40px] rounded-lg border-2 border-slate-200 bg-white text-base leading-none text-slate-600 hover:border-orange-400 hover:text-orange-800 hover:bg-orange-50 disabled:opacity-40 disabled:pointer-events-none" title="Abrir cadastro ERP (nova janela)" aria-label="Abrir cadastro do produto">✎</button></td>
@@ -8571,6 +8583,12 @@
     if (mEl0) mEl0.value = '';
     entradaNfeLinhaRecalcMargemDisplay(tr);
     tr.querySelector('.in-cfop').value = d.cfop;
+    const ncmEl = tr.querySelector('.in-ncm');
+    if (ncmEl) ncmEl.value = entradaNfeStrCampo(d.ncm);
+    const csosnEl = tr.querySelector('.in-csosn');
+    if (csosnEl) csosnEl.value = entradaNfeStrCampo(d.csosn);
+    const origEl = tr.querySelector('.in-origem');
+    if (origEl) origEl.value = entradaNfeStrCampo(d.origem);
     tr.querySelector('.in-prod-id').value = d.produto_id || '';
     atualizarQtdEstoqueRow(tr);
     const viaCat = String(d.catalogo_via || '').trim();
@@ -8816,6 +8834,9 @@
           return x != null && Number.isFinite(x) ? entradaNfeRoundHalfUp(x, 2) : 0;
         })(),
         cfop: tr.querySelector('.in-cfop').value.trim(),
+        ncm: (tr.querySelector('.in-ncm')?.value || '').trim(),
+        csosn: (tr.querySelector('.in-csosn')?.value || '').trim(),
+        origem: (tr.querySelector('.in-origem')?.value || '').trim(),
         produto_id: tr.querySelector('.in-prod-id').value.trim(),
         nome_catalogo: entradaNfeLinhaNomeCatalogoTexto(tr),
         match_tipo: String(tr.dataset.nfeMatchTipo || '').trim(),
@@ -9629,6 +9650,9 @@
     if (xml && xml.un_por_embalagem != null) out.un_por_embalagem = xml.un_por_embalagem;
     if (xml && xml.q_estoque != null) out.q_estoque = xml.q_estoque;
     if (xml && xml.cfop != null) out.cfop = entradaNfeStrCampo(xml.cfop);
+    if (xml && xml.ncm != null) out.ncm = entradaNfeStrCampo(xml.ncm);
+    if (xml && xml.csosn != null) out.csosn = entradaNfeStrCampo(xml.csosn);
+    if (xml && xml.origem != null) out.origem = entradaNfeStrCampo(xml.origem);
     if (xml && xml.v_prod != null) out.v_prod = xml.v_prod;
     const vunNf = entradaNfeXmlMergeVUnNfDoItem(xml);
     if (vunNf != null && Number.isFinite(vunNf)) out.v_un_com = vunNf;
