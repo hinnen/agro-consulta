@@ -247,12 +247,7 @@ def api_nfe_saida_buscar_vendas(request):
     return JsonResponse({"ok": True, "itens": out})
 
 
-<<<<<<< HEAD
 @nfe_saida_staff_required
-@require_POST
-=======
-@login_required(login_url="/entrar/")
->>>>>>> d942dbe3 (fix(nfe-55): salvar endereço fiscal no cliente PDV (bloco fiscal_nfe))
 def api_nfe_saida_cliente_fiscal(request):
     from produtos.models import ClienteAgro
 
