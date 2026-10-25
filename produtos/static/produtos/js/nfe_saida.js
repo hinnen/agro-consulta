@@ -407,6 +407,10 @@
     });
     var indf = $('dest-ind-final');
     if (indf) indf.checked = Number(dest.ind_final) !== 0;
+    var sit = $('dest-situacao-icms');
+    if (sit) sit.value = dest.situacao_icms || '';
+    var fin = $('dest-finalidade');
+    if (fin) fin.value = dest.finalidade_mercadoria || '';
     var tipo = $('dest-tipo-doc');
     if (tipo) {
       var d = onlyDigits(dest.documento, 14);
@@ -425,6 +429,10 @@
     dest.tipo_doc = dest.documento.length === 14 ? 'cnpj' : dest.documento.length === 11 ? 'cpf' : '';
     var indf = $('dest-ind-final');
     dest.ind_final = indf && indf.checked ? 1 : 0;
+    var sit = $('dest-situacao-icms');
+    dest.situacao_icms = sit ? sit.value.trim() : '';
+    var fin = $('dest-finalidade');
+    dest.finalidade_mercadoria = fin ? fin.value.trim() : '';
     state.doc.destinatario = dest;
     state.dirty = true;
     renderRail();

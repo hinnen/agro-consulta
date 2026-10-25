@@ -56,10 +56,13 @@ def emitir_nfe_saida_documento(doc: dict, *, cnpj_emit: str) -> dict[str, Any]:
     from produtos.sefaz_dfe_client import distribuicao_dfe_configurada
 
     cert_ok = distribuicao_dfe_configurada()
+    from produtos.nfe_saida_tributacao_util import erros_fiscal_emissao
+
     erros = (
         validar_destinatario(doc.get("destinatario") or {})
         + validar_itens(doc.get("itens") or [])
         + validar_pagamentos(doc.get("pagamento") or [], total_itens(doc.get("itens") or []))
+        + erros_fiscal_emissao(doc, uf_emit=nfe_saida_emitente_uf_default())
     )
     if erros:
         return {

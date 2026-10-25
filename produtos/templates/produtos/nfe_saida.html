@@ -100,6 +100,21 @@
           <label class="block sm:col-span-2"><span class="text-xs font-black uppercase text-slate-500">Nome</span><input id="dest-nome" class="dest-field nfe-in mt-1"></label>
           <label><span class="text-xs font-black uppercase text-slate-500">CPF / CNPJ</span><input id="dest-documento" class="dest-field nfe-in mt-1" inputmode="numeric"></label>
           <label><span class="text-xs font-black uppercase text-slate-500">IE (ou ISENTO)</span><input id="dest-ie" class="dest-field nfe-in mt-1"></label>
+          <label><span class="text-xs font-black uppercase text-slate-500">Situação ICMS</span>
+            <select id="dest-situacao-icms" class="dest-field nfe-in mt-1 min-h-[48px]">
+              <option value="">Automático (pelo cadastro)</option>
+              <option value="contribuinte">Contribuinte ICMS</option>
+              <option value="isento">Contribuinte isento</option>
+              <option value="nao_contribuinte">Não contribuinte</option>
+            </select>
+          </label>
+          <label><span class="text-xs font-black uppercase text-slate-500">Finalidade da compra</span>
+            <select id="dest-finalidade" class="dest-field nfe-in mt-1 min-h-[48px]">
+              <option value="">Usar opção «Consumidor final» abaixo</option>
+              <option value="uso_proprio">Uso próprio / consumo (produtor, obra, etc.)</option>
+              <option value="revenda">Revenda / comercialização</option>
+            </select>
+          </label>
           <label><span class="text-xs font-black uppercase text-slate-500">E-mail</span><input id="dest-email" class="dest-field nfe-in mt-1"></label>
           <label><span class="text-xs font-black uppercase text-slate-500">CEP</span><input id="dest-cep" class="dest-field nfe-in mt-1"></label>
           <label><span class="text-xs font-black uppercase text-slate-500">UF</span><input id="dest-uf" maxlength="2" class="dest-field nfe-in mt-1 uppercase"></label>

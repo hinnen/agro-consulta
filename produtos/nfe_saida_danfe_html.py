@@ -396,7 +396,11 @@ def _bloco_destinatario(dest: dict, dh_emi: str) -> str:
 
 def _bloco_impostos(totais: dict[str, str], total_prod: Decimal, total_nf: Decimal) -> str:
     def t(key: str, fallback: Decimal | float | str) -> str:
+        if key == "vTotTrib" and key not in totais:
+            return "—"
         if key in totais and totais[key]:
+            if key == "vTotTrib" and totais[key] in ("0", "0.00", "0.0"):
+                return "—"
             return _fmt_moeda(totais[key])
         if isinstance(fallback, Decimal):
             return _fmt_moeda(fallback)
