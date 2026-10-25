@@ -1294,6 +1294,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ CHECKLIST ÚNICO — **25/10** · 🟢 **pronto envio produção** · **NFE-55-FISCAL-PL010f**
+
+| # | Item | Status | Migrate | Prova |
+| - | ---- | ------ | ------- | ----- |
+| 1 | Motor fiscal SN + XSD PL 010f | 🟢 Pronto | **NÃO** | `verify_nfe_saida_path` **68/68** |
+| 2 | Acesso NF-e só **admin** (`is_staff`) | 🟢 Pronto | **NÃO** | HTTP smoke staff |
+| 3 | NFC-e / PDV / caixa | ✅ Intocado | **NÃO** | cherry-pick só NF-e |
+
+| Campo | Valor |
+| ----- | ----- |
+| **Pacote** | **v27.26.27** · cherry-pick `d145032e`…`f15b9fb9` (sem merge `teste`) |
+| **Backup** | `producao-backup-pre-v272627-nfe-fiscal` @ **`6081553c`** |
+| **Revert** | push backup branch → `producao` |
+| **Env Render** | `NFE_DIST_DFE_TP_AMB=1` · cert A1 · série 2 (Renan confere) |
+| **Smoke** | staff · `/nfe/saida/` · 1ª NF **manual** PIN **9973** |
+
 ### 🟢 PREP ARMADO — **CHECKLIST 20/10c** · **REL-GRUPO-COLUNAS** · **v27.26.16** · 20/10
 
 | Campo | Valor |

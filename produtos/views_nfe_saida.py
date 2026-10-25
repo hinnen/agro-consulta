@@ -5,6 +5,7 @@ import json
 import logging
 import re
 from datetime import datetime, timezone
+from functools import wraps
 
 from decouple import config
 from django.contrib.auth.decorators import login_required
@@ -38,6 +39,32 @@ from produtos.sefaz_dfe_client import distribuicao_dfe_configurada
 logger = logging.getLogger(__name__)
 
 
+def _nfe_saida_staff(user) -> bool:
+    return bool(user and user.is_authenticated and user.is_staff)
+
+
+def nfe_saida_staff_required(view_func):
+    """NF-e 55 — fase inicial restrita a administradores (is_staff)."""
+
+    @login_required(login_url="/entrar/")
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        if not _nfe_saida_staff(request.user):
+            if request.path.startswith("/api/"):
+                return JsonResponse(
+                    {"ok": False, "erro": "NF-e 55 restrita a administradores."},
+                    status=403,
+                )
+            return HttpResponse(
+                "NF-e saída (55) restrita a administradores.",
+                status=403,
+                content_type="text/plain; charset=utf-8",
+            )
+        return view_func(request, *args, **kwargs)
+
+    return _wrapped
+
+
 def _mongo_db():
     from produtos.views import obter_conexao_mongo
 
@@ -60,7 +87,7 @@ def _mascarar_cnpj(cnpj: str) -> str:
     return f"**.***.***/****-{d[-2:]}"
 
 
-@login_required(login_url="/entrar/")
+@nfe_saida_staff_required
 @require_GET
 def nfe_saida_view(request):
     venda_q = (request.GET.get("venda") or "").strip()
@@ -78,7 +105,7 @@ def nfe_saida_view(request):
     )
 
 
-@login_required(login_url="/entrar/")
+@nfe_saida_staff_required
 @require_GET
 def api_nfe_saida_status_cert(request):
     cnpj = re.sub(r"\D", "", config("NFE_DIST_DFE_CNPJ", default="") or "")[:14]
@@ -93,7 +120,7 @@ def api_nfe_saida_status_cert(request):
     )
 
 
-@login_required(login_url="/entrar/")
+@nfe_saida_staff_required
 @require_GET
 def api_nfe_saida_listar(request):
     db = _mongo_db()
@@ -110,7 +137,7 @@ def api_nfe_saida_listar(request):
     return JsonResponse({"ok": True, "itens": listar_nfe_saida(db, limit=lim, filtro=filtro, busca=busca)})
 
 
-@login_required(login_url="/entrar/")
+@nfe_saida_staff_required
 @require_GET
 def api_nfe_saida_obter(request, doc_id: str):
     db = _mongo_db()
@@ -131,7 +158,7 @@ def api_nfe_saida_obter(request, doc_id: str):
     return JsonResponse({"ok": True, "doc": doc})
 
 
-@login_required(login_url="/entrar/")
+@nfe_saida_staff_required
 @require_POST
 def api_nfe_saida_salvar(request):
     try:
@@ -154,7 +181,7 @@ def api_nfe_saida_salvar(request):
     return JsonResponse(r, status=st)
 
 
-@login_required(login_url="/entrar/")
+@nfe_saida_staff_required
 @require_POST
 def api_nfe_saida_nova(request):
     db = _mongo_db()
@@ -163,7 +190,7 @@ def api_nfe_saida_nova(request):
     return JsonResponse(r, status=st)
 
 
-@login_required(login_url="/entrar/")
+@nfe_saida_staff_required
 @require_POST
 def api_nfe_saida_de_venda(request):
     try:
@@ -179,14 +206,14 @@ def api_nfe_saida_de_venda(request):
     return JsonResponse(r, status=st)
 
 
-@login_required(login_url="/entrar/")
+@nfe_saida_staff_required
 @require_GET
 def api_nfe_saida_painel_venda(request, venda_id: int):
     db = _mongo_db()
     return JsonResponse({"ok": True, "painel": painel_nfe_saida_venda(venda_id, db=db)})
 
 
-@login_required(login_url="/entrar/")
+@nfe_saida_staff_required
 @require_GET
 def api_nfe_saida_buscar_vendas(request):
     from decimal import Decimal
@@ -220,7 +247,7 @@ def api_nfe_saida_buscar_vendas(request):
     return JsonResponse({"ok": True, "itens": out})
 
 
-@login_required(login_url="/entrar/")
+@nfe_saida_staff_required
 @require_POST
 def api_nfe_saida_cliente_fiscal(request):
     try:
@@ -236,7 +263,7 @@ def api_nfe_saida_cliente_fiscal(request):
     return JsonResponse(r, status=st)
 
 
-@login_required(login_url="/entrar/")
+@nfe_saida_staff_required
 @require_POST
 def api_nfe_saida_emitir(request, doc_id: str):
     try:
@@ -340,7 +367,7 @@ def api_nfe_saida_emitir(request, doc_id: str):
     return JsonResponse(body, status=st)
 
 
-@login_required(login_url="/entrar/")
+@nfe_saida_staff_required
 @require_GET
 def api_nfe_saida_danfe(request, doc_id: str):
     db = _mongo_db()
@@ -354,7 +381,7 @@ def api_nfe_saida_danfe(request, doc_id: str):
     return HttpResponse(html, content_type="text/html; charset=utf-8")
 
 
-@login_required(login_url="/entrar/")
+@nfe_saida_staff_required
 @require_GET
 def api_nfe_saida_xml(request, doc_id: str):
     db = _mongo_db()
@@ -369,7 +396,7 @@ def api_nfe_saida_xml(request, doc_id: str):
     return HttpResponse(xml, content_type="application/xml; charset=utf-8")
 
 
-@login_required(login_url="/entrar/")
+@nfe_saida_staff_required
 @require_POST
 def api_nfe_saida_descartar(request, doc_id: str):
     try:

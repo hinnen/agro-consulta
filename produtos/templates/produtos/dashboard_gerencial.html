@@ -1068,7 +1068,9 @@
                 <button type="button" onclick="dashLaunchpadAbrir('Orçamentos', '{% url 'consulta_produtos' %}?orcamentos=1', 'history')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="history"></i><span>Orçamentos salvos</span></span><span class="launch-key">F2</span></button>
                 <button type="button" onclick="dashLaunchpadAbrir('Promoções', '{% url 'promocoes_lista' %}', 'badge-percent')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="badge-percent"></i><span>Promoções</span></span><span class="launch-key">P</span></button>
                 <button type="button" onclick="dashLaunchpadAbrir('Entregas', '{% url 'entregas_painel' %}', 'truck')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="truck"></i><span>Entregas</span></span><span class="launch-key">E</span></button>
+                {% if user.is_staff %}
                 <button type="button" onclick="dashLaunchpadAbrir('NF-e saída', '{% url 'nfe_saida' %}', 'file-text')" class="launch-btn group border-2 border-emerald-500/35 bg-emerald-950/20"><span class="inline-flex items-center gap-3"><i data-lucide="file-text"></i><span>NF-e saída (A4)</span></span><span class="launch-key">55</span></button>
+                {% endif %}
             </div>
 
             <div class="space-y-5 md:space-y-6 launch-col launch-col--estoque">

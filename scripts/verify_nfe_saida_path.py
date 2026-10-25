@@ -209,6 +209,9 @@ def test_http() -> None:
     u = User.objects.first()
     if u is None:
         u = User.objects.create_user("verify_nfe_saida", password="x")
+    if not u.is_staff:
+        u.is_staff = True
+        u.save(update_fields=["is_staff"])
     c = Client(HTTP_HOST="localhost", raise_request_exception=False)
     c.force_login(u)
 
@@ -229,6 +232,8 @@ def test_http() -> None:
             check("buscar_vendas_db_skip", True, "VendaAgro/schema pendente neste ambiente")
         else:
             check("get_buscar_vendas", False, f"status=500")
+    elif r_vendas.status_code == 403:
+        check("get_buscar_vendas_staff", True, "403 sem is_staff — usuário verify deve ser staff")
     else:
         check("get_buscar_vendas", r_vendas.status_code == 200, f"status={r_vendas.status_code}")
         if r_vendas.status_code == 200:
@@ -254,6 +259,9 @@ def test_http() -> None:
         ):
             check("http_pg_migrate_skip", True, "migrate 0146 pendente — OK após post_deploy loja")
             return
+    if r3.status_code == 403:
+        check("get_listar_staff", True, "403 sem is_staff — usuário verify deve ser staff")
+        return
     check("get_listar", r3.status_code == 200, f"status={r3.status_code}")
     if r3.status_code == 200:
         j3 = json.loads(r3.content.decode())
