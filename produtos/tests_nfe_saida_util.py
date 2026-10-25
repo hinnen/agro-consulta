@@ -580,13 +580,14 @@ class NfeSaidaTributacaoMotorTests(SimpleTestCase):
         self.assertIn("<CFOP>6102</CFOP>", xml)
         self.assertIn("<idDest>2</idDest>", xml)
 
-    def test_xml_xsd_opcional(self):
+    def test_xml_xsd_obrigatorio(self):
         from datetime import datetime
 
         from produtos.nfe_saida_sp_emissao_util import _montar_xml_nfe_saida
         from produtos.nfe_saida_util import doc_novo_vazio
-        from produtos.nfe_saida_xml_validate_util import validar_xml_nfe_xsd
+        from produtos.nfe_saida_xml_validate_util import validar_xml_nfe_xsd, xsd_nfe_disponivel
 
+        self.assertTrue(xsd_nfe_disponivel(), "Pacote XSD NF-e 4.00 deve estar em produtos/schemas/nfe/")
         doc = doc_novo_vazio()
         doc["destinatario"].update(
             {
@@ -634,7 +635,138 @@ class NfeSaidaTributacaoMotorTests(SimpleTestCase):
         self.assertIn("<CSOSN>103</CSOSN>", xml)
         self.assertIn("<ICMSSN102>", xml)
         ok, det = validar_xml_nfe_xsd(xml)
+        self.assertEqual(det, "ok")
         self.assertTrue(ok, det)
+
+
+class NfeSaidaPrefillVendaTests(SimpleTestCase):
+    def _venda_mock(self, *, uf: str, items):
+        class Qs:
+            def __init__(self, rows):
+                self._rows = rows
+
+            def all(self):
+                return self._rows
+
+        class V:
+            pk = 9001
+            cliente_nome = "Cliente teste"
+            cliente_documento = "39053344705"
+            cliente_id_erp = ""
+
+            def __init__(self, uf_dest, rows):
+                self._uf = uf_dest
+                self.itens = Qs(rows)
+
+        class It:
+            def __init__(self, pid, desc="Prod", qtd=1, vu=10.0, vt=10.0):
+                self.produto_id_externo = pid
+                self.codigo = pid
+                self.descricao = desc
+                self.quantidade = qtd
+                self.valor_unitario = vu
+                self.valor_total = vt
+                self.unidade = "UN"
+
+        v = V(uf, items)
+        return v
+
+    def test_prefill_interestadual_cfop_6102_sem_cadastro(self):
+        from unittest.mock import patch
+
+        from produtos.nfe_saida_util import itens_de_venda, prefill_de_venda_agro
+
+        v = self._venda_mock(uf="RJ", items=[type("It", (), {"produto_id_externo": "1", "codigo": "1", "descricao": "P", "quantidade": 1, "valor_unitario": 10, "valor_total": 10, "unidade": "UN"})()])
+        with patch("produtos.nfe_saida_util.destinatario_de_venda", return_value={"uf": "RJ"}):
+            with patch(
+                "produtos.nfe_saida_util._fiscal_produto_buscar",
+                return_value={"ncm": "12345678", "cfop": "", "csosn": "102", "origem": "0"},
+            ):
+                itens = itens_de_venda(v)
+        self.assertEqual(itens[0]["cfop"], "6102")
+        self.assertEqual(itens[0]["ncm"], "12345678")
+
+    def test_prefill_preserva_ncm_23099020_cadastrado(self):
+        from unittest.mock import patch
+
+        from produtos.nfe_saida_util import _fiscal_produto_buscar
+
+        with patch(
+            "produtos.nfce_fiscal_produto_util.fiscal_por_produto_id",
+            return_value={"ncm": "23099020", "cfop": "5102", "csosn": "102", "origem": "0"},
+        ):
+            fis = _fiscal_produto_buscar("42")
+        self.assertEqual(fis["ncm"], "23099020")
+
+    def test_prefill_venda_xml_xsd(self):
+        from datetime import datetime
+        from unittest.mock import patch
+
+        from produtos.nfe_saida_sp_emissao_util import _montar_xml_nfe_saida
+        from produtos.nfe_saida_util import pagamentos_de_venda, prefill_de_venda_agro
+        from produtos.nfe_saida_xml_validate_util import validar_xml_nfe_xsd
+
+        item = type(
+            "It",
+            (),
+            {
+                "produto_id_externo": "10",
+                "codigo": "10",
+                "descricao": "Ração",
+                "quantidade": 2,
+                "valor_unitario": 25,
+                "valor_total": 50,
+                "unidade": "UN",
+            },
+        )()
+        v = self._venda_mock(uf="SP", items=[item])
+        v.total = 50
+        v.deposito = ""
+        with patch("produtos.nfe_saida_util.destinatario_de_venda") as dest_m:
+            dest_m.return_value = {
+                "nome": "Consumidor",
+                "documento": "39053344705",
+                "uf": "SP",
+                "cidade": "Jacupiranga",
+                "logradouro": "Rua A",
+                "numero": "1",
+                "bairro": "Centro",
+                "cep": "11940000",
+            }
+            with patch(
+                "produtos.nfe_saida_util._fiscal_produto_buscar",
+                return_value={
+                    "ncm": "23099020",
+                    "cfop": "5102",
+                    "csosn": "102",
+                    "origem": "0",
+                    "cst_pis_cofins": "49",
+                },
+            ):
+                with patch("produtos.nfe_saida_util.pagamentos_de_venda", return_value=[{"tPag": "01", "valor": 50}]):
+                    doc = prefill_de_venda_agro(v, usuario="test")
+        doc["pagamento"] = [{"tPag": "01", "valor": 50}]
+        cfg = {
+            "tp_amb": 2,
+            "cnpj": "11222333000181",
+            "razao_social": "Emitente",
+            "fantasia": "Emitente",
+            "logradouro": "Rua B",
+            "numero": "10",
+            "bairro": "Centro",
+            "cmun": "3524600",
+            "cidade": "Jacupiranga",
+            "uf": "SP",
+            "cep": "11940000",
+            "ie": "123456789012",
+            "fone": "",
+        }
+        xml = _montar_xml_nfe_saida(
+            doc, cfg, serie=1, numero=5, chave="3" * 43 + "5", dh_emi=datetime(2026, 10, 2, 12, 0, 0)
+        )
+        ok, det = validar_xml_nfe_xsd(xml)
+        self.assertTrue(ok, det)
+        self.assertIn("<NCM>23099020</NCM>", xml)
 
 
 class NfeSaidaSimulacaoEmitTests(SimpleTestCase):

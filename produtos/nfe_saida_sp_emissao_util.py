@@ -486,6 +486,9 @@ def emitir_nfe_saida_sefaz(doc: dict, *, cnpj_emit: str) -> dict[str, Any]:
         )
         try:
             xml_body = _montar_xml_nfe_saida(doc, cfg, serie=serie, numero=numero, chave=chave, dh_emi=dh_emi)
+            from produtos.nfe_saida_xml_validate_util import validar_xml_nfe_xsd_obrigatorio
+
+            validar_xml_nfe_xsd_obrigatorio(xml_body)
         except Exception as exc:
             from produtos.nfe_saida_tributacao_util import FiscalBloqueio
 

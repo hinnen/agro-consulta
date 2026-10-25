@@ -335,6 +335,12 @@ def apurar_nfe_saida(
         if not isinstance(ln, dict):
             continue
         fis = _fiscal_linha_enriquecida(ln, db=db, col_p=col_p)
+        ncm_ln = normalizar_ncm_somente_digitos(fis.get("ncm") or ln.get("ncm"))
+        if len(ncm_ln) != 8:
+            bloqueios.append(
+                f"Item {idx}: NCM com 8 dígitos obrigatório — cadastre a classificação fiscal do produto "
+                f"(não use preenchimento genérico automático na NF-e)."
+            )
         qtd = _dec(ln.get("qtd"))
         vu = _dec(ln.get("v_unit"))
         vt = _dec(ln.get("v_total"))
