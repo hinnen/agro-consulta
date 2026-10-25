@@ -204,29 +204,71 @@ def _mapear_tpag_forma(forma: str) -> str:
     return "99"
 
 
+def _fiscal_nfe_extra(c) -> dict[str, Any]:
+    extras = c.relacionamento_extras_json if isinstance(c.relacionamento_extras_json, dict) else {}
+    fis = extras.get("fiscal_nfe")
+    return dict(fis) if isinstance(fis, dict) else {}
+
+
+def _campo_fiscal_ou_cadastro(fis: dict[str, Any], c, field: str, *, max_len: int = 300) -> str:
+    v = str(fis.get(field) or "").strip()
+    if v:
+        return v[:max_len]
+    return str(getattr(c, field, None) or "").strip()[:max_len]
+
+
+def _documento_fiscal_cliente(c, fis: dict[str, Any]) -> str:
+    doc = _digits_doc(fis.get("documento"), 14)
+    if doc:
+        return doc
+    cnpj_extra = _digits_doc(fis.get("cnpj"), 14)
+    if len(cnpj_extra) == 14:
+        return cnpj_extra
+    cpf_f = _digits_doc(fis.get("cpf"), 11)
+    if len(cpf_f) == 11:
+        return cpf_f
+    return _digits_doc(c.cpf, 14)
+
+
+def resolver_cliente_agro_id_dest(dest: dict[str, Any]) -> int | None:
+    """Vincula destinatário ao ClienteAgro do PDV quando há id ou CPF conhecido."""
+    cid = dest.get("cliente_agro_id")
+    if cid is not None:
+        try:
+            return int(cid)
+        except (TypeError, ValueError):
+            pass
+    doc = _digits_doc(dest.get("documento"), 14)
+    if len(doc) != 11:
+        return None
+    try:
+        from produtos.models import ClienteAgro
+
+        c = ClienteAgro.objects.filter(cpf=doc).first()
+        return int(c.pk) if c else None
+    except Exception:
+        return None
+
+
 def cliente_agro_para_destinatario(c) -> dict[str, Any]:
     dest = destinatario_vazio()
     if c is None:
         return dest
+    fis = _fiscal_nfe_extra(c)
     dest["cliente_agro_id"] = c.pk
-    dest["nome"] = str(c.nome or "").strip()
-    doc = _digits_doc(c.cpf, 14)
-    extras = c.relacionamento_extras_json if isinstance(c.relacionamento_extras_json, dict) else {}
-    fis = extras.get("fiscal_nfe") if isinstance(extras.get("fiscal_nfe"), dict) else {}
-    cnpj_extra = _digits_doc(fis.get("cnpj"), 14)
-    if cnpj_extra:
-        doc = cnpj_extra
+    dest["nome"] = _campo_fiscal_ou_cadastro(fis, c, "nome", max_len=200)
+    doc = _documento_fiscal_cliente(c, fis)
     dest["documento"] = doc
     dest["tipo_doc"] = documento_dest_tipo(doc)
-    dest["ie"] = str(fis.get("ie") or "").strip()
-    dest["email"] = str(fis.get("email") or "").strip()
-    dest["cep"] = str(c.cep or "").strip()
-    dest["uf"] = str(c.uf or "").strip().upper()[:2]
-    dest["cidade"] = str(c.cidade or "").strip()
-    dest["bairro"] = str(c.bairro or "").strip()
-    dest["logradouro"] = str(c.logradouro or "").strip()
-    dest["numero"] = str(c.numero or "").strip()
-    dest["complemento"] = str(c.complemento or "").strip()
+    dest["ie"] = str(fis.get("ie") or "").strip()[:20]
+    dest["email"] = str(fis.get("email") or "").strip()[:120]
+    dest["cep"] = _campo_fiscal_ou_cadastro(fis, c, "cep", max_len=12)
+    dest["uf"] = _campo_fiscal_ou_cadastro(fis, c, "uf", max_len=2).upper()
+    dest["cidade"] = _campo_fiscal_ou_cadastro(fis, c, "cidade", max_len=120)
+    dest["bairro"] = _campo_fiscal_ou_cadastro(fis, c, "bairro", max_len=120)
+    dest["logradouro"] = _campo_fiscal_ou_cadastro(fis, c, "logradouro", max_len=200)
+    dest["numero"] = _campo_fiscal_ou_cadastro(fis, c, "numero", max_len=40)
+    dest["complemento"] = _campo_fiscal_ou_cadastro(fis, c, "complemento", max_len=120)
     dest["situacao_icms"] = str(fis.get("situacao_icms") or "").strip()
     dest["finalidade_mercadoria"] = str(fis.get("finalidade_mercadoria") or "").strip()
     return dest
@@ -833,6 +875,12 @@ def checklist_conferencia(doc: dict, *, cert_ok: bool) -> list[dict[str, Any]]:
 
 
 def salvar_fiscal_cliente_agro(cliente_id: int, fiscal: dict) -> dict[str, Any]:
+    """
+    Grava dados fiscais NF-e em ``relacionamento_extras_json.fiscal_nfe``.
+    Não altera nome/endereço de entrega do PDV — só o bloco fiscal.
+    """
+    from django.utils import timezone
+
     from produtos.models import ClienteAgro
 
     try:
@@ -840,24 +888,47 @@ def salvar_fiscal_cliente_agro(cliente_id: int, fiscal: dict) -> dict[str, Any]:
     except ClienteAgro.DoesNotExist:
         return {"ok": False, "erro": "Cliente não encontrado."}
     extras = dict(c.relacionamento_extras_json) if isinstance(c.relacionamento_extras_json, dict) else {}
-    fn = extras.get("fiscal_nfe") if isinstance(extras.get("fiscal_nfe"), dict) else {}
-    fn = dict(fn)
-    cnpj = _digits_doc(fiscal.get("cnpj") or fiscal.get("documento"), 14)
-    if len(cnpj) == 14:
-        fn["cnpj"] = cnpj
-    elif len(cnpj) == 11:
-        c.cpf = cnpj
-    fn["ie"] = str(fiscal.get("ie") or "").strip()[:20]
-    fn["email"] = str(fiscal.get("email") or "").strip()[:120]
-    if "situacao_icms" in fiscal:
-        fn["situacao_icms"] = str(fiscal.get("situacao_icms") or "").strip()[:40]
-    if "finalidade_mercadoria" in fiscal:
-        fn["finalidade_mercadoria"] = str(fiscal.get("finalidade_mercadoria") or "").strip()[:40]
+    fn = dict(_fiscal_nfe_extra(c))
+    doc = _digits_doc(fiscal.get("documento") or fiscal.get("cnpj") or fiscal.get("cpf"), 14)
+    if doc:
+        fn["documento"] = doc
+        if len(doc) == 14:
+            fn["cnpj"] = doc
+            fn.pop("cpf", None)
+        elif len(doc) == 11:
+            fn["cpf"] = doc
+            fn.pop("cnpj", None)
+    for k in (
+        "nome",
+        "ie",
+        "email",
+        "situacao_icms",
+        "finalidade_mercadoria",
+        "cep",
+        "uf",
+        "cidade",
+        "bairro",
+        "logradouro",
+        "numero",
+        "complemento",
+    ):
+        if k in fiscal:
+            fn[k] = str(fiscal.get(k) or "").strip()[:300]
+    fn["atualizado_em"] = timezone.now().isoformat(timespec="seconds")
     extras["fiscal_nfe"] = fn
     c.relacionamento_extras_json = extras
-    for fld in ("cep", "uf", "cidade", "bairro", "logradouro", "numero", "complemento", "nome"):
-        if fld in fiscal and str(fiscal.get(fld) or "").strip():
-            setattr(c, fld, str(fiscal[fld]).strip()[:300])
+    if len(doc) == 11 and not str(c.cpf or "").strip():
+        c.cpf = doc
     c.editado_local = True
-    c.save()
+    c.save(update_fields=["relacionamento_extras_json", "cpf", "editado_local"])
     return {"ok": True, "cliente": cliente_agro_para_destinatario(c)}
+
+
+def persistir_fiscal_destinatario_no_cliente(dest: dict[str, Any]) -> None:
+    if not isinstance(dest, dict):
+        return
+    cid = resolver_cliente_agro_id_dest(dest)
+    if not cid:
+        return
+    dest["cliente_agro_id"] = cid
+    salvar_fiscal_cliente_agro(cid, dest)

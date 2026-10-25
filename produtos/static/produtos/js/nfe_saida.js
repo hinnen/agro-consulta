@@ -227,6 +227,29 @@
     };
   }
 
+  function mesclarDestinatario(dest) {
+    if (!state.doc || !dest) return;
+    state.doc.destinatario = state.doc.destinatario || {};
+    var d = state.doc.destinatario;
+    Object.keys(dest).forEach(function (k) {
+      if (dest[k] != null && dest[k] !== '') d[k] = dest[k];
+    });
+    if (dest.cliente_agro_id) d.cliente_agro_id = dest.cliente_agro_id;
+    bindDestForm();
+    state.dirty = true;
+    renderRail();
+  }
+
+  function carregarFiscalCliente(pk, nomeFallback) {
+    if (!pk || !CFG.urlClienteFiscal) return Promise.resolve();
+    return fetchJson(CFG.urlClienteFiscal + '?cliente_agro_id=' + encodeURIComponent(pk)).then(function (res) {
+      if (res.json.ok && res.json.destinatario) {
+        mesclarDestinatario(res.json.destinatario);
+        setMsg('Cliente fiscal carregado: ' + (res.json.destinatario.nome || nomeFallback || ''), 'ok');
+      }
+    });
+  }
+
   function aplicarCliente(c) {
     if (!state.doc) return;
     var pk = clienteAgroPk(c);
@@ -246,7 +269,14 @@
     bindDestForm();
     state.dirty = true;
     renderRail();
-    setMsg('Cliente: ' + (c.nome || ''), 'ok');
+    if (pk) {
+      carregarFiscalCliente(pk, c.nome).then(function () {
+        if (!state.doc || !state.doc.destinatario) return;
+        if (!state.doc.destinatario.nome) state.doc.destinatario.nome = c.nome || '';
+      });
+    } else {
+      setMsg('Cliente: ' + (c.nome || ''), 'ok');
+    }
   }
 
   function adicionarProduto(p) {
@@ -638,6 +668,16 @@
     }).then(function (res) {
       if (res.json.ok) {
         state.dirty = false;
+        var cid = state.doc.destinatario && state.doc.destinatario.cliente_agro_id;
+        if (cid && CFG.urlClienteFiscal) {
+          fetchJson(CFG.urlClienteFiscal, {
+            method: 'POST',
+            body: JSON.stringify({
+              cliente_agro_id: cid,
+              destinatario: state.doc.destinatario,
+            }),
+          });
+        }
         var hint = $('nfe-autosave-hint');
         if (hint) {
           var d = new Date();

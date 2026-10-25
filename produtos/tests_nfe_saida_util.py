@@ -5,6 +5,8 @@ from decimal import Decimal
 
 from django.test import SimpleTestCase, TestCase
 
+from produtos.models import ClienteAgro
+
 
 class NfeSaidaDanfeLayoutTests(SimpleTestCase):
     def test_html_danfe_padrao(self):
@@ -637,6 +639,41 @@ class NfeSaidaTributacaoMotorTests(SimpleTestCase):
         ok, det = validar_xml_nfe_xsd(xml)
         self.assertEqual(det, "ok")
         self.assertTrue(ok, det)
+
+
+class NfeSaidaClienteFiscalPersistTests(TestCase):
+    def test_fiscal_nfe_salvo_sem_alterar_endereco_pdv(self):
+        from produtos.nfe_saida_util import cliente_agro_para_destinatario, salvar_fiscal_cliente_agro
+
+        c = ClienteAgro.objects.create(
+            nome="Nome PDV",
+            cpf="39053344705",
+            logradouro="Rua Entrega PDV",
+            cidade="Jacupiranga",
+            uf="SP",
+            cep="11940000",
+        )
+        salvar_fiscal_cliente_agro(
+            c.pk,
+            {
+                "nome": "Razão Fiscal NF",
+                "documento": "39053344705",
+                "logradouro": "Av Fiscal 55",
+                "numero": "100",
+                "cidade": "Registro",
+                "uf": "SP",
+                "cep": "11900000",
+                "bairro": "Centro",
+                "ie": "ISENTO",
+            },
+        )
+        c.refresh_from_db()
+        self.assertEqual(c.logradouro, "Rua Entrega PDV")
+        self.assertEqual(c.cidade, "Jacupiranga")
+        dest = cliente_agro_para_destinatario(c)
+        self.assertEqual(dest["logradouro"], "Av Fiscal 55")
+        self.assertEqual(dest["nome"], "Razão Fiscal NF")
+        self.assertEqual(dest["ie"], "ISENTO")
 
 
 class NfeSaidaPrefillVendaTests(SimpleTestCase):
