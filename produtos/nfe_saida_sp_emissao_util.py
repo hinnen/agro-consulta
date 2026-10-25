@@ -430,6 +430,7 @@ def _montar_xml_nfe_saida(
 def emitir_nfe_saida_sefaz(doc: dict, *, cnpj_emit: str) -> dict[str, Any]:
     """Monta XML mod 55, assina e envia NFeAutorizacao4 (SP)."""
     from produtos.nfe_saida_util import NFE_SAIDA_STATUS_AUTORIZADA, NFE_SAIDA_STATUS_REJEITADA
+    from produtos.nfe_saida_xml_validate_util import validar_xml_nfe_xsd_obrigatorio
 
     tp_amb = int(doc.get("tp_amb") or 2)
     cfg = _cfg_emissao_nfe(cnpj_emit, tp_amb)
@@ -486,8 +487,6 @@ def emitir_nfe_saida_sefaz(doc: dict, *, cnpj_emit: str) -> dict[str, Any]:
         )
         try:
             xml_body = _montar_xml_nfe_saida(doc, cfg, serie=serie, numero=numero, chave=chave, dh_emi=dh_emi)
-            from produtos.nfe_saida_xml_validate_util import validar_xml_nfe_xsd_obrigatorio
-
             validar_xml_nfe_xsd_obrigatorio(xml_body)
         except Exception as exc:
             from produtos.nfe_saida_tributacao_util import FiscalBloqueio
@@ -511,6 +510,20 @@ def emitir_nfe_saida_sefaz(doc: dict, *, cnpj_emit: str) -> dict[str, Any]:
                 "erro": err_sig or "Falha ao assinar XML.",
                 "c_stat": 0,
             }
+        try:
+            validar_xml_nfe_xsd_obrigatorio(xml_assinado)
+        except Exception as exc:
+            from produtos.nfe_saida_tributacao_util import FiscalBloqueio
+
+            if isinstance(exc, FiscalBloqueio):
+                return {
+                    "ok": False,
+                    "status": NFE_SAIDA_STATUS_REJEITADA,
+                    "erro": str(exc),
+                    "c_stat": 999,
+                    "x_motivo": str(exc)[:500],
+                }
+            raise
         url = URL_AUTORIZACAO_NFE_SP.get(tp_amb, URL_AUTORIZACAO_NFE_SP[2])
         ret, err_http = _enviar_autorizacao(
             xml_assinado, cfg, url_autorizacao=url

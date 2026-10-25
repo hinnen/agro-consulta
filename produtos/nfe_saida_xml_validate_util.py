@@ -1,4 +1,4 @@
-"""Validação obrigatória do XML NF-e 4.00 contra XSD oficial (pacote em produtos/schemas/nfe/)."""
+"""Validação obrigatória do XML NF-e 4.00 contra XSD PL 010f (produtos/schemas/nfe/PL_010f/)."""
 from __future__ import annotations
 
 import os
@@ -8,7 +8,8 @@ from django.conf import settings
 
 from produtos.nfe_saida_tributacao_util import FiscalBloqueio
 
-_SCHEMA_DIR = Path(settings.BASE_DIR) / "produtos/schemas/nfe"
+_SCHEMA_PACK = "PL_010f"
+_SCHEMA_DIR = Path(settings.BASE_DIR) / "produtos/schemas/nfe" / _SCHEMA_PACK
 _SCHEMA_ENTRY = "nfe_v4.00.xsd"
 _NS_NFE = "http://www.portalfiscal.inf.br/nfe"
 _NS_DSIG = "http://www.w3.org/2000/09/xmldsig#"
@@ -19,13 +20,12 @@ def xsd_nfe_v4_path() -> Path | None:
     if env:
         p = Path(env)
         return p if p.is_file() else None
-    for rel in (
-        f"produtos/schemas/nfe/{_SCHEMA_ENTRY}",
-        "docs/schemas/nfe/nfe_v4.00.xsd",
+    for cand in (
+        _SCHEMA_DIR / _SCHEMA_ENTRY,
+        Path(settings.BASE_DIR) / "produtos/schemas/nfe" / _SCHEMA_ENTRY,
     ):
-        p = Path(settings.BASE_DIR) / rel
-        if p.is_file():
-            return p
+        if cand.is_file():
+            return cand
     return None
 
 
@@ -33,8 +33,8 @@ def xsd_nfe_disponivel() -> bool:
     return xsd_nfe_v4_path() is not None
 
 
-def _xml_com_assinatura_stub_para_xsd(xml_body: str) -> bytes:
-    """Envolve NF-e não assinada com Signature mínima só para validação XSD (descartada na assinatura real)."""
+def _xml_para_validacao_xsd(xml_body: str) -> bytes:
+    """XML não assinado recebe Signature stub; XML já assinado valida como está."""
     from lxml import etree
 
     parser = etree.XMLParser(resolve_entities=False)
@@ -73,22 +73,24 @@ def _xml_com_assinatura_stub_para_xsd(xml_body: str) -> bytes:
 
 def validar_xml_nfe_xsd(xml_body: str) -> tuple[bool, str]:
     """
-    Valida XML da NF-e. Retorna (True, 'ok') ou (False, motivo).
+    Valida XML da NF-e contra PL 010f. Retorna (True, 'ok') ou (False, motivo).
     Ausência de XSD ou lxml é falha — não há skip silencioso.
     """
     xsd = xsd_nfe_v4_path()
     if not xsd:
-        return False, "missing_xsd: pacote NF-e 4.00 não encontrado (produtos/schemas/nfe/)"
+        return (
+            False,
+            f"missing_xsd: pacote {_SCHEMA_PACK} não encontrado (produtos/schemas/nfe/{_SCHEMA_PACK}/)",
+        )
     try:
         from lxml import etree
     except ImportError:
         return False, "missing_lxml: instale lxml para validação XSD"
     try:
-        # Resolver includes relativos ao diretório do pacote
         parser = etree.XMLParser(resolve_entities=False)
         schema_doc = etree.parse(str(xsd), parser)
         schema = etree.XMLSchema(schema_doc)
-        doc = etree.fromstring(_xml_com_assinatura_stub_para_xsd(xml_body), parser)
+        doc = etree.fromstring(_xml_para_validacao_xsd(xml_body), parser)
         schema.assertValid(doc)
         return True, "ok"
     except etree.DocumentInvalid as exc:
@@ -99,10 +101,10 @@ def validar_xml_nfe_xsd(xml_body: str) -> tuple[bool, str]:
 
 
 def validar_xml_nfe_xsd_obrigatorio(xml_body: str) -> None:
-    """Impede assinatura/transmissão se o XML não validar no XSD."""
+    """Impede assinatura/transmissão se o XML não validar no XSD PL 010f."""
     ok, det = validar_xml_nfe_xsd(xml_body)
     if not ok:
         raise FiscalBloqueio(
             f"XML NF-e rejeitado na validação XSD ({det}). "
-            "Corrija os dados fiscais ou atualize o pacote em produtos/schemas/nfe/."
+            f"Corrija os dados fiscais ou atualize o pacote em produtos/schemas/nfe/{_SCHEMA_PACK}/."
         )
