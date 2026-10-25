@@ -271,3 +271,179 @@ class NfeSaidaXmlMontagemTests(SimpleTestCase):
         self.assertIsNotNone(dest_blk)
         dest_xml = dest_blk.group(0)
         self.assertLess(dest_xml.find("<CNPJ>"), dest_xml.find("<xNome>"))
+
+
+class NfeSaidaTributacaoMotorTests(SimpleTestCase):
+    def test_dest_cnpj_ie_nao_forca_revenda(self):
+        from produtos.nfe_saida_tributacao_util import normalizar_destinatario_fiscal
+
+        d = normalizar_destinatario_fiscal(
+            {
+                "documento": "11222333000181",
+                "ie": "123456789012",
+                "finalidade_mercadoria": "uso_proprio",
+            }
+        )
+        self.assertEqual(d["ind_final"], 1)
+        self.assertEqual(d["ind_ie_dest"], "1")
+
+    def test_produtor_cpf_com_ie(self):
+        from produtos.nfe_saida_tributacao_util import normalizar_destinatario_fiscal
+
+        d = normalizar_destinatario_fiscal(
+            {"documento": "39053344705", "ie": "1234567890", "situacao_icms": "contribuinte"}
+        )
+        self.assertEqual(d["ind_ie_dest"], "1")
+        self.assertEqual(d["ie_xml"], "1234567890")
+
+    def test_xml_csosn102_pis49(self):
+        import re
+        from datetime import datetime
+
+        from produtos.nfe_saida_sp_emissao_util import _montar_xml_nfe_saida
+        from produtos.nfe_saida_util import doc_novo_vazio
+
+        doc = doc_novo_vazio()
+        doc["destinatario"].update(
+            {
+                "nome": "Consumidor",
+                "documento": "39053344705",
+                "uf": "SP",
+                "cidade": "Jacupiranga",
+                "logradouro": "Rua A",
+                "numero": "1",
+                "bairro": "Centro",
+                "cep": "11940000",
+            }
+        )
+        doc["itens"] = [
+            {
+                "descricao": "Ração",
+                "qtd": 1,
+                "v_unit": 50,
+                "v_total": 50,
+                "ncm": "23099020",
+                "cfop": "5102",
+                "csosn": "102",
+                "cst_pis_cofins": "49",
+            }
+        ]
+        doc["pagamento"] = [{"tPag": "01", "valor": 50}]
+        cfg = {
+            "tp_amb": 2,
+            "cnpj": "11222333000181",
+            "razao_social": "Emitente",
+            "fantasia": "Emitente",
+            "logradouro": "Rua B",
+            "numero": "10",
+            "bairro": "Centro",
+            "cmun": "3524600",
+            "cidade": "Jacupiranga",
+            "uf": "SP",
+            "cep": "11940000",
+            "ie": "123456789012",
+            "fone": "",
+        }
+        chave = "3" * 43 + "5"
+        xml = _montar_xml_nfe_saida(
+            doc, cfg, serie=1, numero=1, chave=chave, dh_emi=datetime(2026, 10, 1, 10, 0, 0)
+        )
+        self.assertIn("<ICMSSN102>", xml)
+        self.assertNotRegex(xml, r"<ICMSSN102>.*?<CSOSN>500</CSOSN>", re.DOTALL)
+        self.assertIn("<PISOutr>", xml)
+        self.assertIn("<CST>49</CST>", xml)
+        self.assertNotIn("<PISNT>", xml)
+        self.assertNotIn("<CST>07</CST>", xml)
+
+    def test_csosn101_bloqueio_sem_aliquota(self):
+        from produtos.nfe_saida_tributacao_util import apurar_nfe_saida
+        from produtos.nfe_saida_util import doc_novo_vazio
+        from unittest.mock import patch
+
+        doc = doc_novo_vazio()
+        doc["destinatario"].update(
+            {
+                "nome": "Loja",
+                "documento": "11222333000181",
+                "ie": "123",
+                "uf": "SP",
+                "cidade": "X",
+                "logradouro": "R",
+                "finalidade_mercadoria": "revenda",
+            }
+        )
+        doc["itens"] = [
+            {
+                "descricao": "P",
+                "qtd": 1,
+                "v_unit": 10,
+                "v_total": 10,
+                "ncm": "23099020",
+                "csosn": "101",
+            }
+        ]
+        with patch("produtos.nfe_saida_tributacao_util._cfg_cred_sn_aliquota", return_value=None):
+            ap = apurar_nfe_saida(doc, uf_emit="SP")
+        self.assertTrue(any("NFE_SAIDA_PCRED_SN_ALIQ" in b for b in ap.bloqueios))
+
+    def test_csosn101_xml_credito(self):
+        from datetime import datetime
+        from unittest.mock import patch
+
+        from produtos.nfe_saida_sp_emissao_util import _montar_xml_nfe_saida
+        from produtos.nfe_saida_util import doc_novo_vazio
+
+        doc = doc_novo_vazio()
+        doc["destinatario"].update(
+            {
+                "nome": "Revenda",
+                "documento": "11222333000181",
+                "ie": "123456789012",
+                "uf": "SP",
+                "cidade": "Jacupiranga",
+                "logradouro": "Rua A",
+                "numero": "1",
+                "bairro": "Centro",
+                "cep": "11940000",
+                "finalidade_mercadoria": "revenda",
+            }
+        )
+        doc["itens"] = [
+            {
+                "descricao": "P",
+                "qtd": 1,
+                "v_unit": 100,
+                "v_total": 100,
+                "ncm": "23099020",
+                "csosn": "101",
+                "cst_pis_cofins": "49",
+            }
+        ]
+        doc["pagamento"] = [{"tPag": "01", "valor": 100}]
+        cfg = {
+            "tp_amb": 2,
+            "cnpj": "11222333000181",
+            "razao_social": "Emitente",
+            "fantasia": "Emitente",
+            "logradouro": "Rua B",
+            "numero": "10",
+            "bairro": "Centro",
+            "cmun": "3524600",
+            "cidade": "Jacupiranga",
+            "uf": "SP",
+            "cep": "11940000",
+            "ie": "123456789012",
+            "fone": "",
+        }
+        with patch("produtos.nfe_saida_tributacao_util._cfg_cred_sn_aliquota", return_value=Decimal("2.5")):
+            xml = _montar_xml_nfe_saida(
+                doc,
+                cfg,
+                serie=1,
+                numero=2,
+                chave="3" * 43 + "5",
+                dh_emi=datetime(2026, 10, 1, 10, 0, 0),
+            )
+        self.assertIn("<ICMSSN101>", xml)
+        self.assertIn("<pCredSN>2.5</pCredSN>", xml)
+        self.assertIn("<vCredICMSSN>2.50</vCredICMSSN>", xml)

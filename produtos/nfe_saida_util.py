@@ -107,6 +107,8 @@ def destinatario_vazio() -> dict[str, Any]:
         "ie": "",
         "email": "",
         "ind_final": 1,
+        "situacao_icms": "",
+        "finalidade_mercadoria": "",
         "ind_pres": 9,
         "cep": "",
         "uf": "",
@@ -208,8 +210,8 @@ def cliente_agro_para_destinatario(c) -> dict[str, Any]:
     dest["logradouro"] = str(c.logradouro or "").strip()
     dest["numero"] = str(c.numero or "").strip()
     dest["complemento"] = str(c.complemento or "").strip()
-    if dest["tipo_doc"] == "cnpj" and dest["ie"]:
-        dest["ind_final"] = 0
+    dest["situacao_icms"] = str(fis.get("situacao_icms") or "").strip()
+    dest["finalidade_mercadoria"] = str(fis.get("finalidade_mercadoria") or "").strip()
     return dest
 
 
@@ -818,6 +820,10 @@ def salvar_fiscal_cliente_agro(cliente_id: int, fiscal: dict) -> dict[str, Any]:
         c.cpf = cnpj
     fn["ie"] = str(fiscal.get("ie") or "").strip()[:20]
     fn["email"] = str(fiscal.get("email") or "").strip()[:120]
+    if "situacao_icms" in fiscal:
+        fn["situacao_icms"] = str(fiscal.get("situacao_icms") or "").strip()[:40]
+    if "finalidade_mercadoria" in fiscal:
+        fn["finalidade_mercadoria"] = str(fiscal.get("finalidade_mercadoria") or "").strip()[:40]
     extras["fiscal_nfe"] = fn
     c.relacionamento_extras_json = extras
     for fld in ("cep", "uf", "cidade", "bairro", "logradouro", "numero", "complemento", "nome"):

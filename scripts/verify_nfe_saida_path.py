@@ -106,6 +106,11 @@ def test_arquivos() -> None:
     idx_cnpj = sp_dest.find('_sub(dest_el, "CNPJ"')
     idx_xnome = sp_dest.find('_sub(dest_el, "xNome"')
     check("xsd_dest_doc_before_nome", idx_cnpj >= 0 and idx_xnome > idx_cnpj)
+    trib = _read("produtos/nfe_saida_tributacao_util.py")
+    check("motor_tributacao", "def apurar_nfe_saida" in trib and "ICMSSN101" in trib)
+    check("sp_usa_motor", "apurar_nfe_saida" in sp_dest and "_montar_grupo_tributo" in sp_dest)
+    check("emissao_valida_fiscal", "erros_fiscal_emissao" in _read("produtos/nfe_saida_emissao_util.py"))
+    check("tpl_dest_fiscal", "dest-situacao-icms" in tpl and "dest-finalidade" in tpl)
 
 
 def test_logica() -> None:
