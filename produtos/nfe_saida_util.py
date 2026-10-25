@@ -702,6 +702,8 @@ def painel_nfe_saida_venda(venda_id: int, db=None) -> dict[str, Any]:
 
 
 def validar_destinatario(dest: dict) -> list[str]:
+    from produtos.nfe_saida_tributacao_util import normalizar_destinatario_fiscal
+
     erros: list[str] = []
     if not str(dest.get("nome") or "").strip():
         erros.append("Nome do destinatário obrigatório.")
@@ -715,10 +717,17 @@ def validar_destinatario(dest: dict) -> list[str]:
         erros.append("Cidade do destinatário.")
     if not str(dest.get("logradouro") or "").strip():
         erros.append("Logradouro do destinatário.")
+    norm = normalizar_destinatario_fiscal({**dest, "documento": doc})
+    ind_ie = str(norm.get("ind_ie_dest") or "9")
+    ie = str(dest.get("ie") or "").strip()
+    ie_num = _digits_doc(ie, 14)
     if tipo == "cnpj":
-        ie = str(dest.get("ie") or "").strip()
-        if not ie:
-            erros.append("Inscrição estadual (ou ISENTO) para CNPJ.")
+        if ind_ie == "1" and not ie_num:
+            erros.append("Inscrição estadual numérica obrigatória para CNPJ contribuinte ICMS.")
+        elif ind_ie == "2" and ie.upper() != "ISENTO":
+            erros.append('Para CNPJ isento de IE, informe "ISENTO" no campo IE.')
+    elif tipo == "cpf" and ind_ie == "1" and not ie_num:
+        erros.append("Inscrição estadual obrigatória para produtor/contribuinte ICMS (CPF).")
     return erros
 
 

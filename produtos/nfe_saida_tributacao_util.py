@@ -15,21 +15,35 @@ from decouple import config
 from produtos.agro_produto_fiscal_defaults import merge_fiscal_padrao_cadastro_manual_sp_sn, normalizar_ncm_somente_digitos
 from produtos.nfe_saida_util import cfop_padrao_destino, documento_dest_tipo, nfe_saida_emitente_uf_default
 
-_MOTOR_VERSAO = "nfe-trib-2026-10-01"
+_MOTOR_VERSAO = "nfe-trib-2026-10-02"
 
-# CSOSN → grupo XML (Simples Nacional). Demais exigem parâmetros extras.
-_CSOSN_GRUPO = {
+# CSOSN com grupo XML distinto (demais 102/103/300/400 usam ICMSSN102).
+_CSOSN_GRUPO_DIRETO = {
     "101": "ICMSSN101",
-    "102": "ICMSSN102",
-    "103": "ICMSSN103",
     "201": "ICMSSN201",
-    "202": "ICMSSN202",
-    "203": "ICMSSN203",
-    "300": "ICMSSN300",
-    "400": "ICMSSN400",
     "500": "ICMSSN500",
     "900": "ICMSSN900",
 }
+
+_CSOSN_EXIGE_PARAM_EXTRA = frozenset({"201", "202", "203", "500", "900"})
+
+
+def _grupo_xml_icms_csosn(cs: str) -> str:
+    """Mapeia CSOSN ao elemento XML (NT NF-e Simples Nacional)."""
+    if cs in ("102", "103", "300", "400"):
+        return "ICMSSN102"
+    if cs in ("202", "203"):
+        return "ICMSSN202"
+    return _CSOSN_GRUPO_DIRETO.get(cs, "")
+
+
+def cfop_coerente_operacao(cfop: str, *, inter: bool) -> bool:
+    c = _digits(cfop, 4)
+    if len(c) != 4 or c[0] not in ("5", "6", "7"):
+        return False
+    if inter:
+        return c[0] in ("6", "7")
+    return c[0] == "5"
 
 # CST PIS/COFINS → tipo de grupo no XML
 _CST_NT = frozenset({"04", "05", "06", "07", "08", "09"})
@@ -110,10 +124,12 @@ def normalizar_destinatario_fiscal(dest: dict | None) -> dict[str, Any]:
         else:
             ind_ie = "9"
     elif tipo == "cnpj":
-        if ie_raw == "ISENTO" or (not ie_digits and not ie_raw):
+        if ie_raw == "ISENTO":
             ind_ie = "2"
         elif ie_digits:
             ind_ie = "1"
+        elif not ie_raw:
+            ind_ie = "9"
         else:
             ind_ie = "9"
     else:
@@ -143,14 +159,14 @@ def sugerir_cfop_item(
     cfop_catalogo: str,
     mercadoria_st: bool = False,
 ) -> str:
-    """Sugere CFOP; respeita CFOP explícito na linha ou catálogo quando válido."""
-    for cand in (cfop_linha, cfop_catalogo):
-        c = _digits(cand, 4)
-        if len(c) == 4 and c[0] in ("5", "6", "7"):
-            return c
+    """Sugere CFOP; só aceita CFOP explícito coerente com interna/interestadual."""
     ue = (uf_emit or "SP").upper()[:2]
     ud = (uf_dest or ue).upper()[:2]
-    inter = ud and ue and ud != ue
+    inter = bool(ud and ue and ud != ue)
+    for cand in (cfop_linha, cfop_catalogo):
+        c = _digits(cand, 4)
+        if len(c) == 4 and cfop_coerente_operacao(c, inter=inter):
+            return c
     if mercadoria_st:
         return "6403" if inter else "5405"
     base = cfop_padrao_destino(ud, ue)
@@ -174,19 +190,17 @@ def _fiscal_linha_enriquecida(ln: dict, *, db=None, col_p: str | None = None) ->
         try:
             from produtos.nfce_fiscal_produto_util import fiscal_por_produto_id
 
-            cat = fiscal_por_produto_id(pid, db=db, col_p=col_p)
+            cat = fiscal_por_produto_id(pid, db=db, col_p=col_p, aplicar_defaults_sn=False)
             for k in ("ncm", "cfop", "csosn", "origem", "cest"):
                 if not base.get(k) and cat.get(k):
                     base[k] = cat[k]
-            if not base.get("cst_pis_cofins"):
-                ov_cst = _digits(ln.get("cst_pis_cofins"), 2)
-                if not ov_cst:
-                    merged = merge_fiscal_padrao_cadastro_manual_sp_sn({"cst_pis_cofins": cat.get("cst_pis_cofins")})
-                    base["cst_pis_cofins"] = _digits(merged.get("cst_pis_cofins"), 2) or "49"
+            if not base.get("cst_pis_cofins") and cat.get("cst_pis_cofins"):
+                base["cst_pis_cofins"] = _digits(cat.get("cst_pis_cofins"), 2)
         except Exception:
             pass
     if not base.get("cst_pis_cofins"):
-        base["cst_pis_cofins"] = "49"
+        merged = merge_fiscal_padrao_cadastro_manual_sp_sn({"cst_pis_cofins": ln.get("cst_pis_cofins")})
+        base["cst_pis_cofins"] = _digits(merged.get("cst_pis_cofins"), 2) or "49"
     if not base.get("csosn"):
         base["csosn"] = "102"
     return base
@@ -228,7 +242,7 @@ class ApuracaoNfeSaida:
 
 def _apurar_icms_sn(csosn: str, origem: str, v_prod: Decimal) -> tuple[str, dict[str, str], list[str]]:
     cs = _digits(csosn, 3).zfill(3)
-    grupo = _CSOSN_GRUPO.get(cs)
+    grupo = _grupo_xml_icms_csosn(cs)
     bloqueios: list[str] = []
     if not grupo:
         bloqueios.append(f"CSOSN {cs} não suportado pelo motor (versão {_MOTOR_VERSAO}).")
@@ -248,7 +262,7 @@ def _apurar_icms_sn(csosn: str, origem: str, v_prod: Decimal) -> tuple[str, dict
             campos["pCredSN"] = str(aliq)
             campos["vCredICMSSN"] = _q2(v_cred)
 
-    elif cs in ("201", "202", "203", "500", "900"):
+    elif cs in _CSOSN_EXIGE_PARAM_EXTRA:
         bloqueios.append(
             f"CSOSN {cs} exige parametrização fiscal adicional (ST/operação especial). "
             "Cadastre CSOSN 102/103/300/400 ou configure com o contador."
@@ -327,6 +341,13 @@ def apurar_nfe_saida(
         if vt <= 0 and qtd > 0:
             vt = (qtd * vu).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         st_flag = bool(ln.get("icms_st") or ln.get("substituicao_tributaria"))
+        inter_op = bool(ud and ue and ud != ue)
+        cfop_linha_raw = _digits(ln.get("cfop"), 4)
+        if cfop_linha_raw and not cfop_coerente_operacao(cfop_linha_raw, inter=inter_op):
+            bloqueios.append(
+                f"Item {idx}: CFOP {cfop_linha_raw} incompatível com operação "
+                f"{'interestadual' if inter_op else 'interna'} (UF {ue} → {ud})."
+            )
         cfop = sugerir_cfop_item(
             uf_emit=ue,
             uf_dest=ud,
