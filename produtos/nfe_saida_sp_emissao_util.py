@@ -541,6 +541,7 @@ def emitir_nfe_saida_sefaz(doc: dict, *, cnpj_emit: str) -> dict[str, Any]:
                 "serie": serie,
                 "xml_autorizado": ret.get("xml_nfeproc") or "",
                 "simulado": False,
+                "autorizacao_sefaz_real": True,
             }
         if c_stat in _NFE_RETRY_CSTAT_DUPLICIDADE and tentativa + 1 < max_tentativas:
             nnf_doc = None

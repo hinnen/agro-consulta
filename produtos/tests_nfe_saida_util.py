@@ -70,20 +70,23 @@ class NfeSaidaDestinatarioTests(SimpleTestCase):
         self.assertEqual(documento_dest_tipo("52998224725"), "cpf")
         self.assertEqual(documento_dest_tipo("123"), "")
 
-    def test_validar_destinatario_cnpj_exige_ie(self):
+    def test_validar_destinatario_cnpj_ie_conforme_situacao(self):
         from produtos.nfe_saida_util import validar_destinatario
 
-        dest = {
+        base = {
             "nome": "Fazenda X",
             "documento": "11222333000181",
             "uf": "SP",
             "cidade": "São Paulo",
             "logradouro": "Rua A",
-            "ie": "",
         }
-        erros = validar_destinatario(dest)
-        self.assertTrue(any("Inscrição" in e for e in erros))
-        dest["ie"] = "ISENTO"
+        dest = {**base, "ie": ""}
+        self.assertEqual(validar_destinatario(dest), [])
+        dest = {**base, "situacao_icms": "contribuinte", "ie": ""}
+        self.assertTrue(any("Inscrição" in e for e in validar_destinatario(dest)))
+        dest = {**base, "situacao_icms": "isento", "ie": "ISENTO"}
+        self.assertEqual(validar_destinatario(dest), [])
+        dest = {**base, "situacao_icms": "nao_contribuinte", "ie": ""}
         self.assertEqual(validar_destinatario(dest), [])
 
 
@@ -447,3 +450,251 @@ class NfeSaidaTributacaoMotorTests(SimpleTestCase):
         self.assertIn("<ICMSSN101>", xml)
         self.assertIn("<pCredSN>2.5</pCredSN>", xml)
         self.assertIn("<vCredICMSSN>2.50</vCredICMSSN>", xml)
+
+    def test_grupos_xml_csosn_mapeados(self):
+        from produtos.nfe_saida_tributacao_util import _apurar_icms_sn, _grupo_xml_icms_csosn
+
+        for cs in ("102", "103", "300", "400"):
+            self.assertEqual(_grupo_xml_icms_csosn(cs), "ICMSSN102")
+            g, campos, bl = _apurar_icms_sn(cs, "0", Decimal("10"))
+            self.assertEqual(g, "ICMSSN102")
+            self.assertEqual(campos["CSOSN"], cs)
+            self.assertEqual(bl, [])
+        for cs in ("202", "203"):
+            self.assertEqual(_grupo_xml_icms_csosn(cs), "ICMSSN202")
+            g, _, bl = _apurar_icms_sn(cs, "0", Decimal("10"))
+            self.assertEqual(g, "ICMSSN202")
+            self.assertTrue(bl)
+
+    def test_cfop_interestadual_bloqueia_5102_na_linha(self):
+        from produtos.nfe_saida_tributacao_util import apurar_nfe_saida
+        from produtos.nfe_saida_util import doc_novo_vazio
+
+        doc = doc_novo_vazio()
+        doc["destinatario"].update(
+            {
+                "nome": "Cliente RJ",
+                "documento": "39053344705",
+                "uf": "RJ",
+                "cidade": "Rio",
+                "logradouro": "Rua",
+            }
+        )
+        doc["itens"] = [
+            {
+                "descricao": "P",
+                "qtd": 1,
+                "v_unit": 10,
+                "v_total": 10,
+                "ncm": "23099020",
+                "cfop": "5102",
+                "csosn": "102",
+            }
+        ]
+        ap = apurar_nfe_saida(doc, uf_emit="SP")
+        self.assertTrue(any("CFOP 5102" in b for b in ap.bloqueios))
+        self.assertEqual(ap.itens[0].cfop, "6102")
+
+    def test_cst_pis_do_cadastro_produto(self):
+        from unittest.mock import patch
+
+        from produtos.nfe_saida_tributacao_util import apurar_nfe_saida
+        from produtos.nfe_saida_util import doc_novo_vazio
+
+        doc = doc_novo_vazio()
+        doc["destinatario"].update(
+            {
+                "nome": "C",
+                "documento": "39053344705",
+                "uf": "SP",
+                "cidade": "J",
+                "logradouro": "R",
+            }
+        )
+        doc["itens"] = [
+            {"descricao": "P", "qtd": 1, "v_unit": 1, "v_total": 1, "ncm": "23099020", "produto_id": "99", "csosn": "102"}
+        ]
+        with patch(
+            "produtos.nfce_fiscal_produto_util.fiscal_por_produto_id",
+            return_value={"ncm": "23099020", "csosn": "102", "cst_pis_cofins": "06"},
+        ):
+            ap = apurar_nfe_saida(doc, uf_emit="SP")
+        self.assertEqual(ap.itens[0].cst_pis, "06")
+        self.assertEqual(ap.itens[0].pis_grupo, "PISNT")
+
+    def test_xml_interestadual_cfop_6xxx(self):
+        from datetime import datetime
+
+        from produtos.nfe_saida_sp_emissao_util import _montar_xml_nfe_saida
+        from produtos.nfe_saida_util import doc_novo_vazio
+
+        doc = doc_novo_vazio()
+        doc["destinatario"].update(
+            {
+                "nome": "Cliente",
+                "documento": "39053344705",
+                "uf": "RJ",
+                "cidade": "Rio",
+                "logradouro": "Rua A",
+                "numero": "1",
+                "bairro": "Centro",
+                "cep": "20000000",
+            }
+        )
+        doc["itens"] = [
+            {
+                "descricao": "P",
+                "qtd": 1,
+                "v_unit": 10,
+                "v_total": 10,
+                "ncm": "23099020",
+                "cfop": "6102",
+                "csosn": "102",
+                "cst_pis_cofins": "49",
+            }
+        ]
+        doc["pagamento"] = [{"tPag": "01", "valor": 10}]
+        cfg = {
+            "tp_amb": 2,
+            "cnpj": "11222333000181",
+            "razao_social": "Emitente",
+            "fantasia": "Emitente",
+            "logradouro": "Rua B",
+            "numero": "10",
+            "bairro": "Centro",
+            "cmun": "3524600",
+            "cidade": "Jacupiranga",
+            "uf": "SP",
+            "cep": "11940000",
+            "ie": "123456789012",
+            "fone": "",
+        }
+        xml = _montar_xml_nfe_saida(
+            doc,
+            cfg,
+            serie=1,
+            numero=3,
+            chave="3" * 43 + "5",
+            dh_emi=datetime(2026, 10, 1, 10, 0, 0),
+        )
+        self.assertIn("<CFOP>6102</CFOP>", xml)
+        self.assertIn("<idDest>2</idDest>", xml)
+
+    def test_xml_xsd_opcional(self):
+        from datetime import datetime
+
+        from produtos.nfe_saida_sp_emissao_util import _montar_xml_nfe_saida
+        from produtos.nfe_saida_util import doc_novo_vazio
+        from produtos.nfe_saida_xml_validate_util import validar_xml_nfe_xsd
+
+        doc = doc_novo_vazio()
+        doc["destinatario"].update(
+            {
+                "nome": "Consumidor",
+                "documento": "39053344705",
+                "uf": "SP",
+                "cidade": "Jacupiranga",
+                "logradouro": "Rua A",
+                "numero": "1",
+                "bairro": "Centro",
+                "cep": "11940000",
+            }
+        )
+        doc["itens"] = [
+            {
+                "descricao": "P",
+                "qtd": 1,
+                "v_unit": 10,
+                "v_total": 10,
+                "ncm": "23099020",
+                "cfop": "5102",
+                "csosn": "103",
+                "cst_pis_cofins": "49",
+            }
+        ]
+        doc["pagamento"] = [{"tPag": "01", "valor": 10}]
+        cfg = {
+            "tp_amb": 2,
+            "cnpj": "11222333000181",
+            "razao_social": "Emitente",
+            "fantasia": "Emitente",
+            "logradouro": "Rua B",
+            "numero": "10",
+            "bairro": "Centro",
+            "cmun": "3524600",
+            "cidade": "Jacupiranga",
+            "uf": "SP",
+            "cep": "11940000",
+            "ie": "123456789012",
+            "fone": "",
+        }
+        xml = _montar_xml_nfe_saida(
+            doc, cfg, serie=1, numero=4, chave="3" * 43 + "5", dh_emi=datetime(2026, 10, 1, 10, 0, 0)
+        )
+        self.assertIn("<CSOSN>103</CSOSN>", xml)
+        self.assertIn("<ICMSSN102>", xml)
+        ok, det = validar_xml_nfe_xsd(xml)
+        self.assertTrue(ok, det)
+
+
+class NfeSaidaSimulacaoEmitTests(SimpleTestCase):
+    def test_homolog_sem_opt_in_nao_simula(self):
+        import os
+        from unittest.mock import patch
+
+        from produtos.nfe_saida_emissao_util import emitir_nfe_saida_documento, emissao_simulada_ativa
+        from produtos.nfe_saida_util import doc_novo_vazio
+
+        os.environ.pop("NFE_SAIDA_SIMULAR_EMIT", None)
+        self.assertFalse(emissao_simulada_ativa(2))
+        doc = doc_novo_vazio()
+        doc["tp_amb"] = 2
+        doc["destinatario"].update(
+            {
+                "nome": "C",
+                "documento": "39053344705",
+                "uf": "SP",
+                "cidade": "J",
+                "logradouro": "R",
+            }
+        )
+        doc["itens"] = [
+            {"descricao": "P", "qtd": 1, "v_unit": 10, "v_total": 10, "ncm": "23099020", "cfop": "5102", "csosn": "102"}
+        ]
+        doc["pagamento"] = [{"tPag": "01", "valor": 10}]
+        with patch("produtos.sefaz_dfe_client.distribuicao_dfe_configurada", return_value=True):
+            with patch(
+                "produtos.nfe_saida_sp_emissao_util.emitir_nfe_saida_sefaz",
+                return_value={"ok": False, "status": "rejeitada", "erro": "mock", "c_stat": 0},
+            ) as sefaz:
+                emitir_nfe_saida_documento(doc, cnpj_emit="11222333000181")
+                sefaz.assert_called_once()
+
+    def test_simulacao_exige_flag(self):
+        import os
+        from unittest.mock import patch
+
+        from produtos.nfe_saida_emissao_util import emitir_nfe_saida_documento
+        from produtos.nfe_saida_util import doc_novo_vazio
+
+        os.environ["NFE_SAIDA_SIMULAR_EMIT"] = "1"
+        doc = doc_novo_vazio()
+        doc["tp_amb"] = 2
+        doc["destinatario"].update(
+            {
+                "nome": "C",
+                "documento": "39053344705",
+                "uf": "SP",
+                "cidade": "J",
+                "logradouro": "R",
+            }
+        )
+        doc["itens"] = [
+            {"descricao": "P", "qtd": 1, "v_unit": 10, "v_total": 10, "ncm": "23099020", "cfop": "5102", "csosn": "102"}
+        ]
+        doc["pagamento"] = [{"tPag": "01", "valor": 10}]
+        with patch("produtos.sefaz_dfe_client.distribuicao_dfe_configurada", return_value=True):
+            out = emitir_nfe_saida_documento(doc, cnpj_emit="11222333000181")
+        self.assertTrue(out.get("simulado"))
+        self.assertFalse(out.get("autorizacao_sefaz_real", True))
+        os.environ.pop("NFE_SAIDA_SIMULAR_EMIT", None)
