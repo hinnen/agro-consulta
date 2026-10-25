@@ -1294,6 +1294,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ Deploy loja — **CHECKLIST 25/10** · **Live v27.26.27** · 25/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Já na `producao`** @ **`d9d8a370`** (corte feito antes deste chat) |
+| **Pacote** | **NFE-55-FISCAL-PL010f** — motor fiscal SN · XSD PL 010f · NF-e só staff |
+| **Migrate** | **NÃO** |
+| **PDV / caixa / NFC-e** | **Não neste delta** |
+| **Prova neste ambiente** | `verify_nfe_saida_path.py` **68/68** · PIN **9973** ok |
+| **Revert** | `git push origin producao-backup-pre-v272627-nfe-fiscal:producao` → **v27.26.26** @ **`6081553c`** |
+| **Smoke** | staff · `/nfe/saida/` · 1ª NF manual |
+
+### ✅ CHECKLIST ÚNICO — **25/10** · ✅ **já em produção** (não reenviar)
+
+| # | Item | Status | Migrate | Prova |
+| - | ---- | ------ | ------- | ----- |
+| 1 | Motor fiscal SN + XSD PL 010f | ✅ Live | **NÃO** | **68/68** |
+| 2 | Acesso NF-e só admin | ✅ Live | **NÃO** | commit `d9d8a370` |
+
 ### ✅ Deploy loja — **CHECKLIST 24/10** · **Live v27.26.26** · 24/10
 
 | Campo | Valor |
