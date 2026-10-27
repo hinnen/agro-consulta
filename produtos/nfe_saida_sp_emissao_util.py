@@ -74,12 +74,13 @@ def _cfg_emissao_nfe(
     loja: str | None = None,
     serie_nfe: int | None = None,
 ) -> dict[str, Any]:
-    from produtos.nfce_config_util import nfce_cfg, nfce_loja_de_cnpj
+    from produtos.nfce_config_util import nfce_cfg
+    from produtos.nfe_saida_regras_validas_util import loja_nfe_por_cnpj_unico
     from produtos.sefaz_dfe_client import _cfg_dist_dfe
 
     dfe = _cfg_dist_dfe()
     cnpj = re.sub(r"\D", "", cnpj_emit or dfe.get("cnpj") or "")[:14]
-    loja_n = loja or nfce_loja_de_cnpj(cnpj)
+    loja_n = loja or loja_nfe_por_cnpj_unico(cnpj) or ""
     nfc = nfce_cfg(loja_n)
     try:
         piso = int(config("NFE_EMISSAO_PROXIMO_NUMERO", default="1") or 1)

@@ -990,11 +990,10 @@ def checklist_conferencia(doc: dict, *, cert_ok: bool) -> list[dict[str, Any]]:
     from produtos.nfe_saida_email_util import email_destinatario_valido, normalizar_email_destinatario
 
     em = normalizar_email_destinatario(dest)
-    row(
-        email_destinatario_valido(em),
-        "E-mail para envio (XML + DANFE)",
-        em if em else "Opcional — preencha para receber após autorizar",
-    )
+    if not em:
+        row(True, "E-mail para envio (XML + DANFE)", "Opcional — preencha para receber após autorizar")
+    else:
+        row(email_destinatario_valido(em), "E-mail para envio (XML + DANFE)", em)
     er_it = validar_itens(itens)
     row(len(er_it) == 0, "Itens e NCM", "; ".join(er_it)[:200])
     from produtos.nfe_fiscal_config_util import parse_estabelecimento, rotulo_estabelecimento
