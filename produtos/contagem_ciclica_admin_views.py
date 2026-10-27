@@ -162,6 +162,30 @@ def api_ciclica_admin_inventario(request):
 
 
 @never_cache
+@require_POST
+def api_ciclica_admin_zerar(request):
+    err = _gate_admin(request)
+    if err:
+        return err
+    if str(request.POST.get("confirmar") or "").strip().upper() != "ZERAR":
+        return JsonResponse({"ok": False, "erro": "Digite ZERAR para confirmar."}, status=400)
+    from produtos.contagem_ciclica_util import zerar_saldo_deposito, _operador_da_request
+
+    rot, user = _operador_da_request(request)
+    try:
+        resumo = zerar_saldo_deposito(
+            str(request.POST.get("deposito") or ""),
+            user=user,
+            operador_rotulo=rot or "Gerência",
+        )
+    except ValueError as e:
+        return JsonResponse({"ok": False, "erro": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({"ok": False, "erro": str(e)}, status=500)
+    return JsonResponse({"ok": True, "resumo": resumo})
+
+
+@never_cache
 @require_GET
 def contagem_ciclica_bloco_print(request, pk: int):
     from produtos.contagem_ciclica_util import sessao_gate_ok
