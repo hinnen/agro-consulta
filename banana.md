@@ -1322,15 +1322,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Escopo** | Checkout PDV · gravar **endereço fiscal** no cliente (`fiscal_nfe`) |
 | **Migrate** | **NÃO** |
 
-### 📦 PACOTE PRONTO — **LOTE 27/10** · **v27.26.31** · PREP `teste` @ **`af65890a`**
+### 📦 PACOTE PRONTO — **LOTE 27/10** · **v27.26.32** · PREP `teste` @ **`78ad93c0`**
 
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **Pronto para envio à produção** (frase + senha) |
 | **Migrate** | **SIM** só `estoque.0021` · demais **NÃO** |
-| **Entra** | Câmera no Ajuste · painel gerência · inventário por PIN · concluir bloco + amostra · **zerar saldo** (digitar **ZERAR**) · endereço fiscal NF-e |
-| **Prova** | Câmera **20/20** · painel admin **14/14** · PWA **29/29** · zeragem **8 → 0** · venda após bip **3 − 1 = 2** |
-| **Smoke seu** | Celular: formulários, PIN direto, bloco, câmera, zerar só num ensaio |
+| **Entra** | Câmera · painel celular · **F10 → Estoque → Contagens (gerência)** · inventário por PIN · bloco + amostra · zerar saldo (**ZERAR**) · endereço fiscal NF-e |
+| **Prova** | Câmera **20/20** · painel **14/14** · PWA **29/29** · zeragem **8 → 0** · venda após bip **3 − 1 = 2** · botão F10 só com flag de gerência |
+| **Smoke seu** | Ctrl+F5 · F10 · Estoque · **Contagens (gerência)** · celular: PIN, bloco, câmera |
 
 ### ✅ CHECKLIST ÚNICO — **27/10** · 🟢 **pronto para envio à produção**
 
