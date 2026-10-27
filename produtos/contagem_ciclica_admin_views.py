@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect, render
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.cache import never_cache
 
-from estoque.models import ContagemCiclicaSessao
+import json
+
+from estoque.models import ContagemCiclicaBloco, ContagemCiclicaSessao
 from produtos.contagem_ciclica_admin_util import (
     atividade_recente_payload,
     painel_dashboard_payload,
@@ -91,6 +93,7 @@ def contagem_ciclica_painel_admin(request):
             "url_api_sessao": "/api/ajuste-mobile/ciclica/admin/sessao/",
             "url_hub": "/vendas/lojas/",
             "url_ajuste": "/vendas/lojas/ajuste/",
+            "url_api_inventario": "/api/ajuste-mobile/ciclica/admin/inventario/",
         },
     )
 
@@ -119,5 +122,61 @@ def contagem_ciclica_painel_admin_desktop(request):
             "url_api_sessao": "/api/ajuste-mobile/ciclica/admin/sessao/",
             "url_hub": "/vendas/lojas/",
             "url_ajuste": "/vendas/lojas/ajuste/",
+            "url_api_inventario": "/api/ajuste-mobile/ciclica/admin/inventario/",
         },
+    )
+
+
+@never_cache
+@require_POST
+def api_ciclica_admin_inventario(request):
+    err = _gate_admin(request)
+    if err:
+        return err
+    from produtos.contagem_ciclica_util import abrir_sessao, _operador_da_request, sessao_payload
+
+    rot, user = _operador_da_request(request)
+    pins = [
+        p.strip()
+        for p in str(request.POST.get("pins") or "").replace(";", ",").split(",")
+        if p.strip()
+    ]
+    if not pins:
+        return JsonResponse({"ok": False, "erro": "Informe ao menos um PIN."}, status=400)
+    try:
+        sessao = abrir_sessao(
+            deposito=str(request.POST.get("deposito") or "centro"),
+            escopo_tipo=str(request.POST.get("escopo_tipo") or "corredor"),
+            escopo_valor=str(request.POST.get("escopo_valor") or ""),
+            dias_movimentacao=0,
+            operador_rotulo=rot or "Gerência",
+            user=user,
+            modo="inventario",
+            pins=pins,
+        )
+    except ValueError as e:
+        return JsonResponse({"ok": False, "erro": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({"ok": False, "erro": str(e)}, status=500)
+    return JsonResponse({"ok": True, "sessao": sessao_payload(sessao)})
+
+
+@never_cache
+@require_GET
+def contagem_ciclica_bloco_print(request, pk: int):
+    from produtos.contagem_ciclica_util import sessao_gate_ok
+
+    if not (request_pode_ver_painel_ciclica_admin(request) or sessao_gate_ok(request)):
+        return _negado(request)
+    bloco = ContagemCiclicaBloco.objects.select_related("sessao").filter(pk=pk).first()
+    if bloco is None:
+        return HttpResponseForbidden("Bloco não encontrado.")
+    try:
+        amostra = json.loads(bloco.amostra_json or "[]")
+    except Exception:
+        amostra = []
+    return render(
+        request,
+        "produtos/contagem_ciclica_bloco_print.html",
+        {"bloco": bloco, "amostra": amostra, "sessao": bloco.sessao},
     )

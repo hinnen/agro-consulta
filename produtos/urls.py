@@ -110,6 +110,16 @@ urlpatterns = [
         name="api_ciclica_abrir",
     ),
     path(
+        "api/ajuste-mobile/ciclica/minha/",
+        contagem_ciclica_views.api_ciclica_minha,
+        name="api_ciclica_minha",
+    ),
+    path(
+        "api/ajuste-mobile/ciclica/<int:pk>/fechar-bloco/",
+        contagem_ciclica_views.api_ciclica_fechar_bloco,
+        name="api_ciclica_fechar_bloco",
+    ),
+    path(
         "api/ajuste-mobile/ciclica/<int:pk>/",
         contagem_ciclica_views.api_ciclica_detalhe,
         name="api_ciclica_detalhe",
@@ -145,6 +155,11 @@ urlpatterns = [
         name="api_ciclica_admin_painel",
     ),
     path(
+        "api/ajuste-mobile/ciclica/admin/inventario/",
+        contagem_ciclica_admin_views.api_ciclica_admin_inventario,
+        name="api_ciclica_admin_inventario",
+    ),
+    path(
         "api/ajuste-mobile/ciclica/admin/sessao/<int:pk>/",
         contagem_ciclica_admin_views.api_ciclica_admin_sessao,
         name="api_ciclica_admin_sessao",
@@ -153,6 +168,11 @@ urlpatterns = [
         "vendas/lojas/contagem-ciclica/painel/",
         contagem_ciclica_admin_views.contagem_ciclica_painel_admin,
         name="contagem_ciclica_painel_admin",
+    ),
+    path(
+        "vendas/lojas/contagem-ciclica/bloco/<int:pk>/",
+        contagem_ciclica_admin_views.contagem_ciclica_bloco_print,
+        name="contagem_ciclica_bloco_print",
     ),
     path(
         "gestao/contagem-ciclica/painel/",
