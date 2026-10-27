@@ -1292,6 +1292,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
+### 📦 PACOTE PRONTO — **AJUSTE-BLOCO-TELA** · **v27.26.36**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **Pronto para envio à produção** (frase + senha) · junto ou depois do 27/10e |
+| **Entra** | Amostra do bloco **só imprime no computador** (Contagens) · no celular o bloco fechado fica marcado e o próximo bip é outro bloco |
+| **Migrate** | **NÃO** |
+
+### ✅ CHECKLIST ÚNICO — **27/10f** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **AJUSTE-BLOCO-TELA** | 🟢 Pronto | **NÃO** | sem `window.open` no concluir · seção «Bloco já fechado» · lista Imprimir no painel |
+
 ## CHECKPOINT DE ATUALIZAÇÃO
 
 ### ✅ Deploy loja — **CHECKLIST 27/10e** · **Live v27.26.36** · 27/10
