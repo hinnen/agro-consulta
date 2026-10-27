@@ -1362,7 +1362,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- | ----- |
 | 1 | **AJUSTE-CAMERA-BIP** | 🟢 Pronto | **NÃO** | `verify_ajuste_camera_bip_path.py` **20/20** |
 | 2 | **NFE-55-FISCAL-ENDERECO-PDV** | 🟢 Pronto | **NÃO** | `8013473a` |
-| 3 | **CICLICA-ADMIN-PAINEL** | 🟢 Pronto | **NÃO** | Celular + **F10 → Estoque → Contagens (gerência)** |
+| 3 | **CICLICA-ADMIN-PAINEL** | 🟢 Pronto | **NÃO** | App: tela cheia SistApp · PC: **F10** dentro da gestão |
 | 4 | **INVENTARIO-PIN-BLOCO** | 🟢 Pronto | **SIM** `estoque.0021` | Operador pela lista **RH · PIN** (não digita o número) · bloco · amostra · zerar |
 
 ### ✅ Deploy loja — **CHECKLIST 25/10** · **Live v27.26.27** · 25/10

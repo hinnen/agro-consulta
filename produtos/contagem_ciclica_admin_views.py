@@ -114,6 +114,7 @@ def contagem_ciclica_painel_admin(request):
             "url_ajuste": "/vendas/lojas/ajuste/",
             "url_api_inventario": "/api/ajuste-mobile/ciclica/admin/inventario/",
             "operadores_pin": _operadores_pin_opcoes(),
+            "contagem_tela_app": True,
         },
     )
 
