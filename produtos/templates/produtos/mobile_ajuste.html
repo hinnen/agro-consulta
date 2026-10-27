@@ -718,6 +718,12 @@
       background: #f8fafc;
       border-color: #e2e8f0;
     }
+    .ma-card--fechado {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      opacity: 0.72;
+    }
+    .ma-card--fechado .ma-card-nome { color: #64748b; }
     .ma-card--pendente {
       background: #fff;
       opacity: 0.88;
@@ -2166,10 +2172,11 @@ function maCriarCardCiclica(p, variant) {
   const escMa = maEscCiclicaHtml;
   const d = document.createElement('div');
   d.className = 'ma-card ma-card--' + variant;
-  if (variant === 'feito' || variant === 'pendente') {
+  if (variant === 'feito' || variant === 'pendente' || variant === 'fechado') {
+    const marca = variant === 'fechado' ? '<span class="ma-card-nome" style="color:#64748b;font-size:0.65rem">BLOCO FECHADO · </span>' : '';
     d.innerHTML = `
       <div class="ma-card-linha">
-        <span class="ma-card-nome">${escMa(p.nome)}</span>
+        <span class="ma-card-nome">${marca}${escMa(p.nome)}</span>
         <span class="ma-card-linha-qtd">${maCiclicaNumHtml(p, escMa)}</span>
       </div>`;
   } else {
@@ -2198,17 +2205,27 @@ function maPintarCiclicaFocus(fila, resumoTxt) {
   maCiclicaSyncHistoricoContados();
   const heroId = maUltimoBipadoId ? String(maUltimoBipadoId) : '';
   let hero = heroId ? lista.find((p) => String(p.id) === heroId) : null;
-  if (hero && !hero._ciclicaContado && maFmtQtdContada(hero._ciclicaQtd) === '') hero = null;
+  if (hero && (hero._blocoFechado || (!hero._ciclicaContado && maFmtQtdContada(hero._ciclicaQtd) === ''))) hero = null;
 
   const feitos = [];
+  const fechados = [];
   maCiclicaBipHistorico.forEach((id) => {
     if (id === heroId) return;
     const p = lista.find((x) => String(x.id) === id);
     if (!p) return;
+    if (p._blocoFechado) {
+      fechados.push(p);
+      return;
+    }
     if (p._ciclicaContado || maFmtQtdContada(p._ciclicaQtd) !== '') feitos.push(p);
   });
+  lista.forEach((p) => {
+    if (!p._blocoFechado) return;
+    if (fechados.some((x) => String(x.id) === String(p.id))) return;
+    fechados.push(p);
+  });
 
-  const idsMostrados = new Set([heroId, ...feitos.map((p) => String(p.id))].filter(Boolean));
+  const idsMostrados = new Set([heroId, ...feitos.map((p) => String(p.id)), ...fechados.map((p) => String(p.id))].filter(Boolean));
   const pendentes = lista.filter((p) => {
     const id = String(p.id);
     if (idsMostrados.has(id)) return false;
@@ -2218,7 +2235,7 @@ function maPintarCiclicaFocus(fila, resumoTxt) {
   l.classList.add('ma-lista--ciclica-focus');
   l.innerHTML = '';
 
-  if (!hero && !feitos.length && !pendentes.length) {
+  if (!hero && !feitos.length && !pendentes.length && !fechados.length) {
     l.innerHTML = '<div class="ma-ciclica-hint">Bipe ou busque um produto</div>';
     return;
   }
@@ -2234,6 +2251,13 @@ function maPintarCiclicaFocus(fila, resumoTxt) {
     lbl.textContent = `Já contados · ${feitos.length}`;
     l.appendChild(lbl);
     feitos.forEach((p) => l.appendChild(maCriarCardCiclica(p, 'feito')));
+  }
+  if (fechados.length) {
+    const lblF = document.createElement('p');
+    lblF.className = 'ma-ciclica-sec-label';
+    lblF.textContent = `Bloco já fechado · ${fechados.length} · próximo bloco é o que bipar agora`;
+    l.appendChild(lblF);
+    fechados.forEach((p) => l.appendChild(maCriarCardCiclica(p, 'fechado')));
   }
 
   const maxPend = 24;
@@ -2522,6 +2546,7 @@ function maCiclicaProdutosDaFila(termoN) {
     p._ciclicaContado = !!ln.contado;
     p._ciclicaFalta = !!ln.faltando || !ln.contado;
     p._ciclicaQtd = ln.qtd_contada;
+    p._blocoFechado = !!ln.bloco_fechado;
     out.push(p);
   });
   // Pass2: faltando primeiro
@@ -3157,7 +3182,7 @@ function maCiclicaPintarBar() {
   const dias = Number(s.dias_movimentacao);
   const diasTxt = (Number.isFinite(dias) && dias > 0) ? ` · ${dias}d mov.` : (dias === 0 ? ' · todos' : '');
   if (s.modo === 'inventario') {
-    txt.textContent = `Inventário #${s.id} · ${esc} · bipados ${s.contados_pass1 || 0} · concluir bloco grava o estoque`;
+    txt.textContent = `Inventário #${s.id} · ${esc} · neste bloco ${s.contados_bloco_atual || 0} · fechados ${s.fechados_bloco || 0}`;
     if (btnP1) {
       btnP1.textContent = 'Concluir bloco';
       btnP1.classList.remove('hidden');
@@ -3650,17 +3675,23 @@ document.getElementById('ma-ciclica-btn-pass1')?.addEventListener('click', () =>
   if (!maCiclicaAtiva()) return;
   const s = maCiclicaSessao;
   if (s.modo === 'inventario') {
-    if (!confirm('Concluir este bloco? Grava no estoque só o que já foi bipado (desconta venda depois do bip) e gera amostra pra conferir. A contagem continua aberta pro próximo bloco.')) return;
+    if (!confirm('Concluir este bloco? Grava o que já foi bipado. A amostra fica para imprimir no computador (Contagens). No celular, esses itens vão para «Bloco já fechado» e você começa o próximo.')) return;
     if (window.gmLoadingBar) window.gmLoadingBar.show();
     maCiclicaPost(maCiclicaUrl('fechar-bloco'), {})
       .then((d) => {
         if (!d || !d.ok) throw new Error((d && d.erro) || 'Falha');
         maCiclicaSessao = d.sessao || maCiclicaSessao;
+        maCiclicaBipHistorico = [];
+        maUltimoBipadoId = null;
+        maCiclicaToggleCtrl(false);
         maCiclicaPintarBar();
         const n = (d.resumo && d.resumo.ajustes) || 0;
-        const url = (d.resumo && d.resumo.relatorio_url) || '';
-        alert('Bloco gravado: ' + n + ' itens.' + (url ? '\nAbre a amostra pra outra pessoa conferir.' : ''));
-        if (url) window.open(url, '_blank');
+        if (typeof maMostrarToast === 'function') {
+          maMostrarToast('Bloco gravado: ' + n + ' itens. Impressão só no computador. Pode bipar o próximo.', true);
+        } else {
+          alert('Bloco gravado: ' + n + ' itens. A impressão fica no computador, em Contagens.');
+        }
+        maCiclicaRefresh(true);
       })
       .catch((e) => alert(e.message || 'Erro'))
       .finally(() => maResetLoading());
@@ -3701,9 +3732,7 @@ document.getElementById('ma-ciclica-btn-gravar')?.addEventListener('click', () =
       .then((d) => {
         if (!d || !d.ok) throw new Error((d && d.erro) || 'Falha');
         const n = (d.resumo && d.resumo.ajustes) || 0;
-        const url = (d.resumo && d.resumo.relatorio_url) || '';
-        alert('Inventário encerrado. ' + n + ' itens neste último bloco.');
-        if (url) window.open(url, '_blank');
+        alert('Inventário encerrado. ' + n + ' itens neste último bloco. A amostra fica no computador, em Contagens.');
         maCiclicaSairModo();
       })
       .catch((e) => alert(e.message || 'Erro'))

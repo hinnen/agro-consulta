@@ -229,7 +229,9 @@ def api_ciclica_fechar_bloco(request, pk: int):
     except Exception as e:
         return JsonResponse({"ok": False, "erro": str(e)}, status=500)
     sessao.refresh_from_db()
-    return JsonResponse({"ok": True, "resumo": resumo, "sessao": sessao_payload(sessao)})
+    return JsonResponse(
+        {"ok": True, "resumo": resumo, "sessao": sessao_payload(sessao, detalhe=True)}
+    )
 
 
 @require_POST

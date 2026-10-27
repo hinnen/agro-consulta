@@ -335,6 +335,22 @@ def painel_dashboard_payload(
         cards.append(card)
 
     n = len(cards)
+    from estoque.models import ContagemCiclicaBloco
+
+    blocos = []
+    for b in ContagemCiclicaBloco.objects.select_related("sessao").order_by("-fechado_em")[:30]:
+        blocos.append(
+            {
+                "id": b.pk,
+                "sessao_id": b.sessao_id,
+                "deposito": b.sessao.deposito,
+                "escopo": (b.sessao.escopo_valor or b.sessao.escopo_tipo or "")[:80],
+                "itens": b.itens_gravados,
+                "operador": b.operador_rotulo,
+                "quando": b.fechado_em.isoformat() if b.fechado_em else "",
+                "url": f"/vendas/lojas/contagem-ciclica/bloco/{b.pk}/",
+            }
+        )
     return {
         "ok": True,
         "atualizado_em": timezone.now().isoformat(),
@@ -345,6 +361,7 @@ def painel_dashboard_payload(
             "impacto_variacao_rs": round(float(impacto_global), 2),
         },
         "sessoes": cards,
+        "blocos": blocos,
     }
 
 
