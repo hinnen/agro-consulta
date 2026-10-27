@@ -2296,8 +2296,9 @@ function maMostrarUltimoBipado(p) {
   if (maCiclicaAtiva()) {
     const ln = (maCiclicaLinhas() || []).find((x) => String(x.produto_id) === maUltimoBipadoId);
     if (ln) {
-      fresh._ciclicaContado = !!ln.contado;
-      fresh._ciclicaFalta = !!ln.faltando || !ln.contado;
+      fresh._blocoFechado = !!ln.bloco_fechado;
+      fresh._ciclicaContado = !!ln.contado || fresh._blocoFechado;
+      fresh._ciclicaFalta = !fresh._blocoFechado && (!!ln.faltando || !ln.contado);
       fresh._ciclicaQtd = ln.qtd_contada;
       fresh._ciclicaFora = false;
     } else {
@@ -2543,10 +2544,10 @@ function maCiclicaProdutosDaFila(termoN) {
           saldo_centro: 0,
           saldo_vila: 0,
         };
-    p._ciclicaContado = !!ln.contado;
-    p._ciclicaFalta = !!ln.faltando || !ln.contado;
-    p._ciclicaQtd = ln.qtd_contada;
     p._blocoFechado = !!ln.bloco_fechado;
+    p._ciclicaContado = !!ln.contado || p._blocoFechado;
+    p._ciclicaFalta = !p._blocoFechado && (!!ln.faltando || !ln.contado);
+    p._ciclicaQtd = ln.qtd_contada;
     out.push(p);
   });
   // Pass2: faltando primeiro
