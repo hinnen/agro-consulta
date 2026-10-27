@@ -1298,7 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **Pronto no `teste`** — aguarda frase + senha para `producao` |
+| **Status** | 🟢 **No `teste`** @ lote **27/10** (`a40d3f5b`) |
 | **Escopo** | SistApp **Ajuste** (`/vendas/lojas/ajuste/`) · botão **Câmera** na busca · scan **contínuo** com **Bip +1** · `html5-qrcode` |
 | **Migrate** | **NÃO** |
 | **PDV / caixa / NFC-e** | **Não neste pacote** |
@@ -1322,13 +1322,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Escopo** | Checkout PDV · gravar **endereço fiscal** no cliente (`fiscal_nfe`) |
 | **Migrate** | **NÃO** |
 
+### 📦 PACOTE PRONTO — **LOTE 27/10** · **v27.26.29** · PREP `teste` @ **`a40d3f5b`**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **Pronto para envio à produção** (frase + senha) |
+| **Migrate** | **NÃO** (os 3 pacotes) |
+| **Prova (agente)** | `verify_contagem_ciclica_admin_path.py` **14/14** · `verify_ajuste_camera_bip_path.py` **20/20** · `verify_ajuste_mobile_pwa.py` **29/29** · `verify_vendas_lojas_pwa_install.py` **0** · API painel OK (PIN gerencial mock) |
+| **Smoke loja** | PIN **9973** → SistApp **Contagens** + Ajuste **Câmera**/**Painel** |
+
 ### ✅ CHECKLIST ÚNICO — **27/10** · 🟢 **pronto para envio à produção**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **AJUSTE-CAMERA-BIP** | 🟢 Pronto | **NÃO** | `verify_ajuste_camera_bip_path.py` |
-| 2 | **NFE-55-FISCAL-ENDERECO-PDV** | 🟢 Pronto | **NÃO** | commit `8013473a` |
-| 3 | **CICLICA-ADMIN-PAINEL** | 🟢 Pronto | **NÃO** | `verify_contagem_ciclica_admin_path.py` · `/vendas/lojas/contagem-ciclica/painel/` |
+| 1 | **AJUSTE-CAMERA-BIP** | 🟢 Pronto | **NÃO** | `verify_ajuste_camera_bip_path.py` **20/20** |
+| 2 | **NFE-55-FISCAL-ENDERECO-PDV** | 🟢 Pronto | **NÃO** | `8013473a` |
+| 3 | **CICLICA-ADMIN-PAINEL** | 🟢 Pronto | **NÃO** | `verify_contagem_ciclica_admin_path.py` **14/14** |
 
 ### ✅ Deploy loja — **CHECKLIST 25/10** · **Live v27.26.27** · 25/10
 
