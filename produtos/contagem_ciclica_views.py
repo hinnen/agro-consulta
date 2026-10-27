@@ -18,7 +18,9 @@ from produtos.contagem_ciclica_util import (
     listar_sessoes_abertas,
     registrar_contagem,
     sessao_gate_ok,
+    sessao_atribuida_ao_pin,
     sessao_payload,
+    fechar_bloco_inventario,
     _operador_da_request,
 )
 
@@ -66,6 +68,28 @@ def api_ciclica_categorias(request):
     return JsonResponse({"ok": True, "categorias": categorias_disponiveis()})
 
 
+@require_GET
+def api_ciclica_minha(request):
+    """Sessão de inventário atribuída ao PIN — o Ajuste entra direto."""
+    err = _gate(request)
+    if err:
+        return err
+    from produtos.vendas_lojas_hub_sessao_util import pin_da_sessao
+
+    pin = (pin_da_sessao(request) or "").strip()
+    sessao = sessao_atribuida_ao_pin(pin)
+    if sessao is None:
+        return JsonResponse({"ok": True, "sessao": None, "entrar_direto": False})
+    entrar_sessao(sessao, _operador_da_request(request)[0] or "Operador", _operador_da_request(request)[1])
+    return JsonResponse(
+        {
+            "ok": True,
+            "entrar_direto": True,
+            "sessao": sessao_payload(sessao, detalhe=True),
+        }
+    )
+
+
 @require_POST
 def api_ciclica_abrir(request):
     err = _gate(request)
@@ -75,6 +99,7 @@ def api_ciclica_abrir(request):
     if not rot:
         return JsonResponse({"ok": False, "erro": "Operador não identificado."}, status=400)
     try:
+        pins = [p.strip() for p in _get(request, "pins", "").replace(";", ",").split(",") if p.strip()]
         sessao = abrir_sessao(
             deposito=_get(request, "deposito", "centro"),
             escopo_tipo=_get(request, "escopo_tipo", "loja"),
@@ -82,6 +107,8 @@ def api_ciclica_abrir(request):
             dias_movimentacao=_get(request, "dias_movimentacao", "60"),
             operador_rotulo=rot,
             user=user,
+            modo=_get(request, "modo", "ciclica"),
+            pins=pins,
         )
     except ValueError as e:
         return JsonResponse({"ok": False, "erro": str(e)}, status=400)
@@ -181,6 +208,28 @@ def api_ciclica_fechar_pass1(request, pk: int):
     return JsonResponse(
         {"ok": True, "resumo": resumo, "sessao": sessao_payload(sessao, detalhe=True)}
     )
+
+
+@require_POST
+def api_ciclica_fechar_bloco(request, pk: int):
+    err = _gate(request)
+    if err:
+        return err
+    sessao = ContagemCiclicaSessao.objects.filter(pk=pk).first()
+    if sessao is None:
+        return JsonResponse({"ok": False, "erro": "Sessão não encontrada."}, status=404)
+    rot, user = _operador_da_request(request)
+    encerrar = str(_get(request, "encerrar", "") or "").strip().lower() in ("1", "true", "sim", "yes")
+    try:
+        resumo = fechar_bloco_inventario(
+            sessao, user=user, operador_rotulo=rot, encerrar=encerrar
+        )
+    except ValueError as e:
+        return JsonResponse({"ok": False, "erro": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({"ok": False, "erro": str(e)}, status=500)
+    sessao.refresh_from_db()
+    return JsonResponse({"ok": True, "resumo": resumo, "sessao": sessao_payload(sessao)})
 
 
 @require_POST

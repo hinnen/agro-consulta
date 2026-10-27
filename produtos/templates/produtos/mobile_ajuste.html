@@ -3146,9 +3146,22 @@ function maCiclicaPintarBar() {
     : (s.escopo_tipo === 'categoria' ? `Cat. ${s.escopo_valor}` : `Corredor ${s.escopo_valor}`);
   const dias = Number(s.dias_movimentacao);
   const diasTxt = (Number.isFinite(dias) && dias > 0) ? ` · ${dias}d mov.` : (dias === 0 ? ' · todos' : '');
-  if (s.status === 'pass1') {
+  if (s.modo === 'inventario') {
+    txt.textContent = `Inventário #${s.id} · ${esc} · bipados ${s.contados_pass1 || 0} · concluir bloco grava o estoque`;
+    if (btnP1) {
+      btnP1.textContent = 'Concluir bloco';
+      btnP1.classList.remove('hidden');
+    }
+    if (btnG) {
+      btnG.textContent = 'Encerrar';
+      btnG.classList.remove('hidden');
+    }
+  } else if (s.status === 'pass1') {
     txt.textContent = `Cíclica #${s.id} · ${esc}${diasTxt} · Passagem 1 · ${s.contados_pass1 || 0}/${s.total_itens || '?'} · cego`;
-    if (btnP1) btnP1.classList.remove('hidden');
+    if (btnP1) {
+      btnP1.textContent = 'Fechar passagem 1';
+      btnP1.classList.remove('hidden');
+    }
     if (btnG) btnG.classList.add('hidden');
   } else {
     txt.textContent = `Cíclica #${s.id} · Recontagem · ${s.contados_pass2 || 0}/${s.fila_recontagem || 0} diferenças · cego`;
@@ -3164,6 +3177,9 @@ function maCiclicaPodeSomarBip(p) {
   if (naFila) return { ok: true, forcar: false };
   const tipo = String((maCiclicaSessao && maCiclicaSessao.escopo_tipo) || '');
   const st = String((maCiclicaSessao && maCiclicaSessao.status) || '');
+  if (maCiclicaSessao && maCiclicaSessao.modo === 'inventario') {
+    return { ok: true, forcar: !naFila };
+  }
   if (tipo === 'corredor' && st === 'pass1') return { ok: true, forcar: false };
   if (maCiclicaIncluirFora) return { ok: true, forcar: true };
   return { ok: false };
@@ -3613,6 +3629,23 @@ document.getElementById('ma-ciclica-ctrl-backdrop')?.addEventListener('click', (
 document.getElementById('ma-ciclica-btn-pass1')?.addEventListener('click', () => {
   if (!maCiclicaAtiva()) return;
   const s = maCiclicaSessao;
+  if (s.modo === 'inventario') {
+    if (!confirm('Concluir este bloco? Grava no estoque só o que já foi bipado (desconta venda depois do bip) e gera amostra pra conferir. A contagem continua aberta pro próximo bloco.')) return;
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
+    maCiclicaPost(maCiclicaUrl('fechar-bloco'), {})
+      .then((d) => {
+        if (!d || !d.ok) throw new Error((d && d.erro) || 'Falha');
+        maCiclicaSessao = d.sessao || maCiclicaSessao;
+        maCiclicaPintarBar();
+        const n = (d.resumo && d.resumo.ajustes) || 0;
+        const url = (d.resumo && d.resumo.relatorio_url) || '';
+        alert('Bloco gravado: ' + n + ' itens.' + (url ? '\nAbre a amostra pra outra pessoa conferir.' : ''));
+        if (url) window.open(url, '_blank');
+      })
+      .catch((e) => alert(e.message || 'Erro'))
+      .finally(() => maResetLoading());
+    return;
+  }
   const falta = s.faltam_pass1 || 0;
   const msg = falta > 0
     ? `Faltam ~${falta} sem bip. Eles vão como ZERO. Fechar passagem 1 e abrir recontagem das diferenças?`
@@ -3641,6 +3674,22 @@ document.getElementById('ma-ciclica-btn-pass1')?.addEventListener('click', () =>
 });
 document.getElementById('ma-ciclica-btn-gravar')?.addEventListener('click', () => {
   if (!maCiclicaAtiva()) return;
+  if (maCiclicaSessao.modo === 'inventario') {
+    if (!confirm('Encerrar o inventário? Grava o que ainda estiver bipado e fecha a sessão. Itens não bipados NÃO são zerados.')) return;
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
+    maCiclicaPost(maCiclicaUrl('fechar-bloco'), { encerrar: '1' })
+      .then((d) => {
+        if (!d || !d.ok) throw new Error((d && d.erro) || 'Falha');
+        const n = (d.resumo && d.resumo.ajustes) || 0;
+        const url = (d.resumo && d.resumo.relatorio_url) || '';
+        alert('Inventário encerrado. ' + n + ' itens neste último bloco.');
+        if (url) window.open(url, '_blank');
+        maCiclicaSairModo();
+      })
+      .catch((e) => alert(e.message || 'Erro'))
+      .finally(() => maResetLoading());
+    return;
+  }
   if (!confirm('Gravar estoque agora com o resultado da recontagem? Isso altera o saldo da loja.')) return;
   if (window.gmLoadingBar) window.gmLoadingBar.show();
   maCiclicaPost(maCiclicaUrl('gravar'), {})
@@ -3654,6 +3703,20 @@ document.getElementById('ma-ciclica-btn-gravar')?.addEventListener('click', () =
     .finally(() => maResetLoading());
 });
 
+function maInventarioEntrarDireto() {
+  fetch('/api/ajuste-mobile/ciclica/minha/', { headers: { 'X-CSRFToken': MA_CSRF } })
+    .then((r) => r.json())
+    .then((d) => {
+      if (d && d.ok && d.entrar_direto && d.sessao && (d.sessao.status === 'pass1' || d.sessao.status === 'pass2')) {
+        maCiclicaAtivar(d.sessao);
+        if (typeof maMostrarToast === 'function') {
+          maMostrarToast('Inventário #' + d.sessao.id + ' · pode bipar', true);
+        }
+      }
+    })
+    .catch(() => {});
+}
+
 try {
   const sid = sessionStorage.getItem(MA_CICLICA_KEY);
   if (sid) {
@@ -3664,11 +3727,16 @@ try {
           maCiclicaAtivar(d.sessao);
         } else {
           try { sessionStorage.removeItem(MA_CICLICA_KEY); } catch (_) {}
+          maInventarioEntrarDireto();
         }
       })
-      .catch(() => {});
+      .catch(() => maInventarioEntrarDireto());
+  } else {
+    maInventarioEntrarDireto();
   }
-} catch (_) {}
+} catch (_) {
+  maInventarioEntrarDireto();
+}
   if ("serviceWorker" in navigator) {
     {% if ajuste_via_sistapp %}
     navigator.serviceWorker.register("{% url 'vendas_lojas_sw' %}", { scope: "/vendas/lojas/" }).catch(function () {});

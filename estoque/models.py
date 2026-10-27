@@ -284,6 +284,12 @@ class ContagemCiclicaSessao(models.Model):
     pass1_fechada_em = models.DateTimeField(null=True, blank=True)
     fechada_em = models.DateTimeField(null=True, blank=True)
     observacao = models.TextField(blank=True, default="")
+    modo = models.CharField(
+        max_length=20,
+        default="ciclica",
+        db_index=True,
+        help_text="ciclica = bate divergência e recontagem. inventario = conta absoluta, sem passagem 2.",
+    )
 
     class Meta:
         ordering = ["-aberta_em"]
@@ -366,6 +372,42 @@ class ContagemCiclicaParticipante(models.Model):
 
     def __str__(self):
         return f"{self.operador_rotulo} · sessão {self.sessao_id}"
+
+
+class ContagemCiclicaAtribuicao(models.Model):
+    """PIN que entra direto nesta sessão ao abrir o Ajuste."""
+
+    sessao = models.ForeignKey(
+        ContagemCiclicaSessao,
+        on_delete=models.CASCADE,
+        related_name="atribuicoes",
+    )
+    pin = models.CharField(max_length=32, db_index=True)
+    operador_rotulo = models.CharField(max_length=120, blank=True, default="")
+    entrar_direto = models.BooleanField(default=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["sessao", "pin"],
+                name="uniq_ciclica_sessao_pin",
+            )
+        ]
+
+
+class ContagemCiclicaBloco(models.Model):
+    """Fechamento parcial (ou final) do inventário + amostra para conferência."""
+
+    sessao = models.ForeignKey(
+        ContagemCiclicaSessao,
+        on_delete=models.CASCADE,
+        related_name="blocos",
+    )
+    operador_rotulo = models.CharField(max_length=120, blank=True, default="")
+    fechado_em = models.DateTimeField(auto_now_add=True)
+    encerrou = models.BooleanField(default=False)
+    itens_gravados = models.PositiveIntegerField(default=0)
+    amostra_json = models.TextField(blank=True, default="[]")
 
 
 class SolicitacaoTransferenciaPdv(models.Model):

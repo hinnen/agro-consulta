@@ -133,6 +133,34 @@
     <p class="text-[0.62rem] font-bold text-slate-400 w-full" id="cc-atualizado">Carregando…</p>
   </div>
 
+  <form id="cc-inv" class="rounded-2xl bg-white border border-emerald-200 p-3 mb-4 shadow-sm grid sm:grid-cols-2 lg:grid-cols-6 gap-2 items-end">
+    <div class="lg:col-span-6">
+      <p class="text-sm font-black text-emerald-900">Abrir inventário (conta do zero)</p>
+      <p class="text-[0.68rem] font-semibold text-slate-600">Sem recontagem. O PIN entra direto no Ajuste. Venda depois do bip entra no saldo ao concluir o bloco.</p>
+    </div>
+    <label><span class="text-[0.62rem] font-black uppercase text-slate-500">Estoque</span>
+      <select name="deposito" class="mt-1 w-full min-h-[2.75rem] rounded-xl border-2 border-slate-200 px-2 text-sm font-black">
+        <option value="centro">Centro</option>
+        <option value="vila">Vila Elias</option>
+      </select>
+    </label>
+    <label><span class="text-[0.62rem] font-black uppercase text-slate-500">Escopo</span>
+      <select name="escopo_tipo" id="cc-inv-tipo" class="mt-1 w-full min-h-[2.75rem] rounded-xl border-2 border-slate-200 px-2 text-sm font-black">
+        <option value="corredor">Corredor / área</option>
+        <option value="categoria">Categoria</option>
+        <option value="loja">Loja inteira</option>
+      </select>
+    </label>
+    <label class="sm:col-span-2"><span class="text-[0.62rem] font-black uppercase text-slate-500">Nome (corredor ou categoria)</span>
+      <input name="escopo_valor" id="cc-inv-valor" class="mt-1 w-full min-h-[2.75rem] rounded-xl border-2 border-slate-200 px-3 text-sm font-bold" placeholder="Ex.: Ração cães">
+    </label>
+    <label><span class="text-[0.62rem] font-black uppercase text-slate-500">PIN(s)</span>
+      <input name="pins" required class="mt-1 w-full min-h-[2.75rem] rounded-xl border-2 border-slate-200 px-3 text-sm font-black" placeholder="9973" inputmode="numeric">
+    </label>
+    <button type="submit" class="min-h-[2.75rem] rounded-xl bg-emerald-700 text-white text-xs font-black uppercase">Abrir e atrelar</button>
+    <p id="cc-inv-msg" class="lg:col-span-6 text-xs font-bold text-slate-600"></p>
+  </form>
+
   <div class="grid lg:grid-cols-3 gap-3">
     <div class="lg:col-span-2 space-y-3" id="cc-cards"></div>
     <div class="rounded-2xl bg-white border border-slate-200 p-3 shadow-sm">
@@ -332,6 +360,27 @@
   document.getElementById("cc-drawer-back").addEventListener("click", fecharDrawer);
   document.getElementById("d-busca").addEventListener("keydown", (e) => {
     if (e.key === "Enter" && sessaoAtual) abrirDetalhe(sessaoAtual);
+  });
+
+  document.getElementById("cc-inv").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const fd = new FormData(ev.target);
+    const msg = document.getElementById("cc-inv-msg");
+    msg.textContent = "Abrindo…";
+    const res = await fetch("{{ url_api_inventario|default:'/api/ajuste-mobile/ciclica/admin/inventario/'|escapejs }}", {
+      method: "POST",
+      body: fd,
+      credentials: "same-origin",
+      headers: { "X-CSRFToken": csrf() },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      msg.textContent = data.erro || "Não abriu.";
+      return;
+    }
+    const s = data.sessao || {};
+    msg.textContent = "Inventário #" + s.id + " aberto. PIN entra direto no Ajuste.";
+    carregar();
   });
 
   carregar();
