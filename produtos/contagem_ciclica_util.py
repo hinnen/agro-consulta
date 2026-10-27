@@ -111,6 +111,91 @@ def _mapa_saldos(pids: list[str], deposito: str) -> dict[str, float]:
     return out
 
 
+def zerar_saldo_deposito(deposito: str, *, user=None, operador_rotulo: str = "") -> dict[str, Any]:
+    """Grava saldo operacional 0 em todos os produtos ativos do depósito (pré-inventário)."""
+    dep = str(deposito or "").strip().lower()
+    if dep not in ("centro", "vila"):
+        raise ValueError("Depósito inválido. Use centro ou vila.")
+    from produtos.models import Produto
+
+    produtos = list(
+        Produto.objects.filter(ativo=True, cadastro_inativo=False)
+        .exclude(produto_externo_id__isnull=True)
+        .exclude(produto_externo_id="")
+        .only("produto_externo_id", "codigo_interno", "codigo_nfe", "nome")
+    )
+    pids = [str(p.produto_externo_id).strip() for p in produtos if p.produto_externo_id]
+    from produtos.estoque_agro_util import agro_estoque_ledger_ativo
+    from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
+
+    ledger = agro_estoque_ledger_ativo()
+    db = client = None
+    try:
+        from produtos.views import obter_conexao_mongo
+
+        db, client = obter_conexao_mongo()
+    except Exception:
+        db = client = None
+    mapa: dict[str, dict] = {}
+    for i in range(0, len(pids), 400):
+        try:
+            part = mapa_saldos_operacionais_agro(pids[i : i + 400], db=db, client=client) or {}
+        except Exception:
+            part = {}
+        mapa.update(part)
+    key_op = "saldo_vila" if dep == "vila" else "saldo_centro"
+    key_erp = "saldo_erp_vila" if dep == "vila" else "saldo_erp_centro"
+    from base.models import Empresa
+
+    empresa = Empresa.objects.filter(nome_fantasia="Agro Mais").first()
+    rot = (operador_rotulo or "Gerência")[:80]
+    batch: list[AjusteRapidoEstoque] = []
+    zerados = 0
+    ja_zero = 0
+    for p in produtos:
+        pid = str(p.produto_externo_id or "").strip()
+        if not pid:
+            continue
+        row = mapa.get(pid) or {}
+        saldo = float(row.get(key_op) or 0)
+        if abs(saldo) < 0.001:
+            ja_zero += 1
+            continue
+        erp_ref = Decimal("0") if ledger else _dec(row.get(key_erp) or 0)
+        codigo = (
+            str(getattr(p, "codigo_nfe", None) or "").strip()
+            or str(p.codigo_interno or "").strip()
+        )[:100]
+        batch.append(
+            AjusteRapidoEstoque(
+                empresa=empresa,
+                produto_externo_id=pid[:100],
+                codigo_interno=codigo,
+                nome_produto=(f"{p.nome or pid} · zerar inventário · {rot}")[:255],
+                deposito=dep,
+                saldo_erp_referencia=erp_ref,
+                saldo_informado=Decimal("0"),
+                diferenca_saldo=Decimal("0") - erp_ref,
+                origem=OrigemAjusteEstoque.AJUSTE_PIN,
+                usuario=user,
+                observacao=f"Zerar {dep} para inventário",
+            )
+        )
+        zerados += 1
+        if len(batch) >= 400:
+            AjusteRapidoEstoque.objects.bulk_create(batch)
+            batch = []
+    if batch:
+        AjusteRapidoEstoque.objects.bulk_create(batch)
+    try:
+        from produtos.views import _invalidar_caches_apos_ajuste_pin
+
+        _invalidar_caches_apos_ajuste_pin()
+    except Exception:
+        pass
+    return {"deposito": dep, "zerados": zerados, "ja_zero": ja_zero, "lidos": len(pids)}
+
+
 def _sessao_aberta_conflito(deposito: str, escopo_tipo: str, escopo_valor: str):
     dep = str(deposito or "centro").strip().lower() or "centro"
     return (

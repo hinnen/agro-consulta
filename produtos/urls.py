@@ -160,6 +160,11 @@ urlpatterns = [
         name="api_ciclica_admin_inventario",
     ),
     path(
+        "api/ajuste-mobile/ciclica/admin/zerar/",
+        contagem_ciclica_admin_views.api_ciclica_admin_zerar,
+        name="api_ciclica_admin_zerar",
+    ),
+    path(
         "api/ajuste-mobile/ciclica/admin/sessao/<int:pk>/",
         contagem_ciclica_admin_views.api_ciclica_admin_sessao,
         name="api_ciclica_admin_sessao",
