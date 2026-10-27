@@ -1309,17 +1309,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PREP ARMADO — **CHECKLIST 27/10g** · **v27.26.38** · quantidade no bloco fechado
+### ✅ Deploy loja — **CHECKLIST 27/10g** · **Live v27.26.38** · 27/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP armado** @ **`97d4b22c`** · aguarda frase + senha |
-| **Base loja** | **`6d7da78c`** (VERSION **27.26.37**) |
+| **Status** | ✅ **Live** @ **`97d4b22c`** · cutover autorizado **27/10** |
 | **Entra** | Bloco já fechado mostra a **quantidade** (não FALTA) |
-| **Fora** | Amostra no PC e soma 5+2=7 já estão na loja (**v27.26.37**) |
 | **Migrate** | **NÃO** |
 | **PDV / caixa / checkout** | **Não neste delta** |
-| **Prova** | `verify_inventario_bloco_tela_path.py` **12/12** · cutover **OK** |
 | **Revert** | `git push origin rollback/pre-v272638-2710g-bloco-qtd:producao` → **`6d7da78c`** |
 | **Pós-deploy** | `./scripts/post_deploy_checklist_2710g_bloco_qtd.sh` |
 | **Smoke** | Fechar um bloco no celular · o card mostra o número, sem FALTA |
