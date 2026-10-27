@@ -204,6 +204,12 @@
     <p id="cc-zerar-msg" class="w-full text-xs font-bold text-rose-900"></p>
   </form>
 
+  <div class="rounded-2xl bg-white border border-slate-200 p-3 mb-3 shadow-sm" id="cc-blocos-box">
+    <h2 class="text-sm font-black uppercase text-slate-800 mb-2">Amostras para imprimir</h2>
+    <p class="text-[0.68rem] font-semibold text-slate-500 mb-2">Só neste computador. O celular não abre a folha.</p>
+    <ul class="space-y-2 text-sm" id="cc-blocos"></ul>
+  </div>
+
   <div class="grid lg:grid-cols-3 gap-3">
     <div class="lg:col-span-2 space-y-3" id="cc-cards"></div>
     <div class="rounded-2xl bg-white border border-slate-200 p-3 shadow-sm">
@@ -321,6 +327,19 @@
     });
   }
 
+  function renderBlocos(items) {
+    const ul = document.getElementById("cc-blocos");
+    if (!ul) return;
+    if (!items.length) {
+      ul.innerHTML = '<li class="text-slate-500 font-semibold text-xs">Nenhum bloco concluído ainda.</li>';
+      return;
+    }
+    ul.innerHTML = items.map((b) => `<li class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+      <span><strong>#${b.id}</strong> · ${esc(b.escopo)} · ${b.itens || 0} itens · ${fmtRel(b.quando)}</span>
+      <a class="min-h-[2.4rem] px-3 rounded-xl bg-slate-900 text-white text-[0.65rem] font-black uppercase inline-flex items-center" href="${esc(b.url)}" target="_blank">Imprimir</a>
+    </li>`).join("");
+  }
+
   function renderFeed(items) {
     const ul = document.getElementById("cc-feed");
     if (!items || !items.length) {
@@ -348,6 +367,7 @@
       return;
     }
     renderCards(data);
+    renderBlocos(data.blocos || []);
     renderFeed(data.atividade || []);
   }
 

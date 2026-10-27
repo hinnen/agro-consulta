@@ -457,6 +457,14 @@ def registrar_contagem(
 
     if sessao.status == ContagemCiclicaStatus.PASS1:
         ja = linha.contado_pass1
+        linha._reaberto_bloco = False
+        if _modo_inventario(sessao) and linha.ajuste_id:
+            # Achado fora do lugar: o bloco anterior já gravou. Esta quantidade é só a nova.
+            linha._reaberto_bloco = True
+            linha.ajuste_id = None
+            linha.qtd_pass1 = Decimal("0")
+            linha.contado_pass1 = False
+            ja = False
         # Sempre soma: produto pode estar em 2+ lugares (prateleira + fundo).
         base = _dec(linha.qtd_pass1) if ja and linha.qtd_pass1 is not None else Decimal("0")
         linha.qtd_pass1 = base + q
@@ -477,6 +485,7 @@ def registrar_contagem(
                 "contado_pass1_em",
                 "nome_produto",
                 "codigo_interno",
+                "ajuste_id",
             ]
         )
         if not ja:
@@ -748,9 +757,16 @@ def fechar_bloco_inventario(
         desde = ln.contado_pass1_em or timezone.now()
         delta = delta_movimento_apos(ln.produto_externo_id, sessao.deposito, desde)
         q_contada = _dec(ln.qtd_pass1)
-        bruto = (q_contada + delta).quantize(Decimal("0.001"))
-        q_final = bruto if bruto >= 0 else Decimal("0")
         anterior = _ultimo_saldo_informado(ln.produto_externo_id, sessao.deposito)
+        if ln.qtd_final is not None:
+            # Já gravado num bloco anterior: soma só o que foi achado agora, em cima do saldo atual.
+            q_final = (anterior + q_contada).quantize(Decimal("0.001"))
+            delta = Decimal("0")
+        else:
+            bruto = (q_contada + delta).quantize(Decimal("0.001"))
+            q_final = bruto if bruto >= 0 else Decimal("0")
+        if q_final < 0:
+            q_final = Decimal("0")
         nome = (ln.nome_produto or "").strip()
         nome = (f"{nome} · inventário · {rot}" if nome else f"inventário · {rot}")[:255]
         aj = AjusteRapidoEstoque.objects.create(
@@ -879,6 +895,13 @@ def sessao_payload(sessao: ContagemCiclicaSessao, *, detalhe: bool = False) -> d
             ContagemCiclicaAtribuicao.objects.filter(sessao=sessao).values_list("pin", flat=True)
         ),
     }
+    if _modo_inventario(sessao):
+        out["contados_bloco_atual"] = ContagemCiclicaLinha.objects.filter(
+            sessao=sessao, contado_pass1=True, ajuste_id__isnull=True
+        ).count()
+        out["fechados_bloco"] = ContagemCiclicaLinha.objects.filter(
+            sessao=sessao, ajuste_id__isnull=False
+        ).count()
     if detalhe:
         qs = ContagemCiclicaLinha.objects.filter(sessao=sessao)
         if sessao.status == ContagemCiclicaStatus.PASS2:
@@ -943,12 +966,13 @@ def sessao_payload(sessao: ContagemCiclicaSessao, *, detalhe: bool = False) -> d
                 "codigo": codigo,
                 "nome": nome,
                 "categoria": ln.categoria,
-                "contado": contado,
+                "contado": bool(contado) and not ln.ajuste_id,
+                "bloco_fechado": bool(ln.ajuste_id),
                 "operador": ln.operador_pass2
                 if sessao.status == ContagemCiclicaStatus.PASS2
                 else ln.operador_pass1,
                 "auto_zero": ln.auto_zero_pass1,
-                "faltando": not contado,
+                "faltando": not contado and not ln.ajuste_id,
                 "qtd_contada": q_contada,
             }
             linhas.append(item)

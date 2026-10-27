@@ -171,6 +171,7 @@ def api_ciclica_contar(request, pk: int):
     except Exception as e:
         return JsonResponse({"ok": False, "erro": str(e)}, status=500)
     sessao.refresh_from_db()
+    reaberto = bool(getattr(ln, "_reaberto_bloco", False))
     ln.refresh_from_db()
     if sessao.status == ContagemCiclicaStatus.PASS2:
         q_acum = ln.qtd_pass2
@@ -187,6 +188,7 @@ def api_ciclica_contar(request, pk: int):
             "produto_id": ln.produto_externo_id,
             "qtd_acumulada": q_f,
             "somou": True,
+            "reaberto_bloco": reaberto,
             "sessao": sessao_payload(sessao),
         }
     )
@@ -229,7 +231,9 @@ def api_ciclica_fechar_bloco(request, pk: int):
     except Exception as e:
         return JsonResponse({"ok": False, "erro": str(e)}, status=500)
     sessao.refresh_from_db()
-    return JsonResponse({"ok": True, "resumo": resumo, "sessao": sessao_payload(sessao)})
+    return JsonResponse(
+        {"ok": True, "resumo": resumo, "sessao": sessao_payload(sessao, detalhe=True)}
+    )
 
 
 @require_POST
