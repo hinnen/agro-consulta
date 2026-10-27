@@ -23,6 +23,25 @@ from produtos.vendas_lojas_hub_sessao_util import (
 )
 
 
+def _operadores_pin_opcoes() -> list[dict]:
+    from base.operador_util import listar_operadores
+
+    rows = []
+    for op in listar_operadores(incluir_inativos=False):
+        nome = str(op.get("nome") or "").strip()
+        if not nome:
+            continue
+        rows.append(
+            {
+                "id": op.get("id"),
+                "nome": nome,
+                "codigo": str(op.get("codigo_vendedor") or "").strip(),
+            }
+        )
+    rows.sort(key=lambda r: r["nome"].lower())
+    return rows
+
+
 def _negado(request):
     accept = (request.META.get("HTTP_ACCEPT") or "").lower()
     if request.headers.get("X-Requested-With") == "XMLHttpRequest" or "application/json" in accept:
@@ -94,6 +113,8 @@ def contagem_ciclica_painel_admin(request):
             "url_hub": "/vendas/lojas/",
             "url_ajuste": "/vendas/lojas/ajuste/",
             "url_api_inventario": "/api/ajuste-mobile/ciclica/admin/inventario/",
+            "operadores_pin": _operadores_pin_opcoes(),
+            "contagem_tela_app": True,
         },
     )
 
@@ -123,6 +144,7 @@ def contagem_ciclica_painel_admin_desktop(request):
             "url_hub": "/vendas/lojas/",
             "url_ajuste": "/vendas/lojas/ajuste/",
             "url_api_inventario": "/api/ajuste-mobile/ciclica/admin/inventario/",
+            "operadores_pin": _operadores_pin_opcoes(),
         },
     )
 
@@ -141,8 +163,21 @@ def api_ciclica_admin_inventario(request):
         for p in str(request.POST.get("pins") or "").replace(";", ",").split(",")
         if p.strip()
     ]
+    from base.models import PerfilUsuario
+
+    ids = []
+    for raw in request.POST.getlist("perfil_id"):
+        try:
+            ids.append(int(raw))
+        except (TypeError, ValueError):
+            continue
+    if ids:
+        for perfil in PerfilUsuario.objects.filter(pk__in=ids, ativo=True):
+            pin = str(perfil.senha_rapida or "").strip()
+            if pin and pin not in pins:
+                pins.append(pin)
     if not pins:
-        return JsonResponse({"ok": False, "erro": "Informe ao menos um PIN."}, status=400)
+        return JsonResponse({"ok": False, "erro": "Escolha ao menos um operador."}, status=400)
     try:
         sessao = abrir_sessao(
             deposito=str(request.POST.get("deposito") or "centro"),

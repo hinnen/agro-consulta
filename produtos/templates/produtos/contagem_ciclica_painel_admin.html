@@ -6,6 +6,21 @@
   <title>Contagem cíclica · Painel gerência</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0f172a">
+  {% if contagem_tela_app %}
+  <script>
+  (function () {
+    try {
+      if (window.top === window.self) return;
+      var u = new URL(window.location.href);
+      u.searchParams.delete('agro_inapp_embed');
+      u.searchParams.delete('embed');
+      window.top.location.replace(u.pathname + u.search + u.hash);
+    } catch (e) {
+      try { window.top.location.href = '/vendas/lojas/contagem-ciclica/painel/'; } catch (_) {}
+    }
+  })();
+  </script>
+  {% endif %}
   {% include "produtos/_head_perf_mpa.html" %}
   <script src="https://cdn.tailwindcss.com"></script>
   {% include "produtos/_agro_consulta_ui.html" %}
@@ -136,7 +151,7 @@
   <form id="cc-inv" class="rounded-2xl bg-white border border-emerald-200 p-3 mb-4 shadow-sm grid sm:grid-cols-2 lg:grid-cols-6 gap-2 items-end">
     <div class="lg:col-span-6">
       <p class="text-sm font-black text-emerald-900">Abrir inventário (conta do zero)</p>
-      <p class="text-[0.68rem] font-semibold text-slate-600">Sem recontagem. O PIN entra direto no Ajuste. Venda depois do bip entra no saldo ao concluir o bloco.</p>
+      <p class="text-[0.68rem] font-semibold text-slate-600">Sem recontagem. Quem você marcar entra direto no Ajuste ao digitar o PIN dela. Venda depois do bip entra no saldo ao concluir o bloco.</p>
     </div>
     <label><span class="text-[0.62rem] font-black uppercase text-slate-500">Estoque</span>
       <select name="deposito" class="mt-1 w-full min-h-[2.75rem] rounded-xl border-2 border-slate-200 px-2 text-sm font-black">
@@ -154,9 +169,19 @@
     <label class="sm:col-span-2"><span class="text-[0.62rem] font-black uppercase text-slate-500">Nome (corredor ou categoria)</span>
       <input name="escopo_valor" id="cc-inv-valor" class="mt-1 w-full min-h-[2.75rem] rounded-xl border-2 border-slate-200 px-3 text-sm font-bold" placeholder="Ex.: Ração cães">
     </label>
-    <label><span class="text-[0.62rem] font-black uppercase text-slate-500">PIN(s)</span>
-      <input name="pins" required class="mt-1 w-full min-h-[2.75rem] rounded-xl border-2 border-slate-200 px-3 text-sm font-black" placeholder="9973" inputmode="numeric">
-    </label>
+    <div class="sm:col-span-2 lg:col-span-2">
+      <span class="text-[0.62rem] font-black uppercase text-slate-500">Operadores (RH · PIN)</span>
+      <div class="mt-1 max-h-36 overflow-y-auto rounded-xl border-2 border-slate-200 bg-slate-50 p-2 space-y-1">
+        {% for op in operadores_pin %}
+        <label class="flex items-center gap-2 min-h-[2.25rem] text-sm font-bold text-slate-800">
+          <input type="checkbox" name="perfil_id" value="{{ op.id }}" class="h-4 w-4">
+          <span>{{ op.nome }}{% if op.codigo %} <span class="text-slate-500 font-semibold">#{{ op.codigo }}</span>{% endif %}</span>
+        </label>
+        {% empty %}
+        <p class="text-xs font-bold text-slate-500">Nenhum operador ativo. Cadastre em RH · Operadores e PIN.</p>
+        {% endfor %}
+      </div>
+    </div>
     <button type="submit" class="min-h-[2.75rem] rounded-xl bg-emerald-700 text-white text-xs font-black uppercase">Abrir e atrelar</button>
     <p id="cc-inv-msg" class="lg:col-span-6 text-xs font-bold text-slate-600"></p>
   </form>
@@ -384,7 +409,10 @@
     ev.preventDefault();
     const fd = new FormData(ev.target);
     const msg = document.getElementById("cc-inv-msg");
-    msg.textContent = "Abrindo…";
+    if (!fd.getAll("perfil_id").length) {
+      msg.textContent = "Marque ao menos um operador.";
+      return;
+    }
     const res = await fetch("{{ url_api_inventario|default:'/api/ajuste-mobile/ciclica/admin/inventario/'|escapejs }}", {
       method: "POST",
       body: fd,
@@ -397,7 +425,7 @@
       return;
     }
     const s = data.sessao || {};
-    msg.textContent = "Inventário #" + s.id + " aberto. PIN entra direto no Ajuste.";
+    msg.textContent = "Inventário #" + s.id + " aberto. A pessoa entra no Ajuste com o PIN dela.";
     carregar();
   });
 

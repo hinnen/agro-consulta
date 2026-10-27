@@ -37,6 +37,7 @@ def main() -> int:
     tpl = read("produtos/templates/produtos/contagem_ciclica_painel_admin.html")
     hub = read("produtos/templates/produtos/vendas_lojas_hub.html")
     ma = read("produtos/templates/produtos/mobile_ajuste.html")
+    views = read("produtos/contagem_ciclica_admin_views.py")
 
     for n in (
         "request_pode_ver_painel_ciclica_admin",
@@ -70,6 +71,28 @@ def main() -> int:
             ok(f"tpl {n}")
         else:
             fail(f"tpl falta {n}")
+
+    if 'name="perfil_id"' in tpl and "operadores_pin" in tpl:
+        ok("tpl operadores RH")
+    else:
+        fail("tpl operadores RH")
+    if "Marque ao menos um operador." in tpl:
+        ok("tpl exige operador")
+    else:
+        fail("tpl exige operador")
+    if "contagem_tela_app" in tpl and "contagem_tela_app" in views and "_operadores_pin_opcoes" in views:
+        ok("views operadores + tela app")
+    else:
+        fail("views operadores + tela app")
+    if "Escolha ao menos um operador." in views and "perfil_id" in views:
+        ok("api perfil_id")
+    else:
+        fail("api perfil_id")
+    ext = read("produtos/templates/produtos/_agro_open_external.html")
+    if "/vendas/lojas/contagem-ciclica" in ext:
+        ok("sistapp contagens sem shell")
+    else:
+        fail("sistapp contagens sem shell")
 
     try:
         import django
