@@ -1305,7 +1305,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **AJUSTE-BLOCO-TELA** | 🟢 Pronto | **NÃO** | impressão no PC · bloco fechado · achado de novo **5+2=7** |
+| 1 | **AJUSTE-BLOCO-TELA** | 🟢 Pronto | **NÃO** | impressão no PC · bloco fechado mostra a **quantidade** (não FALTA) · achado de novo **5+2=7** |
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
