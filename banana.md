@@ -1327,7 +1327,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **Pronto para envio à produção** (frase + senha) |
-| **Migrate** | **NÃO** (os 3 pacotes) |
+| **Migrate** | **SIM** só **INVENTARIO-PIN-BLOCO** (`estoque.0021`) · demais **NÃO** |
 | **Prova (agente)** | `verify_contagem_ciclica_admin_path.py` **14/14** · `verify_ajuste_camera_bip_path.py` **20/20** · `verify_ajuste_mobile_pwa.py` **29/29** · `verify_vendas_lojas_pwa_install.py` **0** · API painel OK (PIN gerencial mock) |
 | **Smoke loja** | PIN **9973** → SistApp **Contagens** + Ajuste **Câmera**/**Painel** |
 
