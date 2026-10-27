@@ -1294,6 +1294,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 PREP ARMADO — **CHECKLIST 27/10d** · **v27.26.35** · Contagens tela cheia + operador RH
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **PREP armado** @ **`fc3466b9`** · aguarda frase + senha |
+| **Base loja** | **v27.26.28** @ **`723f96ce`** |
+| **Entra** | Item **3** Contagens em tela cheia no SistApp (F10 no PC continua na gestão) · item **4** operador pela lista do RH |
+| **Fora** | Item **2** endereço fiscal NF-e · câmera, F10 e zerar já estão na loja |
+| **Migrate** | **NÃO** |
+| **PDV / caixa / checkout** | **Não neste delta** |
+| **Prova** | `verify_contagem_ciclica_admin_path.py` **19/19** · PWA **0 falhas** · cutover **OK** |
+| **Revert** | `git push origin rollback/pre-v272635-2710d-contagens-rh:producao` → **v27.26.28** @ **`723f96ce`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2710d_contagens_rh.sh` |
+| **Smoke** | App: **Contagens** sem barra da gestão · PC F10: continua na gestão · marcar nome · **Abrir e atrelar** |
+
+
 ### ✅ Deploy loja — **CHECKLIST 27/10** · **Live v27.26.28** · 27/10
 
 | Campo | Valor |
