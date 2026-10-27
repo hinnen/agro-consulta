@@ -11687,14 +11687,20 @@ from produtos.vendas_lojas_hub_sessao_util import (
 @exigir_hub_operador_html
 def vendas_lojas_hub(request):
     """Entrada do PWA instalado: Vendas, Tarefas, Fotos, Etiquetas ou Ajuste."""
+    from produtos.contagem_ciclica_admin_util import request_pode_ver_painel_ciclica_admin
+
     return render(
         request,
         "produtos/vendas_lojas_hub.html",
-        {"operador": hub_operador_da_sessao(request)},
+        {
+            "operador": hub_operador_da_sessao(request),
+            "mostrar_painel_ciclica_admin": request_pode_ver_painel_ciclica_admin(request),
+        },
     )
 
 
 def _contexto_ajuste_mobile(request):
+    from produtos.contagem_ciclica_admin_util import request_pode_ver_painel_ciclica_admin
     from produtos.pdv_deposito_util import bootstrap_deposito, rotulo_deposito
     from produtos.vendas_lojas_ajuste_sessao_util import (
         operador_ajuste_rotulo,
@@ -11715,6 +11721,7 @@ def _contexto_ajuste_mobile(request):
         "ajuste_deposito_inicial_label": rotulo_deposito(dep),
         "ajuste_deposito_travado": travado,
         "ajuste_pedir_loja": pedir_loja,
+        "mostrar_painel_ciclica_admin": request_pode_ver_painel_ciclica_admin(request),
     }
 
 

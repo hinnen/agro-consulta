@@ -27,6 +27,7 @@ from . import ajuste_codigo_pendente_views
 from . import views_planos_conta
 from . import views_conta_bancaria_loja
 from . import contagem_ciclica_views
+from . import contagem_ciclica_admin_views
 from . import views_fotos_produto
 from . import views_etiquetas_solicitacao
 from . import views_meta_vendas
@@ -137,6 +138,26 @@ urlpatterns = [
         "api/ajuste-mobile/ciclica/<int:pk>/cancelar/",
         contagem_ciclica_views.api_ciclica_cancelar,
         name="api_ciclica_cancelar",
+    ),
+    path(
+        "api/ajuste-mobile/ciclica/admin/painel/",
+        contagem_ciclica_admin_views.api_ciclica_admin_painel,
+        name="api_ciclica_admin_painel",
+    ),
+    path(
+        "api/ajuste-mobile/ciclica/admin/sessao/<int:pk>/",
+        contagem_ciclica_admin_views.api_ciclica_admin_sessao,
+        name="api_ciclica_admin_sessao",
+    ),
+    path(
+        "vendas/lojas/contagem-ciclica/painel/",
+        contagem_ciclica_admin_views.contagem_ciclica_painel_admin,
+        name="contagem_ciclica_painel_admin",
+    ),
+    path(
+        "gestao/contagem-ciclica/painel/",
+        contagem_ciclica_admin_views.contagem_ciclica_painel_admin_desktop,
+        name="contagem_ciclica_painel_admin_desktop",
     ),
     path("api/bug-report/", bug_report_views.api_bug_report_criar, name="api_bug_report_criar"),
     path("api/bug-report/<int:pk>/status/", bug_report_views.api_bug_report_status, name="api_bug_report_status"),
