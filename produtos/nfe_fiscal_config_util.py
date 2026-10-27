@@ -93,6 +93,48 @@ def _digits(raw: Any, n: int = 14) -> str:
     return re.sub(r"\D", "", str(raw or ""))[:n]
 
 
+def codigo_digitos_ou_erro(raw: Any, n: int, rotulo: str) -> tuple[str, str | None]:
+    """Vazio é permitido (rascunho). Preenchido exige exatamente n dígitos. Não completa zeros."""
+    s = str(raw or "").strip()
+    if not s:
+        return "", None
+    d = re.sub(r"\D", "", s)
+    if len(d) != n:
+        return d, f"{rotulo} deve ter {n} dígitos."
+    return d, None
+
+
+def erros_formato_ncm(ncm: Any) -> str | None:
+    _d, err = codigo_digitos_ou_erro(ncm, 8, "NCM")
+    return err
+
+
+def erros_formato_cst(cst_pis: Any, cst_cofins: Any) -> list[str]:
+    erros: list[str] = []
+    _p, e1 = codigo_digitos_ou_erro(cst_pis, 2, "CST PIS")
+    _c, e2 = codigo_digitos_ou_erro(cst_cofins, 2, "CST COFINS")
+    if e1:
+        erros.append(e1)
+    if e2:
+        erros.append(e2)
+    return erros
+
+
+def erros_formato_regra(obj) -> list[str]:
+    erros: list[str] = []
+    _cfop, e_cfop = codigo_digitos_ou_erro(getattr(obj, "cfop", ""), 4, "CFOP")
+    _csosn, e_csosn = codigo_digitos_ou_erro(getattr(obj, "csosn", ""), 3, "CSOSN")
+    if e_cfop:
+        erros.append(e_cfop)
+    if e_csosn:
+        erros.append(e_csosn)
+    erros.extend(erros_formato_cst(getattr(obj, "cst_pis", ""), getattr(obj, "cst_cofins", "")))
+    e_ncm = erros_formato_ncm(getattr(obj, "ncm", ""))
+    if e_ncm:
+        erros.append(e_ncm)
+    return erros
+
+
 def _usuario_nome(user) -> str:
     if not user or not getattr(user, "is_authenticated", False):
         return ""
@@ -570,8 +612,14 @@ def salvar_pis(estab: str, body: dict, user) -> dict[str, Any]:
         return err
     obj, created = NfeParametroPisCofins.objects.get_or_create(estabelecimento=loja)
     antes = _snap_model(obj)
-    obj.cst_pis = str(body.get("cst_pis") or "").strip()[:4]
-    obj.cst_cofins = str(body.get("cst_cofins") or "").strip()[:4]
+    cst_pis, e_pis = codigo_digitos_ou_erro(body.get("cst_pis"), 2, "CST PIS")
+    if e_pis:
+        return {"ok": False, "erro": e_pis}
+    cst_cofins, e_cof = codigo_digitos_ou_erro(body.get("cst_cofins"), 2, "CST COFINS")
+    if e_cof:
+        return {"ok": False, "erro": e_cof}
+    obj.cst_pis = cst_pis
+    obj.cst_cofins = cst_cofins
     obj.vigencia_inicio = _date_or_none(body.get("vigencia_inicio"))
     obj.vigencia_fim = _date_or_none(body.get("vigencia_fim"))
     erro_vig = vigencia_ou_erro(obj.vigencia_inicio, obj.vigencia_fim)
@@ -584,12 +632,21 @@ def salvar_pis(estab: str, body: dict, user) -> dict[str, Any]:
         for row in ex[:80]:
             if not isinstance(row, dict):
                 continue
+            ncm, e_ncm = codigo_digitos_ou_erro(row.get("ncm"), 8, "NCM")
+            if e_ncm:
+                return {"ok": False, "erro": e_ncm}
+            cst_p, e_p = codigo_digitos_ou_erro(row.get("cst_pis"), 2, "CST PIS")
+            if e_p:
+                return {"ok": False, "erro": e_p}
+            cst_c, e_c = codigo_digitos_ou_erro(row.get("cst_cofins"), 2, "CST COFINS")
+            if e_c:
+                return {"ok": False, "erro": e_c}
             item = {
                 "operacao": str(row.get("operacao") or "").strip()[:120],
                 "produto": str(row.get("produto") or "").strip()[:120],
-                "ncm": _digits(row.get("ncm"), 8),
-                "cst_pis": str(row.get("cst_pis") or "").strip()[:4],
-                "cst_cofins": str(row.get("cst_cofins") or "").strip()[:4],
+                "ncm": ncm,
+                "cst_pis": cst_p,
+                "cst_cofins": cst_c,
                 "observacoes": str(row.get("observacoes") or "").strip()[:400],
             }
             if any(item.values()):
@@ -794,12 +851,27 @@ def salvar_regra(estab: str, body: dict, user) -> dict[str, Any]:
         escopo = NfeRegraOperacao.Escopo.GERAL
     obj.escopo = escopo
     obj.categoria = str(body.get("categoria") or "").strip()[:120]
-    obj.ncm = _digits(body.get("ncm"), 8)
     obj.produto_id_externo = str(body.get("produto_id_externo") or "").strip()[:40]
-    obj.cfop = str(body.get("cfop") or "").strip()[:4]
-    obj.csosn = str(body.get("csosn") or "").strip()[:4]
-    obj.cst_pis = str(body.get("cst_pis") or "").strip()[:4]
-    obj.cst_cofins = str(body.get("cst_cofins") or "").strip()[:4]
+    cfop, e_cfop = codigo_digitos_ou_erro(body.get("cfop"), 4, "CFOP")
+    if e_cfop:
+        return {"ok": False, "erro": e_cfop}
+    csosn, e_csosn = codigo_digitos_ou_erro(body.get("csosn"), 3, "CSOSN")
+    if e_csosn:
+        return {"ok": False, "erro": e_csosn}
+    cst_pis, e_pis = codigo_digitos_ou_erro(body.get("cst_pis"), 2, "CST PIS")
+    if e_pis:
+        return {"ok": False, "erro": e_pis}
+    cst_cofins, e_cof = codigo_digitos_ou_erro(body.get("cst_cofins"), 2, "CST COFINS")
+    if e_cof:
+        return {"ok": False, "erro": e_cof}
+    ncm, e_ncm = codigo_digitos_ou_erro(body.get("ncm"), 8, "NCM")
+    if e_ncm:
+        return {"ok": False, "erro": e_ncm}
+    obj.cfop = cfop
+    obj.csosn = csosn
+    obj.cst_pis = cst_pis
+    obj.cst_cofins = cst_cofins
+    obj.ncm = ncm
     obj.vigencia_inicio = _date_or_none(body.get("vigencia_inicio"))
     obj.vigencia_fim = _date_or_none(body.get("vigencia_fim"))
     erro_vig = vigencia_ou_erro(obj.vigencia_inicio, obj.vigencia_fim)
@@ -876,7 +948,10 @@ def salvar_st(estab: str, body: dict, user) -> dict[str, Any]:
     antes = _snap_model(obj) if obj.pk else {}
     obj.tipo = str(body.get("tipo") or "st").strip()[:16] or "st"
     obj.uf_destino = str(body.get("uf_destino") or "").strip().upper()[:2]
-    obj.ncm = _digits(body.get("ncm"), 8)
+    ncm, e_ncm = codigo_digitos_ou_erro(body.get("ncm"), 8, "NCM")
+    if e_ncm:
+        return {"ok": False, "erro": e_ncm}
+    obj.ncm = ncm
     obj.condicao = str(body.get("condicao") or "").strip()[:200]
     obj.fundamentacao = str(body.get("fundamentacao") or "").strip()[:4000]
     obj.observacoes = str(body.get("observacoes") or "").strip()[:4000]
@@ -1140,6 +1215,14 @@ def erros_prontidao(tipo: str, obj) -> list[str]:
     elif tipo == "pis":
         if not str(obj.cst_pis or "").strip() or not str(obj.cst_cofins or "").strip():
             erros.append("Informe CST PIS e CST COFINS antes de validar.")
+        erros.extend(erros_formato_cst(obj.cst_pis, obj.cst_cofins))
+        for i, row in enumerate(obj.excecoes_json if isinstance(obj.excecoes_json, list) else [], start=1):
+            if not isinstance(row, dict):
+                continue
+            erros.extend(erros_formato_cst(row.get("cst_pis"), row.get("cst_cofins")))
+            e_ncm = erros_formato_ncm(row.get("ncm"))
+            if e_ncm:
+                erros.append(f"Exceção {i}: {e_ncm}")
         err = vigencia_ou_erro(obj.vigencia_inicio, obj.vigencia_fim)
         if err:
             erros.append(err)
@@ -1165,6 +1248,7 @@ def erros_prontidao(tipo: str, obj) -> list[str]:
             erros.append("Informe a categoria da exceção.")
         if obj.escopo == NfeRegraOperacao.Escopo.PRODUTO and not (str(obj.ncm or "").strip() or str(obj.produto_id_externo or "").strip()):
             erros.append("Informe NCM ou produto da exceção.")
+        erros.extend(erros_formato_regra(obj))
         err = vigencia_ou_erro(obj.vigencia_inicio, obj.vigencia_fim)
         if err:
             erros.append(err)
@@ -1173,6 +1257,9 @@ def erros_prontidao(tipo: str, obj) -> list[str]:
             erros.append("Informe UF, NCM ou condição da exceção ST/DIFAL.")
         if not str(obj.fundamentacao or "").strip():
             erros.append("Informe a fundamentação antes de validar.")
+        e_ncm = erros_formato_ncm(obj.ncm)
+        if e_ncm:
+            erros.append(e_ncm)
     elif tipo == "questionario":
         if not str(obj.resposta or "").strip():
             erros.append("Preencha a resposta antes de validar.")

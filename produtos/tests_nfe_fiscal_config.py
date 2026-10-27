@@ -41,6 +41,8 @@ from produtos.nfe_fiscal_config_util import (
     salvar_empresa,
     salvar_pis,
     salvar_questionario_item,
+    salvar_regra,
+    salvar_st,
     texto_questionario,
     validar_registro,
 )
@@ -238,6 +240,64 @@ class NfeFiscalConfigValidacaoTests(TestCase):
         )
         self.assertFalse(r["ok"])
         self.assertIn("Vigência", r["erro"])
+
+
+class NfeFiscalConfigCodigosFormatoTests(TestCase):
+    def setUp(self):
+        self.staff = User.objects.create_user("adm", "adm@t.local", "x", is_staff=True)
+
+    def test_salvar_rejeita_cfop_csosn_cst_ncm_malformados(self):
+        a = salvar_regra("centro", {"ambito": "interna", "cfop": "510"}, self.staff)
+        self.assertFalse(a["ok"])
+        self.assertIn("4 dígitos", a["erro"])
+        b = salvar_regra("centro", {"csosn": "10"}, self.staff)
+        self.assertFalse(b["ok"])
+        self.assertIn("3 dígitos", b["erro"])
+        c = salvar_pis("centro", {"cst_pis": "1", "cst_cofins": "01"}, self.staff)
+        self.assertFalse(c["ok"])
+        self.assertIn("2 dígitos", c["erro"])
+        d = salvar_st("centro", {"ncm": "2309"}, self.staff)
+        self.assertFalse(d["ok"])
+        self.assertIn("8 dígitos", d["erro"])
+
+    def test_ncm_vazio_e_permitido_no_rascunho(self):
+        r = salvar_regra("centro", {"ambito": "interna", "ncm": ""}, self.staff)
+        self.assertTrue(r["ok"])
+        self.assertEqual(r["item"]["ncm"], "")
+
+    def test_nao_valida_regra_com_codigo_malformado(self):
+        obj = NfeRegraOperacao.objects.create(
+            estabelecimento="centro",
+            ambito="interna",
+            tipo_destinatario="consumidor",
+            cfop="510",
+            csosn="12",
+            cst_pis="1",
+            cst_cofins="1",
+            ncm="2309",
+            status=NfeFiscalStatus.PREENCHIDO,
+        )
+        v = validar_registro("regra", obj.pk, self.staff, "centro", _CONTADOR)
+        self.assertFalse(v["ok"])
+        blob = " ".join(v.get("erros") or [v["erro"]])
+        self.assertIn("4 dígitos", blob)
+        self.assertIn("3 dígitos", blob)
+        self.assertIn("2 dígitos", blob)
+        self.assertIn("8 dígitos", blob)
+        obj.refresh_from_db()
+        self.assertEqual(obj.status, NfeFiscalStatus.PREENCHIDO)
+
+    def test_nao_valida_pis_cst_malformado(self):
+        r = salvar_pis("centro", {"cst_pis": "49", "cst_cofins": "49", **_CONTADOR}, self.staff)
+        self.assertTrue(r["ok"])
+        obj = NfeParametroPisCofins.objects.get(pk=r["pis"]["id"])
+        obj.cst_pis = "9"
+        obj.save(update_fields=["cst_pis"])
+        v = validar_registro("pis", obj.pk, self.staff, "centro", _CONTADOR)
+        self.assertFalse(v["ok"])
+        self.assertIn("2 dígitos", v["erro"])
+        obj.refresh_from_db()
+        self.assertNotEqual(obj.status, NfeFiscalStatus.VALIDADO)
 
 
 class NfeFiscalConfigContadorTests(TestCase):

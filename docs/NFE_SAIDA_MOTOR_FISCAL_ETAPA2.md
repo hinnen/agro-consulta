@@ -12,10 +12,12 @@
 - Questionário: copiar texto + impressão do navegador (PDF).
 - Status: Pendente / Preenchido / Validado. Preencher **não** valida.
 - Validar exige cadastro completo + nome/CRC/data do **contador** (distinto do usuário staff que clicou).
+- Formato ao validar (e ao gravar se preenchido): CFOP 4 dígitos, CSOSN 3, CST PIS/COFINS 2, NCM 8 quando informado. Sem tabela de códigos e sem completar zeros.
 - APIs de gravação recusam estabelecimento desconhecido (não assumem Centro).
 - Exceções PIS/COFINS: operação, produto, NCM, CST PIS, CST COFINS.
 - Página: DOM com `textContent` / `.value` (sem `innerHTML` de dados).
-- Migração `0153` (campos do contador). `0152` verificada em Postgres descartável; `0039` documentada, sem reescrita.
+- Migração `0153` (campos do contador). `0152`/`0153` via `migrate` após histórico até `0151` em Postgres descartável.
+- `0039` (SQLite `get_model`) e `0065` (seed vivo lê `exibir_pdv` da `0085`) diagnosticadas, **sem** reescrita e **sem** fake em produção/staging. Em staging a `0065` já está aplicada; o risco da `0065` é banco vazio, não o `migrate` de `0152`.
 
 ## Modelos (`produtos.0152_nfe_fiscal_config` + `0153_nfe_fiscal_contador`)
 
