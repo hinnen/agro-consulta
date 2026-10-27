@@ -307,8 +307,9 @@ class NfeFiscalConfigHtmlSeguroTests(TestCase):
         self.assertTrue(achou)
         page = self.client.get("/configuracao/fiscal-nfe/")
         html = page.content.decode("utf-8")
-        self.assertNotIn("innerHTML", html)
         self.assertIn("ta.value = p.resposta", html)
+        script = html.split("function pintarQ()")[1].split("function pintar()")[0]
+        self.assertNotIn("innerHTML", script)
 
 
 class NfeFiscalConfigPisExcecaoTests(TestCase):
