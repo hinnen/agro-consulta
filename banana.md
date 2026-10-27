@@ -1346,15 +1346,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Escopo** | Checkout PDV · gravar **endereço fiscal** no cliente (`fiscal_nfe`) |
 | **Migrate** | **NÃO** |
 
-### 📦 PACOTE PRONTO — **LOTE 27/10** · **v27.26.33** · PREP `teste` @ **`78c6f689`**
+### 📦 PACOTE PRONTO — **LOTE 27/10** · **v27.26.34** · PREP `teste` @ **`aa5cb818`**
 
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **Pronto para envio à produção** (frase + senha) |
 | **Migrate** | **SIM** só `estoque.0021` · demais **NÃO** |
-| **Entra** | Câmera · painel celular · **F10 → Contagens** · inventário com **operador da lista RH** · bloco + amostra · zerar (**ZERAR**) · endereço fiscal NF-e |
-| **Prova** | Câmera **20/20** · painel **14/14** · PWA **29/29** · zeragem **8 → 0** · venda após bip **3 − 1 = 2** · abrir inventário por operador **200** (tela sem campo de PIN) |
-| **Smoke seu** | Ctrl+F5 · F10 · marcar um nome · **Abrir e atrelar** · essa pessoa entra no Ajuste |
+| **Entra** | Câmera · **Contagens no app em tela cheia** · **F10** na gestão · inventário pela lista RH · bloco + amostra · zerar (**ZERAR**) · endereço fiscal NF-e |
+| **Prova** | Câmera **20/20** · painel **14/14** · PWA **0 falhas** (Contagens sem shell) · zeragem **8 → 0** · venda após bip **3 − 1 = 2** · operador **200** |
+| **Smoke seu** | App: **Contagens** sem barra da gestão · F10: continua na gestão · marcar nome · **Abrir e atrelar** |
 
 ### ✅ CHECKLIST ÚNICO — **27/10** · 🟢 **pronto para envio à produção**
 
