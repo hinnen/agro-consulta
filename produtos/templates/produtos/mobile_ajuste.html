@@ -832,8 +832,14 @@
       <span class="ma-head-op-txt" title="Quem abriu com PIN — todos os ajustes desta sessão">Operador: {{ ajuste_operador }}</span>
       {% if ajuste_via_sistapp %}
       <a href="{% url 'vendas_lojas_hub' %}" class="ma-head-op-link" title="Voltar ao menu SistApp">Início</a>
+      {% if mostrar_painel_ciclica_admin %}
+      <a href="{% url 'contagem_ciclica_painel_admin' %}" class="ma-head-op-link" title="Painel gerência — contagens em aberto">Painel</a>
+      {% endif %}
       <a href="{% url 'vendas_lojas_pin' %}?trocar=1&amp;next={{ request.path|urlencode }}" class="ma-head-op-link" title="Trocar operador">Trocar PIN</a>
       {% else %}
+      {% if mostrar_painel_ciclica_admin %}
+      <a href="{% url 'contagem_ciclica_painel_admin' %}" class="ma-head-op-link" title="Painel gerência — contagens em aberto">Painel</a>
+      {% endif %}
       <a href="{% url 'ajuste_mobile' %}" class="ma-head-op-link" title="Trocar operador (pede PIN de novo)">Trocar</a>
       {% endif %}
     </div>

@@ -1305,6 +1305,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `scripts/verify_ajuste_camera_bip_path.py` **20/20** · `verify_ajuste_mobile_pwa.py` **29/29** · `verify_vendas_lojas_pwa_install.py` **0 falhas** |
 | **Smoke loja** | SistApp → **Ajuste** → **Câmera** · ligar **Bip +1** · bipar 2+ produtos sem fechar · sem Bip +1 = busca e fecha |
 
+### 📦 PACOTE PRONTO — **CICLICA-ADMIN-PAINEL** · **v27.26.29** · 27/10c
+
+| Campo | Valor |
+| ----- | ----- |
+| **Escopo** | Painel gerência · contagens cíclicas **em aberto** (KPI, progresso %, equipe, feed, variância R$) · só **PIN gerencial** ou **gerência hub** |
+| **URLs** | `/vendas/lojas/contagem-ciclica/painel/` · PC staff `/gestao/contagem-ciclica/painel/` |
+| **Migrate** | **NÃO** |
+| **Smoke** | SistApp com PIN gerência → card **Contagens** ou Ajuste → **Painel** |
+
 ### 📦 PACOTE PRONTO — **NFE-55-FISCAL-ENDERECO-PDV** · **v27.26.28** · 27/10b
 
 | Campo | Valor |
@@ -1319,6 +1328,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- | ----- |
 | 1 | **AJUSTE-CAMERA-BIP** | 🟢 Pronto | **NÃO** | `verify_ajuste_camera_bip_path.py` |
 | 2 | **NFE-55-FISCAL-ENDERECO-PDV** | 🟢 Pronto | **NÃO** | commit `8013473a` |
+| 3 | **CICLICA-ADMIN-PAINEL** | 🟢 Pronto | **NÃO** | `verify_contagem_ciclica_admin_path.py` · `/vendas/lojas/contagem-ciclica/painel/` |
 
 ### ✅ Deploy loja — **CHECKLIST 25/10** · **Live v27.26.27** · 25/10
 
