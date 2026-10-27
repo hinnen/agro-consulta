@@ -2257,7 +2257,11 @@ function maPintarCiclicaFocus(fila, resumoTxt) {
     lblF.className = 'ma-ciclica-sec-label';
     lblF.textContent = `Bloco já fechado · ${fechados.length} · próximo bloco é o que bipar agora`;
     l.appendChild(lblF);
-    fechados.forEach((p) => l.appendChild(maCriarCardCiclica(p, 'fechado')));
+    fechados.forEach((p) => {
+      p._blocoFechado = true;
+      p._ciclicaFalta = false;
+      l.appendChild(maCriarCardCiclica(p, 'fechado'));
+    });
   }
 
   const maxPend = 24;
@@ -2644,6 +2648,11 @@ function buscar(q) {
 
 function maCiclicaNumHtml(p, escMa) {
   if (p._ciclicaFora) return '<span class="ma-card-contagem is-fora">FORA</span>';
+  if (p._blocoFechado) {
+    const nf = maFmtQtdContada(p._ciclicaQtd);
+    if (nf !== '') return `<span class="ma-card-contagem is-qtd" title="Quantidade do bloco fechado">${escMa(nf)}</span>`;
+    return '<span class="ma-card-contagem is-ok">OK</span>';
+  }
   if (p._ciclicaFalta) return '<span class="ma-card-contagem is-pendente">FALTA</span>';
   const n = maFmtQtdContada(p._ciclicaQtd);
   if (n !== '') {
