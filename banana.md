@@ -1292,7 +1292,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
-### 📦 PACOTE PRONTO — **AJUSTE-BLOCO-TELA** · **v27.26.37** · PREP `teste` @ **`3c198ebe`**
+### 📦 PACOTE PRONTO — **AJUSTE-BLOCO-TELA** · **v27.26.38** · PREP `teste` @ **`5ab58a92`**
 
 | Campo | Valor |
 | ----- | ----- |
