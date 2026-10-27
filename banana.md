@@ -1294,6 +1294,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ CHECKLIST ÚNICO — **27/10g** · 🟢 **pronto envio produção** · **NFE-FISCAL-PADRAO**
+
+| # | Item | Status | Migrate | Prova |
+| - | ---- | ------ | ------- | ----- |
+| 1 | Botão **Preencher configuração padrão** em `/configuracao/fiscal-nfe/` | 🟢 Pronto | **NÃO** | `verify_nfe_fiscal_padrao_path` + `tests_nfe_fiscal_padrao` |
+| 2 | CRT 1 · CST 49 · regras 5102/102 Preenchido (Centro/Vila) | 🟢 Pronto | **NÃO** | HTTP staff · sem Validado · sem 101/500 |
+| 3 | NFC-e / PDV / caixa / transmitir NF-e | ✅ Intocado | **NÃO** | path sem `emitir` |
+
+| Campo | Valor |
+| ----- | ----- |
+| **Pacote** | **v27.26.38** · **NFE-FISCAL-PADRAO** |
+| **O quê** | Prévia Centro/Vila · preenche só vazio · série Centro (CNPJ da matriz) · Vila série pendente |
+| **Ainda falta (contador, não sobe código)** | Validar · % crédito SN (101) · série Vila · NCM/produto · ST 5405/500 |
+| **Smoke** | admin · `/configuracao/fiscal-nfe/` · botão · Centro e Vila · **não** emitir |
+| **PIN teste** | **9973** (só se for emitir NF-e; o botão de padrão **não** transmite) |
+
+### 📦 PACOTE PRONTO — **NFE-FISCAL-PADRAO** · **v27.26.38** · 27/10g
+
+| Campo | Valor |
+| ----- | ----- |
+| **Paths** | `nfe_fiscal_padrao_util.py` · `views_nfe_fiscal_config.py` · `fiscal_nfe_config.html` · `urls.py` · `tests_nfe_fiscal_padrao.py` · `verify_nfe_fiscal_padrao_path.py` |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-2710g-nfe-fiscal-padrao.md` |
+| **Branch** | `cursor/nfe-fiscal-padrao-1e79` + prova · push `teste` |
+| **Loja** | botão já no tip `producao` @ `6d7da78c`; **falta subir** v27.26.38 (filtro CNPJ da série + prova + banana) |
+
 ### ✅ CHECKLIST ÚNICO — **25/10** · 🟢 **pronto envio produção** · **NFE-55-FISCAL-PL010f**
 
 | # | Item | Status | Migrate | Prova |

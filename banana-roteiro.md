@@ -1106,3 +1106,13 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 **PREP:** `deploy/prep-checklist-1810f-nfe-sefaz-danfe-pdv` @ **`0945ef79`**.  
 **Doc:** `docs/DEPLOY-PREP-CHECKLIST-1810f-nfe-sefaz-danfe-pdv.md`.
+
+---
+
+## 90. CHECKLIST ÚNICO — **27/10g** · 🟢 **pronto envio produção** · **v27.26.38**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NFE-FISCAL-PADRAO** | 🟢 pronto | **NÃO** | `verify_nfe_fiscal_padrao_path.py` |
+
+Botão em `/configuracao/fiscal-nfe/`. Sem transmitir. Falta: Validar · crédito 101 · série Vila · NCM · ST 500.
