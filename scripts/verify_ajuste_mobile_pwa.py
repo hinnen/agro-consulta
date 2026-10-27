@@ -60,7 +60,10 @@ def main() -> int:
     check("sw_passthrough", "respondWith(fetch" in sw)
     check("sw_sem_cache_store", "caches.open" not in sw and "cache.put" not in sw)
     check("sw_allowed", 'Service-Worker-Allowed' in sw and "/ajuste-mobile/" in sw)
-    check("view_pin_igual", "ajuste_mobile_gate" in view)
+    check(
+        "view_redirect_sistapp",
+        "vendas_lojas_ajuste_mobile" in view and "vendas_lojas_pin" in view,
+    )
     check("icon_192", (ROOT / "produtos/static/produtos/pwa/ajuste-mobile-192.png").is_file())
     check("icon_512", (ROOT / "produtos/static/produtos/pwa/ajuste-mobile-512.png").is_file())
     check("tpl_ma_manifest", "ajuste_mobile_manifest" in ma)

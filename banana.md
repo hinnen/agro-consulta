@@ -1294,6 +1294,32 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — **AJUSTE-CAMERA-BIP** · **v27.26.28** · 27/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **Pronto no `teste`** — aguarda frase + senha para `producao` |
+| **Escopo** | SistApp **Ajuste** (`/vendas/lojas/ajuste/`) · botão **Câmera** na busca · scan **contínuo** com **Bip +1** · `html5-qrcode` |
+| **Migrate** | **NÃO** |
+| **PDV / caixa / NFC-e** | **Não neste pacote** |
+| **Prova** | `scripts/verify_ajuste_camera_bip_path.py` **20/20** · `verify_ajuste_mobile_pwa.py` **29/29** · `verify_vendas_lojas_pwa_install.py` **0 falhas** |
+| **Smoke loja** | SistApp → **Ajuste** → **Câmera** · ligar **Bip +1** · bipar 2+ produtos sem fechar · sem Bip +1 = busca e fecha |
+
+### 📦 PACOTE PRONTO — **NFE-55-FISCAL-ENDERECO-PDV** · **v27.26.28** · 27/10b
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **No `teste`** (hotfix pós-25/10) — mesmo cutover ou depois do Ajuste |
+| **Escopo** | Checkout PDV · gravar **endereço fiscal** no cliente (`fiscal_nfe`) |
+| **Migrate** | **NÃO** |
+
+### ✅ CHECKLIST ÚNICO — **27/10** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **AJUSTE-CAMERA-BIP** | 🟢 Pronto | **NÃO** | `verify_ajuste_camera_bip_path.py` |
+| 2 | **NFE-55-FISCAL-ENDERECO-PDV** | 🟢 Pronto | **NÃO** | commit `8013473a` |
+
 ### ✅ Deploy loja — **CHECKLIST 25/10** · **Live v27.26.27** · 25/10
 
 | Campo | Valor |
