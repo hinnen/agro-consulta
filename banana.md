@@ -1322,14 +1322,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Escopo** | Checkout PDV · gravar **endereço fiscal** no cliente (`fiscal_nfe`) |
 | **Migrate** | **NÃO** |
 
-### 📦 PACOTE PRONTO — **LOTE 27/10** · **v27.26.29** · PREP `teste` @ **`a40d3f5b`**
+### 📦 PACOTE PRONTO — **LOTE 27/10** · **v27.26.31** · PREP `teste` @ **`af65890a`**
 
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **Pronto para envio à produção** (frase + senha) |
-| **Migrate** | **SIM** só **INVENTARIO-PIN-BLOCO** (`estoque.0021`) · demais **NÃO** |
-| **Prova (agente)** | `verify_contagem_ciclica_admin_path.py` **14/14** · `verify_ajuste_camera_bip_path.py` **20/20** · `verify_ajuste_mobile_pwa.py` **29/29** · `verify_vendas_lojas_pwa_install.py` **0** · API painel OK (PIN gerencial mock) |
-| **Smoke loja** | PIN **9973** → SistApp **Contagens** + Ajuste **Câmera**/**Painel** |
+| **Migrate** | **SIM** só `estoque.0021` · demais **NÃO** |
+| **Entra** | Câmera no Ajuste · painel gerência · inventário por PIN · concluir bloco + amostra · **zerar saldo** (digitar **ZERAR**) · endereço fiscal NF-e |
+| **Prova** | Câmera **20/20** · painel admin **14/14** · PWA **29/29** · zeragem **8 → 0** · venda após bip **3 − 1 = 2** |
+| **Smoke seu** | Celular: formulários, PIN direto, bloco, câmera, zerar só num ensaio |
 
 ### ✅ CHECKLIST ÚNICO — **27/10** · 🟢 **pronto para envio à produção**
 
