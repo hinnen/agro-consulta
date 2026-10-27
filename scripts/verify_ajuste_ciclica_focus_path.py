@@ -69,8 +69,20 @@ check_text(
     "maCiclicaRegistrarBip",
     "maCiclicaAplicarQtdLocal",
     "Cíclica · bipar",
+    "ma-btn-camera",
+    "ma-busca-row",
     label="html",
 )
+
+hide_head = "body.ma-ciclica-focus .ma-head"
+if hide_head in js and "ma-btn-camera" in js:
+    bloco = js[js.find(hide_head) : js.find("body.ma-ciclica-focus #lista-scroll")]
+    if "ma-btn-camera" in bloco and "display: none" in bloco.split("ma-btn-camera")[1][:120]:
+        fail("cíclica foco esconde o botão Câmera")
+    else:
+        ok("cíclica foco mantém Câmera na busca")
+else:
+    fail("não conferiu Câmera no modo foco")
 
 # Busca no foco maior que o modo normal (3.85 era o antigo)
 if "body.ma-ciclica-focus #busca" in js and "min-height: 4.85rem" in js:

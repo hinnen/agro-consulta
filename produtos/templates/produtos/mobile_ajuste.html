@@ -234,6 +234,39 @@
     .ma-head-title-txt span { color: #10b981; }
     .ma-head-btn--hist { background: #f1f5f9; color: #334155; }
     .ma-head-btn--scan { background: #0f172a; color: #fff; border-color: #0f172a; }
+    .ma-head-btn--scan.is-on { background: #059669; border-color: #047857; }
+    .ma-busca-row {
+      display: flex;
+      align-items: stretch;
+      gap: 0.45rem;
+    }
+    .ma-busca-row #busca {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .ma-btn-camera {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 5.6rem;
+      min-height: 3.25rem;
+      padding: 0 0.7rem;
+      border-radius: 1rem;
+      border: 2px solid #0f172a;
+      background: #0f172a;
+      color: #fff;
+      font-size: 0.78rem !important;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      line-height: 1.1 !important;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .ma-btn-camera.is-on {
+      background: #059669;
+      border-color: #047857;
+    }
     .ma-head-row--op { background: #ecfdf5; }
     .ma-head-op-txt {
       flex: 1 1 auto;
@@ -621,8 +654,12 @@
       font-size: 1.28rem;
       padding-top: 1.15rem;
       padding-bottom: 1.15rem;
-      padding-right: 3.25rem;
       border-width: 3px;
+    }
+    body.ma-ciclica-focus .ma-btn-camera {
+      min-height: 4.85rem;
+      min-width: 6.1rem;
+      font-size: 0.92rem !important;
     }
     body.ma-ciclica-focus #lista-scroll {
       flex: 1 1 auto;
@@ -794,7 +831,7 @@
       <button type="button" id="ma-btn-ciclica" class="ma-head-btn ma-head-btn--hist" title="Contagem cíclica (cego, multi-celular)">Cíclica</button>
       <a href="{% url 'ajuste_codigos_pendentes_lista' %}" class="ma-head-btn ma-head-btn--hist" title="Códigos bipados sem cadastro">Cód.</a>
       <a href="/historico/?from=ajuste" target="_top" class="ma-head-btn ma-head-btn--hist">Hist.</a>
-      <button type="button" onclick="startScan()" class="ma-head-btn ma-head-btn--scan">Scan</button>
+      <button type="button" id="ma-btn-scan" onclick="startScan()" class="ma-head-btn ma-head-btn--scan" title="Bipar código com a câmera" aria-pressed="false">Câmera</button>
     </div>
     {% if ajuste_operador %}
     <div class="ma-head-row ma-head-row--op">
@@ -843,7 +880,7 @@
   <div id="reader" class="fixed inset-0 z-[165] hidden bg-black">
     <div id="reader-box" class="absolute inset-0"></div>
     <div class="absolute top-0 left-0 right-0 pt-[max(0.6rem,env(safe-area-inset-top))] px-3 flex items-center justify-between gap-2 bg-gradient-to-b from-black/75 to-transparent">
-      <p class="text-white text-xs font-black uppercase tracking-wide">Scan ativo</p>
+      <p class="text-white text-xs font-black uppercase tracking-wide leading-tight">Câmera · aponte o código<br><span class="normal-case tracking-normal font-bold opacity-90">Bip +1: fica aberta</span></p>
       <button type="button" onclick="stopScan()" class="inline-flex items-center justify-center min-h-[2.75rem] px-4 rounded-xl bg-white/15 border border-white/35 text-white text-xs font-black uppercase">
         Fechar
       </button>
@@ -852,17 +889,20 @@
 
   <div id="ma-busca-wrap" class="px-3 pt-3 pb-1">
     <label for="busca" class="sr-only">Buscar produto</label>
-    <input
-      type="search"
-      id="busca"
-      placeholder="Nome, GM ou código de barras…"
-      enterkeyhint="search"
-      inputmode="search"
-      autocomplete="off"
-      autocorrect="off"
-      spellcheck="false"
-      class="w-full px-4 py-3.5 rounded-2xl border-2 border-slate-200/90 shadow-sm bg-white text-base font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400"
-    >
+    <div class="ma-busca-row">
+      <input
+        type="search"
+        id="busca"
+        placeholder="Nome, GM ou código de barras…"
+        enterkeyhint="search"
+        inputmode="search"
+        autocomplete="off"
+        autocorrect="off"
+        spellcheck="false"
+        class="w-full px-4 py-3.5 rounded-2xl border-2 border-slate-200/90 shadow-sm bg-white text-base font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400"
+      >
+      <button type="button" id="ma-btn-camera" class="ma-btn-camera" title="Bipar código com a câmera" aria-label="Bipar código com a câmera" aria-pressed="false">Câmera</button>
+    </div>
     <button type="button" id="btn-toggle-filtros" class="mt-2 w-full min-h-[2.5rem] rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-black uppercase inline-flex items-center justify-center gap-2">
       Filtros
       <span id="f-toggle-icon" class="text-slate-500">▾</span>
@@ -1845,6 +1885,7 @@ function maBip1Toggle() {
 }
 
 document.getElementById('ma-btn-bip1')?.addEventListener('click', maBip1Toggle);
+document.getElementById('ma-btn-camera')?.addEventListener('click', startScan);
 
 function maTocarSom(tipo) {
   try {
@@ -2284,8 +2325,28 @@ function maProcessarCodigoBipado(codigo) {
   maPrepCampoProximoBip();
 }
 
+function maScanSyncBtns() {
+  const on = !!scanningActive;
+  const cam = document.getElementById('ma-btn-camera');
+  const head = document.getElementById('ma-btn-scan');
+  if (cam) {
+    cam.classList.toggle('is-on', on);
+    cam.setAttribute('aria-pressed', on ? 'true' : 'false');
+    cam.textContent = on ? 'Fechar' : 'Câmera';
+  }
+  if (head) {
+    head.classList.toggle('is-on', on);
+    head.setAttribute('aria-pressed', on ? 'true' : 'false');
+    head.textContent = on ? 'Fechar' : 'Câmera';
+  }
+}
+
 function startScan() {
-  if (scanningActive || maScanBusy) return;
+  if (scanningActive) {
+    stopScan();
+    return;
+  }
+  if (maScanBusy) return;
   if (typeof Html5Qrcode === 'undefined') {
     if (typeof maMostrarToast === 'function') {
       maMostrarToast('Câmera não carregou. Use o bipador no campo.', false);
@@ -2301,6 +2362,7 @@ function startScan() {
     const box = document.getElementById('reader-box');
     if (!reader || !box) {
       maScanBusy = false;
+      maScanSyncBtns();
       return;
     }
     try { box.innerHTML = ''; } catch (_) {}
@@ -2318,12 +2380,14 @@ function startScan() {
         window.__maScanLocked = false;
         window.maLockScroll(false);
       }
+      maScanSyncBtns();
       if (typeof maMostrarToast === 'function') {
         maMostrarToast('Falha ao abrir câmera. Feche e tente de novo.', false);
       }
       return;
     }
     scanningActive = true;
+    maScanSyncBtns();
     /* Só formatos de loja (EAN/UPC/Code128…) — mais rápido que “todos”. */
     const Fmt = window.Html5QrcodeSupportedFormats;
     const formats = Fmt ? [
@@ -2346,14 +2410,12 @@ function startScan() {
       config,
       (txt) => {
         if (!scanningActive) return;
-        scanningActive = false;
         const codigo = String(txt || '').trim();
-        stopScan().then(() => {
-          if (codigo) maProcessarCodigoBipado(codigo);
-        });
+        if (codigo) maProcessarCodigoBipado(codigo);
       }
     ).then(() => {
       maScanBusy = false;
+      maScanSyncBtns();
     }).catch((err) => {
       stopScan().then(() => {
         const negado = err && (err.name === 'NotAllowedError' || /Permission|NotAllowed/i.test(String(err.message || err)));
@@ -2383,6 +2445,7 @@ function stopScan(opts) {
       window.__maScanLocked = false;
       window.maLockScroll(false);
     }
+    maScanSyncBtns();
   };
   if (!scanner) {
     finish();

@@ -56,6 +56,9 @@ check(
     "fps: 12",
     "keepBusy",
     "maEscolherProduto",
+    "ma-btn-camera",
+    "maScanSyncBtns",
+    "Bipar código com a câmera",
     "qtd_contada",
     "maPintarCiclicaFocus",
     "ma-card--ultimo",
@@ -100,6 +103,17 @@ if "grid-template-columns: repeat(5, minmax(0, 1fr))" in text and "ma-head-actio
     ok("header actions grade 5 no celular")
 else:
     fail("header sem grade de 5 botões")
+
+if 'id="ma-btn-camera"' in text and "ma-busca-row" in text:
+    ok("botão Câmera ao lado da busca")
+else:
+    fail("falta botão Câmera na busca")
+
+scan_fn = text[text.find("function startScan()") : text.find("function stopScan(")]
+if "maProcessarCodigoBipado(codigo)" in scan_fn and "stopScan().then" not in scan_fn:
+    ok("câmera continua aberta após bip")
+else:
+    fail("startScan ainda fecha a câmera a cada código")
 
 # --- HTTP (Django client): login · página com gate · API cíclica cega ---
 try:

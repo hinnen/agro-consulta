@@ -56,6 +56,8 @@ check_text(
     "is-qtd",
     "qtd_contada",
     "código de barras",
+    "ma-btn-camera",
+    "maScanSyncBtns",
     label="js",
 )
 
