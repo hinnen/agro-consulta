@@ -40,10 +40,18 @@ def main() -> int:
         ok("achado de novo soma no saldo atual")
     else:
         fail("soma 5+2")
-    if '"bloco_fechado": bool(ln.ajuste_id)' in util and "contados_bloco_atual" in util:
+    if '"bloco_fechado": fechado' in util and "contados_bloco_atual" in util:
         ok("payload bloco fechado")
     else:
         fail("payload")
+    if '"contado": bool(contado) or fechado' in util and '"faltando": False if fechado else not contado' in util:
+        ok("fechado conta e não falta")
+    else:
+        fail("fechado conta e não falta")
+    if "q_contada = float(q_raw) if q_raw is not None and (contado or fechado)" in util:
+        ok("quantidade no fechado")
+    else:
+        fail("quantidade no fechado")
     if '"blocos": blocos' in admin and "ContagemCiclicaBloco" in admin:
         ok("painel lista blocos")
     else:
@@ -60,12 +68,16 @@ def main() -> int:
         ok("celular marca fechado")
     else:
         fail("celular")
+    if "Quantidade do bloco fechado" in ma and "p._ciclicaFalta = !p._blocoFechado" in ma:
+        ok("celular mostra quantidade, não FALTA")
+    else:
+        fail("celular mostra quantidade")
     if "/contagem-ciclica/bloco/" not in ma:
         ok("celular não abre a folha")
     else:
         fail("celular abre folha")
     ver = read("VERSION").strip()
-    if ver == "27.26.37":
+    if ver == "27.26.38":
         ok(f"VERSION {ver}")
     else:
         fail(f"VERSION {ver}")

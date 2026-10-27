@@ -956,8 +956,9 @@ def sessao_payload(sessao: ContagemCiclicaSessao, *, detalhe: bool = False) -> d
                 if sessao.status == ContagemCiclicaStatus.PASS2
                 else ln.qtd_pass1
             )
+            fechado = bool(ln.ajuste_id)
             try:
-                q_contada = float(q_raw) if contado and q_raw is not None else None
+                q_contada = float(q_raw) if q_raw is not None and (contado or fechado) else None
             except (TypeError, ValueError):
                 q_contada = None
             item = {
@@ -966,13 +967,13 @@ def sessao_payload(sessao: ContagemCiclicaSessao, *, detalhe: bool = False) -> d
                 "codigo": codigo,
                 "nome": nome,
                 "categoria": ln.categoria,
-                "contado": bool(contado) and not ln.ajuste_id,
-                "bloco_fechado": bool(ln.ajuste_id),
+                "contado": bool(contado) or fechado,
+                "bloco_fechado": fechado,
                 "operador": ln.operador_pass2
                 if sessao.status == ContagemCiclicaStatus.PASS2
                 else ln.operador_pass1,
                 "auto_zero": ln.auto_zero_pass1,
-                "faltando": not contado and not ln.ajuste_id,
+                "faltando": False if fechado else not contado,
                 "qtd_contada": q_contada,
             }
             linhas.append(item)
