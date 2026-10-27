@@ -1292,14 +1292,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
-### 📦 PACOTE PRONTO — **AJUSTE-BLOCO-TELA** · **v27.26.38** · PREP `teste` @ **`5ab58a92`**
+### 📦 PACOTE PRONTO — **AJUSTE-BLOCO-TELA** · **v27.26.39** · PREP `teste` @ **`d466d62f`**
 
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **Pronto para envio à produção** (frase + senha) · depois do Live 27/10e |
-| **Entra** | Amostra só no PC · bloco fechado marcado no celular · produto achado de novo soma (5+2=7) |
+| **Entra** | Amostra só no PC · bloco fechado mostra a **quantidade** (não FALTA) · achado de novo soma (5+2=7) |
 | **Migrate** | **NÃO** |
-| **Prova** | reabrir bloco **5 → 7** · sem impressão no celular · lista **Imprimir** no painel |
+| **Prova** | payload `contado` + `qtd_contada` no fechado · `faltando` falso · **5 → 7** |
 
 ### ✅ CHECKLIST ÚNICO — **27/10f** · 🟢 **pronto para envio à produção**
 
