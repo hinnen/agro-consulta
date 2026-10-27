@@ -234,6 +234,37 @@
     .ma-head-title-txt span { color: #10b981; }
     .ma-head-btn--hist { background: #f1f5f9; color: #334155; }
     .ma-head-btn--scan { background: #0f172a; color: #fff; border-color: #0f172a; }
+    .ma-busca-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: stretch;
+    }
+    .ma-busca-row #busca {
+      flex: 1 1 auto;
+      min-width: 0;
+      min-height: 3.25rem;
+    }
+    .ma-btn-camera {
+      flex: 0 0 auto;
+      min-width: 4.5rem;
+      max-width: 5.5rem;
+      min-height: 3.25rem;
+      padding: 0.35rem 0.5rem;
+      border-radius: 1rem;
+      border: 2px solid #0f172a;
+      background: #0f172a;
+      color: #fff;
+      font-size: 0.68rem !important;
+      font-weight: 900;
+      text-transform: uppercase;
+      line-height: 1.1 !important;
+      letter-spacing: 0.02em;
+    }
+    .ma-btn-camera.is-on {
+      background: #10b981;
+      border-color: #059669;
+      box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.35);
+    }
     .ma-head-row--op { background: #ecfdf5; }
     .ma-head-op-txt {
       flex: 1 1 auto;
@@ -794,7 +825,7 @@
       <button type="button" id="ma-btn-ciclica" class="ma-head-btn ma-head-btn--hist" title="Contagem cíclica (cego, multi-celular)">Cíclica</button>
       <a href="{% url 'ajuste_codigos_pendentes_lista' %}" class="ma-head-btn ma-head-btn--hist" title="Códigos bipados sem cadastro">Cód.</a>
       <a href="/historico/?from=ajuste" target="_top" class="ma-head-btn ma-head-btn--hist">Hist.</a>
-      <button type="button" onclick="startScan()" class="ma-head-btn ma-head-btn--scan">Scan</button>
+      <button type="button" id="ma-head-btn-camera" class="ma-head-btn ma-head-btn--scan" aria-label="Bipar com a câmera">Câmera</button>
     </div>
     {% if ajuste_operador %}
     <div class="ma-head-row ma-head-row--op">
@@ -843,7 +874,7 @@
   <div id="reader" class="fixed inset-0 z-[165] hidden bg-black">
     <div id="reader-box" class="absolute inset-0"></div>
     <div class="absolute top-0 left-0 right-0 pt-[max(0.6rem,env(safe-area-inset-top))] px-3 flex items-center justify-between gap-2 bg-gradient-to-b from-black/75 to-transparent">
-      <p class="text-white text-xs font-black uppercase tracking-wide">Scan ativo</p>
+      <p class="text-white text-xs font-black uppercase tracking-wide">Câmera ativa</p>
       <button type="button" onclick="stopScan()" class="inline-flex items-center justify-center min-h-[2.75rem] px-4 rounded-xl bg-white/15 border border-white/35 text-white text-xs font-black uppercase">
         Fechar
       </button>
@@ -852,17 +883,20 @@
 
   <div id="ma-busca-wrap" class="px-3 pt-3 pb-1">
     <label for="busca" class="sr-only">Buscar produto</label>
-    <input
-      type="search"
-      id="busca"
-      placeholder="Nome, GM ou código de barras…"
-      enterkeyhint="search"
-      inputmode="search"
-      autocomplete="off"
-      autocorrect="off"
-      spellcheck="false"
-      class="w-full px-4 py-3.5 rounded-2xl border-2 border-slate-200/90 shadow-sm bg-white text-base font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400"
-    >
+    <div class="ma-busca-row">
+      <input
+        type="search"
+        id="busca"
+        placeholder="Nome, GM ou código de barras…"
+        enterkeyhint="search"
+        inputmode="search"
+        autocomplete="off"
+        autocorrect="off"
+        spellcheck="false"
+        class="w-full px-4 py-3.5 rounded-2xl border-2 border-slate-200/90 shadow-sm bg-white text-base font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400"
+      >
+      <button type="button" id="ma-btn-camera" class="ma-btn-camera" aria-label="Bipar código de barras com a câmera" title="Bipar com a câmera (mantém aberta com Bip +1)">Câmera</button>
+    </div>
     <button type="button" id="btn-toggle-filtros" class="mt-2 w-full min-h-[2.5rem] rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-black uppercase inline-flex items-center justify-center gap-2">
       Filtros
       <span id="f-toggle-icon" class="text-slate-500">▾</span>
@@ -1824,7 +1858,7 @@ function maBip1Toggle() {
   maBip1SyncBtn();
   if (maBip1On) {
     /* Só liga o modo — não abre câmera sozinha (PC fica tela preta).
-       Câmera = botão Scan · leitor USB = digita no campo + Enter. */
+       Câmera = botão Câmera · leitor USB = digita no campo + Enter. */
     if (scanningActive) stopScan();
     const busca = document.getElementById('busca');
     if (busca) {
@@ -1835,7 +1869,7 @@ function maBip1Toggle() {
       maMostrarToast(
         maCiclicaAtiva()
           ? 'Bip +1 na cíclica · cada bip soma 1 (estoque só no Gravar)'
-          : 'Bip +1 ligado · Scan ou bipador no campo',
+          : 'Bip +1 ligado · câmera fica aberta entre bips',
         true
       );
     }
@@ -1845,6 +1879,15 @@ function maBip1Toggle() {
 }
 
 document.getElementById('ma-btn-bip1')?.addEventListener('click', maBip1Toggle);
+document.getElementById('ma-btn-camera')?.addEventListener('click', () => {
+  if (scanningActive) stopScan();
+  else startScan();
+});
+document.getElementById('ma-head-btn-camera')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  if (scanningActive) stopScan();
+  else startScan();
+});
 
 function maTocarSom(tipo) {
   try {
@@ -2234,12 +2277,23 @@ function maMostrarUltimoBipado(p) {
   maPintarResultados([fresh], 'Último bip');
 }
 
-function maProcessarCodigoBipado(codigo) {
+function maScanSyncBtns() {
+  const on = !!scanningActive;
+  ['ma-btn-camera', 'ma-head-btn-camera'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle('is-on', on);
+    el.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+
+function maProcessarCodigoBipado(codigo, opts) {
+  const fromScan = !!(opts && opts.fromScan);
   const c = maNormCodigo(codigo);
-  if (!c) return;
+  if (!c) return fromScan && maBip1On ? 'ignorar' : undefined;
   const now = Date.now();
   const gap = (maCiclicaAtiva() && maBip1On) ? MA_CICLICA_BIP_GAP_MS : 1200;
-  if (c === maBipLastCode && (now - maBipLastAt) < gap) return;
+  if (c === maBipLastCode && (now - maBipLastAt) < gap) return fromScan ? 'debounce' : undefined;
   maBipLastCode = c;
   maBipLastAt = now;
 
@@ -2252,36 +2306,48 @@ function maProcessarCodigoBipado(codigo) {
       maSelecionarTodoBusca();
     }
     buscar(c);
-    stopScan();
-    return;
+    if (fromScan) stopScan();
+    return fromScan ? 'busca' : undefined;
   }
 
   if (!baseProdutos.length) {
     maTocarSom('erro');
     maBipPiscarTela(false);
     maMostrarToast('Catálogo ainda não carregou. Aguarde.', false);
-    return;
+    return fromScan ? 'aguarde' : undefined;
   }
 
   const hits = maMatchCodigoExato(c);
   if (hits.length === 1) {
     maCodigoOrfao = null;
     maSalvarBipMaisUm(hits[0]);
-    return;
+    return fromScan ? 'ok' : undefined;
   }
   if (hits.length === 0) {
     maTocarSom('erro');
     maBipPiscarTela(false);
-    stopScan();
+    if (fromScan) stopScan();
     maPreencherBuscaOrfao(c);
     maBuscaLimparNoProximoChar = true;
-    return;
+    return fromScan ? 'orfao' : undefined;
   }
   maTocarSom('erro');
   maBipPiscarTela(false);
-  stopScan();
+  if (fromScan) stopScan();
   maAbrirPick(hits.slice(0, 40));
   maPrepCampoProximoBip();
+  return fromScan ? 'varios' : undefined;
+}
+
+function maOnScanDecoded(codigo) {
+  if (!scanningActive) return;
+  const r = maProcessarCodigoBipado(codigo, { fromScan: true });
+  if (!maBip1On) {
+    scanningActive = false;
+    stopScan();
+    return;
+  }
+  if (r === 'ok' || r === 'debounce' || r === 'aguarde') return;
 }
 
 function startScan() {
@@ -2324,6 +2390,7 @@ function startScan() {
       return;
     }
     scanningActive = true;
+    maScanSyncBtns();
     /* Só formatos de loja (EAN/UPC/Code128…) — mais rápido que “todos”. */
     const Fmt = window.Html5QrcodeSupportedFormats;
     const formats = Fmt ? [
@@ -2346,12 +2413,10 @@ function startScan() {
       config,
       (txt) => {
         if (!scanningActive) return;
-        scanningActive = false;
         const codigo = String(txt || '').trim();
-        stopScan().then(() => {
-          if (codigo) maProcessarCodigoBipado(codigo);
-        });
-      }
+        if (codigo) maOnScanDecoded(codigo);
+      },
+      () => {}
     ).then(() => {
       maScanBusy = false;
     }).catch((err) => {
@@ -2372,6 +2437,7 @@ function stopScan(opts) {
   const reader = document.getElementById('reader');
   const finish = () => {
     scanningActive = false;
+    maScanSyncBtns();
     if (!keepBusy) maScanBusy = false;
     if (reader) reader.classList.add('hidden');
     const box = document.getElementById('reader-box');
