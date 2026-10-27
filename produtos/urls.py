@@ -2026,6 +2026,16 @@ path(
     name="api_fiscal_nfe_historico",
 ),
 path(
+    "api/configuracao/fiscal-nfe/padrao/",
+    views_nfe_fiscal_config.api_fiscal_nfe_padrao_previa,
+    name="api_fiscal_nfe_padrao_previa",
+),
+path(
+    "api/configuracao/fiscal-nfe/padrao/aplicar/",
+    views_nfe_fiscal_config.api_fiscal_nfe_padrao_aplicar,
+    name="api_fiscal_nfe_padrao_aplicar",
+),
+path(
     "api/configuracao/planos-conta/",
     views_planos_conta.api_planos_conta_lista,
     name="api_planos_conta_lista",
