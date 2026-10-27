@@ -1346,7 +1346,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Escopo** | Checkout PDV · gravar **endereço fiscal** no cliente (`fiscal_nfe`) |
 | **Migrate** | **NÃO** |
 
-### 📦 PACOTE PRONTO — **LOTE 27/10** · **v27.26.34** · PREP `teste` @ **`aa5cb818`**
+### 📦 PACOTE PRONTO — **LOTE 27/10** · **v27.26.35** · PREP `teste` @ **`aa5cb818`**
 
 | Campo | Valor |
 | ----- | ----- |
