@@ -11214,6 +11214,8 @@ def dashboard_gerencial_view(request):
     aviso_rep = request.session.pop("repasse_aviso_abertura", None)
     if aviso_rep is not None:
         request.session.modified = True
+    from produtos.contagem_ciclica_admin_util import request_pode_ver_painel_ciclica_admin
+
     return render(
         request,
         "produtos/dashboard_gerencial.html",
@@ -11222,6 +11224,7 @@ def dashboard_gerencial_view(request):
             "sync_status": sync_status,
             "repasse_aviso_abertura": aviso_rep if isinstance(aviso_rep, dict) else None,
             "emprestimos_defaults": _emprestimos_defaults_para_template(request),
+            "mostrar_painel_ciclica_admin": request_pode_ver_painel_ciclica_admin(request),
         },
     )
 

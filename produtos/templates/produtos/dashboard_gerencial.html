@@ -1076,6 +1076,9 @@
             <div class="space-y-5 md:space-y-6 launch-col launch-col--estoque">
                 <h3 class="text-amber-500 font-black uppercase text-xs tracking-widest border-b border-amber-500/25 pb-3">Estoque</h3>
                 <button type="button" onclick="dashLaunchpadAbrir('Ajuste de estoque', '{% url 'ajuste_mobile' %}', 'smartphone')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="smartphone"></i><span>Ajuste de estoque</span></span><span class="launch-key">A</span></button>
+                {% if mostrar_painel_ciclica_admin %}
+                <button type="button" onclick="dashLaunchpadAbrir('Contagens', '{% url 'contagem_ciclica_painel_admin_desktop' %}', 'clipboard-list')" class="launch-btn group border-2 border-amber-400/40"><span class="inline-flex items-center gap-3"><i data-lucide="clipboard-list"></i><span>Contagens (gerência)</span></span><span class="launch-key">W</span></button>
+                {% endif %}
                 <button type="button" onclick="dashLaunchpadAbrir('Compras', '{% url 'compras_view' %}', 'shopping-bag')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="shopping-bag"></i><span>Compras</span></span><span class="launch-key">F6</span></button>
                 <button type="button" onclick="dashLaunchpadAbrir('Produtos', '{% url 'produtos_cadastro_erp' %}', 'package')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="package"></i><span>Produtos</span></span><span class="launch-key">R</span></button>
                 <button type="button" onclick="dashLaunchpadAbrir('Entrada notas', '{% url 'entrada_nota' %}', 'file-input')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="file-input"></i><span>Entrada notas</span></span><span class="launch-key">N</span></button>
