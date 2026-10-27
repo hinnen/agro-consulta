@@ -115,13 +115,27 @@ def _regras_sugeridas() -> list[dict[str, Any]]:
     ]
 
 
+def _cnpj_centro() -> str:
+    try:
+        from produtos.nfce_config_util import nfce_cfg
+        from produtos.nfe_fiscal_config_util import _digits
+
+        return _digits(nfce_cfg(ESTAB_CENTRO).get("cnpj"), 14)
+    except Exception:
+        return ""
+
+
 def _serie_centro_sugerida(loja: str) -> tuple[int | None, str]:
     if loja != ESTAB_CENTRO:
         return None, "Vila: série NF-e 55 permanece Pendente até confirmação."
     row = NfeEstabelecimentoFiscal.objects.filter(estabelecimento=loja).first()
     if row and row.serie_nfe_55:
         return int(row.serie_nfe_55), f"Série já cadastrada ({row.serie_nfe_55}) — não será alterada."
-    nums = list(NfeNumeracaoAgro.objects.order_by("serie").values_list("serie", flat=True)[:8])
+    qs = NfeNumeracaoAgro.objects.all()
+    cnpj = _cnpj_centro()
+    if len(cnpj) == 14:
+        qs = qs.filter(emitente_cnpj=cnpj)
+    nums = list(qs.order_by("serie").values_list("serie", flat=True)[:8])
     if len(nums) == 1:
         return int(nums[0]), f"Série sugerida a partir da numeração já usada ({nums[0]})."
     return SERIE_CENTRO_SUGESTAO, "Série sugerida 1 (Centro). Só preenche se o campo estiver vazio."

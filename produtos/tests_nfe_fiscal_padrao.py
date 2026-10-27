@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -149,9 +150,41 @@ class NfeFiscalPadraoTests(TestCase):
         self.assertFalse(any(r["csosn"] == "101" and r["aplicar"] for r in p["regras"]))
         self.assertFalse(any(r["csosn"] == "500" and r["aplicar"] for r in p["regras"]))
 
-    def test_serie_centro_segue_numeracao_existente(self):
+    @patch("produtos.nfe_fiscal_padrao_util._cnpj_centro", return_value="12345678000199")
+    def test_serie_centro_segue_numeracao_existente(self, _cnpj):
         NfeNumeracaoAgro.objects.create(emitente_cnpj="12345678000199", serie=7, proximo_numero=10)
         p = previa_padrao_contador("centro")
         self.assertEqual(p["serie_sugerida"], 7)
         aplicar_padrao_contador("centro", self.staff)
         self.assertEqual(NfeEstabelecimentoFiscal.objects.get(estabelecimento="centro").serie_nfe_55, 7)
+
+    @patch("produtos.nfe_fiscal_padrao_util._cnpj_centro", return_value="12345678000199")
+    def test_serie_centro_ignora_numeracao_de_outro_cnpj(self, _cnpj):
+        NfeNumeracaoAgro.objects.create(emitente_cnpj="99888777000166", serie=20, proximo_numero=3)
+        p = previa_padrao_contador("centro")
+        self.assertEqual(p["serie_sugerida"], 1)
+
+    def test_http_aplicar_centro_e_vila_isolados(self):
+        r = self.client.post(
+            "/api/configuracao/fiscal-nfe/padrao/aplicar/",
+            data=json.dumps({"estabelecimento": "centro", "confirmar": True}),
+            content_type="application/json",
+        )
+        self.assertEqual(r.status_code, 200)
+        body = r.json()
+        self.assertTrue(body["ok"])
+        self.assertEqual(body["estabelecimento"], "centro")
+        self.assertEqual(NfeEstabelecimentoFiscal.objects.get(estabelecimento="centro").status, NfeFiscalStatus.PREENCHIDO)
+        self.assertFalse(NfeEstabelecimentoFiscal.objects.filter(estabelecimento="vila").exists())
+        self.assertFalse(any(x.get("csosn") == "101" and x.get("aplicar") for x in body["previa"]["regras"]))
+        r2 = self.client.post(
+            "/api/configuracao/fiscal-nfe/padrao/aplicar/",
+            data=json.dumps({"estabelecimento": "vila", "confirmar": True}),
+            content_type="application/json",
+        )
+        self.assertEqual(r2.status_code, 200)
+        self.assertIsNone(NfeEstabelecimentoFiscal.objects.get(estabelecimento="vila").serie_nfe_55)
+        self.assertNotEqual(
+            NfeEstabelecimentoFiscal.objects.get(estabelecimento="centro").pk,
+            NfeEstabelecimentoFiscal.objects.get(estabelecimento="vila").pk,
+        )
