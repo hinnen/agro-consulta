@@ -4188,3 +4188,492 @@ class MetaVendaFaixaAgro(models.Model):
 
     def __str__(self):
         return f"{self.competencia} · {self.deposito} · R$ {self.valor_meta}"
+
+
+# ---------------------------------------------------------------------------
+# NF-e 55 — configuração fiscal (Etapa 2). Não alimenta o motor nesta etapa.
+# ---------------------------------------------------------------------------
+
+
+class NfeFiscalStatus(models.TextChoices):
+    PENDENTE = "pendente", "Pendente"
+    PREENCHIDO = "preenchido", "Preenchido"
+    VALIDADO = "validado", "Validado"
+
+
+class NfeFiscalContadorMixin(models.Model):
+    """Aprovação do contador ≠ usuário do sistema que clicou em Validar."""
+
+    contador_nome = models.CharField(max_length=200, blank=True, default="")
+    contador_crc = models.CharField(max_length=40, blank=True, default="")
+    contador_aprovado_em = models.DateField(null=True, blank=True)
+
+    class Meta:
+        abstract = True
+
+
+class NfeEstabelecimentoFiscal(NfeFiscalContadorMixin):
+    """Parâmetros NF-e 55 por loja (Centro / Vila). Não substitui o emitente da transmissão."""
+
+    class Estabelecimento(models.TextChoices):
+        CENTRO = "centro", "Centro"
+        VILA = "vila", "Vila Elias"
+
+    estabelecimento = models.CharField(
+        max_length=12,
+        choices=Estabelecimento.choices,
+        unique=True,
+        db_index=True,
+    )
+    serie_nfe_55 = models.PositiveSmallIntegerField(null=True, blank=True)
+    crt = models.CharField(max_length=8, blank=True, default="")
+    observacoes = models.TextField(blank=True, default="")
+    status = models.CharField(
+        max_length=16,
+        choices=NfeFiscalStatus.choices,
+        default=NfeFiscalStatus.PENDENTE,
+        db_index=True,
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    validado_em = models.DateTimeField(null=True, blank=True)
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nfe_estab_fiscal_criados",
+    )
+    atualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nfe_estab_fiscal_atualizados",
+    )
+    validado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nfe_estab_fiscal_validados",
+    )
+
+    class Meta:
+        verbose_name = "Estabelecimento fiscal NF-e"
+        verbose_name_plural = "Estabelecimentos fiscais NF-e"
+
+    def __str__(self):
+        return f"NF-e 55 · {self.get_estabelecimento_display()} · {self.status}"
+
+
+class NfeAliquotaCreditoSn(NfeFiscalContadorMixin):
+    """Crédito ICMS SN por competência. Percentual vazio até o contador informar."""
+
+    estabelecimento = models.CharField(
+        max_length=12,
+        choices=NfeEstabelecimentoFiscal.Estabelecimento.choices,
+        db_index=True,
+    )
+    competencia = models.CharField(max_length=7, db_index=True, help_text="AAAA-MM")
+    percentual = models.DecimalField(max_digits=7, decimal_places=4, null=True, blank=True)
+    vigencia_inicio = models.DateField(null=True, blank=True)
+    vigencia_fim = models.DateField(null=True, blank=True)
+    observacoes = models.TextField(blank=True, default="")
+    status = models.CharField(
+        max_length=16,
+        choices=NfeFiscalStatus.choices,
+        default=NfeFiscalStatus.PENDENTE,
+        db_index=True,
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    validado_em = models.DateTimeField(null=True, blank=True)
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nfe_credito_sn_criados",
+    )
+    atualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nfe_credito_sn_atualizados",
+    )
+    validado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nfe_credito_sn_validados",
+    )
+
+    class Meta:
+        verbose_name = "Alíquota crédito ICMS SN"
+        verbose_name_plural = "Alíquotas crédito ICMS SN"
+        ordering = ["-competencia", "estabelecimento"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["estabelecimento", "competencia"],
+                name="nfe_credito_sn_estab_comp_uniq",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.estabelecimento} · {self.competencia} · {self.status}"
+
+
+class NfeParametroPisCofins(NfeFiscalContadorMixin):
+    """CST padrão PIS/COFINS por estabelecimento. Sem alíquota inventada."""
+
+    estabelecimento = models.CharField(
+        max_length=12,
+        choices=NfeEstabelecimentoFiscal.Estabelecimento.choices,
+        unique=True,
+        db_index=True,
+    )
+    cst_pis = models.CharField(max_length=4, blank=True, default="")
+    cst_cofins = models.CharField(max_length=4, blank=True, default="")
+    vigencia_inicio = models.DateField(null=True, blank=True)
+    vigencia_fim = models.DateField(null=True, blank=True)
+    excecoes_json = models.JSONField(default=list, blank=True)
+    observacoes = models.TextField(blank=True, default="")
+    status = models.CharField(
+        max_length=16,
+        choices=NfeFiscalStatus.choices,
+        default=NfeFiscalStatus.PENDENTE,
+        db_index=True,
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    validado_em = models.DateTimeField(null=True, blank=True)
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nfe_pis_criados",
+    )
+    atualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nfe_pis_atualizados",
+    )
+    validado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nfe_pis_validados",
+    )
+
+    class Meta:
+        verbose_name = "Parâmetro PIS/COFINS NF-e"
+        verbose_name_plural = "Parâmetros PIS/COFINS NF-e"
+
+    def __str__(self):
+        return f"PIS/COFINS · {self.estabelecimento} · {self.status}"
+
+
+class NfeParametroIbpt(NfeFiscalContadorMixin):
+    """Orientação IBPT por estabelecimento. Token permanece no secret."""
+
+    estabelecimento = models.CharField(
+        max_length=12,
+        choices=NfeEstabelecimentoFiscal.Estabelecimento.choices,
+        unique=True,
+        db_index=True,
+    )
+    fonte = models.CharField(max_length=80, blank=True, default="")
+    versao_tabela = models.CharField(max_length=40, blank=True, default="")
+    validade = models.DateField(null=True, blank=True)
+    orientacao_contador = models.TextField(blank=True, default="")
+    observacoes = models.TextField(blank=True, default="")
+    status = models.CharField(
+        max_length=16,
+        choices=NfeFiscalStatus.choices,
+        default=NfeFiscalStatus.PENDENTE,
+        db_index=True,
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    validado_em = models.DateTimeField(null=True, blank=True)
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nfe_ibpt_criados",
+    )
+    atualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nfe_ibpt_atualizados",
+    )
+    validado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nfe_ibpt_validados",
+    )
+
+    class Meta:
+        verbose_name = "Parâmetro IBPT NF-e"
+        verbose_name_plural = "Parâmetros IBPT NF-e"
+
+    def __str__(self):
+        return f"IBPT · {self.estabelecimento} · {self.status}"
+
+
+class NfeRegraOperacao(NfeFiscalContadorMixin):
+    """Regra fiscal por operação. Motor (Etapa 3) lê só status Validado."""
+
+    class Ambito(models.TextChoices):
+        INTERNA = "interna", "Interna"
+        INTERESTADUAL = "interestadual", "Interestadual"
+
+    class TipoDestinatario(models.TextChoices):
+        CONSUMIDOR = "consumidor", "Consumidor final"
+        REVENDA = "revenda", "Revenda"
+        PRODUTOR_RURAL = "produtor_rural", "Produtor rural CPF+IE"
+        ORGAO_PUBLICO = "orgao_publico", "Órgão público"
+        OUTRO = "outro", "Outro"
+
+    class Escopo(models.TextChoices):
+        GERAL = "geral", "Regra geral"
+        CATEGORIA = "categoria", "Exceção de categoria"
+        PRODUTO = "produto", "Exceção de produto"
+
+    estabelecimento = models.CharField(
+        max_length=12,
+        choices=NfeEstabelecimentoFiscal.Estabelecimento.choices,
+        db_index=True,
+    )
+    ambito = models.CharField(max_length=16, choices=Ambito.choices, blank=True, default="")
+    uf_origem = models.CharField(max_length=2, blank=True, default="")
+    uf_destino = models.CharField(max_length=2, blank=True, default="")
+    tipo_destinatario = models.CharField(
+        max_length=20,
+        choices=TipoDestinatario.choices,
+        blank=True,
+        default="",
+    )
+    situacao_icms = models.CharField(max_length=32, blank=True, default="")
+    consumidor_final = models.BooleanField(null=True, blank=True)
+    produtor_rural_ie = models.BooleanField(null=True, blank=True)
+    orgao_publico = models.BooleanField(null=True, blank=True)
+    escopo = models.CharField(
+        max_length=16,
+        choices=Escopo.choices,
+        default=Escopo.GERAL,
+        db_index=True,
+    )
+    categoria = models.CharField(max_length=120, blank=True, default="")
+    ncm = models.CharField(max_length=8, blank=True, default="")
+    produto_id_externo = models.CharField(max_length=40, blank=True, default="")
+    cfop = models.CharField(max_length=4, blank=True, default="")
+    csosn = models.CharField(max_length=4, blank=True, default="")
+    cst_pis = models.CharField(max_length=4, blank=True, default="")
+    cst_cofins = models.CharField(max_length=4, blank=True, default="")
+    vigencia_inicio = models.DateField(null=True, blank=True)
+    vigencia_fim = models.DateField(null=True, blank=True)
+    observacoes = models.TextField(blank=True, default="")
+    status = models.CharField(
+        max_length=16,
+        choices=NfeFiscalStatus.choices,
+        default=NfeFiscalStatus.PENDENTE,
+        db_index=True,
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    validado_em = models.DateTimeField(null=True, blank=True)
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nfe_regra_op_criadas",
+    )
+    atualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nfe_regra_op_atualizadas",
+    )
+    validado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nfe_regra_op_validadas",
+    )
+
+    class Meta:
+        verbose_name = "Regra de operação NF-e"
+        verbose_name_plural = "Regras de operação NF-e"
+        ordering = ["estabelecimento", "escopo", "ambito", "tipo_destinatario", "id"]
+        indexes = [
+            models.Index(
+                fields=["estabelecimento", "status", "escopo"],
+                name="nfe_regra_op_estab_st_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return f"Regra {self.estabelecimento} · {self.escopo} · {self.status}"
+
+
+class NfeExcecaoIcmsSt(NfeFiscalContadorMixin):
+    """Cadastro estrutural de ST/DIFAL — sem cálculo nesta etapa."""
+
+    estabelecimento = models.CharField(
+        max_length=12,
+        choices=NfeEstabelecimentoFiscal.Estabelecimento.choices,
+        db_index=True,
+    )
+    tipo = models.CharField(max_length=16, blank=True, default="st")
+    uf_destino = models.CharField(max_length=2, blank=True, default="")
+    ncm = models.CharField(max_length=8, blank=True, default="")
+    condicao = models.CharField(max_length=200, blank=True, default="")
+    fundamentacao = models.TextField(blank=True, default="")
+    observacoes = models.TextField(blank=True, default="")
+    status = models.CharField(
+        max_length=16,
+        choices=NfeFiscalStatus.choices,
+        default=NfeFiscalStatus.PENDENTE,
+        db_index=True,
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    validado_em = models.DateTimeField(null=True, blank=True)
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nfe_st_criadas",
+    )
+    atualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nfe_st_atualizadas",
+    )
+    validado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nfe_st_validadas",
+    )
+
+    class Meta:
+        verbose_name = "Exceção ICMS-ST / DIFAL"
+        verbose_name_plural = "Exceções ICMS-ST / DIFAL"
+        ordering = ["estabelecimento", "-atualizado_em"]
+
+    def __str__(self):
+        return f"ST {self.estabelecimento} · {self.uf_destino or '—'} · {self.status}"
+
+
+class NfeQuestionarioResposta(NfeFiscalContadorMixin):
+    """Respostas do questionário do contador. Preenchido ≠ Validado."""
+
+    grupo = models.PositiveSmallIntegerField(db_index=True)
+    chave = models.CharField(max_length=64, db_index=True)
+    estabelecimento = models.CharField(
+        max_length=12,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="vazio = pergunta comum aos dois CNPJs",
+    )
+    pergunta = models.CharField(max_length=400, blank=True, default="")
+    resposta = models.TextField(blank=True, default="")
+    observacoes = models.TextField(blank=True, default="")
+    status = models.CharField(
+        max_length=16,
+        choices=NfeFiscalStatus.choices,
+        default=NfeFiscalStatus.PENDENTE,
+        db_index=True,
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    validado_em = models.DateTimeField(null=True, blank=True)
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nfe_quest_criadas",
+    )
+    atualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nfe_quest_atualizadas",
+    )
+    validado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nfe_quest_validadas",
+    )
+
+    class Meta:
+        verbose_name = "Resposta questionário NF-e"
+        verbose_name_plural = "Respostas questionário NF-e"
+        ordering = ["grupo", "chave", "estabelecimento"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["grupo", "chave", "estabelecimento"],
+                name="nfe_quest_grupo_chave_estab_uniq",
+            ),
+        ]
+
+    def __str__(self):
+        return f"Q{self.grupo}.{self.chave} · {self.status}"
+
+
+class NfeAlteracaoFiscalLog(models.Model):
+    """Auditoria das alterações da configuração fiscal NF-e 55."""
+
+    estabelecimento = models.CharField(max_length=12, blank=True, default="", db_index=True)
+    tabela = models.CharField(max_length=64, db_index=True)
+    registro_id = models.CharField(max_length=40, blank=True, default="")
+    acao = models.CharField(max_length=24, db_index=True)
+    resumo = models.CharField(max_length=240, blank=True, default="")
+    antes_json = models.JSONField(default=dict, blank=True)
+    depois_json = models.JSONField(default=dict, blank=True)
+    usuario_nome = models.CharField(max_length=200, blank=True, default="")
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nfe_fiscal_logs",
+    )
+
+    class Meta:
+        verbose_name = "Log alteração fiscal NF-e"
+        verbose_name_plural = "Logs alteração fiscal NF-e"
+        ordering = ["-criado_em"]
+        indexes = [
+            models.Index(fields=["tabela", "registro_id", "-criado_em"], name="nfe_fiscal_log_tab_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.tabela} · {self.acao} · {self.criado_em}"

@@ -147,6 +147,12 @@
         <h2 class="text-lg font-black uppercase mb-3">Fiscal da nota</h2>
         <label class="block mb-3"><span class="text-xs font-black uppercase">Natureza</span><input id="fiscal-natureza" class="nfe-in mt-1" value="VENDA"></label>
         <p class="text-sm font-semibold text-slate-600">Modelo <strong>55</strong> fixo · série e número na autorização.</p>
+        <div class="grid sm:grid-cols-3 gap-3 mt-3">
+          <label class="block"><span class="text-xs font-black uppercase">Pedido de compra</span><input id="fiscal-x-ped" class="nfe-in mt-1" maxlength="60" placeholder="ex.: 2185/2026" autocomplete="off"></label>
+          <label class="block"><span class="text-xs font-black uppercase">Nº do empenho</span><input id="fiscal-x-nemp" class="nfe-in mt-1" maxlength="22" placeholder="ex.: 6134" autocomplete="off"></label>
+          <label class="block"><span class="text-xs font-black uppercase">Processo (opcional)</span><input id="fiscal-x-cont" class="nfe-in mt-1" maxlength="60" placeholder="ex.: 206/2026" autocomplete="off"></label>
+        </div>
+        <p class="text-xs font-semibold text-slate-500 mt-2">Pedido e empenho vão no XML (<code>compra</code> e no item) e no DANFE. Processo entra em <code>xCont</code> e nas informações complementares.</p>
         <label class="block mt-3"><span class="text-xs font-black uppercase">Informações complementares</span><textarea id="fiscal-inf-compl" class="nfe-in mt-1 min-h-[100px]"></textarea></label>
       </div>
       <div data-nfe-step-panel="4" class="hidden">
@@ -171,6 +177,11 @@
             <button type="button" id="btn-nfe-xml-baixar" class="min-h-[52px] flex-1 min-w-[11rem] px-5 rounded-xl border-2 border-violet-700 bg-violet-700 text-white font-black uppercase text-sm shadow-md">Baixar XML</button>
           </div>
           <p class="text-xs font-semibold text-slate-600">DANFE abre em nova aba — use <strong>Ctrl+P</strong>. XML salva o arquivo da nota.</p>
+          <div id="nfe-eventos-acoes" class="hidden space-y-2 pt-2">
+            <button type="button" id="btn-nfe-cancelar" class="min-h-[52px] w-full rounded-xl border-2 border-rose-500 bg-rose-600 text-white font-black uppercase text-sm">Cancelar NF-e</button>
+            <button type="button" id="btn-nfe-cce" class="min-h-[52px] w-full rounded-xl border-2 border-amber-500 bg-amber-500 text-white font-black uppercase text-sm">Carta de Correção</button>
+            <div id="nfe-eventos-hist" class="text-xs font-semibold text-slate-600 space-y-1"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -213,6 +224,27 @@
   </footer>
 </div>
 
+<div id="nfe-evento-modal" class="hidden fixed inset-0 z-[80] bg-slate-900/60 flex items-center justify-center p-4">
+  <div class="max-w-lg w-full bg-white rounded-2xl p-4 max-h-[90vh] overflow-y-auto border-2 border-slate-200">
+    <h3 id="nfe-evento-titulo" class="text-lg font-black uppercase mb-2"></h3>
+    <p id="nfe-evento-aviso" class="text-sm font-semibold text-slate-700 mb-3"></p>
+    <label class="block mb-3"><span class="text-xs font-black uppercase" id="nfe-evento-lbl">Texto</span>
+      <textarea id="nfe-evento-texto" class="nfe-in mt-1 min-h-[120px]" maxlength="1000"></textarea>
+    </label>
+    <label id="nfe-evento-fora-prazo-wrap" class="hidden mb-3 flex items-start gap-2 font-bold text-sm text-amber-950">
+      <input type="checkbox" id="nfe-evento-fora-prazo" class="w-5 h-5 mt-0.5">
+      <span>Li o alerta de cancelamento fora do prazo (24–480 h) e confirmo que a operação não ocorreu.</span>
+    </label>
+    <label class="block max-w-xs mb-3"><span class="text-xs font-black uppercase">PIN</span>
+      <input type="password" id="nfe-evento-pin" class="nfe-in mt-1" inputmode="numeric" autocomplete="one-time-code">
+    </label>
+    <div class="flex gap-2">
+      <button type="button" id="nfe-evento-enviar" class="flex-1 min-h-[48px] rounded-xl bg-emerald-700 text-white font-black uppercase">Confirmar</button>
+      <button type="button" id="nfe-evento-fechar" class="flex-1 min-h-[48px] rounded-xl border-2 font-black uppercase">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <div id="nfe-saida-msg" class="hidden" role="status"></div>
 
 <div id="nfe-help-modal" class="hidden fixed inset-0 z-[70] bg-slate-900/60 flex items-center justify-center p-4" onclick="if(event.target===this)this.classList.add('hidden')">
@@ -240,7 +272,7 @@ window.NFE_SAIDA_CFG = {
   urlClienteFiscal: "{% url 'api_nfe_saida_cliente_fiscal' %}",
 };
 </script>
-<script src="{% static 'produtos/js/nfe_saida.js' %}?v=4"></script>
+<script src="{% static 'produtos/js/nfe_saida.js' %}?v=6"></script>
 {% include "produtos/_atalho_voltar_pdv.html" %}
 </body>
 </html>

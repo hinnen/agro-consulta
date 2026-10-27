@@ -12,10 +12,19 @@ from typing import Any
 
 from decouple import config
 
-from produtos.agro_produto_fiscal_defaults import merge_fiscal_padrao_cadastro_manual_sp_sn, normalizar_ncm_somente_digitos
+from produtos.agro_produto_fiscal_defaults import normalizar_ncm_somente_digitos
+from produtos.nfe_saida_regras_validas_util import (
+    aliquota_credito_sn_validada,
+    classificar_destinatario,
+    cmun_destinatario_ou_erro,
+    cst_pis_cofins_validado,
+    estabelecimento_do_doc,
+    ibpt_autorizado,
+    resolver_regra_item,
+)
 from produtos.nfe_saida_util import cfop_padrao_destino, documento_dest_tipo, nfe_saida_emitente_uf_default
 
-_MOTOR_VERSAO = "nfe-trib-2026-10-02"
+_MOTOR_VERSAO = "nfe-trib-2026-10-27-e3"
 
 # CSOSN com grupo XML distinto (demais 102/103/300/400 usam ICMSSN102).
 _CSOSN_GRUPO_DIRETO = {
@@ -176,16 +185,19 @@ def sugerir_cfop_item(
 
 
 def _fiscal_linha_enriquecida(ln: dict, *, db=None, col_p: str | None = None) -> dict[str, str]:
-    """Mescla linha do documento com cadastro (sem sobrescrever NCM/CSOSN/CFOP já na linha)."""
+    """Mescla linha com cadastro explícito. Não aplica 102/49/NCM genérico."""
     base = {
         "ncm": normalizar_ncm_somente_digitos(ln.get("ncm")),
         "cfop": _digits(ln.get("cfop"), 4),
         "csosn": _digits(ln.get("csosn"), 3),
         "origem": _digits(ln.get("origem"), 1) or "0",
-        "cst_pis_cofins": _digits(ln.get("cst_pis_cofins"), 2),
+        "cst_pis": _digits(ln.get("cst_pis") or ln.get("cst_pis_cofins"), 2),
+        "cst_cofins": _digits(ln.get("cst_cofins") or ln.get("cst_pis_cofins"), 2),
         "cest": _digits(ln.get("cest"), 7),
+        "categoria": str(ln.get("categoria") or "").strip(),
+        "produto_id": str(ln.get("produto_id") or "").strip(),
     }
-    pid = str(ln.get("produto_id") or "").strip()
+    pid = base["produto_id"]
     if pid:
         try:
             from produtos.nfce_fiscal_produto_util import fiscal_por_produto_id
@@ -194,15 +206,14 @@ def _fiscal_linha_enriquecida(ln: dict, *, db=None, col_p: str | None = None) ->
             for k in ("ncm", "cfop", "csosn", "origem", "cest"):
                 if not base.get(k) and cat.get(k):
                     base[k] = cat[k]
-            if not base.get("cst_pis_cofins") and cat.get("cst_pis_cofins"):
-                base["cst_pis_cofins"] = _digits(cat.get("cst_pis_cofins"), 2)
+            if not base.get("cst_pis") and cat.get("cst_pis_cofins"):
+                base["cst_pis"] = _digits(cat.get("cst_pis_cofins"), 2)
+            if not base.get("cst_cofins") and cat.get("cst_pis_cofins"):
+                base["cst_cofins"] = _digits(cat.get("cst_pis_cofins"), 2)
+            if not base.get("categoria") and cat.get("categoria"):
+                base["categoria"] = str(cat.get("categoria") or "").strip()
         except Exception:
             pass
-    if not base.get("cst_pis_cofins"):
-        merged = merge_fiscal_padrao_cadastro_manual_sp_sn({"cst_pis_cofins": ln.get("cst_pis_cofins")})
-        base["cst_pis_cofins"] = _digits(merged.get("cst_pis_cofins"), 2) or "49"
-    if not base.get("csosn"):
-        base["csosn"] = "102"
     return base
 
 
@@ -240,56 +251,72 @@ class ApuracaoNfeSaida:
             raise FiscalBloqueio(self.bloqueios[0])
 
 
-def _apurar_icms_sn(csosn: str, origem: str, v_prod: Decimal) -> tuple[str, dict[str, str], list[str]]:
-    cs = _digits(csosn, 3).zfill(3)
-    grupo = _grupo_xml_icms_csosn(cs)
+def _apurar_icms_sn(
+    csosn: str,
+    origem: str,
+    v_prod: Decimal,
+    *,
+    p_cred: Decimal | None = None,
+    erro_cred: str | None = None,
+) -> tuple[str, dict[str, str], list[str]]:
+    cs = _digits(csosn, 3)
     bloqueios: list[str] = []
+    if len(cs) != 3:
+        bloqueios.append("CSOSN com 3 dígitos é obrigatório (regra Validada).")
+        return "", {"orig": origem[:1] or "0"}, bloqueios
+    grupo = _grupo_xml_icms_csosn(cs)
     if not grupo:
         bloqueios.append(f"CSOSN {cs} não suportado pelo motor (versão {_MOTOR_VERSAO}).")
-        return "ICMSSN102", {"orig": origem[:1], "CSOSN": "102"}, bloqueios
+        return "", {"orig": origem[:1] or "0", "CSOSN": cs}, bloqueios
 
     campos: dict[str, str] = {"orig": origem[:1] or "0", "CSOSN": cs}
 
     if cs == "101":
-        aliq = _cfg_cred_sn_aliquota()
-        if aliq is None:
-            bloqueios.append(
-                "CSOSN 101 exige alíquota de crédito configurada (NFE_SAIDA_PCRED_SN_ALIQ no servidor). "
-                "Confirme com o contador antes de emitir."
-            )
+        if p_cred is None:
+            bloqueios.append(erro_cred or "CSOSN 101 exige percentual de crédito Validado na competência.")
         else:
-            v_cred = (v_prod * aliq / Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            campos["pCredSN"] = str(aliq)
+            v_cred = (v_prod * p_cred / Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            campos["pCredSN"] = str(p_cred)
             campos["vCredICMSSN"] = _q2(v_cred)
 
     elif cs in _CSOSN_EXIGE_PARAM_EXTRA:
         bloqueios.append(
             f"CSOSN {cs} exige parametrização fiscal adicional (ST/operação especial). "
-            "Cadastre CSOSN 102/103/300/400 ou configure com o contador."
+            "O motor não calcula ST/DIFAL nesta etapa."
         )
 
     return grupo, campos, bloqueios
 
 
-def _apurar_pis_cofins(cst: str) -> tuple[str, dict[str, str], str, dict[str, str], list[str]]:
-    c = _digits(cst, 2).zfill(2)
+def _apurar_pis_cofins(cst_pis: str, cst_cofins: str) -> tuple[str, dict[str, str], str, dict[str, str], list[str]]:
+    cp = _digits(cst_pis, 2)
+    cc = _digits(cst_cofins, 2)
     bloqueios: list[str] = []
-    if c in _CST_NT:
-        return "PISNT", {"CST": c}, "COFINSNT", {"CST": c}, bloqueios
-    if c in _CST_OUTR or c == "49":
-        zero = {"CST": c, "vBC": "0.00", "pPIS": "0.0000", "vPIS": "0.00"}
-        zero_cof = {"CST": c, "vBC": "0.00", "pCOFINS": "0.0000", "vCOFINS": "0.00"}
-        if c == "49":
-            zero["pPIS"] = "0.00"
-            zero_cof["pCOFINS"] = "0.00"
-        return "PISOutr", zero, "COFINSOutr", zero_cof, bloqueios
-    bloqueios.append(f"CST PIS/COFINS {c} não mapeado — ajuste cst_pis_cofins no cadastro fiscal do produto.")
-    return "PISOutr", {"CST": "49", "vBC": "0.00", "pPIS": "0.00", "vPIS": "0.00"}, "COFINSOutr", {
-        "CST": "49",
-        "vBC": "0.00",
-        "pCOFINS": "0.00",
-        "vCOFINS": "0.00",
-    }, bloqueios
+
+    def _um(c: str, *, pis: bool) -> tuple[str, dict[str, str]]:
+        if c in _CST_NT:
+            return ("PISNT" if pis else "COFINSNT"), {"CST": c}
+        if c in _CST_OUTR or c == "49":
+            if pis:
+                return "PISOutr", {"CST": c, "vBC": "0.00", "pPIS": "0.00" if c == "49" else "0.0000", "vPIS": "0.00"}
+            return "COFINSOutr", {
+                "CST": c,
+                "vBC": "0.00",
+                "pCOFINS": "0.00" if c == "49" else "0.0000",
+                "vCOFINS": "0.00",
+            }
+        return "", {"CST": c}
+
+    if len(cp) != 2 or len(cc) != 2:
+        bloqueios.append("CST PIS e CST COFINS com 2 dígitos são obrigatórios.")
+        return "PISOutr", {"CST": cp}, "COFINSOutr", {"CST": cc}, bloqueios
+    pg, pc = _um(cp, pis=True)
+    cg, cc_c = _um(cc, pis=False)
+    if not pg:
+        bloqueios.append(f"CST PIS {cp} não mapeado — o motor não inventa alíquota tributada.")
+    if not cg:
+        bloqueios.append(f"CST COFINS {cc} não mapeado — o motor não inventa alíquota tributada.")
+    return pg or "PISOutr", pc, cg or "COFINSOutr", cc_c, bloqueios
 
 
 def _ibpt_item(ncm: str, v_prod: Decimal, uf: str) -> tuple[Decimal | None, str]:
@@ -314,14 +341,33 @@ def apurar_nfe_saida(
     doc: dict,
     *,
     uf_emit: str | None = None,
+    data_emissao=None,
+    cnpj_emit: str | None = None,
     db=None,
     col_p: str | None = None,
 ) -> ApuracaoNfeSaida:
+    from produtos.nfe_saida_regras_validas_util import data_emissao_doc
+
     dest_raw = doc.get("destinatario") if isinstance(doc.get("destinatario"), dict) else {}
     dest = normalizar_destinatario_fiscal(dest_raw)
+    dest["tipo_destinatario"] = classificar_destinatario(dest)
     ue = (uf_emit or nfe_saida_emitente_uf_default() or "SP").upper()[:2]
-    ud = str(dest.get("uf") or ue).upper()[:2]
-    ind_final = int(dest.get("ind_final") or 1)
+    ud = str(dest.get("uf") or "").upper()[:2] or ue
+    dia = data_emissao or data_emissao_doc(doc)
+    loja = estabelecimento_do_doc(doc, cnpj_emit=cnpj_emit or "")
+    cidade_emit = ""
+    cmun_emit = ""
+    try:
+        from produtos.nfce_config_util import nfce_cfg
+
+        cfg_e = nfce_cfg(loja) if loja else {}
+        cidade_emit = str(cfg_e.get("cidade") or "")
+        cmun_emit = str(cfg_e.get("cmun") or "")
+        if loja and cfg_e.get("uf"):
+            ue = str(cfg_e.get("uf") or ue)[:2]
+    except Exception:
+        pass
+    cmun_d, err_cmun = cmun_destinatario_ou_erro(dest, cidade_emit=cidade_emit, cmun_emit=cmun_emit)
 
     itens_doc = doc.get("itens") if isinstance(doc.get("itens"), list) else []
     apurados: list[ItemFiscalApurado] = []
@@ -330,6 +376,15 @@ def apurar_nfe_saida(
     total_trib = Decimal("0")
     trib_count = 0
     fed = est = mun = Decimal("0")
+    if err_cmun:
+        bloqueios.append(err_cmun)
+    if not loja:
+        bloqueios.append("Informe o estabelecimento emitente (Centro ou Vila Elias).")
+
+    usar_ibpt = ibpt_autorizado(loja or "")
+    p_cred, err_cred = (None, None)
+    if loja:
+        p_cred, err_cred = aliquota_credito_sn_validada(loja, dia)
 
     for idx, ln in enumerate(itens_doc, start=1):
         if not isinstance(ln, dict):
@@ -338,53 +393,85 @@ def apurar_nfe_saida(
         ncm_ln = normalizar_ncm_somente_digitos(fis.get("ncm") or ln.get("ncm"))
         if len(ncm_ln) != 8:
             bloqueios.append(
-                f"Item {idx}: NCM com 8 dígitos obrigatório — cadastre a classificação fiscal do produto "
-                f"(não use preenchimento genérico automático na NF-e)."
+                f"Item {idx}: NCM com 8 dígitos obrigatório — cadastre a classificação do produto. "
+                "A NF-e não inventa NCM."
             )
         qtd = _dec(ln.get("qtd"))
         vu = _dec(ln.get("v_unit"))
         vt = _dec(ln.get("v_total"))
         if vt <= 0 and qtd > 0:
             vt = (qtd * vu).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-        st_flag = bool(ln.get("icms_st") or ln.get("substituicao_tributaria"))
-        inter_op = bool(ud and ue and ud != ue)
-        cfop_linha_raw = _digits(ln.get("cfop"), 4)
-        if cfop_linha_raw and not cfop_coerente_operacao(cfop_linha_raw, inter=inter_op):
+        if ln.get("icms_st") or ln.get("substituicao_tributaria"):
             bloqueios.append(
-                f"Item {idx}: CFOP {cfop_linha_raw} incompatível com operação "
+                f"Item {idx}: ICMS-ST indicado sem cálculo implementado. Não emitimos com ST nesta etapa."
+            )
+        inter_op = bool(ud and ue and ud != ue)
+        cfop_expl = _digits(fis.get("cfop"), 4)
+        if cfop_expl and not cfop_coerente_operacao(cfop_expl, inter=inter_op):
+            bloqueios.append(
+                f"Item {idx}: CFOP {cfop_expl} incompatível com operação "
                 f"{'interestadual' if inter_op else 'interna'} (UF {ue} → {ud})."
             )
-        cfop = sugerir_cfop_item(
+
+        regra, err_regra = resolver_regra_item(
+            doc,
+            {**ln, **fis, "ncm": ncm_ln},
+            idx,
             uf_emit=ue,
             uf_dest=ud,
-            ind_final=ind_final,
-            cfop_linha=fis.get("cfop") or "",
-            cfop_catalogo=fis.get("cfop") or "",
-            mercadoria_st=st_flag,
+            data_emissao=dia,
+            cnpj_emit=cnpj_emit or "",
         )
-        csosn = _digits(fis.get("csosn"), 3) or "102"
+        bloqueios.extend(err_regra)
+        cfop = regra.cfop if regra else cfop_expl
+        csosn = regra.csosn if regra else _digits(fis.get("csosn"), 3)
+        if regra and cfop_expl and cfop_expl != regra.cfop:
+            bloqueios.append(
+                f"Item {idx}: CFOP {cfop_expl} do cadastro/item incompatível com a regra Validada {regra.cfop}."
+            )
+        if regra and _digits(fis.get("csosn"), 3) and _digits(fis.get("csosn"), 3) != regra.csosn:
+            bloqueios.append(
+                f"Item {idx}: CSOSN {_digits(fis.get('csosn'), 3)} do cadastro incompatível com a regra Validada {regra.csosn}."
+            )
+
         origem = _digits(fis.get("origem"), 1) or "0"
-        icms_grupo, icms_campos, bl_icms = _apurar_icms_sn(csosn, origem, vt)
-        pis_g, pis_c, cof_g, cof_c, bl_pis = _apurar_pis_cofins(fis.get("cst_pis_cofins") or "49")
-        item_bloqueios = bl_icms + bl_pis
+        icms_grupo, icms_campos, bl_icms = _apurar_icms_sn(
+            csosn, origem, vt, p_cred=p_cred, erro_cred=err_cred
+        )
+        cst_p, cst_c = "", ""
+        extra_pis: list[str] = []
+        if regra and loja:
+            cst_p, cst_c, extra_pis = cst_pis_cofins_validado(
+                loja, {**ln, **fis, "ncm": ncm_ln}, regra, tipo_dest=dest["tipo_destinatario"]
+            )
+            for rot, expl, val in (
+                ("CST PIS", _digits(fis.get("cst_pis"), 2), cst_p),
+                ("CST COFINS", _digits(fis.get("cst_cofins"), 2), cst_c),
+            ):
+                if expl and val and expl != val:
+                    bloqueios.append(
+                        f"Item {idx}: {rot} {expl} do cadastro incompatível com o valor Validado {val}."
+                    )
+        pis_g, pis_c, cof_g, cof_c, bl_pis = _apurar_pis_cofins(cst_p, cst_c)
+        item_bloqueios = bl_icms + bl_pis + extra_pis
         bloqueios.extend(item_bloqueios)
 
-        v_trib_item, _ = _ibpt_item(fis.get("ncm") or "", vt, ud)
-        if v_trib_item is not None and v_trib_item > 0:
-            total_trib += v_trib_item
-            trib_count += 1
-            try:
-                from produtos.nfce_ibpt_util import _ibpt_aliquotas_ncm
+        v_trib_item = None
+        if usar_ibpt:
+            v_trib_item, _ = _ibpt_item(ncm_ln, vt, ud)
+            if v_trib_item is not None and v_trib_item > 0:
+                total_trib += v_trib_item
+                trib_count += 1
+                try:
+                    from produtos.nfce_ibpt_util import _ibpt_aliquotas_ncm
 
-                ncm_ibpt = normalizar_ncm_somente_digitos(fis.get("ncm") or ln.get("ncm"))
-                if len(ncm_ibpt) != 8:
-                    continue
-                nac_p, est_p, mun_p = _ibpt_aliquotas_ncm(ncm_ibpt, ud)
-                fed += (vt * nac_p / Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-                est += (vt * est_p / Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-                mun += (vt * mun_p / Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            except Exception:
-                pass
+                    if len(ncm_ln) == 8:
+                        nac_p, est_p, mun_p = _ibpt_aliquotas_ncm(ncm_ln, ud)
+                        fed += (vt * nac_p / Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                        est += (vt * est_p / Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                        mun += (vt * mun_p / Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                except Exception:
+                    pass
 
         apurados.append(
             ItemFiscalApurado(
@@ -392,8 +479,8 @@ def apurar_nfe_saida(
                 cfop=cfop,
                 csosn=csosn,
                 origem=origem,
-                cst_pis=pis_c.get("CST", "49"),
-                cst_cofins=cof_c.get("CST", "49"),
+                cst_pis=pis_c.get("CST", cst_p),
+                cst_cofins=cof_c.get("CST", cst_c),
                 icms_grupo=icms_grupo,
                 icms_campos=icms_campos,
                 pis_grupo=pis_g,
@@ -401,14 +488,14 @@ def apurar_nfe_saida(
                 cofins_grupo=cof_g,
                 cofins_campos=cof_c,
                 v_tot_trib=v_trib_item,
-                regra_id=f"sn-{csosn}-pis{pis_c.get('CST')}",
+                regra_id=f"regra-{regra.pk}" if regra else "",
                 alertas=item_bloqueios,
             )
         )
 
     v_tot_trib_nf: Decimal | None = None
     ibpt_texto = ""
-    if ibpt_habilitado() and trib_count > 0:
+    if usar_ibpt and trib_count > 0:
         v_tot_trib_nf = total_trib.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         from produtos.caixa_util import format_moeda_br
 
@@ -418,10 +505,10 @@ def apurar_nfe_saida(
             f"Municipal {format_moeda_br(mun)}. Fonte: IBPT. "
             f"Motor {_MOTOR_VERSAO}."
         )
-    elif not ibpt_habilitado():
+    elif not usar_ibpt:
         alertas.append(
-            "Tributos aproximados (IBPT) não calculados — configure NFC_E_IBPT_TOKEN no servidor "
-            "ou NFE_SAIDA_IBPT_USE_FALLBACK=1 após validação contábil."
+            "Tributos aproximados (IBPT) omitidos — cadastro IBPT não Validado ou token ausente. "
+            "Não inventamos percentual."
         )
 
     # dedupe bloqueios
@@ -443,9 +530,15 @@ def apurar_nfe_saida(
     )
 
 
-def erros_fiscal_emissao(doc: dict, *, uf_emit: str | None = None) -> list[str]:
+def erros_fiscal_emissao(
+    doc: dict,
+    *,
+    uf_emit: str | None = None,
+    cnpj_emit: str | None = None,
+    data_emissao=None,
+) -> list[str]:
     """Bloqueios fiscais antes de montar XML / transmitir."""
-    ap = apurar_nfe_saida(doc, uf_emit=uf_emit)
+    ap = apurar_nfe_saida(doc, uf_emit=uf_emit, cnpj_emit=cnpj_emit, data_emissao=data_emissao)
     return list(ap.bloqueios)
 
 

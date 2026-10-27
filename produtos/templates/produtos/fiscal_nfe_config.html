@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full">
+<head>
+  {% load static %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <title>Fiscal / NF-e | SisVale</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>
+    html, body { height: 100%; }
+    body { font-family: 'Inter', sans-serif; margin: 0; overflow: hidden; background: #f1f5f9; color: #0f172a; }
+    .fn-page {
+      container-type: inline-size;
+      --pc-fs-base: clamp(0.95rem, 0.25vw + 0.88rem, 1.08rem);
+      --pc-fs-eyebrow: clamp(0.7rem, 0.14vw + 0.66rem, 0.8rem);
+      --pc-fs-label: clamp(0.78rem, 0.16vw + 0.74rem, 0.9rem);
+      --pc-fs-body: clamp(0.95rem, 0.22vw + 0.9rem, 1.1rem);
+      --pc-fs-strong: clamp(1.02rem, 0.3vw + 0.95rem, 1.22rem);
+      --pc-fs-section: clamp(1.05rem, 0.35vw + 0.95rem, 1.28rem);
+      --pc-fs-page: clamp(1.4rem, 0.75vw + 1.15rem, 1.95rem);
+      --pc-ctrl-h: clamp(2.85rem, 5.5vh, 3.4rem);
+      font-size: var(--pc-fs-base);
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .fn-head {
+      flex: 0 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: clamp(0.5rem, 1vw, 1rem);
+      padding: clamp(0.45rem, 1vh, 0.8rem) clamp(0.7rem, 1.4vw, 1.5rem);
+      background: #fff;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .pc-eyebrow { font-size: var(--pc-fs-eyebrow); font-weight: 900; text-transform: uppercase; letter-spacing: 0.14em; color: #047857; margin: 0; }
+    .pc-title { font-size: var(--pc-fs-page); font-weight: 900; text-transform: uppercase; line-height: 1.1; margin: 0.1rem 0 0; }
+    .pc-sub { font-size: var(--pc-fs-label); font-weight: 700; color: #475569; margin: 0.15rem 0 0; }
+    .fn-head-acoes { display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center; }
+    .pc-btn, .fn-tab {
+      min-height: var(--pc-ctrl-h);
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem;
+      padding-inline: clamp(0.75rem, 1.2vw, 1.3rem);
+      border-radius: 0.75rem; border: 2px solid transparent;
+      font-size: var(--pc-fs-label); font-weight: 900; text-transform: uppercase; cursor: pointer; white-space: nowrap;
+    }
+    .pc-btn--ghost { border-color: #cbd5e1; background: #fff; color: #1e293b; }
+    .pc-btn--verde { background: #047857; color: #fff; }
+    .pc-btn--laranja { background: #c2410c; color: #fff; }
+    .pc-btn--verde-claro { border-color: #6ee7b7; background: #ecfdf5; color: #065f46; }
+    .loja-seg { display: inline-flex; border: 2px solid #047857; border-radius: 0.75rem; overflow: hidden; }
+    .loja-seg button { min-height: var(--pc-ctrl-h); padding: 0 1rem; font-weight: 900; text-transform: uppercase; border: 0; background: #fff; color: #064e3b; cursor: pointer; font-size: var(--pc-fs-label); }
+    .loja-seg button.is-on { background: #047857; color: #fff; }
+    .fn-tabs { flex: 0 0 auto; display: flex; gap: 0.35rem; padding: 0.4rem clamp(0.7rem, 1.4vw, 1.5rem); background: #fff; border-bottom: 2px solid #e2e8f0; overflow-x: auto; }
+    .fn-tab { border-color: #cbd5e1; background: #f8fafc; color: #334155; }
+    .fn-tab.is-on { border-color: #047857; background: #ecfdf5; color: #065f46; }
+    .fn-main { flex: 1 1 auto; min-height: 0; overflow: auto; padding: clamp(0.5rem, 1.1vh, 0.9rem) clamp(0.7rem, 1.4vw, 1.5rem); }
+    .fn-grid { display: grid; gap: 0.7rem; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
+    .fn-card { background: #fff; border: 2px solid #cbd5e1; border-radius: 1rem; padding: 0.75rem 0.9rem; }
+    .fn-card h2 { margin: 0 0 0.55rem; font-size: var(--pc-fs-section); font-weight: 900; text-transform: uppercase; }
+    .fn-dl { display: grid; grid-template-columns: minmax(8rem, 38%) 1fr; gap: 0.35rem 0.7rem; font-size: var(--pc-fs-body); }
+    .fn-dl dt { font-weight: 800; color: #475569; }
+    .fn-dl dd { margin: 0; font-weight: 900; color: #0f172a; }
+    .pc-campo { display: flex; flex-direction: column; gap: 0.25rem; }
+    .pc-campo-label { font-size: var(--pc-fs-label); font-weight: 900; text-transform: uppercase; color: #475569; }
+    .pc-input, .pc-select, .pc-area {
+      width: 100%; min-height: var(--pc-ctrl-h); padding: 0.35rem 0.7rem;
+      border: 2px solid #cbd5e1; border-radius: 0.75rem; background: #fff;
+      font-size: var(--pc-fs-strong); font-weight: 800; color: #0f172a;
+    }
+    .pc-area { min-height: 5rem; font-size: var(--pc-fs-body); }
+    .pc-input:focus, .pc-select:focus, .pc-area:focus { border-color: #10b981; outline: none; }
+    .pc-ajuda-btn {
+      list-style: none; cursor: pointer; min-height: 2.4rem; min-width: 2.4rem;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 999px; border: 2px solid #cbd5e1; background: #fff; font-weight: 900;
+    }
+    .pc-ajuda-btn::-webkit-details-marker { display: none; }
+    .pc-ajuda { font-size: var(--pc-fs-label); font-weight: 700; line-height: 1.4; color: #e2e8f0; background: #1e293b; border-radius: 0.7rem; padding: 0.6rem; margin-top: 0.3rem; }
+    .badge { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px; font-size: var(--pc-fs-label); font-weight: 900; text-transform: uppercase; }
+    .badge-pendente { background: #fff7ed; color: #c2410c; border: 2px solid #fdba74; }
+    .badge-preenchido { background: #f1f5f9; color: #334155; border: 2px solid #cbd5e1; }
+    .badge-validado { background: #ecfdf5; color: #047857; border: 2px solid #6ee7b7; }
+    .fn-msg { font-size: var(--pc-fs-label); font-weight: 800; color: #065f46; min-height: 1.2em; }
+    .fn-msg.is-erro { color: #b91c1c; }
+    .pc-tabela { width: 100%; border-collapse: collapse; }
+    .pc-tabela th { background: #0f172a; color: #fff; text-align: left; padding: 0.45rem 0.6rem; font-size: var(--pc-fs-label); text-transform: uppercase; }
+    .pc-tabela td { padding: 0.4rem 0.6rem; border-bottom: 1px solid #e2e8f0; font-weight: 800; }
+    .fn-foot { flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; padding: 0.5rem 1rem; background: #fff; border-top: 2px solid #e2e8f0; }
+    .fn-hidden { display: none !important; }
+    .fn-contador { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: end; }
+    .fn-contador label { display: flex; flex-direction: column; gap: 0.15rem; font-size: var(--pc-fs-label); font-weight: 900; text-transform: uppercase; color: #475569; }
+    .fn-contador .pc-input { min-height: 2.6rem; min-width: 8rem; font-size: var(--pc-fs-body); }
+    .q-bloco { border: 2px solid #e2e8f0; border-radius: 0.8rem; padding: 0.7rem; margin-bottom: 0.6rem; }
+    .q-bloco h3 { margin: 0 0 0.5rem; font-size: var(--pc-fs-section); font-weight: 900; }
+    @media print {
+      body { overflow: auto; background: #fff; }
+      .fn-page { height: auto; overflow: visible; }
+      .fn-head, .fn-tabs, .fn-foot, .no-print { display: none !important; }
+      .fn-main { overflow: visible; }
+      .fn-panel { display: none !important; }
+      #painel-q { display: block !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="fn-page">
+    <header class="fn-head">
+      <div>
+        <p class="pc-eyebrow">Configuração</p>
+        <h1 class="pc-title">Fiscal / NF-e</h1>
+        <p class="pc-sub">Modelo 55 · campos vazios não alteram a emissão atual</p>
+      </div>
+      <div class="fn-head-acoes">
+        <div class="loja-seg" role="tablist" aria-label="Estabelecimento">
+          <button type="button" id="btn-centro" class="is-on" data-loja="centro">Centro</button>
+          <button type="button" id="btn-vila" data-loja="vila">Vila Elias</button>
+        </div>
+        <div class="fn-contador" title="Aprovação do contador não é o usuário do sistema">
+          <label>Contador<input id="cnt-nome" class="pc-input" maxlength="200" placeholder="Nome"></label>
+          <label>CRC<input id="cnt-crc" class="pc-input" maxlength="40" placeholder="CRC"></label>
+          <label>Aprovação<input id="cnt-data" class="pc-input" type="date"></label>
+        </div>
+        <a href="{% url 'home' %}" class="pc-btn pc-btn--ghost">← BI</a>
+        <a href="{% url 'nfe_saida' %}" class="pc-btn pc-btn--verde-claro">NF-e 55</a>
+      </div>
+    </header>
+    <nav class="fn-tabs" aria-label="Abas">
+      <button type="button" class="fn-tab is-on" data-tab="empresa">Empresa</button>
+      <button type="button" class="fn-tab" data-tab="icms">Simples / ICMS</button>
+      <button type="button" class="fn-tab" data-tab="pis">PIS / COFINS</button>
+      <button type="button" class="fn-tab" data-tab="ibpt">IBPT</button>
+      <button type="button" class="fn-tab" data-tab="regras">Regras</button>
+      <button type="button" class="fn-tab" data-tab="q">Questionário</button>
+    </nav>
+    <main class="fn-main">
+      <p id="fn-msg" class="fn-msg" role="status"></p>
+
+      <section id="painel-empresa" class="fn-panel">
+        <div class="fn-grid">
+          <div class="fn-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem">
+              <h2>Dados oficiais</h2>
+              <details><summary class="pc-ajuda-btn">?</summary><div class="pc-ajuda">Leitura das configurações já usadas. Senha do certificado e tokens não aparecem. Pendente = falta no servidor ou no cadastro.</div></details>
+            </div>
+            <dl class="fn-dl" id="emp-leitura"></dl>
+          </div>
+          <div class="fn-card">
+            <h2>Cadastro NF-e 55</h2>
+            <p class="pc-sub" style="margin-bottom:.5rem">A Vila pode ter série própria. Isso não muda o emitente da transmissão nesta etapa.</p>
+            <div class="fn-grid">
+              <label class="pc-campo"><span class="pc-campo-label">CRT</span><input id="emp-crt" class="pc-input" maxlength="8" placeholder="ex.: 1"></label>
+              <label class="pc-campo"><span class="pc-campo-label">Série NF-e 55</span><input id="emp-serie" class="pc-input" inputmode="numeric" placeholder="Pendente"></label>
+            </div>
+            <label class="pc-campo" style="margin-top:.5rem"><span class="pc-campo-label">Observações</span><textarea id="emp-obs" class="pc-area"></textarea></label>
+            <div style="display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap">
+              <button type="button" class="pc-btn pc-btn--verde" id="emp-salvar">Salvar</button>
+              <button type="button" class="pc-btn pc-btn--laranja" id="emp-validar">Validar</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="painel-icms" class="fn-panel fn-hidden">
+        <div class="fn-card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h2>Crédito ICMS por competência</h2>
+            <details><summary class="pc-ajuda-btn">?</summary><div class="pc-ajuda">Percentual vazio permanece Pendente. Não usa o valor do servidor. Competências não se sobrescrevem. ST/DIFAL só cadastro — sem cálculo.</div></details>
+          </div>
+          <div class="fn-grid">
+            <label class="pc-campo"><span class="pc-campo-label">Competência</span><input id="cr-comp" class="pc-input" placeholder="AAAA-MM"></label>
+            <label class="pc-campo"><span class="pc-campo-label">Percentual</span><input id="cr-pct" class="pc-input" placeholder="vazio = Pendente"></label>
+            <label class="pc-campo"><span class="pc-campo-label">Início</span><input id="cr-ini" class="pc-input" type="date"></label>
+            <label class="pc-campo"><span class="pc-campo-label">Fim</span><input id="cr-fim" class="pc-input" type="date"></label>
+          </div>
+          <label class="pc-campo" style="margin-top:.4rem"><span class="pc-campo-label">Observações</span><textarea id="cr-obs" class="pc-area"></textarea></label>
+          <input type="hidden" id="cr-id">
+          <div style="display:flex;gap:.5rem;margin:.6rem 0;flex-wrap:wrap">
+            <button type="button" class="pc-btn pc-btn--verde" id="cr-salvar">Salvar competência</button>
+            <button type="button" class="pc-btn pc-btn--ghost" id="cr-limpar">Limpar</button>
+          </div>
+          <div style="overflow:auto"><table class="pc-tabela"><thead><tr><th>Competência</th><th>%</th><th>Status</th><th>Validação</th><th></th></tr></thead><tbody id="cr-lista"></tbody></table></div>
+        </div>
+        <div class="fn-card" style="margin-top:.7rem">
+          <h2>Exceções ST / DIFAL</h2>
+          <p class="pc-sub">Estrutura pronta. Sem incidência assumida e sem cálculo.</p>
+          <div class="fn-grid">
+            <label class="pc-campo"><span class="pc-campo-label">Tipo</span>
+              <select id="st-tipo" class="pc-select"><option value="st">ICMS-ST</option><option value="difal">DIFAL</option></select>
+            </label>
+            <label class="pc-campo"><span class="pc-campo-label">UF destino</span><input id="st-uf" class="pc-input" maxlength="2"></label>
+            <label class="pc-campo"><span class="pc-campo-label">NCM</span><input id="st-ncm" class="pc-input" maxlength="8"></label>
+            <label class="pc-campo"><span class="pc-campo-label">Condição</span><input id="st-cond" class="pc-input"></label>
+          </div>
+          <label class="pc-campo" style="margin-top:.4rem"><span class="pc-campo-label">Fundamentação</span><textarea id="st-fund" class="pc-area"></textarea></label>
+          <button type="button" class="pc-btn pc-btn--verde" id="st-salvar" style="margin:.5rem 0">Salvar exceção</button>
+          <div style="overflow:auto"><table class="pc-tabela"><thead><tr><th>Tipo</th><th>UF</th><th>NCM</th><th>Status</th><th></th></tr></thead><tbody id="st-lista"></tbody></table></div>
+        </div>
+      </section>
+
+      <section id="painel-pis" class="fn-panel fn-hidden">
+        <div class="fn-card">
+          <div style="display:flex;justify-content:space-between">
+            <h2>CST padrão</h2>
+            <details><summary class="pc-ajuda-btn">?</summary><div class="pc-ajuda">Não assume CST 49. Sem alíquota padrão. Preenchido não vira Validado sozinho.</div></details>
+          </div>
+          <div class="fn-grid">
+            <label class="pc-campo"><span class="pc-campo-label">CST PIS</span><input id="pis-cst" class="pc-input" maxlength="4"></label>
+            <label class="pc-campo"><span class="pc-campo-label">CST COFINS</span><input id="cof-cst" class="pc-input" maxlength="4"></label>
+            <label class="pc-campo"><span class="pc-campo-label">Início</span><input id="pis-ini" class="pc-input" type="date"></label>
+            <label class="pc-campo"><span class="pc-campo-label">Fim</span><input id="pis-fim" class="pc-input" type="date"></label>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.4rem;gap:.5rem;flex-wrap:wrap">
+            <span class="pc-campo-label">Exceções</span>
+            <button type="button" class="pc-btn pc-btn--ghost" id="pis-ex-add">+ Exceção</button>
+          </div>
+          <div style="overflow:auto">
+            <table class="pc-tabela">
+              <thead><tr><th>Operação</th><th>Produto</th><th>NCM</th><th>CST PIS</th><th>CST COFINS</th></tr></thead>
+              <tbody id="pis-ex-lista"></tbody>
+            </table>
+          </div>
+          <label class="pc-campo"><span class="pc-campo-label">Observações do contador</span><textarea id="pis-obs" class="pc-area"></textarea></label>
+          <div style="display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap">
+            <button type="button" class="pc-btn pc-btn--verde" id="pis-salvar">Salvar</button>
+            <button type="button" class="pc-btn pc-btn--laranja" id="pis-validar">Validar</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="painel-ibpt" class="fn-panel fn-hidden">
+        <div class="fn-grid">
+          <div class="fn-card">
+            <h2>Situação no servidor</h2>
+            <dl class="fn-dl" id="ibpt-leitura"></dl>
+          </div>
+          <div class="fn-card">
+            <div style="display:flex;justify-content:space-between">
+              <h2>Orientação</h2>
+              <details><summary class="pc-ajuda-btn">?</summary><div class="pc-ajuda">Não cria tributo aproximado artificial. Token não aparece. Cálculo do XML não muda nesta etapa.</div></details>
+            </div>
+            <label class="pc-campo"><span class="pc-campo-label">Fonte</span><input id="ibpt-fonte" class="pc-input"></label>
+            <label class="pc-campo"><span class="pc-campo-label">Versão da tabela</span><input id="ibpt-ver" class="pc-input"></label>
+            <label class="pc-campo"><span class="pc-campo-label">Validade</span><input id="ibpt-val" class="pc-input" type="date"></label>
+            <label class="pc-campo"><span class="pc-campo-label">Orientação do contador</span><textarea id="ibpt-ori" class="pc-area"></textarea></label>
+            <div style="display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap">
+              <button type="button" class="pc-btn pc-btn--verde" id="ibpt-salvar">Salvar</button>
+              <button type="button" class="pc-btn pc-btn--laranja" id="ibpt-validar">Validar</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="painel-regras" class="fn-panel fn-hidden">
+        <div class="fn-card">
+          <div style="display:flex;justify-content:space-between">
+            <h2>Regras por operação</h2>
+            <details><summary class="pc-ajuda-btn">?</summary><div class="pc-ajuda" id="regra-ajuda">Precedência futura: produto → categoria → regra geral. Sem CSOSN 102 automático. Nada entra no motor agora.</div></details>
+          </div>
+          <input type="hidden" id="rg-id">
+          <div class="fn-grid">
+            <label class="pc-campo"><span class="pc-campo-label">Âmbito</span>
+              <select id="rg-ambito" class="pc-select"><option value="">Pendente</option><option value="interna">Interna</option><option value="interestadual">Interestadual</option></select>
+            </label>
+            <label class="pc-campo"><span class="pc-campo-label">Destinatário</span>
+              <select id="rg-tipo" class="pc-select">
+                <option value="">Pendente</option>
+                <option value="consumidor">Consumidor final</option>
+                <option value="revenda">Revenda</option>
+                <option value="produtor_rural">Produtor rural CPF+IE</option>
+                <option value="orgao_publico">Órgão público</option>
+              </select>
+            </label>
+            <label class="pc-campo"><span class="pc-campo-label">Situação ICMS</span><input id="rg-sit" class="pc-input" placeholder="contribuinte / isento…"></label>
+            <label class="pc-campo"><span class="pc-campo-label">Escopo</span>
+              <select id="rg-escopo" class="pc-select">
+                <option value="geral">Regra geral</option>
+                <option value="categoria">Categoria</option>
+                <option value="produto">Produto</option>
+              </select>
+            </label>
+            <label class="pc-campo"><span class="pc-campo-label">UF orig.</span><input id="rg-ufo" class="pc-input" maxlength="2"></label>
+            <label class="pc-campo"><span class="pc-campo-label">UF dest.</span><input id="rg-ufd" class="pc-input" maxlength="2"></label>
+            <label class="pc-campo"><span class="pc-campo-label">CFOP</span><input id="rg-cfop" class="pc-input" maxlength="4"></label>
+            <label class="pc-campo"><span class="pc-campo-label">CSOSN</span><input id="rg-csosn" class="pc-input" maxlength="4"></label>
+            <label class="pc-campo"><span class="pc-campo-label">CST PIS</span><input id="rg-pis" class="pc-input" maxlength="4"></label>
+            <label class="pc-campo"><span class="pc-campo-label">CST COFINS</span><input id="rg-cof" class="pc-input" maxlength="4"></label>
+            <label class="pc-campo"><span class="pc-campo-label">Categoria</span><input id="rg-cat" class="pc-input"></label>
+            <label class="pc-campo"><span class="pc-campo-label">NCM / produto</span><input id="rg-ncm" class="pc-input" placeholder="exceção"></label>
+          </div>
+          <label class="pc-campo" style="margin-top:.4rem"><span class="pc-campo-label">Observações</span><textarea id="rg-obs" class="pc-area"></textarea></label>
+          <div style="display:flex;gap:.5rem;margin:.6rem 0;flex-wrap:wrap">
+            <button type="button" class="pc-btn pc-btn--verde" id="rg-salvar">Salvar regra</button>
+            <button type="button" class="pc-btn pc-btn--ghost" id="rg-limpar">Limpar</button>
+          </div>
+          <div style="overflow:auto"><table class="pc-tabela"><thead><tr><th>Escopo</th><th>Operação</th><th>CFOP/CSOSN</th><th>Status</th><th></th></tr></thead><tbody id="rg-lista"></tbody></table></div>
+        </div>
+        <div class="fn-card" style="margin-top:.7rem">
+          <h2>Ver alterações</h2>
+          <div style="overflow:auto;max-height:12rem"><table class="pc-tabela"><thead><tr><th>Quando</th><th>Ação</th><th>Quem</th><th>Resumo</th></tr></thead><tbody id="log-lista"></tbody></table></div>
+        </div>
+      </section>
+
+      <section id="painel-q" class="fn-panel fn-hidden">
+        <div class="fn-card">
+          <h2>Questionário para o contador</h2>
+          <p class="pc-sub">Resposta em branco = Pendente. Preencher não valida.</p>
+          <div id="q-grupos"></div>
+        </div>
+      </section>
+    </main>
+    <footer class="fn-foot no-print">
+      <button type="button" class="pc-btn pc-btn--laranja" id="btn-q">Questionário para o contador</button>
+      <button type="button" class="pc-btn pc-btn--verde-claro" id="btn-copiar">Copiar texto</button>
+      <button type="button" class="pc-btn pc-btn--ghost" id="btn-print">Imprimir / PDF</button>
+      <span class="pc-sub">Só administradores. Sem transmissão.</span>
+    </footer>
+  </div>
+  <script>
+  (function () {
+    var loja = "{{ estabelecimento|default:'centro' }}";
+    var data = null;
+    var tab = 'empresa';
+    function el(id) { return document.getElementById(id); }
+    function csrf() {
+      var m = document.cookie.match(/csrftoken=([^;]+)/);
+      return m ? decodeURIComponent(m[1]) : '';
+    }
+    function msg(t, ok) {
+      var m = el('fn-msg');
+      m.textContent = t || '';
+      m.className = 'fn-msg' + (ok === false ? ' is-erro' : '');
+    }
+    function limpar(node) { while (node && node.firstChild) node.removeChild(node.firstChild); }
+    function texto(v) { return v == null || v === '' ? '' : String(v); }
+    function badgeEl(st) {
+      var s = document.createElement('span');
+      var stt = (st && st.status) || 'pendente';
+      s.className = 'badge badge-' + stt;
+      s.textContent = (st && st.status_rotulo) || 'Pendente';
+      return s;
+    }
+    function dlPar(dl, rotulo, valor) {
+      var dt = document.createElement('dt'); dt.textContent = rotulo;
+      var dd = document.createElement('dd'); dd.textContent = valor == null || valor === '' ? 'Pendente' : String(valor);
+      dl.appendChild(dt); dl.appendChild(dd);
+    }
+    function cel(tr, valor) {
+      var td = document.createElement('td'); td.textContent = valor == null || valor === '' ? '—' : String(valor);
+      tr.appendChild(td); return td;
+    }
+    function botao(rotulo, cls, ds, val) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'pc-btn ' + cls; b.textContent = rotulo;
+      if (ds) b.setAttribute(ds, val);
+      return b;
+    }
+    function linhaVazia(tb, cols, frase) {
+      var tr = document.createElement('tr');
+      var td = document.createElement('td'); td.colSpan = cols; td.textContent = frase;
+      tr.appendChild(td); tb.appendChild(tr);
+    }
+    function contadorPayload() {
+      return {
+        contador_nome: el('cnt-nome').value,
+        contador_crc: el('cnt-crc').value,
+        contador_aprovado_em: el('cnt-data').value
+      };
+    }
+    function aplicarContador(src) {
+      if (!src) return;
+      if (src.contador_nome) el('cnt-nome').value = src.contador_nome;
+      if (src.contador_crc) el('cnt-crc').value = src.contador_crc;
+      if (src.contador_aprovado_em) el('cnt-data').value = String(src.contador_aprovado_em).slice(0, 10);
+    }
+    function post(url, body) {
+      return fetch(url, {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: JSON.stringify(Object.assign({ estabelecimento: loja }, contadorPayload(), body || {}))
+      }).then(function (r) { return r.json(); });
+    }
+    function carregar() {
+      fetch('/api/configuracao/fiscal-nfe/?estabelecimento=' + encodeURIComponent(loja), { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (j) { data = j; pintar(); })
+        .catch(function () { msg('Falha ao carregar.', false); });
+    }
+    function pintarEmpresa() {
+      var e = (data && data.empresa) || {};
+      var cert = e.certificado || {};
+      var dl = el('emp-leitura'); limpar(dl);
+      dlPar(dl, 'CNPJ', e.cnpj || 'Pendente');
+      dlPar(dl, 'IE', e.ie || 'Pendente');
+      dlPar(dl, 'CRT', e.crt || 'Pendente');
+      dlPar(dl, 'UF / IBGE', (e.uf || 'Pendente') + ' · ' + (e.municipio_ibge || 'Pendente'));
+      dlPar(dl, 'Série emissão atual', e.serie_emissao_atual || 'Pendente');
+      dlPar(dl, 'Série NF-e 55 (cadastro)', e.serie_nfe_55_exibicao || 'Pendente');
+      dlPar(dl, 'Ambiente', e.ambiente || 'Pendente');
+      dlPar(dl, 'Certificado', (cert.situacao_rotulo || 'Pendente') + (cert.validade ? ' · ' + cert.validade : ''));
+      var nums = Array.isArray(e.numeracao) && e.numeracao.length
+        ? e.numeracao.map(function (n) { return 'Série ' + n.serie + ' · próximo ' + n.proximo_numero; }).join('; ')
+        : 'Pendente';
+      dlPar(dl, 'Numeração', nums);
+      var dt = document.createElement('dt'); dt.textContent = 'Status';
+      var dd = document.createElement('dd'); dd.appendChild(badgeEl(e));
+      var sm = document.createTextNode(' ' + (e.status_msg || '')); dd.appendChild(sm);
+      dl.appendChild(dt); dl.appendChild(dd);
+      el('emp-crt').value = e.crt_valor || '';
+      el('emp-serie').value = e.serie_nfe_55 || '';
+      el('emp-obs').value = e.observacoes || '';
+      aplicarContador(e);
+    }
+    function pintarCreditos() {
+      var tb = el('cr-lista'); limpar(tb);
+      var itens = (data && data.creditos) || [];
+      if (!itens.length) { linhaVazia(tb, 5, 'Nenhuma competência. Percentual de crédito não informado.'); }
+      itens.forEach(function (it) {
+        var tr = document.createElement('tr');
+        cel(tr, it.competencia); cel(tr, it.percentual || '—');
+        var tdSt = document.createElement('td'); tdSt.appendChild(badgeEl(it)); tr.appendChild(tdSt);
+        cel(tr, it.validado_por_nome || '—');
+        var tdA = document.createElement('td');
+        tdA.appendChild(botao('Abrir', 'pc-btn--ghost', 'data-cr', it.id));
+        tdA.appendChild(document.createTextNode(' '));
+        tdA.appendChild(botao('Validar', 'pc-btn--laranja', 'data-crv', it.id));
+        tr.appendChild(tdA); tb.appendChild(tr);
+      });
+      var st = el('st-lista'); limpar(st);
+      var sts = (data && data.excecoes_st) || [];
+      if (!sts.length) { linhaVazia(st, 5, 'Sem exceção cadastrada.'); }
+      sts.forEach(function (it) {
+        var tr = document.createElement('tr');
+        cel(tr, it.tipo); cel(tr, it.uf_destino || '—'); cel(tr, it.ncm || '—');
+        var tdSt = document.createElement('td'); tdSt.appendChild(badgeEl(it)); tr.appendChild(tdSt);
+        var tdA = document.createElement('td');
+        tdA.appendChild(botao('Validar', 'pc-btn--laranja', 'data-stv', it.id));
+        tr.appendChild(tdA); st.appendChild(tr);
+      });
+    }
+    function addPisRow(x) {
+      x = x || {};
+      var tr = document.createElement('tr');
+      ['operacao', 'produto', 'ncm', 'cst_pis', 'cst_cofins'].forEach(function (k) {
+        var td = document.createElement('td');
+        var inp = document.createElement('input');
+        inp.className = 'pc-input'; inp.setAttribute('data-k', k); inp.value = x[k] || '';
+        td.appendChild(inp); tr.appendChild(td);
+      });
+      el('pis-ex-lista').appendChild(tr);
+    }
+    function lerPisExcecoes() {
+      var out = [];
+      Array.prototype.forEach.call(el('pis-ex-lista').querySelectorAll('tr'), function (tr) {
+        var o = {};
+        Array.prototype.forEach.call(tr.querySelectorAll('input'), function (inp) {
+          o[inp.getAttribute('data-k')] = inp.value;
+        });
+        if (o.operacao || o.produto || o.ncm || o.cst_pis || o.cst_cofins) out.push(o);
+      });
+      return out;
+    }
+    function pintarPis() {
+      var p = (data && data.pis) || {};
+      el('pis-cst').value = p.cst_pis || '';
+      el('cof-cst').value = p.cst_cofins || '';
+      el('pis-ini').value = (p.vigencia_inicio || '').slice(0, 10);
+      el('pis-fim').value = (p.vigencia_fim || '').slice(0, 10);
+      el('pis-obs').value = p.observacoes || '';
+      limpar(el('pis-ex-lista'));
+      var ex = Array.isArray(p.excecoes) ? p.excecoes : [];
+      if (!ex.length) addPisRow({});
+      else ex.forEach(addPisRow);
+      aplicarContador(p);
+    }
+    function pintarIbpt() {
+      var i = (data && data.ibpt) || {};
+      var dl = el('ibpt-leitura'); limpar(dl);
+      dlPar(dl, 'Situação', i.situacao_servidor || 'Pendente');
+      dlPar(dl, 'Fonte', i.fonte_servidor || 'Pendente');
+      dlPar(dl, 'Token', i.token_configurado ? 'Configurado' : 'Pendente');
+      var dt = document.createElement('dt'); dt.textContent = 'Status cadastro';
+      var dd = document.createElement('dd'); dd.appendChild(badgeEl(i));
+      dl.appendChild(dt); dl.appendChild(dd);
+      el('ibpt-fonte').value = i.fonte || '';
+      el('ibpt-ver').value = i.versao_tabela || '';
+      el('ibpt-val').value = (i.validade || '').slice(0, 10);
+      el('ibpt-ori').value = i.orientacao_contador || '';
+      aplicarContador(i);
+    }
+    function pintarRegras() {
+      var tb = el('rg-lista'); limpar(tb);
+      var itens = (data && data.regras) || [];
+      if (!itens.length) { linhaVazia(tb, 5, 'Nenhuma regra. Configuração fiscal pendente.'); }
+      itens.forEach(function (it) {
+        var tr = document.createElement('tr');
+        cel(tr, it.escopo);
+        cel(tr, (it.ambito || '—') + ' · ' + (it.tipo_destinatario || '—'));
+        cel(tr, (it.cfop || '—') + ' / ' + (it.csosn || '—'));
+        var tdSt = document.createElement('td'); tdSt.appendChild(badgeEl(it)); tr.appendChild(tdSt);
+        var tdA = document.createElement('td');
+        tdA.appendChild(botao('Abrir', 'pc-btn--ghost', 'data-rg', it.id));
+        tdA.appendChild(document.createTextNode(' '));
+        tdA.appendChild(botao('Validar', 'pc-btn--laranja', 'data-rgv', it.id));
+        tr.appendChild(tdA); tb.appendChild(tr);
+      });
+      var logs = el('log-lista'); limpar(logs);
+      var hist = (data && data.historico) || [];
+      if (!hist.length) { linhaVazia(logs, 4, 'Sem alterações.'); }
+      hist.forEach(function (it) {
+        var tr = document.createElement('tr');
+        cel(tr, texto(it.quando).replace('T', ' ').slice(0, 16));
+        cel(tr, it.acao); cel(tr, it.usuario || '—'); cel(tr, it.resumo || '');
+        logs.appendChild(tr);
+      });
+    }
+    function pintarQ() {
+      var root = el('q-grupos'); limpar(root);
+      var grupos = (data && data.questionario) || [];
+      grupos.forEach(function (g) {
+        var h = document.createElement('h3');
+        h.textContent = g.grupo + '. ' + g.titulo;
+        root.appendChild(h);
+        (g.perguntas || []).forEach(function (p) {
+          var bloco = document.createElement('div');
+          bloco.className = 'q-bloco';
+          bloco.setAttribute('data-g', p.grupo);
+          bloco.setAttribute('data-k', p.chave);
+          bloco.setAttribute('data-e', p.estabelecimento || '');
+          var cab = document.createElement('div');
+          cab.style.cssText = 'display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap';
+          var strong = document.createElement('strong'); strong.textContent = p.estabelecimento_rotulo;
+          cab.appendChild(strong); cab.appendChild(badgeEl(p)); bloco.appendChild(cab);
+          var pg = document.createElement('p'); pg.textContent = p.pergunta; bloco.appendChild(pg);
+          var ta = document.createElement('textarea'); ta.className = 'pc-area q-resp'; ta.value = p.resposta || '';
+          bloco.appendChild(ta);
+          var ac = document.createElement('div'); ac.style.cssText = 'display:flex;gap:.4rem;margin-top:.4rem;flex-wrap:wrap';
+          var sv = document.createElement('button'); sv.type = 'button'; sv.className = 'pc-btn pc-btn--verde q-save'; sv.textContent = 'Salvar';
+          ac.appendChild(sv);
+          if (p.id) {
+            var vb = document.createElement('button'); vb.type = 'button'; vb.className = 'pc-btn pc-btn--laranja q-val';
+            vb.textContent = 'Validar'; vb.setAttribute('data-id', p.id); ac.appendChild(vb);
+          }
+          bloco.appendChild(ac); root.appendChild(bloco);
+        });
+      });
+    }
+    function pintar() {
+      el('btn-centro').classList.toggle('is-on', loja === 'centro');
+      el('btn-vila').classList.toggle('is-on', loja === 'vila');
+      pintarEmpresa(); pintarCreditos(); pintarPis(); pintarIbpt(); pintarRegras(); pintarQ();
+    }
+    function mostrarTab(nome) {
+      tab = nome;
+      document.querySelectorAll('.fn-tab').forEach(function (b) { b.classList.toggle('is-on', b.getAttribute('data-tab') === nome); });
+      ['empresa','icms','pis','ibpt','regras','q'].forEach(function (n) {
+        el('painel-' + n).classList.toggle('fn-hidden', n !== nome);
+      });
+    }
+    document.querySelectorAll('.fn-tab').forEach(function (b) {
+      b.addEventListener('click', function () { mostrarTab(b.getAttribute('data-tab')); });
+    });
+    el('btn-centro').onclick = function () { loja = 'centro'; carregar(); };
+    el('btn-vila').onclick = function () { loja = 'vila'; carregar(); };
+    el('emp-salvar').onclick = function () {
+      post('/api/configuracao/fiscal-nfe/empresa/', { crt: el('emp-crt').value, serie_nfe_55: el('emp-serie').value, observacoes: el('emp-obs').value })
+        .then(function (j) { msg(j.mensagem || j.erro, !!j.ok); carregar(); });
+    };
+    el('emp-validar').onclick = function () {
+      var id = data && data.empresa && data.empresa.id;
+      if (!id) { msg('Salve antes de validar.', false); return; }
+      post('/api/configuracao/fiscal-nfe/validar/', { tipo: 'empresa', id: id }).then(function (j) { msg(j.mensagem || j.erro, !!j.ok); carregar(); });
+    };
+    el('cr-salvar').onclick = function () {
+      post('/api/configuracao/fiscal-nfe/credito/', {
+        id: el('cr-id').value || null,
+        competencia: el('cr-comp').value,
+        percentual: el('cr-pct').value,
+        vigencia_inicio: el('cr-ini').value,
+        vigencia_fim: el('cr-fim').value,
+        observacoes: el('cr-obs').value
+      }).then(function (j) { msg(j.mensagem || j.erro, !!j.ok); if (j.ok) { el('cr-id').value = ''; carregar(); } });
+    };
+    el('cr-limpar').onclick = function () { el('cr-id').value = ''; el('cr-comp').value = ''; el('cr-pct').value = ''; el('cr-obs').value = ''; };
+    el('cr-lista').addEventListener('click', function (ev) {
+      var t = ev.target;
+      if (t.getAttribute('data-cr')) {
+        var it = ((data && data.creditos) || []).find(function (x) { return String(x.id) === t.getAttribute('data-cr'); });
+        if (!it) return;
+        el('cr-id').value = it.id; el('cr-comp').value = it.competencia; el('cr-pct').value = it.percentual || '';
+        el('cr-ini').value = (it.vigencia_inicio || '').slice(0, 10); el('cr-fim').value = (it.vigencia_fim || '').slice(0, 10); el('cr-obs').value = it.observacoes || '';
+      }
+      if (t.getAttribute('data-crv')) {
+        post('/api/configuracao/fiscal-nfe/validar/', { tipo: 'credito', id: t.getAttribute('data-crv') }).then(function (j) { msg(j.mensagem || j.erro, !!j.ok); carregar(); });
+      }
+    });
+    el('st-salvar').onclick = function () {
+      post('/api/configuracao/fiscal-nfe/st/', { tipo: el('st-tipo').value, uf_destino: el('st-uf').value, ncm: el('st-ncm').value, condicao: el('st-cond').value, fundamentacao: el('st-fund').value })
+        .then(function (j) { msg(j.mensagem || j.erro, !!j.ok); carregar(); });
+    };
+    el('st-lista').addEventListener('click', function (ev) {
+      var id = ev.target.getAttribute('data-stv');
+      if (!id) return;
+      post('/api/configuracao/fiscal-nfe/validar/', { tipo: 'st', id: id }).then(function (j) { msg(j.mensagem || j.erro, !!j.ok); carregar(); });
+    });
+    el('pis-ex-add').onclick = function () { addPisRow({}); };
+    el('pis-salvar').onclick = function () {
+      post('/api/configuracao/fiscal-nfe/pis/', {
+        cst_pis: el('pis-cst').value, cst_cofins: el('cof-cst').value,
+        vigencia_inicio: el('pis-ini').value, vigencia_fim: el('pis-fim').value,
+        observacoes: el('pis-obs').value, excecoes: lerPisExcecoes()
+      }).then(function (j) { msg(j.mensagem || j.erro, !!j.ok); carregar(); });
+    };
+    el('pis-validar').onclick = function () {
+      var id = data && data.pis && data.pis.id;
+      if (!id) { msg('Salve antes de validar.', false); return; }
+      post('/api/configuracao/fiscal-nfe/validar/', { tipo: 'pis', id: id }).then(function (j) { msg(j.mensagem || j.erro, !!j.ok); carregar(); });
+    };
+    el('ibpt-salvar').onclick = function () {
+      post('/api/configuracao/fiscal-nfe/ibpt/', { fonte: el('ibpt-fonte').value, versao_tabela: el('ibpt-ver').value, validade: el('ibpt-val').value, orientacao_contador: el('ibpt-ori').value })
+        .then(function (j) { msg(j.mensagem || j.erro, !!j.ok); carregar(); });
+    };
+    el('ibpt-validar').onclick = function () {
+      var id = data && data.ibpt && data.ibpt.id;
+      if (!id) { msg('Salve antes de validar.', false); return; }
+      post('/api/configuracao/fiscal-nfe/validar/', { tipo: 'ibpt', id: id }).then(function (j) { msg(j.mensagem || j.erro, !!j.ok); carregar(); });
+    };
+    el('rg-salvar').onclick = function () {
+      post('/api/configuracao/fiscal-nfe/regra/', {
+        id: el('rg-id').value || null, ambito: el('rg-ambito').value, tipo_destinatario: el('rg-tipo').value,
+        situacao_icms: el('rg-sit').value, escopo: el('rg-escopo').value, uf_origem: el('rg-ufo').value,
+        uf_destino: el('rg-ufd').value, cfop: el('rg-cfop').value, csosn: el('rg-csosn').value,
+        cst_pis: el('rg-pis').value, cst_cofins: el('rg-cof').value, categoria: el('rg-cat').value,
+        ncm: el('rg-ncm').value, observacoes: el('rg-obs').value
+      }).then(function (j) { msg(j.mensagem || j.erro, !!j.ok); if (j.ok) carregar(); });
+    };
+    el('rg-limpar').onclick = function () { el('rg-id').value = ''; };
+    el('rg-lista').addEventListener('click', function (ev) {
+      var t = ev.target;
+      if (t.getAttribute('data-rg')) {
+        var it = ((data && data.regras) || []).find(function (x) { return String(x.id) === t.getAttribute('data-rg'); });
+        if (!it) return;
+        el('rg-id').value = it.id; el('rg-ambito').value = it.ambito || ''; el('rg-tipo').value = it.tipo_destinatario || '';
+        el('rg-sit').value = it.situacao_icms || ''; el('rg-escopo').value = it.escopo || 'geral';
+        el('rg-ufo').value = it.uf_origem || ''; el('rg-ufd').value = it.uf_destino || '';
+        el('rg-cfop').value = it.cfop || ''; el('rg-csosn').value = it.csosn || '';
+        el('rg-pis').value = it.cst_pis || ''; el('rg-cof').value = it.cst_cofins || '';
+        el('rg-cat').value = it.categoria || ''; el('rg-ncm').value = it.ncm || ''; el('rg-obs').value = it.observacoes || '';
+      }
+      if (t.getAttribute('data-rgv')) {
+        post('/api/configuracao/fiscal-nfe/validar/', { tipo: 'regra', id: t.getAttribute('data-rgv') }).then(function (j) { msg(j.mensagem || j.erro, !!j.ok); carregar(); });
+      }
+    });
+    el('q-grupos').addEventListener('click', function (ev) {
+      var t = ev.target;
+      var bloco = t.closest('.q-bloco');
+      if (!bloco) return;
+      if (t.classList.contains('q-save')) {
+        post('/api/configuracao/fiscal-nfe/questionario/', {
+          grupo: bloco.getAttribute('data-g'), chave: bloco.getAttribute('data-k'),
+          estabelecimento: bloco.getAttribute('data-e'), resposta: bloco.querySelector('.q-resp').value
+        }).then(function (j) { msg(j.mensagem || j.erro, !!j.ok); carregar(); });
+      }
+      if (t.classList.contains('q-val')) {
+        post('/api/configuracao/fiscal-nfe/validar/', { tipo: 'questionario', id: t.getAttribute('data-id') }).then(function (j) { msg(j.mensagem || j.erro, !!j.ok); carregar(); });
+      }
+    });
+    el('btn-q').onclick = function () { mostrarTab('q'); el('painel-q').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+    el('btn-print').onclick = function () { mostrarTab('q'); window.print(); };
+    el('btn-copiar').onclick = function () {
+      fetch('/api/configuracao/fiscal-nfe/questionario/texto/', { credentials: 'same-origin' })
+        .then(function (r) { return r.text(); })
+        .then(function (t) {
+          if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t);
+          var ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+        }).then(function () { msg('Questionário copiado.'); });
+    };
+    carregar();
+  })();
+  </script>
+</body>
+</html>

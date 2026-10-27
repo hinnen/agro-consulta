@@ -42,6 +42,8 @@ def _xml_para_validacao_xsd(xml_body: str) -> bytes:
     if root.find(f".//{{{_NS_DSIG}}}Signature") is not None:
         return xml_body.encode("utf-8")
     inf = root.find(f".//{{{_NS_NFE}}}infNFe")
+    if inf is None:
+        inf = root.find(f".//{{{_NS_NFE}}}infEvento")
     inf_id = (inf.get("Id") if inf is not None else "") or "NFe"
     sig = etree.SubElement(root, f"{{{_NS_DSIG}}}Signature")
     si = etree.SubElement(sig, f"{{{_NS_DSIG}}}SignedInfo")
@@ -108,3 +110,26 @@ def validar_xml_nfe_xsd_obrigatorio(xml_body: str) -> None:
             f"XML NF-e rejeitado na validação XSD ({det}). "
             f"Corrija os dados fiscais ou atualize o pacote em produtos/schemas/nfe/{_SCHEMA_PACK}/."
         )
+
+
+def validar_xml_evento_xsd(xml_body: str, *, schema_file: str) -> tuple[bool, str]:
+    """Valida XML de evento (cancelamento/CC-e) contra o XSD PL 010f informado."""
+    xsd = _SCHEMA_DIR / schema_file
+    if not xsd.is_file():
+        return False, f"missing_xsd: {schema_file}"
+    try:
+        from lxml import etree
+    except ImportError:
+        return False, "missing_lxml: instale lxml para validação XSD"
+    try:
+        parser = etree.XMLParser(resolve_entities=False)
+        schema_doc = etree.parse(str(xsd), parser)
+        schema = etree.XMLSchema(schema_doc)
+        doc = etree.fromstring(_xml_para_validacao_xsd(xml_body), parser)
+        schema.assertValid(doc)
+        return True, "ok"
+    except etree.DocumentInvalid as exc:
+        log = exc.error_log
+        return False, f"xsd_invalid: {log.last_error.message if log.last_error else exc}"[:800]
+    except Exception as exc:
+        return False, f"xsd_error: {exc}"[:800]

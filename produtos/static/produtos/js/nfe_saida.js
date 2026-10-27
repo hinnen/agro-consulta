@@ -320,8 +320,11 @@
     setTimeout(function () { el.classList.add('hidden'); }, tone === 'err' ? 12000 : 6000);
   }
 
+  var eventoInFlight = false;
+
   function docTravado() {
-    return state.doc && state.doc.status === 'autorizada';
+    var st = state.doc && state.doc.status;
+    return st === 'autorizada' || st === 'cancelada';
   }
 
   function urlDanfe(docId) {
@@ -368,7 +371,8 @@
   }
 
   function syncEmitArtifatos() {
-    var on = docTravado();
+    var st = state.doc && state.doc.status;
+    var on = st === 'autorizada' || st === 'cancelada';
     var box = $('nfe-emit-artefatos');
     if (box) box.classList.toggle('hidden', !on);
     var rail = $('rail-artefatos');
@@ -376,9 +380,127 @@
     var salvar = $('btn-nfe-salvar');
     if (salvar) salvar.classList.toggle('hidden', on);
     var emit = $('btn-nfe-emitir');
-    if (emit) emit.classList.toggle('hidden', on);
+    if (emit) emit.classList.toggle('hidden', on || st === 'cancelada');
     var pinLbl = $('nfe-pin-emitir');
     if (pinLbl && pinLbl.closest('label')) pinLbl.closest('label').classList.toggle('hidden', on);
+    var evBox = $('nfe-eventos-acoes');
+    if (evBox) evBox.classList.toggle('hidden', !on);
+    var btnCan = $('btn-nfe-cancelar');
+    var btnCce = $('btn-nfe-cce');
+    if (btnCan) btnCan.classList.toggle('hidden', st !== 'autorizada');
+    if (btnCce) btnCce.classList.toggle('hidden', st !== 'autorizada');
+    renderEventosHist();
+  }
+
+  function renderEventosHist() {
+    var el = $('nfe-eventos-hist');
+    if (!el) return;
+    el.innerHTML = '';
+    var rows = (state.doc && (state.doc.eventos_resumo || state.doc.eventos)) || [];
+    rows.forEach(function (e) {
+      if (!e || !e.ok) return;
+      var p = document.createElement('p');
+      var tipo = e.tp_evento === '110111' ? 'Cancelamento' : 'CC-e';
+      var id = state.docId;
+      p.innerHTML = tipo + ' nSeq ' + (e.n_seq || '') + ' · ' + (e.c_stat || '') +
+        ' <button type="button" class="underline" data-ev-xml="' + (e.n_seq || '1') + '" data-ev-tp="' + (e.tp_evento || '') + '">XML</button>' +
+        ' <button type="button" class="underline" data-ev-imp="' + (e.n_seq || '1') + '" data-ev-tp="' + (e.tp_evento || '') + '">Imprimir</button>';
+      el.appendChild(p);
+    });
+    el.querySelectorAll('[data-ev-xml]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var tp = b.getAttribute('data-ev-tp') === '110111' ? 'cancel' : 'cce';
+        window.open(CFG.urlApi + encodeURIComponent(state.docId) + '/evento.xml?tipo=' + tp + '&n_seq=' + b.getAttribute('data-ev-xml'), '_blank');
+      });
+    });
+    el.querySelectorAll('[data-ev-imp]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var tp = b.getAttribute('data-ev-tp') === '110111' ? 'cancel' : 'cce';
+        window.open(CFG.urlApi + encodeURIComponent(state.docId) + '/evento-comprovante/?tipo=' + tp + '&n_seq=' + b.getAttribute('data-ev-imp'), '_blank');
+      });
+    });
+  }
+
+  function fecharEventoModal() {
+    var m = $('nfe-evento-modal');
+    if (m) m.classList.add('hidden');
+    eventoInFlight = false;
+    var btn = $('nfe-evento-enviar');
+    if (btn) btn.disabled = false;
+  }
+
+  function abrirEventoModal(kind) {
+    var m = $('nfe-evento-modal');
+    if (!m || !state.docId) return;
+    m.dataset.kind = kind;
+    $('nfe-evento-texto').value = '';
+    $('nfe-evento-pin').value = '';
+    var fp = $('nfe-evento-fora-prazo');
+    if (fp) fp.checked = false;
+    var wrap = $('nfe-evento-fora-prazo-wrap');
+    if (kind === 'cancel') {
+      $('nfe-evento-titulo').textContent = 'Cancelar NF-e';
+      $('nfe-evento-lbl').textContent = 'Motivo (obrigatório)';
+      var faixa = state.doc.faixa_cancelamento || '';
+      if (faixa === 'apos_480h') {
+        $('nfe-evento-aviso').textContent = 'Após 480 horas não há cancelamento comum. Use SIPET/Posto Fiscal, NF-e complementar, devolução ou entrada. Não geramos nota inversa.';
+        wrap.classList.add('hidden');
+        $('nfe-evento-enviar').classList.add('hidden');
+      } else if (faixa === '24_a_480h') {
+        $('nfe-evento-aviso').textContent = 'Fora do prazo de 24 h em SP. Pode haver penalidade. Só confirme se a operação não ocorreu.';
+        wrap.classList.remove('hidden');
+        $('nfe-evento-enviar').classList.remove('hidden');
+      } else {
+        $('nfe-evento-aviso').textContent = 'Cancelamento ordinário (até 24 h). A nota só fica Cancelada depois da SEFAZ. Estoque/venda/financeiro não são desfeitos.';
+        wrap.classList.add('hidden');
+        $('nfe-evento-enviar').classList.remove('hidden');
+      }
+    } else {
+      $('nfe-evento-titulo').textContent = 'Carta de Correção';
+      $('nfe-evento-lbl').textContent = 'Correção (texto consolidado se já houver CC-e)';
+      $('nfe-evento-aviso').textContent = 'A CC-e não cancela a nota, não muda valor, quantidade, imposto, emitente, destinatário nem datas. O XML original não é editado.';
+      wrap.classList.add('hidden');
+      $('nfe-evento-enviar').classList.remove('hidden');
+    }
+    m.classList.remove('hidden');
+  }
+
+  function enviarEventoModal() {
+    if (eventoInFlight || !state.docId) return;
+    var kind = ($('nfe-evento-modal') || {}).dataset.kind;
+    var texto = ($('nfe-evento-texto') || {}).value || '';
+    var pin = ($('nfe-evento-pin') || {}).value || '';
+    var body = { pin: pin };
+    var url;
+    if (kind === 'cancel') {
+      body.motivo = texto;
+      body.confirmar_fora_prazo = !!($('nfe-evento-fora-prazo') || {}).checked;
+      url = CFG.urlApi + encodeURIComponent(state.docId) + '/cancelar/';
+    } else {
+      body.texto = texto;
+      url = CFG.urlApi + encodeURIComponent(state.docId) + '/cce/';
+    }
+    eventoInFlight = true;
+    var btn = $('nfe-evento-enviar');
+    if (btn) btn.disabled = true;
+    fetchJson(url, { method: 'POST', body: JSON.stringify(body) }).then(function (res) {
+      eventoInFlight = false;
+      if (btn) btn.disabled = false;
+      if (res.json.ok) {
+        if (res.json.doc) state.doc = res.json.doc;
+        fecharEventoModal();
+        syncEmitArtifatos();
+        renderRail();
+        setMsg(kind === 'cancel' ? 'Cancelamento registrado na SEFAZ.' : 'Carta de correção registrada.', 'ok');
+        loadLista();
+      } else {
+        setMsg(res.json.erro || 'Falha no evento.', 'err');
+      }
+    }).catch(function () {
+      eventoInFlight = false;
+      if (btn) btn.disabled = false;
+      setMsg('Falha de rede no evento.', 'err');
+    });
   }
 
   function renderRail() {
@@ -565,11 +687,20 @@
     if (nat) nat.value = f.natureza || 'VENDA';
     var ic = $('fiscal-inf-compl');
     if (ic) ic.value = state.doc.inf_complementar || f.inf_compl || '';
+    var ped = $('fiscal-x-ped');
+    if (ped) ped.value = f.x_ped || f.pedido || '';
+    var emp = $('fiscal-x-nemp');
+    if (emp) emp.value = f.x_nemp || f.empenho || '';
+    var proc = $('fiscal-x-cont');
+    if (proc) proc.value = f.x_cont || f.processo || '';
   }
 
   function readFiscal() {
     state.doc.fiscal = state.doc.fiscal || {};
     state.doc.fiscal.natureza = ($('fiscal-natureza') || {}).value || 'VENDA';
+    state.doc.fiscal.x_ped = (($('fiscal-x-ped') || {}).value || '').trim();
+    state.doc.fiscal.x_nemp = (($('fiscal-x-nemp') || {}).value || '').trim();
+    state.doc.fiscal.x_cont = (($('fiscal-x-cont') || {}).value || '').trim();
     state.doc.inf_complementar = ($('fiscal-inf-compl') || {}).value || '';
     state.dirty = true;
   }
@@ -629,10 +760,10 @@
     state.docId = id;
     $('nfe-saida-view-lista').classList.add('hidden');
     $('nfe-saida-view-editor').classList.remove('hidden');
-    fetchJson(CFG.urlApi + encodeURIComponent(id) + '/').then(function (res) {
+    return fetchJson(CFG.urlApi + encodeURIComponent(id) + '/').then(function (res) {
       if (!res.json.ok) {
         setMsg(res.json.erro || 'Erro ao abrir', 'err');
-        return;
+        return res;
       }
       state.doc = res.json.doc;
       state.dirty = false;
@@ -641,11 +772,12 @@
       renderPagamentos();
       renderFiscal();
       renderRail();
-      showStep(1);
+      showStep(state.doc.status === 'autorizada' || state.doc.status === 'cancelada' ? 6 : 1);
       $('editor-venda-tag').textContent = state.doc.venda_agro_id ? 'Venda #' + state.doc.venda_agro_id : 'Avulsa';
       if (state.doc.status === 'rejeitada') {
         setMsg(state.doc.x_motivo || 'Rejeitada na última tentativa', 'warn');
       }
+      return res;
     });
   }
 
@@ -710,9 +842,13 @@
           '<div class="text-right font-black tabular-nums">' + fmtMoeda(row.lista_total) + '<div class="text-xs text-slate-500">' + row.lista_numero_serie + '</div></div>' +
           '<div class="flex flex-wrap gap-2 justify-end">' +
           '<button type="button" class="min-h-[44px] px-3 rounded-xl bg-emerald-700 text-white font-black text-xs uppercase" data-open="' + row.id + '">Abrir</button>' +
-          (row.status === 'autorizada'
+          (row.status === 'autorizada' || row.status === 'cancelada'
             ? '<button type="button" class="min-h-[44px] px-3 rounded-xl border-2 border-sky-500 bg-sky-600 text-white font-black text-xs uppercase" data-nfe-danfe="' + row.id + '">DANFE</button>' +
               '<button type="button" class="min-h-[44px] px-3 rounded-xl border-2 border-violet-600 bg-violet-700 text-white font-black text-xs uppercase" data-nfe-xml="' + row.id + '" data-nfe-chave="' + (row.chave || '') + '">XML</button>'
+            : '') +
+          (row.status === 'autorizada'
+            ? '<button type="button" class="min-h-[44px] px-3 rounded-xl border-2 border-rose-500 bg-rose-600 text-white font-black text-xs uppercase" data-nfe-canc="' + row.id + '">Cancelar</button>' +
+              '<button type="button" class="min-h-[44px] px-3 rounded-xl border-2 border-amber-500 bg-amber-500 text-white font-black text-xs uppercase" data-nfe-cce="' + row.id + '">CC-e</button>'
             : '') +
           '</div>';
         box.appendChild(div);
@@ -725,6 +861,16 @@
       box.querySelectorAll('[data-nfe-danfe]').forEach(function (btn) {
         btn.addEventListener('click', function () {
           abrirDanfe(btn.getAttribute('data-nfe-danfe'));
+        });
+      });
+      box.querySelectorAll('[data-nfe-canc]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          openEditor(btn.getAttribute('data-nfe-canc')).then(function () { abrirEventoModal('cancel'); });
+        });
+      });
+      box.querySelectorAll('[data-nfe-cce]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          openEditor(btn.getAttribute('data-nfe-cce')).then(function () { abrirEventoModal('cce'); });
         });
       });
       box.querySelectorAll('[data-nfe-xml]').forEach(function (btn) {
@@ -950,6 +1096,10 @@
       baixarXml();
     });
     $('btn-nfe-emitir') && $('btn-nfe-emitir').addEventListener('click', emitirComPin);
+    $('btn-nfe-cancelar') && $('btn-nfe-cancelar').addEventListener('click', function () { abrirEventoModal('cancel'); });
+    $('btn-nfe-cce') && $('btn-nfe-cce').addEventListener('click', function () { abrirEventoModal('cce'); });
+    $('nfe-evento-fechar') && $('nfe-evento-fechar').addEventListener('click', fecharEventoModal);
+    $('nfe-evento-enviar') && $('nfe-evento-enviar').addEventListener('click', enviarEventoModal);
     $('nfe-lista-busca') && $('nfe-lista-busca').addEventListener('input', function () {
       clearTimeout(window._nfeListaBuscaT);
       window._nfeListaBuscaT = setTimeout(loadLista, 300);

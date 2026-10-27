@@ -63,6 +63,9 @@
       '<a class="agro-perf-config-link" href="/configuracao/planos-conta/">' +
       '<span>Planos de contas<small>Cadastrar / editar planos SisVale</small></span><span aria-hidden="true">›</span>' +
       '</a>' +
+      '<a class="agro-perf-config-link" href="/configuracao/fiscal-nfe/">' +
+      '<span>Fiscal / NF-e<small>Parâmetros e questionário do contador</small></span><span aria-hidden="true">›</span>' +
+      '</a>' +
       '</div>' +
       '<button type="button" id="agro-perf-config-close">Fechar</button>' +
       '</div>';

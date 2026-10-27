@@ -25,6 +25,7 @@ from . import views_cliente_planilha
 from . import bug_report_views
 from . import ajuste_codigo_pendente_views
 from . import views_planos_conta
+from . import views_nfe_fiscal_config
 from . import views_conta_bancaria_loja
 from . import contagem_ciclica_views
 from . import contagem_ciclica_admin_views
@@ -1828,6 +1829,10 @@ urlpatterns = [
     path('api/nfe-saida/<str:doc_id>/danfe/', views_nfe_saida.api_nfe_saida_danfe, name='api_nfe_saida_danfe'),
     path('api/nfe-saida/<str:doc_id>/xml/', views_nfe_saida.api_nfe_saida_xml, name='api_nfe_saida_xml'),
     path('api/nfe-saida/<str:doc_id>/descartar/', views_nfe_saida.api_nfe_saida_descartar, name='api_nfe_saida_descartar'),
+    path('api/nfe-saida/<str:doc_id>/cancelar/', views_nfe_saida.api_nfe_saida_cancelar, name='api_nfe_saida_cancelar'),
+    path('api/nfe-saida/<str:doc_id>/cce/', views_nfe_saida.api_nfe_saida_cce, name='api_nfe_saida_cce'),
+    path('api/nfe-saida/<str:doc_id>/evento.xml', views_nfe_saida.api_nfe_saida_evento_xml, name='api_nfe_saida_evento_xml'),
+    path('api/nfe-saida/<str:doc_id>/evento-comprovante/', views_nfe_saida.api_nfe_saida_evento_comprovante, name='api_nfe_saida_evento_comprovante'),
     path(
         'api/entrada-nota/sefaz-status/',
         views.api_entrada_nota_sefaz_status,
@@ -1959,6 +1964,66 @@ path(
     "configuracao/planos-conta/",
     views_planos_conta.planos_conta_config_view,
     name="planos_conta_config",
+),
+path(
+    "configuracao/fiscal-nfe/",
+    views_nfe_fiscal_config.fiscal_nfe_config_view,
+    name="fiscal_nfe_config",
+),
+path(
+    "api/configuracao/fiscal-nfe/",
+    views_nfe_fiscal_config.api_fiscal_nfe_painel,
+    name="api_fiscal_nfe_painel",
+),
+path(
+    "api/configuracao/fiscal-nfe/empresa/",
+    views_nfe_fiscal_config.api_fiscal_nfe_empresa_salvar,
+    name="api_fiscal_nfe_empresa_salvar",
+),
+path(
+    "api/configuracao/fiscal-nfe/credito/",
+    views_nfe_fiscal_config.api_fiscal_nfe_credito_salvar,
+    name="api_fiscal_nfe_credito_salvar",
+),
+path(
+    "api/configuracao/fiscal-nfe/pis/",
+    views_nfe_fiscal_config.api_fiscal_nfe_pis_salvar,
+    name="api_fiscal_nfe_pis_salvar",
+),
+path(
+    "api/configuracao/fiscal-nfe/ibpt/",
+    views_nfe_fiscal_config.api_fiscal_nfe_ibpt_salvar,
+    name="api_fiscal_nfe_ibpt_salvar",
+),
+path(
+    "api/configuracao/fiscal-nfe/regra/",
+    views_nfe_fiscal_config.api_fiscal_nfe_regra_salvar,
+    name="api_fiscal_nfe_regra_salvar",
+),
+path(
+    "api/configuracao/fiscal-nfe/st/",
+    views_nfe_fiscal_config.api_fiscal_nfe_st_salvar,
+    name="api_fiscal_nfe_st_salvar",
+),
+path(
+    "api/configuracao/fiscal-nfe/questionario/",
+    views_nfe_fiscal_config.api_fiscal_nfe_questionario_salvar,
+    name="api_fiscal_nfe_questionario_salvar",
+),
+path(
+    "api/configuracao/fiscal-nfe/questionario/texto/",
+    views_nfe_fiscal_config.api_fiscal_nfe_questionario_texto,
+    name="api_fiscal_nfe_questionario_texto",
+),
+path(
+    "api/configuracao/fiscal-nfe/validar/",
+    views_nfe_fiscal_config.api_fiscal_nfe_validar,
+    name="api_fiscal_nfe_validar",
+),
+path(
+    "api/configuracao/fiscal-nfe/historico/",
+    views_nfe_fiscal_config.api_fiscal_nfe_historico,
+    name="api_fiscal_nfe_historico",
 ),
 path(
     "api/configuracao/planos-conta/",

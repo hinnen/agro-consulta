@@ -64,6 +64,7 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 | `/compras/relatorio-planilha-unidade/`   | `compras_relatorio_planilha_unidade`   | Lista por **unidade** · mesmo layout e opções de papel que a planilha por categoria         |
 | `/entrada-nota/`                         | `entrada_nota`                         |                                                                                             |
 | `/nfe/saida/`                            | `nfe_saida`                            | NF-e saída modelo 55 (lista + editor); `?venda=` ou `?doc=`                                 |
+| `/configuracao/fiscal-nfe/`              | `fiscal_nfe_config`                    | Configuração fiscal NF-e 55 (staff); questionário do contador; **não** liga o motor (Etapa 2) |
 | `/lancamentos/`                          | `lancamentos_financeiros`              | Contas a pagar/receber                                                                      |
 | `/financeiro/resumo-gerencial/`          | `resumo_financeiro_gerencial`          |                                                                                             |
 | `/lancamentos/dre/`                      | `lancamentos_dre`                      |                                                                                             |
@@ -120,6 +121,12 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 ---
 
 ## 7. Decisões e implementações já registradas (changelog resumido)
+
+**NF-e 55 — Configuração fiscal (Etapa 2)**
+
+- Página `/configuracao/fiscal-nfe/` (F11 → link Fiscal / NF-e; não fica no modal). Só `is_staff`. Seletor Centro | Vila Elias.
+- Postgres: `NfeEstabelecimentoFiscal`, `NfeAliquotaCreditoSn`, `NfeParametroPisCofins`, `NfeParametroIbpt`, `NfeRegraOperacao`, `NfeExcecaoIcmsSt`, `NfeQuestionarioResposta`, `NfeAlteracaoFiscalLog`. Migrações `produtos.0152` + `0153` (nome/CRC/data do contador ≠ `validado_por`). Sem seed fictício; vazio = Pendente; Validar exige campos obrigatórios + contador.
+- **Etapa 3:** `apurar_nfe_saida` lê só regras/crédito/PIS **Validados**; sem CSOSN 102 silencioso. Doc: `docs/NFE_SAIDA_MOTOR_FISCAL_ETAPA3.md`. Diagnóstico: `docs/NFE_SAIDA_MOTOR_FISCAL_ETAPA1.md`. Cadastro: `docs/NFE_SAIDA_MOTOR_FISCAL_ETAPA2.md`.
 
 **NF-e saída (nota grande) — tela `/nfe/saida/`**
 

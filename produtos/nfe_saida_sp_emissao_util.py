@@ -67,19 +67,25 @@ def _montar_chave_nfe(
     return ch43 + _dv_chave(ch43)
 
 
-def _cfg_emissao_nfe(cnpj_emit: str, tp_amb: int) -> dict[str, Any]:
+def _cfg_emissao_nfe(
+    cnpj_emit: str,
+    tp_amb: int,
+    *,
+    loja: str | None = None,
+    serie_nfe: int | None = None,
+) -> dict[str, Any]:
     from produtos.nfce_config_util import nfce_cfg, nfce_loja_de_cnpj
     from produtos.sefaz_dfe_client import _cfg_dist_dfe
 
     dfe = _cfg_dist_dfe()
     cnpj = re.sub(r"\D", "", cnpj_emit or dfe.get("cnpj") or "")[:14]
-    loja = nfce_loja_de_cnpj(cnpj)
-    nfc = nfce_cfg(loja)
+    loja_n = loja or nfce_loja_de_cnpj(cnpj)
+    nfc = nfce_cfg(loja_n)
     try:
         piso = int(config("NFE_EMISSAO_PROXIMO_NUMERO", default="1") or 1)
     except (TypeError, ValueError):
         piso = 1
-    serie = nfe_saida_serie_default()
+    serie = int(serie_nfe or nfe_saida_serie_default())
     return {
         "cert_path": dfe.get("cert_path") or nfc.get("cert_path") or "",
         "cert_password": dfe.get("cert_password") or nfc.get("cert_password") or "",
@@ -135,14 +141,16 @@ def _proximo_numero_nfe(cfg: dict[str, Any]) -> tuple[int, int]:
 
 
 def _cmun_destino(dest: dict, cfg_emit: dict) -> str:
-    raw = re.sub(r"\D", "", str(dest.get("cmun") or dest.get("cMun") or ""))[:7]
-    if len(raw) == 7:
-        return raw
-    dc = str(dest.get("cidade") or "").strip().lower()
-    ec = str(cfg_emit.get("cidade") or "").strip().lower()
-    if dc and ec and dc == ec:
-        return str(cfg_emit.get("cmun") or "")[:7]
-    return "3524600"
+    from produtos.nfe_saida_regras_validas_util import cmun_destinatario_ou_erro
+
+    cmun, err = cmun_destinatario_ou_erro(
+        dest,
+        cidade_emit=str(cfg_emit.get("cidade") or ""),
+        cmun_emit=str(cfg_emit.get("cmun") or ""),
+    )
+    if err:
+        return ""
+    return cmun
 
 
 def _id_dest(uf_emit: str, uf_dest: str) -> str:
@@ -177,7 +185,7 @@ def _preencher_dest_nfe(
     _sub(ender, "xLgr", _texto_endereco(dest.get("logradouro"), fallback="S/N"))
     _sub(ender, "nro", _texto_endereco(dest.get("numero"), fallback="S/N", max_len=60))
     _sub(ender, "xBairro", _texto_endereco(dest.get("bairro")))
-    _sub(ender, "cMun", _cmun_destino(dest, cfg_emit) or "3524600")
+    _sub(ender, "cMun", _cmun_destino(dest, cfg_emit))
     _sub(ender, "xMun", _texto_endereco(dest.get("cidade"), fallback="MUNICIPIO"))
     _sub(ender, "UF", str(dest.get("uf") or "SP").strip().upper()[:2])
     cep = re.sub(r"\D", "", str(dest.get("cep") or ""))[:8]
@@ -241,11 +249,25 @@ def _montar_xml_nfe_saida(
     pagamentos = doc.get("pagamento") if isinstance(doc.get("pagamento"), list) else []
 
     uf_emit = str(cfg.get("uf") or "SP")[:2]
-    apuracao = apurar_nfe_saida(doc, uf_emit=uf_emit)
+    apuracao = apurar_nfe_saida(
+        doc,
+        uf_emit=uf_emit,
+        cnpj_emit=str(cfg.get("cnpj") or ""),
+        data_emissao=dh_emi.date() if hasattr(dh_emi, "date") else None,
+    )
     if apuracao.bloqueios:
         raise FiscalBloqueio(apuracao.bloqueios[0])
     doc["fiscal_apuracao"] = apuracao_serializada(apuracao)
     dest = {**dest, **apuracao.destinatario}
+    from produtos.nfe_saida_compra_util import (
+        dados_compra_nfe,
+        inf_cpl_com_compra,
+        tem_compra_nfe,
+        unidade_comercial_nfe,
+        x_ped_item,
+    )
+
+    compra_hdr = dados_compra_nfe(doc)
 
     uf_dest = str(dest.get("uf") or uf_emit)[:2]
     dh_txt = dh_emi.strftime("%Y-%m-%dT%H:%M:%S-03:00")
@@ -320,9 +342,7 @@ def _montar_xml_nfe_saida(
         if vt <= 0 and qtd > 0:
             vt = (qtd * vu).quantize(Decimal("0.01"))
         total_prod += vt
-        u_com = str(ln.get("un") or "UN").strip().upper() or "UN"
-        if u_com not in ("UN", "KG", "G", "L", "ML", "M", "CM", "PC", "CX", "FD", "PCT", "DZ"):
-            u_com = "UN"
+        u_com = unidade_comercial_nfe(ln.get("un"))
         det = ET.SubElement(inf, f"{{{NS}}}det")
         det.set("nItem", str(idx))
         prod = _sub(det, "prod")
@@ -343,6 +363,11 @@ def _montar_xml_nfe_saida(
         _sub(prod, "qTrib", _q4(qtd))
         _sub(prod, "vUnTrib", _q4(vu))
         _sub(prod, "indTot", "1")
+        ped_item, n_item_ped = x_ped_item(ln, compra_hdr.get("x_ped") or "", idx)
+        if ped_item:
+            _sub(prod, "xPed", ped_item)
+        if n_item_ped:
+            _sub(prod, "nItemPed", n_item_ped)
         imposto = _sub(det, "imposto")
         if item_fis and item_fis.v_tot_trib is not None and item_fis.v_tot_trib > 0:
             _sub(imposto, "vTotTrib", _q2(item_fis.v_tot_trib))
@@ -410,19 +435,23 @@ def _montar_xml_nfe_saida(
     if not pagamentos:
         _montar_det_pag(pag, {"tPag": "01", "vPag": total_nf, "xPag": ""})
 
-    inf_ad = _sub(inf, "infAdic")
-    obs_parts: list[str] = []
-    if doc.get("venda_agro_id"):
-        obs_parts.append(f"Venda Agro #{doc.get('venda_agro_id')}")
     extra = str(doc.get("inf_complementar") or fiscal.get("inf_compl") or "").strip()
-    if extra:
-        obs_parts.append(extra)
+    inf_cpl = inf_cpl_com_compra(doc, extra, homolog=tp_amb == 2)
     if apuracao.ibpt_texto:
-        obs_parts.append(apuracao.ibpt_texto)
-    if tp_amb == 2:
-        obs_parts.insert(0, "NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL")
-    if obs_parts:
-        _sub(inf_ad, "infCpl", _sanitizar_texto_xml(" | ".join(obs_parts))[:5000])
+        ibpt = _sanitizar_texto_xml(apuracao.ibpt_texto)[:500]
+        if ibpt and ibpt not in inf_cpl:
+            inf_cpl = _sanitizar_texto_xml(f"{inf_cpl} | {ibpt}" if inf_cpl else ibpt)[:5000]
+    if inf_cpl:
+        inf_ad = _sub(inf, "infAdic")
+        _sub(inf_ad, "infCpl", inf_cpl[:5000])
+    if tem_compra_nfe(compra_hdr):
+        compra_el = _sub(inf, "compra")
+        if compra_hdr.get("x_nemp"):
+            _sub(compra_el, "xNEmp", compra_hdr["x_nemp"])
+        if compra_hdr.get("x_ped"):
+            _sub(compra_el, "xPed", compra_hdr["x_ped"])
+        if compra_hdr.get("x_cont"):
+            _sub(compra_el, "xCont", compra_hdr["x_cont"])
 
     return tostring_sem_prefixos(ET.tostring(nfe, encoding="unicode"))
 
@@ -433,7 +462,19 @@ def emitir_nfe_saida_sefaz(doc: dict, *, cnpj_emit: str) -> dict[str, Any]:
     from produtos.nfe_saida_xml_validate_util import validar_xml_nfe_xsd_obrigatorio
 
     tp_amb = int(doc.get("tp_amb") or 2)
-    cfg = _cfg_emissao_nfe(cnpj_emit, tp_amb)
+    from produtos.nfe_saida_regras_validas_util import estabelecimento_do_doc, resolver_cnpj_serie_emitente
+
+    cnpj_ok, serie_ok, err_em = resolver_cnpj_serie_emitente(doc, cnpj_pedido=cnpj_emit)
+    if err_em:
+        return {
+            "ok": False,
+            "status": NFE_SAIDA_STATUS_REJEITADA,
+            "erro": err_em,
+            "c_stat": 999,
+            "x_motivo": err_em,
+        }
+    loja_doc = estabelecimento_do_doc(doc, cnpj_emit=cnpj_ok)
+    cfg = _cfg_emissao_nfe(cnpj_ok, tp_amb, loja=loja_doc, serie_nfe=serie_ok)
     if not cfg.get("cert_path"):
         return {
             "ok": False,
@@ -457,9 +498,7 @@ def emitir_nfe_saida_sefaz(doc: dict, *, cnpj_emit: str) -> dict[str, Any]:
             "c_stat": 280,
         }
 
-    fiscal = doc.get("fiscal") if isinstance(doc.get("fiscal"), dict) else {}
-    serie_doc = int(fiscal.get("serie") or doc.get("serie") or cfg["serie"])
-    cfg["serie"] = serie_doc
+    cfg["serie"] = int(serie_ok or cfg["serie"])
 
     nnf_doc = doc.get("nNF")
     max_tentativas = 4
@@ -474,7 +513,7 @@ def emitir_nfe_saida_sefaz(doc: dict, *, cnpj_emit: str) -> dict[str, Any]:
             numero = None
         if numero is None:
             _, numero = _proximo_numero_nfe(cfg)
-        serie = serie_doc
+        serie = int(cfg["serie"])
         c_nf = _gerar_c_nf()
         dh_emi = timezone.localtime(timezone.now())
         chave = _montar_chave_nfe(

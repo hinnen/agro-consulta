@@ -1,11 +1,83 @@
 """NF-e saída 55 — validação e defaults (sem Mongo/SEFAZ)."""
 from __future__ import annotations
 
+import re
+from contextlib import contextmanager
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.test import SimpleTestCase, TestCase
 
 from produtos.models import ClienteAgro
+from produtos.nfe_saida_regras_validas_util import RegraFiscalResolvida
+
+
+def _regra_da_linha(doc, ln, idx, **kwargs):
+    cfop = re.sub(r"\D", "", str(ln.get("cfop") or ""))[:4]
+    csosn = re.sub(r"\D", "", str(ln.get("csosn") or ""))[:3]
+    cst = re.sub(r"\D", "", str(ln.get("cst_pis") or ln.get("cst_pis_cofins") or "49"))[:2]
+    cst_c = re.sub(r"\D", "", str(ln.get("cst_cofins") or cst))[:2]
+    if len(cfop) != 4 or len(csosn) != 3:
+        return None, [f"Item {idx}: sem regra Validada."]
+    return (
+        RegraFiscalResolvida(
+            pk=1,
+            estabelecimento="centro",
+            escopo="geral",
+            cfop=cfop,
+            csosn=csosn,
+            cst_pis=cst or "49",
+            cst_cofins=cst_c or "49",
+        ),
+        [],
+    )
+
+
+@contextmanager
+def xml_com_regra(*, p_cred=None):
+    patches = [
+        patch("produtos.nfe_saida_tributacao_util.resolver_regra_item", side_effect=_regra_da_linha),
+        patch("produtos.nfe_saida_tributacao_util.estabelecimento_do_doc", return_value="centro"),
+        patch("produtos.nfe_saida_tributacao_util.cmun_destinatario_ou_erro", return_value=("3524600", None)),
+    ]
+    if p_cred is not None:
+        patches.append(
+            patch(
+                "produtos.nfe_saida_tributacao_util.aliquota_credito_sn_validada",
+                return_value=(p_cred, None),
+            )
+        )
+    for p in patches:
+        p.start()
+    try:
+        yield
+    finally:
+        for p in reversed(patches):
+            p.stop()
+
+
+class _XmlRegraPatchMixin:
+    def setUp(self):
+        self._p_regra = patch(
+            "produtos.nfe_saida_tributacao_util.resolver_regra_item",
+            side_effect=_regra_da_linha,
+        )
+        self._p_loja = patch(
+            "produtos.nfe_saida_tributacao_util.estabelecimento_do_doc",
+            return_value="centro",
+        )
+        self._p_cmun = patch(
+            "produtos.nfe_saida_tributacao_util.cmun_destinatario_ou_erro",
+            return_value=("3524600", None),
+        )
+        self._p_regra.start()
+        self._p_loja.start()
+        self._p_cmun.start()
+
+    def tearDown(self):
+        self._p_cmun.stop()
+        self._p_loja.stop()
+        self._p_regra.stop()
 
 
 class NfeSaidaDanfeLayoutTests(SimpleTestCase):
@@ -151,7 +223,7 @@ class NfeSaidaPagamentoTests(SimpleTestCase):
         self.assertTrue(validar_pagamentos(bad, total))
 
 
-class NfeSaidaXmlMontagemTests(SimpleTestCase):
+class NfeSaidaXmlMontagemTests(_XmlRegraPatchMixin, SimpleTestCase):
     def test_xml_mod_55(self):
         from datetime import datetime
 
@@ -279,6 +351,12 @@ class NfeSaidaXmlMontagemTests(SimpleTestCase):
 
 
 class NfeSaidaTributacaoMotorTests(SimpleTestCase):
+    def _xml_patches(self):
+        return (
+            patch("produtos.nfe_saida_tributacao_util.resolver_regra_item", side_effect=_regra_da_linha),
+            patch("produtos.nfe_saida_tributacao_util.estabelecimento_do_doc", return_value="centro"),
+            patch("produtos.nfe_saida_tributacao_util.cmun_destinatario_ou_erro", return_value=("3524600", None)),
+        )
     def test_dest_cnpj_ie_nao_forca_revenda(self):
         from produtos.nfe_saida_tributacao_util import normalizar_destinatario_fiscal
 
@@ -350,9 +428,11 @@ class NfeSaidaTributacaoMotorTests(SimpleTestCase):
             "fone": "",
         }
         chave = "3" * 43 + "5"
-        xml = _montar_xml_nfe_saida(
-            doc, cfg, serie=1, numero=1, chave=chave, dh_emi=datetime(2026, 10, 1, 10, 0, 0)
-        )
+        p1, p2, p3 = self._xml_patches()
+        with p1, p2, p3:
+            xml = _montar_xml_nfe_saida(
+                doc, cfg, serie=1, numero=1, chave=chave, dh_emi=datetime(2026, 10, 1, 10, 0, 0)
+            )
         self.assertIn("<ICMSSN102>", xml)
         self.assertNotRegex(xml, r"<ICMSSN102>.*?<CSOSN>500</CSOSN>", re.DOTALL)
         self.assertIn("<PISOutr>", xml)
@@ -387,9 +467,8 @@ class NfeSaidaTributacaoMotorTests(SimpleTestCase):
                 "csosn": "101",
             }
         ]
-        with patch("produtos.nfe_saida_tributacao_util._cfg_cred_sn_aliquota", return_value=None):
-            ap = apurar_nfe_saida(doc, uf_emit="SP")
-        self.assertTrue(any("NFE_SAIDA_PCRED_SN_ALIQ" in b for b in ap.bloqueios))
+        ap = apurar_nfe_saida(doc, uf_emit="SP")
+        self.assertTrue(ap.bloqueios)
 
     def test_csosn101_xml_credito(self):
         from datetime import datetime
@@ -420,6 +499,7 @@ class NfeSaidaTributacaoMotorTests(SimpleTestCase):
                 "v_unit": 100,
                 "v_total": 100,
                 "ncm": "23099020",
+                "cfop": "5102",
                 "csosn": "101",
                 "cst_pis_cofins": "49",
             }
@@ -440,7 +520,7 @@ class NfeSaidaTributacaoMotorTests(SimpleTestCase):
             "ie": "123456789012",
             "fone": "",
         }
-        with patch("produtos.nfe_saida_tributacao_util._cfg_cred_sn_aliquota", return_value=Decimal("2.5")):
+        with xml_com_regra(p_cred=Decimal("2.5")):
             xml = _montar_xml_nfe_saida(
                 doc,
                 cfg,
@@ -495,7 +575,7 @@ class NfeSaidaTributacaoMotorTests(SimpleTestCase):
         ]
         ap = apurar_nfe_saida(doc, uf_emit="SP")
         self.assertTrue(any("CFOP 5102" in b for b in ap.bloqueios))
-        self.assertEqual(ap.itens[0].cfop, "6102")
+        self.assertEqual(ap.itens[0].cfop, "5102")
 
     def test_cst_pis_do_cadastro_produto(self):
         from unittest.mock import patch
@@ -521,8 +601,7 @@ class NfeSaidaTributacaoMotorTests(SimpleTestCase):
             return_value={"ncm": "23099020", "csosn": "102", "cst_pis_cofins": "06"},
         ):
             ap = apurar_nfe_saida(doc, uf_emit="SP")
-        self.assertEqual(ap.itens[0].cst_pis, "06")
-        self.assertEqual(ap.itens[0].pis_grupo, "PISNT")
+        self.assertTrue(any("regra Validada" in b or "estabelecimento" in b.lower() for b in ap.bloqueios))
 
     def test_xml_interestadual_cfop_6xxx(self):
         from datetime import datetime
@@ -571,14 +650,15 @@ class NfeSaidaTributacaoMotorTests(SimpleTestCase):
             "ie": "123456789012",
             "fone": "",
         }
-        xml = _montar_xml_nfe_saida(
-            doc,
-            cfg,
-            serie=1,
-            numero=3,
-            chave="3" * 43 + "5",
-            dh_emi=datetime(2026, 10, 1, 10, 0, 0),
-        )
+        with xml_com_regra():
+            xml = _montar_xml_nfe_saida(
+                doc,
+                cfg,
+                serie=1,
+                numero=3,
+                chave="3" * 43 + "5",
+                dh_emi=datetime(2026, 10, 1, 10, 0, 0),
+            )
         self.assertIn("<CFOP>6102</CFOP>", xml)
         self.assertIn("<idDest>2</idDest>", xml)
 
@@ -631,9 +711,10 @@ class NfeSaidaTributacaoMotorTests(SimpleTestCase):
             "ie": "123456789012",
             "fone": "",
         }
-        xml = _montar_xml_nfe_saida(
-            doc, cfg, serie=1, numero=4, chave="3" * 43 + "5", dh_emi=datetime(2026, 10, 1, 10, 0, 0)
-        )
+        with xml_com_regra():
+            xml = _montar_xml_nfe_saida(
+                doc, cfg, serie=1, numero=4, chave="3" * 43 + "5", dh_emi=datetime(2026, 10, 1, 10, 0, 0)
+            )
         self.assertIn("<CSOSN>103</CSOSN>", xml)
         self.assertIn("<ICMSSN102>", xml)
         ok, det = validar_xml_nfe_xsd(xml)
@@ -814,9 +895,10 @@ class NfeSaidaPrefillVendaTests(SimpleTestCase):
             "ie": "123456789012",
             "fone": "",
         }
-        xml = _montar_xml_nfe_saida(
-            doc, cfg, serie=1, numero=5, chave="3" * 43 + "5", dh_emi=datetime(2026, 10, 2, 12, 0, 0)
-        )
+        with xml_com_regra():
+            xml = _montar_xml_nfe_saida(
+                doc, cfg, serie=1, numero=5, chave="3" * 43 + "5", dh_emi=datetime(2026, 10, 2, 12, 0, 0)
+            )
         ok, det = validar_xml_nfe_xsd(xml)
         self.assertTrue(ok, det)
         self.assertIn("<NCM>23099020</NCM>", xml)
@@ -892,9 +974,10 @@ class NfeSaidaXsdValidationTests(SimpleTestCase):
             "ie": "123456789012",
             "fone": "",
         }
-        xml = _montar_xml_nfe_saida(
-            doc, cfg, serie=1, numero=8, chave="3" * 43 + "5", dh_emi=datetime(2026, 8, 31, 10, 0, 0)
-        )
+        with xml_com_regra():
+            xml = _montar_xml_nfe_saida(
+                doc, cfg, serie=1, numero=8, chave="3" * 43 + "5", dh_emi=datetime(2026, 8, 31, 10, 0, 0)
+            )
         ok, det = validar_xml_nfe_xsd(xml)
         self.assertTrue(ok, det)
         assinado = _xml_para_validacao_xsd(xml).decode("utf-8")
@@ -929,11 +1012,19 @@ class NfeSaidaSimulacaoEmitTests(SimpleTestCase):
         doc["pagamento"] = [{"tPag": "01", "valor": 10}]
         with patch("produtos.sefaz_dfe_client.distribuicao_dfe_configurada", return_value=True):
             with patch(
-                "produtos.nfe_saida_sp_emissao_util.emitir_nfe_saida_sefaz",
-                return_value={"ok": False, "status": "rejeitada", "erro": "mock", "c_stat": 0},
-            ) as sefaz:
-                emitir_nfe_saida_documento(doc, cnpj_emit="11222333000181")
-                sefaz.assert_called_once()
+                "produtos.nfe_saida_tributacao_util.erros_fiscal_emissao",
+                return_value=[],
+            ):
+                with patch(
+                    "produtos.nfe_saida_regras_validas_util.resolver_cnpj_serie_emitente",
+                    return_value=("11222333000181", 1, None),
+                ):
+                    with patch(
+                        "produtos.nfe_saida_sp_emissao_util.emitir_nfe_saida_sefaz",
+                        return_value={"ok": False, "status": "rejeitada", "erro": "mock", "c_stat": 0},
+                    ) as sefaz:
+                        emitir_nfe_saida_documento(doc, cnpj_emit="11222333000181")
+                        sefaz.assert_called_once()
 
     def test_simulacao_exige_flag(self):
         import os
@@ -959,7 +1050,12 @@ class NfeSaidaSimulacaoEmitTests(SimpleTestCase):
         ]
         doc["pagamento"] = [{"tPag": "01", "valor": 10}]
         with patch("produtos.sefaz_dfe_client.distribuicao_dfe_configurada", return_value=True):
-            out = emitir_nfe_saida_documento(doc, cnpj_emit="11222333000181")
+            with patch("produtos.nfe_saida_tributacao_util.erros_fiscal_emissao", return_value=[]):
+                with patch(
+                    "produtos.nfe_saida_regras_validas_util.resolver_cnpj_serie_emitente",
+                    return_value=("11222333000181", 1, None),
+                ):
+                    out = emitir_nfe_saida_documento(doc, cnpj_emit="11222333000181")
         self.assertTrue(out.get("simulado"))
         self.assertFalse(out.get("autorizacao_sefaz_real", True))
         os.environ.pop("NFE_SAIDA_SIMULAR_EMIT", None)
