@@ -1360,13 +1360,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Escopo** | Checkout PDV · gravar **endereço fiscal** no cliente (`fiscal_nfe`) |
 | **Migrate** | **NÃO** |
 
-### 📦 PACOTE PRONTO — **LOTE 27/10** · **v27.26.34** · PREP `teste` @ **`aa5cb818`**
+### 📦 PACOTE PRONTO — **LOTE 27/10** · **v27.26.35** · PREP `teste` @ **`aa5cb818`**
 
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **Pronto para envio à produção** (frase + senha) |
 | **Migrate** | **SIM** só `estoque.0021` · demais **NÃO** |
-| **Entra** | Câmera · **Contagens no app em tela cheia** · **F10** na gestão · inventário pela lista RH · bloco + amostra · zerar (**ZERAR**) · endereço fiscal NF-e |
+| **Entra** | Câmera (mesmo código não soma 2×) · bolinha da contagem com **Fechar** · Contagens no app em tela cheia · F10 na gestão · lista RH · bloco · zerar · NF-e endereço |
 | **Prova** | Câmera **20/20** · painel **14/14** · PWA **0 falhas** (Contagens sem shell) · zeragem **8 → 0** · venda após bip **3 − 1 = 2** · operador **200** |
 | **Smoke seu** | App: **Contagens** sem barra da gestão · F10: continua na gestão · marcar nome · **Abrir e atrelar** |
 
