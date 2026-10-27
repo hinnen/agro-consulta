@@ -445,6 +445,28 @@ def _serialize_doc(doc: dict) -> dict[str, Any]:
     nnf = out.get("nNF")
     serie = out.get("serie") or nfe_saida_serie_default()
     out["lista_numero_serie"] = f"{nnf or '—'} / {serie}" if nnf else "—"
+    try:
+        from produtos.nfe_saida_evento_util import faixa_cancelamento_sp, nota_ja_cancelada, resumo_eventos
+
+        out["eventos_resumo"] = resumo_eventos(out)
+        out["faixa_cancelamento"] = faixa_cancelamento_sp(out)
+        out["pode_cancelar"] = st == NFE_SAIDA_STATUS_AUTORIZADA and not nota_ja_cancelada(out)
+        out["pode_cce"] = st == NFE_SAIDA_STATUS_AUTORIZADA and not nota_ja_cancelada(out)
+    except Exception:
+        out["eventos_resumo"] = []
+        out["pode_cancelar"] = False
+        out["pode_cce"] = False
+    xml_full = out.get("xml_autorizado")
+    if xml_full:
+        out["xml_autorizado"] = xml_full
+    evs = out.get("eventos")
+    if isinstance(evs, list):
+        slim = []
+        for e in evs:
+            if not isinstance(e, dict):
+                continue
+            slim.append({k: v for k, v in e.items() if k != "xml"})
+        out["eventos"] = slim
     return out
 
 

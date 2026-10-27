@@ -17,6 +17,7 @@ from produtos.caixa_util import validar_pin_operador
 from produtos.nfe_saida_emissao_util import emitir_nfe_saida_documento, montar_html_danfe_previa
 from produtos.nfe_saida_util import (
     NFE_SAIDA_STATUS_AUTORIZADA,
+    NFE_SAIDA_STATUS_CANCELADA,
     NFE_SAIDA_STATUS_DESCARTADA,
     NFE_SAIDA_STATUS_ENVIANDO,
     NFE_SAIDA_STATUS_REJEITADA,
@@ -461,3 +462,185 @@ def api_nfe_saida_descartar(request, doc_id: str):
         {"status": NFE_SAIDA_STATUS_DESCARTADA, "updated_at": datetime.now(timezone.utc)},
     )
     return JsonResponse({"ok": True})
+
+
+def _pin_ou_erro(payload: dict):
+    ok_pin, err_pin = validar_pin_operador(str((payload or {}).get("pin") or ""))
+    if not ok_pin:
+        return JsonResponse({"ok": False, "erro": err_pin}, status=403)
+    return None
+
+
+@nfe_saida_staff_required
+@require_POST
+def api_nfe_saida_cancelar(request, doc_id: str):
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        payload = {}
+    err = _pin_ou_erro(payload)
+    if err:
+        return err
+    db = _mongo_db()
+    if not nfe_saida_persistencia_ok(db):
+        return JsonResponse({"ok": False, "erro": "Persistência NF-e saída indisponível."}, status=503)
+    doc_id_norm = str(doc_id).strip()
+    doc = obter_nfe_saida_bruto(db, doc_id_norm)
+    if not doc:
+        return JsonResponse({"ok": False, "erro": "Não encontrado."}, status=404)
+    from produtos.nfe_saida_evento_util import (
+        aplicar_evento_no_doc,
+        preparar_cancelamento,
+        transmitir_evento,
+        TP_CANCEL,
+    )
+    from produtos.nfe_saida_regras_validas_util import resolver_cnpj_serie_emitente
+
+    prep = preparar_cancelamento(
+        doc,
+        motivo=str(payload.get("motivo") or payload.get("x_just") or ""),
+        confirmar_fora_prazo=bool(payload.get("confirmar_fora_prazo")),
+    )
+    if not prep.get("ok"):
+        return JsonResponse(prep, status=400)
+    if doc.get("evento_em_curso"):
+        return JsonResponse({"ok": False, "erro": "Evento já em transmissão."}, status=409)
+    nfe_saida_atualizar_campos(db, doc_id_norm, {"evento_em_curso": True})
+    cnpj_env = re.sub(r"\D", "", config("NFE_DIST_DFE_CNPJ", default="") or "")[:14]
+    cnpj, _s, err_em = resolver_cnpj_serie_emitente(doc, cnpj_pedido=cnpj_env)
+    if err_em:
+        nfe_saida_atualizar_campos(db, doc_id_norm, {"evento_em_curso": False})
+        return JsonResponse({"ok": False, "erro": err_em}, status=400)
+    try:
+        out = transmitir_evento(
+            doc,
+            cnpj_emit=cnpj or cnpj_env,
+            tp_evento=TP_CANCEL,
+            n_seq=1,
+            x_just=prep["x_just"],
+            usuario=_usuario(request),
+        )
+    except Exception:
+        logger.exception("nfe_saida cancelar")
+        nfe_saida_atualizar_campos(db, doc_id_norm, {"evento_em_curso": False})
+        return JsonResponse({"ok": False, "erro": "Falha interna no cancelamento."}, status=500)
+    if not out.get("ok"):
+        nfe_saida_atualizar_campos(db, doc_id_norm, {"evento_em_curso": False})
+        return JsonResponse(out, status=400)
+    novo = aplicar_evento_no_doc(doc, out["evento"])
+    nfe_saida_atualizar_campos(
+        db,
+        doc_id_norm,
+        {
+            "status": novo.get("status"),
+            "eventos": novo.get("eventos"),
+            "evento_em_curso": False,
+            "protocolo_cancelamento": novo.get("protocolo_cancelamento") or "",
+            "cancelada_em": novo.get("cancelada_em"),
+            "cancelada_por": novo.get("cancelada_por") or "",
+            "cancelada_motivo": novo.get("cancelada_motivo") or "",
+            "updated_at": datetime.now(timezone.utc),
+        },
+    )
+    refreshed = obter_documento_nfe_saida(db, doc_id_norm)
+    return JsonResponse({"ok": True, "doc": refreshed, "c_stat": out.get("c_stat")})
+
+
+@nfe_saida_staff_required
+@require_POST
+def api_nfe_saida_cce(request, doc_id: str):
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        payload = {}
+    err = _pin_ou_erro(payload)
+    if err:
+        return err
+    db = _mongo_db()
+    if not nfe_saida_persistencia_ok(db):
+        return JsonResponse({"ok": False, "erro": "Persistência NF-e saída indisponível."}, status=503)
+    doc_id_norm = str(doc_id).strip()
+    doc = obter_nfe_saida_bruto(db, doc_id_norm)
+    if not doc:
+        return JsonResponse({"ok": False, "erro": "Não encontrado."}, status=404)
+    from produtos.nfe_saida_evento_util import (
+        aplicar_evento_no_doc,
+        preparar_cce,
+        transmitir_evento,
+        TP_CCE,
+    )
+    from produtos.nfe_saida_regras_validas_util import resolver_cnpj_serie_emitente
+
+    prep = preparar_cce(doc, texto=str(payload.get("texto") or payload.get("x_correcao") or ""))
+    if not prep.get("ok"):
+        return JsonResponse(prep, status=400)
+    nfe_saida_atualizar_campos(db, doc_id_norm, {"evento_em_curso": True})
+    cnpj_env = re.sub(r"\D", "", config("NFE_DIST_DFE_CNPJ", default="") or "")[:14]
+    cnpj, _s, err_em = resolver_cnpj_serie_emitente(doc, cnpj_pedido=cnpj_env)
+    if err_em:
+        nfe_saida_atualizar_campos(db, doc_id_norm, {"evento_em_curso": False})
+        return JsonResponse({"ok": False, "erro": err_em}, status=400)
+    try:
+        out = transmitir_evento(
+            doc,
+            cnpj_emit=cnpj or cnpj_env,
+            tp_evento=TP_CCE,
+            n_seq=int(prep["n_seq"]),
+            x_correcao=prep["x_correcao"],
+            usuario=_usuario(request),
+        )
+    except Exception:
+        logger.exception("nfe_saida cce")
+        nfe_saida_atualizar_campos(db, doc_id_norm, {"evento_em_curso": False})
+        return JsonResponse({"ok": False, "erro": "Falha interna na CC-e."}, status=500)
+    if not out.get("ok"):
+        nfe_saida_atualizar_campos(db, doc_id_norm, {"evento_em_curso": False})
+        return JsonResponse(out, status=400)
+    novo = aplicar_evento_no_doc(doc, out["evento"])
+    nfe_saida_atualizar_campos(
+        db,
+        doc_id_norm,
+        {
+            "eventos": novo.get("eventos"),
+            "evento_em_curso": False,
+            "updated_at": datetime.now(timezone.utc),
+        },
+    )
+    refreshed = obter_documento_nfe_saida(db, doc_id_norm)
+    return JsonResponse({"ok": True, "doc": refreshed, "c_stat": out.get("c_stat"), "aviso": prep.get("aviso")})
+
+
+@nfe_saida_staff_required
+@require_GET
+def api_nfe_saida_evento_xml(request, doc_id: str):
+    from produtos.nfe_saida_evento_util import eventos_doc
+
+    db = _mongo_db()
+    doc = obter_nfe_saida_bruto(db, str(doc_id).strip())
+    if not doc:
+        return HttpResponse("Não encontrado", status=404)
+    n_seq = (request.GET.get("n_seq") or "1").strip()
+    tipo = (request.GET.get("tipo") or "").strip().lower()
+    tp = "110111" if tipo in ("cancel", "cancelamento", "110111") else "110110"
+    for e in eventos_doc(doc):
+        if str(e.get("n_seq")) == n_seq and str(e.get("tp_evento")) == tp and e.get("xml"):
+            return HttpResponse(e["xml"], content_type="application/xml; charset=utf-8")
+    return HttpResponse("Evento não encontrado.", status=404)
+
+
+@nfe_saida_staff_required
+@require_GET
+def api_nfe_saida_evento_comprovante(request, doc_id: str):
+    from produtos.nfe_saida_evento_util import eventos_doc, montar_html_comprovante_evento
+
+    db = _mongo_db()
+    doc = obter_nfe_saida_bruto(db, str(doc_id).strip())
+    if not doc:
+        return HttpResponse("Não encontrado", status=404)
+    n_seq = (request.GET.get("n_seq") or "1").strip()
+    tipo = (request.GET.get("tipo") or "cancel").strip().lower()
+    tp = "110111" if tipo in ("cancel", "cancelamento", "110111") else "110110"
+    for e in eventos_doc(doc):
+        if str(e.get("n_seq")) == n_seq and str(e.get("tp_evento")) == tp:
+            return HttpResponse(montar_html_comprovante_evento(doc, e), content_type="text/html; charset=utf-8")
+    return HttpResponse("Evento não encontrado.", status=404)

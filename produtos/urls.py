@@ -1783,6 +1783,10 @@ urlpatterns = [
     path('api/nfe-saida/<str:doc_id>/danfe/', views_nfe_saida.api_nfe_saida_danfe, name='api_nfe_saida_danfe'),
     path('api/nfe-saida/<str:doc_id>/xml/', views_nfe_saida.api_nfe_saida_xml, name='api_nfe_saida_xml'),
     path('api/nfe-saida/<str:doc_id>/descartar/', views_nfe_saida.api_nfe_saida_descartar, name='api_nfe_saida_descartar'),
+    path('api/nfe-saida/<str:doc_id>/cancelar/', views_nfe_saida.api_nfe_saida_cancelar, name='api_nfe_saida_cancelar'),
+    path('api/nfe-saida/<str:doc_id>/cce/', views_nfe_saida.api_nfe_saida_cce, name='api_nfe_saida_cce'),
+    path('api/nfe-saida/<str:doc_id>/evento.xml', views_nfe_saida.api_nfe_saida_evento_xml, name='api_nfe_saida_evento_xml'),
+    path('api/nfe-saida/<str:doc_id>/evento-comprovante/', views_nfe_saida.api_nfe_saida_evento_comprovante, name='api_nfe_saida_evento_comprovante'),
     path(
         'api/entrada-nota/sefaz-status/',
         views.api_entrada_nota_sefaz_status,
