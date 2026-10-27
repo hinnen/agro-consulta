@@ -1297,7 +1297,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **Pronto para envio à produção** (frase + senha) · junto ou depois do 27/10e |
-| **Entra** | Amostra do bloco **só imprime no computador** (Contagens) · no celular o bloco fechado fica marcado e o próximo bip é outro bloco |
+| **Entra** | Amostra do bloco **só imprime no computador** (Contagens) · bloco fechado marcado · produto achado de novo soma no bloco atual sem apagar o anterior |
 | **Migrate** | **NÃO** |
 
 ### ✅ CHECKLIST ÚNICO — **27/10f** · 🟢 **pronto para envio à produção**

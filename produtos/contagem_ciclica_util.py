@@ -457,8 +457,14 @@ def registrar_contagem(
 
     if sessao.status == ContagemCiclicaStatus.PASS1:
         ja = linha.contado_pass1
+        linha._reaberto_bloco = False
         if _modo_inventario(sessao) and linha.ajuste_id:
+            # Achado fora do lugar: o bloco anterior já gravou. Esta quantidade é só a nova.
+            linha._reaberto_bloco = True
             linha.ajuste_id = None
+            linha.qtd_pass1 = Decimal("0")
+            linha.contado_pass1 = False
+            ja = False
         # Sempre soma: produto pode estar em 2+ lugares (prateleira + fundo).
         base = _dec(linha.qtd_pass1) if ja and linha.qtd_pass1 is not None else Decimal("0")
         linha.qtd_pass1 = base + q
@@ -751,9 +757,16 @@ def fechar_bloco_inventario(
         desde = ln.contado_pass1_em or timezone.now()
         delta = delta_movimento_apos(ln.produto_externo_id, sessao.deposito, desde)
         q_contada = _dec(ln.qtd_pass1)
-        bruto = (q_contada + delta).quantize(Decimal("0.001"))
-        q_final = bruto if bruto >= 0 else Decimal("0")
         anterior = _ultimo_saldo_informado(ln.produto_externo_id, sessao.deposito)
+        if ln.qtd_final is not None:
+            # Já gravado num bloco anterior: soma só o que foi achado agora, em cima do saldo atual.
+            q_final = (anterior + q_contada).quantize(Decimal("0.001"))
+            delta = Decimal("0")
+        else:
+            bruto = (q_contada + delta).quantize(Decimal("0.001"))
+            q_final = bruto if bruto >= 0 else Decimal("0")
+        if q_final < 0:
+            q_final = Decimal("0")
         nome = (ln.nome_produto or "").strip()
         nome = (f"{nome} · inventário · {rot}" if nome else f"inventário · {rot}")[:255]
         aj = AjusteRapidoEstoque.objects.create(

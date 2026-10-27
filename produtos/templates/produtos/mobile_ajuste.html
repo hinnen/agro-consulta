@@ -3278,6 +3278,9 @@ function maCiclicaBipFilaDrain() {
       const acum = (d.qtd_acumulada != null) ? Number(d.qtd_acumulada) : 1;
       maTocarSom('ok');
       maBipPiscarTela(true, Number.isFinite(acum) ? acum : 1);
+      if (d.reaberto_bloco && typeof maMostrarToast === 'function') {
+        maMostrarToast('Já estava num bloco fechado. Esta quantidade entra no bloco de agora e soma no estoque.', true);
+      }
       if (d.sessao) {
         const prev = maCiclicaLinhas();
         maCiclicaSessao = Object.assign({}, maCiclicaSessao, d.sessao);
