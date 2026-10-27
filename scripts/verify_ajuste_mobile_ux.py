@@ -110,7 +110,9 @@ else:
     fail("falta botão Câmera na busca")
 
 scan_fn = text[text.find("function startScan()") : text.find("function stopScan(")]
-if "maProcessarCodigoBipado(codigo)" in scan_fn and "stopScan().then" not in scan_fn:
+cb_at = scan_fn.find("(txt)")
+cb = scan_fn[cb_at : scan_fn.find(").then(", cb_at)] if cb_at >= 0 else ""
+if "maProcessarCodigoBipado(codigo)" in cb and "stopScan" not in cb:
     ok("câmera continua aberta após bip")
 else:
     fail("startScan ainda fecha a câmera a cada código")
