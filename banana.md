@@ -1294,16 +1294,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PREP ARMADO — **CHECKLIST 27/10e** · **v27.26.36** · bolinha Fechar + câmera
+### ✅ Deploy loja — **CHECKLIST 27/10e** · **Live v27.26.36** · 27/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP armado** @ **`d8b5ce7b`** · aguarda frase + senha |
-| **Base loja** | **`7499c746`** (VERSION **27.26.35**) |
+| **Status** | ✅ **Live** @ **`d8b5ce7b`** · cutover autorizado **27/10** |
 | **Entra** | Bolinha **⋯** ganha **Fechar** · câmera não soma o mesmo código duas vezes (2,5 s) |
 | **Migrate** | **NÃO** |
 | **PDV / caixa / checkout** | **Não neste delta** |
-| **Prova** | `verify_ajuste_camera_bip_path.py` **19/19** · cutover **OK** |
 | **Revert** | `git push origin rollback/pre-v272636-2710e-bolinha-camera:producao` → **`7499c746`** |
 | **Pós-deploy** | `./scripts/post_deploy_checklist_2710e_bolinha_camera.sh` |
 | **Smoke** | Ajuste no app · bolinha · **Fechar** · código parado na câmera = **+1** só |
