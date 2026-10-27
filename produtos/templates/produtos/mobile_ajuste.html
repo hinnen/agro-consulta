@@ -789,7 +789,7 @@
       position: fixed;
       top: max(0.45rem, env(safe-area-inset-top));
       right: 0.65rem;
-      z-index: 175;
+      z-index: 190;
       align-items: center;
       justify-content: center;
       min-width: 2.75rem;
@@ -860,7 +860,10 @@
 
   <div id="ma-ciclica-bar" class="hidden px-3 pt-2">
     <div class="rounded-2xl border border-orange-300 bg-orange-50 px-3 py-2.5 space-y-2">
-      <p id="ma-ciclica-bar-txt" class="text-xs font-black text-orange-950 leading-snug">Contagem cíclica</p>
+      <div class="flex items-start justify-between gap-2">
+        <p id="ma-ciclica-bar-txt" class="text-xs font-black text-orange-950 leading-snug">Contagem cíclica</p>
+        <button type="button" id="ma-ciclica-btn-fechar-ctrl" class="shrink-0 min-h-[2.5rem] px-3 rounded-xl bg-white border-2 border-orange-400 text-orange-950 text-[11px] font-black uppercase">Fechar</button>
+      </div>
       <button type="button" id="ma-ciclica-btn-incluir-fora" class="w-full min-h-[2.5rem] rounded-xl border border-orange-300 bg-white text-orange-950 text-[10px] font-black uppercase" aria-pressed="false" title="Permite bipar/contar produto que não está na lista">
         Incluir fora: OFF
       </button>
@@ -2298,8 +2301,11 @@ function maProcessarCodigoBipado(codigo, opts) {
   const c = maNormCodigo(codigo);
   if (!c) return fromScan && maBip1On ? 'ignorar' : undefined;
   const now = Date.now();
-  const gap = (maCiclicaAtiva() && maBip1On) ? MA_CICLICA_BIP_GAP_MS : 1200;
-  if (c === maBipLastCode && (now - maBipLastAt) < gap) return fromScan ? 'debounce' : undefined;
+  const gap = fromScan ? 2500 : ((maCiclicaAtiva() && maBip1On) ? MA_CICLICA_BIP_GAP_MS : 1200);
+  const mesmo = fromScan
+    ? ((maDigits(c) && maDigits(c) === maDigits(maBipLastCode)) || c === maBipLastCode)
+    : c === maBipLastCode;
+  if (mesmo && (now - maBipLastAt) < gap) return fromScan ? 'debounce' : undefined;
   maBipLastCode = c;
   maBipLastAt = now;
 
@@ -2345,9 +2351,13 @@ function maProcessarCodigoBipado(codigo, opts) {
   return fromScan ? 'varios' : undefined;
 }
 
+let maScanMuteUntil = 0;
 function maOnScanDecoded(codigo) {
   if (!scanningActive) return;
+  const now = Date.now();
+  if (now < maScanMuteUntil) return;
   const r = maProcessarCodigoBipado(codigo, { fromScan: true });
+  if (r === 'ok' || r === 'debounce') maScanMuteUntil = Date.now() + 1600;
   if (!maBip1On) {
     scanningActive = false;
     stopScan();
@@ -3621,6 +3631,16 @@ document.getElementById('ma-ciclica-btn-cancelar')?.addEventListener('click', ma
 document.getElementById('ma-ciclica-btn-painel')?.addEventListener('click', maCiclicaAbrirModal);
 document.getElementById('ma-ciclica-fab-ctrl')?.addEventListener('click', () => {
   maCiclicaToggleCtrl();
+  maCiclicaPintarBar();
+});
+document.getElementById('ma-ciclica-btn-fechar-ctrl')?.addEventListener('click', () => {
+  maCiclicaToggleCtrl(false);
+  maCiclicaPintarBar();
+});
+document.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'Escape') return;
+  if (!document.body.classList.contains('ma-ciclica-ctrl-open')) return;
+  maCiclicaToggleCtrl(false);
   maCiclicaPintarBar();
 });
 document.getElementById('ma-ciclica-ctrl-backdrop')?.addEventListener('click', () => {

@@ -49,6 +49,9 @@ def main() -> int:
         "experimentalFeatures: { useBarCodeDetectorIfSupported: true }",
         "Câmera ativa",
         "ma-busca-row",
+        "ma-ciclica-btn-fechar-ctrl",
+        "maScanMuteUntil",
+        "const gap = fromScan ? 2500",
     ]
     for n in needles:
         if n in ma:
