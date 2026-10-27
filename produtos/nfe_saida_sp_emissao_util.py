@@ -259,6 +259,15 @@ def _montar_xml_nfe_saida(
         raise FiscalBloqueio(apuracao.bloqueios[0])
     doc["fiscal_apuracao"] = apuracao_serializada(apuracao)
     dest = {**dest, **apuracao.destinatario}
+    from produtos.nfe_saida_compra_util import (
+        dados_compra_nfe,
+        inf_cpl_com_compra,
+        tem_compra_nfe,
+        unidade_comercial_nfe,
+        x_ped_item,
+    )
+
+    compra_hdr = dados_compra_nfe(doc)
 
     uf_dest = str(dest.get("uf") or uf_emit)[:2]
     dh_txt = dh_emi.strftime("%Y-%m-%dT%H:%M:%S-03:00")
@@ -333,9 +342,7 @@ def _montar_xml_nfe_saida(
         if vt <= 0 and qtd > 0:
             vt = (qtd * vu).quantize(Decimal("0.01"))
         total_prod += vt
-        u_com = str(ln.get("un") or "UN").strip().upper() or "UN"
-        if u_com not in ("UN", "KG", "G", "L", "ML", "M", "CM", "PC", "CX", "FD", "PCT", "DZ"):
-            u_com = "UN"
+        u_com = unidade_comercial_nfe(ln.get("un"))
         det = ET.SubElement(inf, f"{{{NS}}}det")
         det.set("nItem", str(idx))
         prod = _sub(det, "prod")
@@ -356,6 +363,11 @@ def _montar_xml_nfe_saida(
         _sub(prod, "qTrib", _q4(qtd))
         _sub(prod, "vUnTrib", _q4(vu))
         _sub(prod, "indTot", "1")
+        ped_item, n_item_ped = x_ped_item(ln, compra_hdr.get("x_ped") or "", idx)
+        if ped_item:
+            _sub(prod, "xPed", ped_item)
+        if n_item_ped:
+            _sub(prod, "nItemPed", n_item_ped)
         imposto = _sub(det, "imposto")
         if item_fis and item_fis.v_tot_trib is not None and item_fis.v_tot_trib > 0:
             _sub(imposto, "vTotTrib", _q2(item_fis.v_tot_trib))
@@ -423,19 +435,23 @@ def _montar_xml_nfe_saida(
     if not pagamentos:
         _montar_det_pag(pag, {"tPag": "01", "vPag": total_nf, "xPag": ""})
 
-    inf_ad = _sub(inf, "infAdic")
-    obs_parts: list[str] = []
-    if doc.get("venda_agro_id"):
-        obs_parts.append(f"Venda Agro #{doc.get('venda_agro_id')}")
     extra = str(doc.get("inf_complementar") or fiscal.get("inf_compl") or "").strip()
-    if extra:
-        obs_parts.append(extra)
+    inf_cpl = inf_cpl_com_compra(doc, extra, homolog=tp_amb == 2)
     if apuracao.ibpt_texto:
-        obs_parts.append(apuracao.ibpt_texto)
-    if tp_amb == 2:
-        obs_parts.insert(0, "NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL")
-    if obs_parts:
-        _sub(inf_ad, "infCpl", _sanitizar_texto_xml(" | ".join(obs_parts))[:5000])
+        ibpt = _sanitizar_texto_xml(apuracao.ibpt_texto)[:500]
+        if ibpt and ibpt not in inf_cpl:
+            inf_cpl = _sanitizar_texto_xml(f"{inf_cpl} | {ibpt}" if inf_cpl else ibpt)[:5000]
+    if inf_cpl:
+        inf_ad = _sub(inf, "infAdic")
+        _sub(inf_ad, "infCpl", inf_cpl[:5000])
+    if tem_compra_nfe(compra_hdr):
+        compra_el = _sub(inf, "compra")
+        if compra_hdr.get("x_nemp"):
+            _sub(compra_el, "xNEmp", compra_hdr["x_nemp"])
+        if compra_hdr.get("x_ped"):
+            _sub(compra_el, "xPed", compra_hdr["x_ped"])
+        if compra_hdr.get("x_cont"):
+            _sub(compra_el, "xCont", compra_hdr["x_cont"])
 
     return tostring_sem_prefixos(ET.tostring(nfe, encoding="unicode"))
 

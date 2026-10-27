@@ -565,11 +565,20 @@
     if (nat) nat.value = f.natureza || 'VENDA';
     var ic = $('fiscal-inf-compl');
     if (ic) ic.value = state.doc.inf_complementar || f.inf_compl || '';
+    var ped = $('fiscal-x-ped');
+    if (ped) ped.value = f.x_ped || f.pedido || '';
+    var emp = $('fiscal-x-nemp');
+    if (emp) emp.value = f.x_nemp || f.empenho || '';
+    var proc = $('fiscal-x-cont');
+    if (proc) proc.value = f.x_cont || f.processo || '';
   }
 
   function readFiscal() {
     state.doc.fiscal = state.doc.fiscal || {};
     state.doc.fiscal.natureza = ($('fiscal-natureza') || {}).value || 'VENDA';
+    state.doc.fiscal.x_ped = (($('fiscal-x-ped') || {}).value || '').trim();
+    state.doc.fiscal.x_nemp = (($('fiscal-x-nemp') || {}).value || '').trim();
+    state.doc.fiscal.x_cont = (($('fiscal-x-cont') || {}).value || '').trim();
     state.doc.inf_complementar = ($('fiscal-inf-compl') || {}).value || '';
     state.dirty = true;
   }

@@ -126,6 +126,9 @@ def fiscal_nota_vazio() -> dict[str, Any]:
         "serie": nfe_saida_serie_default(),
         "mod_frete": "9",
         "inf_compl": "",
+        "x_ped": "",
+        "x_nemp": "",
+        "x_cont": "",
     }
 
 

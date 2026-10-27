@@ -530,7 +530,9 @@ def montar_html_danfe(
             paginas.append(itens_raw[i : i + _ITENS_POR_PAGINA])
     n_pag = len(paginas)
 
-    inf_compl = str(doc.get("inf_complementar") or fiscal.get("inf_compl") or "")
+    from produtos.nfe_saida_compra_util import inf_cpl_com_compra
+
+    inf_compl = inf_cpl_com_compra(doc, homolog=False)
     if doc.get("simulado"):
         inf_compl = (inf_compl + " Emissão simulada homologação SisVale.").strip()
 
