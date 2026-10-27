@@ -1294,31 +1294,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PREP ARMADO — **27/10 itens 1, 3 e 4** · **v27.26.28** · 27/10
+### ✅ Deploy loja — **CHECKLIST 27/10** · **Live v27.26.28** · 27/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Loja atual** | **`91c8ca6a`** · **v27.26.27** |
-| **Branch PREP** | `deploy/prep-checklist-2710-ajuste-ciclica-inv` @ **`723f96ce`** |
-| **Entra** | **1** câmera no Ajuste · **3** painel cíclico + **F10 → Contagens** · **4** inventário PIN, bloco, amostra, zerar saldo |
-| **Fica de fora** | **2** endereço fiscal PDV (já coberto por **`91c8ca6a`**) |
-| **Migrate** | **SIM** só `estoque.0021` |
+| **Status** | ✅ **Live** @ **`723f96ce`** · cutover autorizado **27/10** |
+| **Pacotes** | **1** câmera no Ajuste · **3** painel cíclico + F10 Contagens · **4** inventário PIN / bloco / zerar saldo |
+| **Fora** | Item **2** endereço fiscal (já estava em **`91c8ca6a`**) |
+| **Migrate** | **SIM** `estoque.0021` — rodar **agora** no Render Shell |
 | **PDV / caixa / checkout** | **Não neste delta** |
-| **Extra** | Remove marcadores de conflito já presentes em `views_nfe_saida.py` (endpoint fiscal segue só staff) |
-| **Prova** | câmera **16/16** · PWA **29/29** · painel **14/14** |
-| **Checkpoint** | `rollback/pre-v272628-2710-ajuste-ciclica-inv` → **`91c8ca6a`** |
-| **Cutover** | `./scripts/cutover_loja_checklist_2710_ajuste_ciclica_inv.sh` · `--exec` + frase + senha |
+| **Revert** | `git push origin rollback/pre-v272628-2710-ajuste-ciclica-inv:producao` → **v27.26.27** @ **`91c8ca6a`** |
 | **Pós-deploy** | `./scripts/post_deploy_checklist_2710_ajuste_ciclica_inv.sh` |
 | **Smoke** | SistApp Ajuste → Câmera · F10 → Contagens · zerar só em ensaio com **ZERAR** |
 
-### ✅ CHECKLIST ÚNICO — **27/10** · 🟢 **PREP ARMADO (1, 3, 4) — aguarda senha**
+### ~~ARMADO 27/10~~ · **enviado** · ver Live acima
+
+### ✅ CHECKLIST ÚNICO — **27/10** · ✅ **enviado** (itens 1, 3 e 4)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **AJUSTE-CAMERA-BIP** | 🟢 aguarda senha | **NÃO** |
+| 1 | **AJUSTE-CAMERA-BIP** | ✅ Live | **NÃO** |
 | 2 | **NFE-55-FISCAL-ENDERECO-PDV** | ⏸️ fora deste corte | **NÃO** |
-| 3 | **CICLICA-ADMIN-PAINEL** | 🟢 aguarda senha | **NÃO** |
-| 4 | **INVENTARIO-PIN-BLOCO** | 🟢 aguarda senha | **SIM** `estoque.0021` |
+| 3 | **CICLICA-ADMIN-PAINEL** | ✅ Live | **NÃO** |
+| 4 | **INVENTARIO-PIN-BLOCO** | ✅ Live | **SIM** `estoque.0021` |
 
 ### 📦 PACOTE PRONTO — **AJUSTE-CAMERA-BIP** · **v27.26.28** · 27/10
 

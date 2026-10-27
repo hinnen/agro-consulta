@@ -1149,16 +1149,16 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 104. CHECKLIST ÚNICO — **27/10** · 🟢 **PREP v27.26.28 itens 1, 3 e 4 — aguarda senha**
+## 104. CHECKLIST ÚNICO — **27/10** · ✅ **Live v27.26.28** (itens 1, 3 e 4)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **AJUSTE-CAMERA-BIP** | 🟢 aguarda senha | **NÃO** |
-| 3 | **CICLICA-ADMIN-PAINEL** | 🟢 aguarda senha | **NÃO** |
-| 4 | **INVENTARIO-PIN-BLOCO** | 🟢 aguarda senha | **SIM** `estoque.0021` |
+| 1 | **AJUSTE-CAMERA-BIP** | ✅ **Live** | **NÃO** |
+| 3 | **CICLICA-ADMIN-PAINEL** | ✅ **Live** | **NÃO** |
+| 4 | **INVENTARIO-PIN-BLOCO** | ✅ **Live** | **SIM** `estoque.0021` |
 
-Item **2** (endereço fiscal) fica de fora. **PREP:** `deploy/prep-checklist-2710-ajuste-ciclica-inv` @ **`723f96ce`**.  
-**Loja:** `producao` @ **`91c8ca6a`**. **Revert:** `rollback/pre-v272628-2710-ajuste-ciclica-inv`. **Shell:** `post_deploy_checklist_2710_ajuste_ciclica_inv.sh`.
+**Loja git:** `producao` @ **`723f96ce`**. **Shell:** `post_deploy_checklist_2710_ajuste_ciclica_inv.sh`.  
+**Revert:** `rollback/pre-v272628-2710-ajuste-ciclica-inv` → **v27.26.27** @ **`91c8ca6a`**.
 
 ---
 
