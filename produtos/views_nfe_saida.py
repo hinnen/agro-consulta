@@ -111,7 +111,10 @@ def nfe_saida_view(request):
 @nfe_saida_staff_required
 @require_GET
 def api_nfe_saida_status_cert(request):
+    from produtos.nfe_saida_util import snapshot_emitente_loja
+
     cnpj = re.sub(r"\D", "", config("NFE_DIST_DFE_CNPJ", default="") or "")[:14]
+    emitentes = [snapshot_emitente_loja("centro"), snapshot_emitente_loja("vila")]
     return JsonResponse(
         {
             "configurada": distribuicao_dfe_configurada(),
@@ -119,6 +122,7 @@ def api_nfe_saida_status_cert(request):
             "cnpj_mascarado": _mascarar_cnpj(cnpj),
             "tp_amb": nfe_saida_tp_amb_default(),
             "mod_ui": "55",
+            "emitentes": [e for e in emitentes if e],
         }
     )
 
@@ -326,8 +330,9 @@ def api_nfe_saida_emitir(request, doc_id: str):
     from produtos.nfe_saida_regras_validas_util import resolver_cnpj_serie_emitente
     from produtos.nfe_saida_tributacao_util import erros_fiscal_emissao
     from produtos.nfe_saida_util import (
-        nfe_saida_emitente_uf_default,
+        erros_cfop_coerente_uf,
         total_itens,
+        uf_emitente_do_doc,
         validar_destinatario,
         validar_itens,
         validar_pagamentos,
@@ -340,7 +345,8 @@ def api_nfe_saida_emitir(request, doc_id: str):
         + validar_itens(doc.get("itens") or [])
         + validar_pagamentos(doc.get("pagamento") or [], total_itens(doc.get("itens") or []))
         + ([err_em] if err_em else [])
-        + erros_fiscal_emissao(doc, uf_emit=nfe_saida_emitente_uf_default(), cnpj_emit=cnpj or cnpj_env)
+        + erros_cfop_coerente_uf(doc)
+        + erros_fiscal_emissao(doc, uf_emit=uf_emitente_do_doc(doc), cnpj_emit=cnpj or cnpj_env)
     )
     if erros_pre:
         return JsonResponse(

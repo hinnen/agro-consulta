@@ -74,6 +74,88 @@ def nfe_saida_emitente_uf_default() -> str:
     return (config("NFE_DIST_DFE_UF", default="SP") or "SP").strip().upper()[:2]
 
 
+def uf_emitente_do_doc(doc: dict | None) -> str:
+    """UF do emitente da loja escolhida — não mistura Centro e Vila."""
+    from produtos.nfe_saida_regras_validas_util import estabelecimento_do_doc
+
+    loja = estabelecimento_do_doc(doc or {})
+    if loja:
+        try:
+            from produtos.nfce_config_util import nfce_cfg
+
+            uf = str(nfce_cfg(loja).get("uf") or "").strip().upper()[:2]
+            if len(uf) == 2:
+                return uf
+        except Exception:
+            pass
+    return nfe_saida_emitente_uf_default()
+
+
+def snapshot_emitente_loja(loja: str) -> dict[str, Any]:
+    from produtos.nfe_fiscal_config_util import mascarar_cnpj, parse_estabelecimento, rotulo_estabelecimento
+    from produtos.nfce_config_util import nfce_cfg
+
+    loja_n = parse_estabelecimento(loja)
+    if not loja_n:
+        return {}
+    cfg = nfce_cfg(loja_n)
+    cnpj = re.sub(r"\D", "", str(cfg.get("cnpj") or ""))[:14]
+    serie = None
+    try:
+        from produtos.models import NfeEstabelecimentoFiscal
+
+        row = NfeEstabelecimentoFiscal.objects.filter(estabelecimento=loja_n).first()
+        if row and row.serie_nfe_55:
+            serie = int(row.serie_nfe_55)
+    except Exception:
+        serie = None
+    if serie is None and loja_n == "centro":
+        serie = nfe_saida_serie_default()
+    return {
+        "estabelecimento": loja_n,
+        "rotulo": rotulo_estabelecimento(loja_n),
+        "cnpj": cnpj,
+        "cnpj_mascarado": mascarar_cnpj(cnpj) if len(cnpj) == 14 else "Pendente",
+        "uf": str(cfg.get("uf") or nfe_saida_emitente_uf_default() or "SP").strip().upper()[:2],
+        "serie": serie,
+        "serie_exibicao": str(serie) if serie else "Pendente",
+    }
+
+
+def aplicar_estabelecimento_no_doc(doc: dict[str, Any]) -> dict[str, Any]:
+    """Grava loja, CNPJ e série daquela loja. Não herda série do outro estabelecimento."""
+    from produtos.nfe_fiscal_config_util import parse_estabelecimento
+
+    fiscal = doc.get("fiscal") if isinstance(doc.get("fiscal"), dict) else {}
+    loja = parse_estabelecimento(doc.get("estabelecimento")) or parse_estabelecimento(fiscal.get("estabelecimento"))
+    doc["estabelecimento"] = loja or ""
+    fiscal = dict(fiscal)
+    if not loja:
+        fiscal.pop("estabelecimento", None)
+        doc["fiscal"] = fiscal
+        return doc
+    snap = snapshot_emitente_loja(loja)
+    fiscal["estabelecimento"] = loja
+    if snap.get("serie"):
+        fiscal["serie"] = int(snap["serie"])
+        doc["serie"] = int(snap["serie"])
+    elif loja == "vila":
+        fiscal.pop("serie", None)
+        if doc.get("serie") == nfe_saida_serie_default():
+            doc["serie"] = None
+    if snap.get("cnpj") and len(str(snap["cnpj"])) == 14:
+        doc["emitente_cnpj"] = snap["cnpj"]
+    doc["fiscal"] = fiscal
+    return doc
+
+
+def estabelecimento_sugerido_venda(v) -> str | None:
+    """Só sugere Centro/Vila quando o depósito da venda for inequívoco."""
+    from produtos.nfe_fiscal_config_util import parse_estabelecimento
+
+    return parse_estabelecimento(getattr(v, "deposito", None))
+
+
 def nfe_saida_tp_amb_default() -> int:
     try:
         return 1 if int(config("NFE_DIST_DFE_TP_AMB", default="2") or 2) == 1 else 2
@@ -178,14 +260,10 @@ def _fiscal_produto_buscar(produto_id: str) -> dict[str, str]:
 
 
 def _cfop_item_prefill_venda(fis: dict[str, str], *, uf_dest: str, uf_emit: str | None = None) -> str:
-    """CFOP inicial do item: cadastro explícito ou sugestão por UF (nunca 5102 em interestadual sem cadastro)."""
-    ue = (uf_emit or nfe_saida_emitente_uf_default() or "SP").upper()[:2]
-    ud = (uf_dest or ue).upper()[:2]
-    inter = bool(ud and ue and ud != ue)
+    """Só o CFOP cadastrado no produto. Não inventa 5102/6102."""
+    del uf_dest, uf_emit
     cfop_cat = re.sub(r"\D", "", str(fis.get("cfop") or ""))[:4]
-    if len(cfop_cat) == 4:
-        return cfop_cat
-    return cfop_padrao_destino(ud, ue)
+    return cfop_cat if len(cfop_cat) == 4 else ""
 
 
 def _mapear_tpag_forma(forma: str) -> str:
@@ -376,6 +454,8 @@ def doc_novo_vazio(*, usuario: str = "", venda_agro_id: int | None = None) -> di
         "c_stat": None,
         "x_motivo": "",
         "tp_amb": nfe_saida_tp_amb_default(),
+        "estabelecimento": "",
+        "emitente_cnpj": "",
         "destinatario": destinatario_vazio(),
         "itens": [],
         "pagamento": pagamento_vazio(),
@@ -398,12 +478,11 @@ def prefill_de_venda_agro(v, *, usuario: str = "") -> dict[str, Any]:
     doc["itens"] = itens_de_venda(v)
     doc["pagamento"] = pagamentos_de_venda(v)
     doc["venda_total_ref"] = float(_decimal(v.total))
-    uf = str(doc["destinatario"].get("uf") or "")[:2]
-    if uf:
-        cf = cfop_padrao_destino(uf)
-        for ln in doc["itens"]:
-            if isinstance(ln, dict) and not str(ln.get("cfop") or "").strip():
-                ln["cfop"] = cf
+    sug = estabelecimento_sugerido_venda(v)
+    if sug:
+        doc["estabelecimento"] = sug
+        doc["estabelecimento_sugerido"] = sug
+        aplicar_estabelecimento_no_doc(doc)
     if v.deposito:
         doc["fiscal"]["deposito_venda"] = str(v.deposito)
     return doc
@@ -467,6 +546,14 @@ def _serialize_doc(doc: dict) -> dict[str, Any]:
                 continue
             slim.append({k: v for k, v in e.items() if k != "xml"})
         out["eventos"] = slim
+    from produtos.nfe_fiscal_config_util import parse_estabelecimento
+
+    loja = parse_estabelecimento(out.get("estabelecimento"))
+    if not loja:
+        fis = out.get("fiscal") if isinstance(out.get("fiscal"), dict) else {}
+        loja = parse_estabelecimento(fis.get("estabelecimento"))
+    out["estabelecimento"] = loja or ""
+    out["emitente"] = snapshot_emitente_loja(loja) if loja else {}
     return out
 
 
@@ -506,9 +593,12 @@ def salvar_documento_nfe_saida(db, doc_id: str | None, payload: dict, *, usuario
             "venda_total_ref",
             "tp_amb",
             "serie",
+            "estabelecimento",
+            "emitente_cnpj",
         ):
             if key in payload:
                 base[key] = payload[key]
+        aplicar_estabelecimento_no_doc(base)
         if usuario:
             base["usuario"] = usuario[:200]
         base["updated_at"] = now
@@ -547,9 +637,12 @@ def salvar_documento_nfe_saida(db, doc_id: str | None, payload: dict, *, usuario
         "venda_total_ref",
         "tp_amb",
         "serie",
+        "estabelecimento",
+        "emitente_cnpj",
     ):
         if key in payload:
             base[key] = payload[key]
+    aplicar_estabelecimento_no_doc(base)
     if usuario:
         base["usuario"] = usuario[:200]
     base["updated_at"] = now
@@ -856,6 +949,32 @@ def validar_pagamentos(pagamentos: list, total: Decimal) -> list[str]:
     return erros
 
 
+def erros_cfop_coerente_uf(doc: dict) -> list[str]:
+    """Incompatibilidade CFOP × UF. Não converte 5xxx↔6xxx."""
+    dest = doc.get("destinatario") if isinstance(doc.get("destinatario"), dict) else {}
+    itens = doc.get("itens") if isinstance(doc.get("itens"), list) else []
+    ue = uf_emitente_do_doc(doc)
+    ud = str(dest.get("uf") or "").strip().upper()[:2]
+    if not ud:
+        return ["Informe a UF do destinatário."]
+    inter = bool(ue and ud and ud != ue)
+    erros: list[str] = []
+    for ln in itens:
+        if not isinstance(ln, dict):
+            continue
+        cf = re.sub(r"\D", "", str(ln.get("cfop") or ""))[:4]
+        if len(cf) != 4:
+            continue
+        if inter and not cf.startswith("6"):
+            erros.append(
+                f"CFOP {cf} é de operação interna; origem {ue} → destino {ud} é interestadual. "
+                "Não convertemos para 6xxx — cadastre e valide a regra."
+            )
+        elif not inter and not cf.startswith("5"):
+            erros.append(f"CFOP {cf} não é interno; origem {ue} → destino {ud} é operação interna.")
+    return erros
+
+
 def checklist_conferencia(doc: dict, *, cert_ok: bool) -> list[dict[str, Any]]:
     dest = doc.get("destinatario") if isinstance(doc.get("destinatario"), dict) else {}
     itens = doc.get("itens") if isinstance(doc.get("itens"), list) else []
@@ -878,19 +997,24 @@ def checklist_conferencia(doc: dict, *, cert_ok: bool) -> list[dict[str, Any]]:
     )
     er_it = validar_itens(itens)
     row(len(er_it) == 0, "Itens e NCM", "; ".join(er_it)[:200])
-    ue = nfe_saida_emitente_uf_default()
-    ud = str(dest.get("uf") or ue)[:2]
-    inter = ud and ue and ud != ue
-    cfop_ok = True
-    for ln in itens:
-        if not isinstance(ln, dict):
-            continue
-        cf = str(ln.get("cfop") or "")
-        if inter and not cf.startswith("6"):
-            cfop_ok = False
-        if not inter and cf and not cf.startswith("5"):
-            cfop_ok = False
-    row(cfop_ok, "CFOP coerente com UF", "Interestadual: 6xxx · interna: 5xxx")
+    from produtos.nfe_fiscal_config_util import parse_estabelecimento, rotulo_estabelecimento
+    from produtos.nfe_saida_regras_validas_util import estabelecimento_do_doc
+
+    loja = estabelecimento_do_doc(doc)
+    if loja:
+        row(True, "Estabelecimento emitente", rotulo_estabelecimento(loja))
+    else:
+        row(False, "Estabelecimento emitente", "Escolha Centro ou Vila Elias. Não assumimos Centro.")
+    ue = uf_emitente_do_doc(doc)
+    ud = str(dest.get("uf") or "").strip().upper()[:2]
+    er_cfop = erros_cfop_coerente_uf(doc)
+    if er_cfop:
+        row(False, "CFOP coerente com UF", " ".join(er_cfop)[:280])
+    elif ud:
+        inter = bool(ue and ud and ud != ue)
+        row(True, "CFOP coerente com UF", f"Origem {ue} → destino {ud} ({'interestadual' if inter else 'interna'}).")
+    else:
+        row(False, "CFOP coerente com UF", "Informe a UF do destinatário.")
     er_pg = validar_pagamentos(pag, total)
     row(len(er_pg) == 0, "Pagamentos = total", "; ".join(er_pg)[:120])
     row(cert_ok, "Certificado A1 configurado", "")

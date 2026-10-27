@@ -120,6 +120,14 @@ def test_arquivos() -> None:
     check("sp_usa_motor", "apurar_nfe_saida" in sp_dest and "_montar_grupo_tributo" in sp_dest)
     check("emissao_valida_fiscal", "erros_fiscal_emissao" in _read("produtos/nfe_saida_emissao_util.py"))
     check("tpl_dest_fiscal", "dest-situacao-icms" in tpl and "dest-finalidade" in tpl)
+    check("tpl_emitente_centro_vila", 'data-nfe-estab="centro"' in tpl and 'data-nfe-estab="vila"' in tpl)
+    check("js_sem_ncm_generico", "23099020" not in js)
+    check("js_sem_cfop_generico", "cfop: p.cfop || '5102'" not in js and "p.csosn || p.CSOSN || '102'" not in js)
+    check("js_emitir_espera_salvar", "j.ok !== true" in js and "transmissão não foi iniciada" in js)
+    check("js_set_estab", "function setEstabelecimento" in js)
+    util = _read("produtos/nfe_saida_util.py")
+    check("salvar_pg_estab", '"estabelecimento"' in util and "aplicar_estabelecimento_no_doc" in util)
+    check("checklist_ufs", "origem" in util and "Não convertemos" in util)
 
 
 def test_logica() -> None:
@@ -132,10 +140,12 @@ def test_logica() -> None:
         "uf": "SP",
         "cidade": "Jacupiranga",
         "logradouro": "Rua X",
+        "cmun": "3524600",
         "ie": "",
     }
     check("dest_cpf_ok", validar_destinatario(dest) == [])
     doc = doc_novo_vazio()
+    doc["estabelecimento"] = "centro"
     doc["destinatario"] = dest
     doc["itens"] = [
         {
@@ -152,7 +162,12 @@ def test_logica() -> None:
     doc["tp_amb"] = 2
     from unittest.mock import patch
 
-    with patch("produtos.sefaz_dfe_client.distribuicao_dfe_configurada", return_value=True):
+    with patch("produtos.sefaz_dfe_client.distribuicao_dfe_configurada", return_value=True), patch(
+        "produtos.nfe_saida_tributacao_util.erros_fiscal_emissao", return_value=[]
+    ), patch(
+        "produtos.nfe_saida_regras_validas_util.resolver_cnpj_serie_emitente",
+        return_value=("11222333000181", 1, None),
+    ):
         os.environ["NFE_SAIDA_SIMULAR_EMIT"] = "1"
         out = emitir_nfe_saida_documento(doc, cnpj_emit="11222333000181")
         check(

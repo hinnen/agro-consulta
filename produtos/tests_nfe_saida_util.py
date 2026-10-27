@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 from contextlib import contextmanager
 from decimal import Decimal
+from pathlib import Path
 from unittest.mock import patch
 
 from django.test import SimpleTestCase, TestCase
@@ -801,7 +802,7 @@ class NfeSaidaPrefillVendaTests(SimpleTestCase):
                 return_value={"ncm": "12345678", "cfop": "", "csosn": "102", "origem": "0"},
             ):
                 itens = itens_de_venda(v)
-        self.assertEqual(itens[0]["cfop"], "6102")
+        self.assertEqual(itens[0]["cfop"], "")
         self.assertEqual(itens[0]["ncm"], "12345678")
 
     def test_prefill_preserva_ncm_23099020_cadastrado(self):
@@ -1059,3 +1060,115 @@ class NfeSaidaSimulacaoEmitTests(SimpleTestCase):
         self.assertTrue(out.get("simulado"))
         self.assertFalse(out.get("autorizacao_sefaz_real", True))
         os.environ.pop("NFE_SAIDA_SIMULAR_EMIT", None)
+
+
+def _doc_checklist(*, uf_dest="SP", cfop="5102", estab="centro"):
+    from produtos.nfe_saida_util import doc_novo_vazio
+
+    doc = doc_novo_vazio()
+    doc["estabelecimento"] = estab
+    doc["destinatario"].update(
+        {
+            "nome": "Cliente",
+            "documento": "39053344705",
+            "uf": uf_dest,
+            "cidade": "Jacupiranga",
+            "logradouro": "Rua A",
+            "cmun": "3524600",
+        }
+    )
+    doc["itens"] = [
+        {
+            "descricao": "Item",
+            "qtd": 1,
+            "v_unit": 10,
+            "v_total": 10,
+            "ncm": "12345678",
+            "cfop": cfop,
+            "csosn": "102",
+        }
+    ]
+    doc["pagamento"] = [{"forma": "Dinheiro", "tPag": "01", "valor": 10}]
+    return doc
+
+
+class NfeSaidaChecklistEmitenteTests(SimpleTestCase):
+    def _cfop_row(self, rows):
+        return next(r for r in rows if r["label"] == "CFOP coerente com UF")
+
+    def test_avulsa_sem_estabelecimento(self):
+        from produtos.nfe_saida_util import checklist_conferencia, doc_novo_vazio
+
+        doc = doc_novo_vazio()
+        self.assertEqual(doc.get("estabelecimento"), "")
+        rows = checklist_conferencia(doc, cert_ok=True)
+        est = next(r for r in rows if r["label"] == "Estabelecimento emitente")
+        self.assertFalse(est["ok"])
+
+    def test_sp_cfop_5102_ok(self):
+        from produtos.nfe_saida_util import checklist_conferencia
+
+        rows = checklist_conferencia(_doc_checklist(uf_dest="sp", cfop="5102"), cert_ok=True)
+        row = self._cfop_row(rows)
+        self.assertTrue(row["ok"], row)
+        self.assertIn("SP", row["det"])
+        self.assertIn("interna", row["det"])
+
+    def test_interestadual_5102_explica_ufs(self):
+        from produtos.nfe_saida_util import checklist_conferencia
+
+        rows = checklist_conferencia(_doc_checklist(uf_dest="RJ", cfop="5102"), cert_ok=True)
+        row = self._cfop_row(rows)
+        self.assertFalse(row["ok"])
+        self.assertIn("5102", row["det"])
+        self.assertIn("RJ", row["det"])
+        self.assertIn("interestadual", row["det"].lower())
+        self.assertIn("Não convertemos", row["det"])
+
+    def test_doc_novo_nao_presume_centro(self):
+        from produtos.nfe_saida_util import aplicar_estabelecimento_no_doc, doc_novo_vazio
+
+        doc = doc_novo_vazio()
+        aplicar_estabelecimento_no_doc(doc)
+        self.assertEqual(doc["estabelecimento"], "")
+
+    def test_emit_bloqueia_cfop_interestadual(self):
+        from produtos.nfe_saida_util import erros_cfop_coerente_uf
+
+        erros = erros_cfop_coerente_uf(_doc_checklist(uf_dest="RJ", cfop="5102"))
+        self.assertTrue(erros)
+        self.assertIn("5102", erros[0])
+        self.assertIn("RJ", erros[0])
+        self.assertFalse(erros_cfop_coerente_uf(_doc_checklist(uf_dest="SP", cfop="5102")))
+
+    def test_sugerido_venda_so_deposito_claro(self):
+        from produtos.nfe_saida_util import estabelecimento_sugerido_venda
+
+        v = type("V", (), {"deposito": "vila"})()
+        self.assertEqual(estabelecimento_sugerido_venda(v), "vila")
+        v2 = type("V", (), {"deposito": ""})()
+        self.assertIsNone(estabelecimento_sugerido_venda(v2))
+        v3 = type("V", (), {"deposito": "loja3"})()
+        self.assertIsNone(estabelecimento_sugerido_venda(v3))
+
+    def test_vila_nao_herda_serie_centro(self):
+        from produtos.nfe_saida_util import aplicar_estabelecimento_no_doc, doc_novo_vazio, nfe_saida_serie_default
+
+        doc = doc_novo_vazio()
+        doc["serie"] = nfe_saida_serie_default()
+        doc["fiscal"]["serie"] = nfe_saida_serie_default()
+        doc["estabelecimento"] = "vila"
+        aplicar_estabelecimento_no_doc(doc)
+        self.assertEqual(doc["estabelecimento"], "vila")
+        self.assertNotEqual(doc.get("serie"), nfe_saida_serie_default())
+
+
+class NfeSaidaJsStaticTests(SimpleTestCase):
+    def test_js_sem_codigos_inventados_e_emit_exige_save(self):
+        js = Path("produtos/static/produtos/js/nfe_saida.js").read_text(encoding="utf-8")
+        self.assertNotIn("23099020", js)
+        self.assertNotIn("p.cfop || '5102'", js)
+        self.assertNotIn("p.csosn || p.CSOSN || '102'", js)
+        self.assertIn("j.ok !== true", js)
+        self.assertIn("transmissão não foi iniciada", js)
+        self.assertIn("function setEstabelecimento", js)

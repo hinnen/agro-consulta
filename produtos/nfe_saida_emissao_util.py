@@ -13,9 +13,10 @@ from produtos.nfe_saida_util import (
     NFE_SAIDA_STATUS_AUTORIZADA,
     NFE_SAIDA_STATUS_REJEITADA,
     checklist_conferencia,
-    nfe_saida_emitente_uf_default,
+    erros_cfop_coerente_uf,
     nfe_saida_tp_amb_default,
     total_itens,
+    uf_emitente_do_doc,
     validar_destinatario,
     validar_itens,
     validar_pagamentos,
@@ -69,7 +70,8 @@ def emitir_nfe_saida_documento(doc: dict, *, cnpj_emit: str) -> dict[str, Any]:
         + validar_itens(doc.get("itens") or [])
         + validar_pagamentos(doc.get("pagamento") or [], total_itens(doc.get("itens") or []))
         + ([err_em] if err_em else [])
-        + erros_fiscal_emissao(doc, uf_emit=nfe_saida_emitente_uf_default(), cnpj_emit=cnpj_ok or cnpj_emit)
+        + erros_cfop_coerente_uf(doc)
+        + erros_fiscal_emissao(doc, uf_emit=uf_emitente_do_doc(doc), cnpj_emit=cnpj_ok or cnpj_emit)
     )
     if erros:
         return {

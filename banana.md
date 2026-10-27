@@ -1294,6 +1294,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ CHECKLIST ÚNICO — **27/10h** · 🟢 **pronto envio produção** · **NFE-EMITENTE-CFOP**
+
+| # | Item | Status | Migrate | Prova |
+| - | ---- | ------ | ------- | ----- |
+| 1 | Seletor Centro / Vila no editor NF-e | 🟢 Pronto | **NÃO** | `tests_nfe_saida_util` + `verify_nfe_saida_path` |
+| 2 | Checklist CFOP × UF (5102 SP ok; RJ explica) | 🟢 Pronto | **NÃO** | `NfeSaidaChecklistEmitenteTests` |
+| 3 | Sem NCM/CFOP/CSOSN inventados na busca | 🟢 Pronto | **NÃO** | JS static + verify |
+| 4 | `emitirComPin` só após `salvarRascunho` ok | 🟢 Pronto | **NÃO** | JS static |
+| 5 | NFC-e / PDV | ✅ Intocado | **NÃO** | `tests_nfce_loja` |
+
+| Campo | Valor |
+| ----- | ----- |
+| **Pacote** | **v27.26.39** · **NFE-EMITENTE-CFOP** |
+| **Branch** | `cursor/nfe-saida-emitente-cfop-1e79` → `producao` (sem `teste`) |
+| **Migrate** | **NÃO** |
+| **Smoke** | staff · `/nfe/saida/` · escolher emitente · **não** transmitir automático |
+
+### 📦 PACOTE PRONTO — **NFE-EMITENTE-CFOP** · **v27.26.39** · 27/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Emitente Centro/Vila na UI; CFOP 5102 × UF; sem fallbacks 23099020/5102/102; save obrigatório antes de transmitir |
+| **Paths** | `nfe_saida_util.py` · `nfe_saida.js` · `nfe_saida.html` · `views_nfe_saida.py` · `nfe_saida_emissao_util.py` · `verify_nfe_saida_path.py` |
+
 ### ✅ CHECKLIST ÚNICO — **25/10** · 🟢 **pronto envio produção** · **NFE-55-FISCAL-PL010f**
 
 | # | Item | Status | Migrate | Prova |
