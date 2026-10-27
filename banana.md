@@ -1309,6 +1309,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 PREP ARMADO — **CHECKLIST 27/10f** · **v27.26.37** · bloco e amostra
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **PREP armado** @ **`cf6339d4`** · aguarda frase + senha |
+| **Base loja** | **v27.26.36** @ **`d8b5ce7b`** |
+| **Entra** | Amostra só no PC · bloco fechado no celular · achado de novo soma (5+2=7) |
+| **Migrate** | **NÃO** |
+| **PDV / caixa / checkout** | **Não neste delta** |
+| **Prova** | `verify_inventario_bloco_tela_path.py` **9/9** · cutover **OK** |
+| **Revert** | `git push origin rollback/pre-v272637-2710f-bloco-tela:producao` → **`d8b5ce7b`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2710f_bloco_tela.sh` |
+| **Smoke** | Fechar bloco no celular · imprimir só em Contagens no PC · bipar de novo 2 em cima de 5 |
+
+
 ### ✅ Deploy loja — **CHECKLIST 27/10e** · **Live v27.26.36** · 27/10
 
 | Campo | Valor |
