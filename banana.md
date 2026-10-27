@@ -1292,19 +1292,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
-### 📦 PACOTE PRONTO — **AJUSTE-BLOCO-TELA** · **v27.26.36**
+### 📦 PACOTE PRONTO — **AJUSTE-BLOCO-TELA** · **v27.26.37** · PREP `teste` @ **`3c198ebe`**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **Pronto para envio à produção** (frase + senha) · junto ou depois do 27/10e |
-| **Entra** | Amostra do bloco **só imprime no computador** (Contagens) · bloco fechado marcado · produto achado de novo soma no bloco atual sem apagar o anterior |
+| **Status** | 🟢 **Pronto para envio à produção** (frase + senha) · depois do Live 27/10e |
+| **Entra** | Amostra só no PC · bloco fechado marcado no celular · produto achado de novo soma (5+2=7) |
 | **Migrate** | **NÃO** |
+| **Prova** | reabrir bloco **5 → 7** · sem impressão no celular · lista **Imprimir** no painel |
 
 ### ✅ CHECKLIST ÚNICO — **27/10f** · 🟢 **pronto para envio à produção**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **AJUSTE-BLOCO-TELA** | 🟢 Pronto | **NÃO** | sem `window.open` no concluir · seção «Bloco já fechado» · lista Imprimir no painel |
+| 1 | **AJUSTE-BLOCO-TELA** | 🟢 Pronto | **NÃO** | impressão no PC · bloco fechado · achado de novo **5+2=7** |
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
