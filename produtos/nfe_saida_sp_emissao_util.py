@@ -67,19 +67,25 @@ def _montar_chave_nfe(
     return ch43 + _dv_chave(ch43)
 
 
-def _cfg_emissao_nfe(cnpj_emit: str, tp_amb: int) -> dict[str, Any]:
+def _cfg_emissao_nfe(
+    cnpj_emit: str,
+    tp_amb: int,
+    *,
+    loja: str | None = None,
+    serie_nfe: int | None = None,
+) -> dict[str, Any]:
     from produtos.nfce_config_util import nfce_cfg, nfce_loja_de_cnpj
     from produtos.sefaz_dfe_client import _cfg_dist_dfe
 
     dfe = _cfg_dist_dfe()
     cnpj = re.sub(r"\D", "", cnpj_emit or dfe.get("cnpj") or "")[:14]
-    loja = nfce_loja_de_cnpj(cnpj)
-    nfc = nfce_cfg(loja)
+    loja_n = loja or nfce_loja_de_cnpj(cnpj)
+    nfc = nfce_cfg(loja_n)
     try:
         piso = int(config("NFE_EMISSAO_PROXIMO_NUMERO", default="1") or 1)
     except (TypeError, ValueError):
         piso = 1
-    serie = nfe_saida_serie_default()
+    serie = int(serie_nfe or nfe_saida_serie_default())
     return {
         "cert_path": dfe.get("cert_path") or nfc.get("cert_path") or "",
         "cert_password": dfe.get("cert_password") or nfc.get("cert_password") or "",
@@ -135,14 +141,16 @@ def _proximo_numero_nfe(cfg: dict[str, Any]) -> tuple[int, int]:
 
 
 def _cmun_destino(dest: dict, cfg_emit: dict) -> str:
-    raw = re.sub(r"\D", "", str(dest.get("cmun") or dest.get("cMun") or ""))[:7]
-    if len(raw) == 7:
-        return raw
-    dc = str(dest.get("cidade") or "").strip().lower()
-    ec = str(cfg_emit.get("cidade") or "").strip().lower()
-    if dc and ec and dc == ec:
-        return str(cfg_emit.get("cmun") or "")[:7]
-    return "3524600"
+    from produtos.nfe_saida_regras_validas_util import cmun_destinatario_ou_erro
+
+    cmun, err = cmun_destinatario_ou_erro(
+        dest,
+        cidade_emit=str(cfg_emit.get("cidade") or ""),
+        cmun_emit=str(cfg_emit.get("cmun") or ""),
+    )
+    if err:
+        return ""
+    return cmun
 
 
 def _id_dest(uf_emit: str, uf_dest: str) -> str:
@@ -177,7 +185,7 @@ def _preencher_dest_nfe(
     _sub(ender, "xLgr", _texto_endereco(dest.get("logradouro"), fallback="S/N"))
     _sub(ender, "nro", _texto_endereco(dest.get("numero"), fallback="S/N", max_len=60))
     _sub(ender, "xBairro", _texto_endereco(dest.get("bairro")))
-    _sub(ender, "cMun", _cmun_destino(dest, cfg_emit) or "3524600")
+    _sub(ender, "cMun", _cmun_destino(dest, cfg_emit))
     _sub(ender, "xMun", _texto_endereco(dest.get("cidade"), fallback="MUNICIPIO"))
     _sub(ender, "UF", str(dest.get("uf") or "SP").strip().upper()[:2])
     cep = re.sub(r"\D", "", str(dest.get("cep") or ""))[:8]
@@ -241,7 +249,12 @@ def _montar_xml_nfe_saida(
     pagamentos = doc.get("pagamento") if isinstance(doc.get("pagamento"), list) else []
 
     uf_emit = str(cfg.get("uf") or "SP")[:2]
-    apuracao = apurar_nfe_saida(doc, uf_emit=uf_emit)
+    apuracao = apurar_nfe_saida(
+        doc,
+        uf_emit=uf_emit,
+        cnpj_emit=str(cfg.get("cnpj") or ""),
+        data_emissao=dh_emi.date() if hasattr(dh_emi, "date") else None,
+    )
     if apuracao.bloqueios:
         raise FiscalBloqueio(apuracao.bloqueios[0])
     doc["fiscal_apuracao"] = apuracao_serializada(apuracao)
@@ -433,7 +446,19 @@ def emitir_nfe_saida_sefaz(doc: dict, *, cnpj_emit: str) -> dict[str, Any]:
     from produtos.nfe_saida_xml_validate_util import validar_xml_nfe_xsd_obrigatorio
 
     tp_amb = int(doc.get("tp_amb") or 2)
-    cfg = _cfg_emissao_nfe(cnpj_emit, tp_amb)
+    from produtos.nfe_saida_regras_validas_util import estabelecimento_do_doc, resolver_cnpj_serie_emitente
+
+    cnpj_ok, serie_ok, err_em = resolver_cnpj_serie_emitente(doc, cnpj_pedido=cnpj_emit)
+    if err_em:
+        return {
+            "ok": False,
+            "status": NFE_SAIDA_STATUS_REJEITADA,
+            "erro": err_em,
+            "c_stat": 999,
+            "x_motivo": err_em,
+        }
+    loja_doc = estabelecimento_do_doc(doc, cnpj_emit=cnpj_ok)
+    cfg = _cfg_emissao_nfe(cnpj_ok, tp_amb, loja=loja_doc, serie_nfe=serie_ok)
     if not cfg.get("cert_path"):
         return {
             "ok": False,
@@ -457,9 +482,7 @@ def emitir_nfe_saida_sefaz(doc: dict, *, cnpj_emit: str) -> dict[str, Any]:
             "c_stat": 280,
         }
 
-    fiscal = doc.get("fiscal") if isinstance(doc.get("fiscal"), dict) else {}
-    serie_doc = int(fiscal.get("serie") or doc.get("serie") or cfg["serie"])
-    cfg["serie"] = serie_doc
+    cfg["serie"] = int(serie_ok or cfg["serie"])
 
     nnf_doc = doc.get("nNF")
     max_tentativas = 4
@@ -474,7 +497,7 @@ def emitir_nfe_saida_sefaz(doc: dict, *, cnpj_emit: str) -> dict[str, Any]:
             numero = None
         if numero is None:
             _, numero = _proximo_numero_nfe(cfg)
-        serie = serie_doc
+        serie = int(cfg["serie"])
         c_nf = _gerar_c_nf()
         dh_emi = timezone.localtime(timezone.now())
         chave = _montar_chave_nfe(

@@ -4434,7 +4434,7 @@ class NfeParametroIbpt(NfeFiscalContadorMixin):
 
 
 class NfeRegraOperacao(NfeFiscalContadorMixin):
-    """Regra fiscal por operação. Sem CSOSN 102 automático. Motor não lê nesta etapa."""
+    """Regra fiscal por operação. Motor (Etapa 3) lê só status Validado."""
 
     class Ambito(models.TextChoices):
         INTERNA = "interna", "Interna"

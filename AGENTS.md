@@ -126,7 +126,7 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 
 - Página `/configuracao/fiscal-nfe/` (F11 → link Fiscal / NF-e; não fica no modal). Só `is_staff`. Seletor Centro | Vila Elias.
 - Postgres: `NfeEstabelecimentoFiscal`, `NfeAliquotaCreditoSn`, `NfeParametroPisCofins`, `NfeParametroIbpt`, `NfeRegraOperacao`, `NfeExcecaoIcmsSt`, `NfeQuestionarioResposta`, `NfeAlteracaoFiscalLog`. Migrações `produtos.0152` + `0153` (nome/CRC/data do contador ≠ `validado_por`). Sem seed fictício; vazio = Pendente; Validar exige campos obrigatórios + contador.
-- **Não** integra no motor/`apurar_nfe_saida`/XML/DANFE. Diagnóstico: `docs/NFE_SAIDA_MOTOR_FISCAL_ETAPA1.md`. Entrega: `docs/NFE_SAIDA_MOTOR_FISCAL_ETAPA2.md`.
+- **Etapa 3:** `apurar_nfe_saida` lê só regras/crédito/PIS **Validados**; sem CSOSN 102 silencioso. Doc: `docs/NFE_SAIDA_MOTOR_FISCAL_ETAPA3.md`. Diagnóstico: `docs/NFE_SAIDA_MOTOR_FISCAL_ETAPA1.md`. Cadastro: `docs/NFE_SAIDA_MOTOR_FISCAL_ETAPA2.md`.
 
 **NF-e saída (nota grande) — tela `/nfe/saida/`**
 

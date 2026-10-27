@@ -322,14 +322,43 @@ def api_nfe_saida_emitir(request, doc_id: str):
                 status=409,
             )
 
+    from produtos.nfe_saida_regras_validas_util import resolver_cnpj_serie_emitente
+    from produtos.nfe_saida_tributacao_util import erros_fiscal_emissao
+    from produtos.nfe_saida_util import (
+        nfe_saida_emitente_uf_default,
+        total_itens,
+        validar_destinatario,
+        validar_itens,
+        validar_pagamentos,
+    )
+
+    cnpj_env = re.sub(r"\D", "", config("NFE_DIST_DFE_CNPJ", default="") or "")[:14]
+    cnpj, _serie, err_em = resolver_cnpj_serie_emitente(doc, cnpj_pedido=cnpj_env)
+    erros_pre = (
+        validar_destinatario(doc.get("destinatario") or {})
+        + validar_itens(doc.get("itens") or [])
+        + validar_pagamentos(doc.get("pagamento") or [], total_itens(doc.get("itens") or []))
+        + ([err_em] if err_em else [])
+        + erros_fiscal_emissao(doc, uf_emit=nfe_saida_emitente_uf_default(), cnpj_emit=cnpj or cnpj_env)
+    )
+    if erros_pre:
+        return JsonResponse(
+            {
+                "ok": False,
+                "status": str(doc.get("status") or "rascunho"),
+                "erro": erros_pre[0],
+                "erros": erros_pre[:12],
+            },
+            status=400,
+        )
+
     nfe_saida_atualizar_campos(
         db,
         doc_id_norm,
         {"status": NFE_SAIDA_STATUS_ENVIANDO, "updated_at": datetime.now(timezone.utc)},
     )
 
-    cnpj = re.sub(r"\D", "", config("NFE_DIST_DFE_CNPJ", default="") or "")[:14]
-    out = emitir_nfe_saida_documento(doc, cnpj_emit=cnpj)
+    out = emitir_nfe_saida_documento(doc, cnpj_emit=cnpj or cnpj_env)
     upd = {
         "status": out.get("status") or NFE_SAIDA_STATUS_REJEITADA,
         "c_stat": out.get("c_stat"),
