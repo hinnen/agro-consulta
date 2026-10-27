@@ -125,7 +125,7 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 **NF-e 55 — Configuração fiscal (Etapa 2)**
 
 - Página `/configuracao/fiscal-nfe/` (F11 → link Fiscal / NF-e; não fica no modal). Só `is_staff`. Seletor Centro | Vila Elias.
-- Postgres: `NfeEstabelecimentoFiscal`, `NfeAliquotaCreditoSn`, `NfeParametroPisCofins`, `NfeParametroIbpt`, `NfeRegraOperacao`, `NfeExcecaoIcmsSt`, `NfeQuestionarioResposta`, `NfeAlteracaoFiscalLog`. Migração `produtos.0152`. Sem seed fictício; vazio = Pendente; Validado só manual.
+- Postgres: `NfeEstabelecimentoFiscal`, `NfeAliquotaCreditoSn`, `NfeParametroPisCofins`, `NfeParametroIbpt`, `NfeRegraOperacao`, `NfeExcecaoIcmsSt`, `NfeQuestionarioResposta`, `NfeAlteracaoFiscalLog`. Migrações `produtos.0152` + `0153` (nome/CRC/data do contador ≠ `validado_por`). Sem seed fictício; vazio = Pendente; Validar exige campos obrigatórios + contador.
 - **Não** integra no motor/`apurar_nfe_saida`/XML/DANFE. Diagnóstico: `docs/NFE_SAIDA_MOTOR_FISCAL_ETAPA1.md`. Entrega: `docs/NFE_SAIDA_MOTOR_FISCAL_ETAPA2.md`.
 
 **NF-e saída (nota grande) — tela `/nfe/saida/`**

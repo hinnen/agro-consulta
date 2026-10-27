@@ -93,6 +93,9 @@
     .pc-tabela td { padding: 0.4rem 0.6rem; border-bottom: 1px solid #e2e8f0; font-weight: 800; }
     .fn-foot { flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; padding: 0.5rem 1rem; background: #fff; border-top: 2px solid #e2e8f0; }
     .fn-hidden { display: none !important; }
+    .fn-contador { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: end; }
+    .fn-contador label { display: flex; flex-direction: column; gap: 0.15rem; font-size: var(--pc-fs-label); font-weight: 900; text-transform: uppercase; color: #475569; }
+    .fn-contador .pc-input { min-height: 2.6rem; min-width: 8rem; font-size: var(--pc-fs-body); }
     .q-bloco { border: 2px solid #e2e8f0; border-radius: 0.8rem; padding: 0.7rem; margin-bottom: 0.6rem; }
     .q-bloco h3 { margin: 0 0 0.5rem; font-size: var(--pc-fs-section); font-weight: 900; }
     @media print {
@@ -117,6 +120,11 @@
         <div class="loja-seg" role="tablist" aria-label="Estabelecimento">
           <button type="button" id="btn-centro" class="is-on" data-loja="centro">Centro</button>
           <button type="button" id="btn-vila" data-loja="vila">Vila Elias</button>
+        </div>
+        <div class="fn-contador" title="Aprovação do contador não é o usuário do sistema">
+          <label>Contador<input id="cnt-nome" class="pc-input" maxlength="200" placeholder="Nome"></label>
+          <label>CRC<input id="cnt-crc" class="pc-input" maxlength="40" placeholder="CRC"></label>
+          <label>Aprovação<input id="cnt-data" class="pc-input" type="date"></label>
         </div>
         <a href="{% url 'home' %}" class="pc-btn pc-btn--ghost">← BI</a>
         <a href="{% url 'nfe_saida' %}" class="pc-btn pc-btn--verde-claro">NF-e 55</a>
@@ -207,7 +215,16 @@
             <label class="pc-campo"><span class="pc-campo-label">Início</span><input id="pis-ini" class="pc-input" type="date"></label>
             <label class="pc-campo"><span class="pc-campo-label">Fim</span><input id="pis-fim" class="pc-input" type="date"></label>
           </div>
-          <label class="pc-campo" style="margin-top:.4rem"><span class="pc-campo-label">Exceções (texto)</span><textarea id="pis-ex" class="pc-area" placeholder="Operação / produto / NCM — se houver"></textarea></label>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.4rem;gap:.5rem;flex-wrap:wrap">
+            <span class="pc-campo-label">Exceções</span>
+            <button type="button" class="pc-btn pc-btn--ghost" id="pis-ex-add">+ Exceção</button>
+          </div>
+          <div style="overflow:auto">
+            <table class="pc-tabela">
+              <thead><tr><th>Operação</th><th>Produto</th><th>NCM</th><th>CST PIS</th><th>CST COFINS</th></tr></thead>
+              <tbody id="pis-ex-lista"></tbody>
+            </table>
+          </div>
           <label class="pc-campo"><span class="pc-campo-label">Observações do contador</span><textarea id="pis-obs" class="pc-area"></textarea></label>
           <div style="display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap">
             <button type="button" class="pc-btn pc-btn--verde" id="pis-salvar">Salvar</button>
@@ -319,19 +336,57 @@
       m.textContent = t || '';
       m.className = 'fn-msg' + (ok === false ? ' is-erro' : '');
     }
-    function badge(st) {
-      var cls = 'badge badge-' + (st.status || 'pendente');
-      return '<span class="' + cls + '">' + (st.status_rotulo || 'Pendente') + '</span>';
+    function limpar(node) { while (node && node.firstChild) node.removeChild(node.firstChild); }
+    function texto(v) { return v == null || v === '' ? '' : String(v); }
+    function badgeEl(st) {
+      var s = document.createElement('span');
+      var stt = (st && st.status) || 'pendente';
+      s.className = 'badge badge-' + stt;
+      s.textContent = (st && st.status_rotulo) || 'Pendente';
+      return s;
+    }
+    function dlPar(dl, rotulo, valor) {
+      var dt = document.createElement('dt'); dt.textContent = rotulo;
+      var dd = document.createElement('dd'); dd.textContent = valor == null || valor === '' ? 'Pendente' : String(valor);
+      dl.appendChild(dt); dl.appendChild(dd);
+    }
+    function cel(tr, valor) {
+      var td = document.createElement('td'); td.textContent = valor == null || valor === '' ? '—' : String(valor);
+      tr.appendChild(td); return td;
+    }
+    function botao(rotulo, cls, ds, val) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'pc-btn ' + cls; b.textContent = rotulo;
+      if (ds) b.setAttribute(ds, val);
+      return b;
+    }
+    function linhaVazia(tb, cols, frase) {
+      var tr = document.createElement('tr');
+      var td = document.createElement('td'); td.colSpan = cols; td.textContent = frase;
+      tr.appendChild(td); tb.appendChild(tr);
+    }
+    function contadorPayload() {
+      return {
+        contador_nome: el('cnt-nome').value,
+        contador_crc: el('cnt-crc').value,
+        contador_aprovado_em: el('cnt-data').value
+      };
+    }
+    function aplicarContador(src) {
+      if (!src) return;
+      if (src.contador_nome) el('cnt-nome').value = src.contador_nome;
+      if (src.contador_crc) el('cnt-crc').value = src.contador_crc;
+      if (src.contador_aprovado_em) el('cnt-data').value = String(src.contador_aprovado_em).slice(0, 10);
     }
     function post(url, body) {
       return fetch(url, {
         method: 'POST', credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
-        body: JSON.stringify(Object.assign({ estabelecimento: loja }, body || {}))
+        body: JSON.stringify(Object.assign({ estabelecimento: loja }, contadorPayload(), body || {}))
       }).then(function (r) { return r.json(); });
     }
     function carregar() {
-      fetch('/api/configuracao/fiscal-nfe/?estabelecimento=' + loja, { credentials: 'same-origin' })
+      fetch('/api/configuracao/fiscal-nfe/?estabelecimento=' + encodeURIComponent(loja), { credentials: 'same-origin' })
         .then(function (r) { return r.json(); })
         .then(function (j) { data = j; pintar(); })
         .catch(function () { msg('Falha ao carregar.', false); });
@@ -339,36 +394,76 @@
     function pintarEmpresa() {
       var e = (data && data.empresa) || {};
       var cert = e.certificado || {};
-      el('emp-leitura').innerHTML =
-        '<dt>CNPJ</dt><dd>' + (e.cnpj || 'Pendente') + '</dd>' +
-        '<dt>IE</dt><dd>' + (e.ie || 'Pendente') + '</dd>' +
-        '<dt>CRT</dt><dd>' + (e.crt || 'Pendente') + '</dd>' +
-        '<dt>UF / IBGE</dt><dd>' + (e.uf || 'Pendente') + ' · ' + (e.municipio_ibge || 'Pendente') + '</dd>' +
-        '<dt>Série emissão atual</dt><dd>' + (e.serie_emissao_atual || 'Pendente') + '</dd>' +
-        '<dt>Série NF-e 55 (cadastro)</dt><dd>' + (e.serie_nfe_55_exibicao || 'Pendente') + '</dd>' +
-        '<dt>Ambiente</dt><dd>' + (e.ambiente || 'Pendente') + '</dd>' +
-        '<dt>Certificado</dt><dd>' + (cert.situacao_rotulo || 'Pendente') + (cert.validade ? ' · ' + cert.validade : '') + '</dd>' +
-        '<dt>Status</dt><dd>' + badge(e) + ' ' + (e.status_msg || '') + '</dd>';
-      el('emp-crt').value = e.crt_valor || '';
-      el('emp-serie').value = e.serie_nfe_55 || '';
-      el('emp-obs').value = e.observacoes || '';
+      var dl = el('emp-leitura'); limpar(dl);
+      dlPar(dl, 'CNPJ', e.cnpj || 'Pendente');
+      dlPar(dl, 'IE', e.ie || 'Pendente');
+      dlPar(dl, 'CRT', e.crt || 'Pendente');
+      dlPar(dl, 'UF / IBGE', (e.uf || 'Pendente') + ' · ' + (e.municipio_ibge || 'Pendente'));
+      dlPar(dl, 'Série emissão atual', e.serie_emissao_atual || 'Pendente');
+      dlPar(dl, 'Série NF-e 55 (cadastro)', e.serie_nfe_55_exibicao || 'Pendente');
+      dlPar(dl, 'Ambiente', e.ambiente || 'Pendente');
+      dlPar(dl, 'Certificado', (cert.situacao_rotulo || 'Pendente') + (cert.validade ? ' · ' + cert.validade : ''));
       var nums = Array.isArray(e.numeracao) && e.numeracao.length
         ? e.numeracao.map(function (n) { return 'Série ' + n.serie + ' · próximo ' + n.proximo_numero; }).join('; ')
         : 'Pendente';
-      el('emp-leitura').innerHTML += '<dt>Numeração</dt><dd>' + nums + '</dd>';
+      dlPar(dl, 'Numeração', nums);
+      var dt = document.createElement('dt'); dt.textContent = 'Status';
+      var dd = document.createElement('dd'); dd.appendChild(badgeEl(e));
+      var sm = document.createTextNode(' ' + (e.status_msg || '')); dd.appendChild(sm);
+      dl.appendChild(dt); dl.appendChild(dd);
+      el('emp-crt').value = e.crt_valor || '';
+      el('emp-serie').value = e.serie_nfe_55 || '';
+      el('emp-obs').value = e.observacoes || '';
+      aplicarContador(e);
     }
     function pintarCreditos() {
+      var tb = el('cr-lista'); limpar(tb);
       var itens = (data && data.creditos) || [];
-      el('cr-lista').innerHTML = itens.map(function (it) {
-        return '<tr><td>' + it.competencia + '</td><td>' + (it.percentual || '—') + '</td><td>' + badge(it) + '</td><td>' + (it.validado_por_nome || '—') + '</td><td>' +
-          '<button type="button" class="pc-btn pc-btn--ghost" data-cr="' + it.id + '">Abrir</button> ' +
-          '<button type="button" class="pc-btn pc-btn--laranja" data-crv="' + it.id + '">Validar</button></td></tr>';
-      }).join('') || '<tr><td colspan="5">Nenhuma competência. Percentual de crédito não informado.</td></tr>';
+      if (!itens.length) { linhaVazia(tb, 5, 'Nenhuma competência. Percentual de crédito não informado.'); }
+      itens.forEach(function (it) {
+        var tr = document.createElement('tr');
+        cel(tr, it.competencia); cel(tr, it.percentual || '—');
+        var tdSt = document.createElement('td'); tdSt.appendChild(badgeEl(it)); tr.appendChild(tdSt);
+        cel(tr, it.validado_por_nome || '—');
+        var tdA = document.createElement('td');
+        tdA.appendChild(botao('Abrir', 'pc-btn--ghost', 'data-cr', it.id));
+        tdA.appendChild(document.createTextNode(' '));
+        tdA.appendChild(botao('Validar', 'pc-btn--laranja', 'data-crv', it.id));
+        tr.appendChild(tdA); tb.appendChild(tr);
+      });
+      var st = el('st-lista'); limpar(st);
       var sts = (data && data.excecoes_st) || [];
-      el('st-lista').innerHTML = sts.map(function (it) {
-        return '<tr><td>' + it.tipo + '</td><td>' + (it.uf_destino || '—') + '</td><td>' + (it.ncm || '—') + '</td><td>' + badge(it) + '</td><td>' +
-          '<button type="button" class="pc-btn pc-btn--laranja" data-stv="' + it.id + '">Validar</button></td></tr>';
-      }).join('') || '<tr><td colspan="5">Sem exceção cadastrada.</td></tr>';
+      if (!sts.length) { linhaVazia(st, 5, 'Sem exceção cadastrada.'); }
+      sts.forEach(function (it) {
+        var tr = document.createElement('tr');
+        cel(tr, it.tipo); cel(tr, it.uf_destino || '—'); cel(tr, it.ncm || '—');
+        var tdSt = document.createElement('td'); tdSt.appendChild(badgeEl(it)); tr.appendChild(tdSt);
+        var tdA = document.createElement('td');
+        tdA.appendChild(botao('Validar', 'pc-btn--laranja', 'data-stv', it.id));
+        tr.appendChild(tdA); st.appendChild(tr);
+      });
+    }
+    function addPisRow(x) {
+      x = x || {};
+      var tr = document.createElement('tr');
+      ['operacao', 'produto', 'ncm', 'cst_pis', 'cst_cofins'].forEach(function (k) {
+        var td = document.createElement('td');
+        var inp = document.createElement('input');
+        inp.className = 'pc-input'; inp.setAttribute('data-k', k); inp.value = x[k] || '';
+        td.appendChild(inp); tr.appendChild(td);
+      });
+      el('pis-ex-lista').appendChild(tr);
+    }
+    function lerPisExcecoes() {
+      var out = [];
+      Array.prototype.forEach.call(el('pis-ex-lista').querySelectorAll('tr'), function (tr) {
+        var o = {};
+        Array.prototype.forEach.call(tr.querySelectorAll('input'), function (inp) {
+          o[inp.getAttribute('data-k')] = inp.value;
+        });
+        if (o.operacao || o.produto || o.ncm || o.cst_pis || o.cst_cofins) out.push(o);
+      });
+      return out;
     }
     function pintarPis() {
       var p = (data && data.pis) || {};
@@ -376,52 +471,84 @@
       el('cof-cst').value = p.cst_cofins || '';
       el('pis-ini').value = (p.vigencia_inicio || '').slice(0, 10);
       el('pis-fim').value = (p.vigencia_fim || '').slice(0, 10);
-      var ex = Array.isArray(p.excecoes) ? p.excecoes.map(function (x) {
-        return [x.operacao, x.produto, x.ncm, x.cst_pis, x.cst_cofins].filter(Boolean).join(' / ');
-      }).join('\n') : '';
-      el('pis-ex').value = ex;
       el('pis-obs').value = p.observacoes || '';
+      limpar(el('pis-ex-lista'));
+      var ex = Array.isArray(p.excecoes) ? p.excecoes : [];
+      if (!ex.length) addPisRow({});
+      else ex.forEach(addPisRow);
+      aplicarContador(p);
     }
     function pintarIbpt() {
       var i = (data && data.ibpt) || {};
-      el('ibpt-leitura').innerHTML =
-        '<dt>Situação</dt><dd>' + (i.situacao_servidor || 'Pendente') + '</dd>' +
-        '<dt>Fonte</dt><dd>' + (i.fonte_servidor || 'Pendente') + '</dd>' +
-        '<dt>Token</dt><dd>' + (i.token_configurado ? 'Configurado' : 'Pendente') + '</dd>' +
-        '<dt>Status cadastro</dt><dd>' + badge(i) + '</dd>';
+      var dl = el('ibpt-leitura'); limpar(dl);
+      dlPar(dl, 'Situação', i.situacao_servidor || 'Pendente');
+      dlPar(dl, 'Fonte', i.fonte_servidor || 'Pendente');
+      dlPar(dl, 'Token', i.token_configurado ? 'Configurado' : 'Pendente');
+      var dt = document.createElement('dt'); dt.textContent = 'Status cadastro';
+      var dd = document.createElement('dd'); dd.appendChild(badgeEl(i));
+      dl.appendChild(dt); dl.appendChild(dd);
       el('ibpt-fonte').value = i.fonte || '';
       el('ibpt-ver').value = i.versao_tabela || '';
       el('ibpt-val').value = (i.validade || '').slice(0, 10);
       el('ibpt-ori').value = i.orientacao_contador || '';
+      aplicarContador(i);
     }
     function pintarRegras() {
+      var tb = el('rg-lista'); limpar(tb);
       var itens = (data && data.regras) || [];
-      el('rg-lista').innerHTML = itens.map(function (it) {
-        return '<tr><td>' + it.escopo + '</td><td>' + (it.ambito || '—') + ' · ' + (it.tipo_destinatario || '—') + '</td><td>' +
-          (it.cfop || '—') + ' / ' + (it.csosn || '—') + '</td><td>' + badge(it) + '</td><td>' +
-          '<button type="button" class="pc-btn pc-btn--ghost" data-rg="' + it.id + '">Abrir</button> ' +
-          '<button type="button" class="pc-btn pc-btn--laranja" data-rgv="' + it.id + '">Validar</button></td></tr>';
-      }).join('') || '<tr><td colspan="5">Nenhuma regra. Configuração fiscal pendente.</td></tr>';
-      var logs = (data && data.historico) || [];
-      el('log-lista').innerHTML = logs.map(function (it) {
-        return '<tr><td>' + (it.quando || '').replace('T', ' ').slice(0, 16) + '</td><td>' + it.acao + '</td><td>' + (it.usuario || '—') + '</td><td>' + (it.resumo || '') + '</td></tr>';
-      }).join('') || '<tr><td colspan="4">Sem alterações.</td></tr>';
+      if (!itens.length) { linhaVazia(tb, 5, 'Nenhuma regra. Configuração fiscal pendente.'); }
+      itens.forEach(function (it) {
+        var tr = document.createElement('tr');
+        cel(tr, it.escopo);
+        cel(tr, (it.ambito || '—') + ' · ' + (it.tipo_destinatario || '—'));
+        cel(tr, (it.cfop || '—') + ' / ' + (it.csosn || '—'));
+        var tdSt = document.createElement('td'); tdSt.appendChild(badgeEl(it)); tr.appendChild(tdSt);
+        var tdA = document.createElement('td');
+        tdA.appendChild(botao('Abrir', 'pc-btn--ghost', 'data-rg', it.id));
+        tdA.appendChild(document.createTextNode(' '));
+        tdA.appendChild(botao('Validar', 'pc-btn--laranja', 'data-rgv', it.id));
+        tr.appendChild(tdA); tb.appendChild(tr);
+      });
+      var logs = el('log-lista'); limpar(logs);
+      var hist = (data && data.historico) || [];
+      if (!hist.length) { linhaVazia(logs, 4, 'Sem alterações.'); }
+      hist.forEach(function (it) {
+        var tr = document.createElement('tr');
+        cel(tr, texto(it.quando).replace('T', ' ').slice(0, 16));
+        cel(tr, it.acao); cel(tr, it.usuario || '—'); cel(tr, it.resumo || '');
+        logs.appendChild(tr);
+      });
     }
     function pintarQ() {
+      var root = el('q-grupos'); limpar(root);
       var grupos = (data && data.questionario) || [];
-      el('q-grupos').innerHTML = grupos.map(function (g) {
-        var body = g.perguntas.map(function (p) {
-          return '<div class="q-bloco" data-g="' + p.grupo + '" data-k="' + p.chave + '" data-e="' + (p.estabelecimento || '') + '">' +
-            '<div style="display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap"><strong>' + p.estabelecimento_rotulo + '</strong>' + badge(p) + '</div>' +
-            '<p>' + p.pergunta + '</p>' +
-            '<textarea class="pc-area q-resp">' + (p.resposta || '') + '</textarea>' +
-            '<div style="display:flex;gap:.4rem;margin-top:.4rem;flex-wrap:wrap">' +
-            '<button type="button" class="pc-btn pc-btn--verde q-save">Salvar</button>' +
-            (p.id ? '<button type="button" class="pc-btn pc-btn--laranja q-val" data-id="' + p.id + '">Validar</button>' : '') +
-            '</div></div>';
-        }).join('');
-        return '<h3>' + g.grupo + '. ' + g.titulo + '</h3>' + body;
-      }).join('');
+      grupos.forEach(function (g) {
+        var h = document.createElement('h3');
+        h.textContent = g.grupo + '. ' + g.titulo;
+        root.appendChild(h);
+        (g.perguntas || []).forEach(function (p) {
+          var bloco = document.createElement('div');
+          bloco.className = 'q-bloco';
+          bloco.setAttribute('data-g', p.grupo);
+          bloco.setAttribute('data-k', p.chave);
+          bloco.setAttribute('data-e', p.estabelecimento || '');
+          var cab = document.createElement('div');
+          cab.style.cssText = 'display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap';
+          var strong = document.createElement('strong'); strong.textContent = p.estabelecimento_rotulo;
+          cab.appendChild(strong); cab.appendChild(badgeEl(p)); bloco.appendChild(cab);
+          var pg = document.createElement('p'); pg.textContent = p.pergunta; bloco.appendChild(pg);
+          var ta = document.createElement('textarea'); ta.className = 'pc-area q-resp'; ta.value = p.resposta || '';
+          bloco.appendChild(ta);
+          var ac = document.createElement('div'); ac.style.cssText = 'display:flex;gap:.4rem;margin-top:.4rem;flex-wrap:wrap';
+          var sv = document.createElement('button'); sv.type = 'button'; sv.className = 'pc-btn pc-btn--verde q-save'; sv.textContent = 'Salvar';
+          ac.appendChild(sv);
+          if (p.id) {
+            var vb = document.createElement('button'); vb.type = 'button'; vb.className = 'pc-btn pc-btn--laranja q-val';
+            vb.textContent = 'Validar'; vb.setAttribute('data-id', p.id); ac.appendChild(vb);
+          }
+          bloco.appendChild(ac); root.appendChild(bloco);
+        });
+      });
     }
     function pintar() {
       el('btn-centro').classList.toggle('is-on', loja === 'centro');
@@ -481,12 +608,12 @@
       if (!id) return;
       post('/api/configuracao/fiscal-nfe/validar/', { tipo: 'st', id: id }).then(function (j) { msg(j.mensagem || j.erro, !!j.ok); carregar(); });
     });
+    el('pis-ex-add').onclick = function () { addPisRow({}); };
     el('pis-salvar').onclick = function () {
-      var linhas = (el('pis-ex').value || '').split('\n').map(function (s) { s = s.trim(); return s ? { operacao: s } : null; }).filter(Boolean);
       post('/api/configuracao/fiscal-nfe/pis/', {
         cst_pis: el('pis-cst').value, cst_cofins: el('cof-cst').value,
         vigencia_inicio: el('pis-ini').value, vigencia_fim: el('pis-fim').value,
-        observacoes: el('pis-obs').value, excecoes: linhas
+        observacoes: el('pis-obs').value, excecoes: lerPisExcecoes()
       }).then(function (j) { msg(j.mensagem || j.erro, !!j.ok); carregar(); });
     };
     el('pis-validar').onclick = function () {

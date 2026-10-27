@@ -51,15 +51,35 @@ PRECEDENCIA_DOC = (
 )
 
 
-def normalizar_estabelecimento(valor: Any) -> str:
+def parse_estabelecimento(valor: Any) -> str | None:
+    """Só aceita centro/vila. Identificador desconhecido → None (não assume Centro)."""
     s = str(valor or "").strip().lower().replace(" ", "_").replace("-", "_")
+    if not s:
+        return None
     if s in ("vila", "vila_elias", "2"):
         return ESTAB_VILA
-    return ESTAB_CENTRO
+    if s in ("centro", "1"):
+        return ESTAB_CENTRO
+    return None
+
+
+def normalizar_estabelecimento(valor: Any) -> str:
+    """Leitura com padrão Centro só quando o valor está vazio. Desconhecido permanece inválido."""
+    parsed = parse_estabelecimento(valor)
+    if parsed:
+        return parsed
+    if str(valor or "").strip() == "":
+        return ESTAB_CENTRO
+    return ""
 
 
 def rotulo_estabelecimento(chave: str) -> str:
-    return "Vila Elias" if normalizar_estabelecimento(chave) == ESTAB_VILA else "Centro"
+    loja = parse_estabelecimento(chave)
+    if loja == ESTAB_VILA:
+        return "Vila Elias"
+    if loja == ESTAB_CENTRO:
+        return "Centro"
+    return "—"
 
 
 def mascarar_cnpj(cnpj: str) -> str:
@@ -98,6 +118,24 @@ def _dec_or_none(raw: Any) -> Decimal | None:
         return Decimal(str(raw).replace(",", ".").strip())
     except (InvalidOperation, ValueError, TypeError):
         return None
+
+
+def percentual_credito_ou_erro(raw: Any) -> tuple[Decimal | None, str | None]:
+    if raw is None or str(raw).strip() == "":
+        return None, None
+    try:
+        val = Decimal(str(raw).replace(",", ".").strip())
+    except (InvalidOperation, ValueError, TypeError):
+        return None, "Percentual inválido."
+    if val < 0 or val > 100:
+        return None, "Percentual deve estar entre 0 e 100."
+    return val.quantize(Decimal("0.0001")), None
+
+
+def vigencia_ou_erro(inicio: date | None, fim: date | None) -> str | None:
+    if inicio and fim and inicio > fim:
+        return "Vigência inconsistente: início depois do fim."
+    return None
 
 
 def _date_or_none(raw: Any) -> date | None:
@@ -197,7 +235,28 @@ def _audit_user(obj) -> dict[str, Any]:
         "criado_por_nome": nome(getattr(obj, "criado_por", None)),
         "atualizado_por_nome": nome(getattr(obj, "atualizado_por", None)),
         "validado_por_nome": nome(getattr(obj, "validado_por", None)),
+        "contador_nome": getattr(obj, "contador_nome", "") or "",
+        "contador_crc": getattr(obj, "contador_crc", "") or "",
+        "contador_aprovado_em": _dt_iso(getattr(obj, "contador_aprovado_em", None)),
     }
+
+
+def _aplicar_contador(obj, body: dict | None) -> None:
+    if not body:
+        return
+    if "contador_nome" in body:
+        obj.contador_nome = str(body.get("contador_nome") or "").strip()[:200]
+    if "contador_crc" in body:
+        obj.contador_crc = str(body.get("contador_crc") or "").strip()[:40]
+    if "contador_aprovado_em" in body:
+        obj.contador_aprovado_em = _date_or_none(body.get("contador_aprovado_em"))
+
+
+def _contador_completo(obj) -> bool:
+    nome = str(getattr(obj, "contador_nome", "") or "").strip()
+    crc = str(getattr(obj, "contador_crc", "") or "").strip()
+    data = getattr(obj, "contador_aprovado_em", None)
+    return len(nome) >= 3 and len(crc) >= 3 and data is not None
 
 
 def _marcar_validado(obj, user) -> None:
@@ -265,7 +324,7 @@ def snapshot_empresa(estab: str) -> dict[str, Any]:
     from produtos.nfce_config_util import nfce_cfg
     from produtos.nfe_saida_util import nfe_saida_serie_default, nfe_saida_tp_amb_default
 
-    loja = normalizar_estabelecimento(estab)
+    loja = parse_estabelecimento(estab) or ESTAB_CENTRO
     cfg = nfce_cfg(loja)
     cnpj = _digits(cfg.get("cnpj"), 14)
     ie = _digits(cfg.get("ie"), 14)
@@ -340,8 +399,17 @@ def snapshot_empresa(estab: str) -> dict[str, Any]:
     return payload
 
 
+def _exigir_loja(estab: Any) -> tuple[str | None, dict | None]:
+    loja = parse_estabelecimento(estab)
+    if not loja:
+        return None, {"ok": False, "erro": "Informe o estabelecimento (centro ou vila)."}
+    return loja, None
+
+
 def salvar_empresa(estab: str, body: dict, user) -> dict[str, Any]:
-    loja = normalizar_estabelecimento(estab)
+    loja, err = _exigir_loja(estab)
+    if err:
+        return err
     row, created = NfeEstabelecimentoFiscal.objects.get_or_create(estabelecimento=loja)
     antes = _snap_model(row)
     serie = body.get("serie_nfe_55")
@@ -351,9 +419,10 @@ def salvar_empresa(estab: str, body: dict, user) -> dict[str, Any]:
         try:
             row.serie_nfe_55 = max(1, min(999, int(serie)))
         except (TypeError, ValueError):
-            row.serie_nfe_55 = None
+            return {"ok": False, "erro": "Série NF-e 55 inválida."}
     row.crt = str(body.get("crt") or "").strip()[:8]
     row.observacoes = str(body.get("observacoes") or "").strip()[:4000]
+    _aplicar_contador(row, body)
     tem = bool(row.serie_nfe_55 or row.crt or row.observacoes)
     row.status = status_apos_editar(row.status, tem)
     if row.status != NfeFiscalStatus.VALIDADO:
@@ -373,7 +442,7 @@ def salvar_empresa(estab: str, body: dict, user) -> dict[str, Any]:
         antes=antes,
         depois=_snap_model(row),
     )
-    return snapshot_empresa(loja)
+    return {"ok": True, "empresa": snapshot_empresa(loja)}
 
 
 # --- Crédito SN --------------------------------------------------------------
@@ -397,18 +466,24 @@ def serializar_credito(obj: NfeAliquotaCreditoSn) -> dict[str, Any]:
 
 
 def listar_creditos(estab: str) -> list[dict[str, Any]]:
-    loja = normalizar_estabelecimento(estab)
+    loja = parse_estabelecimento(estab) or ""
+    if not loja:
+        return []
     qs = NfeAliquotaCreditoSn.objects.filter(estabelecimento=loja).order_by("-competencia")
     return [serializar_credito(x) for x in qs]
 
 
 def salvar_credito(estab: str, body: dict, user) -> dict[str, Any]:
-    loja = normalizar_estabelecimento(estab)
+    loja, err = _exigir_loja(estab)
+    if err:
+        return err
     pk = body.get("id")
     comp = competencia_valida(body.get("competencia"))
     if not comp:
         return {"ok": False, "erro": "Informe a competência (AAAA-MM)."}
-    percentual = _dec_or_none(body.get("percentual"))
+    percentual, erro_pct = percentual_credito_ou_erro(body.get("percentual"))
+    if erro_pct:
+        return {"ok": False, "erro": erro_pct}
     observacoes = str(body.get("observacoes") or "").strip()[:4000]
     obj = None
     created = False
@@ -430,7 +505,11 @@ def salvar_credito(estab: str, body: dict, user) -> dict[str, Any]:
     obj.percentual = percentual
     obj.vigencia_inicio = _date_or_none(body.get("vigencia_inicio"))
     obj.vigencia_fim = _date_or_none(body.get("vigencia_fim"))
+    erro_vig = vigencia_ou_erro(obj.vigencia_inicio, obj.vigencia_fim)
+    if erro_vig:
+        return {"ok": False, "erro": erro_vig}
     obj.observacoes = observacoes
+    _aplicar_contador(obj, body)
     tem = percentual is not None or bool(observacoes) or obj.vigencia_inicio or obj.vigencia_fim
     obj.status = status_apos_editar(obj.status if obj.pk else NfeFiscalStatus.PENDENTE, tem)
     if obj.status != NfeFiscalStatus.VALIDADO:
@@ -486,13 +565,18 @@ def serializar_pis(obj: NfeParametroPisCofins | None, estab: str) -> dict[str, A
 
 
 def salvar_pis(estab: str, body: dict, user) -> dict[str, Any]:
-    loja = normalizar_estabelecimento(estab)
+    loja, err = _exigir_loja(estab)
+    if err:
+        return err
     obj, created = NfeParametroPisCofins.objects.get_or_create(estabelecimento=loja)
     antes = _snap_model(obj)
     obj.cst_pis = str(body.get("cst_pis") or "").strip()[:4]
     obj.cst_cofins = str(body.get("cst_cofins") or "").strip()[:4]
     obj.vigencia_inicio = _date_or_none(body.get("vigencia_inicio"))
     obj.vigencia_fim = _date_or_none(body.get("vigencia_fim"))
+    erro_vig = vigencia_ou_erro(obj.vigencia_inicio, obj.vigencia_fim)
+    if erro_vig:
+        return {"ok": False, "erro": erro_vig}
     obj.observacoes = str(body.get("observacoes") or "").strip()[:4000]
     ex = body.get("excecoes")
     if isinstance(ex, list):
@@ -500,17 +584,18 @@ def salvar_pis(estab: str, body: dict, user) -> dict[str, Any]:
         for row in ex[:80]:
             if not isinstance(row, dict):
                 continue
-            limpas.append(
-                {
-                    "operacao": str(row.get("operacao") or "").strip()[:120],
-                    "produto": str(row.get("produto") or "").strip()[:120],
-                    "ncm": _digits(row.get("ncm"), 8),
-                    "cst_pis": str(row.get("cst_pis") or "").strip()[:4],
-                    "cst_cofins": str(row.get("cst_cofins") or "").strip()[:4],
-                    "observacoes": str(row.get("observacoes") or "").strip()[:400],
-                }
-            )
+            item = {
+                "operacao": str(row.get("operacao") or "").strip()[:120],
+                "produto": str(row.get("produto") or "").strip()[:120],
+                "ncm": _digits(row.get("ncm"), 8),
+                "cst_pis": str(row.get("cst_pis") or "").strip()[:4],
+                "cst_cofins": str(row.get("cst_cofins") or "").strip()[:4],
+                "observacoes": str(row.get("observacoes") or "").strip()[:400],
+            }
+            if any(item.values()):
+                limpas.append(item)
         obj.excecoes_json = limpas
+    _aplicar_contador(obj, body)
     tem = bool(obj.cst_pis or obj.cst_cofins or obj.observacoes or obj.excecoes_json)
     obj.status = status_apos_editar(obj.status, tem)
     if obj.status != NfeFiscalStatus.VALIDADO:
@@ -530,7 +615,7 @@ def salvar_pis(estab: str, body: dict, user) -> dict[str, Any]:
         antes=antes,
         depois=_snap_model(obj),
     )
-    return serializar_pis(obj, loja)
+    return {"ok": True, "pis": serializar_pis(obj, loja)}
 
 
 # --- IBPT --------------------------------------------------------------------
@@ -594,7 +679,9 @@ def serializar_ibpt(obj: NfeParametroIbpt | None, estab: str) -> dict[str, Any]:
 
 
 def salvar_ibpt(estab: str, body: dict, user) -> dict[str, Any]:
-    loja = normalizar_estabelecimento(estab)
+    loja, err = _exigir_loja(estab)
+    if err:
+        return err
     obj, created = NfeParametroIbpt.objects.get_or_create(estabelecimento=loja)
     antes = _snap_model(obj)
     obj.fonte = str(body.get("fonte") or "").strip()[:80]
@@ -602,6 +689,7 @@ def salvar_ibpt(estab: str, body: dict, user) -> dict[str, Any]:
     obj.validade = _date_or_none(body.get("validade"))
     obj.orientacao_contador = str(body.get("orientacao_contador") or "").strip()[:4000]
     obj.observacoes = str(body.get("observacoes") or "").strip()[:4000]
+    _aplicar_contador(obj, body)
     tem = bool(obj.fonte or obj.versao_tabela or obj.validade or obj.orientacao_contador or obj.observacoes)
     obj.status = status_apos_editar(obj.status, tem)
     if obj.status != NfeFiscalStatus.VALIDADO:
@@ -621,7 +709,7 @@ def salvar_ibpt(estab: str, body: dict, user) -> dict[str, Any]:
         antes=antes,
         depois=_snap_model(obj),
     )
-    return serializar_ibpt(obj, loja)
+    return {"ok": True, "ibpt": serializar_ibpt(obj, loja)}
 
 
 # --- Regras ------------------------------------------------------------------
@@ -658,7 +746,9 @@ def serializar_regra(obj: NfeRegraOperacao) -> dict[str, Any]:
 
 
 def listar_regras(estab: str) -> list[dict[str, Any]]:
-    loja = normalizar_estabelecimento(estab)
+    loja = parse_estabelecimento(estab) or ""
+    if not loja:
+        return []
     qs = NfeRegraOperacao.objects.filter(estabelecimento=loja)
     return [serializar_regra(x) for x in qs]
 
@@ -677,7 +767,9 @@ def _bool_opt(raw: Any):
 
 
 def salvar_regra(estab: str, body: dict, user) -> dict[str, Any]:
-    loja = normalizar_estabelecimento(estab)
+    loja, err = _exigir_loja(estab)
+    if err:
+        return err
     pk = body.get("id")
     created = False
     if pk:
@@ -710,7 +802,11 @@ def salvar_regra(estab: str, body: dict, user) -> dict[str, Any]:
     obj.cst_cofins = str(body.get("cst_cofins") or "").strip()[:4]
     obj.vigencia_inicio = _date_or_none(body.get("vigencia_inicio"))
     obj.vigencia_fim = _date_or_none(body.get("vigencia_fim"))
+    erro_vig = vigencia_ou_erro(obj.vigencia_inicio, obj.vigencia_fim)
+    if erro_vig:
+        return {"ok": False, "erro": erro_vig}
     obj.observacoes = str(body.get("observacoes") or "").strip()[:4000]
+    _aplicar_contador(obj, body)
     tem = bool(
         obj.ambito
         or obj.tipo_destinatario
@@ -757,12 +853,16 @@ def serializar_st(obj: NfeExcecaoIcmsSt) -> dict[str, Any]:
 
 
 def listar_st(estab: str) -> list[dict[str, Any]]:
-    loja = normalizar_estabelecimento(estab)
+    loja = parse_estabelecimento(estab) or ""
+    if not loja:
+        return []
     return [serializar_st(x) for x in NfeExcecaoIcmsSt.objects.filter(estabelecimento=loja)]
 
 
 def salvar_st(estab: str, body: dict, user) -> dict[str, Any]:
-    loja = normalizar_estabelecimento(estab)
+    loja, err = _exigir_loja(estab)
+    if err:
+        return err
     pk = body.get("id")
     created = False
     if pk:
@@ -780,6 +880,7 @@ def salvar_st(estab: str, body: dict, user) -> dict[str, Any]:
     obj.condicao = str(body.get("condicao") or "").strip()[:200]
     obj.fundamentacao = str(body.get("fundamentacao") or "").strip()[:4000]
     obj.observacoes = str(body.get("observacoes") or "").strip()[:4000]
+    _aplicar_contador(obj, body)
     tem = bool(obj.uf_destino or obj.ncm or obj.condicao or obj.fundamentacao or obj.observacoes)
     obj.status = status_apos_editar(obj.status if obj.pk else NfeFiscalStatus.PENDENTE, tem)
     if obj.status != NfeFiscalStatus.VALIDADO:
@@ -951,7 +1052,9 @@ def salvar_questionario_item(body: dict, user) -> dict[str, Any]:
         return {"ok": False, "erro": "Pergunta desconhecida."}
     estab = ""
     if meta["por_estab"]:
-        estab = normalizar_estabelecimento(body.get("estabelecimento"))
+        estab = parse_estabelecimento(body.get("estabelecimento")) or ""
+        if not estab:
+            return {"ok": False, "erro": "Informe o estabelecimento (centro ou vila)."}
     obj, created = NfeQuestionarioResposta.objects.get_or_create(
         grupo=grupo,
         chave=chave,
@@ -962,6 +1065,7 @@ def salvar_questionario_item(body: dict, user) -> dict[str, Any]:
     obj.pergunta = meta["texto"]
     obj.resposta = str(body.get("resposta") or "").strip()[:8000]
     obj.observacoes = str(body.get("observacoes") or "").strip()[:4000]
+    _aplicar_contador(obj, body)
     tem = bool(obj.resposta or obj.observacoes)
     obj.status = status_apos_editar(obj.status, tem)
     if obj.status != NfeFiscalStatus.VALIDADO:
@@ -1020,17 +1124,88 @@ _MODELOS_VALIDAR = {
 }
 
 
-def validar_registro(tipo: str, pk: int, user, estab: str = "") -> dict[str, Any]:
+def erros_prontidao(tipo: str, obj) -> list[str]:
+    erros: list[str] = []
+    if tipo == "empresa":
+        if not str(obj.crt or "").strip() or not obj.serie_nfe_55:
+            erros.append("Informe CRT e série NF-e 55 antes de validar.")
+    elif tipo == "credito":
+        if not obj.competencia or obj.percentual is None:
+            erros.append("Informe competência e percentual de crédito antes de validar.")
+        err = vigencia_ou_erro(obj.vigencia_inicio, obj.vigencia_fim)
+        if err:
+            erros.append(err)
+        if obj.percentual is not None and (obj.percentual < 0 or obj.percentual > 100):
+            erros.append("Percentual deve estar entre 0 e 100.")
+    elif tipo == "pis":
+        if not str(obj.cst_pis or "").strip() or not str(obj.cst_cofins or "").strip():
+            erros.append("Informe CST PIS e CST COFINS antes de validar.")
+        err = vigencia_ou_erro(obj.vigencia_inicio, obj.vigencia_fim)
+        if err:
+            erros.append(err)
+    elif tipo == "ibpt":
+        if not str(obj.fonte or "").strip() or not obj.validade:
+            erros.append("Informe fonte e validade da tabela IBPT antes de validar.")
+    elif tipo == "regra":
+        faltando = [
+            rot
+            for rot, val in (
+                ("âmbito", obj.ambito),
+                ("destinatário", obj.tipo_destinatario),
+                ("CFOP", obj.cfop),
+                ("CSOSN", obj.csosn),
+                ("CST PIS", obj.cst_pis),
+                ("CST COFINS", obj.cst_cofins),
+            )
+            if not str(val or "").strip()
+        ]
+        if faltando:
+            erros.append("Preencha " + ", ".join(faltando) + " antes de validar.")
+        if obj.escopo == NfeRegraOperacao.Escopo.CATEGORIA and not str(obj.categoria or "").strip():
+            erros.append("Informe a categoria da exceção.")
+        if obj.escopo == NfeRegraOperacao.Escopo.PRODUTO and not (str(obj.ncm or "").strip() or str(obj.produto_id_externo or "").strip()):
+            erros.append("Informe NCM ou produto da exceção.")
+        err = vigencia_ou_erro(obj.vigencia_inicio, obj.vigencia_fim)
+        if err:
+            erros.append(err)
+    elif tipo == "st":
+        if not (str(obj.uf_destino or "").strip() or str(obj.ncm or "").strip() or str(obj.condicao or "").strip()):
+            erros.append("Informe UF, NCM ou condição da exceção ST/DIFAL.")
+        if not str(obj.fundamentacao or "").strip():
+            erros.append("Informe a fundamentação antes de validar.")
+    elif tipo == "questionario":
+        if not str(obj.resposta or "").strip():
+            erros.append("Preencha a resposta antes de validar.")
+    else:
+        erros.append("Tipo inválido.")
+    return erros
+
+
+def validar_registro(tipo: str, pk: int, user, estab: str = "", body: dict | None = None) -> dict[str, Any]:
     model = _MODELOS_VALIDAR.get(str(tipo or "").strip())
     if not model:
         return {"ok": False, "erro": "Tipo inválido."}
     qs = model.objects.filter(pk=pk)
-    loja = normalizar_estabelecimento(estab) if estab else ""
-    if loja and hasattr(model, "estabelecimento") and model is not NfeQuestionarioResposta:
-        qs = qs.filter(estabelecimento=loja)
+    raw_est = str(estab or "").strip()
+    loja = ""
+    if raw_est:
+        loja = parse_estabelecimento(raw_est) or ""
+        if not loja:
+            return {"ok": False, "erro": "Informe o estabelecimento (centro ou vila)."}
+        if hasattr(model, "estabelecimento") and model is not NfeQuestionarioResposta:
+            qs = qs.filter(estabelecimento=loja)
     obj = qs.first()
     if not obj:
         return {"ok": False, "erro": "Registro não encontrado."}
+    _aplicar_contador(obj, body)
+    erros = erros_prontidao(str(tipo or "").strip(), obj)
+    if erros:
+        return {"ok": False, "erro": erros[0], "erros": erros}
+    if not _contador_completo(obj):
+        return {
+            "ok": False,
+            "erro": "Informe nome, CRC e data da aprovação do contador.",
+        }
     antes = _snap_model(obj)
     _marcar_validado(obj, user)
     registrar_log(
@@ -1039,7 +1214,7 @@ def validar_registro(tipo: str, pk: int, user, estab: str = "") -> dict[str, Any
         user=user,
         estabelecimento=getattr(obj, "estabelecimento", "") or loja,
         registro_id=obj.pk,
-        resumo="Validado pelo contador (manual)",
+        resumo=f"Validado no sistema por {_usuario_nome(user)}; contador {obj.contador_nome} CRC {obj.contador_crc}",
         antes=antes,
         depois=_snap_model(obj),
     )
@@ -1047,7 +1222,9 @@ def validar_registro(tipo: str, pk: int, user, estab: str = "") -> dict[str, Any
 
 
 def listar_historico(estab: str, limite: int = 80) -> list[dict[str, Any]]:
-    loja = normalizar_estabelecimento(estab)
+    loja = parse_estabelecimento(estab) or ""
+    if not loja:
+        return []
     qs = NfeAlteracaoFiscalLog.objects.filter(estabelecimento__in=[loja, ""])[: max(1, min(int(limite or 80), 200))]
     out = []
     for x in qs:
@@ -1066,7 +1243,10 @@ def listar_historico(estab: str, limite: int = 80) -> list[dict[str, Any]]:
 
 
 def painel_estabelecimento(estab: str) -> dict[str, Any]:
-    loja = normalizar_estabelecimento(estab)
+    raw = str(estab or "").strip()
+    loja = parse_estabelecimento(raw) if raw else ESTAB_CENTRO
+    if not loja:
+        return {"ok": False, "erro": "Informe o estabelecimento (centro ou vila)."}
     empresa = snapshot_empresa(loja)
     credito = listar_creditos(loja)
     pis_obj = NfeParametroPisCofins.objects.filter(estabelecimento=loja).first()

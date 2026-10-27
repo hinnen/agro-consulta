@@ -4201,7 +4201,18 @@ class NfeFiscalStatus(models.TextChoices):
     VALIDADO = "validado", "Validado"
 
 
-class NfeEstabelecimentoFiscal(models.Model):
+class NfeFiscalContadorMixin(models.Model):
+    """Aprovação do contador ≠ usuário do sistema que clicou em Validar."""
+
+    contador_nome = models.CharField(max_length=200, blank=True, default="")
+    contador_crc = models.CharField(max_length=40, blank=True, default="")
+    contador_aprovado_em = models.DateField(null=True, blank=True)
+
+    class Meta:
+        abstract = True
+
+
+class NfeEstabelecimentoFiscal(NfeFiscalContadorMixin):
     """Parâmetros NF-e 55 por loja (Centro / Vila). Não substitui o emitente da transmissão."""
 
     class Estabelecimento(models.TextChoices):
@@ -4256,7 +4267,7 @@ class NfeEstabelecimentoFiscal(models.Model):
         return f"NF-e 55 · {self.get_estabelecimento_display()} · {self.status}"
 
 
-class NfeAliquotaCreditoSn(models.Model):
+class NfeAliquotaCreditoSn(NfeFiscalContadorMixin):
     """Crédito ICMS SN por competência. Percentual vazio até o contador informar."""
 
     estabelecimento = models.CharField(
@@ -4315,7 +4326,7 @@ class NfeAliquotaCreditoSn(models.Model):
         return f"{self.estabelecimento} · {self.competencia} · {self.status}"
 
 
-class NfeParametroPisCofins(models.Model):
+class NfeParametroPisCofins(NfeFiscalContadorMixin):
     """CST padrão PIS/COFINS por estabelecimento. Sem alíquota inventada."""
 
     estabelecimento = models.CharField(
@@ -4369,7 +4380,7 @@ class NfeParametroPisCofins(models.Model):
         return f"PIS/COFINS · {self.estabelecimento} · {self.status}"
 
 
-class NfeParametroIbpt(models.Model):
+class NfeParametroIbpt(NfeFiscalContadorMixin):
     """Orientação IBPT por estabelecimento. Token permanece no secret."""
 
     estabelecimento = models.CharField(
@@ -4422,7 +4433,7 @@ class NfeParametroIbpt(models.Model):
         return f"IBPT · {self.estabelecimento} · {self.status}"
 
 
-class NfeRegraOperacao(models.Model):
+class NfeRegraOperacao(NfeFiscalContadorMixin):
     """Regra fiscal por operação. Sem CSOSN 102 automático. Motor não lê nesta etapa."""
 
     class Ambito(models.TextChoices):
@@ -4521,7 +4532,7 @@ class NfeRegraOperacao(models.Model):
         return f"Regra {self.estabelecimento} · {self.escopo} · {self.status}"
 
 
-class NfeExcecaoIcmsSt(models.Model):
+class NfeExcecaoIcmsSt(NfeFiscalContadorMixin):
     """Cadastro estrutural de ST/DIFAL — sem cálculo nesta etapa."""
 
     estabelecimento = models.CharField(
@@ -4575,7 +4586,7 @@ class NfeExcecaoIcmsSt(models.Model):
         return f"ST {self.estabelecimento} · {self.uf_destino or '—'} · {self.status}"
 
 
-class NfeQuestionarioResposta(models.Model):
+class NfeQuestionarioResposta(NfeFiscalContadorMixin):
     """Respostas do questionário do contador. Preenchido ≠ Validado."""
 
     grupo = models.PositiveSmallIntegerField(db_index=True)

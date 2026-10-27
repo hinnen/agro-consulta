@@ -8,10 +8,11 @@ from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_POST
 
 from produtos.nfe_fiscal_config_util import (
+    ESTAB_CENTRO,
     MSG_SALVA,
     listar_historico,
-    normalizar_estabelecimento,
     painel_estabelecimento,
+    parse_estabelecimento,
     parse_json_body,
     salvar_credito,
     salvar_empresa,
@@ -27,50 +28,76 @@ from produtos.views_nfe_saida import nfe_saida_staff_required
 
 logger = logging.getLogger(__name__)
 
+_ERRO_ESTAB = "Informe o estabelecimento (centro ou vila)."
 
-def _estab(request, body: dict | None = None) -> str:
+
+def _estab_leitura(request) -> str | None:
+    raw = request.GET.get("estabelecimento")
+    if raw in (None, ""):
+        return ESTAB_CENTRO
+    return parse_estabelecimento(raw)
+
+
+def _estab_gravacao(request, body: dict | None = None) -> str | None:
     raw = ""
-    if body:
-        raw = body.get("estabelecimento") or ""
-    if not raw:
-        raw = request.GET.get("estabelecimento") or request.POST.get("estabelecimento") or ""
-    return normalizar_estabelecimento(raw)
+    if isinstance(body, dict) and "estabelecimento" in body:
+        raw = body.get("estabelecimento")
+    elif request.POST.get("estabelecimento"):
+        raw = request.POST.get("estabelecimento")
+    return parse_estabelecimento(raw)
+
+
+def _json_estab_obrigatorio(request, body: dict | None = None):
+    loja = _estab_gravacao(request, body)
+    if not loja:
+        return None, JsonResponse({"ok": False, "erro": _ERRO_ESTAB}, status=400)
+    return loja, None
 
 
 @nfe_saida_staff_required
 @require_GET
 def fiscal_nfe_config_view(request):
+    loja = _estab_leitura(request) or ESTAB_CENTRO
     return render(
         request,
         "produtos/fiscal_nfe_config.html",
-        {"estabelecimento": _estab(request)},
+        {"estabelecimento": loja},
     )
 
 
 @nfe_saida_staff_required
 @require_GET
 def api_fiscal_nfe_painel(request):
-    return JsonResponse(painel_estabelecimento(_estab(request)))
+    loja = _estab_leitura(request)
+    if not loja:
+        return JsonResponse({"ok": False, "erro": _ERRO_ESTAB}, status=400)
+    return JsonResponse(painel_estabelecimento(loja))
 
 
 @nfe_saida_staff_required
 @require_POST
 def api_fiscal_nfe_empresa_salvar(request):
     body = parse_json_body(request)
-    loja = _estab(request, body)
+    loja, err = _json_estab_obrigatorio(request, body)
+    if err:
+        return err
     try:
-        empresa = salvar_empresa(loja, body, request.user)
+        out = salvar_empresa(loja, body, request.user)
     except Exception:
         logger.exception("fiscal_nfe empresa")
         return JsonResponse({"ok": False, "erro": "Falha ao salvar."}, status=500)
-    return JsonResponse({"ok": True, "mensagem": MSG_SALVA, "empresa": empresa})
+    if not out.get("ok"):
+        return JsonResponse(out, status=400)
+    return JsonResponse({"ok": True, "mensagem": MSG_SALVA, "empresa": out.get("empresa")})
 
 
 @nfe_saida_staff_required
 @require_POST
 def api_fiscal_nfe_credito_salvar(request):
     body = parse_json_body(request)
-    loja = _estab(request, body)
+    loja, err = _json_estab_obrigatorio(request, body)
+    if err:
+        return err
     try:
         out = salvar_credito(loja, body, request.user)
     except Exception:
@@ -86,33 +113,43 @@ def api_fiscal_nfe_credito_salvar(request):
 @require_POST
 def api_fiscal_nfe_pis_salvar(request):
     body = parse_json_body(request)
-    loja = _estab(request, body)
+    loja, err = _json_estab_obrigatorio(request, body)
+    if err:
+        return err
     try:
-        pis = salvar_pis(loja, body, request.user)
+        out = salvar_pis(loja, body, request.user)
     except Exception:
         logger.exception("fiscal_nfe pis")
         return JsonResponse({"ok": False, "erro": "Falha ao salvar."}, status=500)
-    return JsonResponse({"ok": True, "mensagem": MSG_SALVA, "pis": pis})
+    if not out.get("ok"):
+        return JsonResponse(out, status=400)
+    return JsonResponse({"ok": True, "mensagem": MSG_SALVA, "pis": out.get("pis")})
 
 
 @nfe_saida_staff_required
 @require_POST
 def api_fiscal_nfe_ibpt_salvar(request):
     body = parse_json_body(request)
-    loja = _estab(request, body)
+    loja, err = _json_estab_obrigatorio(request, body)
+    if err:
+        return err
     try:
-        ibpt = salvar_ibpt(loja, body, request.user)
+        out = salvar_ibpt(loja, body, request.user)
     except Exception:
         logger.exception("fiscal_nfe ibpt")
         return JsonResponse({"ok": False, "erro": "Falha ao salvar."}, status=500)
-    return JsonResponse({"ok": True, "mensagem": MSG_SALVA, "ibpt": ibpt})
+    if not out.get("ok"):
+        return JsonResponse(out, status=400)
+    return JsonResponse({"ok": True, "mensagem": MSG_SALVA, "ibpt": out.get("ibpt")})
 
 
 @nfe_saida_staff_required
 @require_POST
 def api_fiscal_nfe_regra_salvar(request):
     body = parse_json_body(request)
-    loja = _estab(request, body)
+    loja, err = _json_estab_obrigatorio(request, body)
+    if err:
+        return err
     try:
         out = salvar_regra(loja, body, request.user)
     except Exception:
@@ -128,7 +165,9 @@ def api_fiscal_nfe_regra_salvar(request):
 @require_POST
 def api_fiscal_nfe_st_salvar(request):
     body = parse_json_body(request)
-    loja = _estab(request, body)
+    loja, err = _json_estab_obrigatorio(request, body)
+    if err:
+        return err
     try:
         out = salvar_st(loja, body, request.user)
     except Exception:
@@ -165,18 +204,32 @@ def api_fiscal_nfe_validar(request):
         pk = 0
     if not pk:
         return JsonResponse({"ok": False, "erro": "Informe o registro."}, status=400)
-    out = validar_registro(str(body.get("tipo") or ""), pk, request.user, _estab(request, body))
+    tipo = str(body.get("tipo") or "")
+    loja = None
+    if tipo != "questionario":
+        loja, err = _json_estab_obrigatorio(request, body)
+        if err:
+            return err
+    elif body.get("estabelecimento") not in (None, ""):
+        loja = parse_estabelecimento(body.get("estabelecimento"))
+        if not loja:
+            return JsonResponse({"ok": False, "erro": _ERRO_ESTAB}, status=400)
+    out = validar_registro(tipo, pk, request.user, loja or "", body)
     if not out.get("ok"):
         return JsonResponse(out, status=400)
     out["mensagem"] = "Regra validada."
-    out["painel"] = painel_estabelecimento(_estab(request, body))
+    painel_loja = loja or _estab_leitura(request) or ESTAB_CENTRO
+    out["painel"] = painel_estabelecimento(painel_loja)
     return JsonResponse(out)
 
 
 @nfe_saida_staff_required
 @require_GET
 def api_fiscal_nfe_historico(request):
-    return JsonResponse({"ok": True, "itens": listar_historico(_estab(request))})
+    loja = _estab_leitura(request)
+    if not loja:
+        return JsonResponse({"ok": False, "erro": _ERRO_ESTAB}, status=400)
+    return JsonResponse({"ok": True, "itens": listar_historico(loja)})
 
 
 @nfe_saida_staff_required

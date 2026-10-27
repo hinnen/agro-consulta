@@ -11,8 +11,13 @@
 - Abas: Empresa, Simples/ICMS, PIS/COFINS, IBPT, Regras, Questionário (9 grupos).
 - Questionário: copiar texto + impressão do navegador (PDF).
 - Status: Pendente / Preenchido / Validado. Preencher **não** valida.
+- Validar exige cadastro completo + nome/CRC/data do **contador** (distinto do usuário staff que clicou).
+- APIs de gravação recusam estabelecimento desconhecido (não assumem Centro).
+- Exceções PIS/COFINS: operação, produto, NCM, CST PIS, CST COFINS.
+- Página: DOM com `textContent` / `.value` (sem `innerHTML` de dados).
+- Migração `0153` (campos do contador). `0152` verificada em Postgres descartável; `0039` documentada, sem reescrita.
 
-## Modelos (`produtos.0152_nfe_fiscal_config`)
+## Modelos (`produtos.0152_nfe_fiscal_config` + `0153_nfe_fiscal_contador`)
 
 1. `NfeEstabelecimentoFiscal`
 2. `NfeAliquotaCreditoSn` (unicidade estabelecimento+competência)
