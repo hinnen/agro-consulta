@@ -1294,6 +1294,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — **AJUSTE-BOLINHA-CAMERA** · **v27.26.35** · PREP `teste` @ **`036180ce`**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **Pronto para envio à produção** (frase + senha) |
+| **Fora do Live 27/10d** | Bolinha **⋯** da contagem ganha **Fechar** · câmera não soma o mesmo código duas vezes (trava ~2,5 s) |
+| **Migrate** | **NÃO** |
+| **PDV / caixa** | **Não** |
+| **Prova** | `mobile_ajuste.html`: `ma-ciclica-btn-fechar-ctrl` · `maScanMuteUntil` · intervalo da câmera **2500** ms |
+| **Smoke** | Ajuste no app · toque na bolinha · **Fechar** · câmera num código parado = **+1** só |
+
+### ✅ CHECKLIST ÚNICO — **27/10e** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **AJUSTE-BOLINHA-CAMERA** | 🟢 Pronto | **NÃO** | Fechar na bolinha · câmera sem duplicar |
+
 ### ✅ Deploy loja — **CHECKLIST 27/10d** · **Live v27.26.35** · 27/10
 
 | Campo | Valor |
