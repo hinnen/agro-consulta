@@ -1339,18 +1339,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PREP ARMADO — **CHECKLIST 28/10b** · **v27.26.41** · quantidade no bip
+### ✅ Deploy loja — **CHECKLIST 28/10b** · **Live v27.26.41** · 28/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP armado** @ **`dcaa89bb`** · aguarda frase + senha |
-| **Base loja** | **v27.26.40** @ **`3c7dbc89`** |
+| **Status** | ✅ **Live** @ **`dcaa89bb`** · cutover autorizado **28/10** |
 | **Entra** | Bip: −/+, −10/+10 e Ok, sem teclado. Lista: **Somar** ou **Alterar** |
-| **Fora** | Checklists 27/10f e 28/10 já estão na loja |
 | **Migrate** | **NÃO** |
 | **PDV / caixa / checkout** | **Não neste delta** |
-| **Prova** | `verify_ajuste_qtd_bip_path.py` **11/11** · cutover **OK** |
-| **Revert** | `git push origin rollback/pre-v272641-2810b-qtd-bip:producao` → **`3c7dbc89`** |
+| **Revert** | `git push origin rollback/pre-v272641-2810b-qtd-bip:producao` → **v27.26.40** @ **`3c7dbc89`** |
 | **Pós-deploy** | `./scripts/post_deploy_checklist_2810b_qtd_bip.sh` |
 | **Smoke** | Bipar · ajustar com +10 · Ok · em item já contado usar **Alterar** |
 
