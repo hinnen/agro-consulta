@@ -1324,17 +1324,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PREP ARMADO — **CHECKLIST 28/10** · **v27.26.40** · cancelar contagem
+### ✅ Deploy loja — **CHECKLIST 28/10** · **Live v27.26.40** · 28/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP armado** @ **`3c7dbc89`** · aguarda frase + senha |
-| **Base loja** | **`0fdbe24c`** (VERSION **27.26.39**) |
+| **Status** | ✅ **Live** @ **`3c7dbc89`** · cutover autorizado **28/10** |
 | **Entra** | Botão **Cancelar contagem** na sessão aberta. Estoque do bloco fechado permanece |
-| **Fora** | Checklist 27/10f (quantidade no bloco) já está na loja desde a **v27.26.38** |
 | **Migrate** | **NÃO** |
 | **PDV / caixa / checkout** | **Não neste delta** |
-| **Prova** | `verify_contagem_cancelar_path.py` **6/6** · cutover **OK** |
 | **Revert** | `git push origin rollback/pre-v272640-2810-contagem-cancelar:producao` → **`0fdbe24c`** |
 | **Pós-deploy** | `./scripts/post_deploy_checklist_2810_contagem_cancelar.sh` |
 | **Smoke** | Painel Contagens · sessão aberta · **Cancelar contagem** · bloco já gravado continua no estoque |
