@@ -1307,19 +1307,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- | ----- |
 | 1 | **AJUSTE-BLOCO-TELA** | 🟢 Pronto | **NÃO** | bloco fechado manda `contado` + quantidade (não FALTA) · **v27.26.39** |
 
-### 📦 PACOTE PRONTO — **CONTAGEM-CANCELAR** · **v27.26.40**
+### 📦 PACOTE PRONTO — **CONTAGEM-CANCELAR** · **v27.26.40** · PREP `teste` @ **`5e909f8d`**
 
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **Pronto para envio à produção** (frase + senha) |
 | **Entra** | Botão **Cancelar contagem** em cada sessão aberta do painel. Estoque já gravado em bloco fechado permanece. |
 | **Migrate** | **NÃO** |
+| **Prova** | cancela e o ajuste do bloco fica (1) · API **403** sem gerência · **200** com gerência |
 
 ### ✅ CHECKLIST ÚNICO — **28/10** · 🟢 **pronto para envio à produção**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CONTAGEM-CANCELAR** | 🟢 Pronto | **NÃO** | `api_ciclica_admin_cancelar` · botão no card |
+| 1 | **CONTAGEM-CANCELAR** | 🟢 Pronto | **NÃO** | cancela sessão · ajuste do bloco permanece · **403/200** |
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
