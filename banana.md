@@ -1322,6 +1322,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- | ----- |
 | 1 | **CONTAGEM-CANCELAR** | 🟢 Pronto | **NÃO** | cancela sessão · ajuste do bloco permanece · **403/200** |
 
+### 📦 PACOTE PRONTO — **AJUSTE-QTD-BIP** · **v27.26.41**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **Pronto para envio à produção** (frase + senha) |
+| **Entra** | Na contagem, o bip abre quantidade embaixo (− / + / −10 / +10 / Ok). Sem teclado. Cada Ok grava na hora. Contagem aberta não se perde em atualização. |
+| **Migrate** | **NÃO** |
+
+### ✅ CHECKLIST ÚNICO — **28/10b** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **AJUSTE-QTD-BIP** | 🟢 Pronto | **NÃO** | `ma-qtd-sheet` · −10/+10 · busca readonly com a folha aberta |
+
 ## CHECKPOINT DE ATUALIZAÇÃO
 
 ### ✅ Deploy loja — **CHECKLIST 28/10** · **Live v27.26.40** · 28/10
