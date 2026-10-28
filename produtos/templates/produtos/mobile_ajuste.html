@@ -186,8 +186,39 @@
     .ma-modal-pad {
       padding-bottom: calc(0.75rem + var(--ma-safe-bottom) + var(--ma-kb-inset));
     }
-    #reader video {
-      object-fit: cover;
+    #reader.ma-reader-split {
+      bottom: auto;
+      height: 42dvh;
+    }
+    #ma-qtd-sheet {
+      display: none;
+      position: fixed;
+      z-index: 168;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      max-height: 58dvh;
+      background: #fff;
+      border-top: 4px solid #10b981;
+      padding: 0.7rem 0.75rem calc(0.7rem + env(safe-area-inset-bottom));
+      box-shadow: 0 -10px 28px rgba(15, 23, 42, 0.2);
+    }
+    #ma-qtd-sheet.is-on { display: block; }
+    .ma-qtd-num {
+      font-size: clamp(3rem, 12vw, 4.2rem);
+      font-weight: 900;
+      text-align: center;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .ma-qtd-btn {
+      min-height: 4.1rem;
+      border-radius: 1rem;
+      font-size: 1.8rem;
+      font-weight: 900;
+      background: #ecfdf5;
+      border: 2px solid #6ee7b7;
+      color: #065f46;
     }
     /* Lista ocupa o fluxo normal da página — scroll = página inteira. */
     #lista-scroll {
@@ -894,6 +925,26 @@
         Fechar
       </button>
     </div>
+  </div>
+
+  <div id="ma-qtd-sheet" aria-hidden="true">
+    <p id="ma-qtd-nome" class="text-base font-black text-slate-900 leading-snug line-clamp-2">Produto</p>
+    <p id="ma-qtd-dica" class="text-[0.7rem] font-bold text-slate-500 uppercase mt-0.5">Ajusta só este item · Ok grava</p>
+    <div id="ma-qtd-modos" class="hidden grid grid-cols-2 gap-2 mt-2">
+      <button type="button" id="ma-qtd-modo-somar" class="min-h-[2.6rem] rounded-xl border-2 border-emerald-600 bg-emerald-600 text-white text-xs font-black uppercase">Somar</button>
+      <button type="button" id="ma-qtd-modo-alterar" class="min-h-[2.6rem] rounded-xl border-2 border-slate-300 bg-white text-slate-700 text-xs font-black uppercase">Alterar</button>
+    </div>
+    <div class="flex items-center justify-between gap-2 mt-2">
+      <button type="button" id="ma-qtd-menos10" class="min-h-[2.6rem] px-3 rounded-xl bg-slate-100 font-black text-slate-800">−10</button>
+      <button type="button" id="ma-qtd-mais10" class="min-h-[2.6rem] px-3 rounded-xl bg-slate-100 font-black text-slate-800">+10</button>
+    </div>
+    <div class="grid grid-cols-4 gap-2 mt-2 items-center">
+      <button type="button" id="ma-qtd-menos" class="ma-qtd-btn" aria-label="Diminuir um">−</button>
+      <div id="ma-qtd-n" class="ma-qtd-num col-span-2" aria-live="polite">1</div>
+      <button type="button" id="ma-qtd-mais" class="ma-qtd-btn" aria-label="Aumentar um">+</button>
+    </div>
+    <button type="button" id="ma-qtd-ok" class="mt-2 w-full min-h-[3.4rem] rounded-2xl bg-emerald-600 text-white text-lg font-black uppercase">Ok</button>
+    <button type="button" id="ma-qtd-cancelar" class="mt-2 w-full min-h-[2.5rem] rounded-xl text-slate-500 font-black text-sm uppercase">Cancelar</button>
   </div>
 
   <div id="ma-busca-wrap" class="px-3 pt-3 pb-1">
@@ -2190,7 +2241,13 @@ function maCriarCardCiclica(p, variant) {
         <div class="ma-card-nums">${maCiclicaNumHtml(p, escMa)}</div>
       </div>`;
   }
-  d.onclick = () => maEscolherProduto(p);
+  d.onclick = () => {
+    if (maCiclicaAtiva() && maCiclicaSessao && maCiclicaSessao.modo === 'inventario' && !scanningActive) {
+      maQtdAbrir(p, { daLista: true });
+      return;
+    }
+    maEscolherProduto(p);
+  };
   return d;
 }
 
@@ -2315,6 +2372,140 @@ function maMostrarUltimoBipado(p) {
   maPintarResultados([fresh], 'Último bip');
 }
 
+function maQtdTravarTeclado(ligado) {
+  const busca = document.getElementById('busca');
+  if (!busca) return;
+  if (ligado) {
+    busca.setAttribute('readonly', 'readonly');
+    busca.setAttribute('inputmode', 'none');
+    try { busca.blur(); } catch (_) {}
+  } else {
+    busca.removeAttribute('readonly');
+    busca.setAttribute('inputmode', 'search');
+  }
+}
+
+let maQtdAlvo = null;
+let maQtdN = 1;
+let maQtdModo = 'somar';
+
+function maQtdAtualDoItem(p) {
+  const ln = (typeof maCiclicaLinhas === 'function' ? maCiclicaLinhas() : []).find(
+    (x) => String(x.produto_id) === String(p && p.id)
+  );
+  const n = ln && ln.qtd_contada != null ? Number(ln.qtd_contada) : Number(p && p._ciclicaQtd);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+function maQtdPintar() {
+  const n = document.getElementById('ma-qtd-n');
+  const nome = document.getElementById('ma-qtd-nome');
+  const dica = document.getElementById('ma-qtd-dica');
+  const ok = document.getElementById('ma-qtd-ok');
+  const bSomar = document.getElementById('ma-qtd-modo-somar');
+  const bAlt = document.getElementById('ma-qtd-modo-alterar');
+  if (n) n.textContent = String(maQtdN);
+  if (nome && maQtdAlvo) nome.textContent = maQtdAlvo.nome || 'Produto';
+  const alterar = maQtdModo === 'alterar';
+  if (dica) {
+    dica.textContent = alterar
+      ? 'Altera o total deste item · só desta vez'
+      : 'Soma neste item · Ok e o próximo bip começa de novo';
+  }
+  if (ok) ok.textContent = alterar ? 'Alterar' : 'Ok';
+  if (bSomar) {
+    bSomar.classList.toggle('bg-emerald-600', !alterar);
+    bSomar.classList.toggle('text-white', !alterar);
+    bSomar.classList.toggle('border-emerald-600', !alterar);
+  }
+  if (bAlt) {
+    bAlt.classList.toggle('bg-orange-600', alterar);
+    bAlt.classList.toggle('text-white', alterar);
+    bAlt.classList.toggle('border-orange-600', alterar);
+  }
+}
+
+function maQtdDefinirModo(modo) {
+  maQtdModo = modo === 'alterar' ? 'alterar' : 'somar';
+  if (maQtdModo === 'alterar' && maQtdAlvo) {
+    maQtdN = maQtdAtualDoItem(maQtdAlvo);
+  } else if (maQtdN < 1) {
+    maQtdN = 1;
+  }
+  maQtdPintar();
+}
+
+function maQtdAbrir(p, opts) {
+  opts = opts || {};
+  maQtdAlvo = p;
+  maQtdModo = 'somar';
+  maQtdN = 1;
+  const modos = document.getElementById('ma-qtd-modos');
+  if (modos) modos.classList.toggle('hidden', !opts.daLista);
+  maQtdPintar();
+  const sh = document.getElementById('ma-qtd-sheet');
+  if (sh) {
+    sh.classList.add('is-on');
+    sh.setAttribute('aria-hidden', 'false');
+  }
+  document.getElementById('reader')?.classList.add('ma-reader-split');
+  maQtdTravarTeclado(true);
+}
+
+function maQtdFechar() {
+  maQtdAlvo = null;
+  const sh = document.getElementById('ma-qtd-sheet');
+  if (sh) {
+    sh.classList.remove('is-on');
+    sh.setAttribute('aria-hidden', 'true');
+  }
+  document.getElementById('reader')?.classList.remove('ma-reader-split');
+  maQtdTravarTeclado(false);
+}
+
+function maQtdAjustar(delta) {
+  const min = maQtdModo === 'alterar' ? 0 : 1;
+  maQtdN = Math.max(min, Math.min(9999, maQtdN + delta));
+  maQtdPintar();
+}
+
+function maQtdConfirmar() {
+  const p = maQtdAlvo;
+  const n = maQtdN;
+  const alterar = maQtdModo === 'alterar';
+  if (!p || (!alterar && n < 1)) {
+    maQtdFechar();
+    return;
+  }
+  p._qtdLancar = n;
+  p._substituir = alterar;
+  maQtdFechar();
+  maCiclicaBipMaisUm(p);
+}
+
+function maQtdAoBipar(p) {
+  if (!p) return;
+  if (maQtdAlvo && String(maQtdAlvo.id) === String(p.id)) {
+    maQtdAjustar(1);
+    return;
+  }
+  if (maQtdAlvo) maQtdConfirmar();
+  maQtdAbrir(p);
+}
+
+document.getElementById('ma-qtd-menos')?.addEventListener('click', () => maQtdAjustar(-1));
+document.getElementById('ma-qtd-mais')?.addEventListener('click', () => maQtdAjustar(1));
+document.getElementById('ma-qtd-menos10')?.addEventListener('click', () => maQtdAjustar(-10));
+document.getElementById('ma-qtd-mais10')?.addEventListener('click', () => maQtdAjustar(10));
+document.getElementById('ma-qtd-ok')?.addEventListener('click', () => maQtdConfirmar());
+document.getElementById('ma-qtd-cancelar')?.addEventListener('click', () => maQtdFechar());
+document.getElementById('ma-qtd-modo-somar')?.addEventListener('click', () => maQtdDefinirModo('somar'));
+document.getElementById('ma-qtd-modo-alterar')?.addEventListener('click', () => maQtdDefinirModo('alterar'));
+document.getElementById('busca')?.addEventListener('focus', () => {
+  const sh = document.getElementById('ma-qtd-sheet');
+  if (sh && sh.classList.contains('is-on')) maQtdTravarTeclado(true);
+});
+
 function maScanSyncBtns() {
   const on = !!scanningActive;
   ['ma-btn-camera', 'ma-head-btn-camera'].forEach((id) => {
@@ -2361,6 +2552,10 @@ function maProcessarCodigoBipado(codigo, opts) {
   const hits = maMatchCodigoExato(c);
   if (hits.length === 1) {
     maCodigoOrfao = null;
+    if (maCiclicaAtiva()) {
+      maQtdAoBipar(hits[0]);
+      return fromScan ? 'ok' : undefined;
+    }
     maSalvarBipMaisUm(hits[0]);
     return fromScan ? 'ok' : undefined;
   }
@@ -3276,12 +3471,14 @@ function maCiclicaBipFilaDrain() {
   maBipBusy = true;
   const payload = {
     produto_id: p.id,
-    qtd: '1',
+    qtd: String(Math.max(0, parseInt(p._qtdLancar, 10) || 0)),
     nome_produto: p.nome || '',
     codigo_interno: p.codigo_nfe || p.codigo || '',
     categoria: p.categoria || '',
   };
   if (gate.forcar) payload.forcar = '1';
+  if (p._substituir) payload.substituir = '1';
+  p._substituir = false;
   return maCiclicaPost(maCiclicaUrl('contar'), payload)
     .then((d) => {
       if (!d || !d.ok) throw new Error((d && d.erro) || 'Falha ao contar');
