@@ -1322,7 +1322,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- | ----- |
 | 1 | **CONTAGEM-CANCELAR** | 🟢 Pronto | **NÃO** | cancela sessão · ajuste do bloco permanece · **403/200** |
 
-### 📦 PACOTE PRONTO — **AJUSTE-BIP-HORA** · **v27.26.44**
+### 📦 PACOTE PRONTO — **AJUSTE-BIP-HORA** · **v27.26.44** · PREP `teste` @ **`28f995f8`**
 
 | Campo | Valor |
 | ----- | ----- |
