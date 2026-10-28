@@ -1354,18 +1354,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PREP ARMADO — **CHECKLIST 28/10d** · **v27.26.42** · horário do bip
+### ✅ Deploy loja — **CHECKLIST 28/10d** · **Live v27.26.42** · 28/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP armado** @ **`9cd4d58c`** · aguarda frase + senha |
-| **Base loja** | **v27.26.41** @ **`dcaa89bb`** |
+| **Status** | ✅ **Live** @ **`9cd4d58c`** · cutover autorizado **28/10** |
 | **Entra** | Segundo bip avisa e soma. Horário fica o primeiro. **Alterar** no bloco fechado regrava o saldo, sem somar de novo o bloco |
-| **Fora** | Checklists 27/10f, 28/10 e 28/10b já estão na loja |
 | **Migrate** | **NÃO** |
 | **PDV / caixa / checkout** | **Não neste delta** |
-| **Prova** | `verify_ajuste_bip_hora_path.py` **6/6** · cutover **OK** |
-| **Revert** | `git push origin rollback/pre-v272642-2810d-bip-hora:producao` → **`dcaa89bb`** |
+| **Revert** | `git push origin rollback/pre-v272642-2810d-bip-hora:producao` → **v27.26.41** @ **`dcaa89bb`** |
 | **Pós-deploy** | `./scripts/post_deploy_checklist_2810d_bip_hora.sh` |
 | **Smoke** | Bipar de novo um item já contado · **Alterar** um item de bloco fechado |
 
