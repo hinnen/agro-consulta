@@ -165,6 +165,8 @@ def api_ciclica_contar(request, pk: int):
             codigo_interno=_get(request, "codigo_interno"),
             categoria=_get(request, "categoria"),
             forcar=forcar,
+            substituir=str(_get(request, "substituir", "") or "").strip().lower()
+            in ("1", "true", "sim", "yes", "on"),
         )
     except ValueError as e:
         return JsonResponse({"ok": False, "erro": str(e)}, status=400)

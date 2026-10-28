@@ -405,6 +405,7 @@ def registrar_contagem(
     codigo_interno: str = "",
     categoria: str = "",
     forcar: bool = False,
+    substituir: bool = False,
 ) -> ContagemCiclicaLinha:
     if sessao.status not in (ContagemCiclicaStatus.PASS1, ContagemCiclicaStatus.PASS2):
         raise ValueError("Contagem fechada — não dá para lançar.")
@@ -454,6 +455,28 @@ def registrar_contagem(
         ContagemCiclicaSessao.objects.filter(pk=sessao.pk).update(
             total_itens=ContagemCiclicaLinha.objects.filter(sessao=sessao).count()
         )
+
+    if sessao.status == ContagemCiclicaStatus.PASS1 and substituir:
+        if not _modo_inventario(sessao):
+            raise ValueError("Alterar a quantidade vale no inventário.")
+        if linha.ajuste_id:
+            raise ValueError("Este item já está num bloco fechado. Bipe de novo para somar.")
+        linha.qtd_pass1 = q if q > 0 else Decimal("0")
+        linha.contado_pass1 = q > 0
+        linha.auto_zero_pass1 = False
+        linha.operador_pass1 = rot
+        linha.contado_pass1_em = now
+        linha._reaberto_bloco = False
+        linha.save(
+            update_fields=[
+                "qtd_pass1",
+                "contado_pass1",
+                "auto_zero_pass1",
+                "operador_pass1",
+                "contado_pass1_em",
+            ]
+        )
+        return linha
 
     if sessao.status == ContagemCiclicaStatus.PASS1:
         ja = linha.contado_pass1

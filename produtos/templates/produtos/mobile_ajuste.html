@@ -929,7 +929,11 @@
 
   <div id="ma-qtd-sheet" aria-hidden="true">
     <p id="ma-qtd-nome" class="text-base font-black text-slate-900 leading-snug line-clamp-2">Produto</p>
-    <p class="text-[0.7rem] font-bold text-slate-500 uppercase mt-0.5">Quantidade deste bip · soma no total</p>
+    <p id="ma-qtd-dica" class="text-[0.7rem] font-bold text-slate-500 uppercase mt-0.5">Ajusta só este item · Ok grava</p>
+    <div id="ma-qtd-modos" class="hidden grid grid-cols-2 gap-2 mt-2">
+      <button type="button" id="ma-qtd-modo-somar" class="min-h-[2.6rem] rounded-xl border-2 border-emerald-600 bg-emerald-600 text-white text-xs font-black uppercase">Somar</button>
+      <button type="button" id="ma-qtd-modo-alterar" class="min-h-[2.6rem] rounded-xl border-2 border-slate-300 bg-white text-slate-700 text-xs font-black uppercase">Alterar</button>
+    </div>
     <div class="flex items-center justify-between gap-2 mt-2">
       <button type="button" id="ma-qtd-menos10" class="min-h-[2.6rem] px-3 rounded-xl bg-slate-100 font-black text-slate-800">−10</button>
       <button type="button" id="ma-qtd-mais10" class="min-h-[2.6rem] px-3 rounded-xl bg-slate-100 font-black text-slate-800">+10</button>
@@ -2237,7 +2241,13 @@ function maCriarCardCiclica(p, variant) {
         <div class="ma-card-nums">${maCiclicaNumHtml(p, escMa)}</div>
       </div>`;
   }
-  d.onclick = () => maEscolherProduto(p);
+  d.onclick = () => {
+    if (maCiclicaAtiva() && maCiclicaSessao && maCiclicaSessao.modo === 'inventario' && !scanningActive) {
+      maQtdAbrir(p, { daLista: true });
+      return;
+    }
+    maEscolherProduto(p);
+  };
   return d;
 }
 
@@ -2377,17 +2387,61 @@ function maQtdTravarTeclado(ligado) {
 
 let maQtdAlvo = null;
 let maQtdN = 1;
+let maQtdModo = 'somar';
+
+function maQtdAtualDoItem(p) {
+  const ln = (typeof maCiclicaLinhas === 'function' ? maCiclicaLinhas() : []).find(
+    (x) => String(x.produto_id) === String(p && p.id)
+  );
+  const n = ln && ln.qtd_contada != null ? Number(ln.qtd_contada) : Number(p && p._ciclicaQtd);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
 
 function maQtdPintar() {
   const n = document.getElementById('ma-qtd-n');
   const nome = document.getElementById('ma-qtd-nome');
+  const dica = document.getElementById('ma-qtd-dica');
+  const ok = document.getElementById('ma-qtd-ok');
+  const bSomar = document.getElementById('ma-qtd-modo-somar');
+  const bAlt = document.getElementById('ma-qtd-modo-alterar');
   if (n) n.textContent = String(maQtdN);
   if (nome && maQtdAlvo) nome.textContent = maQtdAlvo.nome || 'Produto';
+  const alterar = maQtdModo === 'alterar';
+  if (dica) {
+    dica.textContent = alterar
+      ? 'Altera o total deste item · só desta vez'
+      : 'Soma neste item · Ok e o próximo bip começa de novo';
+  }
+  if (ok) ok.textContent = alterar ? 'Alterar' : 'Ok';
+  if (bSomar) {
+    bSomar.classList.toggle('bg-emerald-600', !alterar);
+    bSomar.classList.toggle('text-white', !alterar);
+    bSomar.classList.toggle('border-emerald-600', !alterar);
+  }
+  if (bAlt) {
+    bAlt.classList.toggle('bg-orange-600', alterar);
+    bAlt.classList.toggle('text-white', alterar);
+    bAlt.classList.toggle('border-orange-600', alterar);
+  }
 }
 
-function maQtdAbrir(p) {
+function maQtdDefinirModo(modo) {
+  maQtdModo = modo === 'alterar' ? 'alterar' : 'somar';
+  if (maQtdModo === 'alterar' && maQtdAlvo) {
+    maQtdN = maQtdAtualDoItem(maQtdAlvo);
+  } else if (maQtdN < 1) {
+    maQtdN = 1;
+  }
+  maQtdPintar();
+}
+
+function maQtdAbrir(p, opts) {
+  opts = opts || {};
   maQtdAlvo = p;
+  maQtdModo = 'somar';
   maQtdN = 1;
+  const modos = document.getElementById('ma-qtd-modos');
+  if (modos) modos.classList.toggle('hidden', !opts.daLista);
   maQtdPintar();
   const sh = document.getElementById('ma-qtd-sheet');
   if (sh) {
@@ -2410,18 +2464,21 @@ function maQtdFechar() {
 }
 
 function maQtdAjustar(delta) {
-  maQtdN = Math.max(1, Math.min(9999, maQtdN + delta));
+  const min = maQtdModo === 'alterar' ? 0 : 1;
+  maQtdN = Math.max(min, Math.min(9999, maQtdN + delta));
   maQtdPintar();
 }
 
 function maQtdConfirmar() {
   const p = maQtdAlvo;
   const n = maQtdN;
-  if (!p || n < 1) {
+  const alterar = maQtdModo === 'alterar';
+  if (!p || (!alterar && n < 1)) {
     maQtdFechar();
     return;
   }
   p._qtdLancar = n;
+  p._substituir = alterar;
   maQtdFechar();
   maCiclicaBipMaisUm(p);
 }
@@ -2442,6 +2499,8 @@ document.getElementById('ma-qtd-menos10')?.addEventListener('click', () => maQtd
 document.getElementById('ma-qtd-mais10')?.addEventListener('click', () => maQtdAjustar(10));
 document.getElementById('ma-qtd-ok')?.addEventListener('click', () => maQtdConfirmar());
 document.getElementById('ma-qtd-cancelar')?.addEventListener('click', () => maQtdFechar());
+document.getElementById('ma-qtd-modo-somar')?.addEventListener('click', () => maQtdDefinirModo('somar'));
+document.getElementById('ma-qtd-modo-alterar')?.addEventListener('click', () => maQtdDefinirModo('alterar'));
 document.getElementById('busca')?.addEventListener('focus', () => {
   const sh = document.getElementById('ma-qtd-sheet');
   if (sh && sh.classList.contains('is-on')) maQtdTravarTeclado(true);
@@ -3412,12 +3471,14 @@ function maCiclicaBipFilaDrain() {
   maBipBusy = true;
   const payload = {
     produto_id: p.id,
-    qtd: String(Math.max(1, parseInt(p._qtdLancar, 10) || 1)),
+    qtd: String(Math.max(0, parseInt(p._qtdLancar, 10) || 0)),
     nome_produto: p.nome || '',
     codigo_interno: p.codigo_nfe || p.codigo || '',
     categoria: p.categoria || '',
   };
   if (gate.forcar) payload.forcar = '1';
+  if (p._substituir) payload.substituir = '1';
+  p._substituir = false;
   return maCiclicaPost(maCiclicaUrl('contar'), payload)
     .then((d) => {
       if (!d || !d.ok) throw new Error((d && d.erro) || 'Falha ao contar');

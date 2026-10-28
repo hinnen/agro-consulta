@@ -1327,7 +1327,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **Pronto para envio à produção** (frase + senha) |
-| **Entra** | Na contagem, o bip abre quantidade embaixo (− / + / −10 / +10 / Ok). Sem teclado. Cada Ok grava na hora. Contagem aberta não se perde em atualização. |
+| **Entra** | Bip abre quantidade só daquele item (−/+ e −10/+10) e Ok. Na lista, fora da câmera: **Somar** ou **Alterar** o total daquela vez. Depois volta a somar. |
 | **Migrate** | **NÃO** |
 
 ### ✅ CHECKLIST ÚNICO — **28/10b** · 🟢 **pronto para envio à produção**
