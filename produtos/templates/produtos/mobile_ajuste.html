@@ -3142,7 +3142,7 @@ function maEscolherProduto(p, opts) {
   opts = opts || {};
   const seguir = function () {
     if (opts.bipMaisUm && maCiclicaAtiva() && maBip1On) {
-      maCiclicaBipMaisUm(p);
+      maQtdAoBipar(p);
       return;
     }
     abrir();
@@ -3483,7 +3483,10 @@ function maCiclicaBipFilaDrain() {
   maBipBusy = true;
   const payload = {
     produto_id: p.id,
-    qtd: String(Math.max(0, parseInt(p._qtdLancar, 10) || 0)),
+    qtd: String((function () {
+      const n = parseInt(p._qtdLancar, 10);
+      return Math.max(0, Number.isFinite(n) ? n : 1);
+    })()),
     nome_produto: p.nome || '',
     codigo_interno: p.codigo_nfe || p.codigo || '',
     categoria: p.categoria || '',

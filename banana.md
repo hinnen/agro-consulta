@@ -1322,20 +1322,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- | ----- |
 | 1 | **CONTAGEM-CANCELAR** | 🟢 Pronto | **NÃO** | cancela sessão · ajuste do bloco permanece · **403/200** |
 
-### 📦 PACOTE PRONTO — **AJUSTE-BIP-HORA** · **v27.26.43**
+### 📦 PACOTE PRONTO — **AJUSTE-BIP-HORA** · **v27.26.44**
 
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **Pronto para envio à produção** (frase + senha) |
-| **Entra** | Bip de produto já contado avisa e soma, horário fica o **primeiro** bip (venda do meio entra). Bloco fechado pode **Alterar** e regrava o saldo na hora. |
+| **Entra** | Bip de produto já contado avisa e soma. Horário fica o **primeiro** bip. Bloco fechado: **Alterar** regrava o saldo e **não** soma de novo o que o bloco já gravou. Venda depois continua na conta. |
 | **Migrate** | **NÃO** |
-| **Prova** | 5+2 com venda −1 = **6** · correção de bloco fechado 20 → **2** |
+| **Prova** | 5+2 e venda −1 = **6** · 20 fechado → alterar **2** fica **2** · 20, vendeu 1, alterar **2** fica **1** · API **403** sem PIN e **200** com PIN 9973 |
 
-### ✅ CHECKLIST ÚNICO — **28/10c** · 🟢 **pronto para envio à produção**
+### ✅ CHECKLIST ÚNICO — **28/10d** · 🟢 **pronto para envio à produção**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **AJUSTE-BIP-HORA** | 🟢 Pronto | **NÃO** | primeiro horário · alterar bloco fechado |
+| 1 | **AJUSTE-BIP-HORA** | 🟢 Pronto | **NÃO** | **6** · **20→2** · venda depois **1** · **403/200** |
 
 ### 📦 PACOTE PRONTO — **AJUSTE-QTD-BIP** · **v27.26.42** · PREP `teste` @ **`a4b75397`**
 

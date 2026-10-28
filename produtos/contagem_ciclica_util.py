@@ -782,6 +782,10 @@ def delta_movimento_apos(produto_id: str, deposito: str, desde) -> Decimal:
     acc = Decimal("0")
     for row in posteriores:
         cur = marcador(row)
+        # O fechamento do bloco grava o saldo absoluto. Não é venda: entra só como marco.
+        if getattr(row, "origem", "") == OrigemAjusteEstoque.CONTAGEM_CICLICA:
+            last = cur
+            continue
         if last is None:
             last = cur
             continue
