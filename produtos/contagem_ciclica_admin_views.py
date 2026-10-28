@@ -221,6 +221,25 @@ def api_ciclica_admin_zerar(request):
 
 
 @never_cache
+@require_POST
+def api_ciclica_admin_cancelar(request, pk: int):
+    err = _gate_admin(request)
+    if err:
+        return err
+    from estoque.models import ContagemCiclicaSessao
+    from produtos.contagem_ciclica_util import cancelar_sessao
+
+    sessao = ContagemCiclicaSessao.objects.filter(pk=pk).first()
+    if sessao is None:
+        return JsonResponse({"ok": False, "erro": "Sessão não encontrada."}, status=404)
+    try:
+        cancelar_sessao(sessao)
+    except ValueError as e:
+        return JsonResponse({"ok": False, "erro": str(e)}, status=400)
+    return JsonResponse({"ok": True})
+
+
+@never_cache
 @require_GET
 def contagem_ciclica_bloco_print(request, pk: int):
     from produtos.contagem_ciclica_util import sessao_gate_ok
