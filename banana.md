@@ -1336,6 +1336,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- | ----- |
 | 1 | **AJUSTE-QTD-BIP** | 🟢 Pronto | **NÃO** | `ma-qtd-sheet` · −10/+10 · busca readonly com a folha aberta |
 
+## CHECKPOINT DE ATUALIZAÇÃO
+
 ### ✅ Deploy loja — **CHECKLIST 27/10g** · **Live v27.26.38** · 27/10
 
 | Campo | Valor |
