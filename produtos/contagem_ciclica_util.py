@@ -394,6 +394,58 @@ def marcar_recontagem(linha: ContagemCiclicaLinha) -> bool:
     return _diff_abs(q, linha.saldo_referencia) >= Decimal("0.001")
 
 
+def _corrigir_saldo_bloco_fechado(linha: ContagemCiclicaLinha, sessao: ContagemCiclicaSessao, *, operador_rotulo: str = "") -> None:
+    """Troca a quantidade já gravada e regrava o saldo, com vendas depois do primeiro bip."""
+    desde = linha.contado_pass1_em or timezone.now()
+    delta = delta_movimento_apos(linha.produto_externo_id, sessao.deposito, desde)
+    qtd = _dec(linha.qtd_pass1)
+    bruto = (qtd + delta).quantize(Decimal("0.001"))
+    q_final = bruto if bruto >= 0 else Decimal("0")
+    anterior = _ultimo_saldo_informado(linha.produto_externo_id, sessao.deposito)
+    from base.models import Empresa
+
+    empresa = Empresa.objects.filter(nome_fantasia="Agro Mais").first()
+    rot = (operador_rotulo or "")[:80]
+    nome = (linha.nome_produto or "").strip()
+    nome = (f"{nome} · inventário · correção · {rot}" if nome else f"inventário · correção · {rot}")[:255]
+    aj = AjusteRapidoEstoque.objects.create(
+        empresa=empresa,
+        produto_externo_id=linha.produto_externo_id,
+        codigo_interno=linha.codigo_interno or "",
+        nome_produto=nome,
+        deposito=sessao.deposito,
+        saldo_erp_referencia=anterior,
+        saldo_informado=q_final,
+        origem=OrigemAjusteEstoque.CONTAGEM_CICLICA,
+        observacao=(
+            f"Correção inventário sessão #{sessao.pk} · contado {qtd} · mov. após bip {delta}"
+        )[:500],
+    )
+    linha.qtd_final = q_final
+    linha.ajuste_id = aj.pk
+    linha.save(
+        update_fields=[
+            "qtd_pass1",
+            "contado_pass1",
+            "auto_zero_pass1",
+            "operador_pass1",
+            "contado_pass1_em",
+            "qtd_final",
+            "ajuste_id",
+        ]
+    )
+    try:
+        from produtos.views import (
+            _invalidar_caches_apos_ajuste_pin,
+            _patch_catalogo_pdv_saldo_apos_ajuste,
+        )
+
+        _invalidar_caches_apos_ajuste_pin()
+        _patch_catalogo_pdv_saldo_apos_ajuste(linha.produto_externo_id, sessao.deposito, q_final)
+    except Exception:
+        pass
+
+
 @transaction.atomic
 def registrar_contagem(
     sessao: ContagemCiclicaSessao,
@@ -459,23 +511,25 @@ def registrar_contagem(
     if sessao.status == ContagemCiclicaStatus.PASS1 and substituir:
         if not _modo_inventario(sessao):
             raise ValueError("Alterar a quantidade vale no inventário.")
-        if linha.ajuste_id:
-            raise ValueError("Este item já está num bloco fechado. Bipe de novo para somar.")
+        if not linha.contado_pass1_em:
+            linha.contado_pass1_em = now
         linha.qtd_pass1 = q if q > 0 else Decimal("0")
         linha.contado_pass1 = q > 0
         linha.auto_zero_pass1 = False
         linha.operador_pass1 = rot
-        linha.contado_pass1_em = now
         linha._reaberto_bloco = False
-        linha.save(
-            update_fields=[
-                "qtd_pass1",
-                "contado_pass1",
-                "auto_zero_pass1",
-                "operador_pass1",
-                "contado_pass1_em",
-            ]
-        )
+        if linha.ajuste_id:
+            _corrigir_saldo_bloco_fechado(linha, sessao, operador_rotulo=rot)
+        else:
+            linha.save(
+                update_fields=[
+                    "qtd_pass1",
+                    "contado_pass1",
+                    "auto_zero_pass1",
+                    "operador_pass1",
+                    "contado_pass1_em",
+                ]
+            )
         return linha
 
     if sessao.status == ContagemCiclicaStatus.PASS1:
@@ -490,11 +544,15 @@ def registrar_contagem(
             ja = False
         # Sempre soma: produto pode estar em 2+ lugares (prateleira + fundo).
         base = _dec(linha.qtd_pass1) if ja and linha.qtd_pass1 is not None else Decimal("0")
+        if ja and linha.contado_pass1_em and _modo_inventario(sessao) and not linha._reaberto_bloco:
+            linha._ja_tinha = True
+            linha._qtd_antes = float(base)
+        else:
+            linha.contado_pass1_em = now
         linha.qtd_pass1 = base + q
         linha.contado_pass1 = True
         linha.auto_zero_pass1 = False
         linha.operador_pass1 = rot
-        linha.contado_pass1_em = now
         if nome_produto and not linha.nome_produto:
             linha.nome_produto = nome_produto[:255]
         if codigo_interno and not linha.codigo_interno:

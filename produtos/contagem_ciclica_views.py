@@ -174,6 +174,8 @@ def api_ciclica_contar(request, pk: int):
         return JsonResponse({"ok": False, "erro": str(e)}, status=500)
     sessao.refresh_from_db()
     reaberto = bool(getattr(ln, "_reaberto_bloco", False))
+    ja_tinha = bool(getattr(ln, "_ja_tinha", False))
+    qtd_antes = getattr(ln, "_qtd_antes", None)
     ln.refresh_from_db()
     if sessao.status == ContagemCiclicaStatus.PASS2:
         q_acum = ln.qtd_pass2
@@ -191,6 +193,8 @@ def api_ciclica_contar(request, pk: int):
             "qtd_acumulada": q_f,
             "somou": True,
             "reaberto_bloco": reaberto,
+            "ja_tinha": ja_tinha,
+            "qtd_antes": qtd_antes,
             "sessao": sessao_payload(sessao),
         }
     )

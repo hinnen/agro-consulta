@@ -2407,10 +2407,18 @@ function maQtdPintar() {
   if (n) n.textContent = String(maQtdN);
   if (nome && maQtdAlvo) nome.textContent = maQtdAlvo.nome || 'Produto';
   const alterar = maQtdModo === 'alterar';
+  const ja = maQtdAlvo ? maQtdAtualDoItem(maQtdAlvo) : 0;
+  const fechado = !!(maQtdAlvo && maQtdAlvo._blocoFechado);
   if (dica) {
-    dica.textContent = alterar
-      ? 'Altera o total deste item · só desta vez'
-      : 'Soma neste item · Ok e o próximo bip começa de novo';
+    if (alterar && fechado) {
+      dica.textContent = 'Corrige o bloco já gravado · vendas depois do primeiro bip continuam';
+    } else if (alterar) {
+      dica.textContent = 'Troca o total deste item · só desta vez';
+    } else if (ja > 0) {
+      dica.textContent = 'Já contado: ' + ja + '. Este Ok SOMA mais';
+    } else {
+      dica.textContent = 'Soma neste item · Ok e o próximo bip começa de novo';
+    }
   }
   if (ok) ok.textContent = alterar ? 'Alterar' : 'Ok';
   if (bSomar) {
@@ -2442,6 +2450,10 @@ function maQtdAbrir(p, opts) {
   maQtdN = 1;
   const modos = document.getElementById('ma-qtd-modos');
   if (modos) modos.classList.toggle('hidden', !opts.daLista);
+  if (opts.daLista && p._blocoFechado) {
+    maQtdModo = 'alterar';
+    maQtdN = maQtdAtualDoItem(p) || 0;
+  }
   maQtdPintar();
   const sh = document.getElementById('ma-qtd-sheet');
   if (sh) {
@@ -3485,6 +3497,9 @@ function maCiclicaBipFilaDrain() {
       const acum = (d.qtd_acumulada != null) ? Number(d.qtd_acumulada) : 1;
       maTocarSom('ok');
       maBipPiscarTela(true, Number.isFinite(acum) ? acum : 1);
+      if (d.ja_tinha && typeof maMostrarToast === 'function') {
+        maMostrarToast('Esse produto já tinha ' + (d.qtd_antes != null ? d.qtd_antes : '') + '. Somou mais.', true);
+      }
       if (d.reaberto_bloco && typeof maMostrarToast === 'function') {
         maMostrarToast('Já estava num bloco fechado. Esta quantidade entra no bloco de agora e soma no estoque.', true);
       }
