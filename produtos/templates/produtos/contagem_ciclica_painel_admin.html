@@ -318,6 +318,7 @@
             <p class="text-[0.65rem] font-bold text-slate-500 mt-1">Abriu ${esc(s.aberta_por)} · ${s.idade_minutos || 0} min</p>
             <p class="text-[0.65rem] font-bold text-orange-800 mt-1">Var. ${fmtRs(s.impacto_variacao_rs)} · diverg. ${s.divergentes_pass1 || 0}</p>
             <p class="text-[0.65rem] font-bold text-slate-500 mt-1 truncate">Equipe: ${parts}</p>
+            <button type="button" class="cc-cancelar mt-2 min-h-[2.5rem] px-3 rounded-xl border-2 border-rose-500 bg-white text-rose-700 text-[0.65rem] font-black uppercase" data-cancel="${s.id}">Cancelar contagem</button>
           </div>
         </div>
       </article>`;
@@ -325,6 +326,29 @@
     host.querySelectorAll("[data-sid]").forEach((el) => {
       el.addEventListener("click", () => abrirDetalhe(el.getAttribute("data-sid")));
     });
+    host.querySelectorAll("[data-cancel]").forEach((btn) => {
+      btn.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        cancelarSessao(btn.getAttribute("data-cancel"));
+      });
+    });
+  }
+
+  async function cancelarSessao(id) {
+    if (!id) return;
+    if (!confirm("Cancelar a contagem #" + id + "?\n\nO que ainda não foi concluído em bloco é descartado.\nO que já gravou em bloco fechado continua no estoque.")) return;
+    const res = await fetch("/api/ajuste-mobile/ciclica/admin/cancelar/" + id + "/", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "X-CSRFToken": csrf() },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      alert(data.erro || "Não cancelou.");
+      return;
+    }
+    carregar();
   }
 
   function renderBlocos(items) {
