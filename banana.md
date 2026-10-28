@@ -1322,19 +1322,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- | ----- |
 | 1 | **CONTAGEM-CANCELAR** | 🟢 Pronto | **NÃO** | cancela sessão · ajuste do bloco permanece · **403/200** |
 
-### 📦 PACOTE PRONTO — **AJUSTE-QTD-BIP** · **v27.26.41**
+### 📦 PACOTE PRONTO — **AJUSTE-QTD-BIP** · **v27.26.42** · PREP `teste` @ **`a4b75397`**
 
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟢 **Pronto para envio à produção** (frase + senha) |
-| **Entra** | Bip abre quantidade só daquele item (−/+ e −10/+10) e Ok. Na lista, fora da câmera: **Somar** ou **Alterar** o total daquela vez. Depois volta a somar. |
+| **Entra** | Bip: quantidade só daquele item (−/+ e −10/+10) e Ok, sem teclado. Na lista: **Somar** ou **Alterar** o total daquela vez. Contagem aberta não se perde. |
 | **Migrate** | **NÃO** |
+| **Prova** | 6 alterado para **5**, depois soma 2 = **7** · folha sem campo de teclado |
 
 ### ✅ CHECKLIST ÚNICO — **28/10b** · 🟢 **pronto para envio à produção**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **AJUSTE-QTD-BIP** | 🟢 Pronto | **NÃO** | `ma-qtd-sheet` · −10/+10 · busca readonly com a folha aberta |
+| 1 | **AJUSTE-QTD-BIP** | 🟢 Pronto | **NÃO** | alterar **6→5** depois soma **7** · −10/+10 só no item da vez |
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
