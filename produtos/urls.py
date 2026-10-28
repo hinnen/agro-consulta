@@ -166,6 +166,11 @@ urlpatterns = [
         name="api_ciclica_admin_zerar",
     ),
     path(
+        "api/ajuste-mobile/ciclica/admin/cancelar/<int:pk>/",
+        contagem_ciclica_admin_views.api_ciclica_admin_cancelar,
+        name="api_ciclica_admin_cancelar",
+    ),
+    path(
         "api/ajuste-mobile/ciclica/admin/sessao/<int:pk>/",
         contagem_ciclica_admin_views.api_ciclica_admin_sessao,
         name="api_ciclica_admin_sessao",
