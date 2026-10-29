@@ -1298,23 +1298,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Item | Status | Migrate | Prova |
 | - | ---- | ------ | ------- | ----- |
-| 1 | Qtd 0,645 / 4,355 TON Prefeitura | 🟢 Pronto | **NÃO** | `NfeSaidaQtdDecimalTests` + XSD |
-| 2 | `_dec_qtd` 4 casas · money 2 casas | 🟢 Pronto | **NÃO** | `4,355×2870=12498.85` |
-| 3 | Unidade editável (TON/UN/KG/SC) | 🟢 Pronto | **NÃO** | XML `uCom`/`uTrib` |
-| 4 | NFC-e / PDV | ✅ Intocado | **NÃO** | `tests_nfce_loja` |
+| 1 | **NFE-QTD-DECIMAL** qtd 0,645 / 4,355 TON Prefeitura | 🟢 Pronto | **NÃO** | `verify_nfe_saida_path` **130/130** |
+| 2 | `_dec_qtd` 4 casas · money 2 casas · `validar_itens` sem `float` | 🟢 Pronto | **NÃO** | `4,355×2870=12498.85` · `0,645×2870=1851.15` |
+| 3 | Unidade comercial editável (TON/UN/KG/SC) | 🟢 Pronto | **NÃO** | XML `uCom`/`uTrib=TON` + XSD |
+| 4 | Rascunho persiste qtd+un e reabre | 🟢 Pronto | **NÃO** | `salvar_pg_qtd` / `reabrir_pg_qtd` |
+| 5 | PIN 9973 (emitir **não** transmite se faltar dest) | 🟢 Pronto | **NÃO** | `pin_9973` + HTTP 400 dest |
+| 6 | NFC-e / PDV / estoque | ✅ Intocado | **NÃO** | `tests_nfce_loja` |
 
 | Campo | Valor |
 | ----- | ----- |
 | **Pacote** | **v27.26.43** · **NFE-QTD-DECIMAL** |
-| **Rollback** | `rollback/pre-v272643-nfe-qtd-decimal` = `9cd4d58c` (v27.26.42) |
+| **Commit** | `ddd7df5c` (+ prova path neste push) |
+| **Rollback** | `rollback/pre-v272643-nfe-qtd-decimal` @ `9cd4d58c` (v27.26.42) |
 | **Migrate** | **NÃO** |
-| **Smoke** | `/nfe/saida/` · qtd com vírgula · Un=TON · **não** transmitir automático |
+| **Smoke loja** | `/nfe/saida/` · Un=`TON` · `4,355` e `0,645` · conferir totais · **não** transmitir automático |
 
 ### 📦 PACOTE PRONTO — **NFE-QTD-DECIMAL** · **v27.26.43** · 29/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Quantidade Decimal 4 casas; TON; totais 4,355×2870 e 0,645×2870 |
+| **O quê** | NF-e 55 aceita quantidade com vírgula/ponto (até 4 casas); TON; totais Prefeitura Jacupiranga |
+| **Ainda falta** | Renan validar no PC (`/nfe/saida/` · 4,355 e 0,645 TON) e conferir Render. **Produção Git:** senha `99738595` na mesma frase se precisar reenviar |
+| **Paths** | `nfe_saida_util.py` · `nfe_saida_tributacao_util.py` (`_dec_qtd`) · `nfe_saida_sp_emissao_util.py` · `nfe_saida.js` · `nfe_saida.html` · `nfe_saida_danfe_html.py` · `nfe_saida_compra_util.py` · `verify_nfe_saida_path.py` |
+| **Prova** | `verify_nfe_saida_path` **130/130** · PREP_FAILS=0 · XSD PL 010f `qCom` 4.3550 / 0.6450 · PIN 9973 ok · emitir HTTP 400 (sem SEFAZ) |
 | **Revert** | `git push origin rollback/pre-v272643-nfe-qtd-decimal:producao` |
 
 ### ✅ CHECKLIST ÚNICO — **27/10h** · 🟢 **pronto envio produção** · **NFE-EMITENTE-CFOP**

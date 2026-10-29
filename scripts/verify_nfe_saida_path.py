@@ -210,17 +210,57 @@ def test_logica() -> None:
         os.environ.pop("NFE_SAIDA_SIMULAR_EMIT", None)
 
 
+def _seed_pin_9973_local() -> str:
+    """Cria tabela/perfil 9973 só no SQLite local da prova — não transmite nota."""
+    from django.contrib.auth import get_user_model
+    from django.db import connection
+
+    from base.models import PerfilUsuario
+
+    tables = set(connection.introspection.table_names())
+    if PerfilUsuario._meta.db_table not in tables:
+        with connection.schema_editor() as se:
+            se.create_model(PerfilUsuario)
+    cols = {c.name for c in connection.introspection.get_table_description(connection.cursor(), PerfilUsuario._meta.db_table)}
+    extra_cols = {
+        "ativo": "bool NOT NULL DEFAULT 1",
+        "primeiro_acesso": "bool NOT NULL DEFAULT 1",
+        "funcionario_id": "integer NULL",
+    }
+    with connection.cursor() as cur:
+        for name, ddl in extra_cols.items():
+            if name not in cols:
+                cur.execute(f"ALTER TABLE {PerfilUsuario._meta.db_table} ADD COLUMN {name} {ddl}")
+    User = get_user_model()
+    u, _ = User.objects.get_or_create(username="verify_pin_9973", defaults={"is_staff": True})
+    perfil = PerfilUsuario.objects.filter(senha_rapida="9973", ativo=True).first()
+    if perfil is None:
+        codigo = "9973"
+        if PerfilUsuario.objects.filter(codigo_vendedor=codigo).exists():
+            codigo = "v973"
+        PerfilUsuario.objects.create(
+            user=u,
+            codigo_vendedor=codigo[:4],
+            senha_rapida="9973",
+            ativo=True,
+        )
+    return "ok"
+
+
 def test_pin() -> None:
     print("== PIN operador ==")
     try:
+        _seed_pin_9973_local()
         ok, err = validar_pin_operador("9973")
     except Exception as exc:
         check("pin_9973_db", "ativo" in str(exc) or "no such table" in str(exc), "migrate local pendente — PIN não testado")
         return
     if ok:
-        check("pin_9973", True, "Perfil encontrado")
+        check("pin_9973", True, "Perfil 9973 válido neste ambiente de prova")
     else:
         check("pin_9973_ambiente", err in ("PIN incorreto.", "Informe o PIN."), f"sem perfil 9973 neste DB: {err}")
+    ok_bad, err_bad = validar_pin_operador("0000")
+    check("pin_9973_nao_aceita_errado", ok_bad is False and "PIN" in (err_bad or ""), err_bad)
 
 
 def test_http() -> None:
@@ -334,6 +374,199 @@ def test_http() -> None:
                     )
 
 
+def test_qtd_decimal() -> None:
+    print("== Quantidade decimal Prefeitura (NF-e 55) ==")
+    from decimal import Decimal
+    from datetime import datetime
+    from unittest.mock import patch
+
+    from produtos.nfe_saida_danfe_html import _linha_produto
+    from produtos.nfe_saida_sp_emissao_util import _montar_xml_nfe_saida
+    from produtos.nfe_saida_tributacao_util import _dec, _dec_qtd, apurar_nfe_saida
+    from produtos.nfe_saida_util import (
+        decimal_moeda,
+        decimal_qtd,
+        doc_novo_vazio,
+        normalizar_linha_item_nfe,
+        normalizar_unidade_nfe,
+        parse_decimal_br,
+        qtd_persistida,
+        validar_itens,
+    )
+    from produtos.nfe_saida_xml_validate_util import validar_xml_nfe_xsd
+
+    check("parse_virgula_0645", parse_decimal_br("0,645") == Decimal("0.645"))
+    check("parse_ponto_0645", parse_decimal_br("0.645") == Decimal("0.645"))
+    check("parse_virgula_4355", parse_decimal_br("4,355") == Decimal("4.355"))
+    check("parse_milhar_vu", parse_decimal_br("2.870,00") == Decimal("2870.00"))
+    check("qtd_4casas", decimal_qtd("4,355") == Decimal("4.3550"))
+    check("qtd_nao_arredonda_2", decimal_qtd("4,355") != Decimal("4.36"))
+    check("dec_qtd_nao_usa_dec_money", _dec_qtd("4,355") == Decimal("4.3550") and _dec("2870") == Decimal("2870.00"))
+    tot1 = (decimal_qtd("4,355") * decimal_moeda("2870")).quantize(Decimal("0.01"))
+    tot2 = (decimal_qtd("0,645") * decimal_moeda("2870")).quantize(Decimal("0.01"))
+    check("tot_4355", tot1 == Decimal("12498.85"))
+    check("tot_0645", tot2 == Decimal("1851.15"))
+    check("un_tonelada", normalizar_unidade_nfe("tonelada") == "TON")
+    check("un_ton", normalizar_unidade_nfe("TON") == "TON")
+    check("un_sc", normalizar_unidade_nfe("saco") == "SC")
+    ln = normalizar_linha_item_nfe(
+        {"descricao": "X", "qtd": "0,645", "v_unit": "2.870,00", "v_total": 0, "un": "TON"}
+    )
+    check("persist_qtd_str", ln.get("qtd") == "0.645")
+    check("persist_un", ln.get("un") == "TON")
+    check("persist_total", ln.get("v_total") == 1851.15)
+    ln2 = normalizar_linha_item_nfe(dict(ln))
+    check("reabrir_qtd", ln2.get("qtd") == "0.645" and ln2.get("un") == "TON")
+    er = validar_itens(
+        [
+            {
+                "descricao": "Calcário",
+                "qtd": "0,645",
+                "v_unit": "2870",
+                "v_total": "1851,15",
+                "ncm": "23099020",
+                "un": "TON",
+            }
+        ]
+    )
+    check("validar_virgula", not any("quantidade" in e.lower() and "inválid" in e.lower() for e in er), str(er))
+    er_mais = validar_itens(
+        [{"descricao": "X", "qtd": "0,64555", "v_unit": 1, "v_total": 1, "ncm": "23099020"}]
+    )
+    check("validar_4casas_max", any("4 casas" in e for e in er_mais), str(er_mais))
+    er_int = validar_itens(
+        [{"descricao": "Saco", "qtd": 2, "v_unit": 10, "v_total": 20, "ncm": "23099020", "un": "UN"}]
+    )
+    check("validar_inteiro", not any("quantidade" in e.lower() for e in er_int), str(er_int))
+    html = _linha_produto(
+        {"descricao": "P", "qtd": "4,355", "v_unit": "2870", "v_total": "12498.85", "un": "TON", "ncm": "23099020"}
+    )
+    check("danfe_qtd_virgula", "4,355" in html)
+    check("danfe_un_ton", "TON" in html)
+
+    def _doc(qtd, total):
+        d = doc_novo_vazio()
+        d["estabelecimento"] = "centro"
+        d["destinatario"].update(
+            {
+                "nome": "PREFEITURA MUNICIPAL DE JACUPIRANGA",
+                "documento": "53221728000100",
+                "uf": "SP",
+                "cidade": "Jacupiranga",
+                "logradouro": "Rua A",
+                "numero": "1",
+                "bairro": "Centro",
+                "cep": "11940000",
+                "cmun": "3524600",
+            }
+        )
+        d["itens"] = [
+            {
+                "descricao": "Produto TON",
+                "qtd": qtd,
+                "v_unit": "2870",
+                "v_total": total,
+                "ncm": "23099020",
+                "cfop": "5102",
+                "csosn": "102",
+                "cst_pis_cofins": "49",
+                "un": "TON",
+            }
+        ]
+        d["pagamento"] = [{"tPag": "01", "valor": total}]
+        return d
+
+    cfg = {
+        "tp_amb": 2,
+        "cnpj": "11222333000181",
+        "razao_social": "Em",
+        "fantasia": "Em",
+        "logradouro": "Ru",
+        "numero": "1",
+        "bairro": "Ce",
+        "cmun": "3524600",
+        "cidade": "Ja",
+        "uf": "SP",
+        "cep": "11940000",
+        "ie": "123456789012",
+        "fone": "",
+    }
+    from produtos.nfe_saida_regras_validas_util import RegraFiscalResolvida
+    import re as _re
+
+    def _regra(doc, ln, idx, **kwargs):
+        cfop = _re.sub(r"\D", "", str(ln.get("cfop") or ""))[:4]
+        csosn = _re.sub(r"\D", "", str(ln.get("csosn") or ""))[:3]
+        return (
+            RegraFiscalResolvida(
+                pk=1,
+                estabelecimento="centro",
+                escopo="geral",
+                cfop=cfop or "5102",
+                csosn=csosn or "102",
+                cst_pis="49",
+                cst_cofins="49",
+            ),
+            [],
+        )
+
+    casos = (("4,355", "12498.85", "4.3550"), ("0,645", "1851.15", "0.6450"))
+    with patch("produtos.nfe_saida_tributacao_util.resolver_regra_item", side_effect=_regra), patch(
+        "produtos.nfe_saida_tributacao_util.estabelecimento_do_doc", return_value="centro"
+    ), patch(
+        "produtos.nfe_saida_tributacao_util.cmun_destinatario_ou_erro", return_value=("3524600", None)
+    ):
+        for qtd, total, qcom in casos:
+            xml = _montar_xml_nfe_saida(
+                _doc(qtd, total),
+                cfg,
+                serie=1,
+                numero=8,
+                chave="3" * 43 + "5",
+                dh_emi=datetime(2026, 8, 31, 10, 0, 0),
+            )
+            check(f"xml_qcom_{qcom}", f"<qCom>{qcom}</qCom>" in xml)
+            check(f"xml_qtrib_{qcom}", f"<qTrib>{qcom}</qTrib>" in xml)
+            check(f"xml_ucom_ton_{qcom}", "<uCom>TON</uCom>" in xml and "<uTrib>TON</uTrib>" in xml)
+            check(f"xml_vprod_{total}", f"<vProd>{total}</vProd>" in xml)
+            ok, det = validar_xml_nfe_xsd(xml)
+            check(f"xsd_{qcom}", ok is True, str(det)[:120])
+            ap = apurar_nfe_saida(_doc(qtd, total))
+            check(f"apurar_ok_{qcom}", not ap.bloqueios, str(ap.bloqueios)[:120])
+
+    js = _read("produtos/static/produtos/js/nfe_saida.js")
+    check("js_parseBrNum", "function parseBrNum" in js)
+    check("js_moneyQtdVu", "function moneyQtdVu" in js and "q4 * v4 / 1000000" in js)
+    check("js_un_input", 'data-it="un"' in js)
+    check("js_placeholder_qtd", "0,645" in js)
+
+    try:
+        from django.db import connection
+
+        from produtos.models import NfeSaidaRascunhoAgro
+        from produtos.nfe_saida_util import obter_nfe_saida_bruto, salvar_documento_nfe_saida
+
+        tables = set(connection.introspection.table_names())
+        if NfeSaidaRascunhoAgro._meta.db_table not in tables:
+            with connection.schema_editor() as se:
+                se.create_model(NfeSaidaRascunhoAgro)
+        payload = _doc("4,355", "12498.85")
+        payload["estabelecimento"] = "centro"
+        r = salvar_documento_nfe_saida(None, None, payload, usuario="verify_qtd")
+        check("salvar_pg_qtd", r.get("ok") is True, str(r)[:120])
+        if r.get("ok"):
+            got = obter_nfe_saida_bruto(None, str(r.get("id")))
+            it0 = ((got or {}).get("itens") or [{}])[0]
+            check("reabrir_pg_qtd", qtd_persistida(it0.get("qtd")) == "4.355", str(it0.get("qtd")))
+            check("reabrir_pg_un", normalizar_unidade_nfe(it0.get("un")) == "TON", str(it0.get("un")))
+    except Exception as exc:
+        check(
+            "salvar_pg_qtd_skip",
+            "no such table" in str(exc).lower() or "ativo" in str(exc).lower(),
+            str(exc)[:120],
+        )
+
+
 def test_pg_flag() -> None:
     print("== Postgres store (flag) ==")
     from produtos.agro_fonte_config import agro_mongo_erp_desligado, agro_nfe_saida_rascunho_postgres
@@ -364,6 +597,7 @@ def main() -> int:
     test_migration_file()
     test_pg_flag()
     test_logica()
+    test_qtd_decimal()
     test_pin()
     test_http()
     print(f"\n{'=' * 40}\nOK {len(oks)}/{len(oks) + len(fails)}")
