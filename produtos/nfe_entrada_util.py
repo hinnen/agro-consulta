@@ -394,6 +394,30 @@ def _nfe_aplicar_infadprod_lote(item: dict[str, Any], texto: str) -> None:
     )
 
 
+def _nfe_preencher_fiscal_imposto_item(item: dict[str, Any], det: ET.Element) -> None:
+    """CSOSN e origem da mercadoria no bloco ``imposto`` / ICMS do item."""
+    imposto = None
+    for ch in det:
+        if _localname(ch.tag) == "imposto":
+            imposto = ch
+            break
+    if imposto is None:
+        return
+    csosn = ""
+    origem = ""
+    for el in imposto.iter():
+        ln = _localname(el.tag)
+        t = _text(el).strip()
+        if ln == "CSOSN" and t:
+            csosn = re.sub(r"\D", "", t)[:4]
+        elif ln == "orig" and t and not origem:
+            origem = re.sub(r"\D", "", t)[:1]
+    if csosn:
+        item["csosn"] = csosn
+    if origem:
+        item["origem"] = origem
+
+
 def _nfe_preencher_lote_item(item: dict[str, Any], det: ET.Element, prod: ET.Element | None) -> None:
     """Lote/validade: ``prod/rastro`` (schema oficial), ``det/rastro``, ``med`` e ``infAdProd``."""
     for parent in (prod, det):
@@ -876,7 +900,9 @@ def parse_nfe_xml_bytes(data: bytes) -> dict[str, Any]:
             elif ln == "xProd":
                 item["x_prod"] = t[:500]
             elif ln == "NCM":
-                item["ncm"] = t[:10]
+                from produtos.agro_produto_fiscal_defaults import normalizar_ncm_somente_digitos
+
+                item["ncm"] = normalizar_ncm_somente_digitos(t)[:10]
             elif ln == "CFOP":
                 item["cfop"] = t[:10]
             elif ln == "uCom":
@@ -896,6 +922,7 @@ def parse_nfe_xml_bytes(data: bytes) -> dict[str, Any]:
                     item["v_prod"] = float(Decimal(t.replace(",", ".") or "0"))
                 except Exception:
                     item["v_prod"] = 0.0
+        _nfe_preencher_fiscal_imposto_item(item, det)
         _nfe_preencher_lote_item(item, det, prod)
         itens_out.append(item)
 
@@ -5366,27 +5393,43 @@ def buscar_fornecedores_entrada_nfe(
     return out
 
 
-def propagar_fiscal_nf_catalogo_entrada_nota(linhas: list) -> dict[str, Any]:
+def propagar_fiscal_nf_catalogo_entrada_nota(
+    linhas: list,
+    *,
+    db=None,
+    client_m=None,
+) -> dict[str, Any]:
     """
-    Na Entrada NF: se a linha da nota trouxer NCM, grava no ``Produto`` + overlay fiscal
-    (substitui padrão genérico / NCM antigo). CFOP da NF de **compra** não vira CFOP padrão
-    de venda (NFC-e continua 5102 via merge).
+    Na Entrada NF: NCM / CFOP (venda) / CSOSN / origem vindos do XML na linha →
+    ``Produto`` (PG), overlay fiscal e espelho Mongo quando disponível.
     """
     from produtos.agro_produto_fiscal_defaults import (
+        cfop_venda_de_cfop_nf_entrada,
         merge_fiscal_padrao_cadastro_manual_sp_sn,
         normalizar_ncm_somente_digitos,
     )
     from produtos.catalogo_agro import obter_produto_model
     from produtos.models import ProdutoGestaoOverlayAgro
 
+    try:
+        from produtos.views import (
+            _mongo_doc_produto_entrada_resolve as _doc_entrada_ln,
+            _mongo_filtro_id_produto_externo as _filt_entrada_ln,
+        )
+    except Exception:  # pragma: no cover
+        _doc_entrada_ln = None
+        _filt_entrada_ln = None
+
     out: dict[str, Any] = {
         "ok": True,
         "atualizados_produto": 0,
         "atualizados_overlay": 0,
+        "atualizados_mongo": 0,
         "produto_ids": [],
     }
     if not linhas:
         return out
+    col = getattr(client_m, "col_p", None) if client_m is not None else None
     ids_ok: set[str] = set()
     for ln in linhas:
         if not isinstance(ln, dict):
@@ -5395,35 +5438,52 @@ def propagar_fiscal_nf_catalogo_entrada_nota(linhas: list) -> dict[str, Any]:
         if not pid or pid.lower().startswith("local:"):
             continue
         ncm = normalizar_ncm_somente_digitos(ln.get("ncm"))
-        if len(ncm) < 8:
+        cfop_cat = cfop_venda_de_cfop_nf_entrada(ln.get("cfop"))
+        csosn = re.sub(r"\D", "", str(ln.get("csosn") or ""))[:4]
+        origem = re.sub(r"\D", "", str(ln.get("origem") or ""))[:1]
+        nf_fis: dict[str, str] = {}
+        if len(ncm) >= 8:
+            nf_fis["ncm"] = ncm[:14]
+        if cfop_cat:
+            nf_fis["cfop"] = cfop_cat[:7]
+        if csosn:
+            nf_fis["csosn"] = csosn[:7]
+        if origem:
+            nf_fis["origem"] = origem[:4]
+        if not nf_fis:
             continue
         p = obter_produto_model(pid)
         pid64 = ""
         if p is not None:
             pid64 = str(p.produto_externo_id or pid).strip()[:64]
-            try:
-                if str(p.ncm or "").strip() != ncm:
-                    p.ncm = ncm[:16]
-                    p.save(update_fields=["ncm"])
-                    out["atualizados_produto"] += 1
-            except Exception as exc:
-                logger.warning("propagar_fiscal produto %s: %s", pid, exc)
+            if nf_fis.get("ncm"):
+                try:
+                    if str(p.ncm or "").strip() != nf_fis["ncm"]:
+                        p.ncm = nf_fis["ncm"][:16]
+                        p.save(update_fields=["ncm"])
+                        out["atualizados_produto"] += 1
+                except Exception as exc:
+                    logger.warning("propagar_fiscal produto %s: %s", pid, exc)
         else:
             pid64 = pid[:64]
         if not pid64:
             continue
         try:
+            from produtos.cadastro_alteracao_historico_util import (
+                registrar_diffs_cadastro,
+                snapshot_overlay,
+            )
+
             ov, _created = ProdutoGestaoOverlayAgro.objects.get_or_create(
                 produto_externo_id=pid64,
                 defaults={},
             )
             ex = dict(ov.cadastro_extras) if isinstance(ov.cadastro_extras, dict) else {}
             fis_prev = dict(ex.get("fiscal") or {}) if isinstance(ex.get("fiscal"), dict) else {}
-            fis_prev["ncm"] = ncm[:14]
-            mf = merge_fiscal_padrao_cadastro_manual_sp_sn(fis_prev)
-            # NCM da NF prevalece sobre o padrão (merge já manteve se veio preenchido).
-            mf["ncm"] = ncm[:14]
-            ex["fiscal"] = {
+            mf = merge_fiscal_padrao_cadastro_manual_sp_sn({**fis_prev, **nf_fis})
+            for k, v in nf_fis.items():
+                mf[k] = v
+            novo_fiscal = {
                 "ncm": mf["ncm"][:14],
                 "cest": str(mf.get("cest") or "").strip()[:10],
                 "cfop": mf["cfop"][:7],
@@ -5431,12 +5491,52 @@ def propagar_fiscal_nf_catalogo_entrada_nota(linhas: list) -> dict[str, Any]:
                 "origem": mf["origem"][:4],
                 "cst_pis_cofins": str(mf.get("cst_pis_cofins") or "")[:8],
             }
-            ov.cadastro_extras = ex
-            ov.save(update_fields=["cadastro_extras", "atualizado_em"])
-            out["atualizados_overlay"] += 1
+            igual = all(str(fis_prev.get(k) or "").strip() == str(v or "").strip() for k, v in novo_fiscal.items())
+            if not igual:
+                antes = snapshot_overlay(ov)
+                ex["fiscal"] = novo_fiscal
+                ov.cadastro_extras = ex
+                ov.save(update_fields=["cadastro_extras", "atualizado_em"])
+                registrar_diffs_cadastro(
+                    produto_id=pid64,
+                    antes=antes,
+                    depois=snapshot_overlay(ov),
+                    origem="nf",
+                )
+                out["atualizados_overlay"] += 1
             ids_ok.add(pid64)
         except Exception as exc:
             logger.warning("propagar_fiscal overlay %s: %s", pid, exc)
+        if db is not None and col and _filt_entrada_ln:
+            c_prod = str(ln.get("c_prod") or "").strip()
+            ean_d = "".join(ch for ch in str(ln.get("ean") or "") if ch.isdigit())
+            doc_ln = _doc_entrada_ln(db, col, pid, codigo_catalogo=c_prod, ean=ean_d) if _doc_entrada_ln else None
+            id_u = pid
+            if isinstance(doc_ln, dict):
+                id_u = (
+                    str(doc_ln.get("Id") or "").strip()
+                    or str(doc_ln.get("_id") or "").strip()
+                    or pid
+                )
+            set_mongo: dict[str, str] = {}
+            if nf_fis.get("ncm"):
+                set_mongo["NCM"] = nf_fis["ncm"][:16]
+            if nf_fis.get("cfop"):
+                cfp = nf_fis["cfop"][:10]
+                set_mongo["CFOP"] = cfp
+                set_mongo["CfopPadrao"] = cfp
+            if nf_fis.get("csosn"):
+                set_mongo["CSOSN"] = nf_fis["csosn"][:10]
+            if nf_fis.get("origem"):
+                set_mongo["OrigemMercadoria"] = nf_fis["origem"][:8]
+            if set_mongo:
+                try:
+                    filt = _filt_entrada_ln(id_u)
+                    r = db[col].update_one(filt, {"$set": set_mongo})
+                    if r.matched_count:
+                        out["atualizados_mongo"] += 1
+                except Exception as exc:
+                    logger.warning("propagar_fiscal mongo %s: %s", pid, exc)
     out["produto_ids"] = sorted(ids_ok)
     return out
 

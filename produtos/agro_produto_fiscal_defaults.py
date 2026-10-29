@@ -34,6 +34,21 @@ def normalizar_ncm_somente_digitos(ncm_raw: Any) -> str:
     return d[:8] if d else ""
 
 
+def cfop_venda_de_cfop_nf_entrada(cfop_raw: Any) -> str:
+    """
+    CFOP na NF de **entrada** (compra) → CFOP padrão de **venda** no catálogo.
+    Entrada estadual 1xxx → saída 5xxx; interestadual 2xxx → 6xxx (mesmos 3 últimos dígitos).
+    Se o XML já trouxer CFOP de saída (5–8), mantém.
+    """
+    d = re.sub(r"\D", "", str(cfop_raw or ""))[:4]
+    if len(d) != 4:
+        return ""
+    first = d[0]
+    if first in "1234":
+        return f"{int(first) + 4}{d[1:]}"
+    return d
+
+
 def merge_fiscal_padrao_cadastro_manual_sp_sn(fiscal: dict[str, Any] | None) -> dict[str, str]:
     """
     Preenche chaves vazias com ``_DEFAULTS_SP_SN_CONSUMIDOR``.

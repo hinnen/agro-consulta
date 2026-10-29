@@ -1149,6 +1149,16 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
+## 105. CHECKLIST ÚNICO — **29/10** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NF-FISCAL-XML** | 🟢 Pronto | **NÃO** | **VERIFY_OK 14** |
+
+Entrada NF atualiza NCM, CSOSN, origem e CFOP de venda a partir do XML. Valor já igual não gera histórico. **Não** está na loja até frase + senha.
+
+---
+
 ## 104. CHECKLIST ÚNICO — **27/10** · ✅ **Live v27.26.28** (itens 1, 3 e 4)
 
 | # | Pacote | Status | Migrate |

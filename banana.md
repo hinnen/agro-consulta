@@ -1322,6 +1322,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- | ----- |
 | 1 | **CONTAGEM-CANCELAR** | 🟢 Pronto | **NÃO** | cancela sessão · ajuste do bloco permanece · **403/200** |
 
+### 📦 PACOTE PRONTO — **NF-FISCAL-XML** · 29/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **Pronto para envio à produção** (frase + senha) |
+| **Entra** | Entrada NF grava no cadastro o NCM, o CSOSN, a origem e o CFOP de venda vindos do XML. Se já estiver igual, não grava de novo e não cria linha no histórico. Se mudar, a aba Alterações mostra origem **Entrada NF**. CFOP de compra vira venda (`1102` → `5102`; `5405` permanece). |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_nf_fiscal_xml_path.py` **VERIFY_OK 14** |
+
+### ✅ CHECKLIST ÚNICO — **29/10** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NF-FISCAL-XML** | 🟢 Pronto | **NÃO** | **VERIFY_OK 14** |
+
 ### 📦 PACOTE PRONTO — **AJUSTE-BIP-HORA** · **v27.26.44** · PREP `teste` @ **`28f995f8`**
 
 | Campo | Valor |
