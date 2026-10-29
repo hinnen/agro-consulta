@@ -48,6 +48,9 @@ def main() -> int:
     util = (ROOT / "produtos/nfe_entrada_util.py").read_text(encoding="utf-8")
     check("cfop_venda_de_cfop_nf_entrada" in util, "propagar usa cfop venda")
     check("atualizados_mongo" in util, "propagar sync mongo")
+    check("isinstance(ov.cadastro_extras, dict)" in util, "overlay isinstance dict")
+    check('origem="nf"' in util, "historico origem Entrada NF")
+    check("if not igual:" in util, "nao grava overlay se fiscal igual")
 
     views = (ROOT / "produtos/views.py").read_text(encoding="utf-8")
     check(
@@ -58,7 +61,7 @@ def main() -> int:
     if failures:
         print(f"\nVERIFY_FAILS={len(failures)}")
         return 1
-    print(f"\nVERIFY_OK {5 + 6}")
+    print("\nVERIFY_OK 14")
     return 0
 
 

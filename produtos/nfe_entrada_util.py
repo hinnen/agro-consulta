@@ -5415,12 +5415,10 @@ def propagar_fiscal_nf_catalogo_entrada_nota(
         from produtos.views import (
             _mongo_doc_produto_entrada_resolve as _doc_entrada_ln,
             _mongo_filtro_id_produto_externo as _filt_entrada_ln,
-            _mongo_produto_externo_id_overlay as _ov_id_entrada,
         )
     except Exception:  # pragma: no cover
         _doc_entrada_ln = None
         _filt_entrada_ln = None
-        _ov_id_entrada = None
 
     out: dict[str, Any] = {
         "ok": True,
@@ -5471,16 +5469,21 @@ def propagar_fiscal_nf_catalogo_entrada_nota(
         if not pid64:
             continue
         try:
+            from produtos.cadastro_alteracao_historico_util import (
+                registrar_diffs_cadastro,
+                snapshot_overlay,
+            )
+
             ov, _created = ProdutoGestaoOverlayAgro.objects.get_or_create(
                 produto_externo_id=pid64,
                 defaults={},
             )
-            ex = dict(ov.cadastro_extras) if isinstance(ov.cadastro_extras) else {}
+            ex = dict(ov.cadastro_extras) if isinstance(ov.cadastro_extras, dict) else {}
             fis_prev = dict(ex.get("fiscal") or {}) if isinstance(ex.get("fiscal"), dict) else {}
             mf = merge_fiscal_padrao_cadastro_manual_sp_sn({**fis_prev, **nf_fis})
             for k, v in nf_fis.items():
                 mf[k] = v
-            ex["fiscal"] = {
+            novo_fiscal = {
                 "ncm": mf["ncm"][:14],
                 "cest": str(mf.get("cest") or "").strip()[:10],
                 "cfop": mf["cfop"][:7],
@@ -5488,9 +5491,19 @@ def propagar_fiscal_nf_catalogo_entrada_nota(
                 "origem": mf["origem"][:4],
                 "cst_pis_cofins": str(mf.get("cst_pis_cofins") or "")[:8],
             }
-            ov.cadastro_extras = ex
-            ov.save(update_fields=["cadastro_extras", "atualizado_em"])
-            out["atualizados_overlay"] += 1
+            igual = all(str(fis_prev.get(k) or "").strip() == str(v or "").strip() for k, v in novo_fiscal.items())
+            if not igual:
+                antes = snapshot_overlay(ov)
+                ex["fiscal"] = novo_fiscal
+                ov.cadastro_extras = ex
+                ov.save(update_fields=["cadastro_extras", "atualizado_em"])
+                registrar_diffs_cadastro(
+                    produto_id=pid64,
+                    antes=antes,
+                    depois=snapshot_overlay(ov),
+                    origem="nf",
+                )
+                out["atualizados_overlay"] += 1
             ids_ok.add(pid64)
         except Exception as exc:
             logger.warning("propagar_fiscal overlay %s: %s", pid, exc)
