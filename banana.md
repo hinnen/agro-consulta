@@ -1369,18 +1369,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PREP ARMADO — **CHECKLIST 29/10** · **v27.26.44** · fiscal do XML
+### ✅ Deploy loja — **CHECKLIST 29/10** · **Live v27.26.44** · 29/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP armado** @ **`925dd0cf`** · aguarda frase + senha |
-| **Base loja** | **v27.26.43** @ **`ddd7df5c`** |
+| **Status** | ✅ **Live** @ **`925dd0cf`** · cutover autorizado **29/10** |
 | **Entra** | Entrada NF grava NCM, CSOSN, origem e CFOP de venda do XML. Igual não regrava. `1102` → `5102` |
-| **Fora** | Checklists 27/10f, 28/10, 28/10b e 28/10d já estão na loja |
 | **Migrate** | **NÃO** |
 | **PDV / caixa / checkout** | **Não neste delta** |
-| **Prova** | `verify_nf_fiscal_xml_path.py` **VERIFY_OK 14** · cutover **OK** |
-| **Revert** | `git push origin rollback/pre-v272644-2910-nf-fiscal-xml:producao` → **`ddd7df5c`** |
+| **Revert** | `git push origin rollback/pre-v272644-2910-nf-fiscal-xml:producao` → **v27.26.43** @ **`ddd7df5c`** |
 | **Pós-deploy** | `./scripts/post_deploy_checklist_2910_nf_fiscal_xml.sh` |
 | **Smoke** | Entrar uma NF com NCM/CFOP 1102 · cadastro fica 5102 · segunda vez igual não cria histórico |
 
