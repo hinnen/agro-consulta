@@ -1,0 +1,55 @@
+{
+  "versao": 1,
+  "grupos": [
+    {
+      "id": "antiinfecciosos",
+      "titulo": "Anti-infecciosos",
+      "itens": [
+        { "id": "antibiotico", "label": "Antibiótico" },
+        { "id": "antimicrobiano", "label": "Antimicrobiano (geral)" },
+        { "id": "antifungico", "label": "Antifúngico" },
+        { "id": "antiprotozoario", "label": "Antiprotozoário" },
+        { "id": "sulfonamida", "label": "Sulfonamida" },
+        { "id": "coccidiostatico", "label": "Coccidiostático" }
+      ]
+    },
+    {
+      "id": "inflamacao_dor",
+      "titulo": "Inflamação e dor",
+      "itens": [
+        { "id": "anti-inflamatorio", "label": "Anti-inflamatório" },
+        { "id": "corticoide", "label": "Corticoide" },
+        { "id": "analgesico", "label": "Analgésico" },
+        { "id": "antitermico", "label": "Antitérmico" }
+      ]
+    },
+    {
+      "id": "parasitas",
+      "titulo": "Parasitas",
+      "itens": [
+        { "id": "antiparasitario_interno", "label": "Antiparasitário interno" },
+        { "id": "antiparasitario_externo", "label": "Antiparasitário externo" },
+        { "id": "antiparasitario_amplo", "label": "Antiparasitário amplo (interno + externo)" },
+        { "id": "vermifugo", "label": "Vermífugo" },
+        { "id": "carrapaticida", "label": "Carrapaticida" },
+        { "id": "acaricida", "label": "Acaricida" },
+        { "id": "inseticida", "label": "Inseticida" },
+        { "id": "larvicida", "label": "Larvicida" },
+        { "id": "repelente", "label": "Repelente" }
+      ]
+    },
+    {
+      "id": "outros",
+      "titulo": "Outros usuais na loja",
+      "itens": [
+        { "id": "vacina", "label": "Vacina" },
+        { "id": "hormonio", "label": "Hormônio" },
+        { "id": "vitamina_mineral", "label": "Vitamina / mineral" },
+        { "id": "probiotico", "label": "Probiótico" },
+        { "id": "antisseptico_topico", "label": "Antisséptico / desinfetante tópico" },
+        { "id": "fluido_terapia", "label": "Fluido / terapia parenteral" },
+        { "id": "anestesico_sedativo", "label": "Anestésico / sedativo" }
+      ]
+    }
+  ]
+}

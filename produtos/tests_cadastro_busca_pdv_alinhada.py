@@ -1,0 +1,145 @@
+"""Cadastro — filtro e ordenação alinhados ao motor PDV."""
+import re
+
+from django.test import SimpleTestCase
+
+from produtos.busca_filtro_pdv_util import filtrar_rows_api_estilo_pdv, ordenar_rows_api_estilo_pdv
+from produtos.cadastro_busca_codigo_util import (
+    padrao_iregex_busca_texto_pt,
+    tokens_termo_busca_cadastro,
+    variantes_token_busca_apelido,
+)
+from produtos.medicamento_vet_taxonomia import (
+    indice_busca_palavras_chave,
+    normalizar_palavras_chave,
+)
+
+
+class CadastroBuscaPdvAlinhadaTests(SimpleTestCase):
+    def test_tokens_incluem_digito_solo_2_tempo(self):
+        self.assertEqual(tokens_termo_busca_cadastro("2 tempo"), ["2", "tempo"])
+
+    def test_palavras_chave_preserva_virgula(self):
+        self.assertEqual(normalizar_palavras_chave("oleo, 2 tempo"), "oleo, 2 tempo")
+
+    def test_variantes_token_2tempo_espaco(self):
+        v = variantes_token_busca_apelido("2tempo")
+        self.assertIn("2 tempo", v)
+        self.assertIn("2tempo", v)
+        v2 = variantes_token_busca_apelido("2 tempo")
+        self.assertIn("2tempo", v2)
+
+    def test_indice_busca_palavras_sem_acento(self):
+        idx = indice_busca_palavras_chave("óleo, 2 tempo, 2tempo")
+        self.assertIn("oleo", idx)
+        self.assertIn("2 tempo", idx)
+
+    def test_filtra_frase_inteira_no_blob(self):
+        rows = [
+            {
+                "id": "1",
+                "nome": "OLEO CASTROL 2T",
+                "busca_texto": "oleo castrol 2t oleo 2 tempo 2tempo",
+            },
+        ]
+        out = filtrar_rows_api_estilo_pdv(rows, "2 tempo")
+        self.assertEqual(len(out), 1)
+
+    def test_filtra_oleo_2tempo_nome_mais_apelido(self):
+        rows = [
+            {
+                "id": "1",
+                "nome": "Oleo unix dt 2t 200ml",
+                "busca_texto": "oleo unix 2t oleo 2 tempo 2tempo cursor",
+            },
+        ]
+        out = filtrar_rows_api_estilo_pdv(rows, "oleo 2tempo")
+        self.assertEqual(len(out), 1)
+
+    def test_filtra_permutacoes_nome_apelido_e_espacos(self):
+        rows = [
+            {
+                "id": "1",
+                "nome": "Oleo unix dt 2t 200ml",
+                "busca_texto": "oleo unix 2t oleo 2 tempo 2tempo cursor",
+            },
+        ]
+        for termo in (
+            "2tempo oleo",
+            "oleo 2 tempo",
+            "2 tempo oleo",
+            "tempo 2 oleo",
+            "oleo2tempo",
+        ):
+            out = filtrar_rows_api_estilo_pdv(rows, termo)
+            self.assertEqual(len(out), 1, msg=f"falhou: {termo}")
+
+    def test_iregex_cao_casa_cao_acentuado(self):
+        pat = padrao_iregex_busca_texto_pt("CAO")
+        self.assertTrue(pat)
+        self.assertTrue(re.search(pat, "Shampoo Cão | Antiparasitario", re.I))
+
+    def test_filtra_shampo_cao_sem_acento_no_nome(self):
+        rows = [
+            {
+                "id": "1",
+                "nome": "Shampoo Cão | Antiparasitario | 500ml",
+                "busca_texto": "",
+            },
+        ]
+        out = filtrar_rows_api_estilo_pdv(rows, "SHAMPO CAO")
+        self.assertEqual(len(out), 1)
+
+    def test_filtra_shampo_pulga_nome_apelido(self):
+        rows = [
+            {
+                "id": "1",
+                "nome": "shampoo antiparasitario doctor animal 500ml",
+                "busca_texto": "shampoo antiparasitario pulga carrapato",
+            },
+        ]
+        out = filtrar_rows_api_estilo_pdv(rows, "shampo pulga")
+        self.assertEqual(len(out), 1)
+
+    def test_filtra_shampo_pulga_exige_busca_texto(self):
+        """Sem apelidos no blob, «pulga» não casa só no nome (cadastro zerava antes do fix na API)."""
+        rows = [
+            {
+                "id": "1",
+                "nome": "shampoo antiparasitario doctor animal 500ml",
+                "busca_texto": "",
+            },
+        ]
+        out = filtrar_rows_api_estilo_pdv(rows, "shampo pulga")
+        self.assertEqual(len(out), 0)
+
+    def test_filtra_oleo_2_tempo_com_busca_texto(self):
+        rows = [
+            {
+                "id": "1",
+                "nome": "OLEO CASTROL 2T",
+                "busca_texto": "oleo castrol 2t oleo, 2 tempo, 2tempo",
+            },
+        ]
+        out = filtrar_rows_api_estilo_pdv(rows, "2 tempo")
+        self.assertEqual(len(out), 1)
+
+    def test_filtra_palavra_fraca_sem_identificar(self):
+        rows = [
+            {"id": "1", "nome": "bebedouro grande porte 10l", "marca": "X"},
+            {"id": "2", "nome": "milho grande 47 kg", "marca": "PILAR"},
+            {"id": "3", "nome": "milho 10kg", "marca": ""},
+        ]
+        out = filtrar_rows_api_estilo_pdv(rows, "milho grande")
+        nomes = [r["nome"] for r in out]
+        self.assertIn("milho grande 47 kg", nomes)
+        self.assertNotIn("bebedouro grande porte 10l", nomes)
+
+    def test_ordenacao_relevancia_nome_antes_alfabetico(self):
+        rows = [
+            {"id": "a", "nome": "zinco ração especial", "marca": ""},
+            {"id": "b", "nome": "milho 1kg", "marca": ""},
+            {"id": "c", "nome": "milho grande 47 kg", "marca": ""},
+        ]
+        out = ordenar_rows_api_estilo_pdv(rows, "milho")
+        self.assertEqual(out[0]["nome"], "milho 1kg")

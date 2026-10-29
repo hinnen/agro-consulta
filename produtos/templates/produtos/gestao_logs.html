@@ -1,0 +1,106 @@
+{% extends "layouts/base_admin.html" %}
+{% load static %}
+
+{% block admin_title %}SisVale | LOG{% endblock %}
+{% block admin_header_title %}LOG{% endblock %}
+{% block admin_header_meta %}Auditoria e histórico do sistema{% endblock %}
+
+{% block admin_header_actions %}
+  {% if admin_url %}
+  <a href="{{ admin_url }}" target="_blank" rel="noopener" class="inline-flex min-h-[2.75rem] items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-4 text-sm font-black uppercase text-slate-800 shadow-sm hover:bg-slate-50">Admin Django</a>
+  {% endif %}
+  <a href="{% url 'home' %}" class="inline-flex min-h-[2.75rem] items-center justify-center rounded-xl bg-slate-800 px-4 text-sm font-black uppercase text-white shadow hover:bg-slate-900">Início</a>
+{% endblock %}
+
+{% block admin_content %}
+{% include "produtos/_agro_consulta_ui.html" %}
+<style>
+  .log-shell { max-width: 80rem; margin: 0 auto; display: grid; gap: 1rem; }
+  @media (min-width: 1024px) {
+    .log-shell { grid-template-columns: minmax(14rem, 22rem) 1fr; align-items: start; }
+  }
+  .log-nav { display: flex; flex-direction: column; gap: 0.5rem; }
+  .log-nav a {
+    display: block; padding: 0.75rem 1rem; border-radius: 0.85rem; border: 2px solid #e2e8f0;
+    background: #fff; text-decoration: none; color: #0f172a; font-weight: 800; font-size: 0.88rem;
+  }
+  .log-nav a.is-active { border-color: #a855f7; background: #faf5ff; }
+  .log-nav a span { display: block; font-weight: 600; color: #64748b; font-size: 0.78rem; margin-top: 0.2rem; line-height: 1.3; }
+  .log-nav .log-total { float: right; font-size: 0.72rem; color: #7c3aed; font-weight: 900; }
+  .log-panel { border: 3px solid #cbd5e1; border-radius: 1rem; background: #fff; padding: 1rem; min-width: 0; }
+  .log-panel h2 { margin: 0 0 0.75rem; font-size: 1.1rem; font-weight: 900; color: #0f172a; }
+  .log-busca { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
+  .log-busca input {
+    flex: 1; min-width: 12rem; min-height: 2.75rem; border: 2px solid #e2e8f0; border-radius: 0.75rem;
+    padding: 0 0.85rem; font-weight: 700; font-size: 1rem;
+  }
+  .log-busca button {
+    min-height: 2.75rem; padding: 0 1.25rem; border: 0; border-radius: 0.75rem;
+    background: #7c3aed; color: #fff; font-weight: 900; text-transform: uppercase; font-size: 0.8rem;
+  }
+  .log-table-wrap { overflow: auto; max-height: min(70vh, 42rem); border: 2px solid #e2e8f0; border-radius: 0.75rem; }
+  table.log-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  .log-table th {
+    position: sticky; top: 0; background: #f1f5f9; text-align: left; padding: 0.55rem 0.65rem;
+    font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: #475569;
+  }
+  .log-table td { padding: 0.5rem 0.65rem; border-top: 1px solid #e2e8f0; vertical-align: top; font-weight: 600; color: #0f172a; }
+  .log-table tr:nth-child(even) td { background: #f8fafc; }
+  .log-empty { padding: 2rem; text-align: center; font-weight: 800; color: #64748b; }
+</style>
+
+<div class="log-shell">
+  <nav class="log-nav" aria-label="Fontes de log">
+    {% for item in catalogo %}
+      {% if item.pagina_url and not item.admin_model %}
+      <a href="{{ item.pagina_url }}" class="{% if item.ativo %}is-active{% endif %}">
+        {{ item.titulo }}{% if item.total != None %}<span class="log-total">{{ item.total }}</span>{% endif %}
+        <span>{{ item.descricao }}</span>
+      </a>
+      {% else %}
+      <a href="{% url 'gestao_logs_painel' %}?fonte={{ item.id }}" class="{% if item.ativo %}is-active{% endif %}">
+        {{ item.titulo }}{% if item.total != None %}<span class="log-total">{{ item.total }}</span>{% endif %}
+        <span>{{ item.descricao }}</span>
+      </a>
+      {% endif %}
+    {% endfor %}
+  </nav>
+
+  <section class="log-panel">
+    <h2>{{ fonte_titulo }}</h2>
+    <form class="log-busca" method="get" action="{% url 'gestao_logs_painel' %}">
+      <input type="hidden" name="fonte" value="{{ fonte_id }}">
+      <input type="search" name="q" value="{{ busca }}" placeholder="Buscar operador, ação, caminho…" autocomplete="off">
+      <button type="submit">Filtrar</button>
+    </form>
+    {% if linhas %}
+    <div class="log-table-wrap">
+      <table class="log-table">
+        <thead>
+          <tr>
+            <th>Quando</th>
+            <th>Quem</th>
+            <th>Ação</th>
+            <th>Detalhe</th>
+            <th>Extra</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in linhas %}
+          <tr>
+            <td>{{ row.quando }}</td>
+            <td>{{ row.quem }}</td>
+            <td>{{ row.acao }}{% if row.status %} <span class="text-slate-500">({{ row.status }})</span>{% endif %}</td>
+            <td>{{ row.detalhe }}</td>
+            <td>{{ row.extra }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="log-empty">Nenhum registro nesta fonte{% if busca %} para «{{ busca }}»{% endif %}.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

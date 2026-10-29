@@ -18,9 +18,26 @@ class Empresa(models.Model):
     
 class PerfilUsuario(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    codigo_vendedor = models.CharField(max_length=4, unique=True) # 0001, 0002...
-    senha_rapida = models.CharField(max_length=100) # Senha para movimentações
+    codigo_vendedor = models.CharField(max_length=4, unique=True)  # 0001, 0002...
+    senha_rapida = models.CharField(max_length=100)  # Senha para movimentações
     primeiro_acesso = models.BooleanField(default=True)
+    ativo = models.BooleanField(
+        "Ativo no caixa",
+        default=True,
+        help_text="False = saiu / não aparece no PIN nem valida no caixa.",
+    )
+    funcionario = models.ForeignKey(
+        "rh.Funcionario",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="perfis_pin",
+        verbose_name="Funcionário RH",
+    )
+
+    class Meta:
+        verbose_name = "Perfil de operador (PIN)"
+        verbose_name_plural = "Perfis de operador (PIN)"
 
     def __str__(self):
         return f"{self.codigo_vendedor} - {self.user.first_name}"

@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  {% load static %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+  <title>{{ config.nome_loja }} · Delivery</title>
+  {% include "produtos/catalogo/_catalogo_og_meta.html" %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --cat-primary: {{ config.cor_primaria|default:"#059669" }};
+      --cat-secondary: {{ config.cor_secundaria|default:"#fff7ed" }};
+    }
+    html, body { max-width: 100vw; overflow-x: hidden; }
+    body {
+      background: linear-gradient(180deg, var(--cat-secondary) 0%, #f8fafc 45%, #f1f5f9 100%);
+      min-height: 100dvh;
+      padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    }
+    .shell { max-width: 28rem; margin-left: auto; margin-right: auto; }
+    .bg-primary { background-color: var(--cat-primary) !important; }
+    .text-primary { color: var(--cat-primary) !important; }
+    .border-primary { border-color: var(--cat-primary) !important; }
+    .ring-primary { --tw-ring-color: var(--cat-primary); }
+    .hero-mesh {
+      /* Topo quase branco até depois do Delivery; verde sobe mais embaixo */
+      background: linear-gradient(
+        180deg,
+        #ffffff 0%,
+        #fafcfa 14%,
+        #f6faf7 26%,
+        #f2f9f4 38%,
+        #eef8f1 48%,
+        #e6f6ec 56%,
+        #d5f0e0 64%,
+        #c5ebd4 72%,
+        #a8e0c0 80%,
+        #86d4a8 88%,
+        #6bc48f 94%,
+        #52b57a 100%
+      );
+    }
+    .card-cat {
+      --cat-card: #059669;
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: #fff;
+      border-radius: 1.1rem;
+      border: 1.5px solid color-mix(in srgb, var(--cat-card) 38%, #e2e8f0);
+      overflow: hidden;
+      box-shadow: 0 4px 14px rgb(15 23 42 / 0.08);
+      transition: transform 0.15s ease;
+    }
+    .card-cat:active { transform: scale(0.98); }
+    .card-cat-img {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      background: color-mix(in srgb, var(--cat-card) 16%, #fff);
+    }
+    .card-cat-ph {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.4rem;
+      font-weight: 900;
+      color: var(--cat-card);
+      background: linear-gradient(145deg, color-mix(in srgb, var(--cat-card) 10%, #fff), color-mix(in srgb, var(--cat-card) 28%, #fff));
+    }
+    .card-prod {
+      background: #fff;
+      border-radius: 1rem;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 1px 2px rgb(15 23 42 / 0.05);
+    }
+    .badge-peso {
+      font-size: 0.65rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+      border-radius: 999px;
+      padding: 0.15rem 0.5rem;
+    }
+    .btn-wa {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      min-height: 3rem;
+      border-radius: 0.9rem;
+      font-weight: 900;
+      font-size: 0.95rem;
+      background: #16a34a;
+      color: #fff;
+      box-shadow: 0 4px 14px rgb(22 163 74 / 0.35);
+    }
+    .fab-wa {
+      position: fixed;
+      right: max(0.9rem, env(safe-area-inset-right, 0px));
+      bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+      z-index: 45;
+      width: 3.75rem;
+      height: 3.75rem;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #22c55e;
+      color: #fff;
+      box-shadow: 0 8px 24px rgb(22 163 74 / 0.45);
+      border: 3px solid #fff;
+    }
+    .fab-wa:active { transform: scale(0.94); }
+    .fab-wa svg { width: 1.85rem; height: 1.85rem; display: block; }
+    .logo-loja-wrap {
+      width: 100%;
+      aspect-ratio: 3.75 / 1;
+      overflow: hidden;
+      background: transparent;
+      line-height: 0;
+    }
+    .logo-loja {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      background: transparent;
+      border: none;
+      padding: 0;
+      margin: 0;
+      box-shadow: none;
+      /* fundo branco do PNG some no degradê claro */
+      mix-blend-mode: multiply;
+    }
+    .hero-brand { display: flex; flex-direction: column; gap: 0; }
+    .hero-brand-body {
+      padding: 0.85rem 1rem 0;
+      background: transparent;
+    }
+    .hero-brand-meta {
+      min-width: 0;
+      flex: 1;
+      color: #064e3b;
+      text-shadow: none;
+    }
+    .hero-brand-meta .hero-kicker {
+      color: #047857;
+      opacity: 1;
+    }
+    .hero-brand-meta .hero-msg {
+      color: #14532d;
+      opacity: 1;
+    }
+    .gestao-btn {
+      flex-shrink: 0;
+      align-self: flex-start;
+      margin-top: 0.15rem;
+      font-size: 0.65rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      background: rgba(255, 255, 255, 0.75);
+      border: 1.5px solid #059669;
+      padding: 0.35rem 0.55rem;
+      border-radius: 0.5rem;
+      color: #047857;
+      text-decoration: none;
+      white-space: nowrap;
+      box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+    }
+    .card-rota {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      min-width: 0;
+      padding: 0.55rem 0.6rem 0.5rem;
+      border-radius: 0.85rem;
+      background: #ffffff;
+      border: 1.5px solid rgba(6, 78, 59, 0.14);
+      box-shadow: 0 2px 8px rgb(15 23 42 / 0.08);
+      transition: transform 0.12s ease, background 0.12s ease;
+      text-decoration: none;
+      color: #14532d;
+    }
+    .card-rota:active { transform: scale(0.97); background: #ffffff; }
+    .card-rota .card-rota-rotulo { color: #047857; opacity: 1; }
+    .card-rota .card-rota-end { color: #1e293b; opacity: 1; }
+    .card-rota-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      align-self: flex-start;
+      margin-top: 0.1rem;
+      padding: 0.28rem 0.55rem 0.28rem 0.4rem;
+      border-radius: 999px;
+      background: #059669;
+      color: #fff;
+      font-size: 0.62rem;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      box-shadow: 0 1px 4px rgb(0 0 0 / 0.12);
+    }
+    .card-rota-cta svg.pin {
+      width: 0.85rem;
+      height: 0.85rem;
+      animation: pin-nudge 1.8s ease-in-out infinite;
+    }
+    .card-rota-cta svg.chev { width: 0.7rem; height: 0.7rem; opacity: 0.7; }
+    @keyframes pin-nudge {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-2px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .card-rota-cta svg.pin { animation: none; }
+    }
+    .chip-sub {
+      flex-shrink: 0;
+      padding: 0.45rem 0.85rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      background: #f1f5f9;
+      color: #334155;
+      border: 2px solid transparent;
+    }
+    .chip-sub.is-on {
+      background: color-mix(in srgb, var(--cat-primary) 12%, white);
+      color: #065f46;
+      border-color: var(--cat-primary);
+    }
+    .cat-scroll { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+    .cat-scroll::-webkit-scrollbar { display: none; }
+  </style>
+</head>
+<body class="text-slate-800 antialiased">
+<div class="shell">
+
+<header class="hero-mesh pb-5 relative overflow-hidden">
+  <div class="hero-brand">
+    {% if config.logo_url %}
+    <div class="logo-loja-wrap">
+      <img src="{{ config.logo_url }}" alt="{{ config.nome_loja }}" class="logo-loja">
+    </div>
+    {% else %}
+    <h1 class="text-[1.55rem] font-black tracking-tight leading-tight px-4 pt-5 text-emerald-950">{{ config.nome_loja }}</h1>
+    {% endif %}
+    <div class="hero-brand-body">
+      <div class="flex items-start justify-between gap-2">
+        <div class="hero-brand-meta">
+          <p class="hero-kicker text-[0.65rem] font-black uppercase tracking-[0.18em]">Delivery · rações</p>
+          {% if config.mensagem_boas_vindas %}
+          <p class="hero-msg mt-1 text-sm font-semibold leading-snug">{{ config.mensagem_boas_vindas }}</p>
+          {% else %}
+          <p class="hero-msg mt-1 text-sm font-semibold leading-snug">Escolha a categoria · peça pelo celular</p>
+          {% endif %}
+        </div>
+        {% if eh_staff %}
+        <a href="{% url 'catalogo_gestao' %}" class="gestao-btn">Gestão</a>
+        {% endif %}
+      </div>
+
+  {% if enderecos %}
+  <div class="mt-3 grid grid-cols-2 gap-1.5">
+    {% for end in enderecos %}
+    <a class="card-rota text-[0.65rem] sm:text-[0.7rem] font-semibold leading-snug"
+       href="https://www.google.com/maps/dir/?api=1&destination={{ end.endereco|urlencode }}&travelmode=driving"
+       target="_blank" rel="noopener"
+       aria-label="Como chegar em {{ end.rotulo }}">
+      <span class="card-rota-rotulo uppercase tracking-wide truncate">{{ end.rotulo }}</span>
+      <span class="card-rota-end block line-clamp-2 font-semibold">{{ end.endereco }}</span>
+      <span class="card-rota-cta">
+        <svg class="pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/>
+        </svg>
+        Como chegar
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+    </div>
+  </div>
+
+  {% if config.area_entrega %}
+  <p class="mt-2 px-4 text-[0.7rem] font-bold text-emerald-900">Entrega: {{ config.area_entrega }}</p>
+  {% endif %}
+</header>
+
+<div class="px-3 -mt-3 relative z-20">
+  <input type="search" id="busca-catalogo" placeholder="Buscar ração, marca, peso…"
+    class="w-full p-3.5 rounded-2xl border border-slate-200 shadow-md text-base bg-white focus:outline-none focus:ring-2 ring-primary" />
+</div>
+
+{% if catalogo_vazio %}
+<main class="px-4 py-14 text-center text-slate-600">
+  <p class="text-lg font-bold">Catálogo em montagem</p>
+  <p class="text-sm mt-2">Em breve categorias e produtos para delivery.</p>
+</main>
+{% else %}
+
+{# —— HOME: cards de categoria —— #}
+<section id="home-categorias" class="px-3 pt-4 pb-2">
+  <h2 class="text-sm font-black uppercase tracking-wide text-slate-500 mb-3 px-0.5">Escolha a categoria</h2>
+  <div class="grid grid-cols-2 gap-3">
+    {% for c in home_cats %}
+    <button type="button" class="card-cat cat-home-card" data-cat="{{ c.slug }}" data-nome="{{ c.nome }}" style="--cat-card: {{ c.cor|default:'#059669' }}">
+      {% if c.imagem %}
+      <img class="card-cat-img" src="{{ c.imagem }}" alt="{{ c.nome }}">
+      {% else %}
+      <div class="card-cat-ph">{{ c.nome|slice:":1" }}</div>
+      {% endif %}
+      <div class="px-2.5 py-2.5">
+        <p class="font-black text-slate-900 text-[0.95rem] leading-tight">{{ c.nome }}</p>
+        <p class="text-[0.7rem] font-semibold text-slate-500 mt-0.5">
+          {% if c.qtd %}{{ c.qtd }} produto{% if c.qtd != 1 %}s{% endif %}{% else %}Em breve{% endif %}
+        </p>
+      </div>
+    </button>
+    {% empty %}
+    <p class="col-span-2 text-sm text-slate-500 py-8 text-center">Nenhuma categoria cadastrada ainda.</p>
+    {% endfor %}
+  </div>
+</section>
+
+{# —— SUBCATEGORIAS (níveis 2–5) —— #}
+<section id="view-subcategorias" class="hidden">
+  <div class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-100 px-3 py-2.5 flex items-center gap-2">
+    <button type="button" id="btn-voltar-home" class="shrink-0 min-h-[2.5rem] px-3 rounded-xl border-2 border-slate-200 font-black text-sm">‹ Voltar</button>
+    <h2 id="titulo-sub-passo" class="font-black text-slate-900 text-base truncate flex-1">Subcategoria</h2>
+  </div>
+  <div class="px-3 pt-4 pb-2">
+    <h2 id="titulo-sub-ajuda" class="text-sm font-black uppercase tracking-wide text-slate-500 mb-3 px-0.5">Escolha a subcategoria</h2>
+    <div id="grade-subcategorias" class="grid grid-cols-2 gap-3"></div>
+  </div>
+</section>
+
+{# —— PESO da embalagem (estilo PDV Rações) —— #}
+<section id="view-pesos" class="hidden">
+  <div class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-100 px-3 py-2.5 flex items-center gap-2">
+    <button type="button" id="btn-voltar-pesos" class="shrink-0 min-h-[2.5rem] px-3 rounded-xl border-2 border-slate-200 font-black text-sm">‹ Voltar</button>
+    <h2 id="titulo-peso-passo" class="font-black text-slate-900 text-base truncate flex-1">Peso</h2>
+  </div>
+  <div class="px-3 pt-4 pb-2">
+    <h2 class="text-sm font-black uppercase tracking-wide text-slate-500 mb-3 px-0.5">Escolha o peso da embalagem</h2>
+    <div id="grade-pesos" class="grid grid-cols-2 gap-3"></div>
+    <p id="pesos-vazio" class="hidden text-center text-sm text-slate-500 py-10 font-semibold">Nenhum peso disponível nesta categoria.</p>
+  </div>
+</section>
+
+{# —— LISTA de produtos —— #}
+<section id="view-produtos" class="hidden">
+  <div class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-100 px-3 py-2.5 flex items-center gap-2">
+    <button type="button" id="btn-voltar-cats" class="shrink-0 min-h-[2.5rem] px-3 rounded-xl border-2 border-slate-200 font-black text-sm">‹ Voltar</button>
+    <h2 id="titulo-cat-atual" class="font-black text-slate-900 text-base truncate flex-1">Produtos</h2>
+  </div>
+  <main class="px-3 py-4 space-y-6" id="grade-produtos">
+    {% for secao in secoes %}
+    <section class="secao-cat" data-cat="{{ secao.slug }}" id="cat-{{ secao.slug }}">
+      <div class="space-y-2.5">
+        {% for p in secao.produtos %}
+        {% include "produtos/catalogo/_card_produto.html" with p=p %}
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+    <p id="lista-vazia-cat" class="hidden text-center text-sm text-slate-500 py-10 font-semibold">Nenhum produto nesta seleção.</p>
+  </main>
+</section>
+
+<div id="barra-carrinho" class="fixed bottom-0 inset-x-0 p-3 z-40 hidden" style="padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));">
+  <div class="shell">
+    <button type="button" id="btn-abrir-checkout" class="w-full bg-primary text-white py-4 rounded-2xl font-black flex justify-between px-5 shadow-2xl text-base">
+      <span id="carrinho-qtd">0 itens</span>
+      <span>Finalizar</span>
+      <span id="carrinho-total">R$ 0,00</span>
+    </button>
+  </div>
+</div>
+
+<div id="modal-checkout" class="fixed inset-0 z-50 hidden items-end justify-center bg-black/60">
+  <div class="bg-white w-full shell rounded-t-3xl max-h-[92dvh] overflow-y-auto p-5">
+    <h2 class="text-xl font-black mb-3">Finalizar pedido</h2>
+    <div id="checkout-itens" class="text-sm space-y-2 mb-4 max-h-36 overflow-y-auto border-b pb-3"></div>
+    <form id="form-pedido" class="space-y-3">
+      <label class="block">
+        <span class="text-sm font-bold">WhatsApp *</span>
+        <input id="checkout-telefone" inputmode="tel" required placeholder="13999999999" class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base" autocomplete="tel" enterkeyhint="next">
+        <span id="checkout-cliente-hint" class="hidden text-xs font-medium mt-1 block"></span>
+      </label>
+      <label class="block"><span class="text-sm font-bold">Nome *</span>
+        <input id="checkout-nome" required class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base" autocomplete="name"></label>
+      <div class="block space-y-2">
+        <span class="text-sm font-bold">Endereço de entrega *</span>
+        <button type="button" id="btn-usar-localizacao" class="w-full py-3 px-4 rounded-xl border-2 border-primary text-primary font-bold text-sm bg-primary/5">
+          📍 Usar minha localização (Plus Code automático)
+        </button>
+        <p id="checkout-geo-status" class="hidden text-xs font-medium"></p>
+        <div id="checkout-endereco-manual" class="space-y-2">
+          <p class="text-xs text-slate-500 font-medium pt-1">Ou preencha manualmente:</p>
+          <label class="block"><span class="text-sm font-bold">Cidade *</span>
+            <input id="checkout-cidade" list="checkout-cidades" value="Jacupiranga" autocomplete="address-level2" class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base">
+            <datalist id="checkout-cidades">
+              <option value="Jacupiranga"><option value="Registro"><option value="Cajati"><option value="Pariquera-açu">
+            </datalist></label>
+          <label class="block"><span class="text-sm font-bold">Rua / avenida *</span>
+            <input id="checkout-logradouro" autocomplete="street-address" class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base"></label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="block"><span class="text-sm font-bold">Número *</span>
+              <input id="checkout-numero" inputmode="numeric" class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base"></label>
+            <label class="block"><span class="text-sm font-bold">Bairro</span>
+              <input id="checkout-bairro" autocomplete="address-level3" class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base"></label>
+          </div>
+        </div>
+        <button type="button" id="checkout-trocar-manual" class="hidden text-xs font-bold text-slate-600 underline mt-1">Digitar endereço manualmente</button>
+        <input type="hidden" id="checkout-uf" value="SP">
+        <input type="hidden" id="checkout-plus-code">
+        <input type="hidden" id="checkout-lat">
+        <input type="hidden" id="checkout-lng">
+        <input type="hidden" id="checkout-maps-url">
+        <input type="hidden" id="checkout-cep">
+        <input type="hidden" id="checkout-endereco">
+      </div>
+      <label class="block"><span class="text-sm font-bold">Pagamento *</span>
+        <select id="checkout-forma" required class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base font-semibold">
+          <option value="">Escolha…</option>
+          <option value="PIX">PIX</option>
+          <option value="Dinheiro">Dinheiro</option>
+          <option value="Cartão">Cartão na entrega</option>
+        </select></label>
+      <div id="checkout-troco-wrap" class="hidden">
+        <label class="flex items-center gap-2 text-sm font-semibold">
+          <input type="checkbox" id="checkout-troco" class="w-5 h-5"> Preciso de troco
+        </label>
+      </div>
+      <label class="block"><span class="text-sm font-bold">Observações</span>
+        <textarea id="checkout-obs" rows="2" class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base" placeholder="Ponto de referência…"></textarea></label>
+      <p id="checkout-erro" class="hidden text-red-600 text-sm font-medium"></p>
+      <button type="submit" id="btn-enviar-pedido" class="w-full bg-primary text-white py-4 rounded-xl font-black text-base shadow-lg">Enviar pedido</button>
+    </form>
+    <button type="button" id="btn-fechar-checkout" class="w-full mt-2 py-3 border-2 rounded-xl font-bold">Voltar</button>
+  </div>
+</div>
+
+<script src="{% static 'produtos/js/catalogo_delivery.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
+<script>
+  initCatalogoDelivery({
+    catalogo: {{ catalogo_json|safe }},
+    arvore: {{ arvore_json|safe }},
+    pesosGrade: {{ pesos_grade_json|safe }},
+    apiPedido: "{% url 'api_catalogo_pedido' %}",
+    apiLocalizacao: "{% url 'api_catalogo_localizacao' %}",
+    apiCliente: "{% url 'api_catalogo_cliente' %}"
+  });
+</script>
+{% endif %}
+
+{% if whatsapp_digits %}
+<a class="fab-wa" href="https://wa.me/{{ whatsapp_digits }}?text={{ 'Olá! Vim pelo catálogo delivery da '|urlencode }}{{ config.nome_loja|urlencode }}"
+   target="_blank" rel="noopener" aria-label="WhatsApp da loja" title="WhatsApp da loja">
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+  </svg>
+</a>
+{% endif %}
+
+</div>
+</body>
+</html>

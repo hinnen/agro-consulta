@@ -1,0 +1,26 @@
+# PREP — CHECKLIST 11/10l · **v27.04**
+
+| # | Pacote | Migrate |
+| - | ------ | ------- |
+| 1 | **META-CENTRO-VILA-UNIFICADO** — soma + config `deposito=todas` (50/50 ao salvar) | **NÃO** |
+| 2 | **VL-RITMO-HORA** — média Meta C «até agora» por histórico do dia | **NÃO** |
+
+**Live antes:** **v27.03** @ `b4e4fcc8` (pós SistApp ajuste mobile)  
+**PREP:** `deploy/prep-checklist-1110l` @ `52e014c8` · VERSION **27.04**  
+**Cutover:** `./scripts/cutover_loja_checklist_1110l.sh`  
+**Rollback:** tag `rollback/pre-checklist-1110l-v27.03-b4e` @ `b4e4fcc8`
+
+**Prova:** `verify_meta_mostruario_path` core · `manage.py test produtos.tests_vendas_lojas_ritmo` · `./scripts/cutover_loja_checklist_1110l.sh` (dry-run)
+
+## Na senha
+
+```bash
+AGRO_LOJA_FRASE='pode subir para produção' AGRO_LOJA_SENHA='99738595' \
+  ./scripts/cutover_loja_checklist_1110l.sh --exec
+```
+
+Render Shell (opcional):
+
+```bash
+./scripts/post_deploy_checklist_1110l.sh
+```

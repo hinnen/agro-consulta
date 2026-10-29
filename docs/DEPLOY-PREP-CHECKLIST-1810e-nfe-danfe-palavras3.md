@@ -1,0 +1,16 @@
+# PREP — **18/10e** · **v27.26.5**
+
+| Pacote | Migrate | Prova |
+| ------ | ------- | ----- |
+| **NFE-SAIDA-55** (PG **0146** + botões DANFE/XML + layout A4 padrão) | **SIM** (se ainda não rodou **0146**) | `verify_nfe_saida_path.py` **47/47** |
+| **CADASTRO-PALAVRAS-PDV-3** | **NÃO** | `verify_cadastro_busca_med_path.py` **53/53** loja |
+
+**Smoke NF-e:** `/nfe/saida/` · Nova · autorizar (PIN) · **Imprimir DANFE** (canhoto + código barras) · **Baixar XML**.  
+**Smoke cadastro:** PDV **`2 tempo`** / **`oleo`** após `backfill_busca_palavras_overlay` (uma vez).
+
+**Base git loja:** `producao` @ **`8d01908c`** · **v27.26.3**.
+
+**Cutover (dry-run):** `./scripts/cutover_loja_checklist_1810e_nfe_danfe_palavras_pdv3.sh`  
+**Checkpoint:** `./scripts/prep_checkpoint_checklist_1810e_nfe_danfe_palavras_pdv3.sh`  
+**Pós-deploy Shell:** `./scripts/post_deploy_checklist_1810e_nfe_danfe_palavras_pdv3.sh` (inclui `backfill_busca_palavras_overlay`)  
+**Revert:** `git push origin rollback/pre-v27263-1810e-danfe-palavras3:producao` → **v27.26.3** @ **`8d01908c`**

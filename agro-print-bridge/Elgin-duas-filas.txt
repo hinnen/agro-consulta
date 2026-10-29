@@ -1,0 +1,18 @@
+Elgin L42 — duas filas no Windows (mesmo aparelho)
+================================================
+
+O driver da Elgin guarda o ÚLTIMO tamanho (USER = 40×40, GONDOLA 50X30).
+Por isso, na mesma fila, uma etiqueta sai certa e a outra não.
+
+Solução: criar DUAS impressoras no Windows apontando para a MESMA Elgin:
+
+1) Painel de Controle → Dispositivos e Impressoras
+2) Adicionar impressora → mesma Elgin L42PRO de novo
+3) Renomear, por exemplo:
+   - "Elgin 40x40"  → Propriedades → Preferências → papel USER (40×40)
+   - "Elgin 50x30"  → Preferências → papel GONDOLA 50X30
+
+4) No SisVale → Etiquetas → card Impressão direta →
+   escolha cada fila no mapa 40×40 / 50×30 → Salvar mapa
+
+Pronto: preset 4×4 usa uma fila; 50/53×30 usa a outra. Sem mudar layout à mão.

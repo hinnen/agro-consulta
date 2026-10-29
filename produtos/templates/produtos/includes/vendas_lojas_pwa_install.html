@@ -1,0 +1,222 @@
+{# Instalar GM Lojas — bloco sempre visível (exceto app já instalado). #}
+<style>
+  .vl-pwa-shell {
+    display: none;
+    margin: 0 0 1rem;
+    padding: 0.85rem 0.9rem;
+    border-radius: 1rem;
+    border: 2px solid #fdba74;
+    background: linear-gradient(180deg, #fffbeb 0%, #fff7ed 100%);
+    box-shadow: 0 0.35rem 1rem rgba(234, 88, 12, 0.12);
+  }
+  .vl-pwa-shell--hub {
+    margin-bottom: 1rem;
+  }
+  .vl-pwa-shell--pin {
+    margin-top: 0;
+  }
+  .vl-pwa-kicker {
+    margin: 0 0 0.55rem;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #c2410c;
+  }
+  .vl-pwa-instalar {
+    display: block;
+    width: 100%;
+    min-height: 3rem;
+    margin: 0 0 0.55rem;
+    padding: 0 1rem;
+    border-radius: 0.9rem;
+    border: 0;
+    background: linear-gradient(180deg, #fb923c, #ea580c);
+    color: #fff;
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    box-shadow: 0 0.4rem 0.9rem rgba(234, 88, 12, 0.35);
+  }
+  .vl-pwa-instalar:disabled {
+    opacity: 0.55;
+    cursor: default;
+    box-shadow: none;
+  }
+  .vl-pwa-instalar:not(:disabled):active {
+    transform: translateY(1px);
+  }
+  .vl-pwa-steps {
+    margin: 0;
+    padding: 0.65rem 0.75rem;
+    border-radius: 0.75rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.4;
+    display: none;
+  }
+  .vl-pwa-steps.is-on {
+    display: block;
+  }
+  .vl-pwa-steps--ios {
+    background: #064e3b;
+    color: #ecfdf5;
+  }
+  .vl-pwa-steps--android {
+    background: #1e3a8a;
+    color: #eff6ff;
+  }
+  .vl-pwa-steps--inapp {
+    background: #7c2d12;
+    color: #fff7ed;
+    border: 1px solid #fdba74;
+  }
+  .vl-pwa-steps--desktop {
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+  }
+  .vl-pwa-foot {
+    margin: 0.45rem 0 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #78716c;
+    line-height: 1.35;
+  }
+</style>
+<div id="vl-pwa-shell" class="vl-pwa-shell{% if vl_pwa_variant == 'hub' %} vl-pwa-shell--hub{% endif %}{% if vl_pwa_variant == 'pin' %} vl-pwa-shell--pin{% endif %}">
+  <p class="vl-pwa-kicker">App no celular</p>
+  <button type="button" id="vl-pwa-instalar" class="vl-pwa-instalar" disabled>
+    Instalar no celular
+  </button>
+  <p id="vl-pwa-steps-inapp" class="vl-pwa-steps vl-pwa-steps--inapp">
+    Você abriu pelo <strong>WhatsApp</strong> ou outro app. Toque <strong>⋮</strong> ou <strong>Compartilhar</strong> → <strong>Abrir no Chrome</strong> (Android) ou <strong>Abrir no Safari</strong> (iPhone). Depois volte aqui e use <strong>Instalar</strong> ou <strong>Adicionar à Tela de Início</strong>.
+  </p>
+  <p id="vl-pwa-steps-ios" class="vl-pwa-steps vl-pwa-steps--ios">
+    No <strong>iPhone/iPad</strong>: toque <strong>Compartilhar</strong> (quadrado com setinha) → <strong>Adicionar à Tela de Início</strong>. O ícone <strong>SistApp</strong> abre em tela cheia. (No iOS não há botão automático de instalar.)
+  </p>
+  <p id="vl-pwa-steps-android" class="vl-pwa-steps vl-pwa-steps--android">
+    No <strong>Android</strong>: se o botão laranja acender, toque nele. Senão: menu <strong>⋮</strong> do Chrome → <strong>Instalar app</strong> ou <strong>Adicionar à tela inicial</strong>.
+  </p>
+  <p id="vl-pwa-steps-desktop" class="vl-pwa-steps vl-pwa-steps--desktop">
+    Para instalar, abra no <strong>celular</strong>: <strong>https://www.sistvale.com.br/vendas/lojas/</strong> (Chrome no Android ou Safari no iPhone).
+  </p>
+  <p class="vl-pwa-foot" id="vl-pwa-foot"></p>
+</div>
+<script>
+(function () {
+  var deferred;
+  var shell = document.getElementById("vl-pwa-shell");
+  var btn = document.getElementById("vl-pwa-instalar");
+  var foot = document.getElementById("vl-pwa-foot");
+  var steps = {
+    inapp: document.getElementById("vl-pwa-steps-inapp"),
+    ios: document.getElementById("vl-pwa-steps-ios"),
+    android: document.getElementById("vl-pwa-steps-android"),
+    desktop: document.getElementById("vl-pwa-steps-desktop"),
+  };
+
+  function ua() {
+    return String(navigator.userAgent || "");
+  }
+  function ehStandalone() {
+    try {
+      if (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) return true;
+      if (window.navigator && window.navigator.standalone) return true;
+    } catch (_) {}
+    return false;
+  }
+  function ehIos() {
+    return /iPhone|iPad|iPod/i.test(ua()) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  }
+  function ehAndroid() {
+    return /Android/i.test(ua());
+  }
+  function ehMobile() {
+    try {
+      if (window.matchMedia && window.matchMedia("(max-width: 48rem)").matches) return true;
+    } catch (_) {}
+    return ehIos() || ehAndroid();
+  }
+  function ehInAppBrowser() {
+    var u = ua();
+    if (/WhatsApp|FBAN|FBAV|Instagram|Line\//i.test(u)) return true;
+    if (/wv\)/i.test(u) && ehAndroid()) return true;
+    if (ehIos() && /AppleWebKit/i.test(u) && !/CriOS|FxiOS|EdgiOS/i.test(u) && !/Safari/i.test(u)) return true;
+    return false;
+  }
+  function showStep(key) {
+    Object.keys(steps).forEach(function (k) {
+      if (steps[k]) steps[k].classList.toggle("is-on", k === key);
+    });
+  }
+  function setBtnReady(ready) {
+    if (!btn) return;
+    btn.disabled = !ready;
+    btn.textContent = ready ? "Instalar agora" : "Instalar no celular";
+  }
+
+  if (ehStandalone()) {
+    if (shell) shell.style.display = "none";
+    return;
+  }
+  if (shell) shell.style.display = "block";
+
+  if (ehInAppBrowser()) {
+    showStep("inapp");
+    setBtnReady(false);
+    if (foot) foot.textContent = "Passo 1: abrir no navegador do celular.";
+  } else if (ehIos()) {
+    showStep("ios");
+    setBtnReady(false);
+    if (foot) foot.textContent = "Use Compartilhar → Adicionar à Tela de Início.";
+  } else if (ehAndroid()) {
+    showStep("android");
+    setBtnReady(false);
+    if (foot) foot.textContent = "Aguardando o Chrome liberar instalação…";
+  } else if (!ehMobile()) {
+    showStep("desktop");
+    setBtnReady(false);
+    if (foot) foot.textContent = "No PC o atalho é pelo celular.";
+  } else {
+    showStep("android");
+    setBtnReady(false);
+  }
+
+  if (btn) {
+    window.addEventListener("beforeinstallprompt", function (e) {
+      e.preventDefault();
+      deferred = e;
+      setBtnReady(true);
+      if (foot) foot.textContent = "Toque no botão laranja para instalar.";
+      showStep("android");
+    });
+    btn.addEventListener("click", function () {
+      if (deferred) {
+        deferred.prompt();
+        deferred.userChoice.finally(function () {
+          deferred = null;
+          setBtnReady(false);
+        });
+        return;
+      }
+      if (ehIos() && steps.ios) {
+        steps.ios.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      } else if (steps.android) {
+        steps.android.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    });
+  }
+  window.addEventListener("appinstalled", function () {
+    setBtnReady(false);
+    if (shell) shell.style.display = "none";
+  });
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("{% url 'vendas_lojas_sw' %}", { scope: "/vendas/lojas/" }).catch(function () {});
+  }
+})();
+</script>

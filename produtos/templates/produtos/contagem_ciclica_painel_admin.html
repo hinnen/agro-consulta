@@ -1,0 +1,509 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" data-agro-hide-pdv="1">
+<head>
+  <meta charset="UTF-8">
+  <title>Contagem cíclica · Painel gerência</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  {% if contagem_tela_app %}
+  <script>
+  (function () {
+    try {
+      if (window.top === window.self) return;
+      var u = new URL(window.location.href);
+      u.searchParams.delete('agro_inapp_embed');
+      u.searchParams.delete('embed');
+      window.top.location.replace(u.pathname + u.search + u.hash);
+    } catch (e) {
+      try { window.top.location.href = '/vendas/lojas/contagem-ciclica/painel/'; } catch (_) {}
+    }
+  })();
+  </script>
+  {% endif %}
+  {% include "produtos/_head_perf_mpa.html" %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>
+    html { background: #e2e8f0; }
+    body.cc-admin {
+      margin: 0 auto;
+      max-width: 100%;
+      min-height: 100dvh;
+      font-family: Inter, system-ui, sans-serif;
+      padding: max(0.75rem, env(safe-area-inset-top)) 0.75rem max(1.5rem, env(safe-area-inset-bottom));
+    }
+    .cc-ring {
+      --p: 0;
+      width: 3.25rem;
+      height: 3.25rem;
+      border-radius: 999px;
+      background: conic-gradient(#10b981 calc(var(--p) * 1%), #e2e8f0 0);
+      display: grid;
+      place-items: center;
+    }
+    .cc-ring span {
+      width: 2.35rem;
+      height: 2.35rem;
+      border-radius: 999px;
+      background: #fff;
+      font-size: 0.65rem;
+      font-weight: 900;
+      display: grid;
+      place-items: center;
+      color: #0f172a;
+    }
+    .cc-drawer {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .cc-drawer.is-open {
+      pointer-events: auto;
+      opacity: 1;
+    }
+    .cc-drawer-back {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+    }
+    .cc-drawer-panel {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: min(100%, 28rem);
+      background: #f8fafc;
+      overflow: auto;
+      transform: translateX(100%);
+      transition: transform 0.25s ease;
+      box-shadow: -8px 0 32px rgba(15, 23, 42, 0.15);
+    }
+    .cc-drawer.is-open .cc-drawer-panel { transform: translateX(0); }
+    .cc-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table.cc-tbl { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+    table.cc-tbl th, table.cc-tbl td {
+      padding: 0.45rem 0.35rem;
+      border-bottom: 1px solid #e2e8f0;
+      text-align: left;
+      vertical-align: top;
+    }
+    table.cc-tbl th { font-size: 0.65rem; text-transform: uppercase; color: #64748b; font-weight: 900; }
+    .cc-pill { display: inline-flex; padding: 0.15rem 0.45rem; border-radius: 999px; font-size: 0.62rem; font-weight: 900; text-transform: uppercase; }
+    .cc-pill--pass1 { background: #ffedd5; color: #9a3412; }
+    .cc-pill--pass2 { background: #dbeafe; color: #1e40af; }
+    .cc-stale { color: #b45309; }
+  </style>
+</head>
+<body class="cc-admin bg-slate-100 text-slate-900 touch-manipulation">
+  <header class="mb-4 flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <p class="text-[0.65rem] font-black uppercase tracking-widest text-emerald-700">Gerência · estoque</p>
+      <h1 class="text-2xl font-black tracking-tight text-slate-900">Contagem cíclica</h1>
+      <p class="text-sm font-semibold text-slate-600 mt-0.5">Sessões em aberto · progresso · equipe · variâncias</p>
+      {% if operador %}<p class="text-xs font-bold text-slate-500 mt-1">Operador: {{ operador }}</p>{% endif %}
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <a href="{{ url_ajuste }}" class="min-h-[2.75rem] px-3 rounded-xl bg-white border border-slate-200 text-xs font-black uppercase inline-flex items-center">Ajuste</a>
+      <a href="{{ url_hub }}" class="min-h-[2.75rem] px-3 rounded-xl bg-slate-900 text-white text-xs font-black uppercase inline-flex items-center">SistApp</a>
+    </div>
+  </header>
+
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4" id="cc-kpis">
+    <div class="rounded-2xl bg-white border border-slate-200 p-3 shadow-sm">
+      <p class="text-[0.62rem] font-black uppercase text-slate-500">Abertas</p>
+      <p class="text-2xl font-black tabular-nums" id="kpi-sessoes">—</p>
+    </div>
+    <div class="rounded-2xl bg-white border border-slate-200 p-3 shadow-sm">
+      <p class="text-[0.62rem] font-black uppercase text-slate-500">Progresso médio</p>
+      <p class="text-2xl font-black tabular-nums" id="kpi-progresso">—</p>
+    </div>
+    <div class="rounded-2xl bg-white border border-slate-200 p-3 shadow-sm">
+      <p class="text-[0.62rem] font-black uppercase text-slate-500">Na equipe</p>
+      <p class="text-2xl font-black tabular-nums" id="kpi-operadores">—</p>
+    </div>
+    <div class="rounded-2xl bg-white border border-slate-200 p-3 shadow-sm">
+      <p class="text-[0.62rem] font-black uppercase text-slate-500">Impacto var. (R$)</p>
+      <p class="text-2xl font-black tabular-nums text-orange-700" id="kpi-impacto">—</p>
+    </div>
+  </div>
+
+  <div class="rounded-2xl bg-white border border-slate-200 p-3 mb-4 shadow-sm flex flex-wrap gap-2 items-end">
+    <label class="flex-1 min-w-[10rem]">
+      <span class="text-[0.62rem] font-black uppercase text-slate-500">Buscar</span>
+      <input type="search" id="cc-busca" placeholder="Categoria, corredor, operador…" class="mt-1 w-full min-h-[2.75rem] rounded-xl border-2 border-slate-200 px-3 text-sm font-bold" autocomplete="off">
+    </label>
+    <label>
+      <span class="text-[0.62rem] font-black uppercase text-slate-500">Estoque</span>
+      <select id="cc-dep" class="mt-1 min-h-[2.75rem] rounded-xl border-2 border-slate-200 px-3 text-sm font-black">
+        <option value="">Todos</option>
+        <option value="centro">Centro</option>
+        <option value="vila">Vila Elias</option>
+      </select>
+    </label>
+    <button type="button" id="cc-refresh" class="min-h-[2.75rem] px-4 rounded-xl bg-emerald-600 text-white text-xs font-black uppercase">Atualizar</button>
+    <p class="text-[0.62rem] font-bold text-slate-400 w-full" id="cc-atualizado">Carregando…</p>
+  </div>
+
+  <form id="cc-inv" class="rounded-2xl bg-white border border-emerald-200 p-3 mb-4 shadow-sm grid sm:grid-cols-2 lg:grid-cols-6 gap-2 items-end">
+    <div class="lg:col-span-6">
+      <p class="text-sm font-black text-emerald-900">Abrir inventário (conta do zero)</p>
+      <p class="text-[0.68rem] font-semibold text-slate-600">Sem recontagem. Quem você marcar entra direto no Ajuste ao digitar o PIN dela. Venda depois do bip entra no saldo ao concluir o bloco.</p>
+    </div>
+    <label><span class="text-[0.62rem] font-black uppercase text-slate-500">Estoque</span>
+      <select name="deposito" class="mt-1 w-full min-h-[2.75rem] rounded-xl border-2 border-slate-200 px-2 text-sm font-black">
+        <option value="centro">Centro</option>
+        <option value="vila">Vila Elias</option>
+      </select>
+    </label>
+    <label><span class="text-[0.62rem] font-black uppercase text-slate-500">Escopo</span>
+      <select name="escopo_tipo" id="cc-inv-tipo" class="mt-1 w-full min-h-[2.75rem] rounded-xl border-2 border-slate-200 px-2 text-sm font-black">
+        <option value="corredor">Corredor / área</option>
+        <option value="categoria">Categoria</option>
+        <option value="loja">Loja inteira</option>
+      </select>
+    </label>
+    <label class="sm:col-span-2"><span class="text-[0.62rem] font-black uppercase text-slate-500">Nome (corredor ou categoria)</span>
+      <input name="escopo_valor" id="cc-inv-valor" class="mt-1 w-full min-h-[2.75rem] rounded-xl border-2 border-slate-200 px-3 text-sm font-bold" placeholder="Ex.: Ração cães">
+    </label>
+    <div class="sm:col-span-2 lg:col-span-2">
+      <span class="text-[0.62rem] font-black uppercase text-slate-500">Operadores (RH · PIN)</span>
+      <div class="mt-1 max-h-36 overflow-y-auto rounded-xl border-2 border-slate-200 bg-slate-50 p-2 space-y-1">
+        {% for op in operadores_pin %}
+        <label class="flex items-center gap-2 min-h-[2.25rem] text-sm font-bold text-slate-800">
+          <input type="checkbox" name="perfil_id" value="{{ op.id }}" class="h-4 w-4">
+          <span>{{ op.nome }}{% if op.codigo %} <span class="text-slate-500 font-semibold">#{{ op.codigo }}</span>{% endif %}</span>
+        </label>
+        {% empty %}
+        <p class="text-xs font-bold text-slate-500">Nenhum operador ativo. Cadastre em RH · Operadores e PIN.</p>
+        {% endfor %}
+      </div>
+    </div>
+    <button type="submit" class="min-h-[2.75rem] rounded-xl bg-emerald-700 text-white text-xs font-black uppercase">Abrir e atrelar</button>
+    <p id="cc-inv-msg" class="lg:col-span-6 text-xs font-bold text-slate-600"></p>
+  </form>
+
+  <form id="cc-zerar" class="rounded-2xl bg-rose-50 border border-rose-300 p-3 mb-4 shadow-sm flex flex-wrap gap-2 items-end">
+    <div class="w-full">
+      <p class="text-sm font-black text-rose-900">Zerar saldo da loja</p>
+      <p class="text-[0.68rem] font-semibold text-rose-800">Antes do inventário. Só o depósito escolhido. Não apaga cadastro. Confirme digitando ZERAR.</p>
+    </div>
+    <label><span class="text-[0.62rem] font-black uppercase text-rose-800">Estoque</span>
+      <select name="deposito" class="mt-1 min-h-[2.75rem] rounded-xl border-2 border-rose-200 px-2 text-sm font-black">
+        <option value="centro">Centro</option>
+        <option value="vila">Vila Elias</option>
+      </select>
+    </label>
+    <label><span class="text-[0.62rem] font-black uppercase text-rose-800">Confirmação</span>
+      <input name="confirmar" class="mt-1 min-h-[2.75rem] rounded-xl border-2 border-rose-300 px-3 text-sm font-black uppercase" placeholder="ZERAR" autocomplete="off">
+    </label>
+    <button type="submit" class="min-h-[2.75rem] px-4 rounded-xl bg-rose-700 text-white text-xs font-black uppercase">Zerar agora</button>
+    <p id="cc-zerar-msg" class="w-full text-xs font-bold text-rose-900"></p>
+  </form>
+
+  <div class="rounded-2xl bg-white border border-slate-200 p-3 mb-3 shadow-sm" id="cc-blocos-box">
+    <h2 class="text-sm font-black uppercase text-slate-800 mb-2">Amostras para imprimir</h2>
+    <p class="text-[0.68rem] font-semibold text-slate-500 mb-2">Só neste computador. O celular não abre a folha.</p>
+    <ul class="space-y-2 text-sm" id="cc-blocos"></ul>
+  </div>
+
+  <div class="grid lg:grid-cols-3 gap-3">
+    <div class="lg:col-span-2 space-y-3" id="cc-cards"></div>
+    <div class="rounded-2xl bg-white border border-slate-200 p-3 shadow-sm">
+      <h2 class="text-sm font-black uppercase text-slate-800 mb-2">Atividade recente</h2>
+      <ul class="space-y-2 text-xs max-h-[32rem] overflow-y-auto" id="cc-feed"></ul>
+    </div>
+  </div>
+
+  <div class="cc-drawer" id="cc-drawer" aria-hidden="true">
+    <div class="cc-drawer-back" id="cc-drawer-back"></div>
+    <div class="cc-drawer-panel p-4">
+      <div class="flex items-start justify-between gap-2 mb-3">
+        <div>
+          <p class="text-[0.62rem] font-black uppercase text-orange-700" id="d-sub">Sessão</p>
+          <h2 class="text-lg font-black leading-tight" id="d-titulo">—</h2>
+        </div>
+        <button type="button" id="cc-drawer-close" class="min-h-[2.5rem] px-3 rounded-xl bg-slate-200 text-xs font-black uppercase">Fechar</button>
+      </div>
+      <div class="grid grid-cols-2 gap-2 mb-3 text-xs" id="d-stats"></div>
+      <h3 class="text-xs font-black uppercase text-slate-600 mb-1">Equipe</h3>
+      <ul class="text-xs space-y-1 mb-3" id="d-team"></ul>
+      <label class="block mb-2">
+        <span class="text-[0.62rem] font-black uppercase text-slate-500">Filtrar itens</span>
+        <input type="search" id="d-busca" class="mt-1 w-full min-h-[2.5rem] rounded-xl border border-slate-200 px-3 text-sm font-bold" placeholder="Nome, GM, operador…">
+      </label>
+      <div class="cc-table-wrap max-h-[50vh] overflow-y-auto">
+        <table class="cc-tbl">
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th>Saldo</th>
+              <th>Cont.</th>
+              <th>Δ</th>
+              <th>R$</th>
+            </tr>
+          </thead>
+          <tbody id="d-linhas"></tbody>
+        </table>
+      </div>
+      <p class="text-[0.62rem] font-bold text-slate-500 mt-2" id="d-trunc"></p>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const API = "{{ url_api_painel|escapejs }}";
+  const API_SESS = "{{ url_api_sessao|escapejs }}";
+  let sessaoAtual = null;
+  let timer = null;
+
+  function csrf() {
+    const m = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : "";
+  }
+  function esc(s) {
+    return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+  }
+  function fmtPct(n) { return (Number(n) || 0).toFixed(1) + "%"; }
+  function fmtRs(n) {
+    const v = Number(n) || 0;
+    return "R$ " + v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function fmtRel(iso) {
+    if (!iso) return "—";
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+    } catch (_) { return iso; }
+  }
+  function statusPill(st) {
+    if (st === "pass2") return '<span class="cc-pill cc-pill--pass2">Recontagem</span>';
+    return '<span class="cc-pill cc-pill--pass1">Passagem 1</span>';
+  }
+
+  function renderCards(data) {
+    const r = data.resumo || {};
+    document.getElementById("kpi-sessoes").textContent = r.sessoes_abertas ?? 0;
+    document.getElementById("kpi-progresso").textContent = fmtPct(r.progresso_medio_pct);
+    document.getElementById("kpi-operadores").textContent = r.operadores_ativos ?? 0;
+    document.getElementById("kpi-impacto").textContent = fmtRs(r.impacto_variacao_rs);
+    document.getElementById("cc-atualizado").textContent = "Atualizado " + fmtRel(data.atualizado_em) + " · auto 15s";
+
+    const host = document.getElementById("cc-cards");
+    const list = data.sessoes || [];
+    if (!list.length) {
+      host.innerHTML = '<div class="rounded-2xl bg-white border border-dashed border-slate-300 p-6 text-center text-sm font-bold text-slate-500">Nenhuma contagem cíclica aberta no filtro.</div>';
+      return;
+    }
+    host.innerHTML = list.map((s) => {
+      const p = s.progresso || {};
+      const pct = Math.max(0, Math.min(100, Number(p.pct) || 0));
+      const parts = (s.participantes || []).map((x) => {
+        const stale = x.stale ? " cc-stale" : "";
+        return `<span class="inline-block mr-1${stale}">${esc(x.nome)}</span>`;
+      }).join("") || "—";
+      return `<article class="rounded-2xl bg-white border border-slate-200 p-3 shadow-sm cursor-pointer hover:border-emerald-400 transition-colors" data-sid="${s.id}">
+        <div class="flex gap-3 items-start">
+          <div class="cc-ring" style="--p:${pct}"><span>${pct.toFixed(0)}%</span></div>
+          <div class="flex-1 min-w-0">
+            <div class="flex flex-wrap items-center gap-2 mb-1">
+              ${statusPill(s.status)}
+              <span class="text-[0.62rem] font-black uppercase text-slate-500">${esc(s.deposito_label)}</span>
+            </div>
+            <h3 class="text-base font-black leading-snug">${esc(s.escopo_label)}</h3>
+            <p class="text-xs font-semibold text-slate-600 mt-1">${p.contados ?? 0} / ${p.total ?? "—"} · faltam ${p.faltam ?? 0}</p>
+            <p class="text-[0.65rem] font-bold text-slate-500 mt-1">Abriu ${esc(s.aberta_por)} · ${s.idade_minutos || 0} min</p>
+            <p class="text-[0.65rem] font-bold text-orange-800 mt-1">Var. ${fmtRs(s.impacto_variacao_rs)} · diverg. ${s.divergentes_pass1 || 0}</p>
+            <p class="text-[0.65rem] font-bold text-slate-500 mt-1 truncate">Equipe: ${parts}</p>
+            <button type="button" class="cc-cancelar mt-2 min-h-[2.5rem] px-3 rounded-xl border-2 border-rose-500 bg-white text-rose-700 text-[0.65rem] font-black uppercase" data-cancel="${s.id}">Cancelar contagem</button>
+          </div>
+        </div>
+      </article>`;
+    }).join("");
+    host.querySelectorAll("[data-sid]").forEach((el) => {
+      el.addEventListener("click", () => abrirDetalhe(el.getAttribute("data-sid")));
+    });
+    host.querySelectorAll("[data-cancel]").forEach((btn) => {
+      btn.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        cancelarSessao(btn.getAttribute("data-cancel"));
+      });
+    });
+  }
+
+  async function cancelarSessao(id) {
+    if (!id) return;
+    if (!confirm("Cancelar a contagem #" + id + "?\n\nO que ainda não foi concluído em bloco é descartado.\nO que já gravou em bloco fechado continua no estoque.")) return;
+    const res = await fetch("/api/ajuste-mobile/ciclica/admin/cancelar/" + id + "/", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "X-CSRFToken": csrf() },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      alert(data.erro || "Não cancelou.");
+      return;
+    }
+    carregar();
+  }
+
+  function renderBlocos(items) {
+    const ul = document.getElementById("cc-blocos");
+    if (!ul) return;
+    if (!items.length) {
+      ul.innerHTML = '<li class="text-slate-500 font-semibold text-xs">Nenhum bloco concluído ainda.</li>';
+      return;
+    }
+    ul.innerHTML = items.map((b) => `<li class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+      <span><strong>#${b.id}</strong> · ${esc(b.escopo)} · ${b.itens || 0} itens · ${fmtRel(b.quando)}</span>
+      <a class="min-h-[2.4rem] px-3 rounded-xl bg-slate-900 text-white text-[0.65rem] font-black uppercase inline-flex items-center" href="${esc(b.url)}" target="_blank">Imprimir</a>
+    </li>`).join("");
+  }
+
+  function renderFeed(items) {
+    const ul = document.getElementById("cc-feed");
+    if (!items || !items.length) {
+      ul.innerHTML = '<li class="text-slate-500 font-semibold">Sem bipagens recentes.</li>';
+      return;
+    }
+    ul.innerHTML = items.map((it) => `<li class="border-b border-slate-100 pb-2">
+      <span class="font-black text-slate-800">${esc(it.nome)}</span>
+      <span class="text-slate-600"> · qtd ${esc(it.qtd)}</span>
+      <br><span class="text-[0.65rem] text-slate-500">${fmtRel(it.quando)} · #${it.sessao_id} ${esc(it.escopo)} · ${esc(it.operador)}</span>
+    </li>`).join("");
+  }
+
+  async function carregar() {
+    const dep = document.getElementById("cc-dep").value;
+    const busca = document.getElementById("cc-busca").value.trim();
+    const q = new URLSearchParams();
+    if (dep) q.set("deposito", dep);
+    if (busca) q.set("busca", busca);
+    const url = API + (q.toString() ? "?" + q.toString() : "");
+    const res = await fetch(url, { credentials: "same-origin", headers: { "X-CSRFToken": csrf() } });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      document.getElementById("cc-atualizado").textContent = data.erro || "Falha ao carregar.";
+      return;
+    }
+    renderCards(data);
+    renderBlocos(data.blocos || []);
+    renderFeed(data.atividade || []);
+  }
+
+  function fecharDrawer() {
+    document.getElementById("cc-drawer").classList.remove("is-open");
+    document.getElementById("cc-drawer").setAttribute("aria-hidden", "true");
+    sessaoAtual = null;
+  }
+
+  async function abrirDetalhe(id) {
+    if (!id) return;
+    const q = document.getElementById("d-busca").value.trim();
+    const url = API_SESS + id + "/" + (q ? "?q=" + encodeURIComponent(q) : "");
+    const res = await fetch(url, { credentials: "same-origin" });
+    const data = await res.json().catch(() => ({}));
+    if (!data.ok || !data.sessao) return;
+    sessaoAtual = id;
+    const s = data.sessao;
+    document.getElementById("d-sub").textContent = "#" + s.id + " · " + (s.deposito_label || s.deposito);
+    document.getElementById("d-titulo").textContent = s.escopo_label || "Contagem";
+    const pr = s.progresso || {};
+    document.getElementById("d-stats").innerHTML = `
+      <div class="rounded-xl bg-orange-50 border border-orange-100 p-2"><span class="font-black">${fmtPct(pr.pct)}</span><br><span class="text-slate-600">Progresso</span></div>
+      <div class="rounded-xl bg-slate-50 border p-2"><span class="font-black">${pr.contados}/${pr.total}</span><br><span class="text-slate-600">Contados</span></div>
+      <div class="rounded-xl bg-slate-50 border p-2"><span class="font-black">${s.divergentes_pass1 || 0}</span><br><span class="text-slate-600">Divergências</span></div>
+      <div class="rounded-xl bg-slate-50 border p-2"><span class="font-black">${fmtRs(s.impacto_variacao_rs)}</span><br><span class="text-slate-600">Impacto</span></div>`;
+    document.getElementById("d-team").innerHTML = (s.participantes_detalhe || []).map((p) =>
+      `<li><strong>${esc(p.nome)}</strong>${p.stale ? ' <span class="cc-stale">(parado)</span>' : ""}<br><span class="text-slate-500">Ping ${fmtRel(p.ultimo_ping)}</span></li>`
+    ).join("") || "<li>—</li>";
+    const tbody = document.getElementById("d-linhas");
+    tbody.innerHTML = (s.linhas_admin || []).map((ln) => {
+      const d = Number(ln.variacao) || 0;
+      const cls = d > 0.001 ? "text-emerald-700" : d < -0.001 ? "text-rose-700" : "text-slate-600";
+      return `<tr>
+        <td><span class="font-bold">${esc(ln.nome)}</span><br><span class="text-slate-500">${esc(ln.codigo)}</span></td>
+        <td class="tabular-nums">${ln.saldo_ref}</td>
+        <td class="tabular-nums">${ln.qtd != null ? ln.qtd : "—"}</td>
+        <td class="tabular-nums ${cls}">${d.toFixed(3)}</td>
+        <td class="tabular-nums">${fmtRs(ln.impacto_rs)}</td>
+      </tr>`;
+    }).join("");
+    document.getElementById("d-trunc").textContent = s.linhas_admin_truncadas
+      ? `Mostrando ${(s.linhas_admin || []).length} de ${s.linhas_admin_total} itens — refine a busca.`
+      : `${(s.linhas_admin || []).length} itens listados.`;
+    document.getElementById("cc-drawer").classList.add("is-open");
+    document.getElementById("cc-drawer").setAttribute("aria-hidden", "false");
+  }
+
+  document.getElementById("cc-refresh").addEventListener("click", carregar);
+  document.getElementById("cc-busca").addEventListener("keydown", (e) => { if (e.key === "Enter") carregar(); });
+  document.getElementById("cc-dep").addEventListener("change", carregar);
+  document.getElementById("cc-drawer-close").addEventListener("click", fecharDrawer);
+  document.getElementById("cc-drawer-back").addEventListener("click", fecharDrawer);
+  document.getElementById("d-busca").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && sessaoAtual) abrirDetalhe(sessaoAtual);
+  });
+
+  document.getElementById("cc-inv").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const fd = new FormData(ev.target);
+    const msg = document.getElementById("cc-inv-msg");
+    if (!fd.getAll("perfil_id").length) {
+      msg.textContent = "Marque ao menos um operador.";
+      return;
+    }
+    const res = await fetch("{{ url_api_inventario|default:'/api/ajuste-mobile/ciclica/admin/inventario/'|escapejs }}", {
+      method: "POST",
+      body: fd,
+      credentials: "same-origin",
+      headers: { "X-CSRFToken": csrf() },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      msg.textContent = data.erro || "Não abriu.";
+      return;
+    }
+    const s = data.sessao || {};
+    msg.textContent = "Inventário #" + s.id + " aberto. A pessoa entra no Ajuste com o PIN dela.";
+    carregar();
+  });
+
+  document.getElementById("cc-zerar").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const fd = new FormData(ev.target);
+    const msg = document.getElementById("cc-zerar-msg");
+    if (String(fd.get("confirmar") || "").trim().toUpperCase() !== "ZERAR") {
+      msg.textContent = "Digite ZERAR para confirmar.";
+      return;
+    }
+    const dep = fd.get("deposito") === "vila" ? "Vila Elias" : "Centro";
+    if (!confirm("Zerar o saldo operacional de " + dep + "? Isso vale para a loja aberta.")) return;
+    msg.textContent = "Zerando…";
+    const res = await fetch("/api/ajuste-mobile/ciclica/admin/zerar/", {
+      method: "POST",
+      body: fd,
+      credentials: "same-origin",
+      headers: { "X-CSRFToken": csrf() },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      msg.textContent = data.erro || "Não zerou.";
+      return;
+    }
+    const r = data.resumo || {};
+    msg.textContent = "Zerados: " + (r.zerados || 0) + " · já estavam 0: " + (r.ja_zero || 0);
+  });
+
+  carregar();
+  timer = setInterval(carregar, 15000);
+  window.addEventListener("pagehide", () => { if (timer) clearInterval(timer); });
+})();
+</script>
+{% include "produtos/_screensaver_pin.html" %}
+</body>
+</html>
