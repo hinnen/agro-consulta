@@ -1318,7 +1318,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | NF-e 55 aceita quantidade com vírgula/ponto (até 4 casas); TON; totais Prefeitura Jacupiranga |
-| **Ainda falta** | Renan validar no PC (`/nfe/saida/` · 4,355 e 0,645 TON) e conferir Render. **Produção Git:** senha `99738595` na mesma frase se precisar reenviar |
+| **Ainda falta** | Validar no PC (`/nfe/saida/` · 4,355 e 0,645 TON). Cherry-pick em `teste` **não** aplicado (conflito: `nfe_saida_compra_util.py` apagado em `teste`). Branch `cursor/nfe-qtd-decimal-1e79` @ `03982add`. **Produção Git extra:** senha `99738595` |
 | **Paths** | `nfe_saida_util.py` · `nfe_saida_tributacao_util.py` (`_dec_qtd`) · `nfe_saida_sp_emissao_util.py` · `nfe_saida.js` · `nfe_saida.html` · `nfe_saida_danfe_html.py` · `nfe_saida_compra_util.py` · `verify_nfe_saida_path.py` |
 | **Prova** | `verify_nfe_saida_path` **130/130** · PREP_FAILS=0 · XSD PL 010f `qCom` 4.3550 / 0.6450 · PIN 9973 ok · emitir HTTP 400 (sem SEFAZ) |
 | **Revert** | `git push origin rollback/pre-v272643-nfe-qtd-decimal:producao` |
