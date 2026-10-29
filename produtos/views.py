@@ -16968,7 +16968,7 @@ def _entrada_nota_propagar_precos_e_invalidar_catalogo(
     pr = propagar_precos_venda_catalogo_entrada_nota(db, client, linhas, _usuario_label=usuario)
     fis = {"ok": True, "atualizados_produto": 0, "atualizados_overlay": 0, "produto_ids": []}
     try:
-        fis = propagar_fiscal_nf_catalogo_entrada_nota(linhas)
+        fis = propagar_fiscal_nf_catalogo_entrada_nota(linhas, db=db, client_m=client)
     except Exception:
         logger.warning("_entrada_nota_propagar: fiscal NF", exc_info=True)
     mudou = (
@@ -16976,6 +16976,7 @@ def _entrada_nota_propagar_precos_e_invalidar_catalogo(
         or (pr.get("atualizados_overlay") or 0) > 0
         or (fis.get("atualizados_produto") or 0) > 0
         or (fis.get("atualizados_overlay") or 0) > 0
+        or (fis.get("atualizados_mongo") or 0) > 0
     )
     if mudou:
         cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
