@@ -45,7 +45,30 @@ def data_emissao_doc(doc: dict | None) -> date:
     return date.today()
 
 
+def loja_nfe_por_cnpj_unico(cnpj: str | None) -> str | None:
+    """Só Centro ou Vila quando o CNPJ casa com exatamente um estabelecimento."""
+    c = _digits(cnpj, 14)
+    if len(c) != 14:
+        return None
+    try:
+        from produtos.nfce_config_util import nfce_cfg
+
+        centro = _digits(nfce_cfg("centro").get("cnpj"), 14)
+        vila = _digits(nfce_cfg("vila").get("cnpj"), 14)
+    except Exception:
+        return None
+    hit: list[str] = []
+    if centro == c:
+        hit.append("centro")
+    if vila == c:
+        hit.append("vila")
+    if len(hit) == 1:
+        return hit[0]
+    return None
+
+
 def estabelecimento_do_doc(doc: dict | None, *, cnpj_emit: str = "") -> str | None:
+    """Não presume Centro. CNPJ do .env sozinho não escolhe a loja."""
     d = doc if isinstance(doc, dict) else {}
     loja = parse_estabelecimento(d.get("estabelecimento"))
     if loja:
@@ -54,15 +77,8 @@ def estabelecimento_do_doc(doc: dict | None, *, cnpj_emit: str = "") -> str | No
     loja = parse_estabelecimento(fiscal.get("estabelecimento"))
     if loja:
         return loja
-    cnpj = _digits(d.get("emitente_cnpj") or cnpj_emit, 14)
-    if len(cnpj) == 14:
-        try:
-            from produtos.nfce_config_util import nfce_loja_de_cnpj
-
-            return parse_estabelecimento(nfce_loja_de_cnpj(cnpj))
-        except Exception:
-            return None
-    return None
+    _ = cnpj_emit
+    return loja_nfe_por_cnpj_unico(d.get("emitente_cnpj") or "")
 
 
 def classificar_destinatario(dest: dict | None) -> str:
@@ -325,14 +341,15 @@ def ibpt_autorizado(loja: str) -> bool:
 def resolver_cnpj_serie_emitente(doc: dict, *, cnpj_pedido: str = "") -> tuple[str, int | None, str | None]:
     """CNPJ e série do estabelecimento do documento. Recusa misturar Centro e Vila."""
     from produtos.models import NfeEstabelecimentoFiscal
-    from produtos.nfce_config_util import nfce_cfg, nfce_loja_de_cnpj
+    from produtos.nfce_config_util import nfce_cfg
 
-    loja = estabelecimento_do_doc(doc, cnpj_emit=cnpj_pedido)
-    cnpj_req = _digits(cnpj_pedido, 14)
-    if not loja and len(cnpj_req) == 14:
-        loja = parse_estabelecimento(nfce_loja_de_cnpj(cnpj_req))
+    loja = parse_estabelecimento((doc or {}).get("estabelecimento"))
+    fiscal = (doc or {}).get("fiscal") if isinstance((doc or {}).get("fiscal"), dict) else {}
+    if not loja:
+        loja = parse_estabelecimento(fiscal.get("estabelecimento"))
     if not loja:
         return "", None, "Informe o estabelecimento emitente (Centro ou Vila Elias)."
+    cnpj_req = _digits(cnpj_pedido, 14)
     cfg = nfce_cfg(loja)
     cnpj = _digits(cfg.get("cnpj"), 14)
     if len(cnpj) != 14:

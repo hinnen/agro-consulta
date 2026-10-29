@@ -1151,6 +1151,22 @@ class NfeSaidaChecklistEmitenteTests(SimpleTestCase):
         v3 = type("V", (), {"deposito": "loja3"})()
         self.assertIsNone(estabelecimento_sugerido_venda(v3))
 
+    def test_email_opcional_nao_e_erro(self):
+        from produtos.nfe_saida_util import checklist_conferencia
+
+        rows = checklist_conferencia(_doc_checklist(uf_dest="SP", cfop="5102"), cert_ok=True)
+        em = next(r for r in rows if r["label"].startswith("E-mail"))
+        self.assertTrue(em["ok"], em)
+
+    def test_resolver_nao_presume_centro_pelo_cnpj_env(self):
+        from produtos.nfe_saida_regras_validas_util import resolver_cnpj_serie_emitente
+        from produtos.nfe_saida_util import doc_novo_vazio
+
+        cnpj, serie, err = resolver_cnpj_serie_emitente(doc_novo_vazio(), cnpj_pedido="48900774000103")
+        self.assertEqual(cnpj, "")
+        self.assertIsNone(serie)
+        self.assertIn("estabelecimento", (err or "").lower())
+
     def test_vila_nao_herda_serie_centro(self):
         from produtos.nfe_saida_util import aplicar_estabelecimento_no_doc, doc_novo_vazio, nfe_saida_serie_default
 

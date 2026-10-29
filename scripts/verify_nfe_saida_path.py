@@ -24,9 +24,12 @@ from django.test import Client
 
 from produtos.caixa_util import validar_pin_operador
 from produtos.nfe_saida_emissao_util import emitir_nfe_saida_documento
+from produtos.nfe_saida_regras_validas_util import resolver_cnpj_serie_emitente
 from produtos.nfe_saida_util import (
+    checklist_conferencia,
     cfop_padrao_destino,
     doc_novo_vazio,
+    erros_cfop_coerente_uf,
     validar_destinatario,
 )
 
@@ -128,6 +131,9 @@ def test_arquivos() -> None:
     util = _read("produtos/nfe_saida_util.py")
     check("salvar_pg_estab", '"estabelecimento"' in util and "aplicar_estabelecimento_no_doc" in util)
     check("checklist_ufs", "origem" in util and "Não convertemos" in util)
+    check("js_cache_v8", "nfe_saida.js' %}?v=8" in tpl or "nfe_saida.js?v=8" in tpl)
+    nfce_js = _read("produtos/static/produtos/js/nfce_pdv.js") if (ROOT / "produtos/static/produtos/js/nfce_pdv.js").is_file() else ""
+    check("nfce_intocado_fallback", "23099020" not in (nfce_js or "ok"))
 
 
 def test_logica() -> None:
@@ -144,6 +150,21 @@ def test_logica() -> None:
         "ie": "",
     }
     check("dest_cpf_ok", validar_destinatario(dest) == [])
+    avulsa = doc_novo_vazio()
+    _c, _s, err_av = resolver_cnpj_serie_emitente(avulsa, cnpj_pedido="48900774000103")
+    check("avulsa_exige_estab", bool(err_av) and "estabelecimento" in (err_av or "").lower())
+    doc_sp = doc_novo_vazio()
+    doc_sp["estabelecimento"] = "centro"
+    doc_sp["destinatario"] = dict(dest)
+    doc_sp["itens"] = [{"descricao": "P", "qtd": 1, "v_unit": 10, "v_total": 10, "ncm": "12345678", "cfop": "5102", "csosn": "102"}]
+    check("checklist_5102_sp", erros_cfop_coerente_uf(doc_sp) == [])
+    doc_rj = dict(doc_sp)
+    doc_rj["destinatario"] = dict(dest, uf="RJ")
+    er_rj = erros_cfop_coerente_uf(doc_rj)
+    check("checklist_5102_rj", bool(er_rj) and "RJ" in er_rj[0] and "5102" in er_rj[0])
+    rows_em = checklist_conferencia(doc_sp, cert_ok=True)
+    em_row = next(r for r in rows_em if r["label"].startswith("E-mail"))
+    check("email_opcional_ok", em_row["ok"] is True)
     doc = doc_novo_vazio()
     doc["estabelecimento"] = "centro"
     doc["destinatario"] = dest
@@ -234,6 +255,7 @@ def test_http() -> None:
     body_page = r.content or b""
     check("get_page", r.status_code == 200 and b"nfe-saida-view-lista" in body_page)
     check("page_ux_typeahead", b"nfe-cli-suggest" in body_page and b"urlBuscarVendas" in body_page)
+    check("page_emitente_btns", b"btn-nfe-estab-centro" in body_page and b"btn-nfe-estab-vila" in body_page)
 
     r_vendas = c.get("/api/nfe-saida/buscar-vendas/?q=1&limit=3")
     if r_vendas.status_code == 500:
@@ -260,6 +282,9 @@ def test_http() -> None:
     if r2.status_code == 200:
         j = json.loads(r2.content.decode())
         check("cert_mod55", j.get("mod_ui") == "55")
+        ems = j.get("emitentes") or []
+        lojas = {str(e.get("estabelecimento") or "") for e in ems if isinstance(e, dict)}
+        check("cert_emitentes_lojas", "centro" in lojas and "vila" in lojas, str(sorted(lojas)))
 
     r3 = c.get("/api/nfe-saida/listar/")
     if r3.status_code != 200:
