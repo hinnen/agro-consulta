@@ -1172,3 +1172,137 @@ class NfeSaidaJsStaticTests(SimpleTestCase):
         self.assertIn("j.ok !== true", js)
         self.assertIn("transmissão não foi iniciada", js)
         self.assertIn("function setEstabelecimento", js)
+        self.assertIn("function parseBrNum", js)
+        self.assertIn("function moneyQtdVu", js)
+        self.assertIn('data-it="un"', js)
+
+
+class NfeSaidaQtdDecimalTests(SimpleTestCase):
+    def test_virgula_e_ponto(self):
+        from produtos.nfe_saida_util import decimal_qtd, validar_itens
+
+        self.assertEqual(decimal_qtd("0,645"), Decimal("0.6450"))
+        self.assertEqual(decimal_qtd("0.645"), Decimal("0.6450"))
+        self.assertEqual(decimal_qtd("4,355"), Decimal("4.3550"))
+        self.assertEqual(decimal_qtd("4.355"), Decimal("4.3550"))
+        erros = validar_itens(
+            [
+                {
+                    "descricao": "Calcário",
+                    "qtd": "0,645",
+                    "v_unit": "2870",
+                    "v_total": "1851,15",
+                    "ncm": "23099020",
+                    "un": "TON",
+                }
+            ]
+        )
+        self.assertFalse(any("quantidade" in e.lower() for e in erros), erros)
+
+    def test_prefeitura_totais(self):
+        from produtos.nfe_saida_tributacao_util import _dec, _dec_qtd
+        from produtos.nfe_saida_util import decimal_moeda, decimal_qtd, normalizar_linha_item_nfe
+
+        q1 = decimal_qtd("4,355")
+        q2 = decimal_qtd("0,645")
+        vu = decimal_moeda("2870")
+        self.assertEqual((q1 * vu).quantize(Decimal("0.01")), Decimal("12498.85"))
+        self.assertEqual((q2 * vu).quantize(Decimal("0.01")), Decimal("1851.15"))
+        self.assertEqual(_dec_qtd("4,355"), Decimal("4.3550"))
+        self.assertNotEqual(_dec_qtd("4,355"), Decimal("4.36"))
+        self.assertEqual(_dec("2870"), Decimal("2870.00"))
+        ln = normalizar_linha_item_nfe(
+            {"descricao": "X", "qtd": "4,355", "v_unit": "2.870,00", "v_total": 0, "un": "tonelada"}
+        )
+        self.assertEqual(ln["qtd"], "4.355")
+        self.assertEqual(ln["un"], "TON")
+        self.assertEqual(ln["v_total"], 12498.85)
+
+    def test_mais_de_4_casas_e_inteiro(self):
+        from produtos.nfe_saida_util import validar_itens
+
+        er = validar_itens(
+            [{"descricao": "X", "qtd": "0,64555", "v_unit": 1, "v_total": 1, "ncm": "23099020"}]
+        )
+        self.assertTrue(any("4 casas" in e for e in er), er)
+        er2 = validar_itens(
+            [{"descricao": "Saco", "qtd": 2, "v_unit": 10, "v_total": 20, "ncm": "23099020", "un": "UN"}]
+        )
+        self.assertFalse(any("quantidade" in e.lower() for e in er2), er2)
+
+    def test_xml_qcom_ton_e_xsd(self):
+        from datetime import datetime
+
+        from produtos.nfe_saida_danfe_html import _linha_produto
+        from produtos.nfe_saida_sp_emissao_util import _montar_xml_nfe_saida
+        from produtos.nfe_saida_util import doc_novo_vazio
+        from produtos.nfe_saida_xml_validate_util import validar_xml_nfe_xsd
+
+        def _doc(qtd, total):
+            d = doc_novo_vazio()
+            d["estabelecimento"] = "centro"
+            d["destinatario"].update(
+                {
+                    "nome": "PREFEITURA MUNICIPAL DE JACUPIRANGA",
+                    "documento": "53221728000100",
+                    "uf": "SP",
+                    "cidade": "Jacupiranga",
+                    "logradouro": "Rua A",
+                    "numero": "1",
+                    "bairro": "Centro",
+                    "cep": "11940000",
+                    "cmun": "3524600",
+                }
+            )
+            d["itens"] = [
+                {
+                    "descricao": "Produto TON",
+                    "qtd": qtd,
+                    "v_unit": "2870",
+                    "v_total": total,
+                    "ncm": "23099020",
+                    "cfop": "5102",
+                    "csosn": "102",
+                    "cst_pis_cofins": "49",
+                    "un": "TON",
+                }
+            ]
+            d["pagamento"] = [{"tPag": "01", "valor": total}]
+            return d
+
+        cfg = {
+            "tp_amb": 2,
+            "cnpj": "11222333000181",
+            "razao_social": "Em",
+            "fantasia": "Em",
+            "logradouro": "Ru",
+            "numero": "1",
+            "bairro": "Ce",
+            "cmun": "3524600",
+            "cidade": "Ja",
+            "uf": "SP",
+            "cep": "11940000",
+            "ie": "123456789012",
+            "fone": "",
+        }
+        casos = (("4,355", "12498.85", "4.3550", "12498.85"), ("0,645", "1851.15", "0.6450", "1851.15"))
+        for qtd, total, qcom, vprod in casos:
+            with xml_com_regra():
+                xml = _montar_xml_nfe_saida(
+                    _doc(qtd, total),
+                    cfg,
+                    serie=1,
+                    numero=8,
+                    chave="3" * 43 + "5",
+                    dh_emi=datetime(2026, 8, 31, 10, 0, 0),
+                )
+            self.assertIn(f"<qCom>{qcom}</qCom>", xml)
+            self.assertIn(f"<qTrib>{qcom}</qTrib>", xml)
+            self.assertIn("<uCom>TON</uCom>", xml)
+            self.assertIn("<uTrib>TON</uTrib>", xml)
+            self.assertIn(f"<vProd>{vprod}</vProd>", xml)
+            ok, det = validar_xml_nfe_xsd(xml)
+            self.assertTrue(ok, det)
+            html = _linha_produto(_doc(qtd, total)["itens"][0])
+            self.assertIn("TON", html)
+            self.assertIn(qtd.replace(".", ","), html)

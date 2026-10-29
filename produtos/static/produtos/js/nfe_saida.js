@@ -202,15 +202,36 @@
     return null;
   }
 
+  function parseBrNum(raw) {
+    var s = String(raw == null ? '' : raw).trim().replace(/\s/g, '');
+    if (!s) return null;
+    if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+    if (!/^-?\d+(\.\d+)?$/.test(s)) return null;
+    return s;
+  }
+
+  function roundDp(raw, dp) {
+    var s = parseBrNum(raw);
+    if (s == null) return 0;
+    var f = Math.pow(10, dp);
+    return Math.round(Number(s) * f) / f;
+  }
+
+  function moneyQtdVu(qtd, vu) {
+    var q4 = Math.round(roundDp(qtd, 4) * 10000);
+    var v4 = Math.round(roundDp(vu, 4) * 10000);
+    return Math.round(q4 * v4 / 1000000) / 100;
+  }
+
   function linhaProdutoFromApi(p) {
     var preco = parseFloat(p.preco_venda || p.preco || p.valor || p.preco_unitario || 0) || 0;
     var qtd = 1;
-    if (p.qty_sugerida != null) qtd = parseFloat(p.qty_sugerida) || 1;
-    if (p.quantidade_sugerida != null) qtd = parseFloat(p.quantidade_sugerida) || qtd;
-    var vTotal = preco * qtd;
+    if (p.qty_sugerida != null) qtd = roundDp(p.qty_sugerida, 4) || 1;
+    if (p.quantidade_sugerida != null) qtd = roundDp(p.quantidade_sugerida, 4) || qtd;
+    var vTotal = moneyQtdVu(qtd, preco);
     if (p.valor_etiqueta != null && preco > 0) {
-      vTotal = parseFloat(p.valor_etiqueta) || vTotal;
-      qtd = preco > 0 ? vTotal / preco : qtd;
+      vTotal = roundDp(p.valor_etiqueta, 2) || vTotal;
+      qtd = preco > 0 ? roundDp(vTotal / preco, 4) : qtd;
     }
     var ncm = onlyDigits(p.ncm || p.NCM, 8);
     var cfop = onlyDigits(p.cfop || p.CFOP, 4);
@@ -664,12 +685,14 @@
       if (docTravado()) {
         tr.innerHTML =
           '<td class="p-2 font-bold">' + ln.descricao + '</td>' +
+          '<td class="p-2 font-bold">' + (ln.un || 'UN') + '</td>' +
           '<td class="p-2 text-right tabular-nums">' + ln.qtd + '</td>' +
           '<td class="p-2 text-right tabular-nums">' + fmtMoeda(ln.v_total) + '</td>';
       } else {
         tr.innerHTML =
           '<td class="p-1"><input data-it="descricao" data-idx="' + idx + '" class="nfe-in w-full min-h-[44px]" value="' + (ln.descricao || '') + '"></td>' +
-          '<td class="p-1 w-20"><input data-it="qtd" data-idx="' + idx + '" class="nfe-in w-full min-h-[44px] text-right" value="' + (ln.qtd || '') + '"></td>' +
+          '<td class="p-1 w-16"><input data-it="un" data-idx="' + idx + '" class="nfe-in w-full min-h-[44px] uppercase" maxlength="6" value="' + (ln.un || 'UN') + '" placeholder="UN"></td>' +
+          '<td class="p-1 w-24"><input data-it="qtd" data-idx="' + idx + '" class="nfe-in w-full min-h-[44px] text-right" inputmode="decimal" value="' + (ln.qtd || '') + '" placeholder="0,645"></td>' +
           '<td class="p-1 w-24"><input data-it="v_unit" data-idx="' + idx + '" class="nfe-in w-full min-h-[44px] text-right" value="' + (ln.v_unit || '') + '"></td>' +
           '<td class="p-1 w-28"><input data-it="ncm" data-idx="' + idx + '" class="nfe-in w-full min-h-[44px] font-mono' + (ln.ncm ? '' : ' border-orange-500 bg-orange-50') + '" value="' + (ln.ncm || '') + '" placeholder="NCM pendente" title="' + (ln.ncm ? '' : 'NCM obrigatório — sem preenchimento genérico') + '"></td>' +
           '<td class="p-1 w-20"><input data-it="cfop" data-idx="' + idx + '" class="nfe-in w-full min-h-[44px] font-mono' + (ln.cfop ? '' : ' border-orange-500 bg-orange-50') + '" value="' + (ln.cfop || '') + '" placeholder="CFOP pendente"></td>' +
@@ -700,7 +723,14 @@
     var idx = parseInt(inp.getAttribute('data-idx'), 10);
     var field = inp.getAttribute('data-it');
     if (!state.doc.itens[idx]) return;
-    state.doc.itens[idx][field] = inp.value;
+    if (field === 'un') {
+      state.doc.itens[idx][field] = String(inp.value || 'UN').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) || 'UN';
+    } else if (field === 'qtd' || field === 'v_unit') {
+      var parsed = parseBrNum(inp.value);
+      state.doc.itens[idx][field] = parsed == null ? inp.value : parsed;
+    } else {
+      state.doc.itens[idx][field] = inp.value;
+    }
     recalcLinha(state.doc.itens[idx]);
     state.dirty = true;
     renderItens();
@@ -709,9 +739,7 @@
   }
 
   function recalcLinha(ln) {
-    var q = parseFloat(String(ln.qtd || '0').replace(',', '.')) || 0;
-    var vu = parseFloat(String(ln.v_unit || '0').replace(',', '.')) || 0;
-    ln.v_total = Math.round(q * vu * 100) / 100;
+    ln.v_total = moneyQtdVu(ln.qtd, ln.v_unit);
   }
 
   function recalcItens() {

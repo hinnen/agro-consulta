@@ -128,6 +128,11 @@ def test_arquivos() -> None:
     util = _read("produtos/nfe_saida_util.py")
     check("salvar_pg_estab", '"estabelecimento"' in util and "aplicar_estabelecimento_no_doc" in util)
     check("checklist_ufs", "origem" in util and "Não convertemos" in util)
+    check("js_cache_v9", "nfe_saida.js' %}?v=9" in tpl or "nfe_saida.js?v=9" in tpl)
+    check("js_qtd_decimal", "function parseBrNum" in js and "function moneyQtdVu" in js and 'data-it="un"' in js)
+    check("qtd_decimal_util", "def decimal_qtd" in util and "float(ln.get(\"qtd\")" not in util)
+    trib = _read("produtos/nfe_saida_tributacao_util.py")
+    check("trib_dec_qtd", "def _dec_qtd" in trib and "qtd = _dec_qtd" in trib)
 
 
 def test_logica() -> None:

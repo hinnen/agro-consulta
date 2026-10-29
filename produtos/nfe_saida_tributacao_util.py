@@ -72,10 +72,16 @@ def _q2(v: Decimal) -> str:
 
 
 def _dec(v: Any) -> Decimal:
-    try:
-        return Decimal(str(v or 0)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-    except Exception:
-        return Decimal("0.00")
+    """Valor monetário (2 casas). Quantidade usa `_dec_qtd`."""
+    from produtos.nfe_saida_util import decimal_moeda
+
+    return decimal_moeda(v)
+
+
+def _dec_qtd(v: Any) -> Decimal:
+    from produtos.nfe_saida_util import decimal_qtd
+
+    return decimal_qtd(v)
 
 
 def _digits(s: Any, n: int = 20) -> str:
@@ -396,7 +402,7 @@ def apurar_nfe_saida(
                 f"Item {idx}: NCM com 8 dígitos obrigatório — cadastre a classificação do produto. "
                 "A NF-e não inventa NCM."
             )
-        qtd = _dec(ln.get("qtd"))
+        qtd = _dec_qtd(ln.get("qtd"))
         vu = _dec(ln.get("v_unit"))
         vt = _dec(ln.get("v_total"))
         if vt <= 0 and qtd > 0:

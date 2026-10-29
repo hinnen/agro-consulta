@@ -83,30 +83,6 @@ def x_ped_item(ln: dict | None, x_ped_cab: str, n_item: int) -> tuple[str, str]:
 
 
 def unidade_comercial_nfe(raw: Any) -> str:
-    u = str(raw or "UN").strip().upper() or "UN"
-    aliases = {
-        "TONELADA": "TON",
-        "TONELADAS": "TON",
-        "TN": "TON",
-        "T": "TON",
-    }
-    u = aliases.get(u, u)
-    ok = {
-        "UN",
-        "KG",
-        "G",
-        "L",
-        "ML",
-        "M",
-        "CM",
-        "PC",
-        "CX",
-        "FD",
-        "PCT",
-        "DZ",
-        "TON",
-        "SC",
-        "BD",
-        "GL",
-    }
-    return u[:6] if u in ok else "UN"
+    from produtos.nfe_saida_util import normalizar_unidade_nfe
+
+    return normalizar_unidade_nfe(raw)

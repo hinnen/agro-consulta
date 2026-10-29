@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 import re
 from datetime import datetime, timezone
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
 from typing import Any
 
 from bson import ObjectId
@@ -56,11 +56,109 @@ def _digits_doc(raw: Any, max_len: int = 14) -> str:
     return re.sub(r"\D", "", str(raw or ""))[:max_len]
 
 
-def _decimal(val: Any) -> Decimal:
-    try:
-        return Decimal(str(val or "0").replace(",", ".")).quantize(Decimal("0.01"))
-    except Exception:
+_QTD_Q = Decimal("0.0001")
+_MOEDA_Q = Decimal("0.01")
+_QTD_MAX = Decimal("999999999.9999")
+
+
+def parse_decimal_br(val: Any) -> Decimal:
+    """Aceita 0,645 / 0.645 / 4,355. Não usa float."""
+    if val is None or val == "":
         return Decimal("0")
+    if isinstance(val, Decimal):
+        return val
+    if isinstance(val, bool):
+        raise InvalidOperation
+    if isinstance(val, int):
+        return Decimal(val)
+    if isinstance(val, float):
+        return Decimal(str(val))
+    s = str(val).strip().replace("\u00a0", " ").replace(" ", "")
+    if not s:
+        return Decimal("0")
+    if "," in s:
+        s = s.replace(".", "").replace(",", ".")
+    return Decimal(s)
+
+
+def decimal_qtd(val: Any) -> Decimal:
+    try:
+        return parse_decimal_br(val).quantize(_QTD_Q, rounding=ROUND_HALF_UP)
+    except (InvalidOperation, ValueError, TypeError):
+        return Decimal("0.0000")
+
+
+def decimal_moeda(val: Any) -> Decimal:
+    try:
+        return parse_decimal_br(val).quantize(_MOEDA_Q, rounding=ROUND_HALF_UP)
+    except (InvalidOperation, ValueError, TypeError):
+        return Decimal("0.00")
+
+
+def _decimal(val: Any) -> Decimal:
+    return decimal_moeda(val)
+
+
+def qtd_persistida(val: Any) -> str:
+    q = decimal_qtd(val)
+    s = format(q, "f")
+    if "." in s:
+        s = s.rstrip("0").rstrip(".")
+    return s or "0"
+
+
+def normalizar_unidade_nfe(raw: Any) -> str:
+    """Unidade comercial 1–6 (XSD). Não troca TON por UN."""
+    raw_u = str(raw or "").strip().upper()
+    aliases = {
+        "TONELADA": "TON",
+        "TONELADAS": "TON",
+        "TONELA": "TON",
+        "T": "TON",
+        "TN": "TON",
+        "TO": "TON",
+        "TONEL": "TON",
+        "SAC": "SC",
+        "SACO": "SC",
+        "UNID": "UN",
+        "UND": "UN",
+    }
+    if raw_u in aliases:
+        return aliases[raw_u]
+    u = re.sub(r"[^A-Za-z0-9]", "", raw_u)[:6]
+    u = aliases.get(u, u)
+    return u or "UN"
+
+
+def qtd_tem_mais_de_4_casas(val: Any) -> bool:
+    try:
+        d = parse_decimal_br(val)
+    except (InvalidOperation, ValueError, TypeError):
+        return False
+    return int(d.as_tuple().exponent) < -4
+
+
+def normalizar_linha_item_nfe(ln: dict[str, Any]) -> dict[str, Any]:
+    out = dict(ln)
+    qtd = decimal_qtd(ln.get("qtd"))
+    vu = decimal_moeda(ln.get("v_unit"))
+    vt = decimal_moeda(ln.get("v_total"))
+    calc = (qtd * vu).quantize(_MOEDA_Q, rounding=ROUND_HALF_UP)
+    if vt <= 0 and qtd > 0:
+        vt = calc
+    elif qtd > 0 and vu > 0 and abs(vt - calc) > Decimal("0.01"):
+        vt = calc
+    out["qtd"] = qtd_persistida(qtd)
+    out["v_unit"] = str(vu)
+    out["v_total"] = float(vt)
+    out["un"] = normalizar_unidade_nfe(ln.get("un") or ln.get("u_com") or ln.get("unidade"))
+    return out
+
+
+def normalizar_itens_nfe_saida(doc: dict[str, Any]) -> dict[str, Any]:
+    itens = doc.get("itens") if isinstance(doc.get("itens"), list) else []
+    doc["itens"] = [normalizar_linha_item_nfe(ln) if isinstance(ln, dict) else ln for ln in itens]
+    return doc
 
 
 def nfe_saida_serie_default() -> int:
@@ -388,26 +486,26 @@ def itens_de_venda(v) -> list[dict[str, Any]]:
     for it in v.itens.all():
         pid = str(it.produto_id_externo or "").strip()
         fis = _fiscal_produto_buscar(pid)
-        qtd = float(it.quantidade or 0)
-        vu = float(it.valor_unitario or 0)
-        vt = float(it.valor_total or 0)
+        qtd = decimal_qtd(it.quantidade)
+        vu = decimal_moeda(it.valor_unitario)
+        vt = decimal_moeda(it.valor_total)
         if vt <= 0 and qtd > 0:
-            vt = round(qtd * vu, 2)
+            vt = (qtd * vu).quantize(_MOEDA_Q, rounding=ROUND_HALF_UP)
         ncm = normalizar_ncm_somente_digitos(fis.get("ncm"))
         out.append(
             {
                 "produto_id": pid,
                 "codigo": str(it.codigo or "").strip(),
                 "descricao": str(it.descricao or "").strip(),
-                "qtd": qtd,
-                "un": str(it.unidade or "UN").strip()[:12] or "UN",
+                "qtd": qtd_persistida(qtd),
+                "un": normalizar_unidade_nfe(it.unidade),
                 "ncm": ncm if len(ncm) == 8 else "",
                 "cfop": _cfop_item_prefill_venda(fis, uf_dest=uf_dest, uf_emit=uf_emit),
                 "csosn": str(fis.get("csosn") or "").strip() or "",
                 "origem": str(fis.get("origem") or "0").strip()[:1] or "0",
                 "cst_pis_cofins": re.sub(r"\D", "", str(fis.get("cst_pis_cofins") or ""))[:2],
-                "v_unit": vu,
-                "v_total": vt,
+                "v_unit": str(vu),
+                "v_total": float(vt),
             }
         )
     return out
@@ -599,6 +697,7 @@ def salvar_documento_nfe_saida(db, doc_id: str | None, payload: dict, *, usuario
             if key in payload:
                 base[key] = payload[key]
         aplicar_estabelecimento_no_doc(base)
+        normalizar_itens_nfe_saida(base)
         if usuario:
             base["usuario"] = usuario[:200]
         base["updated_at"] = now
@@ -643,6 +742,7 @@ def salvar_documento_nfe_saida(db, doc_id: str | None, payload: dict, *, usuario
         if key in payload:
             base[key] = payload[key]
     aplicar_estabelecimento_no_doc(base)
+    normalizar_itens_nfe_saida(base)
     if usuario:
         base["usuario"] = usuario[:200]
     base["updated_at"] = now
@@ -926,11 +1026,27 @@ def validar_itens(itens: list) -> list[str]:
         if not str(ln.get("descricao") or "").strip():
             erros.append(f"Item {i + 1}: descrição.")
         try:
-            q = float(ln.get("qtd") or 0)
-        except (TypeError, ValueError):
-            q = 0
+            parse_decimal_br(ln.get("qtd"))
+        except (InvalidOperation, ValueError, TypeError):
+            erros.append(f"Item {i + 1}: quantidade inválida.")
+            continue
+        if qtd_tem_mais_de_4_casas(ln.get("qtd")):
+            erros.append(f"Item {i + 1}: quantidade com no máximo 4 casas decimais.")
+        q = decimal_qtd(ln.get("qtd"))
         if q <= 0:
             erros.append(f"Item {i + 1}: quantidade.")
+        elif q > _QTD_MAX:
+            erros.append(f"Item {i + 1}: quantidade acima do limite do XML.")
+        vu = decimal_moeda(ln.get("v_unit"))
+        vt = decimal_moeda(ln.get("v_total"))
+        calc = (q * vu).quantize(_MOEDA_Q, rounding=ROUND_HALF_UP)
+        if q > 0 and vu > 0 and vt > 0 and abs(vt - calc) > Decimal("0.01"):
+            erros.append(
+                f"Item {i + 1}: total R$ {vt} não confere com {qtd_persistida(q)} × R$ {vu} (= R$ {calc})."
+            )
+        un = normalizar_unidade_nfe(ln.get("un") or ln.get("u_com") or ln.get("unidade"))
+        if not un:
+            erros.append(f"Item {i + 1}: unidade.")
     return erros
 
 

@@ -213,9 +213,11 @@ def carregar_emitente_danfe(cnpj: str | None = None, *, doc: dict | None = None)
 def _linha_produto(ln: dict) -> str:
     orig = _esc(str(ln.get("origem") or "0")[:1])
     csosn = _esc(re.sub(r"\D", "", str(ln.get("csosn") or "102"))[:3] or "102")
+    from produtos.nfe_saida_util import normalizar_unidade_nfe, qtd_persistida
+
     qtd = ln.get("qtd", "")
     try:
-        qtd_fmt = f"{Decimal(str(qtd or 0)).quantize(Decimal('0.0001')):,.4f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        qtd_fmt = qtd_persistida(qtd).replace(".", ",")
     except Exception:
         qtd_fmt = _esc(qtd)
     return (
@@ -225,7 +227,7 @@ def _linha_produto(ln: dict) -> str:
         f"<td class='c'>{_esc(ln.get('ncm', ''))}</td>"
         f"<td class='c'>{orig}/{csosn}</td>"
         f"<td class='c'>{_esc(ln.get('cfop', ''))}</td>"
-        f"<td class='c'>{_esc(ln.get('un', 'UN'))}</td>"
+        f"<td class='c'>{_esc(normalizar_unidade_nfe(ln.get('un')))}</td>"
         f"<td class='r'>{qtd_fmt}</td>"
         f"<td class='r'>{_fmt_moeda(ln.get('v_unit'))}</td>"
         f"<td class='r'>{_fmt_moeda(ln.get('v_total'))}</td>"

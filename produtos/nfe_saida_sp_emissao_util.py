@@ -29,7 +29,7 @@ from produtos.nfce_sp_emissao_util import (
     _sanitizar_texto_xml,
     _sub,
 )
-from produtos.nfe_saida_util import nfe_saida_serie_default
+from produtos.nfe_saida_util import decimal_moeda, decimal_qtd, nfe_saida_serie_default
 from produtos.sefaz_xml_fiscal_util import tostring_sem_prefixos
 
 logger = logging.getLogger(__name__)
@@ -336,13 +336,13 @@ def _montar_xml_nfe_saida(
         if not isinstance(ln, dict):
             continue
         item_fis = ap_itens[idx - 1] if idx <= len(ap_itens) else None
-        qtd = Decimal(str(ln.get("qtd") or 0))
-        vu = Decimal(str(ln.get("v_unit") or 0))
-        vt = Decimal(str(ln.get("v_total") or 0)).quantize(Decimal("0.01"))
+        qtd = decimal_qtd(ln.get("qtd"))
+        vu = decimal_moeda(ln.get("v_unit"))
+        vt = decimal_moeda(ln.get("v_total"))
         if vt <= 0 and qtd > 0:
-            vt = (qtd * vu).quantize(Decimal("0.01"))
+            vt = (qtd * vu).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         total_prod += vt
-        u_com = unidade_comercial_nfe(ln.get("un"))
+        u_com = unidade_comercial_nfe(ln.get("un") or ln.get("u_com") or ln.get("unidade"))
         det = ET.SubElement(inf, f"{{{NS}}}det")
         det.set("nItem", str(idx))
         prod = _sub(det, "prod")

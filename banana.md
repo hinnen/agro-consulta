@@ -1294,6 +1294,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ CHECKLIST ÚNICO — **29/10** · 🟢 **pronto envio produção** · **NFE-QTD-DECIMAL**
+
+| # | Item | Status | Migrate | Prova |
+| - | ---- | ------ | ------- | ----- |
+| 1 | Qtd 0,645 / 4,355 TON Prefeitura | 🟢 Pronto | **NÃO** | `NfeSaidaQtdDecimalTests` + XSD |
+| 2 | `_dec_qtd` 4 casas · money 2 casas | 🟢 Pronto | **NÃO** | `4,355×2870=12498.85` |
+| 3 | Unidade editável (TON/UN/KG/SC) | 🟢 Pronto | **NÃO** | XML `uCom`/`uTrib` |
+| 4 | NFC-e / PDV | ✅ Intocado | **NÃO** | `tests_nfce_loja` |
+
+| Campo | Valor |
+| ----- | ----- |
+| **Pacote** | **v27.26.43** · **NFE-QTD-DECIMAL** |
+| **Rollback** | `rollback/pre-v272643-nfe-qtd-decimal` = `9cd4d58c` (v27.26.42) |
+| **Migrate** | **NÃO** |
+| **Smoke** | `/nfe/saida/` · qtd com vírgula · Un=TON · **não** transmitir automático |
+
+### 📦 PACOTE PRONTO — **NFE-QTD-DECIMAL** · **v27.26.43** · 29/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Quantidade Decimal 4 casas; TON; totais 4,355×2870 e 0,645×2870 |
+| **Revert** | `git push origin rollback/pre-v272643-nfe-qtd-decimal:producao` |
+
 ### ✅ CHECKLIST ÚNICO — **27/10h** · 🟢 **pronto envio produção** · **NFE-EMITENTE-CFOP**
 
 | # | Item | Status | Migrate | Prova |
