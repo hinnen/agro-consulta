@@ -761,6 +761,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Agenda + barra (`WA-AGENDA-LID` · 02/09):** busca pelo nome no Zap/cadastro (não a agenda inteira do celular). Eco do próprio envio não duplica. Áudio vira ogg com ffmpeg-static. Gravando: some o botão verde; envia no microfone vermelho. **Import .vcf** fica em **Bot → Geral** (`WA-VCF-BOT` · 03/09). Lista/topo: só nome se salvo; clique → ficha com telefone (`WA-FICHA-NOME`).
 - **Chat duplicado LID (`WA-LID-UM` · 02/09):** `@lid` e telefone viram **um** chat; fiado usa o número real. Envio ao cliente usa o `@lid`. Foto/áudio vão pelo arquivo, não pela palavra `[imagem]`. Migrate **`0116`**.
 - **Entrada instável (`WA-MSG-LID` · 01/09):** mensagem offline (`append`) era descartada; Zap novo manda `@lid` e a ponte recusava — por isso só caía depois de mandar da loja. Ponte aceita LID + append recente; mapa LID↔telefone fica no PC (`lid_map.json`); Postgres **não** apaga chat ao reiniciar o `.bat`; LID junta no mesmo fio do telefone. Aba Centro/Vila/Fila é lembrada. Salvar bot (ausência) não trava em «Processando».
+- **30/10 `WA-RENDER-SPLIT`:** Zap no serviço **agro-consulta-wa** (Starter, fora do PDV). Código **ainda não** está na `producao`. Nome «Agropecuária Agro Mais» não entra como cliente. Checkpoint no topo — próximo chat sobe só com frase + senha.
 
 ### 4.15 DesvinculaÃ§Ã£o ERP (Mongo espelho â†’ Postgres SisVale)
 
@@ -1293,6 +1294,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 🟡 PRONTO · **WA-RENDER-SPLIT** · aguarda frase + senha no próximo chat · 30/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | WhatsApp fora do worker do PDV + nome do cliente na lista (não o pushName da loja) + até 3 fotos por poll |
+| **Branch** | `cursor/whatsapp-render-split-6637` — **não** é a loja |
+| **Pacote** | diff em cima de `b91d34b79` (18 arquivos). Commits `78bcd95ec` `58542632a` `4ef9a3742` `f01486833` + o deste checkpoint |
+| **Proibido** | Merge desta branch ou de `teste` em `producao` (1530 commits à frente, 757 atrás). Cherry-pick **só** o Zap |
+| **Migrate** | **NÃO** |
+| **Serviço** | **agro-consulta-wa** já Live em `https://agro-consulta-wa.onrender.com` · branch painel `producao` · auto-deploy **Off** · ponte do PC já aponta para lá · **código novo ainda não está nesse serviço** |
+| **Depois da senha** | 1) cherry em `producao` 2) Manual Deploy **agro-consulta-wa** 3) na **Sistvale - Produção** setar `AGRO_WA_PUBLIC_ORIGIN=https://agro-consulta-wa.onrender.com` 4) **não** setar essa var no serviço do Zap 5) reiniciar `iniciar.bat` |
+| **Rollback** | Tirar `AGRO_WA_PUBLIC_ORIGIN` da loja. Zap volta a falar com o PDV se o `.env` do PC apontar de novo para `www.sistvale.com.br` |
+| **Prova** | `verify_wa_render_split_path.py` **18/18** · `verify_wa_nome_loja_path.py` **10/10** · `NomeLojaWhatsAppTests` no Django (migrate sqlite deste repo quebra na 0039 — a prova que rodou foi o script) |
+| **Doc** | `docs/DEPLOY-WHATSAPP-RENDER.md` |
+| **PIN** | **9973** é PIN de operador (teste). **Não** autoriza deploy. Deploy só com frase + senha `99738595` na **mesma** mensagem |
 
 ### 🟡 ARMADO · **PREP v27.26.11** · **CHECKLIST 18/10h** · DANFE layout ERP
 

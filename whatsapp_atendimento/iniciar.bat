@@ -1,5 +1,7 @@
 @echo off
 cd /d "%~dp0"
+if exist "C:\Program Files\nodejs\node.exe" set "PATH=C:\Program Files\nodejs;%PATH%"
+if exist "%LocalAppData%\Programs\node\node.exe" set "PATH=%LocalAppData%\Programs\node;%PATH%"
 if exist "%~dp0.env" (
   for /f "usebackq eol=# tokens=1,* delims==" %%A in ("%~dp0.env") do (
     if not "%%A"=="" set "%%A=%%B"
@@ -58,6 +60,11 @@ if exist node_modules\ffmpeg-static\install.js (
 :loop
 echo Ligando...
 node index.js
+if errorlevel 1 (
+  echo.
+  echo ERRO ao ligar a ponte (codigo acima). Janela aberta para ler.
+  pause
+)
 echo.
 echo A ponte parou. Religa em 5 segundos. Feche esta janela para parar de vez.
 timeout /t 5 /nobreak >nul

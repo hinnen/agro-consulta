@@ -45,7 +45,13 @@ def main() -> int:
     check("context agro_wa_public_urls", "produtos.context_processors.agro_wa_public_urls" in str(settings.TEMPLATES))
     check("render.yaml agro-consulta-teste WA", "agro-consulta-teste" in read("render.yaml"))
     check("doc reaproveita staging", "agro-consulta-staging" in read("docs/DEPLOY-WHATSAPP-RENDER.md"))
+    check("doc servico agro-consulta-wa", "agro-consulta-wa.onrender.com" in read("docs/DEPLOY-WHATSAPP-RENDER.md"))
     check("doc deploy", (ROOT / "docs/DEPLOY-WHATSAPP-RENDER.md").is_file())
+    util_nome = read("produtos/atendimento_whatsapp_util.py")
+    check("corretor so a partir de 8 chats", "qtd__gte=8" in util_nome)
+    check("eco do celular preserva nome", "nome_antes" in util_nome)
+    check("ponte manda nome_loja", "nome_loja:" in read("whatsapp_atendimento/index.js"))
+    check("checkpoint WA-RENDER-SPLIT", "WA-RENDER-SPLIT" in read("banana.md"))
 
     util = read("produtos/agro_wa_origin_util.py")
     check("util path prefix atendimento", "atendimento-whatsapp" in util)

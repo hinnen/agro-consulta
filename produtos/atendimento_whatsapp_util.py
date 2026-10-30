@@ -320,7 +320,12 @@ def lembrar_nome_zap_loja(nome: str) -> None:
 
 
 def corrigir_nomes_que_sao_da_loja(*, cfg: dict | None = None) -> int:
-    """Tira da lista o nome da loja repetido em vários chats e recalcula o do cliente."""
+    """Tira da lista o nome longo da loja e recalcula o do cliente.
+
+    O padrão curto «GM Agro» não varre a tabela. Nome repetido só vira nome da
+    loja com 8+ chats e 10+ letras (backfill). Quatro clientes com o mesmo nome
+    longo continuam como estão.
+    """
     import time
 
     from django.db.models import Count
@@ -334,27 +339,27 @@ def corrigir_nomes_que_sao_da_loja(*, cfg: dict | None = None) -> int:
     corrigir_nomes_que_sao_da_loja._mono = agora  # type: ignore[attr-defined]
 
     cfg = cfg if cfg is not None else carregar_bot()
-    proib = set(_chaves_nome_loja(cfg))
+    proib = {c for c in _chaves_nome_loja(cfg) if len(c) >= 10}
     for row in (
         WhatsAppConversaAgro.objects.exclude(nome="")
         .values("nome")
         .annotate(qtd=Count("id"))
-        .filter(qtd__gte=4)
+        .filter(qtd__gte=8)
     ):
         bruto = str(row.get("nome") or "")
         chave = _nome_chave(bruto)
-        if len(chave) < 10:
+        if len(chave) < 10 or chave in proib:
             continue
         proib.add(chave)
-        if chave not in _chaves_nome_loja(cfg):
-            lembrar_nome_zap_loja(bruto)
-            cfg = dict(cfg)
-            cfg["nome_zap_loja"] = bruto
+        lembrar_nome_zap_loja(bruto)
+        cfg = dict(cfg)
+        cfg["nome_zap_loja"] = bruto
     if not proib:
         return 0
     n = 0
     for conv in WhatsAppConversaAgro.objects.exclude(nome="").iterator():
-        if not _nome_e_da_loja(conv.nome, cfg) and _nome_chave(conv.nome) not in proib:
+        chave = _nome_chave(conv.nome)
+        if chave not in proib:
             continue
         conv.nome = ""
         aplicar_nome_cadastro(conv, perfil="", cfg=cfg)
@@ -373,6 +378,7 @@ def aplicar_nome_cadastro(conv: WhatsAppConversaAgro, *, perfil: str = "", cfg: 
         perfil = ""
     if _nome_e_da_loja(conv.nome, cfg):
         conv.nome = ""
+    nome_antes = (conv.nome or "").strip()
     tel = _telefone_real(conv.telefone) or _telefone_real(conv.jid)
     raw = str((cfg or {}).get("nome_fontes") or BOT_DEFAULT.get("nome_fontes") or "")
     ordem = []
@@ -402,6 +408,14 @@ def aplicar_nome_cadastro(conv: WhatsAppConversaAgro, *, perfil: str = "", cfg: 
         elif fonte == "perfil":
             hit = (perfil or "").strip()
         elif fonte == "telefone":
+            # Eco do celular manda perfil vazio. Não troca o nome do cliente pelo número.
+            if (
+                not (perfil or "").strip()
+                and nome_antes
+                and not _nome_parece_telefone(nome_antes, tel)
+            ):
+                conv.nome = nome_antes[:120]
+                return
             hit = tel
         if not hit:
             continue

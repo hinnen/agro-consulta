@@ -68,3 +68,19 @@ Plano **Starter (~US$ 7/mês)** basta — só WhatsApp + poll da ponte, sem PDV 
 ## Rollback
 
 - Tire `AGRO_WA_PUBLIC_ORIGIN` da loja e suspenda o serviço WhatsApp. Dados não somem (Postgres da loja).
+
+## Estado 30/10/2026 — pronto para o próximo chat autorizar a loja
+
+Serviço já criado no painel (projeto **teste**): **agro-consulta-wa** · `https://agro-consulta-wa.onrender.com` · plano Starter · branch **`producao`** · auto-deploy **Off**. A ponte no PC já aponta para essa URL. O código deste pacote **ainda não está** na branch `producao` nem nesse serviço.
+
+**Não** fazer merge de `teste` nem da branch `cursor/whatsapp-render-split-6637` em `producao` (milhares de commits à frente e atrás). O pacote é só o diff do WhatsApp em cima de `b91d34b79`.
+
+Passos do próximo chat, **depois** da frase + senha na mesma mensagem:
+
+1. Cherry-pick só os commits do Zap em `producao` (ou aplicar esse diff). Conferir que não entrou NF-e nem o resto do `teste`.
+2. Manual Deploy em **agro-consulta-wa** (branch `producao`). Auto-deploy continua **Off**.
+3. Na **Sistvale - Produção**, aí sim: `AGRO_WA_PUBLIC_ORIGIN=https://agro-consulta-wa.onrender.com`. **Não** colocar essa variável no serviço do Zap.
+4. Build do Zap precisa de `collectstatic` (senão o JS do chat não carrega). Sem migrate nova.
+5. Reiniciar o `iniciar.bat` no PC depois que o `index.js` novo estiver na pasta (o servidor já corrige o nome mesmo com a ponte antiga, porque ela manda `de_mim`).
+
+Nome na lista: pushName «Agropecuária Agro Mais» não grava como cliente. Foto: cada poll devolve até 3 fotos pendentes; disco do Render é efêmero, então a ponte pede de novo depois de um deploy.
