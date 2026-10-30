@@ -1,0 +1,7 @@
+# Renomeie para .env (mesma pasta do iniciar.bat)
+# Ou use setup-ponte-windows.ps1 que cria sozinho.
+#
+# Token = Environment da Sistvale - Producao no Render (AGRO_WA_BRIDGE_TOKEN)
+
+AGRO_WA_DJANGO_URL=https://agro-consulta-wa.onrender.com
+AGRO_WA_BRIDGE_TOKEN=COLE_O_TOKEN_DA_LOJA_AQUI

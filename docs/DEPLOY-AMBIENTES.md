@@ -4,7 +4,7 @@
 
 | Você manda código para… | Atualiza… |
 | ----------------------- | --------- |
-| **`teste`** | staging (agro-consulta-staging) |
+| **`teste`** | ~~staging PDV~~ → serviço reaproveitado só **WhatsApp** na loja (ver `docs/DEPLOY-WHATSAPP-RENDER.md`) |
 | **`producao`** | loja (Sistvale - Produção) |
 
 ## O que fazer no dia a dia
