@@ -186,8 +186,39 @@
     .ma-modal-pad {
       padding-bottom: calc(0.75rem + var(--ma-safe-bottom) + var(--ma-kb-inset));
     }
-    #reader video {
-      object-fit: cover;
+    #reader.ma-reader-split {
+      bottom: auto;
+      height: 42dvh;
+    }
+    #ma-qtd-sheet {
+      display: none;
+      position: fixed;
+      z-index: 168;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      max-height: 58dvh;
+      background: #fff;
+      border-top: 4px solid #10b981;
+      padding: 0.7rem 0.75rem calc(0.7rem + env(safe-area-inset-bottom));
+      box-shadow: 0 -10px 28px rgba(15, 23, 42, 0.2);
+    }
+    #ma-qtd-sheet.is-on { display: block; }
+    .ma-qtd-num {
+      font-size: clamp(3rem, 12vw, 4.2rem);
+      font-weight: 900;
+      text-align: center;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .ma-qtd-btn {
+      min-height: 4.1rem;
+      border-radius: 1rem;
+      font-size: 1.8rem;
+      font-weight: 900;
+      background: #ecfdf5;
+      border: 2px solid #6ee7b7;
+      color: #065f46;
     }
     /* Lista ocupa o fluxo normal da página — scroll = página inteira. */
     #lista-scroll {
@@ -234,6 +265,37 @@
     .ma-head-title-txt span { color: #10b981; }
     .ma-head-btn--hist { background: #f1f5f9; color: #334155; }
     .ma-head-btn--scan { background: #0f172a; color: #fff; border-color: #0f172a; }
+    .ma-busca-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: stretch;
+    }
+    .ma-busca-row #busca {
+      flex: 1 1 auto;
+      min-width: 0;
+      min-height: 3.25rem;
+    }
+    .ma-btn-camera {
+      flex: 0 0 auto;
+      min-width: 4.5rem;
+      max-width: 5.5rem;
+      min-height: 3.25rem;
+      padding: 0.35rem 0.5rem;
+      border-radius: 1rem;
+      border: 2px solid #0f172a;
+      background: #0f172a;
+      color: #fff;
+      font-size: 0.68rem !important;
+      font-weight: 900;
+      text-transform: uppercase;
+      line-height: 1.1 !important;
+      letter-spacing: 0.02em;
+    }
+    .ma-btn-camera.is-on {
+      background: #10b981;
+      border-color: #059669;
+      box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.35);
+    }
     .ma-head-row--op { background: #ecfdf5; }
     .ma-head-op-txt {
       flex: 1 1 auto;
@@ -687,6 +749,12 @@
       background: #f8fafc;
       border-color: #e2e8f0;
     }
+    .ma-card--fechado {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      opacity: 0.72;
+    }
+    .ma-card--fechado .ma-card-nome { color: #64748b; }
     .ma-card--pendente {
       background: #fff;
       opacity: 0.88;
@@ -758,7 +826,7 @@
       position: fixed;
       top: max(0.45rem, env(safe-area-inset-top));
       right: 0.65rem;
-      z-index: 175;
+      z-index: 190;
       align-items: center;
       justify-content: center;
       min-width: 2.75rem;
@@ -794,15 +862,21 @@
       <button type="button" id="ma-btn-ciclica" class="ma-head-btn ma-head-btn--hist" title="Contagem cíclica (cego, multi-celular)">Cíclica</button>
       <a href="{% url 'ajuste_codigos_pendentes_lista' %}" class="ma-head-btn ma-head-btn--hist" title="Códigos bipados sem cadastro">Cód.</a>
       <a href="/historico/?from=ajuste" target="_top" class="ma-head-btn ma-head-btn--hist">Hist.</a>
-      <button type="button" onclick="startScan()" class="ma-head-btn ma-head-btn--scan">Scan</button>
+      <button type="button" id="ma-head-btn-camera" class="ma-head-btn ma-head-btn--scan" aria-label="Bipar com a câmera">Câmera</button>
     </div>
     {% if ajuste_operador %}
     <div class="ma-head-row ma-head-row--op">
       <span class="ma-head-op-txt" title="Quem abriu com PIN — todos os ajustes desta sessão">Operador: {{ ajuste_operador }}</span>
       {% if ajuste_via_sistapp %}
       <a href="{% url 'vendas_lojas_hub' %}" class="ma-head-op-link" title="Voltar ao menu SistApp">Início</a>
+      {% if mostrar_painel_ciclica_admin %}
+      <a href="{% url 'contagem_ciclica_painel_admin' %}" class="ma-head-op-link" title="Painel gerência — contagens em aberto">Painel</a>
+      {% endif %}
       <a href="{% url 'vendas_lojas_pin' %}?trocar=1&amp;next={{ request.path|urlencode }}" class="ma-head-op-link" title="Trocar operador">Trocar PIN</a>
       {% else %}
+      {% if mostrar_painel_ciclica_admin %}
+      <a href="{% url 'contagem_ciclica_painel_admin' %}" class="ma-head-op-link" title="Painel gerência — contagens em aberto">Painel</a>
+      {% endif %}
       <a href="{% url 'ajuste_mobile' %}" class="ma-head-op-link" title="Trocar operador (pede PIN de novo)">Trocar</a>
       {% endif %}
     </div>
@@ -823,7 +897,10 @@
 
   <div id="ma-ciclica-bar" class="hidden px-3 pt-2">
     <div class="rounded-2xl border border-orange-300 bg-orange-50 px-3 py-2.5 space-y-2">
-      <p id="ma-ciclica-bar-txt" class="text-xs font-black text-orange-950 leading-snug">Contagem cíclica</p>
+      <div class="flex items-start justify-between gap-2">
+        <p id="ma-ciclica-bar-txt" class="text-xs font-black text-orange-950 leading-snug">Contagem cíclica</p>
+        <button type="button" id="ma-ciclica-btn-fechar-ctrl" class="shrink-0 min-h-[2.5rem] px-3 rounded-xl bg-white border-2 border-orange-400 text-orange-950 text-[11px] font-black uppercase">Fechar</button>
+      </div>
       <button type="button" id="ma-ciclica-btn-incluir-fora" class="w-full min-h-[2.5rem] rounded-xl border border-orange-300 bg-white text-orange-950 text-[10px] font-black uppercase" aria-pressed="false" title="Permite bipar/contar produto que não está na lista">
         Incluir fora: OFF
       </button>
@@ -843,26 +920,49 @@
   <div id="reader" class="fixed inset-0 z-[165] hidden bg-black">
     <div id="reader-box" class="absolute inset-0"></div>
     <div class="absolute top-0 left-0 right-0 pt-[max(0.6rem,env(safe-area-inset-top))] px-3 flex items-center justify-between gap-2 bg-gradient-to-b from-black/75 to-transparent">
-      <p class="text-white text-xs font-black uppercase tracking-wide">Scan ativo</p>
+      <p class="text-white text-xs font-black uppercase tracking-wide">Câmera ativa</p>
       <button type="button" onclick="stopScan()" class="inline-flex items-center justify-center min-h-[2.75rem] px-4 rounded-xl bg-white/15 border border-white/35 text-white text-xs font-black uppercase">
         Fechar
       </button>
     </div>
   </div>
 
+  <div id="ma-qtd-sheet" aria-hidden="true">
+    <p id="ma-qtd-nome" class="text-base font-black text-slate-900 leading-snug line-clamp-2">Produto</p>
+    <p id="ma-qtd-dica" class="text-[0.7rem] font-bold text-slate-500 uppercase mt-0.5">Ajusta só este item · Ok grava</p>
+    <div id="ma-qtd-modos" class="hidden grid grid-cols-2 gap-2 mt-2">
+      <button type="button" id="ma-qtd-modo-somar" class="min-h-[2.6rem] rounded-xl border-2 border-emerald-600 bg-emerald-600 text-white text-xs font-black uppercase">Somar</button>
+      <button type="button" id="ma-qtd-modo-alterar" class="min-h-[2.6rem] rounded-xl border-2 border-slate-300 bg-white text-slate-700 text-xs font-black uppercase">Alterar</button>
+    </div>
+    <div class="flex items-center justify-between gap-2 mt-2">
+      <button type="button" id="ma-qtd-menos10" class="min-h-[2.6rem] px-3 rounded-xl bg-slate-100 font-black text-slate-800">−10</button>
+      <button type="button" id="ma-qtd-mais10" class="min-h-[2.6rem] px-3 rounded-xl bg-slate-100 font-black text-slate-800">+10</button>
+    </div>
+    <div class="grid grid-cols-4 gap-2 mt-2 items-center">
+      <button type="button" id="ma-qtd-menos" class="ma-qtd-btn" aria-label="Diminuir um">−</button>
+      <div id="ma-qtd-n" class="ma-qtd-num col-span-2" aria-live="polite">1</div>
+      <button type="button" id="ma-qtd-mais" class="ma-qtd-btn" aria-label="Aumentar um">+</button>
+    </div>
+    <button type="button" id="ma-qtd-ok" class="mt-2 w-full min-h-[3.4rem] rounded-2xl bg-emerald-600 text-white text-lg font-black uppercase">Ok</button>
+    <button type="button" id="ma-qtd-cancelar" class="mt-2 w-full min-h-[2.5rem] rounded-xl text-slate-500 font-black text-sm uppercase">Cancelar</button>
+  </div>
+
   <div id="ma-busca-wrap" class="px-3 pt-3 pb-1">
     <label for="busca" class="sr-only">Buscar produto</label>
-    <input
-      type="search"
-      id="busca"
-      placeholder="Nome, GM ou código de barras…"
-      enterkeyhint="search"
-      inputmode="search"
-      autocomplete="off"
-      autocorrect="off"
-      spellcheck="false"
-      class="w-full px-4 py-3.5 rounded-2xl border-2 border-slate-200/90 shadow-sm bg-white text-base font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400"
-    >
+    <div class="ma-busca-row">
+      <input
+        type="search"
+        id="busca"
+        placeholder="Nome, GM ou código de barras…"
+        enterkeyhint="search"
+        inputmode="search"
+        autocomplete="off"
+        autocorrect="off"
+        spellcheck="false"
+        class="w-full px-4 py-3.5 rounded-2xl border-2 border-slate-200/90 shadow-sm bg-white text-base font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400"
+      >
+      <button type="button" id="ma-btn-camera" class="ma-btn-camera" aria-label="Bipar código de barras com a câmera" title="Bipar com a câmera (mantém aberta com Bip +1)">Câmera</button>
+    </div>
     <button type="button" id="btn-toggle-filtros" class="mt-2 w-full min-h-[2.5rem] rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-black uppercase inline-flex items-center justify-center gap-2">
       Filtros
       <span id="f-toggle-icon" class="text-slate-500">▾</span>
@@ -1824,7 +1924,7 @@ function maBip1Toggle() {
   maBip1SyncBtn();
   if (maBip1On) {
     /* Só liga o modo — não abre câmera sozinha (PC fica tela preta).
-       Câmera = botão Scan · leitor USB = digita no campo + Enter. */
+       Câmera = botão Câmera · leitor USB = digita no campo + Enter. */
     if (scanningActive) stopScan();
     const busca = document.getElementById('busca');
     if (busca) {
@@ -1835,7 +1935,7 @@ function maBip1Toggle() {
       maMostrarToast(
         maCiclicaAtiva()
           ? 'Bip +1 na cíclica · cada bip soma 1 (estoque só no Gravar)'
-          : 'Bip +1 ligado · Scan ou bipador no campo',
+          : 'Bip +1 ligado · câmera fica aberta entre bips',
         true
       );
     }
@@ -1845,6 +1945,15 @@ function maBip1Toggle() {
 }
 
 document.getElementById('ma-btn-bip1')?.addEventListener('click', maBip1Toggle);
+document.getElementById('ma-btn-camera')?.addEventListener('click', () => {
+  if (scanningActive) stopScan();
+  else startScan();
+});
+document.getElementById('ma-head-btn-camera')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  if (scanningActive) stopScan();
+  else startScan();
+});
 
 function maTocarSom(tipo) {
   try {
@@ -2114,10 +2223,11 @@ function maCriarCardCiclica(p, variant) {
   const escMa = maEscCiclicaHtml;
   const d = document.createElement('div');
   d.className = 'ma-card ma-card--' + variant;
-  if (variant === 'feito' || variant === 'pendente') {
+  if (variant === 'feito' || variant === 'pendente' || variant === 'fechado') {
+    const marca = variant === 'fechado' ? '<span class="ma-card-nome" style="color:#64748b;font-size:0.65rem">BLOCO FECHADO · </span>' : '';
     d.innerHTML = `
       <div class="ma-card-linha">
-        <span class="ma-card-nome">${escMa(p.nome)}</span>
+        <span class="ma-card-nome">${marca}${escMa(p.nome)}</span>
         <span class="ma-card-linha-qtd">${maCiclicaNumHtml(p, escMa)}</span>
       </div>`;
   } else {
@@ -2131,7 +2241,13 @@ function maCriarCardCiclica(p, variant) {
         <div class="ma-card-nums">${maCiclicaNumHtml(p, escMa)}</div>
       </div>`;
   }
-  d.onclick = () => maEscolherProduto(p);
+  d.onclick = () => {
+    if (maCiclicaAtiva() && maCiclicaSessao && maCiclicaSessao.modo === 'inventario' && !scanningActive) {
+      maQtdAbrir(p, { daLista: true });
+      return;
+    }
+    maEscolherProduto(p);
+  };
   return d;
 }
 
@@ -2146,17 +2262,27 @@ function maPintarCiclicaFocus(fila, resumoTxt) {
   maCiclicaSyncHistoricoContados();
   const heroId = maUltimoBipadoId ? String(maUltimoBipadoId) : '';
   let hero = heroId ? lista.find((p) => String(p.id) === heroId) : null;
-  if (hero && !hero._ciclicaContado && maFmtQtdContada(hero._ciclicaQtd) === '') hero = null;
+  if (hero && (hero._blocoFechado || (!hero._ciclicaContado && maFmtQtdContada(hero._ciclicaQtd) === ''))) hero = null;
 
   const feitos = [];
+  const fechados = [];
   maCiclicaBipHistorico.forEach((id) => {
     if (id === heroId) return;
     const p = lista.find((x) => String(x.id) === id);
     if (!p) return;
+    if (p._blocoFechado) {
+      fechados.push(p);
+      return;
+    }
     if (p._ciclicaContado || maFmtQtdContada(p._ciclicaQtd) !== '') feitos.push(p);
   });
+  lista.forEach((p) => {
+    if (!p._blocoFechado) return;
+    if (fechados.some((x) => String(x.id) === String(p.id))) return;
+    fechados.push(p);
+  });
 
-  const idsMostrados = new Set([heroId, ...feitos.map((p) => String(p.id))].filter(Boolean));
+  const idsMostrados = new Set([heroId, ...feitos.map((p) => String(p.id)), ...fechados.map((p) => String(p.id))].filter(Boolean));
   const pendentes = lista.filter((p) => {
     const id = String(p.id);
     if (idsMostrados.has(id)) return false;
@@ -2166,7 +2292,7 @@ function maPintarCiclicaFocus(fila, resumoTxt) {
   l.classList.add('ma-lista--ciclica-focus');
   l.innerHTML = '';
 
-  if (!hero && !feitos.length && !pendentes.length) {
+  if (!hero && !feitos.length && !pendentes.length && !fechados.length) {
     l.innerHTML = '<div class="ma-ciclica-hint">Bipe ou busque um produto</div>';
     return;
   }
@@ -2182,6 +2308,17 @@ function maPintarCiclicaFocus(fila, resumoTxt) {
     lbl.textContent = `Já contados · ${feitos.length}`;
     l.appendChild(lbl);
     feitos.forEach((p) => l.appendChild(maCriarCardCiclica(p, 'feito')));
+  }
+  if (fechados.length) {
+    const lblF = document.createElement('p');
+    lblF.className = 'ma-ciclica-sec-label';
+    lblF.textContent = `Bloco já fechado · ${fechados.length} · próximo bloco é o que bipar agora`;
+    l.appendChild(lblF);
+    fechados.forEach((p) => {
+      p._blocoFechado = true;
+      p._ciclicaFalta = false;
+      l.appendChild(maCriarCardCiclica(p, 'fechado'));
+    });
   }
 
   const maxPend = 24;
@@ -2220,8 +2357,9 @@ function maMostrarUltimoBipado(p) {
   if (maCiclicaAtiva()) {
     const ln = (maCiclicaLinhas() || []).find((x) => String(x.produto_id) === maUltimoBipadoId);
     if (ln) {
-      fresh._ciclicaContado = !!ln.contado;
-      fresh._ciclicaFalta = !!ln.faltando || !ln.contado;
+      fresh._blocoFechado = !!ln.bloco_fechado;
+      fresh._ciclicaContado = !!ln.contado || fresh._blocoFechado;
+      fresh._ciclicaFalta = !fresh._blocoFechado && (!!ln.faltando || !ln.contado);
       fresh._ciclicaQtd = ln.qtd_contada;
       fresh._ciclicaFora = false;
     } else {
@@ -2234,12 +2372,172 @@ function maMostrarUltimoBipado(p) {
   maPintarResultados([fresh], 'Último bip');
 }
 
-function maProcessarCodigoBipado(codigo) {
+function maQtdTravarTeclado(ligado) {
+  const busca = document.getElementById('busca');
+  if (!busca) return;
+  if (ligado) {
+    busca.setAttribute('readonly', 'readonly');
+    busca.setAttribute('inputmode', 'none');
+    try { busca.blur(); } catch (_) {}
+  } else {
+    busca.removeAttribute('readonly');
+    busca.setAttribute('inputmode', 'search');
+  }
+}
+
+let maQtdAlvo = null;
+let maQtdN = 1;
+let maQtdModo = 'somar';
+
+function maQtdAtualDoItem(p) {
+  const ln = (typeof maCiclicaLinhas === 'function' ? maCiclicaLinhas() : []).find(
+    (x) => String(x.produto_id) === String(p && p.id)
+  );
+  const n = ln && ln.qtd_contada != null ? Number(ln.qtd_contada) : Number(p && p._ciclicaQtd);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+function maQtdPintar() {
+  const n = document.getElementById('ma-qtd-n');
+  const nome = document.getElementById('ma-qtd-nome');
+  const dica = document.getElementById('ma-qtd-dica');
+  const ok = document.getElementById('ma-qtd-ok');
+  const bSomar = document.getElementById('ma-qtd-modo-somar');
+  const bAlt = document.getElementById('ma-qtd-modo-alterar');
+  if (n) n.textContent = String(maQtdN);
+  if (nome && maQtdAlvo) nome.textContent = maQtdAlvo.nome || 'Produto';
+  const alterar = maQtdModo === 'alterar';
+  const ja = maQtdAlvo ? maQtdAtualDoItem(maQtdAlvo) : 0;
+  const fechado = !!(maQtdAlvo && maQtdAlvo._blocoFechado);
+  if (dica) {
+    if (alterar && fechado) {
+      dica.textContent = 'Corrige o bloco já gravado · vendas depois do primeiro bip continuam';
+    } else if (alterar) {
+      dica.textContent = 'Troca o total deste item · só desta vez';
+    } else if (ja > 0) {
+      dica.textContent = 'Já contado: ' + ja + '. Este Ok SOMA mais';
+    } else {
+      dica.textContent = 'Soma neste item · Ok e o próximo bip começa de novo';
+    }
+  }
+  if (ok) ok.textContent = alterar ? 'Alterar' : 'Ok';
+  if (bSomar) {
+    bSomar.classList.toggle('bg-emerald-600', !alterar);
+    bSomar.classList.toggle('text-white', !alterar);
+    bSomar.classList.toggle('border-emerald-600', !alterar);
+  }
+  if (bAlt) {
+    bAlt.classList.toggle('bg-orange-600', alterar);
+    bAlt.classList.toggle('text-white', alterar);
+    bAlt.classList.toggle('border-orange-600', alterar);
+  }
+}
+
+function maQtdDefinirModo(modo) {
+  maQtdModo = modo === 'alterar' ? 'alterar' : 'somar';
+  if (maQtdModo === 'alterar' && maQtdAlvo) {
+    maQtdN = maQtdAtualDoItem(maQtdAlvo);
+  } else if (maQtdN < 1) {
+    maQtdN = 1;
+  }
+  maQtdPintar();
+}
+
+function maQtdAbrir(p, opts) {
+  opts = opts || {};
+  maQtdAlvo = p;
+  maQtdModo = 'somar';
+  maQtdN = 1;
+  const modos = document.getElementById('ma-qtd-modos');
+  if (modos) modos.classList.toggle('hidden', !opts.daLista);
+  if (opts.daLista && p._blocoFechado) {
+    maQtdModo = 'alterar';
+    maQtdN = maQtdAtualDoItem(p) || 0;
+  }
+  maQtdPintar();
+  const sh = document.getElementById('ma-qtd-sheet');
+  if (sh) {
+    sh.classList.add('is-on');
+    sh.setAttribute('aria-hidden', 'false');
+  }
+  document.getElementById('reader')?.classList.add('ma-reader-split');
+  maQtdTravarTeclado(true);
+}
+
+function maQtdFechar() {
+  maQtdAlvo = null;
+  const sh = document.getElementById('ma-qtd-sheet');
+  if (sh) {
+    sh.classList.remove('is-on');
+    sh.setAttribute('aria-hidden', 'true');
+  }
+  document.getElementById('reader')?.classList.remove('ma-reader-split');
+  maQtdTravarTeclado(false);
+}
+
+function maQtdAjustar(delta) {
+  const min = maQtdModo === 'alterar' ? 0 : 1;
+  maQtdN = Math.max(min, Math.min(9999, maQtdN + delta));
+  maQtdPintar();
+}
+
+function maQtdConfirmar() {
+  const p = maQtdAlvo;
+  const n = maQtdN;
+  const alterar = maQtdModo === 'alterar';
+  if (!p || (!alterar && n < 1)) {
+    maQtdFechar();
+    return;
+  }
+  p._qtdLancar = n;
+  p._substituir = alterar;
+  maQtdFechar();
+  maCiclicaBipMaisUm(p);
+}
+
+function maQtdAoBipar(p) {
+  if (!p) return;
+  if (maQtdAlvo && String(maQtdAlvo.id) === String(p.id)) {
+    maQtdAjustar(1);
+    return;
+  }
+  if (maQtdAlvo) maQtdConfirmar();
+  maQtdAbrir(p);
+}
+
+document.getElementById('ma-qtd-menos')?.addEventListener('click', () => maQtdAjustar(-1));
+document.getElementById('ma-qtd-mais')?.addEventListener('click', () => maQtdAjustar(1));
+document.getElementById('ma-qtd-menos10')?.addEventListener('click', () => maQtdAjustar(-10));
+document.getElementById('ma-qtd-mais10')?.addEventListener('click', () => maQtdAjustar(10));
+document.getElementById('ma-qtd-ok')?.addEventListener('click', () => maQtdConfirmar());
+document.getElementById('ma-qtd-cancelar')?.addEventListener('click', () => maQtdFechar());
+document.getElementById('ma-qtd-modo-somar')?.addEventListener('click', () => maQtdDefinirModo('somar'));
+document.getElementById('ma-qtd-modo-alterar')?.addEventListener('click', () => maQtdDefinirModo('alterar'));
+document.getElementById('busca')?.addEventListener('focus', () => {
+  const sh = document.getElementById('ma-qtd-sheet');
+  if (sh && sh.classList.contains('is-on')) maQtdTravarTeclado(true);
+});
+
+function maScanSyncBtns() {
+  const on = !!scanningActive;
+  ['ma-btn-camera', 'ma-head-btn-camera'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle('is-on', on);
+    el.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+
+function maProcessarCodigoBipado(codigo, opts) {
+  const fromScan = !!(opts && opts.fromScan);
   const c = maNormCodigo(codigo);
-  if (!c) return;
+  if (!c) return fromScan && maBip1On ? 'ignorar' : undefined;
   const now = Date.now();
-  const gap = (maCiclicaAtiva() && maBip1On) ? MA_CICLICA_BIP_GAP_MS : 1200;
-  if (c === maBipLastCode && (now - maBipLastAt) < gap) return;
+  const gap = fromScan ? 2500 : ((maCiclicaAtiva() && maBip1On) ? MA_CICLICA_BIP_GAP_MS : 1200);
+  const mesmo = fromScan
+    ? ((maDigits(c) && maDigits(c) === maDigits(maBipLastCode)) || c === maBipLastCode)
+    : c === maBipLastCode;
+  if (mesmo && (now - maBipLastAt) < gap) return fromScan ? 'debounce' : undefined;
   maBipLastCode = c;
   maBipLastAt = now;
 
@@ -2252,36 +2550,56 @@ function maProcessarCodigoBipado(codigo) {
       maSelecionarTodoBusca();
     }
     buscar(c);
-    stopScan();
-    return;
+    if (fromScan) stopScan();
+    return fromScan ? 'busca' : undefined;
   }
 
   if (!baseProdutos.length) {
     maTocarSom('erro');
     maBipPiscarTela(false);
     maMostrarToast('Catálogo ainda não carregou. Aguarde.', false);
-    return;
+    return fromScan ? 'aguarde' : undefined;
   }
 
   const hits = maMatchCodigoExato(c);
   if (hits.length === 1) {
     maCodigoOrfao = null;
+    if (maCiclicaAtiva()) {
+      maQtdAoBipar(hits[0]);
+      return fromScan ? 'ok' : undefined;
+    }
     maSalvarBipMaisUm(hits[0]);
-    return;
+    return fromScan ? 'ok' : undefined;
   }
   if (hits.length === 0) {
     maTocarSom('erro');
     maBipPiscarTela(false);
-    stopScan();
+    if (fromScan) stopScan();
     maPreencherBuscaOrfao(c);
     maBuscaLimparNoProximoChar = true;
-    return;
+    return fromScan ? 'orfao' : undefined;
   }
   maTocarSom('erro');
   maBipPiscarTela(false);
-  stopScan();
+  if (fromScan) stopScan();
   maAbrirPick(hits.slice(0, 40));
   maPrepCampoProximoBip();
+  return fromScan ? 'varios' : undefined;
+}
+
+let maScanMuteUntil = 0;
+function maOnScanDecoded(codigo) {
+  if (!scanningActive) return;
+  const now = Date.now();
+  if (now < maScanMuteUntil) return;
+  const r = maProcessarCodigoBipado(codigo, { fromScan: true });
+  if (r === 'ok' || r === 'debounce') maScanMuteUntil = Date.now() + 1600;
+  if (!maBip1On) {
+    scanningActive = false;
+    stopScan();
+    return;
+  }
+  if (r === 'ok' || r === 'debounce' || r === 'aguarde') return;
 }
 
 function startScan() {
@@ -2324,6 +2642,7 @@ function startScan() {
       return;
     }
     scanningActive = true;
+    maScanSyncBtns();
     /* Só formatos de loja (EAN/UPC/Code128…) — mais rápido que “todos”. */
     const Fmt = window.Html5QrcodeSupportedFormats;
     const formats = Fmt ? [
@@ -2346,12 +2665,10 @@ function startScan() {
       config,
       (txt) => {
         if (!scanningActive) return;
-        scanningActive = false;
         const codigo = String(txt || '').trim();
-        stopScan().then(() => {
-          if (codigo) maProcessarCodigoBipado(codigo);
-        });
-      }
+        if (codigo) maOnScanDecoded(codigo);
+      },
+      () => {}
     ).then(() => {
       maScanBusy = false;
     }).catch((err) => {
@@ -2372,6 +2689,7 @@ function stopScan(opts) {
   const reader = document.getElementById('reader');
   const finish = () => {
     scanningActive = false;
+    maScanSyncBtns();
     if (!keepBusy) maScanBusy = false;
     if (reader) reader.classList.add('hidden');
     const box = document.getElementById('reader-box');
@@ -2437,8 +2755,9 @@ function maCiclicaProdutosDaFila(termoN) {
           saldo_centro: 0,
           saldo_vila: 0,
         };
-    p._ciclicaContado = !!ln.contado;
-    p._ciclicaFalta = !!ln.faltando || !ln.contado;
+    p._blocoFechado = !!ln.bloco_fechado;
+    p._ciclicaContado = !!ln.contado || p._blocoFechado;
+    p._ciclicaFalta = !p._blocoFechado && (!!ln.faltando || !ln.contado);
     p._ciclicaQtd = ln.qtd_contada;
     out.push(p);
   });
@@ -2536,6 +2855,11 @@ function buscar(q) {
 
 function maCiclicaNumHtml(p, escMa) {
   if (p._ciclicaFora) return '<span class="ma-card-contagem is-fora">FORA</span>';
+  if (p._blocoFechado) {
+    const nf = maFmtQtdContada(p._ciclicaQtd);
+    if (nf !== '') return `<span class="ma-card-contagem is-qtd" title="Quantidade do bloco fechado">${escMa(nf)}</span>`;
+    return '<span class="ma-card-contagem is-ok">OK</span>';
+  }
   if (p._ciclicaFalta) return '<span class="ma-card-contagem is-pendente">FALTA</span>';
   const n = maFmtQtdContada(p._ciclicaQtd);
   if (n !== '') {
@@ -2818,7 +3142,7 @@ function maEscolherProduto(p, opts) {
   opts = opts || {};
   const seguir = function () {
     if (opts.bipMaisUm && maCiclicaAtiva() && maBip1On) {
-      maCiclicaBipMaisUm(p);
+      maQtdAoBipar(p);
       return;
     }
     abrir();
@@ -3074,9 +3398,22 @@ function maCiclicaPintarBar() {
     : (s.escopo_tipo === 'categoria' ? `Cat. ${s.escopo_valor}` : `Corredor ${s.escopo_valor}`);
   const dias = Number(s.dias_movimentacao);
   const diasTxt = (Number.isFinite(dias) && dias > 0) ? ` · ${dias}d mov.` : (dias === 0 ? ' · todos' : '');
-  if (s.status === 'pass1') {
+  if (s.modo === 'inventario') {
+    txt.textContent = `Inventário #${s.id} · ${esc} · neste bloco ${s.contados_bloco_atual || 0} · fechados ${s.fechados_bloco || 0}`;
+    if (btnP1) {
+      btnP1.textContent = 'Concluir bloco';
+      btnP1.classList.remove('hidden');
+    }
+    if (btnG) {
+      btnG.textContent = 'Encerrar';
+      btnG.classList.remove('hidden');
+    }
+  } else if (s.status === 'pass1') {
     txt.textContent = `Cíclica #${s.id} · ${esc}${diasTxt} · Passagem 1 · ${s.contados_pass1 || 0}/${s.total_itens || '?'} · cego`;
-    if (btnP1) btnP1.classList.remove('hidden');
+    if (btnP1) {
+      btnP1.textContent = 'Fechar passagem 1';
+      btnP1.classList.remove('hidden');
+    }
     if (btnG) btnG.classList.add('hidden');
   } else {
     txt.textContent = `Cíclica #${s.id} · Recontagem · ${s.contados_pass2 || 0}/${s.fila_recontagem || 0} diferenças · cego`;
@@ -3092,6 +3429,9 @@ function maCiclicaPodeSomarBip(p) {
   if (naFila) return { ok: true, forcar: false };
   const tipo = String((maCiclicaSessao && maCiclicaSessao.escopo_tipo) || '');
   const st = String((maCiclicaSessao && maCiclicaSessao.status) || '');
+  if (maCiclicaSessao && maCiclicaSessao.modo === 'inventario') {
+    return { ok: true, forcar: !naFila };
+  }
   if (tipo === 'corredor' && st === 'pass1') return { ok: true, forcar: false };
   if (maCiclicaIncluirFora) return { ok: true, forcar: true };
   return { ok: false };
@@ -3143,18 +3483,29 @@ function maCiclicaBipFilaDrain() {
   maBipBusy = true;
   const payload = {
     produto_id: p.id,
-    qtd: '1',
+    qtd: String((function () {
+      const n = parseInt(p._qtdLancar, 10);
+      return Math.max(0, Number.isFinite(n) ? n : 1);
+    })()),
     nome_produto: p.nome || '',
     codigo_interno: p.codigo_nfe || p.codigo || '',
     categoria: p.categoria || '',
   };
   if (gate.forcar) payload.forcar = '1';
+  if (p._substituir) payload.substituir = '1';
+  p._substituir = false;
   return maCiclicaPost(maCiclicaUrl('contar'), payload)
     .then((d) => {
       if (!d || !d.ok) throw new Error((d && d.erro) || 'Falha ao contar');
       const acum = (d.qtd_acumulada != null) ? Number(d.qtd_acumulada) : 1;
       maTocarSom('ok');
       maBipPiscarTela(true, Number.isFinite(acum) ? acum : 1);
+      if (d.ja_tinha && typeof maMostrarToast === 'function') {
+        maMostrarToast('Esse produto já tinha ' + (d.qtd_antes != null ? d.qtd_antes : '') + '. Somou mais.', true);
+      }
+      if (d.reaberto_bloco && typeof maMostrarToast === 'function') {
+        maMostrarToast('Já estava num bloco fechado. Esta quantidade entra no bloco de agora e soma no estoque.', true);
+      }
       if (d.sessao) {
         const prev = maCiclicaLinhas();
         maCiclicaSessao = Object.assign({}, maCiclicaSessao, d.sessao);
@@ -3535,12 +3886,45 @@ document.getElementById('ma-ciclica-fab-ctrl')?.addEventListener('click', () => 
   maCiclicaToggleCtrl();
   maCiclicaPintarBar();
 });
+document.getElementById('ma-ciclica-btn-fechar-ctrl')?.addEventListener('click', () => {
+  maCiclicaToggleCtrl(false);
+  maCiclicaPintarBar();
+});
+document.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'Escape') return;
+  if (!document.body.classList.contains('ma-ciclica-ctrl-open')) return;
+  maCiclicaToggleCtrl(false);
+  maCiclicaPintarBar();
+});
 document.getElementById('ma-ciclica-ctrl-backdrop')?.addEventListener('click', () => {
   /* Fundo nao fecha — so X / FECHAR / Esc */
 });
 document.getElementById('ma-ciclica-btn-pass1')?.addEventListener('click', () => {
   if (!maCiclicaAtiva()) return;
   const s = maCiclicaSessao;
+  if (s.modo === 'inventario') {
+    if (!confirm('Concluir este bloco? Grava o que já foi bipado. A amostra fica para imprimir no computador (Contagens). No celular, esses itens vão para «Bloco já fechado» e você começa o próximo.')) return;
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
+    maCiclicaPost(maCiclicaUrl('fechar-bloco'), {})
+      .then((d) => {
+        if (!d || !d.ok) throw new Error((d && d.erro) || 'Falha');
+        maCiclicaSessao = d.sessao || maCiclicaSessao;
+        maCiclicaBipHistorico = [];
+        maUltimoBipadoId = null;
+        maCiclicaToggleCtrl(false);
+        maCiclicaPintarBar();
+        const n = (d.resumo && d.resumo.ajustes) || 0;
+        if (typeof maMostrarToast === 'function') {
+          maMostrarToast('Bloco gravado: ' + n + ' itens. Impressão só no computador. Pode bipar o próximo.', true);
+        } else {
+          alert('Bloco gravado: ' + n + ' itens. A impressão fica no computador, em Contagens.');
+        }
+        maCiclicaRefresh(true);
+      })
+      .catch((e) => alert(e.message || 'Erro'))
+      .finally(() => maResetLoading());
+    return;
+  }
   const falta = s.faltam_pass1 || 0;
   const msg = falta > 0
     ? `Faltam ~${falta} sem bip. Eles vão como ZERO. Fechar passagem 1 e abrir recontagem das diferenças?`
@@ -3569,6 +3953,20 @@ document.getElementById('ma-ciclica-btn-pass1')?.addEventListener('click', () =>
 });
 document.getElementById('ma-ciclica-btn-gravar')?.addEventListener('click', () => {
   if (!maCiclicaAtiva()) return;
+  if (maCiclicaSessao.modo === 'inventario') {
+    if (!confirm('Encerrar o inventário? Grava o que ainda estiver bipado e fecha a sessão. Itens não bipados NÃO são zerados.')) return;
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
+    maCiclicaPost(maCiclicaUrl('fechar-bloco'), { encerrar: '1' })
+      .then((d) => {
+        if (!d || !d.ok) throw new Error((d && d.erro) || 'Falha');
+        const n = (d.resumo && d.resumo.ajustes) || 0;
+        alert('Inventário encerrado. ' + n + ' itens neste último bloco. A amostra fica no computador, em Contagens.');
+        maCiclicaSairModo();
+      })
+      .catch((e) => alert(e.message || 'Erro'))
+      .finally(() => maResetLoading());
+    return;
+  }
   if (!confirm('Gravar estoque agora com o resultado da recontagem? Isso altera o saldo da loja.')) return;
   if (window.gmLoadingBar) window.gmLoadingBar.show();
   maCiclicaPost(maCiclicaUrl('gravar'), {})
@@ -3582,6 +3980,20 @@ document.getElementById('ma-ciclica-btn-gravar')?.addEventListener('click', () =
     .finally(() => maResetLoading());
 });
 
+function maInventarioEntrarDireto() {
+  fetch('/api/ajuste-mobile/ciclica/minha/', { headers: { 'X-CSRFToken': MA_CSRF } })
+    .then((r) => r.json())
+    .then((d) => {
+      if (d && d.ok && d.entrar_direto && d.sessao && (d.sessao.status === 'pass1' || d.sessao.status === 'pass2')) {
+        maCiclicaAtivar(d.sessao);
+        if (typeof maMostrarToast === 'function') {
+          maMostrarToast('Inventário #' + d.sessao.id + ' · pode bipar', true);
+        }
+      }
+    })
+    .catch(() => {});
+}
+
 try {
   const sid = sessionStorage.getItem(MA_CICLICA_KEY);
   if (sid) {
@@ -3592,11 +4004,16 @@ try {
           maCiclicaAtivar(d.sessao);
         } else {
           try { sessionStorage.removeItem(MA_CICLICA_KEY); } catch (_) {}
+          maInventarioEntrarDireto();
         }
       })
-      .catch(() => {});
+      .catch(() => maInventarioEntrarDireto());
+  } else {
+    maInventarioEntrarDireto();
   }
-} catch (_) {}
+} catch (_) {
+  maInventarioEntrarDireto();
+}
   if ("serviceWorker" in navigator) {
     {% if ajuste_via_sistapp %}
     navigator.serviceWorker.register("{% url 'vendas_lojas_sw' %}", { scope: "/vendas/lojas/" }).catch(function () {});

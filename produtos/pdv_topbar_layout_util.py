@@ -62,7 +62,18 @@ def normalizar_layout(*, quente: Any = None, frio: Any = None) -> dict[str, list
     q_set = set(q)
     f = [k for k in f if k not in q_set]
     usados = set(q) | set(f)
-    for k in QUENTE_DEFAULT + FRIO_DEFAULT:
+    for k in QUENTE_DEFAULT:
+        if k in usados:
+            continue
+        idx = len(q)
+        pos = QUENTE_DEFAULT.index(k)
+        for nxt in QUENTE_DEFAULT[pos + 1 :]:
+            if nxt in q:
+                idx = q.index(nxt)
+                break
+        q.insert(idx, k)
+        usados.add(k)
+    for k in FRIO_DEFAULT:
         if k not in usados:
             f.append(k)
             usados.add(k)

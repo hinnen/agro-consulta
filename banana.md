@@ -612,7 +612,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 
 - `/entrada-nota/` â€” wizard 8 passos (fornecedor â†’ â€¦ â†’ financeiro â†’ finalizar PIN).
 - **Nº NF vazio (`NF-SEM-NUMERO` · 07/10):** ao confirmar fornecedor (ou no save/PIN/CP), gera código interno **`SEM-DDMM-XXXX`** — pesquisável no Contas a pagar; não parece NF real. «não tem» digitado continua válido.
-- **Dist DF-e (31/07):** certificado `NFE_DIST_DFE_*` **ou** `NFC_E_*`. Cursor PG só avança em **137/138**. Caixa de entrada PG (~80): Buscar grava · Pendentes antigas primeiro · Concluídas. Recuperar por chave se precisar. **XML** se nota antiga.
+- **Dist DF-e (31/07):** certificado `NFE_DIST_DFE_*` **ou** `NFC_E_*`. Cursor PG só avança em **137/138**. Caixa de entrada PG (~80): Buscar grava · Pendentes antigas primeiro · Concluídas. Recuperar por chave se precisar. **XML** se nota antiga. **Buscar notas novas (22/10):** consulta **Centro + Vila fiscal** (`NFC_E_CNPJ` + `NFC_E_VILA_CNPJ`) — lista unificada com etiqueta da loja; override `NFE_DIST_DFE_CNPJS`.
 - **Só resumo / Ciência (05/08):** evento oficial **210210** no Ambiente Nacional; grava protocolo no PG, não repete e tenta baixar o XML completo para Carregar na grade.
 - **XML vs Aguarde 1h (12/08):** Buscar lista (distNSU) continua com 1h após 137; **Buscar XML / chave** só trava no **656**. Após Buscar, sistema tenta Ciência+XML sozinho nas «Só resumo» — fica pronto para **Carregar na grade** (manual, uma nota por vez).
 - **UI aba SEFAZ (04/08):** tela limpa (ações + lista); textos longos no **«?»** (contexto `sefaz` + bloco no modal). Status compacto (Pronto / Local off / Cursor).
@@ -1293,34 +1293,631 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
+### 📦 PACOTE PRONTO — **AJUSTE-BLOCO-TELA** · **v27.26.39** · PREP `teste` @ **`d466d62f`**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **Pronto para envio à produção** (frase + senha) · depois do Live 27/10e |
+| **Entra** | Amostra só no PC · bloco fechado mostra a **quantidade** (não FALTA) · achado de novo soma (5+2=7) |
+| **Migrate** | **NÃO** |
+| **Prova** | payload `contado` + `qtd_contada` no fechado · `faltando` falso · **5 → 7** |
+
+### ✅ CHECKLIST ÚNICO — **27/10f** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **AJUSTE-BLOCO-TELA** | 🟢 Pronto | **NÃO** | bloco fechado manda `contado` + quantidade (não FALTA) · **v27.26.39** |
+
+### 📦 PACOTE PRONTO — **CONTAGEM-CANCELAR** · **v27.26.40** · PREP `teste` @ **`5e909f8d`**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **Pronto para envio à produção** (frase + senha) |
+| **Entra** | Botão **Cancelar contagem** em cada sessão aberta do painel. Estoque já gravado em bloco fechado permanece. |
+| **Migrate** | **NÃO** |
+| **Prova** | cancela e o ajuste do bloco fica (1) · API **403** sem gerência · **200** com gerência |
+
+### ✅ CHECKLIST ÚNICO — **28/10** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CONTAGEM-CANCELAR** | 🟢 Pronto | **NÃO** | cancela sessão · ajuste do bloco permanece · **403/200** |
+
+### 📦 PACOTE PRONTO — **NF-FISCAL-XML** · 29/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **Pronto para envio à produção** (frase + senha) |
+| **Entra** | Entrada NF grava no cadastro o NCM, o CSOSN, a origem e o CFOP de venda vindos do XML. Se já estiver igual, não grava de novo e não cria linha no histórico. Se mudar, a aba Alterações mostra origem **Entrada NF**. CFOP de compra vira venda (`1102` → `5102`; `5405` permanece). |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_nf_fiscal_xml_path.py` **VERIFY_OK 14** |
+
+### ✅ CHECKLIST ÚNICO — **29/10** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NF-FISCAL-XML** | 🟢 Pronto | **NÃO** | **VERIFY_OK 14** |
+
+### 📦 PACOTE PRONTO — **AJUSTE-BIP-HORA** · **v27.26.44** · PREP `teste` @ **`28f995f8`**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **Pronto para envio à produção** (frase + senha) |
+| **Entra** | Bip de produto já contado avisa e soma. Horário fica o **primeiro** bip. Bloco fechado: **Alterar** regrava o saldo e **não** soma de novo o que o bloco já gravou. Venda depois continua na conta. |
+| **Migrate** | **NÃO** |
+| **Prova** | 5+2 e venda −1 = **6** · 20 fechado → alterar **2** fica **2** · 20, vendeu 1, alterar **2** fica **1** · API **403** sem PIN e **200** com PIN 9973 |
+
+### ✅ CHECKLIST ÚNICO — **28/10d** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **AJUSTE-BIP-HORA** | 🟢 Pronto | **NÃO** | **6** · **20→2** · venda depois **1** · **403/200** |
+
+### 📦 PACOTE PRONTO — **AJUSTE-QTD-BIP** · **v27.26.42** · PREP `teste` @ **`a4b75397`**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **Pronto para envio à produção** (frase + senha) |
+| **Entra** | Bip: quantidade só daquele item (−/+ e −10/+10) e Ok, sem teclado. Na lista: **Somar** ou **Alterar** o total daquela vez. Contagem aberta não se perde. |
+| **Migrate** | **NÃO** |
+| **Prova** | 6 alterado para **5**, depois soma 2 = **7** · folha sem campo de teclado |
+
+### ✅ CHECKLIST ÚNICO — **28/10b** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **AJUSTE-QTD-BIP** | 🟢 Pronto | **NÃO** | alterar **6→5** depois soma **7** · −10/+10 só no item da vez |
+
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 PRONTO · **WA-RENDER-SPLIT** · aguarda frase + senha no próximo chat · 30/10
+### 🟡 PRONTO · **WA-RENDER-SPLIT** · código ainda fora da loja · 30/10
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | WhatsApp fora do worker do PDV + nome do cliente na lista (não o pushName da loja) + até 3 fotos por poll |
-| **Branch** | `cursor/whatsapp-render-split-6637` — **não** é a loja |
-| **Pacote** | diff em cima de `b91d34b79` (18 arquivos). Commits `78bcd95ec` `58542632a` `4ef9a3742` `f01486833` + o deste checkpoint |
-| **Proibido** | Merge desta branch ou de `teste` em `producao` (1530 commits à frente, 757 atrás). Cherry-pick **só** o Zap |
+| **Branch** | `cursor/whatsapp-render-split-6637` alinhada com `teste` @ **`bb7185d6b`**. **Não** é a loja |
+| **Pacote** | Commits do Zap `78bcd95ec` `58542632a` `4ef9a3742` `f01486833` `65b2f5c7d` |
+| **Proibido** | Merge desta branch em `producao` (`teste` está 1683 commits à frente e 757 atrás de `producao`). Cherry-pick **só** o Zap |
 | **Migrate** | **NÃO** |
 | **Serviço** | **agro-consulta-wa** já Live em `https://agro-consulta-wa.onrender.com` · branch painel `producao` · auto-deploy **Off** · ponte do PC já aponta para lá · **código novo ainda não está nesse serviço** |
-| **Depois da senha** | 1) cherry em `producao` 2) Manual Deploy **agro-consulta-wa** 3) na **Sistvale - Produção** setar `AGRO_WA_PUBLIC_ORIGIN=https://agro-consulta-wa.onrender.com` 4) **não** setar essa var no serviço do Zap 5) reiniciar `iniciar.bat` |
+| **Envio 30/10** | Frase + senha recebidas. Parou: acesso ao Render recusado. Loja segue sem este código |
+| **Depois** | 1) cherry em `producao` 2) Manual Deploy **agro-consulta-wa** 3) na **Sistvale - Produção** setar `AGRO_WA_PUBLIC_ORIGIN=https://agro-consulta-wa.onrender.com` 4) **não** setar essa var no serviço do Zap 5) reiniciar `iniciar.bat` |
 | **Rollback** | Tirar `AGRO_WA_PUBLIC_ORIGIN` da loja. Zap volta a falar com o PDV se o `.env` do PC apontar de novo para `www.sistvale.com.br` |
-| **Prova** | `verify_wa_render_split_path.py` **18/18** · `verify_wa_nome_loja_path.py` **10/10** · `NomeLojaWhatsAppTests` no Django (migrate sqlite deste repo quebra na 0039 — a prova que rodou foi o script) |
+| **Prova** | `verify_wa_render_split_path.py` **18/18** · `verify_wa_nome_loja_path.py` **10/10** |
 | **Doc** | `docs/DEPLOY-WHATSAPP-RENDER.md` |
-| **PIN** | **9973** é PIN de operador (teste). **Não** autoriza deploy. Deploy só com frase + senha `99738595` na **mesma** mensagem |
 
-### 🟡 ARMADO · **PREP v27.26.11** · **CHECKLIST 18/10h** · DANFE layout ERP
+### ✅ Deploy loja — **CHECKLIST 29/10** · **Live v27.26.44** · 29/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **PREP** | `deploy/prep-checklist-1810h-nfe-danfe-erp` |
-| **Base loja** | **v27.26.10** @ **`05a871df`** |
-| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1810h_nfe_danfe_erp.sh` |
-| **Cutover** | `AGRO_LOJA_FRASE='pode enviar para produção' AGRO_LOJA_SENHA='99738595' ./scripts/cutover_loja_checklist_1810h_nfe_danfe_erp.sh --exec` |
-| **Rollback** | `rollback/pre-v272611-1810h-danfe-erp` → **v27.26.10** @ **`05a871df`** |
-| **Extra teste** | **NFE-EMAIL-DEST** — e-mail salvo + XML/DANFE após autorizar (`EMAIL_HOST` Render) |
+| **Status** | ✅ **Live** @ **`925dd0cf`** · cutover autorizado **29/10** |
+| **Entra** | Entrada NF grava NCM, CSOSN, origem e CFOP de venda do XML. Igual não regrava. `1102` → `5102` |
+| **Migrate** | **NÃO** |
+| **PDV / caixa / checkout** | **Não neste delta** |
+| **Revert** | `git push origin rollback/pre-v272644-2910-nf-fiscal-xml:producao` → **v27.26.43** @ **`ddd7df5c`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2910_nf_fiscal_xml.sh` |
+| **Smoke** | Entrar uma NF com NCM/CFOP 1102 · cadastro fica 5102 · segunda vez igual não cria histórico |
+
+
+### ✅ Deploy loja — **CHECKLIST 28/10d** · **Live v27.26.42** · 28/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live** @ **`9cd4d58c`** · cutover autorizado **28/10** |
+| **Entra** | Segundo bip avisa e soma. Horário fica o primeiro. **Alterar** no bloco fechado regrava o saldo, sem somar de novo o bloco |
+| **Migrate** | **NÃO** |
+| **PDV / caixa / checkout** | **Não neste delta** |
+| **Revert** | `git push origin rollback/pre-v272642-2810d-bip-hora:producao` → **v27.26.41** @ **`dcaa89bb`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2810d_bip_hora.sh` |
+| **Smoke** | Bipar de novo um item já contado · **Alterar** um item de bloco fechado |
+
+
+### ✅ Deploy loja — **CHECKLIST 28/10b** · **Live v27.26.41** · 28/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live** @ **`dcaa89bb`** · cutover autorizado **28/10** |
+| **Entra** | Bip: −/+, −10/+10 e Ok, sem teclado. Lista: **Somar** ou **Alterar** |
+| **Migrate** | **NÃO** |
+| **PDV / caixa / checkout** | **Não neste delta** |
+| **Revert** | `git push origin rollback/pre-v272641-2810b-qtd-bip:producao` → **v27.26.40** @ **`3c7dbc89`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2810b_qtd_bip.sh` |
+| **Smoke** | Bipar · ajustar com +10 · Ok · em item já contado usar **Alterar** |
+
+
+### ✅ Deploy loja — **CHECKLIST 28/10** · **Live v27.26.40** · 28/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live** @ **`3c7dbc89`** · cutover autorizado **28/10** |
+| **Entra** | Botão **Cancelar contagem** na sessão aberta. Estoque do bloco fechado permanece |
+| **Migrate** | **NÃO** |
+| **PDV / caixa / checkout** | **Não neste delta** |
+| **Revert** | `git push origin rollback/pre-v272640-2810-contagem-cancelar:producao` → **`0fdbe24c`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2810_contagem_cancelar.sh` |
+| **Smoke** | Painel Contagens · sessão aberta · **Cancelar contagem** · bloco já gravado continua no estoque |
+
+
+### ✅ Deploy loja — **CHECKLIST 27/10g** · **Live v27.26.38** · 27/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live** @ **`97d4b22c`** · cutover autorizado **27/10** |
+| **Entra** | Bloco já fechado mostra a **quantidade** (não FALTA) |
+| **Migrate** | **NÃO** |
+| **PDV / caixa / checkout** | **Não neste delta** |
+| **Revert** | `git push origin rollback/pre-v272638-2710g-bloco-qtd:producao` → **`6d7da78c`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2710g_bloco_qtd.sh` |
+| **Smoke** | Fechar um bloco no celular · o card mostra o número, sem FALTA |
+
+
+### ✅ Deploy loja — **CHECKLIST 27/10f** · **Live v27.26.37** · 27/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live** @ **`cf6339d4`** · cutover autorizado **27/10** |
+| **Entra** | Amostra só no PC · bloco fechado no celular · achado de novo soma (5+2=7) |
+| **Migrate** | **NÃO** |
+| **PDV / caixa / checkout** | **Não neste delta** |
+| **Revert** | `git push origin rollback/pre-v272637-2710f-bloco-tela:producao` → **v27.26.36** @ **`d8b5ce7b`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2710f_bloco_tela.sh` |
+| **Smoke** | Fechar bloco no celular · imprimir só em Contagens no PC · bipar de novo 2 em cima de 5 |
+
+
+### ✅ Deploy loja — **CHECKLIST 27/10e** · **Live v27.26.36** · 27/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live** @ **`d8b5ce7b`** · cutover autorizado **27/10** |
+| **Entra** | Bolinha **⋯** ganha **Fechar** · câmera não soma o mesmo código duas vezes (2,5 s) |
+| **Migrate** | **NÃO** |
+| **PDV / caixa / checkout** | **Não neste delta** |
+| **Revert** | `git push origin rollback/pre-v272636-2710e-bolinha-camera:producao` → **`7499c746`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2710e_bolinha_camera.sh` |
+| **Smoke** | Ajuste no app · bolinha · **Fechar** · código parado na câmera = **+1** só |
+
+
+### 📦 PACOTE PRONTO — **AJUSTE-BOLINHA-CAMERA** · **v27.26.35** · PREP `teste` @ **`036180ce`**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **Pronto para envio à produção** (frase + senha) |
+| **Fora do Live 27/10d** | Bolinha **⋯** da contagem ganha **Fechar** · câmera não soma o mesmo código duas vezes (trava ~2,5 s) |
+| **Migrate** | **NÃO** |
+| **PDV / caixa** | **Não** |
+| **Prova** | `mobile_ajuste.html`: `ma-ciclica-btn-fechar-ctrl` · `maScanMuteUntil` · intervalo da câmera **2500** ms |
+| **Smoke** | Ajuste no app · toque na bolinha · **Fechar** · câmera num código parado = **+1** só |
+
+### ✅ CHECKLIST ÚNICO — **27/10e** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **AJUSTE-BOLINHA-CAMERA** | 🟢 Pronto | **NÃO** | Fechar na bolinha · câmera sem duplicar |
+
+### ✅ Deploy loja — **CHECKLIST 27/10d** · **Live v27.26.35** · 27/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live** @ **`fc3466b9`** · cutover autorizado **27/10** |
+| **Entra** | Item **3** Contagens em tela cheia no SistApp (F10 no PC continua na gestão) · item **4** operador pela lista do RH |
+| **Fora** | Item **2** endereço fiscal NF-e |
+| **Migrate** | **NÃO** |
+| **PDV / caixa / checkout** | **Não neste delta** |
+| **Revert** | `git push origin rollback/pre-v272635-2710d-contagens-rh:producao` → **v27.26.28** @ **`723f96ce`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2710d_contagens_rh.sh` |
+| **Smoke** | App: **Contagens** sem barra da gestão · PC F10: continua na gestão · marcar nome · **Abrir e atrelar** |
+
+
+### ✅ Deploy loja — **CHECKLIST 27/10** · **Live v27.26.28** · 27/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live** @ **`723f96ce`** · cutover autorizado **27/10** |
+| **Pacotes** | **1** câmera no Ajuste · **3** painel cíclico + F10 Contagens · **4** inventário PIN / bloco / zerar saldo |
+| **Fora** | Item **2** endereço fiscal (já estava em **`91c8ca6a`**) |
+| **Migrate** | **SIM** `estoque.0021` — rodar **agora** no Render Shell |
+| **PDV / caixa / checkout** | **Não neste delta** |
+| **Revert** | `git push origin rollback/pre-v272628-2710-ajuste-ciclica-inv:producao` → **v27.26.27** @ **`91c8ca6a`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2710_ajuste_ciclica_inv.sh` |
+| **Smoke** | SistApp Ajuste → Câmera · F10 → Contagens · zerar só em ensaio com **ZERAR** |
+
+### ~~ARMADO 27/10~~ · **enviado** · ver Live acima
+
+### ✅ CHECKLIST ÚNICO — **27/10** · ✅ **enviado** (itens 1, 3 e 4)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **AJUSTE-CAMERA-BIP** | ✅ Live | **NÃO** |
+| 2 | **NFE-55-FISCAL-ENDERECO-PDV** | ⏸️ fora deste corte | **NÃO** |
+| 3 | **CICLICA-ADMIN-PAINEL** | ✅ Live | **NÃO** |
+| 4 | **INVENTARIO-PIN-BLOCO** | ✅ Live | **SIM** `estoque.0021` |
+
+### 📦 PACOTE PRONTO — **AJUSTE-CAMERA-BIP** · **v27.26.28** · 27/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **No `teste`** @ lote **27/10** (`a40d3f5b`) |
+| **Escopo** | SistApp **Ajuste** (`/vendas/lojas/ajuste/`) · botão **Câmera** na busca · scan **contínuo** com **Bip +1** · `html5-qrcode` |
+| **Migrate** | **NÃO** |
+| **PDV / caixa / NFC-e** | **Não neste pacote** |
+| **Prova** | `scripts/verify_ajuste_camera_bip_path.py` **20/20** · `verify_ajuste_mobile_pwa.py` **29/29** · `verify_vendas_lojas_pwa_install.py` **0 falhas** |
+| **Smoke loja** | SistApp → **Ajuste** → **Câmera** · ligar **Bip +1** · bipar 2+ produtos sem fechar · sem Bip +1 = busca e fecha |
+
+### 📦 PACOTE PRONTO — **CICLICA-ADMIN-PAINEL** · **v27.26.29** · 27/10c
+
+| Campo | Valor |
+| ----- | ----- |
+| **Escopo** | Painel gerência · contagens cíclicas **em aberto** (KPI, progresso %, equipe, feed, variância R$) · só **PIN gerencial** ou **gerência hub** |
+| **URLs** | `/vendas/lojas/contagem-ciclica/painel/` · PC staff `/gestao/contagem-ciclica/painel/` |
+| **Migrate** | **NÃO** |
+| **Smoke** | SistApp com PIN gerência → card **Contagens** ou Ajuste → **Painel** |
+
+### 📦 PACOTE PRONTO — **NFE-55-FISCAL-ENDERECO-PDV** · **v27.26.28** · 27/10b
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **No `teste`** (hotfix pós-25/10) — mesmo cutover ou depois do Ajuste |
+| **Escopo** | Checkout PDV · gravar **endereço fiscal** no cliente (`fiscal_nfe`) |
+| **Migrate** | **NÃO** |
+
+### 📦 PACOTE PRONTO — **LOTE 27/10** · **v27.26.35** · PREP `teste` @ **`aa5cb818`**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **Pronto para envio à produção** (frase + senha) |
+| **Migrate** | **SIM** só `estoque.0021` · demais **NÃO** |
+| **Entra** | Câmera (mesmo código não soma 2×) · bolinha da contagem com **Fechar** · Contagens no app em tela cheia · F10 na gestão · lista RH · bloco · zerar · NF-e endereço |
+| **Prova** | Câmera **20/20** · painel **14/14** · PWA **0 falhas** (Contagens sem shell) · zeragem **8 → 0** · venda após bip **3 − 1 = 2** · operador **200** |
+| **Smoke seu** | App: **Contagens** sem barra da gestão · F10: continua na gestão · marcar nome · **Abrir e atrelar** |
+
+### ✅ CHECKLIST ÚNICO — **27/10** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **AJUSTE-CAMERA-BIP** | 🟢 Pronto | **NÃO** | `verify_ajuste_camera_bip_path.py` **20/20** |
+| 2 | **NFE-55-FISCAL-ENDERECO-PDV** | 🟢 Pronto | **NÃO** | `8013473a` |
+| 3 | **CICLICA-ADMIN-PAINEL** | 🟢 Pronto | **NÃO** | App: tela cheia SistApp · PC: **F10** dentro da gestão |
+| 4 | **INVENTARIO-PIN-BLOCO** | 🟢 Pronto | **SIM** `estoque.0021` | Operador pela lista **RH · PIN** (não digita o número) · bloco · amostra · zerar |
+
+### ✅ Deploy loja — **CHECKLIST 25/10** · **Live v27.26.27** · 25/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Já na `producao`** @ **`d9d8a370`** (corte feito antes deste chat) |
+| **Pacote** | **NFE-55-FISCAL-PL010f** — motor fiscal SN · XSD PL 010f · NF-e só staff |
+| **Migrate** | **NÃO** |
+| **PDV / caixa / NFC-e** | **Não neste delta** |
+| **Prova neste ambiente** | `verify_nfe_saida_path.py` **68/68** · PIN **9973** ok |
+| **Revert** | `git push origin producao-backup-pre-v272627-nfe-fiscal:producao` → **v27.26.26** @ **`6081553c`** |
+| **Smoke** | staff · `/nfe/saida/` · 1ª NF manual |
+
+### ✅ CHECKLIST ÚNICO — **25/10** · ✅ **já em produção** (não reenviar)
+
+| # | Item | Status | Migrate | Prova |
+| - | ---- | ------ | ------- | ----- |
+| 1 | Motor fiscal SN + XSD PL 010f | ✅ Live | **NÃO** | **68/68** |
+| 2 | Acesso NF-e só admin | ✅ Live | **NÃO** | commit `d9d8a370` |
+
+### ✅ Deploy loja — **CHECKLIST 24/10** · **Live v27.26.26** · 24/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live** @ **`6081553c`** · cutover autorizado **24/10** |
+| **Pacotes** | **CP-EXPORT-LISTA** · **CADASTRO-BUSCA-PALAVRAS** · gaveta da busca |
+| **Migrate** | **NÃO** |
+| **Caixa / checkout** | **Não alterados** |
+| **Revert** | `git push origin rollback/pre-v272626-2410-cp-busca:producao` → **v27.26.23** @ **`d37449e6`** |
+| **Smoke** | CP **Exportar** · **SHAMPO CAO** · gaveta da busca |
+
+### ~~ARMADO 24/10~~ · **enviado** · ver Live acima
+
+### ✅ CHECKLIST ÚNICO — **24/10** · ✅ **enviado** (ver Live)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CADASTRO-BUSCA-PALAVRAS** | ✅ Live | **NÃO** | **60/60** |
+| 2 | **CP-EXPORT-LISTA** | ✅ Live | **NÃO** | verify export |
+| 3 | **PDV gaveta busca** | ✅ Live | **NÃO** | nome largo |
+
+### 📦 PACOTE PRONTO — **CP-EXPORT-LISTA** · **v27.26.24** · 23/10c
+
+| Campo | Valor |
+| ----- | ----- |
+| **PREP / `teste`** | @ **`a09f6863`** (+ doc/verify abaixo) |
+| **Escopo** | **Exportar** na lista CP: CSV · Excel · PDF · mesmos filtros da grade · até 5.000 títulos |
+| **Migrate** | **NÃO** |
+| **Smoke loja** | **Ctrl+F5** `/lancamentos/contas-pagar/` → **Exportar** → Excel |
+
+### ✅ CHECKLIST ÚNICO — **23/10c** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CP-EXPORT-LISTA** | 🟢 Pronto | **NÃO** | `scripts/verify_cp_export_button_path.py` |
+
+### ✅ Deploy loja — **CHECKLIST 23/10b** · **Live v27.26.23** · 23/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live** @ **`d37449e6`** · cutover autorizado **23/10** |
+| **Pacote** | **PDV-RAPIDOS Home** — botão na busca · tecla **Home** · **F5** recarrega · **Insert** livre |
+| **Migrate** | **NÃO** |
+| **Caixa / checkout** | **Não alterados** |
+| **Revert** | `git push origin rollback/pre-v272623-2310b-pdv-rapidos-home:producao` → **v27.26.22** @ **`c8695c5d`** |
+| **Smoke** | **Ctrl+F5** PDV → **F5** recarrega → **Home** abre Rápidos → 1–9 → Esc |
+
+### ~~ARMADO 23/10b~~ · **enviado** · ver Live acima
+
+### ✅ CHECKLIST ÚNICO — **23/10b** · ✅ **enviado** (ver Live)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-RAPIDOS Home** | ✅ Live | **NÃO** | **35/35** |
+
+### ✅ Deploy loja — **CHECKLIST 23/10** · **Live v27.26.22** · 23/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live** @ **`c8695c5d`** · cutover autorizado **23/10** |
+| **Pacote** | **PDV-RAPIDOS** — Alt+6 · 9 slots · apelido/foto · proporção · PIN |
+| **Migrate** | **SIM** `0150` + `0151` — rodar **agora** no Render Shell |
+| **Caixa / checkout** | **Não alterados** |
+| **Revert** | `git push origin rollback/pre-v272622-2310-pdv-rapidos:producao` → **v27.26.21** @ **`b70a67b9`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2310_pdv_rapidos.sh` |
+| **Smoke** | **Ctrl+F5** PDV → **Alt+6** → 1–9 → Esc → F6 igual |
+
+### ~~ARMADO 23/10~~ · **enviado** · ver Live acima
+
+### ✅ CHECKLIST ÚNICO — **23/10** · ✅ **enviado** (ver Live)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-RAPIDOS** | ✅ Live | **SIM** `0150`+`0151` | **34/34** |
+
+### ✅ Deploy loja — **CHECKLIST 22/10** · **Live v27.26.21** · 22/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live** @ **`b70a67b9`** · cutover autorizado **22/10** |
+| **Pacote** | **DFE-VILA-BUSCAR** — Dist DF-e **Centro + Vila fiscal** · `ultNSU` por CNPJ · etiqueta **Vila Elias** |
+| **Migrate** | **NÃO** |
+| **PDV / caixa** | **Não alterados** |
+| **Revert** | `git push origin rollback/pre-v272621-2210-dfe-vila-buscar:producao` → **v27.26.20** @ **`25844530`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2210_dfe_vila_buscar.sh` (opcional, sem migrate) |
+| **Smoke** | **Ctrl+F5** `/entrada-nota/` → SEFAZ → **Atualizar status** (2 CNPJs) → **Buscar notas novas** |
+
+### ~~ARMADO 22/10~~ · **enviado** · ver Live acima
+
+### ✅ CHECKLIST ÚNICO — **22/10** · ✅ **enviado** (ver Live)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **DFE-VILA-BUSCAR** | ✅ Live | **NÃO** | multi-CNPJ · NSU 656 |
+
+### 📦 PACOTE PRONTO — **DFE-VILA-BUSCAR** · **v27.26.21** · 22/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **PREP / loja** | **`producao`** @ **`b70a67b9`** |
+
+### ✅ Deploy loja — **CHECKLIST 21/10c** · **Live v27.26.20** · 21/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live** @ **`25844530`** · cutover autorizado **22/10** |
+| **Pacote** | **NF-AJUSTE-CUSTO-MANUAL-HOTFIX** — rateio **Qtd est.** · Reverter · rascunho |
+| **Migrate** | **NÃO** |
+| **PDV / caixa** | **Não alterados** |
+| **Revert** | `git push origin rollback/pre-v272620-2110c-nf-ajuste-manual-hotfix:producao` → **v27.26.19** @ **`3c2b5117`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2110c_nf_ajuste_manual_hotfix.sh` (opcional, sem migrate) |
+| **Smoke** | **Ctrl+F5** em `/entrada-nota/` → desconto → **Reverter** |
+
+### ~~ARMADO 21/10c~~ · **enviado** · ver Live acima
+
+### ✅ CHECKLIST ÚNICO — **21/10c** · ✅ **enviado** (ver Live)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NF-AJUSTE-CUSTO-MANUAL-HOTFIX** | ✅ Live | **NÃO** | rateio · Qtd est. |
+
+### 📦 PACOTE PRONTO — **NF-AJUSTE-MANUAL-HOTFIX** · **v27.26.20** · 21/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **PREP / loja** | **`producao`** @ **`25844530`** |
+
+### ✅ Deploy loja — **CHECKLIST 21/10b** · **Live v27.26.19** · 21/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live** @ **`3c2b5117`** · cutover autorizado **21/10** |
+| **Pacotes** | **NF-FORN-UNIF-ALIAS** + **NF-AJUSTE-CUSTO-MANUAL** (só Entrada NF) |
+| **Migrate** | **SIM** `0149` — rodar **agora** no Render Shell se ainda não rodou |
+| **PDV / caixa** | **Não alterados** |
+| **Revert** | `git push origin rollback/pre-v272619-2110b-nf-forn-unif-ajuste:producao` → **v27.26.18** @ **`f4808353`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2110b_nf_forn_unif_ajuste.sh` |
+| **Smoke** | **Ctrl+F5** → `/entrada-nota/` → unificar fornecedores → ajuste manual → Reverter |
+
+### ~~ARMADO 21/10b~~ · **enviado** · ver Live acima
+
+### ✅ CHECKLIST ÚNICO — **21/10b** · ✅ **enviado** (ver Live)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NF-FORN-UNIF-ALIAS** | ✅ Live | **SIM** `0149` | path + alias |
+| 2 | **NF-AJUSTE-CUSTO-MANUAL** | ✅ Live *(hotfix → **21/10c**)* | **NÃO** | rateio |
+
+### 📦 PACOTE PRONTO — **NF-ENTRADA-FORN-AJUSTE** · **v27.26.19** · 21/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **PREP / loja** | `deploy/prep-checklist-2110b-nf-forn-unif-ajuste` · **`producao`** @ **`3c2b5117`** |
+
+### ✅ Deploy loja — **CHECKLIST 21/10** · **Live v27.26.18** · 21/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live** @ **`f4808353`** · cutover autorizado **21/10** |
+| **Pacote** | **REPASSE-CENTRO-VILA-PDV** — Repasse **Centro → Vila** no PDV (V→C inalterado) |
+| **Migrate** | **SIM** `0148` — rodar **agora** no Render Shell se ainda não rodou |
+| **Revert** | `git push origin rollback/pre-v272618-2110-repasse-centro-vila-pdv:producao` → **v27.26.17** @ **`bb7a01a3`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2110_repasse_centro_vila_pdv.sh` |
+| **Smoke** | **Ctrl+F5** → Repasse → **Centro→Vila** · testar **Vila→Centro** (fluxo habitual) · PIN |
+
+### ~~ARMADO 21/10~~ · **enviado** · ver Live acima
+
+### ✅ CHECKLIST ÚNICO — **21/10** · ✅ **enviado** (ver Live)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **REPASSE-CENTRO-VILA-PDV** | ✅ Live | **SIM** `0148` | **280+190+PATH** |
+
+### 📦 PACOTE PRONTO — **REPASSE-CENTRO-VILA-PDV** · **v27.26.18** · 21/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **PREP / loja** | `deploy/prep-checklist-2110-repasse-centro-vila-pdv` · **`producao`** @ **`f4808353`** |
+
+### ✅ Deploy loja — **CHECKLIST 20/10d** · **Live v27.26.17** · 20/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live** @ **`bb7a01a3`** · cutover autorizado **20/10** |
+| **Pacote** | **COMPRAS-FOLHA-MULTI-FORN** — Folha Compras por fornecedor · **vários cadastros** na mesma impressão |
+| **Migrate** | **NÃO** |
+| **PDV / caixa** | **Não alterado** |
+| **Revert** | `git push origin rollback/pre-v272617-2010d-compras-folha-multi-forn:producao` → **v27.26.16** @ **`09c4d28f`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2010d_compras_folha_multi_forn.sh` (Render Shell, após deploy Render) |
+| **Smoke** | Compras → Folha → Por fornecedor → **2+ cadastros** → imprimir · rótulo **`A + B`** · **Ctrl+F5** |
+
+### ~~ARMADO 20/10d~~ · **enviado** · ver Live acima
+
+### ✅ CHECKLIST ÚNICO — **20/10d** · ✅ **enviado** (ver Live)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **COMPRAS-FOLHA-MULTI-FORN** | ✅ Live | **NÃO** | **VERIFY_OK 17** + **6** unit |
+
+### 📦 PACOTE PRONTO — **COMPRAS-FOLHA-MULTI-FORN** · **v27.26.17** · 20/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **PREP / loja** | `deploy/prep-checklist-2010d-compras-folha-multi-forn` · **`producao`** @ **`bb7a01a3`** |
+| **teste** | **`3987c8f4`** · docs **`d62b5a51`** |
+
+### ✅ Deploy loja — **CHECKLIST 20/10c** · **Live v27.26.16** · 20/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live** @ **`09c4d28f`** |
+| **Pacote** | **REL-GRUPO-COLUNAS** — colunas escolhíveis · sort cabeçalho · Período/Comparativo |
+| **Migrate** | **NÃO** |
+| **PDV** | **Não alterado** |
+| **Revert** | `git push origin rollback/pre-v272616-2010c-rel-grupo-colunas:producao` → **v27.26.15** @ **`93912908`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2010c_rel_grupo_colunas.sh` (Render Shell) |
+
+### ~~ARMADO 20/10c~~ · **enviado** · ver Live acima
+
+### ✅ CHECKLIST ÚNICO — **20/10c** · ✅ **enviado** (ver Live)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **REL-GRUPO-COLUNAS** | ✅ Live | **NÃO** | **22+17+30** |
+
+### 📦 PACOTE PRONTO — **REL-GRUPO-COLUNAS** · **v27.26.16** · 20/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Paths** | `vendas_grupo_table.py` · `vendas_grupo_table.js` · `vendas_grupo_tabela.html` · `relatorios_central_views.py` · `relatorios_vendas_util.py` · `relatorios_generico.html` |
+| **PREP** | **`2e47116f`** · `deploy/prep-checklist-2010c-rel-grupo-colunas` |
+| **teste** | **`7d98f73d`** · prep_checkpoint **OK** |
+
+### ✅ Deploy loja — **CHECKLIST 20/10b** · **Live v27.26.15** · 20/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live** @ **`93912908`** |
+| **Pacote** | **ETQ-NF-SEM-EXATO** — filtro NF entrada match exato `SEM-DDMM-XXXX` |
+| **Migrate** | **NÃO** |
+| **PDV** | **Não alterado** |
+| **Revert** | `git push origin rollback/pre-v272615-2010b-etq-nf-sem-exato:producao` → **v27.26.14** @ **`e4c308dd`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2010b_etq_nf_sem_exato.sh` (Render Shell) |
+
+### ~~ARMADO 20/10b~~ · **enviado** · ver Live acima
+
+### ✅ CHECKLIST ÚNICO — **20/10b** · ✅ **enviado** (ver Live)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ETQ-NF-SEM-EXATO** | ✅ Live | **NÃO** | **VERIFY_OK 30/30** |
+
+### 📦 PACOTE PRONTO — **ETQ-NF-SEM-EXATO** · **v27.26.15** · 20/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Etiquetas / cadastro: filtro **Nº NF entrada** não mistura `SEM-1410-TJAI` com `SEM-1410-UPS7` |
+| **Arquivos** | `cadastro_filtros_util.py` · `tests_pdv_cadastro_rapido.py` · `verify_etq_filtro_nf_entrada_path.py` |
+
+### ✅ Deploy loja — **CHECKLIST 20/10a** · **Live v27.26.14** · 20/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live** @ **`e4c308dd`** |
+| **Pacote** | **REL-EXCEL-PRINT** — Excel ↓ download real · impressão **paisagem** |
+| **Migrate** | **NÃO** |
+| **PDV** | **Não alterado** |
+| **Revert** | `git push origin rollback/pre-v272614-2010a-rel-excel-print:producao` → **v27.26.13** @ **`5fee79dc`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_2010a_rel_excel_print.sh` (Render Shell) |
+
+### ~~ARMADO 20/10a~~ · **enviado** · ver Live acima
+
+### ✅ CHECKLIST ÚNICO — **20/10a** · ✅ **enviado** (ver Live)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **REL-EXCEL-PRINT** | ✅ Live | **NÃO** | verify **16+30** |
+
+### 📦 PACOTE PRONTO — **REL-EXCEL-PRINT** · **v27.26.14** · 20/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `data-agro-rel-excel` + `fetch` · `@page` landscape ≥9 colunas / comparativo grupo |
+| **Commit** | `32e7c517` · **`teste`** |
+
+### ✅ Deploy loja — **CHECKLIST 19/10b** · **Live v27.26.13** · 20/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live** @ **`5fee79dc`** · REL-GRUPO-MARGEM-COMP |
+| **Revert** | `rollback/pre-v272613-1910b-rel-grupo` → **v27.26.12** @ **`f33ee5cd`** |
+
+### 📦 PACOTE PRONTO — **REL-CAT-SUB-EXCEL** · **v27.26.12** · 19/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Central Relatórios: filtro **categoria + sub 1–4** (mais vendidos, vendas por grupo, ABC, margem) · resumo ativo · **Limpar catálogo** · **Excel ↓** com filtros do formulário (lista completa no recorte em mais/margem) |
+| **Paths** | `relatorios_central_views.py` · `relatorios_vendas_util.py` · `relatorios_generico.html` · `relatorios_help_agents.html` |
+| **Migrate** | **NÃO** |
+| **Prova** | `python scripts/verify_rel_cat_sub_excel_path.py` · `produtos.tests_relatorios_central_filtros` (**15** OK) |
+| **Branch** | `teste` @ merge `cursor/relatorios-filtro-subcategoria-af21` |
+
+### ✅ CHECKLIST ÚNICO — **19/10a** · ✅ **enviado** (ver Live)
+
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | **REL-CAT-SUB-EXCEL** + **NFE-DANFE** + **NFE-EMAIL** | ✅ Live **v27.26.12** |
+
+### ✅ Deploy loja — **CHECKLIST 19/10a** · **Live v27.26.12** · 19/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live** @ **`f33ee5cd`** |
+| **Pacotes** | **REL-CAT-SUB-EXCEL** · **NFE-DANFE-ERP-LAYOUT** · **NFE-EMAIL-DEST** |
+| **Migrate** | **NÃO** |
+| **Revert** | `git push origin rollback/pre-v272612-1910a-checklist:producao` → **v27.26.10** @ **`05a871df`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_1910a_nfe_danfe_email_rel.sh` (Render Shell) |
+| **Ops** | **FL-059** — `EMAIL_*` no Render para envio real de e-mail NF-e |
+
+### ~~ARMADO 19/10a~~ · **enviado** · ver Live acima
 
 ### 📦 PACOTE PRONTO — **LOJA-18/10h** · **v27.26.11**
 
@@ -1337,6 +1934,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- | ----- |
 | 1 | **NFE-DANFE-ERP-LAYOUT** | 🟢 pronto | **NÃO** | verify + DANFE |
 | 2 | **NFE-EMAIL-DEST** | 🟢 pronto | **NÃO** | **68/68** |
+| 3 | **FL-059** (ops) | 📋 **P3 pendente** | **NÃO** | Gmail `@gmail.com` → Render `EMAIL_*` |
 
 ### ✅ Deploy loja — **CHECKLIST 18/10g** · **Live v27.26.10** · 18/10
 
@@ -10827,6 +11425,7 @@ iews.py (compras enrich) |
 | **P1,9** | **FL-034** | Histórico F8 filtra cliente | ⚠️ **código filtro na loja** — confirmar se fecha o pedido |
 | **P2** | **Zap #19** · **FL-053** | Histórico de custo tick 2× | 📋 **ainda aberto** |
 | **P3** | **Zap #21** · **FL-033** | BI comparativo N-ésimo dia semana | 📋 **ainda aberto** |
+| **P3** | **FL-059** | NF-e saída: **Gmail da loja** no Render (`EMAIL_HOST` + senha de app Google) → cliente recebe XML+DANFE ao emitir | 📋 **pendente** · Renan Google+Render |
 | **P2+** | FL-005… | Resto P2/P3 na «Fila loja» completa | 📋 |
 
 #### Checklist concluÃ­do (jÃ¡ na loja)
@@ -13320,6 +13919,7 @@ Dry-run do import tambÃ©m lista **quantos itens** ficaram sem match no catÃ¡
 | **FL-056** | **P0** | NFC-e / SEFAZ | RejeiÃ§Ãµes **963** (fiado+card) + **225** (CFOP/CEST pontuaÃ§Ã£o) â€” vendas #2812/#3347 | ðŸ“¦ **pronto pra envio** Â· teste **v9.21** | 17/07 |
 | **FL-057** | **P0,1** | Ops / Render / Postgres | **PgBouncer** na loja — `agro-db` pooling + `DATABASE_URL` porta **6432** + restart web | 📋 Pendente · Renan no painel | 21/07 |
 | **FL-058** | **P0,2** | PDV / Clientes / crédito | **Adicionar vale crédito** ao cliente **pelo PDV** (lançar crédito na conta do cliente na loja) · liga FL-029 crédito | ✅ **PDV-CLI-CADASTRO** 17/08 | 01/08 |
+| **FL-059** | **P3** | NF-e saída / Ops | **E-mail ao emitir NF-e 55** — configurar **Gmail `@gmail.com`** no Render: verificação 2 etapas + **senha de app** → `EMAIL_HOST` `smtp.gmail.com` · `EMAIL_PORT` `587` · `EMAIL_USE_TLS` `True` · `EMAIL_HOST_USER` · `EMAIL_HOST_PASSWORD` · `DEFAULT_FROM_EMAIL` · smoke: emitir NF-e com e-mail no destinatário | 📋 Pendente · Renan | 19/10 |
 | **FL-034** | **P1,9** | PDV / Clientes | BotÃ£o **HistÃ³rico** nÃ£o filtra vendas do **cliente selecionado** â€” deve filtrar (relacionamento / devoluÃ§Ã£o) | ðŸ”„ **F8 modal rascunho** teste Â· fila loja | 29/06 16:20 |
 | **FL-035** | **P2** | DevoluÃ§Ã£o | **DevoluÃ§Ã£o parcial** da venda â€” ou **itens especÃ­ficos** | ðŸ“¦ **#12** pronto loja (fecha) Â· âœ… teste Renan | 29/06 16:20 |
 | **FL-036** | **P3** | PDV / Promo | **Faixa vertical** ou chaves ligando selos do **mesmo mix** no carrinho (opÃ§Ã£o visual 2) | ðŸ“‹ Pendente | 29/06 |
@@ -13380,6 +13980,7 @@ Dry-run do import tambÃ©m lista **quantos itens** ficaram sem match no catÃ¡
 | FL-056 | `nfce-963-card-fiado-225-fiscal-digitos` | **963:** sem `card` em tPag 05 Â· **225:** NCM/CFOP/CEST sÃ³ dÃ­gitos |
 | FL-057 | `render-pgbouncer-agro-db-6432` | Render: Info do Postgres → Connection pooling · web loja `DATABASE_URL` pooled **:6432** · redeploy · conferir healthz |
 | FL-058 | `pdv-vale-credito-cliente` | PDV: lançar / adicionar **vale crédito** ao cliente selecionado (Postgres) · uso depois na venda · overlap FL-029 crédito |
+| FL-059 | `nfe-saida-email-gmail-render` | Ops Renan: Gmail 2FA + senha de app → vars Render `EMAIL_*` · `nfe_saida_email_util` já envia pós-autorizar · doc passo a passo no chat 19/10 |
 | FL-034 | `pdv-historico-cliente-filtro` | HistÃ³rico vendas deve respeitar **cliente selecionado** no PDV |
 | FL-035 | `devolucao-parcial-itens` | DevoluÃ§Ã£o por itens / parcial â€” hoje provavelmente venda inteira |
 | FL-036 | `pdv-mix-selo-faixa-vertical` | Faixa/chaves CSS ligando coluna promo entre linhas do mesmo mix (opÃ§Ã£o 2) |

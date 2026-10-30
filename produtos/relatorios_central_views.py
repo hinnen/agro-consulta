@@ -7,6 +7,7 @@ from django.shortcuts import render
 from django.views.decorators.http import require_GET
 
 from produtos import relatorios_vendas_util as ru
+from produtos import vendas_grupo_table as vgt
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,21 @@ def _qs_get(q) -> str:
     if not q:
         return "?"
     return "?" + q.urlencode()
+
+
+def _qs_limpar_catalogo(request) -> str:
+    """Remove categoria/sub 1–4 da query; mantém período, loja, agrupar, etc."""
+    q = request.GET.copy()
+    for key in (
+        "categoria",
+        "subcategoria",
+        "subcategoria_2",
+        "subcategoria_3",
+        "subcategoria_4",
+    ):
+        while key in q:
+            del q[key]
+    return "?" + q.urlencode() if q else "?"
 
 
 def _periodo_filtros(request, padrao: str = "mes_atual") -> dict:
@@ -43,6 +59,19 @@ def _extra_filtros_catalogo(facetas: dict, **extra) -> dict:
         "subcategorias_4": facetas.get("subcategorias_4") or [],
     }
     out.update(extra)
+    resumo: list[tuple[str, str]] = []
+    for campo, rotulo in (
+        ("categoria", "Categoria"),
+        ("subcategoria", "Sub"),
+        ("subcategoria_2", "Sub 2"),
+        ("subcategoria_3", "Sub 3"),
+        ("subcategoria_4", "Sub 4"),
+    ):
+        vals = out.get(campo) or []
+        if vals:
+            resumo.append((rotulo, " + ".join(vals)))
+    out["resumo_filtros_catalogo"] = resumo
+    out["tem_filtro_catalogo"] = bool(resumo)
     return out
 
 
@@ -117,6 +146,7 @@ def _relatorios_mais_vendidos_impl(request):
         f"{f['label']} · {ru.rotulo_deposito_relatorio(deposito)}", facetas
     )
     if request.GET.get("export") == "xlsx":
+        export_rows = ru.limitar_ranking(rows_all, 0)
         data = [
             [
                 r["pos"], r["codigo"], r["nome"],
@@ -125,7 +155,7 @@ def _relatorios_mais_vendidos_impl(request):
                 r.get("subcategoria_4") or "",
                 r["qtd"], r["ticket_medio"], r["valor"],
             ]
-            for r in rows
+            for r in export_rows
         ]
         return ru.xlsx_http_response(
             "mais-vendidos.xlsx",
@@ -147,6 +177,7 @@ def _relatorios_mais_vendidos_impl(request):
                 sentido=sentido,
                 deposito=ru.deposito_ui_value(deposito),
             ),
+            "limpar_catalogo_qs": _qs_limpar_catalogo(request),
             "filtro_parcial": "mais_vendidos",
             "rel_help": "mais_vendidos",
             "headers": headers,
@@ -171,65 +202,217 @@ def _relatorios_mais_vendidos_impl(request):
     )
 
 
+def _fmt_var_grupo(v: float | None, novo: bool = False) -> str:
+    if novo:
+        return "novo"
+    if v is None:
+        return "—"
+    return f"{v:+.1f}%"
+
+
+def _grupo_kw(request, deposito, agrupar, gopts: dict) -> dict:
+    return {
+        "agrupar": agrupar,
+        "deposito": deposito,
+        "ordenar": gopts["ordenar"],
+        "ord_dir": gopts.get("ord_dir") or "desc",
+        "min_valor": gopts.get("min_valor"),
+        "margem_pct_min": gopts.get("margem_pct_min"),
+        "margem_pct_max": gopts.get("margem_pct_max"),
+        "so_sem_custo": gopts.get("so_sem_custo"),
+        **ru.filtros_catalogo_request(request),
+    }
+
+
 @require_GET
 def relatorios_vendas_grupo(request):
-    f = _periodo_filtros(request)
+    gopts = ru.parse_vendas_grupo_request(request)
     deposito = ru.parse_deposito_relatorio(request)
     agrupar = (request.GET.get("agrupar") or "categoria").strip().lower()
     if agrupar not in (
         "categoria", "subcategoria", "subcategoria_2", "subcategoria_3", "subcategoria_4"
     ):
         agrupar = "categoria"
-    rows, meta = ru.vendas_por_grupo_relatorio(
-        f["desde"],
-        f["ate_dt"],
-        agrupar=agrupar,
-        deposito=deposito,
-        **ru.filtros_catalogo_request(request),
-    )
-    headers = ["#", meta.get("col_grupo") or "Grupo", "SKUs", "Qtd", "Total R$", "%"]
-    sub_periodo = _subtitulo_catalogo(
-        f"{f['label']} · {ru.rotulo_deposito_relatorio(deposito)}", meta
-    )
+    kw = _grupo_kw(request, deposito, agrupar, gopts)
+    visao = gopts["visao"]
+    dep_label = ru.rotulo_deposito_relatorio(deposito)
+
+    if visao == "comparativo":
+        meses = ru.meses_comparativo_grupo(gopts)
+        rows, meta = ru.vendas_grupo_comparativo_meses(meses, **kw)
+        mes_labels = meta.get("meses") or []
+        col_grupo = meta.get("col_grupo") or "Grupo"
+        vg_columns, vg_rows = vgt.comparativo_table_from_rows(
+            rows,
+            mes_labels,
+            col_grupo,
+            lambda v, novo=False: _fmt_var_grupo(v, novo=novo),
+        )
+        headers = vgt.period_flat_headers(vg_columns)
+        sub_periodo = _subtitulo_catalogo(
+            f"Comparativo {len(mes_labels)} meses · {dep_label}", meta
+        )
+        display_rows: list[list] = [
+            vgt.comparativo_flat_row(r["cells"], vg_columns) for r in vg_rows
+        ]
+        row_alertas: list[bool] = [bool(r.get("alerta")) for r in vg_rows]
+        if request.GET.get("export") == "xlsx":
+            return ru.xlsx_http_response(
+                "vendas-grupo-comparativo.xlsx",
+                ru.montar_xlsx(
+                    "Vendas por grupo — comparativo",
+                    headers,
+                    display_rows,
+                    subtitulo=sub_periodo,
+                ),
+            )
+        f_stub = {"label": " · ".join(mes_labels), "periodo": "comparativo"}
+        return render(
+            request,
+            "produtos/relatorios_generico.html",
+            _ctx_vendas_grupo(
+                request,
+                f=f_stub,
+                gopts=gopts,
+                agrupar=agrupar,
+                deposito=deposito,
+                meta=meta,
+                headers=headers,
+                rows=display_rows,
+                row_alertas=row_alertas,
+                totais=[],
+                aviso_sem_custo="",
+                comparativo=True,
+                vg_columns=vg_columns,
+                vg_rows=vg_rows,
+            ),
+        )
+
+    f = _periodo_filtros(request)
+    rows, meta = ru.vendas_por_grupo_relatorio(f["desde"], f["ate_dt"], **kw)
+    totais_num = meta.get("totais") or {}
+    col_grupo = meta.get("col_grupo") or "Grupo"
+    vg_columns, vg_rows = vgt.period_table_from_rows(rows, col_grupo)
+    headers = vgt.period_flat_headers(vg_columns)
+    sub_periodo = _subtitulo_catalogo(f"{f['label']} · {dep_label}", meta)
     if agrupar != "categoria":
-        sub_periodo = f"{sub_periodo} · por {meta.get('col_grupo') or agrupar}"
+        sub_periodo = f"{sub_periodo} · por {col_grupo}"
+    display_rows = [
+        vgt.period_flat_row(r["cells"], vg_columns) for r in vg_rows
+    ]
+    row_alertas = [bool(r.get("alerta")) for r in vg_rows]
     if request.GET.get("export") == "xlsx":
         data = [
-            [r["pos"], r["grupo"], r["skus"], r["qtd"], r["valor"], r["pct"]]
+            [
+                r["pos"],
+                r["grupo"],
+                r["skus"],
+                r["qtd"],
+                r["ticket"],
+                r["valor"],
+                r["pct"],
+                r["custo"],
+                r["margem_rs"],
+                r["margem_pct"],
+                r["pct_margem"],
+            ]
             for r in rows
         ]
         return ru.xlsx_http_response(
             "vendas-por-grupo.xlsx",
             ru.montar_xlsx("Vendas por grupo", headers, data, subtitulo=sub_periodo),
         )
+    sk = int(totais_num.get("skus_sem_custo") or 0)
+    aviso = (
+        f"{sk} SKU(s) no período sem custo no cadastro — margem pode estar errada."
+        if sk
+        else ""
+    )
+    totais_txt = [
+        f"Venda {ru.fmt_brl(totais_num.get('valor', 0))}",
+        f"Margem {ru.fmt_brl(totais_num.get('margem_rs', 0))}",
+    ]
     return render(
         request,
         "produtos/relatorios_generico.html",
-        {
-            "titulo": "Vendas por grupo",
-            "eyebrow": "Categoria",
-            "subtitulo": "Loja · categoria ou sub · combine filtros · Atualizar.",
-            "filtros": f,
-            "filtro_parcial": "vendas_grupo",
-            "rel_help": "vendas_grupo",
-            "extra_filtros": _extra_filtros_catalogo(
-                meta, agrupar=agrupar, deposito=ru.deposito_ui_value(deposito)
-            ),
-            "headers": headers,
-            "rows": [
-                [
-                    r["pos"], r["grupo"], r["skus"],
-                    f'{r["qtd"]:.3f}'.rstrip("0").rstrip("."),
-                    ru.fmt_brl(r["valor"]),
-                    f'{r["pct"]}%',
-                ]
-                for r in rows
-            ],
-            "totais": [ru.fmt_brl(sum(r["valor"] for r in rows))],
-            "export_qs": _qs_export(request),
-            "vazio_msg": "Nenhuma venda neste período (ou nestes filtros).",
-        },
+        _ctx_vendas_grupo(
+            request,
+            f=f,
+            gopts=gopts,
+            agrupar=agrupar,
+            deposito=deposito,
+            meta=meta,
+            headers=headers,
+            rows=display_rows,
+            row_alertas=row_alertas,
+            totais=totais_txt,
+            aviso_sem_custo=aviso,
+            comparativo=False,
+            vg_columns=vg_columns,
+            vg_rows=vg_rows,
+        ),
     )
+
+
+def _ctx_vendas_grupo(
+    request,
+    *,
+    f,
+    gopts,
+    agrupar,
+    deposito,
+    meta,
+    headers,
+    rows,
+    row_alertas,
+    totais,
+    aviso_sem_custo,
+    comparativo,
+    vg_columns=None,
+    vg_rows=None,
+) -> dict:
+    mes_esc = list(gopts.get("meses_escolhidos") or [])
+    while len(mes_esc) < 4:
+        mes_esc.append("")
+    return {
+        "titulo": "Vendas por grupo",
+        "eyebrow": "Categoria",
+        "subtitulo": "Venda e lucro · filtros cat/sub · comparativo mensal opcional.",
+        "filtros": f,
+        "filtro_parcial": "vendas_grupo",
+        "rel_help": "vendas_grupo",
+        "extra_filtros": _extra_filtros_catalogo(
+            meta,
+            agrupar=agrupar,
+            deposito=ru.deposito_ui_value(deposito),
+            visao=gopts["visao"],
+            ordenar=gopts["ordenar"],
+            ord_dir=gopts.get("ord_dir") or "desc",
+            min_valor=gopts.get("min_valor") or "",
+            margem_pct_min=gopts.get("margem_pct_min") or "",
+            margem_pct_max=gopts.get("margem_pct_max") or "",
+            so_sem_custo=gopts.get("so_sem_custo"),
+            n_meses=gopts["n_meses"],
+            mes_modo=gopts["mes_modo"],
+            mes_fim=gopts.get("mes_fim") or "",
+            mes_1=mes_esc[0],
+            mes_2=mes_esc[1],
+            mes_3=mes_esc[2],
+            mes_4=mes_esc[3],
+        ),
+        "limpar_catalogo_qs": _qs_limpar_catalogo(request),
+        "headers": headers,
+        "rows": rows,
+        "row_alertas": row_alertas,
+        "totais": totais,
+        "aviso_sem_custo": aviso_sem_custo,
+        "vendas_grupo_comparativo": comparativo,
+        "vg_columns": vg_columns or [],
+        "vg_rows": vg_rows or [],
+        "vg_picker_groups": vgt.picker_groups_comparativo() if comparativo else [],
+        "export_qs": _qs_export(request),
+        "vazio_msg": "Nenhuma venda neste período (ou nestes filtros).",
+    }
 
 
 @require_GET
@@ -346,6 +529,7 @@ def relatorios_curva_abc(request):
             "filtro_parcial": "curva_abc",
             "rel_help": "curva_abc",
             "extra_filtros": _extra_filtros_catalogo(meta),
+            "limpar_catalogo_qs": _qs_limpar_catalogo(request),
             "headers": headers,
             "rows": [
                 [
@@ -523,6 +707,9 @@ def relatorios_margem(request):
     ]
     sub_periodo = _subtitulo_catalogo(f["label"], facetas)
     if request.GET.get("export") == "xlsx":
+        export_rows = ru.margem_produtos(
+            f["desde"], f["ate_dt"], ordenar=ordenar, limite=0, rows=rows_all
+        )
         data = [
             [
                 r["pos"], r["codigo"], r["nome"],
@@ -531,7 +718,7 @@ def relatorios_margem(request):
                 r.get("subcategoria_4") or "",
                 r["qtd"], r["valor"], r["custo_total"], r["margem_rs"], r["margem_pct"],
             ]
-            for r in rows
+            for r in export_rows
         ]
         return ru.xlsx_http_response(
             "margem-produtos.xlsx",
@@ -548,6 +735,7 @@ def relatorios_margem(request):
             "filtro_parcial": "margem",
             "rel_help": "margem",
             "extra_filtros": _extra_filtros_catalogo(facetas, ordenar=ordenar),
+            "limpar_catalogo_qs": _qs_limpar_catalogo(request),
             "headers": headers,
             "rows": [
                 [

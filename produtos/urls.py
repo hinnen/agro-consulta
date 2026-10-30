@@ -16,6 +16,7 @@ from . import views_uso_loja
 from . import views_pdv_transf_loja
 from . import views_pdv_chat_loja
 from . import views_atendimento_whatsapp
+from . import views_pdv_rapidos
 from . import views_pdv_topbar
 from . import views_repasse_vila
 from . import views_tabela_preco_forma
@@ -26,6 +27,7 @@ from . import ajuste_codigo_pendente_views
 from . import views_planos_conta
 from . import views_conta_bancaria_loja
 from . import contagem_ciclica_views
+from . import contagem_ciclica_admin_views
 from . import views_fotos_produto
 from . import views_etiquetas_solicitacao
 from . import views_meta_vendas
@@ -108,6 +110,16 @@ urlpatterns = [
         name="api_ciclica_abrir",
     ),
     path(
+        "api/ajuste-mobile/ciclica/minha/",
+        contagem_ciclica_views.api_ciclica_minha,
+        name="api_ciclica_minha",
+    ),
+    path(
+        "api/ajuste-mobile/ciclica/<int:pk>/fechar-bloco/",
+        contagem_ciclica_views.api_ciclica_fechar_bloco,
+        name="api_ciclica_fechar_bloco",
+    ),
+    path(
         "api/ajuste-mobile/ciclica/<int:pk>/",
         contagem_ciclica_views.api_ciclica_detalhe,
         name="api_ciclica_detalhe",
@@ -136,6 +148,46 @@ urlpatterns = [
         "api/ajuste-mobile/ciclica/<int:pk>/cancelar/",
         contagem_ciclica_views.api_ciclica_cancelar,
         name="api_ciclica_cancelar",
+    ),
+    path(
+        "api/ajuste-mobile/ciclica/admin/painel/",
+        contagem_ciclica_admin_views.api_ciclica_admin_painel,
+        name="api_ciclica_admin_painel",
+    ),
+    path(
+        "api/ajuste-mobile/ciclica/admin/inventario/",
+        contagem_ciclica_admin_views.api_ciclica_admin_inventario,
+        name="api_ciclica_admin_inventario",
+    ),
+    path(
+        "api/ajuste-mobile/ciclica/admin/zerar/",
+        contagem_ciclica_admin_views.api_ciclica_admin_zerar,
+        name="api_ciclica_admin_zerar",
+    ),
+    path(
+        "api/ajuste-mobile/ciclica/admin/cancelar/<int:pk>/",
+        contagem_ciclica_admin_views.api_ciclica_admin_cancelar,
+        name="api_ciclica_admin_cancelar",
+    ),
+    path(
+        "api/ajuste-mobile/ciclica/admin/sessao/<int:pk>/",
+        contagem_ciclica_admin_views.api_ciclica_admin_sessao,
+        name="api_ciclica_admin_sessao",
+    ),
+    path(
+        "vendas/lojas/contagem-ciclica/painel/",
+        contagem_ciclica_admin_views.contagem_ciclica_painel_admin,
+        name="contagem_ciclica_painel_admin",
+    ),
+    path(
+        "vendas/lojas/contagem-ciclica/bloco/<int:pk>/",
+        contagem_ciclica_admin_views.contagem_ciclica_bloco_print,
+        name="contagem_ciclica_bloco_print",
+    ),
+    path(
+        "gestao/contagem-ciclica/painel/",
+        contagem_ciclica_admin_views.contagem_ciclica_painel_admin_desktop,
+        name="contagem_ciclica_painel_admin_desktop",
     ),
     path("api/bug-report/", bug_report_views.api_bug_report_criar, name="api_bug_report_criar"),
     path("api/bug-report/<int:pk>/status/", bug_report_views.api_bug_report_status, name="api_bug_report_status"),
@@ -661,6 +713,11 @@ urlpatterns = [
         name='api_repasse_vila_confirmar',
     ),
     path(
+        'api/repasse-vila/confirmar-centro-vila/',
+        views_repasse_vila.api_repasse_centro_vila_confirmar,
+        name='api_repasse_centro_vila_confirmar',
+    ),
+    path(
         'api/repasse-vila/acumulado/',
         views_repasse_vila.api_repasse_vila_acumulado,
         name='api_repasse_vila_acumulado',
@@ -1159,6 +1216,21 @@ urlpatterns = [
         'api/pdv/topbar-layout/',
         views_pdv_topbar.api_pdv_topbar_layout,
         name='api_pdv_topbar_layout',
+    ),
+    path(
+        'api/pdv/rapidos/',
+        views_pdv_rapidos.api_pdv_rapidos,
+        name='api_pdv_rapidos',
+    ),
+    path(
+        'api/pdv/rapidos/layout/',
+        views_pdv_rapidos.api_pdv_rapidos_layout,
+        name='api_pdv_rapidos_layout',
+    ),
+    path(
+        'api/pdv/rapidos/<int:posicao>/foto/',
+        views_pdv_rapidos.api_pdv_rapidos_foto,
+        name='api_pdv_rapidos_foto',
     ),
     path(
         'api/pdv/transf-loja/resumo/',
@@ -1805,6 +1877,11 @@ urlpatterns = [
         'api/entrada-nota/fornecedores/',
         views.api_entrada_nota_fornecedores,
         name='api_entrada_nota_fornecedores',
+    ),
+    path(
+        'api/entrada-nota/fornecedores/unificar/',
+        views.api_entrada_nota_fornecedores_unificar,
+        name='api_entrada_nota_fornecedores_unificar',
     ),
     path(
         'api/entrada-nota/auditoria-financeiro/',

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
 from datetime import date, datetime, time
 from decimal import Decimal, InvalidOperation
 from typing import Any
@@ -523,8 +524,17 @@ def produto_ids_por_data_entrada_nf(
     return out
 
 
+_SEM_NF_COMPLETA_RE = re.compile(r"^sem-\d{4}-[a-z0-9]{4}$", re.IGNORECASE)
+
+
+def _nf_identificador_sem_completo(nf: str) -> bool:
+    """Nota manual sem XML: ``SEM-DDMM-XXXX`` (gerado em ``gerar_numero_nf_sem_nota``)."""
+    s = re.sub(r"\s+", "", str(nf or "").strip())
+    return bool(s and _SEM_NF_COMPLETA_RE.match(s))
+
+
 def _cabecalho_casa_numero_nf_filtro(cab: dict, needle: str) -> bool:
-    """Mesma lógica da busca de rascunhos Entrada NF (número parcial ou normalizado)."""
+    """Filtro de número NF para etiquetas/cadastro (parcial numérico; SEM completo = exato)."""
     from produtos.nfe_entrada_util import _entrada_nfe_norm_busca_txt, _nf_numero_norm
 
     nf = str(needle or "").strip()
@@ -533,16 +543,24 @@ def _cabecalho_casa_numero_nf_filtro(cab: dict, needle: str) -> bool:
     cab_num = str((cab or {}).get("numero") or "").strip()
     if not cab_num:
         return False
-    n_needle = _entrada_nfe_norm_busca_txt(nf)
-    if n_needle and n_needle in _entrada_nfe_norm_busca_txt(cab_num):
-        return True
     n_cab = _nf_numero_norm(cab_num)
     n_in = _nf_numero_norm(nf)
     if n_in and n_cab and n_cab == n_in:
         return True
+    # SEM-1410-TJAI vs SEM-1410-UPS7: não casar só pelos dígitos «1410» nem por prefixo.
+    if _nf_identificador_sem_completo(nf):
+        return False
+    n_needle = _entrada_nfe_norm_busca_txt(nf)
+    if n_needle and n_needle in _entrada_nfe_norm_busca_txt(cab_num):
+        return True
     dig_nf = "".join(ch for ch in nf if ch.isdigit())
     dig_cab = "".join(ch for ch in cab_num if ch.isdigit())
-    if dig_nf and len(dig_nf) >= 3 and dig_nf in dig_cab:
+    if (
+        dig_nf
+        and len(dig_nf) >= 3
+        and not any(ch.isalpha() for ch in nf)
+        and dig_nf in dig_cab
+    ):
         return True
     return False
 

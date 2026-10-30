@@ -12,6 +12,8 @@ from django.utils import timezone
 
 from estoque.models import (
     AjusteRapidoEstoque,
+    ContagemCiclicaAtribuicao,
+    ContagemCiclicaBloco,
     ContagemCiclicaEscopo,
     ContagemCiclicaLinha,
     ContagemCiclicaParticipante,
@@ -109,6 +111,91 @@ def _mapa_saldos(pids: list[str], deposito: str) -> dict[str, float]:
     return out
 
 
+def zerar_saldo_deposito(deposito: str, *, user=None, operador_rotulo: str = "") -> dict[str, Any]:
+    """Grava saldo operacional 0 em todos os produtos ativos do depósito (pré-inventário)."""
+    dep = str(deposito or "").strip().lower()
+    if dep not in ("centro", "vila"):
+        raise ValueError("Depósito inválido. Use centro ou vila.")
+    from produtos.models import Produto
+
+    produtos = list(
+        Produto.objects.filter(ativo=True, cadastro_inativo=False)
+        .exclude(produto_externo_id__isnull=True)
+        .exclude(produto_externo_id="")
+        .only("produto_externo_id", "codigo_interno", "codigo_nfe", "nome")
+    )
+    pids = [str(p.produto_externo_id).strip() for p in produtos if p.produto_externo_id]
+    from produtos.estoque_agro_util import agro_estoque_ledger_ativo
+    from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
+
+    ledger = agro_estoque_ledger_ativo()
+    db = client = None
+    try:
+        from produtos.views import obter_conexao_mongo
+
+        db, client = obter_conexao_mongo()
+    except Exception:
+        db = client = None
+    mapa: dict[str, dict] = {}
+    for i in range(0, len(pids), 400):
+        try:
+            part = mapa_saldos_operacionais_agro(pids[i : i + 400], db=db, client=client) or {}
+        except Exception:
+            part = {}
+        mapa.update(part)
+    key_op = "saldo_vila" if dep == "vila" else "saldo_centro"
+    key_erp = "saldo_erp_vila" if dep == "vila" else "saldo_erp_centro"
+    from base.models import Empresa
+
+    empresa = Empresa.objects.filter(nome_fantasia="Agro Mais").first()
+    rot = (operador_rotulo or "Gerência")[:80]
+    batch: list[AjusteRapidoEstoque] = []
+    zerados = 0
+    ja_zero = 0
+    for p in produtos:
+        pid = str(p.produto_externo_id or "").strip()
+        if not pid:
+            continue
+        row = mapa.get(pid) or {}
+        saldo = float(row.get(key_op) or 0)
+        if abs(saldo) < 0.001:
+            ja_zero += 1
+            continue
+        erp_ref = Decimal("0") if ledger else _dec(row.get(key_erp) or 0)
+        codigo = (
+            str(getattr(p, "codigo_nfe", None) or "").strip()
+            or str(p.codigo_interno or "").strip()
+        )[:100]
+        batch.append(
+            AjusteRapidoEstoque(
+                empresa=empresa,
+                produto_externo_id=pid[:100],
+                codigo_interno=codigo,
+                nome_produto=(f"{p.nome or pid} · zerar inventário · {rot}")[:255],
+                deposito=dep,
+                saldo_erp_referencia=erp_ref,
+                saldo_informado=Decimal("0"),
+                diferenca_saldo=Decimal("0") - erp_ref,
+                origem=OrigemAjusteEstoque.AJUSTE_PIN,
+                usuario=user,
+                observacao=f"Zerar {dep} para inventário",
+            )
+        )
+        zerados += 1
+        if len(batch) >= 400:
+            AjusteRapidoEstoque.objects.bulk_create(batch)
+            batch = []
+    if batch:
+        AjusteRapidoEstoque.objects.bulk_create(batch)
+    try:
+        from produtos.views import _invalidar_caches_apos_ajuste_pin
+
+        _invalidar_caches_apos_ajuste_pin()
+    except Exception:
+        pass
+    return {"deposito": dep, "zerados": zerados, "ja_zero": ja_zero, "lidos": len(pids)}
+
+
 def _sessao_aberta_conflito(deposito: str, escopo_tipo: str, escopo_valor: str):
     dep = str(deposito or "centro").strip().lower() or "centro"
     return (
@@ -144,6 +231,10 @@ def _pids_com_movimento(deposito: str, dias: int) -> set[str] | None:
 
 
 @transaction.atomic
+def _modo_inventario(sessao: ContagemCiclicaSessao) -> bool:
+    return str(getattr(sessao, "modo", "") or "") == "inventario"
+
+
 def abrir_sessao(
     *,
     deposito: str,
@@ -152,6 +243,8 @@ def abrir_sessao(
     operador_rotulo: str,
     user=None,
     dias_movimentacao: int = 60,
+    modo: str = "ciclica",
+    pins: list[str] | None = None,
 ) -> ContagemCiclicaSessao:
     dep = str(deposito or "centro").strip().lower() or "centro"
     if dep not in ("centro", "vila"):
@@ -178,6 +271,9 @@ def abrir_sessao(
     if dias < 0:
         dias = 60
     dias = min(dias, 3650)
+    modo_n = "inventario" if str(modo or "").strip().lower() == "inventario" else "ciclica"
+    if modo_n == "inventario":
+        dias = 0
 
     conflito = _sessao_aberta_conflito(dep, tipo, valor)
     if conflito is not None:
@@ -193,6 +289,7 @@ def abrir_sessao(
         escopo_tipo=tipo,
         escopo_valor=valor[:200],
         dias_movimentacao=dias,
+        modo=modo_n,
         status=ContagemCiclicaStatus.PASS1,
         passagem_atual=1,
         aberta_por_rotulo=(operador_rotulo or "")[:120],
@@ -203,6 +300,18 @@ def abrir_sessao(
         operador_rotulo=(operador_rotulo or "Operador")[:120],
         usuario=user,
     )
+    for pin in pins or []:
+        p = str(pin or "").strip()
+        if not p:
+            continue
+        ContagemCiclicaAtribuicao.objects.get_or_create(
+            sessao=sessao,
+            pin=p[:32],
+            defaults={
+                "operador_rotulo": (operador_rotulo or "")[:120],
+                "entrar_direto": True,
+            },
+        )
 
     if tipo != ContagemCiclicaEscopo.CORREDOR:
         produtos = list(_qs_produtos_escopo(tipo, valor))
@@ -219,7 +328,7 @@ def abrir_sessao(
                     "Aumente os dias ou use «Todos»."
                 )
         pids = [str(p.produto_externo_id).strip() for p in produtos if p.produto_externo_id]
-        saldos = _mapa_saldos(pids, dep)
+        saldos = {} if modo_n == "inventario" else _mapa_saldos(pids, dep)
         batch: list[ContagemCiclicaLinha] = []
         for p in produtos:
             pid = str(p.produto_externo_id or "").strip()
@@ -285,6 +394,58 @@ def marcar_recontagem(linha: ContagemCiclicaLinha) -> bool:
     return _diff_abs(q, linha.saldo_referencia) >= Decimal("0.001")
 
 
+def _corrigir_saldo_bloco_fechado(linha: ContagemCiclicaLinha, sessao: ContagemCiclicaSessao, *, operador_rotulo: str = "") -> None:
+    """Troca a quantidade já gravada e regrava o saldo, com vendas depois do primeiro bip."""
+    desde = linha.contado_pass1_em or timezone.now()
+    delta = delta_movimento_apos(linha.produto_externo_id, sessao.deposito, desde)
+    qtd = _dec(linha.qtd_pass1)
+    bruto = (qtd + delta).quantize(Decimal("0.001"))
+    q_final = bruto if bruto >= 0 else Decimal("0")
+    anterior = _ultimo_saldo_informado(linha.produto_externo_id, sessao.deposito)
+    from base.models import Empresa
+
+    empresa = Empresa.objects.filter(nome_fantasia="Agro Mais").first()
+    rot = (operador_rotulo or "")[:80]
+    nome = (linha.nome_produto or "").strip()
+    nome = (f"{nome} · inventário · correção · {rot}" if nome else f"inventário · correção · {rot}")[:255]
+    aj = AjusteRapidoEstoque.objects.create(
+        empresa=empresa,
+        produto_externo_id=linha.produto_externo_id,
+        codigo_interno=linha.codigo_interno or "",
+        nome_produto=nome,
+        deposito=sessao.deposito,
+        saldo_erp_referencia=anterior,
+        saldo_informado=q_final,
+        origem=OrigemAjusteEstoque.CONTAGEM_CICLICA,
+        observacao=(
+            f"Correção inventário sessão #{sessao.pk} · contado {qtd} · mov. após bip {delta}"
+        )[:500],
+    )
+    linha.qtd_final = q_final
+    linha.ajuste_id = aj.pk
+    linha.save(
+        update_fields=[
+            "qtd_pass1",
+            "contado_pass1",
+            "auto_zero_pass1",
+            "operador_pass1",
+            "contado_pass1_em",
+            "qtd_final",
+            "ajuste_id",
+        ]
+    )
+    try:
+        from produtos.views import (
+            _invalidar_caches_apos_ajuste_pin,
+            _patch_catalogo_pdv_saldo_apos_ajuste,
+        )
+
+        _invalidar_caches_apos_ajuste_pin()
+        _patch_catalogo_pdv_saldo_apos_ajuste(linha.produto_externo_id, sessao.deposito, q_final)
+    except Exception:
+        pass
+
+
 @transaction.atomic
 def registrar_contagem(
     sessao: ContagemCiclicaSessao,
@@ -296,6 +457,7 @@ def registrar_contagem(
     codigo_interno: str = "",
     categoria: str = "",
     forcar: bool = False,
+    substituir: bool = False,
 ) -> ContagemCiclicaLinha:
     if sessao.status not in (ContagemCiclicaStatus.PASS1, ContagemCiclicaStatus.PASS2):
         raise ValueError("Contagem fechada — não dá para lançar.")
@@ -317,6 +479,8 @@ def registrar_contagem(
     if linha is None:
         # Sem forçar: loja/categoria na pass1 só escopo; pass2 só fila de diferenças.
         # Corredor na pass1 já nasce ao bipar. forcar=True = achou produto depois.
+        if _modo_inventario(sessao):
+            forcar = True
         if not forcar:
             if (
                 sessao.escopo_tipo != ContagemCiclicaEscopo.CORREDOR
@@ -329,14 +493,14 @@ def registrar_contagem(
                 raise ValueError(
                     "Na recontagem só entram itens da fila. Ligue «Incluir fora» pra forçar."
                 )
-        saldos = _mapa_saldos([pid], sessao.deposito)
+        saldos = {} if _modo_inventario(sessao) else _mapa_saldos([pid], sessao.deposito)
         linha = ContagemCiclicaLinha.objects.create(
             sessao=sessao,
             produto_externo_id=pid[:100],
             codigo_interno=(codigo_interno or "")[:100],
             nome_produto=(nome_produto or "")[:255],
             categoria=(categoria or "")[:200],
-            saldo_referencia=_dec(saldos.get(pid, 0)),
+            saldo_referencia=Decimal("0") if _modo_inventario(sessao) else _dec(saldos.get(pid, 0)),
             # Pass2 forçada: já entra na fila de recontagem.
             precisa_recontagem=(sessao.status == ContagemCiclicaStatus.PASS2),
         )
@@ -344,15 +508,51 @@ def registrar_contagem(
             total_itens=ContagemCiclicaLinha.objects.filter(sessao=sessao).count()
         )
 
+    if sessao.status == ContagemCiclicaStatus.PASS1 and substituir:
+        if not _modo_inventario(sessao):
+            raise ValueError("Alterar a quantidade vale no inventário.")
+        if not linha.contado_pass1_em:
+            linha.contado_pass1_em = now
+        linha.qtd_pass1 = q if q > 0 else Decimal("0")
+        linha.contado_pass1 = q > 0
+        linha.auto_zero_pass1 = False
+        linha.operador_pass1 = rot
+        linha._reaberto_bloco = False
+        if linha.ajuste_id:
+            _corrigir_saldo_bloco_fechado(linha, sessao, operador_rotulo=rot)
+        else:
+            linha.save(
+                update_fields=[
+                    "qtd_pass1",
+                    "contado_pass1",
+                    "auto_zero_pass1",
+                    "operador_pass1",
+                    "contado_pass1_em",
+                ]
+            )
+        return linha
+
     if sessao.status == ContagemCiclicaStatus.PASS1:
         ja = linha.contado_pass1
+        linha._reaberto_bloco = False
+        if _modo_inventario(sessao) and linha.ajuste_id:
+            # Achado fora do lugar: o bloco anterior já gravou. Esta quantidade é só a nova.
+            linha._reaberto_bloco = True
+            linha.ajuste_id = None
+            linha.qtd_pass1 = Decimal("0")
+            linha.contado_pass1 = False
+            ja = False
         # Sempre soma: produto pode estar em 2+ lugares (prateleira + fundo).
         base = _dec(linha.qtd_pass1) if ja and linha.qtd_pass1 is not None else Decimal("0")
+        if ja and linha.contado_pass1_em and _modo_inventario(sessao) and not linha._reaberto_bloco:
+            linha._ja_tinha = True
+            linha._qtd_antes = float(base)
+        else:
+            linha.contado_pass1_em = now
         linha.qtd_pass1 = base + q
         linha.contado_pass1 = True
         linha.auto_zero_pass1 = False
         linha.operador_pass1 = rot
-        linha.contado_pass1_em = now
         if nome_produto and not linha.nome_produto:
             linha.nome_produto = nome_produto[:255]
         if codigo_interno and not linha.codigo_interno:
@@ -366,6 +566,7 @@ def registrar_contagem(
                 "contado_pass1_em",
                 "nome_produto",
                 "codigo_interno",
+                "ajuste_id",
             ]
         )
         if not ja:
@@ -413,6 +614,8 @@ def registrar_contagem(
 
 @transaction.atomic
 def fechar_passagem_1(sessao: ContagemCiclicaSessao) -> dict[str, Any]:
+    if _modo_inventario(sessao):
+        raise ValueError("Inventário não usa recontagem. Conclua o bloco para gravar o que já foi bipado.")
     if sessao.status != ContagemCiclicaStatus.PASS1:
         raise ValueError("Só dá para fechar a passagem 1 nesta fase.")
 
@@ -471,6 +674,10 @@ def _qtd_final_linha(ln: ContagemCiclicaLinha) -> Decimal:
 
 @transaction.atomic
 def gravar_fechamento(sessao: ContagemCiclicaSessao, *, user=None, operador_rotulo: str = "") -> dict[str, Any]:
+    if _modo_inventario(sessao):
+        return fechar_bloco_inventario(
+            sessao, user=user, operador_rotulo=operador_rotulo, encerrar=True
+        )
     if sessao.status != ContagemCiclicaStatus.PASS2:
         raise ValueError("Feche a passagem 1 e faça a recontagem antes de gravar.")
 
@@ -550,6 +757,192 @@ def cancelar_sessao(sessao: ContagemCiclicaSessao) -> None:
     sessao.save(update_fields=["status", "fechada_em"])
 
 
+def delta_movimento_apos(produto_id: str, deposito: str, desde) -> Decimal:
+    """Soma o que o estoque mudou depois do bip (venda, NF, ajuste). Ledger = Δ saldo_informado."""
+    if not desde:
+        return Decimal("0")
+    pid = str(produto_id or "").strip()
+    dep = str(deposito or "centro").strip().lower() or "centro"
+    try:
+        from produtos.estoque_agro_util import agro_estoque_ledger_ativo
+
+        ledger = bool(agro_estoque_ledger_ativo())
+    except Exception:
+        ledger = True
+
+    def marcador(row) -> Decimal:
+        if ledger:
+            return _dec(row.saldo_informado)
+        return _dec(row.saldo_informado) - _dec(row.saldo_erp_referencia)
+
+    base = AjusteRapidoEstoque.objects.filter(produto_externo_id=pid, deposito=dep)
+    anterior = base.filter(criado_em__lte=desde).order_by("-criado_em", "-id").first()
+    posteriores = list(base.filter(criado_em__gt=desde).order_by("criado_em", "id")[:500])
+    last = marcador(anterior) if anterior is not None else None
+    acc = Decimal("0")
+    for row in posteriores:
+        cur = marcador(row)
+        # O fechamento do bloco grava o saldo absoluto. Não é venda: entra só como marco.
+        if getattr(row, "origem", "") == OrigemAjusteEstoque.CONTAGEM_CICLICA:
+            last = cur
+            continue
+        if last is None:
+            last = cur
+            continue
+        acc += cur - last
+        last = cur
+    return acc
+
+
+def _ultimo_saldo_informado(produto_id: str, deposito: str) -> Decimal:
+    row = (
+        AjusteRapidoEstoque.objects.filter(
+            produto_externo_id=str(produto_id or "").strip(),
+            deposito=str(deposito or "centro").strip().lower() or "centro",
+        )
+        .order_by("-criado_em", "-id")
+        .first()
+    )
+    if row is None:
+        return Decimal("0")
+    return _dec(row.saldo_informado)
+
+
+@transaction.atomic
+def fechar_bloco_inventario(
+    sessao: ContagemCiclicaSessao,
+    *,
+    user=None,
+    operador_rotulo: str = "",
+    encerrar: bool = False,
+    amostra_n: int = 12,
+) -> dict[str, Any]:
+    """Grava só o que já foi bipado. Vendas/NF depois do bip entram no saldo final. Sessão segue aberta se não encerrar."""
+    if not _modo_inventario(sessao):
+        raise ValueError("Concluir bloco vale só para inventário absoluto.")
+    if sessao.status not in (ContagemCiclicaStatus.PASS1, ContagemCiclicaStatus.PASS2):
+        raise ValueError("Esta contagem já foi encerrada.")
+
+    from base.models import Empresa
+    import json
+    import random
+
+    empresa = Empresa.objects.filter(nome_fantasia="Agro Mais").first()
+    rot = (operador_rotulo or sessao.aberta_por_rotulo or "")[:80]
+    linhas = list(
+        ContagemCiclicaLinha.objects.select_for_update().filter(
+            sessao=sessao, contado_pass1=True, ajuste_id__isnull=True
+        )
+    )
+    if not linhas:
+        raise ValueError("Nenhum item bipado neste bloco ainda.")
+
+    gravados: list[dict[str, Any]] = []
+    for ln in linhas:
+        desde = ln.contado_pass1_em or timezone.now()
+        delta = delta_movimento_apos(ln.produto_externo_id, sessao.deposito, desde)
+        q_contada = _dec(ln.qtd_pass1)
+        anterior = _ultimo_saldo_informado(ln.produto_externo_id, sessao.deposito)
+        if ln.qtd_final is not None:
+            # Já gravado num bloco anterior: soma só o que foi achado agora, em cima do saldo atual.
+            q_final = (anterior + q_contada).quantize(Decimal("0.001"))
+            delta = Decimal("0")
+        else:
+            bruto = (q_contada + delta).quantize(Decimal("0.001"))
+            q_final = bruto if bruto >= 0 else Decimal("0")
+        if q_final < 0:
+            q_final = Decimal("0")
+        nome = (ln.nome_produto or "").strip()
+        nome = (f"{nome} · inventário · {rot}" if nome else f"inventário · {rot}")[:255]
+        aj = AjusteRapidoEstoque.objects.create(
+            empresa=empresa,
+            produto_externo_id=ln.produto_externo_id,
+            codigo_interno=ln.codigo_interno or "",
+            nome_produto=nome,
+            deposito=sessao.deposito,
+            saldo_erp_referencia=anterior,
+            saldo_informado=q_final,
+            origem=OrigemAjusteEstoque.CONTAGEM_CICLICA,
+            usuario=user,
+            observacao=(
+                f"Inventário sessão #{sessao.pk} · contado {q_contada} · mov. após bip {delta}"
+            )[:500],
+        )
+        ln.qtd_final = q_final
+        ln.ajuste_id = aj.pk
+        ln.precisa_recontagem = False
+        ln.save(update_fields=["qtd_final", "ajuste_id", "precisa_recontagem"])
+        gravados.append(
+            {
+                "produto_id": ln.produto_externo_id,
+                "codigo": ln.codigo_interno,
+                "nome": ln.nome_produto,
+                "contado": float(q_contada),
+                "movimento_apos": float(delta),
+                "saldo_gravado": float(q_final),
+                "operador": ln.operador_pass1,
+            }
+        )
+
+    n_am = max(1, min(int(amostra_n or 12), 40))
+    amostra = random.sample(gravados, min(n_am, len(gravados)))
+    bloco = ContagemCiclicaBloco.objects.create(
+        sessao=sessao,
+        operador_rotulo=rot[:120],
+        encerrou=bool(encerrar),
+        itens_gravados=len(gravados),
+        amostra_json=json.dumps(amostra, ensure_ascii=False),
+    )
+    if encerrar:
+        sessao.status = ContagemCiclicaStatus.FECHADA
+        sessao.fechada_em = timezone.now()
+        sessao.save(update_fields=["status", "fechada_em"])
+
+    try:
+        from produtos.views import (
+            _invalidar_caches_apos_ajuste_pin,
+            _patch_catalogo_pdv_saldo_apos_ajuste,
+        )
+
+        _invalidar_caches_apos_ajuste_pin()
+        for item in gravados:
+            try:
+                _patch_catalogo_pdv_saldo_apos_ajuste(
+                    item["produto_id"], sessao.deposito, item["saldo_gravado"]
+                )
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    return {
+        "ajustes": len(gravados),
+        "sessao_id": sessao.pk,
+        "bloco_id": bloco.pk,
+        "encerrou": bool(encerrar),
+        "amostra": amostra,
+        "relatorio_url": f"/vendas/lojas/contagem-ciclica/bloco/{bloco.pk}/",
+    }
+
+
+def sessao_atribuida_ao_pin(pin: str) -> ContagemCiclicaSessao | None:
+    p = str(pin or "").strip()
+    if not p:
+        return None
+    row = (
+        ContagemCiclicaAtribuicao.objects.filter(
+            pin=p[:32],
+            entrar_direto=True,
+            sessao__status__in=(ContagemCiclicaStatus.PASS1, ContagemCiclicaStatus.PASS2),
+            sessao__modo="inventario",
+        )
+        .select_related("sessao")
+        .order_by("-id")
+        .first()
+    )
+    return row.sessao if row else None
+
+
 def sessao_payload(sessao: ContagemCiclicaSessao, *, detalhe: bool = False) -> dict[str, Any]:
     total = sessao.total_itens or ContagemCiclicaLinha.objects.filter(sessao=sessao).count()
     c1 = sessao.contados_pass1
@@ -582,7 +975,18 @@ def sessao_payload(sessao: ContagemCiclicaSessao, *, detalhe: bool = False) -> d
         "aberta_em": sessao.aberta_em.isoformat() if sessao.aberta_em else "",
         "participantes": parts,
         "cego": True,
+        "modo": str(getattr(sessao, "modo", "") or "ciclica"),
+        "pins": list(
+            ContagemCiclicaAtribuicao.objects.filter(sessao=sessao).values_list("pin", flat=True)
+        ),
     }
+    if _modo_inventario(sessao):
+        out["contados_bloco_atual"] = ContagemCiclicaLinha.objects.filter(
+            sessao=sessao, contado_pass1=True, ajuste_id__isnull=True
+        ).count()
+        out["fechados_bloco"] = ContagemCiclicaLinha.objects.filter(
+            sessao=sessao, ajuste_id__isnull=False
+        ).count()
     if detalhe:
         qs = ContagemCiclicaLinha.objects.filter(sessao=sessao)
         if sessao.status == ContagemCiclicaStatus.PASS2:
@@ -637,8 +1041,9 @@ def sessao_payload(sessao: ContagemCiclicaSessao, *, detalhe: bool = False) -> d
                 if sessao.status == ContagemCiclicaStatus.PASS2
                 else ln.qtd_pass1
             )
+            fechado = bool(ln.ajuste_id)
             try:
-                q_contada = float(q_raw) if contado and q_raw is not None else None
+                q_contada = float(q_raw) if q_raw is not None and (contado or fechado) else None
             except (TypeError, ValueError):
                 q_contada = None
             item = {
@@ -647,12 +1052,13 @@ def sessao_payload(sessao: ContagemCiclicaSessao, *, detalhe: bool = False) -> d
                 "codigo": codigo,
                 "nome": nome,
                 "categoria": ln.categoria,
-                "contado": contado,
+                "contado": bool(contado) or fechado,
+                "bloco_fechado": fechado,
                 "operador": ln.operador_pass2
                 if sessao.status == ContagemCiclicaStatus.PASS2
                 else ln.operador_pass1,
                 "auto_zero": ln.auto_zero_pass1,
-                "faltando": not contado,
+                "faltando": False if fechado else not contado,
                 "qtd_contada": q_contada,
             }
             linhas.append(item)

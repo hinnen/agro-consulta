@@ -404,8 +404,8 @@
     font-size: 0.875rem;
   }
   #pdv-step1-search-wrap #pdv-product-search-wrap {
-    flex: 1 1 auto;
-    min-width: 8rem;
+    flex: 1 1 0;
+    min-width: 7rem;
     max-width: none;
   }
   #pdv-step1-search-wrap #pdv-product-search {
@@ -429,9 +429,15 @@
     box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.25) !important;
   }
   #pdv-step1-search-wrap .pdv-btn-cadastro-rapido,
-  #pdv-step1-search-wrap .pdv-btn-racoes {
+  #pdv-step1-search-wrap .pdv-btn-racoes,
+  #pdv-step1-search-wrap .pdv-btn-rapidos {
     min-height: 5rem !important;
     height: 5rem !important;
+  }
+  #pdv-step1-search-wrap .pdv-btn-rapidos {
+    min-width: 7.4rem;
+    font-size: clamp(0.78rem, 0.3vw + 0.68rem, 0.98rem);
+    letter-spacing: 0.03em;
   }
   #pdv-step1-search-wrap .pdv-btn-racoes {
     min-width: 5.25rem;
@@ -537,6 +543,305 @@
   #pdv-racoes-lista-table .pdv-racoes-add-btn.is-ok {
     border-color: #047857;
     background: #065f46;
+  }
+  #pdv-rapidos-overlay {
+    --rap-foto: 40%;
+    --rap-nome: 100;
+    --rap-preco: 100;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    background: #f8fafc;
+    color: #0f172a;
+  }
+  #pdv-rapidos-overlay.hidden,
+  #pdv-rapidos-overlay .hidden { display: none !important; }
+  .pdv-rapidos-head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+    padding: 0.45rem 0.7rem;
+    border-bottom: 2px solid #e2e8f0;
+    background: #fff;
+  }
+  .pdv-rapidos-head h2 {
+    margin: 0;
+    font-size: clamp(1.35rem, 1.6vw, 1.85rem);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  .pdv-rapidos-dica {
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+    font-size: clamp(0.85rem, 1vw, 1.05rem);
+    font-weight: 700;
+    color: #475569;
+  }
+  .pdv-rapidos-head-btn {
+    min-height: 2.75rem;
+    padding: 0 0.9rem;
+    border-radius: 0.75rem;
+    border: 2px solid #cbd5e1;
+    background: #fff;
+    font-size: 0.95rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #334155;
+  }
+  .pdv-rapidos-head-btn--ok {
+    border-color: #047857;
+    background: #059669;
+    color: #fff;
+  }
+  .pdv-rapidos-x {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    border-radius: 0.75rem;
+    border: 2px solid #cbd5e1;
+    background: #fff;
+    font-size: 1.7rem;
+    font-weight: 900;
+    line-height: 1;
+    color: #334155;
+  }
+  #pdv-rapidos-msg {
+    margin: 0;
+    padding: 0.35rem 0.8rem;
+    font-size: 1rem;
+    font-weight: 800;
+    background: #ecfdf5;
+    color: #065f46;
+  }
+  #pdv-rapidos-msg.is-erro { background: #fff7ed; color: #9a3412; }
+  #pdv-rapidos-grid {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
+    padding: 0.45rem;
+  }
+  .pdv-rapidos-card {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0.55rem;
+    min-width: 0;
+    min-height: 0;
+    padding: 0.4rem;
+    border: 2px solid #cbd5e1;
+    border-radius: 0.9rem;
+    background: #fff;
+    text-align: left;
+    cursor: pointer;
+  }
+  .pdv-rapidos-card:hover:not(:disabled) { border-color: #059669; }
+  .pdv-rapidos-card:disabled,
+  .pdv-rapidos-card.is-vazio { cursor: default; }
+  .pdv-rapidos-card.is-vazio { background: #f8fafc; border-style: dashed; }
+  .pdv-rapidos-foto {
+    position: relative;
+    flex: 0 0 var(--rap-foto);
+    width: var(--rap-foto);
+    min-width: 0;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 0.65rem;
+    background: #f1f5f9;
+    cursor: pointer;
+  }
+  .pdv-rapidos-foto img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  .pdv-rapidos-num {
+    position: absolute;
+    top: 0.3rem;
+    left: 0.3rem;
+    z-index: 1;
+    min-width: 1.7rem;
+    height: 1.7rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.4rem;
+    background: #059669;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 900;
+  }
+  .pdv-rapidos-vazio-ico {
+    width: 2.4rem;
+    height: 1.8rem;
+    border: 3px solid #cbd5e1;
+    border-radius: 0.4rem;
+    position: relative;
+  }
+  .pdv-rapidos-vazio-ico::before {
+    content: '';
+    position: absolute;
+    width: 0.75rem;
+    height: 0.75rem;
+    border: 3px solid #cbd5e1;
+    border-radius: 50%;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .pdv-rapidos-vazio-txt {
+    position: absolute;
+    bottom: 0.35rem;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #94a3b8;
+    text-transform: lowercase;
+  }
+  .pdv-rapidos-corpo {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.2rem;
+  }
+  .pdv-rapidos-nome,
+  .pdv-rapidos-preco { position: relative; }
+  .pdv-rapidos-nome {
+    font-size: calc(var(--rap-nome) * 0.018rem);
+    font-weight: 900;
+    line-height: 1.12;
+    color: #0f172a;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+  }
+  .pdv-rapidos-preco {
+    font-size: calc(var(--rap-preco) * 0.02rem);
+    font-weight: 900;
+    line-height: 1.1;
+    color: #047857;
+    font-variant-numeric: tabular-nums;
+  }
+  .pdv-rapidos-card.is-amostra .pdv-rapidos-nome,
+  .pdv-rapidos-card.is-amostra .pdv-rapidos-preco { color: #94a3b8; }
+  .pdv-rapidos-card.is-modelo { position: relative; z-index: 2; border-color: #ea580c; border-width: 3px; }
+  .pdv-rapidos-alcas {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.35rem;
+    bottom: 0.35rem;
+    width: 4.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.28rem;
+    z-index: 4;
+  }
+  .pdv-rapidos-card.is-modelo { padding-right: 5.2rem; }
+  .pdv-rapidos-alca {
+    position: static;
+    flex: 1;
+    min-height: 2.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+    border: 2px solid #9a3412;
+    border-radius: 0.65rem;
+    background: #ea580c;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .pdv-rapidos-alca--foto { cursor: ew-resize; }
+  .pdv-rapidos-alca[data-alca='nome'],
+  .pdv-rapidos-alca[data-alca='preco'] { cursor: ns-resize; }
+  #pdv-rapidos-overlay.is-arrastando,
+  #pdv-rapidos-overlay.is-arrastando * { cursor: grabbing; user-select: none; }
+  .pdv-rapidos-card.is-edit { cursor: default; }
+  .pdv-rapidos-nome-input,
+  .pdv-rapidos-busca {
+    width: 100%;
+    min-height: 2.15rem;
+    border: 2px solid #cbd5e1;
+    border-radius: 0.55rem;
+    padding: 0.2rem 0.45rem;
+    font-size: clamp(0.95rem, 1.2vw, 1.15rem);
+    font-weight: 800;
+    color: #0f172a;
+    background: #fff;
+  }
+  .pdv-rapidos-nome-input { font-size: clamp(1.05rem, 1.4vw, 1.35rem); }
+  .pdv-rapidos-busca-wrap { position: relative; }
+  .pdv-rapidos-hits {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 2px);
+    z-index: 5;
+    max-height: 11rem;
+    overflow: auto;
+    border: 2px solid #059669;
+    border-radius: 0.55rem;
+    background: #fff;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+  }
+  .pdv-rapidos-hit {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.4rem;
+    width: 100%;
+    padding: 0.35rem 0.45rem;
+    border: 0;
+    border-bottom: 1px solid #e2e8f0;
+    background: #fff;
+    text-align: left;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #0f172a;
+  }
+  .pdv-rapidos-hit:hover { background: #ecfdf5; }
+  .pdv-rapidos-hit-vazio {
+    margin: 0;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #64748b;
+  }
+  .pdv-rapidos-cadastro {
+    margin: 0;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #64748b;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .pdv-rapidos-limpar {
+    align-self: flex-start;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    font-size: 0.8rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #b45309;
   }
   #pdv-racoes-lista-table .pdv-racoes-qtd-ok {
     display: inline-block;
@@ -1310,6 +1615,7 @@
     background: #fff !important;
     overflow: visible;
     position: relative;
+    container-type: inline-size;
     z-index: 20;
   }
   #pdv-step1-search-wrap::before,
@@ -1326,8 +1632,8 @@
     font-size: 0.875rem;
   }
   #pdv-step1-search-wrap #pdv-product-search-wrap {
-    flex: 1 1 auto;
-    min-width: 8rem;
+    flex: 1 1 0;
+    min-width: 7rem;
     max-width: none;
   }
   #pdv-step1-search-wrap #pdv-product-search {
@@ -1355,6 +1661,12 @@
   }
   #pdv-step1-search-wrap #pdv-product-autocomplete {
     background: #fff;
+    left: 0;
+    right: auto !important;
+    /* A busca fica curta. A gaveta segue até quase a coluna de orçamentos.
+       GM e preço não mudam de largura: o espaço extra cai na coluna do nome. */
+    width: calc(100cqw - 2.35rem) !important;
+    max-width: none;
   }
   #pdv-step1-cart-wrap {
     display: flex;
@@ -3897,7 +4209,8 @@
     #pdv-step1-search-wrap .pdv-step1-block-title--search { font-size: 1.2rem !important; }
     #pdv-step1-search-wrap #pdv-product-search { height: 4.4rem !important; min-height: 4.4rem !important; font-size: 1.65rem !important; font-weight: 900 !important; }
     #pdv-step1-search-wrap .pdv-btn-cadastro-rapido,
-    #pdv-step1-search-wrap .pdv-btn-racoes { height: 4.4rem !important; min-height: 4.4rem !important; }
+    #pdv-step1-search-wrap .pdv-btn-racoes,
+    #pdv-step1-search-wrap .pdv-btn-rapidos { height: 4.4rem !important; min-height: 4.4rem !important; }
     #pdv-product-autocomplete[data-pdv-ac-layout] { max-height: unset !important; }
     #pdv-product-autocomplete .pdv-ac-head,
     #pdv-product-autocomplete .pdv-ac-row {
@@ -4947,6 +5260,7 @@
         'Histórico do cliente: botão Hist. ou F8 (relacionamento). F5 recarrega a página.',
         'Painel direito mostra vale crédito, cashback e fiado quando existirem.',
         '“Orçamento” salva/recupera rascunho neste aparelho (F6 histórico).',
+        'Rápidos (tecla Home): nove produtos fixos em tela cheia, botão ao lado da busca. Tecla 1 a 9 ou clique lança 1 unidade e fecha. Esc fecha. F5 continua atualizando a página. Em Definir, o apelido e a foto são seus; o preço vem do cadastro. Em Proporção, no primeiro quadro arraste Foto, Nome e Valor; os nove copiam.',
       ],
     },
     entrega: {
@@ -5170,7 +5484,21 @@ window.AGRO_ETQ_CFG = window.AGRO_ETQ_CFG || {
 </script>
 <script src="{% static 'produtos/js/agro_print_bridge.js' %}?v=1"></script>
 <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<div id="pdv-rapidos-overlay" class="hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="pdv-rapidos-titulo">
+  <header class="pdv-rapidos-head">
+    <h2 id="pdv-rapidos-titulo">Rápidos</h2>
+    <p id="pdv-rapidos-dica" class="pdv-rapidos-dica">1 a 9 adiciona e fecha · Esc sai</p>
+    <button type="button" id="pdv-rapidos-definir" class="pdv-rapidos-head-btn">Definir</button>
+    <button type="button" id="pdv-rapidos-proporcao" class="pdv-rapidos-head-btn">Proporção</button>
+    <button type="button" id="pdv-rapidos-voltar" class="pdv-rapidos-head-btn hidden">Voltar</button>
+    <button type="button" id="pdv-rapidos-salvar" class="pdv-rapidos-head-btn pdv-rapidos-head-btn--ok hidden">Salvar</button>
+    <button type="button" id="pdv-rapidos-fechar" class="pdv-rapidos-x" title="Fechar · Esc" aria-label="Fechar">×</button>
+  </header>
+  <p id="pdv-rapidos-msg" class="hidden" role="status"></p>
+  <div id="pdv-rapidos-grid"></div>
+</div>
 <script src="{% static 'produtos/js/pdv_wizard.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_rapidos.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_topbar_mais.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_topbar_whatsapp.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_topbar_layout.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>

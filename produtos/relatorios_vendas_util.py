@@ -700,6 +700,267 @@ def limitar_ranking(rows: list[dict], limite: int) -> list[dict]:
     return out
 
 
+_ORDENAR_GRUPO_OK = frozenset(
+    {"valor", "qtd", "margem_rs", "margem_pct", "ticket", "pct_margem"}
+)
+
+
+def _parse_float_get(val: object) -> float | None:
+    s = str(val or "").strip().replace("R$", "").replace(" ", "").replace(",", ".")
+    if not s:
+        return None
+    try:
+        return float(s)
+    except (TypeError, ValueError):
+        return None
+
+
+def parse_vendas_grupo_request(request) -> dict[str, Any]:
+    """Visão período único vs comparativo mensal + filtros de investimento."""
+    visao = (request.GET.get("visao") or "periodo").strip().lower()
+    if visao not in ("periodo", "comparativo"):
+        visao = "periodo"
+    ordenar = (request.GET.get("ordenar") or "valor").strip().lower()
+    if ordenar not in _ORDENAR_GRUPO_OK:
+        ordenar = "valor"
+    ord_dir = (request.GET.get("ord_dir") or "desc").strip().lower()
+    if ord_dir not in ("asc", "desc"):
+        ord_dir = "desc"
+    n_meses = int(_parse_float_get(request.GET.get("n_meses")) or 3)
+    n_meses = max(2, min(4, n_meses))
+    mes_modo = (request.GET.get("mes_modo") or "ultimos").strip().lower()
+    if mes_modo not in ("ultimos", "escolher"):
+        mes_modo = "ultimos"
+    meses_escolhidos: list[str] = []
+    for key in ("mes_1", "mes_2", "mes_3", "mes_4"):
+        raw = (request.GET.get(key) or "").strip()[:7]
+        if raw and len(raw) >= 7:
+            meses_escolhidos.append(raw)
+    mes_fim = (request.GET.get("mes_fim") or "").strip()[:7]
+    return {
+        "visao": visao,
+        "ordenar": ordenar,
+        "ord_dir": ord_dir,
+        "min_valor": _parse_float_get(request.GET.get("min_valor")),
+        "margem_pct_min": _parse_float_get(request.GET.get("margem_pct_min")),
+        "margem_pct_max": _parse_float_get(request.GET.get("margem_pct_max")),
+        "so_sem_custo": (request.GET.get("so_sem_custo") or "").strip()
+        in ("1", "sim", "true", "on"),
+        "n_meses": n_meses,
+        "mes_modo": mes_modo,
+        "mes_fim": mes_fim,
+        "meses_escolhidos": meses_escolhidos,
+    }
+
+
+def _add_months(d: date, delta: int) -> date:
+    y, m = d.year, d.month + int(delta)
+    while m < 1:
+        m += 12
+        y -= 1
+    while m > 12:
+        m -= 12
+        y += 1
+    return date(y, m, 1)
+
+
+def _parse_ym(s: str) -> tuple[int, int] | None:
+    try:
+        parts = s.strip()[:7].split("-")
+        return int(parts[0]), int(parts[1])
+    except (IndexError, TypeError, ValueError):
+        return None
+
+
+def _month_bounds_ym(year: int, month: int) -> tuple[datetime, datetime]:
+    d0 = date(year, month, 1)
+    if month == 12:
+        d1 = date(year + 1, 1, 1) - timedelta(days=1)
+    else:
+        d1 = date(year, month + 1, 1) - timedelta(days=1)
+    desde = datetime.combine(d0, time.min)
+    ate = datetime.combine(d1, time(23, 59, 59))
+    return _aware_bounds(desde, ate)
+
+
+def _label_mes_curto(year: int, month: int) -> str:
+    nomes = ("Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez")
+    return f"{nomes[month - 1]}/{str(year)[-2:]}"
+
+
+def meses_comparativo_grupo(opts: dict[str, Any]) -> list[dict[str, Any]]:
+    """Lista de {year, month, label, desde, ate} em ordem cronológica."""
+    if opts.get("mes_modo") == "escolher" and opts.get("meses_escolhidos"):
+        pares: list[tuple[int, int]] = []
+        for raw in opts["meses_escolhidos"][:4]:
+            ym = _parse_ym(raw)
+            if ym:
+                pares.append(ym)
+        pares = sorted(set(pares))[:4]
+    else:
+        n = int(opts.get("n_meses") or 3)
+        anchor = timezone.localdate().replace(day=1)
+        if opts.get("mes_fim"):
+            ym = _parse_ym(opts["mes_fim"])
+            if ym:
+                anchor = date(ym[0], ym[1], 1)
+        pares = []
+        for i in range(n - 1, -1, -1):
+            d = _add_months(anchor, -i)
+            pares.append((d.year, d.month))
+    out: list[dict[str, Any]] = []
+    for y, m in pares:
+        desde, ate = _month_bounds_ym(y, m)
+        out.append(
+            {
+                "year": y,
+                "month": m,
+                "label": _label_mes_curto(y, m),
+                "desde": desde,
+                "ate": ate,
+            }
+        )
+    return out
+
+
+def _variacao_pct(atual: float, anterior: float) -> float | None:
+    if anterior <= 0:
+        return None if atual <= 0 else None  # tratado como "novo" na view
+    return round(100.0 * (atual - anterior) / anterior, 1)
+
+
+def _agrupa_buckets_com_margem(
+    agg: list[dict],
+    meta: dict[str, dict],
+    itens_dims: list[dict[str, str]],
+    ativos: dict[str, list[str]],
+    modo: str,
+    vazio_modo: str,
+) -> dict[str, dict]:
+    buckets: dict[str, dict] = {}
+    for r, dims in zip(agg, itens_dims):
+        if not _passa_filtros(dims, ativos):
+            continue
+        chave = dims.get(modo) or vazio_modo
+        pid = str(r.get("produto_id_externo") or "")
+        m = meta.get(pid) or {}
+        qtd = float(r.get("qtd") or 0)
+        valor = float(r.get("valor") or 0)
+        custo_u = float(m.get("custo") or 0)
+        custo_linha = round(custo_u * qtd, 2)
+        b = buckets.setdefault(
+            chave,
+            {
+                "grupo": chave,
+                "qtd": 0.0,
+                "valor": 0.0,
+                "custo": 0.0,
+                "itens": 0,
+                "skus_sem_custo": 0,
+            },
+        )
+        b["qtd"] += qtd
+        b["valor"] += valor
+        b["custo"] += custo_linha
+        b["itens"] += 1
+        if custo_u <= 0:
+            b["skus_sem_custo"] += 1
+    return buckets
+
+
+def _finalize_grupo_rows(
+    buckets: dict[str, dict],
+    *,
+    ordenar: str = "valor",
+    ord_dir: str = "desc",
+    min_valor: float | None = None,
+    margem_pct_min: float | None = None,
+    margem_pct_max: float | None = None,
+    so_sem_custo: bool = False,
+    limiar_alerta_valor: float = 500.0,
+    limiar_alerta_margem_pct: float = 15.0,
+) -> tuple[list[dict], dict[str, float]]:
+    raw_rows: list[dict] = []
+    for b in buckets.values():
+        valor = round(float(b["valor"]), 2)
+        custo = round(float(b["custo"]), 2)
+        margem_rs = round(valor - custo, 2)
+        qtd = round(float(b["qtd"]), 3)
+        margem_pct = round(100.0 * margem_rs / valor, 1) if valor else 0.0
+        ticket = round(valor / qtd, 2) if qtd else 0.0
+        if min_valor is not None and valor < min_valor:
+            continue
+        if margem_pct_min is not None and margem_pct < margem_pct_min:
+            continue
+        if margem_pct_max is not None and margem_pct > margem_pct_max:
+            continue
+        if so_sem_custo and int(b.get("skus_sem_custo") or 0) <= 0:
+            continue
+        alerta = valor >= limiar_alerta_valor and margem_pct < limiar_alerta_margem_pct
+        raw_rows.append(
+            {
+                "grupo": b["grupo"],
+                "qtd": qtd,
+                "valor": valor,
+                "custo": custo,
+                "margem_rs": margem_rs,
+                "margem_pct": margem_pct,
+                "ticket": ticket,
+                "skus": int(b["itens"]),
+                "skus_sem_custo": int(b.get("skus_sem_custo") or 0),
+                "alerta": alerta,
+            }
+        )
+    total_v = sum(r["valor"] for r in raw_rows) or 1.0
+    total_m = sum(r["margem_rs"] for r in raw_rows) or 1.0
+    skus_sem = sum(r["skus_sem_custo"] for r in raw_rows)
+    for r in raw_rows:
+        r["pct_margem"] = round(100.0 * r["margem_rs"] / total_m, 1) if total_m else 0.0
+
+    rev = (ord_dir or "desc").strip().lower() != "asc"
+    if ordenar == "pct_margem":
+        raw_rows.sort(key=lambda x: x["pct_margem"], reverse=rev)
+    elif ordenar == "margem_pct":
+        raw_rows.sort(key=lambda x: x["margem_pct"], reverse=rev)
+    elif ordenar == "margem_rs":
+        raw_rows.sort(key=lambda x: x["margem_rs"], reverse=rev)
+    elif ordenar == "ticket":
+        raw_rows.sort(key=lambda x: x["ticket"], reverse=rev)
+    elif ordenar == "qtd":
+        raw_rows.sort(key=lambda x: x["qtd"], reverse=rev)
+    elif ordenar == "grupo":
+        raw_rows.sort(key=lambda x: (x["grupo"] or "").casefold(), reverse=rev)
+    else:
+        raw_rows.sort(key=lambda x: x["valor"], reverse=rev)
+
+    out: list[dict] = []
+    for i, r in enumerate(raw_rows, start=1):
+        out.append(
+            {
+                "pos": i,
+                "grupo": r["grupo"],
+                "qtd": r["qtd"],
+                "valor": r["valor"],
+                "custo": r["custo"],
+                "margem_rs": r["margem_rs"],
+                "margem_pct": r["margem_pct"],
+                "ticket": r["ticket"],
+                "skus": r["skus"],
+                "skus_sem_custo": r["skus_sem_custo"],
+                "pct": round(100.0 * r["valor"] / total_v, 1),
+                "pct_margem": r["pct_margem"],
+                "alerta": r["alerta"],
+            }
+        )
+    totais = {
+        "valor": round(sum(r["valor"] for r in out), 2),
+        "margem_rs": round(sum(r["margem_rs"] for r in out), 2),
+        "custo": round(sum(r["custo"] for r in out), 2),
+        "skus_sem_custo": skus_sem,
+    }
+    return out, totais
+
+
 def vendas_por_grupo_relatorio(
     desde: datetime,
     ate: datetime,
@@ -711,6 +972,12 @@ def vendas_por_grupo_relatorio(
     subcategoria_3: object = None,
     subcategoria_4: object = None,
     deposito: str | None = None,
+    ordenar: str = "valor",
+    ord_dir: str = "desc",
+    min_valor: float | None = None,
+    margem_pct_min: float | None = None,
+    margem_pct_max: float | None = None,
+    so_sem_custo: bool = False,
 ) -> tuple[list[dict], dict]:
     """Agrupa vendas por uma dimensão; filtros AND entre níveis (OR no nível)."""
     modo = (agrupar or "categoria").strip().lower()
@@ -744,34 +1011,176 @@ def vendas_por_grupo_relatorio(
             base_dims = [d for d in base_dims if _match_rotulos(d.get(campo), escolhidos)]
 
     vazio_modo = next(v for c, _l, v in _DIMS_CATALOGO if c == modo)
-    buckets: dict[str, dict] = {}
-    for r, dims in zip(agg, itens_dims):
-        if not _passa_filtros(dims, ativos):
-            continue
-        chave = dims.get(modo) or vazio_modo
-        b = buckets.setdefault(chave, {"grupo": chave, "qtd": 0.0, "valor": 0.0, "itens": 0})
-        b["qtd"] += float(r["qtd"] or 0)
-        b["valor"] += float(r["valor"] or 0)
-        b["itens"] += 1
-    rows = sorted(buckets.values(), key=lambda x: x["valor"], reverse=True)
-    total = sum(x["valor"] for x in rows) or 1.0
-    out = []
-    for i, r in enumerate(rows, start=1):
-        out.append(
-            {
-                "pos": i,
-                "grupo": r["grupo"],
-                "qtd": round(r["qtd"], 3),
-                "valor": round(r["valor"], 2),
-                "skus": r["itens"],
-                "pct": round(100.0 * r["valor"] / total, 1),
-            }
+    buckets = _agrupa_buckets_com_margem(agg, meta, itens_dims, ativos, modo, vazio_modo)
+    rows, totais = _finalize_grupo_rows(
+        buckets,
+        ordenar=ordenar,
+        ord_dir=ord_dir,
+        min_valor=min_valor,
+        margem_pct_min=margem_pct_min,
+        margem_pct_max=margem_pct_max,
+        so_sem_custo=so_sem_custo,
+    )
+    return rows, {
+        "agrupar": modo,
+        "col_grupo": _label_agrupar(modo),
+        "ordenar": ordenar,
+        "totais": totais,
+        **listas,
+        **ativos,
+    }
+
+
+def vendas_grupo_comparativo_meses(
+    meses: list[dict[str, Any]],
+    *,
+    agrupar: str = "categoria",
+    deposito: str | None = None,
+    categoria: object = None,
+    subcategoria: object = None,
+    subcategoria_2: object = None,
+    subcategoria_3: object = None,
+    subcategoria_4: object = None,
+    ordenar: str = "valor",
+    ord_dir: str = "desc",
+    min_valor: float | None = None,
+    margem_pct_min: float | None = None,
+    margem_pct_max: float | None = None,
+    so_sem_custo: bool = False,
+) -> tuple[list[dict], dict]:
+    """Tabela larga: um registro por grupo com colunas por mês + variações %."""
+    if not meses:
+        return [], {"meses": [], "col_grupo": _label_agrupar(agrupar)}
+    por_mes: list[dict[str, dict]] = []
+    listas_acum: dict[str, list[str]] = {}
+    ativos_acum: dict[str, list[str]] = {}
+    modo = (agrupar or "categoria").strip().lower()
+    if modo not in _AGRUPAR_OK:
+        modo = "categoria"
+    vazio_modo = next(v for c, _l, v in _DIMS_CATALOGO if c == modo)
+
+    for mes in meses:
+        rows, meta = vendas_por_grupo_relatorio(
+            mes["desde"],
+            mes["ate"],
+            agrupar=modo,
+            deposito=deposito,
+            categoria=categoria,
+            subcategoria=subcategoria,
+            subcategoria_2=subcategoria_2,
+            subcategoria_3=subcategoria_3,
+            subcategoria_4=subcategoria_4,
+            ordenar="valor",
+            min_valor=None,
+            margem_pct_min=None,
+            margem_pct_max=None,
+            so_sem_custo=False,
         )
+        por_mes.append({r["grupo"]: r for r in rows})
+        for k, v in meta.items():
+            if k.endswith("s") and isinstance(v, list) and k in (
+                "categorias",
+                "subcategorias",
+                "subcategorias_2",
+                "subcategorias_3",
+                "subcategorias_4",
+            ):
+                cur = set(listas_acum.get(k) or [])
+                cur.update(v)
+                listas_acum[k] = sorted(cur, key=lambda x: x.casefold())
+        for c, _l, _v in _DIMS_CATALOGO:
+            if meta.get(c):
+                ativos_acum[c] = list(meta.get(c) or [])
+
+    grupos = sorted(
+        {g for m in por_mes for g in m.keys()},
+        key=lambda x: x.casefold(),
+    )
+    out: list[dict] = []
+    for grupo in grupos:
+        celulas: list[dict[str, Any]] = []
+        prev_v = prev_m = None
+        for i, mes in enumerate(meses):
+            r = por_mes[i].get(grupo)
+            valor = float(r["valor"]) if r else 0.0
+            margem = float(r["margem_rs"]) if r else 0.0
+            var_v = _variacao_pct(valor, prev_v) if prev_v is not None else None
+            var_m = _variacao_pct(margem, prev_m) if prev_m is not None else None
+            celulas.append(
+                {
+                    "label": mes["label"],
+                    "valor": round(valor, 2),
+                    "margem_rs": round(margem, 2),
+                    "margem_pct": r["margem_pct"] if r else 0.0,
+                    "var_venda_pct": var_v,
+                    "var_margem_pct": var_m,
+                    "novo_venda": prev_v is not None and prev_v <= 0 and valor > 0,
+                    "novo_margem": prev_m is not None and prev_m <= 0 and margem > 0,
+                }
+            )
+            prev_v, prev_m = valor, margem
+        v0 = celulas[0]["valor"] if celulas else 0.0
+        vN = celulas[-1]["valor"] if celulas else 0.0
+        m0 = celulas[0]["margem_rs"] if celulas else 0.0
+        mN = celulas[-1]["margem_rs"] if celulas else 0.0
+        row = {
+            "grupo": grupo,
+            "meses": celulas,
+            "var_total_venda_pct": _variacao_pct(vN, v0) if len(celulas) >= 2 else None,
+            "var_total_margem_pct": _variacao_pct(mN, m0) if len(celulas) >= 2 else None,
+            "valor_ultimo": vN,
+            "margem_ultimo": mN,
+        }
+        if min_valor is not None and vN < min_valor:
+            continue
+        ult = por_mes[-1].get(grupo)
+        if ult:
+            mp = ult["margem_pct"]
+            if margem_pct_min is not None and mp < margem_pct_min:
+                continue
+            if margem_pct_max is not None and mp > margem_pct_max:
+                continue
+            if so_sem_custo and ult.get("skus_sem_custo", 0) <= 0:
+                continue
+        out.append(row)
+
+    rev = (ord_dir or "desc").strip().lower() != "asc"
+    if ordenar == "margem_rs":
+        out.sort(key=lambda x: x["margem_ultimo"], reverse=rev)
+    elif ordenar == "margem_pct":
+        out.sort(
+            key=lambda x: (por_mes[-1].get(x["grupo"]) or {}).get("margem_pct", 0),
+            reverse=rev,
+        )
+    elif ordenar == "qtd":
+        out.sort(
+            key=lambda x: (por_mes[-1].get(x["grupo"]) or {}).get("qtd", 0),
+            reverse=rev,
+        )
+    elif ordenar == "ticket":
+        out.sort(
+            key=lambda x: (por_mes[-1].get(x["grupo"]) or {}).get("ticket", 0),
+            reverse=rev,
+        )
+    elif ordenar == "pct_margem":
+        out.sort(
+            key=lambda x: (por_mes[-1].get(x["grupo"]) or {}).get("pct_margem", 0),
+            reverse=rev,
+        )
+    elif ordenar == "grupo":
+        out.sort(key=lambda x: (x["grupo"] or "").casefold(), reverse=rev)
+    else:
+        out.sort(key=lambda x: x["valor_ultimo"], reverse=rev)
+    for i, r in enumerate(out, start=1):
+        r["pos"] = i
+    labels = [m["label"] for m in meses]
     return out, {
         "agrupar": modo,
         "col_grupo": _label_agrupar(modo),
-        **listas,
-        **ativos,
+        "ordenar": ordenar,
+        "meses": labels,
+        **listas_acum,
+        **ativos_acum,
     }
 
 

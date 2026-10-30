@@ -7018,6 +7018,139 @@ def api_compras_relatorio_unidade(request):
     )
 
 
+def _parse_fornecedores_relatorio_compras(body: dict) -> list[tuple[str, str | None]]:
+    """Normaliza fornecedor único ou lista ``fornecedores`` do JSON do relatório."""
+    out: list[tuple[str, str | None]] = []
+    seen: set[str] = set()
+    raw = body.get("fornecedores")
+    if isinstance(raw, list):
+        for item in raw[:12]:
+            if isinstance(item, dict):
+                nome = str(item.get("fornecedor_nome") or item.get("nome") or "").strip()
+                fid = str(item.get("fornecedor_id") or item.get("id") or "").strip() or None
+            elif isinstance(item, str):
+                nome = item.strip()
+                fid = None
+            else:
+                continue
+            if not nome and not fid:
+                continue
+            key = f"id:{fid}" if fid else f"n:{nome.lower()}"
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append((nome, fid))
+    if not out:
+        nome = str(body.get("fornecedor_nome") or "").strip()
+        fid = str(body.get("fornecedor_id") or "").strip() or None
+        if nome or fid:
+            out.append((nome, fid))
+    return out
+
+
+def _rotulo_fornecedores_relatorio(fornecedores: list[tuple[str, str | None]], *, max_len: int = 400) -> str:
+    partes: list[str] = []
+    for nome, fid in fornecedores:
+        n = str(nome or "").strip()
+        if n:
+            partes.append(n[:120])
+        elif fid:
+            partes.append(f"ID {fid}"[:80])
+    if not partes:
+        return ""
+    txt = " + ".join(partes)
+    if len(txt) > max_len:
+        return txt[: max_len - 1].rstrip() + "…"
+    return txt
+
+
+def _resolver_ultima_compra_por_pid_map(
+    por_pid: dict[str, dict],
+    canon: str,
+    chaves: list[str] | None = None,
+) -> dict | None:
+    if not por_pid:
+        return None
+    for k in [canon] + list(chaves or []):
+        ks = str(k or "").strip()
+        if not ks:
+            continue
+        hit = por_pid.get(ks)
+        if hit:
+            return hit
+        if ks.isdigit():
+            hit = por_pid.get(str(int(ks)))
+            if hit:
+                return hit
+    return None
+
+
+def _coletar_pids_relatorio_fornecedores(
+    fornecedores: list[tuple[str, str | None]],
+    *,
+    use_pg: bool,
+    db,
+    client,
+    limit: int = 800,
+) -> tuple[list[str], dict[str, str]]:
+    """União de produtos (cadastro + histórico NF) para cada fornecedor da lista."""
+    local_ids: list[str] = []
+    nomes_forn: dict[str, str] = {}
+    seen_u: set[str] = set()
+    lim = max(1, min(int(limit), 1200))
+
+    for fornecedor_nome, fornecedor_id in fornecedores:
+        ids_f: list[str] = []
+        nomes_f: dict[str, str] = {}
+        if use_pg:
+            from produtos import catalogo_agro as cat_agro
+
+            ids_f, nomes_f = cat_agro.lista_produto_externo_ids_por_fornecedor(
+                fornecedor_nome, fornecedor_id, limit=lim
+            )
+            try:
+                from produtos.compras_ultimas_compras_util import (
+                    produto_ids_entrada_nf_agro_por_fornecedor,
+                )
+
+                hist_ids, hist_nomes = produto_ids_entrada_nf_agro_por_fornecedor(
+                    fornecedor_nome, fornecedor_id, scan_limit=lim, limit=lim
+                )
+                for hid in hist_ids:
+                    hs = str(hid or "").strip()
+                    if hs and hs not in seen_u and len(local_ids) < lim:
+                        seen_u.add(hs)
+                        local_ids.append(hs)
+                for k, v in (hist_nomes or {}).items():
+                    ks = str(k or "").strip()
+                    if ks and ks not in nomes_forn and str(v or "").strip():
+                        nomes_forn[ks] = str(v).strip()[:500]
+            except Exception:
+                logger.warning(
+                    "relatorio fornecedores: união histórico NF falhou",
+                    exc_info=True,
+                )
+        else:
+            ids_f, nomes_f = _lista_produto_ids_catalogo_por_fornecedor(
+                db, client, fornecedor_nome, fornecedor_id, limit=lim
+            )
+        for pid in ids_f:
+            ps = str(pid or "").strip()
+            if not ps or ps in seen_u:
+                continue
+            seen_u.add(ps)
+            local_ids.append(ps)
+            if len(local_ids) >= lim:
+                break
+        for k, v in (nomes_f or {}).items():
+            ks = str(k or "").strip()
+            if ks and ks not in nomes_forn and str(v or "").strip():
+                nomes_forn[ks] = str(v).strip()[:500]
+        if len(local_ids) >= lim:
+            break
+    return local_ids, nomes_forn
+
+
 @never_cache
 @require_POST
 def api_compras_relatorio_fornecedor(request):
@@ -7044,11 +7177,12 @@ def _api_compras_relatorio_fornecedor_impl(request):
         body = json.loads((request.body or b"").decode("utf-8") or "{}")
     except Exception:
         return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
-    fornecedor_nome = str(body.get("fornecedor_nome") or "").strip()
-    fornecedor_id = str(body.get("fornecedor_id") or "").strip() or None
-    raw_ids = body.get("produto_ids")
-    if not fornecedor_nome and not fornecedor_id:
+    fornecedores_list = _parse_fornecedores_relatorio_compras(body)
+    if not fornecedores_list:
         return JsonResponse({"ok": False, "erro": "Informe o fornecedor."}, status=400)
+    fornecedor_nome = str(fornecedores_list[0][0] or "").strip()
+    fornecedor_id = fornecedores_list[0][1]
+    raw_ids = body.get("produto_ids")
 
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres
 
@@ -7072,45 +7206,13 @@ def _api_compras_relatorio_fornecedor_impl(request):
                 seen_l.add(s)
                 local_ids.append(s)
         if not local_ids:
-            if use_pg:
-                from produtos import catalogo_agro as cat_agro
-
-                local_ids, nomes_forn = cat_agro.lista_produto_externo_ids_por_fornecedor(
-                    fornecedor_nome, fornecedor_id, limit=800
-                )
-            else:
-                local_ids, nomes_forn = _lista_produto_ids_catalogo_por_fornecedor(
-                    db, client, fornecedor_nome, fornecedor_id, limit=800
-                )
-            # Folha = cadastro do fornecedor **+** tudo que já entrou em NF Agro dele
-            # (antes: só cadastro → na prática parecia «só o último pedido»).
-            if use_pg:
-                try:
-                    from produtos.compras_ultimas_compras_util import (
-                        produto_ids_entrada_nf_agro_por_fornecedor,
-                    )
-
-                    hist_ids, hist_nomes = produto_ids_entrada_nf_agro_por_fornecedor(
-                        fornecedor_nome, fornecedor_id, scan_limit=800, limit=800
-                    )
-                    seen_u = {str(x).strip() for x in local_ids if str(x).strip()}
-                    for hid in hist_ids:
-                        hs = str(hid or "").strip()
-                        if not hs or hs in seen_u:
-                            continue
-                        seen_u.add(hs)
-                        local_ids.append(hs)
-                        if len(local_ids) >= 800:
-                            break
-                    for k, v in (hist_nomes or {}).items():
-                        ks = str(k or "").strip()
-                        if ks and ks not in nomes_forn and str(v or "").strip():
-                            nomes_forn[ks] = str(v).strip()[:500]
-                except Exception:
-                    logger.warning(
-                        "relatorio fornecedor: união histórico NF falhou",
-                        exc_info=True,
-                    )
+            local_ids, nomes_forn = _coletar_pids_relatorio_fornecedores(
+                fornecedores_list,
+                use_pg=use_pg,
+                db=db,
+                client=client,
+                limit=800,
+            )
         if not local_ids:
             return JsonResponse(
                 {
@@ -7121,12 +7223,14 @@ def _api_compras_relatorio_fornecedor_impl(request):
             )
         p_ids = local_ids
 
-        if use_pg:
+        # Vários fornecedores: métricas de compra vêm da Entrada NF Agro (Postgres).
+        if use_pg or len(fornecedores_list) > 1:
             return _api_compras_relatorio_fornecedor_pg(
                 p_ids,
                 nomes_forn=nomes_forn,
                 fornecedor_nome=fornecedor_nome,
                 fornecedor_id=fornecedor_id,
+                fornecedores=fornecedores_list,
             )
 
         from produtos.compras_familia_folha_util import (
@@ -7377,6 +7481,7 @@ def _api_compras_relatorio_fornecedor_pg(
     nomes_forn: dict[str, str],
     fornecedor_nome: str,
     fornecedor_id: str | None,
+    fornecedores: list[tuple[str, str | None]] | None = None,
 ) -> JsonResponse:
     """Folha por fornecedor 100% Postgres (catálogo + Entrada NF Agro + vendas PDV)."""
     from produtos.compras_familia_folha_util import (
@@ -7389,8 +7494,14 @@ def _api_compras_relatorio_fornecedor_pg(
         vendas_qtd_apos_ref_compra_postgres,
         vendas_qtd_por_produto_intervalo_postgres,
     )
-    from produtos.compras_ultimas_compras_util import ultimo_documento_entrada_nf_agro_por_fornecedor
+    from produtos.compras_ultimas_compras_util import (
+        metricas_compra_entrada_nf_agro_fornecedores,
+        ultimo_documento_entrada_nf_agro_por_fornecedor,
+    )
     from produtos import catalogo_agro as cat_agro
+
+    forn_list = fornecedores if fornecedores else [(fornecedor_nome, fornecedor_id)]
+    multi_forn = len(forn_list) > 1
 
     display_pids, sales_pids, filhos_map, nomes_forn = preparar_pids_folha_familia(
         p_ids, nomes_hints=nomes_forn
@@ -7399,7 +7510,14 @@ def _api_compras_relatorio_fornecedor_pg(
 
     now = datetime.now()
     t56 = now - timedelta(days=56)
-    ultimo = ultimo_documento_entrada_nf_agro_por_fornecedor(fornecedor_nome, fornecedor_id)
+    por_pid_multi: dict[str, dict] = {}
+    ultimo = None
+    if multi_forn:
+        ultimo = metricas_compra_entrada_nf_agro_fornecedores(forn_list)
+        if ultimo:
+            por_pid_multi = dict(ultimo.get("por_pid") or {})
+    else:
+        ultimo = ultimo_documento_entrada_nf_agro_por_fornecedor(fornecedor_nome, fornecedor_id)
     sem_doc = ultimo is None
     ref_dt: datetime | None = None
     ultimo_iso = ""
@@ -7454,7 +7572,15 @@ def _api_compras_relatorio_fornecedor_pg(
     )
 
     ref_por_canon: dict[str, datetime] = {}
-    if ref_dt is not None:
+    if multi_forn and por_pid_multi:
+        for pid0 in p_ids:
+            p0 = _catalogo_pmap_resolve(pmap, pid0)
+            canon0 = str(p0.get("Id") or p0.get("_id") or pid0) if p0 else str(pid0)
+            chs0 = _chaves_produto(p0) if p0 else [str(pid0)]
+            info = _resolver_ultima_compra_por_pid_map(por_pid_multi, str(canon0), chs0)
+            if info and isinstance(info.get("dt"), datetime):
+                ref_por_canon[str(canon0)] = info["dt"]
+    elif ref_dt is not None:
         for pid0 in p_ids:
             p0 = _catalogo_pmap_resolve(pmap, pid0)
             canon0 = str(p0.get("Id") or p0.get("_id") or pid0) if p0 else str(pid0)
@@ -7520,7 +7646,13 @@ def _api_compras_relatorio_fornecedor_pg(
                         break
 
             qtd_ult: int | None
-            if sem_doc:
+            if multi_forn and por_pid_multi:
+                info_u = _resolver_ultima_compra_por_pid_map(por_pid_multi, str(canon), chaves)
+                if info_u is None:
+                    qtd_ult = None
+                else:
+                    qtd_ult = arred_qtd_folha_compras(float(info_u.get("qtd") or 0))
+            elif sem_doc:
                 qtd_ult = None
             elif _linhas_doc_mapa_contem_produto(linhas_doc, str(canon), chaves):
                 qtd_ult = _arred_int_meio_para_cima(_resolver_qtd_por_pid(linhas_doc, str(canon)))
@@ -7531,7 +7663,10 @@ def _api_compras_relatorio_fornecedor_pg(
 
             cs_f = str(canon)
             qtd_pos = None
-            if not sem_doc:
+            if multi_forn:
+                if ref_por_canon.get(cs_f) is not None:
+                    qtd_pos = arred_qtd_folha_compras(float(vendas_pos.get(cs_f, 0.0)))
+            elif not sem_doc:
                 qtd_pos = arred_qtd_folha_compras(float(vendas_pos.get(cs_f, 0.0)))
             t56p = float(tot56_canon.get(cs_f, 0.0))
             first_dt = first56_canon.get(cs_f)
@@ -7584,7 +7719,11 @@ def _api_compras_relatorio_fornecedor_pg(
             str(r.get("nome") or "").strip().lower(),
         )
     )
-    rotulo_forn = (fornecedor_nome or fornecedor_id or "")[:200]
+    rotulo_forn = (
+        _rotulo_fornecedores_relatorio(forn_list)
+        if multi_forn
+        else (fornecedor_nome or fornecedor_id or "")[:200]
+    )
     return JsonResponse(
         {
             "ok": True,
@@ -7592,6 +7731,7 @@ def _api_compras_relatorio_fornecedor_pg(
             "filtro_rotulo": rotulo_forn,
             "fornecedor_nome": rotulo_forn,
             "fornecedor_id": fornecedor_id or "",
+            "fornecedores_qtd": len(forn_list),
             "total_produtos": len(rows_out),
             "sem_ultimo_documento": sem_doc,
             "ultimo_documento": {
@@ -11076,6 +11216,8 @@ def dashboard_gerencial_view(request):
     aviso_rep = request.session.pop("repasse_aviso_abertura", None)
     if aviso_rep is not None:
         request.session.modified = True
+    from produtos.contagem_ciclica_admin_util import request_pode_ver_painel_ciclica_admin
+
     return render(
         request,
         "produtos/dashboard_gerencial.html",
@@ -11084,6 +11226,7 @@ def dashboard_gerencial_view(request):
             "sync_status": sync_status,
             "repasse_aviso_abertura": aviso_rep if isinstance(aviso_rep, dict) else None,
             "emprestimos_defaults": _emprestimos_defaults_para_template(request),
+            "mostrar_painel_ciclica_admin": request_pode_ver_painel_ciclica_admin(request),
         },
     )
 
@@ -11549,14 +11692,20 @@ from produtos.vendas_lojas_hub_sessao_util import (
 @exigir_hub_operador_html
 def vendas_lojas_hub(request):
     """Entrada do PWA instalado: Vendas, Tarefas, Fotos, Etiquetas ou Ajuste."""
+    from produtos.contagem_ciclica_admin_util import request_pode_ver_painel_ciclica_admin
+
     return render(
         request,
         "produtos/vendas_lojas_hub.html",
-        {"operador": hub_operador_da_sessao(request)},
+        {
+            "operador": hub_operador_da_sessao(request),
+            "mostrar_painel_ciclica_admin": request_pode_ver_painel_ciclica_admin(request),
+        },
     )
 
 
 def _contexto_ajuste_mobile(request):
+    from produtos.contagem_ciclica_admin_util import request_pode_ver_painel_ciclica_admin
     from produtos.pdv_deposito_util import bootstrap_deposito, rotulo_deposito
     from produtos.vendas_lojas_ajuste_sessao_util import (
         operador_ajuste_rotulo,
@@ -11577,6 +11726,7 @@ def _contexto_ajuste_mobile(request):
         "ajuste_deposito_inicial_label": rotulo_deposito(dep),
         "ajuste_deposito_travado": travado,
         "ajuste_pedir_loja": pedir_loja,
+        "mostrar_painel_ciclica_admin": request_pode_ver_painel_ciclica_admin(request),
     }
 
 
@@ -13292,6 +13442,7 @@ def caixa_abrir(request):
                 if aviso:
                     request.session["repasse_aviso_abertura"] = {
                         "texto": aviso,
+                        "titulo": "Repasse da Vila",
                         "ids": [r.pk for r in aplicados],
                         "total": float(
                             sum((_dec(r.valor_total) for r in aplicados), Decimal("0"))
@@ -13300,6 +13451,34 @@ def caixa_abrir(request):
                     request.session.modified = True
             except Exception:
                 logger.exception("repasse_vila: falha ao aplicar pendentes na abertura Centro")
+        elif ponto == PONTO_CAIXA_VILA:
+            try:
+                from produtos.repasse_vila_util import (
+                    aplicar_repasses_centro_vila_pendentes_vila,
+                    texto_aviso_abertura_centro_vila,
+                )
+
+                aplicados_cv = aplicar_repasses_centro_vila_pendentes_vila(
+                    sessao_vila=s,
+                    usuario=request.user
+                    if getattr(request, "user", None) and request.user.is_authenticated
+                    else None,
+                )
+                aviso_cv = texto_aviso_abertura_centro_vila(aplicados_cv)
+                if aviso_cv:
+                    request.session["repasse_aviso_abertura"] = {
+                        "texto": aviso_cv,
+                        "titulo": "Repasse do Centro",
+                        "ids": [r.pk for r in aplicados_cv],
+                        "total": float(
+                            sum((_dec(r.valor_total) for r in aplicados_cv), Decimal("0"))
+                        ),
+                    }
+                    request.session.modified = True
+            except Exception:
+                logger.exception(
+                    "repasse_centro_vila: falha ao aplicar pendentes na abertura Vila"
+                )
         definir_ponto_operacao_browser(request, ponto, s.pk)
         sincronizar_deposito_com_ponto_caixa(request, ponto)
         if ponto in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_TESTE):
@@ -16455,19 +16634,35 @@ def api_entrada_nota_sefaz_status(request):
     from produtos.sefaz_dfe_client import (
         _cfg_dist_dfe,
         distribuicao_dfe_configurada,
+        dist_dfe_cnpjs_destino,
+        dist_dfe_rotulo_cnpj,
         dfe_status_limite,
     )
 
     cfg = _cfg_dist_dfe()
     cnpj = re.sub(r"\D", "", str(cfg.get("cnpj") or ""))[:14]
-    lim = dfe_status_limite(cnpj)
+    cnpjs = dist_dfe_cnpjs_destino() or ([cnpj] if len(cnpj) == 14 else [])
+    lim = dfe_status_limite(cnpj) if len(cnpj) == 14 else {"liberado": False}
     client, db = _entrada_nfe_conexao()
     ult = obter_ult_nsu(db, cnpj) if len(cnpj) == 14 else "0"
+    destinos = []
+    for c in cnpjs:
+        lim_c = dfe_status_limite(c)
+        destinos.append(
+            {
+                "cnpj_mascarado": _mascarar_cnpj(c),
+                "loja": dist_dfe_rotulo_cnpj(c),
+                "ult_nsu": obter_ult_nsu(db, c) if db is not None else obter_ult_nsu(None, c),
+                "consulta_liberada": bool(lim_c.get("liberado")),
+                "aguardar_segundos": int(lim_c.get("aguardar_segundos") or 0),
+            }
+        )
     return JsonResponse(
         {
             "configurada": distribuicao_dfe_configurada(),
             "uf": cfg.get("uf") or "",
             "cnpj_mascarado": _mascarar_cnpj(cfg.get("cnpj") or ""),
+            "cnpjs_destino": destinos,
             "tp_amb": str(cfg.get("tp_amb") or "2"),
             "consulta_liberada": bool(lim.get("liberado")),
             "aguardar_segundos": int(lim.get("aguardar_segundos") or 0),
@@ -16775,7 +16970,7 @@ def _entrada_nota_propagar_precos_e_invalidar_catalogo(
     pr = propagar_precos_venda_catalogo_entrada_nota(db, client, linhas, _usuario_label=usuario)
     fis = {"ok": True, "atualizados_produto": 0, "atualizados_overlay": 0, "produto_ids": []}
     try:
-        fis = propagar_fiscal_nf_catalogo_entrada_nota(linhas)
+        fis = propagar_fiscal_nf_catalogo_entrada_nota(linhas, db=db, client_m=client)
     except Exception:
         logger.warning("_entrada_nota_propagar: fiscal NF", exc_info=True)
     mudou = (
@@ -16783,6 +16978,7 @@ def _entrada_nota_propagar_precos_e_invalidar_catalogo(
         or (pr.get("atualizados_overlay") or 0) > 0
         or (fis.get("atualizados_produto") or 0) > 0
         or (fis.get("atualizados_overlay") or 0) > 0
+        or (fis.get("atualizados_mongo") or 0) > 0
     )
     if mudou:
         cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
@@ -18047,9 +18243,47 @@ def api_entrada_nota_fornecedores(request):
     if pg_rows and mongo_rows:
         base_rows = pg_rows + [r for r in mongo_rows if r not in pg_rows]
     merged = _entrada_nota_mesclar_itens_fornecedor(base_rows, extras, agro_rows, lim=lim)
+    try:
+        from produtos.fornecedor_entrada_nfe_util import filtrar_itens_fornecedor_entrada_nfe
+
+        merged = filtrar_itens_fornecedor_entrada_nfe(merged)
+    except Exception:
+        pass
     return JsonResponse(
         {"itens": merged, "fonte": "postgres" if pg_rows else "mongo"}
     )
+
+
+@login_required(login_url="/entrar/")
+@require_POST
+def api_entrada_nota_fornecedores_unificar(request):
+    """
+    Unifica cadastros duplicados para a busca da Entrada NF (alias Postgres).
+    Não altera contas a pagar / títulos já lançados.
+    """
+    import json
+
+    from produtos.fornecedor_entrada_nfe_util import registrar_unificacao_fornecedores_entrada_nfe
+
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    if not isinstance(data, dict):
+        return JsonResponse({"ok": False, "erro": "Corpo inválido"}, status=400)
+    canon_id = str(data.get("fornecedor_canonico_id") or data.get("canonico_id") or "").strip()
+    canon_nome = str(data.get("canonico_nome") or "").strip()
+    dups = data.get("duplicados_ids") or data.get("duplicados") or []
+    if not isinstance(dups, list):
+        dups = []
+    resultado = registrar_unificacao_fornecedores_entrada_nfe(
+        fornecedor_canonico_id=canon_id,
+        duplicados_ids=[str(x) for x in dups],
+        canonico_nome=canon_nome,
+        usuario=request.user,
+    )
+    st = 200 if resultado.get("ok") else 400
+    return JsonResponse(resultado, status=st)
 
 
 def _entrada_nfe_ean_digitos(s) -> str:
@@ -20035,7 +20269,7 @@ def api_entrada_nota_financeiro(request):
 @login_required(login_url="/entrar/")
 @require_POST
 def api_entrada_nota_dist_dfe(request):
-    from produtos.dfe_inbox_util import dfe_executar_consulta_e_gravar, dfe_inbox_listar
+    from produtos.dfe_inbox_util import dfe_executar_consulta_e_gravar, dfe_inbox_listar_configurados
     from produtos.sefaz_dfe_client import _cfg_dist_dfe, distribuicao_dfe_configurada
 
     try:
@@ -20055,7 +20289,7 @@ def api_entrada_nota_dist_dfe(request):
                     "ou NFE_DIST_DFE_*. Instale: pip install cryptography lxml signxml"
                 ),
                 "ult_nsu": ult_pedido or "",
-                "itens": dfe_inbox_listar(cnpj_cfg, aba="pendentes") if len(cnpj_cfg) == 14 else [],
+                "itens": dfe_inbox_listar_configurados(aba="pendentes") if len(cnpj_cfg) == 14 else [],
             },
             status=400,
         )
@@ -20098,7 +20332,7 @@ def api_entrada_nota_dist_dfe(request):
         "msg_ui": msg_ui,
         "inbox": inbox,
         "auto_xml": auto,
-        "itens": res.get("itens_pendentes") or dfe_inbox_listar(cnpj_cfg, aba="pendentes"),
+        "itens": res.get("itens_pendentes") or dfe_inbox_listar_configurados(aba="pendentes"),
         "previews": [],
     }
     if not out["ok"] and out.get("erro"):
@@ -20110,7 +20344,7 @@ def api_entrada_nota_dist_dfe(request):
 @require_POST
 def api_entrada_nota_dfe_por_chave(request):
     """Baixa XML pela chave (44 dígitos) e grava na caixa — não mexe no ultNSU."""
-    from produtos.dfe_inbox_util import dfe_executar_download_por_chave, dfe_inbox_listar
+    from produtos.dfe_inbox_util import dfe_executar_download_por_chave, dfe_inbox_listar_configurados
     from produtos.sefaz_dfe_client import _cfg_dist_dfe, distribuicao_dfe_configurada
 
     try:
@@ -20126,7 +20360,7 @@ def api_entrada_nota_dfe_por_chave(request):
             {
                 "ok": False,
                 "erro": "Certificado DF-e/NFC-e incompleto no servidor.",
-                "itens": dfe_inbox_listar(cnpj_cfg, aba="pendentes") if len(cnpj_cfg) == 14 else [],
+                "itens": dfe_inbox_listar_configurados(aba="pendentes") if len(cnpj_cfg) == 14 else [],
             },
             status=400,
         )
@@ -20156,7 +20390,7 @@ def api_entrada_nota_dfe_por_chave(request):
         "msg_ui": msg_ui,
         "inbox": inbox,
         "itens": res.get("itens_pendentes")
-        or (dfe_inbox_listar(cnpj_cfg, aba="pendentes") if len(cnpj_cfg) == 14 else []),
+        or (dfe_inbox_listar_configurados(aba="pendentes") if len(cnpj_cfg) == 14 else []),
         "chave": chave,
     }
     if not out["ok"] and out.get("erro"):
@@ -20168,8 +20402,8 @@ def api_entrada_nota_dfe_por_chave(request):
 @require_GET
 def api_entrada_nota_dfe_inbox(request):
     """Lista caixa de entrada DF-e do Postgres (sem falar com a SEFAZ)."""
-    from produtos.dfe_inbox_util import dfe_inbox_listar
-    from produtos.sefaz_dfe_client import _cfg_dist_dfe
+    from produtos.dfe_inbox_util import dfe_inbox_listar_configurados
+    from produtos.sefaz_dfe_client import _cfg_dist_dfe, distribuicao_dfe_configurada
 
     cfg = _cfg_dist_dfe()
     cnpj = re.sub(r"\D", "", str(cfg.get("cnpj") or ""))[:14]
@@ -20178,13 +20412,13 @@ def api_entrada_nota_dfe_inbox(request):
         lim = min(int(request.GET.get("limit") or 80), 120)
     except ValueError:
         lim = 80
-    if len(cnpj) != 14:
+    if not distribuicao_dfe_configurada() or len(cnpj) != 14:
         return JsonResponse({"ok": False, "erro": "CNPJ DF-e não configurado.", "itens": []}, status=400)
     return JsonResponse(
         {
             "ok": True,
             "aba": aba,
-            "itens": dfe_inbox_listar(cnpj, aba=aba, limit=lim),
+            "itens": dfe_inbox_listar_configurados(aba=aba, limit=lim),
         }
     )
 
@@ -20194,11 +20428,8 @@ def api_entrada_nota_dfe_inbox(request):
 def api_entrada_nota_dfe_inbox_detalhe(request, doc_id: int):
     """Parseia XML salvo no PG para «Carregar na grade»."""
     from produtos.dfe_inbox_util import dfe_inbox_marcar, dfe_inbox_obter
-    from produtos.sefaz_dfe_client import _cfg_dist_dfe
 
-    cfg = _cfg_dist_dfe()
-    cnpj = re.sub(r"\D", "", str(cfg.get("cnpj") or ""))[:14]
-    row = dfe_inbox_obter(doc_id, cnpj if len(cnpj) == 14 else None)
+    row = dfe_inbox_obter(doc_id, None)
     if not row:
         return JsonResponse({"ok": False, "erro": "Nota não encontrada na caixa de entrada."}, status=404)
     if row.schema != "nfe" or not (row.xml or "").strip():
@@ -20244,11 +20475,8 @@ def api_entrada_nota_dfe_inbox_detalhe(request, doc_id: int):
 @require_POST
 def api_entrada_nota_dfe_inbox_ignorar(request, doc_id: int):
     from produtos.dfe_inbox_util import dfe_inbox_marcar, dfe_inbox_obter
-    from produtos.sefaz_dfe_client import _cfg_dist_dfe
 
-    cfg = _cfg_dist_dfe()
-    cnpj = re.sub(r"\D", "", str(cfg.get("cnpj") or ""))[:14]
-    row = dfe_inbox_obter(doc_id, cnpj if len(cnpj) == 14 else None)
+    row = dfe_inbox_obter(doc_id, None)
     if not row:
         return JsonResponse({"ok": False, "erro": "Nota não encontrada."}, status=404)
     r = dfe_inbox_marcar(doc_id=row.pk, status="ignorada")
@@ -20274,14 +20502,13 @@ def api_cron_dfe_consultar_inbox(request):
 
     force = str(request.GET.get("force") or "").strip() in ("1", "true", "yes")
     if force:
-        from produtos.sefaz_dfe_client import _cfg_dist_dfe
+        from produtos.sefaz_dfe_client import dist_dfe_cnpjs_destino
 
-        cnpj = re.sub(r"\D", "", str(_cfg_dist_dfe().get("cnpj") or ""))[:14]
-        if len(cnpj) == 14:
-            from datetime import date as _date
+        from datetime import date as _date
 
-            from django.core.cache import cache
+        from django.core.cache import cache
 
+        for cnpj in dist_dfe_cnpjs_destino():
             cache.delete(f"agro_dfe_cron_day:{cnpj}:{_date.today().isoformat()}")
     res = dfe_executar_consulta_e_gravar(origem="cron")
     st = 200 if res.get("ok") or res.get("pulado") else (429 if res.get("aguardar_segundos") else 502)
@@ -24315,8 +24542,9 @@ def api_buscar_produtos(request):
                 _busca_wiz_parts.append(_bt_motor)
             if wizard_catalog:
                 _busca_txt_row = normalizar(" ".join(str(x) for x in _busca_wiz_parts if x))
-            elif wizard_mode or busca_lite:
-                # PDV/entrada NF: palavras-chave do motor (apelidos) — sem isso «2 tempo» zera no refinar JS.
+            elif wizard_mode or busca_lite or contexto_cadastro:
+                # PDV/entrada NF/cadastro ERP: apelidos do motor — sem isso o filtro final zera
+                # (ex. «shampo pulga» com «pulga» só em palavras-chave).
                 _busca_txt_row = _bt_motor or normalizar(
                     " ".join(str(x) for x in _busca_wiz_parts if x)
                 )

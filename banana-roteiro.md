@@ -1105,3 +1105,177 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | 2 | **CADASTRO-PALAVRAS-PDV-3** | ✅ **Live** | **NÃO** | **56/56** |
 
 **Loja git:** `producao` @ **`18046efd`**. **Shell:** `post_deploy_checklist_1810f_nfe_sefaz_danfe_pdv.sh`.
+
+---
+
+## 90. CHECKLIST ÚNICO — **19/10a** · ✅ **Live v27.26.12**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **REL-CAT-SUB-EXCEL** | ✅ **Live** | **NÃO** | verify **30/30** |
+| 2 | **NFE-DANFE-ERP-LAYOUT** + **NFE-EMAIL-DEST** | ✅ **Live** | **NÃO** | NF-e **59/59** + unit |
+
+**Loja git:** `producao` @ **`f33ee5cd`**. **Revert:** `rollback/pre-v272612-1910a-checklist` → **v27.26.10** @ **`05a871df`**. **Shell:** `post_deploy_checklist_1910a_nfe_danfe_email_rel.sh`.
+
+---
+
+## 91. CHECKLIST ÚNICO — **19/10b** · ✅ **Live v27.26.13**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **REL-GRUPO-MARGEM-COMP** | ✅ **Live** | **NÃO** | **14/14** + cat/sub **30/30** |
+
+**Loja git:** `producao` @ **`5fee79dc`**. **Revert:** `rollback/pre-v272613-1910b-rel-grupo` → **v27.26.12** @ **`f33ee5cd`**. **Shell:** `post_deploy_checklist_1910b_rel_grupo_margem_comp.sh`.
+
+---
+
+## 92. CHECKLIST ÚNICO — **20/10a** · ✅ **Live v27.26.14**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **REL-EXCEL-PRINT** | ✅ **Live** | **NÃO** | **16/16** + cat/sub **30/30** |
+
+**Loja git:** `producao` @ **`e4c308dd`**. **Revert:** `rollback/pre-v272614-2010a-rel-excel-print` → **v27.26.13** @ **`5fee79dc`**. **Shell:** `post_deploy_checklist_2010a_rel_excel_print.sh`.
+
+---
+
+## 93. CHECKLIST ÚNICO — **20/10b** · ✅ **Live v27.26.15**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ETQ-NF-SEM-EXATO** | ✅ **Live** | **NÃO** | **VERIFY_OK 30/30** |
+
+**Loja git:** `producao` @ **`93912908`**. **Revert:** `rollback/pre-v272615-2010b-etq-nf-sem-exato` → **v27.26.14** @ **`e4c308dd`**. **Shell:** `post_deploy_checklist_2010b_etq_nf_sem_exato.sh`.
+
+---
+
+## 105. CHECKLIST ÚNICO — **29/10** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NF-FISCAL-XML** | 🟢 Pronto | **NÃO** | **VERIFY_OK 14** |
+
+Entrada NF atualiza NCM, CSOSN, origem e CFOP de venda a partir do XML. Valor já igual não gera histórico. **Não** está na loja até frase + senha.
+
+---
+
+## 104. CHECKLIST ÚNICO — **27/10** · ✅ **Live v27.26.28** (itens 1, 3 e 4)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **AJUSTE-CAMERA-BIP** | ✅ **Live** | **NÃO** |
+| 3 | **CICLICA-ADMIN-PAINEL** | ✅ **Live** | **NÃO** |
+| 4 | **INVENTARIO-PIN-BLOCO** | ✅ **Live** | **SIM** `estoque.0021` |
+
+**Loja git:** `producao` @ **`723f96ce`**. **Shell:** `post_deploy_checklist_2710_ajuste_ciclica_inv.sh`.  
+**Revert:** `rollback/pre-v272628-2710-ajuste-ciclica-inv` → **v27.26.27** @ **`91c8ca6a`**.
+
+---
+
+## 103. CHECKLIST ÚNICO — **25/10** · ✅ **Live v27.26.27** (já em `producao`)
+
+| # | Item | Status | Migrate | Prova |
+| - | ---- | ------ | ------- | ----- |
+| 1 | **NFE-55-FISCAL-PL010f** | ✅ **Live** | **NÃO** | **68/68** |
+
+**Loja git:** `producao` @ **`d9d8a370`**. **Revert:** `producao-backup-pre-v272627-nfe-fiscal` → **`6081553c`**.
+
+---
+
+## 102. CHECKLIST ÚNICO — **24/10** · ✅ **Live v27.26.26**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CADASTRO-BUSCA-PALAVRAS** | ✅ **Live** | **NÃO** | **60/60** |
+| 2 | **CP-EXPORT-LISTA** | ✅ **Live** | **NÃO** | verify export |
+| 3 | **PDV gaveta busca** | ✅ **Live** | **NÃO** | nome largo |
+
+**Loja git:** `producao` @ **`6081553c`**. Sem migrate.  
+**Revert:** `rollback/pre-v272626-2410-cp-busca` → **v27.26.23** @ **`d37449e6`**.
+
+---
+
+## 101. CHECKLIST ÚNICO — **23/10b** · ✅ **Live v27.26.23**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-RAPIDOS Home** | ✅ **Live** | **NÃO** | **35/35** |
+
+**Loja git:** `producao` @ **`d37449e6`**. Sem migrate nova.  
+**Revert:** `rollback/pre-v272623-2310b-pdv-rapidos-home` → **v27.26.22** @ **`c8695c5d`**.
+
+---
+
+## 100. CHECKLIST ÚNICO — **23/10** · ✅ **Live v27.26.22**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-RAPIDOS** | ✅ **Live** | **SIM** `0150`+`0151` | **34/34** |
+
+**Loja git:** `producao` @ **`c8695c5d`**. **Shell:** `post_deploy_checklist_2310_pdv_rapidos.sh`.  
+**Revert:** `rollback/pre-v272622-2310-pdv-rapidos` → **v27.26.21** @ **`b70a67b9`**.
+
+---
+
+## 99. CHECKLIST ÚNICO — **22/10** · ✅ **Live v27.26.21**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **DFE-VILA-BUSCAR** | ✅ **Live** | **NÃO** | multi-CNPJ · NSU 656 |
+
+**Loja git:** `producao` @ **`b70a67b9`**. **Shell:** `post_deploy_checklist_2210_dfe_vila_buscar.sh` (sem migrate).  
+**Revert:** `rollback/pre-v272621-2210-dfe-vila-buscar` → **v27.26.20** @ **`25844530`**.
+
+---
+
+## 98. CHECKLIST ÚNICO — **21/10c** · ✅ **Live v27.26.20**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NF-AJUSTE-CUSTO-MANUAL-HOTFIX** | ✅ **Live** | **NÃO** | rateio · Qtd est. |
+
+**Loja git:** `producao` @ **`25844530`**. **Shell:** `post_deploy_checklist_2110c_nf_ajuste_manual_hotfix.sh`.  
+**Revert:** `rollback/pre-v272620-2110c-nf-ajuste-manual-hotfix` → **v27.26.19** @ **`3c2b5117`**.
+
+---
+
+## 97. CHECKLIST ÚNICO — **21/10b** · ✅ **Live v27.26.19**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NF-FORN-UNIF-ALIAS** | ✅ **Live** | **SIM** `0149` | alias + path |
+| 2 | **NF-AJUSTE-CUSTO-MANUAL** | ✅ **Live** | **NÃO** | rateio path |
+
+**Loja git:** `producao` @ **`3c2b5117`**. **Shell:** `post_deploy_checklist_2110b_nf_forn_unif_ajuste.sh` (**migrate 0149**).  
+**Revert:** `rollback/pre-v272619-2110b-nf-forn-unif-ajuste` → **v27.26.18** @ **`f4808353`**.
+
+---
+
+## 96. CHECKLIST ÚNICO — **21/10** · ✅ **Live v27.26.18**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **REPASSE-CENTRO-VILA-PDV** | ✅ **Live** | **SIM** `0148` |
+
+**Loja git:** `producao` @ **`f4808353`**. **Shell:** `post_deploy_checklist_2110_repasse_centro_vila_pdv.sh` (**migrate 0148**).  
+**Revert:** `rollback/pre-v272618-2110-repasse-centro-vila-pdv` → **v27.26.17** @ **`bb7a01a3`**.
+
+---
+
+## 95. CHECKLIST ÚNICO — **20/10d** · ✅ **Live v27.26.17**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **COMPRAS-FOLHA-MULTI-FORN** | ✅ **Live** | **NÃO** | **VERIFY_OK 17** + unit **6** |
+
+**Loja git:** `producao` @ **`bb7a01a3`**. **Revert:** `rollback/pre-v272617-2010d-compras-folha-multi-forn` → **v27.26.16** @ **`09c4d28f`**. **Shell:** `post_deploy_checklist_2010d_compras_folha_multi_forn.sh`.
+
+---
+
+## 94. CHECKLIST ÚNICO — **20/10c** · ✅ **Live v27.26.16**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **REL-GRUPO-COLUNAS** | ✅ **Live** | **NÃO** | **22+17+30** |
+
+**Loja git:** `producao` @ **`09c4d28f`**. **Revert:** `rollback/pre-v272616-2010c-rel-grupo-colunas` → **v27.26.15** @ **`93912908`**. **Shell:** `post_deploy_checklist_2010c_rel_grupo_colunas.sh`.

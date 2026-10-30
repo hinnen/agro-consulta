@@ -538,6 +538,8 @@
     if (p === '/ajuste-mobile' || p.indexOf('/ajuste-mobile/') === 0) return true;
     /* SistApp: hub abre Ajuste em /vendas/lojas/ajuste/ — mesma tela cheia, sem sidebar Gestão. */
     if (p === '/vendas/lojas/ajuste' || p.indexOf('/vendas/lojas/ajuste/') === 0) return true;
+    /* SistApp: Contagens abre tela cheia do app, sem a gestão do computador. */
+    if (p === '/vendas/lojas/contagem-ciclica' || p.indexOf('/vendas/lojas/contagem-ciclica/') === 0) return true;
     return false;
   }
   function pathLookLikeHistoricoAjustes(pathStr) {

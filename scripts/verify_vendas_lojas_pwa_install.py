@@ -66,6 +66,10 @@ def main() -> int:
         "ajuste_sistapp_sem_shell_gestao",
         "/vendas/lojas/ajuste" in ext and "__agroPathLookLikeAjusteMobile" in ext,
     )
+    check(
+        "contagem_sistapp_sem_shell_gestao",
+        "/vendas/lojas/contagem-ciclica" in ext,
+    )
     check("icon_files", (ROOT / "produtos/static/produtos/pwa/vendas-lojas-512.png").is_file())
 
     print(f"\n{len(fails)} falha(s)")

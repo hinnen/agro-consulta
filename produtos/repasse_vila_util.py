@@ -14,6 +14,7 @@ from produtos.models import (
     FiadoBaixaAgro,
     ItemVendaAgro,
     MovimentoCaixa,
+    RepasseCentroVilaAgro,
     RepasseVilaAcumuladoAjusteAgro,
     RepasseVilaCentroAgro,
     RepasseVilaConfigAgro,
@@ -2670,4 +2671,233 @@ def listar_envios_periodo(
         "total": len(itens),
         "envios": itens,
         "movimentos": itens,  # alias p/ UI única
+    }
+
+
+def saldo_dinheiro_caixa_centro() -> dict[str, Any]:
+    """Dinheiro na gaveta do Centro (mesma ideia de saldo_dinheiro_caixa_vila)."""
+    from produtos.caixa_util import (
+        PONTO_CAIXA_GAVETA,
+        obter_caixa_gaveta_aberto,
+        resumo_esperado_por_forma,
+        ultimo_fechamento_sugestao_abertura,
+    )
+
+    gaveta = obter_caixa_gaveta_aberto()
+    if gaveta:
+        din = _dec(resumo_esperado_por_forma(gaveta).get("Dinheiro"))
+        return {
+            "aberto": True,
+            "saldo_dinheiro": float(din),
+            "sessao_id": int(gaveta.pk),
+            "fonte": "aberto",
+        }
+    sug = ultimo_fechamento_sugestao_abertura(ponto=PONTO_CAIXA_GAVETA)
+    if sug and sug.get("dinheiro_contado") is not None:
+        try:
+            din_f = float(_dec(sug["dinheiro_contado"]))
+        except Exception:
+            din_f = 0.0
+        return {
+            "aberto": False,
+            "saldo_dinheiro": din_f,
+            "sessao_id": int(sug["sessao_pk"]) if sug.get("sessao_pk") else None,
+            "fonte": "ultimo_fechamento",
+        }
+    return {
+        "aberto": False,
+        "saldo_dinheiro": 0.0,
+        "sessao_id": None,
+        "fonte": "nenhum",
+    }
+
+
+def _obs_repasse_centro_vila(rep: RepasseCentroVilaAgro, lado: str) -> str:
+    return (
+        f"Repasse Centro→Vila #{rep.pk} · {lado} · quem={rep.quem_levou} · "
+        f"R$ {_dec(rep.valor_total)}"
+    )[:500]
+
+
+@transaction.atomic
+def confirmar_repasse_centro_vila(
+    request,
+    *,
+    quem_levou: str,
+    valor: Decimal | float | str,
+    forma_pagamento: str = "Dinheiro",
+    operador: str = "",
+) -> tuple[RepasseCentroVilaAgro | None, str]:
+    """Saída na Gaveta Centro + entrada na Vila (agora ou pendente na abertura Vila)."""
+    from produtos.caixa_util import (
+        normalizar_forma_pagamento_caixa,
+        obter_caixa_gaveta_aberto,
+        obter_caixa_vila_aberto,
+        obter_sessao_caixa_aberta_request,
+        resumo_esperado_por_forma,
+    )
+
+    quem = (quem_levou or "").strip()
+    if len(quem) < 2:
+        return None, "Informe quem levou o dinheiro."
+
+    total = _dec(valor).quantize(Decimal("0.01"))
+    if total <= 0:
+        return None, "Informe um valor maior que zero."
+    if total > Decimal("99999.99"):
+        return None, "Valor alto demais — confira o número."
+
+    sessao_req = obter_sessao_caixa_aberta_request(request)
+    sessao_centro = obter_caixa_gaveta_aberto()
+    if not sessao_centro:
+        return None, (
+            "A Gaveta do Centro precisa estar aberta na loja para registrar a saída. "
+            "Abra o caixa Gaveta (Centro) e tente de novo."
+        )
+    if not sessao_req:
+        return None, (
+            "Abra o caixa neste computador (Centro ou Vila) para registrar o repasse."
+        )
+    ponto_req = getattr(sessao_req, "ponto_caixa", "")
+    if ponto_req == "teste":
+        return None, "Caixa teste não registra repasse entre Centro e Vila."
+    if ponto_req == "notebook":
+        pai = getattr(sessao_req, "sessao_principal", None)
+        if not pai or getattr(pai, "ponto_caixa", "") not in ("gaveta", "vila"):
+            return None, "Notebook precisa estar vinculado ao caixa Gaveta ou Vila."
+
+    fn = normalizar_forma_pagamento_caixa(forma_pagamento or "Dinheiro")
+    if fn == "Dinheiro":
+        dinheiro_gaveta = max(
+            ZERO,
+            _dec(resumo_esperado_por_forma(sessao_centro).get("Dinheiro")),
+        )
+        if total > dinheiro_gaveta:
+            return None, (
+                f"Não há R$ {total} em dinheiro na gaveta do Centro "
+                f"(disponível R$ {dinheiro_gaveta})."
+            )
+
+    user = (
+        request.user
+        if getattr(request, "user", None) and request.user.is_authenticated
+        else None
+    )
+
+    mov_saida = MovimentoCaixa.objects.create(
+        sessao_caixa=sessao_centro,
+        tipo=MovimentoCaixa.Tipo.RETIRADA,
+        forma_pagamento=fn,
+        valor=total,
+        observacao=f"Repasse Centro→Vila · {quem}"[:500],
+        usuario=user,
+    )
+
+    sessao_vila = obter_caixa_vila_aberto()
+    mov_entrada = None
+    status = RepasseCentroVilaAgro.StatusVila.PENDENTE
+    if sessao_vila:
+        mov_entrada = MovimentoCaixa.objects.create(
+            sessao_caixa=sessao_vila,
+            tipo=MovimentoCaixa.Tipo.REFORCO,
+            forma_pagamento=fn,
+            valor=total,
+            observacao=f"Repasse do Centro · {quem}"[:500],
+            usuario=user,
+        )
+        status = RepasseCentroVilaAgro.StatusVila.APLICADO
+
+    rep = RepasseCentroVilaAgro.objects.create(
+        valor_total=total,
+        quem_levou=quem[:120],
+        forma_pagamento=fn,
+        operador=(operador or "")[:120],
+        usuario=user,
+        sessao_centro=sessao_centro,
+        sessao_vila=sessao_vila if sessao_vila else None,
+        movimento_saida=mov_saida,
+        movimento_entrada=mov_entrada,
+        status_vila=status,
+    )
+    mov_saida.observacao = _obs_repasse_centro_vila(rep, "saída Centro")
+    mov_saida.save(update_fields=["observacao"])
+    if mov_entrada:
+        mov_entrada.observacao = _obs_repasse_centro_vila(rep, "entrada Vila")
+        mov_entrada.save(update_fields=["observacao"])
+
+    return rep, ""
+
+
+def aplicar_repasses_centro_vila_pendentes_vila(
+    *, sessao_vila, usuario=None
+) -> list[RepasseCentroVilaAgro]:
+    """Ao abrir caixa Vila: REFORÇO dos repasses Centro→Vila pendentes."""
+    pendentes = list(
+        RepasseCentroVilaAgro.objects.filter(
+            status_vila=RepasseCentroVilaAgro.StatusVila.PENDENTE
+        ).order_by("criado_em", "pk")
+    )
+    aplicados: list[RepasseCentroVilaAgro] = []
+    for rep in pendentes:
+        if rep.movimento_entrada_id:
+            rep.status_vila = RepasseCentroVilaAgro.StatusVila.APLICADO
+            rep.sessao_vila = sessao_vila
+            rep.save(update_fields=["status_vila", "sessao_vila"])
+            aplicados.append(rep)
+            continue
+        mov = MovimentoCaixa.objects.create(
+            sessao_caixa=sessao_vila,
+            tipo=MovimentoCaixa.Tipo.REFORCO,
+            forma_pagamento=rep.forma_pagamento or "Dinheiro",
+            valor=_dec(rep.valor_total),
+            observacao=_obs_repasse_centro_vila(rep, "entrada Vila (abertura)"),
+            usuario=usuario,
+        )
+        rep.movimento_entrada = mov
+        rep.sessao_vila = sessao_vila
+        rep.status_vila = RepasseCentroVilaAgro.StatusVila.APLICADO
+        rep.save(
+            update_fields=[
+                "movimento_entrada",
+                "sessao_vila",
+                "status_vila",
+            ]
+        )
+        aplicados.append(rep)
+    return aplicados
+
+
+def texto_aviso_abertura_centro_vila(repasses: list[RepasseCentroVilaAgro]) -> str:
+    if not repasses:
+        return ""
+    if len(repasses) == 1:
+        r = repasses[0]
+        x = f"{_dec(r.valor_total):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        return (
+            f"Tem R$ {x} de repasse do Centro. Quem levou: {r.quem_levou}. "
+            "Confira se o dinheiro chegou na gaveta da Vila."
+        )
+    total = sum((_dec(r.valor_total) for r in repasses), ZERO)
+    x = f"{total:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return (
+        f"Tem R$ {x} de repasse do Centro ({len(repasses)} envios). "
+        "Confira se o dinheiro chegou na gaveta da Vila."
+    )
+
+
+def serializar_repasse_centro_vila(rep: RepasseCentroVilaAgro) -> dict[str, Any]:
+    criado_local = timezone.localtime(rep.criado_em) if rep.criado_em else None
+    return {
+        "id": rep.pk,
+        "valor_total": float(_dec(rep.valor_total)),
+        "quem_levou": rep.quem_levou,
+        "status_vila": rep.status_vila,
+        "criado_em": criado_local.isoformat() if criado_local else "",
+        "criado_em_label": (
+            criado_local.strftime("%d/%m/%Y %H:%M:%S") if criado_local else ""
+        ),
+        "tipo": "centro_vila",
+        "tipo_label": "Centro → Vila",
+        "valor": float(_dec(rep.valor_total)),
+        "operador": rep.quem_levou or "",
     }

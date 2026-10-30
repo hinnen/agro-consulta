@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Amostra inventário #{{ bloco.pk }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 1rem; color: #0f172a; }
+    h1 { font-size: 1.4rem; margin: 0 0 0.3rem; }
+    p { margin: 0.2rem 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border-bottom: 1px solid #cbd5e1; text-align: left; padding: 0.55rem 0.3rem; font-size: 1.05rem; }
+    th { font-size: 0.75rem; text-transform: uppercase; color: #64748b; }
+    .qtd { font-size: 1.35rem; font-weight: 800; }
+    @media print { button { display: none; } }
+  </style>
+</head>
+<body>
+  <button type="button" onclick="print()">Imprimir</button>
+  <h1>Conferência · bloco #{{ bloco.pk }}</h1>
+  <p><strong>{{ sessao.deposito }}</strong> · sessão #{{ sessao.pk }} · {{ bloco.itens_gravados }} itens gravados</p>
+  <p>Quem fechou: {{ bloco.operador_rotulo }} · {{ bloco.fechado_em }}</p>
+  <p>Outra pessoa confere estes itens no corredor (amostra aleatória). Saldo gravado já desconta venda/entrada depois do bip.</p>
+  <table>
+    <thead><tr><th>Produto</th><th>GM</th><th>Contado</th><th>Mov. depois</th><th>Saldo gravado</th></tr></thead>
+    <tbody>
+      {% for it in amostra %}
+      <tr>
+        <td>{{ it.nome }}</td>
+        <td>{{ it.codigo }}</td>
+        <td class="qtd">{{ it.contado }}</td>
+        <td>{{ it.movimento_apos }}</td>
+        <td class="qtd">{{ it.saldo_gravado }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5">Sem amostra.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

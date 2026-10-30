@@ -106,6 +106,20 @@ def test_arquivos() -> None:
     idx_cnpj = sp_dest.find('_sub(dest_el, "CNPJ"')
     idx_xnome = sp_dest.find('_sub(dest_el, "xNome"')
     check("xsd_dest_doc_before_nome", idx_cnpj >= 0 and idx_xnome > idx_cnpj)
+    trib = _read("produtos/nfe_saida_tributacao_util.py")
+    check("motor_tributacao", "def apurar_nfe_saida" in trib and "_grupo_xml_icms_csosn" in trib)
+    check("fiscal_cst_cadastro", '"cst_pis_cofins"' in _read("produtos/nfce_fiscal_produto_util.py"))
+    check("xsd_bundle", (ROOT / "produtos/schemas/nfe/PL_010f/nfe_v4.00.xsd").is_file())
+    check("xsd_pl010f_version", (ROOT / "produtos/schemas/nfe/PL_010f/VERSION.txt").is_file())
+    check("nfe_prefill_sem_ncm_generico", "aplicar_defaults_sn=False" in _read("produtos/nfe_saida_util.py"))
+    check(
+        "simulacao_opt_in",
+        "NFE_SAIDA_SIMULAR_EMIT" in _read("produtos/nfe_saida_emissao_util.py")
+        and "int(tp_amb) == 1" in _read("produtos/nfe_saida_emissao_util.py"),
+    )
+    check("sp_usa_motor", "apurar_nfe_saida" in sp_dest and "_montar_grupo_tributo" in sp_dest)
+    check("emissao_valida_fiscal", "erros_fiscal_emissao" in _read("produtos/nfe_saida_emissao_util.py"))
+    check("tpl_dest_fiscal", "dest-situacao-icms" in tpl and "dest-finalidade" in tpl)
 
 
 def test_logica() -> None:
@@ -139,8 +153,14 @@ def test_logica() -> None:
     from unittest.mock import patch
 
     with patch("produtos.sefaz_dfe_client.distribuicao_dfe_configurada", return_value=True):
+        os.environ["NFE_SAIDA_SIMULAR_EMIT"] = "1"
         out = emitir_nfe_saida_documento(doc, cnpj_emit="11222333000181")
-        check("emit_sim_homolog", out.get("ok") is True and out.get("simulado") is True, str(out.get("c_stat")))
+        check(
+            "emit_sim_homolog",
+            out.get("ok") is True and out.get("simulado") is True and not out.get("autorizacao_sefaz_real", True),
+            str(out.get("c_stat")),
+        )
+        os.environ.pop("NFE_SAIDA_SIMULAR_EMIT", None)
         doc["tp_amb"] = 1
         os.environ["NFE_SAIDA_SIMULAR_EMIT"] = "0"
         with patch(
@@ -156,6 +176,7 @@ def test_logica() -> None:
                 "serie": 1,
                 "xml_autorizado": "<nfeProc/>",
                 "simulado": False,
+                "autorizacao_sefaz_real": True,
             },
         ) as sefaz_mock:
             out_prod = emitir_nfe_saida_documento(doc, cnpj_emit="11222333000181")

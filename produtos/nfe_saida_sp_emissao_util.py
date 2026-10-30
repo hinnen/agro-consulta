@@ -184,8 +184,16 @@ def _preencher_dest_nfe(
     _sub(ender, "CEP", (cep or "00000000").zfill(8))
     _sub(ender, "cPais", "1058")
     _sub(ender, "xPais", "BRASIL")
+    ind_ie = str(dest.get("ind_ie_dest") or "").strip()
+    ie_xml = str(dest.get("ie_xml") or "").strip()
     ie = str(dest.get("ie") or "").strip().upper()
-    if len(doc) == 14:
+    if ind_ie in ("1", "2", "9"):
+        _sub(dest_el, "indIEDest", ind_ie)
+        if ind_ie == "1" and ie_xml:
+            _sub(dest_el, "IE", ie_xml[:14])
+        elif ind_ie == "2" and (ie == "ISENTO" or ie_xml == "ISENTO"):
+            _sub(dest_el, "IE", "ISENTO")
+    elif len(doc) == 14:
         if ie in ("", "ISENTO"):
             _sub(dest_el, "indIEDest", "2")
             if ie == "ISENTO":
@@ -194,10 +202,21 @@ def _preencher_dest_nfe(
             _sub(dest_el, "indIEDest", "1")
             _sub(dest_el, "IE", re.sub(r"\D", "", ie)[:14])
     else:
-        _sub(dest_el, "indIEDest", "9")
+        if ie and ie != "ISENTO" and re.sub(r"\D", "", ie):
+            _sub(dest_el, "indIEDest", "1")
+            _sub(dest_el, "IE", re.sub(r"\D", "", ie)[:14])
+        else:
+            _sub(dest_el, "indIEDest", "9")
     email = str(dest.get("email") or "").strip()
     if email and "@" in email:
         _sub(dest_el, "email", email[:60])
+
+
+def _montar_grupo_tributo(pai: ET.Element, nome_grupo: str, campos: dict[str, str]) -> None:
+    grupo = _sub(pai, nome_grupo)
+    for tag, val in campos.items():
+        if val is not None and str(val) != "":
+            _sub(grupo, tag, str(val))
 
 
 def _montar_xml_nfe_saida(
@@ -209,6 +228,12 @@ def _montar_xml_nfe_saida(
     chave: str,
     dh_emi: datetime,
 ) -> str:
+    from produtos.nfe_saida_tributacao_util import (
+        FiscalBloqueio,
+        apuracao_serializada,
+        apurar_nfe_saida,
+    )
+
     tp_amb = int(cfg["tp_amb"])
     dest = doc.get("destinatario") if isinstance(doc.get("destinatario"), dict) else {}
     fiscal = doc.get("fiscal") if isinstance(doc.get("fiscal"), dict) else {}
@@ -216,6 +241,12 @@ def _montar_xml_nfe_saida(
     pagamentos = doc.get("pagamento") if isinstance(doc.get("pagamento"), list) else []
 
     uf_emit = str(cfg.get("uf") or "SP")[:2]
+    apuracao = apurar_nfe_saida(doc, uf_emit=uf_emit)
+    if apuracao.bloqueios:
+        raise FiscalBloqueio(apuracao.bloqueios[0])
+    doc["fiscal_apuracao"] = apuracao_serializada(apuracao)
+    dest = {**dest, **apuracao.destinatario}
+
     uf_dest = str(dest.get("uf") or uf_emit)[:2]
     dh_txt = dh_emi.strftime("%Y-%m-%dT%H:%M:%S-03:00")
     nat_op = _sanitizar_texto_xml(str(fiscal.get("natureza") or "VENDA"))[:60]
@@ -278,9 +309,11 @@ def _montar_xml_nfe_saida(
     _preencher_dest_nfe(inf, dest, cfg, tp_amb=tp_amb)
 
     total_prod = Decimal("0")
+    ap_itens = apuracao.itens
     for idx, ln in enumerate(itens, start=1):
         if not isinstance(ln, dict):
             continue
+        item_fis = ap_itens[idx - 1] if idx <= len(ap_itens) else None
         qtd = Decimal(str(ln.get("qtd") or 0))
         vu = Decimal(str(ln.get("v_unit") or 0))
         vt = Decimal(str(ln.get("v_total") or 0)).quantize(Decimal("0.01"))
@@ -299,7 +332,7 @@ def _montar_xml_nfe_saida(
         _sub(prod, "xProd", _sanitizar_texto_xml(str(ln.get("descricao") or "PRODUTO"))[:120])
         ncm = re.sub(r"\D", "", str(ln.get("ncm") or ""))[:8]
         _sub(prod, "NCM", ncm.zfill(8))
-        cfop = re.sub(r"\D", "", str(ln.get("cfop") or "5102"))[:4]
+        cfop = re.sub(r"\D", "", str((item_fis.cfop if item_fis else ln.get("cfop")) or "5102"))[:4]
         _sub(prod, "CFOP", cfop.zfill(4))
         _sub(prod, "uCom", u_com[:6])
         _sub(prod, "qCom", _q4(qtd))
@@ -311,22 +344,24 @@ def _montar_xml_nfe_saida(
         _sub(prod, "vUnTrib", _q4(vu))
         _sub(prod, "indTot", "1")
         imposto = _sub(det, "imposto")
+        if item_fis and item_fis.v_tot_trib is not None and item_fis.v_tot_trib > 0:
+            _sub(imposto, "vTotTrib", _q2(item_fis.v_tot_trib))
         icms = _sub(imposto, "ICMS")
-        icmssn = _sub(icms, "ICMSSN102")
-        _sub(icmssn, "orig", str(ln.get("origem") or "0")[:1])
-        csosn = re.sub(r"\D", "", str(ln.get("csosn") or "102"))[:3] or "102"
-        _sub(icmssn, "CSOSN", csosn.zfill(3))
-        pis = _sub(imposto, "PIS")
-        pisnt = _sub(pis, "PISNT")
-        _sub(pisnt, "CST", "07")
-        cof = _sub(imposto, "COFINS")
-        cofnt = _sub(cof, "COFINSNT")
-        _sub(cofnt, "CST", "07")
+        if item_fis:
+            _montar_grupo_tributo(icms, item_fis.icms_grupo, item_fis.icms_campos)
+            pis = _sub(imposto, "PIS")
+            _montar_grupo_tributo(pis, item_fis.pis_grupo, item_fis.pis_campos)
+            cof = _sub(imposto, "COFINS")
+            _montar_grupo_tributo(cof, item_fis.cofins_grupo, item_fis.cofins_campos)
+        else:
+            icmssn = _sub(icms, "ICMSSN102")
+            _sub(icmssn, "orig", str(ln.get("origem") or "0")[:1])
+            _sub(icmssn, "CSOSN", "102")
 
     total_nf = total_prod.quantize(Decimal("0.01"))
     icms_tot = _sub(inf, "total")
     icms = _sub(icms_tot, "ICMSTot")
-    for tag, val in (
+    tot_tags: list[tuple[str, str]] = [
         ("vBC", "0.00"),
         ("vICMS", "0.00"),
         ("vICMSDeson", "0.00"),
@@ -349,7 +384,10 @@ def _montar_xml_nfe_saida(
         ("vCOFINS", "0.00"),
         ("vOutro", "0.00"),
         ("vNF", _q2(total_nf)),
-    ):
+    ]
+    if apuracao.v_tot_trib_nf is not None and apuracao.v_tot_trib_nf > 0:
+        tot_tags.append(("vTotTrib", _q2(apuracao.v_tot_trib_nf)))
+    for tag, val in tot_tags:
         _sub(icms, tag, val)
 
     transp = _sub(inf, "transp")
@@ -379,6 +417,8 @@ def _montar_xml_nfe_saida(
     extra = str(doc.get("inf_complementar") or fiscal.get("inf_compl") or "").strip()
     if extra:
         obs_parts.append(extra)
+    if apuracao.ibpt_texto:
+        obs_parts.append(apuracao.ibpt_texto)
     if tp_amb == 2:
         obs_parts.insert(0, "NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL")
     if obs_parts:
@@ -390,6 +430,7 @@ def _montar_xml_nfe_saida(
 def emitir_nfe_saida_sefaz(doc: dict, *, cnpj_emit: str) -> dict[str, Any]:
     """Monta XML mod 55, assina e envia NFeAutorizacao4 (SP)."""
     from produtos.nfe_saida_util import NFE_SAIDA_STATUS_AUTORIZADA, NFE_SAIDA_STATUS_REJEITADA
+    from produtos.nfe_saida_xml_validate_util import validar_xml_nfe_xsd_obrigatorio
 
     tp_amb = int(doc.get("tp_amb") or 2)
     cfg = _cfg_emissao_nfe(cnpj_emit, tp_amb)
@@ -444,7 +485,21 @@ def emitir_nfe_saida_sefaz(doc: dict, *, cnpj_emit: str) -> dict[str, Any]:
             c_nf=c_nf,
             dh_emi=dh_emi,
         )
-        xml_body = _montar_xml_nfe_saida(doc, cfg, serie=serie, numero=numero, chave=chave, dh_emi=dh_emi)
+        try:
+            xml_body = _montar_xml_nfe_saida(doc, cfg, serie=serie, numero=numero, chave=chave, dh_emi=dh_emi)
+            validar_xml_nfe_xsd_obrigatorio(xml_body)
+        except Exception as exc:
+            from produtos.nfe_saida_tributacao_util import FiscalBloqueio
+
+            if isinstance(exc, FiscalBloqueio):
+                return {
+                    "ok": False,
+                    "status": NFE_SAIDA_STATUS_REJEITADA,
+                    "erro": str(exc),
+                    "c_stat": 999,
+                    "x_motivo": str(exc)[:500],
+                }
+            raise
         xml_assinado, err_sig = _assinar_nfe_xml(
             xml_body, cfg["cert_path"], cfg["cert_password"], chave
         )
@@ -455,6 +510,20 @@ def emitir_nfe_saida_sefaz(doc: dict, *, cnpj_emit: str) -> dict[str, Any]:
                 "erro": err_sig or "Falha ao assinar XML.",
                 "c_stat": 0,
             }
+        try:
+            validar_xml_nfe_xsd_obrigatorio(xml_assinado)
+        except Exception as exc:
+            from produtos.nfe_saida_tributacao_util import FiscalBloqueio
+
+            if isinstance(exc, FiscalBloqueio):
+                return {
+                    "ok": False,
+                    "status": NFE_SAIDA_STATUS_REJEITADA,
+                    "erro": str(exc),
+                    "c_stat": 999,
+                    "x_motivo": str(exc)[:500],
+                }
+            raise
         url = URL_AUTORIZACAO_NFE_SP.get(tp_amb, URL_AUTORIZACAO_NFE_SP[2])
         ret, err_http = _enviar_autorizacao(
             xml_assinado, cfg, url_autorizacao=url
@@ -488,6 +557,7 @@ def emitir_nfe_saida_sefaz(doc: dict, *, cnpj_emit: str) -> dict[str, Any]:
                 "serie": serie,
                 "xml_autorizado": ret.get("xml_nfeproc") or "",
                 "simulado": False,
+                "autorizacao_sefaz_real": True,
             }
         if c_stat in _NFE_RETRY_CSTAT_DUPLICIDADE and tentativa + 1 < max_tentativas:
             nnf_doc = None

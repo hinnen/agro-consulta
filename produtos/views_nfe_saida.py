@@ -31,6 +31,8 @@ from produtos.nfe_saida_util import (
     obter_nfe_saida_bruto,
     painel_nfe_saida_venda,
     salvar_documento_nfe_saida,
+    cliente_agro_para_destinatario,
+    persistir_fiscal_destinatario_no_cliente,
     salvar_fiscal_cliente_agro,
 )
 from produtos.sefaz_dfe_client import distribuicao_dfe_configurada
@@ -144,12 +146,10 @@ def api_nfe_saida_salvar(request):
     r = salvar_documento_nfe_saida(db, doc_id, body, usuario=_usuario(request))
     if r.get("ok"):
         dest = body.get("destinatario") if isinstance(body.get("destinatario"), dict) else {}
-        cid = dest.get("cliente_agro_id")
-        if cid:
-            try:
-                salvar_fiscal_cliente_agro(int(cid), dest)
-            except Exception:
-                pass
+        try:
+            persistir_fiscal_destinatario_no_cliente(dest)
+        except Exception:
+            logger.exception("fiscal_nfe salvar rascunho")
     st = 200 if r.get("ok") else 400
     return JsonResponse(r, status=st)
 
@@ -221,8 +221,21 @@ def api_nfe_saida_buscar_vendas(request):
 
 
 @login_required(login_url="/entrar/")
-@require_POST
 def api_nfe_saida_cliente_fiscal(request):
+    from produtos.models import ClienteAgro
+
+    if request.method == "GET":
+        q = (request.GET.get("cliente_agro_id") or "").strip()
+        if not q.isdigit():
+            return JsonResponse({"ok": False, "erro": "cliente_agro_id obrigatório."}, status=400)
+        try:
+            c = ClienteAgro.objects.get(pk=int(q))
+        except ClienteAgro.DoesNotExist:
+            return JsonResponse({"ok": False, "erro": "Cliente não encontrado."}, status=404)
+        return JsonResponse({"ok": True, "destinatario": cliente_agro_para_destinatario(c)})
+
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "erro": "Método não permitido."}, status=405)
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
@@ -262,12 +275,10 @@ def api_nfe_saida_emitir(request, doc_id: str):
 
         doc = mesclar_destinatario_emit(doc, patch_dest)
         nfe_saida_atualizar_campos(db, doc_id_norm, {"destinatario": doc.get("destinatario")})
-        cid = (doc.get("destinatario") or {}).get("cliente_agro_id")
-        if cid:
-            try:
-                salvar_fiscal_cliente_agro(int(cid), doc.get("destinatario") or {})
-            except Exception:
-                pass
+        try:
+            persistir_fiscal_destinatario_no_cliente(doc.get("destinatario") or {})
+        except Exception:
+            logger.exception("fiscal_nfe salvar emitir")
     if str(doc.get("status") or "") == NFE_SAIDA_STATUS_AUTORIZADA:
         return JsonResponse({"ok": True, "ja_autorizada": True, "chave": doc.get("chave")})
 

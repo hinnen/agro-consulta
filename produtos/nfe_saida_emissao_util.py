@@ -25,12 +25,16 @@ logger = logging.getLogger(__name__)
 
 
 def _simular_habilitado(tp_amb: int) -> bool:
-    raw = (config("NFE_SAIDA_SIMULAR_EMIT", default="") or "").strip().lower()
-    if raw in ("1", "true", "sim", "yes"):
-        return True
-    if raw in ("0", "false", "nao", "não", "no"):
+    """Simulação só com opt-in explícito e nunca em produção (tpAmb=1)."""
+    if int(tp_amb) == 1:
         return False
-    return tp_amb == 2
+    raw = (config("NFE_SAIDA_SIMULAR_EMIT", default="") or "").strip().lower()
+    return raw in ("1", "true", "sim", "yes")
+
+
+def emissao_simulada_ativa(tp_amb: int | None = None) -> bool:
+    amb = int(tp_amb if tp_amb is not None else nfe_saida_tp_amb_default())
+    return _simular_habilitado(amb)
 
 
 def _gerar_chave_fake(cnpj: str, serie: int, nnf: int) -> str:
@@ -56,10 +60,13 @@ def emitir_nfe_saida_documento(doc: dict, *, cnpj_emit: str) -> dict[str, Any]:
     from produtos.sefaz_dfe_client import distribuicao_dfe_configurada
 
     cert_ok = distribuicao_dfe_configurada()
+    from produtos.nfe_saida_tributacao_util import erros_fiscal_emissao
+
     erros = (
         validar_destinatario(doc.get("destinatario") or {})
         + validar_itens(doc.get("itens") or [])
         + validar_pagamentos(doc.get("pagamento") or [], total_itens(doc.get("itens") or []))
+        + erros_fiscal_emissao(doc, uf_emit=nfe_saida_emitente_uf_default())
     )
     if erros:
         return {
@@ -98,11 +105,15 @@ def emitir_nfe_saida_documento(doc: dict, *, cnpj_emit: str) -> dict[str, Any]:
             "chave": chave,
             "protocolo": f"SIM{random.randint(100000, 999999)}",
             "c_stat": 100,
-            "x_motivo": "Autorizado o uso da NF-e (simulação homologação — configure NFE_SAIDA_SIMULAR_EMIT=0 para exigir SOAP real).",
+            "x_motivo": (
+                "SIMULAÇÃO — não é autorização SEFAZ. "
+                "Defina NFE_SAIDA_SIMULAR_EMIT=0 e use certificado para SOAP real em homologação."
+            ),
             "nNF": nnf,
             "serie": serie,
             "xml_autorizado": xml,
             "simulado": True,
+            "autorizacao_sefaz_real": False,
         }
 
     from produtos.nfe_saida_sp_emissao_util import emitir_nfe_saida_sefaz

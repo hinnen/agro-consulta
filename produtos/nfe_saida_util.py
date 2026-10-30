@@ -107,6 +107,8 @@ def destinatario_vazio() -> dict[str, Any]:
         "ie": "",
         "email": "",
         "ind_final": 1,
+        "situacao_icms": "",
+        "finalidade_mercadoria": "",
         "ind_pres": 9,
         "cep": "",
         "uf": "",
@@ -132,38 +134,55 @@ def pagamento_vazio() -> list[dict[str, Any]]:
 
 
 def _fiscal_produto_buscar(produto_id: str) -> dict[str, str]:
-    """NCM/CFOP/CSOSN do catálogo ou defaults SP."""
-    base = fiscal_padrao_ui_cadastro()
+    """
+    Fiscal para pré-preenchimento NF-e 55 — sem NCM/CFOP genéricos do padrão NFC-e (23099020/5102).
+    Preserva NCM cadastrado (incl. 23099020 quando confirmado no produto/overlay/Mongo).
+    """
     pid = str(produto_id or "").strip()
+    out: dict[str, str] = {
+        "ncm": "",
+        "cfop": "",
+        "csosn": "",
+        "origem": "0",
+        "cest": "",
+        "cst_pis_cofins": "",
+    }
     if not pid:
-        return base
+        return out
     try:
-        from produtos.catalogo_agro import obter_produto_model
+        from produtos.nfce_fiscal_produto_util import fiscal_por_produto_id
 
-        p = obter_produto_model(pid)
-        if p is not None and (p.ncm or "").strip():
-            base["ncm"] = normalizar_ncm_somente_digitos(p.ncm) or base["ncm"]
+        cat = fiscal_por_produto_id(pid, aplicar_defaults_sn=False)
+        for k in out:
+            v = str(cat.get(k) or "").strip()
+            if v:
+                out[k] = v
     except Exception:
         pass
-    try:
-        from produtos.models import ProdutoGestaoOverlayAgro
+    # NCM do modelo legado só se overlay/Mongo não trouxer classificação corrigida.
+    if not out.get("ncm"):
+        try:
+            from produtos.catalogo_agro import obter_produto_model
 
-        ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).first()
-        if ov and isinstance(ov.cadastro_extras, dict):
-            fis = ov.cadastro_extras.get("fiscal")
-            if isinstance(fis, dict):
-                for k, row_k in (
-                    ("ncm", "ncm"),
-                    ("cfop", "cfop"),
-                    ("csosn", "csosn"),
-                    ("origem", "origem"),
-                ):
-                    v = str(fis.get(k) or "").strip()
-                    if v:
-                        base[row_k if row_k != "cfop" else "cfop"] = v
-    except Exception:
-        pass
-    return base
+            p = obter_produto_model(pid)
+            if p is not None and (p.ncm or "").strip():
+                ncm = normalizar_ncm_somente_digitos(p.ncm)
+                if len(ncm) == 8:
+                    out["ncm"] = ncm
+        except Exception:
+            pass
+    return out
+
+
+def _cfop_item_prefill_venda(fis: dict[str, str], *, uf_dest: str, uf_emit: str | None = None) -> str:
+    """CFOP inicial do item: cadastro explícito ou sugestão por UF (nunca 5102 em interestadual sem cadastro)."""
+    ue = (uf_emit or nfe_saida_emitente_uf_default() or "SP").upper()[:2]
+    ud = (uf_dest or ue).upper()[:2]
+    inter = bool(ud and ue and ud != ue)
+    cfop_cat = re.sub(r"\D", "", str(fis.get("cfop") or ""))[:4]
+    if len(cfop_cat) == 4:
+        return cfop_cat
+    return cfop_padrao_destino(ud, ue)
 
 
 def _mapear_tpag_forma(forma: str) -> str:
@@ -185,31 +204,73 @@ def _mapear_tpag_forma(forma: str) -> str:
     return "99"
 
 
+def _fiscal_nfe_extra(c) -> dict[str, Any]:
+    extras = c.relacionamento_extras_json if isinstance(c.relacionamento_extras_json, dict) else {}
+    fis = extras.get("fiscal_nfe")
+    return dict(fis) if isinstance(fis, dict) else {}
+
+
+def _campo_fiscal_ou_cadastro(fis: dict[str, Any], c, field: str, *, max_len: int = 300) -> str:
+    v = str(fis.get(field) or "").strip()
+    if v:
+        return v[:max_len]
+    return str(getattr(c, field, None) or "").strip()[:max_len]
+
+
+def _documento_fiscal_cliente(c, fis: dict[str, Any]) -> str:
+    doc = _digits_doc(fis.get("documento"), 14)
+    if doc:
+        return doc
+    cnpj_extra = _digits_doc(fis.get("cnpj"), 14)
+    if len(cnpj_extra) == 14:
+        return cnpj_extra
+    cpf_f = _digits_doc(fis.get("cpf"), 11)
+    if len(cpf_f) == 11:
+        return cpf_f
+    return _digits_doc(c.cpf, 14)
+
+
+def resolver_cliente_agro_id_dest(dest: dict[str, Any]) -> int | None:
+    """Vincula destinatário ao ClienteAgro do PDV quando há id ou CPF conhecido."""
+    cid = dest.get("cliente_agro_id")
+    if cid is not None:
+        try:
+            return int(cid)
+        except (TypeError, ValueError):
+            pass
+    doc = _digits_doc(dest.get("documento"), 14)
+    if len(doc) != 11:
+        return None
+    try:
+        from produtos.models import ClienteAgro
+
+        c = ClienteAgro.objects.filter(cpf=doc).first()
+        return int(c.pk) if c else None
+    except Exception:
+        return None
+
+
 def cliente_agro_para_destinatario(c) -> dict[str, Any]:
     dest = destinatario_vazio()
     if c is None:
         return dest
+    fis = _fiscal_nfe_extra(c)
     dest["cliente_agro_id"] = c.pk
-    dest["nome"] = str(c.nome or "").strip()
-    doc = _digits_doc(c.cpf, 14)
-    extras = c.relacionamento_extras_json if isinstance(c.relacionamento_extras_json, dict) else {}
-    fis = extras.get("fiscal_nfe") if isinstance(extras.get("fiscal_nfe"), dict) else {}
-    cnpj_extra = _digits_doc(fis.get("cnpj"), 14)
-    if cnpj_extra:
-        doc = cnpj_extra
+    dest["nome"] = _campo_fiscal_ou_cadastro(fis, c, "nome", max_len=200)
+    doc = _documento_fiscal_cliente(c, fis)
     dest["documento"] = doc
     dest["tipo_doc"] = documento_dest_tipo(doc)
-    dest["ie"] = str(fis.get("ie") or "").strip()
-    dest["email"] = str(fis.get("email") or "").strip()
-    dest["cep"] = str(c.cep or "").strip()
-    dest["uf"] = str(c.uf or "").strip().upper()[:2]
-    dest["cidade"] = str(c.cidade or "").strip()
-    dest["bairro"] = str(c.bairro or "").strip()
-    dest["logradouro"] = str(c.logradouro or "").strip()
-    dest["numero"] = str(c.numero or "").strip()
-    dest["complemento"] = str(c.complemento or "").strip()
-    if dest["tipo_doc"] == "cnpj" and dest["ie"]:
-        dest["ind_final"] = 0
+    dest["ie"] = str(fis.get("ie") or "").strip()[:20]
+    dest["email"] = str(fis.get("email") or "").strip()[:120]
+    dest["cep"] = _campo_fiscal_ou_cadastro(fis, c, "cep", max_len=12)
+    dest["uf"] = _campo_fiscal_ou_cadastro(fis, c, "uf", max_len=2).upper()
+    dest["cidade"] = _campo_fiscal_ou_cadastro(fis, c, "cidade", max_len=120)
+    dest["bairro"] = _campo_fiscal_ou_cadastro(fis, c, "bairro", max_len=120)
+    dest["logradouro"] = _campo_fiscal_ou_cadastro(fis, c, "logradouro", max_len=200)
+    dest["numero"] = _campo_fiscal_ou_cadastro(fis, c, "numero", max_len=40)
+    dest["complemento"] = _campo_fiscal_ou_cadastro(fis, c, "complemento", max_len=120)
+    dest["situacao_icms"] = str(fis.get("situacao_icms") or "").strip()
+    dest["finalidade_mercadoria"] = str(fis.get("finalidade_mercadoria") or "").strip()
     return dest
 
 
@@ -239,8 +300,9 @@ def destinatario_de_venda(v) -> dict[str, Any]:
 
 
 def itens_de_venda(v) -> list[dict[str, Any]]:
-    uf = (destinatario_de_venda(v).get("uf") or nfe_saida_emitente_uf_default())[:2]
-    cfop_def = cfop_padrao_destino(uf)
+    dest = destinatario_de_venda(v)
+    uf_dest = (dest.get("uf") or nfe_saida_emitente_uf_default())[:2]
+    uf_emit = nfe_saida_emitente_uf_default()
     out: list[dict[str, Any]] = []
     for it in v.itens.all():
         pid = str(it.produto_id_externo or "").strip()
@@ -250,6 +312,7 @@ def itens_de_venda(v) -> list[dict[str, Any]]:
         vt = float(it.valor_total or 0)
         if vt <= 0 and qtd > 0:
             vt = round(qtd * vu, 2)
+        ncm = normalizar_ncm_somente_digitos(fis.get("ncm"))
         out.append(
             {
                 "produto_id": pid,
@@ -257,10 +320,11 @@ def itens_de_venda(v) -> list[dict[str, Any]]:
                 "descricao": str(it.descricao or "").strip(),
                 "qtd": qtd,
                 "un": str(it.unidade or "UN").strip()[:12] or "UN",
-                "ncm": fis.get("ncm") or "",
-                "cfop": fis.get("cfop") or cfop_def,
-                "csosn": fis.get("csosn") or "102",
-                "origem": fis.get("origem") or "0",
+                "ncm": ncm if len(ncm) == 8 else "",
+                "cfop": _cfop_item_prefill_venda(fis, uf_dest=uf_dest, uf_emit=uf_emit),
+                "csosn": str(fis.get("csosn") or "").strip() or "",
+                "origem": str(fis.get("origem") or "0").strip()[:1] or "0",
+                "cst_pis_cofins": re.sub(r"\D", "", str(fis.get("cst_pis_cofins") or ""))[:2],
                 "v_unit": vu,
                 "v_total": vt,
             }
@@ -700,6 +764,8 @@ def painel_nfe_saida_venda(venda_id: int, db=None) -> dict[str, Any]:
 
 
 def validar_destinatario(dest: dict) -> list[str]:
+    from produtos.nfe_saida_tributacao_util import normalizar_destinatario_fiscal
+
     erros: list[str] = []
     if not str(dest.get("nome") or "").strip():
         erros.append("Nome do destinatário obrigatório.")
@@ -713,10 +779,17 @@ def validar_destinatario(dest: dict) -> list[str]:
         erros.append("Cidade do destinatário.")
     if not str(dest.get("logradouro") or "").strip():
         erros.append("Logradouro do destinatário.")
+    norm = normalizar_destinatario_fiscal({**dest, "documento": doc})
+    ind_ie = str(norm.get("ind_ie_dest") or "9")
+    ie = str(dest.get("ie") or "").strip()
+    ie_num = _digits_doc(ie, 14)
     if tipo == "cnpj":
-        ie = str(dest.get("ie") or "").strip()
-        if not ie:
-            erros.append("Inscrição estadual (ou ISENTO) para CNPJ.")
+        if ind_ie == "1" and not ie_num:
+            erros.append("Inscrição estadual numérica obrigatória para CNPJ contribuinte ICMS.")
+        elif ind_ie == "2" and ie.upper() != "ISENTO":
+            erros.append('Para CNPJ isento de IE, informe "ISENTO" no campo IE.')
+    elif tipo == "cpf" and ind_ie == "1" and not ie_num:
+        erros.append("Inscrição estadual obrigatória para produtor/contribuinte ICMS (CPF).")
     return erros
 
 
@@ -802,6 +875,12 @@ def checklist_conferencia(doc: dict, *, cert_ok: bool) -> list[dict[str, Any]]:
 
 
 def salvar_fiscal_cliente_agro(cliente_id: int, fiscal: dict) -> dict[str, Any]:
+    """
+    Grava dados fiscais NF-e em ``relacionamento_extras_json.fiscal_nfe``.
+    Não altera nome/endereço de entrega do PDV — só o bloco fiscal.
+    """
+    from django.utils import timezone
+
     from produtos.models import ClienteAgro
 
     try:
@@ -809,20 +888,47 @@ def salvar_fiscal_cliente_agro(cliente_id: int, fiscal: dict) -> dict[str, Any]:
     except ClienteAgro.DoesNotExist:
         return {"ok": False, "erro": "Cliente não encontrado."}
     extras = dict(c.relacionamento_extras_json) if isinstance(c.relacionamento_extras_json, dict) else {}
-    fn = extras.get("fiscal_nfe") if isinstance(extras.get("fiscal_nfe"), dict) else {}
-    fn = dict(fn)
-    cnpj = _digits_doc(fiscal.get("cnpj") or fiscal.get("documento"), 14)
-    if len(cnpj) == 14:
-        fn["cnpj"] = cnpj
-    elif len(cnpj) == 11:
-        c.cpf = cnpj
-    fn["ie"] = str(fiscal.get("ie") or "").strip()[:20]
-    fn["email"] = str(fiscal.get("email") or "").strip()[:120]
+    fn = dict(_fiscal_nfe_extra(c))
+    doc = _digits_doc(fiscal.get("documento") or fiscal.get("cnpj") or fiscal.get("cpf"), 14)
+    if doc:
+        fn["documento"] = doc
+        if len(doc) == 14:
+            fn["cnpj"] = doc
+            fn.pop("cpf", None)
+        elif len(doc) == 11:
+            fn["cpf"] = doc
+            fn.pop("cnpj", None)
+    for k in (
+        "nome",
+        "ie",
+        "email",
+        "situacao_icms",
+        "finalidade_mercadoria",
+        "cep",
+        "uf",
+        "cidade",
+        "bairro",
+        "logradouro",
+        "numero",
+        "complemento",
+    ):
+        if k in fiscal:
+            fn[k] = str(fiscal.get(k) or "").strip()[:300]
+    fn["atualizado_em"] = timezone.now().isoformat(timespec="seconds")
     extras["fiscal_nfe"] = fn
     c.relacionamento_extras_json = extras
-    for fld in ("cep", "uf", "cidade", "bairro", "logradouro", "numero", "complemento", "nome"):
-        if fld in fiscal and str(fiscal.get(fld) or "").strip():
-            setattr(c, fld, str(fiscal[fld]).strip()[:300])
+    if len(doc) == 11 and not str(c.cpf or "").strip():
+        c.cpf = doc
     c.editado_local = True
-    c.save()
+    c.save(update_fields=["relacionamento_extras_json", "cpf", "editado_local"])
     return {"ok": True, "cliente": cliente_agro_para_destinatario(c)}
+
+
+def persistir_fiscal_destinatario_no_cliente(dest: dict[str, Any]) -> None:
+    if not isinstance(dest, dict):
+        return
+    cid = resolver_cliente_agro_id_dest(dest)
+    if not cid:
+        return
+    dest["cliente_agro_id"] = cid
+    salvar_fiscal_cliente_agro(cid, dest)

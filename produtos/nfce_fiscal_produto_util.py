@@ -31,7 +31,13 @@ def _fiscal_de_mongo_doc(doc: dict | None) -> dict[str, str]:
     return out
 
 
-def fiscal_por_produto_id(produto_id_externo: str, *, db=None, col_p: str | None = None) -> dict[str, str]:
+def fiscal_por_produto_id(
+    produto_id_externo: str,
+    *,
+    db=None,
+    col_p: str | None = None,
+    aplicar_defaults_sn: bool = True,
+) -> dict[str, str]:
     pid = str(produto_id_externo or "").strip()
     overlay_fis: dict[str, Any] = {}
     if pid:
@@ -60,17 +66,25 @@ def fiscal_por_produto_id(produto_id_externo: str, *, db=None, col_p: str | None
             mongo_fis = _fiscal_de_mongo_doc(doc)
         except Exception:
             mongo_fis = {}
-    merged = merge_fiscal_padrao_cadastro_manual_sp_sn({**mongo_fis, **overlay_fis})
+    bruto = {**mongo_fis, **overlay_fis}
+    merged = merge_fiscal_padrao_cadastro_manual_sp_sn(bruto) if aplicar_defaults_sn else bruto
+    fonte = merged if aplicar_defaults_sn else bruto
     # Só dígitos no XML — ponto/traço no CFOP/CEST/NCM → SEFAZ 225 (schema).
-    ncm = _so_digitos(merged.get("ncm"), 8) or "23099020"
-    cfop = _so_digitos(merged.get("cfop"), 4) or "5102"
-    csosn = _so_digitos(merged.get("csosn"), 3) or "102"
-    origem = _so_digitos(merged.get("origem"), 1) or "0"
-    cest = _so_digitos(merged.get("cest"), 7)
+    ncm = _so_digitos(fonte.get("ncm"), 8)
+    if aplicar_defaults_sn and not ncm:
+        ncm = "23099020"
+    cfop = _so_digitos(fonte.get("cfop"), 4) or ("5102" if aplicar_defaults_sn else "")
+    csosn = _so_digitos(fonte.get("csosn"), 3) or ("102" if aplicar_defaults_sn else "")
+    origem = _so_digitos(fonte.get("origem"), 1) or "0"
+    cest = _so_digitos(fonte.get("cest"), 7)
+    cst = _so_digitos(merged.get("cst_pis_cofins"), 2) or (
+        "49" if aplicar_defaults_sn else _so_digitos(bruto.get("cst_pis_cofins"), 2)
+    )
     return {
         "ncm": ncm,
         "cfop": cfop,
         "csosn": csosn,
         "origem": origem,
         "cest": cest if len(cest) == 7 else "",
+        "cst_pis_cofins": cst,
     }

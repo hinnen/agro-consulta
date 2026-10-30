@@ -1136,6 +1136,33 @@ class PlanoContaAliasAgro(models.Model):
         return f"{self.grafia} → {self.plano_id}"
 
 
+class FornecedorEntradaNfeAliasAgro(models.Model):
+    """
+    Cadastro duplicado no Mongo (DtoPessoa) → id canônico para busca na Entrada NF.
+    Não reescreve lançamentos financeiros já existentes.
+    """
+
+    fornecedor_duplicado_id = models.CharField(max_length=32, unique=True, db_index=True)
+    fornecedor_canonico_id = models.CharField(max_length=32, db_index=True)
+    canonico_nome = models.CharField(max_length=300, blank=True, default="")
+    criado_em = models.DateTimeField(auto_now_add=True)
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="fornecedor_entrada_nfe_aliases",
+    )
+
+    class Meta:
+        ordering = ["-criado_em"]
+        verbose_name = "Alias fornecedor Entrada NF"
+        verbose_name_plural = "Aliases fornecedor Entrada NF"
+
+    def __str__(self):
+        return f"{self.fornecedor_duplicado_id[:8]}… → {self.fornecedor_canonico_id[:8]}…"
+
+
 class EntradaNotaRascunhoAgro(models.Model):
     """Rascunho do assistente Entrada NF (etapas 1–6); substitui ``AgroEntradaNotaRascunho`` no Mongo."""
 
@@ -3410,6 +3437,70 @@ class RepasseVilaCentroAgro(models.Model):
         return f"Repasse #{self.pk} {self.data_ref} R$ {self.valor_total}"
 
 
+class RepasseCentroVilaAgro(models.Model):
+    """Envio manual de dinheiro do Centro para a Vila (uso raro; não entra no cálculo diário)."""
+
+    class StatusVila(models.TextChoices):
+        PENDENTE = "pendente", "Pendente na Vila"
+        APLICADO = "aplicado", "Aplicado no caixa Vila"
+
+    valor_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    quem_levou = models.CharField(max_length=120)
+    forma_pagamento = models.CharField(max_length=80, default="Dinheiro")
+    operador = models.CharField(max_length=120, blank=True, default="")
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="repasses_centro_vila",
+    )
+    sessao_centro = models.ForeignKey(
+        SessaoCaixa,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="repasses_centro_saida",
+    )
+    sessao_vila = models.ForeignKey(
+        SessaoCaixa,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="repasses_vila_entrada_centro",
+    )
+    movimento_saida = models.ForeignKey(
+        MovimentoCaixa,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="repasse_centro_vila_saida",
+    )
+    movimento_entrada = models.ForeignKey(
+        MovimentoCaixa,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="repasse_centro_vila_entrada",
+    )
+    status_vila = models.CharField(
+        max_length=16,
+        choices=StatusVila.choices,
+        default=StatusVila.PENDENTE,
+        db_index=True,
+    )
+    observacao = models.CharField(max_length=500, blank=True, default="")
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = "Repasse Centro → Vila"
+        verbose_name_plural = "Repasses Centro → Vila"
+        ordering = ["-criado_em", "-pk"]
+
+    def __str__(self):
+        return f"Repasse C→V #{self.pk} R$ {self.valor_total}"
+
+
 class RepasseVilaReservaLogAgro(models.Model):
     """Histórico do valor manual que fica na Vila (config + aplicação no envio)."""
 
@@ -3751,6 +3842,57 @@ class PdvTopbarLayoutAgro(models.Model):
 
     def __str__(self):
         return f"topbar:{self.chave}"
+
+
+class PdvRapidoSlotAgro(models.Model):
+    """Atalho de produto do PDV (9 slots · apelido e foto manuais · loja inteira)."""
+
+    posicao = models.PositiveSmallIntegerField(unique=True)
+    produto_id = models.CharField(max_length=64, blank=True, default="")
+    codigo = models.CharField(max_length=40, blank=True, default="")
+    nome = models.CharField(max_length=32, blank=True, default="")
+    foto = models.BinaryField(null=True, blank=True)
+    foto_tipo = models.CharField(max_length=40, blank=True, default="")
+    atualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="pdv_rapido_slots",
+    )
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Slot rápido do PDV"
+        verbose_name_plural = "Slots rápidos do PDV"
+        ordering = ["posicao"]
+
+    def __str__(self):
+        return f"rápido {self.posicao}: {self.nome or 'vazio'}"
+
+
+class PdvRapidoLayoutAgro(models.Model):
+    """Proporção única dos 9 slots (foto, apelido e preço)."""
+
+    chave = models.CharField(max_length=32, unique=True, default="default")
+    foto_pct = models.PositiveSmallIntegerField(default=40)
+    nome_escala = models.PositiveSmallIntegerField(default=100)
+    preco_escala = models.PositiveSmallIntegerField(default=100)
+    atualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="pdv_rapido_layouts",
+    )
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Proporção dos rápidos do PDV"
+        verbose_name_plural = "Proporções dos rápidos do PDV"
+
+    def __str__(self):
+        return f"rápidos:{self.chave}"
 
 
 class WhatsAppPonteEstadoAgro(models.Model):
