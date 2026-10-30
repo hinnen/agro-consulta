@@ -47,6 +47,13 @@ let syncHoraCfg = "00:00";
 let syncRodando = false;
 let pollQuerFotos = false;
 let syncCheckTimer = 0;
+let nomeLojaZap = "";
+
+function ehNomeLoja(s) {
+  const a = semAcento(String(s || "")).toLowerCase().replace(/\s+/g, " ").trim();
+  const b = semAcento(String(nomeLojaZap || "")).toLowerCase().replace(/\s+/g, " ").trim();
+  return !!(a && b && a === b);
+}
 
 function carregarEnv(fp) {
   try {
@@ -433,9 +440,13 @@ function jidDaMensagem(m) {
 function nomeDeContato(c, prev) {
   const salvo = String((c && c.name) || "").trim();
   const zap = String((c && c.notify) || (c && c.verifiedName) || "").trim();
-  if (salvo) return salvo.slice(0, 120);
-  if (zap) return zap.slice(0, 120);
-  return (prev && prev.nome) || "";
+  const escolhe = (s) => (s && !ehNomeLoja(s) ? s.slice(0, 120) : "");
+  const a = escolhe(salvo);
+  if (a) return a;
+  const b = escolhe(zap);
+  if (b) return b;
+  const prevNome = (prev && prev.nome) || "";
+  return ehNomeLoja(prevNome) ? "" : prevNome;
 }
 
 function carregarAgenda() {
@@ -734,7 +745,10 @@ async function enviarEntrada(m, extra) {
   const texto = textoDe(m);
   const tipo = tipoMidiaDe(m);
   if (!texto && !tipo) return;
-  const nome = String(m.pushName || "").slice(0, 120);
+  const fromMe = !!(key && key.fromMe);
+  const push = String(m.pushName || "").slice(0, 120);
+  if (fromMe && push) nomeLojaZap = push;
+  const nome = fromMe || ehNomeLoja(push) ? "" : push;
   const midia = await baixarMidia(m);
   const tel = telefoneDeJid(jid) || telefoneDeJid(telefoneDeKey(key));
   try {
@@ -744,9 +758,10 @@ async function enviarEntrada(m, extra) {
       telefone: tel,
       texto,
       nome,
+      nome_loja: fromMe ? push : "",
       wa_id: waId,
       historico,
-      de_mim: !!(m.key && m.key.fromMe),
+      de_mim: fromMe,
       ts: Math.floor(quando / 1000),
       tipo_midia: midia.tipo || tipo,
       midia_b64: midia.b64 || "",
@@ -924,6 +939,8 @@ async function ligar() {
       lastPairing = "";
       const me = (sock.user && (sock.user.id || sock.user.lid)) || "";
       const numero = String(me).split(":")[0].split("@")[0];
+      const nomeConta = String((sock.user && (sock.user.verifiedName || sock.user.name)) || "").trim();
+      if (nomeConta) nomeLojaZap = nomeConta;
       connOpenAt = Date.now();
       await estado({ status: "conectado", numero, aviso: "" });
       console.log("WhatsApp conectado", numero);
