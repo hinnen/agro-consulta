@@ -779,7 +779,7 @@ async function enviarEntrada(m, extra) {
 
 const fotoProximaTentativa = new Map();
 const FOTO_TTL_OK_MS = 6 * 60 * 60 * 1000;
-const FOTO_TTL_FAIL_MS = 15 * 60 * 1000;
+const FOTO_TTL_FAIL_MS = 2 * 60 * 1000;
 let fotoFila = Promise.resolve();
 
 function agendarFotoPerfil(jid, extra) {
@@ -787,8 +787,9 @@ function agendarFotoPerfil(jid, extra) {
   const lid = String((extra && extra.jid_lid) || "");
   if (!ehChatPrivado(j) && !lid.endsWith("@lid")) return;
   const chave = j || lid;
+  const forcar = !!(extra && extra.forcar);
   const prox = fotoProximaTentativa.get(chave) || 0;
-  if (Date.now() < prox) return;
+  if (!forcar && Date.now() < prox) return;
   // trava curta enquanto baixa (anti-spam do poll)
   fotoProximaTentativa.set(chave, Date.now() + 60 * 1000);
   fotoFila = fotoFila
@@ -1590,8 +1591,12 @@ async function puxarSaida() {
       await executarPedido(p);
     }
     for (const f of (j && j.fotos) || []) {
-      if (!f || !f.jid) continue;
-      agendarFotoPerfil(f.jid, { telefone: f.telefone || "", jid_lid: f.jid_lid || "" });
+      if (!f || (!f.jid && !f.jid_lid)) continue;
+      agendarFotoPerfil(f.jid || f.jid_lid, {
+        telefone: f.telefone || "",
+        jid_lid: f.jid_lid || "",
+        forcar: true,
+      });
     }
   } catch (e) {
     console.error("poll:", e.message || e);
