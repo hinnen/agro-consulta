@@ -1294,12 +1294,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 **WA-RENDER-SPLIT** · **WA-LISTA-COLUNA** · pronto, **sem push** · 31/10
+### 🟡 **WA-RENDER-SPLIT** · **WA-LISTA-COLUNA** · enviado à filial `whatsapp` · 31/10
 
 | Campo | Valor |
 | ----- | ----- |
 | **No ar** | `ea351fd` no **agro-consulta-wa**. Barra `v27.26.44.1 · ea351fd` no endereço onrender. `sistvale.com.br/atendimento-whatsapp/` é a tela antiga |
-| **Pronto local** | `0bc4135` — lista em grade: foto fixa em 3rem, nome na segunda coluna. No print `ea351fd`, nome com foto começava em x=121 e sem foto em x=183 |
+| **Enviado** | Autorizado 31/10 (frase + senha). `0bc4135` em cima do `ea351fd`: lista em grade, foto 3rem, nome na segunda coluna |
 | **Migrate** | **NÃO** |
 | **Loja** | Push desta filial **não reinicia** a Sistvale. Só o Zap recarrega (~2 min). PDV e venda seguem |
 | **Próximo chat** | Frase + senha na mesma mensagem → `git push origin whatsapp`. Não fazer push em `producao` |
