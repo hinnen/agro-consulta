@@ -549,7 +549,7 @@ def _ctype_pelos_bytes(raw: bytes, ctype: str) -> str:
     if raw.startswith(b"ID3") or (len(raw) > 2 and raw[0] == 0xFF and (raw[1] & 0xE0) == 0xE0):
         return "audio/mpeg"
     if raw.startswith(b"\x1aE\xdf\xa3"):
-        return "audio/webm"
+        return "video/webm" if ctype.startswith("video") else "audio/webm"
     if raw.startswith(b"RIFF") and raw[8:12] == b"WAVE":
         return "audio/wav"
     if raw.startswith(b"\x89PNG"):

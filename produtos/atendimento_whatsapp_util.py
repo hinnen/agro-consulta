@@ -464,7 +464,9 @@ def _nomes_conhecidos_por_conversa(convs: list, cfg: dict | None) -> dict[int, s
                 hit = agenda.get(("t", v)) or agenda.get(("t", v[-11:] if len(v) >= 11 else v)) or ""
                 if hit:
                     break
-        if hit and not _nome_parece_telefone(hit, tel):
+        if hit and (_nome_e_da_loja(hit, cfg) or _nome_parece_telefone(hit, tel)):
+            hit = ""
+        if hit:
             out[int(conv.pk)] = hit[:120]
     return out
 
@@ -833,15 +835,26 @@ def _arquivo_campo_existe(arq) -> bool:
 
 def _preencher_nomes_da_tela(rows: list) -> None:
     """Só os chats desta tela. Não varre o histórico inteiro (isso não terminava e o número ficava)."""
+    cfg = None
+    try:
+        from produtos.atendimento_whatsapp_bot_config import carregar_bot_leve
+
+        cfg = carregar_bot_leve()
+    except Exception:
+        cfg = {}
     precisa = []
     for conv in rows:
         tel = _telefone_real(conv.telefone) or _telefone_real(conv.jid)
-        if not (conv.nome or "").strip() or _nome_parece_telefone(conv.nome, tel):
+        if (
+            not (conv.nome or "").strip()
+            or _nome_parece_telefone(conv.nome, tel)
+            or _nome_e_da_loja(conv.nome, cfg)
+        ):
             precisa.append(conv)
     if not precisa:
         return
     try:
-        mapa = _nomes_conhecidos_por_conversa(precisa, None)
+        mapa = _nomes_conhecidos_por_conversa(precisa, cfg)
     except Exception:
         return
     for conv in precisa:
@@ -856,10 +869,6 @@ def _preencher_nomes_da_tela(rows: list) -> None:
 
 
 def listar_conversas(*, loja: str, limit: int = 80) -> list[dict]:
-    try:
-        corrigir_nomes_que_sao_da_loja()
-    except Exception:
-        pass
     loja_n = (loja or "").strip().lower()
     lim = max(1, min(int(limit or 80), 200))
     if loja_n in ("arquivadas", "resolvidas", "arquivo"):

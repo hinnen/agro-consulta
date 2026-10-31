@@ -1299,11 +1299,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Chat que ficou só com o telefone passa a usar o cadastro e, se não houver, a agenda. Lista não escorrega. Fotinha: olha os 120 chats recentes e pede de novo se o arquivo sumiu. Barra de cima do Zap mostra `vVERSION · commit` |
-| **Onde** | Nome da lista já no ar em `88fa449`. Fotinha + badge `vVERSION · commit` estão **locais, sem push** |
+| **Onde** | No ar: `88fa449`. Pronto e **sem push**: fotinha, badge `vVERSION · commit`, nome só dos chats da tela, bolha limitada, áudio sem arquivo não abre player mudo |
 | **No ar hoje** | `2fef8d0e0` no **agro-consulta-wa**. A loja (`producao`) não tem este pacote |
 | **Migrate** | **NÃO** |
 | **Loja** | Este envio **não reinicia** a Sistvale. Só o serviço do Zap recarrega (~2 min). PDV e venda seguem |
-| **Próximo chat** | Frase + senha na mesma mensagem → `git push origin whatsapp` e só isso. Não fazer push em `producao` |
+| **Próximo chat** | Frase + senha na mesma mensagem → `git push origin whatsapp` (está 3 commits à frente). Não fazer push em `producao`. Não reinicia a Sistvale |
 | **Não volta** | Áudio e foto de antes do deploy: o disco do Render apagou o arquivo. Mensagem nova grava de novo |
 | **Prova** | `verify_wa_nome_loja_path.py` **13/13** · `verify_wa_render_split_path.py` **18/18** · PIN **9973** não roda aqui (sem o Postgres da loja) |
 | **Não fazer** | `AGRO_WA_PUBLIC_ORIGIN` no serviço do Zap |
