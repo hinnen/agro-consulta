@@ -1294,15 +1294,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 **WA-LISTA-MENU** · pronto para o Zap · **sem push** · 31/10
+### 🟢 **WA-LISTA-MENU** · enviado à filial `whatsapp` · 31/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **No ar** | `d4ee779` no **agro-consulta-wa**. Barra `v27.26.44.1 · d4ee779`. Coluna ainda torta na tela dele (Elaine ok, Vera pra baixo desloca) |
-| **Pronto (7 commits, não enviados)** | `e44d106` linha vira `div` + grade 48px. `574213d`+`4cb0d68` clique direito: Arquivar ou Reabrir + Apagar. `ea1a534` abertura: mensagens primeiro, índice `(conversa, id)`, ficha em 90s, sem `exists()` por arquivo. `28aca270` tira **Limpar** e põe **Marcar** (Arquivar / Reabrir / Marcar lidas / Apagar só as marcadas, `POST /lote/`). Cache `lista7` |
+| **No ar (após o deploy)** | Autorizado 31/10 (frase + senha). Pacote em cima do `d4ee779`: linha `div`+grade, menu do clique direito, abertura mais leve, **Limpar** saiu, **Marcar** entrou. Cache `lista7`. A barra mostra os 7 primeiros do commit que acabou de subir |
 | **Migrate** | **NÃO** |
 | **Loja** | Este push **não** é `producao`. Não reinicia a Sistvale. O Zap recarrega (~2 min) e o disco efêmero zera foto/áudio de novo |
-| **Próximo chat** | Frase + senha `99738595` na **mesma** mensagem → só `git push origin whatsapp`. Não fazer push em `producao`. Lojas abertas: **não enviar** antes disso |
+| **Próximo chat** | Não fazer push em `producao` sem frase + senha de novo |
 | **Menu** | Fila: Arquivar. Resolvida: Reabrir. Sempre: Apagar (só no Agro). Marcar: as mesmas + Marcar lidas. Sem botão que apaga a lista inteira |
 | **Prova 31/10** | `verify_wa_nome_loja_path` **14/14**. `verify_wa_render_split_path` **21/21**. Sqlite do lote **10/10** (arquivar, reabrir, lidas, apagar só a marcada, ação inválida recusada, ordem por id, ficha Nathan). `node --check` ok. Sem browser (login). PIN **9973** não entra nestes paths |
 | **Não fazer** | `AGRO_WA_PUBLIC_ORIGIN` no serviço do Zap |
