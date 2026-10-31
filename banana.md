@@ -1294,12 +1294,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 **WA-RENDER-SPLIT** · **WA-NOME-AGENDA** · pronto, **sem push** · 31/10
+### 🟡 **WA-RENDER-SPLIT** · **WA-NOME-AGENDA** · enviado à filial `whatsapp` · 31/10
 
 | Campo | Valor |
 | ----- | ----- |
 | **No ar** | `6ef12fe` no **agro-consulta-wa**. Barra mostra `v27.26.44.1 · 6ef12fe` nesse endereço. `sistvale.com.br/atendimento-whatsapp/` é a tela antiga |
-| **Pronto local** | `b1576be` — nome com letras não vira telefone. Cadastro com `\` usa a agenda (Amanda). Linhas da lista sem margem extra |
+| **Enviado** | Autorizado 31/10 (frase + senha). `b1576be` em cima do `6ef12fe`: nome com letras não vira telefone. Cadastro com `\` usa a agenda (Amanda) |
 | **Migrate** | **NÃO** |
 | **Loja** | Push desta filial **não reinicia** a Sistvale. Só o Zap recarrega (~2 min) |
 | **Próximo chat** | Frase + senha na mesma mensagem → `git push origin whatsapp`. Não fazer push em `producao` |
