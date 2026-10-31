@@ -562,8 +562,9 @@
       var foto = c.foto_url || '';
       var btn = el.querySelector('.wa-item[data-id="' + id + '"]');
       if (!btn) {
-        btn = document.createElement('button');
-        btn.type = 'button';
+        btn = document.createElement('div');
+        btn.setAttribute('role', 'button');
+        btn.tabIndex = 0;
         btn.setAttribute('data-id', id);
         btn.innerHTML =
           '<span class="wa-av"></span><div class="wa-item-body"><div class="wa-row1"><div class="wa-n"></div><div class="wa-t"></div></div><div class="wa-row2"><div class="wa-p"></div></div></div>';
