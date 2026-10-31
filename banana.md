@@ -1299,7 +1299,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **No ar** | `d4ee779` no **agro-consulta-wa**. Foto voltou. Renan: da Elaine pra cima a coluna ok; da Vera pra baixo ainda torta. Barra `v27.26.44.1 · d4ee779` |
-| **Local (não enviado)** | `e44d106` linha vira `div` + grade 48px. `574213d` + `4cb0d68` menu: Arquivar / Reabrir / Apagar. Abertura da conversa: mensagens primeiro (ficha depois), sem `exists()` em cada arquivo, lista pelo índice `(conversa, id)`, ficha com índice de 90s. Cache `lista6`. Sem push |
+| **Local (não enviado)** | `e44d106` linha vira `div` + grade 48px. `574213d` + `4cb0d68` menu. `ea1a534` abertura: mensagens primeiro, sem `exists()` por arquivo, índice `(conversa, id)`, ficha em 90s. Cache `lista6`. HEAD `ea1a534`, **5** à frente. Sem push |
 | **Migrate** | **NÃO** |
 | **Loja** | Push desta filial **não reinicia** a Sistvale. Só o Zap recarrega (~2 min). PDV e venda seguem |
 | **Próximo chat** | Renan pediu subir **tudo junto** depois. Frase + senha na mesma mensagem → `git push origin whatsapp`. Não fazer push em `producao` |
