@@ -1294,17 +1294,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 **WA-RENDER-SPLIT** · **WA-NOME-AGENDA** · enviado à filial `whatsapp` · 31/10
+### 🟡 **WA-RENDER-SPLIT** · **WA-LISTA-COLUNA** · pronto, **sem push** · 31/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **No ar** | `6ef12fe` no **agro-consulta-wa**. Barra mostra `v27.26.44.1 · 6ef12fe` nesse endereço. `sistvale.com.br/atendimento-whatsapp/` é a tela antiga |
-| **Enviado** | Autorizado 31/10 (frase + senha). `b1576be` em cima do `6ef12fe`: nome com letras não vira telefone. Cadastro com `\` usa a agenda (Amanda) |
+| **No ar** | `ea351fd` no **agro-consulta-wa**. Barra `v27.26.44.1 · ea351fd` no endereço onrender. `sistvale.com.br/atendimento-whatsapp/` é a tela antiga |
+| **Pronto local** | `0bc4135` — lista em grade: foto fixa em 3rem, nome na segunda coluna. No print `ea351fd`, nome com foto começava em x=121 e sem foto em x=183 |
 | **Migrate** | **NÃO** |
-| **Loja** | Push desta filial **não reinicia** a Sistvale. Só o Zap recarrega (~2 min) |
+| **Loja** | Push desta filial **não reinicia** a Sistvale. Só o Zap recarrega (~2 min). PDV e venda seguem |
 | **Próximo chat** | Frase + senha na mesma mensagem → `git push origin whatsapp`. Não fazer push em `producao` |
 | **Não volta** | Áudio e foto que já sumiram do disco |
-| **Prova** | `verify_wa_nome_loja_path.py` **14/14** · `verify_wa_render_split_path.py` **21/21** · PIN **9973** não roda aqui (sem o Postgres da loja) |
+| **Prova** | Medição no print da lista. CSS só em `_wa_skin.html`. Provas anteriores do nome: **14/14** e **21/21**. PIN **9973** não roda aqui (sem o Postgres da loja) |
 | **Não fazer** | `AGRO_WA_PUBLIC_ORIGIN` no serviço do Zap |
 
 ### ✅ CHECKLIST ÚNICO — **29/10** · 🟢 **pronto envio produção** · **NFE-QTD-DECIMAL**
