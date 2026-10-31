@@ -1294,14 +1294,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 **WA-RENDER-SPLIT** · filial `whatsapp` · 31/10
+### 🟡 **WA-RENDER-SPLIT** · **WA-NOME-LISTA** · pronto, **não enviado** · 31/10 · lojas abertas
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Nome do cliente na lista (não o da loja) + fotos no poll + serviço separado. Mensagem do celular não regrava o nome da empresa por cima do telefone |
-| **Sobe** | Só a filial **`whatsapp`** → serviço **agro-consulta-wa**. A loja (`producao`) não entra neste commit |
+| **O quê** | Chat que ficou só com o telefone passa a usar o cadastro e, se não houver, a agenda. Lista não escorrega para o lado. Busca do cadastro em lotes de 40 |
+| **Onde** | Commit local na filial `whatsapp`, **ainda sem push**. Origem continua em `2fef8d0e0` |
+| **No ar hoje** | `2fef8d0e0` no **agro-consulta-wa**. A loja (`producao`) não tem este pacote |
 | **Migrate** | **NÃO** |
-| **Não fazer** | `AGRO_WA_PUBLIC_ORIGIN` no serviço do Zap. Na loja, só depois que o mesmo código estiver na `producao` |
+| **Loja** | Este envio **não reinicia** a Sistvale. Só o serviço do Zap recarrega (~2 min). PDV e venda seguem |
+| **Próximo chat** | Frase + senha na mesma mensagem → `git push origin whatsapp` e só isso. Não fazer push em `producao` |
+| **Não volta** | Áudio e foto de antes do deploy: o disco do Render apagou o arquivo. Mensagem nova grava de novo |
+| **Prova** | `verify_wa_nome_loja_path.py` **13/13** · `verify_wa_render_split_path.py` **18/18** · PIN **9973** não roda aqui (sem o Postgres da loja) |
+| **Não fazer** | `AGRO_WA_PUBLIC_ORIGIN` no serviço do Zap |
 
 ### ✅ CHECKLIST ÚNICO — **29/10** · 🟢 **pronto envio produção** · **NFE-QTD-DECIMAL**
 

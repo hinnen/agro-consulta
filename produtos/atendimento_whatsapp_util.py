@@ -430,12 +430,13 @@ def _nomes_conhecidos_por_conversa(convs: list, cfg: dict | None) -> dict[int, s
                 if len(dig) >= 11:
                     agenda[("t", dig[-11:])] = nome
     cadastro: dict[str, str] = {}
-    sufixos = {v[-11:] if len(v) >= 11 else v for v in variantes if len(v) >= 10}
-    if sufixos:
+    sufixos = sorted({v[-11:] if len(v) >= 11 else v for v in variantes if len(v) >= 10})
+    for i in range(0, len(sufixos), 40):
+        lote = sufixos[i : i + 40]
         q = Q()
-        for s in sufixos:
+        for s in lote:
             q |= Q(whatsapp__endswith=s)
-        for cli in ClienteAgro.objects.filter(ativo=True).filter(q).only("nome", "whatsapp")[:800]:
+        for cli in ClienteAgro.objects.filter(ativo=True).filter(q).only("nome", "whatsapp"):
             nome = (cli.nome or "").strip()
             if not nome or _nome_e_da_loja(nome, cfg):
                 continue
