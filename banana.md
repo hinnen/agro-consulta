@@ -1299,7 +1299,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Chat que ficou só com o telefone passa a usar o cadastro e, se não houver, a agenda. Lista não escorrega. Fotinha: olha os 120 chats recentes e pede de novo se o arquivo sumiu. Barra de cima do Zap mostra `vVERSION · commit` |
-| **Onde** | No ar: `88fa449`. Pronto e **sem push**: fotinha, badge `vVERSION · commit`, nome só dos chats da tela, bolha limitada, áudio sem arquivo não abre player mudo |
+| **Onde** | Autorizado 31/10 (frase + senha). Push da filial `whatsapp` em cima de `88fa449`: fotinha, badge `vVERSION · commit`, nome só da tela, bolha, áudio sem arquivo |
 | **No ar hoje** | `2fef8d0e0` no **agro-consulta-wa**. A loja (`producao`) não tem este pacote |
 | **Migrate** | **NÃO** |
 | **Loja** | Este envio **não reinicia** a Sistvale. Só o serviço do Zap recarrega (~2 min). PDV e venda seguem |
