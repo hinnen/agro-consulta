@@ -174,6 +174,7 @@ X_FRAME_OPTIONS = 'SAMEORIGIN'
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'base.canonical_redirect_middleware.AgroCanonicalHostRedirectMiddleware',
+    'base.wa_split_middleware.AgroWhatsAppSplitMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -237,6 +238,7 @@ TEMPLATES = [
                 'produtos.context_processors.agro_banco_placeholder_ui',
                 'produtos.context_processors.agro_app_build',
                 'produtos.context_processors.agro_display_scale_ui',
+                'produtos.context_processors.agro_wa_public_urls',
             ],
         },
     },
@@ -582,6 +584,14 @@ VENDA_ERP_FORMA_PAGAMENTO_FIADO = config(
 # WhatsApp após impressão de cupom de transferência (Vila Elias). Vazio = usa PDV_ENTREGA_WHATSAPP.
 TRANSFERENCIA_WHATSAPP = config('TRANSFERENCIA_WHATSAPP', default='').strip()
 AGRO_WA_BRIDGE_TOKEN = (config("AGRO_WA_BRIDGE_TOKEN", default="gm-agro-wa-ponte-local") or "").strip()
+# No PDV (Sistvale): URL do Zap separado. No serviço agro-consulta-wa deixe vazio.
+if "AGRO_WA_PUBLIC_ORIGIN" in os.environ:
+    AGRO_WA_PUBLIC_ORIGIN = (os.environ.get("AGRO_WA_PUBLIC_ORIGIN") or "").strip().rstrip("/")
+else:
+    AGRO_WA_PUBLIC_ORIGIN = config(
+        "AGRO_WA_PUBLIC_ORIGIN",
+        default="https://agro-consulta-wa.onrender.com",
+    ).strip().rstrip("/")
 # Token para endpoint HTTP do cron de alertas (sem shell). Mantenha forte e secreto.
 ALERTA_VENDAS_CRON_TOKEN = config('ALERTA_VENDAS_CRON_TOKEN', default='').strip()
 # Backup Postgres noturno (FL-048) — só produção; ver pg_backup_nightly.py

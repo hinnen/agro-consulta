@@ -1204,6 +1204,16 @@ urlpatterns = [
         name='api_atendimento_whatsapp_recurso_acao',
     ),
     path(
+        'api/atendimento-whatsapp/bridge/orcamento/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_orcamento,
+        name='api_atendimento_whatsapp_bridge_orcamento',
+    ),
+    path(
+        'api/pdv/zap-loja/orcamento/',
+        views_atendimento_whatsapp.api_pdv_zap_loja_orcamento,
+        name='api_pdv_zap_loja_orcamento',
+    ),
+    path(
         'api/pdv/topbar-clique/',
         views_pdv_topbar.api_pdv_topbar_clique,
         name='api_pdv_topbar_clique',
