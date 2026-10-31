@@ -1294,12 +1294,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 **WA-RENDER-SPLIT** · **WA-NOME-LISTA** · pronto, **não enviado** · 31/10 · lojas abertas
+### 🟡 **WA-RENDER-SPLIT** · **WA-NOME-LISTA** · enviado à filial `whatsapp` · 31/10
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Chat que ficou só com o telefone passa a usar o cadastro e, se não houver, a agenda. Lista não escorrega para o lado. Busca do cadastro em lotes de 40 |
-| **Onde** | Commit local na filial `whatsapp`, **ainda sem push**. Origem continua em `2fef8d0e0` |
+| **Onde** | Autorizado 31/10 (frase + senha). Push da filial `whatsapp` a partir de `2fef8d0e0` |
 | **No ar hoje** | `2fef8d0e0` no **agro-consulta-wa**. A loja (`producao`) não tem este pacote |
 | **Migrate** | **NÃO** |
 | **Loja** | Este envio **não reinicia** a Sistvale. Só o serviço do Zap recarrega (~2 min). PDV e venda seguem |
