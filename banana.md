@@ -1318,7 +1318,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | O Zap separado aceita o orçamento que a Sistvale vai encaminhar |
-| **Revert** | não dar push nesta filial |
+| **Revert** | voltar a filial `whatsapp` para `33e58d6` |
 
 ### 🟢 **WA-LISTA-MENU** · enviado à filial `whatsapp` · 31/10
 
