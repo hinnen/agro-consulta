@@ -853,6 +853,48 @@ def api_atendimento_whatsapp_bridge_pedido_ok(request):
     return JsonResponse({"ok": True})
 
 
+def _orcamento_zap_loja(data: dict, autor: str) -> tuple[bool, str, int]:
+    from produtos.atendimento_whatsapp_bot_config import carregar_bot
+    from produtos.atendimento_whatsapp_recursos import recurso_on
+
+    cfg = carregar_bot()
+    if not recurso_on(cfg, "feat_orcamento_zap"):
+        return False, "Ligue «Orçamento no Zap» em Bot → Recursos.", 0
+    texto = str(data.get("texto") or "").strip()
+    if not texto:
+        return False, "Texto do orçamento vazio.", 0
+    try:
+        cid = int(data.get("conversa_id") or 0)
+    except (TypeError, ValueError):
+        cid = 0
+    if cid <= 0:
+        conv, err_ab = abrir_conversa_busca(
+            telefone=str(data.get("telefone") or ""),
+            nome=str(data.get("nome") or ""),
+            jid=str(data.get("jid") or ""),
+        )
+        if err_ab or conv is None:
+            return False, err_ab or "Não achou o chat.", 0
+        cid = int(conv.pk)
+    m, err = enviar_loja(conversa_id=cid, texto=texto, autor=autor or "Loja")
+    if m is None or err:
+        return False, err or "Não enviou.", 0
+    return True, "", cid
+
+
+@csrf_exempt
+@require_POST
+def api_atendimento_whatsapp_bridge_orcamento(request):
+    """O PDV da Sistvale manda o orçamento para cá."""
+    if not token_ponte_ok(request):
+        return _bridge_forbidden()
+    data = _json_body(request) or {}
+    ok, err, cid = _orcamento_zap_loja(data, str(data.get("autor") or "Loja"))
+    if not ok:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse({"ok": True, "conversa_id": cid})
+
+
 @login_required(login_url="/entrar/")
 @require_GET
 def api_atendimento_whatsapp_recursos(request):
