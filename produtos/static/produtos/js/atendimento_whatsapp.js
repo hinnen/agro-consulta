@@ -1209,6 +1209,7 @@
       arq
         ? { id: 'reabrir', label: 'Reabrir conversa' }
         : { id: 'arquivar', label: 'Arquivar conversa' },
+      { id: 'apagar', label: 'Apagar conversa' },
     ]);
     menuCtx.setAttribute('data-cid', btn.getAttribute('data-id') || '');
   });
@@ -1220,10 +1221,15 @@
     var id = menuCtx.getAttribute('data-cid');
     var acao = b.getAttribute('data-ctx');
     fecharCtx();
+    if (acao === 'apagar') {
+      if (!window.confirm('Apagar esta conversa da lista? (Só no Agro — não apaga no celular.)')) return;
+    }
     var url =
       acao === 'reabrir'
         ? '/api/atendimento-whatsapp/reabrir/'
-        : '/api/atendimento-whatsapp/concluir/';
+        : acao === 'apagar'
+          ? '/api/atendimento-whatsapp/excluir/'
+          : '/api/atendimento-whatsapp/concluir/';
     fetchJson(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },

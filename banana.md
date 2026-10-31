@@ -1294,18 +1294,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 **WA-RENDER-SPLIT** · **WA-LISTA-FLEX** · enviado à filial `whatsapp` · 31/10
+### 🟡 **WA-RENDER-SPLIT** · lista + menu · **local, sem push** · 31/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **No ar** | `596105c` no **agro-consulta-wa**. Essa grade no botão escondeu a foto no Chrome. Barra `v27.26.44.1 · 596105c` |
-| **Enviado** | Autorizado 31/10 (frase + senha). `85f4084` em cima do `596105c`: tira a grade do botão. Foto e letra num quadrado de 48px |
+| **No ar** | `d4ee779` no **agro-consulta-wa**. Foto voltou. Renan: da Elaine pra cima a coluna ok; da Vera pra baixo ainda torta. Barra `v27.26.44.1 · d4ee779` |
+| **Local (não enviado)** | `e44d106` linha vira `div` + grade 48px (foto e letra no mesmo eixo). `574213d` clique direito: Arquivar ou Reabrir. Em seguida: **Apagar** no mesmo menu (confirma igual ao botão; `POST /excluir/`). Cache `lista5` |
 | **Migrate** | **NÃO** |
 | **Loja** | Push desta filial **não reinicia** a Sistvale. Só o Zap recarrega (~2 min). PDV e venda seguem |
-| **Próximo chat** | Frase + senha na mesma mensagem → `git push origin whatsapp`. Não fazer push em `producao` |
+| **Próximo chat** | Renan pediu subir **tudo junto** depois. Frase + senha na mesma mensagem → `git push origin whatsapp`. Não fazer push em `producao` |
+| **Menu** | Fila: Arquivar (Resolvidas). Resolvida: Reabrir (volta pra fila). Sempre: Apagar (só no Agro, não no celular) |
 | **Fotos** | O deploy apaga o arquivo no disco. Sem a ponte passar de «Ligando...» e mostrar «Django:», a fotinha não volta |
-| **Prova** | Revisão do HTML do botão (`.wa-av` + `.wa-item-body`) contra o CSS. Sem browser aqui. PIN **9973** não roda (sem o Postgres da loja) |
-| **Não fazer** | `AGRO_WA_PUBLIC_ORIGIN` no serviço do Zap. Não recolocar `display: grid` no botão da lista |
+| **Prova** | `node --check` no JS. Sem browser (login da loja). PIN **9973** não roda (sem o Postgres da loja) |
+| **Não fazer** | `AGRO_WA_PUBLIC_ORIGIN` no serviço do Zap. Não subir sem a senha de novo |
 
 ### ✅ CHECKLIST ÚNICO — **29/10** · 🟢 **pronto envio produção** · **NFE-QTD-DECIMAL**
 
