@@ -765,8 +765,6 @@ def serializar_conversa(c: WhatsAppConversaAgro) -> dict:
 
 def ficha_contato_conversa(conversa_id: int) -> tuple[dict | None, str]:
     """Dados do chat + cadastro Agro (quando o número casa)."""
-    from produtos.cliente_whatsapp_util import cliente_agro_por_whatsapp_flex
-
     try:
         conv = WhatsAppConversaAgro.objects.get(pk=int(conversa_id))
     except (WhatsAppConversaAgro.DoesNotExist, TypeError, ValueError):
@@ -783,11 +781,7 @@ def ficha_contato_conversa(conversa_id: int) -> tuple[dict | None, str]:
     cli = None
     varios = False
     if tel:
-        hit = cliente_agro_por_whatsapp_flex(tel)
-        if hit == "varios":
-            varios = True
-        elif hit is not None:
-            cli = hit
+        cli, varios = _ficha_cadastro_por_telefone(tel)
     out = {
         "conversa_id": int(conv.pk),
         "nome": (conv.nome or "")[:120],
@@ -800,16 +794,68 @@ def ficha_contato_conversa(conversa_id: int) -> tuple[dict | None, str]:
         "cadastro_varios": varios,
     }
     if cli is not None:
-        out["cadastro"] = {
-            "id": int(cli.pk),
-            "nome": (cli.nome or "")[:200],
-            "whatsapp": (cli.whatsapp or "")[:32],
-            "cpf": (cli.cpf or "")[:14],
-            "endereco": (cli.endereco or "")[:300],
-            "cidade": (cli.cidade or "")[:120],
-            "url": f"/clientes/{int(cli.pk)}/editar/",
-        }
+        out["cadastro"] = cli
     return out, ""
+
+
+def _ficha_cadastro_por_telefone(tel: str) -> tuple[dict | None, bool]:
+    """Cadastro da ficha. Um índice de 90s — não varre a tabela a cada clique."""
+    import time
+
+    agora = time.monotonic()
+    cache = getattr(_ficha_cadastro_por_telefone, "_cache", None)
+    if not (isinstance(cache, dict) and (agora - float(cache.get("t") or 0)) < 90.0):
+        from produtos.models import ClienteAgro
+
+        idx: dict[str, dict | str] = {}
+        for cli in (
+            ClienteAgro.objects.filter(ativo=True)
+            .only("pk", "nome", "whatsapp", "cpf", "endereco", "cidade")
+            .iterator()
+        ):
+            dig = re.sub(r"\D+", "", cli.whatsapp or "")
+            if len(dig) < 10:
+                continue
+            rec = {
+                "id": int(cli.pk),
+                "nome": (cli.nome or "")[:200],
+                "whatsapp": (cli.whatsapp or "")[:32],
+                "cpf": (cli.cpf or "")[:14],
+                "endereco": (cli.endereco or "")[:300],
+                "cidade": (cli.cidade or "")[:120],
+                "url": f"/clientes/{int(cli.pk)}/editar/",
+            }
+            chaves = [dig[-11:] if len(dig) >= 11 else dig]
+            if len(dig) >= 10:
+                chaves.append(dig[-10:])
+            for key in chaves:
+                prev = idx.get(key)
+                if prev is None:
+                    idx[key] = rec
+                elif prev != "varios" and int(prev.get("id") or 0) != rec["id"]:
+                    idx[key] = "varios"
+        cache = {"t": agora, "idx": idx}
+        _ficha_cadastro_por_telefone._cache = cache  # type: ignore[attr-defined]
+    idx = cache.get("idx") or {}
+    d = re.sub(r"\D+", "", tel or "")
+    if len(d) < 10:
+        return None, False
+    chaves = []
+    if len(d) >= 11:
+        chaves.append(d[-11:])
+    if len(d) >= 10:
+        chaves.append(d[-10:])
+    hit = None
+    for key in chaves:
+        val = idx.get(key)
+        if val == "varios":
+            return None, True
+        if isinstance(val, dict):
+            hit = val
+            break
+    if not hit:
+        return None, False
+    return dict(hit), False
 
 
 def serializar_mensagem(m: WhatsAppMensagemAgro) -> dict:
@@ -829,12 +875,11 @@ def serializar_mensagem(m: WhatsAppMensagemAgro) -> dict:
     if not apagada and tipo == "pix_copy" and PIX_COPY_SEP in texto:
         texto = texto.replace(PIX_COPY_SEP, "\n").strip()
     midia = ""
+    # Não consulta o disco aqui. Cada exists() segurava o clique (até 120 por conversa).
+    # Se o arquivo sumiu no deploy, a imagem/áudio falha e a tela troca o aviso.
+    if not apagada and str(getattr(m.arquivo, "name", "") or ""):
+        midia = f"/api/atendimento-whatsapp/midia/{int(m.pk)}/"
     midia_perdida = False
-    if not apagada and m.arquivo:
-        if _arquivo_campo_existe(m.arquivo):
-            midia = f"/api/atendimento-whatsapp/midia/{int(m.pk)}/"
-        elif (tipo or "") in ("image", "audio", "sticker", "video"):
-            midia_perdida = True
     return {
         "id": int(m.pk),
         "conversa_id": int(m.conversa_id),
@@ -851,16 +896,6 @@ def serializar_mensagem(m: WhatsAppMensagemAgro) -> dict:
         "apagada": apagada,
         "pode_apagar": pode,
     }
-
-
-def _arquivo_campo_existe(arq) -> bool:
-    nome = str(getattr(arq, "name", "") or "")
-    if not nome:
-        return False
-    try:
-        return bool(arq.storage.exists(nome))
-    except Exception:
-        return False
 
 
 def _preencher_nomes_da_tela(rows: list) -> None:
@@ -924,10 +959,11 @@ def listar_mensagens(*, conversa_id: int, after_id: int = 0, limit: int = 120) -
     if aid > 0:
         qs = qs.filter(id__gt=aid).order_by("id")[:lim]
         return [serializar_mensagem(m) for m in qs]
-    ids = list(qs.order_by("-criado_em", "-id").values_list("id", flat=True)[:lim])
+    # Índice é (conversa, id). Ordenar por data não usa esse índice e a abertura espera.
+    ids = list(qs.order_by("-id").values_list("id", flat=True)[:lim])
     if not ids:
         return []
-    rows = list(WhatsAppMensagemAgro.objects.filter(id__in=ids).order_by("criado_em", "id"))
+    rows = list(WhatsAppMensagemAgro.objects.filter(id__in=ids).order_by("id"))
     return [serializar_mensagem(m) for m in rows]
 
 
@@ -2523,10 +2559,24 @@ def _foto_no_disco(conv: WhatsAppConversaAgro) -> bool:
     nome = str(getattr(arq, "name", "") or "")
     if not nome:
         return False
+    import time
+
+    agora = time.monotonic()
+    cache = getattr(_foto_no_disco, "_cache", None)
+    if not isinstance(cache, dict):
+        cache = {}
+        _foto_no_disco._cache = cache  # type: ignore[attr-defined]
+    hit = cache.get(nome)
+    if isinstance(hit, tuple) and (agora - float(hit[0])) < 20.0:
+        return bool(hit[1])
     try:
-        return bool(arq.storage.exists(nome))
+        ok = bool(arq.storage.exists(nome))
     except Exception:
-        return False
+        ok = False
+    if len(cache) > 400:
+        cache.clear()
+    cache[nome] = (agora, ok)
+    return ok
 
 
 def listar_fotos_pendentes(*, limit: int = 25) -> list[dict]:

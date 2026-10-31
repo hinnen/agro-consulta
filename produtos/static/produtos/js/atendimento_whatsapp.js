@@ -1076,27 +1076,36 @@
       msgsEl.innerHTML = '<p class="text-sm font-semibold text-slate-400 px-1 py-2">Carregando…</p>';
     }
     zerarBadgeItemLista(convId);
-    fetchJson('/api/atendimento-whatsapp/mensagens/?conversa_id=' + convId).then(function (j) {
-      if (seq !== convAbreSeq) return;
-      var rows = (j && j.mensagens) || [];
-      pintarMsgs(rows, false);
-      if (rows.length) afterId = rows[rows.length - 1].id;
-      rows.forEach(function (m) {
-        if (m.direcao === 'in' && m.id > lastSeenIn) lastSeenIn = m.id;
-      });
-    });
-    fetchJson('/api/atendimento-whatsapp/ficha/?conversa_id=' + convId).then(function (j) {
-      if (seq !== convAbreSeq) return;
-      var f = j && j.ficha;
-      if (!f) return;
-      if (f.nome) {
-        convNome = nomeExibicao(f);
-        if (nomeEl) nomeEl.textContent = convNome;
-        pintarTopoAvatar(convNome, convFoto || f.foto_url || '');
+    fetchJson('/api/atendimento-whatsapp/mensagens/?conversa_id=' + convId, { timeoutMs: 20000 }).then(
+      function (j) {
+        if (seq !== convAbreSeq) return;
+        if (!j || !j.ok) {
+          if (msgsEl) {
+            msgsEl.innerHTML =
+              '<p class="text-sm font-semibold text-slate-500 px-1 py-2">Não carregou. Clique de novo.</p>';
+          }
+          return;
+        }
+        var rows = j.mensagens || [];
+        pintarMsgs(rows, false);
+        if (rows.length) afterId = rows[rows.length - 1].id;
+        rows.forEach(function (m) {
+          if (m.direcao === 'in' && m.id > lastSeenIn) lastSeenIn = m.id;
+        });
+        fetchJson('/api/atendimento-whatsapp/ficha/?conversa_id=' + convId).then(function (fj) {
+          if (seq !== convAbreSeq) return;
+          var f = fj && fj.ficha;
+          if (!f) return;
+          if (f.nome) {
+            convNome = nomeExibicao(f);
+            if (nomeEl) nomeEl.textContent = convNome;
+            pintarTopoAvatar(convNome, convFoto || f.foto_url || '');
+          }
+          if (f.telefone) convTel = f.telefone;
+          if (f.loja) convLoja = f.loja;
+        });
       }
-      if (f.telefone) convTel = f.telefone;
-      if (f.loja) convLoja = f.loja;
-    });
+    );
     fetch('/api/atendimento-whatsapp/marcar-lida/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
@@ -1164,6 +1173,26 @@
       trocarFiltroLista(b.getAttribute('data-filtro') || 'hora');
     });
   });
+
+  var msgsBoxErro = $('wa-msgs');
+  if (msgsBoxErro) {
+    msgsBoxErro.addEventListener(
+      'error',
+      function (ev) {
+        var t = ev.target;
+        if (!t || !t.classList) return;
+        var txt = '';
+        if (t.classList.contains('wa-pic')) txt = 'Foto não está mais no servidor.';
+        else if (t.classList.contains('wa-aud')) txt = 'Áudio não está mais no servidor.';
+        if (!txt) return;
+        var s = document.createElement('span');
+        s.className = 'text-xs text-slate-500';
+        s.textContent = txt;
+        if (t.parentNode) t.parentNode.replaceChild(s, t);
+      },
+      true
+    );
+  }
 
   $('wa-lista').addEventListener('click', function (ev) {
     var btn = ev.target.closest('[data-id]');
