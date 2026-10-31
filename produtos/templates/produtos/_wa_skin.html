@@ -143,6 +143,18 @@
     width: 48px; height: 48px; max-width: 48px; margin: 0;
     object-fit: cover; display: block;
   }
+  .wa-ctx {
+    position: fixed; z-index: 80; min-width: 14rem;
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+    box-shadow: 0 12px 28px rgb(15 23 42 / .18); padding: 6px;
+  }
+  .wa-ctx[hidden] { display: none !important; }
+  .wa-ctx-btn {
+    display: block; width: 100%; text-align: left; border: 0; background: transparent;
+    font-weight: 800; font-size: 1rem; padding: 12px 14px; border-radius: 8px;
+    cursor: pointer; color: #0f172a;
+  }
+  .wa-ctx-btn:hover, .wa-ctx-btn:focus { background: #f1f5f9; outline: none; }
   .wa-skin .wa-item .wa-av-ini {
     font-size: 1.05rem; font-weight: 900; color: #475569; line-height: 1;
   }

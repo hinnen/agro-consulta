@@ -1171,6 +1171,82 @@
     abrirConversa(btn.getAttribute('data-id'));
   });
 
+  var menuCtx = document.createElement('div');
+  menuCtx.id = 'wa-ctx';
+  menuCtx.className = 'wa-ctx';
+  menuCtx.hidden = true;
+  document.body.appendChild(menuCtx);
+
+  function fecharCtx() {
+    menuCtx.hidden = true;
+    menuCtx.innerHTML = '';
+  }
+
+  function abrirCtx(x, y, itens) {
+    menuCtx.innerHTML = itens
+      .map(function (it) {
+        return (
+          '<button type="button" class="wa-ctx-btn" data-ctx="' +
+          it.id +
+          '">' +
+          escapeHtml(it.label) +
+          '</button>'
+        );
+      })
+      .join('');
+    menuCtx.hidden = false;
+    var largura = 240;
+    menuCtx.style.left = Math.max(8, Math.min(x, window.innerWidth - largura - 8)) + 'px';
+    menuCtx.style.top = Math.max(8, Math.min(y, window.innerHeight - 120)) + 'px';
+  }
+
+  $('wa-lista').addEventListener('contextmenu', function (ev) {
+    var btn = ev.target.closest('.wa-item[data-id]');
+    if (!btn) return;
+    ev.preventDefault();
+    var arq = btn.getAttribute('data-arquivada') === '1';
+    abrirCtx(ev.clientX, ev.clientY, [
+      arq
+        ? { id: 'reabrir', label: 'Reabrir conversa' }
+        : { id: 'arquivar', label: 'Arquivar conversa' },
+    ]);
+    menuCtx.setAttribute('data-cid', btn.getAttribute('data-id') || '');
+  });
+
+  menuCtx.addEventListener('click', function (ev) {
+    var b = ev.target.closest('[data-ctx]');
+    if (!b) return;
+    ev.stopPropagation();
+    var id = menuCtx.getAttribute('data-cid');
+    var acao = b.getAttribute('data-ctx');
+    fecharCtx();
+    var url =
+      acao === 'reabrir'
+        ? '/api/atendimento-whatsapp/reabrir/'
+        : '/api/atendimento-whatsapp/concluir/';
+    fetchJson(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+      body: JSON.stringify({ conversa_id: Number(id) }),
+    }).then(function (j) {
+      if (!j || !j.ok) {
+        window.alert((j && j.erro) || 'Não fez.');
+        return;
+      }
+      if (String(convId) === String(id)) {
+        limparChatAberto();
+        telaCel(false);
+      }
+      carregarEstado();
+      carregarLista();
+    });
+  });
+
+  document.addEventListener('click', fecharCtx);
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape') fecharCtx();
+  });
+
   var MIDIA_TETO = 3 * 1024 * 1024;
   var recStream = null;
   var recChunks = [];
