@@ -1301,7 +1301,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **No ar (após o deploy)** | Autorizado 31/10 (frase + senha). Pacote em cima do `d4ee779`: linha `div`+grade, menu do clique direito, abertura mais leve, **Limpar** saiu, **Marcar** entrou. Cache `lista7`. A barra mostra os 7 primeiros do commit que acabou de subir |
 | **Migrate** | **NÃO** |
 | **Loja** | Este push **não** é `producao`. Não reinicia a Sistvale. O Zap recarrega (~2 min) e o disco efêmero zera foto/áudio de novo |
-| **Enviado** | Autorizado 31/10 (quero sim + senha). Sobe PIN fora do Bot/Chat e a ponte que busca foto na hora (`forcar`). A barra muda. O `iniciar.bat` do PC **não** atualiza sozinho: a pasta da ponte precisa deste `index.js` e a janela aberta de novo |
+| **Enviado** | 31/10 senha. `242818a` cala a sessão do Zap na janela do `iniciar.bat` (chave/Buffer). A pasta da ponte no PC **não** atualiza sozinha: precisa deste `index.js` e a janela fechada e aberta de novo |
 | **Próximo chat** | Não fazer push em `producao` sem frase + senha de novo |
 | **Menu** | Fila: Arquivar. Resolvida: Reabrir. Sempre: Apagar (só no Agro). Marcar: as mesmas + Marcar lidas. Sem botão que apaga a lista inteira |
 | **Prova 31/10** | `verify_wa_nome_loja_path` **14/14**. `verify_wa_render_split_path` **21/21**. Sqlite do lote **10/10** (arquivar, reabrir, lidas, apagar só a marcada, ação inválida recusada, ordem por id, ficha Nathan). `node --check` ok. Sem browser (login). PIN **9973** não entra nestes paths |
