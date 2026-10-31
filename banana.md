@@ -1292,6 +1292,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
+### ✅ CHECKLIST ÚNICO — **31/10** · 🟢 **pronto para envio à produção** · **PDV-WA-SEPARADO**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-WA-SEPARADO** | 🟢 Pronto · **não está na loja** | **NÃO** | ícone verde e botão Loja · middleware 302/503 |
+
+### 📦 PACOTE PRONTO — **PDV-WA-SEPARADO** · 31/10 · nesta filial `teste`
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **Pronto para envio à produção** (frase + senha). A loja hoje segue em **v27.26.44** (`925dd0cf`) |
+| **Entra** | Ícone verde do PDV abre o Zap separado. Botão **Loja** manda o orçamento para esse serviço. A URL antiga do Zap na Sistvale redireciona. NFC-e e venda não mudam |
+| **Onde** | Código nesta filial `teste`. Não está na `producao` |
+| **Migrate** | **NÃO** |
+| **Antes de subir a loja** | O serviço do Zap ainda precisa receber a rota do orçamento (filial `whatsapp`, ainda sem push). Sem isso o botão Loja grava na Sistvale |
+| **Não fazer** | Colocar `AGRO_WA_PUBLIC_ORIGIN` no serviço do Zap |
+
 ### 📦 PACOTE PRONTO — **AJUSTE-BLOCO-TELA** · **v27.26.39** · PREP `teste` @ **`d466d62f`**
 
 | Campo | Valor |
