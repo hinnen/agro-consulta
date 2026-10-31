@@ -1294,19 +1294,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 **WA-RENDER-SPLIT** · lista + menu · **local, sem push** · 31/10
+### 🟢 **WA-LISTA-MENU** · pronto para o Zap · **sem push** · 31/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **No ar** | `d4ee779` no **agro-consulta-wa**. Foto voltou. Renan: da Elaine pra cima a coluna ok; da Vera pra baixo ainda torta. Barra `v27.26.44.1 · d4ee779` |
-| **Local (não enviado)** | Lista `div`+grade. Menu Arquivar/Reabrir/Apagar. Abertura mais leve (`ea1a534`). Botão **Limpar** saiu. **Marcar** seleciona várias: Arquivar, Reabrir (na aba Resolvidas), Marcar lidas, Apagar só as marcadas. Cache `lista7`. Sem push |
+| **No ar** | `d4ee779` no **agro-consulta-wa**. Barra `v27.26.44.1 · d4ee779`. Coluna ainda torta na tela dele (Elaine ok, Vera pra baixo desloca) |
+| **Pronto (7 commits, não enviados)** | `e44d106` linha vira `div` + grade 48px. `574213d`+`4cb0d68` clique direito: Arquivar ou Reabrir + Apagar. `ea1a534` abertura: mensagens primeiro, índice `(conversa, id)`, ficha em 90s, sem `exists()` por arquivo. `28aca270` tira **Limpar** e põe **Marcar** (Arquivar / Reabrir / Marcar lidas / Apagar só as marcadas, `POST /lote/`). Cache `lista7` |
 | **Migrate** | **NÃO** |
-| **Loja** | Push desta filial **não reinicia** a Sistvale. Só o Zap recarrega (~2 min). PDV e venda seguem |
-| **Próximo chat** | Renan pediu subir **tudo junto** depois. Frase + senha na mesma mensagem → `git push origin whatsapp`. Não fazer push em `producao` |
-| **Menu** | Fila: Arquivar (Resolvidas). Resolvida: Reabrir (volta pra fila). Sempre: Apagar (só no Agro, não no celular) |
-| **Fotos** | O deploy apaga o arquivo no disco. Sem a ponte passar de «Ligando...» e mostrar «Django:», a fotinha não volta |
-| **Prova** | `node --check` no JS. Sem browser (login da loja). PIN **9973** não roda (sem o Postgres da loja) |
-| **Não fazer** | `AGRO_WA_PUBLIC_ORIGIN` no serviço do Zap. Não subir sem a senha de novo |
+| **Loja** | Este push **não** é `producao`. Não reinicia a Sistvale. O Zap recarrega (~2 min) e o disco efêmero zera foto/áudio de novo |
+| **Próximo chat** | Frase + senha `99738595` na **mesma** mensagem → só `git push origin whatsapp`. Não fazer push em `producao`. Lojas abertas: **não enviar** antes disso |
+| **Menu** | Fila: Arquivar. Resolvida: Reabrir. Sempre: Apagar (só no Agro). Marcar: as mesmas + Marcar lidas. Sem botão que apaga a lista inteira |
+| **Prova 31/10** | `verify_wa_nome_loja_path` **14/14**. `verify_wa_render_split_path` **21/21**. Sqlite do lote **10/10** (arquivar, reabrir, lidas, apagar só a marcada, ação inválida recusada, ordem por id, ficha Nathan). `node --check` ok. Sem browser (login). PIN **9973** não entra nestes paths |
+| **Não fazer** | `AGRO_WA_PUBLIC_ORIGIN` no serviço do Zap |
 
 ### ✅ CHECKLIST ÚNICO — **29/10** · 🟢 **pronto envio produção** · **NFE-QTD-DECIMAL**
 
