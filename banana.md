@@ -1298,7 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Nome do cliente na lista (não o da loja) + fotos no poll + serviço separado |
+| **O quê** | Nome do cliente na lista (não o da loja) + fotos no poll + serviço separado. Mensagem do celular não regrava o nome da empresa por cima do telefone |
 | **Sobe** | Só a filial **`whatsapp`** → serviço **agro-consulta-wa**. A loja (`producao`) não entra neste commit |
 | **Migrate** | **NÃO** |
 | **Não fazer** | `AGRO_WA_PUBLIC_ORIGIN` no serviço do Zap. Na loja, só depois que o mesmo código estiver na `producao` |
