@@ -6,6 +6,9 @@ logger = logging.getLogger(__name__)
 
 
 def home_launcher_nav(request):
+    path = (getattr(request, "path", None) or "").lower()
+    if path.startswith("/atendimento-whatsapp"):
+        return {"home_launcher_nav_items": []}
     try:
         from produtos.views import home_launcher_nav_items
 
@@ -16,6 +19,9 @@ def home_launcher_nav(request):
 
 
 def agro_emprestimo_dual_ui(request):
+    path = (getattr(request, "path", None) or "").lower()
+    if path.startswith("/atendimento-whatsapp"):
+        return {"agro_emprestimo_dual_cfg": {}}
     try:
         from produtos.mongo_financeiro_util import emprestimo_defaults_para_ui
 

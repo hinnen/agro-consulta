@@ -215,10 +215,10 @@ def api_atendimento_whatsapp_bot_salvar(request):
 @login_required(login_url="/entrar/")
 @require_GET
 def api_atendimento_whatsapp_estado(request):
-    from produtos.atendimento_whatsapp_bot_config import carregar_bot, cfg_flag
-    from produtos.atendimento_whatsapp_recursos import catalogo_para_api, flags_recursos
+    from produtos.atendimento_whatsapp_bot_config import carregar_bot_leve, cfg_flag
+    from produtos.atendimento_whatsapp_recursos import flags_recursos
 
-    cfg = carregar_bot()
+    cfg = carregar_bot_leve()
     return JsonResponse(
         {
             "ok": True,
@@ -229,7 +229,6 @@ def api_atendimento_whatsapp_estado(request):
                 "xfer_avisar_cliente": cfg_flag(cfg, "xfer_avisar_cliente", default=True),
             },
             "recursos": flags_recursos(cfg),
-            "recursos_catalogo": catalogo_para_api(cfg),
             "respostas_prontas": str(cfg.get("respostas_prontas") or ""),
         }
     )
