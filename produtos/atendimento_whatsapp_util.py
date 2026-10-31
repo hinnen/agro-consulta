@@ -377,6 +377,27 @@ def corrigir_nomes_que_sao_da_loja(*, cfg: dict | None = None) -> int:
     return n
 
 
+def _indice_cadastro_por_sufixo() -> dict[str, str]:
+    """Número só com dígitos → nome. Vale com máscara no cadastro (13) 99601-0981."""
+    import time
+
+    agora = time.monotonic()
+    cache = getattr(_indice_cadastro_por_sufixo, "_cache", None)
+    if isinstance(cache, dict) and (agora - float(cache.get("t") or 0)) < 90.0:
+        return cache.get("idx") or {}
+    from produtos.models import ClienteAgro
+
+    idx: dict[str, str] = {}
+    for cli in ClienteAgro.objects.filter(ativo=True).only("nome", "whatsapp").iterator():
+        nome = (cli.nome or "").strip()
+        dig = re.sub(r"\D+", "", cli.whatsapp or "")
+        if len(dig) < 10 or not nome:
+            continue
+        idx[dig[-11:] if len(dig) >= 11 else dig] = nome[:120]
+    _indice_cadastro_por_sufixo._cache = {"t": agora, "idx": idx}  # type: ignore[attr-defined]
+    return idx
+
+
 def _variantes_telefone(tel: str) -> list[str]:
     d = re.sub(r"\D+", "", tel or "")
     out: list[str] = []
@@ -394,10 +415,8 @@ def _variantes_telefone(tel: str) -> list[str]:
 
 
 def _nomes_conhecidos_por_conversa(convs: list, cfg: dict | None) -> dict[int, str]:
-    """Cadastro primeiro, depois a agenda. Uma leva de consultas, sem ler a tabela inteira."""
+    """Cadastro primeiro, depois a agenda."""
     from django.db.models import Q
-
-    from produtos.models import ClienteAgro
 
     infos = []
     variantes: set[str] = set()
@@ -429,20 +448,7 @@ def _nomes_conhecidos_por_conversa(convs: list, cfg: dict | None) -> dict[int, s
                 agenda[("t", dig)] = nome
                 if len(dig) >= 11:
                     agenda[("t", dig[-11:])] = nome
-    cadastro: dict[str, str] = {}
-    sufixos = sorted({v[-11:] if len(v) >= 11 else v for v in variantes if len(v) >= 10})
-    for i in range(0, len(sufixos), 40):
-        lote = sufixos[i : i + 40]
-        q = Q()
-        for s in lote:
-            q |= Q(whatsapp__endswith=s)
-        for cli in ClienteAgro.objects.filter(ativo=True).filter(q).only("nome", "whatsapp"):
-            nome = (cli.nome or "").strip()
-            if not nome or _nome_e_da_loja(nome, cfg):
-                continue
-            dig = re.sub(r"\D+", "", cli.whatsapp or "")
-            if len(dig) >= 10:
-                cadastro[dig[-11:] if len(dig) >= 11 else dig] = nome
+    cadastro = _indice_cadastro_por_sufixo()
     out: dict[int, str] = {}
     for conv, tel, vars_tel in infos:
         hit = ""
@@ -791,8 +797,12 @@ def serializar_mensagem(m: WhatsAppMensagemAgro) -> dict:
     if not apagada and tipo == "pix_copy" and PIX_COPY_SEP in texto:
         texto = texto.replace(PIX_COPY_SEP, "\n").strip()
     midia = ""
+    midia_perdida = False
     if not apagada and m.arquivo:
-        midia = f"/api/atendimento-whatsapp/midia/{int(m.pk)}/"
+        if _arquivo_campo_existe(m.arquivo):
+            midia = f"/api/atendimento-whatsapp/midia/{int(m.pk)}/"
+        elif (tipo or "") in ("image", "audio", "sticker", "video"):
+            midia_perdida = True
     return {
         "id": int(m.pk),
         "conversa_id": int(m.conversa_id),
@@ -805,9 +815,44 @@ def serializar_mensagem(m: WhatsAppMensagemAgro) -> dict:
         "criado_em": criado.isoformat() if criado else "",
         "tipo_midia": "" if tipo == "pix_copy" else tipo,
         "midia_url": midia,
+        "midia_perdida": midia_perdida,
         "apagada": apagada,
         "pode_apagar": pode,
     }
+
+
+def _arquivo_campo_existe(arq) -> bool:
+    nome = str(getattr(arq, "name", "") or "")
+    if not nome:
+        return False
+    try:
+        return bool(arq.storage.exists(nome))
+    except Exception:
+        return False
+
+
+def _preencher_nomes_da_tela(rows: list) -> None:
+    """Só os chats desta tela. Não varre o histórico inteiro (isso não terminava e o número ficava)."""
+    precisa = []
+    for conv in rows:
+        tel = _telefone_real(conv.telefone) or _telefone_real(conv.jid)
+        if not (conv.nome or "").strip() or _nome_parece_telefone(conv.nome, tel):
+            precisa.append(conv)
+    if not precisa:
+        return
+    try:
+        mapa = _nomes_conhecidos_por_conversa(precisa, None)
+    except Exception:
+        return
+    for conv in precisa:
+        novo = mapa.get(int(conv.pk)) or ""
+        if not novo or novo == (conv.nome or ""):
+            continue
+        conv.nome = novo[:120]
+        try:
+            conv.save(update_fields=["nome"])
+        except Exception:
+            continue
 
 
 def listar_conversas(*, loja: str, limit: int = 80) -> list[dict]:
@@ -818,16 +863,19 @@ def listar_conversas(*, loja: str, limit: int = 80) -> list[dict]:
     loja_n = (loja or "").strip().lower()
     lim = max(1, min(int(limit or 80), 200))
     if loja_n in ("arquivadas", "resolvidas", "arquivo"):
-        qs = WhatsAppConversaAgro.objects.filter(arquivada=True)
-        return [serializar_conversa(c) for c in qs.order_by("-arquivada_em", "-ultima_em", "-id")[:lim]]
-    qs = WhatsAppConversaAgro.objects.filter(arquivada=False)
-    if loja_n in (
-        WhatsAppConversaAgro.LOJA_PENDENTE,
-        WhatsAppConversaAgro.LOJA_CENTRO,
-        WhatsAppConversaAgro.LOJA_VILA,
-    ):
-        qs = qs.filter(loja=loja_n)
-    return [serializar_conversa(c) for c in qs.order_by("-ultima_em", "-id")[:lim]]
+        qs = WhatsAppConversaAgro.objects.filter(arquivada=True).order_by("-arquivada_em", "-ultima_em", "-id")
+    else:
+        qs = WhatsAppConversaAgro.objects.filter(arquivada=False)
+        if loja_n in (
+            WhatsAppConversaAgro.LOJA_PENDENTE,
+            WhatsAppConversaAgro.LOJA_CENTRO,
+            WhatsAppConversaAgro.LOJA_VILA,
+        ):
+            qs = qs.filter(loja=loja_n)
+        qs = qs.order_by("-ultima_em", "-id")
+    rows = list(qs[:lim])
+    _preencher_nomes_da_tela(rows)
+    return [serializar_conversa(c) for c in rows]
 
 
 def listar_mensagens(*, conversa_id: int, after_id: int = 0, limit: int = 120) -> list[dict]:

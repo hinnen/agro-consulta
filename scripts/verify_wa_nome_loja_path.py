@@ -204,6 +204,9 @@ def main() -> int:
         nome="5513996010981",
     )
     corrigir_nomes_que_sao_da_loja._mono = 0  # type: ignore[attr-defined]
+    from produtos.atendimento_whatsapp_util import _indice_cadastro_por_sufixo
+
+    _indice_cadastro_por_sufixo._cache = None  # type: ignore[attr-defined]
     corrigir_nomes_que_sao_da_loja(cfg=cfg_quieto())
     conv4 = WhatsAppConversaAgro.objects.get()
     check("telefone na lista vira o cadastro", conv4.nome == "Nathan Hinnen")

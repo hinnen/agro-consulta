@@ -543,9 +543,34 @@ def api_atendimento_whatsapp_trocar(request):
     return JsonResponse({"ok": True})
 
 
+def _ctype_pelos_bytes(raw: bytes, ctype: str) -> str:
+    if raw.startswith(b"OggS"):
+        return "audio/ogg"
+    if raw.startswith(b"ID3") or (len(raw) > 2 and raw[0] == 0xFF and (raw[1] & 0xE0) == 0xE0):
+        return "audio/mpeg"
+    if raw.startswith(b"\x1aE\xdf\xa3"):
+        return "audio/webm"
+    if raw.startswith(b"RIFF") and raw[8:12] == b"WAVE":
+        return "audio/wav"
+    if raw.startswith(b"\x89PNG"):
+        return "image/png"
+    if raw.startswith(b"\xff\xd8"):
+        return "image/jpeg"
+    if raw.startswith(b"RIFF") and raw[8:12] == b"WEBP":
+        return "image/webp"
+    return ctype
+
+
 def _arquivo_midia_response(m) -> FileResponse:
     if not m.arquivo:
         raise Http404("Mídia não encontrada.")
+    try:
+        if not m.arquivo.storage.exists(m.arquivo.name):
+            raise Http404("Mídia não encontrada.")
+    except Http404:
+        raise
+    except Exception as exc:
+        raise Http404("Mídia não encontrada.") from exc
     ctype = "application/octet-stream"
     name = (m.arquivo.name or "").lower()
     if m.tipo_midia in ("image", "sticker") or name.endswith((".jpg", ".jpeg", ".png", ".webp")):
@@ -564,7 +589,18 @@ def _arquivo_midia_response(m) -> FileResponse:
             ctype = "audio/mpeg"
         elif name.endswith(".webm"):
             ctype = "audio/webm"
-    return FileResponse(m.arquivo.open("rb"), content_type=ctype)
+    fh = m.arquivo.open("rb")
+    try:
+        head = fh.read(16)
+        ctype = _ctype_pelos_bytes(head, ctype)
+        fh.seek(0)
+    except Exception:
+        try:
+            fh.seek(0)
+        except Exception:
+            fh.close()
+            raise
+    return FileResponse(fh, content_type=ctype)
 
 
 @login_required(login_url="/entrar/")

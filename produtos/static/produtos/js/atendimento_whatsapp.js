@@ -660,6 +660,10 @@
             '" />';
         } else if (!m.apagada && m.midia_url && m.tipo_midia === 'audio') {
           midia = '<audio class="wa-aud" controls src="' + escapeHtml(m.midia_url) + '"></audio>';
+        } else if (!m.apagada && m.midia_perdida && (m.tipo_midia === 'image' || m.tipo_midia === 'sticker')) {
+          midia = '<span class="text-xs text-slate-500">Foto não está mais no servidor.</span>';
+        } else if (!m.apagada && m.midia_perdida && m.tipo_midia === 'audio') {
+          midia = '<span class="text-xs text-slate-500">Áudio não está mais no servidor.</span>';
         } else if (!m.apagada && (m.tipo_midia === 'image' || m.tipo_midia === 'sticker')) {
           midia = '<span class="text-xs text-slate-500">Foto (ainda baixando)</span>';
         } else if (!m.apagada && m.tipo_midia === 'audio') {
