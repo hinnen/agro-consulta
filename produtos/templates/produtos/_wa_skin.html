@@ -200,9 +200,30 @@
     font-variant-numeric: tabular-nums;
   }
   .wa-skin .wa-filtro-n.is-zero { opacity: .35; }
-  .wa-skin #wa-limpar-lista {
+  .wa-skin #wa-marcar {
     min-width: auto; padding: 0 .7rem;
-    font-size: .68rem; font-weight: 800; letter-spacing: .02em; text-transform: uppercase;
+    font-size: .78rem; font-weight: 800;
+  }
+  .wa-skin #wa-marcar.is-on {
+    border-color: #059669; background: #ecfdf5; color: #065f46;
+    box-shadow: none;
+  }
+  .wa-skin .wa-selbar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: .35rem;
+    padding: 0 0 .5rem;
+  }
+  .wa-skin .wa-selbar[hidden] { display: none !important; }
+  .wa-skin .wa-selbar button {
+    min-height: 2.35rem; padding: 0 .7rem; border-radius: 999px;
+    border: 1.5px solid #e2e8f0; background: #fff; color: #0f172a;
+    font-size: .82rem; font-weight: 800; cursor: pointer;
+  }
+  .wa-skin .wa-selbar .wa-sel-go { background: #0f172a; color: #fff; border-color: #0f172a; }
+  .wa-skin .wa-selbar .wa-sel-del { color: #b91c1c; border-color: #fecaca; }
+  .wa-skin #wa-sel-n { font-size: .82rem; font-weight: 800; color: #334155; margin-right: .2rem; }
+  .wa-skin .wa-item.is-sel {
+    background: #ecfdf5 !important;
+    box-shadow: inset 4px 0 0 #059669;
   }
   .wa-skin .wa-item .wa-row1 {
     display: grid;

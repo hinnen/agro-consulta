@@ -2374,6 +2374,39 @@ def excluir_todas_conversas() -> int:
     return int(n or 0)
 
 
+def agir_conversas_lote(ids, acao: str, *, operador: str = "") -> tuple[int, str]:
+    """Arquivar, reabrir, apagar ou zerar não-lidas — só os ids marcados (máx. 80)."""
+    acao_n = (acao or "").strip().lower()
+    if acao_n not in ("arquivar", "reabrir", "apagar", "lidas"):
+        return 0, "Ação inválida."
+    limpos: list[int] = []
+    for raw in ids or []:
+        try:
+            n = int(raw)
+        except (TypeError, ValueError):
+            continue
+        if n > 0 and n not in limpos:
+            limpos.append(n)
+        if len(limpos) >= 80:
+            break
+    if not limpos:
+        return 0, "Nenhuma conversa marcada."
+    feitos = 0
+    for cid in limpos:
+        if acao_n == "arquivar":
+            ok, _err = arquivar_conversa(cid, operador=operador)
+        elif acao_n == "reabrir":
+            ok, _err = reabrir_conversa(cid)
+        elif acao_n == "apagar":
+            ok, _err = excluir_conversa(cid)
+        else:
+            marcar_lidas(cid)
+            ok = True
+        if ok:
+            feitos += 1
+    return feitos, ""
+
+
 def definir_loja(conversa_id: int, loja: str) -> tuple[WhatsAppConversaAgro | None, str]:
     loja_n = (loja or "").strip().lower()
     if loja_n not in (WhatsAppConversaAgro.LOJA_CENTRO, WhatsAppConversaAgro.LOJA_VILA):

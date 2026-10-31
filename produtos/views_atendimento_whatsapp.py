@@ -18,6 +18,7 @@ from produtos.atendimento_whatsapp_util import (
     contar_nao_lidas,
     definir_loja,
     enviar_loja,
+    agir_conversas_lote,
     excluir_conversa,
     excluir_todas_conversas,
     ficha_contato_conversa,
@@ -472,6 +473,19 @@ def api_atendimento_whatsapp_excluir(request):
     if not ok:
         return JsonResponse({"ok": False, "erro": err or "Não apagou."}, status=400)
     return JsonResponse({"ok": True})
+
+
+@login_required(login_url="/entrar/")
+@require_POST
+def api_atendimento_whatsapp_lote(request):
+    data = _json_body(request) or {}
+    ids = data.get("ids")
+    if not isinstance(ids, list):
+        ids = []
+    n, err = agir_conversas_lote(ids, data.get("acao") or "", operador=_autor_wa(request, data))
+    if err:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse({"ok": True, "feitos": n})
 
 
 @login_required(login_url="/entrar/")

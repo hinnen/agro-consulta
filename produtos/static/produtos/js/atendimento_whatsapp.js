@@ -20,6 +20,8 @@
   var ehCel = !!(document.body && document.body.classList.contains('wa-cel'));
   /** hora | espera | nova — sempre começa em horário ao abrir a tela. */
   var filtroLista = 'hora';
+  var selModo = false;
+  var selMap = {};
   var statusCache = [];
   var stAutorIdx = 0;
   var stItemIdx = 0;
@@ -540,6 +542,8 @@
             ? 'Fila vazia. Quem já escolheu loja está em Centro ou Vila. Religar o Zap não apaga conversa.'
             : 'Nenhuma conversa nesta aba.';
       el.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-400">' + dica + '</p>';
+      selMap = {};
+      pintarSelBar();
       return;
     }
     // Atualiza item a item (não recria HTML todo) — senão a foto pisca a cada 2,5s.
@@ -555,6 +559,7 @@
       if (!st) st = qNao ? 'nova' : c.aguardando_loja ? 'espera' : 'ok';
       var on = Number(c.id) === convId;
       var clsExtra = st === 'nova' ? ' has-new' : st === 'espera' ? ' has-wait' : '';
+      if (selMap[id]) clsExtra += ' is-sel';
       var titulo = nomeExibicao(c);
       if (c.vip) titulo = '★ ' + titulo;
       var preview = c.ultima_preview || '';
@@ -611,6 +616,10 @@
     ordered.forEach(function (btn) {
       el.appendChild(btn);
     });
+    Object.keys(selMap).forEach(function (id) {
+      if (!keep[id]) delete selMap[id];
+    });
+    pintarSelBar();
   }
 
   function pintarMsgs(rows, append) {
@@ -1164,6 +1173,7 @@
       setTab();
       limparChatAberto();
       telaCel(false);
+      sairSelecao();
       carregarLista();
     });
   });
@@ -1194,9 +1204,124 @@
     );
   }
 
+  function idsMarcados() {
+    return Object.keys(selMap)
+      .map(function (id) {
+        return Number(id) || 0;
+      })
+      .filter(Boolean);
+  }
+
+  function pintarSelBar() {
+    var bar = $('wa-selbar');
+    var nEl = $('wa-sel-n');
+    var btnModo = $('wa-marcar');
+    var n = idsMarcados().length;
+    if (bar) bar.hidden = !selModo;
+    if (nEl) nEl.textContent = n + (n === 1 ? ' marcada' : ' marcadas');
+    if (btnModo) {
+      btnModo.classList.toggle('is-on', selModo);
+      btnModo.setAttribute('aria-pressed', selModo ? 'true' : 'false');
+    }
+    var naFila = loja !== 'arquivadas';
+    var arq = $('wa-sel-arq');
+    var reab = $('wa-sel-reab');
+    if (arq) arq.hidden = !naFila;
+    if (reab) reab.hidden = naFila;
+    ['wa-sel-arq', 'wa-sel-reab', 'wa-sel-lidas', 'wa-sel-del'].forEach(function (id) {
+      var b = $(id);
+      if (b) b.disabled = n < 1;
+    });
+  }
+
+  function sairSelecao() {
+    selModo = false;
+    selMap = {};
+    document.querySelectorAll('#wa-lista .wa-item.is-sel').forEach(function (el) {
+      el.classList.remove('is-sel');
+    });
+    pintarSelBar();
+  }
+
+  function agirSelecao(acao) {
+    var ids = idsMarcados();
+    if (!ids.length) return;
+    if (
+      acao === 'apagar' &&
+      !window.confirm(
+        'Apagar ' +
+          ids.length +
+          ' conversa' +
+          (ids.length > 1 ? 's' : '') +
+          ' da lista? (Só no Agro — não apaga no celular.)'
+      )
+    ) {
+      return;
+    }
+    fetchJson('/api/atendimento-whatsapp/lote/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+      body: JSON.stringify({ acao: acao, ids: ids }),
+    }).then(function (j) {
+      if (!j || !j.ok) {
+        window.alert((j && j.erro) || 'Não fez.');
+        return;
+      }
+      if (ids.indexOf(Number(convId)) >= 0) {
+        limparChatAberto();
+        telaCel(false);
+      }
+      sairSelecao();
+      carregarEstado();
+      carregarLista();
+    });
+  }
+
+  var btnMarcar = $('wa-marcar');
+  if (btnMarcar) {
+    btnMarcar.addEventListener('click', function () {
+      if (selModo) sairSelecao();
+      else {
+        selModo = true;
+        pintarSelBar();
+      }
+    });
+  }
+  var btnSelTodas = $('wa-sel-todas');
+  if (btnSelTodas) {
+    btnSelTodas.addEventListener('click', function () {
+      document.querySelectorAll('#wa-lista .wa-item[data-id]').forEach(function (el) {
+        var id = el.getAttribute('data-id') || '';
+        if (!id) return;
+        selMap[id] = true;
+        el.classList.add('is-sel');
+      });
+      pintarSelBar();
+    });
+  }
+  var btnSelFim = $('wa-sel-fim');
+  if (btnSelFim) btnSelFim.addEventListener('click', sairSelecao);
+  var btnSelArq = $('wa-sel-arq');
+  if (btnSelArq) btnSelArq.addEventListener('click', function () { agirSelecao('arquivar'); });
+  var btnSelReab = $('wa-sel-reab');
+  if (btnSelReab) btnSelReab.addEventListener('click', function () { agirSelecao('reabrir'); });
+  var btnSelLidas = $('wa-sel-lidas');
+  if (btnSelLidas) btnSelLidas.addEventListener('click', function () { agirSelecao('lidas'); });
+  var btnSelDel = $('wa-sel-del');
+  if (btnSelDel) btnSelDel.addEventListener('click', function () { agirSelecao('apagar'); });
+
   $('wa-lista').addEventListener('click', function (ev) {
     var btn = ev.target.closest('[data-id]');
     if (!btn) return;
+    if (selModo) {
+      var id = btn.getAttribute('data-id') || '';
+      if (!id) return;
+      if (selMap[id]) delete selMap[id];
+      else selMap[id] = true;
+      btn.classList.toggle('is-sel', !!selMap[id]);
+      pintarSelBar();
+      return;
+    }
     abrirConversa(btn.getAttribute('data-id'));
   });
 
@@ -2067,38 +2192,6 @@
       });
     });
   }
-  var btnLimpar = $('wa-limpar-lista');
-  if (btnLimpar) {
-    btnLimpar.addEventListener('click', function () {
-      if (
-        !window.confirm(
-          'Apagar TODAS as conversas da lista neste sistema?\nSó some no SisVale. No celular o Zap fica igual.'
-        )
-      ) {
-        return;
-      }
-      btnLimpar.disabled = true;
-      fetchJson('/api/atendimento-whatsapp/excluir-todas/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
-        body: '{}',
-      })
-        .then(function (j) {
-          if (!j || !j.ok) {
-            window.alert((j && j.erro) || 'Não limpou.');
-            return;
-          }
-          limparChatAberto();
-          telaCel(false);
-          carregarLista();
-          carregarEstado();
-        })
-        .finally(function () {
-          btnLimpar.disabled = false;
-        });
-    });
-  }
-
   var msgsBox = $('wa-msgs');
   if (msgsBox) {
     msgsBox.addEventListener('click', function (ev) {

@@ -1094,6 +1094,11 @@ urlpatterns = [
         name='api_atendimento_whatsapp_excluir',
     ),
     path(
+        'api/atendimento-whatsapp/lote/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_lote,
+        name='api_atendimento_whatsapp_lote',
+    ),
+    path(
         'api/atendimento-whatsapp/excluir-todas/',
         views_atendimento_whatsapp.api_atendimento_whatsapp_excluir_todas,
         name='api_atendimento_whatsapp_excluir_todas',
