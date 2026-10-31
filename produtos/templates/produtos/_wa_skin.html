@@ -115,8 +115,10 @@
   }
   .wa-skin .wa-badge.is-zero { background: #e2e8f0; color: #64748b; }
   .wa-skin .wa-pane { background: #fff; border: 1px solid #e8eef4; border-radius: 1.1rem; overflow: hidden; }
+  .wa-skin #wa-lista { overflow-x: hidden; }
   .wa-skin .wa-item {
-    display: flex; align-items: center; gap: .7rem; width: 100%; text-align: left;
+    display: flex; align-items: center; gap: .7rem; width: 100%; max-width: 100%;
+    text-align: left; box-sizing: border-box; overflow: hidden;
     padding: .65rem .85rem; border-bottom: 1px solid #f1f5f9; background: #fff;
     border: 0; cursor: pointer;
   }

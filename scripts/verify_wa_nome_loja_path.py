@@ -191,6 +191,23 @@ def main() -> int:
     conv3.refresh_from_db()
     check("mensagem seguinte nao devolve o nome da loja", conv3.nome != LOJA)
 
+    limpar()
+    ClienteAgro.objects.create(nome="Nathan Hinnen", whatsapp="13996010981")
+    WhatsAppAgendaContatoAgro.objects.create(
+        jid="5513996010981@s.whatsapp.net",
+        telefone="13996010981",
+        nome="nathan hinnen",
+    )
+    WhatsAppConversaAgro.objects.create(
+        jid="5513996010981@s.whatsapp.net",
+        telefone="5513996010981",
+        nome="5513996010981",
+    )
+    corrigir_nomes_que_sao_da_loja._mono = 0  # type: ignore[attr-defined]
+    corrigir_nomes_que_sao_da_loja(cfg=cfg_quieto())
+    conv4 = WhatsAppConversaAgro.objects.get()
+    check("telefone na lista vira o cadastro", conv4.nome == "Nathan Hinnen")
+
     print(f"\nVERIFY_OK {OK}/{OK + FAIL}")
     return 0 if FAIL == 0 else 1
 

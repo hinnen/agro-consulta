@@ -354,30 +354,112 @@ def corrigir_nomes_que_sao_da_loja(*, cfg: dict | None = None) -> int:
         lembrar_nome_zap_loja(bruto)
         cfg = dict(cfg)
         cfg["nome_zap_loja"] = bruto
-    if not proib:
-        return 0
-    n = 0
-    # Sem varrer o cadastro inteiro aqui: isso estourava o tempo da lista e o nome da loja voltava.
-    for conv in WhatsAppConversaAgro.objects.exclude(nome="").iterator():
-        chave = _nome_chave(conv.nome)
-        if chave not in proib:
-            continue
+    precisa = []
+    for conv in WhatsAppConversaAgro.objects.iterator():
         tel = _telefone_real(conv.telefone) or _telefone_real(conv.jid)
-        novo = ""
-        ag = WhatsAppAgendaContatoAgro.objects.filter(jid=conv.jid).only("nome").first()
-        if ag is None and (conv.jid_lid or ""):
-            ag = WhatsAppAgendaContatoAgro.objects.filter(jid=conv.jid_lid).only("nome").first()
-        hit = ((ag.nome if ag else "") or "").strip()
-        if hit and not _nome_e_da_loja(hit, cfg) and not _nome_parece_telefone(hit, tel):
-            novo = hit[:120]
-        else:
+        chave = _nome_chave(conv.nome)
+        if chave in proib or not (conv.nome or "").strip() or _nome_parece_telefone(conv.nome, tel):
+            precisa.append(conv)
+    if not precisa:
+        return 0
+    mapa = _nomes_conhecidos_por_conversa(precisa, cfg)
+    n = 0
+    for conv in precisa:
+        tel = _telefone_real(conv.telefone) or _telefone_real(conv.jid)
+        novo = mapa.get(int(conv.pk)) or ""
+        if _nome_chave(conv.nome) in proib and not novo:
             novo = (tel or "")[:120]
-        if novo == (conv.nome or ""):
+        if not novo or novo == (conv.nome or ""):
             continue
-        conv.nome = novo
+        conv.nome = novo[:120]
         conv.save(update_fields=["nome"])
         n += 1
     return n
+
+
+def _variantes_telefone(tel: str) -> list[str]:
+    d = re.sub(r"\D+", "", tel or "")
+    out: list[str] = []
+    if 10 <= len(d) <= 13:
+        out.append(d)
+        if len(d) >= 11:
+            out.append(d[-11:])
+        if d.startswith("55") and len(d) >= 12:
+            out.append(d[2:])
+    visto: list[str] = []
+    for item in out:
+        if item not in visto:
+            visto.append(item)
+    return visto
+
+
+def _nomes_conhecidos_por_conversa(convs: list, cfg: dict | None) -> dict[int, str]:
+    """Cadastro primeiro, depois a agenda. Uma leva de consultas, sem ler a tabela inteira."""
+    from django.db.models import Q
+
+    from produtos.models import ClienteAgro
+
+    infos = []
+    variantes: set[str] = set()
+    jids: set[str] = set()
+    for conv in convs:
+        tel = _telefone_real(conv.telefone) or _telefone_real(conv.jid)
+        vars_tel = _variantes_telefone(tel)
+        infos.append((conv, tel, vars_tel))
+        variantes.update(vars_tel)
+        if conv.jid:
+            jids.add(conv.jid)
+        if conv.jid_lid:
+            jids.add(conv.jid_lid)
+    agenda: dict[tuple[str, str], str] = {}
+    if jids or variantes:
+        q = Q()
+        if jids:
+            q |= Q(jid__in=list(jids))
+        if variantes:
+            q |= Q(telefone__in=list(variantes))
+        for ag in WhatsAppAgendaContatoAgro.objects.exclude(nome="").filter(q).only("jid", "telefone", "nome"):
+            nome = (ag.nome or "").strip()
+            if not nome or _nome_e_da_loja(nome, cfg) or _nome_parece_telefone(nome, ag.telefone):
+                continue
+            if ag.jid:
+                agenda[("j", ag.jid)] = nome
+            dig = re.sub(r"\D+", "", ag.telefone or "")
+            if dig:
+                agenda[("t", dig)] = nome
+                if len(dig) >= 11:
+                    agenda[("t", dig[-11:])] = nome
+    cadastro: dict[str, str] = {}
+    sufixos = {v[-11:] if len(v) >= 11 else v for v in variantes if len(v) >= 10}
+    if sufixos:
+        q = Q()
+        for s in sufixos:
+            q |= Q(whatsapp__endswith=s)
+        for cli in ClienteAgro.objects.filter(ativo=True).filter(q).only("nome", "whatsapp")[:800]:
+            nome = (cli.nome or "").strip()
+            if not nome or _nome_e_da_loja(nome, cfg):
+                continue
+            dig = re.sub(r"\D+", "", cli.whatsapp or "")
+            if len(dig) >= 10:
+                cadastro[dig[-11:] if len(dig) >= 11 else dig] = nome
+    out: dict[int, str] = {}
+    for conv, tel, vars_tel in infos:
+        hit = ""
+        for v in vars_tel:
+            chave = v[-11:] if len(v) >= 11 else v
+            hit = cadastro.get(chave) or ""
+            if hit:
+                break
+        if not hit:
+            hit = agenda.get(("j", conv.jid)) or agenda.get(("j", conv.jid_lid or "")) or ""
+        if not hit:
+            for v in vars_tel:
+                hit = agenda.get(("t", v)) or agenda.get(("t", v[-11:] if len(v) >= 11 else v)) or ""
+                if hit:
+                    break
+        if hit and not _nome_parece_telefone(hit, tel):
+            out[int(conv.pk)] = hit[:120]
+    return out
 
 
 def aplicar_nome_cadastro(conv: WhatsAppConversaAgro, *, perfil: str = "", cfg: dict | None = None) -> None:
