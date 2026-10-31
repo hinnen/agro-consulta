@@ -38,6 +38,20 @@ const LID_FILE = path.join(__dirname, "lid_map.json");
 const SYNC_FILE = path.join(__dirname, "last_agenda_foto_sync.txt");
 const LOCK_FILE = path.join(__dirname, ".ponte.lock");
 const logger = pino({ level: "silent" });
+// A sessão do Zap imprime chave e Buffer no cmd. Isso deixa a janela lenta.
+const _logRuido = /baseKey|indexInfo|ephemeralKey|preKey|chainKey|registrationId|messageKeys|closed session|remoteIdentityKey|pendingPreKey|Buffer /;
+for (const nome of ["log", "info", "debug"]) {
+  const orig = console[nome].bind(console);
+  console[nome] = (...args) => {
+    for (const a of args) {
+      if (typeof a === "string" && _logRuido.test(a)) return;
+      if (a && typeof a === "object") {
+        if (a.baseKey || a.chainKey || a.ephemeralKeyPair || a.indexInfo || a.pendingPreKey) return;
+      }
+    }
+    orig(...args);
+  };
+}
 let ultimoQrEm = 0;
 let salvarAgendaTimer = 0;
 let enviarAgendaTimer = 0;
@@ -1067,10 +1081,8 @@ async function ligar() {
           const quando = tsMs(m);
           const idade = quando ? Date.now() - quando : 0;
           if (emQuarentena && idade > 60000) {
-            console.log("Quarentena: descartada notify antiga de", jid, idade);
             continue;
           }
-          console.log(fromMe ? "Eco celular:" : "Entrada ao vivo:", jid, textoDe(m).slice(0, 40));
           await enviarEntrada(m, { historico: false });
           continue;
         }
