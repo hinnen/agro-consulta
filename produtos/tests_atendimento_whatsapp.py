@@ -718,3 +718,98 @@ class ArquivoConversaTests(TestCase):
         self.assertTrue(BOT_DEFAULT.get("arquivo_auto_nunca_com_nao_lidas"))
         self.assertTrue(BOT_DEFAULT.get("saudacao_depois_menu"))
         self.assertEqual(int(BOT_DEFAULT.get("saudacao_atraso_seg") or 0), 0)
+
+
+class NomeLojaWhatsAppTests(TestCase):
+    """PushName da loja não pode virar o nome do cliente na lista."""
+
+    LOJA = "Agropecuária Agro Mais"
+
+    def setUp(self):
+        from produtos.atendimento_whatsapp_util import corrigir_nomes_que_sao_da_loja
+
+        corrigir_nomes_que_sao_da_loja._mono = 0  # type: ignore[attr-defined]
+
+    def _cfg_quieto(self):
+        cfg = dict(BOT_DEFAULT)
+        cfg["horario_ativo"] = False
+        cfg["separar_lojas"] = False
+        cfg["enviar_boas_vindas"] = False
+        cfg["aviso_fora_ligado"] = False
+        return cfg
+
+    def test_eco_celular_nao_apaga_nome_do_cliente(self):
+        from unittest.mock import patch
+
+        from produtos.models import WhatsAppBotConfigAgro
+
+        cfg = self._cfg_quieto()
+        with patch("produtos.atendimento_whatsapp_bot_config.carregar_bot", return_value=cfg):
+            processar_entrada(
+                jid="5513988002201@s.whatsapp.net",
+                texto="Oi",
+                nome="João da Silva",
+                wa_id="cli-1",
+            )
+            processar_entrada(
+                jid="5513988002201@s.whatsapp.net",
+                texto="Pode retirar",
+                nome=self.LOJA,
+                nome_loja=self.LOJA,
+                de_mim=True,
+                wa_id="eco-1",
+            )
+        conv = WhatsAppConversaAgro.objects.get()
+        self.assertEqual(conv.nome, "João da Silva")
+        dados = WhatsAppBotConfigAgro.objects.get().dados
+        self.assertEqual(dados.get("nome_zap_loja"), self.LOJA)
+
+    def test_quatro_nomes_iguais_nao_viram_loja(self):
+        from produtos.atendimento_whatsapp_util import corrigir_nomes_que_sao_da_loja
+
+        for i in range(4):
+            WhatsAppConversaAgro.objects.create(
+                jid=f"55139880030{i:02d}@s.whatsapp.net",
+                telefone=f"55139880030{i:02d}",
+                nome="Cliente Repetido Silva",
+            )
+        n = corrigir_nomes_que_sao_da_loja(cfg=self._cfg_quieto())
+        self.assertEqual(n, 0)
+        self.assertEqual(
+            WhatsAppConversaAgro.objects.filter(nome="Cliente Repetido Silva").count(),
+            4,
+        )
+
+    def test_oito_chats_com_nome_da_loja_voltam_ao_telefone(self):
+        from produtos.atendimento_whatsapp_util import corrigir_nomes_que_sao_da_loja
+        from produtos.models import WhatsAppBotConfigAgro
+
+        for i in range(8):
+            WhatsAppConversaAgro.objects.create(
+                jid=f"5513988004{i:03d}@s.whatsapp.net",
+                telefone=f"5513988004{i:03d}",
+                nome=self.LOJA,
+            )
+        n = corrigir_nomes_que_sao_da_loja(cfg=self._cfg_quieto())
+        self.assertEqual(n, 8)
+        self.assertFalse(WhatsAppConversaAgro.objects.filter(nome=self.LOJA).exists())
+        amostra = WhatsAppConversaAgro.objects.order_by("id").first()
+        self.assertIn(amostra.telefone, amostra.nome)
+        dados = WhatsAppBotConfigAgro.objects.get().dados
+        self.assertEqual(dados.get("nome_zap_loja"), self.LOJA)
+
+    def test_push_da_loja_nao_entra_como_cliente(self):
+        from unittest.mock import patch
+
+        cfg = self._cfg_quieto()
+        cfg["nome_zap_loja"] = self.LOJA
+        with patch("produtos.atendimento_whatsapp_bot_config.carregar_bot", return_value=cfg):
+            processar_entrada(
+                jid="5513988001122@s.whatsapp.net",
+                texto="oi",
+                nome=self.LOJA,
+                wa_id="loja-push",
+            )
+        conv = WhatsAppConversaAgro.objects.get()
+        self.assertNotEqual(conv.nome, self.LOJA)
+        self.assertIn("88001122", conv.nome)

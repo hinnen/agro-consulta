@@ -1,5 +1,7 @@
 @echo off
 cd /d "%~dp0"
+if exist "C:\Program Files\nodejs\node.exe" set "PATH=C:\Program Files\nodejs;%PATH%"
+if exist "%LocalAppData%\Programs\node\node.exe" set "PATH=%LocalAppData%\Programs\node;%PATH%"
 if exist "%~dp0.env" (
   for /f "usebackq eol=# tokens=1,* delims==" %%A in ("%~dp0.env") do (
     if not "%%A"=="" set "%%A=%%B"
@@ -18,8 +20,8 @@ echo  Site: %AGRO_WA_DJANGO_URL%
 echo  NAO FECHE esta janela preta.
 echo  Abra so UMA janela (nao duplique o .bat).
 echo  O QR aparece no Chrome em /atendimento-whatsapp/
-echo  Se o Zap estiver no site Render de TESTE, aponte
-echo  AGRO_WA_DJANGO_URL para o HTTPS desse site (nao 127.0.0.1).
+echo  Producao: use o servico WA separado no Render (nao a URL do PDV).
+echo  Veja docs/DEPLOY-WHATSAPP-RENDER.md e env.exemplo nesta pasta.
 echo ========================================
 echo.
 where node >nul 2>&1
@@ -58,6 +60,11 @@ if exist node_modules\ffmpeg-static\install.js (
 :loop
 echo Ligando...
 node index.js
+if errorlevel 1 (
+  echo.
+  echo ERRO ao ligar a ponte (codigo acima). Janela aberta para ler.
+  pause
+)
 echo.
 echo A ponte parou. Religa em 5 segundos. Feche esta janela para parar de vez.
 timeout /t 5 /nobreak >nul

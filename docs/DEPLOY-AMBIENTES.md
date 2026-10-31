@@ -4,8 +4,9 @@
 
 | Você manda código para… | Atualiza… |
 | ----------------------- | --------- |
-| **`teste`** | staging (agro-consulta-staging) |
+| **`teste`** | rascunho no GitHub. Não publica a loja nem o Zap |
 | **`producao`** | loja (Sistvale - Produção) |
+| **`whatsapp`** | serviço **agro-consulta-wa** (ver `docs/DEPLOY-WHATSAPP-RENDER.md`) |
 
 ## O que fazer no dia a dia
 

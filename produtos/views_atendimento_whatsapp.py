@@ -705,6 +705,7 @@ def api_atendimento_whatsapp_bridge_entrada(request):
         nome_arquivo=str(data.get("nome_arquivo") or ""),
         telefone=str(data.get("telefone") or ""),
         jid_lid=str(data.get("jid_lid") or data.get("lid") or ""),
+        nome_loja=str(data.get("nome_loja") or ""),
     )
     lids = data.get("lids")
     if isinstance(lids, dict) and lids:
@@ -742,9 +743,8 @@ def api_atendimento_whatsapp_bridge_saida(request):
     except (TypeError, ValueError):
         poll_seg = 10
     sync_hora = str(cfg.get("sync_agenda_fotos_hora") or "00:00").strip()[:5] or "00:00"
-    # Fotos em massa só quando a ponte pede (?fotos=1) no sync diário — evita engasgar o PDV
-    incluir_fotos = str(request.GET.get("fotos") or "").strip() in ("1", "true", "sim")
-    fotos = listar_fotos_pendentes() if incluir_fotos else []
+    # Poucas fotos por poll (serviço do Zap, não o PDV). Arquivo que sumiu no disco entra de novo.
+    fotos = listar_fotos_pendentes(limit=3)
     return JsonResponse(
         {
             "ok": True,

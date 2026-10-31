@@ -12,6 +12,8 @@ CHAVE_DEFAULT = "default"
 BOT_DEFAULT: dict = {
     "bot_ligado": True,
     "nome_empresa": "GM Agro",
+    # Nome que o Zap da loja usa ao enviar (pushName). Não é nome de cliente.
+    "nome_zap_loja": "",
     "atraso_resposta_seg": 2,
     "atraso_entre_msgs_seg": 2,
     # Poll da ponte: saída loja→cliente (entrada do cliente = socket, na hora)
@@ -355,6 +357,9 @@ def salvar_bot(dados: dict, *, chave: str = CHAVE_DEFAULT, usuario: str = "") ->
     if "{" in probe or "}" in probe or not tpl_pix.strip():
         limpo["msg_pix_chave"] = str(BOT_DEFAULT.get("msg_pix_chave") or "")
     obj, _ = WhatsAppBotConfigAgro.objects.get_or_create(chave=(chave or CHAVE_DEFAULT)[:32])
+    prev = obj.dados if isinstance(obj.dados, dict) else {}
+    if not str(limpo.get("nome_zap_loja") or "").strip():
+        limpo["nome_zap_loja"] = str(prev.get("nome_zap_loja") or "")[:120]
     obj.dados = limpo
     obj.atualizado_por = (usuario or "")[:120]
     obj.save()

@@ -277,9 +277,108 @@ def _telefone_real(s: str) -> str:
     return ""
 
 
+def _chaves_nome_loja(cfg: dict | None) -> set[str]:
+    """Nomes da própria loja — não podem aparecer como cliente na lista."""
+    out: set[str] = set()
+    for k in ("nome_empresa", "nome_zap_loja"):
+        c = _nome_chave(str((cfg or {}).get(k) or ""))
+        if len(c) >= 4:
+            out.add(c)
+    return out
+
+
+def _nome_e_da_loja(nome: str, cfg: dict | None) -> bool:
+    if cfg is None:
+        try:
+            from produtos.atendimento_whatsapp_bot_config import carregar_bot_leve
+
+            cfg = carregar_bot_leve()
+        except Exception:
+            cfg = {}
+    c = _nome_chave(nome)
+    return bool(c) and c in _chaves_nome_loja(cfg)
+
+
+def lembrar_nome_zap_loja(nome: str) -> None:
+    """Guarda o pushName da conta da loja (mensagem enviada pelo celular da loja)."""
+    n = (nome or "").strip()[:120]
+    if len(_nome_chave(n)) < 4:
+        return
+    from produtos.atendimento_whatsapp_bot_config import CHAVE_DEFAULT, carregar_bot_leve
+    from produtos.models import WhatsAppBotConfigAgro
+
+    obj, _ = WhatsAppBotConfigAgro.objects.get_or_create(chave=CHAVE_DEFAULT)
+    dados = dict(obj.dados) if isinstance(obj.dados, dict) else {}
+    if _nome_chave(str(dados.get("nome_zap_loja") or "")) == _nome_chave(n):
+        return
+    dados["nome_zap_loja"] = n
+    obj.dados = dados
+    obj.save(update_fields=["dados", "atualizado_em"])
+    cache = getattr(carregar_bot_leve, "_cache", None)
+    if isinstance(cache, dict):
+        cache.clear()
+
+
+def corrigir_nomes_que_sao_da_loja(*, cfg: dict | None = None) -> int:
+    """Tira da lista o nome longo da loja e recalcula o do cliente.
+
+    O padrão curto «GM Agro» não varre a tabela. Nome repetido só vira nome da
+    loja com 8+ chats e 10+ letras (backfill). Quatro clientes com o mesmo nome
+    longo continuam como estão.
+    """
+    import time
+
+    from django.db.models import Count
+
+    from produtos.atendimento_whatsapp_bot_config import carregar_bot
+
+    agora = time.monotonic()
+    ultimo = float(getattr(corrigir_nomes_que_sao_da_loja, "_mono", 0.0) or 0.0)
+    if ultimo and (agora - ultimo) < 90.0:
+        return 0
+    corrigir_nomes_que_sao_da_loja._mono = agora  # type: ignore[attr-defined]
+
+    cfg = cfg if cfg is not None else carregar_bot()
+    proib = {c for c in _chaves_nome_loja(cfg) if len(c) >= 10}
+    for row in (
+        WhatsAppConversaAgro.objects.exclude(nome="")
+        .values("nome")
+        .annotate(qtd=Count("id"))
+        .filter(qtd__gte=8)
+    ):
+        bruto = str(row.get("nome") or "")
+        chave = _nome_chave(bruto)
+        if len(chave) < 10 or chave in proib:
+            continue
+        proib.add(chave)
+        lembrar_nome_zap_loja(bruto)
+        cfg = dict(cfg)
+        cfg["nome_zap_loja"] = bruto
+    if not proib:
+        return 0
+    n = 0
+    for conv in WhatsAppConversaAgro.objects.exclude(nome="").iterator():
+        chave = _nome_chave(conv.nome)
+        if chave not in proib:
+            continue
+        conv.nome = ""
+        aplicar_nome_cadastro(conv, perfil="", cfg=cfg)
+        if _nome_chave(conv.nome) in proib:
+            tel = _telefone_real(conv.telefone) or _telefone_real(conv.jid)
+            conv.nome = (tel or "")[:120]
+        conv.save(update_fields=["nome"])
+        n += 1
+    return n
+
+
 def aplicar_nome_cadastro(conv: WhatsAppConversaAgro, *, perfil: str = "", cfg: dict | None = None) -> None:
     from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT
 
+    if _nome_e_da_loja(perfil, cfg):
+        perfil = ""
+    if _nome_e_da_loja(conv.nome, cfg):
+        conv.nome = ""
+    nome_antes = (conv.nome or "").strip()
     tel = _telefone_real(conv.telefone) or _telefone_real(conv.jid)
     raw = str((cfg or {}).get("nome_fontes") or BOT_DEFAULT.get("nome_fontes") or "")
     ordem = []
@@ -309,8 +408,18 @@ def aplicar_nome_cadastro(conv: WhatsAppConversaAgro, *, perfil: str = "", cfg: 
         elif fonte == "perfil":
             hit = (perfil or "").strip()
         elif fonte == "telefone":
+            # Eco do celular manda perfil vazio. Não troca o nome do cliente pelo número.
+            if (
+                not (perfil or "").strip()
+                and nome_antes
+                and not _nome_parece_telefone(nome_antes, tel)
+            ):
+                conv.nome = nome_antes[:120]
+                return
             hit = tel
         if not hit:
+            continue
+        if _nome_e_da_loja(hit, cfg):
             continue
         if fonte != "telefone" and _nome_parece_telefone(hit, tel):
             continue
@@ -606,6 +715,10 @@ def serializar_mensagem(m: WhatsAppMensagemAgro) -> dict:
 
 
 def listar_conversas(*, loja: str, limit: int = 80) -> list[dict]:
+    try:
+        corrigir_nomes_que_sao_da_loja()
+    except Exception:
+        pass
     loja_n = (loja or "").strip().lower()
     lim = max(1, min(int(limit or 80), 200))
     if loja_n in ("arquivadas", "resolvidas", "arquivo"):
@@ -1027,6 +1140,7 @@ def processar_entrada(
     nome_arquivo: str = "",
     telefone: str = "",
     jid_lid: str = "",
+    nome_loja: str = "",
 ) -> tuple[WhatsAppMensagemAgro | None, str]:
     jid_n = (jid or "").strip()
     bruto = f"{jid_n} {jid_lid or ''}".lower()
@@ -1084,8 +1198,15 @@ def processar_entrada(
         historico = False
     if not conv.telefone and tel_limpo:
         conv.telefone = tel_limpo[:32]
+    if de_mim and ((nome_loja or nome or "").strip()):
+        lembrar_nome_zap_loja((nome_loja or nome or "").strip())
+        nome = ""
+    elif _nome_e_da_loja(nome, None):
+        nome = ""
     if not _telefone_real(conv.telefone):
-        tel_cad = _telefone_cadastro_por_nome(conv.nome) or _telefone_cadastro_por_nome(nome)
+        tel_cad = ""
+        if not _nome_e_da_loja(conv.nome, None) and not _nome_e_da_loja(nome, None):
+            tel_cad = _telefone_cadastro_por_nome(conv.nome) or _telefone_cadastro_por_nome(nome)
         if tel_cad:
             conv.telefone = tel_cad[:32]
             tel_limpo = tel_cad
@@ -1773,6 +1894,8 @@ def gravar_agenda_zap(itens: list, *, pedido_id: int = 0) -> int:
         if key.endswith("@lid"):
             tel_ok = str(raw.get("telefone") or "")[:32]
         nome = str(raw.get("nome") or "")[:120]
+        if _nome_e_da_loja(nome, None):
+            nome = ""
         prev = WhatsAppAgendaContatoAgro.objects.filter(jid=key).only("nome").first()
         if prev and prev.nome and not nome:
             nome = prev.nome
@@ -1792,7 +1915,9 @@ def gravar_agenda_zap(itens: list, *, pedido_id: int = 0) -> int:
                         | Q(telefone=dig_ag[-11:] if len(dig_ag) >= 11 else dig_ag)
                     )
             for conv in q_conv:
-                if not conv.nome or _nome_parece_telefone(conv.nome, conv.telefone):
+                if _nome_e_da_loja(nome, None):
+                    continue
+                if not conv.nome or _nome_parece_telefone(conv.nome, conv.telefone) or _nome_e_da_loja(conv.nome, None):
                     conv.nome = nome[:120]
                     conv.save(update_fields=["nome"])
         n += 1
@@ -2203,18 +2328,32 @@ def listar_saida_pendente(limit: int = 20) -> list[dict]:
     return out
 
 
+def _foto_no_disco(conv: WhatsAppConversaAgro) -> bool:
+    arq = conv.foto_perfil
+    nome = str(getattr(arq, "name", "") or "")
+    if not nome:
+        return False
+    try:
+        return bool(arq.storage.exists(nome))
+    except Exception:
+        return False
+
+
 def listar_fotos_pendentes(*, limit: int = 25) -> list[dict]:
-    """Conversas recentes sem foto (ou foto velha) — a ponte busca no Zap."""
+    """Conversas recentes sem foto (ou arquivo sumiu no disco) — a ponte busca no Zap."""
     lim = max(1, min(int(limit or 25), 40))
     corte = timezone.now() - timedelta(days=5)
-    qs = (
-        WhatsAppConversaAgro.objects.filter(Q(foto_perfil="") | Q(foto_em__isnull=True) | Q(foto_em__lt=corte))
-        .order_by("-ultima_em", "-id")[:lim]
-    )
+    qs = WhatsAppConversaAgro.objects.order_by("-ultima_em", "-id")[: max(lim * 4, 40)]
     out = []
     for c in qs:
+        if len(out) >= lim:
+            break
         jid = (c.jid or "").strip()
         if not jid_eh_chat_privado(jid) and not (c.jid_lid or ""):
+            continue
+        tem = _foto_no_disco(c)
+        recente = bool(c.foto_em) and c.foto_em >= corte
+        if tem and recente:
             continue
         out.append(
             {
