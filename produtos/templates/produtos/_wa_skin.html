@@ -123,24 +123,19 @@
   .wa-skin .wa-pane { background: #fff; border: 1px solid #e8eef4; border-radius: 1.1rem; overflow: hidden; }
   .wa-skin #wa-lista { overflow-x: hidden; padding: 0; margin: 0; }
   .wa-skin .wa-item {
-    display: grid;
-    grid-template-columns: 3rem minmax(0, 1fr);
-    column-gap: .7rem;
-    align-items: center;
+    display: flex; align-items: center; gap: 10px;
     width: 100%; max-width: 100%;
     text-align: left; box-sizing: border-box; overflow: hidden;
-    margin: 0; padding: .65rem .75rem; border-bottom: 1px solid #f1f5f9; background: #fff;
-    border: 0; border-radius: 0; cursor: pointer; float: none; position: static;
+    margin: 0; padding: 8px 12px; border-bottom: 1px solid #f1f5f9; background: #fff;
+    border: 0; border-radius: 0; cursor: pointer;
   }
-  .wa-skin .wa-item > .wa-av { grid-column: 1; grid-row: 1; }
-  .wa-skin .wa-item > .wa-item-body { grid-column: 2; grid-row: 1; }
   .wa-skin .wa-item .wa-av {
-    width: 3rem; min-width: 3rem; max-width: 3rem; height: 3rem;
+    flex: 0 0 48px; width: 48px; min-width: 48px; max-width: 48px; height: 48px;
     border-radius: 999px; overflow: hidden;
     background: #e2e8f0; display: flex; align-items: center; justify-content: center;
   }
   .wa-skin .wa-item .wa-av img {
-    width: 3rem; height: 3rem; max-width: 3rem; min-width: 0;
+    width: 48px; height: 48px; max-width: 48px;
     object-fit: cover; display: block;
   }
   .wa-skin .wa-item .wa-av-ini {
