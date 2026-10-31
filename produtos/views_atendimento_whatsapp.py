@@ -879,19 +879,19 @@ def api_pdv_zap_loja_orcamento(request):
     try:
         with urllib.request.urlopen(req, timeout=20) as resp:
             body = resp.read().decode("utf-8", errors="replace")
-        try:
-            parsed = json.loads(body)
-        except json.JSONDecodeError:
-            parsed = {"ok": False, "erro": "Resposta inválida do Zap separado."}
-        status = 200 if parsed.get("ok") else 400
-        return JsonResponse(parsed, status=status)
+        parsed = json.loads(body)
+        if isinstance(parsed, dict) and parsed.get("ok"):
+            return JsonResponse(parsed)
+        if isinstance(parsed, dict) and parsed.get("erro"):
+            return JsonResponse(parsed, status=400)
     except urllib.error.HTTPError as exc:
-        try:
-            parsed = json.loads(exc.read().decode("utf-8", errors="replace"))
-            if isinstance(parsed, dict) and parsed.get("erro"):
-                return JsonResponse(parsed, status=400)
-        except Exception:
-            pass
+        if exc.code not in (404, 502, 503):
+            try:
+                parsed = json.loads(exc.read().decode("utf-8", errors="replace"))
+                if isinstance(parsed, dict) and parsed.get("erro"):
+                    return JsonResponse(parsed, status=400)
+            except Exception:
+                pass
     except Exception:
         pass
     ok, err, cid = _orcamento_zap_loja(payload, autor or "Loja")

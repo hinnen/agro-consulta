@@ -1294,6 +1294,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ CHECKLIST ÚNICO — **31/10** · 🟢 **pronto envio produção** · **PDV-WA-SEPARADO**
+
+| # | Item | Status | Migrate | Prova |
+| - | ---- | ------ | ------- | ----- |
+| 1 | Ícone verde abre `agro-consulta-wa` | 🟢 Pronto | **NÃO** | JS `urlZapSeparado` + `node --check` |
+| 2 | Botão Loja encaminha orçamento | 🟢 Pronto | **NÃO** | `POST /api/pdv/zap-loja/orcamento/` |
+| 3 | URL antiga do Zap na Sistvale redireciona | 🟢 Pronto | **NÃO** | middleware + origem padrão |
+| 4 | NFC-e / venda | ✅ Intocado | **NÃO** | diff só WhatsApp do PDV |
+
+| Campo | Valor |
+| ----- | ----- |
+| **Pacote** | branch `cursor/pdv-wa-botoes-6637` · **não** está na `producao` |
+| **Migrate** | **NÃO** |
+| **Smoke** | PDV · ícone verde abre o Zap separado · Loja com «Orçamento no Zap» ligado |
+| **Falta** | Rota `bridge/orcamento` no serviço do Zap (`whatsapp`, commit local `f6a5bb5`, sem push). Sem ela o botão Loja grava na Sistvale |
+| **Senha** | Envio à `producao` só com frase + `99738595` na mesma mensagem |
+
+### 📦 PACOTE PRONTO — **PDV-WA-SEPARADO** · 31/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Ícone WhatsApp e botão Loja deixam o worker da Sistvale e usam o Zap separado |
+| **Revert** | não enviar esta branch para `producao` |
+
 ### ✅ CHECKLIST ÚNICO — **29/10** · 🟢 **pronto envio produção** · **NFE-QTD-DECIMAL**
 
 | # | Item | Status | Migrate | Prova |
