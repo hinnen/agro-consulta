@@ -52,6 +52,9 @@ def main() -> int:
     check("eco do celular preserva nome", "nome_antes" in util_nome)
     check("ponte manda nome_loja", "nome_loja:" in read("whatsapp_atendimento/index.js"))
     check("checkpoint WA-RENDER-SPLIT", "WA-RENDER-SPLIT" in read("banana.md"))
+    check("barra do zap mostra versao", "wa-ver" in read("produtos/templates/produtos/atendimento_whatsapp.html"))
+    check("foto some se arquivo nao esta no disco", "_foto_no_disco" in read("produtos/atendimento_whatsapp_util.py"))
+    check("roteiro explica badge do zap", "wa-ver" in read("banana-roteiro.md"))
 
     util = read("produtos/agro_wa_origin_util.py")
     check("util path prefix atendimento", "atendimento-whatsapp" in util)

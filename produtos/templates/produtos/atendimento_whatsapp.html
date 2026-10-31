@@ -57,6 +57,7 @@
 <header class="wa-top">
   <span id="wa-dot" class="wa-dot off" aria-hidden="true"></span>
   <h1 class="wa-title min-w-0 flex-1 truncate">WhatsApp</h1>
+  <span class="wa-ver" title="Versão no ar neste Zap. O código curto muda a cada atualização.">v{{ agro_build.version_label }}{% if agro_build.commit %} · {{ agro_build.commit|slice:":7" }}{% endif %}</span>
   <div id="wa-status" class="wa-pill">…</div>
   <button type="button" id="wa-pwa-instalar" title="Instalar como app no Chrome">Instalar no PC</button>
   <button type="button" id="wa-trocar" class="wa-ico hidden" title="Desligar este Zap e ligar outro (QR ou código)">Trocar Zap</button>

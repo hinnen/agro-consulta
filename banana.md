@@ -1298,8 +1298,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Chat que ficou só com o telefone passa a usar o cadastro e, se não houver, a agenda. Lista não escorrega para o lado. Busca do cadastro em lotes de 40 |
-| **Onde** | Autorizado 31/10 (frase + senha). Push da filial `whatsapp` a partir de `2fef8d0e0` |
+| **O quê** | Chat que ficou só com o telefone passa a usar o cadastro e, se não houver, a agenda. Lista não escorrega. Fotinha: olha os 120 chats recentes e pede de novo se o arquivo sumiu. Barra de cima do Zap mostra `vVERSION · commit` |
+| **Onde** | Nome da lista já no ar em `88fa449`. Fotinha + badge `vVERSION · commit` estão **locais, sem push** |
 | **No ar hoje** | `2fef8d0e0` no **agro-consulta-wa**. A loja (`producao`) não tem este pacote |
 | **Migrate** | **NÃO** |
 | **Loja** | Este envio **não reinicia** a Sistvale. Só o serviço do Zap recarrega (~2 min). PDV e venda seguem |

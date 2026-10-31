@@ -83,6 +83,7 @@
   <header class="wa-top">
     <span id="wa-dot" class="wa-dot off" aria-hidden="true"></span>
     <h1 class="wa-title min-w-0 flex-1 truncate">Zap loja</h1>
+    <span class="wa-ver" title="Versão no ar neste Zap. O código curto muda a cada atualização.">v{{ agro_build.version_label }}{% if agro_build.commit %} · {{ agro_build.commit|slice:":7" }}{% endif %}</span>
     <button type="button" id="wa-pwa-instalar">Instalar no celular</button>
     <div id="wa-status" class="wa-pill">…</div>
   </header>

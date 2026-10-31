@@ -499,7 +499,9 @@
     if (!av) return;
     var foto = String(fotoUrl || '').trim();
     var img = av.querySelector('img');
-    if (!foto || av.getAttribute('data-foto-fail') === '1') {
+    var falhou = av.getAttribute('data-foto-fail') || '';
+    var falhouEm = Number(av.getAttribute('data-foto-fail-em') || 0);
+    if (!foto || (falhou === foto && Date.now() - falhouEm < 20000)) {
       if (img || !av.querySelector('.wa-av-ini')) {
         av.innerHTML = avatarInicialHtml(titulo);
       } else {
@@ -509,6 +511,7 @@
       }
       return;
     }
+    av.removeAttribute('data-foto-fail');
     if (img) {
       // Não troca src se já é a mesma — evita piscada a cada poll.
       if (img.getAttribute('src') !== foto) img.setAttribute('src', foto);
@@ -518,7 +521,8 @@
     img = av.querySelector('img');
     if (img) {
       img.addEventListener('error', function () {
-        av.setAttribute('data-foto-fail', '1');
+        av.setAttribute('data-foto-fail', foto);
+        av.setAttribute('data-foto-fail-em', String(Date.now()));
         av.innerHTML = avatarInicialHtml(titulo);
       });
     }

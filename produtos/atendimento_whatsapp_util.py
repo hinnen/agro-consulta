@@ -711,7 +711,11 @@ def serializar_conversa(c: WhatsAppConversaAgro) -> dict:
         "ultima_em": ult.isoformat() if ult else "",
         "hora": ult_l.strftime("%H:%M") if ult_l else "",
         "data": ult_l.strftime("%d/%m") if ult_l else "",
-        "foto_url": f"/api/atendimento-whatsapp/foto/{int(c.pk)}/" if c.foto_perfil else "",
+        "foto_url": (
+            f"/api/atendimento-whatsapp/foto/{int(c.pk)}/"
+            if c.foto_perfil and _foto_no_disco(c)
+            else ""
+        ),
         "vip": bool((getattr(c, "extras", None) or {}).get("vip")),
         "nota": str((getattr(c, "extras", None) or {}).get("nota") or "")[:200],
         "tags": list((getattr(c, "extras", None) or {}).get("tags") or [])[:8],
@@ -2442,7 +2446,8 @@ def listar_fotos_pendentes(*, limit: int = 25) -> list[dict]:
     """Conversas recentes sem foto (ou arquivo sumiu no disco) — a ponte busca no Zap."""
     lim = max(1, min(int(limit or 25), 40))
     corte = timezone.now() - timedelta(days=5)
-    qs = WhatsAppConversaAgro.objects.order_by("-ultima_em", "-id")[: max(lim * 4, 40)]
+    # Olha a lista visível (não só os 12 primeiros). Devolve poucas por poll.
+    qs = WhatsAppConversaAgro.objects.order_by("-ultima_em", "-id")[: max(120, lim * 8)]
     out = []
     for c in qs:
         if len(out) >= lim:

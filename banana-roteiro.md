@@ -142,6 +142,7 @@ Ler no máximo **5** subseções `###` que baterem + a linha **Versão app**.
 | Mudança na regra de leitura | Este arquivo + `.cursor/rules/agro-consulta.mdc` §0 |
 | WIP / deploy / decisão | `banana.md` CHECKPOINT (como hoje) |
 | **Deploy loja concluído** | No `banana.md`: registrar Live **e limpar** badges «pronto para envio / aguarda senha» do que **já subiu** (vira ✅ enviado). Renan 23/07: *limpar sempre o que já foi enviado*. |
+| **Versão no ar** | Sistvale: badge `v{{ VERSION }}` na home. Zap (`/atendimento-whatsapp/`): o mesmo número **e** os 7 primeiros do commit, na barra de cima (`.wa-ver`). O commit muda a cada deploy da filial `whatsapp` mesmo sem subir o `VERSION`. Smoke: Ctrl+F5 e o código curto da barra = o commit que acabou de subir. |
 
 *Não* duplicar WIP aqui — só o **mapa de leitura**.
 
