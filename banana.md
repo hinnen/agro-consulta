@@ -1294,6 +1294,32 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ CHECKLIST ÚNICO — **31/10** · 🟢 **pronto envio** · **WA-ORCAMENTO-PONTE**
+
+| # | Item | Status | Migrate | Prova |
+| - | ---- | ------ | ------- | ----- |
+| 1 | Rota `bridge/orcamento` recebe o botão Loja | 🟢 Pronto | **NÃO** | `verify_wa_bridge_orcamento_path` **10/10** |
+| 2 | Sem token ou token errado | 🟢 403 | **NÃO** | mesmo script |
+| 3 | «Orçamento no Zap» desligado ou texto vazio | 🟢 400, não enfileira | **NÃO** | mesmo script |
+| 4 | Texto ok devolve `conversa_id` | 🟢 Pronto | **NÃO** | mesmo script |
+| 5 | Chat, lista, ponte de foto | ✅ Intocado | **NÃO** | diff só essa rota |
+
+| Campo | Valor |
+| ----- | ----- |
+| **Pacote** | commit local `f6a5bb5` + este checkpoint · **não** está em `origin/whatsapp` |
+| **No ar hoje** | `33e58d6` (janela quieta). Este pacote **não** subiu |
+| **Migrate** | **NÃO** |
+| **Por que não subiu** | Push na filial `whatsapp` religa o serviço e zera foto/áudio. Lojas abertas. Senha não veio nesta mensagem |
+| **Quando autorizar** | Frase + `99738595` na mesma mensagem. Sobe este pacote **antes** (ou junto) do patch da Sistvale, senão o botão Loja grava no worker da loja |
+| **Não fazer** | `AGRO_WA_PUBLIC_ORIGIN` neste serviço |
+
+### 📦 PACOTE PRONTO — **WA-ORCAMENTO-PONTE** · 31/10
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | O Zap separado aceita o orçamento que a Sistvale vai encaminhar |
+| **Revert** | não dar push nesta filial |
+
 ### 🟢 **WA-LISTA-MENU** · enviado à filial `whatsapp` · 31/10
 
 | Campo | Valor |
