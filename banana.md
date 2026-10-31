@@ -1294,7 +1294,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### ✅ CHECKLIST ÚNICO — **31/10** · 🟢 **pronto envio** · **WA-ORCAMENTO-PONTE**
+### ✅ CHECKLIST ÚNICO — **31/10** · ✅ **enviado** · **WA-ORCAMENTO-PONTE**
 
 | # | Item | Status | Migrate | Prova |
 | - | ---- | ------ | ------- | ----- |
@@ -1306,11 +1306,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Pacote** | commit local `f6a5bb5` + este checkpoint · **não** está em `origin/whatsapp` |
-| **No ar hoje** | `33e58d6` (janela quieta). Este pacote **não** subiu |
+| **Pacote** | `f6a5bb5` + prova · enviado 31/10 com frase + senha |
+| **No ar** | este push. O badge muda quando o Render terminar (~2 min) |
 | **Migrate** | **NÃO** |
-| **Por que não subiu** | Push na filial `whatsapp` religa o serviço e zera foto/áudio. Lojas abertas. Senha não veio nesta mensagem |
-| **Quando autorizar** | Frase + `99738595` na mesma mensagem. Sobe este pacote **antes** (ou junto) do patch da Sistvale, senão o botão Loja grava no worker da loja |
+| **Efeito** | O Zap recarrega e o disco zera foto e áudio de novo |
+| **Loja** | A Sistvale ainda não tem o patch do ícone e do botão Loja. Sem esse patch, esta rota fica esperando |
 | **Não fazer** | `AGRO_WA_PUBLIC_ORIGIN` neste serviço |
 
 ### 📦 PACOTE PRONTO — **WA-ORCAMENTO-PONTE** · 31/10
