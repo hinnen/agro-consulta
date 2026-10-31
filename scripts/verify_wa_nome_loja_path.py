@@ -64,11 +64,14 @@ def cfg_quieto(**extra):
 
 
 def limpar() -> None:
+    from django.db import connection
+
     WhatsAppMensagemAgro.objects.all().delete()
     WhatsAppConversaAgro.objects.all().delete()
     WhatsAppBotConfigAgro.objects.all().delete()
     WhatsAppAgendaContatoAgro.objects.all().delete()
-    ClienteAgro.objects.all().delete()
+    with connection.cursor() as cur:
+        cur.execute("DELETE FROM produtos_clienteagro")
     corrigir_nomes_que_sao_da_loja._mono = 0  # type: ignore[attr-defined]
 
 
@@ -210,6 +213,24 @@ def main() -> int:
     corrigir_nomes_que_sao_da_loja(cfg=cfg_quieto())
     conv4 = WhatsAppConversaAgro.objects.get()
     check("telefone na lista vira o cadastro", conv4.nome == "Nathan Hinnen")
+
+    limpar()
+    ClienteAgro.objects.create(nome=r"Durvalino Junior\ Amanda Dias 8869", whatsapp="13981558869")
+    WhatsAppAgendaContatoAgro.objects.create(
+        jid="5513981558869@s.whatsapp.net",
+        telefone="13981558869",
+        nome="Amanda",
+    )
+    WhatsAppConversaAgro.objects.create(
+        jid="5513981558869@s.whatsapp.net",
+        telefone="5513981558869",
+        nome="5513981558869",
+    )
+    corrigir_nomes_que_sao_da_loja._mono = 0  # type: ignore[attr-defined]
+    _indice_cadastro_por_sufixo._cache = None  # type: ignore[attr-defined]
+    corrigir_nomes_que_sao_da_loja(cfg=cfg_quieto())
+    conv5 = WhatsAppConversaAgro.objects.get()
+    check("cadastro misturado usa o nome da agenda", conv5.nome == "Amanda")
 
     print(f"\nVERIFY_OK {OK}/{OK + FAIL}")
     return 0 if FAIL == 0 else 1

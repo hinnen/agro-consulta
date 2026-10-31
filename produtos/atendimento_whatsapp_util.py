@@ -394,6 +394,8 @@ def _indice_cadastro_por_sufixo() -> dict[str, str]:
         if len(dig) < 10 or not nome:
             continue
         idx[dig[-11:] if len(dig) >= 11 else dig] = nome[:120]
+        if len(dig) >= 10:
+            idx.setdefault(dig[-10:], nome[:120])
     _indice_cadastro_por_sufixo._cache = {"t": agora, "idx": idx}  # type: ignore[attr-defined]
     return idx
 
@@ -448,22 +450,41 @@ def _nomes_conhecidos_por_conversa(convs: list, cfg: dict | None) -> dict[int, s
                 agenda[("t", dig)] = nome
                 if len(dig) >= 11:
                     agenda[("t", dig[-11:])] = nome
+                if len(dig) >= 10:
+                    agenda[("t", dig[-10:])] = nome
     cadastro = _indice_cadastro_por_sufixo()
     out: dict[int, str] = {}
     for conv, tel, vars_tel in infos:
+        def _agenda_deste() -> str:
+            ag_nome = agenda.get(("j", conv.jid)) or agenda.get(("j", conv.jid_lid or "")) or ""
+            if ag_nome:
+                return ag_nome
+            for v in vars_tel:
+                ag_nome = agenda.get(("t", v)) or agenda.get(("t", v[-11:] if len(v) >= 11 else v)) or ""
+                if not ag_nome and len(v) >= 10:
+                    ag_nome = agenda.get(("t", v[-10:])) or ""
+                if ag_nome:
+                    return ag_nome
+            return ""
+
         hit = ""
         for v in vars_tel:
-            chave = v[-11:] if len(v) >= 11 else v
-            hit = cadastro.get(chave) or ""
-            if hit:
-                break
-        if not hit:
-            hit = agenda.get(("j", conv.jid)) or agenda.get(("j", conv.jid_lid or "")) or ""
-        if not hit:
-            for v in vars_tel:
-                hit = agenda.get(("t", v)) or agenda.get(("t", v[-11:] if len(v) >= 11 else v)) or ""
+            chaves = [v]
+            if len(v) >= 11:
+                chaves.append(v[-11:])
+            if len(v) >= 10:
+                chaves.append(v[-10:])
+            for chave in chaves:
+                hit = cadastro.get(chave) or ""
                 if hit:
                     break
+            if hit:
+                break
+        agenda_nome = _agenda_deste()
+        if hit and _nome_cadastro_misturado(hit) and agenda_nome:
+            hit = agenda_nome
+        elif not hit:
+            hit = agenda_nome
         if hit and (_nome_e_da_loja(hit, cfg) or _nome_parece_telefone(hit, tel)):
             hit = ""
         if hit:
@@ -532,11 +553,20 @@ def aplicar_nome_agenda(conv: WhatsAppConversaAgro) -> None:
 
 
 def _nome_parece_telefone(nome: str, telefone: str) -> bool:
-    n = re.sub(r"\D+", "", nome or "")
+    raw = nome or ""
+    # «Amanda Dias 8869» tem letras. Não é telefone só porque o número acaba em 8869.
+    if len(re.sub(r"[^A-Za-zÀ-ÿ]", "", raw)) >= 2:
+        return False
+    n = re.sub(r"\D+", "", raw)
     t = re.sub(r"\D+", "", telefone or "")
-    if not n or not t:
+    if len(n) < 8 or not t:
         return False
     return n == t or n.endswith(t) or t.endswith(n)
+
+
+def _nome_cadastro_misturado(nome: str) -> bool:
+    n = nome or ""
+    return "\\" in n or "|" in n or "/" in n
 
 
 def _ext_midia(tipo: str, mime: str, nome: str) -> str:
