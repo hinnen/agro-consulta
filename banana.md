@@ -1294,12 +1294,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 **WA-RENDER-SPLIT** · **WA-LISTA-FLEX** · pronto, **sem push** · 31/10
+### 🟡 **WA-RENDER-SPLIT** · **WA-LISTA-FLEX** · enviado à filial `whatsapp` · 31/10
 
 | Campo | Valor |
 | ----- | ----- |
 | **No ar** | `596105c` no **agro-consulta-wa**. Essa grade no botão escondeu a foto no Chrome. Barra `v27.26.44.1 · 596105c` |
-| **Pronto local** | `85f4084` — tira a grade. Lista volta a ser flex. Foto e letra ficam num quadrado fixo de 48px |
+| **Enviado** | Autorizado 31/10 (frase + senha). `85f4084` em cima do `596105c`: tira a grade do botão. Foto e letra num quadrado de 48px |
 | **Migrate** | **NÃO** |
 | **Loja** | Push desta filial **não reinicia** a Sistvale. Só o Zap recarrega (~2 min). PDV e venda seguem |
 | **Próximo chat** | Frase + senha na mesma mensagem → `git push origin whatsapp`. Não fazer push em `producao` |
