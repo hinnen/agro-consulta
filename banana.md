@@ -1294,18 +1294,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 **WA-RENDER-SPLIT** · **WA-NOME-LISTA** · enviado à filial `whatsapp` · 31/10
+### 🟡 **WA-RENDER-SPLIT** · **WA-NOME-AGENDA** · pronto, **sem push** · 31/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Chat que ficou só com o telefone passa a usar o cadastro e, se não houver, a agenda. Lista não escorrega. Fotinha: olha os 120 chats recentes e pede de novo se o arquivo sumiu. Barra de cima do Zap mostra `vVERSION · commit` |
-| **Onde** | Autorizado 31/10 (frase + senha). Push da filial `whatsapp` em cima de `88fa449`: fotinha, badge `vVERSION · commit`, nome só da tela, bolha, áudio sem arquivo |
-| **No ar hoje** | `2fef8d0e0` no **agro-consulta-wa**. A loja (`producao`) não tem este pacote |
+| **No ar** | `6ef12fe` no **agro-consulta-wa**. Barra mostra `v27.26.44.1 · 6ef12fe` nesse endereço. `sistvale.com.br/atendimento-whatsapp/` é a tela antiga |
+| **Pronto local** | `b1576be` — nome com letras não vira telefone. Cadastro com `\` usa a agenda (Amanda). Linhas da lista sem margem extra |
 | **Migrate** | **NÃO** |
-| **Loja** | Este envio **não reinicia** a Sistvale. Só o serviço do Zap recarrega (~2 min). PDV e venda seguem |
-| **Próximo chat** | Frase + senha na mesma mensagem → `git push origin whatsapp` (está 3 commits à frente). Não fazer push em `producao`. Não reinicia a Sistvale |
-| **Não volta** | Áudio e foto de antes do deploy: o disco do Render apagou o arquivo. Mensagem nova grava de novo |
-| **Prova** | `verify_wa_nome_loja_path.py` **13/13** · `verify_wa_render_split_path.py` **18/18** · PIN **9973** não roda aqui (sem o Postgres da loja) |
+| **Loja** | Push desta filial **não reinicia** a Sistvale. Só o Zap recarrega (~2 min) |
+| **Próximo chat** | Frase + senha na mesma mensagem → `git push origin whatsapp`. Não fazer push em `producao` |
+| **Não volta** | Áudio e foto que já sumiram do disco |
+| **Prova** | `verify_wa_nome_loja_path.py` **14/14** · `verify_wa_render_split_path.py` **21/21** · PIN **9973** não roda aqui (sem o Postgres da loja) |
 | **Não fazer** | `AGRO_WA_PUBLIC_ORIGIN` no serviço do Zap |
 
 ### ✅ CHECKLIST ÚNICO — **29/10** · 🟢 **pronto envio produção** · **NFE-QTD-DECIMAL**
