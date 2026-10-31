@@ -1294,18 +1294,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 **WA-RENDER-SPLIT** · **WA-LISTA-COLUNA** · enviado à filial `whatsapp` · 31/10
+### 🟡 **WA-RENDER-SPLIT** · **WA-LISTA-FLEX** · pronto, **sem push** · 31/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **No ar** | `ea351fd` no **agro-consulta-wa**. Barra `v27.26.44.1 · ea351fd` no endereço onrender. `sistvale.com.br/atendimento-whatsapp/` é a tela antiga |
-| **Enviado** | Autorizado 31/10 (frase + senha). `0bc4135` em cima do `ea351fd`: lista em grade, foto 3rem, nome na segunda coluna |
+| **No ar** | `596105c` no **agro-consulta-wa**. Essa grade no botão escondeu a foto no Chrome. Barra `v27.26.44.1 · 596105c` |
+| **Pronto local** | `85f4084` — tira a grade. Lista volta a ser flex. Foto e letra ficam num quadrado fixo de 48px |
 | **Migrate** | **NÃO** |
 | **Loja** | Push desta filial **não reinicia** a Sistvale. Só o Zap recarrega (~2 min). PDV e venda seguem |
 | **Próximo chat** | Frase + senha na mesma mensagem → `git push origin whatsapp`. Não fazer push em `producao` |
-| **Não volta** | Áudio e foto que já sumiram do disco |
-| **Prova** | Medição no print da lista. CSS só em `_wa_skin.html`. Provas anteriores do nome: **14/14** e **21/21**. PIN **9973** não roda aqui (sem o Postgres da loja) |
-| **Não fazer** | `AGRO_WA_PUBLIC_ORIGIN` no serviço do Zap |
+| **Fotos** | O deploy apaga o arquivo no disco. Sem a ponte passar de «Ligando...» e mostrar «Django:», a fotinha não volta |
+| **Prova** | Revisão do HTML do botão (`.wa-av` + `.wa-item-body`) contra o CSS. Sem browser aqui. PIN **9973** não roda (sem o Postgres da loja) |
+| **Não fazer** | `AGRO_WA_PUBLIC_ORIGIN` no serviço do Zap. Não recolocar `display: grid` no botão da lista |
 
 ### ✅ CHECKLIST ÚNICO — **29/10** · 🟢 **pronto envio produção** · **NFE-QTD-DECIMAL**
 
