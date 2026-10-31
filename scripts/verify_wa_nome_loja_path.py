@@ -156,6 +156,41 @@ def main() -> int:
     conv2 = WhatsAppConversaAgro.objects.get()
     check("push da loja nao entra como cliente", conv2.nome != LOJA and "88001122" in (conv2.nome or ""))
 
+    limpar()
+    WhatsAppConversaAgro.objects.create(
+        jid="5513988005501@s.whatsapp.net",
+        telefone="5513988005501",
+        nome="5513988005501",
+    )
+    with patch("produtos.atendimento_whatsapp_bot_config.carregar_bot", side_effect=lambda *a, **k: cfg_quieto()):
+        processar_entrada(
+            jid="5513988005501@s.whatsapp.net",
+            texto="qual o nome dele",
+            nome=LOJA,
+            nome_loja=LOJA,
+            de_mim=True,
+            wa_id="eco-phone",
+        )
+    conv3 = WhatsAppConversaAgro.objects.get()
+    check("eco nao grava a loja por cima do telefone", conv3.nome != LOJA)
+    from produtos.atendimento_whatsapp_bot_config import carregar_bot_leve
+
+    cache = getattr(carregar_bot_leve, "_cache", None)
+    if isinstance(cache, dict):
+        cache.clear()
+    with patch(
+        "produtos.atendimento_whatsapp_bot_config.carregar_bot",
+        return_value=cfg_quieto(nome_zap_loja=LOJA),
+    ):
+        processar_entrada(
+            jid="5513988005501@s.whatsapp.net",
+            texto="ta bom",
+            nome=LOJA,
+            wa_id="cli-loja-push",
+        )
+    conv3.refresh_from_db()
+    check("mensagem seguinte nao devolve o nome da loja", conv3.nome != LOJA)
+
     print(f"\nVERIFY_OK {OK}/{OK + FAIL}")
     return 0 if FAIL == 0 else 1
 

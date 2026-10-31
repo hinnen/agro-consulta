@@ -357,15 +357,24 @@ def corrigir_nomes_que_sao_da_loja(*, cfg: dict | None = None) -> int:
     if not proib:
         return 0
     n = 0
+    # Sem varrer o cadastro inteiro aqui: isso estourava o tempo da lista e o nome da loja voltava.
     for conv in WhatsAppConversaAgro.objects.exclude(nome="").iterator():
         chave = _nome_chave(conv.nome)
         if chave not in proib:
             continue
-        conv.nome = ""
-        aplicar_nome_cadastro(conv, perfil="", cfg=cfg)
-        if _nome_chave(conv.nome) in proib:
-            tel = _telefone_real(conv.telefone) or _telefone_real(conv.jid)
-            conv.nome = (tel or "")[:120]
+        tel = _telefone_real(conv.telefone) or _telefone_real(conv.jid)
+        novo = ""
+        ag = WhatsAppAgendaContatoAgro.objects.filter(jid=conv.jid).only("nome").first()
+        if ag is None and (conv.jid_lid or ""):
+            ag = WhatsAppAgendaContatoAgro.objects.filter(jid=conv.jid_lid).only("nome").first()
+        hit = ((ag.nome if ag else "") or "").strip()
+        if hit and not _nome_e_da_loja(hit, cfg) and not _nome_parece_telefone(hit, tel):
+            novo = hit[:120]
+        else:
+            novo = (tel or "")[:120]
+        if novo == (conv.nome or ""):
+            continue
+        conv.nome = novo
         conv.save(update_fields=["nome"])
         n += 1
     return n
@@ -998,6 +1007,11 @@ def _achar_conversa(
                 return _fundir_conversas(base, outro_lid)
             base.jid_lid = lid
             campos.append("jid_lid")
+        if _nome_e_da_loja(nome, None):
+            nome = ""
+        if _nome_e_da_loja(base.nome, None):
+            base.nome = ""
+            campos.append("nome")
         if nome and (not base.nome or _nome_parece_telefone(base.nome, base.telefone)):
             base.nome = nome[:120]
             campos.append("nome")
@@ -1185,6 +1199,13 @@ def processar_entrada(
 
     # Histórico antigo / eco: não cria chat novo (evita lista voltar após Limpar).
     # Mensagem recente de cliente: cria mesmo se veio marcada como histórico.
+    # O celular da loja manda o pushName da empresa. Tira isso antes de achar o chat,
+    # senão o nome do cliente vira o da loja.
+    if de_mim and ((nome_loja or nome or "").strip()):
+        lembrar_nome_zap_loja((nome_loja or nome or "").strip())
+        nome = ""
+    elif _nome_e_da_loja(nome, None):
+        nome = ""
     if de_mim:
         conv = _achar_conversa(jid_n=jid_n, telefone=tel_limpo, nome=nome, jid_lid=lid)
         if conv is None:
@@ -1198,11 +1219,6 @@ def processar_entrada(
         historico = False
     if not conv.telefone and tel_limpo:
         conv.telefone = tel_limpo[:32]
-    if de_mim and ((nome_loja or nome or "").strip()):
-        lembrar_nome_zap_loja((nome_loja or nome or "").strip())
-        nome = ""
-    elif _nome_e_da_loja(nome, None):
-        nome = ""
     if not _telefone_real(conv.telefone):
         tel_cad = ""
         if not _nome_e_da_loja(conv.nome, None) and not _nome_e_da_loja(nome, None):
@@ -1626,7 +1642,7 @@ def abrir_conversa_saida(
         if conv.loja == WhatsAppConversaAgro.LOJA_PENDENTE:
             conv.loja = loja_n
             campos.append("loja")
-        if nome and not conv.nome:
+        if nome and not _nome_e_da_loja(nome, None) and not conv.nome:
             conv.nome = nome[:120]
         aplicar_nome_cadastro(conv)
         campos.append("nome")
@@ -1661,7 +1677,7 @@ def abrir_conversa_busca(*, telefone: str, nome: str = "", jid: str = "") -> tup
                 menu_enviado=True,
                 origem_abertura="loja",
             )
-        if nome and not conv.nome:
+        if nome and not _nome_e_da_loja(nome, None) and not conv.nome:
             conv.nome = nome[:120]
         aplicar_nome_cadastro(conv)
         aplicar_nome_agenda(conv)
@@ -1671,7 +1687,7 @@ def abrir_conversa_busca(*, telefone: str, nome: str = "", jid: str = "") -> tup
     if not jid_n:
         return None, "Número inválido."
     conv = _achar_ou_criar_conversa(jid_n=jid_n, telefone=telefone or jid_para_telefone(jid_n), nome=nome, jid_lid=lid)
-    if nome and (not conv.nome or _nome_parece_telefone(conv.nome, conv.telefone)):
+    if nome and not _nome_e_da_loja(nome, None) and (not conv.nome or _nome_parece_telefone(conv.nome, conv.telefone)):
         conv.nome = nome[:120]
     if not conv.telefone:
         conv.telefone = jid_para_telefone(jid_n)
