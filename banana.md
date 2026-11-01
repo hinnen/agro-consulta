@@ -1292,20 +1292,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
-### ✅ CHECKLIST ÚNICO — **31/10** · 🟢 **pronto para envio à produção** · **PDV-WA-SEPARADO**
+### 🟡 CHECKLIST ÚNICO — **31/10** · **PREP armado v27.26.45** · **PDV-WA-SEPARADO**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-WA-SEPARADO** | 🟢 Pronto · **não está na loja** | **NÃO** | ícone verde e botão Loja · middleware 302/503 |
+| 1 | **PDV-WA-SEPARADO** | 🟡 PREP `1ef48ced` · **não está na loja** | **NÃO** | **VERIFY_OK 40** · cutover sem `--exec` OK |
 
-### 📦 PACOTE PRONTO — **PDV-WA-SEPARADO** · 31/10 · nesta filial `teste`
+### 📦 PREP ARMADO — **PDV-WA-SEPARADO** · **v27.26.45** · 31/10
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **Pronto para envio à produção** (frase + senha). A loja hoje segue em **v27.26.44** (`925dd0cf`) |
-| **Entra** | Ícone verde do PDV abre o Zap separado. Botão **Loja** manda o orçamento para esse serviço. A URL antiga do Zap na Sistvale redireciona. NFC-e e venda não mudam |
-| **Onde** | Código nesta filial `teste`. Não está na `producao` |
+| **Status** | 🟡 **Preparado**. A loja continua em **v27.26.44** (`925dd0cf`). Não subiu |
+| **PREP** | `1ef48ced` · `deploy/prep-checklist-3110-pdv-wa-separado` · em cima da produção, sem merge do `teste` |
+| **Entra** | Ícone verde do PDV abre o Zap separado. Botão **Loja** manda o orçamento para esse serviço. A URL antiga do Zap na Sistvale redireciona. NFC-e, venda, caixa e checkout não mudam |
+| **Checkpoint** | `rollback/pre-v272645-3110-pdv-wa-separado` e `producao-backup-pre-v272645-3110-pdv-wa-separado` = `925dd0cf` |
 | **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_pdv_wa_separado_path.py` **VERIFY_OK 40** |
+| **Próximo chat** | Pausar as vendas. Frase + senha. Aí `./scripts/cutover_loja_checklist_3110_pdv_wa_separado.sh --exec` |
+| **Revert** | `git push origin rollback/pre-v272645-3110-pdv-wa-separado:producao` |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_3110_pdv_wa_separado.sh` |
 | **Antes de subir a loja** | O serviço do Zap ainda precisa receber a rota do orçamento (filial `whatsapp`, ainda sem push). Sem isso o botão Loja grava na Sistvale |
 | **Não fazer** | Colocar `AGRO_WA_PUBLIC_ORIGIN` no serviço do Zap |
 
@@ -1385,6 +1390,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | **AJUSTE-QTD-BIP** | 🟢 Pronto | **NÃO** | alterar **6→5** depois soma **7** · −10/+10 só no item da vez |
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 🟡 PREP — **CHECKLIST 31/10** · **v27.26.45** · Zap separado · ainda não na loja
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 PREP `1ef48ced` · loja segue **v27.26.44** @ **`925dd0cf`** |
+| **Entra** | Ícone verde abre o Zap separado. Botão Loja manda o orçamento. URL antiga redireciona |
+| **Migrate** | **NÃO** |
+| **PDV / caixa / checkout** | Venda, caixa e checkout passam reto. Só mudam o ícone e a URL do orçamento no wizard |
+| **Revert** | `git push origin rollback/pre-v272645-3110-pdv-wa-separado:producao` → **`925dd0cf`** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_3110_pdv_wa_separado.sh` |
+| **Prova** | **VERIFY_OK 40** · cutover sem `--exec` OK em 31/10 |
+
 
 ### ✅ Deploy loja — **CHECKLIST 29/10** · **Live v27.26.44** · 29/10
 

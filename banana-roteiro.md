@@ -4,7 +4,7 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
-**O que está pronto agora (31/10):** checklist único **PDV-WA-SEPARADO** — 🟢 pronto para envio à produção, **não está na loja**. Detalhe no `banana.md` (primeiro bloco depois da lista curta) e na **§99** abaixo. Loja no ar: **v27.26.44**.
+**O que está pronto agora (31/10):** checklist único **PDV-WA-SEPARADO** — 🟡 **PREP armado v27.26.45** (`1ef48ced`), **não está na loja**. Loja no ar: **v27.26.44** @ `925dd0cf`. Próximo chat: pausar vendas e autorizar com a senha. Detalhe no `banana.md` e na **§99**.
 
 ---
 
@@ -1110,13 +1110,13 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 99. CHECKLIST ÚNICO — **31/10** · 🟢 **pronto para envio à produção** · **PDV-WA-SEPARADO**
+## 99. CHECKLIST ÚNICO — **31/10** · 🟡 **PREP armado v27.26.45** · **PDV-WA-SEPARADO**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-WA-SEPARADO** | 🟢 Pronto · **não está na loja** | **NÃO** | ícone verde + botão Loja |
+| 1 | **PDV-WA-SEPARADO** | 🟡 PREP `1ef48ced` · **não está na loja** | **NÃO** | **VERIFY_OK 40** · cutover sem `--exec` OK |
 
-**Onde:** filial `teste` (este arquivo). **Loja no ar:** v27.26.44 @ `925dd0cf`. **Migrate:** não. **Antes:** a rota do orçamento no serviço do Zap ainda não subiu.
+**Loja no ar:** v27.26.44 @ `925dd0cf`. **Checkpoint:** `rollback/pre-v272645-3110-pdv-wa-separado` = `925dd0cf`. **Revert:** `git push origin rollback/pre-v272645-3110-pdv-wa-separado:producao`. **Shell depois:** `./scripts/post_deploy_checklist_3110_pdv_wa_separado.sh`. **Antes:** a rota do orçamento no serviço do Zap ainda não subiu — sem ela o botão Loja grava na Sistvale.
 
 ---
 
