@@ -1306,11 +1306,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Pacote** | local, 4 commits à frente de `c75068e` · **não** está em `origin/whatsapp` |
+| **Pacote** | enviado 01/11 com frase + senha. Volta: `c75068e` |
 | **Migrate** | **NÃO** |
 | **PIN 9973** | não entra neste caminho |
-| **Por que não subiu** | Lojas abertas. Senha fica para o próximo chat. Push zera foto e áudio |
-| **Quando autorizar** | Frase + `99738595` na mesma mensagem |
+| **Efeito** | O Zap recarrega (~2 min) e o disco zera foto e áudio |
+| **Revert** | `git push origin rollback/pre-wa-chat-sem-fila:whatsapp` |
 
 ### ✅ CHECKLIST ÚNICO — **31/10** · ✅ **enviado** · **WA-ORCAMENTO-PONTE**
 
