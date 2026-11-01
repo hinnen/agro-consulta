@@ -804,6 +804,102 @@ def api_atendimento_whatsapp_bridge_pedido_ok(request):
     return JsonResponse({"ok": True})
 
 
+def _orcamento_zap_loja(data: dict, autor: str) -> tuple[bool, str, int]:
+    from produtos.atendimento_whatsapp_bot_config import carregar_bot
+    from produtos.atendimento_whatsapp_recursos import recurso_on
+
+    cfg = carregar_bot()
+    if not recurso_on(cfg, "feat_orcamento_zap"):
+        return False, "Ligue «Orçamento no Zap» em Bot → Recursos.", 0
+    texto = str(data.get("texto") or "").strip()
+    if not texto:
+        return False, "Texto do orçamento vazio.", 0
+    try:
+        cid = int(data.get("conversa_id") or 0)
+    except (TypeError, ValueError):
+        cid = 0
+    if cid <= 0:
+        conv, err_ab = abrir_conversa_busca(
+            telefone=str(data.get("telefone") or ""),
+            nome=str(data.get("nome") or ""),
+            jid=str(data.get("jid") or ""),
+        )
+        if err_ab or conv is None:
+            return False, err_ab or "Não achou o chat.", 0
+        cid = int(conv.pk)
+    m, err = enviar_loja(conversa_id=cid, texto=texto, autor=autor or "Loja")
+    if m is None or err:
+        return False, err or "Não enviou.", 0
+    return True, "", cid
+
+
+@csrf_exempt
+@require_POST
+def api_atendimento_whatsapp_bridge_orcamento(request):
+    """PDV da loja manda o orçamento para este serviço. Não usa o worker do PDV."""
+    if not token_ponte_ok(request):
+        return _bridge_forbidden()
+    data = _json_body(request) or {}
+    ok, err, cid = _orcamento_zap_loja(data, str(data.get("autor") or "Loja"))
+    if not ok:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse({"ok": True, "conversa_id": cid})
+
+
+@login_required(login_url="/entrar/")
+@require_POST
+def api_pdv_zap_loja_orcamento(request):
+    """Botão Loja do PDV. Encaminha ao Zap separado. Se ele não responder, grava aqui."""
+    import urllib.error
+    import urllib.request
+
+    from django.conf import settings
+
+    from produtos.agro_wa_origin_util import agro_wa_public_origin
+
+    data = _json_body(request) or {}
+    autor = ""
+    user = getattr(request, "user", None)
+    if user is not None and getattr(user, "is_authenticated", False):
+        autor = (getattr(user, "get_full_name", lambda: "")() or getattr(user, "username", "") or "")[:120]
+    payload = dict(data)
+    payload["autor"] = autor or "Loja"
+    origin = agro_wa_public_origin() or "https://agro-consulta-wa.onrender.com"
+    token = (getattr(settings, "AGRO_WA_BRIDGE_TOKEN", "") or "").strip()
+    raw = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    req = urllib.request.Request(
+        origin.rstrip("/") + "/api/atendimento-whatsapp/bridge/orcamento/",
+        data=raw,
+        headers={
+            "Content-Type": "application/json",
+            "X-Agro-Wa-Token": token,
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            body = resp.read().decode("utf-8", errors="replace")
+        parsed = json.loads(body)
+        if isinstance(parsed, dict) and parsed.get("ok"):
+            return JsonResponse(parsed)
+        if isinstance(parsed, dict) and parsed.get("erro"):
+            return JsonResponse(parsed, status=400)
+    except urllib.error.HTTPError as exc:
+        if exc.code not in (404, 502, 503):
+            try:
+                parsed = json.loads(exc.read().decode("utf-8", errors="replace"))
+                if isinstance(parsed, dict) and parsed.get("erro"):
+                    return JsonResponse(parsed, status=400)
+            except Exception:
+                pass
+    except Exception:
+        pass
+    ok, err, cid = _orcamento_zap_loja(payload, autor or "Loja")
+    if not ok:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse({"ok": True, "conversa_id": cid, "local": True})
+
+
 @login_required(login_url="/entrar/")
 @require_GET
 def api_atendimento_whatsapp_recursos(request):

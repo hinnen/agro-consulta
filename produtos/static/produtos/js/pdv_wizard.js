@@ -5608,7 +5608,7 @@
         var pSave = salvarOrcamentoWizard({ fromWhatsapp: true, silent: true });
         var mandar = function (gravou) {
             renderRecentBudgetsSnippet();
-            return fetch('/api/atendimento-whatsapp/recurso-acao/', {
+            return fetch('/api/pdv/zap-loja/orcamento/', {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: {

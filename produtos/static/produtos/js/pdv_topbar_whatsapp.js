@@ -83,7 +83,18 @@
     badge.classList.remove('hidden');
   }
 
+  function urlZapSeparado() {
+    var u = (btn.getAttribute('data-wa-chat-url') || '').trim();
+    if (u.indexOf('http') === 0) return u;
+    return 'https://agro-consulta-wa.onrender.com/atendimento-whatsapp/';
+  }
+
+  function zapEhSeparado() {
+    return urlZapSeparado().indexOf(location.host) < 0;
+  }
+
   function puxarEstado() {
+    if (zapEhSeparado()) return;
     fetch('/api/atendimento-whatsapp/estado/', { credentials: 'same-origin' })
       .then(function (r) {
         return r.json();
@@ -111,7 +122,11 @@
   }
 
   function abrirZapSemSairDoApp() {
-    var href = '/atendimento-whatsapp/';
+    var href = urlZapSeparado();
+    if (zapEhSeparado()) {
+      window.open(href, '_blank', 'noopener');
+      return;
+    }
     try {
       if (window.AgroDualWindow && typeof window.AgroDualWindow.navigateGestao === 'function') {
         window.AgroDualWindow.navigateGestao(href);
@@ -136,7 +151,7 @@
   btn.addEventListener('click', function (ev) {
     ev.preventDefault();
     ev.stopPropagation();
-    if (recursos.feat_pdv_abre_zap) {
+    if (zapEhSeparado() || recursos.feat_pdv_abre_zap) {
       abrirZapSemSairDoApp();
       return;
     }
