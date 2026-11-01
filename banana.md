@@ -1294,6 +1294,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 **WA-CHAT-BOT-SEM-RELOAD** · local · 01/11 · sem push
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Botão Bot abre o painel na mesma tela. Chat volta na hora. Saiu o PIN da loja dessa página |
+| **Não subiu** | Push na filial `whatsapp` zera foto de novo. Senha não veio nesta mensagem |
+
 ### ✅ CHECKLIST ÚNICO — **31/10** · ✅ **enviado** · **WA-ORCAMENTO-PONTE**
 
 | # | Item | Status | Migrate | Prova |
