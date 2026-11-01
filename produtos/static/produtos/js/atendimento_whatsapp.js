@@ -1071,6 +1071,7 @@
   }
 
   var convAbreSeq = 0;
+  var abrindoConversa = false;
 
   function zerarBadgeItemLista(id) {
     var btn = document.querySelector('#wa-lista .wa-item[data-id="' + String(id) + '"]');
@@ -1110,6 +1111,7 @@
       msgsEl.innerHTML = '<p class="text-sm font-semibold text-slate-400 px-1 py-2">Carregando…</p>';
     }
     zerarBadgeItemLista(convId);
+    abrindoConversa = true;
     fetchJson('/api/atendimento-whatsapp/mensagens/?conversa_id=' + convId, { timeoutMs: 20000 }).then(
       function (j) {
         if (seq !== convAbreSeq) return;
@@ -1126,6 +1128,11 @@
         rows.forEach(function (m) {
           if (m.direcao === 'in' && m.id > lastSeenIn) lastSeenIn = m.id;
         });
+        fetch('/api/atendimento-whatsapp/marcar-lida/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+          body: JSON.stringify({ conversa_id: convId }),
+        }).catch(function () {});
         fetchJson('/api/atendimento-whatsapp/ficha/?conversa_id=' + convId).then(function (fj) {
           if (seq !== convAbreSeq) return;
           var f = fj && fj.ficha;
@@ -1139,12 +1146,9 @@
           if (f.loja) convLoja = f.loja;
         });
       }
-    );
-    fetch('/api/atendimento-whatsapp/marcar-lida/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
-      body: JSON.stringify({ conversa_id: convId }),
-    }).catch(function () {});
+    ).finally(function () {
+      if (seq === convAbreSeq) abrindoConversa = false;
+    });
   }
 
   function limparChatAberto() {
@@ -2543,6 +2547,7 @@
    */
   setInterval(function () {
     tickPoll += 1;
+    if (abrindoConversa) return;
     var ativa = waJanelaAtiva();
     var msgsEvery = ativa ? 2 : 6;
     var estadoEvery = ativa ? 4 : 12;
