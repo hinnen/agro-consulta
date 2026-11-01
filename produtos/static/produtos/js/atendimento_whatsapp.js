@@ -52,6 +52,31 @@
     return document.getElementById(id);
   }
 
+  function mostrarPainelBot(on) {
+    var app = $('wa-app');
+    var painel = $('wa-painel-bot');
+    if (!app || !painel) return;
+    app.classList.toggle('hidden', !!on);
+    painel.classList.toggle('hidden', !on);
+    var bBot = $('wa-btn-bot');
+    var bChat = $('wa-btn-chat');
+    if (bBot) bBot.classList.toggle('hidden', !!on);
+    if (bChat) bChat.classList.toggle('hidden', !on);
+  }
+  var btnAbrirBot = $('wa-btn-bot');
+  if (btnAbrirBot && $('wa-painel-bot')) {
+    btnAbrirBot.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      mostrarPainelBot(true);
+    });
+  }
+  var btnVoltarChat = $('wa-btn-chat');
+  if (btnVoltarChat) {
+    btnVoltarChat.addEventListener('click', function () {
+      mostrarPainelBot(false);
+    });
+  }
+
   function beep() {
     try {
       var ctx = new (window.AudioContext || window.webkitAudioContext)();
