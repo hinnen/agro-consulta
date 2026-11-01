@@ -1294,7 +1294,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### ✅ CHECKLIST ÚNICO — **01/11b** · 🟢 **pronto envio** · **WA-CARREGANDO-RESOLVIDAS**
+### ✅ CHECKLIST ÚNICO — **01/11b** · ✅ **enviado** · **WA-CARREGANDO-RESOLVIDAS**
 
 | # | Item | Status | Migrate | Prova |
 | - | ---- | ------ | ------- | ----- |
@@ -1304,11 +1304,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Pacote** | local, à frente do ar `88484aa` · **não** está em `origin/whatsapp` |
-| **No ar** | `88484aa` não tira o «Carregando…» |
+| **Pacote** | enviado 01/11 com frase + senha |
+| **Volta** | `git push origin rollback/pre-wa-carregando-resolvidas:whatsapp` → `88484aa` |
 | **Migrate** | **NÃO** |
 | **PIN 9973** | não entra |
-| **Quando autorizar** | Frase + `99738595`. Push zera foto e áudio. Volta: `88484aa` |
+| **Efeito** | O Zap recarrega (~2 min) e o disco zera foto e áudio |
 
 ### ✅ CHECKLIST ÚNICO — **01/11** · ✅ **enviado** · **WA-CHAT-SEM-FILA**
 
