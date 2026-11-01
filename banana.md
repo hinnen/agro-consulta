@@ -1294,12 +1294,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 **WA-CHAT-BOT-SEM-RELOAD** · local · 01/11 · sem push
+### ✅ CHECKLIST ÚNICO — **01/11** · 🟢 **pronto envio** · **WA-CHAT-SEM-FILA**
+
+| # | Item | Status | Migrate | Prova |
+| - | ---- | ------ | ------- | ----- |
+| 1 | Bot abre na mesma tela | 🟢 Pronto | **NÃO** | `verify_wa_chat_bot_painel_path` **11/11** |
+| 2 | Chat volta sem recarregar | 🟢 Pronto | **NÃO** | mesmo script |
+| 3 | JS do Bot só no primeiro clique | 🟢 Pronto | **NÃO** | mesmo script |
+| 4 | Clique na conversa na frente do `estado` | 🟢 Pronto | **NÃO** | poll pausa · marcar lida depois |
+| 5 | PIN da loja nesta página | ✅ Fora | **NÃO** | include removido |
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Botão Bot abre o painel na mesma tela. Chat volta na hora. Saiu o PIN da loja dessa página |
-| **Não subiu** | Push na filial `whatsapp` zera foto de novo. Senha não veio nesta mensagem |
+| **Pacote** | local, 4 commits à frente de `c75068e` · **não** está em `origin/whatsapp` |
+| **Migrate** | **NÃO** |
+| **PIN 9973** | não entra neste caminho |
+| **Por que não subiu** | Lojas abertas. Senha fica para o próximo chat. Push zera foto e áudio |
+| **Quando autorizar** | Frase + `99738595` na mesma mensagem |
 
 ### ✅ CHECKLIST ÚNICO — **31/10** · ✅ **enviado** · **WA-ORCAMENTO-PONTE**
 
