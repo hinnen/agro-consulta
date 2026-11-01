@@ -1294,20 +1294,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 **WA-CLIQUE-SEM-FILA** · local · 01/11 · sem push
+### ✅ CHECKLIST ÚNICO — **01/11b** · 🟢 **pronto envio** · **WA-CARREGANDO-RESOLVIDAS**
+
+| # | Item | Status | Migrate | Prova |
+| - | ---- | ------ | ------- | ----- |
+| 1 | «Carregando…» não espera a gravação do celular | 🟢 Pronto | **NÃO** | `verify_wa_entrada_nao_segura_clique` **2/2** |
+| 2 | Aba Resolvidas lista as arquivadas | 🟢 Pronto | **NÃO** | `verify_wa_chat_bot_painel_path` **12/12** |
+| 3 | NFC-e / Sistvale | ✅ Intocado | **NÃO** | diff só na filial `whatsapp` |
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | A mensagem do celular grava fora do pedido. O clique em «Carregando…» não espera o fiado. O `88484aa` não fazia isso |
-| **Prova** | `verify_wa_entrada_nao_segura_clique` **2/2** |
-| **Não subiu** | Sem senha nesta mensagem. Junto vai a aba Resolvidas |
-
-### 🟢 **WA-RESOLVIDAS-LISTA** · local · 01/11 · sem push
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Aba Resolvidas pedia a lista das ativas quando a loja não separa Centro/Vila. O 4 do botão são as resolvidas; a coluna mostrava a conversa aberta |
-| **Não subiu** | Sem senha nesta mensagem |
+| **Pacote** | local, à frente do ar `88484aa` · **não** está em `origin/whatsapp` |
+| **No ar** | `88484aa` não tira o «Carregando…» |
+| **Migrate** | **NÃO** |
+| **PIN 9973** | não entra |
+| **Quando autorizar** | Frase + `99738595`. Push zera foto e áudio. Volta: `88484aa` |
 
 ### ✅ CHECKLIST ÚNICO — **01/11** · ✅ **enviado** · **WA-CHAT-SEM-FILA**
 
