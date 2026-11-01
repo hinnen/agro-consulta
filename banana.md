@@ -1294,6 +1294,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 **WA-CLIQUE-SEM-FILA** · local · 01/11 · sem push
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | A mensagem do celular grava fora do pedido. O clique em «Carregando…» não espera o fiado. O `88484aa` não fazia isso |
+| **Prova** | `verify_wa_entrada_nao_segura_clique` **2/2** |
+| **Não subiu** | Sem senha nesta mensagem. Junto vai a aba Resolvidas |
+
 ### 🟢 **WA-RESOLVIDAS-LISTA** · local · 01/11 · sem push
 
 | Campo | Valor |
