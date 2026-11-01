@@ -63,10 +63,23 @@
     if (bBot) bBot.classList.toggle('hidden', !!on);
     if (bChat) bChat.classList.toggle('hidden', !on);
   }
+  var botJsPedido = false;
+  function garantirBotJs() {
+    if (botJsPedido || document.getElementById('wa-bot-js')) return;
+    var b = $('wa-btn-bot');
+    var src = b && b.getAttribute('data-bot-js');
+    if (!src) return;
+    botJsPedido = true;
+    var s = document.createElement('script');
+    s.id = 'wa-bot-js';
+    s.src = src;
+    document.body.appendChild(s);
+  }
   var btnAbrirBot = $('wa-btn-bot');
   if (btnAbrirBot && $('wa-painel-bot')) {
     btnAbrirBot.addEventListener('click', function (ev) {
       ev.preventDefault();
+      garantirBotJs();
       mostrarPainelBot(true);
     });
   }
