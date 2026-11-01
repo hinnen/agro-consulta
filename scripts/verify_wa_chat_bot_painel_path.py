@@ -39,6 +39,10 @@ def main() -> int:
     check("poll para enquanto a conversa abre", "if (abrindoConversa) return;" in js)
     check("marcar lida fica depois das mensagens", js.find("marcar-lida") > js.find("mensagens/?conversa_id="))
     check("so uma chamada de marcar lida na abertura", js.count("marcar-lida/") == 1)
+    check(
+        "resolvidas pede a lista arquivada",
+        "loja === 'arquivadas' ? 'arquivadas'" in js,
+    )
     print(f"\n{OK} ok, {FAIL} falha")
     return 0 if FAIL == 0 else 1
 

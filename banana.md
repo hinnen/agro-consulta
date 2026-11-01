@@ -1294,6 +1294,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 **WA-RESOLVIDAS-LISTA** · local · 01/11 · sem push
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Aba Resolvidas pedia a lista das ativas quando a loja não separa Centro/Vila. O 4 do botão são as resolvidas; a coluna mostrava a conversa aberta |
+| **Não subiu** | Sem senha nesta mensagem |
+
 ### ✅ CHECKLIST ÚNICO — **01/11** · ✅ **enviado** · **WA-CHAT-SEM-FILA**
 
 | # | Item | Status | Migrate | Prova |

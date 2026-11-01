@@ -844,7 +844,7 @@
 
   function carregarLista() {
     if ($('wa-busca') && ($('wa-busca').value || '').trim()) return Promise.resolve();
-    var qLoja = separarLojas ? loja : 'todas';
+    var qLoja = loja === 'arquivadas' ? 'arquivadas' : separarLojas ? loja : 'todas';
     return fetchJson('/api/atendimento-whatsapp/conversas/?loja=' + encodeURIComponent(qLoja)).then(
       function (j) {
         if (!j || !j.ok) return;
