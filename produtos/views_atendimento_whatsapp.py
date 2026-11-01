@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import json
+import logging
+import threading
 
 from django.contrib.auth.decorators import login_required
+from django.db import close_old_connections
 from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
@@ -52,6 +55,10 @@ from produtos.atendimento_whatsapp_util import (
     toque_heartbeat,
 )
 from produtos.models import WhatsAppConversaAgro, WhatsAppMensagemAgro, WhatsAppStatusAgro
+
+logger = logging.getLogger(__name__)
+# Uma gravação por vez, fora do pedido HTTP. O clique na conversa não espera o fiado.
+_entrada_fila = threading.Lock()
 
 
 def _json_body(request) -> dict | None:
@@ -734,35 +741,48 @@ def api_atendimento_whatsapp_bridge_status(request):
     return JsonResponse({"ok": True})
 
 
+def _entrada_no_fundo(kwargs: dict, lids) -> None:
+    close_old_connections()
+    try:
+        with _entrada_fila:
+            processar_entrada(**kwargs)
+            if isinstance(lids, dict) and lids:
+                aplicar_mapa_lid(lids)
+    except Exception:
+        logger.exception("entrada whatsapp")
+    finally:
+        close_old_connections()
+
+
 @csrf_exempt
 @require_POST
 def api_atendimento_whatsapp_bridge_entrada(request):
+    """Grava a mensagem do celular sem segurar o clique na conversa."""
     if not token_ponte_ok(request):
         return _bridge_forbidden()
     data = _json_body(request) or {}
-    _m, err = processar_entrada(
-        jid=str(data.get("jid") or ""),
-        texto=str(data.get("texto") or ""),
-        nome=str(data.get("nome") or ""),
-        wa_id=str(data.get("wa_id") or ""),
-        historico=bool(data.get("historico")),
-        de_mim=bool(data.get("de_mim")),
-        ts=data.get("ts"),
-        tipo_midia=str(data.get("tipo_midia") or ""),
-        midia_b64=str(data.get("midia_b64") or ""),
-        mime=str(data.get("mime") or ""),
-        nome_arquivo=str(data.get("nome_arquivo") or ""),
-        telefone=str(data.get("telefone") or ""),
-        jid_lid=str(data.get("jid_lid") or data.get("lid") or ""),
-        nome_loja=str(data.get("nome_loja") or ""),
-    )
-    lids = data.get("lids")
-    if isinstance(lids, dict) and lids:
-        aplicar_mapa_lid(lids)
-    if err == "ignorado":
-        return JsonResponse({"ok": True, "ignorado": True})
-    if err == "duplicada":
-        return JsonResponse({"ok": True, "duplicada": True})
+    kwargs = {
+        "jid": str(data.get("jid") or ""),
+        "texto": str(data.get("texto") or ""),
+        "nome": str(data.get("nome") or ""),
+        "wa_id": str(data.get("wa_id") or ""),
+        "historico": bool(data.get("historico")),
+        "de_mim": bool(data.get("de_mim")),
+        "ts": data.get("ts"),
+        "tipo_midia": str(data.get("tipo_midia") or ""),
+        "midia_b64": str(data.get("midia_b64") or ""),
+        "mime": str(data.get("mime") or ""),
+        "nome_arquivo": str(data.get("nome_arquivo") or ""),
+        "telefone": str(data.get("telefone") or ""),
+        "jid_lid": str(data.get("jid_lid") or data.get("lid") or ""),
+        "nome_loja": str(data.get("nome_loja") or ""),
+    }
+    lids = data.get("lids") if isinstance(data.get("lids"), dict) else None
+    threading.Thread(
+        target=_entrada_no_fundo,
+        args=(kwargs, lids),
+        daemon=True,
+    ).start()
     return JsonResponse({"ok": True})
 
 
