@@ -38,7 +38,12 @@
   var replyToId = 0;
   var replyToTxt = '';
   var convMsgRev = 0;
-  var EMOJIS_WA = '😀😁😂🤣😊😍😘🥰😎😢😭😡👍👎❤️🔥🙏👏✅🎉🇧🇷'.split('');
+  /* Array literal — .split('') parte emoji em surrogates e vira � na tela. */
+  var EMOJIS_WA = [
+    '😀', '😁', '😂', '🤣', '😊', '😍', '😘', '🥰', '😎', '😢', '😭', '😡',
+    '👍', '👎', '❤️', '🔥', '🙏', '👏', '✅', '🎉', '🇧🇷', '🤍', '😮', '🤔',
+  ];
+  var reactMsgId = 0;
 
   function telaCel(chat) {
     if (!ehCel) return;
@@ -2969,6 +2974,40 @@
 
   /* —— Passo 3/4: emoji, scroll, responder, reagir —— */
   (function initWaE34() {
+    var panel = $('wa-emoji-panel');
+    var emojiBtn = $('wa-emoji');
+
+    function fecharEmojiPanel() {
+      reactMsgId = 0;
+      if (panel) {
+        panel.classList.add('hidden');
+        panel.removeAttribute('data-modo');
+      }
+      if (emojiBtn) emojiBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    function abrirEmojiPanel(modo, msgId) {
+      if (!panel) return;
+      reactMsgId = Number(msgId) || 0;
+      panel.setAttribute('data-modo', modo === 'react' ? 'react' : 'digitar');
+      panel.classList.remove('hidden');
+      if (emojiBtn) emojiBtn.setAttribute('aria-expanded', 'true');
+    }
+
+    function enviarReacao(mid, em) {
+      fetchJson('/api/atendimento-whatsapp/reagir/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: JSON.stringify({ mensagem_id: Number(mid) || 0, emoji: String(em || '').trim().slice(0, 8) }),
+      }).then(function (j) {
+        if (!j || !j.ok) {
+          avisarEnvio((j && j.erro) || 'Não reagiu.');
+          return;
+        }
+        recarregarMsgsAbertas();
+      });
+    }
+
     var msgs = $('wa-msgs');
     if (msgs) {
       msgs.addEventListener('scroll', atualizarScrollFim);
@@ -2993,20 +3032,7 @@
           return;
         }
         if (tipo === 'react') {
-          var em = window.prompt('Emoji da reação (ex.: 👍 ❤️ 😂):', '👍');
-          if (em == null) return;
-          em = String(em).trim().slice(0, 8);
-          fetchJson('/api/atendimento-whatsapp/reagir/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
-            body: JSON.stringify({ mensagem_id: Number(mid) || 0, emoji: em }),
-          }).then(function (j) {
-            if (!j || !j.ok) {
-              avisarEnvio((j && j.erro) || 'Não reagiu.');
-              return;
-            }
-            recarregarMsgsAbertas();
-          });
+          abrirEmojiPanel('react', mid);
         }
       });
     }
@@ -3021,18 +3047,29 @@
     var replyX = $('wa-reply-x');
     if (replyX) replyX.addEventListener('click', limparReply);
 
-    var panel = $('wa-emoji-panel');
-    var emojiBtn = $('wa-emoji');
     if (panel) {
       panel.innerHTML = EMOJIS_WA.map(function (e) {
-        return '<button type="button" class="wa-emoji-btn" data-emoji="' + e + '">' + e + '</button>';
+        return (
+          '<button type="button" class="wa-emoji-btn" data-emoji="' +
+          e +
+          '">' +
+          e +
+          '</button>'
+        );
       }).join('');
       panel.addEventListener('click', function (ev) {
         var b = ev.target.closest('[data-emoji]');
         if (!b) return;
+        var em = b.getAttribute('data-emoji') || '';
+        var modo = panel.getAttribute('data-modo') || 'digitar';
+        if (modo === 'react' && reactMsgId) {
+          var mid = reactMsgId;
+          fecharEmojiPanel();
+          enviarReacao(mid, em);
+          return;
+        }
         var inp = $('wa-input');
         if (!inp) return;
-        var em = b.getAttribute('data-emoji') || '';
         var start = inp.selectionStart != null ? inp.selectionStart : inp.value.length;
         var end = inp.selectionEnd != null ? inp.selectionEnd : start;
         inp.value = inp.value.slice(0, start) + em + inp.value.slice(end);
@@ -3041,16 +3078,20 @@
         } catch (e) {}
         inp.focus();
         atualizarBarra();
-        panel.classList.add('hidden');
-        if (emojiBtn) emojiBtn.setAttribute('aria-expanded', 'false');
+        fecharEmojiPanel();
       });
     }
     if (emojiBtn && panel) {
       emojiBtn.addEventListener('click', function () {
-        var on = panel.classList.contains('hidden');
-        panel.classList.toggle('hidden', !on);
-        emojiBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
+        if (!panel.classList.contains('hidden') && (panel.getAttribute('data-modo') || 'digitar') === 'digitar') {
+          fecharEmojiPanel();
+          return;
+        }
+        abrirEmojiPanel('digitar', 0);
       });
     }
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape') fecharEmojiPanel();
+    });
   })();
 })();
