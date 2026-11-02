@@ -41,8 +41,11 @@ def main() -> int:
     check("so uma chamada de marcar lida na abertura", js.count("marcar-lida/") == 1)
     check(
         "resolvidas pede a lista arquivada",
-        "loja === 'arquivadas' ? 'arquivadas'" in js,
+        "chaveLista" in js and "arquivadas" in js,
     )
+    check("lista fica na memoria da aba", "cacheListas" in js)
+    check("conversa aberta fica na memoria", "guardarMsgs" in js)
+    check("no maximo 8 conversas guardadas", "cacheMsgsOrdem.length > 8" in js)
     print(f"\n{OK} ok, {FAIL} falha")
     return 0 if FAIL == 0 else 1
 

@@ -844,13 +844,25 @@
 
   function carregarLista() {
     if ($('wa-busca') && ($('wa-busca').value || '').trim()) return Promise.resolve();
-    var qLoja = loja === 'arquivadas' ? 'arquivadas' : separarLojas ? loja : 'todas';
+    var qLoja = chaveLista();
     return fetchJson('/api/atendimento-whatsapp/conversas/?loja=' + encodeURIComponent(qLoja)).then(
       function (j) {
         if (!j || !j.ok) return;
-        pintarLista(j.conversas);
+        cacheListas[qLoja] = j.conversas || [];
+        if (qLoja === chaveLista()) pintarLista(cacheListas[qLoja]);
+        pedirListaOutra();
       }
     );
+  }
+
+  function pedirListaOutra() {
+    if (listaOutraPedida) return;
+    listaOutraPedida = true;
+    var outra = chaveLista() === 'arquivadas' ? (separarLojas ? 'pendente' : 'todas') : 'arquivadas';
+    fetchJson('/api/atendimento-whatsapp/conversas/?loja=' + encodeURIComponent(outra)).then(function (j) {
+      if (!j || !j.ok) return;
+      cacheListas[outra] = j.conversas || [];
+    });
   }
 
   function lerStatusVistos() {
@@ -1085,6 +1097,30 @@
 
   var convAbreSeq = 0;
   var abrindoConversa = false;
+  var cacheListas = {};
+  var cacheMsgs = {};
+  var cacheMsgsOrdem = [];
+  var listaOutraPedida = false;
+
+  function chaveLista() {
+    return loja === 'arquivadas' ? 'arquivadas' : separarLojas ? loja : 'todas';
+  }
+
+  function guardarMsgs(id, rows, append) {
+    var chave = String(id || '');
+    if (!chave) return;
+    var prev = cacheMsgs[chave] || [];
+    var next = append ? prev.concat(rows || []) : (rows || []).slice();
+    if (next.length > 120) next = next.slice(next.length - 120);
+    cacheMsgs[chave] = next;
+    var ix = cacheMsgsOrdem.indexOf(chave);
+    if (ix >= 0) cacheMsgsOrdem.splice(ix, 1);
+    cacheMsgsOrdem.push(chave);
+    while (cacheMsgsOrdem.length > 8) {
+      var velha = cacheMsgsOrdem.shift();
+      delete cacheMsgs[velha];
+    }
+  }
 
   function zerarBadgeItemLista(id) {
     var btn = document.querySelector('#wa-lista .wa-item[data-id="' + String(id) + '"]');
@@ -1120,7 +1156,11 @@
     telaCel(true);
     pintarQuick();
     var msgsEl = $('wa-msgs');
-    if (msgsEl) {
+    var guardado = cacheMsgs[String(convId)];
+    if (msgsEl && guardado && guardado.length) {
+      pintarMsgs(guardado, false);
+      afterId = guardado[guardado.length - 1].id || 0;
+    } else if (msgsEl) {
       msgsEl.innerHTML = '<p class="text-sm font-semibold text-slate-400 px-1 py-2">Carregando…</p>';
     }
     zerarBadgeItemLista(convId);
@@ -1137,6 +1177,7 @@
         }
         var rows = j.mensagens || [];
         pintarMsgs(rows, false);
+        guardarMsgs(convId, rows, false);
         if (rows.length) afterId = rows[rows.length - 1].id;
         rows.forEach(function (m) {
           if (m.direcao === 'in' && m.id > lastSeenIn) lastSeenIn = m.id;
@@ -1197,6 +1238,7 @@
       var rows = (j && j.mensagens) || [];
       if (!rows.length) return;
       pintarMsgs(rows, true);
+      guardarMsgs(idSnap, rows, true);
       rows.forEach(function (m) {
         afterId = Math.max(afterId, m.id);
         if (m.direcao === 'in' && m.id > lastSeenIn) {
@@ -1216,6 +1258,8 @@
       limparChatAberto();
       telaCel(false);
       sairSelecao();
+      var qAba = chaveLista();
+      if (cacheListas[qAba]) pintarLista(cacheListas[qAba]);
       carregarLista();
     });
   });
