@@ -542,6 +542,11 @@
     var falhou = av.getAttribute('data-foto-fail') || '';
     var falhouEm = Number(av.getAttribute('data-foto-fail-em') || 0);
     if (!foto || (falhou === foto && Date.now() - falhouEm < 20000)) {
+      if (fotoObs && av.hasAttribute('data-foto-quer')) {
+        fotoObs.unobserve(av);
+        av.removeAttribute('data-foto-quer');
+        av.removeAttribute('data-foto-titulo');
+      }
       if (img || !av.querySelector('.wa-av-ini')) {
         av.innerHTML = avatarInicialHtml(titulo);
       } else {
@@ -557,8 +562,40 @@
       if (img.getAttribute('src') !== foto) img.setAttribute('src', foto);
       return;
     }
-    av.innerHTML = '<img alt="" src="' + escapeHtml(foto) + '" />';
-    img = av.querySelector('img');
+    // Cada foto é uma requisição no único processo do Zap. Pedir as ~80 da lista
+    // de uma vez enfileira o GET de mensagens do clique atrás delas.
+    if (fotoObs) {
+      av.setAttribute('data-foto-quer', foto);
+      av.setAttribute('data-foto-titulo', titulo || '');
+      if (!av.querySelector('.wa-av-ini')) av.innerHTML = avatarInicialHtml(titulo);
+      fotoObs.observe(av);
+      return;
+    }
+    pintarFotoAvatar(av, foto, titulo);
+  }
+
+  var fotoObs =
+    typeof window.IntersectionObserver === 'function'
+      ? new IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (en) {
+              if (!en.isIntersecting) return;
+              var av = en.target;
+              fotoObs.unobserve(av);
+              var foto = av.getAttribute('data-foto-quer') || '';
+              var titulo = av.getAttribute('data-foto-titulo') || '';
+              av.removeAttribute('data-foto-quer');
+              av.removeAttribute('data-foto-titulo');
+              if (foto && !av.querySelector('img')) pintarFotoAvatar(av, foto, titulo);
+            });
+          },
+          { rootMargin: '120px 0px' }
+        )
+      : null;
+
+  function pintarFotoAvatar(av, foto, titulo) {
+    av.innerHTML = '<img alt="" loading="lazy" decoding="async" src="' + escapeHtml(foto) + '" />';
+    var img = av.querySelector('img');
     if (img) {
       img.addEventListener('error', function () {
         av.setAttribute('data-foto-fail', foto);

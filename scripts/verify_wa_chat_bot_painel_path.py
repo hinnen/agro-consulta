@@ -55,6 +55,17 @@ def main() -> int:
         "lista nova puxa a conversa aberta na hora",
         "alinharChatComLista" in js and "listaVistoChat !== chave" in js,
     )
+    avatar = js[js.find("function garantirAvatar") : js.find("function pintarLista")]
+    check("foto da lista so quando aparece na tela", "fotoObs.observe(av)" in avatar)
+    check(
+        "lista nao cria img direto",
+        avatar.find("fotoObs.observe(av)") < avatar.find("pintarFotoAvatar(av, foto, titulo);"),
+    )
+    check("sem IntersectionObserver usa lazy", 'loading="lazy"' in avatar)
+    check("sem prefetch de conversas no load", "prefetch" not in js.lower())
+    for nome in ("atendimento_whatsapp.html", "atendimento_whatsapp_celular.html"):
+        tpl = (ROOT / "produtos/templates/produtos" / nome).read_text(encoding="utf-8")
+        check(f"{nome} pede o js novo", "atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-fotos13" in tpl)
     util = (ROOT / "produtos/atendimento_whatsapp_util.py").read_text(encoding="utf-8")
     check(
         "mensagem nao varre o cadastro inteiro",
