@@ -49,9 +49,23 @@ Mídia grava em **`AGRO_WA_MEDIA_ROOT`** (padrão `C:\AgroWhatsApp\Dados\media`)
 
 | Opção | O que é | Quando |
 |-------|---------|--------|
-| **A** | Continuar lab só com `tunel_rapido.bat` | Já funciona; URL **muda** se reiniciar o túnel |
-| **B** | Domínio **só do Zap** na Cloudflare (barato novo **ou** domínio que ele já tenha, **não** o apex da loja) | Depois: login → criar → rodar túnel fixo |
-| **C** | Subdomínio tipo `zap.sistvale.com.br` | Só se `sistvale.com.br` estiver na Cloudflare **e** Renan confirmar. **Risco:** mudar nameserver do domínio da loja pode derrubar o PDV (`sistvale.com.br`) se feito errado. **Não** apontar o apex da loja no túnel sem OK explícito. |
+| **A** ✅ agora | Lab com `tunel_rapido.bat` | Já funciona; URL **muda** se reiniciar o túnel. **Não** mexe PDV |
+| **B** | Domínio **só do Zap** na Cloudflare | Não toca `sistvale.com.br` |
+| **C** ⏸ pausado | `zap.sistvale.com.br` | Exige trocar NS Hostinger → Cloudflare. **Só** depois de copiar DNS na CF |
+
+#### Checklist seguro se retomar **C** (não fazer no susto)
+
+DNS **hoje** (Hostinger parking): NS `atlas`/`hyperion.dns-parking.com` · apex A `216.24.57.1` · www → `agro-consulta.onrender.com` · PDV healthz OK.
+
+1. Na zona Cloudflare, **antes** de mudar NS no Hostinger, criar os mesmos registros (loja no ar):  
+   - `@` A → `216.24.57.1` (e o 2º A do Render se o painel Render mostrar)  
+   - `www` CNAME → `agro-consulta.onrender.com`  
+   - copiar MX/TXT se existirem no painel Hostinger  
+2. Só então no Hostinger trocar NS para os que a Cloudflare mostrar (`carter`/`kay` ou o par atual).  
+3. Esperar propagar · testar `https://sistvale.com.br` e `/consulta/` na loja.  
+4. Aí sim: `zap` → túnel · `tunel_fixo_*`.
+
+**Agora:** fechar/pausar a tela «aguardando nameservers» · **não** trocar NS · PDV segue no ar.
 
 Assistente **não** compra domínio e **não** mexe DNS de produção sozinho.
 
