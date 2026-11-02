@@ -63,9 +63,11 @@ def main() -> int:
     )
     check("sem IntersectionObserver usa lazy", 'loading="lazy"' in avatar)
     check("sem prefetch de conversas no load", "prefetch" not in js.lower())
+    check("abertura pede so as ultimas 40", "limit=40" in js)
+    check("abrir conversa nao escreve Carregando", "Carregando…" not in js[js.find("function abrirConversa"):js.find("function abrirConversa") + 2200])
     for nome in ("atendimento_whatsapp.html", "atendimento_whatsapp_celular.html"):
         tpl = (ROOT / "produtos/templates/produtos" / nome).read_text(encoding="utf-8")
-        check(f"{nome} pede o js novo", "atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-fotos16" in tpl)
+        check(f"{nome} pede o js novo", "atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-fotos17" in tpl)
     check("aviso de midia some so no 404", "r.status !== 404" in js and "não está mais no servidor" not in js)
     check("colar imagem entra no envio", "enviarFotoArquivo" in js and "image/" in js)
     check("clique marca a linha na hora", "el.classList.remove('is-on')" in js)

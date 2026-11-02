@@ -890,6 +890,7 @@
         if (qLoja === chaveLista()) {
           pintarLista(rowsLista);
           alinharChatComLista(rowsLista);
+          adiantarMsgsVisiveis(rowsLista);
         }
         pedirListaOutra();
       }
@@ -897,6 +898,38 @@
   }
 
   var listaVistoChat = '';
+
+  var msgsAdiantadas = {};
+  var adiantarRodando = false;
+
+  function adiantarMsgsVisiveis(rows) {
+    var fila = [];
+    for (var i = 0; i < rows.length && fila.length < 4; i++) {
+      var id = String((rows[i] && rows[i].id) || '');
+      if (!id || cacheMsgs[id] || msgsAdiantadas[id]) continue;
+      fila.push(id);
+    }
+    function passo() {
+      if (adiantarRodando || abrindoConversa) return;
+      var cid = fila.shift();
+      if (!cid) return;
+      if (cacheMsgs[cid]) {
+        passo();
+        return;
+      }
+      msgsAdiantadas[cid] = true;
+      adiantarRodando = true;
+      fetchJson('/api/atendimento-whatsapp/mensagens/?conversa_id=' + cid + '&limit=40', { timeoutMs: 20000 }).then(
+        function (j) {
+          if (j && j.ok && !cacheMsgs[cid]) guardarMsgs(cid, j.mensagens || [], false);
+        }
+      ).finally(function () {
+        adiantarRodando = false;
+        if (!abrindoConversa) passo();
+      });
+    }
+    window.setTimeout(passo, 400);
+  }
 
   function alinharChatComLista(rows) {
     if (!convId) return;
@@ -1226,12 +1259,24 @@
     if (msgsEl && guardado && guardado.length) {
       pintarMsgs(guardado, false);
       afterId = guardado[guardado.length - 1].id || 0;
+    } else if (msgsEl && item) {
+      var prevTxt = '';
+      var prevHora = '';
+      var pTxt = item.querySelector('.wa-p-txt');
+      var pHora = item.querySelector('.wa-t');
+      prevTxt = pTxt ? String(pTxt.textContent || '').trim() : '';
+      prevHora = pHora ? String(pHora.textContent || '').trim() : '';
+      if (prevTxt) {
+        pintarMsgs([{ id: 'previa-' + convId, direcao: 'in', texto: prevTxt, hora: prevHora, autor: '' }], false);
+      } else {
+        msgsEl.innerHTML = '';
+      }
     } else if (msgsEl) {
-      msgsEl.innerHTML = '<p class="text-sm font-semibold text-slate-400 px-1 py-2">Carregando…</p>';
+      msgsEl.innerHTML = '';
     }
     zerarBadgeItemLista(convId);
     abrindoConversa = true;
-    fetchJson('/api/atendimento-whatsapp/mensagens/?conversa_id=' + convId, { timeoutMs: 20000 }).then(
+    fetchJson('/api/atendimento-whatsapp/mensagens/?conversa_id=' + convId + '&limit=40', { timeoutMs: 20000 }).then(
       function (j) {
         if (seq !== convAbreSeq) return;
         if (!j || !j.ok) {
