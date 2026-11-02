@@ -17,7 +17,8 @@
     --wa2-bg-app: #1d1f1f;
     --wa2-bg-panel: #161717;
     /* #161717 + camada branca (alpha .1 * opacidade .6) medida no painel da conversa */
-    --wa2-bg-chat: #242525;
+    /* Fundo do chat mais escuro que o balão recebido (senão a msg some). */
+    --wa2-bg-chat: #0b141a;
     --wa2-bg-search: rgba(255, 255, 255, .1);
     --wa2-bg-selected: rgba(255, 255, 255, .1);
     --wa2-bg-hover: rgba(255, 255, 255, .05); /* NAO-MEDIDO */
@@ -27,7 +28,7 @@
     --wa2-accent: #21c063;
     --wa2-on-accent: #0a0a0a;
     --wa2-bubble-out: #144d37;
-    --wa2-bubble-in: #242626;
+    --wa2-bubble-in: #202c33;
     --wa2-chip-on-bg: #103529;
     --wa2-chip-on-fg: #d9fdd3;
     --wa2-col: max(300px, 30vw);
@@ -102,6 +103,8 @@
   html[data-wa-skin="v2"] .wa-skin .wa-top .wa-ico:hover,
   html[data-wa-skin="v2"] .wa-skin .wa-top .wa2-nav:hover { background: var(--wa2-bg-selected); }
   html[data-wa-skin="v2"] .wa-skin .wa-top .wa2-nav.is-on { background: var(--wa2-bg-selected); color: var(--wa2-text); }
+  html[data-wa-skin="v2"] .wa-skin .wa-top .wa-ico.hidden,
+  html[data-wa-skin="v2"] .wa-skin .wa-top a.wa-ico.hidden { display: none !important; }
   html[data-wa-skin="v2"] .wa-skin .wa-top svg {
     width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8;
     stroke-linecap: round; stroke-linejoin: round;
@@ -137,6 +140,8 @@
     min-height: 0;
     background: var(--wa2-bg-panel);
   }
+  /* Botões .hidden do Tailwind perdiam pro display:grid !important — partia a tela com o Bot. */
+  html[data-wa-skin="v2"] .wa-skin #wa-app.hidden { display: none !important; }
   html[data-wa-skin="v2"] .wa-skin #wa-app > .wa-grid,
   html[data-wa-skin="v2"] .wa-skin #wa-app > .wa-grid > .wa-pane-lista,
   html[data-wa-skin="v2"] .wa-skin #wa-app > .wa-grid > .wa-pane-lista > .wa2-sb { display: contents !important; }
@@ -416,4 +421,181 @@
     background: var(--wa2-bg-search); color: var(--wa2-text);
     font-size: 14px; line-height: 20px; font-weight: 600; letter-spacing: 0; text-transform: none;
   }
+
+  /* ---------- Etapa 2: painel Bot em tela cheia (ao lado da barra), tema escuro ---------- */
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot.hidden { display: none !important; }
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot:not(.hidden) {
+    display: flex !important;
+    flex-direction: column;
+    flex: 1 1 0%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    background: var(--wa2-bg-panel);
+    border-left: 1px solid var(--wa2-line);
+    padding: 0;
+  }
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .wa-cfg {
+    display: grid;
+    grid-template-columns: 11rem minmax(0, 1fr);
+    gap: 0;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    flex: 1 1 0%;
+    min-height: 0;
+    height: 100%;
+  }
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .wa-nav {
+    box-sizing: border-box;
+    gap: 2px;
+    padding: 12px 8px;
+    background: var(--wa2-bg-app);
+    border-right: 1px solid var(--wa2-line);
+    overflow-y: auto;
+  }
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .wa-nav button {
+    min-height: 40px;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--wa2-text-2);
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: none;
+  }
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .wa-nav button.is-on {
+    background: var(--wa2-bg-selected);
+    color: var(--wa2-text);
+    box-shadow: none;
+  }
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .wa-nav button:hover {
+    background: var(--wa2-bg-hover);
+    color: var(--wa2-text);
+  }
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .wa-cfg > div {
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 16px 20px 24px;
+    background: var(--wa2-bg-panel);
+  }
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .wa-card {
+    background: var(--wa2-bg-app);
+    border: 1px solid var(--wa2-line);
+    border-radius: 12px;
+    color: var(--wa2-text);
+  }
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .wa-lab,
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .wa-hint,
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .text-slate-500,
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .text-slate-600 {
+    color: var(--wa2-text-2) !important;
+  }
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .wa-sw span { color: var(--wa2-text); }
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .wa-inp,
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .wa-card textarea,
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .wa-card select,
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .wa-card input[type="number"],
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .wa-card input[type="time"],
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .wa-card input[type="text"] {
+    background: var(--wa2-bg-search) !important;
+    border-color: transparent !important;
+    color: var(--wa2-text) !important;
+  }
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .wa-inp:focus,
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .wa-card textarea:focus,
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .wa-card select:focus {
+    outline: 2px solid rgba(33, 192, 99, .45);
+    background: rgba(255, 255, 255, .12) !important;
+  }
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .wa-ico,
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .wa-ico.pri,
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot button.wa-ico {
+    background: var(--wa2-bg-search);
+    color: var(--wa2-text);
+    border: 0;
+  }
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .wa-ico.pri,
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot button[type="submit"] {
+    background: var(--wa2-accent) !important;
+    color: var(--wa2-on-accent) !important;
+  }
+  html[data-wa-skin="v2"] .wa-skin #wa-painel-bot .wa-toast { color: var(--wa2-chip-on-fg); }
+
+  /* ---------- Etapa 2: QR, ficha, diálogo ---------- */
+  html[data-wa-skin="v2"] .wa-skin #wa-qr-box,
+  html[data-wa-skin="v2"] .wa-skin .wa-qr {
+    background: var(--wa2-bg-app) !important;
+    border: 1px solid var(--wa2-line) !important;
+    border-radius: 12px !important;
+    color: var(--wa2-text);
+  }
+  html[data-wa-skin="v2"] .wa-skin .wa-qr p,
+  html[data-wa-skin="v2"] .wa-skin .wa-qr .text-amber-950,
+  html[data-wa-skin="v2"] .wa-skin .wa-qr .text-slate-600,
+  html[data-wa-skin="v2"] .wa-skin .wa-qr .text-slate-500 {
+    color: var(--wa2-text-2) !important;
+  }
+  html[data-wa-skin="v2"] .wa-skin .wa-qr p.text-sm { color: var(--wa2-text) !important; }
+  html[data-wa-skin="v2"] .wa-skin .wa-qr input {
+    background: var(--wa2-bg-search) !important;
+    border-color: transparent !important;
+    color: var(--wa2-text) !important;
+  }
+  html[data-wa-skin="v2"] .wa-skin .wa-qr #wa-pair-code { color: var(--wa2-chip-on-fg) !important; }
+  html[data-wa-skin="v2"] .wa-skin .wa-qr img { background: #fff; }
+
+  html[data-wa-skin="v2"] .wa-skin .wa-ficha {
+    background: rgba(11, 20, 26, .72);
+  }
+  html[data-wa-skin="v2"] .wa-skin .wa-ficha-card {
+    background: var(--wa2-bg-panel);
+    border: 1px solid var(--wa2-line);
+    border-radius: 12px;
+    color: var(--wa2-text);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .45);
+  }
+  html[data-wa-skin="v2"] .wa-skin .wa-ficha-card h2 { color: var(--wa2-text); }
+  html[data-wa-skin="v2"] .wa-skin .wa-ficha-row dt { color: var(--wa2-text-2); }
+  html[data-wa-skin="v2"] .wa-skin .wa-ficha-row dd { color: var(--wa2-text); }
+  html[data-wa-skin="v2"] .wa-skin .wa-ficha-actions .wa-ico {
+    background: var(--wa2-bg-search);
+    color: var(--wa2-text);
+    border: 0;
+  }
+  html[data-wa-skin="v2"] .wa-skin .wa-ficha-actions .wa-ico.pri {
+    background: var(--wa2-accent);
+    color: var(--wa2-on-accent);
+  }
+
+  html[data-wa-skin="v2"] .wa-dlg {
+    background: rgba(11, 20, 26, .72);
+  }
+  html[data-wa-skin="v2"] .wa-dlg-card {
+    background: var(--wa2-bg-panel);
+    border: 1px solid var(--wa2-line);
+    border-radius: 12px;
+    color: var(--wa2-text);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .45);
+  }
+  html[data-wa-skin="v2"] .wa-dlg-tit { color: var(--wa2-text); }
+  html[data-wa-skin="v2"] .wa-dlg-txt { color: var(--wa2-text-2); }
+  html[data-wa-skin="v2"] .wa-dlg-inp {
+    background: var(--wa2-bg-search);
+    border-color: transparent;
+    color: var(--wa2-text);
+  }
+  html[data-wa-skin="v2"] .wa-dlg-inp:focus {
+    outline: 2px solid rgba(33, 192, 99, .45);
+    background: rgba(255, 255, 255, .12);
+  }
+  html[data-wa-skin="v2"] .wa-dlg-cancel {
+    background: var(--wa2-bg-search);
+    color: var(--wa2-text);
+  }
+  html[data-wa-skin="v2"] .wa-dlg-ok {
+    background: var(--wa2-accent);
+    color: var(--wa2-on-accent);
+  }
+  html[data-wa-skin="v2"] .wa-dlg-ok:hover { background: #1ba856; }
 }
