@@ -40,7 +40,7 @@ Mídia grava em **`AGRO_WA_MEDIA_ROOT`** (padrão `C:\AgroWhatsApp\Dados\media`)
 | Ponte Baileys | OK · **conectado** `5513997673389` |
 | Prova Renan ~14:01 | ✅ msg (+foto) saiu e chegou no celular |
 | Túnel rápido teste | OK (URL muda a cada restart) — **lab continua assim** |
-| Túnel fixo loja | ⛔ **bloqueado** 02/11: conta Cloudflare **sem domínio/zona** («Nenhum domínio… adicione um site») → sem `cert.pem` |
+| Túnel fixo loja | ⏸ **C pausado** 02/11: zona `sistvale.com.br` criada na CF mas **NS não trocado** (Renan com medo do PDV). Continuar lab com `tunel_rapido`. |
 
 **Como ligar de novo neste PC:** `whatsapp_atendimento\servidor_pc\subir_tudo.bat` (+ `tunel_rapido.bat` se precisar internet).  
 **Fix migrate banco novo:** seed da `0065` usa modelo histórico (senão quebra em `exibir_pdv`).
