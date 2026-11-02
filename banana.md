@@ -1298,7 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Item | Status | Migrate | Prova |
 | - | ---- | ------ | ------- | ----- |
-| 1 | Troca Ativas/Resolvidas pinta a lista já vista | 🟢 Pronto | **NÃO** | `verify_wa_chat_bot_painel_path` **15/15** |
+| 1 | Troca Ativas/Resolvidas pinta a lista já vista | 🟢 Pronto | **NÃO** | `verify_wa_chat_bot_painel_path` **16/16** |
 | 2 | Voltar numa conversa não mostra «Carregando…» | 🟢 Pronto | **NÃO** | guarda no máximo 8 chats, só texto |
 | 3 | A outra aba é pedida uma vez, em silêncio | 🟢 Pronto | **NÃO** | `pedirListaOutra` |
 | 4 | Mensagem do celular não lê todos os clientes | 🟢 Pronto | **NÃO** | índice da ficha, 90 s |
