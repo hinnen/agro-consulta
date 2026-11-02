@@ -636,14 +636,31 @@
     border-radius: 9999px; padding: 1px 6px; font-size: 13px; line-height: 18px;
   }
   html[data-wa-skin="v2"] .wa-skin .wa-msg-acts {
-    position: absolute; top: 4px; right: 4px; display: none; gap: 2px;
+    position: absolute; top: -10px; right: 6px; z-index: 3;
+    display: none; align-items: center; gap: 4px;
+    padding: 3px; border-radius: 9999px;
+    background: var(--wa2-bg-panel); border: 1px solid var(--wa2-line);
+    box-shadow: 0 2px 8px rgba(0,0,0,.35);
   }
-  html[data-wa-skin="v2"] .wa-skin .wa-b { position: relative; }
+  html[data-wa-skin="v2"] .wa-skin .wa-b.out .wa-msg-acts,
+  html[data-wa-skin="v2"] .wa-skin .wa-b.bot .wa-msg-acts {
+    right: auto; left: -8px; transform: translateX(-100%);
+  }
+  html[data-wa-skin="v2"] .wa-skin .wa-b { position: relative; overflow: visible; }
   html[data-wa-skin="v2"] .wa-skin .wa-b:hover .wa-msg-acts { display: inline-flex; }
   html[data-wa-skin="v2"] .wa-skin .wa-msg-act {
-    width: 26px; height: 26px; border: 0; border-radius: 9999px; cursor: pointer;
-    background: rgba(17, 27, 33, .85); color: var(--wa2-text); font-size: 13px; line-height: 1;
+    width: 28px; height: 28px; border: 0; border-radius: 9999px; cursor: pointer;
+    background: transparent; color: var(--wa2-text); font-size: 14px; line-height: 1;
+    flex: 0 0 auto;
   }
+  html[data-wa-skin="v2"] .wa-skin .wa-msg-act:hover { background: var(--wa2-bg-selected); }
+  /* X dentro da barra: sem position absolute (senão fica em cima do emoji). */
+  html[data-wa-skin="v2"] .wa-skin .wa-msg-acts .wa-msg-del {
+    position: static !important; top: auto; right: auto;
+    width: 28px; height: 28px; opacity: 1 !important;
+    background: transparent; color: #f87171; font-size: 16px; font-weight: 700;
+  }
+  html[data-wa-skin="v2"] .wa-skin .wa-msg-acts .wa-msg-del:hover { background: rgba(248, 113, 113, .18); }
   html[data-wa-skin="v2"] .wa-skin .wa-scroll-fim {
     position: absolute; right: 16px; bottom: 16px; z-index: 5;
     width: 40px; height: 40px; border-radius: 9999px; border: 0; cursor: pointer;
