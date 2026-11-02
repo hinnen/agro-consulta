@@ -1347,6 +1347,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Pacote** | enviado 02/11 no mesmo push da chave Pix |
 
+### ✅ CHECKLIST ÚNICO — **02/11f** · 🟢 **pronto envio** · **WA-ABRE-40**
+
+| # | Item | Status | Migrate | Prova |
+| - | ---- | ------ | ------- | ----- |
+| 1 | O clique mostra a prévia da lista na hora | 🟢 Pronto | **NÃO** | não escreve «Carregando…» |
+| 2 | A abertura pede as últimas 40, uma conversa por vez nas 4 de cima | 🟢 Pronto | **NÃO** | `limit=40` |
+
+| Campo | Valor |
+| ----- | ----- |
+| **Pacote** | local · **não** está em `origin/whatsapp` |
+| **No ar** | `b60d279` |
+| **Quando autorizar** | Frase + senha. Push zera foto |
+
 ### ✅ CHECKLIST ÚNICO — **01/11e** · ✅ **enviado 02/11 com frase + senha** · **WA-FOTOS-VISIVEIS**
 
 | # | Item | Status | Migrate | Prova |
