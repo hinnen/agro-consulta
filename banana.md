@@ -1320,8 +1320,6 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### ✅ CHECKLIST ÚNICO — **01/11e** · ✅ **enviado 02/11 com frase + senha** · **WA-FOTOS-VISIVEIS**
 
-### ✅ CHECKLIST ÚNICO — **01/11e** · ✅ **enviado 02/11 com frase + senha** · **WA-FOTOS-VISIVEIS**
-
 | # | Item | Status | Migrate | Prova |
 | - | ---- | ------ | ------- | ----- |
 | 1 | Lista pede só as fotos que aparecem na tela (8 em vez de 80) | 🟢 Pronto | **NÃO** | `verify_wa_chat_bot_painel_path` **24/24** |
