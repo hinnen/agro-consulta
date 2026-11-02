@@ -1294,7 +1294,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### ✅ CHECKLIST ÚNICO — **01/11c** · 🟢 **pronto envio** · **WA-CACHE-ABA**
+### ✅ CHECKLIST ÚNICO — **01/11c** · ✅ **enviado** · **WA-CACHE-ABA**
 
 | # | Item | Status | Migrate | Prova |
 | - | ---- | ------ | ------- | ----- |
@@ -1305,10 +1305,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Pacote** | local · **não** está em `origin/whatsapp` |
-| **No ar** | `e4bc513` |
+| **Pacote** | enviado 01/11 com frase + senha |
+| **Volta** | `git push origin rollback/pre-wa-cache-aba:whatsapp` → `e4bc513` |
 | **Não entra** | disco do PC, foto, cache no Render |
-| **Quando autorizar** | Frase + `99738595`. Push zera foto |
+| **Efeito** | O Zap recarrega (~2 min) e o disco zera foto e áudio. A Sistvale não reinicia |
 
 ### ✅ CHECKLIST ÚNICO — **01/11b** · ✅ **enviado** · **WA-CARREGANDO-RESOLVIDAS**
 
