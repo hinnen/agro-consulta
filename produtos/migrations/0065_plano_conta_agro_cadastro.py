@@ -6,9 +6,67 @@ import django.db.models.deletion
 
 
 def seed_planos(apps, schema_editor):
-    from produtos.plano_conta_agro_util import seed_planos_conta_agro
+    # Usar modelo histórico (sem exibir_pdv etc.) — util atual quebra migrate em banco novo.
+    import csv
+    from pathlib import Path
 
-    seed_planos_conta_agro(force=False)
+    Plano = apps.get_model("produtos", "PlanoContaAgro")
+    Alias = apps.get_model("produtos", "PlanoContaAliasAgro")
+    base = Path(__file__).resolve().parents[2] / "dados"
+    niveis = base / "planos_conta_niveis.csv"
+    if not niveis.is_file():
+        niveis = Path(__file__).resolve().parents[1] / "dados" / "planos_conta_niveis.csv"
+    # Fallback: util se CSV existir no path canônico
+    try:
+        from produtos.plano_conta_agro_util import _csv_niveis_path, _csv_mapa_path, _tipo_from_csv
+
+        niveis = _csv_niveis_path()
+        mapa = _csv_mapa_path()
+    except Exception:
+        mapa = None
+        def _tipo_from_csv(v):
+            t = (v or "").strip().lower()
+            if t.startswith("fix"):
+                return "fixa"
+            if t.startswith("var"):
+                return "variavel"
+            return "outra"
+
+    if niveis.is_file():
+        with niveis.open(encoding="utf-8-sig", newline="") as f:
+            for row in csv.DictReader(f, delimiter=";"):
+                nome = (row.get("Plano oficial") or row.get("plano oficial") or "").strip()
+                if not nome:
+                    continue
+                tipo = _tipo_from_csv(row.get("Tipo") or row.get("tipo") or "")
+                grupo = (row.get("Grupo") or row.get("grupo") or "").strip()[:120]
+                obs = (
+                    row.get("Observação")
+                    or row.get("Observacao")
+                    or row.get("observação")
+                    or ""
+                ).strip()[:400]
+                Plano.objects.get_or_create(
+                    nome=nome,
+                    defaults={"tipo": tipo, "grupo": grupo, "observacao": obs, "ativo": True},
+                )
+
+    if mapa is not None and getattr(mapa, "is_file", lambda: False)():
+        with mapa.open(encoding="utf-8-sig", newline="") as f:
+            reader = csv.DictReader(f, delimiter=";")
+            cols = {(c or "").strip().lower(): c for c in (reader.fieldnames or [])}
+            k_ant = cols.get("nome antigo (como está no cp)") or cols.get("nome antigo")
+            k_ofi = cols.get("nome oficial")
+            if k_ant and k_ofi:
+                for row in reader:
+                    ant = (row.get(k_ant) or "").strip()
+                    ofi = (row.get(k_ofi) or "").strip()
+                    if not ant or not ofi:
+                        continue
+                    plano = Plano.objects.filter(nome=ofi).first()
+                    if not plano:
+                        continue
+                    Alias.objects.get_or_create(grafia=ant[:200], defaults={"plano": plano})
 
 
 def noop_reverse(apps, schema_editor):

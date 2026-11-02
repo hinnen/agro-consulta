@@ -19,11 +19,30 @@ Mídia grava em **`AGRO_WA_MEDIA_ROOT`** (padrão `C:\AgroWhatsApp\Dados\media`)
 2. Duplo clique: `whatsapp_atendimento\servidor_pc\instalar_servidor.bat`  
    (Python, venv, `pip install`; instala Node se faltar.)
 3. Duplo clique: `criar_env_servidor.bat` — responda as perguntas (Postgres local ou ajuste depois no `.env.wa-servidor`).
-4. Crie o banco Postgres **`agro_wa`** e usuário (pgAdmin) se ainda não existir.
+4. Instale **PostgreSQL** (winget / Setup). Depois: `criar_banco_agro_wa.bat` (cria user+banco `agro_wa`) — ou faça no pgAdmin.
 5. Duplo clique: `subir_tudo.bat` **ou** `subir_servidor.bat` + `iniciar-local.bat`.
 6. Chrome: **http://127.0.0.1:8000/atendimento-whatsapp/** — login Django (`createsuperuser` na primeira vez).
 7. **Internet (teste):** com servidor rodando, `tunel_rapido.bat` → copie a URL `https://….trycloudflare.com` → rode de novo `criar_env_servidor.bat` com esse host **ou** edite `ALLOWED_HOSTS_EXTRA` / `CSRF_TRUSTED_ORIGINS_EXTRA` no `.env.wa-servidor` → reinicie `subir_servidor.bat`.
 8. Ponte: em `whatsapp_atendimento\.env` use `AGRO_WA_DJANGO_URL=` **mesma URL pública** (ou `http://127.0.0.1:8000` só na loja).
+
+## Laboratório (PC Renan · 02/11/2026)
+
+| Item | Status |
+|------|--------|
+| Branch `whatsapp` | OK |
+| Python + `.venv` + `pip` | OK |
+| Node + `whatsapp_atendimento/node_modules` | OK |
+| Pasta mídia `C:\AgroWhatsApp\Dados\media` | OK |
+| `.env.wa-servidor` + ponte `.env` | OK (lab; senha PG `agro_wa_lab_2026`) |
+| cloudflared | OK |
+| Postgres 17 + banco `agro_wa` | OK |
+| Django `runserver` + migrate | OK · login `/entrar/` user `renan` / `9973` |
+| Ponte Baileys | OK · **conectado** `5513997673389` (auth antiga; Bad MAC residual ok) |
+| Túnel rápido teste | OK (URL muda a cada restart) |
+| Túnel fixo loja | Depois do lab |
+
+**Como ligar de novo neste PC:** `whatsapp_atendimento\servidor_pc\subir_tudo.bat` (+ `tunel_rapido.bat` se precisar internet).  
+**Fix migrate banco novo:** seed da `0065` usa modelo histórico (senão quebra em `exibir_pdv`).
 
 ## Repassar para o PC da loja
 
