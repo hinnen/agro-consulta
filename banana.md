@@ -1294,7 +1294,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### ✅ CHECKLIST ÚNICO — **02/11** · 🟢 **pronto envio** · **WA-PIX-HORA**
+### ✅ CHECKLIST ÚNICO — **02/11** · ✅ **enviado** · **WA-PIX-HORA**
 
 | # | Item | Status | Migrate | Prova |
 | - | ---- | ------ | ------- | ----- |
@@ -1302,11 +1302,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Pacote** | local · **não** está em `origin/whatsapp` |
-| **No ar** | `44b4ac3` (fotos visíveis) |
-| **Quando autorizar** | Frase + senha. Push zera foto |
+| **Pacote** | enviado 02/11 com frase + senha, junto com áudio, colar foto, linha marcada e foto maior |
+| **Volta** | `git push origin rollback/pre-wa-pix-hora:whatsapp` → `44b4ac3` |
+| **Efeito** | O Zap recarrega (~2 min) e o disco zera foto e áudio. A Sistvale não reinicia |
 
-### ✅ CHECKLIST ÚNICO — **02/11b** · 🟢 **pronto envio** · **WA-AUDIO-404**
+### ✅ CHECKLIST ÚNICO — **02/11b** · ✅ **enviado** · **WA-AUDIO-404**
 
 | # | Item | Status | Migrate | Prova |
 | - | ---- | ------ | ------- | ----- |
@@ -1314,11 +1314,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Pacote** | local, junto com a chave Pix de 1 hora |
-| **No ar** | `44b4ac3` |
-| **Quando autorizar** | Frase + senha. Push zera foto |
+| **Pacote** | enviado 02/11 no mesmo push da chave Pix |
 
-### ✅ CHECKLIST ÚNICO — **02/11c** · 🟢 **pronto envio** · **WA-COLAR-FOTO**
+### ✅ CHECKLIST ÚNICO — **02/11c** · ✅ **enviado** · **WA-COLAR-FOTO**
 
 | # | Item | Status | Migrate | Prova |
 | - | ---- | ------ | ------- | ----- |
@@ -1326,11 +1324,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Pacote** | local, junto com Pix de 1 hora e o áudio 404 |
-| **No ar** | `44b4ac3` |
-| **Quando autorizar** | Frase + senha. Push zera foto |
+| **Pacote** | enviado 02/11 no mesmo push da chave Pix |
 
-### ✅ CHECKLIST ÚNICO — **02/11d** · 🟢 **pronto envio** · **WA-LINHA-ABERTA**
+### ✅ CHECKLIST ÚNICO — **02/11d** · ✅ **enviado** · **WA-LINHA-ABERTA**
 
 | # | Item | Status | Migrate | Prova |
 | - | ---- | ------ | ------- | ----- |
@@ -1338,11 +1334,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Pacote** | local, junto com Pix, áudio 404 e colar foto |
-| **No ar** | `44b4ac3` |
-| **Quando autorizar** | Frase + senha. Push zera foto |
+| **Pacote** | enviado 02/11 no mesmo push da chave Pix |
 
-### ✅ CHECKLIST ÚNICO — **02/11e** · 🟢 **pronto envio** · **WA-FOTO-MAIOR**
+### ✅ CHECKLIST ÚNICO — **02/11e** · ✅ **enviado** · **WA-FOTO-MAIOR**
 
 | # | Item | Status | Migrate | Prova |
 | - | ---- | ------ | ------- | ----- |
@@ -1351,9 +1345,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Pacote** | local, junto com os outros desta manhã |
-| **No ar** | `44b4ac3` |
-| **Quando autorizar** | Frase + senha. Push zera foto |
+| **Pacote** | enviado 02/11 no mesmo push da chave Pix |
 
 ### ✅ CHECKLIST ÚNICO — **01/11e** · ✅ **enviado 02/11 com frase + senha** · **WA-FOTOS-VISIVEIS**
 
