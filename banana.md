@@ -1309,7 +1309,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Causa** | Ao pintar a lista, o Chrome pedia ~80 `/foto/` de uma vez. Cada uma passa por login + banco no único processo (4 threads) e o GET de mensagens do clique ficava atrás delas. A query de mensagens leva ~6 ms |
 | **Branch** | `cursor/wa-fotos-lista-visiveis-95ef` (em cima de `4201408`) |
-| **Enviar** | só com frase + senha: `git push origin cursor/wa-fotos-lista-visiveis-95ef:whatsapp` |
+| **Enviado** | 02/11 com frase + senha · `git push origin cursor/wa-fotos-lista-visiveis-95ef:whatsapp` (fast-forward de `4201408`) |
 | **Volta** | `git push -f origin rollback/pre-wa-fotos-visiveis:whatsapp` → `4201408` |
 | **Não entra** | disco do PC, cache no Render, segundo processo, `AGRO_WA_PUBLIC_ORIGIN` |
 | **Efeito** | O Zap recarrega (~2 min) e o disco zera foto e áudio. A Sistvale não reinicia |
