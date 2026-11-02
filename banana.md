@@ -1294,6 +1294,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ CHECKLIST ÚNICO — **01/11d** · 🟢 **pronto envio** · **WA-BUSCA-NOME**
+
+| # | Item | Status | Migrate | Prova |
+| - | ---- | ------ | ------- | ----- |
+| 1 | Busca mostra o nome do cadastro | 🟢 Pronto | **NÃO** | `verify_wa_chat_bot_painel_path` **17/17** |
+
+| Campo | Valor |
+| ----- | ----- |
+| **Pacote** | local · **não** está em `origin/whatsapp` |
+| **No ar** | `86f989b` |
+| **Quando autorizar** | Frase + `99738595`. Push zera foto |
+
 ### ✅ CHECKLIST ÚNICO — **01/11c** · ✅ **enviado** · **WA-CACHE-ABA**
 
 | # | Item | Status | Migrate | Prova |

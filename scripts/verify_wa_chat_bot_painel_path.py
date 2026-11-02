@@ -46,6 +46,11 @@ def main() -> int:
     check("lista fica na memoria da aba", "cacheListas" in js)
     check("conversa aberta fica na memoria", "guardarMsgs" in js)
     check("no maximo 8 conversas guardadas", "cacheMsgsOrdem.length > 8" in js)
+    busca = js[js.find("function buscarTopo") : js.find("function buscarTopo") + 1800]
+    check(
+        "busca mostra o nome fora da coluna da foto",
+        "wa-item-body" in busca and "wa-av-ini" in busca,
+    )
     util = (ROOT / "produtos/atendimento_whatsapp_util.py").read_text(encoding="utf-8")
     check(
         "mensagem nao varre o cadastro inteiro",
