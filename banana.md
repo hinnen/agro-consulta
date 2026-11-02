@@ -1347,7 +1347,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Pacote** | enviado 02/11 no mesmo push da chave Pix |
 
-### ✅ CHECKLIST ÚNICO — **02/11f** · 🟢 **pronto envio** · **WA-ABRE-40**
+### ✅ CHECKLIST ÚNICO — **02/11f** · ✅ **enviado** · **WA-ABRE-40**
 
 | # | Item | Status | Migrate | Prova |
 | - | ---- | ------ | ------- | ----- |
@@ -1356,9 +1356,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Pacote** | local · **não** está em `origin/whatsapp` |
-| **No ar** | `b60d279` |
-| **Quando autorizar** | Frase + senha. Push zera foto |
+| **Pacote** | enviado 02/11 com frase + senha |
+| **Volta** | `git push origin rollback/pre-wa-abre-40:whatsapp` → `b60d279` |
+| **Efeito** | O Zap recarrega (~2 min) e o disco zera foto e áudio. A Sistvale não reinicia |
 
 ### ✅ CHECKLIST ÚNICO — **01/11e** · ✅ **enviado 02/11 com frase + senha** · **WA-FOTOS-VISIVEIS**
 
