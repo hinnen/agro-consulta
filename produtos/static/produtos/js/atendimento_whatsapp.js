@@ -746,9 +746,9 @@
         } else if (!m.apagada && m.midia_url && m.tipo_midia === 'audio') {
           midia = '<audio class="wa-aud" controls src="' + escapeHtml(m.midia_url) + '"></audio>';
         } else if (!m.apagada && m.midia_perdida && (m.tipo_midia === 'image' || m.tipo_midia === 'sticker')) {
-          midia = '<span class="text-xs text-slate-500">Foto não está mais no servidor.</span>';
+          midia = '<span class="text-xs text-slate-500">Foto</span>';
         } else if (!m.apagada && m.midia_perdida && m.tipo_midia === 'audio') {
-          midia = '<span class="text-xs text-slate-500">Áudio não está mais no servidor.</span>';
+          midia = '<span class="text-xs text-slate-500">Áudio</span>';
         } else if (!m.apagada && (m.tipo_midia === 'image' || m.tipo_midia === 'sticker')) {
           midia = '<span class="text-xs text-slate-500">Foto (ainda baixando)</span>';
         } else if (!m.apagada && m.tipo_midia === 'audio') {
@@ -1340,13 +1340,22 @@
         var t = ev.target;
         if (!t || !t.classList) return;
         var txt = '';
-        if (t.classList.contains('wa-pic')) txt = 'Foto não está mais no servidor.';
-        else if (t.classList.contains('wa-aud')) txt = 'Áudio não está mais no servidor.';
-        if (!txt) return;
-        var s = document.createElement('span');
-        s.className = 'text-xs text-slate-500';
-        s.textContent = txt;
-        if (t.parentNode) t.parentNode.replaceChild(s, t);
+        if (t.classList.contains('wa-pic')) txt = 'Foto';
+        else if (t.classList.contains('wa-aud')) txt = 'Áudio';
+        if (!txt || !t.getAttribute('src')) return;
+        if (t.getAttribute('data-wa-midia-visto')) return;
+        t.setAttribute('data-wa-midia-visto', '1');
+        var url = t.getAttribute('src');
+        fetch(url, { credentials: 'same-origin' })
+          .then(function (r) {
+            if (r.body && r.body.cancel) r.body.cancel();
+            if (r.status !== 404) return;
+            var s = document.createElement('span');
+            s.className = 'text-xs text-slate-500';
+            s.textContent = txt;
+            if (t.parentNode) t.parentNode.replaceChild(s, t);
+          })
+          .catch(function () {});
       },
       true
     );

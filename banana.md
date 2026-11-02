@@ -1306,6 +1306,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **No ar** | `44b4ac3` (fotos visíveis) |
 | **Quando autorizar** | Frase + senha. Push zera foto |
 
+### ✅ CHECKLIST ÚNICO — **02/11b** · 🟢 **pronto envio** · **WA-AUDIO-404**
+
+| # | Item | Status | Migrate | Prova |
+| - | ---- | ------ | ------- | ----- |
+| 1 | Áudio some da tela só se o servidor responde 404 | 🟢 Pronto | **NÃO** | `verify_wa_chat_bot_painel_path` |
+
+| Campo | Valor |
+| ----- | ----- |
+| **Pacote** | local, junto com a chave Pix de 1 hora |
+| **No ar** | `44b4ac3` |
+| **Quando autorizar** | Frase + senha. Push zera foto |
+
+### ✅ CHECKLIST ÚNICO — **01/11e** · ✅ **enviado 02/11 com frase + senha** · **WA-FOTOS-VISIVEIS**
+
 ### ✅ CHECKLIST ÚNICO — **01/11e** · ✅ **enviado 02/11 com frase + senha** · **WA-FOTOS-VISIVEIS**
 
 | # | Item | Status | Migrate | Prova |
