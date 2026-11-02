@@ -17,7 +17,6 @@ from django.db.models import Q
 from django.http import HttpRequest
 from django.utils import timezone
 
-from produtos.cliente_whatsapp_util import cliente_agro_por_whatsapp_flex
 from produtos.models import (
     ClienteAgro,
     WhatsAppAgendaContatoAgro,
@@ -189,13 +188,15 @@ def montar_texto_fiado(telefone: str, cfg: dict | None = None) -> str:
     from decimal import Decimal
 
     from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT
-    from produtos.cliente_whatsapp_util import cliente_agro_por_whatsapp_flex
     from produtos.models import FiadoTituloAgro
 
     c = cfg if cfg is not None else BOT_DEFAULT
-    cli = cliente_agro_por_whatsapp_flex(telefone)
-    if cli == "varios":
+    cli_rec = _cadastro_ficha_por_telefone(telefone)
+    if cli_rec == "varios":
         return str(c.get("msg_fiado_varios") or BOT_DEFAULT["msg_fiado_varios"])
+    if not isinstance(cli_rec, dict) or not cli_rec.get("id"):
+        return str(c.get("msg_fiado_sem_cadastro") or BOT_DEFAULT["msg_fiado_sem_cadastro"])
+    cli = ClienteAgro.objects.filter(pk=int(cli_rec["id"]), ativo=True).first()
     if cli is None:
         return str(c.get("msg_fiado_sem_cadastro") or BOT_DEFAULT["msg_fiado_sem_cadastro"])
     qs = (
@@ -513,9 +514,9 @@ def aplicar_nome_cadastro(conv: WhatsAppConversaAgro, *, perfil: str = "", cfg: 
     for fonte in ordem:
         hit = ""
         if fonte == "cadastro" and tel:
-            cli = cliente_agro_por_whatsapp_flex(tel)
-            if cli is not None and cli != "varios":
-                hit = (getattr(cli, "nome", None) or "").strip()
+            rec = _cadastro_ficha_por_telefone(tel)
+            if isinstance(rec, dict):
+                hit = str(rec.get("nome") or "").strip()
         elif fonte == "agenda":
             ag = WhatsAppAgendaContatoAgro.objects.filter(jid=conv.jid).only("nome").first()
             if ag is None and (conv.jid_lid or ""):
@@ -856,6 +857,14 @@ def _ficha_cadastro_por_telefone(tel: str) -> tuple[dict | None, bool]:
     if not hit:
         return None, False
     return dict(hit), False
+
+
+def _cadastro_ficha_por_telefone(tel: str):
+    """Nome do cliente pelo índice da ficha. Não lê a tabela inteira a cada mensagem."""
+    cli, varios = _ficha_cadastro_por_telefone(tel)
+    if varios:
+        return "varios"
+    return cli
 
 
 def serializar_mensagem(m: WhatsAppMensagemAgro) -> dict:
@@ -2845,9 +2854,9 @@ def processar_status(
         if ag and ag.nome:
             nome_n = ag.nome[:120]
     if not nome_n and tel_limpo:
-        cli = cliente_agro_por_whatsapp_flex(tel_limpo)
-        if cli and cli.nome:
-            nome_n = cli.nome[:120]
+        rec = _cadastro_ficha_por_telefone(tel_limpo)
+        if isinstance(rec, dict) and rec.get("nome"):
+            nome_n = str(rec.get("nome") or "")[:120]
 
     st = WhatsAppStatusAgro(
         autor_jid=jid_n[:80],

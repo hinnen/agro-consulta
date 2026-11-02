@@ -46,6 +46,11 @@ def main() -> int:
     check("lista fica na memoria da aba", "cacheListas" in js)
     check("conversa aberta fica na memoria", "guardarMsgs" in js)
     check("no maximo 8 conversas guardadas", "cacheMsgsOrdem.length > 8" in js)
+    util = (ROOT / "produtos/atendimento_whatsapp_util.py").read_text(encoding="utf-8")
+    check(
+        "mensagem nao varre o cadastro inteiro",
+        "cliente_agro_por_whatsapp_flex" not in util and "_cadastro_ficha_por_telefone" in util,
+    )
     print(f"\n{OK} ok, {FAIL} falha")
     return 0 if FAIL == 0 else 1
 
