@@ -35,6 +35,10 @@
   var respostasProntas = '';
   var xferAvisarCliente = true;
   var dlgResolve = null;
+  var replyToId = 0;
+  var replyToTxt = '';
+  var convMsgRev = 0;
+  var EMOJIS_WA = '😀😁😂🤣😊😍😘🥰😎😢😭😡👍👎❤️🔥🙏👏✅🎉🇧🇷'.split('');
 
   function telaCel(chat) {
     if (!ehCel) return;
@@ -656,6 +660,8 @@
       btn.setAttribute('data-nome', titulo);
       btn.setAttribute('data-tel', c.telefone || '');
       btn.setAttribute('data-foto', foto);
+      btn.setAttribute('data-msg-rev', String(c.msg_rev || 0));
+      btn.setAttribute('data-digitando', c.digitando ? '1' : '0');
       garantirAvatar(btn.querySelector('.wa-av'), foto, titulo);
       var nEl = btn.querySelector('.wa-n');
       var tEl = btn.querySelector('.wa-t');
@@ -695,16 +701,86 @@
       if (!keep[id]) delete selMap[id];
     });
     pintarSelBar();
+    if (convId) {
+      var aberta = null;
+      for (var i = 0; i < rows.length; i++) {
+        if (Number(rows[i].id) === Number(convId)) {
+          aberta = rows[i];
+          break;
+        }
+      }
+      if (aberta) {
+        setDigitando(!!aberta.digitando);
+        var rev = Number(aberta.msg_rev || 0);
+        if (rev && convMsgRev && rev !== convMsgRev) {
+          convMsgRev = rev;
+          recarregarMsgsAbertas();
+        } else if (rev) {
+          convMsgRev = rev;
+        }
+      } else {
+        setDigitando(false);
+      }
+    }
+  }
+
+  function ackHtml(m) {
+    if (m.direcao !== 'out' && m.direcao !== 'bot') return '';
+    if (m.apagada) return '';
+    var n = Number(m.ack || 0);
+    if (m.pendente && String(m.id || '').indexOf('tmp-') === 0) n = 0;
+    var cls = 'wa-ack';
+    var txt = '✓';
+    if (n >= 3) {
+      cls += ' is-read';
+      txt = '✓✓';
+    } else if (n >= 2) {
+      cls += ' is-deliv';
+      txt = '✓✓';
+    } else if (n >= 1) {
+      cls += ' is-sent';
+    } else {
+      cls += ' is-wait';
+      txt = '⏱';
+    }
+    return '<span class="' + cls + '" aria-hidden="true">' + txt + '</span>';
+  }
+
+  function reacoesHtml(m) {
+    var rs = m.reacoes || [];
+    if (!rs.length) return '';
+    return (
+      '<div class="wa-reacoes">' +
+      rs
+        .map(function (r) {
+          return (
+            '<span class="wa-reacao' +
+            (r.from_me ? ' is-me' : '') +
+            '">' +
+            escapeHtml(r.emoji || '') +
+            '</span>'
+          );
+        })
+        .join('') +
+      '</div>'
+    );
   }
 
   function pintarMsgs(rows, append) {
     var el = $('wa-msgs');
     if (!el) return;
     var ja = {};
+    var lastDia = '';
     if (append) {
       el.querySelectorAll('[data-msg-id]').forEach(function (n) {
         ja[n.getAttribute('data-msg-id') || ''] = true;
       });
+      var seps = el.querySelectorAll('.wa-day-sep');
+      if (seps.length) lastDia = seps[seps.length - 1].getAttribute('data-dia') || '';
+      else {
+        var lastB = el.querySelector('.wa-b:last-of-type');
+        if (lastB) lastDia = lastB.getAttribute('data-dia') || '';
+      }
     }
     var html = (rows || [])
       .filter(function (m) {
@@ -717,18 +793,37 @@
       .map(function (m) {
         var cls = m.direcao === 'out' ? 'out' : m.direcao === 'bot' ? 'bot' : 'in';
         if (m.apagada) cls += ' is-apagada';
-        // Opacidade só no rascunho local (tmp-*); pendente_envio no servidor não deixa cinza.
         if (m.pendente && !m.apagada && String(m.id || '').indexOf('tmp-') === 0) cls += ' is-enviando';
+        var diaKey = m.data_label || m.data || '';
+        var sep = '';
+        if (diaKey && diaKey !== lastDia) {
+          lastDia = diaKey;
+          sep =
+            '<div class="wa-day-sep" data-dia="' +
+            escapeHtml(diaKey) +
+            '"><span>' +
+            escapeHtml(diaKey) +
+            '</span></div>';
+        }
+        var quote = '';
+        if (!m.apagada && (m.reply_texto || m.reply_wa_id)) {
+          quote =
+            '<div class="wa-quote"><span class="wa-quote-bar"></span><span class="wa-quote-txt">' +
+            escapeHtml(m.reply_texto || 'Mensagem') +
+            '</span></div>';
+        }
         var metaHtml = '';
+        var horaAck =
+          (m.hora ? escapeHtml(m.hora) : '') +
+          (m.direcao === 'out' || m.direcao === 'bot' ? ' ' + ackHtml(m) : '');
         if (m.direcao === 'out') {
           metaHtml =
             '<div class="wa-meta">' +
             escapeHtml(m.autor || 'Loja') +
-            (m.hora ? ' · ' + escapeHtml(m.hora) : '') +
+            (horaAck ? ' · ' + horaAck : '') +
             '</div>';
         } else if (m.direcao === 'bot') {
-          metaHtml =
-            '<div class="wa-meta">Bot' + (m.hora ? ' · ' + escapeHtml(m.hora) : '') + '</div>';
+          metaHtml = '<div class="wa-meta">Bot' + (horaAck ? ' · ' + horaAck : '') + '</div>';
         } else if (m.hora) {
           metaHtml = '<div class="wa-meta is-hora-so">' + escapeHtml(m.hora) + '</div>';
         }
@@ -754,31 +849,97 @@
         } else if (!m.apagada && m.tipo_midia === 'audio') {
           midia = '<span class="text-xs text-slate-500">Áudio (ainda baixando)</span>';
         }
-        var delBtn = '';
-        if (m.pode_apagar) {
-          delBtn =
+        var acts = '';
+        if (!m.apagada && String(m.id || '').indexOf('tmp-') !== 0 && String(m.id || '').indexOf('previa-') !== 0) {
+          acts =
+            '<div class="wa-msg-acts">' +
+            '<button type="button" class="wa-msg-act" data-wa-act="reply" data-msg-id="' +
+            escapeHtml(String(m.id)) +
+            '" title="Responder">↩</button>' +
+            '<button type="button" class="wa-msg-act" data-wa-act="react" data-msg-id="' +
+            escapeHtml(String(m.id)) +
+            '" title="Reagir">😀</button>' +
+            (m.pode_apagar
+              ? '<button type="button" class="wa-msg-del" data-apagar-msg="' +
+                escapeHtml(String(m.id)) +
+                '" title="Apagar no Zap do cliente">×</button>'
+              : '') +
+            '</div>';
+        } else if (m.pode_apagar) {
+          acts =
             '<button type="button" class="wa-msg-del" data-apagar-msg="' +
             escapeHtml(String(m.id)) +
             '" title="Apagar no Zap do cliente">×</button>';
         }
         return (
+          sep +
           '<div class="wa-b ' +
           cls +
           '" data-msg-id="' +
           escapeHtml(String(m.id)) +
+          '" data-dia="' +
+          escapeHtml(diaKey) +
+          '" data-wa-id="' +
+          escapeHtml(String(m.wa_id || '')) +
           '">' +
+          quote +
           metaHtml +
           midia +
           (m.apagada ? '<em class="wa-apagada-txt">' + corpo + '</em>' : corpo) +
-          delBtn +
+          reacoesHtml(m) +
+          acts +
           '</div>'
         );
       })
       .join('');
+    var nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
     if (append) {
       if (html) el.insertAdjacentHTML('beforeend', html);
     } else el.innerHTML = html || '<p class="text-sm text-slate-500">Sem mensagens.</p>';
-    el.scrollTop = el.scrollHeight;
+    if (!append || nearBottom) el.scrollTop = el.scrollHeight;
+    atualizarScrollFim();
+  }
+
+  function atualizarScrollFim() {
+    var el = $('wa-msgs');
+    var btn = $('wa-scroll-fim');
+    if (!el || !btn) return;
+    var dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+    btn.classList.toggle('hidden', dist < 120);
+  }
+
+  function setDigitando(on) {
+    var el = $('wa-topo-digitando');
+    if (el) el.classList.toggle('hidden', !on);
+  }
+
+  function setReplyBar(id, txt) {
+    replyToId = Number(id) || 0;
+    replyToTxt = String(txt || '').slice(0, 120);
+    var bar = $('wa-reply-bar');
+    var t = $('wa-reply-bar-txt');
+    if (t) t.textContent = replyToTxt || 'Mensagem';
+    if (bar) bar.classList.toggle('hidden', !replyToId);
+    if (replyToId && $('wa-input')) $('wa-input').focus();
+  }
+
+  function limparReply() {
+    setReplyBar(0, '');
+  }
+
+  function recarregarMsgsAbertas() {
+    if (!convId) return;
+    var idSnap = convId;
+    var seqSnap = convAbreSeq;
+    fetchJson('/api/atendimento-whatsapp/mensagens/?conversa_id=' + idSnap + '&limit=80', {
+      timeoutMs: 15000,
+    }).then(function (j) {
+      if (idSnap !== convId || seqSnap !== convAbreSeq) return;
+      var rows = (j && j.mensagens) || [];
+      pintarMsgs(rows, false);
+      guardarMsgs(idSnap, rows, false);
+      if (rows.length) afterId = rows[rows.length - 1].id;
+    });
   }
 
   function setTab() {
@@ -1239,6 +1400,9 @@
     convNome = (item && item.getAttribute('data-nome')) || 'Conversa #' + convId;
     convTel = (item && item.getAttribute('data-tel')) || '';
     convFoto = (item && item.getAttribute('data-foto')) || '';
+    convMsgRev = Number((item && item.getAttribute('data-msg-rev')) || 0) || 0;
+    setDigitando(!!(item && item.getAttribute('data-digitando') === '1'));
+    limparReply();
     var nomeEl = $('wa-topo-nome');
     if (nomeEl) nomeEl.textContent = convNome;
     pintarTopoAvatar(convNome, convFoto);
@@ -1324,6 +1488,9 @@
     convFoto = '';
     convArquivada = false;
     afterId = 0;
+    convMsgRev = 0;
+    limparReply();
+    setDigitando(false);
     var nomeEl = $('wa-topo-nome');
     if (nomeEl) nomeEl.textContent = 'Conversa';
     pintarTopoAvatar('?', '');
@@ -1335,6 +1502,8 @@
       $('wa-quick').innerHTML = '';
     }
     if ($('wa-move')) $('wa-move').classList.add('hidden');
+    var ep = $('wa-emoji-panel');
+    if (ep) ep.classList.add('hidden');
   }
 
   function pollMsgs() {
@@ -1677,6 +1846,10 @@
       }
     }, 15000);
 
+    if (replyToId && !payload.reply_to_id) payload.reply_to_id = replyToId;
+    var replySnap = replyToTxt;
+    var replyIdSnap = replyToId;
+    limparReply();
     // Bolha na hora (sensação de enviado) — o Zap do cliente ainda passa pela ponte.
     var tempId = 'tmp-' + Date.now();
     var tipo = String(payload.tipo_midia || '');
@@ -1700,6 +1873,9 @@
           tipo_midia: tipo,
           midia_url: midiaPrev,
           pendente: true,
+          ack: 0,
+          reply_texto: replyIdSnap ? replySnap : '',
+          reply_wa_id: replyIdSnap ? 'tmp' : '',
         },
       ],
       true
@@ -2790,4 +2966,91 @@
   }
   document.addEventListener('visibilitychange', waRefreshSeAtiva);
   window.addEventListener('focus', waRefreshSeAtiva);
+
+  /* —— Passo 3/4: emoji, scroll, responder, reagir —— */
+  (function initWaE34() {
+    var msgs = $('wa-msgs');
+    if (msgs) {
+      msgs.addEventListener('scroll', atualizarScrollFim);
+      msgs.addEventListener('click', function (ev) {
+        var act = ev.target.closest('[data-wa-act]');
+        if (!act) return;
+        var mid = act.getAttribute('data-msg-id') || '';
+        var tipo = act.getAttribute('data-wa-act') || '';
+        var bubble = act.closest('.wa-b');
+        var txt = '';
+        if (bubble) {
+          var q = bubble.querySelector('.wa-quote-txt');
+          var clone = bubble.cloneNode(true);
+          clone.querySelectorAll('.wa-meta,.wa-msg-acts,.wa-msg-del,.wa-reacoes,.wa-quote,.wa-pic,.wa-aud').forEach(function (n) {
+            n.remove();
+          });
+          txt = String(clone.textContent || '').trim().slice(0, 120);
+          if (!txt && q) txt = String(q.textContent || '').trim();
+        }
+        if (tipo === 'reply') {
+          setReplyBar(mid, txt || 'Mensagem');
+          return;
+        }
+        if (tipo === 'react') {
+          var em = window.prompt('Emoji da reação (ex.: 👍 ❤️ 😂):', '👍');
+          if (em == null) return;
+          em = String(em).trim().slice(0, 8);
+          fetchJson('/api/atendimento-whatsapp/reagir/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+            body: JSON.stringify({ mensagem_id: Number(mid) || 0, emoji: em }),
+          }).then(function (j) {
+            if (!j || !j.ok) {
+              avisarEnvio((j && j.erro) || 'Não reagiu.');
+              return;
+            }
+            recarregarMsgsAbertas();
+          });
+        }
+      });
+    }
+    var scrollBtn = $('wa-scroll-fim');
+    if (scrollBtn) {
+      scrollBtn.addEventListener('click', function () {
+        var el = $('wa-msgs');
+        if (el) el.scrollTop = el.scrollHeight;
+        atualizarScrollFim();
+      });
+    }
+    var replyX = $('wa-reply-x');
+    if (replyX) replyX.addEventListener('click', limparReply);
+
+    var panel = $('wa-emoji-panel');
+    var emojiBtn = $('wa-emoji');
+    if (panel) {
+      panel.innerHTML = EMOJIS_WA.map(function (e) {
+        return '<button type="button" class="wa-emoji-btn" data-emoji="' + e + '">' + e + '</button>';
+      }).join('');
+      panel.addEventListener('click', function (ev) {
+        var b = ev.target.closest('[data-emoji]');
+        if (!b) return;
+        var inp = $('wa-input');
+        if (!inp) return;
+        var em = b.getAttribute('data-emoji') || '';
+        var start = inp.selectionStart != null ? inp.selectionStart : inp.value.length;
+        var end = inp.selectionEnd != null ? inp.selectionEnd : start;
+        inp.value = inp.value.slice(0, start) + em + inp.value.slice(end);
+        try {
+          inp.setSelectionRange(start + em.length, start + em.length);
+        } catch (e) {}
+        inp.focus();
+        atualizarBarra();
+        panel.classList.add('hidden');
+        if (emojiBtn) emojiBtn.setAttribute('aria-expanded', 'false');
+      });
+    }
+    if (emojiBtn && panel) {
+      emojiBtn.addEventListener('click', function () {
+        var on = panel.classList.contains('hidden');
+        panel.classList.toggle('hidden', !on);
+        emojiBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
+      });
+    }
+  })();
 })();

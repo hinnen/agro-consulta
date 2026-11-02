@@ -185,7 +185,46 @@ function textoDe(msg) {
   if (m.audioMessage) return "[áudio]";
   if (m.documentMessage) return String(m.documentMessage.fileName || "[arquivo]");
   if (m.stickerMessage) return "[figurinha]";
+  if (m.reactionMessage) return String(m.reactionMessage.text || "");
   return "";
+}
+
+function quoteInfoDe(msg) {
+  const m = conteudoDe(msg);
+  if (!m) return { reply_wa_id: "", reply_texto: "" };
+  const ctx =
+    (m.extendedTextMessage && m.extendedTextMessage.contextInfo) ||
+    (m.imageMessage && m.imageMessage.contextInfo) ||
+    (m.videoMessage && m.videoMessage.contextInfo) ||
+    (m.audioMessage && m.audioMessage.contextInfo) ||
+    (m.documentMessage && m.documentMessage.contextInfo) ||
+    (m.stickerMessage && m.stickerMessage.contextInfo) ||
+    null;
+  if (!ctx) return { reply_wa_id: "", reply_texto: "" };
+  const reply_wa_id = String(ctx.stanzaId || "").slice(0, 80);
+  let reply_texto = "";
+  const q = ctx.quotedMessage;
+  if (q) {
+    if (q.conversation) reply_texto = String(q.conversation);
+    else if (q.extendedTextMessage && q.extendedTextMessage.text)
+      reply_texto = String(q.extendedTextMessage.text);
+    else if (q.imageMessage) reply_texto = String(q.imageMessage.caption || "[imagem]");
+    else if (q.videoMessage) reply_texto = String(q.videoMessage.caption || "[vídeo]");
+    else if (q.audioMessage) reply_texto = "[áudio]";
+    else if (q.documentMessage) reply_texto = String(q.documentMessage.fileName || "[arquivo]");
+    else if (q.stickerMessage) reply_texto = "[figurinha]";
+  }
+  return { reply_wa_id, reply_texto: reply_texto.slice(0, 200) };
+}
+
+function ackNivelDeStatus(st) {
+  const n = Number(st);
+  if (!Number.isFinite(n)) return 0;
+  // Baileys: PENDING=1 SERVER_ACK=2 DELIVERY_ACK=3 READ=4 PLAYED=5
+  if (n >= 4) return 3;
+  if (n >= 3) return 2;
+  if (n >= 2) return 1;
+  return 0;
 }
 
 let sock = null;
@@ -732,8 +771,41 @@ async function baixarSaidaArquivo(id) {
   return buf.length ? buf : null;
 }
 
+async function enviarReacao(m) {
+  const key = m.key || {};
+  const c = conteudoDe(m);
+  const reac = c && c.reactionMessage;
+  if (!reac) return;
+  const targetId = String((reac.key && reac.key.id) || "").slice(0, 80);
+  if (!targetId) return;
+  const emoji = String(reac.text || "");
+  const orig = String(key.remoteJid || "");
+  if (ehStatusOuGrupo(orig)) return;
+  const lid = orig.endsWith("@lid") ? orig : "";
+  let jid = jidDaMensagem(m);
+  if (jid.endsWith("@lid")) {
+    const pn = pnDeLid(jid);
+    if (pn) jid = pn;
+  }
+  if (!ehChatPrivado(jid)) return;
+  const tel = telefoneDeJid(jid) || telefoneDeJid(telefoneDeKey(key));
+  await post("/api/atendimento-whatsapp/bridge/reacao/", {
+    jid,
+    jid_lid: lid,
+    telefone: tel,
+    target_wa_id: targetId,
+    emoji,
+    de_mim: !!(key && key.fromMe),
+  });
+}
+
 async function enviarEntrada(m, extra) {
   if (!m || !(m.message || conteudoDe(m))) return;
+  const c0 = conteudoDe(m);
+  if (c0 && c0.reactionMessage) {
+    await enviarReacao(m);
+    return;
+  }
   const key = m.key || {};
   const waId = String((key && key.id) || "");
   if (waId) {
@@ -765,6 +837,7 @@ async function enviarEntrada(m, extra) {
   const nome = fromMe || ehNomeLoja(push) ? "" : push;
   const midia = await baixarMidia(m);
   const tel = telefoneDeJid(jid) || telefoneDeJid(telefoneDeKey(key));
+  const quote = quoteInfoDe(m);
   try {
     await post("/api/atendimento-whatsapp/bridge/entrada/", {
       jid,
@@ -781,6 +854,8 @@ async function enviarEntrada(m, extra) {
       midia_b64: midia.b64 || "",
       mime: midia.mime || "",
       nome_arquivo: String((conteudoDe(m) && conteudoDe(m).documentMessage && conteudoDe(m).documentMessage.fileName) || ""),
+      reply_wa_id: quote.reply_wa_id || "",
+      reply_texto: quote.reply_texto || "",
     });
   } catch (e) {
     if (waId) entradaJaPostada.delete(waId);
@@ -1095,6 +1170,52 @@ async function ligar() {
       } catch (e) {
         console.error("entrada:", e.message || e);
       }
+    }
+  });
+  sock.ev.on("messages.update", async (updates) => {
+    for (const u of updates || []) {
+      try {
+        const key = u && u.key;
+        const waId = String((key && key.id) || "");
+        if (!waId) continue;
+        const st = u.update && (u.update.status != null ? u.update.status : u.update);
+        const nivel = ackNivelDeStatus(typeof st === "object" && st && st.status != null ? st.status : st);
+        if (nivel < 1) continue;
+        await post("/api/atendimento-whatsapp/bridge/ack/", { wa_id: waId, ack: nivel });
+      } catch (e) {
+        console.error("ack:", e.message || e);
+      }
+    }
+  });
+  sock.ev.on("presence.update", async (p) => {
+    try {
+      const id = String((p && p.id) || "");
+      if (!id || ehStatusOuGrupo(id)) return;
+      const presc = (p && p.presences) || {};
+      let composing = false;
+      for (const v of Object.values(presc)) {
+        const last = String((v && (v.lastKnownPresence || v.presence)) || "").toLowerCase();
+        if (last.includes("composing") || last.includes("recording")) {
+          composing = true;
+          break;
+        }
+      }
+      let jid = id;
+      const lid = id.endsWith("@lid") ? id : "";
+      if (jid.endsWith("@lid")) {
+        const pn = pnDeLid(jid);
+        if (pn) jid = pn;
+      }
+      if (!ehChatPrivado(jid) && !lid) return;
+      const tel = telefoneDeJid(jid);
+      await post("/api/atendimento-whatsapp/bridge/presenca/", {
+        jid,
+        jid_lid: lid,
+        telefone: tel,
+        digitando: composing,
+      });
+    } catch (e) {
+      console.error("presenca:", e.message || e);
     }
   });
   ajustarPollSaida(pollSegAtual);
@@ -1563,6 +1684,33 @@ async function puxarSaida() {
             wa_id: waId || "",
           });
           continue;
+        } else if (tipo === "reaction") {
+          const targetId = String(item.reply_wa_id || "").trim();
+          if (!targetId) {
+            await post("/api/atendimento-whatsapp/bridge/saida-ok/", {
+              ids: [item.id],
+              erro: "reacao sem alvo",
+            });
+            continue;
+          }
+          const dest = destinosEnvio(item);
+          const hit = msgCache.get(targetId);
+          const key =
+            (hit && hit.key) ||
+            {
+              remoteJid: dest[0],
+              id: targetId,
+              fromMe: false,
+            };
+          const sent = await enviarComRetry(dest, {
+            react: { text: String(txt || "").trim(), key },
+          });
+          const waId = sent && sent.key && sent.key.id;
+          await post("/api/atendimento-whatsapp/bridge/saida-ok/", {
+            ids: [item.id],
+            wa_id: waId || "",
+          });
+          continue;
         } else {
           if (!txt.trim()) {
             await post("/api/atendimento-whatsapp/bridge/saida-ok/", {
@@ -1572,6 +1720,11 @@ async function puxarSaida() {
             continue;
           }
           content = { text: txt };
+          const qid = String(item.reply_wa_id || "").trim();
+          if (qid) {
+            const hit = msgCache.get(qid);
+            if (hit) content.quoted = hit;
+          }
         }
         const dest = destinosEnvio(item);
         const sent = await enviarComRetry(dest, content);

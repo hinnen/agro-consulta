@@ -781,6 +781,8 @@ def serializar_conversa(c: WhatsAppConversaAgro) -> dict:
         "arquivada": bool(getattr(c, "arquivada", False)),
         "arquivada_em": c.arquivada_em.isoformat() if getattr(c, "arquivada_em", None) else "",
         "arquivada_por": (getattr(c, "arquivada_por", None) or "")[:120],
+        "digitando": _conversa_digitando(c),
+        "msg_rev": int((getattr(c, "extras", None) or {}).get("msg_rev") or 0),
     }
 
 
@@ -909,6 +911,27 @@ def serializar_mensagem(m: WhatsAppMensagemAgro) -> dict:
     if not apagada and str(getattr(m.arquivo, "name", "") or ""):
         midia = f"/api/atendimento-whatsapp/midia/{int(m.pk)}/"
     midia_perdida = False
+    try:
+        ack_n = int(getattr(m, "ack", 0) or 0)
+    except (TypeError, ValueError):
+        ack_n = 0
+    if bool(m.pendente_envio) and not apagada:
+        ack_n = 0
+    elif ack_n < 1 and not apagada and m.direcao in (
+        WhatsAppMensagemAgro.DIRECAO_OUT,
+        WhatsAppMensagemAgro.DIRECAO_BOT,
+    ):
+        ack_n = 1 if (m.wa_id or m.enviado_em) else 0
+    reacoes = []
+    raw_re = getattr(m, "reacoes", None) or []
+    if isinstance(raw_re, list):
+        for r in raw_re[:12]:
+            if not isinstance(r, dict):
+                continue
+            em = str(r.get("emoji") or "").strip()[:8]
+            if not em:
+                continue
+            reacoes.append({"emoji": em, "from_me": bool(r.get("from_me"))})
     return {
         "id": int(m.pk),
         "conversa_id": int(m.conversa_id),
@@ -918,12 +941,18 @@ def serializar_mensagem(m: WhatsAppMensagemAgro) -> dict:
         "pendente": bool(m.pendente_envio) and not apagada,
         "hora": criado_l.strftime("%H:%M") if criado_l else "",
         "data": criado_l.strftime("%d/%m") if criado_l else "",
+        "data_label": _rotulo_dia(criado_l) if criado_l else "",
         "criado_em": criado.isoformat() if criado else "",
         "tipo_midia": "" if tipo == "pix_copy" else tipo,
         "midia_url": midia,
         "midia_perdida": midia_perdida,
         "apagada": apagada,
         "pode_apagar": pode,
+        "wa_id": (m.wa_id or "")[:80],
+        "ack": ack_n,
+        "reply_wa_id": (getattr(m, "reply_wa_id", None) or "")[:80],
+        "reply_texto": (getattr(m, "reply_texto", None) or "")[:200],
+        "reacoes": reacoes,
     }
 
 
@@ -983,7 +1012,9 @@ def listar_conversas(*, loja: str, limit: int = 80) -> list[dict]:
 
 def listar_mensagens(*, conversa_id: int, after_id: int = 0, limit: int = 120) -> list[dict]:
     lim = max(1, min(int(limit or 120), 300))
-    qs = WhatsAppMensagemAgro.objects.filter(conversa_id=int(conversa_id))
+    qs = WhatsAppMensagemAgro.objects.filter(conversa_id=int(conversa_id)).exclude(
+        tipo_midia="reaction"
+    )
     aid = int(after_id or 0)
     if aid > 0:
         qs = qs.filter(id__gt=aid).order_by("id")[:lim]
@@ -994,6 +1025,171 @@ def listar_mensagens(*, conversa_id: int, after_id: int = 0, limit: int = 120) -
         return []
     rows = list(WhatsAppMensagemAgro.objects.filter(id__in=ids).order_by("id"))
     return [serializar_mensagem(m) for m in rows]
+
+
+def _rotulo_dia(dt) -> str:
+    """Hoje / Ontem / dd/mm/aaaa — separador visual do chat."""
+    if not dt:
+        return ""
+    try:
+        local = timezone.localtime(dt)
+    except Exception:
+        local = dt
+    try:
+        hoje = timezone.localdate()
+    except Exception:
+        hoje = local.date() if hasattr(local, "date") else None
+    if hoje is None:
+        return ""
+    d = local.date() if hasattr(local, "date") else local
+    delta = (hoje - d).days
+    if delta == 0:
+        return "Hoje"
+    if delta == 1:
+        return "Ontem"
+    return d.strftime("%d/%m/%Y")
+
+
+def _conversa_digitando(c: WhatsAppConversaAgro) -> bool:
+    extras = getattr(c, "extras", None) or {}
+    raw = str(extras.get("typing_ate") or "").strip()
+    if not raw:
+        return False
+    try:
+        from django.utils.dateparse import parse_datetime
+
+        ate = parse_datetime(raw)
+        if ate is None:
+            return False
+        if timezone.is_naive(ate):
+            ate = timezone.make_aware(ate, timezone.get_current_timezone())
+        return ate > timezone.now()
+    except Exception:
+        return False
+
+
+def marcar_digitando(*, jid: str = "", telefone: str = "", jid_lid: str = "", ativo: bool = True) -> bool:
+    """Ponte avisa que o cliente está digitando (presença composing)."""
+    lid = _jid_lid(jid_lid) or _jid_lid(jid)
+    tel = _telefone_real(telefone) or _telefone_real(jid)
+    phone_jid = telefone_para_jid(tel) if tel else ""
+    jid_n = (phone_jid or (jid or "").strip())[:80]
+    conv = None
+    for j in (phone_jid, lid, jid_n):
+        if not j:
+            continue
+        conv = WhatsAppConversaAgro.objects.filter(jid=j).first()
+        if conv:
+            break
+    if conv is None and lid:
+        conv = WhatsAppConversaAgro.objects.filter(jid_lid=lid).first()
+    if conv is None and tel:
+        conv = WhatsAppConversaAgro.objects.filter(telefone=tel).first()
+    if conv is None:
+        return False
+    extras = dict(getattr(conv, "extras", None) or {})
+    if ativo:
+        extras["typing_ate"] = (timezone.now() + timedelta(seconds=6)).isoformat()
+    else:
+        extras.pop("typing_ate", None)
+    conv.extras = extras
+    conv.save(update_fields=["extras"])
+    return True
+
+
+def _bump_msg_rev(conv: WhatsAppConversaAgro | None) -> None:
+    if conv is None:
+        return
+    try:
+        extras = dict(getattr(conv, "extras", None) or {})
+        extras["msg_rev"] = int(timezone.now().timestamp())
+        conv.extras = extras
+        conv.save(update_fields=["extras"])
+    except Exception:
+        pass
+
+
+def aplicar_ack_wa(*, wa_id: str, ack: int) -> bool:
+    """Atualiza ✓ / ✓✓ a partir do recibo Baileys (messages.update)."""
+    wid = (wa_id or "").strip()[:80]
+    if not wid:
+        return False
+    try:
+        nivel = max(0, min(3, int(ack)))
+    except (TypeError, ValueError):
+        return False
+    m = WhatsAppMensagemAgro.objects.filter(wa_id=wid).select_related("conversa").first()
+    if m is None:
+        return False
+    atual = int(getattr(m, "ack", 0) or 0)
+    if nivel <= atual:
+        return False
+    m.ack = nivel
+    m.save(update_fields=["ack"])
+    _bump_msg_rev(m.conversa)
+    return True
+
+
+def aplicar_reacao_wa(
+    *,
+    target_wa_id: str,
+    emoji: str,
+    from_me: bool = False,
+    jid: str = "",
+    telefone: str = "",
+    jid_lid: str = "",
+) -> WhatsAppMensagemAgro | None:
+    """Grava reação no alvo (entrada do cliente ou eco). Não cria bolha."""
+    wid = (target_wa_id or "").strip()[:80]
+    if not wid:
+        return None
+    m = WhatsAppMensagemAgro.objects.filter(wa_id=wid).select_related("conversa").first()
+    if m is None:
+        return None
+    em = str(emoji or "").strip()[:8]
+    lista = [r for r in (m.reacoes or []) if isinstance(r, dict)]
+    lista = [r for r in lista if bool(r.get("from_me")) != bool(from_me)]
+    if em:
+        lista.append({"emoji": em, "from_me": bool(from_me)})
+    m.reacoes = lista[:12]
+    m.save(update_fields=["reacoes"])
+    _bump_msg_rev(m.conversa)
+    return m
+
+
+def reagir_loja(*, mensagem_id: int, emoji: str, autor: str = "") -> tuple[WhatsAppMensagemAgro | None, str]:
+    """Loja reage a uma mensagem (fila tipo reaction para a ponte)."""
+    try:
+        mid = int(mensagem_id)
+    except (TypeError, ValueError):
+        return None, "Mensagem inválida."
+    try:
+        alvo = WhatsAppMensagemAgro.objects.select_related("conversa").get(pk=mid)
+    except WhatsAppMensagemAgro.DoesNotExist:
+        return None, "Mensagem não encontrada."
+    wid = (alvo.wa_id or "").strip()
+    if not wid:
+        return None, "Aguarde o envio antes de reagir."
+    em = str(emoji or "").strip()[:8]
+    aplicar_reacao_wa(target_wa_id=wid, emoji=em, from_me=True)
+    # Remove reações pendentes anteriores deste alvo
+    WhatsAppMensagemAgro.objects.filter(
+        conversa_id=alvo.conversa_id,
+        tipo_midia="reaction",
+        reply_wa_id=wid,
+        pendente_envio=True,
+    ).update(pendente_envio=False, liberar_envio_em=None, erro_envio="substituída")
+    m = _enfileirar_saida(
+        alvo.conversa,
+        em or " ",
+        direcao=WhatsAppMensagemAgro.DIRECAO_OUT,
+        autor=autor,
+        tipo_midia="reaction",
+        reply_wa_id=wid,
+        reply_texto=(alvo.texto or "")[:200],
+        atualizar_preview=False,
+    )
+    return alvo, ""
 
 
 def contar_nao_lidas() -> dict:
@@ -1029,6 +1225,9 @@ def _enfileirar_saida(
     midia_raw: bytes | None = None,
     mime: str = "",
     nome_arquivo: str = "",
+    reply_wa_id: str = "",
+    reply_texto: str = "",
+    atualizar_preview: bool = True,
 ) -> WhatsAppMensagemAgro:
     agora = timezone.now()
     liberar = None
@@ -1046,6 +1245,9 @@ def _enfileirar_saida(
         autor_nome=(autor or "")[:120],
         liberar_envio_em=liberar,
         tipo_midia=(tipo_midia or "")[:16],
+        reply_wa_id=(reply_wa_id or "")[:80],
+        reply_texto=(reply_texto or "")[:200],
+        ack=0,
     )
     if midia_raw:
         anexar_midia(
@@ -1057,16 +1259,20 @@ def _enfileirar_saida(
             teto=MAX_SAIDA_MIDIA_BYTES,
         )
     m.save()
-    prev_txt = texto
-    if (tipo_midia or "").strip().lower() == "pix_copy" and PIX_COPY_SEP in texto:
-        prev_txt = texto.replace(PIX_COPY_SEP, " ").strip()
-    conversa.ultima_preview = _preview(prev_txt)
-    conversa.ultima_em = agora
-    campos = ["ultima_preview", "ultima_em"]
-    if direcao == WhatsAppMensagemAgro.DIRECAO_OUT:
+    if atualizar_preview and (tipo_midia or "").strip().lower() != "reaction":
+        prev_txt = texto
+        if (tipo_midia or "").strip().lower() == "pix_copy" and PIX_COPY_SEP in texto:
+            prev_txt = texto.replace(PIX_COPY_SEP, " ").strip()
+        conversa.ultima_preview = _preview(prev_txt)
+        conversa.ultima_em = agora
+        campos = ["ultima_preview", "ultima_em"]
+        if direcao == WhatsAppMensagemAgro.DIRECAO_OUT:
+            conversa.aguardando_loja = False
+            campos.append("aguardando_loja")
+        conversa.save(update_fields=campos)
+    elif direcao == WhatsAppMensagemAgro.DIRECAO_OUT and (tipo_midia or "").strip().lower() != "reaction":
         conversa.aguardando_loja = False
-        campos.append("aguardando_loja")
-    conversa.save(update_fields=campos)
+        conversa.save(update_fields=["aguardando_loja"])
     return m
 
 
@@ -1394,6 +1600,8 @@ def processar_entrada(
     telefone: str = "",
     jid_lid: str = "",
     nome_loja: str = "",
+    reply_wa_id: str = "",
+    reply_texto: str = "",
 ) -> tuple[WhatsAppMensagemAgro | None, str]:
     jid_n = (jid or "").strip()
     bruto = f"{jid_n} {jid_lid or ''}".lower()
@@ -1535,6 +1743,9 @@ def processar_entrada(
         autor_nome="Celular" if de_mim else "",
         criado_em=quando,
         tipo_midia=tipo_n,
+        reply_wa_id=(reply_wa_id or "")[:80],
+        reply_texto=(reply_texto or "")[:200],
+        ack=2 if de_mim else 0,
     )
     anexar_midia(msg, tipo_midia=tipo_n, midia_b64=midia_b64, mime=mime, nome_arquivo=nome_arquivo)
     try:
@@ -1547,6 +1758,10 @@ def processar_entrada(
         if not de_mim:
             conv.nao_lidas = int(conv.nao_lidas or 0) + 1
             conv.aguardando_loja = True
+            # Cliente mandou msg → para de “digitando…”
+            extras_t = dict(conv.extras) if isinstance(conv.extras, dict) else {}
+            if extras_t.pop("typing_ate", None) is not None:
+                conv.extras = extras_t
         else:
             conv.aguardando_loja = False
     elif not conv.ultima_em:
@@ -1561,6 +1776,7 @@ def processar_entrada(
         "jid_lid",
         "aviso_fora_em",
         "aguardando_loja",
+        "extras",
     ]
     if not de_mim and not historico:
         campos_base.extend(_desarquivar_por_msg_cliente(conv))
@@ -1816,6 +2032,7 @@ def enviar_loja(
     midia_b64: str = "",
     mime: str = "",
     nome_arquivo: str = "",
+    reply_to_id: int = 0,
 ) -> tuple[WhatsAppMensagemAgro | None, str]:
     t = str(texto or "").strip()
     tipo_n = (tipo_midia or "").strip().lower()[:16]
@@ -1845,6 +2062,17 @@ def enviar_loja(
             return None, "Cliente ainda não escolheu a loja."
         conv.loja = WhatsAppConversaAgro.LOJA_CENTRO
         conv.save(update_fields=["loja"])
+    reply_wa = ""
+    reply_txt = ""
+    try:
+        rid = int(reply_to_id or 0)
+    except (TypeError, ValueError):
+        rid = 0
+    if rid > 0:
+        alvo = WhatsAppMensagemAgro.objects.filter(pk=rid, conversa_id=conv.pk).first()
+        if alvo and (alvo.wa_id or "").strip():
+            reply_wa = (alvo.wa_id or "").strip()[:80]
+            reply_txt = (alvo.texto or "")[:200]
     m = _enfileirar_saida(
         conv,
         t,
@@ -1854,6 +2082,8 @@ def enviar_loja(
         midia_raw=raw,
         mime=mime,
         nome_arquivo=nome_arquivo,
+        reply_wa_id=reply_wa,
+        reply_texto=reply_txt,
     )
     return m, ""
 
@@ -2634,6 +2864,8 @@ def listar_saida_pendente(limit: int = 20) -> list[dict]:
             "mime": _mime_saida(m) if tipo else "",
             # Ponte baixa arquivo em /bridge/midia/ — b64 no poll inchava o JSON e engasgava o PDV
             "midia_b64": "",
+            "reply_wa_id": (getattr(m, "reply_wa_id", None) or "")[:80],
+            "reply_texto": (getattr(m, "reply_texto", None) or "")[:200],
         }
         out.append(item)
     return out
@@ -2706,6 +2938,7 @@ def marcar_enviadas(ids: list[int], *, erro: str = "", wa_id: str = "") -> int:
         "enviado_em": agora,
         "erro_envio": "",
         "liberar_envio_em": None,
+        "ack": 1,
     }
     wid = (wa_id or "").strip()[:80]
     if wid and len(ids) == 1:

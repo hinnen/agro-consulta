@@ -47,6 +47,10 @@ from produtos.atendimento_whatsapp_util import (
     processar_status,
     gravar_foto_perfil,
     aplicar_mapa_lid,
+    aplicar_ack_wa,
+    aplicar_reacao_wa,
+    marcar_digitando,
+    reagir_loja,
     listar_status,
     serializar_conversa,
     serializar_mensagem,
@@ -285,6 +289,10 @@ def api_atendimento_whatsapp_enviar(request):
         cid = int(data.get("conversa_id") or 0)
     except (TypeError, ValueError):
         cid = 0
+    try:
+        reply_to = int(data.get("reply_to_id") or 0)
+    except (TypeError, ValueError):
+        reply_to = 0
     m, err = enviar_loja(
         conversa_id=cid,
         texto=data.get("texto") or "",
@@ -293,10 +301,28 @@ def api_atendimento_whatsapp_enviar(request):
         midia_b64=data.get("midia_b64") or "",
         mime=data.get("mime") or "",
         nome_arquivo=data.get("nome_arquivo") or "",
+        reply_to_id=reply_to,
     )
     if err or m is None:
         return JsonResponse({"ok": False, "erro": err or "Não enviou."}, status=400)
     return JsonResponse({"ok": True, "mensagem": serializar_mensagem(m)})
+
+
+@login_required(login_url="/entrar/")
+@require_POST
+def api_atendimento_whatsapp_reagir(request):
+    data = _json_body(request)
+    if data is None:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    autor = _autor_wa(request, data)
+    try:
+        mid = int(data.get("mensagem_id") or 0)
+    except (TypeError, ValueError):
+        mid = 0
+    alvo, err = reagir_loja(mensagem_id=mid, emoji=str(data.get("emoji") or ""), autor=autor)
+    if err or alvo is None:
+        return JsonResponse({"ok": False, "erro": err or "Não reagiu."}, status=400)
+    return JsonResponse({"ok": True, "mensagem": serializar_mensagem(alvo)})
 
 
 @login_required(login_url="/entrar/")
@@ -776,6 +802,8 @@ def api_atendimento_whatsapp_bridge_entrada(request):
         "telefone": str(data.get("telefone") or ""),
         "jid_lid": str(data.get("jid_lid") or data.get("lid") or ""),
         "nome_loja": str(data.get("nome_loja") or ""),
+        "reply_wa_id": str(data.get("reply_wa_id") or "")[:80],
+        "reply_texto": str(data.get("reply_texto") or "")[:200],
     }
     lids = data.get("lids") if isinstance(data.get("lids"), dict) else None
     threading.Thread(
@@ -856,6 +884,52 @@ def api_atendimento_whatsapp_bridge_contatos(request):
         pid = 0
     n = gravar_agenda_zap(data.get("itens") or [], pedido_id=pid)
     return JsonResponse({"ok": True, "n": n})
+
+
+@csrf_exempt
+@require_POST
+def api_atendimento_whatsapp_bridge_reacao(request):
+    if not token_ponte_ok(request):
+        return _bridge_forbidden()
+    data = _json_body(request) or {}
+    m = aplicar_reacao_wa(
+        target_wa_id=str(data.get("target_wa_id") or data.get("wa_id") or ""),
+        emoji=str(data.get("emoji") or ""),
+        from_me=bool(data.get("de_mim") or data.get("from_me")),
+        jid=str(data.get("jid") or ""),
+        telefone=str(data.get("telefone") or ""),
+        jid_lid=str(data.get("jid_lid") or ""),
+    )
+    return JsonResponse({"ok": True, "achou": m is not None})
+
+
+@csrf_exempt
+@require_POST
+def api_atendimento_whatsapp_bridge_ack(request):
+    if not token_ponte_ok(request):
+        return _bridge_forbidden()
+    data = _json_body(request) or {}
+    try:
+        ack = int(data.get("ack") or 0)
+    except (TypeError, ValueError):
+        ack = 0
+    ok = aplicar_ack_wa(wa_id=str(data.get("wa_id") or ""), ack=ack)
+    return JsonResponse({"ok": True, "achou": ok})
+
+
+@csrf_exempt
+@require_POST
+def api_atendimento_whatsapp_bridge_presenca(request):
+    if not token_ponte_ok(request):
+        return _bridge_forbidden()
+    data = _json_body(request) or {}
+    ok = marcar_digitando(
+        jid=str(data.get("jid") or ""),
+        telefone=str(data.get("telefone") or ""),
+        jid_lid=str(data.get("jid_lid") or ""),
+        ativo=bool(data.get("digitando") if "digitando" in data else data.get("composing", True)),
+    )
+    return JsonResponse({"ok": True, "achou": ok})
 
 
 @csrf_exempt

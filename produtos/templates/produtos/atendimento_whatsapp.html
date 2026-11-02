@@ -11,7 +11,7 @@
   <link rel="manifest" href="{% url 'atendimento_whatsapp_pc_manifest' %}">
   <link rel="apple-touch-icon" href="{% static 'produtos/pwa/zap-loja-192.png' %}">
   <link rel="icon" type="image/png" sizes="192x192" href="{% static 'produtos/pwa/zap-loja-192.png' %}">
-  <link rel="stylesheet" href="{% static 'produtos/css/wa_desktop_v2.css' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-e2">
+  <link rel="stylesheet" href="{% static 'produtos/css/wa_desktop_v2.css' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-e34">
   <script>
   (function () {
     /* Skin visual: v2 (padrão) ou v1 (antiga). ?skin=v1 / ?skin=v2 troca e guarda no navegador.
@@ -126,9 +126,13 @@
     </div>
     <div class="wa-pane wa-pane-chat flex min-h-0 flex-col">
       {% include "produtos/_wa_chat_head.html" %}
-      <div id="wa-msgs" class="min-h-0 flex-1 overflow-y-auto px-3 py-2"></div>
+      <div class="wa-msgs-wrap relative min-h-0 flex-1">
+        <div id="wa-msgs" class="min-h-0 h-full overflow-y-auto px-3 py-2"></div>
+        <button type="button" id="wa-scroll-fim" class="wa-scroll-fim hidden" title="Ir para o fim" aria-label="Ir para o fim">↓</button>
+        <div id="wa-emoji-panel" class="wa-emoji-panel hidden" role="listbox" aria-label="Emojis"></div>
+      </div>
       <div id="wa-quick" class="hidden shrink-0 flex flex-wrap gap-1 border-t border-slate-100 bg-slate-50 px-2 py-1.5"></div>
-      <form id="wa-form" class="flex shrink-0 items-center gap-2 border-t border-slate-100 bg-white p-2" data-agro-no-double-guard="1">
+      <form id="wa-form" class="wa-form flex shrink-0 flex-wrap items-center gap-2 border-t border-slate-100 bg-white p-2" data-agro-no-double-guard="1">
         {% include "produtos/_wa_composer.html" %}
       </form>
       <div id="wa-move" class="hidden shrink-0 flex gap-2 px-2 pb-2">
@@ -144,7 +148,7 @@
 {% include "produtos/_wa_status.html" %}
 {% include "produtos/_wa_ficha.html" %}
 {% include "produtos/_wa_dlg.html" %}
-<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-fotos17-skin2"></script>
+<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-fotos17-e34"></script>
 <script>
 (function () {
   var DICA_KEY = "agro_wa_pc_pwa_dica_v1";

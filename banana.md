@@ -746,7 +746,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - Uso próprio · **QR no celular** (não API Meta) · 1 número · bot pergunta **Centro ou Vila** · duas filas no Agro.
 - Ponte Node: `whatsapp_atendimento/iniciar.bat` (PC ligado). Postgres = conversas.
 - **Servidor no PC (`WA-SERVIDOR-PC` · 02/11 lab):** Django+mídia+Postgres `agro_wa` **neste Windows** (não Render WA). Scripts `whatsapp_atendimento/servidor_pc/` · doc `docs/WHATSAPP-SERVIDOR-PC.md` · internet = Cloudflare Tunnel. **Não** aponta `DATABASE_URL` do PDV loja.
-- **Visual Zap Web (`WA-SKIN-V2` · 02/11):** `html[data-wa-skin=v2]` + `wa_desktop_v2.css` · `?skin=v1` reverte. **Etapa 2** (`dd48e5be`): Bot sobrescreve o chat (não divide com lista) · tema escuro no painel/QR/ficha/dlg · bolha recebida contraste. Causa do split: `#wa-app { display:grid !important }` ganhava do Tailwind `.hidden`.
+- **Visual Zap Web (`WA-SKIN-V2` · 02/11):** `html[data-wa-skin=v2]` + `wa_desktop_v2.css` · `?skin=v1` reverte. **Etapa 2**: Bot tela cheia escura + QR/ficha/dlg. **Etapas 3–4**: separador Hoje/Ontem · emoji na barra · scroll ↓ · Status/⋮ escuro · citar resposta · reações (API+ponte) · ✓/✓✓ (ack) · “digitando…” · migrate **`0154`**.
 - **05/09 Renan:** desligou a ponte — deixava o **PDV de todas as lojas lento** (carga no Render). **`WA-PONTE-LEVE` (06/09 · v23.09):** agenda+fotos sync **1×/dia** (Bot → Tempo, padrão 00:00) · poll saída configurável **3–15s** (mín. 3; 2 engasga) · msgs cliente na hora · de dia sem reenvio. **06/09 noite:** status stories a cada **30s** (antes 5s ~40kb). **`WA-UI-POLL-LEVE` (07/09 · v23.39):** UI do Zap — foco msgs 5s / lista 10s / status 60s; sem foco (PDV na frente) msgs 15s / lista 60s / status 120s (`hasFocus`). **`WA-PONTE-ULTRA-LEVE` (12/09):** poll mín **8** (padrão 10, máx 30) · heartbeat 25s · poll sem mídia b64 · cache bot — causa: `.bat`+Zap engasgavam PDV/gestão inteiros.
 - Sem disparo em massa. **Entrada loja:** menu/gestão → **WhatsApp computador (Z)**. **PDV** = ícone **Em breve…** (`PDV-WA-TOPBAR-BREVE`) — **não** abre o chat (combinado Renan 03/09). Ponte no PC (`iniciar.bat`).
 - Token `.env`: `AGRO_WA_BRIDGE_TOKEN`. Migrate `0108`+`0109`+**`0111`**+**`0112`**+**`0113`**. Pacote `WA-ATEND-QR`.
@@ -1311,7 +1311,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Túnel fixo C** | ❌ **abortado** — zona `sistvale` removida; NS Hostinger intactos |
 | **Agora** | Túnel rápido + loja aponta pra ele |
 | **Túnel lab agora** | `https://authorities-mentioned-singing-suite.trycloudflare.com` (se mudou → atualizar `AGRO_WA_PUBLIC_ORIGIN` na Sistvale) |
-| **Visual** | Skin **v2** (`wa_desktop_v2.css`) · Etapa 1 OK · **Etapa 2** `dd48e5be` — Bot tela cheia escura (fix `#wa-app.hidden`) + ficha/QR/dlg + bolha recebida `#202c33` · **Ctrl+F5** · Renan validar |
+| **Visual** | Skin **v2** · Etapas **1–4** no lab · migrate **`0154`** (ack/reply/reações) · Ctrl+F5 · Renan validar emoji/citar/✓✓/digitando/reações |
 | **PC** | Django+ponte+túnel precisam ficar ligados · fundo: `C:\AgroWhatsApp\LIGAR-Zap-FUNDO.bat` |
 | **Não** | Trocar NS `sistvale` · push `producao` sem senha |
 

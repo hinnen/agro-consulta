@@ -4022,6 +4022,11 @@ class WhatsAppMensagemAgro(models.Model):
     autor_nome = models.CharField(max_length=120, blank=True, default="")
     liberar_envio_em = models.DateTimeField(null=True, blank=True, db_index=True)
     apagada = models.BooleanField(default=False, db_index=True)
+    # 0=pendente · 1=enviado (servidor) · 2=entregue · 3=lido (Baileys ack)
+    ack = models.PositiveSmallIntegerField(default=0, db_index=True)
+    reply_wa_id = models.CharField(max_length=80, blank=True, default="", db_index=True)
+    reply_texto = models.CharField(max_length=200, blank=True, default="")
+    reacoes = models.JSONField(default=list, blank=True)
     criado_em = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:

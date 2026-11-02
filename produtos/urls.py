@@ -1109,6 +1109,11 @@ urlpatterns = [
         name='api_atendimento_whatsapp_apagar_mensagem',
     ),
     path(
+        'api/atendimento-whatsapp/reagir/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_reagir,
+        name='api_atendimento_whatsapp_reagir',
+    ),
+    path(
         'api/atendimento-whatsapp/concluir/',
         views_atendimento_whatsapp.api_atendimento_whatsapp_concluir,
         name='api_atendimento_whatsapp_concluir',
@@ -1192,6 +1197,21 @@ urlpatterns = [
         'api/atendimento-whatsapp/bridge/contatos/',
         views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_contatos,
         name='api_atendimento_whatsapp_bridge_contatos',
+    ),
+    path(
+        'api/atendimento-whatsapp/bridge/reacao/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_reacao,
+        name='api_atendimento_whatsapp_bridge_reacao',
+    ),
+    path(
+        'api/atendimento-whatsapp/bridge/ack/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_ack,
+        name='api_atendimento_whatsapp_bridge_ack',
+    ),
+    path(
+        'api/atendimento-whatsapp/bridge/presenca/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_presenca,
+        name='api_atendimento_whatsapp_bridge_presenca',
     ),
     path(
         'api/atendimento-whatsapp/bridge/pedido-ok/',
