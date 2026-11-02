@@ -69,7 +69,12 @@ def main() -> int:
     check("aviso de midia some so no 404", "r.status !== 404" in js and "não está mais no servidor" not in js)
     check("colar imagem entra no envio", "enviarFotoArquivo" in js and "image/" in js)
     check("clique marca a linha na hora", "el.classList.remove('is-on')" in js)
+    check("foto abre maior", "wa-pic-lite" in js and "abrirPicLite" in js)
     util = (ROOT / "produtos/atendimento_whatsapp_util.py").read_text(encoding="utf-8")
+    check(
+        "foto do celular nao apaga a seguinte",
+        "pendente_envio=True" in util and "eco.filter(tipo_midia=tipo_n).exists()" not in util,
+    )
     check(
         "mensagem nao varre o cadastro inteiro",
         "cliente_agro_por_whatsapp_flex" not in util and "_cadastro_ficha_por_telefone" in util,

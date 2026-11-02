@@ -1479,21 +1479,39 @@ def processar_entrada(
     cfg = carregar_bot()
     aplicar_nome_cadastro(conv, perfil=nome, cfg=cfg)
 
-    if de_mim and not historico:
+    if de_mim and not historico and tipo_n in ("image", "audio", "sticker"):
+        # Eco da foto que a tela acabou de mandar. Outra foto do celular não é eco.
+        pend = (
+            WhatsAppMensagemAgro.objects.filter(
+                conversa=conv,
+                direcao=WhatsAppMensagemAgro.DIRECAO_OUT,
+                tipo_midia=tipo_n,
+                pendente_envio=True,
+                criado_em__gte=timezone.now() - timedelta(seconds=45),
+            )
+            .order_by("id")
+            .first()
+        )
+        if pend is not None:
+            if wa and not (pend.wa_id or "").strip():
+                pend.wa_id = wa
+                pend.pendente_envio = False
+                pend.save(update_fields=["wa_id", "pendente_envio"])
+            return None, "duplicada"
+    elif de_mim and not historico:
         corte = timezone.now() - timedelta(seconds=45)
         eco = WhatsAppMensagemAgro.objects.filter(
             conversa=conv,
             direcao__in=[WhatsAppMensagemAgro.DIRECAO_OUT, WhatsAppMensagemAgro.DIRECAO_BOT],
             criado_em__gte=corte,
+            texto=t,
         )
-        if tipo_n in ("image", "audio", "sticker") and eco.filter(tipo_midia=tipo_n).exists():
-            return None, "duplicada"
-        if tipo_n not in ("image", "audio", "sticker") and eco.filter(texto=t).exists():
+        if eco.exists():
             return None, "duplicada"
 
     # Corrida notify×append / duas pontes: mesma msg com wa_id diferente é raro;
-    # mesma conversa+texto+direção em ~4s = eco.
-    if not historico and t:
+    # mesma conversa+texto+direção em ~4s = eco. Foto e áudio repetem o texto curto.
+    if not historico and t and tipo_n not in ("image", "audio", "sticker"):
         corte_eco = timezone.now() - timedelta(seconds=4)
         eco_vivo = WhatsAppMensagemAgro.objects.filter(
             conversa=conv,

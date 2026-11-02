@@ -297,7 +297,7 @@
   .wa-skin .wa-topo-av {
     flex-shrink: 0; width: 2.45rem; height: 2.45rem; border-radius: 999px; overflow: hidden;
     background: #e2e8f0; display: flex; align-items: center; justify-content: center;
-    font-size: .95rem; font-weight: 900; color: #475569;
+    font-size: .95rem; font-weight: 900; color: #475569; cursor: zoom-in;
   }
   .wa-skin .wa-topo-av img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .wa-skin .wa-topo-nome {
@@ -408,7 +408,17 @@
   @media (hover: none) {
     .wa-skin .wa-msg-del { opacity: .85; }
   }
-  .wa-skin .wa-pic { display: block; width: auto; max-width: 100%; max-height: 14rem; border-radius: .6rem; margin: .35rem 0; object-fit: contain; }
+  .wa-skin .wa-pic { display: block; width: auto; max-width: 100%; max-height: 14rem; border-radius: .6rem; margin: .35rem 0; object-fit: contain; cursor: zoom-in; }
+  .wa-pic-lite {
+    display: none; position: fixed; inset: 0; z-index: 90;
+    background: rgb(15 23 42 / .72);
+    align-items: center; justify-content: center; padding: 1.5rem;
+  }
+  .wa-pic-lite.is-on { display: flex; }
+  .wa-pic-lite img {
+    max-width: min(52rem, 92vw); max-height: 88vh;
+    object-fit: contain; border-radius: .6rem; background: #0f172a;
+  }
   .wa-skin .wa-aud { display: block; width: 15rem; max-width: 100%; margin: .35rem 0; }
   .wa-skin .wa-cfg {
     display: grid; grid-template-columns: 10.5rem minmax(0, 1fr); gap: .75rem;

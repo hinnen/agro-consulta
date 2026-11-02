@@ -1342,6 +1342,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **No ar** | `44b4ac3` |
 | **Quando autorizar** | Frase + senha. Push zera foto |
 
+### ✅ CHECKLIST ÚNICO — **02/11e** · 🟢 **pronto envio** · **WA-FOTO-MAIOR**
+
+| # | Item | Status | Migrate | Prova |
+| - | ---- | ------ | ------- | ----- |
+| 1 | Várias fotos do celular entram, não só a primeira | 🟢 Pronto | **NÃO** | eco só se a tela ainda está enviando |
+| 2 | Clique na foto da conversa e na foto do cliente abre maior | 🟢 Pronto | **NÃO** | `wa-pic-lite` |
+
+| Campo | Valor |
+| ----- | ----- |
+| **Pacote** | local, junto com os outros desta manhã |
+| **No ar** | `44b4ac3` |
+| **Quando autorizar** | Frase + senha. Push zera foto |
+
 ### ✅ CHECKLIST ÚNICO — **01/11e** · ✅ **enviado 02/11 com frase + senha** · **WA-FOTOS-VISIVEIS**
 
 | # | Item | Status | Migrate | Prova |

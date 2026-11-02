@@ -2500,8 +2500,9 @@
 
   var topoWho = $('wa-topo-who');
   if (topoWho) {
-    topoWho.addEventListener('click', function () {
+    topoWho.addEventListener('click', function (ev) {
       if (!convId) return;
+      if (ev.target && ev.target.closest && ev.target.closest('#wa-topo-av')) return;
       abrirFicha();
     });
   }
@@ -2586,7 +2587,19 @@
   }
 
   document.addEventListener('click', function (ev) {
-    var pic = ev.target && ev.target.closest ? ev.target.closest('.wa-pic[data-wa-pic-full]') : null;
+    var alvo = ev.target;
+    if (!alvo || !alvo.closest) return;
+    var av = alvo.closest('#wa-topo-av');
+    if (av) {
+      var fotoAv = av.querySelector('img');
+      var urlAv = fotoAv ? fotoAv.getAttribute('src') || '' : '';
+      if (urlAv) {
+        ev.preventDefault();
+        abrirPicLite(urlAv);
+      }
+      return;
+    }
+    var pic = alvo.closest('.wa-pic[data-wa-pic-full]');
     if (!pic) return;
     ev.preventDefault();
     abrirPicLite(pic.getAttribute('data-wa-pic-full') || pic.getAttribute('src') || '');
