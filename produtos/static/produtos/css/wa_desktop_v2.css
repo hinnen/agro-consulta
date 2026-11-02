@@ -635,16 +635,13 @@
     background: var(--wa2-bg-panel); border: 1px solid var(--wa2-line);
     border-radius: 9999px; padding: 1px 6px; font-size: 13px; line-height: 18px;
   }
+  /* Reagir: bolinha fora da bolha (não cobre o texto). */
   html[data-wa-skin="v2"] .wa-skin .wa-msg-acts {
-    position: absolute; top: -10px; right: 6px; z-index: 3;
-    display: none; align-items: center; gap: 4px;
-    padding: 3px; border-radius: 9999px;
+    position: absolute; top: 50%; left: calc(100% + 6px); z-index: 3;
+    display: none; align-items: center; transform: translateY(-50%);
+    padding: 2px; border-radius: 9999px;
     background: var(--wa2-bg-panel); border: 1px solid var(--wa2-line);
     box-shadow: 0 2px 8px rgba(0,0,0,.35);
-  }
-  html[data-wa-skin="v2"] .wa-skin .wa-b.out .wa-msg-acts,
-  html[data-wa-skin="v2"] .wa-skin .wa-b.bot .wa-msg-acts {
-    right: auto; left: -8px; transform: translateX(-100%);
   }
   html[data-wa-skin="v2"] .wa-skin .wa-b { position: relative; overflow: visible; }
   html[data-wa-skin="v2"] .wa-skin .wa-b:hover .wa-msg-acts { display: inline-flex; }
@@ -654,13 +651,10 @@
     flex: 0 0 auto;
   }
   html[data-wa-skin="v2"] .wa-skin .wa-msg-act:hover { background: var(--wa2-bg-selected); }
-  /* X dentro da barra: sem position absolute (senão fica em cima do emoji). */
-  html[data-wa-skin="v2"] .wa-skin .wa-msg-acts .wa-msg-del {
-    position: static !important; top: auto; right: auto;
-    width: 28px; height: 28px; opacity: 1 !important;
-    background: transparent; color: #f87171; font-size: 16px; font-weight: 700;
+  html[data-wa-skin="v2"] .wa-skin #wa-msgs { padding-right: 2.5rem; }
+  html[data-wa-skin="v2"] .wa-skin .wa-reply-bar {
+    margin: 0 12px 6px; flex: 0 0 auto;
   }
-  html[data-wa-skin="v2"] .wa-skin .wa-msg-acts .wa-msg-del:hover { background: rgba(248, 113, 113, .18); }
   html[data-wa-skin="v2"] .wa-skin .wa-scroll-fim {
     position: absolute; right: 16px; bottom: 16px; z-index: 5;
     width: 40px; height: 40px; border-radius: 9999px; border: 0; cursor: pointer;

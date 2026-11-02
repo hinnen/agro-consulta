@@ -855,23 +855,21 @@
           midia = '<span class="text-xs text-slate-500">Áudio (ainda baixando)</span>';
         }
         var acts = '';
-        if (!m.apagada && String(m.id || '').indexOf('tmp-') !== 0 && String(m.id || '').indexOf('previa-') !== 0) {
+        var idOk =
+          !m.apagada &&
+          String(m.id || '').indexOf('tmp-') !== 0 &&
+          String(m.id || '').indexOf('previa-') !== 0;
+        /* Reagir só em msg do cliente — na própria some o popup em cima do ×. Sem seta ↩ (confundia e quebrava a barra). */
+        if (idOk && m.direcao === 'in') {
           acts =
-            '<div class="wa-msg-acts">' +
-            '<button type="button" class="wa-msg-act" data-wa-act="reply" data-msg-id="' +
-            escapeHtml(String(m.id)) +
-            '" title="Responder">↩</button>' +
+            '<div class="wa-msg-acts" title="Reagir">' +
             '<button type="button" class="wa-msg-act" data-wa-act="react" data-msg-id="' +
             escapeHtml(String(m.id)) +
-            '" title="Reagir">😀</button>' +
-            (m.pode_apagar
-              ? '<button type="button" class="wa-msg-del" data-apagar-msg="' +
-                escapeHtml(String(m.id)) +
-                '" title="Apagar no Zap do cliente">×</button>'
-              : '') +
+            '" title="Reagir com emoji">😀</button>' +
             '</div>';
-        } else if (m.pode_apagar) {
-          acts =
+        }
+        if (m.pode_apagar) {
+          acts +=
             '<button type="button" class="wa-msg-del" data-apagar-msg="' +
             escapeHtml(String(m.id)) +
             '" title="Apagar no Zap do cliente">×</button>';
