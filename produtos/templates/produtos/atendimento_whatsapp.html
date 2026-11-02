@@ -11,8 +11,25 @@
   <link rel="manifest" href="{% url 'atendimento_whatsapp_pc_manifest' %}">
   <link rel="apple-touch-icon" href="{% static 'produtos/pwa/zap-loja-192.png' %}">
   <link rel="icon" type="image/png" sizes="192x192" href="{% static 'produtos/pwa/zap-loja-192.png' %}">
+  <link rel="stylesheet" href="{% static 'produtos/css/wa_desktop_v2.css' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}">
   <script>
   (function () {
+    /* Skin visual: v2 (padrão) ou v1 (antiga). ?skin=v1 / ?skin=v2 troca e guarda no navegador.
+       Embutido no PDV (overlay/iframe) continua sempre na v1. */
+    try {
+      var KEY = "agro_wa_skin";
+      var q = (new URLSearchParams(window.location.search).get("skin") || "").toLowerCase();
+      if (q === "v1" || q === "v2") { try { localStorage.setItem(KEY, q); } catch (_) {} }
+      var skin = q === "v1" || q === "v2" ? q : (localStorage.getItem(KEY) || "v2");
+      var embutido = /(?:\?|&)agro_pdv_overlay=1(?:&|$)/.test(window.location.search) || window.top !== window.self;
+      if (skin === "v2" && !embutido) {
+        document.documentElement.setAttribute("data-wa-skin", "v2");
+        var f = document.createElement("link");
+        f.rel = "stylesheet";
+        f.href = "https://fonts.googleapis.com/css2?family=Roboto:wght@100..900&display=swap";
+        document.head.appendChild(f);
+      }
+    } catch (_) {}
     try { document.documentElement.setAttribute("data-agro-hide-pdv", "1"); } catch (_) {}
     /* Sai do iframe/aba embutida da Gestão — senão o Chrome instala dentro do app Gestão. */
     try {
@@ -31,8 +48,8 @@
   </script>
 {% endblock %}
 {% block body_class %}bg-slate-100 text-slate-900 overflow-hidden wa-skin{% endblock %}
-{% block pdv_shell_class %}h-[100dvh] min-h-0 bg-slate-100 flex flex-col overflow-hidden{% endblock %}
-{% block pdv_section_class %}flex min-h-0 flex-1 flex-col px-3 py-2 sm:px-4{% endblock %}
+{% block pdv_shell_class %}wa-shell h-[100dvh] min-h-0 bg-slate-100 flex flex-col overflow-hidden{% endblock %}
+{% block pdv_section_class %}wa-sec flex min-h-0 flex-1 flex-col px-3 py-2 sm:px-4{% endblock %}
 
 {% block pdv_header %}
 {% include "produtos/_wa_skin.html" %}
@@ -56,14 +73,17 @@
   html[data-wa-standalone="1"] #wa-pwa-dica { display: none !important; }
 </style>
 <header class="wa-top">
+  <span class="wa2-only wa2-nav is-on" title="Conversas" aria-label="Conversas">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12Z"/></svg>
+  </span>
   <span id="wa-dot" class="wa-dot off" aria-hidden="true"></span>
   <h1 class="wa-title min-w-0 flex-1 truncate">WhatsApp</h1>
   <span class="wa-ver" title="Versão no ar neste Zap. O código curto muda a cada atualização.">v{{ agro_build.version_label }}{% if agro_build.commit %} · {{ agro_build.commit|slice:":7" }}{% endif %}</span>
   <div id="wa-status" class="wa-pill">…</div>
-  <button type="button" id="wa-pwa-instalar" title="Instalar como app no Chrome">Instalar no PC</button>
-  <button type="button" id="wa-trocar" class="wa-ico hidden" title="Desligar este Zap e ligar outro (QR ou código)">Trocar Zap</button>
-  <a href="{% url 'atendimento_whatsapp_bot' %}" class="wa-ico pri" id="wa-btn-bot" data-bot-js="{% static 'produtos/js/atendimento_whatsapp_bot.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-lista12" title="Configurar bot">Bot</a>
-  <button type="button" id="wa-btn-chat" class="wa-ico pri hidden" title="Voltar ao chat">Chat</button>
+  <button type="button" id="wa-pwa-instalar" title="Instalar como app no Chrome"><span class="wa2-lbl">Instalar no PC</span><svg class="wa2-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m-4.5-4.5L12 15l4.5-4.5M5 20h14"/></svg></button>
+  <button type="button" id="wa-trocar" class="wa-ico hidden" title="Desligar este Zap e ligar outro (QR ou código)"><span class="wa2-lbl">Trocar Zap</span><svg class="wa2-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-3.5-3.5M18 16H6l3.5 3.5"/></svg></button>
+  <a href="{% url 'atendimento_whatsapp_bot' %}" class="wa-ico pri" id="wa-btn-bot" data-bot-js="{% static 'produtos/js/atendimento_whatsapp_bot.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-lista12" title="Configurar bot"><span class="wa2-lbl">Bot</span><svg class="wa2-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13v1.5M15 13v1.5"/><circle cx="12" cy="3.5" r="1"/></svg></a>
+  <button type="button" id="wa-btn-chat" class="wa-ico pri hidden" title="Voltar ao chat"><span class="wa2-lbl">Chat</span><svg class="wa2-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12Z"/></svg></button>
 </header>
 {% endblock %}
 
@@ -94,16 +114,17 @@
     <button type="button" data-loja="arquivadas" class="wa-tab">Resolvidas <span data-badge="arquivadas" class="wa-badge is-zero">0</span></button>
   </div>
 
-  <div class="grid min-h-0 flex-1 grid-cols-1 gap-2 md:grid-cols-[minmax(18rem,26rem)_minmax(0,1fr)]">
-    <div class="wa-pane flex min-h-0 flex-col">
-      <div class="shrink-0 border-b border-slate-100 p-2">
+  <div class="wa-grid grid min-h-0 flex-1 grid-cols-1 gap-2 md:grid-cols-[minmax(18rem,26rem)_minmax(0,1fr)]">
+    <div class="wa-pane wa-pane-lista flex min-h-0 flex-col">
+      <div class="wa2-only wa2-colhead"><h2>WhatsApp</h2></div>
+      <div class="wa2-sb shrink-0 border-b border-slate-100 p-2">
         {% include "produtos/_wa_filtros.html" %}
         <input id="wa-busca" type="search" autocomplete="off" placeholder="Pesquisar ou começar uma nova conversa" class="min-h-[2.75rem] w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 text-base font-semibold" />
       </div>
       <div id="wa-busca-hits" class="hidden min-h-0 flex-1 overflow-y-auto"></div>
       <div id="wa-lista" class="min-h-0 flex-1 overflow-y-auto"></div>
     </div>
-    <div class="wa-pane flex min-h-0 flex-col">
+    <div class="wa-pane wa-pane-chat flex min-h-0 flex-col">
       {% include "produtos/_wa_chat_head.html" %}
       <div id="wa-msgs" class="min-h-0 flex-1 overflow-y-auto px-3 py-2"></div>
       <div id="wa-quick" class="hidden shrink-0 flex flex-wrap gap-1 border-t border-slate-100 bg-slate-50 px-2 py-1.5"></div>
@@ -123,7 +144,7 @@
 {% include "produtos/_wa_status.html" %}
 {% include "produtos/_wa_ficha.html" %}
 {% include "produtos/_wa_dlg.html" %}
-<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-fotos17"></script>
+<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-fotos17-skin2"></script>
 <script>
 (function () {
   var DICA_KEY = "agro_wa_pc_pwa_dica_v1";
