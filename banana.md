@@ -1305,9 +1305,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Login lab** | `/entrar/` · user `renan` / `9973` |
 | **Doc** | `docs/WHATSAPP-SERVIDOR-PC.md` · bats em `whatsapp_atendimento/servidor_pc/` |
 | **Fix** | migrate banco novo: seed `0065` usa modelo histórico |
-| **Você** | ✅ **02/11 ~14:01** — abriu no Chrome, mandou msg (+foto) pro contato pessoal, **chegou** · Zap `5513997673389` |
-| **Depois** | Túnel Cloudflare **fixo** na loja · repetir scripts no PC loja · visual novo |
-| **Não** | `DATABASE_URL` da loja PDV neste PC |
+| **Você** | ✅ **02/11 ~14:01** — msg (+foto) chegou · Zap `5513997673389` |
+| **Túnel fixo** | ⛔ **bloqueado** — tela «Autorizar túnel» OK, mas **zero domínio** na conta CF → sem `cert.pem`. Lab segue com `tunel_rapido.bat` |
+| **Pergunta** | **A** rápido (URL muda) · **B** domínio só Zap na CF · **C** `zap.sistvale.com.br` (só com domínio na CF + OK Renan; **não** mexer apex loja sem senha/OK) |
+| **Depois** | (após A/B/C) repetir no PC loja · visual novo |
+| **Não** | `DATABASE_URL` da loja PDV · DNS produção `sistvale.com.br` sem OK explícito |
 
 ### ✅ CHECKLIST ÚNICO — **02/11** · ✅ **enviado** · **WA-PIX-HORA**
 

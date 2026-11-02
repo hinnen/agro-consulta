@@ -39,11 +39,21 @@ Mídia grava em **`AGRO_WA_MEDIA_ROOT`** (padrão `C:\AgroWhatsApp\Dados\media`)
 | Django `runserver` + migrate | OK · login `/entrar/` user `renan` / `9973` |
 | Ponte Baileys | OK · **conectado** `5513997673389` |
 | Prova Renan ~14:01 | ✅ msg (+foto) saiu e chegou no celular |
-| Túnel rápido teste | OK (URL muda a cada restart) |
-| Túnel fixo loja | Depois do lab |
+| Túnel rápido teste | OK (URL muda a cada restart) — **lab continua assim** |
+| Túnel fixo loja | ⛔ **bloqueado** 02/11: conta Cloudflare **sem domínio/zona** («Nenhum domínio… adicione um site») → sem `cert.pem` |
 
 **Como ligar de novo neste PC:** `whatsapp_atendimento\servidor_pc\subir_tudo.bat` (+ `tunel_rapido.bat` se precisar internet).  
 **Fix migrate banco novo:** seed da `0065` usa modelo histórico (senão quebra em `exibir_pdv`).
+
+### Próximo passo — escolha Renan (túnel fixo)
+
+| Opção | O que é | Quando |
+|-------|---------|--------|
+| **A** | Continuar lab só com `tunel_rapido.bat` | Já funciona; URL **muda** se reiniciar o túnel |
+| **B** | Domínio **só do Zap** na Cloudflare (barato novo **ou** domínio que ele já tenha, **não** o apex da loja) | Depois: login → criar → rodar túnel fixo |
+| **C** | Subdomínio tipo `zap.sistvale.com.br` | Só se `sistvale.com.br` estiver na Cloudflare **e** Renan confirmar. **Risco:** mudar nameserver do domínio da loja pode derrubar o PDV (`sistvale.com.br`) se feito errado. **Não** apontar o apex da loja no túnel sem OK explícito. |
+
+Assistente **não** compra domínio e **não** mexe DNS de produção sozinho.
 
 ## Repassar para o PC da loja
 
@@ -57,12 +67,19 @@ Opcional: copiar pasta `C:\AgroWhatsApp\Dados\media` e dump do Postgres `agro_wa
 
 ## Túnel fixo (produção, duas lojas)
 
-1. Conta Cloudflare (grátis) + `cloudflared tunnel login`.
-2. Crie um tunnel e aponte para `http://127.0.0.1:8000`.
-3. Coloque o hostname em `ALLOWED_HOSTS_EXTRA` e `CSRF_TRUSTED_ORIGINS_EXTRA`.
-4. Quando validar, na **Sistvale produção** ajuste `AGRO_WA_PUBLIC_ORIGIN` para essa URL (menu Z) **ou** bookmark direto no host do PC.
+Precisa de **pelo menos um site/domínio na conta Cloudflare**. Sem zona, a tela «Autorizar o túnel» fica vazia e **não** gera `cert.pem`.
 
-Doc Render antiga (rollback): `docs/DEPLOY-WHATSAPP-RENDER.md`.
+URL fica tipo `https://zap.SEUDOMINIO` e **não muda**.
+
+1. Ter domínio na Cloudflare (ver opções A/B/C acima).
+2. `tunel_fixo_login.bat` — autorizar → **selecionar a zona** → OK (`%USERPROFILE%\.cloudflared\cert.pem`).
+3. `tunel_fixo_criar.bat` — nome `agro-wa`, host (ex. `zap.…`).
+4. `.env.wa-servidor`: `ALLOWED_HOSTS_EXTRA` + `CSRF_TRUSTED_ORIGINS_EXTRA` → reinicie `subir_servidor.bat`.
+5. `tunel_fixo_rodar.bat` (Django já em `:8000`).
+6. Ponte `.env`: `AGRO_WA_DJANGO_URL=https://…` (mesmo host).
+7. Sistvale loja (quando for): `AGRO_WA_PUBLIC_ORIGIN` **ou** bookmark.
+
+`tunel_rapido.bat` = lab sem domínio (URL muda). Doc Render antiga: `docs/DEPLOY-WHATSAPP-RENDER.md`.
 
 ## Variáveis importantes
 
