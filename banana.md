@@ -1306,11 +1306,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Doc** | `docs/WHATSAPP-SERVIDOR-PC.md` · bats em `whatsapp_atendimento/servidor_pc/` |
 | **Fix** | migrate banco novo: seed `0065` usa modelo histórico |
 | **Você** | ✅ **02/11 ~14:01** — msg (+foto) chegou · Zap `5513997673389` |
-| **Túnel fixo C** | ❌ **abortado 02/11** — Renan remove zona `sistvale.com.br` da Cloudflare (NS **nunca** trocados; ainda `atlas`/`hyperion.dns-parking.com`). Remover zona **não** derruba PDV nem cancela registro do domínio |
-| **Agora** | Lab = **A** `tunel_rapido.bat`. Hostinger NS intactos. Fechar Cloudflare · voltar Zap lab |
-| **C depois** | Só com checklist (copiar DNS na CF **antes** de NS) + OK explícito Renan |
-| **Alt.** | **B** = domínio barato só do Zap |
-| **Não** | Trocar NS Hostinger · push `producao` |
+| **Túnel fixo C** | ❌ **abortado** — zona `sistvale` removida; NS Hostinger intactos |
+| **Agora** | Renan pediu **URL fixa** → **B** (domínio **só** Zap). Aguarda ele comprar/cadastrar domínio |
+| **C depois** | Só checklist + OK explícito (não é o caminho agora) |
+| **Não** | Trocar NS do `sistvale.com.br` · push `producao` |
 
 ### ✅ CHECKLIST ÚNICO — **02/11** · ✅ **enviado** · **WA-PIX-HORA**
 

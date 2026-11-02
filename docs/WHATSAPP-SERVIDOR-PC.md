@@ -22,8 +22,10 @@ Mídia grava em **`AGRO_WA_MEDIA_ROOT`** (padrão `C:\AgroWhatsApp\Dados\media`)
 4. Instale **PostgreSQL** (winget / Setup). Depois: `criar_banco_agro_wa.bat` (cria user+banco `agro_wa`) — ou faça no pgAdmin.
 5. Duplo clique: `subir_tudo.bat` **ou** `subir_servidor.bat` + `iniciar-local.bat`.
 6. Chrome: **http://127.0.0.1:8000/atendimento-whatsapp/** — login Django (`createsuperuser` na primeira vez).
-7. **Internet (teste):** com servidor rodando, `tunel_rapido.bat` → copie a URL `https://….trycloudflare.com` → rode de novo `criar_env_servidor.bat` com esse host **ou** edite `ALLOWED_HOSTS_EXTRA` / `CSRF_TRUSTED_ORIGINS_EXTRA` no `.env.wa-servidor` → reinicie `subir_servidor.bat`.
-8. Ponte: em `whatsapp_atendimento\.env` use `AGRO_WA_DJANGO_URL=` **mesma URL pública** (ou `http://127.0.0.1:8000` só na loja).
+7. **Internet (teste):** com servidor rodando, `tunel_rapido.bat` → a URL é **copiada** (Ctrl+V) e o Chrome abre `/entrar/`.  
+   No lab, `.env.wa-servidor` já aceita **qualquer** `*.trycloudflare.com` (não precisa colar host à mão).  
+   Se o link der erro 400: Django sem o wildcard — confira `ALLOWED_HOSTS_EXTRA=.trycloudflare.com` e reinicie `subir_servidor.bat`.
+8. Ponte no **mesmo PC**: `AGRO_WA_DJANGO_URL=http://127.0.0.1:8000` (não precisa ser a URL do túnel).
 
 ## Laboratório (PC Renan · 02/11/2026)
 
@@ -40,7 +42,7 @@ Mídia grava em **`AGRO_WA_MEDIA_ROOT`** (padrão `C:\AgroWhatsApp\Dados\media`)
 | Ponte Baileys | OK · **conectado** `5513997673389` |
 | Prova Renan ~14:01 | ✅ msg (+foto) saiu e chegou no celular |
 | Túnel rápido teste | OK (URL muda a cada restart) — **lab continua assim** |
-| Túnel fixo loja | ❌ **C abortado** 02/11: zona CF removida (NS Hostinger intactos → PDV seguro). Lab = `tunel_rapido`. |
+| Túnel fixo loja | ❌ **C abortado** · Renan **02/11 ~14:32** pediu **URL fixa** → **B** (domínio só Zap, sem sistvale) |
 
 **Como ligar de novo neste PC:** `whatsapp_atendimento\servidor_pc\subir_tudo.bat` (+ `tunel_rapido.bat` se precisar internet).  
 **Fix migrate banco novo:** seed da `0065` usa modelo histórico (senão quebra em `exibir_pdv`).
