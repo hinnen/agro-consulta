@@ -848,11 +848,36 @@
     return fetchJson('/api/atendimento-whatsapp/conversas/?loja=' + encodeURIComponent(qLoja)).then(
       function (j) {
         if (!j || !j.ok) return;
-        cacheListas[qLoja] = j.conversas || [];
-        if (qLoja === chaveLista()) pintarLista(cacheListas[qLoja]);
+        var rowsLista = j.conversas || [];
+        cacheListas[qLoja] = rowsLista;
+        if (qLoja === chaveLista()) {
+          pintarLista(rowsLista);
+          alinharChatComLista(rowsLista);
+        }
         pedirListaOutra();
       }
     );
+  }
+
+  var listaVistoChat = '';
+
+  function alinharChatComLista(rows) {
+    if (!convId) return;
+    var aberta = null;
+    for (var i = 0; i < rows.length; i++) {
+      if (Number(rows[i].id) === Number(convId)) {
+        aberta = rows[i];
+        break;
+      }
+    }
+    if (!aberta) return;
+    if (aberta.foto_url && aberta.foto_url !== convFoto) {
+      convFoto = aberta.foto_url;
+      pintarTopoAvatar(convNome, convFoto);
+    }
+    var chave = String(aberta.ultima_em || '') + '|' + String(aberta.ultima_preview || '');
+    if (listaVistoChat && listaVistoChat !== chave) pollMsgs();
+    listaVistoChat = chave;
   }
 
   function pedirListaOutra() {
@@ -2602,14 +2627,14 @@
   }
   /**
    * Poll leve — o Zap aberto disputava o mesmo Render do PDV.
-   * Foco no Zap: msgs 5s · lista/estado 10s · status 60s
+   * Foco no Zap: msgs 2,5s · lista/estado 10s · status 60s
    * PDV na frente / aba escondida: msgs 15s · estado 30s · lista 60s · status 120s
    */
   setInterval(function () {
     tickPoll += 1;
     if (abrindoConversa) return;
     var ativa = waJanelaAtiva();
-    var msgsEvery = ativa ? 2 : 6;
+    var msgsEvery = ativa ? 1 : 6;
     var estadoEvery = ativa ? 4 : 12;
     var listaEvery = ativa ? 4 : 24;
     var statusEvery = ativa ? 24 : 48;

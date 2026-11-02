@@ -1298,7 +1298,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Item | Status | Migrate | Prova |
 | - | ---- | ------ | ------- | ----- |
-| 1 | Busca mostra o nome do cadastro | 🟢 Pronto | **NÃO** | `verify_wa_chat_bot_painel_path` **17/17** |
+| 1 | Busca mostra o nome do cadastro | 🟢 Pronto | **NÃO** | `verify_wa_chat_bot_painel_path` **18/18** |
+| 2 | Conversa aberta acompanha a lista | 🟢 Pronto | **NÃO** | `alinharChatComLista` |
 
 | Campo | Valor |
 | ----- | ----- |

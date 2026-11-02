@@ -51,6 +51,10 @@ def main() -> int:
         "busca mostra o nome fora da coluna da foto",
         "wa-item-body" in busca and "wa-av-ini" in busca,
     )
+    check(
+        "lista nova puxa a conversa aberta na hora",
+        "alinharChatComLista" in js and "listaVistoChat !== chave" in js,
+    )
     util = (ROOT / "produtos/atendimento_whatsapp_util.py").read_text(encoding="utf-8")
     check(
         "mensagem nao varre o cadastro inteiro",
