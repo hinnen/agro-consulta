@@ -37,7 +37,8 @@ Mídia grava em **`AGRO_WA_MEDIA_ROOT`** (padrão `C:\AgroWhatsApp\Dados\media`)
 | cloudflared | OK |
 | Postgres 17 + banco `agro_wa` | OK |
 | Django `runserver` + migrate | OK · login `/entrar/` user `renan` / `9973` |
-| Ponte Baileys | OK · **conectado** `5513997673389` (auth antiga; Bad MAC residual ok) |
+| Ponte Baileys | OK · **conectado** `5513997673389` |
+| Prova Renan ~14:01 | ✅ msg (+foto) saiu e chegou no celular |
 | Túnel rápido teste | OK (URL muda a cada restart) |
 | Túnel fixo loja | Depois do lab |
 

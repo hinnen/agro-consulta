@@ -1305,8 +1305,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Login lab** | `/entrar/` · user `renan` / `9973` |
 | **Doc** | `docs/WHATSAPP-SERVIDOR-PC.md` · bats em `whatsapp_atendimento/servidor_pc/` |
 | **Fix** | migrate banco novo: seed `0065` usa modelo histórico |
-| **Você** | Abrir Chrome `http://127.0.0.1:8000/atendimento-whatsapp/` · conferir chat · internet = URL do `tunel_rapido.bat` (muda se reiniciar) |
-| **Depois** | Túnel Cloudflare **fixo** na loja · visual novo |
+| **Você** | ✅ **02/11 ~14:01** — abriu no Chrome, mandou msg (+foto) pro contato pessoal, **chegou** · Zap `5513997673389` |
+| **Depois** | Túnel Cloudflare **fixo** na loja · repetir scripts no PC loja · visual novo |
 | **Não** | `DATABASE_URL` da loja PDV neste PC |
 
 ### ✅ CHECKLIST ÚNICO — **02/11** · ✅ **enviado** · **WA-PIX-HORA**
