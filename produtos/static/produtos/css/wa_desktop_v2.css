@@ -652,9 +652,6 @@
   }
   html[data-wa-skin="v2"] .wa-skin .wa-msg-act:hover { background: var(--wa2-bg-selected); }
   html[data-wa-skin="v2"] .wa-skin #wa-msgs { padding-right: 2.5rem; }
-  html[data-wa-skin="v2"] .wa-skin .wa-reply-bar {
-    margin: 0 12px 6px; flex: 0 0 auto;
-  }
   html[data-wa-skin="v2"] .wa-skin .wa-scroll-fim {
     position: absolute; right: 16px; bottom: 16px; z-index: 5;
     width: 40px; height: 40px; border-radius: 9999px; border: 0; cursor: pointer;
@@ -676,9 +673,9 @@
   }
   html[data-wa-skin="v2"] .wa-skin .wa-emoji-btn:hover { background: var(--wa2-bg-selected); }
   html[data-wa-skin="v2"] .wa-skin .wa-reply-bar {
-    flex: 1 0 100%; display: flex; align-items: center; gap: 8px;
+    display: flex; align-items: center; gap: 8px; flex: 0 0 auto;
     background: var(--wa2-bg-search); border-left: 3px solid var(--wa2-accent);
-    border-radius: 8px; padding: 6px 8px; margin-bottom: 2px;
+    border-radius: 8px; padding: 6px 8px; margin: 0 12px 6px;
   }
   html[data-wa-skin="v2"] .wa-skin .wa-reply-bar.hidden { display: none !important; }
   html[data-wa-skin="v2"] .wa-skin .wa-reply-bar-lbl {
