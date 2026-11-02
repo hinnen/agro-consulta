@@ -1306,11 +1306,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Doc** | `docs/WHATSAPP-SERVIDOR-PC.md` · bats em `whatsapp_atendimento/servidor_pc/` |
 | **Fix** | migrate banco novo: seed `0065` usa modelo histórico |
 | **Você** | ✅ **02/11 ~14:01** — msg (+foto) chegou · Zap `5513997673389` |
-| **Túnel fixo C** | ⏸ **pausado 02/11** — Renan **não** troca NS agora (medo PDV). CF pediu `carter`/`kay.ns.cloudflare.com`; NS **atuais** Hostinger parking: `atlas`/`hyperion.dns-parking.com`. Zona CF «awaiting nameservers». Apex A `216.24.57.1` · www CNAME `agro-consulta.onrender.com` · healthz OK |
-| **Agora** | Lab = **A** `tunel_rapido.bat`. **Não** trocar NS no registrador |
-| **C depois (checklist)** | 1) No DNS CF copiar registros **antes** de mudar NS: apex A `216.24.57.1` (+ A Render se o painel pedir) · www CNAME `agro-consulta.onrender.com` · demais MX/TXT se existirem · 2) só então NS → Cloudflare · 3) conferir PDV no ar · 4) `zap` CNAME → túnel · 5) login/criar/rodar |
-| **Alt.** | **B** = domínio barato só do Zap (não mexe loja) |
-| **Não** | Trocar NS «no escuro» · `DATABASE_URL` loja neste PC · push `producao` |
+| **Túnel fixo C** | ❌ **abortado 02/11** — Renan remove zona `sistvale.com.br` da Cloudflare (NS **nunca** trocados; ainda `atlas`/`hyperion.dns-parking.com`). Remover zona **não** derruba PDV nem cancela registro do domínio |
+| **Agora** | Lab = **A** `tunel_rapido.bat`. Hostinger NS intactos. Fechar Cloudflare · voltar Zap lab |
+| **C depois** | Só com checklist (copiar DNS na CF **antes** de NS) + OK explícito Renan |
+| **Alt.** | **B** = domínio barato só do Zap |
+| **Não** | Trocar NS Hostinger · push `producao` |
 
 ### ✅ CHECKLIST ÚNICO — **02/11** · ✅ **enviado** · **WA-PIX-HORA**
 

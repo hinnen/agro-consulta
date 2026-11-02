@@ -40,7 +40,7 @@ Mídia grava em **`AGRO_WA_MEDIA_ROOT`** (padrão `C:\AgroWhatsApp\Dados\media`)
 | Ponte Baileys | OK · **conectado** `5513997673389` |
 | Prova Renan ~14:01 | ✅ msg (+foto) saiu e chegou no celular |
 | Túnel rápido teste | OK (URL muda a cada restart) — **lab continua assim** |
-| Túnel fixo loja | ⏸ **C pausado** 02/11: zona `sistvale.com.br` criada na CF mas **NS não trocado** (Renan com medo do PDV). Continuar lab com `tunel_rapido`. |
+| Túnel fixo loja | ❌ **C abortado** 02/11: zona CF removida (NS Hostinger intactos → PDV seguro). Lab = `tunel_rapido`. |
 
 **Como ligar de novo neste PC:** `whatsapp_atendimento\servidor_pc\subir_tudo.bat` (+ `tunel_rapido.bat` se precisar internet).  
 **Fix migrate banco novo:** seed da `0065` usa modelo histórico (senão quebra em `exibir_pdv`).
@@ -51,7 +51,7 @@ Mídia grava em **`AGRO_WA_MEDIA_ROOT`** (padrão `C:\AgroWhatsApp\Dados\media`)
 |-------|---------|--------|
 | **A** ✅ agora | Lab com `tunel_rapido.bat` | Já funciona; URL **muda** se reiniciar o túnel. **Não** mexe PDV |
 | **B** | Domínio **só do Zap** na Cloudflare | Não toca `sistvale.com.br` |
-| **C** ⏸ pausado | `zap.sistvale.com.br` | Exige trocar NS Hostinger → Cloudflare. **Só** depois de copiar DNS na CF |
+| **C** ❌ abortado | `zap.sistvale.com.br` | Zona CF removida; retomar só com checklist + OK Renan |
 
 #### Checklist seguro se retomar **C** (não fazer no susto)
 
