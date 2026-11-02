@@ -1307,9 +1307,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | migrate banco novo: seed `0065` usa modelo histórico |
 | **Você** | ✅ **02/11 ~14:01** — msg (+foto) chegou · Zap `5513997673389` |
 | **Túnel fixo C** | ❌ **abortado** — zona `sistvale` removida; NS Hostinger intactos |
-| **Agora** | Renan pediu **URL fixa** → **B** (domínio **só** Zap). Aguarda ele comprar/cadastrar domínio |
-| **C depois** | Só checklist + OK explícito (não é o caminho agora) |
-| **Não** | Trocar NS do `sistvale.com.br` · push `producao` |
+| **Agora** | Túnel rápido + loja aponta pra ele |
+| **Render loja** | 02/11 `AGRO_WA_PUBLIC_ORIGIN=https://liz-one-power-thompson.trycloudflare.com` (Sistvale Produção) — **muda** se reiniciar túnel |
+| **PC** | Django+ponte+túnel precisam ficar ligados |
+| **Não** | Trocar NS `sistvale` · push `producao` sem senha |
 
 ### ✅ CHECKLIST ÚNICO — **02/11** · ✅ **enviado** · **WA-PIX-HORA**
 
