@@ -1837,18 +1837,42 @@
       var f = fotoInp.files && fotoInp.files[0];
       fotoInp.value = '';
       if (!f) return;
-      arquivoParaB64(f, function (b64, mime, nome) {
-        enviarPayload({
-          conversa_id: convId,
-          texto: '',
-          tipo_midia: 'image',
-          midia_b64: b64,
-          mime: mime || 'image/jpeg',
-          nome_arquivo: nome || 'foto.jpg',
-        });
+      enviarFotoArquivo(f);
+    });
+  }
+
+  function enviarFotoArquivo(f) {
+    if (!f || !convId) return;
+    arquivoParaB64(f, function (b64, mime, nome) {
+      enviarPayload({
+        conversa_id: convId,
+        texto: '',
+        tipo_midia: 'image',
+        midia_b64: b64,
+        mime: mime || 'image/jpeg',
+        nome_arquivo: nome || 'foto.jpg',
       });
     });
   }
+
+  document.addEventListener('paste', function (ev) {
+    if (!convId) return;
+    var alvo = ev.target;
+    if (alvo && alvo.closest && (alvo.closest('#wa-bot-form') || alvo.closest('#wa-busca'))) return;
+    var cd = ev.clipboardData;
+    if (!cd || !cd.items) return;
+    var file = null;
+    for (var i = 0; i < cd.items.length; i++) {
+      var it = cd.items[i];
+      if (it.kind === 'file' && String(it.type || '').indexOf('image/') === 0) {
+        file = it.getAsFile();
+        break;
+      }
+    }
+    if (!file) return;
+    ev.preventDefault();
+    enviarFotoArquivo(file);
+  });
 
   var micBtn = $('wa-mic');
   var micX = $('wa-mic-x');

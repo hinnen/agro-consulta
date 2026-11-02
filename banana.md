@@ -1318,6 +1318,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **No ar** | `44b4ac3` |
 | **Quando autorizar** | Frase + senha. Push zera foto |
 
+### ✅ CHECKLIST ÚNICO — **02/11c** · 🟢 **pronto envio** · **WA-COLAR-FOTO**
+
+| # | Item | Status | Migrate | Prova |
+| - | ---- | ------ | ------- | ----- |
+| 1 | Colar imagem na conversa envia como a foto do clipe | 🟢 Pronto | **NÃO** | `enviarFotoArquivo` |
+
+| Campo | Valor |
+| ----- | ----- |
+| **Pacote** | local, junto com Pix de 1 hora e o áudio 404 |
+| **No ar** | `44b4ac3` |
+| **Quando autorizar** | Frase + senha. Push zera foto |
+
 ### ✅ CHECKLIST ÚNICO — **01/11e** · ✅ **enviado 02/11 com frase + senha** · **WA-FOTOS-VISIVEIS**
 
 | # | Item | Status | Migrate | Prova |

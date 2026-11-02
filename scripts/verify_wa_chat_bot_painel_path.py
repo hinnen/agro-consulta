@@ -65,8 +65,9 @@ def main() -> int:
     check("sem prefetch de conversas no load", "prefetch" not in js.lower())
     for nome in ("atendimento_whatsapp.html", "atendimento_whatsapp_celular.html"):
         tpl = (ROOT / "produtos/templates/produtos" / nome).read_text(encoding="utf-8")
-        check(f"{nome} pede o js novo", "atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-fotos14" in tpl)
+        check(f"{nome} pede o js novo", "atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-fotos15" in tpl)
     check("aviso de midia some so no 404", "r.status !== 404" in js and "não está mais no servidor" not in js)
+    check("colar imagem entra no envio", "enviarFotoArquivo" in js and "image/" in js)
     util = (ROOT / "produtos/atendimento_whatsapp_util.py").read_text(encoding="utf-8")
     check(
         "mensagem nao varre o cadastro inteiro",
