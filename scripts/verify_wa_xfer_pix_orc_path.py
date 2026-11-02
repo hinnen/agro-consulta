@@ -142,10 +142,25 @@ def test_logica_django() -> None:
         interpretar_pedido_pix,
         interpretar_consulta_fiado,
         montar_lote_pix,
+        pix_bloqueado_na_hora,
         transferir_conversa,
     )
     from produtos.caixa_util import validar_pin_operador
     from produtos.models import WhatsAppConversaAgro, WhatsAppMensagemAgro
+
+    from django.utils import timezone
+    from datetime import timedelta
+
+    agora = timezone.now()
+    check("pix_hora_livre", not pix_bloqueado_na_hora({}, agora=agora))
+    check(
+        "pix_hora_bloqueia",
+        pix_bloqueado_na_hora({"pix_enviado_em": (agora - timedelta(minutes=10)).isoformat()}, agora=agora),
+    )
+    check(
+        "pix_hora_libera",
+        not pix_bloqueado_na_hora({"pix_enviado_em": (agora - timedelta(hours=2)).isoformat()}, agora=agora),
+    )
 
     # PIN
     pin_ok, pin_err = validar_pin_operador("9973")

@@ -172,6 +172,26 @@ def enfileirar_pix_com_botao(conversa: WhatsAppConversaAgro, cfg: dict | None = 
     _enviar_lote_bot(conversa, lote, c)
 
 
+PIX_COOLDOWN_SEG = 3600
+
+
+def pix_bloqueado_na_hora(extras, *, agora=None) -> bool:
+    """True se a chave já foi enviada nesta conversa há menos de 1 hora."""
+    if not isinstance(extras, dict):
+        return False
+    raw = str(extras.get("pix_enviado_em") or "").strip()
+    if not raw:
+        return False
+    try:
+        quando = datetime.fromisoformat(raw)
+    except ValueError:
+        return False
+    if timezone.is_naive(quando):
+        quando = timezone.make_aware(quando, timezone.get_current_timezone())
+    agora = agora or timezone.now()
+    return (agora - quando).total_seconds() < PIX_COOLDOWN_SEG
+
+
 def montar_texto_pix(cfg: dict | None = None) -> str:
     """Compat: texto único."""
     lote = montar_lote_pix(cfg)
@@ -1610,10 +1630,15 @@ def processar_entrada(
     def _enviar_abertura(lote_msgs: list[str]) -> None:
         _enviar_lote_bot(conv, lote_msgs, _atraso_saudacao_cfg())
 
-    # Pedido de chave Pix (Fiado + Pix ligado + chave no Bot)
+    # Pedido de chave Pix (Fiado + Pix ligado + chave no Bot). No máximo 1 vez por hora.
     if not historico and not de_mim and cfg_flag(cfg, "bot_ligado") and eh_pix:
         conv.save(update_fields=campos_base)
-        enfileirar_pix_com_botao(conv, cfg)
+        if not pix_bloqueado_na_hora(conv.extras) and montar_lote_pix(cfg):
+            enfileirar_pix_com_botao(conv, cfg)
+            extras = dict(conv.extras) if isinstance(conv.extras, dict) else {}
+            extras["pix_enviado_em"] = timezone.now().isoformat()
+            conv.extras = extras
+            conv.save(update_fields=["extras"])
         return msg, ""
 
     # Atalhos F / H / A (só se recurso ligado)

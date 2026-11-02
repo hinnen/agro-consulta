@@ -1294,6 +1294,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ CHECKLIST ÚNICO — **02/11** · 🟢 **pronto envio** · **WA-PIX-HORA**
+
+| # | Item | Status | Migrate | Prova |
+| - | ---- | ------ | ------- | ----- |
+| 1 | Chave Pix no máximo 1 vez por hora na mesma conversa | 🟢 Pronto | **NÃO** | `verify_wa_xfer_pix_orc_path` |
+
+| Campo | Valor |
+| ----- | ----- |
+| **Pacote** | local · **não** está em `origin/whatsapp` |
+| **No ar** | `44b4ac3` (fotos visíveis) |
+| **Quando autorizar** | Frase + senha. Push zera foto |
+
 ### ✅ CHECKLIST ÚNICO — **01/11e** · ✅ **enviado 02/11 com frase + senha** · **WA-FOTOS-VISIVEIS**
 
 | # | Item | Status | Migrate | Prova |
