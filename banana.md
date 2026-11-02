@@ -1330,6 +1330,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **No ar** | `44b4ac3` |
 | **Quando autorizar** | Frase + senha. Push zera foto |
 
+### ✅ CHECKLIST ÚNICO — **02/11d** · 🟢 **pronto envio** · **WA-LINHA-ABERTA**
+
+| # | Item | Status | Migrate | Prova |
+| - | ---- | ------ | ------- | ----- |
+| 1 | A linha marcada é a conversa aberta, no clique | 🟢 Pronto | **NÃO** | tira `is-on` das outras na hora |
+
+| Campo | Valor |
+| ----- | ----- |
+| **Pacote** | local, junto com Pix, áudio 404 e colar foto |
+| **No ar** | `44b4ac3` |
+| **Quando autorizar** | Frase + senha. Push zera foto |
+
 ### ✅ CHECKLIST ÚNICO — **01/11e** · ✅ **enviado 02/11 com frase + senha** · **WA-FOTOS-VISIVEIS**
 
 | # | Item | Status | Migrate | Prova |

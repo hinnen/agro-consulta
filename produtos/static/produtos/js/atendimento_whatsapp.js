@@ -1196,7 +1196,11 @@
     var seq = ++convAbreSeq;
     convId = Number(id) || 0;
     afterId = 0;
-    var item = document.querySelector('#wa-lista [data-id="' + convId + '"]');
+    var item = document.querySelector('#wa-lista .wa-item[data-id="' + convId + '"]');
+    document.querySelectorAll('#wa-lista .wa-item.is-on').forEach(function (el) {
+      if (el !== item) el.classList.remove('is-on');
+    });
+    if (item) item.classList.add('is-on');
     convLoja = (item && item.getAttribute('data-loja')) || loja || '';
     convArquivada = !!(item && item.getAttribute('data-arquivada') === '1') || loja === 'arquivadas';
     convNome = (item && item.getAttribute('data-nome')) || 'Conversa #' + convId;
