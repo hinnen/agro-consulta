@@ -119,3 +119,11 @@ CÃ³digo: `AGRO_WA_MEDIA_ROOT` em `config/settings.py`.
 ## Ordem com visual novo
 
 Infra PC **primeiro** (este doc). Layout estilo WhatsApp Web **depois**, no mesmo host.
+
+## Pasta fora do OneDrive (lab Renan · 02/11)
+
+- Codigo: `C:\AgroWhatsApp\codigo\agro-consulta`
+- Atalhos: `C:\AgroWhatsApp\SUBIR-TUDO-Zap.bat` (+ 1/2/3)
+- Midia continua em `C:\AgroWhatsApp\Dados\media`
+- OneDrive = nao usar para rodar o Zap (copia antiga / GitHub ok)
+

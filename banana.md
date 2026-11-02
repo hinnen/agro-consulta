@@ -1304,6 +1304,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **OK lab** | Postgres 17 `agro_wa` · mídia `C:\AgroWhatsApp\Dados\media` · Django+ponte · cloudflared · túnel `trycloudflare` healthz 200 · Zap **conectado** `5513997673389` |
 | **Login lab** | `/entrar/` · user `renan` / `9973` |
 | **Doc** | `docs/WHATSAPP-SERVIDOR-PC.md` · bats em `whatsapp_atendimento/servidor_pc/` |
+| **Codigo** | `C:\AgroWhatsApp\codigo\agro-consulta` (fora OneDrive) · `C:\AgroWhatsApp\SUBIR-TUDO-Zap.bat` |
 | **Fix** | migrate banco novo: seed `0065` usa modelo histórico |
 | **Você** | ✅ **02/11 ~14:01** — msg (+foto) chegou · Zap `5513997673389` |
 | **Túnel fixo C** | ❌ **abortado** — zona `sistvale` removida; NS Hostinger intactos |
