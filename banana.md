@@ -1294,6 +1294,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ CHECKLIST ÚNICO — **01/11c** · 🟢 **pronto envio** · **WA-CACHE-ABA**
+
+| # | Item | Status | Migrate | Prova |
+| - | ---- | ------ | ------- | ----- |
+| 1 | Troca Ativas/Resolvidas pinta a lista já vista | 🟢 Pronto | **NÃO** | `verify_wa_chat_bot_painel_path` **15/15** |
+| 2 | Voltar numa conversa não mostra «Carregando…» | 🟢 Pronto | **NÃO** | guarda no máximo 8 chats, só texto |
+| 3 | A outra aba é pedida uma vez, em silêncio | 🟢 Pronto | **NÃO** | `pedirListaOutra` |
+
+| Campo | Valor |
+| ----- | ----- |
+| **Pacote** | local · **não** está em `origin/whatsapp` |
+| **No ar** | `e4bc513` |
+| **Não entra** | disco do PC, foto, cache no Render |
+| **Quando autorizar** | Frase + `99738595`. Push zera foto |
+
 ### ✅ CHECKLIST ÚNICO — **01/11b** · ✅ **enviado** · **WA-CARREGANDO-RESOLVIDAS**
 
 | # | Item | Status | Migrate | Prova |
