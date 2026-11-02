@@ -1294,6 +1294,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 CHECKLIST ÚNICO — **01/11e** · ⏳ **pronto, aguarda frase + senha** · **WA-FOTOS-VISIVEIS**
+
+| # | Item | Status | Migrate | Prova |
+| - | ---- | ------ | ------- | ----- |
+| 1 | Lista pede só as fotos que aparecem na tela (8 em vez de 80) | 🟢 Pronto | **NÃO** | `verify_wa_chat_bot_painel_path` **24/24** |
+| 2 | «Carregando…» do clique não espera as fotos | 🟢 Pronto | **NÃO** | Chrome HTTP/2 + 0,5 CPU + banco 32 ms: **2,7 s → 0,35 s** |
+| 3 | Rolar a lista traz as fotos de baixo; poll não repede | 🟢 Pronto | **NÃO** | navegador 12/12 (PC e celular) |
+| 4 | Foto que sumiu no deploy mostra a letra | 🟢 Pronto | **NÃO** | mesmo teste |
+| 5 | Backend do Zap, ponte, Sistvale | ✅ Intocado | **NÃO** | diff só JS + 2 templates + script |
+| 6 | Commit local `088f8b7e2` (prefetch de 3 conversas) | ⛔ Não entra | — | entra na mesma fila das fotos; só troca a palavra |
+
+| Campo | Valor |
+| ----- | ----- |
+| **Causa** | Ao pintar a lista, o Chrome pedia ~80 `/foto/` de uma vez. Cada uma passa por login + banco no único processo (4 threads) e o GET de mensagens do clique ficava atrás delas. A query de mensagens leva ~6 ms |
+| **Branch** | `cursor/wa-fotos-lista-visiveis-95ef` (em cima de `4201408`) |
+| **Enviar** | só com frase + senha: `git push origin cursor/wa-fotos-lista-visiveis-95ef:whatsapp` |
+| **Volta** | `git push -f origin rollback/pre-wa-fotos-visiveis:whatsapp` → `4201408` |
+| **Não entra** | disco do PC, cache no Render, segundo processo, `AGRO_WA_PUBLIC_ORIGIN` |
+| **Efeito** | O Zap recarrega (~2 min) e o disco zera foto e áudio. A Sistvale não reinicia |
+| **Antes de enviar** | `origin/whatsapp` ainda em `4201408` (se mudou, refazer em cima) |
+
 ### ✅ CHECKLIST ÚNICO — **01/11d** · ✅ **enviado** · **WA-BUSCA-NOME**
 
 | # | Item | Status | Migrate | Prova |
