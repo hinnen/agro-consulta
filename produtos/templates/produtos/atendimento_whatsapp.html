@@ -11,25 +11,31 @@
   <link rel="manifest" href="{% url 'atendimento_whatsapp_pc_manifest' %}">
   <link rel="apple-touch-icon" href="{% static 'produtos/pwa/zap-loja-192.png' %}">
   <link rel="icon" type="image/png" sizes="192x192" href="{% static 'produtos/pwa/zap-loja-192.png' %}">
-  <link rel="stylesheet" href="{% static 'produtos/css/wa_desktop_v2.css' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-e34d">
+  <link rel="stylesheet" href="{% static 'produtos/css/wa_desktop_v2.css' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-e34e">
   <script>
   (function () {
     /* Skin visual: v2 (padrão) ou v1 (antiga). ?skin=v1 / ?skin=v2 troca e guarda no navegador.
-       Embutido no PDV (overlay/iframe) continua sempre na v1. */
+       Embutido no PDV (overlay/iframe) continua sempre na v1.
+       Chave nova (…_e1): se alguém ficou preso em v1 no localStorage antigo, volta pra v2. */
     try {
-      var KEY = "agro_wa_skin";
+      var KEY = "agro_wa_skin_e1";
       var q = (new URLSearchParams(window.location.search).get("skin") || "").toLowerCase();
       if (q === "v1" || q === "v2") { try { localStorage.setItem(KEY, q); } catch (_) {} }
       var skin = q === "v1" || q === "v2" ? q : (localStorage.getItem(KEY) || "v2");
       var embutido = /(?:\?|&)agro_pdv_overlay=1(?:&|$)/.test(window.location.search) || window.top !== window.self;
       if (skin === "v2" && !embutido) {
         document.documentElement.setAttribute("data-wa-skin", "v2");
+        document.documentElement.style.colorScheme = "dark";
         var f = document.createElement("link");
         f.rel = "stylesheet";
         f.href = "https://fonts.googleapis.com/css2?family=Roboto:wght@100..900&display=swap";
         document.head.appendChild(f);
+      } else {
+        document.documentElement.removeAttribute("data-wa-skin");
       }
-    } catch (_) {}
+    } catch (_) {
+      try { document.documentElement.setAttribute("data-wa-skin", "v2"); } catch (e2) {}
+    }
     try { document.documentElement.setAttribute("data-agro-hide-pdv", "1"); } catch (_) {}
     /* Sai do iframe/aba embutida da Gestão — senão o Chrome instala dentro do app Gestão. */
     try {
