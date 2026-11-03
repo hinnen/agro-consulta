@@ -10,35 +10,127 @@ from openpyxl.utils import get_column_letter
 
 _MENOS = {"VALE", "DESCONTO"}
 _MAIS = {"SALARIO_BASE", "ACRESCIMO"}
+_MESES = (
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro",
+)
+
+
+def brl(valor) -> str:
+    q = Decimal(valor or 0).quantize(Decimal("0.01"))
+    neg = q < 0
+    q = abs(q)
+    txt = f"{q:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"-{txt}" if neg else txt
+
+
+def competencia_por_extenso(fechamento) -> str:
+    d = fechamento.competencia
+    return f"{_MESES[d.month - 1]}/{d.year}"
+
+
+def _hora_confiavel(vale) -> str:
+    """Hora só quando o registro nasceu no mesmo dia do vale. Sem hora inventada."""
+    criado = getattr(vale, "criado_em", None)
+    if not criado or not getattr(vale, "data", None):
+        return ""
+    from django.utils import timezone
+
+    local = timezone.localtime(criado) if timezone.is_aware(criado) else criado
+    if local.date() != vale.data:
+        return ""
+    return local.strftime(" %H:%M")
+
+
+def _descricao_impressa(item, vales: dict, nome_funcionario: str) -> str:
+    if item.tipo == "VALE":
+        vale = vales.get(str(item.referencia_id or ""))
+        if vale is not None:
+            return f"Vale — {vale.data:%d/%m/%Y}{_hora_confiavel(vale)} — {nome_funcionario}"
+        return f"Vale — {nome_funcionario}"
+    if item.tipo == "SALARIO_BASE":
+        return "Salário base"
+    prefixo = "Acréscimo" if item.tipo == "ACRESCIMO" else "Desconto"
+    nome = (item.descricao or "").strip()
+    if nome.lower().startswith(prefixo.lower()):
+        return nome
+    return f"{prefixo} — {nome}" if nome else prefixo
 
 
 def linhas_para_holerite(fechamento) -> list[dict]:
-    """Itens que compõem o líquido. Pagamento de salário fica só no rodapé."""
+    """Linhas da via. Pagamento de salário não entra na soma; fica no valor pago."""
+    itens = [it for it in fechamento.itens.all() if it.tipo in _MENOS or it.tipo in _MAIS]
+    ids = [
+        it.referencia_id
+        for it in itens
+        if it.tipo == "VALE" and it.referencia_tipo == "ValeFuncionario" and it.referencia_id
+    ]
+    vales = {}
+    if ids:
+        from rh.models import ValeFuncionario
+
+        vales = {str(v.pk): v for v in ValeFuncionario.objects.filter(pk__in=ids)}
+    nome = fechamento.funcionario.nome_exibicao
     linhas = []
-    for it in fechamento.itens.all():
-        if it.tipo not in _MENOS and it.tipo not in _MAIS:
-            continue
-        sinal = Decimal("-1") if it.tipo in _MENOS else Decimal("1")
+    for it in itens:
+        provento = it.valor if it.tipo in _MAIS else None
+        desconto = it.valor if it.tipo in _MENOS else None
         linhas.append(
             {
-                "nome": f"{it.get_tipo_display()} — {it.descricao}",
-                "sinal": sinal,
-                "valor": it.valor,
+                "codigo": f"{len(linhas) + 1:03d}",
+                "descricao": _descricao_impressa(it, vales, nome),
+                "referencia": "—",
+                "provento": brl(provento) if provento is not None else "—",
+                "desconto": brl(desconto) if desconto is not None else "—",
+                "provento_num": provento or Decimal("0"),
+                "desconto_num": desconto or Decimal("0"),
             }
         )
     if linhas:
         return linhas
     base = [
-        ("Salário base", Decimal("1"), fechamento.salario_base_na_competencia),
-        ("Vales", Decimal("-1"), fechamento.total_vales),
-        ("Acréscimos", Decimal("1"), fechamento.outros_proventos),
-        ("Descontos", Decimal("-1"), fechamento.outros_descontos),
+        ("Salário base", fechamento.salario_base_na_competencia, None),
+        ("Acréscimos", fechamento.outros_proventos, None),
+        ("Vales", None, fechamento.total_vales),
+        ("Descontos", None, fechamento.outros_descontos),
     ]
-    return [
-        {"nome": nome, "sinal": sinal, "valor": valor}
-        for nome, sinal, valor in base
-        if valor and valor != 0
-    ]
+    for desc, provento, desconto in base:
+        valor = provento if provento is not None else desconto
+        if not valor:
+            continue
+        linhas.append(
+            {
+                "codigo": f"{len(linhas) + 1:03d}",
+                "descricao": desc,
+                "referencia": "—",
+                "provento": brl(provento) if provento else "—",
+                "desconto": brl(desconto) if desconto else "—",
+                "provento_num": provento or Decimal("0"),
+                "desconto_num": desconto or Decimal("0"),
+            }
+        )
+    return linhas
+
+
+def totais_holerite(linhas: list[dict]) -> dict:
+    proventos = sum((ln["provento_num"] for ln in linhas), Decimal("0"))
+    descontos = sum((ln["desconto_num"] for ln in linhas), Decimal("0"))
+    return {
+        "proventos": brl(proventos),
+        "descontos": brl(descontos),
+        "proventos_num": proventos,
+        "descontos_num": descontos,
+    }
 
 
 def xlsx_fechamentos(fechamentos) -> bytes:

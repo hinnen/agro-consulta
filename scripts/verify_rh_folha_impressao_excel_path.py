@@ -42,7 +42,12 @@ def main() -> int:
         ok("rotas")
     else:
         fail("rotas")
-    if "size: A4 portrait" in imp and "Via do funcionário" in views and "Via da empresa" in views:
+    if (
+        "size: A4 portrait" in imp
+        and "VIA FUNCIONÁRIO" in views
+        and "VIA EMPRESA" in views
+        and "print-color-adjust: exact" in imp
+    ):
         ok("duas vias na A4 em pé")
     else:
         fail("impressão")

@@ -1,67 +1,182 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>Folha {{ fechamento.funcionario.nome_exibicao }} {{ fechamento.competencia|date:"m/Y" }}</title>
+  <title>Holerite {{ fechamento.funcionario.nome_exibicao }} {{ competencia_txt }}</title>
   <style>
-    @page { size: A4 portrait; margin: 8mm; }
+    @page { size: A4 portrait; margin: 0; }
     * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; background: #fff; color: #111; font-family: Arial, Helvetica, sans-serif; }
-    .no-print { margin: 0 0 8px; }
+    html, body {
+      margin: 0; padding: 0; background: #fff; color: #1a1a1a;
+      font-family: Arial, Helvetica, sans-serif;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    .no-print { padding: 8px 12px; }
     .no-print button { min-height: 48px; padding: 0 18px; font-size: 16px; font-weight: 800; }
-    .folha { width: 194mm; height: 281mm; display: flex; flex-direction: column; }
-    .via { flex: 1 1 50%; min-height: 0; overflow: hidden; padding: 2mm 1mm 3mm; }
-    .via + .via { border-top: 1.5px dashed #111; }
-    .topo { display: flex; justify-content: space-between; gap: 8px; align-items: flex-end; border-bottom: 2px solid #111; padding-bottom: 2mm; }
-    h1 { margin: 0; font-size: 16pt; line-height: 1.1; text-transform: uppercase; }
-    .meta { margin: 1mm 0 0; font-size: 11pt; font-weight: 700; }
-    .via-nome { font-size: 10pt; font-weight: 800; text-transform: uppercase; }
-    table { width: 100%; border-collapse: collapse; margin-top: 2mm; }
-    td { font-size: 10.5pt; padding: 1px 0; vertical-align: top; }
-    td.valor { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 800; }
-    .menos { color: #111; }
-    .totais { margin-top: 2mm; border-top: 2px solid #111; padding-top: 1.5mm; }
-    .totais p { margin: 0; font-size: 12pt; font-weight: 800; display: flex; justify-content: space-between; }
-    .liquido { font-size: 14pt; }
-    .obs { margin-top: 2mm; font-size: 9pt; white-space: pre-wrap; }
-    .assinatura { margin-top: 4mm; display: flex; justify-content: space-between; gap: 10mm; font-size: 9pt; }
-    .linha { flex: 1; border-top: 1px solid #111; margin-top: 8mm; padding-top: 1mm; text-align: center; }
+    .via {
+      width: 210mm; min-height: 148.5mm;
+      display: flex; flex-direction: column;
+      page-break-inside: avoid;
+      position: relative;
+    }
+    .cab {
+      display: flex; align-items: center; justify-content: space-between;
+      min-height: 26mm; padding: 2mm 5mm;
+      background: linear-gradient(90deg, #0e7a34 0%, #14913d 62%, #0c6e2e 100%);
+      color: #fff; position: relative; overflow: hidden;
+    }
+    .cab::before, .cab::after {
+      content: ""; position: absolute; border-radius: 50%;
+      background: #f58220; print-color-adjust: exact; -webkit-print-color-adjust: exact;
+    }
+    .cab::before { width: 16mm; height: 16mm; left: -8mm; top: -8mm; }
+    .cab::after { width: 14mm; height: 14mm; right: -6mm; top: -7mm; background: #ff9a3c; }
+    .marca { display: flex; flex-direction: column; align-items: flex-start; position: relative; z-index: 1; }
+    .marca img { height: 18mm; width: auto; background: transparent; }
+    .slogan { margin: 0; font-size: 7.5pt; color: #e8ffe8; font-style: italic; }
+    .titulo-bloco { text-align: right; position: relative; z-index: 1; padding-top: 1mm; }
+    .titulo-bloco h1 { margin: 0; font-size: 13pt; line-height: 1.05; letter-spacing: 0.3px; }
+    .selo {
+      display: inline-block; margin-top: 1.5mm;
+      background: #f58220; color: #fff; font-weight: 800; font-size: 9pt;
+      letter-spacing: 0.4px; padding: 1.2mm 4mm; border-radius: 2mm;
+      print-color-adjust: exact; -webkit-print-color-adjust: exact;
+    }
+    .empresa {
+      padding: 1.5mm 6mm 0; font-size: 8pt; line-height: 1.25; color: #222;
+    }
+    .empresa strong { font-size: 9pt; }
+    .ficha {
+      margin: 1.5mm 5mm 0; background: #f3f4f6; border: 0.3mm solid #d5d8dc;
+      display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 0 4mm;
+      padding: 1.5mm 3mm; font-size: 8.5pt;
+      print-color-adjust: exact; -webkit-print-color-adjust: exact;
+    }
+    .ficha p { margin: 0.3mm 0; }
+    .ficha b { font-weight: 800; }
+    table.lanc {
+      width: calc(100% - 10mm); margin: 2mm 5mm 0; border-collapse: collapse;
+      table-layout: fixed;
+    }
+    table.lanc th {
+      background: #146b32; color: #fff; font-size: 8pt; font-weight: 800;
+      text-align: left; padding: 1.2mm 1.5mm; border-right: 0.2mm solid #0e5326;
+      print-color-adjust: exact; -webkit-print-color-adjust: exact;
+    }
+    table.lanc th.num, table.lanc td.num { text-align: right; }
+    table.lanc td {
+      font-size: 8pt; padding: 0.8mm 1.5mm; border-bottom: 0.2mm solid #e4e6e8;
+      vertical-align: top; word-wrap: break-word;
+    }
+    table.lanc tr:nth-child(even) td { background: #f7f8f8; }
+    table.lanc col.c1 { width: 12mm; }
+    table.lanc col.c3 { width: 24mm; }
+    table.lanc col.c4, table.lanc col.c5 { width: 28mm; }
+    .resumo {
+      margin: 2mm 5mm 0; display: grid; grid-template-columns: 1fr 1fr 1.15fr; gap: 2mm;
+    }
+    .caixa {
+      border: 0.35mm solid #cfd3d6; background: #f4f5f6; padding: 1.2mm 2mm;
+      print-color-adjust: exact; -webkit-print-color-adjust: exact;
+    }
+    .caixa span { display: block; font-size: 7.5pt; font-weight: 700; color: #333; }
+    .caixa strong { display: block; font-size: 12pt; margin-top: 0.4mm; }
+    .liquido {
+      background: #12833a; color: #fff; border-color: #0e6a2e;
+      print-color-adjust: exact; -webkit-print-color-adjust: exact;
+    }
+    .liquido strong { color: #ff8a1e; font-size: 16pt; }
+    .pago { margin: 1mm 5mm 0; font-size: 8pt; font-weight: 800; text-align: right; }
+    .obs { margin: 1mm 5mm 0; font-size: 7.5pt; white-space: pre-wrap; color: #333; }
+    .rodape {
+      margin-top: auto; padding: 2mm 6mm 7mm; display: flex; justify-content: space-between;
+      gap: 8mm; font-size: 8pt; position: relative;
+    }
+    .assin { flex: 1; border-top: 0.3mm solid #222; margin-top: 7mm; padding-top: 1mm; text-align: center; }
+    .ondas { display: block; width: 100%; height: 6mm; }
+    .corte {
+      height: 0; border-top: 0.4mm dashed #222; position: relative; margin: 0;
+    }
+    .corte span {
+      position: absolute; left: 4mm; top: -2.2mm; background: #fff; padding: 0 1mm; font-size: 9pt;
+    }
     @media print { .no-print { display: none; } }
   </style>
 </head>
 <body>
   <p class="no-print"><button type="button" onclick="window.print()">Imprimir as duas vias</button></p>
-  <div class="folha">
-    {% for via in vias %}
-    <section class="via">
-      <div class="topo">
-        <div>
-          <h1>{{ fechamento.funcionario.nome_exibicao }}</h1>
-          <p class="meta">{{ fechamento.competencia|date:"F Y" }} · {{ fechamento.empresa.nome_fantasia }} · {{ fechamento.get_status_display }}</p>
-        </div>
-        <div class="via-nome">{{ via }}</div>
+  {% for via in vias %}
+  {% if not forloop.first %}<div class="corte"><span>✂</span></div>{% endif %}
+  <section class="via">
+    <header class="cab">
+      <div class="marca">
+        <img src="{% static 'produtos/img/logo_agro_mais_danfe.png' %}" alt="Agro Mais">
+        <p class="slogan">Sua casa de ração com um toque a mais.</p>
       </div>
-      <table>
+      <div class="titulo-bloco">
+        <h1>HOLERITE /<br>DEMONSTRATIVO<br>DE PAGAMENTO</h1>
+        <div class="selo">{{ via.0 }}</div>
+      </div>
+    </header>
+    <div class="empresa">
+      <strong>{{ fechamento.empresa.razao_social|default:fechamento.empresa.nome_fantasia }}</strong><br>
+      {% if fechamento.empresa.razao_social and fechamento.empresa.nome_fantasia %}{{ fechamento.empresa.nome_fantasia }}<br>{% endif %}
+      {% if fechamento.empresa.cnpj %}CNPJ: {{ fechamento.empresa.cnpj }}{% endif %}
+    </div>
+    <div class="ficha">
+      <div>
+        <p><b>Funcionário:</b> {{ fechamento.funcionario.nome_exibicao }}</p>
+        <p><b>Cargo:</b> {{ fechamento.funcionario.cargo|default:"—" }}</p>
+        <p><b>Setor:</b> —</p>
+      </div>
+      <div>
+        <p><b>Competência:</b> {{ competencia_txt }}</p>
+        <p><b>Admissão:</b> {% if fechamento.funcionario.data_admissao %}{{ fechamento.funcionario.data_admissao|date:"d/m/Y" }}{% else %}—{% endif %}</p>
+        <p><b>PIS:</b> —</p>
+      </div>
+    </div>
+    <table class="lanc">
+      <colgroup>
+        <col class="c1"><col><col class="c3"><col class="c4"><col class="c5">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>Cód.</th>
+          <th>Descrição</th>
+          <th>Referência</th>
+          <th class="num">Proventos (R$)</th>
+          <th class="num">Descontos (R$)</th>
+        </tr>
+      </thead>
+      <tbody>
         {% for ln in linhas %}
         <tr>
-          <td>{{ ln.nome }}</td>
-          <td class="valor">{% if ln.sinal < 0 %}−{% else %}+{% endif %} R$ {{ ln.valor|floatformat:2 }}</td>
+          <td>{{ ln.codigo }}</td>
+          <td>{{ ln.descricao }}</td>
+          <td>{{ ln.referencia }}</td>
+          <td class="num">{{ ln.provento }}</td>
+          <td class="num">{{ ln.desconto }}</td>
         </tr>
         {% endfor %}
-      </table>
-      <div class="totais">
-        <p class="liquido"><span>Líquido</span><span>R$ {{ fechamento.valor_liquido_previsto|floatformat:2 }}</span></p>
-        <p><span>Valor pago</span><span>R$ {{ fechamento.valor_pago|floatformat:2 }}</span></p>
-      </div>
-      {% if fechamento.observacoes %}
-      <div class="obs">{{ fechamento.observacoes }}</div>
-      {% endif %}
-      <div class="assinatura">
-        <div class="linha">Funcionário</div>
-        <div class="linha">Empresa</div>
-      </div>
-    </section>
-    {% endfor %}
-  </div>
+      </tbody>
+    </table>
+    <div class="resumo">
+      <div class="caixa"><span>Total de Proventos (R$)</span><strong>{{ totais.proventos }}</strong></div>
+      <div class="caixa"><span>Total de Descontos (R$)</span><strong>({{ totais.descontos }})</strong></div>
+      <div class="caixa liquido"><span>Salário líquido a receber (R$)</span><strong>{{ liquido }}</strong></div>
+    </div>
+    {% if pago %}<p class="pago">Valor pago: R$ {{ pago }} · {{ fechamento.get_status_display }}</p>{% endif %}
+    {% if fechamento.observacoes %}<div class="obs">{{ fechamento.observacoes }}</div>{% endif %}
+    <div class="rodape">
+      <div>Data: ______ / ______ / __________</div>
+      <div class="assin">{{ via.1 }}</div>
+    </div>
+    <svg class="ondas" viewBox="0 0 800 40" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0 40 L0 22 Q120 0 240 18 T480 16 T800 8 L800 40 Z" fill="#12833a"/>
+      <path d="M0 40 L0 30 Q200 10 400 28 T800 18 L800 40 Z" fill="#f58220"/>
+    </svg>
+  </section>
+  {% endfor %}
 </body>
 </html>
