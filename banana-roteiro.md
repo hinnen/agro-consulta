@@ -6,7 +6,7 @@
 
 **O que está pronto agora (31/10):** checklist único **PDV-WA-SEPARADO** — ✅ **Live v27.26.45** @ `1ef48ced`. Detalhe no `banana.md` e na **§99**.
 
-**Para subir (03/11c):** **RH-HOLERITE-VISUAL** · 🟢 pronto para envio · **v27.26.48** · migrate **NÃO**. Checkpoint: `rollback/pre-v272648-0311c-rh-holerite-visual` = **v27.26.47** @ `7c9e5326`. Revert: `git push origin rollback/pre-v272648-0311c-rh-holerite-visual:producao`. Na senha: `./scripts/cutover_loja_checklist_0311c_rh_holerite_visual.sh` depois `--exec`. Shell: `./scripts/post_deploy_checklist_0311c_rh_holerite_visual.sh`. Não fazer merge de `teste`.
+**Loja (03/11c):** **RH-HOLERITE-VISUAL** enviado · **v27.26.48** @ `39b447ad`. Migrate **NÃO**. Volta: `rollback/pre-v272648-0311c-rh-holerite-visual` (`7c9e5326`). Revert: `git push origin rollback/pre-v272648-0311c-rh-holerite-visual:producao`.
 
 **Loja (03/11b):** **RH-FOLHA-IMPRESSAO-EXCEL** enviado · **v27.26.47** @ `7c9e5326`. Migrate **NÃO**. Volta: `rollback/pre-v272647-0311b-rh-folha-impressao` (`23bacb6d`). Revert: `git push origin rollback/pre-v272647-0311b-rh-folha-impressao:producao`.
 
@@ -1167,11 +1167,11 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 108. CHECKLIST ÚNICO — **03/11c** · 🟢 **pronto para envio à produção**
+## 108. CHECKLIST ÚNICO — **03/11c** · ✅ **enviado v27.26.48**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **RH-HOLERITE-VISUAL** | 🟢 Pronto | **NÃO** | outubro 2.000 / 870 / 1.084,29 · vale curto · **VERIFY_OK 5** |
+| 1 | **RH-HOLERITE-VISUAL** | ✅ **enviado** `39b447ad` | **NÃO** | outubro 2.000 / 870 / 1.084,29 · vale curto · **VERIFY_OK 5** |
 
 Visual da impressão. Excel e números da folha permanecem. Sem migrate.
 
