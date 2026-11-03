@@ -42,7 +42,13 @@ from rh.models import (
 )
 
 from produtos.views import obter_conexao_mongo
-from rh.services.folha_export import linhas_para_holerite, xlsx_fechamentos
+from rh.services.folha_export import (
+    brl,
+    competencia_por_extenso,
+    linhas_para_holerite,
+    totais_holerite,
+    xlsx_fechamentos,
+)
 from rh.services.fechamento import (
     garantir_fechamento_aberto,
     garantir_linhas_dos_totais_antigos,
@@ -574,13 +580,21 @@ def rh_fechamento_imprimir(request, pk: int):
         ).prefetch_related("itens"),
         pk=pk,
     )
+    linhas = linhas_para_holerite(f)
     return render(
         request,
         "rh/fechamento_imprimir.html",
         {
             "fechamento": f,
-            "linhas": linhas_para_holerite(f),
-            "vias": ("Via do funcionário", "Via da empresa"),
+            "linhas": linhas,
+            "totais": totais_holerite(linhas),
+            "liquido": brl(f.valor_liquido_previsto),
+            "pago": brl(f.valor_pago) if f.valor_pago else "",
+            "competencia_txt": competencia_por_extenso(f),
+            "vias": (
+                ("VIA FUNCIONÁRIO", "Assinatura do Funcionário"),
+                ("VIA EMPRESA", "Assinatura do Responsável (Empresa)"),
+            ),
         },
     )
 
