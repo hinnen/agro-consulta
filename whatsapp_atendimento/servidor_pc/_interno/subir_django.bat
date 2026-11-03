@@ -28,9 +28,21 @@ call ".venv\Scripts\activate.bat"
 echo Migrando banco...
 python manage.py migrate --noinput
 if errorlevel 1 (
-  echo ERRO migrate - confira DATABASE_URL em .env.wa-servidor
-  pause
-  exit /b 1
+  echo.
+  echo Migrate falhou - tentando corrigir senha Postgres ^(PC novo ou Postgres antigo^)...
+  call "%~dp0sincronizar_banco_agro_wa.bat" auto
+  if errorlevel 1 (
+    echo.
+    echo ERRO migrate - rode: 5 - Corrigir Postgres - senha migrate.bat
+    pause
+    exit /b 1
+  )
+  python manage.py migrate --noinput
+  if errorlevel 1 (
+    echo ERRO migrate - confira DATABASE_URL em .env.wa-servidor
+    pause
+    exit /b 1
+  )
 )
 
 echo Coletando JS/CSS do chat...

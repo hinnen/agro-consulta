@@ -54,5 +54,6 @@ echo   1 - Instalar - primeira vez no PC.bat
 echo   2 - Configurar - primeira vez env e banco.bat
 echo   3 - Subir Zap - todo dia.bat
 echo   4 - Tunel teste - internet temporaria.bat
+echo   5 - Corrigir Postgres - senha migrate.bat
 echo.
 pause

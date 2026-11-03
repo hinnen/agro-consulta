@@ -14,6 +14,7 @@ if not errorlevel 1 (
     echo PGSUPERUSER=postgres> "%ENVFILE%"
     echo PGSUPERPASS=%PGSUPERPASS%>> "%ENVFILE%"
   )
+  echo Se migrate falhar depois: 5 - Corrigir Postgres - senha migrate.bat
   exit /b 0
 )
 
@@ -31,7 +32,7 @@ echo.
 
 winget install -e --id PostgreSQL.PostgreSQL.17 --accept-package-agreements --accept-source-agreements --disable-interactivity --override "--mode unattended --unattendedmodeui none --superpassword %PGSUPERPASS%"
 if errorlevel 1 (
-  echo AVISO: winget falhou — tente instalar PostgreSQL 17 pelo site postgresql.org
+  echo AVISO: winget falhou - tente instalar PostgreSQL 17 pelo site postgresql.org
   exit /b 1
 )
 
@@ -43,7 +44,7 @@ set /a N=0
 set /a N+=1
 sc query postgresql-x64-17 | find "RUNNING" >nul 2>&1 && goto pgok
 if !N! GEQ 60 (
-  echo Servico ainda nao subiu — reinicie o PC e rode 1 - Instalar de novo.
+  echo Servico ainda nao subiu - reinicie o PC e rode 1 - Instalar de novo.
   exit /b 1
 )
 timeout /t 5 /nobreak >nul
