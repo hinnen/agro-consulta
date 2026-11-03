@@ -5,15 +5,32 @@ if (-not (Get-Command cloudflared -ErrorAction SilentlyContinue)) {
   if (Test-Path $cf) { $env:Path = "$(Split-Path $cf);$env:Path" } else { throw "cloudflared nao encontrado. Rode: winget install Cloudflare.cloudflared" }
 }
 
-try {
-  $null = Invoke-WebRequest -Uri "http://127.0.0.1:8000/healthz" -UseBasicParsing -TimeoutSec 3
-} catch {
-  Write-Host "ERRO: rode antes 3 - Subir Zap - todo dia.bat (servidor na porta 8000)"
+Write-Host ""
+Write-Host "Aguardando Django na porta 8000 (migrate pode levar 1-3 min)..."
+$ready = $false
+for ($i = 0; $i -lt 120; $i++) {
+  try {
+    $null = Invoke-WebRequest -Uri "http://127.0.0.1:8000/healthz" -UseBasicParsing -TimeoutSec 5
+    $ready = $true
+    break
+  } catch {
+    if ($i -eq 0 -or ($i % 15 -eq 0)) {
+      Write-Host "  ... ainda subindo (${i}s) - veja janela Zap servidor"
+    }
+    Start-Sleep -Seconds 2
+  }
+}
+if (-not $ready) {
+  Write-Host ""
+  Write-Host "ERRO: servidor nao respondeu em ~4 min."
+  Write-Host "Olhe a janela ZAP SERVIDOR: migrate, Postgres ou .env.wa-servidor."
+  Write-Host "Quando aparecer 'Starting development server', rode de novo:"
+  Write-Host "  4 - Tunel teste - internet temporaria.bat"
   Read-Host "Enter para sair"
   exit 1
 }
 
-Write-Host ""
+Write-Host "Servidor OK."
 Write-Host "Tunel TESTE - link copiado (Ctrl+V). Nao feche esta janela."
 Write-Host ""
 
