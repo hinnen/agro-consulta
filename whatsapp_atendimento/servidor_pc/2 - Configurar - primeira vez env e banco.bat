@@ -6,7 +6,7 @@ set "OUT=%REPO%\.env.wa-servidor"
 set "DADOS=C:\AgroWhatsApp\Dados\media"
 
 echo.
-echo === 2-configurar — .env do servidor WhatsApp ===
+echo === Configurar — primeira vez ^(.env e banco^) ===
 echo Enter = aceitar [padrao]
 echo.
 
@@ -46,5 +46,5 @@ if /I "%CRIAR%"=="N" goto fim
 call "%~dp0_interno\criar_banco.bat"
 
 :fim
-echo Proximo: 3-subir.bat
+echo Proximo: 3 - Subir Zap - todo dia.bat
 pause

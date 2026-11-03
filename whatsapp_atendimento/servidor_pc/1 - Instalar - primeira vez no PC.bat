@@ -7,7 +7,7 @@ set "DADOS=C:\AgroWhatsApp\Dados"
 set "MEDIA=%DADOS%\media"
 
 echo.
-echo === 1-instalar — WhatsApp servidor (1a vez no PC) ===
+echo === Instalar — primeira vez neste PC ===
 echo.
 
 where winget >nul 2>&1
@@ -36,5 +36,5 @@ cd /d "%~dp0..\"
 if not exist node_modules call npm install
 
 echo.
-echo Pronto. Proximo: 2-configurar.bat
+echo Pronto. Proximo: 2 - Configurar - primeira vez env e banco.bat
 pause

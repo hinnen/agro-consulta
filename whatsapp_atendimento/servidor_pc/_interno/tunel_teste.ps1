@@ -8,7 +8,7 @@ if (-not (Get-Command cloudflared -ErrorAction SilentlyContinue)) {
 try {
   $null = Invoke-WebRequest -Uri "http://127.0.0.1:8000/healthz" -UseBasicParsing -TimeoutSec 3
 } catch {
-  Write-Host "ERRO: rode antes 3-subir.bat (servidor na porta 8000)"
+  Write-Host "ERRO: rode antes 3 - Subir Zap - todo dia.bat (servidor na porta 8000)"
   Read-Host "Enter para sair"
   exit 1
 }

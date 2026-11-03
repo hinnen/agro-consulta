@@ -61,7 +61,7 @@ set "ENVF=%REPO%\.env.wa-servidor"
 if exist "%ENVF%" (
   echo.
   echo Atualize ALLOWED_HOSTS / CSRF no .env.wa-servidor com %HOST%
-  echo ^(ou rode 2-configurar.bat com esse host^)
+  echo ^(ou rode 2 - Configurar - primeira vez env e banco.bat com esse host^)
 )
 
 echo.

@@ -7,29 +7,30 @@ Migrar o **host do Zap** do Render para um **Windows** (laboratório → PC da l
 
 | Peça | Onde |
 |------|------|
-| Site + API Django + fotos/áudios | PC (`3-subir.bat`) |
-| Ponte Baileys | Mesmo PC (`3-subir.bat` abre junto) |
+| Site + API Django + fotos/áudios | PC (`3 - Subir Zap - todo dia.bat`) |
+| Ponte Baileys | Mesmo PC (`3 - Subir Zap…` abre junto) |
 | Acesso das duas lojas + celular | Internet → **túnel HTTPS** (Cloudflare) |
 
 Mídia grava em **`AGRO_WA_MEDIA_ROOT`** (padrão `C:\AgroWhatsApp\Dados\media`) — **não some** no `git pull`.
 
 ## Passo a passo (usuário)
 
-Abra a pasta **`whatsapp_atendimento\servidor_pc`** — só **4 arquivos** na raiz (+ `LEIA-ME.txt`):
+Abra **`whatsapp_atendimento\servidor_pc`**. Se ainda vir nomes velhos (`instalar_servidor`, `tunel_rapido`…), rode **`0 - Atualizar Git e apagar lixo antigo.bat`** (puxa Git + apaga cópia OneDrive).
 
 | Arquivo | Quando |
 |---------|--------|
-| **`1-instalar.bat`** | 1ª vez no PC novo |
-| **`2-configurar.bat`** | 1ª vez (`.env` + banco Postgres opcional) |
-| **`3-subir.bat`** | Todo dia (servidor + ponte) |
-| **`4-tunel-teste.bat`** | Internet temporária (outra loja/celular) |
+| **`0 - Atualizar Git e apagar lixo antigo.bat`** | Pasta desatualizada / lixo antigo |
+| **`1 - Instalar - primeira vez no PC.bat`** | 1ª vez no PC novo |
+| **`2 - Configurar - primeira vez env e banco.bat`** | 1ª vez (`.env` + banco Postgres opcional) |
+| **`3 - Subir Zap - todo dia.bat`** | Todo dia (servidor + ponte) |
+| **`4 - Tunel teste - internet temporaria.bat`** | Internet temporária (outra loja/celular) |
 
 Túnel **fixo** (produção): subpasta **`tunel_fixo\`**. Scripts internos: **`_interno\`** (ignore).
 
 1. **Git:** branch `whatsapp`, `git pull`.
-2. **`1-instalar.bat`** → **`2-configurar.bat`** → **`3-subir.bat`**
+2. **`1 - Instalar…`** → **`2 - Configurar…`** → **`3 - Subir Zap…`**
 3. Chrome local: **http://127.0.0.1:8000/atendimento-whatsapp/** (`createsuperuser` na 1ª vez).
-4. **`4-tunel-teste.bat`** com o `3` ligado — URL copiada; aceita `*.trycloudflare.com` no `.env`.
+4. **`4 - Tunel teste…`** com o `3` ligado — URL copiada; aceita `*.trycloudflare.com` no `.env`.
 
 ## Laboratório (PC Renan · 02/11/2026)
 
@@ -48,14 +49,14 @@ Túnel **fixo** (produção): subpasta **`tunel_fixo\`**. Scripts internos: **`_
 | Túnel rápido teste | OK (URL muda a cada restart) — **lab continua assim** |
 | Túnel fixo loja | ❌ **C abortado** · Renan **02/11 ~14:32** pediu **URL fixa** → **B** (domínio só Zap, sem sistvale) |
 
-**Como ligar de novo neste PC:** `3-subir.bat` (+ `4-tunel-teste.bat` se precisar internet).  
+**Como ligar de novo neste PC:** `3 - Subir Zap - todo dia.bat` (+ `4 - Tunel teste…` se precisar internet).  
 **Fix migrate banco novo:** seed da `0065` usa modelo histórico (senão quebra em `exibir_pdv`).
 
 ### Próximo passo — escolha Renan (túnel fixo)
 
 | Opção | O que é | Quando |
 |-------|---------|--------|
-| **A** ✅ agora | Lab com `4-tunel-teste.bat` | Já funciona; URL **muda** se reiniciar o túnel. **Não** mexe PDV |
+| **A** ✅ agora | Lab com `4 - Tunel teste…` | Já funciona; URL **muda** se reiniciar o túnel. **Não** mexe PDV |
 | **B** | Domínio **só do Zap** na Cloudflare | Não toca `sistvale.com.br` |
 | **C** ❌ abortado | `zap.sistvale.com.br` | Zona CF removida; retomar só com checklist + OK Renan |
 
@@ -99,7 +100,7 @@ URL fica tipo `https://zap.SEUDOMINIO` e **não muda**.
 6. Ponte `.env`: `AGRO_WA_DJANGO_URL=https://…` (mesmo host).
 7. Sistvale loja (quando for): `AGRO_WA_PUBLIC_ORIGIN` **ou** bookmark.
 
-`tunel_fixo/` = produção com domínio. **`4-tunel-teste.bat`** = lab sem domínio (URL muda).
+`tunel_fixo/` = produção com domínio. **`4 - Tunel teste…`** = lab sem domínio (URL muda).
 
 ## Variáveis importantes
 

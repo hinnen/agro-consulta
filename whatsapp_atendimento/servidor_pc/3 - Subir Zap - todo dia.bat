@@ -6,5 +6,5 @@ timeout /t 8 /nobreak >nul
 start "Zap — ponte" cmd /k "%~dp0..\iniciar-local.bat"
 echo.
 echo Local: http://127.0.0.1:8000/atendimento-whatsapp/
-echo Outra loja/celular: 4-tunel-teste.bat (com servidor ligado)
+echo Outra loja/celular: 4 - Tunel teste - internet temporaria.bat
 pause

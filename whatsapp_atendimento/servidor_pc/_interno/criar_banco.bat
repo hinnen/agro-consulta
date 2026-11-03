@@ -31,7 +31,7 @@ psql -U %PGUSER% -h 127.0.0.1 -d postgres -v ON_ERROR_STOP=0 -c "CREATE DATABASE
 psql -U %PGUSER% -h 127.0.0.1 -d postgres -v ON_ERROR_STOP=0 -c "GRANT ALL PRIVILEGES ON DATABASE %DBNAME% TO %DBUSER%;"
 
 echo.
-echo OK. Use no 2-configurar.bat:
+echo OK. Use no 2 - Configurar - primeira vez env e banco.bat:
 echo postgres://%DBUSER%:%DBPASS%@127.0.0.1:5432/%DBNAME%
 echo.
 pause

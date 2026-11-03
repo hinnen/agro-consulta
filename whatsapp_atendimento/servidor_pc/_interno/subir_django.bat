@@ -6,7 +6,7 @@ cd /d "%REPO%"
 
 if not exist ".env.wa-servidor" (
   echo ERRO: falta .env.wa-servidor na raiz do repo.
-  echo Rode 2-configurar.bat na pasta servidor_pc
+  echo Rode: 2 - Configurar - primeira vez env e banco.bat
   pause
   exit /b 1
 )
@@ -19,7 +19,7 @@ if not defined AGRO_WA_MEDIA_ROOT set "AGRO_WA_MEDIA_ROOT=C:\AgroWhatsApp\Dados\
 if not exist "%AGRO_WA_MEDIA_ROOT%" mkdir "%AGRO_WA_MEDIA_ROOT%"
 
 if not exist ".venv\Scripts\python.exe" (
-  echo ERRO: rode 1-instalar.bat primeiro.
+  echo ERRO: rode 1 - Instalar - primeira vez no PC.bat primeiro.
   pause
   exit /b 1
 )
@@ -38,7 +38,7 @@ python manage.py collectstatic --noinput
 
 echo.
 echo Local: http://127.0.0.1:8000/atendimento-whatsapp/
-echo Internet: outra janela — 4-tunel-teste.bat
+echo Internet: outra janela — 4 - Tunel teste - internet temporaria.bat
 echo Feche esta janela para parar o servidor.
 echo.
 python manage.py runserver 0.0.0.0:8000
