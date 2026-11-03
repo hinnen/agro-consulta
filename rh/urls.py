@@ -63,6 +63,12 @@ urlpatterns = [
     ),
     path("gestao/funcionarios/<int:pk>/", views.rh_funcionario_ficha, name="rh_funcionario_ficha"),
     path("gestao/fechamentos/", views.rh_fechamentos_lista, name="rh_fechamentos_lista"),
+    path("gestao/fechamentos/excel/", views.rh_fechamentos_excel, name="rh_fechamentos_excel"),
+    path(
+        "gestao/fechamentos/<int:pk>/imprimir/",
+        views.rh_fechamento_imprimir,
+        name="rh_fechamento_imprimir",
+    ),
     path(
         "gestao/fechamentos/<int:pk>/salvar/",
         views.rh_fechamento_salvar,
