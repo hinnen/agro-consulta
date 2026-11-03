@@ -6,7 +6,7 @@
 
 **O que está pronto agora (31/10):** checklist único **PDV-WA-SEPARADO** — ✅ **Live v27.26.45** @ `1ef48ced`. Detalhe no `banana.md` e na **§99**.
 
-**Para subir (03/11b):** **RH-FOLHA-IMPRESSAO-EXCEL** · 🟢 pronto para envio · **v27.26.47** · migrate **NÃO**. Checkpoint: `rollback/pre-v272647-0311b-rh-folha-impressao` = **v27.26.46** @ `23bacb6d`. Revert: `git push origin rollback/pre-v272647-0311b-rh-folha-impressao:producao`. Na senha: `./scripts/cutover_loja_checklist_0311b_rh_folha_impressao.sh` depois `--exec`. Shell: `./scripts/post_deploy_checklist_0311b_rh_folha_impressao.sh`. Não fazer merge de `teste`.
+**Loja (03/11b):** **RH-FOLHA-IMPRESSAO-EXCEL** enviado · **v27.26.47** @ `7c9e5326`. Migrate **NÃO**. Volta: `rollback/pre-v272647-0311b-rh-folha-impressao` (`23bacb6d`). Revert: `git push origin rollback/pre-v272647-0311b-rh-folha-impressao:producao`.
 
 **Loja (03/11):** **RH-FOLHA-LINHAS** enviado · **v27.26.46** @ `23bacb6d`. Volta: `rollback/pre-v272646-0311-rh-folha-linhas` (`1ef48ced`).
 
@@ -1165,11 +1165,11 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 107. CHECKLIST ÚNICO — **03/11b** · 🟢 **pronto para envio à produção**
+## 107. CHECKLIST ÚNICO — **03/11b** · ✅ **enviado v27.26.47**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **RH-FOLHA-IMPRESSAO-EXCEL** | 🟢 Pronto | **NÃO** | outubro 2000 / 870 / 1.084,29 intacto · **VERIFY_OK 5** |
+| 1 | **RH-FOLHA-IMPRESSAO-EXCEL** | ✅ **enviado** `7c9e5326` | **NÃO** | outubro 2000 / 870 / 1.084,29 intacto · **VERIFY_OK 5** |
 
 Imprimir folha (A4 vertical, duas vias) e Excel da lista com o filtro da tela. Só leitura.
 

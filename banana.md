@@ -1312,17 +1312,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Ainda** | O serviço do Zap ainda precisa receber a rota do orçamento (filial `whatsapp`, ainda sem push). Sem isso o botão Loja grava na Sistvale |
 | **Não fazer** | Colocar `AGRO_WA_PUBLIC_ORIGIN` no serviço do Zap |
 
-### ✅ CHECKLIST ÚNICO — **03/11b** · 🟢 **pronto para envio à produção**
+### ✅ CHECKLIST ÚNICO — **03/11b** · ✅ **enviado à loja v27.26.47**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **RH-FOLHA-IMPRESSAO-EXCEL** | 🟢 **pronto para envio** | **NÃO** | outubro 2000 / vales 870 / líquido 1.084,29 intacto · **VERIFY_OK 5** |
+| 1 | **RH-FOLHA-IMPRESSAO-EXCEL** | ✅ **enviado** `7c9e5326` | **NÃO** | outubro 2000 / vales 870 / líquido 1.084,29 intacto · **VERIFY_OK 5** |
 
 ### 📦 PACOTE PRONTO — **RH-FOLHA-IMPRESSAO-EXCEL** · **v27.26.47**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **Pronto para envio à produção** (frase + senha). Ainda não está na loja |
+| **Status** | ✅ **Enviado** `producao` @ **`7c9e5326`** · frase + senha |
 | **Entra** | **Imprimir folha**: A4 vertical, duas vias (funcionário e empresa). **Excel** na lista, com o filtro da tela. Só leitura: não grava, não recalcula, não mexe no líquido nem no valor pago |
 | **Alvo** | **v27.26.47** · PREP `deploy/prep-checklist-0311b-rh-folha-impressao` |
 | **Checkpoint** | `rollback/pre-v272647-0311b-rh-folha-impressao` = loja atual **v27.26.46** @ `23bacb6d` |
