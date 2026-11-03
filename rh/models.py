@@ -258,6 +258,10 @@ class FechamentoFolhaSimplificado(models.Model):
     total_vales = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     outros_descontos = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     outros_proventos = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    ajustes_manuais_inicializados = models.BooleanField(
+        default=False,
+        help_text="Depois da cópia dos totais antigos para linhas, o recálculo soma só as linhas. Enquanto for falso, total sem linha não é zerado.",
+    )
     valor_liquido_previsto = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     valor_pago = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     status = models.CharField(
@@ -297,6 +301,32 @@ class FechamentoFolhaSimplificado(models.Model):
 
     def __str__(self):
         return f"{self.funcionario} — {self.competencia:%Y-%m}"
+
+
+class AjusteManualFolha(models.Model):
+    """Desconto ou acréscimo manual. Cada linha entra na folha. outros_* é a soma."""
+
+    class Tipo(models.TextChoices):
+        DESCONTO = "DESCONTO", "Desconto"
+        ACRESCIMO = "ACRESCIMO", "Acréscimo"
+
+    fechamento = models.ForeignKey(
+        FechamentoFolhaSimplificado,
+        on_delete=models.CASCADE,
+        related_name="ajustes_manuais",
+    )
+    tipo = models.CharField(max_length=20, choices=Tipo.choices)
+    descricao = models.CharField(max_length=200, verbose_name="Nome na folha")
+    valor = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Valor")
+    ordem = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["ordem", "id"]
+        verbose_name = "Ajuste manual da folha"
+        verbose_name_plural = "Ajustes manuais da folha"
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} — {self.descricao} ({self.valor})"
 
 
 class ItemFechamentoFolha(models.Model):

@@ -9,6 +9,7 @@ from functools import wraps
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.db.models import Q, Sum
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -22,6 +23,7 @@ from base.models import Empresa, Loja
 
 from rh.access import usuario_rh_acesso_restrito
 from rh.forms import (
+    AjusteManualFormSet,
     FechamentoEditForm,
     FechamentoTituloFinanceiroForm,
     FuncionarioForm,
@@ -31,6 +33,7 @@ from rh.forms import (
     ValeManualRHForm,
 )
 from rh.models import (
+    AjusteManualFolha,
     FechamentoFolhaSimplificado,
     Funcionario,
     HistoricoSalarial,
@@ -41,6 +44,7 @@ from rh.models import (
 from produtos.views import obter_conexao_mongo
 from rh.services.fechamento import (
     garantir_fechamento_aberto,
+    garantir_linhas_dos_totais_antigos,
     garantir_fechamento_operacional,
     money_two_decimals,
     motivo_bloqueio_exclusao_fechamento,
@@ -552,10 +556,16 @@ def rh_fechamento_detalhe(request, pk: int):
             "funcionario",
             "funcionario__cliente_agro",
         )
-        .prefetch_related("itens")
+        .prefetch_related("itens", "ajustes_manuais")
         .get(pk=f.pk)
     )
+    if f.status == FechamentoFolhaSimplificado.Status.ABERTO:
+        garantir_linhas_dos_totais_antigos(f)
     form = FechamentoEditForm(instance=f)
+    ajustes_formset = AjusteManualFormSet(
+        queryset=AjusteManualFolha.objects.filter(fechamento=f).order_by("ordem", "id"),
+        fechamento=f,
+    )
     tem_historico_salario = HistoricoSalarial.objects.filter(funcionario_id=f.funcionario_id).exists()
     salario_base_zero = f.salario_base_na_competencia == Decimal("0")
     ultimo_dia_competencia = ultimo_dia_mes(f.competencia)
@@ -572,6 +582,7 @@ def rh_fechamento_detalhe(request, pk: int):
         {
             "fechamento": f,
             "form": form,
+            "ajustes_formset": ajustes_formset,
             "titulo_form": titulo_form,
             "tem_historico_salario": tem_historico_salario,
             "salario_base_zero": salario_base_zero,
@@ -591,9 +602,16 @@ def rh_fechamento_salvar(request, pk: int):
         messages.error(request, "Só é possível editar fechamento com status Aberto.")
         return redirect("rh_fechamento_detalhe", pk=f.pk)
     form = FechamentoEditForm(request.POST, instance=f)
-    if form.is_valid():
-        form.save()
-        recalcular_fechamento(f)
+    ajustes_formset = AjusteManualFormSet(
+        request.POST,
+        queryset=AjusteManualFolha.objects.filter(fechamento=f).order_by("ordem", "id"),
+        fechamento=f,
+    )
+    if form.is_valid() and ajustes_formset.is_valid():
+        with transaction.atomic():
+            form.save()
+            ajustes_formset.save()
+            recalcular_fechamento(f)
         f.refresh_from_db()
         if (f.mongo_lancamento_salario_id or "").strip():
             sr = sincronizar_valores_titulo_salario_mongo(f)
@@ -608,6 +626,13 @@ def rh_fechamento_salvar(request, pk: int):
             messages.success(request, "Fechamento atualizado e recalculado.")
     else:
         messages.error(request, "Revise os valores.")
+        for errs in form.errors.values():
+            for err in errs:
+                messages.error(request, err)
+        for af in ajustes_formset:
+            for errs in af.errors.values():
+                for err in errs:
+                    messages.error(request, err)
     return redirect("rh_fechamento_detalhe", pk=f.pk)
 
 
