@@ -1171,6 +1171,8 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 Folha: cada desconto e acréscimo vira uma linha. Totais já lançados são copiados. Não está na loja até frase + senha.
 
+**Checkpoint:** `rollback/pre-v272646-0311-rh-folha-linhas` = v27.26.45 @ `1ef48ced`. **Revert:** `git push origin rollback/pre-v272646-0311-rh-folha-linhas:producao`. **Na senha:** `./scripts/cutover_loja_checklist_0311_rh_folha_linhas.sh` depois `--exec`. Shell: `./scripts/post_deploy_checklist_0311_rh_folha_linhas.sh`. Não fazer merge de `teste`.
+
 ---
 
 ## 105. CHECKLIST ÚNICO — **29/10** · 🟢 **pronto para envio à produção**

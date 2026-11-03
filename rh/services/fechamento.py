@@ -97,21 +97,27 @@ def linhas_legadas_dos_totais(proventos, descontos) -> list[tuple[str, str, Deci
 
 def garantir_linhas_dos_totais_antigos(f: FechamentoFolhaSimplificado) -> None:
     """Copia os totais já gravados uma vez. Não recria linha que o usuário apagou."""
-    if f.ajustes_manuais_inicializados:
-        return
-    if not f.ajustes_manuais.exists():
-        for ordem, (tipo, descricao, valor) in enumerate(
-            linhas_legadas_dos_totais(f.outros_proventos, f.outros_descontos)
-        ):
-            AjusteManualFolha.objects.create(
-                fechamento=f,
-                tipo=tipo,
-                descricao=descricao,
-                valor=valor,
-                ordem=ordem,
-            )
-    f.ajustes_manuais_inicializados = True
-    f.save(update_fields=["ajustes_manuais_inicializados"])
+    with transaction.atomic():
+        locked = (
+            FechamentoFolhaSimplificado.objects.select_for_update().get(pk=f.pk)
+        )
+        if locked.ajustes_manuais_inicializados:
+            f.ajustes_manuais_inicializados = True
+            return
+        if not locked.ajustes_manuais.exists():
+            for ordem, (tipo, descricao, valor) in enumerate(
+                linhas_legadas_dos_totais(locked.outros_proventos, locked.outros_descontos)
+            ):
+                AjusteManualFolha.objects.create(
+                    fechamento=locked,
+                    tipo=tipo,
+                    descricao=descricao,
+                    valor=valor,
+                    ordem=ordem,
+                )
+        locked.ajustes_manuais_inicializados = True
+        locked.save(update_fields=["ajustes_manuais_inicializados"])
+        f.ajustes_manuais_inicializados = True
 
 
 def total_vales_mes(funcionario: Funcionario, ano: int, mes: int) -> Decimal:

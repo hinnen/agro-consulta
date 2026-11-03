@@ -1324,9 +1324,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Status** | 🟢 **Pronto para envio à produção** (frase + senha). Ainda não está na loja |
 | **Entra** | Desconto e acréscimo da folha viram linhas com nome e valor. O total antigo vira uma linha com o mesmo valor. Observação não é apagada |
-| **Migrate** | **SIM** `rh.0007` |
+| **Alvo** | **v27.26.46** · PREP `deploy/prep-checklist-0311-rh-folha-linhas` |
+| **Checkpoint** | `rollback/pre-v272646-0311-rh-folha-linhas` = loja atual **v27.26.45** @ `1ef48ced` |
+| **Revert** | `git push origin rollback/pre-v272646-0311-rh-folha-linhas:producao` |
+| **Migrate** | **SIM** `rh.0007` · Shell `./scripts/post_deploy_checklist_0311_rh_folha_linhas.sh` |
+| **Na senha** | pausa PDV · `./scripts/cutover_loja_checklist_0311_rh_folha_linhas.sh` (sem --exec) · se OK, `--exec` com frase + senha · Shell da migração · pausa OFF |
 | **Prova** | Líquido 1.954,29 · valor pago 500 permanece · salvar de novo não duplica nem zera |
-| **Não fazer** | Subir sem frase + senha |
+| **Não fazer** | Merge de `teste` inteiro. Não rodar migrate para trás |
 
 ### 📦 PACOTE PRONTO — **AJUSTE-BLOCO-TELA** · **v27.26.39** · PREP `teste` @ **`d466d62f`**
 
