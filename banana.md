@@ -1312,6 +1312,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Ainda** | O serviço do Zap ainda precisa receber a rota do orçamento (filial `whatsapp`, ainda sem push). Sem isso o botão Loja grava na Sistvale |
 | **Não fazer** | Colocar `AGRO_WA_PUBLIC_ORIGIN` no serviço do Zap |
 
+### 🟡 CHECKLIST ÚNICO — **03/11** · **PREP v27.26.49** · **WA-ORIGIN-PC** (PR 479)
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **WA-ORIGIN-PC** | 🟡 PREP `d03eea8c` · **não está na loja** | **0154** | **VERIFY_OK 5** · cutover sem `--exec` OK |
+
+### 📦 PREP ARMADO — **WA-ORIGIN-PC** · **v27.26.49**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 Preparado. A loja continua em **v27.26.48** (`39b447ad`) |
+| **Entra** | O PC grava a URL HTTPS do túnel. Sem registro, o ícone segue no Zap atual. A rota de registro fica no PDV |
+| **Não entra** | Instalador `.bat` do computador (não está na loja; continua na PR 479) |
+| **Checkpoint** | `rollback/pre-v272649-0311-wa-origin-pc` = `39b447ad` |
+| **Migrate** | **0154** tabela nova. Shell `./scripts/post_deploy_checklist_0311_wa_origin_pc.sh` |
+| **Na senha** | `./scripts/cutover_loja_checklist_0311_wa_origin_pc.sh --exec` |
+| **Revert** | `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao` |
+
 ### ✅ CHECKLIST ÚNICO — **03/11c** · ✅ **enviado à loja v27.26.48**
 
 | # | Pacote | Status | Migrate | Prova |
@@ -1448,6 +1466,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | **AJUSTE-QTD-BIP** | 🟢 Pronto | **NÃO** | alterar **6→5** depois soma **7** · −10/+10 só no item da vez |
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 🟡 PREP — **PR 479** · **v27.26.49** · URL do túnel · ainda não na loja
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 PREP `d03eea8c` · loja segue **v27.26.48** @ **`39b447ad`** |
+| **Entra** | Tabela da URL do túnel. Sem registro, o PDV não muda |
+| **Migrate** | **0154** |
+| **Revert** | `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao` → **`39b447ad`** |
+| **Prova** | **VERIFY_OK 5** · cutover sem `--exec` OK |
+
 
 ### ✅ Deploy loja — **CHECKLIST 31/10** · **Live v27.26.45** · 31/10
 

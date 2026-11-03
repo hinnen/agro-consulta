@@ -4,6 +4,8 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
+**Pronto para envio (03/11 · PR 479):** **WA-ORIGIN-PC** — 🟡 PREP **v27.26.49** @ `d03eea8c`, **não está na loja**. Loja segue **v27.26.48** @ `39b447ad`. Migrate **0154**. Checkpoint `rollback/pre-v272649-0311-wa-origin-pc`.
+
 **O que está pronto agora (31/10):** checklist único **PDV-WA-SEPARADO** — ✅ **Live v27.26.45** @ `1ef48ced`. Detalhe no `banana.md` e na **§99**.
 
 **Loja (03/11c):** **RH-HOLERITE-VISUAL** enviado · **v27.26.48** @ `39b447ad`. Migrate **NÃO**. Volta: `rollback/pre-v272648-0311c-rh-holerite-visual` (`7c9e5326`). Revert: `git push origin rollback/pre-v272648-0311c-rh-holerite-visual:producao`.
