@@ -6,6 +6,10 @@ PC NOVO — so 2 cliques depois de git pull:
   1 - Instalar - primeira vez no PC.bat   (Python, Postgres, banco, .env — ~20 min)
   3 - Subir Zap - todo dia.bat            (servidor + ponte + tunel + avisa PDV)
 
+Migrate / senha agro_wa neste PC (outro notebook, Postgres antigo):
+
+  5 - Corrigir Postgres - senha migrate.bat   (uma vez, depois 3 de novo)
+
 Internet (outra loja) — o 3 ja abre o tunel. So use o 4 se fechou a janela do tunel.
 
   4 - Tunel teste - internet temporaria.bat
