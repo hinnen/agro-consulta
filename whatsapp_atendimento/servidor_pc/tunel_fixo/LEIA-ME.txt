@@ -1,0 +1,3 @@
+Tunel FIXO (URL que nao muda) — so quando tiver dominio na Cloudflare.
+Ordem: login.bat → criar.bat → (3-subir.bat ligado) rodar.bat
+Lab / teste: use 4-tunel-teste.bat na pasta de cima.

@@ -1,0 +1,12 @@
+WhatsApp servidor no PC — use SÓ estes 4 arquivos (nesta ordem)
+
+  1-instalar.bat     → 1ª vez no PC novo (Python, venv, Node da ponte)
+  2-configurar.bat   → 1ª vez (arquivo .env + opcional criar banco Postgres)
+  3-subir.bat        → todo dia (abre servidor + ponte WhatsApp)
+  4-tunel-teste.bat  → quando precisar abrir de outra loja/celular (link temporario)
+
+Pasta env.exemplo = modelo (nao precisa abrir se usou o 2-configurar)
+
+Detalhes: docs\WHATSAPP-SERVIDOR-PC.md
+
+Tunel FIXO (URL que nao muda): subpasta tunel_fixo\ — so quando for producao.

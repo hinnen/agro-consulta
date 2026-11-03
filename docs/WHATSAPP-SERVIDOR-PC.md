@@ -7,25 +7,29 @@ Migrar o **host do Zap** do Render para um **Windows** (laboratório → PC da l
 
 | Peça | Onde |
 |------|------|
-| Site + API Django + fotos/áudios | PC (`subir_servidor.bat`) |
-| Ponte Baileys | Mesmo PC (`iniciar.bat` ou `iniciar-local.bat`) |
+| Site + API Django + fotos/áudios | PC (`3-subir.bat`) |
+| Ponte Baileys | Mesmo PC (`3-subir.bat` abre junto) |
 | Acesso das duas lojas + celular | Internet → **túnel HTTPS** (Cloudflare) |
 
 Mídia grava em **`AGRO_WA_MEDIA_ROOT`** (padrão `C:\AgroWhatsApp\Dados\media`) — **não some** no `git pull`.
 
 ## Passo a passo (usuário)
 
-1. **Git:** branch `whatsapp`, pasta do repo no PC (pode ser OneDrive; mídia fica **fora** do repo).
-2. Duplo clique: `whatsapp_atendimento\servidor_pc\instalar_servidor.bat`  
-   (Python, venv, `pip install`; instala Node se faltar.)
-3. Duplo clique: `criar_env_servidor.bat` — responda as perguntas (Postgres local ou ajuste depois no `.env.wa-servidor`).
-4. Instale **PostgreSQL** (winget / Setup). Depois: `criar_banco_agro_wa.bat` (cria user+banco `agro_wa`) — ou faça no pgAdmin.
-5. Duplo clique: `subir_tudo.bat` **ou** `subir_servidor.bat` + `iniciar-local.bat`.
-6. Chrome: **http://127.0.0.1:8000/atendimento-whatsapp/** — login Django (`createsuperuser` na primeira vez).
-7. **Internet (teste):** com servidor rodando, `tunel_rapido.bat` → a URL é **copiada** (Ctrl+V) e o Chrome abre `/entrar/`.  
-   No lab, `.env.wa-servidor` já aceita **qualquer** `*.trycloudflare.com` (não precisa colar host à mão).  
-   Se o link der erro 400: Django sem o wildcard — confira `ALLOWED_HOSTS_EXTRA=.trycloudflare.com` e reinicie `subir_servidor.bat`.
-8. Ponte no **mesmo PC**: `AGRO_WA_DJANGO_URL=http://127.0.0.1:8000` (não precisa ser a URL do túnel).
+Abra a pasta **`whatsapp_atendimento\servidor_pc`** — só **4 arquivos** na raiz (+ `LEIA-ME.txt`):
+
+| Arquivo | Quando |
+|---------|--------|
+| **`1-instalar.bat`** | 1ª vez no PC novo |
+| **`2-configurar.bat`** | 1ª vez (`.env` + banco Postgres opcional) |
+| **`3-subir.bat`** | Todo dia (servidor + ponte) |
+| **`4-tunel-teste.bat`** | Internet temporária (outra loja/celular) |
+
+Túnel **fixo** (produção): subpasta **`tunel_fixo\`**. Scripts internos: **`_interno\`** (ignore).
+
+1. **Git:** branch `whatsapp`, `git pull`.
+2. **`1-instalar.bat`** → **`2-configurar.bat`** → **`3-subir.bat`**
+3. Chrome local: **http://127.0.0.1:8000/atendimento-whatsapp/** (`createsuperuser` na 1ª vez).
+4. **`4-tunel-teste.bat`** com o `3` ligado — URL copiada; aceita `*.trycloudflare.com` no `.env`.
 
 ## Laboratório (PC Renan · 02/11/2026)
 
@@ -44,14 +48,14 @@ Mídia grava em **`AGRO_WA_MEDIA_ROOT`** (padrão `C:\AgroWhatsApp\Dados\media`)
 | Túnel rápido teste | OK (URL muda a cada restart) — **lab continua assim** |
 | Túnel fixo loja | ❌ **C abortado** · Renan **02/11 ~14:32** pediu **URL fixa** → **B** (domínio só Zap, sem sistvale) |
 
-**Como ligar de novo neste PC:** `whatsapp_atendimento\servidor_pc\subir_tudo.bat` (+ `tunel_rapido.bat` se precisar internet).  
+**Como ligar de novo neste PC:** `3-subir.bat` (+ `4-tunel-teste.bat` se precisar internet).  
 **Fix migrate banco novo:** seed da `0065` usa modelo histórico (senão quebra em `exibir_pdv`).
 
 ### Próximo passo — escolha Renan (túnel fixo)
 
 | Opção | O que é | Quando |
 |-------|---------|--------|
-| **A** ✅ agora | Lab com `tunel_rapido.bat` | Já funciona; URL **muda** se reiniciar o túnel. **Não** mexe PDV |
+| **A** ✅ agora | Lab com `4-tunel-teste.bat` | Já funciona; URL **muda** se reiniciar o túnel. **Não** mexe PDV |
 | **B** | Domínio **só do Zap** na Cloudflare | Não toca `sistvale.com.br` |
 | **C** ❌ abortado | `zap.sistvale.com.br` | Zona CF removida; retomar só com checklist + OK Renan |
 
@@ -95,11 +99,11 @@ URL fica tipo `https://zap.SEUDOMINIO` e **não muda**.
 6. Ponte `.env`: `AGRO_WA_DJANGO_URL=https://…` (mesmo host).
 7. Sistvale loja (quando for): `AGRO_WA_PUBLIC_ORIGIN` **ou** bookmark.
 
-`tunel_rapido.bat` = lab sem domínio (URL muda). Doc Render antiga: `docs/DEPLOY-WHATSAPP-RENDER.md`.
+`tunel_fixo/` = produção com domínio. **`4-tunel-teste.bat`** = lab sem domínio (URL muda).
 
 ## Variáveis importantes
 
-Arquivo na **raiz do repo:** `.env.wa-servidor` (modelo: `whatsapp_atendimento/servidor_pc/env.servidor.exemplo`).
+Arquivo na **raiz do repo:** `.env.wa-servidor` (modelo: `whatsapp_atendimento/servidor_pc/env.exemplo`).
 
 | Variável | Uso |
 |----------|-----|

@@ -1,26 +1,20 @@
-# Tunel rapido Cloudflare — copia URL pro clipboard e abre o login.
-# Requer Django em http://127.0.0.1:8000 e ALLOWED_HOSTS com .trycloudflare.com
+# Tunel de TESTE (URL muda se fechar a janela). Requer 3-subir.bat rodando.
 $ErrorActionPreference = "Stop"
 if (-not (Get-Command cloudflared -ErrorAction SilentlyContinue)) {
   $cf = "${env:ProgramFiles(x86)}\cloudflared\cloudflared.exe"
-  if (Test-Path $cf) { $env:Path = "$(Split-Path $cf);$env:Path" } else { throw "cloudflared nao encontrado" }
+  if (Test-Path $cf) { $env:Path = "$(Split-Path $cf);$env:Path" } else { throw "cloudflared nao encontrado — winget install Cloudflare.cloudflared" }
 }
 
 try {
   $null = Invoke-WebRequest -Uri "http://127.0.0.1:8000/healthz" -UseBasicParsing -TimeoutSec 3
 } catch {
-  Write-Host "ERRO: servidor Django nao responde em http://127.0.0.1:8000"
-  Write-Host "Rode antes: subir_servidor.bat  (ou subir_tudo.bat)"
+  Write-Host "ERRO: rode antes 3-subir.bat (servidor na porta 8000)"
   Read-Host "Enter para sair"
   exit 1
 }
 
 Write-Host ""
-Write-Host "========================================"
-Write-Host " Tunel RAPIDO WhatsApp Agro"
-Write-Host " URL muda se fechar esta janela."
-Write-Host " Link sera copiado (Ctrl+V)."
-Write-Host "========================================"
+Write-Host "Tunel TESTE — link copiado (Ctrl+V). Nao feche esta janela."
 Write-Host ""
 
 $log = Join-Path $env:TEMP "agro-wa-tunel-rapido.log"
@@ -29,8 +23,7 @@ $p = Start-Process -FilePath "cloudflared" `
   -ArgumentList @("tunnel","--url","http://127.0.0.1:8000") `
   -RedirectStandardError $log `
   -PassThru `
-  -WindowStyle Minimized `
-  -NoNewWindow:$false
+  -WindowStyle Minimized
 
 $url = $null
 for ($i = 0; $i -lt 60 -and -not $url; $i++) {
@@ -43,20 +36,14 @@ for ($i = 0; $i -lt 60 -and -not $url; $i++) {
 }
 
 if (-not $url) {
-  Write-Host "ERRO: nao achei URL trycloudflare. Log:"
+  Write-Host "ERRO: URL nao apareceu. Log:"
   if (Test-Path $log) { Get-Content $log }
-  Read-Host "Enter para sair"
+  Read-Host "Enter"
   exit 1
 }
 
 Set-Clipboard -Value $url
 Write-Host "URL: $url"
-Write-Host "Copiado pro Ctrl+V."
-Write-Host ""
-Write-Host "Chrome: $url/entrar/   (renan / 9973)"
-Write-Host "Depois:  $url/atendimento-whatsapp/"
-Write-Host ""
-Write-Host "NAO FECHE esta janela (o tunel vive nela)."
+Write-Host "Abra: $url/atendimento-whatsapp/"
 try { Start-Process "$url/entrar/" } catch {}
-
 Wait-Process -Id $p.Id

@@ -1,12 +1,12 @@
 @echo off
 chcp 65001 >nul
 setlocal
-set "REPO=%~dp0..\.."
+set "REPO=%~dp0..\..\.."
 cd /d "%REPO%"
 
 if not exist ".env.wa-servidor" (
   echo ERRO: falta .env.wa-servidor na raiz do repo.
-  echo Rode instalar_servidor.bat ou copie env.servidor.exemplo
+  echo Rode 2-configurar.bat na pasta servidor_pc
   pause
   exit /b 1
 )
@@ -19,7 +19,7 @@ if not defined AGRO_WA_MEDIA_ROOT set "AGRO_WA_MEDIA_ROOT=C:\AgroWhatsApp\Dados\
 if not exist "%AGRO_WA_MEDIA_ROOT%" mkdir "%AGRO_WA_MEDIA_ROOT%"
 
 if not exist ".venv\Scripts\python.exe" (
-  echo ERRO: rode instalar_servidor.bat primeiro.
+  echo ERRO: rode 1-instalar.bat primeiro.
   pause
   exit /b 1
 )
@@ -33,16 +33,12 @@ if errorlevel 1 (
   exit /b 1
 )
 
-echo Coletando arquivos estaticos ^(JS do chat^)...
+echo Coletando JS/CSS do chat...
 python manage.py collectstatic --noinput
-if errorlevel 1 (
-  echo AVISO: collectstatic falhou — chat pode ficar sem JS.
-)
 
 echo.
-echo Servidor em http://127.0.0.1:8000/
-echo Atendimento: http://127.0.0.1:8000/atendimento-whatsapp/
-echo Feche esta janela para parar.
-echo Para internet ^(duas lojas^): outra janela com tunel_rapido.bat
+echo Local: http://127.0.0.1:8000/atendimento-whatsapp/
+echo Internet: outra janela — 4-tunel-teste.bat
+echo Feche esta janela para parar o servidor.
 echo.
 python manage.py runserver 0.0.0.0:8000
