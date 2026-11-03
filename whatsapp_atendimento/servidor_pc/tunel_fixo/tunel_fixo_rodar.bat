@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-REM Liga o tunel FIXO ^(URL permanente^). Django precisa estar em :8000 ^(subir_servidor.bat^).
+REM Liga o tunel FIXO. Django precisa estar em :8000 ^(3-subir.bat^).
 where cloudflared >nul 2>&1
 if errorlevel 1 (
   echo ERRO: cloudflared nao encontrado.
