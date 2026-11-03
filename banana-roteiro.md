@@ -4,7 +4,7 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
-**Pronto para envio (03/11 · PR 479):** **WA-ORIGIN-PC** — 🟢 **pronto para envio à produção** · **v27.26.49** @ `b85822ba`. **Não está na loja** (loja **v27.26.48** @ `39b447ad`). Migrate **0154**. Volta: `rollback/pre-v272649-0311-wa-origin-pc`.
+**Loja (03/11 · PR 479):** **WA-ORIGIN-PC** — ✅ **Live v27.26.49** @ `b85822ba`. Migrate **0154**. Volta: `rollback/pre-v272649-0311-wa-origin-pc` (`39b447ad`). Revert: `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao`. Shell: `./scripts/post_deploy_checklist_0311_wa_origin_pc.sh`.
 
 **O que está pronto agora (31/10):** checklist único **PDV-WA-SEPARADO** — ✅ **Live v27.26.45** @ `1ef48ced`. Detalhe no `banana.md` e na **§99**.
 

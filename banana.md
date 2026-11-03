@@ -1312,21 +1312,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Ainda** | O serviço do Zap ainda precisa receber a rota do orçamento (filial `whatsapp`, ainda sem push). Sem isso o botão Loja grava na Sistvale |
 | **Não fazer** | Colocar `AGRO_WA_PUBLIC_ORIGIN` no serviço do Zap |
 
-### ✅ CHECKLIST ÚNICO — **03/11** · 🟢 **pronto para envio à produção** · **WA-ORIGIN-PC**
+### ✅ CHECKLIST ÚNICO — **03/11** · ✅ **Live v27.26.49** · **WA-ORIGIN-PC**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **WA-ORIGIN-PC** | 🟢 **Pronto para envio à produção** · `b85822ba` · **não está na loja** | **0154** | **VERIFY_OK 6** |
+| 1 | **WA-ORIGIN-PC** | ✅ **Live** `b85822ba` | **0154** | **VERIFY_OK 6** |
 
-### 📦 PACOTE PRONTO — **WA-ORIGIN-PC** · **v27.26.49**
+### 📦 LIVE — **WA-ORIGIN-PC** · **v27.26.49**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **Pronto para envio à produção**. Loja segue **v27.26.48** @ `39b447ad` |
+| **Status** | ✅ **Live** @ `b85822ba` |
 | **Entra** | O PC grava a URL HTTPS do túnel. Sem registro, o ícone segue no Zap atual |
-| **Não entra** | Instalador `.bat` do PC |
-| **Checkpoint** | `rollback/pre-v272649-0311-wa-origin-pc` = `39b447ad` |
-| **Na senha** | `./scripts/cutover_loja_checklist_0311_wa_origin_pc.sh --exec` |
+| **Checkpoint** | `rollback/pre-v272649-0311-wa-origin-pc` = **v27.26.48** @ `39b447ad` |
 | **Shell** | `./scripts/post_deploy_checklist_0311_wa_origin_pc.sh` |
 | **Revert** | `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao` |
 
@@ -1467,13 +1465,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 Pronto para envio — **WA-ORIGIN-PC** · **v27.26.49** · ainda não na loja
+### ✅ Deploy loja — **WA-ORIGIN-PC** · **Live v27.26.49** · 03/11
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 `b85822ba` · loja segue **v27.26.48** @ **`39b447ad`** |
-| **Prova** | **VERIFY_OK 6** · cutover sem `--exec` OK |
-| **Revert** | `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao` |
+| **Status** | ✅ **Live** @ **`b85822ba`** |
+| **Revert** | `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao` → **v27.26.48** @ **`39b447ad`** |
+| **Shell** | `./scripts/post_deploy_checklist_0311_wa_origin_pc.sh` |
 
 
 ### ✅ Deploy loja — **CHECKLIST 31/10** · **Live v27.26.45** · 31/10
