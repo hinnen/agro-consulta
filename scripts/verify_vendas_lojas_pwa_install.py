@@ -59,6 +59,16 @@ def main() -> int:
     check("pin_uses_install", "vendas_lojas_pwa_install.html" in pin)
     check("hub_uses_install", "vendas_lojas_pwa_install.html" in hub)
     check("hub_ajuste_btn", "vl-hub-ajuste" in hub and "vendas_lojas_ajuste_mobile" in hub)
+    check(
+        "hub_whatsapp_btn",
+        "vl-hub-whatsapp" in hub and "agro_wa_celular_url" in hub and "sistapp=1" in hub,
+    )
+    check(
+        "wa_cel_pwa_install_include",
+        "atendimento_whatsapp_celular_pwa_install.html" in read(
+            "produtos/templates/produtos/atendimento_whatsapp_celular.html"
+        ),
+    )
     check("url_ajuste_hub", "vendas_lojas_ajuste_mobile" in urls)
     check("ajuste_sessao_util", (ROOT / "produtos/vendas_lojas_ajuste_sessao_util.py").is_file())
     ext = read("produtos/templates/produtos/_agro_open_external.html")

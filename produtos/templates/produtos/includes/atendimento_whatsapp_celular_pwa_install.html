@@ -1,0 +1,257 @@
+{# Instalar Zap loja no celular — manifest scope /atendimento-whatsapp/celular/ #}
+<style>
+  .wa-cel-pwa-shell {
+    display: none;
+    margin: 0;
+    padding: 0.75rem 0.85rem;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+    background: linear-gradient(180deg, #064e3b 0%, #075e54 100%);
+  }
+  .wa-cel-pwa-shell.is-destaque {
+    padding: 1rem 0.9rem 1.1rem;
+  }
+  .wa-cel-pwa-kicker {
+    margin: 0 0 0.45rem;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #a7f3d0;
+  }
+  .wa-cel-pwa-title {
+    margin: 0 0 0.55rem;
+    font-size: 1.05rem;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.25;
+  }
+  .wa-cel-pwa-instalar {
+    display: block;
+    width: 100%;
+    min-height: 3.1rem;
+    margin: 0 0 0.5rem;
+    padding: 0 1rem;
+    border-radius: 0.95rem;
+    border: 0;
+    background: linear-gradient(180deg, #34d399, #25d366);
+    color: #064e3b;
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    box-shadow: 0 0.35rem 0.85rem rgba(0, 0, 0, 0.25);
+  }
+  .wa-cel-pwa-instalar:disabled {
+    opacity: 0.55;
+    cursor: default;
+    box-shadow: none;
+  }
+  .wa-cel-pwa-instalar:not(:disabled):active {
+    transform: translateY(1px);
+  }
+  .wa-cel-pwa-skip {
+    display: block;
+    width: 100%;
+    min-height: 2.5rem;
+    margin: 0;
+    padding: 0 0.75rem;
+    border-radius: 0.85rem;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: transparent;
+    color: #ecfdf5;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .wa-cel-pwa-steps {
+    margin: 0;
+    padding: 0.6rem 0.7rem;
+    border-radius: 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.4;
+    display: none;
+  }
+  .wa-cel-pwa-steps.is-on {
+    display: block;
+  }
+  .wa-cel-pwa-steps--ios {
+    background: rgba(0, 0, 0, 0.22);
+    color: #ecfdf5;
+  }
+  .wa-cel-pwa-steps--android {
+    background: rgba(0, 0, 0, 0.18);
+    color: #d1fae5;
+  }
+  .wa-cel-pwa-steps--inapp {
+    background: #7c2d12;
+    color: #fff7ed;
+    border: 1px solid #fdba74;
+  }
+  .wa-cel-pwa-foot {
+    margin: 0.4rem 0 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #a7f3d0;
+    line-height: 1.35;
+  }
+</style>
+<div id="wa-cel-pwa-shell" class="wa-cel-pwa-shell{% if wa_pwa_destaque %} is-destaque{% endif %}">
+  <p class="wa-cel-pwa-kicker">App no celular</p>
+  <p class="wa-cel-pwa-title">Instale o <strong>Zap loja</strong> na tela inicial — ícone verde, separado do SistApp.</p>
+  <button type="button" id="wa-cel-pwa-instalar" class="wa-cel-pwa-instalar" disabled>
+    Instalar Zap loja
+  </button>
+  <button type="button" id="wa-cel-pwa-skip" class="wa-cel-pwa-skip">
+    Já instalei — usar no navegador
+  </button>
+  <p id="wa-cel-pwa-inapp" class="wa-cel-pwa-steps wa-cel-pwa-steps--inapp">
+    Abriu pelo WhatsApp ou outro app? Toque <strong>⋮</strong> ou <strong>Compartilhar</strong> → <strong>Abrir no Chrome</strong> (Android) ou <strong>Safari</strong> (iPhone). Depois toque <strong>Instalar Zap loja</strong>.
+  </p>
+  <p id="wa-cel-pwa-ios" class="wa-cel-pwa-steps wa-cel-pwa-steps--ios">
+    No <strong>iPhone</strong>: toque <strong>Compartilhar</strong> (quadrado com seta) → <strong>Adicionar à Tela de Início</strong>. O ícone <strong>Zap loja</strong> abre em tela cheia.
+  </p>
+  <p id="wa-cel-pwa-android" class="wa-cel-pwa-steps wa-cel-pwa-steps--android">
+    No <strong>Android</strong>: quando o botão verde acender, toque nele. Se não acender: menu <strong>⋮</strong> do Chrome → <strong>Instalar app</strong> ou <strong>Adicionar à tela inicial</strong>.
+  </p>
+  <p class="wa-cel-pwa-foot" id="wa-cel-pwa-foot"></p>
+</div>
+<script>
+(function () {
+  var destaque = {% if wa_pwa_destaque %}true{% else %}false{% endif %};
+  var deferred;
+  var shell = document.getElementById("wa-cel-pwa-shell");
+  var btn = document.getElementById("wa-cel-pwa-instalar");
+  var skip = document.getElementById("wa-cel-pwa-skip");
+  var foot = document.getElementById("wa-cel-pwa-foot");
+  var headerBtn = document.getElementById("wa-pwa-instalar");
+  var steps = {
+    inapp: document.getElementById("wa-cel-pwa-inapp"),
+    ios: document.getElementById("wa-cel-pwa-ios"),
+    android: document.getElementById("wa-cel-pwa-android"),
+  };
+
+  function ua() {
+    return String(navigator.userAgent || "");
+  }
+  function ehStandalone() {
+    try {
+      if (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) return true;
+      if (window.navigator && window.navigator.standalone) return true;
+    } catch (_) {}
+    return false;
+  }
+  function ehIos() {
+    return /iPhone|iPad|iPod/i.test(ua());
+  }
+  function ehAndroid() {
+    return /Android/i.test(ua());
+  }
+  function ehInAppBrowser() {
+    var u = ua();
+    if (/WhatsApp|FBAN|FBAV|Instagram|Line\//i.test(u)) return true;
+    if (/wv\)/i.test(u) && ehAndroid()) return true;
+    return false;
+  }
+  function showStep(key) {
+    Object.keys(steps).forEach(function (k) {
+      if (steps[k]) steps[k].classList.toggle("is-on", k === key);
+    });
+  }
+  function setBtnReady(ready) {
+    if (!btn) return;
+    btn.disabled = !ready;
+    btn.textContent = ready ? "Instalar agora" : "Instalar Zap loja";
+    if (headerBtn && ready) headerBtn.style.display = "inline-flex";
+  }
+  function hideShell() {
+    if (shell) shell.style.display = "none";
+    if (headerBtn) headerBtn.style.display = "none";
+    var iosOld = document.getElementById("wa-pwa-ios");
+    if (iosOld) iosOld.style.display = "none";
+  }
+
+  if (ehStandalone()) {
+    hideShell();
+    return;
+  }
+  if (shell) shell.style.display = "block";
+
+  if (ehInAppBrowser()) {
+    showStep("inapp");
+    setBtnReady(false);
+    if (foot) foot.textContent = "Passo 1: abrir no Chrome ou Safari.";
+  } else if (ehIos()) {
+    showStep("ios");
+    setBtnReady(false);
+    if (foot) foot.textContent = "Use Compartilhar → Adicionar à Tela de Início.";
+  } else if (ehAndroid()) {
+    showStep("android");
+    setBtnReady(false);
+    if (foot) foot.textContent = "Aguardando o Chrome liberar instalação…";
+  } else {
+    showStep("android");
+    setBtnReady(false);
+  }
+
+  window.addEventListener("beforeinstallprompt", function (e) {
+    e.preventDefault();
+    deferred = e;
+    setBtnReady(true);
+    if (foot) foot.textContent = "Toque no botão verde para instalar.";
+    showStep("android");
+  });
+
+  if (btn) {
+    btn.addEventListener("click", function () {
+      if (deferred) {
+        deferred.prompt();
+        deferred.userChoice.finally(function () {
+          deferred = null;
+          setBtnReady(false);
+        });
+        return;
+      }
+      if (ehIos() && steps.ios) {
+        steps.ios.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      } else if (steps.android) {
+        steps.android.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    });
+  }
+  if (skip) {
+    skip.addEventListener("click", function () {
+      hideShell();
+      try {
+        localStorage.setItem("agro_wa_cel_pwa_skip_v1", "1");
+      } catch (_) {}
+    });
+  }
+  if (!destaque) {
+    try {
+      if (localStorage.getItem("agro_wa_cel_pwa_skip_v1") === "1") hideShell();
+    } catch (_) {}
+  }
+
+  window.addEventListener("appinstalled", function () {
+    hideShell();
+  });
+
+  if (headerBtn) {
+    headerBtn.addEventListener("click", function () {
+      if (deferred) {
+        deferred.prompt();
+        deferred.userChoice.finally(function () {
+          deferred = null;
+          setBtnReady(false);
+        });
+      } else if (shell) {
+        shell.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  }
+})();
+</script>
