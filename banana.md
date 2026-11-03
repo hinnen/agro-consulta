@@ -1312,6 +1312,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Ainda** | O serviço do Zap ainda precisa receber a rota do orçamento (filial `whatsapp`, ainda sem push). Sem isso o botão Loja grava na Sistvale |
 | **Não fazer** | Colocar `AGRO_WA_PUBLIC_ORIGIN` no serviço do Zap |
 
+### ✅ CHECKLIST ÚNICO — **03/11c** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **RH-HOLERITE-VISUAL** | 🟢 **pronto para envio** | **NÃO** | outubro 2.000 / 870 / líquido 1.084,29 · vale curto · **VERIFY_OK 5** |
+
+### 📦 PACOTE PRONTO — **RH-HOLERITE-VISUAL** · **v27.26.48**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **Pronto para envio à produção** (frase + senha). Ainda não está na loja |
+| **Entra** | Impressão da folha no modelo Agro Mais: A4 em pé, via do funcionário e via da empresa. Vale na via fica `Vale — data — nome`. Líquido, pago e Excel não mudam |
+| **Alvo** | **v27.26.48** · PREP `deploy/prep-checklist-0311c-rh-holerite-visual` |
+| **Checkpoint** | `rollback/pre-v272648-0311c-rh-holerite-visual` = loja atual **v27.26.47** @ `7c9e5326` |
+| **Revert** | `git push origin rollback/pre-v272648-0311c-rh-holerite-visual:producao` |
+| **Migrate** | **NÃO** · Shell `./scripts/post_deploy_checklist_0311c_rh_holerite_visual.sh` |
+| **Na senha** | `./scripts/cutover_loja_checklist_0311c_rh_holerite_visual.sh` (sem --exec) · se OK, `--exec` com frase + senha |
+| **Prova** | Outubro: proventos 2.164,52, descontos 1.080,23, líquido 1.084,29, pago 1,11 permanece. Vale impresso sem o texto longo do caixa |
+| **Não fazer** | Merge de `teste`. Setor, PIS e endereço não são inventados |
+
 ### ✅ CHECKLIST ÚNICO — **03/11b** · ✅ **enviado à loja v27.26.47**
 
 | # | Pacote | Status | Migrate | Prova |
