@@ -24,6 +24,7 @@
         <select name="empresa" class="rounded-lg border-2 border-slate-200 px-2 py-2 font-semibold"><option value="">Empresa</option>{% for e in empresas %}<option value="{{ e.pk }}" {% if request.GET.empresa == e.pk|stringformat:"i" %}selected{% endif %}>{{ e.nome_fantasia }}</option>{% endfor %}</select>
         <select name="status" class="rounded-lg border-2 border-slate-200 px-2 py-2 font-semibold"><option value="" {% if not request.GET.status %}selected{% endif %}>Status (todos)</option><option value="ABERTO" {% if request.GET.status == "ABERTO" %}selected{% endif %}>Aberto</option><option value="PAGO_PARCIAL" {% if request.GET.status == "PAGO_PARCIAL" %}selected{% endif %}>Pago parcial</option><option value="FECHADO" {% if request.GET.status == "FECHADO" %}selected{% endif %}>Fechado</option><option value="PAGO" {% if request.GET.status == "PAGO" %}selected{% endif %}>Pago</option></select>
         <button type="submit" class="px-4 py-2 rounded-xl bg-slate-800 text-white font-black uppercase">Filtrar</button>
+        <a href="{% url 'rh_fechamentos_excel' %}?{{ request.GET.urlencode }}" class="min-h-[40px] inline-flex items-center px-4 py-2 rounded-xl border-2 border-emerald-700 bg-emerald-50 text-emerald-900 font-black uppercase">Excel</a>
       </form>
       <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm min-w-0">
         <table class="w-full text-sm">
@@ -42,7 +43,7 @@
               <td class="py-2 px-2 text-right font-mono font-black tabular-nums whitespace-nowrap">R$&nbsp;{{ f.valor_liquido_previsto|floatformat:2 }}</td>
               <td class="py-2 px-2 text-right font-mono tabular-nums whitespace-nowrap">R$&nbsp;{{ f.valor_pago|floatformat:2 }}</td>
               <td class="py-2 px-2">{{ f.get_status_display }}</td>
-              <td class="py-2 px-2"><a href="{% url 'rh_fechamento_detalhe' f.pk %}" class="text-emerald-800 font-bold underline">Abrir</a></td>
+              <td class="py-2 px-2 whitespace-nowrap"><a href="{% url 'rh_fechamento_detalhe' f.pk %}" class="text-emerald-800 font-bold underline">Abrir</a> · <a href="{% url 'rh_fechamento_imprimir' f.pk %}" target="_blank" class="text-slate-800 font-bold underline">Imprimir</a></td>
             </tr>
             {% empty %}<tr><td colspan="8" class="py-6 text-center text-slate-500">Nenhum fechamento.</td></tr>{% endfor %}
           </tbody>

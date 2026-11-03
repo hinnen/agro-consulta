@@ -11,7 +11,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Q, Sum
-from django.http import HttpResponseForbidden, JsonResponse
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -42,6 +42,7 @@ from rh.models import (
 )
 
 from produtos.views import obter_conexao_mongo
+from rh.services.folha_export import linhas_para_holerite, xlsx_fechamentos
 from rh.services.fechamento import (
     garantir_fechamento_aberto,
     garantir_linhas_dos_totais_antigos,
@@ -509,8 +510,7 @@ def rh_funcionario_vale_cancelar(request, pk: int, vale_id: int):
     return redirect("rh_funcionario_ficha", pk=f.pk)
 
 
-@gestao_rh_required
-def rh_fechamentos_lista(request):
+def _fechamentos_filtrados(request):
     qs = FechamentoFolhaSimplificado.objects.select_related(
         "funcionario",
         "funcionario__cliente_agro",
@@ -535,12 +535,52 @@ def rh_fechamentos_lista(request):
     st = request.GET.get("status")
     if st:
         qs = qs.filter(status=st)
+    return qs.order_by("-competencia", "funcionario__nome_cache")
+
+
+@gestao_rh_required
+def rh_fechamentos_lista(request):
     return render(
         request,
         "rh/fechamentos_lista.html",
         {
-            "fechamentos": qs.order_by("-competencia", "funcionario__nome_cache")[:500],
+            "fechamentos": _fechamentos_filtrados(request)[:500],
             "empresas": Empresa.objects.filter(ativo=True).order_by("nome_fantasia"),
+        },
+    )
+
+
+@gestao_rh_required
+@require_GET
+def rh_fechamentos_excel(request):
+    qs = _fechamentos_filtrados(request)
+    payload = xlsx_fechamentos(qs)
+    resp = HttpResponse(
+        payload,
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    resp["Content-Disposition"] = 'attachment; filename="fechamentos-rh.xlsx"'
+    return resp
+
+
+@gestao_rh_required
+@require_GET
+def rh_fechamento_imprimir(request, pk: int):
+    f = get_object_or_404(
+        FechamentoFolhaSimplificado.objects.select_related(
+            "funcionario",
+            "funcionario__cliente_agro",
+            "empresa",
+        ).prefetch_related("itens"),
+        pk=pk,
+    )
+    return render(
+        request,
+        "rh/fechamento_imprimir.html",
+        {
+            "fechamento": f,
+            "linhas": linhas_para_holerite(f),
+            "vias": ("Via do funcionário", "Via da empresa"),
         },
     )
 

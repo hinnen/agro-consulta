@@ -26,7 +26,10 @@
         <h1 class="text-lg sm:text-xl font-black uppercase text-slate-900 leading-tight">{{ fechamento.funcionario.nome_exibicao }}</h1>
         <p class="text-sm font-bold text-slate-600 mt-0.5">{{ fechamento.competencia|date:"F Y" }} · {{ fechamento.get_status_display }}</p>
       </div>
-      <a href="{% url 'rh_fechamentos_lista' %}" class="min-h-[44px] shrink-0 inline-flex items-center px-4 py-2 rounded-xl text-sm font-black uppercase border-2 border-slate-200 bg-white text-emerald-800 hover:bg-slate-50">← Lista</a>
+      <div class="flex flex-wrap gap-2 shrink-0">
+        <a href="{% url 'rh_fechamento_imprimir' fechamento.pk %}" target="_blank" class="min-h-[44px] inline-flex items-center px-4 py-2 rounded-xl text-sm font-black uppercase border-2 border-slate-900 bg-slate-900 text-white hover:bg-slate-800">Imprimir folha</a>
+        <a href="{% url 'rh_fechamentos_lista' %}" class="min-h-[44px] inline-flex items-center px-4 py-2 rounded-xl text-sm font-black uppercase border-2 border-slate-200 bg-white text-emerald-800 hover:bg-slate-50">← Lista</a>
+      </div>
     </div>
   </header>
   <main class="flex-1 min-h-0 overflow-y-auto overscroll-contain">

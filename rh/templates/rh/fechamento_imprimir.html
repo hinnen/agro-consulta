@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Folha {{ fechamento.funcionario.nome_exibicao }} {{ fechamento.competencia|date:"m/Y" }}</title>
+  <style>
+    @page { size: A4 portrait; margin: 8mm; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #fff; color: #111; font-family: Arial, Helvetica, sans-serif; }
+    .no-print { margin: 0 0 8px; }
+    .no-print button { min-height: 48px; padding: 0 18px; font-size: 16px; font-weight: 800; }
+    .folha { width: 194mm; height: 281mm; display: flex; flex-direction: column; }
+    .via { flex: 1 1 50%; min-height: 0; overflow: hidden; padding: 2mm 1mm 3mm; }
+    .via + .via { border-top: 1.5px dashed #111; }
+    .topo { display: flex; justify-content: space-between; gap: 8px; align-items: flex-end; border-bottom: 2px solid #111; padding-bottom: 2mm; }
+    h1 { margin: 0; font-size: 16pt; line-height: 1.1; text-transform: uppercase; }
+    .meta { margin: 1mm 0 0; font-size: 11pt; font-weight: 700; }
+    .via-nome { font-size: 10pt; font-weight: 800; text-transform: uppercase; }
+    table { width: 100%; border-collapse: collapse; margin-top: 2mm; }
+    td { font-size: 10.5pt; padding: 1px 0; vertical-align: top; }
+    td.valor { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 800; }
+    .menos { color: #111; }
+    .totais { margin-top: 2mm; border-top: 2px solid #111; padding-top: 1.5mm; }
+    .totais p { margin: 0; font-size: 12pt; font-weight: 800; display: flex; justify-content: space-between; }
+    .liquido { font-size: 14pt; }
+    .obs { margin-top: 2mm; font-size: 9pt; white-space: pre-wrap; }
+    .assinatura { margin-top: 4mm; display: flex; justify-content: space-between; gap: 10mm; font-size: 9pt; }
+    .linha { flex: 1; border-top: 1px solid #111; margin-top: 8mm; padding-top: 1mm; text-align: center; }
+    @media print { .no-print { display: none; } }
+  </style>
+</head>
+<body>
+  <p class="no-print"><button type="button" onclick="window.print()">Imprimir as duas vias</button></p>
+  <div class="folha">
+    {% for via in vias %}
+    <section class="via">
+      <div class="topo">
+        <div>
+          <h1>{{ fechamento.funcionario.nome_exibicao }}</h1>
+          <p class="meta">{{ fechamento.competencia|date:"F Y" }} · {{ fechamento.empresa.nome_fantasia }} · {{ fechamento.get_status_display }}</p>
+        </div>
+        <div class="via-nome">{{ via }}</div>
+      </div>
+      <table>
+        {% for ln in linhas %}
+        <tr>
+          <td>{{ ln.nome }}</td>
+          <td class="valor">{% if ln.sinal < 0 %}−{% else %}+{% endif %} R$ {{ ln.valor|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+      <div class="totais">
+        <p class="liquido"><span>Líquido</span><span>R$ {{ fechamento.valor_liquido_previsto|floatformat:2 }}</span></p>
+        <p><span>Valor pago</span><span>R$ {{ fechamento.valor_pago|floatformat:2 }}</span></p>
+      </div>
+      {% if fechamento.observacoes %}
+      <div class="obs">{{ fechamento.observacoes }}</div>
+      {% endif %}
+      <div class="assinatura">
+        <div class="linha">Funcionário</div>
+        <div class="linha">Empresa</div>
+      </div>
+    </section>
+    {% endfor %}
+  </div>
+</body>
+</html>
