@@ -6,11 +6,16 @@ from django.urls import reverse
 
 
 def agro_wa_public_origin() -> str:
-    return (getattr(settings, "AGRO_WA_PUBLIC_ORIGIN", "") or "").strip().rstrip("/")
+    from produtos.agro_wa_public_origin_store import agro_wa_public_origin_efetiva
+
+    return agro_wa_public_origin_efetiva()
 
 
 def agro_wa_path_is_split_target(path: str) -> bool:
     p = (path or "").lower()
+    # O PC avisa a Sistvale nesta rota. Se ela redirecionar, o túnel nunca grava.
+    if p.startswith("/api/atendimento-whatsapp/registrar-origin-publica"):
+        return False
     if p.startswith("/atendimento-whatsapp"):
         return True
     if p.startswith("/api/atendimento-whatsapp/"):

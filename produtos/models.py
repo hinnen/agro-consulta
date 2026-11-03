@@ -3895,6 +3895,22 @@ class PdvRapidoLayoutAgro(models.Model):
         return f"rápidos:{self.chave}"
 
 
+class WhatsAppPublicOriginAgro(models.Model):
+    """URL HTTPS do servidor WhatsApp (PC + túnel), atualizada automaticamente pelo PC da loja."""
+
+    chave = models.CharField(max_length=32, unique=True, default="default")
+    origin = models.CharField(max_length=512, blank=True, default="")
+    fonte = models.CharField(max_length=32, blank=True, default="pc")
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "WhatsApp — URL pública (PC)"
+        verbose_name_plural = "WhatsApp — URL pública (PC)"
+
+    def __str__(self):
+        return (self.origin or "(vazio)")[:80]
+
+
 class WhatsAppPonteEstadoAgro(models.Model):
     """Singleton da ponte QR (PC da loja ↔ Django)."""
 
