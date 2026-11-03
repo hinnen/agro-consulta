@@ -2,11 +2,18 @@ from decimal import Decimal
 
 from django import forms
 from django.core.exceptions import ValidationError
+from django.forms.models import BaseModelFormSet, modelformset_factory
 from base.models import Loja
 
 from produtos.models import ClienteAgro
 
-from .models import FechamentoFolhaSimplificado, Funcionario, HistoricoSalarial, ValeFuncionario
+from .models import (
+    AjusteManualFolha,
+    FechamentoFolhaSimplificado,
+    Funcionario,
+    HistoricoSalarial,
+    ValeFuncionario,
+)
 
 
 class FuncionarioForm(forms.ModelForm):
@@ -244,10 +251,13 @@ class FechamentoTituloFinanceiroForm(forms.Form):
 class FechamentoEditForm(forms.ModelForm):
     class Meta:
         model = FechamentoFolhaSimplificado
-        fields = ("outros_descontos", "outros_proventos", "observacoes", "valor_pago", "status")
+        fields = ("observacoes", "valor_pago", "status")
+        labels = {
+            "observacoes": "Observações",
+            "valor_pago": "Valor pago",
+            "status": "Status",
+        }
         widgets = {
-            "outros_descontos": forms.NumberInput(attrs={"class": _FECH_INP, "step": "0.01"}),
-            "outros_proventos": forms.NumberInput(attrs={"class": _FECH_INP, "step": "0.01"}),
             "valor_pago": forms.NumberInput(attrs={"class": _FECH_INP, "step": "0.01"}),
             "observacoes": forms.Textarea(
                 attrs={
@@ -257,6 +267,102 @@ class FechamentoEditForm(forms.ModelForm):
             ),
             "status": forms.Select(attrs={"class": _FECH_INP + " font-bold"}),
         }
+
+
+class AjusteManualFolhaForm(forms.ModelForm):
+    class Meta:
+        model = AjusteManualFolha
+        fields = ("tipo", "descricao", "valor")
+        labels = {
+            "tipo": "Tipo",
+            "descricao": "Nome na folha",
+            "valor": "Valor",
+        }
+        widgets = {
+            "tipo": forms.Select(attrs={"class": _FECH_INP + " font-bold"}),
+            "descricao": forms.TextInput(
+                attrs={
+                    "class": _FECH_INP,
+                    "placeholder": "Ex.: INSS, bônus da meta, gratificação",
+                    "maxlength": "200",
+                }
+            ),
+            "valor": forms.NumberInput(
+                attrs={"class": _FECH_INP, "step": "0.01", "min": "0.01", "inputmode": "decimal"}
+            ),
+        }
+
+    def has_changed(self):
+        if self.instance.pk:
+            return super().has_changed()
+        desc = (self.data.get(self.add_prefix("descricao")) or "").strip() if self.data else ""
+        valor = (self.data.get(self.add_prefix("valor")) or "").strip() if self.data else ""
+        if not desc and not valor:
+            return False
+        return super().has_changed()
+
+    def clean_valor(self):
+        valor = self.cleaned_data.get("valor")
+        if valor is not None and valor < 0:
+            raise ValidationError("O valor fica sempre positivo. Escolha Desconto ou Acréscimo.")
+        return valor
+
+    def clean(self):
+        data = super().clean()
+        if self.errors or data.get("DELETE"):
+            return data
+        desc = (data.get("descricao") or "").strip()
+        valor = data.get("valor")
+        tem_valor = valor is not None and valor != Decimal("0")
+        if not desc and not tem_valor:
+            data["descricao"] = ""
+            return data
+        if tem_valor and not desc:
+            self.add_error("descricao", "Dê um nome (ex.: INSS, bônus da meta, gratificação).")
+        if desc and (valor is None or valor <= 0):
+            self.add_error("valor", "Informe um valor maior que zero.")
+        data["descricao"] = desc
+        return data
+
+
+class BaseAjusteManualFormSet(BaseModelFormSet):
+    def __init__(self, *args, fechamento=None, **kwargs):
+        self.fechamento = fechamento
+        super().__init__(*args, **kwargs)
+
+    def save(self, commit=True):
+        instances = super().save(commit=False)
+        if not commit:
+            return instances
+        for obj in self.deleted_objects:
+            if obj.pk:
+                obj.delete()
+        for obj in instances:
+            obj.fechamento = self.fechamento
+            obj.save()
+        ordem = 0
+        for form in self.forms:
+            cd = getattr(form, "cleaned_data", None) or {}
+            inst = form.instance
+            if not cd or cd.get("DELETE") or not inst.pk:
+                continue
+            if not (inst.descricao or "").strip() or not inst.valor:
+                inst.delete()
+                continue
+            if inst.ordem != ordem:
+                inst.ordem = ordem
+                inst.save(update_fields=["ordem"])
+            ordem += 1
+        return instances
+
+
+AjusteManualFormSet = modelformset_factory(
+    AjusteManualFolha,
+    form=AjusteManualFolhaForm,
+    formset=BaseAjusteManualFormSet,
+    extra=1,
+    can_delete=True,
+)
 
 
 class ImportarValesForm(forms.Form):

@@ -6,6 +6,8 @@
 
 **O que está pronto agora (31/10):** checklist único **PDV-WA-SEPARADO** — ✅ **Live v27.26.45** @ `1ef48ced`. Detalhe no `banana.md` e na **§99**.
 
+**Para subir (03/11):** checklist único **§106 RH-FOLHA-LINHAS** — 🟢 pronto para envio. Migrate `rh.0007`. Ainda não está na loja.
+
 ---
 
 ---
@@ -1158,6 +1160,16 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | 1 | **ETQ-NF-SEM-EXATO** | ✅ **Live** | **NÃO** | **VERIFY_OK 30/30** |
 
 **Loja git:** `producao` @ **`93912908`**. **Revert:** `rollback/pre-v272615-2010b-etq-nf-sem-exato` → **v27.26.14** @ **`e4c308dd`**. **Shell:** `post_deploy_checklist_2010b_etq_nf_sem_exato.sh`.
+
+---
+
+## 106. CHECKLIST ÚNICO — **03/11** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **RH-FOLHA-LINHAS** | 🟢 Pronto | **SIM** `rh.0007` | 164,52 + 210,23 ficam · pagamento fica · observação fica |
+
+Folha: cada desconto e acréscimo vira uma linha. Totais já lançados são copiados. Não está na loja até frase + senha.
 
 ---
 

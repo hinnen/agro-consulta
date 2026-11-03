@@ -9,6 +9,7 @@ from django.db import transaction
 from django.db.models import Q, Sum
 
 from rh.models import (
+    AjusteManualFolha,
     FechamentoFolhaSimplificado,
     Funcionario,
     HistoricoSalarial,
@@ -79,6 +80,40 @@ def salario_vigente_para_competencia(funcionario: Funcionario, competencia: date
     return legado.salario_base if legado else Decimal("0")
 
 
+def linhas_legadas_dos_totais(proventos, descontos) -> list[tuple[str, str, Decimal]]:
+    prov = money_two_decimals(proventos)
+    desc = money_two_decimals(descontos)
+    linhas: list[tuple[str, str, Decimal]] = []
+    if prov > 0:
+        linhas.append((AjusteManualFolha.Tipo.ACRESCIMO, "Outros proventos", prov))
+    elif prov < 0:
+        linhas.append((AjusteManualFolha.Tipo.DESCONTO, "Outros proventos", abs(prov)))
+    if desc > 0:
+        linhas.append((AjusteManualFolha.Tipo.DESCONTO, "Outros descontos", desc))
+    elif desc < 0:
+        linhas.append((AjusteManualFolha.Tipo.ACRESCIMO, "Outros descontos", abs(desc)))
+    return linhas
+
+
+def garantir_linhas_dos_totais_antigos(f: FechamentoFolhaSimplificado) -> None:
+    """Copia os totais já gravados uma vez. Não recria linha que o usuário apagou."""
+    if f.ajustes_manuais_inicializados:
+        return
+    if not f.ajustes_manuais.exists():
+        for ordem, (tipo, descricao, valor) in enumerate(
+            linhas_legadas_dos_totais(f.outros_proventos, f.outros_descontos)
+        ):
+            AjusteManualFolha.objects.create(
+                fechamento=f,
+                tipo=tipo,
+                descricao=descricao,
+                valor=valor,
+                ordem=ordem,
+            )
+    f.ajustes_manuais_inicializados = True
+    f.save(update_fields=["ajustes_manuais_inicializados"])
+
+
 def total_vales_mes(funcionario: Funcionario, ano: int, mes: int) -> Decimal:
     ini = date(ano, mes, 1)
     fim = date(ano, mes, monthrange(ano, mes)[1])
@@ -97,11 +132,19 @@ def recalcular_fechamento(f: FechamentoFolhaSimplificado) -> FechamentoFolhaSimp
     y, m = comp.year, comp.month
     sal = salario_vigente_para_competencia(f.funcionario, comp)
     vales = total_vales_mes(f.funcionario, y, m)
+    garantir_linhas_dos_totais_antigos(f)
+    ajustes = list(f.ajustes_manuais.order_by("ordem", "id"))
+    proventos = money_two_decimals(
+        sum((a.valor for a in ajustes if a.tipo == AjusteManualFolha.Tipo.ACRESCIMO), Decimal("0"))
+    )
+    descontos = money_two_decimals(
+        sum((a.valor for a in ajustes if a.tipo == AjusteManualFolha.Tipo.DESCONTO), Decimal("0"))
+    )
     f.salario_base_na_competencia = sal
     f.total_vales = vales
-    f.valor_liquido_previsto = money_two_decimals(
-        sal + f.outros_proventos - f.outros_descontos - vales
-    )
+    f.outros_proventos = proventos
+    f.outros_descontos = descontos
+    f.valor_liquido_previsto = money_two_decimals(sal + proventos - descontos - vales)
     f.save()
 
     f.itens.all().delete()
@@ -170,23 +213,24 @@ def recalcular_fechamento(f: FechamentoFolhaSimplificado) -> FechamentoFolhaSimp
             ordem=ordem,
         )
         ordem += 1
-    if f.outros_proventos and f.outros_proventos != Decimal("0"):
+    for a in ajustes:
+        if not a.valor or a.valor == Decimal("0"):
+            continue
+        tipo_item = (
+            ItemFechamentoFolha.Tipo.ACRESCIMO
+            if a.tipo == AjusteManualFolha.Tipo.ACRESCIMO
+            else ItemFechamentoFolha.Tipo.DESCONTO
+        )
         ItemFechamentoFolha.objects.create(
             fechamento=f,
-            tipo=ItemFechamentoFolha.Tipo.ACRESCIMO,
-            descricao="Outros proventos",
-            valor=f.outros_proventos,
+            tipo=tipo_item,
+            descricao=(a.descricao or "").strip() or a.get_tipo_display(),
+            valor=a.valor,
+            referencia_tipo="AjusteManualFolha",
+            referencia_id=str(a.pk),
             ordem=ordem,
         )
         ordem += 1
-    if f.outros_descontos and f.outros_descontos != Decimal("0"):
-        ItemFechamentoFolha.objects.create(
-            fechamento=f,
-            tipo=ItemFechamentoFolha.Tipo.DESCONTO,
-            descricao="Outros descontos",
-            valor=f.outros_descontos,
-            ordem=ordem,
-        )
     from rh.services.pagamento_salario import total_pagamentos_salario_fechamento
 
     f.valor_pago = total_pagamentos_salario_fechamento(f)
@@ -205,6 +249,7 @@ def garantir_fechamento_aberto(funcionario: Funcionario, competencia: date) -> F
             "total_vales": Decimal("0"),
             "outros_descontos": Decimal("0"),
             "outros_proventos": Decimal("0"),
+            "ajustes_manuais_inicializados": True,
             "valor_liquido_previsto": Decimal("0"),
             "valor_pago": Decimal("0"),
             "status": FechamentoFolhaSimplificado.Status.ABERTO,

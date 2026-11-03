@@ -1,6 +1,7 @@
 from django.contrib import admin, messages
 
 from .models import (
+    AjusteManualFolha,
     FechamentoFolhaSimplificado,
     Funcionario,
     HistoricoSalarial,
@@ -94,6 +95,11 @@ class PagamentoSalarioFuncionarioAdmin(admin.ModelAdmin):
             self.message_user(request, e, messages.ERROR)
 
 
+class AjusteManualInline(admin.TabularInline):
+    model = AjusteManualFolha
+    extra = 0
+
+
 class ItemFechamentoInline(admin.TabularInline):
     model = ItemFechamentoFolha
     extra = 0
@@ -114,7 +120,7 @@ class FechamentoFolhaAdmin(admin.ModelAdmin):
     )
     list_filter = ("status", "empresa", "competencia")
     search_fields = ("mongo_lancamento_salario_id", "funcionario__nome_cache")
-    inlines = [ItemFechamentoInline]
+    inlines = [AjusteManualInline, ItemFechamentoInline]
 
 
 @admin.register(InconsistenciaIntegracaoRh)

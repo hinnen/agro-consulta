@@ -1312,6 +1312,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Ainda** | O serviço do Zap ainda precisa receber a rota do orçamento (filial `whatsapp`, ainda sem push). Sem isso o botão Loja grava na Sistvale |
 | **Não fazer** | Colocar `AGRO_WA_PUBLIC_ORIGIN` no serviço do Zap |
 
+### ✅ CHECKLIST ÚNICO — **03/11** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **RH-FOLHA-LINHAS** | 🟢 Pronto | **SIM** `rh.0007` | totais 164,52 e 210,23 ficam · pagamento de salário fica · observação fica |
+
+### 📦 PACOTE PRONTO — **RH-FOLHA-LINHAS** · 03/11
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **Pronto para envio à produção** (frase + senha). Ainda não está na loja |
+| **Entra** | Desconto e acréscimo da folha viram linhas com nome e valor. O total antigo vira uma linha com o mesmo valor. Observação não é apagada |
+| **Migrate** | **SIM** `rh.0007` |
+| **Prova** | Líquido 1.954,29 · valor pago 500 permanece · salvar de novo não duplica nem zera |
+| **Não fazer** | Subir sem frase + senha |
+
 ### 📦 PACOTE PRONTO — **AJUSTE-BLOCO-TELA** · **v27.26.39** · PREP `teste` @ **`d466d62f`**
 
 | Campo | Valor |

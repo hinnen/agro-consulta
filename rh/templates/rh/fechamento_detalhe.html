@@ -88,7 +88,7 @@
               {% for it in fechamento.itens.all %}
               <li class="flex flex-wrap justify-between gap-2 items-baseline border-b border-slate-100 pb-1.5">
                 <span class="font-semibold text-slate-800 leading-snug min-w-0">{{ it.get_tipo_display }} — {{ it.descricao }}</span>
-                <span class="font-mono font-black text-base tabular-nums shrink-0 whitespace-nowrap">R$&nbsp;{{ it.valor|floatformat:2 }}</span>
+                <span class="font-mono font-black text-base tabular-nums shrink-0 whitespace-nowrap {% if it.tipo == 'DESCONTO' or it.tipo == 'VALE' %}text-red-800{% elif it.tipo == 'ACRESCIMO' %}text-emerald-800{% endif %}">{% if it.tipo == 'DESCONTO' or it.tipo == 'VALE' %}−{% elif it.tipo == 'ACRESCIMO' %}+{% endif %} R$&nbsp;{{ it.valor|floatformat:2 }}</span>
               </li>
               {% empty %}
               <li class="text-slate-400 font-semibold text-sm">—</li>
@@ -109,8 +109,43 @@
             <span>1 · Ajustes da folha</span>
           </summary>
           <div class="p-4">
-            <form method="post" action="{% url 'rh_fechamento_salvar' fechamento.pk %}" class="space-y-3">
+            <form method="post" action="{% url 'rh_fechamento_salvar' fechamento.pk %}" class="space-y-3" id="form-ajustes-folha">
               {% csrf_token %}
+              <div class="space-y-2">
+                <p class="text-[11px] font-black uppercase text-slate-600 tracking-wide">Descontos e acréscimos</p>
+                <p class="text-sm font-semibold text-slate-700">Uma linha para cada lançamento. A soma entra no líquido.</p>
+                <p class="text-sm font-black text-slate-800">Acréscimos R$&nbsp;{{ fechamento.outros_proventos|floatformat:2 }} · Descontos R$&nbsp;{{ fechamento.outros_descontos|floatformat:2 }}</p>
+                <div id="ajustes-lista" class="space-y-2">
+                  {{ ajustes_formset.management_form }}
+                  {% for af in ajustes_formset %}
+                  <div class="ajuste-linha rounded-xl border-2 border-slate-200 bg-slate-50 p-3 space-y-2">
+                    {% for hidden in af.hidden_fields %}{{ hidden }}{% endfor %}
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
+                      <div class="md:col-span-3 space-y-1">
+                        <label class="block text-[11px] font-black uppercase text-slate-600 tracking-wide" for="{{ af.tipo.id_for_label }}">{{ af.tipo.label }}</label>
+                        {{ af.tipo }}
+                      </div>
+                      <div class="md:col-span-5 space-y-1">
+                        <label class="block text-[11px] font-black uppercase text-slate-600 tracking-wide" for="{{ af.descricao.id_for_label }}">{{ af.descricao.label }}</label>
+                        {{ af.descricao }}
+                      </div>
+                      <div class="md:col-span-4 space-y-1">
+                        <label class="block text-[11px] font-black uppercase text-slate-600 tracking-wide" for="{{ af.valor.id_for_label }}">{{ af.valor.label }}</label>
+                        {{ af.valor }}
+                      </div>
+                    </div>
+                    {% for e in af.descricao.errors %}<p class="text-sm font-semibold text-red-700">{{ e }}</p>{% endfor %}
+                    {% for e in af.valor.errors %}<p class="text-sm font-semibold text-red-700">{{ e }}</p>{% endfor %}
+                    {% if af.instance.pk %}
+                    <label class="ajuste-remover inline-flex items-center gap-2 min-h-[48px] text-sm font-black uppercase text-red-800">
+                      {{ af.DELETE }} Remover esta linha
+                    </label>
+                    {% endif %}
+                  </div>
+                  {% endfor %}
+                </div>
+                <button type="button" id="ajuste-add" class="min-h-[48px] px-4 rounded-xl border-2 border-emerald-600 bg-white text-emerald-900 text-sm font-black uppercase hover:bg-emerald-50">+ Adicionar linha</button>
+              </div>
               {% for field in form %}
               <div class="space-y-1">
                 <label class="block text-[11px] font-black uppercase text-slate-600 tracking-wide" for="{{ field.id_for_label }}">{{ field.label }}</label>
@@ -120,6 +155,38 @@
               {% endfor %}
               <button type="submit" class="w-full sm:w-auto min-h-[48px] px-6 rounded-xl bg-slate-900 text-white text-sm font-black uppercase tracking-wide hover:bg-slate-800 shadow-md">Salvar e recalcular</button>
             </form>
+            <script>
+            (function () {
+              var list = document.getElementById("ajustes-lista");
+              var total = document.getElementById("id_form-TOTAL_FORMS");
+              var add = document.getElementById("ajuste-add");
+              if (!list || !total || !add) return;
+              add.addEventListener("click", function () {
+                var rows = list.querySelectorAll(".ajuste-linha");
+                var last = rows[rows.length - 1];
+                if (!last) return;
+                var idx = rows.length;
+                var clone = last.cloneNode(true);
+                clone.querySelectorAll(".text-red-700").forEach(function (el) { el.remove(); });
+                var rm = clone.querySelector(".ajuste-remover");
+                if (rm) rm.remove();
+                clone.querySelectorAll("input, select, textarea, label").forEach(function (el) {
+                  if (el.name) el.name = el.name.replace(/form-\d+-/, "form-" + idx + "-");
+                  if (el.id) el.id = el.id.replace(/id_form-\d+-/, "id_form-" + idx + "-");
+                  if (el.htmlFor) el.htmlFor = el.htmlFor.replace(/id_form-\d+-/, "id_form-" + idx + "-");
+                  if (el.type === "checkbox") el.checked = false;
+                  if (el.type === "hidden" && el.name && el.name.slice(-3) === "-id") el.value = "";
+                  el.removeAttribute("required");
+                  if (el.tagName === "SELECT") el.selectedIndex = 0;
+                  else if (el.type !== "hidden" && el.type !== "checkbox") el.value = "";
+                });
+                list.appendChild(clone);
+                total.value = String(idx + 1);
+                var nome = clone.querySelector("input[name$='-descricao']");
+                if (nome) nome.focus();
+              });
+            })();
+            </script>
           </div>
         </details>
       </div>

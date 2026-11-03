@@ -278,7 +278,8 @@ Textos longos nas telas **Fechamento de folha** e **Ficha do funcionário** fica
 
 ### 9.3 Passo 1 — Ajustes da folha
 
-- Campos para descontos extras, proventos, observações e ajustes de status / valor pago de controle.
+- Cada desconto ou acréscimo é uma linha (nome + valor positivo). A soma vira outros proventos e outros descontos. Observações não entram no líquido.
+- Remover linha já salva: **Remover esta linha**. Linha nova em branco é ignorada.
 - Após alterar: **Salvar e recalcular** para atualizar totais e itens.
 
 ### 9.4 Passo 2 — Conta a pagar no financeiro
