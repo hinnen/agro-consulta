@@ -1312,17 +1312,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Ainda** | O serviço do Zap ainda precisa receber a rota do orçamento (filial `whatsapp`, ainda sem push). Sem isso o botão Loja grava na Sistvale |
 | **Não fazer** | Colocar `AGRO_WA_PUBLIC_ORIGIN` no serviço do Zap |
 
-### ✅ CHECKLIST ÚNICO — **03/11** · 🟢 **pronto para envio à produção**
+### ✅ CHECKLIST ÚNICO — **03/11** · ✅ **enviado à loja v27.26.46**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **RH-FOLHA-LINHAS** | 🟢 Pronto | **SIM** `rh.0007` | totais 164,52 e 210,23 ficam · pagamento de salário fica · observação fica |
+| 1 | **RH-FOLHA-LINHAS** | ✅ **enviado** `23bacb6d` | **SIM** `rh.0007` no build | totais 164,52 e 210,23 ficam · pagamento de salário fica · observação fica |
 
 ### 📦 PACOTE PRONTO — **RH-FOLHA-LINHAS** · 03/11
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **Pronto para envio à produção** (frase + senha). Ainda não está na loja |
+| **Status** | ✅ **Enviado** `producao` @ **`23bacb6d`** · 03/11 · frase + senha |
 | **Entra** | Desconto e acréscimo da folha viram linhas com nome e valor. O total antigo vira uma linha com o mesmo valor. Observação não é apagada |
 | **Alvo** | **v27.26.46** · PREP `deploy/prep-checklist-0311-rh-folha-linhas` |
 | **Checkpoint** | `rollback/pre-v272646-0311-rh-folha-linhas` = loja atual **v27.26.45** @ `1ef48ced` |

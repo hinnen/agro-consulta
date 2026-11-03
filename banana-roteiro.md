@@ -6,7 +6,7 @@
 
 **O que está pronto agora (31/10):** checklist único **PDV-WA-SEPARADO** — ✅ **Live v27.26.45** @ `1ef48ced`. Detalhe no `banana.md` e na **§99**.
 
-**Para subir (03/11):** checklist único **§106 RH-FOLHA-LINHAS** — 🟢 pronto para envio. Migrate `rh.0007`. Ainda não está na loja.
+**Loja (03/11):** **RH-FOLHA-LINHAS** enviado · **v27.26.46** @ `23bacb6d`. Volta: `rollback/pre-v272646-0311-rh-folha-linhas` (`1ef48ced`).
 
 ---
 
@@ -1163,11 +1163,11 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 106. CHECKLIST ÚNICO — **03/11** · 🟢 **pronto para envio à produção**
+## 106. CHECKLIST ÚNICO — **03/11** · ✅ **enviado v27.26.46**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **RH-FOLHA-LINHAS** | 🟢 Pronto | **SIM** `rh.0007` | 164,52 + 210,23 ficam · pagamento fica · observação fica |
+| 1 | **RH-FOLHA-LINHAS** | ✅ **enviado** `23bacb6d` | **SIM** `rh.0007` no build | 164,52 + 210,23 ficam · pagamento fica · observação fica |
 
 Folha: cada desconto e acréscimo vira uma linha. Totais já lançados são copiados. Não está na loja até frase + senha.
 
