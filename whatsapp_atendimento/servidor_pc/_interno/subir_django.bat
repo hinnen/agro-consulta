@@ -28,7 +28,7 @@ call ".venv\Scripts\activate.bat"
 echo Migrando banco...
 python manage.py migrate --noinput
 if errorlevel 1 (
-  echo ERRO migrate — confira DATABASE_URL em .env.wa-servidor
+  echo ERRO migrate - confira DATABASE_URL em .env.wa-servidor
   pause
   exit /b 1
 )
@@ -38,7 +38,7 @@ python manage.py collectstatic --noinput
 
 echo.
 echo Local: http://127.0.0.1:8000/atendimento-whatsapp/
-echo Internet: outra janela — 4 - Tunel teste - internet temporaria.bat
+echo Internet: outra janela - 4 - Tunel teste - internet temporaria.bat
 echo Feche esta janela para parar o servidor.
 echo.
 python manage.py runserver 0.0.0.0:8000
