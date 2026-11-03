@@ -14,7 +14,7 @@ def agro_wa_public_origin() -> str:
 def agro_wa_path_is_split_target(path: str) -> bool:
     p = (path or "").lower()
     # O PC avisa a Sistvale nesta rota. Se ela redirecionar, o túnel nunca grava.
-    if p.startswith("/api/atendimento-whatsapp/registrar-origin-publica"):
+    if p.rstrip("/") == "/api/atendimento-whatsapp/registrar-origin-publica":
         return False
     if p.startswith("/atendimento-whatsapp"):
         return True

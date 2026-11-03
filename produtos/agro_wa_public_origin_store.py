@@ -16,6 +16,21 @@ _CHAVE = "default"
 _ORIGIN_RE = re.compile(r"^https://[a-z0-9._-]+(?::\d+)?(?:/|$)", re.I)
 
 
+def _cache_get():
+    try:
+        return cache.get(_CACHE_KEY)
+    except Exception:
+        logger.exception("agro_wa_public_origin: cache")
+        return None
+
+
+def _cache_set(value: str) -> None:
+    try:
+        cache.set(_CACHE_KEY, value, 30)
+    except Exception:
+        logger.exception("agro_wa_public_origin: cache")
+
+
 def _validar_origin(origin: str) -> str | None:
     o = (origin or "").strip().rstrip("/")
     if not o or len(o) > 480:
@@ -24,13 +39,13 @@ def _validar_origin(origin: str) -> str | None:
         return None
     parsed = urlparse(o)
     host = (parsed.netloc or "").strip().lower()
-    if not host or "@" in host:
+    if not host or "@" in host or parsed.scheme.lower() != "https":
         return None
-    return o
+    return f"https://{host}"
 
 
 def agro_wa_public_origin_registrada() -> str:
-    cached = cache.get(_CACHE_KEY)
+    cached = _cache_get()
     if isinstance(cached, str):
         return cached.rstrip("/")
     origin = ""
@@ -42,7 +57,8 @@ def agro_wa_public_origin_registrada() -> str:
             origin = (row.origin or "").strip().rstrip("/")
     except Exception:
         logger.exception("agro_wa_public_origin_registrada: leitura")
-    cache.set(_CACHE_KEY, origin, 30)
+        return ""
+    _cache_set(origin)
     return origin
 
 
@@ -63,7 +79,7 @@ def registrar_origin_publica(origin: str, *, fonte: str = "pc") -> tuple[bool, s
     except Exception as exc:
         logger.exception("registrar_origin_publica")
         return False, str(exc)[:200]
-    cache.set(_CACHE_KEY, o, 30)
+    _cache_set(o)
     return True, o
 
 
