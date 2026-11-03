@@ -40,6 +40,7 @@ if errorlevel 1 goto fim
 echo DATABASE_URL=postgres://agro_wa:agro_wa_lab_2026@127.0.0.1:5432/agro_wa
 echo SECRET_KEY=wa-pc-%RANDOM%%RANDOM%-%RANDOM%
 echo AGRO_WA_BRIDGE_TOKEN=gm-agro-wa-ponte-local
+echo AGRO_WA_PDV_URL=https://www.sistvale.com.br
 echo AGRO_WA_MEDIA_ROOT=%MEDIA%
 echo AGRO_MONGO_ERP_DESLIGADO=true
 echo AGRO_PDV_VENDA_SEM_MONGO_ERP=true

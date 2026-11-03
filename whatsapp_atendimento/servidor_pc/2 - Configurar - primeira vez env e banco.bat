@@ -19,8 +19,12 @@ set /p DBURL_IN=DATABASE_URL [%DBURL%]:
 if not "%DBURL_IN%"=="" set "DBURL=%DBURL_IN%"
 
 set "TOKEN=gm-agro-wa-ponte-local"
-set /p TOKEN_IN=AGRO_WA_BRIDGE_TOKEN [%TOKEN%]: 
+set /p TOKEN_IN=AGRO_WA_BRIDGE_TOKEN (MESMO da Sistvale Render) [%TOKEN%]: 
 if not "%TOKEN_IN%"=="" set "TOKEN=%TOKEN_IN%"
+
+set "PDV=https://www.sistvale.com.br"
+set /p PDV_IN=AGRO_WA_PDV_URL (loja na internet) [%PDV%]: 
+if not "%PDV_IN%"=="" set "PDV=%PDV_IN%"
 
 set /p MEDIA_IN=Pasta midia [%DADOS%]: 
 if not "%MEDIA_IN%"=="" set "DADOS=%MEDIA_IN%"
@@ -29,6 +33,7 @@ if not "%MEDIA_IN%"=="" set "DADOS=%MEDIA_IN%"
 echo DATABASE_URL=%DBURL%
 echo SECRET_KEY=wa-pc-%RANDOM%%RANDOM%-%RANDOM%
 echo AGRO_WA_BRIDGE_TOKEN=%TOKEN%
+echo AGRO_WA_PDV_URL=%PDV%
 echo AGRO_WA_MEDIA_ROOT=%DADOS%
 echo AGRO_MONGO_ERP_DESLIGADO=true
 echo AGRO_PDV_VENDA_SEM_MONGO_ERP=true

@@ -22,15 +22,26 @@ Abra **`whatsapp_atendimento\servidor_pc`**. Se ainda vir nomes velhos (`instala
 | **`0 - Atualizar Git e apagar lixo antigo.bat`** | Pasta desatualizada / lixo antigo |
 | **`1 - Instalar - primeira vez no PC.bat`** | 1ª vez no PC novo |
 | **`2 - Configurar - primeira vez env e banco.bat`** | 1ª vez (`.env` + banco Postgres opcional) |
-| **`3 - Subir Zap - todo dia.bat`** | Todo dia (servidor + ponte) |
-| **`4 - Tunel teste - internet temporaria.bat`** | Internet temporária (outra loja/celular) |
+| **`3 - Subir Zap - todo dia.bat`** | Todo dia (servidor + ponte + túnel teste + **avisa o PDV**) |
+| **`4 - Tunel teste - internet temporaria.bat`** | Só se quiser abrir o túnel de novo sem fechar o `3` |
 
 Túnel **fixo** (produção): subpasta **`tunel_fixo\`**. Scripts internos: **`_interno\`** (ignore).
 
 1. **Git:** branch `whatsapp`, `git pull`.
 2. **`1 - Instalar…`** → **`2 - Configurar…`** → **`3 - Subir Zap…`**
 3. Chrome local: **http://127.0.0.1:8000/atendimento-whatsapp/** (`createsuperuser` na 1ª vez).
-4. **`4 - Tunel teste…`** com o `3` ligado — URL copiada; aceita `*.trycloudflare.com` no `.env`.
+4. **`3 - Subir Zap…`** — abre túnel; quando a URL aparece, o **PDV Sistvale** recebe o link novo (botão WhatsApp / SistApp).
+
+### PDV atualiza sozinho (túnel provisório ou fixo)
+
+1. **Deploy** da loja (Sistvale) com migrate **`0155_whatsapp_public_origin`** (branch `teste` → depois `producao`).
+2. No PC: **`2 - Configurar…`** — `AGRO_WA_BRIDGE_TOKEN` **igual** ao da Sistvale no Render; `AGRO_WA_PDV_URL` = `https://www.sistvale.com.br`.
+3. **`3 - Subir Zap…`** — ao subir o túnel, o script chama `POST /api/atendimento-whatsapp/registrar-origin-publica/` no PDV.
+4. URL **fixa** (domínio `.com.br` depois): registre `AGRO_WA_TUNEL_FIXO_ORIGIN=https://zap.seudominio…` no `.env` ou use o mesmo POST uma vez; o PDV guarda no Postgres e o botão **Z** usa essa URL (prioridade sobre `AGRO_WA_PUBLIC_ORIGIN` no Render).
+
+| Opção | O que é | Quando |
+|-------|---------|--------|
+| **A** ✅ agora | `3 - Subir…` + túnel teste | URL **muda** se reiniciar túnel; PDV **atualiza sozinho** após deploy `0155` + token certo |
 
 ## Laboratório (PC Renan · 02/11/2026)
 
@@ -56,7 +67,7 @@ Túnel **fixo** (produção): subpasta **`tunel_fixo\`**. Scripts internos: **`_
 
 | Opção | O que é | Quando |
 |-------|---------|--------|
-| **A** ✅ agora | Lab com `4 - Tunel teste…` | Já funciona; URL **muda** se reiniciar o túnel. **Não** mexe PDV |
+| **A** ✅ agora | Lab com `3 - Subir…` (túnel + PDV) | URL muda se reiniciar túnel; PDV recebe link novo sozinho |
 | **B** | Domínio **só do Zap** na Cloudflare | Não toca `sistvale.com.br` |
 | **C** ❌ abortado | `zap.sistvale.com.br` | Zona CF removida; retomar só com checklist + OK Renan |
 
@@ -110,7 +121,8 @@ Arquivo na **raiz do repo:** `.env.wa-servidor` (modelo: `whatsapp_atendimento/s
 |----------|-----|
 | `DATABASE_URL` | Postgres local só WhatsApp |
 | `AGRO_WA_MEDIA_ROOT` | Disco persistente de mídia |
-| `AGRO_WA_BRIDGE_TOKEN` | Igual em `whatsapp_atendimento/.env` |
+| `AGRO_WA_BRIDGE_TOKEN` | Igual Render Sistvale **e** `whatsapp_atendimento/.env` |
+| `AGRO_WA_PDV_URL` | Onde avisar o link (`https://www.sistvale.com.br`) |
 | `ALLOWED_HOSTS_EXTRA` | Host do túnel + localhost |
 
 Código: `AGRO_WA_MEDIA_ROOT` em `config/settings.py`.

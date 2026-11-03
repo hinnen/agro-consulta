@@ -45,5 +45,6 @@ if (-not $url) {
 Set-Clipboard -Value $url
 Write-Host "URL: $url"
 Write-Host "Abra: $url/atendimento-whatsapp/"
+& (Join-Path $PSScriptRoot "registrar_origin_pdv.ps1") -OriginUrl $url
 try { Start-Process "$url/entrar/" } catch {}
 Wait-Process -Id $p.Id

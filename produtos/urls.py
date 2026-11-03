@@ -1154,6 +1154,11 @@ urlpatterns = [
         name='api_atendimento_whatsapp_status_midia',
     ),
     path(
+        'api/atendimento-whatsapp/registrar-origin-publica/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_registrar_origin_publica,
+        name='api_atendimento_whatsapp_registrar_origin_publica',
+    ),
+    path(
         'api/atendimento-whatsapp/bridge/estado/',
         views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_estado,
         name='api_atendimento_whatsapp_bridge_estado',

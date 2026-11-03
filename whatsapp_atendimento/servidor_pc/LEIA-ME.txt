@@ -4,15 +4,19 @@ WhatsApp servidor no PC (Windows 10 ou 11)
 PC NOVO — so 2 cliques depois de git pull:
 
   1 - Instalar - primeira vez no PC.bat   (Python, Postgres, banco, .env — ~20 min)
-  3 - Subir Zap - todo dia.bat            (servidor + ponte)
+  3 - Subir Zap - todo dia.bat            (servidor + ponte + tunel + avisa PDV)
 
-Internet temporaria (outra loja):
+Internet (outra loja) — o 3 ja abre o tunel. So use o 4 se fechou a janela do tunel.
 
-  4 - Tunel teste - internet temporaria.bat   (com o 3 ligado)
+  4 - Tunel teste - internet temporaria.bat
+
+PDV Sistvale (obrigatorio uma vez):
+  2 - Configurar...  = cole AGRO_WA_BRIDGE_TOKEN igual ao Render Producao
+  Deploy loja com migrate 0155 (teste / producao)
 
 Senhas padrao gravadas em: C:\AgroWhatsApp\Dados\SENHAS-LEIA.txt
 
-2 - Configurar...  = opcional (so mudar algo)
+2 - Configurar...  = opcional depois disso (so mudar algo)
 
 0 - Atualizar Git... = so notebook com GitHub
 

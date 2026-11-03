@@ -6,7 +6,9 @@ from django.urls import reverse
 
 
 def agro_wa_public_origin() -> str:
-    return (getattr(settings, "AGRO_WA_PUBLIC_ORIGIN", "") or "").strip().rstrip("/")
+    from produtos.agro_wa_public_origin_store import agro_wa_public_origin_efetiva
+
+    return agro_wa_public_origin_efetiva()
 
 
 def agro_wa_path_is_split_target(path: str) -> bool:

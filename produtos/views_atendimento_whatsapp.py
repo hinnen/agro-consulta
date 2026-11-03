@@ -983,6 +983,22 @@ def _orcamento_zap_loja(data: dict, autor: str) -> tuple[bool, str, int]:
 
 @csrf_exempt
 @require_POST
+def api_atendimento_whatsapp_registrar_origin_publica(request):
+    """PC da loja (túnel) grava a URL HTTPS atual no PDV — botão Z / SistApp passam a apontar para cá."""
+    if not token_ponte_ok(request):
+        return _bridge_forbidden()
+    data = _json_body(request) or {}
+    origin = (data.get("origin") or data.get("url") or "").strip()
+    from produtos.agro_wa_public_origin_store import registrar_origin_publica
+
+    ok, msg = registrar_origin_publica(origin, fonte="pc")
+    if not ok:
+        return JsonResponse({"ok": False, "erro": msg}, status=400)
+    return JsonResponse({"ok": True, "origin": msg})
+
+
+@csrf_exempt
+@require_POST
 def api_atendimento_whatsapp_bridge_orcamento(request):
     """O PDV da Sistvale manda o orçamento para cá."""
     if not token_ponte_ok(request):
