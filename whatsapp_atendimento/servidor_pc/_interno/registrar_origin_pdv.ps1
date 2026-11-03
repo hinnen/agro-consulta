@@ -1,4 +1,4 @@
-# Avisa o PDV (Sistvale) qual e a URL publica do tunel — botao WhatsApp atualiza sozinho.
+# Avisa o PDV (Sistvale) qual e a URL publica do tunel - botao WhatsApp atualiza sozinho.
 param(
   [Parameter(Mandatory = $true)]
   [string]$OriginUrl
@@ -26,7 +26,7 @@ function Get-AgroWaServidorEnv {
 
 $url = ($OriginUrl.Trim().TrimEnd("/"))
 if ($url -notmatch "^https://") {
-  Write-Host "AVISO: URL invalida para PDV — $url"
+  Write-Host "AVISO: URL invalida para PDV - $url"
   return
 }
 

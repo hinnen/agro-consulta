@@ -2,7 +2,7 @@
 $ErrorActionPreference = "Stop"
 if (-not (Get-Command cloudflared -ErrorAction SilentlyContinue)) {
   $cf = "${env:ProgramFiles(x86)}\cloudflared\cloudflared.exe"
-  if (Test-Path $cf) { $env:Path = "$(Split-Path $cf);$env:Path" } else { throw "cloudflared nao encontrado — winget install Cloudflare.cloudflared" }
+  if (Test-Path $cf) { $env:Path = "$(Split-Path $cf);$env:Path" } else { throw "cloudflared nao encontrado. Rode: winget install Cloudflare.cloudflared" }
 }
 
 try {
@@ -14,7 +14,7 @@ try {
 }
 
 Write-Host ""
-Write-Host "Tunel TESTE — link copiado (Ctrl+V). Nao feche esta janela."
+Write-Host "Tunel TESTE - link copiado (Ctrl+V). Nao feche esta janela."
 Write-Host ""
 
 $log = Join-Path $env:TEMP "agro-wa-tunel-rapido.log"
