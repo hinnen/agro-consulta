@@ -1,4 +1,8 @@
 @echo off
+if /I not "%~1"=="--run" (
+  start "Subir Zap" cmd /k "%~f0" --run
+  exit /b 0
+)
 cd /d "%~dp0"
 echo Abrindo servidor Django + ponte WhatsApp (duas janelas)...
 start "Zap — servidor" cmd /k "%~dp0_interno\subir_django.bat"

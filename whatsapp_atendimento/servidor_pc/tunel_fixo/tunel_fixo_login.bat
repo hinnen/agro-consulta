@@ -3,7 +3,7 @@ chcp 65001 >nul
 REM Abre o navegador para autorizar a conta Cloudflare (uma vez por PC).
 where cloudflared >nul 2>&1
 if errorlevel 1 (
-  echo ERRO: cloudflared nao instalado. Instale ou rode 4-tunel-teste.bat uma vez.
+  echo ERRO: cloudflared nao instalado. Instale ou rode "4 - Tunel teste - internet temporaria.bat" uma vez.
   pause
   exit /b 1
 )
@@ -14,7 +14,7 @@ echo 2^) Escolha o dominio/zona na lista
 echo 3^) Autorize
 echo.
 echo Se a lista vier VAZIA: falta adicionar um site na Cloudflare.
-echo Lab sem dominio: use ..\4-tunel-teste.bat ^(URL muda^).
+echo Lab sem dominio: use "..\4 - Tunel teste - internet temporaria.bat" ^(URL muda^).
 echo Nao aponte o dominio da loja PDV sem OK do Renan.
 echo.
 cloudflared tunnel login
