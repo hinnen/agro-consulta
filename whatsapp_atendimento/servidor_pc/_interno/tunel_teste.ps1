@@ -63,5 +63,5 @@ Set-Clipboard -Value $url
 Write-Host "URL: $url"
 Write-Host "Abra: $url/atendimento-whatsapp/"
 & (Join-Path $PSScriptRoot "registrar_origin_pdv.ps1") -OriginUrl $url
-try { Start-Process "$url/entrar/" } catch {}
+Write-Host "Use local: http://127.0.0.1:8000/atendimento-whatsapp/"
 Wait-Process -Id $p.Id

@@ -5,7 +5,7 @@ if /I not "%~1"=="--run" (
   start "Subir Zap" cmd /k "%~f0" --run
   exit /b 0
 )
-setlocal
+setlocal EnableDelayedExpansion
 cd /d "%~dp0"
 set "REPO=%~dp0..\.."
 
@@ -41,6 +41,16 @@ if errorlevel 1 (
   goto fim
 )
 echo Postgres OK.
+
+if not exist "%USERPROFILE%\.cloudflared\config-agro-wa.yml" (
+  echo.
+  echo AVISO: tunel FIXO ainda nao configurado neste PC.
+  echo Rode UMA vez: A - Loja - primeira vez PC servidor.bat
+  echo ^(nao use trycloudflare na loja - link cai^)
+  echo.
+  set /p CONT=Continuar mesmo com tunel teste? (S/N) [N]: 
+  if /I not "!CONT!"=="S" goto fim
+)
 
 echo.
 echo Abrindo servidor + ponte + tunel ^(3 janelas^)...
