@@ -1,31 +1,28 @@
 WhatsApp servidor no PC (Windows 10 ou 11)
 ==========================================
 
-PC NOVO — so 2 cliques depois de git pull:
+TODO DIA (loja / PC servidor) — UM clique:
 
-  1 - Instalar - primeira vez no PC.bat   (Python, Postgres, banco, .env — ~20 min)
-  3 - Subir Zap - todo dia.bat            (servidor + ponte + tunel + avisa PDV)
+  3 - Subir Zap - todo dia.bat
 
-Migrate / senha agro_wa neste PC (outro notebook, Postgres antigo):
+  Faz sozinho: git pull + Postgres + servidor + ponte + tunel + avisa PDV.
+  Espere na janela do tunel: "PDV atualizado". Depois teste o botao verde no PDV.
 
-  5 - Corrigir Postgres - senha migrate.bat   (uma vez, depois 3 de novo)
+PRIMEIRA VEZ neste PC:
 
-PC que JA funcionou ontem (este mesmo, Postgres OK):
+  1 - Instalar - primeira vez no PC.bat
+  2 - Configurar... = token AGRO_WA_BRIDGE_TOKEN igual ao Render Producao
 
-  R - Voltar a funcionar - PC que ja estava OK.bat   (git pull + 3)
+Se migrate / senha Postgres falhar:
 
-Internet (outra loja) — o 3 ja abre o tunel. So use o 4 se fechou a janela do tunel.
+  5 - Corrigir Postgres - senha migrate.bat
 
-  4 - Tunel teste - internet temporaria.bat
+Extra (so se precisar):
 
-PDV Sistvale (obrigatorio uma vez):
-  2 - Configurar...  = cole AGRO_WA_BRIDGE_TOKEN igual ao Render Producao
-  Deploy loja com migrate 0155 (teste / producao)
+  4 - Tunel... = tunel de novo sem fechar servidor/ponte
+  6 - Avisar PDV... = so se tunel abriu mas nao disse "PDV atualizado"
+  0 - Atualizar Git... = apagar arquivos velhos OneDrive
 
-Senhas padrao gravadas em: C:\AgroWhatsApp\Dados\SENHAS-LEIA.txt
-
-2 - Configurar...  = opcional depois disso (so mudar algo)
-
-0 - Atualizar Git... = so notebook com GitHub
+Senhas: C:\AgroWhatsApp\Dados\SENHAS-LEIA.txt
 
 _pasta _interno = nao abrir_
