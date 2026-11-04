@@ -1292,25 +1292,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
-### ✅ CHECKLIST ÚNICO — **04/11c** · 🟢 **pronto para envio à produção**
+### 🟡 CHECKLIST ÚNICO — **04/11c** · **PREP armado** · **RH-DECIMO-SUGESTAO**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **RH-DECIMO-SUGESTAO** | 🟢 **pronto para envio** | **SIM** `rh.0009` no build | 7/1 = 12 avos · folha intacta · **VERIFY_OK 6** |
+| 1 | **RH-DECIMO-SUGESTAO** | 🟡 PREP `43ee490c` · aguarda senha | **SIM** `rh.0009` no build | **VERIFY_OK 6** |
 
-### 📦 PACOTE PRONTO — **RH-DECIMO-SUGESTAO** · **v27.26.52**
+### 📦 PREP — **RH-DECIMO-SUGESTAO** · **v27.26.52** · `43ee490c`
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **Pronto para envio à produção** (frase + senha). Ainda não está na loja |
+| **Status** | 🟡 armado em cima da loja **v27.26.51** · ainda **não** subiu |
 | **Entra** | Sugestão do 13º (avos e salário de dezembro). Lança as duas parcelas juntas. Desconto ou acréscimo em cada parcela. Corrigir admissão e salário na própria tela |
-| **Alvo** | **v27.26.52** · PREP `deploy/prep-checklist-0411c-rh-decimo-sugestao` |
-| **Checkpoint** | `rollback/pre-v272652-0411c-rh-decimo-sugestao` = loja atual **v27.26.51** @ `fda8cef1` |
+| **Checkpoint** | `rollback/pre-v272652-0411c-rh-decimo-sugestao` = **v27.26.51** @ `fda8cef1` |
 | **Revert** | `git push origin rollback/pre-v272652-0411c-rh-decimo-sugestao:producao` |
-| **Migrate** | **SIM** `rh.0009` no build · Shell `./scripts/post_deploy_checklist_0411c_rh_decimo_sugestao.sh` |
-| **Na senha** | `./scripts/cutover_loja_checklist_0411c_rh_decimo_sugestao.sh` (sem --exec) · se OK, `--exec` com frase + senha |
-| **Prova** | Admissão 7/1 → 12 avos, bruto 2.000, parcelas 1.000. Segunda gravação reusa o título. Valor menor que o pago é recusado. Folha não é criada |
-| **Não fazer** | Merge de `teste`. Não rodar migrate para trás. Não reenviar a v27.26.51 |
+| **Migrate** | **SIM** `rh.0009` no build |
+| **Prova** | **VERIFY_OK 6** · admissão 7/1 → 12 avos · bruto 2.000 · parcelas 1.000 · segunda gravação reusa o título · valor menor que o pago é recusado · folha não é criada |
+| **Na senha** | frase de subir + senha. O envio é `43ee490c`, não um merge de `teste` |
 
 ### 🟡 CHECKLIST ÚNICO — **04/11b** · **enviado** · **RH-DECIMO-TERCEIRO**
 
