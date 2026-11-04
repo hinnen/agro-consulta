@@ -356,6 +356,55 @@ class ItemFechamentoFolha(models.Model):
         verbose_name_plural = "Itens de fechamento"
 
 
+class DecimoTerceiroFuncionario(models.Model):
+    """13º lançado no RH e espelhado como despesa própria nas contas a pagar."""
+
+    class Parcela(models.TextChoices):
+        PRIMEIRA = "PRIMEIRA", "1ª parcela"
+        SEGUNDA = "SEGUNDA", "2ª parcela"
+        UNICA = "UNICA", "Parcela única"
+
+    funcionario = models.ForeignKey(
+        Funcionario,
+        on_delete=models.CASCADE,
+        related_name="decimos_terceiros",
+    )
+    empresa = models.ForeignKey(
+        "base.Empresa",
+        on_delete=models.CASCADE,
+        related_name="decimos_terceiros",
+    )
+    ano = models.PositiveSmallIntegerField()
+    parcela = models.CharField(max_length=20, choices=Parcela.choices)
+    valor = models.DecimalField(max_digits=12, decimal_places=2)
+    data_vencimento = models.DateField()
+    observacao = models.TextField(blank=True)
+    mongo_lancamento_id = models.CharField(max_length=32, blank=True)
+    criado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="decimos_terceiros_criados",
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-ano", "parcela", "-id"]
+        verbose_name = "Décimo terceiro"
+        verbose_name_plural = "Décimos terceiros"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["funcionario", "ano", "parcela"],
+                name="rh_decimo_unico_parcela_ano",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.funcionario} — 13º {self.get_parcela_display()} {self.ano}"
+
+
 class InconsistenciaIntegracaoRh(models.Model):
     class Tipo(models.TextChoices):
         VALE_SEM_FUNCIONARIO = "VALE_SEM_FUNCIONARIO", "Vale (caixa) sem funcionário"

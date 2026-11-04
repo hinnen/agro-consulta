@@ -2,6 +2,7 @@ from django.contrib import admin, messages
 
 from .models import (
     AjusteManualFolha,
+    DecimoTerceiroFuncionario,
     FechamentoFolhaSimplificado,
     Funcionario,
     HistoricoSalarial,
@@ -35,6 +36,14 @@ class FuncionarioAdmin(admin.ModelAdmin):
     search_fields = ("nome_cache", "apelido_interno", "cliente_agro__nome", "cargo")
     autocomplete_fields = ("cliente_agro",)
     inlines = [HistoricoSalarialInline]
+
+
+@admin.register(DecimoTerceiroFuncionario)
+class DecimoTerceiroAdmin(admin.ModelAdmin):
+    list_display = ("funcionario", "ano", "parcela", "valor", "data_vencimento", "mongo_lancamento_id")
+    list_filter = ("ano", "parcela", "empresa")
+    search_fields = ("funcionario__nome_cache",)
+    readonly_fields = ("mongo_lancamento_id", "criado_em", "atualizado_em")
 
 
 @admin.register(HistoricoSalarial)
