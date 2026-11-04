@@ -404,6 +404,43 @@ class DecimoTerceiroFuncionario(models.Model):
     def __str__(self):
         return f"{self.funcionario} — 13º {self.get_parcela_display()} {self.ano}"
 
+    def valor_liquido(self):
+        from decimal import Decimal
+
+        base = self.valor or Decimal("0")
+        delta = Decimal("0")
+        for ajuste in self.ajustes.all():
+            if ajuste.tipo == AjusteDecimoTerceiro.Tipo.ACRESCIMO:
+                delta += ajuste.valor or Decimal("0")
+            else:
+                delta -= ajuste.valor or Decimal("0")
+        return (base + delta).quantize(Decimal("0.01"))
+
+
+class AjusteDecimoTerceiro(models.Model):
+    """Desconto ou acréscimo da parcela do 13º. Não entra na folha do mês."""
+
+    class Tipo(models.TextChoices):
+        DESCONTO = "DESCONTO", "Desconto"
+        ACRESCIMO = "ACRESCIMO", "Acréscimo"
+
+    decimo = models.ForeignKey(
+        DecimoTerceiroFuncionario,
+        on_delete=models.CASCADE,
+        related_name="ajustes",
+    )
+    tipo = models.CharField(max_length=20, choices=Tipo.choices)
+    descricao = models.CharField(max_length=200)
+    valor = models.DecimalField(max_digits=12, decimal_places=2)
+
+    class Meta:
+        ordering = ["id"]
+        verbose_name = "Ajuste do 13º"
+        verbose_name_plural = "Ajustes do 13º"
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} — {self.descricao} ({self.valor})"
+
 
 class InconsistenciaIntegracaoRh(models.Model):
     class Tipo(models.TextChoices):

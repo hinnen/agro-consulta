@@ -40,7 +40,7 @@ def main() -> int:
         ok("rota e plano")
     else:
         fail("rota ou plano")
-    if "Lançar 13º" in ficha and "Não muda o líquido" in ficha:
+    if "Lançar as duas parcelas" in ficha and "Não muda o líquido" in ficha:
         ok("botão na ficha")
     else:
         fail("ficha")
@@ -173,6 +173,23 @@ def _prova_banco() -> bool:
         return False
     if FechamentoFolhaSimplificado.objects.count() != folhas_antes:
         print("FAIL folha foi criada")
+        return False
+    from rh.models import HistoricoSalarial
+    from rh.services.decimo_terceiro import sugerir_decimo
+
+    func.data_admissao = date(2026, 1, 7)
+    func.save(update_fields=["data_admissao"])
+    HistoricoSalarial.objects.create(
+        funcionario=func,
+        salario_base=Decimal("2000.00"),
+        data_inicio_vigencia=date(2026, 4, 1),
+    )
+    sug = sugerir_decimo(func, 2026)
+    if sug["avos"] != 12 or sug["bruto"] != Decimal("2000.00") or sug["primeira"] != Decimal("1000.00"):
+        print("FAIL avos", sug)
+        return False
+    if FechamentoFolhaSimplificado.objects.count() != folhas_antes:
+        print("FAIL sugestão criou folha")
         return False
     if DecimoTerceiroFuncionario.objects.count() != 1:
         print("FAIL duplicou o 13º")

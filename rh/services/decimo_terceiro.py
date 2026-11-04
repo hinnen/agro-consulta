@@ -1,6 +1,7 @@
 """13º como título próprio nas contas a pagar. Não entra no líquido da folha mensal."""
 from __future__ import annotations
 
+import calendar
 from datetime import date
 from decimal import Decimal
 from typing import Any
@@ -26,6 +27,53 @@ def _plano_decimo() -> str:
     return nome or "Décimo terceiro"
 
 
+def _dias_trabalhados_no_mes(admissao: date, ano: int, mes: int) -> int:
+    ultimo = calendar.monthrange(ano, mes)[1]
+    inicio = date(ano, mes, 1)
+    fim = date(ano, mes, ultimo)
+    if admissao > fim:
+        return 0
+    if admissao > inicio:
+        inicio = admissao
+    return (fim - inicio).days + 1
+
+
+def sugerir_decimo(funcionario: Funcionario, ano: int) -> dict[str, Any]:
+    """Sugestão pela Lei 4.090: 1/12 do salário vigente em dezembro por mês com 15 dias ou mais.
+
+    Salário fixo não usa média. Hora extra e comissão não estão no cadastro.
+    INSS e IR não entram aqui: vão como desconto na 2ª parcela, quando o escritório passar.
+    """
+    from rh.services.fechamento import money_two_decimals, salario_vigente_em
+
+    admissao = funcionario.data_admissao
+    salario = salario_vigente_em(funcionario, date(ano, 12, 1))
+    if salario <= 0:
+        salario = salario_vigente_em(funcionario, date(ano, 12, 31))
+    meses = []
+    if admissao:
+        for mes in range(1, 13):
+            dias = _dias_trabalhados_no_mes(admissao, ano, mes)
+            if dias >= 15:
+                meses.append(mes)
+    avos = len(meses)
+    bruto = money_two_decimals((salario / Decimal("12")) * Decimal(avos)) if salario > 0 else Decimal("0")
+    primeira = money_two_decimals(bruto / Decimal("2")) if bruto else Decimal("0")
+    segunda = money_two_decimals(bruto - primeira) if bruto else Decimal("0")
+    return {
+        "admissao": admissao,
+        "salario": salario,
+        "avos": avos,
+        "bruto": bruto,
+        "primeira": primeira,
+        "segunda": segunda,
+        "vence_primeira": date(ano, 11, 30),
+        "vence_segunda": date(ano, 12, 20),
+        "sem_admissao": admissao is None,
+        "sem_salario": salario <= 0,
+    }
+
+
 def lancar_decimo_terceiro(
     funcionario: Funcionario,
     *,
@@ -37,10 +85,12 @@ def lancar_decimo_terceiro(
     forma_value: str = "",
     banco_value: str = "",
     observacao: str = "",
+    valor_titulo: Decimal | None = None,
 ) -> dict[str, Any]:
     valor = Decimal(valor).quantize(Decimal("0.01"))
-    if valor <= 0:
-        return {"ok": False, "erro": "Informe um valor maior que zero."}
+    a_pagar = valor if valor_titulo is None else Decimal(valor_titulo).quantize(Decimal("0.01"))
+    if valor <= 0 or a_pagar <= 0:
+        return {"ok": False, "erro": "Informe um valor a pagar maior que zero."}
     if parcela not in DecimoTerceiroFuncionario.Parcela.values:
         return {"ok": False, "erro": "Escolha a parcela do 13º."}
 
@@ -94,23 +144,18 @@ def lancar_decimo_terceiro(
                 pago = Decimal(titulo.valor_pago or 0)
         elif mid and db is not None:
             from bson import ObjectId
-            from bson.errors import InvalidId
 
-            try:
-                oid = ObjectId(mid)
-            except (InvalidId, TypeError):
-                oid = None
-            doc = db[COL_DTO_LANCAMENTO].find_one({"_id": oid}, {"ValorPago": 1}) if oid else None
+            doc = db[COL_DTO_LANCAMENTO].find_one({"_id": ObjectId(mid)}, {"ValorPago": 1})
             if not doc:
                 mid = ""
                 reg.mongo_lancamento_id = ""
             else:
                 pago = Decimal(str(doc.get("ValorPago") or 0))
-        if pago > valor:
+        if pago > a_pagar:
             transaction.set_rollback(True)
             return {
                 "ok": False,
-                "erro": "O valor novo é menor do que o que já foi pago nesse título.",
+                "erro": "O valor a pagar ficou menor do que o que já foi pago nesse título.",
             }
 
         if mid:
@@ -121,26 +166,23 @@ def lancar_decimo_terceiro(
 
                 r = alinhar_titulo_pg_apos_sync_folha_rh(
                     mid,
-                    valor_bruto=valor,
+                    valor_bruto=a_pagar,
                     valor_pago=pago,
                     data_vencimento=data_vencimento,
                 )
                 if not r.get("ok"):
-                    transaction.set_rollback(True)
                     return r
             elif db is None:
-                transaction.set_rollback(True)
                 return {"ok": False, "erro": "Financeiro indisponível."}
             else:
                 r = _aplicar_totais_no_documento_mongo(
                     db,
                     mid,
-                    saida=float(valor),
+                    saida=float(a_pagar),
                     valor_pago=float(pago),
                     data_vencimento=data_vencimento,
                 )
                 if not r.get("ok"):
-                    transaction.set_rollback(True)
                     return r
             reg.save()
             return {"ok": True, "id": mid, "criado": False, "registro_id": reg.pk}
@@ -152,7 +194,7 @@ def lancar_decimo_terceiro(
             {
                 "plano_conta": _plano_decimo()[:200],
                 "plano_conta_id": None,
-                "valor": float(valor),
+                "valor": float(a_pagar),
                 "descricao": desc,
                 "observacao": (observacao or "Décimo terceiro lançado no RH")[:500],
             }
