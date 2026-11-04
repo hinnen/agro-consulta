@@ -84,6 +84,7 @@
         <div class="flex flex-wrap items-center gap-2 pr-10">
           <span class="text-[11px] font-black uppercase text-slate-500 tracking-wide shrink-0">Atalhos</span>
           <a href="#salario" class="min-h-[44px] inline-flex items-center px-3 rounded-xl bg-emerald-700 text-white text-xs font-black uppercase hover:bg-emerald-800">Salário</a>
+          <a href="#decimo" class="min-h-[44px] inline-flex items-center px-3 rounded-xl bg-emerald-900 text-white text-xs font-black uppercase hover:bg-emerald-950">13º</a>
           <a href="#vales" class="min-h-[44px] inline-flex items-center px-3 rounded-xl bg-orange-600 text-white text-xs font-black uppercase hover:bg-orange-700">Vales</a>
           <a href="{% url 'rh_funcionario_editar' funcionario.pk %}" class="min-h-[44px] inline-flex items-center px-3 rounded-xl border-2 border-emerald-300 bg-emerald-50 text-emerald-950 text-xs font-black uppercase hover:bg-emerald-100" title="Dia de envio automático e vencimento no CP">CP auto{% if funcionario.dia_envio_cp_auto %} · d{{ funcionario.dia_envio_cp_auto }}/venc{{ funcionario.dia_vencimento_salario }}{% else %} · off{% endif %}</a>
           {% if folha_mes_atual %}
@@ -138,6 +139,37 @@
                 {% empty %}<li class="text-slate-400 font-semibold text-sm">—</li>{% endfor %}
               </ul>
             </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="relative rounded-2xl border-2 border-emerald-300 bg-white shadow-sm overflow-visible">
+        <details class="agro-ficha-details" id="decimo">
+          <summary class="min-h-[52px] px-4 py-3 cursor-pointer select-none flex items-center gap-2 border-b border-emerald-100 bg-emerald-50/90 font-black uppercase text-slate-900 text-sm">
+            <span class="agro-ficha-chev text-emerald-800" aria-hidden="true">▶</span>
+            <span>13º · Contas a pagar</span>
+          </summary>
+          <div class="p-4 space-y-3">
+            <p class="text-sm font-semibold text-slate-700">O 13º vira uma conta a pagar separada. Não muda o líquido da folha do mês.</p>
+            <form method="post" action="{% url 'rh_funcionario_decimo_terceiro' funcionario.pk %}" class="flex flex-wrap gap-3 items-end">
+              {% csrf_token %}
+              {% for field in decimo_form %}
+              <div class="{% if field.name == 'observacao' %}w-full basis-full{% else %}min-w-[12rem] flex-1{% endif %}">
+                <label class="block text-[11px] font-black uppercase text-slate-600 mb-1" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% for e in field.errors %}<span class="text-red-600 text-sm block mt-1">{{ e }}</span>{% endfor %}
+              </div>
+              {% endfor %}
+              <button type="submit" class="min-h-[48px] px-6 rounded-xl bg-emerald-800 text-white text-sm font-black uppercase shrink-0 hover:bg-emerald-900 shadow-md">Lançar 13º</button>
+            </form>
+            <ul class="text-sm space-y-1 border border-slate-100 rounded-lg p-2 bg-slate-50">
+              {% for d in decimos %}
+              <li class="flex flex-wrap justify-between gap-2 border-b border-slate-100 py-1.5 last:border-0">
+                <span class="font-bold">{{ d.get_parcela_display }} · {{ d.ano }}</span>
+                <span class="font-mono font-black">R$ {{ d.valor|floatformat:2 }} · vence {{ d.data_vencimento|date:"d/m/Y" }}</span>
+              </li>
+              {% empty %}<li class="text-slate-400 font-semibold">Nenhum 13º lançado.</li>{% endfor %}
+            </ul>
           </div>
         </details>
       </div>
@@ -247,7 +279,7 @@
 (function () {
   function abrirPorHash() {
     var h = (location.hash || '').replace(/^#/, '');
-    var map = { salario: 'salario', vales: 'vales', fechamentos: 'fechamentos' };
+    var map = { salario: 'salario', decimo: 'decimo', vales: 'vales', fechamentos: 'fechamentos' };
     var id = map[h];
     if (!id) return;
     var el = document.getElementById(id);

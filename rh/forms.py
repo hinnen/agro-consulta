@@ -248,6 +248,61 @@ class FechamentoTituloFinanceiroForm(forms.Form):
         return data
 
 
+class DecimoTerceiroForm(forms.Form):
+    _ctl = "mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-base font-semibold focus:border-emerald-500 outline-none"
+
+    ano = forms.IntegerField(
+        label="Ano do 13º",
+        min_value=2000,
+        max_value=2100,
+        widget=forms.NumberInput(attrs={"class": _ctl}),
+    )
+    parcela = forms.ChoiceField(
+        label="Parcela",
+        choices=[
+            ("PRIMEIRA", "1ª parcela"),
+            ("SEGUNDA", "2ª parcela"),
+            ("UNICA", "Parcela única"),
+        ],
+        widget=forms.Select(attrs={"class": _ctl}),
+    )
+    valor = forms.DecimalField(
+        label="Valor (R$)",
+        min_value=Decimal("0.01"),
+        decimal_places=2,
+        max_digits=12,
+        widget=forms.NumberInput(attrs={"class": _ctl, "step": "0.01"}),
+    )
+    data_vencimento = forms.DateField(
+        label="Vencimento nas contas a pagar",
+        widget=forms.DateInput(attrs={"type": "date", "class": _ctl}),
+    )
+    forma_financeiro = forms.ChoiceField(
+        required=False,
+        label="Forma de pagamento (opcional)",
+        choices=[("", "— Em branco —")],
+        widget=forms.Select(attrs={"class": _ctl}),
+    )
+    banco_financeiro = forms.ChoiceField(
+        required=False,
+        label="Conta / banco",
+        choices=[("", "— Em branco —")],
+        widget=forms.Select(attrs={"class": _ctl}),
+    )
+    observacao = forms.CharField(
+        required=False,
+        label="Observação",
+        widget=forms.TextInput(attrs={"class": _ctl, "maxlength": "200"}),
+    )
+
+    def __init__(self, *args, formas_choices=None, bancos_choices=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["forma_financeiro"].choices = [("", "— Em branco —")] + list(formas_choices or [])
+        self.fields["banco_financeiro"].choices = [
+            ("", "— Em branco (ADICIONAR CONTA no pagamento) —")
+        ] + list(bancos_choices or [])
+
+
 class FechamentoEditForm(forms.ModelForm):
     class Meta:
         model = FechamentoFolhaSimplificado

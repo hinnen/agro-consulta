@@ -24,6 +24,7 @@ from base.models import Empresa, Loja
 from rh.access import usuario_rh_acesso_restrito
 from rh.forms import (
     AjusteManualFormSet,
+    DecimoTerceiroForm,
     FechamentoEditForm,
     FechamentoTituloFinanceiroForm,
     FuncionarioForm,
@@ -365,6 +366,16 @@ def rh_funcionario_ficha(request, pk: int):
         formas_choices=formas_c,
         bancos_choices=bancos_c,
     )
+    decimo_form = DecimoTerceiroForm(
+        initial={
+            "ano": hoje.year,
+            "parcela": "UNICA",
+            "valor": sal or Decimal("0"),
+            "data_vencimento": hoje,
+        },
+        formas_choices=formas_c,
+        bancos_choices=bancos_c,
+    )
     return render(
         request,
         "rh/funcionario_ficha.html",
@@ -379,6 +390,8 @@ def rh_funcionario_ficha(request, pk: int):
             "folha_mes_atual": folha_mes_atual,
             "sal_form": sal_form,
             "vale_form": vale_form,
+            "decimo_form": decimo_form,
+            "decimos": f.decimos_terceiros.all()[:24],
             "vale_mongo_disponivel": db_m is not None,
             "vale_listas_vazias": db_m is not None and not formas_c and not bancos_c,
             "hoje": hoje,
@@ -399,6 +412,39 @@ def rh_funcionario_garantir_fechamento_mes_atual(request, pk: int):
         f"Folha {fech.competencia:%m/%Y} pronta. Lá você define o vencimento no financeiro (passo 2), se quiser.",
     )
     return redirect("rh_fechamento_detalhe", pk=fech.pk)
+
+
+@gestao_rh_required
+@require_POST
+@csrf_protect
+def rh_funcionario_decimo_terceiro(request, pk: int):
+    """Grava o 13º nas contas a pagar. Não altera a folha do mês."""
+    f = get_object_or_404(Funcionario.objects.select_related("empresa", "cliente_agro"), pk=pk)
+    formas_c, bancos_c = montar_choices_formas_bancos(request.user, modo="erp")
+    form = DecimoTerceiroForm(request.POST, formas_choices=formas_c, bancos_choices=bancos_c)
+    if not form.is_valid():
+        messages.error(request, "Confira ano, parcela, valor e vencimento do 13º.")
+        return redirect("rh_funcionario_ficha", pk=f.pk)
+    from rh.services.decimo_terceiro import lancar_decimo_terceiro
+
+    r = lancar_decimo_terceiro(
+        f,
+        ano=form.cleaned_data["ano"],
+        parcela=form.cleaned_data["parcela"],
+        valor=form.cleaned_data["valor"],
+        data_vencimento=form.cleaned_data["data_vencimento"],
+        usuario=request.user,
+        forma_value=form.cleaned_data.get("forma_financeiro") or "",
+        banco_value=form.cleaned_data.get("banco_financeiro") or "",
+        observacao=form.cleaned_data.get("observacao") or "",
+    )
+    if not r.get("ok"):
+        messages.error(request, r.get("erro") or "Não foi possível lançar o 13º.")
+    elif r.get("criado"):
+        messages.success(request, "13º lançado nas contas a pagar.")
+    else:
+        messages.success(request, "13º atualizado no mesmo título das contas a pagar.")
+    return redirect("rh_funcionario_ficha", pk=f.pk)
 
 
 @gestao_rh_required
