@@ -31,8 +31,15 @@ if ($url -notmatch "^https://") {
 }
 
 $envMap = Get-AgroWaServidorEnv
-$pdv = ($envMap["AGRO_WA_PDV_URL"] -or "https://www.sistvale.com.br").Trim().TrimEnd("/")
-$token = ($envMap["AGRO_WA_BRIDGE_TOKEN"] -or "").Trim()
+$pdv = $envMap["AGRO_WA_PDV_URL"]
+if ([string]::IsNullOrWhiteSpace($pdv)) {
+  $pdv = "https://www.sistvale.com.br"
+}
+$pdv = $pdv.Trim().TrimEnd("/")
+
+$token = $envMap["AGRO_WA_BRIDGE_TOKEN"]
+if ($null -eq $token) { $token = "" }
+$token = $token.Trim()
 if (-not $token -or $token -eq "gm-agro-wa-ponte-local") {
   Write-Host ""
   Write-Host "AVISO: AGRO_WA_BRIDGE_TOKEN ainda e o padrao de laboratorio."
