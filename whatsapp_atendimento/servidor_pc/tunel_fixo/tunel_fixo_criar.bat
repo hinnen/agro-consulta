@@ -15,7 +15,7 @@ if not exist "%USERPROFILE%\.cloudflared\cert.pem" (
 )
 
 set "TNAME=agro-wa"
-set "HOST=zap.sistvale.com.br"
+set "HOST=zap.zapsistvale.online"
 echo.
 echo Nome do tunel [%TNAME%]:
 set /p TNAME_IN=

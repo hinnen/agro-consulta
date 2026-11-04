@@ -1,3 +1,14 @@
-Tunel FIXO (URL que nao muda) — so quando tiver dominio na Cloudflare.
-Ordem: login.bat → criar.bat → (3-subir.bat ligado) rodar.bat
-Lab / teste: use 4-tunel-teste.bat na pasta de cima.
+Dominio fixo zapsistvale.online (Hostinger)
+==========================================
+
+Ordem (uma vez):
+
+  1) tunel_fixo_login.bat
+  2) tunel_fixo_criar_zapsistvale.bat   (copie CNAME pro Hostinger)
+  3) DNS Hostinger: CNAME zap -> UUID.cfargotunnel.com
+  4) 2 - Configurar... (token Render)
+  5) 3 - Subir Zap - todo dia.bat
+
+Guia completo: docs/WHATSAPP-DOMINIO-ZAPSISTVALE.md
+
+Lab sem dominio: 3 usa tunel teste (trycloudflare) so se NAO existir config-agro-wa.yml

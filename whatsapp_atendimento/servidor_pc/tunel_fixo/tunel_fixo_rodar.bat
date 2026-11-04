@@ -15,9 +15,10 @@ if not exist "%CFG%" (
   exit /b 1
 )
 echo.
-echo Tunel fixo Agro WA — NAO FECHE esta janela.
+echo Tunel fixo Agro WA - NAO FECHE esta janela.
 echo Config: %CFG%
 echo Origem: http://127.0.0.1:8000
 echo.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0..\_interno\tunel_fixo_aviso_pdv.ps1"
 cloudflared tunnel --config "%CFG%" run
 pause
