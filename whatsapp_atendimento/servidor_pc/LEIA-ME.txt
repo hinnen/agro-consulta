@@ -10,6 +10,10 @@ Migrate / senha agro_wa neste PC (outro notebook, Postgres antigo):
 
   5 - Corrigir Postgres - senha migrate.bat   (uma vez, depois 3 de novo)
 
+PC que JA funcionou ontem (este mesmo, Postgres OK):
+
+  R - Voltar a funcionar - PC que ja estava OK.bat   (git pull + 3)
+
 Internet (outra loja) — o 3 ja abre o tunel. So use o 4 se fechou a janela do tunel.
 
   4 - Tunel teste - internet temporaria.bat
