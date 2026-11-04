@@ -155,10 +155,14 @@ def _itens_resumo(ent: PedidoEntrega) -> list[dict]:
 
 def contar_entregas_pendentes_pdv(
     *,
-    apenas_caixas_abertos: bool = True,
+    apenas_caixas_abertos: bool = False,
     loja: str | None = None,
 ) -> int:
-    """Conta pendências visíveis no PDV (mesmo critério do bloqueio ao fechar caixa)."""
+    """Conta pendências do overlay PDV.
+
+    Caixa já fechado não some da lista: o operador ainda precisa retomar o pagamento.
+    ``apenas_caixas_abertos=True`` fica só para o bloqueio de fechar caixa.
+    """
     if apenas_caixas_abertos:
         qs = queryset_entregas_bloqueando_fechamento_caixa()
     else:
@@ -233,11 +237,11 @@ def serializar_entrega_pendente_pdv(ent: PedidoEntrega, *, incluir_estado: bool 
 
 def listar_entregas_pendentes_pdv(
     *,
-    limite: int = 80,
-    apenas_caixas_abertos: bool = True,
+    limite: int = 200,
+    apenas_caixas_abertos: bool = False,
     loja: str | None = None,
 ) -> list[dict]:
-    """Lista pendências do PDV — filtradas pela loja (sem dono OU dono = loja)."""
+    """Lista A pagar do overlay — loja do PDV, mesmo se o caixa original já fechou."""
     if apenas_caixas_abertos:
         qs = queryset_entregas_bloqueando_fechamento_caixa()
     else:
@@ -317,7 +321,11 @@ def listar_entregas_bloqueando_fechamento_caixa(
         q = Q(sessao_caixa_id__in=ids)
         if loja_n:
             q |= Q(sessao_caixa_id__isnull=True, loja_entrega=loja_n)
-        qs = queryset_entregas_bloqueando_fechamento_caixa().filter(q)
+            # Caixa original já fechado: ainda trava o turno novo da mesma loja.
+            q |= Q(sessao_caixa__fechado_em__isnull=False) & (
+                Q(loja_entrega=loja_n) | Q(loja_pagamento=loja_n)
+            )
+        qs = queryset_entregas_aguardando_pagamento_pdv().filter(q)
         qs = qs_excluindo_adiadas_futuras(qs)
         qs = qs.select_related("sessao_caixa", "sessao_caixa__usuario").order_by(
             "criado_em"

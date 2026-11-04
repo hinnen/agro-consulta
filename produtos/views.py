@@ -34064,7 +34064,7 @@ def api_entrega_registrar(request):
 @require_GET
 def api_pdv_entregas_pendentes(request):
     loja = normalizar_loja_entrega(request.GET.get("loja"))
-    itens = listar_entregas_pendentes_pdv(loja=loja or None)
+    itens = listar_entregas_pendentes_pdv(loja=loja or None, apenas_caixas_abertos=False)
     itens_pagas = listar_entregas_pagas_loja_pdv(loja=loja or None)
     return JsonResponse(
         {
