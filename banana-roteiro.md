@@ -6,7 +6,7 @@
 
 **Loja (03/11 · PR 479):** **WA-ORIGIN-PC** — ✅ **Live v27.26.49** @ `2d002112`. Migrate **0154** OK. `/healthz` = ok. Volta: `rollback/pre-v272649-0311-wa-origin-pc` (`39b447ad`). Revert: `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao`.
 
-**O que está armado (04/11):** checklist único **PDV-ENTREGA-CAIXA-FECHADO** — 🟡 **PREP v27.26.50** @ `74277aa0`. Migrate **NÃO**. Loja segue **v27.26.49** @ `2d002112`. Volta: `rollback/pre-v272650-0411-entrega-caixa-fechado`. Revert: `git push origin rollback/pre-v272650-0411-entrega-caixa-fechado:producao`. **VERIFY_OK 9**. Aguarda frase + senha.
+**Loja (04/11):** **PDV-ENTREGA-CAIXA-FECHADO** — enviado `74277aa0` (**v27.26.50**). Migrate **NÃO**. Até o build terminar, no ar segue **v27.26.49** @ `2d002112`. Volta: `rollback/pre-v272650-0411-entrega-caixa-fechado`. Revert: `git push origin rollback/pre-v272650-0411-entrega-caixa-fechado:producao`.
 
 **Loja (03/11c):** **RH-HOLERITE-VISUAL** enviado · **v27.26.48** @ `39b447ad`. Migrate **NÃO**. Volta: `rollback/pre-v272648-0311c-rh-holerite-visual` (`7c9e5326`). Revert: `git push origin rollback/pre-v272648-0311c-rh-holerite-visual:producao`.
 
