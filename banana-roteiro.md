@@ -6,7 +6,7 @@
 
 **Loja (03/11 · PR 479):** **WA-ORIGIN-PC** — ✅ **Live v27.26.49** @ `2d002112`. Migrate **0154** OK. `/healthz` = ok. Volta: `rollback/pre-v272649-0311-wa-origin-pc` (`39b447ad`). Revert: `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao`.
 
-**Para subir (04/11d):** **RH-FAIXA-SALARIAL** · 🟡 **PREP v27.26.53** @ `af7af8cc` · migrate **NÃO**. Loja segue **v27.26.52** @ `43ee490c`. Volta: `rollback/pre-v272653-0411d-rh-faixa`. Revert: `git push origin rollback/pre-v272653-0411d-rh-faixa:producao`. **VERIFY_OK 5**. Aguarda frase + senha. Não fazer merge de `teste`.
+**Loja (04/11d):** **RH-FAIXA-SALARIAL** — enviado `af7af8cc` (**v27.26.53**). Migrate **NÃO**. Até o build terminar, no ar segue **v27.26.52** @ `43ee490c`. Volta: `rollback/pre-v272653-0411d-rh-faixa`. Revert: `git push origin rollback/pre-v272653-0411d-rh-faixa:producao`.
 
 **Loja (04/11c):** **RH-DECIMO-SUGESTAO** — enviado `43ee490c` (**v27.26.52**). Migrate **rh.0009** no build. Até o build terminar, no ar segue **v27.26.51** @ `fda8cef1`. Volta: `rollback/pre-v272652-0411c-rh-decimo-sugestao`. Revert: `git push origin rollback/pre-v272652-0411c-rh-decimo-sugestao:producao`.
 

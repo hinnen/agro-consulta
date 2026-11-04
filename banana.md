@@ -1292,23 +1292,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
-### 🟡 CHECKLIST ÚNICO — **04/11d** · **PREP armado** · **RH-FAIXA-SALARIAL**
+### 🟡 CHECKLIST ÚNICO — **04/11d** · **enviado** · **RH-FAIXA-SALARIAL**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **RH-FAIXA-SALARIAL** | 🟡 PREP `af7af8cc` · aguarda senha | **NÃO** | **VERIFY_OK 5** |
+| 1 | **RH-FAIXA-SALARIAL** | 🟡 git `af7af8cc` · aguardando o build | **NÃO** | **VERIFY_OK 5** |
 
-### 📦 PREP — **RH-FAIXA-SALARIAL** · **v27.26.53** · `af7af8cc`
+### 📦 ENVIADO — **RH-FAIXA-SALARIAL** · **v27.26.53**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 armado em cima da loja **v27.26.52** · ainda **não** subiu |
-| **Entra** | Cada faixa do histórico de salário pode ter valor, início, fim e motivo corrigidos. A folha do mês não é recalculada. Faixa que cruza outra é recusada |
-| **Checkpoint** | `rollback/pre-v272653-0411d-rh-faixa` = **v27.26.52** @ `43ee490c` |
+| **Git** | `producao` @ `af7af8cc` |
+| **No ar até o build** | **v27.26.52** @ `43ee490c` |
+| **Entra** | Correção de valor, início, fim e motivo de cada faixa. A folha do mês não é recalculada |
+| **Checkpoint** | `rollback/pre-v272653-0411d-rh-faixa` = `43ee490c` |
 | **Revert** | `git push origin rollback/pre-v272653-0411d-rh-faixa:producao` |
 | **Migrate** | **NÃO** |
-| **Prova** | **VERIFY_OK 5** · 22/04 passou para 07/01, valor 1.853 · vigente de 01/10 e 2.000 ficou · faixa que invade a outra é recusada · nenhuma folha foi criada |
-| **Na senha** | frase de subir + senha. O envio é `af7af8cc`, não um merge de `teste` |
 
 ### 🟡 CHECKLIST ÚNICO — **04/11c** · **enviado** · **RH-DECIMO-SUGESTAO**
 
