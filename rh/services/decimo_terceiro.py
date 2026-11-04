@@ -88,8 +88,8 @@ def lancar_decimo_terceiro(
     valor_titulo: Decimal | None = None,
 ) -> dict[str, Any]:
     valor = Decimal(valor).quantize(Decimal("0.01"))
-    titulo = valor if valor_titulo is None else Decimal(valor_titulo).quantize(Decimal("0.01"))
-    if valor <= 0 or titulo <= 0:
+    a_pagar = valor if valor_titulo is None else Decimal(valor_titulo).quantize(Decimal("0.01"))
+    if valor <= 0 or a_pagar <= 0:
         return {"ok": False, "erro": "Informe um valor a pagar maior que zero."}
     if parcela not in DecimoTerceiroFuncionario.Parcela.values:
         return {"ok": False, "erro": "Escolha a parcela do 13º."}
@@ -151,7 +151,7 @@ def lancar_decimo_terceiro(
                 reg.mongo_lancamento_id = ""
             else:
                 pago = Decimal(str(doc.get("ValorPago") or 0))
-        if pago > titulo:
+        if pago > a_pagar:
             transaction.set_rollback(True)
             return {
                 "ok": False,
@@ -166,7 +166,7 @@ def lancar_decimo_terceiro(
 
                 r = alinhar_titulo_pg_apos_sync_folha_rh(
                     mid,
-                    valor_bruto=titulo,
+                    valor_bruto=a_pagar,
                     valor_pago=pago,
                     data_vencimento=data_vencimento,
                 )
@@ -178,7 +178,7 @@ def lancar_decimo_terceiro(
                 r = _aplicar_totais_no_documento_mongo(
                     db,
                     mid,
-                    saida=float(titulo),
+                    saida=float(a_pagar),
                     valor_pago=float(pago),
                     data_vencimento=data_vencimento,
                 )
@@ -194,7 +194,7 @@ def lancar_decimo_terceiro(
             {
                 "plano_conta": _plano_decimo()[:200],
                 "plano_conta_id": None,
-                "valor": float(titulo),
+                "valor": float(a_pagar),
                 "descricao": desc,
                 "observacao": (observacao or "Décimo terceiro lançado no RH")[:500],
             }

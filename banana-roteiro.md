@@ -6,6 +6,8 @@
 
 **Loja (03/11 · PR 479):** **WA-ORIGIN-PC** — ✅ **Live v27.26.49** @ `2d002112`. Migrate **0154** OK. `/healthz` = ok. Volta: `rollback/pre-v272649-0311-wa-origin-pc` (`39b447ad`). Revert: `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao`.
 
+**Para subir (04/11c):** **RH-DECIMO-SUGESTAO** · 🟢 pronto para envio · **v27.26.52** · migrate **SIM** `rh.0009` no build. Checkpoint: `rollback/pre-v272652-0411c-rh-decimo-sugestao` = **v27.26.51** @ `fda8cef1`. Revert: `git push origin rollback/pre-v272652-0411c-rh-decimo-sugestao:producao`. Na senha: `./scripts/cutover_loja_checklist_0411c_rh_decimo_sugestao.sh` depois `--exec`. Shell: `./scripts/post_deploy_checklist_0411c_rh_decimo_sugestao.sh`. Não fazer merge de `teste`.
+
 **Loja (04/11b):** **RH-DECIMO-TERCEIRO** — enviado `fda8cef1` (**v27.26.51**). Migrate **rh.0008** no build. Até o build terminar, no ar segue **v27.26.50** @ `74277aa0`. Volta: `rollback/pre-v272651-0411-rh-decimo`. Revert: `git push origin rollback/pre-v272651-0411-rh-decimo:producao`.
 
 **Loja (04/11):** **PDV-ENTREGA-CAIXA-FECHADO** — enviado `74277aa0` (**v27.26.50**). Migrate **NÃO**. Até o build terminar, no ar segue **v27.26.49** @ `2d002112`. Volta: `rollback/pre-v272650-0411-entrega-caixa-fechado`. Revert: `git push origin rollback/pre-v272650-0411-entrega-caixa-fechado:producao`.
@@ -1171,7 +1173,19 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 109. CHECKLIST ÚNICO — **04/11b** · 🟢 **pronto para envio à produção**
+## 110. CHECKLIST ÚNICO — **04/11c** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **RH-DECIMO-SUGESTAO** | 🟢 Pronto | **SIM** `rh.0009` | 7/1 = 12 avos · **VERIFY_OK 6** |
+
+Sugestão, duas parcelas juntas e ajuste na parcela. Não altera a folha do mês.
+
+**Checkpoint:** `rollback/pre-v272652-0411c-rh-decimo-sugestao` = v27.26.51 @ `fda8cef1`. **Revert:** `git push origin rollback/pre-v272652-0411c-rh-decimo-sugestao:producao`. **Na senha:** `./scripts/cutover_loja_checklist_0411c_rh_decimo_sugestao.sh` depois `--exec`. Shell: `./scripts/post_deploy_checklist_0411c_rh_decimo_sugestao.sh`. Não fazer merge de `teste`.
+
+---
+
+## 109. CHECKLIST ÚNICO — **04/11b** · ✅ **enviado v27.26.51**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |

@@ -55,8 +55,146 @@ def main() -> int:
     if fails:
         print(f"VERIFY_FAIL {len(fails)}")
         return 1
+    if not _prova_banco():
+        print("VERIFY_FAIL banco")
+        return 1
+    ok("folha intacta e o mesmo título é atualizado")
     print(f"VERIFY_OK {oks}")
     return 0
+
+
+def _prova_banco() -> bool:
+    """SQLite novo. O 13º não cria folha e a segunda gravação reusa o título."""
+    import os
+    from datetime import date
+    from decimal import Decimal
+    from pathlib import Path
+    from unittest.mock import patch
+
+    url = (os.environ.get("DATABASE_URL") or "").strip().lower()
+    if url.startswith("postgres"):
+        print("FAIL prova no Postgres da loja")
+        return False
+    import sys
+
+    raiz = Path(__file__).resolve().parents[1]
+    if str(raiz) not in sys.path:
+        sys.path.insert(0, str(raiz))
+    destino = Path("/tmp/agro-rh-decimo.sqlite")
+    if destino.exists():
+        destino.unlink()
+    os.environ["DATABASE_URL"] = f"sqlite:///{destino}"
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+    import django
+
+    django.setup()
+    from django.apps import apps
+    from django.contrib.auth import get_user_model
+    from django.db import connection
+
+    with connection.schema_editor() as editor:
+        for model in apps.get_models():
+            if model._meta.proxy or not model._meta.managed:
+                continue
+            editor.create_model(model)
+
+    from base.models import Empresa
+    from produtos.models import ClienteAgro, TituloFinanceiroAgro
+    from rh.models import FechamentoFolhaSimplificado, Funcionario
+    from rh.services.decimo_terceiro import lancar_decimo_terceiro
+
+    empresa = Empresa.objects.create(nome_fantasia="GM Agro")
+    pessoa = ClienteAgro.objects.create(nome="Renan Prova")
+    func = Funcionario.objects.create(
+        cliente_agro=pessoa,
+        empresa=empresa,
+        nome_cache="Renan Prova",
+    )
+    user = get_user_model().objects.create_user(username="renan_decimo", password="x", first_name="Renan")
+    folhas_antes = FechamentoFolhaSimplificado.objects.count()
+    mid = "507f1f77bcf86cd799439011"
+
+    def fake_inserir(*_a, **_k):
+        return {"ids": [mid]}
+
+    with patch("rh.services.decimo_terceiro.obter_conexao_mongo", return_value=(None, None)), patch(
+        "produtos.lancamentos_financeiro_pg_write_util.inserir_lancamentos_manual_lote_dispatch",
+        side_effect=fake_inserir,
+    ):
+        primeiro = lancar_decimo_terceiro(
+            func,
+            ano=2026,
+            parcela="UNICA",
+            valor=Decimal("2000.00"),
+            data_vencimento=date(2026, 12, 20),
+            usuario=user,
+        )
+        if not primeiro.get("ok") or not primeiro.get("criado") or primeiro.get("id") != mid:
+            print("FAIL primeiro lançamento", primeiro)
+            return False
+        TituloFinanceiroAgro.objects.create(
+            mongo_id=mid,
+            despesa=True,
+            valor_bruto=Decimal("2000.00"),
+            valor_pago=Decimal("0"),
+            valor_restante=Decimal("2000.00"),
+            descricao="13º prova",
+        )
+        segundo = lancar_decimo_terceiro(
+            func,
+            ano=2026,
+            parcela="UNICA",
+            valor=Decimal("1800.00"),
+            data_vencimento=date(2026, 12, 20),
+            usuario=user,
+        )
+        if not segundo.get("ok") or segundo.get("criado") or segundo.get("id") != mid:
+            print("FAIL atualização", segundo)
+            return False
+        titulo = TituloFinanceiroAgro.objects.get(mongo_id=mid)
+        titulo.valor_pago = Decimal("1900.00")
+        titulo.save(update_fields=["valor_pago"])
+        bloqueado = lancar_decimo_terceiro(
+            func,
+            ano=2026,
+            parcela="UNICA",
+            valor=Decimal("1800.00"),
+            data_vencimento=date(2026, 12, 20),
+            usuario=user,
+        )
+    if bloqueado.get("ok"):
+        print("FAIL aceitou valor menor que o pago", bloqueado)
+        return False
+    from rh.models import DecimoTerceiroFuncionario
+
+    reg = DecimoTerceiroFuncionario.objects.get(funcionario=func, ano=2026, parcela="UNICA")
+    if reg.valor != Decimal("1800.00") or reg.mongo_lancamento_id != mid:
+        print("FAIL registro", reg.valor, reg.mongo_lancamento_id)
+        return False
+    if FechamentoFolhaSimplificado.objects.count() != folhas_antes:
+        print("FAIL folha foi criada")
+        return False
+    from rh.models import HistoricoSalarial
+    from rh.services.decimo_terceiro import sugerir_decimo
+
+    func.data_admissao = date(2026, 1, 7)
+    func.save(update_fields=["data_admissao"])
+    HistoricoSalarial.objects.create(
+        funcionario=func,
+        salario_base=Decimal("2000.00"),
+        data_inicio_vigencia=date(2026, 4, 1),
+    )
+    sug = sugerir_decimo(func, 2026)
+    if sug["avos"] != 12 or sug["bruto"] != Decimal("2000.00") or sug["primeira"] != Decimal("1000.00"):
+        print("FAIL avos", sug)
+        return False
+    if FechamentoFolhaSimplificado.objects.count() != folhas_antes:
+        print("FAIL sugestão criou folha")
+        return False
+    if DecimoTerceiroFuncionario.objects.count() != 1:
+        print("FAIL duplicou o 13º")
+        return False
+    return True
 
 
 if __name__ == "__main__":
