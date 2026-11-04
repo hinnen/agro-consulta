@@ -56,22 +56,31 @@ set "REPO=%~dp0..\..\.."
 set "ENVF=%REPO%\.env.wa-servidor"
 set "CNAME=!UUID!.cfargotunnel.com"
 
+echo Criando DNS na Cloudflare ^(zona zapsistvale.online^)...
+cloudflared tunnel route dns %TNAME% %HOST%
+if errorlevel 1 (
+  echo AVISO: route dns falhou - crie CNAME manual no painel Cloudflare.
+)
+
 echo.
 echo ========== CONFIG OK ==========
 echo URL fixa: %ORIGIN%/atendimento-whatsapp/
 echo Config: %CFG%
 echo.
-echo --- HOSTINGER ^(DNS^) ---
-echo 1) Apague o registro A @ -^> 2.57.91.91 ^(estacionamento^)
-echo 2) Crie CNAME:
-echo    Nome: zap   ^(se host for zap.zapsistvale.online^)
-echo    Valor: %CNAME%
-echo    TTL: 300 ou Automatico
-echo 3) Espere 5-30 min e teste: %ORIGIN%/healthz
+echo --- DNS ^(painel Cloudflare, NAO Hostinger^) ---
+echo Registro CNAME:
+echo    Nome: zap
+echo    Alvo: %CNAME%
+echo    ^(route dns acima pode ja ter criado^)
+echo Teste: %ORIGIN%/healthz
 echo ==============================
 echo.
 
-if exist "%ENVF%" call "%~dp0..\_interno\patch_env_wa_host.bat" "%HOST%" "%ORIGIN%"
+if exist "%ENVF%" (
+  call "%~dp0..\_interno\patch_env_wa_host.bat" "%HOST%" "%ORIGIN%"
+) else (
+  echo AVISO: falta %ENVF% - rode 2 - Configurar
+)
 
 echo Proximo: 3 - Subir Zap - todo dia.bat ^(usa tunel fixo automatico^)
 pause
