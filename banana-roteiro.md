@@ -6,6 +6,8 @@
 
 **Loja (03/11 · PR 479):** **WA-ORIGIN-PC** — ✅ **Live v27.26.49** @ `2d002112`. Migrate **0154** OK. `/healthz` = ok. Volta: `rollback/pre-v272649-0311-wa-origin-pc` (`39b447ad`). Revert: `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao`.
 
+**Para subir (04/11b):** **RH-DECIMO-TERCEIRO** · 🟢 pronto para envio · **v27.26.51** · migrate **SIM** `rh.0008` no build. Checkpoint: `rollback/pre-v272651-0411-rh-decimo` = **v27.26.50** @ `74277aa0`. Revert: `git push origin rollback/pre-v272651-0411-rh-decimo:producao`. Na senha: `./scripts/cutover_loja_checklist_0411_rh_decimo.sh` depois `--exec`. Shell: `./scripts/post_deploy_checklist_0411_rh_decimo.sh`. Não fazer merge de `teste`.
+
 **Loja (04/11):** **PDV-ENTREGA-CAIXA-FECHADO** — enviado `74277aa0` (**v27.26.50**). Migrate **NÃO**. Até o build terminar, no ar segue **v27.26.49** @ `2d002112`. Volta: `rollback/pre-v272650-0411-entrega-caixa-fechado`. Revert: `git push origin rollback/pre-v272650-0411-entrega-caixa-fechado:producao`.
 
 **Loja (03/11c):** **RH-HOLERITE-VISUAL** enviado · **v27.26.48** @ `39b447ad`. Migrate **NÃO**. Volta: `rollback/pre-v272648-0311c-rh-holerite-visual` (`7c9e5326`). Revert: `git push origin rollback/pre-v272648-0311c-rh-holerite-visual:producao`.
@@ -1166,6 +1168,18 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 | 1 | **ETQ-NF-SEM-EXATO** | ✅ **Live** | **NÃO** | **VERIFY_OK 30/30** |
 
 **Loja git:** `producao` @ **`93912908`**. **Revert:** `rollback/pre-v272615-2010b-etq-nf-sem-exato` → **v27.26.14** @ **`e4c308dd`**. **Shell:** `post_deploy_checklist_2010b_etq_nf_sem_exato.sh`.
+
+---
+
+## 109. CHECKLIST ÚNICO — **04/11b** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **RH-DECIMO-TERCEIRO** | 🟢 Pronto | **SIM** `rh.0008` | folha 1.084,29 intacta · **VERIFY_OK 5** |
+
+13º na ficha vira conta a pagar. Não altera o líquido do mês.
+
+**Checkpoint:** `rollback/pre-v272651-0411-rh-decimo` = v27.26.50 @ `74277aa0`. **Revert:** `git push origin rollback/pre-v272651-0411-rh-decimo:producao`. **Na senha:** `./scripts/cutover_loja_checklist_0411_rh_decimo.sh` depois `--exec`. Shell: `./scripts/post_deploy_checklist_0411_rh_decimo.sh`. Não fazer merge de `teste`.
 
 ---
 
