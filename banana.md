@@ -1292,6 +1292,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
+### ✅ CHECKLIST ÚNICO — **04/11** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-ENTREGA-CAIXA-FECHADO** | 🟢 **pronto para envio** | **NÃO** | **30/32** (2 asserts de cenário; ver pacote) |
+
+### 📦 PACOTE PRONTO — **PDV-ENTREGA-CAIXA-FECHADO** · alvo **v27.26.50** · `teste` @ **`708a9165`**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **pronto para envio à produção** · ainda **não** está na loja |
+| **Entra** | A PAGAR do PDV volta a mostrar entrega com pagamento na entrega depois que o caixa de origem fechou. 855 e 865 (Aguarda PDV no painel) entram de novo. O caixa novo da mesma loja continua travado até pagar, cancelar ou adiar. Dia futuro não trava hoje. Vila e Centro não se misturam |
+| **Fora** | Não solta o vínculo da sessão no fechamento (a outra branch fazia isso e não cobria o que já sumiu) |
+| **Alvo** | **v27.26.50** · base loja **v27.26.49** @ `2d002112` |
+| **PREP** | `teste` @ **`708a9165`** |
+| **Migrate** | **NÃO** |
+| **Prova** | PIN **9973** aceito · **0000** recusado · overlay mostra com caixa fechado · filtro antigo esconde · caixa novo trava · adiar com 9973 solta hoje e a entrega continua na lista · API grava amanhã · recusa dia passado · recusa PIN errado · cancelada some · paga na loja fica até o dia |
+| **Na senha** | frase de subir + senha na mesma mensagem. Não merge cego de `teste` |
+
 ### ✅ CHECKLIST ÚNICO — **31/10** · **Live v27.26.45** · **PDV-WA-SEPARADO**
 
 | # | Pacote | Status | Migrate | Prova |
@@ -1462,6 +1481,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | **AJUSTE-QTD-BIP** | 🟢 Pronto | **NÃO** | alterar **6→5** depois soma **7** · −10/+10 só no item da vez |
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 🟢 Pronto — **PDV-ENTREGA-CAIXA-FECHADO** · alvo **v27.26.50** · 04/11
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **pronto para envio** · `teste` @ **`708a9165`** · migrate **NÃO** |
+| **Loja agora** | **v27.26.49** @ `2d002112` — este pacote **ainda não subiu** |
 
 ### ✅ Deploy loja — **WA-ORIGIN-PC** · **Live v27.26.49** · 03/11
 

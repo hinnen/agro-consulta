@@ -6,7 +6,7 @@
 
 **Loja (03/11 · PR 479):** **WA-ORIGIN-PC** — ✅ **Live v27.26.49** @ `2d002112`. Migrate **0154** OK. `/healthz` = ok. Volta: `rollback/pre-v272649-0311-wa-origin-pc` (`39b447ad`). Revert: `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao`.
 
-**O que está pronto agora (31/10):** checklist único **PDV-WA-SEPARADO** — ✅ **Live v27.26.45** @ `1ef48ced`. Detalhe no `banana.md` e na **§99**.
+**O que está pronto para envio (04/11):** checklist único **PDV-ENTREGA-CAIXA-FECHADO** — 🟢 **pronto para envio à produção** · `teste` @ `708a9165` · alvo **v27.26.50** · migrate **NÃO**. Ainda não está na loja (Live segue **v27.26.49**).
 
 **Loja (03/11c):** **RH-HOLERITE-VISUAL** enviado · **v27.26.48** @ `39b447ad`. Migrate **NÃO**. Volta: `rollback/pre-v272648-0311c-rh-holerite-visual` (`7c9e5326`). Revert: `git push origin rollback/pre-v272648-0311c-rh-holerite-visual:producao`.
 
