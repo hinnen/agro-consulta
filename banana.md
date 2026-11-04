@@ -1292,23 +1292,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
-### 🟡 CHECKLIST ÚNICO — **04/11b** · **PREP armado** · **RH-DECIMO-TERCEIRO**
+### 🟡 CHECKLIST ÚNICO — **04/11b** · **enviado** · **RH-DECIMO-TERCEIRO**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **RH-DECIMO-TERCEIRO** | 🟡 PREP `fda8cef1` · aguarda senha | **SIM** `rh.0008` no build | **VERIFY_OK 6** |
+| 1 | **RH-DECIMO-TERCEIRO** | 🟡 git `fda8cef1` · aguardando o build | **SIM** `rh.0008` no build | **VERIFY_OK 6** |
 
-### 📦 PREP — **RH-DECIMO-TERCEIRO** · **v27.26.51** · `fda8cef1`
+### 📦 ENVIADO — **RH-DECIMO-TERCEIRO** · **v27.26.51**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 armado em cima da loja **v27.26.50** · ainda **não** subiu |
-| **Entra** | Na ficha, **13º · Contas a pagar**. Gera despesa no plano Décimo terceiro. A mesma parcela no ano atualiza o título. Não mexe no líquido da folha |
-| **Checkpoint** | `rollback/pre-v272651-0411-rh-decimo` = **v27.26.50** @ `74277aa0` |
+| **Git** | `producao` @ `fda8cef1` |
+| **No ar até o build** | **v27.26.50** @ `74277aa0` |
+| **Entra** | Na ficha, **13º · Contas a pagar**. Não mexe no líquido da folha |
+| **Checkpoint** | `rollback/pre-v272651-0411-rh-decimo` = `74277aa0` |
 | **Revert** | `git push origin rollback/pre-v272651-0411-rh-decimo:producao` |
 | **Migrate** | **SIM** `rh.0008` no build |
-| **Prova** | **VERIFY_OK 6** · 2.000 virou 1.800 no mesmo título · valor menor que o já pago é recusado · nenhuma folha foi criada |
-| **Na senha** | frase de subir + senha. O envio é `fda8cef1`, não um merge de `teste` |
 
 ### 🟡 CHECKLIST ÚNICO — **04/11** · **enviado** · **PDV-ENTREGA-CAIXA-FECHADO**
 
