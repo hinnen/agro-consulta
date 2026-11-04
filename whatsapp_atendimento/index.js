@@ -29,6 +29,7 @@ if (ffmpegStatic) console.log("ffmpeg:", ffmpegStatic);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 carregarEnv(path.join(__dirname, ".env"));
 carregarEnv(path.join(__dirname, "..", ".env"));
+carregarEnv(path.join(__dirname, "..", ".env.wa-servidor"));
 
 const BASE = (process.env.AGRO_WA_DJANGO_URL || "http://127.0.0.1:8000").replace(/\/+$/, "");
 const TOKEN = process.env.AGRO_WA_BRIDGE_TOKEN || "gm-agro-wa-ponte-local";
@@ -83,7 +84,7 @@ function carregarEnv(fp) {
         v = v.slice(1, -1);
       }
       if (!k) continue;
-      if (process.env.AGRO_WA_ALVO === "local" && (k === "AGRO_WA_DJANGO_URL" || k === "AGRO_WA_BRIDGE_TOKEN")) {
+      if (process.env.AGRO_WA_ALVO === "local" && k === "AGRO_WA_DJANGO_URL") {
         continue;
       }
       const cur = process.env[k];
@@ -1771,6 +1772,11 @@ async function puxarSaida() {
 }
 
 console.log("Django:", BASE);
+if (TOKEN === "gm-agro-wa-ponte-local") {
+  console.log("AVISO: token ponte = padrao lab. Se o .env.wa-servidor usa token Render, rode git pull e reinicie esta janela.");
+} else {
+  console.log("Token ponte: ok (mesmo do .env.wa-servidor).");
+}
 garantirUmaInstancia();
 carregarLidMap();
 carregarAgenda();
