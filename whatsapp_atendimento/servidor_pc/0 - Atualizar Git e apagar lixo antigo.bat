@@ -52,7 +52,8 @@ echo.
 echo Pronto. Use SOMENTE:
 echo   1 - Instalar - primeira vez no PC.bat
 echo   2 - Configurar - primeira vez env e banco.bat
-echo   3 - Subir Zap - todo dia.bat   ^(TUDO: git + tunel + PDV^)
-echo   4 / 5 / 6 = extras ^(ver LEIA-ME^)
+echo   3 - Subir Zap - todo dia.bat   ^(TODO DIA na loja^)
+echo   A - Loja - primeira vez PC servidor.bat
+echo   4 / 5 / 6 / 7 = extras ^(ver LEIA-ME e docs/WHATSAPP-LOJA-PC-SIMPLES.md^)
 echo.
 pause
