@@ -94,8 +94,13 @@ def lancar_decimo_terceiro(
                 pago = Decimal(titulo.valor_pago or 0)
         elif mid and db is not None:
             from bson import ObjectId
+            from bson.errors import InvalidId
 
-            doc = db[COL_DTO_LANCAMENTO].find_one({"_id": ObjectId(mid)}, {"ValorPago": 1})
+            try:
+                oid = ObjectId(mid)
+            except (InvalidId, TypeError):
+                oid = None
+            doc = db[COL_DTO_LANCAMENTO].find_one({"_id": oid}, {"ValorPago": 1}) if oid else None
             if not doc:
                 mid = ""
                 reg.mongo_lancamento_id = ""
@@ -121,8 +126,10 @@ def lancar_decimo_terceiro(
                     data_vencimento=data_vencimento,
                 )
                 if not r.get("ok"):
+                    transaction.set_rollback(True)
                     return r
             elif db is None:
+                transaction.set_rollback(True)
                 return {"ok": False, "erro": "Financeiro indisponível."}
             else:
                 r = _aplicar_totais_no_documento_mongo(
@@ -133,6 +140,7 @@ def lancar_decimo_terceiro(
                     data_vencimento=data_vencimento,
                 )
                 if not r.get("ok"):
+                    transaction.set_rollback(True)
                     return r
             reg.save()
             return {"ok": True, "id": mid, "criado": False, "registro_id": reg.pk}
