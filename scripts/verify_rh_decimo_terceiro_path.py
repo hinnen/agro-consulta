@@ -40,7 +40,7 @@ def main() -> int:
         ok("rota e plano")
     else:
         fail("rota ou plano")
-    if "Lançar 13º" in ficha and "Não muda o líquido" in ficha:
+    if "Lançar as duas parcelas" in ficha and "Não muda o líquido" in ficha:
         ok("botão na ficha")
     else:
         fail("ficha")

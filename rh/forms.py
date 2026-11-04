@@ -303,6 +303,65 @@ class DecimoTerceiroForm(forms.Form):
         ] + list(bancos_choices or [])
 
 
+class BaseDecimoForm(forms.Form):
+    _ctl = DecimoTerceiroForm._ctl
+
+    data_admissao = forms.DateField(
+        label="Admissão",
+        widget=forms.DateInput(attrs={"type": "date", "class": _ctl}),
+    )
+    inicio_faixa = forms.DateField(
+        label="Início do salário vigente",
+        widget=forms.DateInput(attrs={"type": "date", "class": _ctl}),
+    )
+    salario_base = forms.DecimalField(
+        label="Salário base vigente (R$)",
+        min_value=Decimal("0.01"),
+        decimal_places=2,
+        max_digits=12,
+        widget=forms.NumberInput(attrs={"class": _ctl, "step": "0.01"}),
+    )
+
+
+class DecimoParcelasForm(forms.Form):
+    _ctl = DecimoTerceiroForm._ctl
+
+    ano = forms.IntegerField(label="Ano", min_value=2000, max_value=2100, widget=forms.NumberInput(attrs={"class": _ctl}))
+    valor_primeira = forms.DecimalField(
+        label="1ª parcela (R$)",
+        min_value=Decimal("0.01"),
+        decimal_places=2,
+        max_digits=12,
+        widget=forms.NumberInput(attrs={"class": _ctl, "step": "0.01"}),
+    )
+    venc_primeira = forms.DateField(
+        label="Vence a 1ª",
+        widget=forms.DateInput(attrs={"type": "date", "class": _ctl}),
+    )
+    valor_segunda = forms.DecimalField(
+        label="2ª parcela (R$)",
+        min_value=Decimal("0.01"),
+        decimal_places=2,
+        max_digits=12,
+        widget=forms.NumberInput(attrs={"class": _ctl, "step": "0.01"}),
+    )
+    venc_segunda = forms.DateField(
+        label="Vence a 2ª",
+        widget=forms.DateInput(attrs={"type": "date", "class": _ctl}),
+    )
+    forma_financeiro = forms.ChoiceField(required=False, label="Forma de pagamento", choices=[("", "— Em branco —")])
+    banco_financeiro = forms.ChoiceField(required=False, label="Conta / banco", choices=[("", "— Em branco —")])
+
+    def __init__(self, *args, formas_choices=None, bancos_choices=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["forma_financeiro"].widget.attrs["class"] = self._ctl
+        self.fields["banco_financeiro"].widget.attrs["class"] = self._ctl
+        self.fields["forma_financeiro"].choices = [("", "— Em branco —")] + list(formas_choices or [])
+        self.fields["banco_financeiro"].choices = [
+            ("", "— Em branco (ADICIONAR CONTA no pagamento) —")
+        ] + list(bancos_choices or [])
+
+
 class FechamentoEditForm(forms.ModelForm):
     class Meta:
         model = FechamentoFolhaSimplificado

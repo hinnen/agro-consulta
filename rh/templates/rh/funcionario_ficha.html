@@ -149,27 +149,84 @@
             <span class="agro-ficha-chev text-emerald-800" aria-hidden="true">▶</span>
             <span>13º · Contas a pagar</span>
           </summary>
-          <div class="p-4 space-y-3">
-            <p class="text-sm font-semibold text-slate-700">O 13º vira uma conta a pagar separada. Não muda o líquido da folha do mês.</p>
-            <form method="post" action="{% url 'rh_funcionario_decimo_terceiro' funcionario.pk %}" class="flex flex-wrap gap-3 items-end">
+          <div class="p-4 space-y-4">
+            <p class="text-sm font-semibold text-slate-700">O 13º vira conta a pagar separada. Não muda o líquido da folha do mês. A sugestão não lança sozinha.</p>
+            <form method="post" action="{% url 'rh_funcionario_decimo_terceiro' funcionario.pk %}" class="flex flex-wrap gap-3 items-end rounded-xl border border-slate-200 bg-slate-50 p-3">
               {% csrf_token %}
-              {% for field in decimo_form %}
-              <div class="{% if field.name == 'observacao' %}w-full basis-full{% else %}min-w-[12rem] flex-1{% endif %}">
+              <input type="hidden" name="acao" value="base">
+              {% for field in base_decimo_form %}
+              <div class="min-w-[12rem] flex-1">
                 <label class="block text-[11px] font-black uppercase text-slate-600 mb-1" for="{{ field.id_for_label }}">{{ field.label }}</label>
                 {{ field }}
-                {% for e in field.errors %}<span class="text-red-600 text-sm block mt-1">{{ e }}</span>{% endfor %}
               </div>
               {% endfor %}
-              <button type="submit" class="min-h-[48px] px-6 rounded-xl bg-emerald-800 text-white text-sm font-black uppercase shrink-0 hover:bg-emerald-900 shadow-md">Lançar 13º</button>
+              <button type="submit" class="min-h-[48px] px-5 rounded-xl border-2 border-slate-800 bg-white text-slate-900 text-sm font-black uppercase">Corrigir base</button>
             </form>
-            <ul class="text-sm space-y-1 border border-slate-100 rounded-lg p-2 bg-slate-50">
+            <div class="rounded-xl border-2 border-emerald-700 bg-emerald-50 px-3 py-3 text-sm font-semibold text-emerald-950">
+              {% if sugestao_decimo.sem_admissao %}
+              Informe a admissão para calcular os avos.
+              {% elif sugestao_decimo.sem_salario %}
+              Informe o salário vigente para calcular.
+              {% else %}
+              Sugestão {{ sugestao_decimo.avos }}/12 · salário de dezembro R$ {{ sugestao_decimo.salario|floatformat:2 }} · 13º bruto R$ {{ sugestao_decimo.bruto|floatformat:2 }}.
+              1ª parcela R$ {{ sugestao_decimo.primeira|floatformat:2 }} até 30/11, sem desconto.
+              2ª parcela R$ {{ sugestao_decimo.segunda|floatformat:2 }} até 20/12.
+              INSS e IR não entram na sugestão: depois, lance como desconto na 2ª parcela.
+              {% endif %}
+              <span class="block mt-1 text-xs">Lei 4.090: mês com 15 dias ou mais conta inteiro. Salário fixo usa o vigente em dezembro, não uma média.</span>
+            </div>
+            <form method="post" action="{% url 'rh_funcionario_decimo_terceiro' funcionario.pk %}" class="flex flex-wrap gap-3 items-end">
+              {% csrf_token %}
+              <input type="hidden" name="acao" value="parcelas">
+              {% for field in decimo_form %}
+              <div class="min-w-[12rem] flex-1">
+                <label class="block text-[11px] font-black uppercase text-slate-600 mb-1" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+              </div>
+              {% endfor %}
+              <button type="submit" class="min-h-[48px] px-6 rounded-xl bg-emerald-800 text-white text-sm font-black uppercase shrink-0">Lançar as duas parcelas</button>
+            </form>
+            <div class="space-y-3">
               {% for d in decimos %}
-              <li class="flex flex-wrap justify-between gap-2 border-b border-slate-100 py-1.5 last:border-0">
-                <span class="font-bold">{{ d.get_parcela_display }} · {{ d.ano }}</span>
-                <span class="font-mono font-black">R$ {{ d.valor|floatformat:2 }} · vence {{ d.data_vencimento|date:"d/m/Y" }}</span>
-              </li>
-              {% empty %}<li class="text-slate-400 font-semibold">Nenhum 13º lançado.</li>{% endfor %}
-            </ul>
+              <form method="post" action="{% url 'rh_funcionario_decimo_terceiro' funcionario.pk %}" class="rounded-xl border border-slate-200 p-3 space-y-2">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="ajustar">
+                <input type="hidden" name="decimo_id" value="{{ d.pk }}">
+                <p class="font-black uppercase text-sm">{{ d.get_parcela_display }} · {{ d.ano }} · a pagar R$ {{ d.valor_liquido|floatformat:2 }}</p>
+                <div class="flex flex-wrap gap-2">
+                  <label class="text-[11px] font-black uppercase">Valor da parcela
+                    <input name="valor" value="{{ d.valor }}" class="mt-1 block min-h-[44px] rounded-lg border-2 border-slate-200 px-2 font-semibold" inputmode="decimal">
+                  </label>
+                  <label class="text-[11px] font-black uppercase">Vencimento
+                    <input type="date" name="data_vencimento" value="{{ d.data_vencimento|date:'Y-m-d' }}" class="mt-1 block min-h-[44px] rounded-lg border-2 border-slate-200 px-2 font-semibold">
+                  </label>
+                </div>
+                <ul class="text-sm">
+                  {% for a in d.ajustes.all %}
+                  <li class="flex items-center gap-2 py-1">
+                    <label class="inline-flex items-center gap-2"><input type="checkbox" name="apagar" value="{{ a.pk }}"> tirar</label>
+                    <span>{{ a.get_tipo_display }} — {{ a.descricao }} — R$ {{ a.valor|floatformat:2 }}</span>
+                  </li>
+                  {% empty %}<li class="text-slate-500">Nenhum desconto ou acréscimo nesta parcela.</li>{% endfor %}
+                </ul>
+                <div class="flex flex-wrap gap-2 items-end">
+                  <label class="text-[11px] font-black uppercase">Tipo
+                    <select name="tipo" class="mt-1 block min-h-[44px] rounded-lg border-2 border-slate-200 px-2 font-semibold">
+                      <option value="DESCONTO">Desconto</option>
+                      <option value="ACRESCIMO">Acréscimo</option>
+                    </select>
+                  </label>
+                  <label class="text-[11px] font-black uppercase flex-1 min-w-[10rem]">Motivo
+                    <input name="descricao" class="mt-1 block w-full min-h-[44px] rounded-lg border-2 border-slate-200 px-2 font-semibold" placeholder="INSS, IR…">
+                  </label>
+                  <label class="text-[11px] font-black uppercase">Valor
+                    <input name="valor_ajuste" class="mt-1 block min-h-[44px] rounded-lg border-2 border-slate-200 px-2 font-semibold" inputmode="decimal" placeholder="0,00">
+                  </label>
+                  <button type="submit" class="min-h-[44px] px-4 rounded-xl bg-slate-900 text-white text-xs font-black uppercase">Salvar parcela</button>
+                </div>
+              </form>
+              {% empty %}<p class="text-slate-400 font-semibold">Nenhum 13º lançado.</p>{% endfor %}
+            </div>
           </div>
         </details>
       </div>

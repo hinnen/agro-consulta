@@ -24,6 +24,8 @@ from base.models import Empresa, Loja
 from rh.access import usuario_rh_acesso_restrito
 from rh.forms import (
     AjusteManualFormSet,
+    BaseDecimoForm,
+    DecimoParcelasForm,
     DecimoTerceiroForm,
     FechamentoEditForm,
     FechamentoTituloFinanceiroForm,
@@ -34,7 +36,9 @@ from rh.forms import (
     ValeManualRHForm,
 )
 from rh.models import (
+    AjusteDecimoTerceiro,
     AjusteManualFolha,
+    DecimoTerceiroFuncionario,
     FechamentoFolhaSimplificado,
     Funcionario,
     HistoricoSalarial,
@@ -366,12 +370,32 @@ def rh_funcionario_ficha(request, pk: int):
         formas_choices=formas_c,
         bancos_choices=bancos_c,
     )
-    decimo_form = DecimoTerceiroForm(
+    from rh.services.decimo_terceiro import sugerir_decimo
+
+    try:
+        ano_decimo = int(request.GET.get("ano_decimo") or hoje.year)
+    except (TypeError, ValueError):
+        ano_decimo = hoje.year
+    sugestao_decimo = sugerir_decimo(f, ano_decimo)
+    faixa_vigente = (
+        HistoricoSalarial.objects.filter(funcionario=f, data_fim_vigencia__isnull=True)
+        .order_by("-data_inicio_vigencia", "-id")
+        .first()
+    )
+    base_decimo_form = BaseDecimoForm(
         initial={
-            "ano": hoje.year,
-            "parcela": "UNICA",
-            "valor": sal or Decimal("0"),
-            "data_vencimento": hoje,
+            "data_admissao": f.data_admissao,
+            "inicio_faixa": faixa_vigente.data_inicio_vigencia if faixa_vigente else (f.data_admissao or hoje),
+            "salario_base": faixa_vigente.salario_base if faixa_vigente else (sal or Decimal("0")),
+        }
+    )
+    decimo_form = DecimoParcelasForm(
+        initial={
+            "ano": ano_decimo,
+            "valor_primeira": sugestao_decimo["primeira"] or Decimal("0"),
+            "venc_primeira": sugestao_decimo["vence_primeira"],
+            "valor_segunda": sugestao_decimo["segunda"] or Decimal("0"),
+            "venc_segunda": sugestao_decimo["vence_segunda"],
         },
         formas_choices=formas_c,
         bancos_choices=bancos_c,
@@ -391,7 +415,9 @@ def rh_funcionario_ficha(request, pk: int):
             "sal_form": sal_form,
             "vale_form": vale_form,
             "decimo_form": decimo_form,
-            "decimos": f.decimos_terceiros.all()[:24],
+            "base_decimo_form": base_decimo_form,
+            "sugestao_decimo": sugestao_decimo,
+            "decimos": f.decimos_terceiros.prefetch_related("ajustes").all()[:24],
             "vale_mongo_disponivel": db_m is not None,
             "vale_listas_vazias": db_m is not None and not formas_c and not bancos_c,
             "hoje": hoje,
@@ -418,32 +444,116 @@ def rh_funcionario_garantir_fechamento_mes_atual(request, pk: int):
 @require_POST
 @csrf_protect
 def rh_funcionario_decimo_terceiro(request, pk: int):
-    """Grava o 13º nas contas a pagar. Não altera a folha do mês."""
+    """Sugestão, duas parcelas e ajustes. Não altera o líquido da folha do mês."""
     f = get_object_or_404(Funcionario.objects.select_related("empresa", "cliente_agro"), pk=pk)
-    formas_c, bancos_c = montar_choices_formas_bancos(request.user, modo="erp")
-    form = DecimoTerceiroForm(request.POST, formas_choices=formas_c, bancos_choices=bancos_c)
-    if not form.is_valid():
-        messages.error(request, "Confira ano, parcela, valor e vencimento do 13º.")
-        return redirect("rh_funcionario_ficha", pk=f.pk)
+    acao = (request.POST.get("acao") or "").strip()
+    if acao == "base":
+        form = BaseDecimoForm(request.POST)
+        if not form.is_valid():
+            messages.error(request, "Confira a admissão e o salário base.")
+            return redirect("rh_funcionario_ficha", pk=f.pk)
+        f.data_admissao = form.cleaned_data["data_admissao"]
+        f.save(update_fields=["data_admissao", "atualizado_em"])
+        faixa = (
+            HistoricoSalarial.objects.filter(funcionario=f, data_fim_vigencia__isnull=True)
+            .order_by("-data_inicio_vigencia", "-id")
+            .first()
+        )
+        if faixa is None:
+            HistoricoSalarial.objects.create(
+                funcionario=f,
+                salario_base=form.cleaned_data["salario_base"],
+                data_inicio_vigencia=form.cleaned_data["inicio_faixa"],
+            )
+        else:
+            faixa.salario_base = form.cleaned_data["salario_base"]
+            faixa.data_inicio_vigencia = form.cleaned_data["inicio_faixa"]
+            faixa.save(update_fields=["salario_base", "data_inicio_vigencia"])
+        messages.success(request, "Admissão e salário base atualizados. A sugestão do 13º usa esses dados.")
+        return redirect(f"{reverse('rh_funcionario_ficha', args=[f.pk])}?ano_decimo={form.cleaned_data['data_admissao'].year}#decimo")
+
     from rh.services.decimo_terceiro import lancar_decimo_terceiro
 
-    r = lancar_decimo_terceiro(
-        f,
-        ano=form.cleaned_data["ano"],
-        parcela=form.cleaned_data["parcela"],
-        valor=form.cleaned_data["valor"],
-        data_vencimento=form.cleaned_data["data_vencimento"],
-        usuario=request.user,
-        forma_value=form.cleaned_data.get("forma_financeiro") or "",
-        banco_value=form.cleaned_data.get("banco_financeiro") or "",
-        observacao=form.cleaned_data.get("observacao") or "",
-    )
-    if not r.get("ok"):
-        messages.error(request, r.get("erro") or "Não foi possível lançar o 13º.")
-    elif r.get("criado"):
-        messages.success(request, "13º lançado nas contas a pagar.")
-    else:
-        messages.success(request, "13º atualizado no mesmo título das contas a pagar.")
+    if acao == "parcelas":
+        formas_c, bancos_c = montar_choices_formas_bancos(request.user, modo="erp")
+        form = DecimoParcelasForm(request.POST, formas_choices=formas_c, bancos_choices=bancos_c)
+        if not form.is_valid():
+            messages.error(request, "Confira os valores e os vencimentos das duas parcelas.")
+            return redirect("rh_funcionario_ficha", pk=f.pk)
+        ano = form.cleaned_data["ano"]
+        erros = []
+        for parcela, valor, venc in (
+            ("PRIMEIRA", form.cleaned_data["valor_primeira"], form.cleaned_data["venc_primeira"]),
+            ("SEGUNDA", form.cleaned_data["valor_segunda"], form.cleaned_data["venc_segunda"]),
+        ):
+            r = lancar_decimo_terceiro(
+                f,
+                ano=ano,
+                parcela=parcela,
+                valor=valor,
+                data_vencimento=venc,
+                usuario=request.user,
+                forma_value=form.cleaned_data.get("forma_financeiro") or "",
+                banco_value=form.cleaned_data.get("banco_financeiro") or "",
+            )
+            if not r.get("ok"):
+                erros.append(r.get("erro") or "Falha ao lançar.")
+        if erros:
+            messages.error(request, " ".join(erros))
+        else:
+            messages.success(request, "As duas parcelas do 13º foram para as contas a pagar.")
+        return redirect(f"{reverse('rh_funcionario_ficha', args=[f.pk])}?ano_decimo={ano}#decimo")
+
+    if acao == "ajustar":
+        decimo = get_object_or_404(DecimoTerceiroFuncionario, pk=request.POST.get("decimo_id"), funcionario=f)
+        try:
+            decimo.valor = Decimal(str(request.POST.get("valor") or "0").replace(",", "."))
+        except Exception:
+            messages.error(request, "Valor da parcela inválido.")
+            return redirect("rh_funcionario_ficha", pk=f.pk)
+        try:
+            decimo.data_vencimento = date.fromisoformat((request.POST.get("data_vencimento") or "")[:10])
+        except ValueError:
+            messages.error(request, "Vencimento inválido.")
+            return redirect("rh_funcionario_ficha", pk=f.pk)
+        if decimo.valor <= 0:
+            messages.error(request, "A parcela precisa ter valor maior que zero.")
+            return redirect("rh_funcionario_ficha", pk=f.pk)
+        apagar = request.POST.getlist("apagar")
+        if apagar:
+            decimo.ajustes.filter(pk__in=apagar).delete()
+        desc = (request.POST.get("descricao") or "").strip()
+        bruto_txt = (request.POST.get("valor_ajuste") or "").strip()
+        if desc and bruto_txt:
+            try:
+                valor_ajuste = Decimal(bruto_txt.replace(",", "."))
+            except Exception:
+                messages.error(request, "Valor do ajuste inválido.")
+                return redirect("rh_funcionario_ficha", pk=f.pk)
+            if valor_ajuste > 0:
+                AjusteDecimoTerceiro.objects.create(
+                    decimo=decimo,
+                    tipo=(request.POST.get("tipo") or "DESCONTO"),
+                    descricao=desc[:200],
+                    valor=valor_ajuste,
+                )
+        decimo.save(update_fields=["valor", "data_vencimento", "atualizado_em"])
+        r = lancar_decimo_terceiro(
+            f,
+            ano=decimo.ano,
+            parcela=decimo.parcela,
+            valor=decimo.valor,
+            data_vencimento=decimo.data_vencimento,
+            usuario=request.user,
+            valor_titulo=decimo.valor_liquido(),
+        )
+        if not r.get("ok"):
+            messages.error(request, r.get("erro") or "Não foi possível atualizar a parcela.")
+        else:
+            messages.success(request, "Parcela do 13º atualizada nas contas a pagar.")
+        return redirect(f"{reverse('rh_funcionario_ficha', args=[f.pk])}?ano_decimo={decimo.ano}#decimo")
+
+    messages.error(request, "Ação do 13º não reconhecida.")
     return redirect("rh_funcionario_ficha", pk=f.pk)
 
 
