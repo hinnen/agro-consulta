@@ -44,12 +44,9 @@ echo Postgres OK.
 
 if not exist "%USERPROFILE%\.cloudflared\config-agro-wa.yml" (
   echo.
-  echo AVISO: tunel FIXO ainda nao configurado neste PC.
-  echo Rode UMA vez: A - Loja - primeira vez PC servidor.bat
-  echo ^(nao use trycloudflare na loja - link cai^)
-  echo.
-  set /p CONT=Continuar mesmo com tunel teste? (S/N) [N]: 
-  if /I not "!CONT!"=="S" goto fim
+  echo ERRO: tunel fixo nao configurado neste PC.
+  echo Rode uma vez: A - Loja - primeira vez PC servidor.bat
+  goto fim
 )
 
 echo.
