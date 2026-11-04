@@ -8,8 +8,8 @@ if exist "%~dp0.env" (
   )
 )
 if /I "%AGRO_WA_ALVO%"=="local" (
-  set AGRO_WA_DJANGO_URL=http://127.0.0.1:8000
-  set AGRO_WA_BRIDGE_TOKEN=gm-agro-wa-ponte-local
+  if not defined AGRO_WA_DJANGO_URL set AGRO_WA_DJANGO_URL=http://127.0.0.1:8000
+  if not defined AGRO_WA_BRIDGE_TOKEN set AGRO_WA_BRIDGE_TOKEN=gm-agro-wa-ponte-local
 )
 if not defined AGRO_WA_DJANGO_URL set AGRO_WA_DJANGO_URL=http://127.0.0.1:8000
 if not defined AGRO_WA_BRIDGE_TOKEN set AGRO_WA_BRIDGE_TOKEN=gm-agro-wa-ponte-local
