@@ -1292,25 +1292,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
-### ✅ CHECKLIST ÚNICO — **04/11b** · 🟢 **pronto para envio à produção**
+### 🟡 CHECKLIST ÚNICO — **04/11b** · **PREP armado** · **RH-DECIMO-TERCEIRO**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **RH-DECIMO-TERCEIRO** | 🟢 **pronto para envio** | **SIM** `rh.0008` no build | folha outubro 1.084,29 intacta · **VERIFY_OK 5** |
+| 1 | **RH-DECIMO-TERCEIRO** | 🟡 PREP `fda8cef1` · aguarda senha | **SIM** `rh.0008` no build | **VERIFY_OK 6** |
 
-### 📦 PACOTE PRONTO — **RH-DECIMO-TERCEIRO** · **v27.26.51**
+### 📦 PREP — **RH-DECIMO-TERCEIRO** · **v27.26.51** · `fda8cef1`
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **Pronto para envio à produção** (frase + senha). Ainda não está na loja |
+| **Status** | 🟡 armado em cima da loja **v27.26.50** · ainda **não** subiu |
 | **Entra** | Na ficha, **13º · Contas a pagar**. Gera despesa no plano Décimo terceiro. A mesma parcela no ano atualiza o título. Não mexe no líquido da folha |
-| **Alvo** | **v27.26.51** · PREP `deploy/prep-checklist-0411-rh-decimo` |
-| **Checkpoint** | `rollback/pre-v272651-0411-rh-decimo` = loja atual **v27.26.50** @ `74277aa0` |
+| **Checkpoint** | `rollback/pre-v272651-0411-rh-decimo` = **v27.26.50** @ `74277aa0` |
 | **Revert** | `git push origin rollback/pre-v272651-0411-rh-decimo:producao` |
-| **Migrate** | **SIM** `rh.0008` no build · Shell `./scripts/post_deploy_checklist_0411_rh_decimo.sh` |
-| **Na senha** | `./scripts/cutover_loja_checklist_0411_rh_decimo.sh` (sem --exec) · se OK, `--exec` com frase + senha |
-| **Prova** | 13º 2.000 virou 1.800 no mesmo título. Folha de outubro ficou em 1.084,29 |
-| **Não fazer** | Merge de `teste`. Não rodar migrate para trás |
+| **Migrate** | **SIM** `rh.0008` no build |
+| **Prova** | **VERIFY_OK 6** · 2.000 virou 1.800 no mesmo título · valor menor que o já pago é recusado · nenhuma folha foi criada |
+| **Na senha** | frase de subir + senha. O envio é `fda8cef1`, não um merge de `teste` |
 
 ### 🟡 CHECKLIST ÚNICO — **04/11** · **enviado** · **PDV-ENTREGA-CAIXA-FECHADO**
 
