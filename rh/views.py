@@ -564,6 +564,37 @@ def rh_funcionario_decimo_terceiro(request, pk: int):
     return redirect("rh_funcionario_ficha", pk=f.pk)
 
 
+def _parse_salario_faixa(raw) -> Decimal:
+    s = str(raw or "").strip().replace("R$", "").replace(" ", "")
+    if "," in s and "." in s:
+        s = s.replace(".", "").replace(",", ".")
+    elif "," in s:
+        s = s.replace(",", ".")
+    return Decimal(s)
+
+
+def corrigir_historico_salarial(faixa, *, salario: Decimal, inicio: date, fim: date | None, motivo: str) -> str:
+    """Grava a correção da faixa. Devolve mensagem de erro, ou vazio se salvou. Não mexe na folha."""
+    if salario <= 0:
+        return "O salário precisa ser maior que zero."
+    if fim and fim < inicio:
+        return "A data final não pode ser antes do início."
+    outras = HistoricoSalarial.objects.filter(funcionario=faixa.funcionario_id).exclude(pk=faixa.pk)
+    if fim is None and outras.filter(data_fim_vigencia__isnull=True).exists():
+        return "Já existe uma faixa vigente. Informe a data final desta ou encerre a outra."
+    fim_eff = fim or date.max
+    for outra in outras:
+        outra_fim = outra.data_fim_vigencia or date.max
+        if inicio <= outra_fim and outra.data_inicio_vigencia <= fim_eff:
+            return "Essa faixa cruza outra já cadastrada. Uma deve terminar no dia anterior ao início da outra."
+    faixa.salario_base = salario
+    faixa.data_inicio_vigencia = inicio
+    faixa.data_fim_vigencia = fim
+    faixa.motivo_alteracao = (motivo or "").strip()[:300]
+    faixa.save(update_fields=["salario_base", "data_inicio_vigencia", "data_fim_vigencia", "motivo_alteracao"])
+    return ""
+
+
 @gestao_rh_required
 @require_POST
 @csrf_protect
@@ -572,7 +603,7 @@ def rh_funcionario_salario_corrigir(request, pk: int, faixa_id: int):
     f = get_object_or_404(Funcionario, pk=pk)
     faixa = get_object_or_404(HistoricoSalarial, pk=faixa_id, funcionario=f)
     try:
-        salario = Decimal(str(request.POST.get("salario_base") or "0").replace(",", "."))
+        salario = _parse_salario_faixa(request.POST.get("salario_base"))
     except Exception:
         messages.error(request, "Valor do salário inválido.")
         return redirect("rh_funcionario_ficha", pk=f.pk)
@@ -589,23 +620,17 @@ def rh_funcionario_salario_corrigir(request, pk: int, faixa_id: int):
         except ValueError:
             messages.error(request, "Data final inválida.")
             return redirect("rh_funcionario_ficha", pk=f.pk)
-    if salario <= 0:
-        messages.error(request, "O salário precisa ser maior que zero.")
-        return redirect("rh_funcionario_ficha", pk=f.pk)
-    if fim and fim < inicio:
-        messages.error(request, "A data final não pode ser antes do início.")
-        return redirect("rh_funcionario_ficha", pk=f.pk)
-    if fim is None and HistoricoSalarial.objects.filter(
-        funcionario=f, data_fim_vigencia__isnull=True
-    ).exclude(pk=faixa.pk).exists():
-        messages.error(request, "Já existe uma faixa vigente. Informe a data final desta ou encerre a outra.")
-        return redirect("rh_funcionario_ficha", pk=f.pk)
-    faixa.salario_base = salario
-    faixa.data_inicio_vigencia = inicio
-    faixa.data_fim_vigencia = fim
-    faixa.motivo_alteracao = (request.POST.get("motivo_alteracao") or "").strip()[:300]
-    faixa.save(update_fields=["salario_base", "data_inicio_vigencia", "data_fim_vigencia", "motivo_alteracao"])
-    messages.success(request, "Faixa salarial corrigida. A folha do mês não foi recalculada.")
+    erro = corrigir_historico_salarial(
+        faixa,
+        salario=salario,
+        inicio=inicio,
+        fim=fim,
+        motivo=request.POST.get("motivo_alteracao") or "",
+    )
+    if erro:
+        messages.error(request, erro)
+    else:
+        messages.success(request, "Faixa salarial corrigida. A folha do mês não foi recalculada.")
     return redirect("rh_funcionario_ficha", pk=f.pk)
 
 
