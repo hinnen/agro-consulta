@@ -49,12 +49,10 @@ for %%F in (
 ) do if exist "%%F" del /Q "%%F" 2>nul
 
 echo.
-echo Pronto. Use SOMENTE os arquivos:
+echo Pronto. Use SOMENTE:
 echo   1 - Instalar - primeira vez no PC.bat
 echo   2 - Configurar - primeira vez env e banco.bat
-echo   3 - Subir Zap - todo dia.bat
-echo   4 - Tunel teste - internet temporaria.bat
-echo   5 - Corrigir Postgres - senha migrate.bat
-echo   R - Voltar a funcionar - PC que ja estava OK.bat
+echo   3 - Subir Zap - todo dia.bat   ^(TUDO: git + tunel + PDV^)
+echo   4 / 5 / 6 = extras ^(ver LEIA-ME^)
 echo.
 pause
