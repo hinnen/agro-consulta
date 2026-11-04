@@ -1292,6 +1292,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
+### ✅ CHECKLIST ÚNICO — **04/11d** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **RH-FAIXA-SALARIAL** | 🟢 **pronto para envio** | **NÃO** | 22/04 virou 07/01 · folha 1.084,29 intacta · **VERIFY_OK 4** |
+
+### 📦 PACOTE PRONTO — **RH-FAIXA-SALARIAL** · **v27.26.53**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **Pronto para envio à produção** (frase + senha). Ainda não está na loja |
+| **Entra** | Cada faixa do histórico de salário pode ter valor, início, fim e motivo corrigidos. A folha do mês não é recalculada |
+| **Alvo** | **v27.26.53** · PREP `deploy/prep-checklist-0411d-rh-faixa` |
+| **Checkpoint** | `rollback/pre-v272653-0411d-rh-faixa` = loja atual **v27.26.52** @ `43ee490c` |
+| **Revert** | `git push origin rollback/pre-v272653-0411d-rh-faixa:producao` |
+| **Migrate** | **NÃO** · Shell `./scripts/post_deploy_checklist_0411d_rh_faixa.sh` |
+| **Na senha** | `./scripts/cutover_loja_checklist_0411d_rh_faixa.sh` (sem --exec) · se OK, `--exec` com frase + senha |
+| **Prova** | Faixa de 22/04/2026 passou para 07/01/2026, valor 1.853. A vigente de 01/10 e 2.000 ficou. Líquido da folha 1.084,29 |
+| **Não fazer** | Merge de `teste` |
+
 ### 🟡 CHECKLIST ÚNICO — **04/11c** · **enviado** · **RH-DECIMO-SUGESTAO**
 
 | # | Pacote | Status | Migrate | Prova |
