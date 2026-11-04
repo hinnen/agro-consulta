@@ -1312,20 +1312,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Ainda** | O serviço do Zap ainda precisa receber a rota do orçamento (filial `whatsapp`, ainda sem push). Sem isso o botão Loja grava na Sistvale |
 | **Não fazer** | Colocar `AGRO_WA_PUBLIC_ORIGIN` no serviço do Zap |
 
-### ✅ CHECKLIST ÚNICO — **03/11** · ✅ **Live v27.26.49** · **WA-ORIGIN-PC**
+### 🟢 CHECKLIST ÚNICO — **03/11** · **pronto para envio** · **WA-ORIGIN-PC**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **WA-ORIGIN-PC** | ✅ **Live** `b85822ba` | **0154** | **VERIFY_OK 6** |
+| 1 | **WA-ORIGIN-PC** | 🟢 correção `2d002112` · **Render não trocou a loja** | **0154** se a tabela faltar | **VERIFY_OK 7** |
 
-### 📦 LIVE — **WA-ORIGIN-PC** · **v27.26.49**
+### 📦 PACOTE PRONTO — **WA-ORIGIN-PC** · correção da tabela
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **Live** @ `b85822ba` |
-| **Entra** | O PC grava a URL HTTPS do túnel. Sem registro, o ícone segue no Zap atual |
-| **Checkpoint** | `rollback/pre-v272649-0311-wa-origin-pc` = **v27.26.48** @ `39b447ad` |
-| **Shell** | `./scripts/post_deploy_checklist_0311_wa_origin_pc.sh` |
+| **No ar** | **v27.26.48** @ `39b447ad` (o deploy `b85822ba` falhou: tabela já existia) |
+| **Sobe** | `2d002112` — não cria a tabela de novo |
 | **Revert** | `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao` |
 
 ### ✅ CHECKLIST ÚNICO — **03/11c** · ✅ **enviado à loja v27.26.48**
@@ -1465,13 +1463,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### ✅ Deploy loja — **WA-ORIGIN-PC** · **Live v27.26.49** · 03/11
+### 🟢 WA-ORIGIN-PC — build falhou · correção pronta
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **Live** @ **`b85822ba`** |
-| **Revert** | `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao` → **v27.26.48** @ **`39b447ad`** |
-| **Shell** | `./scripts/post_deploy_checklist_0311_wa_origin_pc.sh` |
+| **No ar** | **v27.26.48** @ `39b447ad` |
+| **Correção** | `2d002112` · **VERIFY_OK 7** |
+| **Revert** | `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao` |
 
 
 ### ✅ Deploy loja — **CHECKLIST 31/10** · **Live v27.26.45** · 31/10
