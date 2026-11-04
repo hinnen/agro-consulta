@@ -47,6 +47,11 @@ urlpatterns = [
         name="rh_funcionario_salario_adicionar",
     ),
     path(
+        "gestao/funcionarios/<int:pk>/salario/<int:faixa_id>/",
+        views.rh_funcionario_salario_corrigir,
+        name="rh_funcionario_salario_corrigir",
+    ),
+    path(
         "gestao/funcionarios/<int:pk>/decimo/",
         views.rh_funcionario_decimo_terceiro,
         name="rh_funcionario_decimo_terceiro",

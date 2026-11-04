@@ -133,11 +133,26 @@
             </form>
             <div class="border-t border-slate-100 pt-3">
               <p class="text-[11px] font-black uppercase text-slate-500 mb-2">Histórico</p>
-              <ul class="text-sm space-y-1 max-h-48 overflow-y-auto min-w-0 border border-slate-100 rounded-lg p-2 bg-slate-50">
+              <div class="space-y-2 min-w-0 border border-slate-100 rounded-lg p-2 bg-slate-50">
                 {% for h in historico_salario %}
-                <li class="flex flex-wrap justify-between gap-2 border-b border-slate-100 py-1.5 last:border-0"><span>R$ {{ h.salario_base|floatformat:2 }} · {{ h.data_inicio_vigencia }}{% if h.data_fim_vigencia %} — {{ h.data_fim_vigencia }}{% else %} <span class="text-emerald-700 font-bold">(vigente)</span>{% endif %}</span></li>
-                {% empty %}<li class="text-slate-400 font-semibold text-sm">—</li>{% endfor %}
-              </ul>
+                <form method="post" action="{% url 'rh_funcionario_salario_corrigir' funcionario.pk h.pk %}" class="flex flex-wrap gap-2 items-end border-b border-slate-200 pb-2 last:border-0">
+                  {% csrf_token %}
+                  <label class="text-[11px] font-black uppercase min-w-[8rem] flex-1">Salário
+                    <input name="salario_base" value="{{ h.salario_base }}" class="mt-1 block w-full min-h-[44px] rounded-lg border-2 border-slate-200 px-2 font-semibold" inputmode="decimal">
+                  </label>
+                  <label class="text-[11px] font-black uppercase min-w-[9rem]">Início
+                    <input type="date" name="data_inicio_vigencia" value="{{ h.data_inicio_vigencia|date:'Y-m-d' }}" class="mt-1 block w-full min-h-[44px] rounded-lg border-2 border-slate-200 px-2 font-semibold">
+                  </label>
+                  <label class="text-[11px] font-black uppercase min-w-[9rem]">Fim {% if not h.data_fim_vigencia %}<span class="text-emerald-700">(vigente)</span>{% endif %}
+                    <input type="date" name="data_fim_vigencia" value="{% if h.data_fim_vigencia %}{{ h.data_fim_vigencia|date:'Y-m-d' }}{% endif %}" class="mt-1 block w-full min-h-[44px] rounded-lg border-2 border-slate-200 px-2 font-semibold">
+                  </label>
+                  <label class="text-[11px] font-black uppercase min-w-[10rem] flex-1">Motivo
+                    <input name="motivo_alteracao" value="{{ h.motivo_alteracao }}" class="mt-1 block w-full min-h-[44px] rounded-lg border-2 border-slate-200 px-2 font-semibold">
+                  </label>
+                  <button type="submit" class="min-h-[44px] px-4 rounded-xl bg-slate-900 text-white text-xs font-black uppercase">Salvar faixa</button>
+                </form>
+                {% empty %}<p class="text-slate-400 font-semibold text-sm">—</p>{% endfor %}
+              </div>
             </div>
           </div>
         </details>
@@ -173,7 +188,7 @@
               2ª parcela R$ {{ sugestao_decimo.segunda|floatformat:2 }} até 20/12.
               INSS e IR não entram na sugestão: depois, lance como desconto na 2ª parcela.
               {% endif %}
-              <span class="block mt-1 text-xs">Lei 4.090: mês com 15 dias ou mais conta inteiro. Salário fixo usa o vigente em dezembro, não uma média.</span>
+              <span class="block mt-1 text-xs">Lei 4.090: mês com 15 dias ou mais conta inteiro. Salário fixo usa o vigente em dezembro, não uma média. Uma faixa antiga, como a de abril, se corrige no histórico logo acima: data e valor de cada linha.</span>
             </div>
             <form method="post" action="{% url 'rh_funcionario_decimo_terceiro' funcionario.pk %}" class="flex flex-wrap gap-3 items-end">
               {% csrf_token %}
