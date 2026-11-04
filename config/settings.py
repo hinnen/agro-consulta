@@ -68,6 +68,25 @@ for _o in [o.strip() for o in _env_csv_or_config("CSRF_TRUSTED_ORIGINS_EXTRA").s
     if _o not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(_o)
 
+# Servidor WhatsApp no PC (.env.wa-servidor): tunel fixo zapsistvale + trycloudflare lab
+if (config("AGRO_WA_MEDIA_ROOT", default="") or "").strip():
+    for _h in ("zap.zapsistvale.online", ".trycloudflare.com"):
+        if _h not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(_h)
+    for _o in ("https://zap.zapsistvale.online",):
+        if _o not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(_o)
+    _wa_fixo = (os.environ.get("AGRO_WA_TUNEL_FIXO_ORIGIN") or config("AGRO_WA_TUNEL_FIXO_ORIGIN", default="") or "").strip().rstrip("/")
+    if _wa_fixo:
+        from urllib.parse import urlparse
+
+        _wh = (urlparse(_wa_fixo if "://" in _wa_fixo else "https://" + _wa_fixo).hostname or "").strip()
+        if _wh and _wh not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(_wh)
+        _wo = _wa_fixo if _wa_fixo.startswith("http") else "https://" + _wa_fixo
+        if _wo not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(_wo)
+
 # Domínio oficial (produção): redireciona ``RENDER_EXTERNAL_HOSTNAME`` (*.onrender.com do serviço) para cá.
 # Render: ``AGRO_CANONICAL_ORIGIN=https://www.sistvale.com.br``
 # Previews de PR (``IS_PULL_REQUEST=true``) não redirecionam. Homolog: omita a variável.
