@@ -133,6 +133,8 @@ class WaPublicOriginRegisterTests(unittest.TestCase):
         ).read()
         self.assertIn('("produtos", "0153_nfe_fiscal_contador")', mig)
         self.assertNotIn("0154_whatsapp_msg_reacao", mig)
+        self.assertIn("criar_tabela_se_faltar", mig)
+        self.assertIn("if _TABELA in nomes", mig)
         for caminho in (
             "/pdv/checkout/",
             "/caixa/",
@@ -146,6 +148,29 @@ class WaPublicOriginRegisterTests(unittest.TestCase):
             req = rf.get(caminho)
             req.META["HTTP_HOST"] = "www.sistvale.com.br"
             self.assertEqual(mw(req).content, b"pass", caminho)
+
+    def test_migrate_nao_recria_tabela_existente(self):
+        import importlib
+
+        from django.apps import apps
+        from django.db import connection
+
+        from produtos.models import WhatsAppPublicOriginAgro
+
+        mod = importlib.import_module("produtos.migrations.0154_whatsapp_public_origin")
+        tabela = WhatsAppPublicOriginAgro._meta.db_table
+        ja_tinha = tabela in connection.introspection.table_names()
+        if not ja_tinha:
+            with connection.schema_editor() as editor:
+                editor.create_model(WhatsAppPublicOriginAgro)
+        try:
+            with connection.schema_editor() as editor:
+                mod.criar_tabela_se_faltar(apps, editor)
+            self.assertIn(tabela, connection.introspection.table_names())
+        finally:
+            if not ja_tinha:
+                with connection.schema_editor() as editor:
+                    editor.delete_model(WhatsAppPublicOriginAgro)
 
     def test_grava_so_o_host_e_cache_nao_derruba(self):
         from django.core.cache import cache
@@ -195,7 +220,7 @@ def main() -> int:
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(WaPublicOriginRegisterTests)
     result = unittest.TextTestRunner(verbosity=2).run(suite)
     if result.wasSuccessful():
-        print("VERIFY_OK 6")
+        print("VERIFY_OK 7")
         return 0
     print(f"VERIFY_FAILS={len(result.failures) + len(result.errors)}")
     return 1

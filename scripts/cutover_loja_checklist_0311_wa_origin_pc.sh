@@ -48,7 +48,7 @@ git show-ref --verify --quiet "refs/remotes/origin/$ROLLBACK_TAG" || { echo "FAI
 PY=python3
 [[ -x .venv/bin/python ]] && PY=.venv/bin/python
 "$PY" scripts/verify_wa_public_origin_register.py | tee /tmp/cutover-0311-wa-origin.log
-grep -q 'VERIFY_OK 6' /tmp/cutover-0311-wa-origin.log
+grep -q 'VERIFY_OK 7' /tmp/cutover-0311-wa-origin.log
 echo "OK: PREP v$VER_ESPERADA · 03/11 URL do túnel · migrate 0154 · rollback $ROLLBACK_TAG"
 
 [[ "${1:-}" != "--exec" ]] && exit 0
