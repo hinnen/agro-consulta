@@ -560,6 +560,51 @@ def rh_funcionario_decimo_terceiro(request, pk: int):
 @gestao_rh_required
 @require_POST
 @csrf_protect
+def rh_funcionario_salario_corrigir(request, pk: int, faixa_id: int):
+    """Corrige uma faixa já gravada. Não recalcula a folha do mês."""
+    f = get_object_or_404(Funcionario, pk=pk)
+    faixa = get_object_or_404(HistoricoSalarial, pk=faixa_id, funcionario=f)
+    try:
+        salario = Decimal(str(request.POST.get("salario_base") or "0").replace(",", "."))
+    except Exception:
+        messages.error(request, "Valor do salário inválido.")
+        return redirect("rh_funcionario_ficha", pk=f.pk)
+    try:
+        inicio = date.fromisoformat((request.POST.get("data_inicio_vigencia") or "")[:10])
+    except ValueError:
+        messages.error(request, "Data de início inválida.")
+        return redirect("rh_funcionario_ficha", pk=f.pk)
+    fim_txt = (request.POST.get("data_fim_vigencia") or "").strip()
+    fim = None
+    if fim_txt:
+        try:
+            fim = date.fromisoformat(fim_txt[:10])
+        except ValueError:
+            messages.error(request, "Data final inválida.")
+            return redirect("rh_funcionario_ficha", pk=f.pk)
+    if salario <= 0:
+        messages.error(request, "O salário precisa ser maior que zero.")
+        return redirect("rh_funcionario_ficha", pk=f.pk)
+    if fim and fim < inicio:
+        messages.error(request, "A data final não pode ser antes do início.")
+        return redirect("rh_funcionario_ficha", pk=f.pk)
+    if fim is None and HistoricoSalarial.objects.filter(
+        funcionario=f, data_fim_vigencia__isnull=True
+    ).exclude(pk=faixa.pk).exists():
+        messages.error(request, "Já existe uma faixa vigente. Informe a data final desta ou encerre a outra.")
+        return redirect("rh_funcionario_ficha", pk=f.pk)
+    faixa.salario_base = salario
+    faixa.data_inicio_vigencia = inicio
+    faixa.data_fim_vigencia = fim
+    faixa.motivo_alteracao = (request.POST.get("motivo_alteracao") or "").strip()[:300]
+    faixa.save(update_fields=["salario_base", "data_inicio_vigencia", "data_fim_vigencia", "motivo_alteracao"])
+    messages.success(request, "Faixa salarial corrigida. A folha do mês não foi recalculada.")
+    return redirect("rh_funcionario_ficha", pk=f.pk)
+
+
+@gestao_rh_required
+@require_POST
+@csrf_protect
 def rh_funcionario_salario_adicionar(request, pk: int):
     f = get_object_or_404(Funcionario, pk=pk)
     form = HistoricoSalarialForm(request.POST)
