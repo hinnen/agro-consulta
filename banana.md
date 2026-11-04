@@ -1292,24 +1292,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
-### ✅ CHECKLIST ÚNICO — **04/11** · 🟢 **pronto para envio à produção**
+### 🟡 CHECKLIST ÚNICO — **04/11** · **PREP armado** · **PDV-ENTREGA-CAIXA-FECHADO**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-ENTREGA-CAIXA-FECHADO** | 🟢 **pronto para envio** | **NÃO** | **30/32** (2 asserts de cenário; ver pacote) |
+| 1 | **PDV-ENTREGA-CAIXA-FECHADO** | 🟡 PREP `74277aa0` · aguarda senha | **NÃO** | **VERIFY_OK 9** |
 
-### 📦 PACOTE PRONTO — **PDV-ENTREGA-CAIXA-FECHADO** · alvo **v27.26.50** · `teste` @ **`708a9165`**
+### 📦 PREP — **PDV-ENTREGA-CAIXA-FECHADO** · **v27.26.50** · `74277aa0`
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **pronto para envio à produção** · ainda **não** está na loja |
-| **Entra** | A PAGAR do PDV volta a mostrar entrega com pagamento na entrega depois que o caixa de origem fechou. 855 e 865 (Aguarda PDV no painel) entram de novo. O caixa novo da mesma loja continua travado até pagar, cancelar ou adiar. Dia futuro não trava hoje. Vila e Centro não se misturam |
-| **Fora** | Não solta o vínculo da sessão no fechamento (a outra branch fazia isso e não cobria o que já sumiu) |
-| **Alvo** | **v27.26.50** · base loja **v27.26.49** @ `2d002112` |
-| **PREP** | `teste` @ **`708a9165`** |
+| **Status** | 🟡 armado em cima da loja **v27.26.49** · ainda **não** subiu |
+| **Entra** | A PAGAR do PDV volta a mostrar entrega com pagamento na entrega depois que o caixa de origem fechou. O caixa novo da mesma loja continua travado até pagar, cancelar ou adiar. Dia futuro não trava hoje. Vila e Centro não se misturam. Caixa Teste fechado não trava a gaveta |
+| **Fora** | Não solta o vínculo da sessão no fechamento |
+| **Checkpoint** | `rollback/pre-v272650-0411-entrega-caixa-fechado` = **v27.26.49** @ `2d002112` |
+| **Revert** | `git push origin rollback/pre-v272650-0411-entrega-caixa-fechado:producao` |
 | **Migrate** | **NÃO** |
-| **Prova** | PIN **9973** aceito · **0000** recusado · overlay mostra com caixa fechado · filtro antigo esconde · caixa novo trava · adiar com 9973 solta hoje e a entrega continua na lista · API grava amanhã · recusa dia passado · recusa PIN errado · cancelada some · paga na loja fica até o dia |
-| **Na senha** | frase de subir + senha na mesma mensagem. Não merge cego de `teste` |
+| **Prova** | **VERIFY_OK 9** · PIN 9973 aceito · 0000 recusado · overlay com caixa fechado · filtro antigo esconde · caixa novo trava · adiar solta hoje e a entrega continua na lista · API grava amanhã · recusa dia passado · cancelada some · paga na loja não trava · caixa teste não trava a gaveta |
+| **Na senha** | frase de subir + senha. O envio é `74277aa0`, não um merge de `teste` |
 
 ### ✅ CHECKLIST ÚNICO — **31/10** · **Live v27.26.45** · **PDV-WA-SEPARADO**
 
@@ -1482,12 +1482,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 Pronto — **PDV-ENTREGA-CAIXA-FECHADO** · alvo **v27.26.50** · 04/11
+### 🟡 PREP — **PDV-ENTREGA-CAIXA-FECHADO** · **v27.26.50** · 04/11
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **pronto para envio** · `teste` @ **`708a9165`** · migrate **NÃO** |
-| **Loja agora** | **v27.26.49** @ `2d002112` — este pacote **ainda não subiu** |
+| **Status** | 🟡 `74277aa0` · **VERIFY_OK 9** · migrate **NÃO** · aguarda senha |
+| **Loja agora** | **v27.26.49** @ `2d002112` |
+| **Revert** | `git push origin rollback/pre-v272650-0411-entrega-caixa-fechado:producao` |
 
 ### ✅ Deploy loja — **WA-ORIGIN-PC** · **Live v27.26.49** · 03/11
 
