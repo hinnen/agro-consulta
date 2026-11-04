@@ -20,7 +20,7 @@ echo.
 cloudflared tunnel login
 echo.
 if exist "%USERPROFILE%\.cloudflared\cert.pem" (
-  echo OK — login salvo. Proximo: tunel_fixo_criar.bat
+  echo OK - login salvo. Proximo: tunel_fixo_criar_zapsistvale.bat
 ) else (
   echo Login incompleto — cert.pem nao apareceu.
   echo Causa comum: conta sem dominio. Veja docs\WHATSAPP-SERVIDOR-PC.md ^(opcoes A/B/C^).
