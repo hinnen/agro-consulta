@@ -4,7 +4,7 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
-**Loja (03/11 · PR 479):** **WA-ORIGIN-PC** — o git foi para `b85822ba`, o **Render falhou** (tabela já existia). No ar segue **v27.26.48** @ `39b447ad`. Correção pronta: `2d002112` (não recria a tabela). Ainda não subiu.
+**Loja (03/11 · PR 479):** **WA-ORIGIN-PC** — enviado `2d002112`. O Render ainda precisa terminar o build. Até lá, no ar segue **v27.26.48** @ `39b447ad`. Volta: `rollback/pre-v272649-0311-wa-origin-pc`. Revert: `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao`.
 
 **O que está pronto agora (31/10):** checklist único **PDV-WA-SEPARADO** — ✅ **Live v27.26.45** @ `1ef48ced`. Detalhe no `banana.md` e na **§99**.
 

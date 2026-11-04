@@ -1312,18 +1312,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Ainda** | O serviço do Zap ainda precisa receber a rota do orçamento (filial `whatsapp`, ainda sem push). Sem isso o botão Loja grava na Sistvale |
 | **Não fazer** | Colocar `AGRO_WA_PUBLIC_ORIGIN` no serviço do Zap |
 
-### 🟢 CHECKLIST ÚNICO — **03/11** · **pronto para envio** · **WA-ORIGIN-PC**
+### 🟡 CHECKLIST ÚNICO — **03/11** · **enviado** · **WA-ORIGIN-PC**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **WA-ORIGIN-PC** | 🟢 correção `2d002112` · **Render não trocou a loja** | **0154** se a tabela faltar | **VERIFY_OK 7** |
+| 1 | **WA-ORIGIN-PC** | 🟡 git `2d002112` · aguardando o build | **0154** se a tabela faltar | **VERIFY_OK 7** |
 
-### 📦 PACOTE PRONTO — **WA-ORIGIN-PC** · correção da tabela
+### 📦 ENVIADO — **WA-ORIGIN-PC** · **v27.26.49**
 
 | Campo | Valor |
 | ----- | ----- |
-| **No ar** | **v27.26.48** @ `39b447ad` (o deploy `b85822ba` falhou: tabela já existia) |
-| **Sobe** | `2d002112` — não cria a tabela de novo |
+| **Git** | `producao` @ `2d002112` |
+| **No ar até o build** | **v27.26.48** @ `39b447ad` |
+| **Checkpoint** | `rollback/pre-v272649-0311-wa-origin-pc` = `39b447ad` |
 | **Revert** | `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao` |
 
 ### ✅ CHECKLIST ÚNICO — **03/11c** · ✅ **enviado à loja v27.26.48**
@@ -1463,12 +1464,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 WA-ORIGIN-PC — build falhou · correção pronta
+### 🟡 WA-ORIGIN-PC — enviado · aguardando o Render
 
 | Campo | Valor |
 | ----- | ----- |
-| **No ar** | **v27.26.48** @ `39b447ad` |
-| **Correção** | `2d002112` · **VERIFY_OK 7** |
+| **Git** | `2d002112` |
+| **No ar até o build** | **v27.26.48** @ `39b447ad` |
 | **Revert** | `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao` |
 
 
