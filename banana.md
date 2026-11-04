@@ -1312,19 +1312,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Ainda** | O serviço do Zap ainda precisa receber a rota do orçamento (filial `whatsapp`, ainda sem push). Sem isso o botão Loja grava na Sistvale |
 | **Não fazer** | Colocar `AGRO_WA_PUBLIC_ORIGIN` no serviço do Zap |
 
-### 🟡 CHECKLIST ÚNICO — **03/11** · **enviado** · **WA-ORIGIN-PC**
+### ✅ CHECKLIST ÚNICO — **03/11** · ✅ **Live v27.26.49** · **WA-ORIGIN-PC**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **WA-ORIGIN-PC** | 🟡 git `2d002112` · aguardando o build | **0154** se a tabela faltar | **VERIFY_OK 7** |
+| 1 | **WA-ORIGIN-PC** | ✅ **Live** `2d002112` | **0154** OK | **VERIFY_OK 7** · `/healthz` ok |
 
-### 📦 ENVIADO — **WA-ORIGIN-PC** · **v27.26.49**
+### 📦 LIVE — **WA-ORIGIN-PC** · **v27.26.49**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Git** | `producao` @ `2d002112` |
-| **No ar até o build** | **v27.26.48** @ `39b447ad` |
-| **Checkpoint** | `rollback/pre-v272649-0311-wa-origin-pc` = `39b447ad` |
+| **Status** | ✅ **Live** @ `2d002112` · build 04/11 12:23 (horário de Brasília) |
+| **Checkpoint** | `rollback/pre-v272649-0311-wa-origin-pc` = **v27.26.48** @ `39b447ad` |
 | **Revert** | `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao` |
 
 ### ✅ CHECKLIST ÚNICO — **03/11c** · ✅ **enviado à loja v27.26.48**
@@ -1464,13 +1463,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 WA-ORIGIN-PC — enviado · aguardando o Render
+### ✅ Deploy loja — **WA-ORIGIN-PC** · **Live v27.26.49** · 03/11
 
 | Campo | Valor |
 | ----- | ----- |
-| **Git** | `2d002112` |
-| **No ar até o build** | **v27.26.48** @ `39b447ad` |
-| **Revert** | `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao` |
+| **Status** | ✅ **Live** @ **`2d002112`** · migrate **0154** OK |
+| **Revert** | `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao` → **v27.26.48** @ **`39b447ad`** |
 
 
 ### ✅ Deploy loja — **CHECKLIST 31/10** · **Live v27.26.45** · 31/10

@@ -4,7 +4,7 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
-**Loja (03/11 · PR 479):** **WA-ORIGIN-PC** — enviado `2d002112`. O Render ainda precisa terminar o build. Até lá, no ar segue **v27.26.48** @ `39b447ad`. Volta: `rollback/pre-v272649-0311-wa-origin-pc`. Revert: `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao`.
+**Loja (03/11 · PR 479):** **WA-ORIGIN-PC** — ✅ **Live v27.26.49** @ `2d002112`. Migrate **0154** OK. `/healthz` = ok. Volta: `rollback/pre-v272649-0311-wa-origin-pc` (`39b447ad`). Revert: `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao`.
 
 **O que está pronto agora (31/10):** checklist único **PDV-WA-SEPARADO** — ✅ **Live v27.26.45** @ `1ef48ced`. Detalhe no `banana.md` e na **§99**.
 
