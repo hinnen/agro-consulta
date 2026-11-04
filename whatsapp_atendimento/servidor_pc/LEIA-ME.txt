@@ -5,6 +5,11 @@ TODO DIA (loja / PC servidor) — UM clique:
 
   3 - Subir Zap - todo dia.bat
 
+DOMINIO FIXO (uma vez, Hostinger zapsistvale.online):
+
+  7 - Dominio fixo zapsistvale - tudo de uma vez.bat
+  ^(so voce: Authorize Cloudflare + CNAME no Hostinger^)
+
   Faz sozinho: git pull + Postgres + servidor + ponte + tunel + avisa PDV.
   Espere na janela do tunel: "PDV atualizado". Depois teste o botao verde no PDV.
 
