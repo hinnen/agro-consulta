@@ -482,22 +482,25 @@ def rh_funcionario_decimo_terceiro(request, pk: int):
             return redirect("rh_funcionario_ficha", pk=f.pk)
         ano = form.cleaned_data["ano"]
         erros = []
-        for parcela, valor, venc in (
-            ("PRIMEIRA", form.cleaned_data["valor_primeira"], form.cleaned_data["venc_primeira"]),
-            ("SEGUNDA", form.cleaned_data["valor_segunda"], form.cleaned_data["venc_segunda"]),
-        ):
-            r = lancar_decimo_terceiro(
-                f,
-                ano=ano,
-                parcela=parcela,
-                valor=valor,
-                data_vencimento=venc,
-                usuario=request.user,
-                forma_value=form.cleaned_data.get("forma_financeiro") or "",
-                banco_value=form.cleaned_data.get("banco_financeiro") or "",
-            )
-            if not r.get("ok"):
-                erros.append(r.get("erro") or "Falha ao lançar.")
+        with transaction.atomic():
+            for parcela, valor, venc in (
+                ("PRIMEIRA", form.cleaned_data["valor_primeira"], form.cleaned_data["venc_primeira"]),
+                ("SEGUNDA", form.cleaned_data["valor_segunda"], form.cleaned_data["venc_segunda"]),
+            ):
+                r = lancar_decimo_terceiro(
+                    f,
+                    ano=ano,
+                    parcela=parcela,
+                    valor=valor,
+                    data_vencimento=venc,
+                    usuario=request.user,
+                    forma_value=form.cleaned_data.get("forma_financeiro") or "",
+                    banco_value=form.cleaned_data.get("banco_financeiro") or "",
+                )
+                if not r.get("ok"):
+                    erros.append(r.get("erro") or "Falha ao lançar.")
+                    transaction.set_rollback(True)
+                    break
         if erros:
             messages.error(request, " ".join(erros))
         else:
@@ -520,33 +523,37 @@ def rh_funcionario_decimo_terceiro(request, pk: int):
             messages.error(request, "A parcela precisa ter valor maior que zero.")
             return redirect("rh_funcionario_ficha", pk=f.pk)
         apagar = request.POST.getlist("apagar")
-        if apagar:
-            decimo.ajustes.filter(pk__in=apagar).delete()
         desc = (request.POST.get("descricao") or "").strip()
         bruto_txt = (request.POST.get("valor_ajuste") or "").strip()
+        valor_ajuste = None
         if desc and bruto_txt:
             try:
                 valor_ajuste = Decimal(bruto_txt.replace(",", "."))
             except Exception:
                 messages.error(request, "Valor do ajuste inválido.")
                 return redirect("rh_funcionario_ficha", pk=f.pk)
-            if valor_ajuste > 0:
+        with transaction.atomic():
+            if apagar:
+                decimo.ajustes.filter(pk__in=apagar).delete()
+            if desc and valor_ajuste and valor_ajuste > 0:
                 AjusteDecimoTerceiro.objects.create(
                     decimo=decimo,
                     tipo=(request.POST.get("tipo") or "DESCONTO"),
                     descricao=desc[:200],
                     valor=valor_ajuste,
                 )
-        decimo.save(update_fields=["valor", "data_vencimento", "atualizado_em"])
-        r = lancar_decimo_terceiro(
-            f,
-            ano=decimo.ano,
-            parcela=decimo.parcela,
-            valor=decimo.valor,
-            data_vencimento=decimo.data_vencimento,
-            usuario=request.user,
-            valor_titulo=decimo.valor_liquido(),
-        )
+            decimo.save(update_fields=["valor", "data_vencimento", "atualizado_em"])
+            r = lancar_decimo_terceiro(
+                f,
+                ano=decimo.ano,
+                parcela=decimo.parcela,
+                valor=decimo.valor,
+                data_vencimento=decimo.data_vencimento,
+                usuario=request.user,
+                valor_titulo=decimo.valor_liquido(),
+            )
+            if not r.get("ok"):
+                transaction.set_rollback(True)
         if not r.get("ok"):
             messages.error(request, r.get("erro") or "Não foi possível atualizar a parcela.")
         else:
