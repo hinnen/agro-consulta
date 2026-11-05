@@ -4100,12 +4100,14 @@ class WhatsAppPontePedidoAgro(models.Model):
     TIPO_PAIRING = "pairing"
     TIPO_LOGOUT = "logout"
     TIPO_APAGAR = "apagar"
+    TIPO_ARQUIVAR = "arquivar"
     TIPO_CHOICES = (
         (TIPO_CONTATOS, "Agenda"),
         (TIPO_HISTORICO, "Histórico"),
         (TIPO_PAIRING, "Código de ligação"),
         (TIPO_LOGOUT, "Trocar WhatsApp"),
         (TIPO_APAGAR, "Apagar mensagem"),
+        (TIPO_ARQUIVAR, "Arquivar conversa"),
     )
     STATUS_PENDENTE = "pendente"
     STATUS_OK = "ok"

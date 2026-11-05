@@ -718,3 +718,54 @@ class ArquivoConversaTests(TestCase):
         self.assertTrue(BOT_DEFAULT.get("arquivo_auto_nunca_com_nao_lidas"))
         self.assertTrue(BOT_DEFAULT.get("saudacao_depois_menu"))
         self.assertEqual(int(BOT_DEFAULT.get("saudacao_atraso_seg") or 0), 0)
+
+    def test_arquivar_enfileira_pedido_ponte(self):
+        from produtos.atendimento_whatsapp_util import arquivar_conversa, reabrir_conversa
+        from produtos.models import WhatsAppPontePedidoAgro
+
+        processar_entrada(
+            jid="5513999111003@s.whatsapp.net",
+            texto="sync",
+            nome="SyncArq",
+            wa_id="wa-sync-arq-1",
+        )
+        conv = WhatsAppConversaAgro.objects.get()
+        ok, _ = arquivar_conversa(conv.pk, operador="Loja")
+        self.assertTrue(ok)
+        ped = WhatsAppPontePedidoAgro.objects.filter(
+            tipo=WhatsAppPontePedidoAgro.TIPO_ARQUIVAR,
+            status=WhatsAppPontePedidoAgro.STATUS_PENDENTE,
+        ).latest("id")
+        self.assertTrue(ped.payload.get("arquivar"))
+        self.assertEqual(ped.payload.get("last_wa_id"), "wa-sync-arq-1")
+        ok2, _ = reabrir_conversa(conv.pk)
+        self.assertTrue(ok2)
+        ped2 = WhatsAppPontePedidoAgro.objects.filter(
+            tipo=WhatsAppPontePedidoAgro.TIPO_ARQUIVAR,
+            status=WhatsAppPontePedidoAgro.STATUS_PENDENTE,
+        ).latest("id")
+        self.assertFalse(bool(ped2.payload.get("arquivar")))
+
+    def test_bridge_arquivo_celular_vai_para_resolvidas(self):
+        from produtos.atendimento_whatsapp_util import aplicar_arquivo_zap, listar_conversas
+        from produtos.models import WhatsAppPontePedidoAgro
+
+        processar_entrada(jid="5513999111004@s.whatsapp.net", texto="cel", nome="CelArq")
+        conv = WhatsAppConversaAgro.objects.get()
+        ok, _info = aplicar_arquivo_zap(
+            jid="5513999111004@s.whatsapp.net",
+            arquivada=True,
+            operador="WhatsApp",
+        )
+        self.assertTrue(ok)
+        conv.refresh_from_db()
+        self.assertTrue(conv.arquivada)
+        self.assertIn(conv.pk, {c["id"] for c in listar_conversas(loja="arquivadas")})
+        ok2, _ = aplicar_arquivo_zap(jid="5513999111004@s.whatsapp.net", arquivada=False)
+        self.assertTrue(ok2)
+        conv.refresh_from_db()
+        self.assertFalse(conv.arquivada)
+        self.assertEqual(
+            WhatsAppPontePedidoAgro.objects.filter(tipo=WhatsAppPontePedidoAgro.TIPO_ARQUIVAR).count(),
+            0,
+        )

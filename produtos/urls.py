@@ -1203,6 +1203,11 @@ urlpatterns = [
         name='api_atendimento_whatsapp_bridge_pedido_ok',
     ),
     path(
+        'api/atendimento-whatsapp/bridge/arquivo/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_arquivo,
+        name='api_atendimento_whatsapp_bridge_arquivo',
+    ),
+    path(
         'api/atendimento-whatsapp/recursos/',
         views_atendimento_whatsapp.api_atendimento_whatsapp_recursos,
         name='api_atendimento_whatsapp_recursos',
