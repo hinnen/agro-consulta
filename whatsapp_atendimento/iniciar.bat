@@ -62,7 +62,7 @@ echo Ligando...
 node index.js
 if errorlevel 1 (
   echo.
-  echo ERRO ao ligar a ponte (codigo acima). Janela aberta para ler.
+  echo ERRO ao ligar a ponte. Leia o texto acima. Janela aberta.
   pause
 )
 echo.
