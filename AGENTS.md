@@ -73,6 +73,8 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 | `/estoque/sincronizacao/`                | `estoque_sincronizacao`                | Saúde leitura Mongo + divergência camada Agro                                               |
 | `/pdv/checkout/`                         | `pdv_checkout`                         |                                                                                             |
 | `/vendas/`                               | `vendas_lista`                         |                                                                                             |
+| `/vendas/lojas/dashboard/`               | `vendas_lojas_dashboard`               | Dashboard mobile SistApp (Etapa 1 · faturamento PG)                                         |
+| `/api/vendas/lojas/dashboard/resumo/`    | `api_vendas_lojas_dashboard_resumo`    | Resumo read-only faturamento Centro/Vila                                                    |
 | `/venda/<pk>/`                           | `venda_agro_detalhe`                   |                                                                                             |
 | `/clientes/` …                           | `clientes_`*, `cliente_*`              |                                                                                             |
 | `/rh/`                                   | `rh_painel`                            |                                                                                             |
@@ -120,6 +122,13 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 ---
 
 ## 7. Decisões e implementações já registradas (changelog resumido)
+
+**Dashboard mobile SistApp (Etapa 1)**  
+
+- Card **Dashboard** no hub (`vendas_lojas_hub.html`) → `/vendas/lojas/dashboard/`.  
+- UI a partir do protótipo em `docs/referencia/dashboard-mobile-original.html` (sem redesenho).  
+- API `GET /api/vendas/lojas/dashboard/resumo/?loja=&inicio=&fim=` — somente leitura, Postgres/`vendas_lojas_totais`; mesma regra de abatimento de devolução do painel Vendas.  
+- Auth: PIN do hub + liberação gerência (`exigir_operador_html/api`). Aba Financeiro / produtos / metas: «Ainda não integrado» ou «Sem permissão» (Etapa 2+).
 
 **NF-e saída (nota grande) — tela `/nfe/saida/`**
 

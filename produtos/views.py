@@ -11864,6 +11864,45 @@ def vendas_lojas_resumo(request):
     )
 
 
+@never_cache
+@require_GET
+@exigir_vendas_lojas_html
+def vendas_lojas_dashboard(request):
+    """Dashboard mobile SistApp (Etapa 1) — UI do protótipo + faturamento Postgres."""
+    return render(
+        request,
+        "produtos/vendas_lojas_dashboard.html",
+        {
+            "operador": hub_operador_da_sessao(request),
+            "hub_url": reverse("vendas_lojas_hub"),
+            "api_resumo_url": reverse("api_vendas_lojas_dashboard_resumo"),
+        },
+    )
+
+
+@never_cache
+@require_GET
+@exigir_vendas_lojas_api
+def api_vendas_lojas_dashboard_resumo(request):
+    """GET read-only: faturamento real Centro/Vila por período (PostgreSQL)."""
+    from produtos.vendas_lojas_dashboard_resumo_util import montar_resumo_dashboard
+
+    loja = request.GET.get("loja")
+    inicio = request.GET.get("inicio")
+    fim = request.GET.get("fim")
+    try:
+        payload = montar_resumo_dashboard(loja=loja, inicio=inicio, fim=fim)
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
+    except Exception:
+        logging.getLogger(__name__).exception("api_vendas_lojas_dashboard_resumo")
+        return JsonResponse(
+            {"ok": False, "erro": "Não foi possível carregar o resumo agora."},
+            status=503,
+        )
+    return JsonResponse(payload)
+
+
 def _vendas_lojas_media_bloco(vendido, dia_todo, ate_agora) -> dict:
     cmp_a = _vendas_lojas_cmp_ctx(vendido, ate_agora, esperado_dia=dia_todo)
     cmp_d = _vendas_lojas_cmp_ctx(vendido, dia_todo)

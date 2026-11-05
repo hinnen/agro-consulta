@@ -1,0 +1,26 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f5f7f8">
+  <meta name="color-scheme" content="light dark">
+  <title>Dashboard · SistApp · GM Agro Mais</title>
+  {% include "produtos/includes/vendas_lojas_pwa_head.html" %}
+  <link rel="stylesheet" href="{% static 'produtos/css/vendas_lojas_dashboard_mobile.css' %}?v=1">
+</head>
+<body>
+<div class="app-shell" id="app"></div>
+<div id="portal"></div>
+<script>
+  window.SISTAPP_DASHBOARD_CFG = {
+    apiResumoUrl: "{{ api_resumo_url|escapejs }}",
+    hubUrl: "{{ hub_url|escapejs }}",
+    operador: "{{ operador|default:''|escapejs }}"
+  };
+</script>
+<script src="{% static 'produtos/js/vendas_lojas_dashboard_mobile.js' %}?v=1" defer></script>
+{% include "produtos/_screensaver_pin.html" %}
+</body>
+</html>
