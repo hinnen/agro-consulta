@@ -149,35 +149,44 @@ class VendasLojasDashboardApiPermissaoTests(SimpleTestCase):
     def setUp(self):
         self.factory = RequestFactory()
 
-    def _call_api(self, **params):
+    def _call_api(self, request=None, **params):
         from produtos.views import api_vendas_lojas_dashboard_resumo
 
-        q = "&".join(f"{k}={v}" for k, v in params.items())
-        request = self.factory.get(f"/api/vendas/lojas/dashboard/resumo/?{q}")
+        if request is None:
+            q = "&".join(f"{k}={v}" for k, v in params.items())
+            request = self.factory.get(f"/api/vendas/lojas/dashboard/resumo/?{q}")
         return api_vendas_lojas_dashboard_resumo(request)
 
-    @patch("produtos.vendas_lojas_pin_util.operador_da_sessao", return_value="")
+    @patch("produtos.vendas_lojas_dashboard_acesso_util.operador_da_sessao", return_value="")
     def test_sem_pin_retorna_401(self, _op):
-        resp = self._call_api(
-            loja="todas", inicio="2026-11-05", fim="2026-11-05"
-        )
+        resp = self._call_api(loja="todas", inicio="2026-11-05", fim="2026-11-05")
         self.assertEqual(resp.status_code, 401)
         self.assertIsInstance(resp, JsonResponse)
         self.assertFalse(_json(resp).get("ok"))
 
-    @patch("produtos.vendas_lojas_pin_util.pin_liberado_vendas_tarefas", return_value=False)
-    @patch("produtos.vendas_lojas_pin_util.pin_da_sessao", return_value="5555")
-    @patch("produtos.vendas_lojas_pin_util.operador_da_sessao", return_value="Operador")
+    @patch(
+        "produtos.vendas_lojas_dashboard_acesso_util.pin_liberado_vendas_tarefas",
+        return_value=False,
+    )
+    @patch("produtos.vendas_lojas_dashboard_acesso_util.pin_da_sessao", return_value="5555")
+    @patch(
+        "produtos.vendas_lojas_dashboard_acesso_util.operador_da_sessao",
+        return_value="Operador",
+    )
     def test_pin_sem_gerencia_retorna_403(self, *_mocks):
-        resp = self._call_api(
-            loja="todas", inicio="2026-11-05", fim="2026-11-05"
-        )
+        resp = self._call_api(loja="todas", inicio="2026-11-05", fim="2026-11-05")
         self.assertEqual(resp.status_code, 403)
         self.assertTrue(_json(resp).get("sem_acesso_gerencia"))
 
-    @patch("produtos.vendas_lojas_pin_util.pin_liberado_vendas_tarefas", return_value=True)
-    @patch("produtos.vendas_lojas_pin_util.pin_da_sessao", return_value="9973")
-    @patch("produtos.vendas_lojas_pin_util.operador_da_sessao", return_value="Renan")
+    @patch(
+        "produtos.vendas_lojas_dashboard_acesso_util.pin_liberado_vendas_tarefas",
+        return_value=True,
+    )
+    @patch("produtos.vendas_lojas_dashboard_acesso_util.pin_da_sessao", return_value="9973")
+    @patch(
+        "produtos.vendas_lojas_dashboard_acesso_util.operador_da_sessao",
+        return_value="Renan",
+    )
     def test_datas_invalidas_400(self, *_mocks):
         with patch(
             "produtos.vendas_lojas_dashboard_resumo_util.montar_resumo_dashboard",
@@ -187,9 +196,15 @@ class VendasLojasDashboardApiPermissaoTests(SimpleTestCase):
         self.assertEqual(resp.status_code, 400)
         self.assertIn("datas", _json(resp).get("erro", "").lower())
 
-    @patch("produtos.vendas_lojas_pin_util.pin_liberado_vendas_tarefas", return_value=True)
-    @patch("produtos.vendas_lojas_pin_util.pin_da_sessao", return_value="9973")
-    @patch("produtos.vendas_lojas_pin_util.operador_da_sessao", return_value="Renan")
+    @patch(
+        "produtos.vendas_lojas_dashboard_acesso_util.pin_liberado_vendas_tarefas",
+        return_value=True,
+    )
+    @patch("produtos.vendas_lojas_dashboard_acesso_util.pin_da_sessao", return_value="9973")
+    @patch(
+        "produtos.vendas_lojas_dashboard_acesso_util.operador_da_sessao",
+        return_value="Renan",
+    )
     def test_ok_com_gerencia(self, *_mocks):
         payload = {
             "ok": True,
@@ -205,13 +220,50 @@ class VendasLojasDashboardApiPermissaoTests(SimpleTestCase):
             "produtos.vendas_lojas_dashboard_resumo_util.montar_resumo_dashboard",
             return_value=payload,
         ):
-            resp = self._call_api(
-                loja="todas", inicio="2026-11-05", fim="2026-11-05"
-            )
+            resp = self._call_api(loja="todas", inicio="2026-11-05", fim="2026-11-05")
         self.assertEqual(resp.status_code, 200)
         body = _json(resp)
         self.assertTrue(body["ok"])
         self.assertEqual(body["fonte"], "postgres")
+
+    def test_staff_desktop_acessa_sem_pin(self):
+        from django.contrib.auth.models import AnonymousUser, User
+
+        payload = {
+            "ok": True,
+            "fonte": "postgres",
+            "loja": "todas",
+            "indicadores": {"faturamento": "1.00"},
+            "serie": [],
+            "por_loja": {"centro": "1.00", "vila": "0.00", "total": "1.00"},
+            "avisos": [],
+            "indisponiveis": [],
+        }
+        req = self.factory.get(
+            "/api/vendas/lojas/dashboard/resumo/?loja=todas&inicio=2026-11-05&fim=2026-11-05"
+        )
+        req.user = User(username="renan", is_staff=True)
+        with patch(
+            "produtos.vendas_lojas_dashboard_resumo_util.montar_resumo_dashboard",
+            return_value=payload,
+        ), patch(
+            "produtos.vendas_lojas_dashboard_acesso_util.operador_da_sessao",
+            return_value="",
+        ):
+            resp = self._call_api(request=req)
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(_json(resp)["ok"])
+
+        req2 = self.factory.get(
+            "/api/vendas/lojas/dashboard/resumo/?loja=todas&inicio=2026-11-05&fim=2026-11-05"
+        )
+        req2.user = AnonymousUser()
+        with patch(
+            "produtos.vendas_lojas_dashboard_acesso_util.operador_da_sessao",
+            return_value="",
+        ):
+            resp2 = self._call_api(request=req2)
+        self.assertEqual(resp2.status_code, 401)
 
 
 class VendasLojasDashboardArquivosTests(SimpleTestCase):
@@ -228,6 +280,14 @@ class VendasLojasDashboardArquivosTests(SimpleTestCase):
         self.assertIn("vl-hub-fotos", hub)
         self.assertIn("vl-hub-etiquetas", hub)
         self.assertIn("vl-hub-ajuste", hub)
+
+    def test_launchpad_tem_atalho_separado(self):
+        home = Path("produtos/templates/produtos/dashboard_gerencial.html").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("vendas_lojas_dashboard", home)
+        self.assertIn("Dashboard lojas (novo)", home)
+        self.assertIn("não substitui a home ainda", home)
 
     def test_urls_registradas(self):
         self.assertEqual(

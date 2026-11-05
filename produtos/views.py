@@ -11864,16 +11864,23 @@ def vendas_lojas_resumo(request):
     )
 
 
+from produtos.vendas_lojas_dashboard_acesso_util import (
+    exigir_dashboard_mobile_api,
+    exigir_dashboard_mobile_html,
+    operador_rotulo_dashboard,
+)
+
+
 @never_cache
 @require_GET
-@exigir_vendas_lojas_html
+@exigir_dashboard_mobile_html
 def vendas_lojas_dashboard(request):
-    """Dashboard mobile SistApp (Etapa 1) — UI do protótipo + faturamento Postgres."""
+    """Dashboard mobile (Etapa 1) — botão separado; staff desktop ou PIN gerência."""
     return render(
         request,
         "produtos/vendas_lojas_dashboard.html",
         {
-            "operador": hub_operador_da_sessao(request),
+            "operador": operador_rotulo_dashboard(request),
             "hub_url": reverse("vendas_lojas_hub"),
             "api_resumo_url": reverse("api_vendas_lojas_dashboard_resumo"),
         },
@@ -11882,7 +11889,7 @@ def vendas_lojas_dashboard(request):
 
 @never_cache
 @require_GET
-@exigir_vendas_lojas_api
+@exigir_dashboard_mobile_api
 def api_vendas_lojas_dashboard_resumo(request):
     """GET read-only: faturamento real Centro/Vila por período (PostgreSQL)."""
     from produtos.vendas_lojas_dashboard_resumo_util import montar_resumo_dashboard

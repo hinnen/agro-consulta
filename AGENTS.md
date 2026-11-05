@@ -125,10 +125,10 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 
 **Dashboard mobile SistApp (Etapa 1)**  
 
-- Card **Dashboard** no hub (`vendas_lojas_hub.html`) → `/vendas/lojas/dashboard/`.  
+- **Botão separado** (não substitui a home `/` ainda): card no hub SistApp + atalho **Dashboard lojas (novo)** no launchpad do `dashboard_gerencial`. Depois substitui o BI da tela inicial.  
 - UI a partir do protótipo em `docs/referencia/dashboard-mobile-original.html` (sem redesenho).  
 - API `GET /api/vendas/lojas/dashboard/resumo/?loja=&inicio=&fim=` — somente leitura, Postgres/`vendas_lojas_totais`; mesma regra de abatimento de devolução do painel Vendas.  
-- Auth: PIN do hub + liberação gerência (`exigir_operador_html/api`). Aba Financeiro / produtos / metas: «Ainda não integrado» ou «Sem permissão» (Etapa 2+).
+- Auth: PIN gerência **ou** usuário staff/superuser logado no Agro (PC). Aba Financeiro / produtos / metas: «Ainda não integrado» ou «Sem permissão» (Etapa 2+).
 
 **NF-e saída (nota grande) — tela `/nfe/saida/`**
 
