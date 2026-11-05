@@ -12,10 +12,11 @@
   /* App Zap: Bot fica no Zap — sem Voltar PDV / FAB */
   #agro-pdv-fab-wrap,
   a.agro-pdv-voltar-link { display: none !important; }
+  body.wa-skin { background: #161717; color: #fafafa; }
 </style>
 {% endblock %}
-{% block body_class %}bg-slate-100 text-slate-900 wa-skin{% endblock %}
-{% block pdv_shell_class %}min-h-[100dvh] bg-slate-100 flex flex-col{% endblock %}
+{% block body_class %}text-zinc-100 wa-skin{% endblock %}
+{% block pdv_shell_class %}min-h-[100dvh] flex flex-col{% endblock %}
 {% block pdv_section_class %}flex min-h-0 flex-1 flex-col px-3 py-2 sm:px-4{% endblock %}
 
 {% block pdv_header %}

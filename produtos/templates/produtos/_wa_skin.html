@@ -645,4 +645,65 @@
     text-align: center; white-space: pre-wrap;
   }
   .wa-skin .wa-st-caption:empty { display: none; }
+
+  /* Config do Bot no app escuro: texto e horário sempre legíveis. */
+  .wa-skin .wa-cfg { color-scheme: dark; }
+  .wa-skin .wa-cfg .wa-card {
+    background: #1c1e1e;
+    border-color: rgba(255, 255, 255, .14);
+    color: #fafafa;
+  }
+  .wa-skin .wa-cfg .wa-nav button { color: #e4e4e7; }
+  .wa-skin .wa-cfg .wa-nav button.is-on {
+    background: rgba(255, 255, 255, .14);
+    color: #fff;
+    box-shadow: none;
+  }
+  .wa-skin .wa-cfg .wa-lab,
+  .wa-skin .wa-cfg .wa-hint,
+  .wa-skin .wa-cfg .wa-sw span,
+  .wa-skin .wa-cfg .wa-horario-dia-nome,
+  .wa-skin .wa-cfg .wa-horario-dia label.wa-mini { color: #f4f4f5; }
+  .wa-skin .wa-cfg .wa-hint b { color: #fff; }
+  .wa-skin .wa-cfg input,
+  .wa-skin .wa-cfg textarea,
+  .wa-skin .wa-cfg select {
+    background: #2a2c2c !important;
+    color: #fafafa !important;
+    -webkit-text-fill-color: #fafafa;
+    border-color: rgba(255, 255, 255, .22) !important;
+    color-scheme: dark;
+    caret-color: #fafafa;
+  }
+  .wa-skin .wa-cfg input:focus,
+  .wa-skin .wa-cfg textarea:focus,
+  .wa-skin .wa-cfg select:focus {
+    background: #323434 !important;
+    outline: 2px solid #21c063;
+  }
+  .wa-skin .wa-cfg input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: .9;
+  }
+  .wa-skin .wa-cfg .wa-horario-dia {
+    background: #141616;
+    border-color: rgba(255, 255, 255, .14);
+  }
+  .wa-skin .wa-cfg .wa-horario-dia.is-off { background: #101212; opacity: .72; }
+  .wa-skin .wa-cfg .wa-horario-dia input[type="time"] {
+    color: #fafafa;
+    background: #2a2c2c;
+  }
+  .wa-skin .wa-cfg .wa-foot {
+    background: #1c1e1e;
+    border-color: rgba(255, 255, 255, .14);
+  }
+  .wa-skin .wa-cfg .wa-foot .ghost { background: #2a2c2c; color: #fafafa; }
+  .wa-skin .wa-cfg .wa-q { background: #3f3f46; color: #fafafa; }
+  .wa-skin .wa-cfg .wa-chip {
+    background: #2a2c2c;
+    border-color: rgba(255, 255, 255, .2);
+    color: #fafafa;
+  }
+  .wa-skin .wa-cfg .wa-chip.is-on { background: #103529; border-color: #21c063; color: #d9fdd3; }
 </style>
