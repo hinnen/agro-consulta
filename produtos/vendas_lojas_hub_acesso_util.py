@@ -61,16 +61,9 @@ def nomes_vendas_tarefas_hub() -> frozenset[str]:
 
 
 def _perfil_por_pin(pin: str):
-    from base.models import PerfilUsuario
+    from produtos.caixa_util import _perfil_usuario_por_pin
 
-    pin = (pin or "").strip()
-    if not pin:
-        return None
-    return (
-        PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True)
-        .select_related("user", "funcionario")
-        .first()
-    )
+    return _perfil_usuario_por_pin(pin)
 
 
 def codigo_operador_por_pin_digitado(pin: str) -> str:

@@ -1531,6 +1531,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO — **PIN-SAIDA-OPERADOR** · **v27.26.46** · `5213358d`
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **Pronto para envio à produção** (frase + senha) · branch ainda **não** está no `teste` até o merge |
+| **Entra** | Saída/retirada grava quem **digitou o PIN**, não o login do Chrome. PIN repetido recusa (saída, estoque, ajuste, hub). |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_pin_operador_saida_nathan_path.py` **VERIFY_OK 30/30** · banco loja: **0** PIN repetido entre os 12 operadores |
+
+### ✅ CHECKLIST ÚNICO — **07/11** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PIN-SAIDA-OPERADOR** | 🟢 Pronto | **NÃO** | **VERIFY_OK 30** · **v27.26.46** · `5213358d` |
+
 ### 🟡 PDV-ENTREGA-CAIXA-FECHADO — enviado · aguardando o Render
 
 | Campo | Valor |
