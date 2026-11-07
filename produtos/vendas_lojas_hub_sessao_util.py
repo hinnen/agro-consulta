@@ -11,7 +11,6 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 
-from base.models import PerfilUsuario
 from produtos.caixa_util import rotulo_operador_pin, validar_pin_operador
 
 SESSION_OPERADOR = "gm_lojas_operador_nome"
@@ -131,12 +130,10 @@ def gravar_operador_sessao(request: HttpRequest, pin: str) -> tuple[bool, str, s
     request.session[SESSION_OPERADOR] = nome[:120]
     request.session[SESSION_PIN] = pin[:32]
     request.session[SESSION_DESDE] = _agora()
-    perfil = (
-        PerfilUsuario.objects.select_related("user")
-        .filter(senha_rapida=pin, ativo=True)
-        .first()
-    )
-    uid = getattr(getattr(perfil, "user", None), "pk", None) if perfil else None
+    from produtos.caixa_util import usuario_django_de_pin
+
+    user_pin = usuario_django_de_pin(pin)
+    uid = getattr(user_pin, "pk", None) if user_pin is not None else None
     if uid:
         request.session[SESSION_USER_ID] = int(uid)
     request.session.set_expiry(PIN_TTL_SEGUNDOS)

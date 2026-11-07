@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from django.http import HttpRequest
 
-from base.models import PerfilUsuario
 from produtos.vendas_lojas_hub_sessao_util import (
     SESSION_USER_ID,
     operador_da_sessao,
@@ -33,13 +32,11 @@ def sincronizar_ajuste_mobile_desde_hub(request: HttpRequest) -> bool:
     else:
         pin = pin_da_sessao(request)
         if pin:
-            perfil = (
-                PerfilUsuario.objects.select_related("user")
-                .filter(senha_rapida=pin, ativo=True)
-                .first()
-            )
-            if perfil and perfil.user_id:
-                request.session["ajuste_mobile_user_id"] = int(perfil.user_id)
+            from produtos.caixa_util import usuario_django_de_pin
+
+            user_pin = usuario_django_de_pin(pin)
+            if user_pin is not None and getattr(user_pin, "pk", None):
+                request.session["ajuste_mobile_user_id"] = int(user_pin.pk)
     request.session.modified = True
     return True
 

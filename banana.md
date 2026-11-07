@@ -1538,7 +1538,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Relato** | Nathan digita o PIN na tela Registrar saída / retirada e o sistema grava **Renan Hinnen** |
 | **Causa** | (1) `registrar_retirada_turno_caixa` e vale/salário usavam **login Chrome** (`request.user`); (2) PIN duplicado no banco: `.first()` podia devolver outra pessoa |
 | **Fix** | Quem fez = **só o PIN** (user + rótulo RH) · PIN ambíguo **recusa** · depósito também exige PIN · sessão `gravar_operador_sessao_pdv` |
-| **Audit** | Reforço/retirada API · NF-e emitir/descartar · rótulo RH (`nome_exibicao_perfil`) · helper `usuario_movimento_de_pin_ou_sessao` |
+| **Audit** | Reforço/retirada API · NF-e emitir/descartar · rótulo RH · transferência/ajuste/hub: PIN repetido **recusa** (não pega o primeiro) · sem fallback no login Chrome quando o PIN veio na ação |
 | **Prova** | `scripts/verify_pin_operador_saida_nathan_path.py` **VERIFY_OK 26/26** |
 | **Migrate** | **NÃO** |
 | **Você** | Ctrl+F5 · caixa aberto · Nathan digita o PIN na Retirada → histórico mostra **Nathan** · se dois operadores tiverem o mesmo PIN, a tela avisa conflito (RH corrige) |

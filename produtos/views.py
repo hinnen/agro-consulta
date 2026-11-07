@@ -28158,12 +28158,8 @@ def api_login_mobile(request):
         # Gate de uma abertura: o GET da tela consome e libera a lista.
         request.session["ajuste_mobile_gate"] = True
         request.session["ajuste_mobile_operador"] = (operador or "")[:120]
-        perfil = (
-            PerfilUsuario.objects.select_related("user")
-            .filter(senha_rapida=pin, ativo=True)
-            .first()
-        )
-        uid = getattr(getattr(perfil, "user", None), "pk", None) if perfil else None
+        user_pin = usuario_django_de_pin(pin)
+        uid = getattr(user_pin, "pk", None) if user_pin is not None else None
         if uid:
             request.session["ajuste_mobile_user_id"] = int(uid)
         else:
@@ -28398,12 +28394,15 @@ def api_pdv_registrar_operador(request):
 def api_ajustar_estoque(request):
     pin = request.POST.get("pin")
     perfil_pin = None
+    user_pin_direto = None
+    rotulo_pin_direto = ""
     if pin and pin != "SESSAO":
-        perfil_pin = (
-            PerfilUsuario.objects.select_related("user")
-            .filter(senha_rapida=pin, ativo=True)
-            .first()
-        )
+        ok_pin_aj, rotulo_pin_direto, err_pin_aj = operador_label_de_pin(pin)
+        if ok_pin_aj:
+            user_pin_direto = usuario_django_de_pin(pin)
+            perfil_pin = user_pin_direto or True
+        elif err_pin_aj:
+            return JsonResponse({"ok": False, "erro": err_pin_aj}, status=403)
     from produtos.vendas_lojas_ajuste_sessao_util import (
         sincronizar_ajuste_mobile_desde_hub,
         sessao_ajuste_mobile_ok,
@@ -28434,12 +28433,8 @@ def api_ajustar_estoque(request):
                         or (getattr(user_op, "username", None) or "").strip()
                     )
             elif perfil_pin is not None:
-                user_op = getattr(perfil_pin, "user", None)
-                if user_op is not None:
-                    rotulo = (
-                        (user_op.get_full_name() or "").strip()
-                        or (getattr(user_op, "username", None) or "").strip()
-                    )
+                user_op = user_pin_direto
+                rotulo = (rotulo_pin_direto or "").strip()
             nome_base = str(request.POST.get("nome_produto") or "").strip()
             # Grava nome do operador no texto — nunca o PIN
             if rotulo and rotulo not in nome_base:
@@ -28520,12 +28515,10 @@ def _autorizar_pin_ajuste_request(request) -> tuple[bool, str]:
         if sessao_ajuste:
             return True, ""
         return False, "Sessão de ajuste expirada. Digite o PIN."
-    perfil = (
-        PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).only("id").first()
-    )
-    if perfil is not None:
+    ok_pin, err_pin = validar_pin_operador(pin)
+    if ok_pin:
         return True, ""
-    return False, "PIN incorreto."
+    return False, err_pin or "PIN incorreto."
 
 
 def _saldo_catalogo_apos_remover_ajuste(pid: str, dep: str, saldo_erp_fallback) -> Decimal:
