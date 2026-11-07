@@ -47,9 +47,23 @@ def _mongo_db():
     return db
 
 
-def _usuario(request) -> str:
-    if not request.user.is_authenticated:
+def _usuario(request, pin: str = "") -> str:
+    """Quem fez a ação: PIN (se veio) → sessão PIN → nunca prioriza e-mail do Chrome."""
+    from produtos.caixa_util import operador_label_request, rotulo_operador_pin
+
+    pin_n = (pin or "").strip()
+    if pin_n:
+        rot = (rotulo_operador_pin(pin_n) or "").strip()
+        if rot:
+            return rot[:200]
+    rot_sess = (operador_label_request(request) or "").strip()
+    if rot_sess:
+        return rot_sess[:200]
+    if not getattr(request, "user", None) or not request.user.is_authenticated:
         return ""
+    nome = (request.user.get_full_name() or getattr(request.user, "first_name", "") or "").strip()
+    if nome:
+        return nome[:200]
     return (
         getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
     )[:200]
@@ -256,9 +270,16 @@ def api_nfe_saida_emitir(request, doc_id: str):
         payload = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
         payload = {}
-    ok_pin, err_pin = validar_pin_operador(str(payload.get("pin") or ""))
+    pin = str(payload.get("pin") or "").strip()
+    ok_pin, err_pin = validar_pin_operador(pin)
     if not ok_pin:
         return JsonResponse({"ok": False, "erro": err_pin}, status=403)
+    try:
+        from produtos.pdv_transf_loja_util import gravar_operador_sessao_pdv
+
+        gravar_operador_sessao_pdv(request, pin)
+    except Exception:
+        pass
 
     db = _mongo_db()
     if not nfe_saida_persistencia_ok(db):
@@ -387,9 +408,16 @@ def api_nfe_saida_descartar(request, doc_id: str):
         payload = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
         payload = {}
-    ok_pin, err_pin = validar_pin_operador(str(payload.get("pin") or ""))
+    pin = str(payload.get("pin") or "").strip()
+    ok_pin, err_pin = validar_pin_operador(pin)
     if not ok_pin:
         return JsonResponse({"ok": False, "erro": err_pin}, status=403)
+    try:
+        from produtos.pdv_transf_loja_util import gravar_operador_sessao_pdv
+
+        gravar_operador_sessao_pdv(request, pin)
+    except Exception:
+        pass
     db = _mongo_db()
     if not nfe_saida_persistencia_ok(db):
         return JsonResponse({"ok": False, "erro": "Persistência NF-e saída indisponível."}, status=503)
@@ -402,6 +430,10 @@ def api_nfe_saida_descartar(request, doc_id: str):
     nfe_saida_atualizar_campos(
         db,
         doc_id_norm,
-        {"status": NFE_SAIDA_STATUS_DESCARTADA, "updated_at": datetime.now(timezone.utc)},
+        {
+            "status": NFE_SAIDA_STATUS_DESCARTADA,
+            "updated_at": datetime.now(timezone.utc),
+            "usuario": _usuario(request, pin),
+        },
     )
     return JsonResponse({"ok": True})

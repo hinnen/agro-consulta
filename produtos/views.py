@@ -118,6 +118,7 @@ from .caixa_util import (
     pagamentos_por_forma_venda,
     registrar_retirada_turno_caixa,
     operador_label_de_pin,
+    usuario_movimento_de_pin_ou_sessao,
     resumo_esperado_por_forma,
     _agregar_resumo_turno_sessao,
     obter_sessao_caixa_aberta_request,
@@ -13290,11 +13291,15 @@ def api_caixa_movimento(request):
         if rot:
             pref = f"[PIN {rot}] "
             obs = (pref + obs)[:500]
-    user_mov = request.user if request.user.is_authenticated else None
+    # Sempre PIN/sessão PIN — nunca login Chrome (Nathan ≠ Renan no PC).
     if pin:
-        u_pin = usuario_django_de_pin(pin)
-        if u_pin is not None:
-            user_mov = u_pin
+        try:
+            from produtos.pdv_transf_loja_util import gravar_operador_sessao_pdv
+
+            gravar_operador_sessao_pdv(request, pin)
+        except Exception:
+            pass
+    user_mov = usuario_movimento_de_pin_ou_sessao(request, pin)
     mov = MovimentoCaixa.objects.create(
         sessao_caixa=sessao,
         tipo=tipo,
@@ -21802,6 +21807,8 @@ def _anexar_retirada_turno_caixa_saida(
     plano: str,
     motivo: str,
     desc_linha: str,
+    usuario=None,
+    pin: str = "",
 ) -> bool:
     """Registra retirada no turno aberto. Retorna False se o caixa não estiver aberto."""
     try:
@@ -21818,6 +21825,8 @@ def _anexar_retirada_turno_caixa_saida(
             valor=Decimal(str(valor)),
             forma_nome=forma_nome,
             observacao=obs[:500],
+            usuario=usuario,
+            pin=pin,
         )
         if mov:
             out["movimento_caixa_id"] = mov.pk
@@ -22009,6 +22018,19 @@ def api_lancamentos_saida_caixa(request):
     if not banco_nome or not forma_nome:
         return JsonResponse({"ok": False, "erro": "Informe conta/banco e forma de pagamento."}, status=400)
 
+    pin = str(payload.get("pin") or payload.get("pin_operador") or "").strip()
+    ok_pin, usuario, err_pin = operador_label_de_pin(pin)
+    if not ok_pin:
+        return JsonResponse(
+            {"ok": False, "erro": err_pin or "Digite seu PIN (cadastro RH) para registrar a saída."},
+            status=403,
+        )
+    # Sessão completa (nome + user_id + fresco) — nunca só o login Chrome.
+    from produtos.pdv_transf_loja_util import gravar_operador_sessao_pdv
+
+    gravar_operador_sessao_pdv(request, pin)
+    user_pin = usuario_django_de_pin(pin)
+
     if is_deposito:
         bn_up = banco_nome.upper()
         if bn_up.startswith("CAIXA") or bn_up in ("CAIXA 1", "CAIXA1"):
@@ -22027,6 +22049,8 @@ def api_lancamentos_saida_caixa(request):
             valor=Decimal(str(valor)),
             forma_nome=forma_nome,
             observacao=desc_dep,
+            usuario=user_pin,
+            pin=pin,
         )
         if not mov_dep:
             return JsonResponse(
@@ -22050,16 +22074,6 @@ def api_lancamentos_saida_caixa(request):
     # Mongo ERP desligado na loja: db pode ser None. O dispatch abaixo grava
     # TituloFinanceiroAgro (Postgres). Não retornar 503 «Mongo indisponível»
     # (vira «serviço legado» no middleware) — quebra saída Alimentação / planos comuns.
-
-    pin = str(payload.get("pin") or payload.get("pin_operador") or "").strip()
-    ok_pin, usuario, err_pin = operador_label_de_pin(pin)
-    if not ok_pin:
-        return JsonResponse(
-            {"ok": False, "erro": err_pin or "Digite seu PIN (cadastro RH) para registrar a saída."},
-            status=403,
-        )
-    request.session["pdv_operador_nome"] = usuario[:120]
-    request.session.modified = True
 
     if plano_id_req:
         partes = []
@@ -22086,7 +22100,7 @@ def api_lancamentos_saida_caixa(request):
             forma_id=str(payload.get("forma_id") or "").strip() or None,
             banco_nome=banco_nome,
             banco_id=str(payload.get("banco_id") or "").strip() or None,
-            usuario=request.user,
+            usuario=user_pin,
             observacao_desc=desc_linha,
         )
         if alt is not None:
@@ -22110,6 +22124,8 @@ def api_lancamentos_saida_caixa(request):
                     plano=plano,
                     motivo=motivo,
                     desc_linha=desc_linha,
+                    usuario=user_pin,
+                    pin=pin,
                 )
             return JsonResponse(out, status=st)
         return JsonResponse(
@@ -22141,7 +22157,7 @@ def api_lancamentos_saida_caixa(request):
             forma_id=str(payload.get("forma_id") or "").strip() or None,
             banco_nome=banco_nome,
             banco_id=str(payload.get("banco_id") or "").strip() or None,
-            usuario=request.user,
+            usuario=user_pin,
             observacao_desc=desc_linha,
         )
         if alt is not None:
@@ -22166,6 +22182,8 @@ def api_lancamentos_saida_caixa(request):
                     plano=plano,
                     motivo=motivo,
                     desc_linha=desc_linha,
+                    usuario=user_pin,
+                    pin=pin,
                 )
             return JsonResponse(out, status=st)
         return JsonResponse(
@@ -22263,7 +22281,7 @@ def api_lancamentos_saida_caixa(request):
                 data_competencia=dc,
                 empresa_nome=empresa_nome,
                 valor=valor,
-                usuario=request.user,
+                usuario=user_pin,
             )
         except Exception:
             logger.exception("RH: vale automático pós-saída caixa")
@@ -22286,6 +22304,8 @@ def api_lancamentos_saida_caixa(request):
                 plano=plano,
                 motivo=motivo,
                 desc_linha=desc_linha,
+                usuario=user_pin,
+                pin=pin,
             )
         else:
             out["sem_retirada_caixa"] = True
