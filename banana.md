@@ -1531,18 +1531,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🩹 PIN-SAIDA-OPERADOR — Nathan ≠ Renan (retirada / saída) · **teste v27.26.45** · 07/11
+### 📦 PACOTE PRONTO — **PIN-SAIDA-OPERADOR** · **v27.26.46** · `5213358d`
 
 | Campo | Valor |
 | ----- | ----- |
-| **Relato** | Nathan digita o PIN na tela Registrar saída / retirada e o sistema grava **Renan Hinnen** |
-| **Causa** | (1) `registrar_retirada_turno_caixa` e vale/salário usavam **login Chrome** (`request.user`); (2) PIN duplicado no banco: `.first()` podia devolver outra pessoa |
-| **Fix** | Quem fez = **só o PIN** (user + rótulo RH) · PIN ambíguo **recusa** · depósito também exige PIN · sessão `gravar_operador_sessao_pdv` |
-| **Audit** | Reforço/retirada API · NF-e emitir/descartar · rótulo RH · transferência/ajuste/hub: PIN repetido **recusa** (não pega o primeiro) · sem fallback no login Chrome quando o PIN veio na ação |
-| **Prova** | `scripts/verify_pin_operador_saida_nathan_path.py` **VERIFY_OK 26/26** |
+| **Status** | 🟢 **Pronto para envio à produção** (frase + senha) · branch ainda **não** está no `teste` até o merge |
+| **Entra** | Saída/retirada grava quem **digitou o PIN**, não o login do Chrome. PIN repetido recusa (saída, estoque, ajuste, hub). |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 · caixa aberto · Nathan digita o PIN na Retirada → histórico mostra **Nathan** · se dois operadores tiverem o mesmo PIN, a tela avisa conflito (RH corrige) |
-| **Loja** | **não** sobe sem frase+senha |
+| **Prova** | `verify_pin_operador_saida_nathan_path.py` **VERIFY_OK 30/30** · banco loja: **0** PIN repetido entre os 12 operadores |
+
+### ✅ CHECKLIST ÚNICO — **07/11** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PIN-SAIDA-OPERADOR** | 🟢 Pronto | **NÃO** | **VERIFY_OK 30** · **v27.26.46** · `5213358d` |
 
 ### 🟡 PDV-ENTREGA-CAIXA-FECHADO — enviado · aguardando o Render
 
