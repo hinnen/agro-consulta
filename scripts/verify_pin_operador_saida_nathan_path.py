@@ -101,6 +101,13 @@ def check_static() -> None:
     check("pin: pin" in emb or "pin:pin" in emb.replace(" ", ""), "embed manda pin")
     check("agroCaixaPedirPin" in emb, "embed pede PIN na UI")
 
+    est = (ROOT / "estoque/views.py").read_text(encoding="utf-8")
+    hub = (ROOT / "produtos/vendas_lojas_hub_acesso_util.py").read_text(encoding="utf-8")
+    check("filter(senha_rapida=pin, ativo=True).first()" not in est, "estoque sem .first() no PIN")
+    check("def _erro_pin_operador" in est, "estoque recusa PIN repetido")
+    check("_perfil_usuario_por_pin" in hub, "hub usa o mesmo resolvedor")
+    check(".first()" not in hub.split("def _perfil_por_pin")[1].split("def ")[0], "hub sem .first()")
+
 
 def check_runtime() -> None:
     User = get_user_model()

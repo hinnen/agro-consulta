@@ -99,20 +99,24 @@ def _pedido_transferencia_extra(pedido):
     }
 
 
+def _erro_pin_operador(pin: str) -> str:
+    """Vazio se o PIN é de um único operador ativo. Recusa PIN repetido."""
+    from produtos.caixa_util import validar_pin_operador
+
+    ok, err = validar_pin_operador(pin)
+    return "" if ok else (err or "PIN incorreto.")
+
+
 def _rotulo_usuario_pin(pin):
-    pin = (pin or "").strip()
-    if not pin or pin == "1234":
-        return ""
-    perfil = (
-        PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True)
-        .select_related("user")
-        .first()
-    )
-    if not perfil:
-        return ""
-    u = perfil.user
-    nome = (u.get_full_name() or u.first_name or u.username or "").strip()
-    return f"{perfil.codigo_vendedor} — {nome}".strip(" —")[:200]
+    from produtos.caixa_util import rotulo_operador_pin
+
+    return (rotulo_operador_pin(pin) or "").strip()[:200]
+
+
+def _usuario_django_pin(pin):
+    from produtos.caixa_util import usuario_django_de_pin
+
+    return usuario_django_de_pin(pin)
 
 
 def _rotulo_usuario_request(request):
@@ -165,10 +169,9 @@ def _transferir_entre_depositos_exec(
     ``origem`` / ``destino``: ``vila`` ou ``centro``.
     """
     if not pular_validacao_pin:
-        if pin == "1234":
-            return {"ok": False, "erro": "Senha padrão (1234) bloqueada. Troque seu PIN.", "status": 403}
-        if not PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).exists():
-            return {"ok": False, "erro": "PIN incorreto.", "status": 403}
+        err_pin = _erro_pin_operador(pin)
+        if err_pin:
+            return {"ok": False, "erro": err_pin, "status": 403}
 
     origem = (origem or "vila").strip().lower()
     destino = (destino or "centro").strip().lower()
@@ -255,7 +258,7 @@ def _transferir_entre_depositos_exec(
             saldo_informado=novo_v,
             observacao=ref_obs,
             origem=OrigemAjusteEstoque.TRANSFERENCIA_UI,
-            usuario=request.user if request.user.is_authenticated else None,
+            usuario=_usuario_django_pin(pin),
         )
         AjusteRapidoEstoque.objects.create(
             empresa=empresa_c or empresa,
@@ -268,7 +271,7 @@ def _transferir_entre_depositos_exec(
             saldo_informado=novo_c,
             observacao=ref_obs,
             origem=OrigemAjusteEstoque.TRANSFERENCIA_UI,
-            usuario=request.user if request.user.is_authenticated else None,
+            usuario=_usuario_django_pin(pin),
         )
 
     if invalidar_cache:
@@ -276,11 +279,9 @@ def _transferir_entre_depositos_exec(
     PedidoTransferencia.objects.filter(produto_externo_id=produto_id).delete()
 
     if registrar_historico:
-        rotulo = (
-            (usuario_label_override or "").strip()
-            or _rotulo_usuario_pin(pin)
-            or _rotulo_usuario_request(request)
-        )
+        rotulo = (usuario_label_override or "").strip() or _rotulo_usuario_pin(pin)
+        if not rotulo and not (pin or "").strip():
+            rotulo = _rotulo_usuario_request(request)
         _historico_transferencia(
             HistoricoTransferencia.TIPO_TRANSFER_ITEM,
             usuario_label=rotulo,
@@ -651,8 +652,9 @@ def api_transferir_lote_vila_para_centro(request):
         except ValueError:
             return JsonResponse({"ok": False, "erro": "lote_uuid inválido."}, status=400)
 
-        if pin == "1234" or not PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).exists():
-            return JsonResponse({"ok": False, "erro": "PIN incorreto ou bloqueado."}, status=403)
+        err_pin = _erro_pin_operador(pin)
+        if err_pin:
+            return JsonResponse({"ok": False, "erro": err_pin}, status=403)
 
         linhas_raw = list(
             PedidoTransferencia.objects.filter(lote_uuid=lote_uuid, status="IMPRESSO")
@@ -672,7 +674,7 @@ def api_transferir_lote_vila_para_centro(request):
             )
         }
 
-        rotulo = _rotulo_usuario_pin(pin) or _rotulo_usuario_request(request)
+        rotulo = _rotulo_usuario_pin(pin)
         resultados_ok = []
         resultados_erro = []
 
@@ -746,8 +748,9 @@ def api_transferir_forcado_vila_para_centro(request):
         if not isinstance(data, dict):
             data = {}
         pin = str(data.get("pin") or "").strip()
-        if pin == "1234" or not PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).exists():
-            return JsonResponse({"ok": False, "erro": "PIN incorreto ou bloqueado."}, status=403)
+        err_pin = _erro_pin_operador(pin)
+        if err_pin:
+            return JsonResponse({"ok": False, "erro": err_pin}, status=403)
 
         direcao = str(data.get("direcao") or "vila_centro").strip().lower().replace("-", "_").replace("→", "_")
         if direcao in ("centro_vila", "c_v", "centro_para_vila"):
@@ -766,7 +769,7 @@ def api_transferir_forcado_vila_para_centro(request):
 
         from produtos.views import _invalidar_caches_apos_ajuste_pin
 
-        rotulo = _rotulo_usuario_pin(pin) or _rotulo_usuario_request(request)
+        rotulo = _rotulo_usuario_pin(pin)
         resultados_ok = []
         resultados_erro = []
 
@@ -1227,11 +1230,9 @@ def api_listar_historico_transferencia(request):
 def api_salvar_config_transferencia(request):
     try:
         pin = request.POST.get('pin', '').strip()
-        if pin == '1234':
-            return JsonResponse({'ok': False, 'erro': 'Senha padrão (1234) bloqueada. Troque seu PIN.'}, status=403)
-        perfil = PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).first()
-        if not perfil:
-            return JsonResponse({'ok': False, 'erro': 'PIN INCORRETO'}, status=403)
+        err_pin = _erro_pin_operador(pin)
+        if err_pin:
+            return JsonResponse({'ok': False, 'erro': err_pin}, status=403)
 
         produto_id = request.POST.get('produto_id', '').strip()
         if not produto_id:
@@ -1389,10 +1390,9 @@ def api_atualizar_pedido_transferencia(request):
     try:
         data = json.loads(request.body)
         pin = str(data.get("pin") or "").strip()
-        if pin == "1234":
-            return JsonResponse({"ok": False, "erro": "Senha padrão (1234) bloqueada. Troque seu PIN."}, status=403)
-        if not PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).exists():
-            return JsonResponse({"ok": False, "erro": "PIN incorreto."}, status=403)
+        err_pin = _erro_pin_operador(pin)
+        if err_pin:
+            return JsonResponse({"ok": False, "erro": err_pin}, status=403)
 
         produto_id = str(data.get("produto_id") or "").strip()[:100]
         if not produto_id:
@@ -1422,10 +1422,9 @@ def api_adicionar_pedido_transferencia(request):
     try:
         data = json.loads(request.body)
         pin = str(data.get("pin") or "").strip()
-        if pin == "1234":
-            return JsonResponse({"ok": False, "erro": "Senha padrão (1234) bloqueada. Troque seu PIN."}, status=403)
-        if not PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).exists():
-            return JsonResponse({"ok": False, "erro": "PIN incorreto."}, status=403)
+        err_pin = _erro_pin_operador(pin)
+        if err_pin:
+            return JsonResponse({"ok": False, "erro": err_pin}, status=403)
 
         produto_id = str(data.get("produto_id") or "").strip()[:100]
         lote_raw = str(data.get("lote_uuid") or "").strip()
@@ -1510,11 +1509,9 @@ def api_cancelar_separacao(request, id):
 def api_importar_planilha_transferencia(request):
     try:
         pin = request.POST.get('pin', '').strip()
-        if pin == '1234':
-            return JsonResponse({'ok': False, 'erro': 'Senha padrão (1234) bloqueada. Troque seu PIN.'}, status=403)
-        perfil = PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).first()
-        if not perfil:
-            return JsonResponse({'ok': False, 'erro': 'PIN INCORRETO'}, status=403)
+        err_pin = _erro_pin_operador(pin)
+        if err_pin:
+            return JsonResponse({'ok': False, 'erro': err_pin}, status=403)
 
         arquivo = request.FILES.get('arquivo')
         if not arquivo:
@@ -1639,11 +1636,9 @@ def api_importar_planilha_transferencia(request):
 def api_atualizar_medias(request):
     try:
         pin = request.POST.get('pin', '').strip()
-        if pin == '1234':
-            return JsonResponse({'ok': False, 'erro': 'Senha padrão (1234) bloqueada. Troque seu PIN.'}, status=403)
-        perfil = PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).first()
-        if not perfil:
-            return JsonResponse({'ok': False, 'erro': 'PIN INCORRETO'}, status=403)
+        err_pin = _erro_pin_operador(pin)
+        if err_pin:
+            return JsonResponse({'ok': False, 'erro': err_pin}, status=403)
 
         calcular()
 
