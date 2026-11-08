@@ -350,12 +350,22 @@ function ultimaMsgParaArquivo(p, jidFallback) {
   ];
 }
 
+function lerArchivedFlag(ch) {
+  if (!ch || typeof ch !== "object") return null;
+  if (typeof ch.archived === "boolean") return ch.archived;
+  const v = ch.archived;
+  if (v === 1 || v === "1" || v === "true") return true;
+  if (v === 0 || v === "0" || v === "false") return false;
+  return null;
+}
+
 function avisarArquivoZap(ch) {
-  if (!ch || typeof ch.archived !== "boolean") return;
+  const archived = lerArchivedFlag(ch);
+  if (archived === null) return;
   const raw = String(ch.id || ch.jid || "");
   if (!raw || ehStatusOuGrupo(raw) || !ehChatPrivado(raw)) return;
-  if (arquivoLocalRecente(raw, ch.archived)) return;
-  const k = chaveArquivoJid(raw) + "|" + (ch.archived ? "1" : "0");
+  if (arquivoLocalRecente(raw, archived)) return;
+  const k = chaveArquivoJid(raw) + "|" + (archived ? "1" : "0");
   const agora = Date.now();
   const prev = arquivoAvisado.get(k) || 0;
   if (agora - prev < 2500) return;
@@ -367,14 +377,57 @@ function avisarArquivoZap(ch) {
   const phone = jidPhoneDeValor(raw) || (raw.endsWith("@s.whatsapp.net") ? raw : pnDeLid(raw));
   const lid = raw.endsWith("@lid") ? raw : lidDePhone(phone || raw);
   const tel = telefoneDeJid(phone || raw);
-  console.log(ch.archived ? "Arquivo no Zap:" : "Saiu do arquivo no Zap:", phone || lid || raw);
+  console.log(archived ? "Arquivo no Zap:" : "Saiu do arquivo no Zap:", phone || lid || raw);
   post("/api/atendimento-whatsapp/bridge/arquivo/", {
     jid: phone || raw,
     jid_lid: lid || "",
     telefone: tel || "",
-    arquivada: !!ch.archived,
+    arquivada: !!archived,
     operador: "WhatsApp",
   }).catch((e) => console.error("arquivo zap->agro:", e.message || e));
+}
+
+/** Coleções do Zap que trazem arquivar/fixar/mute entre aparelhos. */
+const WA_APP_STATE_COLS = ["regular", "regular_high", "regular_low", "critical_block", "critical_unblock_low"];
+let appStateSyncTimer = 0;
+let appStateSyncRodando = false;
+let appStateSyncUltimo = 0;
+let appStateSyncOpenTimer = 0;
+
+async function sincronizarAppStateArquivo(motivo) {
+  const tag = motivo || "";
+  const agora = Date.now();
+  // Evita tempestade no reconnect (conflict 440): no máx. 1 sync / 90s.
+  if (appStateSyncRodando || agora - appStateSyncUltimo < 90 * 1000) {
+    console.log("Sync estado Zap: pulado", tag);
+    return;
+  }
+  if (!sock) {
+    console.log("Sync estado Zap: sem sock", tag);
+    return;
+  }
+  if (typeof sock.resyncAppState !== "function") {
+    console.log(
+      "Sync estado Zap: API ausente",
+      tag,
+      Object.keys(sock)
+        .filter((k) => /sync|patch|app|chat/i.test(k))
+        .join(",")
+    );
+    return;
+  }
+  appStateSyncRodando = true;
+  appStateSyncUltimo = agora;
+  try {
+    console.log("Sync estado Zap (arquivo/mute):", tag);
+    // isInitialSync=false → chats.update com archived chega limpo (sem conditional do histórico).
+    await sock.resyncAppState(WA_APP_STATE_COLS, false);
+    console.log("Sync estado Zap: ok", tag);
+  } catch (e) {
+    console.error("sync app state:", e.message || e);
+  } finally {
+    appStateSyncRodando = false;
+  }
 }
 
 function ehStatusBroadcast(jid) {
@@ -1041,6 +1094,19 @@ async function ligar() {
       await estado({ status: "conectado", numero, aviso: "" });
       console.log("WhatsApp conectado", numero);
       enviarLidMap();
+      // Sem history sync o Baileys pula o app-state inicial — aí arquivar no Web/celular
+      // não vira chats.update. Sync 1× após conexão estável (não a cada reconnect).
+      if (appStateSyncOpenTimer) clearTimeout(appStateSyncOpenTimer);
+      const openId = myId;
+      appStateSyncOpenTimer = setTimeout(() => {
+        if (myId !== openId || !sock) return;
+        sincronizarAppStateArquivo("apos-conectar").catch(() => {});
+      }, 12000);
+      if (!appStateSyncTimer) {
+        appStateSyncTimer = setInterval(() => {
+          sincronizarAppStateArquivo("periodico").catch(() => {});
+        }, 5 * 60 * 1000);
+      }
       setTimeout(() => {
         varrerStore();
         // WA-PONTE-LEVE: sync 1×/dia — espera 45s após connect (sessão estabilizar)
@@ -1101,8 +1167,10 @@ async function ligar() {
     }
   });
   sock.ev.on("chats.set", (dados) => {
+    // Sync inicial (ligar PC / reconectar): espelha arquivadas do celular/Web no Agro.
     for (const ch of (dados && dados.chats) || []) {
       guardarContato({ id: ch.id, jid: ch.jid || ch.id, name: ch.name, notify: ch.notify || ch.name });
+      avisarArquivoZap(ch);
     }
   });
   sock.ev.on("chats.phoneNumberShare", ({ lid, jid }) => {
@@ -1741,6 +1809,12 @@ console.log("Django:", BASE);
 garantirUmaInstancia();
 carregarLidMap();
 carregarAgenda();
+// Ao subir a ponte: 3 min pedindo fotos pendentes (corrige perfil que sumiu / pasta errada).
+pollQuerFotos = true;
+setTimeout(() => {
+  pollQuerFotos = false;
+  console.log("Janela inicial de fotos encerrada.");
+}, 3 * 60 * 1000);
 ligar().catch((e) => {
   console.error(e);
   process.exit(1);
