@@ -1301,9 +1301,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | | |
 | --- | --- |
 | **Fotos** | `AGRO_WA_MEDIA_ROOT` no MEDIA_ROOT; mídia unificada; refila se arquivo sumiu. |
-| **Arquivo** | chats.set + resyncAppState (debounce). Zap→oficial OK; oficial→Zap em prova. |
-| **UI** | Branch `whatsapp` (Selecionar / menu / Resolvidas) religada neste PC · 08/11. |
-| **Envio** | 2 pontes = 440; stack detecta path absoluto + lock. |
+| **Sem foto** | Nathan + Maria Da Guia: Zap não devolve foto (privacidade) — vira letra. |
+| **Arquivo** | chats.set + resyncAppState (debounce 90s / 12s pós-connect / 5 min). Zap→oficial OK; oficial→Zap em prova. |
+| **UI** | Branch `whatsapp` religada neste PC (Selecionar / menu direito / Resolvidas / skin v2) · 08/11. |
+| **Envio sumiu** | 2 pontes = conflict 440; stack com path absoluto + lock. DDD/DDDD reenviados. |
 | **Versão** | UI `whatsapp` + sync desta sessão |
 
 ### WIP — **WA-SERVIDOR-PC** · lab Renan · 02/11/2026
