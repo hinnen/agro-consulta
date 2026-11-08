@@ -1531,6 +1531,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### WIP — Zap escondido PC · fotos + arquivo (`WA-FOTO-MEDIA` + `WA-ARQ-SYNC` · 08/11)
+
+| | |
+| --- | --- |
+| **Fotos** | Causa: `AGRO_WA_MEDIA_ROOT` no `.env` **não** entrava no `MEDIA_ROOT` → arquivos em pastas diferentes → avatar quebrava. Fix: `settings.py` honra `AGRO_WA_MEDIA_ROOT`; unificou em `C:\AgroWhatsApp\Dados\media`; refila foto se arquivo sumiu; janela 3 min de fotos ao ligar a ponte. |
+| **Sem foto** | Nathan + Maria Da Guia: Zap não devolve foto (privacidade) — vira letra. Não dá pra forçar. |
+| **Arquivo** | Sync **já existia** (✓ Agro→Zap `chatModify` · celular/Web→Agro `chats.update` · msg cliente desarquiva). Gap: `chats.set` (sync ao ligar) não espelhava — **corrigido**. Celular↔Web oficial = nativo do Zap. |
+| **Onde** | `config/settings.py` · `whatsapp_atendimento/index.js` · `produtos/atendimento_whatsapp_util.py` · **sem** migrate |
+| **PC Zap** | `C:\AgroWhatsApp\repo` + `subir-ao-ligar.ps1` · **não** Render |
+| **Versão** | `27.26.45` (branch `cursor/wa-foto-arquivo-f0e6`) |
+
 ### 🟡 PDV-ENTREGA-CAIXA-FECHADO — enviado · aguardando o Render
 
 | Campo | Valor |

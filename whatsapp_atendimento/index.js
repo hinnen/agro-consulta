@@ -1101,8 +1101,10 @@ async function ligar() {
     }
   });
   sock.ev.on("chats.set", (dados) => {
+    // Sync inicial (ligar PC / reconectar): espelha arquivadas do celular/Web no Agro.
     for (const ch of (dados && dados.chats) || []) {
       guardarContato({ id: ch.id, jid: ch.jid || ch.id, name: ch.name, notify: ch.notify || ch.name });
+      avisarArquivoZap(ch);
     }
   });
   sock.ev.on("chats.phoneNumberShare", ({ lid, jid }) => {
@@ -1741,6 +1743,12 @@ console.log("Django:", BASE);
 garantirUmaInstancia();
 carregarLidMap();
 carregarAgenda();
+// Ao subir a ponte: 3 min pedindo fotos pendentes (corrige perfil que sumiu / pasta errada).
+pollQuerFotos = true;
+setTimeout(() => {
+  pollQuerFotos = false;
+  console.log("Janela inicial de fotos encerrada.");
+}, 3 * 60 * 1000);
 ligar().catch((e) => {
   console.error(e);
   process.exit(1);

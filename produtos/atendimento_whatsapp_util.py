@@ -2212,17 +2212,33 @@ def listar_saida_pendente(limit: int = 20) -> list[dict]:
 
 
 def listar_fotos_pendentes(*, limit: int = 25) -> list[dict]:
-    """Conversas recentes sem foto (ou foto velha) — a ponte busca no Zap."""
+    """Conversas recentes sem foto (ou foto velha/arquivo sumido) — a ponte busca no Zap."""
+    from pathlib import Path
+
+    from django.conf import settings
+
     lim = max(1, min(int(limit or 25), 40))
     corte = timezone.now() - timedelta(days=5)
-    qs = (
-        WhatsAppConversaAgro.objects.filter(Q(foto_perfil="") | Q(foto_em__isnull=True) | Q(foto_em__lt=corte))
-        .order_by("-ultima_em", "-id")[:lim]
-    )
+    # Pega um pouco a mais e filtra arquivo sumido (MEDIA_ROOT errado / pasta trocada).
+    qs = WhatsAppConversaAgro.objects.order_by("-ultima_em", "-id")[: max(lim * 3, 40)]
     out = []
     for c in qs:
+        if len(out) >= lim:
+            break
         jid = (c.jid or "").strip()
         if not jid_eh_chat_privado(jid) and not (c.jid_lid or ""):
+            continue
+        precisa = False
+        if not c.foto_perfil or not c.foto_em or c.foto_em < corte:
+            precisa = True
+        else:
+            try:
+                fp = Path(c.foto_perfil.path)
+                if not fp.is_file() or fp.stat().st_size < 64:
+                    precisa = True
+            except Exception:
+                precisa = True
+        if not precisa:
             continue
         out.append(
             {
