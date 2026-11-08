@@ -1,4 +1,4 @@
-﻿# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
+# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** â€” teste Render, produÃ§Ã£o, pacotes, operaÃ§Ã£o diÃ¡ria. O **produto SisVale** no geral estÃ¡ em **`SISTVALE.md`**; a instÃ¢ncia **delivery em branco** estÃ¡ em **`FOOD.md`**.
 
@@ -1296,7 +1296,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### WIP — Zap escondido PC · fotos + arquivo (`WA-FOTO-MEDIA` + `WA-ARQ-SYNC` · 08/11)
+
+| | |
+| --- | --- |
+| **Fotos** | `AGRO_WA_MEDIA_ROOT` no MEDIA_ROOT; mídia unificada; refila se arquivo sumiu. |
+| **Sem foto** | Nathan + Maria Da Guia: Zap não devolve foto (privacidade) — vira letra. |
+| **Arquivo** | **Zap→Oficial OK 08/11 ~16:14:** patch no `@s.whatsapp.net` + `@lid`, `lastMessages` com última recebida (id fantasma no cache quebrava). Print: Renan em Arquivadas no Desktop. **Oficial→Zap ainda falha:** Desktop arquiva (print Arquivadas) mas Baileys não emite `archived` no `chats.update`/snapshot — sync 20s + snapshot 90s + history leve ligados; falta evento. |
+| **UI** | Branch `whatsapp` religada neste PC (Selecionar / menu direito / Resolvidas / skin v2) · 08/11. |
+| **Envio sumiu** | 2 pontes = conflict 440; stack com path absoluto + lock. DDD/DDDD reenviados. |
+| **Versão** | UI `whatsapp` + sync desta sessão |
+
 ### WIP — **WA-SERVIDOR-PC** · lab Renan · 02/11/2026
+
 
 | Campo | Valor |
 | ----- | ----- |

@@ -1778,8 +1778,9 @@ def processar_entrada(
         "aguardando_loja",
         "extras",
     ]
-    if not de_mim and not historico:
-        campos_base.extend(_desarquivar_por_msg_cliente(conv))
+    # Qualquer msg ao vivo (cliente OU loja no celular/Web) tira de Resolvidas.
+    if not historico:
+        campos_base.extend(_desarquivar_por_atividade(conv))
     if not fora_do_horario(cfg) and conv.aviso_fora_em:
         conv.aviso_fora_em = None
     fone = _telefone_real(conv.telefone) or tel_limpo or _telefone_real(conv.jid)
@@ -2085,6 +2086,9 @@ def enviar_loja(
         reply_wa_id=reply_wa,
         reply_texto=reply_txt,
     )
+    # Loja mandou do Zap em conversa Resolvida → volta pra Ativas + desarquiva no oficial.
+    if m is not None and getattr(conv, "arquivada", False):
+        reabrir_conversa(int(conv.pk), sync_zap=True)
     return m, ""
 
 
@@ -2441,7 +2445,15 @@ def listar_pedidos_pendentes(limit: int = 3) -> list[dict]:
             status=WhatsAppPontePedidoAgro.STATUS_PENDENTE
         ).order_by("id")[:20]
     )
-    qs.sort(key=lambda p: (0 if p.tipo == WhatsAppPontePedidoAgro.TIPO_APAGAR else 1, p.pk))
+    qs.sort(
+        key=lambda p: (
+            0
+            if p.tipo
+            in (WhatsAppPontePedidoAgro.TIPO_APAGAR, WhatsAppPontePedidoAgro.TIPO_ARQUIVAR)
+            else 1,
+            p.pk,
+        )
+    )
     qs = qs[:lim]
     out = []
     for p in qs:
@@ -2950,8 +2962,130 @@ def marcar_lidas(conversa_id: int) -> None:
     WhatsAppConversaAgro.objects.filter(pk=int(conversa_id)).update(nao_lidas=0)
 
 
-def arquivar_conversa(conversa_id: int, *, operador: str = "") -> tuple[bool, str]:
-    """✓ — arquiva (Resolvidas), zera não-lidas e espera."""
+def _ultima_msg_para_arquivo(conv: WhatsAppConversaAgro) -> WhatsAppMensagemAgro | None:
+    return (
+        WhatsAppMensagemAgro.objects.filter(conversa=conv)
+        .exclude(wa_id="")
+        .order_by("-criado_em", "-id")
+        .first()
+    )
+
+
+def _ultima_msg_recv_para_arquivo(conv: WhatsAppConversaAgro) -> WhatsAppMensagemAgro | None:
+    """Última mensagem do cliente — Baileys MD usa no fim de lastMessages do archive."""
+    return (
+        WhatsAppMensagemAgro.objects.filter(
+            conversa=conv, direcao=WhatsAppMensagemAgro.DIRECAO_IN
+        )
+        .exclude(wa_id="")
+        .order_by("-criado_em", "-id")
+        .first()
+    )
+
+
+def pedir_arquivar_zap(conversa_id: int, *, arquivar: bool) -> WhatsAppPontePedidoAgro | None:
+    """Enfileira chatModify archive na ponte — celular e WhatsApp Web acompanham."""
+    try:
+        conv = WhatsAppConversaAgro.objects.get(pk=int(conversa_id))
+    except (WhatsAppConversaAgro.DoesNotExist, TypeError, ValueError):
+        return None
+    envio = _jid_envio(conv)
+    if not envio:
+        return None
+    flag = bool(arquivar)
+    recente = (
+        WhatsAppPontePedidoAgro.objects.filter(
+            tipo=WhatsAppPontePedidoAgro.TIPO_ARQUIVAR,
+            jid=envio,
+            status=WhatsAppPontePedidoAgro.STATUS_PENDENTE,
+            criado_em__gte=timezone.now() - timedelta(seconds=12),
+        )
+        .order_by("-id")
+        .first()
+    )
+    if recente:
+        prev = recente.payload if isinstance(recente.payload, dict) else {}
+        if bool(prev.get("arquivar")) is flag:
+            return recente
+    last = _ultima_msg_para_arquivo(conv)
+    last_recv = _ultima_msg_recv_para_arquivo(conv)
+    last_ts = int(last.criado_em.timestamp()) if last and last.criado_em else int(timezone.now().timestamp())
+    recv_ts = (
+        int(last_recv.criado_em.timestamp())
+        if last_recv and last_recv.criado_em
+        else 0
+    )
+    phone_jid = ""
+    if (conv.jid or "").endswith("@s.whatsapp.net"):
+        phone_jid = (conv.jid or "")[:80]
+    elif getattr(conv, "telefone", None):
+        try:
+            phone_jid = (telefone_para_jid(str(conv.telefone)) or "")[:80]
+        except Exception:
+            phone_jid = ""
+    return WhatsAppPontePedidoAgro.objects.create(
+        tipo=WhatsAppPontePedidoAgro.TIPO_ARQUIVAR,
+        jid=envio,
+        payload={
+            "arquivar": flag,
+            "conversa_id": int(conv.pk),
+            "jid_phone": phone_jid,
+            "jid_lid": (_jid_lid(getattr(conv, "jid_lid", "") or "") or _jid_lid(conv.jid) or "")[:80],
+            "last_wa_id": ((last.wa_id if last else "") or "")[:80],
+            "last_from_me": bool(last and last.direcao != WhatsAppMensagemAgro.DIRECAO_IN),
+            "last_ts": last_ts,
+            "last_recv_wa_id": ((last_recv.wa_id if last_recv else "") or "")[:80],
+            "last_recv_ts": recv_ts,
+        },
+    )
+
+
+def _conversa_por_jid_ponte(
+    *, jid: str = "", telefone: str = "", jid_lid: str = ""
+) -> WhatsAppConversaAgro | None:
+    lid = _jid_lid(jid_lid) or _jid_lid(jid)
+    tel = _telefone_real(telefone) or _telefone_real(jid)
+    phone_jid = telefone_para_jid(tel) if tel else ""
+    jid_n = (phone_jid or (jid or "").strip())[:80]
+    for j in (phone_jid, lid, jid_n):
+        if not j:
+            continue
+        conv = WhatsAppConversaAgro.objects.filter(jid=j).first()
+        if conv:
+            return conv
+    if lid:
+        conv = WhatsAppConversaAgro.objects.filter(jid_lid=lid).first()
+        if conv:
+            return conv
+    if tel:
+        return WhatsAppConversaAgro.objects.filter(telefone=tel).first()
+    return None
+
+
+def aplicar_arquivo_zap(
+    *,
+    jid: str = "",
+    telefone: str = "",
+    jid_lid: str = "",
+    arquivada: bool = False,
+    operador: str = "",
+) -> tuple[bool, str]:
+    """Celular/Web arquivou ou desarquivou — espelha no Agro sem reenviar pedido à ponte."""
+    conv = _conversa_por_jid_ponte(jid=jid, telefone=telefone, jid_lid=jid_lid)
+    if conv is None:
+        return False, "conversa_nao_encontrada"
+    quer = bool(arquivada)
+    if bool(getattr(conv, "arquivada", False)) is quer:
+        return True, "igual"
+    if quer:
+        return arquivar_conversa(conv.pk, operador=operador or "WhatsApp", sync_zap=False)
+    return reabrir_conversa(conv.pk, sync_zap=False)
+
+
+def arquivar_conversa(
+    conversa_id: int, *, operador: str = "", sync_zap: bool = True
+) -> tuple[bool, str]:
+    """✓ — arquiva (Resolvidas), zera não-lidas e espera. Opcional: pede archive no Zap."""
     try:
         cid = int(conversa_id)
     except (TypeError, ValueError):
@@ -2960,24 +3094,31 @@ def arquivar_conversa(conversa_id: int, *, operador: str = "") -> tuple[bool, st
         conv = WhatsAppConversaAgro.objects.get(pk=cid)
     except WhatsAppConversaAgro.DoesNotExist:
         return False, "Conversa não encontrada."
-    conv.arquivada = True
-    conv.arquivada_em = timezone.now()
-    conv.arquivada_por = (operador or "")[:120]
-    conv.aguardando_loja = False
-    conv.nao_lidas = 0
-    conv.save(
-        update_fields=[
-            "arquivada",
-            "arquivada_em",
-            "arquivada_por",
-            "aguardando_loja",
-            "nao_lidas",
-        ]
-    )
+    ja = bool(getattr(conv, "arquivada", False))
+    if not ja:
+        conv.arquivada = True
+        conv.arquivada_em = timezone.now()
+        conv.arquivada_por = (operador or "")[:120]
+        conv.aguardando_loja = False
+        conv.nao_lidas = 0
+        conv.save(
+            update_fields=[
+                "arquivada",
+                "arquivada_em",
+                "arquivada_por",
+                "aguardando_loja",
+                "nao_lidas",
+            ]
+        )
+    if sync_zap:
+        try:
+            pedir_arquivar_zap(cid, arquivar=True)
+        except Exception:
+            pass
     return True, ""
 
 
-def reabrir_conversa(conversa_id: int) -> tuple[bool, str]:
+def reabrir_conversa(conversa_id: int, *, sync_zap: bool = True) -> tuple[bool, str]:
     """Tira da aba Resolvidas — volta para a loja que tinha (Fila/Centro/Vila)."""
     try:
         cid = int(conversa_id)
@@ -2993,17 +3134,29 @@ def reabrir_conversa(conversa_id: int) -> tuple[bool, str]:
     conv.arquivada_em = None
     conv.arquivada_por = ""
     conv.save(update_fields=["arquivada", "arquivada_em", "arquivada_por"])
+    if sync_zap:
+        try:
+            pedir_arquivar_zap(cid, arquivar=False)
+        except Exception:
+            pass
     return True, ""
 
 
-def _desarquivar_por_msg_cliente(conv: WhatsAppConversaAgro) -> list[str]:
-    """Cliente mandou msg em conversa arquivada → volta à lista ativa."""
+def _desarquivar_por_atividade(conv: WhatsAppConversaAgro) -> list[str]:
+    """Msg ao vivo (cliente ou loja no celular/Web) em conversa arquivada → Ativas.
+
+    Não enfileira pedido na ponte: o próprio WhatsApp já desarquiva no aparelho.
+    """
     if not getattr(conv, "arquivada", False):
         return []
     conv.arquivada = False
     conv.arquivada_em = None
     conv.arquivada_por = ""
     return ["arquivada", "arquivada_em", "arquivada_por"]
+
+
+# Compat com testes / chamadas antigas
+_desarquivar_por_msg_cliente = _desarquivar_por_atividade
 
 
 def concluir_atendimento(conversa_id: int, *, operador: str = "") -> tuple[bool, str]:
