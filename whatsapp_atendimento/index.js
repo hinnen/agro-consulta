@@ -463,11 +463,12 @@ function avisarArquivoZap(ch) {
   if (archived === null) return;
   const raw = String(ch.id || ch.jid || "");
   if (!raw || ehStatusOuGrupo(raw) || !ehChatPrivado(raw)) return;
-  if (arquivoLocalRecente(raw, archived)) return;
+  // NÃO ignorar por arquivoLocalRecente: isso engolia o echo E o archive vindo do Desktop.
+  // Se o Agro já está igual, a API devolve "igual" — POST é barato e idempotente.
   const k = chaveArquivoJid(raw) + "|" + (archived ? "1" : "0");
   const agora = Date.now();
   const prev = arquivoAvisado.get(k) || 0;
-  if (agora - prev < 2500) return;
+  if (agora - prev < 1500) return;
   arquivoAvisado.set(k, agora);
   if (arquivoAvisado.size > 300) {
     const first = arquivoAvisado.keys().next().value;
@@ -496,8 +497,8 @@ let appStateSyncOpenTimer = 0;
 async function sincronizarAppStateArquivo(motivo) {
   const tag = motivo || "";
   const agora = Date.now();
-  // Evita tempestade no reconnect (conflict 440): no máx. 1 sync / 90s.
-  if (appStateSyncRodando || agora - appStateSyncUltimo < 90 * 1000) {
+  // Desktop→Zap precisa sync frequente; 90s era demais pra prova/uso no balcão.
+  if (appStateSyncRodando || agora - appStateSyncUltimo < 25 * 1000) {
     console.log("Sync estado Zap: pulado", tag);
     return;
   }
@@ -519,7 +520,7 @@ async function sincronizarAppStateArquivo(motivo) {
   appStateSyncUltimo = agora;
   try {
     console.log("Sync estado Zap (arquivo/mute):", tag);
-    // isInitialSync=false → chats.update com archived chega limpo (sem conditional do histórico).
+    // false = updates de archive chegam sem “conditional” do histórico.
     await sock.resyncAppState(WA_APP_STATE_COLS, false);
     console.log("Sync estado Zap: ok", tag);
   } catch (e) {
@@ -1251,7 +1252,7 @@ async function ligar() {
       if (!appStateSyncTimer) {
         appStateSyncTimer = setInterval(() => {
           sincronizarAppStateArquivo("periodico").catch(() => {});
-        }, 5 * 60 * 1000);
+        }, 45 * 1000);
       }
       setTimeout(() => {
         varrerStore();

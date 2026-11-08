@@ -1302,7 +1302,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | --- | --- |
 | **Fotos** | `AGRO_WA_MEDIA_ROOT` no MEDIA_ROOT; mídia unificada; refila se arquivo sumiu. |
 | **Sem foto** | Nathan + Maria Da Guia: Zap não devolve foto (privacidade) — vira letra. |
-| **Arquivo** | Bug: `chats.update` **não** chamava `avisarArquivoZap` (oficial→Zap morto). Corrigido + msg real no chatModify. Zap→Desktop: Baileys ok local mas servidor nem sempre grava (limite companion). Desarquiva se loja manda. |
+| **Arquivo** | Oficial→Zap: `chats.update`+POST (antes `arquivoLocalRecente` engolia). **Prova 08/11 16h:** archive no Desktop → DB `arquivada=True` por=WhatsApp, some de Ativas. Sync app-state 45s. Zap→Desktop ainda frágil. |
 | **UI** | Branch `whatsapp` religada neste PC (Selecionar / menu direito / Resolvidas / skin v2) · 08/11. |
 | **Envio sumiu** | 2 pontes = conflict 440; stack com path absoluto + lock. DDD/DDDD reenviados. |
 | **Versão** | UI `whatsapp` + sync desta sessão |
