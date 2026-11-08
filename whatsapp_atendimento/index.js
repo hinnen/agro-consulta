@@ -325,6 +325,159 @@ function guardarMsgCache(m) {
   }
 }
 
+/** Evita eco do nosso chatModify virar POST de novo (já está no Agro). */
+const arquivoLocalAte = new Map();
+const arquivoAvisado = new Map();
+
+function chaveArquivoJid(jid) {
+  const phone = jidPhoneDeValor(jid) || (String(jid || "").endsWith("@s.whatsapp.net") ? String(jid) : "");
+  const lid = String(jid || "").endsWith("@lid") ? String(jid) : "";
+  return normJid(phone || lid || jid);
+}
+
+function marcarArquivoLocal(jid, arquivada) {
+  const k = chaveArquivoJid(jid);
+  if (!k) return;
+  arquivoLocalAte.set(k, { arquivada: !!arquivada, ate: Date.now() + 20000 });
+  const phone = jidPhoneDeValor(jid);
+  const lid = String(jid || "").endsWith("@lid") ? String(jid) : lidDePhone(phone || jid);
+  for (const extra of [phone, lid]) {
+    const ek = chaveArquivoJid(extra);
+    if (ek) arquivoLocalAte.set(ek, { arquivada: !!arquivada, ate: Date.now() + 20000 });
+  }
+}
+
+function arquivoLocalRecente(jid, arquivada) {
+  const k = chaveArquivoJid(jid);
+  if (!k) return false;
+  const hit = arquivoLocalAte.get(k);
+  if (!hit || hit.ate < Date.now()) return false;
+  return hit.arquivada === !!arquivada;
+}
+
+function ultimaMsgParaArquivo(p, jidFallback) {
+  const waId = String((p && p.last_wa_id) || "").trim();
+  const fromMe = !!(p && p.last_from_me);
+  let ts = Number((p && p.last_ts) || 0);
+  if (ts > 1e12) ts = Math.floor(ts / 1000);
+  if (!ts) ts = Math.floor(Date.now() / 1000);
+  if (waId) {
+    const hit = msgCache.get(waId);
+    if (hit && hit.key && hit.key.id) {
+      return [
+        {
+          key: {
+            remoteJid: String(hit.key.remoteJid || jidFallback || ""),
+            fromMe: !!hit.key.fromMe,
+            id: String(hit.key.id),
+            participant: hit.key.participant,
+          },
+          messageTimestamp: Number(hit.messageTimestamp || ts) || ts,
+        },
+      ];
+    }
+    return [
+      {
+        key: {
+          remoteJid: String(jidFallback || ""),
+          fromMe,
+          id: waId,
+        },
+        messageTimestamp: ts,
+      },
+    ];
+  }
+  const alvo = chaveArquivoJid(jidFallback);
+  if (!alvo) return [];
+  let melhor = null;
+  for (const m of msgCache.values()) {
+    const raw = String((m && m.key && m.key.remoteJid) || "");
+    if (!raw) continue;
+    if (chaveArquivoJid(raw) !== alvo && chaveArquivoJid(pnDeLid(raw) || raw) !== alvo) continue;
+    const quando = tsMs(m) || 0;
+    if (!melhor || quando >= (tsMs(melhor) || 0)) melhor = m;
+  }
+  if (!melhor || !melhor.key || !melhor.key.id) return [];
+  return [
+    {
+      key: {
+        remoteJid: String(melhor.key.remoteJid || jidFallback || ""),
+        fromMe: !!melhor.key.fromMe,
+        id: String(melhor.key.id),
+        participant: melhor.key.participant,
+      },
+      messageTimestamp: Number(melhor.messageTimestamp || Math.floor((tsMs(melhor) || Date.now()) / 1000)) || ts,
+    },
+  ];
+}
+
+function lerArchivedFlag(ch) {
+  if (!ch || typeof ch !== "object") return null;
+  if (typeof ch.archived === "boolean") return ch.archived;
+  const v = ch.archived;
+  if (v === 1 || v === "1" || v === "true") return true;
+  if (v === 0 || v === "0" || v === "false") return false;
+  return null;
+}
+
+function avisarArquivoZap(ch) {
+  const archived = lerArchivedFlag(ch);
+  if (archived === null) return;
+  const raw = String(ch.id || ch.jid || "");
+  if (!raw || ehStatusOuGrupo(raw) || !ehChatPrivado(raw)) return;
+  if (arquivoLocalRecente(raw, archived)) return;
+  const k = chaveArquivoJid(raw) + "|" + (archived ? "1" : "0");
+  const agora = Date.now();
+  const prev = arquivoAvisado.get(k) || 0;
+  if (agora - prev < 2500) return;
+  arquivoAvisado.set(k, agora);
+  if (arquivoAvisado.size > 300) {
+    const first = arquivoAvisado.keys().next().value;
+    arquivoAvisado.delete(first);
+  }
+  const phone = jidPhoneDeValor(raw) || (raw.endsWith("@s.whatsapp.net") ? raw : pnDeLid(raw));
+  const lid = raw.endsWith("@lid") ? raw : lidDePhone(phone || raw);
+  const tel = telefoneDeJid(phone || raw);
+  console.log(archived ? "Arquivo no Zap:" : "Saiu do arquivo no Zap:", phone || lid || raw);
+  post("/api/atendimento-whatsapp/bridge/arquivo/", {
+    jid: phone || raw,
+    jid_lid: lid || "",
+    telefone: tel || "",
+    arquivada: !!archived,
+    operador: "WhatsApp",
+  }).catch((e) => console.error("arquivo zap->agro:", e.message || e));
+}
+
+/** Coleções do Zap que trazem arquivar/fixar/mute entre aparelhos. */
+const WA_APP_STATE_COLS = ["regular", "regular_high", "regular_low", "critical_block", "critical_unblock_low"];
+let appStateSyncTimer = 0;
+
+async function sincronizarAppStateArquivo(motivo) {
+  const tag = motivo || "";
+  if (!sock) {
+    console.log("Sync estado Zap: sem sock", tag);
+    return;
+  }
+  if (typeof sock.resyncAppState !== "function") {
+    console.log(
+      "Sync estado Zap: API ausente",
+      tag,
+      Object.keys(sock)
+        .filter((k) => /sync|patch|app|chat/i.test(k))
+        .join(",")
+    );
+    return;
+  }
+  try {
+    console.log("Sync estado Zap (arquivo/mute):", tag);
+    // isInitialSync=false → chats.update com archived chega limpo (sem conditional do histórico).
+    await sock.resyncAppState(WA_APP_STATE_COLS, false);
+    console.log("Sync estado Zap: ok", tag);
+  } catch (e) {
+    console.error("sync app state:", e.message || e);
+  }
+}
+
 function ehStatusBroadcast(jid) {
   const j = String(jid || "").toLowerCase();
   return j === "status@broadcast" || j.includes("status@");
@@ -1036,6 +1189,16 @@ async function ligar() {
       await estado({ status: "conectado", numero, aviso: "" });
       console.log("WhatsApp conectado", numero);
       enviarLidMap();
+      // Sem history sync o Baileys pula o app-state inicial — aí arquivar no Web/celular
+      // não vira chats.update. Forçamos o sync das coleções de arquivo/mute.
+      setTimeout(() => {
+        sincronizarAppStateArquivo("apos-conectar").catch(() => {});
+      }, 2500);
+      if (!appStateSyncTimer) {
+        appStateSyncTimer = setInterval(() => {
+          sincronizarAppStateArquivo("periodico").catch(() => {});
+        }, 2 * 60 * 1000);
+      }
       setTimeout(() => {
         varrerStore();
         // WA-PONTE-LEVE: sync 1×/dia — espera 45s após connect (sessão estabilizar)
