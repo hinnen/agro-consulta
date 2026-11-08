@@ -390,9 +390,18 @@ function avisarArquivoZap(ch) {
 /** Coleções do Zap que trazem arquivar/fixar/mute entre aparelhos. */
 const WA_APP_STATE_COLS = ["regular", "regular_high", "regular_low", "critical_block", "critical_unblock_low"];
 let appStateSyncTimer = 0;
+let appStateSyncRodando = false;
+let appStateSyncUltimo = 0;
+let appStateSyncOpenTimer = 0;
 
 async function sincronizarAppStateArquivo(motivo) {
   const tag = motivo || "";
+  const agora = Date.now();
+  // Evita tempestade no reconnect (conflict 440): no máx. 1 sync / 90s.
+  if (appStateSyncRodando || agora - appStateSyncUltimo < 90 * 1000) {
+    console.log("Sync estado Zap: pulado", tag);
+    return;
+  }
   if (!sock) {
     console.log("Sync estado Zap: sem sock", tag);
     return;
@@ -407,6 +416,8 @@ async function sincronizarAppStateArquivo(motivo) {
     );
     return;
   }
+  appStateSyncRodando = true;
+  appStateSyncUltimo = agora;
   try {
     console.log("Sync estado Zap (arquivo/mute):", tag);
     // isInitialSync=false → chats.update com archived chega limpo (sem conditional do histórico).
@@ -414,6 +425,8 @@ async function sincronizarAppStateArquivo(motivo) {
     console.log("Sync estado Zap: ok", tag);
   } catch (e) {
     console.error("sync app state:", e.message || e);
+  } finally {
+    appStateSyncRodando = false;
   }
 }
 
@@ -1082,14 +1095,17 @@ async function ligar() {
       console.log("WhatsApp conectado", numero);
       enviarLidMap();
       // Sem history sync o Baileys pula o app-state inicial — aí arquivar no Web/celular
-      // não vira chats.update. Forçamos o sync das coleções de arquivo/mute.
-      setTimeout(() => {
+      // não vira chats.update. Sync 1× após conexão estável (não a cada reconnect).
+      if (appStateSyncOpenTimer) clearTimeout(appStateSyncOpenTimer);
+      const openId = myId;
+      appStateSyncOpenTimer = setTimeout(() => {
+        if (myId !== openId || !sock) return;
         sincronizarAppStateArquivo("apos-conectar").catch(() => {});
-      }, 2500);
+      }, 12000);
       if (!appStateSyncTimer) {
         appStateSyncTimer = setInterval(() => {
           sincronizarAppStateArquivo("periodico").catch(() => {});
-        }, 2 * 60 * 1000);
+        }, 5 * 60 * 1000);
       }
       setTimeout(() => {
         varrerStore();
