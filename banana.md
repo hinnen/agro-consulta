@@ -1296,7 +1296,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### WIP — Zap escondido PC · fotos + arquivo (`WA-FOTO-MEDIA` + `WA-ARQ-SYNC` · 08/11)
+
+| | |
+| --- | --- |
+| **Fotos** | `AGRO_WA_MEDIA_ROOT` no MEDIA_ROOT; mídia unificada; refila se arquivo sumiu. |
+| **Arquivo** | chats.set + resyncAppState (debounce). Zap→oficial OK; oficial→Zap em prova. |
+| **UI** | Branch `whatsapp` (Selecionar / menu / Resolvidas) religada neste PC · 08/11. |
+| **Envio** | 2 pontes = 440; stack detecta path absoluto + lock. |
+| **Versão** | UI `whatsapp` + sync desta sessão |
+
 ### WIP — **WA-SERVIDOR-PC** · lab Renan · 02/11/2026
+
 
 | Campo | Valor |
 | ----- | ----- |

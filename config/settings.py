@@ -233,8 +233,9 @@ STATICFILES_DIRS = [
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
-_wa_media_root = (config('AGRO_WA_MEDIA_ROOT', default='') or '').strip()
-MEDIA_ROOT = Path(_wa_media_root) if _wa_media_root else (BASE_DIR / 'media')
+# WA escondido (PC): AGRO_WA_MEDIA_ROOT aponta pasta estável fora do clone.
+_agro_wa_media = (os.environ.get("AGRO_WA_MEDIA_ROOT") or config("AGRO_WA_MEDIA_ROOT", default="") or "").strip()
+MEDIA_ROOT = Path(_agro_wa_media) if _agro_wa_media else (BASE_DIR / "media")
 # Render / Docker (SAVEINCLOUD): sem manifest evita 500 em runtime se algum asset faltar no manifest pós-collectstatic
 # (o edge costuma devolver 502 quando o worker cai ou responde mal).
 if _on_render or _on_saveincloud:
