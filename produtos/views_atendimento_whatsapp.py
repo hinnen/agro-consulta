@@ -37,6 +37,7 @@ from produtos.atendimento_whatsapp_util import (
     marcar_lidas,
     arquivar_conversa,
     reabrir_conversa,
+    aplicar_arquivo_zap,
     marcar_pedido,
     pedir_agenda_zap,
     pedir_apagar_mensagem,
@@ -817,6 +818,34 @@ def api_atendimento_whatsapp_bridge_entrada(request):
         daemon=True,
     ).start()
     return JsonResponse({"ok": True})
+
+
+@csrf_exempt
+@require_POST
+def api_atendimento_whatsapp_bridge_arquivo(request):
+    """Ponte: celular ou WhatsApp Web arquivou / desarquivou o chat."""
+    if not token_ponte_ok(request):
+        return _bridge_forbidden()
+    data = _json_body(request) or {}
+    raw = data.get("arquivada")
+    if raw is None:
+        raw = data.get("archived")
+    if isinstance(raw, str):
+        arquivada = raw.strip().lower() in ("1", "true", "sim", "yes")
+    else:
+        arquivada = bool(raw)
+    ok, info = aplicar_arquivo_zap(
+        jid=str(data.get("jid") or ""),
+        telefone=str(data.get("telefone") or ""),
+        jid_lid=str(data.get("jid_lid") or data.get("lid") or ""),
+        arquivada=arquivada,
+        operador=str(data.get("operador") or "WhatsApp")[:120],
+    )
+    if not ok and info == "conversa_nao_encontrada":
+        return JsonResponse({"ok": True, "info": info})
+    if not ok:
+        return JsonResponse({"ok": False, "erro": info or "falhou"}, status=400)
+    return JsonResponse({"ok": True, "info": info or ""})
 
 
 @csrf_exempt

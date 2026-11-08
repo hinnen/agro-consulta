@@ -1591,6 +1591,45 @@ async function executarPedido(p) {
       await post("/api/atendimento-whatsapp/bridge/pedido-ok/", { pedido_id: pid });
       return;
     }
+    if (p.tipo === "arquivar") {
+      const archive =
+        p.arquivar === true ||
+        p.arquivar === 1 ||
+        p.arquivar === "1" ||
+        String(p.arquivar || "").toLowerCase() === "true";
+      const jidPed = String(p.jid || "");
+      const jidPhone = String(p.jid_phone || "");
+      const jidLid = String(p.jid_lid || "");
+      const candidatos = [];
+      for (const j of [jidLid, jidPed, jidPhone, pnDeLid(jidPed), lidDePhone(jidPhone || jidPed)]) {
+        const s = String(j || "");
+        if (s && !candidatos.includes(s)) candidatos.push(s);
+      }
+      if (!candidatos.length) throw new Error("Sem destino para arquivar");
+      const lastMessages = ultimaMsgParaArquivo(p, candidatos[0]);
+      if (!lastMessages.length) throw new Error("Sem última mensagem para arquivar no Zap");
+      let ok = false;
+      let lastErr = null;
+      for (const jid of candidatos) {
+        try {
+          const msgs = lastMessages.map((m) => ({
+            key: { ...(m.key || {}), remoteJid: jid },
+            messageTimestamp: m.messageTimestamp,
+          }));
+          console.log(archive ? "arquivar chat" : "desarquivar chat", jid);
+          marcarArquivoLocal(jid, archive);
+          await sock.chatModify({ archive, lastMessages: msgs }, jid);
+          ok = true;
+          break;
+        } catch (e) {
+          lastErr = e;
+          console.error("chatModify archive falhou", jid, e.message || e);
+        }
+      }
+      if (!ok && lastErr) throw lastErr;
+      await post("/api/atendimento-whatsapp/bridge/pedido-ok/", { pedido_id: pid });
+      return;
+    }
   } catch (e) {
     console.error("pedido:", e.message || e);
     await post("/api/atendimento-whatsapp/bridge/pedido-ok/", {

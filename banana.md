@@ -1,4 +1,4 @@
-﻿# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
+# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** â€” teste Render, produÃ§Ã£o, pacotes, operaÃ§Ã£o diÃ¡ria. O **produto SisVale** no geral estÃ¡ em **`SISTVALE.md`**; a instÃ¢ncia **delivery em branco** estÃ¡ em **`FOOD.md`**.
 
@@ -1302,7 +1302,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | --- | --- |
 | **Fotos** | `AGRO_WA_MEDIA_ROOT` no MEDIA_ROOT; mídia unificada; refila se arquivo sumiu. |
 | **Sem foto** | Nathan + Maria Da Guia: Zap não devolve foto (privacidade) — vira letra. |
-| **Arquivo** | chats.set + resyncAppState (debounce 90s / 12s pós-connect / 5 min). Zap→oficial OK; oficial→Zap em prova. |
+| **Arquivo** | Restaurado `pedir_arquivar_zap` + bridge `/arquivo/` (sumiu na UI `whatsapp`). Desarquiva tb se loja manda (Zap ou eco celular). chats.set + resyncAppState. |
 | **UI** | Branch `whatsapp` religada neste PC (Selecionar / menu direito / Resolvidas / skin v2) · 08/11. |
 | **Envio sumiu** | 2 pontes = conflict 440; stack com path absoluto + lock. DDD/DDDD reenviados. |
 | **Versão** | UI `whatsapp` + sync desta sessão |

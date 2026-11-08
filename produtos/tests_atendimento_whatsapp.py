@@ -713,6 +713,35 @@ class ArquivoConversaTests(TestCase):
         self.assertFalse(conv.arquivada)
         self.assertIn(conv.pk, {c["id"] for c in listar_conversas(loja="vila")})
 
+    def test_msg_loja_celular_desarquiva(self):
+        """Eco fromMe (oficial/celular) também tira de Resolvidas."""
+        from produtos.atendimento_whatsapp_util import arquivar_conversa, listar_conversas
+
+        processar_entrada(jid="5513999111003@s.whatsapp.net", texto="oi", nome="Eco")
+        conv = WhatsAppConversaAgro.objects.get()
+        arquivar_conversa(conv.pk, operador="Loja", sync_zap=False)
+        processar_entrada(
+            jid="5513999111003@s.whatsapp.net",
+            texto="manda loja",
+            wa_id="fromme-1",
+            de_mim=True,
+        )
+        conv.refresh_from_db()
+        self.assertFalse(conv.arquivada)
+        self.assertIn(conv.pk, {c["id"] for c in listar_conversas(loja="todas")})
+
+    def test_enviar_loja_desarquiva(self):
+        from produtos.atendimento_whatsapp_util import arquivar_conversa, enviar_loja
+
+        processar_entrada(jid="5513999111004@s.whatsapp.net", texto="x", nome="Zap")
+        conv = WhatsAppConversaAgro.objects.get()
+        arquivar_conversa(conv.pk, operador="Loja", sync_zap=False)
+        m, err = enviar_loja(conversa_id=conv.pk, texto="volto", autor="Renan")
+        self.assertEqual(err, "")
+        self.assertIsNotNone(m)
+        conv.refresh_from_db()
+        self.assertFalse(conv.arquivada)
+
     def test_arquivo_auto_default_off(self):
         self.assertFalse(BOT_DEFAULT.get("arquivo_auto_ligado"))
         self.assertTrue(BOT_DEFAULT.get("arquivo_auto_nunca_com_nao_lidas"))
