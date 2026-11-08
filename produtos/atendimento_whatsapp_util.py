@@ -2971,6 +2971,18 @@ def _ultima_msg_para_arquivo(conv: WhatsAppConversaAgro) -> WhatsAppMensagemAgro
     )
 
 
+def _ultima_msg_recv_para_arquivo(conv: WhatsAppConversaAgro) -> WhatsAppMensagemAgro | None:
+    """Última mensagem do cliente — Baileys MD usa no fim de lastMessages do archive."""
+    return (
+        WhatsAppMensagemAgro.objects.filter(
+            conversa=conv, direcao=WhatsAppMensagemAgro.DIRECAO_IN
+        )
+        .exclude(wa_id="")
+        .order_by("-criado_em", "-id")
+        .first()
+    )
+
+
 def pedir_arquivar_zap(conversa_id: int, *, arquivar: bool) -> WhatsAppPontePedidoAgro | None:
     """Enfileira chatModify archive na ponte — celular e WhatsApp Web acompanham."""
     try:
@@ -2996,18 +3008,34 @@ def pedir_arquivar_zap(conversa_id: int, *, arquivar: bool) -> WhatsAppPontePedi
         if bool(prev.get("arquivar")) is flag:
             return recente
     last = _ultima_msg_para_arquivo(conv)
+    last_recv = _ultima_msg_recv_para_arquivo(conv)
     last_ts = int(last.criado_em.timestamp()) if last and last.criado_em else int(timezone.now().timestamp())
+    recv_ts = (
+        int(last_recv.criado_em.timestamp())
+        if last_recv and last_recv.criado_em
+        else 0
+    )
+    phone_jid = ""
+    if (conv.jid or "").endswith("@s.whatsapp.net"):
+        phone_jid = (conv.jid or "")[:80]
+    elif getattr(conv, "telefone", None):
+        try:
+            phone_jid = (telefone_para_jid(str(conv.telefone)) or "")[:80]
+        except Exception:
+            phone_jid = ""
     return WhatsAppPontePedidoAgro.objects.create(
         tipo=WhatsAppPontePedidoAgro.TIPO_ARQUIVAR,
         jid=envio,
         payload={
             "arquivar": flag,
             "conversa_id": int(conv.pk),
-            "jid_phone": (conv.jid if (conv.jid or "").endswith("@s.whatsapp.net") else "")[:80],
+            "jid_phone": phone_jid,
             "jid_lid": (_jid_lid(getattr(conv, "jid_lid", "") or "") or _jid_lid(conv.jid) or "")[:80],
             "last_wa_id": ((last.wa_id if last else "") or "")[:80],
             "last_from_me": bool(last and last.direcao != WhatsAppMensagemAgro.DIRECAO_IN),
             "last_ts": last_ts,
+            "last_recv_wa_id": ((last_recv.wa_id if last_recv else "") or "")[:80],
+            "last_recv_ts": recv_ts,
         },
     )
 

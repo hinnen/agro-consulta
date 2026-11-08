@@ -317,6 +317,18 @@ function ehMensagemAoVivo(m, type) {
 
 /** Última msg real por chat — archive no servidor exige key válida (fabricada não grava no Desktop). */
 const ultimaMsgPorChat = new Map();
+/** Última msg RECEBIDA (fromMe=false) — Baileys MD exige isso no fim de lastMessages. */
+const ultimaMsgRecvPorChat = new Map();
+
+function _chavesMsgChat(raw) {
+  const keys = new Set();
+  keys.add(chaveArquivoJid(raw));
+  const phone = jidPhoneDeValor(raw) || pnDeLid(raw);
+  const lid = raw.endsWith("@lid") ? raw : lidDePhone(phone || raw);
+  if (phone) keys.add(chaveArquivoJid(phone));
+  if (lid) keys.add(chaveArquivoJid(lid));
+  return [...keys].filter(Boolean);
+}
 
 function registrarUltimaMsgChat(m) {
   if (!m || !m.key || !m.key.id) return;
@@ -332,18 +344,17 @@ function registrarUltimaMsgChat(m) {
     },
     messageTimestamp: ts,
   };
-  const keys = new Set();
-  keys.add(chaveArquivoJid(raw));
-  const phone = jidPhoneDeValor(raw) || pnDeLid(raw);
-  const lid = raw.endsWith("@lid") ? raw : lidDePhone(phone || raw);
-  if (phone) keys.add(chaveArquivoJid(phone));
-  if (lid) keys.add(chaveArquivoJid(lid));
-  for (const k of keys) {
-    if (k) ultimaMsgPorChat.set(k, entry);
+  for (const k of _chavesMsgChat(raw)) {
+    ultimaMsgPorChat.set(k, entry);
+    if (!m.key.fromMe) ultimaMsgRecvPorChat.set(k, entry);
   }
   if (ultimaMsgPorChat.size > 500) {
     const first = ultimaMsgPorChat.keys().next().value;
     ultimaMsgPorChat.delete(first);
+  }
+  if (ultimaMsgRecvPorChat.size > 500) {
+    const first = ultimaMsgRecvPorChat.keys().next().value;
+    ultimaMsgRecvPorChat.delete(first);
   }
 }
 
@@ -388,29 +399,47 @@ function arquivoLocalRecente(jid, arquivada) {
   return hit.arquivada === !!arquivada;
 }
 
+function _entryMsgArquivo(entry, jidAlvo, tsFallback) {
+  if (!entry || !entry.key || !entry.key.id) return null;
+  return {
+    key: {
+      remoteJid: String(jidAlvo || entry.key.remoteJid || ""),
+      fromMe: !!entry.key.fromMe,
+      id: String(entry.key.id),
+      participant: entry.key.participant,
+    },
+    messageTimestamp: Number(entry.messageTimestamp || tsFallback) || tsFallback || Math.floor(Date.now() / 1000),
+  };
+}
+
+/**
+ * lastMessages p/ archive MD: newest first; se a última é nossa (fromMe),
+ * o último item do array PRECISA ser a última msg RECEBIDA — senão o Desktop ignora.
+ */
+function montarLastMessagesArquivo(latest, recv, jidAlvo, tsFallback) {
+  const top = _entryMsgArquivo(latest, jidAlvo, tsFallback);
+  if (!top) return [];
+  if (top.key.fromMe) {
+    const lastRecv = _entryMsgArquivo(recv, jidAlvo, tsFallback);
+    if (lastRecv && lastRecv.key.id && lastRecv.key.id !== top.key.id) {
+      return [top, lastRecv];
+    }
+  }
+  return [top];
+}
+
 function ultimaMsgParaArquivo(p, jidFallback) {
   const waId = String((p && p.last_wa_id) || "").trim();
-  const fromMe = !!(p && p.last_from_me);
   let ts = Number((p && p.last_ts) || 0);
   if (ts > 1e12) ts = Math.floor(ts / 1000);
   if (!ts) ts = Math.floor(Date.now() / 1000);
   const jidAlvo = String(jidFallback || "");
-  const ajustaJid = (entry) => {
-    if (!entry || !entry.key) return null;
-    return [
-      {
-        key: {
-          ...entry.key,
-          remoteJid: jidAlvo || entry.key.remoteJid,
-        },
-        messageTimestamp: Number(entry.messageTimestamp || ts) || ts,
-      },
-    ];
-  };
+  const alvo = chaveArquivoJid(jidAlvo);
+  let latest = null;
   if (waId) {
     const hit = msgCache.get(waId);
     if (hit && hit.key && hit.key.id) {
-      return ajustaJid({
+      latest = {
         key: {
           remoteJid: String(hit.key.remoteJid || jidAlvo),
           fromMe: !!hit.key.fromMe,
@@ -418,35 +447,94 @@ function ultimaMsgParaArquivo(p, jidFallback) {
           participant: hit.key.participant,
         },
         messageTimestamp: Number(hit.messageTimestamp || ts) || ts,
-      });
+      };
     }
   }
-  const alvo = chaveArquivoJid(jidAlvo);
-  if (alvo && ultimaMsgPorChat.has(alvo)) {
-    return ajustaJid(ultimaMsgPorChat.get(alvo));
+  if (!latest && alvo && ultimaMsgPorChat.has(alvo)) {
+    latest = ultimaMsgPorChat.get(alvo);
   }
-  let melhor = null;
-  for (const m of msgCache.values()) {
-    const raw = String((m && m.key && m.key.remoteJid) || "");
-    if (!raw) continue;
-    if (chaveArquivoJid(raw) !== alvo && chaveArquivoJid(pnDeLid(raw) || raw) !== alvo) continue;
-    const quando = tsMs(m) || 0;
-    if (!melhor || quando >= (tsMs(melhor) || 0)) melhor = m;
+  if (!latest) {
+    let melhor = null;
+    for (const m of msgCache.values()) {
+      const raw = String((m && m.key && m.key.remoteJid) || "");
+      if (!raw) continue;
+      if (chaveArquivoJid(raw) !== alvo && chaveArquivoJid(pnDeLid(raw) || raw) !== alvo) continue;
+      const quando = tsMs(m) || 0;
+      if (!melhor || quando >= (tsMs(melhor) || 0)) melhor = m;
+    }
+    if (melhor && melhor.key && melhor.key.id) {
+      latest = {
+        key: {
+          remoteJid: String(melhor.key.remoteJid || jidAlvo),
+          fromMe: !!melhor.key.fromMe,
+          id: String(melhor.key.id),
+          participant: melhor.key.participant,
+        },
+        messageTimestamp:
+          Number(melhor.messageTimestamp || Math.floor((tsMs(melhor) || Date.now()) / 1000)) || ts,
+      };
+    }
   }
-  if (melhor && melhor.key && melhor.key.id) {
-    return ajustaJid({
-      key: {
-        remoteJid: String(melhor.key.remoteJid || jidAlvo),
-        fromMe: !!melhor.key.fromMe,
-        id: String(melhor.key.id),
-        participant: melhor.key.participant,
-      },
-      messageTimestamp: Number(melhor.messageTimestamp || Math.floor((tsMs(melhor) || Date.now()) / 1000)) || ts,
-    });
+  if (!latest) {
+    // Sem msg real em memória: NÃO inventar key — servidor ignora o archive (Desktop não muda).
+    console.warn("archive sem msg real em cache", jidAlvo, waId || "(sem wa_id)");
+    return [];
   }
-  // Sem msg real em memória: NÃO inventar key — servidor ignora o archive (Desktop não muda).
-  console.warn("archive sem msg real em cache", jidAlvo, waId || "(sem wa_id)");
-  return [];
+  // Preferir last_recv do Agro (confiável). Cache local às vezes guarda id fantasma → Desktop ignora o archive.
+  let recv = null;
+  const recvWaId = String((p && p.last_recv_wa_id) || "").trim();
+  if (recvWaId) {
+    const hitRecv = msgCache.get(recvWaId);
+    let recvTs = Number((p && p.last_recv_ts) || 0);
+    if (recvTs > 1e12) recvTs = Math.floor(recvTs / 1000);
+    if (hitRecv && hitRecv.key && hitRecv.key.id) {
+      recv = {
+        key: {
+          remoteJid: String(hitRecv.key.remoteJid || jidAlvo),
+          fromMe: false,
+          id: String(hitRecv.key.id),
+          participant: hitRecv.key.participant,
+        },
+        messageTimestamp: Number(hitRecv.messageTimestamp || recvTs || ts) || ts,
+      };
+    } else {
+      recv = {
+        key: { remoteJid: jidAlvo, fromMe: false, id: recvWaId },
+        messageTimestamp: recvTs || ts,
+      };
+    }
+  }
+  if (!recv && alvo && ultimaMsgRecvPorChat.has(alvo)) {
+    recv = ultimaMsgRecvPorChat.get(alvo);
+  }
+  if (!recv) {
+    let melhorRecv = null;
+    for (const m of msgCache.values()) {
+      if (!m || !m.key || m.key.fromMe) continue;
+      const raw = String(m.key.remoteJid || "");
+      if (!raw) continue;
+      if (chaveArquivoJid(raw) !== alvo && chaveArquivoJid(pnDeLid(raw) || raw) !== alvo) continue;
+      const quando = tsMs(m) || 0;
+      if (!melhorRecv || quando >= (tsMs(melhorRecv) || 0)) melhorRecv = m;
+    }
+    if (melhorRecv && melhorRecv.key && melhorRecv.key.id) {
+      recv = {
+        key: {
+          remoteJid: String(melhorRecv.key.remoteJid || jidAlvo),
+          fromMe: false,
+          id: String(melhorRecv.key.id),
+          participant: melhorRecv.key.participant,
+        },
+        messageTimestamp:
+          Number(melhorRecv.messageTimestamp || Math.floor((tsMs(melhorRecv) || Date.now()) / 1000)) || ts,
+      };
+    }
+  }
+  // Pedido Django: last_from_me=false → a própria last_wa_id já é a recebida.
+  if (!recv && p && p.last_from_me === false && waId && latest && latest.key && latest.key.id === waId) {
+    recv = latest;
+  }
+  return montarLastMessagesArquivo(latest, recv, jidAlvo, ts);
 }
 
 function lerArchivedFlag(ch) {
@@ -494,11 +582,14 @@ let appStateSyncRodando = false;
 let appStateSyncUltimo = 0;
 let appStateSyncOpenTimer = 0;
 
-async function sincronizarAppStateArquivo(motivo) {
+let appStateSnapshotUltimo = 0;
+
+async function sincronizarAppStateArquivo(motivo, opts) {
   const tag = motivo || "";
+  const forcarSnapshot = !!(opts && opts.forcarSnapshot);
   const agora = Date.now();
-  // Desktop→Zap precisa sync frequente; 90s era demais pra prova/uso no balcão.
-  if (appStateSyncRodando || agora - appStateSyncUltimo < 25 * 1000) {
+  // Desktop→Zap: sync curto — archive no Oficial às vezes só chega no resync.
+  if (appStateSyncRodando || (!forcarSnapshot && agora - appStateSyncUltimo < 12 * 1000)) {
     console.log("Sync estado Zap: pulado", tag);
     return;
   }
@@ -519,9 +610,31 @@ async function sincronizarAppStateArquivo(motivo) {
   appStateSyncRodando = true;
   appStateSyncUltimo = agora;
   try {
+    // Snapshot de regular_low: Oficial→Zap às vezes não manda patch incremental;
+    // zerando a versão a ponte lê o estado atual (arquivadas inclusive).
+    if (forcarSnapshot && sock.authState && sock.authState.keys && typeof sock.authState.keys.set === "function") {
+      try {
+        await sock.authState.keys.set({
+          "app-state-sync-version": {
+            regular_low: null,
+            regular: null,
+            regular_high: null,
+          },
+        });
+        appStateSnapshotUltimo = agora;
+        console.log("Sync estado Zap: snapshot forçado", tag);
+      } catch (e) {
+        console.error("sync snapshot reset:", e.message || e);
+      }
+    }
     console.log("Sync estado Zap (arquivo/mute):", tag);
     // false = updates de archive chegam sem “conditional” do histórico.
     await sock.resyncAppState(WA_APP_STATE_COLS, false);
+    try {
+      if (sock.ev && typeof sock.ev.flush === "function") sock.ev.flush();
+    } catch {
+      /* ignore */
+    }
     console.log("Sync estado Zap: ok", tag);
   } catch (e) {
     console.error("sync app state:", e.message || e);
@@ -1208,7 +1321,13 @@ async function ligar() {
     browser: Browsers.ubuntu("Chrome"),
     markOnlineOnConnect: false,
     syncFullHistory: false,
-    shouldSyncHistoryMessage: () => false,
+    // false em tudo = Baileys pula bootstrap de app-state; Oficial→Zap de arquivo some.
+    // Aceita sync leve (RECENT/APP_STATE) pra chave + patches de archive chegarem.
+    shouldSyncHistoryMessage: (msg) => {
+      const t = Number(msg && msg.syncType);
+      // 0 FULL, 1 RECENT, 2 ARCHIVE_V2, 3 ON_DEMAND, 5 APP_STATE — evita só push nome etc.
+      return t === 1 || t === 2 || t === 5 || t === 0;
+    },
     getMessage: async (key) => {
       const id = key && key.id;
       const hit = id && msgCache.get(id);
@@ -1251,8 +1370,13 @@ async function ligar() {
       }, 12000);
       if (!appStateSyncTimer) {
         appStateSyncTimer = setInterval(() => {
-          sincronizarAppStateArquivo("periodico").catch(() => {});
-        }, 45 * 1000);
+          const agora = Date.now();
+          // A cada ~90s: snapshot (Oficial→Zap). Entre eles: sync leve.
+          const querSnap = agora - appStateSnapshotUltimo > 90 * 1000;
+          sincronizarAppStateArquivo(querSnap ? "periodico-snapshot" : "periodico", {
+            forcarSnapshot: querSnap,
+          }).catch(() => {});
+        }, 20 * 1000);
       }
       setTimeout(() => {
         varrerStore();
@@ -1646,42 +1770,54 @@ async function executarPedido(p) {
       const jidPed = String(p.jid || "");
       const jidPhone = String(p.jid_phone || "");
       const jidLid = String(p.jid_lid || "");
-      // Preferir o remoteJid real da última msg (não reescrever key) — senão o servidor descarta o patch.
+      // Desktop costuma indexar o chat no @s.whatsapp.net; a ponte manda no @lid.
+      // Patch só no LID → Zap local “ok”, Oficial não arquiva. Aplicar nos dois.
       const candidatos = [];
-      for (const j of [jidLid, jidPed, jidPhone, pnDeLid(jidPed), lidDePhone(jidPhone || jidPed)]) {
+      for (const j of [
+        jidPhone,
+        pnDeLid(jidPed),
+        jidPed.endsWith("@s.whatsapp.net") ? jidPed : "",
+        jidLid,
+        jidPed.endsWith("@lid") ? jidPed : "",
+        lidDePhone(jidPhone || jidPed),
+      ]) {
         const s = String(j || "");
         if (s && !candidatos.includes(s)) candidatos.push(s);
       }
       if (!candidatos.length) throw new Error("Sem destino para arquivar");
-      const lastMessages = ultimaMsgParaArquivo(p, candidatos[0]);
-      if (!lastMessages.length) {
-        throw new Error("Sem última mensagem real (mande ou receba 1 msg neste chat e arquive de novo)");
-      }
-      const jidMsg = String((lastMessages[0].key && lastMessages[0].key.remoteJid) || candidatos[0]);
-      const ordem = [jidMsg, ...candidatos.filter((j) => j !== jidMsg)];
       let ok = false;
       let lastErr = null;
-      for (const jid of ordem) {
+      const idsUsados = [];
+      for (const jid of candidatos) {
         try {
-          // Mantém key.remoteJid original da msg; só tenta chatModify noutro jid se falhar.
-          const msgs =
-            jid === jidMsg
-              ? lastMessages
-              : lastMessages.map((m) => ({
-                  key: { ...(m.key || {}), remoteJid: jid },
-                  messageTimestamp: m.messageTimestamp,
-                }));
-          console.log(archive ? "arquivar chat" : "desarquivar chat", jid, "msg", msgs[0] && msgs[0].key && msgs[0].key.id);
+          const msgs = ultimaMsgParaArquivo(p, jid);
+          if (!msgs.length) {
+            console.warn("archive sem msg real para", jid);
+            continue;
+          }
+          console.log(
+            archive ? "arquivar chat" : "desarquivar chat",
+            jid,
+            "msgs",
+            msgs.map((m) => `${m.key && m.key.id}:${m.key && m.key.fromMe ? "me" : "in"}`).join(",")
+          );
           marcarArquivoLocal(jid, archive);
           await sock.chatModify({ archive, lastMessages: msgs }, jid);
           ok = true;
-          break;
+          idsUsados.push(jid);
+          // Evita rate-overlimit ao patchar telefone + LID.
+          await new Promise((r) => setTimeout(r, 600));
         } catch (e) {
           lastErr = e;
           console.error("chatModify archive falhou", jid, e.message || e);
         }
       }
       if (!ok && lastErr) throw lastErr;
+      if (!ok) throw new Error("Sem última mensagem real (mande ou receba 1 msg neste chat e arquive de novo)");
+      console.log("archive patches ok:", idsUsados.join(" | "));
+      // Empurra/puxa app-state pra Oficial enxergar o patch (não só o echo local).
+      appStateSyncUltimo = 0;
+      sincronizarAppStateArquivo(archive ? "pos-arquivar" : "pos-desarquivar").catch(() => {});
       await post("/api/atendimento-whatsapp/bridge/pedido-ok/", { pedido_id: pid });
       return;
     }
