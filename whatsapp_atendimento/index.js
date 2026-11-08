@@ -315,10 +315,43 @@ function ehMensagemAoVivo(m, type) {
   return false;
 }
 
+/** Última msg real por chat — archive no servidor exige key válida (fabricada não grava no Desktop). */
+const ultimaMsgPorChat = new Map();
+
+function registrarUltimaMsgChat(m) {
+  if (!m || !m.key || !m.key.id) return;
+  const raw = String(m.key.remoteJid || "");
+  if (!raw || ehStatusOuGrupo(raw)) return;
+  const ts = Number(m.messageTimestamp || 0) || Math.floor((tsMs(m) || Date.now()) / 1000);
+  const entry = {
+    key: {
+      remoteJid: raw,
+      fromMe: !!m.key.fromMe,
+      id: String(m.key.id),
+      participant: m.key.participant,
+    },
+    messageTimestamp: ts,
+  };
+  const keys = new Set();
+  keys.add(chaveArquivoJid(raw));
+  const phone = jidPhoneDeValor(raw) || pnDeLid(raw);
+  const lid = raw.endsWith("@lid") ? raw : lidDePhone(phone || raw);
+  if (phone) keys.add(chaveArquivoJid(phone));
+  if (lid) keys.add(chaveArquivoJid(lid));
+  for (const k of keys) {
+    if (k) ultimaMsgPorChat.set(k, entry);
+  }
+  if (ultimaMsgPorChat.size > 500) {
+    const first = ultimaMsgPorChat.keys().next().value;
+    ultimaMsgPorChat.delete(first);
+  }
+}
+
 function guardarMsgCache(m) {
   const id = m && m.key && m.key.id;
   if (!id) return;
   msgCache.set(id, m);
+  registrarUltimaMsgChat(m);
   if (msgCache.size > 400) {
     const first = msgCache.keys().next().value;
     msgCache.delete(first);
@@ -361,34 +394,37 @@ function ultimaMsgParaArquivo(p, jidFallback) {
   let ts = Number((p && p.last_ts) || 0);
   if (ts > 1e12) ts = Math.floor(ts / 1000);
   if (!ts) ts = Math.floor(Date.now() / 1000);
-  if (waId) {
-    const hit = msgCache.get(waId);
-    if (hit && hit.key && hit.key.id) {
-      return [
-        {
-          key: {
-            remoteJid: String(hit.key.remoteJid || jidFallback || ""),
-            fromMe: !!hit.key.fromMe,
-            id: String(hit.key.id),
-            participant: hit.key.participant,
-          },
-          messageTimestamp: Number(hit.messageTimestamp || ts) || ts,
-        },
-      ];
-    }
+  const jidAlvo = String(jidFallback || "");
+  const ajustaJid = (entry) => {
+    if (!entry || !entry.key) return null;
     return [
       {
         key: {
-          remoteJid: String(jidFallback || ""),
-          fromMe,
-          id: waId,
+          ...entry.key,
+          remoteJid: jidAlvo || entry.key.remoteJid,
         },
-        messageTimestamp: ts,
+        messageTimestamp: Number(entry.messageTimestamp || ts) || ts,
       },
     ];
+  };
+  if (waId) {
+    const hit = msgCache.get(waId);
+    if (hit && hit.key && hit.key.id) {
+      return ajustaJid({
+        key: {
+          remoteJid: String(hit.key.remoteJid || jidAlvo),
+          fromMe: !!hit.key.fromMe,
+          id: String(hit.key.id),
+          participant: hit.key.participant,
+        },
+        messageTimestamp: Number(hit.messageTimestamp || ts) || ts,
+      });
+    }
   }
-  const alvo = chaveArquivoJid(jidFallback);
-  if (!alvo) return [];
+  const alvo = chaveArquivoJid(jidAlvo);
+  if (alvo && ultimaMsgPorChat.has(alvo)) {
+    return ajustaJid(ultimaMsgPorChat.get(alvo));
+  }
   let melhor = null;
   for (const m of msgCache.values()) {
     const raw = String((m && m.key && m.key.remoteJid) || "");
@@ -397,18 +433,20 @@ function ultimaMsgParaArquivo(p, jidFallback) {
     const quando = tsMs(m) || 0;
     if (!melhor || quando >= (tsMs(melhor) || 0)) melhor = m;
   }
-  if (!melhor || !melhor.key || !melhor.key.id) return [];
-  return [
-    {
+  if (melhor && melhor.key && melhor.key.id) {
+    return ajustaJid({
       key: {
-        remoteJid: String(melhor.key.remoteJid || jidFallback || ""),
+        remoteJid: String(melhor.key.remoteJid || jidAlvo),
         fromMe: !!melhor.key.fromMe,
         id: String(melhor.key.id),
         participant: melhor.key.participant,
       },
       messageTimestamp: Number(melhor.messageTimestamp || Math.floor((tsMs(melhor) || Date.now()) / 1000)) || ts,
-    },
-  ];
+    });
+  }
+  // Sem msg real em memória: NÃO inventar key — servidor ignora o archive (Desktop não muda).
+  console.warn("archive sem msg real em cache", jidAlvo, waId || "(sem wa_id)");
+  return [];
 }
 
 function lerArchivedFlag(ch) {
@@ -1265,11 +1303,17 @@ async function ligar() {
   sock.ev.on("chats.upsert", (lista) => {
     for (const ch of lista || []) {
       guardarContato({ id: ch.id, jid: ch.jid || ch.id, name: ch.name, notify: ch.notify || ch.name });
+      avisarArquivoZap(ch);
     }
   });
   sock.ev.on("chats.update", (lista) => {
+    // Oficial/celular arquivou → chega aqui (não só no chats.set do boot).
     for (const ch of lista || []) {
       guardarContato({ id: ch.id, jid: ch.jid || ch.id, name: ch.name, notify: ch.notify || ch.name });
+      if (lerArchivedFlag(ch) !== null) {
+        console.log("chats.update arquivo:", ch.id || ch.jid, "archived=", lerArchivedFlag(ch));
+      }
+      avisarArquivoZap(ch);
     }
   });
   sock.ev.on("chats.set", (dados) => {
@@ -1300,6 +1344,7 @@ async function ligar() {
     for (const c of contacts || []) guardarContato(c);
     for (const ch of chats || []) {
       guardarContato({ id: ch.id, jid: ch.jid || ch.id, name: ch.name, notify: ch.notify || ch.name });
+      avisarArquivoZap(ch);
     }
     if (!messages.length) return;
     console.log("Hist sync msgs:", messages.length, "janela:", histJanelaAberta());
@@ -1600,6 +1645,7 @@ async function executarPedido(p) {
       const jidPed = String(p.jid || "");
       const jidPhone = String(p.jid_phone || "");
       const jidLid = String(p.jid_lid || "");
+      // Preferir o remoteJid real da última msg (não reescrever key) — senão o servidor descarta o patch.
       const candidatos = [];
       for (const j of [jidLid, jidPed, jidPhone, pnDeLid(jidPed), lidDePhone(jidPhone || jidPed)]) {
         const s = String(j || "");
@@ -1607,16 +1653,24 @@ async function executarPedido(p) {
       }
       if (!candidatos.length) throw new Error("Sem destino para arquivar");
       const lastMessages = ultimaMsgParaArquivo(p, candidatos[0]);
-      if (!lastMessages.length) throw new Error("Sem última mensagem para arquivar no Zap");
+      if (!lastMessages.length) {
+        throw new Error("Sem última mensagem real (mande ou receba 1 msg neste chat e arquive de novo)");
+      }
+      const jidMsg = String((lastMessages[0].key && lastMessages[0].key.remoteJid) || candidatos[0]);
+      const ordem = [jidMsg, ...candidatos.filter((j) => j !== jidMsg)];
       let ok = false;
       let lastErr = null;
-      for (const jid of candidatos) {
+      for (const jid of ordem) {
         try {
-          const msgs = lastMessages.map((m) => ({
-            key: { ...(m.key || {}), remoteJid: jid },
-            messageTimestamp: m.messageTimestamp,
-          }));
-          console.log(archive ? "arquivar chat" : "desarquivar chat", jid);
+          // Mantém key.remoteJid original da msg; só tenta chatModify noutro jid se falhar.
+          const msgs =
+            jid === jidMsg
+              ? lastMessages
+              : lastMessages.map((m) => ({
+                  key: { ...(m.key || {}), remoteJid: jid },
+                  messageTimestamp: m.messageTimestamp,
+                }));
+          console.log(archive ? "arquivar chat" : "desarquivar chat", jid, "msg", msgs[0] && msgs[0].key && msgs[0].key.id);
           marcarArquivoLocal(jid, archive);
           await sock.chatModify({ archive, lastMessages: msgs }, jid);
           ok = true;
@@ -1786,6 +1840,7 @@ async function enviarComRetry(jidOrList, content) {
     for (let i = 0; i < 2; i++) {
       try {
         const sent = await sock.sendMessage(jid, content);
+        if (sent) guardarMsgCache(sent);
         if (destinos.length > 1) console.log("envio ok via", jid);
         return sent;
       } catch (e) {
@@ -1949,6 +2004,7 @@ async function puxarSaida() {
         }
         const dest = destinosEnvio(item);
         const sent = await enviarComRetry(dest, content);
+        if (sent) guardarMsgCache(sent);
         const waId = sent && sent.key && sent.key.id;
         console.log("Enviado ok:", item.id, "->", dest.join("|"), waId || "");
         await post("/api/atendimento-whatsapp/bridge/saida-ok/", {
