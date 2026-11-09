@@ -2017,7 +2017,7 @@
         <div class="px-4 py-3 border-b border-orange-200 bg-orange-50/90 flex items-start justify-between gap-3 shrink-0">
           <div class="min-w-0">
             <h3 id="modal-unificar-forn-titulo" class="text-base font-black uppercase text-slate-900">Unificar fornecedores</h3>
-            <p class="text-[11px] font-semibold text-slate-700 mt-1 leading-snug">Escolha <strong>um principal</strong> e marque <strong>todos os duplicados</strong>. Só afeta buscas e notas <strong>novas</strong> — <strong>não mexe</strong> em contas a pagar já lançadas.</p>
+            <p class="text-[11px] font-semibold text-slate-700 mt-1 leading-snug">Escolha <strong>um principal</strong> e marque <strong>todos os duplicados</strong> (ERP, cadastro Agro ou título com nome diferente). Só afeta buscas e notas <strong>novas</strong> — <strong>não mexe</strong> em contas a pagar já lançadas.</p>
           </div>
           <button type="button" id="modal-unificar-forn-fechar" class="shrink-0 min-h-[44px] px-4 rounded-xl border-2 border-slate-300 text-xs font-black uppercase bg-white">Fechar</button>
         </div>
@@ -11831,16 +11831,39 @@
     if (err) { err.classList.add('hidden'); err.textContent = ''; }
   }
 
+  function entradaNfeFornIdUnificavel(id) {
+    const s = String(id || '').trim();
+    if (/^[a-fA-F0-9]{24}$/.test(s)) return true;
+    if (/^local:\d+$/i.test(s)) return true;
+    if (/^n:[a-fA-F0-9]{16,28}$/i.test(s)) return true;
+    return false;
+  }
+
+  function entradaNfeFornOrigemUnifLabel(it) {
+    const og = String(it && it.origem || '').toLowerCase();
+    if (og === 'agro') return '<span class="text-[9px] font-black uppercase text-orange-800">cadastro Agro</span>';
+    if (og === 'mongo') return '<span class="text-[9px] font-black uppercase text-slate-500">ERP</span>';
+    if (og === 'titulo_pg' || og === 'titulo') return '<span class="text-[9px] font-black uppercase text-slate-500">título CP</span>';
+    if (og === 'catalogo_pg') return '<span class="text-[9px] font-black uppercase text-slate-500">catálogo</span>';
+    if (it && it.id_sintetico) return '<span class="text-[9px] font-black uppercase text-slate-500">sem Id ERP</span>';
+    return '';
+  }
+
   function entradaNfeRenderModalUnificarFornLista() {
     if (!modalUnifFornLista) return;
     modalUnifFornLista.innerHTML = '';
-    const mongoItens = modalUnifFornItens.filter((it) => /^[a-fA-F0-9]{24}$/.test(String(it.id || '')));
-    if (!mongoItens.length) {
-      modalUnifFornLista.innerHTML = '<p class="p-3 text-xs font-semibold text-slate-600">Busque e aguarde a lista. Só cadastros com Id ERP entram na unificação.</p>';
+    const unifItens = modalUnifFornItens.filter((it) => entradaNfeFornIdUnificavel(it.id));
+    if (!unifItens.length) {
+      modalUnifFornLista.innerHTML = '<p class="p-3 text-xs font-semibold text-slate-600">Busque por nome ou pedaço do nome (ex.: RBS). Entram ERP, cadastro Agro e títulos sem Id.</p>';
       return;
     }
-    mongoItens.forEach((it) => {
+    if (!modalUnifFornCanonId || !unifItens.some((it) => String(it.id) === modalUnifFornCanonId)) {
+      const prefMongo = unifItens.find((it) => /^[a-fA-F0-9]{24}$/.test(String(it.id || '')));
+      modalUnifFornCanonId = String((prefMongo || unifItens[0]).id || '');
+    }
+    unifItens.forEach((it) => {
       const id = String(it.id || '');
+      const ogLab = entradaNfeFornOrigemUnifLabel(it);
       const row = document.createElement('div');
       row.className = 'flex flex-wrap items-start gap-2 px-3 py-2.5 hover:bg-orange-50/60';
       row.innerHTML = `
@@ -11852,14 +11875,17 @@
           <input type="checkbox" class="unif-forn-dup accent-orange-600" value="${entradaNfeFornEsc(id)}" data-forn-id="${entradaNfeFornEsc(id)}">
           <span class="text-[9px] font-black uppercase text-orange-900">Duplicado</span>
         </label>
-        <div class="min-w-0 flex-1">${entradaNfeFornItemHtml(it)}</div>`;
+        <div class="min-w-0 flex-1">${entradaNfeFornItemHtml(it)}${ogLab && it.origem !== 'agro' ? `<div class="mt-0.5">${ogLab}</div>` : ''}</div>`;
       modalUnifFornLista.appendChild(row);
     });
     modalUnifFornLista.querySelectorAll('input[name="unif-forn-canon"]').forEach((r) => {
       r.addEventListener('change', () => {
         if (r.checked) {
           modalUnifFornCanonId = String(r.value || '');
-          const dup = modalUnifFornLista.querySelector(`.unif-forn-dup[data-forn-id="${modalUnifFornCanonId}"]`);
+          const esc = (typeof CSS !== 'undefined' && CSS.escape)
+            ? CSS.escape(modalUnifFornCanonId)
+            : String(modalUnifFornCanonId).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+          const dup = modalUnifFornLista.querySelector(`.unif-forn-dup[data-forn-id="${esc}"]`);
           if (dup) dup.checked = false;
         }
       });
@@ -11879,12 +11905,94 @@
     const termo = String(q || '').trim();
     if (termo) u.searchParams.set('q', termo);
     else u.searchParams.set('inicial', '1');
-    u.searchParams.set('limit', '60');
+    u.searchParams.set('limit', '80');
+    u.searchParams.set('para_unificar', '1');
     const r = await fetch(u.toString(), { credentials: 'same-origin' });
     const j = await r.json();
     modalUnifFornItens = Array.isArray(j.itens) ? j.itens : [];
     entradaNfeRenderModalUnificarFornLista();
   }
+
+  async function entradaNfeConfirmarUnificarForn() {
+    const err = document.getElementById('modal-unificar-forn-erro');
+    const canonEl = modalUnifFornLista?.querySelector('input[name="unif-forn-canon"]:checked');
+    const canonId = canonEl ? String(canonEl.value || '').trim() : '';
+    const dups = [];
+    modalUnifFornLista?.querySelectorAll('.unif-forn-dup:checked').forEach((cb) => {
+      const id = String(cb.value || '').trim();
+      if (id && id !== canonId) dups.push(id);
+    });
+    if (!canonId) {
+      if (err) { err.textContent = 'Marque qual cadastro é o principal.'; err.classList.remove('hidden'); }
+      return;
+    }
+    if (!dups.length) {
+      if (err) { err.textContent = 'Marque ao menos um duplicado (diferente do principal).'; err.classList.remove('hidden'); }
+      return;
+    }
+    const pick = modalUnifFornItens.find((it) => String(it.id) === canonId);
+    const tok = getCookie('csrftoken');
+    if (!tok) {
+      showMsg('Sessão expirada — atualize a página.', false);
+      return;
+    }
+    const r = await fetch(URL_FORN_UNIF, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': tok },
+      body: JSON.stringify({
+        fornecedor_canonico_id: canonId,
+        canonico_nome: pick ? pick.nome : '',
+        duplicados_ids: dups,
+      }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) {
+      const msg = j.erro || 'Não foi possível unificar.';
+      if (err) { err.textContent = msg; err.classList.remove('hidden'); }
+      else showMsg(msg, false);
+      return;
+    }
+    fornCache.clear();
+    entradaNfeFecharModalUnificarForn();
+    showMsg((j.aviso || 'Fornecedores unificados.') + ' Busca atualizada.', true);
+    void carregarFornecedores(fornInp?.value?.trim() || '', false);
+  }
+
+  document.getElementById('nfe-btn-unificar-forn')?.addEventListener('click', () => {
+    modalUnifForn?.classList.remove('hidden');
+    modalUnifFornCanonId = String(fornHid?.value || '').trim();
+    const qInp = document.getElementById('modal-unificar-forn-q');
+    if (qInp) qInp.value = fornInp?.value?.trim() || '';
+    void entradaNfeCarregarModalUnificarForn(qInp?.value || '');
+  });
+  document.getElementById('modal-unificar-forn-fechar')?.addEventListener('click', entradaNfeFecharModalUnificarForn);
+  document.getElementById('modal-unificar-forn-cancelar')?.addEventListener('click', entradaNfeFecharModalUnificarForn);
+  document.getElementById('modal-unificar-forn-confirmar')?.addEventListener('click', () => { void entradaNfeConfirmarUnificarForn(); });
+  let modalUnifFornTimer = null;
+  document.getElementById('modal-unificar-forn-q')?.addEventListener('input', (e) => {
+    clearTimeout(modalUnifFornTimer);
+    const q = e.target && e.target.value;
+    modalUnifFornTimer = setTimeout(() => { void entradaNfeCarregarModalUnificarForn(q); }, 380);
+  });
+
+  const ENTRADA_NFE_LS_EMB_COLS = 'agro_nfe_emb_cols_abertas_v1';
+  function entradaNfeGradeEmbColsAbertas() {
+    const tbl = document.querySelector('#entrada-nfe-grade-scroll .nfe-grade-itens');
+    return !!(tbl && !tbl.classList.contains('nfe-grade-itens--emb-hid'));
+  }
+  function entradaNfeGradeEmbColsAplicar(aberto, opts) {
+    const o = opts && typeof opts === 'object' ? opts : {};
+    const tbl = document.querySelector('#entrada-nfe-grade-scroll .nfe-grade-itens');
+    const btn = document.getElementById('nfe-btn-toggle-emb-cols');
+    if (tbl) tbl.classList.toggle('nfe-grade-itens--emb-hid', !aberto);
+    if (btn) {
+      btn.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+      const lab = btn.querySelector('.nfe-emb-label');
+      if (lab) lab.textContent = aberto ? 'Recolher emb.' : 'Embalagem';
+      btn.title = aberto
+        ? 'Esconde Un/emb, Qtd est. e R$ pacote (mais espaço na Descrição).'
+        : 'Mostra Un/emb, Qtd est. e R$ pacote.';
 
   async function entradaNfeConfirmarUnificarForn() {
     const err = document.getElementById('modal-unificar-forn-erro');

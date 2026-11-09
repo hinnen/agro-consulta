@@ -18164,77 +18164,145 @@ def api_entrada_nota_fornecedores(request):
 
     Mesmo nome em mais de uma origem vira **uma** linha (mantém a primeira: cadastro Mongo,
     senão título, senão Agro local).
+
+    ``para_unificar=1``: busca mais larga (tokens) + ids sintéticos p/ unificar cadastro Agro
+    e títulos sem Id ERP no modal.
     """
+    from django.db.models import Q
+
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_financeiro_usa_postgres
     from produtos.nfe_entrada_util import fornecedores_entrada_nfe_pg
 
     q = (request.GET.get("q") or "").strip()
     inicial = request.GET.get("inicial") in ("1", "true", "yes")
+    para_unificar = request.GET.get("para_unificar") in ("1", "true", "yes")
     try:
         lim = min(int(request.GET.get("limit") or 50), 100)
     except ValueError:
         lim = 50
+    if para_unificar:
+        lim = min(max(lim, 60), 100)
     use_pg = agro_financeiro_usa_postgres() or agro_catalogo_usa_postgres()
     client, db = _entrada_nfe_conexao()
     mongo_rows: list[dict[str, str]] = []
     pg_rows: list[dict[str, str]] = []
+    busca_qs = [q] if q else []
+    if para_unificar and q:
+        try:
+            from produtos.fornecedor_entrada_nfe_util import tokens_busca_unificar_fornecedor
+
+            for tok in tokens_busca_unificar_fornecedor(q):
+                if tok not in busca_qs and tok.lower() != q.lower():
+                    busca_qs.append(tok)
+        except Exception:
+            pass
     if use_pg:
-        pg_rows = fornecedores_entrada_nfe_pg(q or None, inicial=bool(inicial and not q), limit=lim)
+        seen_pg: set[str] = set()
+        for qq in busca_qs or [None]:
+            chunk = fornecedores_entrada_nfe_pg(
+                qq if qq else None,
+                inicial=bool(inicial and not q and not qq),
+                limit=lim,
+            )
+            for row in chunk:
+                key = f"{row.get('id')}|{row.get('nome')}"
+                if key in seen_pg:
+                    continue
+                seen_pg.add(key)
+                pg_rows.append(row)
+            if not q and inicial:
+                break
+        pg_rows = pg_rows[:lim]
     if db is not None:
         col = getattr(client, "col_c", None) or "DtoPessoa"
-        mongo_rows = buscar_fornecedores_entrada_nfe(
-            db,
-            col,
-            q or None,
-            inicial=bool(inicial and not q),
-            limit=lim,
-        )
+        seen_mongo: set[str] = set()
+        for qq in busca_qs or [None]:
+            chunk = buscar_fornecedores_entrada_nfe(
+                db,
+                col,
+                qq if qq else None,
+                inicial=bool(inicial and not q and not qq),
+                limit=lim,
+            )
+            for row in chunk:
+                pid = str(row.get("id") or "")
+                if pid and pid in seen_mongo:
+                    continue
+                if pid:
+                    seen_mongo.add(pid)
+                mongo_rows.append(row)
+            if not q and inicial:
+                break
+        mongo_rows = mongo_rows[:lim]
     elif not pg_rows:
         return JsonResponse({"itens": [], "erro": "Fornecedores indisponíveis"}, status=503)
     extras: list[dict[str, str]] = []
-    if q:
+    if q or (para_unificar and busca_qs):
+        termos_extra = busca_qs if busca_qs else ([q] if q else [])
         if use_pg:
             from produtos.lancamentos_financeiro_pg_util import lancamentos_sugestoes_campo_pg
 
-            for s in lancamentos_sugestoes_campo_pg(
-                "cliente", q=q, limit=25, escopo="pagar", ordenar="nome"
-            ):
-                nm = (s.get("nome") or "").strip()
-                if not nm:
-                    continue
-                extras.append(
-                    {
-                        "id": str(s.get("id") or "").strip(),
-                        "nome": nm[:300],
-                        "documento": "",
-                        "origem": "titulo_pg",
-                    }
-                )
+            seen_ex: set[str] = set()
+            for qq in termos_extra:
+                for s in lancamentos_sugestoes_campo_pg(
+                    "cliente", q=qq, limit=25, escopo="pagar", ordenar="nome"
+                ):
+                    nm = (s.get("nome") or "").strip()
+                    if not nm:
+                        continue
+                    key = f"{s.get('id')}|{nm.lower()}"
+                    if key in seen_ex:
+                        continue
+                    seen_ex.add(key)
+                    extras.append(
+                        {
+                            "id": str(s.get("id") or "").strip(),
+                            "nome": nm[:300],
+                            "documento": "",
+                            "origem": "titulo_pg",
+                        }
+                    )
         elif db is not None:
-            for s in lancamentos_sugestoes_campo(db, "cliente", q=q, limit=25):
-                nm = (s.get("nome") or "").strip()
-                if not nm:
-                    continue
-                extras.append(
-                    {
-                        "id": str(s.get("id") or "").strip(),
-                        "nome": nm[:300],
-                        "documento": "",
-                        "origem": "titulo",
-                    }
-                )
+            seen_ex = set()
+            for qq in termos_extra:
+                for s in lancamentos_sugestoes_campo(db, "cliente", q=qq, limit=25):
+                    nm = (s.get("nome") or "").strip()
+                    if not nm:
+                        continue
+                    key = f"{s.get('id')}|{nm.lower()}"
+                    if key in seen_ex:
+                        continue
+                    seen_ex.add(key)
+                    extras.append(
+                        {
+                            "id": str(s.get("id") or "").strip(),
+                            "nome": nm[:300],
+                            "documento": "",
+                            "origem": "titulo",
+                        }
+                    )
     agro_rows: list[dict[str, str]] = []
-    if q:
+    if q or (para_unificar and busca_qs):
         try:
-            for c in ClienteAgro.objects.filter(ativo=True, nome__icontains=q).order_by("nome")[:20]:
-                agro_rows.append(
-                    {
-                        "id": f"local:{c.pk}",
-                        "nome": (c.nome or "")[:300],
-                        "documento": (c.cpf or "").strip()[:20],
-                        "origem": "agro",
-                    }
-                )
+            agro_q = Q()
+            termos_agro = busca_qs if (para_unificar and busca_qs) else ([q] if q else [])
+            for qq in termos_agro:
+                if not qq:
+                    continue
+                agro_q |= Q(nome__icontains=qq)
+                dig = "".join(ch for ch in qq if ch.isdigit())
+                if len(dig) >= 8:
+                    agro_q |= Q(cpf__icontains=dig)
+            if agro_q:
+                for c in ClienteAgro.objects.filter(ativo=True).filter(agro_q).order_by("nome")[:40]:
+                    agro_rows.append(
+                        {
+                            "id": f"local:{c.pk}",
+                            "nome": (c.nome or "")[:300],
+                            "documento": (c.cpf or "").strip()[:20],
+                            "origem": "agro",
+                        }
+                    )
         except Exception:
             pass
     base_rows = pg_rows if pg_rows else mongo_rows
@@ -18242,15 +18310,26 @@ def api_entrada_nota_fornecedores(request):
         base_rows = pg_rows + [r for r in mongo_rows if r not in pg_rows]
     merged = _entrada_nota_mesclar_itens_fornecedor(base_rows, extras, agro_rows, lim=lim)
     try:
-        from produtos.fornecedor_entrada_nfe_util import filtrar_itens_fornecedor_entrada_nfe
+        from produtos.fornecedor_entrada_nfe_util import (
+            estabilizar_ids_itens_fornecedor_entrada_nfe,
+            filtrar_itens_fornecedor_entrada_nfe,
+        )
 
         merged = filtrar_itens_fornecedor_entrada_nfe(merged)
+        if para_unificar:
+            merged = estabilizar_ids_itens_fornecedor_entrada_nfe(merged)
     except Exception:
         pass
     return JsonResponse(
-        {"itens": merged, "fonte": "postgres" if pg_rows else "mongo"}
+        {
+            "itens": merged,
+            "fonte": "postgres" if pg_rows else "mongo",
+            "para_unificar": bool(para_unificar),
+        }
     )
 
+
+@login_required(login_url="/entrar/")
 
 @login_required(login_url="/entrar/")
 @require_POST

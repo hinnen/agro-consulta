@@ -1138,7 +1138,8 @@ class PlanoContaAliasAgro(models.Model):
 
 class FornecedorEntradaNfeAliasAgro(models.Model):
     """
-    Cadastro duplicado no Mongo (DtoPessoa) → id canônico para busca na Entrada NF.
+    Cadastro duplicado → id canônico para busca na Entrada NF.
+    Aceita Id Mongo (24 hex), ``local:<pk>`` (ClienteAgro) ou ``n:<hash>`` (nome sem Id ERP).
     Não reescreve lançamentos financeiros já existentes.
     """
 
