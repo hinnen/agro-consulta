@@ -1531,16 +1531,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 NF-FORN-UNIF-AGRO — fix modal unificar (RBS) · teste · 09/11
+### 🟢 PREP ARMADO — **09/11** · **NF-FORN-UNIF-AGRO** · **v27.26.54** · aguarda frase+senha
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Modal «Unificar fornecedores» só listava Id Mongo — sumiam **cadastro Agro** (`local:`) e títulos sem Id (ex. `47883101000111 — Sn - Rbs`). Agora lista ERP + Agro + chave por nome; busca por token (`Sn - Rbs` → `rbs`) |
-| **Onde** | `fornecedor_entrada_nfe_util.py` · `api_entrada_nota_fornecedores?para_unificar=1` · `entrada_nota.html` |
-| **Prova** | `verify_fornecedor_entrada_nfe_alias_path.py` · `verify_nf_forn_unif_ajuste_path.py` |
-| **Smoke** | `/entrada-nota/` → Unificar → buscar **Rbs** / **Sn - Rbs** → ver os 3 da RBS → marcar principal + duplicados |
+| **Status** | 🟢 **pronto para envio à produção** (Renan pediu sem retestar) |
+| **PREP** | `deploy/prep-checklist-0911-nf-forn-unif-agro` @ **`2650ca85`** |
+| **Base loja** | `producao` @ **`af7af8cc`** · **v27.26.53** |
 | **Migrate** | **NÃO** (reusa `0149`) |
-| **Branch** | `cursor/fix-unificar-fornecedores-rbs-6ff3` |
+| **Cutover** | `./scripts/cutover_loja_checklist_0911_nf_forn_unif_agro.sh --exec` |
+| **Checkpoint** | `./scripts/prep_checkpoint_checklist_0911_nf_forn_unif_agro.sh` · **PREP_CHECKPOINT_OK** |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_0911_nf_forn_unif_agro.sh` |
+| **Revert** | `git push origin rollback/pre-v272654-0911-nf-forn-unif-agro:producao` |
+| **O quê** | Modal unificar lista ERP + Agro + título sem Id (caso RBS); CP antigos intactos |
+| **Fix branch** | `cursor/fix-unificar-fornecedores-rbs-6ff3` · PR #490 |
 
 ### 🟡 PDV-ENTREGA-CAIXA-FECHADO — enviado · aguardando o Render
 
