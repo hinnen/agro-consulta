@@ -29,6 +29,8 @@ def main() -> int:
         "entradaNfeLinhaValorLinhaRateio",
         "manual_ajuste_custo_tipo",
         "api_entrada_nota_fornecedores_unificar",
+        "para_unificar",
+        "entradaNfeFornIdUnificavel",
     ]
     for n in needles:
         if n not in html:

@@ -1531,6 +1531,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟡 NF-FORN-UNIF-AGRO — fix modal unificar (RBS) · teste · 09/11
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Modal «Unificar fornecedores» só listava Id Mongo — sumiam **cadastro Agro** (`local:`) e títulos sem Id (ex. `47883101000111 — Sn - Rbs`). Agora lista ERP + Agro + chave por nome; busca por token (`Sn - Rbs` → `rbs`) |
+| **Onde** | `fornecedor_entrada_nfe_util.py` · `api_entrada_nota_fornecedores?para_unificar=1` · `entrada_nota.html` |
+| **Prova** | `verify_fornecedor_entrada_nfe_alias_path.py` · `verify_nf_forn_unif_ajuste_path.py` |
+| **Smoke** | `/entrada-nota/` → Unificar → buscar **Rbs** / **Sn - Rbs** → ver os 3 da RBS → marcar principal + duplicados |
+| **Migrate** | **NÃO** (reusa `0149`) |
+| **Branch** | `cursor/fix-unificar-fornecedores-rbs-6ff3` |
+
 ### 🟡 PDV-ENTREGA-CAIXA-FECHADO — enviado · aguardando o Render
 
 | Campo | Valor |
