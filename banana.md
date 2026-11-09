@@ -1292,6 +1292,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
+### ✅ CHECKLIST ÚNICO — **09/11** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NF-FORN-UNIF-AGRO** | 🟢 Pronto | **NÃO** (reusa `0149`) | path + alias + HTTP unif · **VERIFY_OK** |
+
+### 📦 PACOTE PRONTO — **NF-FORN-UNIF-AGRO** · **v27.26.54** · 09/11
+
+| Campo | Valor |
+| ----- | ----- |
+| **PREP** | `deploy/prep-checklist-0911-nf-forn-unif-agro` @ **`2650ca85`** |
+| **Base loja** | `producao` @ **`af7af8cc`** · **v27.26.53** |
+| **Entra** | Modal unificar lista ERP + Agro + título sem Id (caso RBS). CP antigos intactos |
+| **Cutover** | `./scripts/cutover_loja_checklist_0911_nf_forn_unif_agro.sh --exec` |
+| **Pós-deploy** | `./scripts/post_deploy_checklist_0911_nf_forn_unif_agro.sh` |
+| **Revert** | `git push origin rollback/pre-v272654-0911-nf-forn-unif-agro:producao` |
+| **Prova** | cutover OK · RBS 1→3 · POST unificar 200 · sem touch CP |
+
 ### 🟡 CHECKLIST ÚNICO — **04/11d** · **enviado** · **RH-FAIXA-SALARIAL**
 
 | # | Pacote | Status | Migrate | Prova |
@@ -1531,7 +1549,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PREP ARMADO — **09/11** · **NF-FORN-UNIF-AGRO** · **v27.26.54** · aguarda frase+senha
+### 🟢 PACOTE PRONTO / CHECKLIST — **09/11** · **NF-FORN-UNIF-AGRO** · **v27.26.54** · pronto para envio
 
 | Campo | Valor |
 | ----- | ----- |
