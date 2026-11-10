@@ -442,6 +442,21 @@ def mp_point_bloqueio_info(request) -> dict | None:
     valor = row.valor_cobrado
     st = str(row.status or "")
     paid = st == PdvMercadoPagoPointOrder.Status.PAID
+    # PENDING local mas MP já cobrou → promove a PAID e oferece «Finalizar venda do cartão»
+    # (buraco Vila 10/11: confirm-tranche 409 cedo + forçar liberar abandonava o pago).
+    if not paid and st == PdvMercadoPagoPointOrder.Status.PENDING:
+        try:
+            conta = _conta_do_pedido_local(request, row)
+            if _mp_point_configurado(conta):
+                token = _token_da_conta(conta)
+                ok_get, _st_g, body_g = mp_point_get_order(
+                    access_token=token, order_id=str(row.mp_order_id or "")
+                )
+                if ok_get and isinstance(body_g, dict) and _mp_point_promover_pago_local(row, body_g):
+                    paid = True
+                    st = PdvMercadoPagoPointOrder.Status.PAID
+        except Exception:
+            logger.warning("mp point bloqueio: falha ao reconsultar MP", exc_info=True)
     if paid:
         mensagem = (
             f"Há pagamento na maquininha Mercado Pago já confirmado nesta sessão (R$ {valor}). "
@@ -811,6 +826,7 @@ def api_pdv_mp_point_confirmar_tranche(request):
                 "ok": False,
                 "erro": "Pagamento ainda não confirmado no terminal.",
                 "mp_status": body.get("status"),
+                "retryable": True,
             },
             status=409,
         )
@@ -1026,10 +1042,21 @@ def _api_pdv_mp_point_finalizar_impl(request):
             return JsonResponse({"ok": True, "venda_id": row.venda_id, "ja_finalizado": True})
 
         if row.status == PdvMercadoPagoPointOrder.Status.ABANDONED:
-            return JsonResponse(
-                {"ok": False, "erro": "Pedido Point cancelado na tela do PDV."},
-                status=409,
-            )
+            # Recuperação: PIN antigo abandonava pedido já pago. Se o MP ainda confirma
+            # pagamento e não há venda, reabre como PAID e segue a finalização.
+            if _mp_point_row_foi_forcado_liberar(row) and mp_point_order_indica_pago(body) and not row.venda_id:
+                erp_rec = dict(row.erp_payload) if isinstance(row.erp_payload, dict) else {}
+                erp_rec.pop(MP_POINT_FORCADO_LIBERAR_KEY, None)
+                erp_rec.pop("mp_point_forcado_por", None)
+                row.erp_payload = erp_rec
+                row.status = PdvMercadoPagoPointOrder.Status.PAID
+                row.mp_last_status = str(body.get("status") or row.mp_last_status or "processed")[:48]
+                row.save(update_fields=["erp_payload", "status", "mp_last_status", "atualizado_em"])
+            else:
+                return JsonResponse(
+                    {"ok": False, "erro": "Pedido Point cancelado na tela do PDV."},
+                    status=409,
+                )
 
         modo_tranche = row.status == PdvMercadoPagoPointOrder.Status.PAID
 
@@ -1454,8 +1481,12 @@ def api_pdv_mp_point_abandon(request):
 @require_POST
 def api_pdv_mp_point_forcar_liberar(request):
     """
-    Emergência: PIN gerencial (Geraldo / Geraldinho / Renan Hinnen) libera a sessão
-    para fechar a venda com outra forma, mesmo com Point PENDING/PAID.
+    Emergência: PIN gerencial (Geraldo / Geraldinho / Renan Hinnen).
+
+    - PENDING sem pagamento no MP → cancela terminal e abandona (libera outra forma).
+    - PAID ou MP já cobrou → **não** abandona: promove a PAID e devolve
+      ``action=finalize_required`` para o PDV gravar a venda/fiado do ``erp_payload``.
+      (Antes abandonava o pago — incidente Vila 10/11 R$75 Valdinei.)
     """
     from datetime import timedelta
 
@@ -1492,56 +1523,84 @@ def api_pdv_mp_point_forcar_liberar(request):
     ).order_by("-criado_em")
     rows = list(qs[:20])
     order_ids = [r.mp_order_id for r in rows]
-    tinha_pago = any(r.status == PdvMercadoPagoPointOrder.Status.PAID for r in rows)
+    orders_pagos: list[str] = []
+    orders_abandonados: list[str] = []
 
-    # Tenta cancelar PENDING no terminal. PAID ou MP já cobrado: só encerra no Agro
-    # (não promover a PAID — isso fazia o aviso voltar em todas as vendas seguintes).
     for row in rows:
-        if row.status == PdvMercadoPagoPointOrder.Status.PENDING:
-            conta = _conta_do_pedido_local(request, row, raw if isinstance(raw, dict) else None)
-            if _mp_point_configurado(conta):
-                token = _token_da_conta(conta)
-                ok_get, _st, body = mp_point_get_order(
+        if row.status == PdvMercadoPagoPointOrder.Status.PAID:
+            orders_pagos.append(str(row.mp_order_id or ""))
+            continue
+
+        if row.status != PdvMercadoPagoPointOrder.Status.PENDING:
+            continue
+
+        conta = _conta_do_pedido_local(request, row, raw if isinstance(raw, dict) else None)
+        mp_pago = False
+        if _mp_point_configurado(conta):
+            token = _token_da_conta(conta)
+            ok_get, _st, body = mp_point_get_order(
+                access_token=token, order_id=row.mp_order_id
+            )
+            if ok_get and isinstance(body, dict) and mp_point_order_indica_pago(body):
+                mp_pago = True
+                _mp_point_promover_pago_local(row, body)
+            else:
+                ok_cancel, _st_c, _body_c = mp_point_cancel_order(
                     access_token=token, order_id=row.mp_order_id
                 )
-                if ok_get and isinstance(body, dict) and mp_point_order_indica_pago(body):
-                    tinha_pago = True
-                else:
-                    ok_cancel, _st_c, _body_c = mp_point_cancel_order(
-                        access_token=token, order_id=row.mp_order_id
+                if not ok_cancel:
+                    logger.warning(
+                        "MP Point forçar liberar: cancel MP falhou order=%s por=%s",
+                        row.mp_order_id,
+                        rotulo,
                     )
-                    if not ok_cancel:
-                        logger.warning(
-                            "MP Point forçar liberar: cancel MP falhou order=%s por=%s",
-                            row.mp_order_id,
-                            rotulo,
-                        )
-        _mp_point_marcar_forcado_liberar(row, rotulo)
 
-    gravar_mp_point_forcar_bypass(request, por=rotulo, order_ids=order_ids)
+        if mp_pago or row.status == PdvMercadoPagoPointOrder.Status.PAID:
+            orders_pagos.append(str(row.mp_order_id or ""))
+            continue
+
+        _mp_point_marcar_forcado_liberar(row, rotulo)
+        orders_abandonados.append(str(row.mp_order_id or ""))
+
+    tinha_pago = bool(orders_pagos)
     logger.warning(
-        "MP Point forçar liberar: por=%s orders=%s tinha_pago=%s",
+        "MP Point forçar liberar: por=%s pagos=%s abandonados=%s tinha_pago=%s",
         rotulo,
-        order_ids,
+        orders_pagos,
+        orders_abandonados,
         tinha_pago,
     )
 
-    aviso_pago = ""
     if tinha_pago:
-        aviso_pago = (
-            " Atenção: havia pagamento já confirmado no Point — confira no extrato MP "
-            "se não vai duplicar cobrança."
+        # Sem bypass: a próxima ação correta é finalizar o órfão pago.
+        oid_pri = next((x for x in orders_pagos if x), "")
+        return JsonResponse(
+            {
+                "ok": True,
+                "por": rotulo,
+                "action": "finalize_required",
+                "order_id": oid_pri,
+                "order_ids": [x for x in orders_pagos if x],
+                "mensagem": (
+                    f"PIN {rotulo}: a maquininha já cobrou. "
+                    "Vamos registrar no sistema a venda/fiado do cartão — "
+                    "não use outra forma (evita divergência de caixa)."
+                ),
+                "tinha_pago_point": True,
+                "pin_gerencial_nomes": PIN_GERENCIAL_NOMES_UI,
+                "pin_gerencial_hint": PIN_GERENCIAL_HINT,
+            }
         )
 
+    gravar_mp_point_forcar_bypass(request, por=rotulo, order_ids=order_ids)
     return JsonResponse(
         {
             "ok": True,
             "por": rotulo,
-            "mensagem": (
-                f"Liberado por {rotulo}. Pode fechar a venda com outra forma agora."
-                + aviso_pago
-            ),
-            "tinha_pago_point": tinha_pago,
+            "action": "liberado",
+            "mensagem": f"Liberado por {rotulo}. Pode fechar a venda com outra forma agora.",
+            "tinha_pago_point": False,
+            "order_ids_abandonados": [x for x in orders_abandonados if x],
             "pin_gerencial_nomes": PIN_GERENCIAL_NOMES_UI,
             "pin_gerencial_hint": PIN_GERENCIAL_HINT,
         }
