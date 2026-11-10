@@ -142,7 +142,9 @@ class MpPointPinForcarNaoVoltaTests(SimpleTestCase):
         return_value=(True, "Geraldo", ""),
     )
     @patch("produtos.views_mp_point.PdvMercadoPagoPointOrder.objects")
-    def test_forcar_api_encerra_paid_e_pending(self, objs, _pin, _cfg, _bypass):
+    def test_forcar_api_pago_exige_finalizar_pending_abandona(
+        self, objs, _pin, _cfg, bypass
+    ):
         paid = _row(status=PdvMercadoPagoPointOrder.Status.PAID, mid="ord-api-paid")
         pend = _row(status=PdvMercadoPagoPointOrder.Status.PENDING, mid="ord-api-pend")
         objs.filter.return_value.order_by.return_value.__getitem__.return_value = [
@@ -165,10 +167,14 @@ class MpPointPinForcarNaoVoltaTests(SimpleTestCase):
         body = json.loads(resp.content.decode("utf-8"))
         self.assertTrue(body.get("ok"))
         self.assertTrue(body.get("tinha_pago_point"))
-        self.assertEqual(paid.status, PdvMercadoPagoPointOrder.Status.ABANDONED)
+        self.assertEqual(body.get("action"), "finalize_required")
+        self.assertEqual(body.get("order_id"), "ord-api-paid")
+        # Pago permanece PAID (não abandonar) — operador deve finalizar.
+        self.assertEqual(paid.status, PdvMercadoPagoPointOrder.Status.PAID)
+        # PENDING sem MP configurado → abandona.
         self.assertEqual(pend.status, PdvMercadoPagoPointOrder.Status.ABANDONED)
-        self.assertTrue(_mp_point_row_foi_forcado_liberar(paid))
         self.assertTrue(_mp_point_row_foi_forcado_liberar(pend))
+        bypass.assert_not_called()
 
     @patch("produtos.pin_gerencial_util.gravar_mp_point_forcar_bypass")
     @patch(
@@ -183,8 +189,8 @@ class MpPointPinForcarNaoVoltaTests(SimpleTestCase):
         return_value=(True, "Geraldinho", ""),
     )
     @patch("produtos.views_mp_point.PdvMercadoPagoPointOrder.objects")
-    def test_forcar_nao_promove_quando_mp_diz_pago(
-        self, objs, _pin, _cfg, _conta, _tok, get_order, _bypass
+    def test_forcar_promove_quando_mp_diz_pago(
+        self, objs, _pin, _cfg, _conta, _tok, get_order, bypass
     ):
         pend = _row(status=PdvMercadoPagoPointOrder.Status.PENDING, mid="ord-mp-pago")
         objs.filter.return_value.order_by.return_value.__getitem__.return_value = [pend]
@@ -200,10 +206,52 @@ class MpPointPinForcarNaoVoltaTests(SimpleTestCase):
 
         resp = api_pdv_mp_point_forcar_liberar(req)
         self.assertEqual(resp.status_code, 200)
-        self.assertTrue(json.loads(resp.content.decode("utf-8")).get("tinha_pago_point"))
-        self.assertEqual(pend.status, PdvMercadoPagoPointOrder.Status.ABANDONED)
-        self.assertTrue(_mp_point_row_foi_forcado_liberar(pend))
+        body = json.loads(resp.content.decode("utf-8"))
+        self.assertTrue(body.get("tinha_pago_point"))
+        self.assertEqual(body.get("action"), "finalize_required")
+        self.assertEqual(pend.status, PdvMercadoPagoPointOrder.Status.PAID)
+        self.assertFalse(_mp_point_row_foi_forcado_liberar(pend))
         get_order.assert_called_once()
+        bypass.assert_not_called()
+
+    @patch("produtos.pin_gerencial_util.gravar_mp_point_forcar_bypass")
+    @patch(
+        "produtos.views_mp_point.mp_point_cancel_order",
+        return_value=(True, 200, {}),
+    )
+    @patch(
+        "produtos.views_mp_point.mp_point_get_order",
+        return_value=(True, 200, {"status": "canceled"}),
+    )
+    @patch("produtos.views_mp_point._token_da_conta", return_value="tok")
+    @patch("produtos.views_mp_point._conta_do_pedido_local", return_value="centro")
+    @patch("produtos.views_mp_point._mp_point_configurado", return_value=True)
+    @patch(
+        "produtos.pin_gerencial_util.validar_pin_gerencial",
+        return_value=(True, "Geraldo", ""),
+    )
+    @patch("produtos.views_mp_point.PdvMercadoPagoPointOrder.objects")
+    def test_forcar_pending_nao_pago_libera_bypass(
+        self, objs, _pin, _cfg, _conta, _tok, _get, _cancel, bypass
+    ):
+        pend = _row(status=PdvMercadoPagoPointOrder.Status.PENDING, mid="ord-nao-pago")
+        objs.filter.return_value.order_by.return_value.__getitem__.return_value = [pend]
+        req = RequestFactory().generic(
+            "POST",
+            "/api/pdv/mp-point/forcar-liberar/",
+            data='{"pin":"8888"}',
+            content_type="application/json",
+        )
+        sess = MagicMock()
+        sess.session_key = "sessao-centro-1"
+        req.session = sess
+
+        resp = api_pdv_mp_point_forcar_liberar(req)
+        body = json.loads(resp.content.decode("utf-8"))
+        self.assertEqual(body.get("action"), "liberado")
+        self.assertFalse(body.get("tinha_pago_point"))
+        self.assertEqual(pend.status, PdvMercadoPagoPointOrder.Status.ABANDONED)
+        bypass.assert_called_once()
 
 
 class MpPointOperadorCarimboTests(SimpleTestCase):

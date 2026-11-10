@@ -36,6 +36,10 @@ def count_fiado_eventos() -> int:
     return _model("produtos.FiadoEventoAgro").objects.count()
 
 
+def count_pdv_operacao() -> int:
+    return _model("produtos.PdvOperacaoLogAgro").objects.count()
+
+
 def count_tarefa_eventos() -> int:
     return _model("tarefas.TarefaEventoAgro").objects.count()
 
@@ -51,6 +55,7 @@ _COUNTERS = {
     "count_import_planilha": count_import_planilha,
     "count_cliente_eventos": count_cliente_eventos,
     "count_fiado_eventos": count_fiado_eventos,
+    "count_pdv_operacao": count_pdv_operacao,
     "count_tarefa_eventos": count_tarefa_eventos,
     "count_bugs": count_bugs,
 }
@@ -96,6 +101,18 @@ def queryset_fonte(fonte_id: str, busca: str = "", limite: int = 150) -> tuple[Q
     if fonte_id == "fiado_eventos":
         qs = _model("produtos.FiadoEventoAgro").objects.all().order_by("-criado_em", "-pk")
         return qs[:limite], "fiado_eventos"
+    if fonte_id == "pdv_operacao":
+        qs = _model("produtos.PdvOperacaoLogAgro").objects.all().order_by("-criado_em", "-pk")
+        if busca:
+            from django.db.models import Q
+
+            qs = qs.filter(
+                Q(operador_nome__icontains=busca)
+                | Q(usuario_login__icontains=busca)
+                | Q(acao__icontains=busca)
+                | Q(path__icontains=busca)
+            )
+        return qs[:limite], "pdv_operacao"
     if fonte_id == "tarefa_eventos":
         qs = _model("tarefas.TarefaEventoAgro").objects.all().order_by("-criado_em", "-pk")
         if busca:
