@@ -1549,6 +1549,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟡 WIP — **10/11** · **MP-POINT-ORFAO-PAGO + PDV-LOG** · **v27.26.45**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 no `teste` (branch `cursor/mp-point-orfaopago-pdv-log-4662`) — aguarda prova local |
+| **Incidente** | Vila 10/11 Valdinei: Point cobrou R$75 (ração) · PDV não gravou · PIN abandonava o pago · Sicredi só fechou no sistema |
+| **Causa** | (1) `forcePaid` vazava → `confirmar-tranche` sem poll · (2) `forcar-liberar` abandonava pedido **já pago** |
+| **Fix** | Point pago → promove PAID + `finalize_required` (não abandona) · JS zera `forcePaid` / retry tranche · recuperar ABANDONED forçado no `finalizar` |
+| **Log PDV** | Fonte **PDV (ponto de venda)** em `/gestao/logs/` · model `PdvOperacaoLogAgro` · migrate **0153** |
+| **Prova** | `manage.py test produtos.tests_mp_point_pin_forcar produtos.tests_pdv_operacao_log` · **20 OK** |
+
 ### 🟢 PACOTE PRONTO / CHECKLIST — **09/11** · **NF-FORN-UNIF-AGRO** · **v27.26.54** · pronto para envio
 
 | Campo | Valor |

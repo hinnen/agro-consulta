@@ -74,6 +74,14 @@ def catalogo_fontes_log() -> list[FonteLogGestao]:
             contagem_fn="count_fiado_eventos",
         ),
         FonteLogGestao(
+            id="pdv_operacao",
+            titulo="PDV (ponto de venda)",
+            descricao="Vendas, Mercado Pago Point, baixa fiado e APIs do wizard PDV.",
+            icone="monitor",
+            admin_model="produtos.PdvOperacaoLogAgro",
+            contagem_fn="count_pdv_operacao",
+        ),
+        FonteLogGestao(
             id="tarefa_eventos",
             titulo="Pendências (tarefas)",
             descricao="Linha do tempo e comentários do app GM Pendências.",
