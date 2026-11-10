@@ -3202,7 +3202,8 @@
                     }
                     var oid = criarRes.data.order_id;
                     if (!oid) throw new Error('Resposta sem order_id.');
-                    mpPointWaitControl.cancelRequested = false;
+                    // Zera forcePaid de espera anterior (vazamento → confirm sem poll).
+                    mpPointWaitControl.reset();
                     mpPointWaitControl.orderId = oid;
                     showMpPointWaitBar(
                         criarRes.data.amount != null ? criarRes.data.amount : cur,
@@ -3212,7 +3213,28 @@
                 }).then(function (pack) {
                     var confirmUrl = urls.apiPdvMpPointConfirmarTranche || '';
                     if (!String(confirmUrl).trim()) throw new Error('API confirmar tranche MP indisponível.');
-                    return jsonPost(confirmUrl, { order_id: pack.order_id }).then(function (confRes) {
+                    var confirmAttempts = 0;
+                    function confirmarTrancheComRetry(orderId) {
+                        confirmAttempts += 1;
+                        return jsonPost(confirmUrl, { order_id: orderId }).then(function (confRes) {
+                            if (
+                                confRes &&
+                                confRes.status === 409 &&
+                                confRes.data &&
+                                confRes.data.retryable &&
+                                confirmAttempts < 4
+                            ) {
+                                setMpPointWaitStatus(
+                                    'Ainda confirmando na maquininha… (' + confirmAttempts + ')'
+                                );
+                                return pollMpPointUntilPaid(orderId).then(function () {
+                                    return confirmarTrancheComRetry(orderId);
+                                });
+                            }
+                            return confRes;
+                        });
+                    }
+                    return confirmarTrancheComRetry(pack.order_id).then(function (confRes) {
                         return { pack: pack, confRes: confRes };
                     });
                 }).then(function (result) {
@@ -12866,8 +12888,15 @@
             }
             setMpPointWaitStatus('Tempo esgotado — cancelando na maquininha…');
             return jsonPost(abandonUrl, { order_id: orderId }).then(function (abRes) {
-                if (abRes.data && abRes.data.pagamento_efetivado) {
+                if (
+                    abRes.data &&
+                    abRes.data.pagamento_efetivado &&
+                    String(mpPointWaitControl.orderId || '') === String(orderId || '')
+                ) {
                     mpPointWaitControl.forcePaid = true;
+                    return { jaFinalizado: false, order_id: orderId };
+                }
+                if (abRes.data && abRes.data.pagamento_efetivado) {
                     return { jaFinalizado: false, order_id: orderId };
                 }
                 var extra = '';
@@ -14251,9 +14280,17 @@
                 if (!criarRes.ok || !criarRes.data.ok) {
                     throw new Error((criarRes.data && criarRes.data.erro) || 'Falha ao enviar ao terminal MP.');
                 }
-                return pollMpPointUntilPaid(criarRes.data.order_id).then(function () {
+                var oidFiado = criarRes.data.order_id;
+                if (!oidFiado) throw new Error('Resposta sem order_id.');
+                mpPointWaitControl.reset();
+                mpPointWaitControl.orderId = oidFiado;
+                showMpPointWaitBar(
+                    criarRes.data.amount != null ? criarRes.data.amount : null,
+                    'Fiado'
+                );
+                return pollMpPointUntilPaid(oidFiado).then(function () {
                     return postMpPointFinalizar({
-                        order_id: criarRes.data.order_id,
+                        order_id: oidFiado,
                         erp_payload: buildFiadoBaixaPayload(State.getState(), State.getComputed())
                     }).then(function (finRes) {
                         if (!finRes.ok || !finRes.data.ok) {
@@ -14616,6 +14653,24 @@
                             return forcarLiberarMpPointComPin(pinRes.pin)
                                 .then(function (lib) {
                                     if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                                    var actionLib = String((lib && lib.action) || '');
+                                    var oidFin =
+                                        String((lib && lib.order_id) || '').trim() ||
+                                        (Array.isArray(lib && lib.order_ids) && lib.order_ids[0]
+                                            ? String(lib.order_ids[0]).trim()
+                                            : '');
+                                    if (actionLib === 'finalize_required' && oidFin) {
+                                        showPdvAviso(
+                                            (lib && lib.mensagem) ||
+                                                'Maquininha já cobrou — registrando no sistema…',
+                                            { tone: 'info', title: 'PIN gerencial' }
+                                        );
+                                        return confirmSaleFinalizarMpPointOrders(withPrint, {
+                                            orderIds: [oidFin],
+                                            omitErpOverride: true,
+                                            skipDraft: true
+                                        });
+                                    }
                                     showPdvAviso(
                                         (lib && lib.mensagem) ||
                                             'Liberado. Confirme a venda de novo.',
@@ -14961,7 +15016,7 @@
                 }
                 var oid = criarRes.data.order_id;
                 if (!oid) throw new Error('Resposta sem order_id.');
-                mpPointWaitControl.cancelRequested = false;
+                mpPointWaitControl.reset();
                 mpPointWaitControl.orderId = oid;
                 var stWait = State.getState();
                 var compWait = State.getComputed();
@@ -18898,6 +18953,10 @@
                 setMpPointWaitStatus('Cancelando na maquininha…');
                 jsonPost(abandonUrl, { order_id: oid })
                     .then(function (res) {
+                        // Ignora resposta atrasada de outro order_id (vazamento forcePaid).
+                        if (String(mpPointWaitControl.orderId || '') !== String(oid || '')) {
+                            return;
+                        }
                         if (res.data && res.data.pagamento_efetivado) {
                             mpPointWaitControl.forcePaid = true;
                             setMpPointWaitStatus('Pagamento já confirmado na maquininha — finalizando…');
