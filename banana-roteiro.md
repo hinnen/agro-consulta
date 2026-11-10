@@ -6,7 +6,7 @@
 
 **Loja (03/11 · PR 479):** **WA-ORIGIN-PC** — ✅ **Live v27.26.49** @ `2d002112`. Migrate **0154** OK. `/healthz` = ok. Volta: `rollback/pre-v272649-0311-wa-origin-pc` (`39b447ad`). Revert: `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao`.
 
-**PREP loja (09/11):** **NF-FORN-UNIF-AGRO** — 🟢 **pronto para envio** **v27.26.54** @ `2650ca85` (`deploy/prep-checklist-0911-nf-forn-unif-agro`). Base `af7af8cc` v27.26.53. Sem migrate. Aguarda frase+senha. Volta: `rollback/pre-v272654-0911-nf-forn-unif-agro`.
+**CHECKLIST ÚNICO (10/11) · pronto envio:** (1) **NF-FORN-UNIF-AGRO** **v27.26.54** @ `2650ca85` · sem migrate · volta `rollback/pre-v272654-0911-nf-forn-unif-agro`. (2) **MP-POINT-ORFAO-PAGO** + **PDV-LOG** **v27.26.55** · PR #491 · migrate teste `0153` → cutover loja **`0155`** · Point pago finaliza + log PDV `/gestao/logs/`. Aguarda frase+senha.
 
 **Loja (04/11d):** **RH-FAIXA-SALARIAL** — enviado `af7af8cc` (**v27.26.53**). Migrate **NÃO**. Até o build terminar, no ar segue **v27.26.52** @ `43ee490c`. Volta: `rollback/pre-v272653-0411d-rh-faixa`. Revert: `git push origin rollback/pre-v272653-0411d-rh-faixa:producao`.
 

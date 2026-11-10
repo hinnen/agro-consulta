@@ -1292,11 +1292,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
-### ✅ CHECKLIST ÚNICO — **09/11** · 🟢 **pronto para envio à produção**
+### ✅ CHECKLIST ÚNICO — **10/11** · 🟢 **pronto para envio à produção**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
 | 1 | **NF-FORN-UNIF-AGRO** | 🟢 Pronto | **NÃO** (reusa `0149`) | path + alias + HTTP unif · **VERIFY_OK** |
+| 2 | **MP-POINT-ORFAO-PAGO** + **PDV-LOG** | 🟢 Pronto | **SIM** (`0153` no teste → **`0155`** no cutover loja) | unit **20 OK** · path **VERIFY_OK 26** |
+
+### 📦 PACOTE PRONTO — **MP-POINT-ORFAO-PAGO** + **PDV-LOG** · **v27.26.55** · 10/11
+
+| Campo | Valor |
+| ----- | ----- |
+| **Branch** | `cursor/mp-point-orfaopago-pdv-log-4662` · PR #491 |
+| **Base loja** | `producao` @ **`af7af8cc`** · **v27.26.53** (após NF-FORN v27.26.54 se subir junto) |
+| **Entra** | Point já pago → finaliza no sistema (não abandona) · log PDV em `/gestao/logs/` |
+| **Incidente** | Vila 10/11 Valdinei R$75 · MP cobrou · PIN abandonava · Sicredi só no sistema |
+| **Migrate** | teste `0153_pdv_operacao_log_agro` · loja tip `0154` → no cutover virar **`0155`** dependendo de `0154_whatsapp_public_origin` |
+| **Revert** | reverter commits do PR #491 em `producao` (tabela log pode ficar) |
+| **Prova** | `manage.py test produtos.tests_mp_point_pin_forcar produtos.tests_pdv_operacao_log` · `scripts/verify_mp_point_orfao_pago_pdv_log_path.py` |
 
 ### 📦 PACOTE PRONTO — **NF-FORN-UNIF-AGRO** · **v27.26.54** · 09/11
 
@@ -1549,16 +1562,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟡 WIP — **10/11** · **MP-POINT-ORFAO-PAGO + PDV-LOG** · **v27.26.45**
+### 🟢 PACOTE PRONTO — **10/11** · **MP-POINT-ORFAO-PAGO + PDV-LOG** · **v27.26.55**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 no `teste` (branch `cursor/mp-point-orfaopago-pdv-log-4662`) — aguarda prova local |
-| **Incidente** | Vila 10/11 Valdinei: Point cobrou R$75 (ração) · PDV não gravou · PIN abandonava o pago · Sicredi só fechou no sistema |
+| **Status** | 🟢 **pronto para envio à produção** · branch `cursor/mp-point-orfaopago-pdv-log-4662` · PR #491 |
+| **Incidente** | Vila 10/11 Valdinei: Point cobrou R$75 · PDV não gravou · PIN abandonava o pago · Sicredi só no sistema |
 | **Causa** | (1) `forcePaid` vazava → `confirmar-tranche` sem poll · (2) `forcar-liberar` abandonava pedido **já pago** |
-| **Fix** | Point pago → promove PAID + `finalize_required` (não abandona) · JS zera `forcePaid` / retry tranche · recuperar ABANDONED forçado no `finalizar` |
-| **Log PDV** | Fonte **PDV (ponto de venda)** em `/gestao/logs/` · model `PdvOperacaoLogAgro` · migrate **0153** |
-| **Prova** | `manage.py test produtos.tests_mp_point_pin_forcar produtos.tests_pdv_operacao_log` · **20 OK** |
+| **Fix** | Point pago → promove PAID + `finalize_required` · JS zera `forcePaid` / retry · recuperar ABANDONED forçado no `finalizar` |
+| **Log PDV** | Fonte **PDV (ponto de venda)** em `/gestao/logs/` · `PdvOperacaoLogAgro` · migrate **0153** (teste) / **0155** (cutover loja) |
+| **Prova** | unit **20 OK** · `verify_mp_point_orfao_pago_pdv_log_path` **VERIFY_OK 26** · PIN `9973` ausente neste DB (mock Renan) |
 
 ### 🟢 PACOTE PRONTO / CHECKLIST — **09/11** · **NF-FORN-UNIF-AGRO** · **v27.26.54** · pronto para envio
 
