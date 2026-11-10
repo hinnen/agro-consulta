@@ -4207,6 +4207,7 @@ class MetaVendaFaixaAgro(models.Model):
         return f"{self.competencia} · {self.deposito} · R$ {self.valor_meta}"
 
 
+<<<<<<< HEAD
 # ---------------------------------------------------------------------------
 # NF-e 55 — configuração fiscal (Etapa 2). Não alimenta o motor nesta etapa.
 # ---------------------------------------------------------------------------
@@ -4694,3 +4695,28 @@ class NfeAlteracaoFiscalLog(models.Model):
 
     def __str__(self):
         return f"{self.tabela} · {self.acao} · {self.criado_em}"
+=======
+class PdvOperacaoLogAgro(models.Model):
+    """Auditoria de operações do PDV web (venda, Point, fiado, caixa)."""
+
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+    operador_nome = models.CharField(max_length=120, blank=True, default="")
+    usuario_login = models.CharField(max_length=150, blank=True, default="")
+    acao = models.CharField(max_length=80, db_index=True)
+    metodo = models.CharField(max_length=12, blank=True, default="")
+    path = models.CharField(max_length=300, blank=True, default="")
+    status_http = models.PositiveSmallIntegerField(default=0)
+    detalhe_json = models.JSONField(default=dict, blank=True)
+    django_session_key = models.CharField(max_length=50, blank=True, default="")
+
+    class Meta:
+        verbose_name = "Log PDV"
+        verbose_name_plural = "Logs PDV"
+        ordering = ["-criado_em"]
+        indexes = [
+            models.Index(fields=["acao", "-criado_em"], name="pdv_op_log_acao_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.criado_em:%d/%m %H:%M} · {self.operador_nome or '—'} · {self.acao}"
+>>>>>>> 0bbc38b7 (feat(pdv): log de operações do PDV na tela Gestão → LOG)
