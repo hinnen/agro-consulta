@@ -14304,6 +14304,7 @@
                 showPdvAviso(err && err.message ? err.message : 'Falha no Mercado Pago.', { tone: 'error' });
             })
             .finally(function () {
+                hideMpPointWaitBar();
                 if (window.gmLoadingBar) window.gmLoadingBar.hide();
                 releaseSaleProcessingLock();
             });
