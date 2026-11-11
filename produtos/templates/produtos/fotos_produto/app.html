@@ -12,6 +12,7 @@
   <link rel="apple-touch-icon" href="/static/produtos/pwa/vendas-lojas-192.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="/static/produtos/js/sistapp_camera_escolha.js"></script>
   <style>
     :root {
       --ink: #0f172a; --muted: #64748b; --accent: #7c3aed; --line: #e2e8f0; --bg: #f8fafc;
@@ -131,6 +132,7 @@
     <div id="reader-box"></div>
     <div class="scan-bar">
       <span>Scan ativo</span>
+      <button type="button" class="btn" id="btnTrocaCam" hidden style="color:#0f172a;background:#fff;border-color:#fff;">Trocar câmera</button>
       <button type="button" class="btn" id="btnFechaScan" style="color:#fff;background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.35);">Fechar</button>
     </div>
   </div>
@@ -386,10 +388,20 @@
       }
     }
 
-    function stopScan() {
+    var camList = [];
+    var camAtual = null;
+
+    function mostrarTroca() {
+      var b = document.getElementById("btnTrocaCam");
+      if (b) b.hidden = !(camList && camList.length > 1);
+    }
+
+    function stopScan(keepOpen) {
       scanningActive = false;
-      document.getElementById("reader").classList.remove("on");
-      document.getElementById("reader").setAttribute("aria-hidden", "true");
+      if (!keepOpen) {
+        document.getElementById("reader").classList.remove("on");
+        document.getElementById("reader").setAttribute("aria-hidden", "true");
+      }
       if (scanner) {
         try {
           return scanner.stop().then(function () { scanner = null; }).catch(function () { scanner = null; });
@@ -398,60 +410,84 @@
       return Promise.resolve();
     }
 
-    function startScan() {
+    function ligarCamera(cam) {
+      camAtual = cam;
+      if (window.SistAppCamera) SistAppCamera.lembrar(typeof cam === "string" ? cam : "");
+      mostrarTroca();
+      var formats = [];
+      try {
+        var F = Html5QrcodeSupportedFormats;
+        formats = [F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E, F.CODE_128, F.CODE_39, F.ITF, F.QR_CODE];
+      } catch (e) {}
+      var cfg = {
+        fps: 12,
+        qrbox: function (viewW, viewH) {
+          var w = Math.floor(Math.min(viewW * 0.88, 360));
+          var h = Math.floor(Math.min(viewH * 0.28, 140));
+          return { width: w, height: h };
+        },
+        formatsToSupport: formats.length ? formats : undefined,
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+        videoConstraints: window.SistAppCamera
+          ? SistAppCamera.configVideo(cam)
+          : { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } },
+      };
+      return scanner.start(
+        cam || { facingMode: "environment" },
+        cfg,
+        function (txt) {
+          if (!scanningActive) return;
+          scanningActive = false;
+          var codigo = String(txt || "").trim();
+          stopScan().then(function () {
+            if (!codigo) return;
+            var hits = matchCodigoExato(codigo);
+            if (hits.length === 1) {
+              abrirProduto(String(hits[0].id || ""));
+              return;
+            }
+            document.getElementById("busca").value = codigo;
+            buscar(codigo);
+            mostrarLista();
+          });
+        }
+      ).catch(function () {
+        alert("Não abriu a câmera. Permita o acesso.");
+        stopScan();
+      });
+    }
+
+    function startScan(cameraForcada) {
       if (typeof Html5Qrcode === "undefined") {
         alert("Leitor não carregou. Tente de novo.");
         return;
       }
-      stopScan().then(function () {
+      var abrir = function () {
         document.getElementById("reader").classList.add("on");
         document.getElementById("reader").setAttribute("aria-hidden", "false");
         scanningActive = true;
         scanner = new Html5Qrcode("reader-box");
-        var formats = [];
-        try {
-          var F = Html5QrcodeSupportedFormats;
-          formats = [F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E, F.CODE_128, F.CODE_39, F.ITF, F.QR_CODE];
-        } catch (e) {}
-        scanner.start(
-          { facingMode: "environment" },
-          {
-            fps: 12,
-            qrbox: function (viewW, viewH) {
-              var w = Math.floor(Math.min(viewW * 0.88, 360));
-              var h = Math.floor(Math.min(viewH * 0.28, 140));
-              return { width: w, height: h };
-            },
-            formatsToSupport: formats.length ? formats : undefined,
-            experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-          },
-          function (txt) {
-            if (!scanningActive) return;
-            scanningActive = false;
-            var codigo = String(txt || "").trim();
-            stopScan().then(function () {
-              if (!codigo) return;
-              var hits = matchCodigoExato(codigo);
-              if (hits.length === 1) {
-                abrirProduto(String(hits[0].id || ""));
-                return;
-              }
-              document.getElementById("busca").value = codigo;
-              buscar(codigo);
-              mostrarLista();
-            });
-          }
-        ).catch(function () {
-          alert("Não abriu a câmera. Permita o acesso.");
-          stopScan();
+        if (cameraForcada) return ligarCamera(cameraForcada);
+        var lib = window.SistAppCamera;
+        var pedido = lib ? lib.getCameras() : Promise.resolve([]);
+        return pedido.then(function (cams) {
+          camList = cams || [];
+          return ligarCamera(lib ? lib.escolher(camList) : { facingMode: "environment" });
         });
-      });
+      };
+      if (cameraForcada) return abrir();
+      return stopScan().then(abrir);
     }
 
     document.getElementById("busca").addEventListener("input", function () {
       buscar(this.value);
     });
-    document.getElementById("btnScan").addEventListener("click", startScan);
+    document.getElementById("btnScan").addEventListener("click", function () { startScan(); });
+    document.getElementById("btnTrocaCam").addEventListener("click", function () {
+      if (!window.SistAppCamera || !camList || camList.length < 2) return;
+      var next = SistAppCamera.proxima(camList, camAtual);
+      stopScan(true).then(function () { startScan(next); });
+    });
     document.getElementById("btnFechaScan").addEventListener("click", function () { stopScan(); });
     document.getElementById("btnVoltar").addEventListener("click", function () {
       mostrarLista();
