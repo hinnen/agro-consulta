@@ -49,7 +49,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   {% include "produtos/_agro_consulta_ui.html" %}
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script src="{% static 'produtos/js/sistapp_camera_escolha.js' %}"></script>
+  <script src="{% static 'produtos/js/sistapp_camera_escolha.js' %}?v=2"></script>
   <style>
     :root {
       --ma-kb-inset: 0px;
@@ -2635,7 +2635,7 @@ function startScan(cameraForcada) {
   }
   maScanBusy = true;
   /* keepBusy: stopScan() não zera o busy no meio do reopen (evita double-start). */
-  stopScan({ keepBusy: true }).then(() => {
+  const seguir = () => {
     const reader = document.getElementById('reader');
     const box = document.getElementById('reader-box');
     if (!reader || !box) {
@@ -2684,13 +2684,12 @@ function startScan(cameraForcada) {
     const abrirCom = (cam, cams) => {
       maCamList = cams || maCamList || [];
       maCamAtual = cam;
-      if (window.SistAppCamera) SistAppCamera.lembrar(typeof cam === 'string' ? cam : '');
       maAtualizarBtnTrocar();
-      config.videoConstraints = window.SistAppCamera
-        ? SistAppCamera.configVideo(cam)
-        : { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } };
+      const alvo = (typeof cam === 'string' && cam)
+        ? cam
+        : { facingMode: 'environment' };
       scanner.start(
-      cam || { facingMode: 'environment' },
+      alvo,
       config,
       (txt) => {
         if (!scanningActive) return;
@@ -2700,6 +2699,14 @@ function startScan(cameraForcada) {
       () => {}
     ).then(() => {
       maScanBusy = false;
+      if (!window.SistAppCamera) return;
+      SistAppCamera.getCameras().then((cams) => {
+        maCamList = cams || [];
+        const video = document.querySelector('#reader-box video');
+        const id = SistAppCamera.idDoVideo(video);
+        if (id) maCamAtual = id;
+        maAtualizarBtnTrocar();
+      });
     }).catch((err) => {
       stopScan().then(() => {
         const negado = err && (err.name === 'NotAllowedError' || /Permission|NotAllowed/i.test(String(err.message || err)));
@@ -2715,13 +2722,14 @@ function startScan(cameraForcada) {
       abrirCom(cameraForcada, maCamList);
       return;
     }
-    const lib = window.SistAppCamera;
-    const pedido = lib ? lib.getCameras() : Promise.resolve([]);
-    pedido.then((cams) => {
-      const cam = lib ? lib.escolher(cams) : { facingMode: 'environment' };
-      abrirCom(cam, cams);
-    });
-  });
+    const salvo = window.SistAppCamera ? SistAppCamera.alvo(null) : { facingMode: 'environment' };
+    abrirCom(salvo, maCamList);
+  };
+  if (cameraForcada) {
+    seguir();
+    return;
+  }
+  stopScan({ keepBusy: true }).then(seguir);
 }
 
 function stopScan(opts) {

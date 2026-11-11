@@ -1296,6 +1296,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
+### 🟢 CHECKLIST ÚNICO — **11/11d** · **SISTAPP-CAMERA-TRASEIRA** · pronto para envio à produção
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **SISTAPP-CAMERA-TRASEIRA** | 🟢 pronto para envio | **NÃO** | a v27.26.57 abria a frontal porque o pedido de nitidez apagava a lente |
+
+Abre na câmera de trás na hora. **Trocar câmera** muda a lente. Não mexe em PDV, caixa nem venda. **Não** sobe sem pausa + frase + senha. A v27.26.57 já enviada continua com o defeito até esta correção subir.
+
 ### ✅ CHECKLIST ÚNICO — **11/11c** · **SISTAPP-TROCA-CAMERA** · enviado **v27.26.57** @ `007e9bfc`
 
 | # | Pacote | Status | Migrate | Prova |

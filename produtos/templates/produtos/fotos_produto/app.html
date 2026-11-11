@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="/static/produtos/pwa/vendas-lojas-192.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script src="/static/produtos/js/sistapp_camera_escolha.js"></script>
+  <script src="/static/produtos/js/sistapp_camera_escolha.js?v=2"></script>
   <style>
     :root {
       --ink: #0f172a; --muted: #64748b; --accent: #7c3aed; --line: #e2e8f0; --bg: #f8fafc;
@@ -428,12 +428,10 @@
         },
         formatsToSupport: formats.length ? formats : undefined,
         experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-        videoConstraints: window.SistAppCamera
-          ? SistAppCamera.configVideo(cam)
-          : { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } },
       };
+      var alvo = (typeof cam === "string" && cam) ? cam : { facingMode: "environment" };
       return scanner.start(
-        cam || { facingMode: "environment" },
+        alvo,
         cfg,
         function (txt) {
           if (!scanningActive) return;
@@ -451,7 +449,16 @@
             mostrarLista();
           });
         }
-      ).catch(function () {
+      ).then(function () {
+        if (!window.SistAppCamera) return;
+        return SistAppCamera.getCameras().then(function (cams) {
+          camList = cams || [];
+          var video = document.querySelector("#reader-box video");
+          var id = SistAppCamera.idDoVideo(video);
+          if (id) camAtual = id;
+          mostrarTroca();
+        });
+      }).catch(function () {
         alert("Não abriu a câmera. Permita o acesso.");
         stopScan();
       });
@@ -468,12 +475,8 @@
         scanningActive = true;
         scanner = new Html5Qrcode("reader-box");
         if (cameraForcada) return ligarCamera(cameraForcada);
-        var lib = window.SistAppCamera;
-        var pedido = lib ? lib.getCameras() : Promise.resolve([]);
-        return pedido.then(function (cams) {
-          camList = cams || [];
-          return ligarCamera(lib ? lib.escolher(camList) : { facingMode: "environment" });
-        });
+        var alvo = window.SistAppCamera ? SistAppCamera.alvo(null) : { facingMode: "environment" };
+        return ligarCamera(alvo);
       };
       if (cameraForcada) return abrir();
       return stopScan().then(abrir);
