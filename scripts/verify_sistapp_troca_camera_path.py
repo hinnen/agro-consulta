@@ -27,8 +27,10 @@ def read(rel: str) -> str:
 def main() -> int:
     js = read("produtos/static/produtos/js/sistapp_camera_escolha.js")
     for n in (
-        "sistapp_camera_id_v1",
+        "sistapp_camera_id_v2",
         "function ordenar",
+        "idDoVideo",
+        'facingMode: "environment"',
         "Html5Qrcode.getCameras",
         "window.SistAppCamera",
     ):
@@ -52,6 +54,10 @@ def main() -> int:
             fail(f"{nome} sem o botão")
         else:
             ok(f"{nome} botão")
+        if "videoConstraints" in html:
+            fail(f"{nome} ainda apaga a lente com videoConstraints")
+        else:
+            ok(f"{nome} sem videoConstraints")
 
     print(f"\nVERIFY_OK {oks}" if not fails else f"\nVERIFY FAIL {oks}/{oks + len(fails)}")
     for f in fails:

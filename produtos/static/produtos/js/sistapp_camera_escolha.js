@@ -1,6 +1,6 @@
 /* SistApp — escolhe a câmera de trás mais nítida e deixa o operador trocar. */
 (function () {
-  var LS = "sistapp_camera_id_v1";
+  var LS = "sistapp_camera_id_v2";
 
   function labelDe(cam) {
     return String((cam && (cam.label || cam.id)) || "");
@@ -80,10 +80,22 @@
     return { facingMode: "environment" };
   }
 
-  function configVideo(cameraId) {
-    var v = { width: { ideal: 1920 }, height: { ideal: 1080 } };
-    if (typeof cameraId !== "string") v.facingMode = "environment";
-    return v;
+  function alvo(cameraId) {
+    if (typeof cameraId === "string" && cameraId) return cameraId;
+    var salvo = salvaId();
+    if (salvo) return salvo;
+    return { facingMode: "environment" };
+  }
+
+  function idDoVideo(video) {
+    try {
+      var stream = video && video.srcObject;
+      var track = stream && stream.getVideoTracks && stream.getVideoTracks()[0];
+      var settings = track && track.getSettings && track.getSettings();
+      return (settings && settings.deviceId) || "";
+    } catch (e) {
+      return "";
+    }
   }
 
   window.SistAppCamera = {
@@ -91,6 +103,7 @@
     escolher: escolher,
     proxima: proxima,
     lembrar: lembrar,
-    configVideo: configVideo,
+    alvo: alvo,
+    idDoVideo: idDoVideo,
   };
 })();
