@@ -90,7 +90,7 @@ def main() -> int:
     wizard = (ROOT / "produtos/static/produtos/js/pdv_wizard.js").read_text(encoding="utf-8")
     catalog = (ROOT / "produtos/gestao_logs_catalog.py").read_text(encoding="utf-8")
     settings_py = (ROOT / "config/settings.py").read_text(encoding="utf-8")
-    mig = ROOT / "produtos/migrations/0153_pdv_operacao_log_agro.py"
+    mig = ROOT / "produtos/migrations/0155_pdv_operacao_log_agro.py"
 
     # --- A) Código: anti-vazamento + retry ---
     check("mpPointWaitControl.reset()" in wizard, "A JS reset forcePaid a cada espera")
@@ -192,7 +192,7 @@ def main() -> int:
     check("foi_forcado_liberar(row) and mp_point_order_indica_pago" in views_mp or "forcado_liberar(row)" in views_mp, "F finalizar tem recuperação")
 
     # --- G) Log PDV ---
-    check(mig.is_file(), "G migrate 0153 existe")
+    check(mig.is_file() and "0154_whatsapp_public_origin" in mig.read_text(encoding="utf-8"), "G migrate 0155 depois da 0154")
     check("pdv_operacao" in catalog, "G catálogo fonte pdv_operacao")
     check("PdvOperacaoLogMiddleware" in settings_py, "G middleware ligado")
     check("mp_point_forcar_liberar" in (ROOT / "produtos/pdv_operacao_log_util.py").read_text(encoding="utf-8"), "G acao forcar no util")

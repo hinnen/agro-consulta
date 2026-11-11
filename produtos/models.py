@@ -4207,7 +4207,6 @@ class MetaVendaFaixaAgro(models.Model):
         return f"{self.competencia} · {self.deposito} · R$ {self.valor_meta}"
 
 
-<<<<<<< HEAD
 # ---------------------------------------------------------------------------
 # NF-e 55 — configuração fiscal (Etapa 2). Não alimenta o motor nesta etapa.
 # ---------------------------------------------------------------------------
@@ -4695,7 +4694,8 @@ class NfeAlteracaoFiscalLog(models.Model):
 
     def __str__(self):
         return f"{self.tabela} · {self.acao} · {self.criado_em}"
-=======
+
+
 class PdvOperacaoLogAgro(models.Model):
     """Auditoria de operações do PDV web (venda, Point, fiado, caixa)."""
 
@@ -4719,4 +4719,3 @@ class PdvOperacaoLogAgro(models.Model):
 
     def __str__(self):
         return f"{self.criado_em:%d/%m %H:%M} · {self.operador_nome or '—'} · {self.acao}"
->>>>>>> 0bbc38b7 (feat(pdv): log de operações do PDV na tela Gestão → LOG)

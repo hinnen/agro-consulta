@@ -4,6 +4,8 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
+**PREP loja (11/11) v27.26.55 — pronto, ainda não enviado.** Três coisas juntas: unificar fornecedor na nota; Point já pago grava a venda e log do PDV; PIN da saída grava quem digitou. Migrate só **0155** (tabela do log). Base loja `af7af8cc`. Volta: `rollback/pre-v272655-1111-loja-3`. Cutover: `./scripts/cutover_loja_checklist_1111_loja_3.sh` (só sobe com frase + senha).
+
 ---
 
 ---

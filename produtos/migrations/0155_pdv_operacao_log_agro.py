@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("produtos", "0152_whatsapp_pedido_arquivar"),
+        ("produtos", "0154_whatsapp_public_origin"),
     ]
 
     operations = [
