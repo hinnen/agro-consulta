@@ -4,7 +4,7 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
-**Checklist único (11/11):** **SISTAPP-TROCA-CAMERA** — 🟢 pronto para envio. Ajuste, Fotos e Etiquetas. Sem migrate. Código em `teste` @ `77de8913`. Não sobe sem senha.
+**Checklist único (11/11c):** **SISTAPP-TROCA-CAMERA** — 🟢 corte armado, **ainda sem enviar**. Alvo **v27.26.57**. Sem migrate. Base loja `c8256c26`. Código `77de8913`. Checkpoint: `./scripts/prep_checkpoint_checklist_1111c_sistapp_troca_camera.sh`. Na senha: `./scripts/cutover_loja_checklist_1111c_sistapp_troca_camera.sh --exec`. Volta (só nasce na senha): `rollback/pre-v272657-1111c-sistapp-troca-camera`.
 
 **Loja (03/11 · PR 479):** **WA-ORIGIN-PC** — ✅ **Live v27.26.49** @ `2d002112`. Migrate **0154** OK. `/healthz` = ok. Volta: `rollback/pre-v272649-0311-wa-origin-pc` (`39b447ad`). Revert: `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao`.
 

@@ -1296,13 +1296,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
-### 🟢 CHECKLIST ÚNICO — **11/11** · **SISTAPP-TROCA-CAMERA** · pronto para envio à produção
+### 🟢 CHECKLIST ÚNICO — **11/11c** · **SISTAPP-TROCA-CAMERA** · corte armado · ainda sem enviar
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **SISTAPP-TROCA-CAMERA** | 🟢 pronto para envio | **NÃO** | escolha da lente OK · 3 telas compilam · VERIFY ajuste 20/21 (falta só o banco local) |
+| 1 | **SISTAPP-TROCA-CAMERA** | 🟢 armado · aguarda pausa + senha | **NÃO** | patch em `c8256c26` · troca **VERIFY_OK 10** · bip **20/21** (sem banco local) |
 
-Ajuste, Fotos e Etiquetas: abre a câmera de trás mais nítida e tem **Trocar câmera**. A lente escolhida fica no celular. Código em `teste` @ `77de8913`. Sem migrate. Não mexe em PDV, caixa nem venda. **Não** sobe sem pausa + frase + senha.
+Ajuste, Fotos e Etiquetas. Alvo **v27.26.57**. Código `77de8913`. Não mexe em PDV, caixa nem venda.
+
+| Campo | Valor |
+| ----- | ----- |
+| **Checkpoint** | `producao` ainda `c8256c26` · `./scripts/prep_checkpoint_checklist_1111c_sistapp_troca_camera.sh` |
+| **Corte** | `./scripts/cutover_loja_checklist_1111c_sistapp_troca_camera.sh` (sem `--exec` agora) |
+| **Na senha** | o mesmo script com `--exec` |
+| **Volta** | `rollback/pre-v272657-1111c-sistapp-troca-camera` nasce só na senha |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1111c-sistapp-troca-camera.md` |
 
 ### ✅ CHECKLIST ÚNICO — **11/11** · enviado **v27.26.55** @ `2a49ba66`
 
