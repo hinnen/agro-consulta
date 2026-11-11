@@ -50,6 +50,21 @@
 
 **Por quê:** se o PC estragar, o código já está no GitHub. Bug no `teste` **não** quebra a loja.
 
+### 0.3 Branch — Cloud fica em `teste` · proibido `cursor/…` (11/11/2026, Renan)
+
+Renan trabalha **só pelo Cloud**. O menu **teste** do chat novo é o branch de trabalho, não um ponto de partida para outro.
+
+| Ação | Regra |
+| ---- | ----- |
+| **Branch do chat** | Ficar em **`teste`**. Commit e push **direto** em `origin/teste`. |
+| **Proibido** | Criar, fazer checkout ou deixar no remoto branch `cursor/…`, `deploy/…`, `rollback/…` ou `producao-backup-…`. |
+| **Se o chat já abriu num `cursor/…`** | Trazer os commits para `teste`, push em `teste`, e **apagar** o `cursor/…` no GitHub antes de encerrar. |
+| **Remoto** | Só **`teste`**, **`producao`** e **`whatsapp`**. |
+| **`whatsapp`** | Outro projeto. Só mexer nele se a tarefa for WhatsApp. Não criar branch em cima. |
+| **`producao`** | Continua só com frase + senha na mesma mensagem. |
+
+O menu **Cloud** do chat escolhe a máquina, **não** o branch. Não existe interruptor na tela para “ficar no branch”. Esta regra substitui esse interruptor.
+
 Detalhe no topo do `banana.md` (bloco **Teste / backup GitHub**).
 
 ---

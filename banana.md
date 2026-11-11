@@ -35,6 +35,8 @@
 **Não** push a cada meio caminho quebrado (só entrega fechada / checkpoint útil). Bug no `teste` **não** quebra a loja — histórico Git permite voltar.  
 **Produção:** continua **só** com frase + senha **depois** de Renan testar local. **Dois repos Git não são necessários** — `teste` (rascunho+backup) e `producao` (loja) bastam.
 
+**Branch no Cloud (11/11/2026, Renan):** o chat de nuvem **fica em `teste`**. Commit e push direto em `origin/teste`. **Proibido** criar ou deixar branch `cursor/…` (também `deploy/…`, `rollback/…`, `producao-backup-…`). Se o chat já estiver num `cursor/…`, passar os commits para `teste` e apagar esse branch. No GitHub só ficam **`teste`**, **`producao`** e **`whatsapp`**. `whatsapp` só quando a tarefa for WhatsApp. `producao` continua só com frase + senha. Detalhe: `banana-roteiro.md` §0.3.
+
 **Registro no banana (regra â€” 2026-06-22):** **Toda alteraÃ§Ã£o** que mude o sistema (fix, feature, deploy teste ou produÃ§Ã£o) â†’ **registrar no `banana.md`** ao fechar a tarefa (CHECKPOINT: o quÃª mudou, commits, versÃ£o `VERSION`, teste OK ou pendente). Serve para **contexto do prÃ³ximo chat**, **diagnosticar problema** e **saber o que reverter**. Assistente **nÃ£o pergunta** se deve registrar â€” faz sempre que entregar cÃ³digo ou deploy. Detalhe passageiro ou chat sÃ³ explicativo: nÃ£o inflar o doc.
 
 ---
