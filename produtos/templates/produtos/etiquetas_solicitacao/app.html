@@ -7,6 +7,7 @@
   <title>Solicitar etiquetas | GM</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="/static/produtos/js/sistapp_camera_escolha.js"></script>
   <style>
     :root {
       --ink: #0f172a;
@@ -454,6 +455,7 @@
     <div id="reader-box"></div>
     <div class="scan-bar">
       <span>Aponte para o código</span>
+      <button type="button" class="btn" id="btnTrocaCam" hidden aria-label="Trocar câmera" style="color:#0f172a;background:#fff;border-color:#fff;">Trocar câmera</button>
       <button type="button" class="btn" id="btnFechaScan" aria-label="Fechar câmera" style="color:#fff;background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.35);">Fechar</button>
     </div>
   </div>
@@ -847,17 +849,25 @@
       var box = document.getElementById("reader-box");
       if (box) box.innerHTML = "";
     }
-    function pararScan() {
-      reabrirScanAposEnvio = false;
+    var camList = [];
+    var camAtual = null;
+    function mostrarTroca() {
+      var b = document.getElementById("btnTrocaCam");
+      if (b) b.hidden = !(camList && camList.length > 1);
+    }
+    function pararScan(keepOpen) {
+      if (!keepOpen) reabrirScanAposEnvio = false;
       scanningActive = false;
-      document.body.classList.remove("scan-open");
       var reader = document.getElementById("reader");
-      reader.classList.remove("on");
-      reader.setAttribute("aria-hidden", "true");
+      if (!keepOpen) {
+        document.body.classList.remove("scan-open");
+        reader.classList.remove("on");
+        reader.setAttribute("aria-hidden", "true");
+      }
       var inst = scanner;
       scanner = null;
       if (!inst) {
-        limparReaderBox();
+        if (!keepOpen) limparReaderBox();
         return Promise.resolve();
       }
       return inst
@@ -867,7 +877,7 @@
           try {
             inst.clear();
           } catch (e) {}
-          limparReaderBox();
+          if (!keepOpen) limparReaderBox();
         });
     }
     function qrBoxSize() {
@@ -875,35 +885,22 @@
       var boxW = Math.min(280, Math.max(200, w - 48));
       return { width: boxW, height: Math.round(boxW * 0.55) };
     }
-    async function iniciarScan() {
-      if (!window.Html5Qrcode) {
-        setStatus("Leitor indisponível neste aparelho.", true);
-        return;
-      }
-      if (!baseProdutos.length) {
-        setStatus("Aguarde o catálogo carregar.", true);
-        return;
-      }
-      if (enviando) return;
-      reabrirScanAposEnvio = false;
-      await pararScan();
-      await new Promise(function (r) {
-        setTimeout(r, 200);
-      });
-      limparReaderBox();
-      esconderPanelSemCadastro();
-      document.body.classList.add("scan-open");
-      var reader = document.getElementById("reader");
-      reader.classList.add("on");
-      reader.setAttribute("aria-hidden", "false");
-      scanner = new Html5Qrcode("reader-box");
-      scanningActive = true;
-      setStatus(bipEnviarDiretoAtivo() ? "Bipe — envia direto se achar." : "Bipe — câmera fica aberta.");
+    function ligarCamera(cam) {
+      camAtual = cam;
+      if (window.SistAppCamera) SistAppCamera.lembrar(typeof cam === "string" ? cam : "");
+      mostrarTroca();
       var box = qrBoxSize();
-      scanner
+      var cfg = {
+        fps: 10,
+        qrbox: box,
+        videoConstraints: window.SistAppCamera
+          ? SistAppCamera.configVideo(cam)
+          : { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } },
+      };
+      return scanner
         .start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: box },
+          cam || { facingMode: "environment" },
+          cfg,
           function (decoded) {
             if (!scanningActive || enviando) return;
             processarBipScan(decoded);
@@ -914,6 +911,38 @@
           setStatus("Não abriu a câmera — veja permissões.", true);
           pararScan();
         });
+    }
+    async function iniciarScan(cameraForcada) {
+      if (!window.Html5Qrcode) {
+        setStatus("Leitor indisponível neste aparelho.", true);
+        return;
+      }
+      if (!baseProdutos.length) {
+        setStatus("Aguarde o catálogo carregar.", true);
+        return;
+      }
+      if (enviando) return;
+      reabrirScanAposEnvio = false;
+      if (!cameraForcada) {
+        await pararScan();
+        await new Promise(function (r) {
+          setTimeout(r, 200);
+        });
+        limparReaderBox();
+      }
+      esconderPanelSemCadastro();
+      document.body.classList.add("scan-open");
+      var reader = document.getElementById("reader");
+      reader.classList.add("on");
+      reader.setAttribute("aria-hidden", "false");
+      scanner = new Html5Qrcode("reader-box");
+      scanningActive = true;
+      setStatus(bipEnviarDiretoAtivo() ? "Bipe — envia direto se achar." : "Bipe — câmera fica aberta.");
+      if (cameraForcada) return ligarCamera(cameraForcada);
+      var lib = window.SistAppCamera;
+      var cams = lib ? await lib.getCameras() : [];
+      camList = cams || [];
+      return ligarCamera(lib ? lib.escolher(camList) : { facingMode: "environment" });
     }
     document.getElementById("busca").addEventListener("input", function () {
       var v = this.value;
@@ -935,6 +964,11 @@
     });
     document.getElementById("btnScan").addEventListener("click", function () {
       iniciarScan();
+    });
+    document.getElementById("btnTrocaCam").addEventListener("click", function () {
+      if (!window.SistAppCamera || !camList || camList.length < 2 || enviando) return;
+      var next = SistAppCamera.proxima(camList, camAtual);
+      pararScan(true).then(function () { iniciarScan(next); });
     });
     document.getElementById("btnFechaScan").addEventListener("click", function () {
       pararScan();

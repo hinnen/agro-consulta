@@ -49,6 +49,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   {% include "produtos/_agro_consulta_ui.html" %}
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="{% static 'produtos/js/sistapp_camera_escolha.js' %}"></script>
   <style>
     :root {
       --ma-kb-inset: 0px;
@@ -921,6 +922,9 @@
     <div id="reader-box" class="absolute inset-0"></div>
     <div class="absolute top-0 left-0 right-0 pt-[max(0.6rem,env(safe-area-inset-top))] px-3 flex items-center justify-between gap-2 bg-gradient-to-b from-black/75 to-transparent">
       <p class="text-white text-xs font-black uppercase tracking-wide">Câmera ativa</p>
+      <button type="button" id="ma-btn-trocar-camera" onclick="maTrocarCamera()" class="hidden inline-flex items-center justify-center min-h-[2.75rem] px-4 rounded-xl bg-white text-slate-900 text-xs font-black uppercase">
+        Trocar câmera
+      </button>
       <button type="button" onclick="stopScan()" class="inline-flex items-center justify-center min-h-[2.75rem] px-4 rounded-xl bg-white/15 border border-white/35 text-white text-xs font-black uppercase">
         Fechar
       </button>
@@ -2602,8 +2606,25 @@ function maOnScanDecoded(codigo) {
   if (r === 'ok' || r === 'debounce' || r === 'aguarde') return;
 }
 
-function startScan() {
-  if (scanningActive || maScanBusy) return;
+let maCamList = [];
+let maCamAtual = null;
+
+function maAtualizarBtnTrocar() {
+  const btn = document.getElementById('ma-btn-trocar-camera');
+  if (!btn) return;
+  btn.classList.toggle('hidden', !(maCamList && maCamList.length > 1));
+}
+
+function maTrocarCamera() {
+  if (!scanningActive || maScanBusy || !window.SistAppCamera) return;
+  if (!maCamList || maCamList.length < 2) return;
+  const next = SistAppCamera.proxima(maCamList, maCamAtual);
+  maScanBusy = true;
+  stopScan({ keepBusy: true, keepOpen: true }).then(() => startScan(next));
+}
+
+function startScan(cameraForcada) {
+  if (!cameraForcada && (scanningActive || maScanBusy)) return;
   if (typeof Html5Qrcode === 'undefined') {
     if (typeof maMostrarToast === 'function') {
       maMostrarToast('Câmera não carregou. Use o bipador no campo.', false);
@@ -2660,8 +2681,16 @@ function startScan() {
       experimentalFeatures: { useBarCodeDetectorIfSupported: true },
     };
     if (formats && formats.length) config.formatsToSupport = formats;
-    scanner.start(
-      { facingMode: 'environment' },
+    const abrirCom = (cam, cams) => {
+      maCamList = cams || maCamList || [];
+      maCamAtual = cam;
+      if (window.SistAppCamera) SistAppCamera.lembrar(typeof cam === 'string' ? cam : '');
+      maAtualizarBtnTrocar();
+      config.videoConstraints = window.SistAppCamera
+        ? SistAppCamera.configVideo(cam)
+        : { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } };
+      scanner.start(
+      cam || { facingMode: 'environment' },
       config,
       (txt) => {
         if (!scanningActive) return;
@@ -2681,23 +2710,35 @@ function startScan() {
         else alert(msg);
       });
     });
+    };
+    if (cameraForcada) {
+      abrirCom(cameraForcada, maCamList);
+      return;
+    }
+    const lib = window.SistAppCamera;
+    const pedido = lib ? lib.getCameras() : Promise.resolve([]);
+    pedido.then((cams) => {
+      const cam = lib ? lib.escolher(cams) : { facingMode: 'environment' };
+      abrirCom(cam, cams);
+    });
   });
 }
 
 function stopScan(opts) {
   const keepBusy = !!(opts && opts.keepBusy);
+  const keepOpen = !!(opts && opts.keepOpen);
   const reader = document.getElementById('reader');
   const finish = () => {
     scanningActive = false;
     maScanSyncBtns();
     if (!keepBusy) maScanBusy = false;
-    if (reader) reader.classList.add('hidden');
+    if (!keepOpen && reader) reader.classList.add('hidden');
     const box = document.getElementById('reader-box');
-    if (box) {
+    if (!keepOpen && box) {
       try { box.innerHTML = ''; } catch (_) {}
     }
     scanner = null;
-    if (window.__maScanLocked && typeof window.maLockScroll === 'function') {
+    if (!keepOpen && window.__maScanLocked && typeof window.maLockScroll === 'function') {
       window.__maScanLocked = false;
       window.maLockScroll(false);
     }
