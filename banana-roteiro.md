@@ -4,6 +4,8 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
+**Checklist único (11/11):** **SISTAPP-TROCA-CAMERA** — 🟢 pronto para envio. Ajuste, Fotos e Etiquetas. Sem migrate. Código em `teste` @ `77de8913`. Não sobe sem senha.
+
 **Loja (03/11 · PR 479):** **WA-ORIGIN-PC** — ✅ **Live v27.26.49** @ `2d002112`. Migrate **0154** OK. `/healthz` = ok. Volta: `rollback/pre-v272649-0311-wa-origin-pc` (`39b447ad`). Revert: `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao`.
 
 **Loja (11/11b):** **v27.26.56** enviada @ `c8256c26`. Só destravar a Entrada de NF. Sem migrate. Até o build, no ar segue a tela travada da v27.26.55. Volta: `rollback/pre-v272656-1111b-entrada-nf-js`. Revert: `git push origin rollback/pre-v272656-1111b-entrada-nf-js:producao`.

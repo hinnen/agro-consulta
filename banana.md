@@ -1296,6 +1296,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
+### 🟢 CHECKLIST ÚNICO — **11/11** · **SISTAPP-TROCA-CAMERA** · pronto para envio à produção
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **SISTAPP-TROCA-CAMERA** | 🟢 pronto para envio | **NÃO** | escolha da lente OK · 3 telas compilam · VERIFY ajuste 20/21 (falta só o banco local) |
+
+Ajuste, Fotos e Etiquetas: abre a câmera de trás mais nítida e tem **Trocar câmera**. A lente escolhida fica no celular. Código em `teste` @ `77de8913`. Sem migrate. Não mexe em PDV, caixa nem venda. **Não** sobe sem pausa + frase + senha.
+
 ### ✅ CHECKLIST ÚNICO — **11/11** · enviado **v27.26.55** @ `2a49ba66`
 
 Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollback/pre-v272655-1111-loja-3:producao`.
