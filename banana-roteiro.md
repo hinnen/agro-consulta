@@ -6,7 +6,7 @@
 
 **Loja (11/11c):** **SISTAPP-TROCA-CAMERA** enviada · **v27.26.57** @ `007e9bfc`. Sem migrate. Até o build, no ar segue **v27.26.56** @ `c8256c26`. Volta: `git push origin c8256c2664d86d5d9c79cc974d5bc10b104666d7:producao`.
 
-**Checklist único (11/11d):** **SISTAPP-CAMERA-TRASEIRA** — 🟢 pronto para envio. A v27.26.57 abria a frontal e o botão não trocava. Esta correção abre na câmera de trás e o botão muda a lente. Sem migrate. Não sobe sem senha.
+**Loja (11/11d):** **SISTAPP-CAMERA-TRASEIRA** enviada · **v27.26.58** @ `ee330433`. Sem migrate. Até o build, no ar segue **v27.26.57** @ `007e9bfc`. Volta: `git push origin 007e9bfc4b0ade40a68bc2a5ddcdbdbc343a2858:producao`.
 
 **Loja (03/11 · PR 479):** **WA-ORIGIN-PC** — ✅ **Live v27.26.49** @ `2d002112`. Migrate **0154** OK. `/healthz` = ok. Volta: `rollback/pre-v272649-0311-wa-origin-pc` (`39b447ad`). Revert: `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao`.
 

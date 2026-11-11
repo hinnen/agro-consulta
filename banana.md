@@ -1296,13 +1296,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
-### 🟢 CHECKLIST ÚNICO — **11/11d** · **SISTAPP-CAMERA-TRASEIRA** · pronto para envio à produção
+### ✅ CHECKLIST ÚNICO — **11/11d** · **SISTAPP-CAMERA-TRASEIRA** · enviado **v27.26.58** @ `ee330433`
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **SISTAPP-CAMERA-TRASEIRA** | 🟢 pronto para envio | **NÃO** | a v27.26.57 abria a frontal porque o pedido de nitidez apagava a lente |
+| 1 | **SISTAPP-CAMERA-TRASEIRA** | ✅ enviado | **NÃO** | patch em `007e9bfc` · VERIFY_OK 15 · sem migrate |
 
-Abre na câmera de trás na hora. **Trocar câmera** muda a lente. Não mexe em PDV, caixa nem venda. **Não** sobe sem pausa + frase + senha. A v27.26.57 já enviada continua com o defeito até esta correção subir.
+Abre na câmera de trás. **Trocar câmera** muda a lente. Até o build, no ar segue **v27.26.57** @ `007e9bfc`. PDV, caixa e venda não entram.
+
+| Campo | Valor |
+| ----- | ----- |
+| **Git** | `producao` @ `ee330433` |
+| **Volta** | `git push origin 007e9bfc4b0ade40a68bc2a5ddcdbdbc343a2858:producao` |
 
 ### ✅ CHECKLIST ÚNICO — **11/11c** · **SISTAPP-TROCA-CAMERA** · enviado **v27.26.57** @ `007e9bfc`
 
