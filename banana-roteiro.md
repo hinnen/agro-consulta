@@ -6,7 +6,11 @@
 
 **Loja (03/11 · PR 479):** **WA-ORIGIN-PC** — ✅ **Live v27.26.49** @ `2d002112`. Migrate **0154** OK. `/healthz` = ok. Volta: `rollback/pre-v272649-0311-wa-origin-pc` (`39b447ad`). Revert: `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao`.
 
-**PREP loja (09/11):** **NF-FORN-UNIF-AGRO** — 🟢 **pronto para envio** **v27.26.54** @ `2650ca85` (`deploy/prep-checklist-0911-nf-forn-unif-agro`). Base `af7af8cc` v27.26.53. Sem migrate. Aguarda frase+senha. Volta: `rollback/pre-v272654-0911-nf-forn-unif-agro`.
+**PREP loja (11/11) — checklist único, 3 prontos:**
+1. **NF-FORN-UNIF-AGRO** — unificar fornecedor na nota (RBS). v27.26.54 @ `2650ca85`. Sem migrate. Volta: `rollback/pre-v272654-0911-nf-forn-unif-agro`.
+2. **MP-POINT-ORFAO-PAGO** + **PDV-LOG** — Point já pago grava a venda; log do PDV em Gestão. Código na branch `cursor/mp-point-orfaopago-pdv-log-4662` (PR #491). Migrate nova (teste `0153`, na loja vira `0155`).
+3. **PIN-SAIDA-OPERADOR** — saída grava quem digitou o PIN; PIN repetido recusa. Código na branch `cursor/fix-pin-operador-saida-6b5a`. Sem migrate. Prova 30/30.
+Aguarda frase+senha. Nenhum dos três está na loja.
 
 **Loja (04/11d):** **RH-FAIXA-SALARIAL** — enviado `af7af8cc` (**v27.26.53**). Migrate **NÃO**. Até o build terminar, no ar segue **v27.26.52** @ `43ee490c`. Volta: `rollback/pre-v272653-0411d-rh-faixa`. Revert: `git push origin rollback/pre-v272653-0411d-rh-faixa:producao`.
 
