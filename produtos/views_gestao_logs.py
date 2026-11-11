@@ -92,6 +92,23 @@ def _linhas_de_queryset(qs, tipo: str) -> list[dict]:
                     "extra": "",
                 }
             )
+        elif tipo == "pdv_operacao":
+            det = obj.detalhe_json if isinstance(getattr(obj, "detalhe_json", None), dict) else {}
+            quem = obj.operador_nome or obj.usuario_login or "—"
+            extra_bits = []
+            for k in ("resp_order_id", "resp_action", "resp_tinha_pago_point", "resp_venda_id"):
+                if det.get(k) not in (None, "", False):
+                    extra_bits.append(f"{k.replace('resp_', '')}={det.get(k)}")
+            rows.append(
+                {
+                    "quando": _fmt_dt(obj.criado_em),
+                    "quem": quem,
+                    "acao": obj.acao,
+                    "detalhe": f"{obj.metodo} {obj.path}".strip(),
+                    "status": str(obj.status_http or ""),
+                    "extra": (" · ".join(extra_bits) or str(det.get("body") or "")[:120]),
+                }
+            )
         elif tipo == "tarefa_eventos":
             rows.append(
                 {

@@ -12,6 +12,7 @@ from .models import (
     FiadoTituloAgro,
     GmLojasAppLogAgro,
     ItemVendaAgro,
+    PdvOperacaoLogAgro,
     MovimentoCaixa,
     OpcaoBaixaFinanceiroExtra,
     PlanoContaAgro,
@@ -343,6 +344,38 @@ class GmLojasAppLogAgroAdmin(admin.ModelAdmin):
     list_filter = ("acao", "metodo", "status_http")
     search_fields = ("operador_nome", "acao", "path")
     readonly_fields = ("criado_em", "operador_nome", "acao", "metodo", "path", "status_http", "detalhe_json")
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(PdvOperacaoLogAgro)
+class PdvOperacaoLogAgroAdmin(admin.ModelAdmin):
+    list_display = (
+        "criado_em",
+        "operador_nome",
+        "usuario_login",
+        "acao",
+        "metodo",
+        "path",
+        "status_http",
+    )
+    list_filter = ("acao", "metodo", "status_http")
+    search_fields = ("operador_nome", "usuario_login", "acao", "path")
+    readonly_fields = (
+        "criado_em",
+        "operador_nome",
+        "usuario_login",
+        "acao",
+        "metodo",
+        "path",
+        "status_http",
+        "detalhe_json",
+        "django_session_key",
+    )
 
     def has_add_permission(self, request):
         return False

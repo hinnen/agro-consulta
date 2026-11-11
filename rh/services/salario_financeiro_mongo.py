@@ -100,9 +100,14 @@ def _valor_pago_titulo(f: FechamentoFolhaSimplificado, bruto: Decimal, db, mid: 
 
 def _usuario_label(usuario) -> str:
     if usuario is not None and getattr(usuario, "is_authenticated", False):
+        nome = (usuario.get_full_name() or getattr(usuario, "first_name", "") or "").strip()
+        if nome:
+            return nome[:120]
         return (
             getattr(usuario, "email", None) or usuario.get_username() or str(usuario.pk)
         )[:120]
+    if isinstance(usuario, str) and usuario.strip():
+        return usuario.strip()[:120]
     return "RH"
 
 

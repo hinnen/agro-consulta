@@ -1172,26 +1172,61 @@ def validar_sessao_loja_browser(request, sessao) -> tuple[bool, str]:
     return True, ""
 
 
+MSG_PIN_AMBIGUO = (
+    "PIN em conflito (mais de um operador com o mesmo número). "
+    "Peça ao RH para corrigir em Operadores / PIN."
+)
+
+
 def _perfil_usuario_por_pin(pin: str):
+    """
+    Resolve 1 perfil ativo pelo PIN.
+
+    PIN duplicado (2+ ativos) → ``None`` (não escolhe «o primeiro» — evita Nathan
+    digitar o PIN e gravar Renan / Geraldo).
+    """
     from base.models import PerfilUsuario
 
     pin = (pin or "").strip()
     if not pin or pin == "1234":
         return None
-    return (
+    qs = (
         PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True)
-        .select_related("user")
-        .only(
-            "pk",
-            "senha_rapida",
-            "codigo_vendedor",
-            "ativo",
-            "user__first_name",
-            "user__last_name",
-            "user__username",
-        )
-        .first()
+        .select_related("user", "funcionario")
+        .order_by("pk")
     )
+    matches = list(qs[:2])
+    if len(matches) != 1:
+        return None
+    return matches[0]
+
+
+def _pin_tem_conflito(pin: str) -> bool:
+    from base.models import PerfilUsuario
+
+    pin = (pin or "").strip()
+    if not pin or pin == "1234":
+        return False
+    return PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).count() > 1
+
+
+def _rotulo_de_perfil(perfil) -> str:
+    if not perfil:
+        return ""
+    try:
+        from base.operador_util import nome_exibicao_perfil
+
+        rot = (nome_exibicao_perfil(perfil) or "").strip()
+        if rot:
+            return rot
+    except Exception:
+        pass
+    u = getattr(perfil, "user", None)
+    if u is None:
+        return (getattr(perfil, "codigo_vendedor", None) or "").strip()
+    return (
+        u.get_full_name() or u.first_name or u.username or getattr(perfil, "codigo_vendedor", None) or ""
+    ).strip()
 
 
 def validar_pin_operador(pin: str) -> tuple[bool, str]:
@@ -1201,6 +1236,8 @@ def validar_pin_operador(pin: str) -> tuple[bool, str]:
         return False, "Informe o PIN."
     if pin == "1234":
         return False, "Senha padrão (1234) bloqueada. Troque seu PIN."
+    if _pin_tem_conflito(pin):
+        return False, MSG_PIN_AMBIGUO
     if _perfil_usuario_por_pin(pin) is None:
         return False, "PIN incorreto."
     return True, ""
@@ -1208,10 +1245,7 @@ def validar_pin_operador(pin: str) -> tuple[bool, str]:
 
 def rotulo_operador_pin(pin: str) -> str:
     perfil = _perfil_usuario_por_pin(pin)
-    if not perfil:
-        return ""
-    u = perfil.user
-    return (u.get_full_name() or u.first_name or u.username or perfil.codigo_vendedor or "").strip()
+    return _rotulo_de_perfil(perfil)
 
 
 def rotulo_usuario_django(user) -> str:
@@ -1314,10 +1348,7 @@ def cadastrar_pin_operador_primeira_vez(
     perfil.primeiro_acesso = False
     perfil.save(update_fields=["senha_rapida", "primeiro_acesso"])
 
-    rot = rotulo_operador_pin(pin_novo)
-    if not rot:
-        u = perfil.user
-        rot = (u.get_full_name() or u.first_name or u.username or perfil.codigo_vendedor or "").strip()
+    rot = _rotulo_de_perfil(perfil) or rotulo_operador_pin(pin_novo)
     if not rot:
         return False, "", "PIN salvo, mas sem nome no cadastro."
     return True, rot[:150], ""
@@ -1333,11 +1364,12 @@ def operador_label_de_pin(pin: str) -> tuple[bool, str, str]:
         return False, "", "Informe o PIN."
     if pin == "1234":
         return False, "", "Senha padrão (1234) bloqueada. Troque seu PIN."
+    if _pin_tem_conflito(pin):
+        return False, "", MSG_PIN_AMBIGUO
     perfil = _perfil_usuario_por_pin(pin)
     if perfil is None:
         return False, "", "PIN incorreto."
-    u = perfil.user
-    rot = (u.get_full_name() or u.first_name or u.username or perfil.codigo_vendedor or "").strip()
+    rot = _rotulo_de_perfil(perfil)
     if not rot:
         return False, "", "PIN não vinculado a um operador."
     return True, rot[:150], ""
@@ -1346,6 +1378,31 @@ def operador_label_de_pin(pin: str) -> tuple[bool, str, str]:
 def usuario_django_de_pin(pin: str):
     perfil = _perfil_usuario_por_pin(pin)
     return perfil.user if perfil else None
+
+
+def usuario_movimento_de_pin_ou_sessao(request, pin: str = ""):
+    """
+    User Django para gravar em MovimentoCaixa / FK de auditoria.
+
+    Ordem: PIN fresco → ``pdv_operador_user_id`` da sessão.
+    **Não** usa login Chrome (evita Renan fantasma quando Nathan digita o PIN).
+    """
+    pin_n = (pin or "").strip()
+    if pin_n:
+        u = usuario_django_de_pin(pin_n)
+        if u is not None:
+            return u
+    if request is None:
+        return None
+    try:
+        uid = int(request.session.get("pdv_operador_user_id") or 0)
+    except (TypeError, ValueError):
+        uid = 0
+    if uid <= 0:
+        return None
+    from django.contrib.auth import get_user_model
+
+    return get_user_model().objects.filter(pk=uid).first()
 
 
 def id_sessao_caixa_browser(request) -> int:
@@ -1903,7 +1960,15 @@ def resolver_sessao_caixa_para_venda(request, data: dict | None = None):
     return adotar_sessao_caixa_unica_aberta(request)
 
 
-def registrar_retirada_turno_caixa(request, *, valor, forma_nome: str, observacao: str = ""):
+def registrar_retirada_turno_caixa(
+    request,
+    *,
+    valor,
+    forma_nome: str,
+    observacao: str = "",
+    usuario=None,
+    pin: str = "",
+):
     """Após saída financeira (plano de conta), registra retirada na sessão aberta."""
     from produtos.models import MovimentoCaixa
 
@@ -1914,13 +1979,16 @@ def registrar_retirada_turno_caixa(request, *, valor, forma_nome: str, observaca
     if v <= 0:
         return None
     fn = normalizar_forma_pagamento_caixa(forma_nome or "Dinheiro")
+    user_mov = usuario
+    if user_mov is None:
+        user_mov = usuario_movimento_de_pin_ou_sessao(request, pin)
     return MovimentoCaixa.objects.create(
         sessao_caixa=sessao,
         tipo=MovimentoCaixa.Tipo.RETIRADA,
         forma_pagamento=fn,
         valor=v,
         observacao=str(observacao or "")[:500],
-        usuario=request.user if getattr(request, "user", None) and request.user.is_authenticated else None,
+        usuario=user_mov,
     )
 
 

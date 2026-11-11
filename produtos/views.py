@@ -118,6 +118,7 @@ from .caixa_util import (
     pagamentos_por_forma_venda,
     registrar_retirada_turno_caixa,
     operador_label_de_pin,
+    usuario_movimento_de_pin_ou_sessao,
     resumo_esperado_por_forma,
     _agregar_resumo_turno_sessao,
     obter_sessao_caixa_aberta_request,
@@ -13244,11 +13245,15 @@ def api_caixa_movimento(request):
         if rot:
             pref = f"[PIN {rot}] "
             obs = (pref + obs)[:500]
-    user_mov = request.user if request.user.is_authenticated else None
+    # Sempre PIN/sessão PIN — nunca login Chrome (Nathan ≠ Renan no PC).
     if pin:
-        u_pin = usuario_django_de_pin(pin)
-        if u_pin is not None:
-            user_mov = u_pin
+        try:
+            from produtos.pdv_transf_loja_util import gravar_operador_sessao_pdv
+
+            gravar_operador_sessao_pdv(request, pin)
+        except Exception:
+            pass
+    user_mov = usuario_movimento_de_pin_ou_sessao(request, pin)
     mov = MovimentoCaixa.objects.create(
         sessao_caixa=sessao,
         tipo=tipo,
@@ -21835,6 +21840,8 @@ def _anexar_retirada_turno_caixa_saida(
     plano: str,
     motivo: str,
     desc_linha: str,
+    usuario=None,
+    pin: str = "",
 ) -> bool:
     """Registra retirada no turno aberto. Retorna False se o caixa não estiver aberto."""
     try:
@@ -21851,6 +21858,8 @@ def _anexar_retirada_turno_caixa_saida(
             valor=Decimal(str(valor)),
             forma_nome=forma_nome,
             observacao=obs[:500],
+            usuario=usuario,
+            pin=pin,
         )
         if mov:
             out["movimento_caixa_id"] = mov.pk
@@ -22042,6 +22051,19 @@ def api_lancamentos_saida_caixa(request):
     if not banco_nome or not forma_nome:
         return JsonResponse({"ok": False, "erro": "Informe conta/banco e forma de pagamento."}, status=400)
 
+    pin = str(payload.get("pin") or payload.get("pin_operador") or "").strip()
+    ok_pin, usuario, err_pin = operador_label_de_pin(pin)
+    if not ok_pin:
+        return JsonResponse(
+            {"ok": False, "erro": err_pin or "Digite seu PIN (cadastro RH) para registrar a saída."},
+            status=403,
+        )
+    # Sessão completa (nome + user_id + fresco) — nunca só o login Chrome.
+    from produtos.pdv_transf_loja_util import gravar_operador_sessao_pdv
+
+    gravar_operador_sessao_pdv(request, pin)
+    user_pin = usuario_django_de_pin(pin)
+
     if is_deposito:
         bn_up = banco_nome.upper()
         if bn_up.startswith("CAIXA") or bn_up in ("CAIXA 1", "CAIXA1"):
@@ -22060,6 +22082,8 @@ def api_lancamentos_saida_caixa(request):
             valor=Decimal(str(valor)),
             forma_nome=forma_nome,
             observacao=desc_dep,
+            usuario=user_pin,
+            pin=pin,
         )
         if not mov_dep:
             return JsonResponse(
@@ -22083,16 +22107,6 @@ def api_lancamentos_saida_caixa(request):
     # Mongo ERP desligado na loja: db pode ser None. O dispatch abaixo grava
     # TituloFinanceiroAgro (Postgres). Não retornar 503 «Mongo indisponível»
     # (vira «serviço legado» no middleware) — quebra saída Alimentação / planos comuns.
-
-    pin = str(payload.get("pin") or payload.get("pin_operador") or "").strip()
-    ok_pin, usuario, err_pin = operador_label_de_pin(pin)
-    if not ok_pin:
-        return JsonResponse(
-            {"ok": False, "erro": err_pin or "Digite seu PIN (cadastro RH) para registrar a saída."},
-            status=403,
-        )
-    request.session["pdv_operador_nome"] = usuario[:120]
-    request.session.modified = True
 
     if plano_id_req:
         partes = []
@@ -22119,7 +22133,7 @@ def api_lancamentos_saida_caixa(request):
             forma_id=str(payload.get("forma_id") or "").strip() or None,
             banco_nome=banco_nome,
             banco_id=str(payload.get("banco_id") or "").strip() or None,
-            usuario=request.user,
+            usuario=user_pin,
             observacao_desc=desc_linha,
         )
         if alt is not None:
@@ -22143,6 +22157,8 @@ def api_lancamentos_saida_caixa(request):
                     plano=plano,
                     motivo=motivo,
                     desc_linha=desc_linha,
+                    usuario=user_pin,
+                    pin=pin,
                 )
             return JsonResponse(out, status=st)
         return JsonResponse(
@@ -22174,7 +22190,7 @@ def api_lancamentos_saida_caixa(request):
             forma_id=str(payload.get("forma_id") or "").strip() or None,
             banco_nome=banco_nome,
             banco_id=str(payload.get("banco_id") or "").strip() or None,
-            usuario=request.user,
+            usuario=user_pin,
             observacao_desc=desc_linha,
         )
         if alt is not None:
@@ -22199,6 +22215,8 @@ def api_lancamentos_saida_caixa(request):
                     plano=plano,
                     motivo=motivo,
                     desc_linha=desc_linha,
+                    usuario=user_pin,
+                    pin=pin,
                 )
             return JsonResponse(out, status=st)
         return JsonResponse(
@@ -22296,7 +22314,7 @@ def api_lancamentos_saida_caixa(request):
                 data_competencia=dc,
                 empresa_nome=empresa_nome,
                 valor=valor,
-                usuario=request.user,
+                usuario=user_pin,
             )
         except Exception:
             logger.exception("RH: vale automático pós-saída caixa")
@@ -22319,6 +22337,8 @@ def api_lancamentos_saida_caixa(request):
                 plano=plano,
                 motivo=motivo,
                 desc_linha=desc_linha,
+                usuario=user_pin,
+                pin=pin,
             )
         else:
             out["sem_retirada_caixa"] = True
@@ -28171,12 +28191,8 @@ def api_login_mobile(request):
         # Gate de uma abertura: o GET da tela consome e libera a lista.
         request.session["ajuste_mobile_gate"] = True
         request.session["ajuste_mobile_operador"] = (operador or "")[:120]
-        perfil = (
-            PerfilUsuario.objects.select_related("user")
-            .filter(senha_rapida=pin, ativo=True)
-            .first()
-        )
-        uid = getattr(getattr(perfil, "user", None), "pk", None) if perfil else None
+        user_pin = usuario_django_de_pin(pin)
+        uid = getattr(user_pin, "pk", None) if user_pin is not None else None
         if uid:
             request.session["ajuste_mobile_user_id"] = int(uid)
         else:
@@ -28411,12 +28427,15 @@ def api_pdv_registrar_operador(request):
 def api_ajustar_estoque(request):
     pin = request.POST.get("pin")
     perfil_pin = None
+    user_pin_direto = None
+    rotulo_pin_direto = ""
     if pin and pin != "SESSAO":
-        perfil_pin = (
-            PerfilUsuario.objects.select_related("user")
-            .filter(senha_rapida=pin, ativo=True)
-            .first()
-        )
+        ok_pin_aj, rotulo_pin_direto, err_pin_aj = operador_label_de_pin(pin)
+        if ok_pin_aj:
+            user_pin_direto = usuario_django_de_pin(pin)
+            perfil_pin = user_pin_direto or True
+        elif err_pin_aj:
+            return JsonResponse({"ok": False, "erro": err_pin_aj}, status=403)
     from produtos.vendas_lojas_ajuste_sessao_util import (
         sincronizar_ajuste_mobile_desde_hub,
         sessao_ajuste_mobile_ok,
@@ -28447,12 +28466,8 @@ def api_ajustar_estoque(request):
                         or (getattr(user_op, "username", None) or "").strip()
                     )
             elif perfil_pin is not None:
-                user_op = getattr(perfil_pin, "user", None)
-                if user_op is not None:
-                    rotulo = (
-                        (user_op.get_full_name() or "").strip()
-                        or (getattr(user_op, "username", None) or "").strip()
-                    )
+                user_op = user_pin_direto
+                rotulo = (rotulo_pin_direto or "").strip()
             nome_base = str(request.POST.get("nome_produto") or "").strip()
             # Grava nome do operador no texto — nunca o PIN
             if rotulo and rotulo not in nome_base:
@@ -28533,12 +28548,10 @@ def _autorizar_pin_ajuste_request(request) -> tuple[bool, str]:
         if sessao_ajuste:
             return True, ""
         return False, "Sessão de ajuste expirada. Digite o PIN."
-    perfil = (
-        PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).only("id").first()
-    )
-    if perfil is not None:
+    ok_pin, err_pin = validar_pin_operador(pin)
+    if ok_pin:
         return True, ""
-    return False, "PIN incorreto."
+    return False, err_pin or "PIN incorreto."
 
 
 def _saldo_catalogo_apos_remover_ajuste(pid: str, dep: str, saldo_erp_fallback) -> Decimal:
