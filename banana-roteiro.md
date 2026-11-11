@@ -6,6 +6,8 @@
 
 **Loja (03/11 · PR 479):** **WA-ORIGIN-PC** — ✅ **Live v27.26.49** @ `2d002112`. Migrate **0154** OK. `/healthz` = ok. Volta: `rollback/pre-v272649-0311-wa-origin-pc` (`39b447ad`). Revert: `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao`.
 
+**PREP loja (11/11b):** **v27.26.56** pronta, ainda não enviada. Só destravar a Entrada de NF. Sem migrate. Volta: `rollback/pre-v272656-1111b-entrada-nf-js`.
+
 **Loja (11/11):** **v27.26.55** enviada @ `2a49ba66`. Entra: unificar fornecedor na nota, Point já pago grava a venda + log do PDV, PIN da saída grava quem digitou. Migrate **0155** no build. Até o build terminar, no ar segue **v27.26.53** @ `af7af8cc`. Volta: `rollback/pre-v272655-1111-loja-3`. Revert: `git push origin rollback/pre-v272655-1111-loja-3:producao`.
 
 **Loja (04/11d):** **RH-FAIXA-SALARIAL** — enviado `af7af8cc` (**v27.26.53**). Migrate **NÃO**. Até o build terminar, no ar segue **v27.26.52** @ `43ee490c`. Volta: `rollback/pre-v272653-0411d-rh-faixa`. Revert: `git push origin rollback/pre-v272653-0411d-rh-faixa:producao`.
