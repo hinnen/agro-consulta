@@ -1296,6 +1296,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
+### 🟢 CHECKLIST ÚNICO — **11/11e** · **SISTAPP-CAMERA-TRAS-FIXA** · pronto para envio à produção
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **SISTAPP-CAMERA-TRAS-FIXA** | 🟢 pronto para envio | **NÃO** | VERIFY_OK 21 · bip 20/21 (falta só o banco local) |
+
+Tira **Trocar câmera**. Ajuste, Fotos e Etiquetas pedem a câmera de trás, imagem maior e foco no mesmo comando. Não escolhe entre as três lentes. Código em `teste` @ `822c6bba`. Base da loja **v27.26.58** @ `ee330433`. Sem migrate. PDV, caixa e venda não entram. **Não** sobe sem pausa + frase + senha.
+
 ### ✅ CHECKLIST ÚNICO — **11/11d** · **SISTAPP-CAMERA-TRASEIRA** · enviado **v27.26.58** @ `ee330433`
 
 | # | Pacote | Status | Migrate | Prova |

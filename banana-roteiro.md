@@ -8,7 +8,7 @@
 
 **Loja (11/11d):** **SISTAPP-CAMERA-TRASEIRA** enviada · **v27.26.58** @ `ee330433`. Sem migrate. Até o build, no ar segue **v27.26.57** @ `007e9bfc`. Volta: `git push origin 007e9bfc4b0ade40a68bc2a5ddcdbdbc343a2858:producao`.
 
-**Checklist único (11/11e):** **SISTAPP-CAMERA-TRAS-FIXA** — no `teste`, ainda **não** enviado. Tira o botão Trocar câmera. Pede a câmera de trás e mais nitidez no mesmo pedido. O Chrome não escolhe entre as três lentes.
+**Checklist único (11/11e):** **SISTAPP-CAMERA-TRAS-FIXA** — 🟢 pronto para envio. Tira o botão. Pede a câmera de trás e mais nitidez juntas. Sem migrate. Código em `teste` @ `822c6bba`. Não sobe sem senha. A loja ainda está na v27.26.58.
 
 **Loja (03/11 · PR 479):** **WA-ORIGIN-PC** — ✅ **Live v27.26.49** @ `2d002112`. Migrate **0154** OK. `/healthz` = ok. Volta: `rollback/pre-v272649-0311-wa-origin-pc` (`39b447ad`). Revert: `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao`.
 
