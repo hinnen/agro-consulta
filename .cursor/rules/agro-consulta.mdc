@@ -7,6 +7,8 @@ alwaysApply: true
 
 ## 0. Obrigatório — antes de qualquer coisa (Renan, 2026-07-03)
 
+**Branch (11/11/2026, vale na versão web):** ficar em `teste`. Commit e push direto em `origin/teste`. Proibido criar ou deixar `cursor/…`, `deploy/…`, `rollback/…` ou `producao-backup-…`. Se o chat já abriu num `cursor/…`, trazer os commits para `teste` e apagar esse branch. No GitHub só `teste`, `producao` e `whatsapp`. `producao` só com frase + senha na mesma mensagem. Detalhe: `banana-roteiro.md` §0.3.
+
 **Primeira ação em todo chat** (antes de responder, editar, shell ou plano):
 
 1. **Ler `banana-roteiro.md` inteiro** (fluxograma de leitura).
