@@ -1292,11 +1292,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
-### ✅ CHECKLIST ÚNICO — **09/11** · 🟢 **pronto para envio à produção**
+### ✅ CHECKLIST ÚNICO — **11/11** · enviado **v27.26.55** @ `2a49ba66`
+
+Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollback/pre-v272655-1111-loja-3:producao`.
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **NF-FORN-UNIF-AGRO** | 🟢 Pronto | **NÃO** (reusa `0149`) | path + alias + HTTP unif · **VERIFY_OK** |
+| 1 | **NF-FORN-UNIF-AGRO** | ✅ enviado | **NÃO** | path + alias |
+| 2 | **MP-POINT-ORFAO-PAGO** + **PDV-LOG** | ✅ enviado | **SIM** `0155` | VERIFY_OK 26 |
+| 3 | **PIN-SAIDA-OPERADOR** | ✅ enviado | **NÃO** | VERIFY_OK 30 |
 
 ### 📦 PACOTE PRONTO — **NF-FORN-UNIF-AGRO** · **v27.26.54** · 09/11
 
