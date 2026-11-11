@@ -44,13 +44,13 @@ def main() -> int:
         "maOnScanDecoded",
         "fromScan: true",
         "maScanSyncBtns",
-        "facingMode: 'environment'",
+        "facingMode: { ideal: 'environment' }",
         "sistapp_camera_escolha.js",
-        "ma-btn-trocar-camera",
-        "Trocar câmera",
+        "SistAppCamera.aplicar",
+        "Câmera de trás",
         "formatsToSupport",
         "experimentalFeatures: { useBarCodeDetectorIfSupported: true }",
-        "Câmera ativa",
+        "Câmera de trás",
         "ma-busca-row",
     ]
     for n in needles:

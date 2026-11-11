@@ -7,7 +7,7 @@
   <title>Solicitar etiquetas | GM</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script src="/static/produtos/js/sistapp_camera_escolha.js?v=2"></script>
+  <script src="/static/produtos/js/sistapp_camera_escolha.js?v=3"></script>
   <style>
     :root {
       --ink: #0f172a;
@@ -454,8 +454,7 @@
   <div id="reader" aria-hidden="true">
     <div id="reader-box"></div>
     <div class="scan-bar">
-      <span>Aponte para o código</span>
-      <button type="button" class="btn" id="btnTrocaCam" hidden aria-label="Trocar câmera" style="color:#0f172a;background:#fff;border-color:#fff;">Trocar câmera</button>
+      <span>Câmera de trás</span>
       <button type="button" class="btn" id="btnFechaScan" aria-label="Fechar câmera" style="color:#fff;background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.35);">Fechar</button>
     </div>
   </div>
@@ -849,25 +848,17 @@
       var box = document.getElementById("reader-box");
       if (box) box.innerHTML = "";
     }
-    var camList = [];
-    var camAtual = null;
-    function mostrarTroca() {
-      var b = document.getElementById("btnTrocaCam");
-      if (b) b.hidden = !(camList && camList.length > 1);
-    }
-    function pararScan(keepOpen) {
-      if (!keepOpen) reabrirScanAposEnvio = false;
+    function pararScan() {
+      reabrirScanAposEnvio = false;
       scanningActive = false;
+      document.body.classList.remove("scan-open");
       var reader = document.getElementById("reader");
-      if (!keepOpen) {
-        document.body.classList.remove("scan-open");
-        reader.classList.remove("on");
-        reader.setAttribute("aria-hidden", "true");
-      }
+      reader.classList.remove("on");
+      reader.setAttribute("aria-hidden", "true");
       var inst = scanner;
       scanner = null;
       if (!inst) {
-        if (!keepOpen) limparReaderBox();
+        limparReaderBox();
         return Promise.resolve();
       }
       return inst
@@ -877,7 +868,7 @@
           try {
             inst.clear();
           } catch (e) {}
-          if (!keepOpen) limparReaderBox();
+          limparReaderBox();
         });
     }
     function qrBoxSize() {
@@ -885,39 +876,7 @@
       var boxW = Math.min(280, Math.max(200, w - 48));
       return { width: boxW, height: Math.round(boxW * 0.55) };
     }
-    function ligarCamera(cam) {
-      camAtual = cam;
-      if (window.SistAppCamera) SistAppCamera.lembrar(typeof cam === "string" ? cam : "");
-      mostrarTroca();
-      var box = qrBoxSize();
-      var cfg = { fps: 10, qrbox: box };
-      var alvo = (typeof cam === "string" && cam) ? cam : { facingMode: "environment" };
-      return scanner
-        .start(
-          alvo,
-          cfg,
-          function (decoded) {
-            if (!scanningActive || enviando) return;
-            processarBipScan(decoded);
-          },
-          function () {}
-        )
-        .then(function () {
-          if (!window.SistAppCamera) return;
-          return SistAppCamera.getCameras().then(function (cams) {
-            camList = cams || [];
-            var video = document.querySelector("#reader-box video");
-            var id = SistAppCamera.idDoVideo(video);
-            if (id) camAtual = id;
-            mostrarTroca();
-          });
-        })
-        .catch(function () {
-          setStatus("Não abriu a câmera — veja permissões.", true);
-          pararScan();
-        });
-    }
-    async function iniciarScan(cameraForcada) {
+    async function iniciarScan() {
       if (!window.Html5Qrcode) {
         setStatus("Leitor indisponível neste aparelho.", true);
         return;
@@ -928,13 +887,11 @@
       }
       if (enviando) return;
       reabrirScanAposEnvio = false;
-      if (!cameraForcada) {
-        await pararScan();
-        await new Promise(function (r) {
-          setTimeout(r, 200);
-        });
-        limparReaderBox();
-      }
+      await pararScan();
+      await new Promise(function (r) {
+        setTimeout(r, 200);
+      });
+      limparReaderBox();
       esconderPanelSemCadastro();
       document.body.classList.add("scan-open");
       var reader = document.getElementById("reader");
@@ -943,9 +900,26 @@
       scanner = new Html5Qrcode("reader-box");
       scanningActive = true;
       setStatus(bipEnviarDiretoAtivo() ? "Bipe — envia direto se achar." : "Bipe — câmera fica aberta.");
-      if (cameraForcada) return ligarCamera(cameraForcada);
-      var alvo = window.SistAppCamera ? SistAppCamera.alvo(null) : { facingMode: "environment" };
-      return ligarCamera(alvo);
+      var cfg = { fps: 10, qrbox: qrBoxSize() };
+      var pedido = window.SistAppCamera ? SistAppCamera.aplicar(cfg) : cfg;
+      var alvo = window.SistAppCamera ? SistAppCamera.restricoes() : { facingMode: { ideal: "environment" } };
+      return scanner
+        .start(
+          alvo,
+          pedido,
+          function (decoded) {
+            if (!scanningActive || enviando) return;
+            processarBipScan(decoded);
+          },
+          function () {}
+        )
+        .then(function () {
+          if (window.SistAppCamera) SistAppCamera.afiar(document.getElementById("reader-box"));
+        })
+        .catch(function () {
+          setStatus("Não abriu a câmera — veja permissões.", true);
+          pararScan();
+        });
     }
     document.getElementById("busca").addEventListener("input", function () {
       var v = this.value;
@@ -967,11 +941,6 @@
     });
     document.getElementById("btnScan").addEventListener("click", function () {
       iniciarScan();
-    });
-    document.getElementById("btnTrocaCam").addEventListener("click", function () {
-      if (!window.SistAppCamera || !camList || camList.length < 2 || enviando) return;
-      var next = SistAppCamera.proxima(camList, camAtual);
-      pararScan(true).then(function () { iniciarScan(next); });
     });
     document.getElementById("btnFechaScan").addEventListener("click", function () {
       pararScan();
