@@ -8,7 +8,6 @@ cd "$ROOT"
 SRC="77de8913c24c03450bf9a495de6160e9591f3754"
 PROD_ESPERADO="c8256c2664d86d5d9c79cc974d5bc10b104666d7"
 VER="27.26.57"
-ROLLBACK_TAG="rollback/pre-v272657-1111c-sistapp-troca-camera"
 SENHA_OK="99738595"
 WT="${TMPDIR:-/tmp}/agro-cutover-1111c-$$"
 
@@ -83,7 +82,8 @@ ALLOWED="$(printf '%s\n' \
 [[ "$DELTA" == "$ALLOWED" ]] || { echo "FAIL: delta"; echo "$DELTA"; exit 2; }
 echo "$DELTA" | grep -E '/migrations/' && { echo "FAIL: migrate"; exit 2; } || true
 
-echo "OK: corte v$VER em cima de ${PROD:0:8} · sem migrate · volta seria $ROLLBACK_TAG"
+echo "OK: corte v$VER em cima de ${PROD:0:8} · sem migrate"
+echo "VOLTA: git push origin ${PROD}:producao"
 echo "PDV, caixa e venda não entram."
 
 [[ "${1:-}" != "--exec" ]] && exit 0
@@ -93,8 +93,7 @@ SENHA="${AGRO_LOJA_SENHA:-}"
 echo "$FRASE" | grep -Eiq 'pode.*(produ[cç][aã]o|producao|enviar)|sobe.*(produ[cç][aã]o|producao)|subir.*(produ[cç][aã]o|producao)|enviar.*(produ[cç][aã]o|producao)' \
   || { echo "FAIL: autorização"; exit 3; }
 NOVO="$(git -C "$WT" rev-parse HEAD)"
-git push origin "$PROD:refs/heads/$ROLLBACK_TAG"
 git push origin "$NOVO:producao"
 echo "PUSH OK v$VER"
-echo "REVERT: git push origin $ROLLBACK_TAG:producao"
+echo "REVERT: git push origin ${PROD}:producao"
 echo "SHELL: ./scripts/post_deploy_checklist_1111c_sistapp_troca_camera.sh"

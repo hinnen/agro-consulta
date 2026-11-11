@@ -1,6 +1,6 @@
 # PREP 11/11c — troca de câmera no SistApp · v27.26.57
 
-Ainda **não** foi para a loja. Lojas abertas: o envio espera pausa + frase + senha no mesmo pedido.
+**Enviado** em 11/11. `producao` @ `007e9bfc`. Até o build terminar, a loja segue na v27.26.56.
 
 | | |
 | - | - |
@@ -9,7 +9,7 @@ Ainda **não** foi para a loja. Lojas abertas: o envio espera pausa + frase + se
 | Migrate | Não |
 | Base | `producao` @ `c8256c26` (v27.26.56) |
 | Código | `teste` @ `77de8913` |
-| Volta | Na hora da senha nasce `rollback/pre-v272657-1111c-sistapp-troca-camera`. Revert: `git push origin rollback/pre-v272657-1111c-sistapp-troca-camera:producao` |
+| Volta | `git push origin c8256c2664d86d5d9c79cc974d5bc10b104666d7:producao` |
 
 Antes da senha:
 

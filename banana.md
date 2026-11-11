@@ -1296,21 +1296,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
-### 🟢 CHECKLIST ÚNICO — **11/11c** · **SISTAPP-TROCA-CAMERA** · corte armado · ainda sem enviar
+### ✅ CHECKLIST ÚNICO — **11/11c** · **SISTAPP-TROCA-CAMERA** · enviado **v27.26.57** @ `007e9bfc`
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **SISTAPP-TROCA-CAMERA** | 🟢 armado · aguarda pausa + senha | **NÃO** | patch em `c8256c26` · troca **VERIFY_OK 10** · bip **20/21** (sem banco local) |
+| 1 | **SISTAPP-TROCA-CAMERA** | ✅ enviado | **NÃO** | troca **VERIFY_OK 10** · bip **20/21** (sem banco local) |
 
-Ajuste, Fotos e Etiquetas. Alvo **v27.26.57**. Código `77de8913`. Não mexe em PDV, caixa nem venda.
+Ajuste, Fotos e Etiquetas. Até o build, no ar segue **v27.26.56** @ `c8256c26`. PDV, caixa e venda não entram.
 
 | Campo | Valor |
 | ----- | ----- |
-| **Checkpoint** | `producao` ainda `c8256c26` · `./scripts/prep_checkpoint_checklist_1111c_sistapp_troca_camera.sh` |
-| **Corte** | `./scripts/cutover_loja_checklist_1111c_sistapp_troca_camera.sh` (sem `--exec` agora) |
-| **Na senha** | o mesmo script com `--exec` |
-| **Volta** | `rollback/pre-v272657-1111c-sistapp-troca-camera` nasce só na senha |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1111c-sistapp-troca-camera.md` |
+| **Git** | `producao` @ `007e9bfc` |
+| **Volta** | `git push origin c8256c2664d86d5d9c79cc974d5bc10b104666d7:producao` |
+| **Shell** | `./scripts/post_deploy_checklist_1111c_sistapp_troca_camera.sh` |
 
 ### ✅ CHECKLIST ÚNICO — **11/11** · enviado **v27.26.55** @ `2a49ba66`
 
