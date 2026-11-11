@@ -1292,11 +1292,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
-### ✅ CHECKLIST ÚNICO — **09/11** · 🟢 **pronto para envio à produção**
+### ✅ CHECKLIST ÚNICO — **11/11** · 🟢 **pronto para envio à produção**
+
+Três pacotes ainda fora da loja. O código dos itens 2 e 3 está na branch de cada um; a lista fica aqui na `teste`.
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
 | 1 | **NF-FORN-UNIF-AGRO** | 🟢 Pronto | **NÃO** (reusa `0149`) | path + alias + HTTP unif · **VERIFY_OK** |
+| 2 | **MP-POINT-ORFAO-PAGO** + **PDV-LOG** | 🟢 Pronto · branch `cursor/mp-point-orfaopago-pdv-log-4662` · PR #491 | **SIM** (teste `0153` → loja `0155`) | unit **20** · path **VERIFY_OK 26** |
+| 3 | **PIN-SAIDA-OPERADOR** | 🟢 Pronto · branch `cursor/fix-pin-operador-saida-6b5a` | **NÃO** | **VERIFY_OK 30** |
 
 ### 📦 PACOTE PRONTO — **NF-FORN-UNIF-AGRO** · **v27.26.54** · 09/11
 
@@ -1309,6 +1313,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Pós-deploy** | `./scripts/post_deploy_checklist_0911_nf_forn_unif_agro.sh` |
 | **Revert** | `git push origin rollback/pre-v272654-0911-nf-forn-unif-agro:producao` |
 | **Prova** | cutover OK · RBS 1→3 · POST unificar 200 · sem touch CP |
+
+### 📦 PACOTE PRONTO — **MP-POINT-ORFAO-PAGO** + **PDV-LOG** · 10/11
+
+| Campo | Valor |
+| ----- | ----- |
+| **Branch** | `cursor/mp-point-orfaopago-pdv-log-4662` · PR #491 · ainda **não** está na `teste` |
+| **Entra** | Point já pago finaliza a venda no sistema. Barra da maquininha some no fiado. Log do PDV em Gestão → LOG |
+| **Incidente** | Vila 10/11 Valdinei R$ 75: Point cobrou, PDV não gravou, PIN abandonava o pago |
+| **Migrate** | teste `0153` · na loja, depois da `0154`, vira **`0155`** |
+| **Prova** | unit **20 OK** · path **VERIFY_OK 26** |
+
+### 📦 PACOTE PRONTO — **PIN-SAIDA-OPERADOR** · 07/11
+
+| Campo | Valor |
+| ----- | ----- |
+| **Branch** | `cursor/fix-pin-operador-saida-6b5a` @ `5213358d` · ainda **não** está na `teste` |
+| **Entra** | Saída grava quem digitou o PIN, não o login do Chrome. PIN repetido recusa (saída, estoque, ajuste, hub) |
+| **Migrate** | **NÃO** |
+| **Prova** | **VERIFY_OK 30/30** · banco da loja: **0** PIN repetido entre os 12 operadores |
 
 ### 🟡 CHECKLIST ÚNICO — **04/11d** · **enviado** · **RH-FAIXA-SALARIAL**
 
@@ -1548,6 +1571,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | **AJUSTE-QTD-BIP** | 🟢 Pronto | **NÃO** | alterar **6→5** depois soma **7** · −10/+10 só no item da vez |
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 🟢 CHECKLIST ÚNICO — **11/11** · 3 prontos (fornecedor da nota · Point pago · PIN da saída)
+
+Itens 2 e 3 anotados aqui a partir das branches. Código ainda não entrou na `teste`. Loja só com frase + senha.
 
 ### 🟢 PACOTE PRONTO / CHECKLIST — **09/11** · **NF-FORN-UNIF-AGRO** · **v27.26.54** · pronto para envio
 
