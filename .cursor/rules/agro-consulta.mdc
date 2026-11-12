@@ -14,6 +14,7 @@ alwaysApply: true
 3. **Banana inteiro** só nos casos do roteiro §5 (produção complexa, desvinculação, retomada longa, ou escada §4 degrau D).
 4. Chat longo / mudou de assunto → repetir passos 1–2; banana inteiro só se o roteiro pedir.
 5. `@banana` / `@banana-roteiro` no chat **ajudam**, mas **não substituem** o Read do roteiro.
+6. **Se a tarefa for WhatsApp / Zap / PC2:** ler `docs/WHATSAPP-PC2.md` inteiro antes de editar (Cursor nuvem e Cursor instalado). `@docs/WHATSAPP-PC2.md` no chat ajuda, mas não substitui o Read.
 
 **Proibido:** começar tarefa só com memória do chat ou só com esta rule.
 
