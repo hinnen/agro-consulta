@@ -43,7 +43,7 @@ Não colocar essa cópia dentro do Git.
 
 ## Arquivar entre aparelhos
 
-Ainda **não** é confiável nos dois sentidos (Zap ↔ WhatsApp Web/celular). A resposta da Meta em 12/11 mistura API que **não existe** no Baileys 6.7.24 (`app-state.sync`, `sock.chats.all`). Não aplicar esses trechos. O caminho real de leitura é `processSyncAction` → `chats.update`.
+Ainda **não** é confiável nos dois sentidos (Zap ↔ WhatsApp Web/celular). Não aplicar o snippet `processSyncAction` da Meta (12/11): o 3º argumento tem que ser `creds.me`, e o 4º objeto liga o modo que segura o aviso. O logger da ponte está `silent`, então `DEBUG=baileys:SYNC` não aparece.
 
 ## Cuidado
 
