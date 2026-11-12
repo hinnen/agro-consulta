@@ -4,8 +4,6 @@ Ler este arquivo **inteiro** antes de mexer no WhatsApp. Vale no Cursor da nuvem
 
 Atualizado **12/11/2026**.
 
-**Lembrete obrigatório (até a senha chegar):** na primeira resposta de qualquer chat sobre Zap, pedir ao Renan a senha do banco da loja. Ele vai olhar em casa, no computador, e mandar. Sem essa senha o PIN e o cliente da loja continuam só no Caixa. Quando ele mandar, gravar em `.env.wa-servidor` como `AGRO_LOJA_DATABASE_URL` e **apagar este lembrete**. Não colocar a senha no Git.
-
 ## O que é
 
 O Zap da loja **não roda no Render**. Roda neste computador: **PC2-Centro** (Windows). As lojas abrem `https://zap.zapsistvale.online`.
@@ -32,7 +30,7 @@ O Cursor remoto deste PC também sobe sozinho, na pasta `C:\AgroWhatsApp\repo`.
 
 ## PIN e clientes
 
-O código que lê PIN, nome de quem respondeu, cliente, fiado, vale e cashback **continua**. Conversas ficam no `agro_wa`. A segunda conexão `loja` (`AGRO_LOJA_DATABASE_URL`, router `config.loja_leitura`) está no programa e **não migra** a loja. Em 12/11 **ainda desligada**: a senha do banco da loja não está neste PC e o painel não entregou. Sem ela o PIN segue só o Caixa. O Zap antigo no Render é o serviço **agro-consulta-wa** (Renan suspendeu). A loja **Sistvale - Produção** continua no ar; a senha do banco dela não saiu de lá.
+O código que lê PIN, nome de quem respondeu, cliente, fiado, vale e cashback **continua**. Conversas ficam no `agro_wa`. A segunda conexão `loja` (`AGRO_LOJA_DATABASE_URL`, router `config.loja_leitura`) está no programa e **não migra** a loja. Em 12/11 **ligada**: a senha ficou só no `.env.wa-servidor` deste PC (endereço externo do banco da loja). Conferido: 12 PINs e 2326 clientes. O Zap antigo no Render é o serviço **agro-consulta-wa** (Renan suspendeu). A loja **Sistvale - Produção** continua no ar.
 
 ## Login da tela
 
