@@ -30,7 +30,7 @@ O Cursor remoto deste PC também sobe sozinho, na pasta `C:\AgroWhatsApp\repo`.
 
 ## PIN e clientes
 
-O código que lê PIN, nome de quem respondeu, cliente, fiado, vale e cashback **continua**. Ele lê o banco deste processo. Este PC usa o banco **próprio** `agro_wa`. Hoje só existe **1 PIN** (Caixa) e **zero** clientes. Para voltar ao que era: segunda conexão **só de leitura** no banco da loja, para essas fichas. **Não** apontar o Django inteiro para a loja: na subida este PC roda migração e alteraria a loja. Conversas continuam neste PC. Ainda **não** ligado. Só quando o Renan pedir.
+O código que lê PIN, nome de quem respondeu, cliente, fiado, vale e cashback **continua**. Conversas ficam no `agro_wa`. A segunda conexão `loja` (`AGRO_LOJA_DATABASE_URL`, router `config.loja_leitura`) está no programa e **não migra** a loja. Em 12/11 **ainda desligada**: a senha do banco da loja não está neste PC e o painel não entregou. Sem ela o PIN segue só o Caixa.
 
 ## Login da tela
 
