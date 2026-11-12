@@ -79,24 +79,49 @@ def _bridge_forbidden():
     return JsonResponse({"ok": False, "erro": "Ponte não autorizada."}, status=403)
 
 
+def _rotulo_perfil_por_nome(nome: str) -> str:
+    """Nome vindo do PDV só vale se for um operador cadastrado."""
+    alvo = (nome or "").strip()
+    if not alvo or len(alvo) > 120:
+        return ""
+    from base.models import PerfilUsuario
+
+    chave = alvo.casefold()
+    for perfil in PerfilUsuario.objects.filter(ativo=True).select_related("user")[:500]:
+        user = perfil.user
+        candidatos = (
+            user.get_full_name() or "",
+            user.first_name or "",
+            user.username or "",
+            getattr(perfil, "codigo_vendedor", None) or "",
+        )
+        if any((c or "").strip().casefold() == chave for c in candidatos):
+            rot = (user.get_full_name() or user.first_name or user.username or "").strip()
+            return rot[:120]
+    return ""
+
+
 def _autor_wa(request, data: dict | None = None) -> str:
     """
-    Assinatura na bolha verde: preferir PIN/operador do PDV na sessão.
-    Sem PIN fresco → cai no login do Chrome (admin) só como reserva.
+    Assinatura na bolha verde: PIN ou o operador que já está no PDV.
+    Sem isso, fica em branco — não usa o login da tela (renan / agromais).
     """
     from produtos.caixa_util import operador_label_request, rotulo_usuario_registro_venda
 
+    data = data if isinstance(data, dict) else {}
     rot = (rotulo_usuario_registro_venda(request, data) or "").strip()
     if not rot:
         rot = (operador_label_request(request) or "").strip()
-    if rot:
-        return rot[:120]
-    try:
-        if request.user.is_authenticated:
-            return (request.user.get_full_name() or request.user.get_username() or "")[:120]
-    except Exception:
-        pass
-    return ""
+    if not rot:
+        rot = _rotulo_perfil_por_nome(
+            str(data.get("operador_nome") or data.get("operador") or "")
+        )
+        if rot:
+            try:
+                request.session["pdv_operador_nome"] = rot[:120]
+            except Exception:
+                pass
+    return (rot or "")[:120]
 
 
 @login_required(login_url="/entrar/")

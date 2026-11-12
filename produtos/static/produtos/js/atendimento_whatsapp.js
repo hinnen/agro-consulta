@@ -1850,6 +1850,8 @@
     }, 15000);
 
     if (replyToId && !payload.reply_to_id) payload.reply_to_id = replyToId;
+    var opEnvio = nomeOperadorPin();
+    if (opEnvio && !payload.operador_nome) payload.operador_nome = opEnvio;
     var replySnap = replyToTxt;
     var replyIdSnap = replyToId;
     limparReply();

@@ -113,6 +113,10 @@
   function abrirZapSemSairDoApp() {
     var href = '/atendimento-whatsapp/';
     try {
+      var op = String(localStorage.getItem('gm_sspin_operador') || '').trim();
+      if (op) href += '?op=' + encodeURIComponent(op);
+    } catch (_) {}
+    try {
       if (window.AgroDualWindow && typeof window.AgroDualWindow.navigateGestao === 'function') {
         window.AgroDualWindow.navigateGestao(href);
         return;
