@@ -47,7 +47,7 @@ Não colocar essa cópia dentro do Git.
 
 ## Arquivar entre aparelhos
 
-Ainda **não** é confiável nos dois sentidos (Zap ↔ WhatsApp Web/celular). Não aplicar os snippets da Meta (12/11). Em 12/11 a ponte só ganhou um log `[ARCHIVE MUTATION]` (não muda nada). Se essa linha não aparecer quando arquivar no celular, o aviso nem chega.
+Ainda **não** é confiável nos dois sentidos (Zap ↔ WhatsApp Web/celular). Em 12/11 ~09:37 o log mostrou `[ARCHIVE MUTATION]` e o banco marcou Resolvidas, mas a conversa **continuou na lista** do celular e do WhatsApp Web. O aviso foi só interno. Não aplicar os snippets da Meta.
 
 ## Cuidado
 
