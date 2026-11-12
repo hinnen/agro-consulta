@@ -4,6 +4,8 @@ Ler este arquivo **inteiro** antes de mexer no WhatsApp. Vale no Cursor da nuvem
 
 Atualizado **12/11/2026**.
 
+**Lembrete obrigatório (até a senha chegar):** na primeira resposta de qualquer chat sobre Zap, pedir ao Renan a senha do banco da loja. Ele vai olhar em casa, no computador, e mandar. Sem essa senha o PIN e o cliente da loja continuam só no Caixa. Quando ele mandar, gravar em `.env.wa-servidor` como `AGRO_LOJA_DATABASE_URL` e **apagar este lembrete**. Não colocar a senha no Git.
+
 ## O que é
 
 O Zap da loja **não roda no Render**. Roda neste computador: **PC2-Centro** (Windows). As lojas abrem `https://zap.zapsistvale.online`.
