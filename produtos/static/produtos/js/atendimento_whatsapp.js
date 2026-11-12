@@ -1822,6 +1822,11 @@
       avisarEnvio('Abra uma conversa na lista antes de enviar.');
       return;
     }
+    if (!nomeOperadorPin()) {
+      avisarEnvio('Digite o PIN para atender.');
+      trocarOperadorPin();
+      return;
+    }
     if (enviandoMsg) {
       avisarEnvio('Ainda enviando… aguarde 1 instante.');
       return;
@@ -1896,6 +1901,11 @@
         var tmp = document.querySelector('[data-msg-id="' + tempId + '"]');
         if (tmp) tmp.remove();
         if (!j || !j.ok) {
+          if (j && j.precisa_pin) {
+            try { localStorage.removeItem('gm_sspin_operador'); } catch (_) {}
+            pintarOperadorPin();
+            trocarOperadorPin();
+          }
           avisarEnvio((j && j.erro) || 'Não enviou.');
           if (textoVolta && $('wa-input')) {
             $('wa-input').value = textoVolta;
@@ -2899,6 +2909,19 @@
   }
   window.addEventListener('gm-sspin-operador', pintarOperadorPin);
   pintarOperadorPin();
+  fetch('/api/pdv/operador/', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+    .then(function (r) { return r.json(); })
+    .then(function (j) {
+      if (j && j.ok && j.fresco && j.operador) {
+        try { localStorage.setItem('gm_sspin_operador', String(j.operador).trim()); } catch (_) {}
+        pintarOperadorPin();
+        return;
+      }
+      try { localStorage.removeItem('gm_sspin_operador'); } catch (_) {}
+      pintarOperadorPin();
+      trocarOperadorPin();
+    })
+    .catch(function () {});
 
   if (ehOverlay) {
     document.body.classList.add('wa-in-overlay');

@@ -30,7 +30,7 @@ O Cursor remoto deste PC também sobe sozinho, na pasta `C:\AgroWhatsApp\repo`.
 
 ## PIN e clientes
 
-O código que lê PIN, nome de quem respondeu, cliente, fiado, vale e cashback **continua**. Conversas ficam no `agro_wa`. A segunda conexão `loja` (`AGRO_LOJA_DATABASE_URL`, router `config.loja_leitura`) está no programa e **não migra** a loja. Em 12/11 **ligada**: a senha ficou só no `.env.wa-servidor` deste PC (endereço externo do banco da loja). Conferido: 12 PINs e 2326 clientes. A bolha **não** usa o login da tela (`renan`). **Quem** abre o teclado do PIN e o Zap **não apaga** o nome já salvo ao atualizar a página. O nome de quem está no PDV só vem junto quando a loja mandar `?op=` (o botão do PDV nesta branch já manda; a loja no ar ainda não). O Zap antigo no Render é o serviço **agro-consulta-wa** (Renan suspendeu). A loja **Sistvale - Produção** continua no ar.
+O código que lê PIN, nome de quem respondeu, cliente, fiado, vale e cashback **continua**. Conversas ficam no `agro_wa`. A segunda conexão `loja` (`AGRO_LOJA_DATABASE_URL`, router `config.loja_leitura`) está no programa e **não migra** a loja. Em 12/11 **ligada**: a senha ficou só no `.env.wa-servidor` deste PC (endereço externo do banco da loja). Conferido: 12 PINs e 2326 clientes. Em qualquer computador: sem PIN fresco o Zap **não deixa atender** e abre o teclado. O PIN vale **45 segundos** como no PDV e renova a cada mensagem. Abrir pelo botão do PDV já no PIN daquele computador só funciona quando a **loja** tiver esta atualização e a mesma chave `AGRO_WA_PIN_HANDOFF_KEY` (não vai no Git). Até lá, o Zap pede o PIN. O Zap antigo no Render é o serviço **agro-consulta-wa** (Renan suspendeu). A loja **Sistvale - Produção** continua no ar.
 
 ## Login da tela
 

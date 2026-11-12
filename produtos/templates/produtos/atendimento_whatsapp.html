@@ -4,7 +4,7 @@
 {% block pdv_title %}WhatsApp lojas | SisVale{% endblock %}
 {% block agro_sspin %}
 {% if user.is_authenticated %}
-{% include "produtos/_screensaver_pin.html" with sspin_entry_only=1 sspin_keep_operador=1 %}
+{% include "produtos/_screensaver_pin.html" with sspin_entry_only=1 %}
 {% endif %}
 {% endblock %}
 {% block head_extra %}
@@ -41,10 +41,6 @@
       try { document.documentElement.setAttribute("data-wa-skin", "v2"); } catch (e2) {}
     }
     try { document.documentElement.setAttribute("data-agro-hide-pdv", "1"); } catch (_) {}
-    try {
-      var opHandoff = (new URLSearchParams(window.location.search).get("op") || "").trim();
-      if (opHandoff) localStorage.setItem("gm_sspin_operador", opHandoff.slice(0, 120));
-    } catch (_) {}
     /* Sai do iframe/aba embutida da Gestão — senão o Chrome instala dentro do app Gestão. */
     try {
       if (window.top !== window.self) {
@@ -169,7 +165,7 @@
 {% include "produtos/_wa_status.html" %}
 {% include "produtos/_wa_ficha.html" %}
 {% include "produtos/_wa_dlg.html" %}
-<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-fotos17-e34f"></script>
+<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-fotos17-e34g"></script>
 <script>
 (function () {
   var DICA_KEY = "agro_wa_pc_pwa_dica_v1";
