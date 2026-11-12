@@ -47,7 +47,7 @@ Não colocar essa cópia dentro do Git.
 
 ## Arquivar entre aparelhos
 
-Filtros da lista (Ativas, Resolvidas, relógio, Marcar) ficam na **mesma linha**. O PIN fica no topo da coluna, ao lado do número, largo o bastante para o nome inteiro numa linha. O PIN reaproveita a ligação com a loja. Antes cada leitura abria de novo e demorava um pouco.
+Filtros da lista (Ativas, Resolvidas, relógio, Marcar) ficam na **mesma linha**. O PIN fica no topo da coluna, ao lado do número, largo o bastante para o nome inteiro numa linha. Os PINs ficam guardados neste PC e a loja só é conferida uma vez por dia.
 
 A busca mostra a foto quando a conversa já tem. Se a conversa existe e a foto ainda não chegou, pede no máximo 3 por vez. Cadastro sem conversa continua só com a letra.
 

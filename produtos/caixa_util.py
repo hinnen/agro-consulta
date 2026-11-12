@@ -1172,12 +1172,124 @@ def validar_sessao_loja_browser(request, sessao) -> tuple[bool, str]:
     return True, ""
 
 
-def _perfil_usuario_por_pin(pin: str):
+class _UserPinLocal:
+    """Nome do operador guardado neste PC. Não vai na loja."""
+
+    def __init__(self, pk, first, last, username):
+        self.pk = pk
+        self.first_name = first or ""
+        self.last_name = last or ""
+        self.username = username or ""
+        self.is_authenticated = True
+
+    def get_full_name(self):
+        return f"{self.first_name} {self.last_name}".strip()
+
+    def get_username(self):
+        return self.username
+
+
+class _PerfilPinLocal:
+    def __init__(self, pk, codigo, user):
+        self.pk = pk
+        self.codigo_vendedor = codigo or ""
+        self.ativo = True
+        self.user = user
+
+
+def _pins_loja_remota() -> bool:
+    from django.conf import settings
+
+    return "loja" in getattr(settings, "DATABASES", {})
+
+
+def _arquivo_pins_local():
+    from django.conf import settings
+
+    pasta = settings.BASE_DIR / ".cache"
+    pasta.mkdir(parents=True, exist_ok=True)
+    return pasta / "wa_pins.json"
+
+
+def _ler_pins_local() -> dict:
+    import json
+
+    try:
+        bruto = json.loads(_arquivo_pins_local().read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return bruto if isinstance(bruto, dict) else {}
+
+
+def _pins_local_fresco(dados: dict) -> bool:
+    import time
+
+    try:
+        em = float(dados.get("em") or 0)
+    except (TypeError, ValueError):
+        return False
+    return em > 0 and (time.time() - em) < 24 * 3600
+
+
+def _perfil_de_item(item: dict):
+    try:
+        user = _UserPinLocal(
+            int(item.get("user_pk") or 0) or None,
+            str(item.get("first") or ""),
+            str(item.get("last") or ""),
+            str(item.get("username") or ""),
+        )
+        return _PerfilPinLocal(int(item.get("pk") or 0), str(item.get("codigo") or ""), user)
+    except (TypeError, ValueError):
+        return None
+
+
+def _gravar_pins_da_loja() -> dict:
+    """Uma leitura do cadastro. Vale 1 dia neste PC."""
+    import json
+    import time
+
     from base.models import PerfilUsuario
 
-    pin = (pin or "").strip()
-    if not pin or pin == "1234":
-        return None
+    pins = {}
+    qs = (
+        PerfilUsuario.objects.filter(ativo=True)
+        .exclude(senha_rapida="")
+        .exclude(senha_rapida="1234")
+        .select_related("user")
+        .only(
+            "pk",
+            "senha_rapida",
+            "codigo_vendedor",
+            "user__first_name",
+            "user__last_name",
+            "user__username",
+        )
+    )
+    for perfil in qs:
+        pin = (getattr(perfil, "senha_rapida", None) or "").strip()
+        if not pin or pin == "1234":
+            continue
+        u = perfil.user
+        pins[pin] = {
+            "pk": int(perfil.pk),
+            "codigo": (getattr(perfil, "codigo_vendedor", None) or "")[:40],
+            "user_pk": int(getattr(u, "pk", 0) or 0),
+            "first": (getattr(u, "first_name", None) or "")[:80],
+            "last": (getattr(u, "last_name", None) or "")[:80],
+            "username": (getattr(u, "username", None) or "")[:80],
+        }
+    dados = {"em": time.time(), "pins": pins}
+    path = _arquivo_pins_local()
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(dados), encoding="utf-8")
+    tmp.replace(path)
+    return dados
+
+
+def _perfil_usuario_por_pin_banco(pin: str):
+    from base.models import PerfilUsuario
+
     return (
         PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True)
         .select_related("user")
@@ -1192,6 +1304,24 @@ def _perfil_usuario_por_pin(pin: str):
         )
         .first()
     )
+
+
+def _perfil_usuario_por_pin(pin: str):
+    pin = (pin or "").strip()
+    if not pin or pin == "1234":
+        return None
+    if not _pins_loja_remota():
+        return _perfil_usuario_por_pin_banco(pin)
+    dados = _ler_pins_local()
+    if not _pins_local_fresco(dados):
+        try:
+            dados = _gravar_pins_da_loja()
+        except Exception:
+            dados = dados if isinstance(dados.get("pins"), dict) else {}
+    item = (dados.get("pins") or {}).get(pin) if isinstance(dados, dict) else None
+    if isinstance(item, dict):
+        return _perfil_de_item(item)
+    return None
 
 
 def validar_pin_operador(pin: str) -> tuple[bool, str]:
