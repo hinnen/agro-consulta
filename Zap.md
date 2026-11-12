@@ -1,6 +1,6 @@
 # Zap — contexto vivo (PC2)
 
-Ler este arquivo **inteiro** antes de mexer no WhatsApp. Vale no Cursor da nuvem e no Cursor instalado. Renan chama com `@Zap`.
+Ler este arquivo **inteiro** antes de mexer no WhatsApp. Vale no Cursor da nuvem e no Cursor instalado. Renan chama com `@Zap`. Ao fechar o assunto, atualizar este arquivo sem perguntar se mudou algo que precisa continuar valendo.
 
 Atualizado **12/11/2026**.
 
