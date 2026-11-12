@@ -436,16 +436,19 @@
     position: absolute; top: 18px; z-index: 4;
     left: calc(64px + var(--wa2-col) - 168px);
     transform: translateX(-100%);
-    display: inline-flex; box-sizing: border-box; height: 28px; max-width: 148px;
-    margin: 0; padding: 0 10px; flex-direction: row; flex-wrap: nowrap; gap: 4px;
+    display: inline-flex; box-sizing: border-box; height: 28px; width: auto; min-width: 0; max-width: 16rem;
+    margin: 0; padding: 0 12px; flex-direction: row; flex-wrap: nowrap; gap: 6px;
     align-items: center; border: 0; border-radius: 9999px;
     background: var(--wa2-bg-search); color: var(--wa2-text); cursor: pointer;
   }
   html[data-wa-skin="v2"] .wa-skin .wa-op-pin:hover { background: var(--wa2-bg-selected); }
-  html[data-wa-skin="v2"] .wa-skin .wa-op-pin-lbl { font-size: 12px; line-height: 16px; font-weight: 400; color: var(--wa2-text-2); text-transform: none; letter-spacing: 0; }
+  html[data-wa-skin="v2"] .wa-skin .wa-op-pin-lbl {
+    flex: 0 0 auto; font-size: 12px; line-height: 16px; font-weight: 400; color: var(--wa2-text-2);
+    text-transform: none; letter-spacing: 0; white-space: nowrap;
+  }
   html[data-wa-skin="v2"] .wa-skin .wa-op-pin-nome {
     font-size: 12px; line-height: 16px; font-weight: 600; color: var(--wa2-text);
-    max-width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 11rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   html[data-wa-skin="v2"] .wa-skin .wa-op-pin.is-empty { background: rgba(251, 146, 60, .18); }
   html[data-wa-skin="v2"] .wa-skin .wa-op-pin.is-empty .wa-op-pin-lbl,
