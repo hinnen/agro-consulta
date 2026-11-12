@@ -43,7 +43,7 @@ Não colocar essa cópia dentro do Git.
 
 ## Arquivar entre aparelhos
 
-Ainda **não** é confiável nos dois sentidos (Zap ↔ WhatsApp Web/celular). Tentativas e o que falta estão no chat de 12/11 (prompt para outra IA). Não repetir `chatModify` com key inventada nem dois processos da ponte.
+Ainda **não** é confiável nos dois sentidos (Zap ↔ WhatsApp Web/celular). A resposta da Meta em 12/11 mistura API que **não existe** no Baileys 6.7.24 (`app-state.sync`, `sock.chats.all`). Não aplicar esses trechos. O caminho real de leitura é `processSyncAction` → `chats.update`.
 
 ## Cuidado
 
