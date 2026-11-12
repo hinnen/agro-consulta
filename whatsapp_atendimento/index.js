@@ -39,6 +39,22 @@ const LID_FILE = path.join(__dirname, "lid_map.json");
 const SYNC_FILE = path.join(__dirname, "last_agenda_foto_sync.txt");
 const LOCK_FILE = path.join(__dirname, ".ponte.lock");
 const logger = pino({ level: "silent" });
+// Só esta função. Não chama o trace original (ele imprime chave de sessão).
+logger.trace = (obj, msg) => {
+  if (msg !== "processing sync action" || !obj || !obj.syncAction) return;
+  const pack = obj.syncAction;
+  const index = Array.isArray(pack.index) ? pack.index : [];
+  const action = pack.syncAction && pack.syncAction.value;
+  const arch = action && action.archiveChatAction;
+  const tipo = index[0];
+  if (!arch && tipo !== "archive" && tipo !== "unarchive") return;
+  console.log(
+    "[ARCHIVE MUTATION]",
+    tipo || "",
+    index[1] || "",
+    arch ? arch.archived : ""
+  );
+};
 // A sessão do Zap imprime chave e Buffer no cmd. Isso deixa a janela lenta.
 const _logRuido = /baseKey|indexInfo|ephemeralKey|preKey|chainKey|registrationId|messageKeys|closed session|remoteIdentityKey|pendingPreKey|Buffer /;
 for (const nome of ["log", "info", "debug"]) {

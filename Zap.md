@@ -43,7 +43,7 @@ Não colocar essa cópia dentro do Git.
 
 ## Arquivar entre aparelhos
 
-Ainda **não** é confiável nos dois sentidos (Zap ↔ WhatsApp Web/celular). Não aplicar os snippets da Meta (12/11): assinatura errada, `resync` a cada 10s, e `processSyncAction` com objeto inventado (`archiveChatAction` solto). Isso só finge o aviso no nosso programa. O Baileys real exige `{ syncAction, index }` e quem chama é o próprio `chats.js`.
+Ainda **não** é confiável nos dois sentidos (Zap ↔ WhatsApp Web/celular). Não aplicar os snippets da Meta (12/11). Em 12/11 a ponte só ganhou um log `[ARCHIVE MUTATION]` (não muda nada). Se essa linha não aparecer quando arquivar no celular, o aviso nem chega.
 
 ## Cuidado
 
