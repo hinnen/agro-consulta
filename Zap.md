@@ -47,6 +47,8 @@ Não colocar essa cópia dentro do Git.
 
 ## Arquivar entre aparelhos
 
+Filtros da lista (Ativas, Resolvidas, relógio, Marcar) ficam na **mesma linha**. O PIN fica no topo da coluna, ao lado do número, não na barra de digitar. A busca mostra a foto quando a conversa já tem foto.
+
 Marcar várias: a barra fica na coluna da lista, escura, e a conversa marcada fica verde-escuro (o texto continua legível).
 
 Na lista, última mensagem **enviada** mostra o tracinho (um = foi, dois = lida). Resposta pelo celular ou pelo Zap **zera** o número verde. Conversa antiga só ganha o tracinho na próxima mensagem.

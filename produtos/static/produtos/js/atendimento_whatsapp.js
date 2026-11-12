@@ -2347,7 +2347,12 @@
         hits.innerHTML = rows
           .map(function (c) {
             var titulo = nomeExibicao(c);
-            var ini = (titulo || '?').trim().charAt(0).toUpperCase() || '?';
+            var semNum = String(titulo || '').replace(/^[\d\s.\-]+/, '');
+            var ini = (semNum || titulo || '?').trim().charAt(0).toUpperCase() || '?';
+            var foto = String(c.foto_url || '');
+            var av = foto
+              ? '<span class="wa-av"><img alt="" src="' + escapeHtml(foto) + '" /></span>'
+              : '<span class="wa-av"><span class="wa-av-ini">' + escapeHtml(ini) + '</span></span>';
             return (
               '<button type="button" class="wa-item" data-tel="' +
               escapeHtml(c.telefone || '') +
@@ -2359,9 +2364,9 @@
               String(c.conversa_id || 0) +
               '" data-loja="' +
               escapeHtml(c.loja || '') +
-              '"><span class="wa-av"><span class="wa-av-ini">' +
-              escapeHtml(ini) +
-              '</span></span><div class="wa-item-body"><div class="wa-row1"><div class="wa-n">' +
+              '">' +
+              av +
+              '<div class="wa-item-body"><div class="wa-row1"><div class="wa-n">' +
               escapeHtml(titulo) +
               '</div></div><div class="wa-row2"><div class="wa-p"><span class="wa-p-txt">' +
               escapeHtml(rotuloOrigem(c.origem)) +

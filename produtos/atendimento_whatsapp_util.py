@@ -2255,19 +2255,18 @@ def buscar_contatos_envio(termo: str, *, limit: int = 20) -> list[dict]:
         if not j or j in seen:
             return
         seen.add(j)
-        conv = WhatsAppConversaAgro.objects.filter(Q(jid=j) | Q(jid_lid=j)).only("id", "loja").first()
+        conv = WhatsAppConversaAgro.objects.filter(Q(jid=j) | Q(jid_lid=j)).first()
         if conv is None:
             tel_hit = _telefone_real(telefone) or _telefone_real(j)
             if tel_hit:
-                conv = (
-                    WhatsAppConversaAgro.objects.filter(
-                        Q(telefone=tel_hit)
-                        | Q(telefone=tel_hit[-11:] if len(tel_hit) >= 11 else tel_hit)
-                        | Q(jid=telefone_para_jid(tel_hit))
-                    )
-                    .only("id", "loja")
-                    .first()
-                )
+                conv = WhatsAppConversaAgro.objects.filter(
+                    Q(telefone=tel_hit)
+                    | Q(telefone=tel_hit[-11:] if len(tel_hit) >= 11 else tel_hit)
+                    | Q(jid=telefone_para_jid(tel_hit))
+                ).first()
+        foto = ""
+        if conv is not None and getattr(conv, "foto_perfil", None) and _foto_no_disco(conv):
+            foto = f"/api/atendimento-whatsapp/foto/{int(conv.pk)}/"
         out.append(
             {
                 "origem": origem,
@@ -2276,6 +2275,7 @@ def buscar_contatos_envio(termo: str, *, limit: int = 20) -> list[dict]:
                 "jid": j,
                 "conversa_id": int(conv.pk) if conv else 0,
                 "loja": (conv.loja if conv else "") or "",
+                "foto_url": foto,
             }
         )
 

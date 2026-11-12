@@ -183,14 +183,16 @@
   /* Chips: altura 32, padding 0 12, vao 8, texto 14/20 peso 600, ativo #103529/#d9fdd3 */
   html[data-wa-skin="v2"] .wa-skin .wa-tabs {
     grid-column: 1; grid-row: 4; box-sizing: border-box;
-    display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto; scrollbar-width: none;
-    padding: 4px 10px 2px 20px; border-radius: 0; background: transparent;
+    display: flex; flex-wrap: nowrap; gap: 8px; overflow: hidden; scrollbar-width: none;
+    width: max-content; max-width: 58%; justify-self: start; z-index: 1;
+    padding: 4px 0 2px 16px; border-radius: 0; background: transparent;
   }
   html[data-wa-skin="v2"] .wa-skin .wa-tabs::-webkit-scrollbar { display: none; }
   html[data-wa-skin="v2"] .wa-skin .wa-filtros {
-    grid-column: 1; grid-row: 5; box-sizing: border-box;
-    display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto; scrollbar-width: none;
-    padding: 2px 10px 6px 20px;
+    grid-column: 1; grid-row: 4; box-sizing: border-box;
+    display: flex; flex-wrap: nowrap; gap: 6px; overflow: hidden; scrollbar-width: none;
+    width: max-content; justify-self: end; align-self: center; z-index: 1;
+    padding: 4px 12px 2px 0;
   }
   html[data-wa-skin="v2"] .wa-skin .wa-filtros::-webkit-scrollbar { display: none; }
 
@@ -431,13 +433,20 @@
   html[data-wa-skin="v2"] .wa-skin #wa-input::placeholder { color: var(--wa2-text-2); }
   html[data-wa-skin="v2"] .wa-skin #wa-input:focus { outline: none; }
   html[data-wa-skin="v2"] .wa-skin .wa-op-pin {
-    flex: 0 0 auto; box-sizing: border-box; height: 32px; margin-right: 6px; padding: 0 12px;
-    flex-direction: row; gap: 6px; align-items: center; border: 0; border-radius: 9999px;
-    background: var(--wa2-bg-search); color: var(--wa2-text);
+    position: absolute; top: 18px; z-index: 4;
+    left: calc(64px + var(--wa2-col) - 168px);
+    transform: translateX(-100%);
+    display: inline-flex; box-sizing: border-box; height: 28px; max-width: 148px;
+    margin: 0; padding: 0 10px; flex-direction: row; flex-wrap: nowrap; gap: 4px;
+    align-items: center; border: 0; border-radius: 9999px;
+    background: var(--wa2-bg-search); color: var(--wa2-text); cursor: pointer;
   }
   html[data-wa-skin="v2"] .wa-skin .wa-op-pin:hover { background: var(--wa2-bg-selected); }
   html[data-wa-skin="v2"] .wa-skin .wa-op-pin-lbl { font-size: 12px; line-height: 16px; font-weight: 400; color: var(--wa2-text-2); text-transform: none; letter-spacing: 0; }
-  html[data-wa-skin="v2"] .wa-skin .wa-op-pin-nome { font-size: 12px; line-height: 16px; font-weight: 600; color: var(--wa2-text); }
+  html[data-wa-skin="v2"] .wa-skin .wa-op-pin-nome {
+    font-size: 12px; line-height: 16px; font-weight: 600; color: var(--wa2-text);
+    max-width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
   html[data-wa-skin="v2"] .wa-skin .wa-op-pin.is-empty { background: rgba(251, 146, 60, .18); }
   html[data-wa-skin="v2"] .wa-skin .wa-op-pin.is-empty .wa-op-pin-lbl,
   html[data-wa-skin="v2"] .wa-skin .wa-op-pin.is-empty .wa-op-pin-nome { color: #fdba74; }
