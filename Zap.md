@@ -30,7 +30,7 @@ O Cursor remoto deste PC também sobe sozinho, na pasta `C:\AgroWhatsApp\repo`.
 
 ## PIN e clientes
 
-O código que lê PIN, nome de quem respondeu, cliente, fiado, vale e cashback **continua**. Conversas ficam no `agro_wa`. A segunda conexão `loja` (`AGRO_LOJA_DATABASE_URL`, router `config.loja_leitura`) está no programa e **não migra** a loja. Em 12/11 **ainda desligada**: a senha do banco da loja não está neste PC e o painel não entregou. Sem ela o PIN segue só o Caixa.
+O código que lê PIN, nome de quem respondeu, cliente, fiado, vale e cashback **continua**. Conversas ficam no `agro_wa`. A segunda conexão `loja` (`AGRO_LOJA_DATABASE_URL`, router `config.loja_leitura`) está no programa e **não migra** a loja. Em 12/11 **ainda desligada**: a senha do banco da loja não está neste PC e o painel não entregou. Sem ela o PIN segue só o Caixa. O Zap antigo no Render é o serviço **agro-consulta-wa** (Renan suspendeu). A loja **Sistvale - Produção** continua no ar; a senha do banco dela não saiu de lá.
 
 ## Login da tela
 
