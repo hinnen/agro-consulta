@@ -1296,6 +1296,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
+### 🟢 CHECKLIST ÚNICO — **12/11** · **WA-PIN-PC** · pronto para envio à produção
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **WA-PIN-PC** | 🟢 pronto para envio | **NÃO** | PIN 9999 = Renan Hinnen · sem PIN não assina · bilhete herda · bilhete ruim recusa |
+
+O Zap pede PIN em qualquer computador. Vale 45 segundos, como o PDV, e renova ao atender. Sem PIN, não atende. O botão do PDV manda o PIN daquele PC. Código na branch `cursor/zap-boot-login-64bd` @ `c2c9ceec` (não está no `teste`). No envio, a mesma `AGRO_WA_PIN_HANDOFF_KEY` na loja e no PC2. **Não** sobe sem pausa + frase + senha.
+
 ### 🟢 CHECKLIST ÚNICO — **11/11e** · **SISTAPP-CAMERA-TRAS-FIXA** · pronto para envio à produção
 
 | # | Pacote | Status | Migrate | Prova |

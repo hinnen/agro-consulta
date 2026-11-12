@@ -4,6 +4,8 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
+**Checklist único (12/11):** **WA-PIN-PC** — 🟢 pronto para envio. PIN do Zap em qualquer PC. Sem migrate. Código em `cursor/zap-boot-login-64bd` @ `c2c9ceec`. Não sobe sem senha.
+
 **Loja (11/11c):** **SISTAPP-TROCA-CAMERA** enviada · **v27.26.57** @ `007e9bfc`. Sem migrate. Até o build, no ar segue **v27.26.56** @ `c8256c26`. Volta: `git push origin c8256c2664d86d5d9c79cc974d5bc10b104666d7:producao`.
 
 **Loja (11/11d):** **SISTAPP-CAMERA-TRASEIRA** enviada · **v27.26.58** @ `ee330433`. Sem migrate. Até o build, no ar segue **v27.26.57** @ `007e9bfc`. Volta: `git push origin 007e9bfc4b0ade40a68bc2a5ddcdbdbc343a2858:producao`.
