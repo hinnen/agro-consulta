@@ -30,7 +30,7 @@ O Cursor remoto deste PC também sobe sozinho, na pasta `C:\AgroWhatsApp\repo`.
 
 ## PIN e clientes
 
-Este PC tem banco **próprio** (`agro_wa`), separado da loja. Hoje só existe **1 PIN**, o usuário **Caixa**. O PIN de verdade da loja não está aqui, por isso não entra. Clientes deste banco: **zero**. Não ligar este Zap no banco da loja sem o Renan pedir.
+O código que lê PIN, nome de quem respondeu e ficha do cliente **continua**. Não foi apagado. Ele lê o banco deste processo. Este PC usa o banco **próprio** `agro_wa`, separado da loja. Hoje só existe **1 PIN**, o usuário **Caixa**. Clientes: **zero**. Por isso o PIN da loja não entra e a ficha não aparece. Não ligar este Zap no banco da loja sem o Renan pedir.
 
 ## Login da tela
 
