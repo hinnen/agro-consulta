@@ -1,6 +1,6 @@
 # Zap — contexto vivo (PC2)
 
-Ler este arquivo **inteiro** antes de mexer no WhatsApp. Vale no Cursor da nuvem e no Cursor instalado. Renan pode chamar com `@docs/WHATSAPP-PC2.md`.
+Ler este arquivo **inteiro** antes de mexer no WhatsApp. Vale no Cursor da nuvem e no Cursor instalado. Renan chama com `@Zap`.
 
 Atualizado **12/11/2026**.
 
