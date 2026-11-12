@@ -2380,10 +2380,18 @@
       var temZap = rows.some(function (c) {
         return c.origem === 'zap';
       });
+      var faltaFoto = rows.some(function (c) {
+        return c.conversa_id && !c.foto_url;
+      });
       if (q.length >= 2 && n < 5 && !temZap) {
         window.setTimeout(function () {
           buscarTopo(n + 1);
         }, 900);
+      } else if (faltaFoto && n < 3) {
+        window.setTimeout(function () {
+          var agora = (($('wa-busca') && $('wa-busca').value) || '').trim();
+          if (agora === q) buscarTopo(n + 1);
+        }, 4000);
       }
     });
   }

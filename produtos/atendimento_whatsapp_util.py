@@ -2273,6 +2273,7 @@ def buscar_contatos_envio(termo: str, *, limit: int = 20) -> list[dict]:
                 "nome": (nome or "")[:120],
                 "telefone": (telefone or jid_para_telefone(j))[:32],
                 "jid": j,
+                "jid_lid": ((conv.jid_lid or "")[:80] if conv is not None else ""),
                 "conversa_id": int(conv.pk) if conv else 0,
                 "loja": (conv.loja if conv else "") or "",
                 "foto_url": foto,
@@ -2304,6 +2305,7 @@ def buscar_contatos_envio(termo: str, *, limit: int = 20) -> list[dict]:
 
     if dig and len(dig) >= 10:
         _add("número", "", dig, telefone_para_jid(dig))
+    lembrar_fotos_da_busca(out)
     return out
 
 
@@ -2949,23 +2951,69 @@ def _foto_no_disco(conv: WhatsAppConversaAgro) -> bool:
     return ok
 
 
+_busca_fotos: list[dict] = []
+
+
+def lembrar_fotos_da_busca(itens: list[dict]) -> None:
+    """Até 3 conversas da busca sem foto. O próximo poll da ponte pede só essas."""
+    global _busca_fotos
+    fila: list[dict] = []
+    vistos: set[str] = set()
+    for it in itens or []:
+        if not isinstance(it, dict) or it.get("foto_url") or not it.get("conversa_id"):
+            continue
+        jid = str(it.get("jid") or "").strip()[:80]
+        lid = str(it.get("jid_lid") or "").strip()[:80]
+        chave = jid or lid
+        if not chave or chave in vistos:
+            continue
+        vistos.add(chave)
+        fila.append(
+            {
+                "jid": jid,
+                "jid_lid": lid,
+                "telefone": str(it.get("telefone") or "")[:32],
+            }
+        )
+        if len(fila) >= 3:
+            break
+    _busca_fotos = fila
+
+
 def listar_fotos_pendentes(*, limit: int = 25) -> list[dict]:
     """Conversas recentes sem foto (ou arquivo sumiu no disco) — a ponte busca no Zap."""
+    global _busca_fotos
     lim = max(1, min(int(limit or 25), 40))
+    out: list[dict] = []
+    vistos: set[str] = set()
+    for item in list(_busca_fotos):
+        if len(out) >= lim:
+            break
+        chave = str(item.get("jid") or item.get("jid_lid") or "")
+        if not chave or chave in vistos:
+            continue
+        vistos.add(chave)
+        out.append(item)
+    _busca_fotos = []
+    if len(out) >= lim:
+        return out
     corte = timezone.now() - timedelta(days=5)
     # Olha a lista visível (não só os 12 primeiros). Devolve poucas por poll.
     qs = WhatsAppConversaAgro.objects.order_by("-ultima_em", "-id")[: max(120, lim * 8)]
-    out = []
     for c in qs:
         if len(out) >= lim:
             break
         jid = (c.jid or "").strip()
         if not jid_eh_chat_privado(jid) and not (c.jid_lid or ""):
             continue
+        chave = jid or (c.jid_lid or "")
+        if chave in vistos:
+            continue
         tem = _foto_no_disco(c)
         recente = bool(c.foto_em) and c.foto_em >= corte
         if tem and recente:
             continue
+        vistos.add(chave)
         out.append(
             {
                 "jid": jid,
