@@ -41,6 +41,10 @@ O Git guarda o **programa**. A cópia completa para trocar de PC fica no OneDriv
 
 Não colocar essa cópia dentro do Git.
 
+## Arquivar entre aparelhos
+
+Ainda **não** é confiável nos dois sentidos (Zap ↔ WhatsApp Web/celular). Tentativas e o que falta estão no chat de 12/11 (prompt para outra IA). Não repetir `chatModify` com key inventada nem dois processos da ponte.
+
 ## Cuidado
 
 - Dois processos da ponte ao mesmo tempo derrubam o envio (conflito 440).
