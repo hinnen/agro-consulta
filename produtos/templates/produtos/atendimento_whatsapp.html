@@ -4,7 +4,7 @@
 {% block pdv_title %}WhatsApp lojas | SisVale{% endblock %}
 {% block agro_sspin %}
 {% if user.is_authenticated %}
-{% include "produtos/_screensaver_pin.html" with sspin_entry_only=1 %}
+{% include "produtos/_screensaver_pin.html" with sspin_entry_only=1 sspin_keep_operador=1 %}
 {% endif %}
 {% endblock %}
 {% block head_extra %}
