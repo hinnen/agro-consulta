@@ -28,6 +28,10 @@ No login do Windows sobe o Django (porta 8000) e a ponte. A tarefa `AgroZapTunel
 
 O Cursor remoto deste PC também sobe sozinho, na pasta `C:\AgroWhatsApp\repo`.
 
+## PIN e clientes
+
+Este PC tem banco **próprio** (`agro_wa`), separado da loja. Hoje só existe **1 PIN**, o usuário **Caixa**. O PIN de verdade da loja não está aqui, por isso não entra. Clientes deste banco: **zero**. Não ligar este Zap no banco da loja sem o Renan pedir.
+
 ## Login da tela
 
 - `renan` — o de sempre
