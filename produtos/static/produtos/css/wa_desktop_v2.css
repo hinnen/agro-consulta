@@ -134,7 +134,7 @@
     display: grid !important;
     grid-template-columns: calc(var(--wa2-col) - 1px) minmax(0, 1fr);
     border-left: 1px solid var(--wa2-line);
-    grid-template-rows: auto 64px auto auto auto minmax(0, 1fr);
+    grid-template-rows: auto 64px auto auto auto auto minmax(0, 1fr);
     gap: 0 !important;
     flex: 1 1 0%;
     min-height: 0;
@@ -228,7 +228,7 @@
   /* ---------- Lista de conversas: item 76 (72 + 4), raio 12, avatar 48 ---------- */
   html[data-wa-skin="v2"] .wa-skin #wa-lista,
   html[data-wa-skin="v2"] .wa-skin #wa-busca-hits {
-    grid-column: 1; grid-row: 6; min-height: 0; overflow-y: auto; padding: 4px 0 0;
+    grid-column: 1; grid-row: 7; min-height: 0; overflow-y: auto; padding: 4px 0 0;
     background: var(--wa2-bg-panel);
   }
   html[data-wa-skin="v2"] .wa-skin #wa-lista > p,
@@ -241,6 +241,35 @@
     border: 0; border-radius: 12px; background: transparent; box-shadow: none;
     text-align: left; cursor: pointer;
   }
+  html[data-wa-skin="v2"] .wa-skin .wa-selbar {
+    grid-column: 1; grid-row: 6; box-sizing: border-box;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+    margin: 0; padding: 4px 12px 8px 16px; background: var(--wa2-bg-panel);
+    position: relative; z-index: 2;
+  }
+  html[data-wa-skin="v2"] .wa-skin .wa-selbar[hidden] { display: none !important; }
+  html[data-wa-skin="v2"] .wa-skin #wa-sel-n {
+    color: var(--wa2-text); font-size: 13px; font-weight: 600; margin: 0;
+  }
+  html[data-wa-skin="v2"] .wa-skin .wa-selbar button {
+    height: 32px; min-height: 32px; padding: 0 12px; border-radius: 999px;
+    border: 1px solid var(--wa2-line); background: transparent; color: var(--wa2-text);
+    font-size: 13px; font-weight: 600; box-shadow: none;
+  }
+  html[data-wa-skin="v2"] .wa-skin .wa-selbar .wa-sel-go {
+    background: var(--wa2-chip-on-bg); color: var(--wa2-chip-on-fg); border-color: transparent;
+  }
+  html[data-wa-skin="v2"] .wa-skin .wa-selbar .wa-sel-del {
+    color: #f87171; border-color: transparent; background: transparent;
+  }
+  html[data-wa-skin="v2"] .wa-skin .wa-item.is-sel,
+  html[data-wa-skin="v2"] .wa-skin .wa-item.is-sel:hover {
+    background: #103529 !important;
+    box-shadow: inset 3px 0 0 #25d366 !important;
+  }
+  html[data-wa-skin="v2"] .wa-skin .wa-item.is-sel .wa-n,
+  html[data-wa-skin="v2"] .wa-skin .wa-item.is-sel .wa-p,
+  html[data-wa-skin="v2"] .wa-skin .wa-item.is-sel .wa-t { color: var(--wa2-text); }
   html[data-wa-skin="v2"] .wa-skin .wa-item:hover { background: var(--wa2-bg-hover); }
   html[data-wa-skin="v2"] .wa-skin .wa-item.is-on,
   html[data-wa-skin="v2"] .wa-skin .wa-item.is-on:hover {

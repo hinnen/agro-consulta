@@ -47,6 +47,8 @@ Não colocar essa cópia dentro do Git.
 
 ## Arquivar entre aparelhos
 
+Marcar várias: a barra fica na coluna da lista, escura, e a conversa marcada fica verde-escuro (o texto continua legível).
+
 Na lista, última mensagem **enviada** mostra o tracinho (um = foi, dois = lida). Resposta pelo celular ou pelo Zap **zera** o número verde. Conversa antiga só ganha o tracinho na próxima mensagem.
 
 Ainda **não** é confiável nos dois sentidos (Zap ↔ WhatsApp Web/celular). Em 12/11 ~09:37 o log mostrou `[ARCHIVE MUTATION]` e o banco marcou Resolvidas, mas a conversa **continuou na lista** do celular e do WhatsApp Web. O aviso foi só interno. Não aplicar os snippets da Meta.
