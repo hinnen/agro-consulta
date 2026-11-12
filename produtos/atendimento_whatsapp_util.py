@@ -737,6 +737,22 @@ def serializar_ponte(estado: WhatsAppPonteEstadoAgro | None = None) -> dict:
     }
 
 
+def _marcar_ultima_saida(conv, *, direcao: str, ack: int, zerar_nao_lidas: bool) -> list[str]:
+    """Lista: de quem foi a última e o tracinho. Resposta da loja zera o verde."""
+    extras = dict(conv.extras) if isinstance(conv.extras, dict) else {}
+    extras["ultima_direcao"] = (direcao or "")[:8]
+    try:
+        extras["ultima_ack"] = max(0, min(3, int(ack)))
+    except (TypeError, ValueError):
+        extras["ultima_ack"] = 0
+    conv.extras = extras
+    campos = ["extras"]
+    if zerar_nao_lidas and int(conv.nao_lidas or 0):
+        conv.nao_lidas = 0
+        campos.append("nao_lidas")
+    return campos
+
+
 def _preview(texto: str) -> str:
     t = " ".join(str(texto or "").split())
     if len(t) > PREVIEW_MAX:
@@ -767,6 +783,8 @@ def serializar_conversa(c: WhatsAppConversaAgro) -> dict:
         "aguardando_loja": bool(c.aguardando_loja),
         "status": status,
         "ultima_preview": c.ultima_preview or "",
+        "ultima_direcao": str((getattr(c, "extras", None) or {}).get("ultima_direcao") or ""),
+        "ultima_ack": int((getattr(c, "extras", None) or {}).get("ultima_ack") or 0),
         "ultima_em": ult.isoformat() if ult else "",
         "hora": ult_l.strftime("%H:%M") if ult_l else "",
         "data": ult_l.strftime("%d/%m") if ult_l else "",
@@ -1126,7 +1144,17 @@ def aplicar_ack_wa(*, wa_id: str, ack: int) -> bool:
         return False
     m.ack = nivel
     m.save(update_fields=["ack"])
-    _bump_msg_rev(m.conversa)
+    conv = m.conversa
+    ultima = (
+        WhatsAppMensagemAgro.objects.filter(conversa=conv, apagada=False)
+        .order_by("-id")
+        .values_list("id", flat=True)
+        .first()
+    )
+    if ultima and int(ultima) == int(m.pk):
+        campos = _marcar_ultima_saida(conv, direcao=m.direcao, ack=nivel, zerar_nao_lidas=False)
+        conv.save(update_fields=campos)
+    _bump_msg_rev(conv)
     return True
 
 
@@ -1266,9 +1294,19 @@ def _enfileirar_saida(
         conversa.ultima_preview = _preview(prev_txt)
         conversa.ultima_em = agora
         campos = ["ultima_preview", "ultima_em"]
-        if direcao == WhatsAppMensagemAgro.DIRECAO_OUT:
+        if direcao in (
+            WhatsAppMensagemAgro.DIRECAO_OUT,
+            WhatsAppMensagemAgro.DIRECAO_BOT,
+        ):
             conversa.aguardando_loja = False
             campos.append("aguardando_loja")
+            campos.extend(
+                _marcar_ultima_saida(conversa, direcao=direcao, ack=0, zerar_nao_lidas=True)
+            )
+        else:
+            campos.extend(
+                _marcar_ultima_saida(conversa, direcao=direcao, ack=0, zerar_nao_lidas=False)
+            )
         conversa.save(update_fields=campos)
     elif direcao == WhatsAppMensagemAgro.DIRECAO_OUT and (tipo_midia or "").strip().lower() != "reaction":
         conversa.aguardando_loja = False
@@ -1764,6 +1802,9 @@ def processar_entrada(
                 conv.extras = extras_t
         else:
             conv.aguardando_loja = False
+            _marcar_ultima_saida(conv, direcao=direcao, ack=2, zerar_nao_lidas=True)
+        if not de_mim:
+            _marcar_ultima_saida(conv, direcao=direcao, ack=0, zerar_nao_lidas=False)
     elif not conv.ultima_em:
         conv.ultima_em = quando
 
