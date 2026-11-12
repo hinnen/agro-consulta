@@ -287,9 +287,10 @@ DATABASES = {
 # Ficha da loja (PIN, cliente, fiado, vale, cashback). Não migrar este banco.
 _loja_url = (config("AGRO_LOJA_DATABASE_URL", default="") or "").strip()
 if _loja_url:
+    # Uma conexão reaproveitada no PC do Zap. Sem isso, cada PIN abre a loja de novo e demora.
     DATABASES["loja"] = dj_database_url.parse(
         _loja_url,
-        conn_max_age=0,
+        conn_max_age=max(30, min(_db_conn_max_age or 30, 60)),
         conn_health_checks=True,
     )
 DATABASE_ROUTERS = ["config.loja_leitura.LojaLeituraRouter"]
