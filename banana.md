@@ -1296,6 +1296,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
+### 🟢 CHECKLIST ÚNICO — **13/11** · **SISTAPP-BOTAO-ZAP** · pronto para envio à produção
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **SISTAPP-BOTAO-ZAP** | 🟢 pronto para envio | **NÃO** | Botão Zap abre `https://zap.zapsistvale.online/atendimento-whatsapp/celular/?sistapp=1` · essa página responde 200 e não cai em `/entrar/` · Dashboard do SistApp continua |
+
+Só o botão do SistApp. Vendas, Tarefas, Fotos, Etiquetas, Ajuste, Dashboard e Contagens ficam. Não entra PIN, tela do Zap nem banco. **Não** sobe sem pausa + frase + senha.
+
 ### 🟢 CHECKLIST ÚNICO — **12/11** · **WA-PIN-PC** · pronto para envio à produção
 
 | # | Pacote | Status | Migrate | Prova |
