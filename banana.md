@@ -1308,7 +1308,7 @@ A via do entregador, o painel e a reimpressão saem no horário da loja. Excel d
 
 | Campo | Valor |
 | ----- | ----- |
-| **Git teste** | `cee23d9c` |
+| **Git teste** | `1fcfd0a5` |
 | **Volta, se subir** | `git push origin 3b9fc063:producao` |
 
 ### 🟢 CHECKLIST ÚNICO — **13/11g** · **SISTAPP-CAMERA-LOCAL** · pronto para envio à produção
