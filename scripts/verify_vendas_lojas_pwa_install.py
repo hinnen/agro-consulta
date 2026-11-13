@@ -59,6 +59,17 @@ def main() -> int:
     check("pin_uses_install", "vendas_lojas_pwa_install.html" in pin)
     check("hub_uses_install", "vendas_lojas_pwa_install.html" in hub)
     check("hub_ajuste_btn", "vl-hub-ajuste" in hub and "vendas_lojas_ajuste_mobile" in hub)
+    check(
+        "hub_zap_loja",
+        "vl-hub-whatsapp" in hub
+        and "https://zap.zapsistvale.online/atendimento-whatsapp/celular/?sistapp=1" in hub
+        and "vl-hub-vendas" in hub
+        and "vl-hub-tarefas" in hub
+        and "vl-hub-fotos" in hub
+        and "vl-hub-etiquetas" in hub
+        and "vl-hub-ajuste" in hub
+        and "/entrar/" not in hub,
+    )
     check("url_ajuste_hub", "vendas_lojas_ajuste_mobile" in urls)
     check("ajuste_sessao_util", (ROOT / "produtos/vendas_lojas_ajuste_sessao_util.py").is_file())
     ext = read("produtos/templates/produtos/_agro_open_external.html")

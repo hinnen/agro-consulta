@@ -107,6 +107,9 @@
     .vl-hub-vendas {
       background: linear-gradient(145deg, #ea580c 0%, #c2410c 100%);
     }
+    .vl-hub-whatsapp {
+      background: linear-gradient(145deg, #25d366 0%, #128c7e 100%);
+    }
     .vl-hub-tarefas {
       background: linear-gradient(145deg, #0f766e 0%, #115e59 100%);
     }
@@ -139,7 +142,7 @@
     {% include "produtos/includes/vendas_lojas_pwa_install.html" with vl_pwa_variant="hub" %}
     <p class="vl-kicker">GM Agro</p>
     <h1 class="vl-title">O que você quer?</h1>
-    <p class="vl-sub">SistApp — Vendas, Tarefas, Fotos, Etiquetas ou Ajuste de estoque.</p>
+    <p class="vl-sub">SistApp — Vendas, Zap, Tarefas, Fotos, Etiquetas ou Ajuste de estoque.</p>
     {% if operador %}
     <p class="vl-user">
       <span>Olá, <strong>{{ operador }}</strong></span>
@@ -150,6 +153,10 @@
       <a class="vl-hub-vendas" href="{% url 'vendas_lojas_resumo' %}">
         <strong>Vendas</strong>
         <span>Faturamento Centro e Vila Elias</span>
+      </a>
+      <a class="vl-hub-whatsapp" href="https://zap.zapsistvale.online/atendimento-whatsapp/celular/?sistapp=1">
+        <strong>Zap</strong>
+        <span>Atendimento da loja</span>
       </a>
       <a class="vl-hub-tarefas" href="{% url 'tarefas_lista' %}">
         <strong>Tarefas</strong>
