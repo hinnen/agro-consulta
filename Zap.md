@@ -47,7 +47,9 @@ Não colocar essa cópia dentro do Git.
 
 ## Arquivar entre aparelhos
 
-Filtros da lista (Ativas, Resolvidas, relógio, Marcar) ficam na **mesma linha**. O PIN fica no topo da coluna, ao lado do número, largo o bastante para o nome inteiro numa linha. Os PINs conhecidos ficam neste PC para abrir rápido. Se o PIN não está na lista, o Zap pergunta na hora para a loja. A lista sozinha não recusa ninguém. A loja é relida uma vez por dia.
+Filtros da lista (Ativas, Resolvidas, relógio, Marcar) ficam na **mesma linha**. O PIN fica no topo da coluna, ao lado do número, largo o bastante para o nome inteiro numa linha. No SistApp o botão Zap abre `https://zap.zapsistvale.online` (o Zap deste PC). Não passa pela tela de entrar da Gestão.
+
+Os PINs conhecidos ficam neste PC para abrir rápido. Se o PIN não está na lista, o Zap pergunta na hora para a loja. A lista sozinha não recusa ninguém. A loja é relida uma vez por dia.
 
 A busca mostra a foto quando a conversa já tem. Se a conversa existe e a foto ainda não chegou, pede no máximo 3 por vez. Cadastro sem conversa continua só com a letra.
 
