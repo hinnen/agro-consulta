@@ -1298,15 +1298,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
-### 🟢 CHECKLIST ÚNICO — **13/11h** · hora da entrega + câmera local · corte armado · ainda sem enviar
+### ✅ CHECKLIST ÚNICO — **13/11h** · hora da entrega + câmera local · enviado **v27.26.66** @ `edb926e2`
 
-Os dois pacotes abaixo sobem juntos na **v27.26.66**. Corte: `./scripts/cutover_loja_checklist_1311h.sh`. Volta: `git push origin 3b9fc063612d72754a0ac3a657b68a78fdb56bba:producao`.
+Até o build, no ar segue **v27.26.65** @ `3b9fc063`. Volta: `git push origin 3b9fc063612d72754a0ac3a657b68a78fdb56bba:producao`.
 
 ### 🟢 CHECKLIST ÚNICO — **13/11h** · **ENTREGA-HORA-LOJA** · pronto para envio à produção
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ENTREGA-HORA-LOJA** | 🟢 pronto | **NÃO** | **VERIFY_OK 18** · 19:49 UTC = 16:49 loja |
+| 1 | **ENTREGA-HORA-LOJA** | ✅ enviado v27.26.66 | **NÃO** | **VERIFY_OK 18** · 19:49 UTC = 16:49 loja |
 
 A via do entregador, o painel e a reimpressão saem no horário da loja. Excel de vendas, etiquetas, orçamento, cliente e empréstimo também. Cupom de venda já estava certo. PDV, caixa e o valor da venda não mudam. Loja hoje **v27.26.65** @ `3b9fc063`. **Não** sobe sem frase + senha.
 
@@ -1319,7 +1319,7 @@ A via do entregador, o painel e a reimpressão saem no horário da loja. Excel d
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **SISTAPP-CAMERA-LOCAL** | 🟢 pronto | **NÃO** | **VERIFY_OK 21** · encaixa na loja `3b9fc063` |
+| 1 | **SISTAPP-CAMERA-LOCAL** | ✅ enviado v27.26.66 | **NÃO** | **VERIFY_OK 21** · encaixa na loja `3b9fc063` |
 
 A câmera do Ajuste, Fotos e Etiquetas vem do próprio sistema. A letra do menu, PIN, Ajuste, Fotos e Etiquetas é a do celular. Estoque, preço e venda continuam ao vivo. PDV, caixa e venda não entram. Loja hoje **v27.26.65** @ `3b9fc063`. **Não** sobe sem frase + senha.
 
