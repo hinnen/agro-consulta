@@ -305,6 +305,7 @@ def vendas_lojas_zap_api(request, rest=""):
         "X-Agro-Wa-Sistapp": token,
         "X-Agro-Wa-Operador": nome,
         "Accept": request.headers.get("Accept") or "application/json",
+        "User-Agent": "Sistvale-Loja",
     }
     ctype = request.headers.get("Content-Type") or ""
     if ctype:
