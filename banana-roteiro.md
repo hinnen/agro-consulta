@@ -4,7 +4,7 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
-**Loja (13/11d):** **ZAP-SISTAPP-LIGACAO** enviada · **v27.26.62** @ `eb34cf2a`. Sem migrate. Até o build, no ar segue **v27.26.61** @ `e3745fae`. Volta: `git push origin e3745faef6d1767026b6de7526354f23c2c08d20:producao`.
+**Checklist único (13/11e):** **ZAP-SISTAPP-HOST** — 🟢 corte armado, **ainda sem enviar**. A loja chamava um Zap desligado. Agora chama `zap.zapsistvale.online`. O aplicativo .58 precisa da portinha `480715c5`. Alvo **v27.26.63**. Base `eb34cf2a`. Na senha: `./scripts/cutover_loja_checklist_1311e.sh --exec`. Volta: `git push origin eb34cf2aeef01b228483a1e97b5e455eaeed656d:producao`.
 
 **Loja (13/11):** **CAMERA-TRAS-FIXA** + **WA-PIN-PC** enviadas · **v27.26.59** @ `418fb789`. Sem migrate. Até o build, no ar segue **v27.26.58** @ `ee330433`. Volta: `git push origin ee3304332d77f0d91f6565bb84cfcfd1e81263b0:producao`.
 

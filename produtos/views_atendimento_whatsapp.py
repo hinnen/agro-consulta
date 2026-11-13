@@ -236,7 +236,11 @@ def vendas_lojas_zap_api(request, rest=""):
     resto = (rest or "").lstrip("/")
     if ".." in resto or resto.startswith("/") or "\\" in resto:
         return JsonResponse({"ok": False, "erro": "Caminho inválido."}, status=400)
-    origin = agro_wa_public_origin()
+    # O serviço antigo agro-consulta-wa está desligado. O Zap que o celular abre é este.
+    origin = "https://zap.zapsistvale.online"
+    configurado = agro_wa_public_origin()
+    if configurado and "zapsistvale.online" in configurado:
+        origin = configurado
     if not origin:
         return JsonResponse({"ok": False, "erro": "Zap separado não está configurado."}, status=503)
     token = (getattr(settings, "AGRO_WA_BRIDGE_TOKEN", "") or "").strip()
