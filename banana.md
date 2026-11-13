@@ -1304,11 +1304,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 Só o botão do SistApp. Vendas, Tarefas, Fotos, Etiquetas, Ajuste, Dashboard e Contagens ficam. Não entra PIN, tela do Zap nem banco. **Não** sobe sem pausa + frase + senha.
 
-### 🟢 CHECKLIST ÚNICO — **12/11** · **WA-PIN-PC** · pronto para envio à produção
+### 🟢 CHECKLIST ÚNICO — **13/11** · câmera travada + PIN do Zap · corte armado · ainda sem enviar
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **WA-PIN-PC** | 🟢 pronto para envio | **NÃO** | PIN 9999 = Renan Hinnen · sem PIN não assina · bilhete herda · bilhete ruim recusa |
+| 1 | **SISTAPP-CAMERA-TRAS-FIXA** | 🟢 armado | **NÃO** | **VERIFY_OK 21** |
+| 2 | **WA-PIN-PC** | 🟢 armado | **NÃO** | botão do PDV continua com `window.open` · bilhete do PIN no mesmo corte |
+
+Alvo **v27.26.59**. Base `ee330433`. Não entra o resto da branch do Zap.
+
+| Campo | Valor |
+| ----- | ----- |
+| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1311.sh` |
+| **Corte** | `./scripts/cutover_loja_checklist_1311.sh` |
+| **Volta** | `git push origin ee3304332d77f0d91f6565bb84cfcfd1e81263b0:producao` |
+| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1311.md` |
+
+### 🟢 CHECKLIST ÚNICO — **12/11** · **WA-PIN-PC** · absorvido no corte 13/11
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **WA-PIN-PC** | 🟢 no corte 13/11 | **NÃO** | PIN 9999 = Renan Hinnen · sem PIN não assina · bilhete herda · bilhete ruim recusa |
 
 O Zap pede PIN em qualquer computador. Vale 45 segundos, como o PDV, e renova ao atender. Sem PIN, não atende. O botão do PDV manda o PIN daquele PC. Código na branch `cursor/zap-boot-login-64bd` @ `c2c9ceec` (não está no `teste`). No envio, a mesma `AGRO_WA_PIN_HANDOFF_KEY` na loja e no PC2. **Não** sobe sem pausa + frase + senha.
 
@@ -1316,7 +1332,7 @@ O Zap pede PIN em qualquer computador. Vale 45 segundos, como o PDV, e renova ao
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **SISTAPP-CAMERA-TRAS-FIXA** | 🟢 pronto para envio | **NÃO** | VERIFY_OK 21 · bip 20/21 (falta só o banco local) |
+| 1 | **SISTAPP-CAMERA-TRAS-FIXA** | 🟢 no corte 13/11 | **NÃO** | VERIFY_OK 21 · bip 18/19 nesta máquina |
 
 Tira **Trocar câmera**. Ajuste, Fotos e Etiquetas pedem a câmera de trás, imagem maior e foco no mesmo comando. Não escolhe entre as três lentes. Código em `teste` @ `822c6bba`. Base da loja **v27.26.58** @ `ee330433`. Sem migrate. PDV, caixa e venda não entram. **Não** sobe sem pausa + frase + senha.
 

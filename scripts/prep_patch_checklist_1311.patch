@@ -1,0 +1,993 @@
+diff --git a/config/settings.py b/config/settings.py
+index 1c7abdd5..b6fa402f 100644
+--- a/config/settings.py
++++ b/config/settings.py
+@@ -586,6 +586,8 @@ VENDA_ERP_FORMA_PAGAMENTO_FIADO = config(
+ TRANSFERENCIA_WHATSAPP = config('TRANSFERENCIA_WHATSAPP', default='').strip()
+ AGRO_WA_BRIDGE_TOKEN = (config("AGRO_WA_BRIDGE_TOKEN", default="gm-agro-wa-ponte-local") or "").strip()
+ # No PDV (Sistvale): URL do Zap separado. No serviço agro-consulta-wa deixe vazio.
++# Mesma chave no PC do Zap e na loja. Sem ela, o Zap não herda o PIN do PDV e pede de novo.
++AGRO_WA_PIN_HANDOFF_KEY = (config("AGRO_WA_PIN_HANDOFF_KEY", default="") or "").strip()
+ if "AGRO_WA_PUBLIC_ORIGIN" in os.environ:
+     AGRO_WA_PUBLIC_ORIGIN = (os.environ.get("AGRO_WA_PUBLIC_ORIGIN") or "").strip().rstrip("/")
+ else:
+diff --git a/produtos/static/produtos/js/atendimento_whatsapp.js b/produtos/static/produtos/js/atendimento_whatsapp.js
+index 5a4e99a8..2d988b3d 100644
+--- a/produtos/static/produtos/js/atendimento_whatsapp.js
++++ b/produtos/static/produtos/js/atendimento_whatsapp.js
+@@ -1199,6 +1199,11 @@
+       avisarEnvio('Abra uma conversa na lista antes de enviar.');
+       return;
+     }
++    if (!nomeOperadorPin()) {
++      avisarEnvio('Digite o PIN para atender.');
++      trocarOperadorPin();
++      return;
++    }
+     if (enviandoMsg) {
+       avisarEnvio('Ainda enviando… aguarde 1 instante.');
+       return;
+@@ -1264,6 +1269,11 @@
+         var tmp = document.querySelector('[data-msg-id="' + tempId + '"]');
+         if (tmp) tmp.remove();
+         if (!j || !j.ok) {
++          if (j && j.precisa_pin) {
++            try { localStorage.removeItem('gm_sspin_operador'); } catch (_) {}
++            pintarOperadorPin();
++            trocarOperadorPin();
++          }
+           avisarEnvio((j && j.erro) || 'Não enviou.');
+           if (textoVolta && $('wa-input')) {
+             $('wa-input').value = textoVolta;
+@@ -2259,6 +2269,19 @@
+   }
+   window.addEventListener('gm-sspin-operador', pintarOperadorPin);
+   pintarOperadorPin();
++  fetch('/api/pdv/operador/', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
++    .then(function (r) { return r.json(); })
++    .then(function (j) {
++      if (j && j.ok && j.fresco && j.operador) {
++        try { localStorage.setItem('gm_sspin_operador', String(j.operador).trim()); } catch (_) {}
++        pintarOperadorPin();
++        return;
++      }
++      try { localStorage.removeItem('gm_sspin_operador'); } catch (_) {}
++      pintarOperadorPin();
++      trocarOperadorPin();
++    })
++    .catch(function () {});
+ 
+   if (ehOverlay) {
+     document.body.classList.add('wa-in-overlay');
+diff --git a/produtos/static/produtos/js/pdv_topbar_whatsapp.js b/produtos/static/produtos/js/pdv_topbar_whatsapp.js
+index 66944e02..197598b6 100644
+--- a/produtos/static/produtos/js/pdv_topbar_whatsapp.js
++++ b/produtos/static/produtos/js/pdv_topbar_whatsapp.js
+@@ -121,8 +121,16 @@
+     box.setAttribute('aria-hidden', 'true');
+   }
+ 
+-  function abrirZapSemSairDoApp() {
+-    var href = urlZapSeparado();
++  function csrfPdv() {
++    try {
++      var c = document.cookie.match(/csrftoken=([^;]+)/);
++      return c ? decodeURIComponent(c[1]) : '';
++    } catch (_) {
++      return '';
++    }
++  }
++
++  function irParaZap(href) {
+     if (zapEhSeparado()) {
+       window.open(href, '_blank', 'noopener');
+       return;
+@@ -148,6 +156,29 @@
+     window.location.href = href;
+   }
+ 
++  function abrirZapSemSairDoApp() {
++    var href = urlZapSeparado();
++    var sep = href.indexOf('?') >= 0 ? '&' : '?';
++    fetch('/api/pdv/operador/zap-entrada/', {
++      method: 'POST',
++      credentials: 'same-origin',
++      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfPdv() },
++      body: '{}',
++    })
++      .then(function (r) {
++        return r.json().catch(function () {
++          return {};
++        });
++      })
++      .then(function (j) {
++        if (j && j.ok && j.entrada) href += sep + 'entrada=' + encodeURIComponent(j.entrada);
++        irParaZap(href);
++      })
++      .catch(function () {
++        irParaZap(href);
++      });
++  }
++
+   btn.addEventListener('click', function (ev) {
+     ev.preventDefault();
+     ev.stopPropagation();
+diff --git a/produtos/static/produtos/js/sistapp_camera_escolha.js b/produtos/static/produtos/js/sistapp_camera_escolha.js
+index 2e401070..7f7de587 100644
+--- a/produtos/static/produtos/js/sistapp_camera_escolha.js
++++ b/produtos/static/produtos/js/sistapp_camera_escolha.js
+@@ -1,109 +1,56 @@
+-/* SistApp — escolhe a câmera de trás mais nítida e deixa o operador trocar. */
++/* SistApp — só a câmera de trás, com nitidez pedida no mesmo pedido.
++   O Chrome não lista as lentes de trás separadas. Não há troca. */
+ (function () {
+-  var LS = "sistapp_camera_id_v2";
+-
+-  function labelDe(cam) {
+-    return String((cam && (cam.label || cam.id)) || "");
+-  }
+-
+-  function nota(cam) {
+-    var s = labelDe(cam).toLowerCase();
+-    var ultra = /ultra|wide|0\.5|grande|angular|macro|depth/.test(s);
+-    var front = /front|user|frontal|face|selfie/.test(s);
+-    var back = /back|rear|traseir|environment|posterior/.test(s);
+-    if (front && !back) return 0;
+-    if (back && !ultra) return 30;
+-    if (ultra) return 10;
+-    if (s) return 20;
+-    return 15;
+-  }
+-
+-  function ordenar(cams) {
+-    return (cams || []).slice().sort(function (a, b) {
+-      return nota(b) - nota(a);
+-    });
+-  }
+-
+-  function getCameras() {
+-    if (!window.Html5Qrcode || typeof Html5Qrcode.getCameras !== "function") {
+-      return Promise.resolve([]);
+-    }
+-    return Html5Qrcode.getCameras().then(function (lista) {
+-      return Array.isArray(lista) ? lista : [];
+-    }).catch(function () {
+-      return [];
+-    });
+-  }
+-
+-  function salvaId() {
+-    try {
+-      return localStorage.getItem(LS) || "";
+-    } catch (e) {
+-      return "";
+-    }
+-  }
+-
+-  function lembrar(cameraId) {
+-    if (typeof cameraId !== "string" || !cameraId) return;
+-    try {
+-      localStorage.setItem(LS, cameraId);
+-    } catch (e) {}
+-  }
+-
+-  function escolher(cams) {
+-    if (!cams || !cams.length) return { facingMode: "environment" };
+-    var id = salvaId();
+-    var i;
+-    if (id) {
+-      for (i = 0; i < cams.length; i++) {
+-        if (cams[i] && cams[i].id === id) return id;
++  try {
++    localStorage.removeItem("sistapp_camera_id_v1");
++    localStorage.removeItem("sistapp_camera_id_v2");
++  } catch (e) {}
++
++  function restricoes() {
++    return {
++      facingMode: { ideal: "environment" },
++      width: { ideal: 1920 },
++      height: { ideal: 1080 },
++      advanced: [{ focusMode: "continuous" }],
++    };
++  }
++
++  function aplicar(config) {
++    var cfg = {};
++    var k;
++    if (config) {
++      for (k in config) {
++        if (Object.prototype.hasOwnProperty.call(config, k)) cfg[k] = config[k];
+       }
+     }
+-    var ordem = ordenar(cams);
+-    return (ordem[0] && ordem[0].id) || { facingMode: "environment" };
++    cfg.videoConstraints = restricoes();
++    if (!cfg.aspectRatio) cfg.aspectRatio = 1.7777778;
++    return cfg;
+   }
+ 
+-  function proxima(cams, atual) {
+-    if (!cams || cams.length < 2) return atual || { facingMode: "environment" };
+-    var ordem = ordenar(cams);
+-    var atualId = typeof atual === "string" ? atual : "";
+-    var idx = -1;
+-    var i;
+-    for (i = 0; i < ordem.length; i++) {
+-      if (ordem[i] && ordem[i].id === atualId) idx = i;
+-    }
+-    var n = ordem[(idx + 1) % ordem.length];
+-    if (n && n.id) {
+-      lembrar(n.id);
+-      return n.id;
+-    }
+-    return { facingMode: "environment" };
+-  }
+-
+-  function alvo(cameraId) {
+-    if (typeof cameraId === "string" && cameraId) return cameraId;
+-    var salvo = salvaId();
+-    if (salvo) return salvo;
+-    return { facingMode: "environment" };
+-  }
+-
+-  function idDoVideo(video) {
++  function afiar(raiz) {
++    var video = raiz && raiz.querySelector ? raiz.querySelector("video") : null;
++    var stream = video && video.srcObject;
++    var track = stream && stream.getVideoTracks && stream.getVideoTracks()[0];
++    if (!track || typeof track.applyConstraints !== "function") return Promise.resolve();
++    var caps = {};
+     try {
+-      var stream = video && video.srcObject;
+-      var track = stream && stream.getVideoTracks && stream.getVideoTracks()[0];
+-      var settings = track && track.getSettings && track.getSettings();
+-      return (settings && settings.deviceId) || "";
++      caps = typeof track.getCapabilities === "function" ? track.getCapabilities() : {};
+     } catch (e) {
+-      return "";
++      caps = {};
+     }
++    var modos = caps && caps.focusMode;
++    var tem = false;
++    if (modos && typeof modos.indexOf === "function") tem = modos.indexOf("continuous") >= 0;
++    if (!tem) return Promise.resolve();
++    return track.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(function () {
++      return track.applyConstraints({ focusMode: "continuous" }).catch(function () {});
++    });
+   }
+ 
+   window.SistAppCamera = {
+-    getCameras: getCameras,
+-    escolher: escolher,
+-    proxima: proxima,
+-    lembrar: lembrar,
+-    alvo: alvo,
+-    idDoVideo: idDoVideo,
++    restricoes: restricoes,
++    aplicar: aplicar,
++    afiar: afiar,
+   };
+ })();
+diff --git a/produtos/templates/produtos/atendimento_whatsapp.html b/produtos/templates/produtos/atendimento_whatsapp.html
+index 4daead9c..757890e9 100644
+--- a/produtos/templates/produtos/atendimento_whatsapp.html
++++ b/produtos/templates/produtos/atendimento_whatsapp.html
+@@ -2,6 +2,11 @@
+ {% load static %}
+ 
+ {% block pdv_title %}WhatsApp lojas | SisVale{% endblock %}
++{% block agro_sspin %}
++{% if user.is_authenticated %}
++{% include "produtos/_screensaver_pin.html" with sspin_entry_only=1 %}
++{% endif %}
++{% endblock %}
+ {% block head_extra %}
+   <meta name="theme-color" content="#075E54">
+   <meta name="mobile-web-app-capable" content="yes">
+@@ -117,7 +122,6 @@
+ {% include "produtos/_wa_status.html" %}
+ {% include "produtos/_wa_ficha.html" %}
+ {% include "produtos/_wa_dlg.html" %}
+-{% include "produtos/_screensaver_pin.html" %}
+ <script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
+ <script>
+ (function () {
+diff --git a/produtos/templates/produtos/etiquetas_solicitacao/app.html b/produtos/templates/produtos/etiquetas_solicitacao/app.html
+index d377042c..9ab5e414 100644
+--- a/produtos/templates/produtos/etiquetas_solicitacao/app.html
++++ b/produtos/templates/produtos/etiquetas_solicitacao/app.html
+@@ -7,7 +7,7 @@
+   <title>Solicitar etiquetas | GM</title>
+   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+-  <script src="/static/produtos/js/sistapp_camera_escolha.js?v=2"></script>
++  <script src="/static/produtos/js/sistapp_camera_escolha.js?v=3"></script>
+   <style>
+     :root {
+       --ink: #0f172a;
+@@ -454,8 +454,7 @@
+   <div id="reader" aria-hidden="true">
+     <div id="reader-box"></div>
+     <div class="scan-bar">
+-      <span>Aponte para o código</span>
+-      <button type="button" class="btn" id="btnTrocaCam" hidden aria-label="Trocar câmera" style="color:#0f172a;background:#fff;border-color:#fff;">Trocar câmera</button>
++      <span>Câmera de trás</span>
+       <button type="button" class="btn" id="btnFechaScan" aria-label="Fechar câmera" style="color:#fff;background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.35);">Fechar</button>
+     </div>
+   </div>
+@@ -849,25 +848,17 @@
+       var box = document.getElementById("reader-box");
+       if (box) box.innerHTML = "";
+     }
+-    var camList = [];
+-    var camAtual = null;
+-    function mostrarTroca() {
+-      var b = document.getElementById("btnTrocaCam");
+-      if (b) b.hidden = !(camList && camList.length > 1);
+-    }
+-    function pararScan(keepOpen) {
+-      if (!keepOpen) reabrirScanAposEnvio = false;
++    function pararScan() {
++      reabrirScanAposEnvio = false;
+       scanningActive = false;
++      document.body.classList.remove("scan-open");
+       var reader = document.getElementById("reader");
+-      if (!keepOpen) {
+-        document.body.classList.remove("scan-open");
+-        reader.classList.remove("on");
+-        reader.setAttribute("aria-hidden", "true");
+-      }
++      reader.classList.remove("on");
++      reader.setAttribute("aria-hidden", "true");
+       var inst = scanner;
+       scanner = null;
+       if (!inst) {
+-        if (!keepOpen) limparReaderBox();
++        limparReaderBox();
+         return Promise.resolve();
+       }
+       return inst
+@@ -877,7 +868,7 @@
+           try {
+             inst.clear();
+           } catch (e) {}
+-          if (!keepOpen) limparReaderBox();
++          limparReaderBox();
+         });
+     }
+     function qrBoxSize() {
+@@ -885,39 +876,7 @@
+       var boxW = Math.min(280, Math.max(200, w - 48));
+       return { width: boxW, height: Math.round(boxW * 0.55) };
+     }
+-    function ligarCamera(cam) {
+-      camAtual = cam;
+-      if (window.SistAppCamera) SistAppCamera.lembrar(typeof cam === "string" ? cam : "");
+-      mostrarTroca();
+-      var box = qrBoxSize();
+-      var cfg = { fps: 10, qrbox: box };
+-      var alvo = (typeof cam === "string" && cam) ? cam : { facingMode: "environment" };
+-      return scanner
+-        .start(
+-          alvo,
+-          cfg,
+-          function (decoded) {
+-            if (!scanningActive || enviando) return;
+-            processarBipScan(decoded);
+-          },
+-          function () {}
+-        )
+-        .then(function () {
+-          if (!window.SistAppCamera) return;
+-          return SistAppCamera.getCameras().then(function (cams) {
+-            camList = cams || [];
+-            var video = document.querySelector("#reader-box video");
+-            var id = SistAppCamera.idDoVideo(video);
+-            if (id) camAtual = id;
+-            mostrarTroca();
+-          });
+-        })
+-        .catch(function () {
+-          setStatus("Não abriu a câmera — veja permissões.", true);
+-          pararScan();
+-        });
+-    }
+-    async function iniciarScan(cameraForcada) {
++    async function iniciarScan() {
+       if (!window.Html5Qrcode) {
+         setStatus("Leitor indisponível neste aparelho.", true);
+         return;
+@@ -928,13 +887,11 @@
+       }
+       if (enviando) return;
+       reabrirScanAposEnvio = false;
+-      if (!cameraForcada) {
+-        await pararScan();
+-        await new Promise(function (r) {
+-          setTimeout(r, 200);
+-        });
+-        limparReaderBox();
+-      }
++      await pararScan();
++      await new Promise(function (r) {
++        setTimeout(r, 200);
++      });
++      limparReaderBox();
+       esconderPanelSemCadastro();
+       document.body.classList.add("scan-open");
+       var reader = document.getElementById("reader");
+@@ -943,9 +900,26 @@
+       scanner = new Html5Qrcode("reader-box");
+       scanningActive = true;
+       setStatus(bipEnviarDiretoAtivo() ? "Bipe — envia direto se achar." : "Bipe — câmera fica aberta.");
+-      if (cameraForcada) return ligarCamera(cameraForcada);
+-      var alvo = window.SistAppCamera ? SistAppCamera.alvo(null) : { facingMode: "environment" };
+-      return ligarCamera(alvo);
++      var cfg = { fps: 10, qrbox: qrBoxSize() };
++      var pedido = window.SistAppCamera ? SistAppCamera.aplicar(cfg) : cfg;
++      var alvo = window.SistAppCamera ? SistAppCamera.restricoes() : { facingMode: { ideal: "environment" } };
++      return scanner
++        .start(
++          alvo,
++          pedido,
++          function (decoded) {
++            if (!scanningActive || enviando) return;
++            processarBipScan(decoded);
++          },
++          function () {}
++        )
++        .then(function () {
++          if (window.SistAppCamera) SistAppCamera.afiar(document.getElementById("reader-box"));
++        })
++        .catch(function () {
++          setStatus("Não abriu a câmera — veja permissões.", true);
++          pararScan();
++        });
+     }
+     document.getElementById("busca").addEventListener("input", function () {
+       var v = this.value;
+@@ -968,11 +942,6 @@
+     document.getElementById("btnScan").addEventListener("click", function () {
+       iniciarScan();
+     });
+-    document.getElementById("btnTrocaCam").addEventListener("click", function () {
+-      if (!window.SistAppCamera || !camList || camList.length < 2 || enviando) return;
+-      var next = SistAppCamera.proxima(camList, camAtual);
+-      pararScan(true).then(function () { iniciarScan(next); });
+-    });
+     document.getElementById("btnFechaScan").addEventListener("click", function () {
+       pararScan();
+     });
+diff --git a/produtos/templates/produtos/fotos_produto/app.html b/produtos/templates/produtos/fotos_produto/app.html
+index f8cc1c4d..c641c1c7 100644
+--- a/produtos/templates/produtos/fotos_produto/app.html
++++ b/produtos/templates/produtos/fotos_produto/app.html
+@@ -12,7 +12,7 @@
+   <link rel="apple-touch-icon" href="/static/produtos/pwa/vendas-lojas-192.png">
+   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+-  <script src="/static/produtos/js/sistapp_camera_escolha.js?v=2"></script>
++  <script src="/static/produtos/js/sistapp_camera_escolha.js?v=3"></script>
+   <style>
+     :root {
+       --ink: #0f172a; --muted: #64748b; --accent: #7c3aed; --line: #e2e8f0; --bg: #f8fafc;
+@@ -131,8 +131,7 @@
+   <div id="reader" aria-hidden="true">
+     <div id="reader-box"></div>
+     <div class="scan-bar">
+-      <span>Scan ativo</span>
+-      <button type="button" class="btn" id="btnTrocaCam" hidden style="color:#0f172a;background:#fff;border-color:#fff;">Trocar câmera</button>
++      <span>Câmera de trás</span>
+       <button type="button" class="btn" id="btnFechaScan" style="color:#fff;background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.35);">Fechar</button>
+     </div>
+   </div>
+@@ -388,20 +387,10 @@
+       }
+     }
+ 
+-    var camList = [];
+-    var camAtual = null;
+-
+-    function mostrarTroca() {
+-      var b = document.getElementById("btnTrocaCam");
+-      if (b) b.hidden = !(camList && camList.length > 1);
+-    }
+-
+-    function stopScan(keepOpen) {
++    function stopScan() {
+       scanningActive = false;
+-      if (!keepOpen) {
+-        document.getElementById("reader").classList.remove("on");
+-        document.getElementById("reader").setAttribute("aria-hidden", "true");
+-      }
++      document.getElementById("reader").classList.remove("on");
++      document.getElementById("reader").setAttribute("aria-hidden", "true");
+       if (scanner) {
+         try {
+           return scanner.stop().then(function () { scanner = null; }).catch(function () { scanner = null; });
+@@ -410,87 +399,65 @@
+       return Promise.resolve();
+     }
+ 
+-    function ligarCamera(cam) {
+-      camAtual = cam;
+-      if (window.SistAppCamera) SistAppCamera.lembrar(typeof cam === "string" ? cam : "");
+-      mostrarTroca();
+-      var formats = [];
+-      try {
+-        var F = Html5QrcodeSupportedFormats;
+-        formats = [F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E, F.CODE_128, F.CODE_39, F.ITF, F.QR_CODE];
+-      } catch (e) {}
+-      var cfg = {
+-        fps: 12,
+-        qrbox: function (viewW, viewH) {
+-          var w = Math.floor(Math.min(viewW * 0.88, 360));
+-          var h = Math.floor(Math.min(viewH * 0.28, 140));
+-          return { width: w, height: h };
+-        },
+-        formatsToSupport: formats.length ? formats : undefined,
+-        experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+-      };
+-      var alvo = (typeof cam === "string" && cam) ? cam : { facingMode: "environment" };
+-      return scanner.start(
+-        alvo,
+-        cfg,
+-        function (txt) {
+-          if (!scanningActive) return;
+-          scanningActive = false;
+-          var codigo = String(txt || "").trim();
+-          stopScan().then(function () {
+-            if (!codigo) return;
+-            var hits = matchCodigoExato(codigo);
+-            if (hits.length === 1) {
+-              abrirProduto(String(hits[0].id || ""));
+-              return;
+-            }
+-            document.getElementById("busca").value = codigo;
+-            buscar(codigo);
+-            mostrarLista();
+-          });
+-        }
+-      ).then(function () {
+-        if (!window.SistAppCamera) return;
+-        return SistAppCamera.getCameras().then(function (cams) {
+-          camList = cams || [];
+-          var video = document.querySelector("#reader-box video");
+-          var id = SistAppCamera.idDoVideo(video);
+-          if (id) camAtual = id;
+-          mostrarTroca();
+-        });
+-      }).catch(function () {
+-        alert("Não abriu a câmera. Permita o acesso.");
+-        stopScan();
+-      });
+-    }
+-
+-    function startScan(cameraForcada) {
++    function startScan() {
+       if (typeof Html5Qrcode === "undefined") {
+         alert("Leitor não carregou. Tente de novo.");
+         return;
+       }
+-      var abrir = function () {
++      stopScan().then(function () {
+         document.getElementById("reader").classList.add("on");
+         document.getElementById("reader").setAttribute("aria-hidden", "false");
+         scanningActive = true;
+         scanner = new Html5Qrcode("reader-box");
+-        if (cameraForcada) return ligarCamera(cameraForcada);
+-        var alvo = window.SistAppCamera ? SistAppCamera.alvo(null) : { facingMode: "environment" };
+-        return ligarCamera(alvo);
+-      };
+-      if (cameraForcada) return abrir();
+-      return stopScan().then(abrir);
++        var formats = [];
++        try {
++          var F = Html5QrcodeSupportedFormats;
++          formats = [F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E, F.CODE_128, F.CODE_39, F.ITF, F.QR_CODE];
++        } catch (e) {}
++        var cfg = {
++          fps: 12,
++          qrbox: function (viewW, viewH) {
++            var w = Math.floor(Math.min(viewW * 0.88, 360));
++            var h = Math.floor(Math.min(viewH * 0.28, 140));
++            return { width: w, height: h };
++          },
++          formatsToSupport: formats.length ? formats : undefined,
++          experimentalFeatures: { useBarCodeDetectorIfSupported: true },
++        };
++        var pedido = window.SistAppCamera ? SistAppCamera.aplicar(cfg) : cfg;
++        var alvo = window.SistAppCamera ? SistAppCamera.restricoes() : { facingMode: { ideal: "environment" } };
++        return scanner.start(
++          alvo,
++          pedido,
++          function (txt) {
++            if (!scanningActive) return;
++            scanningActive = false;
++            var codigo = String(txt || "").trim();
++            stopScan().then(function () {
++              if (!codigo) return;
++              var hits = matchCodigoExato(codigo);
++              if (hits.length === 1) {
++                abrirProduto(String(hits[0].id || ""));
++                return;
++              }
++              document.getElementById("busca").value = codigo;
++              buscar(codigo);
++              mostrarLista();
++            });
++          }
++        ).then(function () {
++          if (window.SistAppCamera) SistAppCamera.afiar(document.getElementById("reader-box"));
++        }).catch(function () {
++          alert("Não abriu a câmera. Permita o acesso.");
++          stopScan();
++        });
++      });
+     }
+ 
+     document.getElementById("busca").addEventListener("input", function () {
+       buscar(this.value);
+     });
+     document.getElementById("btnScan").addEventListener("click", function () { startScan(); });
+-    document.getElementById("btnTrocaCam").addEventListener("click", function () {
+-      if (!window.SistAppCamera || !camList || camList.length < 2) return;
+-      var next = SistAppCamera.proxima(camList, camAtual);
+-      stopScan(true).then(function () { startScan(next); });
+-    });
+     document.getElementById("btnFechaScan").addEventListener("click", function () { stopScan(); });
+     document.getElementById("btnVoltar").addEventListener("click", function () {
+       mostrarLista();
+diff --git a/produtos/templates/produtos/mobile_ajuste.html b/produtos/templates/produtos/mobile_ajuste.html
+index c70f5578..9218dd73 100644
+--- a/produtos/templates/produtos/mobile_ajuste.html
++++ b/produtos/templates/produtos/mobile_ajuste.html
+@@ -49,7 +49,7 @@
+   <script src="https://cdn.tailwindcss.com"></script>
+   {% include "produtos/_agro_consulta_ui.html" %}
+   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+-  <script src="{% static 'produtos/js/sistapp_camera_escolha.js' %}?v=2"></script>
++  <script src="{% static 'produtos/js/sistapp_camera_escolha.js' %}?v=3"></script>
+   <style>
+     :root {
+       --ma-kb-inset: 0px;
+@@ -921,10 +921,7 @@
+   <div id="reader" class="fixed inset-0 z-[165] hidden bg-black">
+     <div id="reader-box" class="absolute inset-0"></div>
+     <div class="absolute top-0 left-0 right-0 pt-[max(0.6rem,env(safe-area-inset-top))] px-3 flex items-center justify-between gap-2 bg-gradient-to-b from-black/75 to-transparent">
+-      <p class="text-white text-xs font-black uppercase tracking-wide">Câmera ativa</p>
+-      <button type="button" id="ma-btn-trocar-camera" onclick="maTrocarCamera()" class="hidden inline-flex items-center justify-center min-h-[2.75rem] px-4 rounded-xl bg-white text-slate-900 text-xs font-black uppercase">
+-        Trocar câmera
+-      </button>
++      <p class="text-white text-xs font-black uppercase tracking-wide">Câmera de trás</p>
+       <button type="button" onclick="stopScan()" class="inline-flex items-center justify-center min-h-[2.75rem] px-4 rounded-xl bg-white/15 border border-white/35 text-white text-xs font-black uppercase">
+         Fechar
+       </button>
+@@ -2606,25 +2603,8 @@ function maOnScanDecoded(codigo) {
+   if (r === 'ok' || r === 'debounce' || r === 'aguarde') return;
+ }
+ 
+-let maCamList = [];
+-let maCamAtual = null;
+-
+-function maAtualizarBtnTrocar() {
+-  const btn = document.getElementById('ma-btn-trocar-camera');
+-  if (!btn) return;
+-  btn.classList.toggle('hidden', !(maCamList && maCamList.length > 1));
+-}
+-
+-function maTrocarCamera() {
+-  if (!scanningActive || maScanBusy || !window.SistAppCamera) return;
+-  if (!maCamList || maCamList.length < 2) return;
+-  const next = SistAppCamera.proxima(maCamList, maCamAtual);
+-  maScanBusy = true;
+-  stopScan({ keepBusy: true, keepOpen: true }).then(() => startScan(next));
+-}
+-
+-function startScan(cameraForcada) {
+-  if (!cameraForcada && (scanningActive || maScanBusy)) return;
++function startScan() {
++  if (scanningActive || maScanBusy) return;
+   if (typeof Html5Qrcode === 'undefined') {
+     if (typeof maMostrarToast === 'function') {
+       maMostrarToast('Câmera não carregou. Use o bipador no campo.', false);
+@@ -2681,16 +2661,11 @@ function startScan(cameraForcada) {
+       experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+     };
+     if (formats && formats.length) config.formatsToSupport = formats;
+-    const abrirCom = (cam, cams) => {
+-      maCamList = cams || maCamList || [];
+-      maCamAtual = cam;
+-      maAtualizarBtnTrocar();
+-      const alvo = (typeof cam === 'string' && cam)
+-        ? cam
+-        : { facingMode: 'environment' };
+-      scanner.start(
++    const pedido = window.SistAppCamera ? SistAppCamera.aplicar(config) : config;
++    const alvo = window.SistAppCamera ? SistAppCamera.restricoes() : { facingMode: { ideal: 'environment' } };
++    scanner.start(
+       alvo,
+-      config,
++      pedido,
+       (txt) => {
+         if (!scanningActive) return;
+         const codigo = String(txt || '').trim();
+@@ -2699,14 +2674,7 @@ function startScan(cameraForcada) {
+       () => {}
+     ).then(() => {
+       maScanBusy = false;
+-      if (!window.SistAppCamera) return;
+-      SistAppCamera.getCameras().then((cams) => {
+-        maCamList = cams || [];
+-        const video = document.querySelector('#reader-box video');
+-        const id = SistAppCamera.idDoVideo(video);
+-        if (id) maCamAtual = id;
+-        maAtualizarBtnTrocar();
+-      });
++      if (window.SistAppCamera) SistAppCamera.afiar(document.getElementById('reader-box'));
+     }).catch((err) => {
+       stopScan().then(() => {
+         const negado = err && (err.name === 'NotAllowedError' || /Permission|NotAllowed/i.test(String(err.message || err)));
+@@ -2717,18 +2685,7 @@ function startScan(cameraForcada) {
+         else alert(msg);
+       });
+     });
+-    };
+-    if (cameraForcada) {
+-      abrirCom(cameraForcada, maCamList);
+-      return;
+-    }
+-    const salvo = window.SistAppCamera ? SistAppCamera.alvo(null) : { facingMode: 'environment' };
+-    abrirCom(salvo, maCamList);
+   };
+-  if (cameraForcada) {
+-    seguir();
+-    return;
+-  }
+   stopScan({ keepBusy: true }).then(seguir);
+ }
+ 
+diff --git a/produtos/urls.py b/produtos/urls.py
+index a3a413df..c511ff75 100644
+--- a/produtos/urls.py
++++ b/produtos/urls.py
+@@ -977,6 +977,11 @@ urlpatterns = [
+     # --- APIs ---
+     path('api/login-mobile/', views.api_login_mobile, name='api_login_mobile'),
+     path('api/pdv/operador/', views.api_pdv_registrar_operador, name='api_pdv_registrar_operador'),
++    path(
++        'api/pdv/operador/zap-entrada/',
++        views_atendimento_whatsapp.api_pdv_zap_entrada,
++        name='api_pdv_zap_entrada',
++    ),
+     path('api/pdv/deposito/', views.api_pdv_deposito, name='api_pdv_deposito'),
+     path(
+         'api/pdv/uso-loja/meta/',
+diff --git a/produtos/views_atendimento_whatsapp.py b/produtos/views_atendimento_whatsapp.py
+index d6620d56..5c1cb025 100644
+--- a/produtos/views_atendimento_whatsapp.py
++++ b/produtos/views_atendimento_whatsapp.py
+@@ -66,31 +66,82 @@ def _bridge_forbidden():
+     return JsonResponse({"ok": False, "erro": "Ponte não autorizada."}, status=403)
+ 
+ 
+-def _autor_wa(request, data: dict | None = None) -> str:
+-    """
+-    Assinatura na bolha verde: preferir PIN/operador do PDV na sessão.
+-    Sem PIN fresco → cai no login do Chrome (admin) só como reserva.
+-    """
+-    from produtos.caixa_util import operador_label_request, rotulo_usuario_registro_venda
+-
+-    rot = (rotulo_usuario_registro_venda(request, data) or "").strip()
+-    if not rot:
+-        rot = (operador_label_request(request) or "").strip()
+-    if rot:
+-        return rot[:120]
++def _signer_pin_zap():
++    from django.conf import settings
++    from django.core.signing import TimestampSigner
++
++    key = (getattr(settings, "AGRO_WA_PIN_HANDOFF_KEY", "") or "").strip() or settings.SECRET_KEY
++    return TimestampSigner(key=key, salt="agro-wa-pin-v1")
++
++
++def emitir_entrada_pin_zap(request) -> str:
++    """Bilhete curto para o Zap abrir já no PIN deste computador. Só se o PIN do PDV ainda vale."""
++    from produtos.pdv_transf_loja_util import peek_operador_pdv
++
++    ok, nome = peek_operador_pdv(request)
++    if not ok or not nome:
++        return ""
++    uid = request.session.get("pdv_operador_user_id") or 0
++    return _signer_pin_zap().sign(f"{nome[:120]}|{int(uid)}")
++
++
++def aplicar_entrada_pin_zap(request, token: str) -> str:
++    from django.core.signing import BadSignature, SignatureExpired
++
++    from produtos.pdv_transf_loja_util import marcar_operador_pdv_fresco
++
++    bruto = (token or "").strip()
++    if not bruto:
++        return ""
+     try:
+-        if request.user.is_authenticated:
+-            return (request.user.get_full_name() or request.user.get_username() or "")[:120]
+-    except Exception:
+-        pass
+-    return ""
++        payload = _signer_pin_zap().unsign(bruto, max_age=90)
++    except (BadSignature, SignatureExpired):
++        return ""
++    nome, _, uid = str(payload).partition("|")
++    nome = nome.strip()[:120]
++    if not nome:
++        return ""
++    request.session["pdv_operador_nome"] = nome
++    try:
++        request.session["pdv_operador_user_id"] = int(uid or 0) or None
++    except (TypeError, ValueError):
++        request.session.pop("pdv_operador_user_id", None)
++    if not request.session.get("pdv_operador_user_id"):
++        request.session.pop("pdv_operador_user_id", None)
++    marcar_operador_pdv_fresco(request)
++    request.session.modified = True
++    return nome
++
++
++def _autor_wa(request, data: dict | None = None) -> str:
++    """Quem assina a mensagem: só PIN fresco deste Zap (ou o PIN digitado agora)."""
++    from produtos.pdv_transf_loja_util import resolver_operador_pdv
++
++    data = data if isinstance(data, dict) else {}
++    pin = str(data.get("pin") or data.get("pin_operador") or "").strip()
++    ok, label, _user, _err = resolver_operador_pdv(request, pin)
++    return label[:120] if ok and label else ""
+ 
+ 
+ @login_required(login_url="/entrar/")
+ def atendimento_whatsapp_view(request):
++    aplicar_entrada_pin_zap(request, request.GET.get("entrada") or "")
+     return render(request, "produtos/atendimento_whatsapp.html", {})
+ 
+ 
++@login_required(login_url="/entrar/")
++def api_pdv_zap_entrada(request):
++    if request.method != "POST":
++        return JsonResponse({"ok": False, "erro": "Use POST."}, status=405)
++    token = emitir_entrada_pin_zap(request)
++    if not token:
++        return JsonResponse(
++            {"ok": False, "erro": "Digite o PIN no PDV antes de abrir o Zap.", "precisa_pin": True},
++            status=403,
++        )
++    return JsonResponse({"ok": True, "entrada": token})
++
++
+ def _wa_pwa_icons(request):
+     icon_192 = request.build_absolute_uri("/static/produtos/pwa/zap-loja-192.png")
+     icon_512 = request.build_absolute_uri("/static/produtos/pwa/zap-loja-512.png")
+@@ -274,6 +325,11 @@ def api_atendimento_whatsapp_enviar(request):
+     if data is None:
+         return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+     autor = _autor_wa(request, data)
++    if not autor:
++        return JsonResponse(
++            {"ok": False, "erro": "Digite o PIN para atender.", "precisa_pin": True},
++            status=403,
++        )
+     try:
+         cid = int(data.get("conversa_id") or 0)
+     except (TypeError, ValueError):
+diff --git a/scripts/verify_ajuste_camera_bip_path.py b/scripts/verify_ajuste_camera_bip_path.py
+index 0f90cc26..829374b6 100644
+--- a/scripts/verify_ajuste_camera_bip_path.py
++++ b/scripts/verify_ajuste_camera_bip_path.py
+@@ -44,17 +44,14 @@ def main() -> int:
+         "maOnScanDecoded",
+         "fromScan: true",
+         "maScanSyncBtns",
+-        "facingMode: 'environment'",
++        "facingMode: { ideal: 'environment' }",
+         "sistapp_camera_escolha.js",
+-        "ma-btn-trocar-camera",
+-        "Trocar câmera",
++        "SistAppCamera.aplicar",
++        "Câmera de trás",
+         "formatsToSupport",
+         "experimentalFeatures: { useBarCodeDetectorIfSupported: true }",
+-        "Câmera ativa",
++        "Câmera de trás",
+         "ma-busca-row",
+-        "ma-ciclica-btn-fechar-ctrl",
+-        "maScanMuteUntil",
+-        "const gap = fromScan ? 2500",
+     ]
+     for n in needles:
+         if n in ma:
+@@ -160,18 +157,13 @@ def main() -> int:
+                 fail(f"/ajuste-mobile/ status={r4.status_code}")
+ 
+     except Exception as e:
+-        msg = str(e)
+-        if "no such column" in msg or "no such table" in msg:
+-            ok(f"Django HTTP skip schema local: {msg[:80]}")
+-        else:
+-            fail(f"Django HTTP: {e}")
++        fail(f"Django HTTP: {e}")
+ 
+     print(f"\nVERIFY {'OK' if not fails else 'FAIL'} {oks}/{oks + len(fails)}")
+     if fails:
+         for f in fails:
+             print(" -", f)
+         return 1
+-    print("VERIFY_OK")
+     return 0
+ 
+ 
+diff --git a/scripts/verify_sistapp_troca_camera_path.py b/scripts/verify_sistapp_troca_camera_path.py
+index e37b1239..fb78afe0 100644
+--- a/scripts/verify_sistapp_troca_camera_path.py
++++ b/scripts/verify_sistapp_troca_camera_path.py
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env python3
+-"""Path estático — troca de câmera no Ajuste, Fotos e Etiquetas. Sem banco."""
++"""Path estático — câmera de trás no Ajuste, Fotos e Etiquetas. Sem troca de lente."""
+ from __future__ import annotations
+ 
+ from pathlib import Path
+@@ -27,17 +27,23 @@ def read(rel: str) -> str:
+ def main() -> int:
+     js = read("produtos/static/produtos/js/sistapp_camera_escolha.js")
+     for n in (
++        'facingMode: { ideal: "environment" }',
++        "width: { ideal: 1920 }",
++        "height: { ideal: 1080 }",
++        "focusMode: \"continuous\"",
++        "function aplicar",
++        "function afiar",
++        "sistapp_camera_id_v1",
+         "sistapp_camera_id_v2",
+-        "function ordenar",
+-        "idDoVideo",
+-        'facingMode: "environment"',
+-        "Html5Qrcode.getCameras",
+-        "window.SistAppCamera",
+     ):
+         if n in js:
+-            ok(f"js {n}")
++            ok(f"js {n[:40]}")
+         else:
+             fail(f"js falta {n}")
++    if "getCameras" in js or "function proxima" in js:
++        fail("js ainda troca de câmera")
++    else:
++        ok("js sem troca")
+ 
+     telas = {
+         "ajuste": "produtos/templates/produtos/mobile_ajuste.html",
+@@ -50,14 +56,18 @@ def main() -> int:
+             fail(f"{nome} sem o script")
+         else:
+             ok(f"{nome} script")
+-        if "Trocar câmera" not in html:
+-            fail(f"{nome} sem o botão")
++        if "SistAppCamera.aplicar" not in html:
++            fail(f"{nome} não aplica o pedido da câmera de trás")
+         else:
+-            ok(f"{nome} botão")
++            ok(f"{nome} aplica")
++        if "Trocar câmera" in html or "btnTrocaCam" in html or "maTrocarCamera" in html:
++            fail(f"{nome} ainda tem troca de câmera")
++        else:
++            ok(f"{nome} sem troca")
+         if "videoConstraints" in html:
+-            fail(f"{nome} ainda apaga a lente com videoConstraints")
++            fail(f"{nome} monta videoConstraints fora do helper")
+         else:
+-            ok(f"{nome} sem videoConstraints")
++            ok(f"{nome} sem videoConstraints solto")
+ 
+     print(f"\nVERIFY_OK {oks}" if not fails else f"\nVERIFY FAIL {oks}/{oks + len(fails)}")
+     for f in fails:

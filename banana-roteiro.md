@@ -6,13 +6,13 @@
 
 **Checklist único (13/11):** **SISTAPP-BOTAO-ZAP** — 🟢 pronto para envio. Botão Zap no SistApp abre `zap.zapsistvale.online`. Dashboard continua. Sem migrate. Código em `teste`. Não sobe sem senha.
 
-**Checklist único (12/11):** **WA-PIN-PC** — 🟢 pronto para envio. PIN do Zap em qualquer PC. Sem migrate. Código em `cursor/zap-boot-login-64bd` @ `c2c9ceec`. Não sobe sem senha.
+**Checklist único (13/11):** **CAMERA-TRAS-FIXA** + **WA-PIN-PC** — 🟢 corte armado, **ainda sem enviar**. Alvo **v27.26.59**. Sem migrate. Base `ee330433`. Checkpoint: `./scripts/prep_checkpoint_checklist_1311.sh`. Na senha: `./scripts/cutover_loja_checklist_1311.sh --exec`. Volta: `git push origin ee3304332d77f0d91f6565bb84cfcfd1e81263b0:producao`.
 
 **Loja (11/11c):** **SISTAPP-TROCA-CAMERA** enviada · **v27.26.57** @ `007e9bfc`. Sem migrate. Até o build, no ar segue **v27.26.56** @ `c8256c26`. Volta: `git push origin c8256c2664d86d5d9c79cc974d5bc10b104666d7:producao`.
 
 **Loja (11/11d):** **SISTAPP-CAMERA-TRASEIRA** enviada · **v27.26.58** @ `ee330433`. Sem migrate. Até o build, no ar segue **v27.26.57** @ `007e9bfc`. Volta: `git push origin 007e9bfc4b0ade40a68bc2a5ddcdbdbc343a2858:producao`.
 
-**Checklist único (11/11e):** **SISTAPP-CAMERA-TRAS-FIXA** — 🟢 pronto para envio. Tira o botão. Pede a câmera de trás e mais nitidez juntas. Sem migrate. Código em `teste` @ `822c6bba`. Não sobe sem senha. A loja ainda está na v27.26.58.
+**Checklist único (11/11e):** **SISTAPP-CAMERA-TRAS-FIXA** — entrou no corte **13/11** (v27.26.59), ainda sem enviar.
 
 **Loja (03/11 · PR 479):** **WA-ORIGIN-PC** — ✅ **Live v27.26.49** @ `2d002112`. Migrate **0154** OK. `/healthz` = ok. Volta: `rollback/pre-v272649-0311-wa-origin-pc` (`39b447ad`). Revert: `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao`.
 
