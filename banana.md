@@ -1298,6 +1298,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
+### 🟢 CHECKLIST ÚNICO — **13/11h** · **ENTREGA-HORA-LOJA** · pronto para envio à produção
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ENTREGA-HORA-LOJA** | 🟢 pronto | **NÃO** | **VERIFY_OK 18** · 19:49 UTC = 16:49 loja |
+
+A via do entregador, o painel e a reimpressão saem no horário da loja. Excel de vendas, etiquetas, orçamento, cliente e empréstimo também. Cupom de venda já estava certo. PDV, caixa e o valor da venda não mudam. Loja hoje **v27.26.65** @ `3b9fc063`. **Não** sobe sem frase + senha.
+
+| Campo | Valor |
+| ----- | ----- |
+| **Git teste** | `cee23d9c` |
+| **Volta, se subir** | `git push origin 3b9fc063:producao` |
+
 ### 🟢 CHECKLIST ÚNICO — **13/11g** · **SISTAPP-CAMERA-LOCAL** · pronto para envio à produção
 
 | # | Pacote | Status | Migrate | Prova |
@@ -1676,10 +1689,6 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 | 1 | **AJUSTE-QTD-BIP** | 🟢 Pronto | **NÃO** | alterar **6→5** depois soma **7** · −10/+10 só no item da vez |
 
 ## CHECKPOINT DE ATUALIZAÇÃO
-
-### ENTREGA-HORA-UTC — 13/11 · no `teste`, **não** foi para a loja
-
-A via do entregador imprimia `toISOString()` (UTC, 3 h na frente). Papel `19:49` = loja `16:49`. Corrigido no PDV, no painel de entregas, no Excel de vendas, no histórico de etiquetas, no orçamento, no bug, no histórico do cliente e no empréstimo. Cupom de venda já usava o relógio da loja.
 
 ### 🟢 PACOTE PRONTO / CHECKLIST — **09/11** · **NF-FORN-UNIF-AGRO** · **v27.26.54** · pronto para envio
 

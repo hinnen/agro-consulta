@@ -4,6 +4,8 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
+**Checklist único (13/11h):** **ENTREGA-HORA-LOJA** — 🟢 pronto para envio. Sem migrate. Papel da entrega no horário da loja. Loja hoje **v27.26.65** @ `3b9fc063`. Não sobe sem frase + senha.
+
 **Checklist único (13/11g):** **SISTAPP-CAMERA-LOCAL** — 🟢 pronto para envio. Sem migrate. Loja hoje **v27.26.65** @ `3b9fc063`. Não sobe sem frase + senha.
 
 **Loja (13/11f):** **ZAP-UA** enviada · **v27.26.64** @ `b4e09b5f`. O Zap recusava a loja porque a chamada ia como robô. Sem migrate. Até o build, no ar segue **v27.26.63** @ `af47c597`. Volta: `git push origin af47c5970da0d0f746b7d6e845404f77d03009ab:producao`.
