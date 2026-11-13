@@ -95,6 +95,7 @@ class _OperadorSistapp:
     is_active = True
     is_anonymous = False
     is_staff = False
+    is_superuser = False
     pk = 0
     id = 0
 
