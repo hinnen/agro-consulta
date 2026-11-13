@@ -39,6 +39,8 @@
 
 **SistApp câmera (11/11/2026):** Ajuste, Fotos e Etiquetas abrem a câmera de trás mais nítida (evita a grande-angular) e têm botão **Trocar câmera**. A escolha fica no celular. Arquivo `produtos/static/produtos/js/sistapp_camera_escolha.js`.
 
+**SistApp fluidez (13/11/2026):** Câmera do Ajuste, Fotos e Etiquetas passou a vir do próprio sistema (`html5-qrcode.min.js` 2.3.8), sem unpkg. Letra do menu, PIN, resumo, Ajuste, Fotos e Etiquetas usa a do celular, sem Google Fonts. Dado da loja continua ao vivo. Não mexe no desenho do Ajuste que ainda monta o estilo na hora (`cdn.tailwindcss.com`). Não foi para a loja.
+
 **Registro no banana (regra â€” 2026-06-22):** **Toda alteraÃ§Ã£o** que mude o sistema (fix, feature, deploy teste ou produÃ§Ã£o) â†’ **registrar no `banana.md`** ao fechar a tarefa (CHECKPOINT: o quÃª mudou, commits, versÃ£o `VERSION`, teste OK ou pendente). Serve para **contexto do prÃ³ximo chat**, **diagnosticar problema** e **saber o que reverter**. Assistente **nÃ£o pergunta** se deve registrar â€” faz sempre que entregar cÃ³digo ou deploy. Detalhe passageiro ou chat sÃ³ explicativo: nÃ£o inflar o doc.
 
 ---
