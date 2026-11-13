@@ -4,6 +4,8 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
+**Checklist único (13/11i):** **CAMERA-ABRE-RAPIDO** — 🟢 corte armado, **ainda sem enviar**. A imagem aparece primeiro. A nitidez entra depois. Leitura igual. Sem migrate. Base `edb926e2`. Na senha: `./scripts/cutover_loja_checklist_1311i.sh --exec`. Volta: `git push origin edb926e23f6ccabda70cfe7e5c3d18caa3cee4b5:producao`.
+
 **Loja (13/11h):** **ENTREGA-HORA-LOJA** + **SISTAPP-CAMERA-LOCAL** enviadas · **v27.26.66** @ `edb926e2`. Sem migrate. Até o build, no ar segue **v27.26.65** @ `3b9fc063`. Volta: `git push origin 3b9fc063612d72754a0ac3a657b68a78fdb56bba:producao`.
 
 **Loja (13/11f):** **ZAP-UA** enviada · **v27.26.64** @ `b4e09b5f`. O Zap recusava a loja porque a chamada ia como robô. Sem migrate. Até o build, no ar segue **v27.26.63** @ `af47c597`. Volta: `git push origin af47c5970da0d0f746b7d6e845404f77d03009ab:producao`.

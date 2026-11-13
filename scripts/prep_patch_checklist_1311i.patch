@@ -1,0 +1,69 @@
+diff --git a/produtos/static/produtos/js/sistapp_camera_escolha.js b/produtos/static/produtos/js/sistapp_camera_escolha.js
+index 7f7de587..d753e613 100644
+--- a/produtos/static/produtos/js/sistapp_camera_escolha.js
++++ b/produtos/static/produtos/js/sistapp_camera_escolha.js
+@@ -7,8 +7,11 @@
+   } catch (e) {}
+ 
+   function restricoes() {
++    return { facingMode: { ideal: "environment" } };
++  }
++
++  function nitidez() {
+     return {
+-      facingMode: { ideal: "environment" },
+       width: { ideal: 1920 },
+       height: { ideal: 1080 },
+       advanced: [{ focusMode: "continuous" }],
+@@ -42,8 +45,10 @@
+     var modos = caps && caps.focusMode;
+     var tem = false;
+     if (modos && typeof modos.indexOf === "function") tem = modos.indexOf("continuous") >= 0;
+-    if (!tem) return Promise.resolve();
+-    return track.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(function () {
++    if (!tem) {
++      return track.applyConstraints({ width: { ideal: 1920 }, height: { ideal: 1080 } }).catch(function () {});
++    }
++    return track.applyConstraints(nitidez()).catch(function () {
+       return track.applyConstraints({ focusMode: "continuous" }).catch(function () {});
+     });
+   }
+diff --git a/produtos/templates/produtos/etiquetas_solicitacao/app.html b/produtos/templates/produtos/etiquetas_solicitacao/app.html
+index 5324b411..60906afa 100644
+--- a/produtos/templates/produtos/etiquetas_solicitacao/app.html
++++ b/produtos/templates/produtos/etiquetas_solicitacao/app.html
+@@ -6,7 +6,7 @@
+   {% include "produtos/includes/vendas_lojas_pwa_head.html" with vl_theme_color="#0284c7" %}
+   <title>Solicitar etiquetas | GM</title>
+   <script src="/static/produtos/js/html5-qrcode.min.js?v=2.3.8"></script>
+-  <script src="/static/produtos/js/sistapp_camera_escolha.js?v=3"></script>
++  <script src="/static/produtos/js/sistapp_camera_escolha.js?v=4"></script>
+   <style>
+     :root {
+       --ink: #0f172a;
+diff --git a/produtos/templates/produtos/fotos_produto/app.html b/produtos/templates/produtos/fotos_produto/app.html
+index 8896736c..de2ebd04 100644
+--- a/produtos/templates/produtos/fotos_produto/app.html
++++ b/produtos/templates/produtos/fotos_produto/app.html
+@@ -11,7 +11,7 @@
+   <link rel="manifest" href="{% url 'vendas_lojas_manifest' %}">
+   <link rel="apple-touch-icon" href="/static/produtos/pwa/vendas-lojas-192.png">
+   <script src="/static/produtos/js/html5-qrcode.min.js?v=2.3.8"></script>
+-  <script src="/static/produtos/js/sistapp_camera_escolha.js?v=3"></script>
++  <script src="/static/produtos/js/sistapp_camera_escolha.js?v=4"></script>
+   <style>
+     :root {
+       --ink: #0f172a; --muted: #64748b; --accent: #7c3aed; --line: #e2e8f0; --bg: #f8fafc;
+diff --git a/produtos/templates/produtos/mobile_ajuste.html b/produtos/templates/produtos/mobile_ajuste.html
+index d1e5d043..d71bad49 100644
+--- a/produtos/templates/produtos/mobile_ajuste.html
++++ b/produtos/templates/produtos/mobile_ajuste.html
+@@ -48,7 +48,7 @@
+   <script src="https://cdn.tailwindcss.com"></script>
+   {% include "produtos/_agro_consulta_ui.html" %}
+   <script src="{% static 'produtos/js/html5-qrcode.min.js' %}?v=2.3.8"></script>
+-  <script src="{% static 'produtos/js/sistapp_camera_escolha.js' %}?v=3"></script>
++  <script src="{% static 'produtos/js/sistapp_camera_escolha.js' %}?v=4"></script>
+   <style>
+     :root {
+       --ma-kb-inset: 0px;
