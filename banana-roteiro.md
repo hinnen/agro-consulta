@@ -4,7 +4,7 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
-**Checklist único (13/11d):** **ZAP-SISTAPP-LIGACAO** — 🟢 corte armado, **ainda sem enviar**. Alvo **v27.26.62**. Sem migrate. Base `e3745fae`. A tela do Zap no SistApp passa a usar a ligação de verdade. Checkpoint: `./scripts/prep_checkpoint_checklist_1311d.sh`. Na senha: `./scripts/cutover_loja_checklist_1311d.sh --exec`. Volta: `git push origin e3745faef6d1767026b6de7526354f23c2c08d20:producao`.
+**Loja (13/11d):** **ZAP-SISTAPP-LIGACAO** enviada · **v27.26.62** @ `eb34cf2a`. Sem migrate. Até o build, no ar segue **v27.26.61** @ `e3745fae`. Volta: `git push origin e3745faef6d1767026b6de7526354f23c2c08d20:producao`.
 
 **Loja (13/11):** **CAMERA-TRAS-FIXA** + **WA-PIN-PC** enviadas · **v27.26.59** @ `418fb789`. Sem migrate. Até o build, no ar segue **v27.26.58** @ `ee330433`. Volta: `git push origin ee3304332d77f0d91f6565bb84cfcfd1e81263b0:producao`.
 

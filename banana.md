@@ -1296,17 +1296,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
-### 🟢 CHECKLIST ÚNICO — **13/11d** · ligação do Zap no SistApp · corte armado · ainda sem enviar
+### ✅ CHECKLIST ÚNICO — **13/11d** · ligação do Zap no SistApp · enviado **v27.26.62** @ `eb34cf2a`
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ZAP-SISTAPP-LIGACAO** | 🟢 armado | **NÃO** | a tela pede a lista no Zap ligado, sem sair do aplicativo |
+| 1 | **ZAP-SISTAPP-LIGACAO** | ✅ enviado | **NÃO** | a tela pede a lista no Zap ligado |
 
-Alvo **v27.26.62**. Base `e3745fae`. PDV, caixa e venda não entram.
+Até o build, no ar segue **v27.26.61** @ `e3745fae`. PDV, caixa e venda não entram.
 
 | Campo | Valor |
 | ----- | ----- |
-| **Corte** | `./scripts/cutover_loja_checklist_1311d.sh` |
+| **Git** | `producao` @ `eb34cf2a` |
 | **Volta** | `git push origin e3745faef6d1767026b6de7526354f23c2c08d20:producao` |
 
 ### ✅ CHECKLIST ÚNICO — **13/11c** · Zap dentro do SistApp · enviado **v27.26.61** @ `e3745fae`
