@@ -49,7 +49,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   {% include "produtos/_agro_consulta_ui.html" %}
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script src="{% static 'produtos/js/sistapp_camera_escolha.js' %}?v=2"></script>
+  <script src="{% static 'produtos/js/sistapp_camera_escolha.js' %}?v=3"></script>
   <style>
     :root {
       --ma-kb-inset: 0px;
@@ -921,10 +921,7 @@
   <div id="reader" class="fixed inset-0 z-[165] hidden bg-black">
     <div id="reader-box" class="absolute inset-0"></div>
     <div class="absolute top-0 left-0 right-0 pt-[max(0.6rem,env(safe-area-inset-top))] px-3 flex items-center justify-between gap-2 bg-gradient-to-b from-black/75 to-transparent">
-      <p class="text-white text-xs font-black uppercase tracking-wide">Câmera ativa</p>
-      <button type="button" id="ma-btn-trocar-camera" onclick="maTrocarCamera()" class="hidden inline-flex items-center justify-center min-h-[2.75rem] px-4 rounded-xl bg-white text-slate-900 text-xs font-black uppercase">
-        Trocar câmera
-      </button>
+      <p class="text-white text-xs font-black uppercase tracking-wide">Câmera de trás</p>
       <button type="button" onclick="stopScan()" class="inline-flex items-center justify-center min-h-[2.75rem] px-4 rounded-xl bg-white/15 border border-white/35 text-white text-xs font-black uppercase">
         Fechar
       </button>
@@ -2606,25 +2603,8 @@ function maOnScanDecoded(codigo) {
   if (r === 'ok' || r === 'debounce' || r === 'aguarde') return;
 }
 
-let maCamList = [];
-let maCamAtual = null;
-
-function maAtualizarBtnTrocar() {
-  const btn = document.getElementById('ma-btn-trocar-camera');
-  if (!btn) return;
-  btn.classList.toggle('hidden', !(maCamList && maCamList.length > 1));
-}
-
-function maTrocarCamera() {
-  if (!scanningActive || maScanBusy || !window.SistAppCamera) return;
-  if (!maCamList || maCamList.length < 2) return;
-  const next = SistAppCamera.proxima(maCamList, maCamAtual);
-  maScanBusy = true;
-  stopScan({ keepBusy: true, keepOpen: true }).then(() => startScan(next));
-}
-
-function startScan(cameraForcada) {
-  if (!cameraForcada && (scanningActive || maScanBusy)) return;
+function startScan() {
+  if (scanningActive || maScanBusy) return;
   if (typeof Html5Qrcode === 'undefined') {
     if (typeof maMostrarToast === 'function') {
       maMostrarToast('Câmera não carregou. Use o bipador no campo.', false);
@@ -2681,16 +2661,11 @@ function startScan(cameraForcada) {
       experimentalFeatures: { useBarCodeDetectorIfSupported: true },
     };
     if (formats && formats.length) config.formatsToSupport = formats;
-    const abrirCom = (cam, cams) => {
-      maCamList = cams || maCamList || [];
-      maCamAtual = cam;
-      maAtualizarBtnTrocar();
-      const alvo = (typeof cam === 'string' && cam)
-        ? cam
-        : { facingMode: 'environment' };
-      scanner.start(
+    const pedido = window.SistAppCamera ? SistAppCamera.aplicar(config) : config;
+    const alvo = window.SistAppCamera ? SistAppCamera.restricoes() : { facingMode: { ideal: 'environment' } };
+    scanner.start(
       alvo,
-      config,
+      pedido,
       (txt) => {
         if (!scanningActive) return;
         const codigo = String(txt || '').trim();
@@ -2699,14 +2674,7 @@ function startScan(cameraForcada) {
       () => {}
     ).then(() => {
       maScanBusy = false;
-      if (!window.SistAppCamera) return;
-      SistAppCamera.getCameras().then((cams) => {
-        maCamList = cams || [];
-        const video = document.querySelector('#reader-box video');
-        const id = SistAppCamera.idDoVideo(video);
-        if (id) maCamAtual = id;
-        maAtualizarBtnTrocar();
-      });
+      if (window.SistAppCamera) SistAppCamera.afiar(document.getElementById('reader-box'));
     }).catch((err) => {
       stopScan().then(() => {
         const negado = err && (err.name === 'NotAllowedError' || /Permission|NotAllowed/i.test(String(err.message || err)));
@@ -2717,18 +2685,7 @@ function startScan(cameraForcada) {
         else alert(msg);
       });
     });
-    };
-    if (cameraForcada) {
-      abrirCom(cameraForcada, maCamList);
-      return;
-    }
-    const salvo = window.SistAppCamera ? SistAppCamera.alvo(null) : { facingMode: 'environment' };
-    abrirCom(salvo, maCamList);
   };
-  if (cameraForcada) {
-    seguir();
-    return;
-  }
   stopScan({ keepBusy: true }).then(seguir);
 }
 

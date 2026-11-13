@@ -121,8 +121,16 @@
     box.setAttribute('aria-hidden', 'true');
   }
 
-  function abrirZapSemSairDoApp() {
-    var href = urlZapSeparado();
+  function csrfPdv() {
+    try {
+      var c = document.cookie.match(/csrftoken=([^;]+)/);
+      return c ? decodeURIComponent(c[1]) : '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function irParaZap(href) {
     if (zapEhSeparado()) {
       window.open(href, '_blank', 'noopener');
       return;
@@ -146,6 +154,29 @@
       }
     } catch (_) {}
     window.location.href = href;
+  }
+
+  function abrirZapSemSairDoApp() {
+    var href = urlZapSeparado();
+    var sep = href.indexOf('?') >= 0 ? '&' : '?';
+    fetch('/api/pdv/operador/zap-entrada/', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfPdv() },
+      body: '{}',
+    })
+      .then(function (r) {
+        return r.json().catch(function () {
+          return {};
+        });
+      })
+      .then(function (j) {
+        if (j && j.ok && j.entrada) href += sep + 'entrada=' + encodeURIComponent(j.entrada);
+        irParaZap(href);
+      })
+      .catch(function () {
+        irParaZap(href);
+      });
   }
 
   btn.addEventListener('click', function (ev) {

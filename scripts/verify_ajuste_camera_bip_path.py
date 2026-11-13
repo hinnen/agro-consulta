@@ -44,17 +44,14 @@ def main() -> int:
         "maOnScanDecoded",
         "fromScan: true",
         "maScanSyncBtns",
-        "facingMode: 'environment'",
+        "facingMode: { ideal: 'environment' }",
         "sistapp_camera_escolha.js",
-        "ma-btn-trocar-camera",
-        "Trocar câmera",
+        "SistAppCamera.aplicar",
+        "Câmera de trás",
         "formatsToSupport",
         "experimentalFeatures: { useBarCodeDetectorIfSupported: true }",
-        "Câmera ativa",
+        "Câmera de trás",
         "ma-busca-row",
-        "ma-ciclica-btn-fechar-ctrl",
-        "maScanMuteUntil",
-        "const gap = fromScan ? 2500",
     ]
     for n in needles:
         if n in ma:
@@ -160,18 +157,13 @@ def main() -> int:
                 fail(f"/ajuste-mobile/ status={r4.status_code}")
 
     except Exception as e:
-        msg = str(e)
-        if "no such column" in msg or "no such table" in msg:
-            ok(f"Django HTTP skip schema local: {msg[:80]}")
-        else:
-            fail(f"Django HTTP: {e}")
+        fail(f"Django HTTP: {e}")
 
     print(f"\nVERIFY {'OK' if not fails else 'FAIL'} {oks}/{oks + len(fails)}")
     if fails:
         for f in fails:
             print(" -", f)
         return 1
-    print("VERIFY_OK")
     return 0
 
 

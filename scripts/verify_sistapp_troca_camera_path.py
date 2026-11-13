@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Path estático — troca de câmera no Ajuste, Fotos e Etiquetas. Sem banco."""
+"""Path estático — câmera de trás no Ajuste, Fotos e Etiquetas. Sem troca de lente."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -27,17 +27,23 @@ def read(rel: str) -> str:
 def main() -> int:
     js = read("produtos/static/produtos/js/sistapp_camera_escolha.js")
     for n in (
+        'facingMode: { ideal: "environment" }',
+        "width: { ideal: 1920 }",
+        "height: { ideal: 1080 }",
+        "focusMode: \"continuous\"",
+        "function aplicar",
+        "function afiar",
+        "sistapp_camera_id_v1",
         "sistapp_camera_id_v2",
-        "function ordenar",
-        "idDoVideo",
-        'facingMode: "environment"',
-        "Html5Qrcode.getCameras",
-        "window.SistAppCamera",
     ):
         if n in js:
-            ok(f"js {n}")
+            ok(f"js {n[:40]}")
         else:
             fail(f"js falta {n}")
+    if "getCameras" in js or "function proxima" in js:
+        fail("js ainda troca de câmera")
+    else:
+        ok("js sem troca")
 
     telas = {
         "ajuste": "produtos/templates/produtos/mobile_ajuste.html",
@@ -50,14 +56,18 @@ def main() -> int:
             fail(f"{nome} sem o script")
         else:
             ok(f"{nome} script")
-        if "Trocar câmera" not in html:
-            fail(f"{nome} sem o botão")
+        if "SistAppCamera.aplicar" not in html:
+            fail(f"{nome} não aplica o pedido da câmera de trás")
         else:
-            ok(f"{nome} botão")
+            ok(f"{nome} aplica")
+        if "Trocar câmera" in html or "btnTrocaCam" in html or "maTrocarCamera" in html:
+            fail(f"{nome} ainda tem troca de câmera")
+        else:
+            ok(f"{nome} sem troca")
         if "videoConstraints" in html:
-            fail(f"{nome} ainda apaga a lente com videoConstraints")
+            fail(f"{nome} monta videoConstraints fora do helper")
         else:
-            ok(f"{nome} sem videoConstraints")
+            ok(f"{nome} sem videoConstraints solto")
 
     print(f"\nVERIFY_OK {oks}" if not fails else f"\nVERIFY FAIL {oks}/{oks + len(fails)}")
     for f in fails:

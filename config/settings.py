@@ -586,6 +586,8 @@ VENDA_ERP_FORMA_PAGAMENTO_FIADO = config(
 TRANSFERENCIA_WHATSAPP = config('TRANSFERENCIA_WHATSAPP', default='').strip()
 AGRO_WA_BRIDGE_TOKEN = (config("AGRO_WA_BRIDGE_TOKEN", default="gm-agro-wa-ponte-local") or "").strip()
 # No PDV (Sistvale): URL do Zap separado. No serviço agro-consulta-wa deixe vazio.
+# Mesma chave no PC do Zap e na loja. Sem ela, o Zap não herda o PIN do PDV e pede de novo.
+AGRO_WA_PIN_HANDOFF_KEY = (config("AGRO_WA_PIN_HANDOFF_KEY", default="") or "").strip()
 if "AGRO_WA_PUBLIC_ORIGIN" in os.environ:
     AGRO_WA_PUBLIC_ORIGIN = (os.environ.get("AGRO_WA_PUBLIC_ORIGIN") or "").strip().rstrip("/")
 else:

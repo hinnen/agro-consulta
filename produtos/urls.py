@@ -977,6 +977,11 @@ urlpatterns = [
     # --- APIs ---
     path('api/login-mobile/', views.api_login_mobile, name='api_login_mobile'),
     path('api/pdv/operador/', views.api_pdv_registrar_operador, name='api_pdv_registrar_operador'),
+    path(
+        'api/pdv/operador/zap-entrada/',
+        views_atendimento_whatsapp.api_pdv_zap_entrada,
+        name='api_pdv_zap_entrada',
+    ),
     path('api/pdv/deposito/', views.api_pdv_deposito, name='api_pdv_deposito'),
     path(
         'api/pdv/uso-loja/meta/',

@@ -2,6 +2,11 @@
 {% load static %}
 
 {% block pdv_title %}WhatsApp lojas | SisVale{% endblock %}
+{% block agro_sspin %}
+{% if user.is_authenticated %}
+{% include "produtos/_screensaver_pin.html" with sspin_entry_only=1 %}
+{% endif %}
+{% endblock %}
 {% block head_extra %}
   <meta name="theme-color" content="#075E54">
   <meta name="mobile-web-app-capable" content="yes">
@@ -117,7 +122,6 @@
 {% include "produtos/_wa_status.html" %}
 {% include "produtos/_wa_ficha.html" %}
 {% include "produtos/_wa_dlg.html" %}
-{% include "produtos/_screensaver_pin.html" %}
 <script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
 <script>
 (function () {
