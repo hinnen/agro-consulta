@@ -4,6 +4,8 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
+**Loja (13/11f):** **ZAP-UA** enviada · **v27.26.64** @ `b4e09b5f`. O Zap recusava a loja porque a chamada ia como robô. Sem migrate. Até o build, no ar segue **v27.26.63** @ `af47c597`. Volta: `git push origin af47c5970da0d0f746b7d6e845404f77d03009ab:producao`.
+
 **Loja (13/11e):** **ZAP-SISTAPP-HOST** enviada · **v27.26.63** @ `af47c597`. A loja chama `zap.zapsistvale.online`. Sem migrate. Até o build, no ar segue **v27.26.62** @ `eb34cf2a`. Volta: `git push origin eb34cf2aeef01b228483a1e97b5e455eaeed656d:producao`. O Zap do PC 2 ainda precisa sair do `.58` (portinha `480715c5`).
 
 **Loja (13/11):** **CAMERA-TRAS-FIXA** + **WA-PIN-PC** enviadas · **v27.26.59** @ `418fb789`. Sem migrate. Até o build, no ar segue **v27.26.58** @ `ee330433`. Volta: `git push origin ee3304332d77f0d91f6565bb84cfcfd1e81263b0:producao`.
