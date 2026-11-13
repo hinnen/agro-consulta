@@ -164,6 +164,7 @@ from .entrega_pdv_pendente_util import (
     data_cartao_maquina_escolhida,
     concluir_entrega_paga_overlay,
     filtrar_qs_por_loja,
+    iso_relogio_loja,
     finalizar_entregas_pagas_pendentes_ao_fechar_caixa,
     listar_entregas_bloqueando_fechamento_caixa,
     listar_entregas_pagas_loja_pdv,
@@ -12138,7 +12139,9 @@ def vendas_exportar_csv(request):
         w.writerow(
             [
                 v.pk,
-                v.criado_em.strftime("%Y-%m-%d %H:%M:%S"),
+                timezone.localtime(v.criado_em).strftime("%Y-%m-%d %H:%M:%S")
+                if v.criado_em
+                else "",
                 ROTULO_DEPOSITO.get(dep_v, "Centro"),
                 v.cliente_nome,
                 v.cliente_id_erp,
@@ -14977,7 +14980,9 @@ def _etiquetas_historico_row(h: EtiquetaImpressaoHistoricoAgro, *, incluir_itens
     row = {
         "id": h.pk,
         "criado_em": h.criado_em.isoformat() if h.criado_em else "",
-        "criado_em_br": h.criado_em.strftime("%d/%m/%Y %H:%M") if h.criado_em else "",
+        "criado_em_br": timezone.localtime(h.criado_em).strftime("%d/%m/%Y %H:%M")
+        if h.criado_em
+        else "",
         "usuario": h.usuario or "",
         "origem": h.origem or "",
         "preset_id": h.preset_id or "",
@@ -15291,7 +15296,9 @@ def _etiquetas_lote_row(lote: EtiquetaLoteAgro, *, incluir_itens: bool = False) 
         "status": lote.status,
         "usuario": lote.usuario or "",
         "criado_em": lote.criado_em.isoformat() if lote.criado_em else "",
-        "criado_em_br": lote.criado_em.strftime("%d/%m/%Y %H:%M") if lote.criado_em else "",
+        "criado_em_br": timezone.localtime(lote.criado_em).strftime("%d/%m/%Y %H:%M")
+        if lote.criado_em
+        else "",
         "atualizado_em": lote.atualizado_em.isoformat() if lote.atualizado_em else "",
         **totais,
     }
@@ -31328,7 +31335,7 @@ def _orcamento_pdv_entry_from_model(obj: OrcamentoPdvAgro) -> dict:
     if obj.usuario_registro and not entry.get("usuario"):
         entry["usuario"] = obj.usuario_registro
     if obj.criado_em and not entry.get("data"):
-        entry["data"] = obj.criado_em.strftime("%d/%m/%Y, %H:%M:%S")
+        entry["data"] = timezone.localtime(obj.criado_em).strftime("%d/%m/%Y, %H:%M:%S")
     return entry
 
 
@@ -34377,14 +34384,14 @@ def api_entregas_listar(request):
                     "operador": e.operador,
                     "hora_prevista": e.hora_prevista.isoformat() if e.hora_prevista else None,
                     "data_prevista": e.data_prevista.isoformat() if e.data_prevista else None,
-                    "hora_saida": e.hora_saida.isoformat() if e.hora_saida else None,
-                    "hora_entrega": e.hora_entrega.isoformat() if e.hora_entrega else None,
+                    "hora_saida": iso_relogio_loja(e.hora_saida) or None,
+                    "hora_entrega": iso_relogio_loja(e.hora_entrega) or None,
                     "observacoes": e.observacoes,
                     "forma_pagamento": e.forma_pagamento or "",
                     "troco_precisa": e.troco_precisa,
                     "aguarda_pagamento_pdv": bool(getattr(e, "aguarda_pagamento_pdv", False)),
                     "pagamento_pdv": pag,
-                    "criado_em": e.criado_em.isoformat(),
+                    "criado_em": iso_relogio_loja(e.criado_em),
                 }
             )
         return JsonResponse({"ok": True, "entregas": rows, "status_opcoes": sorted(status_vals)})

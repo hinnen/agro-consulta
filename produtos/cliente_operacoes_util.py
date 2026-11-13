@@ -6,6 +6,7 @@ from typing import Any
 
 from django.db import transaction
 from django.db.models import Q
+from django.utils import timezone
 
 from produtos.caixa_util import operador_label_de_pin, usuario_django_de_pin
 from produtos.cliente_whatsapp_util import extrair_whatsapp_digits
@@ -454,7 +455,9 @@ def listar_eventos_cliente(pk: int, limite: int = 40) -> list[dict]:
                 "tipo": e.tipo,
                 "tipo_label": e.get_tipo_display(),
                 "usuario": e.usuario,
-                "criado_em": e.criado_em.isoformat() if e.criado_em else "",
+                "criado_em": (
+                    timezone.localtime(e.criado_em).isoformat() if e.criado_em else ""
+                ),
                 "payload": e.payload_json or {},
                 "cliente_nome": e.cliente_nome_snap,
                 "destino_nome": e.destino_nome_snap,

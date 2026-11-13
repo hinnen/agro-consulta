@@ -24,6 +24,12 @@ logger = logging.getLogger(__name__)
 _MSG_MONGO_STAGING = "Ambiente de teste: gravação no Mongo bloqueada (somente leitura)."
 
 
+def _iso_relogio_loja(dt: datetime) -> str:
+    if timezone.is_aware(dt):
+        dt = timezone.localtime(dt)
+    return dt.isoformat()
+
+
 def _erro_mongo_staging_readonly(**extra: Any) -> dict[str, Any] | None:
     from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
 
@@ -6660,9 +6666,9 @@ def listar_emprestimos_agro(db, *, tipo: str | None = None, limit: int = 100) ->
         oid = d.pop("_id", None)
         d["id"] = str(oid) if oid is not None else ""
         if isinstance(d.get("created_at"), datetime):
-            d["created_at"] = d["created_at"].isoformat()
+            d["created_at"] = _iso_relogio_loja(d["created_at"])
         if isinstance(d.get("updated_at"), datetime):
-            d["updated_at"] = d["updated_at"].isoformat()
+            d["updated_at"] = _iso_relogio_loja(d["updated_at"])
         # Legado: documento sem campo tipo — inferir para o filtro da UI
         tdoc = str(d.get("tipo") or "").strip().lower()
         if tdoc not in ("externo", "interno"):
@@ -6685,7 +6691,7 @@ def _serialize_pagamentos_interno_emp(pags: Any) -> list[dict[str, Any]]:
         q = dict(p)
         q["indice"] = i
         if isinstance(q.get("created_at"), datetime):
-            q["created_at"] = q["created_at"].isoformat()
+            q["created_at"] = _iso_relogio_loja(q["created_at"])
         out.append(q)
     return out
 

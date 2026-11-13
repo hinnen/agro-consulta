@@ -399,7 +399,11 @@ class SessaoCaixa(models.Model):
         verbose_name_plural = "Sessões de caixa"
 
     def __str__(self):
-        dt = self.aberto_em.strftime("%d/%m/%Y %H:%M") if self.aberto_em else ""
+        dt = (
+            timezone.localtime(self.aberto_em).strftime("%d/%m/%Y %H:%M")
+            if self.aberto_em
+            else ""
+        )
         rotulo = self.get_ponto_caixa_display()
         return f"{rotulo} #{self.pk} — {dt}"
 

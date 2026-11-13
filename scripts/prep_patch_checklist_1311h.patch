@@ -1,0 +1,650 @@
+diff --git a/produtos/bug_report_views.py b/produtos/bug_report_views.py
+index 4c0bb4c4..8401b1d4 100644
+--- a/produtos/bug_report_views.py
++++ b/produtos/bug_report_views.py
+@@ -10,6 +10,7 @@ from django.http import HttpResponse, JsonResponse
+ from django.shortcuts import get_object_or_404, render
+ from django.views.decorators.cache import never_cache
+ from django.views.decorators.csrf import ensure_csrf_cookie
++from django.utils import timezone
+ from django.views.decorators.http import require_GET, require_http_methods, require_POST
+ 
+ from produtos.bug_report_util import notificar_report, sanitizar_print_base64, upsert_dispositivo
+@@ -123,7 +124,11 @@ def bug_report_detalhe_view(request, pk: int):
+             print_url = reverse("bug_report_print", kwargs={"pk": report.pk})
+     quando = ""
+     try:
+-        quando = report.criado_em.strftime("%d/%m/%Y %H:%M") if report.criado_em else ""
++        quando = (
++            timezone.localtime(report.criado_em).strftime("%d/%m/%Y %H:%M")
++            if report.criado_em
++            else ""
++        )
+     except Exception:
+         quando = ""
+     prompt_payload = {
+diff --git a/produtos/cliente_operacoes_util.py b/produtos/cliente_operacoes_util.py
+index b8c2974d..10929af8 100644
+--- a/produtos/cliente_operacoes_util.py
++++ b/produtos/cliente_operacoes_util.py
+@@ -6,6 +6,7 @@ from typing import Any
+ 
+ from django.db import transaction
+ from django.db.models import Q
++from django.utils import timezone
+ 
+ from produtos.caixa_util import operador_label_de_pin, usuario_django_de_pin
+ from produtos.cliente_whatsapp_util import extrair_whatsapp_digits
+@@ -454,7 +455,9 @@ def listar_eventos_cliente(pk: int, limite: int = 40) -> list[dict]:
+                 "tipo": e.tipo,
+                 "tipo_label": e.get_tipo_display(),
+                 "usuario": e.usuario,
+-                "criado_em": e.criado_em.isoformat() if e.criado_em else "",
++                "criado_em": (
++                    timezone.localtime(e.criado_em).isoformat() if e.criado_em else ""
++                ),
+                 "payload": e.payload_json or {},
+                 "cliente_nome": e.cliente_nome_snap,
+                 "destino_nome": e.destino_nome_snap,
+diff --git a/produtos/entrega_pdv_pendente_util.py b/produtos/entrega_pdv_pendente_util.py
+index 61b2df7b..4c385ded 100644
+--- a/produtos/entrega_pdv_pendente_util.py
++++ b/produtos/entrega_pdv_pendente_util.py
+@@ -23,6 +23,15 @@ LOJAS_ENTREGA = frozenset({"centro", "vila"})
+ HORAS_PAGAS_LOJA_PDV = 24
+ 
+ 
++def iso_relogio_loja(dt) -> str:
++    """ISO com o relógio de America/Sao_Paulo. Recorte dos 19 primeiros caracteres fica certo na impressão."""
++    if not dt:
++        return ""
++    if timezone.is_aware(dt):
++        dt = timezone.localtime(dt)
++    return dt.isoformat()
++
++
+ def normalizar_loja_entrega(raw) -> str:
+     v = str(raw or "").strip().lower()
+     if v in LOJAS_ENTREGA:
+@@ -185,7 +194,7 @@ def serializar_entrega_pendente_pdv(ent: PedidoEntrega, *, incluir_estado: bool
+         "total_texto": ent.total_texto or "",
+         "forma_pagamento": ent.forma_pagamento or "",
+         "status": ent.status,
+-        "criado_em": ent.criado_em.isoformat() if ent.criado_em else "",
++        "criado_em": iso_relogio_loja(ent.criado_em),
+         "retomar_codigo": (ent.retomar_codigo or "").strip()
+         or (f"GMORC{ent.orc_local_id}" if ent.orc_local_id else f"ENT{ent.pk}"),
+         "sessao_caixa_id": ent.sessao_caixa_id,
+@@ -197,7 +206,7 @@ def serializar_entrega_pendente_pdv(ent: PedidoEntrega, *, incluir_estado: bool
+         "loja_divergente": bool(loja and loja_pag and loja != loja_pag),
+         "pode_mudar_loja": bool(ent.aguarda_pagamento_pdv)
+         or bool(getattr(ent, "paga_na_loja", False)),
+-        "loja_assumida_em": ent.loja_assumida_em.isoformat() if ent.loja_assumida_em else "",
++        "loja_assumida_em": iso_relogio_loja(ent.loja_assumida_em),
+         "loja_assumida_por": (ent.loja_assumida_por or "").strip(),
+         "caixa_adiada_para": ent.caixa_adiada_para.isoformat()
+         if getattr(ent, "caixa_adiada_para", None)
+diff --git a/produtos/models.py b/produtos/models.py
+index 3294ddff..023ca2cb 100644
+--- a/produtos/models.py
++++ b/produtos/models.py
+@@ -399,7 +399,11 @@ class SessaoCaixa(models.Model):
+         verbose_name_plural = "Sessões de caixa"
+ 
+     def __str__(self):
+-        dt = self.aberto_em.strftime("%d/%m/%Y %H:%M") if self.aberto_em else ""
++        dt = (
++            timezone.localtime(self.aberto_em).strftime("%d/%m/%Y %H:%M")
++            if self.aberto_em
++            else ""
++        )
+         rotulo = self.get_ponto_caixa_display()
+         return f"{rotulo} #{self.pk} — {dt}"
+ 
+diff --git a/produtos/mongo_financeiro_util.py b/produtos/mongo_financeiro_util.py
+index 11ac58bd..6cf8c869 100644
+--- a/produtos/mongo_financeiro_util.py
++++ b/produtos/mongo_financeiro_util.py
+@@ -24,6 +24,12 @@ logger = logging.getLogger(__name__)
+ _MSG_MONGO_STAGING = "Ambiente de teste: gravação no Mongo bloqueada (somente leitura)."
+ 
+ 
++def _iso_relogio_loja(dt: datetime) -> str:
++    if timezone.is_aware(dt):
++        dt = timezone.localtime(dt)
++    return dt.isoformat()
++
++
+ def _erro_mongo_staging_readonly(**extra: Any) -> dict[str, Any] | None:
+     from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
+ 
+@@ -6660,9 +6666,9 @@ def listar_emprestimos_agro(db, *, tipo: str | None = None, limit: int = 100) ->
+         oid = d.pop("_id", None)
+         d["id"] = str(oid) if oid is not None else ""
+         if isinstance(d.get("created_at"), datetime):
+-            d["created_at"] = d["created_at"].isoformat()
++            d["created_at"] = _iso_relogio_loja(d["created_at"])
+         if isinstance(d.get("updated_at"), datetime):
+-            d["updated_at"] = d["updated_at"].isoformat()
++            d["updated_at"] = _iso_relogio_loja(d["updated_at"])
+         # Legado: documento sem campo tipo — inferir para o filtro da UI
+         tdoc = str(d.get("tipo") or "").strip().lower()
+         if tdoc not in ("externo", "interno"):
+@@ -6685,7 +6691,7 @@ def _serialize_pagamentos_interno_emp(pags: Any) -> list[dict[str, Any]]:
+         q = dict(p)
+         q["indice"] = i
+         if isinstance(q.get("created_at"), datetime):
+-            q["created_at"] = q["created_at"].isoformat()
++            q["created_at"] = _iso_relogio_loja(q["created_at"])
+         out.append(q)
+     return out
+ 
+diff --git a/produtos/static/produtos/js/cliente_cadastro_acoes.js b/produtos/static/produtos/js/cliente_cadastro_acoes.js
+index 02bf5596..8091ca33 100644
+--- a/produtos/static/produtos/js/cliente_cadastro_acoes.js
++++ b/produtos/static/produtos/js/cliente_cadastro_acoes.js
+@@ -405,7 +405,19 @@
+                 ? '<ul class="space-y-2">' +
+                   ev
+                       .map(function (e) {
+-                          var when = String(e.criado_em || '').replace('T', ' ').slice(0, 16);
++                          var when = (function (iso) {
++                              var s = String(iso || '').trim();
++                              if (/[zZ]$|[+-]\d{2}:?\d{2}$/.test(s)) {
++                                  var d = new Date(s);
++                                  if (!isNaN(d.getTime())) {
++                                      return d.toLocaleString('pt-BR', {
++                                          day: '2-digit', month: '2-digit', year: 'numeric',
++                                          hour: '2-digit', minute: '2-digit'
++                                      });
++                                  }
++                              }
++                              return s.replace('T', ' ').slice(0, 16);
++                          })(e.criado_em);
+                           return (
+                               '<li class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800">' +
+                               '<span class="font-black">' +
+diff --git a/produtos/static/produtos/js/pdv_wizard.js b/produtos/static/produtos/js/pdv_wizard.js
+index 240c5486..c15a215a 100644
+--- a/produtos/static/produtos/js/pdv_wizard.js
++++ b/produtos/static/produtos/js/pdv_wizard.js
+@@ -6666,6 +6666,40 @@
+         openEntregasPendentesModal();
+     }
+ 
++    /** Relógio da loja. toISOString() é UTC e o papel saía 3 horas na frente. */
++    function agroStampLoja(valor) {
++        function p(n) {
++            return String(n).padStart(2, '0');
++        }
++        function deData(d) {
++            return (
++                p(d.getFullYear()) +
++                '-' +
++                p(d.getMonth() + 1) +
++                '-' +
++                p(d.getDate()) +
++                ' ' +
++                p(d.getHours()) +
++                ':' +
++                p(d.getMinutes()) +
++                ':' +
++                p(d.getSeconds())
++            );
++        }
++        if (valor instanceof Date) return deData(valor);
++        var s = String(valor || '').trim();
++        if (!s) return deData(new Date());
++        if (/[zZ]$|[+-]\d{2}:?\d{2}$/.test(s)) {
++            var dz = new Date(s);
++            if (!isNaN(dz.getTime())) return deData(dz);
++        }
++        var m = s.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(?::\d{2})?)/);
++        if (m) return m[1] + ' ' + (m[2].length === 5 ? m[2] + ':00' : m[2]);
++        var d2 = new Date(s);
++        if (!isNaN(d2.getTime())) return deData(d2);
++        return s.replace('T', ' ').slice(0, 19);
++    }
++
+     function wizardPrintPayloadFromEntregaRow(row) {
+         row = row || {};
+         var itensSrc = Array.isArray(row.itens) ? row.itens : [];
+@@ -6683,8 +6717,7 @@
+             id: row.id,
+             orc_local_id: row.id,
+             retomar_codigo: String(row.retomar_codigo || ('ENT' + String(row.id || ''))),
+-            criado_em: String(row.criado_em || '').replace('T', ' ').slice(0, 19) ||
+-                new Date().toISOString().replace('T', ' ').slice(0, 19),
++            criado_em: agroStampLoja(row.criado_em),
+             cliente_nome: row.cliente_nome || '',
+             telefone: row.telefone || '',
+             plus_code: String(row.plus_code || '').trim(),
+@@ -15931,7 +15964,7 @@
+     function wizardPrintPayloadEntrega(state, computed, orcId) {
+         var e = state.entrega || {};
+         var c = state.cliente || {};
+-        var dh = new Date().toISOString().replace('T', ' ').slice(0, 19);
++        var dh = agroStampLoja(new Date());
+         var frete = State.toNumber((state.pagamento && state.pagamento.frete) || (computed && computed.frete) || 0);
+         var flags = entregaFlagsPagamentoPrint(state, computed);
+         var obsExtra = obsFluxoEntregaResumo(state);
+@@ -16008,7 +16041,7 @@
+     /** Igual htmlPagSeparacao do painel Entregas. */
+     function wizardPrintHtmlSeparacao(e) {
+         var items = Array.isArray(e.itens_json) ? e.itens_json : [];
+-        var dh = String(e.criado_em || '').replace('T', ' ').slice(0, 19);
++        var dh = agroStampLoja(e.criado_em);
+         var h = '<div class="pg">';
+         h += '<div style="text-align:center;font-weight:900;font-size:15px;letter-spacing:0.04em;">SEPARAÇÃO</div>';
+         h += '<div style="font-size:9px;margin:6px 0 8px;color:#333;">' + escapeHtml(dh) + '</div>';
+@@ -16156,7 +16189,7 @@
+     function wizardPrintHtmlEntregador(e) {
+         var nomeCli = String(e.cliente_nome || '');
+         var primeiro = (nomeCli.split(/\s+/)[0] || nomeCli || '—').toUpperCase();
+-        var dh = String(e.criado_em || '').replace('T', ' ').slice(0, 19);
++        var dh = agroStampLoja(e.criado_em);
+         var end = String(e.endereco_linha || '').trim();
+         var mapsUrl = wizardPrintUrlMapsQr(e);
+         var qrImg = mapsUrl
+@@ -16238,7 +16271,7 @@
+         if (typeof window.agroCupomInnerHtml === 'function') {
+             var ehFiadoCup = /fiado/i.test(String(e.forma_pagamento || ''));
+             return window.agroCupomInnerHtml({
+-                criado_em: String(e.criado_em || '').replace('T', ' ').slice(0, 19),
++                criado_em: agroStampLoja(e.criado_em),
+                 cliente_nome: e.cliente_nome,
+                 telefone: e.telefone || '',
+                 endereco_linha: e.endereco_linha || '',
+@@ -16255,7 +16288,7 @@
+                 rodape_extra: rodapeExtra
+             });
+         }
+-        var dh = String(e.criado_em || '').replace('T', ' ').slice(0, 19);
++        var dh = agroStampLoja(e.criado_em);
+         var h = '<div class="pg">' + cab;
+         h += '<div style="text-align:center;font-weight:900;font-size:10px;margin:4px 0;">ORÇAMENTO / ENTREGA · VIA DO CLIENTE</div>';
+         h += wizardPrintNomeClienteHtml(e.cliente_nome);
+diff --git a/produtos/templates/produtos/ajuste_mobile_login.html b/produtos/templates/produtos/ajuste_mobile_login.html
+index 39306bc0..9578b0eb 100644
+--- a/produtos/templates/produtos/ajuste_mobile_login.html
++++ b/produtos/templates/produtos/ajuste_mobile_login.html
+@@ -26,10 +26,9 @@
+     </script>
+     {% include "produtos/_head_perf_mpa.html" %}
+     <script src="https://cdn.tailwindcss.com"></script>
+-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+   {% include "produtos/_agro_consulta_ui.html" %}
+     <style>
+-      body { font-family: 'Inter', sans-serif; }
++      body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+       html { zoom: 1 !important; }
+       #agro-pdv-fab-wrap,
+       #agro-display-scale-fab,
+diff --git a/produtos/templates/produtos/emprestimos_consulta.html b/produtos/templates/produtos/emprestimos_consulta.html
+index 20bfbf51..b81ce164 100644
+--- a/produtos/templates/produtos/emprestimos_consulta.html
++++ b/produtos/templates/produtos/emprestimos_consulta.html
+@@ -223,6 +223,20 @@
+       .replace(/"/g, '&quot;');
+   }
+ 
++  function fmtRelogioLoja(iso) {
++    var s = String(iso || '').trim();
++    if (!s) return '';
++    if (/[zZ]$|[+-]\d{2}:?\d{2}$/.test(s)) {
++      var d = new Date(s);
++      if (!isNaN(d.getTime())) {
++        var p = function (n) { return String(n).padStart(2, '0'); };
++        return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' +
++          p(d.getHours()) + ':' + p(d.getMinutes());
++      }
++    }
++    return s.replace('T', ' ').slice(0, 16);
++  }
++
+   function needle() {
+     return (document.getElementById('consulta-filtro-nome') || {}).value.trim().toLowerCase();
+   }
+@@ -756,7 +770,7 @@
+         const pid = (p.pagamento_id != null && String(p.pagamento_id).trim()) ? escHtml(String(p.pagamento_id).trim()) : '';
+         li.innerHTML = '<div class="min-w-0 flex-1"><span class="font-black text-orange-900">R$ ' + fmtBrl(p.valor) + '</span> em <strong>' + escHtml((p.data_pagamento || '').slice(0, 10)) + '</strong>' +
+           (p.observacao ? '<div class="text-slate-600 mt-0.5">' + escHtml(p.observacao) + '</div>' : '') +
+-          '<div class="text-[10px] text-slate-400 mt-0.5">' + escHtml((p.created_by || '') + ' · ' + (String(p.created_at || '').slice(0, 19).replace('T', ' '))) + '</div></div>' +
++          '<div class="text-[10px] text-slate-400 mt-0.5">' + escHtml((p.created_by || '') + ' · ' + fmtRelogioLoja(p.created_at)) + '</div></div>' +
+           '<button type="button" class="btn-del-pag shrink-0 min-h-[44px] rounded-xl border-2 border-red-300 bg-red-50 px-3 py-2 text-xs font-black uppercase text-red-900 hover:bg-red-100" data-indice="' + indSafe + '" data-pid="' + pid + '">Excluir</button>';
+         ul.appendChild(li);
+       });
+diff --git a/produtos/templates/produtos/entregas_painel.html b/produtos/templates/produtos/entregas_painel.html
+index 20fd1ae1..f49fc777 100644
+--- a/produtos/templates/produtos/entregas_painel.html
++++ b/produtos/templates/produtos/entregas_painel.html
+@@ -1122,9 +1122,28 @@
+     return 'ENT' + String(e.id);
+   }
+ 
++  function stampLoja(valor) {
++    function p(n) { return String(n).padStart(2, '0'); }
++    function deData(d) {
++      return p(d.getFullYear()) + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' +
++        p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
++    }
++    var s = String(valor || '').trim();
++    if (!s) return '—';
++    if (/[zZ]$|[+-]\d{2}:?\d{2}$/.test(s)) {
++      var dz = new Date(s);
++      if (!isNaN(dz.getTime())) return deData(dz);
++    }
++    var m = s.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(?::\d{2})?)/);
++    if (m) return m[1] + ' ' + (m[2].length === 5 ? m[2] + ':00' : m[2]);
++    var d2 = new Date(s);
++    if (!isNaN(d2.getTime())) return deData(d2);
++    return s.replace('T', ' ').slice(0, 19);
++  }
++
+   function htmlPagSeparacao(e) {
+     var items = Array.isArray(e.itens_json) ? e.itens_json : [];
+-    var dh = String(e.criado_em || '').replace('T', ' ').slice(0, 19);
++    var dh = stampLoja(e.criado_em);
+     var h = '<div class="pg">';
+     h += '<div style="text-align:center;font-weight:900;font-size:14px;letter-spacing:0.04em;">SEPARAÇÃO</div>';
+     h += '<div style="font-size:9px;margin:6px 0 8px;color:#333;">' + esc(dh) + '</div>';
+@@ -1161,7 +1180,7 @@
+   function htmlPagEntregador(e) {
+     var nomeCli = String(e.cliente_nome || '');
+     var primeiro = (nomeCli.split(/\s+/)[0] || nomeCli || '—').toUpperCase();
+-    var dh = String(e.criado_em || '').replace('T', ' ').slice(0, 19);
++    var dh = stampLoja(e.criado_em);
+     var end = String(e.endereco_linha || '').trim();
+     var mapsUrl = urlClienteMapsParaQr(e);
+     var qrImg = mapsUrl
+@@ -1188,7 +1207,7 @@
+   }
+ 
+   function htmlPagCupom(e) {
+-    var dh = String(e.criado_em || '').replace('T', ' ').slice(0, 19);
++    var dh = stampLoja(e.criado_em);
+     var items = Array.isArray(e.itens_json) ? e.itens_json : [];
+     var lines = '';
+     items.forEach(function (it) {
+@@ -1561,8 +1580,8 @@
+       var dp = String(e.data_prevista).slice(0, 10).split('-');
+       if (dp.length === 3) diaPrevTxt = dp[2] + '/' + dp[1] + '/' + dp[0];
+     }
+-    var hs = e.hora_saida ? e.hora_saida.replace('T', ' ').slice(0, 16) : '—';
+-    var he = e.hora_entrega ? e.hora_entrega.replace('T', ' ').slice(0, 16) : '—';
++    var hs = e.hora_saida ? stampLoja(e.hora_saida).slice(0, 16) : '—';
++    var he = e.hora_entrega ? stampLoja(e.hora_entrega).slice(0, 16) : '—';
+ 
+     var opts = '';
+     (window.__statusOpcoes || []).forEach(function (st) {
+diff --git a/produtos/templates/produtos/etiquetas_solicitacao/app.html b/produtos/templates/produtos/etiquetas_solicitacao/app.html
+index 9ab5e414..5324b411 100644
+--- a/produtos/templates/produtos/etiquetas_solicitacao/app.html
++++ b/produtos/templates/produtos/etiquetas_solicitacao/app.html
+@@ -5,8 +5,7 @@
+   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+   {% include "produtos/includes/vendas_lojas_pwa_head.html" with vl_theme_color="#0284c7" %}
+   <title>Solicitar etiquetas | GM</title>
+-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
++  <script src="/static/produtos/js/html5-qrcode.min.js?v=2.3.8"></script>
+   <script src="/static/produtos/js/sistapp_camera_escolha.js?v=3"></script>
+   <style>
+     :root {
+@@ -31,7 +30,7 @@
+       overflow: hidden;
+       background: var(--bg);
+       color: var(--ink);
+-      font-family: Inter, system-ui, sans-serif;
++      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+       -webkit-text-size-adjust: 100%;
+       -webkit-tap-highlight-color: transparent;
+     }
+diff --git a/produtos/templates/produtos/etiquetas_solicitacao/pin.html b/produtos/templates/produtos/etiquetas_solicitacao/pin.html
+index eaa0c316..df289d32 100644
+--- a/produtos/templates/produtos/etiquetas_solicitacao/pin.html
++++ b/produtos/templates/produtos/etiquetas_solicitacao/pin.html
+@@ -5,7 +5,6 @@
+   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+   <title>PIN — Etiquetas | GM</title>
+   {% include "produtos/includes/vendas_lojas_pwa_head.html" with vl_theme_color="#0284c7" %}
+-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+   <style>
+     :root {
+       --ink: #0f172a; --muted: #64748b; --accent: #0284c7;
+@@ -15,7 +14,7 @@
+       --safe-r: env(safe-area-inset-right, 0px);
+     }
+     * { box-sizing: border-box; }
+-    html, body { margin: 0; min-height: 100dvh; background: #f8fafc; color: var(--ink); font-family: Inter, system-ui, sans-serif; }
++    html, body { margin: 0; min-height: 100dvh; background: #f8fafc; color: var(--ink); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+     .shell {
+       min-height: 100dvh; max-width: 28rem; margin: 0 auto;
+       padding: max(0.85rem, var(--safe-t)) max(1rem, var(--safe-r)) max(1rem, var(--safe-b)) max(1rem, var(--safe-l));
+diff --git a/produtos/templates/produtos/fotos_produto/app.html b/produtos/templates/produtos/fotos_produto/app.html
+index c641c1c7..8896736c 100644
+--- a/produtos/templates/produtos/fotos_produto/app.html
++++ b/produtos/templates/produtos/fotos_produto/app.html
+@@ -10,8 +10,7 @@
+   <title>Fotos produto | GM</title>
+   <link rel="manifest" href="{% url 'vendas_lojas_manifest' %}">
+   <link rel="apple-touch-icon" href="/static/produtos/pwa/vendas-lojas-192.png">
+-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
++  <script src="/static/produtos/js/html5-qrcode.min.js?v=2.3.8"></script>
+   <script src="/static/produtos/js/sistapp_camera_escolha.js?v=3"></script>
+   <style>
+     :root {
+@@ -22,7 +21,7 @@
+       --safe-r: env(safe-area-inset-right, 0px);
+     }
+     * { box-sizing: border-box; }
+-    html, body { margin: 0; min-height: 100dvh; background: var(--bg); color: var(--ink); font-family: Inter, system-ui, sans-serif; -webkit-text-size-adjust: 100%; }
++    html, body { margin: 0; min-height: 100dvh; background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-text-size-adjust: 100%; }
+     .shell {
+       min-height: 100dvh; max-width: 28rem; margin: 0 auto;
+       padding: max(0.75rem, var(--safe-t)) max(0.85rem, var(--safe-r)) max(0.85rem, var(--safe-b)) max(0.85rem, var(--safe-l));
+diff --git a/produtos/templates/produtos/fotos_produto/pin.html b/produtos/templates/produtos/fotos_produto/pin.html
+index 2fc89db3..2c6648d7 100644
+--- a/produtos/templates/produtos/fotos_produto/pin.html
++++ b/produtos/templates/produtos/fotos_produto/pin.html
+@@ -5,7 +5,6 @@
+   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+   <title>PIN — Fotos | GM</title>
+   {% include "produtos/includes/vendas_lojas_pwa_head.html" with vl_theme_color="#7c3aed" %}
+-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+   <style>
+     :root {
+       --ink: #0f172a; --muted: #64748b; --accent: #7c3aed;
+@@ -15,7 +14,7 @@
+       --safe-r: env(safe-area-inset-right, 0px);
+     }
+     * { box-sizing: border-box; }
+-    html, body { margin: 0; min-height: 100dvh; background: #f8fafc; color: var(--ink); font-family: Inter, system-ui, sans-serif; }
++    html, body { margin: 0; min-height: 100dvh; background: #f8fafc; color: var(--ink); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+     .shell {
+       min-height: 100dvh; max-width: 28rem; margin: 0 auto;
+       padding: max(0.85rem, var(--safe-t)) max(1rem, var(--safe-r)) max(1rem, var(--safe-b)) max(1rem, var(--safe-l));
+diff --git a/produtos/templates/produtos/mobile_ajuste.html b/produtos/templates/produtos/mobile_ajuste.html
+index 9218dd73..d1e5d043 100644
+--- a/produtos/templates/produtos/mobile_ajuste.html
++++ b/produtos/templates/produtos/mobile_ajuste.html
+@@ -45,10 +45,9 @@
+   </script>
+   {% endif %}
+   {% include "produtos/_head_perf_mpa.html" %}
+-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+   <script src="https://cdn.tailwindcss.com"></script>
+   {% include "produtos/_agro_consulta_ui.html" %}
+-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
++  <script src="{% static 'produtos/js/html5-qrcode.min.js' %}?v=2.3.8"></script>
+   <script src="{% static 'produtos/js/sistapp_camera_escolha.js' %}?v=3"></script>
+   <style>
+     :root {
+@@ -92,7 +91,7 @@
+       touch-action: manipulation;
+       -webkit-overflow-scrolling: touch;
+       background: #f8fafc;
+-      font-family: Inter, system-ui, sans-serif;
++      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+       box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12), 0 16px 48px rgba(15, 23, 42, 0.18);
+     }
+     @media (max-width: 28rem) {
+diff --git a/produtos/templates/produtos/vendas_lojas_hub.html b/produtos/templates/produtos/vendas_lojas_hub.html
+index d1fb7b31..42d9adf8 100644
+--- a/produtos/templates/produtos/vendas_lojas_hub.html
++++ b/produtos/templates/produtos/vendas_lojas_hub.html
+@@ -6,7 +6,6 @@
+   <title>GM Lojas | SisVale</title>
+   {% include "produtos/includes/vendas_lojas_pwa_head.html" %}
+   {% include "produtos/_head_perf_mpa.html" %}
+-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+   <style>
+     :root {
+       --ink: #0f172a;
+@@ -22,7 +21,7 @@
+       min-height: 100dvh;
+       background: #94a3b8;
+       color: var(--ink);
+-      font-family: Inter, system-ui, sans-serif;
++      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+       -webkit-text-size-adjust: 100%;
+     }
+     .vl-shell {
+diff --git a/produtos/templates/produtos/vendas_lojas_pin.html b/produtos/templates/produtos/vendas_lojas_pin.html
+index 8bf96eab..355c8809 100644
+--- a/produtos/templates/produtos/vendas_lojas_pin.html
++++ b/produtos/templates/produtos/vendas_lojas_pin.html
+@@ -6,9 +6,6 @@
+   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+   <title>PIN · GM Lojas</title>
+   {% include "produtos/includes/vendas_lojas_pwa_head.html" with vl_theme_color="#f97316" %}
+-  <link rel="preconnect" href="https://fonts.googleapis.com">
+-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+   <style>
+     :root {
+       --agro-orange: #f97316;
+@@ -20,7 +17,7 @@
+     * { box-sizing: border-box; }
+     html, body { height: 100%; margin: 0; }
+     body {
+-      font-family: "Nunito", system-ui, sans-serif;
++      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+       color: var(--agro-ink);
+       min-height: 100dvh;
+       display: grid;
+diff --git a/produtos/templates/produtos/vendas_lojas_resumo.html b/produtos/templates/produtos/vendas_lojas_resumo.html
+index 728e4485..5d839a61 100644
+--- a/produtos/templates/produtos/vendas_lojas_resumo.html
++++ b/produtos/templates/produtos/vendas_lojas_resumo.html
+@@ -6,7 +6,6 @@
+   <title>Vendas por loja | SisVale</title>
+   {% include "produtos/includes/vendas_lojas_pwa_head.html" %}
+   {% include "produtos/_head_perf_mpa.html" %}
+-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+   <style>
+     :root {
+       --ink: #0f172a;
+@@ -26,7 +25,7 @@
+       min-height: 100dvh;
+       background: #94a3b8;
+       color: var(--ink);
+-      font-family: Inter, system-ui, sans-serif;
++      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+       -webkit-text-size-adjust: 100%;
+     }
+     body { overflow-x: hidden; }
+diff --git a/produtos/templates/produtos/vendas_lojas_sem_acesso.html b/produtos/templates/produtos/vendas_lojas_sem_acesso.html
+index 88319536..1b45f21c 100644
+--- a/produtos/templates/produtos/vendas_lojas_sem_acesso.html
++++ b/produtos/templates/produtos/vendas_lojas_sem_acesso.html
+@@ -6,7 +6,6 @@
+   <meta name="theme-color" content="#ea580c">
+   <title>Sem acesso — {{ modulo_label }}</title>
+   <link rel="manifest" href="{% url 'vendas_lojas_manifest' %}">
+-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+   <style>
+     :root {
+       --ink: #0f172a; --muted: #64748b;
+@@ -14,7 +13,7 @@
+       --safe-b: env(safe-area-inset-bottom, 0px);
+     }
+     * { box-sizing: border-box; }
+-    html, body { margin: 0; min-height: 100dvh; background: #f8fafc; font-family: Inter, system-ui, sans-serif; color: var(--ink); }
++    html, body { margin: 0; min-height: 100dvh; background: #f8fafc; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); }
+     .shell {
+       max-width: 28rem; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; justify-content: center;
+       padding: max(1rem, var(--safe-t)) 1rem max(1.25rem, var(--safe-b));
+diff --git a/produtos/views.py b/produtos/views.py
+index 62518865..dfd44de2 100644
+--- a/produtos/views.py
++++ b/produtos/views.py
+@@ -164,6 +164,7 @@ from .entrega_pdv_pendente_util import (
+     data_cartao_maquina_escolhida,
+     concluir_entrega_paga_overlay,
+     filtrar_qs_por_loja,
++    iso_relogio_loja,
+     finalizar_entregas_pagas_pendentes_ao_fechar_caixa,
+     listar_entregas_bloqueando_fechamento_caixa,
+     listar_entregas_pagas_loja_pdv,
+@@ -12138,7 +12139,9 @@ def vendas_exportar_csv(request):
+         w.writerow(
+             [
+                 v.pk,
+-                v.criado_em.strftime("%Y-%m-%d %H:%M:%S"),
++                timezone.localtime(v.criado_em).strftime("%Y-%m-%d %H:%M:%S")
++                if v.criado_em
++                else "",
+                 ROTULO_DEPOSITO.get(dep_v, "Centro"),
+                 v.cliente_nome,
+                 v.cliente_id_erp,
+@@ -14977,7 +14980,9 @@ def _etiquetas_historico_row(h: EtiquetaImpressaoHistoricoAgro, *, incluir_itens
+     row = {
+         "id": h.pk,
+         "criado_em": h.criado_em.isoformat() if h.criado_em else "",
+-        "criado_em_br": h.criado_em.strftime("%d/%m/%Y %H:%M") if h.criado_em else "",
++        "criado_em_br": timezone.localtime(h.criado_em).strftime("%d/%m/%Y %H:%M")
++        if h.criado_em
++        else "",
+         "usuario": h.usuario or "",
+         "origem": h.origem or "",
+         "preset_id": h.preset_id or "",
+@@ -15291,7 +15296,9 @@ def _etiquetas_lote_row(lote: EtiquetaLoteAgro, *, incluir_itens: bool = False)
+         "status": lote.status,
+         "usuario": lote.usuario or "",
+         "criado_em": lote.criado_em.isoformat() if lote.criado_em else "",
+-        "criado_em_br": lote.criado_em.strftime("%d/%m/%Y %H:%M") if lote.criado_em else "",
++        "criado_em_br": timezone.localtime(lote.criado_em).strftime("%d/%m/%Y %H:%M")
++        if lote.criado_em
++        else "",
+         "atualizado_em": lote.atualizado_em.isoformat() if lote.atualizado_em else "",
+         **totais,
+     }
+@@ -31328,7 +31335,7 @@ def _orcamento_pdv_entry_from_model(obj: OrcamentoPdvAgro) -> dict:
+     if obj.usuario_registro and not entry.get("usuario"):
+         entry["usuario"] = obj.usuario_registro
+     if obj.criado_em and not entry.get("data"):
+-        entry["data"] = obj.criado_em.strftime("%d/%m/%Y, %H:%M:%S")
++        entry["data"] = timezone.localtime(obj.criado_em).strftime("%d/%m/%Y, %H:%M:%S")
+     return entry
+ 
+ 
+@@ -34377,14 +34384,14 @@ def api_entregas_listar(request):
+                     "operador": e.operador,
+                     "hora_prevista": e.hora_prevista.isoformat() if e.hora_prevista else None,
+                     "data_prevista": e.data_prevista.isoformat() if e.data_prevista else None,
+-                    "hora_saida": e.hora_saida.isoformat() if e.hora_saida else None,
+-                    "hora_entrega": e.hora_entrega.isoformat() if e.hora_entrega else None,
++                    "hora_saida": iso_relogio_loja(e.hora_saida) or None,
++                    "hora_entrega": iso_relogio_loja(e.hora_entrega) or None,
+                     "observacoes": e.observacoes,
+                     "forma_pagamento": e.forma_pagamento or "",
+                     "troco_precisa": e.troco_precisa,
+                     "aguarda_pagamento_pdv": bool(getattr(e, "aguarda_pagamento_pdv", False)),
+                     "pagamento_pdv": pag,
+-                    "criado_em": e.criado_em.isoformat(),
++                    "criado_em": iso_relogio_loja(e.criado_em),
+                 }
+             )
+         return JsonResponse({"ok": True, "entregas": rows, "status_opcoes": sorted(status_vals)})
