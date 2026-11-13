@@ -1122,9 +1122,28 @@
     return 'ENT' + String(e.id);
   }
 
+  function stampLoja(valor) {
+    function p(n) { return String(n).padStart(2, '0'); }
+    function deData(d) {
+      return p(d.getFullYear()) + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' +
+        p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+    }
+    var s = String(valor || '').trim();
+    if (!s) return '—';
+    if (/[zZ]$|[+-]\d{2}:?\d{2}$/.test(s)) {
+      var dz = new Date(s);
+      if (!isNaN(dz.getTime())) return deData(dz);
+    }
+    var m = s.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(?::\d{2})?)/);
+    if (m) return m[1] + ' ' + (m[2].length === 5 ? m[2] + ':00' : m[2]);
+    var d2 = new Date(s);
+    if (!isNaN(d2.getTime())) return deData(d2);
+    return s.replace('T', ' ').slice(0, 19);
+  }
+
   function htmlPagSeparacao(e) {
     var items = Array.isArray(e.itens_json) ? e.itens_json : [];
-    var dh = String(e.criado_em || '').replace('T', ' ').slice(0, 19);
+    var dh = stampLoja(e.criado_em);
     var h = '<div class="pg">';
     h += '<div style="text-align:center;font-weight:900;font-size:14px;letter-spacing:0.04em;">SEPARAÇÃO</div>';
     h += '<div style="font-size:9px;margin:6px 0 8px;color:#333;">' + esc(dh) + '</div>';
@@ -1161,7 +1180,7 @@
   function htmlPagEntregador(e) {
     var nomeCli = String(e.cliente_nome || '');
     var primeiro = (nomeCli.split(/\s+/)[0] || nomeCli || '—').toUpperCase();
-    var dh = String(e.criado_em || '').replace('T', ' ').slice(0, 19);
+    var dh = stampLoja(e.criado_em);
     var end = String(e.endereco_linha || '').trim();
     var mapsUrl = urlClienteMapsParaQr(e);
     var qrImg = mapsUrl
@@ -1188,7 +1207,7 @@
   }
 
   function htmlPagCupom(e) {
-    var dh = String(e.criado_em || '').replace('T', ' ').slice(0, 19);
+    var dh = stampLoja(e.criado_em);
     var items = Array.isArray(e.itens_json) ? e.itens_json : [];
     var lines = '';
     items.forEach(function (it) {
@@ -1561,8 +1580,8 @@
       var dp = String(e.data_prevista).slice(0, 10).split('-');
       if (dp.length === 3) diaPrevTxt = dp[2] + '/' + dp[1] + '/' + dp[0];
     }
-    var hs = e.hora_saida ? e.hora_saida.replace('T', ' ').slice(0, 16) : '—';
-    var he = e.hora_entrega ? e.hora_entrega.replace('T', ' ').slice(0, 16) : '—';
+    var hs = e.hora_saida ? stampLoja(e.hora_saida).slice(0, 16) : '—';
+    var he = e.hora_entrega ? stampLoja(e.hora_entrega).slice(0, 16) : '—';
 
     var opts = '';
     (window.__statusOpcoes || []).forEach(function (st) {

@@ -1677,6 +1677,10 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ENTREGA-HORA-UTC — 13/11 · no `teste`, **não** foi para a loja
+
+A via do entregador imprimia `toISOString()` (UTC, 3 h na frente). Papel `19:49` = loja `16:49`. Corrigido no PDV, no painel de entregas, no Excel de vendas, no histórico de etiquetas, no orçamento, no bug, no histórico do cliente e no empréstimo. Cupom de venda já usava o relógio da loja.
+
 ### 🟢 PACOTE PRONTO / CHECKLIST — **09/11** · **NF-FORN-UNIF-AGRO** · **v27.26.54** · pronto para envio
 
 | Campo | Valor |

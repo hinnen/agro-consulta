@@ -405,7 +405,19 @@
                 ? '<ul class="space-y-2">' +
                   ev
                       .map(function (e) {
-                          var when = String(e.criado_em || '').replace('T', ' ').slice(0, 16);
+                          var when = (function (iso) {
+                              var s = String(iso || '').trim();
+                              if (/[zZ]$|[+-]\d{2}:?\d{2}$/.test(s)) {
+                                  var d = new Date(s);
+                                  if (!isNaN(d.getTime())) {
+                                      return d.toLocaleString('pt-BR', {
+                                          day: '2-digit', month: '2-digit', year: 'numeric',
+                                          hour: '2-digit', minute: '2-digit'
+                                      });
+                                  }
+                              }
+                              return s.replace('T', ' ').slice(0, 16);
+                          })(e.criado_em);
                           return (
                               '<li class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800">' +
                               '<span class="font-black">' +

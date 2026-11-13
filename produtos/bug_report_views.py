@@ -10,6 +10,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from produtos.bug_report_util import notificar_report, sanitizar_print_base64, upsert_dispositivo
@@ -123,7 +124,11 @@ def bug_report_detalhe_view(request, pk: int):
             print_url = reverse("bug_report_print", kwargs={"pk": report.pk})
     quando = ""
     try:
-        quando = report.criado_em.strftime("%d/%m/%Y %H:%M") if report.criado_em else ""
+        quando = (
+            timezone.localtime(report.criado_em).strftime("%d/%m/%Y %H:%M")
+            if report.criado_em
+            else ""
+        )
     except Exception:
         quando = ""
     prompt_payload = {

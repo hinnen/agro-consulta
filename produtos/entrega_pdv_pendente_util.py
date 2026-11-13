@@ -22,6 +22,15 @@ LOJAS_ENTREGA = frozenset({"centro", "vila"})
 HORAS_PAGAS_LOJA_PDV = 24
 
 
+def iso_relogio_loja(dt) -> str:
+    """ISO com o relógio de America/Sao_Paulo. Recorte dos 19 primeiros caracteres fica certo na impressão."""
+    if not dt:
+        return ""
+    if timezone.is_aware(dt):
+        dt = timezone.localtime(dt)
+    return dt.isoformat()
+
+
 def normalizar_loja_entrega(raw) -> str:
     v = str(raw or "").strip().lower()
     if v in LOJAS_ENTREGA:
@@ -184,7 +193,7 @@ def serializar_entrega_pendente_pdv(ent: PedidoEntrega, *, incluir_estado: bool 
         "total_texto": ent.total_texto or "",
         "forma_pagamento": ent.forma_pagamento or "",
         "status": ent.status,
-        "criado_em": ent.criado_em.isoformat() if ent.criado_em else "",
+        "criado_em": iso_relogio_loja(ent.criado_em),
         "retomar_codigo": (ent.retomar_codigo or "").strip()
         or (f"GMORC{ent.orc_local_id}" if ent.orc_local_id else f"ENT{ent.pk}"),
         "sessao_caixa_id": ent.sessao_caixa_id,
@@ -196,7 +205,7 @@ def serializar_entrega_pendente_pdv(ent: PedidoEntrega, *, incluir_estado: bool 
         "loja_divergente": bool(loja and loja_pag and loja != loja_pag),
         "pode_mudar_loja": bool(ent.aguarda_pagamento_pdv)
         or bool(getattr(ent, "paga_na_loja", False)),
-        "loja_assumida_em": ent.loja_assumida_em.isoformat() if ent.loja_assumida_em else "",
+        "loja_assumida_em": iso_relogio_loja(ent.loja_assumida_em),
         "loja_assumida_por": (ent.loja_assumida_por or "").strip(),
         "caixa_adiada_para": ent.caixa_adiada_para.isoformat()
         if getattr(ent, "caixa_adiada_para", None)

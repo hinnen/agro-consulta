@@ -223,6 +223,20 @@
       .replace(/"/g, '&quot;');
   }
 
+  function fmtRelogioLoja(iso) {
+    var s = String(iso || '').trim();
+    if (!s) return '';
+    if (/[zZ]$|[+-]\d{2}:?\d{2}$/.test(s)) {
+      var d = new Date(s);
+      if (!isNaN(d.getTime())) {
+        var p = function (n) { return String(n).padStart(2, '0'); };
+        return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' +
+          p(d.getHours()) + ':' + p(d.getMinutes());
+      }
+    }
+    return s.replace('T', ' ').slice(0, 16);
+  }
+
   function needle() {
     return (document.getElementById('consulta-filtro-nome') || {}).value.trim().toLowerCase();
   }
@@ -756,7 +770,7 @@
         const pid = (p.pagamento_id != null && String(p.pagamento_id).trim()) ? escHtml(String(p.pagamento_id).trim()) : '';
         li.innerHTML = '<div class="min-w-0 flex-1"><span class="font-black text-orange-900">R$ ' + fmtBrl(p.valor) + '</span> em <strong>' + escHtml((p.data_pagamento || '').slice(0, 10)) + '</strong>' +
           (p.observacao ? '<div class="text-slate-600 mt-0.5">' + escHtml(p.observacao) + '</div>' : '') +
-          '<div class="text-[10px] text-slate-400 mt-0.5">' + escHtml((p.created_by || '') + ' · ' + (String(p.created_at || '').slice(0, 19).replace('T', ' '))) + '</div></div>' +
+          '<div class="text-[10px] text-slate-400 mt-0.5">' + escHtml((p.created_by || '') + ' · ' + fmtRelogioLoja(p.created_at)) + '</div></div>' +
           '<button type="button" class="btn-del-pag shrink-0 min-h-[44px] rounded-xl border-2 border-red-300 bg-red-50 px-3 py-2 text-xs font-black uppercase text-red-900 hover:bg-red-100" data-indice="' + indSafe + '" data-pid="' + pid + '">Excluir</button>';
         ul.appendChild(li);
       });

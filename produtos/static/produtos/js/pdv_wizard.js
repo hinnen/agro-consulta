@@ -6644,6 +6644,40 @@
         openEntregasPendentesModal();
     }
 
+    /** Relógio da loja. toISOString() é UTC e o papel saía 3 horas na frente. */
+    function agroStampLoja(valor) {
+        function p(n) {
+            return String(n).padStart(2, '0');
+        }
+        function deData(d) {
+            return (
+                p(d.getFullYear()) +
+                '-' +
+                p(d.getMonth() + 1) +
+                '-' +
+                p(d.getDate()) +
+                ' ' +
+                p(d.getHours()) +
+                ':' +
+                p(d.getMinutes()) +
+                ':' +
+                p(d.getSeconds())
+            );
+        }
+        if (valor instanceof Date) return deData(valor);
+        var s = String(valor || '').trim();
+        if (!s) return deData(new Date());
+        if (/[zZ]$|[+-]\d{2}:?\d{2}$/.test(s)) {
+            var dz = new Date(s);
+            if (!isNaN(dz.getTime())) return deData(dz);
+        }
+        var m = s.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(?::\d{2})?)/);
+        if (m) return m[1] + ' ' + (m[2].length === 5 ? m[2] + ':00' : m[2]);
+        var d2 = new Date(s);
+        if (!isNaN(d2.getTime())) return deData(d2);
+        return s.replace('T', ' ').slice(0, 19);
+    }
+
     function wizardPrintPayloadFromEntregaRow(row) {
         row = row || {};
         var itensSrc = Array.isArray(row.itens) ? row.itens : [];
@@ -6661,8 +6695,7 @@
             id: row.id,
             orc_local_id: row.id,
             retomar_codigo: String(row.retomar_codigo || ('ENT' + String(row.id || ''))),
-            criado_em: String(row.criado_em || '').replace('T', ' ').slice(0, 19) ||
-                new Date().toISOString().replace('T', ' ').slice(0, 19),
+            criado_em: agroStampLoja(row.criado_em),
             cliente_nome: row.cliente_nome || '',
             telefone: row.telefone || '',
             plus_code: String(row.plus_code || '').trim(),
@@ -15875,7 +15908,7 @@
     function wizardPrintPayloadEntrega(state, computed, orcId) {
         var e = state.entrega || {};
         var c = state.cliente || {};
-        var dh = new Date().toISOString().replace('T', ' ').slice(0, 19);
+        var dh = agroStampLoja(new Date());
         var frete = State.toNumber((state.pagamento && state.pagamento.frete) || (computed && computed.frete) || 0);
         var flags = entregaFlagsPagamentoPrint(state, computed);
         var obsExtra = obsFluxoEntregaResumo(state);
@@ -15952,7 +15985,7 @@
     /** Igual htmlPagSeparacao do painel Entregas. */
     function wizardPrintHtmlSeparacao(e) {
         var items = Array.isArray(e.itens_json) ? e.itens_json : [];
-        var dh = String(e.criado_em || '').replace('T', ' ').slice(0, 19);
+        var dh = agroStampLoja(e.criado_em);
         var h = '<div class="pg">';
         h += '<div style="text-align:center;font-weight:900;font-size:15px;letter-spacing:0.04em;">SEPARAÇÃO</div>';
         h += '<div style="font-size:9px;margin:6px 0 8px;color:#333;">' + escapeHtml(dh) + '</div>';
@@ -16100,7 +16133,7 @@
     function wizardPrintHtmlEntregador(e) {
         var nomeCli = String(e.cliente_nome || '');
         var primeiro = (nomeCli.split(/\s+/)[0] || nomeCli || '—').toUpperCase();
-        var dh = String(e.criado_em || '').replace('T', ' ').slice(0, 19);
+        var dh = agroStampLoja(e.criado_em);
         var end = String(e.endereco_linha || '').trim();
         var mapsUrl = wizardPrintUrlMapsQr(e);
         var qrImg = mapsUrl
@@ -16182,7 +16215,7 @@
         if (typeof window.agroCupomInnerHtml === 'function') {
             var ehFiadoCup = /fiado/i.test(String(e.forma_pagamento || ''));
             return window.agroCupomInnerHtml({
-                criado_em: String(e.criado_em || '').replace('T', ' ').slice(0, 19),
+                criado_em: agroStampLoja(e.criado_em),
                 cliente_nome: e.cliente_nome,
                 telefone: e.telefone || '',
                 endereco_linha: e.endereco_linha || '',
@@ -16199,7 +16232,7 @@
                 rodape_extra: rodapeExtra
             });
         }
-        var dh = String(e.criado_em || '').replace('T', ' ').slice(0, 19);
+        var dh = agroStampLoja(e.criado_em);
         var h = '<div class="pg">' + cab;
         h += '<div style="text-align:center;font-weight:900;font-size:10px;margin:4px 0;">ORÇAMENTO / ENTREGA · VIA DO CLIENTE</div>';
         h += wizardPrintNomeClienteHtml(e.cliente_nome);
