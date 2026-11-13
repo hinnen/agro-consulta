@@ -737,6 +737,22 @@ def serializar_ponte(estado: WhatsAppPonteEstadoAgro | None = None) -> dict:
     }
 
 
+def _marcar_ultima_saida(conv, *, direcao: str, ack: int, zerar_nao_lidas: bool) -> list[str]:
+    """Lista: de quem foi a última e o tracinho. Resposta da loja zera o verde."""
+    extras = dict(conv.extras) if isinstance(conv.extras, dict) else {}
+    extras["ultima_direcao"] = (direcao or "")[:8]
+    try:
+        extras["ultima_ack"] = max(0, min(3, int(ack)))
+    except (TypeError, ValueError):
+        extras["ultima_ack"] = 0
+    conv.extras = extras
+    campos = ["extras"]
+    if zerar_nao_lidas and int(conv.nao_lidas or 0):
+        conv.nao_lidas = 0
+        campos.append("nao_lidas")
+    return campos
+
+
 def _preview(texto: str) -> str:
     t = " ".join(str(texto or "").split())
     if len(t) > PREVIEW_MAX:
@@ -767,6 +783,8 @@ def serializar_conversa(c: WhatsAppConversaAgro) -> dict:
         "aguardando_loja": bool(c.aguardando_loja),
         "status": status,
         "ultima_preview": c.ultima_preview or "",
+        "ultima_direcao": str((getattr(c, "extras", None) or {}).get("ultima_direcao") or ""),
+        "ultima_ack": int((getattr(c, "extras", None) or {}).get("ultima_ack") or 0),
         "ultima_em": ult.isoformat() if ult else "",
         "hora": ult_l.strftime("%H:%M") if ult_l else "",
         "data": ult_l.strftime("%d/%m") if ult_l else "",
@@ -1126,7 +1144,17 @@ def aplicar_ack_wa(*, wa_id: str, ack: int) -> bool:
         return False
     m.ack = nivel
     m.save(update_fields=["ack"])
-    _bump_msg_rev(m.conversa)
+    conv = m.conversa
+    ultima = (
+        WhatsAppMensagemAgro.objects.filter(conversa=conv, apagada=False)
+        .order_by("-id")
+        .values_list("id", flat=True)
+        .first()
+    )
+    if ultima and int(ultima) == int(m.pk):
+        campos = _marcar_ultima_saida(conv, direcao=m.direcao, ack=nivel, zerar_nao_lidas=False)
+        conv.save(update_fields=campos)
+    _bump_msg_rev(conv)
     return True
 
 
@@ -1266,9 +1294,19 @@ def _enfileirar_saida(
         conversa.ultima_preview = _preview(prev_txt)
         conversa.ultima_em = agora
         campos = ["ultima_preview", "ultima_em"]
-        if direcao == WhatsAppMensagemAgro.DIRECAO_OUT:
+        if direcao in (
+            WhatsAppMensagemAgro.DIRECAO_OUT,
+            WhatsAppMensagemAgro.DIRECAO_BOT,
+        ):
             conversa.aguardando_loja = False
             campos.append("aguardando_loja")
+            campos.extend(
+                _marcar_ultima_saida(conversa, direcao=direcao, ack=0, zerar_nao_lidas=True)
+            )
+        else:
+            campos.extend(
+                _marcar_ultima_saida(conversa, direcao=direcao, ack=0, zerar_nao_lidas=False)
+            )
         conversa.save(update_fields=campos)
     elif direcao == WhatsAppMensagemAgro.DIRECAO_OUT and (tipo_midia or "").strip().lower() != "reaction":
         conversa.aguardando_loja = False
@@ -1764,6 +1802,9 @@ def processar_entrada(
                 conv.extras = extras_t
         else:
             conv.aguardando_loja = False
+            _marcar_ultima_saida(conv, direcao=direcao, ack=2, zerar_nao_lidas=True)
+        if not de_mim:
+            _marcar_ultima_saida(conv, direcao=direcao, ack=0, zerar_nao_lidas=False)
     elif not conv.ultima_em:
         conv.ultima_em = quando
 
@@ -2214,27 +2255,28 @@ def buscar_contatos_envio(termo: str, *, limit: int = 20) -> list[dict]:
         if not j or j in seen:
             return
         seen.add(j)
-        conv = WhatsAppConversaAgro.objects.filter(Q(jid=j) | Q(jid_lid=j)).only("id", "loja").first()
+        conv = WhatsAppConversaAgro.objects.filter(Q(jid=j) | Q(jid_lid=j)).first()
         if conv is None:
             tel_hit = _telefone_real(telefone) or _telefone_real(j)
             if tel_hit:
-                conv = (
-                    WhatsAppConversaAgro.objects.filter(
-                        Q(telefone=tel_hit)
-                        | Q(telefone=tel_hit[-11:] if len(tel_hit) >= 11 else tel_hit)
-                        | Q(jid=telefone_para_jid(tel_hit))
-                    )
-                    .only("id", "loja")
-                    .first()
-                )
+                conv = WhatsAppConversaAgro.objects.filter(
+                    Q(telefone=tel_hit)
+                    | Q(telefone=tel_hit[-11:] if len(tel_hit) >= 11 else tel_hit)
+                    | Q(jid=telefone_para_jid(tel_hit))
+                ).first()
+        foto = ""
+        if conv is not None and getattr(conv, "foto_perfil", None) and _foto_no_disco(conv):
+            foto = f"/api/atendimento-whatsapp/foto/{int(conv.pk)}/"
         out.append(
             {
                 "origem": origem,
                 "nome": (nome or "")[:120],
                 "telefone": (telefone or jid_para_telefone(j))[:32],
                 "jid": j,
+                "jid_lid": ((conv.jid_lid or "")[:80] if conv is not None else ""),
                 "conversa_id": int(conv.pk) if conv else 0,
                 "loja": (conv.loja if conv else "") or "",
+                "foto_url": foto,
             }
         )
 
@@ -2263,6 +2305,7 @@ def buscar_contatos_envio(termo: str, *, limit: int = 20) -> list[dict]:
 
     if dig and len(dig) >= 10:
         _add("número", "", dig, telefone_para_jid(dig))
+    lembrar_fotos_da_busca(out)
     return out
 
 
@@ -2908,23 +2951,69 @@ def _foto_no_disco(conv: WhatsAppConversaAgro) -> bool:
     return ok
 
 
+_busca_fotos: list[dict] = []
+
+
+def lembrar_fotos_da_busca(itens: list[dict]) -> None:
+    """Até 3 conversas da busca sem foto. O próximo poll da ponte pede só essas."""
+    global _busca_fotos
+    fila: list[dict] = []
+    vistos: set[str] = set()
+    for it in itens or []:
+        if not isinstance(it, dict) or it.get("foto_url") or not it.get("conversa_id"):
+            continue
+        jid = str(it.get("jid") or "").strip()[:80]
+        lid = str(it.get("jid_lid") or "").strip()[:80]
+        chave = jid or lid
+        if not chave or chave in vistos:
+            continue
+        vistos.add(chave)
+        fila.append(
+            {
+                "jid": jid,
+                "jid_lid": lid,
+                "telefone": str(it.get("telefone") or "")[:32],
+            }
+        )
+        if len(fila) >= 3:
+            break
+    _busca_fotos = fila
+
+
 def listar_fotos_pendentes(*, limit: int = 25) -> list[dict]:
     """Conversas recentes sem foto (ou arquivo sumiu no disco) — a ponte busca no Zap."""
+    global _busca_fotos
     lim = max(1, min(int(limit or 25), 40))
+    out: list[dict] = []
+    vistos: set[str] = set()
+    for item in list(_busca_fotos):
+        if len(out) >= lim:
+            break
+        chave = str(item.get("jid") or item.get("jid_lid") or "")
+        if not chave or chave in vistos:
+            continue
+        vistos.add(chave)
+        out.append(item)
+    _busca_fotos = []
+    if len(out) >= lim:
+        return out
     corte = timezone.now() - timedelta(days=5)
     # Olha a lista visível (não só os 12 primeiros). Devolve poucas por poll.
     qs = WhatsAppConversaAgro.objects.order_by("-ultima_em", "-id")[: max(120, lim * 8)]
-    out = []
     for c in qs:
         if len(out) >= lim:
             break
         jid = (c.jid or "").strip()
         if not jid_eh_chat_privado(jid) and not (c.jid_lid or ""):
             continue
+        chave = jid or (c.jid_lid or "")
+        if chave in vistos:
+            continue
         tem = _foto_no_disco(c)
         recente = bool(c.foto_em) and c.foto_em >= corte
         if tem and recente:
             continue
+        vistos.add(chave)
         out.append(
             {
                 "jid": jid,

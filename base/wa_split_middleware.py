@@ -26,6 +26,7 @@ class AgroWhatsAppSplitMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        self._marcar_proxy_sistapp(request)
         origin = agro_wa_public_origin()
         if not origin:
             return self.get_response(request)
@@ -62,3 +63,51 @@ class AgroWhatsAppSplitMiddleware:
 
         target = origin + request.get_full_path()
         return HttpResponseRedirect(target)
+
+    @staticmethod
+    def _marcar_proxy_sistapp(request):
+        path = getattr(request, "path", "") or ""
+        if not path.startswith("/api/atendimento-whatsapp/"):
+            return
+        token = (request.META.get("HTTP_X_AGRO_WA_SISTAPP") or "").strip()
+        esperado = (getattr(settings, "AGRO_WA_BRIDGE_TOKEN", "") or "").strip()
+        if not token or not esperado or token != esperado:
+            return
+        request._dont_enforce_csrf_checks = True
+        request.agro_wa_sistapp_operador = (request.META.get("HTTP_X_AGRO_WA_OPERADOR") or "SistApp").strip()[:120]
+
+
+class AgroWaSistappUserMiddleware:
+    """Depois do login: o SistApp entra no Zap com a chave do servidor, sem tela de entrar."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        nome = (getattr(request, "agro_wa_sistapp_operador", "") or "").strip()
+        if nome:
+            request.user = _OperadorSistapp(nome)
+        return self.get_response(request)
+
+
+class _OperadorSistapp:
+    is_authenticated = True
+    is_active = True
+    is_anonymous = False
+    is_staff = False
+    is_superuser = False
+    pk = 0
+    id = 0
+
+    def __init__(self, nome):
+        self.username = nome
+        self.nome = nome
+
+    def get_full_name(self):
+        return self.nome
+
+    def get_username(self):
+        return self.nome
+
+    def __str__(self):
+        return self.nome

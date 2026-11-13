@@ -67,7 +67,8 @@
   .wa-cel .wa-item { min-height: 3.6rem; padding: .85rem 1rem; }
   .wa-cel .wa-item .wa-n { font-size: 1rem; }
   .wa-cel .wa-item .wa-t { font-size: .75rem; }
-  .wa-cel #wa-pwa-instalar {
+  .wa-cel #wa-quick { -webkit-overflow-scrolling: touch; }
+  .wa-cel #wa-quick .wa-ico { flex: 0 0 auto; min-height: 2.4rem; background: #fff; color: #075e54; border-color: #d1d5db; }
     display: none; min-height: 2.2rem; padding: 0 .7rem; border-radius: 999px;
     border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.16);
     color: #fff; font-size: .72rem; font-weight: 800; white-space: nowrap;
@@ -77,6 +78,7 @@
   <header class="wa-top">
     <span id="wa-dot" class="wa-dot off" aria-hidden="true"></span>
     <h1 class="wa-title min-w-0 flex-1 truncate">Zap loja</h1>
+    <a href="{% url 'atendimento_whatsapp_bot' %}" class="wa-ico" id="wa-btn-bot" title="Configurar o bot" style="padding:0 .65rem;font-size:.75rem;font-weight:800;text-decoration:none;">Bot</a>
     <span class="wa-ver" title="Versão no ar neste Zap. O código curto muda a cada atualização.">v{{ agro_build.version_label }}{% if agro_build.commit %} · {{ agro_build.commit|slice:":7" }}{% endif %}</span>
     <button type="button" id="wa-pwa-instalar">Instalar</button>
     <div id="wa-status" class="wa-pill">…</div>
@@ -113,6 +115,7 @@
           {% include "produtos/_wa_chat_head.html" %}
         </div>
         <div id="wa-msgs" class="min-h-0 flex-1 overflow-y-auto px-3 py-2"></div>
+        <div id="wa-quick" class="hidden shrink-0 flex gap-1 overflow-x-auto border-t border-slate-100 bg-slate-50 px-2 py-1.5"></div>
         <div id="wa-move" class="hidden shrink-0 flex gap-2 px-2 pt-1 pb-1 bg-white">
           <button type="button" data-xfer="centro" class="wa-ico flex-1" title="Passar este atendimento para o Centro">Centro</button>
           <button type="button" data-xfer="vila" class="wa-ico flex-1" title="Passar este atendimento para a Vila">Vila</button>

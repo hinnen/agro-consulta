@@ -199,6 +199,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'base.wa_split_middleware.AgroWaSistappUserMiddleware',
     'base.contabilidade_middleware.AgroContabilidadeMiddleware',
     # Idempotência global (header Idempotency-Key / X-Agro-Client-Request-Id ou body client_request_id)
     'base.middleware.AgroIdempotencyMiddleware',
@@ -284,6 +285,27 @@ DATABASES = {
         conn_health_checks=True,
     )
 }
+# Ficha da loja (PIN, cliente, fiado, vale, cashback). Não migrar este banco.
+# No PC do Zap a senha fica em .env.wa-servidor. Sem isso o PIN lê o banco local e dá incorreto.
+_env_wa = BASE_DIR / ".env.wa-servidor"
+if _env_wa.is_file():
+    for _linha in _env_wa.read_text(encoding="utf-8").splitlines():
+        _linha = _linha.strip()
+        if not _linha or _linha.startswith("#") or "=" not in _linha:
+            continue
+        _k, _v = _linha.split("=", 1)
+        _k = _k.strip()
+        if _k and _k not in os.environ:
+            os.environ[_k] = _v.strip().strip('"').strip("'")
+_loja_url = (config("AGRO_LOJA_DATABASE_URL", default="") or "").strip()
+if _loja_url:
+    # Uma conexão reaproveitada no PC do Zap. Sem isso, cada PIN abre a loja de novo e demora.
+    DATABASES["loja"] = dj_database_url.parse(
+        _loja_url,
+        conn_max_age=max(30, min(_db_conn_max_age or 30, 60)),
+        conn_health_checks=True,
+    )
+DATABASE_ROUTERS = ["config.loja_leitura.LojaLeituraRouter"]
 
 
 # Password validation
@@ -605,6 +627,8 @@ VENDA_ERP_FORMA_PAGAMENTO_FIADO = config(
 # WhatsApp após impressão de cupom de transferência (Vila Elias). Vazio = usa PDV_ENTREGA_WHATSAPP.
 TRANSFERENCIA_WHATSAPP = config('TRANSFERENCIA_WHATSAPP', default='').strip()
 AGRO_WA_BRIDGE_TOKEN = (config("AGRO_WA_BRIDGE_TOKEN", default="gm-agro-wa-ponte-local") or "").strip()
+# Mesma chave no PC do Zap e na loja. Sem ela, o Zap não herda o PIN do PDV e pede de novo.
+AGRO_WA_PIN_HANDOFF_KEY = (config("AGRO_WA_PIN_HANDOFF_KEY", default="") or "").strip()
 # Serviço Render dedicado ao WhatsApp (URL HTTPS). Só no web da loja — ver docs/DEPLOY-WHATSAPP-RENDER.md
 if "AGRO_WA_PUBLIC_ORIGIN" in os.environ:
     AGRO_WA_PUBLIC_ORIGIN = (os.environ.get("AGRO_WA_PUBLIC_ORIGIN") or "").strip().rstrip("/")

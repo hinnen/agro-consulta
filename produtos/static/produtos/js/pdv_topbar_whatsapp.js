@@ -110,8 +110,16 @@
     box.setAttribute('aria-hidden', 'true');
   }
 
-  function abrirZapSemSairDoApp() {
-    var href = '/atendimento-whatsapp/';
+  function csrfPdv() {
+    try {
+      var c = document.cookie.match(/csrftoken=([^;]+)/);
+      return c ? decodeURIComponent(c[1]) : '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function irParaZap(href) {
     try {
       if (window.AgroDualWindow && typeof window.AgroDualWindow.navigateGestao === 'function') {
         window.AgroDualWindow.navigateGestao(href);
@@ -131,6 +139,28 @@
       }
     } catch (_) {}
     window.location.href = href;
+  }
+
+  function abrirZapSemSairDoApp() {
+    var href = '/atendimento-whatsapp/';
+    fetch('/api/pdv/operador/zap-entrada/', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfPdv() },
+      body: '{}',
+    })
+      .then(function (r) {
+        return r.json().catch(function () {
+          return {};
+        });
+      })
+      .then(function (j) {
+        if (j && j.ok && j.entrada) href += '?entrada=' + encodeURIComponent(j.entrada);
+        irParaZap(href);
+      })
+      .catch(function () {
+        irParaZap(href);
+      });
   }
 
   btn.addEventListener('click', function (ev) {

@@ -460,7 +460,7 @@
     return '';
   }
 
-  function htmlPreviewLista(preview) {
+  function htmlPreviewLista(preview, conversa) {
     var raw = String(preview || '').replace(/\s+/g, ' ').trim();
     var low = raw.toLowerCase();
     var kind = '';
@@ -481,7 +481,12 @@
       kind = 'document';
       label = 'Arquivo';
     }
-    return icoPreview(kind) + '<span class="wa-p-txt">' + escapeHtml(label || ' ') + '</span>';
+    var checks = '';
+    var dir = conversa ? String(conversa.ultima_direcao || '') : '';
+    if (dir === 'out' || dir === 'bot') {
+      checks = ackHtml({ direcao: 'out', ack: Number(conversa.ultima_ack || 0) || 1 });
+    }
+    return checks + icoPreview(kind) + '<span class="wa-p-txt">' + escapeHtml(label || ' ') + '</span>';
   }
 
   function statsLista(rows) {
@@ -673,7 +678,7 @@
       var pEl = btn.querySelector('.wa-p');
       if (nEl) nEl.textContent = titulo;
       if (tEl) tEl.textContent = c.hora || '';
-      if (pEl) pEl.innerHTML = htmlPreviewLista(preview);
+      if (pEl) pEl.innerHTML = htmlPreviewLista(preview, c);
       var row2 = btn.querySelector('.wa-row2');
       var unreadEl = btn.querySelector('.wa-unread');
       if (qNao) {
@@ -1822,6 +1827,11 @@
       avisarEnvio('Abra uma conversa na lista antes de enviar.');
       return;
     }
+    if (!nomeOperadorPin()) {
+      avisarEnvio('Digite o PIN para atender.');
+      trocarOperadorPin();
+      return;
+    }
     if (enviandoMsg) {
       avisarEnvio('Ainda enviando… aguarde 1 instante.');
       return;
@@ -1850,6 +1860,8 @@
     }, 15000);
 
     if (replyToId && !payload.reply_to_id) payload.reply_to_id = replyToId;
+    var opEnvio = nomeOperadorPin();
+    if (opEnvio && !payload.operador_nome) payload.operador_nome = opEnvio;
     var replySnap = replyToTxt;
     var replyIdSnap = replyToId;
     limparReply();
@@ -1894,6 +1906,11 @@
         var tmp = document.querySelector('[data-msg-id="' + tempId + '"]');
         if (tmp) tmp.remove();
         if (!j || !j.ok) {
+          if (j && j.precisa_pin) {
+            try { localStorage.removeItem('gm_sspin_operador'); } catch (_) {}
+            pintarOperadorPin();
+            trocarOperadorPin();
+          }
           avisarEnvio((j && j.erro) || 'Não enviou.');
           if (textoVolta && $('wa-input')) {
             $('wa-input').value = textoVolta;
@@ -2330,7 +2347,12 @@
         hits.innerHTML = rows
           .map(function (c) {
             var titulo = nomeExibicao(c);
-            var ini = (titulo || '?').trim().charAt(0).toUpperCase() || '?';
+            var semNum = String(titulo || '').replace(/^[\d\s.\-]+/, '');
+            var ini = (semNum || titulo || '?').trim().charAt(0).toUpperCase() || '?';
+            var foto = String(c.foto_url || '');
+            var av = foto
+              ? '<span class="wa-av"><img alt="" src="' + escapeHtml(foto) + '" /></span>'
+              : '<span class="wa-av"><span class="wa-av-ini">' + escapeHtml(ini) + '</span></span>';
             return (
               '<button type="button" class="wa-item" data-tel="' +
               escapeHtml(c.telefone || '') +
@@ -2342,9 +2364,9 @@
               String(c.conversa_id || 0) +
               '" data-loja="' +
               escapeHtml(c.loja || '') +
-              '"><span class="wa-av"><span class="wa-av-ini">' +
-              escapeHtml(ini) +
-              '</span></span><div class="wa-item-body"><div class="wa-row1"><div class="wa-n">' +
+              '">' +
+              av +
+              '<div class="wa-item-body"><div class="wa-row1"><div class="wa-n">' +
               escapeHtml(titulo) +
               '</div></div><div class="wa-row2"><div class="wa-p"><span class="wa-p-txt">' +
               escapeHtml(rotuloOrigem(c.origem)) +
@@ -2358,10 +2380,18 @@
       var temZap = rows.some(function (c) {
         return c.origem === 'zap';
       });
+      var faltaFoto = rows.some(function (c) {
+        return c.conversa_id && !c.foto_url;
+      });
       if (q.length >= 2 && n < 5 && !temZap) {
         window.setTimeout(function () {
           buscarTopo(n + 1);
         }, 900);
+      } else if (faltaFoto && n < 3) {
+        window.setTimeout(function () {
+          var agora = (($('wa-busca') && $('wa-busca').value) || '').trim();
+          if (agora === q) buscarTopo(n + 1);
+        }, 4000);
       }
     });
   }
@@ -2897,6 +2927,19 @@
   }
   window.addEventListener('gm-sspin-operador', pintarOperadorPin);
   pintarOperadorPin();
+  fetch('/api/pdv/operador/', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+    .then(function (r) { return r.json(); })
+    .then(function (j) {
+      if (j && j.ok && j.fresco && j.operador) {
+        try { localStorage.setItem('gm_sspin_operador', String(j.operador).trim()); } catch (_) {}
+        pintarOperadorPin();
+        return;
+      }
+      try { localStorage.removeItem('gm_sspin_operador'); } catch (_) {}
+      pintarOperadorPin();
+      trocarOperadorPin();
+    })
+    .catch(function () {});
 
   if (ehOverlay) {
     document.body.classList.add('wa-in-overlay');

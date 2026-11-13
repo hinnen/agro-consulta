@@ -61,7 +61,8 @@ def main() -> int:
     check("hub_ajuste_btn", "vl-hub-ajuste" in hub and "vendas_lojas_ajuste_mobile" in hub)
     check(
         "hub_whatsapp_btn",
-        "vl-hub-whatsapp" in hub and "agro_wa_celular_url" in hub and "sistapp=1" in hub,
+        "vl-hub-whatsapp" in hub
+        and "https://zap.zapsistvale.online/atendimento-whatsapp/celular/?sistapp=1" in hub,
     )
     check(
         "wa_cel_pwa_install_include",

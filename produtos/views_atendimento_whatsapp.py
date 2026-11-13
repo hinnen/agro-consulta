@@ -79,29 +79,82 @@ def _bridge_forbidden():
     return JsonResponse({"ok": False, "erro": "Ponte não autorizada."}, status=403)
 
 
-def _autor_wa(request, data: dict | None = None) -> str:
-    """
-    Assinatura na bolha verde: preferir PIN/operador do PDV na sessão.
-    Sem PIN fresco → cai no login do Chrome (admin) só como reserva.
-    """
-    from produtos.caixa_util import operador_label_request, rotulo_usuario_registro_venda
+def _signer_pin_zap():
+    from django.conf import settings
+    from django.core.signing import TimestampSigner
 
-    rot = (rotulo_usuario_registro_venda(request, data) or "").strip()
-    if not rot:
-        rot = (operador_label_request(request) or "").strip()
-    if rot:
-        return rot[:120]
+    key = (getattr(settings, "AGRO_WA_PIN_HANDOFF_KEY", "") or "").strip() or settings.SECRET_KEY
+    return TimestampSigner(key=key, salt="agro-wa-pin-v1")
+
+
+def emitir_entrada_pin_zap(request) -> str:
+    """Bilhete curto para o Zap abrir já no PIN deste computador. Só se o PIN do PDV ainda vale."""
+    from produtos.pdv_transf_loja_util import peek_operador_pdv
+
+    ok, nome = peek_operador_pdv(request)
+    if not ok or not nome:
+        return ""
+    uid = request.session.get("pdv_operador_user_id") or 0
+    return _signer_pin_zap().sign(f"{nome[:120]}|{int(uid)}")
+
+
+def aplicar_entrada_pin_zap(request, token: str) -> str:
+    from django.core.signing import BadSignature, SignatureExpired
+
+    from produtos.pdv_transf_loja_util import marcar_operador_pdv_fresco
+
+    bruto = (token or "").strip()
+    if not bruto:
+        return ""
     try:
-        if request.user.is_authenticated:
-            return (request.user.get_full_name() or request.user.get_username() or "")[:120]
-    except Exception:
-        pass
-    return ""
+        payload = _signer_pin_zap().unsign(bruto, max_age=90)
+    except (BadSignature, SignatureExpired):
+        return ""
+    nome, _, uid = str(payload).partition("|")
+    nome = nome.strip()[:120]
+    if not nome:
+        return ""
+    request.session["pdv_operador_nome"] = nome
+    try:
+        request.session["pdv_operador_user_id"] = int(uid or 0) or None
+    except (TypeError, ValueError):
+        request.session.pop("pdv_operador_user_id", None)
+    if not request.session.get("pdv_operador_user_id"):
+        request.session.pop("pdv_operador_user_id", None)
+    marcar_operador_pdv_fresco(request)
+    request.session.modified = True
+    return nome
+
+
+def _autor_wa(request, data: dict | None = None) -> str:
+    """Quem assina a mensagem: só PIN fresco deste Zap (ou o PIN digitado agora)."""
+    from produtos.pdv_transf_loja_util import resolver_operador_pdv
+
+    data = data if isinstance(data, dict) else {}
+    pin = str(data.get("pin") or data.get("pin_operador") or "").strip()
+    ok, label, _user, _err = resolver_operador_pdv(request, pin)
+    if ok and label:
+        return label[:120]
+    return (getattr(request, "agro_wa_sistapp_operador", "") or "")[:120]
 
 
 @login_required(login_url="/entrar/")
 def atendimento_whatsapp_view(request):
+    aplicar_entrada_pin_zap(request, request.GET.get("entrada") or "")
     return render(request, "produtos/atendimento_whatsapp.html", {})
+
+
+@login_required(login_url="/entrar/")
+def api_pdv_zap_entrada(request):
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "erro": "Use POST."}, status=405)
+    token = emitir_entrada_pin_zap(request)
+    if not token:
+        return JsonResponse(
+            {"ok": False, "erro": "Digite o PIN no PDV antes de abrir o Zap.", "precisa_pin": True},
+            status=403,
+        )
+    return JsonResponse({"ok": True, "entrada": token})
 
 
 def _wa_pwa_icons(request):
@@ -188,7 +241,6 @@ def atendimento_whatsapp_celular_sw(request):
     return resp
 
 
-@login_required(login_url="/entrar/")
 def atendimento_whatsapp_celular_view(request):
     destaque = (request.GET.get("sistapp") or "").strip() in ("1", "true", "sim", "yes")
     return render(
@@ -291,6 +343,11 @@ def api_atendimento_whatsapp_enviar(request):
     if data is None:
         return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
     autor = _autor_wa(request, data)
+    if not autor:
+        return JsonResponse(
+            {"ok": False, "erro": "Digite o PIN para atender.", "precisa_pin": True},
+            status=403,
+        )
     try:
         cid = int(data.get("conversa_id") or 0)
     except (TypeError, ValueError):
