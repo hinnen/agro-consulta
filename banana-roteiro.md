@@ -4,7 +4,7 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
-**Checklist único (13/11c):** **ZAP-NO-SISTAPP** — 🟢 corte armado, **ainda sem enviar**. Alvo **v27.26.61**. Sem migrate. Base `8cc412a9`. O botão Zap abre dentro do SistApp. O ícone separado continua. Checkpoint: `./scripts/prep_checkpoint_checklist_1311c.sh`. Na senha: `./scripts/cutover_loja_checklist_1311c.sh --exec`. Volta: `git push origin 8cc412a936a6e49099ed27bbc2a86f0b53b93442:producao`.
+**Loja (13/11c):** **ZAP-NO-SISTAPP** enviado · **v27.26.61** @ `e3745fae`. Sem migrate. Até o build, no ar segue **v27.26.60** @ `8cc412a9`. Volta: `git push origin 8cc412a936a6e49099ed27bbc2a86f0b53b93442:producao`.
 
 **Loja (13/11):** **CAMERA-TRAS-FIXA** + **WA-PIN-PC** enviadas · **v27.26.59** @ `418fb789`. Sem migrate. Até o build, no ar segue **v27.26.58** @ `ee330433`. Volta: `git push origin ee3304332d77f0d91f6565bb84cfcfd1e81263b0:producao`.
 

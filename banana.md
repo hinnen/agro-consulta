@@ -1296,17 +1296,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
-### 🟢 CHECKLIST ÚNICO — **13/11c** · Zap dentro do SistApp · corte armado · ainda sem enviar
+### ✅ CHECKLIST ÚNICO — **13/11c** · Zap dentro do SistApp · enviado **v27.26.61** @ `e3745fae`
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **ZAP-NO-SISTAPP** | 🟢 armado | **NÃO** | menu **0 falhas** · botão não sai do aplicativo |
+| 1 | **ZAP-NO-SISTAPP** | ✅ enviado | **NÃO** | menu **0 falhas** |
 
-O botão **Zap** abre `/vendas/lojas/zap/`. **Início** volta ao menu. O ícone separado do Zap continua. Alvo **v27.26.61**. Base `8cc412a9`. PDV, caixa e venda não entram.
+Até o build, no ar segue **v27.26.60** @ `8cc412a9`. O botão Zap abre dentro do SistApp. O ícone separado continua. PDV, caixa e venda não entram.
 
 | Campo | Valor |
 | ----- | ----- |
-| **Corte** | `./scripts/cutover_loja_checklist_1311c.sh` |
+| **Git** | `producao` @ `e3745fae` |
 | **Volta** | `git push origin 8cc412a936a6e49099ed27bbc2a86f0b53b93442:producao` |
 
 ### ✅ CHECKLIST ÚNICO — **13/11b** · **SISTAPP-BOTAO-ZAP** · enviado **v27.26.60** @ `8cc412a9`
