@@ -133,7 +133,9 @@ def _autor_wa(request, data: dict | None = None) -> str:
     data = data if isinstance(data, dict) else {}
     pin = str(data.get("pin") or data.get("pin_operador") or "").strip()
     ok, label, _user, _err = resolver_operador_pdv(request, pin)
-    return label[:120] if ok and label else ""
+    if ok and label:
+        return label[:120]
+    return (getattr(request, "agro_wa_sistapp_operador", "") or "")[:120]
 
 
 @login_required(login_url="/entrar/")
