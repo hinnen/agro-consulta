@@ -1,0 +1,56 @@
+diff --git a/produtos/templates/produtos/vendas_lojas_hub.html b/produtos/templates/produtos/vendas_lojas_hub.html
+index c906f383..621e7385 100644
+--- a/produtos/templates/produtos/vendas_lojas_hub.html
++++ b/produtos/templates/produtos/vendas_lojas_hub.html
+@@ -107,6 +107,9 @@
+     .vl-hub-vendas {
+       background: linear-gradient(145deg, #ea580c 0%, #c2410c 100%);
+     }
++    .vl-hub-whatsapp {
++      background: linear-gradient(145deg, #25d366 0%, #128c7e 100%);
++    }
+     .vl-hub-tarefas {
+       background: linear-gradient(145deg, #0f766e 0%, #115e59 100%);
+     }
+@@ -139,7 +142,7 @@
+     {% include "produtos/includes/vendas_lojas_pwa_install.html" with vl_pwa_variant="hub" %}
+     <p class="vl-kicker">GM Agro</p>
+     <h1 class="vl-title">O que você quer?</h1>
+-    <p class="vl-sub">SistApp — Vendas, Tarefas, Fotos, Etiquetas ou Ajuste de estoque.</p>
++    <p class="vl-sub">SistApp — Vendas, Zap, Tarefas, Fotos, Etiquetas ou Ajuste de estoque.</p>
+     {% if operador %}
+     <p class="vl-user">
+       <span>Olá, <strong>{{ operador }}</strong></span>
+@@ -151,6 +154,10 @@
+         <strong>Vendas</strong>
+         <span>Faturamento Centro e Vila Elias</span>
+       </a>
++      <a class="vl-hub-whatsapp" href="https://zap.zapsistvale.online/atendimento-whatsapp/celular/?sistapp=1">
++        <strong>Zap</strong>
++        <span>Atendimento da loja</span>
++      </a>
+       <a class="vl-hub-tarefas" href="{% url 'tarefas_lista' %}">
+         <strong>Tarefas</strong>
+         <span>Pendências e linha do tempo</span>
+diff --git a/scripts/verify_vendas_lojas_pwa_install.py b/scripts/verify_vendas_lojas_pwa_install.py
+index acb9ffa0..fc3fc97f 100644
+--- a/scripts/verify_vendas_lojas_pwa_install.py
++++ b/scripts/verify_vendas_lojas_pwa_install.py
+@@ -59,6 +59,17 @@ def main() -> int:
+     check("pin_uses_install", "vendas_lojas_pwa_install.html" in pin)
+     check("hub_uses_install", "vendas_lojas_pwa_install.html" in hub)
+     check("hub_ajuste_btn", "vl-hub-ajuste" in hub and "vendas_lojas_ajuste_mobile" in hub)
++    check(
++        "hub_zap_loja",
++        "vl-hub-whatsapp" in hub
++        and "https://zap.zapsistvale.online/atendimento-whatsapp/celular/?sistapp=1" in hub
++        and "vl-hub-vendas" in hub
++        and "vl-hub-tarefas" in hub
++        and "vl-hub-fotos" in hub
++        and "vl-hub-etiquetas" in hub
++        and "vl-hub-ajuste" in hub
++        and "/entrar/" not in hub,
++    )
+     check("url_ajuste_hub", "vendas_lojas_ajuste_mobile" in urls)
+     check("ajuste_sessao_util", (ROOT / "produtos/vendas_lojas_ajuste_sessao_util.py").is_file())
+     ext = read("produtos/templates/produtos/_agro_open_external.html")

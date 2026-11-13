@@ -1296,11 +1296,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
+### 🟢 CHECKLIST ÚNICO — **13/11b** · **SISTAPP-BOTAO-ZAP** · corte armado · ainda sem enviar
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **SISTAPP-BOTAO-ZAP** | 🟢 armado · aguarda senha | **NÃO** | hub **0 falhas** · página do Zap **200** · não cai em `/entrar/` |
+
+Só o botão do SistApp. Alvo **v27.26.60**. A loja não tem o botão Dashboard nesse menu; este corte não cria esse botão. PDV, caixa e venda não entram.
+
+| Campo | Valor |
+| ----- | ----- |
+| **Checkpoint** | `producao` @ `418fb789` |
+| **Corte** | `./scripts/cutover_loja_checklist_1311b.sh` |
+| **Volta** | `git push origin 418fb789bb88ad8098cada93fc254a6fcc4be272:producao` |
+
 ### 🟢 CHECKLIST ÚNICO — **13/11** · **SISTAPP-BOTAO-ZAP** · pronto para envio à produção
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **SISTAPP-BOTAO-ZAP** | 🟢 pronto para envio | **NÃO** | Botão Zap abre `https://zap.zapsistvale.online/atendimento-whatsapp/celular/?sistapp=1` · essa página responde 200 e não cai em `/entrar/` · Dashboard do SistApp continua |
+| 1 | **SISTAPP-BOTAO-ZAP** | 🟢 no corte 13/11b | **NÃO** | Botão Zap abre `https://zap.zapsistvale.online/atendimento-whatsapp/celular/?sistapp=1` · essa página responde 200 e não cai em `/entrar/` · os outros botões do menu ficam |
 
 Só o botão do SistApp. Vendas, Tarefas, Fotos, Etiquetas, Ajuste, Dashboard e Contagens ficam. Não entra PIN, tela do Zap nem banco. **Não** sobe sem pausa + frase + senha.
 

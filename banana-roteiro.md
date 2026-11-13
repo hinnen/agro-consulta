@@ -4,7 +4,7 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
-**Checklist único (13/11):** **SISTAPP-BOTAO-ZAP** — 🟢 pronto para envio. Botão Zap no SistApp abre `zap.zapsistvale.online`. Dashboard continua. Sem migrate. Código em `teste`. Não sobe sem senha.
+**Checklist único (13/11b):** **SISTAPP-BOTAO-ZAP** — 🟢 corte armado, **ainda sem enviar**. Alvo **v27.26.60**. Sem migrate. Base `418fb789`. Só o botão do SistApp. Checkpoint: `./scripts/prep_checkpoint_checklist_1311b.sh`. Na senha: `./scripts/cutover_loja_checklist_1311b.sh --exec`. Volta: `git push origin 418fb789bb88ad8098cada93fc254a6fcc4be272:producao`.
 
 **Loja (13/11):** **CAMERA-TRAS-FIXA** + **WA-PIN-PC** enviadas · **v27.26.59** @ `418fb789`. Sem migrate. Até o build, no ar segue **v27.26.58** @ `ee330433`. Volta: `git push origin ee3304332d77f0d91f6565bb84cfcfd1e81263b0:producao`.
 
