@@ -13,6 +13,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from produtos.vendas_lojas_hub_sessao_util import (
     _sessao_hub_ativa,
+    exigir_hub_operador_api,
     exigir_hub_operador_html,
     operador_da_sessao,
 )
@@ -130,7 +131,10 @@ def _autor_wa(request, data: dict | None = None) -> str:
     ok, label, _user, _err = resolver_operador_pdv(request, pin)
     if ok and label:
         return label[:120]
-    return (operador_da_sessao(request) or "")[:120]
+    nome_hub = (operador_da_sessao(request) or "").strip()
+    if nome_hub:
+        return nome_hub[:120]
+    return (getattr(request, "agro_wa_sistapp_operador", "") or "").strip()[:120]
 
 
 def acesso_zap(view_func):
@@ -140,6 +144,8 @@ def acesso_zap(view_func):
     def _wrap(request, *args, **kwargs):
         user = getattr(request, "user", None)
         if (user is not None and user.is_authenticated) or _sessao_hub_ativa(request):
+            return view_func(request, *args, **kwargs)
+        if (getattr(request, "agro_wa_sistapp_operador", "") or "").strip():
             return view_func(request, *args, **kwargs)
         if str(request.path or "").startswith("/api/"):
             return JsonResponse({"ok": False, "erro": "Entre de novo.", "precisa_pin": True}, status=401)
@@ -266,6 +272,57 @@ def vendas_lojas_zap(request):
         "produtos/atendimento_whatsapp_celular.html",
         {"sistapp": True},
     )
+
+
+@csrf_exempt
+@exigir_hub_operador_api
+def vendas_lojas_zap_api(request, rest=""):
+    """O SistApp pede a lista aqui. A loja busca no Zap de verdade, sem sair do aplicativo."""
+    import urllib.error
+    import urllib.request
+
+    from django.conf import settings
+
+    from produtos.agro_wa_origin_util import agro_wa_public_origin
+
+    resto = (rest or "").lstrip("/")
+    if ".." in resto or resto.startswith("/") or "\\" in resto:
+        return JsonResponse({"ok": False, "erro": "Caminho inválido."}, status=400)
+    origin = agro_wa_public_origin()
+    if not origin:
+        return JsonResponse({"ok": False, "erro": "Zap separado não está configurado."}, status=503)
+    token = (getattr(settings, "AGRO_WA_BRIDGE_TOKEN", "") or "").strip()
+    if not token:
+        return JsonResponse({"ok": False, "erro": "Ligação do Zap sem chave."}, status=503)
+    url = origin + "/api/atendimento-whatsapp/" + resto
+    qs = request.META.get("QUERY_STRING") or ""
+    if qs:
+        url += "?" + qs
+    nome = (getattr(request, "gm_lojas_operador", "") or operador_da_sessao(request) or "").strip()[:120]
+    headers = {
+        "X-Agro-Wa-Sistapp": token,
+        "X-Agro-Wa-Operador": nome,
+        "Accept": request.headers.get("Accept") or "application/json",
+    }
+    ctype = request.headers.get("Content-Type") or ""
+    if ctype:
+        headers["Content-Type"] = ctype
+    data = request.body if request.method not in ("GET", "HEAD") else None
+    req = urllib.request.Request(url, data=data, headers=headers, method=request.method)
+    try:
+        with urllib.request.urlopen(req, timeout=25) as resp:
+            body = resp.read()
+            status = resp.status
+            content_type = resp.headers.get("Content-Type") or "application/octet-stream"
+    except urllib.error.HTTPError as exc:
+        body = exc.read()
+        status = exc.code
+        content_type = exc.headers.get("Content-Type") if exc.headers else "application/json"
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "Não alcançou o Zap."}, status=502)
+    if "json" in (content_type or "") or "text" in (content_type or "") or "javascript" in (content_type or ""):
+        body = body.replace(b"/api/atendimento-whatsapp/", b"/vendas/lojas/zap-api/")
+    return HttpResponse(body, status=status, content_type=content_type or "application/octet-stream")
 
 
 @acesso_zap

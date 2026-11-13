@@ -768,6 +768,11 @@ urlpatterns = [
         views_atendimento_whatsapp.vendas_lojas_zap,
         name='vendas_lojas_zap',
     ),
+    path(
+        'vendas/lojas/zap-api/<path:rest>',
+        views_atendimento_whatsapp.vendas_lojas_zap_api,
+        name='vendas_lojas_zap_api',
+    ),
     path('meta/', views_meta_vendas.meta_vendas_painel, name='meta_vendas_painel'),
     path('api/meta/resumo/', views_meta_vendas.api_meta_vendas_resumo, name='api_meta_vendas_resumo'),
     path('api/meta/faixas/', views_meta_vendas.api_meta_vendas_faixas, name='api_meta_vendas_faixas'),
