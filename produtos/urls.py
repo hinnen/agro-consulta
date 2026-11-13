@@ -772,6 +772,11 @@ urlpatterns = [
         name='vendas_lojas_dashboard',
     ),
     path('vendas/lojas/ajuste/', views.vendas_lojas_ajuste_mobile, name='vendas_lojas_ajuste_mobile'),
+    path(
+        'vendas/lojas/zap/',
+        views_atendimento_whatsapp.vendas_lojas_zap,
+        name='vendas_lojas_zap',
+    ),
     path('meta/', views_meta_vendas.meta_vendas_painel, name='meta_vendas_painel'),
     path('api/meta/resumo/', views_meta_vendas.api_meta_vendas_resumo, name='api_meta_vendas_resumo'),
     path('api/meta/faixas/', views_meta_vendas.api_meta_vendas_faixas, name='api_meta_vendas_faixas'),

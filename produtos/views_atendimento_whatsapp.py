@@ -2,12 +2,20 @@
 from __future__ import annotations
 
 import json
+from functools import wraps
+from urllib.parse import quote
 
-from django.contrib.auth.decorators import login_required
 from django.http import FileResponse, Http404, HttpResponse, JsonResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
+from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
+
+from produtos.vendas_lojas_hub_sessao_util import (
+    _sessao_hub_ativa,
+    exigir_hub_operador_html,
+    operador_da_sessao,
+)
 
 from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT, avisos_bot, carregar_bot, resetar_bot, salvar_bot
 from produtos.atendimento_whatsapp_util import (
@@ -84,10 +92,27 @@ def _autor_wa(request, data: dict | None = None) -> str:
             return (request.user.get_full_name() or request.user.get_username() or "")[:120]
     except Exception:
         pass
-    return ""
+    nome_hub = (operador_da_sessao(request) or "").strip()
+    return nome_hub[:120]
 
 
-@login_required(login_url="/entrar/")
+def acesso_zap(view_func):
+    """Login do Chrome ou PIN do SistApp. O Zap separado e o do aplicativo usam a mesma porta."""
+
+    @wraps(view_func)
+    def _wrap(request, *args, **kwargs):
+        user = getattr(request, "user", None)
+        if (user is not None and user.is_authenticated) or _sessao_hub_ativa(request):
+            return view_func(request, *args, **kwargs)
+        if str(request.path or "").startswith("/api/"):
+            return JsonResponse({"ok": False, "erro": "Entre de novo.", "precisa_pin": True}, status=401)
+        nxt = quote(request.get_full_path() or "/", safe="")
+        return redirect(f"/entrar/?next={nxt}")
+
+    return _wrap
+
+
+@acesso_zap
 def atendimento_whatsapp_view(request):
     return render(request, "produtos/atendimento_whatsapp.html", {})
 
@@ -176,24 +201,35 @@ def atendimento_whatsapp_celular_sw(request):
     return resp
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 def atendimento_whatsapp_celular_view(request):
     return render(request, "produtos/atendimento_whatsapp_celular.html", {})
 
 
-@login_required(login_url="/entrar/")
+@never_cache
+@exigir_hub_operador_html
+def vendas_lojas_zap(request):
+    """Zap dentro do SistApp — mesmo endereço do aplicativo, faixa fininha."""
+    return render(
+        request,
+        "produtos/atendimento_whatsapp_celular.html",
+        {"sistapp": True},
+    )
+
+
+@acesso_zap
 def atendimento_whatsapp_bot_view(request):
     return render(request, "produtos/atendimento_whatsapp_bot.html", {})
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_GET
 def api_atendimento_whatsapp_bot_get(request):
     bot = carregar_bot()
     return JsonResponse({"ok": True, "bot": bot, "padrao": BOT_DEFAULT, "avisos": avisos_bot(bot)})
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_POST
 def api_atendimento_whatsapp_bot_salvar(request):
     data = _json_body(request)
@@ -212,7 +248,7 @@ def api_atendimento_whatsapp_bot_salvar(request):
 
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_GET
 def api_atendimento_whatsapp_estado(request):
     from produtos.atendimento_whatsapp_bot_config import carregar_bot, cfg_flag
@@ -235,7 +271,7 @@ def api_atendimento_whatsapp_estado(request):
     )
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_GET
 def api_atendimento_whatsapp_conversas(request):
     loja = (request.GET.get("loja") or "").strip().lower()
@@ -246,7 +282,7 @@ def api_atendimento_whatsapp_conversas(request):
     return JsonResponse({"ok": True, "conversas": listar_conversas(loja=loja, limit=limit)})
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_GET
 def api_atendimento_whatsapp_mensagens(request):
     try:
@@ -268,7 +304,7 @@ def api_atendimento_whatsapp_mensagens(request):
     )
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_POST
 def api_atendimento_whatsapp_enviar(request):
     data = _json_body(request)
@@ -293,7 +329,7 @@ def api_atendimento_whatsapp_enviar(request):
     return JsonResponse({"ok": True, "mensagem": serializar_mensagem(m)})
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_POST
 def api_atendimento_whatsapp_marcar_lida(request):
     data = _json_body(request) or {}
@@ -307,7 +343,7 @@ def api_atendimento_whatsapp_marcar_lida(request):
     return JsonResponse({"ok": True})
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_POST
 def api_atendimento_whatsapp_definir_loja(request):
     data = _json_body(request)
@@ -323,7 +359,7 @@ def api_atendimento_whatsapp_definir_loja(request):
     return JsonResponse({"ok": True, "conversa": serializar_conversa(conv)})
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_POST
 def api_atendimento_whatsapp_transferir(request):
     data = _json_body(request)
@@ -342,14 +378,14 @@ def api_atendimento_whatsapp_transferir(request):
     return JsonResponse({"ok": True, "conversa": serializar_conversa(conv)})
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_GET
 def api_atendimento_whatsapp_contatos(request):
     q = (request.GET.get("q") or "").strip()
     return JsonResponse({"ok": True, "contatos": buscar_contatos_envio(q)})
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_GET
 def api_atendimento_whatsapp_ficha(request):
     try:
@@ -362,7 +398,7 @@ def api_atendimento_whatsapp_ficha(request):
     return JsonResponse({"ok": True, "ficha": ficha})
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_POST
 def api_atendimento_whatsapp_agenda_vcf(request):
     f = request.FILES.get("arquivo") or request.FILES.get("file") or request.FILES.get("vcf")
@@ -396,7 +432,7 @@ def api_atendimento_whatsapp_agenda_vcf(request):
     )
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_POST
 def api_atendimento_whatsapp_abrir(request):
     data = _json_body(request)
@@ -412,7 +448,7 @@ def api_atendimento_whatsapp_abrir(request):
     return JsonResponse({"ok": True, "conversa": serializar_conversa(conv)})
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_POST
 def api_atendimento_whatsapp_novo(request):
     data = _json_body(request)
@@ -438,7 +474,7 @@ def api_atendimento_whatsapp_novo(request):
     )
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_POST
 def api_atendimento_whatsapp_agenda_zap(request):
     _p, err = pedir_agenda_zap()
@@ -447,7 +483,7 @@ def api_atendimento_whatsapp_agenda_zap(request):
     return JsonResponse({"ok": True})
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_POST
 def api_atendimento_whatsapp_historico(request):
     data = _json_body(request) or {}
@@ -461,7 +497,7 @@ def api_atendimento_whatsapp_historico(request):
     return JsonResponse({"ok": True})
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_POST
 def api_atendimento_whatsapp_excluir(request):
     data = _json_body(request) or {}
@@ -475,14 +511,14 @@ def api_atendimento_whatsapp_excluir(request):
     return JsonResponse({"ok": True})
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_POST
 def api_atendimento_whatsapp_excluir_todas(request):
     n = excluir_todas_conversas()
     return JsonResponse({"ok": True, "apagadas": n})
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_POST
 def api_atendimento_whatsapp_apagar_mensagem(request):
     data = _json_body(request) or {}
@@ -496,7 +532,7 @@ def api_atendimento_whatsapp_apagar_mensagem(request):
     return JsonResponse({"ok": True})
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_POST
 def api_atendimento_whatsapp_concluir(request):
     data = _json_body(request) or {}
@@ -511,7 +547,7 @@ def api_atendimento_whatsapp_concluir(request):
     return JsonResponse({"ok": True})
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_POST
 def api_atendimento_whatsapp_reabrir(request):
     data = _json_body(request) or {}
@@ -525,7 +561,7 @@ def api_atendimento_whatsapp_reabrir(request):
     return JsonResponse({"ok": True})
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_POST
 def api_atendimento_whatsapp_pairing(request):
     data = _json_body(request) or {}
@@ -535,7 +571,7 @@ def api_atendimento_whatsapp_pairing(request):
     return JsonResponse({"ok": True})
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_POST
 def api_atendimento_whatsapp_trocar(request):
     _p, err = pedir_trocar_whatsapp()
@@ -568,7 +604,7 @@ def _arquivo_midia_response(m) -> FileResponse:
     return FileResponse(m.arquivo.open("rb"), content_type=ctype)
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_GET
 def api_atendimento_whatsapp_midia(request, pk: int):
     try:
@@ -578,7 +614,7 @@ def api_atendimento_whatsapp_midia(request, pk: int):
     return _arquivo_midia_response(m)
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_GET
 def api_atendimento_whatsapp_foto(request, pk: int):
     try:
@@ -644,13 +680,13 @@ def api_atendimento_whatsapp_bridge_lids(request):
     return JsonResponse({"ok": True, "n": n})
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_GET
 def api_atendimento_whatsapp_status(request):
     return JsonResponse({"ok": True, "autores": listar_status()})
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_GET
 def api_atendimento_whatsapp_status_midia(request, pk: int):
     try:
@@ -875,7 +911,7 @@ def api_atendimento_whatsapp_bridge_orcamento(request):
     return JsonResponse({"ok": True, "conversa_id": cid})
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_POST
 def api_pdv_zap_loja_orcamento(request):
     """Botão Loja do PDV. Encaminha ao Zap separado. Se ele não responder, grava aqui."""
@@ -929,7 +965,7 @@ def api_pdv_zap_loja_orcamento(request):
     return JsonResponse({"ok": True, "conversa_id": cid, "local": True})
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_GET
 def api_atendimento_whatsapp_recursos(request):
     """Flags públicas pro PDV/chat (tudo off até Renan ligar no Bot)."""
@@ -948,7 +984,7 @@ def api_atendimento_whatsapp_recursos(request):
     return JsonResponse(out)
 
 
-@login_required(login_url="/entrar/")
+@acesso_zap
 @require_POST
 def api_atendimento_whatsapp_recurso_acao(request):
     """Ações dos recursos — recusam se a flag estiver off."""

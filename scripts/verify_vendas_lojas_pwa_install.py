@@ -62,7 +62,8 @@ def main() -> int:
     check(
         "hub_zap_loja",
         "vl-hub-whatsapp" in hub
-        and "https://zap.zapsistvale.online/atendimento-whatsapp/celular/?sistapp=1" in hub
+        and "vendas_lojas_zap" in hub
+        and "zapsistvale.online" not in hub
         and "vl-hub-dashboard" in hub
         and "vendas_lojas_dashboard" in hub
         and "/entrar/" not in hub,
