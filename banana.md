@@ -1298,6 +1298,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
+### 🟢 CHECKLIST ÚNICO — **13/11g** · **SISTAPP-CAMERA-LOCAL** · pronto para envio à produção
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **SISTAPP-CAMERA-LOCAL** | 🟢 pronto | **NÃO** | **VERIFY_OK 21** · encaixa na loja `3b9fc063` |
+
+A câmera do Ajuste, Fotos e Etiquetas vem do próprio sistema. A letra do menu, PIN, Ajuste, Fotos e Etiquetas é a do celular. Estoque, preço e venda continuam ao vivo. PDV, caixa e venda não entram. Loja hoje **v27.26.65** @ `3b9fc063`. **Não** sobe sem frase + senha.
+
+| Campo | Valor |
+| ----- | ----- |
+| **Git teste** | `71481892` |
+| **Volta, se subir** | `git push origin 3b9fc063:producao` |
+
 ### ✅ CHECKLIST ÚNICO — **13/11d** · ligação do Zap no SistApp · enviado **v27.26.62** @ `eb34cf2a`
 
 | # | Pacote | Status | Migrate | Prova |
