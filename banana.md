@@ -1298,6 +1298,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
+### 🟢 CHECKLIST ÚNICO — **13/11h** · hora da entrega + câmera local · corte armado · ainda sem enviar
+
+Os dois pacotes abaixo sobem juntos na **v27.26.66**. Corte: `./scripts/cutover_loja_checklist_1311h.sh`. Volta: `git push origin 3b9fc063612d72754a0ac3a657b68a78fdb56bba:producao`.
+
 ### 🟢 CHECKLIST ÚNICO — **13/11h** · **ENTREGA-HORA-LOJA** · pronto para envio à produção
 
 | # | Pacote | Status | Migrate | Prova |
