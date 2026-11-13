@@ -285,6 +285,17 @@ DATABASES = {
     )
 }
 # Ficha da loja (PIN, cliente, fiado, vale, cashback). Não migrar este banco.
+# No PC do Zap a senha fica em .env.wa-servidor. Sem isso o PIN lê o banco local e dá incorreto.
+_env_wa = BASE_DIR / ".env.wa-servidor"
+if _env_wa.is_file():
+    for _linha in _env_wa.read_text(encoding="utf-8").splitlines():
+        _linha = _linha.strip()
+        if not _linha or _linha.startswith("#") or "=" not in _linha:
+            continue
+        _k, _v = _linha.split("=", 1)
+        _k = _k.strip()
+        if _k and _k not in os.environ:
+            os.environ[_k] = _v.strip().strip('"').strip("'")
 _loja_url = (config("AGRO_LOJA_DATABASE_URL", default="") or "").strip()
 if _loja_url:
     # Uma conexão reaproveitada no PC do Zap. Sem isso, cada PIN abre a loja de novo e demora.

@@ -1306,10 +1306,36 @@ def _perfil_usuario_por_pin_banco(pin: str):
     )
 
 
+def _incluir_pin_local(pin: str, perfil) -> None:
+    """Guarda um PIN que a loja acabou de confirmar. Não apaga os outros."""
+    import json
+    import time
+
+    u = getattr(perfil, "user", None)
+    dados = _ler_pins_local()
+    pins = dados.get("pins") if isinstance(dados.get("pins"), dict) else {}
+    pins[pin] = {
+        "pk": int(getattr(perfil, "pk", 0) or 0),
+        "codigo": (getattr(perfil, "codigo_vendedor", None) or "")[:40],
+        "user_pk": int(getattr(u, "pk", 0) or 0),
+        "first": (getattr(u, "first_name", None) or "")[:80],
+        "last": (getattr(u, "last_name", None) or "")[:80],
+        "username": (getattr(u, "username", None) or "")[:80],
+    }
+    if not dados.get("em"):
+        dados["em"] = time.time()
+    dados["pins"] = pins
+    path = _arquivo_pins_local()
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(dados), encoding="utf-8")
+    tmp.replace(path)
+
+
 def _perfil_usuario_por_pin(pin: str):
     pin = (pin or "").strip()
     if not pin or pin == "1234":
         return None
+    # Na loja (Agro Consulta) o PIN é sempre o cadastro ao vivo.
     if not _pins_loja_remota():
         return _perfil_usuario_por_pin_banco(pin)
     dados = _ler_pins_local()
@@ -1317,11 +1343,20 @@ def _perfil_usuario_por_pin(pin: str):
         try:
             dados = _gravar_pins_da_loja()
         except Exception:
-            dados = dados if isinstance(dados.get("pins"), dict) else {}
+            pass
     item = (dados.get("pins") or {}).get(pin) if isinstance(dados, dict) else None
     if isinstance(item, dict):
-        return _perfil_de_item(item)
-    return None
+        achado = _perfil_de_item(item)
+        if achado is not None:
+            return achado
+    # A lista daqui não pode dizer «incorreto». Só a loja pode.
+    perfil = _perfil_usuario_por_pin_banco(pin)
+    if perfil is not None:
+        try:
+            _incluir_pin_local(pin, perfil)
+        except Exception:
+            pass
+    return perfil
 
 
 def validar_pin_operador(pin: str) -> tuple[bool, str]:
