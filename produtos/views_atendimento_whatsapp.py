@@ -244,6 +244,8 @@ def vendas_lojas_zap_api(request, rest=""):
     if not origin:
         return JsonResponse({"ok": False, "erro": "Zap separado não está configurado."}, status=503)
     token = (getattr(settings, "AGRO_WA_BRIDGE_TOKEN", "") or "").strip()
+    if "zapsistvale.online" in (origin or ""):
+        token = "gm-agro-wa-ponte-local"
     if not token:
         return JsonResponse({"ok": False, "erro": "Ligação do Zap sem chave."}, status=503)
     url = origin + "/api/atendimento-whatsapp/" + resto
