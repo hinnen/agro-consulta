@@ -1304,21 +1304,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 Só o botão do SistApp. Vendas, Tarefas, Fotos, Etiquetas, Ajuste, Dashboard e Contagens ficam. Não entra PIN, tela do Zap nem banco. **Não** sobe sem pausa + frase + senha.
 
-### 🟢 CHECKLIST ÚNICO — **13/11** · câmera travada + PIN do Zap · corte armado · ainda sem enviar
+### ✅ CHECKLIST ÚNICO — **13/11** · câmera travada + PIN do Zap · enviado **v27.26.59** @ `418fb789`
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **SISTAPP-CAMERA-TRAS-FIXA** | 🟢 armado | **NÃO** | **VERIFY_OK 21** |
-| 2 | **WA-PIN-PC** | 🟢 armado | **NÃO** | botão do PDV continua com `window.open` · bilhete do PIN no mesmo corte |
+| 1 | **SISTAPP-CAMERA-TRAS-FIXA** | ✅ enviado | **NÃO** | **VERIFY_OK 21** |
+| 2 | **WA-PIN-PC** | ✅ enviado | **NÃO** | botão do PDV continua com `window.open` |
 
-Alvo **v27.26.59**. Base `ee330433`. Não entra o resto da branch do Zap.
+Até o build, no ar segue **v27.26.58** @ `ee330433`. PDV, caixa e venda não entram. O botão Zap do SistApp ficou de fora.
 
 | Campo | Valor |
 | ----- | ----- |
-| **Checkpoint** | `./scripts/prep_checkpoint_checklist_1311.sh` |
-| **Corte** | `./scripts/cutover_loja_checklist_1311.sh` |
+| **Git** | `producao` @ `418fb789` |
 | **Volta** | `git push origin ee3304332d77f0d91f6565bb84cfcfd1e81263b0:producao` |
-| **Doc** | `docs/DEPLOY-PREP-CHECKLIST-1311.md` |
+| **Shell** | `./scripts/post_deploy_checklist_1311.sh` |
 
 ### 🟢 CHECKLIST ÚNICO — **12/11** · **WA-PIN-PC** · absorvido no corte 13/11
 
