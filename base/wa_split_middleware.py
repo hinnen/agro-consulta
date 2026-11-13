@@ -26,6 +26,7 @@ class AgroWhatsAppSplitMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        self._marcar_proxy_sistapp(request)
         origin = agro_wa_public_origin()
         if not origin:
             return self.get_response(request)
@@ -62,3 +63,16 @@ class AgroWhatsAppSplitMiddleware:
 
         target = origin + request.get_full_path()
         return HttpResponseRedirect(target)
+
+    @staticmethod
+    def _marcar_proxy_sistapp(request):
+        """A loja chama o Zap por trás. O celular não vê o segredo."""
+        path = getattr(request, "path", "") or ""
+        if not path.startswith("/api/atendimento-whatsapp/"):
+            return
+        token = (request.META.get("HTTP_X_AGRO_WA_SISTAPP") or "").strip()
+        esperado = (getattr(settings, "AGRO_WA_BRIDGE_TOKEN", "") or "").strip()
+        if not token or not esperado or token != esperado:
+            return
+        request._dont_enforce_csrf_checks = True
+        request.agro_wa_sistapp_operador = (request.META.get("HTTP_X_AGRO_WA_OPERADOR") or "").strip()[:120]
