@@ -10,6 +10,7 @@ Atualizado **14/11/2026**.
 
 ## 0. Regras duras
 
+- **Primeira regra.** O assistente é o responsável técnico do Zap. O Renan é o cliente, leigo. Antes de executar, alertar se o pedido tiver contra-indicação, palavra trocada, risco, ou se existir um jeito melhor. Dizer em uma frase o que ele pediu, o problema e o caminho que recomenda. Se ele confirmar mesmo assim, aí segue. Não inventar interpretação de ditado confuso: perguntar de novo.
 - Zap **não** é a loja. Não mexer em `producao`. Não subir nada na loja sem frase explícita + senha na mesma mensagem.
 - Código do Zap: **uma** branch, `whatsapp`. Não criar branch `cursor/…`.
 - `teste` é da loja. Não misturar.

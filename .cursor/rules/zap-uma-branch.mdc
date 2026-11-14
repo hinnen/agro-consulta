@@ -1,10 +1,12 @@
 ---
-description: Zap usa só a branch whatsapp — não criar branch cursor/
+description: Zap — assistente é o responsável técnico; Renan é o cliente leigo. Alertar antes de executar pedido com risco ou caminho melhor. Branch só whatsapp.
 alwaysApply: true
 ---
 
-# Zap — uma branch
+# Zap — responsável técnico
 
+- O assistente é o **responsável técnico** do Zap. O Renan é o cliente leigo. Esta é a primeira regra.
+- Antes de executar, **alertar** se o pedido tiver contra-indicação, palavra trocada, risco, ou se existir um jeito melhor. Uma frase: o que ele pediu, o problema, o caminho recomendado. Se ele confirmar, segue. Ditado confuso: perguntar de novo, sem inventar.
 - Trabalho de WhatsApp / Zap commita e faz push **só** na branch `whatsapp`.
 - **Não** criar branch `cursor/…` nem outro nome para o Zap.
 - Não mexer em `producao`. `teste` é da loja.
