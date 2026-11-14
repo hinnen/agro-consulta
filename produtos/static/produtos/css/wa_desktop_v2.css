@@ -225,7 +225,14 @@
   html[data-wa-skin="v2"] .wa-skin .wa-filtro-dot { width: 8px; height: 8px; box-shadow: none; }
   html[data-wa-skin="v2"] .wa-skin .wa-filtro-espera .wa-filtro-dot { background: #fb923c; } /* NAO-MEDIDO */
   html[data-wa-skin="v2"] .wa-skin .wa-filtro-nova .wa-filtro-dot { background: var(--wa2-accent); }
+  html[data-wa-skin="v2"] .wa-skin .wa-filtro-nome { font-size: 13px; line-height: 16px; font-weight: 600; }
   html[data-wa-skin="v2"] .wa-skin .wa-filtro-n { min-width: 0; font-size: 12px; line-height: 16px; font-weight: 600; }
+  html[data-wa-skin="v2"] .wa-skin .wa-top #wa-selbar {
+    position: fixed; z-index: 30; left: 156px; top: 108px;
+    width: min(26rem, calc(var(--wa2-col) - 24px));
+    margin: 0; background: var(--wa2-bg-panel);
+    border-radius: 12px; box-shadow: 0 1px 6px rgba(0,0,0,.35);
+  }
   html[data-wa-skin="v2"] .wa-skin .wa-badge {
     min-width: 0; height: auto; padding: 0; background: transparent; color: inherit;
     font-size: 12px; line-height: 16px; font-weight: 600;
