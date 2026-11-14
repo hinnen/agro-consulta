@@ -1308,7 +1308,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | --- | --- |
 | **Reinício** | Túnel subia antes do Django e ficava 503. Agora espera o healthz e reinicia o Cloudflared (`religar-tunel.ps1` + tarefa `AgroZapTunel`). Cursor remoto aponta para `C:\AgroWhatsApp\repo`. |
 | **Login loja** | Usuário extra `agromais` / `4252` no Zap deste PC. O `renan` continua. |
-| **Cópia** | OneDrive `Zap-copia` = pacote inteiro (conversa, áudio, foto, código, senha, sessão, túnel). Todo dia 21h. Doc: `Zap.md`. |
+| **Cópia** | OneDrive `Zap-copia` = pacote inteiro (conversa, áudio, foto, código, senha, sessão, túnel). Todo dia 21h. Doc: `Zap-documentacao.md` · roteiro: `Zap.md`. |
 
 ### WIP — Zap escondido PC · fotos + arquivo (`WA-FOTO-MEDIA` + `WA-ARQ-SYNC` · 08/11)
 

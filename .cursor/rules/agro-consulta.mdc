@@ -14,7 +14,7 @@ alwaysApply: true
 3. **Banana inteiro** só nos casos do roteiro §5 (produção complexa, desvinculação, retomada longa, ou escada §4 degrau D).
 4. Chat longo / mudou de assunto → repetir passos 1–2; banana inteiro só se o roteiro pedir.
 5. `@banana` / `@banana-roteiro` no chat **ajudam**, mas **não substituem** o Read do roteiro.
-6. **Se a tarefa for WhatsApp / Zap / PC2:** ler `Zap-roteiro.md` inteiro e seguir o mapa (só o pedaço do `Zap.md` que ele mandar). `Zap.md` inteiro só nos casos do roteiro §3. `@Zap` ajuda, mas não substitui o Read do roteiro. Ao fechar o assunto, **atualizar o `Zap.md`** sem perguntar quando mudar algo persistente (onde roda, login, cópia, túnel, pendência). Detalhe passageiro não infla o arquivo.
+6. **Se a tarefa for WhatsApp / Zap / PC2:** ler `Zap.md` inteiro (roteiro) e seguir o mapa. No `Zap-documentacao.md`, só o pedaço que o roteiro mandar; o arquivo inteiro só nos casos do roteiro §3. `@Zap` puxa o roteiro. Ao fechar o assunto, **atualizar o `Zap-documentacao.md`** sem perguntar quando mudar algo persistente (onde roda, login, cópia, túnel, pendência). Detalhe passageiro não infla o arquivo.
 
 **Proibido:** começar tarefa só com memória do chat ou só com esta rule.
 
