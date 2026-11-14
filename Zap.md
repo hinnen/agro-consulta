@@ -41,6 +41,16 @@ Atualizado **14/11/2026**.
 - Ditado de voz sai torto às vezes. Se não bater, perguntar de novo.
 - O foco é o desktop. O que ele pede também vale no celular, cabendo na tela do telefone.
 
+## Pronto para o Zap no ar · 14/11/2026
+
+Pacote na branch `zap-teste`. **Não está no Zap das lojas.** Só entra com «pode mudar o Zap» e a senha na mesma mensagem.
+
+**O que sobe:** filtros na barra (Ativas ou Fila/Centro/Vila, e Resolvidas). Números alinhados. Ajustes embaixo. Trocar Zap dentro de Ajustes. Selecionar no clique direito. Reação fora do texto. Lista: hora hoje, Ontem, dia da semana nesta semana, data `05/11/26` antes disso. Celular em faixas, sem a barra larga.
+
+**O que o Renan já viu:** a barra, o Ajustes, a reação. **Ainda não viu** a hora nova da lista.
+
+**Na senha, nesta pasta, sem apagar a sessão do celular e sem ligar outra ponte:** trazer a branch `zap-teste` para cá e reiniciar só o programa do Zap. A loja (`producao`) não entra.
+
 ## Resumo (basta no chat comum)
 
 - Zap das lojas roda **neste PC** (PC2-Centro), não no Render. Endereço: `https://zap.zapsistvale.online`.
