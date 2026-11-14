@@ -1,8 +1,10 @@
 # Zap — contexto vivo (PC2)
 
-Ler este arquivo **inteiro** antes de mexer no WhatsApp. Vale no Cursor da nuvem e no Cursor instalado. Renan chama com `@Zap`. Ao fechar o assunto, atualizar este arquivo sem perguntar se mudou algo que precisa continuar valendo.
+Detalhe do Zap. A leitura de todo chat é o **`Zap-roteiro.md`** (regras + o que ler aqui). Este arquivo inteiro só quando o roteiro mandar.
 
-Atualizado **12/11/2026**.
+Vale no Cursor da nuvem e no Cursor instalado. Renan chama com `@Zap`. Ao fechar o assunto, atualizar este arquivo sem perguntar se mudou algo que precisa continuar valendo.
+
+Atualizado **14/11/2026**.
 
 ## O que é
 

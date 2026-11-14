@@ -74,7 +74,7 @@ Escolha o ramo que mais se aproxima. Leia **na ordem**; pare quando tiver contex
 | **Home / BI** — `/`, gráficos | `### 4.1` | CHECKPOINT: `BI`, `dashboard`, `gastos` |
 | **Relatórios** — Central `/relatorios/`, filtros cat/sub 1–4, ABC, ranking | `### 4.1` (bullet Central) + CHECKPOINT `relatórios` | Filtros: período · **categoria** · **sub 1/2/3/4** (combinar) · agrupar · **500 cat/sub → ✅ Live v18.26.1** (Renan OK 28/08) |
 | **Entregas** — `/entregas/`, rota terça, painel | CHECKPOINT: `entrega`, `entregas`, `FL-006`, `FL-031` | Fluxo loja: PDV → retorno entregador → baixa PDV |
-| **WhatsApp lojas** — `/atendimento-whatsapp/`, QR, filas Centro/Vila | `### 4.16` | CHECKPOINT: `WhatsApp`, `WA-ATEND-QR` |
+| **WhatsApp lojas** — `/atendimento-whatsapp/`, QR, filas Centro/Vila | `Zap-roteiro.md` (mapa) · `Zap.md` só o que o roteiro mandar · `### 4.16` se for a tela no Agro | CHECKPOINT: `WhatsApp`, `WA-ATEND-QR` |
 | **Tarefas / pendências** — hub `/vendas/lojas/` → Tarefas | CHECKPOINT: `Tarefas`, `pendências`, `Vendas lojas` | PIN + timeline em `tarefas/` |
 | **Fotos produto** — hub `/vendas/lojas/` → Fotos | CHECKPOINT: `Fotos`, `FOTOS-PRODUTO` | Busca+bip+até 4 fotos · `views_fotos_produto` |
 
