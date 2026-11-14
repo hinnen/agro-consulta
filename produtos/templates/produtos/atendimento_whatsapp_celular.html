@@ -49,6 +49,17 @@
   .wa-cel .wa-pill.bad { background: #fecaca; color: #7f1d1d; }
   .wa-cel .wa-top .wa-ico, .wa-cel #wa-chat-bar .wa-ico { min-height: 2.5rem; background: transparent; border-color: rgba(255,255,255,.25); color: #fff; }
   .wa-cel #wa-move .wa-ico { min-height: 2.7rem; background: #fff; color: #075e54; border-color: #d1d5db; }
+  .wa-cel .wa-tabs, .wa-cel .wa-filtros {
+    display: flex; flex-wrap: wrap; gap: .35rem; margin: .35rem .5rem 0;
+    max-width: none; width: auto; overflow: visible; background: transparent;
+  }
+  .wa-cel .wa-tabs { flex-direction: column; align-items: stretch; }
+  .wa-cel .wa-tab {
+    display: flex; justify-content: space-between; align-items: center;
+    width: 100%; flex: 0 0 auto; white-space: nowrap; height: 2.4rem; padding: 0 .7rem;
+  }
+  .wa-cel .wa-tab .wa-badge { flex: 0 0 1.75rem; width: 1.75rem; text-align: right; }
+  .wa-cel.is-chat .wa-filtros { display: none; }
   .wa-cel .wa-tabs { margin: .45rem .7rem; background: rgba(0,0,0,.12); }
   .wa-cel .wa-tabs.hidden,
   .wa-cel .wa-tabs.is-off { display: none !important; }
@@ -78,7 +89,7 @@
   <header class="wa-top">
     <span id="wa-dot" class="wa-dot off" aria-hidden="true"></span>
     <h1 class="wa-title min-w-0 flex-1 truncate">Zap loja</h1>
-    <a href="{% url 'atendimento_whatsapp_bot' %}" class="wa-ico" id="wa-btn-bot" title="Configurar o bot" style="padding:0 .65rem;font-size:.75rem;font-weight:800;text-decoration:none;">Bot</a>
+    <a href="{% url 'atendimento_whatsapp_bot' %}" class="wa-ico" id="wa-btn-bot" title="Ajustes" style="padding:0 .65rem;font-size:.75rem;font-weight:800;text-decoration:none;">Ajustes</a>
     <span class="wa-ver" title="Versão no ar neste Zap. O código curto muda a cada atualização.">v{{ agro_build.version_label }}{% if agro_build.commit %} · {{ agro_build.commit|slice:":7" }}{% endif %}</span>
     <button type="button" id="wa-pwa-instalar">Instalar</button>
     <div id="wa-status" class="wa-pill">…</div>
@@ -93,16 +104,16 @@
       </div>
 
       <div class="wa-tabs shrink-0">
-        <button type="button" data-loja="todas" class="wa-tab hidden">Ativas <span data-badge="todas" class="wa-badge is-zero">0</span></button>
-        <button type="button" data-loja="pendente" class="wa-tab is-on">Fila <span data-badge="pendente" class="wa-badge is-zero">0</span></button>
-        <button type="button" data-loja="centro" class="wa-tab">Centro <span data-badge="centro" class="wa-badge is-zero">0</span></button>
-        <button type="button" data-loja="vila" class="wa-tab">Vila <span data-badge="vila" class="wa-badge is-zero">0</span></button>
-        <button type="button" data-loja="arquivadas" class="wa-tab">Resolvidas <span data-badge="arquivadas" class="wa-badge is-zero">0</span></button>
+        <button type="button" data-loja="todas" class="wa-tab hidden"><span class="wa-tab-nome">Ativas</span><span data-badge="todas" class="wa-badge is-zero">0</span></button>
+        <button type="button" data-loja="pendente" class="wa-tab is-on"><span class="wa-tab-nome">Fila</span><span data-badge="pendente" class="wa-badge is-zero">0</span></button>
+        <button type="button" data-loja="centro" class="wa-tab"><span class="wa-tab-nome">Centro</span><span data-badge="centro" class="wa-badge is-zero">0</span></button>
+        <button type="button" data-loja="vila" class="wa-tab"><span class="wa-tab-nome">Vila</span><span data-badge="vila" class="wa-badge is-zero">0</span></button>
+        <button type="button" data-loja="arquivadas" class="wa-tab"><span class="wa-tab-nome">Resolvidas</span><span data-badge="arquivadas" class="wa-badge is-zero">0</span></button>
       </div>
 
       <div class="pane-lista">
+        {% include "produtos/_wa_filtros.html" %}
         <div class="shrink-0 border-b border-slate-100 p-2">
-          {% include "produtos/_wa_filtros.html" %}
           <input id="wa-busca" type="search" autocomplete="off" placeholder="Pesquisar ou começar uma nova conversa" class="min-h-[2.85rem] w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 text-base font-semibold" />
         </div>
         <div id="wa-busca-hits" class="hidden min-h-0 flex-1 overflow-y-auto"></div>
@@ -132,7 +143,7 @@
 {% include "produtos/_wa_dlg.html" %}
 {% include "produtos/_screensaver_pin.html" %}
 <script src="{% static 'produtos/js/agro_pdv_overlay.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
-<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-fotos17"></script>
+<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-fotos17-e36"></script>
 <script>
 (function () {
   if ("serviceWorker" in navigator) {

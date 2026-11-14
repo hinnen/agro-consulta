@@ -786,7 +786,7 @@ def serializar_conversa(c: WhatsAppConversaAgro) -> dict:
         "ultima_direcao": str((getattr(c, "extras", None) or {}).get("ultima_direcao") or ""),
         "ultima_ack": int((getattr(c, "extras", None) or {}).get("ultima_ack") or 0),
         "ultima_em": ult.isoformat() if ult else "",
-        "hora": ult_l.strftime("%H:%M") if ult_l else "",
+        "hora": _rotulo_lista(ult) if ult else "",
         "data": ult_l.strftime("%d/%m") if ult_l else "",
         "foto_url": (
             f"/api/atendimento-whatsapp/foto/{int(c.pk)}/"
@@ -1045,10 +1045,12 @@ def listar_mensagens(*, conversa_id: int, after_id: int = 0, limit: int = 120) -
     return [serializar_mensagem(m) for m in rows]
 
 
-def _rotulo_dia(dt) -> str:
-    """Hoje / Ontem / dd/mm/aaaa — separador visual do chat."""
+_DIAS_SEMANA = ("Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo")
+
+
+def _quando_local(dt):
     if not dt:
-        return ""
+        return None, None
     try:
         local = timezone.localtime(dt)
     except Exception:
@@ -1057,15 +1059,39 @@ def _rotulo_dia(dt) -> str:
         hoje = timezone.localdate()
     except Exception:
         hoje = local.date() if hasattr(local, "date") else None
-    if hoje is None:
+    if hoje is None or not hasattr(local, "date"):
+        return None, None
+    return local, hoje
+
+
+def _rotulo_dia(dt) -> str:
+    """Separador do chat: Hoje, Ontem, dia da semana nesta semana, senão dd/mm/aa."""
+    local, hoje = _quando_local(dt)
+    if not local:
         return ""
-    d = local.date() if hasattr(local, "date") else local
-    delta = (hoje - d).days
-    if delta == 0:
+    d = local.date()
+    if d == hoje:
         return "Hoje"
-    if delta == 1:
+    if d == hoje - timedelta(days=1):
         return "Ontem"
-    return d.strftime("%d/%m/%Y")
+    if d.isocalendar()[:2] == hoje.isocalendar()[:2]:
+        return _DIAS_SEMANA[d.weekday()]
+    return d.strftime("%d/%m/%y")
+
+
+def _rotulo_lista(dt) -> str:
+    """Lista: hora se for hoje, Ontem, dia da semana nesta semana, senão dd/mm/aa."""
+    local, hoje = _quando_local(dt)
+    if not local:
+        return ""
+    d = local.date()
+    if d == hoje:
+        return local.strftime("%H:%M")
+    if d == hoje - timedelta(days=1):
+        return "Ontem"
+    if d.isocalendar()[:2] == hoje.isocalendar()[:2]:
+        return _DIAS_SEMANA[d.weekday()]
+    return d.strftime("%d/%m/%y")
 
 
 def _conversa_digitando(c: WhatsAppConversaAgro) -> bool:

@@ -1601,7 +1601,7 @@
     var btnModo = $('wa-marcar');
     var n = idsMarcados().length;
     if (bar) bar.hidden = !selModo;
-    if (nEl) nEl.textContent = n + (n === 1 ? ' marcada' : ' marcadas');
+    if (nEl) nEl.textContent = n + (n === 1 ? ' selecionada' : ' selecionadas');
     if (btnModo) {
       btnModo.classList.toggle('is-on', selModo);
       btnModo.setAttribute('aria-pressed', selModo ? 'true' : 'false');
@@ -1743,6 +1743,7 @@
     ev.preventDefault();
     var arq = btn.getAttribute('data-arquivada') === '1';
     abrirCtx(ev.clientX, ev.clientY, [
+      { id: 'selecionar', label: 'Selecionar' },
       arq
         ? { id: 'reabrir', label: 'Reabrir conversa' }
         : { id: 'arquivar', label: 'Arquivar conversa' },
@@ -1758,6 +1759,16 @@
     var id = menuCtx.getAttribute('data-cid');
     var acao = b.getAttribute('data-ctx');
     fecharCtx();
+    if (acao === 'selecionar') {
+      selModo = true;
+      if (id) {
+        selMap[id] = true;
+        var item = document.querySelector('#wa-lista .wa-item[data-id="' + id + '"]');
+        if (item) item.classList.add('is-sel');
+      }
+      pintarSelBar();
+      return;
+    }
     if (acao === 'apagar') {
       if (!window.confirm('Apagar esta conversa da lista? (Só no Agro — não apaga no celular.)')) return;
     }
@@ -2571,6 +2582,12 @@
   var btnTrocar = $('wa-trocar');
   if (btnTrocar) {
     btnTrocar.addEventListener('click', function () {
+      executarTrocarZap();
+    });
+  }
+  var btnTrocarAj = $('wa-trocar-ajustes');
+  if (btnTrocarAj) {
+    btnTrocarAj.addEventListener('click', function () {
       executarTrocarZap();
     });
   }
