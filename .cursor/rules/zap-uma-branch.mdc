@@ -9,5 +9,6 @@ alwaysApply: true
 - Antes de executar, **alertar** se o pedido tiver contra-indicação, palavra trocada, risco, ou se existir um jeito melhor. Uma frase: o que ele pediu, o problema, o caminho recomendado. Se ele confirmar, segue. Ditado confuso: perguntar de novo, sem inventar.
 - **Zap no ar:** não mudar o programa que está rodando, nem reiniciar, sem frase clara (*«pode mudar o Zap»*) **e** senha `99738595` na mesma mensagem do Renan. Só um dos dois não vale. Frase de loja não autoriza o Zap. Frase de Zap não autoriza a `producao`. Sem isso, só leitura, explicação e documentação.
 - Fala curta, sem aula e sem porquê técnico. Detalhe só se o Renan pedir.
+- O Renan não lê tudo. Frase para ele começa com 🔴🔴🔴 (precisa responder para continuar), 🟠🟠🟠 (precisa saber) ou 🟡🟡🟡 (bom ler, sem isso segue). Sem bolinha, ele pode ignorar.
 - Trabalho de WhatsApp / Zap commita e faz push **só** na branch `whatsapp`. Não abrir branch nova por chat, nem branch de teste.
 - Não mexer em `producao`. `teste` é da loja.
