@@ -53,7 +53,12 @@
     display: flex; flex-wrap: wrap; gap: .35rem; margin: .35rem .5rem 0;
     max-width: none; width: auto; overflow: visible; background: transparent;
   }
-  .wa-cel .wa-tab, .wa-cel .wa-filtro { flex: 0 0 auto; white-space: nowrap; height: 2.4rem; }
+  .wa-cel .wa-tabs { flex-direction: column; align-items: stretch; }
+  .wa-cel .wa-tab {
+    display: flex; justify-content: space-between; align-items: center;
+    width: 100%; flex: 0 0 auto; white-space: nowrap; height: 2.4rem; padding: 0 .7rem;
+  }
+  .wa-cel .wa-tab .wa-badge { flex: 0 0 1.75rem; width: 1.75rem; text-align: right; }
   .wa-cel.is-chat .wa-filtros { display: none; }
   .wa-cel .wa-tabs { margin: .45rem .7rem; background: rgba(0,0,0,.12); }
   .wa-cel .wa-tabs.hidden,
@@ -99,11 +104,11 @@
       </div>
 
       <div class="wa-tabs shrink-0">
-        <button type="button" data-loja="todas" class="wa-tab hidden">Ativas <span data-badge="todas" class="wa-badge is-zero">0</span></button>
-        <button type="button" data-loja="pendente" class="wa-tab is-on">Fila <span data-badge="pendente" class="wa-badge is-zero">0</span></button>
-        <button type="button" data-loja="centro" class="wa-tab">Centro <span data-badge="centro" class="wa-badge is-zero">0</span></button>
-        <button type="button" data-loja="vila" class="wa-tab">Vila <span data-badge="vila" class="wa-badge is-zero">0</span></button>
-        <button type="button" data-loja="arquivadas" class="wa-tab">Resolvidas <span data-badge="arquivadas" class="wa-badge is-zero">0</span></button>
+        <button type="button" data-loja="todas" class="wa-tab hidden"><span class="wa-tab-nome">Ativas</span><span data-badge="todas" class="wa-badge is-zero">0</span></button>
+        <button type="button" data-loja="pendente" class="wa-tab is-on"><span class="wa-tab-nome">Fila</span><span data-badge="pendente" class="wa-badge is-zero">0</span></button>
+        <button type="button" data-loja="centro" class="wa-tab"><span class="wa-tab-nome">Centro</span><span data-badge="centro" class="wa-badge is-zero">0</span></button>
+        <button type="button" data-loja="vila" class="wa-tab"><span class="wa-tab-nome">Vila</span><span data-badge="vila" class="wa-badge is-zero">0</span></button>
+        <button type="button" data-loja="arquivadas" class="wa-tab"><span class="wa-tab-nome">Resolvidas</span><span data-badge="arquivadas" class="wa-badge is-zero">0</span></button>
       </div>
 
       <div class="pane-lista">
@@ -138,7 +143,7 @@
 {% include "produtos/_wa_dlg.html" %}
 {% include "produtos/_screensaver_pin.html" %}
 <script src="{% static 'produtos/js/agro_pdv_overlay.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
-<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-fotos17-e35"></script>
+<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-fotos17-e36"></script>
 <script>
 (function () {
   if ("serviceWorker" in navigator) {

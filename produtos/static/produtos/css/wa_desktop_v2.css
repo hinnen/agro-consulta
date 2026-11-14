@@ -199,7 +199,11 @@
 
   html[data-wa-skin="v2"] .wa-skin .wa-top .wa-tab,
   html[data-wa-skin="v2"] .wa-skin .wa-top .wa-filtro {
-    width: 100%; justify-content: flex-start; padding: 0 8px;
+    width: 100%; justify-content: space-between; padding: 0 8px;
+  }
+  html[data-wa-skin="v2"] .wa-skin .wa-top .wa-tab-nome { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  html[data-wa-skin="v2"] .wa-skin .wa-top .wa-badge {
+    flex: 0 0 1.75rem; width: 1.75rem; margin-left: 0; text-align: right;
   }
   html[data-wa-skin="v2"] .wa-skin .wa-tab,
   html[data-wa-skin="v2"] .wa-skin .wa-filtro {
