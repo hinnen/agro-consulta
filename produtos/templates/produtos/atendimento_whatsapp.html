@@ -15,7 +15,7 @@
   <link rel="manifest" href="{% url 'atendimento_whatsapp_pc_manifest' %}">
   <link rel="apple-touch-icon" href="{% static 'produtos/pwa/zap-loja-192.png' %}">
   <link rel="icon" type="image/png" sizes="192x192" href="{% static 'produtos/pwa/zap-loja-192.png' %}">
-  <link rel="stylesheet" href="{% static 'produtos/css/wa_desktop_v2.css' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-e39">
+  <link rel="stylesheet" href="{% static 'produtos/css/wa_desktop_v2.css' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-e40">
   <script>
   (function () {
     /* Skin visual: v2 (padrão) ou v1 (antiga). ?skin=v1 / ?skin=v2 troca e guarda no navegador.
@@ -128,7 +128,6 @@
 
   <div class="wa-grid grid min-h-0 flex-1 grid-cols-1 gap-2 md:grid-cols-[minmax(18rem,26rem)_minmax(0,1fr)]">
     <div class="wa-pane wa-pane-lista flex min-h-0 flex-col">
-      <div class="wa2-only wa2-colhead"><h2>WhatsApp</h2></div>
       <div class="wa2-sb shrink-0 border-b border-slate-100 p-2">
         <input id="wa-busca" type="search" autocomplete="off" placeholder="Pesquisar ou começar uma nova conversa" class="min-h-[2.75rem] w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 text-base font-semibold" />
       </div>

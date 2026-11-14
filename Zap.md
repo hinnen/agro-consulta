@@ -43,7 +43,7 @@ Atualizado **14/11/2026**.
 
 ## Pronto para o Zap no ar · 14/11/2026
 
-**Já está no Zap das lojas** (14/11/2026, senha na mensagem). O Renan viu a barra, o Ajustes, a reação e a hora da lista, e ficou bom.
+**Já está no Zap das lojas** (14/11/2026, senha na mensagem). O Renan viu a barra, o Ajustes, a reação e a hora da lista, e ficou bom. A palavra WhatsApp do topo da lista saiu para não cobrir o número.
 
 **O que sobe:** filtros na barra (Ativas ou Fila/Centro/Vila, e Resolvidas). Números alinhados. Ajustes embaixo. Trocar Zap dentro de Ajustes. Selecionar no clique direito. Reação fora do texto. Lista: hora hoje, Ontem, dia da semana nesta semana, data `05/11/26` antes disso. Celular em faixas, sem a barra larga.
 
