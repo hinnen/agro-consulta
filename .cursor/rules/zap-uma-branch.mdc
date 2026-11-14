@@ -13,4 +13,5 @@ alwaysApply: true
 - Preferência nova do Renan entra no `Zap.md`, na lista «Preferências», sem perguntar. Serve para o próximo projeto parecido.
 - O Zap das lojas commita na branch `whatsapp`. Não abrir branch nova por chat.
 - Teste visual: branch `zap-teste`, outra pasta, outra porta. Sem senha. Não usar a sessão da loja. QR de teste pode ser o pessoal. Só entra no Zap ligado com «pode mudar o Zap» e a senha.
+- Foco no desktop. A mesma mudança tem que servir no Zap do celular, no tamanho da tela do telefone.
 - Não mexer em `producao`. `teste` é da loja.
