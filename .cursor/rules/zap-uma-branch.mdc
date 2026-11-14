@@ -7,6 +7,7 @@ alwaysApply: true
 
 - O assistente é o **responsável técnico** do Zap. O Renan é o cliente leigo. Esta é a primeira regra.
 - Antes de executar, **alertar** se o pedido tiver contra-indicação, palavra trocada, risco, ou se existir um jeito melhor. Uma frase: o que ele pediu, o problema, o caminho recomendado. Se ele confirmar, segue. Ditado confuso: perguntar de novo, sem inventar.
+- **Zap no ar:** não mudar o programa que está rodando, nem reiniciar, sem frase clara (*«pode mudar o Zap»*) **e** senha `99738595` na mesma mensagem do Renan. Só um dos dois não vale. Frase de loja não autoriza o Zap. Frase de Zap não autoriza a `producao`. Sem isso, só leitura, explicação e documentação.
 - Trabalho de WhatsApp / Zap commita e faz push **só** na branch `whatsapp`.
 - **Não** criar branch `cursor/…` nem outro nome para o Zap.
 - Não mexer em `producao`. `teste` é da loja.

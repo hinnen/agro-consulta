@@ -71,3 +71,4 @@ O Zap usa **uma** branch: `whatsapp`. Não abrir branch com nome estranho (`curs
 - Dois processos da ponte ao mesmo tempo derrubam o envio (conflito 440).
 - Túnel no ar com o Django desligado = 503. Religar o túnel **depois** do healthz.
 - Mudança no programa deste PC a loja vê na hora, porque o endereço aponta para cá. Commit no Git, sozinho, não muda o que está ligado.
+- Enquanto as lojas testam: não aplicar mudança no Zap ligado sem o Renan escrever, na mesma mensagem, que pode mudar o Zap e a senha. Ver a primeira parte do `Zap.md`.
