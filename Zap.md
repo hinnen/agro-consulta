@@ -41,15 +41,20 @@ Atualizado **14/11/2026**.
 - Ditado de voz sai torto às vezes. Se não bater, perguntar de novo.
 - O foco é o desktop. O que ele pede também vale no celular, cabendo na tela do telefone.
 
-## Pronto para o Zap no ar · 14/11/2026
+## No Zap das lojas · 14/11/2026
 
-**Já está no Zap das lojas** (14/11/2026, senha na mensagem). O Renan viu a barra, o Ajustes, a reação e a hora da lista, e ficou bom. A palavra WhatsApp do topo da lista saiu para não cobrir o número.
+Já está no ar. O Renan viu e fechou o assunto por agora. Depois mexe de novo.
 
-**O que sobe:** filtros na barra (Ativas ou Fila/Centro/Vila, e Resolvidas). Números alinhados. Ajustes embaixo. Trocar Zap dentro de Ajustes. Selecionar no clique direito. Reação fora do texto. Lista: hora hoje, Ontem, dia da semana nesta semana, data `05/11/26` antes disso. Celular em faixas, sem a barra larga.
+- Filtros na barra: Ativas, ou Fila, Centro e Vila, e Resolvidas. Números alinhados.
+- Ajustes embaixo. Trocar Zap fica dentro de Ajustes.
+- Selecionar no clique direito.
+- Reação fora do texto.
+- Lista: hora hoje, Ontem, dia da semana nesta semana, data `05/11/26` antes disso.
+- A palavra WhatsApp saiu do topo da lista.
+- Quem e o número ficam na mesma linha, com conversa aberta ou sem nenhuma. Não cobrem a busca.
+- Celular em faixas, sem a barra larga.
 
-**O que o Renan já viu:** a barra, o Ajustes, a reação. **Ainda não viu** a hora nova da lista.
-
-**Na senha, nesta pasta, sem apagar a sessão do celular e sem ligar outra ponte:** trazer a branch `zap-teste` para cá e reiniciar só o programa do Zap. A loja (`producao`) não entra.
+Nada pendente deste pacote. A loja (`producao`) não entrou.
 
 ## Resumo (basta no chat comum)
 
