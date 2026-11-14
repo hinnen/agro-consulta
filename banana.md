@@ -1296,6 +1296,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### Git Zap — uma branch só · 14/11/2026
+
+| | |
+| --- | --- |
+| **Branch** | Código do Zap = `whatsapp` (ponta de 13/11, respostas prontas no celular). Apagadas neste PC: `cursor/zap-boot-login-64bd` e `cursor/wa-ui-nova-f0e6` (a segunda já estava dentro da primeira). `teste` e `producao` intactos. |
+
 ### WIP — Zap volta sozinho no PC2 · login loja · 12/11/2026
 
 | | |

@@ -20,7 +20,7 @@ O site da loja (Agro Consulta / Sistvale / branch `producao`) **não** é este Z
 | Sessão do celular conectado | `whatsapp_atendimento\auth` |
 | Configuração | `.env.wa-servidor` (não vai pro Git) |
 | Cópia de segurança | OneDrive `Zap-copia` — **tudo**: conversas, áudios, fotos, código, senhas, sessão e túnel |
-| Código no GitHub | branch `cursor/zap-boot-login-64bd` (não é `producao`) |
+| Código no GitHub | branch `whatsapp` (não é `producao`) |
 
 ## Liga sozinho
 
@@ -58,6 +58,10 @@ Marcar várias: a barra fica na coluna da lista, escura, e a conversa marcada fi
 Na lista, última mensagem **enviada** mostra o tracinho (um = foi, dois = lida). Resposta pelo celular ou pelo Zap **zera** o número verde. Conversa antiga só ganha o tracinho na próxima mensagem.
 
 Ainda **não** é confiável nos dois sentidos (Zap ↔ WhatsApp Web/celular). Em 12/11 ~09:37 o log mostrou `[ARCHIVE MUTATION]` e o banco marcou Resolvidas, mas a conversa **continuou na lista** do celular e do WhatsApp Web. O aviso foi só interno. Não aplicar os snippets da Meta.
+
+## Git
+
+O Zap usa **uma** branch: `whatsapp`. Não abrir branch com nome estranho (`cursor/...`). `teste` e `producao` são da loja — não misturar.
 
 ## Cuidado
 

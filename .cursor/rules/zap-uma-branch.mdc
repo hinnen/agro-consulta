@@ -1,0 +1,10 @@
+---
+description: Zap usa só a branch whatsapp — não criar branch cursor/
+alwaysApply: true
+---
+
+# Zap — uma branch
+
+- Trabalho de WhatsApp / Zap commita e faz push **só** na branch `whatsapp`.
+- **Não** criar branch `cursor/…` nem outro nome para o Zap.
+- Não mexer em `producao`. `teste` é da loja.
