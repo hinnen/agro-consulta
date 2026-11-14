@@ -11,5 +11,6 @@ alwaysApply: true
 - Fala curta, sem aula e sem porquê técnico. Detalhe só se o Renan pedir.
 - O Renan não lê tudo. Frase para ele começa com 🔴🔴🔴 (precisa responder para continuar), 🟠🟠🟠 (precisa saber) ou 🟡🟡🟡 (bom ler, sem isso segue). Sem bolinha, ele pode ignorar.
 - Preferência nova do Renan entra no `Zap.md`, na lista «Preferências», sem perguntar. Serve para o próximo projeto parecido.
-- Trabalho de WhatsApp / Zap commita e faz push **só** na branch `whatsapp`. Não abrir branch nova por chat, nem branch de teste.
+- O Zap das lojas commita na branch `whatsapp`. Não abrir branch nova por chat.
+- Teste visual: branch `zap-teste`, outra pasta, outra porta. Sem senha. Não usar a sessão da loja. QR de teste pode ser o pessoal. Só entra no Zap ligado com «pode mudar o Zap» e a senha.
 - Não mexer em `producao`. `teste` é da loja.

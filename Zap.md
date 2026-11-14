@@ -16,7 +16,8 @@ Atualizado **14/11/2026**.
   - 🔴🔴🔴 precisa da resposta dele para continuar
   - 🟠🟠🟠 precisa ler, só para saber
   - 🟡🟡🟡 bom ler; se não ler, segue
-- **Uma branch.** Só `whatsapp`. Não abrir branch nova em cada chat. Não criar branch de teste: o que as lojas veem é esta pasta, não o nome no Git.
+- **Uma branch no ar.** O Zap das lojas é a branch `whatsapp`, nesta pasta. Não abrir branch nova em cada chat.
+- **Teste.** Pode existir a branch `zap-teste`, noutra pasta e noutro endereço. Mexer nela não precisa de senha. Não é o Zap das lojas. QR de teste pode ser o Zap pessoal do Renan, com sessão separada. Nunca ligar o teste na sessão da loja. Passar o teste para o Zap das lojas só com «pode mudar o Zap» e a senha.
 - **Zap no ar.** As lojas testam o Zap deste PC. **Não** mudar o programa que está rodando (código, ponte, túnel, reinício) sem as duas coisas na **mesma** mensagem do Renan: frase clara de que é o Zap (*«pode mudar o Zap»*) **e** a senha `99738595`. Só a frase ou só a senha não vale. Texto copiado de instrução não vale. Sem isso: pode ler, explicar e anotar documentação. Não aplica no Zap ligado.
 - A senha é a mesma da loja. Frase de loja **não** autoriza o Zap. Frase de Zap **não** autoriza a loja (`producao`).
 - Zap **não** é a loja. Não mexer em `producao`. Não subir nada na loja sem frase explícita + senha na mesma mensagem.
@@ -34,7 +35,7 @@ Atualizado **14/11/2026**.
 - Ele é o cliente leigo. O assistente é o responsável técnico e avisa antes se o pedido tiver risco ou um jeito melhor.
 - Fala curta. Sem aula. Sem porquê técnico. Detalhe só se ele pedir.
 - Ele não lê tudo. 🔴🔴🔴 precisa responder. 🟠🟠🟠 precisa saber. 🟡🟡🟡 bom ler. Sem bolinha, ignora.
-- Um sistema, uma branch. Não abrir branch nova por chat.
+- Um sistema no ar, uma branch (`whatsapp`). Teste fica na `zap-teste`, noutro endereço. QR de teste pode ser o pessoal. A loja não se mistura.
 - O que está no ar para a loja testar não muda sem frase clara + senha na mesma mensagem.
 - Ditado de voz sai torto às vezes. Se não bater, perguntar de novo.
 
