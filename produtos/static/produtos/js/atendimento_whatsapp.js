@@ -2585,6 +2585,12 @@
       executarTrocarZap();
     });
   }
+  var btnTrocarAj = $('wa-trocar-ajustes');
+  if (btnTrocarAj) {
+    btnTrocarAj.addEventListener('click', function () {
+      executarTrocarZap();
+    });
+  }
   var btnOk = $('wa-ok');
   if (btnOk) {
     btnOk.addEventListener('click', function () {
