@@ -25,9 +25,18 @@ Atualizado **14/11/2026**.
 - O endereço `https://zap.zapsistvale.online` aponta para **este PC** (PC2-Centro). Mudança no programa daqui a loja vê na hora. Commit no Git, sozinho, não muda o que está ligado.
 - Dois processos da ponte ao mesmo tempo derrubam o envio (conflito 440).
 - Túnel só depois do Zap responder. Django desligado + túnel no ar = erro 503.
-- Ao fechar assunto que precisa continuar valendo (onde roda, login, cópia, túnel, pendência): atualizar o `Zap-documentacao.md` **sem perguntar**. Se mudar regra ou este mapa, atualizar este `Zap.md`. Detalhe passageiro não infla.
+- Ao fechar assunto que precisa continuar valendo (onde roda, login, cópia, túnel, pendência, **preferência**): atualizar sem perguntar. Fato do Zap vai no `Zap-documentacao.md`. Regra, mapa ou preferência vai neste `Zap.md`. Detalhe passageiro não infla.
 
 ---
+
+## Preferências do Renan (copiar em projeto parecido)
+
+- Ele é o cliente leigo. O assistente é o responsável técnico e avisa antes se o pedido tiver risco ou um jeito melhor.
+- Fala curta. Sem aula. Sem porquê técnico. Detalhe só se ele pedir.
+- Ele não lê tudo. 🔴🔴🔴 precisa responder. 🟠🟠🟠 precisa saber. 🟡🟡🟡 bom ler. Sem bolinha, ignora.
+- Um sistema, uma branch. Não abrir branch nova por chat.
+- O que está no ar para a loja testar não muda sem frase clara + senha na mesma mensagem.
+- Ditado de voz sai torto às vezes. Se não bater, perguntar de novo.
 
 ## Resumo (basta no chat comum)
 
