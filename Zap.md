@@ -29,10 +29,21 @@ Atualizado **14/11/2026**.
 
 ---
 
+## Resumo (basta no chat comum)
+
+- Zap das lojas roda **neste PC** (PC2-Centro), não no Render. Endereço: `https://zap.zapsistvale.online`.
+- Programa nesta pasta. Conversas no Postgres `agro_wa`. Fotos e áudios em `C:\AgroWhatsApp\Dados\media`. Celular conectado em `whatsapp_atendimento\auth`. Senhas no `.env.wa-servidor` (não vai pro Git).
+- Cópia de tudo, todo dia 21h, no OneDrive `Zap-copia`.
+- Git só guarda o programa, na branch `whatsapp`.
+- Ao ligar o Windows sobe sozinho. Túnel só depois do Zap responder. Duas pontes juntas derrubam o envio.
+- Login: `renan` e `agromais`, em `/entrar/`. Sem PIN fresco não atende. PIN vale 45 segundos.
+- Arquivar entre Zap e celular **ainda falha** nos dois sentidos. Não usar o jeito da Meta.
+- Loja (`producao` / `teste`) é outro sistema.
+
 ## 1. Todo chat de Zap
 
-1. Ler **este arquivo** inteiro.
-2. Ler no `Zap-documentacao.md` **só** a seção da tabela abaixo.
+1. Ler **este arquivo** inteiro. O resumo acima cobre o chat comum.
+2. Abrir o `Zap-documentacao.md` **só** se a tabela abaixo pedir um detalhe que o resumo não tem.
 3. A documentação inteira só nos casos da §3.
 4. Chat longo ou mudou de assunto → repetir 1–2.
 
