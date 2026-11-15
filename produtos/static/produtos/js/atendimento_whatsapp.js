@@ -1040,13 +1040,32 @@
   }
 
   function pintarAcoesRecurso() {
+    try { pintarAcoesRecursoAgora(); } catch (eAcoes) {}
+  }
+
+  function pintarAcoesRecursoAgora() {
     var box = $('wa-recurso-acoes');
     if (!box) return;
-    if (!convId) {
-      box.classList.add('hidden');
-      box.innerHTML = '';
+    var algum = recursosWa.feat_vip_tag || recursosWa.feat_lembrete_fiado || recursosWa.feat_lista_espera || recursosWa.feat_entrega_status || recursosWa.feat_comprovante_venda;
+    if (!convId || !algum) {
+      if (!box.classList.contains('hidden') || box.childNodes.length) {
+        box.classList.add('hidden');
+        box.innerHTML = '';
+        box.removeAttribute('data-sig');
+      }
       return;
     }
+    var sig = [
+      convId,
+      convVip ? 1 : 0,
+      recursosWa.feat_vip_tag ? 1 : 0,
+      recursosWa.feat_lembrete_fiado ? 1 : 0,
+      recursosWa.feat_lista_espera ? 1 : 0,
+      recursosWa.feat_entrega_status ? 1 : 0,
+      recursosWa.feat_comprovante_venda ? 1 : 0,
+    ].join('|');
+    if (box.getAttribute('data-sig') === sig) return;
+    box.setAttribute('data-sig', sig);
     var itens = [];
     function add(rotulo, fn) {
       itens.push({ rotulo: rotulo, fn: fn });
