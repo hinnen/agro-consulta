@@ -5636,14 +5636,15 @@
                         });
                         return;
                     }
-                    showSaleDoneFeedback(
+                    showPdvAviso(
                         gravou
-                            ? 'Orçamento salvo e enviado pelo WhatsApp da loja.'
-                            : 'Enviado pelo Zap da loja. Orçamento pode não ter gravado na lista.',
-                        gravou ? 'success' : 'warn',
+                            ? 'Orçamento enviado no Zap da loja.'
+                            : 'Enviado no Zap da loja. Pode não ter gravado na lista.',
                         {
-                            title: gravou ? 'Salvo e enviado' : 'Zap loja',
-                            placementTop: true
+                            title: 'Zap loja',
+                            tone: gravou ? 'success' : 'warn',
+                            prominent: true,
+                            persistent: true
                         }
                     );
                 })

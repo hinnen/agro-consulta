@@ -4,6 +4,8 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
+**Checklist único (15/11c):** **PDV-ZAP-AVISO** — 🟢 corte armado, **ainda sem enviar**. Quando o orçamento vai, abre a janela verde «Orçamento enviado no Zap da loja» com **Entendi**. Sem migrate. Base `b25069cf` (v27.26.73). Na senha: `./scripts/cutover_loja_checklist_1511c_pdv_zap_aviso.sh --exec`. Volta: `git push origin b25069cfbd01f37fe580d0e48e070f9dde057718:producao`.
+
 **Loja (15/11b):** **PDV-ZAP-TOKEN** enviada · **v27.26.73** @ `b25069cf`. A chave do botão **Loja** é a mesma do SistApp. Sem migrate. Até o build, no ar segue **v27.26.72** @ `fcad7061`. Volta: `git push origin fcad7061de0c3594df1b8b66a8453da68e6fb0f4:producao`.
 
 **Loja (15/11):** **PDV-ZAP-ORCAMENTO** enviada · **v27.26.72** @ `fcad7061`. Botão **Loja** encaminha o orçamento para o Zap. Sem migrate. Volta: `git push origin fba12fa1a3ea1e2829fe951bb0c793885d8c2d63:producao`.
