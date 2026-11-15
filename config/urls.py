@@ -50,12 +50,29 @@ def pdv_app_manifest(_request):
     return resp
 
 
+def pdv_favicon(_request):
+    """O Chrome pede /favicon.ico sozinho. Sem isso, desenha a letra S."""
+    from pathlib import Path
+
+    data = (
+        Path(__file__).resolve().parent.parent / "produtos/static/produtos/pwa/pdv-app.ico"
+    ).read_bytes()
+    resp = HttpResponse(data, content_type="image/x-icon")
+    resp["Cache-Control"] = "public, max-age=3600"
+    return resp
+
+
 def pdv_app_sw(_request):
     """Service worker mínimo — o Chrome instala o app, igual ao Zap."""
     js = (
         "self.addEventListener('install',function(e){self.skipWaiting();});\n"
         "self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});\n"
-        "self.addEventListener('fetch',function(e){e.respondWith(fetch(e.request));});\n"
+        "self.addEventListener('fetch',function(e){\n"
+        "var u=String((e.request&&e.request.url)||'');\n"
+        "if(u.indexOf('/static/')!==-1||u.indexOf('favicon')!==-1||u.indexOf('manifest')!==-1){return;}\n"
+        "if(e.request.cache==='only-if-cached'&&e.request.mode!=='same-origin'){return;}\n"
+        "e.respondWith(fetch(e.request));\n"
+        "});\n"
     )
     resp = HttpResponse(js, content_type="text/javascript; charset=utf-8")
     resp["Service-Worker-Allowed"] = "/"
@@ -73,6 +90,7 @@ def admin_login_redirect(request):
 
 urlpatterns = [
     path("healthz", healthz, name="healthz"),
+    path("favicon.ico", pdv_favicon, name="pdv_favicon"),
     path("manifest.webmanifest", pdv_app_manifest, name="pdv_app_manifest"),
     path("sw.js", pdv_app_sw, name="pdv_app_sw"),
     path("api/financeiro/", include("financeiro.api.urls")),
