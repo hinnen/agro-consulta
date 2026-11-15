@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect
 from django.urls import path, include
 from estoque import views as estoque_views
@@ -11,37 +11,45 @@ def healthz(_request):
 
 
 def pdv_app_manifest(_request):
-    """Ícone do app instalado do PDV. Caminhos fixos — o Windows guarda este manifesto."""
-    import json
-
+    """Manifesto do app instalado do PDV. Igual ao do Zap: PNG novo, sem endereço do PC."""
+    icon_192 = "/static/produtos/pwa/pdv-app-192.png"
+    icon_512 = "/static/produtos/pwa/pdv-app-512.png"
     payload = {
-        "id": "/pdv-app/",
+        "id": "/",
         "name": "SisVale PDV",
         "short_name": "PDV",
-        "start_url": "/consulta/",
+        "description": "SisVale — PDV da loja",
+        "start_url": "/",
         "scope": "/",
         "display": "standalone",
+        "display_override": ["standalone", "minimal-ui", "browser"],
+        "orientation": "any",
         "lang": "pt-BR",
-        "background_color": "#ffffff",
+        "dir": "ltr",
+        "background_color": "#0f172a",
         "theme_color": "#0f172a",
         "icons": [
-            {
-                "src": "/static/pdv-app-192.png",
-                "sizes": "192x192",
-                "type": "image/png",
-                "purpose": "any",
-            },
-            {
-                "src": "/static/pdv-app-512.png",
-                "sizes": "512x512",
-                "type": "image/png",
-                "purpose": "any",
-            },
+            {"src": icon_192, "sizes": "192x192", "type": "image/png", "purpose": "any"},
+            {"src": icon_512, "sizes": "512x512", "type": "image/png", "purpose": "any"},
+            {"src": icon_512, "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
         ],
     }
-    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    resp = HttpResponse(body, content_type="application/manifest+json; charset=utf-8")
+    resp = JsonResponse(payload)
+    resp["Content-Type"] = "application/manifest+json"
     resp["Cache-Control"] = "public, max-age=86400"
+    return resp
+
+
+def pdv_app_sw(_request):
+    """Service worker mínimo — o Chrome instala o app, igual ao Zap."""
+    js = (
+        "self.addEventListener('install',function(e){self.skipWaiting();});\n"
+        "self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});\n"
+        "self.addEventListener('fetch',function(e){e.respondWith(fetch(e.request));});\n"
+    )
+    resp = HttpResponse(js, content_type="text/javascript; charset=utf-8")
+    resp["Service-Worker-Allowed"] = "/"
+    resp["Cache-Control"] = "no-cache"
     return resp
 
 
@@ -55,7 +63,8 @@ def admin_login_redirect(request):
 
 urlpatterns = [
     path("healthz", healthz, name="healthz"),
-    path("pdv-app.webmanifest", pdv_app_manifest, name="pdv_app_manifest"),
+    path("manifest.webmanifest", pdv_app_manifest, name="pdv_app_manifest"),
+    path("sw.js", pdv_app_sw, name="pdv_app_sw"),
     path("api/financeiro/", include("financeiro.api.urls")),
     path("financeiro/", include("financeiro.urls")),
     path("api/indicadores/", include("estoque.api.urls")),

@@ -1698,7 +1698,7 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Ícone do app instalado do PDV (PNG novo em `/static/`, manifesto `/pdv-app.webmanifest`) |
+| **O quê** | Ícone do app instalado do PDV, no mesmo esquema do Zap: PNG em `/static/produtos/pwa/`, manifesto `/manifest.webmanifest`, atalho `/sw.js` |
 | **Não mexe** | Zap, SistApp, venda, caixa |
 | **Loja** | Só sobe com frase + senha. No PC: desinstalar o app antigo e instalar de novo para o Windows trocar o desenho |
 
