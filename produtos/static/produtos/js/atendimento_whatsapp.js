@@ -1016,6 +1016,12 @@
         avisarNova(tot - lastUnread, 'WhatsApp loja');
       }
       lastUnread = tot;
+      try {
+        if (navigator.setAppBadge) {
+          if (tot > 0) navigator.setAppBadge(tot);
+          else if (navigator.clearAppBadge) navigator.clearAppBadge();
+        }
+      } catch (eBadge) {}
     });
   }
 

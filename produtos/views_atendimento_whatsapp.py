@@ -158,8 +158,8 @@ def api_pdv_zap_entrada(request):
 
 
 def _wa_pwa_icons(request):
-    icon_192 = request.build_absolute_uri("/static/produtos/pwa/zap-loja-192.png")
-    icon_512 = request.build_absolute_uri("/static/produtos/pwa/zap-loja-512.png")
+    icon_192 = request.build_absolute_uri("/static/produtos/pwa/zap-loja-192.png?v=s1")
+    icon_512 = request.build_absolute_uri("/static/produtos/pwa/zap-loja-512.png?v=s1")
     return [
         {"src": icon_192, "sizes": "192x192", "type": "image/png", "purpose": "any"},
         {"src": icon_512, "sizes": "512x512", "type": "image/png", "purpose": "any"},
@@ -183,8 +183,8 @@ def atendimento_whatsapp_pc_manifest(request):
     """Manifest PWA do Zap no PC (versão web — Chrome «Instalar app»)."""
     payload = {
         "id": "/atendimento-whatsapp/",
-        "name": "WhatsApp lojas",
-        "short_name": "Zap PC",
+        "name": "Zap loja",
+        "short_name": "Zap loja",
         "description": "SisVale WhatsApp — atendimento Centro e Vila (computador)",
         "start_url": "/atendimento-whatsapp/",
         "scope": "/atendimento-whatsapp/",
