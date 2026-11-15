@@ -61,7 +61,7 @@ Arquivar entre aparelhos: **encerrado** (15/11). Não tentar de novo com a loja 
 
 15/11: o teste está separado. Link `https://files-job-jury-climbing.trycloudflare.com`. Entrar `renan` / `zapteste`. Não sobe na loja sem frase + senha.
 
-Pronto para copiar, quando autorizar. Não mexe na ponte nem no celular da loja.
+15/11, autorizado: a tela do teste foi para o Zap das lojas. A ponte não foi reiniciada. Nome continua Zap loja.
 
 Sobe: janela do PIN. Celular sem botão de Ajustes. Os dois celulares são a mesma tela. Centro e Vila só aparecem se a separação estiver ligada. Versão no computador dentro de Ajustes. No celular, o ícone i. Cores claras no computador, fundo branco, faixa verde na conversa sem ler, linha entre a lista e a conversa.
 

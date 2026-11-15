@@ -41,7 +41,7 @@
 <body class="bg-[#ece5dd] text-slate-900 overflow-hidden wa-skin wa-cel">
 {% include "produtos/_wa_skin.html" %}
 <style>
-  .wa-cel .wa-top { background: #075e54; border: 0; color: #fff; padding: .7rem .9rem; padding-top: max(.7rem, env(safe-area-inset-top)); }
+  .wa-cel .wa-top { position: relative; background: #075e54; border: 0; color: #fff; padding: .7rem .9rem; padding-top: max(.7rem, env(safe-area-inset-top)); }
   .wa-cel .wa-title { color: #fff; font-size: 1.15rem; }
   .wa-cel .wa-pill { background: rgba(255,255,255,.14); color: #ecfdf5; }
   .wa-cel .wa-pill.ok { background: #25d366; color: #064e3b; }
@@ -58,6 +58,7 @@
     display: flex; justify-content: space-between; align-items: center;
     width: 100%; flex: 0 0 auto; white-space: nowrap; height: 2.4rem; padding: 0 .7rem;
   }
+  .wa-cel .wa-tab.hidden { display: none !important; }
   .wa-cel .wa-tab .wa-badge { flex: 0 0 1.75rem; width: 1.75rem; text-align: right; }
   .wa-cel.is-chat .wa-filtros { display: none; }
   .wa-cel .wa-tabs { margin: .45rem .7rem; background: rgba(0,0,0,.12); }
@@ -76,10 +77,15 @@
   .wa-cel #wa-form .wa-tool { width: 2.85rem; height: 2.85rem; }
   .wa-cel #wa-move { padding-bottom: 0; }
   .wa-cel .wa-item { min-height: 3.6rem; padding: .85rem 1rem; }
+  .wa-cel .wa-item.has-new {
+    background: #d1fae5 !important;
+    box-shadow: inset 0 0 0 2px #25d366 !important;
+  }
   .wa-cel .wa-item .wa-n { font-size: 1rem; }
   .wa-cel .wa-item .wa-t { font-size: .75rem; }
   .wa-cel #wa-quick { -webkit-overflow-scrolling: touch; }
   .wa-cel #wa-quick .wa-ico { flex: 0 0 auto; min-height: 2.4rem; background: #fff; color: #075e54; border-color: #d1d5db; }
+  .wa-cel #wa-pwa-instalar {
     display: none; min-height: 2.2rem; padding: 0 .7rem; border-radius: 999px;
     border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.16);
     color: #fff; font-size: .72rem; font-weight: 800; white-space: nowrap;
@@ -89,8 +95,8 @@
   <header class="wa-top">
     <span id="wa-dot" class="wa-dot off" aria-hidden="true"></span>
     <h1 class="wa-title min-w-0 flex-1 truncate">Zap loja</h1>
-    <a href="{% url 'atendimento_whatsapp_bot' %}" class="wa-ico" id="wa-btn-bot" title="Ajustes" style="padding:0 .65rem;font-size:.75rem;font-weight:800;text-decoration:none;">Ajustes</a>
-    <span class="wa-ver" title="Versão no ar neste Zap. O código curto muda a cada atualização.">v{{ agro_build.version_label }}{% if agro_build.commit %} · {{ agro_build.commit|slice:":7" }}{% endif %}</span>
+    <button type="button" id="wa-ver-btn" title="Versão" style="width:2.2rem;height:2.2rem;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.16);color:#fff;font-weight:900;font-size:.9rem">i</button>
+    <p id="wa-ver-pop" hidden style="position:absolute;right:.6rem;top:3.2rem;z-index:30;margin:0;padding:.45rem .65rem;border-radius:.6rem;background:#064e3b;color:#ecfdf5;font-size:.78rem;font-weight:800">Versão {{ agro_build.version_label }}{% if agro_build.commit %} · {{ agro_build.commit|slice:":7" }}{% endif %}</p>
     <button type="button" id="wa-pwa-instalar">Instalar</button>
     <div id="wa-status" class="wa-pill">…</div>
   </header>
@@ -104,10 +110,10 @@
       </div>
 
       <div class="wa-tabs shrink-0">
-        <button type="button" data-loja="todas" class="wa-tab hidden"><span class="wa-tab-nome">Ativas</span><span data-badge="todas" class="wa-badge is-zero">0</span></button>
-        <button type="button" data-loja="pendente" class="wa-tab is-on"><span class="wa-tab-nome">Fila</span><span data-badge="pendente" class="wa-badge is-zero">0</span></button>
-        <button type="button" data-loja="centro" class="wa-tab"><span class="wa-tab-nome">Centro</span><span data-badge="centro" class="wa-badge is-zero">0</span></button>
-        <button type="button" data-loja="vila" class="wa-tab"><span class="wa-tab-nome">Vila</span><span data-badge="vila" class="wa-badge is-zero">0</span></button>
+        <button type="button" data-loja="todas" class="wa-tab is-on"><span class="wa-tab-nome">Ativas</span><span data-badge="todas" class="wa-badge is-zero">0</span></button>
+        <button type="button" data-loja="pendente" class="wa-tab hidden"><span class="wa-tab-nome">Fila</span><span data-badge="pendente" class="wa-badge is-zero">0</span></button>
+        <button type="button" data-loja="centro" class="wa-tab hidden"><span class="wa-tab-nome">Centro</span><span data-badge="centro" class="wa-badge is-zero">0</span></button>
+        <button type="button" data-loja="vila" class="wa-tab hidden"><span class="wa-tab-nome">Vila</span><span data-badge="vila" class="wa-badge is-zero">0</span></button>
         <button type="button" data-loja="arquivadas" class="wa-tab"><span class="wa-tab-nome">Resolvidas</span><span data-badge="arquivadas" class="wa-badge is-zero">0</span></button>
       </div>
 
@@ -143,12 +149,20 @@
 {% include "produtos/_wa_dlg.html" %}
 {% include "produtos/_screensaver_pin.html" %}
 <script src="{% static 'produtos/js/agro_pdv_overlay.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
-<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-fotos17-e36"></script>
+<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-fotos18-e46"></script>
 <script>
 (function () {
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("{% url 'atendimento_whatsapp_celular_sw' %}", { scope: "/atendimento-whatsapp/celular/" }).catch(function () {});
   }
+})();
+</script>
+<script>
+(function () {
+  var b = document.getElementById("wa-ver-btn");
+  var p = document.getElementById("wa-ver-pop");
+  if (!b || !p) return;
+  b.addEventListener("click", function () { p.hidden = !p.hidden; });
 })();
 </script>
 </body>

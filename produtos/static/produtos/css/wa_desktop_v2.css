@@ -13,27 +13,25 @@
 
 @media (min-width: 768px) {
   html[data-wa-skin="v2"] {
-    --wa2-bg-body: #262524;
-    --wa2-bg-app: #1d1f1f;
-    --wa2-bg-panel: #161717;
-    /* #161717 + camada branca (alpha .1 * opacidade .6) medida no painel da conversa */
-    /* Fundo do chat mais escuro que o balão recebido (senão a msg some). */
-    --wa2-bg-chat: #0b141a;
-    --wa2-bg-search: rgba(255, 255, 255, .1);
-    --wa2-bg-selected: rgba(255, 255, 255, .1);
-    --wa2-bg-hover: rgba(255, 255, 255, .05); /* NAO-MEDIDO */
-    --wa2-text: #fafafa;
-    --wa2-text-2: rgba(255, 255, 255, .6);
-    --wa2-line: rgba(255, 255, 255, .1);
-    --wa2-accent: #21c063;
-    --wa2-on-accent: #0a0a0a;
-    --wa2-bubble-out: #144d37;
-    --wa2-bubble-in: #202c33;
-    --wa2-chip-on-bg: #103529;
-    --wa2-chip-on-fg: #d9fdd3;
+    --wa2-bg-body: #d1d7db;
+    --wa2-bg-app: #ffffff;
+    --wa2-bg-panel: #ffffff;
+    --wa2-bg-chat: #ffffff;
+    --wa2-bg-search: #f0f2f5;
+    --wa2-bg-selected: #f0f2f5;
+    --wa2-bg-hover: #f5f6f6;
+    --wa2-text: #111b21;
+    --wa2-text-2: #667781;
+    --wa2-line: #e9edef;
+    --wa2-accent: #075e54;
+    --wa2-on-accent: #ffffff;
+    --wa2-bubble-out: #d9fdd3;
+    --wa2-bubble-in: #ffffff;
+    --wa2-chip-on-bg: #d9fdd3;
+    --wa2-chip-on-fg: #075e54;
     --wa2-col: max(300px, 30vw);
     --wa2-font: "Roboto Variable", Roboto, "Helvetica Neue", Helvetica, sans-serif;
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   html[data-wa-skin="v2"] body.wa-skin {
@@ -67,6 +65,8 @@
 
   /* ---------- Barra lateral (64px, padding 10/12, botoes 40x40, vao 4) ---------- */
   html[data-wa-skin="v2"] .wa-skin .wa-top {
+    background: #075e54;
+    color: #ecfdf5;
     flex: 0 0 176px;
     width: 176px;
     height: 100%;
@@ -77,7 +77,6 @@
     gap: 4px;
     /* 52px extra embaixo: reserva o botao flutuante global de reportar bug (agro_bug_report.js). */
     padding: 10px 8px 62px;
-    background: var(--wa2-bg-app);
     border: 0;
     overflow-x: hidden;
     overflow-y: auto;
@@ -131,9 +130,9 @@
 
   /* Pill de status: continua sendo #wa-status (JS), posicionado no cabecalho da coluna. */
   html[data-wa-skin="v2"] .wa-skin .wa-top #wa-status {
-    position: absolute; top: 8px; left: calc(176px + var(--wa2-col) - 20px);
+    position: absolute; top: 20px; left: calc(176px + var(--wa2-col) - 20px);
     transform: translateX(-100%); z-index: 3;
-    padding: 0 10px; height: 28px; display: inline-flex; align-items: center;
+    padding: 0 10px; height: 24px; display: inline-flex; align-items: center;
     border-radius: 9999px; background: var(--wa2-bg-search); color: var(--wa2-text-2);
     font-size: 12px; line-height: 16px; font-weight: 600; max-width: 40%;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -147,7 +146,7 @@
     display: grid !important;
     grid-template-columns: calc(var(--wa2-col) - 1px) minmax(0, 1fr);
     border-left: 1px solid var(--wa2-line);
-    grid-template-rows: auto 48px auto auto auto auto minmax(0, 1fr);
+    grid-template-rows: auto 64px auto auto auto auto minmax(0, 1fr);
     gap: 0 !important;
     flex: 1 1 0%;
     min-height: 0;
@@ -231,6 +230,15 @@
   html[data-wa-skin="v2"] .wa-skin .wa-filtro.is-on.wa-filtro-nova {
     background: var(--wa2-chip-on-bg); border-color: var(--wa2-line); color: var(--wa2-chip-on-fg); box-shadow: none;
   }
+  html[data-wa-skin="v2"] .wa-skin .wa-top .wa-tab,
+  html[data-wa-skin="v2"] .wa-skin .wa-top .wa-filtro,
+  html[data-wa-skin="v2"] .wa-skin .wa-top .wa-ico,
+  html[data-wa-skin="v2"] .wa-skin .wa-top .wa2-nav,
+  html[data-wa-skin="v2"] .wa-skin .wa-top a.wa-ico { color: #d1fae5; border-color: transparent; }
+  html[data-wa-skin="v2"] .wa-skin .wa-top .wa-tab.is-on,
+  html[data-wa-skin="v2"] .wa-skin .wa-top .wa-filtro.is-on {
+    background: #fff; color: #075e54; border-color: transparent;
+  }
   html[data-wa-skin="v2"] .wa-skin .wa-filtro svg { width: 18px; height: 18px; }
   html[data-wa-skin="v2"] .wa-skin #wa-limpar-lista { padding: 0 12px; font-size: 14px; font-weight: 600; text-transform: none; letter-spacing: 0; }
   html[data-wa-skin="v2"] .wa-skin .wa-filtro-dot { width: 8px; height: 8px; box-shadow: none; }
@@ -289,7 +297,7 @@
   }
   html[data-wa-skin="v2"] .wa-skin .wa-item.is-sel,
   html[data-wa-skin="v2"] .wa-skin .wa-item.is-sel:hover {
-    background: #103529 !important;
+    background: #f0f2f5 !important;
     box-shadow: inset 3px 0 0 #25d366 !important;
   }
   html[data-wa-skin="v2"] .wa-skin .wa-item.is-sel .wa-n,
@@ -301,10 +309,14 @@
     background: var(--wa2-bg-selected) !important; box-shadow: none;
   }
   html[data-wa-skin="v2"] .wa-skin .wa-item.has-new,
+  html[data-wa-skin="v2"] .wa-skin .wa-item.has-new:hover {
+    background: #d1fae5 !important;
+    box-shadow: inset 0 0 0 2px #25d366 !important;
+  }
   html[data-wa-skin="v2"] .wa-skin .wa-item.has-wait { background: transparent; }
   html[data-wa-skin="v2"] .wa-skin .wa-item .wa-av {
     flex: 0 0 48px; width: 48px; height: 48px; margin: 0 15px 0 13px; border-radius: 50%;
-    background: #3b3d3d; /* NAO-MEDIDO: fundo da inicial quando nao ha foto */
+    background: #dfe5e7;
   }
   html[data-wa-skin="v2"] .wa-skin .wa-item .wa-av-ini { font-size: 20px; line-height: 24px; font-weight: 400; color: var(--wa2-text); }
   html[data-wa-skin="v2"] .wa-skin .wa-item .wa-item-body {
@@ -340,16 +352,11 @@
   /* ---------- Painel principal ---------- */
   html[data-wa-skin="v2"] .wa-skin #wa-app > .wa-grid > .wa-pane-chat {
     grid-column: 2; grid-row: 1 / -1; min-width: 0; min-height: 0;
-    display: flex; flex-direction: column; border: 0; border-radius: 0;
+    display: flex; flex-direction: column; border: 0; border-left: 1px solid #cfd4d8; border-radius: 0;
     background: var(--wa2-bg-chat); overflow: hidden;
   }
   html[data-wa-skin="v2"] .wa-skin .wa-pane-chat:has(.wa-chat-head.is-empty) { background: var(--wa2-bg-app); }
-  html[data-wa-skin="v2"] .wa-skin .wa-pane-chat:has(.wa-chat-head.is-empty) > :not(#wa-chat-head):not(#wa-form) { display: none !important; }
-  html[data-wa-skin="v2"] .wa-skin .wa-pane-chat:has(.wa-chat-head.is-empty) #wa-form {
-    display: block !important; height: 0 !important; margin: 0 !important; padding: 0 !important;
-    overflow: visible !important; background: transparent !important; box-shadow: none !important; border: 0 !important;
-  }
-  html[data-wa-skin="v2"] .wa-skin .wa-pane-chat:has(.wa-chat-head.is-empty) #wa-form > :not(#wa-operador-pin) { display: none !important; }
+  html[data-wa-skin="v2"] .wa-skin .wa-pane-chat:has(.wa-chat-head.is-empty) > :not(#wa-chat-head) { display: none !important; }
 
   /* Cabecalho da conversa: 64px, padding 10/16, sombra 0 1px 4px */
   html[data-wa-skin="v2"] .wa-skin .wa-chat-head {
@@ -363,7 +370,7 @@
   html[data-wa-skin="v2"] .wa-skin .wa-chat-on { gap: 0; }
   html[data-wa-skin="v2"] .wa-skin .wa-chat-who { gap: 15px; }
   html[data-wa-skin="v2"] .wa-skin .wa-topo-av {
-    width: 40px; height: 40px; background: #3b3d3d; color: var(--wa2-text); font-size: 18px; font-weight: 400; /* NAO-MEDIDO: fundo */
+    width: 40px; height: 40px; background: #dfe5e7; color: var(--wa2-text); font-size: 18px; font-weight: 400; /* NAO-MEDIDO: fundo */
   }
   html[data-wa-skin="v2"] .wa-skin .wa-topo-nome { font-size: 16px; line-height: 21px; font-weight: 600; color: var(--wa2-text); }
   html[data-wa-skin="v2"] .wa-skin .wa-chat-tools { gap: 16px; }
@@ -461,7 +468,7 @@
   html[data-wa-skin="v2"] .wa-skin #wa-input::placeholder { color: var(--wa2-text-2); }
   html[data-wa-skin="v2"] .wa-skin #wa-input:focus { outline: none; }
   html[data-wa-skin="v2"] .wa-skin .wa-op-pin {
-    position: absolute; top: 8px; z-index: 4;
+    position: absolute; top: 18px; z-index: 4;
     left: calc(176px + var(--wa2-col) - 168px);
     transform: translateX(-100%);
     display: inline-flex; box-sizing: border-box; height: 28px; width: auto; min-width: 0; max-width: 16rem;
@@ -773,7 +780,7 @@
   html[data-wa-skin="v2"] .wa-skin .wa-form { background: var(--wa2-bg-panel) !important; border-color: var(--wa2-line) !important; }
 
   html[data-wa-skin="v2"] .wa-skin .wa-st-view {
-    background: #0b141a;
+    background: #ffffff;
     color: var(--wa2-text);
   }
   html[data-wa-skin="v2"] .wa-skin .wa-st-view-nome { color: var(--wa2-text); }

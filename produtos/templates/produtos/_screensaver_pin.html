@@ -829,6 +829,8 @@
     var t = String(erro == null ? '' : erro);
     if (!t) return false;
     if (/Identifique-se com o PIN/i.test(t)) return true;
+    if (/Digite o PIN para atender/i.test(t)) return true;
+    if (/Digite o PIN no PDV/i.test(t)) return true;
     if (/modo descanso/i.test(t) && /PIN/i.test(t)) return true;
     if (/Entre com o PIN no PDV/i.test(t)) return true;
     if (/precisa.?pin/i.test(t)) return true;

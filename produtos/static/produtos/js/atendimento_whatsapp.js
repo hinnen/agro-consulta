@@ -5,11 +5,11 @@
   'use strict';
 
   var TAB_KEY = 'agro_wa_loja_tab';
-  var loja = 'pendente';
-  var separarLojas = true;
+  var loja = 'todas';
+  var separarLojas = false;
   try {
     var tabSalva = localStorage.getItem(TAB_KEY);
-    if (tabSalva === 'centro' || tabSalva === 'vila' || tabSalva === 'pendente' || tabSalva === 'arquivadas' || tabSalva === 'todas') loja = tabSalva;
+    if (tabSalva === 'arquivadas' || tabSalva === 'todas') loja = tabSalva;
   } catch (e) {}
   var convId = 0;
   var convLoja = '';
@@ -189,7 +189,11 @@
           })
           .then(function (j) {
             if (r.status === 403 && (!j || !j.ok)) {
-              return { ok: false, erro: (j && j.erro) || 'Sessão/CSRF — dê F5 e entre de novo.' };
+              return {
+                ok: false,
+                erro: (j && j.erro) || 'Sessão/CSRF — dê F5 e entre de novo.',
+                precisa_pin: !!(j && j.precisa_pin),
+              };
             }
             if (r.status >= 400 && j && j.ok == null) {
               return { ok: false, erro: (j && j.erro) || 'Erro ' + r.status };
@@ -1917,9 +1921,16 @@
         var tmp = document.querySelector('[data-msg-id="' + tempId + '"]');
         if (tmp) tmp.remove();
         if (!j || !j.ok) {
-          if (j && j.precisa_pin) {
+          var pedePin = !!(j && j.precisa_pin);
+          if (!pedePin && window.gmSspinErroPedePin && window.gmSspinErroPedePin((j && j.erro) || '')) pedePin = true;
+          if (pedePin) {
             try { localStorage.removeItem('gm_sspin_operador'); } catch (_) {}
             pintarOperadorPin();
+            if (window.gmSspinAbrirSeErroPin && window.gmSspinAbrirSeErroPin(j.erro || 'Digite o PIN para atender.', function () {
+              enviarPayload(payload, textoVolta);
+            }, { titulo: 'Digite o PIN para atender' })) {
+              return;
+            }
             trocarOperadorPin();
           }
           avisarEnvio((j && j.erro) || 'Não enviou.');
