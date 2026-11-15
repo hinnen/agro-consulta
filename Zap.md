@@ -59,7 +59,15 @@ Nada pendente deste pacote. A loja (`producao`) não entrou.
 
 Arquivar entre aparelhos: **encerrado** (15/11). Não tentar de novo com a loja no ar. O teste foi desligado. Detalhe em `Zap-documentacao.md`, «Arquivar entre aparelhos».
 
-15/11: alteração de PIN e de tela do celular foi desfeita no Zap em uso. O teste está no ar, separado, sem o celular da loja: `https://files-job-jury-climbing.trycloudflare.com` — entrar `renan` / `zapteste`. Computador em `/atendimento-whatsapp/`. Celular em `/atendimento-whatsapp/celular/`. Só replica com frase + senha.
+15/11: o teste está separado. Link `https://files-job-jury-climbing.trycloudflare.com`. Entrar `renan` / `zapteste`. Não sobe na loja sem frase + senha.
+
+Pronto para copiar, quando autorizar. Não mexe na ponte nem no celular da loja.
+
+Sobe: janela do PIN. Celular sem botão de Ajustes. Os dois celulares são a mesma tela. Centro e Vila só aparecem se a separação estiver ligada. Versão no computador dentro de Ajustes. No celular, o ícone i. Cores claras no computador, fundo branco, faixa verde na conversa sem ler, linha entre a lista e a conversa.
+
+Não sobe: o nome «Zap teste». O teto de 4 conexões. Nada da ponte. Nada de arquivar.
+
+Depois de copiar: F5 no computador. Fechar e abrir o aplicativo e o Zap de dentro do Sistvale. Conferir envio, PIN, Ajustes só no computador, e a loja sem ficar OFF.
 
 ## Resumo (basta no chat comum)
 
