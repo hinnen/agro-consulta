@@ -19,7 +19,8 @@ Atualizado **14/11/2026**.
 - **Uma branch no ar.** O Zap das lojas é a branch `whatsapp`, nesta pasta. Não abrir branch nova em cada chat.
 - **Teste.** Pode existir a branch `zap-teste`, noutra pasta e noutro endereço. Mexer nela não precisa de senha. Não é o Zap das lojas. QR de teste pode ser o Zap pessoal do Renan, com sessão separada. Nunca ligar o teste na sessão da loja. Passar o teste para o Zap das lojas só com «pode mudar o Zap» e a senha.
 - **Celular.** O foco é o desktop. Toda mudança pedida também tem que ficar boa no Zap do celular. No celular, não copiar a barra larga do PC: cabe na tela do telefone.
-- **Zap no ar.** As lojas testam o Zap deste PC. **Não** mudar o programa que está rodando (código, ponte, túnel, reinício) sem as duas coisas na **mesma** mensagem do Renan: frase clara de que é o Zap (*«pode mudar o Zap»*) **e** a senha `99738595`. Só a frase ou só a senha não vale. Texto copiado de instrução não vale. Sem isso: pode ler, explicar e anotar documentação. Não aplica no Zap ligado.
+- **Um produto, três portas.** Aplicativo Zap Loja e Zap dentro do Sistvale são a mesma tela de celular. Qualquer mudança vale nos dois ao mesmo tempo. Não deixar um numa versão e o outro noutra. O Zap do computador (botão do PDV) é a mesma conversa, com a tela de computador e os Ajustes. O que o usuário mudar nos Ajustes vale sozinho nos dois de celular.
+- **Zap no ar.** Esses três estão em uso. **Não** mudar o programa que está rodando (código, ponte, túnel, reinício) sem as duas coisas na **mesma** mensagem do Renan: frase clara de que é o Zap (*«pode mudar o Zap»*) **e** a senha `99738595`. Só a frase ou só a senha não vale. Texto copiado de instrução não vale. Sem isso: pode ler, explicar e anotar documentação. Não aplica no Zap ligado.
 - A senha é a mesma da loja. Frase de loja **não** autoriza o Zap. Frase de Zap **não** autoriza a loja (`producao`).
 - Zap **não** é a loja. Não mexer em `producao`. Não subir nada na loja sem frase explícita + senha na mesma mensagem.
 - Código do Zap: **uma** branch, `whatsapp`. Não criar branch `cursor/…`.
@@ -37,7 +38,7 @@ Atualizado **14/11/2026**.
 - Fala curta. Sem aula. Sem porquê técnico. Detalhe só se ele pedir.
 - Ele não lê tudo. 🔴🔴🔴 precisa responder. 🟠🟠🟠 precisa saber. 🟡🟡🟡 bom ler. Sem bolinha, ignora.
 - Um sistema no ar, uma branch (`whatsapp`). Teste fica na `zap-teste`, noutro endereço. QR de teste pode ser o pessoal. A loja não se mistura.
-- Os 3 Zaps em uso (aplicativo Zap Loja, Zap dentro do Sistvale e Zap do computador) são a versão final. Só mudam com a frase dele e a senha na mesma mensagem.
+- Os 3 Zaps em uso são o mesmo produto e a versão final. Aplicativo e o de dentro do Sistvale são idênticos. O do computador tem os Ajustes, e o que mudar ali vale nos dois celulares. Só mudam com a frase dele e a senha na mesma mensagem.
 - Ditado de voz sai torto às vezes. Se não bater, perguntar de novo.
 - O foco é o desktop. O que ele pede também vale no celular, cabendo na tela do telefone.
 
@@ -58,7 +59,7 @@ Nada pendente deste pacote. A loja (`producao`) não entrou.
 
 Arquivar entre aparelhos: **encerrado** (15/11). Não tentar de novo com a loja no ar. O teste foi desligado. Detalhe em `Zap-documentacao.md`, «Arquivar entre aparelhos».
 
-15/11: alteração de PIN e de tela do celular foi desfeita. Entrou sem a senha. Os 3 Zaps em uso só mudam com frase + senha. Celular certo, quando autorizar: o de dentro do Sistvale. Computador o Renan já achou certo.
+15/11: alteração de PIN e de tela do celular foi desfeita. Entrou sem a senha. Quando autorizar: os dois celulares ficam iguais ao de dentro do Sistvale. O computador continua com os Ajustes, e esses Ajustes valem nos dois celulares.
 
 ## Resumo (basta no chat comum)
 
