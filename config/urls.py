@@ -10,6 +10,41 @@ def healthz(_request):
     return HttpResponse("ok", content_type="text/plain; charset=utf-8")
 
 
+def pdv_app_manifest(_request):
+    """Ícone do app instalado do PDV. Caminhos fixos — o Windows guarda este manifesto."""
+    import json
+
+    payload = {
+        "id": "/pdv-app/",
+        "name": "SisVale PDV",
+        "short_name": "PDV",
+        "start_url": "/consulta/",
+        "scope": "/",
+        "display": "standalone",
+        "lang": "pt-BR",
+        "background_color": "#ffffff",
+        "theme_color": "#0f172a",
+        "icons": [
+            {
+                "src": "/static/pdv-app-192.png",
+                "sizes": "192x192",
+                "type": "image/png",
+                "purpose": "any",
+            },
+            {
+                "src": "/static/pdv-app-512.png",
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "any",
+            },
+        ],
+    }
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    resp = HttpResponse(body, content_type="application/manifest+json; charset=utf-8")
+    resp["Cache-Control"] = "public, max-age=86400"
+    return resp
+
+
 def admin_login_redirect(request):
     """Admin feio → tela GM Agro Mais (/entrar/), preservando ?next=."""
     nxt = (request.GET.get("next") or "").strip()
@@ -20,6 +55,7 @@ def admin_login_redirect(request):
 
 urlpatterns = [
     path("healthz", healthz, name="healthz"),
+    path("pdv-app.webmanifest", pdv_app_manifest, name="pdv_app_manifest"),
     path("api/financeiro/", include("financeiro.api.urls")),
     path("financeiro/", include("financeiro.urls")),
     path("api/indicadores/", include("estoque.api.urls")),

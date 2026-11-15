@@ -1694,6 +1694,14 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 PDV-APP-ICONE — **15/11** · no `teste` · ainda não foi para a loja
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Ícone do app instalado do PDV (PNG novo em `/static/`, manifesto `/pdv-app.webmanifest`) |
+| **Não mexe** | Zap, SistApp, venda, caixa |
+| **Loja** | Só sobe com frase + senha. No PC: desinstalar o app antigo e instalar de novo para o Windows trocar o desenho |
+
 ### 🟢 PACOTE PRONTO / CHECKLIST — **09/11** · **NF-FORN-UNIF-AGRO** · **v27.26.54** · pronto para envio
 
 | Campo | Valor |

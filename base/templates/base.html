@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     {% include "produtos/_agro_consulta_ui.html" %}
     {% block head_extra %}{% endblock %}
+    {% block agro_app_icon %}{% include "produtos/includes/pdv_app_icon.html" %}{% endblock %}
     <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
 <body class="{% block body_class %}bg-slate-100 text-slate-800{% endblock %}" {% block body_attrs %}{% endblock %}>
