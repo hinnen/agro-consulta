@@ -69,6 +69,8 @@ Não sobe: o nome «Zap teste». O teto de 4 conexões. Nada da ponte. Nada de a
 
 Depois de copiar: F5 no computador. Fechar e abrir o aplicativo e o Zap de dentro do Sistvale. Conferir envio, PIN, Ajustes só no computador, e a loja sem ficar OFF.
 
+15/11, autorizado: recursos que estavam sem caminho foram para o Zap das lojas. A ponte não foi reiniciada. Para voltar: tag `zap-antes-recursos-2026-11-15`.
+
 ## Resumo (basta no chat comum)
 
 - Zap das lojas roda **neste PC** (PC2-Centro), não no Render. Endereço: `https://zap.zapsistvale.online`.
