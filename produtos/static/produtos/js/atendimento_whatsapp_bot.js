@@ -66,13 +66,13 @@
     ['feat_entrega_status', 'Status de entrega', 'Avisar cliente: saiu / a caminho / chegou.'],
     ['feat_pedir_loja_aviso', 'Pedir loja → Zap', 'Avisa a outra loja quando pedido muda de status.'],
     ['feat_lista_espera', 'Lista de espera', 'Avisar quando produto sem estoque chegar.'],
-    ['feat_fornecedor_zap', 'Folha p/ fornecedor', 'Atalho de Compras pelo Zap da loja.'],
+    ['feat_fornecedor_zap', 'Folha p/ fornecedor', 'Manda a lista pelo Zap da loja se tiver número e texto.'],
     ['feat_menu_curto', 'Menu curto (F·H·A)', 'F fiado · H horário · A atendente.'],
-    ['feat_audio_texto', 'Áudio → texto', 'Transcrever áudio do cliente (quando ligado).'],
-    ['feat_relatorio_dia', 'Relatório do dia', 'Resumo: chats e quem atendeu (PIN).'],
+    ['feat_audio_texto', 'Áudio → texto', 'Ainda não transcreve. Ligar não muda o áudio.'],
+    ['feat_relatorio_dia', 'Relatório do dia', 'Resumo do dia aparece aqui em Ajustes, nesta aba.'],
     ['feat_vip_tag', 'VIP / alerta no chat', 'Marcar cliente (fiado alto, sempre Vila…).'],
-    ['feat_ponte_backup', 'Ponte backup', '2º PC se o 1º cair (só prepara).'],
-    ['feat_horario_bot', 'Horário reforçado', 'Textos de horário mais claros no Bot.'],
+    ['feat_ponte_backup', 'Ponte backup', 'Ainda não assume sozinho. O interruptor só fica guardado.'],
+    ['feat_horario_bot', 'Horário reforçado', 'O bot manda o horário de cada dia, em vez de uma frase só.'],
   ];
 
   function montarRecursos() {
@@ -267,6 +267,8 @@
       'loja2_rotulo',
       'loja2_palavras',
       'msg_ok_loja2',
+      'zap_tel_centro',
+      'zap_tel_vila',
       'fiado_palavras',
       'fiado_max_parcelas',
       'msg_fiado_aberto',
@@ -327,12 +329,38 @@
     return o;
   }
 
+  function pintarRelatorio() {
+    var el = $('wa-relatorio-dia');
+    if (!el) return;
+    var chk = document.querySelector('[name="feat_relatorio_dia"]');
+    if (!chk || !chk.checked) {
+      el.hidden = true;
+      el.textContent = '';
+      return;
+    }
+    fetch('/api/atendimento-whatsapp/recursos/', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        var d = j && j.relatorio_dia;
+        if (!d) {
+          el.hidden = true;
+          return;
+        }
+        el.hidden = false;
+        el.textContent =
+          'Hoje: ' + (d.conversas_ativas || 0) + ' conversas · ' +
+          (d.msgs_cliente || 0) + ' recebidas · ' + (d.msgs_loja || 0) + ' enviadas.';
+      })
+      .catch(function () { el.hidden = true; });
+  }
+
   function carregar() {
     return fetch('/api/atendimento-whatsapp/bot/', { credentials: 'same-origin' }).then(function (r) {
       return r.json();
     }).then(function (j) {
       if (!j || !j.ok) throw new Error((j && j.erro) || 'Falha');
       preencher(j.bot);
+      pintarRelatorio();
       if (j.avisos && j.avisos.length) aviso(false, j.avisos[0]);
     }).catch(function (e) {
       aviso(false, e.message || 'Não carregou');

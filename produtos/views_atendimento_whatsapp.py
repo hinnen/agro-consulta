@@ -1156,7 +1156,22 @@ def api_atendimento_whatsapp_recurso_acao(request):
     except (TypeError, ValueError):
         cid = 0
 
+    def _cid_pelo_telefone() -> tuple[int, str]:
+        if cid > 0:
+            return cid, ""
+        conv, err_ab = abrir_conversa_busca(
+            telefone=str(data.get("telefone") or ""),
+            nome=str(data.get("nome") or ""),
+            jid=str(data.get("jid") or ""),
+        )
+        if err_ab or conv is None:
+            return 0, err_ab or "Não achou o chat."
+        return int(conv.pk), ""
+
     if acao == "comprovante":
+        cid, err_ab = _cid_pelo_telefone()
+        if err_ab:
+            return JsonResponse({"ok": False, "erro": err_ab}, status=400)
         ok, err = acao_comprovante_venda(
             conversa_id=cid,
             venda=str(data.get("venda") or ""),
@@ -1165,6 +1180,9 @@ def api_atendimento_whatsapp_recurso_acao(request):
             autor=autor,
         )
     elif acao == "entrega":
+        cid, err_ab = _cid_pelo_telefone()
+        if err_ab:
+            return JsonResponse({"ok": False, "erro": err_ab}, status=400)
         ok, err = acao_entrega_status(
             conversa_id=cid,
             status=str(data.get("status") or ""),
@@ -1172,8 +1190,14 @@ def api_atendimento_whatsapp_recurso_acao(request):
             autor=autor,
         )
     elif acao == "lembrete_fiado":
+        cid, err_ab = _cid_pelo_telefone()
+        if err_ab:
+            return JsonResponse({"ok": False, "erro": err_ab}, status=400)
         ok, err = acao_lembrete_fiado(conversa_id=cid, autor=autor)
     elif acao == "espera_marcar":
+        cid, err_ab = _cid_pelo_telefone()
+        if err_ab:
+            return JsonResponse({"ok": False, "erro": err_ab}, status=400)
         ok, err = acao_marcar_espera(conversa_id=cid, produto=str(data.get("produto") or ""))
     elif acao == "espera_avisar":
         ok, err = acao_lista_espera_avisar(
@@ -1208,24 +1232,36 @@ def api_atendimento_whatsapp_recurso_acao(request):
         if not recurso_on(cfg, "feat_pedir_loja_aviso"):
             return JsonResponse({"ok": False, "erro": "Recurso desligado (Bot → Recursos)."}, status=400)
         texto = str(data.get("texto") or "Atualização do pedido entre lojas.").strip()
-        if cid <= 0:
-            return JsonResponse({"ok": False, "erro": "Conversa inválida."}, status=400)
+        destino = str(data.get("loja") or "").strip().lower()
+        if cid <= 0 and not str(data.get("telefone") or "").strip():
+            tel_cfg = cfg.get("zap_tel_vila") if "vila" in destino else cfg.get("zap_tel_centro")
+            data = dict(data)
+            data["telefone"] = tel_cfg or ""
+        cid, err_ab = _cid_pelo_telefone()
+        if err_ab:
+            return JsonResponse(
+                {"ok": False, "erro": err_ab or "Cadastre o Zap da loja em Ajustes → Lojas."},
+                status=400,
+            )
         m, err = enviar_loja(conversa_id=cid, texto=texto, autor=autor or "Sistema")
         ok, err = (m is not None and not err), (err or "")
     elif acao == "fornecedor":
         if not recurso_on(cfg, "feat_fornecedor_zap"):
             return JsonResponse({"ok": False, "erro": "Recurso desligado (Bot → Recursos)."}, status=400)
-        return JsonResponse(
-            {
-                "ok": True,
-                "aviso": "Recurso ligado — use Compras → WhatsApp; unificação completa no próximo ajuste.",
-            }
-        )
+        texto = str(data.get("texto") or "").strip()
+        if not texto:
+            return JsonResponse({"ok": False, "erro": "Texto da folha vazio."}, status=400)
+        cid, err_ab = _cid_pelo_telefone()
+        if err_ab:
+            return JsonResponse({"ok": False, "erro": err_ab}, status=400)
+        m, err = enviar_loja(conversa_id=cid, texto=texto, autor=autor or "Compras")
+        ok, err = (m is not None and not err), (err or "")
     elif acao == "audio_texto":
         if not recurso_on(cfg, "feat_audio_texto"):
             return JsonResponse({"ok": False, "erro": "Recurso desligado (Bot → Recursos)."}, status=400)
         return JsonResponse(
-            {"ok": True, "texto": "", "aviso": "Transcrição ainda não ativa — flag só prepara o caminho."}
+            {"ok": False, "erro": "Áudio em texto ainda não transcreve."},
+            status=400,
         )
     else:
         return JsonResponse({"ok": False, "erro": "Ação desconhecida."}, status=400)

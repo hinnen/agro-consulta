@@ -1685,6 +1685,24 @@
         }
         applyResumoCounts(res.data);
         setStatus(res.data.mensagem || 'Ok.');
+        if (acao === 'aceitar' || acao === 'pronto' || acao === 'transferir' || acao === 'pedir') {
+          var lojaAtual = String((body && body.loja) || '');
+          var destino = /vila/i.test(lojaAtual) ? 'centro' : 'vila';
+          fetch('/api/atendimento-whatsapp/recurso-acao/', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrf(),
+              Accept: 'application/json',
+            },
+            body: JSON.stringify({
+              acao: 'pedir_loja_aviso',
+              loja: destino,
+              texto: 'Pedido entre lojas (' + acao + ').',
+            }),
+          }).catch(function () {});
+        }
         carregarLista(aba);
         refreshResumo();
       })

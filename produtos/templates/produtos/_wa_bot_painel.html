@@ -142,6 +142,17 @@
     <section data-panel="lojas" class="wa-panel wa-card">
       <label class="wa-sw"><span>Separar Centro e Vila</span><input type="checkbox" name="separar_lojas" /></label>
       <p class="wa-lab" style="margin:.35rem 0 .9rem;font-weight:600;text-transform:none;letter-spacing:0">Desligue para uma lista só, sem perguntar 1 ou 2 no Zap.</p>
+      <div class="wa-row wa-row-2">
+        <div>
+          <label class="wa-lab">Zap do Centro</label>
+          <input name="zap_tel_centro" class="wa-inp" inputmode="tel" placeholder="DDD + número" autocomplete="off" />
+        </div>
+        <div>
+          <label class="wa-lab">Zap da Vila</label>
+          <input name="zap_tel_vila" class="wa-inp" inputmode="tel" placeholder="DDD + número" autocomplete="off" />
+        </div>
+      </div>
+      <p class="wa-lab" style="margin:.2rem 0 .9rem;font-weight:600;text-transform:none;letter-spacing:0">Serve para o aviso de Pedir loja. Sem número, o aviso não sai.</p>
       <label class="wa-sw"><span>Avisar cliente ao passar Centro↔Vila</span><input type="checkbox" name="xfer_avisar_cliente" /></label>
       <p class="wa-lab" style="margin:.35rem 0 .9rem;font-weight:600;text-transform:none;letter-spacing:0">Desligue se a outra loja avisa sozinha — o cliente não recebe msg automática no Zap.</p>
       <div class="wa-row wa-row-2">
@@ -204,6 +215,7 @@
         <label class="wa-lab">Palavras que pedem a chave</label>
         <input name="pix_palavras" class="wa-inp" placeholder="pix, chave pix, manda pix" />
       </div>
+      <p id="wa-relatorio-dia" class="wa-hint" hidden></p>
       <div id="wa-bot-recursos" class="flex flex-col gap-2"></div>
       <label class="wa-lab" style="margin-top:1rem">Respostas prontas (separe com | )</label>
       <textarea name="respostas_prontas" rows="3" placeholder="Temos sim|Orçamento já já|…"></textarea>

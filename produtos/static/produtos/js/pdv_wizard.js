@@ -14089,8 +14089,34 @@
         );
     }
 
+    function avisarComprovanteZap(vendaId) {
+        try {
+            var state = State.getState();
+            var computed = State.getComputed();
+            var tel = String((state.cliente && state.cliente.telefone) || '').replace(/\D/g, '');
+            if (tel.length < 10 || !vendaId) return;
+            var total = computed.subtotal != null ? computed.subtotal : computed.total || 0;
+            fetch('/api/atendimento-whatsapp/recurso-acao/', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken()
+                },
+                body: JSON.stringify({
+                    acao: 'comprovante',
+                    telefone: tel,
+                    nome: String((state.cliente && state.cliente.nome) || '').trim(),
+                    venda: String(vendaId),
+                    total: typeof formatMoney === 'function' ? formatMoney(total) : String(total)
+                })
+            }).catch(function () {});
+        } catch (eZap) {}
+    }
+
     function finalizeConfirmedSale(withPrint, printWin, opts) {
         opts = opts || {};
+        avisarComprovanteZap(opts.vendaId);
         var cupomImpressao = opts.cupomImpressao || '';
         var imprimir = !!withPrint;
         if (opts.nfceErro && cupomImpressao === 'nfce') {

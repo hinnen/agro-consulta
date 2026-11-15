@@ -83,6 +83,23 @@ RECURSOS_DEFAULT.update(
 )
 
 
+_DIAS_HORARIO = ("Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado")
+
+
+def texto_horario_claro(cfg: dict | None) -> str:
+    from produtos.atendimento_whatsapp_bot_config import normalizar_horario_por_dia
+
+    hpd = normalizar_horario_por_dia(cfg or {})
+    linhas = ["Horário da *" + _empresa(cfg or {}) + "*:"]
+    for i, nome in enumerate(_DIAS_HORARIO):
+        dia = hpd.get(str(i)) or {}
+        if dia.get("ativo"):
+            linhas.append(nome + ": " + str(dia.get("ini") or "") + "–" + str(dia.get("fim") or ""))
+        else:
+            linhas.append(nome + ": fechado")
+    return "\n".join(linhas)
+
+
 def recurso_on(cfg: dict | None, key: str) -> bool:
     from produtos.atendimento_whatsapp_bot_config import cfg_flag
 

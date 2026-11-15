@@ -1952,12 +1952,17 @@ def processar_entrada(
             if cmd in ("h", "horario", "horário", "endereco", "endereço"):
                 from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT as _BD
 
-                tpl = str(cfg.get("msg_horario_loja") or _BD.get("msg_horario_loja") or "")
-                txt_h = (
-                    tpl.replace("{empresa}", str(cfg.get("nome_empresa") or ""))
-                    .replace("{ini}", str(cfg.get("horario_ini") or "08:00"))
-                    .replace("{fim}", str(cfg.get("horario_fim") or "18:00"))
-                )
+                if recurso_on(cfg, "feat_horario_bot"):
+                    from produtos.atendimento_whatsapp_recursos import texto_horario_claro
+
+                    txt_h = texto_horario_claro(cfg)
+                else:
+                    tpl = str(cfg.get("msg_horario_loja") or _BD.get("msg_horario_loja") or "")
+                    txt_h = (
+                        tpl.replace("{empresa}", str(cfg.get("nome_empresa") or ""))
+                        .replace("{ini}", str(cfg.get("horario_ini") or "08:00"))
+                        .replace("{fim}", str(cfg.get("horario_fim") or "18:00"))
+                    )
                 conv.save(update_fields=campos_base)
                 if txt_h:
                     _enviar_lote_bot(conv, [txt_h], cfg)
@@ -1993,6 +1998,11 @@ def processar_entrada(
         if _pode_aviso_fora(conv, cfg, texto=t, tipo_midia=tipo_n):
             fh = str(cfg.get("msg_fora_horario") or "").strip()
             if fh:
+                from produtos.atendimento_whatsapp_recursos import recurso_on as _recurso_on
+                from produtos.atendimento_whatsapp_recursos import texto_horario_claro
+
+                if _recurso_on(cfg, "feat_horario_bot"):
+                    fh = fh + "\n\n" + texto_horario_claro(cfg)
                 lote.append(fh)
                 conv.aviso_fora_em = timezone.now()
         if not cfg_flag(cfg, "ainda_atende_fora"):

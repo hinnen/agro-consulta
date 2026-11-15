@@ -12,6 +12,7 @@
     if (tabSalva === 'arquivadas' || tabSalva === 'todas') loja = tabSalva;
   } catch (e) {}
   var convId = 0;
+  var convVip = false;
   var convLoja = '';
   var afterId = 0;
   var lastSeenIn = 0;
@@ -676,6 +677,7 @@
       btn.setAttribute('data-foto', foto);
       btn.setAttribute('data-msg-rev', String(c.msg_rev || 0));
       btn.setAttribute('data-digitando', c.digitando ? '1' : '0');
+      btn.setAttribute('data-vip', c.vip ? '1' : '0');
       garantirAvatar(btn.querySelector('.wa-av'), foto, titulo);
       var nEl = btn.querySelector('.wa-n');
       var tEl = btn.querySelector('.wa-t');
@@ -1002,6 +1004,7 @@
         xferAvisarCliente = j.bot.xfer_avisar_cliente;
       }
       pintarQuick();
+      pintarAcoesRecurso();
       if (j.bot && typeof j.bot.separar_lojas === 'boolean') {
         var mudou = j.bot.separar_lojas !== separarLojas || (!j.bot.separar_lojas && loja !== 'todas');
         aplicarSeparacao(j.bot.separar_lojas);
@@ -1022,6 +1025,99 @@
           else if (navigator.clearAppBadge) navigator.clearAppBadge();
         }
       } catch (eBadge) {}
+    });
+  }
+
+  function postRecurso(body) {
+    return fetchJson('/api/atendimento-whatsapp/recurso-acao/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+      body: JSON.stringify(body || {}),
+    }).then(function (j) {
+      if (!j || !j.ok) window.alert((j && j.erro) || 'Não fez.');
+      return j;
+    });
+  }
+
+  function pintarAcoesRecurso() {
+    var box = $('wa-recurso-acoes');
+    if (!box) return;
+    if (!convId) {
+      box.classList.add('hidden');
+      box.innerHTML = '';
+      return;
+    }
+    var itens = [];
+    function add(rotulo, fn) {
+      itens.push({ rotulo: rotulo, fn: fn });
+    }
+    if (recursosWa.feat_vip_tag) {
+      add(convVip ? 'Tirar VIP' : 'VIP', function () {
+        postRecurso({ acao: 'vip', conversa_id: convId, vip: !convVip }).then(function (j) {
+          if (j && j.ok) {
+            convVip = !convVip;
+            pintarAcoesRecurso();
+            carregarLista();
+          }
+        });
+      });
+    }
+    if (recursosWa.feat_lembrete_fiado) {
+      add('Lembrete fiado', function () {
+        postRecurso({ acao: 'lembrete_fiado', conversa_id: convId });
+      });
+    }
+    if (recursosWa.feat_lista_espera) {
+      add('Anotar espera', function () {
+        var prod = window.prompt('Qual produto ficou em espera?', '');
+        if (!prod) return;
+        postRecurso({ acao: 'espera_marcar', conversa_id: convId, produto: prod });
+      });
+      add('Avisar que chegou', function () {
+        var prod = window.prompt('Qual produto chegou?', '');
+        if (!prod) return;
+        postRecurso({ acao: 'espera_avisar', conversa_id: convId, produto: prod });
+      });
+    }
+    if (recursosWa.feat_entrega_status) {
+      add('Saiu', function () {
+        postRecurso({ acao: 'entrega', conversa_id: convId, status: 'saiu', nome: convNome });
+      });
+      add('A caminho', function () {
+        postRecurso({ acao: 'entrega', conversa_id: convId, status: 'caminho', nome: convNome });
+      });
+      add('Chegou', function () {
+        postRecurso({ acao: 'entrega', conversa_id: convId, status: 'chegou', nome: convNome });
+      });
+    }
+    if (recursosWa.feat_comprovante_venda) {
+      add('Comprovante', function () {
+        var venda = window.prompt('Número da venda', '');
+        if (!venda) return;
+        var total = window.prompt('Total', '') || '';
+        postRecurso({
+          acao: 'comprovante',
+          conversa_id: convId,
+          venda: venda,
+          total: total,
+          nome: convNome,
+        });
+      });
+    }
+    if (!itens.length) {
+      box.classList.add('hidden');
+      box.innerHTML = '';
+      return;
+    }
+    box.classList.remove('hidden');
+    box.innerHTML = '';
+    itens.forEach(function (it) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'wa-act';
+      b.textContent = it.rotulo;
+      b.addEventListener('click', it.fn);
+      box.appendChild(b);
     });
   }
 
@@ -1420,6 +1516,8 @@
     convFoto = (item && item.getAttribute('data-foto')) || '';
     convMsgRev = Number((item && item.getAttribute('data-msg-rev')) || 0) || 0;
     setDigitando(!!(item && item.getAttribute('data-digitando') === '1'));
+    convVip = !!(item && item.getAttribute('data-vip') === '1');
+    pintarAcoesRecurso();
     limparReply();
     var nomeEl = $('wa-topo-nome');
     if (nomeEl) nomeEl.textContent = convNome;

@@ -76,6 +76,8 @@ BOT_DEFAULT: dict = {
     "loja2_id": "vila",
     "loja2_rotulo": "Vila Elias",
     "loja2_palavras": "2, vila, vila elias, loja vila, v",
+    "zap_tel_centro": "",
+    "zap_tel_vila": "",
     "msg_ok_loja2": "Certo! Você está falando com a loja da *Vila Elias*. Em breve alguém atende por aqui.",
     "fiado_ligado": True,
     "fiado_palavras": (
