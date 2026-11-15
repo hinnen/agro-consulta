@@ -4,7 +4,7 @@ Detalhe do Zap. A leitura de todo chat é o **`Zap.md`** (roteiro). Este arquivo
 
 Vale no Cursor da nuvem e no Cursor instalado. Renan chama o detalhe com `@Zap-documentacao`. Ao fechar o assunto, atualizar este arquivo sem perguntar se mudou algo que precisa continuar valendo.
 
-Atualizado **14/11/2026**.
+Atualizado **15/11/2026**.
 
 ## O que é
 
@@ -74,6 +74,14 @@ O que fica: Resolvidas só dentro do nosso Zap. Não aplica o jeito da Meta. Nã
 ## Git
 
 O Zap usa **uma** branch: `whatsapp`. Não abrir branch com nome estranho (`cursor/...`). `teste` e `producao` são da loja — não misturar.
+
+## Windows deste PC (energia / desligar)
+
+Aplicado **15/11/2026** no **PC2-Centro** (não é código do Zap; fica no Windows):
+
+- Tela de bloqueio / login: **sem** botão Desligar (`ShutdownWithoutLogon = 0`).
+- Botão físico do gabinete: toque curto = **nada** (em todos os planos de energia). Segurar vários segundos ainda desliga na força (hardware).
+- Bloqueio da tela **continua** ligado (não desativamos).
 
 ## Cuidado
 
