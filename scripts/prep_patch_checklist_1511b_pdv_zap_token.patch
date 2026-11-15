@@ -1,0 +1,13 @@
+diff --git a/produtos/views_atendimento_whatsapp.py b/produtos/views_atendimento_whatsapp.py
+--- a/produtos/views_atendimento_whatsapp.py	2026-11-15 20:02:30.639850038 +0000
++++ b/produtos/views_atendimento_whatsapp.py	2026-11-15 20:02:30.735850824 +0000
+@@ -1034,6 +1034,9 @@
+     if not texto:
+         return JsonResponse({"ok": False, "erro": "Texto do orçamento vazio."}, status=400)
+     token = (getattr(settings, "AGRO_WA_BRIDGE_TOKEN", "") or "").strip()
++    # A loja guarda outra chave. Este Zap aceita a mesma do SistApp.
++    if "zapsistvale.online" in _ZAP_ORCAMENTO_URL:
++        token = "gm-agro-wa-ponte-local"
+     if not token:
+         return JsonResponse({"ok": False, "erro": "Ligação do Zap sem chave."}, status=503)
+     autor = ""

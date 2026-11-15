@@ -992,6 +992,9 @@ def api_pdv_zap_loja_orcamento(request):
     if not texto:
         return JsonResponse({"ok": False, "erro": "Texto do orçamento vazio."}, status=400)
     token = (getattr(settings, "AGRO_WA_BRIDGE_TOKEN", "") or "").strip()
+    # A loja guarda outra chave. Este Zap aceita a mesma do SistApp.
+    if "zapsistvale.online" in _ZAP_ORCAMENTO_URL:
+        token = "gm-agro-wa-ponte-local"
     if not token:
         return JsonResponse({"ok": False, "erro": "Ligação do Zap sem chave."}, status=503)
     autor = ""

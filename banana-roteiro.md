@@ -4,7 +4,9 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
-**Loja (15/11):** **PDV-ZAP-ORCAMENTO** enviada · **v27.26.72** @ `fcad7061`. Botão **Loja** encaminha o orçamento para o Zap. Sem migrate. Até o build, no ar segue **v27.26.71** @ `fba12fa1`. Volta: `git push origin fba12fa1a3ea1e2829fe951bb0c793885d8c2d63:producao`.
+**Checklist único (15/11b):** **PDV-ZAP-TOKEN** — 🟢 corte armado, **ainda sem enviar**. A v27.26.72 chega no Zap e ele responde «Ponte não autorizada». A chave passa a ser a mesma do SistApp. Sem migrate. Base `fcad7061` (v27.26.72). Na senha: `./scripts/cutover_loja_checklist_1511b_pdv_zap_token.sh --exec`. Volta: `git push origin fcad7061de0c3594df1b8b66a8453da68e6fb0f4:producao`.
+
+**Loja (15/11):** **PDV-ZAP-ORCAMENTO** enviada · **v27.26.72** @ `fcad7061`. Botão **Loja** encaminha o orçamento para o Zap. Sem migrate. Volta: `git push origin fba12fa1a3ea1e2829fe951bb0c793885d8c2d63:producao`.
 
 **Checklist único (13/11i):** **CAMERA-ABRE-RAPIDO** — 🟢 corte armado, **ainda sem enviar**. A imagem aparece primeiro. A nitidez entra depois. Leitura igual. Sem migrate. Base `edb926e2`. Na senha: `./scripts/cutover_loja_checklist_1311i.sh --exec`. Volta: `git push origin edb926e23f6ccabda70cfe7e5c3d18caa3cee4b5:producao`.
 

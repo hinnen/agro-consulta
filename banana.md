@@ -1694,6 +1694,17 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 PDV-ZAP-TOKEN — **15/11** · pronto para envio · **v27.26.73**
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | A v27.26.72 chega no Zap e aparece «Ponte não autorizada». A chave fica a mesma do SistApp, só no servidor |
+| **Base** | `producao` @ `fcad7061` · **v27.26.72** |
+| **Migrate** | **NÃO** |
+| **Na senha** | `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → `./scripts/cutover_loja_checklist_1511b_pdv_zap_token.sh --exec` |
+| **Volta** | `git push origin fcad7061de0c3594df1b8b66a8453da68e6fb0f4:producao` |
+| **Loja** | ainda não subiu |
+
 ### ✅ PDV-ZAP-ORCAMENTO — **15/11** · enviado · **v27.26.72**
 
 | Campo | Valor |
