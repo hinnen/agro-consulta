@@ -50,6 +50,51 @@ def pdv_app_manifest(_request):
     return resp
 
 
+def gestao_app_manifest(_request):
+    """Manifesto do app instalado da Gestão. Mesmo esquema do PDV, outro desenho."""
+
+    def icone(tamanho):
+        return {
+            "src": f"/static/produtos/pwa/gestao-app-{tamanho}.png",
+            "sizes": f"{tamanho}x{tamanho}",
+            "type": "image/png",
+            "purpose": "any",
+        }
+
+    payload = {
+        "id": "/dashboard/gerencial/",
+        "name": "SisVale Gestão",
+        "short_name": "Gestão",
+        "description": "SisVale — gestão da loja",
+        "start_url": "/dashboard/gerencial/",
+        "scope": "/",
+        "display": "standalone",
+        "display_override": ["standalone", "minimal-ui", "browser"],
+        "orientation": "any",
+        "lang": "pt-BR",
+        "dir": "ltr",
+        "background_color": "#ffffff",
+        "theme_color": "#0f172a",
+        "icons": [icone(n) for n in (32, 48, 192, 512)],
+    }
+    resp = JsonResponse(payload)
+    resp["Content-Type"] = "application/manifest+json"
+    resp["Cache-Control"] = "public, max-age=86400"
+    return resp
+
+
+def gestao_favicon(_request):
+    """Ícone que o Chrome pede na Gestão. O /favicon.ico continua sendo o do PDV."""
+    from pathlib import Path
+
+    data = (
+        Path(__file__).resolve().parent.parent / "produtos/static/produtos/pwa/gestao-app.ico"
+    ).read_bytes()
+    resp = HttpResponse(data, content_type="image/x-icon")
+    resp["Cache-Control"] = "public, max-age=3600"
+    return resp
+
+
 def pdv_favicon(_request):
     """O Chrome pede /favicon.ico sozinho. Sem isso, desenha a letra S."""
     from pathlib import Path
@@ -91,6 +136,8 @@ def admin_login_redirect(request):
 urlpatterns = [
     path("healthz", healthz, name="healthz"),
     path("favicon.ico", pdv_favicon, name="pdv_favicon"),
+    path("gestao-favicon.ico", gestao_favicon, name="gestao_favicon"),
+    path("gestao.webmanifest", gestao_app_manifest, name="gestao_app_manifest"),
     path("manifest.webmanifest", pdv_app_manifest, name="pdv_app_manifest"),
     path("sw.js", pdv_app_sw, name="pdv_app_sw"),
     path("api/financeiro/", include("financeiro.api.urls")),
