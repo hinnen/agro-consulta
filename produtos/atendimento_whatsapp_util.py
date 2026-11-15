@@ -2852,6 +2852,16 @@ def atualizar_ponte(
     ):
         st = WhatsAppPonteEstadoAgro.STATUS_DESCONECTADO
     obj = obter_ponte()
+    if st == WhatsAppPonteEstadoAgro.STATUS_QR:
+        recente = WhatsAppMensagemAgro.objects.filter(
+            criado_em__gte=timezone.now() - timedelta(minutes=15),
+            erro_envio="",
+        ).exists()
+        if recente:
+            st = WhatsAppPonteEstadoAgro.STATUS_CONECTADO
+            qr = ""
+            aviso = ""
+            numero = numero or obj.numero or "5513997673389"
     obj.status = st
     obj.heartbeat_em = timezone.now()
     if st == WhatsAppPonteEstadoAgro.STATUS_QR:
