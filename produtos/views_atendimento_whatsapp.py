@@ -975,58 +975,71 @@ def api_atendimento_whatsapp_bridge_orcamento(request):
     return JsonResponse({"ok": True, "conversa_id": cid})
 
 
+_ZAP_ORCAMENTO_URL = "https://zap.zapsistvale.online/api/atendimento-whatsapp/bridge/orcamento/"
+
+
 @acesso_zap
 @require_POST
 def api_pdv_zap_loja_orcamento(request):
-    """Botão Loja do PDV. Encaminha ao Zap separado. Se ele não responder, grava aqui."""
+    """Botão Loja do PDV. O navegador fala com a loja; a loja encaminha ao Zap. O token não sai daqui."""
     import urllib.error
     import urllib.request
 
     from django.conf import settings
 
-    from produtos.agro_wa_origin_util import agro_wa_public_origin
-
     data = _json_body(request) or {}
+    texto = str(data.get("texto") or "").strip()
+    if not texto:
+        return JsonResponse({"ok": False, "erro": "Texto do orçamento vazio."}, status=400)
+    token = (getattr(settings, "AGRO_WA_BRIDGE_TOKEN", "") or "").strip()
+    if not token:
+        return JsonResponse({"ok": False, "erro": "Ligação do Zap sem chave."}, status=503)
     autor = ""
     user = getattr(request, "user", None)
     if user is not None and getattr(user, "is_authenticated", False):
         autor = (getattr(user, "get_full_name", lambda: "")() or getattr(user, "username", "") or "")[:120]
-    payload = dict(data)
-    payload["autor"] = autor or "Loja"
-    origin = agro_wa_public_origin() or "https://agro-consulta-wa.onrender.com"
-    token = (getattr(settings, "AGRO_WA_BRIDGE_TOKEN", "") or "").strip()
+    payload = {
+        "telefone": str(data.get("telefone") or "").strip(),
+        "nome": str(data.get("nome") or "").strip(),
+        "texto": texto,
+        "autor": autor or "Loja",
+    }
     raw = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(
-        origin.rstrip("/") + "/api/atendimento-whatsapp/bridge/orcamento/",
+        _ZAP_ORCAMENTO_URL,
         data=raw,
         headers={
-            "Content-Type": "application/json",
+            "Content-Type": "application/json; charset=utf-8",
             "X-Agro-Wa-Token": token,
+            "User-Agent": "Sistvale-Loja",
         },
         method="POST",
     )
     try:
         with urllib.request.urlopen(req, timeout=20) as resp:
             body = resp.read().decode("utf-8", errors="replace")
-        parsed = json.loads(body)
-        if isinstance(parsed, dict) and parsed.get("ok"):
-            return JsonResponse(parsed)
-        if isinstance(parsed, dict) and parsed.get("erro"):
-            return JsonResponse(parsed, status=400)
+            status = int(getattr(resp, "status", 200) or 200)
     except urllib.error.HTTPError as exc:
-        if exc.code not in (404, 502, 503):
-            try:
-                parsed = json.loads(exc.read().decode("utf-8", errors="replace"))
-                if isinstance(parsed, dict) and parsed.get("erro"):
-                    return JsonResponse(parsed, status=400)
-            except Exception:
-                pass
+        body = exc.read().decode("utf-8", errors="replace")
+        status = int(exc.code or 502)
     except Exception:
-        pass
-    ok, err, cid = _orcamento_zap_loja(payload, autor or "Loja")
-    if not ok:
-        return JsonResponse({"ok": False, "erro": err}, status=400)
-    return JsonResponse({"ok": True, "conversa_id": cid, "local": True})
+        return JsonResponse({"ok": False, "erro": "Não alcançou o Zap."}, status=502)
+    try:
+        parsed = json.loads(body)
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "O Zap não respondeu."}, status=502)
+    if isinstance(parsed, dict) and parsed.get("ok"):
+        out = {"ok": True}
+        if parsed.get("conversa_id"):
+            out["conversa_id"] = parsed.get("conversa_id")
+        return JsonResponse(out)
+    erro = ""
+    if isinstance(parsed, dict):
+        erro = str(parsed.get("erro") or "").strip()
+    return JsonResponse(
+        {"ok": False, "erro": erro or "Não enviou pelo Zap da loja."},
+        status=400 if status < 500 else 502,
+    )
 
 
 @acesso_zap

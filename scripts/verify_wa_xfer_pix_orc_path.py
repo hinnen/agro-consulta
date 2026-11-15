@@ -94,8 +94,17 @@ def test_arquivos() -> None:
     check("pdv_btn_celular", 'id="pdv-step1-enviar-whatsapp"' in step and ">Celular<" in step.replace(" ", ""))
     check("pdv_btn_loja", 'id="pdv-step1-enviar-whatsapp-loja"' in step)
     check("pdv_row_grid", "pdv-step1-enviar-whatsapp-row" in step and "grid-cols-2" in step)
+    loja_fn = pdv_js.split("function enviarOrcamentoWhatsappLojaWizard", 1)[-1][:1800]
     check("pdv_js_loja_fn", "function enviarOrcamentoWhatsappLojaWizard" in pdv_js)
-    check("pdv_js_recurso_acao", "recurso-acao" in pdv_js and "acao: 'orcamento'" in pdv_js.replace('"', "'"))
+    check(
+        "pdv_js_zap_loja",
+        "/api/pdv/zap-loja/orcamento/" in loja_fn and "recurso-acao" not in loja_fn,
+    )
+    check(
+        "views_zap_bridge",
+        "https://zap.zapsistvale.online/api/atendimento-whatsapp/bridge/orcamento/" in views
+        and "X-Agro-Wa-Token" in views,
+    )
     check("views_orcamento_tel", 'acao == "orcamento"' in views and "abrir_conversa_busca" in views)
     check("views_orcamento_flag", "feat_orcamento_zap" in views)
 

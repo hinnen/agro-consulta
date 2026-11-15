@@ -1694,6 +1694,15 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 PDV-ZAP-ORCAMENTO — **15/11** · teste · sem loja
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Botão **Loja** do orçamento encaminha para `https://zap.zapsistvale.online/api/atendimento-whatsapp/bridge/orcamento/`. Token só no servidor. Sem envio pelo site da loja |
+| **Migrate** | **NÃO** |
+| **Prova** | PDV → cliente → **Loja**. Recurso **Orçamento no Zap** ligado no Zap. Ctrl+F5 |
+| **Loja** | não subiu |
+
 ### ✅ GESTAO-APP-ICONE — **15/11** · enviado · **v27.26.70**
 
 | Campo | Valor |
