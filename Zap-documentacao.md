@@ -60,7 +60,16 @@ Marcar várias: a barra fica na coluna da lista, escura, e a conversa marcada fi
 
 Na lista, última mensagem **enviada** mostra o tracinho (um = foi, dois = lida). Resposta pelo celular ou pelo Zap **zera** o número verde. Conversa antiga só ganha o tracinho na próxima mensagem.
 
-Ainda **não** é confiável nos dois sentidos (Zap ↔ WhatsApp Web/celular). Em 12/11 ~09:37 o log mostrou `[ARCHIVE MUTATION]` e o banco marcou Resolvidas, mas a conversa **continuou na lista** do celular e do WhatsApp Web. O aviso foi só interno. Não aplicar os snippets da Meta.
+Arquivar no celular e no WhatsApp Web **não entra** no nosso Zap, e o contrário também não. Encerrado em 15/11/2026. Não tentar de novo com a loja no ar.
+
+O que já foi feito, e não adiantou:
+
+- 12/11: o Zap marcou Resolvidas e o log mostrou o aviso. A conversa continuou na lista do celular e do WhatsApp Web.
+- 15/11, no Zap Teste, com o celular pessoal: mandou o arquivamento com a mensagem de verdade da conversa da loja. O celular não moveu.
+- Puxar a lista de arquivados do celular encheu o banco. Os dois Zaps ficaram off. O teste mostrou erro de banco e o link deu 502.
+- Ligar o teste na mesma lista da loja fez a loja pedir QR, mesmo com a mensagem ainda saindo.
+
+O que fica: Resolvidas só dentro do nosso Zap. Não aplica o jeito da Meta. Não religar o Zap Teste enquanto a loja estiver usando.
 
 ## Git
 

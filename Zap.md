@@ -56,7 +56,7 @@ Já está no ar. O Renan viu e fechou o assunto por agora. Depois mexe de novo.
 
 Nada pendente deste pacote. A loja (`producao`) não entrou.
 
-Arquivar entre aparelhos: **parado** (15/11). O teste puxou arquivo demais, encheu o banco e os dois Zaps ficaram off. Teste desligado. Não religar com a loja no ar. A loja voltou sem QR.
+Arquivar entre aparelhos: **encerrado** (15/11). Não tentar de novo com a loja no ar. O teste foi desligado. Detalhe em `Zap-documentacao.md`, «Arquivar entre aparelhos».
 
 ## Resumo (basta no chat comum)
 
