@@ -59,7 +59,7 @@ Nada pendente deste pacote. A loja (`producao`) não entrou.
 
 Arquivar entre aparelhos: **encerrado** (15/11). Não tentar de novo com a loja no ar. O teste foi desligado. Detalhe em `Zap-documentacao.md`, «Arquivar entre aparelhos».
 
-15/11: alteração de PIN e de tela do celular foi desfeita no Zap em uso. O teste está no ar, separado, sem o celular da loja: `https://households-gibson-outdoors-drill.trycloudflare.com` — entrar `renan` / `zapteste`. Computador em `/atendimento-whatsapp/`. Celular em `/atendimento-whatsapp/celular/`. Só replica com frase + senha.
+15/11: alteração de PIN e de tela do celular foi desfeita no Zap em uso. O teste está no ar, separado, sem o celular da loja: `https://importance-supreme-water-starring.trycloudflare.com` — entrar `renan` / `zapteste`. Computador em `/atendimento-whatsapp/`. Celular em `/atendimento-whatsapp/celular/`. Só replica com frase + senha.
 
 ## Resumo (basta no chat comum)
 
