@@ -1,6 +1,6 @@
 # PREP 15/11 — orçamento do botão Loja vai para o Zap · v27.26.72
 
-Ainda **não** foi para a loja.
+Enviado. Loja **v27.26.72** @ `fcad7061`. Até o build terminar, no ar segue a v27.26.71.
 
 | | |
 | - | - |

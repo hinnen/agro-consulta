@@ -1694,17 +1694,16 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PDV-ZAP-ORCAMENTO — **15/11** · pronto para envio · **v27.26.72**
+### ✅ PDV-ZAP-ORCAMENTO — **15/11** · enviado · **v27.26.72**
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Botão **Loja** encaminha o orçamento para o Zap. Token só no servidor. Venda, caixa e **Celular** iguais |
-| **Base** | `producao` @ `fba12fa1` · **v27.26.71** |
+| **Git** | `producao` @ `fcad7061` |
 | **Migrate** | **NÃO** |
-| **Na senha** | `./scripts/prep_checkpoint_checklist_1511_pdv_zap_orcamento.sh` e depois `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → `./scripts/cutover_loja_checklist_1511_pdv_zap_orcamento.sh --exec` |
+| **Até o build** | no ar segue **v27.26.71** @ `fba12fa1` |
 | **Volta** | `git push origin fba12fa1a3ea1e2829fe951bb0c793885d8c2d63:producao` |
-| **Depois** | Ctrl+F5 · **Orçamento no Zap** ligado em Bot → Recursos |
-| **Loja** | ainda não subiu |
+| **Você** | Ctrl+F5 no PDV. No Zap, Bot → Recursos, **Orçamento no Zap** ligado |
 
 ### ✅ GESTAO-APP-ICONE — **15/11** · enviado · **v27.26.70**
 
