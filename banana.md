@@ -1702,7 +1702,7 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 | **Git** | `producao` @ `47e5da7a` |
 | **Migrate** | **NÃO** |
 | **Volta** | `git push origin aac1063c:producao` → **v27.26.69** |
-| **Você** | Quando o badge mostrar **v27.26.70**, na Gestão: Ctrl+F5, cancele e instale de novo |
+| **Você** | Na **v27.26.71** a Gestão deixa de usar o desenho do PDV. Ctrl+F5 na Gestão, cancele e instale de novo |
 
 ### ✅ PDV-APP-ICONE — **15/11** · enviado · **v27.26.67**
 
