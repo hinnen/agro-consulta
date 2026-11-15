@@ -56,7 +56,7 @@ Já está no ar. O Renan viu e fechou o assunto por agora. Depois mexe de novo.
 
 Nada pendente deste pacote. A loja (`producao`) não entrou.
 
-Arquivar entre aparelhos: nova tentativa só na branch `zap-teste`, ainda **desligada**. O teste usa a mesma lista de conversas da loja. Não ligar enquanto as lojas estiverem no Zap, senão o celular pessoal aparece nessa lista.
+Arquivar entre aparelhos: tentativa do teste **desligada** (15/11). Ligar o teste derrubou o Zap da loja. Não ligar de novo com a loja no ar. A loja precisa ler o QR de novo no endereço de sempre.
 
 ## Resumo (basta no chat comum)
 
