@@ -1703,7 +1703,7 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 | **Migrate** | **NÃO** |
 | **Até o build** | no ar segue **v27.26.66** @ `edb926e2` |
 | **Volta** | `git push origin edb926e2:producao` |
-| **Você** | Quando o badge mostrar **v27.26.67**, desinstale o app antigo e instale de novo |
+| **Você** | A letra **S** era o Chrome sem ícone pequeno. Quando o badge mostrar **v27.26.68**, atualize a página (Ctrl+F5), cancele a instalação e instale de novo |
 
 ### 🟢 PACOTE PRONTO / CHECKLIST — **09/11** · **NF-FORN-UNIF-AGRO** · **v27.26.54** · pronto para envio
 
