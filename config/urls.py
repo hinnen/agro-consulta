@@ -12,8 +12,14 @@ def healthz(_request):
 
 def pdv_app_manifest(_request):
     """Manifesto do app instalado do PDV. Igual ao do Zap: PNG novo, sem endereço do PC."""
-    icon_192 = "/static/produtos/pwa/pdv-app-192.png"
-    icon_512 = "/static/produtos/pwa/pdv-app-512.png"
+    def icone(tamanho):
+        return {
+            "src": f"/static/produtos/pwa/pdv-app-{tamanho}.png",
+            "sizes": f"{tamanho}x{tamanho}",
+            "type": "image/png",
+            "purpose": "any",
+        }
+
     payload = {
         "id": "/",
         "name": "SisVale PDV",
@@ -28,10 +34,14 @@ def pdv_app_manifest(_request):
         "dir": "ltr",
         "background_color": "#0f172a",
         "theme_color": "#0f172a",
-        "icons": [
-            {"src": icon_192, "sizes": "192x192", "type": "image/png", "purpose": "any"},
-            {"src": icon_512, "sizes": "512x512", "type": "image/png", "purpose": "any"},
-            {"src": icon_512, "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+        "icons": [icone(n) for n in (32, 48, 192, 512)]
+        + [
+            {
+                "src": "/static/produtos/pwa/pdv-app-512.png",
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "maskable",
+            }
         ],
     }
     resp = JsonResponse(payload)
