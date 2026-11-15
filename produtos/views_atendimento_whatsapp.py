@@ -158,8 +158,9 @@ def api_pdv_zap_entrada(request):
 
 
 def _wa_pwa_icons(request):
-    icon_192 = request.build_absolute_uri("/static/produtos/pwa/zap-loja-192.png?v=s1")
-    icon_512 = request.build_absolute_uri("/static/produtos/pwa/zap-loja-512.png?v=s1")
+    # Caminho relativo: na ponte o pedido chega como 127.0.0.1 e o outro PC não abre esse endereço.
+    icon_192 = "/static/produtos/pwa/zap-loja-192.png?v=s2"
+    icon_512 = "/static/produtos/pwa/zap-loja-512.png?v=s2"
     return [
         {"src": icon_192, "sizes": "192x192", "type": "image/png", "purpose": "any"},
         {"src": icon_512, "sizes": "512x512", "type": "image/png", "purpose": "any"},
