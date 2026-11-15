@@ -172,7 +172,10 @@ def _wa_pwa_sw_js() -> str:
     return (
         "self.addEventListener('install',function(e){self.skipWaiting();});\n"
         "self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});\n"
-        "self.addEventListener('fetch',function(){});\n"
+        "self.addEventListener('fetch',function(e){"
+        "if(e.request.destination==='image')return;"
+        "e.respondWith(fetch(e.request));"
+        "});\n"
     )
 
 
@@ -195,11 +198,11 @@ def atendimento_whatsapp_pc_manifest(request):
         for tam in (48, 96, 144, 192, 256, 512)
     ]
     payload = {
-        "id": "/atendimento-whatsapp/?icone=pc",
+        "id": "/atendimento-whatsapp/",
         "name": "Zap loja",
         "short_name": "Zap loja",
         "description": "SisVale WhatsApp — atendimento Centro e Vila (computador)",
-        "start_url": "/atendimento-whatsapp/?icone=pc",
+        "start_url": "/atendimento-whatsapp/",
         "scope": "/atendimento-whatsapp/",
         "display": "standalone",
         "display_override": ["standalone", "minimal-ui", "browser"],

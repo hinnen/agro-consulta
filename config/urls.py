@@ -1,8 +1,18 @@
+from pathlib import Path
+
 from django.contrib import admin
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import path, include
 from estoque import views as estoque_views
+
+
+def favicon(_request):
+    """O Windows pede este endereço ao criar o atalho. Sem ele, vira a letra."""
+    arq = Path(__file__).resolve().parent.parent / "produtos" / "static" / "produtos" / "pwa" / "zap-pc.ico"
+    resp = HttpResponse(arq.read_bytes(), content_type="image/x-icon")
+    resp["Cache-Control"] = "public, max-age=86400"
+    return resp
 
 
 def healthz(_request):
@@ -19,6 +29,7 @@ def admin_login_redirect(request):
 
 
 urlpatterns = [
+    path("favicon.ico", favicon, name="favicon"),
     path("healthz", healthz, name="healthz"),
     path("api/financeiro/", include("financeiro.api.urls")),
     path("financeiro/", include("financeiro.urls")),
