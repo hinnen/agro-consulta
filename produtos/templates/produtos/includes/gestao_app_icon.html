@@ -1,0 +1,12 @@
+{# App instalado da Gestão. O /favicon.ico fica com o PDV. #}
+<link rel="manifest" href="/gestao.webmanifest">
+<link rel="icon" type="image/x-icon" href="/gestao-favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/produtos/pwa/gestao-app-32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="/static/produtos/pwa/gestao-app-48.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/static/produtos/pwa/gestao-app-192.png">
+<link rel="apple-touch-icon" href="/static/produtos/pwa/gestao-app-192.png">
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(function () {});
+}
+</script>

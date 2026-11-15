@@ -1694,6 +1694,13 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 GESTAO-APP-ICONE — **15/11** · no `teste` · ainda não foi para a loja
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Ícone do app Gestão, no mesmo esquema do PDV. O desenho da Gestão não mexe no do PDV |
+| **Loja** | Só sobe com frase + senha |
+
 ### ✅ PDV-APP-ICONE — **15/11** · enviado · **v27.26.67**
 
 | Campo | Valor |
