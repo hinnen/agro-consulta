@@ -56,6 +56,8 @@ Já está no ar. O Renan viu e fechou o assunto por agora. Depois mexe de novo.
 
 Nada pendente deste pacote. A loja (`producao`) não entrou.
 
+Arquivar entre aparelhos: nova tentativa só na branch `zap-teste`, ainda **desligada**. O teste usa a mesma lista de conversas da loja. Não ligar enquanto as lojas estiverem no Zap, senão o celular pessoal aparece nessa lista.
+
 ## Resumo (basta no chat comum)
 
 - Zap das lojas roda **neste PC** (PC2-Centro), não no Render. Endereço: `https://zap.zapsistvale.online`.
