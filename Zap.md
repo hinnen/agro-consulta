@@ -58,6 +58,8 @@ Nada pendente deste pacote. A loja (`producao`) não entrou.
 
 Arquivar entre aparelhos: **encerrado** (15/11). Não tentar de novo com a loja no ar. O teste foi desligado. Detalhe em `Zap-documentacao.md`, «Arquivar entre aparelhos».
 
+PIN (15/11): depois de uns segundos parado, o envio pede o PIN e a janela do teclado abre. Dá F5 no Zap. Pendente: os 3 Zaps parecem versões diferentes. O do computador (botão do PDV) pode ser diferente dos 2 de celular. Os 2 de celular deveriam ser iguais.
+
 ## Resumo (basta no chat comum)
 
 - Zap das lojas roda **neste PC** (PC2-Centro), não no Render. Endereço: `https://zap.zapsistvale.online`.
@@ -65,8 +67,8 @@ Arquivar entre aparelhos: **encerrado** (15/11). Não tentar de novo com a loja 
 - Cópia de tudo, todo dia 21h, no OneDrive `Zap-copia`.
 - Git só guarda o programa, na branch `whatsapp`.
 - Ao ligar o Windows sobe sozinho. Túnel só depois do Zap responder. Duas pontes juntas derrubam o envio.
-- Login: `renan` e `agromais`, em `/entrar/`. Sem PIN fresco não atende. PIN vale 45 segundos.
-- Arquivar entre Zap e celular **ainda falha** nos dois sentidos. Não usar o jeito da Meta.
+- Login: `renan` e `agromais`, em `/entrar/`. Sem PIN fresco não atende. PIN vale 45 segundos. Se o envio pedir PIN, a janela do teclado abre e a mensagem segue depois do PIN.
+- Arquivar entre aparelhos: encerrado. Não tentar de novo com a loja no ar.
 - Loja (`producao` / `teste`) é outro sistema.
 
 ## 1. Todo chat de Zap
