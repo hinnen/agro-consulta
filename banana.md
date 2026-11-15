@@ -1694,16 +1694,16 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 PDV-ZAP-AVISO — **15/11** · pronto para envio · **v27.26.74**
+### ✅ PDV-ZAP-AVISO — **15/11** · enviado · **v27.26.74**
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | O envio já ia. A tela não avisava. Agora abre a janela verde «Orçamento enviado no Zap da loja» e **Entendi** |
-| **Base** | `producao` @ `b25069cf` · **v27.26.73** |
+| **O quê** | Janela verde «Orçamento enviado no Zap da loja» com **Entendi** |
+| **Git** | `producao` @ `b102a9ca` |
 | **Migrate** | **NÃO** |
-| **Na senha** | `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → `./scripts/cutover_loja_checklist_1511c_pdv_zap_aviso.sh --exec` |
+| **Até o build** | no ar segue **v27.26.73** @ `b25069cf` |
 | **Volta** | `git push origin b25069cfbd01f37fe580d0e48e070f9dde057718:producao` |
-| **Loja** | ainda não subiu |
+| **Você** | Espere a **v27.26.74**. Ctrl+F5. Botão **Loja** de novo |
 
 ### ✅ PDV-ZAP-TOKEN — **15/11** · enviado · **v27.26.73**
 
