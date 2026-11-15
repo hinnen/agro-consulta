@@ -194,7 +194,7 @@ def atendimento_whatsapp_pc_icone(request, tam):
 def atendimento_whatsapp_pc_manifest(request):
     """Manifest PWA do Zap no PC (versão web — Chrome «Instalar app»)."""
     icons = [
-        {"src": f"/static/produtos/pwa/zap-pc-{tam}.png", "sizes": f"{tam}x{tam}", "type": "image/png", "purpose": "any"}
+        {"src": f"/static/produtos/pwa/zap-verde-{tam}.png", "sizes": f"{tam}x{tam}", "type": "image/png", "purpose": "any"}
         for tam in (48, 96, 144, 192, 256, 512)
     ]
     payload = {

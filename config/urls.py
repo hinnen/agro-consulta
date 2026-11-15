@@ -9,7 +9,7 @@ from estoque import views as estoque_views
 
 def favicon(_request):
     """O Windows pede este endereço ao criar o atalho. Sem ele, vira a letra."""
-    arq = Path(__file__).resolve().parent.parent / "produtos" / "static" / "produtos" / "pwa" / "zap-pc.ico"
+    arq = Path(__file__).resolve().parent.parent / "produtos" / "static" / "produtos" / "pwa" / "zap-verde.ico"
     resp = HttpResponse(arq.read_bytes(), content_type="image/x-icon")
     resp["Cache-Control"] = "public, max-age=86400"
     return resp
