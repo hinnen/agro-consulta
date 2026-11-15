@@ -41,13 +41,13 @@ urlpatterns = [
     path("", views.dashboard_gerencial_view, name="home"),
     path("atalhos/", views.home, name="home_atalhos"),
     path(
-        "atendimento-whatsapp/icone-192.png",
+        "atendimento-whatsapp/icone-s-192.png",
         views_atendimento_whatsapp.atendimento_whatsapp_pc_icone,
         {"tam": "192"},
         name="atendimento_whatsapp_pc_icone_192",
     ),
     path(
-        "atendimento-whatsapp/icone-512.png",
+        "atendimento-whatsapp/icone-s-512.png",
         views_atendimento_whatsapp.atendimento_whatsapp_pc_icone,
         {"tam": "512"},
         name="atendimento_whatsapp_pc_icone_512",

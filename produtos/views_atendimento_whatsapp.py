@@ -181,26 +181,25 @@ def _wa_pwa_sw_js() -> str:
 
 
 def atendimento_whatsapp_pc_icone(request, tam):
-    """Ícone dentro do endereço do Zap. O Windows ignora ícone fora desse endereço."""
+    """Ícone dentro do endereço do Zap. Sem transparência: o Windows troca por uma letra."""
     if tam not in ("192", "512"):
         raise Http404()
-    arq = Path(__file__).resolve().parent / "static" / "produtos" / "pwa" / f"zap-loja-{tam}.png"
+    arq = Path(__file__).resolve().parent / "static" / "produtos" / "pwa" / f"zap-loja-win-{tam}.png"
     if not arq.is_file():
         raise Http404()
-    resp = FileResponse(arq.open("rb"), content_type="image/png")
-    resp["Cache-Control"] = "public, max-age=3600"
+    resp = HttpResponse(arq.read_bytes(), content_type="image/png")
+    resp["Cache-Control"] = "no-store"
     return resp
 
 
 def atendimento_whatsapp_pc_manifest(request):
     """Manifest PWA do Zap no PC (versão web — Chrome «Instalar app»)."""
     icons = [
-        {"src": "icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
-        {"src": "icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
-        {"src": "icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+        {"src": "/atendimento-whatsapp/icone-s-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+        {"src": "/atendimento-whatsapp/icone-s-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
     ]
     payload = {
-        "id": "/atendimento-whatsapp/?icone=s",
+        "id": "/atendimento-whatsapp/?icone=s4",
         "name": "Zap loja",
         "short_name": "Zap loja",
         "description": "SisVale WhatsApp — atendimento Centro e Vila (computador)",
