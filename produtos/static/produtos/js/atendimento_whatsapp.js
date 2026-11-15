@@ -189,11 +189,7 @@
           })
           .then(function (j) {
             if (r.status === 403 && (!j || !j.ok)) {
-              return {
-                ok: false,
-                erro: (j && j.erro) || 'Sessão/CSRF — dê F5 e entre de novo.',
-                precisa_pin: !!(j && j.precisa_pin),
-              };
+              return { ok: false, erro: (j && j.erro) || 'Sessão/CSRF — dê F5 e entre de novo.' };
             }
             if (r.status >= 400 && j && j.ok == null) {
               return { ok: false, erro: (j && j.erro) || 'Erro ' + r.status };
@@ -1921,16 +1917,9 @@
         var tmp = document.querySelector('[data-msg-id="' + tempId + '"]');
         if (tmp) tmp.remove();
         if (!j || !j.ok) {
-          var pedePin = !!(j && j.precisa_pin);
-          if (!pedePin && window.gmSspinErroPedePin && window.gmSspinErroPedePin((j && j.erro) || '')) pedePin = true;
-          if (pedePin) {
+          if (j && j.precisa_pin) {
             try { localStorage.removeItem('gm_sspin_operador'); } catch (_) {}
             pintarOperadorPin();
-            if (window.gmSspinAbrirSeErroPin && window.gmSspinAbrirSeErroPin(j.erro || 'Digite o PIN para atender.', function () {
-              enviarPayload(payload, textoVolta);
-            }, { titulo: 'Digite o PIN para atender' })) {
-              return;
-            }
             trocarOperadorPin();
           }
           avisarEnvio((j && j.erro) || 'Não enviou.');

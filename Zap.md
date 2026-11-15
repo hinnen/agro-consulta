@@ -37,7 +37,7 @@ Atualizado **14/11/2026**.
 - Fala curta. Sem aula. Sem porquê técnico. Detalhe só se ele pedir.
 - Ele não lê tudo. 🔴🔴🔴 precisa responder. 🟠🟠🟠 precisa saber. 🟡🟡🟡 bom ler. Sem bolinha, ignora.
 - Um sistema no ar, uma branch (`whatsapp`). Teste fica na `zap-teste`, noutro endereço. QR de teste pode ser o pessoal. A loja não se mistura.
-- O que está no ar para a loja testar não muda sem frase clara + senha na mesma mensagem.
+- Os 3 Zaps em uso (aplicativo Zap Loja, Zap dentro do Sistvale e Zap do computador) são a versão final. Só mudam com a frase dele e a senha na mesma mensagem.
 - Ditado de voz sai torto às vezes. Se não bater, perguntar de novo.
 - O foco é o desktop. O que ele pede também vale no celular, cabendo na tela do telefone.
 
@@ -58,8 +58,7 @@ Nada pendente deste pacote. A loja (`producao`) não entrou.
 
 Arquivar entre aparelhos: **encerrado** (15/11). Não tentar de novo com a loja no ar. O teste foi desligado. Detalhe em `Zap-documentacao.md`, «Arquivar entre aparelhos».
 
-PIN (15/11): depois de uns segundos parado, o envio pede o PIN e a janela do teclado abre. Dá F5 no Zap.
-Celular certo (15/11): o de dentro do Sistvale. O aplicativo Zap Loja no telefone deve abrir essa mesma tela. O do computador (botão do PDV) o Renan já achou certo.
+15/11: alteração de PIN e de tela do celular foi desfeita. Entrou sem a senha. Os 3 Zaps em uso só mudam com frase + senha. Celular certo, quando autorizar: o de dentro do Sistvale. Computador o Renan já achou certo.
 
 ## Resumo (basta no chat comum)
 
@@ -68,7 +67,7 @@ Celular certo (15/11): o de dentro do Sistvale. O aplicativo Zap Loja no telefon
 - Cópia de tudo, todo dia 21h, no OneDrive `Zap-copia`.
 - Git só guarda o programa, na branch `whatsapp`.
 - Ao ligar o Windows sobe sozinho. Túnel só depois do Zap responder. Duas pontes juntas derrubam o envio.
-- Login: `renan` e `agromais`, em `/entrar/`. Sem PIN fresco não atende. PIN vale 45 segundos. Se o envio pedir PIN, a janela do teclado abre e a mensagem segue depois do PIN.
+- Login: `renan` e `agromais`, em `/entrar/`. Sem PIN fresco não atende. PIN vale 45 segundos.
 - Arquivar entre aparelhos: encerrado. Não tentar de novo com a loja no ar.
 - Loja (`producao` / `teste`) é outro sistema.
 
