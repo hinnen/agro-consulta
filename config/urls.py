@@ -95,15 +95,17 @@ def gestao_favicon(_request):
     return resp
 
 
-def pdv_favicon(_request):
-    """O Chrome pede /favicon.ico sozinho. Sem isso, desenha a letra S."""
+def pdv_favicon(request):
+    """O Chrome pede /favicon.ico sozinho. No balcão é o PDV. Nas outras telas é a Gestão."""
     from pathlib import Path
+    from urllib.parse import urlparse
 
-    data = (
-        Path(__file__).resolve().parent.parent / "produtos/static/produtos/pwa/pdv-app.ico"
-    ).read_bytes()
+    ref = urlparse(request.META.get("HTTP_REFERER") or "").path or ""
+    nome = "pdv-app.ico" if ref.startswith("/pdv") or ref.startswith("/consulta") else "gestao-app.ico"
+    data = (Path(__file__).resolve().parent.parent / "produtos/static/produtos/pwa" / nome).read_bytes()
     resp = HttpResponse(data, content_type="image/x-icon")
-    resp["Cache-Control"] = "public, max-age=3600"
+    resp["Cache-Control"] = "no-store"
+    resp["Vary"] = "Referer"
     return resp
 
 
