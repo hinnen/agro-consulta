@@ -1695,6 +1695,19 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 CHECKLIST ÚNICO — **13/11i** · **CAMERA-ABRE-RAPIDO** · pronto · ainda sem enviar
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | No SistApp, a câmera mostra a imagem na hora. A nitidez entra depois. A leitura continua igual. Ajuste, Fotos e Etiquetas |
+| **Base** | loja **v27.26.74** @ `b102a9ca` |
+| **Alvo** | **v27.26.75** |
+| **Migrate** | **NÃO** |
+| **Prova** | corte local armado em 16/11. O script para se a loja mudar. Não foi para `producao` |
+| **Na senha** | Lojas pausadas. `./scripts/cutover_loja_checklist_1311i.sh --exec` |
+| **Volta** | `git push origin b102a9cae0c05b2d8f0e441aff9fefa0b15eeb80:producao` |
+| **Fora** | Pulso, cartão do cliente e o resto do `teste` |
+
 ### PULSO-AVISO — **16/11** · no `teste` · ainda não é loja
 
 | Campo | Valor |

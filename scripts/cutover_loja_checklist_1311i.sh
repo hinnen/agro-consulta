@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Câmera abre na hora e a nitidez entra depois · v27.26.67
+# Câmera abre na hora e a nitidez entra depois · v27.26.75
+# Base atual da loja: v27.26.74 @ b102a9ca. Sem migrate. Não inclui o restante do teste.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
-PROD_ESPERADO="edb926e23f6ccabda70cfe7e5c3d18caa3cee4b5"
-VER="27.26.67"
+PROD_ESPERADO="b102a9cae0c05b2d8f0e441aff9fefa0b15eeb80"
+VER="27.26.75"
 SENHA_OK="99738595"
 WT="${TMPDIR:-/tmp}/agro-cutover-1311i-$$"
 git fetch origin producao
@@ -22,7 +23,7 @@ cp "$ROOT/scripts/prep_patch_checklist_1311i.patch" "$WT/scripts/"
 node --check "$WT/produtos/static/produtos/js/sistapp_camera_escolha.js"
 git -C "$WT" add -A
 git -C "$WT" -c user.email="$(git -C "$ROOT" config user.email)" -c user.name="$(git -C "$ROOT" config user.name)" \
-  commit -m "prep(loja): v27.26.67 câmera abre mais rápido"
+  commit -m "prep(loja): v27.26.75 câmera abre mais rápido"
 echo "OK: corte v$VER em cima de ${PROD:0:8} · sem migrate"
 echo "VOLTA: git push origin ${PROD}:producao"
 [[ "${1:-}" != "--exec" ]] && exit 0

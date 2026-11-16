@@ -10,7 +10,7 @@
 
 **Loja (15/11):** **PDV-ZAP-ORCAMENTO** enviada · **v27.26.72** @ `fcad7061`. Botão **Loja** encaminha o orçamento para o Zap. Sem migrate. Volta: `git push origin fba12fa1a3ea1e2829fe951bb0c793885d8c2d63:producao`.
 
-**Checklist único (13/11i):** **CAMERA-ABRE-RAPIDO** — 🟢 corte armado, **ainda sem enviar**. A imagem aparece primeiro. A nitidez entra depois. Leitura igual. Sem migrate. Base `edb926e2`. Na senha: `./scripts/cutover_loja_checklist_1311i.sh --exec`. Volta: `git push origin edb926e23f6ccabda70cfe7e5c3d18caa3cee4b5:producao`.
+**Checklist único (13/11i):** **CAMERA-ABRE-RAPIDO** — 🟢 corte rearmado em **16/11** sobre a loja **v27.26.74** @ `b102a9ca`, alvo **v27.26.75**. Ainda sem enviar. A imagem aparece primeiro. A nitidez entra depois. Leitura igual. Sem migrate. Na senha, com as lojas pausadas: `./scripts/cutover_loja_checklist_1311i.sh --exec`. Volta: `git push origin b102a9cae0c05b2d8f0e441aff9fefa0b15eeb80:producao`.
 
 **Loja (13/11h):** **ENTREGA-HORA-LOJA** + **SISTAPP-CAMERA-LOCAL** enviadas · **v27.26.66** @ `edb926e2`. Sem migrate. Até o build, no ar segue **v27.26.65** @ `3b9fc063`. Volta: `git push origin 3b9fc063612d72754a0ac3a657b68a78fdb56bba:producao`.
 
