@@ -1695,17 +1695,17 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### GM-VENDAS-BAND — **16/11** · 🟢 pronto para envio · só a API
+### GM-VENDAS-BAND — **16/11** · enviado · **v27.26.76**
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | `GET /api/gm-vendas-band/`. Só leitura do total de hoje. Sem token configurado a rota responde 503 e o resto da loja segue |
-| **Sobe** | Só o commit `ffe2568b` em cima de `a094cbcf`. A prova foi 4 testes locais. Sem venda real e sem relógio |
-| **Não sobe** | O resto do `teste` (1.791 commits). Sem migrate. Não religar o `agro-staging` |
-| **Versão** | Loja hoje **v27.26.75**. No envio, bump para **v27.26.76** |
-| **Token** | No serviço **Sistvale - Produção**, criar `GM_VENDAS_BAND_TOKEN` com 32 caracteres ou mais. Não gravar no Git |
+| **O quê** | `GET /api/gm-vendas-band/`. Só leitura do total de hoje |
+| **Git** | `producao` @ `f58903ed` |
+| **Migrate** | **NÃO** |
+| **Até o build** | no ar segue **v27.26.75** @ `a094cbcf` |
 | **Volta** | `git push origin a094cbcf:producao` |
-| **Você** | Pausar as vendas, frase + senha na mesma mensagem |
+| **Token** | `GM_VENDAS_BAND_TOKEN` no serviço da loja. Não está no Git |
+| **Fora** | O resto do `teste` |
 
 ### ✅ CHECKLIST ÚNICO — **16/11** · câmera + pulso · enviado · **v27.26.75**
 
