@@ -1,4 +1,5 @@
 from django.urls import include, path
+from . import api_gm_vendas_band
 
 from financeiro.views import (
     api_dashboard_financeiro_restrito,
@@ -35,6 +36,7 @@ from . import views_meta_vendas
 from . import views_gestao_logs
 
 urlpatterns = [
+    path('api/gm-vendas-band/', api_gm_vendas_band.api_gm_vendas_band, name='api_gm_vendas_band'),
     # --- PÁGINAS ---
     path("entrar/", views.agro_entrar, name="agro_entrar"),
     path("sair/", views.agro_sair, name="agro_sair"),
