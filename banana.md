@@ -1695,18 +1695,17 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 CHECKLIST ÚNICO — **16/11** · câmera + pulso · pronto · ainda sem enviar
+### ✅ CHECKLIST ÚNICO — **16/11** · câmera + pulso · enviado · **v27.26.75**
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Câmera do SistApp abre na hora. No painel de Vendas do celular, **Pulso** manda total de hoje, Centro, Vila Elias e a hora, a cada 5 min, só com a tela aberta. O PDV não muda |
-| **Base** | loja **v27.26.74** @ `b102a9ca` |
-| **Alvo** | **v27.26.75** |
+| **Git** | `producao` @ `a094cbcf` |
 | **Migrate** | **NÃO** |
-| **Prova** | corte local rearmado sem o cartão. O script para se a loja mudar. Não foi para `producao` |
-| **Na senha** | Lojas pausadas. `./scripts/cutover_loja_checklist_1611.sh --exec` |
+| **Até o build** | no ar segue **v27.26.74** @ `b102a9ca` |
 | **Volta** | `git push origin b102a9cae0c05b2d8f0e441aff9fefa0b15eeb80:producao` |
 | **Fora** | Cartão do cliente e o resto do `teste` |
+| **Você** | Espere a **v27.26.75**. Ctrl+F5 no SistApp. Vendas → **Pulso** |
 
 ### PULSO-AVISO — **16/11** · no `teste` · ainda não é loja
 
@@ -1714,7 +1713,7 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 | ----- | ----- |
 | **O quê** | No dashboard do SistApp, **Avisar no pulso** manda notificação: total de hoje, Centro, Vila Elias e hora. A cada 5 min, só com a tela aberta. Sem aplicativo na pulseira |
 | **Migrate** | **NÃO** |
-| **Loja** | Entrou no corte **16/11**, no painel de Vendas que o celular já abre. Ainda não foi enviado |
+| **Loja** | Enviado na **v27.26.75** @ `a094cbcf`. Painel de Vendas → **Pulso** |
 
 ### CARTÃO-CLIENTE — **16/11** · no `teste` · ainda não é loja
 
