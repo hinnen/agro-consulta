@@ -71,6 +71,8 @@ Depois de copiar: F5 no computador. Fechar e abrir o aplicativo e o Zap de dentr
 
 15/11, autorizado: recursos que estavam sem caminho foram para o Zap das lojas. A ponte não foi reiniciada. Para voltar: tag `zap-antes-recursos-2026-11-15`.
 
+16/11 de manhã: a ponte tinha caído por volta das 08:27. Foi religada. O número da loja voltou. O programa do Zap não mudou.
+
 ## Resumo (basta no chat comum)
 
 - Zap das lojas roda **neste PC** (PC2-Centro), não no Render. Endereço: `https://zap.zapsistvale.online`.
