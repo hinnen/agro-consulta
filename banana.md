@@ -1701,7 +1701,8 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 | ----- | ----- |
 | **O quê** | No dashboard do SistApp, **Avisar no pulso** manda notificação: total de hoje, Centro, Vila Elias e hora. A cada 5 min, só com a tela aberta. Sem aplicativo na pulseira |
 | **Migrate** | **NÃO** |
-| **Você** | Não sobe loja sem frase + senha. Teste no celular: SistApp → Dashboard → Opções → Avisar no pulso. A pulseira só mostra se o celular já manda aviso (Notify / Mi Fitness) |
+| **Loja** | **Não publicar.** O botão está na tela nova `/vendas/lojas/dashboard/`, que a loja não tem. A loja usa `/vendas/lojas/painel/`. Levar só esses arquivos não coloca o botão no SistApp do celular. Levar a tela nova inteira muda mais do que o aviso |
+| **Você** | Não sobe. O SistApp do celular continua sem o botão |
 
 ### CARTÃO-CLIENTE — **16/11** · no `teste` · ainda não é loja
 
