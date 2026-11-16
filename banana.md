@@ -1695,7 +1695,7 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 CHECKLIST ÚNICO — **16/11** · câmera + pulso + cartão · pronto · ainda sem enviar
+### 🟢 CHECKLIST ÚNICO — **16/11** · câmera + pulso · pronto · ainda sem enviar
 
 | Campo | Valor |
 | ----- | ----- |
