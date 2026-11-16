@@ -71,7 +71,9 @@ Depois de copiar: F5 no computador. Fechar e abrir o aplicativo e o Zap de dentr
 
 15/11, autorizado: recursos que estavam sem caminho foram para o Zap das lojas. A ponte não foi reiniciada. Para voltar: tag `zap-antes-recursos-2026-11-15`.
 
-16/11 de manhã: a ponte tinha caído por volta das 08:27. Foi religada. O número da loja voltou. O programa do Zap não mudou.
+16/11 de manhã: a ponte tinha caído por volta das 08:27. Foi religada. O número da loja voltou.
+
+16/11, autorizado: a ponte pede menos o estado inteiro do WhatsApp (isso derrubava a ligação). Se ficar muda, religa sozinha. A ponte foi reiniciada. Número da loja voltou.
 
 ## Resumo (basta no chat comum)
 

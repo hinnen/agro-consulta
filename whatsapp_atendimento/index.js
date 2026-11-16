@@ -266,6 +266,9 @@ const APPEND_LIVE_MS = 90 * 1000;
 /** Quarentena pós-conexão: notify nos primeiros segundos = msg velha reenviada. */
 const CONN_QUARANTINE_MS = 15000;
 let connOpenAt = 0;
+let waAberto = false;
+let ligando = false;
+let religarTimer = 0;
 /** Só aceita append/histórico antigo quando a loja pediu «Anteriores» neste chat. */
 let histJids = new Set();
 let histAte = 0;
@@ -1317,7 +1320,32 @@ function fecharSockAntigo() {
   }
 }
 
+function pedirReligar(ms, motivo) {
+  if (religarTimer) return;
+  const espera = Math.max(1000, Number(ms) || 5000);
+  console.error("Religa em " + Math.round(espera / 1000) + "s", motivo || "");
+  religarTimer = setTimeout(() => {
+    religarTimer = 0;
+    ligar().catch((e) => {
+      console.error("ligar:", (e && e.message) || e);
+      pedirReligar(8000, "falhou");
+    });
+  }, espera);
+}
+
+function comTempo(promessa, ms, nome) {
+  return Promise.race([
+    promessa,
+    new Promise((_, rejeita) => {
+      setTimeout(() => rejeita(new Error("tempo esgotado: " + nome)), ms);
+    }),
+  ]);
+}
+
 async function ligar() {
+  if (ligando) return;
+  ligando = true;
+  waAberto = false;
   const myId = ++connId;
   fecharSockAntigo();
   if (pollTimer) {
@@ -1328,12 +1356,30 @@ async function ligar() {
   if (primeiraLigacao) {
     await estado({ status: "desconectado", aviso: "Ligando WhatsApp…" });
   }
-  const { state, saveCreds } = await useMultiFileAuthState(AUTH);
-  const { version } = await fetchLatestBaileysVersion();
+  let state;
+  let saveCreds;
+  let version;
+  try {
+    const auth = await comTempo(useMultiFileAuthState(AUTH), 15000, "sessao");
+    state = auth.state;
+    saveCreds = auth.saveCreds;
+    try {
+      const info = await comTempo(fetchLatestBaileysVersion(), 12000, "versao");
+      version = info.version;
+    } catch (e) {
+      console.error("versao WhatsApp:", (e && e.message) || e);
+    }
+  } catch (e) {
+    ligando = false;
+    console.error("ligar preparo:", (e && e.message) || e);
+    pedirReligar(8000, "preparo");
+    return;
+  }
   sock = makeWASocket({
     version,
     auth: state,
     logger,
+    ...(version ? { version } : {}),
     browser: Browsers.ubuntu("Chrome"),
     markOnlineOnConnect: false,
     syncFullHistory: false,
@@ -1341,8 +1387,8 @@ async function ligar() {
     // Aceita sync leve (RECENT/APP_STATE) pra chave + patches de archive chegarem.
     shouldSyncHistoryMessage: (msg) => {
       const t = Number(msg && msg.syncType);
-      // 0 FULL, 1 RECENT, 2 ARCHIVE_V2, 3 ON_DEMAND, 5 APP_STATE — evita só push nome etc.
-      return t === 1 || t === 2 || t === 5 || t === 0;
+      // 1 RECENT, 2 ARCHIVE_V2, 5 APP_STATE. Sem o 0 (histórico inteiro): isso derrubava a ligação.
+      return t === 1 || t === 2 || t === 5;
     },
     getMessage: async (key) => {
       const id = key && key.id;
@@ -1350,6 +1396,7 @@ async function ligar() {
       return (hit && hit.message) || undefined;
     },
   });
+  ligando = false;
   sock.ev.on("creds.update", saveCreds);
   sock.ev.on("connection.update", async (u) => {
     if (myId !== connId) return;
@@ -1366,6 +1413,7 @@ async function ligar() {
       console.log("QR enviado ao Agro. Abra /atendimento-whatsapp/");
     }
     if (connection === "open") {
+      waAberto = true;
       primeiraLigacao = false;
       lastPairing = "";
       const me = (sock.user && (sock.user.id || sock.user.lid)) || "";
@@ -1387,12 +1435,13 @@ async function ligar() {
       if (!appStateSyncTimer) {
         appStateSyncTimer = setInterval(() => {
           const agora = Date.now();
-          // A cada ~90s: snapshot (Oficial→Zap). Entre eles: sync leve.
-          const querSnap = agora - appStateSnapshotUltimo > 90 * 1000;
+          // Snapshot zera a versão e o WhatsApp derruba a ligação se repetir demais.
+          // Leve a cada minuto. Snapshot no máximo a cada 15 min.
+          const querSnap = agora - appStateSnapshotUltimo > 15 * 60 * 1000;
           sincronizarAppStateArquivo(querSnap ? "periodico-snapshot" : "periodico", {
             forcarSnapshot: querSnap,
           }).catch(() => {});
-        }, 20 * 1000);
+        }, 60 * 1000);
       }
       setTimeout(() => {
         varrerStore();
@@ -1409,14 +1458,15 @@ async function ligar() {
     }
     if (connection === "close") {
       if (myId !== connId) return;
+      waAberto = false;
       const err = lastDisconnect && lastDisconnect.error;
       const code = err instanceof Boom ? err.output.statusCode : 0;
       const loggedOut = code === DisconnectReason.loggedOut;
-      console.error("WhatsApp caiu", code || "", err && (err.message || err));
-      await estado({
+      console.error("WhatsApp caiu", code || "", err && (err.message || err), new Date().toISOString());
+      estado({
         status: "desconectado",
         aviso: loggedOut ? "Desconectou. Escaneie o QR de novo." : "Reconectando…",
-      });
+      }).catch(() => {});
       fecharSockAntigo();
       if (loggedOut) {
         primeiraLigacao = true;
@@ -1426,9 +1476,7 @@ async function ligar() {
           /* ignore */
         }
       }
-      setTimeout(() => {
-        if (myId === connId) ligar();
-      }, loggedOut ? 2000 : 5000);
+      pedirReligar(loggedOut ? 2000 : 5000, loggedOut ? "saiu" : "caiu");
     }
   });
   sock.ev.on("contacts.upsert", (lista) => {
@@ -2215,7 +2263,11 @@ setTimeout(() => {
   pollQuerFotos = false;
   console.log("Janela inicial de fotos encerrada.");
 }, 3 * 60 * 1000);
+setInterval(() => {
+  if (waAberto || ligando || religarTimer) return;
+  pedirReligar(1000, "mudo");
+}, 30 * 1000);
 ligar().catch((e) => {
   console.error(e);
-  process.exit(1);
+  pedirReligar(8000, "inicio");
 });
