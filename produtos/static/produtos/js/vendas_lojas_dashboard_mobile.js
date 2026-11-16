@@ -36,6 +36,7 @@
     edit: '<path d="m4 20 5-.8L20 8a2 2 0 0 0-4-4L5 15l-1 5Z"/>',
     check: '<path d="m4 12 5 5L20 6"/>',
     share: '<path d="M12 16V3m-5 5 5-5 5 5M4 14v6h16v-6"/>',
+    bell: '<path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4l2-2Z"/><path d="M10 19a2 2 0 0 0 4 0"/>',
     chart: '<path d="M3 3v18h18M7 16v-5M12 16V7m5 9v-8"/>',
     menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
     bolt: '<path d="m13 2-9 11h7l-1 9 10-12h-7l1-8Z"/>',
@@ -481,7 +482,7 @@
   function options() {
     showSheet(
       'Opções do painel',
-      `<div class="form-stack"><button class="outline-btn" style="justify-content:flex-start" data-action="toggle-theme">${icon(state.dark ? 'sun' : 'moon')} ${state.dark ? 'Usar tema claro' : 'Usar tema escuro'}</button><button class="outline-btn" style="justify-content:flex-start" data-action="toggle-hide">${icon(state.hidden ? 'eyeoff' : 'eye')} ${state.hidden ? 'Mostrar valores' : 'Ocultar valores'}</button><a class="outline-btn" style="justify-content:flex-start;text-decoration:none" href="${esc(HUB_URL)}">${icon('back')} Voltar ao SistApp</a></div><p class="detail-sub" style="margin-top:23px">SistApp Dashboard · Etapa 1 · faturamento PostgreSQL somente leitura.</p>`
+      `<div class="form-stack"><button class="outline-btn" style="justify-content:flex-start" data-action="pulso">${icon('bell')} Avisar no pulso</button><button class="outline-btn" style="justify-content:flex-start" data-action="toggle-theme">${icon(state.dark ? 'sun' : 'moon')} ${state.dark ? 'Usar tema claro' : 'Usar tema escuro'}</button><button class="outline-btn" style="justify-content:flex-start" data-action="toggle-hide">${icon(state.hidden ? 'eyeoff' : 'eye')} ${state.hidden ? 'Mostrar valores' : 'Ocultar valores'}</button><a class="outline-btn" style="justify-content:flex-start;text-decoration:none" href="${esc(HUB_URL)}">${icon('back')} Voltar ao SistApp</a></div><p class="detail-sub" style="margin-top:23px">SistApp Dashboard · Etapa 1 · faturamento PostgreSQL somente leitura. O aviso no pulso só sai com esta tela aberta.</p>`
     );
   }
 
@@ -643,6 +644,19 @@
     }
     if (action === 'options') {
       options();
+      return;
+    }
+    if (action === 'pulso') {
+      closeSheet();
+      const pulso = window.AgroPulsoAviso;
+      if (!pulso || typeof pulso.alternar !== 'function') {
+        toast('Aviso do pulso indisponível nesta tela');
+        return;
+      }
+      pulso.alternar({
+        apiUrl: API_URL,
+        avisarTela: toast
+      });
       return;
     }
     if (action === 'export') {

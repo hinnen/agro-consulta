@@ -1695,6 +1695,14 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### PULSO-AVISO — **16/11** · no `teste` · ainda não é loja
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | No dashboard do SistApp, **Avisar no pulso** manda notificação: total de hoje, Centro, Vila Elias e hora. A cada 5 min, só com a tela aberta. Sem aplicativo na pulseira |
+| **Migrate** | **NÃO** |
+| **Você** | Não sobe loja sem frase + senha. Teste no celular: SistApp → Dashboard → Opções → Avisar no pulso. A pulseira só mostra se o celular já manda aviso (Notify / Mi Fitness) |
+
 ### CARTÃO-CLIENTE — **16/11** · no `teste` · ainda não é loja
 
 | Campo | Valor |
