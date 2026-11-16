@@ -1699,14 +1699,14 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Câmera do SistApp abre na hora. No painel de Vendas do celular, **Pulso** manda total de hoje, Centro, Vila Elias e a hora, a cada 5 min, só com a tela aberta. No caixa, imprime o cartão do cliente. No PDV o bip 981 só liga o cartão. Venda normal não muda |
+| **O quê** | Câmera do SistApp abre na hora. No painel de Vendas do celular, **Pulso** manda total de hoje, Centro, Vila Elias e a hora, a cada 5 min, só com a tela aberta. O PDV não muda |
 | **Base** | loja **v27.26.74** @ `b102a9ca` |
 | **Alvo** | **v27.26.75** |
-| **Migrate** | **SIM** `0156` tabela nova. Não altera venda nem caixa já lançado |
-| **Prova** | corte local armado. O script para se a loja mudar. Não foi para `producao` |
+| **Migrate** | **NÃO** |
+| **Prova** | corte local rearmado sem o cartão. O script para se a loja mudar. Não foi para `producao` |
 | **Na senha** | Lojas pausadas. `./scripts/cutover_loja_checklist_1611.sh --exec` |
 | **Volta** | `git push origin b102a9cae0c05b2d8f0e441aff9fefa0b15eeb80:producao` |
-| **Fora** | O resto do `teste` |
+| **Fora** | Cartão do cliente e o resto do `teste` |
 
 ### PULSO-AVISO — **16/11** · no `teste` · ainda não é loja
 

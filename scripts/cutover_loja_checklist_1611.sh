@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Câmera rápida + aviso no pulso + cartão do cliente · v27.26.75
-# Em cima da loja v27.26.74. Migrate 0156 (tabela nova, não mexe em venda).
+# Câmera rápida + aviso no pulso · v27.26.75
+# Em cima da loja v27.26.74. Sem migrate. Cartão do cliente fica de fora.
 # Não inclui o restante do teste.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -18,20 +18,14 @@ cleanup() { git worktree remove --force "$WT" 2>/dev/null || rm -rf "$WT"; }
 trap cleanup EXIT
 git -C "$WT" apply --binary "$ROOT/scripts/prep_patch_checklist_1611.patch"
 printf '%s\n' "$VER" > "$WT/VERSION"
-node --check "$WT/produtos/static/produtos/js/pdv_wizard.js"
 node --check "$WT/produtos/static/produtos/js/sistapp_camera_escolha.js"
 node --check "$WT/produtos/static/produtos/js/vendas_lojas_pulso_painel.js"
-python3 -m py_compile \
-  "$WT/produtos/cliente_cartao_util.py" \
-  "$WT/produtos/views_cliente_cartao.py" \
-  "$WT/produtos/migrations/0156_cliente_cartao_agro.py"
-grep -q '0155_pdv_operacao_log_agro' "$WT/produtos/migrations/0156_cliente_cartao_agro.py"
 grep -q 'id="vl-pulso"' "$WT/produtos/templates/produtos/vendas_lojas_resumo.html"
-test ! -f "$WT/produtos/migrations/0153_cliente_cartao_agro.py"
+test ! -f "$WT/produtos/views_cliente_cartao.py"
 git -C "$WT" add -A
 git -C "$WT" -c user.email="$(git -C "$ROOT" config user.email)" -c user.name="$(git -C "$ROOT" config user.name)" \
-  commit -m "prep(loja): v27.26.75 câmera, pulso e cartão do cliente"
-echo "OK: corte v$VER em cima de ${PROD:0:8} · migrate 0156"
+  commit -m "prep(loja): v27.26.75 câmera e pulso"
+echo "OK: corte v$VER em cima de ${PROD:0:8} · sem migrate"
 echo "VOLTA: git push origin ${PROD}:producao"
 [[ "${1:-}" != "--exec" ]] && exit 0
 FRASE="${AGRO_PIN_FRASE:-${AGRO_LOJA_FRASE:-}}"
