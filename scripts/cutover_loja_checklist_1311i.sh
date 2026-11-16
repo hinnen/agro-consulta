@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Substituído pelo pacote único 16/11 (câmera + pulso + cartão).
+echo "FAIL: use ./scripts/cutover_loja_checklist_1611.sh"
+exit 2
 # Câmera abre na hora e a nitidez entra depois · v27.26.75
 # Base atual da loja: v27.26.74 @ b102a9ca. Sem migrate. Não inclui o restante do teste.
 set -euo pipefail

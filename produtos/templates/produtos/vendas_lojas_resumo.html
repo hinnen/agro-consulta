@@ -557,6 +557,7 @@
       color: var(--ink);
     }
   </style>
+  <script src="/static/produtos/js/vendas_lojas_pulso_painel.js?v=1"></script>
 </head>
 <body
   data-hoje="{{ hoje_iso }}"
@@ -573,6 +574,7 @@
       </div>
       <div class="vl-top-actions">
         <button type="button" class="vl-atualizar" id="vl-atualizar" aria-label="Atualizar vendas agora">Atualizar</button>
+        <button type="button" class="vl-atualizar" id="vl-pulso" aria-label="Avisar as vendas de hoje no pulso">Pulso</button>
         <a class="vl-voltar" href="{% url 'vendas_lojas_hub' %}">Início</a>
       </div>
     </header>
@@ -1081,6 +1083,19 @@
         btnAtualizar.textContent = "…";
         window.location.reload();
       });
+    }
+
+    var btnPulso = document.getElementById("vl-pulso");
+    if (btnPulso && window.AgroPulsoPainel) {
+      btnPulso.addEventListener("click", function () {
+        window.AgroPulsoPainel.alternar({
+          avisarTela: function (msg) {
+            btnPulso.title = msg || "";
+            if (msg && msg.indexOf("ligado") >= 0) btnPulso.textContent = "Pulso ligado";
+          }
+        });
+      });
+      window.AgroPulsoPainel.retomar(function () {});
     }
 
     if ("serviceWorker" in navigator) {

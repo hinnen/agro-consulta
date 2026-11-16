@@ -1695,18 +1695,18 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 CHECKLIST ÚNICO — **13/11i** · **CAMERA-ABRE-RAPIDO** · pronto · ainda sem enviar
+### 🟢 CHECKLIST ÚNICO — **16/11** · câmera + pulso + cartão · pronto · ainda sem enviar
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | No SistApp, a câmera mostra a imagem na hora. A nitidez entra depois. A leitura continua igual. Ajuste, Fotos e Etiquetas |
+| **O quê** | Câmera do SistApp abre na hora. No painel de Vendas do celular, **Pulso** manda total de hoje, Centro, Vila Elias e a hora, a cada 5 min, só com a tela aberta. No caixa, imprime o cartão do cliente. No PDV o bip 981 só liga o cartão. Venda normal não muda |
 | **Base** | loja **v27.26.74** @ `b102a9ca` |
 | **Alvo** | **v27.26.75** |
-| **Migrate** | **NÃO** |
-| **Prova** | corte local armado em 16/11. O script para se a loja mudar. Não foi para `producao` |
-| **Na senha** | Lojas pausadas. `./scripts/cutover_loja_checklist_1311i.sh --exec` |
+| **Migrate** | **SIM** `0156` tabela nova. Não altera venda nem caixa já lançado |
+| **Prova** | corte local armado. O script para se a loja mudar. Não foi para `producao` |
+| **Na senha** | Lojas pausadas. `./scripts/cutover_loja_checklist_1611.sh --exec` |
 | **Volta** | `git push origin b102a9cae0c05b2d8f0e441aff9fefa0b15eeb80:producao` |
-| **Fora** | Pulso, cartão do cliente e o resto do `teste` |
+| **Fora** | O resto do `teste` |
 
 ### PULSO-AVISO — **16/11** · no `teste` · ainda não é loja
 
@@ -1714,8 +1714,7 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 | ----- | ----- |
 | **O quê** | No dashboard do SistApp, **Avisar no pulso** manda notificação: total de hoje, Centro, Vila Elias e hora. A cada 5 min, só com a tela aberta. Sem aplicativo na pulseira |
 | **Migrate** | **NÃO** |
-| **Loja** | **Não publicar.** O botão está na tela nova `/vendas/lojas/dashboard/`, que a loja não tem. A loja usa `/vendas/lojas/painel/`. Levar só esses arquivos não coloca o botão no SistApp do celular. Levar a tela nova inteira muda mais do que o aviso |
-| **Você** | Não sobe. O SistApp do celular continua sem o botão |
+| **Loja** | Entrou no corte **16/11**, no painel de Vendas que o celular já abre. Ainda não foi enviado |
 
 ### CARTÃO-CLIENTE — **16/11** · no `teste` · ainda não é loja
 
