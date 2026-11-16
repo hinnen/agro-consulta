@@ -1699,7 +1699,7 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Menu do caixa imprime cartão em branco (barras + QR). No PDV, bip vincula quem está na tela ou abre o cadastro. Celular pede o WhatsApp do cadastro e mostra compras e cashback. Arte PNG ainda não entrou |
+| **O quê** | Menu do caixa imprime o cartão Agro Mais (arte na folha). Barras e QR caem nos retângulos brancos. No PDV, bip vincula ou abre o cadastro |
 | **Migrate** | **SIM** `0153` |
 | **Você** | Manda a arte PNG 1082×709. Não sobe loja sem frase + senha |
 

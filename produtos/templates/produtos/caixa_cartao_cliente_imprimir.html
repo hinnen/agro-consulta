@@ -10,19 +10,21 @@
     .no-print { padding: 16px; }
     .folha { display: grid; grid-template-columns: 85.6mm 85.6mm; gap: 4mm; justify-content: center; }
     .cartao {
-      width: 85.6mm; height: 54mm; position: relative; overflow: hidden;
+      width: 85.6mm; height: 56mm; position: relative; overflow: hidden;
       border: 0.2mm dashed #94a3b8; box-sizing: border-box; background: #fff;
       break-inside: avoid; page-break-inside: avoid;
     }
-    .arte { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .arte { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; }
     .faixa { position: absolute; left: 0; right: 0; top: 0; height: 16mm; background: #047857; color: #fff; padding: 3mm 4mm; }
     .faixa strong { display: block; font-size: 14pt; }
     .faixa span { font-size: 8pt; }
-    .buraco-barras, .buraco-qr { position: absolute; background: #fff; }
-    .buraco-barras { left: 3mm; bottom: 3mm; width: 50mm; height: 18mm; display: flex; align-items: flex-end; }
-    .buraco-qr { right: 3mm; bottom: 3mm; width: 26mm; height: 26mm; }
-    .buraco-qr svg { width: 26mm; height: 26mm; display: block; }
-    .buraco-barras svg { width: 48mm; height: 14mm; }
+    .buraco-barras, .buraco-qr { position: absolute; background: #fff; display: flex; align-items: center; justify-content: center; }
+    .cartao.com-arte .buraco-barras { left: 6%; top: 65%; width: 53%; height: 27%; }
+    .cartao.com-arte .buraco-qr { left: 69%; top: 54.5%; width: 26%; height: 39%; }
+    .cartao.sem-arte .buraco-barras { left: 3mm; bottom: 3mm; width: 50mm; height: 16mm; }
+    .cartao.sem-arte .buraco-qr { right: 3mm; bottom: 3mm; width: 24mm; height: 24mm; }
+    .buraco-qr svg { width: 92%; height: 92%; display: block; }
+    .buraco-barras svg { width: 96%; height: 78%; }
     button, label { font-size: 16px; font-weight: 800; }
     @media print { .no-print { display: none; } .cartao { border: none; } }
   </style>
@@ -39,7 +41,7 @@
   {% if blocos %}
   <div class="folha">
     {% for b in blocos %}
-    <article class="cartao">
+    <article class="cartao {% if tem_arte %}com-arte{% else %}sem-arte{% endif %}">
       {% if tem_arte %}
       <img class="arte" src="{% static 'produtos/img/cartao_cliente_arte.png' %}" alt="">
       {% else %}
