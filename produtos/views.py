@@ -11444,6 +11444,7 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
             "apiEntregaRegistrar": reverse("api_entrega_registrar"),
             "apiListCustomers": reverse("api_list_customers"),
             "apiBuscarClientes": reverse("api_buscar_clientes"),
+            "apiPdvCartaoCliente": reverse("api_pdv_cartao_cliente"),
             "apiPdvTopVendidos": reverse("api_pdv_top_vendidos"),
             "apiPdvSaldos": reverse("api_pdv_saldos"),
             "apiPdvInvalidarCatalogo": reverse("api_pdv_invalidar_catalogo"),

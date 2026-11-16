@@ -556,6 +556,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 - Sync ERP/Mongo â†’ Agro: `produtos/services_clientes_sync.py`, botÃ£o na lista, comando `sincronizar_clientes_agro`.
 - `**editado_local=True` nÃ£o Ã© sobrescrito** na sync.
 - PDV lista/busca clientes **sÃ³ no Agro** (`api/listar-clientes/`, `api/buscar-clientes/`).
+- **Cartão do cliente (16/11, `teste`):** folha no menu do caixa. Código `981` no leitor. QR abre `/cartao/<token>/`. Um cartão novo cancela o anterior.
 - **Editar cadastro (PDV):** modal sem scroll; telefone duplicado = popup no meio (abrir o outro ou **limpar o número** dali, com PIN) — overlay acao **z 250** acima do EDITAR **240** (`CLI-DUP-TEL-Z` · 10/09). **Excluir** (bloqueia fiado em aberto e vínculo RH) + transferir cashback/vale. **Vale crédito:** clicar no saldo ou no cadastro — pagar (entra no caixa) ou manual (sem caixa). Log em `ClienteAgroEventoAgro`. Mesmas ações em `/clientes/…/editar/` — layout largo alinhado ao PDV (`CLI-FORM-PDV-LAYOUT`).
 - IDs Mongo no JSON viram `local:{pk}` para nÃ£o mandar ObjectId ao ERP.
 - Contexto antigo detalhado: `docs/CONTEXTO_SESSAO_CLIENTES_PDV.md`.
@@ -1693,6 +1694,14 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 | 1 | **AJUSTE-QTD-BIP** | 🟢 Pronto | **NÃO** | alterar **6→5** depois soma **7** · −10/+10 só no item da vez |
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### CARTÃO-CLIENTE — **16/11** · no `teste` · ainda não é loja
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Menu do caixa imprime cartão em branco (barras + QR). No PDV, bip vincula quem está na tela ou abre o cadastro. Celular pede o WhatsApp do cadastro e mostra compras e cashback. Arte PNG ainda não entrou |
+| **Migrate** | **SIM** `0153` |
+| **Você** | Manda a arte PNG 1082×709. Não sobe loja sem frase + senha |
 
 ### ✅ PDV-ZAP-AVISO — **15/11** · enviado · **v27.26.74**
 

@@ -17937,6 +17937,46 @@
             selecionarClienteNaBusca(cliente);
         });
 
+        function pdvEhCartaoCliente(raw) {
+            var d = String(raw || '').replace(/\D/g, '');
+            return d.length === 13 && d.slice(0, 3) === '981';
+        }
+
+        var pdvCartaoClienteEmVoo = false;
+
+        function pdvTratarCartaoCliente(raw) {
+            if (!pdvEhCartaoCliente(raw) || pdvCartaoClienteEmVoo) return !!pdvEhCartaoCliente(raw);
+            var url = (urls && urls.apiPdvCartaoCliente) || '/api/pdv/cartao-cliente/';
+            var pk = null;
+            if (state && state.clienteMode !== 'consumidor_final' && state.cliente) {
+                pk = state.cliente.cliente_agro_pk || null;
+            }
+            pdvCartaoClienteEmVoo = true;
+            fetch(url, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': pdvCsrfTokenOrcamentos()
+                },
+                body: JSON.stringify({
+                    codigo: String(raw || '').replace(/\D/g, ''),
+                    cliente_agro_pk: pk
+                })
+            })
+                .then(function (res) { return res.json().then(function (data) { return { res: res, data: data }; }); })
+                .then(function (pack) {
+                    var data = pack.data || {};
+                    if (data.cliente) selecionarClienteNaBusca(data.cliente);
+                    resetProductSearchUi(data.mensagem || data.erro || 'Cartão lido.');
+                })
+                .catch(function () {
+                    resetProductSearchUi('Não consegui ler o cartão.');
+                })
+                .then(function () { pdvCartaoClienteEmVoo = false; });
+            return true;
+        }
+
         dom.productSearch.addEventListener('keydown', function (event) {
             if (event.key === 'Escape') {
                 if (dom.productAutocomplete && !dom.productAutocomplete.classList.contains('hidden')) {
@@ -17961,6 +18001,7 @@
                 clearTimeout(barcodeTimer);
                 clearTimeout(searchTimer);
                 var qRawEnter = String(dom.productSearch.value || '').trim();
+                if (pdvTratarCartaoCliente(qRawEnter)) return;
                 var valorTotalEnter = obterValorTotalRapido(qRawEnter);
                 var qEnter = limparAtalhosBuscaProduto(qRawEnter);
                 if (qEnter || valorTotalEnter != null) marcarWizardScannerAtivo(1500);
@@ -18015,6 +18056,12 @@
             lastInputAt = now;
             clearTimeout(searchTimer);
             clearTimeout(barcodeTimer);
+            if (pdvEhCartaoCliente(trimmed)) {
+                barcodeTimer = setTimeout(function () {
+                    pdvTratarCartaoCliente(trimmed);
+                }, 40);
+                return;
+            }
             if (reopenBudgetFromBarcode(trimmed)) return;
             if (pareceLeituraCodigoWizard(trimmed) && (delta < 45 || trimmed.length >= 8)) {
                 marcarWizardScannerAtivo(1500);

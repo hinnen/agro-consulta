@@ -21,6 +21,7 @@ from . import views_pdv_topbar
 from . import views_repasse_vila
 from . import views_tabela_preco_forma
 from . import views_cliente_cadastro
+from . import views_cliente_cartao
 from . import views_cliente_planilha
 from . import bug_report_views
 from . import ajuste_codigo_pendente_views
@@ -954,6 +955,16 @@ urlpatterns = [
     path('clientes/<int:pk>/editar/', views.cliente_editar, name='cliente_editar'),
     path('rh/', include('rh.urls')),
     path('caixa/', views.caixa_painel, name='caixa_painel'),
+    path(
+        'caixa/cartao-cliente/',
+        views_cliente_cartao.caixa_cartao_imprimir,
+        name='caixa_cartao_imprimir',
+    ),
+    path(
+        'cartao/<str:token>/',
+        views_cliente_cartao.cliente_cartao_portal,
+        name='cliente_cartao_portal',
+    ),
     path('caixa/saida/', views.caixa_saida_view, name='caixa_saida'),
     path('caixa/abrir/', views.caixa_abrir, name='caixa_abrir'),
     path('caixa/fechar/', views.caixa_fechar, name='caixa_fechar'),
@@ -1776,6 +1787,11 @@ urlpatterns = [
     ),
     path('api/autocomplete/', views.api_autocomplete_produtos, name='api_autocomplete_produtos'),
     path('api/buscar-clientes/', views.api_buscar_clientes, name='api_buscar_clientes'),
+    path(
+        'api/pdv/cartao-cliente/',
+        views_cliente_cartao.api_pdv_cartao_cliente,
+        name='api_pdv_cartao_cliente',
+    ),
     path('api/listar-clientes/', views.api_list_customers, name='api_list_customers'),
     path('api/enviar-pedido-erp/', views.api_enviar_pedido_erp, name='api_enviar_pedido_erp'),
     path('api/pdv/cliente-rapido/', views.api_pdv_cliente_rapido, name='api_pdv_cliente_rapido'),

@@ -276,6 +276,34 @@ class ClienteAgro(models.Model):
         return self.nome
 
 
+class ClienteCartaoAgro(models.Model):
+    """Cartão em branco da gaveta. Barras no PDV. QR longo no celular."""
+
+    codigo = models.CharField(max_length=13, unique=True, db_index=True)
+    token = models.CharField(max_length=64, unique=True, db_index=True)
+    cliente = models.ForeignKey(
+        ClienteAgro,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="cartoes",
+    )
+    ativo = models.BooleanField(default=True, db_index=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    vinculado_em = models.DateTimeField(null=True, blank=True)
+    codigo_whatsapp_hash = models.CharField(max_length=64, blank=True, default="")
+    codigo_whatsapp_expira = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-criado_em"]
+        verbose_name = "Cartão do cliente"
+        verbose_name_plural = "Cartões do cliente"
+
+    def __str__(self):
+        dono = self.cliente.nome if self.cliente_id else "em branco"
+        return f"{self.codigo} · {dono}"
+
+
 class ClienteAgroEventoAgro(models.Model):
     """Log de operações no cadastro do cliente (PIN + histórico)."""
 

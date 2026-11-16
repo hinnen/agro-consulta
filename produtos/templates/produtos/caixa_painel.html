@@ -138,6 +138,10 @@
           <span class="cx-sub">Histórico, filtros e nova despesa no caixa</span>
         </a>
         {% endif %}
+        <a href="{% url 'caixa_cartao_imprimir' %}" class="caixa-menu-btn border-emerald-400 bg-white text-emerald-950">
+          <span class="cx-title">Cartão do cliente</span>
+          <span class="cx-sub">Imprimir cartões em branco para a gaveta</span>
+        </a>
         <a href="{% url 'caixa_relatorio' %}" class="caixa-menu-btn border-sky-400 bg-sky-100 text-sky-950">
           <span class="cx-title">Relatório de caixa</span>
           <span class="cx-sub">Movimentos por categoria e filtro por data</span>
