@@ -1695,6 +1695,14 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### GM-VENDAS-BAND — **16/11** · API não entrou no `teste`
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | O commit `aef9da4` da API da pulseira não está no GitHub. O Render não tem o serviço `agro-consulta-staging`. Nada foi para a loja |
+| **Limpeza** | Saiu o protótipo do dashboard (`vendas_lojas_pulso_aviso.js`). O botão **Pulso** do painel continua |
+| **Você** | Envie a branch `codex/gm-vendas-smartband10` para o GitHub. Sem isso a API não entra no teste |
+
 ### ✅ CHECKLIST ÚNICO — **16/11** · câmera + pulso · enviado · **v27.26.75**
 
 | Campo | Valor |
