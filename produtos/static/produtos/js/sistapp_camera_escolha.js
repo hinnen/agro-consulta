@@ -7,8 +7,11 @@
   } catch (e) {}
 
   function restricoes() {
+    return { facingMode: { ideal: "environment" } };
+  }
+
+  function nitidez() {
     return {
-      facingMode: { ideal: "environment" },
       width: { ideal: 1920 },
       height: { ideal: 1080 },
       advanced: [{ focusMode: "continuous" }],
@@ -42,8 +45,10 @@
     var modos = caps && caps.focusMode;
     var tem = false;
     if (modos && typeof modos.indexOf === "function") tem = modos.indexOf("continuous") >= 0;
-    if (!tem) return Promise.resolve();
-    return track.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(function () {
+    if (!tem) {
+      return track.applyConstraints({ width: { ideal: 1920 }, height: { ideal: 1080 } }).catch(function () {});
+    }
+    return track.applyConstraints(nitidez()).catch(function () {
       return track.applyConstraints({ focusMode: "continuous" }).catch(function () {});
     });
   }
