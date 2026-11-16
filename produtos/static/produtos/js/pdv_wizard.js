@@ -2531,7 +2531,10 @@
         if (!state || state.clienteMode === 'unset') {
             return 'Toque para escolher o cliente';
         }
-        if (state.cliente && state.cliente.nome) return state.cliente.nome;
+        if (state.cliente && state.cliente.nome) {
+            var cartao = String(state.cliente.cartao_codigo || '').trim();
+            return cartao ? state.cliente.nome + ' · ' + cartao : state.cliente.nome;
+        }
         if (state.clienteMode === 'consumidor_final') {
             return bootstrap.clientePadraoNome || 'CONSUMIDOR NÃO IDENTIFICADO...';
         }

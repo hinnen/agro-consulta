@@ -12368,6 +12368,7 @@ def cliente_editar(request, pk):
             "form": form,
             "titulo": f"Editar: {cli.nome}",
             "cliente": cli,
+            "cartao_codigo": _codigo_cartao_ativo(cli.pk),
             "duplicado_whatsapp": duplicado_whatsapp,
             "cli_acoes_boot": _cli_acoes_boot(request, cli, duplicado_whatsapp),
         },
@@ -33319,7 +33320,20 @@ def _linhas_pessoas_erp_list(lst):
     return out
 
 
-def _linha_clienteagro_pdv(c: ClienteAgro) -> dict:
+def _codigo_cartao_ativo(cliente_pk) -> str:
+    if not cliente_pk:
+        return ""
+    from produtos.models import ClienteCartaoAgro
+
+    codigo = (
+        ClienteCartaoAgro.objects.filter(cliente_id=cliente_pk, ativo=True)
+        .values_list("codigo", flat=True)
+        .first()
+    )
+    return codigo or ""
+
+
+def _linha_clienteagro_pdv(c: ClienteAgro, cartao_codigo=None) -> dict:
     """JSON do cliente no PDV: id compatível com checkout (ERP não recebe ObjectId do Mongo)."""
     eid = (c.externo_id or "").strip()
     orig = (c.origem_import or "").strip()
@@ -33368,6 +33382,7 @@ def _linha_clienteagro_pdv(c: ClienteAgro) -> dict:
         "desconto_pdv_percentual": float(c.desconto_pdv_percentual or 0)
         if c.desconto_pdv_percentual is not None
         else 0,
+        "cartao_codigo": _codigo_cartao_ativo(c.pk) if cartao_codigo is None else cartao_codigo,
     }
 
 
@@ -33382,12 +33397,20 @@ def _clientes_locais_agro_pdv(termo=""):
         if len(t) >= 3:
             q_filter |= Q(endereco__icontains=t) | Q(plus_code__icontains=t)
         qs = qs.filter(q_filter)
-    qs = qs.order_by("nome")[:80]
-    return [_linha_clienteagro_pdv(c) for c in qs]
+    clientes = list(qs.order_by("nome")[:80])
+    from produtos.models import ClienteCartaoAgro
+
+    mapa = dict(
+        ClienteCartaoAgro.objects.filter(
+            cliente_id__in=[c.pk for c in clientes],
+            ativo=True,
+        ).values_list("cliente_id", "codigo")
+    )
+    return [_linha_clienteagro_pdv(c, mapa.get(c.pk, "")) for c in clientes]
 
 
 def _api_buscar_clientes_cache_key(termo: str) -> str:
-    return f"api_buscar_clientes_v1:{(termo or '').strip().lower()[:80]}"
+    return f"api_buscar_clientes_v2:{(termo or '').strip().lower()[:80]}"
 
 
 def _dedupe_clientes_pdv_por_nome_doc(rows):

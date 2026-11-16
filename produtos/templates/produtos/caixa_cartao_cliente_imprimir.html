@@ -24,7 +24,9 @@
     .cartao.sem-arte .buraco-barras { left: 3mm; bottom: 3mm; width: 50mm; height: 16mm; }
     .cartao.sem-arte .buraco-qr { right: 3mm; bottom: 3mm; width: 24mm; height: 24mm; }
     .buraco-qr svg { width: 92%; height: 92%; display: block; }
-    .buraco-barras svg { width: 96%; height: 78%; }
+    .buraco-barras { flex-direction: column; }
+    .buraco-barras svg { width: 96%; height: 70%; }
+    .numero-cartao { margin: 0; font: 700 7pt ui-monospace, monospace; letter-spacing: 0.04em; color: #0f172a; }
     button, label { font-size: 16px; font-weight: 800; }
     @media print { .no-print { display: none; } .cartao { border: none; } }
   </style>
@@ -47,7 +49,7 @@
       {% else %}
       <div class="faixa"><strong>GM Agro</strong><span>Cartão do cliente</span></div>
       {% endif %}
-      <div class="buraco-barras"><svg id="bc-{{ forloop.counter }}"></svg></div>
+      <div class="buraco-barras"><svg id="bc-{{ forloop.counter }}"></svg><p class="numero-cartao">{{ b.codigo }}</p></div>
       <div class="buraco-qr">{{ b.qr|safe }}</div>
     </article>
     {% endfor %}

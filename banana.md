@@ -1699,7 +1699,7 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Menu do caixa imprime o cartão Agro Mais (arte na folha). Barras e QR caem nos retângulos brancos. No PDV, bip vincula ou abre o cadastro |
+| **O quê** | Menu do caixa imprime o cartão Agro Mais. O número sai escrito embaixo das barras (dá para digitar se o leitor falhar). No cadastro do cliente aparece o código do cartão ativo. Sem vínculo com o Zap |
 | **Migrate** | **SIM** `0153` |
 | **Você** | Manda a arte PNG 1082×709. Não sobe loja sem frase + senha |
 
