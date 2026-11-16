@@ -1695,13 +1695,17 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### GM-VENDAS-BAND — **16/11** · API no `teste` · staging ausente
+### GM-VENDAS-BAND — **16/11** · 🟢 pronto para envio · só a API
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | API `GET /api/gm-vendas-band/` entrou no `teste` a partir de `aef9da4`. Token só no Render, ainda não configurado. Prova local 4/4, sem venda real |
-| **Git** | `teste` com o cherry-pick. Loja continua **v27.26.75** |
-| **Você** | No Render, no workspace da loja, crie ou religue o serviço **agro-consulta-staging** na branch `teste` e me diga que posso usar. Não existe esse serviço agora |
+| **O quê** | `GET /api/gm-vendas-band/`. Só leitura do total de hoje. Sem token configurado a rota responde 503 e o resto da loja segue |
+| **Sobe** | Só o commit `ffe2568b` em cima de `a094cbcf`. A prova foi 4 testes locais. Sem venda real e sem relógio |
+| **Não sobe** | O resto do `teste` (1.791 commits). Sem migrate. Não religar o `agro-staging` |
+| **Versão** | Loja hoje **v27.26.75**. No envio, bump para **v27.26.76** |
+| **Token** | No serviço **Sistvale - Produção**, criar `GM_VENDAS_BAND_TOKEN` com 32 caracteres ou mais. Não gravar no Git |
+| **Volta** | `git push origin a094cbcf:producao` |
+| **Você** | Pausar as vendas, frase + senha na mesma mensagem |
 
 ### ✅ CHECKLIST ÚNICO — **16/11** · câmera + pulso · enviado · **v27.26.75**
 

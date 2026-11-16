@@ -10,6 +10,8 @@
 
 **Loja (15/11):** **PDV-ZAP-ORCAMENTO** enviada · **v27.26.72** @ `fcad7061`. Botão **Loja** encaminha o orçamento para o Zap. Sem migrate. Volta: `git push origin fba12fa1a3ea1e2829fe951bb0c793885d8c2d63:producao`.
 
+**Pronto, sem senha (16/11):** **GM-VENDAS-BAND** só a API. Cherry `ffe2568b` em cima de `a094cbcf`. Sem migrate. Não juntar o `teste`. Token `GM_VENDAS_BAND_TOKEN` no serviço **Sistvale - Produção**, 32+ caracteres. Volta: `git push origin a094cbcf:producao`.
+
 **Loja (16/11):** **CÂMERA + PULSO** enviada · **v27.26.75** @ `a094cbcf`. Câmera abre na hora. Pulso no painel de Vendas. Cartão ficou de fora. Sem migrate. Até o build, no ar segue **v27.26.74** @ `b102a9ca`. Volta: `git push origin b102a9cae0c05b2d8f0e441aff9fefa0b15eeb80:producao`.
 
 **Loja (13/11h):** **ENTREGA-HORA-LOJA** + **SISTAPP-CAMERA-LOCAL** enviadas · **v27.26.66** @ `edb926e2`. Sem migrate. Até o build, no ar segue **v27.26.65** @ `3b9fc063`. Volta: `git push origin 3b9fc063612d72754a0ac3a657b68a78fdb56bba:producao`.
