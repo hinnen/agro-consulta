@@ -4,6 +4,8 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
+**Checklist único (17/11b):** **CARTAO-CLIENTE** — 🟢 pronto para envio. Folha no caixa, bip `981` no PDV, QR no celular. Um cartão novo cancela o anterior. **Migrate SIM**, mas na loja é a **0156** (a 0153 do teste não pode ir, a loja já usa esse número). Prova **VERIFY_OK 7**. Não foi para a loja.
+
 **Checklist único (17/11):** **NF-IMP-NO-BOLETO** — 🟢 pronto para envio à produção. Imposto fora da NF entra no boleto. Sem migrate. Não foi para a loja.
 
 **Loja (15/11c):** **PDV-ZAP-AVISO** enviada · **v27.26.74** @ `b102a9ca`. Janela verde quando o orçamento vai no Zap. Sem migrate. Até o build, no ar segue **v27.26.73** @ `b25069cf`. Volta: `git push origin b25069cfbd01f37fe580d0e48e070f9dde057718:producao`.

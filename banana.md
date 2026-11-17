@@ -1701,8 +1701,15 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 | ----- | ----- |
 | **O quê** | Entrada de nota passa a gravar o fornecedor da nota no cadastro do produto. Nome, marca e categoria continuam como estavam |
 | **Não muda sozinho** | Produto que já entrou antes. Na próxima entrada desse produto, o fornecedor atualiza |
-| **Não muda sozinho** | Produto que já entrou antes. Na próxima entrada desse produto, o fornecedor atualiza |
 | **Migrate** | **NÃO** |
+
+### CHECKLIST ÚNICO — **17/11b** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CARTAO-CLIENTE** | 🟢 Pronto | **SIM 0156** na loja | **VERIFY_OK 7** |
+
+Folha no menu do caixa. Código `981` no leitor abre o cliente, não o produto. QR abre `/cartao/<token>/`. Um cartão novo cancela o anterior. A migration `0153` do teste não entra na loja: a loja já tem outra `0153`. Na hora de subir, a tabela nasce na `scripts/loja_0156_cliente_cartao_agro.py`, depois da `0155`. Não foi para a loja.
 
 ### CHECKLIST ÚNICO — **17/11** · 🟢 **pronto para envio à produção**
 
