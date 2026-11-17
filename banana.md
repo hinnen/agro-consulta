@@ -1695,6 +1695,14 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### NF-FORN-CADASTRO — **17/11** · no `teste` · ainda não foi para a loja
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Entrada de nota passa a gravar o fornecedor da nota no cadastro do produto. Nome, marca e categoria continuam como estavam |
+| **Não muda sozinho** | Produto que já entrou antes. Na próxima entrada desse produto, o fornecedor atualiza |
+| **Migrate** | **NÃO** |
+
 ### CHECKLIST ÚNICO — **17/11** · 🟢 **pronto para envio à produção**
 
 | # | Pacote | Status | Migrate | Prova |

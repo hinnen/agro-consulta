@@ -5562,6 +5562,61 @@ def propagar_fiscal_nf_catalogo_entrada_nota(
     return out
 
 
+def propagar_fornecedor_nf_catalogo_entrada_nota(
+    linhas: list,
+    fornecedor_nome: str,
+) -> dict[str, Any]:
+    """Grava o fornecedor da nota no cadastro (Produto + overlay). Não apaga se vier vazio."""
+    from produtos.catalogo_agro import obter_produto_model
+    from produtos.models import ProdutoGestaoOverlayAgro
+
+    nome = str(fornecedor_nome or "").strip()[:300]
+    out: dict[str, Any] = {"ok": True, "atualizados": 0, "produto_ids": []}
+    if not nome or not linhas:
+        return out
+    vistos: set[str] = set()
+    ids: list[str] = []
+    for ln in linhas:
+        if not isinstance(ln, dict):
+            continue
+        pid = str(ln.get("produto_id") or "").strip()
+        if not pid or pid.lower().startswith("local:") or pid in vistos:
+            continue
+        vistos.add(pid)
+        pid64 = pid[:64]
+        try:
+            p = obter_produto_model(pid64)
+            if p is not None and str(p.fornecedor_texto or "").strip() != nome:
+                p.fornecedor_texto = nome
+                p.save(update_fields=["fornecedor_texto"])
+            from produtos.cadastro_alteracao_historico_util import (
+                registrar_diffs_cadastro,
+                snapshot_overlay,
+            )
+
+            ov, _created = ProdutoGestaoOverlayAgro.objects.get_or_create(
+                produto_externo_id=pid64,
+                defaults={},
+            )
+            if str(ov.fornecedor_texto or "").strip() == nome:
+                continue
+            antes = snapshot_overlay(ov)
+            ov.fornecedor_texto = nome
+            ov.save(update_fields=["fornecedor_texto", "atualizado_em"])
+            registrar_diffs_cadastro(
+                produto_id=pid64,
+                antes=antes,
+                depois=snapshot_overlay(ov),
+                origem="nf",
+            )
+            out["atualizados"] += 1
+            ids.append(pid64)
+        except Exception as exc:
+            logger.warning("propagar_fornecedor NF %s: %s", pid, exc)
+    out["produto_ids"] = ids
+    return out
+
+
 def propagar_precos_venda_catalogo_entrada_nota(
     db,
     client_m,

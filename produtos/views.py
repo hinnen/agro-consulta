@@ -246,6 +246,7 @@ from .nfe_entrada_util import (
     pipeline_acao_rascunho_entrada,
     persistir_vinculos_c_prod_entrada_nfe_linhas,
     propagar_fiscal_nf_catalogo_entrada_nota,
+    propagar_fornecedor_nf_catalogo_entrada_nota,
     propagar_precos_venda_catalogo_entrada_nota,
     rascunho_entrada_valido_para_aprovacao_wizard,
     release_rascunho_estoque_agro_claim,
@@ -16797,6 +16798,7 @@ def api_entrada_nota_salvar(request):
             usuario,
             user_pk=int(request.user.pk) if request.user.is_authenticated else None,
             emit_cnpj=str(cab.get("emit_cnpj") or ""),
+            fornecedor_nome=str(cab.get("emit_nome") or ""),
         )
     st = 200 if r.get("ok") else 400
     return JsonResponse(r, status=st)
@@ -16961,6 +16963,7 @@ def api_entrada_nota_rascunho_atualizar(request):
             usuario,
             user_pk=int(request.user.pk) if request.user.is_authenticated else None,
             emit_cnpj=str(cab.get("emit_cnpj") or ""),
+            fornecedor_nome=str(cab.get("emit_nome") or ""),
         )
     st = 200 if r.get("ok") else 400
     return JsonResponse(r, status=st)
@@ -17004,6 +17007,7 @@ def _entrada_nota_propagar_precos_e_invalidar_catalogo(
     *,
     user_pk: int | None = None,
     emit_cnpj: str = "",
+    fornecedor_nome: str = "",
 ) -> None:
     """P. venda da grade → Mongo + overlay; vínculo cProd **sempre no Postgres**."""
     if not linhas:
@@ -17018,6 +17022,10 @@ def _entrada_nota_propagar_precos_e_invalidar_catalogo(
         )
     except Exception:
         logger.warning("_entrada_nota_propagar: vinculos cProd NF", exc_info=True)
+    try:
+        propagar_fornecedor_nf_catalogo_entrada_nota(linhas, fornecedor_nome)
+    except Exception:
+        logger.warning("_entrada_nota_propagar: fornecedor NF", exc_info=True)
     if db is None or client is None:
         return
     pr = propagar_precos_venda_catalogo_entrada_nota(db, client, linhas, _usuario_label=usuario)
@@ -17056,6 +17064,7 @@ def _entrada_nota_propagar_precos_se_mudou(
     *,
     user_pk: int | None = None,
     emit_cnpj: str = "",
+    fornecedor_nome: str = "",
 ) -> None:
     # Vínculo cProd precisa gravar no PG mesmo sem mudança de P.venda.
     if linhas_novas:
@@ -17068,6 +17077,10 @@ def _entrada_nota_propagar_precos_se_mudou(
             )
         except Exception:
             logger.warning("_entrada_nota_propagar_se_mudou: vinculos cProd NF", exc_info=True)
+    try:
+        propagar_fornecedor_nf_catalogo_entrada_nota(linhas_novas, fornecedor_nome)
+    except Exception:
+        logger.warning("_entrada_nota_propagar_se_mudou: fornecedor NF", exc_info=True)
     if not entrada_nfe_linhas_precos_catalogo_mudaram(linhas_prev, linhas_novas):
         return
     _entrada_nota_propagar_precos_e_invalidar_catalogo(
@@ -17077,6 +17090,7 @@ def _entrada_nota_propagar_precos_se_mudou(
         usuario,
         user_pk=user_pk,
         emit_cnpj=emit_cnpj,
+        fornecedor_nome=fornecedor_nome,
     )
 
 
@@ -18000,6 +18014,7 @@ def api_entrada_nota_estoque_agro(request):
         usuario,
         user_pk=int(request.user.pk) if request.user.is_authenticated else None,
         emit_cnpj=str(cab.get("emit_cnpj") or ""),
+        fornecedor_nome=str(cab.get("emit_nome") or ""),
     )
 
     r_rasc: dict | None = None
@@ -19769,6 +19784,7 @@ def api_entrada_nota_financeiro(request):
         usuario,
         user_pk=int(request.user.pk) if request.user.is_authenticated else None,
         emit_cnpj=str(cab.get("emit_cnpj") or ""),
+        fornecedor_nome=str(cab.get("emit_nome") or ""),
     )
 
     def _d_fin(key: str):
