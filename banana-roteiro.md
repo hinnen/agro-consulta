@@ -4,6 +4,8 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
+**Checklist único (17/11):** **NF-IMP-NO-BOLETO** — 🟢 pronto para envio à produção. Imposto fora da NF entra no boleto. Sem migrate. Não foi para a loja.
+
 **Loja (15/11c):** **PDV-ZAP-AVISO** enviada · **v27.26.74** @ `b102a9ca`. Janela verde quando o orçamento vai no Zap. Sem migrate. Até o build, no ar segue **v27.26.73** @ `b25069cf`. Volta: `git push origin b25069cfbd01f37fe580d0e48e070f9dde057718:producao`.
 
 **Loja (15/11b):** **PDV-ZAP-TOKEN** enviada · **v27.26.73** @ `b25069cf`. A chave do botão **Loja** é a mesma do SistApp. Sem migrate. Até o build, no ar segue **v27.26.72** @ `fcad7061`. Volta: `git push origin fcad7061de0c3594df1b8b66a8453da68e6fb0f4:producao`.

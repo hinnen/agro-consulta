@@ -1695,14 +1695,15 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### NF-IMP-NO-BOLETO — **17/11** · no `teste` · ainda não foi para a loja
+### CHECKLIST ÚNICO — **17/11** · 🟢 **pronto para envio à produção**
 
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Imposto fora da NF entra no valor do boleto no contas a pagar (o mesmo da parcela na entrada). Não gera título separado de centavos |
-| **Migrate** | **NÃO** |
-| **Nota já gerada** | Não muda sozinha. Reabrir e gerar de novo |
-| **Loja** | Só com frase + senha |
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NF-IMP-NO-BOLETO** | 🟢 Pronto | **NÃO** | nota 1.428,52 + 0,02 → 3×476,18 · **VERIFY_OK 10** |
+
+O imposto fora da NF entra no boleto do contas a pagar. Nota já gerada não muda. Não foi para a loja.
+
+**Código:** `teste` @ `bb64f8e7`. **Prova:** `scripts/verify_nf_imp_no_boleto_path.py`. **Na senha:** só este pacote, sem merge do resto do `teste`.
 
 ### GM-VENDAS-BAND — **16/11** · enviado · **v27.26.76**
 
