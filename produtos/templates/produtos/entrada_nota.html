@@ -2337,6 +2337,7 @@
   const URL_PREVIEW_CUSTO = "{% url 'api_entrada_nota_preview_custo' %}";
   const URL_REABRIR_NOTA = "{% url 'api_entrada_nota_reabrir_nota' %}";
   const URL_MARGEM_PROD = "{% url 'api_entrada_nota_produto_margem' %}";
+  const URL_CADASTRO_LINHA = "{% url 'api_entrada_nota_aplicar_cadastro_linha' %}";
   const URL_OVERLAY_SALVAR = "{% url 'api_produtos_gestao_overlay_salvar' %}";
   /** Abrir Lançamentos (contas a pagar) com foco no título recém-criado. */
   const URL_LANC_CP = "{% url 'lancamentos_contas_pagar' %}";
@@ -8052,6 +8053,48 @@
     entradaNfeAbrirPopupCadastroProd(URL_CAD_PRODUTO_NOVO, 'agro_cad_prod_novo_nfe');
   }
 
+  async function entradaNfeGravarFornecedorNestaLinha(tr) {
+    const pid = String(tr?.querySelector('.in-prod-id')?.value || '').trim();
+    if (!entradaNfeProdutoIdErpValido(pid)) {
+      showMsg('Esta linha não está ligada a um produto. Use Mudar. Não crio produto novo daqui.', false);
+      return;
+    }
+    const forn = String(document.getElementById('m-emit-nome')?.value || '').trim();
+    if (!forn) {
+      showMsg('Preencha o fornecedor na etapa 1.', false);
+      return;
+    }
+    const nome = String(tr.querySelector('.in-desc')?.value || '').trim();
+    const ok = window.confirm(
+      'Gravar o fornecedor «' + forn + '» em «' + (nome || 'este produto') + '»?\nNome, marca e categoria não mudam. Código de barras só entra se estiver vazio.'
+    );
+    if (!ok) return;
+    try {
+      const r = await fetch(URL_CADASTRO_LINHA, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({
+          produto_id: pid,
+          fornecedor_nome: forn,
+          ean: String(tr.dataset.nfeEanOrig || ''),
+        }),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) {
+        showMsg(j.erro || 'Não gravei este produto.', false);
+        return;
+      }
+      const mudou = Array.isArray(j.mudou) ? j.mudou.filter(Boolean) : [];
+      showMsg(mudou.length ? ('Atualizei neste produto: ' + [...new Set(mudou)].join(', ') + '.') : 'Este produto já estava com esses dados.', true);
+    } catch (_) {
+      showMsg('Não consegui gravar este produto.', false);
+    }
+  }
+
   function tbodyClear() {
     entradaNfeBipLimparDraftEBipIdx();
     document.getElementById('tbody-itens').innerHTML = '';
@@ -8522,7 +8565,10 @@
         <input type="hidden" class="in-origem" value="">
       </td>
       <td class="px-1 py-1 text-center align-middle"><span class="in-match inline-block min-w-[1.1rem] text-sm font-black leading-none">—</span></td>
-      <td class="px-1 py-1 text-center"><button type="button" class="btn-edit-prod-erp min-h-[40px] min-w-[40px] rounded-lg border-2 border-slate-200 bg-white text-base leading-none text-slate-600 hover:border-orange-400 hover:text-orange-800 hover:bg-orange-50 disabled:opacity-40 disabled:pointer-events-none" title="Abrir cadastro ERP (nova janela)" aria-label="Abrir cadastro do produto">✎</button></td>
+      <td class="px-1 py-1 text-center align-middle">
+        <button type="button" class="btn-gravar-forn-linha mb-1 min-h-[32px] w-full rounded-lg border-2 border-amber-400 bg-amber-50 px-1 text-[10px] font-black uppercase text-amber-950 hover:bg-amber-100" title="Grava o fornecedor desta nota neste produto. Não cria outro produto. Código de barras só se estiver vazio.">Neste</button>
+        <button type="button" class="btn-edit-prod-erp min-h-[40px] min-w-[40px] rounded-lg border-2 border-slate-200 bg-white text-base leading-none text-slate-600 hover:border-orange-400 hover:text-orange-800 hover:bg-orange-50 disabled:opacity-40 disabled:pointer-events-none" title="Abrir cadastro ERP (nova janela)" aria-label="Abrir cadastro do produto">✎</button>
+      </td>
       <td class="px-1 py-1"><button type="button" class="btn-del text-red-600 font-black text-lg leading-none px-1" title="Remover">×</button></td>`;
     tr.querySelector('.in-desc').value = d.x_prod;
     tr.querySelector('.in-cprod').value = d.c_prod;
@@ -11000,6 +11046,12 @@
     entradaNfeAgendarAutosaveRascunho();
   });
   document.getElementById('tbody-itens').addEventListener('click', (e) => {
+    const btnForn = e.target.closest('.btn-gravar-forn-linha');
+    if (btnForn) {
+      const tr = btnForn.closest('tr');
+      void entradaNfeGravarFornecedorNestaLinha(tr);
+      return;
+    }
     const btn = e.target.closest('.btn-edit-prod-erp');
     if (!btn || btn.disabled) return;
     const tr = btn.closest('tr');

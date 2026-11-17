@@ -5617,6 +5617,57 @@ def propagar_fornecedor_nf_catalogo_entrada_nota(
     return out
 
 
+def aplicar_cadastro_manual_linha_nf(
+    *,
+    produto_id: str,
+    fornecedor_nome: str,
+    ean: str = "",
+) -> dict[str, Any]:
+    """Um clique na linha da nota. Não cria produto. Fornecedor desta nota entra.
+    Código de barras só se o cadastro estiver vazio.
+    """
+    from produtos.catalogo_agro import obter_produto_model
+    from produtos.models import ProdutoGestaoOverlayAgro
+
+    pid = str(produto_id or "").strip()
+    if not pid or pid.lower().startswith("local:"):
+        return {"ok": False, "erro": "Esta linha não está ligada a um produto. Use Mudar."}
+    nome = str(fornecedor_nome or "").strip()[:300]
+    if not nome:
+        return {"ok": False, "erro": "Informe o fornecedor na etapa 1."}
+    pid64 = pid[:64]
+    p = obter_produto_model(pid64)
+    ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid64).first()
+    if p is None and ov is None:
+        return {
+            "ok": False,
+            "erro": "Não achei esse produto no cadastro. Use Mudar para ligar a um que já existe. Não crio outro daqui.",
+        }
+    mudou: list[str] = []
+    if p is not None and str(p.fornecedor_texto or "").strip() != nome:
+        p.fornecedor_texto = nome
+        p.save(update_fields=["fornecedor_texto"])
+        mudou.append("fornecedor")
+    if ov is None:
+        ov = ProdutoGestaoOverlayAgro(produto_externo_id=pid64)
+    if str(ov.fornecedor_texto or "").strip() != nome:
+        ov.fornecedor_texto = nome
+        mudou.append("fornecedor")
+    dig = "".join(ch for ch in str(ean or "") if ch.isdigit())[:14]
+    if len(dig) >= 8:
+        cb_p = str(getattr(p, "codigo_barras", "") or "").strip() if p is not None else ""
+        cb_o = str(ov.codigo_barras or "").strip()
+        if not cb_p and not cb_o:
+            ov.codigo_barras = dig
+            if p is not None:
+                p.codigo_barras = dig
+                p.save(update_fields=["codigo_barras"])
+            mudou.append("código de barras")
+    if mudou:
+        ov.save()
+    return {"ok": True, "mudou": mudou, "produto_id": pid64}
+
+
 def propagar_precos_venda_catalogo_entrada_nota(
     db,
     client_m,

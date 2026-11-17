@@ -50,3 +50,38 @@ class PropagarFornecedorNfTests(SimpleTestCase):
         self.assertEqual(r["atualizados"], 0)
         produto.save.assert_not_called()
         overlay.save.assert_not_called()
+
+
+class AplicarCadastroManualLinhaTests(SimpleTestCase):
+    def test_grava_fornecedor_e_nao_troca_codigo_preenchido(self):
+        from produtos.nfe_entrada_util import aplicar_cadastro_manual_linha_nf
+
+        produto = SimpleNamespace(fornecedor_texto="", codigo_barras="789", save=MagicMock())
+        overlay = SimpleNamespace(fornecedor_texto="", codigo_barras="789", save=MagicMock())
+        with (
+            patch("produtos.catalogo_agro.obter_produto_model", return_value=produto),
+            patch("produtos.models.ProdutoGestaoOverlayAgro.objects.filter") as filtro,
+        ):
+            filtro.return_value.first.return_value = overlay
+            r = aplicar_cadastro_manual_linha_nf(
+                produto_id="abc",
+                fornecedor_nome="Sn - Petropolis",
+                ean="7891234567895",
+            )
+        self.assertTrue(r["ok"])
+        self.assertEqual(produto.fornecedor_texto, "Sn - Petropolis")
+        self.assertEqual(produto.codigo_barras, "789")
+        self.assertIn("fornecedor", r["mudou"])
+        self.assertNotIn("código de barras", r["mudou"])
+
+    def test_sem_produto_nao_cria(self):
+        from produtos.nfe_entrada_util import aplicar_cadastro_manual_linha_nf
+
+        with (
+            patch("produtos.catalogo_agro.obter_produto_model", return_value=None),
+            patch("produtos.models.ProdutoGestaoOverlayAgro.objects.filter") as filtro,
+        ):
+            filtro.return_value.first.return_value = None
+            r = aplicar_cadastro_manual_linha_nf(produto_id="abc", fornecedor_nome="Sn")
+        self.assertFalse(r["ok"])
+        self.assertIn("Não crio outro", r["erro"])
