@@ -2007,11 +2007,6 @@ urlpatterns = [
         name='api_cron_dfe_consultar_inbox',
     ),
     path(
-        'api/entrada-nota/aplicar-cadastro-linha/',
-        views.api_entrada_nota_aplicar_cadastro_linha,
-        name='api_entrada_nota_aplicar_cadastro_linha',
-    ),
-    path(
         'api/entrada-nota/produto-margem/',
         views.api_entrada_nota_produto_margem,
         name='api_entrada_nota_produto_margem',

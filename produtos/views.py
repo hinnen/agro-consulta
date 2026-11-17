@@ -20672,24 +20672,6 @@ def api_cron_dfe_consultar_inbox(request):
 
 @login_required(login_url="/entrar/")
 @require_POST
-def api_entrada_nota_aplicar_cadastro_linha(request):
-    """Um produto da nota, no clique. Não cria cadastro novo."""
-    try:
-        data = json.loads(request.body.decode("utf-8") or "{}")
-    except Exception:
-        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
-    from produtos.nfe_entrada_util import aplicar_cadastro_manual_linha_nf
-
-    r = aplicar_cadastro_manual_linha_nf(
-        produto_id=str(data.get("produto_id") or ""),
-        fornecedor_nome=str(data.get("fornecedor_nome") or ""),
-        ean=str(data.get("ean") or ""),
-    )
-    return JsonResponse(r, status=200 if r.get("ok") else 400)
-
-
-@login_required(login_url="/entrar/")
-@require_POST
 def api_entrada_nota_produto_margem(request):
     """Grava margem % (e opcionalmente preço de venda) no espelho Mongo do produto — entrada NF."""
     try:

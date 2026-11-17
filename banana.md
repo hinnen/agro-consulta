@@ -1699,8 +1699,8 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Entrada de nota passa a gravar o fornecedor da nota no cadastro do produto. Na grade, o botão **Neste** grava só o produto clicado e não cria outro |
-| **Não muda sozinho** | Produto que já entrou antes. Na próxima entrada desse produto, o fornecedor atualiza. **Neste** também grava na hora, um por um |
+| **O quê** | Entrada de nota passa a gravar o fornecedor da nota no cadastro do produto. Nome, marca e categoria continuam como estavam |
+| **Não muda sozinho** | Produto que já entrou antes. Na próxima entrada desse produto, o fornecedor atualiza |
 | **Não muda sozinho** | Produto que já entrou antes. Na próxima entrada desse produto, o fornecedor atualiza |
 | **Migrate** | **NÃO** |
 
