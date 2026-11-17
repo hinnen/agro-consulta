@@ -19605,9 +19605,10 @@ def api_entrada_nota_financeiro(request):
     ``data_vencimento`` é o 1º vencimento; demais parcelas somam o intervalo em dias.
     Opcional ``parcelas_manual``: lista ``[{ "valor", "data_vencimento", "data_competencia"?, "boleto_codigo_barras"? }]``
     com soma igual ao total da nota (tol. 1 centavo); quando enviada, substitui o cálculo automático.
-    Opcional ``valor_impostos_taxas`` (decimal > 0): gera **outro(s)** título(s) a pagar no plano
-    ``Impostos e Taxas variaveis`` (fora do valor das parcelas da NF), mesma forma/conta/fornecedor;
-    o valor é **repartido em N linhas** com as mesmas datas de vencimento/competência das parcelas da NF.
+    Opcional ``valor_impostos_taxas`` (decimal > 0): se a soma de ``parcelas_manual`` já
+    fecha com nota + imposto, o centavo entra no próprio boleto (mesmo plano da NF).
+    Se as parcelas forem só o total da nota, gera outro(s) título(s) no plano
+    ``Impostos e Taxas variaveis``, mesma forma/conta/fornecedor, repartido nas mesmas datas.
     Opcional ``quitar_ao_salvar`` (bool): grava os títulos a pagar já quitados no Mongo (data de
     pagamento = vencimento de cada parcela) e, se ``VENDA_ERP_API_FINANCEIRO_BAIXA_PATH`` estiver
     configurado, tenta a baixa no ERP após o envio dos lançamentos novos.
@@ -19994,18 +19995,26 @@ def api_entrada_nota_financeiro(request):
                 if bcb_p:
                     parc_nf["boleto_codigo_barras"] = bcb_p
                 linhas_fin.append(parc_nf)
-            if abs(sum_man - tot_dec) > Decimal("0.02"):
+            from produtos.nfe_entrada_util import soma_parcelas_entrada_nf_aceita
+
+            aceita_soma, imposto_ja_nas_parcelas = soma_parcelas_entrada_nf_aceita(
+                sum_man, tot_dec, valor_impostos_dec
+            )
+            if not aceita_soma:
+                alvo = tot_dec + (valor_impostos_dec or Decimal("0"))
                 return JsonResponse(
                     {
                         "ok": False,
                         "erro": (
-                            f"Soma das parcelas ({sum_man}) difere do total da nota ({tot_dec}). "
+                            f"Soma das parcelas ({sum_man}) difere do total a pagar ({alvo}). "
                             "Ajuste os valores na prévia."
                         ),
                         "rascunho": r_rasc,
                     },
                     status=400,
                 )
+            if imposto_ja_nas_parcelas:
+                valor_impostos_dec = None
         elif nparc <= 1:
             linhas_fin = [
                 {

@@ -1695,6 +1695,15 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### NF-IMP-NO-BOLETO — **17/11** · no `teste` · ainda não foi para a loja
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Imposto fora da NF entra no valor do boleto no contas a pagar (o mesmo da parcela na entrada). Não gera título separado de centavos |
+| **Migrate** | **NÃO** |
+| **Nota já gerada** | Não muda sozinha. Reabrir e gerar de novo |
+| **Loja** | Só com frase + senha |
+
 ### GM-VENDAS-BAND — **16/11** · enviado · **v27.26.76**
 
 | Campo | Valor |

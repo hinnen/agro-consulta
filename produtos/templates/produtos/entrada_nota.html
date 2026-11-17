@@ -1820,7 +1820,7 @@
                 <details class="group">
                   <summary class="nfe-wiz-help min-h-[32px] min-w-[32px] cursor-pointer list-none rounded-lg border-2 border-amber-400 bg-white text-xs font-black text-amber-900 shrink-0 hover:bg-amber-50 flex items-center justify-center marker:content-none [&::-webkit-details-marker]:hidden" aria-label="Ajuda: impostos fora da NF">?</summary>
                   <div class="mt-2 rounded-lg border border-amber-200 bg-white px-2 py-2 text-[10px] font-semibold text-amber-950 leading-snug max-w-lg">
-                    Opcional. Valor <strong>à parte</strong> do total da nota; gera outro título a pagar no plano <strong>Impostos e Taxas variaveis</strong> (mesma forma, conta e fornecedor). Ajuda a somar no total a pagar / boleto.
+                    Opcional. Entra no valor de cada boleto (o que está na parcela). O contas a pagar sai com esse valor, no mesmo plano da nota.
                   </div>
                 </details>
               </div>
@@ -4638,12 +4638,12 @@
             erro: 'A soma das parcelas precisa fechar com o total a pagar (nota + impostos fora da NF, se houver) na etapa 7 · Financeiro.',
           };
         }
-        const somaNfCent = Math.round(pmCol.parcelas.reduce((a, p) => a + Math.round(Number(p.valor) * 100), 0));
-        if (Math.abs(somaNfCent - gradeCents) > 2) {
+        const somaParcCent = Math.round(pmCol.parcelas.reduce((a, p) => a + Math.round(Number(p.valor) * 100), 0));
+        if (Math.abs(somaParcCent - alvoPagarCents) > 2) {
           return {
             ok: false,
             irPara: 7,
-            erro: 'Parcelas inconsistentes com o total da nota (etapa 7 · Financeiro). Use Recalcular.',
+            erro: 'Parcelas inconsistentes com o total a pagar (etapa 7 · Financeiro). Use Recalcular.',
           };
         }
       }
@@ -7457,8 +7457,7 @@
   }
 
   /**
-   * Cada linha da prévia mostra valor combinado (NF + imposto). Para o POST, só a parte NF entra em
-   * parcelas_manual; esta função reparte os centavos da NF proporcionalmente ao combinado.
+   * Reparte centavos da NF e do imposto. O POST manda o valor combinado (o que está na parcela).
    */
   function entradaNfeDecomporParcelasCombinadasCents(combinedCents, gradeCents, impCents) {
     const n = combinedCents.length;
@@ -7904,8 +7903,6 @@
 
   function entradaNfeColetarParcelasManualFinanceiro(dcVal) {
     const rows = [...document.querySelectorAll('#fin-parcelas-preview-tbody tr.fin-parc-row')];
-    const gradeCents = entradaNfeTotalGradeCentavosUnificado();
-    const impCents = entradaNfeFinImpostoExtraCentavos();
     const combinedCents = [];
     const metas = [];
     for (let i = 0; i < rows.length; i += 1) {
@@ -7927,12 +7924,10 @@
         bol: (bolInp?.value || '').trim(),
       });
     }
-    const dec = entradaNfeDecomporParcelasCombinadasCents(combinedCents, gradeCents, impCents);
     const parcelas = [];
     for (let i = 0; i < rows.length; i += 1) {
-      const centsNf = dec.nf[i] != null ? dec.nf[i] : 0;
       const parc = {
-        valor: Math.round(centsNf) / 100,
+        valor: Math.round(combinedCents[i]) / 100,
         data_vencimento: metas[i].dvLin,
         data_competencia: dcVal,
       };
@@ -11451,9 +11446,9 @@
       showMsg('A soma das parcelas precisa fechar com o total a pagar (itens da nota + impostos fora da NF, se houver).', false);
       return;
     }
-    const somaNfCent = Math.round(pmCol.parcelas.reduce((a, p) => a + Math.round(p.valor * 100), 0));
-    if (Math.abs(somaNfCent - gradeCents) > 2) {
-      showMsg('Parcelas inconsistentes com o total da nota. Use Recalcular.', false);
+    const somaParcCent = Math.round(pmCol.parcelas.reduce((a, p) => a + Math.round(p.valor * 100), 0));
+    if (Math.abs(somaParcCent - alvoPagarCents) > 2) {
+      showMsg('Parcelas inconsistentes com o total a pagar. Use Recalcular.', false);
       return;
     }
     let nParc = parseInt(String(document.getElementById('fin-n-parc').value || '1'), 10);

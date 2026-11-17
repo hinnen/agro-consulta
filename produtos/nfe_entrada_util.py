@@ -19,6 +19,27 @@ from .mongo_busca_similares_util import encontrar_produto_casar_entrada_nfe
 
 logger = logging.getLogger(__name__)
 
+
+def soma_parcelas_entrada_nf_aceita(
+    soma: Decimal,
+    total_nota: Decimal,
+    imposto: Decimal | None,
+) -> tuple[bool, bool]:
+    """(aceita, imposto_ja_nas_parcelas).
+
+    A tela mostra o boleto já com o imposto fora da NF. O POST pode mandar
+    essa soma (nota + imposto) ou só a nota — neste caso o imposto vira título à parte.
+    """
+    tol = Decimal("0.02")
+    imp = imposto if imposto is not None and imposto > 0 else Decimal("0")
+    diff_nf = abs(soma - total_nota)
+    diff_com = abs(soma - (total_nota + imp))
+    if imp > 0 and diff_com <= tol and diff_com <= diff_nf:
+        return True, True
+    if diff_nf <= tol:
+        return True, False
+    return False, False
+
 NS_NFE = "http://www.portalfiscal.inf.br/nfe"
 COL_ENTRADA_RASCUNHO = "AgroEntradaNotaRascunho"
 COL_ENTRADA_VINCULO = "AgroEntradaNfeVinculo"
