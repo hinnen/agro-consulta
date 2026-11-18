@@ -97,7 +97,7 @@ def test_arquivos() -> None:
     check("views_painel_lista", "painel_nfe_saida_venda" in views_py)
     check("pdv_toast_link", "NF-e A4 (55)" in pdv and "/nfe/saida/?venda=" in pdv)
     check("help_include", "nfe_saida_help_agents.html" in tpl)
-    check("agents_rota", "/nfe/saida/" in _read("AGENTS.md"))
+    check("urls_rota", "/nfe/saida/" in urls)
     check("ux_typeahead_tpl", "nfe-cli-suggest" in tpl and "nfe-prod-suggest" in tpl and "nfe-venda-suggest" in tpl)
     check("ux_typeahead_js", "createTypeahead" in js and "clienteAgroPk" in js and "entrada_nfe=1" in js)
     check("ux_buscar_vendas", "api_nfe_saida_buscar_vendas" in urls and "urlBuscarVendas" in tpl)
