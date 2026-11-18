@@ -1,6 +1,6 @@
 # BANANA ROTEIRO — ler isto **antes** do `banana.md`
 
-**Substitui** a leitura integral do banana na maioria dos chats. O `banana.md` completo (~4500 linhas) fica como arquivo de detalhe e histórico.
+**Comportamento do agente:** `AGENTS.md` (preferências e regras; o nome não muda). **Este arquivo** só diz o que ler. **`banana.md`** é a memória da loja — não ler inteiro salvo a §5 daqui.
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
@@ -123,17 +123,17 @@ Escolha o ramo que mais se aproxima. Leia **na ordem**; pare quando tiver contex
 | -------------------- | ------------------ | ----- |
 | **PDV** — `/consulta/`, `/pdv/checkout/`, carrinho, F8, promo, overlay topbar | `### 4.2` | CHECKPOINT: `PDV`, `F8`, `wizard`, `overlay` |
 | **Cadastro ERP** — `/produtos/cadastro-erp/`, planilha Excel | `### 4.6` (cadastro) | CHECKPOINT: `cadastro`, `ERP`, `planilha`, `busca cadastro` · Excel ↓ fornecedores: **§9** |
-| **Gestão produtos** — `/produtos/gestao/`, overlay, lentidão pós-NF | `### 4.6` (gestão) | CHECKPOINT: `gestão`, `gestao` · `AGENTS.md` §7 gestão se perf |
+| **Gestão produtos** — `/produtos/gestao/`, overlay, lentidão pós-NF | `### 4.6` (gestão) | CHECKPOINT: `gestão`, `gestao` |
 | **NFC-e / cupom fiscal** | `### 4.3` | `docs/NFCE-PRODUCAO.md` se produção SEFAZ |
 | **Vendas / devolução** | `### 4.3` (devolução) + `### 4.4` | CHECKPOINT: `devolução`, `FL-017` |
 | **Clientes / fiado** | `### 4.5` + trecho fiado em `### 4.2` se PDV | CHECKPOINT: `fiado`, `cliente`, `F8` |
-| **Entrada NF** | `### 4.7` | `AGENTS.md` §7 entrada NF se XML/modal |
+| **Entrada NF** | `### 4.7` | CHECKPOINT: `entrada`, `NF` |
 | **NF-e saída 55 (DANFE A4)** | CHECKPOINT: `NFE-SAIDA`, `nfe/saida` | `docs/PLANO_TELA_EMISSAO_NFE_55.md` · **§88** |
 | **Estoque / ajuste / sync** | `### 4.8` | `docs/ESTOQUE_AGRO_FONTE_DA_VERDADE.md` |
-| **Compras** | `### 4.9` | `AGENTS.md` §7 compras se relatório/planilha |
+| **Compras** | `### 4.9` | CHECKPOINT: `compras` |
 | **Lançamentos / CP / CR / DRE** | `### 4.10` | Se corte Mongo/PG: `### WIP` lançamentos (~L771–1020) · CHECKPOINT: `Lançamentos`, `CP`, `Postgres` |
 | **Caixa** — abrir, fechar, sangria, gaveta | `### 4.11` | CHECKPOINT: `caixa`, `Caixa` |
-| **RH** — folha, vale, ficha | `### 4.12` | `AGENTS.md` §9 · CHECKPOINT: `RH`, `folha` |
+| **RH** — folha, vale, ficha | `### 4.12` | CHECKPOINT: `RH`, `folha` · ajuda na tela: `rh/templates/rh/includes/rh_help_agents.html` |
 | **Home / BI** — `/`, gráficos | `### 4.1` | CHECKPOINT: `BI`, `dashboard`, `gastos` |
 | **Relatórios** — Central `/relatorios/`, filtros cat/sub 1–4, ABC, ranking | `### 4.1` (bullet Central) + CHECKPOINT `relatórios` | Filtros: período · **categoria** · **sub 1/2/3/4** (combinar) · agrupar · **500 cat/sub → ✅ Live v18.26.1** (Renan OK 28/08) |
 | **Entregas** — `/entregas/`, rota terça, painel | CHECKPOINT: `entrega`, `entregas`, `FL-006`, `FL-031` | Fluxo loja: PDV → retorno entregador → baixa PDV |
@@ -145,7 +145,7 @@ Escolha o ramo que mais se aproxima. Leia **na ordem**; pare quando tiver contex
 
 | Se for… | Ler também |
 | ------- | ---------- |
-| **Layout / visual / fonte / botão** | `### 4.14` · `AGENTS.md` §5 e **§11** (Display Scale) |
+| **Layout / visual / fonte / botão** | `### 4.14` · `AGENTS.md` (preferências de tela) |
 | **Só backend / API / bug dados** | § do módulo (§2.1) — **não** precisa §4.14 |
 | **Deploy teste** (prova) | Topo L27–35 · CHECKPOINT «Prova = local» — Renan valida **no PC**; **não** Render staging free |
 | **Deploy produção / cherry loja** | Topo L22–31 · `## 3` até `### 3.2` · CHECKPOINT deploy loja · **parar e confirmar** com Renan |

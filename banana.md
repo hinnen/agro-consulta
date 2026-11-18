@@ -2,7 +2,7 @@
 
 **Loja principal GM Agro** â€” teste Render, produÃ§Ã£o, pacotes, operaÃ§Ã£o diÃ¡ria. O **produto SisVale** no geral estÃ¡ em **`SISTVALE.md`**; a instÃ¢ncia **delivery em branco** estÃ¡ em **`FOOD.md`**.
 
-**Este Ã© o anexo de contexto da loja GM.** Leitura guiada: **`banana-roteiro.md`** (fluxograma â€” ler **antes** deste arquivo). O `AGENTS.md` Ã© enciclopÃ©dia; regra Cursor em `.cursor/rules/agro-consulta.mdc` (**Â§0 = roteiro + trechos necessÃ¡rios**, nÃ£o o banana inteiro salvo exceÃ§Ãµes no roteiro Â§5).
+**Este Ã© o anexo de contexto da loja GM.** Leitura guiada: **`banana-roteiro.md`** (fluxograma â€” ler **antes** deste arquivo). O AGENTS.md guarda regras e preferencias. r em `.cursor/rules/agro-consulta.mdc` (**Â§0 = roteiro + trechos necessÃ¡rios**, nÃ£o o banana inteiro salvo exceÃ§Ãµes no roteiro Â§5).
 
 
 | VocÃª querâ€¦                            | FaÃ§a                                                  |
