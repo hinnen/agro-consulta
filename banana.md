@@ -1699,8 +1699,8 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Entrada de nota passa a gravar o fornecedor da nota no cadastro do produto. Nome, marca e categoria continuam como estavam |
-| **Não muda sozinho** | Produto que já entrou antes. Na próxima entrada desse produto, o fornecedor atualiza |
+| **O quê** | **+ Produto novo** lista só a linha sem produto e abre o cadastro em tela cheia, já com nome, EAN, código do fornecedor, NCM, custo, venda e fornecedor da nota. Nome verde da linha abre o mesmo painel. Fornecedor, nome e unidade só preenchem se o cadastro estiver vazio. NCM continua sendo o da nota. Código do fornecedor entra no campo visível, com vírgula se já tiver outro |
+| **Não mexe** | Código GM, código de barras, foto, marca e categoria que já têm texto. Nota antiga. Loja |
 | **Migrate** | **NÃO** |
 
 ### CHECKLIST ÚNICO — **17/11b** · 🟢 **pronto para envio à produção**

@@ -5562,6 +5562,79 @@ def propagar_fiscal_nf_catalogo_entrada_nota(
     return out
 
 
+def propagar_campos_vazios_nf_catalogo_entrada_nota(linhas: list) -> dict[str, Any]:
+    """Nome e unidade da nota só entram no cadastro quando os dois lados estão vazios.
+
+    Não mexe em código GM, código de barras, foto, marca nem categoria.
+    """
+    from produtos.catalogo_agro import obter_produto_model
+    from produtos.models import ProdutoGestaoOverlayAgro
+
+    out: dict[str, Any] = {"ok": True, "atualizados": 0, "produto_ids": []}
+    if not linhas:
+        return out
+    vistos: set[str] = set()
+    for ln in linhas:
+        if not isinstance(ln, dict):
+            continue
+        pid = str(ln.get("produto_id") or "").strip()
+        if not pid or pid.lower().startswith("local:") or pid in vistos:
+            continue
+        vistos.add(pid)
+        nome_nf = str(ln.get("x_prod") or "").strip()[:300]
+        un_nf = str(ln.get("u_com") or "").strip()[:20]
+        if not nome_nf and not un_nf:
+            continue
+        pid64 = pid[:64]
+        try:
+            p = obter_produto_model(pid64)
+            from produtos.cadastro_alteracao_historico_util import (
+                registrar_diffs_cadastro,
+                snapshot_overlay,
+            )
+
+            ov, _created = ProdutoGestaoOverlayAgro.objects.get_or_create(
+                produto_externo_id=pid64,
+                defaults={},
+            )
+            antes = snapshot_overlay(ov)
+            mudou = False
+            p_nome = str(getattr(p, "nome", "") or "").strip() if p is not None else ""
+            if nome_nf and not p_nome and not str(ov.nome or "").strip():
+                if p is not None:
+                    p.nome = nome_nf
+                ov.nome = nome_nf
+                mudou = True
+            p_un = str(getattr(p, "unidade", "") or "").strip() if p is not None else ""
+            if un_nf and not p_un and not str(ov.unidade or "").strip():
+                if p is not None:
+                    p.unidade = un_nf
+                ov.unidade = un_nf
+                mudou = True
+            if not mudou:
+                continue
+            if p is not None:
+                campos = []
+                if nome_nf and p.nome == nome_nf:
+                    campos.append("nome")
+                if un_nf and p.unidade == un_nf:
+                    campos.append("unidade")
+                if campos:
+                    p.save(update_fields=campos)
+            ov.save(update_fields=["nome", "unidade", "atualizado_em"])
+            registrar_diffs_cadastro(
+                produto_id=pid64,
+                antes=antes,
+                depois=snapshot_overlay(ov),
+                origem="nf",
+            )
+            out["atualizados"] += 1
+            out["produto_ids"].append(pid64)
+        except Exception as exc:
+            logger.warning("propagar campos vazios NF %s: %s", pid, exc)
+    return out
+
+
 def propagar_fornecedor_nf_catalogo_entrada_nota(
     linhas: list,
     fornecedor_nome: str,
@@ -5586,9 +5659,7 @@ def propagar_fornecedor_nf_catalogo_entrada_nota(
         pid64 = pid[:64]
         try:
             p = obter_produto_model(pid64)
-            if p is not None and str(p.fornecedor_texto or "").strip() != nome:
-                p.fornecedor_texto = nome
-                p.save(update_fields=["fornecedor_texto"])
+            p_txt = str(getattr(p, "fornecedor_texto", "") or "").strip() if p is not None else ""
             from produtos.cadastro_alteracao_historico_util import (
                 registrar_diffs_cadastro,
                 snapshot_overlay,
@@ -5598,8 +5669,13 @@ def propagar_fornecedor_nf_catalogo_entrada_nota(
                 produto_externo_id=pid64,
                 defaults={},
             )
-            if str(ov.fornecedor_texto or "").strip() == nome:
+            ov_txt = str(ov.fornecedor_texto or "").strip()
+            # Os dois lados vazios: a nota preenche. Se um já tem texto, não troca.
+            if p_txt or ov_txt:
                 continue
+            if p is not None:
+                p.fornecedor_texto = nome
+                p.save(update_fields=["fornecedor_texto"])
             antes = snapshot_overlay(ov)
             ov.fornecedor_texto = nome
             ov.save(update_fields=["fornecedor_texto", "atualizado_em"])

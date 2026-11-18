@@ -27,6 +27,11 @@ def format_version(major: int, minor: int) -> str:
 
 
 def bump_version_string(current: str) -> str:
+    raw = (current or "").strip()
+    parts = raw.split(".")
+    if len(parts) >= 3 and all(p.isdigit() for p in parts):
+        parts[-1] = str(int(parts[-1]) + 1)
+        return ".".join(parts)
     major, minor = parse_version(current)
     minor += 1
     if minor > 99:

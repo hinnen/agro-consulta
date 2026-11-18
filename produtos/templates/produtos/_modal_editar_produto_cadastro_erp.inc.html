@@ -6,6 +6,19 @@
       height: min(98dvh, 98vh);
       max-height: min(98dvh, 98vh);
     }
+    html.agro-cadastro-embed-nota #modal-editar-produto {
+      padding: 0;
+      background: #fff;
+      align-items: stretch;
+    }
+    html.agro-cadastro-embed-nota #modal-editar-produto .cadastro-modal-panel {
+      width: 100%;
+      height: 100%;
+      max-height: none;
+      border-radius: 0;
+      border: 0;
+      box-shadow: none;
+    }
     #modal-editar-produto .cadastro-modal-hist-scroll {
       flex: 1 1 auto;
       min-height: 0;
@@ -2092,7 +2105,26 @@
     });
   });
 
+  function cadastroEmbedEntradaNota() {
+    try {
+      return new URLSearchParams(window.location.search || '').get('embed') === 'entrada';
+    } catch (eEmb) {
+      return false;
+    }
+  }
+
+  function avisarEntradaNotaCadastro(tipo, produto) {
+    if (!cadastroEmbedEntradaNota() || !window.parent || window.parent === window) return;
+    try {
+      window.parent.postMessage({ type: tipo, produto: produto || null }, window.location.origin);
+    } catch (eMsg) { /* ignore */ }
+  }
+
   function fecharModal() {
+    if (cadastroEmbedEntradaNota()) {
+      avisarEntradaNotaCadastro('agro-entrada-cadastro-fechar', null);
+      return;
+    }
     limparStatusModalSalvo();
     modalEdit.classList.add('hidden');
   }
@@ -3880,6 +3912,9 @@
       else if (j.somente_agro && cfg.CADASTRO_ERP_SYNC_HABILITADO) tipoStatus = 'aviso';
       mostrarStatusModalSalvo(msgSalvo, tipoStatus);
       try { carregarHistoricoAlteracoes({ append: false }); } catch (eAlt) { /* ignore */ }
+      if (j.produto && j.produto.id && cadastroEmbedEntradaNota()) {
+        avisarEntradaNotaCadastro('agro-entrada-cadastro-salvo', j.produto);
+      }
       if (eraNovo && j.produto && j.produto.id) {
         modalEdit.setAttribute('data-produto-id', String(j.produto.id));
         var titNovo = document.getElementById('cadastro-modal-titulo');
@@ -5841,8 +5876,27 @@
   setTimeout(function () {
     try {
       var qs = new URLSearchParams(window.location.search || '');
+      if (qs.get('embed') === 'entrada') {
+        document.documentElement.classList.add('agro-cadastro-embed-nota');
+      }
       if (qs.get('novo') === '1' && typeof window.abrirModalProduto === 'function') {
         window.abrirModalProduto({ id: '__novo__' });
+        function porId(id, val) {
+          var el = document.getElementById(id);
+          var v = String(val || '').trim();
+          if (el && v) el.value = v;
+        }
+        porId('edit-nome', qs.get('nf_nome'));
+        porId('edit-cb', qs.get('nf_ean'));
+        porId('edit-c-prod-nf', qs.get('nf_cprod'));
+        porId('edit-ncm', qs.get('nf_ncm'));
+        porId('edit-cfop', qs.get('nf_cfop'));
+        porId('edit-csosn', qs.get('nf_csosn'));
+        porId('edit-origem', qs.get('nf_origem'));
+        porId('edit-unidade', qs.get('nf_un'));
+        porId('edit-custo', qs.get('nf_custo'));
+        porId('edit-venda', qs.get('nf_venda'));
+        porId('edit-fornecedor', qs.get('nf_forn'));
         var u = new URL(window.location.href);
         u.searchParams.delete('novo');
         window.history.replaceState({}, '', u.pathname + u.search + u.hash);

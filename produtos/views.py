@@ -245,6 +245,7 @@ from .nfe_entrada_util import (
     parse_nfe_xml_bytes,
     pipeline_acao_rascunho_entrada,
     persistir_vinculos_c_prod_entrada_nfe_linhas,
+    propagar_campos_vazios_nf_catalogo_entrada_nota,
     propagar_fiscal_nf_catalogo_entrada_nota,
     propagar_fornecedor_nf_catalogo_entrada_nota,
     propagar_precos_venda_catalogo_entrada_nota,
@@ -17024,6 +17025,7 @@ def _entrada_nota_propagar_precos_e_invalidar_catalogo(
         logger.warning("_entrada_nota_propagar: vinculos cProd NF", exc_info=True)
     try:
         propagar_fornecedor_nf_catalogo_entrada_nota(linhas, fornecedor_nome)
+        propagar_campos_vazios_nf_catalogo_entrada_nota(linhas)
     except Exception:
         logger.warning("_entrada_nota_propagar: fornecedor NF", exc_info=True)
     if db is None or client is None:
@@ -17079,6 +17081,7 @@ def _entrada_nota_propagar_precos_se_mudou(
             logger.warning("_entrada_nota_propagar_se_mudou: vinculos cProd NF", exc_info=True)
     try:
         propagar_fornecedor_nf_catalogo_entrada_nota(linhas_novas, fornecedor_nome)
+        propagar_campos_vazios_nf_catalogo_entrada_nota(linhas_novas)
     except Exception:
         logger.warning("_entrada_nota_propagar_se_mudou: fornecedor NF", exc_info=True)
     if not entrada_nfe_linhas_precos_catalogo_mudaram(linhas_prev, linhas_novas):
