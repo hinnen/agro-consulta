@@ -1695,13 +1695,13 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### CHECKLIST ÚNICO — **18/11d** · 🟢 **pronto para envio à produção**
+### ✅ CHECKLIST ÚNICO — **18/11d** · enviado · **v27.26.79** @ `ef23e2e7`
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
 | 1 | **CARTAO-QR-TELA** | 🟢 Pronto | **NÃO** | portal ok no PC |
 
-Só a aparência da página do celular. WhatsApp, compras e o botão da loja continuam iguais. O QR da folha impressa não muda. Não mexe em PDV, caixa nem venda. Em cima da **v27.26.78** @ `bd27b758`. Script `scripts/cutover_loja_checklist_1811d.sh`. Sem `--exec` não envia. Volta: `git push origin bd27b758:producao`.
+Só a aparência da página do celular. WhatsApp, compras e o botão da loja continuam iguais. O QR da folha impressa não muda. Não mexe em PDV, caixa nem venda. **Enviado** `ef23e2e7`. Até o build, no ar segue **v27.26.78** @ `bd27b758`. Volta: `git push origin bd27b758:producao`.
 
 ### ✅ CHECKLIST ÚNICO — **18/11c** · enviado · **v27.26.78** @ `bd27b758`
 
