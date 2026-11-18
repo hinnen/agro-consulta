@@ -4,6 +4,8 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
+**Checklist único (18/11c):** **CARTAO-QR** — 🟢 pronto para envio. Só a página do QR. O QR já impresso não muda. **Migrate NÃO**. Não foi para a loja. Corte `scripts/cutover_loja_checklist_1811c.sh` em cima da **v27.26.77**.
+
 **Loja (18/11):** corte **v27.26.77** enviado @ `2b90880a`. Cadastro pela nota, cartão (tabela **0156** no build), imposto no boleto e o texto das regras. Até o build, no ar segue **v27.26.76** @ `f58903ed`. Volta: `git push origin f58903ed:producao`.
 
 **Loja (15/11c):** **PDV-ZAP-AVISO** enviada · **v27.26.74** @ `b102a9ca`. Janela verde quando o orçamento vai no Zap. Sem migrate. Até o build, no ar segue **v27.26.73** @ `b25069cf`. Volta: `git push origin b25069cfbd01f37fe580d0e48e070f9dde057718:producao`.
