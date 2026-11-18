@@ -1096,6 +1096,11 @@
     .nfe-grade-itens .nfe-ean-catalogo.is-on {
       display: block;
     }
+    .nfe-grade-itens .nfe-desc-catalogo.is-on {
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
     .nfe-grade-itens .nfe-desc-catalogo .nfe-desc-cat-nome {
       display: block;
       overflow: hidden;
@@ -1492,23 +1497,25 @@
       <div id="nfe-wiz-page-2" data-nfe-wiz-page="2" data-nfe-wiz-lock="1" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
 
       <div class="rounded-xl border-2 border-orange-200 bg-gradient-to-br from-orange-50/80 to-white p-3 sm:p-4 space-y-2">
-        <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        <div class="relative flex flex-wrap items-center gap-x-3 gap-y-1.5">
           <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight shrink-0">2 · Produtos</h2>
-          <label id="nfe-rateio-acrescimos-wrap" class="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg border-2 border-amber-300 bg-amber-50/90 cursor-pointer min-h-[2.25rem] flex-1 min-w-[14rem] max-w-3xl" title="">
+          <div class="grid flex-1 grid-cols-1 items-stretch gap-2 min-w-0 lg:grid-cols-2">
+          <label id="nfe-rateio-acrescimos-wrap" class="inline-flex h-full items-center gap-2 rounded-lg border-2 border-amber-300 bg-amber-50/90 px-3 py-2 cursor-pointer min-h-[3.25rem]" title="">
             <input type="checkbox" id="nfe-chk-rateio-acrescimos" class="h-4 w-4 accent-amber-600 shrink-0" disabled>
-            <span class="min-w-0 flex flex-wrap items-baseline gap-x-1.5 gap-y-0 leading-tight">
-              <span class="text-[10px] sm:text-[11px] font-black uppercase text-amber-950 whitespace-nowrap">Incluir acréscimos no custo</span>
-              <span id="nfe-rateio-acrescimos-hint" class="text-[10px] font-semibold text-amber-900/90 truncate max-w-full">Leia o XML primeiro — se houver frete/ST, rateia no custo.</span>
+            <span class="min-w-0 flex flex-col leading-tight">
+              <span class="text-[11px] font-black uppercase text-amber-950">Incluir acréscimos no custo</span>
+              <span id="nfe-rateio-acrescimos-hint" class="text-[11px] font-semibold text-amber-900/90">Leia o XML primeiro — se houver frete/ST, rateia no custo.</span>
             </span>
           </label>
-          <div id="nfe-ajuste-manual-custo-wrap" class="flex flex-wrap items-center gap-2 px-2.5 py-1.5 rounded-lg border-2 border-sky-300 bg-sky-50/90 flex-1 min-w-[16rem] max-w-3xl">
-            <span class="text-[10px] sm:text-[11px] font-black uppercase text-sky-950 whitespace-nowrap shrink-0">Ajuste manual</span>
-            <label class="inline-flex items-center gap-1 cursor-pointer text-[10px] font-bold text-sky-950"><input type="radio" name="nfe-ajuste-manual-tipo" value="desconto" class="accent-sky-600"> Desconto</label>
-            <label class="inline-flex items-center gap-1 cursor-pointer text-[10px] font-bold text-sky-950"><input type="radio" name="nfe-ajuste-manual-tipo" value="acrescimo" class="accent-sky-600"> Acréscimo</label>
+          <div id="nfe-ajuste-manual-custo-wrap" class="flex h-full flex-wrap items-center gap-2 rounded-lg border-2 border-sky-300 bg-sky-50/90 px-3 py-2 min-h-[3.25rem]">
+            <span class="text-[11px] font-black uppercase text-sky-950 whitespace-nowrap shrink-0">Ajuste manual</span>
+            <label class="inline-flex items-center gap-1 cursor-pointer text-[11px] font-bold text-sky-950"><input type="radio" name="nfe-ajuste-manual-tipo" value="desconto" class="accent-sky-600"> Desconto</label>
+            <label class="inline-flex items-center gap-1 cursor-pointer text-[11px] font-bold text-sky-950"><input type="radio" name="nfe-ajuste-manual-tipo" value="acrescimo" class="accent-sky-600"> Acréscimo</label>
             <input type="text" id="nfe-ajuste-manual-valor" inputmode="decimal" autocomplete="off" placeholder="R$ valor" class="min-h-[2rem] w-[6.5rem] px-2 rounded-lg border-2 border-sky-200 text-xs font-bold tabular-nums" title="Valor total a diluir nas linhas (proporcional ao total de cada item).">
             <button type="button" id="nfe-ajuste-manual-aplicar" class="min-h-[2rem] px-2.5 rounded-lg border-2 border-sky-600 bg-sky-600 text-[10px] font-black uppercase text-white hover:bg-sky-700">Aplicar</button>
             <button type="button" id="nfe-ajuste-manual-reverter" class="min-h-[2rem] px-2.5 rounded-lg border-2 border-slate-400 bg-white text-[10px] font-black uppercase text-slate-800 hover:bg-slate-100">Reverter</button>
-            <span id="nfe-ajuste-manual-hint" class="text-[10px] font-semibold text-sky-900/90 min-w-[8rem]">Separado do frete/ST do XML.</span>
+            <span id="nfe-ajuste-manual-hint" class="hidden text-[11px] font-semibold text-sky-900/90"></span>
+          </div>
           </div>
           <button type="button" id="nfe-btn-toggle-emb-cols" aria-expanded="false" aria-controls="entrada-nfe-grade-scroll"
             title="Mostra ou esconde Un/emb, Qtd est. e R$ pacote — pouco usados no dia a dia.">
@@ -1517,7 +1524,8 @@
           </button>
           <button type="button" id="btn-prod-novo-popup"
             class="inline-flex min-h-[2.25rem] items-center px-3 py-1.5 rounded-xl bg-white border-2 border-blue-600 text-[10px] sm:text-xs font-black uppercase text-blue-950 hover:bg-blue-50 shrink-0 ml-auto"
-            title="Abre o cadastro de produtos em nova janela; ao criar no Agro, volte aqui e use Mudar ou a linha de busca embaixo da tabela.">+ Produto novo</button>
+            title="Lista só as linhas que ainda não têm produto. Abre o cadastro em tela cheia, com os dados da nota.">+ Produto novo</button>
+          <div id="nfe-prod-novo-lista" class="hidden absolute right-2 top-12 z-30 w-[min(100%,22rem)] max-h-64 overflow-auto rounded-xl border-2 border-blue-700 bg-white shadow-xl"></div>
         </div>
         <div id="entrada-nfe-grade-scroll" class="rounded-xl border-2 border-slate-200 bg-white shadow-inner overflow-x-hidden">
         <table class="nfe-grade-itens nfe-grade-itens--emb-hid w-full min-w-0 table-fixed text-xs sm:text-sm border-separate border-spacing-0">
@@ -1535,7 +1543,6 @@
             <col class="w-[5.75rem]" />
             <col class="w-[5.75rem]" />
             <col class="w-[2rem]" />
-            <col class="w-[3.25rem]" />
             <col class="w-10" />
           </colgroup>
           <thead class="bg-slate-100 text-[10px] sm:text-[11px] font-black uppercase text-slate-600 whitespace-nowrap">
@@ -1553,7 +1560,6 @@
               <th class="text-right align-bottom px-2 py-2" title="Preço de venda de referência no Agro (editável)">P. venda</th>
               <th class="text-right align-bottom px-2 py-2" title="Qtd est. × valor unitário (linha)">Total</th>
               <th class="text-center align-bottom px-1 py-2" title="Catálogo casado. Aponte o mouse na coluna Descrição para ver o nome completo cadastrado no Agro.">Cat.</th>
-              <th class="text-center align-bottom px-1 py-2" title="Abrir cadastro do produto no ERP (nova janela)">ERP</th>
               <th class="w-10 align-bottom px-0 py-2" aria-label="Remover">&nbsp;</th>
             </tr>
           </thead>
@@ -1820,7 +1826,7 @@
                 <details class="group">
                   <summary class="nfe-wiz-help min-h-[32px] min-w-[32px] cursor-pointer list-none rounded-lg border-2 border-amber-400 bg-white text-xs font-black text-amber-900 shrink-0 hover:bg-amber-50 flex items-center justify-center marker:content-none [&::-webkit-details-marker]:hidden" aria-label="Ajuda: impostos fora da NF">?</summary>
                   <div class="mt-2 rounded-lg border border-amber-200 bg-white px-2 py-2 text-[10px] font-semibold text-amber-950 leading-snug max-w-lg">
-                    Opcional. Valor <strong>à parte</strong> do total da nota; gera outro título a pagar no plano <strong>Impostos e Taxas variaveis</strong> (mesma forma, conta e fornecedor). Ajuda a somar no total a pagar / boleto.
+                    Opcional. Entra no valor de cada boleto (o que está na parcela). O contas a pagar sai com esse valor, no mesmo plano da nota.
                   </div>
                 </details>
               </div>
@@ -2816,6 +2822,7 @@
     x_prod: '',
     c_prod: '',
     ean: '',
+    u_com: '',
     q_com: 1,
     un_por_embalagem: 1,
     q_estoque: null,
@@ -4638,12 +4645,12 @@
             erro: 'A soma das parcelas precisa fechar com o total a pagar (nota + impostos fora da NF, se houver) na etapa 7 · Financeiro.',
           };
         }
-        const somaNfCent = Math.round(pmCol.parcelas.reduce((a, p) => a + Math.round(Number(p.valor) * 100), 0));
-        if (Math.abs(somaNfCent - gradeCents) > 2) {
+        const somaParcCent = Math.round(pmCol.parcelas.reduce((a, p) => a + Math.round(Number(p.valor) * 100), 0));
+        if (Math.abs(somaParcCent - alvoPagarCents) > 2) {
           return {
             ok: false,
             irPara: 7,
-            erro: 'Parcelas inconsistentes com o total da nota (etapa 7 · Financeiro). Use Recalcular.',
+            erro: 'Parcelas inconsistentes com o total a pagar (etapa 7 · Financeiro). Use Recalcular.',
           };
         }
       }
@@ -7096,11 +7103,13 @@
     const man = entradaNfeManualAjusteCustoAtivo();
     if (!hint) return;
     if (!man.tipo) {
-      hint.textContent = 'Separado do frete/ST do XML.';
+      hint.textContent = '';
+      hint.classList.add('hidden');
       return;
     }
     const lbl = man.tipo === 'desconto' ? 'Desconto' : 'Acréscimo';
     hint.textContent = `${lbl} ${entradaNfeFmtMoedaHint(man.valor)} ativo na grade.`;
+    hint.classList.remove('hidden');
   }
 
   function entradaNfeRestaurarAjusteManualUiFromExtra() {
@@ -7376,6 +7385,7 @@
       c_prod: entradaNfeStrCampo(it.c_prod),
       c_prod_fornecedor: entradaNfeStrCampo(it.c_prod_fornecedor),
       ean: entradaNfeStrCampo(it.ean),
+      u_com: entradaNfeStrCampo(it.u_com),
       q_com: qnf,
       un_por_embalagem: un,
       q_estoque: qest,
@@ -7457,8 +7467,7 @@
   }
 
   /**
-   * Cada linha da prévia mostra valor combinado (NF + imposto). Para o POST, só a parte NF entra em
-   * parcelas_manual; esta função reparte os centavos da NF proporcionalmente ao combinado.
+   * Reparte centavos da NF e do imposto. O POST manda o valor combinado (o que está na parcela).
    */
   function entradaNfeDecomporParcelasCombinadasCents(combinedCents, gradeCents, impCents) {
     const n = combinedCents.length;
@@ -7904,8 +7913,6 @@
 
   function entradaNfeColetarParcelasManualFinanceiro(dcVal) {
     const rows = [...document.querySelectorAll('#fin-parcelas-preview-tbody tr.fin-parc-row')];
-    const gradeCents = entradaNfeTotalGradeCentavosUnificado();
-    const impCents = entradaNfeFinImpostoExtraCentavos();
     const combinedCents = [];
     const metas = [];
     for (let i = 0; i < rows.length; i += 1) {
@@ -7927,12 +7934,10 @@
         bol: (bolInp?.value || '').trim(),
       });
     }
-    const dec = entradaNfeDecomporParcelasCombinadasCents(combinedCents, gradeCents, impCents);
     const parcelas = [];
     for (let i = 0; i < rows.length; i += 1) {
-      const centsNf = dec.nf[i] != null ? dec.nf[i] : 0;
       const parc = {
-        valor: Math.round(centsNf) / 100,
+        valor: Math.round(combinedCents[i]) / 100,
         data_vencimento: metas[i].dvLin,
         data_competencia: dcVal,
       };
@@ -8028,33 +8033,86 @@
     return `${proto}//${host}${port}${path}`;
   }
 
-  /** Popup ~80% da tela útil (cadastro novo e edição ERP). */
-  function entradaNfeAbrirPopupCadastroProd(url, nomeJanela) {
-    const sw = Number(screen.availWidth || window.innerWidth || 1280);
-    const sh = Number(screen.availHeight || window.innerHeight || 800);
-    const w = Math.max(920, Math.floor(sw * 0.8));
-    const h = Math.max(620, Math.floor(sh * 0.8));
-    const left = Math.max(0, Math.floor((sw - w) / 2));
-    const top = Math.max(0, Math.floor((sh - h) / 2));
-    const feat = `width=${w},height=${h},left=${left},top=${top}`;
-    const win = window.open(url, nomeJanela, feat);
-    if (!win || win.closed) {
-      showMsg('Não abriu o cadastro: o navegador bloqueou pop-up. Permita janelas para este endereço.', false);
-      return null;
-    }
-    try {
-      win.focus();
-    } catch (_) {}
-    return win;
+  let entradaNfeCadastroLinhaAlvo = null;
+
+  function entradaNfeCadastroPainelFechar() {
+    const painel = document.getElementById('nfe-cadastro-painel');
+    const frame = document.getElementById('nfe-cadastro-frame');
+    if (frame) frame.src = 'about:blank';
+    if (painel) painel.classList.add('hidden');
+    entradaNfeCadastroLinhaAlvo = null;
+    window.entradaNfeCadastroLinhaAlvo = null;
+    window.entradaNfeCadastroCriarLinha = false;
+  }
+    window.entradaNfeCadastroPainelFechar = entradaNfeCadastroPainelFechar;
+  window.addLinhaRow = addLinhaRow;
+  window.entradaNfeAplicarProdutoNaLinha = entradaNfeAplicarProdutoNaLinha;
+
+  function entradaNfeCadastroPainelAbrir(url, tr) {
+    const painel = document.getElementById('nfe-cadastro-painel');
+    const frame = document.getElementById('nfe-cadastro-frame');
+    if (!painel || !frame) return;
+    entradaNfeCadastroLinhaAlvo = tr || null;
+    window.entradaNfeCadastroLinhaAlvo = entradaNfeCadastroLinhaAlvo;
+    const sep = url.indexOf('?') >= 0 ? '&' : '?';
+    frame.src = `${url}${sep}embed=entrada`;
+    painel.classList.remove('hidden');
   }
 
-  function abrirModalCadastroProd(produtoId) {
+  function entradaNfeUrlCadastroNovoDaLinha(tr) {
+    const q = new URLSearchParams();
+    q.set('novo', '1');
+    q.set('embed', 'entrada');
+    const nome = String(tr?.querySelector('.in-desc')?.value || '').trim();
+    const ean = String(tr?.querySelector('.in-ean')?.value || '').trim();
+    const cprod = String(tr?.dataset?.nfeCprodOrig || tr?.querySelector('.in-cprod')?.value || '').trim();
+    const ncm = String(tr?.querySelector('.in-ncm')?.value || '').trim();
+    const cfop = String(tr?.querySelector('.in-cfop')?.value || '').trim();
+    const csosn = String(tr?.querySelector('.in-csosn')?.value || '').trim();
+    const origem = String(tr?.querySelector('.in-origem')?.value || '').trim();
+    const un = String(tr?.dataset?.nfeUCom || '').trim();
+    const custo = String(tr?.querySelector('.in-vun')?.value || '').trim();
+    const venda = String(tr?.querySelector('.in-pvenda')?.value || '').trim();
+    const forn = String(document.getElementById('m-emit-nome')?.value || '').trim();
+    if (nome) q.set('nf_nome', nome.slice(0, 300));
+    if (ean) q.set('nf_ean', ean.slice(0, 22));
+    if (cprod) q.set('nf_cprod', cprod.slice(0, 60));
+    if (ncm) q.set('nf_ncm', ncm.slice(0, 14));
+    if (cfop) q.set('nf_cfop', cfop.slice(0, 7));
+    if (csosn) q.set('nf_csosn', csosn.slice(0, 7));
+    if (origem) q.set('nf_origem', origem.slice(0, 4));
+    if (un) q.set('nf_un', un.slice(0, 20));
+    if (custo) q.set('nf_custo', custo.slice(0, 20));
+    if (venda) q.set('nf_venda', venda.slice(0, 20));
+    if (forn) q.set('nf_forn', forn.slice(0, 300));
+    const base = String(URL_CAD_PRODUTO_NOVO || '').split('?')[0];
+    return `${base}?${q.toString()}`;
+  }
+
+  function abrirModalCadastroProd(produtoId, tr) {
     const url = entradaNfeUrlCadastroProdNovaJanela(produtoId);
-    entradaNfeAbrirPopupCadastroProd(url, 'agro_cad_prod_nfe');
+    entradaNfeCadastroPainelAbrir(url, tr || null);
+  }
+
+  function entradaNfeLinhasSemProduto() {
+    return [...document.querySelectorAll('#tbody-itens tr')].filter((tr) => {
+      if (tr.dataset.nfeLinhaModo === 'compact') return false;
+      const pid = tr.querySelector('.in-prod-id')?.value;
+      if (entradaNfeProdutoIdErpValido(pid)) return false;
+      const desc = String(tr.querySelector('.in-desc')?.value || '').trim();
+      return !!desc;
+    });
+  }
+
+  function entradaNfeAbrirListaProdutoNovo() {
+    const box = document.getElementById('nfe-prod-novo-lista');
+    if (box) box.classList.add('hidden');
+    window.entradaNfeCadastroCriarLinha = true;
+    entradaNfeCadastroPainelAbrir(entradaNfeUrlCadastroNovoDaLinha(null), null);
   }
 
   function abrirCadastroProdutoNovoPopup() {
-    entradaNfeAbrirPopupCadastroProd(URL_CAD_PRODUTO_NOVO, 'agro_cad_prod_novo_nfe');
+    entradaNfeAbrirListaProdutoNovo();
   }
 
   function tbodyClear() {
@@ -8271,13 +8329,23 @@
         elNome.className = 'nfe-desc-cat-nome';
         elNome.textContent = nomeLimpo;
         subEl.appendChild(elNome);
-        subEl.title = `Nome no SisVale: ${nomeLimpo}`;
+        subEl.title = `Abrir cadastro: ${nomeLimpo}`;
         subEl.classList.add('is-on');
+        subEl.classList.remove('is-novo');
+      } else if (pid) {
+        subEl.textContent = 'Abrir cadastro';
+        subEl.title = 'Abrir o cadastro deste produto';
+        subEl.classList.add('is-on');
+        subEl.classList.remove('is-novo');
+      } else if (String(descEl?.value || '').trim()) {
+        subEl.textContent = 'Cadastrar esta linha';
+        subEl.title = 'Abre o cadastro com os dados desta linha';
+        subEl.classList.add('is-on', 'is-novo');
       } else {
         subEl.textContent = '';
         subEl.innerHTML = '';
         subEl.removeAttribute('title');
-        subEl.classList.remove('is-on');
+        subEl.classList.remove('is-on', 'is-novo');
       }
     }
     if (gmEl) {
@@ -8468,6 +8536,9 @@
     } else {
       delete tr.dataset.nfeXmlNItem;
     }
+    const uComNf = entradaNfeStrCampo(d.u_com);
+    if (uComNf) tr.dataset.nfeUCom = uComNf.slice(0, 20);
+    else delete tr.dataset.nfeUCom;
 
     tr.innerHTML = `
       <td class="nfe-desc-cell px-2 py-1">
@@ -8527,7 +8598,6 @@
         <input type="hidden" class="in-origem" value="">
       </td>
       <td class="px-1 py-1 text-center align-middle"><span class="in-match inline-block min-w-[1.1rem] text-sm font-black leading-none">—</span></td>
-      <td class="px-1 py-1 text-center"><button type="button" class="btn-edit-prod-erp min-h-[40px] min-w-[40px] rounded-lg border-2 border-slate-200 bg-white text-base leading-none text-slate-600 hover:border-orange-400 hover:text-orange-800 hover:bg-orange-50 disabled:opacity-40 disabled:pointer-events-none" title="Abrir cadastro ERP (nova janela)" aria-label="Abrir cadastro do produto">✎</button></td>
       <td class="px-1 py-1"><button type="button" class="btn-del text-red-600 font-black text-lg leading-none px-1" title="Remover">×</button></td>`;
     tr.querySelector('.in-desc').value = d.x_prod;
     tr.querySelector('.in-cprod').value = d.c_prod;
@@ -8819,6 +8889,7 @@
         c_prod: tr.querySelector('.in-cprod').value.trim(),
         c_prod_fornecedor: String(tr.dataset.nfeCprodOrig || '').trim(),
         ean: tr.querySelector('.in-ean').value.trim(),
+        u_com: String(tr.dataset.nfeUCom || '').trim(),
         codigo_nfe: entradaNfeLinhaGmCatalogo(tr),
         codigo_barras_catalogo: entradaNfeLinhaEanCatalogo(tr),
         q_com: qtd,
@@ -9279,6 +9350,7 @@
           x_prod: row.x_prod || '',
           c_prod: row.c_prod || '',
           ean: row.ean || '',
+          u_com: row.u_com || '',
           q_com: row.q_com != null ? row.q_com : 1,
           un_por_embalagem: row.un_por_embalagem != null ? row.un_por_embalagem : 1,
           q_estoque: row.q_estoque != null ? row.q_estoque : null,
@@ -11005,12 +11077,18 @@
     entradaNfeAgendarAutosaveRascunho();
   });
   document.getElementById('tbody-itens').addEventListener('click', (e) => {
-    const btn = e.target.closest('.btn-edit-prod-erp');
-    if (!btn || btn.disabled) return;
-    const tr = btn.closest('tr');
-    const pid = tr?.querySelector('.in-prod-id')?.value?.trim();
-    if (!entradaNfeProdutoIdErpValido(pid)) return;
-    abrirModalCadastroProd(pid);
+    const nomeBtn = e.target.closest('.nfe-desc-catalogo.is-on');
+    if (nomeBtn) {
+      const trNome = nomeBtn.closest('tr');
+      const pidNome = trNome?.querySelector('.in-prod-id')?.value?.trim();
+      if (nomeBtn.classList.contains('is-novo')) {
+        window.entradaNfeCadastroCriarLinha = false;
+        entradaNfeCadastroPainelAbrir(entradaNfeUrlCadastroNovoDaLinha(trNome), trNome);
+        return;
+      }
+      if (entradaNfeProdutoIdErpValido(pidNome)) abrirModalCadastroProd(pidNome, trNome);
+      return;
+    }
   });
 
   /**
@@ -11451,9 +11529,9 @@
       showMsg('A soma das parcelas precisa fechar com o total a pagar (itens da nota + impostos fora da NF, se houver).', false);
       return;
     }
-    const somaNfCent = Math.round(pmCol.parcelas.reduce((a, p) => a + Math.round(p.valor * 100), 0));
-    if (Math.abs(somaNfCent - gradeCents) > 2) {
-      showMsg('Parcelas inconsistentes com o total da nota. Use Recalcular.', false);
+    const somaParcCent = Math.round(pmCol.parcelas.reduce((a, p) => a + Math.round(p.valor * 100), 0));
+    if (Math.abs(somaParcCent - alvoPagarCents) > 2) {
+      showMsg('Parcelas inconsistentes com o total a pagar. Use Recalcular.', false);
       return;
     }
     let nParc = parseInt(String(document.getElementById('fin-n-parc').value || '1'), 10);
@@ -13177,6 +13255,7 @@
               x_prod: row.x_prod || '',
               c_prod: row.c_prod || '',
               ean: row.ean || '',
+          u_com: row.u_com || '',
               q_com: row.q_com != null ? row.q_com : 1,
               un_por_embalagem: row.un_por_embalagem != null ? row.un_por_embalagem : 1,
               q_estoque: row.q_estoque != null ? row.q_estoque : null,
@@ -13234,5 +13313,46 @@
   </script>
 {% if not entrada_embed %}{% include "produtos/_atalho_voltar_pdv.html" %}{% endif %}
 {% include "produtos/_screensaver_pin.html" %}
+<div id="nfe-cadastro-painel" class="hidden fixed inset-0 z-[80] flex flex-col bg-slate-900">
+  <button type="button" id="nfe-cadastro-voltar" class="shrink-0 min-h-[4.75rem] px-6 text-2xl font-black uppercase tracking-wide text-white bg-orange-500 hover:bg-orange-600 border-b-4 border-orange-800">← Voltar para a nota</button>
+  <iframe id="nfe-cadastro-frame" title="Cadastro do produto" class="flex-1 w-full min-h-0 bg-white border-0"></iframe>
+</div>
+<script>
+  document.getElementById('nfe-cadastro-voltar')?.addEventListener('click', () => {
+    if (typeof entradaNfeCadastroPainelFechar === 'function') entradaNfeCadastroPainelFechar();
+  });
+  window.addEventListener('message', (ev) => {
+    if (ev.origin !== location.origin || !ev.data) return;
+    if (ev.data.type === 'agro-entrada-cadastro-fechar') {
+      if (typeof entradaNfeCadastroPainelFechar === 'function') entradaNfeCadastroPainelFechar();
+      return;
+    }
+    if (ev.data.type !== 'agro-entrada-cadastro-salvo') return;
+    const p = ev.data.produto || {};
+    let tr = window.entradaNfeCadastroLinhaAlvo || null;
+    if (!tr && window.entradaNfeCadastroCriarLinha && p.id && typeof addLinhaRow === 'function') {
+      addLinhaRow({
+        x_prod: p.nome || p.Nome || '',
+        ean: p.ean || p.codigo_barras || '',
+        q_com: 1,
+        v_un_com: p.custo || p.preco_custo || 0,
+        preco_venda: p.preco_venda || p.venda || 0,
+      });
+      const rows = [...document.querySelectorAll('#tbody-itens tr')].filter((row) => row.dataset.nfeLinhaModo !== 'compact');
+      tr = rows[rows.length - 1] || null;
+    }
+    if (tr && p.id && typeof entradaNfeAplicarProdutoNaLinha === 'function') {
+      const ja = String(tr.querySelector('.in-prod-id')?.value || '').trim();
+      if (!ja || ja === String(p.id)) entradaNfeAplicarProdutoNaLinha(tr, p, 'cadastro');
+    }
+    if (typeof entradaNfeCadastroPainelFechar === 'function') entradaNfeCadastroPainelFechar();
+  });
+  document.addEventListener('click', (ev) => {
+    const box = document.getElementById('nfe-prod-novo-lista');
+    if (!box || box.classList.contains('hidden')) return;
+    if (ev.target.closest('#nfe-prod-novo-lista') || ev.target.closest('#btn-prod-novo-popup')) return;
+    box.classList.add('hidden');
+  });
+</script>
 </body>
 </html>

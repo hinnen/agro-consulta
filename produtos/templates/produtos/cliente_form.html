@@ -206,6 +206,12 @@
             {% if form.plus_code.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.plus_code.errors.0 }}</p>{% endif %}
           </label>
 
+          {% if cliente %}
+          <label class="cli-form-field" for="cli-cartao-codigo">
+            <span class="cli-form-label block font-black uppercase text-slate-500">Cartão</span>
+            <input id="cli-cartao-codigo" type="text" readonly value="{{ cartao_codigo|default:'Sem cartão' }}" class="bg-slate-100 font-black tabular-nums">
+          </label>
+          {% endif %}
           <p class="cli-form-section-title font-black uppercase tracking-wide text-slate-600">Saldos e limite</p>
           <label class="cli-form-field cli-form-f-vale" for="{{ form.saldo_vale_credito.id_for_label }}">
             <span class="cli-form-label block font-black uppercase text-slate-500">{{ form.saldo_vale_credito.label }}</span>

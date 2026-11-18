@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ cliente.nome }}</title>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #f8fafc; color: #0f172a; }
+    main { max-width: 32rem; margin: 0 auto; padding: 1.25rem; }
+    h1 { font-size: 1.6rem; margin: 0 0 0.25rem; }
+    .saldo { background: #047857; color: #fff; border-radius: 1rem; padding: 1rem; margin: 1rem 0; }
+    .saldo strong { font-size: 1.8rem; }
+    form { display: grid; gap: 0.6rem; margin: 1rem 0; }
+    input, button { font-size: 1.15rem; padding: 0.8rem; border-radius: 0.8rem; }
+    button { background: #047857; color: #fff; border: 0; font-weight: 800; }
+    .aviso { background: #ffedd5; padding: 0.8rem; border-radius: 0.8rem; font-weight: 700; }
+    article { background: #fff; border-radius: 0.8rem; padding: 0.8rem; margin: 0.6rem 0; }
+    li { margin: 0.2rem 0; }
+  </style>
+</head>
+<body>
+<main>
+  <p style="font-weight:800;color:#047857;letter-spacing:.08em">GM AGRO</p>
+  {% if not liberado %}
+  <h1>Ver minhas compras</h1>
+  <p>Digite o WhatsApp que está no cadastro. O código chega na conversa com a loja.</p>
+  {% if aviso %}<p class="aviso">{{ aviso }}</p>{% endif %}
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="acao" value="pedir">
+    <input name="whatsapp" inputmode="tel" autocomplete="tel" placeholder="WhatsApp" required>
+    <button type="submit">Pedir código</button>
+  </form>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="acao" value="confirmar">
+    <input name="codigo" inputmode="numeric" autocomplete="one-time-code" placeholder="Código de 6 números" required>
+    <button type="submit">Entrar</button>
+  </form>
+  {% else %}
+  <h1>{{ cliente.nome }}</h1>
+  <div class="saldo">
+    <div>Cashback</div>
+    <strong>R$ {{ cliente.saldo_cashback }}</strong>
+    <div>Vale crédito R$ {{ cliente.saldo_vale_credito }}</div>
+  </div>
+  <h2>Compras</h2>
+  {% for c in compras %}
+  <article>
+    <strong>{{ c.quando|date:"d/m/Y H:i" }}</strong>
+    · R$ {{ c.total }}
+    {% if c.forma %}<div>{{ c.forma }}</div>{% endif %}
+    <ul>
+      {% for item in c.itens %}
+      <li>{{ item.descricao }} · {{ item.quantidade }} · R$ {{ item.total }}</li>
+      {% endfor %}
+    </ul>
+  </article>
+  {% empty %}
+  <p>Nenhuma compra neste cadastro.</p>
+  {% endfor %}
+  {% endif %}
+</main>
+</body>
+</html>

@@ -246,7 +246,9 @@ from .nfe_entrada_util import (
     parse_nfe_xml_bytes,
     pipeline_acao_rascunho_entrada,
     persistir_vinculos_c_prod_entrada_nfe_linhas,
+    propagar_campos_vazios_nf_catalogo_entrada_nota,
     propagar_fiscal_nf_catalogo_entrada_nota,
+    propagar_fornecedor_nf_catalogo_entrada_nota,
     propagar_precos_venda_catalogo_entrada_nota,
     rascunho_entrada_valido_para_aprovacao_wizard,
     release_rascunho_estoque_agro_claim,
@@ -11445,6 +11447,7 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
             "apiEntregaRegistrar": reverse("api_entrega_registrar"),
             "apiListCustomers": reverse("api_list_customers"),
             "apiBuscarClientes": reverse("api_buscar_clientes"),
+            "apiPdvCartaoCliente": reverse("api_pdv_cartao_cliente"),
             "apiPdvTopVendidos": reverse("api_pdv_top_vendidos"),
             "apiPdvSaldos": reverse("api_pdv_saldos"),
             "apiPdvInvalidarCatalogo": reverse("api_pdv_invalidar_catalogo"),
@@ -11452,6 +11455,9 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
             "apiTodosProdutosLocal": reverse("api_todos_produtos_local"),
             "apiEnviarPedidoErp": reverse("api_enviar_pedido_erp"),
             "apiPdvClienteRapido": reverse("api_pdv_cliente_rapido"),
+            "apiPdvClienteEditarPattern": reverse("api_pdv_cliente_editar", args=[0]).replace(
+                "/0/", "/__pk__/"
+            ),
             "apiPdvClienteCreditoFiado": reverse("api_pdv_cliente_credito_fiado"),
             "apiPdvFiadoLimite": reverse("api_pdv_fiado_limite"),
             "apiPdvRelacionamentoCliente": reverse("api_pdv_relacionamento_cliente"),
@@ -12322,6 +12328,7 @@ def cliente_editar(request, pk):
             "form": form,
             "titulo": f"Editar: {cli.nome}",
             "cliente": cli,
+            "cartao_codigo": _codigo_cartao_ativo(cli.pk),
             "duplicado_whatsapp": duplicado_whatsapp,
             "cli_acoes_boot": _cli_acoes_boot(request, cli, duplicado_whatsapp),
         },
@@ -16754,6 +16761,7 @@ def api_entrada_nota_salvar(request):
             usuario,
             user_pk=int(request.user.pk) if request.user.is_authenticated else None,
             emit_cnpj=str(cab.get("emit_cnpj") or ""),
+            fornecedor_nome=str(cab.get("emit_nome") or ""),
         )
     st = 200 if r.get("ok") else 400
     return JsonResponse(r, status=st)
@@ -16918,6 +16926,7 @@ def api_entrada_nota_rascunho_atualizar(request):
             usuario,
             user_pk=int(request.user.pk) if request.user.is_authenticated else None,
             emit_cnpj=str(cab.get("emit_cnpj") or ""),
+            fornecedor_nome=str(cab.get("emit_nome") or ""),
         )
     st = 200 if r.get("ok") else 400
     return JsonResponse(r, status=st)
@@ -16961,6 +16970,7 @@ def _entrada_nota_propagar_precos_e_invalidar_catalogo(
     *,
     user_pk: int | None = None,
     emit_cnpj: str = "",
+    fornecedor_nome: str = "",
 ) -> None:
     """P. venda da grade → Mongo + overlay; vínculo cProd **sempre no Postgres**."""
     if not linhas:
@@ -16975,6 +16985,11 @@ def _entrada_nota_propagar_precos_e_invalidar_catalogo(
         )
     except Exception:
         logger.warning("_entrada_nota_propagar: vinculos cProd NF", exc_info=True)
+    try:
+        propagar_fornecedor_nf_catalogo_entrada_nota(linhas, fornecedor_nome)
+        propagar_campos_vazios_nf_catalogo_entrada_nota(linhas)
+    except Exception:
+        logger.warning("_entrada_nota_propagar: fornecedor NF", exc_info=True)
     if db is None or client is None:
         return
     pr = propagar_precos_venda_catalogo_entrada_nota(db, client, linhas, _usuario_label=usuario)
@@ -17013,6 +17028,7 @@ def _entrada_nota_propagar_precos_se_mudou(
     *,
     user_pk: int | None = None,
     emit_cnpj: str = "",
+    fornecedor_nome: str = "",
 ) -> None:
     # Vínculo cProd precisa gravar no PG mesmo sem mudança de P.venda.
     if linhas_novas:
@@ -17025,6 +17041,11 @@ def _entrada_nota_propagar_precos_se_mudou(
             )
         except Exception:
             logger.warning("_entrada_nota_propagar_se_mudou: vinculos cProd NF", exc_info=True)
+    try:
+        propagar_fornecedor_nf_catalogo_entrada_nota(linhas_novas, fornecedor_nome)
+        propagar_campos_vazios_nf_catalogo_entrada_nota(linhas_novas)
+    except Exception:
+        logger.warning("_entrada_nota_propagar_se_mudou: fornecedor NF", exc_info=True)
     if not entrada_nfe_linhas_precos_catalogo_mudaram(linhas_prev, linhas_novas):
         return
     _entrada_nota_propagar_precos_e_invalidar_catalogo(
@@ -17034,6 +17055,7 @@ def _entrada_nota_propagar_precos_se_mudou(
         usuario,
         user_pk=user_pk,
         emit_cnpj=emit_cnpj,
+        fornecedor_nome=fornecedor_nome,
     )
 
 
@@ -17957,6 +17979,7 @@ def api_entrada_nota_estoque_agro(request):
         usuario,
         user_pk=int(request.user.pk) if request.user.is_authenticated else None,
         emit_cnpj=str(cab.get("emit_cnpj") or ""),
+        fornecedor_nome=str(cab.get("emit_nome") or ""),
     )
 
     r_rasc: dict | None = None
@@ -19564,9 +19587,10 @@ def api_entrada_nota_financeiro(request):
     ``data_vencimento`` é o 1º vencimento; demais parcelas somam o intervalo em dias.
     Opcional ``parcelas_manual``: lista ``[{ "valor", "data_vencimento", "data_competencia"?, "boleto_codigo_barras"? }]``
     com soma igual ao total da nota (tol. 1 centavo); quando enviada, substitui o cálculo automático.
-    Opcional ``valor_impostos_taxas`` (decimal > 0): gera **outro(s)** título(s) a pagar no plano
-    ``Impostos e Taxas variaveis`` (fora do valor das parcelas da NF), mesma forma/conta/fornecedor;
-    o valor é **repartido em N linhas** com as mesmas datas de vencimento/competência das parcelas da NF.
+    Opcional ``valor_impostos_taxas`` (decimal > 0): se a soma de ``parcelas_manual`` já
+    fecha com nota + imposto, o centavo entra no próprio boleto (mesmo plano da NF).
+    Se as parcelas forem só o total da nota, gera outro(s) título(s) no plano
+    ``Impostos e Taxas variaveis``, mesma forma/conta/fornecedor, repartido nas mesmas datas.
     Opcional ``quitar_ao_salvar`` (bool): grava os títulos a pagar já quitados no Mongo (data de
     pagamento = vencimento de cada parcela) e, se ``VENDA_ERP_API_FINANCEIRO_BAIXA_PATH`` estiver
     configurado, tenta a baixa no ERP após o envio dos lançamentos novos.
@@ -19727,6 +19751,7 @@ def api_entrada_nota_financeiro(request):
         usuario,
         user_pk=int(request.user.pk) if request.user.is_authenticated else None,
         emit_cnpj=str(cab.get("emit_cnpj") or ""),
+        fornecedor_nome=str(cab.get("emit_nome") or ""),
     )
 
     def _d_fin(key: str):
@@ -19953,18 +19978,26 @@ def api_entrada_nota_financeiro(request):
                 if bcb_p:
                     parc_nf["boleto_codigo_barras"] = bcb_p
                 linhas_fin.append(parc_nf)
-            if abs(sum_man - tot_dec) > Decimal("0.02"):
+            from produtos.nfe_entrada_util import soma_parcelas_entrada_nf_aceita
+
+            aceita_soma, imposto_ja_nas_parcelas = soma_parcelas_entrada_nf_aceita(
+                sum_man, tot_dec, valor_impostos_dec
+            )
+            if not aceita_soma:
+                alvo = tot_dec + (valor_impostos_dec or Decimal("0"))
                 return JsonResponse(
                     {
                         "ok": False,
                         "erro": (
-                            f"Soma das parcelas ({sum_man}) difere do total da nota ({tot_dec}). "
+                            f"Soma das parcelas ({sum_man}) difere do total a pagar ({alvo}). "
                             "Ajuste os valores na prévia."
                         ),
                         "rascunho": r_rasc,
                     },
                     status=400,
                 )
+            if imposto_ja_nas_parcelas:
+                valor_impostos_dec = None
         elif nparc <= 1:
             linhas_fin = [
                 {
@@ -33287,7 +33320,20 @@ def _linhas_pessoas_erp_list(lst):
     return out
 
 
-def _linha_clienteagro_pdv(c: ClienteAgro) -> dict:
+def _codigo_cartao_ativo(cliente_pk) -> str:
+    if not cliente_pk:
+        return ""
+    from produtos.models import ClienteCartaoAgro
+
+    codigo = (
+        ClienteCartaoAgro.objects.filter(cliente_id=cliente_pk, ativo=True)
+        .values_list("codigo", flat=True)
+        .first()
+    )
+    return codigo or ""
+
+
+def _linha_clienteagro_pdv(c: ClienteAgro, cartao_codigo=None) -> dict:
     """JSON do cliente no PDV: id compatível com checkout (ERP não recebe ObjectId do Mongo)."""
     eid = (c.externo_id or "").strip()
     orig = (c.origem_import or "").strip()
@@ -33336,6 +33382,7 @@ def _linha_clienteagro_pdv(c: ClienteAgro) -> dict:
         "desconto_pdv_percentual": float(c.desconto_pdv_percentual or 0)
         if c.desconto_pdv_percentual is not None
         else 0,
+        "cartao_codigo": _codigo_cartao_ativo(c.pk) if cartao_codigo is None else cartao_codigo,
     }
 
 
@@ -33349,13 +33396,29 @@ def _clientes_locais_agro_pdv(termo=""):
             q_filter |= Q(whatsapp__icontains=digits) | Q(cpf__icontains=digits)
         if len(t) >= 3:
             q_filter |= Q(endereco__icontains=t) | Q(plus_code__icontains=t)
+        if t.isdigit() and 1 <= len(t) <= 5:
+            from produtos.models import ClienteCartaoAgro
+
+            prefixo = f"981{int(t):09d}"
+            ids_cartao = ClienteCartaoAgro.objects.filter(
+                ativo=True, codigo__startswith=prefixo
+            ).values_list("cliente_id", flat=True)
+            q_filter |= Q(pk__in=list(ids_cartao))
         qs = qs.filter(q_filter)
-    qs = qs.order_by("nome")[:80]
-    return [_linha_clienteagro_pdv(c) for c in qs]
+    clientes = list(qs.order_by("nome")[:80])
+    from produtos.models import ClienteCartaoAgro
+
+    mapa = dict(
+        ClienteCartaoAgro.objects.filter(
+            cliente_id__in=[c.pk for c in clientes],
+            ativo=True,
+        ).values_list("cliente_id", "codigo")
+    )
+    return [_linha_clienteagro_pdv(c, mapa.get(c.pk, "")) for c in clientes]
 
 
 def _api_buscar_clientes_cache_key(termo: str) -> str:
-    return f"api_buscar_clientes_v1:{(termo or '').strip().lower()[:80]}"
+    return f"api_buscar_clientes_v3:{(termo or '').strip().lower()[:80]}"
 
 
 def _dedupe_clientes_pdv_por_nome_doc(rows):
@@ -33561,10 +33624,34 @@ def api_pdv_cliente_rapido(request):
         if cpf_val is not None:
             c.cpf = cpf_val
             c.save(update_fields=["cpf"])
+        aviso_cartao = _vincular_cartao_no_cadastro_rapido(c, data.get("cartao_codigo"))
     except Exception as e:
         logger.exception("api_pdv_cliente_rapido")
         return JsonResponse({"ok": False, "erro": str(e)[:500]}, status=400)
-    return JsonResponse({"ok": True, "cliente": _linha_clienteagro_pdv(c)})
+    payload = {"ok": True, "cliente": _linha_clienteagro_pdv(c)}
+    if aviso_cartao:
+        payload["aviso"] = aviso_cartao
+    return JsonResponse(payload)
+
+
+def _vincular_cartao_no_cadastro_rapido(cliente, bruto) -> str:
+    """Liga o cartão bipado no cadastro. Vazio = não pediu. Texto = aviso, cliente já gravado."""
+    codigo = str(bruto or "").strip()
+    if not codigo:
+        return ""
+    from produtos.cliente_cartao_util import cartao_por_codigo, eh_codigo_cartao, vincular
+
+    if not eh_codigo_cartao(codigo):
+        return "Cliente salvo. Esse código não é cartão de cliente."
+    cartao = cartao_por_codigo(codigo)
+    if cartao is None:
+        return "Cliente salvo. Esse cartão ainda não foi impresso no caixa."
+    if not cartao.ativo:
+        return "Cliente salvo. Esse cartão foi cancelado. Use o novo."
+    if cartao.cliente_id and cartao.cliente_id != cliente.pk:
+        return "Esse cartão já é de outra pessoa. Bipe um cartão em branco."
+    vincular(cartao, cliente)
+    return ""
 
 
 def _pdv_whatsapp_digits_pdv(wa_raw: str, *, obrigatorio: bool = False, excluir_pk=None):
@@ -33681,7 +33768,11 @@ def api_pdv_cliente_editar(request, pk):
     from produtos.cliente_operacoes_util import propagar_renome_cliente
 
     propagar_renome_cliente(cli, nome_antes)
-    return JsonResponse({"ok": True, "cliente": _linha_clienteagro_pdv(cli)})
+    aviso_cartao = _vincular_cartao_no_cadastro_rapido(cli, data.get("cartao_codigo"))
+    payload = {"ok": True, "cliente": _linha_clienteagro_pdv(cli)}
+    if aviso_cartao:
+        payload["aviso"] = aviso_cartao
+    return JsonResponse(payload)
 
 
 @require_GET

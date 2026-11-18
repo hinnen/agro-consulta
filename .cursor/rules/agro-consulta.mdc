@@ -7,6 +7,8 @@ alwaysApply: true
 
 ## 0. Obrigatório — antes de qualquer coisa (Renan, 2026-07-03)
 
+**Branch (11/11/2026, vale na versão web):** ficar em `teste`. Commit e push direto em `origin/teste`. Proibido criar ou deixar `cursor/…`, `deploy/…`, `rollback/…` ou `producao-backup-…`. Se o chat já abriu num `cursor/…`, trazer os commits para `teste` e apagar esse branch. No GitHub só `teste`, `producao` e `whatsapp`. `producao` só com frase + senha na mesma mensagem. Detalhe: `banana-roteiro.md` §0.3.
+
 **Primeira ação em todo chat** (antes de responder, editar, shell ou plano):
 
 1. **Ler `banana-roteiro.md` inteiro** (fluxograma de leitura).
@@ -21,7 +23,7 @@ alwaysApply: true
 
 ## Fonte completa
 
-**Chat (Renan):** retomada → **`@banana-roteiro`**; referência profunda → **`AGENTS.md`**. **Não perguntar** se deve atualizar o AGENTS; WIP → `banana.md`; AGENTS §7 só se o usuário pedir.
+**`AGENTS.md`** = preferências e regras (comportamento). **`banana-roteiro.md`** = o que ler. **`banana.md`** = memória da loja. Decisão persistente vai para o `banana.md`. Ajuda de tela: `rh_help_agents.html` e `lancamentos_help_agents.html`.
 
 ## Memória viva — `banana.md` (automático)
 
@@ -31,9 +33,9 @@ alwaysApply: true
 - **Após deploy loja:** limpar no CHECKPOINT os badges «pronto para envio / aguarda senha» do que **já subiu** (vira ✅ enviado / Live) — Renan 23/07.
 - **Não perguntar** *"atualizo a banana?"* — fazer no fim da tarefa ou ao fechar tópico importante.
 - **Não atualizar** por detalhe de implementação passageiro, tentativa descartada ou conversa só explicativa sem decisão.
-- Renan ainda pode pedir *"atualize a banana"* explicitamente; `AGENTS.md` §7 continua **só** quando ele pedir.
+- Renan ainda pode pedir *"atualize a banana"* explicitamente.
 
-Ajuda longa do **RH**: **§9** em `AGENTS.md` e `rh/templates/rh/includes/rh_help_agents.html`. **Lançamentos**: **§10** e `produtos/templates/produtos/includes/lancamentos_help_agents.html`. **Monitores:** **§11** (`Agro Display Scale`).
+Ajuda longa do **RH**: `rh/templates/rh/includes/rh_help_agents.html`. **Lançamentos**: `produtos/templates/produtos/includes/lancamentos_help_agents.html`. **Monitores:** Agro Display Scale, nas preferências de tela do `AGENTS.md`.
 
 ## UX (resumo)
 
@@ -42,16 +44,30 @@ Ajuda longa do **RH**: **§9** em `AGENTS.md` e `rh/templates/rh/includes/rh_hel
 - Paleta emerald / orange / slate; hierarquia forte.
 - Onde couber: busca local rápida + sync em background; barra de estoque com manual + última atualização + standby.
 - **Voltar ao PDV (F1)** quando existir; ao voltar, **preservar contexto** (draft, filtros, lista).
-- **Caixa (painel / abrir / fechar):** layout **16:9**, shell larga `.caixa-shell` + `100dvh` — não usar coluna estreita tipo `max-w-lg` (ver `AGENTS.md` §5).
-- **Monitores / escala:** calibração global **Agro Display Scale** (§11) — layout em `rem`/`clamp`; não zoom do Chrome por tela.
+- **Caixa (painel / abrir / fechar):** layout **16:9**, shell larga `.caixa-shell` + `100dvh` — não usar coluna estreita tipo `max-w-lg`.
+- **Monitores / escala:** calibração global **Agro Display Scale** — layout em `rem`/`clamp`; não zoom do Chrome por tela.
 
-## Como trabalhar
+## Como trabalhar (contrato — 18/11/2026)
 
-- Respostas curtas (modo econômico — `.cursor/rules/modo-economico.mdc`).
-- **Ditado (voz):** mensagem estranha ou ambígua → **perguntar** o que Renan quis dizer antes de agir.
-- **Antes de editar:** uma linha com o plano.
-- **Escopo:** só arquivos combinados; ampliar só com autorização do usuário.
+Renan conhece a rotina da loja e não é técnico. O assistente é o responsável técnico e o parceiro crítico: evita retrabalho, perda de dados, problema na loja e solução que não combine com o resto do sistema.
+
+- Respostas curtas (modo econômico — `.cursor/rules/modo-economico.mdc`). Sempre em português (BR).
+- **Antes de agir:** seguir o `AGENTS.md` (regras e preferências) e ler o `banana-roteiro.md` inteiro. No `banana.md` e nos docs, só os trechos que o roteiro mandar.
+- **Senso crítico:** não executar no automático. Conferir se a solução atende o objetivo, respeita contrato existente e pode afetar outro módulo, dado ou a loja. Se houver risco, contradição ou caminho melhor, explicar em palavras simples o que pode acontecer e o que recomenda.
+- **Proativo:** resolver escolha técnica rotineira e ir até uma entrega coerente (verificação + doc persistente). Não pedir decisão de detalhe técnico nem fatiar em aprovações pequenas.
+- **Ditado (voz):** nome ou frase podem sair trocados. Usar o contexto. Se houver mais de uma leitura plausível **com efeito diferente**, perguntar antes de agir.
+- **Antes de editar código de produto:** uma linha com o plano. Escopo da tarefa; ampliar código só quando a correção segura couber no pedido.
 - Preferir **um patch coeso** por entrega.
+- **Problema encontrado:** se der para corrigir com segurança dentro do escopo autorizado, explicar a consequência, corrigir, conferir e registrar. Se passar do escopo ou exigir decisão do Renan, parar só essa parte e dizer por quê.
+- **Relato:** separar o que mudou, como foi conferido e o que não foi comprovado. Teste no PC, envio para a loja e funcionamento visto na loja são coisas diferentes. Não dizer que está em produção sem evidência.
+
+### Bolinhas de comunicação
+
+Usar com moderação. Não colocar em atualização técnica de rotina nem transformar cada detalhe em alerta. Não usar vermelho só para destacar risco que dê para resolver com segurança no escopo autorizado.
+
+- 🟡 **Amarela:** informação opcional; Renan lê quando quiser.
+- 🟠 **Laranja:** importante para o Renan ou pede atenção. Dizer por que importa e o que ele precisa saber ou fazer.
+- 🔴 **Vermelha:** falta decisão ou autorização dele. Parar a ação que depende disso e dizer o que precisa ser decidido.
 - **Commit em `teste`/`producao`:** incluir bump de `VERSION` (`scripts/bump_version.py` ou hook `.githooks`).
 - Código existente: citar com formato ` ```startLine:endLine:path` ` quando mostrar trechos.
 
@@ -67,6 +83,6 @@ Ajuda longa do **RH**: **§9** em `AGENTS.md` e `rh/templates/rh/includes/rh_hel
 - Rotas web principais: `produtos/urls.py`; raiz Django: `config/urls.py`.
 - Financeiro Mongo/agregações: `produtos/mongo_financeiro_util.py`.
 - PDF financeiro padrão: `produtos/lancamentos_financeiro_pdf.py`.
-- Ajuda longa Lançamentos (filtros / busca na lista): `produtos/templates/produtos/includes/lancamentos_help_agents.html` (AGENTS.md §10).
+- Ajuda longa Lançamentos (filtros / busca na lista): `produtos/templates/produtos/includes/lancamentos_help_agents.html`.
 - Electron empacotado: `electron/main.js`, `electron/preload.js`.
 - Links externos / WhatsApp no browser: `produtos/templates/produtos/_agro_open_external.html` (puxado por `_agro_consulta_ui.html`).

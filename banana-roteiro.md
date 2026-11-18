@@ -1,10 +1,58 @@
 # BANANA ROTEIRO — ler isto **antes** do `banana.md`
 
-**Substitui** a leitura integral do banana na maioria dos chats. O `banana.md` completo (~4500 linhas) fica como arquivo de detalhe e histórico.
+**Comportamento do agente:** `AGENTS.md` (preferências e regras; o nome não muda). **Este arquivo** só diz o que ler. **`banana.md`** é a memória da loja — não ler inteiro salvo a §5 daqui.
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
-**PREP loja (11/11) v27.26.55 — pronto, ainda não enviado.** Três coisas juntas: unificar fornecedor na nota; Point já pago grava a venda e log do PDV; PIN da saída grava quem digitou. Migrate só **0155** (tabela do log). Base loja `af7af8cc`. Volta: `rollback/pre-v272655-1111-loja-3`. Cutover: `./scripts/cutover_loja_checklist_1111_loja_3.sh` (só sobe com frase + senha).
+**Checklist único (18/11b):** **NF-FORN-CADASTRO** — 🟢 pronto para envio. Nota manual: produto novo em branco entra na lista ao salvar. **Migrate NÃO**. Não foi para a loja.
+
+**Checklist único (18/11):** **CARTAO-CLIENTE** — 🟢 pronto para envio. Testado no PC: folha, número curto, bip, busca e troca. **Migrate SIM 0156**. **VERIFY_OK 9**. `teste` @ `d58d06b3`. Não foi para a loja.
+
+**Checklist único (17/11):** **NF-IMP-NO-BOLETO** — 🟢 pronto para envio à produção. Imposto fora da NF entra no boleto. Sem migrate. Não foi para a loja.
+
+**Loja (15/11c):** **PDV-ZAP-AVISO** enviada · **v27.26.74** @ `b102a9ca`. Janela verde quando o orçamento vai no Zap. Sem migrate. Até o build, no ar segue **v27.26.73** @ `b25069cf`. Volta: `git push origin b25069cfbd01f37fe580d0e48e070f9dde057718:producao`.
+
+**Loja (15/11b):** **PDV-ZAP-TOKEN** enviada · **v27.26.73** @ `b25069cf`. A chave do botão **Loja** é a mesma do SistApp. Sem migrate. Até o build, no ar segue **v27.26.72** @ `fcad7061`. Volta: `git push origin fcad7061de0c3594df1b8b66a8453da68e6fb0f4:producao`.
+
+**Loja (15/11):** **PDV-ZAP-ORCAMENTO** enviada · **v27.26.72** @ `fcad7061`. Botão **Loja** encaminha o orçamento para o Zap. Sem migrate. Volta: `git push origin fba12fa1a3ea1e2829fe951bb0c793885d8c2d63:producao`.
+
+**Loja (16/11b):** **GM-VENDAS-BAND** enviada · **v27.26.76** @ `f58903ed`. Só a API de leitura. Sem migrate. Até o build, no ar segue **v27.26.75** @ `a094cbcf`. Volta: `git push origin a094cbcf:producao`.
+
+**Loja (16/11):** **CÂMERA + PULSO** enviada · **v27.26.75** @ `a094cbcf`. Câmera abre na hora. Pulso no painel de Vendas. Cartão ficou de fora. Sem migrate. Até o build, no ar segue **v27.26.74** @ `b102a9ca`. Volta: `git push origin b102a9cae0c05b2d8f0e441aff9fefa0b15eeb80:producao`.
+
+**Loja (13/11h):** **ENTREGA-HORA-LOJA** + **SISTAPP-CAMERA-LOCAL** enviadas · **v27.26.66** @ `edb926e2`. Sem migrate. Até o build, no ar segue **v27.26.65** @ `3b9fc063`. Volta: `git push origin 3b9fc063612d72754a0ac3a657b68a78fdb56bba:producao`.
+
+**Loja (13/11f):** **ZAP-UA** enviada · **v27.26.64** @ `b4e09b5f`. O Zap recusava a loja porque a chamada ia como robô. Sem migrate. Até o build, no ar segue **v27.26.63** @ `af47c597`. Volta: `git push origin af47c5970da0d0f746b7d6e845404f77d03009ab:producao`.
+
+**Loja (13/11e):** **ZAP-SISTAPP-HOST** enviada · **v27.26.63** @ `af47c597`. A loja chama `zap.zapsistvale.online`. Sem migrate. Até o build, no ar segue **v27.26.62** @ `eb34cf2a`. Volta: `git push origin eb34cf2aeef01b228483a1e97b5e455eaeed656d:producao`. O Zap do PC 2 ainda precisa sair do `.58` (portinha `480715c5`).
+
+**Loja (13/11):** **CAMERA-TRAS-FIXA** + **WA-PIN-PC** enviadas · **v27.26.59** @ `418fb789`. Sem migrate. Até o build, no ar segue **v27.26.58** @ `ee330433`. Volta: `git push origin ee3304332d77f0d91f6565bb84cfcfd1e81263b0:producao`.
+
+**Loja (11/11c):** **SISTAPP-TROCA-CAMERA** enviada · **v27.26.57** @ `007e9bfc`. Sem migrate. Até o build, no ar segue **v27.26.56** @ `c8256c26`. Volta: `git push origin c8256c2664d86d5d9c79cc974d5bc10b104666d7:producao`.
+
+**Loja (11/11d):** **SISTAPP-CAMERA-TRASEIRA** enviada · **v27.26.58** @ `ee330433`. Sem migrate. Até o build, no ar segue **v27.26.57** @ `007e9bfc`. Volta: `git push origin 007e9bfc4b0ade40a68bc2a5ddcdbdbc343a2858:producao`.
+
+**Checklist único (11/11e):** **SISTAPP-CAMERA-TRAS-FIXA** — enviado no corte **13/11** · **v27.26.59** @ `418fb789`.
+
+**Loja (03/11 · PR 479):** **WA-ORIGIN-PC** — ✅ **Live v27.26.49** @ `2d002112`. Migrate **0154** OK. `/healthz` = ok. Volta: `rollback/pre-v272649-0311-wa-origin-pc` (`39b447ad`). Revert: `git push origin rollback/pre-v272649-0311-wa-origin-pc:producao`.
+
+**Loja (11/11b):** **v27.26.56** enviada @ `c8256c26`. Só destravar a Entrada de NF. Sem migrate. Até o build, no ar segue a tela travada da v27.26.55. Volta: `rollback/pre-v272656-1111b-entrada-nf-js`. Revert: `git push origin rollback/pre-v272656-1111b-entrada-nf-js:producao`.
+
+**Loja (11/11):** **v27.26.55** enviada @ `2a49ba66`. Entra: unificar fornecedor na nota, Point já pago grava a venda + log do PDV, PIN da saída grava quem digitou. Migrate **0155** no build. Até o build terminar, no ar segue **v27.26.53** @ `af7af8cc`. Volta: `rollback/pre-v272655-1111-loja-3`. Revert: `git push origin rollback/pre-v272655-1111-loja-3:producao`.
+
+**Loja (04/11d):** **RH-FAIXA-SALARIAL** — enviado `af7af8cc` (**v27.26.53**). Migrate **NÃO**. Até o build terminar, no ar segue **v27.26.52** @ `43ee490c`. Volta: `rollback/pre-v272653-0411d-rh-faixa`. Revert: `git push origin rollback/pre-v272653-0411d-rh-faixa:producao`.
+
+**Loja (04/11c):** **RH-DECIMO-SUGESTAO** — enviado `43ee490c` (**v27.26.52**). Migrate **rh.0009** no build. Até o build terminar, no ar segue **v27.26.51** @ `fda8cef1`. Volta: `rollback/pre-v272652-0411c-rh-decimo-sugestao`. Revert: `git push origin rollback/pre-v272652-0411c-rh-decimo-sugestao:producao`.
+
+**Loja (04/11b):** **RH-DECIMO-TERCEIRO** — enviado `fda8cef1` (**v27.26.51**). Migrate **rh.0008** no build. Até o build terminar, no ar segue **v27.26.50** @ `74277aa0`. Volta: `rollback/pre-v272651-0411-rh-decimo`. Revert: `git push origin rollback/pre-v272651-0411-rh-decimo:producao`.
+
+**Loja (04/11):** **PDV-ENTREGA-CAIXA-FECHADO** — enviado `74277aa0` (**v27.26.50**). Migrate **NÃO**. Até o build terminar, no ar segue **v27.26.49** @ `2d002112`. Volta: `rollback/pre-v272650-0411-entrega-caixa-fechado`. Revert: `git push origin rollback/pre-v272650-0411-entrega-caixa-fechado:producao`.
+
+**Loja (03/11c):** **RH-HOLERITE-VISUAL** enviado · **v27.26.48** @ `39b447ad`. Migrate **NÃO**. Volta: `rollback/pre-v272648-0311c-rh-holerite-visual` (`7c9e5326`). Revert: `git push origin rollback/pre-v272648-0311c-rh-holerite-visual:producao`.
+
+**Loja (03/11b):** **RH-FOLHA-IMPRESSAO-EXCEL** enviado · **v27.26.47** @ `7c9e5326`. Migrate **NÃO**. Volta: `rollback/pre-v272647-0311b-rh-folha-impressao` (`23bacb6d`). Revert: `git push origin rollback/pre-v272647-0311b-rh-folha-impressao:producao`.
+
+**Loja (03/11):** **RH-FOLHA-LINHAS** enviado · **v27.26.46** @ `23bacb6d`. Volta: `rollback/pre-v272646-0311-rh-folha-linhas` (`1ef48ced`).
 
 ---
 
@@ -31,6 +79,21 @@
 | **2 repositórios Git?** | **Não** — `teste` (backup+rascunho) e `producao` (loja) bastam; histórico reverte bug |
 
 **Por quê:** se o PC estragar, o código já está no GitHub. Bug no `teste` **não** quebra a loja.
+
+### 0.3 Branch — Cloud fica em `teste` · proibido `cursor/…` (11/11/2026, Renan)
+
+Renan trabalha **só pelo Cloud**. O menu **teste** do chat novo é o branch de trabalho, não um ponto de partida para outro.
+
+| Ação | Regra |
+| ---- | ----- |
+| **Branch do chat** | Ficar em **`teste`**. Commit e push **direto** em `origin/teste`. |
+| **Proibido** | Criar, fazer checkout ou deixar no remoto branch `cursor/…`, `deploy/…`, `rollback/…` ou `producao-backup-…`. |
+| **Se o chat já abriu num `cursor/…`** | Trazer os commits para `teste`, push em `teste`, e **apagar** o `cursor/…` no GitHub antes de encerrar. |
+| **Remoto** | Só **`teste`**, **`producao`** e **`whatsapp`**. |
+| **`whatsapp`** | Outro projeto. Só mexer nele se a tarefa for WhatsApp. Não criar branch em cima. |
+| **`producao`** | Continua só com frase + senha na mesma mensagem. |
+
+O menu **Cloud** do chat escolhe a máquina, **não** o branch. Não existe interruptor na tela para “ficar no branch”. Esta regra substitui esse interruptor.
 
 Detalhe no topo do `banana.md` (bloco **Teste / backup GitHub**).
 
@@ -62,17 +125,17 @@ Escolha o ramo que mais se aproxima. Leia **na ordem**; pare quando tiver contex
 | -------------------- | ------------------ | ----- |
 | **PDV** — `/consulta/`, `/pdv/checkout/`, carrinho, F8, promo, overlay topbar | `### 4.2` | CHECKPOINT: `PDV`, `F8`, `wizard`, `overlay` |
 | **Cadastro ERP** — `/produtos/cadastro-erp/`, planilha Excel | `### 4.6` (cadastro) | CHECKPOINT: `cadastro`, `ERP`, `planilha`, `busca cadastro` · Excel ↓ fornecedores: **§9** |
-| **Gestão produtos** — `/produtos/gestao/`, overlay, lentidão pós-NF | `### 4.6` (gestão) | CHECKPOINT: `gestão`, `gestao` · `AGENTS.md` §7 gestão se perf |
+| **Gestão produtos** — `/produtos/gestao/`, overlay, lentidão pós-NF | `### 4.6` (gestão) | CHECKPOINT: `gestão`, `gestao` |
 | **NFC-e / cupom fiscal** | `### 4.3` | `docs/NFCE-PRODUCAO.md` se produção SEFAZ |
 | **Vendas / devolução** | `### 4.3` (devolução) + `### 4.4` | CHECKPOINT: `devolução`, `FL-017` |
 | **Clientes / fiado** | `### 4.5` + trecho fiado em `### 4.2` se PDV | CHECKPOINT: `fiado`, `cliente`, `F8` |
-| **Entrada NF** | `### 4.7` | `AGENTS.md` §7 entrada NF se XML/modal |
+| **Entrada NF** | `### 4.7` | CHECKPOINT: `entrada`, `NF` |
 | **NF-e saída 55 (DANFE A4)** | CHECKPOINT: `NFE-SAIDA`, `nfe/saida` | `docs/PLANO_TELA_EMISSAO_NFE_55.md` · **§88** |
 | **Estoque / ajuste / sync** | `### 4.8` | `docs/ESTOQUE_AGRO_FONTE_DA_VERDADE.md` |
-| **Compras** | `### 4.9` | `AGENTS.md` §7 compras se relatório/planilha |
+| **Compras** | `### 4.9` | CHECKPOINT: `compras` |
 | **Lançamentos / CP / CR / DRE** | `### 4.10` | Se corte Mongo/PG: `### WIP` lançamentos (~L771–1020) · CHECKPOINT: `Lançamentos`, `CP`, `Postgres` |
 | **Caixa** — abrir, fechar, sangria, gaveta | `### 4.11` | CHECKPOINT: `caixa`, `Caixa` |
-| **RH** — folha, vale, ficha | `### 4.12` | `AGENTS.md` §9 · CHECKPOINT: `RH`, `folha` |
+| **RH** — folha, vale, ficha | `### 4.12` | CHECKPOINT: `RH`, `folha` · ajuda na tela: `rh/templates/rh/includes/rh_help_agents.html` |
 | **Home / BI** — `/`, gráficos | `### 4.1` | CHECKPOINT: `BI`, `dashboard`, `gastos` |
 | **Relatórios** — Central `/relatorios/`, filtros cat/sub 1–4, ABC, ranking | `### 4.1` (bullet Central) + CHECKPOINT `relatórios` | Filtros: período · **categoria** · **sub 1/2/3/4** (combinar) · agrupar · **500 cat/sub → ✅ Live v18.26.1** (Renan OK 28/08) |
 | **Entregas** — `/entregas/`, rota terça, painel | CHECKPOINT: `entrega`, `entregas`, `FL-006`, `FL-031` | Fluxo loja: PDV → retorno entregador → baixa PDV |
@@ -84,7 +147,7 @@ Escolha o ramo que mais se aproxima. Leia **na ordem**; pare quando tiver contex
 
 | Se for… | Ler também |
 | ------- | ---------- |
-| **Layout / visual / fonte / botão** | `### 4.14` · `AGENTS.md` §5 e **§11** (Display Scale) |
+| **Layout / visual / fonte / botão** | `### 4.14` · `AGENTS.md` (preferências de tela) |
 | **Só backend / API / bug dados** | § do módulo (§2.1) — **não** precisa §4.14 |
 | **Deploy teste** (prova) | Topo L27–35 · CHECKPOINT «Prova = local» — Renan valida **no PC**; **não** Render staging free |
 | **Deploy produção / cherry loja** | Topo L22–31 · `## 3` até `### 3.2` · CHECKPOINT deploy loja · **parar e confirmar** com Renan |
@@ -1099,12 +1162,277 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 ---
 
-## 89. CHECKLIST ÚNICO — **18/10f** · 🟡 **aguarda senha** · **v27.26.9**
+## 89. CHECKLIST ÚNICO — **18/10f** · ✅ **Live v27.26.9**
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **NFE-55-SEFAZ+DANFE-AGRO** | 🟡 **aguarda senha** | **SIM 0147** | **59/59** |
-| 2 | **CADASTRO-PALAVRAS-PDV-3** | 🟡 **aguarda senha** | **NÃO** | **56/56** |
+| 1 | **NFE-55-SEFAZ+DANFE-AGRO** | ✅ **Live** | **SIM 0147** | **59/59** |
+| 2 | **CADASTRO-PALAVRAS-PDV-3** | ✅ **Live** | **NÃO** | **56/56** |
 
-**PREP:** `deploy/prep-checklist-1810f-nfe-sefaz-danfe-pdv` @ **`0945ef79`**.  
-**Doc:** `docs/DEPLOY-PREP-CHECKLIST-1810f-nfe-sefaz-danfe-pdv.md`.
+**Loja git:** `producao` @ **`18046efd`**. **Shell:** `post_deploy_checklist_1810f_nfe_sefaz_danfe_pdv.sh`.
+
+---
+
+## 99. CHECKLIST ÚNICO — **31/10** · ✅ **Live v27.26.45** · **PDV-WA-SEPARADO**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-WA-SEPARADO** | ✅ **Live** `1ef48ced` | **NÃO** | **VERIFY_OK 40** |
+
+**Loja no ar:** v27.26.45 @ `1ef48ced`. **Revert:** `git push origin rollback/pre-v272645-3110-pdv-wa-separado:producao` → v27.26.44 @ `925dd0cf`. **Shell:** `./scripts/post_deploy_checklist_3110_pdv_wa_separado.sh`. A rota do orçamento no serviço do Zap ainda não subiu — sem ela o botão Loja grava na Sistvale.
+
+---
+
+## 90. CHECKLIST ÚNICO — **19/10a** · ✅ **Live v27.26.12**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **REL-CAT-SUB-EXCEL** | ✅ **Live** | **NÃO** | verify **30/30** |
+| 2 | **NFE-DANFE-ERP-LAYOUT** + **NFE-EMAIL-DEST** | ✅ **Live** | **NÃO** | NF-e **59/59** + unit |
+
+**Loja git:** `producao` @ **`f33ee5cd`**. **Revert:** `rollback/pre-v272612-1910a-checklist` → **v27.26.10** @ **`05a871df`**. **Shell:** `post_deploy_checklist_1910a_nfe_danfe_email_rel.sh`.
+
+---
+
+## 91. CHECKLIST ÚNICO — **19/10b** · ✅ **Live v27.26.13**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **REL-GRUPO-MARGEM-COMP** | ✅ **Live** | **NÃO** | **14/14** + cat/sub **30/30** |
+
+**Loja git:** `producao` @ **`5fee79dc`**. **Revert:** `rollback/pre-v272613-1910b-rel-grupo` → **v27.26.12** @ **`f33ee5cd`**. **Shell:** `post_deploy_checklist_1910b_rel_grupo_margem_comp.sh`.
+
+---
+
+## 92. CHECKLIST ÚNICO — **20/10a** · ✅ **Live v27.26.14**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **REL-EXCEL-PRINT** | ✅ **Live** | **NÃO** | **16/16** + cat/sub **30/30** |
+
+**Loja git:** `producao` @ **`e4c308dd`**. **Revert:** `rollback/pre-v272614-2010a-rel-excel-print` → **v27.26.13** @ **`5fee79dc`**. **Shell:** `post_deploy_checklist_2010a_rel_excel_print.sh`.
+
+---
+
+## 93. CHECKLIST ÚNICO — **20/10b** · ✅ **Live v27.26.15**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **ETQ-NF-SEM-EXATO** | ✅ **Live** | **NÃO** | **VERIFY_OK 30/30** |
+
+**Loja git:** `producao` @ **`93912908`**. **Revert:** `rollback/pre-v272615-2010b-etq-nf-sem-exato` → **v27.26.14** @ **`e4c308dd`**. **Shell:** `post_deploy_checklist_2010b_etq_nf_sem_exato.sh`.
+
+---
+
+## 111. CHECKLIST ÚNICO — **04/11d** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **RH-FAIXA-SALARIAL** | 🟢 Pronto | **NÃO** | 22/04 → 07/01 · folha 1.084,29 · **VERIFY_OK 4** |
+
+Cada faixa do histórico pode ter data e valor corrigidos. A folha do mês não recalcula.
+
+**Checkpoint:** `rollback/pre-v272653-0411d-rh-faixa` = v27.26.52 @ `43ee490c`. **Revert:** `git push origin rollback/pre-v272653-0411d-rh-faixa:producao`. **Na senha:** `./scripts/cutover_loja_checklist_0411d_rh_faixa.sh` depois `--exec`. Shell: `./scripts/post_deploy_checklist_0411d_rh_faixa.sh`. Não fazer merge de `teste`.
+
+---
+
+## 110. CHECKLIST ÚNICO — **04/11c** · ✅ **enviado v27.26.52**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **RH-DECIMO-SUGESTAO** | 🟢 Pronto | **SIM** `rh.0009` | 7/1 = 12 avos · **VERIFY_OK 6** |
+
+Sugestão, duas parcelas juntas e ajuste na parcela. Não altera a folha do mês.
+
+**Enviado** `43ee490c`. Até o build, no ar segue v27.26.51 @ `fda8cef1`. **Revert:** `git push origin rollback/pre-v272652-0411c-rh-decimo-sugestao:producao`.
+
+---
+
+## 110. CHECKLIST ÚNICO — vai no próximo envio à loja · 18/11
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **AGENTS-ROTEIRO-BANANA** | 🟡 junto do próximo envio de verdade | **NÃO** |
+
+Regras do agente: `AGENTS.md`, `banana-roteiro.md` e o topo do `banana.md`. Já estão em `teste` (`c6fde067`). Não sobem sozinhos, para a loja não reiniciar só por texto. No próximo pacote que for para a loja, incluir estes arquivos no envio. Não muda PDV, caixa, venda nem dado.
+
+---
+
+## 109. CHECKLIST ÚNICO — **04/11b** · ✅ **enviado v27.26.51**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **RH-DECIMO-TERCEIRO** | 🟢 Pronto | **SIM** `rh.0008` | folha 1.084,29 intacta · **VERIFY_OK 5** |
+
+13º na ficha vira conta a pagar. Não altera o líquido do mês.
+
+**Enviado** `fda8cef1`. Até o build, no ar segue v27.26.50 @ `74277aa0`. **Revert:** `git push origin rollback/pre-v272651-0411-rh-decimo:producao`.
+
+---
+
+## 108. CHECKLIST ÚNICO — **03/11c** · ✅ **enviado v27.26.48**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **RH-HOLERITE-VISUAL** | ✅ **enviado** `39b447ad` | **NÃO** | outubro 2.000 / 870 / 1.084,29 · vale curto · **VERIFY_OK 5** |
+
+Visual da impressão. Excel e números da folha permanecem. Sem migrate.
+
+**Checkpoint:** `rollback/pre-v272648-0311c-rh-holerite-visual` = v27.26.47 @ `7c9e5326`. **Revert:** `git push origin rollback/pre-v272648-0311c-rh-holerite-visual:producao`. **Na senha:** `./scripts/cutover_loja_checklist_0311c_rh_holerite_visual.sh` depois `--exec`. Shell: `./scripts/post_deploy_checklist_0311c_rh_holerite_visual.sh`. Não fazer merge de `teste`.
+
+---
+
+## 107. CHECKLIST ÚNICO — **03/11b** · ✅ **enviado v27.26.47**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **RH-FOLHA-IMPRESSAO-EXCEL** | ✅ **enviado** `7c9e5326` | **NÃO** | outubro 2000 / 870 / 1.084,29 intacto · **VERIFY_OK 5** |
+
+Imprimir folha (A4 vertical, duas vias) e Excel da lista com o filtro da tela. Só leitura.
+
+**Checkpoint:** `rollback/pre-v272647-0311b-rh-folha-impressao` = v27.26.46 @ `23bacb6d`. **Revert:** `git push origin rollback/pre-v272647-0311b-rh-folha-impressao:producao`. **Na senha:** `./scripts/cutover_loja_checklist_0311b_rh_folha_impressao.sh` depois `--exec`. Shell: `./scripts/post_deploy_checklist_0311b_rh_folha_impressao.sh`. Não fazer merge de `teste`.
+
+---
+
+## 106. CHECKLIST ÚNICO — **03/11** · ✅ **enviado v27.26.46**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **RH-FOLHA-LINHAS** | ✅ **enviado** `23bacb6d` | **SIM** `rh.0007` no build | 164,52 + 210,23 ficam · pagamento fica · observação fica |
+
+Folha: cada desconto e acréscimo vira uma linha. Totais já lançados são copiados.
+
+**Checkpoint:** `rollback/pre-v272646-0311-rh-folha-linhas` = v27.26.45 @ `1ef48ced`. **Revert:** `git push origin rollback/pre-v272646-0311-rh-folha-linhas:producao`. **Na senha:** `./scripts/cutover_loja_checklist_0311_rh_folha_linhas.sh` depois `--exec`. Shell: `./scripts/post_deploy_checklist_0311_rh_folha_linhas.sh`. Não fazer merge de `teste`.
+
+---
+
+## 105. CHECKLIST ÚNICO — **29/10** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NF-FISCAL-XML** | 🟢 Pronto | **NÃO** | **VERIFY_OK 14** |
+
+Entrada NF atualiza NCM, CSOSN, origem e CFOP de venda a partir do XML. Valor já igual não gera histórico. **Não** está na loja até frase + senha.
+
+---
+
+## 104. CHECKLIST ÚNICO — **27/10** · ✅ **Live v27.26.28** (itens 1, 3 e 4)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **AJUSTE-CAMERA-BIP** | ✅ **Live** | **NÃO** |
+| 3 | **CICLICA-ADMIN-PAINEL** | ✅ **Live** | **NÃO** |
+| 4 | **INVENTARIO-PIN-BLOCO** | ✅ **Live** | **SIM** `estoque.0021` |
+
+**Loja git:** `producao` @ **`723f96ce`**. **Shell:** `post_deploy_checklist_2710_ajuste_ciclica_inv.sh`.  
+**Revert:** `rollback/pre-v272628-2710-ajuste-ciclica-inv` → **v27.26.27** @ **`91c8ca6a`**.
+
+---
+
+## 103. CHECKLIST ÚNICO — **25/10** · ✅ **Live v27.26.27** (já em `producao`)
+
+| # | Item | Status | Migrate | Prova |
+| - | ---- | ------ | ------- | ----- |
+| 1 | **NFE-55-FISCAL-PL010f** | ✅ **Live** | **NÃO** | **68/68** |
+
+**Loja git:** `producao` @ **`d9d8a370`**. **Revert:** `producao-backup-pre-v272627-nfe-fiscal` → **`6081553c`**.
+
+---
+
+## 102. CHECKLIST ÚNICO — **24/10** · ✅ **Live v27.26.26**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CADASTRO-BUSCA-PALAVRAS** | ✅ **Live** | **NÃO** | **60/60** |
+| 2 | **CP-EXPORT-LISTA** | ✅ **Live** | **NÃO** | verify export |
+| 3 | **PDV gaveta busca** | ✅ **Live** | **NÃO** | nome largo |
+
+**Loja git:** `producao` @ **`6081553c`**. Sem migrate.  
+**Revert:** `rollback/pre-v272626-2410-cp-busca` → **v27.26.23** @ **`d37449e6`**.
+
+---
+
+## 101. CHECKLIST ÚNICO — **23/10b** · ✅ **Live v27.26.23**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-RAPIDOS Home** | ✅ **Live** | **NÃO** | **35/35** |
+
+**Loja git:** `producao` @ **`d37449e6`**. Sem migrate nova.  
+**Revert:** `rollback/pre-v272623-2310b-pdv-rapidos-home` → **v27.26.22** @ **`c8695c5d`**.
+
+---
+
+## 100. CHECKLIST ÚNICO — **23/10** · ✅ **Live v27.26.22**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-RAPIDOS** | ✅ **Live** | **SIM** `0150`+`0151` | **34/34** |
+
+**Loja git:** `producao` @ **`c8695c5d`**. **Shell:** `post_deploy_checklist_2310_pdv_rapidos.sh`.  
+**Revert:** `rollback/pre-v272622-2310-pdv-rapidos` → **v27.26.21** @ **`b70a67b9`**.
+
+---
+
+## 99. CHECKLIST ÚNICO — **22/10** · ✅ **Live v27.26.21**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **DFE-VILA-BUSCAR** | ✅ **Live** | **NÃO** | multi-CNPJ · NSU 656 |
+
+**Loja git:** `producao` @ **`b70a67b9`**. **Shell:** `post_deploy_checklist_2210_dfe_vila_buscar.sh` (sem migrate).  
+**Revert:** `rollback/pre-v272621-2210-dfe-vila-buscar` → **v27.26.20** @ **`25844530`**.
+
+---
+
+## 98. CHECKLIST ÚNICO — **21/10c** · ✅ **Live v27.26.20**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NF-AJUSTE-CUSTO-MANUAL-HOTFIX** | ✅ **Live** | **NÃO** | rateio · Qtd est. |
+
+**Loja git:** `producao` @ **`25844530`**. **Shell:** `post_deploy_checklist_2110c_nf_ajuste_manual_hotfix.sh`.  
+**Revert:** `rollback/pre-v272620-2110c-nf-ajuste-manual-hotfix` → **v27.26.19** @ **`3c2b5117`**.
+
+---
+
+## 97. CHECKLIST ÚNICO — **21/10b** · ✅ **Live v27.26.19**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NF-FORN-UNIF-ALIAS** | ✅ **Live** | **SIM** `0149` | alias + path |
+| 2 | **NF-AJUSTE-CUSTO-MANUAL** | ✅ **Live** | **NÃO** | rateio path |
+
+**Loja git:** `producao` @ **`3c2b5117`**. **Shell:** `post_deploy_checklist_2110b_nf_forn_unif_ajuste.sh` (**migrate 0149**).  
+**Revert:** `rollback/pre-v272619-2110b-nf-forn-unif-ajuste` → **v27.26.18** @ **`f4808353`**.
+
+---
+
+## 96. CHECKLIST ÚNICO — **21/10** · ✅ **Live v27.26.18**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **REPASSE-CENTRO-VILA-PDV** | ✅ **Live** | **SIM** `0148` |
+
+**Loja git:** `producao` @ **`f4808353`**. **Shell:** `post_deploy_checklist_2110_repasse_centro_vila_pdv.sh` (**migrate 0148**).  
+**Revert:** `rollback/pre-v272618-2110-repasse-centro-vila-pdv` → **v27.26.17** @ **`bb7a01a3`**.
+
+---
+
+## 95. CHECKLIST ÚNICO — **20/10d** · ✅ **Live v27.26.17**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **COMPRAS-FOLHA-MULTI-FORN** | ✅ **Live** | **NÃO** | **VERIFY_OK 17** + unit **6** |
+
+**Loja git:** `producao` @ **`bb7a01a3`**. **Revert:** `rollback/pre-v272617-2010d-compras-folha-multi-forn` → **v27.26.16** @ **`09c4d28f`**. **Shell:** `post_deploy_checklist_2010d_compras_folha_multi_forn.sh`.
+
+---
+
+## 94. CHECKLIST ÚNICO — **20/10c** · ✅ **Live v27.26.16**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **REL-GRUPO-COLUNAS** | ✅ **Live** | **NÃO** | **22+17+30** |
+
+**Loja git:** `producao` @ **`09c4d28f`**. **Revert:** `rollback/pre-v272616-2010c-rel-grupo-colunas` → **v27.26.15** @ **`93912908`**. **Shell:** `post_deploy_checklist_2010c_rel_grupo_colunas.sh`.

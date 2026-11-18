@@ -721,6 +721,12 @@
         quickClientEditComplemento: document.getElementById('pdv-quick-client-edit-complemento'),
         quickClientEditPluscode: document.getElementById('pdv-quick-client-edit-pluscode'),
         quickClientEditReferencia: document.getElementById('pdv-quick-client-edit-referencia'),
+        quickClientEditCartao: document.getElementById('pdv-quick-client-edit-cartao'),
+        quickClientEditCartaoAtual: document.getElementById('pdv-quick-client-edit-cartao-atual'),
+        quickClientEditCartaoTrocar: document.getElementById('pdv-quick-client-edit-cartao-trocar'),
+        cartaoBipOverlay: document.getElementById('pdv-cartao-bip-overlay'),
+        cartaoBipMsg: document.getElementById('pdv-cartao-bip-msg'),
+        cartaoBipCancelar: document.getElementById('pdv-cartao-bip-cancelar'),
         quickClientEditErro: document.getElementById('pdv-quick-client-edit-erro'),
         quickClientEditSalvar: document.getElementById('pdv-quick-client-edit-salvar'),
         quickClientEditCancelar: document.getElementById('pdv-quick-client-edit-cancelar'),
@@ -979,7 +985,7 @@
     var entregaPendingAfterSaveCliente = null;
     var clientSearchSeq = 0;
     var lastClientSearchQuery = '';
-    var PDV_CLIENTES_LS_KEY = 'agro_pdv_clientes_cache_v1';
+    var PDV_CLIENTES_LS_KEY = 'agro_pdv_clientes_cache_v2';
     var ENTREGAS_PENDENTES_LS_KEY_BASE = 'agro_pdv_entregas_pendentes_v1';
 
     function entregasPendentesLsKey() {
@@ -2527,11 +2533,33 @@
         return compactText(state.pagamento.observacaoFinal || state.venda.observacao || state.entrega.observacao, 'Sem observações até o momento.');
     }
 
+    function pdvNumeroCurtoCartao(raw) {
+        var d = String(raw || '').replace(/\D/g, '');
+        if (d.length === 14 && d.charAt(0) === '0') d = d.slice(1);
+        if (d.length === 13 && d.slice(0, 3) === '981') {
+            var seq = parseInt(d.slice(3, 12), 10);
+            if (!isNaN(seq)) return String(seq).padStart(5, '0');
+        }
+        return d;
+    }
+
+    function pdvCartaoParaSalvar(el) {
+        if (!el) return '';
+        var visivel = String(el.value || '').trim();
+        var completo = String(el.dataset.codigo || '').trim();
+        if (!visivel) return '';
+        if (completo && pdvNumeroCurtoCartao(completo) === pdvNumeroCurtoCartao(visivel)) return completo;
+        return visivel;
+    }
+
     function currentClientName(state) {
         if (!state || state.clienteMode === 'unset') {
             return 'Toque para escolher o cliente';
         }
-        if (state.cliente && state.cliente.nome) return state.cliente.nome;
+        if (state.cliente && state.cliente.nome) {
+            var cartao = pdvNumeroCurtoCartao(state.cliente.cartao_codigo || '');
+            return cartao ? state.cliente.nome + ' · ' + cartao : state.cliente.nome;
+        }
         if (state.clienteMode === 'consumidor_final') {
             return bootstrap.clientePadraoNome || 'CONSUMIDOR NÃO IDENTIFICADO...';
         }
@@ -10791,7 +10819,8 @@
             'pdv-wizard-cli-rapido-bairro',
             'pdv-wizard-cli-rapido-cidade',
             'pdv-wizard-cli-rapido-uf',
-            'pdv-wizard-cli-rapido-cep'
+            'pdv-wizard-cli-rapido-cep',
+            'pdv-wizard-cli-rapido-cartao'
         ];
         ids.forEach(function (id) {
             var el = document.getElementById(id);
@@ -10814,8 +10843,11 @@
         }
     }
 
+    var wizardCliRapidoPkCriado = null;
+
     function openWizardQuickClientCadastro(prefillNome) {
         if (!dom.wizardCliRapidoModal) return;
+        wizardCliRapidoPkCriado = null;
         clearWizardQuickClientCadastroForm();
         var nome = String(prefillNome || '').trim();
         if (!nome && lastClientSearchQuery && !isPhoneLikeClientSearchTerm(lastClientSearchQuery)) {
@@ -10843,6 +10875,9 @@
 
     function saveWizardQuickClientCadastro() {
         var url = urls.apiPdvClienteRapido;
+        if (wizardCliRapidoPkCriado && urls.apiPdvClienteEditarPattern) {
+            url = urls.apiPdvClienteEditarPattern.replace('__pk__', String(wizardCliRapidoPkCriado));
+        }
         if (!url) {
             alert('Cadastro rápido indisponível (URL).');
             return;
@@ -10911,15 +10946,33 @@
             bairro: gv('pdv-wizard-cli-rapido-bairro'),
             cidade: gv('pdv-wizard-cli-rapido-cidade'),
             uf: gv('pdv-wizard-cli-rapido-uf'),
-            cep: gv('pdv-wizard-cli-rapido-cep')
+            cep: gv('pdv-wizard-cli-rapido-cep'),
+            cartao_codigo: gv('pdv-wizard-cli-rapido-cartao')
         })
             .then(function (res) {
                 if (res.ok && res.data && res.data.ok && res.data.cliente) {
                     State.setCliente(res.data.cliente, 'cliente');
                     syncEntregaEnderecoFromCliente();
+                    refreshCreditoFiadoCliente(null, { force: true, showVencidosAlert: true });
+                    if (res.data.aviso) {
+                        wizardCliRapidoPkCriado =
+                            res.data.cliente.cliente_agro_pk || wizardCliRapidoPkCriado;
+                        if (dom.wizardCliRapidoErro) {
+                            dom.wizardCliRapidoErro.textContent = res.data.aviso;
+                            dom.wizardCliRapidoErro.classList.remove('hidden');
+                        }
+                        var campoCartao = document.getElementById('pdv-wizard-cli-rapido-cartao');
+                        if (campoCartao) {
+                            campoCartao.value = '';
+                            try {
+                                campoCartao.focus();
+                            } catch (eCartao) {}
+                        }
+                        return;
+                    }
+                    wizardCliRapidoPkCriado = null;
                     closeWizardQuickClientCadastro();
                     closeQuickClientPicker();
-                    refreshCreditoFiadoCliente(null, { force: true, showVencidosAlert: true });
                     return;
                 }
                 var err =
@@ -10976,6 +11029,7 @@
         var mapsHtml = plusCode
             ? '<span class="pdv-client-maps-ok">Maps ok</span>'
             : '<span class="pdv-client-maps-falta">Maps Falta</span>';
+        var codigo = pdvNumeroCurtoCartao(cliente && cliente.cartao_codigo);
         return (
             '' +
             '<tr class="pdv-client-results-data-row" role="option" data-client-row-idx="' +
@@ -10992,6 +11046,9 @@
             '</span></td>' +
             '<td class="pdv-client-cell-tel"><span class="pdv-client-result-tel">' +
             escapeHtml(telLabel) +
+            '</span></td>' +
+            '<td class="pdv-client-cell-codigo"><span class="pdv-client-result-codigo">' +
+            escapeHtml(codigo || '—') +
             '</span></td>' +
             '<td class="pdv-client-cell-maps">' +
             mapsHtml +
@@ -11015,6 +11072,7 @@
             '<thead><tr>' +
             '<th scope="col">Nome</th>' +
             '<th scope="col">Telefone</th>' +
+            '<th scope="col">Código</th>' +
             '<th scope="col">Maps</th>' +
             '<th scope="col"><span class="sr-only">Ações</span></th>' +
             '</tr></thead><tbody>'
@@ -11068,6 +11126,7 @@
             dom.quickClientEditComplemento,
             dom.quickClientEditPluscode,
             dom.quickClientEditReferencia,
+            dom.quickClientEditCartao,
         ].forEach(function (el) {
             if (el) el.value = '';
         });
@@ -11105,6 +11164,18 @@
         }
         if (dom.quickClientEditReferencia) {
             dom.quickClientEditReferencia.value = String(cliente.referencia_rural || '');
+        }
+        if (dom.quickClientEditCartao) {
+            var codigoCartao = String(cliente.cartao_codigo || '');
+            dom.quickClientEditCartao.dataset.codigo = codigoCartao;
+            dom.quickClientEditCartao.value = '';
+        }
+        if (dom.quickClientEditCartaoAtual) {
+            var curtoVisivel = codigoCartao ? pdvNumeroCurtoCartao(codigoCartao) : '';
+            dom.quickClientEditCartaoAtual.textContent = curtoVisivel ? ('Cartão atual: ' + curtoVisivel) : 'Sem cartão';
+        }
+        if (dom.quickClientEditCartaoTrocar) {
+            dom.quickClientEditCartaoTrocar.textContent = codigoCartao ? 'Cliente perdeu · bipar outro' : 'Bipar cartão';
         }
         if (dom.quickClientEditTitle) {
             dom.quickClientEditTitle.textContent = String(cliente.nome || 'Cliente');
@@ -11173,6 +11244,10 @@
             if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(dom.quickClientEditOverlay, false);
         } catch (_) {}
         clearQuickClientEditForm();
+        if (dom.cartaoBipOverlay) {
+            dom.cartaoBipOverlay.classList.add('hidden');
+            dom.cartaoBipOverlay.classList.remove('flex');
+        }
         if (pickerOpen) window.setTimeout(focusQuickClientSearchField, 40);
     }
 
@@ -12147,6 +12222,7 @@
             saldo_vale_credito: State.toNumber(cli.saldo_vale_credito),
             saldo_cashback: State.toNumber(cli.saldo_cashback)
         };
+        if (cli.cartao_codigo != null) patch.cartao_codigo = String(cli.cartao_codigo || '');
         (wizardClientesCache || []).forEach(function (c, i) {
             if (String(c.cliente_agro_pk) === String(pk) || String(c.pk) === String(pk)) {
                 wizardClientesCache[i] = Object.assign({}, c, patch);
@@ -12380,6 +12456,7 @@
             complemento: dom.quickClientEditComplemento ? dom.quickClientEditComplemento.value : '',
             plus_code: dom.quickClientEditPluscode ? dom.quickClientEditPluscode.value : '',
             referencia_rural: dom.quickClientEditReferencia ? dom.quickClientEditReferencia.value : '',
+            cartao_codigo: pdvCartaoParaSalvar(dom.quickClientEditCartao),
         };
         var btn = dom.quickClientEditSalvar;
         var prevLabel = btn ? btn.textContent : '';
@@ -12415,6 +12492,27 @@
                     return;
                 }
                 patchClienteInSearchResults(res.data.cliente);
+                if (res.data.aviso) {
+                    if (dom.quickClientEditErro) {
+                        dom.quickClientEditErro.textContent = res.data.aviso;
+                        dom.quickClientEditErro.classList.remove('hidden');
+                    }
+                    if (dom.quickClientEditCartao) {
+                        dom.quickClientEditCartao.value = '';
+                        if (dom.cartaoBipOverlay) {
+                            dom.cartaoBipOverlay.classList.remove('hidden');
+                            dom.cartaoBipOverlay.classList.add('flex');
+                        }
+                        if (dom.cartaoBipMsg) {
+                            dom.cartaoBipMsg.textContent = res.data.aviso;
+                            dom.cartaoBipMsg.classList.remove('hidden');
+                        }
+                        try {
+                            dom.quickClientEditCartao.focus();
+                        } catch (eCartaoEdit) {}
+                    }
+                    return;
+                }
                 closeQuickClientEditOverlay();
             })
             .catch(function () {
@@ -12617,12 +12715,21 @@
                 var doc = normalizeClientSearchText(c.documento || c.cpf || '');
                 var ed = normalizeClientSearchText(c.endereco || '');
                 var pc = normalizeClientSearchText(c.plus_code || '');
+                var curto = pdvNumeroCurtoCartao(c.cartao_codigo || '');
+                var soNumero = q.replace(/\D/g, '');
+                var bateCartao = !!(
+                    curto &&
+                    soNumero &&
+                    soNumero.length <= 5 &&
+                    (curto === soNumero.padStart(5, '0') || String(parseInt(curto, 10)) === String(parseInt(soNumero, 10)))
+                );
                 return (
                     nm.indexOf(n) >= 0 ||
                     tel.indexOf(n) >= 0 ||
                     doc.indexOf(n) >= 0 ||
                     ed.indexOf(n) >= 0 ||
-                    pc.indexOf(n) >= 0
+                    pc.indexOf(n) >= 0 ||
+                    bateCartao
                 );
             })
             .slice(0, 45);
@@ -16749,6 +16856,42 @@
         if (dom.quickClientEditFechar) {
             dom.quickClientEditFechar.addEventListener('click', closeQuickClientEditOverlay);
         }
+        function abrirBipCartao() {
+            if (!dom.cartaoBipOverlay || !dom.quickClientEditCartao) return;
+            dom.quickClientEditCartao.value = '';
+            if (dom.cartaoBipMsg) {
+                dom.cartaoBipMsg.textContent = '';
+                dom.cartaoBipMsg.classList.add('hidden');
+            }
+            dom.cartaoBipOverlay.classList.remove('hidden');
+            dom.cartaoBipOverlay.classList.add('flex');
+            try {
+                dom.quickClientEditCartao.focus();
+            } catch (eTroca) {}
+        }
+        function fecharBipCartao() {
+            if (!dom.cartaoBipOverlay) return;
+            dom.cartaoBipOverlay.classList.add('hidden');
+            dom.cartaoBipOverlay.classList.remove('flex');
+        }
+        if (dom.quickClientEditCartaoTrocar) {
+            dom.quickClientEditCartaoTrocar.addEventListener('click', abrirBipCartao);
+        }
+        if (dom.cartaoBipCancelar) {
+            dom.cartaoBipCancelar.addEventListener('click', fecharBipCartao);
+        }
+        if (dom.quickClientEditCartao) {
+            dom.quickClientEditCartao.addEventListener('input', function () {
+                var d = String(dom.quickClientEditCartao.value || '').replace(/\D/g, '');
+                if (d.length === 14 && d.charAt(0) === '0') d = d.slice(1);
+                if (d.length >= 13 && d.slice(0, 3) === '981') {
+                    d = d.slice(0, 13);
+                    dom.quickClientEditCartao.dataset.codigo = d;
+                    dom.quickClientEditCartao.value = pdvNumeroCurtoCartao(d);
+                    saveQuickClientEditOverlay();
+                }
+            });
+        }
         if (dom.quickClientEditOverlay) {
             dom.quickClientEditOverlay.addEventListener('click', function (event) {
                 /* Fundo nao fecha — so X / FECHAR / Esc */
@@ -17925,18 +18068,35 @@
         }
 
         dom.quickClientSearch.addEventListener('input', function () {
-            if ((dom.quickClientSearch.value || '').trim()) {
+            var valorBusca = String(dom.quickClientSearch.value || '').trim();
+            if (valorBusca) {
                 dom.quickClientSearch.classList.add('pdv-client-search-typed');
             } else {
                 dom.quickClientSearch.classList.remove('pdv-client-search-typed');
             }
             clearTimeout(searchClientTimer);
+            if (pdvEhCartaoCliente(valorBusca)) {
+                searchClientTimer = setTimeout(function () {
+                    if (pdvTratarCartaoCliente(dom.quickClientSearch.value)) {
+                        dom.quickClientSearch.value = '';
+                    }
+                }, 40);
+                return;
+            }
             searchClientTimer = setTimeout(function () {
                 runClientSearch(dom.quickClientSearch.value);
             }, 180);
         });
 
         dom.quickClientSearch.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' && pdvEhCartaoCliente(dom.quickClientSearch.value)) {
+                event.preventDefault();
+                clearTimeout(searchClientTimer);
+                if (pdvTratarCartaoCliente(dom.quickClientSearch.value)) {
+                    dom.quickClientSearch.value = '';
+                }
+                return;
+            }
             var vis = dom.quickClientResults && !dom.quickClientResults.classList.contains('hidden');
             var clientes = dom.quickClientResults._clientes || [];
             if (vis && clientes.length && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
@@ -17993,6 +18153,58 @@
             selecionarClienteNaBusca(cliente);
         });
 
+        function pdvDigitosLeitor(raw) {
+            return String(raw || '').replace(/\D/g, '');
+        }
+
+        function pdvCodigoCartao(raw) {
+            var d = pdvDigitosLeitor(raw);
+            if (d.length === 14 && d.charAt(0) === '0') d = d.slice(1);
+            if (d.length > 13 && d.slice(0, 3) === '981') d = d.slice(0, 13);
+            if (d.slice(0, 3) !== '981') return '';
+            if (d.length === 13 || d.length === 12) return d;
+            return '';
+        }
+
+        function pdvPareceCartaoParcial(raw) {
+            var d = pdvDigitosLeitor(raw);
+            if (d.charAt(0) === '0') d = d.slice(1);
+            return d.slice(0, 3) === '981' && d.length > 0 && d.length < 12;
+        }
+
+        function pdvEhCartaoCliente(raw) {
+            return !!pdvCodigoCartao(raw);
+        }
+
+        var pdvCartaoClienteEmVoo = false;
+
+        function pdvTratarCartaoCliente(raw) {
+            var codigo = pdvCodigoCartao(raw);
+            if (!codigo || pdvCartaoClienteEmVoo) return !!codigo;
+            var url = (urls && urls.apiPdvCartaoCliente) || '/api/pdv/cartao-cliente/';
+            pdvCartaoClienteEmVoo = true;
+            fetch(url, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': pdvCsrfTokenOrcamentos()
+                },
+                body: JSON.stringify({ codigo: codigo })
+            })
+                .then(function (res) { return res.json().then(function (data) { return { res: res, data: data }; }); })
+                .then(function (pack) {
+                    var data = pack.data || {};
+                    if (data.cliente) selecionarClienteNaBusca(data.cliente);
+                    resetProductSearchUi(data.mensagem || data.erro || 'Cartão lido.');
+                })
+                .catch(function () {
+                    resetProductSearchUi('Não consegui ler o cartão.');
+                })
+                .then(function () { pdvCartaoClienteEmVoo = false; });
+            return true;
+        }
+
         dom.productSearch.addEventListener('keydown', function (event) {
             if (event.key === 'Escape') {
                 if (dom.productAutocomplete && !dom.productAutocomplete.classList.contains('hidden')) {
@@ -18012,11 +18224,16 @@
                 event.preventDefault();
                 productSelectionIndex = Math.max(productSelectionIndex - 1, 0);
                 renderProductResults(lastProducts, { preserveLimit: true });
-            } else if (event.key === 'Enter') {
+            } else             if (event.key === 'Enter') {
                 event.preventDefault();
                 clearTimeout(barcodeTimer);
                 clearTimeout(searchTimer);
                 var qRawEnter = String(dom.productSearch.value || '').trim();
+                if (pdvPareceCartaoParcial(qRawEnter)) {
+                    resetProductSearchUi('Leitura do cartão incompleta. Bipe de novo.');
+                    return;
+                }
+                if (pdvTratarCartaoCliente(qRawEnter)) return;
                 var valorTotalEnter = obterValorTotalRapido(qRawEnter);
                 var qEnter = limparAtalhosBuscaProduto(qRawEnter);
                 if (qEnter || valorTotalEnter != null) marcarWizardScannerAtivo(1500);
@@ -18071,6 +18288,16 @@
             lastInputAt = now;
             clearTimeout(searchTimer);
             clearTimeout(barcodeTimer);
+            if (pdvEhCartaoCliente(trimmed) || pdvPareceCartaoParcial(trimmed)) {
+                barcodeTimer = setTimeout(function () {
+                    var atual = String(dom.productSearch.value || '');
+                    if (pdvTratarCartaoCliente(atual)) return;
+                    if (pdvPareceCartaoParcial(atual)) {
+                        resetProductSearchUi('Leitura do cartão incompleta. Bipe de novo.');
+                    }
+                }, 90);
+                return;
+            }
             if (reopenBudgetFromBarcode(trimmed)) return;
             if (pareceLeituraCodigoWizard(trimmed) && (delta < 45 || trimmed.length >= 8)) {
                 marcarWizardScannerAtivo(1500);
@@ -19340,6 +19567,12 @@
                 ) {
                     event.preventDefault();
                     closeWizardQuickClientCadastro();
+                    return;
+                }
+                if (dom.cartaoBipOverlay && !dom.cartaoBipOverlay.classList.contains('hidden')) {
+                    event.preventDefault();
+                    dom.cartaoBipOverlay.classList.add('hidden');
+                    dom.cartaoBipOverlay.classList.remove('flex');
                     return;
                 }
                 if (isQuickClientEditOpen()) {
