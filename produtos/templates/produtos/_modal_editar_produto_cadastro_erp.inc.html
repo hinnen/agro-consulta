@@ -2113,6 +2113,11 @@
     }
   }
 
+  if (cadastroEmbedEntradaNota()) {
+    var btnFecharEmbed = document.getElementById('fechar-modal-editar');
+    if (btnFecharEmbed) btnFecharEmbed.classList.add('hidden');
+  }
+
   function avisarEntradaNotaCadastro(tipo, produto) {
     if (!cadastroEmbedEntradaNota() || !window.parent || window.parent === window) return;
     try {

@@ -1695,13 +1695,15 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### NF-FORN-CADASTRO — **17/11** · no `teste` · ainda não foi para a loja
+### CHECKLIST ÚNICO — **18/11b** · 🟢 **pronto para envio à produção**
 
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | **+ Produto novo** lista só a linha sem produto e abre o cadastro em tela cheia, já com nome, EAN, código do fornecedor, NCM, custo, venda e fornecedor da nota. Nome verde da linha abre o mesmo painel. Fornecedor, nome e unidade só preenchem se o cadastro estiver vazio. NCM continua sendo o da nota. Código do fornecedor entra no campo visível, com vírgula se já tiver outro |
-| **Não mexe** | Código GM, código de barras, foto, marca e categoria que já têm texto. Nota antiga. Loja |
-| **Migrate** | **NÃO** |
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **NF-FORN-CADASTRO** | 🟢 Pronto · testado no PC 18/11 | **NÃO** | nota manual: cadastro em branco entra na lista |
+
+**+ Produto novo** abre o cadastro em branco e, ao salvar, a linha entra na nota. **Voltar** e **Cancelar** fecham sem gravar. **Fechar** some só nessa janela. Linha da nota sem produto mostra **Cadastrar esta linha**, já com os dados dela. Nome verde de produto já ligado abre o cadastro. Os cards de acréscimo e ajuste manual ficam do mesmo tamanho; a frase do frete/ST saiu. Não foi para a loja. XML com linha sem vínculo não foi visto neste PC.
+
+Junto neste envio, se o Renan pedir a loja: **CARTAO-CLIENTE** (0156) e **NF-IMP-NO-BOLETO** (conferir o boleto na loja). O texto das regras entra junto.
 
 ### CHECKLIST ÚNICO — **17/11b** · 🟢 **pronto para envio à produção**
 
