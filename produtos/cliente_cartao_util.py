@@ -28,6 +28,18 @@ def montar_ean13(seq: int) -> str:
     return corpo + digito_ean13(corpo)
 
 
+def numero_curto(codigo: str) -> str:
+    """Número que a pessoa vê e pode decorar. As barras continuam com os 13 dígitos."""
+    digitos = normalizar_codigo(codigo)
+    if len(digitos) == 13 and digitos.startswith(PREFIXO):
+        seq = int(digitos[3:12])
+    else:
+        seq = int(digitos or "0")
+    if seq <= 99999:
+        return f"{seq:05d}"
+    return str(seq)
+
+
 def normalizar_codigo(bruto: str) -> str:
     return re.sub(r"\D", "", bruto or "")
 
@@ -37,6 +49,20 @@ def eh_codigo_cartao(bruto: str) -> bool:
     if len(codigo) != 13 or not codigo.startswith(PREFIXO):
         return False
     return digito_ean13(codigo[:12]) == codigo[12]
+
+
+def codigo_cartao_lido(bruto: str) -> str:
+    """O leitor às vezes manda 12 dígitos, um zero na frente ou um dígito a mais."""
+    d = normalizar_codigo(bruto)
+    if len(d) == 14 and d.startswith("0"):
+        d = d[1:]
+    if len(d) == 12 and d.startswith(PREFIXO):
+        d = d + digito_ean13(d)
+    if eh_codigo_cartao(d):
+        return d
+    if len(d) > 13 and d.startswith(PREFIXO) and eh_codigo_cartao(d[:13]):
+        return d[:13]
+    return ""
 
 
 def _proximo_seq() -> int:
@@ -51,7 +77,7 @@ def _proximo_seq() -> int:
 
 
 def emitir_cartoes(quantidade: int) -> list[ClienteCartaoAgro]:
-    qtd = max(1, min(int(quantidade or 8), 40))
+    qtd = max(1, min(int(quantidade or 10), 40))
     criados: list[ClienteCartaoAgro] = []
     with transaction.atomic():
         seq = _proximo_seq()

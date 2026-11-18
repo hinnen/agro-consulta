@@ -1707,9 +1707,9 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CARTAO-CLIENTE** | 🟢 Pronto | **SIM 0156** na loja | **VERIFY_OK 7** |
+| 1 | **CARTAO-CLIENTE** | 🟢 Pronto · testado no PC 18/11 | **SIM 0156** na loja | **VERIFY_OK 9** |
 
-Folha no menu do caixa. Código `981` no leitor abre o cliente, não o produto. QR abre `/cartao/<token>/`. Um cartão novo cancela o anterior. A migration `0153` do teste não entra na loja: a loja já tem outra `0153`. Na hora de subir, a tabela nasce na `scripts/loja_0156_cliente_cartao_agro.py`, depois da `0155`. Não foi para a loja.
+Folha no menu do caixa, 10 cartões, número curto **00001** em diante. A folha seguinte continua do último impresso, mesmo sem dono. Código `981` no leitor abre o cliente. Busca do cliente aceita o número curto e mostra a coluna Código. Cliente que perde o cartão: botão abre janela, bip grava sozinho e cancela o anterior. QR abre `/cartao/<token>/`. A migration `0153` do teste não entra na loja: a loja já tem outra `0153`. Na hora de subir, a tabela nasce na `scripts/loja_0156_cliente_cartao_agro.py`, depois da `0155`. Não foi para a loja.
 
 ### CHECKLIST ÚNICO — **17/11** · 🟢 **pronto para envio à produção**
 

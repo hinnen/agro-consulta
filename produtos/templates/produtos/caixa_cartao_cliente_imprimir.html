@@ -5,15 +5,21 @@
   <meta charset="utf-8">
   <title>Cartões em branco</title>
   <style>
-    @page { size: A4; margin: 8mm; }
+    @page { size: A4; margin: 0; }
     body { margin: 0; font-family: Arial, sans-serif; color: #0f172a; }
     .no-print { padding: 16px; }
-    .folha { display: grid; grid-template-columns: 85.6mm 85.6mm; gap: 4mm; justify-content: center; }
+    .pagina { position: relative; width: 210mm; height: 297mm; background: #fff; }
+    .folha {
+      position: absolute; display: grid; grid-template-columns: 85.6mm 85.6mm; gap: 0;
+    }
     .cartao {
       width: 85.6mm; height: 56mm; position: relative; overflow: hidden;
-      border: 0.2mm dashed #94a3b8; box-sizing: border-box; background: #fff;
+      border: 0; box-sizing: border-box; background: #fff;
       break-inside: avoid; page-break-inside: avoid;
     }
+    .corte-v, .corte-h { position: absolute; z-index: 2; pointer-events: none; }
+    .corte-v { top: 0; bottom: 0; border-left: 0.4mm dashed #111; }
+    .corte-h { left: 0; right: 0; border-top: 0.4mm dashed #111; }
     .arte { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; }
     .faixa { position: absolute; left: 0; right: 0; top: 0; height: 16mm; background: #047857; color: #fff; padding: 3mm 4mm; }
     .faixa strong { display: block; font-size: 14pt; }
@@ -25,23 +31,26 @@
     .cartao.sem-arte .buraco-qr { right: 3mm; bottom: 3mm; width: 24mm; height: 24mm; }
     .buraco-qr svg { width: 92%; height: 92%; display: block; }
     .buraco-barras { flex-direction: column; }
-    .buraco-barras svg { width: 96%; height: 70%; }
-    .numero-cartao { margin: 0; font: 700 7pt ui-monospace, monospace; letter-spacing: 0.04em; color: #0f172a; }
+    .buraco-barras svg { width: 96%; height: 58%; }
+    .numero-cartao {
+      margin: 0; font: 900 11pt Arial, sans-serif; letter-spacing: 0.12em; color: #0f172a; line-height: 1;
+    }
     button, label { font-size: 16px; font-weight: 800; }
-    @media print { .no-print { display: none; } .cartao { border: none; } }
+    @media print { .no-print { display: none; } }
   </style>
 </head>
 <body>
   <form class="no-print" method="post">
     {% csrf_token %}
     <p><a href="{% url 'caixa_painel' %}">Voltar ao caixa</a></p>
-    <label>Quantos cartões <input name="qtd" value="8" inputmode="numeric" style="width:4rem;font-size:18px;font-weight:800"></label>
+    <label>Quantos cartões <input name="qtd" value="10" inputmode="numeric" style="width:4rem;font-size:18px;font-weight:800"></label>
     <button type="submit">Gerar folha</button>
     {% if blocos %}<button type="button" onclick="window.print()">Imprimir</button>{% endif %}
-    <p>Papel de foto A4. 8 cartões cabem com folga. Corte no risco.</p>
+    <p>Papel de foto A4. 10 cartões, colados. O pontilhado vai até a borda da folha, para mirar na guilhotina.</p>
   </form>
   {% if blocos %}
-  <div class="folha">
+  <div class="pagina">
+  <div class="folha" style="left: {{ folha_left }}mm; top: {{ folha_top }}mm;">
     {% for b in blocos %}
     <article class="cartao {% if tem_arte %}com-arte{% else %}sem-arte{% endif %}">
       {% if tem_arte %}
@@ -49,10 +58,13 @@
       {% else %}
       <div class="faixa"><strong>GM Agro</strong><span>Cartão do cliente</span></div>
       {% endif %}
-      <div class="buraco-barras"><svg id="bc-{{ forloop.counter }}"></svg><p class="numero-cartao">{{ b.codigo }}</p></div>
+      <div class="buraco-barras"><svg id="bc-{{ forloop.counter }}"></svg><p class="numero-cartao">{{ b.numero }}</p></div>
       <div class="buraco-qr">{{ b.qr|safe }}</div>
     </article>
     {% endfor %}
+  </div>
+  {% if corte_v %}<div class="corte-v" style="left: {{ corte_v }}mm;"></div>{% endif %}
+  {% for y in cortes_h %}<div class="corte-h" style="top: {{ y }}mm;"></div>{% endfor %}
   </div>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
   <script>

@@ -3624,10 +3624,18 @@
     letter-spacing: 0.06em;
     color: #64748b;
   }
-  #pdv-quick-client-picker .pdv-client-results-table th:nth-child(1) { width: 44%; }
-  #pdv-quick-client-picker .pdv-client-results-table th:nth-child(2) { width: 26%; }
-  #pdv-quick-client-picker .pdv-client-results-table th:nth-child(3) { width: 16%; }
+  #pdv-quick-client-picker .pdv-client-results-table th:nth-child(1) { width: 36%; }
+  #pdv-quick-client-picker .pdv-client-results-table th:nth-child(2) { width: 22%; }
+  #pdv-quick-client-picker .pdv-client-results-table th:nth-child(3) { width: 14%; }
   #pdv-quick-client-picker .pdv-client-results-table th:nth-child(4) { width: 14%; }
+  #pdv-quick-client-picker .pdv-client-results-table th:nth-child(5) { width: 14%; }
+  #pdv-quick-client-picker .pdv-client-result-codigo {
+    font-size: 1.05rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+    color: #0f172a;
+  }
   #pdv-quick-client-picker .pdv-client-results-data-row {
     cursor: pointer;
     border-bottom: 1px solid #f1f5f9;
@@ -3748,6 +3756,7 @@
     #pdv-quick-client-edit-overlay .pdv-client-edit-f-uf { grid-column: 5 / 6; }
     #pdv-quick-client-edit-overlay .pdv-client-edit-f-cep { grid-column: 6 / 7; }
     #pdv-quick-client-edit-overlay .pdv-client-edit-f-comp { grid-column: 1 / 7; }
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-cartao { grid-column: 1 / 7; }
   }
   @media (max-width: 719px) {
     #pdv-quick-client-edit-overlay .pdv-client-edit-f-ref,
@@ -4676,6 +4685,13 @@
             <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Plus Code (Maps)</span>
             <input id="pdv-quick-client-edit-pluscode" type="text" class="pdv-input pdv-client-edit-input w-full" placeholder="Ex.: 8X5R+7M9">
           </label>
+          <div class="pdv-client-edit-field pdv-client-edit-f-cartao">
+            <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Cartão do cliente</span>
+            <div class="mt-1 flex flex-wrap items-center gap-2">
+              <p id="pdv-quick-client-edit-cartao-atual" class="min-w-[7rem] text-[clamp(1.15rem,0.6vw+1rem,1.5rem)] font-black tabular-nums text-slate-900">Sem cartão</p>
+              <button type="button" id="pdv-quick-client-edit-cartao-trocar" class="inline-flex min-h-[2.75rem] items-center rounded-xl border-2 border-orange-400 bg-orange-50 px-3 text-sm font-black uppercase text-orange-950 hover:bg-orange-100">Cliente perdeu · bipar outro</button>
+            </div>
+          </div>
           <p class="pdv-client-edit-section-title font-black uppercase tracking-wide text-slate-600">Endereço</p>
           <label class="pdv-client-edit-field pdv-client-edit-f-log">
             <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Logradouro</span>
@@ -4721,6 +4737,16 @@
       </footer>
     </div>
   </div>
+
+<div id="pdv-cartao-bip-overlay" class="fixed inset-0 z-[260] hidden items-center justify-center bg-slate-950/55 p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-cartao-bip-titulo">
+  <div class="w-full max-w-md rounded-2xl border-[3px] border-orange-400 bg-white p-4 shadow-2xl">
+    <p class="text-sm font-black uppercase tracking-wide text-orange-800">Cartão do cliente</p>
+    <h3 id="pdv-cartao-bip-titulo" class="mt-1 text-2xl font-black text-slate-900">Bipe o cartão novo</h3>
+    <input id="pdv-quick-client-edit-cartao" type="text" inputmode="numeric" autocomplete="off" class="pdv-input mt-3 w-full text-2xl font-black" placeholder="Aponte o leitor">
+    <p id="pdv-cartao-bip-msg" class="mt-2 hidden text-base font-bold text-red-600" role="alert"></p>
+    <button type="button" id="pdv-cartao-bip-cancelar" class="mt-3 min-h-[3rem] w-full rounded-xl border-2 border-slate-300 bg-white text-base font-black uppercase text-slate-700">Cancelar</button>
+  </div>
+</div>
 {% include "produtos/includes/cliente_cadastro_acoes.html" %}
 
 <div id="pdv-quick-product-edit-overlay" class="fixed inset-0 z-[241] hidden items-center justify-center bg-slate-950/55 p-0.5 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="pdv-quick-product-edit-title" style="position:fixed">
@@ -5205,6 +5231,10 @@
         <input id="pdv-wizard-cli-rapido-whatsapp" type="tel" inputmode="tel" autocomplete="tel" class="pdv-input text-sm" placeholder="DDD + número">
       </div>
       <div>
+        <label for="pdv-wizard-cli-rapido-cartao" class="mb-1 block text-[10px] font-black uppercase text-slate-500">Cartão do cliente <span class="font-normal normal-case text-slate-400">(opcional · bipe o código)</span></label>
+        <input id="pdv-wizard-cli-rapido-cartao" type="text" inputmode="numeric" autocomplete="off" class="pdv-input text-sm" placeholder="Bipe o código de barras">
+      </div>
+      <div>
         <label for="pdv-wizard-cli-rapido-cpf" class="mb-1 block text-[10px] font-black uppercase text-slate-500">CPF / CNPJ <span class="font-normal normal-case text-slate-400">(opcional · cupom fiscal)</span></label>
         <input id="pdv-wizard-cli-rapido-cpf" type="text" inputmode="numeric" autocomplete="off" maxlength="18" class="pdv-input text-sm" placeholder="CPF ou CNPJ">
       </div>
@@ -5367,7 +5397,7 @@
   }
 })();
 </script>
-<script src="{% static 'produtos/js/pdv_state.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_state.js' %}?v={{ agro_pdv_assets_v|default:'1' }}-cartao4"></script>
 <script src="{% static 'produtos/js/cliente_cadastro_acoes.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_relacionamento.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/agro_picklist.js' %}?v=1"></script>
@@ -5497,7 +5527,7 @@ window.AGRO_ETQ_CFG = window.AGRO_ETQ_CFG || {
   <p id="pdv-rapidos-msg" class="hidden" role="status"></p>
   <div id="pdv-rapidos-grid"></div>
 </div>
-<script src="{% static 'produtos/js/pdv_wizard.js' %}?v={{ agro_pdv_assets_v|default:'1' }}-wa2"></script>
+<script src="{% static 'produtos/js/pdv_wizard.js' %}?v={{ agro_pdv_assets_v|default:'1' }}-cartao12"></script>
 <script src="{% static 'produtos/js/pdv_rapidos.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_topbar_mais.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_topbar_whatsapp.js' %}?v={{ agro_pdv_assets_v|default:'1' }}-wa2"></script>

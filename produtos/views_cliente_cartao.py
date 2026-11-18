@@ -18,8 +18,10 @@ from produtos.cliente_cartao_util import (
     cartao_por_token,
     compras_do_cliente,
     confirmar_codigo,
+    codigo_cartao_lido,
     eh_codigo_cartao,
     emitir_cartoes,
+    numero_curto,
     pedir_codigo_whatsapp,
     vincular,
 )
@@ -45,22 +47,46 @@ def caixa_cartao_imprimir(request):
     cartoes = []
     if request.method == "POST":
         try:
-            qtd = int(request.POST.get("qtd") or 8)
+            qtd = int(request.POST.get("qtd") or 10)
         except (TypeError, ValueError):
-            qtd = 8
+            qtd = 10
         cartoes = emitir_cartoes(qtd)
     blocos = []
     for cartao in cartoes:
         url = request.build_absolute_uri(reverse("cliente_cartao_portal", args=[cartao.token]))
-        blocos.append({"codigo": cartao.codigo, "qr": _qr_svg(url)})
+        blocos.append({
+            "codigo": cartao.codigo,
+            "numero": numero_curto(cartao.codigo),
+            "qr": _qr_svg(url),
+        })
+    cortes = _cortes_guilhotina(len(blocos))
     return render(
         request,
         "produtos/caixa_cartao_cliente_imprimir.html",
         {
             "blocos": blocos,
             "tem_arte": bool(find("produtos/img/cartao_cliente_arte.png")),
+            **cortes,
         },
     )
+
+
+def _cortes_guilhotina(qtd: int) -> dict:
+    """Linha só no encontro dos cartões, esticada até a borda da A4."""
+    if qtd < 2:
+        return {"folha_left": "19.4", "folha_top": "8.5", "corte_v": "", "cortes_h": []}
+    colunas = 2
+    linhas = (qtd + colunas - 1) // colunas
+    largura = 85.6 * min(qtd, colunas)
+    altura = 56.0 * linhas
+    left = (210.0 - largura) / 2
+    top = (297.0 - altura) / 2
+    return {
+        "folha_left": f"{left:.2f}",
+        "folha_top": f"{top:.2f}",
+        "corte_v": f"{left + 85.6:.2f}",
+        "cortes_h": [f"{top + 56.0 * i:.2f}" for i in range(1, linhas)],
+    }
 
 
 @login_required(login_url="/entrar/")
@@ -72,8 +98,8 @@ def api_pdv_cartao_cliente(request):
         data = json.loads(request.body or "{}")
     except Exception:
         return JsonResponse({"ok": False, "erro": "Não entendi o bip."}, status=400)
-    bruto = str(data.get("codigo") or "")
-    if not eh_codigo_cartao(bruto):
+    bruto = codigo_cartao_lido(str(data.get("codigo") or ""))
+    if not bruto:
         return JsonResponse({"ok": False, "erro": "Não é cartão de cliente."}, status=400)
     cartao = cartao_por_codigo(bruto)
     if cartao is None:

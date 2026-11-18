@@ -80,7 +80,8 @@
             saldo_vale_credito: toNumber(raw.saldo_vale_credito),
             saldo_cashback: toNumber(raw.saldo_cashback),
             limite_fiado_local: toNumber(raw.limite_fiado_local),
-            desconto_pdv_percentual: toNumber(raw.desconto_pdv_percentual)
+            desconto_pdv_percentual: toNumber(raw.desconto_pdv_percentual),
+            cartao_codigo: String(raw.cartao_codigo || '').trim()
         };
     }
 

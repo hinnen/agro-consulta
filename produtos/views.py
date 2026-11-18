@@ -11454,6 +11454,9 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
             "apiTodosProdutosLocal": reverse("api_todos_produtos_local"),
             "apiEnviarPedidoErp": reverse("api_enviar_pedido_erp"),
             "apiPdvClienteRapido": reverse("api_pdv_cliente_rapido"),
+            "apiPdvClienteEditarPattern": reverse("api_pdv_cliente_editar", args=[0]).replace(
+                "/0/", "/__pk__/"
+            ),
             "apiPdvClienteCreditoFiado": reverse("api_pdv_cliente_credito_fiado"),
             "apiPdvFiadoLimite": reverse("api_pdv_fiado_limite"),
             "apiPdvRelacionamentoCliente": reverse("api_pdv_relacionamento_cliente"),
@@ -33424,6 +33427,14 @@ def _clientes_locais_agro_pdv(termo=""):
             q_filter |= Q(whatsapp__icontains=digits) | Q(cpf__icontains=digits)
         if len(t) >= 3:
             q_filter |= Q(endereco__icontains=t) | Q(plus_code__icontains=t)
+        if t.isdigit() and 1 <= len(t) <= 5:
+            from produtos.models import ClienteCartaoAgro
+
+            prefixo = f"981{int(t):09d}"
+            ids_cartao = ClienteCartaoAgro.objects.filter(
+                ativo=True, codigo__startswith=prefixo
+            ).values_list("cliente_id", flat=True)
+            q_filter |= Q(pk__in=list(ids_cartao))
         qs = qs.filter(q_filter)
     clientes = list(qs.order_by("nome")[:80])
     from produtos.models import ClienteCartaoAgro
@@ -33438,7 +33449,7 @@ def _clientes_locais_agro_pdv(termo=""):
 
 
 def _api_buscar_clientes_cache_key(termo: str) -> str:
-    return f"api_buscar_clientes_v2:{(termo or '').strip().lower()[:80]}"
+    return f"api_buscar_clientes_v3:{(termo or '').strip().lower()[:80]}"
 
 
 def _dedupe_clientes_pdv_por_nome_doc(rows):
@@ -33644,10 +33655,34 @@ def api_pdv_cliente_rapido(request):
         if cpf_val is not None:
             c.cpf = cpf_val
             c.save(update_fields=["cpf"])
+        aviso_cartao = _vincular_cartao_no_cadastro_rapido(c, data.get("cartao_codigo"))
     except Exception as e:
         logger.exception("api_pdv_cliente_rapido")
         return JsonResponse({"ok": False, "erro": str(e)[:500]}, status=400)
-    return JsonResponse({"ok": True, "cliente": _linha_clienteagro_pdv(c)})
+    payload = {"ok": True, "cliente": _linha_clienteagro_pdv(c)}
+    if aviso_cartao:
+        payload["aviso"] = aviso_cartao
+    return JsonResponse(payload)
+
+
+def _vincular_cartao_no_cadastro_rapido(cliente, bruto) -> str:
+    """Liga o cartão bipado no cadastro. Vazio = não pediu. Texto = aviso, cliente já gravado."""
+    codigo = str(bruto or "").strip()
+    if not codigo:
+        return ""
+    from produtos.cliente_cartao_util import cartao_por_codigo, eh_codigo_cartao, vincular
+
+    if not eh_codigo_cartao(codigo):
+        return "Cliente salvo. Esse código não é cartão de cliente."
+    cartao = cartao_por_codigo(codigo)
+    if cartao is None:
+        return "Cliente salvo. Esse cartão ainda não foi impresso no caixa."
+    if not cartao.ativo:
+        return "Cliente salvo. Esse cartão foi cancelado. Use o novo."
+    if cartao.cliente_id and cartao.cliente_id != cliente.pk:
+        return "Esse cartão já é de outra pessoa. Bipe um cartão em branco."
+    vincular(cartao, cliente)
+    return ""
 
 
 def _pdv_whatsapp_digits_pdv(wa_raw: str, *, obrigatorio: bool = False, excluir_pk=None):
@@ -33764,7 +33799,11 @@ def api_pdv_cliente_editar(request, pk):
     from produtos.cliente_operacoes_util import propagar_renome_cliente
 
     propagar_renome_cliente(cli, nome_antes)
-    return JsonResponse({"ok": True, "cliente": _linha_clienteagro_pdv(cli)})
+    aviso_cartao = _vincular_cartao_no_cadastro_rapido(cli, data.get("cartao_codigo"))
+    payload = {"ok": True, "cliente": _linha_clienteagro_pdv(cli)}
+    if aviso_cartao:
+        payload["aviso"] = aviso_cartao
+    return JsonResponse(payload)
 
 
 @require_GET

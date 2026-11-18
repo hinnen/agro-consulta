@@ -31,6 +31,10 @@ def main() -> int:
         ok(f"código {codigo}")
     else:
         fail("código 981")
+    if "def numero_curto" in util and "def _proximo_seq" in util and "return ultimo + 1" in util:
+        ok("número curto e a folha seguinte continua do último impresso")
+    else:
+        fail("número curto ou sequência")
     if not ns["eh_codigo_cartao"]("2300000000017"):
         ok("código de balança não é cartão")
     else:
@@ -41,6 +45,11 @@ def main() -> int:
         ok("PDV separa o 981 do produto")
     else:
         fail("PDV não separa o 981")
+    tela = (ROOT / "produtos/templates/produtos/pdv_wizard.html").read_text(encoding="utf-8")
+    if "pdv-cartao-bip-overlay" in tela and "Código" in pdv and "saveQuickClientEditOverlay" in pdv:
+        ok("busca mostra o código e a troca abre a janela do bip")
+    else:
+        fail("busca ou janela do bip")
 
     urls = (ROOT / "produtos/urls.py").read_text(encoding="utf-8")
     if "caixa/cartao-cliente/" in urls and "cartao/<str:token>/" in urls and "api/pdv/cartao-cliente/" in urls:
