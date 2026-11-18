@@ -1695,13 +1695,13 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### CHECKLIST ÚNICO — **18/11c** · 🟢 **pronto para envio à produção**
+### ✅ CHECKLIST ÚNICO — **18/11c** · enviado · **v27.26.78** @ `bd27b758`
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
 | 1 | **CARTAO-QR** | 🟢 Pronto | **NÃO** | teste do portal ok |
 
-Só a página do celular. WhatsApp igual ao cadastro abre as compras. Se não bater, para e o botão abre o Zap da loja com o número do cartão. O QR da folha já impressa é o mesmo: o token e o endereço não mudam. Não mexe em PDV, caixa nem venda. Em cima da **v27.26.77** @ `2b90880a`. Script `scripts/cutover_loja_checklist_1811c.sh`. Sem `--exec` não envia. Volta: `git push origin 2b90880a:producao`.
+Só a página do celular. WhatsApp igual ao cadastro abre as compras. Se não bater, para e o botão abre o Zap da loja com o número do cartão. O QR da folha já impressa é o mesmo. Não mexe em PDV, caixa nem venda. **Enviado** `bd27b758`. Até o build, no ar segue **v27.26.77** @ `2b90880a`. Volta: `git push origin 2b90880a:producao`.
 
 ### ✅ CORTE ENVIADO — **18/11** · **v27.26.77** @ `2b90880a` · aguardando o build
 
