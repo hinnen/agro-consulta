@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import json
 
-from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.staticfiles.finders import find
 from django.http import HttpResponse, JsonResponse
@@ -17,12 +16,11 @@ from produtos.cliente_cartao_util import (
     cartao_por_codigo,
     cartao_por_token,
     compras_do_cliente,
-    confirmar_codigo,
     codigo_cartao_lido,
     eh_codigo_cartao,
     emitir_cartoes,
+    mesmo_whatsapp,
     numero_curto,
-    pedir_codigo_whatsapp,
     vincular,
 )
 from produtos.models import ClienteAgro
@@ -162,10 +160,6 @@ def api_pdv_cartao_cliente(request):
     )
 
 
-def _portal_liberado(request, token: str) -> bool:
-    return (request.session.get(SESSAO_OK) or "") == token
-
-
 @ensure_csrf_cookie
 @require_http_methods(["GET", "POST"])
 def cliente_cartao_portal(request, token: str):
@@ -178,28 +172,28 @@ def cliente_cartao_portal(request, token: str):
         )
     cliente = cartao.cliente
     aviso = ""
-    if request.method == "POST":
-        acao = (request.POST.get("acao") or "").strip()
-        if acao == "pedir":
-            _codigo, situacao = pedir_codigo_whatsapp(cartao, request.POST.get("whatsapp") or "")
-            avisos = {
-                "enviado": "Mandei o código no WhatsApp da loja.",
-                "sem_conversa": "O número confere, mas não achei conversa no Zap da loja. Manda um oi para a loja e peça de novo.",
-                "sem_whatsapp": "Este cadastro está sem WhatsApp. Peça para completar na loja.",
-                "numero_diferente": "Este WhatsApp não é o do cadastro.",
-                "invalido": "Cartão inválido.",
-                "falha": "Não consegui mandar o código. Tente de novo.",
-            }
-            aviso = avisos.get(situacao, "Não deu para enviar.")
-            if settings.DEBUG and getattr(settings, "CLIENTE_CARTAO_REVELAR_CODIGO", False):
-                aviso = f"{aviso} CODE:{_codigo}"
-        elif acao == "confirmar":
-            if confirmar_codigo(cartao, request.POST.get("codigo") or ""):
-                request.session[SESSAO_OK] = token
-            else:
-                aviso = "Código não confere ou já venceu."
-    liberado = _portal_liberado(request, token)
+    liberado = (request.session.get(SESSAO_OK) or "") == token
+    if request.method == "POST" and not liberado:
+        if mesmo_whatsapp(cliente.whatsapp, request.POST.get("whatsapp") or ""):
+            request.session[SESSAO_OK] = token
+            liberado = True
+        else:
+            aviso = "Esse WhatsApp não é o do cadastro. Fale com a loja para corrigir."
     compras = compras_do_cliente(cliente) if liberado else []
+    from urllib.parse import quote
+
+    from produtos.models import CatalogoDeliveryConfig
+
+    cfg = CatalogoDeliveryConfig.objects.order_by("pk").first()
+    wa = "".join(c for c in ((cfg.whatsapp_contato if cfg else "") or "") if c.isdigit())
+    if wa and not wa.startswith("55"):
+        wa = "55" + wa
+    curto = numero_curto(cartao.codigo)
+    texto = (
+        f"Olá, tentei ver as compras do meu cartão {curto} "
+        "e o WhatsApp não bateu com o cadastro. Pode conferir?"
+    )
+    zap_url = "https://wa.me/" + (wa + "?" if wa else "?") + "text=" + quote(texto)
     return render(
         request,
         "produtos/cliente_cartao_portal.html",
@@ -209,5 +203,7 @@ def cliente_cartao_portal(request, token: str):
             "aviso": aviso,
             "compras": compras,
             "token": token,
+            "zap_url": zap_url,
+            "numero_curto": curto,
         },
     )

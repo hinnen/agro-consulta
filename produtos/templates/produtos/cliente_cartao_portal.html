@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ cliente.nome }}</title>
+  <title>{% if liberado %}{{ cliente.nome }}{% else %}GM Agro{% endif %}</title>
   <style>
     body { margin: 0; font-family: Arial, sans-serif; background: #f8fafc; color: #0f172a; }
     main { max-width: 32rem; margin: 0 auto; padding: 1.25rem; }
@@ -23,18 +23,14 @@
   <p style="font-weight:800;color:#047857;letter-spacing:.08em">GM AGRO</p>
   {% if not liberado %}
   <h1>Ver minhas compras</h1>
-  <p>Digite o WhatsApp que está no cadastro. O código chega na conversa com a loja.</p>
-  {% if aviso %}<p class="aviso">{{ aviso }}</p>{% endif %}
+  <p>Digite o WhatsApp do cadastro. Cartão {{ numero_curto }}.</p>
+  {% if aviso %}
+  <p class="aviso">{{ aviso }}</p>
+  <a href="{{ zap_url }}" style="display:block;text-align:center;background:#047857;color:#fff;text-decoration:none;font-weight:800;padding:0.9rem;border-radius:0.8rem">Falar com a loja</a>
+  {% endif %}
   <form method="post">
     {% csrf_token %}
-    <input type="hidden" name="acao" value="pedir">
     <input name="whatsapp" inputmode="tel" autocomplete="tel" placeholder="WhatsApp" required>
-    <button type="submit">Pedir código</button>
-  </form>
-  <form method="post">
-    {% csrf_token %}
-    <input type="hidden" name="acao" value="confirmar">
-    <input name="codigo" inputmode="numeric" autocomplete="one-time-code" placeholder="Código de 6 números" required>
     <button type="submit">Entrar</button>
   </form>
   {% else %}

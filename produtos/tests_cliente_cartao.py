@@ -4,14 +4,14 @@ from __future__ import annotations
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase, override_settings
+from django.test import TestCase
 
 from produtos.cliente_cartao_util import (
     digito_ean13,
     eh_codigo_cartao,
     emitir_cartoes,
     montar_ean13,
-    pedir_codigo_whatsapp,
+    numero_curto,
     vincular,
 )
 from produtos.models import ClienteAgro, ItemVendaAgro, VendaAgro
@@ -80,7 +80,6 @@ class CartaoFluxoTest(TestCase):
         )
         self.assertEqual(resp.status_code, 409)
 
-    @override_settings(CLIENTE_CARTAO_REVELAR_CODIGO=True, DEBUG=True)
     def test_portal_pede_o_whatsapp_do_cadastro(self):
         cartao = emitir_cartoes(1)[0]
         vincular(cartao, self.cliente)
@@ -98,18 +97,12 @@ class CartaoFluxoTest(TestCase):
             valor_total=Decimal("10"),
         )
         pagina = self.client.get(f"/cartao/{cartao.token}/")
-        self.assertContains(pagina, "Ver minhas compras")
-        pedido = self.client.post(
-            f"/cartao/{cartao.token}/",
-            {"acao": "pedir", "whatsapp": "13999998888"},
-        )
-        self.assertContains(pedido, "CODE:")
-        codigo = pedido.content.decode().split("CODE:")[1][:6]
-        entrou = self.client.post(
-            f"/cartao/{cartao.token}/",
-            {"acao": "confirmar", "codigo": codigo},
-        )
-        self.assertContains(entrou, "Ração")
-        self.assertContains(entrou, "Cashback")
-        errado = pedir_codigo_whatsapp(cartao, "11911112222")
-        self.assertEqual(errado[1], "numero_diferente")
+        self.assertContains(pagina, "WhatsApp")
+        self.assertNotContains(pagina, "Ração")
+        errado = self.client.post(f"/cartao/{cartao.token}/", {"whatsapp": "11911112222"})
+        self.assertContains(errado, "Falar com a loja")
+        self.assertContains(errado, numero_curto(cartao.codigo))
+        self.assertNotContains(errado, "Ração")
+        certo = self.client.post(f"/cartao/{cartao.token}/", {"whatsapp": "13999998888"})
+        self.assertContains(certo, "Ração")
+        self.assertContains(certo, "Cashback")
