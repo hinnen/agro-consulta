@@ -4,6 +4,8 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
+**Checklist único (18/11d):** **CARTAO-QR-TELA** — 🟢 pronto para envio. Só a aparência da página do celular. O QR impresso não muda. **Migrate NÃO**. Não foi para a loja. Corte `scripts/cutover_loja_checklist_1811d.sh` em cima da **v27.26.78**.
+
 **Loja (18/11c):** **CARTAO-QR** enviada · **v27.26.78** @ `bd27b758`. Só a página do QR. O QR impresso não muda. Sem migrate. Até o build, no ar segue **v27.26.77** @ `2b90880a`. Volta: `git push origin 2b90880a:producao`.
 
 **Loja (18/11):** corte **v27.26.77** enviado @ `2b90880a`. Cadastro pela nota, cartão (tabela **0156** no build), imposto no boleto e o texto das regras. Até o build, no ar segue **v27.26.76** @ `f58903ed`. Volta: `git push origin f58903ed:producao`.
