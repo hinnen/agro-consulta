@@ -4,11 +4,7 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
-**Checklist único (18/11b):** **NF-FORN-CADASTRO** — 🟢 pronto para envio. Nota manual: produto novo em branco entra na lista ao salvar. **Migrate NÃO**. Não foi para a loja.
-
-**Checklist único (18/11):** **CARTAO-CLIENTE** — 🟢 pronto para envio. Testado no PC: folha, número curto, bip, busca e troca. **Migrate SIM 0156**. **VERIFY_OK 9**. `teste` @ `d58d06b3`. Não foi para a loja.
-
-**Checklist único (17/11):** **NF-IMP-NO-BOLETO** — 🟢 pronto para envio à produção. Imposto fora da NF entra no boleto. Sem migrate. Não foi para a loja.
+**Checklist único (18/11):** corte **v27.26.77** armado, **não enviado**. Entra junto: **NF-FORN-CADASTRO** (sem migrate), **CARTAO-CLIENTE** (tabela **0156**), **NF-IMP-NO-BOLETO** (sem migrate) e o texto das regras. Base **v27.26.76** @ `f58903ed`. Na senha, vendas pausadas: `./scripts/cutover_loja_checklist_1811.sh --exec` e `./scripts/post_deploy_checklist_1811.sh`. Volta: `git push origin f58903ed:producao`.
 
 **Loja (15/11c):** **PDV-ZAP-AVISO** enviada · **v27.26.74** @ `b102a9ca`. Janela verde quando o orçamento vai no Zap. Sem migrate. Até o build, no ar segue **v27.26.73** @ `b25069cf`. Volta: `git push origin b25069cfbd01f37fe580d0e48e070f9dde057718:producao`.
 

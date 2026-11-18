@@ -1695,7 +1695,19 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### CHECKLIST ÚNICO — **18/11b** · 🟢 **pronto para envio à produção**
+### 🟢 CORTE ARMADO — **18/11** · **v27.26.77** · ainda não foi para a loja
+
+| Campo | Valor |
+| ----- | ----- |
+| **Entra** | Cadastro pela nota. Cartão do cliente (folha, bip `981`, QR, número curto, troca). Imposto fora da NF no boleto. Texto das regras do agente |
+| **Migrate** | **SIM** só a **0156** (a 0153 do teste não entra; a loja já usa esse número) |
+| **Base** | loja **v27.26.76** @ `f58903ed` |
+| **Prova** | patch aplica em cima da loja. Boleto 1.428,52 + 0,02 = 3×476,18. Cartão: código 981 e a 0156 no lugar da 0153. JS do PDV sem erro de sintaxe |
+| **Na senha** | vendas pausadas · `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` · `./scripts/cutover_loja_checklist_1811.sh --exec` · Shell `./scripts/post_deploy_checklist_1811.sh` |
+| **Volta** | `git push origin f58903ed:producao` |
+| **Fora** | o resto do `teste`. Sem esta senha, nada sobe |
+
+### CHECKLIST ÚNICO — **18/11b** · dentro do corte **v27.26.77** (ainda não enviado)
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
