@@ -11,6 +11,7 @@ from produtos.cliente_cartao_util import (
     eh_codigo_cartao,
     emitir_cartoes,
     montar_ean13,
+    numero_curto,
     vincular,
 )
 from produtos.models import ClienteAgro, ItemVendaAgro, VendaAgro
@@ -96,6 +97,12 @@ class CartaoFluxoTest(TestCase):
             valor_total=Decimal("10"),
         )
         pagina = self.client.get(f"/cartao/{cartao.token}/")
-        self.assertContains(pagina, "Ração")
-        self.assertContains(pagina, "Cashback")
-        self.assertNotContains(pagina, "Pedir código")
+        self.assertContains(pagina, "WhatsApp")
+        self.assertNotContains(pagina, "Ração")
+        errado = self.client.post(f"/cartao/{cartao.token}/", {"whatsapp": "11911112222"})
+        self.assertContains(errado, "Falar com a loja")
+        self.assertContains(errado, numero_curto(cartao.codigo))
+        self.assertNotContains(errado, "Ração")
+        certo = self.client.post(f"/cartao/{cartao.token}/", {"whatsapp": "13999998888"})
+        self.assertContains(certo, "Ração")
+        self.assertContains(certo, "Cashback")

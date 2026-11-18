@@ -12,12 +12,14 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods, require_POST
 
 from produtos.cliente_cartao_util import (
+    SESSAO_OK,
     cartao_por_codigo,
     cartao_por_token,
     compras_do_cliente,
     codigo_cartao_lido,
     eh_codigo_cartao,
     emitir_cartoes,
+    mesmo_whatsapp,
     numero_curto,
     vincular,
 )
@@ -170,8 +172,28 @@ def cliente_cartao_portal(request, token: str):
         )
     cliente = cartao.cliente
     aviso = ""
-    liberado = True
-    compras = compras_do_cliente(cliente)
+    liberado = (request.session.get(SESSAO_OK) or "") == token
+    if request.method == "POST" and not liberado:
+        if mesmo_whatsapp(cliente.whatsapp, request.POST.get("whatsapp") or ""):
+            request.session[SESSAO_OK] = token
+            liberado = True
+        else:
+            aviso = "Esse WhatsApp não é o do cadastro. Fale com a loja para corrigir."
+    compras = compras_do_cliente(cliente) if liberado else []
+    from urllib.parse import quote
+
+    from produtos.models import CatalogoDeliveryConfig
+
+    cfg = CatalogoDeliveryConfig.objects.order_by("pk").first()
+    wa = "".join(c for c in ((cfg.whatsapp_contato if cfg else "") or "") if c.isdigit())
+    if wa and not wa.startswith("55"):
+        wa = "55" + wa
+    curto = numero_curto(cartao.codigo)
+    texto = (
+        f"Olá, tentei ver as compras do meu cartão {curto} "
+        "e o WhatsApp não bateu com o cadastro. Pode conferir?"
+    )
+    zap_url = "https://wa.me/" + (wa + "?" if wa else "?") + "text=" + quote(texto)
     return render(
         request,
         "produtos/cliente_cartao_portal.html",
@@ -181,5 +203,7 @@ def cliente_cartao_portal(request, token: str):
             "aviso": aviso,
             "compras": compras,
             "token": token,
+            "zap_url": zap_url,
+            "numero_curto": curto,
         },
     )
