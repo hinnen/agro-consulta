@@ -4,7 +4,7 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
-**Checklist único (18/11):** **CARTAO-CLIENTE** — 🟢 pronto para envio. Testado no PC: folha, número curto, bip, busca e troca. **Migrate SIM 0156**. **VERIFY_OK 9**. Não foi para a loja.
+**Checklist único (18/11):** **CARTAO-CLIENTE** — 🟢 pronto para envio. Testado no PC: folha, número curto, bip, busca e troca. **Migrate SIM 0156**. **VERIFY_OK 9**. `teste` @ `d58d06b3`. Não foi para a loja.
 
 **Checklist único (17/11):** **NF-IMP-NO-BOLETO** — 🟢 pronto para envio à produção. Imposto fora da NF entra no boleto. Sem migrate. Não foi para a loja.
 
