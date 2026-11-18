@@ -1107,3 +1107,13 @@ A impressão da folha **já está na loja (v25.77)**. O §35 **já está na loja
 
 **PREP:** `deploy/prep-checklist-1810f-nfe-sefaz-danfe-pdv` @ **`0945ef79`**.  
 **Doc:** `docs/DEPLOY-PREP-CHECKLIST-1810f-nfe-sefaz-danfe-pdv.md`.
+
+---
+
+## 110. CHECKLIST ÚNICO — vai no próximo envio à loja · 18/11
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **AGENTS-ROTEIRO-BANANA** | 🟡 junto do próximo envio de verdade | **NÃO** |
+
+Regras do agente: `AGENTS.md`, `banana-roteiro.md` e o topo do `banana.md`. Já estão em `teste`. Não sobem sozinhos, para a loja não reiniciar só por texto. No próximo pacote que for para a loja, incluir estes arquivos no envio. Não muda PDV, caixa, venda nem dado.
