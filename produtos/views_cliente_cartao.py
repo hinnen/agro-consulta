@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import json
 
-from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.staticfiles.finders import find
 from django.http import HttpResponse, JsonResponse
@@ -13,16 +12,13 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods, require_POST
 
 from produtos.cliente_cartao_util import (
-    SESSAO_OK,
     cartao_por_codigo,
     cartao_por_token,
     compras_do_cliente,
-    confirmar_codigo,
     codigo_cartao_lido,
     eh_codigo_cartao,
     emitir_cartoes,
     numero_curto,
-    pedir_codigo_whatsapp,
     vincular,
 )
 from produtos.models import ClienteAgro
@@ -162,10 +158,6 @@ def api_pdv_cartao_cliente(request):
     )
 
 
-def _portal_liberado(request, token: str) -> bool:
-    return (request.session.get(SESSAO_OK) or "") == token
-
-
 @ensure_csrf_cookie
 @require_http_methods(["GET", "POST"])
 def cliente_cartao_portal(request, token: str):
@@ -178,28 +170,8 @@ def cliente_cartao_portal(request, token: str):
         )
     cliente = cartao.cliente
     aviso = ""
-    if request.method == "POST":
-        acao = (request.POST.get("acao") or "").strip()
-        if acao == "pedir":
-            _codigo, situacao = pedir_codigo_whatsapp(cartao, request.POST.get("whatsapp") or "")
-            avisos = {
-                "enviado": "Mandei o código no WhatsApp da loja.",
-                "sem_conversa": "O número confere, mas não achei conversa no Zap da loja. Manda um oi para a loja e peça de novo.",
-                "sem_whatsapp": "Este cadastro está sem WhatsApp. Peça para completar na loja.",
-                "numero_diferente": "Este WhatsApp não é o do cadastro.",
-                "invalido": "Cartão inválido.",
-                "falha": "Não consegui mandar o código. Tente de novo.",
-            }
-            aviso = avisos.get(situacao, "Não deu para enviar.")
-            if settings.DEBUG and getattr(settings, "CLIENTE_CARTAO_REVELAR_CODIGO", False):
-                aviso = f"{aviso} CODE:{_codigo}"
-        elif acao == "confirmar":
-            if confirmar_codigo(cartao, request.POST.get("codigo") or ""):
-                request.session[SESSAO_OK] = token
-            else:
-                aviso = "Código não confere ou já venceu."
-    liberado = _portal_liberado(request, token)
-    compras = compras_do_cliente(cliente) if liberado else []
+    liberado = True
+    compras = compras_do_cliente(cliente)
     return render(
         request,
         "produtos/cliente_cartao_portal.html",

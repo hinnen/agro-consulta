@@ -1705,6 +1705,7 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 | **Até o build** | no ar segue **v27.26.76** @ `f58903ed` |
 | **Volta** | `git push origin f58903ed:producao` |
 | **Build** | o Render cria a tabela **0156** sozinho |
+| **QR** | 18/11 depois do envio: a página pedia código no Zap e falhou (número confere, conversa não achada). No `teste`, o QR do cartão vinculado abre nome, cashback, vale e compras direto. Ainda não está na loja |
 
 ### CHECKLIST ÚNICO — **18/11b** · enviado no corte **v27.26.77** @ `2b90880a`
 
