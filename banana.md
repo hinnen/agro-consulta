@@ -1712,7 +1712,7 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 | - | ------ | ------ | ------- | ----- |
 | 1 | **NF-FORN-CADASTRO** | 🟢 Pronto · testado no PC 18/11 | **NÃO** | nota manual: cadastro em branco entra na lista |
 
-**+ Produto novo** abre o cadastro em branco e, ao salvar, a linha entra na nota. **Voltar** e **Cancelar** fecham sem gravar. **Fechar** some só nessa janela. Linha da nota sem produto mostra **Cadastrar esta linha**, já com os dados dela. Nome verde de produto já ligado abre o cadastro. Os cards de acréscimo e ajuste manual ficam do mesmo tamanho; a frase do frete/ST saiu. Não foi para a loja. XML com linha sem vínculo não foi visto neste PC.
+**+ Produto novo** abre o cadastro em branco e, ao salvar, a linha entra na nota. **Voltar** e **Cancelar** fecham sem gravar. **Fechar** some só nessa janela. Linha da nota sem produto mostra **Cadastrar esta linha**, já com os dados dela. Nome verde de produto já ligado abre o cadastro. Os cards de acréscimo e ajuste manual ficam do mesmo tamanho; a frase do frete/ST saiu. Enviado na **v27.26.77**. XML com linha sem vínculo não foi visto neste PC. Até o build terminar, a loja segue na **v27.26.76**.
 
 Junto neste envio, se o Renan pedir a loja: **CARTAO-CLIENTE** (0156) e **NF-IMP-NO-BOLETO** (conferir o boleto na loja). O texto das regras entra junto.
 
