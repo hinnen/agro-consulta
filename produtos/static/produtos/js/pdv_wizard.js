@@ -314,6 +314,7 @@
             } catch (ePinToast) {}
         }
     }
+    window.showPdvAviso = showPdvAviso;
 
     function showPdvConfirmacao(msg, opts) {
         opts = opts || {};

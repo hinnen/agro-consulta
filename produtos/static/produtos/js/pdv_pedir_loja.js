@@ -22,6 +22,9 @@
   var overlay = document.getElementById('pdv-pedir-loja-overlay');
   if (!overlay) return;
 
+  /* Pausa temporária do botão Pedir loja. Voltar: false. */
+  var PEDIR_LOJA_PAUSADO = true;
+
   var cart = [];
   var searchTimer = null;
   var buscaSeq = 0;
@@ -34,6 +37,21 @@
 
   var dom = {
     btnOpen: document.getElementById('pdv-topbar-pedir-loja-btn'),
+  };
+  if (PEDIR_LOJA_PAUSADO && dom.btnOpen) {
+    dom.btnOpen.classList.add('pdv-wiz-topbar-btn--pausado');
+    dom.btnOpen.title = 'Pedir loja pausado por enquanto';
+  }
+
+  function avisoPedirPausado() {
+    var msg = 'O botão Pedir loja foi desativado temporariamente.';
+    if (typeof window.showPdvAviso === 'function') {
+      window.showPdvAviso(msg, { title: 'Pedir loja', tone: 'warn', prominent: true });
+      return;
+    }
+    alert(msg);
+  }
+  Object.assign(dom, {
     btnCount: document.getElementById('pdv-topbar-pedir-loja-count'),
     fechar: document.getElementById('pdv-pedir-loja-fechar'),
     sub: document.getElementById('pdv-pedir-loja-sub'),
@@ -79,7 +97,7 @@
     temPedido: document.getElementById('pdv-pedir-loja-tem-pedido'),
     temPedidoMsg: document.getElementById('pdv-pedir-loja-tem-pedido-msg'),
     temPedidoOk: document.getElementById('pdv-pedir-loja-tem-pedido-ok'),
-  };
+  });
   var ajusteProduto = null;
   var printChoiceRows = null;
 
@@ -157,6 +175,7 @@
   }
 
   function syncBeepPendentes(n) {
+    if (PEDIR_LOJA_PAUSADO) n = 0;
     pendentesBeep = Number(n || 0);
     if (pendentesBeep > 0) {
       if (!beepTimer) {
@@ -291,6 +310,10 @@
   }
 
   function abrir() {
+    if (PEDIR_LOJA_PAUSADO) {
+      avisoPedirPausado();
+      return;
+    }
     overlay.classList.remove('hidden');
     overlay.classList.add('flex');
     try {
@@ -450,10 +473,16 @@
     if (dom.btnOpen) {
       var base = 'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative';
       /* Alerta/bip so com recebidos_bip (Postgres) — Aceitar/Pronto silenciam 30 min em todos os PCs. */
-      if (bip > 0) base += ' pdv-wiz-topbar-btn--pedir-loja-alerta';
+      if (PEDIR_LOJA_PAUSADO) {
+        bip = 0;
+        base += ' pdv-wiz-topbar-btn--pausado';
+      } else if (bip > 0) {
+        base += ' pdv-wiz-topbar-btn--pedir-loja-alerta';
+      }
       dom.btnOpen.className = base;
-      dom.btnOpen.title =
-        n > 0
+      dom.btnOpen.title = PEDIR_LOJA_PAUSADO
+        ? 'Pedir loja pausado por enquanto'
+        : n > 0
           ? bip > 0
             ? n + ' pedido(s) da outra loja'
             : n + ' pedido(s) · bip pausado 30 min apos Aceitar'
@@ -1973,6 +2002,10 @@
   }
 
   function abrirEscolha() {
+    if (PEDIR_LOJA_PAUSADO) {
+      avisoPedirPausado();
+      return;
+    }
     if (!escolha) {
       abrir();
       return;
