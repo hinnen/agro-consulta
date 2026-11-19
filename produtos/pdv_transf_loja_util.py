@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth import get_user_model
-from django.core import signing
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -23,7 +22,6 @@ from produtos.pdv_deposito_util import DEPOSITOS_VALIDOS, normalizar_deposito, r
 PDV_OPERADOR_FRESCO_TTL_S = 45
 SISTAPP_PIN_TTL_S = 7 * 24 * 3600
 SISTAPP_PIN_DESDE_KEY = "wa_sistapp_pin_desde"
-SISTAPP_TOKEN_SALT = "wa-sistapp-pin-7d"
 # Fechar venda: mesmo TTL das demais ações. (Bug #26: 10s pedia PIN toda hora no balcão.)
 PDV_OPERADOR_FRESCO_VENDA_TTL_S = 45
 PDV_OPERADOR_FRESCO_KEY = "pdv_operador_fresco_em"
@@ -105,43 +103,6 @@ def _parse_decimal(valor) -> Decimal | None:
         return None
 
 
-def token_pin_sistapp(nome: str, desde: float) -> str:
-    """Prova de 7 dias. O aplicativo guarda no celular; a sessão do Zap some ao fechar."""
-    return signing.dumps(
-        {"n": (nome or "")[:120], "d": float(desde)},
-        salt=SISTAPP_TOKEN_SALT,
-    )
-
-
-def ler_token_pin_sistapp(token: str) -> tuple[str, float]:
-    bruto = str(token or "").strip()
-    if not bruto:
-        return "", 0.0
-    try:
-        data = signing.loads(bruto, salt=SISTAPP_TOKEN_SALT, max_age=SISTAPP_PIN_TTL_S)
-    except Exception:
-        return "", 0.0
-    nome = str((data or {}).get("n") or "").strip()[:120]
-    try:
-        desde = float((data or {}).get("d") or 0)
-    except (TypeError, ValueError):
-        desde = 0.0
-    if not nome or desde <= 0:
-        return "", 0.0
-    if time.time() - desde > SISTAPP_PIN_TTL_S:
-        return "", 0.0
-    return nome, desde
-
-
-def _token_do_pedido(request) -> str:
-    if request is None:
-        return ""
-    try:
-        return str(request.headers.get("X-Agro-Wa-Sistapp-Token") or "").strip()
-    except Exception:
-        return ""
-
-
 def _pedido_do_sistapp(request) -> bool:
     if request is None:
         return False
@@ -149,31 +110,7 @@ def _pedido_do_sistapp(request) -> bool:
         marca = request.headers.get("X-Agro-Wa-Sistapp") or ""
     except Exception:
         marca = ""
-    if str(marca).strip() == "1":
-        return True
-    nome, _desde = ler_token_pin_sistapp(_token_do_pedido(request))
-    return bool(nome)
-
-
-def reidratar_pin_sistapp(request) -> None:
-    """Se o celular ainda tem a prova de 7 dias, reabre o operador sem pedir PIN."""
-    if request is None or not _pedido_do_sistapp(request):
-        return
-    nome, desde = ler_token_pin_sistapp(_token_do_pedido(request))
-    if not nome:
-        return
-    atual = str(request.session.get("pdv_operador_nome") or "").strip()
-    try:
-        ja = float(request.session.get(SISTAPP_PIN_DESDE_KEY) or 0)
-    except (TypeError, ValueError):
-        ja = 0.0
-    if atual == nome and ja > 0 and time.time() - ja < SISTAPP_PIN_TTL_S:
-        return
-    request.session["pdv_operador_nome"] = nome
-    request.session[SISTAPP_PIN_DESDE_KEY] = float(desde)
-    request.session[PDV_OPERADOR_FRESCO_KEY] = float(time.time())
-    request.session["mobile_auth"] = True
-    request.session.modified = True
+    return str(marca).strip() == "1"
 
 
 def _restante_sistapp_s(request) -> int:
@@ -241,7 +178,6 @@ def operador_pdv_restante_fresco_s(
     """Segundos restantes da identidade «ainda sou eu». 0 = precisa PIN."""
     if request is None:
         return 0
-    reidratar_pin_sistapp(request)
     label = str(request.session.get("pdv_operador_nome") or "").strip()
     if not label:
         return 0

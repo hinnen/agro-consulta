@@ -28117,25 +28117,11 @@ def api_login_mobile(request):
             request.session["gestao_pin_nonce"] = nonce
             request.session["gestao_pin_liberado"] = True
             request.session.modified = True
-    extra = {}
-    if operador:
-        from produtos.pdv_transf_loja_util import (
-            SISTAPP_PIN_DESDE_KEY,
-            _pedido_do_sistapp,
-            token_pin_sistapp,
-        )
-
-        if _pedido_do_sistapp(request):
-            extra["sistapp_token"] = token_pin_sistapp(
-                operador,
-                float(request.session.get(SISTAPP_PIN_DESDE_KEY) or time.time()),
-            )
     return JsonResponse(
         {
             "ok": True,
             "operador": operador,
             "gestao_nonce": str(request.session.get("gestao_pin_nonce") or ""),
-            **extra,
         }
     )
 
@@ -28279,25 +28265,12 @@ def api_pdv_registrar_operador(request):
         ok_pin, label, _user, err_pin = gravar_operador_sessao_pdv(request, pin)
         if not ok_pin:
             return JsonResponse({"ok": False, "erro": err_pin}, status=403)
-        extra = {}
-        from produtos.pdv_transf_loja_util import (
-            SISTAPP_PIN_DESDE_KEY,
-            _pedido_do_sistapp,
-            token_pin_sistapp,
-        )
-
-        if _pedido_do_sistapp(request):
-            extra["sistapp_token"] = token_pin_sistapp(
-                label,
-                float(request.session.get(SISTAPP_PIN_DESDE_KEY) or time.time()),
-            )
         return JsonResponse(
             {
                 "ok": True,
                 "operador": label[:120],
                 "fresco": True,
                 "restante_s": operador_pdv_restante_fresco_s(request),
-                **extra,
             }
         )
 
