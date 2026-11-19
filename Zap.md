@@ -45,6 +45,8 @@ Atualizado **14/11/2026**.
 19/11, autorizado: PIN de 7 dias no Zap aberto pelo Sistvale foi para a loja. O instalado e o computador continuam no prazo curto. Para voltar: tag `zap-antes-pin-7d-2026-11-19`.
 
 19/11: ao fechar o Sistvale o prazo se perdia. O celular agora guarda os 7 dias. O instalado continua no prazo curto.
+
+19/11, só no teste: a página do celular do Zap não baixa mais o pacote de estilo da internet. A foto do contato baixa uma vez e não pergunta de novo. A loja ainda não tem.
 - Ditado de voz sai torto às vezes. Se não bater, perguntar de novo.
 - O foco é o desktop. O que ele pede também vale no celular, cabendo na tela do telefone.
 
