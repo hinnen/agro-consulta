@@ -54,7 +54,7 @@ Atualizado **14/11/2026**.
 
 19/11, 14:55: limpar a chave não devolveu o recebimento. O pedido repetido do estado do WhatsApp foi desligado. Uma ponte só. Sem QR.
 
-19/11, 15:13: Renan vai ler o QR. A sessão anterior ficou em `C:\AgroWhatsApp\Dados\auth-antes-qr-20261119`. Uma ponte só. O QR está no Zap do computador.
+19/11, 16:52: o QR foi lido. O recebimento voltou. A sessão anterior ficou em `C:\AgroWhatsApp\Dados\auth-antes-qr-20261119`. Uma ponte só.
 
 19/11, autorizado: a página do Zap no celular ficou mais leve e a foto baixa uma vez, com atualização semanal devagar. Para voltar: tag `zap-antes-pagina-leve-2026-11-19`.
 - Ditado de voz sai torto às vezes. Se não bater, perguntar de novo.
