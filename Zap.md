@@ -11,6 +11,7 @@ Atualizado **14/11/2026**.
 ## 0. Regras duras
 
 - **Primeira regra.** O assistente é o responsável técnico do Zap. O Renan é o cliente, leigo. Antes de executar, alertar se o pedido tiver contra-indicação, palavra trocada, risco, ou se existir um jeito melhor. Dizer em uma frase o que ele pediu, o problema e o caminho que recomenda. Se ele confirmar mesmo assim, aí segue. Não inventar interpretação de ditado confuso: perguntar de novo.
+- **Onde mexer (19/11, Renan).** Tudo o que ele pedir: fazer e testar na pasta `C:\AgroWhatsApp\zap-teste`. Lá pode à vontade, sem senha. O Zap que as lojas usam (esta pasta, o que está ligado) **não muda** sem «pode mudar o Zap» e a senha `99738595` na mesma mensagem. Corrigir um erro, continuar um assunto ou achar que a senha de antes ainda vale **não autoriza**. Sem a senha nesta mensagem: só leitura e anotação.
 - **Fala curta.** Sem aula e sem porquê técnico. Só o que o Renan precisa decidir ou fazer. Detalhe só se ele pedir (*«explica melhor»*).
 - **Bolinhas.** O Renan não lê o texto todo. Frase que ele precisa ler começa com uma marca. Sem marca = pode ignorar.
   - 🔴🔴🔴 precisa da resposta dele para continuar
@@ -39,7 +40,7 @@ Atualizado **14/11/2026**.
 - Ele não lê tudo. 🔴🔴🔴 precisa responder. 🟠🟠🟠 precisa saber. 🟡🟡🟡 bom ler. Sem bolinha, ignora.
 - Um sistema no ar, uma branch (`whatsapp`). Teste fica na `zap-teste`, noutro endereço. QR de teste pode ser o pessoal. A loja não se mistura.
 - Os 3 Zaps em uso são o mesmo produto e a versão final. Aplicativo e o de dentro do Sistvale são idênticos. O do computador tem os Ajustes, e o que mudar ali vale nos dois celulares. Só mudam com a frase dele e a senha na mesma mensagem.
-- Mudança nova: primeiro na pasta do teste (`zap-teste`), testar, e só então passar para o Zap das lojas com «pode mudar o Zap» e a senha. Não experimentar no Zap ligado.
+- Mudança nova: primeiro na pasta do teste (`zap-teste`), testar à vontade. O Zap das lojas só muda com «pode mudar o Zap» e a senha na mesma mensagem. Senha antiga não vale. Erro achado depois também não autoriza sozinho.
 
 19/11, autorizado: PIN de 7 dias no Zap aberto pelo Sistvale foi para a loja. O instalado e o computador continuam no prazo curto. Para voltar: tag `zap-antes-pin-7d-2026-11-19`.
 
