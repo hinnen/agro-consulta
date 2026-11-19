@@ -113,6 +113,56 @@ def vendas_lojas_totais(data_ini: date, data_fim: date) -> tuple[Decimal, Decima
     return centro, vila, (centro + vila).quantize(Decimal("0.01"))
 
 
+_MESES_CURTO = (
+    "",
+    "JAN",
+    "FEV",
+    "MAR",
+    "ABR",
+    "MAI",
+    "JUN",
+    "JUL",
+    "AGO",
+    "SET",
+    "OUT",
+    "NOV",
+    "DEZ",
+)
+
+
+def vendas_lojas_seis_meses_fechados(hoje: date) -> list[dict]:
+    """
+    Seis meses civis completos anteriores ao mês de ``hoje``, do mais recente
+    ao mais antigo. O mês corrente não entra (continua no resumo e na previsão).
+    """
+    cursor = hoje.replace(day=1)
+    linhas: list[dict] = []
+    for _ in range(6):
+        ultimo = cursor - timedelta(days=1)
+        ini = ultimo.replace(day=1)
+        _centro, _vila, total = vendas_lojas_totais(ini, ultimo)
+        linhas.append(
+            {
+                "mes": ini.strftime("%Y-%m"),
+                "rotulo": f"{_MESES_CURTO[ini.month]}/{ini.year}",
+                "total": total,
+            }
+        )
+        cursor = ini
+    maior = max((ln["total"] for ln in linhas), default=Decimal("0"))
+    if maior < 0:
+        maior = Decimal("0")
+    for ln in linhas:
+        total = ln["total"]
+        if maior > 0 and total > 0:
+            ln["barra"] = int((total * Decimal(100) / maior).to_integral_value())
+        else:
+            ln["barra"] = 0
+        if ln["barra"] > 100:
+            ln["barra"] = 100
+    return linhas
+
+
 def vendas_lojas_soma_fiado_vendas_periodo(
     data_ini: date, data_fim: date
 ) -> tuple[Decimal, Decimal]:

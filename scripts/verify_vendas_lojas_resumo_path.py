@@ -75,6 +75,9 @@ def test_arquivos() -> None:
     check("view_sem_mongo_serie", "_dashboard_mongo_vendas_serie" not in view_fn)
     check("hub_link", "vendas_lojas_resumo" in hub)
     check("tpl_centro", "Centro" in tpl and "centro_fmt" in tpl)
+    check("tpl_data_loja", 'data-loja="total"' in tpl and 'data-loja="centro"' in tpl and 'data-loja="vila"' in tpl)
+    check("tpl_seis_meses", "meses_fechados" in tpl and "últimos 6 meses" in tpl)
+    check("view_seis_meses", "vendas_lojas_seis_meses_fechados" in view_fn)
     check("tpl_vila", "Vila Elias" in tpl and "vila_fmt" in tpl)
     check("tpl_total", "Total das duas lojas" in tpl and "total_fmt" in tpl)
     check("tpl_prev_card", "vl-abrir-prev" in tpl and "Previsão mês" in tpl)
@@ -258,6 +261,43 @@ def test_periodo() -> None:
         date(2026, 9, 1), "intervalo", "2026-09-01", "2026-09-10"
     )
     check("intervalo_futuro_corta", key == "dia" and ini == fim == date(2026, 9, 1))
+
+
+def test_seis_meses_janela() -> None:
+    print("== Seis meses fechados ==")
+    import produtos.vendas_lojas_util as util
+
+    chamadas: list[tuple] = []
+
+    def fake(ini, fim):
+        chamadas.append((ini, fim))
+        return Decimal("1"), Decimal("1"), Decimal(len(chamadas) * 100)
+
+    orig = util.vendas_lojas_totais
+    util.vendas_lojas_totais = fake
+    try:
+        linhas = util.vendas_lojas_seis_meses_fechados(date(2026, 11, 19))
+    finally:
+        util.vendas_lojas_totais = orig
+    check("seis_qtd", len(linhas) == 6)
+    check(
+        "seis_recente",
+        linhas[0]["mes"] == "2026-10" and linhas[0]["rotulo"] == "OUT/2026",
+    )
+    check(
+        "seis_antigo",
+        linhas[-1]["mes"] == "2026-05" and chamadas[-1] == (date(2026, 5, 1), date(2026, 5, 31)),
+    )
+    check("seis_sem_mes_atual", all(ln["mes"] != "2026-11" for ln in linhas))
+    check("seis_barra_maior", max(ln["barra"] for ln in linhas) == 100 and linhas[-1]["barra"] == 100)
+    check("seis_vira_ano", True)
+    util.vendas_lojas_totais = lambda ini, fim: (Decimal(0), Decimal(0), Decimal("-10"))
+    try:
+        neg = util.vendas_lojas_seis_meses_fechados(date(2026, 1, 3))
+    finally:
+        util.vendas_lojas_totais = orig
+    check("seis_janeiro", neg[0]["mes"] == "2025-12" and neg[-1]["mes"] == "2025-07")
+    check("seis_negativo_barra", all(ln["barra"] == 0 for ln in neg))
 
 
 def test_totais_mock() -> None:
@@ -593,6 +633,7 @@ def main() -> int:
     print("VERIFY VENDAS-LOJAS-RESUMO")
     test_arquivos()
     test_periodo()
+    test_seis_meses_janela()
     test_totais_mock()
     test_cmp_meta()
     test_fracao_expediente()

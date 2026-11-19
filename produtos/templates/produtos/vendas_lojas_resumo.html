@@ -275,6 +275,242 @@
       margin-bottom: 0.1rem;
     }
     .vl-card.total .vl-rs { color: #ea580c; }
+    .vl-total {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.98fr);
+      gap: 0.55rem;
+      padding: 0.9rem 0.75rem;
+      border-radius: 1.2rem;
+      background: linear-gradient(120deg, #122744, #0e1d34);
+      color: #fff;
+      min-height: 8.4rem;
+      align-items: stretch;
+    }
+    .vl-total-main {
+      border: 0;
+      background: transparent;
+      color: inherit;
+      text-align: left;
+      padding: 0.15rem 0;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 0.45rem;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .vl-total-k {
+      font-size: clamp(0.72rem, 3.2vw, 0.95rem);
+      font-weight: 850;
+      color: #f8d4be;
+      line-height: 1.2;
+    }
+    .vl-money {
+      font-weight: 900;
+      letter-spacing: -0.05em;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.05;
+    }
+    .vl-money .vl-rs {
+      display: inline;
+      font-size: 0.59em;
+      color: inherit;
+      margin: 0 0.12rem 0 0;
+      letter-spacing: -0.04em;
+    }
+    .vl-total-main .vl-money { font-size: clamp(1.35rem, 8.6vw, 2.7rem); }
+    .vl-fiado-tag {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 0.4rem;
+      padding-left: 0.55rem;
+      border-left: 1px solid rgba(255, 255, 255, 0.33);
+    }
+    .vl-fiado-mini {
+      border: 1px solid rgba(196, 222, 249, 0.35);
+      background: rgba(113, 158, 202, 0.22);
+      color: #fff;
+      padding: 0.4rem 0.5rem;
+      width: 100%;
+      text-align: left;
+      border-radius: 0.8rem;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .vl-fiado-mini .vl-fiado-k {
+      display: block;
+      color: #dceafb;
+      font-size: clamp(0.58rem, 2.6vw, 0.72rem);
+      font-weight: 850;
+      text-transform: uppercase;
+      margin-bottom: 0.12rem;
+    }
+    .vl-fiado-mini .vl-fiado-v {
+      display: block;
+      font-size: clamp(0.82rem, 4.4vw, 1.25rem);
+      font-weight: 900;
+      white-space: nowrap;
+      letter-spacing: -0.04em;
+    }
+    .vl-lojas {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+    .vl-loja {
+      min-width: 0;
+      min-height: 5.4rem;
+      border-radius: 1.05rem;
+      padding: 0.75rem 0.55rem 0.7rem 0.7rem;
+      border: 1.6px solid var(--line);
+      background: #fff;
+      display: flex;
+      align-items: center;
+      text-align: left;
+      gap: 0.45rem;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .vl-loja-faixa {
+      width: 0.28rem;
+      align-self: stretch;
+      max-height: 1.7rem;
+      border-radius: 0.5rem;
+      background: #0697c9;
+      margin-top: 0.1rem;
+    }
+    .vl-loja.vila .vl-loja-faixa { background: #8291a7; }
+    .vl-loja h2 {
+      margin: 0 0 0.3rem;
+      font-size: clamp(0.68rem, 3vw, 0.85rem);
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #08759c;
+    }
+    .vl-loja.vila h2 { color: #697990; }
+    .vl-loja .vl-money { font-size: clamp(1.05rem, 5.6vw, 1.7rem); color: var(--ink); }
+    .vl-prev-box {
+      display: grid;
+      grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.26fr);
+      gap: 0.45rem;
+      align-items: center;
+      background: #e9fbf3;
+      border: 1.6px solid #50e5aa;
+      border-radius: 1.2rem;
+      padding: 0.75rem 0.7rem;
+    }
+    .vl-prev-main {
+      border: 0;
+      background: transparent;
+      color: #007c60;
+      text-align: left;
+      padding: 0;
+      min-width: 0;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .vl-prev-main h2 {
+      margin: 0 0 0.45rem;
+      font-size: clamp(0.62rem, 2.6vw, 0.78rem);
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .vl-prev-main .vl-money { font-size: clamp(1.1rem, 6vw, 1.85rem); }
+    .vl-prev-lado {
+      border-left: 1px solid #9be9c4;
+      padding-left: 0.45rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.3rem;
+      min-width: 0;
+    }
+    .vl-prev-mini {
+      background: rgba(255, 255, 255, 0.76);
+      border: 1px solid #a4ecd1;
+      border-radius: 0.7rem;
+      padding: 0.45rem 0.15rem;
+      text-align: center;
+      font-family: inherit;
+      cursor: pointer;
+      min-width: 0;
+    }
+    .vl-prev-mini span {
+      display: block;
+      color: #63758b;
+      font-size: 0.62rem;
+      font-weight: 850;
+    }
+    .vl-prev-mini strong {
+      display: block;
+      font-size: clamp(0.72rem, 3.4vw, 1rem);
+      white-space: nowrap;
+      letter-spacing: -0.04em;
+    }
+    .vl-hist {
+      background: #fff;
+      border: 1.6px solid var(--line);
+      border-radius: 1.2rem;
+      padding: 0.85rem 0.75rem 0.65rem;
+    }
+    .vl-hist h2 {
+      margin: 0;
+      font-size: clamp(1rem, 4.4vw, 1.25rem);
+      font-weight: 900;
+      letter-spacing: -0.04em;
+    }
+    .vl-hist-top {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding-bottom: 0.65rem;
+      border-bottom: 1px solid var(--line);
+    }
+    .vl-mes {
+      display: grid;
+      grid-template-columns: minmax(4.4rem, 26%) minmax(1rem, 1fr) auto;
+      align-items: center;
+      gap: 0.4rem;
+      min-height: 3rem;
+      border-bottom: 1px solid var(--line);
+    }
+    .vl-mes:last-child { border-bottom: 0; }
+    .vl-mes-nome {
+      background: #e5f1ff;
+      color: #142e54;
+      border-radius: 999px;
+      padding: 0.35rem 0.4rem;
+      font-weight: 850;
+      font-size: clamp(0.62rem, 2.8vw, 0.78rem);
+      white-space: nowrap;
+      text-align: center;
+    }
+    .vl-trilho {
+      height: 0.75rem;
+      background: #e9eef5;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .vl-trilho i {
+      display: block;
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #4caaff, #075af0);
+    }
+    .vl-mes-val {
+      font-weight: 900;
+      font-size: clamp(0.72rem, 3.2vw, 0.95rem);
+      white-space: nowrap;
+      letter-spacing: -0.04em;
+    }
+    .vl-mes-val .vl-rs { display: inline; font-size: 0.85em; margin: 0; color: inherit; }
+    @media (max-width: 350px) {
+      .vl-prev-lado { grid-template-columns: 1fr; }
+    }
     .vl-sheet {
       position: fixed;
       inset: 0;
@@ -605,75 +841,97 @@
     </form>
 
     <div class="vl-cards">
-      <button type="button" class="vl-card centro" data-media
-        data-titulo="Centro"
-        data-vendido="{{ centro_fmt }}"
-        data-esperado="{{ centro_esp_fmt }}"
-        data-diff="{{ centro_diff_fmt }}"
-        data-pct="{{ centro_pct_fmt }}"
-        data-sentido="{{ centro_sentido }}"
-        data-esperado-dia="{{ centro_esp_dia_fmt }}"
-        data-diff-dia="{{ centro_diff_dia_fmt }}"
-        data-pct-dia="{{ centro_pct_dia_fmt }}"
-        data-sentido-dia="{{ centro_sentido_dia }}">
-        <h2>Centro</h2>
-        <p class="vl-valor"><span class="vl-rs">R$</span>{{ centro_fmt }}</p>
-      </button>
-      <button type="button" class="vl-card vila" data-media
-        data-titulo="Vila Elias"
-        data-vendido="{{ vila_fmt }}"
-        data-esperado="{{ vila_esp_fmt }}"
-        data-diff="{{ vila_diff_fmt }}"
-        data-pct="{{ vila_pct_fmt }}"
-        data-sentido="{{ vila_sentido }}"
-        data-esperado-dia="{{ vila_esp_dia_fmt }}"
-        data-diff-dia="{{ vila_diff_dia_fmt }}"
-        data-pct-dia="{{ vila_pct_dia_fmt }}"
-        data-sentido-dia="{{ vila_sentido_dia }}">
-        <h2>Vila Elias</h2>
-        <p class="vl-valor"><span class="vl-rs">R$</span>{{ vila_fmt }}</p>
-      </button>
-      <button type="button" class="vl-card total" data-media
-        data-titulo="Total das duas lojas"
-        data-vendido="{{ total_fmt }}"
-        data-esperado="{{ total_esp_fmt }}"
-        data-diff="{{ total_diff_fmt }}"
-        data-pct="{{ total_pct_fmt }}"
-        data-sentido="{{ total_sentido }}"
-        data-esperado-dia="{{ total_esp_dia_fmt }}"
-        data-diff-dia="{{ total_diff_dia_fmt }}"
-        data-pct-dia="{{ total_pct_dia_fmt }}"
-        data-sentido-dia="{{ total_sentido_dia }}">
-        <h2>Total das duas lojas</h2>
-        <p class="vl-valor"><span class="vl-rs">R$</span>{{ total_fmt }}</p>
-      </button>
-      <button type="button" class="vl-card prev" id="vl-abrir-prev"
-        aria-label="Previsão do mês das duas lojas">
-        <h2>Previsão mês · <span id="vl-prev-mes-lbl">{{ prev_mes_lbl }}</span></h2>
-        <p class="vl-valor"><span class="vl-rs">R$</span><span id="vl-prev-total">{{ prev_total_fmt }}</span></p>
-        <div class="vl-prev-lojas">
-          <div class="vl-prev-loja">
-            <span>Centro</span>
-            <strong>R$ <span id="vl-prev-centro">{{ prev_centro_fmt }}</span></strong>
-          </div>
-          <div class="vl-prev-loja">
-            <span>Vila</span>
-            <strong>R$ <span id="vl-prev-vila">{{ prev_vila_fmt }}</span></strong>
-          </div>
+      <section class="vl-total" aria-label="Vendas totais das duas lojas">
+        <button type="button" class="vl-total-main" data-media data-loja="total"
+          data-titulo="Total das duas lojas"
+          data-vendido="{{ total_fmt }}"
+          data-esperado="{{ total_esp_fmt }}"
+          data-diff="{{ total_diff_fmt }}"
+          data-pct="{{ total_pct_fmt }}"
+          data-sentido="{{ total_sentido }}"
+          data-esperado-dia="{{ total_esp_dia_fmt }}"
+          data-diff-dia="{{ total_diff_dia_fmt }}"
+          data-pct-dia="{{ total_pct_dia_fmt }}"
+          data-sentido-dia="{{ total_sentido_dia }}">
+          <span class="vl-total-k">Total das duas lojas</span>
+          <span class="vl-money"><span class="vl-rs">R$</span> {{ total_int }}</span>
+        </button>
+        <div class="vl-fiado-tag">
+          <button type="button" class="vl-fiado-mini" id="vl-abrir-fiado" aria-label="Ver o que é sem fiado">
+            <span class="vl-fiado-k">Sem fiado</span>
+            <span class="vl-fiado-v">R$ <span id="vl-fiado-sem">{{ sem_fiado_fmt }}</span></span>
+          </button>
+          <button type="button" class="vl-fiado-mini" data-abrir-fiado aria-label="Ver o que é c/ fiado quitado">
+            <span class="vl-fiado-k">c/ fiado quitado</span>
+            <span class="vl-fiado-v">R$ <span id="vl-fiado-quit">{{ sem_fiado_quit_fmt }}</span></span>
+          </button>
         </div>
-        <p class="vl-prev-aviso" id="vl-prev-aviso" hidden>Ainda é cedo — o número pode mudar ao longo do dia</p>
-      </button>
-      <button type="button" class="vl-fiado-tag" id="vl-abrir-fiado" aria-label="Ver o que é sem fiado e c/ fiado quitado">
-        <span class="vl-fiado-part">
-          <span class="vl-fiado-k">Sem fiado</span>
-          <span class="vl-fiado-v">R$ <span id="vl-fiado-sem">{{ sem_fiado_fmt }}</span></span>
-        </span>
-        <span class="vl-fiado-div" aria-hidden="true"></span>
-        <span class="vl-fiado-part">
-          <span class="vl-fiado-k">c/ fiado quitado</span>
-          <span class="vl-fiado-v">R$ <span id="vl-fiado-quit">{{ sem_fiado_quit_fmt }}</span></span>
-        </span>
-      </button>
+      </section>
+      <section class="vl-lojas" aria-label="Vendas por loja">
+        <button type="button" class="vl-loja centro" data-media data-loja="centro"
+          data-titulo="Centro"
+          data-vendido="{{ centro_fmt }}"
+          data-esperado="{{ centro_esp_fmt }}"
+          data-diff="{{ centro_diff_fmt }}"
+          data-pct="{{ centro_pct_fmt }}"
+          data-sentido="{{ centro_sentido }}"
+          data-esperado-dia="{{ centro_esp_dia_fmt }}"
+          data-diff-dia="{{ centro_diff_dia_fmt }}"
+          data-pct-dia="{{ centro_pct_dia_fmt }}"
+          data-sentido-dia="{{ centro_sentido_dia }}">
+          <i class="vl-loja-faixa" aria-hidden="true"></i>
+          <span>
+            <h2>Centro</h2>
+            <span class="vl-money"><span class="vl-rs">R$</span> {{ centro_int }}</span>
+          </span>
+        </button>
+        <button type="button" class="vl-loja vila" data-media data-loja="vila"
+          data-titulo="Vila Elias"
+          data-vendido="{{ vila_fmt }}"
+          data-esperado="{{ vila_esp_fmt }}"
+          data-diff="{{ vila_diff_fmt }}"
+          data-pct="{{ vila_pct_fmt }}"
+          data-sentido="{{ vila_sentido }}"
+          data-esperado-dia="{{ vila_esp_dia_fmt }}"
+          data-diff-dia="{{ vila_diff_dia_fmt }}"
+          data-pct-dia="{{ vila_pct_dia_fmt }}"
+          data-sentido-dia="{{ vila_sentido_dia }}">
+          <i class="vl-loja-faixa" aria-hidden="true"></i>
+          <span>
+            <h2>Vila Elias</h2>
+            <span class="vl-money"><span class="vl-rs">R$</span> {{ vila_int }}</span>
+          </span>
+        </button>
+      </section>
+      <section class="vl-prev-box" aria-label="Previsão do mês das duas lojas">
+        <button type="button" class="vl-prev-main" id="vl-abrir-prev">
+          <h2>Previsão mês · <span id="vl-prev-mes-lbl">{{ prev_mes_lbl }}</span></h2>
+          <span class="vl-money"><span class="vl-rs">R$</span> <span id="vl-prev-total" data-vl-int>{{ prev_total_fmt }}</span></span>
+          <p class="vl-prev-aviso" id="vl-prev-aviso" hidden>Ainda é cedo — o número pode mudar ao longo do dia</p>
+        </button>
+        <div class="vl-prev-lado">
+          <button type="button" class="vl-prev-mini" data-abrir-prev>
+            <span>Centro</span>
+            <strong>R$ <span id="vl-prev-centro" data-vl-int>{{ prev_centro_fmt }}</span></strong>
+          </button>
+          <button type="button" class="vl-prev-mini" data-abrir-prev>
+            <span>Vila</span>
+            <strong>R$ <span id="vl-prev-vila" data-vl-int>{{ prev_vila_fmt }}</span></strong>
+          </button>
+        </div>
+      </section>
+      <section class="vl-hist" aria-label="Vendas nos últimos 6 meses fechados">
+        <div class="vl-hist-top">
+          <h2>Vendas nos últimos 6 meses</h2>
+        </div>
+        {% for m in meses_fechados %}
+        <div class="vl-mes">
+          <span class="vl-mes-nome">{{ m.rotulo }}</span>
+          <span class="vl-trilho"><i style="width:{{ m.barra }}%"></i></span>
+          <span class="vl-mes-val"><span class="vl-rs">R$</span> {{ m.total_fmt }}</span>
+        </div>
+        {% endfor %}
+      </section>
     </div>
     <p class="vl-hint">Toque para a média</p>
   </div>
@@ -980,6 +1238,9 @@
       sheetFiado.hidden = true;
     }
     document.getElementById("vl-abrir-fiado").addEventListener("click", abrirFiado);
+    document.querySelectorAll("[data-abrir-fiado]").forEach(function (el) {
+      el.addEventListener("click", abrirFiado);
+    });
     sheetFiado.querySelectorAll("[data-fechar-fiado]").forEach(function (el) {
       el.addEventListener("click", fecharFiado);
     });
@@ -993,10 +1254,27 @@
       sheetPrev.hidden = true;
     }
     document.getElementById("vl-abrir-prev").addEventListener("click", abrirPrev);
+    document.querySelectorAll("[data-abrir-prev]").forEach(function (el) {
+      el.addEventListener("click", abrirPrev);
+    });
     sheetPrev.querySelectorAll("[data-fechar-prev]").forEach(function (el) {
       el.addEventListener("click", fecharPrev);
     });
 
+    function soInteiro(txt) {
+      if (txt == null || txt === "" || txt === "…") return txt || "…";
+      var limpo = String(txt).replace(/\./g, "").replace(",", ".").replace(/[^\d.-]/g, "");
+      var v = Math.round(parseFloat(limpo));
+      if (!isFinite(v)) return String(txt);
+      var neg = v < 0;
+      var s = String(Math.abs(v));
+      var out = "";
+      while (s.length > 3) {
+        out = "." + s.slice(-3) + out;
+        s = s.slice(0, -3);
+      }
+      return (neg ? "-" : "") + s + out;
+    }
     function aplicarMediaAttrs(btn, bloco) {
       if (!btn || !bloco) return;
       btn.setAttribute("data-esperado", bloco.esp || "");
@@ -1024,18 +1302,18 @@
         .then(function (data) {
           if (!data || !data.ok) return;
           var media = data.media || {};
-          var cards = document.querySelectorAll("[data-media]");
-          if (cards[0]) aplicarMediaAttrs(cards[0], media.centro);
-          if (cards[1]) aplicarMediaAttrs(cards[1], media.vila);
-          if (cards[2]) aplicarMediaAttrs(cards[2], media.total);
+          ["total", "centro", "vila"].forEach(function (loja) {
+            var btn = document.querySelector('[data-media][data-loja="' + loja + '"]');
+            aplicarMediaAttrs(btn, media[loja]);
+          });
           var modos = document.getElementById("vl-media-modos");
           if (modos) modos.hidden = !media.mostra_toggle;
           if (media.nota_ate_agora) vlMediaNotaAgora = media.nota_ate_agora;
           var fiado = data.fiado || {};
           var elSem = document.getElementById("vl-fiado-sem");
           var elQuit = document.getElementById("vl-fiado-quit");
-          if (elSem) elSem.textContent = fiado.sem_fiado_fmt || "0,00";
-          if (elQuit) elQuit.textContent = fiado.sem_fiado_quit_fmt || "0,00";
+          if (elSem) elSem.textContent = soInteiro(fiado.sem_fiado_fmt || "0,00");
+          if (elQuit) elQuit.textContent = soInteiro(fiado.sem_fiado_quit_fmt || "0,00");
           var sheetSem = document.getElementById("vl-fiado-sheet-sem");
           var sheetQuit = document.getElementById("vl-fiado-sheet-quit");
           if (sheetSem) sheetSem.textContent = fiado.sem_fiado_fmt || "0,00";
@@ -1050,9 +1328,9 @@
           }
           setTxt("vl-prev-mes-lbl", prev.mes_lbl || "");
           setTxt("vl-prev-sheet-mes", prev.mes_lbl || "");
-          setTxt("vl-prev-total", tot.previsao_fmt || "0,00");
-          setTxt("vl-prev-centro", cen.previsao_fmt || "0,00");
-          setTxt("vl-prev-vila", vil.previsao_fmt || "0,00");
+          setTxt("vl-prev-total", soInteiro(tot.previsao_fmt || "0,00"));
+          setTxt("vl-prev-centro", soInteiro(cen.previsao_fmt || "0,00"));
+          setTxt("vl-prev-vila", soInteiro(vil.previsao_fmt || "0,00"));
           setTxt("vl-prev-sheet-total", tot.previsao_fmt || "0,00");
           setTxt("vl-prev-sheet-centro", cen.previsao_fmt || "0,00");
           setTxt("vl-prev-sheet-vila", vil.previsao_fmt || "0,00");

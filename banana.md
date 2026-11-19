@@ -1695,6 +1695,14 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### VENDAS-MOBILE-VISUAL — **19/11** · no `teste` · ainda não é loja
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Painel de Vendas do SistApp no visual novo. Números dos cartões sem centavo. Gavetas continuam com centavo. Lista dos **6 meses fechados** (o mês atual não entra; ao virar o mês, a lista anda) |
+| **Migrate** | **NÃO** |
+| **Loja** | Não subiu. Sem frase + senha |
+
 ### ✅ CHECKLIST ÚNICO — **18/11d** · enviado · **v27.26.79** @ `ef23e2e7`
 
 | # | Pacote | Status | Migrate | Prova |
