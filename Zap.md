@@ -75,6 +75,8 @@ Depois de copiar: F5 no computador. Fechar e abrir o aplicativo e o Zap de dentr
 
 16/11, autorizado: a ponte pede menos o estado inteiro do WhatsApp (isso derrubava a ligação). Se ficar muda, religa sozinha. A ponte foi reiniciada. Número da loja voltou.
 
+19/11, autorizado: no celular, a lista e as últimas conversas abertas ficam guardadas no aparelho. Ao abrir pelo Sistvale, a lista aparece na hora e depois atualiza. O computador não mudou.
+
 ## Resumo (basta no chat comum)
 
 - Zap das lojas roda **neste PC** (PC2-Centro), não no Render. Endereço: `https://zap.zapsistvale.online`.

@@ -1173,20 +1173,97 @@
       .join('');
   }
 
+  var LISTA_CACHE_KEY = 'agro_wa_lista_cel_v1';
+  var MSGS_CACHE_KEY = 'agro_wa_msgs_cel_v1';
+
+  function ehTelaCelular() {
+    return !!(document.body && document.body.classList.contains('wa-cel'));
+  }
+
+  function lerListaGuardada(qLoja) {
+    try {
+      var raw = localStorage.getItem(LISTA_CACHE_KEY);
+      var o = raw ? JSON.parse(raw) : {};
+      var rows = o && o[qLoja];
+      return Array.isArray(rows) ? rows : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function gravarListaGuardada(qLoja, rows) {
+    if (!ehTelaCelular()) return;
+    try {
+      var raw = localStorage.getItem(LISTA_CACHE_KEY);
+      var o = raw ? JSON.parse(raw) : {};
+      if (!o || typeof o !== 'object') o = {};
+      o[qLoja] = rows || [];
+      localStorage.setItem(LISTA_CACHE_KEY, JSON.stringify(o));
+    } catch (e) {}
+  }
+
+  function lerMsgsGuardadas() {
+    try {
+      var raw = localStorage.getItem(MSGS_CACHE_KEY);
+      var o = raw ? JSON.parse(raw) : {};
+      return o && typeof o === 'object' ? o : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function gravarMsgsGuardadas(id, rows) {
+    if (!ehTelaCelular()) return;
+    try {
+      var o = lerMsgsGuardadas();
+      var chave = String(id || '');
+      if (!chave) return;
+      o[chave] = (rows || []).slice(-40);
+      var keys = Object.keys(o);
+      while (keys.length > 4) {
+        delete o[keys.shift()];
+      }
+      localStorage.setItem(MSGS_CACHE_KEY, JSON.stringify(o));
+    } catch (e) {}
+  }
+
+  function semearCacheCelular() {
+    if (!ehTelaCelular()) return;
+    var q = chaveLista();
+    var rows = lerListaGuardada(q);
+    if (rows && rows.length) {
+      cacheListas[q] = rows;
+      pintarLista(rows);
+    }
+    var msgs = lerMsgsGuardadas();
+    Object.keys(msgs).forEach(function (id) {
+      if (Array.isArray(msgs[id]) && msgs[id].length && !cacheMsgs[id]) cacheMsgs[id] = msgs[id];
+    });
+  }
+
   function carregarLista() {
     if ($('wa-busca') && ($('wa-busca').value || '').trim()) return Promise.resolve();
     var qLoja = chaveLista();
+    if (ehTelaCelular() && !cacheListas[qLoja]) {
+      var pronta = lerListaGuardada(qLoja);
+      if (pronta && pronta.length) {
+        cacheListas[qLoja] = pronta;
+        pintarLista(pronta);
+      }
+    }
     return fetchJson('/api/atendimento-whatsapp/conversas/?loja=' + encodeURIComponent(qLoja)).then(
       function (j) {
         if (!j || !j.ok) return;
         var rowsLista = j.conversas || [];
         cacheListas[qLoja] = rowsLista;
+        gravarListaGuardada(qLoja, rowsLista);
         if (qLoja === chaveLista()) {
           pintarLista(rowsLista);
           alinharChatComLista(rowsLista);
           adiantarMsgsVisiveis(rowsLista);
         }
-        pedirListaOutra();
+        if (ehTelaCelular()) window.setTimeout(pedirListaOutra, 2000);
+        else pedirListaOutra();
       }
     );
   }
@@ -1502,6 +1579,7 @@
     var next = append ? prev.concat(rows || []) : (rows || []).slice();
     if (next.length > 120) next = next.slice(next.length - 120);
     cacheMsgs[chave] = next;
+    gravarMsgsGuardadas(chave, next);
     var ix = cacheMsgsOrdem.indexOf(chave);
     if (ix >= 0) cacheMsgsOrdem.splice(ix, 1);
     cacheMsgsOrdem.push(chave);
@@ -3118,6 +3196,7 @@
   pedirAviso();
   document.addEventListener('click', pedirAviso, { once: true });
   carregarEstado();
+  semearCacheCelular();
   carregarLista();
   carregarStatus();
   var tickPoll = 0;
