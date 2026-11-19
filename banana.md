@@ -1697,7 +1697,7 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ### PDV-PEDIR-LOJA-PAUSA — **19/11** · no `teste` · ainda não na loja
 
-Botão **Pedir loja** do PDV cinza e sem clique (não abre e não apita). Estoque e pedidos já feitos não mudam. Sem migrate. Ligar de novo: `PEDIR_LOJA_PAUSADO = false` em `pdv_pedir_loja.js` e tirar o `disabled` do botão.
+Botão **Pedir loja** do PDV cinza. O clique só avisa que foi desativado temporariamente (não abre e não apita). Estoque e pedidos já feitos não mudam. Sem migrate. Ligar de novo: `PEDIR_LOJA_PAUSADO = false` em `pdv_pedir_loja.js` e tirar a classe `pdv-wiz-topbar-btn--pausado` do botão.
 
 ### ✅ VENDAS-MOBILE-VISUAL-2 — **19/11** · enviado · **v27.26.81** @ `59f184fa`
 
