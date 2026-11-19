@@ -1451,17 +1451,7 @@ async function ligar() {
         if (myId !== openId || !sock) return;
         sincronizarAppStateArquivo("apos-conectar").catch(() => {});
       }, 12000);
-      if (!appStateSyncTimer) {
-        appStateSyncTimer = setInterval(() => {
-          const agora = Date.now();
-          // Snapshot zera a versão e o WhatsApp derruba a ligação se repetir demais.
-          // Leve a cada minuto. Snapshot no máximo a cada 15 min.
-          const querSnap = agora - appStateSnapshotUltimo > 15 * 60 * 1000;
-          sincronizarAppStateArquivo(querSnap ? "periodico-snapshot" : "periodico", {
-            forcarSnapshot: querSnap,
-          }).catch(() => {});
-        }, 60 * 1000);
-      }
+      // Sem repetir o sync. Zerar a versão fazia o WhatsApp parar de entregar mensagem e o envio continuar.
       setTimeout(() => {
         varrerStore();
         // WA-PONTE-LEVE: sync 1×/dia — espera 45s após connect (sessão estabilizar)
@@ -1573,6 +1563,7 @@ async function ligar() {
     }
   });
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
+    console.log("chegou", type, (messages && messages.length) || 0);
     if (type !== "notify" && type !== "append") return;
     const emQuarentena = connOpenAt && (Date.now() - connOpenAt < CONN_QUARANTINE_MS);
     for (const m of messages || []) {

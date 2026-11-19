@@ -52,6 +52,8 @@ Atualizado **14/11/2026**.
 
 19/11, 14:50: o Zap mandava e não recebia. A chave das conversas tinha estragado (duas pontes). As chaves velhas foram guardadas em `C:\AgroWhatsApp\Dados\auth-sessoes-ruins-20261119`. O número não pediu QR. Uma ponte só.
 
+19/11, 14:55: limpar a chave não devolveu o recebimento. O pedido repetido do estado do WhatsApp foi desligado. Uma ponte só. Sem QR.
+
 19/11, autorizado: a página do Zap no celular ficou mais leve e a foto baixa uma vez, com atualização semanal devagar. Para voltar: tag `zap-antes-pagina-leve-2026-11-19`.
 - Ditado de voz sai torto às vezes. Se não bater, perguntar de novo.
 - O foco é o desktop. O que ele pede também vale no celular, cabendo na tela do telefone.
