@@ -1695,25 +1695,24 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 CORTE ARMADO — **19/11** · **v27.26.82** · Pedir loja pausado · ainda não foi para a loja
+### ✅ CORTE ENVIADO — **19/11** · **v27.26.82** @ `fb15ae8a` · Pedir loja pausado · aguardando o build
 
 | Campo | Valor |
 | ----- | ----- |
 | **Entra** | Botão **Pedir loja** cinza. O clique avisa e não abre. Sem apito |
 | **Não muda** | Venda, caixa, estoque, fiado |
 | **Migrate** | **NÃO** |
-| **Base** | loja **v27.26.81** @ `59f184fa` |
-| **Prova** | patch aplica em cima da loja. O botão nasce pausado. O JS do PDV passa na checagem de escrita |
-| **Na senha** | vendas pausadas · `./scripts/cutover_loja_checklist_1911_pedir_pausa.sh --exec` |
+| **Git** | `producao` @ `fb15ae8a` |
+| **Até o build** | no ar segue **v27.26.81** @ `59f184fa` |
 | **Volta** | `git push origin 59f184fa:producao` |
 
-### CHECKLIST ÚNICO — **19/11** · dentro do corte **v27.26.82** (ainda não enviado)
+### CHECKLIST ÚNICO — **19/11** · enviado **v27.26.82** @ `fb15ae8a`
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
 | 1 | **PDV-PEDIR-LOJA-PAUSA** | 🟢 Pronto | **NÃO** | clique avisa e não abre · cinza fica · sem apito |
 
-Botão **Pedir loja** cinza. O clique avisa que foi desativado temporariamente. Não abre o pedido e não apita. Estoque igual. Código em `cursor/pdv-pedir-loja-pausa-77f4` @ `472a8a62`. Ainda não está na loja.
+Botão **Pedir loja** cinza. O clique avisa que foi desativado temporariamente. Não abre o pedido e não apita. Estoque igual. Enviado. Até o build, no ar segue a **v27.26.81**.
 
 ### ✅ VENDAS-MOBILE-VISUAL-2 — **19/11** · enviado · **v27.26.81** @ `59f184fa`
 
