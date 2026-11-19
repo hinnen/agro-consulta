@@ -2539,6 +2539,11 @@
     text-transform: uppercase;
     white-space: nowrap;
   }
+  #pdv-topbar-compact #pdv-topbar-pedir-loja-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    filter: grayscale(1);
+  }
   #pdv-topbar-compact .pdv-wiz-topbar-btn span,
   #pdv-topbar-compact .pdv-step-nav .pdv-step-label {
     font-size: inherit !important;
@@ -4542,7 +4547,7 @@
               <button type="button" id="pdv-topbar-help" class="pdv-wiz-help pdv-topbar-help shrink-0" data-pdv-help="produtos" title="Ajuda — etapa atual">?</button>
             </div>
             <div class="pdv-wiz-topbar-estoque-vila" id="pdv-topbar-quente" aria-label="Atalhos frequentes">
-              <button type="button" id="pdv-topbar-pedir-loja-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative" data-pdv-topbar-key="pedir_loja" data-pdv-topbar-node="pedir_loja" title="Pedir produto da outra loja (Centro ↔ Vila)">
+              <button type="button" id="pdv-topbar-pedir-loja-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative" data-pdv-topbar-key="pedir_loja" data-pdv-topbar-node="pedir_loja" title="Pedir loja pausado por enquanto" disabled aria-disabled="true">
                 Pedir loja
                 <span id="pdv-topbar-pedir-loja-count" class="pdv-topbar-pedir-loja-count hidden absolute -right-1 -top-1 min-w-[1.1rem] rounded-full bg-slate-600 px-1 text-[8px] font-black leading-tight text-white tabular-nums">0</span>
               </button>
