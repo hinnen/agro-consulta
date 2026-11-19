@@ -46,7 +46,7 @@ Atualizado **14/11/2026**.
 
 19/11: ao fechar o Sistvale o prazo se perdia. O celular agora guarda os 7 dias. O instalado continua no prazo curto.
 
-19/11, só no teste: a página do celular do Zap não baixa mais o pacote de estilo da internet. A foto do contato baixa uma vez e não pergunta de novo. A loja ainda não tem.
+19/11, só no teste: a página do celular do Zap não baixa mais o pacote de estilo da internet. A foto baixa uma vez. Quem já tem foto é atualizado no máximo uma por vez, só depois de 7 dias. A loja ainda não tem.
 - Ditado de voz sai torto às vezes. Se não bater, perguntar de novo.
 - O foco é o desktop. O que ele pede também vale no celular, cabendo na tela do telefone.
 
