@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Corte 19/11 — visual do painel de Vendas do SistApp + 6 meses fechados.
-# Em cima da loja v27.26.79. Não é merge do teste.
+# Corte 19/11b — ajuste do card escuro, do R$ da previsão e do espaço.
+# Em cima da loja v27.26.80. Não é merge do teste.
 # Sem migrate. Sem --exec só monta e confere. Não envia.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -18,6 +18,8 @@ cleanup() { git worktree remove --force "$WT" 2>/dev/null || rm -rf "$WT"; }
 trap cleanup EXIT
 git -C "$WT" apply --binary "$ROOT/scripts/prep_patch_checklist_1911_vendas_mobile.patch"
 printf '%s\n' "$VER" > "$WT/VERSION"
+grep -q '.vl-total .vl-fiado-tag' "$WT/produtos/templates/produtos/vendas_lojas_resumo.html"
+grep -q 'vl-prev-mini .vl-money' "$WT/produtos/templates/produtos/vendas_lojas_resumo.html"
 grep -q 'data-loja="total"' "$WT/produtos/templates/produtos/vendas_lojas_resumo.html"
 grep -q 'meses_fechados' "$WT/produtos/templates/produtos/vendas_lojas_resumo.html"
 grep -q 'def vendas_lojas_seis_meses_fechados' "$WT/produtos/vendas_lojas_util.py"
@@ -26,7 +28,7 @@ git -C "$WT" add -A
 git -C "$WT" -c user.email="cursoragent@cursor.com" -c user.name="Cursor Agent" \
   commit -m "prep(loja): v27.26.81 ajuste visual vendas SistApp"
 echo "OK: corte v$VER em cima de ${PROD:0:8}"
-echo "Entra: desenho do painel de Vendas e a lista dos seis meses fechados."
+echo "Entra: fiado empilhado no card escuro, R$ pequeno na previsão, tela mais cheia."
 echo "Não muda: PDV, caixa, venda, Pulso, calendário. Sem tabela nova."
 echo "VOLTA: git push origin ${PROD}:producao"
 [[ "${1:-}" != "--exec" ]] && exit 0

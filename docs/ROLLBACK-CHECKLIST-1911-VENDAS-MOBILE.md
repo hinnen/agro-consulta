@@ -1,11 +1,11 @@
-# Volta — visual Vendas SistApp (19/11)
+# Volta — ajuste visual Vendas SistApp (19/11b)
 
-Loja antes: **v27.26.79** @ `ef23e2e7`.
+Loja agora: **v27.26.80** @ `76ac13ac`.
 
-Sem tabela nova. Não mexe em PDV, caixa nem venda.
+O próximo envio é só o desenho (card escuro, R$ da previsão, espaço). Sem tabela nova. Não mexe em PDV, caixa nem venda.
 
-Volta, só com frase e senha:
+Volta deste ajuste, só com frase e senha:
 
 ```bash
-git push origin ef23e2e7:producao
+git push origin 76ac13ac:producao
 ```
