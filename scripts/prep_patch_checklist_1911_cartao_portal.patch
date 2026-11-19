@@ -1,0 +1,505 @@
+diff --git a/VERSION b/VERSION
+index e238a7a7..2bbb8467 100644
+--- a/VERSION
++++ b/VERSION
+@@ -1 +1 @@
+-27.26.82
++27.26.83
+diff --git a/produtos/cliente_cartao_util.py b/produtos/cliente_cartao_util.py
+index 98abd47b..b7d96bfe 100644
+--- a/produtos/cliente_cartao_util.py
++++ b/produtos/cliente_cartao_util.py
+@@ -4,7 +4,7 @@ from __future__ import annotations
+ import hashlib
+ import re
+ import secrets
+-from datetime import timedelta
++from datetime import date, timedelta
+ 
+ from django.db import transaction
+ from django.utils import timezone
+@@ -203,6 +203,93 @@ def confirmar_codigo(cartao: ClienteCartaoAgro, codigo: str) -> bool:
+     return ok
+ 
+ 
++_MESES = (
++    "",
++    "janeiro",
++    "fevereiro",
++    "março",
++    "abril",
++    "maio",
++    "junho",
++    "julho",
++    "agosto",
++    "setembro",
++    "outubro",
++    "novembro",
++    "dezembro",
++)
++
++
++def texto_faz(quando) -> str:
++    if not quando:
++        return ""
++    dia = quando.date() if hasattr(quando, "date") else quando
++    dias = (timezone.localdate() - dia).days
++    if dias <= 0:
++        return "hoje"
++    if dias == 1:
++        return "ontem"
++    return f"faz {dias} dias"
++
++
++def gravar_aniversario(cliente: ClienteAgro, dia_bruto: str, mes_bruto: str) -> str:
++    """Grava dia e mês. Devolve aviso vazio quando deu certo."""
++    try:
++        dia = int(dia_bruto)
++        mes = int(mes_bruto)
++    except (TypeError, ValueError):
++        return "Escolha o dia e o mês."
++    if mes < 1 or mes > 12 or dia < 1 or dia > 31:
++        return "Essa data não existe."
++    ultimo = (date(2024, mes, 1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
++    if dia > ultimo.day:
++        return "Essa data não existe."
++    cliente.aniversario_dia = dia
++    cliente.aniversario_mes = mes
++    cliente.save(update_fields=["aniversario_dia", "aniversario_mes"])
++    return ""
++
++
++def texto_aniversario(cliente: ClienteAgro) -> dict:
++    dia = cliente.aniversario_dia
++    mes = cliente.aniversario_mes
++    if not dia or not mes:
++        return {"preenchido": False, "frase": "", "aviso": ""}
++    frase = f"{dia} de {_MESES[mes]}"
++    hoje = timezone.localdate()
++    try:
++        neste = date(hoje.year, mes, dia)
++    except ValueError:
++        neste = date(hoje.year, 2, 28)
++    if neste < hoje:
++        try:
++            neste = date(hoje.year + 1, mes, dia)
++        except ValueError:
++            neste = date(hoje.year + 1, 2, 28)
++    falta = (neste - hoje).days
++    aviso = ""
++    if falta == 0:
++        aviso = "Hoje é o seu aniversário."
++    elif falta <= 7:
++        aviso = "Seu aniversário está chegando."
++    return {"preenchido": True, "frase": frase, "aviso": aviso}
++
++
++def _refs_cliente(cliente: ClienteAgro) -> list[str]:
++    refs = [str(cliente.pk), f"local:{cliente.pk}", f"agro:{cliente.pk}"]
++    externo = (cliente.externo_id or "").strip()
++    if externo:
++        refs.append(externo)
++    return refs
++
++
++def contar_compras(cliente: ClienteAgro) -> int:
++    return VendaAgro.objects.filter(
++        cliente_id_erp__in=_refs_cliente(cliente),
++        devolvida_em__isnull=True,
++    ).count()
++
++
+ def compras_do_cliente(cliente: ClienteAgro, limite: int = 20) -> list[dict]:
+     refs = [str(cliente.pk), f"local:{cliente.pk}", f"agro:{cliente.pk}"]
+     externo = (cliente.externo_id or "").strip()
+@@ -229,9 +316,90 @@ def compras_do_cliente(cliente: ClienteAgro, limite: int = 20) -> list[dict]:
+         saida.append(
+             {
+                 "quando": venda.criado_em,
++                "faz": texto_faz(venda.criado_em),
+                 "total": venda.total,
+                 "forma": venda.forma_pagamento,
+                 "itens": itens,
+             }
+         )
+     return saida
++
++
++def mais_levados(cliente: ClienteAgro, limite: int = 3) -> list[dict]:
++    from django.db.models import Count, Max
++
++    refs = _refs_cliente(cliente)
++    venda_ids = list(
++        VendaAgro.objects.filter(cliente_id_erp__in=refs, devolvida_em__isnull=True).values_list("pk", flat=True)[:400]
++    )
++    if not venda_ids:
++        return []
++    linhas = (
++        ItemVendaAgro.objects.filter(venda_id__in=venda_ids)
++        .exclude(descricao="")
++        .values("descricao")
++        .annotate(vezes=Count("id"), ultima=Max("venda__criado_em"))
++        .order_by("-vezes", "-ultima")[:limite]
++    )
++    saida = []
++    for row in linhas:
++        ultima = row["ultima"]
++        saida.append(
++            {
++                "descricao": row["descricao"],
++                "vezes": row["vezes"],
++                "ultima": ultima,
++                "faz": texto_faz(ultima),
++            }
++        )
++    return saida
++
++
++def aviso_racao(cliente: ClienteAgro) -> list[str]:
++    from produtos.relacionamento_cliente_util import _ciclo_racao
++
++    refs = _refs_cliente(cliente)
++    venda_ids = list(
++        VendaAgro.objects.filter(cliente_id_erp__in=refs, devolvida_em__isnull=True).values_list("pk", flat=True)[:400]
++    )
++    frases = []
++    for item in _ciclo_racao(venda_ids):
++        if item.get("status") not in ("recompra", "atrasado"):
++            continue
++        nome = (item.get("descricao") or "ração").strip()
++        if nome.lower().startswith("ração") or nome.lower().startswith("racao"):
++            rotulo = nome
++        else:
++            rotulo = f"ração {nome}"
++        ref = item.get("media_intervalo_dias") or item.get("estimativa_dias_pacote")
++        ultima = item.get("ultima_compra")
++        if item.get("status") == "atrasado":
++            frases.append(f"A {rotulo} já passou do prazo habitual.")
++            continue
++        if ultima and ref:
++            base = date.fromisoformat(ultima)
++            ate = base + timedelta(days=int(ref))
++            frases.append(f"A {rotulo} costuma acabar por volta de {ate.strftime('%d/%m')}.")
++        else:
++            frases.append(f"A {rotulo} está perto de acabar.")
++    return frases[:2]
++
++
++def fiado_em_aberto(cliente: ClienteAgro) -> dict | None:
++    from produtos.relacionamento_cliente_util import _fiado_resumo
++
++    resumo = _fiado_resumo(cliente)
++    total = resumo.get("total_aberto") or 0
++    if total <= 0:
++        return None
++    datas = [t.get("vencimento") for t in resumo.get("titulos_abertos") or [] if t.get("vencimento")]
++    mais_antigo = min(datas) if datas else ""
++    frase_data = ""
++    if mais_antigo:
++        quando = date.fromisoformat(mais_antigo)
++        if quando < timezone.localdate():
++            frase_data = f"O mais antigo venceu em {quando.strftime('%d/%m/%Y')}."
++        else:
++            frase_data = f"O mais antigo vence em {quando.strftime('%d/%m/%Y')}."
++    valor = f"{float(total):.2f}"
++    return {"total": valor, "frase_data": frase_data}
+diff --git a/produtos/migrations/0157_clienteagro_aniversario.py b/produtos/migrations/0157_clienteagro_aniversario.py
+new file mode 100644
+index 00000000..c607acb1
+--- /dev/null
++++ b/produtos/migrations/0157_clienteagro_aniversario.py
+@@ -0,0 +1,21 @@
++from django.db import migrations, models
++
++
++class Migration(migrations.Migration):
++
++    dependencies = [
++        ("produtos", "0156_cliente_cartao_agro"),
++    ]
++
++    operations = [
++        migrations.AddField(
++            model_name="clienteagro",
++            name="aniversario_dia",
++            field=models.PositiveSmallIntegerField(blank=True, null=True, verbose_name="Dia do aniversário"),
++        ),
++        migrations.AddField(
++            model_name="clienteagro",
++            name="aniversario_mes",
++            field=models.PositiveSmallIntegerField(blank=True, null=True, verbose_name="Mês do aniversário"),
++        ),
++    ]
+diff --git a/produtos/models.py b/produtos/models.py
+index fe18f4e4..ca3b3aa5 100644
+--- a/produtos/models.py
++++ b/produtos/models.py
+@@ -114,6 +114,16 @@ class ClienteAgro(models.Model):
+ 
+     nome = models.CharField(max_length=200)
+     whatsapp = models.CharField("WhatsApp", max_length=20, blank=True, default="")
++    aniversario_dia = models.PositiveSmallIntegerField(
++        "Dia do aniversário",
++        null=True,
++        blank=True,
++    )
++    aniversario_mes = models.PositiveSmallIntegerField(
++        "Mês do aniversário",
++        null=True,
++        blank=True,
++    )
+     cpf = models.CharField(max_length=14, blank=True, default="")
+     endereco = models.CharField(
+         max_length=500,
+diff --git a/produtos/templates/produtos/cliente_cartao_portal.html b/produtos/templates/produtos/cliente_cartao_portal.html
+index 7333e04c..93eaa71e 100644
+--- a/produtos/templates/produtos/cliente_cartao_portal.html
++++ b/produtos/templates/produtos/cliente_cartao_portal.html
+@@ -30,6 +30,15 @@
+     ul { margin: 0.45rem 0 0; padding: 0; list-style: none; }
+     li { padding: 0.28rem 0; border-top: 1px solid #e2e8f0; }
+     .vazio { color: #64748b; }
++    .bloco { background: #fff; border-radius: 1rem; padding: 0.9rem 1rem; margin-top: 0.8rem; }
++    .bloco h2 { margin-top: 0; }
++    .niver { background: #fef3c7; border: 2px solid #fcd34d; }
++    .quem { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.6rem; }
++    .quem .cartao { margin-top: 0.35rem; }
++    a.atalho, a.voltar { display: block; text-decoration: none; color: inherit; background: #fff; border-radius: 1rem; padding: 0.95rem 1rem; margin-top: 0.8rem; font-weight: 800; }
++    a.atalho span, a.voltar { color: #64748b; font-weight: 700; }
++    a.atalho strong { display: block; font-size: 1.15rem; color: #0f172a; }
++    .linha { margin: 0.35rem 0 0; font-weight: 800; }
+   </style>
+ </head>
+ <body>
+@@ -49,8 +58,42 @@
+     <input id="whatsapp" name="whatsapp" inputmode="tel" autocomplete="tel" placeholder="DDD e número" required>
+     <button type="submit">Entrar</button>
+   </form>
++  {% elif tela == "compras" %}
++  <a class="voltar" href="/cartao/{{ token }}/">Voltar</a>
++  <h1>Minhas compras</h1>
++  {% for c in compras %}
++  <article>
++    <div class="topo">
++      <span class="quando">{{ c.quando|date:"d/m/Y H:i" }} · {{ c.faz }}</span>
++      <span>R$ {{ c.total }}</span>
++    </div>
++    {% if c.forma %}<div class="quando">{{ c.forma }}</div>{% endif %}
++    <ul>
++      {% for item in c.itens %}
++      <li>{{ item.descricao }} · {{ item.quantidade|floatformat:"-3" }} · R$ {{ item.total }}</li>
++      {% endfor %}
++    </ul>
++  </article>
++  {% empty %}
++  <p class="vazio">Nenhuma compra neste cadastro.</p>
++  {% endfor %}
++  {% elif tela == "aniversario" %}
++  <a class="voltar" href="/cartao/{{ token }}/">Voltar</a>
++  <h1>Meu aniversário</h1>
++  {% if aviso_niver %}<p class="aviso">{{ aviso_niver }}</p>{% endif %}
++  <form method="post" action="/cartao/{{ token }}/?tela=aniversario">
++    {% csrf_token %}
++    <label for="aniversario_dia">Dia</label>
++    <input id="aniversario_dia" name="aniversario_dia" inputmode="numeric" maxlength="2" placeholder="19" required>
++    <label for="aniversario_mes">Mês</label>
++    <input id="aniversario_mes" name="aniversario_mes" inputmode="numeric" maxlength="2" placeholder="11" required>
++    <button type="submit">Salvar</button>
++  </form>
+   {% else %}
+-  <h1>{{ cliente.nome }}</h1>
++  <div class="quem">
++    <h1>{{ cliente.nome }}</h1>
++    <div class="cartao">Cartão {{ numero_curto }}</div>
++  </div>
+   <div class="saldos">
+     <div class="saldo">
+       <span>Cashback</span>
+@@ -61,24 +104,42 @@
+       <strong>R$ {{ cliente.saldo_vale_credito }}</strong>
+     </div>
+   </div>
+-  <h2>Compras</h2>
+-  {% for c in compras %}
++  {% if niver.aviso %}
++  <p class="aviso">{{ niver.aviso }}</p>
++  {% endif %}
++  {% for frase in racoes %}
++  <p class="aviso">{{ frase }}</p>
++  {% endfor %}
++  {% if fiado %}
++  <div class="bloco">
++    <h2>Fiado em aberto</h2>
++    <strong>R$ {{ fiado.total }}</strong>
++    {% if fiado.frase_data %}<p class="sub">{{ fiado.frase_data }}</p>{% endif %}
++  </div>
++  {% endif %}
++  {% if levados %}
++  <h2>O que você mais leva</h2>
++  {% for item in levados %}
+   <article>
+     <div class="topo">
+-      <span class="quando">{{ c.quando|date:"d/m/Y H:i" }}</span>
+-      <span>R$ {{ c.total }}</span>
++      <span>{{ item.descricao }}</span>
++      <span>{{ item.vezes }}×</span>
+     </div>
+-    {% if c.forma %}<div class="quando">{{ c.forma }}</div>{% endif %}
+-    <ul>
+-      {% for item in c.itens %}
+-      <li>{{ item.descricao }} · {{ item.quantidade }} · R$ {{ item.total }}</li>
+-      {% endfor %}
+-    </ul>
++    <div class="quando">última vez {{ item.faz }}</div>
+   </article>
+-  {% empty %}
+-  <p class="vazio">Nenhuma compra neste cadastro.</p>
+   {% endfor %}
+   {% endif %}
++  <a class="atalho" href="/cartao/{{ token }}/?tela=compras">
++    <strong>Minhas compras</strong>
++    <span>{% if qtd_compras == 1 %}1 compra{% elif qtd_compras %}{{ qtd_compras }} compras{% else %}Nenhuma compra ainda{% endif %}</span>
++  </a>
++  {% if niver.preenchido %}
++  <p class="linha">Aniversário: {{ niver.frase }}</p>
++  <a class="atalho" href="/cartao/{{ token }}/?tela=aniversario"><strong>Corrigir aniversário</strong></a>
++  {% else %}
++  <a class="atalho" href="/cartao/{{ token }}/?tela=aniversario"><strong>Meu aniversário</strong><span>Toque para colocar o dia e o mês</span></a>
++  {% endif %}
++  {% endif %}
+ </main>
+ </body>
+ </html>
+diff --git a/produtos/tests_cliente_cartao.py b/produtos/tests_cliente_cartao.py
+index 4a61f884..f55fbd65 100644
+--- a/produtos/tests_cliente_cartao.py
++++ b/produtos/tests_cliente_cartao.py
+@@ -1,10 +1,12 @@
+ """Cartão do cliente: folha em branco, bip e página do celular."""
+ from __future__ import annotations
+ 
++from datetime import timedelta
+ from decimal import Decimal
+ 
+ from django.contrib.auth import get_user_model
+ from django.test import TestCase
++from django.utils import timezone
+ 
+ from produtos.cliente_cartao_util import (
+     digito_ean13,
+@@ -14,7 +16,7 @@ from produtos.cliente_cartao_util import (
+     numero_curto,
+     vincular,
+ )
+-from produtos.models import ClienteAgro, ItemVendaAgro, VendaAgro
++from produtos.models import ClienteAgro, FiadoTituloAgro, ItemVendaAgro, VendaAgro
+ 
+ 
+ class CartaoCodigoTest(TestCase):
+@@ -104,5 +106,41 @@ class CartaoFluxoTest(TestCase):
+         self.assertContains(errado, numero_curto(cartao.codigo))
+         self.assertNotContains(errado, "Ração")
+         certo = self.client.post(f"/cartao/{cartao.token}/", {"whatsapp": "13999998888"})
++        self.assertContains(certo, "Minhas compras")
++        self.assertContains(certo, "1 compra")
++        self.assertNotContains(certo, "R$ 10")
+         self.assertContains(certo, "Ração")
+         self.assertContains(certo, "Cashback")
++        self.assertContains(certo, numero_curto(cartao.codigo))
++        self.assertContains(certo, "hoje")
++        self.assertContains(certo, "O que você mais leva")
++        lista = self.client.get(f"/cartao/{cartao.token}/?tela=compras")
++        self.assertContains(lista, "R$ 10")
++        niver = self.client.post(
++            f"/cartao/{cartao.token}/",
++            {"aniversario_dia": "19", "aniversario_mes": "11"},
++        )
++        self.assertContains(niver, "19 de novembro")
++        self.cliente.refresh_from_db()
++        self.assertEqual(self.cliente.aniversario_dia, 19)
++        self.assertEqual(self.cliente.aniversario_mes, 11)
++        ruim = self.client.post(
++            f"/cartao/{cartao.token}/",
++            {"aniversario_dia": "31", "aniversario_mes": "2"},
++        )
++        self.assertContains(ruim, "Essa data não existe")
++        VendaAgro.objects.filter(pk=venda.pk).update(
++            criado_em=timezone.now() - timedelta(days=40)
++        )
++        ItemVendaAgro.objects.filter(venda=venda).update(descricao="Ração 15kg")
++        FiadoTituloAgro.objects.create(
++            chave_unica=f"teste-cartao-{self.cliente.pk}",
++            cliente_agro=self.cliente,
++            cliente_nome=self.cliente.nome,
++            vencimento=timezone.localdate() - timedelta(days=3),
++            valor_bruto=Decimal("40.00"),
++        )
++        pagina = self.client.get(f"/cartao/{cartao.token}/")
++        self.assertContains(pagina, "já passou do prazo habitual")
++        self.assertContains(pagina, "40.00")
++        self.assertContains(pagina, "venceu em")
+diff --git a/produtos/views_cliente_cartao.py b/produtos/views_cliente_cartao.py
+index 0477ea6e..891670f0 100644
+--- a/produtos/views_cliente_cartao.py
++++ b/produtos/views_cliente_cartao.py
+@@ -15,7 +15,13 @@ from produtos.cliente_cartao_util import (
+     SESSAO_OK,
+     cartao_por_codigo,
+     cartao_por_token,
++    aviso_racao,
+     compras_do_cliente,
++    contar_compras,
++    fiado_em_aberto,
++    gravar_aniversario,
++    mais_levados,
++    texto_aniversario,
+     codigo_cartao_lido,
+     eh_codigo_cartao,
+     emitir_cartoes,
+@@ -173,13 +179,30 @@ def cliente_cartao_portal(request, token: str):
+     cliente = cartao.cliente
+     aviso = ""
+     liberado = (request.session.get(SESSAO_OK) or "") == token
+-    if request.method == "POST" and not liberado:
++    aviso_niver = ""
++    tela = (request.GET.get("tela") or "").strip()
++    if request.method == "POST" and not liberado and "whatsapp" in request.POST:
+         if mesmo_whatsapp(cliente.whatsapp, request.POST.get("whatsapp") or ""):
+             request.session[SESSAO_OK] = token
+             liberado = True
+         else:
+             aviso = "Esse WhatsApp não é o do cadastro. Fale com a loja para corrigir."
+-    compras = compras_do_cliente(cliente) if liberado else []
++    if request.method == "POST" and liberado and "aniversario_dia" in request.POST:
++        aviso_niver = gravar_aniversario(
++            cliente,
++            request.POST.get("aniversario_dia") or "",
++            request.POST.get("aniversario_mes") or "",
++        )
++        cliente.refresh_from_db()
++        tela = "aniversario" if aviso_niver else ""
++    if not liberado:
++        tela = ""
++    compras = compras_do_cliente(cliente) if liberado and tela == "compras" else []
++    qtd_compras = contar_compras(cliente) if liberado else 0
++    levados = mais_levados(cliente) if liberado else []
++    racoes = aviso_racao(cliente) if liberado else []
++    fiado = fiado_em_aberto(cliente) if liberado else None
++    niver = texto_aniversario(cliente) if liberado else {"preenchido": False, "frase": "", "aviso": ""}
+     from urllib.parse import quote
+ 
+     from produtos.models import CatalogoDeliveryConfig
+@@ -202,6 +225,13 @@ def cliente_cartao_portal(request, token: str):
+             "liberado": liberado,
+             "aviso": aviso,
+             "compras": compras,
++            "qtd_compras": qtd_compras,
++            "tela": tela,
++            "levados": levados,
++            "racoes": racoes,
++            "fiado": fiado,
++            "niver": niver,
++            "aviso_niver": aviso_niver,
+             "token": token,
+             "zap_url": zap_url,
+             "numero_curto": curto,

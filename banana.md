@@ -1728,9 +1728,13 @@ Fiado empilhado no card escuro, R$ pequeno na previsão, tela mais cheia. Sem mi
 | **Até o build** | no ar segue **v27.26.79** @ `ef23e2e7` |
 | **Volta** | `git push origin ef23e2e7:producao` |
 
-### CHECKLIST ÚNICO — **19/11** · tela do cartão no celular · ainda no teste
+### CHECKLIST ÚNICO — **19/11d** · 🟢 pronto para envio · **v27.26.83** · não enviado
 
-A primeira tela fica curta. Compras abrem em **Minhas compras**. Aniversário abre em **Meu aniversário**. A página do QR passa a mostrar: há quanto tempo foi a compra, os 3 produtos que mais leva, aviso se a ração está no prazo, fiado em aberto (valor e o mais antigo) e o número curto do cartão. Aniversário é dia e mês, campo novo, o cliente preenche na própria tela. Sem total gasto e sem média do mês. Migrate **0154** no teste. Não foi para a loja.
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CARTAO-PORTAL** | 🟢 Pronto | **SIM 0157** na loja | página no PC · teste do portal ok |
+
+Primeira tela curta: nome, cartão, cashback, vale, avisos (ração e fiado) e os 3 produtos. **Minhas compras** e **Meu aniversário** abrem outra tela. Sem total gasto e sem média do mês. O QR impresso não muda. Não mexe em PDV, caixa nem venda. No teste o campo já é a **0154**. Na loja nasce a **0157**, em cima da **0156**. Base **v27.26.82** @ `fb15ae8a`. **Na senha:** vendas pausadas · `./scripts/cutover_loja_checklist_1911_cartao_portal.sh --exec`. **Volta:** `git push origin fb15ae8a:producao`.
 
 ### ✅ CHECKLIST ÚNICO — **18/11d** · enviado · **v27.26.79** @ `ef23e2e7`
 
