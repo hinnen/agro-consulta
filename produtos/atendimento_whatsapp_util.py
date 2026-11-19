@@ -3043,8 +3043,9 @@ def listar_fotos_pendentes(*, limit: int = 25) -> list[dict]:
     _busca_fotos = []
     if len(out) >= lim:
         return out
-    corte = timezone.now() - timedelta(days=5)
-    # Olha a lista visível (não só os 12 primeiros). Devolve poucas por poll.
+    # Olha a lista visível. Quem já tem foto só entra depois de 7 dias, uma por vez.
+    semana = timezone.now() - timedelta(days=7)
+    semanais = 0
     qs = WhatsAppConversaAgro.objects.order_by("-ultima_em", "-id")[: max(120, lim * 8)]
     for c in qs:
         if len(out) >= lim:
@@ -3056,9 +3057,11 @@ def listar_fotos_pendentes(*, limit: int = 25) -> list[dict]:
         if chave in vistos:
             continue
         tem = _foto_no_disco(c)
-        recente = bool(c.foto_em) and c.foto_em >= corte
-        if tem and recente:
-            continue
+        if tem:
+            velha = (not c.foto_em) or c.foto_em < semana
+            if not velha or semanais >= 1:
+                continue
+            semanais += 1
         vistos.add(chave)
         out.append(
             {
@@ -3483,10 +3486,9 @@ def gravar_foto_perfil(
     if conv is None:
         return False, "sem_conversa"
     if (
-        not forcar
-        and conv.foto_perfil
+        conv.foto_perfil
         and conv.foto_em
-        and timezone.now() - conv.foto_em < timedelta(days=3)
+        and timezone.now() - conv.foto_em < timedelta(days=7)
     ):
         return True, "recente"
     ext = ".jpg"

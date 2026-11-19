@@ -1205,8 +1205,25 @@ async function enviarEntrada(m, extra) {
 }
 
 const fotoProximaTentativa = new Map();
-const FOTO_TTL_OK_MS = 6 * 60 * 60 * 1000;
 const FOTO_TTL_FAIL_MS = 2 * 60 * 1000;
+const FOTOS_FEITAS_FILE = path.join(__dirname, "fotos_ja_baixadas.json");
+const fotosJaBaixadas = new Set();
+try {
+  const bruto = JSON.parse(fs.readFileSync(FOTOS_FEITAS_FILE, "utf8"));
+  for (const id of bruto || []) fotosJaBaixadas.add(String(id));
+} catch {
+  /* primeira vez */
+}
+function marcarFotoBaixada(chave) {
+  const k = String(chave || "");
+  if (!k || fotosJaBaixadas.has(k)) return;
+  fotosJaBaixadas.add(k);
+  try {
+    fs.writeFileSync(FOTOS_FEITAS_FILE, JSON.stringify([...fotosJaBaixadas]), "utf8");
+  } catch {
+    /* ignore */
+  }
+}
 let fotoFila = Promise.resolve();
 
 function agendarFotoPerfil(jid, extra) {
@@ -1214,15 +1231,17 @@ function agendarFotoPerfil(jid, extra) {
   const lid = String((extra && extra.jid_lid) || "");
   if (!ehChatPrivado(j) && !lid.endsWith("@lid")) return;
   const chave = j || lid;
-  const forcar = !!(extra && extra.forcar);
+  const ja = fotosJaBaixadas.has(chave) || fotosJaBaixadas.has(j) || (lid && fotosJaBaixadas.has(lid));
+  if (ja && !(extra && extra.forcar)) return;
   const prox = fotoProximaTentativa.get(chave) || 0;
-  if (!forcar && Date.now() < prox) return;
+  if (Date.now() < prox) return;
   // trava curta enquanto baixa (anti-spam do poll)
   fotoProximaTentativa.set(chave, Date.now() + 60 * 1000);
   fotoFila = fotoFila
     .then(async () => {
       const ok = await enviarFotoPerfil(j, extra || {});
-      fotoProximaTentativa.set(chave, Date.now() + (ok ? FOTO_TTL_OK_MS : FOTO_TTL_FAIL_MS));
+      if (ok) marcarFotoBaixada(chave);
+      fotoProximaTentativa.set(chave, Date.now() + (ok ? 365 * 24 * 60 * 60 * 1000 : FOTO_TTL_FAIL_MS));
     })
     .catch((e) => {
       console.error("foto perfil:", e.message || e);

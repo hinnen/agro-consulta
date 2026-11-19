@@ -26,7 +26,53 @@
     }
   })();
   </script>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .hidden { display: none !important; }
+    .flex { display: flex; }
+    .flex-col { flex-direction: column; }
+    .flex-1 { flex: 1 1 auto; }
+    .min-h-0 { min-height: 0; }
+    .h-\[100dvh\] { height: 100dvh; }
+    .w-full { width: 100%; }
+    .shrink-0 { flex-shrink: 0; }
+    .overflow-hidden { overflow: hidden; }
+    .overflow-y-auto { overflow-y: auto; }
+    .overflow-x-auto { overflow-x: auto; }
+    .items-center { align-items: center; }
+    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .gap-1 { gap: .25rem; }
+    .gap-2 { gap: .5rem; }
+    .p-0 { padding: 0; }
+    .p-2 { padding: .5rem; }
+    .px-2 { padding-left: .5rem; padding-right: .5rem; }
+    .px-3 { padding-left: .75rem; padding-right: .75rem; }
+    .py-1\.5 { padding-top: .375rem; padding-bottom: .375rem; }
+    .py-2 { padding-top: .5rem; padding-bottom: .5rem; }
+    .pt-1 { padding-top: .25rem; }
+    .pb-1 { padding-bottom: .25rem; }
+    .mx-3 { margin-left: .75rem; margin-right: .75rem; }
+    .mt-1 { margin-top: .25rem; }
+    .mt-2 { margin-top: .5rem; }
+    .min-h-\[2\.85rem\] { min-height: 2.85rem; }
+    .border { border: 1px solid #e2e8f0; }
+    .border-b { border-bottom: 1px solid #f1f5f9; }
+    .border-t { border-top: 1px solid #e2e8f0; }
+    .border-slate-100 { border-color: #f1f5f9; }
+    .border-slate-200 { border-color: #e2e8f0; }
+    .rounded-2xl { border-radius: 1rem; }
+    .bg-white { background: #fff; }
+    .bg-slate-50 { background: #f8fafc; }
+    .bg-\[\#075e54\] { background: #075e54; }
+    .bg-\[\#ece5dd\] { background: #ece5dd; }
+    .text-slate-900 { color: #0f172a; }
+    .text-slate-600 { color: #475569; }
+    .text-amber-950 { color: #451a03; }
+    .text-sm { font-size: .875rem; }
+    .text-xs { font-size: .75rem; }
+    .text-base { font-size: 1rem; }
+    .font-semibold { font-weight: 600; }
+    .font-extrabold { font-weight: 800; }
+  </style>
   <style>
     html, body { height: 100%; margin: 0; }
     html { background: #075E54; }
