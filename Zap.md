@@ -40,6 +40,8 @@ Atualizado **14/11/2026**.
 - Um sistema no ar, uma branch (`whatsapp`). Teste fica na `zap-teste`, noutro endereço. QR de teste pode ser o pessoal. A loja não se mistura.
 - Os 3 Zaps em uso são o mesmo produto e a versão final. Aplicativo e o de dentro do Sistvale são idênticos. O do computador tem os Ajustes, e o que mudar ali vale nos dois celulares. Só mudam com a frase dele e a senha na mesma mensagem.
 - Mudança nova: primeiro na pasta do teste (`zap-teste`), testar, e só então passar para o Zap das lojas com «pode mudar o Zap» e a senha. Não experimentar no Zap ligado.
+
+19/11, só no teste: PIN de 7 dias no Zap aberto pelo Sistvale. Testado. A loja ainda não tem. Para subir: «pode mudar o Zap» e a senha.
 - Ditado de voz sai torto às vezes. Se não bater, perguntar de novo.
 - O foco é o desktop. O que ele pede também vale no celular, cabendo na tela do telefone.
 
