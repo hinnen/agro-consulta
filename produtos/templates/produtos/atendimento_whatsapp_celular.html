@@ -72,6 +72,25 @@
     .text-base { font-size: 1rem; }
     .font-semibold { font-weight: 600; }
     .font-extrabold { font-weight: 800; }
+    /* O PIN fica por cima. Sem isso a tela recebe mensagem e não aceita toque. */
+    #sspin-root {
+      position: fixed; inset: 0; z-index: 2147483646;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: rgba(2, 6, 23, .94); color: #f8fafc; padding: 1rem;
+    }
+    #sspin-root.opacity-0 { opacity: 0; }
+    #sspin-root.pointer-events-none { pointer-events: none; }
+    #sspin-root .w-full { width: 100%; }
+    #sspin-root .max-w-sm { max-width: 24rem; }
+    #sspin-root .rounded-2xl, #sspin-root .rounded-xl { border-radius: 1rem; }
+    #sspin-root .bg-slate-900 { background: #0f172a; }
+    #sspin-root .bg-slate-800 { background: #1e293b; }
+    #sspin-root .border { border: 1px solid #475569; }
+    #sspin-root .p-5 { padding: 1.1rem; }
+    #sspin-root .text-center { text-align: center; }
+    #sspin-root .text-white { color: #fff; }
+    #sspin-root .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; }
+    #sspin-root button, #sspin-root input { font-size: 1.15rem; min-height: 2.8rem; }
   </style>
   <style>
     html, body { height: 100%; margin: 0; }

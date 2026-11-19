@@ -260,11 +260,13 @@ def atendimento_whatsapp_celular_sw(request):
 
 def atendimento_whatsapp_celular_view(request):
     destaque = (request.GET.get("sistapp") or "").strip() in ("1", "true", "sim", "yes")
-    return render(
+    resp = render(
         request,
         "produtos/atendimento_whatsapp_celular.html",
         {"wa_pwa_destaque": destaque, "wa_sistapp": destaque},
     )
+    resp["Cache-Control"] = "no-store"
+    return resp
 
 
 @login_required(login_url="/entrar/")
