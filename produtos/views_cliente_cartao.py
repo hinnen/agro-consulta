@@ -15,7 +15,12 @@ from produtos.cliente_cartao_util import (
     SESSAO_OK,
     cartao_por_codigo,
     cartao_por_token,
+    aviso_racao,
     compras_do_cliente,
+    fiado_em_aberto,
+    gravar_aniversario,
+    mais_levados,
+    texto_aniversario,
     codigo_cartao_lido,
     eh_codigo_cartao,
     emitir_cartoes,
@@ -173,13 +178,25 @@ def cliente_cartao_portal(request, token: str):
     cliente = cartao.cliente
     aviso = ""
     liberado = (request.session.get(SESSAO_OK) or "") == token
-    if request.method == "POST" and not liberado:
+    aviso_niver = ""
+    if request.method == "POST" and not liberado and "whatsapp" in request.POST:
         if mesmo_whatsapp(cliente.whatsapp, request.POST.get("whatsapp") or ""):
             request.session[SESSAO_OK] = token
             liberado = True
         else:
             aviso = "Esse WhatsApp não é o do cadastro. Fale com a loja para corrigir."
+    if request.method == "POST" and liberado and "aniversario_dia" in request.POST:
+        aviso_niver = gravar_aniversario(
+            cliente,
+            request.POST.get("aniversario_dia") or "",
+            request.POST.get("aniversario_mes") or "",
+        )
+        cliente.refresh_from_db()
     compras = compras_do_cliente(cliente) if liberado else []
+    levados = mais_levados(cliente) if liberado else []
+    racoes = aviso_racao(cliente) if liberado else []
+    fiado = fiado_em_aberto(cliente) if liberado else None
+    niver = texto_aniversario(cliente) if liberado else {"preenchido": False, "frase": "", "aviso": ""}
     from urllib.parse import quote
 
     from produtos.models import CatalogoDeliveryConfig
@@ -202,6 +219,11 @@ def cliente_cartao_portal(request, token: str):
             "liberado": liberado,
             "aviso": aviso,
             "compras": compras,
+            "levados": levados,
+            "racoes": racoes,
+            "fiado": fiado,
+            "niver": niver,
+            "aviso_niver": aviso_niver,
             "token": token,
             "zap_url": zap_url,
             "numero_curto": curto,

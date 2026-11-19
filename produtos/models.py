@@ -114,6 +114,16 @@ class ClienteAgro(models.Model):
 
     nome = models.CharField(max_length=200)
     whatsapp = models.CharField("WhatsApp", max_length=20, blank=True, default="")
+    aniversario_dia = models.PositiveSmallIntegerField(
+        "Dia do aniversário",
+        null=True,
+        blank=True,
+    )
+    aniversario_mes = models.PositiveSmallIntegerField(
+        "Mês do aniversário",
+        null=True,
+        blank=True,
+    )
     cpf = models.CharField(max_length=14, blank=True, default="")
     endereco = models.CharField(
         max_length=500,

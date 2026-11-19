@@ -4,7 +4,7 @@ from __future__ import annotations
 import hashlib
 import re
 import secrets
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.db import transaction
 from django.utils import timezone
@@ -203,6 +203,86 @@ def confirmar_codigo(cartao: ClienteCartaoAgro, codigo: str) -> bool:
     return ok
 
 
+_MESES = (
+    "",
+    "janeiro",
+    "fevereiro",
+    "março",
+    "abril",
+    "maio",
+    "junho",
+    "julho",
+    "agosto",
+    "setembro",
+    "outubro",
+    "novembro",
+    "dezembro",
+)
+
+
+def texto_faz(quando) -> str:
+    if not quando:
+        return ""
+    dia = quando.date() if hasattr(quando, "date") else quando
+    dias = (timezone.localdate() - dia).days
+    if dias <= 0:
+        return "hoje"
+    if dias == 1:
+        return "ontem"
+    return f"faz {dias} dias"
+
+
+def gravar_aniversario(cliente: ClienteAgro, dia_bruto: str, mes_bruto: str) -> str:
+    """Grava dia e mês. Devolve aviso vazio quando deu certo."""
+    try:
+        dia = int(dia_bruto)
+        mes = int(mes_bruto)
+    except (TypeError, ValueError):
+        return "Escolha o dia e o mês."
+    if mes < 1 or mes > 12 or dia < 1 or dia > 31:
+        return "Essa data não existe."
+    ultimo = (date(2024, mes, 1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+    if dia > ultimo.day:
+        return "Essa data não existe."
+    cliente.aniversario_dia = dia
+    cliente.aniversario_mes = mes
+    cliente.save(update_fields=["aniversario_dia", "aniversario_mes"])
+    return ""
+
+
+def texto_aniversario(cliente: ClienteAgro) -> dict:
+    dia = cliente.aniversario_dia
+    mes = cliente.aniversario_mes
+    if not dia or not mes:
+        return {"preenchido": False, "frase": "", "aviso": ""}
+    frase = f"{dia} de {_MESES[mes]}"
+    hoje = timezone.localdate()
+    try:
+        neste = date(hoje.year, mes, dia)
+    except ValueError:
+        neste = date(hoje.year, 2, 28)
+    if neste < hoje:
+        try:
+            neste = date(hoje.year + 1, mes, dia)
+        except ValueError:
+            neste = date(hoje.year + 1, 2, 28)
+    falta = (neste - hoje).days
+    aviso = ""
+    if falta == 0:
+        aviso = "Hoje é o seu aniversário."
+    elif falta <= 7:
+        aviso = "Seu aniversário está chegando."
+    return {"preenchido": True, "frase": frase, "aviso": aviso}
+
+
+def _refs_cliente(cliente: ClienteAgro) -> list[str]:
+    refs = [str(cliente.pk), f"local:{cliente.pk}", f"agro:{cliente.pk}"]
+    externo = (cliente.externo_id or "").strip()
+    if externo:
+        refs.append(externo)
+    return refs
+
+
 def compras_do_cliente(cliente: ClienteAgro, limite: int = 20) -> list[dict]:
     refs = [str(cliente.pk), f"local:{cliente.pk}", f"agro:{cliente.pk}"]
     externo = (cliente.externo_id or "").strip()
@@ -229,9 +309,86 @@ def compras_do_cliente(cliente: ClienteAgro, limite: int = 20) -> list[dict]:
         saida.append(
             {
                 "quando": venda.criado_em,
+                "faz": texto_faz(venda.criado_em),
                 "total": venda.total,
                 "forma": venda.forma_pagamento,
                 "itens": itens,
             }
         )
     return saida
+
+
+def mais_levados(cliente: ClienteAgro, limite: int = 3) -> list[dict]:
+    from django.db.models import Count, Max
+
+    refs = _refs_cliente(cliente)
+    venda_ids = list(
+        VendaAgro.objects.filter(cliente_id_erp__in=refs, devolvida_em__isnull=True).values_list("pk", flat=True)[:400]
+    )
+    if not venda_ids:
+        return []
+    linhas = (
+        ItemVendaAgro.objects.filter(venda_id__in=venda_ids)
+        .exclude(descricao="")
+        .values("descricao")
+        .annotate(vezes=Count("id"), ultima=Max("venda__criado_em"))
+        .order_by("-vezes", "-ultima")[:limite]
+    )
+    saida = []
+    for row in linhas:
+        ultima = row["ultima"]
+        saida.append(
+            {
+                "descricao": row["descricao"],
+                "vezes": row["vezes"],
+                "ultima": ultima,
+                "faz": texto_faz(ultima),
+            }
+        )
+    return saida
+
+
+def aviso_racao(cliente: ClienteAgro) -> list[str]:
+    from produtos.relacionamento_cliente_util import _ciclo_racao
+
+    refs = _refs_cliente(cliente)
+    venda_ids = list(
+        VendaAgro.objects.filter(cliente_id_erp__in=refs, devolvida_em__isnull=True).values_list("pk", flat=True)[:400]
+    )
+    frases = []
+    for item in _ciclo_racao(venda_ids):
+        if item.get("status") not in ("recompra", "atrasado"):
+            continue
+        nome = item.get("descricao") or "ração"
+        ref = item.get("media_intervalo_dias") or item.get("estimativa_dias_pacote")
+        ultima = item.get("ultima_compra")
+        if item.get("status") == "atrasado":
+            frases.append(f"A ração {nome} já passou do prazo habitual.")
+            continue
+        if ultima and ref:
+            base = date.fromisoformat(ultima)
+            ate = base + timedelta(days=int(ref))
+            frases.append(f"A ração {nome} costuma acabar por volta de {ate.strftime('%d/%m')}.")
+        else:
+            frases.append(f"A ração {nome} está perto de acabar.")
+    return frases[:2]
+
+
+def fiado_em_aberto(cliente: ClienteAgro) -> dict | None:
+    from produtos.relacionamento_cliente_util import _fiado_resumo
+
+    resumo = _fiado_resumo(cliente)
+    total = resumo.get("total_aberto") or 0
+    if total <= 0:
+        return None
+    datas = [t.get("vencimento") for t in resumo.get("titulos_abertos") or [] if t.get("vencimento")]
+    mais_antigo = min(datas) if datas else ""
+    frase_data = ""
+    if mais_antigo:
+        quando = date.fromisoformat(mais_antigo)
+        if quando < timezone.localdate():
+            frase_data = f"O mais antigo venceu em {quando.strftime('%d/%m/%Y')}."
+        else:
+            frase_data = f"O mais antigo vence em {quando.strftime('%d/%m/%Y')}."
+    valor = f"{float(total):.2f}"
+    return {"total": valor, "frase_data": frase_data}

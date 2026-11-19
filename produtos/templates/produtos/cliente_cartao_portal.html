@@ -30,6 +30,9 @@
     ul { margin: 0.45rem 0 0; padding: 0; list-style: none; }
     li { padding: 0.28rem 0; border-top: 1px solid #e2e8f0; }
     .vazio { color: #64748b; }
+    .bloco { background: #fff; border-radius: 1rem; padding: 0.9rem 1rem; margin-top: 0.8rem; }
+    .bloco h2 { margin-top: 0; }
+    .niver { background: #fef3c7; border: 2px solid #fcd34d; }
   </style>
 </head>
 <body>
@@ -51,6 +54,49 @@
   </form>
   {% else %}
   <h1>{{ cliente.nome }}</h1>
+  <div class="cartao">Cartão {{ numero_curto }}</div>
+  {% if niver.aviso %}
+  <p class="aviso">{{ niver.aviso }}</p>
+  {% endif %}
+  {% if racoes %}
+  {% for frase in racoes %}
+  <p class="aviso">{{ frase }}</p>
+  {% endfor %}
+  {% endif %}
+  {% if fiado %}
+  <div class="bloco">
+    <h2>Fiado em aberto</h2>
+    <strong>R$ {{ fiado.total }}</strong>
+    {% if fiado.frase_data %}<p class="sub">{{ fiado.frase_data }}</p>{% endif %}
+  </div>
+  {% endif %}
+  <div class="bloco niver">
+    <h2>Aniversário</h2>
+    {% if niver.preenchido %}
+    <p class="sub">{{ niver.frase }}</p>
+    {% endif %}
+    {% if aviso_niver %}<p class="aviso">{{ aviso_niver }}</p>{% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <label for="aniversario_dia">Dia</label>
+      <input id="aniversario_dia" name="aniversario_dia" inputmode="numeric" maxlength="2" placeholder="19" required>
+      <label for="aniversario_mes">Mês</label>
+      <input id="aniversario_mes" name="aniversario_mes" inputmode="numeric" maxlength="2" placeholder="11" required>
+      <button type="submit">{% if niver.preenchido %}Corrigir data{% else %}Salvar aniversário{% endif %}</button>
+    </form>
+  </div>
+  {% if levados %}
+  <h2>O que você mais leva</h2>
+  {% for item in levados %}
+  <article>
+    <div class="topo">
+      <span>{{ item.descricao }}</span>
+      <span>{{ item.vezes }}×</span>
+    </div>
+    <div class="quando">última vez {{ item.faz }}</div>
+  </article>
+  {% endfor %}
+  {% endif %}
   <div class="saldos">
     <div class="saldo">
       <span>Cashback</span>
@@ -65,7 +111,7 @@
   {% for c in compras %}
   <article>
     <div class="topo">
-      <span class="quando">{{ c.quando|date:"d/m/Y H:i" }}</span>
+      <span class="quando">{{ c.quando|date:"d/m/Y H:i" }} · {{ c.faz }}</span>
       <span>R$ {{ c.total }}</span>
     </div>
     {% if c.forma %}<div class="quando">{{ c.forma }}</div>{% endif %}
