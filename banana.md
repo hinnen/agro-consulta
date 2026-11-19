@@ -1695,16 +1695,15 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🟢 VENDAS-MOBILE-VISUAL — **19/11** · pronto para envio · alvo **v27.26.80**
+### ✅ VENDAS-MOBILE-VISUAL — **19/11** · enviado · **v27.26.80** @ `76ac13ac`
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Painel de Vendas do SistApp no visual novo. Cartões sem centavo. Gavetas com centavo. Lista dos **6 meses fechados** (o mês atual não entra) |
+| **O quê** | Painel de Vendas do SistApp no visual novo. Cartões sem centavo. Gavetas com centavo. Lista dos **6 meses fechados** |
 | **Migrate** | **NÃO** |
-| **Base** | Loja **v27.26.79** @ `ef23e2e7`. O patch encaixa. Não é merge do `teste` |
-| **Prova** | Janela dos meses ok (19/11 → OUT a MAI). Desenho no celular **não** foi visto |
-| **Na senha** | Lojas pausam. `AGRO_LOJA_FRASE` + `AGRO_LOJA_SENHA` → `./scripts/cutover_loja_checklist_1911_vendas_mobile.sh` depois `--exec` |
-| **Volta** | `git push origin ef23e2e7:producao` · `docs/ROLLBACK-CHECKLIST-1911-VENDAS-MOBILE.md` |
+| **Git** | `producao` @ `76ac13ac` |
+| **Até o build** | no ar segue **v27.26.79** @ `ef23e2e7` |
+| **Volta** | `git push origin ef23e2e7:producao` |
 
 ### ✅ CHECKLIST ÚNICO — **18/11d** · enviado · **v27.26.79** @ `ef23e2e7`
 

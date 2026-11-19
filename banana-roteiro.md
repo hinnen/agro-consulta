@@ -4,6 +4,8 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
+**Loja (19/11):** **VENDAS-MOBILE-VISUAL** enviada · **v27.26.80** @ `76ac13ac`. Só o desenho do painel de Vendas e os seis meses fechados. Sem migrate. Até o build, no ar segue **v27.26.79** @ `ef23e2e7`. Volta: `git push origin ef23e2e7:producao`.
+
 **Loja (18/11d):** **CARTAO-QR-TELA** enviada · **v27.26.79** @ `ef23e2e7`. Só a aparência da página do celular. O QR impresso não muda. Sem migrate. Até o build, no ar segue **v27.26.78** @ `bd27b758`. Volta: `git push origin bd27b758:producao`.
 
 **Loja (18/11c):** **CARTAO-QR** enviada · **v27.26.78** @ `bd27b758`. Só a página do QR. O QR impresso não muda. Sem migrate. Até o build, no ar segue **v27.26.77** @ `2b90880a`. Volta: `git push origin 2b90880a:producao`.
