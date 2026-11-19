@@ -1730,7 +1730,7 @@ Fiado empilhado no card escuro, R$ pequeno na previsão, tela mais cheia. Sem mi
 
 ### CHECKLIST ÚNICO — **19/11** · tela do cartão no celular · ainda no teste
 
-A página do QR passa a mostrar: há quanto tempo foi a compra, os 3 produtos que mais leva, aviso se a ração está no prazo, fiado em aberto (valor e o mais antigo) e o número curto do cartão. Aniversário é dia e mês, campo novo, o cliente preenche na própria tela. Sem total gasto e sem média do mês. Migrate **0154** no teste. Não foi para a loja.
+A primeira tela fica curta. Compras abrem em **Minhas compras**. Aniversário abre em **Meu aniversário**. A página do QR passa a mostrar: há quanto tempo foi a compra, os 3 produtos que mais leva, aviso se a ração está no prazo, fiado em aberto (valor e o mais antigo) e o número curto do cartão. Aniversário é dia e mês, campo novo, o cliente preenche na própria tela. Sem total gasto e sem média do mês. Migrate **0154** no teste. Não foi para a loja.
 
 ### ✅ CHECKLIST ÚNICO — **18/11d** · enviado · **v27.26.79** @ `ef23e2e7`
 

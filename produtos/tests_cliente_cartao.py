@@ -106,11 +106,16 @@ class CartaoFluxoTest(TestCase):
         self.assertContains(errado, numero_curto(cartao.codigo))
         self.assertNotContains(errado, "Ração")
         certo = self.client.post(f"/cartao/{cartao.token}/", {"whatsapp": "13999998888"})
+        self.assertContains(certo, "Minhas compras")
+        self.assertContains(certo, "1 compra")
+        self.assertNotContains(certo, "R$ 10")
         self.assertContains(certo, "Ração")
         self.assertContains(certo, "Cashback")
         self.assertContains(certo, numero_curto(cartao.codigo))
         self.assertContains(certo, "hoje")
         self.assertContains(certo, "O que você mais leva")
+        lista = self.client.get(f"/cartao/{cartao.token}/?tela=compras")
+        self.assertContains(lista, "R$ 10")
         niver = self.client.post(
             f"/cartao/{cartao.token}/",
             {"aniversario_dia": "19", "aniversario_mes": "11"},

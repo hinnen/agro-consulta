@@ -283,6 +283,13 @@ def _refs_cliente(cliente: ClienteAgro) -> list[str]:
     return refs
 
 
+def contar_compras(cliente: ClienteAgro) -> int:
+    return VendaAgro.objects.filter(
+        cliente_id_erp__in=_refs_cliente(cliente),
+        devolvida_em__isnull=True,
+    ).count()
+
+
 def compras_do_cliente(cliente: ClienteAgro, limite: int = 20) -> list[dict]:
     refs = [str(cliente.pk), f"local:{cliente.pk}", f"agro:{cliente.pk}"]
     externo = (cliente.externo_id or "").strip()
@@ -359,18 +366,22 @@ def aviso_racao(cliente: ClienteAgro) -> list[str]:
     for item in _ciclo_racao(venda_ids):
         if item.get("status") not in ("recompra", "atrasado"):
             continue
-        nome = item.get("descricao") or "ração"
+        nome = (item.get("descricao") or "ração").strip()
+        if nome.lower().startswith("ração") or nome.lower().startswith("racao"):
+            rotulo = nome
+        else:
+            rotulo = f"ração {nome}"
         ref = item.get("media_intervalo_dias") or item.get("estimativa_dias_pacote")
         ultima = item.get("ultima_compra")
         if item.get("status") == "atrasado":
-            frases.append(f"A ração {nome} já passou do prazo habitual.")
+            frases.append(f"A {rotulo} já passou do prazo habitual.")
             continue
         if ultima and ref:
             base = date.fromisoformat(ultima)
             ate = base + timedelta(days=int(ref))
-            frases.append(f"A ração {nome} costuma acabar por volta de {ate.strftime('%d/%m')}.")
+            frases.append(f"A {rotulo} costuma acabar por volta de {ate.strftime('%d/%m')}.")
         else:
-            frases.append(f"A ração {nome} está perto de acabar.")
+            frases.append(f"A {rotulo} está perto de acabar.")
     return frases[:2]
 
 

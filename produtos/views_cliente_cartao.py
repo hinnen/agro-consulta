@@ -17,6 +17,7 @@ from produtos.cliente_cartao_util import (
     cartao_por_token,
     aviso_racao,
     compras_do_cliente,
+    contar_compras,
     fiado_em_aberto,
     gravar_aniversario,
     mais_levados,
@@ -179,6 +180,7 @@ def cliente_cartao_portal(request, token: str):
     aviso = ""
     liberado = (request.session.get(SESSAO_OK) or "") == token
     aviso_niver = ""
+    tela = (request.GET.get("tela") or "").strip()
     if request.method == "POST" and not liberado and "whatsapp" in request.POST:
         if mesmo_whatsapp(cliente.whatsapp, request.POST.get("whatsapp") or ""):
             request.session[SESSAO_OK] = token
@@ -192,7 +194,11 @@ def cliente_cartao_portal(request, token: str):
             request.POST.get("aniversario_mes") or "",
         )
         cliente.refresh_from_db()
-    compras = compras_do_cliente(cliente) if liberado else []
+        tela = "aniversario" if aviso_niver else ""
+    if not liberado:
+        tela = ""
+    compras = compras_do_cliente(cliente) if liberado and tela == "compras" else []
+    qtd_compras = contar_compras(cliente) if liberado else 0
     levados = mais_levados(cliente) if liberado else []
     racoes = aviso_racao(cliente) if liberado else []
     fiado = fiado_em_aberto(cliente) if liberado else None
@@ -219,6 +225,8 @@ def cliente_cartao_portal(request, token: str):
             "liberado": liberado,
             "aviso": aviso,
             "compras": compras,
+            "qtd_compras": qtd_compras,
+            "tela": tela,
             "levados": levados,
             "racoes": racoes,
             "fiado": fiado,
