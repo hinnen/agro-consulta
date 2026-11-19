@@ -8173,6 +8173,21 @@ def _format_moeda_br(val: Decimal) -> str:
     return f"-{s}" if neg else s
 
 
+def _format_moeda_inteiro(val: Decimal) -> str:
+    """Arredonda só na tela (meio para cima). O valor gravado não muda."""
+    from decimal import ROUND_HALF_UP
+
+    q = val.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+    neg = q < 0
+    inteiro = str(abs(int(q)))
+    out = []
+    while inteiro:
+        out.append(inteiro[-3:])
+        inteiro = inteiro[:-3]
+    corpo = ".".join(reversed(out)) if out else "0"
+    return f"-{corpo}" if neg else corpo
+
+
 def _home_quick_stats(request):
     """Indicadores leves da grade de atalhos — vendas hoje = mesma conta do /vendas-lojas."""
     from produtos.vendas_lojas_util import vendas_lojas_totais
@@ -11801,11 +11816,17 @@ def vendas_lojas_logout(request):
 @exigir_vendas_lojas_html
 def vendas_lojas_resumo(request):
     """Tela simples: totais na hora; média / previsão / fiado vêm no extras (async)."""
-    from produtos.vendas_lojas_util import vendas_lojas_totais
+    from produtos.vendas_lojas_util import (
+        vendas_lojas_seis_meses_fechados,
+        vendas_lojas_totais,
+    )
 
     data_ini, data_fim, periodo_label, periodo_key = _vendas_lojas_periodo_from_request(request)
     centro, vila, total = vendas_lojas_totais(data_ini, data_fim)
     hoje = timezone.localdate()
+    meses = vendas_lojas_seis_meses_fechados(hoje)
+    for ln in meses:
+        ln["total_fmt"] = _format_moeda_inteiro(ln["total"])
     return render(
         request,
         "produtos/vendas_lojas_resumo.html",
@@ -11817,6 +11838,10 @@ def vendas_lojas_resumo(request):
             "centro_fmt": _format_moeda_br(centro),
             "vila_fmt": _format_moeda_br(vila),
             "total_fmt": _format_moeda_br(total),
+            "centro_int": _format_moeda_inteiro(centro),
+            "vila_int": _format_moeda_inteiro(vila),
+            "total_int": _format_moeda_inteiro(total),
+            "meses_fechados": meses,
             "sem_fiado_fmt": "…",
             "sem_fiado_quit_fmt": "…",
             "centro_val": centro,
